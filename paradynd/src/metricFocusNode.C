@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.229 2002/08/01 18:21:39 willb Exp $
+// $Id: metricFocusNode.C,v 1.230 2002/08/12 04:21:55 schendel Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -598,104 +598,23 @@ bool metricFocusNode::unFork(dictionary_hash<instInstance*, instInstance*> &,
    return result;
 }
 
-
 // called by forkProcess of context.C, just after the fork-constructor was
 // called for the child process.
-//void metricFocusNode::handleFork(const process *parent, process *child,
-//			      dictionary_hash<instInstance*,instInstance*> &map) {
-void metricFocusNode::handleFork(const process *, process *,
-			     dictionary_hash<instInstance*,instInstance*> &)
+void metricFocusNode::handleFork(const process *parent, process *child)
 {
-  /*
-   // "map" defines a mapping from all instInstance's of the parent process to
-   // the copied one in the child process.  Some of the child process's ones may
-   // get fried by this routine, as it detects that instrumentation has been copied
-   // (by the fork syscall, which we have no control over) which doesn't belong in
-   // the child process and therefore gets deleted manually.
-  
-   // Remember that a given component can be shared by multiple aggregator-mi's,
-   // so be careful about duplicating a component twice.  Since we loop through
-   // component mi's instead of aggregate mi's, it's no problem.  Note that it's
-   // possible that only a subset of a component-mi's aggregators should get the newly
-   // created child component mi.
+   vector<machineMetFocusNode *> allMachNodes;
+   machineMetFocusNode::getMachineNodes(&allMachNodes);
 
-   // 2 loops for safety (2d loop may modify dictionary?)
-   vector<metricFocusNode *> allComponents;
-   dictionary_hash_iter<string,metricFocusNode*> iter =
-                                                 getIter_processMetFocusBuf();
-   for (; iter; iter++)
-      allComponents += iter.currval();
-
-   for (unsigned complcv=0; complcv < allComponents.size(); complcv++) {
-      metricFocusNode *comp = allComponents[complcv];
-
-      // duplicate the component (create a new one) if it belongs in the
-      // child process.  It belongs if any of its aggregate mi's should be
-      // propagated to the child process.  An aggregate mi should be propagated
-      // if it wasn't refined to some process.
-
-      bool shouldBePropagated = false; // so far
-      bool shouldBeUnforkedIfNotPropagated = false; // so far
-      assert(comp->aggregators.size() > 0);
-      for (unsigned agglcv1=0; agglcv1 < comp->aggregators.size(); agglcv1++) {
-	 metricFocusNode *aggMI = comp->aggregators[agglcv1];
-
-	 if (aggMI->focus_[resource::machine].size() <= 2) {
-	    // wasn't specific to any process
-	    shouldBeUnforkedIfNotPropagated = false; // we'll definitely be using it
-	    shouldBePropagated = true;
-	    break;
-	 }
-	 else if (comp->proc() == parent)
-	    // was specific to parent process, so fork() copied it into the child,
-	    // unless it was an internal or cost metric, in which case there was nothing
-	    // for fork to copy.
-	    if (!internalMetric::isInternalMetric(aggMI->getMetName()) &&
-		!costMetric::isCostMetric(aggMI->getMetName()))
-	       shouldBeUnforkedIfNotPropagated = true;
-	 else
-	    // was specific to other process, so nothing is in the child for it yet
-	    ;
-      }
-
-      if (!shouldBePropagated && shouldBeUnforkedIfNotPropagated) {
-	 // this component mi isn't gonna be propagated to the child process, but
-	 // the fork syscall left some residue in the child.  Delete that residue now.
-	 assert(comp->proc() == parent);
-	 comp->unFork(map, true, true); // also modifies 'map' to remove items
-      }
-
-      if (!shouldBePropagated)
-	 continue;
-
-      // Okay, it's time to propagate this component mi to the subset of its aggregate
-      // mi's which weren't refined to a specific process.  If we've gotten to this
-      // point, then there _is_ at least one such aggregate.
-      assert(shouldBePropagated);
-      metricFocusNode *newComp = comp->forkProcess(child, map);
-
-	  if( !newComp )
-		  continue;
-         // copies instr (well, fork() does this for us), allocs ctr/timer space,
-         // initializes.  Basically, copies dataReqNode's and instReqNode's.
-
-      bool foundAgg = false;
-      for (unsigned agglcv2=0; agglcv2 < comp->aggregators.size(); agglcv2++) {
-	 metricFocusNode *aggMI = comp->aggregators[agglcv2];
-	 if (aggMI->focus_[resource::machine].size() <= 2) {
-	    // this aggregate mi wasn't specific to any process, so it gets the new
-	    // child component.
-	    aggMI->components += newComp;
-	    newComp->aggregators += aggMI;
-	    newComp->samples     += aggMI->aggregator.newComponent();
-	    foundAgg = true;
-	 }
-      }
-      assert(foundAgg);
+   vector<processMetFocusNode *> procNodesToUnfork;
+   for (unsigned j=0; j < allMachNodes.size(); j++) {
+      machineMetFocusNode *curNode = allMachNodes[j];
+      curNode->propagateToForkedProcess(parent, child, &procNodesToUnfork);
    }
-*/
+   for(unsigned k=0; k<procNodesToUnfork.size(); k++) {
+      procNodesToUnfork[k]->unFork();
+   }
 }
-
+  
 void metricFocusNode::handleNewThread(pdThread *thr) {
   vector<processMetFocusNode *> MT_procs;
   processMetFocusNode::getMT_ProcNodes(&MT_procs);
@@ -726,7 +645,7 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id)
 		  << " failed because createMetricInstance failed" << endl;
       return(-1);
    }
-   
+   //cerr << "created metric-focus " << machNode->getFullName() << "\n";   
    addCurrentPredictedCost(machNode->cost());
    metResPairsEnabled++;
    
