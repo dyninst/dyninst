@@ -2,9 +2,12 @@
 // C++ code that provides access to tunable constants from tcl.
 
 /* $Log: tclTunable.C,v $
-/* Revision 1.7  1995/12/20 02:27:52  tamches
-/* general cleanup and warning reduction
+/* Revision 1.8  1996/02/05 19:13:56  tamches
+/* proper use of Tcl_SetResult fixes a purify problem
 /*
+ * Revision 1.7  1995/12/20 02:27:52  tamches
+ * general cleanup and warning reduction
+ *
  * Revision 1.6  1995/07/16 19:01:23  tamches
  * Changes to be compatible with the new string class
  *
@@ -153,15 +156,17 @@ int TclTunableCommand(ClientData, Tcl_Interp *interp,
    switch (commandIndex) {
       case GETBOOLALLNAMES: {
          char *resultString = getBoolAllNames();
-         strcpy(interp->result, resultString);
-         free(resultString);
+	 Tcl_SetResult(interp, resultString, TCL_DYNAMIC);
+            // TCL_DYNAMIC --> "the string was allocated with malloc()
+            // and is now the property of the tcl system"
          return TCL_OK;
       }
 
       case GETFLOATALLNAMES: {
          char *resultString = getFloatAllNames();
-         strcpy(interp->result, resultString);
-         free(resultString);
+	 Tcl_SetResult(interp, resultString, TCL_DYNAMIC);
+            // TCL_DYNAMIC --> "the string was allocated with malloc()
+            // and is now the property of the tcl system"
          return TCL_OK;
       }
 
