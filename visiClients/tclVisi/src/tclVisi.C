@@ -4,8 +4,11 @@
  *        Tcl_AppInit() function.
  *
  *  $Log: tclVisi.C,v $
- *  Revision 1.1  1994/05/31 21:05:51  rbi
- *  Initial version of tclVisi and tabVis
+ *  Revision 1.2  1994/11/08 00:19:41  tamches
+ *  commented out blt-ish influences
+ *
+ * Revision 1.1  1994/05/31  21:05:51  rbi
+ * Initial version of tclVisi and tabVis
  *
  */
 #include <stdio.h>
@@ -14,33 +17,30 @@
 
 extern Dg_Init(Tcl_Interp *interp);
 
-extern "C" {
-  int Blt_Init(Tcl_Interp *interp);
-}
+//extern "C" {
+//  int Blt_Init(Tcl_Interp *interp);
+//}
 
 Tcl_Interp *MainInterp;
 
-int
-Tcl_AppInit(Tcl_Interp *interp)
-{
+int Tcl_AppInit(Tcl_Interp *interp) {
     Tk_Window main;
 
     MainInterp = interp;
 
     main = Tk_MainWindow(interp);
 
-    if (Blt_Init(interp) == TCL_ERROR) {
-	return TCL_ERROR;
-    }
-    if (Dg_Init(interp) == TCL_ERROR) {
+//    if (Blt_Init(interp) == TCL_ERROR)
+//	return TCL_ERROR;
+
+    if (Dg_Init(interp) == TCL_ERROR)
         return TCL_ERROR;
-    }
-    if (Tcl_Init(interp) == TCL_ERROR) {
+
+    if (Tcl_Init(interp) == TCL_ERROR)
 	return TCL_ERROR;
-    }
-    if (Tk_Init(interp) == TCL_ERROR) {
+
+    if (Tk_Init(interp) == TCL_ERROR)
 	return TCL_ERROR;
-    }
 
     tcl_RcFileName = "~/.wishrc";
 
