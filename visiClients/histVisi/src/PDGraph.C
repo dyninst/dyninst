@@ -59,7 +59,7 @@
 //   PDGraph::DataW       PDGData.C
 //
 //---------------------------------------------------------------------------
-// $Id: PDGraph.C,v 1.4 1999/10/13 16:15:56 pcroth Exp $
+// $Id: PDGraph.C,v 1.5 1999/11/09 15:54:44 pcroth Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include <iostream.h>
@@ -143,7 +143,7 @@ dictionary_hash<Tk_Window,ClientData> PDGraph::winInstDataMap( HashTkWindow );
 #if !defined(i386_unknown_nt4_0)
 #  define    DEF_PDGRAPH_FOREGROUND    "Black"
 #  define    DEF_PDGRAPH_BACKGROUND    "#d9d9d9"
-#  define    DEF_PDGRAPH_FONT        "Helvetica -12"
+#  define    DEF_PDGRAPH_FONT        "Helvetica 12"
 #else // !defined(i386_unknown_nt4_0)
 #  define    DEF_PDGRAPH_FOREGROUND    "SystemButtonText"
 #  define    DEF_PDGRAPH_BACKGROUND    "SystemButtonFace"
