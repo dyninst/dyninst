@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.45 2000/05/11 04:52:25 zandy Exp $ */
+/* $Id: test1.mutatee.c,v 1.46 2000/05/24 00:06:15 tikir Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -562,7 +562,9 @@ void call22_7(int x)
 
 #if defined(sparc_sun_solaris2_4) || \
     defined(i386_unknown_solaris2_5) || \
-    defined(i386_unknown_linux2_0)
+    defined(i386_unknown_linux2_0) || \
+    defined(rs6000_ibm_aix4_1) || \
+    defined(alpha_dec_osf4_0)
 
 /* this function has to be only 1 line for test30 to pass */
 /* these two lines has to be together otherwise test30 will fail */
@@ -1932,12 +1934,18 @@ int func30_1()
 
 #if defined(sparc_sun_solaris2_4) || \
     defined(i386_unknown_solaris2_5) || \
-    defined(i386_unknown_linux2_0)
+    defined(i386_unknown_linux2_0) || \
+    defined(rs6000_ibm_aix4_1) || \
+    defined(alpha_dec_osf4_0)
 
     func30_2();
 
     passedTest[30] = !globalVariable30_3 ||
+#if defined(rs6000_ibm_aix4_1)
+		     ((globalVariable30_8 <= globalVariable30_3) &&
+#else
 		     ((globalVariable30_2 <= globalVariable30_3) &&
+#endif
 		      (globalVariable30_3 <= globalVariable30_9));
     if (!passedTest[30]){ 
     	printf("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
@@ -1945,7 +1953,11 @@ int func30_1()
     }
 
     passedTest[30] = !globalVariable30_4 ||
+#if defined(rs6000_ibm_aix4_1)
+		     ((globalVariable30_8 <= globalVariable30_4) &&
+#else
 		     ((globalVariable30_2 <= globalVariable30_4) &&
+#endif
 		      (globalVariable30_4 <= globalVariable30_9));
     if (!passedTest[30]){
     	printf("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
@@ -1953,7 +1965,11 @@ int func30_1()
     }
 
     passedTest[30] = !globalVariable30_5 ||
+#if defined(rs6000_ibm_aix4_1)
+		     ((globalVariable30_8 <= globalVariable30_5) &&
+#else
 		     ((globalVariable30_2 <= globalVariable30_5) &&
+#endif
 		      (globalVariable30_5 <= globalVariable30_9));
     if (!passedTest[30]){ 
     	printf("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
