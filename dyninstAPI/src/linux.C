@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.52 2001/10/29 16:01:09 zandy Exp $
+// $Id: linux.C,v 1.53 2001/10/29 16:19:00 zandy Exp $
 
 #include <fstream.h>
 
@@ -1085,7 +1085,7 @@ bool process::dlopenDYNINSTlib() {
       char libc_version[ libc_vers.size() + 1 ];
       libc_version[ libc_vers.size() ] = '\0';
       readDataSpace( (void *)libc_vers.addr(), libc_vers.size(), libc_version, true );
-      if (!strncmp(libc_version, "2", 1)) {
+      if (strncmp(libc_version, "2", 1)) {
 	  cerr << "Found " << libc_version_symname << " = \"" << libc_version
 	       << "\", which doesn't match any known glibc"
 	       << " assuming glibc 2.1." << endl;
