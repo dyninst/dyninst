@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.49 2003/10/21 17:21:45 bernat Exp $
+// $Id: BPatch_image.C,v 1.50 2004/02/25 04:36:35 schendel Exp $
 
 #define BPATCH_FILE
 
@@ -341,9 +341,9 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address,
     if (func != NULL) {
         instPoint *entry = const_cast<instPoint *>(func->funcEntry(NULL));
         assert(entry);
-        if ((entry->iPgetAddress() == (Address)address) ||
+        if ((entry->pointAddr() == (Address)address) ||
             (pointImageBase && 
-             ((entry->iPgetAddress() + pointImageBase) == (Address)address))) 
+             ((entry->pointAddr() + pointImageBase) == (Address)address))) 
         {
             return proc->findOrCreateBPPoint(NULL, entry, BPatch_entry);
         }
@@ -351,9 +351,9 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address,
         const pdvector<instPoint*> &exits = func->funcExits(NULL);
         for (i = 0; i < exits.size(); i++) {
             assert(exits[i]);
-            if ((exits[i]->iPgetAddress() == (Address)address) ||
+            if ((exits[i]->pointAddr() == (Address)address) ||
                 (pointImageBase && 
-                 ((exits[i]->iPgetAddress() + pointImageBase) == (Address)address))) 
+                 ((exits[i]->pointAddr() + pointImageBase) == (Address)address))) 
             {
                 return proc->findOrCreateBPPoint(NULL, exits[i], BPatch_exit);
             }
@@ -362,9 +362,9 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address,
         const pdvector<instPoint*> &calls = func->funcCalls(NULL);
         for (i = 0; i < calls.size(); i++) {
             assert(calls[i]);
-            if ((calls[i]->iPgetAddress() == (Address)address) ||
+            if ((calls[i]->pointAddr() == (Address)address) ||
                 (pointImageBase && 
-                 ((calls[i]->iPgetAddress() + pointImageBase) == (Address)address))) 
+                 ((calls[i]->pointAddr() + pointImageBase) == (Address)address))) 
             {
                 return proc->findOrCreateBPPoint(NULL, calls[i],
                                                  BPatch_subroutine);

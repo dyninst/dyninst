@@ -41,14 +41,12 @@
 
 /*
  * inst-power.h - Common definitions to the POWER specific instrumentation code.
- * $Id: inst-power.h,v 1.21 2003/09/29 20:47:59 bernat Exp $
+ * $Id: inst-power.h,v 1.22 2004/02/25 04:36:22 schendel Exp $
  */
 
 #ifndef INST_POWER_H
 #define INST_POWER_H
 
-
-#include "dyninstAPI/src/ast.h"
 
 #ifdef BPATCH_LIBRARY
 #include "BPatch_function.h"
@@ -60,14 +58,9 @@
  *
  */
 
+class registerSpace;
 extern registerSpace *regSpace;
 
-extern trampTemplate baseTemplate;
-#ifdef BPATCH_LIBRARY
-extern trampTemplate conservativeTemplate;
-#endif
-extern trampTemplate noArgsTemplate;
-extern trampTemplate withArgsTemplate;
 
 #define GPRSIZE               4
 #define FPRSIZE               8
@@ -116,12 +109,5 @@ extern trampTemplate withArgsTemplate;
 #define IN_TRAMP 0xda73
 #define IN_TRAMP_MASK 0xffff
 
-
-/* ipOther is never used in Paradyn, but simplifies code to unify */
-enum ipFuncLoc { ipFuncEntry, ipFuncReturn, ipFuncCallPoint, ipOther };
-
-
-bool isCallInsn(const instruction);
-bool isReturnInsn(const image *, Address);
 
 #endif

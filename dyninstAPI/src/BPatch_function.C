@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.39 2003/09/05 16:27:31 schendel Exp $
+// $Id: BPatch_function.C,v 1.40 2004/02/25 04:36:34 schendel Exp $
 
 #define BPATCH_FILE
 
@@ -244,7 +244,7 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
 
     // if the function is not instrumentable, we won't find the point
     if (!isInstrumentable())
-	return NULL;
+       return NULL;
 
     // function is generally uninstrumentable (with current technology)
     if (func->funcEntry(proc) == NULL) return NULL;
@@ -265,18 +265,18 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
           unsigned int c=0, r=0;
           Address cAddr, rAddr;
           while (c < Cpoints.size() || r < Rpoints.size()) {
-              if (c < Cpoints.size()) cAddr = Cpoints[c]->iPgetAddress();
+              if (c < Cpoints.size()) cAddr = Cpoints[c]->pointAddr();
               else                    cAddr = (Address)(-1);
-              if (r < Rpoints.size()) rAddr = Rpoints[r]->iPgetAddress();
+              if (r < Rpoints.size()) rAddr = Rpoints[r]->pointAddr();
               else                    rAddr = (Address)(-1);
               if (cAddr <= rAddr) {
-		  result->push_back(proc->findOrCreateBPPoint(
-		      this, Cpoints[c], BPatch_subroutine));
-                  c++;
+                 result->push_back(proc->findOrCreateBPPoint(
+                                         this, Cpoints[c], BPatch_subroutine));
+                 c++;
               } else {
-		  result->push_back(proc->findOrCreateBPPoint(
-		      this, Rpoints[r], BPatch_exit));
-                  r++;
+                 result->push_back(proc->findOrCreateBPPoint(
+                                        this, Rpoints[r], BPatch_exit));
+                 r++;
               }
           }
           break;
@@ -285,8 +285,8 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
         {
           const pdvector<instPoint *> &points = func->funcExits(proc);
           for (unsigned i = 0; i < points.size(); i++) {
-	      result->push_back(proc->findOrCreateBPPoint(
-		  this, points[i], BPatch_exit));
+             result->push_back(proc->findOrCreateBPPoint(
+                                             this, points[i], BPatch_exit));
           }
           break;
         }
@@ -294,8 +294,8 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
         {
           const pdvector<instPoint *> &points = func->funcCalls(proc);
           for (unsigned i = 0; i < points.size(); i++) {
-	      result->push_back(proc->findOrCreateBPPoint(
-		  this, points[i], BPatch_subroutine));
+             result->push_back(proc->findOrCreateBPPoint(
+                                          this, points[i], BPatch_subroutine));
           }
           break;
         }

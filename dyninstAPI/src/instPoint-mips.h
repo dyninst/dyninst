@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-mips.h,v 1.14 2003/10/21 17:22:11 bernat Exp $
+// $Id: instPoint-mips.h,v 1.15 2004/02/25 04:36:28 schendel Exp $
 // MIPS-specific definition of class instPoint
 
 #ifndef _INST_POINT_MIPS_H_
@@ -57,80 +57,53 @@ class BPatch_point;
 #endif
 
 typedef Address Offset;
-typedef enum {
-  IPT_NONE = 0,
-  IPT_ENTRY,
-  IPT_EXIT,
-  IPT_CALL,
-  IPT_OTHER
-} instPointType;
 
 /* instPoint flag bits */
 #define IP_Relocated       (0x00000001)
 #define IP_Overlap         (0x00000002)
 #define IP_RecursiveBranch (0x80000000)
 
-class instPoint {
+class instPoint : public instPointBase {
  public:
   instPoint(pd_Function *fn, Offset offset, instPointType ipt, unsigned info) :
+    instPointBase(ipt, (fn->getAddress(0) + offset), fn),
     flags(info),
     vectorId(-1),
-    func_(fn),
     hint_got_(0),
-    callee_(NULL),
     owner_(fn->file()->exec()),
-    addr_(fn->getAddress(0) + offset),
     offset_(offset), 
-    ipType_(ipt), 
     size_(2*INSN_SIZE),
     origOffset_(offset)
     {
-      origInsn_.raw = owner_->get_instruction(addr_); 
-      delayInsn_.raw = owner_->get_instruction(addr_+INSN_SIZE); 
+      origInsn_.raw = owner_->get_instruction(pointAddr()); 
+      delayInsn_.raw = owner_->get_instruction(pointAddr()+INSN_SIZE); 
     }
   ~instPoint() { /* TODO */ }
 
-  const function_base *iPgetFunction() const { return func_;   }
-  const function_base *iPgetCallee()   const { return callee_; }
-  const image         *iPgetOwner()    const { return owner_;  }
-  Address        iPgetAddress(process *p = 0)  const;
-  pd_Function *func() const { return (pd_Function *)func_;}
-
-  instPointType type() const { return ipType_; }
   int size() const { return size_; }
   unsigned code() const { return origInsn_.raw; }
   Offset offset() const { return offset_; }
-  Address address(const process *p = NULL) const { 
-    return func_->getAddress(p) + offset_; 
-  }
-  void setCallee(pd_Function *fn) { callee_ = fn; }
 
   void print(FILE *stream = stderr, char *pre = NULL) 
     {
       if (pre) fprintf(stream, pre);
-      switch(ipType_) {
-      case IPT_ENTRY: fprintf(stream, "entry "); break;
-      case IPT_EXIT: fprintf(stream, "exit "); break;
-      case IPT_CALL: fprintf(stream, "call "); break;
-      case IPT_OTHER: fprintf(stream, "other "); break;
+      switch(getPointType()) {
+      case functionEntry: fprintf(stream, "entry "); break;
+      case functionExit: fprintf(stream, "exit "); break;
+      case callSite: fprintf(stream, "call "); break;
+      case otherPoint: fprintf(stream, "other "); break;
       default: fprintf(stream, "unknown "); break;
       }
-      fprintf(stream, "point of \"%s\"\n", func_->prettyName().c_str());      
+      fprintf(stream, "point of \"%s\"\n", pointFunc()->prettyName().c_str());
     }
-
-  bool match(instPoint *p);
 
  public:
   unsigned       flags;
   int            vectorId;
   // protected:
-  function_base *func_;      // function containing this instPoint
   Address        hint_got_;  // callee hint (relative vaddr of GOT entry) 
-  function_base *callee_;    // function being called (if call point)
   image         *owner_;     // image containing "func_"
-  Address        addr_;      // address of this instPoint
   Offset         offset_;    // offset of instPoint from function start
-  instPointType  ipType_;
   int            size_;      // instPoint footprint
   instruction    origInsn_;  // instruction being instrumented
 
@@ -157,19 +130,19 @@ class instPoint {
 class entryPoint : public instPoint {
  public:
   entryPoint(pd_Function *func, Offset off, unsigned info = 0) 
-    : instPoint(func, off, IPT_ENTRY, info) {}
+    : instPoint(func, off, functionEntry, info) {}
 };
 
 class exitPoint : public instPoint {
  public:
   exitPoint(pd_Function *func, Offset off, unsigned info = 0) 
-    : instPoint(func, off, IPT_EXIT, info) {}
+    : instPoint(func, off, functionExit, info) {}
 };
 
 class callPoint : public instPoint {
  public:
   callPoint(pd_Function *func, Offset off, unsigned info = 0) 
-    : instPoint(func, off, IPT_CALL, info) {}
+    : instPoint(func, off, callSite, info) {}
 };
 
 

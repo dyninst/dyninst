@@ -8,14 +8,6 @@
 // Changed to get GCC 3.x working.
 #define BREAK_POINT_INSN 0x000000AA
 
-typedef enum { 
-    noneType,
-    functionEntry,
-    functionExit,
-    callSite,
-    otherPoint
-} instPointType;
-
 
 // TODO -- which way do the bits go?
 struct if_PAL {

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.189 2004/01/23 22:01:18 tlmiller Exp $
+ * $Id: inst-power.C,v 1.190 2004/02/25 04:36:21 schendel Exp $
  */
 
 #include "common/h/headers.h"
@@ -291,14 +291,24 @@ inline void loadImmIntoReg(instruction *&insn, Register rt, unsigned value)
 
 // VG(11/06/01): Shouldn't this be placed in instPoint-power.h?
 instPoint::instPoint(pd_Function *f, const instruction &instr, 
-                     const image *, Address adr, bool, ipFuncLoc fLoc)
-        :originalInstruction(instr), 
- callIndirect(false), callee(NULL), func_(f), ipLoc(fLoc), addr(adr)
+                     const image *, Address adr, bool, instPointType type) :
+   instPointBase(type, adr, f), originalInstruction(instr), 
+   callIndirect(false)
 {
    // inDelaySlot = false;
    // isDelayed = false;
    // callAggregate = false;
   bppoint = NULL;
+}
+
+bool isCallInsn(const instruction i)
+{
+  #define CALLmatch 0x48000001 /* bl */
+
+  // Only look for 'bl' instructions for now, although a branch
+  // could be a call function, and it doesn't need to set the link
+  // register if it is the last function call
+  return(isInsnType(i, OPmask | AALKmask, CALLmatch));
 }
 
 // Determine if the called function is a "library" function or a "user" function
@@ -321,15 +331,15 @@ void pd_Function::checkCallPoints() {
       assert(p);
       
       if(isCallInsn(p->originalInstruction)) {
-          loc_addr = p->iPgetAddress(0) + (p->originalInstruction.iform.li << 2);
+          loc_addr = p->pointAddr() + (p->originalInstruction.iform.li << 2);
           
           pd_Function *pdf = owner->findFuncByOffset(loc_addr);
           if (pdf) {
-              p->callee = pdf;
+              p->setCallee(pdf);
               non_lib.push_back(p);
           } else {
               p->callIndirect = true;
-              p->callee = NULL;
+              p->setCallee(NULL);
               non_lib.push_back(p);
           }
       } else 
@@ -339,15 +349,15 @@ void pd_Function::checkCallPoints() {
               // Inter-module call. See note below.
               // Assert the call is a bctr. Otherwise this code is FUBARed.
               p->callIndirect = true;
-              p->callee = NULL;
+              p->setCallee(NULL);
               non_lib.push_back(p);
           }
           else 
           {
               // Indirect call -- be conservative, assume it is a call to
               // an unnamed user function
-              assert(!p->callee); assert(p->callIndirect);
-              p->callee = NULL;
+              assert(!p->getCallee()); assert(p->callIndirect);
+              p->setCallee(NULL);
               non_lib.push_back(p);
           }
       }
@@ -368,11 +378,11 @@ Address pd_Function::newCallPoint(const Address adr, const instruction instr,
     instPoint *point;
     err = true;
     
-    point = new instPoint(this, instr, owner, adr, false, ipFuncCallPoint);
+    point = new instPoint(this, instr, owner, adr, false, callSite);
     
     if (!isCallInsn(instr)) {
         point->callIndirect = true;
-        point->callee = NULL;
+        point->setCallee(NULL);
     } else
         point->callIndirect = false;
     
@@ -432,10 +442,10 @@ float getPointFrequency(instPoint *point)
 
     pd_Function *func;
 
-    if (point->callee)
-        func = point->callee;
+    if (point->getCallee())
+        func = point->getCallee();
     else
-        func = point->func();
+        func = point->pointFunc();
 
     if (!funcFrequencyTable.defines(func->prettyName())) {
       // Changing this value from 250 to 100 because predictedCost was
@@ -1216,7 +1226,7 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   Address trampGuardFlagAddr = proc->trampGuardAddr();
   assert(trampGuardFlagAddr);
   registerSpace *theRegSpace;
-  if (location->ipLoc == ipOther)
+  if (location->getPointType() == otherPoint)
     theRegSpace = conservativeRegSpace;
   else
     theRegSpace = regSpace;
@@ -1279,19 +1289,19 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
 #endif
   
   // Put in the function stomping at the beginning
-  switch (location->ipLoc) {
-  case ipFuncReturn:
+  switch (location->getPointType()) {
+  case functionExit:
     //fprintf(stderr, "Base tramp at function entry\n");
     loadOrigLR(insn, currAddr);
     break;
-  case ipFuncEntry:
+  case functionEntry:
     //fprintf(stderr, "Base tramp at function exit\n");
     stompLRForExit(insn, currAddr, exitTrampAddr);
     break;
-  case ipOther:
+  case otherPoint:
     //fprintf(stderr, "Base tramp at arbitrary point\n");
     break;
-  case ipFuncCallPoint:
+  case callSite:
       //fprintf(stderr, "Base tramp at function call\n");
     break;
  default:
@@ -1337,16 +1347,16 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   }
 
   saveFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
-  if (location->ipLoc == ipOther) {
+  if (location->getPointType() == otherPoint) {
     // Save special purpose registers
     saveSPRegisters(insn, currAddr, TRAMP_SPR_OFFSET);
     // Save GPR0 here also? 
   }
   
-  // Save the count register if we're at an arbitrary point (ipOther)
-  // or a call site (ipFuncCallPoint)
-  if (location->ipLoc == ipOther ||
-      location->ipLoc == ipFuncCallPoint) {
+  // Save the count register if we're at an arbitrary point (otherPoint)
+  // or a call site (callSite)
+  if (location->getPointType() == otherPoint ||
+      location->getPointType() == callSite) {
       currAddr += saveSPR(insn, 10, SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
   }
 
@@ -1440,12 +1450,12 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
 
 
   currAddr += restoreLR(insn, 10, TRAMP_SPR_OFFSET + STK_LR);
-  if (location->ipLoc == ipOther ||
-      location->ipLoc == ipFuncCallPoint) {
+  if (location->getPointType() == otherPoint ||
+      location->getPointType() == callSite) {
       currAddr += restoreSPR(insn, 10, SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
   }  
 
-  if (location->ipLoc == ipOther)
+  if (location->getPointType() == otherPoint)
       restoreSPRegisters(insn, currAddr, TRAMP_SPR_OFFSET);
       
   restoreFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
@@ -1474,7 +1484,7 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   insn++; currAddr += sizeof(instruction);
   // The fun isn't over. If we're dyninst, we stick four more
   // noops here to cover all eventualities
-  if (location->ipLoc == ipOther)
+  if (location->getPointType() == otherPoint)
     for (unsigned i = 0; i < 4; i++) {
       generateNOOP(insn);
       insn++; currAddr += sizeof(instruction);
@@ -1519,16 +1529,16 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   }
 
   saveFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
-  if (location->ipLoc == ipOther) {
+  if (location->getPointType() == otherPoint) {
     // Save special purpose registers
     saveSPRegisters(insn, currAddr, TRAMP_SPR_OFFSET);
     // Save GPR0 here also? 
   }
   
-  // Save the count register if we're at an arbitrary point (ipOther)
+  // Save the count register if we're at an arbitrary point (otherPoint)
   // or a call site (ipFuncCallPoint)
-  if (location->ipLoc == ipOther ||
-      location->ipLoc == ipFuncCallPoint) {
+  if (location->getPointType() == otherPoint ||
+      location->getPointType() == callSite) {
       currAddr += saveSPR(insn, 10, SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
   }
 
@@ -1614,12 +1624,12 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   theTemplate->restorePostInsOffset = currAddr;
 
   currAddr += restoreLR(insn, 10, TRAMP_SPR_OFFSET + STK_LR);
-  if (location->ipLoc == ipOther ||
-      location->ipLoc == ipFuncCallPoint) {
+  if (location->getPointType() == otherPoint ||
+      location->getPointType() == callSite) {
       currAddr += restoreSPR(insn, 10, SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
   }  
 
-  if (location->ipLoc == ipOther)
+  if (location->getPointType() == otherPoint)
     restoreSPRegisters(insn, currAddr, TRAMP_SPR_OFFSET);
       
   restoreFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
@@ -1642,7 +1652,7 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   insn++; currAddr += sizeof(instruction);
 
   theTemplate->returnInsOffset = currAddr;
-  if (location->ipLoc == ipFuncReturn)
+  if (location->getPointType() == functionExit)
     insn->raw = BRraw;
   // Otherwise will get handled below
 
@@ -1661,7 +1671,7 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   //      returnInsOffset
   // 3) preTrampGuard (recursiveGuardPreJumpOffset to restorePreInsn)
   // 4) postTrampGuard (recursiveGuardPostJumpOffset to restorePostInsn)
-  // 5) Return jump (returnInsOffset to location->iPgetAddress)
+  // 5) Return jump (returnInsOffset to location->pointAddr)
   // 6) Emulated instruction (well, kinda)
 
   // 1
@@ -1696,16 +1706,17 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   // Okay, actually build this sucker.
   bool isReinstall = true;
   if (!baseAddr) {
-    baseAddr = proc->inferiorMalloc(theTemplate->size, anyHeap, location->iPgetAddress(proc));
+    baseAddr = proc->inferiorMalloc(theTemplate->size, anyHeap,
+                                    location->absPointAddr(proc));
     isReinstall = false;
   }
   // InferiorMalloc can ignore our "hints" when necessary, but that's 
   // bad here because we don't have a fallback position
-  if (DISTANCE(location->iPgetAddress(proc), baseAddr) > MAX_BRANCH)
+  if (DISTANCE(location->absPointAddr(proc), baseAddr) > MAX_BRANCH)
     {
       fprintf(stderr, "Instrumentation point %x too far from tramp location %x, trying to instrument function %s\n",
-	      (unsigned) location->iPgetAddress(proc), (unsigned) baseAddr,
-              location->func()->prettyName().c_str());
+	      (unsigned) location->absPointAddr(proc), (unsigned) baseAddr,
+              location->pointFunc()->prettyName().c_str());
       fprintf(stderr, "If this is a library function or the instrumentation point address begins with 0xd...\n");
       fprintf(stderr, "please ensure that the text instrumentation library (libDyninstText.a) is compiled and\n");
       fprintf(stderr, "in one of the directories contained in the LIBPATH environment variable. If it is not,\n");
@@ -1719,25 +1730,25 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   theTemplate->costAddr = baseAddr + theTemplate->updateCostOffset;
 
   // Relocate now
-  if (location->ipLoc != ipFuncReturn) {
+  if (location->getPointType() != functionExit) {
     // If it was func return, we slapped in a noop earlier.
     temp = &(tramp[theTemplate->emulateInsOffset/sizeof(instruction)]);
     // Copy in the original instruction
     *temp = location->originalInstruction;
-    relocateInstruction(temp, location->iPgetAddress(proc), 
-			baseAddr + theTemplate->emulateInsOffset);
+    relocateInstruction(temp, location->absPointAddr(proc), 
+                        baseAddr + theTemplate->emulateInsOffset);
   }
 
   // 5
-  if (location->ipLoc != ipFuncReturn) {
+  if (location->getPointType() != functionExit) {
     temp = &(tramp[theTemplate->returnInsOffset/sizeof(instruction)]);
-    generateBranchInsn(temp, location->iPgetAddress(proc) + sizeof(instruction) - 
-		       (baseAddr + theTemplate->returnInsOffset));
+    generateBranchInsn(temp, location->absPointAddr(proc) + sizeof(instruction)
+                       - (baseAddr + theTemplate->returnInsOffset));
     /*
     fprintf(stderr, "Installing jump at 0%x, offset 0x%x, going to 0x%x\n",
 	    (baseAddr + theTemplate->returnInsOffset), 
-	    location->iPgetAddress(proc) - (baseAddr + theTemplate->returnInsOffset),
-	    location->iPgetAddress(proc));
+	    location->absPointAddr(proc) - (baseAddr + theTemplate->returnInsOffset),
+	    location->absPointAddr(proc));
     */
   }
 #if defined(DEBUG)
@@ -1762,7 +1773,7 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   proc->writeDataSpace((caddr_t)baseAddr, theTemplate->size, (caddr_t) tramp);
   
 //  fprintf(stderr, "Base tramp from 0x%x to 0x%x, from 0x%x in function %s\n",
-  //baseAddr, baseAddr+theTemplate->size, location->iPgetAddress(proc), 
+  //baseAddr, baseAddr+theTemplate->size, location->absPointAddr(proc), 
   //location->func->prettyName().c_str());
   if (!isReinstall) {
       proc->addCodeRange(baseAddr, theTemplate);
@@ -1815,17 +1826,17 @@ trampTemplate *findOrInstallBaseTramp(process *proc,
       // Need to create base tramp
       // Note: entry/exit tramps are ALWAYS installed in pairs.
       // If one does not exist, the other MUST NOT exist.
-      if((location->ipLoc == ipFuncEntry) ||
-         (location->ipLoc == ipFuncReturn)) {
+      if((location->getPointType() == functionEntry) ||
+         (location->getPointType() == functionExit)) {
           
-          const instPoint* exitP = location->func()->funcExits(proc)[0];
+          const instPoint* exitP = location->pointFunc()->funcExits(proc)[0];
           assert(!proc->baseMap.defines(exitP));
           trampTemplate *exitT = installBaseTramp(exitP, proc, trampRecursiveDesired);
           
           if (!exitT) return NULL;
           proc->baseMap[exitP] = exitT;
 
-          const instPoint* entryP = location->func()->funcEntry(proc);
+          const instPoint* entryP = location->pointFunc()->funcEntry(proc);
           assert(!proc->baseMap.defines(entryP));
           trampTemplate *entryT = installBaseTramp(entryP, proc, trampRecursiveDesired,
                                                    NULL, exitT->baseAddr);
@@ -1836,7 +1847,7 @@ trampTemplate *findOrInstallBaseTramp(process *proc,
           }          
           proc->baseMap[entryP] = entryT;
 
-          if(location->ipLoc == ipFuncReturn) {
+          if(location->getPointType() == functionExit) {
               ret = exitT;
           }
           else
@@ -1844,11 +1855,12 @@ trampTemplate *findOrInstallBaseTramp(process *proc,
           
           instruction *insn = new instruction;
           
-          generateBranchInsn(insn, entryT->baseAddr - entryP->iPgetAddress(proc));
-          retInstance = new returnInstance(1, (instruction *)insn, 
-                                           sizeof(instruction), entryP->iPgetAddress(proc),
-                                           sizeof(instruction));
-          
+          generateBranchInsn(insn,
+                             entryT->baseAddr - entryP->absPointAddr(proc));
+          retInstance =
+             new returnInstance(1, (instruction *)insn, sizeof(instruction),
+                                entryP->absPointAddr(proc),
+                                sizeof(instruction));          
       } else {
           // Arbitrary or function call site
 
@@ -1858,10 +1870,12 @@ trampTemplate *findOrInstallBaseTramp(process *proc,
           proc->baseMap[location] = ret;
 
           instruction *insn = new instruction;
-          generateBranchInsn(insn, ret->baseAddr - location->iPgetAddress(proc));
+          generateBranchInsn(insn,
+                             ret->baseAddr - location->absPointAddr(proc));
 
           retInstance = new returnInstance(1, (instruction *)insn, 
-                                           sizeof(instruction), location->iPgetAddress(proc),
+                                           sizeof(instruction),
+                                           location->absPointAddr(proc),
                                            sizeof(instruction));
       }
   }
@@ -1924,22 +1938,23 @@ void generateBranch(process *proc, Address fromAddr, Address newAddr)
 
 int callsTrackedFuncP(instPoint *point)
 {
-    if (point->callIndirect) {
+   if (point->callIndirect) {
 #ifdef notdef
-        // TODO this won't compile now
-	// it's rare to call a library function as a parameter.
-        sprintf(errorLine, "*** Warning call indirect\n from %s %s (addr %d)\n",
-            point->func->file->fullName, point->func->prettyName, point->iPgetAddress(0));
-	logLine(errorLine);
+      // TODO this won't compile now
+      // it's rare to call a library function as a parameter.
+      sprintf(errorLine, "*** Warning call indirect\n from %s %s (addr %d)\n",
+              point->func->file->fullName, point->func->prettyName,
+              point->pointAddr());
+      logLine(errorLine);
 #endif
-        return(true);
-    } else {
-	if (point->callee) {
-	    return(true);
-	} else {
-	    return(false);
-	}
-    }
+      return(true);
+   } else {
+      if (point->getCallee()) {
+         return(true);
+      } else {
+         return(false);
+      }
+   }
 }
 
 void generateBreakPoint(instruction &insn) { // instP.h
@@ -2025,7 +2040,7 @@ bool rpcMgr::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
  */
 pd_Function* getFunction(instPoint *point)
 {
-    return(point->callee ? point->callee : point->func());
+    return(point->getCallee() ? point->getCallee() : point->pointFunc());
 }
 
 
@@ -3135,17 +3150,6 @@ int getInsnCost(opCode op)
     return (cost);
 }
 
-
-bool isCallInsn(const instruction i)
-{
-  #define CALLmatch 0x48000001 /* bl */
-
-  // Only look for 'bl' instructions for now, although a branch
-  // could be a call function, and it doesn't need to set the link
-  // register if it is the last function call
-  return(isInsnType(i, OPmask | AALKmask, CALLmatch));
-}
-
 /*
  * We need to also find calls that don't go to a known location.
  * AFAIK, POWER has no "branch to register" calls. It does, however,
@@ -3293,7 +3297,7 @@ bool pd_Function::findInstPoints(const image *owner)
   // the instruction used (stwu) on r1, then we assume we make a frame. If
   // not, no.
 
-  funcEntry_ = new instPoint(this, instr, owner, adr, true, ipFuncEntry);
+  funcEntry_ = new instPoint(this, instr, owner, adr, true, functionEntry);
   assert(funcEntry_);
 
   // instead of finding the return instruction, we are creating a 
@@ -3310,7 +3314,7 @@ bool pd_Function::findInstPoints(const image *owner)
   //     for the exit point so that we can still do address comparisons
   instruction retInsn;
   retInsn.raw = 0;
-  funcReturns.push_back(new instPoint(this, retInsn, owner, adr + size() + 1, false, ipFuncReturn));
+  funcReturns.push_back(new instPoint(this, retInsn, owner, adr + size() + 1, false, functionExit));
 
   // Check whether we're a leaf function (makes no calls, LR never saved)
   // or don't create a stack frame.
@@ -3566,7 +3570,7 @@ bool copyInstrumentationToChild(process *parentProc, process *childProc) {
     for (unsigned u = 0; u < allInstPoints.size(); u++) {
         jj++;
         const instPoint *theLocation = allInstPoints[u];
-        unsigned addr = theLocation->iPgetAddress(parentProc);
+        unsigned addr = theLocation->absPointAddr(parentProc);
         
         // So, we need to copy one word.  The word to copy can be found
         // at address "theLocation->addr" for AIX.  The original instruction
@@ -3581,7 +3585,7 @@ bool copyInstrumentationToChild(process *parentProc, process *childProc) {
         // the exit base tramp will still get called in the child process
         // because the entry base tramp will get copied over and this updates
         // the link register appropriately so the exit tramp will get called
-        if(theLocation->ipLoc != ipFuncReturn) {
+        if(theLocation->getPointType() != functionExit) {
             // 64-bit problem
             instruction insn; // big enough to hold 1 instr
             
@@ -3625,14 +3629,14 @@ bool process::hasBeenBound(const relocationEntry ,pd_Function *&, Address ) {
 
 // findCallee
 bool process::findCallee(instPoint &instr, function_base *&target){
-  if((target = const_cast<function_base *>(instr.iPgetCallee()))) {
+  if((target = dynamic_cast<function_base *>(instr.getCallee()))) {
     return true; // callee already set
   }
   // Other possibilities: call through a function pointer,
   // or a inter-module call. We handle inter-module calls as
   // a static function call.
-  const image *owner = instr.iPgetOwner();
-  const function_base *caller = instr.iPgetFunction();
+  const image *owner = instr.getOwner();
+  const function_base *caller = instr.pointFunc();
   // Or module == glink.s == "Global_Linkage"
   if (caller->prettyName().suffixed_by("_linkage")) {
       // Make sure we're not mistaking a function named
@@ -3642,8 +3646,8 @@ bool process::findCallee(instPoint &instr, function_base *&target){
           return false;
       Address TOC_addr = (owner->getObject()).getTOCoffset();
       instruction offset_instr;
-      // We want the offset -- so iPgetAddress with NULL instead of this
-      offset_instr.raw = owner->get_instruction(instr.iPgetAddress(0) - 20); // Five instructions up.
+      // We want the offset --so  pointAddr
+      offset_instr.raw = owner->get_instruction(instr.pointAddr() - 20); // Five instructions up.
       if ((offset_instr.dform.op != Lop) ||
           (offset_instr.dform.rt != 12) ||
           (offset_instr.dform.ra != 2))
@@ -3691,13 +3695,13 @@ bool process::findCallee(instPoint &instr, function_base *&target){
       if (pdf)
       {
           target = pdf;
-          instr.set_callee(pdf);
+          instr.setCallee(pdf);
           return true;
       }
       else
           fprintf(stderr, "Couldn't find target function for address 0x%x, jump at 0x%x\n",
                   (unsigned) callee_addr,
-                  (unsigned) instr.iPgetAddress(this));
+                  (unsigned) instr.absPointAddr(this));
   }
   // Todo
   target = 0;
@@ -3715,26 +3719,26 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 // site, or if the site has already been instrumented using a base tramp.
 bool process::replaceFunctionCall(const instPoint *point,
 				  const function_base *newFunc) {
-
-    // Must be a call site
-    if (point->ipLoc != ipFuncCallPoint)
-	return false;
-
-    // Cannot already be instrumented with a base tramp
-    if (baseMap.defines(point))
-	return false;
-
-    instruction newInsn;
-    if (newFunc == NULL) {	// Replace with a NOOP
-	generateNOOP(&newInsn);
-    } else {			// Replace with a new call instruction
-	generateBranchInsn(&newInsn, newFunc->addr()-point->iPgetAddress(this));
-	newInsn.iform.lk = 1;
-    }
-
-    writeTextSpace((caddr_t)point->iPgetAddress(this), sizeof(instruction), &newInsn);
-
-    return true;
+   // Must be a call site
+   if (point->getPointType() != callSite)
+      return false;
+   
+   // Cannot already be instrumented with a base tramp
+   if (baseMap.defines(point))
+      return false;
+   
+   instruction newInsn;
+   if (newFunc == NULL) {	// Replace with a NOOP
+      generateNOOP(&newInsn);
+   } else {			// Replace with a new call instruction
+      generateBranchInsn(&newInsn, newFunc->addr()-point->absPointAddr(this));
+      newInsn.iform.lk = 1;
+   }
+   
+   writeTextSpace((caddr_t)point->absPointAddr(this), sizeof(instruction),
+                  &newInsn);
+   
+   return true;
 }
 
 // Emit code to jump to function CALLEE without linking.  (I.e., when
@@ -3845,7 +3849,7 @@ bool process::MonitorCallSite(instPoint *callSite){
                                 (void *) branch_target); 
       // Where we are now
       the_args[1] = new AstNode(AstNode::Constant,
-                                (void *) callSite->iPgetAddress(this));
+                                (void *) callSite->absPointAddr(this));
       // Monitoring function
       AstNode *func = new AstNode("DYNINSTRegisterCallee", 
                                   the_args);
@@ -3870,7 +3874,7 @@ bool process::MonitorCallSite(instPoint *callSite){
       cerr << "MonitorCallSite: Unknown opcode " << i.xlform.op << endl; 
       cerr << "opcode extension: " << i.xlform.xo << endl;
       fprintf(stderr, "Address is 0x%x, insn 0x%x\n", 
-              (unsigned) callSite->iPgetAddress(this), 
+              (unsigned) callSite->absPointAddr(this), 
               (unsigned) i.raw);
       return false;
   }
@@ -3924,7 +3928,7 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
                                      NULL, // image *owner - this is ignored
                                      (Address)((Address)address-pointImageBase),
                                      false, // bool delayOk - this is ignored
-                                     ipOther);
+                                     otherPoint);
     func->addArbitraryPoint(newpt,NULL);
 
     return proc->findOrCreateBPPoint(NULL, newpt, BPatch_arbitrary);
@@ -3949,28 +3953,6 @@ int BPatch_point::getDisplacedInstructions(int maxSize, void *insns)
 }
 
 #endif
-
-// Get the absolute address of an instPoint
-Address instPoint::iPgetAddress(process *p) const {
-    if (!p) return addr;
-    Address baseAddr;
-    p->getBaseAddress(iPgetOwner(), baseAddr);
-    return addr + baseAddr;
-}
-
-
-// needed in metric.C
-bool instPoint::match(instPoint *p)
-{
-  if (this == p)
-    return true;
-  
-  // should we check anything else?
-  if (addr == p->addr)
-    return true;
-  
-  return false;
-}
 
 #ifdef notdef
 /* Scratch C code from the thread library. IGNORE */

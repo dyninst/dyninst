@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.44 2004/02/24 16:50:44 rchen Exp $
+ * $Id: inst-ia64.C,v 1.45 2004/02/25 04:36:19 schendel Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -191,11 +191,11 @@ void emitVload( opCode op, Address src1, Register src2, Register dest,
 
 		case loadFrameRelativeOp: {
 			/* Load size bytes from the address fp + src1 into the register dest. */
-			assert( location->iPgetFunction()->framePointerCalculator != NULL );			
+			assert( location->pointFunc()->framePointerCalculator != NULL );			
 
 			/* framePointerCalculator will leave the frame pointer in framePointer. */
 			pdvector< AstNode * > ifForks;
-			Register framePointer = (Register) location->iPgetFunction()->framePointerCalculator->generateCode_phase2( proc, rs, ibuf, base, false, ifForks, location );
+			Register framePointer = (Register) location->pointFunc()->framePointerCalculator->generateCode_phase2( proc, rs, ibuf, base, false, ifForks, location );
 			/* For now, make sure what we don't know can't hurt us. */
 			assert( ifForks.size() == 0 );
 			
@@ -213,11 +213,11 @@ void emitVload( opCode op, Address src1, Register src2, Register dest,
 
 		case loadFrameAddr: {
 			/* Write the value of the fp + the immediate src1 into the register dest. */
-			assert( location->iPgetFunction()->framePointerCalculator != NULL );
+			assert( location->pointFunc()->framePointerCalculator != NULL );
 
 			/* framePointerCalculator will leave the frame pointer in framePointer. */
 			pdvector< AstNode * > ifForks;
-			Register framePointer = (Register) location->iPgetFunction()->framePointerCalculator->generateCode_phase2( proc, rs, ibuf, base, false, ifForks, location );
+			Register framePointer = (Register) location->pointFunc()->framePointerCalculator->generateCode_phase2( proc, rs, ibuf, base, false, ifForks, location );
 			/* For now, make sure what we don't know can't hurt us. */
 			assert( ifForks.size() == 0 );
 			
@@ -417,9 +417,9 @@ void pd_Function::checkCallPoints() {
 
 		calledPdF = owner->findFuncByOffset( targetAddress );
 		if( calledPdF ) {
-			callSite->set_callee( calledPdF );
+			callSite->setCallee( calledPdF );
 			} else {
-			callSite->set_callee( NULL );
+			callSite->setCallee( NULL );
 			} /* end calledPdF conditional */
 
 		pdfCalls.push_back( callSite );
@@ -442,18 +442,18 @@ bool pd_Function::findInstPoints( const image * i_owner ) {
 	Address addressDelta = getAddress( 0 ) - addr;
 
 	/* Generate an instPoint for the function entry. */
-	funcEntry_ = new instPoint( getAddress( 0 ), this, i_owner, * iAddr );
+	funcEntry_ = new instPoint( getAddress( 0 ), this, * iAddr, functionEntry);
 
 	IA64_instruction * currInsn;
 	for( ; iAddr < lastI; iAddr++ ) {	
 		currInsn = * iAddr;
 		switch( currInsn->getType() ) {
 			case IA64_instruction::RETURN:
-				funcReturns.push_back( new instPoint( iAddr.getEncodedAddress() + addressDelta, this, i_owner, currInsn ) );
+				funcReturns.push_back( new instPoint( iAddr.getEncodedAddress() + addressDelta, this, currInsn, functionExit) );
 				break;
 			case IA64_instruction::DIRECT_CALL:
 			case IA64_instruction::INDIRECT_CALL:
-				calls.push_back( new instPoint( iAddr.getEncodedAddress() + addressDelta, this, i_owner, currInsn ) );
+				calls.push_back( new instPoint( iAddr.getEncodedAddress() + addressDelta, this, currInsn, callSite) );
 				break;
 			case IA64_instruction::ALLOC:
 				allocs.push_back( iAddr.getEncodedAddress() - addr );
@@ -528,7 +528,7 @@ BPatch_point *createInstructionInstPoint( process * proc, void * address,
 	IA64_instruction * theInstruction = theBundle.getInstruction( slotNo );
 	
 	/* Finally, build the instPoint. */
-	instPoint * arbitraryInstPoint = new instPoint( (Address)address, containingFunction, owner, theInstruction );
+	instPoint * arbitraryInstPoint = new instPoint( (Address)address, containingFunction, theInstruction, otherPoint );
 	containingFunction->addArbitraryPoint( arbitraryInstPoint, proc );
 	return proc->findOrCreateBPPoint( bpFunction, arbitraryInstPoint, BPatch_arbitrary );
 	} /* end createInstructionInstPoint() */
@@ -1182,8 +1182,8 @@ bool process::replaceFunctionCall( const instPoint * point, const function_base 
 	/* Since we need a full bundle to guarantee we can make the jump, we'll
 	   need to insert a minitramp to the emulated instructions.  Gather some
 	   of the necessary data. */
-	uint8_t slotNo = point->iPgetAddress() % 16;
-	Address alignedAddress = point->iPgetAddress() - slotNo;
+	uint8_t slotNo = point->pointAddr() % 16;
+	Address alignedAddress = point->pointAddr() - slotNo;
 
 	/* We'll construct the minitramp in the mutator's address space and then copy
 	   it over once we're done. */
@@ -1788,8 +1788,8 @@ bool emitSyscallHeader( process * proc, void * insnPtr, Address & baseBytes ) {
 /* private refactoring function */
 bool * doFloatingPointStaticAnalysis( const instPoint * location ) {
 	/* Cast away const-ness rather than fix broken function_base::getAddress(). */
-	function_base * functionBase = const_cast< function_base * >( location->iPgetFunction() );
-	Address mutatorAddress = (Address) location->iPgetOwner()->getPtrToInstruction( functionBase->getAddress( NULL ) ) ;
+	function_base * functionBase = dynamic_cast< function_base * >( location->pointFunc() );
+	Address mutatorAddress = (Address) location->getOwner()->getPtrToInstruction( functionBase->getAddress( NULL ) ) ;
 
 	IA64_iterator iAddr( mutatorAddress );
 	Address lastI = mutatorAddress + functionBase->size();
@@ -2274,7 +2274,7 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc, bool t
 	baseTramp->size = 0;
 
 	/* Acquire the base address of the object we're instrumenting. */
-	Address baseAddress; assert( proc->getBaseAddress( location->iPgetOwner(), baseAddress ) );
+	Address baseAddress; assert( proc->getBaseAddress( location->getOwner(), baseAddress ) );
 	assert( baseAddress % 16 == 0 );
 
 	/* Determine this instrumentation point's regSpace and deadRegisterList (global variables)
@@ -2293,13 +2293,13 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc, bool t
 	ia64_bundle_t * insnPtr = instructions;
 
 	/* Prepare things for instruction emulation. */
-	Address installationPoint = location->iPgetAddress();
+	Address installationPoint = location->pointAddr();
 	int slotNo = installationPoint % 16;
 	installationPoint = installationPoint - slotNo;
 	// /* DEBUG */ fprintf( stderr, "* Installing base tramp at 0x%lx, slotNo %d.\n", installationPoint + baseAddress, slotNo );
 	
 	/* We'll assume that getPtrToInstruction() works on offsets. */
-	Address installationPointAddress = (Address)location->iPgetOwner()->getPtrToInstruction( installationPoint );
+	Address installationPointAddress = (Address)location->getOwner()->getPtrToInstruction( installationPoint );
 	assert( installationPointAddress % 16 == 0 );
 	IA64_bundle bundleToEmulate( * (const ia64_bundle_t *) installationPointAddress );
 	installationPoint += baseAddress;
@@ -2499,8 +2499,8 @@ trampTemplate * findOrInstallBaseTramp( process * proc, instPoint * & location,
 	   store a full bundle, because of how things are declared. */
 	IA64_instruction_x * longBranchInstruction = new IA64_instruction_x();
 	Address returnFrom = installedBaseTramp->baseAddr + installedBaseTramp->size - 0x10;
-	Address returnTo; assert( proc->getBaseAddress( location->iPgetOwner(), returnTo ) );
-	returnTo += location->iPgetAddress() + 0x10;
+	Address returnTo; assert( proc->getBaseAddress( location->getOwner(), returnTo ) );
+	returnTo += location->pointAddr() + 0x10;
 	// /* DEBUG */ fprintf( stderr, "* Generating return instance from 0x%lx to 0x%lx\n", returnFrom, returnTo );
 	* longBranchInstruction = generateLongBranchTo( returnTo - returnFrom );
 	IA64_instruction ** instructionSequence = new IA64_instruction *();
@@ -2667,7 +2667,7 @@ void pd_Function::copyInstruction( instruction & newInsn,
 /* Required by func-reloc.C */
 bool pd_Function::fillInRelocInstPoints(
 		const image * owner, process * proc,   
-		instPoint * & location, relocatedFuncInfo * & reloc_info,
+		instPoint * & location, relocatedFuncInfo *reloc_info,
 		Address mutatee, Address mutator, instruction oldCode[],
 		Address newAdr, instruction newCode[],
 		LocalAlterationSet & alteration_set ) { assert( 0 ); return false; }
@@ -2695,11 +2695,11 @@ void emitVstore( opCode op, Register src1, Register src2, Address dest,
 		case storeFrameRelativeOp: {
 			/* Store size bytes at the address fp + the immediate dest from the register src1,
 			   using the scratch register src2. */
-			assert( location->iPgetFunction()->framePointerCalculator != NULL );			
+			assert( location->pointFunc()->framePointerCalculator != NULL );			
 
 			/* framePointerCalculator will leave the frame pointer in framePointer. */
 			pdvector< AstNode * > ifForks;
-			Register framePointer = (Register) location->iPgetFunction()->framePointerCalculator->generateCode_phase2( proc, rs, ibuf, base, false, ifForks, location );
+			Register framePointer = (Register) location->pointFunc()->framePointerCalculator->generateCode_phase2( proc, rs, ibuf, base, false, ifForks, location );
 			/* For now, make sure what we don't know can't hurt us. */
 			assert( ifForks.size() == 0 );
 
@@ -2886,21 +2886,12 @@ const IA64_iterator IA64_iterator::operator++ ( int ) {
 	} /* end operator ++ */
 
 /* Implementation of instPoint */
-instPoint::instPoint( Address encodedAddress, pd_Function * pdfn, const image * owner, IA64_instruction * theInsn )  : myAddress( encodedAddress ), myPDFunction( pdfn ), myOwner( owner ), myInstruction( theInsn ) {
+instPoint::instPoint( Address encodedAddress, pd_Function * pdfn, IA64_instruction * theInsn, instPointType type )  : instPointBase(type, encodedAddress, pdfn), myInstruction( theInsn ) {
 	/* Does not account for base addresses. */
-	myTargetAddress = myInstruction->getTargetAddress() + myAddress;
-	/* 16-byte align the target to compensat for myAddress being encoded. */
+	myTargetAddress = myInstruction->getTargetAddress() + pointAddr();
+	/* 16-byte align the target to compensat for pointAddr() being encoded. */
 	myTargetAddress = myTargetAddress - (myTargetAddress % 16);
 	} /* end instPoint constructor */
-
-// Get the absolute address of an instPoint
-Address instPoint::iPgetAddress(process *p) const {
-    if (!p) return myAddress;
-    Address baseAddr;
-    p->getBaseAddress(iPgetOwner(), baseAddr);
-    return myAddress + baseAddr;
-}
-
 
 /* The IA-64 instrumentation code always displaces a single three-instruction bundle.
    We'll return the machine code, since that's easier and the type of insns isn't specificed. */ 
@@ -2909,7 +2900,7 @@ int BPatch_point::getDisplacedInstructions( int maxSize, void * insns ) {
 	if( ((unsigned)maxSize) < sizeof( ia64_bundle_t ) ) { return 0; }
 
 	/* Acquire the machine-code bundle. */
-	Address mutatorAddress = (Address) point->iPgetOwner()->getPtrToInstruction( point->iPgetAddress() ) ;
+	Address mutatorAddress = (Address) point->getOwner()->getPtrToInstruction( point->pointAddr() ) ;
 	Address alignedBundleAddress = mutatorAddress - (mutatorAddress % 0x10 );
 
 	/* Copy things over. */

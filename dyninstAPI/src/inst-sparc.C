@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.150 2003/10/21 17:22:03 bernat Exp $
+// $Id: inst-sparc.C,v 1.151 2004/02/25 04:36:24 schendel Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -75,9 +75,9 @@ registerSpace *regSpace;
 /****************************************************************************/
 
 // Constructor for the instPoint class. 
-instPoint::instPoint(pd_Function *f, const image *owner, Address &adr, 
-                     const bool delayOK, instPointType pointType, bool noCall)
-: insnAddr(adr), addr(adr), 
+instPoint::instPoint(pd_Function *f, Address &adr, const bool delayOK,
+                     instPointType pointType, bool noCall)
+: instPointBase(pointType, adr, f), insnAddr(adr),
   firstPriorIsDCTI(false), 
   secondPriorIsDCTI(false),
   thirdPriorIsDCTI(false), 
@@ -90,17 +90,16 @@ instPoint::instPoint(pd_Function *f, const image *owner, Address &adr,
   fifthIsAggregate(false),
   usesPriorInstructions(false),
   numPriorInstructions(0),
-  callIndirect(false), callee(NULL), func_(f), isBranchOut(false),
-  ipType(pointType), image_ptr(owner),
-  relocated_(false), needsLongJump(false), dontUseCall(noCall)
+  callIndirect(false), isBranchOut(false),
+  needsLongJump(false), dontUseCall(noCall)
 {
+   image *owner = getOwner();
+   // If the base tramp is too far away from the function for a branch, 
+   // we will need to relocate at least two instructions to the base tramp
+   firstInstruction.raw   = owner->get_instruction(adr);
 
-  // If the base tramp is too far away from the function for a branch, 
-  // we will need to relocate at least two instructions to the base tramp
-  firstInstruction.raw   = owner->get_instruction(adr);
-
-  // For function call sites 
-  if (ipType == callSite) {
+   // For function call sites 
+   if (getPointType() == callSite) {
 
       // Grab the second instruction
       secondInstruction.raw  = owner->get_instruction(adr + 4);
@@ -119,15 +118,15 @@ instPoint::instPoint(pd_Function *f, const image *owner, Address &adr,
       thirdInstruction.raw = owner->get_instruction(adr + 8);
 
       if ( !IS_VALID_INSN(thirdInstruction) &&
-            thirdInstruction.raw != 0 ) {
+           thirdInstruction.raw != 0 ) {
 
-          thirdIsAggregate = true;
-          size = 3 * sizeof(instruction);
+         thirdIsAggregate = true;
+         size = 3 * sizeof(instruction);
       }
 
 
-  // For arbitrary instPoints
-  } else if (ipType == otherPoint) {
+      // For arbitrary instPoints
+   } else if (getPointType() == otherPoint) {
 
       // Grab the second instruction
       secondInstruction.raw  = owner->get_instruction(adr + 4);
@@ -135,7 +134,7 @@ instPoint::instPoint(pd_Function *f, const image *owner, Address &adr,
       size = 2 * sizeof(instruction);
 
       if ( isDCTI(firstInstruction) ) {
-          firstIsDCTI = true;
+         firstIsDCTI = true;
       }
 
 
@@ -149,33 +148,33 @@ instPoint::instPoint(pd_Function *f, const image *owner, Address &adr,
       // delay slot (if it is relocated to the base tramp).
       if ( isDCTI(secondInstruction) ) {
 
-          secondIsDCTI = true;
+         secondIsDCTI = true;
 
-          // Will need to relocate a third instruction to the base trampoline
-          // if the base trampoline is outside of the range of a branch
-          thirdInstruction.raw   = owner->get_instruction(adr + 8);
+         // Will need to relocate a third instruction to the base trampoline
+         // if the base trampoline is outside of the range of a branch
+         thirdInstruction.raw   = owner->get_instruction(adr + 8);
 
-          size = 3 * sizeof(instruction);
+         size = 3 * sizeof(instruction);
 
-          // If the second instruction is a CALL instruction, we may 
-          // need to move the instruction after the instruction in the 
-          // delay slot, to deal with the case where the return value 
-          // of the called function is a structure.
-          if ( isCallInsn(secondInstruction) ) {
+         // If the second instruction is a CALL instruction, we may 
+         // need to move the instruction after the instruction in the 
+         // delay slot, to deal with the case where the return value 
+         // of the called function is a structure.
+         if ( isCallInsn(secondInstruction) ) {
 
-              fourthInstruction.raw = owner->get_instruction(adr + 12);
+            fourthInstruction.raw = owner->get_instruction(adr + 12);
 
-	      if ( !IS_VALID_INSN(fourthInstruction) && 
-                    fourthInstruction.raw != 0 ) {
+            if ( !IS_VALID_INSN(fourthInstruction) && 
+                 fourthInstruction.raw != 0 ) {
 
-	          fourthIsAggregate = true;
-	          size = 4 * sizeof(instruction);
-	      }
-	  }
+               fourthIsAggregate = true;
+               size = 4 * sizeof(instruction);
+            }
+         }
       }
 
-  // For function entry instPoints
-  } else if (ipType == functionEntry) {
+      // For function entry instPoints
+   } else if (getPointType() == functionEntry) {
 
       // Grab the second instruction
       secondInstruction.raw  = owner->get_instruction(adr + 4);
@@ -198,20 +197,20 @@ instPoint::instPoint(pd_Function *f, const image *owner, Address &adr,
       // delay slot (if it is relocated to the base tramp).
       if ( isDCTI(firstInstruction) ) {
 
-          firstIsDCTI = true;
+         firstIsDCTI = true;
 
-          // If the first instruction is a CALL instruction, we may 
-          // need to move the instruction after the instruction in its 
-          // delay slot, to deal with the case where the return value 
-          // of the called function is a structure.
-          if ( isCallInsn(firstInstruction) ) {
+         // If the first instruction is a CALL instruction, we may 
+         // need to move the instruction after the instruction in its 
+         // delay slot, to deal with the case where the return value 
+         // of the called function is a structure.
+         if ( isCallInsn(firstInstruction) ) {
 
-              if ( !IS_VALID_INSN(thirdInstruction) && 
-                    thirdInstruction.raw != 0 ) {
+            if ( !IS_VALID_INSN(thirdInstruction) && 
+                 thirdInstruction.raw != 0 ) {
 
-  	          thirdIsAggregate = true;
-	      }
-	  }
+               thirdIsAggregate = true;
+            }
+         }
       }
 
 
@@ -220,23 +219,23 @@ instPoint::instPoint(pd_Function *f, const image *owner, Address &adr,
       // delay slot (if it is relocated to the base tramp).
       if ( isDCTI(secondInstruction) ) {
 
-          secondIsDCTI = true;
+         secondIsDCTI = true;
 
-          // If the second instruction is a CALL instruction, we may 
-          // need to move the instruction after the instruction in the 
-          // delay slot, to deal with the case where the return value 
-          // of the called function is a structure.
-          if ( isCallInsn(secondInstruction) ) {
+         // If the second instruction is a CALL instruction, we may 
+         // need to move the instruction after the instruction in the 
+         // delay slot, to deal with the case where the return value 
+         // of the called function is a structure.
+         if ( isCallInsn(secondInstruction) ) {
 
-              fourthInstruction.raw = owner->get_instruction(adr + 12);
+            fourthInstruction.raw = owner->get_instruction(adr + 12);
 
-	      if ( !IS_VALID_INSN(fourthInstruction) && 
-                    fourthInstruction.raw != 0 ) {
+            if ( !IS_VALID_INSN(fourthInstruction) && 
+                 fourthInstruction.raw != 0 ) {
 
-	          fourthIsAggregate = true;
-	          size = 4 * sizeof(instruction);
-	      }
-	  }
+               fourthIsAggregate = true;
+               size = 4 * sizeof(instruction);
+            }
+         }
       }
 
 
@@ -245,127 +244,127 @@ instPoint::instPoint(pd_Function *f, const image *owner, Address &adr,
       // delay slot (if it is relocated to the base tramp).
       if ( isDCTI(thirdInstruction) ) {
 
-          thirdIsDCTI = true;
+         thirdIsDCTI = true;
 
-  	  fourthInstruction.raw = owner->get_instruction(adr + 12);
+         fourthInstruction.raw = owner->get_instruction(adr + 12);
 
-	  // If the third instruction is a CALL instruction, we may 
-          // need to move the instruction after the instruction in the 
-          // delay slot, to deal with the case where the return value 
-          // of the called function is a structure.
-          if ( isCallInsn(thirdInstruction) ) {
+         // If the third instruction is a CALL instruction, we may 
+         // need to move the instruction after the instruction in the 
+         // delay slot, to deal with the case where the return value 
+         // of the called function is a structure.
+         if ( isCallInsn(thirdInstruction) ) {
 
-              fifthInstruction.raw = owner->get_instruction(adr + 16);
+            fifthInstruction.raw = owner->get_instruction(adr + 16);
 
-	      if ( !IS_VALID_INSN(fifthInstruction) && 
-                    fifthInstruction.raw != 0 ) {
+            if ( !IS_VALID_INSN(fifthInstruction) && 
+                 fifthInstruction.raw != 0 ) {
 
-	          fifthIsAggregate = true;
-		  size = 5 * sizeof(instruction);
-	      }
-	  }
+               fifthIsAggregate = true;
+               size = 5 * sizeof(instruction);
+            }
+         }
       }
 
 
-  // For function exit points
-  } else {
+      // For function exit points
+   } else {
 
-      assert(ipType == functionExit);
+      assert(getPointType() == functionExit);
 
       firstIsDCTI = true;
 
       // if the function has no stack frame
       if (this->hasNoStackFrame()) {
 
-  	  // If the base trampoline is too far away to use a branch 
-          // instruction, we will need to claim the instructions before
-          // the exit instructions, to be able to transfer to the base
-          // trampoline.
-	  usesPriorInstructions = true;
+         // If the base trampoline is too far away to use a branch 
+         // instruction, we will need to claim the instructions before
+         // the exit instructions, to be able to transfer to the base
+         // trampoline.
+         usesPriorInstructions = true;
 
-	  // Grab the instruction just before the exit instructions  
-          firstPriorInstruction.raw = owner->get_instruction(adr - 4);
-          numPriorInstructions      = 1;
-	  size                      = 3 * sizeof(instruction);
-
-
-          // If the first Prior instruction is a DCTI, then this point is part
-          // of a tail call optimization and we need to have firstInstruction
-          // pointing to the DCTI, not the delay slot instruction.
-	  if ( isDCTI(firstPriorInstruction) ) {
-
-              firstInstruction.raw  = owner->get_instruction(adr - 4);
-              secondInstruction.raw = owner->get_instruction(adr);
-              numPriorInstructions  = 0;
-	      size                  = 2 * sizeof(instruction);
+         // Grab the instruction just before the exit instructions  
+         firstPriorInstruction.raw = owner->get_instruction(adr - 4);
+         numPriorInstructions      = 1;
+         size                      = 3 * sizeof(instruction);
 
 
-	  } else {
+         // If the first Prior instruction is a DCTI, then this point is part
+         // of a tail call optimization and we need to have firstInstruction
+         // pointing to the DCTI, not the delay slot instruction.
+         if ( isDCTI(firstPriorInstruction) ) {
 
-              // Grab the second instruction
-              secondInstruction.raw  = owner->get_instruction(adr + 4);
-
-
-              // If the 'firstPriorInstruction' is in the delay slot of the 
-              // instruction just before it, we have to copy both of those
-              // instructions to the base tramp
-	      if (owner->isValidAddress(adr - 8)) {
-
-  	          // Grab the instruction before the 'firstPriorInstruction' 
-	          secondPriorInstruction.raw = owner->get_instruction(adr - 8);
-
-	          if ( isDCTI(secondPriorInstruction) && !delayOK ) {
-
-		      secondPriorIsDCTI    = true;
-                      numPriorInstructions = 2;
-		      size                 = 4 * sizeof(instruction);
-
-		  }
-	      }
+            firstInstruction.raw  = owner->get_instruction(adr - 4);
+            secondInstruction.raw = owner->get_instruction(adr);
+            numPriorInstructions  = 0;
+            size                  = 2 * sizeof(instruction);
 
 
-              // If the 'firstPriorInstruction' is the aggregate instruction
-              // for a call, we need to copy the three prior instructions to
-              // the base trampoline. 
-	      if (owner->isValidAddress(adr - 12)) {
+         } else {
 
-  	          // Grab the instruction just before secondPriorInstruction 
-	          thirdPriorInstruction.raw = owner->get_instruction(adr - 12);
+            // Grab the second instruction
+            secondInstruction.raw  = owner->get_instruction(adr + 4);
 
-	          if ( isDCTI(thirdPriorInstruction) && !delayOK ) {
 
-  		      // If the 'firstPriorInstruction' is an aggregate
-                      // instruction for the 'thirdPriorInstruction', copy
-		      // all three prior instructions to the base tramp
-	              if ( !IS_VALID_INSN(firstPriorInstruction) && 
-                            firstPriorInstruction.raw != 0 ) {
+            // If the 'firstPriorInstruction' is in the delay slot of the 
+            // instruction just before it, we have to copy both of those
+            // instructions to the base tramp
+            if (owner->isValidAddress(adr - 8)) {
 
-  		          thirdPriorIsDCTI      = true;
+               // Grab the instruction before the 'firstPriorInstruction' 
+               secondPriorInstruction.raw = owner->get_instruction(adr - 8);
+
+               if ( isDCTI(secondPriorInstruction) && !delayOK ) {
+
+                  secondPriorIsDCTI    = true;
+                  numPriorInstructions = 2;
+                  size                 = 4 * sizeof(instruction);
+
+               }
+            }
+
+
+            // If the 'firstPriorInstruction' is the aggregate instruction
+            // for a call, we need to copy the three prior instructions to
+            // the base trampoline. 
+            if (owner->isValidAddress(adr - 12)) {
+
+               // Grab the instruction just before secondPriorInstruction 
+               thirdPriorInstruction.raw = owner->get_instruction(adr - 12);
+
+               if ( isDCTI(thirdPriorInstruction) && !delayOK ) {
+
+                  // If the 'firstPriorInstruction' is an aggregate
+                  // instruction for the 'thirdPriorInstruction', copy
+                  // all three prior instructions to the base tramp
+                  if ( !IS_VALID_INSN(firstPriorInstruction) && 
+                       firstPriorInstruction.raw != 0 ) {
+
+                     thirdPriorIsDCTI      = true;
 	                  firstPriorIsAggregate = true;
-                          numPriorInstructions  = 3;
+                     numPriorInstructions  = 3;
 	                  size                  = 5 * sizeof(instruction);
-		      }
-		  }
-	      }
-	  }
+                  }
+               }
+            }
+         }
 
-      // Function has a stack frame.
+         // Function has a stack frame.
       } else {
 
-          // Grab the second instruction
-          secondInstruction.raw  = owner->get_instruction(adr + 4);
+         // Grab the second instruction
+         secondInstruction.raw  = owner->get_instruction(adr + 4);
 
-	  // No need to save registers before branching to exit 
-	  // instrumentation
-	  size = 2 * sizeof(instruction);
+         // No need to save registers before branching to exit 
+         // instrumentation
+         size = 2 * sizeof(instruction);
       }
-  }
+   }
 
 
-  // return the address in the code segment after this instruction
-  // sequence. (there's a -1 here because one will be added up later in
-  // the function findInstPoints)  
-  adr = addr + (size - sizeof(instruction));
+   // return the address in the code segment after this instruction
+   // sequence. (there's a -1 here because one will be added up later in
+   // the function findInstPoints)  
+   adr = pointAddr() + (size - sizeof(instruction));
 }
 
 
@@ -374,10 +373,10 @@ instPoint::instPoint(pd_Function *f, const image *owner, Address &adr,
 /****************************************************************************/
 
 // constructor for instPoint class for functions that have been relocated
-instPoint::instPoint(pd_Function *f, const instruction instr[], 
-                     int arrayOffset, const image *owner, Address &adr, 
-                     bool /*delayOK*/, instPointType pointType)
-: insnAddr(adr), addr(adr), 
+instPoint::instPoint(unsigned int id_to_use, pd_Function *f,
+                     const instruction instr[], int arrayOffset,
+                     Address &adr, bool /*delayOK*/, instPointType pointType)
+: instPointBase(id_to_use, pointType, adr, f), insnAddr(adr),
   firstPriorIsDCTI(false), 
   secondPriorIsDCTI(false),
   thirdPriorIsDCTI(false), 
@@ -390,21 +389,19 @@ instPoint::instPoint(pd_Function *f, const instruction instr[],
   fifthIsAggregate(false),
   usesPriorInstructions(false),
   numPriorInstructions(0),
- callIndirect(false), callee(NULL), func_(f), isBranchOut(false),
-  ipType(pointType), image_ptr(owner),
-  relocated_(true), needsLongJump(false), dontUseCall(false)
+  callIndirect(false), isBranchOut(false),
+  needsLongJump(false), dontUseCall(false)
 {
+   // If the base tramp is too far away from the function for a branch, 
+   // we will need to relocate at least two instructions to the base tramp
+   firstInstruction.raw   = instr[arrayOffset].raw;
+   secondInstruction.raw  = instr[arrayOffset + 1].raw;
 
-  // If the base tramp is too far away from the function for a branch, 
-  // we will need to relocate at least two instructions to the base tramp
-  firstInstruction.raw   = instr[arrayOffset].raw;
-  secondInstruction.raw  = instr[arrayOffset + 1].raw;
 
+   // For function call sites 
+   if (getPointType() == callSite) {
 
-  // For function call sites 
-  if (ipType == callSite) {
-
-    //assert( isCallInsn(firstInstruction) );
+      //assert( isCallInsn(firstInstruction) );
 
       firstIsDCTI = true;
 
@@ -420,14 +417,14 @@ instPoint::instPoint(pd_Function *f, const instruction instr[],
       thirdInstruction.raw = instr[arrayOffset + 2].raw;
 
       if ( !IS_VALID_INSN(thirdInstruction) &&
-            thirdInstruction.raw != 0 ) {
+           thirdInstruction.raw != 0 ) {
 
-          thirdIsAggregate = true;
-          size = 3 * sizeof(instruction);
+         thirdIsAggregate = true;
+         size = 3 * sizeof(instruction);
       }
 
-  // For arbitrary instPoints
-  } else if (ipType == otherPoint) {
+      // For arbitrary instPoints
+   } else if (getPointType() == otherPoint) {
 
       // Grab the second instruction
       secondInstruction.raw  = instr[arrayOffset + 1].raw;
@@ -435,7 +432,7 @@ instPoint::instPoint(pd_Function *f, const instruction instr[],
       size = 2 * sizeof(instruction);
 
       if ( isDCTI(firstInstruction) ) {
-          firstIsDCTI = true;
+         firstIsDCTI = true;
       }
 
 
@@ -449,33 +446,33 @@ instPoint::instPoint(pd_Function *f, const instruction instr[],
       // delay slot (if it is relocated to the base tramp).
       if ( isDCTI(secondInstruction) ) {
 
-          secondIsDCTI = true;
+         secondIsDCTI = true;
 
-          // Will need to relocate a third instruction to the base trampoline
-          // if the base trampoline is outside of the range of a branch
-          thirdInstruction.raw = instr[arrayOffset + 2].raw;
+         // Will need to relocate a third instruction to the base trampoline
+         // if the base trampoline is outside of the range of a branch
+         thirdInstruction.raw = instr[arrayOffset + 2].raw;
 
-          size = 3 * sizeof(instruction);
+         size = 3 * sizeof(instruction);
 
-          // If the second instruction is a CALL instruction, we may 
-          // need to move the instruction after the instruction in the 
-          // delay slot, to deal with the case where the return value 
-          // of the called function is a structure.
-          if ( isCallInsn(secondInstruction) ) {
+         // If the second instruction is a CALL instruction, we may 
+         // need to move the instruction after the instruction in the 
+         // delay slot, to deal with the case where the return value 
+         // of the called function is a structure.
+         if ( isCallInsn(secondInstruction) ) {
 
-              fourthInstruction.raw = instr[arrayOffset + 3].raw;
+            fourthInstruction.raw = instr[arrayOffset + 3].raw;
 
-	      if ( !IS_VALID_INSN(fourthInstruction) && 
-                    fourthInstruction.raw != 0 ) {
+            if ( !IS_VALID_INSN(fourthInstruction) && 
+                 fourthInstruction.raw != 0 ) {
 
-	          fourthIsAggregate = true;
-	          size = 4 * sizeof(instruction);
-	      }
-	  }
+               fourthIsAggregate = true;
+               size = 4 * sizeof(instruction);
+            }
+         }
       }
 
-  // For function entry instPoints
-  } else if (ipType == functionEntry) {
+      // For function entry instPoints
+   } else if (getPointType() == functionEntry) {
 
       // Will to relocate a third instruction to the base trampoline
       // if the base trampoline is outside of the range of a branch
@@ -495,20 +492,20 @@ instPoint::instPoint(pd_Function *f, const instruction instr[],
       // delay slot (if it is relocated to the base tramp).
       if ( isDCTI(firstInstruction) ) {
 
-          firstIsDCTI = true;
+         firstIsDCTI = true;
 
-          // If the first instruction is a CALL instruction, we may 
-          // need to move the instruction after the instruction in its 
-          // delay slot, to deal with the case where the return value 
-          // of the called function is a structure.
-          if ( isCallInsn(firstInstruction) ) {
+         // If the first instruction is a CALL instruction, we may 
+         // need to move the instruction after the instruction in its 
+         // delay slot, to deal with the case where the return value 
+         // of the called function is a structure.
+         if ( isCallInsn(firstInstruction) ) {
 
-              if ( !IS_VALID_INSN(thirdInstruction) && 
-                    thirdInstruction.raw != 0 ) {
+            if ( !IS_VALID_INSN(thirdInstruction) && 
+                 thirdInstruction.raw != 0 ) {
 
-  	          thirdIsAggregate = true;
-	      }
-	  }
+               thirdIsAggregate = true;
+            }
+         }
       }
 
 
@@ -517,23 +514,23 @@ instPoint::instPoint(pd_Function *f, const instruction instr[],
       // delay slot (if it is relocated to the base tramp).
       if ( isDCTI(secondInstruction) ) {
 
-          secondIsDCTI = true;
+         secondIsDCTI = true;
 
-          // If the second instruction is a CALL instruction, we may 
-          // need to move the instruction after the instruction in the 
-          // delay slot, to deal with the case where the return value 
-          // of the called function is a structure.
-          if ( isCallInsn(secondInstruction) ) {
+         // If the second instruction is a CALL instruction, we may 
+         // need to move the instruction after the instruction in the 
+         // delay slot, to deal with the case where the return value 
+         // of the called function is a structure.
+         if ( isCallInsn(secondInstruction) ) {
 
-              fourthInstruction.raw = instr[arrayOffset + 3].raw;
+            fourthInstruction.raw = instr[arrayOffset + 3].raw;
 
-	      if ( !IS_VALID_INSN(fourthInstruction) && 
-                    fourthInstruction.raw != 0 ) {
+            if ( !IS_VALID_INSN(fourthInstruction) && 
+                 fourthInstruction.raw != 0 ) {
 
-	          fourthIsAggregate = true;
-	          size = 4 * sizeof(instruction);
-	      }
-	  }
+               fourthIsAggregate = true;
+               size = 4 * sizeof(instruction);
+            }
+         }
       }
 
 
@@ -542,55 +539,55 @@ instPoint::instPoint(pd_Function *f, const instruction instr[],
       // delay slot (if it is relocated to the base tramp).
       if ( isDCTI(thirdInstruction) ) {
 
-          thirdIsDCTI = true;
+         thirdIsDCTI = true;
 
-  	  fourthInstruction.raw = instr[arrayOffset + 3].raw;
+         fourthInstruction.raw = instr[arrayOffset + 3].raw;
 
-	  // If the third instruction is a CALL instruction, we may 
-          // need to move the instruction after the instruction in the 
-          // delay slot, to deal with the case where the return value 
-          // of the called function is a structure.
-          if ( isCallInsn(thirdInstruction) ) {
+         // If the third instruction is a CALL instruction, we may 
+         // need to move the instruction after the instruction in the 
+         // delay slot, to deal with the case where the return value 
+         // of the called function is a structure.
+         if ( isCallInsn(thirdInstruction) ) {
 
-              fifthInstruction.raw = instr[arrayOffset + 4].raw;
+            fifthInstruction.raw = instr[arrayOffset + 4].raw;
 
-	      if ( !IS_VALID_INSN(fifthInstruction) && 
-                    fifthInstruction.raw != 0 ) {
+            if ( !IS_VALID_INSN(fifthInstruction) && 
+                 fifthInstruction.raw != 0 ) {
 
-	          fifthIsAggregate = true;
-		  size = 5 * sizeof(instruction);
-	      }
-	  }
+               fifthIsAggregate = true;
+               size = 5 * sizeof(instruction);
+            }
+         }
       }
 
-  // For function exit points
-  } else {
+      // For function exit points
+   } else {
 
-      assert(ipType == functionExit);
+      assert(getPointType() == functionExit);
 
       firstIsDCTI = true;
 
       // if the function has no stack frame
       if (this->hasNoStackFrame()) {
 
-        // Nops were added to the end of the function, so there is no
-	// need to use prior instructions 
-        size = 3 * sizeof(instruction);
+         // Nops were added to the end of the function, so there is no
+         // need to use prior instructions 
+         size = 3 * sizeof(instruction);
 
-      // Function has a stack frame.
+         // Function has a stack frame.
       } else {
 
-	  // No need to save registers before branching to exit 
-	  // instrumentation
-	  size = 2 * sizeof(instruction);
+         // No need to save registers before branching to exit 
+         // instrumentation
+         size = 2 * sizeof(instruction);
       }
-  }
+   }
 
 
-  // return the address in the code segment after this instruction
-  // sequence. (there's a -1 here because one will be added up later in
-  // the function findInstPoints)  
-  adr = addr + (size - sizeof(instruction));
+   // return the address in the code segment after this instruction
+   // sequence. (there's a -1 here because one will be added up later in
+   // the function findInstPoints)  
+   adr = pointAddr() + (size - sizeof(instruction));
 }
 
 /****************************************************************************/
@@ -627,7 +624,7 @@ bool
 processOptimaRet(instPoint *location, AstNode *&ast) {
 
     // For optimazed return code
-    if (location->ipType == functionExit) {
+    if (location->getPointType() == functionExit) {
 
         if ((isInsnType(location->firstInstruction, RETmask, RETmatch)) ||
             (isInsnType(location->firstInstruction, RETLmask, RETLmatch))) {
@@ -738,10 +735,10 @@ float getPointFrequency(instPoint *point)
 
     pd_Function *func;
 
-    if (point->callee)
-        func = point->callee;
+    if (point->getCallee())
+        func = point->getCallee();
     else
-        func = point->func();
+        func = point->pointFunc();
 
     if (!funcFrequencyTable.defines(func->prettyName())) {
       // Changing this value from 250 to 100 because predictedCost was
@@ -1025,7 +1022,7 @@ int callsTrackedFuncP(instPoint *point)
     if (point->callIndirect) {
         return(true);
     } else {
-        if (point->callee) {
+        if (point->getCallee()) {
             return(true);
         } else {
             return(false);
@@ -1048,7 +1045,7 @@ int callsTrackedFuncP(instPoint *point)
  */
 pd_Function *getFunction(instPoint *point)
 {
-    return(point->callee ? point->callee : point->func());
+    return(point->getCallee() ? point->getCallee() : point->pointFunc());
 }
 
 /****************************************************************************/
@@ -1371,15 +1368,15 @@ bool isBranchInsn(instruction instr) {
 void pd_Function::modifyInstPoint(const instPoint *&location,process *proc)
 {
 
-    if(relocatable_ && !(location->relocated_)){
+    if(relocatable_ && !(location->isRelocatedPointType())){
         for(u_int i=0; i < relocatedByProcess.size(); i++){
             if((relocatedByProcess[i])->getProcess() == proc){
-                if(location->ipType == functionEntry){
+                if(location->getPointType() == functionEntry){
                     const instPoint *new_entry = 
                                 (relocatedByProcess[i])->funcEntry();
                     location = new_entry;
                 } 
-                else if(location->ipType == functionExit){
+                else if(location->getPointType() == functionExit){
                     const pdvector<instPoint *> new_returns = 
                         (relocatedByProcess[i])->funcReturns(); 
                     if(funcReturns.size() != new_returns.size()){
@@ -1395,7 +1392,7 @@ void pd_Function::modifyInstPoint(const instPoint *&location,process *proc)
                         }
                     }
                 }
-                else if(location->ipType == otherPoint) {
+                else if(location->getPointType() == otherPoint) {
                     const pdvector<instPoint *> new_arbitrary = 
                         (relocatedByProcess[i])->funcArbitraryPoints(); 
 
@@ -1632,38 +1629,38 @@ void instWaitingList::cleanUp(process *proc, Address pc) {
 // site, or if the site has already been instrumented using a base tramp.
 bool process::replaceFunctionCall(const instPoint *point,
                                   const function_base *func) {
-    // Must be a call site
-    if (point->ipType != callSite)
-        return false;
+   // Must be a call site
+   if (point->getPointType() != callSite)
+      return false;
 
-    // Cannot already be instrumented with a base tramp
-    if (baseMap.defines(point))
-        return false;
+   // Cannot already be instrumented with a base tramp
+   if (baseMap.defines(point))
+      return false;
 
-    // Replace the call
-    Address addr = point->addr;
+   // Replace the call
+   Address addr = point->pointAddr();
 
 #ifdef BPATCH_LIBRARY
-    // Make sure our address is absolute, and not relative
-    if (point->getBPatch_point() != NULL &&
-	point->getBPatch_point()->func != NULL) {
+   // Make sure our address is absolute, and not relative
+   if (point->getBPatch_point() != NULL &&
+       point->getBPatch_point()->func != NULL) {
       pd_Function *pdfp;
 
       pdfp = dynamic_cast<pd_Function *>(point->getBPatch_point()->func->func);
       if (pdfp != NULL) {
-	Address base;
-	getBaseAddress(pdfp->file()->exec(), base);
-	addr += base;
+         Address base;
+         getBaseAddress(pdfp->file()->exec(), base);
+         addr += base;
       }
-    }
+   }
 #endif
-    if (func == NULL)
-        generateNoOp(this, addr);
-    else
-        generateCall(this, addr,
-                     func->getEffectiveAddress(this));
+   if (func == NULL)
+      generateNoOp(this, addr);
+   else
+      generateCall(this, addr,
+                   func->getEffectiveAddress(this));
 
-    return true;
+   return true;
 }
 
 /****************************************************************************/
@@ -1719,7 +1716,7 @@ bool process::MonitorCallSite(instPoint *callSite){
     else assert(0);
     
     the_args[1] = new AstNode(AstNode::Constant,
-			      (void *) callSite->iPgetAddress());
+			      (void *) callSite->pointAddr());
     AstNode *func = new AstNode("DYNINSTRegisterCallee", 
 				the_args);
     miniTrampHandle *mtHandle;
@@ -1776,17 +1773,18 @@ bool deleteBaseTramp(process *proc,
     // If the function has been relocated and the instPoint is from
     // the original instPoint, change the instPoint to be the one 
     // in the corresponding relocated function instead
-    if(location->func()->isInstalled(proc) && !location->relocated_) {
-        
-        location->func()->modifyInstPoint(location, proc );
+    if(location->pointFunc()->hasBeenRelocated(proc) && 
+       !location->isRelocatedPointType())
+    {
+        location->pointFunc()->modifyInstPoint(location, proc );
     }
     
     // Get the base address of the shared object
     Address baseAddress;
-    proc->getBaseAddress(location->image_ptr, baseAddress);
+    proc->getBaseAddress(location->getOwner(), baseAddress);
     
     // Get the address of the instPoint
-    Address ipAddr = location->iPgetAddress() + baseAddress;
+    Address ipAddr = location->pointAddr() + baseAddress;
     
     // Replace the branch instruction with the instruction that was
     // originally there
@@ -1819,7 +1817,7 @@ bool deleteBaseTramp(process *proc,
             proc->writeTextWord( (caddr_t)(firstAddress) + sizeof(instruction), 
                                  location->secondInstruction.raw );
             
-            if (location->ipType != otherPoint) {
+            if (location->getPointType() != otherPoint) {
                 
                 // Replace the instruction overwritten by the nop instruction
                 proc->writeTextWord( (caddr_t)(firstAddress) + 
@@ -1829,7 +1827,7 @@ bool deleteBaseTramp(process *proc,
             
         } else {
             
-            if (location->ipType == functionEntry) {
+            if (location->getPointType() == functionEntry) {
                 
                 // Replace the instruction overwritten by the save instruction
                 proc->writeTextWord( (caddr_t)(firstAddress),
@@ -1845,8 +1843,8 @@ bool deleteBaseTramp(process *proc,
                                      2*sizeof(instruction),
                                      location->thirdInstruction.raw);
                 
-            } else if ( location->ipType == callSite || 
-                        location->ipType == functionExit ) {
+            } else if ( location->getPointType() == callSite || 
+                        location->getPointType() == functionExit ) {
                 
                 // Replace the instruction overwritten by the call instruction
                 proc->writeTextWord( (caddr_t)(firstAddress),
@@ -1858,7 +1856,7 @@ bool deleteBaseTramp(process *proc,
                                      location->secondInstruction.raw);
                 
                 
-            } else if (location->ipType == otherPoint) {
+            } else if (location->getPointType() == otherPoint) {
                 
                 // Replace the instruction overwritten by the call instruction
                 proc->writeTextWord( (caddr_t)(firstAddress), 
@@ -2013,7 +2011,7 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
 	instPoint *entry = const_cast<instPoint *>(func->funcEntry(NULL));
 	assert(entry);
 
-	begin_addr = entry->iPgetAddress();
+	begin_addr = entry->pointAddr();
 	end_addr = begin_addr + entry->Size();
 
 	if(((begin_addr - INSN_SIZE) <= curr_addr) && 
@@ -2029,7 +2027,7 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
 	for (i = 0; i < exits.size(); i++) {
 	    assert(exits[i]);
 
-	    begin_addr = exits[i]->iPgetAddress();
+	    begin_addr = exits[i]->pointAddr();
 	    end_addr = begin_addr + exits[i]->Size();
 
 	    if (((begin_addr - INSN_SIZE) <= curr_addr) &&
@@ -2046,7 +2044,7 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
 	for (i = 0; i < calls.size(); i++) {
 	    assert(calls[i]);
 
-	    begin_addr = calls[i]->iPgetAddress();
+	    begin_addr = calls[i]->pointAddr();
 	    end_addr = begin_addr + calls[i]->Size();
 
 	    if (((begin_addr - INSN_SIZE) <= curr_addr) &&
@@ -2154,10 +2152,9 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
     curr_addr -= pointImageBase;
     //then create the instrumentation point object for the address
     instPoint *newpt = new instPoint(pointFunction,
-				     (const image*)pointImage,
-				     (Address &)curr_addr,
-				     false, // bool delayOk - ignored,
-				     otherPoint, dontUseCallHere);
+                                     (Address &)curr_addr,
+                                     false, // bool delayOk - ignored,
+                                     otherPoint, dontUseCallHere);
 
     pointFunction->addArbitraryPoint(newpt,proc);
 
@@ -2184,7 +2181,7 @@ int BPatch_point::getDisplacedInstructions(int maxSize, void* insns)
     //    constructor in the file inst-sparc-solaris.C
     //
     if (!point->hasNoStackFrame()) {
-	if (point->ipType == functionEntry) {
+	if (point->getPointType() == functionEntry) {
 	    copyOut[count++].raw = point->secondInstruction.raw;
 	    copyOut[count++].raw = point->thirdInstruction.raw;
 
@@ -2201,7 +2198,7 @@ int BPatch_point::getDisplacedInstructions(int maxSize, void* insns)
 		}
 	    }
 
-	} else if (point->ipType == callSite) {
+	} else if (point->getPointType() == callSite) {
 
 	    copyOut[count++].raw = point->firstInstruction.raw;
 	    copyOut[count++].raw = point->secondInstruction.raw;
@@ -2218,7 +2215,7 @@ int BPatch_point::getDisplacedInstructions(int maxSize, void* insns)
 
     } else {
 
-	if (point->ipType == functionEntry) {
+	if (point->getPointType() == functionEntry) {
 
 	    copyOut[count++].raw = point->firstInstruction.raw;
 	    copyOut[count++].raw = point->secondInstruction.raw;
@@ -2227,7 +2224,7 @@ int BPatch_point::getDisplacedInstructions(int maxSize, void* insns)
 		copyOut[count++].raw = point->fourthInstruction.raw;
 	    }
 
-	} else if (point->ipType == functionExit) {
+	} else if (point->getPointType() == functionExit) {
 
 	    if (point->thirdPriorIsDCTI && point->firstPriorIsAggregate) {
 		copyOut[count++].raw = point->thirdPriorInstruction.raw;
@@ -2242,7 +2239,7 @@ int BPatch_point::getDisplacedInstructions(int maxSize, void* insns)
 	    copyOut[count++].raw = point->firstInstruction.raw;
 	    copyOut[count++].raw = point->secondInstruction.raw;
 
-	} else if(point->ipType == otherPoint) {
+	} else if(point->getPointType() == otherPoint) {
 
 	   copyOut[count++].raw = point->firstInstruction.raw;
 	   copyOut[count++].raw = point->secondInstruction.raw;
@@ -2256,7 +2253,7 @@ int BPatch_point::getDisplacedInstructions(int maxSize, void* insns)
 
 	} else {
 
-	   assert(point->ipType == callSite);
+	   assert(point->getPointType() == callSite);
 	   copyOut[count++].raw = point->firstInstruction.raw;
 	   copyOut[count++].raw = point->secondInstruction.raw;
 	   if (point->thirdIsAggregate) {
@@ -2275,26 +2272,5 @@ int BPatch_point::getDisplacedInstructions(int maxSize, void* insns)
 
 #endif
 
-// needed in metric.C
-bool instPoint::match(instPoint *p)
-{
-  if (this == p)
-    return true;
-  
-  // should we check anything else?
-  if (addr == p->addr)
-    return true;
-  
-  return false;
-}
-
-
-// Get the absolute address of an instPoint
-Address instPoint::iPgetAddress(process *p) const {
-    if (!p) return addr;
-    Address baseAddr;
-    p->getBaseAddress(iPgetOwner(), baseAddr);
-    return addr + baseAddr;
-}
 
 

@@ -85,14 +85,11 @@ instReqNode::instReqNode(const instReqNode &par, pd_process *childProc) :
 loadMiniTramp_result instReqNode::loadInstrIntoApp(pd_process *theProc,
 					      returnInstance *&retInstance) {
    if(loadedIntoApp_) return success_res;
-   pd_Function *function_not_inserted = 
-      dynamic_cast<pd_Function *>(const_cast<function_base *>(
-				                     point->iPgetFunction()));
+      
    ++loadInstAttempts;
    if(loadInstAttempts == MAX_INSERTION_ATTEMPTS_USING_RELOCATION) {
-      function_not_inserted = 
-         dynamic_cast<pd_Function *>(const_cast<function_base *>(
-				                     point->iPgetFunction()));
+      pd_Function *function_not_inserted = point->pointFunc();
+
       if(function_not_inserted != NULL)
          function_not_inserted->setRelocatable(false);
    }

@@ -73,33 +73,24 @@ BPatch_point::BPatch_point(process *_proc, BPatch_function *_func, instPoint *_p
  */
 BPatch_function *BPatch_point::getCalledFunction()
 {
-    BPatch_function *ret;
-
-    assert(point);
-
-    // XXX Should get rid of the machine-dependent stuff here
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
-    if (point->ipType != callSite)
-	return NULL;
-#elif defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
-    if (point->ipLoc != ipFuncCallPoint)
-	return NULL;
-#elif defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
-    if (!point->insnAtPoint().isCall())
-	return NULL;
-#endif
-
-    function_base *_func;
-    
-    if (!proc->findCallee(*point, _func))
+   BPatch_function *ret;
+   
+   assert(point);
+   
+   if (point->getPointType() != callSite)
+      return NULL;
+   
+   function_base *_func;
+   
+   if (!proc->findCallee(*point, _func))
     	return NULL;
-
-    if (_func != NULL)
-	ret = proc->PDFuncToBPFuncMap[_func];
-    else
-	ret = NULL;
+   
+   if (_func != NULL)
+      ret = proc->PDFuncToBPFuncMap[_func];
+   else
+      ret = NULL;
     
-    return ret;
+   return ret;
 }
 
 const BPatch_Vector<BPatchSnippetHandle *> BPatch_point::getCurrentSnippets() {
@@ -171,7 +162,7 @@ const BPatch_Vector<BPatchSnippetHandle *> BPatch_point::getCurrentSnippets(BPat
  */
 void *BPatch_point::getAddress()
 {
-    return (void *)point->iPgetAddress(proc);
+    return (void *)point->absPointAddr(proc);
 }
 
 

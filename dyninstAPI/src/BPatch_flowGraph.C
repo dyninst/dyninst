@@ -1525,7 +1525,7 @@ BPatch_flowGraph::createLoopHierarchy()
 	bool found = proc->findCallee(*(instPs[i]), f);
 
 	if (found && f != NULL) {
-	    insertCalleeIntoLoopHierarchy( f, instPs[i]->iPgetAddress() );
+	    insertCalleeIntoLoopHierarchy( f, instPs[i]->pointAddr() );
 	}
 	else {
 	    fprintf( stderr, "BPatch_flowGraph::createLoopHierarchy "

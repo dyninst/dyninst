@@ -17,25 +17,23 @@
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/LocalAlteration.h"
+#include "dyninstAPI/src/instPoint.h"
 
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
 #include "dyninstAPI/src/arch-x86.h"
 #include "dyninstAPI/src/inst-x86.h"
-#include "dyninstAPI/src/instPoint-x86.h"
 #include "dyninstAPI/src/LocalAlteration-x86.h"
 #endif
 
 #if defined(sparc_sun_solaris2_4)
 #include "dyninstAPI/src/arch-sparc.h"
 #include "dyninstAPI/src/inst-sparc.h"
-#include "dyninstAPI/src/instPoint-sparc.h"
 #include "dyninstAPI/src/LocalAlteration-Sparc.h"
 #endif
 
 #if defined(ia64_unknown_linux2_4)
 #include "dyninstAPI/src/arch-ia64.h"
 #include "dyninstAPI/src/inst-ia64.h"
-#include "dyninstAPI/src/instPoint-ia64.h"
 #include "dyninstAPI/src/LocalAlteration-ia64.h"
 #endif
 

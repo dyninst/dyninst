@@ -41,38 +41,25 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-ia64.h,v 1.10 2003/10/28 18:59:28 schendel Exp $
+// $Id: instPoint-ia64.h,v 1.11 2004/02/25 04:36:27 schendel Exp $
 
 #ifndef _INST_POINT_IA64_H_
 #define _INST_POINT_IA64_H_
 
 #include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/instPoint.h"
 
-class instPoint {
+class instPoint : public instPointBase {
 	public:
-		instPoint( Address addr, pd_Function * pdfn, const image * owner, IA64_instruction * theInsn );
+		instPoint( Address addr, pd_Function * pdfn, IA64_instruction * theInsn, instPointType type);
 		
 		const IA64_instruction * iPgetInstruction() const {
 			return myInstruction;
 			} /* used by getDisplacedInstructions() in inst-ia64.C */
 
-		const function_base * iPgetCallee() const {
-			return myCallee;
-			} /* required by linux.C */
-
-		const image * iPgetOwner() const { 
-			return (myPDFunction) ? ( (myPDFunction->file()) ? myPDFunction->file()->exec() : NULL ) : NULL;
-			} /* required by linux.C */
-
 		Address getTargetAddress() {
 			return myTargetAddress;
 			} /* required by linux.C */
-
-		void set_callee( pd_Function * callee ) {
-			myCallee = callee;
-			} /* required by linux.C */
-
-		Address iPgetAddress(process *p = 0) const;
 
 		Address firstAddress() const {
 			assert( 0 );
@@ -88,14 +75,6 @@ class instPoint {
 			assert( 0 );
 			return 0;
 			} /* required by func-reloc.C */
-
-		const function_base * iPgetFunction() const {
-			return myPDFunction;
-			} /* required by inst.C */
-
-		pd_Function* func() const {
-			return myPDFunction;
-			} /* required by inst.C */
 
 	private:
 		// We need this here because BPatch_point gets dropped before
@@ -113,12 +92,8 @@ class instPoint {
 
 	private:
 
-		Address myAddress;
-		pd_Function * myPDFunction;
-		const image * myOwner;
 		IA64_instruction * myInstruction;
 
-		pd_Function * myCallee;			/* if I'm a call */
 		Address myTargetAddress;		/* if I'm a call or branch */
 
 	}; /* end class instPoint */

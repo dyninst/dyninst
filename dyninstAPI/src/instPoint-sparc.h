@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-sparc.h,v 1.22 2003/10/21 17:22:13 bernat Exp $
+// $Id: instPoint-sparc.h,v 1.23 2004/02/25 04:36:30 schendel Exp $
 // sparc-specific definition of class instPoint
 
 #ifndef _INST_POINT_SPARC_H_
@@ -55,38 +55,21 @@ class process;
 class BPatch_point;
 #endif
 
-typedef enum {
-    noneType,
-    functionEntry,
-    functionExit,
-    callSite,
-    otherPoint
-} instPointType;
-
-class instPoint {
+class instPoint : public instPointBase {
 public:
 
-  instPoint(pd_Function *f, const image *owner, Address &adr, 
-            const bool delayOK, instPointType ipt, bool noCall=false);
+  instPoint(pd_Function *f, Address &adr, const bool delayOK,
+            instPointType ipt, bool noCall=false);
 
-  instPoint(pd_Function *f, const instruction instr[], 
-            int instrOffset, const image *owner, Address &adr, 
-            bool delayOK, instPointType pointType);
+  instPoint(unsigned int id_to_use, pd_Function *f, const instruction instr[], 
+            int instrOffset, Address &adr, bool delayOK,
+            instPointType pointType);
 
   ~instPoint() {  /* TODO */ }
-
-  // can't set this in the constructor because call points can't be classified
-  // until all functions have been seen -- this might be cleaned up
-  void set_callee(pd_Function *to) { callee = to; }
 
   const instruction &insnAtPoint() const { return firstInstruction; }
 
   const instruction insnAfterPoint() const { return secondInstruction; }
-  pd_Function *func() const { return func_; }
-  const function_base *iPgetFunction() const { return func();      }
-  const function_base *iPgetCallee()   const { return callee;    }
-  const image         *iPgetOwner()    const { return image_ptr; }
-  Address        iPgetAddress(process *p = 0)  const;
 
   Address getTargetAddress() {
       if(!isCallInsn(firstInstruction)) return 0;
@@ -95,7 +78,7 @@ public:
        }
 
       Address ta = (firstInstruction.call.disp30 << 2); 
-      return ( addr+ta ); 
+      return ( pointAddr()+ta ); 
   }
 
   // formerly "isLeaf()", but the term leaf fn is confusing since people use it
@@ -105,8 +88,8 @@ public:
   // By renaming the fn, we make clear what it's returning.
 
   bool hasNoStackFrame() const {
-     assert(func());
-     return func()->hasNoStackFrame();
+     assert(pointFunc());
+     return pointFunc()->hasNoStackFrame();
   }
 
   // ALERT ALERT - FOR NEW PA CODE........
@@ -116,26 +99,17 @@ public:
 
   // address of 1st instruction to be clobbered by inst point....
   // NOTE: This is not always the same as insnAddr
-  Address firstAddress() {return addr;}
+  Address firstAddress() {return pointAddr();}
 
   // address of 1st instruction AFTER those clobbered by inst point....
-  Address followingAddress() {return addr + Size();}
-  
-  bool match(instPoint *p);
+  Address followingAddress() {return pointAddr() + Size();}
 
   // address of the actual instPoint instruction
   int insnAddress() { return insnAddr; }
 
-  bool getRelocated() { return relocated_; }
-  void setRelocated() { relocated_ = true; }
-
-  instPointType getPointType() const { return ipType; }
-
 // TODO: These should all be private
 
   Address insnAddr;   // address of the instruction to be instrumented
-  Address addr;       // address of the first insn in the instPoint's 
-                      // footprint (not counting the prior instructions)
 
   instruction firstPriorInstruction;   // The three instructions just before
   instruction secondPriorInstruction;  // the instruction to be instrumented
@@ -167,16 +141,11 @@ public:
   int  numPriorInstructions;   // how many prior instructions
 
   bool callIndirect;		// is it a call whose target is rt computed ?
-  pd_Function *callee;		// what function is called
-  pd_Function *func_;		// what function we are inst
   bool isBranchOut;             // true if this point is a conditional branch, 
 				// that may branch out of the function
   int branchTarget;             // the original target of the branch
-  instPointType ipType;
   int instId;                   // id of inst in this function
   int size;                     // size of multiple instruction sequences
-  const image *image_ptr;	// for finding correct image in process
-  bool relocated_;	        // true if instPoint is from a relocated func
 
   bool needsLongJump;              // true if it turned out the branch from this 
                                 // point to baseTramp needs long jump.

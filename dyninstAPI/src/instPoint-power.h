@@ -39,50 +39,32 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-power.h,v 1.10 2003/10/21 17:22:12 bernat Exp $
+// $Id: instPoint-power.h,v 1.11 2004/02/25 04:36:29 schendel Exp $
 
 #ifndef _INST_POINT_POWER_H_
 #define _INST_POINT_POWER_H_
 
-#include "inst-power.h"
+#include "arch-power.h"
+#include "dyninstAPI/src/instPoint.h"
+#include "dyninstAPI/src/symtab.h"
 
 class process;
+class image;
 
 #ifdef BPATCH_LIBRARY
 class BPatch_point;
 #endif
 
-class instPoint {
+class instPoint : public instPointBase {
 public:
   instPoint(pd_Function *f, const instruction &instr, const image *owner,
-	    const Address adr, const bool delayOK, const ipFuncLoc);
+            const Address adr, const bool delayOK, instPointType type);
 
   ~instPoint() {  /* TODO */ }
 
-  // can't set this in the constructor because call points can't be classified
-  // until all functions have been seen -- this might be cleaned up
-  void set_callee(pd_Function *to) { callee = to; }
-
-  pd_Function *func() const { return func_; }
-  const function_base *iPgetFunction() const { return func();   }
-  const function_base *iPgetCallee()   const { return callee; }
-  const image         *iPgetOwner()    const { 
-      return (func()) ? ( (func()->file()) ? func()->file()->exec() : NULL ) : NULL; }
-  Address        iPgetAddress(process *p = 0)  const;
-  
-
-  bool match(instPoint *p);
-  
   instruction originalInstruction;    /* original instruction */
 
   bool callIndirect;		/* is it a call whose target is rt computed ? */
-
-  pd_Function *callee;		/* what function is called */
-  pd_Function *func_;		/* what function we are inst */
-
-  
-  
-  ipFuncLoc ipLoc;
 
   // VG(11/06/01): there is some common stuff amongst instPoint
   // classes on all platforms (like addr and the back pointer to
@@ -98,7 +80,6 @@ public:
   BPatch_point *bppoint; // unfortunately the correspondig BPatch_point
   			 // is created afterwards, so it needs to set this
   // CALL iPgetAddress() instead! This is not an absolute address!
-  Address addr;                   /* address of inst point */
 
   public:
   const BPatch_point* getBPatch_point() const { return bppoint; }

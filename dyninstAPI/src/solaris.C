@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.161 2004/02/07 18:34:13 schendel Exp $
+// $Id: solaris.C,v 1.162 2004/02/25 04:36:32 schendel Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -1159,159 +1159,158 @@ bool process::hasBeenBound(const relocationEntry entry,
 // function foo in libfoo.so.2.  We are currently not handling this case, since
 // it is unlikely to happen in practice.
 bool process::findCallee(instPoint &instr, function_base *&target){
-    
-    if((target = const_cast<function_base *>(instr.iPgetCallee()))) {
- 	return true; // callee already set
-    }
+   if((target = dynamic_cast<function_base *>(instr.getCallee()))) {
+      return true; // callee already set
+   }
 
-    // find the corresponding image in this process  
-    const image *owner = instr.iPgetOwner();
-    bool found_image = false;
-    Address base_addr = 0;
-    if(symbols == owner) {  found_image = true; } 
-    else if(shared_objects){
-        for(u_int i=0; i < shared_objects->size(); i++){
-            if(owner == ((*shared_objects)[i])->getImage()) {
-		found_image = true;
-		base_addr = ((*shared_objects)[i])->getBaseAddress();
-		break;
-            }
-	}
-    } 
-    if(!found_image) {
-        target = 0;
-        return false; // image not found...this is bad
-    }
+   // find the corresponding image in this process  
+   const image *owner = instr.getOwner();
+   bool found_image = false;
+   Address base_addr = 0;
+   if(symbols == owner) {  found_image = true; } 
+   else if(shared_objects){
+      for(u_int i=0; i < shared_objects->size(); i++){
+         if(owner == ((*shared_objects)[i])->getImage()) {
+            found_image = true;
+            base_addr = ((*shared_objects)[i])->getBaseAddress();
+            break;
+         }
+      }
+   } 
+   if(!found_image) {
+      target = 0;
+      return false; // image not found...this is bad
+   }
 
-    // get the target address of this function
-    Address target_addr = 0;
-//    Address insn_addr = instr.iPgetAddress(); 
-    target_addr = instr.getTargetAddress();
+   // get the target address of this function
+   Address target_addr = 0;
+   //    Address insn_addr = instr.pointAddr(); 
+   target_addr = instr.getTargetAddress();
 
-    if(!target_addr) {  
-	// this is either not a call instruction or an indirect call instr
-	// that we can't get the target address
-        target = 0;
-        return false;
-    }
+   if(!target_addr) {  
+      // this is either not a call instruction or an indirect call instr
+      // that we can't get the target address
+      target = 0;
+      return false;
+   }
 
 #if defined(sparc_sun_solaris2_4)
-/*
-  // I don't see how this is possible -- we relocate after we've determined static
-  // callees -- bernat, 13OCT03
-    // If this instPoint is from a function that was relocated to the heap
-    // then need to get the target address relative to this image   
-    if(target_addr && instr.relocated_) {
-    assert(target_addr > base_addr);
-    target_addr -= base_addr;
-    }
-*/
+   /*
+   // I don't see how this is possible -- we relocate after we've determined static
+   // callees -- bernat, 13OCT03
+   // If this instPoint is from a function that was relocated to the heap
+   // then need to get the target address relative to this image   
+   if(target_addr && instr.relocated_) {
+   assert(target_addr > base_addr);
+   target_addr -= base_addr;
+   }
+   */
 #endif
 
-    // see if there is a function in this image at this target address
-    // if so return it
-    pd_Function *pdf = 0;
-    if( (pdf = owner->findFuncByEntry(target_addr)) ) {
-        target = pdf;
-        instr.set_callee(pdf);
-	return true; // target found...target is in this image
-    }
+   // see if there is a function in this image at this target address
+   // if so return it
+   pd_Function *pdf = 0;
+   if( (pdf = owner->findFuncByEntry(target_addr)) ) {
+      target = pdf;
+      instr.setCallee(pdf);
+      return true; // target found...target is in this image
+   }
 
-    // else, get the relocation information for this image
-    const Object &obj = owner->getObject();
-    const pdvector<relocationEntry> *fbt;
-    if(!obj.get_func_binding_table_ptr(fbt)) {
-	target = 0;
-	return false; // target cannot be found...it is an indirect call.
-    }
+   // else, get the relocation information for this image
+   const Object &obj = owner->getObject();
+   const pdvector<relocationEntry> *fbt;
+   if(!obj.get_func_binding_table_ptr(fbt)) {
+      target = 0;
+      return false; // target cannot be found...it is an indirect call.
+   }
 
-    // find the target address in the list of relocationEntries
-    for(u_int i=0; i < fbt->size(); i++) {
-	if((*fbt)[i].target_addr() == target_addr) {
-	    // check to see if this function has been bound yet...if the
-	    // PLT entry for this function has been modified by the runtime
-	    // linker
-	    pd_Function *target_pdf = 0;
-	    if(hasBeenBound((*fbt)[i], target_pdf, base_addr)) {
-                target = target_pdf;
-                instr.set_callee(target_pdf);
-	        return true;  // target has been bound
-	    } 
-	    else {
-		// just try to find a function with the same name as entry 
-	        pdvector<function_base *> pdfv;
-		bool found = findAllFuncsByName((*fbt)[i].name(), pdfv);
-		if(found) {
-		    assert(pdfv.size());
+   // find the target address in the list of relocationEntries
+   for(u_int i=0; i < fbt->size(); i++) {
+      if((*fbt)[i].target_addr() == target_addr) {
+         // check to see if this function has been bound yet...if the
+         // PLT entry for this function has been modified by the runtime
+         // linker
+         pd_Function *target_pdf = 0;
+         if(hasBeenBound((*fbt)[i], target_pdf, base_addr)) {
+            target = target_pdf;
+            instr.setCallee(target_pdf);
+            return true;  // target has been bound
+         } 
+         else {
+            // just try to find a function with the same name as entry 
+            pdvector<function_base *> pdfv;
+            bool found = findAllFuncsByName((*fbt)[i].name(), pdfv);
+            if(found) {
+               assert(pdfv.size());
 #ifdef BPATCH_LIBRARY
-		    if(pdfv.size() > 1)
-		        cerr << __FILE__ << ":" << __LINE__ 
-			     << ": WARNING:  findAllFuncsByName found " 
-			     << pdfv.size() << " references to function " 
-			     << (*fbt)[i].name() << ".  Using the first.\n";
+               if(pdfv.size() > 1)
+                  cerr << __FILE__ << ":" << __LINE__ 
+                       << ": WARNING:  findAllFuncsByName found " 
+                       << pdfv.size() << " references to function " 
+                       << (*fbt)[i].name() << ".  Using the first.\n";
 #endif
-		    target = pdfv[0];
-		    return true;
-		}
-		else {  
-		    // KLUDGE: this is because we are not keeping more than
-		    // one name for the same function if there is more
-		    // than one.  This occurs when there are weak symbols
-		    // that alias global symbols (ex. libm.so.1: "sin" 
-		    // and "__sin").  In most cases the alias is the same as 
-		    // the global symbol minus one or two leading underscores,
-		    // so here we add one or two leading underscores to search
-		    // for the name to handle the case where this string 
-		    // is the name of the weak symbol...this will not fix 
-		    // every case, since if the weak symbol and global symbol
-		    // differ by more than leading underscores we won't find
-		    // it...when we parse the image we should keep multiple
-		    // names for pd_Functions
+               target = pdfv[0];
+               return true;
+            }
+            else {  
+               // KLUDGE: this is because we are not keeping more than
+               // one name for the same function if there is more
+               // than one.  This occurs when there are weak symbols
+               // that alias global symbols (ex. libm.so.1: "sin" 
+               // and "__sin").  In most cases the alias is the same as 
+               // the global symbol minus one or two leading underscores,
+               // so here we add one or two leading underscores to search
+               // for the name to handle the case where this string 
+               // is the name of the weak symbol...this will not fix 
+               // every case, since if the weak symbol and global symbol
+               // differ by more than leading underscores we won't find
+               // it...when we parse the image we should keep multiple
+               // names for pd_Functions
 
-		    pdstring s("_");
-		    s += (*fbt)[i].name();
-		    found = findAllFuncsByName(s, pdfv);
-		    if(found) {
-		        assert(pdfv.size());
+               pdstring s("_");
+               s += (*fbt)[i].name();
+               found = findAllFuncsByName(s, pdfv);
+               if(found) {
+                  assert(pdfv.size());
 #ifdef BPATCH_LIBRARY
-		        if(pdfv.size() > 1)
-			    cerr << __FILE__ << ":" << __LINE__ 
-				 << ": WARNING: findAllFuncsByName found " 
-				 << pdfv.size() << " references to function " 
-				 << s << ".  Using the first.\n";
+                  if(pdfv.size() > 1)
+                     cerr << __FILE__ << ":" << __LINE__ 
+                          << ": WARNING: findAllFuncsByName found " 
+                          << pdfv.size() << " references to function " 
+                          << s << ".  Using the first.\n";
 #endif
-			target = pdfv[0];
-			return true;
-		    }
+                  target = pdfv[0];
+                  return true;
+               }
 		    
-		    s = pdstring("__");
-		    s += (*fbt)[i].name();
-		    found = findAllFuncsByName(s, pdfv);
-		    if(found) {
-		        assert(pdfv.size());
+               s = pdstring("__");
+               s += (*fbt)[i].name();
+               found = findAllFuncsByName(s, pdfv);
+               if(found) {
+                  assert(pdfv.size());
 #ifdef BPATCH_LIBRARY
-			if(pdfv.size() > 1)
-			    cerr << __FILE__ << ":" << __LINE__ 
-				 << ": WARNING: findAllFuncsByName found " 
-				 << pdfv.size() << " references to function "
-				 << s << ".  Using the first.\n";
+                  if(pdfv.size() > 1)
+                     cerr << __FILE__ << ":" << __LINE__ 
+                          << ": WARNING: findAllFuncsByName found " 
+                          << pdfv.size() << " references to function "
+                          << s << ".  Using the first.\n";
 #endif
-			target = pdfv[0];
-			return true;
-		    }
-//		    else
-// 		        cerr << __FILE__ << ":" << __LINE__
-// 			     << ": WARNING: findAllFuncsByName found no "
-// 			     << "matches for function " << (*fbt)[i].name() 
-// 			     << " or its possible aliases\n";
-		}
-	    }
-	    target = 0;
-	    return false;
-	}
-    }
-    target = 0;
-    return false;  
+                  target = pdfv[0];
+                  return true;
+               }
+               //		    else
+               // 		        cerr << __FILE__ << ":" << __LINE__
+               // 			     << ": WARNING: findAllFuncsByName found no "
+               // 			     << "matches for function " << (*fbt)[i].name() 
+               // 			     << " or its possible aliases\n";
+            }
+         }
+         target = 0;
+         return false;
+      }
+   }
+   target = 0;
+   return false;  
 }
 
 void loadNativeDemangler() {

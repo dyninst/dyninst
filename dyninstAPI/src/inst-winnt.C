@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-winnt.C,v 1.15 2003/12/04 19:15:04 schendel Exp $
+// $Id: inst-winnt.C,v 1.16 2004/02/25 04:36:25 schendel Exp $
 
 #include "dyninstAPI/src/dyninstP.h"
 #include "dyninstAPI/src/os.h"
@@ -167,7 +167,7 @@ bool process::hasBeenBound(const relocationEntry ,pd_Function *&, Address ) {
 bool process::findCallee(instPoint &instr, function_base *&target)
 {
 	// first see whether we've already determined the call site's callee
-	target = (function_base *)instr.iPgetCallee();
+	target = (function_base *)instr.getCallee();
     if( target != NULL )
 	{
         return true;
@@ -187,11 +187,11 @@ bool process::findCallee(instPoint &instr, function_base *&target)
 		// is eventually called.
 
 		// get the target address of the call
-		Address callTarget = instr.insnAtPoint().getTarget(instr.address());
+		Address callTarget = instr.insnAtPoint().getTarget(instr.pointAddr());
 
 		// get the instruction at the target address
 		unsigned int itype = 0;
-		Address offset = callTarget - instr.address();
+		Address offset = callTarget - instr.pointAddr();
 		const unsigned char* insnLocalAddr = instr.insnAtPoint().ptr() + offset;
 		unsigned int isize = get_instruction( insnLocalAddr, itype );
 		instruction callTargetInst( insnLocalAddr, itype, isize );

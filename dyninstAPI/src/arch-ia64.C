@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.24 2004/02/24 16:50:51 rchen Exp $
+// $Id: arch-ia64.C,v 1.25 2004/02/25 04:36:37 schendel Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -578,15 +578,15 @@ Address IA64_instruction_x::getTargetAddress() const {
 #include "instPoint-ia64.h"
 bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace * regSpace, Register * deadRegisterList ) {
 	/* Handy for the second two cases. */
-	Address fnEntryOffset = location->iPgetFunction()->addr();
-	Address fnEntryAddress = (Address)location->iPgetOwner()->getPtrToInstruction( fnEntryOffset );
+	Address fnEntryOffset = location->pointFunc()->addr();
+	Address fnEntryAddress = (Address)location->getOwner()->getPtrToInstruction( fnEntryOffset );
 	assert( fnEntryAddress % 16 == 0 );
 	const ia64_bundle_t * rawBundlePointer = (const ia64_bundle_t *) fnEntryAddress;
 
 	/* Zero and one alloc intstruction are easily handled.  Special
 	   case some more complicated common forms, like system calls,
 	   and leave the rest to the dynamic basetramp. */
-	pdvector< Address > allocs = location->iPgetFunction()->allocs;
+	pdvector< Address > allocs = location->pointFunc()->allocs;
 	switch( allocs.size() ) {
 		case 0: {
 			/* Since there's no existing frame, create ours at the bottom. */
@@ -607,7 +607,7 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace 
 
 		case 1: {
 			/* Where is our alloc instruction?  We need to have a look at it... */
-			Address encodedAddress = (location->iPgetFunction()->allocs)[0];
+			Address encodedAddress = (location->pointFunc()->allocs)[0];
 			unsigned short slotNumber = encodedAddress % 16;
 			Address alignedOffset = encodedAddress - slotNumber;
 			IA64_bundle allocBundle = rawBundlePointer[ alignedOffset / 16 ];

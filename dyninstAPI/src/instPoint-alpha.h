@@ -44,36 +44,23 @@
 #ifndef _INST_POINT_ALPHA_H_
 #define _INST_POINT_ALPHA_H_
 
-#include "inst-alpha.h"
+#include "dyninstAPI/src/symtab.h"
+
 
 #ifdef BPATCH_LIBRARY
 class BPatch_point;
 #endif
 
-class instPoint {
+class instPoint : public instPointBase {
 public:
-  instPoint(pd_Function *f, const instruction &instr, const image *owner,
-	    Address &adr, const bool delayOK,instPointType pointType);
+  instPoint(pd_Function *f, const instruction &instr, Address &adr,
+            const bool delayOK,instPointType pointType);
   ~instPoint() {  /* TODO */ }
 
-  // can't set this in the constructor because call points can't be classified until
-  // all functions have been seen -- this might be cleaned up
-  void set_callee(pd_Function *to) { callee = to; }
-
-  pd_Function *func() const { return (pd_Function *) func_;}
-  
-  const function_base *iPgetFunction() const { return func();   }
-  const function_base *iPgetCallee()   const { 
-	return callIndirect ? NULL : callee; 
+  pd_Function *getCallee() const { 
+     return callIndirect ? NULL : instPointBase::getCallee(); 
   }
-  const image         *iPgetOwner()    const { 
-      return (func()) ? ( (func()->file()) ? func()->file()->exec() : NULL ) : NULL; }
-  Address        iPgetAddress(process *p = 0)  const;
-  
 
-  bool match(instPoint *p);
-  
-  Address addr;                   /* address of inst point */
   instruction originalInstruction;    /* original instruction */
   instruction delaySlotInsn;  /* original instruction */
   instruction aggregateInsn;  /* aggregate insn */
@@ -87,17 +74,12 @@ public:
   bool callAggregate;		/* calling a func that returns an aggregate
 				   we need to reolcate three insns in this case
 				   */
-  pd_Function *callee;		/* what function is called */
-  pd_Function *func_;		/* what function we are inst */
-
   bool isBranchOut;		/* true if this point is a conditional branch, 
 				   that may branch out of the function */
   int branchTarget;		/* the original target of the branch */
   bool leaf;			/* true if the procedure is a leaf     */
-  instPointType ipType;
   int instId;                      /* id of inst in this function */
   int size;                        /* size of multiple instruction sequences */
-  const image *image_ptr;       /* for finding correct image in process */
 
   // VG(11/06/01): there is some common stuff amongst instPoint
   // classes on all platforms (like addr and the back pointer to

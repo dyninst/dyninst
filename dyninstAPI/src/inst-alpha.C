@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.72 2004/01/23 22:01:16 tlmiller Exp $
+// $Id: inst-alpha.C,v 1.73 2004/02/25 04:36:18 schendel Exp $
 
 #include "common/h/headers.h"
 
@@ -56,6 +56,7 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/instPoint.h"
+#include "dyninstAPI/src/inst-alpha.h"
 #include <sys/procfs.h>
 #include "dyninstAPI/src/stats.h"
 #include "dyninstAPI/src/os.h"
@@ -326,11 +327,10 @@ genRelOp(instruction *insn, unsigned opcode, unsigned fcode, Register src1,
 }
 
 instPoint::instPoint(pd_Function *f, const instruction &instr, 
-		     const image *img, Address &adr,
-		     const bool,instPointType pointType)
-: addr(adr), originalInstruction(instr), inDelaySlot(false), isDelayed(false),
-  callIndirect(false), callAggregate(false), callee(NULL), func_(f),
-  ipType(pointType), image_ptr(img)
+                     Address &adr, const bool, instPointType pointType)
+   : instPointBase(pointType, adr, f), originalInstruction(instr),
+     inDelaySlot(false), isDelayed(false),
+     callIndirect(false), callAggregate(false)
 {
 }
 
@@ -504,44 +504,44 @@ void restoreRegister(instruction *&insn, Address &base, int reg, int dest)
 // classified
 //
 void pd_Function::checkCallPoints() {
-//  unsigned i;
-  unsigned long i;
-  instPoint *p;
-  Address loc_addr;
+   //  unsigned i;
+   unsigned long i;
+   instPoint *p;
+   Address loc_addr;
 
-  pdvector<instPoint*> non_lib;
+   pdvector<instPoint*> non_lib;
 
-  for (i=0; i<calls.size(); ++i) {
-    /* check to see where we are calling */
-    p = calls[i];
-    assert(p);
+   for (i=0; i<calls.size(); ++i) {
+      /* check to see where we are calling */
+      p = calls[i];
+      assert(p);
 
-    if (isJsr(p->originalInstruction)) {
-      // assume this is a library function
-      // since it is a jump through a register
-      // TODO -- should this be deleted here ?
-      p->callIndirect = true;
-      non_lib.push_back(p);
-      //      delete p;
-    } else if (isBsr(p->originalInstruction)) {
-      loc_addr = p->addr + (p->originalInstruction.branch.disp << 2)+4;
-      non_lib.push_back(p);
-      pd_Function *pdf = (file_->exec())->findFuncByOffset(loc_addr);
-
-      if (pdf == NULL)
-	{
-	  /* Try alternate entry point in the symbol table */
-	  loc_addr = loc_addr - 8;
-	  pdf = (file_->exec())->findFuncByOffset(loc_addr);
-	}
-
-      if (pdf && 1 /*!pdf->isLibTag()*/)
-	  p->callee = pdf;
-    } else {
-      assert(0);
-    }
-  }
-  calls = non_lib;
+      if (isJsr(p->originalInstruction)) {
+         // assume this is a library function
+         // since it is a jump through a register
+         // TODO -- should this be deleted here ?
+         p->callIndirect = true;
+         non_lib.push_back(p);
+         //      delete p;
+      } else if (isBsr(p->originalInstruction)) {
+         loc_addr = p->pointAddr() + (p->originalInstruction.branch.disp<<2)+4;
+         non_lib.push_back(p);
+         pd_Function *pdf = (file_->exec())->findFuncByOffset(loc_addr);
+         
+         if (pdf == NULL)
+         {
+            /* Try alternate entry point in the symbol table */
+            loc_addr = loc_addr - 8;
+            pdf = (file_->exec())->findFuncByOffset(loc_addr);
+         }
+         
+         if (pdf && 1 /*!pdf->isLibTag()*/)
+            p->setCallee(pdf);
+      } else {
+         assert(0);
+      }
+   }
+   calls = non_lib;
 }
 
 // TODO we cannot find the called function by address at this point in time
@@ -628,7 +628,7 @@ trampTemplate *installBaseTramp(instPoint *location,
   Symbol info;
   Address baseAddr;
 
-  if (location->ipType == otherPoint) {
+  if (location->getPointType() == otherPoint) {
       fun_save = proc->findOnlyOneFunction("DYNINSTsave_conservative");
       fun_restore = proc->findOnlyOneFunction("DYNINSTrestore_conservative");
       proc->getSymbolInfo("DYNINSTsave_conservative", info, baseAddr);
@@ -691,9 +691,9 @@ trampTemplate *installBaseTramp(instPoint *location,
   // Do actual relocation once we know the base address of the tramp
 
   // compute effective address of this location
-  Address pointAddr = location->addr;
+  Address pointAddr = location->pointAddr();
   Address baseAddress;
-  if(proc->getBaseAddress(location->image_ptr, baseAddress)){
+  if(proc->getBaseAddress(location->getOwner(), baseAddress)){
       pointAddr += baseAddress;
   }
 
@@ -1509,7 +1509,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
 
 void
 restore_original_instructions(process* p, instPoint* ip) {
-  Address addr = ip->addr;
+  Address addr = ip->pointAddr();
   p->writeTextWord((caddr_t)addr, ip->originalInstruction.raw);
   addr += sizeof(instruction);
 }
@@ -1613,9 +1613,9 @@ trampTemplate *findOrInstallBaseTramp(process *proc,
         ret = installBaseTramp(location, globalProc);
         instruction *insn = new instruction;
         
-        Address pointAddr = location->addr;
+        Address pointAddr = location->pointAddr();
         Address baseAddress;
-        if (proc->getBaseAddress(location->image_ptr, baseAddress)) {
+        if (proc->getBaseAddress(location->getOwner(), baseAddress)) {
             pointAddr += baseAddress;
         }
         generateBranchInsn(insn, ret->baseAddr - (pointAddr+4));
@@ -1658,23 +1658,22 @@ void installTramp(miniTrampHandle *mtHandle, process *proc,
 
 float getPointFrequency(instPoint *point)
 {
+   pd_Function *func;
 
-    pd_Function *func;
+   if (point->getCallee())
+      func = point->getCallee();
+   else
+      func = point->pointFunc();
 
-    if (point->callee)
-        func = point->callee;
-    else
-        func = point->func();
-
-    if (!funcFrequencyTable.defines(func->prettyName())) {
+   if (!funcFrequencyTable.defines(func->prettyName())) {
       if (0 /*func->isLibTag()*/) {
-	return(100);
+         return(100);
       } else {
-	return(250);
+         return(250);
       }
-    } else {
+   } else {
       return (funcFrequencyTable[func->prettyName()]);
-    }
+   }
 }
 
 bool isReturn(const instruction insn) {
@@ -1700,119 +1699,119 @@ bool isCallInsn(const instruction i) {
 
 bool pd_Function::findInstPoints(const image *owner) 
 {  
-  Address adr = addr();
-  instruction instr;
-  instruction instr2;
-  long gpValue;	// gp needs signed operations
-  bool gpKnown = false;
-  instPoint *point;
-  Address t12Value;
-  bool t12Known = false;
-  instruction frameRestInsn;
+   Address adr = addr();
+   instruction instr;
+   instruction instr2;
+   long gpValue;	// gp needs signed operations
+   bool gpKnown = false;
+   instPoint *point;
+   Address t12Value;
+   bool t12Known = false;
+   instruction frameRestInsn;
 
-  frame_size = 0;
-  // normal linkage on alphas is that the first two instructions load gp.
-  //   In this case, many functions jump past these two instructions, so
-  //   we put the inst point at the third instruction.
-  //   However, system call libs don't always follow this rule, so we
-  //   look for a load of gp in the first two instructions.
-  instr.raw = owner->get_instruction(adr);
-  instr2.raw = owner->get_instruction(adr+4);
-  if ((instr.mem.opcode == OP_LDAH) && (instr.mem.ra == REG_GP) &&
-      (instr2.mem.opcode == OP_LDA) && (instr2.mem.ra == REG_GP)) {
+   frame_size = 0;
+   // normal linkage on alphas is that the first two instructions load gp.
+   //   In this case, many functions jump past these two instructions, so
+   //   we put the inst point at the third instruction.
+   //   However, system call libs don't always follow this rule, so we
+   //   look for a load of gp in the first two instructions.
+   instr.raw = owner->get_instruction(adr);
+   instr2.raw = owner->get_instruction(adr+4);
+   if ((instr.mem.opcode == OP_LDAH) && (instr.mem.ra == REG_GP) &&
+       (instr2.mem.opcode == OP_LDA) && (instr2.mem.ra == REG_GP)) {
       // compute the value of the gp
       gpKnown = true;
       gpValue = ((long) adr) + (SEXT_16(instr.mem.disp)<<16) + instr2.mem.disp;
       adr += 8;
-  }
+   }
 
-  instr.raw = owner->get_instruction(adr);
-  if (!IS_VALID_INSN(instr)) 
-    goto set_uninstrumentable;
+   instr.raw = owner->get_instruction(adr);
+   if (!IS_VALID_INSN(instr)) 
+      goto set_uninstrumentable;
 
-  funcEntry_ = new instPoint(this, instr, owner, adr, true,functionEntry);
-  assert(funcEntry_);
+   funcEntry_ = new instPoint(this, instr, adr, true, functionEntry);
+   assert(funcEntry_);
 
-  // perform simple data flow tracking on t12 within a basic block.
+   // perform simple data flow tracking on t12 within a basic block.
   
-  while (true) {
-    instr.raw = owner->get_instruction(adr);
+   while (true) {
+      instr.raw = owner->get_instruction(adr);
 
-    bool done;
+      bool done;
 
-    // check for lda $sp,n($sp) to guess frame size
-    if (!frame_size && ((instr.raw & 0xffff0000) == 0x23de0000)) {
-	// lda $sp,n($sp)
-	frame_size = -((short) (instr.raw & 0xffff));
-	if (frame_size < 0) {
-	    // we missed the setup and found the cleanup
-	    frame_size = 0;
-	}
-    }
-
-    // check for return insn and as a side affect decide if we are at the
-    //   end of the function.
-    if (isReturnInsn(owner, adr, done)) {
-      // define the return point
-      // check to see if adr-8 is ldq fp, xx(sp) or ldq sp, xx(sp), if so 
-      // use it as the
-      // address since it will ensure the activation record is still active.
-      // Gcc uses a frame pointer, on others only sp is used.
-
-      frameRestInsn.raw = owner->get_instruction(adr-8);
-      if (((frameRestInsn.raw & 0xffff0000) == 0xa5fe0000) ||
-	  ((frameRestInsn.raw & 0xffff0000) == 0x23de0000)) {
-	  Address tempAddr = adr - 8;
-	  funcReturns.push_back(new instPoint(this,frameRestInsn,
-					      owner,tempAddr,false,functionExit));
-      } else {
-	  funcReturns.push_back(new instPoint(this,instr,owner,adr,false,functionExit));
+      // check for lda $sp,n($sp) to guess frame size
+      if (!frame_size && ((instr.raw & 0xffff0000) == 0x23de0000)) {
+         // lda $sp,n($sp)
+         frame_size = -((short) (instr.raw & 0xffff));
+         if (frame_size < 0) {
+            // we missed the setup and found the cleanup
+            frame_size = 0;
+         }
       }
 
-      // see if this return is the last one 
-      if (done) goto set_instrumentable;
-    } else if (isCallInsn(instr)) {
-      // define a call point
-      point = new instPoint(this, instr, owner, adr, false,callSite);
+      // check for return insn and as a side affect decide if we are at the
+      //   end of the function.
+      if (isReturnInsn(owner, adr, done)) {
+         // define the return point
+         // check to see if adr-8 is ldq fp, xx(sp) or ldq sp, xx(sp), if so 
+         // use it as the
+         // address since it will ensure the activation record is still active.
+         // Gcc uses a frame pointer, on others only sp is used.
 
-      if (isJsr(instr)) {
-	  Address destAddr = 0;
-	  if ((instr.mem_jmp.rb == REG_T12) && t12Known) {
-	      destAddr = t12Value;
-	  }
-	  point->callIndirect = true;
-	  // this is the indirect address
-          point->callee = (pd_Function *) destAddr;		
-      } else {
-          point->callIndirect = false;
-	  point->callee = NULL;
+         frameRestInsn.raw = owner->get_instruction(adr-8);
+         if (((frameRestInsn.raw & 0xffff0000) == 0xa5fe0000) ||
+             ((frameRestInsn.raw & 0xffff0000) == 0x23de0000)) {
+            Address tempAddr = adr - 8;
+            funcReturns.push_back(new instPoint(this, frameRestInsn,
+                                               tempAddr, false, functionExit));
+         } else {
+            funcReturns.push_back(new instPoint(this,instr,adr,false,functionExit));
+         }
+
+         // see if this return is the last one 
+         if (done) goto set_instrumentable;
+      } else if (isCallInsn(instr)) {
+         // define a call point
+         point = new instPoint(this, instr, adr, false,callSite);
+
+         if (isJsr(instr)) {
+            Address destAddr = 0;
+            if ((instr.mem_jmp.rb == REG_T12) && t12Known) {
+               destAddr = t12Value;
+            }
+            point->callIndirect = true;
+            // this is the indirect address
+            point->setCallee((pd_Function *) destAddr);
+         } else {
+            point->callIndirect = false;
+            point->setCallee(NULL);
+         }
+         calls.push_back(point);
+         t12Known = false;
+      } else if (isJmpType(instr) || isBranchType(instr)) {
+         // end basic block, kill t12
+         t12Known = false;
+      } else if ((instr.mem.opcode == OP_LDQ) && (instr.mem.ra == REG_T12) &&
+                 (instr.mem.rb = REG_GP)) {
+         // intruction is:  ldq t12, disp(gp)
+         if (gpKnown) {
+            t12Value = gpValue + instr.mem.disp;
+            t12Known = true;
+         }
       }
-      calls.push_back(point);
-      t12Known = false;
-    } else if (isJmpType(instr) || isBranchType(instr)) {
-      // end basic block, kill t12
-      t12Known = false;
-    } else if ((instr.mem.opcode == OP_LDQ) && (instr.mem.ra == REG_T12) &&
-	       (instr.mem.rb = REG_GP)) {
-      // intruction is:  ldq t12, disp(gp)
-      if (gpKnown) {
-	  t12Value = gpValue + instr.mem.disp;
-	  t12Known = true;
-      }
-    }
 
-    // now do the next instruction
-    adr += 4;
+      // now do the next instruction
+      adr += 4;
 
-  }
+   }
 
  set_instrumentable:
-  isInstrumentable_ = 1;
-  return true;
+   isInstrumentable_ = 1;
+   return true;
   
  set_uninstrumentable:
-  isInstrumentable_ = 0;
-  return false;
+   isInstrumentable_ = 0;
+   return false;
 }
 
 //
@@ -2051,14 +2050,14 @@ void generateIllegalInsn(instruction &insn) { // instP.h
 // dynamic linking not implemented on this platform
 bool process::findCallee(instPoint &instr, function_base *&target){
 
-    if((target = const_cast<function_base *>(instr.iPgetCallee()))) {
+    if((target = dynamic_cast<function_base *>(instr.getCallee()))) {
        return true;
     }
-    if (instr.callIndirect && instr.callee) {
+    if (instr.callIndirect && instr.getCallee()) {
 	// callee contains the address in the mutatee
 	// read the contents of the address
 	Address dest;
-	if (!readDataSpace((caddr_t)(instr.callee), sizeof(Address),
+	if (!readDataSpace((caddr_t)(instr.getCallee()), sizeof(Address),
 	    (caddr_t)&(dest),true)) {
 	    return false;
 	}
@@ -2071,25 +2070,25 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 
 bool process::replaceFunctionCall(const instPoint *point,
 				  const function_base *newFunc) {
-  // Must be a call site
-    if (point->ipType != callSite)
+   // Must be a call site
+   if (point->getPointType() != callSite)
       return false;
-    
-    // Cannot already be instrumented with a base tramp
-    if (baseMap.defines(point))
-	return false;
-    instruction newInsn;
-    if (newFunc == NULL) {	// GCC 3.x requires RA to equal PC on ret.
-				// So, actually replace with 0 length branch.
+   
+   // Cannot already be instrumented with a base tramp
+   if (baseMap.defines(point))
+      return false;
+   instruction newInsn;
+   if (newFunc == NULL) {	// GCC 3.x requires RA to equal PC on ret.
+      // So, actually replace with 0 length branch.
       generate_branch(&newInsn, REG_RA, 0, OP_BR);
-
-    } else {			// Replace with a new call instruction
-      generateBSR(&newInsn, newFunc->addr()+sizeof(instruction)-point->addr);
-    }
+      
+   } else {			// Replace with a new call instruction
+      generateBSR(&newInsn, newFunc->addr()+sizeof(instruction)-point->pointAddr());
+   }
+   
+   writeTextSpace((caddr_t)point->pointAddr(), sizeof(instruction), &newInsn);
     
-    writeTextSpace((caddr_t)point->addr, sizeof(instruction), &newInsn);
-    
-    return true;
+   return true;
 }
 
 static const Address lowest_addr = 0x00400000;
@@ -2256,7 +2255,6 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address,
 
     instPoint *newpt = new instPoint(pointFunction,
 				    (const instructUnion &) instr,
-				    (const image *) NULL, // image * - ignored
 				    (Address &)pointAddress,
 				    false, // bool delayOk - ignored
 				    otherPoint);
@@ -2281,26 +2279,4 @@ int BPatch_point::getDisplacedInstructions(int maxSize, void *insns)
 }
 
 #endif
-
-// needed in metric.C
-bool instPoint::match(instPoint *p)
-{
-  if (this == p)
-    return true;
-  
-  // should we check anything else?
-  if (addr == p->addr)
-    return true;
-  
-  return false;
-}
-
-
-// Get the absolute address of an instPoint
-Address instPoint::iPgetAddress(process *p) const {
-    if (!p) return addr;
-    Address baseAddr;
-    p->getBaseAddress(iPgetOwner(), baseAddr);
-    return addr + baseAddr;
-}
 

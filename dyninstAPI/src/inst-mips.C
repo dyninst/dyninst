@@ -383,16 +383,16 @@ void print_inst_pts(const pdvector<instPoint*> &pts, pd_Function *fn)
 
   for (unsigned i = 0; i < pts.size(); i++) {
     fprintf(stderr, "  0x%p: ", (void *)(pts[i]->offset() + fn->getAddress(0)));
-    switch(pts[i]->type()) {
-    case IPT_ENTRY:
+    switch(pts[i]->getPointType()) {
+    case functionEntry:
       fprintf(stderr, "entry\n"); break;
-    case IPT_EXIT:
+    case functionExit:
       fprintf(stderr, "exit\n"); break;
-    case IPT_CALL:
+    case callSite:
       fprintf(stderr, "call\n"); break;
-    case IPT_NONE:      
+    case noneType:      
     default:
-      fprintf(stderr, "??? (%i)\n", pts[i]->type()); break;
+      fprintf(stderr, "??? (%i)\n", pts[i]->getPointType()); break;
     }
   }
 
@@ -1174,7 +1174,7 @@ unsigned
   VECTOR_SORT(pts, cmpByAddr);
 
   /* first instPoint not an entry point */
-  if (pts[0]->type() != IPT_ENTRY) {
+  if (pts[0]->getPointType() != functionEntry) {
     UNINSTR("1st inst pt not entry");
     //print_inst_pts(pts, this);
     ret = false;
@@ -1271,7 +1271,7 @@ Address pd_Function::findTarget(instPoint *p)
   TRACE_B( "pd_Function::findTarget" );
 
   //fprintf(stderr, ">>> pd_Function::findTarget()\n");
-  assert(p->type() == IPT_CALL);
+  assert(p->getPointType() == callSite);
   Address ret = 0;
   instruction i;
   i.raw = p->code();
@@ -1302,7 +1302,7 @@ Address pd_Function::findBranchTarget(instPoint *p, instruction i)
   TRACE_B( "pd_Function::findBranchTarget" );
 
   // PC-relative branch
-  Address base = p->address() + INSN_SIZE;
+  Address base = p->pointAddr() + INSN_SIZE;
   signed off = i.itype.simm16 << 2;
   Address ret = base + off;
   //fprintf(stderr, ">>> pd_Function::findBranchTarget() => 0x%08x\n", ret);
@@ -1327,7 +1327,7 @@ Address pd_Function::findJumpTarget(instPoint *p, instruction i)
   case Jop:
   case JALop:
     { // PC-region branch
-      Address hi = (p->address() + INSN_SIZE) & (REGION_NUM_MASK);
+      Address hi = (p->pointAddr() + INSN_SIZE) & (REGION_NUM_MASK);
       Address lo = (i.jtype.imm26 << 2) & REGION_OFF_MASK;
       ret = hi | lo;
     } break;
@@ -1433,7 +1433,7 @@ Address pd_Function::findIndirectJumpTarget(instPoint *ip, instruction i)
 
   /*
   fprintf(stderr, ">>> pd_Function::findIndirectJumpTarget <0x%016lx: %s>\n", 
-	  file_->exec()->getObject().get_base_addr() + ip->address(), 
+	  file_->exec()->getObject().get_base_addr() + ip->pointAddr(), 
 	  prettyName().c_str());
   */
 
@@ -1537,7 +1537,7 @@ Address pd_Function::findIndirectJumpTarget(instPoint *ip, instruction i)
   // debug: target arithmetic
   /*
   fprintf(stderr, ">>> <0x%016lx:%s>", 
-	  owner->getObject().get_base_addr() + ip->address(),
+	  owner->getObject().get_base_addr() + ip->pointAddr(),
 	  prettyName().c_str());
   fprintf(stderr, ": ");
   print_sequence(targetReg, baseAdjusts, adjusts, 0, NULL);
@@ -1564,7 +1564,7 @@ Address pd_Function::findIndirectJumpTarget(instPoint *ip, instruction i)
   default:
     // base register is dynamic
     //fprintf(stderr, "!!! bogus base register $%s (%s,%0#10x)\n",
-    //reg_names[targetReg], prettyName().c_str(), ip->address());
+    //reg_names[targetReg], prettyName().c_str(), ip->pointAddr());
     return 0;
   }
 
@@ -1592,7 +1592,7 @@ Address pd_Function::findIndirectJumpTarget(instPoint *ip, instruction i)
     // check for calls to "main"
     const char *callee_name = elf.got_entry_name(got_entry_off);
     if (callee_name && !strcmp("main", callee_name)) {
-      owner->main_call_addr_ = ip->address();
+      owner->main_call_addr_ = ip->pointAddr();
     }
     
     // wait for runtime value of GOT entry
@@ -1608,7 +1608,7 @@ Address pd_Function::findIndirectJumpTarget(instPoint *ip, instruction i)
   // debug: target arithmetic
   /*
   fprintf(stderr, ">>> findIndirectJumpTarget <0x%016lx: %s>\n", 
-	  ip->address() + obj_base, prettyName().c_str());
+	  ip->pointAddr() + obj_base, prettyName().c_str());
   fprintf(stderr, "  => ");
   print_sequence(targetReg, baseAdjusts, adjusts, 0, NULL);
   fprintf(stderr, "\n");
@@ -3778,14 +3778,14 @@ trampTemplate * installBaseTramp( process * p,
 
   int ipSize = ip->size_;          // instPoint footprint size
   Address objAddr;
-  p->getBaseAddress( ip->iPgetOwner(), objAddr );
-  Address ipAddr = objAddr + ip->address();
+  p->getBaseAddress( ip->getOwner(), objAddr );
+  Address ipAddr = objAddr + ip->pointAddr();
 
   int btSize;
   char * code;    // base tramp temporary address in mutator/Paradyn
   trampTemplate * ret;
 
-  if( ip->type() == IPT_OTHER )
+  if( ip->getPointType() == otherPoint )
     {
       assert( trampRecursiveDesired );
 
@@ -3851,7 +3851,7 @@ trampTemplate * installBaseTramp( process * p,
       toAddr = btAddr + btOff;
       fromAddr = ipAddr + insnOff;
       // copy original insn and perform relocation transformation
-      insn->raw = ip->owner_->get_instruction( fromAddr - objAddr );
+      insn->raw = ip->getOwner()->get_instruction( fromAddr - objAddr );
       int insnsRelocated = relocateInstruction( insn, fromAddr, toAddr,
 						ipSize - insnOff, p );
       assert(insnsRelocated > 0);
@@ -3937,15 +3937,15 @@ trampTemplate *findOrInstallBaseTramp(process *p,
       return ret;
     }
 
-  pd_Function *fn = (pd_Function *)ip->func_;
+  pd_Function *fn = (pd_Function *)ip->pointFunc();
   if (fn->isTrapFunc()) { 
     // TODO: relocate function to instrument?
   }
 
   // runtime address of instPoint
   Address objAddr = 0;
-  p->getBaseAddress(ip->iPgetOwner(), objAddr);
-  Address ipAddr = objAddr + ip->address(p);
+  p->getBaseAddress(ip->getOwner(), objAddr);
+  Address ipAddr = objAddr + ip->pointAddr();
 
   ret = installBaseTramp(p, ip, trampRecursiveDesired );
 
@@ -4097,18 +4097,18 @@ bool process::replaceFunctionCall(const instPoint *ip,
 
   // runtime address of instPoint
   Address pt_base  = 0;
-  getBaseAddress(ip->iPgetOwner(), pt_base);
-  Address pt_addr = pt_base + ip->address(0);
+  getBaseAddress(ip->getOwner(), pt_base);
+  Address pt_addr = pt_base + ip->pointAddr();
 
   /*
   fprintf(stderr, ">>> replaceFunctionCall(): <0x%016lx:%s> to \"%s\"\n",
 	  pt_addr, 
-	  ip->iPgetFunction()->prettyName().c_str(),
+	  ip->pointFunc()->prettyName().c_str(),
 	  (newFunc) ? (newFunc->prettyName().c_str()) : ("NOP"));
   */
 
   // requirement #1
-  if (ip->type() != IPT_CALL)
+  if (ip->getPointType() != callSite)
     {
       TRACE_E( "process::replaceFunctionCall" );
 
@@ -4150,9 +4150,9 @@ bool process::replaceFunctionCall(const instPoint *ip,
     jump_reg = ip->origInsn_.rtype.rs;
   }
   // parsing stuff
-  const Object &elf = ip->iPgetOwner()->getObject();
-  const image *owner = ip->iPgetOwner();
-  pd_Function *ip_pdf = (pd_Function *)ip->iPgetFunction();
+  const Object &elf = ip->getOwner()->getObject();
+  const image *owner = ip->getOwner();
+  pd_Function *ip_pdf = (pd_Function *)ip->pointFunc();
   // parse backwards to check for "ld RR,-XX(gp)" insn
   Address fn_start = ip_pdf->getAddress(0);
 #ifndef mips_unknown_ce2_11 //ccw 26 july 2000 : 28 mar 2001
@@ -4432,17 +4432,17 @@ bool process::findCallee(instPoint &ip, function_base *&target)
 
    /*
      fprintf(stderr, ">>> <0x%016lx:\"%s\"> => ", 
-	  ip.iPgetOwner()->getObject().get_base_addr() + ip.address(),
-	  ip.iPgetFunction()->prettyName().c_str());
+	  ip.getOwner()->getObject().get_base_addr() + ip.pointAddr(),
+	  ip.pointFunc()->prettyName().c_str());
    */
 
    // sanity check
-   assert(ip.type() == IPT_CALL);
+   assert(ip.getPointType() == callSite);
 
    // check if callee was already resolved
-   if (ip.callee_) {
+   if (ip.getCallee()) {
       //fprintf(stderr, "\"%s\" (static)\n", callee->prettyName().c_str());
-      target = ip.callee_;
+      target = ip.getCallee();
 
       TRACE_E( "process::findCallee" );
 
@@ -4455,7 +4455,7 @@ bool process::findCallee(instPoint &ip, function_base *&target)
    if (ip.hint_got_) {
 #ifndef mips_unknown_ce2_11 //ccw 26 july 2000
 
-      const image *owner = ip.iPgetOwner();
+      const image *owner = ip.getOwner();
       const Object &elf = owner->getObject();
 
       // runtime address of GOT entry
@@ -4589,7 +4589,7 @@ bool process::MonitorCallSite(instPoint *callSite){
       new AstNode(AstNode::PreviousStackFrameDataReg,
 		  (void *) i.rtype.rs);
     the_args[1] = new AstNode(AstNode::Constant,
-			      (void *) callSite->iPgetAddress());
+                              (void *) callSite->pointAddr());
     AstNode *func = new AstNode("DYNINSTRegisterCallee", 
 				the_args);
     miniTrampHandle mtHandle;
@@ -4835,10 +4835,10 @@ float getPointFrequency(instPoint *point)
 
   pd_Function *func;
   
-  if (point->callee_) {
-    func = (pd_Function *)point->callee_;
+  if (point->getCallee()) {
+    func = (pd_Function *)point->getCallee();
   } else {
-    func = (pd_Function *)point->func_;
+    func = (pd_Function *)point->pointFunc();
   }
 
   if (!funcFrequencyTable.defines(func->prettyName())) {
@@ -4932,116 +4932,115 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address,
 					 BPatch_point** alternative,
 					 BPatch_function* bpf)
 {
-    int i;
+   int i;
 
-    pd_Function *func = NULL;
+   pd_Function *func = NULL;
 
-    if(bpf)
-	func = (pd_Function *)bpf->func;
-    else
-	func = (pd_Function *)proc->findFuncByAddr((Address)address);
+   if(bpf)
+      func = (pd_Function *)bpf->func;
+   else
+      func = (pd_Function *)proc->findFuncByAddr((Address)address);
 
-    if (!isAligned((Address)address))
-	return NULL;
+   if (!isAligned((Address)address))
+      return NULL;
 
-    if (func != NULL) {
-	instPoint *entry = const_cast<instPoint *>(func->funcEntry(proc));
-	assert(entry);
-	if ((entry->iPgetAddress() == (Address)address-INSN_SIZE) ||
-		 (entry->iPgetAddress() == (Address)address+INSN_SIZE)) {
-	    BPatch_reportError(BPatchSerious, 117,
-			       "instrumentation point conflict");
-	    return NULL;
-	}
+   if (func != NULL) {
+      instPoint *entry = const_cast<instPoint *>(func->funcEntry(proc));
+      assert(entry);
+      if ((entry->pointAddr() == (Address)address-INSN_SIZE) ||
+          (entry->pointAddr() == (Address)address+INSN_SIZE)) {
+         BPatch_reportError(BPatchSerious, 117,
+                            "instrumentation point conflict");
+         return NULL;
+      }
 
-	const pdvector<instPoint*> &exits = func->funcExits(proc);
-	for (i = 0; i < exits.size(); i++) {
-	    assert(exits[i]);
-	    if ((exits[i]->iPgetAddress() == (Address)address-INSN_SIZE) ||
-		(exits[i]->iPgetAddress() == (Address)address+INSN_SIZE)) {
-		BPatch_reportError(BPatchSerious, 117,
-				   "instrumentation point conflict");
-		return NULL;
-	    }
-	}
+      const pdvector<instPoint*> &exits = func->funcExits(proc);
+      for (i = 0; i < exits.size(); i++) {
+         assert(exits[i]);
+         if ((exits[i]->pointAddr() == (Address)address-INSN_SIZE) ||
+             (exits[i]->pointAddr() == (Address)address+INSN_SIZE)) {
+            BPatch_reportError(BPatchSerious, 117,
+                               "instrumentation point conflict");
+            return NULL;
+         }
+      }
 
-	const pdvector<instPoint*> &calls = func->funcCalls(proc);
-	for (i = 0; i < calls.size(); i++) {
-	    assert(calls[i]);
-    	    if ((calls[i]->iPgetAddress() == (Address) - INSN_SIZE) ||
-		(calls[i]->iPgetAddress() == (Address) + INSN_SIZE)) {
-		BPatch_reportError(BPatchSerious, 117,
-				   "instrumentation point conflict");
-		return NULL;
-	    }
-	}
-    }
+      const pdvector<instPoint*> &calls = func->funcCalls(proc);
+      for (i = 0; i < calls.size(); i++) {
+         assert(calls[i]);
+         if ((calls[i]->pointAddr() == (Address) - INSN_SIZE) ||
+             (calls[i]->pointAddr() == (Address) + INSN_SIZE)) {
+            BPatch_reportError(BPatchSerious, 117,
+                               "instrumentation point conflict");
+            return NULL;
+         }
+      }
+   }
 
-    /* Check for conflict with a previously created inst point. */
-    if (proc->instPointMap.defines((Address)address - INSN_SIZE)) {
-	BPatch_reportError(BPatchSerious,117,"instrumentation point conflict");
-	return NULL;
-    } else if (proc->instPointMap.defines((Address)address + INSN_SIZE)) {
-	BPatch_reportError(BPatchSerious,117,"instrumentation point conflict");
-	return NULL;
-    }
+   /* Check for conflict with a previously created inst point. */
+   if (proc->instPointMap.defines((Address)address - INSN_SIZE)) {
+      BPatch_reportError(BPatchSerious,117,"instrumentation point conflict");
+      return NULL;
+   } else if (proc->instPointMap.defines((Address)address + INSN_SIZE)) {
+      BPatch_reportError(BPatchSerious,117,"instrumentation point conflict");
+      return NULL;
+   }
 
-    /* Check for instrumentation where the delay slot of the jump to the
-       base tramp would be a branch target from elsewhere in the function. */
-    BPatch_function *bpfunc = proc->findOrCreateBPFunc(func);
+   /* Check for instrumentation where the delay slot of the jump to the
+      base tramp would be a branch target from elsewhere in the function. */
+   BPatch_function *bpfunc = proc->findOrCreateBPFunc(func);
 
-    BPatch_flowGraph *cfg = bpfunc->getCFG();
-    BPatch_Set<BPatch_basicBlock*> allBlocks;
-    cfg->getAllBasicBlocks(allBlocks);
-    BPatch_basicBlock** belements = new BPatch_basicBlock*[allBlocks.size()];
-    allBlocks.elements(belements);
-    for(i=0; i< allBlocks.size(); i++) {
-	void *startAddress, *endAddress;
-	if (belements[i]->getAddressRange(startAddress, endAddress)) {
-	    if ((Address)address + INSN_SIZE == (Address)startAddress) {
-		delete[] belements;
-		BPatch_reportError(BPatchSerious, 118,
-				   "point uninstrumentable");
-		return NULL;
-	    }
-	}
-    }
-    delete[] belements;
+   BPatch_flowGraph *cfg = bpfunc->getCFG();
+   BPatch_Set<BPatch_basicBlock*> allBlocks;
+   cfg->getAllBasicBlocks(allBlocks);
+   BPatch_basicBlock** belements = new BPatch_basicBlock*[allBlocks.size()];
+   allBlocks.elements(belements);
+   for(i=0; i< allBlocks.size(); i++) {
+      void *startAddress, *endAddress;
+      if (belements[i]->getAddressRange(startAddress, endAddress)) {
+         if ((Address)address + INSN_SIZE == (Address)startAddress) {
+            delete[] belements;
+            BPatch_reportError(BPatchSerious, 118,
+                               "point uninstrumentable");
+            return NULL;
+         }
+      }
+   }
+   delete[] belements;
 
-    /* Check for instrumenting just before or after a branch. */
+   /* Check for instrumenting just before or after a branch. */
 
-    if ((Address)address > func->getEffectiveAddress(proc)) {
-	instruction prevInstr;
-	proc->readTextSpace((char *)address - INSN_SIZE,
-			    sizeof(instruction),
-			    &prevInstr.raw);
-	if (isBranchInsn(prevInstr) || isJumpInsn(prevInstr)) {
-	    BPatch_reportError(BPatchSerious, 118, "point uninstrumentable");
-	    return NULL;
-	}
-    }
+   if ((Address)address > func->getEffectiveAddress(proc)) {
+      instruction prevInstr;
+      proc->readTextSpace((char *)address - INSN_SIZE,
+                          sizeof(instruction),
+                          &prevInstr.raw);
+      if (isBranchInsn(prevInstr) || isJumpInsn(prevInstr)) {
+         BPatch_reportError(BPatchSerious, 118, "point uninstrumentable");
+         return NULL;
+      }
+   }
 
-    if ((Address)address + INSN_SIZE <
-	func->getEffectiveAddress(proc) + func->size()) {
-	instruction nextInstr;
-	proc->readTextSpace((char *)address + INSN_SIZE,
-			    sizeof(instruction),
-			    &nextInstr.raw);
-	if (isBranchInsn(nextInstr) || isJumpInsn(nextInstr)) {
-	    BPatch_reportError(BPatchSerious, 118, "point uninstrumentable");
-	    return NULL;
-	}
-    }
+   if ((Address)address + INSN_SIZE <
+       func->getEffectiveAddress(proc) + func->size()) {
+      instruction nextInstr;
+      proc->readTextSpace((char *)address + INSN_SIZE,
+                          sizeof(instruction),
+                          &nextInstr.raw);
+      if (isBranchInsn(nextInstr) || isJumpInsn(nextInstr)) {
+         BPatch_reportError(BPatchSerious, 118, "point uninstrumentable");
+         return NULL;
+      }
+   }
 
-    instPoint *newpt = new instPoint((pd_Function *)func,
-				     (Address)address - func->getAddress(proc),
-				     IPT_OTHER,
-				     0);
+   instPoint *newpt = new instPoint((pd_Function *)func,
+                                    (Address)address - func->getAddress(proc),
+                                    otherPoint, 0);
 
-    pd_Function* pointFunction = (pd_Function*)func;
-    pointFunction->addArbitraryPoint(newpt,NULL);
+   pd_Function* pointFunction = (pd_Function*)func;
+   pointFunction->addArbitraryPoint(newpt,NULL);
 
-    return proc->findOrCreateBPPoint(bpfunc, newpt, BPatch_arbitrary);
+   return proc->findOrCreateBPPoint(bpfunc, newpt, BPatch_arbitrary);
 }
 
 
@@ -5065,28 +5064,4 @@ int BPatch_point::getDisplacedInstructions(int maxSize, void *insns)
 
 #endif
 
-
-#ifndef BPATCH_LIBRARY
-// needed in metric.C
-bool instPoint::match(instPoint *p)
-{
-  if (this == p)
-    return true;
-  
-  // should we check anything else?
-  if (addr == p->addr_)
-    return true;
-  
-  return false;
-}
-#endif
-
-
-// Get the absolute address of an instPoint
-Address instPoint::iPgetAddress(process *p) const {
-    if (!p) return addr_;
-    Address baseAddr;
-    p->getBaseAddress(iPgetOwner(), baseAddr);
-    return addr_ + baseAddr;
-}
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.155 2004/01/19 21:53:58 schendel Exp $
+// $Id: mdl.C,v 1.156 2004/02/25 04:36:39 schendel Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -2913,7 +2913,8 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
                       // metric_cerr << u << ") ";
                                                          
                       instPoint *point = calls[u];
-                      function_base *callee = const_cast<function_base*>(point->iPgetCallee());
+                      function_base *callee =
+                         dynamic_cast<function_base*>(point->getCallee());
                                                          
                       const char *callee_name=NULL;
                                                          
