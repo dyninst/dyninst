@@ -116,7 +116,7 @@ int y;
 int height = g->row[r].rHeight;
     /* node placement */
     if (r == 0)
-	y = 0;
+	y = 15;    // leave a slight margin to the top of the enclosing frame
     else
 	y = g->row[r-1].y + 1 + g->row[r-1].rHeight + g->spaceY
 	  + Max(g->row_spacing, (int) (dx * g->row_ratio)) 
