@@ -3,9 +3,12 @@
    is used internally by the UIM.
 */
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.15  1995/06/02 20:50:44  newhall
-/* made code compatable with new DM interface
+/* Revision 1.16  1995/06/11 22:59:47  karavan
+/* changed error handling for new node type.
 /*
+ * Revision 1.15  1995/06/02  20:50:44  newhall
+ * made code compatable with new DM interface
+ *
  * Revision 1.14  1994/11/07  00:34:09  karavan
  * Added default node to root for each subtree if number of user selections
  * is 0 within that subtree.  This change plus elimination of default clearing
@@ -300,7 +303,6 @@ int processVisiSelectionCmd(ClientData clientData,
 #if UIM_DEBUG
   printf ("processVisiSelection::lookupDag: %s\n", currDag->getCanvasName());
 #endif
-
   // parse resource selections
 
     vector<numlist> *allsels = currDag->listAllHighlightedNodes ();
@@ -426,12 +428,7 @@ int refineSHGCmd (ClientData clientData,
 {
   nodeIdType nodeID;
   nodeID = StrToNodeIdType(argv[1]);
-/** need error handling for new type
-  if (nodeID < 0) {
-    sprintf (interp->result, "no selection currently defined\n");
-    return TCL_ERROR;
-  }
-*/
+
 //** note: need to change PC interface to nodeIdType
   perfConsult->setCurrentSHGnode ((int)nodeID);
   if (dataMgr->applicationDefined() != True) {
