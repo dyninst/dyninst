@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.161 2004/03/23 01:12:04 eli Exp $
+ * $Id: inst-x86.C,v 1.162 2004/03/24 23:30:09 bernat Exp $
  */
 
 #include <iomanip>
@@ -171,6 +171,10 @@ static void emitOpRMImm8( unsigned opcode1, unsigned opcode2, Register base,
                           int disp, char imm, unsigned char * & insn );
 static void emitMovImmToMem( Address maddr, int imm,
                              unsigned char * & insn );
+
+static void emitLEA(Register base, Register index, unsigned int scale,
+                    RegValue disp, Register dest, unsigned char *&insn);
+
 
 /****************************************************************************/
 /****************************************************************************/
@@ -1008,7 +1012,7 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
             if( entryblock && ( funcEntry_->size() < 2 * JUMP_SZ ) )
             {
                 //don't add calls to entry point
-                if( ah.isACallInstruction() )
+                if( ah.isACallInstruction() || ah.isAReturnInstruction() )
                     entryblock = false;
                 else
                     funcEntry_->addInstrAfterPt( ah.getInstruction() );
@@ -1376,6 +1380,7 @@ bool registerSpace::readOnlyRegister(Register) {
      ebp-4:   128-byte space for 32 virtual registers (32*4 bytes)
      ebp-132: saved registers (8*4 bytes)
      ebp-164: saved flags registers (4 bytes)
+     ebp-168: (MT only) thread index
 
      The temporaries are assigned numbers from 1 so that it is easier
      to refer to them: -(reg*4)[ebp]. So the first reg is -4[ebp].
@@ -1384,6 +1389,9 @@ bool registerSpace::readOnlyRegister(Register) {
      change to using an arbitrary number.
 
 */
+
+#define TRAMP_FRAME_SIZE (128)
+
 Register deadList[NUM_VIRTUAL_REGISTERS];
 int deadListSize = sizeof(deadList);
 
@@ -1424,6 +1432,8 @@ static void emitMovRMToReg(Register dest, Register base, int disp,
 void emitCallRel32(unsigned disp32, unsigned char *&insn); // used by paradyn
 static void emitOpRegRM(unsigned opcode, Register dest, Register base,
                         int disp, unsigned char *&insn);
+static void emitMovImmToRM(Register base, int disp, int imm,
+                           unsigned char *&insn);
 
 
 /*
@@ -1521,10 +1531,10 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point,
 #if defined(i386_unknown_solaris2_5) || \
     defined(i386_unknown_linux2_0) || \
     defined(i386_unknown_nt4_0)
-int guard_code_before_pre_instr_size  = 19; /* size in bytes */
-int guard_code_after_pre_instr_size   = 10; /* size in bytes */
-int guard_code_before_post_instr_size = 19; /* size in bytes */
-int guard_code_after_post_instr_size  = 10; /* size in bytes */
+int guard_code_before_pre_instr_size  = 21; /* size in bytes */
+int guard_code_after_pre_instr_size   = 16; /* size in bytes */
+int guard_code_before_post_instr_size = 21; /* size in bytes */
+int guard_code_after_post_instr_size  = 16; /* size in bytes */
 #else
 int guard_code_before_pre_instr_size  = 0; /* size in bytes */
 int guard_code_after_pre_instr_size   = 0; /* size in bytes */
@@ -1590,13 +1600,12 @@ static inline void emitJcc(int condition, int offset,
 /****************************************************************************/
 /****************************************************************************/
 
-#if defined(i386_unknown_solaris2_5) || \
-    defined(i386_unknown_linux2_0) || \
-    defined(i386_unknown_nt4_0)
+#if defined(arch_x86)
 void generate_guard_code( unsigned char * buffer,
-			  const NonRecursiveTrampTemplate & base_template,
-			  Address /* base_address */,
-			  Address guard_flag_address )
+                          const NonRecursiveTrampTemplate & base_template,
+                          Address /* base_address */,
+                          Address guard_flag_address,
+                          process *p)
 {
    unsigned char * instruction;
 
@@ -1609,11 +1618,30 @@ void generate_guard_code( unsigned char * buffer,
     */
    instruction = buffer + base_template.guardOnPre_beginOffset;
    /*            CMP_                       (memory address)__  0 */
-   emitOpRMImm8(0x83, 0x07, Null_Register, guard_flag_address, 0, instruction);
+   if (p->multithread_capable()) 
+   {
+       // Load the index into EAX
+       LOAD_VIRTUAL(REG_MT_POS, instruction);
+       // Shift by sizeof(int) and add guard_flag_address
+       emitLEA(Null_Register, EAX, 2, guard_flag_address, EAX, instruction);
+       // Compare to 0
+       emitOpRMImm8(0x83, 0x07, EAX, 0, 0, instruction);
+   }
+   else {
+       emitOpRMImm8(0x83, 0x07, Null_Register, guard_flag_address, 0, instruction);
+   }
+
    char jumpOffset = buffer + base_template.guardOffPre_endOffset -
                      ( instruction + 2 );
    emitJccR8(JE_R8, jumpOffset, instruction );
-   emitMovImmToMem( guard_flag_address, 0, instruction );
+
+   if (p->multithread_capable()) 
+   {
+       emitMovImmToRM(EAX, 0, 0, instruction);
+   }
+   else {
+       emitMovImmToMem( guard_flag_address, 0, instruction );
+   }
 
    /* guard-off code after pre instr */
    /* Code generated:
@@ -1621,20 +1649,57 @@ void generate_guard_code( unsigned char * buffer,
     * movl   $0x1, (guard flag address)
     */
    instruction = buffer + base_template.guardOffPre_beginOffset;
-   emitMovImmToMem( guard_flag_address, 1, instruction );
+   if (p->multithread_capable()) 
+   {
+       // Load the index into EAX
+       LOAD_VIRTUAL(REG_MT_POS, instruction);
+       // Shift by sizeof(int) and add guard_flag_address
+       emitLEA(Null_Register, EAX, 2, guard_flag_address, EAX, instruction);
+       emitMovImmToRM(EAX, 0, 1, instruction);
+   }
+   else {
+       emitMovImmToMem( guard_flag_address, 1, instruction );
+   }
+
 
    /* guard-on code before post instr */
    instruction = buffer + base_template.guardOnPost_beginOffset;
-   emitOpRMImm8( 0x83, 0x07, Null_Register, guard_flag_address, 0x00,
-                 instruction );
+   if (p->multithread_capable()) {
+       // Load the index into EAX
+       LOAD_VIRTUAL(REG_MT_POS, instruction);
+       // Shift by sizeof(int) and add guard_flag_address
+       emitLEA(Null_Register, EAX, 2, guard_flag_address, EAX, instruction);
+       // Compare to 0
+       emitOpRMImm8(0x83, 0x07, EAX, 0, 0, instruction);
+   }
+   else {
+       emitOpRMImm8(0x83, 0x07, Null_Register, guard_flag_address, 0, instruction);
+   }
    jumpOffset = buffer + base_template.guardOffPost_endOffset -
                 ( instruction + 2 );
    emitJccR8( JE_R8, jumpOffset, instruction );
-   emitMovImmToMem( guard_flag_address, 0, instruction );
+
+   if (p->multithread_capable()) 
+   {
+       emitMovImmToRM(EAX, 0, 0, instruction);
+   }
+   else {
+       emitMovImmToMem( guard_flag_address, 0, instruction );
+   }
 
    /* guard-off code after post instr */
    instruction = buffer + base_template.guardOffPost_beginOffset;
-   emitMovImmToMem( guard_flag_address, 1, instruction );
+   if (p->multithread_capable()) 
+   {
+       // Load the index into EAX
+       LOAD_VIRTUAL(REG_MT_POS, instruction);
+       // Shift by sizeof(int) and add guard_flag_address
+       emitLEA(Null_Register, EAX, 2, guard_flag_address, EAX, instruction);
+       emitMovImmToRM(EAX, 0, 1, instruction);
+   }
+   else {
+       emitMovImmToMem( guard_flag_address, 1, instruction );
+   }
 }
 #else
 void generate_guard_code( unsigned char * /* buffer */,
@@ -1649,7 +1714,7 @@ void generateMTpreamble(char *insn, Address &base, process *proc) {
    AstNode *threadPOS;
    pdvector<AstNode *> dummy;
    Register src = Null_Register;
-
+   Address temp = base;
    // registers cleanup
    regSpace->resetSpace();
 
@@ -1667,12 +1732,13 @@ void generateMTpreamble(char *insn, Address &base, process *proc) {
                                  base, 
                                  false, // noCost 
                                  true); // root node
-
-   if ((src) != REG_MT_POS) {
-      // This is always going to happen... we reserve REG_MT_POS, so the
-      // code generator will never use it as a destination
-      emitV(orOp, src, 0, REG_MT_POS, insn, base, false);
-   }
+   // AST generation uses a base pointer and a current address; the lower-level
+   // code uses a current pointer. Convert between the two.
+   unsigned char *insn2 = (unsigned char *)(&(insn[base]));
+   unsigned char *diff = insn2;
+   LOAD_VIRTUAL(src, insn2);
+   SAVE_VIRTUAL(REG_MT_POS, insn2);
+   base += (insn2 - diff);
 }
 
 /****************************************************************************/
@@ -1764,7 +1830,7 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
    // if there are any changes to the tramp, the size must be updated.
    unsigned trampSize;
    if(proc->multithread_capable())
-      trampSize = 12+63 + 38;  // 38 needs to be verified
+      trampSize = 12+63 + (16*2);  // 38 needs to be verified
    else
       trampSize = 12+63;
 
@@ -1898,7 +1964,6 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
       emitJump(0, insn);
       origAddr += location->insnAtPoint().size();
    }
-
    if (location->isConservative() && !noCost)
       emitSimpleInsn(PUSHFD, insn);    // pushfd
 
@@ -2112,8 +2177,12 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
       (void*)( location->returnAddr() + imageBaseAddr ) << endl;
 #endif
    
-   assert((unsigned)(insn-code) == trampSize);
-
+   if ((insn-code) != trampSize) {
+       fprintf(stderr, "Warning: written size (%d) != allocated size (%d)\n",
+               insn-code, trampSize);
+       assert(0);
+   }
+   
    // update the jumps to skip pre and post instrumentation
    unsigned char *ip = code + ret->skipPreInsOffset;
    emitJump(ret->updateCostOffset - (ret->skipPreInsOffset+JUMP_SZ), ip);
@@ -2131,7 +2200,7 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
       Address guardFlagAddress = proc->trampGuardAddr();
 
       NonRecursiveTrampTemplate * temp_ret = (NonRecursiveTrampTemplate *)ret;
-      generate_guard_code( code, * temp_ret, baseAddr, guardFlagAddress );
+      generate_guard_code( code, * temp_ret, baseAddr, guardFlagAddress, proc);
    }
   
    // put the tramp in the application space
@@ -2376,7 +2445,8 @@ static inline unsigned char makeSIBbyte(unsigned Scale, unsigned Index,
 static inline void emitAddressingMode(Register base, RegValue disp,
                                       int reg_opcode, unsigned char *&insn)
 {
-   assert(base != ESP);
+    // MT linux uses ESP+4
+    //assert(base != ESP);
    if (base == Null_Register) {
       *insn++ = makeModRMbyte(0, reg_opcode, 5);
       *((int *)insn) = disp;
@@ -2854,6 +2924,15 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
     return(Null_Register);        // should never be reached!
 }
 
+// VG(07/30/02): Emit a lea dest, [base + index * scale + disp]; dest is a
+// real GPR
+static inline void emitLEA(Register base, Register index, unsigned int scale,
+                           RegValue disp, Register dest, unsigned char *&insn)
+{
+  *insn++ = 0x8D;
+  emitAddressingMode(base, index, scale, disp, (int)dest, insn);
+}
+
 #ifdef BPATCH_LIBRARY
 static inline void emitSHL(Register dest, unsigned char pos,
                            unsigned char *&insn)
@@ -2899,15 +2978,6 @@ static inline void restoreGPRtoGPR(Register reg, Register dest,
 
    // mov dest, offset[ebp]
    emitMovRMToReg(dest, EBP, SAVED_EAX_OFFSET-(reg<<2), insn);
-}
-
-// VG(07/30/02): Emit a lea dest, [base + index * scale + disp]; dest is a
-// real GPR
-static inline void emitLEA(Register base, Register index, unsigned int scale,
-                           RegValue disp, Register dest, unsigned char *&insn)
-{
-  *insn++ = 0x8D;
-  emitAddressingMode(base, index, scale, disp, (int)dest, insn);
 }
 
 // VG(11/07/01): Load in destination the effective address given
@@ -3696,7 +3766,7 @@ bool rpcMgr::emitInferiorRPCheader(void *void_insnPtr, Address &baseBytes)
    emitMovRegToReg(EBP, ESP, insnPtr);
 
    // allocate space for temporaries (virtual registers)
-   emitOpRegImm(5, ESP, 128, insnPtr); // sub esp, 128
+   emitOpRegImm(5, ESP, TRAMP_FRAME_SIZE, insnPtr); // sub esp, 128
 
    baseBytes += (insnPtr - origInsnPtr);
 
@@ -3805,7 +3875,7 @@ void emitFuncJump(opCode op,
    unsigned char *first = insn;
 
    if (loc->isConservative())
-      emitOpRegRM(FRSTOR, FRSTOR_OP, EBP, -128 - FSAVE_STATE_SIZE, insn);
+      emitOpRegRM(FRSTOR, FRSTOR_OP, EBP, -TRAMP_FRAME_SIZE - FSAVE_STATE_SIZE, insn);
    emitSimpleInsn(LEAVE, insn);     // leave
    emitSimpleInsn(POP_EAX, insn);
    emitSimpleInsn(POPAD, insn);     // popad
