@@ -3,7 +3,10 @@
  *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
- * Revision 1.6  1994/02/16 00:07:24  hollings
+ * Revision 1.7  1994/03/25 16:03:11  markc
+ * Added retry to write which could be interrupted by a signal.
+ *
+ * Revision 1.6  1994/02/16  00:07:24  hollings
  * Added a default sampling interval of 500msec.  Previous default was not
  * to collect any data.
  *
@@ -260,7 +263,7 @@ void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
     int count;
     struct rusage ru;
     struct timeval tv;
-    char buffer[1024];
+    char buffer[1024], *bufptr;
     traceHeader header;
     static Boolean pipeGone = False;
 
@@ -303,13 +306,22 @@ void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
     count += length;
 
     /* on this platorm, we have a pipe to the controller process */
-    ret = write(CONTROLLER_FD, buffer, count);
-    if (ret != count) {
+    errno = 0;
+    /* write may be interrupted by a system call */
+    bufptr = buffer;
+    while (count) {
+        ret = write(CONTROLLER_FD, bufptr, count);
+	/* if ((ret == -1) && (errno != EINTR)) break; */
+	if (ret == -1) break; 
+        /* ret = 0; */
+	count -= ret;
+	bufptr += ret;
+    }
+    if (count) {
 	extern char *sys_errlist[];
 	(void) close(CONTROLLER_FD);
-
 	printf("unable to write trace record %s\n", sys_errlist[errno]);
-	printf("disabling further data logging\n");
+	printf("disabling further data logging, pid=%d\n", getpid());
 	pipeGone = True;
     }
 }
