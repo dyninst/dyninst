@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.26  1994/08/22 15:55:29  markc
-/* Added extra argument to addExecutable call.
+/* Revision 1.27  1994/09/22 01:17:53  markc
+/* Cast stringHandles to char*s in printf statements
 /*
+ * Revision 1.26  1994/08/22  15:55:29  markc
+ * Added extra argument to addExecutable call.
+ *
  * Revision 1.25  1994/08/13  20:55:33  newhall
  * changed call to VMCreateVisi
  *
@@ -263,7 +266,7 @@ int ParadynPrintCmd (ClientData clientData,
      } else {
       val = dataMgr->getMetricValue(mi);
       printf ("metric %s, val = %f\n", 
-	       dataMgr->getMetricName(dataMgr->getMetric(mi)), val);
+	       (char*)dataMgr->getMetricName(dataMgr->getMetric(mi)), val);
     }
   } else if (argv[1][0] == 's') {     //print shg
       perfConsult->printSHGList();
@@ -455,7 +458,7 @@ int ParadynEnableCmd (ClientData clientData,
 
   // DEBUG
   name = resList->getCanonicalName();
-  printf ("enable request for %s\n", name);
+  printf ("enable request for %s\n", (char*) name);
 
   // Now check the metric 
   met = dataMgr->findMetric (context, argv[1]);
@@ -470,7 +473,7 @@ int ParadynEnableCmd (ClientData clientData,
     if (mi) {
       uim_enabled.add(mi, (void *) uim_eid);
       sprintf(interp->result,"%d",uim_eid);
-      printf ("metric %s, id = %d\n", dataMgr->getMetricName(met), uim_eid);
+      printf ("metric %s, id = %d\n", (char*) dataMgr->getMetricName(met), uim_eid);
       uim_eid++;
     } else {
       sprintf (interp->result, "can't enable metric %s for focus \n", argv[1]);
@@ -533,7 +536,7 @@ int ParadynSetCmd (ClientData clientData,
 	  sprintf (interp->result, "value %f not valid.\n", f);
 	  return TCL_ERROR;
       } else {
-	  printf ("%s set to %f\n", fConst->getName(), fConst->getValue());
+	  printf ("%s set to %f\n", (char*) fConst->getName(), fConst->getValue());
       }
   } else if (curr->getType() == tunableBoolean) {
       bConst = (tunableBooleanConstant *) curr;
@@ -543,10 +546,10 @@ int ParadynSetCmd (ClientData clientData,
 
       if (val) {
 	  bConst->setValue(True);
-	  printf ("%s set to True\n", bConst->getName());
+	  printf ("%s set to True\n", (char*)bConst->getName());
       } else {
 	  bConst->setValue(False);
-	  printf ("%s set to False\n", bConst->getName());
+	  printf ("%s set to False\n", (char*)bConst->getName());
       }
   }
   return TCL_OK;
@@ -653,7 +656,7 @@ int ParadynSuppressCmd (ClientData clientData,
 	// DEBUG
 	r = resList->getNth(i);
 	name = r->getName();
-	printf ("suppress request for %s\n", name);
+	printf ("suppress request for %s\n", (char*)name);
 
 	if (suppressInst) {
 	    dataMgr->setResourceInstSuppress(context, r, TRUE);
