@@ -39,59 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// shg.C
 // new search history graph user interface, along the lines
 // of the new where axis user interface
+// $Id: shg.C,v 1.28 1998/04/28 22:09:59 wylie Exp $
 // Ariel Tamches
-
-/* $Log: shg.C,v $
-/* Revision 1.27  1997/10/28 20:36:16  tamches
-/* dictionary_lite --> dictionary_hash
-/*
- * Revision 1.26  1997/09/24 19:21:56  tamches
- * XFontStruct --> Tk_Font
- * use of Tk_GetFontMetrics
- *
- * Revision 1.25  1996/11/26 16:06:56  naim
- * Fixing asserts - naim
- *
- * Revision 1.24  1996/08/16 21:07:09  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.23  1996/05/01 20:55:55  tamches
- * added inactivateAll
- * changed configNode implementation
- *
- * Revision 1.22  1996/05/01 14:07:57  naim
- * Multiples changes in UI to make call to requestNodeInfoCallback async.
- * (UI<->PC) - naim
- *
- * Revision 1.21  1996/04/29  21:29:58  tamches
- * fixed a bug in configNode which could fail to properly hide the root node
- * when set to false with hideFalseNodes.
- *
- * Revision 1.20  1996/04/18 23:26:31  tamches
- * fixed an assert failure that was happening when hideFalseNodes was on
- * and when a node changed from true to false
- *
- * Revision 1.19  1996/04/16 18:37:31  karavan
- * fine-tunification of UI-PC batching code, plus addification of some
- * Ari-like verbification commentification.
- *
- * Revision 1.18  1996/04/13 04:39:46  karavan
- * better implementation of batching for edge requests
- *
- * Revision 1.17  1996/04/09 19:25:10  karavan
- * added batch mode to cut down on shg redraw time.
- *
- * Revision 1.16  1996/04/01 21:19:22  tamches
- * changeHiddenNodes now checks for a NULL rootPtr
- *
- * Revision 1.15  1996/03/29 20:51:12  tamches
- * on configNode, check for change in hide-ness is moved before check for
- * true-ness; avoids an assertion failure when expanding a hidden node at times.
- *
- */
 
 #include <assert.h>
 #include "tkTools.h"
@@ -1366,13 +1317,27 @@ void shg::nodeInformation(unsigned nodeId, const shg_node_info &theNodeInfo) {
       dataString += "\n";
       dataString += "curr concl: ";
       dataString += theNodeInfo.currentConclusion ? "true" : "false";
-      dataString += " made at time ";
-      dataString += string(theNodeInfo.timeTrueFalse) + "\n";
+      dataString += " made after time ";
+      dataString += string(theNodeInfo.timeTrueFalse);
+      dataString += "\n";
+      dataString += string("time from ") + string(theNodeInfo.startTime)
+                                + " to " +  string(theNodeInfo.endTime);
+      dataString += "; ";
+      dataString += string("persistent: ") 
+                    + (theNodeInfo.persistent ? "true" : "false");
+      dataString += "; ";
+      dataString += string("active: ") 
+                    + (theNodeInfo.active ? "true" : "false");
+      dataString += "\n";
       dataString += string("curr value: ") + string(theNodeInfo.currentValue);
-      dataString += string(" estim cost: ") + string(theNodeInfo.estimatedCost) + "\n";
-      dataString += string("time from ") + string(theNodeInfo.startTime) + " to " +
-	                                   string(theNodeInfo.endTime) + "\n";
-      dataString += string("persistent: ") + (theNodeInfo.persistent ? "true" : "false");
+      dataString += "; ";
+      dataString += string("thresh: ") + string(theNodeInfo.lastThreshold);
+      dataString += "; ";
+      dataString += string("hys constant: ") + string(theNodeInfo.hysConstant);
+      dataString += "; ";
+      dataString += string("adj value: ") + string(theNodeInfo.adjustedValue);
+      dataString += "; ";
+      dataString += string("estim cost: ") + string(theNodeInfo.estimatedCost);
    }
 
    commandStr = currItemLabelName + " insert end " + "\"" + dataString + "\"";
