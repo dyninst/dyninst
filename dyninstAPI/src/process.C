@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.183 1999/07/13 17:17:34 pcroth Exp $
+// $Id: process.C,v 1.184 1999/07/19 22:56:23 wylie Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -588,7 +588,8 @@ void inferiorFreeDeferred(process *proc, inferiorHeap *hp, bool runOutOfMem)
       heapItem *np = NULL;
       Address pointer = item.block.addr;
       if (!hp->heapActive.find(pointer, np)) {
-        showErrorCallback(96,"");
+        showErrorCallback(96,"Internal error: "
+                "attempt to free non-defined heap entry.");
         return;
       }
       assert(np);
@@ -912,7 +913,8 @@ void inferiorFree(process *p, Address block,
   // find block on active list
   heapItem *h = NULL;  
   if (!hp->heapActive.find(block, h)) {
-    showErrorCallback(96,"");
+    showErrorCallback(96,"Internal error: "
+        "attempt to free non-defined heap entry.");
     return;
   }
   assert(h);
