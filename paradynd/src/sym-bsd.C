@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/sym-bsd.C,v 1.7 1994/07/28 22:40:46 krisna Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/sym-bsd.C,v 1.8 1994/09/14 19:57:08 rbi Exp $";
 #endif
 
 /*
  * sym-bsd.C - parse BSD style a.out files.
  *
  * $Log: sym-bsd.C,v $
- * Revision 1.7  1994/07/28 22:40:46  krisna
+ * Revision 1.8  1994/09/14 19:57:08  rbi
+ * Fixed system calls in loadSymTable()
+ *
+ * Revision 1.7  1994/07/28  22:40:46  krisna
  * changed definitions/declarations of xalloc functions to conform to alloc.
  *
  * Revision 1.6  1994/07/22  19:21:09  hollings
@@ -279,14 +282,14 @@ image *loadSymTable(char *file, int offset, libraryList libraryFunctions,
     name = (name ? name+1: file);
     ret->name = pool.findAndAdd(name);
 
-    fd = open(file, 2);
+    fd = open(file, O_RDONLY);
     if (fd < 0) {
 	perror(file);
 	free(ret);
 	return(NULL);
     }
 
-    lseek(fd, offset, 0);
+    lseek(fd, offset, SEEK_SET);
     if (read(fd, (char *) &exec, sizeof(exec)) != sizeof(exec)) {
 	perror("read");
 	free(ret);
@@ -308,7 +311,7 @@ image *loadSymTable(char *file, int offset, libraryList libraryFunctions,
     ret->textOffset = (unsigned) N_TXTADDR(exec);
 #ifdef notdef
     ret->code = (void *) xmalloc(exec.a_text+exec.a_data);
-    lseek(fd, N_TXTOFF(exec)+offset, 0);
+    lseek(fd, N_TXTOFF(exec)+offset, SEEK_SET);
     if (read(fd, (char *) ret->code, exec.a_text+exec.a_data) != exec.a_text+exec.a_data) {
 #endif
 
@@ -335,7 +338,7 @@ image *loadSymTable(char *file, int offset, libraryList libraryFunctions,
     }
 
     stabs = (struct nlist *) xmalloc(exec.a_syms);
-    lseek(fd, N_SYMOFF(exec)+offset, 0);
+    lseek(fd, N_SYMOFF(exec)+offset, SEEK_SET);
     if (read(fd, (char *) stabs, exec.a_syms) != exec.a_syms) {
 	free(stabs);
 	free(ret->code);
@@ -346,7 +349,7 @@ image *loadSymTable(char *file, int offset, libraryList libraryFunctions,
     }
 
     /* now read the string pool */
-    (void) lseek(fd,  N_STROFF(exec)+offset, 0);
+    (void) lseek(fd,  N_STROFF(exec)+offset, SEEK_SET);
     if (read(fd, (char *) &stringLength, sizeof(int)) != sizeof(int)) {
 	free(ret->code);
 	free(stabs);
@@ -356,7 +359,7 @@ image *loadSymTable(char *file, int offset, libraryList libraryFunctions,
     }
 
     strings = (char *) xmalloc(stringLength);
-    (void) lseek(fd,  N_STROFF(exec)+offset, 0);
+    (void) lseek(fd,  N_STROFF(exec)+offset, SEEK_SET);
     if (read(fd, strings, stringLength) != stringLength) {
 	free(ret->code);
 	free(stabs);
@@ -397,6 +400,9 @@ image *loadSymTable(char *file, int offset, libraryList libraryFunctions,
 		break;
 	    case N_ENTRY:
 		logLine("warning code contains alternate entry point\n");
+		break;
+	    case N_STSYM:
+		str = &strings[stabs[i].n_un.n_strx];
 		break;
 	    default:
 		break;
