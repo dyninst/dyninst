@@ -44,6 +44,9 @@
 
 /*
  * $Log: tableVisi.C,v $
+ * Revision 1.13  2000/03/21 23:58:39  pcroth
+ * Added guard to protect against division by zero when resizing scroll bars.
+ *
  * Revision 1.12  1999/11/09 15:55:11  pcroth
  * Updated uses of XCreateGC and XFreeGC to Tk_GetGC and Tk_FreeGC.
  *
@@ -335,14 +338,22 @@ bool tableVisi::tryFirst() {
 void tableVisi::resizeScrollbars(Tcl_Interp *interp) {
    // used to be a tcl routine (resize1Scrollbar):
 
-   const int visible_cell_width = Tk_Width(theTkWindow) -
+   int visible_cell_width = Tk_Width(theTkWindow) -
                                   getFocusAreaPixWidth();
+	if( visible_cell_width <= 0 )
+	{
+		visible_cell_width = 1;
+	}
    resizeScrollbar(interp, ".horizScrollbar",
 		   all_cells_width, // total
 		   visible_cell_width);
 
-   const int visible_cell_height = Tk_Height(theTkWindow) -
+   int visible_cell_height = Tk_Height(theTkWindow) -
                                    getMetricAreaPixHeight();
+	if( visible_cell_height <= 0 )
+	{
+		visible_cell_height = 1;
+	}
    resizeScrollbar(interp, ".vertScrollbar",
 		   all_cells_height, // total
 		   visible_cell_height);
