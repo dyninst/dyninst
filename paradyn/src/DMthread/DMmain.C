@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.127 1999/12/01 14:41:42 zhichen Exp $
+// $Id: DMmain.C,v 1.128 2000/02/09 19:49:58 pcroth Exp $
 
 #include <assert.h>
 extern "C" {
@@ -256,8 +256,15 @@ void dynRPCUser::applicationIO(int,int,string data)
     // this is problably not the best fix,  but I can't figure out why 
     // the error is occuring (rest is always '\0' terminated when this
     // error occurs)---tn 
-    fprintf(stdout,data.string_of());
-    fflush(stdout);
+    if( data.length() > 0 )
+    {
+		fprintf(stdout,data.string_of());
+		fflush(stdout);
+	}
+	else
+	{
+		fprintf( stderr, "paradyn: warning: empty IO string sent from daemon...ignoring..." );
+	}
 
 #ifdef n_def
     char *ptr;
@@ -291,7 +298,6 @@ void dynRPCUser::applicationIO(int,int,string data)
     delete tp;
     rest = 0;
 #endif
-
 }
 
 extern status_line *DMstatus;
