@@ -41,6 +41,9 @@
 
 /*
  * $Log: mdl.C,v $
+ * Revision 1.22  1997/01/15 00:14:29  tamches
+ * extra bool arg to apply
+ *
  * Revision 1.21  1996/11/14 14:19:33  naim
  * Changing AstNodes back to pointers to improve performance - naim
  *
@@ -204,7 +207,8 @@ bool mdl_data::new_metric(string id, string name, string units,
 }
 
 metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> >& ,
-						      string& , vector<process *> ) {
+						      string& , vector<process *>,
+						      bool) {
   mdl_env::push();
   if (!mdl_env::add(id_, true, type_)) return NULL;
   assert(temp_ctr_);
@@ -935,7 +939,7 @@ bool mdl_apply() {
   vector<T_dyninstRPC::mdl_metric*> ok_mets;
   size = mdl_data::all_metrics.size();
   for (unsigned u2=0; u2<size; u2++) {
-    if (mdl_data::all_metrics[u2]->apply(vs, empty, emptyP) == (metricDefinitionNode*)1) {
+    if (mdl_data::all_metrics[u2]->apply(vs, empty, emptyP, false) == (metricDefinitionNode*)1) {
       ok_mets += mdl_data::all_metrics[u2];
       // cout << "metric defined: " << mdl_data::all_metrics[u2]->id_ << endl;
     } else {
