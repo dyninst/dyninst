@@ -27,7 +27,7 @@ void aggr_Float_Max(DataElement **, unsigned int, DataElement ***, unsigned int*
 void aggr_CharArray_Concat(DataElement **, unsigned int, DataElement ***, unsigned int*);
 
 #define AGGR_INT_EQ_CLASS_ID    2008
-#define AGGR_INT_EQ_CLASS_FORMATSTR "%aud %aud"
+#define AGGR_INT_EQ_CLASS_FORMATSTR "%aud %aud %aud"
 void aggr_IntEqClass(DataElement**, unsigned int, DataElement***, unsigned int*);
 
 #define SYNC_WAITFORALL 2003
