@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.20 2004/03/23 01:12:01 eli Exp $
+// $Id: arch-x86.C,v 1.21 2004/03/25 21:29:34 lharris Exp $
 // x86 instruction decoder
 
 #include <assert.h>
@@ -1403,5 +1403,17 @@ bool insn_hasSIB(unsigned ModRMbyte,unsigned& Mod,unsigned& Reg,unsigned& RM){
     Mod = (ModRMbyte >> 6) & 0x03;
     Reg = (ModRMbyte >> 3) & 0x07;
     RM = ModRMbyte & 0x07;
-    return ((Mod != 3) && ((RM == 4) || (RM == 5)));
+    return ((Mod != 3) && (RM == 4));
+}
+
+bool insn_hasDisp8(unsigned ModRMbyte){
+    unsigned Mod = (ModRMbyte >> 6) & 0x03;
+    return (Mod == 1);
+}
+
+bool insn_hasDisp32(unsigned ModRMbyte){
+    unsigned Mod = (ModRMbyte >> 6) & 0x03;
+    unsigned Reg = (ModRMbyte >> 3) & 0x07;
+    unsigned RM = ModRMbyte & 0x07;
+    return (Mod == 0 && RM == 5) || (Mod == 2);
 }
