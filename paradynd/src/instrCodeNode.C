@@ -77,9 +77,12 @@ instrCodeNode *instrCodeNode::newInstrCodeNode(string name_, const Focus &f,
     if (hw_cntr_str != "") {
 #ifdef PAPI
       papiMgr* papi;
-      papi = proc->get_dyn_proc()->getPapiMgr();
+      papi = proc->getPapiMgr();
       assert(papi);
       hw = papi->createHwEvent(hw_cntr_str);
+
+      fprintf(stderr, "MRM_DEBUG: done with createHwEvent\n");
+
       if (hw == NULL) {
 	string msg = string("unable to add PAPI hardware event: ") 
 	             + hw_cntr_str;
