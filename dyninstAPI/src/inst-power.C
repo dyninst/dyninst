@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.169 2003/05/12 21:29:00 bernat Exp $
+ * $Id: inst-power.C,v 1.170 2003/05/15 22:12:26 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -3298,8 +3298,8 @@ bool pd_Function::findInstPoints(const image *owner)
   // l      r2,4(r12)        // callee TOC
   // mtctr  0                // We keep the LR static, use the CTR
   // bctr                    // non-saving branch to CTR
-  // All linkage code will be in module glink.s, and have _linkage
-  // appended to the function name by the parser. Woohoo.
+
+  // The parser detects linkage functions and appends _linkage to the name
 
   isInstrumentable_ = 1;
   return(true);
@@ -3624,8 +3624,9 @@ bool process::findCallee(instPoint &instr, function_base *&target){
           return true;
       }
       else
-          fprintf(stderr, "Couldn't find target function for address 0x%x\n",
-                  (unsigned) callee_addr);
+          fprintf(stderr, "Couldn't find target function for address 0x%x, jump at 0x%x\n",
+                  (unsigned) callee_addr,
+                  instr.iPgetAddress());
   }
   // Todo
   target = 0;
@@ -3742,11 +3743,10 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 
 #ifndef BPATCH_LIBRARY
 bool process::isDynamicCallSite(instPoint *callSite){
-  function_base *temp;
-  if(!findCallee(*(callSite),temp)){
-    return true;
-  }
-  return false;
+    if (isDynamicCall(callSite->originalInstruction))
+        return true;
+    return false;
+    
 }
 
 bool process::MonitorCallSite(instPoint *callSite){
@@ -3757,47 +3757,53 @@ bool process::MonitorCallSite(instPoint *callSite){
   // Is this a branch conditional link register (BCLR)
   // BCLR uses the xlform (6,5,5,5,10,1)
   if(i.xlform.op == BCLRop) // BLR/BCR, or bcctr/bcc. Same opcode.
-    {
+  {
       if (i.xlform.xo == BCLRxop) // BLR (bclr)
-	{
-	  branch_target = REG_LR;
-	}
+      {
+          branch_target = REG_LR;
+      }
       else if (i.xlform.xo == BCCTRxop)
-	{
-	  // We handle global linkage branches (BCTR) as static call
+      {
+          // We handle global linkage branches (BCTR) as static call
           // sites. They're currently registered when the static call
           // graph is built (Paradyn), after all objects have been read
           // and parsed.
-	  branch_target = REG_CTR;
-	}
+          branch_target = REG_CTR;
+      }
       else
-	{
-	  // Used to print an error, but the opcode (19) is also used
-	  // for other instructions, and errors could confuse people.
-	  // So just return false instead.
-	  return false;
-	}
+      {
+          // Used to print an error, but the opcode (19) is also used
+          // for other instructions, and errors could confuse people.
+          // So just return false instead.
+          return false;
+      }
       // Where we're jumping to (link register, count register)
       the_args[0] = new AstNode(AstNode::PreviousStackFrameDataReg,
-				(void *) branch_target); 
+                                (void *) branch_target); 
       // Where we are now
       the_args[1] = new AstNode(AstNode::Constant,
-				(void *) callSite->iPgetAddress());
+                                (void *) callSite->iPgetAddress());
       // Monitoring function
       AstNode *func = new AstNode("DYNINSTRegisterCallee", 
-				  the_args);
+                                  the_args);
       miniTrampHandle mtHandle;
       addInstFunc(&mtHandle, this, callSite, func, callPreInsn,
-		  orderFirstAtPoint,
-		  true,                        /* noCost flag   */
-		  false);                      /* trampRecursiveDesired flag */
+                  orderFirstAtPoint,
+                  true,                        /* noCost flag   */
+                  false);                      /* trampRecursiveDesired flag */
       return true;
-    }
+  }
+  else if (i.xlform.op == BCop) {
+      /// Why didn't we catch this earlier? In any case, don't print an error
+      return true;
+  }
   else
-    {
+  {
       cerr << "MonitorCallSite: Unknown opcode " << i.xlform.op << endl; 
+      cerr << "opcode extension: " << i.xlform.xo << endl;
+      fprintf(stderr, "Address is 0x%x, insn 0x%x\n", callSite->iPgetAddress(), i.raw);
       return false;
-    }
+  }
 }
 
 #endif
