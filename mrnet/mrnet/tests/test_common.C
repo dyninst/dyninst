@@ -118,3 +118,13 @@ int Test::end_SubTest(const std::string & subtest_name, TestStatus status)
 
     return 0;
 }
+
+void Test::print(const char *s, const std::string& subtest_name)
+{
+    if(subtest_name == ""){
+        fprintf(fout, "%s", s);
+    }
+    else{
+        fprintf(fout, "SubTest %s: %s", subtest_name.c_str(), s);
+    }
+}

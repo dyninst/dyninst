@@ -60,6 +60,7 @@ class Test{
     void end_Test( );
     int start_SubTest(const std::string & subtest_name);
     int end_SubTest(const std::string & subtest_name, TestStatus status);
+    void print(const char *, const std::string& subtest_name="");
 };
 }
 
