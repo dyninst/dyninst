@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.81 2004/05/05 22:34:04 rchen Exp $
+// $Id: irix.C,v 1.82 2004/05/13 12:20:18 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -429,7 +429,7 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
     // The current FD we're processing.
     static int curr = 0;
     prstatus_t stat;
-
+    bool any_active_procs = false;
     procSignalWhy_t  why  = procUndefined;
     procSignalWhat_t what = 0;
     procSignalInfo_t info = 0;
@@ -441,8 +441,10 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
                 (processVec[u]->status() == running || 
                  processVec[u]->status() == neonatal)) {
                 if (wait_arg == -1 ||
-                    processVec[u]->getPid() == wait_arg)
-                   fds[u].fd = processVec[u]->getRepresentativeLWP()->get_fd();
+                    processVec[u]->getPid() == wait_arg) {
+                    any_active_procs = true;
+                    fds[u].fd = processVec[u]->getRepresentativeLWP()->get_fd();
+                }
             } else {
                 fds[u].fd = -1;
             }	
@@ -459,11 +461,16 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
         //  Add file descriptor for MPI master process
         if ( masterMPIfd != -1 )
         {
+            any_active_procs = true;
             fds[processVec.size()].fd = masterMPIfd;
             fds[processVec.size()].events = POLLPRI;
             fds[processVec.size()].revents = 0;
         }
-        
+
+        if (!any_active_procs) {
+            // Avoid blocking on nothing
+            return false;
+        }
         
         int timeout;
         if (block) timeout = -1;
