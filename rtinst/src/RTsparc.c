@@ -4,7 +4,10 @@
  *   functions for a normal Sparc with SUNOS.
  *
  * $Log: RTsparc.c,v $
- * Revision 1.5  1994/07/14 23:34:08  hollings
+ * Revision 1.6  1994/09/20 18:25:00  hollings
+ * removed call to getcmd since it was causing a SS-5 slow down.
+ *
+ * Revision 1.5  1994/07/14  23:34:08  hollings
  * added include of kludges.h
  *
  * Revision 1.4  1994/07/05  03:25:10  hollings
@@ -76,6 +79,9 @@ caddr_t DYNINSTprobeUarea()
 	 return(0);
      }
 
+#ifdef notdef
+     /* removed this call since is seems to cause a 10% slow down of the
+     application on SS-5 programs (I have no idea why) -- jkh 9/18/94 */
      kvm_getcmd(kd, p, u, &args, NULL);
      cmd = (char *) rindex(args[0], '/');
      if (cmd) {
@@ -83,6 +89,7 @@ caddr_t DYNINSTprobeUarea()
      } else {
 	 cmd = args[0];
      }
+#endif
 #ifdef notdef
      if (strcmp(cmd, u->u_comm)) {
 	 printf("cmd = %s, u_comm = %s\n", cmd, u->u_comm);
