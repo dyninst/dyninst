@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.51 2003/03/21 23:40:38 jodom Exp $
+ * $Id: Object-elf.h,v 1.52 2003/04/18 22:35:25 tlmiller Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -141,7 +141,10 @@ class Object : public AObject {
   
   bool is_elf64() const { return is_elf64_; }
   const char *elf_vaddr_to_ptr(Address vaddr) const;
+  bool hasStabInfo() const { return ! ( !stab_off_ || !stab_size_ || !stabstr_off_ ); }
+  bool hasDwarfInfo() const { return dwarvenDebugInfo; }
   void get_stab_info(void **stabs, int &nstabs, void **stabstr);
+  const char * getFileName() const { return fileName; }
 
   bool needs_function_binding() const { return (plt_addr_ > 0); } 
   bool get_func_binding_table(pdvector<relocationEntry> &fbt) const;
@@ -176,6 +179,8 @@ class Object : public AObject {
   unsigned  file_size_;          // mapped ELF file
   char     *file_ptr_;           // mapped ELF file
 
+  const char * fileName;
+
 	Address text_addr_; //.text section 
 	Address text_size_; //.text section size
 
@@ -197,6 +202,8 @@ class Object : public AObject {
   Address   stab_indx_off_;	 // .stab.index section
   unsigned  stab_indx_size_;	 // .stab.index section
   Address   stabstr_indx_off_;	 // .stabstr.index section
+
+  bool      dwarvenDebugInfo;    // is DWARF debug info present?
 
 #if defined(ia64_unknown_linux2_4)
   Address   gp;			 // The gp for this object.

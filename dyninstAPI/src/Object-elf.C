@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.47 2003/04/14 15:59:17 jodom Exp $
+ * $Id: Object-elf.C,v 1.48 2003/04/18 22:35:26 tlmiller Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -58,8 +58,8 @@
 #include <stdio.h>
 
 #if defined(USES_DWARF_DEBUG)
-#include <dwarf.h>
-#include <libdwarf.h>
+#include "dwarf.h"
+#include "libdwarf.h"
 #endif
 
 #if defined(TIMED_PARSE)
@@ -238,6 +238,7 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
   got_zero_index_ = -1;
   dynsym_zero_index_ = -1;
 #endif
+  dwarvenDebugInfo = false;
 
   txtaddr = 0;
 
@@ -367,6 +368,9 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
     }
     else if (strcmp(name, RO_DATA_NAME) == 0) {
       if (!bssaddr) bssaddr = pd_shdrp->pd_addr;	  
+    }
+    else if (strcmp(name, ".debug_info") == 0) {
+      dwarvenDebugInfo = true;
     }
 #if defined( ia64_unknown_linux2_4 ) 
     else if (strcmp(name, ".dynamic") == 0) {
@@ -648,6 +652,7 @@ bool Object::get_relocation_entries(Elf_Scn*& rel_plt_scnp,
 bool Object::mmap_file(const char *file, 
 		       bool &did_open, bool &did_mmap)
 {
+  fileName = strdup( file );  assert( fileName != NULL );
   file_fd_ = open(file, O_RDONLY);
   if (file_fd_ == -1) return false;
   did_open = true;
@@ -1256,7 +1261,7 @@ bool Object::fix_global_symbol_modules_static_dwarf(
   Dwarf_Attribute attr;
   Dwarf_Debug dbg;
 
-  ret = dwarf_elf_init(elfp, DW_DLC_READ, &pd_dwarf_handler, err_func_, &dbg, NULL);
+  ret = dwarf_elf_init(elfp, DW_DLC_READ, &pd_dwarf_handler, getErrFunc(), &dbg, NULL);
   if (ret != DW_DLV_OK) return false;
 
   while (dwarf_next_cu_header(dbg, NULL, NULL, NULL, NULL, &hdr, NULL)
@@ -1673,6 +1678,7 @@ Object::operator=(const Object& obj) {
     stab_size_ = obj.stab_size_;
     stabstr_off_ = obj.stabstr_off_;
     relocation_table_  = obj.relocation_table_;
+    dwarvenDebugInfo = obj.dwarvenDebugInfo;
     return *this;
 }
 
@@ -1717,6 +1723,7 @@ const ostream &Object::dump_state_info(ostream &s)
   s << " stab_off_ = " << stab_off_ << endl;
   s << " stab_size_ = " << stab_size_ << endl;
   s << " stabstr_off_ = " << stabstr_off_ << endl;
+  s << " dwarvenDebugInfo = " << dwarvenDebugInfo << endl;
 
   // and dump the relocation table....
   s << " relocation_table_ = (field seperator :: )" << endl;   
