@@ -1,7 +1,10 @@
 /* $Log: paradyn.h,v $
-/* Revision 1.11  1995/06/02 20:56:00  newhall
-/* made code compatable with new DM interface
+/* Revision 1.12  1995/08/12 22:27:37  newhall
+/* moved def. of init_struct to dataManager.I
 /*
+ * Revision 1.11  1995/06/02  20:56:00  newhall
+ * made code compatable with new DM interface
+ *
  * Revision 1.10  1995/05/18  11:00:46  markc
  * added mdl hooks
  *
@@ -84,10 +87,10 @@ extern void print_debug_macro(const char* format, ...);
 #define PARADYN_DEBUG(x) print_debug_macro x
 
 // Structure used to pass initial arguments to data manager
-typedef struct {
-  int tid;
-  char *met_file;
-} init_struct;
+//typedef struct {
+//  int tid;
+//  char *met_file;
+//} init_struct;
 
 #endif
 
