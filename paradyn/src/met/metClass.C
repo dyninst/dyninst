@@ -3,7 +3,10 @@
  * Implements classes used for metric description language
  *
  * $Log: metClass.C,v $
- * Revision 1.3  1995/02/07 21:59:50  newhall
+ * Revision 1.4  1995/05/18 10:58:15  markc
+ * Added mdl hooks
+ *
+ * Revision 1.3  1995/02/07  21:59:50  newhall
  * added a force option to the visualization definition, this specifies
  * if the visi should be started before metric/focus menuing
  * removed compiler warnings
@@ -16,11 +19,24 @@
 #include "metParse.h"
 #include <assert.h>
 
-List<stringList*> stringList::allLists;
-List<daemonMet*> daemonMet::allDaemons;
-List<processMet*> processMet::allProcs;
-List<visiMet*> visiMet::allVisis;
-List<tunableMet*> tunableMet::allTunables;
+
+vector<daemonMet*> daemonMet::allDaemons;
+vector<processMet*> processMet::allProcs;
+vector<visiMet*> visiMet::allVisis;
+vector<tunableMet*> tunableMet::allTunables;
+
+static vector<string_list*> all_strings;
+
+void add_string_list(string& name, vector<string>& elem) {
+  unsigned size = all_strings.size();
+  for (unsigned u=0; u<size; u++)
+    if (all_strings[u]->name == name) {
+      all_strings[u]->name = name; all_strings[u]->elements = elem; return;
+    }
+  string_list *sl = new string_list;
+  sl->name = name; sl->elements = elem;
+  all_strings += sl;
+}
 
 metError metParseError = ERR_NO_ERROR;
 char *metParseError_list[6] = {"No error",
@@ -36,361 +52,258 @@ void handle_error()
   metParseError = ERR_NO_ERROR;
 }
 
-void daemonMet::destroy()
-{
-  if (command)
-    delete command;
-  if (execDir)
-    delete execDir;
-  if (user)
-    delete user;
-  if (name)
-    delete name;
-  if (host)
-    delete host;
-  host = 0;
-  command = 0;
-  execDir = 0;
-  user = 0;
-  name = 0;
-}
-
-void visiMet::destroy ()
-{
-  if (command)
-    delete command;
-  if (host)
-    delete host;
-  if (user)
-    delete user;
-  if (execDir)
-    delete execDir;
-  if (name)
-    delete name;
-  name = 0;
-  command = 0;
-  host = 0;
-  user = 0;
-  execDir = 0;
-}
-
-void processMet::destroy ()
-{
-  if (command)
-    delete command;
-  if (daemon)
-    delete daemon;
-  if (host)
-    delete host;
-  if (execDir)
-    delete execDir;
-  if (user)
-    delete user;
-  if (name)
-    delete name;
-  command = 0;
-  daemon = 0;
-  host = 0;
-  execDir = 0;
-  user = 0;
-  name = 0;
-}
-
 void tunableMet::dumpAll()
 {
-  List<tunableMet*> walk;
-  for (walk=allTunables; *walk; walk++) {
-    (*walk)->dump();
-  }
+  unsigned size = allTunables.size();
+  for (unsigned u=0; u<size; u++)
+    allTunables[u]->dump();
 }
 
 void tunableMet::dump() const
 {
-  cout << "TUNABLE:  name " <<  (name ? name : "<EMPTY>");
+  cout << "TUNABLE:  name " << name_;
   if (useBvalue) {
-    cout << "   value: " << (Bvalue ? "TRUE" : "FALSE") << endl;
+    cout << "   value: " << (Bvalue_ ? "TRUE" : "FALSE") << endl;
   } else {
-    cout << "   value: " << Fvalue << endl;
+    cout << "   value: " << Fvalue_ << endl;
   }
 }
 
-int tunableMet::addHelper(char *c)
-{
-  List<tunableMet*> walk;
-  if (!c) {
-    metParseError = ERR_BAD_ARGS;
-    return 0;
+void tunableMet::addHelper(tunableMet *add_me) {
+  unsigned size = allTunables.size();
+
+  for (unsigned u=0; u<size; u++) {
+    if (allTunables[u]->name() == add_me->name()) {
+      delete allTunables[u];
+      allTunables[u] = add_me;
+      return;
+    }
   }
-  for (walk=allTunables; *walk; walk++)
-    if (!strcmp((*walk)->name, c))
-      allTunables.remove(*walk);
-  return 1;
+  allTunables += add_me;
 }
 
-int tunableMet::addTunable(char *c, float f)
+bool tunableMet::addTunable(string &c, float f)
 {
-  if (!addHelper(c))
-    return 0;
-
   tunableMet *tm = new tunableMet(f, c);
   if (!tm) {
     metParseError = ERR_MALLOC;
-    delete c;
-    return 0;
+    return false;
   }
-  allTunables.add(tm);
-  return 1;
+  addHelper(tm);
+  return true;
 }
 
-int tunableMet::addTunable(char *c, int b)
+bool tunableMet::addTunable(string &c, int b)
 {
-  if (!addHelper(c))
-    return 0;
-
   tunableMet *tm = new tunableMet(b, c);
   if (!tm) {
     metParseError = ERR_MALLOC;
-    delete c;
-    return 0;
+    return false;
   }
-  allTunables.add(tm);
-  return 1;
+  addHelper(tm);
+  return true;
 }
 
-int processMet::set_field (field &f)
+bool processMet::set_field (field &f)
 {
   switch (f.spec) {
   case SET_COMMAND:
-    if (command) delete command;
-    command = f.val;
+    command_ = *f.val;
     break;
   case SET_DAEMON:
-    if (daemon) delete daemon;
-    daemon = f.val;
+    daemon_ = *f.val;
     break;
   case SET_HOST:
-    if (host) delete host;
-    host = f.val;
+    host_ = *f.val;
     break;
   case SET_USER:
-    if (user) delete user;
-    user = f.val;
+    user_ = *f.val;
     break;
   case SET_DIR:
-    if (execDir) delete execDir;
-    execDir = f.val;
+    execDir_ = *f.val;
     break;
   case SET_NAME:
-    if (name) delete name;
-    name = f.val;
+    name_ = *f.val;
     break;
   default:
-    return 0;
+    return false;
   }
-  return 0;
+  return true;
 }
 
-int daemonMet::set_field (field &f)
+bool daemonMet::set_field (field &f)
 {
   switch (f.spec) {
   case SET_COMMAND:
-    if (command) delete command;
-    command = f.val;
+    command_ = *f.val;
     break;
   case SET_USER:
-    if (user) delete user;
-    user = f.val;
+    user_ = *f.val;
     break;
   case SET_DIR:
-    if (execDir) delete execDir;
-    execDir = f.val;
+    execDir_ = *f.val;
     break;
   case SET_FLAVOR:
-    flavor = f.flav;
+    flavor_ = *f.flav;
     break;
   case SET_NAME:
-    if (name) delete name;
-    name = f.val;
+    name_ = *f.val;
     break;
   case SET_HOST:
-    if (host) delete host;
-    host = f.val;
+    host_ = *f.val;
     break;
   default:
-    return 0;
+    return false;
   }
-  return 1;
+  return true;
 }
 
-int visiMet::set_field(field &f)
+bool visiMet::set_field(field &f)
 {
   switch (f.spec) {
   case SET_COMMAND:
-    if (command) delete command;
-    command = f.val;
+    command_ = *f.val;
     break;
   case SET_HOST:
-    if (host) delete host;
-    host = f.val;
+    host_ = *f.val;
     break;
   case SET_USER:
-    if (user) delete (user);
-    user = f.val;
+    user_ = *f.val;
     break;
   case SET_DIR:
-    if (execDir) delete execDir;
-    execDir = f.val;
+    execDir_ = *f.val;
     break;
   case SET_NAME:
-    if (name) delete (name);
-    name = f.val;
+    name_ = *f.val;
     break;
   case SET_FORCE:
-    force = f.flav;
-    if((force < 0) || (force > 1)){
-      force = 0;
+    force_ = f.force;
+    if((force_ < 0) || (force_ > 1)){
+      force_ = 0;
     }
     break;
   default:
-    return 0;
+    return false;
   }
-  return 1;
+  return true;
 }
 
-int stringList::addStringList(char *nm, List<char*> it)
-{
-  List<stringList*> walk;
-  if (!nm) {
-    metParseError = ERR_BAD_ARGS;
-    it.removeAll();
-    return 0;
-  }
-  for (walk=allLists; *walk; walk++)
-    if (!strcmp((*walk)->name, nm))
-      allLists.remove(*walk);
+daemonMet::daemonMet(string &nm, string &cmd, string &exec, string &u,
+		     string &h, string& flav)
+: name_(nm), command_(cmd), execDir_(exec), user_(u), host_(h), flavor_(flav) { }
 
-  stringList *sl = new stringList(nm, it);
-  if (!sl) {
-    metParseError = ERR_MALLOC;
-    delete nm;
-    it.removeAll();
-  }
-  allLists.add(sl);
-  return 1;
-}
-
-void stringList::dump() const
-{
-  List<char*> walk;
-  cout << "STRINGLIST: " << name << endl;
-  for (walk=items; *walk; walk++) {
-    cout << *walk << " : ";
-  }
-  cout << "}\n";
-}
-
-void stringList::dumpAll()
-{
-  List<stringList*> walk;
-  for (walk=allLists; *walk; walk++)
-    (*walk)->dump();
-}
-
-void daemonMet::dumpAll()
-{
-  List<daemonMet*> walk;
-  for (walk=allDaemons; *walk; walk++)
-    (*walk)->dump();
+void daemonMet::dumpAll() {
+  unsigned size = allDaemons.size();
+  for (unsigned u=0; u<size; u++)
+    allDaemons[u]->dump();
 }
 
 void daemonMet::dump() const
 {
-  cout << "DAEMONMET: " << (name ? name : "<EMPTY>") << endl;
-  cout << "     command: " << (command ? command : "<EMPTY>") << endl;
-  cout << "     execDir: " << (execDir ? execDir : "<EMPTY>") << endl;
-  cout << "     host: " << (host ? host : "<EMPTY>") << endl;
-  cout << "     flavor: " << flavor << endl;
-  cout << "     user: " << (user ? user : "<EMPTY>") << endl;
+  cout << "DAEMONMET: " << name_ << endl;
+  cout << "     command: " << command_ << endl;
+  cout << "     execDir: " << execDir_ << endl;
+  cout << "     host: " << host_ << endl;
+  cout << "     flavor: " << flavor_ << endl;
+  cout << "     user: " << user_ << endl;
 }
 
-int daemonMet::addDaemon(daemonMet *dm)
+bool daemonMet::addDaemon(daemonMet *dm)
 {
-  List<daemonMet*> walk;
-
-  if (!dm->command || !dm->name) {
+  if (!dm || !dm->command_.length() || !dm->name_.length()) {
     metParseError = ERR_BAD_ARGS;
-    dm->destroy();
-    return 0;
+    if (dm) delete dm; dm = NULL;
+    return false;
   }
-  
-  for (walk=allDaemons; *walk; walk++)
-    if (!strcmp(dm->name, (*walk)->name))
-      allDaemons.remove(*walk);
-  allDaemons.add(dm);
-  return 1;
+
+  unsigned size = allDaemons.size();
+  for (unsigned u=0; u<size; u++) {
+    if (dm->name() == allDaemons[u]->name()) {
+      delete allDaemons[u];
+      allDaemons[u] = dm;
+      return true;
+    }
+  }
+  allDaemons += dm;
+  return true;
 }
+
+processMet::processMet(string &nm, string &cmd, string &d, string &h,
+		       string &u, string &exec)
+: name_(nm), command_(cmd), daemon_(d), host_(h), user_(u), execDir_(exec) { }
 
 void processMet::dumpAll()
 {
-  List<processMet*> walk;
-  for (walk=allProcs; *walk; walk++)
-    (*walk)->dump();
+  unsigned size = allProcs.size();
+  for (unsigned u=0; u<size; u++)
+    allProcs[u]->dump();
 }
 
 void processMet::dump() const
 {
-  cout << "PROCESSMET: " << (name ? name : "<EMPTY>") << endl;
-  cout << "    command: " << (command ? command : "<EMPTY>") << endl;
-  cout << "    daemon: " << (daemon ? daemon : "<EMPTY>") << endl;
-  cout << "    host: " << (host ? host : "<EMPTY>")  << endl;
-  cout << "    execDir: " << (execDir ? execDir : "<EMPTY>") << endl;
-  cout << "    user: " << (user ? user : "<EMPTY>") << endl;
+  cout << "PROCESSMET: " << name_ << endl;
+  cout << "    command: " << command_ << endl;
+  cout << "    daemon: " << daemon_ << endl;
+  cout << "    host: " << host_ << endl;
+  cout << "    execDir: " << execDir_ << endl;
+  cout << "    user: " << user_ << endl;
 }
 
-int processMet::addProcess(processMet *pm)
+bool processMet::addProcess(processMet *pm)
 {
-  List<processMet*> walk;
-
-  if (!pm->name || !pm->command) {
+  if (!pm || !pm->name || !pm->command) {
     metParseError = ERR_BAD_ARGS;
-    pm->destroy();
-    return 0;
+    if (pm) delete pm; pm = NULL;
+    return false;
   }
-  for (walk=allProcs; *walk; walk++)
-    if (!strcmp((*walk)->name, pm->name))
-      allProcs.remove(*walk);
-  allProcs.add(pm);
-  return 1;
+
+  unsigned size = allProcs.size();
+  for (unsigned u=0; u<size; u++) {
+    if (allProcs[u]->name() == pm->name()) {
+      delete allProcs[u]; 
+      allProcs[u] = pm;
+      return true;
+    }
+  }
+  allProcs += pm;
+  return true;
 }
+
+visiMet::visiMet(string &nm, string &u, string &h, string &e, string &c, int &f) 
+  : name_(nm), user_(u), host_(h), execDir_(e) { }
 
 void visiMet::dumpAll()
 {
-  List<visiMet*> walk;
-  for (walk=allVisis; *walk; walk++)
-    (*walk)->dump();
+  unsigned size = allVisis.size();
+  for (unsigned u=0; u<size; u++)
+    allVisis[u]->dump();
 }
 
 void visiMet::dump() const
 {
-  cout << "VISIMET: " << (name ? name : "<EMPTY>") << endl;
-  cout << "    command: " << (command ? command : "<EMPTY>") << endl; 
-  cout << "    host: " << (host ? host : "<EMPTY>") << endl;
-  cout << "    execDir: " << (execDir ? execDir : "<EMPTY>") << endl;
-  cout << "    user: " << (user ? user : "<EMPTY>") << endl;
+  cout << "VISIMET: " << name_ << endl;
+  cout << "    command: " << command_ << endl;
+  cout << "    host: " << host_ << endl;
+  cout << "    execDir: " << execDir_ << endl;
+  cout << "    user: " << user_ << endl;
 }
 
-int visiMet::addVisi(visiMet *vm)
+bool visiMet::addVisi(visiMet *vm)
 {
-  List<visiMet*> walk;
-  if (!vm->name || !vm->command) {
+  if (!vm || !vm->name || !vm->command) {
     metParseError = ERR_BAD_ARGS;
-    vm->destroy();
-    return 0;
+    delete vm; vm = 0;
+    return false;
   }
-  for (walk=allVisis; *walk; walk++)
-    if (!strcmp((*walk)->name, vm->name))
-      allVisis.remove(*walk);
-  allVisis.add(vm);
-  return 1;
+  unsigned size = allVisis.size();
+  for (unsigned u=0; u<size; u++) {
+    if (allVisis[u]->name() == vm->name()) {
+      delete allVisis[u];
+      allVisis[u] = vm;
+      return true;
+    }
+  }
+  allVisis += vm;
+  return true;
 }
 
