@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// fastInferiorHeap.h
+// $Id: fastInferiorHeap.h,v 1.8 1998/08/16 23:35:15 wylie Exp $
 // Ari Tamches
 // This class is intended to be used only in paradynd.
 // This templated class manages a heap of objects in a UNIX shared-memory segment
@@ -64,6 +64,7 @@
 
 #include "heapStates.h" // enum states
 #include "util/h/Vector.h"
+#include "rtinst/h/rtinst.h" // for time64
 
 class process; // avoids need for an expensive #include
 
