@@ -3,6 +3,9 @@
 
 /*
  * $Log: tableVisi.h,v $
+ * Revision 1.2  1995/11/08 21:47:04  tamches
+ * removed some unused members
+ *
  * Revision 1.1  1995/11/04 00:45:19  tamches
  * First version of new table visi
  *
@@ -24,9 +27,6 @@
 #include "tvCell.h"
 
 class tableVisi {
-// public:
-//   enum {Current, Average, Total} dataFormat;
-
  private:
    vector<tvMetric> metrics;
    vector<tvFocus> foci;
@@ -35,7 +35,6 @@ class tableVisi {
    vector< vector<tvCell> > cells; // array[metrics] of array[foci]
    bool focusLongNameMode;
    unsigned numSigFigs;
-//   dataFormat theDataFormat;
 
    Tk_Window theTkWindow;
    Display *theDisplay; // needed only in the destructor
@@ -109,8 +108,6 @@ class tableVisi {
              unsigned iSigFigs
              );
   ~tableVisi();
-
-//   void setDataFormat(dataFormat);
 
    bool tryFirst();
    void resize(Tcl_Interp *); // does not redraw
