@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.257 2003/05/14 20:46:19 bernat Exp $
+/* $Id: process.h,v 1.258 2003/05/30 02:36:24 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -1179,6 +1179,10 @@ void saveWorldData(Address address, int size, const void* src);
   dyn_lwp *getLWP(unsigned lwp_id);
   dyn_lwp *getDefaultLWP() const;
 
+  void overrideDefaultLWP(dyn_lwp *lwp);
+  dyn_lwp *saved_default_lwp;
+  void restoreDefaultLWP();
+  
   dyn_lwp *createLWP(unsigned lwp_id);
 #if defined(mips_unknown_ce2_11) || defined(i386_unknown_nt4_0)
   dyn_lwp *createLWP(unsigned lwp_id, int index, handleT fd);

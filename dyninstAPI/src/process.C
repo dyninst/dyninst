@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.428 2003/05/22 16:00:42 bernat Exp $
+// $Id: process.C,v 1.429 2003/05/30 02:36:23 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -662,6 +662,7 @@ bool process::triggeredInStackFrame(instPoint* point,  Frame &frame,
         cerr << "  Requested instrumentation point is not appropriate for catchup, returning false." << endl;
     }      
 #elif defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0)
+
     if (point->ipType == functionEntry) {
       if ( pd_debug_catchup )
         cerr << "  pc not in instrumentation, requested instrumentation for function entry, returning true." << endl;
@@ -6893,6 +6894,8 @@ dyn_thread *process::createThread(
   thr = new dyn_thread(this, tid, pos, NULL);
   threads += thr;
 
+  thr->updateLWP();
+
   thr->update_resumestate_p(resumestate_p);
   function_base *pdf ;
 
@@ -6902,7 +6905,6 @@ dyn_thread *process::createThread(
     pdf = findFuncByAddr(startpc) ;
     thr->update_start_func(pdf) ;
   } else {
-    cerr << "createThread: zero startPC found!" << endl;
     pdf = findOnlyOneFunction("main");
     assert(pdf);
     //thr->update_start_pc(pdf->addr()) ;
@@ -6936,6 +6938,8 @@ void process::updateThread(dyn_thread *thr, int tid,
   //thr->update_start_pc(addr) ;
   thr->update_start_pc(0) ;
   thr->update_start_func(f_main) ;
+
+  thr->updateLWP();
 
   //sprintf(errorLine,"+++++ updateThread--> creating new thread{main}, index=%u, tid=%d, resumestate=0x%x\n", index,tid, (unsigned) resumestate_p);
   //logLine(errorLine);
@@ -7011,4 +7015,12 @@ void process::deleteThread(int tid)
 
 #endif /* MT*/
 
-    
+void process::overrideDefaultLWP(dyn_lwp *lwp) {
+    saved_default_lwp = lwps[0];
+    lwps[0] = lwp;
+}
+
+void process::restoreDefaultLWP() {
+    lwps[0] = saved_default_lwp;
+}
+
