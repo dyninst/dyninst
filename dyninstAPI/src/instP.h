@@ -43,6 +43,9 @@
  * instP.h - interface between inst and the arch specific inst functions.
  *
  * $Log: instP.h,v $
+ * Revision 1.14  1996/09/05 16:31:35  lzheng
+ * Move the defination of BREAK_POINT_INSN to the machine dependent file
+ *
  * Revision 1.13  1996/08/20 19:05:41  lzheng
  * Implementation of moving multiple instructions sequence and splitting
  * the instrumentation into two phases.
@@ -173,6 +176,7 @@ void modifyTrampReturn(process*, int returnAddr, int newReturnTo);
 void generateReturn(process *proc, int currAddr, instPoint *location);
 void generateEmulationInsn(process *proc, int addr, instPoint *location);
 void generateNoOp(process *proc, int addr);
+void generateBreakPoint(instruction &insn);
 
 void initTramps();
 void generateBranch(process *proc, unsigned fromAddr, unsigned newAddr);
