@@ -27,6 +27,9 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
+ * Revision 1.44  1996/04/29 03:32:56  tamches
+ * bucket_width handling slightly changed to conform to new internalMetrics.h/.C
+ *
  * Revision 1.43  1996/04/21 21:42:02  newhall
  * changes to getPredictedDataCost and getPredictedDataCostCallback
  *
@@ -384,7 +387,10 @@ void dynRPC::setSampleRate(double sampleInterval)
     // use currSamplingRate to determine if the change to DYNINSTsampleMultiple
     // needs to be made
 
-    bucket_width->value = sampleInterval;
+    // Update the value of bucket_width, an internal metric.
+    if (bucket_width->num_enabled_instances() > 0)
+       bucket_width->getEnabledInstance(0).setValue(sampleInterval);
+
     if(sampleInterval != currSamplingRate){
          int *sample_multiple = new int; 
 	*sample_multiple = 
