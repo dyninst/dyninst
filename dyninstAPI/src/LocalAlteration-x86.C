@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-x86.C,v 1.5 2001/10/04 19:20:59 gurari Exp $
+// $Id: LocalAlteration-x86.C,v 1.6 2003/04/18 22:35:24 tlmiller Exp $
 
 #include "dyninstAPI/src/LocalAlteration.h"
 #include "dyninstAPI/src/LocalAlteration-x86.h"
@@ -119,11 +119,11 @@ PushEIPmov::PushEIPmov(pd_Function *f, int offset):
 }
 
 // 5 byte call should be replaced with 5 byte mov, so no overall change.
-bool PushEIPmov::UpdateExpansions(FunctionExpansionRecord *fer) {
+bool PushEIPmov::UpdateExpansions(FunctionExpansionRecord * /* fer */ ) {
     return true;
 }
 
-bool PushEIPmov::UpdateInstPoints(FunctionExpansionRecord* ips) {
+bool PushEIPmov::UpdateInstPoints(FunctionExpansionRecord * /* ips */ ) {
     return true;
 }
 

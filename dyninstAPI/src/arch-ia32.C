@@ -1,4 +1,4 @@
-// $Id: arch-ia32.C,v 1.11 2002/09/23 21:47:10 gaburici Exp $
+// $Id: arch-ia32.C,v 1.12 2003/04/18 22:35:28 tlmiller Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -2408,7 +2408,7 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
     bool hassib = rm == 4;
     unsigned int nsib = 0;
     unsigned char sib;
-    int base = 0, scale, index;
+    int base = 0, scale = -1, index = -1;  // prevent g++ from whining.
     if(hassib) {
       nsib = byteSzB;
       sib = addr[0];

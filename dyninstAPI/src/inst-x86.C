@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.131 2003/04/17 21:41:20 pcroth Exp $
+ * $Id: inst-x86.C,v 1.132 2003/04/18 22:35:29 tlmiller Exp $
  */
 
 #include <iomanip.h>
@@ -428,7 +428,7 @@ void checkIfRelocatable(instruction insn, bool &canBeRelocated) {
 }
 
 
-bool isRealCall(instruction &insn, Address adr, image *owner, bool &validTarget, pd_Function *pdf) {
+bool isRealCall(instruction &insn, Address adr, image *owner, bool &validTarget, pd_Function * /* pdf */ ) {
 
   // calls to adr+5 are not really calls, they are used in 
   // dynamically linked libraries to get the address of the code.
@@ -2522,7 +2522,7 @@ void emitASload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
 }
 
 void emitCSload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
-		Address &base, bool noCost)
+		Address &base, bool /* noCost */ )
 {
   // VG(7/30/02): different from ASload on this platform, no LEA business
   unsigned char *insn = (unsigned char *) (&baseInsn[base]);
@@ -3194,7 +3194,7 @@ bool returnInstance::checkReturnInstance(const pdvector<pdvector<Frame> >&stackW
             if ((stackWalks[walk_iter][i].getPC() > addr_) && 
                 (stackWalks[walk_iter][i].getPC() < addr_+size_)) 
             {
-                fprintf(stderr, "PC at 0x%x (thread %d, frame %d) conflicts with inst point 0x%x\n",
+                fprintf(stderr, "PC at 0x%lx (thread %d, frame %d) conflicts with inst point 0x%lx\n",
                         stackWalks[walk_iter][i].getPC(), walk_iter, i, addr_);
                 return false;
             }
@@ -3597,7 +3597,7 @@ BaseTrampTrapHandler (int)//, siginfo_t*, ucontext_t*)
 #endif
 
 bool deleteBaseTramp(process *, instPoint *,
-		     trampTemplate *, instInstance *lastMT)
+		     trampTemplate *, instInstance * /* lastMT */ )
 {
 	cerr << "WARNING : deleteBaseTramp is unimplemented "
 	     << "(after the last instrumentation deleted)" << endl;
