@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.136 2001/10/10 21:33:06 schendel Exp $
+// $Id: DMmain.C,v 1.137 2001/11/27 16:44:01 pcroth Exp $
 
 #include <assert.h>
 extern "C" {
@@ -849,7 +849,7 @@ void dataManager::displayDaemonStartInfo()
     string msg = string("To start a paradyn daemon on a remote machine,")
       + string(" login to that machine and run paradynd")
       + string(" with the following arguments:\n\n    ") + command
-      + string("\n\n(where flavor is one of: unix, pvm, winnt, mpi).\n");
+      + string("\n\n(where flavor is one of: unix, mpi, winnt).\n");
     
     sprintf(buf, "%s", msg.string_of());
     uiMgr->showError(99, buf);

@@ -1,4 +1,4 @@
-# $Id: errorList.tcl,v 1.50 2001/11/02 16:05:23 pcroth Exp $
+# $Id: errorList.tcl,v 1.51 2001/11/27 16:44:08 pcroth Exp $
 
 #
 # Error message format:
@@ -814,7 +814,7 @@ set pdError(98) {
 {pd}
 {serious}
 {The paradyn daemon has received a SIGTERM signal probably because the\
-PVM daemon has ran out of virtual memory. Please check the memory\
+daemon has ran out of virtual memory. Please check the memory\
 usage of your application.}
 }
 
@@ -844,7 +844,7 @@ load the paradyn run-time library has failed. Please check the content\
 of the environment variable PARADYN_LIB, which should have the whole\
 path name of the library, and make sure that the library is located in\
 a directory that is readable by any user. This is a known problem if\
-you are running a PVM application on more than one host and you have the\
+you are running an application on more than one host and you have the\
 library located in a directory that has reading restrictions to all users.}
 }
 
@@ -878,7 +878,7 @@ executable (a.out or .exe) files by dynamically inserting measurement\
 code while the program is running. Paradyn can measure programs running\
 on Solaris (SPARC and x86), Linux (x86), Irix (MIPS), WindowsNT (x86),\
 AIX (Power2) and SP2, or heterogeneous combinations of these systems.\
-Paradyn can also handle MPI and PVM on these platforms.
+Paradyn can also handle MPI applications on these platforms.
 
 For further information go to our Web pages at:
         http://www.cs.wisc.edu/~paradyn/

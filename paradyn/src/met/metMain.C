@@ -48,7 +48,7 @@
  *     metDoVisi(..) - declare a visi
  */
 
-// $Id: metMain.C,v 1.45 2001/06/20 20:33:44 schendel Exp $
+// $Id: metMain.C,v 1.46 2001/11/27 16:44:06 pcroth Exp $
 
 #define GLOBAL_CONFIG_FILE "/paradyn.rc"
 #define LOCAL_CONFIG_FILE "/.paradynrc"
@@ -178,7 +178,6 @@ bool metDoDaemon()
   static bool been_done=0;
   // the default daemons
   if (!been_done) {
-    dataMgr->defineDaemon("paradynd", NULL, NULL, "pvmd", NULL, NULL, "pvm");
     dataMgr->defineDaemon("paradynd", NULL, NULL, "defd", NULL, NULL, "unix");
     dataMgr->defineDaemon("paradynd", NULL, NULL, "winntd", NULL, NULL, "winnt");
     been_done = true;
