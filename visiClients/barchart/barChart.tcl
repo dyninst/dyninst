@@ -2,6 +2,9 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
+#  Revision 1.27  1996/01/10 19:35:35  tamches
+#  metric units are now displayed along with their names
+#
 #  Revision 1.26  1996/01/10 02:30:15  tamches
 #  highlightthickness of many tk widgets set to 0 for asthetics;
 #  similarly, borderwidth set to 2.
@@ -48,16 +51,12 @@
 # 4) No room for scrollbar unless needed
 # ######################################################
 
-#  ################### Default options #################
-
 proc init_barchart_window {} {
-   #option add *Visi*font *-New*Century*Schoolbook-Bold-R-*-14-*
    option add *Data*font *-Helvetica-*-r-*-12-*
    option add *MyMenu*font *-New*Century*Schoolbook-Bold-R-*-14-*
 
    if {[winfo depth .] > 1} {
       # You have a color monitor...
-   #   . config -bg grey
       option add *Background grey
       option add *activeBackground LightGrey
       option add *activeForeground black
@@ -386,7 +385,7 @@ proc Initialize {} {
 
    # launch our C++ barchart code
    # launchBarChart $W.body.barCanvas doublebuffer noflicker $numMetrics $numResources 0
-   launchBarChart $W.body doublebuffer noflicker $numMetrics $numResources 0
+   launchBarChart $W.body $numMetrics $numResources
 
    # trap window resize and window expose events --- for the subwindow
    # containing the bars only, however.  Note that using
@@ -743,7 +742,8 @@ proc drawMetricsAxis {metricsAxisWidth} {
               $top -tag metricsAxisTag -fill $theMetricColor \
 	      -width 2
       set theText [Dg metricname $metriclcv]
-      label $keyWindow.key$numMetricsDrawn -text $theText \
+      set theUnitsText [Dg metricunits $metriclcv]
+      label $keyWindow.key$numMetricsDrawn -text "$theText ($theUnitsText)" \
               -font $metricsLabelFont \
 	      -foreground $theMetricColor
       $keyWindow create window [expr [getWindowWidth $keyWindow] - 5] \
@@ -919,16 +919,11 @@ proc myYScroll {first last} {
 
    $W.farLeft.resourcesAxisScrollbar set $first $last
 
-   # call our C++ code to update the bar offsets
    set totalCanvasHeight [lindex [$WresourcesCanvas cget -scrollregion] 3]
-#   puts stderr "myYscroll: totalCanvasHeight is $totalCanvasHeight"
 
-   set newFirstFrac [lindex [$W.farLeft.resourcesAxisScrollbar get] 0]
-#   puts stderr "myYscroll: newFirstFrac is $newFirstFrac"
+   set firstPix [expr round($totalCanvasHeight * $first)]
 
-   set firstPix [expr round($totalCanvasHeight * $newFirstFrac)]
-#   puts stderr "myYscroll: so, first pixel is $firstPix" 
-
+   # Inform our C++ code:
    newScrollPosition $firstPix
 }
 
