@@ -1,9 +1,13 @@
 // barChart.h
 
-// $Log: barChart.h,v $
-// Revision 1.1  1994/09/29 19:48:42  tamches
-// initial implementation
-//
+/* $Log: barChart.h,v $
+/* Revision 1.2  1994/09/29 20:05:34  tamches
+/* minor cvs fixes
+/*
+ * Revision 1.1  1994/09/29  19:48:42  tamches
+ * initial implementation
+ *
+*/
 
 #ifndef _BARCHART_H_
 #define _BARCHART_H_

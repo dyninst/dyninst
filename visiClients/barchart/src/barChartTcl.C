@@ -1,11 +1,15 @@
 // barChartTcl.C
 
-// $Log: barChartTcl.C,v $
-// Revision 1.1  1994/09/29 19:51:38  tamches
-// initial implementation.
-// Receiving point for visi lib callback routines.  Pretty much
-// just calls the appropriate class member function in barChart.C
-//
+/* $Log: barChartTcl.C,v $
+/* Revision 1.2  1994/09/29 20:05:37  tamches
+/* minor cvs fixes
+/*
+ * Revision 1.1  1994/09/29  19:51:38  tamches
+ * initial implementation.
+ * Receiving point for visi lib callback routines.  Pretty much
+ * just calls the appropriate class member function in barChart.C
+ *
+*/
 
 #include <iostream.h>
 

@@ -2,10 +2,14 @@
 // Much of the user interface mundane stuff (menus, etc.) is still
 // programmed in tk/tcl in barChart.tcl.
 
-// $Log: barChart.C,v $
-// Revision 1.1  1994/09/29 19:48:27  tamches
-// initial implementation.  A to-do list is kept in barChart.tcl
-//
+/* $Log: barChart.C,v $
+/* Revision 1.2  1994/09/29 20:05:32  tamches
+/* minor cvs fixes
+/*
+ * Revision 1.1  1994/09/29  19:48:27  tamches
+ * initial implementation.  A to-do list is kept in barChart.tcl
+ *
+ */
 
 // tk/tcl has a very nice interface for mixing C++ and tk/tcl
 // scripts.  From within tcl, C++ code can be called via

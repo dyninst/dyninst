@@ -1,10 +1,14 @@
 // array2d.h
 // gives dynamic two-dimensional array capabilities to C++
 
-// $Log: array2d.h,v $
-// Revision 1.1  1994/09/29 19:47:16  tamches
-// initial implementation
-//
+/* $Log: array2d.h,v $
+/* Revision 1.2  1994/09/29 20:05:29  tamches
+/* minor cvs fixes
+/*
+ * Revision 1.1  1994/09/29  19:47:16  tamches
+ * initial implementation
+ *
+*/
 
 // commentary:
 // #pragma flame begin

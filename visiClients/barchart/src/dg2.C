@@ -1,12 +1,16 @@
 // dg2.C
 // customized (for barchart) version of DGclient.C in tclVisi directory
 
-// $Log: dg2.C,v $
-// Revision 1.1  1994/09/29 19:52:25  tamches
-// initial implementation.
-// This is a modified version of DGclient.C (tclVisi/src), specially
-// tuned for the barchart program.
-//
+/* $Log: dg2.C,v $
+/* Revision 1.2  1994/09/29 20:05:39  tamches
+/* minor cvs fixes
+/*
+ * Revision 1.1  1994/09/29  19:52:25  tamches
+ * initial implementation.
+ * This is a modified version of DGclient.C (tclVisi/src), specially
+ * tuned for the barchart program.
+ *
+*/
 
 // An updated version of DGClient.C for barchart2.C
 // Contains several **deletions** to remove blt_barchart influences

@@ -1,12 +1,16 @@
 // barChartDriver.C
 
-// $Log: barChartDriver.C,v $
-// Revision 1.1  1994/09/29 19:50:51  tamches
-// initial implementation.
-// entrypoint for barchart C++ program.  we create new tcl
-// commands (which will eventually call back to barChartTcl.C
-// and from there barChart.C) and then launch barChart.tcl.
-//
+/* $Log: barChartDriver.C,v $
+/* Revision 1.2  1994/09/29 20:05:36  tamches
+/* minor cvs fixes
+/*
+ * Revision 1.1  1994/09/29  19:50:51  tamches
+ * initial implementation.
+ * entrypoint for barchart C++ program.  we create new tcl
+ * commands (which will eventually call back to barChartTcl.C
+ * and from there barChart.C) and then launch barChart.tcl.
+ *
+*/
 
 #include <stdlib.h>
 #include <iostream.h>
