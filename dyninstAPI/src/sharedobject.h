@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.h,v 1.28 2002/05/13 19:52:39 mjbrim Exp $
+// $Id: sharedobject.h,v 1.29 2002/08/12 04:21:32 schendel Exp $
 
 #if !defined(_shared_object_h)
 #define _shared_object_h
@@ -88,19 +88,6 @@ public:
 	dirty_=false;
     }
 
-
-    shared_object(const shared_object &s_obj){
-      desc = s_obj.desc;
-      base_addr = s_obj.base_addr;
-      short_name = s_obj.short_name;
-      processed = s_obj.processed;
-      mapped = s_obj.mapped;
-      include_funcs = s_obj.include_funcs;
-      objs_image = s_obj.objs_image;
-      included_funcs = s_obj.included_funcs;
-	dirty_=s_obj.dirty_;
-	dlopenUsed = s_obj.dlopenUsed;
-    }
     ~shared_object(){ objs_image = 0;}
 
     fileDescriptor *getFileDesc() { return desc; }
