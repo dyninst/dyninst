@@ -44,6 +44,9 @@
 
 /*
  * $Log: internalMetrics.h,v $
+ * Revision 1.17  1997/01/15 00:27:33  tamches
+ * added isInternalMetric()
+ *
  * Revision 1.16  1996/10/31 08:57:50  tamches
  * moved a routine's code from .h to .C file
  *
@@ -160,6 +163,13 @@ class internalMetric {
   internalMetric(const string &n, metricStyle style, int a, const string &units,
 		 sampleValueFunc f, im_pred_struct& im_preds,
 		 bool developermode, daemon_MetUnitsType unitstype);
+
+  static bool isInternalMetric(const string &metName) {
+     for (unsigned lcv=0; lcv < allInternalMetrics.size(); lcv++)
+        if (allInternalMetrics[lcv]->name_ == metName)
+	   return true;
+     return false;
+  }
 
   unsigned num_enabled_instances() const {
      return instances.size();
