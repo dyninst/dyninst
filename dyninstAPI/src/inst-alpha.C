@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.47 2002/06/13 19:53:02 mirg Exp $
+// $Id: inst-alpha.C,v 1.48 2002/06/18 21:35:55 rchen Exp $
 
 #include "common/h/headers.h"
 
@@ -2048,7 +2048,7 @@ emitFuncCall(opCode /* op */,
   return dest;
 }
 
-bool returnInstance::checkReturnInstance(const vector<Address> & /* adr */, 
+bool returnInstance::checkReturnInstance(const vector<Frame/*Address*/> & /* adr */, 
 					 u_int & /* index */) {
     return true;
 }

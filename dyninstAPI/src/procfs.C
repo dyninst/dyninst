@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.14 2002/06/14 21:43:32 tlmiller Exp $
+// $Id: procfs.C,v 1.15 2002/06/18 21:35:55 rchen Exp $
 
 #include "symtab.h"
 #include "common/h/headers.h"
@@ -286,7 +286,9 @@ bool process::continueWithForwardSignal(int) {
    return true;
 }
 
-
+void *process::getRegisters(unsigned int lwp) {
+    return process::getRegisters();
+}
 
 void *process::getRegisters() {
    // assumes the process is stopped (/proc requires it)
@@ -330,6 +332,9 @@ void *process::getRegisters() {
    return buffer;
 }
 
+bool process::changePC(Address addr, const void *savedRegs, int lwp) {
+    return process::changePC(addr, savedRegs);
+}
 
 bool process::changePC(Address addr, const void *savedRegs) {
    assert(status_ == stopped);
@@ -344,7 +349,10 @@ bool process::changePC(Address addr, const void *savedRegs) {
    }
    errno = 0;
 #endif
-   
+
+   if (!savedRegs)
+       return changePC(addr);
+
    gregset_t theIntRegs = *(const gregset_t *)savedRegs; // makes a copy, on purpose
    theIntRegs.regs[PC_REGNUM] = addr;
    if (ioctl(proc_fd, PIOCSREG, &theIntRegs) == -1) {
@@ -397,7 +405,7 @@ bool process::changePC(Address addr) {
    return true;
 }
 
-bool process::executingSystemCall() {
+bool process::executingSystemCall(unsigned int = 0) {
    prstatus theStatus;
    if (ioctl(proc_fd, PIOCSTATUS, &theStatus) != -1) {
      if ((theStatus.pr_flags & PR_ISSYS) == PR_ISSYS) {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.10 2002/06/17 21:31:15 chadd Exp $
+// $Id: templates2.C,v 1.11 2002/06/18 21:35:55 rchen Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -67,7 +67,15 @@ class BPatch_field;
 class BPatch_variableExpr;
 #endif
 
+#ifndef alpha_dec_osf4_0
+// ld on Alpha complains about the vector<string> class being
+// multiply defined with the following line in.  Perhaps
+// it automatically generates vector<string> when it sees
+// pair<string, vector<string> > in the line after.
+//
+// Ray Chen 6/18/2002
 template class vector<string>;
+#endif
 template class pair<string, vector<string> >;
 
 template class vector<pair<string, vector<string> > >;

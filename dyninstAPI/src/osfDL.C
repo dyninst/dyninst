@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.21 2002/06/10 19:24:51 bernat Exp $
+// $Id: osfDL.C,v 1.22 2002/06/18 21:35:55 rchen Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/osfDL.h"
@@ -218,7 +218,9 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
   Address pc;
 
   if (dlopenRetAddr == 0) return false;
-  pc = Frame(proc).getPC();
+
+  //pc = Frame(proc).getPC();
+  pc = proc->getActiveFrame().getPC();
 
   // dumpMap(proc->getProcFileDescriptor());
   if (pc == dlopenRetAddr) {
@@ -331,7 +333,8 @@ bool process::trapDueToDyninstLib()
       perror("ioctl");
   }
 
-  pc = Frame(this).getPC();
+  //pc = Frame(this).getPC();
+  pc = getActiveFrame().getPC();
 
   // printf("testing for trap at entry to DyninstLib, current pc = 0x%lx\n",pc);
   // printf("    breakpoint addr = 0x%lx\n", dyninstlib_brk_addr);
@@ -453,7 +456,20 @@ static void dumpMap(int proc_fd)
 }
 #endif
 
-void waitProc(int fd, int)
+bool osfTestProc(int proc_fd, const void *mainLoc)
+// This function is used to test if the child program is
+// ready to be read or written to.  mainLoc should be the
+// address of main() in the mutatee.
+//
+// See process::insertTrapAtEntryPointOfMain() below for a
+// detailed explination of why this function is needed.
+//
+// Ray Chen 6/18/2002
+{
+    return (lseek(proc_fd, reinterpret_cast<off_t>(mainLoc), SEEK_SET) == (off_t)mainLoc);
+}
+
+void osfWaitProc(int fd)
 {
     int ret;
     struct pollfd pollFD;
@@ -494,7 +510,6 @@ void waitProc(int fd, int)
 #endif
 }
 
-
 /*
  * Place a trap at the entry point to main.  We need to prod the program
  *    along a bit since at the entry to this function, the program is in
@@ -514,6 +529,8 @@ void process::insertTrapAtEntryPointOfMain()
   // save trap address: start of main()
   // TODO: use start of "_main" if exists?
   bool err;
+  int countdown = 10;
+
   main_brk_addr = findInternalAddress("main", false, err);
   if (!main_brk_addr) {
       // failed to locate main
@@ -526,7 +543,7 @@ void process::insertTrapAtEntryPointOfMain()
 
   // dumpMap(proc_fd);
 
-  while (!readDataSpace((void *)main_brk_addr, INSN_SIZE, savedCodeBuffer, true)) {
+  while (!osfTestProc(proc_fd, (void *)main_brk_addr)) {
       // POSSIBLE BUG:  We expect the first SIGTRAP to occur after a
       // successful exec call, but we seem to get an early signal.
       // At the time of the first SIGTRAP, attempts to read or write the
@@ -538,12 +555,22 @@ void process::insertTrapAtEntryPointOfMain()
       // stops in a strange state (prstatus_t.pr_info.si_code == 0).
       //
       // Looks like this code was in place before.  I don't know why it was
-      // removed.
+      // removed. (I renamed waitProc() to osfWaitProc() to avoid confusion
+      // with process' waitProcs() class method)
       //
       // Ray Chen 03/22/02
+      if (--countdown < 0) {
+	  // looped too many times.
+	  showErrorCallback(108, "Could not access mutatee (even after 10 tries).\n");
+	  extern void cleanUpAndExit(int);
+	  cleanUpAndExit(-1);
+	  return;
+      }
+
       continueProc_();
-      waitProc(proc_fd, 0);
+      osfWaitProc(proc_fd);
   }
+  readDataSpace((void *)main_brk_addr, INSN_SIZE, savedCodeBuffer, true);
 
   // insert trap instruction
   instruction trapInsn;
@@ -559,7 +586,8 @@ bool process::trapAtEntryPointOfMain()
 
   if (main_brk_addr == 0) return false;
 
-  pc = Frame(this).getPC();
+  //pc = Frame(this).getPC();
+  pc = getActiveFrame().getPC();
 
   // printf("testing for trap at enttry to main, current pc = %lx\n", pc);
 

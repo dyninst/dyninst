@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.30 2002/05/13 19:52:28 mjbrim Exp $
+// $Id: osf.C,v 1.31 2002/06/18 21:35:55 rchen Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -80,7 +80,7 @@ int getNumberOfCPUs()
 }
 
 
-bool process::emitInferiorRPCheader(void *insnPtr, Address &baseBytes) {
+bool process::emitInferiorRPCheader(void *insnPtr, Address &baseBytes, bool) {
 
   extern void emitSaveConservative(process *, char *, Address &baseBytes);
 
@@ -94,7 +94,7 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
 				     bool stopForResult,
 				     unsigned &stopForResultOffset,
 				     unsigned &justAfter_stopForResultOffset,
-				     int thrId,
+				     /*int thrId,*/
 				     bool isMT) {
   instruction *insn = (instruction *)insnPtr;
   Address baseInstruc = baseBytes / sizeof(instruction);
@@ -152,12 +152,12 @@ bool process::needToAddALeafFrame(Frame, Address &)
 }
 
 // getActiveFrame(): populate Frame object using toplevel frame
-Frame process::getActiveFrame()
+Frame process::getActiveFrame(unsigned int = 0)
 {
   Address pc, fp;
-  Frame theFrame();
+  Frame theFrame;
   gregset_t theIntRegs;
-  int proc_fd = p->getProcFileDescriptor();
+//  int proc_fd = p->getProcFileDescriptor();
   if (ioctl(proc_fd, PIOCGREG, &theIntRegs) != -1) {
     fp = theIntRegs.regs[SP_REGNUM];  
     pc = theIntRegs.regs[PC_REGNUM]-4; /* -4 because the PC is updated */
