@@ -56,7 +56,7 @@
 #define RT_TRUE 1
 #define RT_FALSE 0
 
-//typedef void (*instFunc)(void *cdata, int type, char *eventData);
+/*typedef void (*instFunc)(void *cdata, int type, char *eventData);*/
 
 /* parameters to a instremented function */
 typedef enum { processTime, wallTime } timerType;
@@ -170,7 +170,7 @@ extern int DYNINSTthreadSelf(void);
 #define TRAMPTABLESZ (4096)
 
 #define HASH1(x) ((x) % TRAMPTABLESZ)
-#define HASH2(x) (((x) % TRAMPTABLESZ-1) & 1)
+#define HASH2(x) (((x) % TRAMPTABLESZ-1) | 1)
 
 typedef struct trampTableEntryStruct trampTableEntry;
 struct trampTableEntryStruct {
