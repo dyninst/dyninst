@@ -7,9 +7,12 @@
 // option which does -O and -DNDEBUG
 
 /* $Log: barChart.C,v $
-/* Revision 1.20  1996/01/17 18:31:10  newhall
-/* changes due to new visiLib
+/* Revision 1.21  1996/05/15 18:02:12  tamches
+/* added setMetricNewMaxLL; adjusted setMetricNewMax accordingly
 /*
+ * Revision 1.20  1996/01/17 18:31:10  newhall
+ * changes due to new visiLib
+ *
  * Revision 1.19  1996/01/10 21:10:11  tamches
  * metricMaxValues now indexed by metric units
  *
@@ -321,7 +324,7 @@ void BarChart::rethinkMetricMaxValues() {
    }
 }
 
-void BarChart::processNewData(const int newBucketIndex) {
+void BarChart::processNewData(int newBucketIndex) {
    // Given: new datagrid bucket data for all enabled metric/rsrc pairs.
    //        up-to-date numMetrics, numResources,
    //                   numValidMetrics, numValidResources,
@@ -388,6 +391,13 @@ double BarChart::nicelyRoundedMetricNewMaxValue(unsigned metricindex,
    return result;
 }
 
+void BarChart::setMetricNewMaxLL(unsigned metricindex, double newmaxval) {
+   // called by setMetricNewMax, below, and by the callback routine invoked via tcl
+   // doesn't round newmaxval; that should be done already
+   assert(metricindex < numMetrics);
+   metricCurrMaxVals[metricindex] = newmaxval;
+}
+
 void BarChart::setMetricNewMax(unsigned metricindex, double newmaxval) {
    // given an actual bar value (newmaxval) that overflows the current
    // y-axis maximum value for the given metric, rethink what the
@@ -396,11 +406,12 @@ void BarChart::setMetricNewMax(unsigned metricindex, double newmaxval) {
    // to round to a relatively nice number.
 
    assert(metricindex<numMetrics);
-
    newmaxval = nicelyRoundedMetricNewMaxValue(metricindex, newmaxval);
-   metricCurrMaxVals[metricindex] = newmaxval;
 
-   // Inform our tcl code of the change, so it may update stuff:
+   //setMetricNewMaxLL(metricindex, newmaxval);
+
+   // Inform our tcl code of the change, so it may update stuff.  It will presumably
+   // invoke a newMetricMaxValCallback, too.
    string commandStr = string("processNewMetricMax ");
    commandStr += string(metricindex);
    commandStr += " ";
@@ -461,9 +472,11 @@ void BarChart::RethinkBarLayouts() {
 
    resourceBorderHeight = (totalResourceHeight - fullResourceHeight) / 2;
 
+   // SHOULDN'T THIS BE NUMVALIDMETRICS?
    barPixWidths.resize(numMetrics);
-   for (unsigned met=0; met < numMetrics; met++)
+   for (unsigned met=0; met < numMetrics; met++) {
       barPixWidths[met].resize(numResources);
+   }
 
    rethinkBarPixWidths();
 }
