@@ -220,7 +220,7 @@ void eCoffSymbol::clear(bool cleanup)
 // Function Prototypes.
 bool eCoffFindModule(pCHDRR, const pdstring &, eCoffParseInfo &);
 void eCoffFillInfo(pCHDRR, int, eCoffParseInfo &);
-void FindLineInfo(BPatch_module *, eCoffParseInfo &, pdstring, LineInformation*&);
+void FindLineInfo(LDFILE *, eCoffParseInfo &, pdstring, LineInformation*&);
 BPatch_type *eCoffParseType(BPatch_module *, eCoffSymbol &, bool = false);
 BPatch_type *eCoffHandleTIR(BPatch_module *, eCoffSymbol &, bool = false);
 BPatch_type *eCoffHandleTQ(eCoffSymbol &, BPatch_type *, unsigned int);
@@ -278,7 +278,7 @@ void parseCoff(BPatch_module *mod, char *exeName, const pdstring &modName,
     }
 
     if (!currInfo.isExternal)
-	FindLineInfo(mod, currInfo, exeName, lineInformation);
+	FindLineInfo(ldptr, currInfo, exeName, lineInformation);
 
     // STAB parse preparation.
     current_func_name = NULL;
@@ -458,85 +458,122 @@ void eCoffFillInfo(pCHDRR symtab, int fileIndex, eCoffParseInfo &info)
     }
 }
 
-void FindLineInfo(BPatch_module *mod, eCoffParseInfo &info,
+void FindLineInfo(LDFILE *ldptr, eCoffParseInfo &info,
                   pdstring fileName, LineInformation*& lineInformation)
 {
     // For some reason, the count fields of pCFDR structures are not
     // filled out correctly when the symbol table is read in via the
     // SYMTAB() macro (or any other way).  We must use the underlying
     // FDR structure instead.
-    int i;
-    BPatch_function *fp;
+    char funcName[1024];
     pCFDR fileDesc = info.file;
+    pSYMR tempSym;
+
+    //
+    // Manually read in line information due to buggy LDFCN library.
+    //
+    unsigned char *lineInfo = (unsigned char *)malloc(info.symtab->hdr.cbLine);
+    if (!lineInfo) {
+	fprintf(stderr, "*** WARNING: Cannot read line information ");
+	fprintf(stderr, "for file %s: Malloc error.\n", fileName.c_str());
+	return;
+    }
+    int numleft = info.symtab->hdr.cbLine;
+    FSEEK(ldptr, info.symtab->hdr.cbLineOffset, 0);
+    while (numleft > 0) numleft -= FREADM(lineInfo, 1, numleft, ldptr);
 
     // for each procedure entry look at the information
-    for (i = 0; i < fileDesc->pfd->cpd; i++) {
+    for (int i = 0; i < fileDesc->pfd->cpd; i++) {
         pPDR procedureDesc = fileDesc->ppd + i;
 
-        // no name is available for proc
-        if (!fileDesc->psym || !fileDesc->pfd->csym || (procedureDesc->isym == -1))
-            continue;
+        // No name is available for proc.
+        if (!fileDesc->psym || !fileDesc->pfd->csym ||
+	    procedureDesc->isym == -1) continue;
 
-        // get the name of the procedure if available
-        pSYMR procSym = fileDesc->psym + procedureDesc->isym;
-        pdstring currentFunctionName(fileDesc->pss + procSym->iss);
+        // Get the (demangled) name of the procedure, if available.
+        tempSym = fileDesc->psym + procedureDesc->isym;	
+        MLD_demangle_string(fileDesc->pss + tempSym->iss, funcName, 1024, 
+                            MLD_SHOW_DEMANGLED_NAME | MLD_NO_SPACES);
+	if (P_strchr(funcName, '(')) *P_strchr(funcName, '(') = 0;
+
+	if (P_strlen(funcName) == 0)
+	    continue;
 
         FunctionInfo* currentFuncInfo = NULL;
         FileLineInformation* currentFileInfo = NULL;
         lineInformation->insertSourceFileName(
-            currentFunctionName, fileName.c_str(),
+            pdstring(funcName), fileName.c_str(),
             &currentFileInfo,&currentFuncInfo);
 
+	// No space to store file information
+	if (!currentFileInfo || !currentFuncInfo)
+	    continue;
+
         // no line information for the filedesc is available
-        if (!fileDesc->pfd->cline || !fileDesc->pline || (procedureDesc->iline == -1))
-            continue;
+        if (!fileDesc->pfd->cline || !fileDesc->pline || 
+	    procedureDesc->iline == -1) continue;
 
-        // get the base address of the procedure
- 	BPatch_Vector<BPatch_function *> bpfv;
-	
-       // get the base address of the procedure
-	pdstring sname = currentFunctionName;
-	const char *fname = sname.c_str();
-	if (!fname) continue;  // Some findFunction in this file is passing in NULL
+	// (Possibly buggy) GCC line information check.
+	if (procedureDesc->lnLow == 6 && procedureDesc->lnHigh == 6) {
+	    //
+	    // GCC eCoff Line Information
+	    //
+	    tempSym = (fileDesc->psym + procedureDesc->isym + 1);
 
-	mod->findFunction(fname, bpfv, false /* no print */);
-	if (!bpfv.size()) {
-	  //cerr << __FILE__ << __LINE__ << ":  Unable to find function: " << symbol.name << endl;
-	  continue;
-	}
-	fp = bpfv[0];
-	if (!fp) continue;
+	    while (tempSym->st == stLabel && tempSym->sc == scText) {
+		currentFileInfo->insertLineAddress(currentFuncInfo,
+						   tempSym->index,
+						   tempSym->value);
+		++tempSym;
+	    }
 
-        unsigned long currentFunctionBase = (unsigned long)(fp->getBaseAddr());
+	} else {
+	    //
+	    // Pure eCoff Line Information
+	    //
+	    int idx = fileDesc->pfd->cbLineOffset +
+		      procedureDesc->cbLineOffset;
+	    int endidx;
+	    int currLine = procedureDesc->lnLow;
+	    unsigned long currAddr = procedureDesc->adr;
 
-        int linerIndex = 0;
-        unsigned long instByteCount = 0;
+	    // Find end index
+	    int nextpd = -1;
+	    for (int pcount = 0; pcount < fileDesc->pfd->cpd; ++pcount) {
+		pPDR pd = fileDesc->ppd + pcount;
+		if (pd != procedureDesc && pd->iline != ilineNil &&
+		    pd->cbLineOffset >= procedureDesc->cbLineOffset)
 
-        // find the right entry in the liner array
-        for(linerIndex = procedureDesc->iline;
-            linerIndex < fileDesc->pfd->cline; linerIndex++)
-            if (fileDesc->pline[linerIndex] == procedureDesc->lnLow)
-                break;
+		    if (nextpd == -1 ||
+			pd->cbLineOffset < fileDesc->ppd[nextpd].cbLineOffset)
+			nextpd = pcount;
+	    }
+	    endidx = (nextpd == -1 ? fileDesc->pfd->cbLine
+				   : fileDesc->ppd[nextpd].cbLineOffset);
+	    endidx -= procedureDesc->cbLineOffset;
+	    endidx += idx;
 
-        int currentLine = -1;
-        // while the line belongs to this function insert it
-        for(; linerIndex < fileDesc->pfd->cline; linerIndex++) {
+	    while (idx < endidx) {
+		long delta;
 
-            if ((fileDesc->pline[linerIndex] > procedureDesc->lnHigh)||
-                (fileDesc->pline[linerIndex] < procedureDesc->lnLow))
-                break;
+		currentFileInfo->insertLineAddress(currentFuncInfo,
+						   currLine, currAddr);
+		currAddr += ((lineInfo[idx] & 0xFU) + 1) * 4;
+		if ((lineInfo[idx] & 0xF0U) == 0x80U) {
+		    // Extended Delta
+		    ++idx;
+		    delta = ((signed char)lineInfo[idx]) << 8;
+		    ++idx;
+		    delta |= lineInfo[idx];
+		} else
+		    delta = ((signed char)lineInfo[idx]) >> 4;
 
-            if (currentLine != fileDesc->pline[linerIndex]) {
-                currentLine = fileDesc->pline[linerIndex];
-
-                if (currentFileInfo)
-                    currentFileInfo->insertLineAddress(currentFuncInfo,
-                                                       fileDesc->pline[linerIndex],
-                                                       instByteCount + currentFunctionBase);
-            }
-            instByteCount += sizeof(unsigned);
+		currLine += delta;
+		++idx;
+	    }
         }
     }
+    free(lineInfo);
 }
 
 BPatch_type *eCoffParseType(BPatch_module *mod, eCoffSymbol &symbol, bool typeDef) {
