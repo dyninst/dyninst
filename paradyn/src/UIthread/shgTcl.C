@@ -4,11 +4,14 @@
 // Implementations of new commands and tk bindings related to the search history graph.
 
 /* $Log: shgTcl.C,v $
-/* Revision 1.8  1996/02/07 19:14:28  tamches
-/* made use of new routines in shgPhases which operate on the current
-/* search -- no more getCurrent() usage here.
-/* Some global vars moved to shgPhases
+/* Revision 1.9  1996/02/08 01:01:15  tamches
+/* removed some old code
 /*
+ * Revision 1.8  1996/02/07 19:14:28  tamches
+ * made use of new routines in shgPhases which operate on the current
+ * search -- no more getCurrent() usage here.
+ * Some global vars moved to shgPhases
+ *
  * Revision 1.7  1996/02/02 18:54:13  tamches
  * added shgDrawKeyCallback, shgDrawTipsCallback,
  * shgMiddleClickCallbackCommand is new.
@@ -78,7 +81,11 @@ void shgWhenIdleDrawRoutine(ClientData cd) {
    const bool doubleBuffer = (bool)cd;
 
 #ifdef PARADYN
+#ifdef XSYNCH
+   const bool isXsynchOn = true;
+#else
    const bool isXsynchOn = false;
+#endif
 #else
    extern bool xsynchronize;
    const bool isXsynchOn = xsynchronize; // main.C
@@ -284,10 +291,8 @@ int shgAltReleaseCommand(ClientData, Tcl_Interp *, int, char **) {
    // Un-install the mouse-move event handler that may have been
    // installed by the above routine.
 
-   if (!haveSeenFirstGoodShgWid)
-      return TCL_OK;
-
-   theShgPhases->altRelease();
+   if (haveSeenFirstGoodShgWid)
+      theShgPhases->altRelease();
 
    return TCL_OK;
 }
@@ -304,20 +309,6 @@ int shgChangePhaseCommand(ClientData, Tcl_Interp *interp, int argc, char **argv)
 
    return TCL_OK;
 }
-
-//int shgDefineGlobalPhaseCommand(ClientData, Tcl_Interp *interp, int, char **) {
-//   // a temporary routine...I think
-//
-//   theShgPhases->defineNewSearch(0, // the global phase has phase id 0
-//				 "Global Phase");
-//
-//#ifdef PARADYN
-//   perfConsult->newSearch(GlobalPhase);
-//#endif   
-//
-//   strcpy(interp->result, "true");
-//   return TCL_OK;
-//}
 
 int shgSearchCommand(ClientData, Tcl_Interp *interp, int, char **) {
    // sets tcl result string to true/false indicating whether the search
@@ -420,8 +411,6 @@ void installShgCommands(Tcl_Interp *interp) {
 		     NULL, shgDeleteDummyProc);
    Tcl_CreateCommand(interp, "shgChangePhase", shgChangePhaseCommand,
 		     NULL, shgDeleteDummyProc);
-//   Tcl_CreateCommand(interp, "shgDefineGlobalPhaseCommand", shgDefineGlobalPhaseCommand,
-//		     NULL, shgDeleteDummyProc);
    Tcl_CreateCommand(interp, "shgSearchCommand", shgSearchCommand,
 		     NULL, shgDeleteDummyProc);
    Tcl_CreateCommand(interp, "shgPauseCommand", shgPauseCommand,
@@ -447,7 +436,6 @@ void unInstallShgCommands(Tcl_Interp *interp) {
    Tcl_DeleteCommand(interp, "shgMiddleClickHook");
    Tcl_DeleteCommand(interp, "shgExposeHook");
    Tcl_DeleteCommand(interp, "shgConfigureHook");
-//   Tcl_DeleteCommand(interp, "shgDefineGlobalPhaseCommand");
    Tcl_DeleteCommand(interp, "shgSearchCommand");
    Tcl_DeleteCommand(interp, "shgPauseCommand");
    Tcl_DeleteCommand(interp, "shgResumeCommand");
