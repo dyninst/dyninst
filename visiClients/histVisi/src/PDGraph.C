@@ -59,7 +59,7 @@
 //   PDGraph::DataW       PDGData.C
 //
 //---------------------------------------------------------------------------
-// $Id: PDGraph.C,v 1.10 2000/02/22 21:17:12 pcroth Exp $
+// $Id: PDGraph.C,v 1.11 2000/07/05 21:37:46 pcroth Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include <iostream.h>
@@ -699,6 +699,7 @@ PDGraph::HandleSmoothCommand( int argc, char* argv[], bool smooth )
 {
     ostrstream rstr;        // result stream
     int ret = TCL_OK;
+    vector<Group*>    checkGroups;    // groups that need max value rechecks
 
 
     if( argc == 3 )
@@ -734,11 +735,9 @@ PDGraph::HandleSmoothCommand( int argc, char* argv[], bool smooth )
                         curves[lval]->Unsmooth();
                     }
 
-					if( curves[lval]->GetMaxActiveValue() != curves[lval]->group->axis->maxValue )
-					{
-						UpdateAxisMaxValue( curves[lval]->group->axis,
-							curves[lval]->GetMaxActiveValue() );
-					}
+                    // add curve's group to list of groups whose
+                    // max values need to be rechecked
+                    checkGroups += curves[lval]->group;
 
                     // update the legend with the curve's new name
                     ostrstream cmdstr;
@@ -760,6 +759,37 @@ PDGraph::HandleSmoothCommand( int argc, char* argv[], bool smooth )
                 {
                     break;
                 }
+            }
+
+            // determine new axis max values
+            //
+            // (By smoothing or unsmoothing curves, we may have updated
+            // the max value shown on a curve.  Unfortunately, we can't
+            // just consider the curves we changed, since the smoothing/
+            // unsmoothing operation may have caused a data point for
+            // another curve to become the new maximum value.  So we check
+            // each curve associated with each axis that had a curve that
+            // was smoothed or unsmoothed.)
+            unsigned int g;
+            for( g = 0; g < checkGroups.size(); g++ )
+            {
+                Group* grp = checkGroups[g];
+                assert( grp != NULL );
+
+                double newMax = 0.0;
+                unsigned int j;
+
+                // check for new max value for curves of this group
+                for( j = 0; j < grp->curves.size(); j++ )
+                {
+                    if( grp->curves[j]->GetMaxActiveValue() > newMax )
+                    {
+                        newMax = grp->curves[j]->GetMaxActiveValue();
+                    }
+                }
+
+                // now update with the new max value
+                UpdateAxisMaxValue( grp->axis, newMax );
             }
         }
 
@@ -1775,7 +1805,7 @@ PDGraph::SetCurveData( CurveID cid,
         // ...check if we found a new maximum value so we can rescale...
         if( curve->GetMaxActiveValue() > group->axis->maxValue )
         {
-			UpdateAxisMaxValue( group->axis, curve->GetMaxActiveValue() );
+            UpdateAxisMaxValue( group->axis, curve->GetMaxActiveValue() );
         }
         else
         {
@@ -1792,44 +1822,44 @@ PDGraph::SetCurveData( CurveID cid,
 void
 PDGraph::UpdateAxisMaxValue( ValueAxis* axis, double maxValue )
 {
-	// we found a new maximum Y value
-	// update the entire group's view of the new max value and 
-	// recompute the characteristics of the axis
-	axis->maxValue = maxValue;
+    // we found a new maximum Y value
+    // update the entire group's view of the new max value and 
+    // recompute the characteristics of the axis
+    axis->maxValue = maxValue;
 
-	// determine the maxmimum number of ticks we
-	// can support in the given axis height
-	//
-	// Note that we go to great lengths to be sure
-	// that we do our "max ticks" calculation as
-	// signed integer arithmetic, so we can recognize
-	// the case when the window is too short.
-	int valAxisHeight = (Tk_IsMapped( valAxis->GetWindow() ) ? 
-							Tk_Height( valAxis->GetWindow() ) : 
-							Tk_ReqHeight( valAxis->GetWindow() ));
-	int nTicksMax = (valAxisHeight - 
-			((int)timeAxis->DetermineHeight()) - 
-			((int)valAxis->DetermineLabelHeight())) / fontm.linespace;
-	if( nTicksMax <= 0 )
-	{
-		// this could happen if we've not yet mapped the
-		// value axis window, or if the window has
-		// become too short
-		//
-		// we still want to compute an interval layout,
-		// so we force the max number of ticks to a 
-		// "reasonable" value
-		nTicksMax = 5;
-	}
-	axis->ComputeIntervals( nTicksMax );
+    // determine the maxmimum number of ticks we
+    // can support in the given axis height
+    //
+    // Note that we go to great lengths to be sure
+    // that we do our "max ticks" calculation as
+    // signed integer arithmetic, so we can recognize
+    // the case when the window is too short.
+    int valAxisHeight = (Tk_IsMapped( valAxis->GetWindow() ) ? 
+                            Tk_Height( valAxis->GetWindow() ) : 
+                            Tk_ReqHeight( valAxis->GetWindow() ));
+    int nTicksMax = (valAxisHeight - 
+            ((int)timeAxis->DetermineHeight()) - 
+            ((int)valAxis->DetermineLabelHeight())) / fontm.linespace;
+    if( nTicksMax <= 0 )
+    {
+        // this could happen if we've not yet mapped the
+        // value axis window, or if the window has
+        // become too short
+        //
+        // we still want to compute an interval layout,
+        // so we force the max number of ticks to a 
+        // "reasonable" value
+        nTicksMax = 5;
+    }
+    axis->ComputeIntervals( nTicksMax );
 
-	// allow subwindows to recompute its visual information
-	// based on new configuration
-	dataw->UpdateConfiguration();
+    // allow subwindows to recompute its visual information
+    // based on new configuration
+    dataw->UpdateConfiguration();
 
-	// update the display
-	RequestRedraw();
-	valAxis->RequestRedraw();
+    // update the display
+    RequestRedraw();
+    valAxis->RequestRedraw();
 }
 
 // UpdateGeometry - update the geometry of the subwidgets based on
@@ -2081,7 +2111,7 @@ PDGraph::Curve::Curve( const char* metricName,
     pts( NULL ),
     spts( NULL ),
     group( NULL ),
-	maxActiveValue( DBL_MIN ),
+    maxActiveValue( DBL_MIN ),
     xpts( NULL ),
     lineSpecIdx( nextLineSpecIdx++ ),
     useColor( true ),
@@ -2185,8 +2215,8 @@ PDGraph::Curve::SetData( unsigned int startIdx,
         ComputeSmoothedData( 0, nPoints, smoothingWindowSize );
     }
 
-	// check for a new maximum value in the active data
-	UpdateMaxActiveValue( startIdx );
+    // check for a new maximum value in the active data
+    UpdateMaxActiveValue( startIdx );
 }
 
 
@@ -2540,9 +2570,9 @@ PDGraph::Curve::Smooth( void )
         // ensure we have up-to-date smoothed data
         ComputeSmoothedData( 0, nPoints, smoothingWindowSize );
 
-		// reset the max value of the active data
-		maxActiveValue = DBL_MIN;
-		UpdateMaxActiveValue( 0 );
+        // reset the max value of the active data
+        maxActiveValue = DBL_MIN;
+        UpdateMaxActiveValue( 0 );
     }
 }
 
@@ -2558,9 +2588,9 @@ PDGraph::Curve::Unsmooth( void )
     {
         isSmoothed = false;
 
-		// reset the max value of the active data
-		maxActiveValue = DBL_MIN;
-		UpdateMaxActiveValue( 0 );
+        // reset the max value of the active data
+        maxActiveValue = DBL_MIN;
+        UpdateMaxActiveValue( 0 );
     }
 }
 
@@ -2572,17 +2602,17 @@ PDGraph::Curve::Unsmooth( void )
 void
 PDGraph::Curve::UpdateMaxActiveValue( unsigned int startIdx )
 {
-	unsigned int i;
+    unsigned int i;
 
 
-	double* pts = GetActiveData();
-	for( i = startIdx; i < nPoints; i++ )
-	{
-		if( pts[i] > maxActiveValue )
-		{
-			maxActiveValue = pts[i];
-		}
-	}
+    double* pts = GetActiveData();
+    for( i = startIdx; i < nPoints; i++ )
+    {
+        if( pts[i] > maxActiveValue )
+        {
+            maxActiveValue = pts[i];
+        }
+    }
 }
 
 
