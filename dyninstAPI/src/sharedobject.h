@@ -17,7 +17,15 @@ public:
     shared_object(string &n,u_int b, bool p,bool m, bool i, image *d):
 		name(n), base_addr(b),processed(p),mapped(m),
 		include_funcs(i), objs_image(d){ }
-    ~shared_object(){}
+    shared_object(const shared_object &s_obj){
+	name = s_obj.name;
+	base_addr = s_obj.base_addr;
+	processed = s_obj.processed;
+	mapped = s_obj.mapped;
+	include_funcs = s_obj.include_funcs;
+	objs_image = s_obj.objs_image;
+    }
+    ~shared_object(){ objs_image = 0;}
 
     const string &getName(){ return(name); }
     u_int getBaseAddress() { return(base_addr); }

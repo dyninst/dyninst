@@ -854,10 +854,14 @@ process::process(const process &parentProc, int iPid
     *dyn = *parentProc.dyn;
 
     shared_objects = 0;
+
+    // make copy of parent's shared_objects vector
     if (parentProc.shared_objects) {
       shared_objects = new vector<shared_object*>;
-      for (unsigned u1 = 0; u1 < parentProc.shared_objects->size(); u1++)
-	*shared_objects += (*parentProc.shared_objects)[u1];
+      for (unsigned u1 = 0; u1 < parentProc.shared_objects->size(); u1++){
+	*shared_objects += 
+		new shared_object(*(*parentProc.shared_objects)[u1]);
+      }
     }
 
     all_functions = 0;
@@ -889,7 +893,7 @@ process::process(const process &parentProc, int iPid
     }
 
     waiting_for_resources = false;
-    signal_handler = 0;
+    signal_handler = parentProc.signal_handler;
 
 #ifdef SHM_SAMPLING
 #ifdef sparc_sun_sunos4_1_3
@@ -1625,10 +1629,13 @@ bool process::pause() {
 //	  of shared objects by the runtime linker is detected
 //
 bool process::handleStartProcess(process *p){
+
     if(!p){
+	//cerr << "in process::handleStartProcess p is 0\n";
         return false;
     }
 
+    //cerr << " in handleStartProcess" << endl;
     // get shared objects, parse them, and define new resources 
     p->getSharedObjects();
 
@@ -2010,19 +2017,21 @@ void process::handleExec() {
 
     // Clean up state from old exec: all dynamic linking stuff, all lists 
     // of functions and modules from old executable
+
+    // can't delete dynamic linking stuff here, because parent process
+    // could still have pointers
     dynamiclinking = false;
-    delete dyn;
+    dyn = 0;
     dyn = new dynamic_linking;
     if(shared_objects){
-// can't delete these for now, or we get a core dump.
-//       for(u_int i=0; i< shared_objects->size(); i++){
-//	   delete (*shared_objects)[i];
-//       }
-       delete shared_objects;
-       shared_objects = 0;
+        for(u_int i=0; i< shared_objects->size(); i++){
+            delete (*shared_objects)[i];
+        }
+        delete shared_objects;
+        shared_objects = 0;
     }
 
-    // TODO: when can pdFunction's be deleted???
+    // TODO: when can pdFunction's be deleted???  definitely not here.
     delete some_modules;
     delete some_functions;
     delete all_functions;
@@ -2416,8 +2425,10 @@ bool process::tryToReadAndProcessBootstrapInfo() {
    // returns true iff we are now processing the bootstrap info.
    // if false is returned, there must be no side effects.
 
-   if (hasBootstrapped)
+   if (hasBootstrapped){
+      // cerr << "hasBootstrapped is true\n";
       return false;
+   }
 
    string vrbleName = "DYNINST_bootstrap_info";
    
