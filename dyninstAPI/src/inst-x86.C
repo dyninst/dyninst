@@ -43,6 +43,9 @@
  * inst-x86.C - x86 dependent functions and code generator
  *
  * $Log: inst-x86.C,v $
+ * Revision 1.20  1997/06/04 13:24:24  naim
+ * Removing debugging info - naim
+ *
  * Revision 1.19  1997/05/23 23:01:26  mjrg
  * Windows NT port
  * bug fix to inst-x86.C
@@ -1075,9 +1078,8 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point, unsigned b
     }
 
     // must use trap
-    sprintf(errorLine, "Warning: unable to insert jump in function %s, address %x. Using trap\n",
-	    point->func()->prettyName().string_of(), point->address());
-    logLine(errorLine);
+    //sprintf(errorLine, "Warning: unable to insert jump in function %s, address %x. Using trap\n",point->func()->prettyName().string_of(),point->address());
+    //logLine(errorLine);
 
     if (!insertInTrampTable(proc, point->jumpAddr()+imageBaseAddr, baseAddr))
       return 0;
