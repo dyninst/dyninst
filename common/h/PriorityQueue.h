@@ -2,6 +2,9 @@
 
 /*
  * $Log: PriorityQueue.h,v $
+ * Revision 1.3  1995/12/10 01:03:54  tamches
+ * added some comments
+ *
  * Revision 1.2  1995/12/08 21:30:26  tamches
  * added printing (for debugging purposes)
  *
@@ -13,6 +16,15 @@
 // Note: in this priority queue class, the item with the _smallest_ key
 //       will be the first item.
 
+// class KEY must have the following defined:
+// -- operators < and >  (very important; determines the heap ordering)
+// -- the usual copy constructors and assignment (single-=) operators
+//    that any well-written class will have
+// -- operator<< for writing to an ostream&
+//
+// class DATA must have the following defined:
+// -- same as above except no < or > are needed
+
 #ifndef _PRIORITY_QUEUE_H_
 #define _PRIORITY_QUEUE_H_
 
@@ -20,8 +32,6 @@
 #include "util/h/Vector.h"
 
 template <class KEY, class DATA>
-// KEY must have operator<, operator>, etc. defined
-// DATA can be an arbitrary type
 class PriorityQueue {
  private:
    struct pair {
