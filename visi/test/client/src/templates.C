@@ -1,8 +1,8 @@
-#include "util/h/String.h"
+#include "common/h/String.h"
 #pragma implementation "Vector.h"
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 #pragma implementation "Queue.h"
-#include "util/h/Queue.h"
+#include "common/h/Queue.h"
 #pragma implementation "visi.xdr.h"
 #include "visi.xdr.h"
 

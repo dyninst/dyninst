@@ -42,8 +42,8 @@
 #ifndef __FUNCTION_EXPANSION_RECORD_H__
 #define __FUNCTION_EXPANSION_RECORD_H__
 
-#include "util/h/headers.h"
-#include "util/h/Vector.h"
+#include "common/h/headers.h"
+#include "common/h/Vector.h"
 
 // small class for keeping track of information about shifts in code offsets
 //  (offset from beginning of function) caused when functions are expanded

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.43 2000/04/26 16:37:18 zhichen Exp $
+// $Id: ast.h,v 1.44 2000/07/28 17:21:13 pcroth Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -49,10 +49,10 @@
 //
 
 #include <stdio.h>
-#include "util/h/Vector.h"
-#include "util/h/Dictionary.h"
-#include "util/h/String.h"
-#include "util/h/Types.h"
+#include "common/h/Vector.h"
+#include "common/h/Dictionary.h"
+#include "common/h/String.h"
+#include "common/h/Types.h"
 #if defined(BPATCH_LIBRARY)
 #include "dyninstAPI/h/BPatch_type.h"
 #endif
@@ -63,7 +63,7 @@ class function_base;
 
 
 // a register number, e.g. [0,31]
-// typedef int reg; // see new Register type in "util/h/Types.h"
+// typedef int reg; // see new Register type in "common/h/Types.h"
 
 typedef enum { plusOp,
                minusOp,

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphRootNode.h,v 1.2 1999/06/29 15:52:53 cain Exp $
+// $Id: callGraphRootNode.h,v 1.3 2000/07/28 17:21:45 pcroth Exp $
 
 #ifndef _CALLGRAPH_ROOTNODE_H_
 #define _CALLGRAPH_ROOTNODE_H_
@@ -49,7 +49,7 @@
 #include "String.h"
 #include "DMinclude.h" // resourceHandle
 #else
-#include "util/h/String.h"
+#include "common/h/String.h"
 #include "paradyn/src/DMthread/DMinclude.h" // resourceHandle
 #endif
 

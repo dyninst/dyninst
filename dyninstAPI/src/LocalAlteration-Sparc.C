@@ -39,13 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-Sparc.C,v 1.4 2000/03/15 17:41:27 pcroth Exp $
+// $Id: LocalAlteration-Sparc.C,v 1.5 2000/07/28 17:20:41 pcroth Exp $
 
 #include "dyninstAPI/src/LocalAlteration-Sparc.h"
 #include "dyninstAPI/src/LocalAlteration.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/FunctionExpansionRecord.h"
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 #include "dyninstAPI/src/dyninst.h"
 #include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/util.h"

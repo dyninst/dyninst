@@ -39,10 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: makenan.C,v 1.15 1999/10/19 22:08:13 nick Exp $
+// $Id: makenan.C,v 1.16 2000/07/28 17:22:35 pcroth Exp $
 
-#include "util/h/makenan.h"
-#include "util/h/headers.h"
+#include "pdutil/h/makenan.h"
+#include "common/h/headers.h"
 #include <math.h>
 #include <assert.h>
 

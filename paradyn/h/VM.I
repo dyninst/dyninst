@@ -1,7 +1,7 @@
-/* $Id: VM.I,v 1.19 1998/04/01 01:27:58 wylie Exp $ */
+/* $Id: VM.I,v 1.20 2000/07/28 17:21:41 pcroth Exp $ */
 
 #include "paradyn/src/DMthread/DMinclude.h"
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 #include "paradyn/src/VMthread/VMinclude.h"
 
 typedef struct VM_activeVisiInfo {

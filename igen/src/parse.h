@@ -52,11 +52,11 @@
 #define alloca _alloca
 #endif
 
-#include "util/h/String.h"
+#include "common/h/String.h"
 /* trace data streams */
-#include "util/h/ByteArray.h"
-#include "util/h/Vector.h"
-#include "util/h/Dictionary.h"
+#include "pdutil/h/ByteArray.h"
+#include "common/h/Vector.h"
+#include "common/h/Dictionary.h"
 #include <fstream.h>
 
 extern void dump_to_dot_h(const char*);

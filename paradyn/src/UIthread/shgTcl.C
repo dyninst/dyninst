@@ -44,9 +44,9 @@
 
 // Implementations of new commands and tk bindings related to the search history graph.
 
-/* $Id: shgTcl.C,v 1.16 1999/12/17 16:24:56 pcroth Exp $ */
+/* $Id: shgTcl.C,v 1.17 2000/07/28 17:22:07 pcroth Exp $ */
 
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 #include "tkTools.h"
 
 #ifndef PARADYN

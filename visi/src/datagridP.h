@@ -42,7 +42,7 @@
 #ifndef _datagrid_h
 #define _datagrid_h
 
-// $Id: datagridP.h,v 1.9 2000/07/18 17:14:33 schendel Exp $
+// $Id: datagridP.h,v 1.10 2000/07/28 17:22:38 pcroth Exp $
 
 /////////////////////////////////
 //  Data Grid Class definitions
@@ -54,8 +54,8 @@
 #include <values.h>
 #endif // !defined(i386_unknown_nt4_0)
 #include "visi/src/visiTypesP.h"
-#include "util/h/Vector.h"
-#include "util/h/String.h"
+#include "common/h/Vector.h"
+#include "common/h/String.h"
 
 #define SUM	0
 #define AVE     1

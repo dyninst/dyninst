@@ -43,6 +43,9 @@
 
 /*
  * $Log: PriorityQueue.C,v $
+ * Revision 1.5  2000/07/28 17:22:35  pcroth
+ * Updated #includes to reflect util library split
+ *
  * Revision 1.4  1996/11/26 16:09:33  naim
  * Fixing asserts - naim
  *
@@ -58,7 +61,7 @@
  */
 
 #include <assert.h>
-#include "util/h/PriorityQueue.h"
+#include "pdutil/h/PriorityQueue.h"
 
 template <class KEY, class DATA>
 PriorityQueue<KEY, DATA>::PriorityQueue() {

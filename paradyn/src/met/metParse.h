@@ -39,13 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metParse.h,v 1.18 1999/08/03 20:35:12 nash Exp $
+// $Id: metParse.h,v 1.19 2000/07/28 17:22:09 pcroth Exp $
 
 #ifndef _MET_PARSE_H
 #define _MET_PARSE_H
 
-#include "util/h/machineType.h"
-#include "util/h/Vector.h"
+#include "common/h/machineType.h"
+#include "common/h/Vector.h"
 #include <stdio.h>
 #include "dyninstRPC.xdr.h"
 #include "paradyn/src/met/globals.h"

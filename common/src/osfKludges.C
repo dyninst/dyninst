@@ -39,9 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfKludges.C,v 1.4 2000/06/14 22:25:01 paradyn Exp $
+// $Id: osfKludges.C,v 1.5 2000/07/28 17:20:39 pcroth Exp $
 
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 
 extern "C" {
 //extern int accept(int, struct sockaddr *addr, int *);

@@ -40,11 +40,11 @@
  */
 
 // hist.C - routines to manage histograms.
-// $Id: hist.C,v 1.37 2000/07/18 17:13:56 schendel Exp $
+// $Id: hist.C,v 1.38 2000/07/28 17:22:35 pcroth Exp $
 
-#include "util/h/headers.h"
-#include "util/h/hist.h"
-#include "util/h/debugOstream.h"
+#include "common/h/headers.h"
+#include "pdutil/h/hist.h"
+#include "common/h/debugOstream.h"
 #include <math.h>
 
 /* number of intervals at which we switch to regular histograms */

@@ -40,7 +40,7 @@
  */
 
 /* 
- * $Id: pvm_support.C,v 1.7 2000/03/12 22:34:07 wylie Exp $
+ * $Id: pvm_support.C,v 1.8 2000/07/28 17:22:33 pcroth Exp $
  *      Supports the paradyn daemon in the PVM environment.  There are
  *      two main functions that must be supported, task management and host
  *      management.  task_support.C provides the specific task support.  
@@ -53,8 +53,8 @@
  *              environment
  */
 
-#include "util/h/String.h"
-#include "util/h/rpcUtil.h"
+#include "common/h/String.h"
+#include "pdutil/h/rpcUtil.h"
 #include "pvm_support.h"
 #include <assert.h>
 #include <stdlib.h>

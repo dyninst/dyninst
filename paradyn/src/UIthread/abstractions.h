@@ -46,7 +46,7 @@
 // is 1 abstraction; hence, this class maintains a set of
 // abstractions.
 
-/* $Id: abstractions.h,v 1.15 1999/04/27 16:03:44 nash Exp $ */
+/* $Id: abstractions.h,v 1.16 2000/07/28 17:21:44 pcroth Exp $ */
 
 #ifndef _ABSTRACTIONS_H_
 #define _ABSTRACTIONS_H_
@@ -58,8 +58,8 @@
 #include "Vector.h"
 #include "String.h"
 #else
-#include "util/h/Vector.h"
-#include "util/h/String.h"
+#include "common/h/Vector.h"
+#include "common/h/String.h"
 #endif
 
 #include "whereAxis.h"

@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: util.h,v 1.23 1999/11/11 00:56:11 wylie Exp $
+// $Id: util.h,v 1.24 2000/07/28 17:21:39 pcroth Exp $
 
 #ifndef UTIL_H
 #define UTIL_H
 
-#include "util/h/headers.h"
-#include "util/h/Types.h"
-#include "util/h/String.h"
+#include "common/h/headers.h"
+#include "common/h/Types.h"
+#include "common/h/String.h"
 
 typedef double timeStamp;
 timeStamp getCurrentTime(bool firstRecordRelative);

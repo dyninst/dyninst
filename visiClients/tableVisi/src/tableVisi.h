@@ -44,6 +44,9 @@
 
 /*
  * $Log: tableVisi.h,v $
+ * Revision 1.9  2000/07/28 17:23:01  pcroth
+ * Updated #includes to reflect util library split
+ *
  * Revision 1.8  1999/07/13 17:16:11  pcroth
  * Fixed ordering problem of destroying GUI and destructing static variable
  * pdLogo::all_logos.  On NT, the static variable is destroyed before the
@@ -78,8 +81,8 @@
 #ifndef _TABLE_VISI_H_
 #define _TABLE_VISI_H_
 
-#include "util/h/String.h"
-#include "util/h/Vector.h"
+#include "common/h/String.h"
+#include "common/h/Vector.h"
 #include "minmax.h"
 
 #include "tcl.h"

@@ -51,8 +51,8 @@
  * header files.
 ************************************************************************/
 
-#include "util/h/headers.h"
-#include "util/h/lprintf.h"
+#include "common/h/headers.h"
+#include "common/h/lprintf.h"
 
 
 

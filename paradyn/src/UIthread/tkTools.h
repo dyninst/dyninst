@@ -45,14 +45,14 @@
 // Some C++ stuff that I have found to be both useful and generic
 // across all the tk4.0 programs I've written...
 
-/* $Id: tkTools.h,v 1.9 1999/12/22 21:28:56 wylie Exp $ */
+/* $Id: tkTools.h,v 1.10 2000/07/28 17:22:07 pcroth Exp $ */
 
 #ifndef _TK_TOOLS_H_
 #define _TK_TOOLS_H_
 
 #include "tcl.h"
 #include "tk.h"
-#include "util/h/String.h"
+#include "common/h/String.h"
 
 #include <iostream.h>
 

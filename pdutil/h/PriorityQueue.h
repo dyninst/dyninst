@@ -41,29 +41,7 @@
 
 // PriorityQueue.h
 
-/*
- * $Log: PriorityQueue.h,v $
- * Revision 1.5  2000/07/26 23:02:42  hollings
- * Spilt util into common and pdutil.  util is still used (for now) to
- * build pdutil.  Changed included .C files in various templates to find
- * moved files.
- *
- * util/h files are now #include of the renamed files.   Next step is to fixup
- * existing includes.
- *
- * Revision 1.4  1996/08/16 21:30:12  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.3  1995/12/10 01:03:54  tamches
- * added some comments
- *
- * Revision 1.2  1995/12/08 21:30:26  tamches
- * added printing (for debugging purposes)
- *
- * Revision 1.1  1995/12/08 04:55:29  tamches
- * first version of priority queue class
- *
- */
+/* $Id: PriorityQueue.h,v 1.6 2000/07/28 17:22:34 pcroth Exp $ */
 
 // Note: in this priority queue class, the item with the _smallest_ key
 //       will be the first item.

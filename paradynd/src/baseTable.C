@@ -39,12 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTable.C,v 1.6 2000/03/03 22:08:30 mirg Exp $
+// $Id: baseTable.C,v 1.7 2000/07/28 17:22:10 pcroth Exp $
 // The superTable class consists of an array of superVectors
 
 #include <sys/types.h>
 #include <limits.h>
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 #include "baseTable.h"
 #include "rtinst/h/rtinst.h" // for time64
 

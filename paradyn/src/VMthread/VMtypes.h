@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: VMtypes.h,v 1.13 1999/04/27 16:04:04 nash Exp $ */
+/* $Id: VMtypes.h,v 1.14 2000/07/28 17:22:09 pcroth Exp $ */
 
 #ifndef VMtypes_H
 #define VMtypes_H
@@ -49,7 +49,7 @@
 #include "thread/h/thread.h"
 #include "VISIthread.thread.CLNT.h"
 #include "dyninstRPC.xdr.CLNT.h"
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 #include "paradyn/src/DMthread/DMinclude.h"
 
 

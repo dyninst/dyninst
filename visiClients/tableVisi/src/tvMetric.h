@@ -45,7 +45,7 @@
 #ifndef _TV_METRIC_H_
 #define _TV_METRIC_H_
 
-#include "util/h/String.h"
+#include "common/h/String.h"
 #include "tk.h"
 
 class tvMetric {

@@ -39,9 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.29 2000/07/27 15:28:17 bernat Exp $
+// $Id: inst-alpha.C,v 1.30 2000/07/28 17:21:13 pcroth Exp $
 
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 
 #ifdef BPATCH_LIBRARY
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"

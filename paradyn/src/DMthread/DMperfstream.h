@@ -39,20 +39,20 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMperfstream.h,v 1.19 2000/07/18 17:10:42 schendel Exp $
+// $Id: DMperfstream.h,v 1.20 2000/07/28 17:21:43 pcroth Exp $
 
 #ifndef dmperfstream_H
 #define dmperfstream_H
 
-#include "util/h/sys.h"
+#include "pdutil/h/sys.h"
 #include "dataManager.thread.h"
 #include "dataManager.thread.SRVR.h"
-#include "util/h/aggregateSample.h"
+#include "pdutil/h/aggregateSample.h"
 #include <string.h>
 #include "paradyn/src/UIthread/Status.h"
 #include <stdlib.h>
-#include "util/h/Vector.h"
-#include "util/h/Dictionary.h"
+#include "common/h/Vector.h"
+#include "common/h/Dictionary.h"
 #include "paradyn/src/DMthread/BufferPool.h"
 #include "DMphase.h"
 #include "DMinclude.h"

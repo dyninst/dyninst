@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: rtinst.h,v 1.42 2000/03/17 21:57:38 schendel Exp $
+ * $Id: rtinst.h,v 1.43 2000/07/28 17:22:36 pcroth Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the instrumentation layer.
  */
@@ -56,7 +56,7 @@
 #define RT_TRUE 1
 #define RT_FALSE 0
 
-#include "util/h/Types.h"
+#include "common/h/Types.h"
 
 /*typedef void (*instFunc)(void *cdata, int type, char *eventData);*/
 

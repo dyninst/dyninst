@@ -43,6 +43,9 @@
  * Implements virtual function called during an igen error.
  *
  * $Log: comm.C,v $
+ * Revision 1.15  2000/07/28 17:22:10  pcroth
+ * Updated #includes to reflect util library split
+ *
  * Revision 1.14  1999/03/03 18:01:08  pcroth
  * Updated to support changes in igen output,
  * Updated to support automatic startup from Paradyn front end
@@ -98,7 +101,7 @@
  *
  */
 
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 #include "paradynd/src/comm.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/showerror.h"

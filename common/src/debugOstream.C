@@ -41,7 +41,7 @@
 
 // debugOstream.C
 
-#include "util/h/debugOstream.h"
+#include "common/h/debugOstream.h"
 
 debug_ostream &debug_ostream::operator<<(char c) {
    if (on)

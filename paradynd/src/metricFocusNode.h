@@ -39,17 +39,17 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.62 2000/04/26 16:37:29 zhichen Exp $ 
+// $Id: metricFocusNode.h,v 1.63 2000/07/28 17:22:32 pcroth Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
 
-#include "util/h/String.h"
+#include "common/h/String.h"
 // trace data streams
-#include "util/h/ByteArray.h"
-#include "util/h/Vector.h"
-#include "util/h/Dictionary.h"
-#include "util/h/aggregateSample.h"
+#include "pdutil/h/ByteArray.h"
+#include "common/h/Vector.h"
+#include "common/h/Dictionary.h"
+#include "pdutil/h/aggregateSample.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "rtinst/h/trace.h"
@@ -675,7 +675,7 @@ friend int startCollecting(string&, vector<u_int>&, int id,
    static int counterId;
 
 public:
-  // styles are enumerated in util/h/aggregation.h
+  // styles are enumerated in aggregation.h
 #if defined(MT_THREAD)
   metricDefinitionNode(process *p, const string& metric_name, 
                        const vector< vector<string> >& foc,

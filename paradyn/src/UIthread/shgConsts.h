@@ -42,13 +42,13 @@
 // shgConsts.h
 // Ariel Tamches
 
-/* $Id: shgConsts.h,v 1.8 1999/04/27 16:03:49 nash Exp $ */
+/* $Id: shgConsts.h,v 1.9 2000/07/28 17:22:06 pcroth Exp $ */
 
 #ifndef _SHG_CONSTS_H_
 #define _SHG_CONSTS_H_
 
 #ifdef PARADYN
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 #else
 #include "Vector.h"
 #endif

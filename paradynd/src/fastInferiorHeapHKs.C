@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeapHKs.C,v 1.14 2000/02/22 23:12:13 pcroth Exp $
+// $Id: fastInferiorHeapHKs.C,v 1.15 2000/07/28 17:22:11 pcroth Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -49,7 +49,7 @@
 #include "fastInferiorHeapHKs.h"
 
 #if defined(i386_unknown_nt4_0)
-#  include "util/h/int64iostream.h"
+#  include "common/h/int64iostream.h"
 #endif // defined(i386_unknown_nt4_0)
 
 

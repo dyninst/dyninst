@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.5 2000/02/21 20:12:20 pcroth Exp $
+// $Id: Object-nt.C,v 1.6 2000/07/28 17:20:41 pcroth Exp $
 
 #include <iostream.h>
 #include <iomanip.h>
 #include <limits.h>
 
-#include "util/h/String.h"
-#include "util/h/Vector.h"
+#include "common/h/String.h"
+#include "common/h/Vector.h"
 #include "dyninstAPI/src/CodeView.h"
 #include "dyninstAPI/src/Object.h"
 #include "dyninstAPI/src/Object-nt.h"
@@ -108,7 +108,6 @@ Object::ParseDebugInfo( void )
         //
         if( pDebugInfo->CodeViewSymbols != NULL )
         {
-            // we have CodeView debug information
             ParseCodeViewSymbols( pDebugInfo );
         }
         else if( pDebugInfo->CoffSymbols != NULL )
@@ -118,7 +117,10 @@ Object::ParseDebugInfo( void )
         }
         else
         {
-            // TODO - what to do when there's no debug information?
+            // no debug information available
+            // we terminate the process
+            // TODO - how? no access to proc?  no way to terminate proc
+            // unless we are in BPatch?  Right thing to do to terminate?
         }
     }
     else
@@ -167,11 +169,13 @@ bool
 Object::ParseCodeViewSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo )
 {
     CodeView cv( (const char*)pDebugInfo->CodeViewSymbols, textSectionId );
+    bool isDll = ((pDebugInfo->Characteristics & IMAGE_FILE_DLL)!=0);
     bool ret = true;
 
-    if( cv.Parse() )
+
+
+    if( cv.CheckFormat( file_, (char*)pDebugInfo, isDll ) && cv.Parse() )
     {
-        bool isDll = ((pDebugInfo->Characteristics & IMAGE_FILE_DLL)!=0);
         dictionary_hash<string, unsigned int> libDict( string::hash, 19 );
         vector<Symbol> allSymbols;
         vector<ModInfo> cvMods;         // CodeView's notion of modules

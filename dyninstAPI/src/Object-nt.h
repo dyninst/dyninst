@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.9 2000/02/21 20:12:20 pcroth Exp $
+ * $Id: Object-nt.h,v 1.10 2000/07/28 17:20:42 pcroth Exp $
 ************************************************************************/
 
 
@@ -58,11 +58,11 @@
  * header files.
 ************************************************************************/
 
-#include "util/h/Dictionary.h"
-#include "util/h/String.h"
-#include "util/h/Symbol.h"
-#include "util/h/Types.h"
-#include "util/h/Vector.h"
+#include "common/h/Dictionary.h"
+#include "common/h/String.h"
+#include "common/h/Symbol.h"
+#include "common/h/Types.h"
+#include "common/h/Vector.h"
 #include "dyninstAPI/src/CodeView.h"
 
 #include <stdlib.h>

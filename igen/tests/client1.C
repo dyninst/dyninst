@@ -1,5 +1,5 @@
 #include "test1.xdr.CLNT.h"
-#include "util/h/Timer.h"
+#include "common/h/Timer.h"
 
 string str1 = "A Test string with server words in it";
 string str2 = "Different string";

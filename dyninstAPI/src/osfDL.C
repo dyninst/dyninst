@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.12 2000/06/26 17:00:41 paradyn Exp $
+// $Id: osfDL.C,v 1.13 2000/07/28 17:21:16 pcroth Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/osfDL.h"
@@ -47,7 +47,7 @@
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/arch-alpha.h"
 #include "dyninstAPI/src/inst-alpha.h"
-#include "util/h/debugOstream.h"
+#include "common/h/debugOstream.h"
 
 extern debug_ostream sharedobj_cerr;
 

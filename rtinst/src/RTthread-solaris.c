@@ -65,7 +65,7 @@
 #include "kludges.h"
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
-#include "util/h/sys.h"
+#include "pdutil/h/sys.h"
 
 #include <thread.h>
 #include <sys/lwp.h>

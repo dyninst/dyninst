@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <iostream.h>
-#include "util/h/Types.h"
+#include "common/h/Types.h"
 
 #include "BPatch_basicBlock.h"
 

@@ -41,7 +41,7 @@
 
 // Dictionary.C
 
-#include "util/h/Dictionary.h"
+#include "common/h/Dictionary.h"
 #include <limits.h> // UINT_MAX
 
 template<class K, class V>

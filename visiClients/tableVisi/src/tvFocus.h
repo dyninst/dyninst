@@ -42,32 +42,12 @@
 // tvFocus.h
 // Ariel Tamches
 
-/*
- * $Log: tvFocus.h,v $
- * Revision 1.6  1999/03/13 15:24:07  pcroth
- * Added support for building under Windows NT
- *
- * Revision 1.5  1996/08/16 21:37:06  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.4  1996/08/05 07:12:12  tamches
- * tkclean.h --> tk.h
- *
- * Revision 1.3  1995/12/22 22:39:28  tamches
- * added visiLibId
- *
- * Revision 1.2  1995/11/08 21:48:12  tamches
- * moved implementation of constructor to .C file
- *
- * Revision 1.1  1995/11/04 00:46:39  tamches
- * First version of new table visi
- *
- */
+// $Id: tvFocus.h,v 1.7 2000/07/28 17:23:02 pcroth Exp $
 
 #ifndef _TV_FOCUS_H_
 #define _TV_FOCUS_H_
 
-#include "util/h/String.h"
+#include "common/h/String.h"
 #include "tk.h"
 
 class tvFocus {

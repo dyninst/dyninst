@@ -39,19 +39,19 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMinclude.h,v 1.14 1999/06/04 16:05:38 cain Exp $
+// $Id: DMinclude.h,v 1.15 2000/07/28 17:21:42 pcroth Exp $
 
 #ifndef dminclude_H
 #define dminclude_H
 
 // this should be the only DM header file included by other modules
 
-#include "util/h/String.h"
+#include "common/h/String.h"
 // trace data streams
-#include "util/h/ByteArray.h"
+#include "pdutil/h/ByteArray.h"
 
-#include "util/h/Vector.h"
-#include "util/h/sys.h"
+#include "common/h/Vector.h"
+#include "pdutil/h/sys.h"
 // this is an upper limit for data buffering between DM and client threads
 // and between VISIthread and visis
 #define DM_DATABUF_LIMIT	50	

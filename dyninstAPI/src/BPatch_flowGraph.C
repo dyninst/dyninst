@@ -3,9 +3,9 @@
 #include <assert.h>
 #include <string.h>
 
-#include "util/h/Types.h"
-#include "util/h/Vector.h"
-#include "util/h/Dictionary.h"
+#include "common/h/Types.h"
+#include "common/h/Vector.h"
+#include "common/h/Dictionary.h"
 
 #include "util.h"
 #include "process.h"

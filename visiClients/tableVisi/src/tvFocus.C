@@ -42,29 +42,9 @@
 // tvFocus.C
 // Ariel Tamches
 
-/*
- * $Log: tvFocus.C,v $
- * Revision 1.6  1999/03/13 15:24:07  pcroth
- * Added support for building under Windows NT
- *
- * Revision 1.5  1996/08/16 21:37:06  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.4  1996/01/11 01:51:37  tamches
- * completely revamped/debugged how short focus names are calculated
- *
- * Revision 1.3  1995/12/22 22:39:41  tamches
- * added visiLibId
- *
- * Revision 1.2  1995/11/08 21:48:13  tamches
- * moved implementation of constructor to .C file
- *
- * Revision 1.1  1995/11/04 00:46:40  tamches
- * First version of new table visi
- *
- */
+// $Id: tvFocus.C,v 1.7 2000/07/28 17:23:02 pcroth Exp $
 
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 #include "tvFocus.h"
 
 tvFocus::tvFocus(unsigned iVisiLibId,

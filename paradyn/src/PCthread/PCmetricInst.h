@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCmetricInst.h,v 1.13 2000/03/23 01:34:26 wylie Exp $
+// $Id: PCmetricInst.h,v 1.14 2000/07/28 17:21:44 pcroth Exp $
 // The PCmetricInst class and the PCmetricInstServer class.
 
 #ifndef pc_metric_inst_h
@@ -49,7 +49,7 @@
 #include "PCfilter.h"
 #include "PCmetric.h"
 #include "PCdata.h"
-#include "util/h/CircularBuffer.h"
+#include "pdutil/h/CircularBuffer.h"
 
 typedef circularBuffer<Interval, PCdataQSize> dataQ;
 typedef PCmetricInst* PCmetInstHandle;

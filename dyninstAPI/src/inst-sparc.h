@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.h,v 1.42 2000/06/14 23:05:24 wylie Exp $
+// $Id: inst-sparc.h,v 1.43 2000/07/28 17:21:14 pcroth Exp $
 
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
@@ -48,7 +48,7 @@
 #ifndef INST_SPARC_H
 #define INST_SPARC_H
 
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 #ifndef BPATCH_LIBRARY
 #include "rtinst/h/rtinst.h"
 #endif

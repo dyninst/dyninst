@@ -39,13 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.C,v 1.16 1999/11/11 00:50:35 wylie Exp $
+// $Id: solarisDL.C,v 1.17 2000/07/28 17:21:18 pcroth Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/solarisDL.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/symtab.h"
-#include "util/h/debugOstream.h"
+#include "common/h/debugOstream.h"
 
 extern debug_ostream sharedobj_cerr;
 

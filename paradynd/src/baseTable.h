@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTable.h,v 1.4 2000/02/22 23:05:14 pcroth Exp $
+// $Id: baseTable.h,v 1.5 2000/07/28 17:22:10 pcroth Exp $
 // The baseTable class consists of an array of superVectors. The baseTable class is
 // a template class. It has a levelMap vector that keeps track of the levels (rows)
 // that has been allocated (remember that we need not only an index but also a level
@@ -52,7 +52,7 @@
 #pragma interface
 #endif // !defined(i386_unknown_nt4_0)
 
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 #include "paradynd/src/superVector.h"
 
 class process;

@@ -39,9 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: timing.C,v 1.14 2000/07/05 16:20:57 wylie Exp $
+// $Id: timing.C,v 1.15 2000/07/28 17:22:35 pcroth Exp $
 
-#include "util/h/Timer.h"
+#include "common/h/Timer.h"
 
 #if defined(rs6000_ibm_aix4_1)
 #define NOPS_4  asm("oril 0,0,0"); asm("oril 0,0,0"); asm("oril 0,0,0"); asm("oril 0,0,0")

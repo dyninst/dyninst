@@ -42,48 +42,10 @@
 /*
  * association.C - Manage mapping information (associations)
  *
- * $Log: association.C,v $
- * Revision 1.11  1997/10/10 00:41:24  tamches
- * removed a warning
- *
- * Revision 1.10  1997/02/21 20:15:34  naim
- * Moving files from paradynd to dyninstAPI + eliminating references to
- * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
- *
- * Revision 1.9  1996/08/16 21:18:11  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.8  1995/09/26 20:17:38  naim
- * Adding error messages using showErrorCallback function for paradynd
- *
- * Revision 1.7  1995/08/24  15:03:42  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
- *
- * Revision 1.6  1995/02/16  08:52:45  markc
- * Corrected error in comments -- I put a "star slash" in the comment.
- *
- * Revision 1.5  1995/02/16  08:32:46  markc
- * Changed igen interfaces to use strings/vectors rather than charigen-arrays
- * Changed igen interfaces to use bool, not Boolean.
- * Cleaned up symbol table parsing - favor properly labeled symbol table objects
- * Updated binary search for modules
- * Moved machine dependnent ptrace code to architecture specific files.
- * Moved machine dependent code out of class process.
- * Removed almost all compiler warnings.
- * Use "posix" like library to remove compiler warnings
- *
- * Revision 1.4  1994/11/02  10:59:43  markc
- * Replaced string-handles
- *
+ * $Id: association.C,v 1.12 2000/07/28 17:22:10 pcroth Exp $
  */
 
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyninstP.h"

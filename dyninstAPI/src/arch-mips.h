@@ -47,10 +47,10 @@
 #define _ARCH_MIPS_H_
 
 /*
- * $Id: arch-mips.h,v 1.6 2000/07/12 17:55:58 buck Exp $
+ * $Id: arch-mips.h,v 1.7 2000/07/28 17:21:13 pcroth Exp $
  */
 
-#include "util/h/Types.h" // for "Address"
+#include "common/h/Types.h" // for "Address"
 
 #define BRANCH_MAX (131068)
 #define BRANCH_MIN (-131072)

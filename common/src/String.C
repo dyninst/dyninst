@@ -39,16 +39,16 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: String.C,v 1.13 1999/06/03 07:16:17 nash Exp $
+// $Id: String.C,v 1.14 2000/07/28 17:20:39 pcroth Exp $
 
 #include <assert.h>
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 
 #ifndef i386_unknown_nt4_0
 #include <regex.h>
 #endif
 
-#include "util/h/String.h"
+#include "common/h/String.h"
 
 // Declare static member vrbles:
 string *string::nilptr;

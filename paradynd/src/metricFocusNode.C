@@ -39,15 +39,15 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.175 2000/07/20 19:54:24 schendel Exp $
+// $Id: metricFocusNode.C,v 1.176 2000/07/28 17:22:32 pcroth Exp $
 
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 #include <limits.h>
 #include <assert.h>
 
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
-#include "util/h/aggregateSample.h"
+#include "pdutil/h/aggregateSample.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/pdThread.h"
 #include "dyninstAPI/src/process.h"
@@ -64,11 +64,11 @@
 #include "dyninstAPI/src/stats.h"
 #include "paradynd/src/dynrpc.h"
 #include "paradynd/src/mdld.h"
-#include "util/h/Timer.h"
+#include "common/h/Timer.h"
 #include "dyninstAPI/src/showerror.h"
 #include "paradynd/src/costmetrics.h"
 #include "paradynd/src/metric.h"
-#include "util/h/debugOstream.h"
+#include "common/h/debugOstream.h"
 
 #include "dyninstAPI/src/instPoint.h"
 

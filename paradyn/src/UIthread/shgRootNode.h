@@ -43,7 +43,7 @@
 // Ariel Tamches
 // analagous to rootNode.h (for the where axis)
 
-/* $Id: shgRootNode.h,v 1.7 1999/04/27 16:03:49 nash Exp $ */
+/* $Id: shgRootNode.h,v 1.8 2000/07/28 17:22:06 pcroth Exp $ */
 
 #ifndef _SHG_ROOT_NODE_H_
 #define _SHG_ROOT_NODE_H_
@@ -51,7 +51,7 @@
 #ifndef PARADYN
 #include "String.h"
 #else
-#include "util/h/String.h"
+#include "common/h/String.h"
 #endif
 
 #include "tcl.h"

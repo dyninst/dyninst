@@ -39,11 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.66 2000/03/22 00:44:49 mihai Exp $
+// $Id: inst-sparc-solaris.C,v 1.67 2000/07/28 17:21:14 pcroth Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
-#include "util/h/debugOstream.h"
+#include "common/h/debugOstream.h"
 
 #include "dyninstAPI/src/FunctionExpansionRecord.h"
 #include "dyninstAPI/src/LocalAlteration-Sparc.h"

@@ -48,13 +48,13 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 
-// $Id: VISIthreadmain.C,v 1.86 2000/07/18 17:11:50 schendel Exp $
+// $Id: VISIthreadmain.C,v 1.87 2000/07/28 17:22:08 pcroth Exp $
 
 #include <signal.h>
 #include <math.h>
 #include <stdlib.h>
-#include "util/h/rpcUtil.h"
-#include "util/h/sys.h"
+#include "pdutil/h/rpcUtil.h"
+#include "pdutil/h/sys.h"
 #include "paradyn/src/VMthread/VMtypes.h"
 #include "VISIthread.thread.SRVR.h"
 #include "VISIthreadTypes.h"

@@ -44,7 +44,7 @@
 
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
-/* $Id: whereAxis.h,v 1.15 1999/04/27 16:03:56 nash Exp $ */
+/* $Id: whereAxis.h,v 1.16 2000/07/28 17:22:08 pcroth Exp $ */
 
 #ifndef _WHERE_AXIS_H_
 #define _WHERE_AXIS_H_
@@ -58,7 +58,7 @@
 #ifndef PARADYN
 #include "Dictionary.h"
 #else
-#include "util/h/Dictionary.h"
+#include "common/h/Dictionary.h"
 #endif
 
 // Note: whereAxis is no longer a templated type.

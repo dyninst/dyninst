@@ -42,6 +42,9 @@
 /*
  * Classes and prototypes for Abstraction specific code
  * $Log: DMabstractions.h,v $
+ * Revision 1.6  2000/07/28 17:21:41  pcroth
+ * Updated #includes to reflect util library split
+ *
  * Revision 1.5  1996/08/16 21:01:22  tamches
  * updated copyright for release 1.1
  *
@@ -71,8 +74,8 @@
 
 #ifndef _abstract_h
 #define _abstract_h
-#include "util/h/Dictionary.h"
-#include "util/h/String.h"
+#include "common/h/Dictionary.h"
+#include "common/h/String.h"
 
 class abstraction {
     friend abstraction *AMfind(const char *aname);

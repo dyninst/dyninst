@@ -46,9 +46,9 @@
 #include "visi/src/visualizationP.h"
 #include "visi/src/datagridP.h"
 #include "visi/src/visiTypesP.h"
-#include "util/h/makenan.h"
+#include "pdutil/h/makenan.h"
 #include "visi/h/visualization.h"
-#include "util/h/Types.h" // Address
+#include "common/h/Types.h" // Address
 
 #define MAXSTRINGSIZE  16*1024
 #define EVENTSIZE      FOLD+1

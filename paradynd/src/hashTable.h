@@ -41,12 +41,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: hashTable.h,v 1.3 1999/07/07 16:16:41 zhichen Exp $
+// $Id: hashTable.h,v 1.4 2000/07/28 17:22:11 pcroth Exp $
 
 #ifndef _HASH_TABLE_H_
 #define _HASH_TABLE_H_
 
-#include "util/h/Dictionary.h"
+#include "common/h/Dictionary.h"
 #include "dyninstAPI/src/util.h"
 
 class hashTable {

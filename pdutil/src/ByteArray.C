@@ -42,7 +42,7 @@
 // ByteArray.C
 
 #include <assert.h>
-#include "util/h/ByteArray.h"
+#include "pdutil/h/ByteArray.h"
 
 // trace data streams
 bool_t P_xdr_byteArray(XDR *x, char **c, u_int *sizep, const u_int maxsize) {

@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superTable.C,v 1.5 1999/08/30 16:02:32 zhichen Exp $
+// $Id: superTable.C,v 1.6 2000/07/28 17:22:33 pcroth Exp $
 // The superTable class consists of an array of baseTable elements (superVectors)
 // and it represents the ThreadTable in paradynd. For more info, please look at
 // the .h file for this class. 
 
 #include <sys/types.h>
 #include <limits.h>
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 #include "paradynd/src/superTable.h"
 #include "rtinst/h/rtinst.h" // for time64 and MAX_NUMBER_OF_THREADS
 #include "dyninstAPI/src/process.h"

@@ -1,11 +1,11 @@
 #ifndef _LineInformation_h_
 #define _LineInformation_h_
 
-#include "util/h/Types.h"
-#include "util/h/Pair.h"
-#include "util/h/Vector.h"
-#include "util/h/Dictionary.h"
-#include "util/h/String.h"
+#include "common/h/Types.h"
+#include "common/h/Pair.h"
+#include "common/h/Vector.h"
+#include "common/h/Dictionary.h"
+#include "common/h/String.h"
 #include "BPatch_Set.h"
 
 //the following class declarations keep the line information for modules.

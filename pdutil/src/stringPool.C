@@ -42,6 +42,9 @@
 /*
  * 
  * $Log: stringPool.C,v $
+ * Revision 1.11  2000/07/28 17:22:35  pcroth
+ * Updated #includes to reflect util library split
+ *
  * Revision 1.10  1996/11/12 17:50:17  mjrg
  * Removed warnings, changes for compiling with Visual C++ and xlc
  *
@@ -75,8 +78,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "util/h/list.h"
-#include "util/h/stringPool.h"
+#include "common/h/list.h"
+#include "pdutil/h/stringPool.h"
 
 #define SP_PAGE_SIZE 4090
 

@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.93 2000/07/18 17:09:16 schendel Exp $
+ * $Id: DMdaemon.C,v 1.94 2000/07/28 17:21:41 pcroth Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 
@@ -68,7 +68,7 @@ double   quiet_nan();
 #include "DMmetric.h"
 #include "paradyn/src/met/metricExt.h"
 #include "DMtime.h"
-#include "util/h/rpcUtil.h"
+#include "pdutil/h/rpcUtil.h"
 
 #include "../UIthread/tkTools.h"
 extern Tcl_Interp *interp;

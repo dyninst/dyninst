@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-Sparc.h,v 1.3 1998/12/25 22:34:23 wylie Exp $
+// $Id: LocalAlteration-Sparc.h,v 1.4 2000/07/28 17:20:41 pcroth Exp $
 
 #ifndef __LocalAlteration_SPARC_H__
 #define __LocalAlteration_SPARC_H__
@@ -48,7 +48,7 @@
 #include "dyninstAPI/src/LocalAlteration.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/FunctionExpansionRecord.h"
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 #include "dyninstAPI/src/dyninst.h"
 #include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/util.h"

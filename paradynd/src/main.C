@@ -39,11 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.88 2000/06/15 19:24:29 paradyn Exp $
+// $Id: main.C,v 1.89 2000/07/28 17:22:11 pcroth Exp $
 
-#include "util/h/headers.h"
-#include "util/h/makenan.h"
-#include "util/h/Ident.h"
+#include "common/h/headers.h"
+#include "pdutil/h/makenan.h"
+#include "common/h/Ident.h"
 
 #if defined(MT_THREAD)
 extern "C" const char V_paradyndMT[];
@@ -71,7 +71,7 @@ Ident V_Uid(V_libpdutil,"Paradyn");
 #include "paradynd/src/metric.h"
 #include "paradynd/src/comm.h"
 #include "paradynd/src/internalMetrics.h"
-#include "util/h/machineType.h"
+#include "common/h/machineType.h"
 #include "paradynd/src/init.h"
 #include "paradynd/src/perfStream.h"
 #include "paradynd/src/mdld.h"

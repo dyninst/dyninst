@@ -39,9 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-coff.C,v 1.8 2000/07/06 19:15:59 altinel Exp $
+// $Id: Object-coff.C,v 1.9 2000/07/28 17:20:41 pcroth Exp $
 
-#include "util/h/Dictionary.h"
+#include "common/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
 #include "dyninstAPI/src/Object-coff.h"
 

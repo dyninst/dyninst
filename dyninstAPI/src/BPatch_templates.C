@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_templates.C,v 1.11 2000/03/18 21:53:59 tikir Exp $
+// $Id: BPatch_templates.C,v 1.12 2000/07/28 17:20:40 pcroth Exp $
 
 #include <sys/types.h>
 
@@ -56,9 +56,9 @@
 #if !defined(i386_unknown_nt4_0)
 #pragma implementation "refCounter.h"
 #endif
-#include "util/h/refCounter.h"
-#include "util/h/String.h"
-#include "util/h/Types.h"
+#include "common/h/refCounter.h"
+#include "common/h/String.h"
+#include "common/h/Types.h"
 
 class BPatch_point;
 class BPatch_field;

@@ -43,7 +43,7 @@
 #define _BPatch_libInfo_h_
 
 #include <sys/types.h>
-#include "util/h/Dictionary.h"
+#include "common/h/Dictionary.h"
 #include "util.h"
 
 class BPatch_libInfo {

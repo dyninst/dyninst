@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superTable.h,v 1.3 1999/07/07 16:22:22 zhichen Exp $
+// $Id: superTable.h,v 1.4 2000/07/28 17:22:33 pcroth Exp $
 // The superTable class consists of an array of baseTable elements (superVectors)
 // and it represents the ThreadTable in paradynd. The superTable class is the class
 // that has contact with the outside world. Rows on this table are represented by
@@ -61,7 +61,7 @@
 #ifndef _SUPER_TABLE_H_
 #define _SUPER_TABLE_H_
 
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 #include "paradynd/src/fastInferiorHeapHKs.h"
 #include "paradynd/src/baseTable.h"
 

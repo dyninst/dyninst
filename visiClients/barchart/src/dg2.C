@@ -42,21 +42,21 @@
 // dg2.C
 // customized (for barchart) version of DGclient.C in tclVisi directory
 
-/* $Id: dg2.C,v 1.25 1999/12/17 16:25:01 pcroth Exp $ */
+/* $Id: dg2.C,v 1.26 2000/07/28 17:22:57 pcroth Exp $ */
 
 // An updated version of DGClient.C for barchart2.C
 // Contains several **deletions** to remove blt_barchart influences
 
 #include <iostream.h>
 
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 
 #include "tcl.h"
 #include "tk.h"
 
-#include "util/h/pdsocket.h"
-#include "util/h/pddesc.h"
-#include "util/h/Types.h"
+#include "pdutil/h/pdsocket.h"
+#include "pdutil/h/pddesc.h"
+#include "common/h/Types.h"
 #include "visi/h/visualization.h"
 
 #include "tkTools.h" // myTclEval()
@@ -65,7 +65,7 @@
 #include "barChartTcl.h"
 #include "barChart.h"
 #include "barChartUtil.h"
-#include "util/h/TclTools.h"
+#include "pdutil/h/TclTools.h"
 
 
 

@@ -39,25 +39,25 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.93 2000/07/18 19:55:18 bernat Exp $
+// $Id: solaris.C,v 1.94 2000/07/28 17:21:18 pcroth Exp $
 
 #include "dyninstAPI/src/symtab.h"
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/process.h"
 #ifndef BPATCH_LIBRARY
 #include "dyninstAPI/src/pdThread.h"
 #endif
 #include "dyninstAPI/src/stats.h"
-#include "util/h/Types.h"
+#include "common/h/Types.h"
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <sys/termios.h>
 #include <unistd.h>
 #include "dyninstAPI/src/showerror.h"
-#include "util/h/pathName.h" // concat_pathname_components()
-#include "util/h/debugOstream.h"
-#include "util/h/solarisKludges.h"
+#include "common/h/pathName.h" // concat_pathname_components()
+#include "common/h/debugOstream.h"
+#include "common/h/solarisKludges.h"
 
 #if defined (sparc_sun_solaris2_4)
 #include "dyninstAPI/src/inst-sparc.h"

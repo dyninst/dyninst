@@ -41,7 +41,7 @@
 
 /*
  * Report statistics about dyninst and data collection.
- * $Id: stats.C,v 1.23 1999/07/29 13:58:50 hollings Exp $
+ * $Id: stats.C,v 1.24 2000/07/28 17:21:18 pcroth Exp $
  */
 
 #include "dyninstAPI/src/symtab.h"
@@ -53,7 +53,7 @@
 #include "dyninstAPI/src/util.h"
 
 #ifndef BPATCH_LIBRARY
-#include "util/h/Timer.h"
+#include "common/h/Timer.h"
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
 #include "paradynd/src/metric.h"

@@ -43,6 +43,9 @@
  * resource.C - handle resource creation and queries.
  *
  * $Log: resource.C,v $
+ * Revision 1.32  2000/07/28 17:22:33  pcroth
+ * Updated #includes to reflect util library split
+ *
  * Revision 1.31  2000/06/14 23:04:24  wylie
  * Tidy to remove compiler warnings
  *
@@ -116,8 +119,8 @@
 #include "dyninstAPI/src/dyninstP.h"
 #include "dyninstAPI/src/util.h"
 #include "paradynd/src/comm.h"
-#include "util/h/String.h"
-#include "util/h/Dictionary.h"
+#include "common/h/String.h"
+#include "common/h/Dictionary.h"
 #include "paradynd/src/main.h"
 
 u_int resource::num_outstanding_creates = 0;

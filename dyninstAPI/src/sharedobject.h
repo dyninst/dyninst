@@ -39,13 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.h,v 1.17 1999/05/13 23:08:22 hollings Exp $
+// $Id: sharedobject.h,v 1.18 2000/07/28 17:21:18 pcroth Exp $
 
 #if !defined(_shared_object_h)
 #define _shared_object_h
 
-#include "util/h/String.h"
-#include "util/h/Types.h"
+#include "common/h/String.h"
+#include "common/h/Types.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/symtab.h"
 #ifndef BPATCH_LIBRARY

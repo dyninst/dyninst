@@ -39,12 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates.C,v 1.11 2000/07/26 23:02:41 hollings Exp $
+// $Id: templates.C,v 1.12 2000/07/28 17:21:40 pcroth Exp $
 
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 
 #pragma implementation "Vector.h"
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -72,7 +72,7 @@ template class refCounter<string_ll>;
 template class vector<unsigned>;
 
 #if defined(rs6000_ibm_aix4_1)
-#include "util/h/Symbol.h"
+#include "common/h/Symbol.h"
 template class dictionary_hash<string, Symbol>;
 #endif
 

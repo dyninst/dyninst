@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irixDL.C,v 1.9 2000/06/14 23:03:23 wylie Exp $
+// $Id: irixDL.C,v 1.10 2000/07/28 17:21:15 pcroth Exp $
 
 #include <stdio.h>
 #include <sys/ucontext.h>             // gregset_t
@@ -48,8 +48,8 @@
 #include <sys/procfs.h>
 #include <libelf.h>                   // ElfXX_Sym
 #include <objlist.h>                  // ElfXX_Obj_Info
-#include "util/h/Types.h"             // Address
-#include "util/h/Dictionary.h"
+#include "common/h/Types.h"             // Address
+#include "common/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"            // ELF parsing
 #include "dyninstAPI/src/irixDL.h"
 #include "dyninstAPI/src/process.h"

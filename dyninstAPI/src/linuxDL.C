@@ -42,7 +42,7 @@
 #include "dyninstAPI/src/linuxDL.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/symtab.h"
-#include "util/h/debugOstream.h"
+#include "common/h/debugOstream.h"
 
 extern debug_ostream sharedobj_cerr;
 

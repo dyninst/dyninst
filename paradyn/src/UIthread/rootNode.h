@@ -44,7 +44,7 @@
 // C++ class for the root node of subtrees declared in where4tree.h
 // Basically, this file exists just to make where4tree.h that much shorter.
 
-/* $Id: rootNode.h,v 1.8 1999/04/27 16:03:46 nash Exp $ */
+/* $Id: rootNode.h,v 1.9 2000/07/28 17:22:06 pcroth Exp $ */
 
 #ifndef _ROOTNODE_H_
 #define _ROOTNODE_H_
@@ -57,7 +57,7 @@
 #include "String.h"
 #include "DMinclude.h" // resourceHandle
 #else
-#include "util/h/String.h"
+#include "common/h/String.h"
 #include "paradyn/src/DMthread/DMinclude.h" // resourceHandle
 #endif
 

@@ -43,9 +43,9 @@
 #define _BPatch_collections_h_
 
 #include "BPatch_type.h"     //type and localVar
-#include "../../util/h/String.h"
-#include "../../util/h/Dictionary.h"
-#include "../../util/h/list.h"
+#include "../../common/h/String.h"
+#include "../../common/h/Dictionary.h"
+#include "../../common/h/list.h"
 
 
 /*

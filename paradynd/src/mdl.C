@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.82 2000/06/14 23:04:23 wylie Exp $
+// $Id: mdl.C,v 1.83 2000/07/28 17:22:11 pcroth Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -50,12 +50,12 @@
 #include "dyninstAPI/src/ast.h"
 #include "paradynd/src/main.h"
 #include "dyninstAPI/src/symtab.h"
-#include "util/h/Timer.h"
+#include "common/h/Timer.h"
 #include "paradynd/src/mdld.h"
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/pdThread.h"
-#include "util/h/debugOstream.h"
+#include "common/h/debugOstream.h"
 #include "dyninstAPI/src/instPoint.h" // new...for class instPoint
 
 // The following vrbles were defined in process.C:

@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeapMgr.C,v 1.8 2000/03/12 22:23:34 wylie Exp $
+// $Id: fastInferiorHeapMgr.C,v 1.9 2000/07/28 17:22:11 pcroth Exp $
 // A class that manages several fastInferiorHeaps (fastInferiorHeap.h/.C)
 // Formerly, each fastInferiorHeap would create its own shm-segment.
 // But this created too many segments.  This class creates a single shm segment,
 // containing several fastInferiorHeaps.
 
 #include <iostream.h>
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 #include "shmSegment.h"
 #include "fastInferiorHeapMgr.h"
 #include "dyninstAPI/src/showerror.h"

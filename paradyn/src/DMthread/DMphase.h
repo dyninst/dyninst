@@ -42,9 +42,9 @@
 #ifndef DMphase_H
 #define DMphase_H
 
-#include "util/h/String.h"
-#include "util/h/sys.h"
-#include "util/h/Vector.h"
+#include "common/h/String.h"
+#include "pdutil/h/sys.h"
+#include "common/h/Vector.h"
 #include "visi.xdr.h"
 #include "DMinclude.h"
 

@@ -43,8 +43,8 @@
 #define _IRIX_DL_H_
 
 #include <libelf.h>                        /* ElfXX_Sym */
-#include "util/h/Types.h"
-#include "util/h/Vector.h"
+#include "common/h/Types.h"
+#include "common/h/Vector.h"
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/dynamiclinking.h"
 class process;

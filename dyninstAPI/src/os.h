@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: os.h,v 1.19 1999/03/19 18:07:19 csserra Exp $
+// $Id: os.h,v 1.20 2000/07/28 17:21:16 pcroth Exp $
 
 #ifndef _OS_HDR
 #define _OS_HDR
@@ -70,8 +70,8 @@
 
 #endif
 
-#include "util/h/String.h"
-#include "util/h/Types.h"
+#include "common/h/String.h"
+#include "common/h/Types.h"
 
 class OS {
 public:

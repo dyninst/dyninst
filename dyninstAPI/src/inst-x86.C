@@ -41,18 +41,18 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.65 2000/07/27 14:01:17 bernat Exp $
+ * $Id: inst-x86.C,v 1.66 2000/07/28 17:21:14 pcroth Exp $
  */
 
 #include <iomanip.h>
 
 #include <limits.h>
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 
 #ifndef BPATCH_LIBRARY
 #include "rtinst/h/rtinst.h"
 #endif
-#include "util/h/Dictionary.h"
+#include "common/h/Dictionary.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"

@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.39 2000/07/13 18:00:10 zandy Exp $
+// $Id: unix.C,v 1.40 2000/07/28 17:21:39 pcroth Exp $
 
 #if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
 #endif
-#include "util/h/headers.h"
-#include "util/h/String.h"
-#include "util/h/Vector.h"
+#include "common/h/headers.h"
+#include "common/h/String.h"
+#include "common/h/Vector.h"
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/util.h"

@@ -39,11 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: util.C,v 1.23 1999/10/27 21:51:42 schendel Exp $
+/* $Id: util.C,v 1.24 2000/07/28 17:21:39 pcroth Exp $
  * util.C - support functions.
  */
 
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 #ifndef BPATCH_LIBRARY
 #include "rtinst/h/rtinst.h" // for time64
 #endif

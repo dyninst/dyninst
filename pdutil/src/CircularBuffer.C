@@ -44,6 +44,9 @@
  * member functions for the circularBuffer class
  *
  * $Log: CircularBuffer.C,v $
+ * Revision 1.3  2000/07/28 17:22:35  pcroth
+ * Updated #includes to reflect util library split
+ *
  * Revision 1.2  1996/08/16 21:31:44  tamches
  * updated copyright for release 1.1
  *
@@ -53,7 +56,7 @@
  */
 
 #include <iostream.h>
-#include "util/h/CircularBuffer.h"
+#include "pdutil/h/CircularBuffer.h"
 
 template <class Type, int Size>
 circularBuffer<Type, Size>::circularBuffer ()  

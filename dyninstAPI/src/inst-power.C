@@ -41,10 +41,10 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.93 2000/07/24 22:24:56 bernat Exp $
+ * $Id: inst-power.C,v 1.94 2000/07/28 17:21:13 pcroth Exp $
  */
 
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 
 #ifndef BPATCH_LIBRARY
 #include "rtinst/h/rtinst.h"
@@ -62,7 +62,7 @@
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/instPoint.h" // class instPoint
 #include "dyninstAPI/src/showerror.h"
-#include "util/h/debugOstream.h"
+#include "common/h/debugOstream.h"
 
 // The following vrbles were defined in process.C:
 extern debug_ostream attach_cerr;

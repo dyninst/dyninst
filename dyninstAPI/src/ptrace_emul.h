@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ptrace_emul.h,v 1.10 1998/12/25 22:02:16 wylie Exp $
+// $Id: ptrace_emul.h,v 1.11 2000/07/28 17:21:18 pcroth Exp $
 // ptrace_emul.h:  Header file for ptrace emulation stuff.
 
 #ifndef PTRACE_EMUL
@@ -68,7 +68,7 @@
  *
  */
 
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 
 typedef struct _ptraceReqHeader {
   int request;

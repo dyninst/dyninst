@@ -45,14 +45,14 @@
 // Initialization function for the Paradyn histogram widget library.
 //
 //---------------------------------------------------------------------------
-// $Id: init.C,v 1.1 1999/10/05 22:09:05 pcroth Exp $
+// $Id: init.C,v 1.2 2000/07/28 17:22:59 pcroth Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
-#include "util/h/String.h"
+#include "common/h/String.h"
 #include "tcl.h"
 #include "tk.h"
-#include "util/h/Vector.h"
-#include "util/h/Dictionary.h"
+#include "common/h/Vector.h"
+#include "common/h/Dictionary.h"
 #include "Histogram.h"
 #include "PDGraph.h"
 

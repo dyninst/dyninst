@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-coff.h,v 1.7 2000/02/15 23:53:09 hollings Exp $
+ * $Id: Object-coff.h,v 1.8 2000/07/28 17:20:41 pcroth Exp $
  * COFF object files.
  * Note - this is DEC OSF/1 coff which probably isn't the real thing
  *
@@ -69,12 +69,12 @@
  * header files.
 ************************************************************************/
 
-#include <util/h/Dictionary.h>
-//#include <util/h/Line.h>
-#include <util/h/String.h>
-#include <util/h/Symbol.h>
-#include <util/h/Types.h>
-#include <util/h/Vector.h>
+#include <common/h/Dictionary.h>
+//#include <common/h/Line.h>
+#include <common/h/String.h>
+#include <common/h/Symbol.h>
+#include <common/h/Types.h>
+#include <common/h/Vector.h>
 
 extern "C" {
 #include <a.out.h>

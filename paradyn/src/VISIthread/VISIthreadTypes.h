@@ -39,10 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: VISIthreadTypes.h,v 1.28 2000/07/28 17:22:08 pcroth Exp $ 
+
 #ifndef VISI_thread_h
 #define VISI_thread_h 
 
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 #include "thread/h/thread.h"
 #include "VM.thread.CLNT.h"
 #include "UI.thread.CLNT.h"
@@ -50,7 +52,7 @@
 #include "visi.xdr.CLNT.h"
 #include "../pdMain/paradyn.h"
 #include "paradyn/src/DMthread/DMinclude.h"
-#include "util/h/makenan.h"
+#include "pdutil/h/makenan.h"
 
 #define SUM     0
 #define AVE     1

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstP.h,v 1.17 1999/11/11 21:42:03 wylie Exp $
+/* $Id: dyninstP.h,v 1.18 2000/07/28 17:21:13 pcroth Exp $
  *
  * private structures used by the implementation of the instrumentation 
  *   interface.  modules that use the instrumentation interface should not
@@ -51,8 +51,8 @@
 #ifndef _DYNINSTP_H
 #define _DYNINSTP_H
 
-#include "util/h/Vector.h"
-#include "util/h/String.h"
+#include "common/h/Vector.h"
+#include "common/h/String.h"
 
 typedef enum { selfTermination, controlTermination } executableType;
 typedef enum { Trace, Sample } dataType;

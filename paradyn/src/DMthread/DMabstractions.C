@@ -43,6 +43,9 @@
  * DMabstractions.C: code to handle programming abstractions
  *
  * $Log: DMabstractions.C,v $
+ * Revision 1.8  2000/07/28 17:21:41  pcroth
+ * Updated #includes to reflect util library split
+ *
  * Revision 1.7  1996/08/16 21:01:31  tamches
  * updated copyright for release 1.1
  *
@@ -81,8 +84,8 @@
 #include "dataManager.thread.h"
 #include "DMabstractions.h"
 #include "DMresource.h"
-#include "util/h/Dictionary.h"
-#include "util/h/String.h"
+#include "common/h/Dictionary.h"
+#include "common/h/String.h"
 
 abstraction::abstraction(const char *a)
 {

@@ -42,54 +42,24 @@
 // dg2.C
 // implementation of the "Dg" tcl command
 
-/*
- * $Log: dg2.C,v $
- * Revision 1.9  1999/12/17 16:25:03  pcroth
- * Updated to change deprecated use of interp->result in favor of API calls
- * to set the interpreter's result.
- *
- * Revision 1.8  1999/03/13 15:24:04  pcroth
- * Added support for building under Windows NT
- *
- * Revision 1.7  1996/08/16 21:36:52  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.6  1996/04/30 20:16:14  tamches
- * added MYPHASENAME
- *
- * Revision 1.5  1996/02/23 17:49:44  tamches
- * removed DEFINEPHASE
- *
- * Revision 1.4  1996/01/19 20:56:18  newhall
- * changes due to visiLib interface changes
- *
- * Revision 1.3  1996/01/17 18:31:36  newhall
- * changes due to new visiLib
- *
- * Revision 1.2  1995/11/08  21:45:56  tamches
- * specialized s.t. only the implementation of the "Dg" tcl command is here
- *
- * Revision 1.1  1995/11/04 00:44:11  tamches
- * First version of new table visi
- *
- */
+/* $Id: dg2.C,v 1.10 2000/07/28 17:23:01 pcroth Exp $ */
 
 #include <iostream.h>
 
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 
 #include "tcl.h"
 #include "tk.h"
 
-#include "util/h/pdsocket.h"
-#include "util/h/pddesc.h"
-#include "util/h/Types.h"
+#include "pdutil/h/pdsocket.h"
+#include "pdutil/h/pddesc.h"
+#include "common/h/Types.h"
 #include "visi/h/visualization.h"
 
 #include "dg2.h"
 
 #include "tableVisiTcl.h"
-#include "util/h/TclTools.h"
+#include "pdutil/h/TclTools.h"
 
 
 

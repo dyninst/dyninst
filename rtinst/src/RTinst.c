@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.34 2000/07/27 14:09:49 bernat Exp $
+ * $Id: RTinst.c,v 1.35 2000/07/28 17:22:36 pcroth Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -66,7 +66,7 @@
 #include "kludges.h"
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
-#include "util/h/sys.h"
+#include "pdutil/h/sys.h"
 
 #ifdef PARADYN_MPI
 #include "/usr/lpp/ppe.poe/include/mpi.h"
@@ -903,7 +903,7 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
     DYNINSTcyclesToUsec = MILLION/DYNINSTcyclesPerSecond();
   
 #ifndef SHM_SAMPLING
-  /* assign sampling rate to be default value in util/h/sys.h */
+  /* assign sampling rate to be default value in pdutil/h/sys.h */
   val = BASESAMPLEINTERVAL;
   
   DYNINSTsamplingRate = val/MILLION;

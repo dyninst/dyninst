@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.29 2000/02/15 23:53:10 hollings Exp $
+ * $Id: Object.h,v 1.30 2000/07/28 17:20:42 pcroth Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -52,14 +52,14 @@
  * header files.
 ************************************************************************/
 
-#include "util/h/Dictionary.h"
-#include "util/h/String.h"
+#include "common/h/Dictionary.h"
+#include "common/h/String.h"
 // trace data streams
-#include "util/h/ByteArray.h"
-#include "util/h/Symbol.h"
-#include "util/h/Types.h"
-#include "util/h/Vector.h"
-#include "util/h/lprintf.h"
+#include "pdutil/h/ByteArray.h"
+#include "common/h/Symbol.h"
+#include "common/h/Types.h"
+#include "common/h/Vector.h"
+#include "common/h/lprintf.h"
 
 extern int symbol_compare(const void *x, const void *y);
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.16 2000/07/27 14:01:18 bernat Exp $
+// $Id: irix.C,v 1.17 2000/07/28 17:21:15 pcroth Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -55,8 +55,8 @@
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/stats.h" // ptrace{Ops,Bytes}
-#include "util/h/pathName.h" // expand_tilde_pathname, exists_executable
-#include "util/h/irixKludges.h" // PDYN_XXX
+#include "common/h/pathName.h" // expand_tilde_pathname, exists_executable
+#include "common/h/irixKludges.h" // PDYN_XXX
 #include <limits.h>       // poll()
 #include <stropts.h>      // poll()
 #include <poll.h>         // poll()

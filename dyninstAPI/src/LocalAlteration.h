@@ -44,7 +44,7 @@
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/FunctionExpansionRecord.h"
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 #include "dyninstAPI/src/dyninst.h"
 #include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/util.h"

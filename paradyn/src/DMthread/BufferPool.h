@@ -39,15 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * $Log: BufferPool.h,v $
- * Revision 1.3  1996/08/16 21:01:21  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.2  1995/12/08 05:47:53  tamches
- * added cvs log; added some comments
- *
- */
+/* $Id: BufferPool.h,v 1.4 2000/07/28 17:21:41 pcroth Exp $ */
 
 #ifndef _BUFFER_POOL_H_
 #define _BUFFER_POOL_H_
@@ -56,7 +48,7 @@
 #pragma interface
 #endif
 
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 
 /*
  * Using a BufferPool:

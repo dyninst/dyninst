@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 //----------------------------------------------------------------------------
-// $Id: shmSegment-unix.C,v 1.3 2000/06/14 23:04:24 wylie Exp $
+// $Id: shmSegment-unix.C,v 1.4 2000/07/28 17:22:33 pcroth Exp $
 //----------------------------------------------------------------------------
 //
 // Definition of the ShmSegment class.
@@ -48,7 +48,7 @@
 // paradynd.
 //
 //----------------------------------------------------------------------------
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 #include "dyninstAPI/src/showerror.h"
 #include "shmSegment.h"
 #include "main.h"

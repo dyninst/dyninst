@@ -49,7 +49,7 @@
 // megawidget.
 //
 //---------------------------------------------------------------------------
-// $Id: PDGValueAxis.C,v 1.1 1999/10/05 22:09:04 pcroth Exp $
+// $Id: PDGValueAxis.C,v 1.2 2000/07/28 17:22:58 pcroth Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include <iostream.h>
@@ -59,13 +59,13 @@
 #  include <strstream.h>
 #endif
 
-#include "util/h/String.h"
+#include "common/h/String.h"
 #include <assert.h>
 #include <string.h>
 #include "tcl.h"
 #include "tk.h"
 
-#include "util/h/Dictionary.h"
+#include "common/h/Dictionary.h"
 #include "PDGraph.h"
 #include "paradyn/src/UIthread/minmax.h"
 

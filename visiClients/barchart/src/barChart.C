@@ -47,7 +47,7 @@
 // for maximum speed.  Can be done from makefile, e.g. a "make optimized"
 // option which does -O and -DNDEBUG
 
-/* $Id: barChart.C,v 1.25 1999/11/09 15:54:26 pcroth Exp $ */
+/* $Id: barChart.C,v 1.26 2000/07/28 17:22:56 pcroth Exp $ */
 
 // tk/tcl has a very nice interface for mixing C++ and tk/tcl
 // scripts.  From within tcl, C++ code can be called via
@@ -72,8 +72,8 @@
 #include <iostream.h>
 #include <math.h>
 
-#include "util/h/headers.h"
-#include "util/h/pdsocket.h"
+#include "common/h/headers.h"
+#include "pdutil/h/pdsocket.h"
 #include "visi/h/visualization.h"
 
 #include "barChart.h"

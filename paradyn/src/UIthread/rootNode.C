@@ -42,11 +42,11 @@
 // whereAxisRootNode.C
 // Ariel Tamches
 
-/* $Id: rootNode.C,v 1.11 1999/05/24 16:59:56 cain Exp $ */
+/* $Id: rootNode.C,v 1.12 2000/07/28 17:22:06 pcroth Exp $ */
 
 #include <assert.h>
 
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 #include "whereAxis.h" // for some of its static vrbles / member functions
 #include "rootNode.h" // change to whereAxisRootNode.h some day
 

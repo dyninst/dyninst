@@ -39,13 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.51 2000/07/05 16:28:17 wylie Exp $
+// $Id: main.C,v 1.52 2000/07/28 17:21:40 pcroth Exp $
 
 #include "parse.h"
 #include <iostream.h>
 #include <stdio.h>
 
-#include "util/h/Ident.h"
+#include "common/h/Ident.h"
 extern "C" const char V_igen[];
 Ident V_id(V_igen,"Paradyn");
 extern "C" const char V_libpdutil[];
@@ -277,20 +277,20 @@ static void init_header_files() {
 
   Options::temp_dot_c << ident << endl;
   Options::temp_dot_c << "#pragma implementation \"Vector.h\"\n";
-  Options::temp_dot_c << "#include \"util/h/Vector.h\"\n";
+  Options::temp_dot_c << "#include \"common/h/Vector.h\"\n";
 //  Options::temp_dot_c << "#pragma implementation \"Queue.h\"\n";
-//  Options::temp_dot_c << "#include \"util/h/Queue.h\"\n";
+//  Options::temp_dot_c << "#include \"common/h/Queue.h\"\n";
   Options::temp_dot_c << "#pragma implementation \"" << base << "h\"\n";
   Options::temp_dot_c << "#include \"" << base << "h\"\n";
-  Options::temp_dot_c << "#include \"util/h/String.h\"\n";
+  Options::temp_dot_c << "#include \"common/h/String.h\"\n";
 /* trace data streams */
-  Options::temp_dot_c << "#include \"util/h/ByteArray.h\"\n";
+  Options::temp_dot_c << "#include \"pdutil/h/ByteArray.h\"\n";
 
   Options::dot_h << ident << endl;
   Options::dot_h << "#ifndef " << cpp_base << "BASE_H\n";
   Options::dot_h << "#define " << cpp_base << "BASE_H\n";
 
-  Options::dot_h << "#include \"util/h/rpcUtil.h\"\n";
+  Options::dot_h << "#include \"pdutil/h/rpcUtil.h\"\n";
   Options::dot_h << Options::ml->includes() << endl;
 
   Options::dot_h << "#ifdef IGEN_ERR_ASSERT_ON\n";
@@ -324,13 +324,13 @@ static void init_header_files() {
   Options::clnt_dot_h << "#define " << cpp_base << "CLNT_H\n";
   Options::clnt_dot_h << "#include \"" << base << "h\"\n";
 
-//  Options::clnt_dot_h << "#include \"util/h/Queue.h\"\n";
+//  Options::clnt_dot_h << "#include \"common/h/Queue.h\"\n";
 
   Options::srvr_dot_h << ident << endl;
   Options::srvr_dot_h << "#ifndef " << cpp_base << "SRVR_H\n";
   Options::srvr_dot_h << "#define " << cpp_base << "SRVR_H\n";
   Options::srvr_dot_h << "#include \"" << base << "h\"\n";
-//  Options::srvr_dot_h << "#include \"util/h/Queue.h\"\n";
+//  Options::srvr_dot_h << "#include \"common/h/Queue.h\"\n";
 
   Options::clnt_dot_c << ident << endl;
   Options::clnt_dot_c << "#include \"" << base << "CLNT.h\"\n";
@@ -358,7 +358,7 @@ static void close_files() {
 
 static void init_types() {
   Options::stl_data sd;
-  sd.name = "vector"; sd.include_file = "util/h/Vector.h";
+  sd.name = "vector"; sd.include_file = "common/h/Vector.h";
   sd.need_include = false; sd.pragma_name = "Vector.h";
   Options::stl_types += sd;
   Options::el_data el;

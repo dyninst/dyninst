@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CallGraph.h,v 1.5 2000/01/06 20:20:56 cain Exp $
+// $Id: CallGraph.h,v 1.6 2000/07/28 17:21:41 pcroth Exp $
 
 /**********************************************************
  *
@@ -67,8 +67,8 @@
  *
  *********************************************************/
 
-#include "util/h/Vector.h"
-#include "util/h/Dictionary.h"
+#include "common/h/Vector.h"
+#include "common/h/Dictionary.h"
 #include "DMinclude.h"
 #include "DMresource.h"
 

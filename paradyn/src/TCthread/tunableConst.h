@@ -43,6 +43,9 @@
  * tunableConstant - a constant that might be changed during execution.
  *
  * $Log: tunableConst.h,v $
+ * Revision 1.11  2000/07/28 17:21:44  pcroth
+ * Updated #includes to reflect util library split
+ *
  * Revision 1.10  1999/08/09 05:41:12  csserra
  * - added support for (mips-sgi-irix6.4) native compiler build
  * - eliminated misc. compiler warnings
@@ -87,8 +90,8 @@
 #include <assert.h>
 #include <iostream.h>
 #include <string.h>
-#include "util/h/String.h"
-#include "util/h/Dictionary.h"
+#include "common/h/String.h"
+#include "common/h/Dictionary.h"
 
 typedef enum { developerConstant, userConstant } tunableUse;
 typedef enum { tunableBoolean, tunableFloat } tunableType;

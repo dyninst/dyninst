@@ -41,15 +41,15 @@
 
 // barChartTcl.C
 
-/* $Id: barChartTcl.C,v 1.19 1999/12/17 16:25:00 pcroth Exp $ */
+/* $Id: barChartTcl.C,v 1.20 2000/07/28 17:22:57 pcroth Exp $ */
 
 #include <iostream.h>
 
-#include "util/h/Vector.h"
-#include "util/h/String.h"
+#include "common/h/Vector.h"
+#include "common/h/String.h"
 
-#include "util/h/headers.h"
-#include "util/h/pdsocket.h"
+#include "common/h/headers.h"
+#include "pdutil/h/pdsocket.h"
 
 #include "tcl.h"
 #include "tk.h"

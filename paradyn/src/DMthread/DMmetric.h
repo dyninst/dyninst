@@ -39,21 +39,21 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.h,v 1.31 2000/07/18 17:09:16 schendel Exp $ 
+// $Id: DMmetric.h,v 1.32 2000/07/28 17:21:42 pcroth Exp $ 
 
 #ifndef dmmetric_H
 #define dmmetric_H
-#include "util/h/sys.h"
-#include "util/h/hist.h"
+#include "pdutil/h/sys.h"
+#include "pdutil/h/hist.h"
 #include "dataManager.thread.h"
 #include "dataManager.thread.SRVR.h"
 #include <string.h>
 #include "paradyn/src/UIthread/Status.h"
 #include <stdlib.h>
-#include "util/h/Vector.h"
-#include "util/h/Dictionary.h"
-#include "util/h/String.h"
-#include "util/h/aggregateSample.h"
+#include "common/h/Vector.h"
+#include "common/h/Dictionary.h"
+#include "common/h/String.h"
+#include "pdutil/h/aggregateSample.h"
 #include "DMinclude.h"
 #include "DMdaemon.h"
 #include "paradyn/src/TCthread/tunableConst.h"

@@ -43,14 +43,14 @@
 #define _visiTypesP_h
 
 #include "visi/h/visiTypes.h"
-#include "util/h/makenan.h"
+#include "pdutil/h/makenan.h"
 
 #define VISI_ERROR PARADYN_NaN
 #define VISI_ERROR_INT -1
 #define VISI_OK 0
 
 // trace data streams
-#include "util/h/ByteArray.h"
+#include "pdutil/h/ByteArray.h"
 
 class visi_TraceData {
   public:

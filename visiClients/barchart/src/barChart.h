@@ -41,15 +41,15 @@
 
 // barChart.h
 
-/* $Id: barChart.h,v 1.14 1999/04/27 16:05:06 nash Exp $ */
+/* $Id: barChart.h,v 1.15 2000/07/28 17:22:57 pcroth Exp $ */
 
 #ifndef _BARCHART_H_
 #define _BARCHART_H_
 
 // Note: we should make an effort to keep this class as tk-independent as possible.
 
-#include "util/h/Vector.h"
-#include "util/h/String.h"
+#include "common/h/Vector.h"
+#include "common/h/String.h"
 #include "tcl.h"
 #include "tk.h"
 #include "tkTools.h"

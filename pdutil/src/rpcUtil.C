@@ -41,7 +41,7 @@
 
 //
 // This file defines a set of utility routines for RPC services.
-// $Id: rpcUtil.C,v 1.76 2000/04/27 19:12:54 bernat Exp $
+// $Id: rpcUtil.C,v 1.77 2000/07/28 17:22:35 pcroth Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
@@ -55,10 +55,10 @@
 #endif
 
 #include <limits.h>
-#include "util/h/headers.h"
-#include "util/h/pdsocket.h"
-#include "util/h/rpcUtil.h"
-#include "util/h/Types.h"    // Address
+#include "common/h/headers.h"
+#include "pdutil/h/pdsocket.h"
+#include "pdutil/h/rpcUtil.h"
+#include "common/h/Types.h"    // Address
 
 const char *DEF_RSH_COMMAND="rsh";
 const char *RSH_COMMAND_ENV="PARADYN_RSH";

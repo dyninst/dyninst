@@ -39,12 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.h,v 1.3 1999/05/13 23:08:16 hollings Exp $
+// $Id: osfDL.h,v 1.4 2000/07/28 17:21:16 pcroth Exp $
 
 #if !defined(osf_dl_hdr)
 #define osf_dl_hdr
 
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 #include "dyninstAPI/src/sharedobject.h"
 class process;
 

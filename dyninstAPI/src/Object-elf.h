@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.39 2000/03/14 22:31:35 tikir Exp $
+ * $Id: Object-elf.h,v 1.40 2000/07/28 17:20:41 pcroth Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -49,10 +49,10 @@
 #define _Object_elf_h_
 
 
-#include "util/h/String.h"
-#include "util/h/Symbol.h"
-#include "util/h/Types.h"
-#include "util/h/Vector.h"
+#include "common/h/String.h"
+#include "common/h/Symbol.h"
+#include "common/h/Types.h"
+#include "common/h/Vector.h"
 #include <elf.h>
 #include <libelf.h>
 

@@ -39,16 +39,16 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.57 2000/07/27 14:01:18 bernat Exp $
+// $Id: inst.h,v 1.58 2000/07/28 17:21:15 pcroth Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
 
-#include "util/h/Vector.h"
-#include "util/h/Dictionary.h"
-#include "util/h/String.h"
+#include "common/h/Vector.h"
+#include "common/h/Dictionary.h"
+#include "common/h/String.h"
 #include "ast.h" // enum opCode now defined here.
-#include "util/h/Types.h"
+#include "common/h/Types.h"
 
 /****************************************************************************/
 /****************************************************************************/

@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-mips.h,v 1.8 2000/07/12 17:56:02 buck Exp $
+// $Id: instPoint-mips.h,v 1.9 2000/07/28 17:21:15 pcroth Exp $
 // MIPS-specific definition of class instPoint
 
 #ifndef _INST_POINT_MIPS_H_
 #define _INST_POINT_MIPS_H_
 
 #include <stdio.h>
-#include "util/h/Types.h" // Address
+#include "common/h/Types.h" // Address
 #include "arch-mips.h"    // instruction
 #include "dyninstAPI/src/symtab.h"       // pd_Function, function_base, image
 

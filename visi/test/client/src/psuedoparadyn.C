@@ -1,4 +1,7 @@
 /* $Log: psuedoparadyn.C,v $
+/* Revision 1.5  2000/07/28 17:22:56  pcroth
+/* Updated #includes to reflect util library split
+/*
 /* Revision 1.4  1996/01/17 20:43:37  newhall
 /* changes due to new version of visiLib
 /*
@@ -13,9 +16,9 @@
  * */ 
 #include <stdio.h>
 #include <stream.h>
-#include "util/h/String.h"
-#include "util/h/Vector.h"
-#include "util/h/makenan.h"
+#include "common/h/String.h"
+#include "common/h/Vector.h"
+#include "pdutil/h/makenan.h"
 #include "visi.xdr.CLNT.h" 
 
 

@@ -39,12 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aggregateSample.C,v 1.18 1999/12/08 23:23:06 schendel Exp $
+// $Id: aggregateSample.C,v 1.19 2000/07/28 17:22:35 pcroth Exp $
 
 #include <assert.h>
 #include <math.h>
 
-#include "util/h/aggregateSample.h"
+#include "pdutil/h/aggregateSample.h"
 
 // void sampleInfo::startTime(timeStamp time) {
 //   assert(numAggregators > 0);

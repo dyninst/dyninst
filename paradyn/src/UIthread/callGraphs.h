@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphs.h,v 1.4 1999/07/26 21:48:01 cain Exp $
+// $Id: callGraphs.h,v 1.5 2000/07/28 17:21:45 pcroth Exp $
 
 //callGraphs.h: the callGraphs class, whose code is taken  
 //from the shgPhases class, is just used to keep track of multiple 
@@ -55,7 +55,7 @@
 // The test program has "correct" -I paths already set
 #include "Vector.h"
 #else
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 #endif
 
 #include "callGraphDisplay.h"

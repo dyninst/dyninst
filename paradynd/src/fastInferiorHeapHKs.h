@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeapHKs.h,v 1.10 1999/08/30 16:02:30 zhichen Exp $
+// $Id: fastInferiorHeapHKs.h,v 1.11 2000/07/28 17:22:11 pcroth Exp $
 // contains houseKeeping (HK) classes used as the first template input type
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -47,7 +47,7 @@
 #define _FAST_INFERIOR_HEAP_HKS_H_
 
 #include "rtinst/h/rtinst.h" // intCounter, tTimer
-#include "util/h/Types.h"    // Address
+#include "common/h/Types.h"    // Address
 
 class metricDefinitionNode;
 //#include "metric.h" // metricDefinitionNode

@@ -41,7 +41,7 @@
 
 // pdLogo.h
 
-/* $Id: pdLogo.h,v 1.7 1999/04/27 16:03:45 nash Exp $ */
+/* $Id: pdLogo.h,v 1.8 2000/07/28 17:21:45 pcroth Exp $ */
 
 #ifndef _PD_LOGO_H_
 #define _PD_LOGO_H_
@@ -50,8 +50,8 @@
 #include <iostream.h>
 
 
-#include "util/h/Dictionary.h"
-#include "util/h/String.h"
+#include "common/h/Dictionary.h"
+#include "common/h/String.h"
 #include "tkTools.h"
 
 class pdLogo {

@@ -41,6 +41,9 @@
 
 /*
  * $Log: metricExt.h,v $
+ * Revision 1.11  2000/07/28 17:22:09  pcroth
+ * Updated #includes to reflect util library split
+ *
  * Revision 1.10  1999/06/03 07:16:16  nash
  * Changed mdl exclude to check both libraries and functions using a simple
  * pattern matching system.  The '*' and '?' characters have their normal
@@ -81,7 +84,7 @@
 #ifndef _METRIC_EXT_H
 #define _METRIC_EXT_H
 
-#include "util/h/String.h"
+#include "common/h/String.h"
 #include "paradyn/src/DMthread/DMinclude.h"
 #include "dyninstRPC.xdr.CLNT.h"
 

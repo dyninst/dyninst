@@ -44,7 +44,7 @@
 
 // Header file for subtree based on where4.fig [and where5.fig]
 
-/* $Id: where4tree.h,v 1.14 1999/04/27 16:03:53 nash Exp $ */
+/* $Id: where4tree.h,v 1.15 2000/07/28 17:22:07 pcroth Exp $ */
 
 // This class is sort of a placeholder.  It has variables to find out who
 // is expanded and who isn't; it maintains the tree layout.
@@ -66,8 +66,8 @@
 #include "Vector.h"
 #include "String.h"
 #else
-#include "util/h/Vector.h"
-#include "util/h/String.h"
+#include "common/h/Vector.h"
+#include "common/h/String.h"
 #endif
 
 #include "simpSeq.h"

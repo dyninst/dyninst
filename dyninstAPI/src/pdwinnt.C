@@ -39,15 +39,15 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.22 2000/06/14 23:03:23 wylie Exp $
+// $Id: pdwinnt.C,v 1.23 2000/07/28 17:21:16 pcroth Exp $
 
 #include "dyninstAPI/src/symtab.h"
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/pdThread.h"
 #include "dyninstAPI/src/stats.h"
-#include "util/h/Types.h"
+#include "common/h/Types.h"
 #include "dyninstAPI/src/showerror.h"
 
 #ifndef BPATCH_LIBRARY

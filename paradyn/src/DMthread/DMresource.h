@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.h,v 1.43 2000/01/06 20:19:28 cain Exp $
+// $Id: DMresource.h,v 1.44 2000/07/28 17:21:43 pcroth Exp $
 
 #ifndef DMresource_H 
 #define DMresource_H
@@ -56,8 +56,8 @@ extern "C" {
 #endif // !defined(i386_unknown_nt4_0)
 }
 
-#include "util/h/Vector.h"
-#include "util/h/Dictionary.h"
+#include "common/h/Vector.h"
+#include "common/h/Dictionary.h"
 #include "dataManager.thread.h"
 #include "dataManager.thread.SRVR.h"
 #include "DMabstractions.h"

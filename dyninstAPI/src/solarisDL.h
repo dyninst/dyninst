@@ -39,12 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.h,v 1.10 1998/12/25 22:19:08 wylie Exp $
+// $Id: solarisDL.h,v 1.11 2000/07/28 17:21:18 pcroth Exp $
 
 #if !defined(solaris_dl_hdr)
 #define solaris_dl_hdr
 
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 #include "dyninstAPI/src/sharedobject.h"
 class process;
 

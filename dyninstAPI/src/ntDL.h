@@ -42,7 +42,7 @@
 #if !defined(nt_dl_hdr)
 #define nt_dl_hdr
 
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 #include "dyninstAPI/src/sharedobject.h"
 class process;
 

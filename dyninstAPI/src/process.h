@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.143 2000/07/27 14:01:19 bernat Exp $
+/* $Id: process.h,v 1.144 2000/07/28 17:21:16 pcroth Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -57,11 +57,11 @@
 #include "rtinst/h/rtinst.h"
 #endif
 #include "dyninstAPI/src/util.h"
-#include "util/h/String.h"
-#include "util/h/vectorSet.h"
-#include "util/h/Dictionary.h"
-#include "util/h/Types.h"
-#include "util/h/Timer.h"
+#include "common/h/String.h"
+#include "common/h/vectorSet.h"
+#include "common/h/Dictionary.h"
+#include "common/h/Types.h"
+#include "common/h/Timer.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/os.h"
 // #include "paradynd/src/main.h"

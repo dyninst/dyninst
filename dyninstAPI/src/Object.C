@@ -39,9 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object.C,v 1.7 2000/05/16 01:12:40 mirg Exp $
+// $Id: Object.C,v 1.8 2000/07/28 17:20:42 pcroth Exp $
 
-#include "util/h/Dictionary.h"
+#include "common/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
 
 int symbol_compare(const void *x, const void *y) {

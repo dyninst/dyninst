@@ -40,11 +40,11 @@
  */
 
 /************************************************************************
- * $Id: Types.C,v 1.2 2000/05/16 01:31:48 wylie Exp $
+ * $Id: Types.C,v 1.3 2000/07/28 17:20:39 pcroth Exp $
  * Types.C: commonly used type-handling functions.
 ************************************************************************/
 
-#include "util/h/Types.h"
+#include "common/h/Types.h"
 #include <stdio.h>
 #include <assert.h>
 

@@ -44,6 +44,9 @@
 
 /*
  * $Log: tableVisi.C,v $
+ * Revision 1.14  2000/07/28 17:23:01  pcroth
+ * Updated #includes to reflect util library split
+ *
  * Revision 1.13  2000/03/21 23:58:39  pcroth
  * Added guard to protect against division by zero when resizing scroll bars.
  *
@@ -87,7 +90,7 @@
 
 #include <iostream.h>
 
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 #include "minmax.h"
 #include "tkTools.h"
 #include "tableVisi.h"

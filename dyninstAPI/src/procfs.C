@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.10 2000/07/11 18:30:26 hollings Exp $
+// $Id: procfs.C,v 1.11 2000/07/28 17:21:17 pcroth Exp $
 
 #include "symtab.h"
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 #include "os.h"
 #include "process.h"
 #include "stats.h"
-#include "util/h/Types.h"
+#include "common/h/Types.h"
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <sys/termios.h>

@@ -42,9 +42,9 @@
 // graphicalPath.h
 // Ariel Tamches
 
-/* $Id: graphicalPath.C,v 1.6 1999/04/27 16:03:44 nash Exp $ */
+/* $Id: graphicalPath.C,v 1.7 2000/07/28 17:21:45 pcroth Exp $ */
 
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 #include "graphicalPath.h"
 
 template <class ROOTTYPE>

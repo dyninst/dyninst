@@ -42,13 +42,13 @@
 // where4treeConstants.C
 // Ariel Tamches
 
-/* $Id: where4treeConstants.C,v 1.12 1999/12/17 16:24:56 pcroth Exp $ */
+/* $Id: where4treeConstants.C,v 1.13 2000/07/28 17:22:08 pcroth Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
 #include <iostream.h>
 
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 #include "where4treeConstants.h"
 #include "tkTools.h" // tclpanic
 

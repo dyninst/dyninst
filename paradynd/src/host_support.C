@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: host_support.C,v 1.13 2000/06/14 22:26:48 paradyn Exp $
+ * $Id: host_support.C,v 1.14 2000/07/28 17:22:11 pcroth Exp $
  *    code that enables paradyndPVM to function as the hoster process
  *    in the PVM environment, which means that it will be responsible for 
  *    starting new PVM daemons.
@@ -78,7 +78,7 @@
  * the National Science Foundation and the State of Tennessee.
  */
 
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 #include <pwd.h>
 #include <pvm3.h>
 #include <pvmsdpro.h>
@@ -89,7 +89,7 @@ extern "C" {
 // correct prototype (sigh)
 //  extern int gettimeofday (struct timeval *TP, struct timezone *TZP);
 
-// temp hack; stuff like this should probably move to util/h/{PLATFORM}headers.h
+// temp hack; stuff like this should probably move to common/h/{PLATFORM}headers.h
 // anyway.
 #if defined(alpha_dec_osf4_0) \
  || defined(i386_unknown_linux2_0) \
@@ -101,7 +101,7 @@ extern "C" {
   extern void endpwent(); 
 #endif
 
-// This function have moved to util/h/{PLATFORM}headers.h
+// This function have moved to common/h/{PLATFORM}headers.h
 // extern int endservent();
 
 extern int getdtablesize();

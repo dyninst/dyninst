@@ -42,7 +42,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#include "util/h/vectorSet.h"
+#include "common/h/vectorSet.h"
 
 template <class T>
 T vectorSet<T>::removeByIndex(unsigned index) {

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTetc-posix.c,v 1.64 2000/07/13 18:01:24 zandy Exp $
+ * $Id: RTetc-posix.c,v 1.65 2000/07/28 17:22:37 pcroth Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -73,7 +73,7 @@
 #include "kludges.h"
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
-#include "util/h/sys.h"
+#include "pdutil/h/sys.h"
 
 
 /************************************************************************

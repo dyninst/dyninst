@@ -44,7 +44,7 @@
 // of the new where axis user interface
 // Ariel Tamches
 
-/* $Id: shg.h,v 1.23 1999/04/27 16:03:46 nash Exp $ */
+/* $Id: shg.h,v 1.24 2000/07/28 17:22:06 pcroth Exp $ */
 
 #ifndef _SHG_H_
 #define _SHG_H_
@@ -52,7 +52,7 @@
 #ifndef PARADYN
 #include "Dictionary.h"
 #else
-#include "util/h/Dictionary.h"
+#include "common/h/Dictionary.h"
 #endif
 
 #ifdef PARADYN

@@ -39,12 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.7 1999/09/10 14:29:22 nash Exp $
+// $Id: main.C,v 1.8 2000/07/28 17:23:01 pcroth Exp $
 
 #include <stdio.h>
 #include <signal.h>
 
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 
 #include "tcl.h"
 #include "tk.h"
@@ -53,7 +53,7 @@
 #include "pdLogo.h"
 #include "paradyn/xbm/logo.xbm"
 
-#include "util/h/Ident.h"
+#include "common/h/Ident.h"
 extern "C" const char V_phaseTable[];
 Ident V_id(V_phaseTable,"Paradyn");
 extern "C" const char V_libpdutil[];

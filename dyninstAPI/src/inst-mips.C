@@ -50,7 +50,7 @@
 #include "dyninstAPI/src/process.h"   // process
 #include "dyninstAPI/src/instP.h"     // instWaitingList
 #include "dyninstAPI/src/stats.h"     // accounting
-#include "util/h/debugOstream.h"
+#include "common/h/debugOstream.h"
 #include <disassembler.h>
 
 #ifdef BPATCH_LIBRARY

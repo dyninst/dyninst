@@ -39,13 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-sparc.h,v 1.8 2000/03/20 22:56:15 chambrea Exp $
+// $Id: instPoint-sparc.h,v 1.9 2000/07/28 17:21:15 pcroth Exp $
 // sparc-specific definition of class instPoint
 
 #ifndef _INST_POINT_SPARC_H_
 #define _INST_POINT_SPARC_H_
 
-#include "util/h/Types.h" // for "Address" (typedef'd to unsigned)
+#include "common/h/Types.h" // for "Address" (typedef'd to unsigned)
 #include "dyninstAPI/src/symtab.h"
 #include "arch-sparc.h" // for union type "instruction"
 

@@ -42,8 +42,8 @@
 // pathName.C
 
 #include <ctype.h>
-#include "util/h/pathName.h"
-#include "util/h/headers.h"  // P_strrchr()
+#include "common/h/pathName.h"
+#include "common/h/headers.h"  // P_strrchr()
 
 #if defined(i386_unknown_nt4_0)
 

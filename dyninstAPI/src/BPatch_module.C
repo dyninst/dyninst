@@ -49,7 +49,7 @@
 #include "BPatch_module.h"
 #include "BPatch_snippet.h" // For BPatch_function; remove if we move it
 #include "BPatch_collections.h"
-#include "util/h/String.h"
+#include "common/h/String.h"
 #include "BPatch_type.h"    // For BPatch_type related stuff
 #include "BPatch_Vector.h"
 #include "LineInformation.h"

@@ -39,11 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superVector.C,v 1.8 2000/05/11 04:52:29 zandy Exp $
+// $Id: superVector.C,v 1.9 2000/07/28 17:22:33 pcroth Exp $
 
 #include <sys/types.h>
 #include <limits.h>
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 #include "paradynd/src/superVector.h"
 #include "paradynd/src/shmSegment.h"
 #include "paradynd/src/fastInferiorHeapMgr.h"

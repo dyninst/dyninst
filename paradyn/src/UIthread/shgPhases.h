@@ -44,7 +44,7 @@
 // Analagous to "abstractions.h" for the where axis; this class
 // basically manages several "shg"'s, as defined in shgPhases.h
 
-/* $Id: shgPhases.h,v 1.20 1999/04/27 16:03:49 nash Exp $ */
+/* $Id: shgPhases.h,v 1.21 2000/07/28 17:22:06 pcroth Exp $ */
 
 #ifndef _SHG_PHASES_H_
 #define _SHG_PHASES_H_
@@ -53,7 +53,7 @@
 // The test program has "correct" -I paths already set
 #include "Vector.h"
 #else
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 #endif
 
 #include "tkTools.h"

@@ -39,11 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeap.C,v 1.10 2000/03/12 22:34:07 wylie Exp $
+// $Id: fastInferiorHeap.C,v 1.11 2000/07/28 17:22:10 pcroth Exp $
 
 #include <sys/types.h>
 #include <limits.h>
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 #include "fastInferiorHeap.h"
 #include "rtinst/h/rtinst.h" // for time64
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.229 2000/07/27 14:12:30 bernat Exp $
+// $Id: process.C,v 1.230 2000/07/28 17:21:16 pcroth Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -51,7 +51,7 @@ int pvmendtask();
 #if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
 #endif
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 #include "dyninstAPI/src/symtab.h"
 #ifndef BPATCH_LIBRARY
 #include "dyninstAPI/src/pdThread.h"
@@ -66,7 +66,7 @@ int pvmendtask();
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/dynamiclinking.h"
 // #include "paradynd/src/mdld.h"
-#include "util/h/Timer.h"
+#include "common/h/Timer.h"
 
 #ifdef BPATCH_LIBRARY
 #include "dyninstAPI/h/BPatch.h"
@@ -84,7 +84,7 @@ extern void generateRPCpreamble(char *insn, Address &base, process *proc, unsign
 extern void generateMTpreamble(char *insn, Address &base, process *proc);
 #endif
 
-#include "util/h/debugOstream.h"
+#include "common/h/debugOstream.h"
 
 #ifdef ATTACH_DETACH_DEBUG
 debug_ostream attach_cerr(cerr, true);

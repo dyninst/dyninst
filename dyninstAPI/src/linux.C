@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.37 2000/07/18 19:55:16 bernat Exp $
+// $Id: linux.C,v 1.38 2000/07/28 17:21:15 pcroth Exp $
 
 #include <fstream.h>
 
@@ -58,13 +58,13 @@
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/instPoint.h"
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/stats.h"
-#include "util/h/Types.h"
+#include "common/h/Types.h"
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/util.h" // getCurrWallTime
-#include "util/h/pathName.h"
+#include "common/h/pathName.h"
 #include "dyninstAPI/src/inst-x86.h"
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)

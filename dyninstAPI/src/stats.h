@@ -39,12 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: stats.h,v 1.5 1998/12/25 22:02:17 wylie Exp $
+// $Id: stats.h,v 1.6 2000/07/28 17:21:18 pcroth Exp $
 
 #ifndef STATS_H
 #define STATS_H
 
-#include "util/h/Timer.h"
+#include "common/h/Timer.h"
 
 extern void printDyninstStats();
 extern timer totalInstTime;

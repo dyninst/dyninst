@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: pvm_support.h,v 1.4 1999/04/27 16:04:35 nash Exp $ */
+/* $Id: pvm_support.h,v 1.5 2000/07/28 17:22:33 pcroth Exp $ */
 
 #ifndef _pvm_support_h
 #define _pvm_support_h
@@ -50,7 +50,7 @@
    #include <sys/time.h>
 */
 
-#include "util/h/String.h"
+#include "common/h/String.h"
 
 #define PDYN_HOST_DELETE 8001
 

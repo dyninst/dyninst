@@ -39,9 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Timer.C,v 1.8 2000/06/15 19:43:36 wylie Exp $
+// $Id: Timer.C,v 1.9 2000/07/28 17:20:39 pcroth Exp $
 
-#include "util/h/Timer.h"
+#include "common/h/Timer.h"
 
 timer::timer()
 : usecs_(0), ssecs_(0), wsecs_(0), cu_(0), cs_(0), cw_(0),

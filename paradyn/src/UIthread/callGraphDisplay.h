@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphDisplay.h,v 1.4 1999/08/09 05:41:15 csserra Exp $
+// $Id: callGraphDisplay.h,v 1.5 2000/07/28 17:21:44 pcroth Exp $
 
 #ifndef _CALLGRAPH_DISPLAY_H_
 #define _CALLGRAPH_DISPLAY_H_
@@ -54,7 +54,7 @@
 #ifndef PARADYN
 #include "Dictionary.h"
 #else
-#include "util/h/Dictionary.h"
+#include "common/h/Dictionary.h"
 #endif
 
 //callGraphDisplay:: this class is adapted from the shg class, 

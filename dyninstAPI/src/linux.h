@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.h,v 1.3 1999/02/08 13:57:33 nash Exp $
+// $Id: linux.h,v 1.4 2000/07/28 17:21:15 pcroth Exp $
 
 #if !defined(i386_unknown_linux2_0)
 #error "invalid architecture-os inclusion"
@@ -49,7 +49,7 @@
 #define LINUX_PD_HDR
 
 #include <sys/param.h>
-#include "util/h/Types.h"
+#include "common/h/Types.h"
 
 #define EXIT_NAME "_exit"
 

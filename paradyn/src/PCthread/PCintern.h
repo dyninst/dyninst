@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCintern.h,v 1.14 2000/03/23 01:34:25 wylie Exp $
+// $Id: PCintern.h,v 1.15 2000/07/28 17:21:43 pcroth Exp $
 // Included by PC modules only
 
 #ifndef PC_INTERN_H
 #define PC_INTERN_H
 
 #include <iostream.h>
-#include "util/h/sys.h"
+#include "pdutil/h/sys.h"
 //sys.h defines the following:
 //  typedef double timeStamp;
 //  typedef float sampleValue;
@@ -59,8 +59,8 @@
 ostream& operator <<(ostream &os, Interval &i);
 
 #include "../pdMain/paradyn.h"
-#include "util/h/list.h"
-#include "util/h/PriorityQueue.h"
+#include "common/h/list.h"
+#include "pdutil/h/PriorityQueue.h"
 #include "thread/h/thread.h"
 #include "dataManager.thread.CLNT.h"
 #include "UI.thread.CLNT.h"

@@ -42,12 +42,12 @@
 // tkTools.C
 // Ariel Tamches
 
-/* $Id: tkTools.C,v 1.12 2000/03/15 17:43:48 pcroth Exp $ */
+/* $Id: tkTools.C,v 1.13 2000/07/28 17:22:07 pcroth Exp $ */
 
 #include <assert.h>
 #include <stdlib.h> // exit()
 #include "minmax.h"
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 #include "tkTools.h"
 
 tkInstallIdle::tkInstallIdle(void (*iUsersRoutine)(ClientData)) {

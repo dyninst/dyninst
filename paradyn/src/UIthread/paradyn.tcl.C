@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: paradyn.tcl.C,v 1.90 1999/12/22 21:30:12 wylie Exp $
+/* $Id: paradyn.tcl.C,v 1.91 2000/07/28 17:21:45 pcroth Exp $
    This code implements the tcl "paradyn" command.  
    See the README file for command descriptions.
 */
@@ -48,7 +48,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 #include "UIglobals.h"
 #include "paradyn/src/DMthread/DMinclude.h"
 #include "../TCthread/tunableConst.h"
@@ -59,10 +59,10 @@
 #include "whereAxisTcl.h"
 #include "shgPhases.h"
 
-#include "util/h/pathName.h" // expand_tilde_pathname
+#include "common/h/pathName.h" // expand_tilde_pathname
 
 #include "Status.h"
-#include "util/h/TclTools.h"
+#include "pdutil/h/TclTools.h"
 
 extern bool detachApplication(bool);
 

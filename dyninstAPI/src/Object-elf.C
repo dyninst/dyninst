@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.18 2000/06/14 23:05:23 wylie Exp $
+ * $Id: Object-elf.C,v 1.19 2000/07/28 17:20:41 pcroth Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -50,10 +50,10 @@
 #error "Object-elf.h not #included"
 #endif
 
-#include "util/h/String.h"
-#include "util/h/Symbol.h"
-#include "util/h/Dictionary.h"
-#include "util/h/pathName.h"     // extract_pathname_tail()
+#include "common/h/String.h"
+#include "common/h/Symbol.h"
+#include "common/h/Dictionary.h"
+#include "common/h/pathName.h"     // extract_pathname_tail()
 #include <elf.h>
 #include <stdio.h>
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.110 2000/07/27 14:01:20 bernat Exp $
+// $Id: symtab.C,v 1.111 2000/07/28 17:21:39 pcroth Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,19 +53,19 @@
 #include <fstream.h>
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/dyninstP.h"
-#include "util/h/String.h"
+#include "common/h/String.h"
 #include "dyninstAPI/src/inst.h"
-#include "util/h/Timer.h"
+#include "common/h/Timer.h"
 #include "dyninstAPI/src/showerror.h"
-#include "util/h/debugOstream.h"
-#include "util/h/pathName.h"          // extract_pathname_tail()
+#include "common/h/debugOstream.h"
+#include "common/h/pathName.h"          // extract_pathname_tail()
 #include "dyninstAPI/src/process.h"   // process::getBaseAddress()
 
 #ifndef BPATCH_LIBRARY
 #include "paradynd/src/mdld.h"
 #include "paradynd/src/main.h"
 #include "paradynd/src/init.h"
-#include "util/h/Dictionary.h"
+#include "common/h/Dictionary.h"
 #else
 extern vector<sym_data> syms_to_find;
 #endif

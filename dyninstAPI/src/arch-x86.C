@@ -39,11 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.9 2000/06/15 16:35:10 paradyn Exp $
+// $Id: arch-x86.C,v 1.10 2000/07/28 17:21:13 pcroth Exp $
 // x86 instruction decoder
 
 #include <assert.h>
-#include "util/h/Types.h"
+#include "common/h/Types.h"
 #include "dyninstAPI/src/arch-x86.h"
 
 

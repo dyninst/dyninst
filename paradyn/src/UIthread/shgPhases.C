@@ -39,12 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: shgPhases.C,v 1.28 2000/03/23 01:33:12 wylie Exp $
+// $Id: shgPhases.C,v 1.29 2000/07/28 17:22:06 pcroth Exp $
 // Analagous to "abstractions.h" for the where axis; this class
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 #include <limits.h>
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 #include "tkTools.h" // myTclEval()
 #include "shgPhases.h"
 

@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: dyninstAPI_RT.h,v 1.4 2000/03/17 21:56:05 schendel Exp $
+ * $Id: dyninstAPI_RT.h,v 1.5 2000/07/28 17:21:39 pcroth Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the run-time instrumentation layer.
  */
@@ -61,7 +61,7 @@
 /* We sometimes include this into assembly files, so guard the struct defs. */
 #if !defined(__ASSEMBLER__)
 
-#include "util/h/Types.h"
+#include "common/h/Types.h"
 
 /* If we must make up a boolean type, we should make it unique */
 typedef unsigned char RT_Boolean;

@@ -44,10 +44,10 @@
    is used internally by the UIM.
 */
 
-/* $Id: uimpd.tcl.C,v 1.43 1999/12/17 16:24:56 pcroth Exp $ */
+/* $Id: uimpd.tcl.C,v 1.44 2000/07/28 17:22:07 pcroth Exp $ */
  
 #include <stdlib.h>
-#include "util/h/odometer.h"
+#include "pdutil/h/odometer.h"
 
 extern "C" {
   int atoi(const char*);
@@ -56,7 +56,7 @@ extern "C" {
 #include "../pdMain/paradyn.h"
 #include "../DMthread/DMinclude.h"
 #include "abstractions.h"
-#include "util/h/TclTools.h"
+#include "pdutil/h/TclTools.h"
 
 void printMFPlist (vector<metric_focus_pair> *list) 
 {

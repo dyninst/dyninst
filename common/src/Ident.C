@@ -41,10 +41,10 @@
 
 /************************************************************************
  * Ident.C: build identification functions (for POSIX systems)
- * $Id: Ident.C,v 1.1 1998/04/06 04:15:42 wylie Exp $
+ * $Id: Ident.C,v 1.2 2000/07/28 17:20:39 pcroth Exp $
 ************************************************************************/
 
-#include "util/h/Ident.h"
+#include "common/h/Ident.h"
 #include <stdio.h>
 #include <string.h>
 

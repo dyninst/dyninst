@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.130 2000/04/28 22:39:20 mirg Exp $
+// $Id: DMmain.C,v 1.131 2000/07/28 17:21:42 pcroth Exp $
 
 #include <assert.h>
 extern "C" {
@@ -59,14 +59,14 @@ double   quiet_nan();
 #include "paradyn/src/pdMain/paradyn.h"
 #include "paradyn/src/UIthread/Status.h"
 
-#include "util/h/Vector.h"
-#include "util/h/Dictionary.h"
-#include "util/h/String.h"
+#include "common/h/Vector.h"
+#include "common/h/Dictionary.h"
+#include "common/h/String.h"
 // trace data streams
-#include "util/h/ByteArray.h"
+#include "pdutil/h/ByteArray.h"
 #include "DMphase.h"
 
-#include "util/h/Ident.h"
+#include "common/h/Ident.h"
 
 #include "CallGraph.h"
 

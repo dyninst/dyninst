@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.73 2000/07/27 14:01:20 bernat Exp $
+// $Id: symtab.h,v 1.74 2000/07/28 17:21:39 pcroth Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -51,22 +51,22 @@ extern "C" {
 #include <assert.h>
 }
 
-#include "util/h/Pair.h"
-#include "util/h/Vector.h"
-#include "util/h/Dictionary.h"
-#include "util/h/list.h"
+#include "common/h/Pair.h"
+#include "common/h/Vector.h"
+#include "common/h/Dictionary.h"
+#include "common/h/list.h"
 #include "dyninstAPI/src/Object.h"
 #include "dyninstAPI/src/dyninst.h"
 #include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/util.h"
-#include "util/h/String.h"
+#include "common/h/String.h"
 
 #ifndef BPATCH_LIBRARY
 #include "paradynd/src/resource.h"
 #endif
 
-#include "util/h/Types.h"
-#include "util/h/Symbol.h"
+#include "common/h/Types.h"
+#include "common/h/Symbol.h"
 #include "dyninstAPI/src/inst.h"
 
 #include "dyninstAPI/src/FunctionExpansionRecord.h"

@@ -45,18 +45,18 @@
 // Main program for the rthist executable.
 //
 //----------------------------------------------------------------------------
-// $Id: main.C,v 1.3 2000/04/06 15:29:58 wylie Exp $
+// $Id: main.C,v 1.4 2000/07/28 17:23:00 pcroth Exp $
 //----------------------------------------------------------------------------
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 
 #include "tcl.h"
 #include "tk.h"
 #include "tkTools.h"
 
-#include "util/h/Ident.h"
+#include "common/h/Ident.h"
 
 #include "visi/h/visiTypes.h"
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 
 #include "Histogram.h"
 #include "DGClient.h"

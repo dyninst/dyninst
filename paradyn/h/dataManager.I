@@ -1,17 +1,17 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
- * $Id: dataManager.I,v 1.97 2000/07/19 16:35:33 wylie Exp $
+ * $Id: dataManager.I,v 1.98 2000/07/28 17:21:41 pcroth Exp $
  */
 
 #ifndef MMTHREAD_H
 #define MMTHREAD_H
 
-#include "util/h/list.h"
-#include "util/h/sys.h"
+#include "common/h/list.h"
+#include "pdutil/h/sys.h"
 #include "dyninstRPC.xdr.h"
 #include "visi.xdr.h"
-#include "util/h/aggregation.h"
-#include "util/h/stringPool.h"
+#include "pdutil/h/aggregation.h"
+#include "pdutil/h/stringPool.h"
 #include "paradyn/src/DMthread/DMinclude.h"
 #include "paradyn/src/DMthread/DVbufferpool.h"
 

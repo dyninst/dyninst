@@ -38,43 +38,7 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
-/*
- * 
- * $Log: stringPool.h,v $
- * Revision 1.7  2000/07/26 23:02:46  hollings
- * Spilt util into common and pdutil.  util is still used (for now) to
- * build pdutil.  Changed included .C files in various templates to find
- * moved files.
- *
- * util/h files are now #include of the renamed files.   Next step is to fixup
- * existing includes.
- *
- * Revision 1.6  1996/08/16 21:30:47  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.5  1995/02/16 09:27:14  markc
- * Modified code to remove compiler warnings.
- * Added #defines to simplify inlining.
- * Cleaned up Object file classes.
- *
- * Revision 1.4  1994/09/22  03:17:00  markc
- * Changed private pointers to char* from void* since void* math is
- * illegal for ANSI
- *
- * Revision 1.3  1994/09/02  10:43:58  markc
- * Moved typedef for stringHandle outside of stringPool.h
- *
- * Revision 1.2  1994/08/05  16:01:54  hollings
- * More consistant use of stringHandle vs. char *.
- *
- * Revision 1.1  1994/01/25  20:49:42  hollings
- * First real version of utility library.
- *
- * Revision 1.1  1992/08/03  20:45:54  hollings
- * Initial revision
- *
- *
- */
+/* $Id: stringPool.h,v 1.8 2000/07/28 17:22:34 pcroth Exp $ */
 
 #ifndef STRINGPOOL_H
 #define STRINGPOOL_H

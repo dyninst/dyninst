@@ -39,13 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CallGraph.C,v 1.6 2000/01/06 20:20:56 cain Exp $
+// $Id: CallGraph.C,v 1.7 2000/07/28 17:21:41 pcroth Exp $
 
 #include "CallGraph.h"
 #include "DMdaemon.h"
 #include "paradyn/src/met/mdl.h"
 #include "paradyn/src/pdMain/paradyn.h"
-#include "util/h/Types.h" // Address
+#include "common/h/Types.h" // Address
 
 inline unsigned intHash(const int &val) {
   return val;

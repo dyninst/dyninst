@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.75 2000/05/11 04:52:27 zandy Exp $ */
+/* $Id: dynrpc.C,v 1.76 2000/07/28 17:22:10 pcroth Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -59,8 +59,8 @@
 #include "paradynd/src/costmetrics.h"
 #include "paradynd/src/context.h"
 #include "dyninstAPI/src/showerror.h"
-#include "util/h/sys.h" 
-#include "util/h/debugOstream.h"
+#include "pdutil/h/sys.h" 
+#include "common/h/debugOstream.h"
 
 // The following were defined in process.C
 extern debug_ostream attach_cerr;

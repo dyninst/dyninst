@@ -39,13 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphConsts.h,v 1.2 1999/06/29 15:52:52 cain Exp $
+// $Id: callGraphConsts.h,v 1.3 2000/07/28 17:21:44 pcroth Exp $
 
 #ifndef _CALLGRAPH_CONSTS_H_
 #define _CALLGRAPH_CONSTS_H_
 
 #ifdef PARADYN
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 #else
 #include "Vector.h"
 #endif

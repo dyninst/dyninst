@@ -39,16 +39,16 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.15 1999/08/09 05:45:49 csserra Exp $
+// $Id: main.C,v 1.16 2000/07/28 17:23:01 pcroth Exp $
 
 #include <assert.h>
 #include <stdlib.h>
 #include <iostream.h>
 
-#include "util/h/headers.h"
-#include "util/h/pdsocket.h"
-#include "util/h/pddesc.h"
-#include "util/h/Types.h" // Address
+#include "common/h/headers.h"
+#include "pdutil/h/pdsocket.h"
+#include "pdutil/h/pddesc.h"
+#include "common/h/Types.h" // Address
 #include "visi/h/visualization.h"
 
 #include "tcl.h"
@@ -63,7 +63,7 @@
 #include "tableVisi.h"
 #include "tableVisiTcl.h"
 
-#include "util/h/Ident.h"
+#include "common/h/Ident.h"
 extern "C" const char V_tableVisi[];
 Ident V_id(V_tableVisi,"Paradyn");
 extern "C" const char V_libpdutil[];

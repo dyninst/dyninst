@@ -47,7 +47,7 @@
 #define _TRACE_H
 
 #include "rtinst/h/rtinst.h"
-#include "util/h/sys.h"
+#include "pdutil/h/sys.h"
 
 
 #ifndef False
@@ -62,7 +62,7 @@
 #include <sys/types.h> /* key_t */
 /* These are platforms that don't specify these in sys/types.h, so
    we'll do it here.  This is temporary, since this will be done in
-   util/h/Types.h for all of paradyn.
+   common/h/Types.h for all of paradyn.
 */
 
 #define WORDSIZE sizeof(int64_t)

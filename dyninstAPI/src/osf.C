@@ -39,13 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.13 2000/07/11 18:30:26 hollings Exp $
+// $Id: osf.C,v 1.14 2000/07/28 17:21:16 pcroth Exp $
 
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 #include "os.h"
 #include "process.h"
 #include "stats.h"
-#include "util/h/Types.h"
+#include "common/h/Types.h"
 #include <sys/ioctl.h>
 #include <sys/wait.h>
 #include <sys/ptrace.h>
@@ -63,7 +63,7 @@
 #include <sys/fault.h>
 
 #ifdef SHM_SAMPLING
-#include "util/h/osfKludges.h"
+#include "common/h/osfKludges.h"
 #endif
 
 #define V0_REGNUM 0	/* retval from integer funcs */

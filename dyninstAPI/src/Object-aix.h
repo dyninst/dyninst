@@ -41,7 +41,7 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-aix.h,v 1.12 2000/05/24 00:04:53 tikir Exp $
+ * $Id: Object-aix.h,v 1.13 2000/07/28 17:20:41 pcroth Exp $
 ************************************************************************/
 
 
@@ -59,11 +59,11 @@
  * header files.
 ************************************************************************/
 
-#include "util/h/Dictionary.h"
-#include "util/h/String.h"
-#include "util/h/Symbol.h"
-#include "util/h/Types.h"
-#include "util/h/Vector.h"
+#include "common/h/Dictionary.h"
+#include "common/h/String.h"
+#include "common/h/Symbol.h"
+#include "common/h/Types.h"
+#include "common/h/Vector.h"
 
 extern "C" {
 #include <a.out.h>

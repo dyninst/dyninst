@@ -39,8 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#include "util/h/headers.h"
-#include "util/h/irixKludges.h"
+#include "common/h/headers.h"
+#include "common/h/irixKludges.h"
 
 // copied from solarisKludges.C
 unsigned long long PDYN_div1000(unsigned long long in) {

@@ -47,8 +47,8 @@
 #include <signal.h>
 #include <math.h>
 #include "thread/h/thread.h"
-#include "util/h/list.h"
-#include "util/h/rpcUtil.h"
+#include "common/h/list.h"
+#include "pdutil/h/rpcUtil.h"
 #include "VM.thread.CLNT.h"
 #include "UI.thread.CLNT.h"
 #include "dataManager.thread.CLNT.h"

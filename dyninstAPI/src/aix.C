@@ -39,18 +39,18 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.69 2000/07/27 14:01:16 bernat Exp $
+// $Id: aix.C,v 1.70 2000/07/28 17:21:12 pcroth Exp $
 
-#include "util/h/headers.h"
+#include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/stats.h"
-#include "util/h/Types.h"
-#include "util/h/Dictionary.h"
+#include "common/h/Types.h"
+#include "common/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
 #include "dyninstAPI/src/instP.h" // class instInstance
-#include "util/h/pathName.h"
+#include "common/h/pathName.h"
 
 #include <procinfo.h>
 
@@ -84,7 +84,7 @@ extern int getprocs(struct procsinfo *ProcessBuffer,
 }
 
 #include "dyninstAPI/src/showerror.h"
-#include "util/h/debugOstream.h"
+#include "common/h/debugOstream.h"
 
 extern "C" {
 extern int ioctl(int, int, ...);

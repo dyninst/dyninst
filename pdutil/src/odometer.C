@@ -41,7 +41,7 @@
 
 // odometer.C
 
-#include "util/h/odometer.h"
+#include "pdutil/h/odometer.h"
 
 odometer::odometer(vector<unsigned> &iDigitRanges) :
         digitRanges(iDigitRanges), currValue(digitRanges.size()) {
