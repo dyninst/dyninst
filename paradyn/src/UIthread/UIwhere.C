@@ -3,11 +3,14 @@
  * code related to displaying the where axes lives here
  */
 /* $Log: UIwhere.C,v $
-/* Revision 1.3  1994/11/03 06:16:16  karavan
-/* status display and where axis added to main window and the look cleaned
-/* up a little bit.  Added option to ResourceDisplayObj class to specify
-/* a parent window for an RDO with the constructor.
+/* Revision 1.4  1994/11/03 06:41:19  karavan
+/* took out those pesty debug printfs
 /*
+ * Revision 1.3  1994/11/03  06:16:16  karavan
+ * status display and where axis added to main window and the look cleaned
+ * up a little bit.  Added option to ResourceDisplayObj class to specify
+ * a parent window for an RDO with the constructor.
+ *
  * Revision 1.2  1994/11/01  05:44:24  karavan
  * changed resource selection process to support multiple focus selection
  * on a single display
@@ -149,10 +152,8 @@ resourceDisplayObj::resourceDisplayObj (int baseflag, int &success, char *pwin)
   token = rdoCount;
   rdoCount++;
   sprintf (parentwin, "%s", pwin);
-  printf ("%s\n", parentwin);
   sprintf (tbuf, "initRDO %d %s {Paradyn Where Axis Display} 0",
 	   token, parentwin);
-  printf ("%s\n", tbuf);
   if (Tcl_VarEval (interp, tbuf, 0) == TCL_ERROR) {
     sprintf (tbuf, "Can't initialize RDO: %s", interp->result);
     uim_server->showError(26, tbuf);
