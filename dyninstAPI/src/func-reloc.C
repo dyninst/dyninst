@@ -19,14 +19,6 @@ class LocalAlteration;
 int pd_Function::fixRelocatedInstruction(bool setDisp, instruction *insn, 
                                          Address origAddr, Address targetAddr) { 
 
-#ifdef DEBUG_FUNC_RELOC
-  cerr << "pd_Function::fixRelocatedInstruction:" << endl; 
-  cerr << " fixing displacement of insruction relocated" 
-       << " from " << hex << origAddr << endl; 
-  cerr << " to " << hex << targetAddr  
-       << " with setDisp " << setDisp << endl; 
-#endif
-
     int newDisp, disp, extra_bytes = 0;
 
     // check for relative addressing       
@@ -42,6 +34,15 @@ int pd_Function::fixRelocatedInstruction(bool setDisp, instruction *insn,
         // update displacement (if set_disp = true, extra_bytes should be 0).
         // extra_bytes = # of extra bytes needed to update insn's displacement 
         extra_bytes = set_disp(setDisp, insn, newDisp, true);
+
+#ifdef DEBUG_FUNC_RELOC
+        cerr << "pd_Function::fixRelocatedInstruction:" << endl; 
+        cerr << " fixing displacement of insruction relocated" 
+             << " from " << hex << origAddr << endl; 
+        cerr << " to " << hex << targetAddr  
+             << " with setDisp " << setDisp << endl; 
+#endif
+
     }
 
 #ifdef DEBUG_FUNC_RELOC 
@@ -70,10 +71,6 @@ int pd_Function::relocateInstructionWithFunction(bool setDisp,
                                                  Address oldFunctionAddr, 
                                                  unsigned originalCodeSize) {
 
-#ifdef DEBUG_FUNC_RELOC 
-  cerr << "pd_Funciton::relocateInstructionWithFunction " << endl;
-#endif
-
   // check if insn is a relative branch with target inside function 
   if (branchInsideRange(*insn, origAddr, oldFunctionAddr, \
 			  oldFunctionAddr + originalCodeSize)) {
@@ -99,13 +96,6 @@ int pd_Function::relocateInstructionWithFunction(bool setDisp,
 bool pd_Function::branchInsideRange(instruction insn, Address branchAddress, 
                                     Address firstAddress, Address lastAddress) {
 
-#ifdef DEBUG_FUNC_RELOC 
-  cerr << "pd_Function::branchInsideRange:" << endl; 
-  cerr << " Instruction offset = " << branchAddress - firstAddress << endl; 
-  cerr << " function: " << hex << firstAddress << " to " 
-       << hex << lastAddress << endl;  
-#endif
-
   int disp;
   Address target;
 
@@ -126,6 +116,10 @@ bool pd_Function::branchInsideRange(instruction insn, Address branchAddress,
   if (target >= lastAddress) return false;
 
 #ifdef DEBUG_FUNC_RELOC 
+  cerr << "pd_Function::branchInsideRange:" << endl; 
+  cerr << " Instruction offset = " << branchAddress - firstAddress << endl; 
+  cerr << " function: " << hex << firstAddress << " to " 
+       << hex << lastAddress << endl;  
   cerr << " branch target = " << hex << target - firstAddress << endl; 
 #endif
 
@@ -141,13 +135,8 @@ bool pd_Function::branchInsideRange(instruction insn, Address branchAddress,
 // inside the function
 
 bool pd_Function::trueCallInsideRange(instruction insn, Address callAddress, 
-                                      Address firstAddress, Address lastAddress) {
-
-#ifdef DEBUG_FUNC_RELOC 
-  cerr << "pd_Function::trueCallInsideRange:" << endl; 
-  cerr << " Instruction offset = " << callAddress - firstAddress << endl;
-  cerr << " function at: " << hex << firstAddress << " to "  << hex << lastAddress << endl;  
-#endif
+                                      Address firstAddress, 
+                                      Address lastAddress) {
 
   Address target;
   int disp;
@@ -169,6 +158,10 @@ bool pd_Function::trueCallInsideRange(instruction insn, Address callAddress,
   if (target >= lastAddress) return false;
 
 #ifdef DEBUG_FUNC_RELOC 
+  cerr << "pd_Function::trueCallInsideRange:" << endl; 
+  cerr << " Instruction offset = " << callAddress - firstAddress << endl;
+  cerr << " function at: " << hex << firstAddress << " to "  << hex << lastAddress << endl;  
+
   cerr << " call target = " << target - firstAddress << endl; 
 #endif
 
@@ -194,12 +187,6 @@ int pd_Function::patchOffset(bool setDisp, LocalAlterationSet *alteration_set,
   int lastAddress = firstAddress + originalCodeSize;
   int insnSize = sizeOfMachineInsn(&insn);
 
-#ifdef DEBUG_FUNC_RELOC 
-  cerr << "pd_Function::patchOffset" << endl;
-  cerr << " Instruction offset = " << adr - firstAddress << endl;
-  cerr << " function at: " << hex << firstAddress << " to " << hex << lastAddress << endl;   
-#endif
-
   // insn is a relative branch or call instruction with target inside function
   if (!branchInsideRange(insn, adr, firstAddress, lastAddress) && 
       !trueCallInsideRange(insn, adr, firstAddress, lastAddress)) return 0;
@@ -221,8 +208,12 @@ int pd_Function::patchOffset(bool setDisp, LocalAlterationSet *alteration_set,
   // displacement (which could be 0 as well) 
   extra_bytes = set_disp(setDisp, &insn, disp + extra_offset, false);
 
+
 #ifdef DEBUG_FUNC_RELOC 
-    cerr << " extra_bytes = " << extra_bytes << endl; 
+  cerr << "pd_Function::patchOffset" << endl;
+  cerr << " Instruction offset = " << adr - firstAddress << endl;
+  cerr << " function at: " << hex << firstAddress << " to " << hex << lastAddress << endl;   
+  cerr << " extra_bytes = " << extra_bytes << endl; 
 #endif
 
   return extra_bytes;
@@ -473,7 +464,7 @@ bool pd_Function::expandInstPoints(const image *owner,
     cerr << " baseAddress = " << hex << baseAddress << endl;
     cerr << " mutator = " << hex << mutator << endl;
     cerr << " mutatee = " << hex << mutatee << endl;
-    cerr << " numberOfInstructions = " << numberOfInstructions << endl;
+    cerr << " numberOfInstructions = " << numInstructions << endl;
 #endif
 
   LocalAlterationSet tmp_alt_set1(this);
@@ -774,10 +765,12 @@ bool pd_Function::applyAlterations(LocalAlterationSet &norm_alt_set,
       newInsnOffset++;
     }
 
-#ifdef DEBUG_FUNC_RELOC 
-      cerr << " oldOffset = " << oldOffset << endl;
-      cerr << " nextAlterBegins = " << nextAlterBegins << endl;
-#endif
+
+    if (oldOffset != nextAlterBegins) {
+      cerr << "ERORR: non-matching alterations."<< endl;
+      cerr << "  oldOffset = " << oldOffset << endl;
+      cerr << "  nextAlterBegins = " << nextAlterBegins << endl;
+    }
 
     assert(oldOffset == nextAlterBegins);
   
@@ -1132,6 +1125,7 @@ bool pd_Function::relocateFunction(process *proc,
 #if defined(sparc_sun_solaris2_4)
 	extern void generateBranchOrCall(process* , Address , Address);
         generateBranchOrCall(proc, origAddress, ret);
+
 #else
 	generateBranch(proc, origAddress, ret);
 #endif
@@ -1175,12 +1169,6 @@ bool pd_Function::relocateFunction(process *proc,
 void pd_Function::sorted_ips_vector(vector<instPoint*>&fill_in) {
     unsigned int returns_idx, calls_idx;
     Address returns_ip_addr, calls_ip_addr;
-
-
-#ifdef DEBUG_FUNC_RELOC 
-    cerr << " sorted_ips_vector: " << endl;
-    cerr << "sort vector of instPoints " << endl;
-#endif
 
     // sorted vector of inst points starts with funcEntry_  ....
     fill_in.push_back(funcEntry_);

@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.93 2001/10/10 20:43:05 buck Exp $
+ * $Id: inst-x86.C,v 1.94 2001/11/02 22:34:19 gurari Exp $
  */
 
 #include <iomanip.h>
@@ -586,7 +586,7 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
    // jump table inside this function. 
    bool canBeRelocated = true;
 
-   if (prettyName() == "__libc_fork") {
+   if (prettyName() == "__libc_fork" || prettyName() == "__libc_start_main") {
      canBeRelocated = false;
    }
 
@@ -3564,10 +3564,6 @@ void pd_Function::copyInstruction(instruction &newInsn, instruction &oldInsn,
   const unsigned char *oldPtr = oldInsn.ptr();
   unsigned tmp = codeOffset;
 
-#ifdef DEBUG_FUNC_RELOC 
-      cerr << "pd_Function::copyInstruction" << endl;
-#endif 
-
   // iterate over each byte of the machine instruction, copying it
   for (unsigned i = 0; i < insnSize; i++) {     
     relocatedCode[codeOffset] = *(oldPtr + i);
@@ -3677,10 +3673,6 @@ int pd_Function::getArrayOffset(Address adr, instruction code[]) {
   
   unsigned i;
   Address insnAdr = addressOfMachineInsn(&code[0]);  
-
-#ifdef DEBUG_FUNC_RELOC
-      cerr << "pd_Function::getArrayOffset" << endl;
-#endif
 
   assert(adr >= insnAdr && adr <= insnAdr + size()); 
 
@@ -4025,6 +4017,7 @@ bool ExpandInstruction::RewriteFootprint(Address /* oldBaseAdr */,
 #ifdef DEBUG_FUNC_RELOC
     cerr << "ExpandInstruction::RewriteFootprint" <<endl;
     cerr << " newDisp = " << newDisp << endl;
+    cerr << " oldOffset = " << oldOffset << endl;
 #endif 
 
  
@@ -4107,7 +4100,12 @@ bool ExpandInstruction::RewriteFootprint(Address /* oldBaseAdr */,
   oldOffset++;
   newOffset++;
   codeOffset += (oldInsnSize + sizeChange);
- 
+
+#ifdef DEBUG_FUNC_RELOC
+  cerr << "rewrote footprint from " << oldInsnSize << " to "
+       << oldInsnSize + sizeChange << endl;  
+#endif 
+
   unsigned newInsnType, newInsnSize;
   newInsnSize = get_instruction(tmpInsn, newInsnType);
   newInstructions[newOffset - 1] = *(new instruction(tmpInsn, newInsnType, newInsnSize));
@@ -4299,11 +4297,6 @@ bool pd_Function::PA_attachBranchOverlaps(
     instr = loadedCode[i];
     instr_address = addressOfMachineInsn(&instr);
      
-#ifdef DEBUG_FUNC_RELOC
-    cerr << " insn address = " << hex << (unsigned ) instr_address << endl;
-    cerr << " insn offset = "  << instr_address - firstAddress << endl;
-#endif
-     
     // look for branch and call insns whose targets are inside the function.
     if (!branchInsideRange(instr, instr_address, firstAddress, 
                                         firstAddress + codeSize) &&
@@ -4314,6 +4307,7 @@ bool pd_Function::PA_attachBranchOverlaps(
 
 #ifdef DEBUG_FUNC_RELOC
     cerr << " branch at " << hex << (unsigned) instr_address 
+         << " insn offset = "  << instr_address - firstAddress
          << " has target inside range of function" << endl;
 #endif  
 
@@ -4443,7 +4437,8 @@ bool pd_Function::PA_attachGeneralRewrites(
         if (*(insnPtr) == 0xe8) {
 
           if ( !owner->isValidAddress(targetAdr) ) {
-            cerr << "ERROR: " << prettyName() << " has a call target "
+            cerr << "ERROR: " << prettyName() << " has a call at " 
+                 << instr_address - baseAddress << " with target "
                  << " outside the application's address space" << endl;
             return false;
           }
@@ -4554,10 +4549,6 @@ void pd_Function::modifyInstPoint(const instPoint *&location, process *proc) {
 bool alreadyExpanded(int offset, int shift, LocalAlterationSet *alteration_set) {
   bool already_expanded;
   LocalAlteration *alteration = 0;
-
-#ifdef DEBUG_FUNC_RELOC 
-	  cerr << "Function alreadyExpanded called " << endl;
-#endif  
 
   alteration_set->iterReset();
 
