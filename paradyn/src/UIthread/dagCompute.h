@@ -30,7 +30,7 @@ typedef int Flag;
 //extern void *malloc(size_t size);
 // extern void free(void *p);
 
-#define HASH_SIZE	11	/* large prime number for hash table */
+#define HASH_SIZE	73	/* large prime number for hash table */
 #define DAGNODEMAXSTR   100     /* max node label length */
 typedef enum {
     NO_LINE = 0, IN_ARROW, OUT_ARROW, INOUT_ARROW, NO_ARROW
@@ -63,6 +63,7 @@ typedef struct _edge {
 struct _node {
   int selected;                 /* used to tag nodes during dag traversal */
   NodeType nType;		/* dummy type or application type */
+  unsigned short highlighted;   /* display 1=highlighted 0=normal */
   rNode hash;			/* linked-list collision resolution */
   rNode ancestor;		/* ancestor of APPL_NODE (not for dummies) */
   rNode forw, back;		/* row list */
