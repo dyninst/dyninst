@@ -3,6 +3,9 @@
 
 /*
  * $Log: tableVisiTcl.C,v $
+ * Revision 1.6  1995/12/19 00:47:06  tamches
+ * call to tableVisi::setSigFigs now resizes if changes occurred.
+ *
  * Revision 1.5  1995/12/08 05:52:35  tamches
  * removed some warnings
  *
@@ -256,8 +259,11 @@ int sigFigChangeCommand(ClientData, Tcl_Interp *interp,
 
    assert(theTableVisi->tryFirst());
 
-   if (theTableVisi->setSigFigs(newNumSigFigs))
+   if (theTableVisi->setSigFigs(newNumSigFigs)) {
+      // resizing may have occurred
+      theTableVisi->resize(interp);
       tableDrawWhenIdle.install(NULL);
+   }
 
    return TCL_OK;
 }
@@ -303,7 +309,7 @@ int formatChangedCommand(ClientData, Tcl_Interp *interp,
    int dataFormat = atoi(dataFormatStr);
    currFormat = dataFormat;
 
-   for(unsigned i =0; i < dataGrid.NumMetrics(); i++){
+   for (unsigned i =0; i < dataGrid.NumMetrics(); i++){
        if (currFormat==0) // current values
             theTableVisi->changeUnitsLabel(i, dataGrid.MetricLabel(i));
        else if (currFormat==1) // average values
