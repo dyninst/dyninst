@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.74 2001/04/19 17:52:24 gurari Exp $
+// $Id: inst-sparc-solaris.C,v 1.75 2001/05/02 21:38:06 gurari Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -2956,7 +2956,7 @@ bool pd_Function::PA_attachGeneralRewrites(
 
 #ifdef DEBUG_PA_INST
     cerr << "pd_Function::PA_attachGeneralRewrites called" <<endl;
-    cerr << " codeSize = " << codeSize << endl;
+    cerr << " prettyName = " << prettyName() << endl;
 #endif
 
     // Look at the 2nd instruction in function.  If its a call, then
@@ -3060,9 +3060,10 @@ bool pd_Function::PA_attachOverlappingInstPoints(
 	                instruction loadedCode[], int codeSize) {
 
     instruction instr, nexti;
+
 #ifdef DEBUG_PA_INST
     cerr << "pd_Function::PA_attachOverlappingInstPoints called" <<endl;
-    cerr << " codeSize = " << codeSize << endl;
+    cerr << " prettyName = " << prettyName() << endl;
 #endif
 
     // Make a list of all inst-points attached to function, and sort
@@ -3100,12 +3101,13 @@ bool pd_Function::PA_attachOverlappingInstPoints(
 	//  inst points pointing to it have not been updated.  As such, check here to
 	//  make sure that the overalpping inst points aren't really part of a tail-call
 	//  optimization.  This introduces some lack of locality of reference - sorry....
+        
         if ((this_inst_point->ipType == callSite) && 
 	          (next_inst_point->ipType == functionExit)) {
-          instr = next_inst_point->insnAtPoint();
-          nexti = next_inst_point->insnAfterPoint();
+          instr = this_inst_point->insnAtPoint();
+          nexti = this_inst_point->insnAfterPoint();
           if (CallRestoreTC(instr, nexti) || 
-      	    JmpNopTC(instr, nexti, next_inst_point->iPgetAddress(), this)) {
+      	    JmpNopTC(instr, nexti, this_inst_point->iPgetAddress(), this)) {
 
              // This tail call optimization will be rewritten, eliminating the
              // overlap, so we don't have to worry here about rewriting this
@@ -3140,6 +3142,7 @@ bool pd_Function::PA_attachOverlappingInstPoints(
 	    //  2 inst points are located at exactly the same place or 
 	    //  1 is located in the delay slot of the other - it will NOT
 	    //  break up the 2 inst points in that case....
+
  	    int offset = (this_inst_point->iPgetAddress() - getAddress(0)) +
  	                 sizeof(instruction); 
  	    offset = moveOutOfDelaySlot(offset, loadedCode, codeSize) - 
@@ -3178,7 +3181,7 @@ bool pd_Function::PA_attachBranchOverlaps(
 
 #ifdef DEBUG_PA_INST
     cerr << "pd_Function::PA_attachBranchOverlaps called" <<endl;
-    cerr << " codeSize = " << codeSize << endl;
+    cerr << " prettyName = " << prettyName() << endl;
 #endif
 
     // Make a list of all inst-points attached to function, and sort
