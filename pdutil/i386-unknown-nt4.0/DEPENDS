@@ -86,6 +86,9 @@ Time.obj: ../../common/src/Time.C ../../common/h/Time.h \
  ../../common/h/int64iostream.h
 fraction.obj: ../../common/src/fraction.C ../../common/h/fraction.h \
  ../../common/h/Types.h ../../common/h/int64iostream.h
+xdr_send_recv.obj: ../src/xdr_send_recv.C ../h/xdr_send_recv.h \
+ ../../common/h/triple.h ../../common/h/String.h ../../common/h/Vector.h \
+ ../../common/h/vectorSet.h ../h/ByteArray.h ../../common/h/Pair.h
 templates.obj: ../src/templates.C ../../common/h/Vector.h \
  ../../common/h/Symbol.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/Types.h \

@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.17 2001/08/23 14:44:26 schendel Exp $
+# $Id: nmake.module.tmpl,v 1.18 2002/04/09 18:05:48 mjbrim Exp $
 #
 
 TARGET	      = libpdutil.lib
@@ -39,6 +39,7 @@ SRCS	     = $(SRCS) \
 		../../pdutil/src/airtStreambuf.C \
 		../../common/src/Time.C \
 		../../common/src/fraction.C \
+		../../pdutil/src/xdr_send_recv.C \
 		../../pdutil/src/templates.C
 
 OBJS         = $(OBJS) \
@@ -68,6 +69,7 @@ OBJS         = $(OBJS) \
 		airtStreambuf.obj \
                 Time.obj \
                 fraction.obj \
+                xdr_send_recv.obj \
                 templates.obj 
 
 all: $(TARGET)
