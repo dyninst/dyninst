@@ -1,7 +1,11 @@
 /* $Log: UImain.C,v $
-/* Revision 1.43  1995/02/27 18:55:43  tamches
-/* Minor include change to placate compiler.
+/* Revision 1.44  1995/04/01 22:20:08  karavan
+/* removed unnecessary library function declarations leftover from Tk.
+/* removed call to dm->enableResourceCreationNotification.
 /*
+ * Revision 1.43  1995/02/27  18:55:43  tamches
+ * Minor include change to placate compiler.
+ *
  * Revision 1.42  1995/02/16  08:20:48  markc
  * Changed Boolean to bool
  * Changed wait loop code for igen messages
@@ -215,20 +219,9 @@ static char *name = NULL;
 static char *display = NULL;
 static char *geometry = NULL;
 
-/*
- * Declarations for various library procedures and variables 
- */
+// External Declarations  
 
 extern "C" {
-  // "Type qualifiers conflict with previous declaration:", so I commented it out -AT 1/23/95
-  // (besides, why not just #include <stdlib.h>?)
-//  void		exit _ANSI_ARGS_((int status));
-
-  char *	strrchr _ANSI_ARGS_((CONST char *string, int c));
-
-  /* void		exit _ANSI_ARGS_((int status)); */
-  /* char *	strrchr _ANSI_ARGS_((CONST char *string, int c)); */
-
   int Tk_DagCmd _ANSI_ARGS_((ClientData clientData,
         Tcl_Interp *interp, int argc, char **argv));
 }
@@ -493,9 +486,6 @@ UImain(void* vargs)
     dataFunc.sample = NULL;
     uim_defaultStream = dataMgr->createPerformanceStream
       (context, Sample, dataFunc, controlFuncs);
-    dataMgr->enableResourceCreationNotification(uim_defaultStream, 
-						uim_rootRes);
-
     uim_ResourceSelectionStatus = 0;    // no selection in progress
     Tcl_LinkVar (interp, "resourceSelectionStatus", 
 		 (char *) &uim_ResourceSelectionStatus, TCL_LINK_INT);    
