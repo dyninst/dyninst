@@ -68,12 +68,6 @@ extern unsigned enable_pd_inferior_rpc_debug;
 #define inferiorrpc_cerr if (0) cerr
 #endif /* ENABLE_DEBUG_CERR == 1 */
 
-/* Required by linuxDL.C */
-Address getSP( int /* pid */ ) {
-	assert( 0 );
-	return 0;
-	} /* end getSP */
-
 /* Required by linux.C */
 void generateBreakPoint( instruction & insn ) {
 	assert( 0 );
@@ -277,7 +271,7 @@ Address calculateRSEOffsetFromBySlots( Address addr, int slots ) {
 	return addr;
 	} /* end calculateRSEOffsetFromBySlots() */
 
-/* Fixme: from inst-ia64.C; stash in a common header. */
+/* FIXME: from inst-ia64.C; stash in a common header. */
 #define BIT_0_6		0x000000007F
 
 Address dyn_lwp::readRegister( Register reg ) {
@@ -333,15 +327,28 @@ Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP
 	status = unw_is_signal_frame( unwindCursor );
 	if( status > 0 ) { isSignalFrame = true; }
 
+    /* Determine if this is a trampoline frame. */
+	codeRange * range = dynLWP->proc()->findCodeRangeByAddress( ip );
+	if( range == NULL ) {
+		// /* DEBUG */ fprintf( stderr, "createFrameFromUnwindCursor(pid = %d): did not recognize pc 0x%lx; may be (in) vsyscall page.\n", pid, ip );
+		}
+	else {
+		if( range->is_basetramp() != NULL || range->is_minitramp() != NULL ) {
+			// /* DEBUG */ fprintf( stderr, "createFrameFromUnwindCursor(pid = %d): pc 0x%lx is in base or mini tramp.\n", pid, ip );
+			isTrampoline = true;
+			}	
+		}
+	
+	// trampTemplate * baseTramp = range->is_basetramp();
+	// miniTrampHandle * miniTramp = range->is_minitramp();     
+
 	/* I could've just ptrace()d the ip, sp, and tp, but
 	   I couldn't have gotten the frame pointer.  With libunwind,
 	   the frame pointer is simply the stack pointer of the previous frame. */
 	status = unw_step( unwindCursor );
   
 	if( status == -UNW_ENOINFO ) {
-		/* Most likely, we're trying to unwind from inside a trampoline.
-	  	   FIXME: This should not occur once dynamic unwind information is implemented. */
-	  	fprintf( stderr, "createFrameFromUnwindCursor(): FIXME: no unwind information available for this frame.\n" );
+	  	// /* DEBUG */ fprintf( stderr, "createFrameFromUnwindCursor(pid = %d): no unwind information available for this frame (ip = 0x%lx, sp = 0x%lx, tp = 0x%lx), unable to acquire frame pointer.  (Probably an inferior RPC.)\n", pid, ip, sp, tp );
 		isUppermost = true;
 		}
 	else if( status == 0 ) {
@@ -355,45 +362,49 @@ Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP
 	  	status = unw_get_reg( unwindCursor, UNW_IA64_SP, & fp );
 		assert( status == 0 );
 		}
-		else {
-	  	/* Something erroneous happened.. */
-	    assert( status >= 0 );
-	  	}
+	else {
+		/* Some other error occured. */
+		fprintf( stderr, "unw_step() failed: %d\n", status );
+		assert( 0 );
+		}
 
 	/* FIXME: multithread implementation. */
 	dyn_thread * dynThread = NULL;
     
-	/* FIXME: determine if this a trampoline frame.  (That is, was the information dynamically constructed?) */
-	Frame currentFrame( ip, fp, sp, pid, dynThread, dynLWP, isUppermost, isLeaf, isSignalFrame, isTrampoline );
+	Frame currentFrame( ip, fp, sp, pid, dynThread, dynLWP, isUppermost, isLeaf, isSignalFrame, isTrampoline, unwindCursor );
 	
-	// /* DEBUG */ fprintf( stderr, "createFrameFromUnwindCursor(): ip = 0x%lx, fp = 0x%lx, sp = 0x%lx, tp = 0x%lx\n", ip, fp, sp, tp );
+	// /* DEBUG */ fprintf( stderr, "createFrameFromUnwindCursor(pid = %d): ip = 0x%lx, fp = 0x%lx, sp = 0x%lx, tp = 0x%lx\n", pid, ip, fp, sp, tp );
 	return currentFrame;
 	} /* end createFrameFromUnwindCursor() */
 
 Frame dyn_lwp::getActiveFrame() {
-	// /* DEBUG */ fprintf( stderr, "getActiveFrame(): getting active frame.\n" );
-
 	int status = 0;
+	process * proc = proc_;
 
 	/* Initialize the unwinder. */
-	unw_addr_space * unwindAddressSpace = unw_create_addr_space( & _UPT_accessors, 0 );
-	assert( unwindAddressSpace != NULL );
-	// /* DEBUG */ fprintf( stderr, "Creating unwind context with pid %d\n", proc_->getPid() );
-	void * unwindProcessArg = _UPT_create( proc_->getPid() );
-	assert( unwindProcessArg != NULL );
+	if( proc->unwindAddressSpace == NULL ) {
+		// /* DEBUG */ fprintf( stderr, "Creating unwind address space for process pid %d\n", proc->getPid() );
+		proc->unwindAddressSpace = unw_create_addr_space( & _UPT_accessors, 0 );
+		assert( proc->unwindAddressSpace != NULL );
+		}
+	
+	if( proc->unwindProcessArg == NULL ) {
+		// /* DEBUG */ fprintf( stderr, "Creating unwind context for process pid %d\n", proc->getPid() );
+		proc->unwindProcessArg = _UPT_create( proc->getPid() );
+		assert( proc->unwindProcessArg != NULL );
+		}
 
+	/* Allocate an unwindCursor for this stackwalk. */
+	unw_cursor_t * unwindCursor = (unw_cursor_t *)malloc( sizeof( unw_cursor_t ) );
+	assert( unwindCursor != NULL );
+		
 	/* Initialize it to the active frame. */
-	unw_cursor_t unwindCursor;
-	status = unw_init_remote( & unwindCursor, unwindAddressSpace, unwindProcessArg );
+	status = unw_init_remote( unwindCursor, proc->unwindAddressSpace, proc->unwindProcessArg );
 	assert( status == 0 );
 	
 	/* Generate a Frame from the unwinder. */
-	Frame currentFrame = createFrameFromUnwindCursor( & unwindCursor, this, proc_->getPid(), true );
+	Frame currentFrame = createFrameFromUnwindCursor( unwindCursor, this, proc->getPid(), true );
 	
-	/* Shut down the unwinder. */
-	_UPT_destroy( unwindProcessArg );
-	unw_destroy_addr_space( unwindAddressSpace );
-
 	/* Return the result. */
 	return currentFrame;
 	} /* end getActiveFrame() */
@@ -608,37 +619,110 @@ bool process::loadDYNINSTlibCleanup() {
 	return true;
 	} /* end loadDYNINSTlibCleanup() */
 
-/* At some point, it may be worth the trouble to add an unw_cursor_t member to Frame. */
+#include <miniTrampHandle.h>
+#include <trampTemplate.h>	
+#include <instPoint.h>
 Frame Frame::getCallerFrame( process * proc ) const {
 	// /* DEBUG */ fprintf( stderr, "getCallerFrame(): getting caller's frame (ip = 0x%lx, fp = 0x%lx, sp = 0x%lx).\n", getPC(), getFP(), getSP() );
 
 	int status = 0;
 
 	/* Initialize the unwinder. */
-	unw_addr_space * unwindAddressSpace = unw_create_addr_space( & _UPT_accessors, 0 );
-	assert( unwindAddressSpace != NULL );
-	void * unwindProcessArg = _UPT_create( proc->getPid() );
-	assert( unwindProcessArg != NULL );
-
-	/* Initialize it to the active frame. */
-	unw_cursor_t unwindCursor;
-	status = unw_init_remote( & unwindCursor, unwindAddressSpace, unwindProcessArg );
-	assert( status == 0 );
+	if( proc->unwindAddressSpace == NULL ) {
+		/* DEBUG */ fprintf( stderr, "Creating unwind address space for process pid %d\n", proc->getPid() );
+		proc->unwindAddressSpace = unw_create_addr_space( & _UPT_accessors, 0 );
+		assert( proc->unwindAddressSpace != NULL );
+		}
 	
-	/* Unwind to the current frame. */
-	Frame currentFrame = createFrameFromUnwindCursor( & unwindCursor, lwp_, proc->getPid(), true );
-	while( ! currentFrame.isUppermost() ) {
-		if( getFP() == currentFrame.getFP() && getSP() == currentFrame.getSP() && getPC() == currentFrame.getPC() ) {
-			currentFrame = createFrameFromUnwindCursor( &unwindCursor, lwp_, proc->getPid(), false );
-			break;		
-			} /* end if we've found this frame */
-		currentFrame = createFrameFromUnwindCursor( &unwindCursor, lwp_, proc->getPid(), false );
+	if( proc->unwindProcessArg == NULL ) {
+		/* DEBUG */ fprintf( stderr, "Creating unwind context for process pid %d\n", proc->getPid() );
+		proc->unwindProcessArg = _UPT_create( proc->getPid() );
+		assert( proc->unwindProcessArg != NULL );
+		}
+		
+	/* If _this_ is a trampoline frame, return a synthetic frame for the instrumented function. */
+	if( this->isTrampoline() ) { 
+		codeRange * range = proc->findCodeRangeByAddress( this->getPC() );
+		assert( range != NULL );
+		
+		trampTemplate * baseTramp = range->is_basetramp();
+		if( baseTramp == NULL ) {
+			miniTrampHandle * mTH = range->is_minitramp();
+			assert( mTH != NULL );
+			baseTramp = mTH->baseTramp;
+			}
+		assert( baseTramp != NULL );
+		
+		Address ip = baseTramp->location->pointAddr();
+		Address baseAddress; assert( proc->getBaseAddress( baseTramp->location->getOwner(), baseAddress ) );
+		assert( baseAddress % 16 == 0 );
+		ip += baseAddress;
+		
+		// /* DEBUG */ fprintf( stderr, "getCallerFrame(): synthetic frame ip = 0x%lx\n", ip );
+		
+		Address fp;
+		assert( this->unwindCursor_ != NULL );
+		int status = unw_step( (unw_cursor_t *)this->unwindCursor_ );
+		assert( status >= 0 );
+		
+		bool isUppermost = false;
+		if( status == 0 ) { isUppermost = true; }
+		
+		status = unw_get_reg( (unw_cursor_t *)this->unwindCursor_, UNW_IA64_SP, & fp );
+		assert( status == 0 );
+			
+		return Frame( ip, fp, this->getSP(), this->getPID(), this->getThread(), this->getLWP(), isUppermost, false, false, false, this->unwindCursor_ );
 		}
 
-	/* Shut down the unwinder. */
-	_UPT_destroy( unwindProcessArg );
-	unw_destroy_addr_space( unwindAddressSpace );
+	Frame currentFrame;
+	if( this->unwindCursor_ == NULL ) {
+		/* dyn_thread.C will call getActiveFrame() and then rebuild the frame,
+		   which removes the unwindCursor (and leaks memory, because the stack
+		   walk never terminates).  Sigh. */
+		// /* DEBUG */ fprintf( stderr, "getCallerFrame(): frame has no unwind cursor, starting over.\n" );
+
+		/* Allocate an unwindCursor for this stackwalk. */
+		unw_cursor_t * unwindCursor = (unw_cursor_t *)malloc( sizeof( unw_cursor_t ) );
+		assert( unwindCursor != NULL );
+
+		/* Initialize it to the active frame. */
+		status = unw_init_remote( unwindCursor, proc->unwindAddressSpace, proc->unwindProcessArg );
+		assert( status == 0 );
+                                                                                                                                    
+	    /* Unwind to the current frame. */
+		currentFrame = createFrameFromUnwindCursor( unwindCursor, lwp_, proc->getPid(), true );
+		while( ! currentFrame.isUppermost() ) {
+			if( getFP() == currentFrame.getFP() && getSP() == currentFrame.getSP() && getPC() == currentFrame.getPC() ) {
+				currentFrame = createFrameFromUnwindCursor( unwindCursor, lwp_, proc->getPid(), false );
+				break;
+				} /* end if we've found this frame */
+			currentFrame = createFrameFromUnwindCursor( unwindCursor, lwp_, proc->getPid(), false );
+			}
+		} /* end if this frame was copied before being unwound. */
+	else {
+		/* Don't try to walk up the stack if we've freed the cursor. */
+		assert( ! this->uppermost_ );
+			
+		/* Since createFrameFromUnwindCursor() actually unwinds the cursor,
+		   the createFFUC() call which created _this_ frame will have left the cursor
+		   pointing at _this_ frame's caller. */
+		currentFrame = createFrameFromUnwindCursor( (unw_cursor_t *)this->unwindCursor_, lwp_, proc->getPid(), false );
+		} /* end if this frame was _not_ copied before being unwound. */
 	
+	/* Make sure we made progress. */	
+	if( getFP() == currentFrame.getFP() && getSP() == currentFrame.getSP() && getPC() == currentFrame.getPC() ) {	
+		/* This will forcibly terminate the stack walk. */
+		currentFrame.fp_ = (Address)NULL;
+		currentFrame.pc_ = (Address)NULL;
+		currentFrame.sp_ = (Address)NULL;
+		currentFrame.uppermost_ = true;
+
+		fprintf( stderr, "Detected duplicate stack frame, aborting stack with zeroed frame.\n" );
+		}
+		
+	/* If we're returning the uppermost frame, free the unwind cursor, so it doesn't hang around forever. */
+	if( currentFrame.uppermost_ ) { free( currentFrame.unwindCursor_ ); }
+				
 	/* Return the result. */
 	return currentFrame;
 	} /* end getCallerFrame() */
