@@ -46,6 +46,9 @@
 
 /* 
  * $Log: templates0.C,v $
+ * Revision 1.10  1996/10/31 08:53:12  tamches
+ * split; moved half to templates05.C
+ *
  * Revision 1.9  1996/10/18 23:54:16  mjrg
  * Solaris/X86 port
  *
@@ -78,25 +81,6 @@
  * Revision 1.1  1996/04/08 21:42:12  lzheng
  * split templates.C up into templates0.C and templates1.C; needed for HP.
  *
- * Revision 1.24  1995/12/29 01:35:34  zhichen
- * Added an instantiation related to the new paradynd-->paradyn buffering
- *
- * Revision 1.23  1995/12/28 23:44:39  zhichen
- * added 2 new instantiations related to the new paradynd->>paradyn
- * batching code.
- *
- * Revision 1.22  1995/12/18  23:31:21  tamches
- * wrapped blizzard-specific templates in an ifdef
- *
- * Revision 1.21  1995/12/16 00:21:26  tamches
- * added a template needed by blizzard
- *
- * Revision 1.20  1995/12/05 01:52:38  zhichen
- * Added some instanciation of templates for paradyn+blizzard
- *
- * Revision 1.19  1995/11/29  18:45:27  krisna
- * added inlines for compiler. added templates
- *
  */
 
 #pragma implementation "Pair.h"
@@ -104,12 +88,6 @@
 
 #pragma implementation "Vector.h"
 #include "util/h/Vector.h"
-
-#pragma implementation "Dictionary.h"
-#include "util/h/Dictionary.h"
-
-#pragma implementation "list.h"
-#include "util/h/list.h"
 
 #pragma implementation "Symbol.h"
 #include "util/h/Symbol.h"
@@ -179,24 +157,3 @@ template class  vector<instInstance *>;
 template class  vector<internalMetric::eachInstance>;
 template class  vector<returnInstance *>;             //XXX
 
-template class  dictionary<unsigned int, vector<mdl_type_desc> >;
-template class  dictionary<unsigned int, _cpSample *>;
-template class  dictionary<string, pdFunction *>;
-template class  dictionary<instPoint *, point *>;
-template class  dictionary<unsigned int, Symbol *>;
-template class  dictionary<unsigned int, metricDefinitionNode *>;
-template class  dictionary<string, unsigned int>;
-template class  dictionary<instPoint *, unsigned int>;
-template class  dictionary<unsigned int, heapItem *>;
-template class  dictionary<string, vector<pdFunction *> *>;
-template class  dictionary<string, internalSym *>;
-template class  dictionary<string, module *>;
-template class  dictionary<unsigned int, pdFunction *>;
-template class  dictionary<unsigned int, unsigned int>;
-template class  dictionary<unsigned int, resource *>;
-template class  dictionary<string, resource *>;
-template class  dictionary_iter<string, Symbol>;
-template class  dictionary<string, Symbol>;
-template class  dictionary <string, metricDefinitionNode*>;
-
-template class  List< instWaitingList *>;
