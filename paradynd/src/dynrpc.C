@@ -27,7 +27,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.40  1996/03/14 14:23:25  naim
+ * Revision 1.41  1996/04/03 14:27:37  naim
+ * Implementation of deallocation of instrumentation for solaris and sunos - naim
+ *
+ * Revision 1.40  1996/03/14  14:23:25  naim
  * Batching enable data requests for better performance - naim
  *
  * Revision 1.39  1996/03/11  19:02:08  mjrg
@@ -247,10 +250,12 @@ vector<T_dyninstRPC::metricInfo> dynRPC::getAvailableMetrics(void) {
   return(metInfo);
 }
 
-float dynRPC::getPredictedDataCost(vector<u_int> focus, string metName)
+void dynRPC::getPredictedDataCost(vector<u_int> focus, string metName)
 {
-    if (!metName.length()) return(0.0);
-    return (guessCost(metName, focus));
+    if (!metName.length()) 
+      getPredictedDataCostCallback(0,0.0);
+    else
+      getPredictedDataCostCallback(0,guessCost(metName, focus));
 }
 
 void dynRPC::disableDataCollection(int mid)

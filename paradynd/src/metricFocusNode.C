@@ -14,7 +14,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.85  1996/03/25 20:23:01  tamches
+ * Revision 1.86  1996/04/03 14:27:44  naim
+ * Implementation of deallocation of instrumentation for solaris and sunos - naim
+ *
+ * Revision 1.85  1996/03/25  20:23:01  tamches
  * the reduce-mem-leaks-in-paradynd commit
  *
  * Revision 1.84  1996/03/12 20:48:26  mjrg
@@ -416,6 +419,8 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
 #include "showerror.h"
 #include "costmetrics.h"
 
+extern vector<unsigned> getAllTrampsAtPoint(instInstance *instance);
+
 void flush_batch_buffer(int);
 void batchSampleData(int program, int mid, double startTimeStamp,
                      double endTimeStamp, double value, unsigned val_weight,
@@ -800,7 +805,7 @@ bool metricDefinitionNode::insertInstrumentation()
       //  return false;
       unsigned size = data.size();
       for (unsigned u=0; u<size; u++)
-        data[u]->insertInstrumentation(this);
+        if (!(data[u]->insertInstrumentation(this))) return(false);
       size = requests.size();
       for (unsigned u1=0; u1<size; u1++)
         requests[u1].insertInstrumentation();
@@ -859,12 +864,19 @@ void metricDefinitionNode::disable()
         for (unsigned u=0; u<c_size; u++)
           components[u]->disable();
     } else {
-      unsigned size = data.size();
-      for (unsigned u=0; u<size; u++)
-        data[u]->disable();
+      vector<unsigVecType> pointsToCheck;
+      unsigned size;
       size = requests.size();
-      for (unsigned u1=0; u1<size; u1++)
-        requests[u1].disable();
+      for (unsigned u1=0; u1<size; u1++) {
+        unsigVecType pointsForThisRequest = 
+            getAllTrampsAtPoint(requests[u1].getInstance());
+        pointsToCheck += pointsForThisRequest;
+        requests[u1].disable(pointsForThisRequest);
+      }
+      size = data.size();
+      for (unsigned u=0; u<size; u++) {
+        data[u]->disable(pointsToCheck);
+      }
     }
 
 }
@@ -893,7 +905,7 @@ metricDefinitionNode::~metricDefinitionNode()
 //      or, send it when the last sample in the interval has arrived.       //
 //////////////////////////////////////////////////////////////////////////////
 
-const unsigned SAMPLE_BUFFER_SIZE = 1024;
+const unsigned SAMPLE_BUFFER_SIZE = 1024/sizeof(T_dyninstRPC::batch_buffer_entry);
 bool BURST_HAS_COMPLETED = false;
    // set to true after a burst (after a processTraceStream(), or sampleNodes for
    // the CM5), which will force the buffer to be flushed before it fills up
@@ -922,7 +934,21 @@ void flush_batch_buffer(int program) {
    //logLine(myLogBuffer) ;
 
    // Now let's do the actual igen call!
+
+//TEST
+timeStamp t1,t2;
+t1=getCurrentTime(false);
+//TEST
+
    tp->batchSampleDataCallbackFunc(program, copyBatchBuffer);
+
+//TEST
+t2=getCurrentTime(false);
+if ((float)(t2-t1) > 1.0) {
+sprintf(errorLine,"++--++ TEST ++--++ batchSampleDataCallbackFunc took %5.2f secs, size=%d, Kbytes=%5.2f\n",(float)(t2-t1),sizeof(T_dyninstRPC::batch_buffer_entry),(float)(sizeof(T_dyninstRPC::batch_buffer_entry)*copyBatchBuffer.size()/1024.0));
+logLine(errorLine);
+}
+//TEST
 
    BURST_HAS_COMPLETED = false;
    batch_buffer_next = 0;
@@ -1299,9 +1325,9 @@ bool instReqNode::insertInstrumentation()
     return(false);
 }
 
-void instReqNode::disable()
+void instReqNode::disable(vector<unsigned> pointsToCheck)
 {
-    deleteInst(instance);
+    deleteInst(instance, pointsToCheck);
     instance = NULL;
 }
 
@@ -1405,17 +1431,19 @@ void dataReqNode::insertGlobal() {
   if (type == INTCOUNTER) {
     intCounterHandle *ret;
     ret = createCounterInstance();
+    if (!ret) return;
     instance = (void *) ret;
     id = ret->data.id;
   } else 
     abort();
 }
 
-void dataReqNode::insertInstrumentation(metricDefinitionNode *mi) 
+bool dataReqNode::insertInstrumentation(metricDefinitionNode *mi) 
 {
     if (type == INTCOUNTER) {
         intCounterHandle *ret;
         ret = createCounterInstance();
+        if (!ret) return false;
         instance = (void *) ret;
         id = ret->data.id;
         unsigned mid = id.id;
@@ -1423,14 +1451,16 @@ void dataReqNode::insertInstrumentation(metricDefinitionNode *mi)
     } else {
         timerHandle *ret;
         ret = createTimerInstance();
+        if (!ret) return false;
         instance = (void *) ret;
         id = ret->data.id;
         unsigned mid = id.id;
         midToMiMap[mid] = mi;
     }
+    return true;
 }
 
-void dataReqNode::disable()
+void dataReqNode::disable(vector<unsigVecType> pointsToCheck)
 {
     if (!instance) return;
 
@@ -1440,9 +1470,9 @@ void dataReqNode::disable()
     midToMiMap.undef(mid);
 
     if (type == TIMER) {
-        freeTimer((timerHandle *) instance);
+        freeTimer((timerHandle *) instance, pointsToCheck);
     } else if (type == INTCOUNTER) {
-        freeIntCounter((intCounterHandle *) instance);
+        freeIntCounter((intCounterHandle *) instance, pointsToCheck);
     } else {
         abort();
     }

@@ -10,7 +10,10 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
- * Revision 1.29  1996/03/12 20:48:37  mjrg
+ * Revision 1.30  1996/04/03 14:27:54  naim
+ * Implementation of deallocation of instrumentation for solaris and sunos - naim
+ *
+ * Revision 1.29  1996/03/12  20:48:37  mjrg
  * Improved handling of process termination
  * New version of aggregateSample to support adding and removing components
  * dynamically
@@ -152,6 +155,7 @@
 #include "util/h/String.h"
 #include "util/h/Dictionary.h"
 #include "util/h/Types.h"
+#include "util/h/Timer.h"
 #include "os.h"
 #include "main.h"
 #include "dyninstRPC.xdr.h"
@@ -168,16 +172,25 @@ class image;
 
 typedef enum { neonatal, running, stopped, exited } processState;
 typedef enum { HEAPfree, HEAPallocated } heapStatus;
+typedef enum { textHeap, dataHeap } inferiorHeapType;
+typedef vector<unsigned> unsigVecType;
 
 class heapItem {
  public:
   heapItem() {
-    addr =0; length = 0; status = HEAPfree;
+    addr =0; length = 0; status = HEAPfree; 
   }
   Address addr;
   int length;
   heapStatus status;
-}; 
+};
+
+class disabledItem {
+ public:
+  disabledItem() { pointer = 0; }
+  unsigned pointer;
+  vector<unsigVecType> pointsToCheck;
+};
 
 //
 // read a C/C++ book to find out the difference
@@ -203,10 +216,22 @@ friend class ptraceKludge;
     stopAtFirstBreak = false;
     splitHeaps = false;
     waitingForNodeDaemon = false;
+    disabledListTotalMem=0;
+    totalFreeMemAvailable=SYN_INST_BUF_SIZE;
   }
 
   static string programName;
   static vector<string> arg_list;
+
+  vector<disabledItem> disabledList;
+  int disabledListTotalMem;
+  int totalFreeMemAvailable;
+  vector<Address> walkStack();
+  //
+  // getActiveFrame and readDataFromFrame are platform dependant
+  //
+  bool getActiveFrame(int *fp, int *pc);
+  bool readDataFromFrame(int currentFP, int *previousFP, int *rtn);
 
   processState status() const { return status_;}
   inline void Exited();
@@ -251,7 +276,7 @@ friend class ptraceKludge;
   inline bool writeDataSpace(caddr_t inTracedProcess,
 			     int amount, caddr_t inSelf);
   inline bool readDataSpace(caddr_t inTracedProcess, int amount,
-			    caddr_t inSelf);
+			    caddr_t inSelf, bool displayErrMsg);
   inline bool writeTextSpace(caddr_t inTracedProcess, int amount, caddr_t inSelf);
   inline bool writeTextWord(caddr_t inTracedProcess, int data);
   inline bool continueProc();
@@ -386,7 +411,7 @@ inline bool process::writeDataSpace(caddr_t inTracedProcess, int size, caddr_t i
   return true;
 }
 
-inline bool process::readDataSpace(caddr_t inTracedProcess, int size, caddr_t inSelf) {
+inline bool process::readDataSpace(caddr_t inTracedProcess, int size, caddr_t inSelf, bool displayErrMsg) {
   bool needToCont = false;
 
   if (status_ == exited)
@@ -405,9 +430,12 @@ inline bool process::readDataSpace(caddr_t inTracedProcess, int size, caddr_t in
 
   bool res = readDataSpace_(inTracedProcess, size, inSelf);
   if (!res) {
-    string msg = string("System error: unable to write to process data space:")
-	           + string(sys_errlist[errno]);
-    showErrorCallback(38, msg);
+    if (displayErrMsg) {
+      string msg;
+      msg=string("System error: unable to read from process data space:")
+          + string(sys_errlist[errno]);
+      showErrorCallback(38, msg);
+    }
     return false;
   }
 
@@ -492,9 +520,9 @@ void handleProcessExit(process *p, int exitStatus);
 void initInferiorHeap(process *proc, bool globalHeap, bool textHeap);
 void copyInferiorHeap(process *from, process *to);
 
-typedef enum { textHeap, dataHeap } inferiorHeapType;
 unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type);
-void inferiorFree(process *proc, unsigned pointer, inferiorHeapType type);
+void inferiorFree(process *proc, unsigned pointer, inferiorHeapType type,
+                  vector<unsigVecType> pointsToCheck);
 
 extern resource *machineResource;
 
@@ -518,4 +546,46 @@ inline void process::Stopped(void) {
   }
 }
 
+class Frame {
+  public:
+    Frame() {
+      frame_=0;
+      pc_=0;
+    }
+    void getActiveStackFrameInfo(process *proc)
+    {
+      int fp, pc;
+      if (proc->getActiveFrame(&fp, &pc)) {
+        frame_ = fp;
+        pc_ = pc;
+      }
+      else {
+        frame_ = 0;
+        pc_ = 0;
+      }
+    }
+    Frame getPreviousStackFrameInfo(process *proc)
+    {
+      int fp;
+      int rtn;
+      Frame frame;
+
+      if (frame_ != 0) {
+        if (proc->readDataFromFrame(frame_, &fp, &rtn))
+        {
+          frame.frame_ = fp;
+          frame.pc_ = rtn;
+        }
+      }
+      return(frame);
+    }
+    int getPC() { return pc_; }
+    bool isLastFrame() { if (frame_ == 0) return(true);
+                         else return(false); }
+  private:
+    int frame_;
+    int pc_;
+};
+
 #endif
+

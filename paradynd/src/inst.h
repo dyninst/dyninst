@@ -11,7 +11,10 @@
  *   by the instrumentation layer.
  *
  * $Log: inst.h,v $
- * Revision 1.16  1996/03/25 20:21:08  tamches
+ * Revision 1.17  1996/04/03 14:27:41  naim
+ * Implementation of deallocation of instrumentation for solaris and sunos - naim
+ *
+ * Revision 1.16  1996/03/25  20:21:08  tamches
  * the reduce-mem-leaks-in-paradynd commit
  *
  * Revision 1.15  1996/03/20 17:02:49  mjrg
@@ -105,6 +108,7 @@
  */
 
 #include "rtinst/h/trace.h"
+#include "process.h"
 
 class instInstance;
 class process;
@@ -152,11 +156,11 @@ instInstance *addInstFunc(process *proc,
 float getPointFrequency(instPoint *point);
 int getPointCost(process *proc, instPoint *point);
 
-void deleteInst(instInstance*);
+void deleteInst(instInstance*, vector<unsigned> pointsToCheck);
 
 intCounterHandle *createIntCounter(process *proc, int value, bool report);
 int getIntCounterValue(intCounterHandle*);
-void freeIntCounter(intCounterHandle*);
+void freeIntCounter(intCounterHandle*, vector<unsigVecType>);
 void addToIntCounter(intCounterHandle*, int amount);
 
 floatCounter *createFloatCounter(int pid);
@@ -187,7 +191,7 @@ float getTimerValue(timerHandle *timer);
  * dispose of a timer. 
  *
  */
-void freeTimer(timerHandle*);
+void freeTimer(timerHandle*, vector<unsigVecType>);
 
 /*
  * Test if the inst point is for a call to a tahracked function (as opposed to

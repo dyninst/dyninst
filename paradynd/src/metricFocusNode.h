@@ -7,7 +7,10 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
- * Revision 1.29  1996/03/25 20:22:58  tamches
+ * Revision 1.30  1996/04/03 14:27:48  naim
+ * Implementation of deallocation of instrumentation for solaris and sunos - naim
+ *
+ * Revision 1.29  1996/03/25  20:22:58  tamches
  * the reduce-mem-leaks-in-paradynd commit
  *
  * Revision 1.28  1996/03/12 20:48:29  mjrg
@@ -188,8 +191,8 @@ public:
   float getMetricValue();
   float cost();
   void insertGlobal();    // allow a global "variable" to be inserted
-  void insertInstrumentation(metricDefinitionNode *mi);
-  void disable();
+  bool insertInstrumentation(metricDefinitionNode *mi);
+  void disable(vector<unsigVecType> pointsToCheck);
 
   // return a pointer in the inferior address space of this data object.
   unsigned getInferiorPtr();
@@ -243,8 +246,9 @@ public:
   }
 
   bool insertInstrumentation();
-  void disable();
+  void disable(vector<unsigned> pointsToCheck);
   float cost();
+  instInstance *getInstance() { return instance; }
 
 private:
   process	*proc;

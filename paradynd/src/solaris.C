@@ -1,7 +1,10 @@
 
 /* 
  * $Log: solaris.C,v $
- * Revision 1.8  1996/03/12 20:48:39  mjrg
+ * Revision 1.9  1996/04/03 14:27:56  naim
+ * Implementation of deallocation of instrumentation for solaris and sunos - naim
+ *
+ * Revision 1.8  1996/03/12  20:48:39  mjrg
  * Improved handling of process termination
  * New version of aggregateSample to support adding and removing components
  * dynamically
@@ -50,12 +53,15 @@
 #include <fcntl.h>
 #include <sys/termios.h>
 #include <unistd.h>
+#include <sys/procfs.h>
 #include "showerror.h"
 
 extern "C" {
 extern int ioctl(int, int, ...);
 extern long sysconf(int);
 };
+
+extern bool isValidAddress(process *proc, Address where);
 
 class ptraceKludge {
 public:
@@ -238,16 +244,16 @@ bool process::loopUntilStopped() {
       return(false);
     }
     if (!WIFSTOPPED(waitStatus) && !WIFSIGNALED(waitStatus)) {
-      cerr << "problem stopping process\n";
-      P_abort();
+      logLine("Problem stopping process\n");
+      P__exit(-1);
     }
     int sig = WSTOPSIG(waitStatus);
     if (sig == SIGSTOP) {
       isStopped = true;
     } else {
       if (P_ptrace(PTRACE_CONT, pid, 1, WSTOPSIG(waitStatus)) == -1) {
-	cerr << "Ptrace error\n";
-	P_abort();
+	logLine("Ptrace error\n");
+	P__exit(-1);
       }
     }
   }
@@ -423,4 +429,91 @@ int getNumberOfCPUs()
   else 
     return(1);
 }  
+
+bool process::getActiveFrame(int *fp, int *pc)
+{
+  int fd;
+  prgregset_t regs;
+  char procName[128];
+  bool ok=false;
+
+  sprintf(procName,"/proc/%05d", pid);
+  fd = P_open(procName, O_RDONLY, 0);
+  if (fd < 0) {
+    logLine("Error: P_open failed\n");
+  }
+  else {
+    if (ioctl (fd, PIOCGREG, &regs) != -1) {
+      *fp=regs[R_O6];
+      *pc=regs[R_PC];
+      ok=true;
+    }
+  }
+
+#ifdef FREEDEBUG
+  if (!ok) 
+    logLine("--> TEST <-- getActiveFrame is returning FALSE\n");
+#endif
+
+  P_close(fd);
+  return(ok);
+}
+
+bool process::readDataFromFrame(int currentFP, int *fp, int *rtn)
+{
+  bool readOK=true;
+  struct {
+    int fp;
+    int rtn;
+  } addrs;
+
+#ifdef FREEDEBUG
+  static int fpT=0,rtnT=0;
+#endif
+
+  //
+  // For the sparc, register %i7 is the return address - 8 and the fp is
+  // register %i6. These registers can be located in currentFP+14*5 and
+  // currentFP+14*4 respectively, but to avoid two calls to readDataSpace,
+  // we bring both together (i.e. 8 bytes of memory starting at currentFP+14*4
+  // or currentFP+56).
+  //
+
+  if (readDataSpace((caddr_t) (currentFP + 56),
+                    sizeof(int)*2, (caddr_t) &addrs, true)) {
+    // this is the previous frame pointer
+    *fp = addrs.fp;
+    // return address
+    *rtn = addrs.rtn + 8;
+
+#ifdef FREEDEBUG
+    fpT=*fp; rtnT=*rtn;
+#endif
+
+    // if pc==0, then we are in the outermost frame and we should stop. We
+    // do this by making fp=0.
+
+#ifdef FREEDEBUG
+if ( (addrs.rtn!=0) && (!isValidAddress(this,(Address) addrs.rtn)) ) {
+  sprintf(errorLine,"==> TEST <== In readDataFromFrame, CHECK, pc out of range. pc=%d, fp=%d\n",rtnT,fpT);
+  logLine(errorLine);
+}
+#endif
+
+    if ( (addrs.rtn == 0) || !isValidAddress(this,(Address) addrs.rtn) ) {
+      readOK=false;
+    }
+  }
+  else {
+
+#ifdef FREEDEBUG
+  sprintf(errorLine,"==> TEST <== In readDataFromFrame, ERROR?, inTrace=%d, amount=%d, inSelf=%d, previousFP=%d, %x(hex) previousPC=%d, %x(hex). Keep going...\n",(currentFP+56),sizeof(int)*2,&addrs,fpT,fpT,rtnT,rtnT);
+  logLine(errorLine);
+#endif
+
+    readOK=false;
+  }
+
+  return(readOK);
+}
 

@@ -1,7 +1,10 @@
 
 /* 
  * $Log: sunos.C,v $
- * Revision 1.13  1996/03/12 20:48:40  mjrg
+ * Revision 1.14  1996/04/03 14:27:58  naim
+ * Implementation of deallocation of instrumentation for solaris and sunos - naim
+ *
+ * Revision 1.13  1996/03/12  20:48:40  mjrg
  * Improved handling of process termination
  * New version of aggregateSample to support adding and removing components
  * dynamically
@@ -78,6 +81,7 @@
 #include "util/h/Types.h"
 #include <sys/ioctl.h>
 #include <fcntl.h>
+#include <machine/reg.h>
 #include "showerror.h"
 #include "main.h"
 // #include <sys/termios.h>
@@ -90,6 +94,8 @@ extern int getrusage(int, struct rusage*);
 #include <stab.h>
 extern struct rusage *mapUarea();
 };
+
+extern bool isValidAddress(process *proc, Address where);
 
 extern struct rusage *mapUarea();
 
@@ -110,6 +116,54 @@ bool ptraceKludge::haltProcess(process *p) {
     }
   }
   return wasStopped;
+}
+
+bool process::getActiveFrame(int *fp, int *pc)
+{
+  struct regs regs;
+  if (ptraceKludge::deliverPtrace(this,PTRACE_GETREGS,(char *)&regs,0,0)) {
+    *fp=regs.r_o6;
+    *pc=regs.r_pc;
+    return(true);
+  }
+  else return(false);
+}
+
+bool process::readDataFromFrame(int currentFP, int *fp, int *rtn)
+{
+  bool readOK=true;
+  struct {
+    int fp;
+    int rtn;
+  } addrs;
+
+  //
+  // For the sparc, register %i7 is the return address - 8 and the fp is
+  // register %i6. These registers can be located in currentFP+14*5 and
+  // currentFP+14*4 respectively, but to avoid two calls to readDataSpace,
+  // we bring both together (i.e. 8 bytes of memory starting at currentFP+14*4
+  // or currentFP+56).
+  //
+
+  if (readDataSpace((caddr_t) (currentFP + 56),
+                    sizeof(int)*2, (caddr_t) &addrs, true)) {
+    // this is the previous frame pointer
+    *fp = addrs.fp;
+    // return address
+    *rtn = addrs.rtn + 8;
+
+    // if pc==0, then we are in the outermost frame and we should stop. We
+    // do this by making fp=0.
+
+    if ( (addrs.rtn == 0) || !isValidAddress(this,(Address) addrs.rtn) ) {
+      readOK=false;
+    }
+  }
+  else {
+    readOK=false;
+  }
+
+  return(readOK);
 }
 
 bool ptraceKludge::deliverPtrace(process *p, enum ptracereq req, char *addr,
@@ -276,16 +330,16 @@ bool process::loopUntilStopped() {
       return(false);
     }
     if (!WIFSTOPPED(waitStatus) && !WIFSIGNALED(waitStatus)) {
-      printf("problem stopping process\n");
-      assert(0);
+      logLine("Problem stopping process\n");
+      P__exit(-1);
     }
     int sig = WSTOPSIG(waitStatus);
     if (sig == SIGSTOP) {
       isStopped = true;
     } else {
       if (P_ptrace(PTRACE_CONT, pid, (char*)1, WSTOPSIG(waitStatus), 0) == -1) {
-	cerr << "Ptrace error\n";
-	assert(0);
+	logLine("Ptrace error\n");
+        return(false);
       }
     }
   }

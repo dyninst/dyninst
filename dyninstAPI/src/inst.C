@@ -7,7 +7,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst.C,v 1.24 1996/03/25 22:58:07 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst.C,v 1.25 1996/04/03 14:27:39 naim Exp $";
 #endif
 
 
@@ -15,7 +15,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyn
  * inst.C - Code to install and remove inst funcs from a running process.
  *
  * $Log: inst.C,v $
- * Revision 1.24  1996/03/25 22:58:07  hollings
+ * Revision 1.25  1996/04/03 14:27:39  naim
+ * Implementation of deallocation of instrumentation for solaris and sunos - naim
+ *
+ * Revision 1.24  1996/03/25  22:58:07  hollings
  * Support functions that have multiple exit points.
  *
  * Revision 1.23  1996/03/25  20:21:10  tamches
@@ -266,6 +269,7 @@ instInstance *addInstFunc(process *proc, instPoint *location,
 
     /* make sure the base tramp has been installed for this point */
     ret->baseAddr = findAndInstallBaseTramp(proc, location);
+    if (!ret->baseAddr) return(NULL);
 
     // 
     // Generate the code for this tramp.
@@ -276,6 +280,7 @@ instInstance *addInstFunc(process *proc, instPoint *location,
     ret->returnAddr = ast.generateTramp(proc, insn, count, trampCost); 
 
     ret->trampBase = inferiorMalloc(proc, count, textHeap);
+    if (!ret->trampBase) return(NULL);
     trampBytes += count;
     ret->returnAddr += ret->trampBase;
 
@@ -335,6 +340,39 @@ instInstance *addInstFunc(process *proc, instPoint *location,
     return(ret);
 }
 
+//
+// This procedure assumes that any mini-tramp for an inst request could refer 
+// to any data pointer for that request. A more complex analysis could check 
+// what data pointers each mini-tramp really used, but I don't think it is 
+// worth the trouble.
+//
+vector<unsigned> getAllTrampsAtPoint(instInstance *instance)
+{
+    vector<unsigned> pointsToCheck;
+    instInstance *start;
+    instInstance *next;
+    point *thePoint;
+
+    if (activePoints.defines(instance->location)) {
+      thePoint = activePoints[instance->location];
+      start = thePoint->inst;
+      // Base tramp
+      pointsToCheck += start->baseAddr; 
+      pointsToCheck += start->trampBase;
+      // All mini-tramps at this point
+      for (next = start->next; next; next = next->next) {
+	if ((next->location == instance->location) && 
+	    (next->proc == instance->proc) &&
+	    (next->when == instance->when)) {
+	    if (next != instance) {
+              pointsToCheck += start->trampBase;
+	    }
+	}
+      }
+    }
+    return(pointsToCheck);
+}
+
 /*
  * The tramps are chained together left to right, so we need to find the
  *    tramps to the left anf right of the one to delete, and then patch the
@@ -343,7 +381,7 @@ instInstance *addInstFunc(process *proc, instPoint *location,
  *    one.
  *
  */
-void deleteInst(instInstance *old)
+void deleteInst(instInstance *old, vector<unsigned> pointsToCheck)
 {
     point *thePoint;
     instInstance *lag;
@@ -398,7 +436,9 @@ void deleteInst(instInstance *old)
 	}
     }
 
-    inferiorFree(old->proc, old->trampBase, textHeap);
+    vector<unsigVecType> tmp;
+    tmp += (unsigVecType) pointsToCheck;
+    inferiorFree(old->proc, old->trampBase, textHeap, tmp);
 
     /* remove old from atPoint linked list */
     if (right) right->prevAtPoint = left;
@@ -416,6 +456,32 @@ void deleteInst(instInstance *old)
     free(old);
 }
 
+//
+// Routine that checks whether a particular address is valid before deleting
+// the corresponding instrumentation associated to it.
+//
+bool isValidAddress(process *proc, Address where)
+{
+  bool result=true;
+  //
+  // Note: It seems that it is not necessary to do this step. In any case,
+  // calling "proc->symbols->isValidAddress(where)" usually returns false
+  // even for cases when the address looks ok. If it is required to have
+  // such a routine, we will have to figure out a better one. An idea
+  // could be to get the address for "start" and length of the code and
+  // make sure that the address "where" is between those two values (that's
+  // what gdb goes for sparcs) - naim
+  // 
+
+#ifdef FREEDEBUG
+  if (!result) {
+    sprintf(errorLine,"==> TEST <== isValidAddress is FALSE\n");
+    logLine(errorLine);
+  }
+#endif
+
+  return(result);
+}
 
 void installDefaultInst(process *proc, vector<instMapping*>& initialReqs)
 {

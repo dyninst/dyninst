@@ -5,7 +5,10 @@
 
 /* 
  * $Log: templates.C,v $
- * Revision 1.31  1996/03/25 20:25:58  tamches
+ * Revision 1.32  1996/04/03 14:28:00  naim
+ * Implementation of deallocation of instrumentation for solaris and sunos - naim
+ *
+ * Revision 1.31  1996/03/25  20:25:58  tamches
  * the reduce-mem-leaks-in-paradynd commit
  *
  * Revision 1.30  1996/03/20 17:02:53  mjrg
@@ -270,6 +273,8 @@ template class  vector<process*>;
 template class  vector<string>;
 template class  vector<sym_data>;
 template class  vector<unsigned>;
+template class  vector<disabledItem>;
+template class  vector<unsigVecType>;
 template class  vector<vector<string> >;
 template class  vector<watch_data>;
 template class  vector<costMetric *>;

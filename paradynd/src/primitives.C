@@ -14,7 +14,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/primitives.C,v 
  * primitives.C - instrumentation primitives.
  *
  * $Log: primitives.C,v $
- * Revision 1.10  1996/03/25 20:25:39  tamches
+ * Revision 1.11  1996/04/03 14:27:50  naim
+ * Implementation of deallocation of instrumentation for solaris and sunos - naim
+ *
+ * Revision 1.10  1996/03/25  20:25:39  tamches
  * the reduce-mem-leaks-in-paradynd commit
  *
  * Revision 1.9  1995/08/24 15:04:28  hollings
@@ -104,6 +107,8 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/primitives.C,v 
 /* unique id for a counter */
 static int counterId=0;
 
+extern vector<unsigned> getAllTrampsAtPoint(instInstance *instance);
+
 /*
  * Define the insturmentation primitives.
  *
@@ -121,6 +126,7 @@ intCounterHandle *createIntCounter(process *proc, int value, bool report)
     ret->data.id.id = counterId++;
     ret->counterPtr = (intCounter *) 
 	inferiorMalloc(proc, sizeof(intCounter), dataHeap);
+    if (!ret->counterPtr) return(NULL);
     ret->data.value = value;
     proc->writeDataSpace((caddr_t) ret->counterPtr, sizeof(intCounter),
 			 (caddr_t) &ret->data);
@@ -148,19 +154,22 @@ intCounterHandle *createIntCounter(process *proc, int value, bool report)
  */
 int getIntCounterValue(intCounterHandle *handle)
 {
-  (handle->proc)->readDataSpace((caddr_t)handle->counterPtr, sizeof(intCounter),
-				(caddr_t)&handle->data);
+  (handle->proc)->readDataSpace((caddr_t)handle->counterPtr, 
+                                sizeof(intCounter),
+				(caddr_t)&handle->data,true);
   // copyFromProcess(handle->proc, (char*)handle->counterPtr, (char*)&handle->data, sizeof(intCounter));
     return(handle->data.value);
 }
 
-void freeIntCounter(intCounterHandle *handle)
+void freeIntCounter(intCounterHandle *handle, 
+                    vector<unsigVecType> pointsToCheck)
 {
-    if (handle->sampler) deleteInst(handle->sampler);
-    inferiorFree(handle->proc, (unsigned) handle->counterPtr, dataHeap);
+    if (handle->sampler) 
+      deleteInst(handle->sampler, getAllTrampsAtPoint(handle->sampler));
+    inferiorFree(handle->proc, (unsigned) handle->counterPtr, dataHeap,
+                 pointsToCheck);
     free(handle);
 }
-
 
 timerHandle *createTimer(process *proc, timerType type, bool report)
 {
@@ -171,7 +180,7 @@ timerHandle *createTimer(process *proc, timerType type, bool report)
     ret->proc = proc;
     ret->timerPtr = (tTimer *) 
 	inferiorMalloc(proc, sizeof(tTimer), dataHeap);
-
+    if (!ret->timerPtr) return(NULL);
     P_memset((void*)&ret->data, (int)'\0', sizeof(tTimer));
     ret->data.id.aggregate = proc->aggregate;
     ret->data.id.id = counterId++;
@@ -205,7 +214,7 @@ float getTimerValue(timerHandle *handle)
     float value;
 
     (handle->proc)->readDataSpace((caddr_t)handle->timerPtr, sizeof(tTimer),
-				  (caddr_t)&handle->data);
+				  (caddr_t)&handle->data, true);
     // copyFromProcess(handle->proc, (char*)handle->timerPtr, (char*)&handle->data,sizeof(tTimer));
 
     value = (double)handle->data.total/(double)handle->data.normalize;
@@ -213,9 +222,10 @@ float getTimerValue(timerHandle *handle)
     return(value);
 }
 
-void freeTimer(timerHandle *handle)
+void freeTimer(timerHandle *handle, vector<unsigVecType> pointsToCheck)
 {
-    deleteInst(handle->sampler);
-    inferiorFree(handle->proc, (unsigned) handle->timerPtr, dataHeap);
+    deleteInst(handle->sampler, getAllTrampsAtPoint(handle->sampler));
+    inferiorFree(handle->proc, (unsigned) handle->timerPtr, dataHeap,
+                 pointsToCheck);
     free(handle);
 }

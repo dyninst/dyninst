@@ -1,7 +1,10 @@
 
 /*
  * $Log: cm5.C,v $
- * Revision 1.10  1996/03/06 19:32:55  naim
+ * Revision 1.11  1996/04/03 14:27:35  naim
+ * Implementation of deallocation of instrumentation for solaris and sunos - naim
+ *
+ * Revision 1.10  1996/03/06  19:32:55  naim
  * Minor change to fix internal metric numberOfCPUs on the CM-5 - naim
  *
  * Revision 1.9  1996/02/21  19:30:35  naim
@@ -67,6 +70,8 @@ extern int CMMD_partition_size(void);
 #include <machine/reg.h>
 #include <cm/cmmd.h>
 #include "ptrace_emul.h"
+
+extern bool isValidAddress(process *proc, Address where);
 
 // TODO 
 // TODO 
@@ -377,8 +382,7 @@ bool process::readDataSpace_(caddr_t inTraced, int amount, caddr_t inSelf) {
   ptraceOps++; ptraceBytes += amount;
   return (ptraceKludge::deliverPtrace(this, PTRACE_READDATA, inTraced, amount, inSelf));
 #endif
-  abort();
-  return false;
+  return (PCptrace(PTRACE_READDATA, this, inTraced, amount, inSelf) != -1);
 }
 
 bool process::loopUntilStopped() {
@@ -395,16 +399,17 @@ bool process::loopUntilStopped() {
       return(false);
     }
     if (!WIFSTOPPED(waitStatus) && !WIFSIGNALED(waitStatus)) {
-      printf("problem stopping process\n");
-      assert(0);
+      logLine("Problem stopping process\n");
+      P__exit(-1);
     }
     int sig = WSTOPSIG(waitStatus);
     if (sig == SIGSTOP) {
       isStopped = true;
     } else {
-      if (P_ptrace(PTRACE_CONT, pid, (char*)1, WSTOPSIG(waitStatus), 0) == -1) {
-	cerr << "Ptrace error\n";
-	assert(0);
+      if (P_ptrace(PTRACE_CONT, pid, (char*)1, WSTOPSIG(waitStatus), 0) == -1) 
+      {
+	logLine("Ptrace error\n");
+	P__exit(-1);
       }
     }
   }
@@ -468,5 +473,58 @@ int getNumberOfCPUs()
     return(numberOfCPUs);
   else
     return(1);
+}
+
+//
+// Note: we still have problems on the CM-5 for walking the stack. 
+// Therefore, these two routines need to be checked again - naim
+//
+bool process::getActiveFrame(int *fp, int *pc)
+{
+  struct regs regs;
+  if (PCptrace(PTRACE_GETREGS,this,(char *)&regs,0,(char*)NULL) != -1) {
+    *fp=regs.r_o6;
+    *pc=regs.r_pc;
+    return(true);
+  }
+  else {
+    return(false);
+  }
+}
+
+bool process::readDataFromFrame(int currentFP, int *fp, int *rtn)
+{
+  bool readOK=true;
+  struct {
+    int fp;
+    int rtn;
+  } addrs;
+
+  //
+  // For the sparc, register %i7 is the return address - 8 and the fp is
+  // register %i6. These registers can be located in currentFP+14*5 and
+  // currentFP+14*4 respectively, but to avoid two calls to readDataSpace,
+  // we bring both together (i.e. 8 bytes of memory starting at currentFP+14*4
+  // or currentFP+56).
+  //
+
+  if (readDataSpace((caddr_t) (currentFP + 56),
+                    sizeof(int)*2, (caddr_t) &addrs, true)) {
+    // this is the previous frame pointer
+    *fp = addrs.fp;
+    // return address
+    *rtn = addrs.rtn + 8;
+
+    // if pc==0, then we are in the outermost frame and we should stop. We
+    // do this by making fp=0.
+
+    if ( (addrs.rtn == 0) || !isValidAddress(this,(Address) addrs.rtn) ) {
+      readOK=false;
+    }
+  }
+  else {
+    readOK=false;
+  }
+  return(readOK);
 }
 
