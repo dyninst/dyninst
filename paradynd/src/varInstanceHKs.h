@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.h,v 1.1 2002/05/02 21:28:41 schendel Exp $
+// $Id: varInstanceHKs.h,v 1.2 2002/05/04 21:47:11 schendel Exp $
 // contains houseKeeping (HK) classes used as the first template input type
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -60,13 +60,6 @@ class genericHK {
  protected:
    threadMetFocusNode_Val *thrNodeVal;
    
-   // Needed for GC use:
-   struct trampRange {
-      Address startAddr;
-      Address endAddr;
-   };
-   vector<trampRange> trampsUsingMe;
-
    // new vector class wants copy-ctor defined:
    genericHK(const genericHK &src) {
       thrNodeVal = src.thrNodeVal;
@@ -79,9 +72,6 @@ class genericHK {
   ~genericHK() {}
    genericHK &operator=(const genericHK &src);
 
-   void makePendingFree(const vector<Address> &iTrampsUsing,
-			process *inferiorProc);
-   bool tryGarbageCollect(const vector<Frame> &stackWalk);
    // Given a list of inferior process PC-registers representing a stack
    // trace (i.e. the current inferior process PC, the PC of its caller, then
    // its caller, etc etc.).  GC will succeed iff none of these PC values

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.7 2002/05/02 21:28:49 schendel Exp $
+// $Id: templates2.C,v 1.8 2002/05/04 21:47:18 schendel Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -97,7 +97,6 @@ template class vectorSet<process::inferiorRPCinProgress>;
 
 #ifdef SHM_SAMPLING
 #include "varInstanceHKs.h"
-template class vector<genericHK::trampRange>;
 template class vector<element_state>;
 
 template class vector<intCounterHK*>;
@@ -107,6 +106,7 @@ template class vector<processTimerHK*>;
 #ifndef USES_NATIVE_CC
 #include "varInstance.C"
 #endif
+template class vector<trampRange>;
 template class varInstance<intCounterHK>;
 template class varInstance<wallTimerHK>;
 template class varInstance<processTimerHK>;
