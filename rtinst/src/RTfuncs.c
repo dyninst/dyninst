@@ -3,7 +3,10 @@
  *   functions for a SUNOS SPARC processor.
  *
  * $Log: RTfuncs.c,v $
- * Revision 1.4  1993/10/19 15:29:58  hollings
+ * Revision 1.5  1993/12/13 19:47:29  hollings
+ * support for DYNINSTsampleMultiple.
+ *
+ * Revision 1.4  1993/10/19  15:29:58  hollings
  * new simpler primitives.
  *
  * Revision 1.3  1993/10/01  18:15:53  hollings
@@ -37,6 +40,7 @@ DYNINSTendUserCode()
 char DYNINSTdata[SYN_INST_BUF_SIZE];
 char DYNINSTglobalData[SYN_INST_BUF_SIZE];
 int DYNINSTnumSampled;
+int DYNINSTnumReported;
 
 void DYNINSTreportCounter(intCounter *counter)
 {
@@ -73,6 +77,8 @@ void DYNINSTexitPrint(int arg)
     printf("exit %d\n", arg);
 }
 
+volatile int DYNINSTsampleMultiple = 1;
+
 /*
  * This is a function that should be called when we want to sample the
  *   timers and counters.  The code to do the sampling is added as func
@@ -81,7 +87,7 @@ void DYNINSTexitPrint(int arg)
  */
 void DYNINSTsampleValues()
 {
-    DYNINSTnumSampled++;
+    DYNINSTnumReported++;
 }
 
 void DYNINSTalarmExpire()
@@ -93,7 +99,9 @@ void DYNINSTalarmExpire()
 
     inSample = 1;
 
-    DYNINSTsampleValues();
+    /* only sample every DYNINSTsampleMultiple calls */
+    if ((++DYNINSTnumSampled % DYNINSTsampleMultiple) == 0) 
+	DYNINSTsampleValues();
 
     inSample = 0;
 }
