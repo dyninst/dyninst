@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.107 2000/06/14 23:05:24 wylie Exp $
+// $Id: symtab.C,v 1.108 2000/06/26 17:01:54 wylie Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1489,8 +1489,8 @@ bool image::addAllFunctions(vector<Symbol> &mods,
 	string msg;
 	char tempBuffer[40];
 	sprintf(tempBuffer,"0x%lx",lookUp.addr());
-	msg = string("Function") + lookUp.name() + string("has bad address ") +
-	      string(tempBuffer);
+	msg = string("Function ") + lookUp.name() + string(" has bad address ")
+	    + string(tempBuffer);
 	statusLine(msg.string_of());
 	showErrorCallback(29, msg);
 	return false;
@@ -1543,8 +1543,8 @@ bool image::addAllSharedObjFunctions(vector<Symbol> &mods,
 	string msg;
 	char tempBuffer[40];
 	sprintf(tempBuffer,"0x%lx",lookUp.addr());
-	msg = string("Function") + lookUp.name() + string("has bad address ") +
-	      string(tempBuffer);
+	msg = string("Function ") + lookUp.name() + string(" has bad address ")
+	    + string(tempBuffer);
 	statusLine(msg.string_of());
 	showErrorCallback(29, msg);
 	return false;
