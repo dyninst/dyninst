@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.90 2001/06/04 18:42:39 bernat Exp $
+// $Id: mdl.C,v 1.91 2001/06/12 19:39:14 ning Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -674,7 +674,8 @@ bool checkInMIComponents(string flat_name, metricDefinitionNode *&comp, bool rep
 // this prim should always be a new primitive mdn just constructed
 // that is, not used by any component mdn yet, and not added to
 // allMIPrimitives yet.
-bool check2MIPrimitives(string flat_name, metricDefinitionNode *&prim)
+bool check2MIPrimitives(string flat_name, metricDefinitionNode *&prim,
+			bool computingCost)
 {
   // this is DCG optimization that will be applied only if OPT_VERSION is on
   // DCG for Dynamic Code Generation, basicly, a list of (where, definition) of a variable
@@ -690,10 +691,12 @@ bool check2MIPrimitives(string flat_name, metricDefinitionNode *&prim)
   if (match_prim != NULL) {  // matched!!
     metric_cerr << "  matched in miprimitives! " << flat_name << endl;
 
-    if (toDeletePrimitiveMDN(prim))                                                   // cleanup_drn
-      delete prim;  // this is proper, should not be used anywhere else               // removeComponent
-    else                                                                              // then delete
-      metric_cerr << "  ERR: should be able to delete primitive! " << endl;
+    if (!computingCost) {
+      if (toDeletePrimitiveMDN(prim))                                                   // cleanup_drn
+	delete prim;  // this is proper, should not be used anywhere else               // removeComponent
+      else                                                                              // then delete
+	metric_cerr << "  ERR: should be able to delete primitive! " << endl;
+    }
 
     prim = match_prim;
   }
@@ -899,7 +902,7 @@ apply_to_process(process *proc,
 	      return NULL;
 	    }
 
-	    check2MIPrimitives(primitive_flat_name, cons_prim);
+	    check2MIPrimitives(primitive_flat_name, cons_prim, computingCost);
 	  }
 	  else { // alThere (constraints)
 	    metric_cerr << "  flag already there " << endl;
@@ -952,7 +955,7 @@ apply_to_process(process *proc,
       return NULL;
     }
 
-    if (!alreadyThere)  check2MIPrimitives(metric_flat_name, metric_prim);
+    if (!alreadyThere)  check2MIPrimitives(metric_flat_name, metric_prim, computingCost);
 
     mn->addPart(metric_prim);
 
@@ -964,7 +967,8 @@ apply_to_process(process *proc,
 // this prim should always be a new primitive mdn just constructed
 // that is, not used by any component mdn yet, and not added to
 // allMIPrimitives yet.
-bool checkFlagMIPrimitives(string flat_name, metricDefinitionNode *& prim)
+bool checkFlagMIPrimitives(string flat_name, metricDefinitionNode *& prim,
+			   bool computingCost)
 {
   // this is DCG optimization that will be applied only if OPT_VERSION is on
   // DCG for Dynamic Code Generation, basicly, a list of (where, definition) of a variable
@@ -984,12 +988,14 @@ bool checkFlagMIPrimitives(string flat_name, metricDefinitionNode *& prim)
     // delete prim;  // this is proper, should not be used anywhere else
     // else
     // metric_cerr << "  ERR: should be able to delete primitive! " << endl;
-    prim->cleanup_drn();
+    if (!computingCost) {
+      prim->cleanup_drn();
 
-    for (unsigned u=0; u<(prim->getComponents()).size(); u++)
-      prim->removeComponent((prim->getComponents())[u]);
-    (prim->getComponents()).resize(0);
-    delete prim;
+      for (unsigned u=0; u<(prim->getComponents()).size(); u++)
+	prim->removeComponent((prim->getComponents())[u]);
+      (prim->getComponents()).resize(0);
+      delete prim;
+    }
     
     prim = match_prim;
   }
@@ -1003,7 +1009,8 @@ bool checkFlagMIPrimitives(string flat_name, metricDefinitionNode *& prim)
 
 // same as "checkFlagMIPrimitives", except that this is for metric, --- not necessary
 // need to reuse proc_mn if a match is found
-bool checkMetricMIPrimitives(string metric_flat_name, metricDefinitionNode *& metric_prim)
+bool checkMetricMIPrimitives(string metric_flat_name, metricDefinitionNode *& metric_prim,
+			     bool computingCost)
 {
   // this is DCG optimization that will be applied only if OPT_VERSION is on
   // DCG for Dynamic Code Generation, basicly, a list of (where, definition) of a variable
@@ -1023,12 +1030,14 @@ bool checkMetricMIPrimitives(string metric_flat_name, metricDefinitionNode *& me
     // delete metric_prim;  // this is proper, should not be used anywhere else
     // else
     // metric_cerr << "  ERR: should be able to delete primitive! " << endl;
-    metric_prim->cleanup_drn();
+    if (!computingCost) {
+      metric_prim->cleanup_drn();
 
-    for (unsigned u=0; u<(metric_prim->getComponents()).size(); u++)
-      metric_prim->removeComponent((metric_prim->getComponents())[u]);
-    (metric_prim->getComponents()).resize(0);
-    delete metric_prim;
+      for (unsigned u=0; u<(metric_prim->getComponents()).size(); u++)
+	metric_prim->removeComponent((metric_prim->getComponents())[u]);
+      (metric_prim->getComponents()).resize(0);
+      delete metric_prim;
+    }
     
     metric_prim = match_prim;
   }
@@ -1640,7 +1649,7 @@ apply_to_process(process *proc,
 	    // needed here and safe here, if flag is different, metric will be different,
 	    // unless metric is null, but in that case, metric will be cleaned up
 	    // allMIPrimitiveFLAGS should be used here!!
-	    checkFlagMIPrimitives(primitive_flat_name, cons_prim);
+	    checkFlagMIPrimitives(primitive_flat_name, cons_prim, computingCost);
 	  }
 	  else { // alThere (constraints)
 	    metric_cerr << "  flag already there " << endl;
@@ -1700,7 +1709,7 @@ apply_to_process(process *proc,
     
     // Difference: if found the same, reuse metric_prim AND PROC_MN!!
     // register MIComponents for threads in checkMetricMIPrimitives
-    const bool alreadyExist = (alreadyThere? false : checkMetricMIPrimitives(metric_flat_name, metric_prim));
+    const bool alreadyExist = (alreadyThere? false : checkMetricMIPrimitives(metric_flat_name, metric_prim, computingCost));
     
     if (!metric_prim->nonNull()) {
       metric_cerr << "metric_prim->nonNull()" << endl;
