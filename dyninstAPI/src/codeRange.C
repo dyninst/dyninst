@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: codeRange.C,v 1.3 2004/03/23 01:12:02 eli Exp $
+// $Id: codeRange.C,v 1.4 2004/08/16 04:34:00 rchen Exp $
 
 #include <stdio.h>
 #include "codeRange.h"
@@ -416,12 +416,10 @@ codeRangeTree::entry *codeRangeTree::replicateTree(entry* node,entry* parent,
 		return newNil;	
 
 	entry* newNode = new entry(*node);
+	newNode->value = newNode->value->copy();
+
 	newNode->parent = parent; 
 	newNode->left = replicateTree(node->left,newNode,oldNil,newNil);
 	newNode->right = replicateTree(node->right,newNode,oldNil,newNil);
 	return newNode; 
 }
-
-
-
-

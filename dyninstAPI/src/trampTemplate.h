@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: trampTemplate.h,v 1.3 2004/03/23 01:12:11 eli Exp $
+// $Id: trampTemplate.h,v 1.4 2004/08/16 04:34:41 rchen Exp $
 
 // trampTemplate class definition
 
@@ -136,6 +136,9 @@ class trampTemplate : public codeRange {
     }
     unsigned get_size() const {
        return size;
+    }
+    codeRange *copy() const {
+	return new trampTemplate(*this);
     }
 };
 

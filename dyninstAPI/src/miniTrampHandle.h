@@ -40,7 +40,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTrampHandle.h,v 1.3 2004/03/23 01:12:06 eli Exp $
+// $Id: miniTrampHandle.h,v 1.4 2004/08/16 04:34:16 rchen Exp $
 
 #ifndef MINI_TRAMP_HANDLE_H
 #define MINI_TRAMP_HANDLE_H
@@ -90,6 +90,10 @@ class miniTrampHandle : public codeRange {
     unsigned get_size() const {
        return (returnAddr - miniTrampBase);
     }
+    codeRange *copy() const {
+       return new miniTrampHandle(*this);
+    }
+
   
   void registerCallback(miniTrampHandleFreeCallback cb, void *data) {
     callback = cb;

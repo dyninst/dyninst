@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.161 2004/08/08 21:46:14 lharris Exp $
+// $Id: symtab.h,v 1.162 2004/08/16 04:34:32 rchen Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -149,6 +149,7 @@ class relocatedFuncInfo : public codeRange {
    ~relocatedFuncInfo(){proc_ = 0;}
    Address get_address() const { return addr_;}
    unsigned get_size() const { return size_;}
+   codeRange *copy() const { return new relocatedFuncInfo(*this);}
    pd_Function *func() { return func_;}
     
    const process *getProcess(){ return proc_;}
@@ -243,6 +244,7 @@ class function_base : public codeRange {
 
    unsigned get_size() const {return size_;}
    Address get_address() const {return addr_;}
+   virtual codeRange *copy() const = 0;
    pdvector< BPatch_basicBlock* >* blocks() const{ return blockList; }
    bool match(function_base *p);
 
@@ -324,6 +326,8 @@ class pd_Function : public function_base {
       if (instructions) delete instructions;   
       /* TODO */ 
    }
+
+   codeRange *copy() const { return new pd_Function(*this); }
 
    BPatch_flowGraph * getCFG(process * proc);
 
@@ -1063,6 +1067,7 @@ class image : public codeRange {
    Address dataLength() const { return (dataLen_ << 2);} 
    Address codeLength() const { return (codeLen_ << 2);} 
    unsigned get_size() const { return codeLength(); }
+   codeRange *copy() const { return new image(*this); }
    Address codeValidStart() const { return codeValidStart_; }
    Address codeValidEnd() const { return codeValidEnd_; }
    Address dataValidStart() const { return dataValidStart_; }
