@@ -2,9 +2,12 @@
      input file for igen for User Interface Manager (UIM) interface to paradyn
 */
 /* $Log: UI.I,v $
-/* Revision 1.24  1996/04/09 19:24:22  karavan
-/* added back batch mode to cut down on shg redraw time
+/* Revision 1.25  1996/04/13 04:40:24  karavan
+/* new interface for batching edge requests
 /*
+ * Revision 1.24  1996/04/09 19:24:22  karavan
+ * added back batch mode to cut down on shg redraw time
+ *
  * Revision 1.23  1996/04/07 21:19:37  karavan
  * added newPhaseNotification.
  *
@@ -132,13 +135,24 @@ typedef int (*showErrorCBFunc) (int userChoice);
  */
 typedef int (*chooseMenuItemCBFunc) (int userChoice);
 
+//
+// used in batched shg add requests
+//
+struct uiSHGrequest {
+  unsigned srcNodeID;
+  unsigned dstNodeID;
+  int styleID;
+  const char *label;
+};
+typedef struct uiSHGrequest uiSHGrequest;
+
 /*
  * igen template for UIM server and client classes 
  */ 
 
 $remote UIM {
 	$base 3000;
-	$version 13;
+	$version 14;
 	//
 	// provides user with appropriate choices and passes back selections
 
@@ -177,10 +191,7 @@ $remote UIM {
 			unsigned dstID, int styleID,
 			const char *label // only used for shadow nodes; else NULL
 			);
+	$async void DAGaddBatchOfEdges(int dagID, vector<uiSHGrequest> *requests,
+				       unsigned numRequests);
 	int DAGconfigNode (int dagID, unsigned nodeID, int styleID);
-	// these two calls suppress and restore, respectively, shg redraw after
-	// each addEdge and certain addNode and configNode calls
-	// handle nested set/clear requests. 
-	void setBatchMode(int phaseID);
-	void clearBatchMode(int phaseID);
 };
