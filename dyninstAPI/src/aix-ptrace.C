@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix-ptrace.C,v 1.7 2003/10/21 17:21:53 bernat Exp $
+// $Id: aix-ptrace.C,v 1.8 2003/10/21 18:22:38 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -494,6 +494,8 @@ unsigned recognize_thread(process *proc, unsigned lwp_id) {
 // timer of each thread and cause the rtinst library to notify the daemon of
 // a new thread.  For pthreads though, which AIX uses, there should only be
 // one thread in the child process (ie. the thread which initiated the fork).
+
+extern unsigned get_childproc_lwp(process *);
 
 void process::recognize_threads(pdvector<unsigned> *completed_lwps) {
    unsigned found_lwp = get_childproc_lwp(this);
