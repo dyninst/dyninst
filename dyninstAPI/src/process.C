@@ -46,7 +46,9 @@ int pvmendtask();
 #endif
 }
 
+#if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
+#endif
 #include "util/h/headers.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/pdThread.h"
