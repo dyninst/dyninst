@@ -131,6 +131,6 @@ extern void P_xdrrec_create(XDR*, const u_int send_sz, const u_int rec_sz,
 			    xdr_rd_func read_r, xdr_wr_func write_f);
 extern bool_t P_xdrrec_endofrecord(XDR*, int now);
 extern bool_t P_xdrrec_skiprecord(XDR*);
-
+extern bool_t P_xdrrec_eof(XDR*);
 
 #endif

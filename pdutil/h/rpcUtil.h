@@ -4,7 +4,10 @@
 
 /*
  * $Log: rpcUtil.h,v $
- * Revision 1.27  1995/02/16 09:27:11  markc
+ * Revision 1.28  1995/05/18 11:11:35  markc
+ * add P_xdrrec_eof
+ *
+ * Revision 1.27  1995/02/16  09:27:11  markc
  * Modified code to remove compiler warnings.
  * Added #defines to simplify inlining.
  * Cleaned up Object file classes.
@@ -165,8 +168,10 @@ extern bool RPC_make_arg_list (vector<string> &list, const int family,
 			       const string machineName, const bool useMachine);
 
 extern bool
-RPC_undo_arg_list (int argc, char **arg_list, string &machine, int &family,
-		   int &type, int &well_known_socket, int &flag, int &firstPVM);
+RPC_undo_arg_list (string& flavor, int argc, char **arg_list, string &machine,
+		   int &family, int &type, int &well_known_socket, int &flag,
+		   int &firstPVM);
+
 extern int RPC_getConnect (const int fd);
 
 extern bool RPCgetArg(vector<string> &ret, const char *input);
