@@ -3,11 +3,11 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.7 2000/07/30 16:45:02 paradyn Exp $
+# $Id: nmake.module.tmpl,v 1.8 2000/08/23 19:18:38 paradyn Exp $
 #
 
 SUITE_NAME	= Dyninst
-RELEASE_NUM	= 1.0
+RELEASE_NUM	= 1.1
 #BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
 
 TARGET          = dyner.exe
@@ -22,8 +22,7 @@ IFLAGS       = $(IFLAGS) -I$(TO_CORE)/dyninstAPI/h -I../src
 
 LIBS		= $(TO_CORE)/$(LIBRARY_DEST)/libdyninstAPI.lib
 
-SYSLIBS		= -LIBPATH:$(TCLTK_DIR)\lib $(TCLTK_LIBS) \
-		  imagehlp.lib
+SYSLIBS		= -LIBPATH:$(TCLTK_DIR)\lib $(TCL_LIB) imagehlp.lib
 
 all: $(TARGET) $(TEST_TARGET)
 
