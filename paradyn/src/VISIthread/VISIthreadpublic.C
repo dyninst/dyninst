@@ -39,40 +39,6 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Log: VISIthreadpublic.C,v $
-/* Revision 1.21  1997/04/21 16:55:13  hseom
-/* added support for trace data
-/*
- * Revision 1.1.1.3  1996/09/04 22:57:30  hollings
- * Paradyn version 1.1 (plus a few small commits)
- *
- * Revision 1.20  1996/08/16 21:08:49  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.19  1996/04/30 18:55:34  newhall
- * changes to support the asynchrounous enable data calls to the DM
- * this code contains a kludge to make the VISIthread wait for the DM's
- * async response
- *
- * Revision 1.18  1996/04/04  21:54:27  newhall
- * changes to enable routines so that they only enable mi_limit metric/focus
- * pairs if mi_limit has a positive value, also use the value of DM_DATABUF_LIMIT
- * to limit the size of the buffer used to send data values to the visi
- *
- * Revision 1.17  1996/02/23  17:45:28  tamches
- * added 2 bool params to visualizationUser::StartPhase
- *
- * Revision 1.16  1996/02/19 18:19:13  newhall
- * fix to avoid error #16 when a visi exits
- *
- * Revision 1.15  1996/02/05  18:51:57  newhall
- * Change to DM interface: StartPhase and newPhaseCallback
- *
- * Revision 1.14  1996/01/05 20:01:03  newhall
- * removed warnings
- *
- */
-
 /////////////////////////////////////////////////////////////////////
 // * visualizationUser routines:  GetMetricResource, StartPhase
 //		StopMetricResource 
@@ -150,8 +116,6 @@ void visualizationUser::GetPhaseInfo(){
 // only option), else make enable data collection call to DM for each
 // metric resource pair
 //////////////////////////////////////////////////////////////////////
-//void visualizationUser::GetMetricResource(string mets_res, int numElements,
-//					  int type){
 void visualizationUser::GetMetricResource(string,int,int){
  VISIthreadGlobals *ptr;
 
@@ -216,7 +180,6 @@ void visualizationUser::StopMetricResource(u_int metricId,
               ptr->buffer.resize(newMaxBufferSize);
               ptr->traceBuffer.resize(10);
 	  }
-
           return;
       }
       PARADYN_DEBUG(("current list element: metId = %d resId = %d",

@@ -306,9 +306,9 @@ T_visi::traceDataValue &traceBufferEntry = ptr->traceBuffer[ptr->buffer_next_ins
 //    newTracePerfData Upcall
 //
 /////////////////////////////////////////////////////////////
-void VISIthreadTraceDataCallback(perfStreamHandle handle,
-                            metricInstanceHandle mi,
-                            timeStamp time,
+void VISIthreadTraceDataCallback(perfStreamHandle ,
+                            metricInstanceHandle ,
+                            timeStamp ,
                             int num_values,
                             void *values){
 
@@ -327,8 +327,8 @@ void VISIthreadTraceDataCallback(perfStreamHandle handle,
 
     vector<traceDataValueType> *traceValues =
       (vector<traceDataValueType> *)values;
-  if (traceValues->size() < num_values) num_values = traceValues->size();
-  for(unsigned i=0; i < num_values;i++){
+  if (traceValues->size() < (u_int)num_values) num_values = traceValues->size();
+  for(int i=0; i < num_values;i++){
       VISIthreadTraceDataHandler((*traceValues)[i].mi,
                             (*traceValues)[i].traceRecord);
   }
@@ -611,7 +611,7 @@ bool VISIMakeEnableRequest(){
 int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
 
     if(newMetRes)
-      PARADYN_DEBUG(("In VISIthreadchooseMetRes size = %d",newMetRes->size()));
+       PARADYN_DEBUG(("In VISIthreadchooseMetRes size = %d",newMetRes->size()));
 
     VISIthreadGlobals *ptr;
     if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
@@ -619,6 +619,7 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
         ERROR_MSG(13,"thr_getspecific VISIthread::VISIthreadchooseMetRes");
         return 1;
     }
+
     // for Blizzard, get the memory bounds
     ptr->dmp->getMemoryBounds(ptr->ps_handle, newMetRes) ;
 
@@ -645,6 +646,8 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
         }
     }
     else { // add new elements to request list
+        // check for invalid reply ==> user picked "Cancel" menu option
+	if(newMetRes == 0){ return 1; }
         *(ptr->request) += *newMetRes;
         newMetRes = 0;
     }
