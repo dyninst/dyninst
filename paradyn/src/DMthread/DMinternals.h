@@ -3,7 +3,10 @@
  * Define the classes used in the implementation of the data manager.
  *
  * $Log: DMinternals.h,v $
- * Revision 1.11  1994/03/31 01:40:37  markc
+ * Revision 1.12  1994/04/19 22:08:37  rbi
+ * Added getTotValue method to get non-normalized metric data.
+ *
+ * Revision 1.11  1994/03/31  01:40:37  markc
  * Added pauseProcess, continueProcess member functions.
  *
  * Revision 1.10  1994/03/25  22:59:31  hollings
@@ -246,6 +249,13 @@ class metricInstance {
 	    if (!data) abort();
 	    ret = data->getValue();
 	    ret /= enabledTime;
+	    return(ret);
+	}
+	float getTotValue() {
+	    float ret;
+
+	    if (!data) abort();
+	    ret = data->getValue();
 	    return(ret);
 	}
 	int count;		// active users (perfStreams)

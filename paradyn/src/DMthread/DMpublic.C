@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.10  1994/04/18 22:28:32  hollings
+ * Revision 1.11  1994/04/19 22:08:38  rbi
+ * Added getTotValue method to get non-normalized metric data.
+ *
+ * Revision 1.10  1994/04/18  22:28:32  hollings
  * Changes to create a canonical form of a resource list.
  *
  * Revision 1.9  1994/04/06  21:26:41  markc
@@ -259,6 +262,11 @@ char *dataManager::getMetricName(metric *m)
 float dataManager::getMetricValue(metricInstance *mi)
 {
     return(mi->getValue());
+}
+
+float dataManager::getTotValue(metricInstance *mi)
+{
+    return(mi->getTotValue());
 }
 
 void dataManager::setSampleRate(performanceStream *ps, timeStamp rate)
