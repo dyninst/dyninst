@@ -1,18 +1,18 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
 #include <stdio.h>
 #include <stdarg.h>
 
 
-#include "mrnet/src/Errors.h"
+#include "mrnet/src/Error.h"
 
 namespace MRN
 {
 
-struct ErrorDef errors[]= {
+ErrorDef errors[]= {
     { MRN_ENONE, MRN_INFO, MRN_IGNORE, "No Error"},
     { MRN_EBADCONFIG_IO, MRN_CRIT, MRN_ABORT, "Config File Input Error"},
     { MRN_EBADCONFIG_FMT, MRN_CRIT, MRN_ABORT, "Config File Format Error"},
@@ -32,7 +32,7 @@ struct ErrorDef errors[]= {
 };
 
 
-void Error::error( ErrorCode e, const char * fmt, ... )
+void Error::error( ErrorCode e, const char * fmt, ... ) const
 {
     static char buf[1024];
 

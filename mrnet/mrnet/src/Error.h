@@ -1,7 +1,7 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
 #if ! defined(__Error_h)
 #define __Error_h
@@ -14,7 +14,7 @@
 namespace MRN
 {
 
-enum ErrorCode{
+typedef enum {
     MRN_ENONE=0,
     MRN_EBADCONFIG_IO,
     MRN_EBADCONFIG_FMT,
@@ -29,38 +29,38 @@ enum ErrorCode{
     MRN_EPACKING,
     MRN_EINTERNAL,
     MRN_ESYSTEM
-};
+} ErrorCode;
 
-enum ErrorLevel{
+typedef enum{
     MRN_INFO=0,
     MRN_WARN,
     MRN_ERR,
     MRN_CRIT
-};
+} ErrorLevel;
 
-enum ErrorResponse{
+typedef enum {
     MRN_IGNORE=0,
     MRN_ALERT,
     MRN_RETRY,
     MRN_ABORT
-};
+} ErrorResponse;
 
-struct ErrorDef
+typedef struct 
 {
-    enum ErrorCode code;
-    enum ErrorLevel level;
-    enum ErrorResponse response;
+    ErrorCode code;
+    ErrorLevel level;
+    ErrorResponse response;
     const char *msg;
-};
+}ErrorDef;
 
-extern struct ErrorDef errors[];
+extern ErrorDef errors[];
 
 class Error{
  protected:
-    enum ErrorCode MRN_errno;
+    mutable ErrorCode MRN_errno;
 
  public:
-    Error() :MRN_errno(MRN_ENONE) { }
+    Error(): MRN_errno(MRN_ENONE) { }
     virtual ~Error() { }
 
     inline bool good() const {
@@ -76,7 +76,7 @@ class Error{
         return;
     }
 
-    virtual void error( ErrorCode, const char *, ... );
+    virtual void error( ErrorCode, const char *, ... ) const;
 };
 
 } // namespace MRN
