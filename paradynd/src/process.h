@@ -10,6 +10,9 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
+ * Revision 1.37  1996/05/31 23:59:22  tamches
+ * inferiorHeap now uses addrHash16 instead of addrHash
+ *
  * Revision 1.36  1996/05/17 16:49:34  mjrg
  * added a test to continueProc to catch a case where we might try to continue
  * an exited process.
@@ -254,7 +257,7 @@ class disabledItem {
 
 class inferiorHeap {
  public:
-  inferiorHeap(): heapActive(addrHash) {
+  inferiorHeap(): heapActive(addrHash16) {
       freed = 0; disabledListTotalMem = 0; totalFreeMemAvailable = 0;
   }
   inferiorHeap(const inferiorHeap &src);  // create a new heap that is a copy of src.
