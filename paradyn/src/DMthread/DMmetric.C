@@ -284,7 +284,8 @@ metricInstance *metricInstance::find(metricHandle mh, resourceListHandle rh){
 bool metricInstance::clearPersistentData(){
   
 
-    if(persistent_data){  // if this flag was set
+    // if there are no outstanding enables for this MI and the flag was set 
+    if(persistent_data && !globalEnablesWaiting && !currEnablesWaiting){ 
        // if persistent collection is false then may need to delete data
        if(!persistent_collection){
 	   // if there are no current subscribers delete curr. hist and 

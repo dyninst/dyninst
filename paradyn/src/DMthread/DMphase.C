@@ -107,6 +107,7 @@ void phaseInfo::startPhase(timeStamp,
 		     paradynDaemon::outstanding_enables[newsize];
                 paradynDaemon::outstanding_enables.resize(newsize);
                 delete next_entry;
+		next_entry = 0;
             }
 	    else{
 	        i++;

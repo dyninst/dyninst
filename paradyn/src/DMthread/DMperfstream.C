@@ -151,12 +151,13 @@ void performanceStream::callStateFunc(appState state)
 
 void performanceStream::callPredictedCostFuc(metricHandle m_handle,
 				             resourceListHandle rl_handle,
-					     float cost)
+					     float cost,
+					     u_int clientID)
 {
     if (controlFunc.cFunc) {
 	dataManager::dm->setTid(threadId);
 	dataManager::dm->predictedDataCost(controlFunc.cFunc, m_handle,
-					   rl_handle, cost);
+					   rl_handle, cost,clientID);
     }
 }
 
@@ -369,7 +370,8 @@ bool performanceStream::addPredCostRequest(perfStreamHandle ps_handle,
 // response then send result to calling thread
 //
 void performanceStream::predictedDataCostCallback(u_int requestId,
-						  float cost){
+						  float cost,
+						  u_int clientID){
 
     bool found = false; 
     u_int which;
@@ -387,7 +389,7 @@ void performanceStream::predictedDataCostCallback(u_int requestId,
 	// if all values have been collected, send result to calling thread
 	if(!value->howmany && controlFunc.cFunc ){
 	    this->callPredictedCostFuc(value->m_handle, value->rl_handle,
-				       value->max);
+				       value->max,clientID);
             u_int size = pred_Cost_buff.size();
 	    if(size){
                 pred_Cost_buff[which] = pred_Cost_buff[size-1];

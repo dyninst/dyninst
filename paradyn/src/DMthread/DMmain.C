@@ -360,6 +360,9 @@ void dynRPCUser::enableDataCallback(u_int daemon_id,
             DM_enableType *next_entry = paradynDaemon::outstanding_enables[i2];
 	    next_entry->updateAny(*(request_entry->request),successful);
 	}
+	delete request_entry;
+	request_entry = 0;
+
         if(paradynDaemon::outstanding_enables.size()){
 	  bool done = false;
 	  u_int i3 = 0;
@@ -410,7 +413,8 @@ void dynRPCUser::enableDataCallback(u_int daemon_id,
 //
 void dynRPCUser::getPredictedDataCostCallback(u_int id,
 					      u_int req_id,
-					      float val)
+					      float val,
+					      u_int clientID)
 {
     // find the assoc. perfStream and update it's pred data cost value
     dictionary_hash_iter<perfStreamHandle,performanceStream*> 
@@ -418,7 +422,7 @@ void dynRPCUser::getPredictedDataCostCallback(u_int id,
     perfStreamHandle h; performanceStream *ps;
     while(allS.next(h,ps)){
 	if(h == (perfStreamHandle)id){
-            ps->predictedDataCostCallback(req_id,val);
+            ps->predictedDataCostCallback(req_id,val,clientID);
 	    return;
     } }
     // TODO: call correct routine

@@ -60,7 +60,7 @@ class DM_enableType{
 		enabled = 0; how_many =0; persistent_data = 0; 
 		persistent_collection = 0; 
     }
-    ~DM_enableType(){ }
+    ~DM_enableType(){ delete request; delete done; delete enabled;}
 
     metricInstance *findMI(metricInstanceHandle mh);
     void setDone(metricInstanceHandle mh);
@@ -246,7 +246,8 @@ class paradynDaemon: public dynRPCUser {
         static bool applicationDefined(){return(programs.size() != 0);}
 	static vector<string> *getAvailableDaemons();
 	static void getPredictedDataCostCall(perfStreamHandle,metricHandle,
-				      resourceListHandle,resourceList*,metric*);
+				      resourceListHandle,resourceList*,metric*,
+				      u_int);
 	static float currentSmoothObsCost();
         string getDaemonMachineName() {return machine;};
 

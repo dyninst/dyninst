@@ -620,7 +620,8 @@ void paradynDaemon::getPredictedDataCostCall(perfStreamHandle ps_handle,
 				      metricHandle m_handle,
 				      resourceListHandle rl_handle,
 				      resourceList *rl, 
-				      metric *m)
+				      metric *m,
+				      u_int clientID)
 {
     if(rl && m){
         vector<u_int> focus;
@@ -633,7 +634,8 @@ void paradynDaemon::getPredictedDataCostCall(perfStreamHandle ps_handle,
             paradynDaemon *pd;
             for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
                 pd = paradynDaemon::allDaemons[i];
-	        pd->getPredictedDataCost(ps_handle,requestId,focus, metName);
+	        pd->getPredictedDataCost(ps_handle,requestId,focus, 
+					 metName,clientID);
             }
 	    return;
         }
@@ -914,27 +916,9 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	}
 
 	if (!activeMids.defines(mid)) {
-	   // we're either gonna print a "data for disabled mid" error 
-	   // (in status line), or "data for unknown mid".  The latter is 
-	   // a fatal error.
-	   bool found = false;
-	   for (unsigned ve=0; ve<disabledMids.size(); ve++) {
-	      if (disabledMids[ve] == mid) {
-		  found = true;
-		  break;
-	      }
-	   }
-
-	   if (found) {
-	      return;
-	   } else {
-	      cout << "ERROR: data for unknown mid: " << mid << endl;
-	      // this can occur now do to a phase starting before
-	      // an enable response has been sent     
-	      // uiMgr->showError (2, "");
-	      // exit(-1);
-	      return;
-	   }
+	   // this can occur due to asynchrony of enable or disable requests
+	   // so just ignore the data
+	   return;
         }
 
         // Okay, the sample is not an error; let's process it.

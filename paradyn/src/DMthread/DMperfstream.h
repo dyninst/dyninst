@@ -71,12 +71,12 @@ class performanceStream {
 	void callFoldFunc(timeStamp width,phaseType phase_type);
 	void callStateFunc(appState state);
 	void callPhaseFunc(phaseInfo& phase,bool with_new_pc,bool with_visis);
-	void callPredictedCostFuc(metricHandle,resourceListHandle,float);
+	void callPredictedCostFuc(metricHandle,resourceListHandle,float,u_int);
 	void callDataEnableFunc(vector<metricInstInfo> *response,
 				u_int request_Id);
 	perfStreamHandle Handle(){return(handle);}
 	void flushBuffer();   // send data to client thread
-	void predictedDataCostCallback(u_int,float);
+	void predictedDataCostCallback(u_int,float,u_int);
 	static void notifyAllChange(appState state);
 	static void ResourceBatchMode(batchMode mode);
 	static void foldAll(timeStamp width, phaseType phase_type); 

@@ -399,6 +399,7 @@ void dataManager::enableDataRequest(perfStreamHandle ps_handle,
 	        ps->callDataEnableFunc(response,request_Id);
 		return;
 	} }
+	delete request;
 	response = 0;
     }
 
@@ -446,6 +447,7 @@ void dataManager::enableDataRequest2(perfStreamHandle ps,
 	        ps->callDataEnableFunc(response,request_Id);
 		return;
 	} }
+	delete request;
 	response = 0;
     }
 
@@ -797,16 +799,16 @@ resourceListHandle *dataManager::findResourceList(const char *name){
 
 void dataManager::getPredictedDataCost(perfStreamHandle ps_handle,
        				       metricHandle m_handle,
-				       resourceListHandle rl_handle)
+				       resourceListHandle rl_handle,
+				       u_int clientId)
 {
     metric *m = metric::getMetric(m_handle);
     resourceList *rl = resourceList::getFocus(rl_handle);
     if(m && rl){
         paradynDaemon::getPredictedDataCostCall(ps_handle,m_handle,
-						rl_handle,rl,m);
+						rl_handle,rl,m,clientId);
     }
     else {
-      // TODO: call approp. callback routine
       cerr << "Error in DMpublic.C, m=NULL\n";
       assert(0);
     }
@@ -959,9 +961,10 @@ void dataManagerUser::newPerfData(sampleDataCallbackFunc func,
 void dataManagerUser::predictedDataCost(predDataCostCallbackFunc func, 
 				  metricHandle m_handle,
 				  resourceListHandle rl_handle,
-				  float cost){
+				  float cost,
+				  u_int clientID){
 
-    (func)(m_handle,rl_handle,cost);
+    (func)(m_handle,rl_handle,cost,clientID);
 }
 
 void dataManagerUser::newPhaseInfo(newPhaseCallback cb,
