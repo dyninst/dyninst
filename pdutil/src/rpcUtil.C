@@ -1,6 +1,12 @@
 /*
  * $Log: rpcUtil.C,v $
- * Revision 1.27  1994/07/28 22:22:04  krisna
+ * Revision 1.28  1994/08/17 18:25:25  markc
+ * Added RPCgetArg
+ * Change RPC_make_arg_list to avoid leaving a hole at the head of the arg list
+ * Changed RPCProcessCreate to use the new version of arg list
+ * Changed the execl to execlp
+ *
+ * Revision 1.27  1994/07/28  22:22:04  krisna
  * changed definitions of ReadFunc and WriteFunc to conform to prototypes
  *
  * Revision 1.26  1994/07/19  18:30:27  markc
@@ -282,30 +288,35 @@ RPC_undo_arg_list (int argc, char **arg_list, char **machine, int &family,
 	return -1;
 }
 
+/*
+ * Build an argument list starting at position 0.
+ * Note, this arg list will be used in an exec system call
+ * AND, the command name will have to be inserted at the head of the list
+ * But, a NULL space will NOT be left at the head of the list
+ */
 char **RPC_make_arg_list(int family, int type, int well_known_socket,
 		   int flag, char *machine_name)
 {
   char arg_str[100];
-  int arg_count = 1;
+  int arg_count = 0;
   char **arg_list;
 
   arg_list = new char*[8];
-  arg_list[0] = NULL;
-  sprintf(arg_str, "%s%d", "-p", well_known_socket);
-  arg_list[arg_count++] = strdup (arg_str);
+  sprintf(arg_str, "%s%d", "-p", well_known_socket);  
+  arg_list[arg_count++] = strdup (arg_str);  // 0
   sprintf(arg_str, "%s%d", "-f", family);
-  arg_list[arg_count++] = strdup (arg_str);
+  arg_list[arg_count++] = strdup (arg_str);  // 1
   sprintf(arg_str, "%s%d", "-t", type);
-  arg_list[arg_count++] = strdup (arg_str);
+  arg_list[arg_count++] = strdup (arg_str);  // 2
   if (!machine_name) {
       machine_name = (char *) malloc(50);
       gethostname (machine_name, 49);
   }
   sprintf(arg_str, "%s%s", "-m", machine_name);
-  arg_list[arg_count++] = strdup (arg_str);
+  arg_list[arg_count++] = strdup (arg_str); // 3
   sprintf(arg_str, "%s%d", "-l", flag);
-  arg_list[arg_count++] = strdup (arg_str);
-  arg_list[arg_count++] = 0;
+  arg_list[arg_count++] = strdup (arg_str);  // 4
+  arg_list[arg_count++] = 0;                 // 5
   return arg_list;
 }
 
@@ -450,6 +461,12 @@ bool_t xdr_String(XDR *xdrs, String *str)
     }
 }
 
+/*
+ * arg_list should not have "command" at arg_list[0], it will
+ * be put there
+ *
+ * if arg_list == NULL, command is the only argument used
+ */
 int RPCprocessCreate(int *pid, char *hostName, char *userName,
 		     char *command, char **arg_list, int portFd)
 {
@@ -457,6 +474,8 @@ int RPCprocessCreate(int *pid, char *hostName, char *userName,
     int sv[2];
     int execlERROR;
     char local[50];
+    char **new_al;
+    int al_len, i;
 
     if (gethostname(local, 49))
 	strcpy (local, " ");
@@ -473,10 +492,20 @@ int RPCprocessCreate(int *pid, char *hostName, char *userName,
 	    close(sv[0]);
 	    dup2(sv[1], 0);
 	    if (!arg_list)
-	      execl(command, command);
+	      execlp(command, command);
 	    else {
-		arg_list[0] = command;
-		execv(command, arg_list);
+	      // how long is the arg_list?
+	      for (al_len=0; arg_list[al_len]; al_len++) 
+		; // not a typo
+
+	      new_al = new char*[al_len+2];
+	      new_al[0] = command;
+	      new_al[al_len+1] = 0;
+	      for (i=0; i<al_len; ++i) {
+		new_al[i+1] = arg_list[i];
+	      }
+	      execvp(command, new_al);
+	      free(new_al);
 	    }
 	    execlERROR = errno;
 	    _exit(-1);
@@ -498,13 +527,13 @@ int RPCprocessCreate(int *pid, char *hostName, char *userName,
 	char *paradyndCommand;
 
 	total = strlen(command) + 2;
-	for (curr = arg_list+1; *curr; curr++) {
+	for (curr = arg_list; *curr; curr++) {
 	    total += strlen(*curr) + 2;
 	}
 	paradyndCommand = (char *) malloc(total+2);
 
 	sprintf(paradyndCommand, "%s ", command);
-	for (curr = arg_list+1; *curr; curr++) {
+	for (curr = arg_list; *curr; curr++) {
 	    strcat(paradyndCommand, *curr);
 	    strcat(paradyndCommand, " ");
 	}
@@ -605,4 +634,89 @@ RPCUser::RPCUser(int st)
 RPCServer::RPCServer(int st)
 {
   err_state = st;
+}
+
+/*
+ *  RPCgetArg - break a string into blank separated words
+ *  Used to parse a command line.
+ *  
+ *  input --> a null terminated string, the command line
+ *  argc --> returns the number of args found
+ *  returns --> words (separated by blanks on command line)
+ *  Note --> this allocates memory 
+ */
+char **RPCgetArg(int &argc, const char *input)
+{
+#define BLANK ' '
+
+  char **temp, **result;
+  const char *word_start;
+  int word_count = 0, temp_max, index, length, word_len;
+
+  argc = 0;
+  if (!input) 
+    return ((char **) 0);
+
+  length = strlen(input);
+  index = 0;
+
+  /* advance past blanks in input */
+  while ((index < length) && (input[index] == BLANK))
+    index++;
+
+  /* input is all blanks, or NULL */
+  if (index >= length) {
+    result = new char*[1];
+    if (!result) return ((char**) 0);
+    result[0] = 0;
+    return result;
+  }
+
+  temp = new char*[30];
+  if (!temp) return temp;
+  temp_max = 29;
+
+  do {
+    /* the start of each string */
+    word_len = 0; word_start = input + index;
+
+    /* find the next BLANK and the WORD size */
+    while ((index < length) && (input[index] != BLANK)) {
+      index++; word_len++;
+    }
+
+    /* copy the word */
+    temp[word_count] = new char[word_len+1];
+    strncpy(temp[word_count], word_start, word_len);
+    temp[word_count][word_len] = (char) 0;
+    word_count++;
+
+    /* skip past consecutive blanks */
+    while ((index < length) && (input[index] == BLANK))
+      index++;
+
+    /* no more room in temp, copy it to new_temp */
+    if (word_count > temp_max) {
+      char **new_temp;
+      int nt_len, i;
+      
+      /* new temp_max size */
+      nt_len = (temp_max+1) >> 1;
+      temp_max = nt_len - 1;
+
+      /* copy temp to new_temp */
+      new_temp = new char*[nt_len];
+      if (!new_temp) return ((char**) 0);
+      for (i=0; i<word_count; ++i)
+	new_temp[i] = temp[i];
+      
+      delete temp;
+      temp = new_temp;
+    }
+  } while (index < length);
+
+  argc = word_count;
+  /* null terminate the word list */
+  temp[word_count] = (char*) 0;
+  return temp;
 }
