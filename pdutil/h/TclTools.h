@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,12 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: TclTools.h,v 1.5 2003/07/18 15:45:06 schendel Exp $
+// $Id: TclTools.h,v 1.6 2003/09/05 19:06:02 pcroth Exp $
 
 #if !defined(pd_tcl_tools_h)
 #define pd_tcl_tools_h
 
 #include <sstream>
+#include "tcl.h"
 
 // SetInterpResult - assigns the result of the given Tcl interperter 
 // with the string held by the given ostringstream.
