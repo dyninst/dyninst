@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superVector.C,v 1.12 2002/02/21 21:48:32 bernat Exp $
+// $Id: superVector.C,v 1.13 2002/02/26 20:24:38 gurari Exp $
 
 #include <sys/types.h>
 #include <limits.h>
@@ -249,7 +249,11 @@ bool superVector<HK, RAW>::alloc(const RAW &iValue,
       for (unsigned lcv=0; lcv < statemap.size(); lcv++)
          assert(statemap[lcv] != FIHfree);
 
-      const vector<Address> PCs = inferiorProcess->walkStack(); // prob expensive
+      Frame currentFrame(inferiorProcess);
+      vector<Address> PCs;
+      vector<Address> FPs;
+      inferiorProcess->walkStack(currentFrame, PCs, FPs); // prob expensive
+
       garbageCollect(PCs);
       if (firstFreeIndex == UINT_MAX) {
          // oh no; inferior heap is still full!  Garbage collection has failed.
@@ -711,7 +715,11 @@ bool superVector<HK, RAW>::alloc(unsigned thr_pos, const RAW &iValue,
        for (unsigned lcv=0; lcv < statemap.size(); lcv++)
          assert(statemap[lcv] != FIHfree);
 
-      const vector<Address> PCs = inferiorProcess->walkStack(); // prob expensive
+      Frame currentFrame(inferiorProcess);
+      vector<Address> PCs;
+      vector<Address> FPs;
+      inferiorProcess->walkStack(currentFrame, PCs, FPs); // prob expensive
+
       garbageCollect(PCs);
       if (firstFreeIndex == UINT_MAX) {
          // oh no; inferior heap is still full!  Garbage collection has failed.

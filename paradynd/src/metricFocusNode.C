@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.218 2002/02/13 18:53:20 schendel Exp $
+// $Id: metricFocusNode.C,v 1.219 2002/02/26 20:24:38 gurari Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -1722,7 +1722,11 @@ void metricDefinitionNode::adjustManuallyTrigger()
     }
 //
 #else
-    vector<Address> stack_pcs = proc_->walkStack();
+    Frame currentFrame(proc_);
+    vector<Address> frame_ps;
+    vector<Address> stack_pcs;
+    proc_->walkStack(currentFrame, stack_pcs, frame_ps);
+
     for (unsigned i1=0; i1 < components.size(); i1++) {
       sampleMetFocusNode *curPrim = dynamic_cast<sampleMetFocusNode*>(
                                                        components[i1]);
@@ -2762,7 +2766,13 @@ bool metricDefinitionNode::checkAndInstallInstrumentation() {
 	 // primitives
 	 // NOTE: walkStack should walk all the threads' staks! It
 	 // doesn't do that right now... naim 1/28/98
-	 vector<Address> pc = proc_->walkStack();
+
+         // The curr_lwp parameter is IGNORED on non-AIX platforms.
+         Frame currentFrame(proc_);
+         vector<Address> pc;
+         vector<Address> fp;
+         proc_->walkStack(currentFrame, pc, fp);
+
 	 // ndx 0 is where the pc is now; ndx 1 is the call site;
 	 // ndx 2 is the call site's call site, etc...
 	 
