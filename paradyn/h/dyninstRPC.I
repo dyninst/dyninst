@@ -473,7 +473,7 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 45;
+    $version 46;
 
     //
     // Define a program to run. 
