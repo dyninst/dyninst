@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.187 1999/08/09 05:50:28 csserra Exp $
+// $Id: process.C,v 1.188 1999/08/09 13:43:07 csserra Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -437,21 +437,6 @@ void process::correctStackFuncsForTramps(vector<Address> &pcs,
 	funcs[ i ] = dynamic_cast<pd_Function*>( fn );
     }
     //}
-  }
-  // debug --csserra
-  fprintf(stderr, ">>> stack walk (adjusted)\n");
-  for (i = 0; i < pcs.size(); i++) {
-    fprintf(stderr, "    0x%016lx", pcs[i]);
-    instPoint *ip = NULL;
-    trampTemplate *bt = NULL;
-    instInstance *mt = NULL;
-    pd_Function *fn = findAddressInFuncsAndTramps(this, pcs[i], ip, bt, mt);
-    if (!fn) fprintf(stderr, " => <unknown>\n");
-    else {
-      char *info = "";
-      if (ip) info = (bt) ? ("[basetramp]") : ("[minitramp]");
-      fprintf(stderr, " => \"%s\" %s\n", fn->prettyName().string_of(), info);
-    }
   }
 }
 
@@ -2475,10 +2460,6 @@ bool process::handleStartProcess(){
 // has been loaded by the run-time linker
 // It processes the image, creates new resources
 bool process::addASharedObject(shared_object &new_obj){
-
-    fprintf(stderr, ">>> addASharedObject(0x%016lx:%s)\n",  
-            new_obj.getBaseAddress(), new_obj.getShortName().string_of());
-
     image *img = image::parseImage(new_obj.getName(),new_obj.getBaseAddress());
     if(!img){
         //logLine("error parsing image in addASharedObject\n");
