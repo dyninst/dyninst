@@ -36,7 +36,6 @@
 #include "UI.thread.h"
 
 template class vector<string*>;
-template class vector<fmf>;
 template class vector<costServerRec>;
 template class vector<uiSHGrequest>;
 template class vector<dataSubscriber*>;
@@ -73,14 +72,6 @@ template class vector< pair<unsigned, searchHistoryNode*> >;
 template class vector< dictionary_hash<unsigned, searchHistoryNode*>::hash_pair>;
 template class vector< vector< dictionary_hash<unsigned, searchHistoryNode*>::hash_pair> >;
 template class dictionary_hash<unsigned, searchHistoryNode*>;
-
-template class pair< metricHandle, dictionary_hash< unsigned, filter*>* >;
-template class vector< dictionary_hash< unsigned, filter*>* >;
-template class dictionary<metricHandle, dictionary_hash<unsigned, filter*>* >;
-template class vector< pair<metricHandle, dictionary_hash<unsigned, filter*>* > >;
-template class vector< dictionary_hash< metricHandle, dictionary_hash<unsigned, filter*>* >::hash_pair>;
-template class vector< vector< dictionary_hash<metricHandle, dictionary_hash<unsigned, filter*>*>::hash_pair> >;
-template class dictionary_hash<metricHandle, dictionary_hash<unsigned, filter*>* >; 
 
 template class pair<string, PCmetric*>;
 template class dictionary<string, PCmetric*>;
