@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: rtinst.h,v 1.54 2002/08/19 19:20:26 bernat Exp $
+ * $Id: rtinst.h,v 1.55 2002/08/31 16:53:47 mikem Exp $
  * This file contains the extended instrumentation functions that are provided
  *   by the Paradyn run-time instrumentation layer.
  */
@@ -127,6 +127,30 @@ struct floatCounterRec {
 };
 typedef struct floatCounterRec floatCounter;
 
+struct tHwCounterRec {
+   int64_t value;
+   int hwevent;
+};
+typedef struct tHwCounterRec tHwCounter;
+
+struct tHwTimerRec {
+   volatile rawTime64 total;
+   volatile rawTime64 start;
+   volatile int counter;
+#if defined(MT_THREAD)
+   volatile int lwp_id;  /* we need to save the lwp id so paradynd can sync */
+   volatile int in_inferiorRPC; /* flag to avoid time going backwards - naim */
+   volatile struct tHwTimerRec  *vtimer; /* position in the threadTable */
+#endif
+
+   volatile int hwevent;
+
+   volatile int protector1;
+   volatile int protector2;
+};
+typedef struct tHwTimerRec tHwTimer;
+
+
 struct tTimerRec {
   volatile rawTime64 total;
   volatile rawTime64 start;
@@ -156,8 +180,14 @@ void DYNINSTgenerateTraceRecord(traceStream sid, short type,
 #define UNASSIGNED_TIMER_LEVEL 0
 #define HARDWARE_TIMER_LEVEL 1
 #define SOFTWARE_TIMER_LEVEL 2
+
 extern int hintBestCpuTimerLevel;
 extern int hintBestWallTimerLevel;
+
+#ifdef PAPI
+#define PAPI_PERFCTR_LEVEL 1
+extern int hintBestPerfCtrLevel;
+#endif
 
 typedef rawTime64 (*timeQueryFuncPtr_t)(void);
 extern timeQueryFuncPtr_t pDYNINSTgetCPUtime;
