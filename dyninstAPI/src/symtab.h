@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.110 2002/06/25 20:27:34 bernat Exp $
+// $Id: symtab.h,v 1.111 2002/06/26 21:14:54 schendel Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -119,9 +119,11 @@ class relocatedFuncInfo {
 public:
     relocatedFuncInfo(process *p,Address na):proc_(p),
 	   	      addr_(na),funcEntry_(0),installed_(false){}
+    
     ~relocatedFuncInfo(){proc_ = 0;}
     Address address(){ return addr_;}
     const process *getProcess(){ return proc_;}
+    void setProcess(process *proc) { proc_ = proc; }
     const vector<instPoint*> &funcReturns(){ return funcReturns_;}
     const vector<instPoint*> &funcCallSites(){ return calls_;}
     const vector<instPoint*> &funcArbitraryPoints(){ return arbitraryPoints_;}
@@ -240,8 +242,9 @@ class pd_Function : public function_base {
     const instPoint *funcEntry(process *p) const {
         if(p && relocatable_) { 
 	  for(u_int i=0; i < relocatedByProcess.size(); i++){
-	    if((relocatedByProcess[i])->getProcess() == p) 
-		return (relocatedByProcess[i])->funcEntry();
+	    if((relocatedByProcess[i])->getProcess() == p) {
+	      return (relocatedByProcess[i])->funcEntry();
+	    }
 	} }
 	return funcEntry_;
     }
@@ -407,6 +410,8 @@ class pd_Function : public function_base {
 #if defined(sparc_sun_solaris2_4)
     bool is_o7_live(){ return o7_live; }
 #endif
+
+    void updateForFork(process *childProcess, const process *parentProcess);
 
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM. */
 
@@ -640,6 +645,7 @@ public:
   void checkAllCallPoints();
   void define();    // defines module to paradyn
 
+  void updateForFork(process *childProcess, const process *parentProcess);
 #ifndef BPATCH_LIBRARY
   void FillInCallGraphStatic(process *proc);
       // fill in statically determined part of caller-callee relationship
@@ -751,6 +757,7 @@ public:
 
   
   //Address findInternalAddress (const string &name, const bool warn, bool &err);
+  void updateForFork(process *childProcess, const process *parentProcess);
 
   // find the named module  
   pdmodule *findModule(const string &name, bool find_if_excluded = FALSE);
@@ -1132,7 +1139,7 @@ inline bool image::isData(const Address &where)  const{
 }
 
 inline bool image::symbol_info(const string& symbol_name, Symbol &ret_sym) {
-  
+
   if (linkedFile.get_symbol(symbol_name, ret_sym))
     return true;
 

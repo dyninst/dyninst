@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.140 2002/06/21 14:19:30 chadd Exp $
+// $Id: symtab.C,v 1.141 2002/06/26 21:14:52 schendel Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1280,7 +1280,7 @@ image *image::parseImage(fileDescriptor *desc, Address newBaseAddr)
 
   statusLine("defining modules");
   ret->defineModules();
-statusLine("ready"); // this shouldn't be here, right? (cuz we're not done, right?)
+  statusLine("ready"); // this shouldn't be here, right? (cuz we're not done, right?)
 
 #ifndef BPATCH_LIBRARY
   tp->resourceBatchMode(false);
@@ -1457,6 +1457,19 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
   instrumentableFunctions = temp_vec;
 }
 
+void pdmodule::updateForFork(process *childProcess, 
+			     const process *parentProcess) {
+  for(unsigned i=0; i<funcs.size(); i++) {
+    funcs[i]->updateForFork(childProcess, parentProcess);
+  }
+  for(unsigned j=0; j<notInstruFuncs.size(); j++) {
+    notInstruFuncs[j]->updateForFork(childProcess, parentProcess);
+  }
+  for(unsigned k=0; k<some_funcs.size(); k++) {
+    some_funcs[k]->updateForFork(childProcess, parentProcess);
+  }
+}
+
 void pdmodule::checkAllCallPoints() {
   unsigned fsize = funcs.size();
   for (unsigned f=0; f<fsize; f++)
@@ -1553,6 +1566,20 @@ Address pd_Function::getEffectiveAddress(const process *p) const {
      return base + addr();
 }
 
+void pd_Function::updateForFork(process *childProcess, 
+				const process *parentProcess) {
+  if(relocatable_) {
+    for(u_int i=0; i < relocatedByProcess.size(); i++) {
+      if((relocatedByProcess[i])->getProcess() == parentProcess) {
+	  relocatedFuncInfo *childRelocInfo = 
+	    new relocatedFuncInfo(*relocatedByProcess[i]);
+	  childRelocInfo->setProcess(childProcess);
+	  relocatedByProcess.push_back(childRelocInfo);
+      }
+    }
+  }
+}
+
 
 /*********************************************************************/
 /**** Function lookup (by name or address) routines               ****/
@@ -1623,7 +1650,7 @@ pd_Function *image::findFuncByAddr(const Address &addr,
 // the file.
 
 pd_Function *image::findFuncByEntryAddr(const Address &addr, 
-					const process * /*p*/) const
+					const process * /* p */) const
 {
   pd_Function *pdf;
 
@@ -1794,6 +1821,17 @@ pd_Function *image::findOneFunctionFromAll(const string &name) {
 
     return NULL;
 }
+
+void image::updateForFork(process *childProcess, const process *parentProcess)
+{
+  for(unsigned i=0; i<includedMods.size(); i++) {
+    includedMods[i]->updateForFork(childProcess, parentProcess);
+  }
+  for(unsigned j=0; j<excludedMods.size(); j++) {
+    excludedMods[j]->updateForFork(childProcess, parentProcess);
+  }
+}
+
 
 #if 0
 // Only looks for function by pretty name.
