@@ -709,7 +709,7 @@ paradynDaemon::paradynDaemon(const string &m, const string &u, const string &c,
     assert(f.length());
 
     // if c includes a pathname, lose the pathname
-    char *loc = P_strrchr(c.string_of(), '/');
+    const char *loc = P_strrchr(c.string_of(), '/');
     if (loc) {
       loc = loc + 1;
       command = loc;
