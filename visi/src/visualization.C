@@ -203,7 +203,7 @@ int visi_RegistrationCallback(visi_msgTag event,
 // (0 for histogram, 1 for scalar). 
 // currently, only the NULL string, type 0 case is supported 
 ///////////////////////////////////////////////////////////
-void visi_GetMetsRes(char *, int){
+void visi_GetMetsRes(const char *, int){
 
   if(!visi_initDone)
     visi_Init();

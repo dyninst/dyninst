@@ -47,7 +47,7 @@
 // support the drawing of time-based histograms.
 //
 //---------------------------------------------------------------------------
-// $Id: PDGraph.h,v 1.5 2002/12/20 07:50:09 jaw Exp $
+// $Id: PDGraph.h,v 1.6 2003/06/20 02:23:17 pcroth Exp $
 //---------------------------------------------------------------------------
 #ifndef PDGRAPH_H
 #define PDGRAPH_H
@@ -406,8 +406,10 @@ private:
         unsigned int    timeAxisHeight; // height of time axis
 
         // Tcl callbacks
-        static  int     ClassCmdCB( ClientData cd, Tcl_Interp* interp, int argc, char* argv[] );
-        static  int     InstanceCmdCB( ClientData cd, Tcl_Interp* interp, int argc, char* argv[] );
+        static  int     ClassCmdCB( ClientData cd, Tcl_Interp* interp,
+                                    int argc, TCLCONST char* argv[] );
+        static  int     InstanceCmdCB( ClientData cd, Tcl_Interp* interp,
+                                    int argc, TCLCONST char* argv[] );
         static  void    InstanceCmdDeletedCB( ClientData cd );
         static  void    DrawCB( ClientData cd );
         static  void    EventCB( ClientData cd, XEvent* eventPtr );
@@ -449,7 +451,7 @@ private:
         int     InitTclTk( Tcl_Interp* interp,
                             Tk_Window mainWin,
                             int argc,
-                            char* argv[] );
+                            TCLCONST char* argv[] );
 
         // InitCPP - initialize the "application-domain" members
         void    InitCPP( PDGraph* pdgraph, unsigned int timeAxisHeight );
@@ -459,7 +461,7 @@ private:
         // given arguments
         int     Configure( Tcl_Interp* interp,
                             int argc,
-                            char* argv[],
+                            TCLCONST char* argv[],
                             int flags );
 
         // Draw - output a representation of ourselves to our window
@@ -499,7 +501,8 @@ private:
         void    HandleEvent( XEvent* ev );
 
         // HandleCommand - respond to Tcl instance command
-        int     HandleCommand( Tcl_Interp* interp, int argc, char* argv[] );
+        int     HandleCommand( Tcl_Interp* interp,
+                                int argc, TCLCONST char* argv[] );
 
         // HandleInstanceCommandDeleted - respond to situation when
         // instance command has been deleted
@@ -556,8 +559,10 @@ private:
 
 
         // Tcl callbacks
-        static  int     ClassCmdCB( ClientData cd, Tcl_Interp* interp, int argc, char* argv[] );
-        static  int     InstanceCmdCB( ClientData cd, Tcl_Interp* interp, int argc, char* argv[] );
+        static  int     ClassCmdCB( ClientData cd, Tcl_Interp* interp,
+                                    int argc, TCLCONST char* argv[] );
+        static  int     InstanceCmdCB( ClientData cd, Tcl_Interp* interp,
+                                    int argc, TCLCONST char* argv[] );
         static  void    InstanceCmdDeletedCB( ClientData cd );
         static  void    DrawCB( ClientData cd );
         static  void    EventCB( ClientData cd, XEvent* eventPtr );
@@ -598,7 +603,7 @@ private:
         int     InitTclTk( Tcl_Interp* interp,
                             Tk_Window mainWin,
                             int argc,
-                            char* argv[] );
+                            TCLCONST char* argv[] );
 
         // InitCPP - initialize the "application-domain" members
         void    InitCPP( PDGraph* pdgraph );
@@ -608,7 +613,7 @@ private:
         // given arguments
         int     Configure( Tcl_Interp* interp,
                             int argc,
-                            char* argv[],
+                            TCLCONST char* argv[],
                             int flags );
 
         // Draw - output a representation of ourselves to our window
@@ -650,7 +655,8 @@ private:
 
         // HandleCommand - respond to Tcl instance command
         //
-        int     HandleCommand( Tcl_Interp* interp, int argc, char* argv[] );
+        int     HandleCommand( Tcl_Interp* interp,
+                                int argc, TCLCONST char* argv[] );
 
         // HandleInstanceCommandDeleted - respond to situation when
         // instance command has been deleted
@@ -686,10 +692,10 @@ private:
         // Tcl callbacks
         static  int     ClassCmdCB( ClientData cd, 
                                     Tcl_Interp* interp,
-                                    int argc, char* argv[] );
+                                    int argc, TCLCONST char* argv[] );
         static  int     InstanceCmdCB( ClientData cd,
                                     Tcl_Interp* interp,
-                                    int argc, char* argv[] );
+                                    int argc, TCLCONST char* argv[] );
         static  void    InstanceCmdDeletedCB( ClientData cd );
         static  void    DrawCB( ClientData cd );
         static  void    EventCB( ClientData cd, XEvent* eventPtr );
@@ -719,7 +725,7 @@ private:
         int     InitTclTk( Tcl_Interp* interp,
                             Tk_Window mainWin,
                             int argc,
-                            char* argv[] );
+                            TCLCONST char* argv[] );
 
         // InitCPP - initialize the "application-domain" members
         void    InitCPP( PDGraph* pdgraph, unsigned int labelHeight );
@@ -729,7 +735,7 @@ private:
         // given arguments
         int     Configure( Tcl_Interp* interp,
                             int argc,
-                            char* argv[],
+                            TCLCONST char* argv[],
                             int flags );
 
         // Draw - output a representation of ourselves to our window
@@ -776,7 +782,8 @@ private:
 
         // HandleCommand - respond to Tcl instance command
         //
-        int     HandleCommand( Tcl_Interp* interp, int argc, char* argv[] );
+        int     HandleCommand( Tcl_Interp* interp,
+                                int argc, TCLCONST char* argv[] );
 
         // HandleInstanceCommandDeleted - respond to situation when
         // instance command has been deleted
@@ -836,14 +843,15 @@ private:
 
     // InitTclTk - initialize the Tcl/Tk members for the widget
     //
-    int     InitTclTk( Tcl_Interp* interp, Tk_Window mainWin, int argc, char* argv[] );
+    int     InitTclTk( Tcl_Interp* interp, Tk_Window mainWin,
+                        int argc, TCLCONST char* argv[] );
 
     // Configure - handle Tcl configuration of the widget from the
     // given arguments
     //
     int     Configure( Tcl_Interp* interp,
                         int argc,
-                        char* argv[],
+                        TCLCONST char* argv[],
                         int flags );
 
     // Draw - output a representation of our data to our window
@@ -899,7 +907,7 @@ private:
 
     // HandleCmd - respond to a Tcl instance command
     // 
-    int     HandleCmd( Tcl_Interp* interp, int argc, char* argv[] );
+    int     HandleCmd( Tcl_Interp* interp, int argc, TCLCONST char* argv[] );
 
     // HandleInstanceCmdDeleted - respond to situation where instance
     // command has been deleted (indicating widget should go away)
@@ -965,22 +973,22 @@ private:
     // Tcl callback routines
     static  int     ClassCmdCB( ClientData clientData,
                                 Tcl_Interp* interp,
-                                int argc, char* argv[] );
+                                int argc, TCLCONST char* argv[] );
     static  int     InstanceCmdCB( ClientData cd,
                                 Tcl_Interp* interp,
-                                int argc, char* argv[] );
+                                int argc, TCLCONST char* argv[] );
     static  void    InstanceCmdDeletedCB( ClientData cd );
     static  void    DrawCB( ClientData cd );
     static  void    EventCB( ClientData cd, XEvent* eventPtr );
     static  void    DestroyCB( char* cd );
 
     // Tcl callback handlers, called by the callback routines
-    int     HandlePanCommand( int argc, char* argv[] );
-    int     HandleZoomCommand( int argc, char* argv[] );
-    int     HandleGetSelectedCommand( int argc, char* argv[] );
-    int     HandleSmoothCommand( int argc, char* argv[], bool smooth );
-    int     HandleShowCommand( int argc, char* argv[], bool show );
-    int     HandleRemoveCommand( int argc, char* argv[] );
+    int     HandlePanCommand( int argc, TCLCONST char* argv[] );
+    int     HandleZoomCommand( int argc, TCLCONST char* argv[] );
+    int     HandleGetSelectedCommand( int argc, TCLCONST char* argv[] );
+    int     HandleSmoothCommand( int argc, TCLCONST char* argv[], bool smooth );
+    int     HandleShowCommand( int argc, TCLCONST char* argv[], bool show );
+    int     HandleRemoveCommand( int argc, TCLCONST char* argv[] );
 
 public:
     typedef int CurveID;       // nicer name for curve IDs

@@ -47,7 +47,7 @@
 // for maximum speed.  Can be done from makefile, e.g. a "make optimized"
 // option which does -O and -DNDEBUG
 
-/* $Id: barChart.C,v 1.32 2002/12/20 07:50:09 jaw Exp $ */
+/* $Id: barChart.C,v 1.33 2003/06/20 02:23:07 pcroth Exp $ */
 
 // tk/tcl has a very nice interface for mixing C++ and tk/tcl
 // scripts.  From within tcl, C++ code can be called via
@@ -99,7 +99,7 @@ BarChart *theBarChart;
  * ********************************************************************
 */
 
-BarChart::BarChart(char *tkWindowName,
+BarChart::BarChart(TCLCONST char *tkWindowName,
 		   int initNumMetrics, int initNumResources,
 		   const pdvector<string> &barColorNames) :
 	    drawWhenIdle(&lowestLevelDrawBars),
@@ -115,7 +115,7 @@ BarChart::BarChart(char *tkWindowName,
 
    theWindow = Tk_NameToWindow(MainInterp, tkWindowName, Tk_MainWindow(MainInterp));
    if (theWindow == NULL)
-      panic("BarChart constructor: Tk_NameToWindow() failed!");
+      Tcl_Panic("BarChart constructor: Tk_NameToWindow() failed!", NULL );
 
    HaveSeenFirstGoodWid = false;
    borderPix = 2;
@@ -198,7 +198,7 @@ bool BarChart::TryFirstGoodWid() {
 		    GCForeground | GCBackground,
 		    &values);
    if (NULL==myGC)
-      panic("BarChart constructor: Tk_GetGC() failed!");
+      Tcl_Panic("BarChart constructor: Tk_GetGC() failed!", NULL);
 
    // initialize offscreen pixmap
    doubleBufferPixmap = Tk_GetPixmap(display, Tk_WindowId(theWindow),
@@ -297,11 +297,11 @@ void BarChart::rethinkMetricMaxValues() {
 
       char buffer[64];
       sprintf(buffer, "%d", metriclcv);
-      char *str = Tcl_GetVar2(MainInterp, "metricMaxValues",
-			      (char*)visi_MetricLabel(metriclcv), // units
+      TCLCONST char *str = Tcl_GetVar2(MainInterp, "metricMaxValues",
+			      (TCLCONST char*)visi_MetricLabel(metriclcv), // units
 			      TCL_GLOBAL_ONLY);
       if (str == NULL)
-         panic("BarChart::RethinkMetricMaxValues() -- could not read 'metricMaxValues'");
+         Tcl_Panic("BarChart::RethinkMetricMaxValues() -- could not read 'metricMaxValues'", NULL);
 
       metricCurrMaxVals[metriclcv] = atof(str);
    }
@@ -340,7 +340,7 @@ void BarChart::processNewData(int newBucketIndex) {
                   newVal = visi_SumValue(metriclcv, resourcelcv);
                   break;
                default:
-                  panic("BarChart::processNewData() -- unknown data format!");
+                  Tcl_Panic("BarChart::processNewData() -- unknown data format!", NULL);
 	    }
 
             values[metriclcv][resourcelcv] = isnan(newVal) ? 0 : newVal;
@@ -412,23 +412,23 @@ void BarChart::RethinkBarLayouts() {
    // does not touch metricCurrMaxVals or values[][]
 
    // Start off by reading some tcl vrbles (barChart.tcl)
-   char *totalResourceHeightStr =
+   TCLCONST char *totalResourceHeightStr =
         Tcl_GetVar(MainInterp, "currResourceHeight", TCL_GLOBAL_ONLY);
    if (NULL == totalResourceHeightStr)
-      panic("BarChart::RethinkBarLayouts(): couldn't read tcl 'currResourceHeight'");
+      Tcl_Panic("BarChart::RethinkBarLayouts(): couldn't read tcl 'currResourceHeight'", NULL);
    totalResourceHeight  = atoi(totalResourceHeightStr);
 
-   char *maxIndividualColorHeightStr =
+   TCLCONST char *maxIndividualColorHeightStr =
         Tcl_GetVar(MainInterp, "maxIndividualColorHeight", TCL_GLOBAL_ONLY);
    if (NULL == maxIndividualColorHeightStr)
-      panic("BarChart::RethinkBarLayouts(): couldn't read tcl 'maxIndividualColorHeight'");
+      Tcl_Panic("BarChart::RethinkBarLayouts(): couldn't read tcl 'maxIndividualColorHeight'", NULL);
    const int maxIndividualColorHeight = atoi(maxIndividualColorHeightStr);
 
 // minIndividualColorHeight [not yet implemented]
 //   char *minIndividualColorHeightStr =
 //        Tcl_GetVar(MainInterp, "minIndividualColorHeight", TCL_GLOBAL_ONLY);
 //   if (NULL == minIndividualColorHeightStr)
-//      panic("BarChart::RethinkBarLayouts(): couldn't read tcl 'minIndividualColorHeight'");
+//      Tcl_Panic("BarChart::RethinkBarLayouts(): couldn't read tcl 'minIndividualColorHeight'", NULL);
 //   const int minIndividualColorHeight = atoi(minIndividualColorHeightStr);
 
    // Here we go:   
@@ -576,22 +576,22 @@ void BarChart::rethinkIndirectResources() {
       char buffer[20];
       sprintf(buffer, "%d", resourcelcv);
 
-      char *string = Tcl_GetVar2(MainInterp, "indirectResources",
+      TCLCONST char *string = Tcl_GetVar2(MainInterp, "indirectResources",
 				 buffer, TCL_GLOBAL_ONLY);
       if (string == NULL)
-         panic("BarChart::rethinkIndirectResources -- could not read indirectResources() from tcl");
+         Tcl_Panic("BarChart::rethinkIndirectResources -- could not read indirectResources() from tcl", NULL);
 
       const unsigned indirectNum = atoi(string);
       if (indirectNum>=numResources) {
          cerr << "BarChart::rethinkIndirectResources -- indirect value of "
               << indirectNum << ' ' << "is too high (numResources="
               << numResources << ')' << endl;
-         panic("");
+         Tcl_Panic("", NULL);
       }
       else if (!validResources[indirectNum]) {
          cerr << "BarChart::rethinkIndirectResources -- resource #"
               << indirectNum << "is not presently valid" << endl;
-         panic("");
+         Tcl_Panic("", NULL);
       }
 
       indirectResources[resourcelcv] = indirectNum;

@@ -42,7 +42,7 @@
 // dg2.C
 // implementation of the "Dg" tcl command
 
-/* $Id: dg2.C,v 1.13 2002/04/09 18:06:08 mjbrim Exp $ */
+/* $Id: dg2.C,v 1.14 2003/06/20 02:23:24 pcroth Exp $ */
 
 #include <iostream.h>
 
@@ -111,7 +111,7 @@ static struct cmdTabEntry Dg_Cmds[] = {
 
 int findCommand(Tcl_Interp *interp, 
 		       int argc, 
-		       char *argv[]) {
+		       TCLCONST char *argv[]) {
 
   ostrstream resstr;
 
@@ -140,7 +140,7 @@ int findCommand(Tcl_Interp *interp,
 }
 
 int Dg_TclCommand(ClientData, Tcl_Interp *interp, 
-		  int argc, char *argv[]) {
+		  int argc, TCLCONST char *argv[]) {
   // entrypoint to the tcl "Dg" command we've installed
   // all the sprintf()'s are rather slow...
 

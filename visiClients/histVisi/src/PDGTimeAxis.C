@@ -49,7 +49,7 @@
 // megawidget.
 //
 //---------------------------------------------------------------------------
-// $Id: PDGTimeAxis.C,v 1.6 2000/07/28 17:22:58 pcroth Exp $
+// $Id: PDGTimeAxis.C,v 1.7 2003/06/20 02:23:17 pcroth Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include <iostream.h>
@@ -140,7 +140,8 @@ PDGraph::TimeAxisW::InstallClassCommand( Tcl_Interp* interp )
 
 
 int
-PDGraph::TimeAxisW::ClassCmdCB( ClientData cd, Tcl_Interp* interp, int argc, char* argv[] )
+PDGraph::TimeAxisW::ClassCmdCB( ClientData cd, Tcl_Interp* interp,
+                                int argc, TCLCONST char* argv[] )
 {
     Tk_Window mwin = (Tk_Window)cd;
 
@@ -177,7 +178,8 @@ PDGraph::TimeAxisW::ClassCmdCB( ClientData cd, Tcl_Interp* interp, int argc, cha
 // InitTclTk - initialize the Tcl/Tk members for the widget
 //
 int
-PDGraph::TimeAxisW::InitTclTk( Tcl_Interp* interp, Tk_Window mwin, int argc, char* argv[] )
+PDGraph::TimeAxisW::InitTclTk( Tcl_Interp* interp, Tk_Window mwin,
+                                int argc, TCLCONST char* argv[] )
 {
     // create a window for the widget
     tkwin = Tk_CreateWindowFromPath( interp, mwin, argv[1], NULL );
@@ -228,7 +230,8 @@ PDGraph::TimeAxisW::InitCPP( PDGraph* pdgraph )
 // given arguments
 //
 int
-PDGraph::TimeAxisW::Configure( Tcl_Interp* interp, int argc, char* argv[], int flags )
+PDGraph::TimeAxisW::Configure( Tcl_Interp* interp,
+                                int argc, TCLCONST char* argv[], int flags )
 {
     // handle Tk options
     if( Tk_ConfigureWidget(interp,
@@ -506,7 +509,8 @@ PDGraph::TimeAxisW::HandleEvent( XEvent* ev )
 // HandleCommand - respond to Tcl instance command
 //
 int
-PDGraph::TimeAxisW::HandleCommand( Tcl_Interp* interp, int argc, char* argv[] )
+PDGraph::TimeAxisW::HandleCommand( Tcl_Interp* interp,
+                                    int argc, TCLCONST char* argv[] )
 {
     int result = TCL_OK;
     size_t length;
@@ -664,7 +668,8 @@ PDGraph::TimeAxisW::FindUnitsLabel( void ) const
 //---------------------------------------------------------------------------
 
 int
-PDGraph::TimeAxisW::InstanceCmdCB( ClientData cd, Tcl_Interp* interp, int argc, char* argv[] )
+PDGraph::TimeAxisW::InstanceCmdCB( ClientData cd, Tcl_Interp* interp,
+                                    int argc, TCLCONST char* argv[] )
 {
     TimeAxisW* ta = (TimeAxisW*)cd;
     return ta->HandleCommand( interp, argc, argv );

@@ -49,7 +49,7 @@
 // megawidget.
 //
 //---------------------------------------------------------------------------
-// $Id: PDGData.C,v 1.3 2002/12/20 07:50:09 jaw Exp $
+// $Id: PDGData.C,v 1.4 2003/06/20 02:23:16 pcroth Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include <iostream.h>
@@ -127,7 +127,8 @@ PDGraph::DataW::InstallClassCommand( Tcl_Interp* interp )
 
 
 int
-PDGraph::DataW::ClassCmdCB( ClientData cd, Tcl_Interp* interp, int argc, char* argv[] )
+PDGraph::DataW::ClassCmdCB( ClientData cd, Tcl_Interp* interp,
+                                int argc, TCLCONST char* argv[] )
 {
     Tk_Window mwin = (Tk_Window)cd;
 
@@ -166,7 +167,7 @@ PDGraph::DataW::ClassCmdCB( ClientData cd, Tcl_Interp* interp, int argc, char* a
 int
 PDGraph::DataW::InitTclTk( Tcl_Interp* interp,
                             Tk_Window mwin, 
-                            int argc, char* argv[] )
+                            int argc, TCLCONST char* argv[] )
 {
     // create a window for the widget
     tkwin = Tk_CreateWindowFromPath( interp, mwin, argv[1], NULL );
@@ -220,7 +221,7 @@ PDGraph::DataW::InitCPP( PDGraph* pdgraph, unsigned int labHeight )
 //
 int
 PDGraph::DataW::Configure( Tcl_Interp* interp,
-                            int argc, char* argv[],
+                            int argc, TCLCONST char* argv[],
                             int flags )
 {
     // handle Tk options
@@ -468,7 +469,8 @@ PDGraph::DataW::HandleEvent( XEvent* ev )
 // HandleCommand - respond to Tcl instance command
 //
 int
-PDGraph::DataW::HandleCommand( Tcl_Interp* interp, int argc, char* argv[] )
+PDGraph::DataW::HandleCommand( Tcl_Interp* interp,
+                                int argc, TCLCONST char* argv[] )
 {
     int result = TCL_OK;
     size_t length;
@@ -600,7 +602,8 @@ PDGraph::DataW::HandleInstanceCommandDeleted( void )
 //---------------------------------------------------------------------------
 
 int
-PDGraph::DataW::InstanceCmdCB( ClientData cd, Tcl_Interp* interp, int argc, char* argv[] )
+PDGraph::DataW::InstanceCmdCB( ClientData cd, Tcl_Interp* interp,
+                                int argc, TCLCONST char* argv[] )
 {
     DataW* dw = (DataW*)cd;
     return dw->HandleCommand( interp, argc, argv );

@@ -59,7 +59,7 @@
 //   PDGraph::DataW       PDGData.C
 //
 //---------------------------------------------------------------------------
-// $Id: PDGraph.C,v 1.19 2003/03/10 19:01:48 mikem Exp $
+// $Id: PDGraph.C,v 1.20 2003/06/20 02:23:17 pcroth Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include <iostream.h>
@@ -361,7 +361,8 @@ PDGraph::~PDGraph( void )
 // InitTclTk - initialize the Tcl/Tk members for the widget
 //
 int
-PDGraph::InitTclTk( Tcl_Interp* interp, Tk_Window mwin, int argc, char* argv[] )
+PDGraph::InitTclTk( Tcl_Interp* interp, Tk_Window mwin,
+                    int argc, TCLCONST char* argv[] )
 {
     ClientData cd;
     ostrstream wpathstr;
@@ -513,7 +514,8 @@ PDGraph::InitTclTk( Tcl_Interp* interp, Tk_Window mwin, int argc, char* argv[] )
 // ClassCmdCB - implementation of "pdgraph" Tcl command
 //
 int
-PDGraph::ClassCmdCB( ClientData cd, Tcl_Interp* interp, int argc, char* argv[] )
+PDGraph::ClassCmdCB( ClientData cd, Tcl_Interp* interp,
+                    int argc, TCLCONST char* argv[] )
 {
     Tk_Window mwin = (Tk_Window)cd;
 
@@ -652,7 +654,7 @@ PDGraph::PanTo( double position )
 // on a pdgraph instance.  Builds a list of curve IDs for selected items.
 //
 int
-PDGraph::HandleGetSelectedCommand( int argc, char* argv[] )
+PDGraph::HandleGetSelectedCommand( int argc, TCLCONST char* argv[] )
 {
     ostrstream rstr;        // result stream
     int ret = TCL_OK;
@@ -693,7 +695,7 @@ PDGraph::HandleGetSelectedCommand( int argc, char* argv[] )
 // HandleSmoothCommand - Responds to the smooth and unsmooth commands
 //
 int
-PDGraph::HandleSmoothCommand( int argc, char* argv[], bool smooth )
+PDGraph::HandleSmoothCommand( int argc, TCLCONST char* argv[], bool smooth )
 {
     ostrstream rstr;        // result stream
     int ret = TCL_OK;
@@ -817,7 +819,7 @@ PDGraph::HandleSmoothCommand( int argc, char* argv[], bool smooth )
 // HandleShowCommand - respond to the show and hide commands
 //
 int
-PDGraph::HandleShowCommand( int argc, char* argv[], bool show )
+PDGraph::HandleShowCommand( int argc, TCLCONST char* argv[], bool show )
 {
     ostrstream rstr;        // result stream
     int ret = TCL_OK;
@@ -892,7 +894,7 @@ PDGraph::HandleShowCommand( int argc, char* argv[], bool show )
 // the indicated curves
 //
 int
-PDGraph::HandleRemoveCommand( int argc, char* argv[] )
+PDGraph::HandleRemoveCommand( int argc, TCLCONST char* argv[] )
 {
     ostrstream rstr;        // result stream
     int ret = TCL_OK;
@@ -973,7 +975,7 @@ PDGraph::HandleRemoveCommand( int argc, char* argv[] )
 // and zooming graph if needed
 //
 int
-PDGraph::HandleZoomCommand( int argc, char* argv[] )
+PDGraph::HandleZoomCommand( int argc, TCLCONST char* argv[] )
 {
     int ret = TCL_OK;
     ostrstream estr;
@@ -1116,7 +1118,7 @@ PDGraph::HandleZoomCommand( int argc, char* argv[] )
 // HandlePanCommand - respond to the pan command by validating params and
 // panning graph if needed
 //
-int PDGraph::HandlePanCommand( int argc, char* argv[] )
+int PDGraph::HandlePanCommand( int argc, TCLCONST char* argv[] )
 {
     int ret = TCL_OK;
     ostrstream estr;
@@ -1257,7 +1259,7 @@ int PDGraph::HandlePanCommand( int argc, char* argv[] )
 // handling methods
 //
 int
-PDGraph::HandleCmd( Tcl_Interp* interp, int argc, char* argv[] )
+PDGraph::HandleCmd( Tcl_Interp* interp, int argc, TCLCONST char* argv[] )
 {
     int result = TCL_OK;
     size_t length;
@@ -1404,7 +1406,8 @@ error:
 // given arguments
 //
 int
-PDGraph::Configure(Tcl_Interp* interp, int argc, char* argv[], int flags )
+PDGraph::Configure(Tcl_Interp* interp, int argc,
+                    TCLCONST char* argv[], int flags )
 {
     // handle Tk options
     if( Tk_ConfigureWidget(interp,
@@ -1983,7 +1986,8 @@ PDGraph::FindInstanceData( char* name, Tcl_Interp* interp, ClientData& cd )
 //---------------------------------------------------------------------------
 
 int
-PDGraph::InstanceCmdCB( ClientData cd, Tcl_Interp* interp, int argc, char* argv[] )
+PDGraph::InstanceCmdCB( ClientData cd, Tcl_Interp* interp,
+                        int argc, TCLCONST char* argv[] )
 {
     PDGraph* pGraph = (PDGraph*)cd;
     return pGraph->HandleCmd( interp, argc, argv );

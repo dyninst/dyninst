@@ -41,7 +41,7 @@
 
 // barChart.h
 
-/* $Id: barChart.h,v 1.17 2002/12/20 07:50:09 jaw Exp $ */
+/* $Id: barChart.h,v 1.18 2003/06/20 02:23:07 pcroth Exp $ */
 
 #ifndef _BARCHART_H_
 #define _BARCHART_H_
@@ -146,7 +146,7 @@ class BarChart {
 
   public:
 
-   BarChart(char *tkWindowName, int iNumMetrics, int iNumResources,
+   BarChart(TCLCONST char *tkWindowName, int iNumMetrics, int iNumResources,
 	    const pdvector<string> &colorNames);
   ~BarChart();
 

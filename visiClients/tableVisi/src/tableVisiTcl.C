@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: tableVisiTcl.C,v 1.19 2002/02/15 18:35:30 pcroth Exp $
+// $Id: tableVisiTcl.C,v 1.20 2003/06/20 02:23:24 pcroth Exp $
 
 #include <iostream.h>
 
@@ -229,14 +229,14 @@ int Dg2AddMetricsCallback(int) {
    }
 
    // now update the sorting, as applicable
-   char *sortMetricsStr = Tcl_GetVar(mainInterp, "sortMetrics", TCL_GLOBAL_ONLY);
+   const char *sortMetricsStr = Tcl_GetVar(mainInterp, "sortMetrics", TCL_GLOBAL_ONLY);
    int sortMetricsFlag = atoi(sortMetricsStr);
    if (sortMetricsFlag==0)
       theTableVisi->sortMetrics();
    else
       theTableVisi->unsortMetrics();
 
-   char *sortFociStr = Tcl_GetVar(mainInterp, "sortFoci", TCL_GLOBAL_ONLY);
+   const char *sortFociStr = Tcl_GetVar(mainInterp, "sortFoci", TCL_GLOBAL_ONLY);
    int sortFociFlag = atoi(sortFociStr);
    if (sortFociFlag==0)
       theTableVisi->sortFoci();
@@ -278,7 +278,7 @@ int Dg2ParadynExitedCallback(int)
 void dummyDeleteProc(ClientData) {}
 
 int tableVisiNewVertScrollPositionCommand(ClientData, Tcl_Interp *interp,
-					  int argc, char **argv) {
+					  int argc, TCLCONST char **argv) {
    // The arguments will be one of:
    // 1) moveto [fraction]
    // 2) scroll [num-units] unit   (num-units is always either -1 or 1)
@@ -303,7 +303,7 @@ int tableVisiNewVertScrollPositionCommand(ClientData, Tcl_Interp *interp,
 }
 
 int tableVisiNewHorizScrollPositionCommand(ClientData, Tcl_Interp *interp,
-					   int argc, char **argv) {
+					   int argc, TCLCONST char **argv) {
    // The arguments will be one of:
    // 1) moveto [fraction]
    // 2) scroll [num-units] unit   (num-units is always either -1 or 1)
@@ -328,7 +328,7 @@ int tableVisiNewHorizScrollPositionCommand(ClientData, Tcl_Interp *interp,
 }
 
 int tableVisiConfigureCommand(ClientData, Tcl_Interp *interp,
-			      int, char **) {
+			      int, TCLCONST char **) {
    assert(theTableVisi->tryFirst());
    theTableVisi->resize(interp); // adjusts scrollbar
    tableDrawWhenIdle.install(NULL);
@@ -337,7 +337,7 @@ int tableVisiConfigureCommand(ClientData, Tcl_Interp *interp,
 }
 
 int tableVisiExposeCommand(ClientData, Tcl_Interp *,
-			   int, char **) {
+			   int, TCLCONST char **) {
    assert(theTableVisi->tryFirst());
    tableDrawWhenIdle.install(NULL);
 
@@ -359,7 +359,7 @@ void tableVisiUpdateDeleteMenu(Tcl_Interp *interp) {
 }
 
 int tableVisiClickCommand(ClientData, Tcl_Interp *interp,
-			  int argc, char **argv) {
+			  int argc, TCLCONST char **argv) {
    assert(theTableVisi->tryFirst());
    
    assert(argc == 3);
@@ -378,7 +378,7 @@ int tableVisiClickCommand(ClientData, Tcl_Interp *interp,
 }
 
 int tableVisiDeleteSelectionCommand(ClientData, Tcl_Interp *interp,
-				    int, char **) {
+				    int, TCLCONST char **) {
    assert(theTableVisi->tryFirst());
 
    switch(theTableVisi->getSelection()) {
@@ -443,7 +443,7 @@ int tableVisiDeleteSelectionCommand(ClientData, Tcl_Interp *interp,
 }
 
 int updateNamesCommand(ClientData, Tcl_Interp *interp,
-		       int argc, char **argv) {
+		       int argc, TCLCONST char **argv) {
    assert(argc==2);
 
    assert(theTableVisi->tryFirst());
@@ -455,10 +455,10 @@ int updateNamesCommand(ClientData, Tcl_Interp *interp,
 }
 
 int sigFigChangeCommand(ClientData, Tcl_Interp *interp,
-			int argc, char **) {
+			int argc, TCLCONST char **) {
    assert(argc == 1);
 
-   char *sigFigStr = Tcl_GetVar(interp, "SignificantDigits", TCL_GLOBAL_ONLY);
+   const char *sigFigStr = Tcl_GetVar(interp, "SignificantDigits", TCL_GLOBAL_ONLY);
    if (sigFigStr == NULL)
       tclpanic(interp, "could not find vrble SignificantDigits");
 
@@ -476,7 +476,7 @@ int sigFigChangeCommand(ClientData, Tcl_Interp *interp,
 }
 
 int sortMetricsCommand(ClientData, Tcl_Interp *,
-		       int, char **) {
+		       int, TCLCONST char **) {
    theTableVisi->sortMetrics();
    if (theTableVisi->tryFirst())
       tableDrawWhenIdle.install(NULL);
@@ -484,7 +484,7 @@ int sortMetricsCommand(ClientData, Tcl_Interp *,
 }
 
 int unsortMetricsCommand(ClientData, Tcl_Interp *,
-		       int, char **) {
+		       int, TCLCONST char **) {
    theTableVisi->unsortMetrics();
    if (theTableVisi->tryFirst())
       tableDrawWhenIdle.install(NULL);
@@ -492,7 +492,7 @@ int unsortMetricsCommand(ClientData, Tcl_Interp *,
 }
 
 int sortFociCommand(ClientData, Tcl_Interp *,
-		    int, char **) {
+		    int, TCLCONST char **) {
    profileMode = false;
    theTableVisi->sortFoci();
    if (theTableVisi->tryFirst())
@@ -501,7 +501,7 @@ int sortFociCommand(ClientData, Tcl_Interp *,
 }
 
 int sortFociByValuesCommand(ClientData, Tcl_Interp *,
-			    int, char **) {
+			    int, TCLCONST char **) {
    profileMode = true;
    theTableVisi->sortFociByValues();
    if (theTableVisi->tryFirst())
@@ -510,7 +510,7 @@ int sortFociByValuesCommand(ClientData, Tcl_Interp *,
 }
 
 int unsortFociCommand(ClientData, Tcl_Interp *,
-		       int, char **) {
+		       int, TCLCONST char **) {
    profileMode = false;
    theTableVisi->unsortFoci();
    if (theTableVisi->tryFirst())
@@ -519,8 +519,8 @@ int unsortFociCommand(ClientData, Tcl_Interp *,
 }
 
 int formatChangedCommand(ClientData, Tcl_Interp *interp,
-			 int, char **) {
-   char *dataFormatStr = Tcl_GetVar(interp, "DataFormat", TCL_GLOBAL_ONLY);
+			 int, TCLCONST char **) {
+   const char *dataFormatStr = Tcl_GetVar(interp, "DataFormat", TCL_GLOBAL_ONLY);
    if (dataFormatStr == NULL)
       tclpanic(interp, "could not find DataFormat tcl vrble");
 
@@ -547,7 +547,7 @@ int formatChangedCommand(ClientData, Tcl_Interp *interp,
 int tableVisiDestroyCommand( ClientData,
                              Tcl_Interp* /*interp*/,
 			                 int /*argc*/,
-                             char* /*argv*/[])
+                             TCLCONST char* /*argv*/[])
 {
     // release resources that must be
     // gone before we destroy the GUI

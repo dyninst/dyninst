@@ -42,7 +42,7 @@
 // dg2.C
 // customized (for barchart) version of DGclient.C in tclVisi directory
 
-/* $Id: dg2.C,v 1.29 2002/04/09 18:06:03 mjbrim Exp $ */
+/* $Id: dg2.C,v 1.30 2003/06/20 02:23:07 pcroth Exp $ */
 
 // An updated version of DGClient.C for barchart2.C
 // Contains several **deletions** to remove blt_barchart influences
@@ -125,7 +125,7 @@ static struct cmdTabEntry Dg_Cmds[] = {
 
 int findCommand(Tcl_Interp *interp, 
 		       int argc, 
-		       char *argv[]) {
+		       TCLCONST char *argv[]) {
 
   ostrstream resstr;
 
@@ -155,7 +155,7 @@ int findCommand(Tcl_Interp *interp,
 
 int Dg_TclCommand(ClientData,
 		  Tcl_Interp *interp, 
-		  int argc, char *argv[]) {
+		  int argc, TCLCONST char *argv[]) {
   // entrypoint to the tcl "Dg" command we've installed
   // all the sprintf()'s are rather slow...
 
@@ -293,22 +293,22 @@ int Dg2_Init(Tcl_Interp *interp) {
    // in order to perturb the system as little as possible.
 
    if (visi_RegistrationCallback(ADDMETRICSRESOURCES,Dg2AddMetricsCallback)!=0)
-      panic("Dg2_Init() -- couldn't install ADDMETRICSRESOURCES callback");
+      Tcl_Panic("Dg2_Init() -- couldn't install ADDMETRICSRESOURCES callback", NULL);
 
    if (visi_RegistrationCallback(FOLD, Dg2Fold) != 0)
-      panic("Dg2_Init() -- couldn't install FOLD callback");
+      Tcl_Panic("Dg2_Init() -- couldn't install FOLD callback", NULL);
 
    if (visi_RegistrationCallback(INVALIDMETRICSRESOURCES, Dg2InvalidMetricsOrResources) != 0)
-      panic("Dg2_Init() -- couldn't install INVALID callback");
+      Tcl_Panic("Dg2_Init() -- couldn't install INVALID callback", NULL);
 
    if (visi_RegistrationCallback(PHASESTART, Dg2PhaseNameCallback) != 0)
-      panic("Dg2_Init() -- couldn't install PHASENAME callback");
+      Tcl_Panic("Dg2_Init() -- couldn't install PHASENAME callback", NULL);
 
    if (visi_RegistrationCallback(DATAVALUES, Dg2NewDataCallback) != 0)
-      panic("Dg2_Init() -- couldn't install DATAVALUES callback");
+      Tcl_Panic("Dg2_Init() -- couldn't install DATAVALUES callback", NULL);
 
    if (visi_RegistrationCallback(PARADYNEXITED, Dg2ParadynExitedCallback) != 0)
-       panic("Dg2_Init() -- couldn't install PARADYNEXITED callback");
+       Tcl_Panic("Dg2_Init() -- couldn't install PARADYNEXITED callback", NULL);
 
    // install "Dg" as a new tcl command; Dg_TclCommand() will be invoked when
    // a tcl script calls Dg

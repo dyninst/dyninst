@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: barChartDriver.C,v 1.24 2003/04/15 18:09:54 pcroth Exp $
+// $Id: barChartDriver.C,v 1.25 2003/06/20 02:23:07 pcroth Exp $
 
 #include <assert.h>
 #include <stdlib.h>
@@ -75,11 +75,6 @@ bool xsynchFlag = false;
 // prototypes of functions used in this file
 int initialize_tcl_sources(Tcl_Interp *);
 
-
-void panic(const char *msg) {
-   cerr << msg << endl;
-   exit(5);
-}
 
 int main(int argc, char **argv) {
 

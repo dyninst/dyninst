@@ -44,18 +44,18 @@
 #ifndef _BARCHART_TCL_H_
 #define _BARCHART_TCL_H_
 
-int resizeCallbackCommand(ClientData, Tcl_Interp *, int argc, char **argv);
-int exposeCallbackCommand(ClientData, Tcl_Interp *, int argc, char **argv);
-int resourcesAxisHasChangedCommand(ClientData, Tcl_Interp *, int argc, char **argv);
-int metricsAxisHasChangedCommand  (ClientData, Tcl_Interp *, int argc, char **argv);
-int newScrollPositionCommand   (ClientData, Tcl_Interp *, int argc, char **argv);
-int dataFormatHasChangedCommand(ClientData, Tcl_Interp *, int argc, char **argv);
-int rethinkIndirectResourcesCommand(ClientData, Tcl_Interp *, int argc, char **argv);
-int getMetricColorNameCommand(ClientData, Tcl_Interp *, int, char **);
-int long2shortFocusNameCommand(ClientData, Tcl_Interp *interp, int argc, char **argv);
-int newMetricMaxValCallbackCommand(ClientData, Tcl_Interp *, int, char **);
+int resizeCallbackCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char **argv);
+int exposeCallbackCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char **argv);
+int resourcesAxisHasChangedCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char **argv);
+int metricsAxisHasChangedCommand  (ClientData, Tcl_Interp *, int argc, TCLCONST char **argv);
+int newScrollPositionCommand   (ClientData, Tcl_Interp *, int argc, TCLCONST char **argv);
+int dataFormatHasChangedCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char **argv);
+int rethinkIndirectResourcesCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char **argv);
+int getMetricColorNameCommand(ClientData, Tcl_Interp *, int, TCLCONST char **);
+int long2shortFocusNameCommand(ClientData, Tcl_Interp *interp, int argc, TCLCONST char **argv);
+int newMetricMaxValCallbackCommand(ClientData, Tcl_Interp *, int, TCLCONST char **);
 
-int launchBarChartCommand(ClientData, Tcl_Interp *, int argc, char **argv);
+int launchBarChartCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char **argv);
 
 void deleteLaunchBarChartCommand(ClientData);
 void deleteDummyProc(ClientData);

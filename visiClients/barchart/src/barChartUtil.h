@@ -41,11 +41,10 @@
 
 // barChart.h
 
-/* $Id: barChartUtil.h,v 1.2 1999/04/27 16:05:07 nash Exp $ */
+/* $Id: barChartUtil.h,v 1.3 2003/06/20 02:23:07 pcroth Exp $ */
 
 #ifndef _BARCHARTUTIL_H_
 #define _BARCHARTUTIL_H_
 
-void panic(const char *msg);
 
 #endif // _BARCHARTUTIL_H_

@@ -65,7 +65,7 @@ extern "C" {
  * currently, passing a list of met-res pairs is not supported 
  * (i.e. these parameters are ignored)
  */
-extern void visi_GetMetsRes(char *metres,  /* predefined met-res pair list */
+extern void visi_GetMetsRes(const char *metres,  /* predefined met-res pairs */
 		       	    int numElements); 
 
 /* stop data collection for a metric/resource pair

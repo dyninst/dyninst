@@ -49,7 +49,7 @@
 // megawidget.
 //
 //---------------------------------------------------------------------------
-// $Id: PDGValueAxis.C,v 1.5 2002/12/20 07:50:09 jaw Exp $
+// $Id: PDGValueAxis.C,v 1.6 2003/06/20 02:23:17 pcroth Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include <iostream.h>
@@ -135,7 +135,7 @@ PDGraph::ValueAxisW::InstallClassCommand( Tcl_Interp* interp )
 int
 PDGraph::ValueAxisW::ClassCmdCB( ClientData cd,
                                     Tcl_Interp* interp,
-                                    int argc, char* argv[] )
+                                    int argc, TCLCONST char* argv[] )
 {
     Tk_Window mwin = (Tk_Window)cd;
 
@@ -174,7 +174,7 @@ PDGraph::ValueAxisW::ClassCmdCB( ClientData cd,
 int
 PDGraph::ValueAxisW::InitTclTk( Tcl_Interp* interp,
                                 Tk_Window mwin,
-                                int argc, char* argv[] )
+                                int argc, TCLCONST char* argv[] )
 {
     // create a window for the widget
     tkwin = Tk_CreateWindowFromPath( interp, mwin, argv[1], NULL );
@@ -227,7 +227,8 @@ PDGraph::ValueAxisW::InitCPP( PDGraph* pdgraph, unsigned int taHeight )
 // given arguments
 //
 int
-PDGraph::ValueAxisW::Configure( Tcl_Interp* interp, int argc, char* argv[], int flags )
+PDGraph::ValueAxisW::Configure( Tcl_Interp* interp,
+                                int argc, TCLCONST char* argv[], int flags )
 {
     // handle Tk options
     if( Tk_ConfigureWidget(interp,
@@ -512,7 +513,8 @@ PDGraph::ValueAxisW::HandleEvent( XEvent* ev )
 // HandleCommand - respond to Tcl instance command
 //
 int
-PDGraph::ValueAxisW::HandleCommand( Tcl_Interp* interp, int argc, char* argv[] )
+PDGraph::ValueAxisW::HandleCommand( Tcl_Interp* interp,
+                                    int argc, TCLCONST char* argv[] )
 {
     int result = TCL_OK;
     size_t length;
@@ -644,7 +646,8 @@ PDGraph::ValueAxisW::HandleInstanceCommandDeleted( void )
 //---------------------------------------------------------------------------
 
 int
-PDGraph::ValueAxisW::InstanceCmdCB( ClientData cd, Tcl_Interp* interp, int argc, char* argv[] )
+PDGraph::ValueAxisW::InstanceCmdCB( ClientData cd, Tcl_Interp* interp,
+                                    int argc, TCLCONST char* argv[] )
 {
     ValueAxisW* va = (ValueAxisW*)cd;
     return va->HandleCommand( interp, argc, argv );

@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DGclient.C,v 1.24 2002/02/15 18:35:32 pcroth Exp $
+ * $Id: DGclient.C,v 1.25 2003/06/20 02:23:31 pcroth Exp $
  * DGclient.C -- Code for the visi<->tcl interface.
  */
 
@@ -212,7 +212,7 @@ static struct cmdTabEntry Dg_Cmds[] = {
 };
 
 int findCommand(Tcl_Interp *interp, 
-		int argc, char *argv[]) {
+		int argc, TCLCONST char *argv[]) {
 
   ostrstream resstr;
 
@@ -242,7 +242,7 @@ int findCommand(Tcl_Interp *interp,
 int Dg_TclCommand(ClientData,
 		  Tcl_Interp *interp, 
 		  int argc, 
-		  char *argv[]) {
+		  TCLCONST char *argv[]) {
   const int cmdDex = findCommand(interp, argc-1, argv+1);
   if (cmdDex == CMDERROR)
      return TCL_ERROR;

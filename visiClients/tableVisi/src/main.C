@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.19 2003/04/15 18:09:55 pcroth Exp $
+// $Id: main.C,v 1.20 2003/06/20 02:23:24 pcroth Exp $
 
 #include <assert.h>
 #include <stdlib.h>
@@ -75,11 +75,6 @@ Ident V_Vid(V_libvisi,"Paradyn");
 
 Tcl_Interp *mainInterp;
 
-void panic(const char *msg) {
-   cerr << msg << endl;
-   exit(5);
-}
-
 tableVisi *theTableVisi; // our main data structure
 bool xsynch_flag=false;
 
@@ -110,7 +105,7 @@ int main(int argc, char **argv) {
         }
         else
         {
-            panic( "unrecognized argument seen" );
+            Tcl_Panic( "unrecognized argument seen", NULL );
         }
     }
 
@@ -140,7 +135,7 @@ int main(int argc, char **argv) {
 
    PDSOCKET visi_sock = visi_Init();
    if (visi_sock < 0)
-      panic("failed to initialize w/ visi lib");
+      Tcl_Panic("failed to initialize w/ visi lib", NULL);
 
    Tcl_SetVar(mainInterp, "tcl_interactive", "0", TCL_GLOBAL_ONLY);
 
@@ -148,10 +143,11 @@ int main(int argc, char **argv) {
    installTableVisiCommands(mainInterp);
 
    if (visi_RegistrationCallback(ADDMETRICSRESOURCES,Dg2AddMetricsCallback)!=0)
-      panic("Dg2_Init() -- couldn't install ADDMETRICSRESOURCES callback");
+      Tcl_Panic("Dg2_Init() -- couldn't install ADDMETRICSRESOURCES callback",
+        NULL);
 
    if (visi_RegistrationCallback(DATAVALUES, Dg2NewDataCallback) != 0)
-      panic("Dg2_Init() -- couldn't install DATAVALUES callback");
+      Tcl_Panic("Dg2_Init() -- couldn't install DATAVALUES callback", NULL);
 
    if (visi_RegistrationCallback(PARADYNEXITED, Dg2ParadynExitedCallback) != 0)
        panic("Dg2_Init() -- couldn't install PARADYNEXITED callback");

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.8 2002/12/20 07:50:09 jaw Exp $
+// $Id: main.C,v 1.9 2003/06/20 02:23:31 pcroth Exp $
 
 #include <stdio.h>
 #include <signal.h>
@@ -89,7 +89,7 @@ sighup_handler( int )
 }
 
 
-int CloseOptionCmd(ClientData,Tcl_Interp *,int argc, char **argv)
+int CloseOptionCmd(ClientData,Tcl_Interp *,int argc, TCLCONST char **argv)
 {
     assert(argc == 2);
     const int mode = atoi(argv[1]);

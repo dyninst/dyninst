@@ -41,7 +41,7 @@
 
 // barChartTcl.C
 
-/* $Id: barChartTcl.C,v 1.25 2002/12/20 07:50:09 jaw Exp $ */
+/* $Id: barChartTcl.C,v 1.26 2003/06/20 02:23:07 pcroth Exp $ */
 
 #include <iostream.h>
 
@@ -142,7 +142,7 @@ int Dg2ParadynExitedCallback(int)
     return TCL_OK;
 }
 
-int resizeCallbackCommand(ClientData, Tcl_Interp *, int argc, char **argv) {
+int resizeCallbackCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char **argv) {
    // called from barChart.tcl when it detects a resize; gives our C++ code
    // a chance to process the resize, too.
 
@@ -155,7 +155,7 @@ int resizeCallbackCommand(ClientData, Tcl_Interp *, int argc, char **argv) {
       return TCL_ERROR;
 }
 
-int exposeCallbackCommand(ClientData, Tcl_Interp *, int, char **) {
+int exposeCallbackCommand(ClientData, Tcl_Interp *, int, TCLCONST char **) {
    // called from barChart.tcl when it detects an expose; gives our C++ code
    // a chance to process the expose, too.
 
@@ -167,7 +167,7 @@ int exposeCallbackCommand(ClientData, Tcl_Interp *, int, char **) {
       return TCL_ERROR;
 }
 
-int resourcesAxisHasChangedCommand(ClientData, Tcl_Interp *, int argc, char **) {
+int resourcesAxisHasChangedCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char **) {
    // called from barChart.tcl when the x-axis layout has changed due to resize,
    // insertion/deletion, etc; gives our C++ code a chance to update its
    // internal structures.
@@ -182,7 +182,7 @@ int resourcesAxisHasChangedCommand(ClientData, Tcl_Interp *, int argc, char **) 
       return TCL_ERROR;
 }
 
-int metricsAxisHasChangedCommand(ClientData, Tcl_Interp *, int argc, char **) {
+int metricsAxisHasChangedCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char **) {
    // called from barChart.tcl when the y-axis layout has changed due to resize,
    // insertion/deletion, etc; gives our C++ code a chance to update its
    // internal structures.
@@ -197,7 +197,7 @@ int metricsAxisHasChangedCommand(ClientData, Tcl_Interp *, int argc, char **) {
       return TCL_ERROR;
 }
 
-int newScrollPositionCommand(ClientData, Tcl_Interp *, int argc, char **argv) {
+int newScrollPositionCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char **argv) {
    // called by tcl code when it's time to scroll the bars to a given value.
    // argument: new first-visible-pixel.
 
@@ -210,11 +210,11 @@ int newScrollPositionCommand(ClientData, Tcl_Interp *, int argc, char **argv) {
       return TCL_ERROR;
 }
 
-int dataFormatHasChangedCommand(ClientData, Tcl_Interp *, int argc, char **argv) {
+int dataFormatHasChangedCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char **argv) {
    // rethink current vs. average vs. total
    assert(argc == 2);
    if (barChartIsValid) {
-      char *dataFormatString = argv[1];
+      const char *dataFormatString = argv[1];
       if (0==strcmp(dataFormatString, "Instantaneous"))
          theBarChart->rethinkDataFormat(BarChart::Current);
       else if (0==strcmp(dataFormatString, "Average"))
@@ -222,14 +222,14 @@ int dataFormatHasChangedCommand(ClientData, Tcl_Interp *, int argc, char **argv)
       else if (0==strcmp(dataFormatString, "Sum"))
          theBarChart->rethinkDataFormat(BarChart::Total);
       else
-         panic("barChart dataFormatHasChangedCommand: unrecognized argument");
+         Tcl_Panic("barChart dataFormatHasChangedCommand: unrecognized argument", NULL);
       return TCL_OK;
    }
    else
       return TCL_ERROR;
 }
 
-int rethinkIndirectResourcesCommand(ClientData, Tcl_Interp *, int, char **) {
+int rethinkIndirectResourcesCommand(ClientData, Tcl_Interp *, int, TCLCONST char **) {
    // rethink how things are sorted
    if (barChartIsValid) {
       theBarChart->rethinkIndirectResources();
@@ -240,7 +240,7 @@ int rethinkIndirectResourcesCommand(ClientData, Tcl_Interp *, int, char **) {
 }
 
 int getMetricColorNameCommand(ClientData, Tcl_Interp *interp,
-			      int argc, char **argv) {
+			      int argc, TCLCONST char **argv) {
    // argument: metric index
    assert(argc==2);
    unsigned index = atoi(argv[1]);
@@ -250,10 +250,10 @@ int getMetricColorNameCommand(ClientData, Tcl_Interp *interp,
    return TCL_OK;
 }
 
-int long2shortFocusNameCommand(ClientData, Tcl_Interp *interp, int argc, char **argv) {
+int long2shortFocusNameCommand(ClientData, Tcl_Interp *interp, int argc, TCLCONST char **argv) {
 	unsigned componentlcv;
    assert(argc==2);
-   char *longName = argv[1];
+   const char *longName = argv[1];
 
    // NOTE: most of this code is borrowed/stolen from tableVisi's tvFocus::tvFocus
    //       routine.
@@ -308,14 +308,14 @@ int long2shortFocusNameCommand(ClientData, Tcl_Interp *interp, int argc, char **
    return TCL_OK;
 }
 
-int newMetricMaxValCallbackCommand(ClientData, Tcl_Interp *, int argc, char **argv) {
+int newMetricMaxValCallbackCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char **argv) {
    assert(theBarChart);
    assert(argc==3);
    theBarChart->setMetricNewMaxLL(atoi(argv[1]), atof(argv[2]));
    return TCL_OK;
 }
 
-int launchBarChartCommand(ClientData, Tcl_Interp *, int argc, char **argv) {
+int launchBarChartCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char **argv) {
    // called just once to fix some information needed by drawBarsCommand, especially
    // the (sub-)window in which to draw.
 
@@ -332,9 +332,9 @@ int launchBarChartCommand(ClientData, Tcl_Interp *, int argc, char **argv) {
    // cout << "Welcome to launchBarChartCommand()" << endl;
    
    if (argc != 4)
-      panic("launchBarChartCommand() -- cannot create barchart (incorrect #args)");
+      Tcl_Panic("launchBarChartCommand() -- cannot create barchart (incorrect #args)", NULL);
 
-   char *wname = argv[1];
+   TCLCONST char *wname = argv[1];
    const int iNumMetrics   = atoi(argv[2]);
    const int iNumResources = atoi(argv[3]);
 
