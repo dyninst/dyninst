@@ -115,7 +115,8 @@ template class vector<dictionary_hash<string, hypothesis*>::entry>;
 
 template class dictionary_hash<focus, vector<searchHistoryNode*>*>;
 template class vector<dictionary_hash<focus, vector<searchHistoryNode*>*>::entry>;
-template class vector< vector<searchHistoryNode*> >;
+template class vector< vector<searchHistoryNode*> *>;
+//template class vector< vector<searchHistoryNode*> *>;
 
 #include "util/src/CircularBuffer.C"
 #include "paradyn/src/PCthread/PCintern.h"
