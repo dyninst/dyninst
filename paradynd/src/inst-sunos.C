@@ -3,7 +3,10 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.9  1994/07/14 23:30:26  hollings
+ * Revision 1.10  1994/07/15 20:22:03  hollings
+ * fixed 64 bit record to be 32 bits.
+ *
+ * Revision 1.9  1994/07/14  23:30:26  hollings
  * Hybrid cost model added.
  *
  * Revision 1.8  1994/07/12  19:46:57  jcargill
@@ -42,7 +45,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sunos.C,v 1.9 1994/07/14 23:30:26 hollings Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sunos.C,v 1.10 1994/07/15 20:22:03 hollings Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -252,7 +255,7 @@ void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
 
     /* Build arglist */
     arg_list = RPC_make_arg_list (pd_family, pd_type, 
-				  pd_known_socket, pd_flag);
+				  pd_known_socket, pd_flag, pd_machine);
     sprintf (command, "%sCM5", programName);
     sprintf (application, "%s", curr->symbols->file);
     sprintf (app_pid, "%d", curr->pid);

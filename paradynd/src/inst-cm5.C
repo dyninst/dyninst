@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.10 1994/07/14 23:30:23 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.11 1994/07/15 20:22:00 hollings Exp $";
 #endif
 
 /*
  * inst-cm5.C - runtime library specific files to inst on this machine.
  *
  * $Log: inst-cm5.C,v $
- * Revision 1.10  1994/07/14 23:30:23  hollings
+ * Revision 1.11  1994/07/15 20:22:00  hollings
+ * fixed 64 bit record to be 32 bits.
+ *
+ * Revision 1.10  1994/07/14  23:30:23  hollings
  * Hybrid cost model added.
  *
  * Revision 1.9  1994/07/14  14:41:39  jcargill
@@ -286,56 +289,9 @@ extern int pd_flag;
 
 void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
 {
-    int childPid;
-    process *parent;
-    char **arg_list;
-    char command[80];
-    char application[256];
-    char app_pid[20];
-    char num_nodes[20];	
-    char *argv[20];
-
-    parent = findProcess(fr->ppid);
-    assert(parent);
-
-    if ((childPid=fork()) == 0) {		/* child */
-	/* Build arglist */
-	arg_list = RPC_make_arg_list (pd_family, pd_type, 
-				      pd_known_socket, pd_flag);
-	sprintf (command, "paradyndCM5");
-	sprintf (application, "%s", curr->symbols->file);
-	sprintf (app_pid, "%d", curr->pid);
-	sprintf (num_nodes, "%d", fr->npids);
-
-	/*
-	 * It would be nice if this weren't sensitive to the size of
-	 * arg_list.  For the moment, only 6 are written by
-	 * make_arg_list; this could be cleaner.
-	 */
-	argv[0] = command;
-	argv[1] = application;
-	argv[2] = app_pid;
-	argv[3] = num_nodes;
-	argv[4] = arg_list[1];
-	argv[5] = arg_list[2];
-	argv[6] = arg_list[3];
-	argv[7] = arg_list[4];
-	argv[8] = arg_list[5];
-	argv[9] = arg_list[6];
-	argv[10] = arg_list[7];
-	argv[11] = 0;
-
-	ptrace (0, 0, 0, 0, 0);
-
-	execv (command, argv);
-    }
-    else {			/* parent */
-	printf ("forked child process (pid=%d).\n", childPid);
-    }
-
-    pauseAllProcesses();
+    // CM-5 app should not spawn cm-5 apps!
+    abort();
 }
-
 
 
 extern int ptraceOtherOps, ptraceOps, ptraceBytes;
