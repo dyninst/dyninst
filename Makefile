@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.52 2002/03/08 23:05:40 willb Exp $
+# $Id: Makefile,v 1.53 2002/03/11 22:31:14 hollings Exp $
 #
 
 # Include the make configuration specification (site configuration options)
@@ -30,7 +30,6 @@ ParadynVC	= visi \
 		visiClients/termWin
 subSystems	= $(ParadynD) $(ParadynFE) $(ParadynVC)
 DyninstAPI	= dyninstAPI_RT dyninstAPI dyner dyninstAPI/tests 
-#DyninstAPI	= dyninstAPI_RT dyninstAPI dyninstAPI/tests 
 
 # threadComps are temporary SPARC/Solaris-only thread-aware components
 threadComps	= rtinst/multi-thread-aware paradynd/multi-thread-aware
@@ -183,6 +182,10 @@ docs install-man:
 # and does things like building documentation that don't need to be
 # built for each different architecture.  Other "non-primary" build
 # sites that run each night should just run "make clean world".
+
+umd-nightly:
+	$(MAKE) clean
+	$(MAKE) DyninstAPI
 
 nightly:
 	$(MAKE) clean
