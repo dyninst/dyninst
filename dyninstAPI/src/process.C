@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.303 2002/02/22 00:25:10 bernat Exp $
+// $Id: process.C,v 1.304 2002/02/26 20:04:02 pcroth Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2531,21 +2531,30 @@ process *createProcess(const string File, vector<string> argv,
 	if( dir.length() > 0 )
 	{
 #if !defined(i386_unknown_nt4_0)
-		if( !file.prefixed_by("/") && !dir.suffixed_by("/") ) // neither string has a / in it. 
+		if( !file.prefixed_by("/") )
 		{
-			file = dir + "/" + file;
-		}else if( (!file.prefixed_by("/") && dir.suffixed_by("/"))  || ( !dir.suffixed_by("/") && file.prefixed_by("/")) ) { //only one has a / in it
-			file = dir + file;
-		}else{ //both have a / so take it off the dir.
-			file = dir.substr(0, dir.length() -1)  + file;
+			// file does not start  with a '/', so it is a relative pathname
+			// we modify it to prepend the given directory
+			if( dir.suffixed_by("/") )
+			{
+				// the dir already has a trailing '/', so we can
+				// just concatenate them to get an absolute path
+				file = dir + file;
+			}
+			else
+			{
+				// the dir does not have a trailing '/', so we must
+				// add a '/' to get the absolute path
+				file = dir + "/" + file;
+			}
 		}
-
-
-/*		if( !file.prefixed_by("/") )
+		else
 		{
-			file = dir + "/" + file;
+			// file starts with a '/', so it is an absolute pathname
+			// DO NOT prepend the directory, regardless of what the
+			// directory variable holds.
+			// nothing to do in this case
 		}
-*/
 
 #else // !defined(i386_unknown_nt4_0)
 		if( (file.length() < 2) ||	// file is too short to be a drive specifier
