@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.92 2003/04/25 22:52:35 mjbrim Exp $ */
+/* $Id: context.C,v 1.93 2003/05/09 18:55:49 pcroth Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -458,13 +458,12 @@ void processNewTSConnection(int tracesocket_fd) {
    {
 #if !defined(i386_unknown_nt4_0)
       str = "getting unexpected process connection";
+      statusLine(str.c_str());
 #else
       // we expect a 0 cookie value on Windows where CreateProcess
       // is not the same semantics as fork.
-      str = "getting new connection from created process";
 #endif // !defined(i386_unknown_nt4_0)
    } 
-   statusLine(str.c_str());
 
    int pid;
    if (sizeof(pid) != read(fd, &pid, sizeof(pid)))
