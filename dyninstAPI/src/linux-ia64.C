@@ -25,12 +25,6 @@ bool changeSP( int /* pid */, Address /* loc */ ) {
 	return false;
 	} /* end changeSP */
 
-instruction generateTrapInstruction() {
-	TRACE( FIXME );
-	assert( 0 );
-	return instruction( );
-	} /* end generateTrapInstruction */
-
 /* Required by linux.C */
 void generateBreakPoint( instruction & insn ) {
 	TRACE( FIXME );
@@ -203,6 +197,7 @@ void printBinary( unsigned long long word, int start = 0, int end = 63 ) {
 
 /* FIXME: this almost certainly NOT the Right Place to keep this. */
 Address savedProcessGP;
+Address savedReturnAddress;
 bool process::dlopenDYNINSTlib() {
 	/* Look for a function we can hijack to forcibly load dyninstapi_rt. */
 	Address entry = findFunctionToHijack(symbols, this);	// We can avoid using InsnAddr because we know 
@@ -229,8 +224,9 @@ bool process::dlopenDYNINSTlib() {
 			} /* end if enviromental variable not found */
 		} /* end enviromental variable extraction */
 
-	/* FIXME: Locate the entry point to _dl_open(). */
-	Address dlopenAddr = 0x20000000003fe350; // gdb can find it, why can't dyninst?
+	/* Locate the entry point to dlopen. */
+	bool err; Address dlopenAddr = findInternalAddress( "_dl_open", true, err );
+	assert( dlopenAddr );
 
 	/* Save the function we're going to hijack. */
 	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( entry, this );
@@ -241,11 +237,15 @@ bool process::dlopenDYNINSTlib() {
 	savedProcessGP = P_ptrace( PTRACE_PEEKUSER, pid, PT_R1, 0 );
 	if( savedProcessGP == -1 ) { assert( 0 ); }
 
-	/* FIXME: Write _dl_open()'s GP. */
+	/* Save the current return address. */
+	savedReturnAddress = P_ptrace( PTRACE_PEEKUSER, pid, PT_B0, 0 );
+	if( savedReturnAddress == -1 ) { assert( 0 ); }
+
+	/* Write _dl_open()'s GP. */
 	Address dlopenGP = getTOCoffsetInfo( dlopenAddr );
 	assert( dlopenGP );
 	if( P_ptrace( PTRACE_POKEUSER, pid, PT_R1, dlopenGP ) == -1 ) { assert( 0 ); }
-        
+
         /* Write the string into the target's address space.
 	   We can't do the smart thing and write the name-string to
 	   shared memory, because dyninst doesn't currently _allocate_
@@ -269,12 +269,13 @@ bool process::dlopenDYNINSTlib() {
 
 	uint64_t NOP_M = 0x0004000000000000; /* FIXME: move this and the other constants in this file to a header?  Include the arch-ia64.C constants? */
 	IA64_instruction alteredAlloc = generateAlteredAlloc( allocAddr, 0, 3, 0 );
+	/* FIXME: maybe generateAlteredAlloc should have a registerSpace (?) parameter
+	   so I can tell which register the first output might be... (rS.out0, rs.in0 ... ) */
 	IA64_instruction_x setStringPointer = generateLongConstantInRegister( 38, entry + ((DLOPEN_CALL_LENGTH + 1) * 16) );
 	IA64_instruction setMode = generateShortConstantInRegister( 39, DLOPEN_MODE );
 	IA64_instruction_x setReturnPointer = generateLongConstantInRegister( 40, entry + (DLOPEN_CALL_LENGTH * 16) );
 	IA64_instruction memoryNOP( NOP_M );
-fprintf( stderr, "Setting long branch to 0x%lx.\n", dlopenAddr );
-	IA64_instruction_x branchLong = generateLongBranchTo( dlopenAddr - (entry + (16 * (DLOPEN_CALL_LENGTH - 1))), 6 );  // 6 is scratch register, so no add'l RSE pressure
+	IA64_instruction_x branchLong = generateLongCallTo( dlopenAddr - (entry + (16 * (DLOPEN_CALL_LENGTH - 1))), 0 );
 
 	// right-aligned template IDs
 	uint8_t MLXstop = 0x05;
@@ -295,7 +296,7 @@ fprintf( stderr, "Setting long branch to 0x%lx.\n", dlopenAddr );
 	isLoadingDyninstLib = true;
 
 	/* We finished successfully. */
-	fprintf( stderr, "*** Hijacked function at 0x%lx to force DYNINSTLIB loading.\n", entry );
+	fprintf( stderr, "*** Hijacked function at 0x%lx to force DYNINSTLIB loading, installed SIGILL at 0x%lx\n", entry, dyninstlib_brk_addr );
 	return true;
 	} /* end dlopenDYNINSTlib() */
 
@@ -309,12 +310,15 @@ void process::handleIfDueToDyninstLib() {
 	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( entry, this );
 	iAddr.writeBundlesFrom( savedCodeBuffer, sizeof(savedCodeBuffer) / 16 );
 
-	/* Restore the GP */
+	/* Restore the GP and return address */
 	pid_t pid = getPid();
 	if( P_ptrace( PTRACE_POKEUSER, pid, PT_R1, savedProcessGP ) == -1 ) { assert( 0 ); }
+	if( P_ptrace( PTRACE_POKEUSER, pid, PT_B0, savedReturnAddress ) == -1 ) { assert( 0 ); }
+
+	/* DYNINSTlib is finished loading; handle it. */
+	dyn->handleDYNINSTlibLoad( this );
 
 	/* Continue execution at the entry point. */
-fprintf( stderr, "Changing PC to %lx\n", entry );
 	changePC( entry );
 
 	fprintf( stderr, "*** Handled trap due to dyninstLib.\n" );

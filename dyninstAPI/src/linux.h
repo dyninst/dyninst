@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.h,v 1.9 2002/06/14 22:56:29 tlmiller Exp $
+// $Id: linux.h,v 1.10 2002/07/02 21:07:17 tlmiller Exp $
 
 #if !(defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4))
 #error "invalid architecture-os inclusion"
@@ -70,11 +70,6 @@ typedef int handleT; // a /proc file descriptor
 #else
 #error Invalid or unknown architecture-os inclusion
 #endif
-
-/* For linuxDL.C */
-Address getSP( int pid );
-bool changeSP( int pid, Address loc );
-instruction generateTrapInstruction();
 
 /* For linux.C */
 Address getPC( int );

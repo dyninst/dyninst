@@ -80,8 +80,10 @@ public:
 			vector<shared_object *> **changed_objects,
 			u_int &change_type,
 			bool &error_occured);
-    unsigned get_dlopen_addr() const { return dlopen_addr; }
-    unsigned get_r_brk_addr() const { return r_brk_addr; }
+    Address get_dlopen_addr() const { return dlopen_addr; }
+    Address get_r_brk_addr() const { return r_brk_addr; }
+
+    void handleDYNINSTlibLoad( process * p );
 
 #if defined(BPATCH_LIBRARY) 
    // unset_r_brk_point: this routine removes the breakpoint in the code
@@ -94,10 +96,12 @@ public:
 	Address getlowestSObaseaddr(){ return lowestSObaseaddr; } 
 private:
    bool  dynlinked;
-   u_int r_debug_addr;
-   u_int dlopen_addr;
+   Address r_debug_addr;
+   Address dlopen_addr;
    Address r_brk_addr;   // this routine consists of retl and nop instrs, used
 		         // in handleSigChild to determine what trap occured 
+   Address r_brk_target_addr;	// Unused on x86 (could be changed), this is
+				// where the IA-64 inserts a return instruction
    u_int r_state;  // either 0 (RT_CONSISTENT), 1 (RT_ADD), or 2 (RT_DELETE)
    bool brkpoint_set; // true if brkpoint set in r_brk
    instPoint *r_brk_instPoint; // used to instrument r_brk
@@ -121,7 +125,7 @@ private:
    // get_ld_base_addr: This routine returns the base address of ld.so.1
    // and a path to the particular ld.so.x this process is using
    // it returns true on success, and false on error
-   bool get_ld_info(u_int &addr, char **path, process *proc );
+   bool get_ld_info(Address &addr, char **path, process *proc );
 
    // find_function: this routine finds the symbol table for ld.so.1, and
    // parses it to find the address of f_name
@@ -129,17 +133,17 @@ private:
    // it returns false on error
    // f_name_addr can't be passed in by reference since it makes calling it
    // with a NULL parameter unpleasant.
-   bool findFunctionIn_ld_so_1(string f_name,u_int ld_fd,u_int ld_base_addr, u_int *f_name_addr, int st_type);
+   bool findFunctionIn_ld_so_1(string f_name,u_int ld_fd,Address ld_base_addr, Address *f_name_addr, int st_type);
 
    // find_r_debug: this routine finds the symbol table for ld.so.1, and
    // parses it to find the address of symbol r_debug
    // it returns false on error
-   bool find_r_debug(u_int ld_fd,u_int ld_base_addr);
+   bool find_r_debug(u_int ld_fd,Address ld_base_addr);
 
    // find_dlopen: this routine finds the symbol table for ld.so.1, and
    // parses it to find the address of symbol r_debug
    // it returns false on error
-   bool find_dlopen(u_int ld_fd,u_int ld_base_addr);   
+   bool find_dlopen(u_int ld_fd,Address ld_base_addr);   
 
    // set_r_brk_point: this routine instruments the code pointed to by
    // the r_debug.r_brk (the linkmap update routine).  Currently this code
@@ -162,14 +166,14 @@ private:
 
    // getLinkMapAddrs: returns a vector of addresses corresponding to all 
    // base addresses in the link maps.  Returns 0 on error.
-   vector<u_int> *getLinkMapAddrs(process *p);
+   vector<Address> *getLinkMapAddrs(process *p);
 
    // getNewSharedObjects: returns a vector of shared_object one element for 
    // newly mapped shared object.  old_addrs contains the addresses of the
    // currently mapped shared objects. Sets error_occured to true, and 
    // returns 0 on error.
    vector<shared_object *> *getNewSharedObjects(process *p,
-						vector<u_int> *old_addrs,
+						vector<Address> *old_addrs,
 						bool &error_occured);
 
 };

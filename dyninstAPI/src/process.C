@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.337 2002/06/26 21:14:09 schendel Exp $
+// $Id: process.C,v 1.338 2002/07/02 21:07:17 tlmiller Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -253,7 +253,15 @@ Address process::getTOCoffsetInfo(Address dest)
   if (shared_objects)
     for(u_int j=0; j < shared_objects->size(); j++)
       if (((*shared_objects)[j])->getImage()->findFuncByAddr(dest, this))
+#if ! defined(ia64_unknown_linux2_4)
         return (((*shared_objects)[j])->getImage()->getObject()).getTOCoffset();
+#else
+	{
+	/* Entries in the .dynamic section are not relocated. */
+	return (((*shared_objects)[j])->getImage()->getObject()).getTOCoffset() +
+		((*shared_objects)[j])->getBaseAddress();
+	}
+#endif
   // Serious error! Assert?
   return 0;
 }

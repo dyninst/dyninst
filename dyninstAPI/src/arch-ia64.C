@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.7 2002/06/21 22:26:55 tlmiller Exp $
+// $Id: arch-ia64.C,v 1.8 2002/07/02 21:07:16 tlmiller Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -79,6 +79,10 @@
 #define MOVL_IMM7B		0x000007F000000000	/* bits 13 - 19 */
 #define MOVL_R1			0x0000000FE0000000	/* bits 06 - 12 */
 
+#define IBRANCH_X6		0x00FC000000000000	/* bits 27 - 32 */
+#define IBRANCH_B2		0x0000007000000000	/* bits 13 - 15 */
+#define IBRANCH_BTYPE		0x00000000C0000000	/* btis 06 - 08 */
+
 #define RIGHT_IMM5		0x00000000001F0000	/* bits 16 - 20 */
 #define RIGHT_IMM9		0x000000000000FF80	/* bits 07 - 15 */
 #define RIGHT_IMM7		0x000000000000007F	/* bits 00 - 06 */
@@ -104,6 +108,14 @@ IA64_instruction::IA64_instruction( uint64_t insn, uint8_t templ, IA64_bundle * 
 	templateID = templ;
 	myBundle = mybl;
 	} /* end IA64_Instruction() */
+
+const void * IA64_instruction::ptr() const { 
+	/* If I don't have a bundle, trying to write me is pointless;
+	   this should also make it harder for "unaware" functions to misuse me. */
+	if( myBundle == NULL ) { return NULL; }
+
+	return myBundle->getMyBundlePtr();
+	} /* end ptr() */
 
 IA64_bundle::IA64_bundle( ia64_bundle_t rawBundle ) {
 	/* FIXME: what's the Right Way to do this? */
@@ -224,7 +236,7 @@ IA64_instruction_x generateLongConstantInRegister( unsigned int registerN, long 
 	return IA64_instruction_x( rawInsnLow, rawInsnHigh );
 	} /* end generateConstantInRegister( imm64 ) */
 
-IA64_instruction_x generateLongBranchTo( long long int displacement64, unsigned int branchRegister ) {
+IA64_instruction_x generateLongCallTo( long long int displacement64, unsigned int branchRegister ) {
 	int64_t displacement60 = displacement64 >> 4;
 	uint64_t sBranchRegister = (uint64_t)branchRegister;
 
@@ -237,7 +249,32 @@ IA64_instruction_x generateLongBranchTo( long long int displacement64, unsigned 
 			   ( (displacement60 & RIGHT_IMM39) << (-20 + 2 + ALIGN_RIGHT_SHIFT) );
 
 	return IA64_instruction_x( rawInsnLow, rawInsnHigh );
-	} /* end generatLongBranchTo( displacement64 ) */
+	} /* end generateLongCallTo( displacement64 ) */
+
+IA64_instruction_x generateLongBranchTo( long long int displacement64 ) {
+	int64_t displacement60 = displacement64 >> 4;
+
+	uint64_t rawInsnHigh = 0x0000000000000000 | 
+			   ( ((uint64_t)0xC) << (37 + ALIGN_RIGHT_SHIFT)) |
+			   ( ((uint64_t)(displacement64 < 0)) << (36 + ALIGN_RIGHT_SHIFT)) |
+			   ( (displacement60 & RIGHT_IMM20) << (13 + ALIGN_RIGHT_SHIFT));
+	uint64_t rawInsnLow = 0x0000000000000000 |
+			   ( (displacement60 & RIGHT_IMM39) << (-20 + 2 + ALIGN_RIGHT_SHIFT) );
+
+	return IA64_instruction_x( rawInsnLow, rawInsnHigh );
+	} /* end generateLongBranchTo( displacement64 ) */
+
+IA64_instruction generateReturnTo( unsigned int branchRegister ) {
+	uint64_t sBranchRegister = (uint64_t)branchRegister;
+
+	uint64_t rawInsn = 0x0000000000000000 |
+			   ( ((uint64_t)33) << (27 + ALIGN_RIGHT_SHIFT ) ) |  /* 21 ? */
+			   ( ((uint64_t)4) << (6 + ALIGN_RIGHT_SHIFT ) ) |
+			   ( ((uint64_t)1) << (12 + ALIGN_RIGHT_SHIFT ) ) |
+			   ( (sBranchRegister & 0x7) << (13 + ALIGN_RIGHT_SHIFT) );
+
+	return IA64_instruction( rawInsn );	
+	} /* end generateReturnTo */
 
 /* --- FIXME LINE --- */
 
