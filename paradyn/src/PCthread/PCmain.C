@@ -16,9 +16,23 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.54  1996/04/22 17:59:24  newhall
-/* added comments, minor change to getPredictedDataCostAsync
+/* Revision 1.55  1996/04/30 06:26:55  karavan
+/* change PC pause function so cost-related metric instances aren't disabled
+/* if another phase is running.
 /*
+/* fixed bug in search node activation code.
+/*
+/* added change to treat activeProcesses metric differently in all PCmetrics
+/* in which it is used; checks for refinement along process hierarchy and
+/* if there is one, uses value "1" instead of enabling activeProcesses metric.
+/*
+/* changed costTracker:  we now use min of active Processes and number of
+/* cpus, instead of just number of cpus; also now we average only across
+/* time intervals rather than cumulative average.
+/*
+ * Revision 1.54  1996/04/22 17:59:24  newhall
+ * added comments, minor change to getPredictedDataCostAsync
+ *
  * Revision 1.53  1996/04/21  21:45:02  newhall
  * added PCpredData, and registered at a cFunc controlCallback func
  *
@@ -88,13 +102,21 @@
 #include <stdlib.h>
 
 #include "PCintern.h"
+#include "dataManager.thread.h"
 #include "PCsearch.h"
 #include "PCfilter.h"
 
-performanceConsultant *pc;
-
+//
+// for thread initialization
+//
+performanceConsultant *pc;   
 extern thread_t MAINtid;
+// 
 extern void initPCconstants();
+const unsigned GlobalPhaseID = 0;
+//
+// pc thread globals
+//
 float performanceConsultant::hysteresisRange = 0.0;
 float performanceConsultant::predictedCostLimit = 0.0;
 float performanceConsultant::minObservationTime = 0.0;
@@ -111,8 +133,8 @@ unsigned performanceConsultant::DMcurrentPhaseToken = 0;
 filteredDataServer *performanceConsultant::globalRawDataServer = NULL;
 filteredDataServer *performanceConsultant::currentRawDataServer = NULL;
 PCmetricInstServer *performanceConsultant::globalPCMetricServer = NULL;
-const unsigned GlobalPhaseID = 0;
 
+//**
 struct pcglobals perfConsultant = {
   false, 
   (hypothesis *) NULL,
@@ -149,8 +171,46 @@ void PCfold(perfStreamHandle,
 // the call to getPredictedDataCost is handled in a truely asynchronous
 // manner, then this routine should contain the code to handle the upcall
 // from the DM
-void PCpredData(metricHandle m_handle,resourceListHandle rl_handle,float cost){
+void PCpredData(metricHandle,resourceListHandle,float){
     // cout << "PCpredData: THIS SHOULD NEVER EXECUTE" << endl;
+}
+//
+// here's the kludge for above...
+//
+float getPredictedDataCostAsync(perfStreamHandle pstream, 
+				resourceListHandle foc, 
+				metricHandle metric) {
+
+  dataMgr->getPredictedDataCost(pstream,metric,foc);
+
+  // KLUDGE: make the PC wait for the async response from the DM
+  T_dataManager::message_tags tagPC = T_dataManager::predictedDataCost_REQ;
+  T_dataManager::msg_buf buffer;
+  T_dataManager::message_tags waitTag;
+  bool ready=false;
+  float result=0.0;
+  while (!ready) {
+      u_int tag = (u_int) T_dataManager::predictedDataCost_REQ;
+      int from = msg_poll(&tag, true);
+      assert(from != THR_ERR);
+      if (dataMgr->isValidTag((T_dataManager::message_tags)tag)) {
+          waitTag = dataMgr->waitLoop(true,
+		    (T_dataManager::message_tags)tag,&buffer);
+          if (waitTag==tagPC) {
+              ready=true;
+              result = buffer.predictedDataCost_call.cost;
+          }
+          else {
+	      cerr << "Error in PCfilter.C, tag not valid\n";
+              assert(0);
+          }
+      }
+      else {
+          cerr << "Error in PCfilter.C, tag not valid\n";
+          assert(0);
+      }
+  }
+  return(result);
 }
 
 //

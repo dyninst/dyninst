@@ -20,6 +20,20 @@
  * classes searchHistoryNode, GraphNode, searchHistoryGraph
  *
  * $Log: PCshg.h,v $
+ * Revision 1.23  1996/04/30 06:27:11  karavan
+ * change PC pause function so cost-related metric instances aren't disabled
+ * if another phase is running.
+ *
+ * fixed bug in search node activation code.
+ *
+ * added change to treat activeProcesses metric differently in all PCmetrics
+ * in which it is used; checks for refinement along process hierarchy and
+ * if there is one, uses value "1" instead of enabling activeProcesses metric.
+ *
+ * changed costTracker:  we now use min of active Processes and number of
+ * cpus, instead of just number of cpus; also now we average only across
+ * time intervals rather than cumulative average.
+ *
  * Revision 1.22  1996/04/18 20:43:19  tamches
  * uiRequestBuff no longer a pointer; numUIrequests no longer needed
  *
@@ -103,13 +117,14 @@ public:
   searchHistoryNode(searchHistoryNode *parent, hypothesis *why, 
 		    focus where, refineType axis, 
 		    bool persist, searchHistoryGraph *mama, 
-		    const char *shortName, unsigned newID);
+		    const char *shortName, unsigned newID, bool amFlag);
   searchHistoryNode *addChild (hypothesis *why, 
 			       focus whereowhere, 
 			       refineType axis,
 			       bool persist,
 			       const char *shortName,
-			       unsigned newID);
+			       unsigned newID,
+			       bool amFlag);
   float getEstimatedCost(); 
   bool print (int parent, FILE *fp);
   bool getActive();
@@ -140,6 +155,9 @@ private:
   hypothesis *why;
   focus where;
   bool persistent;
+  // this set causes alternate PCmetric for hypothesis to be used when 
+  // activating experiment
+  bool altMetricFlag;
   experiment *exp;
   bool active;
   testResult truthValue;
@@ -178,6 +196,7 @@ class searchHistoryGraph {
 			      refineType axis,
 			      bool persist,
 			      const char *shortName,
+			      bool amFlag,
 			      bool *newFlag);
   searchHistoryNode *const getNode (unsigned nodeId);
   void updateDisplayedStatus (string *newmsg);
@@ -195,7 +214,7 @@ class searchHistoryGraph {
   PCsearch *srch;
   int guiToken;      // use in UI calls to select correct search display  
   unsigned nextID;   // used to create unique ids for the nodes
-  vector<uiSHGrequest> uiRequestBuff;
+  vector<uiSHGrequest> *uiRequestBuff;
 };
   
 #endif

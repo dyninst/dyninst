@@ -20,6 +20,20 @@
  * class PCsearch
  *
  * $Log: PCsearch.C,v $
+ * Revision 1.10  1996/04/30 06:26:41  karavan
+ * change PC pause function so cost-related metric instances aren't disabled
+ * if another phase is running.
+ *
+ * fixed bug in search node activation code.
+ *
+ * added change to treat activeProcesses metric differently in all PCmetrics
+ * in which it is used; checks for refinement along process hierarchy and
+ * if there is one, uses value "1" instead of enabling activeProcesses metric.
+ *
+ * changed costTracker:  we now use min of active Processes and number of
+ * cpus, instead of just number of cpus; also now we average only across
+ * time intervals rather than cumulative average.
+ *
  * Revision 1.9  1996/04/16 18:36:16  karavan
  * BUG FIX.
  *
@@ -89,6 +103,7 @@ unsigned PCsearch::PCactiveCurrentPhase = 0;  // init to undefined
 dictionary_hash<unsigned, PCsearch*> PCsearch::AllPCSearches(PCunhash);
 PriorityQueue<SearchQKey, searchHistoryNode*> PCsearch::GlobalSearchQueue;
 PriorityQueue<SearchQKey, searchHistoryNode*> PCsearch::CurrentSearchQueue;
+PriorityQueue<SearchQKey, searchHistoryNode*> *PCsearch::q = &PCsearch::GlobalSearchQueue;
 int PCsearch::numActiveExperiments = 0;
 bool PCsearch::GlobalSearchPaused = false;
 bool PCsearch::CurrentSearchPaused = false;
@@ -102,7 +117,6 @@ bool PChyposDefined = false;
 void 
 PCsearch::expandSearch (sampleValue estimatedCost)
 {
-  static PriorityQueue<SearchQKey, searchHistoryNode*> *q = &GlobalSearchQueue;
   bool costLimitReached = false;
   searchHistoryNode *curr;
 #ifdef PCDEBUG
@@ -115,16 +129,19 @@ PCsearch::expandSearch (sampleValue estimatedCost)
     // switch queues for fairness, if possible; never use q if empty or that 
     // search is paused
     if (q == &CurrentSearchQueue) {
-      if (q->empty() || CurrentSearchPaused) {
-	// its this queue's turn but its empty or paused so try the other
-	if (GlobalSearchQueue.empty() || GlobalSearchPaused) break;
-	q = &GlobalSearchQueue;
-      }
+	if ( !(GlobalSearchQueue.empty() || GlobalSearchPaused))
+	  q = &GlobalSearchQueue;
+	else
+	  if (q->empty() || CurrentSearchPaused) 
+	    // no queue is ready
+	    break;
     } else {
-      if (q->empty() || GlobalSearchPaused) {
-	if (CurrentSearchQueue.empty() || CurrentSearchPaused) break;
+      if ( !(CurrentSearchQueue.empty() || CurrentSearchPaused)) 
 	q = &CurrentSearchQueue;
-      }
+      else
+	if (q->empty() || GlobalSearchPaused) 
+	  // no queue is ready 
+	  break;
     }
     curr = q->peek_first_data();
     float newCost = curr->getEstimatedCost();
@@ -164,7 +181,7 @@ PCsearch::~PCsearch()
 void 
 PCsearch::initCostTracker () 
 {
-  bool err;
+  bool err = true;
   PCmetric *pcm;
   assert (PCmetric::AllPCmetrics.defines("normSmoothCost"));
 

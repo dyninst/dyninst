@@ -20,6 +20,20 @@
  * The hypothesis class and the why axis.
  * 
  * $Log: PCwhy.h,v $
+ * Revision 1.10  1996/04/30 06:27:14  karavan
+ * change PC pause function so cost-related metric instances aren't disabled
+ * if another phase is running.
+ *
+ * fixed bug in search node activation code.
+ *
+ * added change to treat activeProcesses metric differently in all PCmetrics
+ * in which it is used; checks for refinement along process hierarchy and
+ * if there is one, uses value "1" instead of enabling activeProcesses metric.
+ *
+ * changed costTracker:  we now use min of active Processes and number of
+ * cpus, instead of just number of cpus; also now we average only across
+ * time intervals rather than cumulative average.
+ *
  * Revision 1.9  1996/02/08 19:52:56  karavan
  * changed performance consultant's use of tunable constants:  added 3 new
  * user-level TC's, PC_CPUThreshold, PC_IOThreshold, PC_SyncThreshold, which
@@ -52,6 +66,7 @@ class hypothesis {
  public:
   hypothesis (const char *hypothesisName,
 	      const char *pcMetricName, 
+	      const char *pcMetric2Name,
 	      const char *indivThresholdName, 
 	      const char *groupThresholdName,
 	      thresholdFunction getThreshold,
@@ -63,7 +78,7 @@ class hypothesis {
 	      bool *success); 
   const char *getThresholdName () {return indivThresholdNm.string_of();}
   const char *getName() {return name.string_of();}
-  PCmetric *getPcMet() {return pcMet;}
+  PCmetric *getPcMet(bool altFlag);
   void addChild (hypothesis *child) {kids += child;}
   vector<hypothesis*> *expand();
   bool isVirtual() {return (pcMet == NULL);}
@@ -73,6 +88,7 @@ class hypothesis {
   string name;
   explanationFunction explain;
   PCmetric *pcMet;
+  PCmetric *pcMet2;
   string indivThresholdNm;
   string groupThresholdNm;
   thresholdFunction getThreshold;
@@ -86,7 +102,8 @@ class whyAxis {
   whyAxis();
   bool addHypothesis(const char *hypothesisName,
 		     const char *parentName,
-		     const char *pcMetricName, 
+		     const char *pcMetricName,
+		     const char *pcMetric2Name,
 		     const char *indivThresholdName,
 		     const char *groupThresholdName,
 		     thresholdFunction getThreshold,

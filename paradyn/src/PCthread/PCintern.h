@@ -20,6 +20,20 @@
  * Included by PC modules only
  *  
  * $Log: PCintern.h,v $
+ * Revision 1.6  1996/04/30 06:26:53  karavan
+ * change PC pause function so cost-related metric instances aren't disabled
+ * if another phase is running.
+ *
+ * fixed bug in search node activation code.
+ *
+ * added change to treat activeProcesses metric differently in all PCmetrics
+ * in which it is used; checks for refinement along process hierarchy and
+ * if there is one, uses value "1" instead of enabling activeProcesses metric.
+ *
+ * changed costTracker:  we now use min of active Processes and number of
+ * cpus, instead of just number of cpus; also now we average only across
+ * time intervals rather than cumulative average.
+ *
  * Revision 1.5  1996/04/07 21:29:33  karavan
  * split up search ready queue into two, one global one current, and moved to
  * round robin queue removal.
@@ -82,7 +96,7 @@ typedef metricInstanceHandle PCmetDataID;
 class experiment;
 typedef experiment* PCmetSubscriber;
 typedef enum testResult {tfalse, ttrue, tunknown}; 
-
+typedef enum filterType { averaging, nonfiltering}; 
 
 // known or "base" resources -- these don't vary across applications
 extern resourceHandle rootResource;

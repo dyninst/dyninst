@@ -20,6 +20,20 @@
  * The PCmetric class and the PCmetricInst class.
  * 
  * $Log: PCmetric.h,v $
+ * Revision 1.21  1996/04/30 06:26:59  karavan
+ * change PC pause function so cost-related metric instances aren't disabled
+ * if another phase is running.
+ *
+ * fixed bug in search node activation code.
+ *
+ * added change to treat activeProcesses metric differently in all PCmetrics
+ * in which it is used; checks for refinement along process hierarchy and
+ * if there is one, uses value "1" instead of enabling activeProcesses metric.
+ *
+ * changed costTracker:  we now use min of active Processes and number of
+ * cpus, instead of just number of cpus; also now we average only across
+ * time intervals rather than cumulative average.
+ *
  * Revision 1.20  1996/02/02 02:07:30  karavan
  * A baby Performance Consultant is born!
  *
@@ -48,12 +62,14 @@ typedef enum focusType {cf, tlf};
 typedef struct {
   const char *mname;
   focusType whichFocus;
+  filterType ft;
 } metNameFocusStruct;
 typedef struct metNameFocusStruct metNameFocus;
 
 typedef struct {
   metricHandle mh;
   focusType fType;
+  filterType ft;
 } PCMetInfoStruct;
 typedef struct PCMetInfoStruct PCMetInfo;
 

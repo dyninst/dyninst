@@ -20,6 +20,20 @@
  * The PCmetric class implements a limited subset of derived metrics.
  * 
  * $Log: PCmetric.C,v $
+ * Revision 1.33  1996/04/30 06:26:57  karavan
+ * change PC pause function so cost-related metric instances aren't disabled
+ * if another phase is running.
+ *
+ * fixed bug in search node activation code.
+ *
+ * added change to treat activeProcesses metric differently in all PCmetrics
+ * in which it is used; checks for refinement along process hierarchy and
+ * if there is one, uses value "1" instead of enabling activeProcesses metric.
+ *
+ * changed costTracker:  we now use min of active Processes and number of
+ * cpus, instead of just number of cpus; also now we average only across
+ * time intervals rather than cumulative average.
+ *
  * Revision 1.32  1996/02/22 18:30:36  karavan
  * cleanup after dataMgr calls; explicitly cast all NULLs to keep
  * AIX happy
@@ -76,13 +90,16 @@ PCmetric::PCmetric (const char *thisName,
   for (int i = 0; i < dataSpecsSize; i++) {
     mh = dataMgr->findMetric(dataSpecs[i].mname);
     if (!mh) {
+#ifdef PCDEBUG
       cout << "PCmetric can't find metric: " << dataSpecs[i].mname << endl;
+#endif
       return;
     }
     newEntry = new PCMetInfo;
     newEntry->mh = *mh;
     delete mh;
     newEntry->fType = dataSpecs[i].whichFocus;
+    newEntry->ft = dataSpecs[i].ft;
     (*DMmetrics)[i] = newEntry;
   }
   AllPCmetrics[metName] = this;

@@ -20,6 +20,20 @@
  * The PCmetricInst class and the PCmetricInstServer class.
  * 
  * $Log: PCmetricInst.h,v $
+ * Revision 1.5  1996/04/30 06:27:02  karavan
+ * change PC pause function so cost-related metric instances aren't disabled
+ * if another phase is running.
+ *
+ * fixed bug in search node activation code.
+ *
+ * added change to treat activeProcesses metric differently in all PCmetrics
+ * in which it is used; checks for refinement along process hierarchy and
+ * if there is one, uses value "1" instead of enabling activeProcesses metric.
+ *
+ * changed costTracker:  we now use min of active Processes and number of
+ * cpus, instead of just number of cpus; also now we average only across
+ * time intervals rather than cumulative average.
+ *
  * Revision 1.4  1996/04/07 21:29:38  karavan
  * split up search ready queue into two, one global one current, and moved to
  * round robin queue removal.
@@ -60,13 +74,12 @@ typedef circularBuffer<Interval, PCdataQSize> dataQ;
 typedef PCmetricInst* PCmetInstHandle;
 class experiment;
 
-#define PCMETINSTARTNUMCONSUMERS 20
-
 typedef struct {
   unsigned portID;
   metricInstanceHandle mih;
   metricHandle met;
   focus foc;
+  filterType ft;
   dataQ indataQ;
 } inPortStruct;
 typedef struct inPortStruct inPort;
@@ -79,7 +92,7 @@ class PCmetricInst : public dataProvider, public dataSubscriber
 
 public:
   PCmetricInst (PCmetric *pcmet, focus f,  
-		filteredDataServer *db, bool *err);
+		filteredDataServer *db, bool *flag);
   ~PCmetricInst();    
 
   // these services part of dataProvider role
@@ -120,6 +133,7 @@ private:
   sampleValue *AllCurrentValues;
   unsigned TimesAligned;  // flag that beginning stage has passed
   bool active;            // is data collection active for this PCmetInst?
+  bool costFlag;          // if true, data collection continues during pause
   filteredDataServer *db; // source of all raw data
 };
 

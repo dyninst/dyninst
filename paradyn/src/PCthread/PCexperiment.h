@@ -20,6 +20,20 @@
  * experiment class
  *
  * $Log: PCexperiment.h,v $
+ * Revision 1.2  1996/04/30 06:26:47  karavan
+ * change PC pause function so cost-related metric instances aren't disabled
+ * if another phase is running.
+ *
+ * fixed bug in search node activation code.
+ *
+ * added change to treat activeProcesses metric differently in all PCmetrics
+ * in which it is used; checks for refinement along process hierarchy and
+ * if there is one, uses value "1" instead of enabling activeProcesses metric.
+ *
+ * changed costTracker:  we now use min of active Processes and number of
+ * cpus, instead of just number of cpus; also now we average only across
+ * time intervals rather than cumulative average.
+ *
  * Revision 1.1  1996/02/02 02:07:25  karavan
  * A baby Performance Consultant is born!
  *
@@ -50,7 +64,7 @@ class experiment : public dataSubscriber
   friend ostream& operator <<(ostream &os, experiment& ex);
  public:
   experiment(hypothesis *whyowhy, focus whereowhere, bool persist, 
-	     searchHistoryNode *papa, PCsearch *srch, bool *err);
+	     searchHistoryNode *papa, PCsearch *srch, bool amFlag, bool *err);
   ~experiment();
   //
   // subscribe/unsubscribe to flow of data which keeps 

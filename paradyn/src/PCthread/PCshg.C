@@ -20,6 +20,20 @@
  * The searchHistoryNode and searchHistoryGraph class methods.
  * 
  * $Log: PCshg.C,v $
+ * Revision 1.41  1996/04/30 06:27:09  karavan
+ * change PC pause function so cost-related metric instances aren't disabled
+ * if another phase is running.
+ *
+ * fixed bug in search node activation code.
+ *
+ * added change to treat activeProcesses metric differently in all PCmetrics
+ * in which it is used; checks for refinement along process hierarchy and
+ * if there is one, uses value "1" instead of enabling activeProcesses metric.
+ *
+ * changed costTracker:  we now use min of active Processes and number of
+ * cpus, instead of just number of cpus; also now we average only across
+ * time intervals rather than cumulative average.
+ *
  * Revision 1.40  1996/04/18 20:44:18  tamches
  * uiRequestBuff no longer a pointer; we call 'new' on a vector just before
  * the batch call.  This avoids some purify hits.
@@ -126,9 +140,11 @@ searchHistoryNode::searchHistoryNode(searchHistoryNode *parent,
 				     bool persist,
 				     searchHistoryGraph *mama,
 				     const char *shortName,
-				     unsigned newID):
+				     unsigned newID,
+				     bool amFlag):
 why(why), where(whereowhere), 
-persistent(persist), exp(NULL), active(false), truthValue(tunknown), 
+persistent(persist), altMetricFlag(amFlag), 
+exp(NULL), active(false), truthValue(tunknown), 
 axis(axis), nodeID(newID), expanded(false),  
 mamaGraph (mama), sname(shortName)
 {
@@ -157,10 +173,11 @@ searchHistoryNode::addChild (hypothesis *why,
 			     refineType axis,
 			     bool persist,
 			     const char *shortName,
-			     unsigned newID)
+			     unsigned newID,
+			     bool amFlag)
 {
   searchHistoryNode *newkid = new searchHistoryNode (this, why, whereowhere, axis, 
-				 persist, mamaGraph, shortName, newID);
+				 persist, mamaGraph, shortName, newID, amFlag);
   children += newkid;
   return newkid;
 }
@@ -175,7 +192,7 @@ searchHistoryNode::setupExperiment()
     return false;
   }
   exp = new experiment (why, where, persistent, this, 
-			mamaGraph->srch, &errFlag);
+			mamaGraph->srch, altMetricFlag, &errFlag);
   return  (! ((exp == NULL) || errFlag));
 }
 
@@ -259,26 +276,25 @@ void
 searchHistoryGraph::addUIrequest(unsigned srcID, unsigned dstID, 
 				 int styleID, const char *label)
 {
+  if (uiRequestBuff == NULL)
+    uiRequestBuff = new vector<uiSHGrequest>;
   uiSHGrequest newGuy;
   newGuy.srcNodeID = srcID;
   newGuy.dstNodeID = dstID;
   newGuy.styleID = styleID;
   newGuy.label = label;
-  uiRequestBuff += newGuy;
+  (*uiRequestBuff) += newGuy;
 }
 
 void
 searchHistoryGraph::flushUIbuffer()
 {
-  if (uiRequestBuff.size() == 0)
-     return; // nothing needs to be sent
-
-  vector<uiSHGrequest> *bufferToSend = new vector<uiSHGrequest>(uiRequestBuff);
-     // the consumer (the UI igen call) will delete this guy
-  assert(bufferToSend->size() == uiRequestBuff.size()); // just a sanity check for fun
-
-  uiMgr->DAGaddBatchOfEdges(guiToken, bufferToSend, bufferToSend->size());
-  uiRequestBuff.resize(0);
+  if (uiRequestBuff) {
+    unsigned bufSize = uiRequestBuff->size();
+    if (!bufSize) return; // avoid sending empty buffer
+    uiMgr->DAGaddBatchOfEdges(guiToken, uiRequestBuff, bufSize);
+    uiRequestBuff = 0;
+  }
 }
 
 void
@@ -297,72 +313,46 @@ searchHistoryNode::expand ()
   expanded = true;
   searchHistoryNode *curr;
   bool newNodeFlag;
+  bool altFlag;
   
   // first expand along where axis
-  if (why->prunesDefined()) {
-  // prunes limit the resource trees along which we will expand this node
-    vector<resourceHandle> *parentFocus = dataMgr->getResourceHandles(where);
-    resourceHandle currHandle;
-    vector<rlNameId> *kids;
-    for (unsigned m = 0; m < parentFocus->size(); m++) {
-      currHandle = (*parentFocus)[m];
-      if (!why->isPruned(currHandle)) {
-	kids = dataMgr->magnify(currHandle, where);
-	if (kids != NULL) {
-	  for (unsigned j = 0; j < kids->size(); j++) {
-	    curr = mamaGraph->addNode (this, why, (*kids)[j].id, 
-				       refineWhereAxis,
-				       false,  
-				       (*kids)[j].res_name,
-				       &newNodeFlag);
-	    if (newNodeFlag) {
-	      // a new node was added
-	      curr->addNodeToDisplay(); 
-	      mamaGraph->addUIrequest(nodeID,   // parent ID
-				      curr->getNodeId(),  // child ID
-				      (unsigned)refineWhereAxis, // edge style
-				      (char *)NULL);
-	    } else {
-	      // shadow node
-	      mamaGraph->addUIrequest(nodeID,
-				      curr->getNodeId(),
-				      (unsigned)refineWhereAxis,
-				      (*kids)[j].res_name);
-	    }
+  vector<resourceHandle> *parentFocus = dataMgr->getResourceHandles(where);
+  resourceHandle currHandle;
+  vector<rlNameId> *kids;
+  for (unsigned m = 0; m < parentFocus->size(); m++) {
+    currHandle = (*parentFocus)[m];
+    altFlag = (currHandle == Processes);
+    if (!why->isPruned(currHandle)) {
+      // prunes limit the resource trees along which we will expand this node
+      kids = dataMgr->magnify(currHandle, where);
+      if (kids != NULL) {
+	for (unsigned j = 0; j < kids->size(); j++) {
+	  curr = mamaGraph->addNode (this, why, (*kids)[j].id, 
+				     refineWhereAxis,
+				     false,  
+				     (*kids)[j].res_name,
+				     (altFlag || altMetricFlag),
+				     &newNodeFlag);
+	  if (newNodeFlag) {
+	    // a new node was added
+	    curr->addNodeToDisplay(); 
+	    mamaGraph->addUIrequest(nodeID,   // parent ID
+				    curr->getNodeId(),  // child ID
+				    (unsigned)refineWhereAxis, // edge style
+				    (char *)NULL);
+	  } else {
+	    // shadow node
+	    mamaGraph->addUIrequest(nodeID,
+				    curr->getNodeId(),
+				    (unsigned)refineWhereAxis,
+				    (*kids)[j].res_name);
 	  }
-	  delete kids;
 	}
+	delete kids;
       }
-    }
-    delete parentFocus;
-  } else {
-    // no prunes defined for this hypothesis so we can expand fully
-    vector<rlNameId> *kids = dataMgr->magnify2(where);
-    if (kids != NULL) {
-      for (unsigned k = 0; k < kids->size(); k++) {
-	curr = mamaGraph->addNode (this, why, (*kids)[k].id, 
-				   refineWhereAxis,
-				   false,  
-				   (*kids)[k].res_name,
-				   &newNodeFlag);
-	if (newNodeFlag) {
-	  // a new node was added
-	  curr->addNodeToDisplay();
-	  mamaGraph->addUIrequest(nodeID,   // parent ID
-				  curr->getNodeId(),  // child ID
-				  (unsigned)refineWhereAxis, // edge style
-				  (char *)NULL);
-	} else {
-	  // shadow node
-	  mamaGraph->addUIrequest(nodeID,
-				  curr->getNodeId(),
-				  (unsigned)refineWhereAxis,
-				  (*kids)[k].res_name);
-	}
-      }
-      delete kids;
     }
   }
+  delete parentFocus;
   // second expand along why axis
   vector<hypothesis*> *hypokids = why->expand();
   if (hypokids != NULL) { 
@@ -371,6 +361,7 @@ searchHistoryNode::expand ()
 				 refineWhyAxis, 
 				 false,  
 				 (*hypokids)[i]->getName(),
+				 altMetricFlag,
 				 &newNodeFlag);
       if (newNodeFlag) {
 	// a new node was added
@@ -579,13 +570,14 @@ searchHistoryGraph::searchHistoryGraph(PCsearch *searchPhase,
  srch(searchPhase), 
  guiToken(phaseToken),
  nextID(0),
- uiRequestBuff(0) // initialize to a 0-sized array
+ uiRequestBuff(NULL) 
 {
   vector<searchHistoryNode*> Nodes;
   root = new searchHistoryNode ((searchHistoryNode *)NULL,
 				topLevelHypothesis,
 				topLevelFocus, refineWhyAxis,
-				true, this, "TopLevelHypothesis", nextID);
+				true, this, "TopLevelHypothesis", nextID, 
+				false);
   root->setExpanded();
   Nodes += root;
   NodeIndex[nextID] = root;
@@ -641,6 +633,7 @@ searchHistoryGraph::addNode (searchHistoryNode *parent,
 			     refineType axis,
 			     bool persist,
 			     const char *shortName,
+			     bool amFlag,
 			     bool *newFlag)
 {
   // check if node already exists
@@ -662,7 +655,7 @@ searchHistoryGraph::addNode (searchHistoryNode *parent,
     NodesByFocus[whereowhere] = foclist;
   }
   newkid = parent->addChild (why, whereowhere, axis, persist, 
-			     shortName, nextID++);
+			     shortName, nextID++, amFlag);
   *foclist += newkid;
   newkid->setupExperiment();
   //
@@ -697,6 +690,7 @@ searchHistoryGraph::initPersistentNodes()
     nodeptr = addNode (root, currhypo, topLevelFocus, 
 		       refineWhyAxis, true,  
 		       currhypo->getName(),
+		       false,
 		       &nodeAdded);
     nodeptr->addNodeToDisplay();
     nodeptr->addEdgeToDisplay(root->getNodeId(), (char *)NULL);

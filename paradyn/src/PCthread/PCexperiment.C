@@ -20,6 +20,20 @@
  * The experiment class methods.
  * 
  * $Log: PCexperiment.C,v $
+ * Revision 1.6  1996/04/30 06:26:46  karavan
+ * change PC pause function so cost-related metric instances aren't disabled
+ * if another phase is running.
+ *
+ * fixed bug in search node activation code.
+ *
+ * added change to treat activeProcesses metric differently in all PCmetrics
+ * in which it is used; checks for refinement along process hierarchy and
+ * if there is one, uses value "1" instead of enabling activeProcesses metric.
+ *
+ * changed costTracker:  we now use min of active Processes and number of
+ * cpus, instead of just number of cpus; also now we average only across
+ * time intervals rather than cumulative average.
+ *
  * Revision 1.5  1996/04/07 21:29:31  karavan
  * split up search ready queue into two, one global one current, and moved to
  * round robin queue removal.
@@ -195,7 +209,7 @@ experiment::newData(PCmetDataID, float val, double start, double end,
 //
 experiment::experiment(hypothesis *whyowhy, focus whereowhere, 
 		       bool persist, searchHistoryNode *papa,
-		       PCsearch *srch, bool *err):
+		       PCsearch *srch, bool amFlag, bool *err):
 why(whyowhy), where(whereowhere), persistent(persist), mamaSearch(srch),
 papaNode(papa),  estimatedCost(0.0), status(false), 
 currentConclusion(tunknown), currentGuess(tunknown), timeTrueFalse(0), 
@@ -206,7 +220,7 @@ currentValue(0.0), startTime(-1), endTime(0), minObservationFlag(false)
   assert (db);
   bool errf = false;
   // **here, need to check if pause_time if so, set flag to true instead
-  pcmih = db->addSubscription ((PCmetSubscriber)this, why->getPcMet(), 
+  pcmih = db->addSubscription ((PCmetSubscriber)this, why->getPcMet(amFlag), 
 			       where, &errf);
   // error here if pcmetric couldn't be enabled 
   *err = ((pcmih == NULL) || errf);

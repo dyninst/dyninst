@@ -20,6 +20,20 @@
  * State information required throughout a search.
  *
  * $Log: PCsearch.h,v $
+ * Revision 1.7  1996/04/30 06:26:44  karavan
+ * change PC pause function so cost-related metric instances aren't disabled
+ * if another phase is running.
+ *
+ * fixed bug in search node activation code.
+ *
+ * added change to treat activeProcesses metric differently in all PCmetrics
+ * in which it is used; checks for refinement along process hierarchy and
+ * if there is one, uses value "1" instead of enabling activeProcesses metric.
+ *
+ * changed costTracker:  we now use min of active Processes and number of
+ * cpus, instead of just number of cpus; also now we average only across
+ * time intervals rather than cumulative average.
+ *
  * Revision 1.6  1996/04/16 18:36:17  karavan
  * BUG FIX.
  *
@@ -121,6 +135,7 @@ private:
   static PriorityQueue<SearchQKey, searchHistoryNode*> CurrentSearchQueue;
   static bool CurrentSearchPaused;
   static bool GlobalSearchPaused;
+  static PriorityQueue<SearchQKey, searchHistoryNode*> *q;
 };
 
 class costModule : public dataSubscriber 
@@ -129,6 +144,9 @@ class costModule : public dataSubscriber
   void newData (PCmetDataID, sampleValue newVal, timeStamp, timeStamp, 
 	   sampleValue)
     {
+#ifdef PCDEBUG
+      cout << "cost module returns: " << newVal << endl;
+#endif
       if (newVal < performanceConsultant::predictedCostLimit)
 	// check search queue and expand search if possible
 	PCsearch::expandSearch(newVal);

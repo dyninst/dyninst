@@ -21,6 +21,20 @@
  *  be parsed from a configuration file.
  *
  * $Log: PCrules.C,v $
+ * Revision 1.34  1996/04/30 06:27:05  karavan
+ * change PC pause function so cost-related metric instances aren't disabled
+ * if another phase is running.
+ *
+ * fixed bug in search node activation code.
+ *
+ * added change to treat activeProcesses metric differently in all PCmetrics
+ * in which it is used; checks for refinement along process hierarchy and
+ * if there is one, uses value "1" instead of enabling activeProcesses metric.
+ *
+ * changed costTracker:  we now use min of active Processes and number of
+ * cpus, instead of just number of cpus; also now we average only across
+ * time intervals rather than cumulative average.
+ *
  * Revision 1.33  1996/03/18 07:13:07  karavan
  * Switched over to cost model for controlling extent of search.
  *
@@ -56,6 +70,16 @@ whyAxis *PCWhyAxis = new whyAxis();
 hypothesis *const topLevelHypothesis = PCWhyAxis->getRoot();
 
 // metric-specific evaluation functions
+sampleValue
+CostTrackerEval (focus, sampleValue *data, int dataSize)
+{
+  assert (dataSize == 3);
+  if (data[1] <= data[2])
+    return data[0]/data[1];
+  else
+    return data[0]/data[2];
+}
+
 sampleValue 
 DivideEval (focus, sampleValue *data, int dataSize)
 {
@@ -117,57 +141,80 @@ void initPCmetrics()
   PCmetric *temp;
   metNameFocus *specs = new metNameFocus;
   metNameFocus *specs2 = new metNameFocus[2];
-
-  specs->mname = "observed_cost";
-  specs->whichFocus = cf;
-  temp = new PCmetric ("ObservedCost", specs, 1, NULL, NULL, 1);
-  if (performanceConsultant::printSearchChanges)
-    cout << "PCmetric " << temp->getName() << " created." << endl;
+  metNameFocus *specs3 = new metNameFocus[3];
 
   specs2[0].mname = "cpu";
   specs2[0].whichFocus = cf;
+  specs2[0].ft = averaging;
   specs2[1].mname = "active_processes";
   specs2[1].whichFocus = tlf;
+  specs2[1].ft = averaging;
   temp = new PCmetric ("NormalizedCPUtime", specs2, 2, NULL, 
 		       DivideEval, 1);
   if (performanceConsultant::printSearchChanges)
     cout << "PCmetric " << temp->getName() << " created." << endl;
 
+  specs[0].mname = "cpu";
+  specs[0].whichFocus = cf;
+  specs[0].ft = averaging;
+  temp = new PCmetric ("nonNormalizedCPUtime", specs, 1, NULL, NULL, 1);
+  if (performanceConsultant::printSearchChanges)
+    cout << "PCmetric " << temp->getName() << " created." << endl;
+  
   specs2[0].mname = "sync_wait";
   specs2[0].whichFocus = cf;
+  specs2[0].ft = averaging;
   specs2[1].mname = "active_processes";
   specs2[1].whichFocus = tlf;
-  temp = new PCmetric ("SyncToCPURatio", specs2, 2, NULL, DivideEval, 1);
+  specs2[1].ft = averaging;
+  temp = new PCmetric ("NormSyncToCPURatio", specs2, 2, NULL, DivideEval, 1);
+  if (performanceConsultant::printSearchChanges)
+    cout << "PCmetric " << temp->getName() << " created." << endl;
+
+  specs[0].mname = "sync_wait";
+  specs[0].whichFocus = cf;
+  specs[0].ft = averaging;
+  temp = new PCmetric ("nonNormSyncToCPURatio", specs, 1, NULL, NULL, 1);
   if (performanceConsultant::printSearchChanges)
     cout << "PCmetric " << temp->getName() << " created." << endl;
 
   specs2[0].mname = "io_ops";
   specs2[0].whichFocus = cf;
+  specs2[0].ft = averaging;
   specs2[1].mname = "io_bytes";
   specs2[1].whichFocus = cf;
+  specs2[1].ft = averaging;
   temp = new PCmetric ("IOAvgSize", specs2, 2, NULL, DivideEval, 1);
   if (performanceConsultant::printSearchChanges)
     cout << "PCmetric " << temp->getName() << " created." << endl;
 
   specs2[0].mname = "locks_held";
   specs2[0].whichFocus = cf;
+  specs2[0].ft = averaging;
   specs2[1].mname = "sync_ops";
   specs2[1].whichFocus = cf;
+  specs2[1].ft = averaging;
   temp = new PCmetric ("SyncRegionSize", specs2, 2, NULL, DivideEval, 1);
   if (performanceConsultant::printSearchChanges)
     cout << "PCmetric " << temp->getName() << " created." << endl;
 
   specs->mname = "io_wait";
   specs->whichFocus = cf;
+  specs->ft = averaging;
   temp = new PCmetric ("IoWait", specs, 1, NULL, NULL, 1);
   if (performanceConsultant::printSearchChanges)
     cout << "PCmetric " << temp->getName() << " created." << endl;
 
-  specs2[0].mname = "smooth_obs_cost";
-  specs2[0].whichFocus = tlf;
-  specs2[1].mname = "number_of_cpus";
-  specs2[1].whichFocus = tlf;
-  temp = new PCmetric("normSmoothCost", specs2, 2, NULL, DivideEval, 0);
+  specs3[0].mname = "smooth_obs_cost";
+  specs3[0].whichFocus = tlf;
+  specs3[0].ft = nonfiltering;
+  specs3[1].mname = "number_of_cpus";
+  specs3[1].whichFocus = tlf;
+  specs3[1].ft = averaging;
+  specs3[2].mname = "active_processes";
+  specs3[2].whichFocus = tlf;
+  specs3[2].ft = averaging;
+  temp = new PCmetric("normSmoothCost", specs3, 3, NULL, CostTrackerEval, 0);
   if (performanceConsultant::printSearchChanges)
     cout << "PCmetric " << temp->getName() << " created." << endl;
 }
@@ -201,7 +248,8 @@ void initPChypos()
   plumList += plum;
   flag = PCWhyAxis->
     addHypothesis ("ExcessiveSyncWaitingTime", (const char *)NULL, 
-		   "SyncToCPURatio",
+		   "NormSyncToCPURatio",
+		   "nonNormSyncToCPURatio",
 		   "highSyncThreshold", 
 		   "PC_SyncThreshold",
 		   defaultGetThresholdFunc, 
@@ -214,6 +262,7 @@ void initPChypos()
   flag = PCWhyAxis->
     addHypothesis ("SyncRegionTooSmall", (const char *)NULL, "SyncRegionSize",
 		   "",
+		   "",
 		   "PC_SyncThreshold",
 		   SyncRegionGetThresholdFunc,
 		   lt, (void *)NULL, &plumList);
@@ -225,7 +274,7 @@ void initPChypos()
   plumList2 += plum;
   flag = PCWhyAxis->
     addHypothesis ("ExcessiveIOBlockingTime", (const char *)NULL, "IoWait",
-		   "highIOthreshold", 
+		   "", "highIOthreshold", 
 		   "PC_IOThreshold",
 		   defaultGetThresholdFunc, 
 		   gt, (void *)NULL, &plumList2);
@@ -235,7 +284,7 @@ void initPChypos()
 
   flag = PCWhyAxis->
     addHypothesis ("TooManySmallIOOps", "ExcessiveIOBlockingTime",
-		   "IOAvgSize",
+		   "IOAvgSize", "",
 		   "diskBlockSize", 
 		   "PC_IOThreshold",
 		   defaultGetThresholdFunc, 
@@ -251,6 +300,7 @@ void initPChypos()
   flag = PCWhyAxis->
     addHypothesis ("CPUbound", (const char *)NULL, 
 		   "NormalizedCPUtime",
+		   "nonNormalizedCPUtime",
 		   "highCPUtoSyncRatioThreshold",
 		   "PC_CPUThreshold",
 		   defaultGetThresholdFunc, 
@@ -258,6 +308,5 @@ void initPChypos()
 
   if (!flag)
     cout << "hypothesis constructor failed for normCPUtimeTester" << endl;
-
 
 }

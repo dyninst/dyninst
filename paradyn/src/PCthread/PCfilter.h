@@ -21,6 +21,20 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.h,v $
+ * Revision 1.4  1996/04/30 06:26:51  karavan
+ * change PC pause function so cost-related metric instances aren't disabled
+ * if another phase is running.
+ *
+ * fixed bug in search node activation code.
+ *
+ * added change to treat activeProcesses metric differently in all PCmetrics
+ * in which it is used; checks for refinement along process hierarchy and
+ * if there is one, uses value "1" instead of enabling activeProcesses metric.
+ *
+ * changed costTracker:  we now use min of active Processes and number of
+ * cpus, instead of just number of cpus; also now we average only across
+ * time intervals rather than cumulative average.
+ *
  * Revision 1.3  1996/04/07 21:24:38  karavan
  * added phaseID parameter to dataMgr->enableDataCollection2.
  *
@@ -63,15 +77,26 @@ typedef PCmetricInst* fdsSubscriber;
 typedef metricInstanceHandle fdsDataID;
 typedef resourceListHandle focus;
 
+/* 
+   The filter class serves as a base class for individual types of 
+   filters, which differ in how data values are computed using the 
+   raw  data which serves as input.
+
+   Every filter receives data manager data as input, and sends output
+   to its list of subscribers at defined time intervals.  The subscribers
+   are managed by methods of the parent class, dataProvider, in data.C
+   and data.h.
+*/
 class filter : public dataProvider
 {
   friend ostream& operator <<(ostream &os, filter& f);
  public:
   filter(filteredDataServer *keeper,  
-	 metricInstanceHandle mih, metricHandle met, focus focs);
-  ~filter();
+	 metricInstanceHandle mih, metricHandle met, focus focs,
+	 bool costFlag);
+  ~filter() { ; }  
   // all processing for a fresh hunk of raw data
-  void newData(sampleValue newVal, timeStamp start, timeStamp end);
+  virtual void newData(sampleValue, timeStamp, timeStamp) = 0;
   //
   metricInstanceHandle getMI () {return mi;}
   metricHandle getMetric() {return metric;}
@@ -79,17 +104,11 @@ class filter : public dataProvider
   float getNewEstimatedCost();
   // active just means has at least one consumer; may not be 
   // instrumented i.e. if PC is paused
-  bool isActive() {return (numConsumers > 0);}
- private:  
+  bool pausable() {return (numConsumers > 0 && !costFlag);}
+ protected:  
   // these used in newData() to figure out intervals 
   void updateNextSendTime(timeStamp startTime);
   void getInitialSendTime(timeStamp startTime);
-  // send out new complete interval data to all subscribers
-  //void sendValue(sampleValue runAvg, timeStamp start, timeStamp end);
-  // identifiers for this filter
-  metricInstanceHandle mi;
-  metricHandle metric;
-  focus foc;
   // current length of a single interval
   timeStamp intervalLength;
   // when does the interval currently being collected end?
@@ -103,13 +122,52 @@ class filter : public dataProvider
   // denominator of running average: sum of all time used in this 
   // average; time used may not start at 0; may not be contiguous
   timeStamp workingInterval;  
+  // identifiers for this filter
+  metricInstanceHandle mi;
+  metricHandle metric;
+  focus foc;
+ private:
   float estimatedCost;    
+  bool costFlag;
   // collector for these filters
   filteredDataServer *server;          
 };
 
 ostream& operator <<(ostream &os, filter& f);
 
+/* an avgFilter computes values based on the running average over all 
+   data received from first enable of its metric instance.  The current
+   running average is sent to each subscriber at the end of each time 
+   interval. 
+*/
+class avgFilter : public filter
+{
+public:
+  avgFilter(filteredDataServer *keeper,  
+	    metricInstanceHandle mih, metricHandle met, focus focs,
+	    bool costFlag):
+	      filter(keeper, mih, met, focs, costFlag) {;}
+  ~avgFilter(){;}
+  // all processing for a fresh hunk of raw data
+  void newData(sampleValue newVal, timeStamp start, timeStamp end);
+};
+
+/* a valFilter computes values based on the average over each time 
+   interval.  The average for each time interval is sent to each 
+   subscriber at the end of that interval.
+*/
+class valFilter : public filter
+{
+public:
+  valFilter(filteredDataServer *keeper,  
+	 metricInstanceHandle mih, metricHandle met, focus focs,
+	 bool costFlag):
+	   filter(keeper, mih, met, focs, costFlag) {;}
+  ~valFilter() {;}
+  // all processing for a fresh hunk of raw data
+  void newData(sampleValue newVal, timeStamp start, timeStamp end);
+};
+  
 // contains variable number of filters; maintains subscribers to each
 // filter; new subscription -> dm->enable() request and add filter; 
 // end subscription -> if numSubscribers == 0, dm->disable request.
@@ -124,6 +182,7 @@ public:
   fdsDataID addSubscription(fdsSubscriber sub,
 			    metricHandle mh,
 			    focus f,
+			    filterType ft,
 			    bool *errFlag);
   void endSubscription(fdsSubscriber sub, fdsDataID subID);
   void unsubscribeAllData();

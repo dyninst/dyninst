@@ -20,6 +20,20 @@
  * The PCmetricInst class and the PCmetricInstServer methods.
  * 
  * $Log: PCmetricInst.C,v $
+ * Revision 1.7  1996/04/30 06:27:00  karavan
+ * change PC pause function so cost-related metric instances aren't disabled
+ * if another phase is running.
+ *
+ * fixed bug in search node activation code.
+ *
+ * added change to treat activeProcesses metric differently in all PCmetrics
+ * in which it is used; checks for refinement along process hierarchy and
+ * if there is one, uses value "1" instead of enabling activeProcesses metric.
+ *
+ * changed costTracker:  we now use min of active Processes and number of
+ * cpus, instead of just number of cpus; also now we average only across
+ * time intervals rather than cumulative average.
+ *
  * Revision 1.6  1996/04/13 04:43:03  karavan
  * bug fix to AlignTimes
  *
@@ -108,7 +122,7 @@ PCmetricInst::PCmetricInst (PCmetric *pcMet, focus f,
 			    filteredDataServer *db, bool *err):
 foc(f), met(pcMet), currentValue(0.0), startTime(-1), endTime(0.0),
 totalTime (0.0), AllDataReady(0), DataStatus(0), AllCurrentValues(NULL), 
-TimesAligned(0), active(false), db(db)
+TimesAligned(0), active(false), costFlag(*err), db(db)
 {
   *err = false;
   assert (pcMet);
@@ -144,6 +158,7 @@ TimesAligned(0), active(false), db(db)
     else
       newRec->foc = f;
     newRec->met = currInfo->mh;
+    newRec->ft = currInfo->ft;
     AllData += newRec;
   }
 
@@ -175,14 +190,15 @@ PCmetricInst::activate()
     return true;
 
   inPort *curr;
-  bool err = false;
+  bool err = costFlag;
   unsigned nextPortId = 0;
   AllDataReady = 0;
   int newnumPorts = numInPorts;
   int i, j;
   for (i = 0, j = 0; i < numInPorts; i++) {
     curr = AllData[j];
-    curr->mih = db->addSubscription (this, curr->met, curr->foc, &err); 
+    curr->mih = db->addSubscription (this, curr->met, curr->foc, 
+				     curr->ft, &err); 
     if (err) {
       for (int m = 0; m < j; m++) {
 	db->endSubscription (this, AllData[m]->mih);

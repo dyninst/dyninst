@@ -21,6 +21,20 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.C,v $
+ * Revision 1.12  1996/04/30 06:26:49  karavan
+ * change PC pause function so cost-related metric instances aren't disabled
+ * if another phase is running.
+ *
+ * fixed bug in search node activation code.
+ *
+ * added change to treat activeProcesses metric differently in all PCmetrics
+ * in which it is used; checks for refinement along process hierarchy and
+ * if there is one, uses value "1" instead of enabling activeProcesses metric.
+ *
+ * changed costTracker:  we now use min of active Processes and number of
+ * cpus, instead of just number of cpus; also now we average only across
+ * time intervals rather than cumulative average.
+ *
  * Revision 1.11  1996/04/24 15:01:19  naim
  * Minor change to print message - naim
  *
@@ -70,7 +84,6 @@
 #include "PCfilter.h"
 #include "PCintern.h"
 #include "PCmetricInst.h"
-#include "dataManager.thread.h"
 
 #ifdef PCDEBUG
 #include <sys/time.h>
@@ -85,7 +98,8 @@ double TESTgetTime()
 #endif
 
 extern performanceConsultant *pc;
-
+extern float getPredictedDataCostAsync(perfStreamHandle, resourceListHandle, 
+				       metricHandle);
 perfStreamHandle filteredDataServer::pstream = 0;
 
 ostream& operator <<(ostream &os, filter& f)
@@ -106,56 +120,17 @@ ostream& operator <<(ostream &os, filter& f)
   return os;
 }
 
-float getPredictedDataCostAsync(perfStreamHandle pstream, 
-				resourceListHandle foc, 
-				metricHandle metric) {
-
-  dataMgr->getPredictedDataCost(pstream,metric,foc);
-
-  // KLUDGE: make the PC wait for the async response from the DM
-  T_dataManager::message_tags tagPC = T_dataManager::predictedDataCost_REQ;
-  T_dataManager::msg_buf buffer;
-  T_dataManager::message_tags waitTag;
-  bool ready=false;
-  float result=0.0;
-  while (!ready) {
-      u_int tag = (u_int) T_dataManager::predictedDataCost_REQ;
-      int from = msg_poll(&tag, true);
-      assert(from != THR_ERR);
-      if (dataMgr->isValidTag((T_dataManager::message_tags)tag)) {
-          waitTag = dataMgr->waitLoop(true,
-		    (T_dataManager::message_tags)tag,&buffer);
-          if (waitTag==tagPC) {
-              ready=true;
-              result = buffer.predictedDataCost_call.cost;
-          }
-          else {
-	      cerr << "Error in PCfilter.C, tag not valid\n";
-              assert(0);
-          }
-      }
-      else {
-          cerr << "Error in PCfilter.C, tag not valid\n";
-          assert(0);
-      }
-  }
-  return(result);
-}
-
 filter::filter(filteredDataServer *keeper, 
-	       metricInstanceHandle mih, metricHandle met, focus focs) 
-: mi(mih), metric(met), foc (focs), intervalLength(0), nextSendTime(0.0),  
+	       metricInstanceHandle mih, metricHandle met, focus focs, 
+	       bool cf) 
+: intervalLength(0), nextSendTime(0.0),  
   lastDataSeen(0), partialIntervalStartTime(0.0), workingValue(0), 
-  workingInterval(0), server(keeper)
-{ 
-  estimatedCost = getPredictedDataCostAsync(filteredDataServer::pstream,
-					    foc,metric);
-}
-
-filter::~filter() {
+  workingInterval(0), mi(mih), metric(met), foc (focs), 
+  estimatedCost(0.0), costFlag(cf), server(keeper)
+{
   ;
-} 
-
+}
+ 
 float
 filter::getNewEstimatedCost()
 {
@@ -201,7 +176,7 @@ void filter::getInitialSendTime(timeStamp startTime)
 }
 
 void
-filter::newData(sampleValue newVal, timeStamp start, timeStamp end)
+avgFilter::newData(sampleValue newVal, timeStamp start, timeStamp end)
 {
   // lack of forward progress signals a serious internal data handling error
   // in paradyn DM and will absolutely break the PC
@@ -289,6 +264,95 @@ filter::newData(sampleValue newVal, timeStamp start, timeStamp end)
 #endif
 }
 
+void
+valFilter::newData(sampleValue newVal, timeStamp start, timeStamp end)
+{
+  // lack of forward progress signals a serious internal data handling error
+  // in paradyn DM and will absolutely break the PC
+  assert (end > lastDataSeen);
+  // first, make adjustments to nextSendTime, partialIntervalStartTime,
+  // and/or start to handle some special cases
+  if (nextSendTime == 0) {
+    // CASE 1: this is first data received since this filter was created.
+    // We compute nextSendTime, the first possible send, and initialize 
+    // partial interval to begin at time "start".
+    getInitialSendTime(start);  
+    partialIntervalStartTime = nextSendTime - intervalLength;
+  } else if (start > lastDataSeen)  {
+    // CASE 2: this is first data value after a gap in data.
+    // We re-compute nextSendTime and reset partial interval (if any)
+    // to begin at time "start".  if there was partial data before this 
+    // new data came along, it is discarded since it may no longer 
+    // be current. 
+    updateNextSendTime(start);
+    partialIntervalStartTime = nextSendTime - intervalLength;
+  } else if (start < lastDataSeen) {
+    // CASE 3: partially duplicate data after a fold
+    // we've already seen data for a piece of this interval, so we reset 
+    // the start time to use the new portion and ignore the rest
+    start = lastDataSeen;
+  }
+  if (end > nextSendTime) {
+  // CASE 4: first data value after a fold
+  // call to updateNextSendTime will correctly adjust intervalSize
+  // we roll back nextSendTime to last send, then recompute nextSendTime.
+    nextSendTime = partialIntervalStartTime;
+    updateNextSendTime (partialIntervalStartTime);
+  }
+
+  // now we update our running average, and send a data value to subscribers
+  // if this datum fills an interval.
+  // Note: because intervalLength is always set to 
+  //       MAX(requested value, bucket size)
+  // we never overlap more than one interval with a single datum
+
+  timeStamp currInterval = end - start;
+
+ if (end >= nextSendTime) {
+    // PART A: if we have a full interval of data, split off piece of 
+    // data which is within interval (if needed) and send.
+    timeStamp pieceOfInterval = nextSendTime - start;
+    workingValue += newVal * (pieceOfInterval);
+    workingInterval += pieceOfInterval;
+    sendValue(mi, workingValue/workingInterval, partialIntervalStartTime, 
+              nextSendTime, 0);
+#ifdef PCDEBUG
+    // debug printing
+    if (performanceConsultant::printDataTrace) {
+      cout << "FILTER SEND mi=" << mi << " mh=" << metric << " foc=" << foc 
+	<< " value=" << workingValue/workingInterval 
+	  << "interval=" << start << " to " << end << endl;
+    }
+#endif
+
+    // its important to update intervalLength only after we send a sample;
+    // part of what this filtering accomplishes is keeping intervals correctly
+    // aligned in spite of the unaligned data the data manager sends 
+    // around a fold.  If you're not clear on what happens around a fold,
+    // go find out before you try to change this code!!
+    partialIntervalStartTime = nextSendTime;
+    updateNextSendTime (nextSendTime);
+    // adjust currInterval to contain only portion of time not just sent,   
+    // since we already added the other portion to workingInterval above
+    currInterval = currInterval - pieceOfInterval;     
+  }
+
+  // PART B: either the new value received did not complete an interval, 
+  // or it did and there may be some remainder data.  If no remainder data,
+  // currInterval will be 0 so workingValue and workingInterval will both
+  // be set to 0.
+  workingValue = newVal * currInterval;
+  workingInterval = currInterval;
+  lastDataSeen = end;
+  
+#ifdef PCDEBUG
+  // debug printing
+  if (performanceConsultant::printDataTrace) {
+    cout << *this;
+  }
+#endif
+}
+
 filteredDataServer::filteredDataServer(unsigned phID)
 : nextSendTime(0.0), 
   DataFilters(filteredDataServer::fdid_hash),
@@ -339,7 +403,7 @@ filteredDataServer::resubscribeAllData()
   metricInstanceHandle *curr;
   double t1,t2;
   for (unsigned i = 0; i < AllDataFilters.size(); i++) {
-    if (AllDataFilters[i]->isActive()) {
+    if (AllDataFilters[i]->pausable()) {
 #ifdef PCDEBUG
       if (performanceConsultant::collectInstrTimings) {
 	t1=TESTgetTime(); 
@@ -351,13 +415,13 @@ filteredDataServer::resubscribeAllData()
 					    phType, dmPhaseID, 1, 0);
 
 #ifdef PCDEBUG
-      cout << "reenable attempt on " << AllDataFilters[i]->getMI() <<
-	" yields " << *curr << endl;
+      // -------------------------- PCDEBUG ------------------
       if (performanceConsultant::collectInstrTimings) {
         t2=TESTgetTime();
         if ((t2-t1) > 1.0) 
 	  printf("==> TEST <== PCfilter 1, enableDataCollection2 took %5.2f secs\n",t2-t1); 
       }
+      // -------------------------- PCDEBUG ------------------
 #endif
       delete curr;
     }
@@ -372,7 +436,7 @@ filteredDataServer::unsubscribeAllData()
 {
   double t1,t2;
   for (unsigned i = 0; i < AllDataFilters.size(); i++) {
-    if (AllDataFilters[i]->isActive()) {
+    if (AllDataFilters[i]->pausable()) {
 #ifdef PCDEBUG
       if (performanceConsultant::collectInstrTimings) {
 	t1=TESTgetTime(); 
@@ -381,11 +445,13 @@ filteredDataServer::unsubscribeAllData()
       dataMgr->disableDataCollection(filteredDataServer::pstream, 
 				     AllDataFilters[i]->getMI(), phType);
 #ifdef PCDEBUG
+      // -------------------------- PCDEBUG ------------------
       if (performanceConsultant::collectInstrTimings) {
         t2=TESTgetTime();
         if ((t2-t1) > 1.0) 
 	  printf("==> TEST <== PCfilter 1, disableDataCollection took %5.2f secs\n",t2-t1); 
       }
+      // -------------------------- PCDEBUG ------------------
 #endif
     }
   }
@@ -403,12 +469,12 @@ fdsDataID
 filteredDataServer::addSubscription(fdsSubscriber sub,
 				    metricHandle mh,
 				    focus f,
-				    bool *errFlag)
+				    filterType ft,
+				    bool *flag)
 {
   filter *subfilter;
   metricInstanceHandle *index;
   metricInstanceHandle indexCopy;
-  *errFlag = false;
   double t1,t2;
   // does filter already exist?
 #ifdef PCDEBUG
@@ -427,13 +493,16 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
 #endif
   if (index == NULL) {
     // unable to collect this data
-    *errFlag = true;
+    *flag = true;
     return 0;
   }
   indexCopy = *index;
   delete index;
   if (!DataFilters.defines((fdsDataID) indexCopy)) {
-    subfilter = new filter (this, indexCopy, mh, f);
+    if (ft == nonfiltering)
+      subfilter = new valFilter (this, indexCopy, mh, f, *flag);
+    else
+      subfilter = new avgFilter (this, indexCopy, mh, f, *flag);
     AllDataFilters += subfilter;
     DataFilters[(fdsDataID) indexCopy] = subfilter;
   } else
@@ -441,7 +510,7 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
   // add subscriber
   subfilter->addConsumer (sub);
 #ifdef PCDEBUG
-  // debug printing
+  // ---------------------  debug printing ----------------------------
   if (performanceConsultant::printDataCollection) {
     cout << "FDS: " << sub << " subscribed to " << indexCopy << " met=" 
       << dataMgr->getMetricNameFromMI(indexCopy) << " methandle=" << mh << endl
@@ -451,7 +520,9 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
     if ((t2-t1) > 1.0) 
       printf("==> TEST <== Metric name = %s, Focus name = %s\n",dataMgr->getMetricNameFromMI(indexCopy),dataMgr->getFocusNameFromMI(indexCopy)); 
   }
+  // ---------------------  debug printing  ----------------------------
 #endif
+  *flag = false;
   return indexCopy;
 }
 
@@ -466,7 +537,7 @@ float
 filteredDataServer::getEstimatedCost(fdsDataID mih)
 {
   if (DataFilters.defines(mih))
-    return (DataFilters[mih]->getEstimatedCost());
+    return (DataFilters[mih]->getNewEstimatedCost());
   else
     return 0.0;
 }
