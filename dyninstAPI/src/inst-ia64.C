@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.38 2003/10/21 18:30:01 bernat Exp $
+ * $Id: inst-ia64.C,v 1.39 2003/10/21 22:40:55 bernat Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -361,7 +361,7 @@ void pd_Function::checkCallPoints() {
 		/* Extract the address that callSite calls. */
 		targetAddress = callSite->getTargetAddress();
 
-		calledPdF = owner->findFuncByAddr( targetAddress );
+		calledPdF = owner->findFuncByOffset( targetAddress );
 		if( calledPdF ) {
 			callSite->set_callee( calledPdF );
 			} else {
@@ -1825,17 +1825,17 @@ void installTramp( miniTrampHandle *mtHandle,
 	totalMiniTramps++; insnGenerated += codeSize / 16;
 	
 	/* Write the minitramp. */
-	fprintf( stderr, "* Installing minitramp at 0x%lx\n", mtHandle->trampBase );
-	proc->writeDataSpace( (caddr_t)mtHandle->trampBase, codeSize, code );
+	fprintf( stderr, "* Installing minitramp at 0x%lx\n", mtHandle->miniTrampBase );
+	proc->writeDataSpace( (caddr_t)mtHandle->miniTrampBase, codeSize, code );
 	
 	/* Make sure that it's not skipped. */
 	Address insertNOPAt = mtHandle->baseTramp->baseAddr;
-	if( when == callPreInsn && mtHandle->baseTramp->prevInstru == false ) {
+	if( mtHandle->when == callPreInsn && mtHandle->baseTramp->prevInstru == false ) {
 		mtHandle->baseTramp->cost += mtHandle->baseTramp->prevBaseCost;
 		insertNOPAt += mtHandle->baseTramp->skipPreInsOffset;
 		mtHandle->baseTramp->prevInstru = true;
 		} 
-	else if( when == callPostInsn && mtHandle->baseTramp->postInstru == false ) {
+	else if( mtHandle->when == callPostInsn && mtHandle->baseTramp->postInstru == false ) {
 		mtHandle->baseTramp->cost += mtHandle->baseTramp->postBaseCost;
 		insertNOPAt += mtHandle->baseTramp->skipPostInsOffset;
 		mtHandle->baseTramp->postInstru = true;

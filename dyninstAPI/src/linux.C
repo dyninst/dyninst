@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.114 2003/10/21 19:14:20 bernat Exp $
+// $Id: linux.C,v 1.115 2003/10/21 22:40:55 bernat Exp $
 
 #include <fstream>
 
@@ -272,9 +272,6 @@ int decodeRTSignal(process *proc,
                             &arg, true))
       assert(0);
    info = (procSignalInfo_t)arg;
-   fprintf(stderr, "Signal from RT: %d, %d\n",
-           status, info);
-   
    switch(status) {
      case 1:
         /* Entry to fork */

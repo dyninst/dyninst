@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.139 2003/10/21 17:22:02 bernat Exp $
+// $Id: inst-sparc-solaris.C,v 1.140 2003/10/21 22:40:55 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1437,7 +1437,7 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
                char *i, Address &base, bool /*noCost*/,
                const instPoint * /* location */, bool for_multithreaded)
 {
-    fprintf(stderr,"emitR(op=%d,src1=%d,src2=XX,dest=XX)\n",op,src1);
+    //fprintf(stderr,"emitR(op=%d,src1=%d,src2=XX,dest=XX)\n",op,src1);
 
    instruction *insn = (instruction *) ((void*)&i[base]);
 

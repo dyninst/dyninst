@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: codeRange.h,v 1.1 2003/10/21 17:22:51 bernat Exp $
+// $Id: codeRange.h,v 1.2 2003/10/21 22:40:55 bernat Exp $
 
 
 #ifndef _codeRangeTree_h_
@@ -170,10 +170,9 @@ public:
 
     /** copy constructor */
      codeRangeTree(const codeRangeTree &y) {
-         fprintf(stderr, "Copying code range tree: this ==  0x%x\n", this);
          nil = new entry;
-        setSize = y.setSize;
-        setData = replicateTree(y.setData, NULL, y.nil, nil);
+         setSize = y.setSize;
+         setData = replicateTree(y.setData, NULL, y.nil, nil);
     }
     
 	/** destructor which deletes all tree structure and allocated entries */

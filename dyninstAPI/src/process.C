@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.455 2003/10/21 19:14:20 bernat Exp $
+// $Id: process.C,v 1.456 2003/10/21 22:40:55 bernat Exp $
 
 #include <ctype.h>
 
@@ -4058,7 +4058,6 @@ function_base *process::findOnlyOneFunction(const pdstring &name) const {
 
     // If no library was specified, grab the first function we find
     if (lib_name == "") {
-        cerr << "Looking for " << func_name << endl;
         // first check a.out for function symbol
         pdf = symbols->findOnlyOneFunction(func_name);
         if(pdf) {

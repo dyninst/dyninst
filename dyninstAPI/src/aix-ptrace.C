@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix-ptrace.C,v 1.9 2003/10/21 18:30:00 bernat Exp $
+// $Id: aix-ptrace.C,v 1.10 2003/10/21 22:40:55 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -55,6 +55,7 @@
 #include "dyninstAPI/src/Object.h"
 #include "common/h/pathName.h"
 #include "dyninstAPI/src/instPoint.h"
+#include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/inst-power.h" // Tramp constants
 
 #include <procinfo.h>
