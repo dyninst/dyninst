@@ -29,10 +29,7 @@ int main(int argc, char **argv)
     int i, status;
     std::list <Packet *> packet_list;
 
-    // become a daemon
-    BeDaemon();
-
-    if(argc != 6){
+    if(argc != 4){
         fprintf(stderr, "Usage: %s port phostname pport\n",
                 argv[0]);
         fprintf(stderr, "Called with (%d) args: ", argc);
@@ -41,6 +38,9 @@ int main(int argc, char **argv)
         }
         exit(-1);
     }
+
+    // become a daemon
+    BeDaemon();
 
     // get our own hostname
     std::string hostname;
@@ -71,6 +71,7 @@ int main(int argc, char **argv)
         fprintf(stderr, "XPlat::TLSKey::Set(): %s\n", strerror(status)); 
         exit(-1);
     }
+    tsd_initialized = true;
 
     comm_node = new InternalNode(hostname, port,
                                 parent_hostname, parent_port );
