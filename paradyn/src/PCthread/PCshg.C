@@ -40,40 +40,8 @@
  */
 
 /*
- * PCshg.C
- * 
  * The searchHistoryNode and searchHistoryGraph class methods.
- * 
- * $Log: PCshg.C,v $
- * Revision 1.55  1997/05/14 13:02:46  naim
- * Making the PC to continue the search even if there is only one child. This
- * is just a temporal fix - naim
- *
- * Revision 1.54  1996/12/08 17:36:21  karavan
- * part 1 of 2 part commit to add new searching functionality
- *
- * Revision 1.53  1996/08/16 21:03:44  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.52  1996/08/16 07:07:51  karavan
- * minor code cleanup
- *
- * Revision 1.51  1996/07/23 20:28:07  karavan
- * second part of two-part commit.
- *
- * implements new search strategy which retests false nodes under certain
- * circumstances.
- *
- * change in handling of high-cost nodes blocking the ready queue.
- *
- * code cleanup.
- *
- * Revision 1.50  1996/07/22 21:19:45  karavan
- * added new suppress feature to hypothesis definition.
- *
- * Revision 1.29  1996/02/02 02:06:49  karavan
- * A baby Performance Consultant is born!
- *
+ * $Id: PCshg.C,v 1.56 1998/04/28 22:14:41 wylie Exp $
  */
 
 #include "PCintern.h"
@@ -610,18 +578,26 @@ void
 searchHistoryNode::getInfo (shg_node_info *theInfo)
 {
   if (exp != NULL) {
+    theInfo->active = active;
     theInfo->currentConclusion = exp->getCurrentConclusion();
     theInfo->timeTrueFalse = exp->getTimeTrueFalse();
     theInfo->currentValue = exp->getCurrentValue();
+    theInfo->adjustedValue = exp->getAdjustedValue();
+    theInfo->lastThreshold = exp->getLastThreshold();
+    theInfo->hysConstant = exp->getHysConstant();
     theInfo->startTime = exp->getStartTime();
     theInfo->endTime = exp->getEndTime();
     theInfo->estimatedCost = exp->getEstimatedCost();
     theInfo->persistent = persistent;
   } else {
     //** this will change with split into virtual nodes
+    theInfo->active = false;
     theInfo->currentConclusion = tunknown;
     theInfo->timeTrueFalse = 0;
     theInfo->currentValue = 0.0;
+    theInfo->adjustedValue = 0.0;
+    theInfo->lastThreshold = 0.0;
+    theInfo->hysConstant = 0.0;
     theInfo->startTime = 0;
     theInfo->endTime = 0;
     theInfo->estimatedCost = 0.0;
