@@ -2,7 +2,13 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.37  1994/08/08 20:15:17  hollings
+ * Revision 1.38  1994/08/22 15:57:26  markc
+ * Added support for config language version 2.
+ * Check for "" parms and convert them to NULL since NULL signifies undefined,
+ * not "".
+ * Support daemon dictionary.
+ *
+ * Revision 1.37  1994/08/08  20:15:17  hollings
  * added suppress instrumentation command.
  *
  * Revision 1.36  1994/08/05  16:03:55  hollings
@@ -161,6 +167,15 @@ void paradynDdebug(int pid)
 {
 }
 
+// change a char* that points to "" to point to NULL
+// NULL is used to signify "NO ARGUMENT"
+// NULL is easier to detect than "" (which needs a strlen to detect)
+static void fixArg(char *&argToFix)
+{
+  if (argToFix && !strlen(argToFix))
+    argToFix = (char*) 0;
+}
+
 String_Array convertResourceList(resourceList *rl)
 {
     String_Array ret;
@@ -194,7 +209,6 @@ Boolean applicationContext::addDaemon (int new_fd)
   paradynDaemon *new_daemon;
 
   new_daemon = new paradynDaemon (new_fd, NULL, NULL);
-  // TODO - setup machine, program, login?
 
   msg_bind_buffered (new_daemon->fd, TRUE, xdrrec_eof, new_daemon->__xdrs__);
 
@@ -252,44 +266,52 @@ void applicationContext::removeDaemon(paradynDaemon *d, Boolean informUser)
 //
 paradynDaemon *applicationContext::getDaemonHelper (char *machine, 
 						    char *login,
-						    char *program)
+						    char *name)
 {
   paradynDaemon *daemon;
   List<paradynDaemon*> curr;
+  daemonEntry *def;
 
+  // if name is null, use the default daemon name
+  if (!name) 
+    if (!setDefaultArgs(name))
+      return FALSE;
+  
   // find out if we have a paradynd on this machine+login+paradynd
-  for (curr=daemons, daemon = NULL; *curr; curr++)
-    {
-      if (!strcmp((*curr)->machine, machine) &&
-	  !strcmp((*curr)->login, login) &&
-	  !strcmp((*curr)->program, program))
-	{
-	  daemon = *curr;
-	}
+  for (curr=daemons, daemon = NULL; *curr; curr++) {
+    if ((!machine || !strcmp((*curr)->machine, machine)) &&
+	(!login || !strcmp((*curr)->login, login)) &&
+	(name && !strcmp((*curr)->name, name))) {
+      return (*curr);
     }
+  }
 
-  // nope start one.
-  if (!daemon)
-    {
-      daemon = new paradynDaemon(machine, login, program, NULL, NULL);
-      if (daemon->fd < 0)
-	{
-	  printf("unable to start paradynd: %s\n", program);
-	  printf("paradyn Error #6\n");
-	  return((paradynDaemon*) NULL);
-	}
-      daemons.add(daemon);
-      msg_bind_buffered (daemon->fd, TRUE, xdrrec_eof, daemon->__xdrs__);
+  // find a matching entry in the dicitionary, and start it
+  def = findEntry(machine, name);
+  if (!def)
+    return ((paradynDaemon*) 0);
 
-      // if this looks like a kludge, it is
-      // libutil defines a pid member that is set when a new process is
-      // created, however, the pid member is defined in a base class
-      // and is not easy to find - mdc
-      daemon->my_pid = daemon->pid;
+  // fill in machine name if emtpy
+  if (!machine) {
+    char hostStr[80];
+    int len;
+    gethostname(hostStr, 79);
+    len = strlen(hostStr);
+    machine = new char[len];
+    strcpy(machine, hostStr);
+  }
 
-      paradynDdebug(daemon->pid);
-    }
+  daemon = new paradynDaemon(machine, login, def->command, def->name,
+			     NULL, NULL, def->flavor);
+  if (daemon->fd < 0) {
+    printf("unable to start paradynd: %s\n", def->command);
+    printf("paradyn Error #6\n");
+    return((paradynDaemon*) NULL);
+  }
+  daemons.add(daemon);
+  msg_bind_buffered (daemon->fd, TRUE, xdrrec_eof, daemon->__xdrs__);
 
+  paradynDdebug(daemon->pid);
   return daemon;
 }
 
@@ -299,59 +321,105 @@ paradynDaemon *applicationContext::getDaemonHelper (char *machine,
 //
 Boolean applicationContext::getDaemon (char *machine,
 				       char *login,
-				       char *program)
+				       char *name)
 {
-  if (!getDaemonHelper(machine, login, program))
+  // change all "" to NULL
+  fixArg(machine); fixArg(login); fixArg(name);
+
+  if (!getDaemonHelper(machine, login, name))
     return FALSE;
   else
     return TRUE;
+}
+
+Boolean applicationContext::defineDaemon (char *command,
+					  char *dir,
+					  char *login,
+					  char *name,
+					  char *machine,
+					  int flavor)
+{
+  List<daemonEntry*> walk;
+  daemonEntry *newE;
+
+  if (!name || !command)
+    return FALSE;
+
+  for (walk=allEntries; *walk; walk++)
+    if (!strcmp(name, (*walk)->name)) {
+      if ((*walk)->freeAll() && (*walk)->setAll(machine, command, name,
+						login, dir, flavor))
+	return TRUE;
+      else
+	return FALSE;
+    }
+  newE = new daemonEntry(machine, command, name, login, dir, flavor);
+  if (!newE)
+    return FALSE;
+  allEntries.add(newE);
+  return TRUE;
+}
+
+daemonEntry *applicationContext::findEntry(char *m, char *n)
+{
+  List<daemonEntry*> walk;
+
+  if (!n)
+    return ((daemonEntry*) 0);
+  for (walk=allEntries; *walk; walk++) {
+    if (!strcmp(n, (*walk)->name))
+      return (*walk);
+  }
+  return ((daemonEntry*) 0);
+}
+
+void applicationContext::printDaemons()
+{
+  List<daemonEntry*> walk;
+  for (walk=allEntries; *walk; walk++) {
+    (*walk)->print();
+  }
 }
 
 //
 // add a new executable (binary) to a program.
 //
 Boolean applicationContext::addExecutable(char  *machine,
-				  char *login,
-				  char *program,
-				  int argc,
-				  char **argv)
+					  char *login,
+					  char *name,
+					  char *dir,
+					  int argc,
+					  char **argv)
 {
-     int pid;
-     executable *exec;
-     paradynDaemon *daemon;
-     String_Array programToRun;
-     char local[50];
+  int pid;
+  executable *exec;
+  paradynDaemon *daemon;
+  String_Array programToRun;
 
-    // null machine & login are mapped empty strings to keep strcmp happy.
-    if (!machine) 
-      {
-         if (gethostname(local, 49)) assert(0);
-         machine = strdup(local);
-	 assert(machine);
-      }
-    if (!login) login = "";
+  // change all "" to NULL
+  fixArg(machine); fixArg(login); fixArg(name); fixArg(dir);
 
-    if ((daemon = getDaemonHelper(machine, login, program)) ==
- 	(paradynDaemon*) NULL)
-      return FALSE;
+  if ((daemon = getDaemonHelper(machine, login, name)) ==
+      (paradynDaemon*) NULL)
+    return FALSE;
 
-    programToRun.count = argc;
-    programToRun.data = argv;
+  programToRun.count = argc;
+  programToRun.data = argv;
 
-    startResourceBatchMode();
-    pid = daemon->addExecutable(argc, programToRun);
-    endResourceBatchMode();
+  startResourceBatchMode();
+  pid = daemon->addExecutable(argc, programToRun);
+  endResourceBatchMode();
 
-    // did the application get started ok?
-    if (pid > 0 && !daemon->did_error_occur()) {
-	// TODO
-	fprintf (stderr, "PID is %d\n", pid);
-	exec = new executable(pid, argc, argv, daemon);
-	programs.add(exec);
-	return (TRUE);
-    } else {
-	return(FALSE);
-    }
+  // did the application get started ok?
+  if (pid > 0 && !daemon->did_error_occur()) {
+    // TODO
+    fprintf (stderr, "PID is %d\n", pid);
+    exec = new executable(pid, argc, argv, daemon);
+    programs.add(exec);
+    return (TRUE);
+  } else {
+    return(FALSE);
+  }
 }
 
 //
@@ -711,3 +779,12 @@ void applicationContext::endResourceBatchMode()
     }
 }
 
+Boolean applicationContext::setDefaultArgs(char *&name)
+{
+  if (!name)
+    name = strdup("defd");
+  if (name)
+    return TRUE;
+  else 
+    return FALSE;
+}
