@@ -42,7 +42,7 @@
 // tkTools.C
 // Ariel Tamches
 
-/* $Id: tkTools.C,v 1.11 1999/12/17 16:24:56 pcroth Exp $ */
+/* $Id: tkTools.C,v 1.12 2000/03/15 17:43:48 pcroth Exp $ */
 
 #include <assert.h>
 #include <stdlib.h> // exit()
@@ -89,8 +89,7 @@ void myTclEval(Tcl_Interp *interp, const string &str) {
 
 void myTclEval(Tcl_Interp *interp, const char *buffer) {
    if (TCL_OK != Tcl_Eval(interp, (char*)buffer)) {
-      cerr << Tcl_GetStringResult( interp ) << endl;
-      exit(5);
+      tclpanic(interp, "Interpretation of Tcl source failed");
    }
 }
 
