@@ -8,7 +8,7 @@
 	{$(INCLUDE)}"mrnet\src\CommunicationNode.h"\
 	{$(INCLUDE)}"mrnet\src\CommunicatorImpl.h"\
 	{$(INCLUDE)}"mrnet\src\DataElement.h"\
-	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Error.h"\
 	{$(INCLUDE)}"mrnet\src\Filter.h"\
 	{$(INCLUDE)}"mrnet\src\FilterDefinitions.h"\
 	{$(INCLUDE)}"mrnet\src\FrontEndNode.h"\
@@ -48,7 +48,7 @@
 	{$(INCLUDE)}"mrnet\src\ChildNode.h"\
 	{$(INCLUDE)}"mrnet\src\CommunicationNode.h"\
 	{$(INCLUDE)}"mrnet\src\DataElement.h"\
-	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Error.h"\
 	{$(INCLUDE)}"mrnet\src\Message.h"\
 	{$(INCLUDE)}"mrnet\src\Packet.h"\
 	{$(INCLUDE)}"mrnet\src\pdr.h"\
@@ -69,7 +69,7 @@
 	{$(INCLUDE)}"mrnet\FilterIds.h"\
 	{$(INCLUDE)}"mrnet\MRNet.h"\
 	{$(INCLUDE)}"mrnet\src\CommunicationNode.h"\
-	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Error.h"\
 	{$(INCLUDE)}"mrnet\src\utils.h"\
 	{$(INCLUDE)}"xplat\Thread.h"\
 	{$(INCLUDE)}"xplat\TLSKey.h"\
@@ -81,7 +81,7 @@
 	{$(INCLUDE)}"mrnet\src\ChildNode.h"\
 	{$(INCLUDE)}"mrnet\src\CommunicationNode.h"\
 	{$(INCLUDE)}"mrnet\src\DataElement.h"\
-	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Error.h"\
 	{$(INCLUDE)}"mrnet\src\Filter.h"\
 	{$(INCLUDE)}"mrnet\src\FilterDefinitions.h"\
 	{$(INCLUDE)}"mrnet\src\InternalNode.h"\
@@ -112,7 +112,7 @@
 	{$(INCLUDE)}"mrnet\src\CommunicationNode.h"\
 	{$(INCLUDE)}"mrnet\src\CommunicatorImpl.h"\
 	{$(INCLUDE)}"mrnet\src\DataElement.h"\
-	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Error.h"\
 	{$(INCLUDE)}"mrnet\src\Filter.h"\
 	{$(INCLUDE)}"mrnet\src\FilterDefinitions.h"\
 	{$(INCLUDE)}"mrnet\src\FrontEndNode.h"\
@@ -150,10 +150,10 @@
 	{$(INCLUDE)}"mrnet\src\EndPointImpl.h"\
 	
 
-..\..\..\mrnet\src\Errors.C : \
+..\..\..\mrnet\src\Error.C : \
 	{$(INCLUDE)}"mrnet\FilterIds.h"\
 	{$(INCLUDE)}"mrnet\MRNet.h"\
-	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Error.h"\
 	
 
 ..\..\..\mrnet\src\EventImpl.C : \
@@ -170,7 +170,7 @@
 	{$(INCLUDE)}"mrnet\MRNet.h"\
 	{$(INCLUDE)}"mrnet\src\CommunicationNode.h"\
 	{$(INCLUDE)}"mrnet\src\DataElement.h"\
-	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Error.h"\
 	{$(INCLUDE)}"mrnet\src\Filter.h"\
 	{$(INCLUDE)}"mrnet\src\FilterDefinitions.h"\
 	{$(INCLUDE)}"mrnet\src\Message.h"\
@@ -196,7 +196,7 @@
 	{$(INCLUDE)}"mrnet\FilterIds.h"\
 	{$(INCLUDE)}"mrnet\MRNet.h"\
 	{$(INCLUDE)}"mrnet\src\DataElement.h"\
-	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Error.h"\
 	{$(INCLUDE)}"mrnet\src\FilterDefinitions.h"\
 	{$(INCLUDE)}"mrnet\src\Packet.h"\
 	{$(INCLUDE)}"mrnet\src\pdr.h"\
@@ -218,7 +218,7 @@
 	{$(INCLUDE)}"mrnet\src\CommunicationNode.h"\
 	{$(INCLUDE)}"mrnet\src\CommunicatorImpl.h"\
 	{$(INCLUDE)}"mrnet\src\DataElement.h"\
-	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Error.h"\
 	{$(INCLUDE)}"mrnet\src\Filter.h"\
 	{$(INCLUDE)}"mrnet\src\FilterDefinitions.h"\
 	{$(INCLUDE)}"mrnet\src\FrontEndNode.h"\
@@ -249,7 +249,7 @@
 	{$(INCLUDE)}"mrnet\src\ChildNode.h"\
 	{$(INCLUDE)}"mrnet\src\CommunicationNode.h"\
 	{$(INCLUDE)}"mrnet\src\DataElement.h"\
-	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Error.h"\
 	{$(INCLUDE)}"mrnet\src\Filter.h"\
 	{$(INCLUDE)}"mrnet\src\FilterDefinitions.h"\
 	{$(INCLUDE)}"mrnet\src\InternalNode.h"\
@@ -275,7 +275,7 @@
 	{$(INCLUDE)}"mrnet\FilterIds.h"\
 	{$(INCLUDE)}"mrnet\MRNet.h"\
 	{$(INCLUDE)}"mrnet\src\DataElement.h"\
-	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Error.h"\
 	{$(INCLUDE)}"mrnet\src\Message.h"\
 	{$(INCLUDE)}"mrnet\src\Packet.h"\
 	{$(INCLUDE)}"mrnet\src\pdr.h"\
@@ -299,7 +299,7 @@
 	{$(INCLUDE)}"mrnet\src\CommunicatorImpl.h"\
 	{$(INCLUDE)}"mrnet\src\DataElement.h"\
 	{$(INCLUDE)}"mrnet\src\EndPointImpl.h"\
-	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Error.h"\
 	{$(INCLUDE)}"mrnet\src\EventImpl.h"\
 	{$(INCLUDE)}"mrnet\src\Filter.h"\
 	{$(INCLUDE)}"mrnet\src\FilterDefinitions.h"\
@@ -330,7 +330,7 @@
 	{$(INCLUDE)}"mrnet\FilterIds.h"\
 	{$(INCLUDE)}"mrnet\MRNet.h"\
 	{$(INCLUDE)}"mrnet\src\CommunicationNode.h"\
-	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Error.h"\
 	{$(INCLUDE)}"mrnet\src\NetworkGraph.h"\
 	{$(INCLUDE)}"mrnet\src\utils.h"\
 	{$(INCLUDE)}"src\config.h"\
@@ -347,7 +347,7 @@
 	{$(INCLUDE)}"mrnet\src\CommunicationNode.h"\
 	{$(INCLUDE)}"mrnet\src\CommunicatorImpl.h"\
 	{$(INCLUDE)}"mrnet\src\DataElement.h"\
-	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Error.h"\
 	{$(INCLUDE)}"mrnet\src\Filter.h"\
 	{$(INCLUDE)}"mrnet\src\FilterDefinitions.h"\
 	{$(INCLUDE)}"mrnet\src\FrontEndNode.h"\
@@ -378,7 +378,7 @@
 	{$(INCLUDE)}"mrnet\FilterIds.h"\
 	{$(INCLUDE)}"mrnet\MRNet.h"\
 	{$(INCLUDE)}"mrnet\src\DataElement.h"\
-	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Error.h"\
 	{$(INCLUDE)}"mrnet\src\Packet.h"\
 	{$(INCLUDE)}"mrnet\src\pdr.h"\
 	{$(INCLUDE)}"mrnet\src\refCounter.h"\
@@ -397,7 +397,7 @@
 	{$(INCLUDE)}"mrnet\MRNet.h"\
 	{$(INCLUDE)}"mrnet\src\CommunicationNode.h"\
 	{$(INCLUDE)}"mrnet\src\DataElement.h"\
-	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Error.h"\
 	{$(INCLUDE)}"mrnet\src\Filter.h"\
 	{$(INCLUDE)}"mrnet\src\FilterDefinitions.h"\
 	{$(INCLUDE)}"mrnet\src\Message.h"\
@@ -464,7 +464,7 @@
 	{$(INCLUDE)}"mrnet\src\ChildNode.h"\
 	{$(INCLUDE)}"mrnet\src\CommunicationNode.h"\
 	{$(INCLUDE)}"mrnet\src\DataElement.h"\
-	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Error.h"\
 	{$(INCLUDE)}"mrnet\src\Filter.h"\
 	{$(INCLUDE)}"mrnet\src\FilterDefinitions.h"\
 	{$(INCLUDE)}"mrnet\src\Message.h"\
@@ -504,7 +504,7 @@
 	{$(INCLUDE)}"mrnet\src\CommunicationNode.h"\
 	{$(INCLUDE)}"mrnet\src\CommunicatorImpl.h"\
 	{$(INCLUDE)}"mrnet\src\DataElement.h"\
-	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Error.h"\
 	{$(INCLUDE)}"mrnet\src\Filter.h"\
 	{$(INCLUDE)}"mrnet\src\FilterDefinitions.h"\
 	{$(INCLUDE)}"mrnet\src\FrontEndNode.h"\
@@ -537,7 +537,7 @@
 	{$(INCLUDE)}"mrnet\src\CommunicationNode.h"\
 	{$(INCLUDE)}"mrnet\src\CommunicatorImpl.h"\
 	{$(INCLUDE)}"mrnet\src\DataElement.h"\
-	{$(INCLUDE)}"mrnet\src\Errors.h"\
+	{$(INCLUDE)}"mrnet\src\Error.h"\
 	{$(INCLUDE)}"mrnet\src\Filter.h"\
 	{$(INCLUDE)}"mrnet\src\FilterDefinitions.h"\
 	{$(INCLUDE)}"mrnet\src\FrontEndNode.h"\

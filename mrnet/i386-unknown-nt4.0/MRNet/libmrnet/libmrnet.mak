@@ -45,7 +45,7 @@ CLEAN :
 	-@erase "$(INTDIR)\CommunicatorImpl.obj"
 	-@erase "$(INTDIR)\DataElement.obj"
 	-@erase "$(INTDIR)\EndPointImpl.obj"
-	-@erase "$(INTDIR)\Errors.obj"
+	-@erase "$(INTDIR)\Error.obj"
 	-@erase "$(INTDIR)\EventImpl.obj"
 	-@erase "$(INTDIR)\Filter.obj"
 	-@erase "$(INTDIR)\FilterDefinitions.obj"
@@ -124,7 +124,7 @@ LIB32_OBJS= \
 	"$(INTDIR)\CommunicatorImpl.obj" \
 	"$(INTDIR)\DataElement.obj" \
 	"$(INTDIR)\EndPointImpl.obj" \
-	"$(INTDIR)\Errors.obj" \
+	"$(INTDIR)\Error.obj" \
 	"$(INTDIR)\EventImpl.obj" \
 	"$(INTDIR)\Filter.obj" \
 	"$(INTDIR)\FilterDefinitions.obj" \
@@ -171,7 +171,7 @@ CLEAN :
 	-@erase "$(INTDIR)\CommunicatorImpl.obj"
 	-@erase "$(INTDIR)\DataElement.obj"
 	-@erase "$(INTDIR)\EndPointImpl.obj"
-	-@erase "$(INTDIR)\Errors.obj"
+	-@erase "$(INTDIR)\Error.obj"
 	-@erase "$(INTDIR)\EventImpl.obj"
 	-@erase "$(INTDIR)\Filter.obj"
 	-@erase "$(INTDIR)\FilterDefinitions.obj"
@@ -251,7 +251,7 @@ LIB32_OBJS= \
 	"$(INTDIR)\CommunicatorImpl.obj" \
 	"$(INTDIR)\DataElement.obj" \
 	"$(INTDIR)\EndPointImpl.obj" \
-	"$(INTDIR)\Errors.obj" \
+	"$(INTDIR)\Error.obj" \
 	"$(INTDIR)\EventImpl.obj" \
 	"$(INTDIR)\Filter.obj" \
 	"$(INTDIR)\FilterDefinitions.obj" \
@@ -330,9 +330,9 @@ SOURCE=..\..\..\mrnet\src\EndPointImpl.C
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
-SOURCE=..\..\..\mrnet\src\Errors.C
+SOURCE=..\..\..\mrnet\src\Error.C
 
-"$(INTDIR)\Errors.obj" : $(SOURCE) "$(INTDIR)"
+"$(INTDIR)\Error.obj" : $(SOURCE) "$(INTDIR)"
 	$(CPP) $(CPP_PROJ) $(SOURCE)
 
 
