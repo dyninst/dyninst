@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCwhy.h,v 1.14 2000/03/23 01:34:26 wylie Exp $
+// $Id: PCwhy.h,v 1.15 2001/06/20 20:36:46 schendel Exp $
 // The hypothesis class and the why axis.
 
 #ifndef pc_why_h
@@ -48,7 +48,7 @@
 #include "PCintern.h"
 #include "PCmetric.h"
 
-typedef sampleValue (*thresholdFunction) (const char *tname, focus foo);
+typedef pdRate (*thresholdFunction) (const char *tname, focus foo);
 typedef void (*explanationFunction)(searchHistoryNode*);
 typedef enum {gt, lt} compOperator;
 typedef enum {whereAndWhy, whyAndWhere, whyBeforeWhere, whereBeforeWhy, 

@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCsearch.C,v 1.29 2000/03/23 01:33:08 wylie Exp $
+ * $Id: PCsearch.C,v 1.30 2001/06/20 20:36:45 schendel Exp $
  * class PCsearch
  */
 
@@ -54,17 +54,14 @@
 #include <fstream.h>
 
 // for debugging purposes
-#ifdef MYPCDEBUG
-extern double TESTgetTime();
-#endif
 
 extern void initPChypos();
 extern void initPCmetrics();
-extern sampleValue DivideEval (focus, sampleValue *data, int dataSize);
+extern pdRate DivideEval (focus, const pdRate *data, int dataSize);
 
 unsigned int PCunhash (const unsigned &val) {return (val >> 3);} 
 
-timeStamp PCsearch::phaseChangeTime = 0;
+relTimeStamp PCsearch::phaseChangeTime = relTimeStamp::Zero();
 unsigned PCsearch::PCactiveCurrentPhase = 0;  // init to undefined
 dictionary_hash<unsigned, PCsearch*> PCsearch::AllPCSearches(PCunhash);
 PriorityQueue<SearchQKey, searchHistoryNode*> PCsearch::GlobalSearchQueue;
@@ -83,7 +80,7 @@ bool PCsearch::SearchThrottledBack = false;
 searchHistoryNode *PCsearch::SearchThrottleNode = NULL;
 
 //** this is currently being studied!! (klk)
-const float costFudge = 0.1;
+const float costFudge = 0.1f;
 const int MaxPendingSearches = 30;
 const int MaxActiveExperiments = 300;
 
@@ -99,7 +96,7 @@ ostream& operator <<(ostream &os, PCsearch& srch)
 //
 
 void 
-PCsearch::expandSearch (sampleValue estimatedCost)
+PCsearch::expandSearch (float estimatedCost)
 {
   bool costLimitReached = false;
   searchHistoryNode *curr = NULL;
@@ -139,7 +136,7 @@ PCsearch::expandSearch (sampleValue estimatedCost)
          << " name = " << curr->getHypoName() << endl;
 //    cout << " considering node with cost: " << candidateCost << endl;
 #endif
-    sampleValue predMax = performanceConsultant::predictedCostLimit;
+    float predMax = performanceConsultant::predictedCostLimit;
     if (1/(1-candidateCost) > predMax) {
       // **for now just get it out of the way
       int dispToken = curr->getGuiToken();
@@ -247,9 +244,9 @@ PCsearch::addSearch(unsigned phaseID)
   // confusion.  So, internally and in communication with the UI, we always
   // use DM's number plus one, and 0 for global phase.  
   string *msg = new string;
-  if (int(PCsearch::phaseChangeTime) != 0) {
+  if (int(PCsearch::phaseChangeTime.getD(timeUnit::sec())) != 0) {
     *msg += string("=");
-    *msg += string(int(PCsearch::phaseChangeTime));
+    *msg += string(int(PCsearch::phaseChangeTime.getD(timeUnit::sec())));
     *msg += string(") ");
   }
   if (performanceConsultant::useCallGraphSearch)
@@ -336,7 +333,7 @@ PCsearch::resume()
 // this permanently ends a search, it can never be restarted
 //
 void 
-PCsearch::terminate(timeStamp searchEndTime) {
+PCsearch::terminate(relTimeStamp searchEndTime) {
   searchStatus = schEnded;
   // need to flush search nodes for this defunct search from the queue
   if (phType == CurrentPhase) {
@@ -358,7 +355,7 @@ PCsearch::terminate(timeStamp searchEndTime) {
 }
 
 void 
-PCsearch::updateCurrentPhase (unsigned newPhaseID, timeStamp phaseEndTime) 
+PCsearch::updateCurrentPhase (unsigned newPhaseID, relTimeStamp phaseEndTime) 
 {
   unsigned phaseID = performanceConsultant::currentPhase;
 

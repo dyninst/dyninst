@@ -41,10 +41,11 @@
 
 /*
  * All tunable Constants used by hypotheses.
- * $Id: PCconstants.C,v 1.12 2000/03/23 01:33:55 wylie Exp $
+ * $Id: PCconstants.C,v 1.13 2001/06/20 20:36:45 schendel Exp $
  */
 
 #include "PCintern.h"
+#include "common/h/Time.h"
 
 //
 // registered TC callbacks
@@ -59,11 +60,13 @@ void TCpredictedCostLimitCB (float newval)
 }
 void TCminObservationTimeCB (float newval)
 {
-  performanceConsultant::minObservationTime = newval;
+  performanceConsultant::minObservationTime = timeLength(newval*1000, 
+							 timeUnit::ms());
 }
 void TCsufficientTimeCB (float newval)
 {
-  performanceConsultant::sufficientTime = newval;
+  performanceConsultant::sufficientTime =  timeLength(newval*1000, 
+						      timeUnit::ms());
 }
 void TCprintDataTraceCB (bool newval)
 {
@@ -120,7 +123,7 @@ void initPCconstants ()
      20.0); // max
   TCpredictedCostLimitCB(floatInitializer);
 
-  floatInitializer = 0.05;
+  floatInitializer = 0.05f;
   tunableConstantRegistry::createFloatTunableConstant
     ("hysteresisRange",
      "Fraction above and below threshold that a test should use.",
@@ -231,7 +234,7 @@ void initPCconstants ()
      boolInitializer);
   TCuseIndividualThresholdsCB (boolInitializer);
   
-  floatInitializer = 0.20;
+  floatInitializer = 0.20f;
   tunableConstantRegistry::createFloatTunableConstant 
     ("PC_SyncThreshold", 
      "Threshold to use while testing Synchronization hypothesis (%).", 
@@ -239,7 +242,7 @@ void initPCconstants ()
      userConstant,  
      floatInitializer, 0.0, 1.0);
 
-  floatInitializer = 0.30;
+  floatInitializer = 0.30f;
   tunableConstantRegistry::createFloatTunableConstant
     ("PC_CPUThreshold", 
      "Threshold to use while testing CPUBound hypothesis (%).", 
@@ -247,7 +250,7 @@ void initPCconstants ()
      userConstant, 
      floatInitializer, 0, 1.00);
 
-  floatInitializer = 0.20;
+  floatInitializer = 0.20f;
   tunableConstantRegistry::createFloatTunableConstant
     ("PC_IOThreshold", 
      "Threshold to use while testing I/O Blocking hypothesis (%).", 
@@ -274,7 +277,7 @@ void initPCconstants ()
      "highSyncThreshold", 
      NULL, 
      developerConstant,  
-     0.20, 0.10, 0.30);
+     0.20f, 0.10f, 0.30f);
 
   // 75% of time in CPU imples cpu time should be checked.
   //const float highCPUtoSyncRatioThreshold	= 0.60;
@@ -310,7 +313,7 @@ void initPCconstants ()
      "highIOthreshold", 
      NULL, 
      developerConstant, 
-     0.10, 0.05, 0.15);
+     0.10f, 0.05f, 0.15f);
 
   // physical disk blocks
   //const int diskBlockSize = 4096;
@@ -328,6 +331,7 @@ void initPCconstants ()
      "seekBoundThreshold", 
      NULL,
      developerConstant, 
-     0.50, 0.40, 0.60);
+     0.50f, 0.40f, 0.60f);
 
 }
+
