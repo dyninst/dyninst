@@ -4,7 +4,11 @@
 # included from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.1  1995/01/30 18:30:31  jcargill
+# Revision 1.2  1995/02/16 09:11:29  markc
+# Added support for RTfirst.o and RTend.o which mark the beginning and end
+# of DYNINST code.
+#
+# Revision 1.1  1995/01/30  18:30:31  jcargill
 # Major build system reorganization
 #
 #
@@ -12,7 +16,7 @@
 TARGET	      = libdyninstRT.a
 ALT_TARGET    = DYNINSTstartCode.o DYNINSTendCode.o
 
-SRCS	     += ../src/RTposix.c
+SRCS	     += ../src/RTposix.c ../src/RTend.c
 
 DYNSRCS	      = ../src/DYNINSTstartCode.c \
 		../src/DYNINSTendCode.c
