@@ -7,7 +7,10 @@
  * list.h - list ADT
  *
  * $Log: List.h,v $
- * Revision 1.4  1993/10/19 15:31:52  hollings
+ * Revision 1.5  1993/12/13 20:11:14  hollings
+ * added destructor for List class.
+ *
+ * Revision 1.4  1993/10/19  15:31:52  hollings
  * assorted small fixes.
  *
  * Revision 1.3  1993/08/02  22:46:37  hollings
@@ -27,6 +30,7 @@
 #ifndef LIST_H
 #define LIST_H
 #include <stdio.h>
+#include <stdlib.h>
 
 typedef char Boolean;
 
@@ -51,6 +55,7 @@ template <class Type> class ListItem {
 
 template <class Type> class List {
     public:
+	~List();
 	List() { head = NULL; }
 	void add(Type data, void *key);
 	void add(Type data) { add(data, (void *) data); }
@@ -100,6 +105,16 @@ template <class Type> class List {
 	ListItem<Type>	*head;
 };
 
+template <class Type> List<Type>::~List()
+{
+    ListItem<Type> *temp;
+    ListItem<Type> *curr;
+
+    for (curr=head; curr; curr = temp) {
+        temp = curr->next;
+        delete(curr);
+    }
+}
 
 template <class Type> void List<Type>::add(Type data, void *key)
 {
