@@ -199,10 +199,8 @@ void sharedMetaData::saveOffsetsIntoRTstructure(sharedMetaOffsetData
 		     reinterpret_cast<Address>(daemon_pid) - curBaseAddr);
   RTdata->observed_cost = reinterpret_cast<unsigned *>(
                      reinterpret_cast<Address>(observed_cost) - curBaseAddr);
-  cerr << "saving obsCost offset = " << RTdata->observed_cost << "\n";
   RTdata->virtualTimers = reinterpret_cast<virtualTimer *>(
                      reinterpret_cast<Address>(virtualTimers) - curBaseAddr);
-  cerr << "saving vTimer offset = " << RTdata->virtualTimers << "\n";
   RTdata->posToThread = reinterpret_cast<unsigned *>(
 		     reinterpret_cast<Address>(posToThread) - curBaseAddr);
   for (unsigned i = 0; i < maxThreads; i++) {
@@ -219,10 +217,9 @@ sharedMetaOffsetData::sharedMetaOffsetData(shmMgr &shmMgrToUse,
 					   int maxNumThreads)
   : theShmMgr(shmMgrToUse)
 {
-  rtData = (RTsharedData_t *)theShmMgr.malloc(sizeof(RTsharedData_t));
-
-  rtData->pendingIRPCs = (rpcToDo **)
-    theShmMgr.malloc(sizeof(rpcToDo *) * maxNumThreads);
+   rtData = (RTsharedData_t *)theShmMgr.malloc(sizeof(RTsharedData_t));
+   rtData->pendingIRPCs = (rpcToDo **)
+      theShmMgr.malloc(sizeof(rpcToDo *) * maxNumThreads);
 }
 
 sharedMetaOffsetData::sharedMetaOffsetData(shmMgr &shmMgrToUse,
@@ -242,8 +239,8 @@ sharedMetaOffsetData::sharedMetaOffsetData(shmMgr &shmMgrToUse,
 }
 
 sharedMetaOffsetData::~sharedMetaOffsetData() {
-  theShmMgr.free(reinterpret_cast<Address>(rtData->pendingIRPCs));
-  theShmMgr.free(reinterpret_cast<Address>(rtData));
+   theShmMgr.free(reinterpret_cast<Address>(rtData->pendingIRPCs));
+   theShmMgr.free(reinterpret_cast<Address>(rtData));
 }
 
 
