@@ -95,6 +95,13 @@ class executable {
 // method functions are for process and daemon control as well
 // as for enabling and disabling data collection
 //
+// IMPORTANT NOTE: whenever the paradynDaemon constructor is used, it
+// is the user's responsability to check whether the new object have been
+// successfully created or not (i.e. by checking the public variable
+// "bool errorConditionFound" in class dynRPCUser). In this way, we allow
+// the user to take the appropriate error recovery actions instead of
+// executing an "assert(0)" - naim
+//
 class paradynDaemon: public dynRPCUser {
 	friend class dynRPCUser;
 	friend class component;
