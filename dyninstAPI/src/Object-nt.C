@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.7 2000/07/28 18:08:56 pcroth Exp $
+// $Id: Object-nt.C,v 1.8 2001/06/15 20:47:49 hollings Exp $
 
 #include <iostream.h>
 #include <iomanip.h>
@@ -217,7 +217,7 @@ Object::ParseCodeViewSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo )
                 {
                     // add a Paradyn module for the library
                     // offset and size will be patched later
-                    pdMods += PDModInfo( libName, 0, 0 );
+                    pdMods.push_back(PDModInfo( libName, 0, 0 ));
                     pdModIdx = pdMods.size() - 1;
 
                     // keep track of where we added the library,
@@ -241,7 +241,7 @@ Object::ParseCodeViewSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo )
                 // find a source code name to associate with this module
                 if( mod.GetTextBounds( offset, cb ) )
                 {
-                    pdMods += PDModInfo( mod.GetSourceName(), offset, cb );
+                    pdMods.push_back(PDModInfo( mod.GetSourceName(), offset, cb ));
                     pdModIdx = pdMods.size() - 1;
                 }
                 else
@@ -256,8 +256,8 @@ Object::ParseCodeViewSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo )
             {
                 // module is part of a DLL, so we 
                 // associate any symbols directly with the DLL
-                pdMods += PDModInfo( pDebugInfo->ImageFileName, 0,
-                                        code_len_ * sizeof(Word) );
+                pdMods.push_back(PDModInfo( pDebugInfo->ImageFileName, 0,
+                                        code_len_ * sizeof(Word) ));
                 pdModIdx = pdMods.size() - 1;
             }
 
@@ -268,7 +268,7 @@ Object::ParseCodeViewSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo )
             if( mod.GetTextBounds( offText, cbText ) && (cbText > 0) )
             {
                 assert( pdModIdx != UINT_MAX );
-                cvMods += ModInfo( &mod, pdModIdx );
+                cvMods.push_back(ModInfo( &mod, pdModIdx ));
             }
         }
 
@@ -361,13 +361,13 @@ Object::ParseCodeViewSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo )
         // add entries for our Paradyn modules
         for( midx = 0; midx < pdMods.size(); midx++ )
         {
-            allSymbols += Symbol( pdMods[midx].name,
+            allSymbols.push_back(Symbol( pdMods[midx].name,
                 "",
                 Symbol::PDST_MODULE,
                 Symbol::SL_GLOBAL,
                 code_off_ + pdMods[midx].offText,
                 false,
-                pdMods[midx].cbText );
+                pdMods[midx].cbText ));
         }
 
 
@@ -539,13 +539,13 @@ Object::CVProcessSymbols( CodeView& cv,
 
                 Address addr = code_off_ + proc->offset;
 
-                allSymbols += ( Symbol( strName,
+                allSymbols.push_back(( Symbol( strName,
                     pdMod.name,
                     Symbol::PDST_FUNCTION,
                     Symbol::SL_GLOBAL,
                     addr,
                     false,
-                    proc->procLength ));
+                    proc->procLength )));
             }
         }
 
@@ -561,13 +561,13 @@ Object::CVProcessSymbols( CodeView& cv,
 
                 Address addr = code_off_ + proc->offset;
 
-                allSymbols += ( Symbol( strName,
+                allSymbols.push_back(( Symbol( strName,
                     pdMod.name,
                     Symbol::PDST_FUNCTION,
                     Symbol::SL_LOCAL,
                     addr,
                     false,
-                    proc->procLength ));
+                    proc->procLength )));
             }
         }
 
@@ -583,13 +583,13 @@ Object::CVProcessSymbols( CodeView& cv,
 
                 Address addr = code_off_ + thunk->offset;
 
-                allSymbols += ( Symbol( strName,
+                allSymbols.push_back(( Symbol( strName,
                     pdMod.name,
                     Symbol::PDST_FUNCTION,
                     Symbol::SL_GLOBAL,
                     addr,
                     false,
-                    thunk->thunkLength ) );
+                    thunk->thunkLength ) ));
             }
         }
 
@@ -605,13 +605,13 @@ Object::CVProcessSymbols( CodeView& cv,
 
                 Address addr = data_off_ + pVar->offset;
 
-                allSymbols += ( Symbol( strName,
+                allSymbols.push_back(( Symbol( strName,
                     pdMod.name,
                     Symbol::PDST_OBJECT,
                     Symbol::SL_GLOBAL,
                     addr,
                     false,
-                    0 ));               // will be patched later (?)
+                    0 )));               // will be patched later (?)
             }
         }
 
@@ -626,13 +626,13 @@ Object::CVProcessSymbols( CodeView& cv,
 
                 Address addr = data_off_ + pVar->offset;
 
-                allSymbols += ( Symbol( strName,
+                allSymbols.push_back(( Symbol( strName,
                     pdMod.name,
                     Symbol::PDST_OBJECT,
                     Symbol::SL_LOCAL,
                     addr,
                     false,
-                    0 ));               // will be patched later (?)
+                    0 )));               // will be patched later (?)
             }
         }
     }
@@ -670,25 +670,25 @@ Object::CVProcessSymbols( CodeView& cv,
             Address addr = code_off_ + sym->offset;
 
             // save the symbol
-            allSymbols += Symbol( strName,
+            allSymbols.push_back(Symbol( strName,
                 FindModuleByOffset( sym->offset, pdMods ),
                 Symbol::PDST_FUNCTION,
                 Symbol::SL_GLOBAL,
                 addr,
                 false,
-                0 );              // will be patched later
+                0 ));              // will be patched later
         }
         else if( sym->segment == dataSectionId )
         {
             Address addr = data_off_ + sym->offset;
 
-            allSymbols += Symbol( strName,
+            allSymbols.push_back(Symbol( strName,
                 FindModuleByOffset( sym->offset, pdMods ),
                 Symbol::PDST_OBJECT,
                 Symbol::SL_GLOBAL,
                 addr,
                 false,
-                0 );              // will be patched later
+                0 ));              // will be patched later
         }
         else
         {
@@ -723,12 +723,12 @@ Object::ParseCOFFSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo )
     // symbols with a module representing the DLL
     if( isDll )
     {
-        allSymbols += Symbol( pDebugInfo->ImageFileName,
+        allSymbols.push_back(Symbol( pDebugInfo->ImageFileName,
                                 "",
                                 Symbol::PDST_MODULE,
                                 Symbol::SL_GLOBAL,
                                 code_off_,
-                                false );
+                                false ));
     }
 
 
@@ -797,12 +797,12 @@ Object::ParseCOFFSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo )
                 }
             
                 // make note of the symbol
-                allSymbols += Symbol(name,
+                allSymbols.push_back(Symbol(name,
                                         "",
                                         Symbol::PDST_MODULE,
                                         Symbol::SL_GLOBAL,
                                         sym_addr,
-                                        false);
+                                        false));
             }
         }
         else if( syms[v].StorageClass == IMAGE_SYM_CLASS_LABEL )
@@ -831,21 +831,21 @@ Object::ParseCOFFSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo )
 
             if( syms[v].StorageClass == IMAGE_SYM_CLASS_EXTERNAL )
             {
-                allSymbols += Symbol(name,
+                allSymbols.push_back(Symbol(name,
                                     "DEFAULT_MODULE",
                                     Symbol::PDST_FUNCTION,
                                     Symbol::SL_GLOBAL,
                                     sym_addr,
-                                    false);
+                                    false));
             }
             else
             {
-                allSymbols += Symbol(name,
+                allSymbols.push_back(Symbol(name,
                                     "DEFAULT_MODULE",
                                     Symbol::PDST_FUNCTION,
                                     Symbol::SL_LOCAL,
                                     sym_addr,
-                                    false);
+                                    false));
             }
 
             // skip any auxiliary records with the function
@@ -864,21 +864,21 @@ Object::ParseCOFFSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo )
             {
                 if (syms[v].StorageClass == IMAGE_SYM_CLASS_EXTERNAL)
                 {
-                    allSymbols += Symbol(name,
+                    allSymbols.push_back(Symbol(name,
                                         "DEFAULT_MODULE",
                                         Symbol::PDST_OBJECT,
                                         Symbol::SL_GLOBAL,
                                         sym_addr,
-                                        false);
+                                        false));
                 }
                 else
                 {
-                    allSymbols += Symbol(name,
+                    allSymbols.push_back(Symbol(name,
                                         "DEFAULT_MODULE",
                                         Symbol::PDST_OBJECT,
                                         Symbol::SL_LOCAL,
                                         sym_addr,
-                                        false);
+                                        false));
                 }
             }
             else
@@ -906,12 +906,12 @@ Object::ParseCOFFSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo )
     //
 
     // add an extra symbol to mark the end of the text segment
-    allSymbols += Symbol("",
+    allSymbols.push_back(Symbol("",
                     "DEFAULT_MODULE",
                     Symbol::PDST_OBJECT,
                     Symbol::SL_GLOBAL, 
                     code_off_ + code_len_ * sizeof(Word),
-                    false);
+                    false));
 
     // Sort the symbols on address to find the function boundaries
     allSymbols.sort(sym_offset_compare);

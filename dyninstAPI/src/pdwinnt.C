@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.31 2001/04/25 20:31:36 wxd Exp $
+// $Id: pdwinnt.C,v 1.32 2001/06/15 20:47:49 hollings Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -382,7 +382,7 @@ process::walkStack( bool noPause )
                 // use the original return address
                 pc = saved_sf.AddrReturn.Offset;
             }
-            pcs += pc;
+            pcs.push_back(pc);
 
 			// check whether we reached a known "main" function
 			// we consider it a complete stack walk iff we see
@@ -434,7 +434,7 @@ process::walkStack( bool noPause )
     }
     else
     {
-        pcs += NULL;
+        pcs.push_back(NULL);
     }
 
     // resume the application if needed
@@ -852,7 +852,7 @@ int process::waitProcs(int *status) {
 	assert(p->threads.size() > 0); // main thread should be already defined
 	pdThread *t = new pdThread(p, debugEv.dwThreadId,
 				   debugEv.u.CreateThread.hThread);
-	p->threads += t;
+	p->threads.push_back(t);
     } break;
 
     case CREATE_PROCESS_DEBUG_EVENT: {
@@ -863,7 +863,7 @@ int process::waitProcs(int *status) {
 	    //fprintf(stderr,"create process: base = %x\n", info.lpBaseOfImage);
 	    if (p->threads.size() == 0) {
 		// define the main thread
-		p->threads += new pdThread(p);
+		p->threads.push_back(new pdThread(p));
 	    }
 	    p->threads[0]->update_handle(debugEv.dwThreadId, 
 					 debugEv.u.CreateProcessInfo.hThread);
@@ -984,11 +984,11 @@ int process::waitProcs(int *status) {
 	    shared_object *so = 
 	      new shared_object(string(nameBuffer), 0, false, true, true, 0);
 	    assert(p->dyn);
-	    p->dyn->sharedObjects += so;
+	    p->dyn->sharedObjects.push_back(so);
 	    if (!p->shared_objects) {
 	      p->shared_objects = new vector<shared_object *>;
 	    }
-	    *(p->shared_objects) += so;
+	    (*(p->shared_objects)).push_back(so);
 #ifndef BPATCH_LIBRARY
 	    tp->resourceBatchMode(true);
 #endif 

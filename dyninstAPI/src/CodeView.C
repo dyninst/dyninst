@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CodeView.C,v 1.8 2000/12/13 19:57:47 tikir Exp $
+// $Id: CodeView.C,v 1.9 2001/06/15 20:47:49 hollings Exp $
 
 #include <assert.h>
 
@@ -139,7 +139,7 @@ CodeView::ParseLibrariesSubsection( SDEntry* pEntry )
 	while( curr < (pBase + pEntry->offset + pEntry->cb) )
 	{
 		// add an entry for this library
-		libs += curr;
+		libs.push_back(curr);
 
 		// advance to the next string
 		curr += (*curr + 1);
@@ -398,34 +398,34 @@ CodeView::Symbols::Parse( const char* pSymBase, DWORD cb )
 		{
 		case S_LPROC32:
 			// add the entry to our list of functions
-			lprocs += ( (SymRecordProc*)curr );
+			lprocs.push_back(( (SymRecordProc*)curr ));
 			break;
 
 		case S_GPROC32:
 			// add the entry to our list of functions
-			gprocs += ( (SymRecordProc*)curr );
+			gprocs.push_back(( (SymRecordProc*)curr ));
 			break;
 
 		case S_LDATA32:
 			// add the entry to our list of variables
-			lvars += ( (SymRecordData*)curr );
+			lvars.push_back(( (SymRecordData*)curr ));
 			break;
 
 		case S_GDATA32:
 			// add the entry to our list of variables
-			gvars += ( (SymRecordData*)curr );
+			gvars.push_back(( (SymRecordData*)curr ));
 			break;
 
 		case S_LABEL32:
-			labels += ( (SymRecordLabel*)curr );
+			labels.push_back(( (SymRecordLabel*)curr ));
 			break;
 
 		case S_BPREL32:
-			bprels += ( (SymRecordBPRel*)curr );
+			bprels.push_back(( (SymRecordBPRel*)curr ));
 			break;
 
 		case S_THUNK32:
-			thunks += ( (SymRecordThunk*)curr );
+			thunks.push_back(( (SymRecordThunk*)curr ));
 			break;
 
 		case S_END:
@@ -437,7 +437,7 @@ CodeView::Symbols::Parse( const char* pSymBase, DWORD cb )
 			break;
 
         case S_PUB32:
-            pubs += (SymRecordData*)curr;
+            pubs.push_back((SymRecordData*)curr);
             break;
 
 		default:

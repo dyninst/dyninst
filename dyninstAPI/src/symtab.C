@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.120 2001/06/12 15:43:32 hollings Exp $
+// $Id: symtab.C,v 1.121 2001/06/15 20:47:50 hollings Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -447,10 +447,10 @@ bool image::addAllVariables()
       if (name) unmangledName = name;
       else unmangledName = mangledName.string_of();
       if (varsByPretty.defines(unmangledName)) {
-	  *(varsByPretty[unmangledName]) += string(mangledName);
+	  (*(varsByPretty[unmangledName])).push_back(string(mangledName));
       } else {
 	  vector<string> *varEntry = new vector<string>;
-	  *varEntry += string(mangledName);
+	  (*varEntry).push_back(string(mangledName));
 	  varsByPretty[unmangledName] = varEntry;
       }
       if (name) free(name);
