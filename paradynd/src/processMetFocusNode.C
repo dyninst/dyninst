@@ -127,7 +127,6 @@ processMetFocusNode::processMetFocusNode(const processMetFocusNode &par,
    currentlyPaused = par.currentlyPaused;
    
    catchupASTList = par.catchupASTList;
-   sideEffectFrameList = par.sideEffectFrameList;
    instrInserted_ = par.instrInserted_;
 }
 
@@ -355,13 +354,30 @@ inst_insert_result_t processMetFocusNode::insertInstrumentation() {
 
    insertJumpsToTramps();
    
+   // We may need to modify certain pieces of the process state to ensure
+   // that instrumentation runs properly. Two known cases:
+   // 1) If an active call site (call site on the stack) is instrumented,
+   //    we need to modify the return address to be in instrumentation
+   //    and not at the original return addr.
+   // 2) AIX only: if we instrument with an entry/exit pair, modify the
+   //    return address of the function to point into the exit tramp rather
+   //    than the return addr. 
+   //    Note that #2 overwrites #1; but if we perform the fixes in this order
+   //    then everything works.
+
+   // We need a stack walk for both this and catchup; take it once.
+   pdvector <pdvector <Frame> > stackWalks;
+   proc()->walkStacks(stackWalks);
+
+   doInstrumentationFixup(stackWalks);
+
    // Now that the timers and counters have been allocated on the heap, and
    // the instrumentation added, we can manually execute instrumentation we
    // may have processed at function entry points and pre-instruction call
    // sites which have already executed.
    // Note: this must run IMMEDIATELY after inserting the jumps to tramps
 
-   doCatchupInstrumentation();
+   doCatchupInstrumentation(stackWalks);
 
    // Changes for MT: process will be continued by inferior RPCs
    // This is because the inferior RPCs may complete after the instrumentation
@@ -371,6 +387,42 @@ inst_insert_result_t processMetFocusNode::insertInstrumentation() {
    continueProcess();
    return inst_insert_success;
 }
+
+// We may need to modify certain pieces of the process state to ensure
+// that instrumentation runs properly. Two known cases:
+// 1) If an active call site (call site on the stack) is instrumented,
+//    we need to modify the return address to be in instrumentation
+//    and not at the original return addr.
+// 2) AIX only: if we instrument with an entry/exit pair, modify the
+//    return address of the function to point into the exit tramp rather
+//    than the return addr. 
+//    Note that #2 overwrites #1; but if we perform the fixes in this order
+//    then everything works.
+
+void processMetFocusNode::doInstrumentationFixup(pdvector<pdvector<Frame> >&stackWalks) {
+
+  for (unsigned cIter = 0; cIter < constraintCodeNodes.size(); cIter++) {
+    pdvector<instReqNode *> instRequests = constraintCodeNodes[cIter]->getInstRequests();
+    for (unsigned iIter = 0; iIter < instRequests.size(); iIter++) {
+      for (unsigned thrIter = 0; thrIter < stackWalks.size(); thrIter++) {
+	for (unsigned sIter = 0; sIter < stackWalks[thrIter].size(); sIter++) {
+	  proc_->catchupSideEffect(stackWalks[thrIter][sIter],
+				   instRequests[iIter]);
+	}
+      }
+    }
+  }
+  pdvector<instReqNode *> instRequests2 = metricVarCodeNode->getInstRequests();
+  for (unsigned iIter2 = 0; iIter2 < instRequests2.size(); iIter2++) {
+    for (unsigned thrIter2 = 0; thrIter2 < stackWalks.size(); thrIter2++) {
+      for (unsigned sIter2 = 0; sIter2 < stackWalks[thrIter2].size(); sIter2++) {
+	proc_->catchupSideEffect(stackWalks[thrIter2][sIter2],
+				 instRequests2[iIter2]);
+      }
+    }
+  }
+}
+
 
 //
 // Added to allow metrics affecting a function F to be triggered when
@@ -392,7 +444,7 @@ inst_insert_result_t processMetFocusNode::insertInstrumentation() {
 //       No -> don't manually trigger n's instrumentation.
 //       Yes -> run (a copy) of n's instrumentation via inferior RPC
 //         
-void processMetFocusNode::doCatchupInstrumentation() {
+void processMetFocusNode::doCatchupInstrumentation(pdvector<pdvector<Frame> >&stackWalks) {
     // doCatchupInstrumentation is now the primary control
     // of whether a process runs or not. 
     // The process may have been paused when we inserted instrumentation.
@@ -400,8 +452,8 @@ void processMetFocusNode::doCatchupInstrumentation() {
     // If we paused to insert the value of currentlyPaused is 1
     // /* DEBUG */ fprintf(stderr, "doCatchup entry, currentlyPaused = %d\n", currentlyPaused);
     assert(hasBeenCatchuped() == false);
-    
-    prepareCatchupInstr();
+
+    prepareCatchupInstr(stackWalks);
     bool catchupPosted = postCatchupRPCs();
 
     if (!catchupPosted) {
@@ -440,118 +492,96 @@ void processMetFocusNode::doCatchupInstrumentation() {
 //       Yes ->
 //         
 
-void processMetFocusNode::prepareCatchupInstr(pd_thread *thr) {
-   pdvector<Frame> stackWalk;
-   thr->walkStack(stackWalk);
+void processMetFocusNode::prepareCatchupInstr(pdvector<pdvector<Frame> > &stackWalks) {
+  for (unsigned thr_iter = 0; thr_iter < stackWalks.size(); thr_iter++) {
+    pdvector<Frame> stackWalk = stackWalks[thr_iter];
 
-   if (pd_debug_catchup) {
-       fprintf(stderr, "Dumping stack walk for thread %d\n",
-               thr->get_tid());
-       for (unsigned a = 0; a < stackWalk.size(); a++) {
-           cerr << stackWalk[a] << endl;
-       }
-       fprintf(stderr, "End stack dump for thread %d\n", thr->get_tid());
-   }
-   
-   
-   // Convert the stack walks into a similar list of catchupReq nodes, which
-   // maps 1:1 onto the stack walk and includes a vector of instReqNodes that
-   // need to be executed
-   pdvector<catchupReq *> catchupWalk;
-   for (unsigned f=0; f<stackWalk.size(); f++) {
-       catchupWalk.push_back(new catchupReq(stackWalk[f]));
-   }
-   
-   // Now go through all associated code nodes, and add appropriate bits to
-   // the catchup request list.
-   for (unsigned cIter = 0; cIter < constraintCodeNodes.size(); cIter++)
+    if (pd_debug_catchup) {
+      fprintf(stderr, "Dumping stack walk for thread %d\n",
+	      stackWalk[0].getThread()->get_tid());
+      for (unsigned a = 0; a < stackWalk.size(); a++) {
+	cerr << stackWalk[a] << endl;
+      }
+      fprintf(stderr, "------------------\n");
+    }
+    
+    // Convert the stack walks into a similar list of catchupReq nodes, which
+    // maps 1:1 onto the stack walk and includes a vector of instReqNodes that
+    // need to be executed
+    pdvector<catchupReq *> catchupWalk;
+    for (unsigned f=0; f<stackWalk.size(); f++) {
+      catchupWalk.push_back(new catchupReq(stackWalk[f]));
+    }
+    
+    // Now go through all associated code nodes, and add appropriate bits to
+    // the catchup request list.
+    for (unsigned cIter = 0; cIter < constraintCodeNodes.size(); cIter++)
       constraintCodeNodes[cIter]->prepareCatchupInstr(catchupWalk);
-   // Get the metric code node catchup list
-   metricVarCodeNode->prepareCatchupInstr(catchupWalk);
-   
-   // Note: stacks are delivered to us in bottom-up order (most recent to
-   // main()), and we want to execute from main down. So loop through
-   // backwards and add to the main list. We can go one thread at a time,
-   // because multiple threads will not interfere with each other.
-
-   // See comment below for sparc info
-
-   // can't do "conglomerate rpcs" until bug #369 "AST sequence node
-   // generation" is fixed
+    // Get the metric code node catchup list
+    metricVarCodeNode->prepareCatchupInstr(catchupWalk);
+    
+    // Note: stacks are delivered to us in bottom-up order (most recent to
+    // main()), and we want to execute from main down. So loop through
+    // backwards and add to the main list. We can go one thread at a time,
+    // because multiple threads will not interfere with each other.
+    
+    // See comment below for sparc info
+    
+    // can't do "conglomerate rpcs" until bug #369 "AST sequence node
+    // generation" is fixed
 #if defined(CONGLOMERATE_RPCS)
-   // Then through each frame in the stack walk
-   AstNode *conglomerate = NULL;
-   for(int j = catchupWalk.size()-1; j >= 0; j--) { 
+    // Then through each frame in the stack walk
+    AstNode *conglomerate = NULL;
+    for(int j = catchupWalk.size()-1; j >= 0; j--) { 
       catchupReq *curCReq = catchupWalk[j];
       // Note: backwards iteration
       if ((curCReq->reqNodes).size()) {   // Means we have a catchup request
-         // What we want to do: build a single big AST then launch it as
-         // an RPC.
-         for (unsigned k1 = 0; k1<(curCReq->reqNodes).size(); k1++) {
-            AstNode *AST = curCReq->reqNodes[k1]->Snippet()->PDSEP_ast();
-            if (!conglomerate) {
-               conglomerate = AST;
-            }
-            else { // Need to combine with a SequenceNode
-               AstNode *old = conglomerate;
-               conglomerate = new AstNode(conglomerate, AST);
-               removeAst(old);
-            }
-         }
-         sideEffect_t side;
-         side.frame = curCReq->frame;
-         side.reqNode = curCReq->reqNodes[0];
-         sideEffectFrameList.push_back(side);
+	// What we want to do: build a single big AST then launch it as
+	// an RPC.
+	for (unsigned k1 = 0; k1<(curCReq->reqNodes).size(); k1++) {
+	  AstNode *AST = curCReq->reqNodes[k1]->Snippet()->PDSEP_ast();
+	  if (!conglomerate) {
+	    conglomerate = AST;
+	  }
+	  else { // Need to combine with a SequenceNode
+	    AstNode *old = conglomerate;
+	    conglomerate = new AstNode(conglomerate, AST);
+	    removeAst(old);
+	  }
+	}
       }
-   }
-
-   if (conglomerate) {
+    }
+    
+    if (conglomerate) {
       catchup_t catchup;
       //conglomerate->print();
       catchup.ast = conglomerate;
       catchup.thread = catchupWalk[0]->frame.getThread();
       catchupASTList.push_back(catchup);      
-   }
+    }
 #else
-   // Sparc (and linux) is currently having problems with AST sequences,
-   // especially if the sequences include several copies of the same AST
-   // tree. So we post as individual iRPCs
-
-   // Then through each frame in the stack walk
-   for(int j = catchupWalk.size()-1; j >= 0; j--) { 
-       catchupReq *curCReq = catchupWalk[j];
-       // Note: backwards iteration
-       if ((curCReq->reqNodes).size()) {   // Means we have a catchup request
-           // What we want to do: build a single big AST then launch it as
-           // an RPC.
-           for (unsigned k1 = 0; k1<(curCReq->reqNodes).size(); k1++) {
-               AstNode *AST = curCReq->reqNodes[k1]->Snippet()->PDSEP_ast();
-               catchup_t catchup;
-               catchup.ast = AST;
-               catchup.thread = catchupWalk[0]->frame.getThread();
-               catchupASTList.push_back(catchup);
-           }
-           sideEffect_t side;
-           side.frame = curCReq->frame;
-           side.reqNode = curCReq->reqNodes[0];
-           sideEffectFrameList.push_back(side);
-       }
-   }
+    // Sparc (and linux) is currently having problems with AST sequences,
+    // especially if the sequences include several copies of the same AST
+    // tree. So we post as individual iRPCs
+    
+    // Then through each frame in the stack walk
+    for(int j = catchupWalk.size()-1; j >= 0; j--) { 
+      catchupReq *curCReq = catchupWalk[j];
+      // Note: backwards iteration
+      if ((curCReq->reqNodes).size()) {   // Means we have a catchup request
+	// What we want to do: build a single big AST then launch it as
+	// an RPC.
+	for (unsigned k1 = 0; k1<(curCReq->reqNodes).size(); k1++) {
+	  AstNode *AST = curCReq->reqNodes[k1]->Snippet()->PDSEP_ast();
+	  catchup_t catchup;
+	  catchup.ast = AST;
+	  catchup.thread = catchupWalk[0]->frame.getThread();
+	  catchupASTList.push_back(catchup);
+	}
+      }
+    }
 #endif
-}
-
-// only does catchup on threads which need it
-// returns false if no catchup needed
-void processMetFocusNode::prepareCatchupInstr() {
-   // Run on all threads even if focus only applies to certain threads.
-   // Because even if we only want to sample on certain threads still want to
-   // set up all threads so instr. variables get written to properly.
-   threadMgr::thrIter itr = proc()->thrMgr().begin();
-   while(itr != proc()->thrMgr().end()) {
-      pd_thread *pdthr = *itr;
-      itr++;
-      prepareCatchupInstr(pdthr);
-   }
+  }
 
    pdvector<instrCodeNode *> allCodeNodes;
    getAllCodeNodes(&allCodeNodes);
@@ -588,7 +618,6 @@ bool processMetFocusNode::postCatchupRPCs()
 
    if (pd_debug_catchup) {
       cerr << "Posting " << catchupASTList.size() << " catchup requests\n";
-      cerr << "Handing " << sideEffectFrameList.size() << " side effects\n";
    }
     
    for (unsigned i=0; i < catchupASTList.size(); i++) {
@@ -609,11 +638,7 @@ bool processMetFocusNode::postCatchupRPCs()
    }
    
    catchupASTList.resize(0);
-   for (unsigned j = 0; j < sideEffectFrameList.size(); j++) {
-      proc_->catchupSideEffect(sideEffectFrameList[j].frame, 
-                               sideEffectFrameList[j].reqNode);
-   }
-   sideEffectFrameList.resize(0);
+
    return catchupPosted;
 }
 

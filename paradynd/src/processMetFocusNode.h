@@ -69,6 +69,7 @@ struct sideEffect_t {
   Frame frame;
   instReqNode *reqNode;
 };
+
 class processMetFocusNode : public metricFocusNode {
  private:
   static pdvector<processMetFocusNode *> procNodesToDeleteLater;
@@ -90,7 +91,6 @@ class processMetFocusNode : public metricFocusNode {
   bool currentlyPaused;
   bool instrInserted_;  // ie. instr:  loaded & tramps hookedup & catchuped
   pdvector<catchup_t >   catchupASTList;
-  pdvector<sideEffect_t> sideEffectFrameList;
   pdvector<unsigned> rpc_id_buf;
 
   bool isBeingDeleted_;
@@ -100,7 +100,8 @@ class processMetFocusNode : public metricFocusNode {
 		      bool arg_dontInsertData);
 
   void manuallyTrigger(int mid);
-  void prepareCatchupInstr(pd_thread *thr);  // do catchup on given thread
+  void prepareCatchupInstr(pdvector<pdvector<Frame> >&stackWalks);  // do catchup on given thread
+  bool postCatchupRPCs();
 
   threadMetFocusNode *getThrNode(unsigned tid);
   threadMetFocusNode *getThrNode(pd_thread *thr) {
@@ -181,7 +182,8 @@ class processMetFocusNode : public metricFocusNode {
   bool instrLoaded();
 
   inst_insert_result_t loadInstrIntoApp();
-  void doCatchupInstrumentation();
+  void doCatchupInstrumentation(pdvector<pdvector<Frame> > &stackWalks);
+  void doInstrumentationFixup(pdvector<pdvector<Frame> > &stackWalks);
   inst_insert_result_t insertInstrumentation();
   
   pdvector<const instrDataNode *> getFlagDataNodes() const;
@@ -192,11 +194,9 @@ class processMetFocusNode : public metricFocusNode {
 
   timeStamp getStartTime() { return procStartTime; }
 
-  void prepareCatchupInstr();  // on all threads
   // static void catchupRPC_Complete(process *, unsigned rpc_id,
   //                                 void * /*data*/, void * /*ret*/);
 
-  bool postCatchupRPCs();
   void removeDataNodes();
 
   void pauseProcess();
