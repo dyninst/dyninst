@@ -44,7 +44,7 @@
 
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
-/* $Id: whereAxis.h,v 1.18 2001/02/12 14:53:07 wxd Exp $ */
+/* $Id: whereAxis.h,v 1.19 2001/02/19 15:37:00 wxd Exp $ */
 
 #ifndef _WHERE_AXIS_H_
 #define _WHERE_AXIS_H_
@@ -60,6 +60,8 @@
 #else
 #include "common/h/Dictionary.h"
 #endif
+
+typedef vector<unsigned> numlist;
 
 // Note: whereAxis is no longer a templated type.
 // It utilized where4tree<> with a template of rootNode, which
@@ -251,6 +253,8 @@ class whereAxis {
    void makeVisibilityFullyObscured() {consts.makeVisibilityFullyObscured();}
 
    void processSingleClick(int x, int y);
+   bool processCtrlClick(int x, int y,numlist &);
+   numlist getCurFocus(whereNodeGraphicalPath<whereAxisRootNode> thePath) const; 
    bool processDoubleClick(int x, int y);
       // returns true iff a redraw of everything is still needed
    bool processShiftDoubleClick(int x, int y);
@@ -298,9 +302,8 @@ class whereAxis {
    vector< vector<resourceHandle> > getSelections(bool &wholeProgram, vector<unsigned> &wholeProgramFocus) const;
    void clearSelections();
 
-	//add by wxd on Feb 3
-   void map_to_CallGraph(whereNodePosRawPath &,bool);
-   void map_from_callgraph(const string &,bool);
+   void map_to_CallGraph(resourceHandle,bool);
+   void map_from_callgraph(resourceHandle,bool);
 };
 
 #endif

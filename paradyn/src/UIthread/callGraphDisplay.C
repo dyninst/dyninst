@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphDisplay.C,v 1.5 2001/02/12 14:53:05 wxd Exp $
+// $Id: callGraphDisplay.C,v 1.6 2001/02/19 15:36:59 wxd Exp $
 
 //callGraphDisplay.C: this code is an adaptation of the code from shg.C,
 //for use with the call graph
@@ -365,12 +365,9 @@ void callGraphDisplay::addItem(const string &newShortName,const string &newFullN
 		       rethinkGraphicsNow,
 		       resortNow);
 
-//modified by wxd on Feb 8
   if(!isShadowNode){
     assert(!hash.defines(newNodeUniqueId));
     hash[newNodeUniqueId] = newNode;
-
-    newNode->setPrimaryPath(parentPtr->getPrimaryPath(),child_index);
   }else {
 	resourceHandle primary_node_id=newNodeUniqueId;
   	assert(hash.defines(primary_node_id));
@@ -452,14 +449,12 @@ void callGraphDisplay::resize(bool currentlyDisplayedAbstraction) {
   }
 }
 
-void callGraphDisplay::map_to_WhereAxis(where4tree<callGraphRootNode> *select_node, bool ishighlight)
+void callGraphDisplay::map_to_WhereAxis(resourceHandle select_handle, bool ishighlight)
 {
-	callGraphRootNode nodedata=select_node->getNodeData();
-
-	notify_shadow(select_node);
+	notify_shadow(select_handle,ishighlight);
 
 	if (theAbstractions->existsCurrent())
-		theAbstractions->map_from_callgraph(nodedata.getFullName(),ishighlight);
+		theAbstractions->map_from_callgraph(select_handle,ishighlight);
 }
 void callGraphDisplay::processSingleClick(int x, int y) {
   whereNodeGraphicalPath<callGraphRootNode> thePath=point2path(x, y);
@@ -476,9 +471,9 @@ void callGraphDisplay::processSingleClick(int x, int y) {
 				  Tk_WindowId(consts.theTkWindow),
 				  thePath.get_endpath_centerx(),
 				  thePath.get_endpath_topy());
-//add by wxd in Feb 3
+
     bool ishighlight=ptr->isHighlighted();
-    map_to_WhereAxis(ptr,ishighlight);
+    map_to_WhereAxis(ptr->getNodeData().getUniqueId(),ishighlight);
     
     return;
   }
@@ -498,9 +493,8 @@ void callGraphDisplay::processSingleClick(int x, int y) {
 					      false, // not root only
 					      true // listbox only
 					      );
-//add by wxd in Feb 3
     bool ishighlight=ptr->isHighlighted();
-    map_to_WhereAxis(ptr,ishighlight);
+    map_to_WhereAxis(ptr->getNodeData().getUniqueId(),ishighlight);
     break;
   }
   case whereNodeGraphicalPath<callGraphRootNode>::ListboxScrollbarUpArrow:
@@ -725,10 +719,9 @@ bool callGraphDisplay::processDoubleClick(int x, int y) {
          adjustVertSBOffset();
          softScrollToEndOfPath(thePath.getPath());
 
-	 //add by wxd in Feb 3
     	 where4tree<callGraphRootNode> *ptr = thePath.getLastPathNode(rootPtr);
     	 bool ishighlight=ptr->isHighlighted();
-    	 map_to_WhereAxis(ptr,ishighlight);
+    	 map_to_WhereAxis(ptr->getNodeData().getUniqueId(),ishighlight);
 
          return true;
       }
@@ -740,10 +733,9 @@ bool callGraphDisplay::processDoubleClick(int x, int y) {
 	 //single-click which came earlier.
          thePath.getLastPathNode(rootPtr)->toggle_highlight(); 
 
-	//add by wxd in Feb 3
-    	where4tree<callGraphRootNode> *ptr = thePath.getLastPathNode(rootPtr);
+    	 where4tree<callGraphRootNode> *ptr = thePath.getLastPathNode(rootPtr);
     	 bool ishighlight=ptr->isHighlighted();
-    	 map_to_WhereAxis(ptr,ishighlight);
+    	 map_to_WhereAxis(ptr->getNodeData().getUniqueId(),ishighlight);
 
 	 // doesn't redraw
 
@@ -1091,39 +1083,22 @@ void callGraphDisplay::clearSelections() {
   rootPtr->recursiveClearSelections();
 }
 
-void callGraphDisplay::map_from_WhereAxis(const string &module_name, const string &func_name,bool ishighlight)
+void callGraphDisplay::map_from_WhereAxis(resourceHandle select_handle,bool ishighlight)
 {
-//	cout << module_name << "\t" << func_name;
-	string long_name=module_name+"/"+func_name;
-	
-	beginSearchFromPtr=NULL;
-	int	result=0;
-	bool find_match=false;
-	while (!find_match)
-	{
-		whereNodePosRawPath thePath;
-	
-		result = rootPtr->string2Path(thePath, consts, func_name, beginSearchFromPtr, true);
-		if (result == 0)
-			return;
-		beginSearchFromPtr=rootPtr->get_end_of_path(thePath);
-		if (beginSearchFromPtr->getNodeData().getFullName() == long_name)
-			find_match=true;
-	}
-	
-	where4tree<callGraphRootNode> *select_node=beginSearchFromPtr;
+	where4tree<callGraphRootNode> *select_node = hash[select_handle];
+	if (select_node == NULL)
+		return;
+
 	select_node->set_highlight(ishighlight);
 
-	notify_shadow(select_node);
+	notify_shadow(select_handle,ishighlight);
 }
-void callGraphDisplay::notify_shadow(where4tree<callGraphRootNode> *select_node)
+void callGraphDisplay::notify_shadow(resourceHandle select_handle,bool isHighlight)
 {
-	//notify shadow or primary node if necessary
-	bool	isHighlight=select_node->isHighlighted();
+	where4tree<callGraphRootNode> *select_node=hash[select_handle];
+	assert(select_node != NULL);
 
 	where4tree<callGraphRootNode> *primary_node=select_node;
-	if (select_node->getNodeData().isShadow())
-		primary_node=rootPtr->get_end_of_path(select_node->getPrimaryPath());
 	vector<where4tree<callGraphRootNode> *>  shadow_nodes=primary_node->getShadowNodes();
 
 	if (isHighlight)

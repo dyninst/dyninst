@@ -44,7 +44,7 @@
 
 // Header file for subtree based on where4.fig [and where5.fig]
 
-/* $Id: where4tree.h,v 1.16 2001/02/12 14:53:06 wxd Exp $ */
+/* $Id: where4tree.h,v 1.17 2001/02/19 15:37:19 wxd Exp $ */
 
 // This class is sort of a placeholder.  It has variables to find out who
 // is expanded and who isn't; it maintains the tree layout.
@@ -394,6 +394,8 @@ class where4tree {
       //    -- returns 1 if no expansions are necessary (can scroll)
       //    -- returns 2 if expansions are necessary before scrolling
 
+   int matchChildRen(whereNodePosRawPath &thePath, const string &str);
+
    // Subtree expansion/un-expansion
    bool path2lbItemExpand(const where4TreeConstants &tc, 
 			 const whereNodePosRawPath &thePath, unsigned pathIndex);
@@ -450,25 +452,22 @@ class where4tree {
 
 private:
 	vector<where4tree<NODEDATA> *>	shadow_nodes;
-	whereNodePosRawPath	primary_path;
+	where4tree<NODEDATA> *parent;
 public:
 	void addShadowNode(where4tree<NODEDATA> *shadow_node) {
 		shadow_nodes += shadow_node;
-		shadow_node->setPrimaryPath(getPrimaryPath());
 	}
-	void setPrimaryPath(whereNodePosRawPath _path,int child_index) {
-		primary_path = _path;
-		primary_path.append(child_index);
-	}
-	void setPrimaryPath(whereNodePosRawPath _path) {
-		primary_path = _path;
-	}
-	whereNodePosRawPath	getPrimaryPath() { return primary_path;}
 	bool	isPrimary()
 	{
 		return (shadow_nodes.size() > 0);
 	}
 	vector<where4tree<NODEDATA> *>  &getShadowNodes() { return shadow_nodes;}
+	void setParent(where4tree<NODEDATA> *_parent) {
+		parent = _parent;
+	}
+	where4tree<NODEDATA> *getParent() {
+		return parent;
+	}
 };
 
 #endif

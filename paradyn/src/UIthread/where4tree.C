@@ -42,7 +42,7 @@
 // where4tree.C
 // Ariel Tamches
 
-/* $Id: where4tree.C,v 1.20 1999/04/27 16:03:52 nash Exp $ */
+/* $Id: where4tree.C,v 1.21 2001/02/19 15:37:01 wxd Exp $ */
 
 /* ******************************************************************
  *
@@ -1366,6 +1366,43 @@ int where4tree<NODEDATA>::string2Path(whereNodePosRawPath &thePath,
       }
    }
 
+   return 0; // not found
+}
+
+template <class NODEDATA>
+int where4tree<NODEDATA>::matchChildRen(whereNodePosRawPath &thePath,
+				      const string &str) {
+   // If not found, thePath is left undefined, and 0 is returned.
+   // Otherwise, modifies "thePath" and:
+   //    -- returns 1 if no expansions are necessary (can scroll)
+   //    -- returns 2 if expansions are necessary before scrolling
+
+   // NOTE: "thePath" must start out initialized as usual...
+
+   bool match = false;
+
+   // Check all children.  In order to set the path correctly, we'll need
+   // to distinguish listbox from non-listbox items.
+   const bool allChildrenExpanded = (listboxPixWidth == 0);
+
+   // First, the listbox children:
+   unsigned numChildren = theChildren.size();
+   for (unsigned i=0; i < numChildren; i++) {
+      if (!getChildTree(i)->anything2Draw) continue;
+
+         const string &childName = theChildren[i].theTree->getRootName();
+         match = str == childName;
+	 if (match)
+	 {
+            thePath.append(i);
+            const bool childIsInListbox = !allChildrenExpanded &&
+                                    !theChildren[i].isExplicitlyExpanded;
+	    if (childIsInListbox)
+	    	return 2;
+	    else return 1;
+	 }
+   }
+ 
    return 0; // not found
 }
 

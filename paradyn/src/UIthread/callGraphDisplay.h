@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphDisplay.h,v 1.6 2001/02/12 14:53:06 wxd Exp $
+// $Id: callGraphDisplay.h,v 1.7 2001/02/19 15:37:00 wxd Exp $
 
 #ifndef _CALLGRAPH_DISPLAY_H_
 #define _CALLGRAPH_DISPLAY_H_
@@ -293,10 +293,9 @@ class callGraphDisplay {
 				   vector<unsigned> &wholeProgramFocus) const;
    void clearSelections();
 
-   //add by wxd on Feb 3
-   void map_to_WhereAxis(where4tree<callGraphRootNode> *,bool);
-   void map_from_WhereAxis(const string &,const string &,bool);
-   void notify_shadow(where4tree<callGraphRootNode> *);
+   void map_to_WhereAxis(resourceHandle,bool);
+   void map_from_WhereAxis(resourceHandle,bool);
+   void notify_shadow(resourceHandle,bool);
 };
 
 #endif

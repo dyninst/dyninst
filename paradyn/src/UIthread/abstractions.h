@@ -46,7 +46,7 @@
 // is 1 abstraction; hence, this class maintains a set of
 // abstractions.
 
-/* $Id: abstractions.h,v 1.17 2001/02/12 14:53:05 wxd Exp $ */
+/* $Id: abstractions.h,v 1.18 2001/02/19 15:36:48 wxd Exp $ */
 
 #ifndef _ABSTRACTIONS_H_
 #define _ABSTRACTIONS_H_
@@ -201,6 +201,10 @@ class abstractions {
       getCurrent().processSingleClick(x,y);
    }
  
+   bool processCtrlClick(int x, int y,numlist &select_focus) {
+      return getCurrent().processCtrlClick(x,y,select_focus);
+   }
+ 
    bool processDoubleClick(int x, int y) {
       return getCurrent().processDoubleClick(x,y);
    }
@@ -230,8 +234,8 @@ class abstractions {
 
    int find(const string &str) { return getCurrent().find(str); }
 
-   void map_from_callgraph(const string &name,bool ishighlight) {
-      getCurrent().map_from_callgraph(name,ishighlight);
+   void map_from_callgraph(resourceHandle select_handle,bool ishighlight) {
+      getCurrent().map_from_callgraph(select_handle,ishighlight);
    }
 
 };
