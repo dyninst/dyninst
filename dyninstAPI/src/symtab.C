@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.148 2003/03/04 19:16:05 willb Exp $
+// $Id: symtab.C,v 1.149 2003/03/10 19:53:32 buck Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -400,6 +400,20 @@ bool image::addAllFunctions(pdvector<Symbol> &mods)
       linkedFile.get_symbol(symString="_WinMain", lookUp)) {
     mainFuncSymbol = lookUp;
     is_a_out = true;
+
+    if (lookUp.type() == Symbol::PDST_FUNCTION) {
+      if (!isValidAddress(lookUp.addr())) {
+	string msg;
+	char tempBuffer[40];
+	sprintf(tempBuffer,"0x%lx",lookUp.addr());
+	msg = string("Function ") + lookUp.name() + string(" has bad address ")
+	  + string(tempBuffer);
+	statusLine(msg.c_str());
+	showErrorCallback(29, msg);
+	return false;
+      }
+      addOneFunction(mods, lookUp);
+    }
   }
   else
     is_a_out = false;
@@ -435,8 +449,8 @@ bool image::addAllFunctions(pdvector<Symbol> &mods)
     }
     if (is_a_out && 
 	(lookUp.addr() == mainFuncSymbol.addr()) &&
-	(lookUp.name() != mainFuncSymbol.name()))
-      // Wait for main to appear. Couldn't we just add main to start with?
+	(lookUp.name() == mainFuncSymbol.name()))
+      // We already added main(), so skip it now
       continue;
     if (lookUp.type() == Symbol::PDST_FUNCTION) {
       if (!isValidAddress(lookUp.addr())) {
