@@ -95,6 +95,7 @@ class pd_process {
    variableMgr &getVariableMgr() {
       return *theVariableMgr;
    }
+   void handleExit(int exitStatus);
 
    // ========  PASS THROUGH FUNCTIONS ===============================
 
@@ -234,10 +235,6 @@ class pd_process {
       return dyninst_process->maxNumberOfThreads();
    }
 
-   dyn_thread *getThreadByPOS(unsigned pos) {
-      return dyninst_process->getThreadByPOS(pos);
-   }
-
    function_base *getMainFunction() const {
       return dyninst_process->getMainFunction();
    }
@@ -254,8 +251,8 @@ class pd_process {
       return dyninst_process->getRawCpuTime(lwp_id);
    }
 
-   virtualTimer *getVirtualTimerBase() {
-      return dyninst_process->getVirtualTimerBase();
+   virtualTimer *getVirtualTimer(int pos) {
+      return dyninst_process->getVirtualTimer(pos);
    }
 
    timeLength units2timeLength(int64_t rawunits) {
