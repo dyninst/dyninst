@@ -3,7 +3,10 @@
 # some default styles for nodes and edges
 
 # $Log: initWHERE.tcl,v $
-# Revision 1.13  1994/11/03 06:17:52  karavan
+# Revision 1.14  1994/11/07 07:29:44  karavan
+# restart pack propagate on frame .parent when dag initialized
+#
+# Revision 1.13  1994/11/03  06:17:52  karavan
 # Status display lines and where axis display pasted into the main window, and
 # the look cleaned up some.
 #
@@ -126,6 +129,7 @@ proc mapRDOdag {rdoID dagID wwindow abs} {
 	uimpd clearResourceSelection dag $dagID
     }
     pack $wwindow.dag.dag$abs -side top -fill both -expand 1
+    pack propagate .parent 1 
 }
 
 proc initRDOdag {wwindow abs} {
@@ -149,7 +153,7 @@ if {$toplvlflag == 1} {
     wm minsize $wwindow 200 200      
     wm title $wwindow "$wtitle"
 }
-    frame $wwindow.dag -class Dag -geometry 200x100
+    frame $wwindow.dag -class Dag
     label $wwindow.title -text "  " -fg black \
 	-font *-New*Century*Schoolbook-Bold-R-*-14-* \
 	-relief raised
