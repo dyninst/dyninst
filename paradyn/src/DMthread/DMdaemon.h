@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.55 2003/01/29 21:27:26 pcroth Exp $
+// $Id: DMdaemon.h,v 1.56 2003/02/11 17:18:34 schendel Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -79,21 +79,32 @@ class DM_enableType{
 		  pdvector <bool> *d,pdvector <bool> *e,u_int h,u_int pd,u_int pc,
 		  u_int ppd): ps_handle(ph),pt_handle(pth),ph_type(t), ph_handle(ph_h),
 		  request_id(rI), client_id(cI), request(r),done(d),enabled(e),
-		  how_many(h), persistent_data(pd), persistent_collection(pc),
+		  how_many_daemons(h), persistent_data(pd), persistent_collection(pc),
 		  phase_persistent_data(ppd), not_all_done(0) { 
 			   for(u_int i=0; i < done->size(); i++){
 			       if(!(*done)[i]) not_all_done++;
 			   }
+            requests_received = new pdvector<unsigned>();
+            for(unsigned j=0; j<request->size(); j++) {
+               (*requests_received).push_back(0);
+            }
     }
     DM_enableType(){ ps_handle = 0; pt_handle = 0; ph_type = GlobalPhase; ph_handle= 0; 
 		request_id = 0; client_id = 0; request = 0; done = 0; 
-		enabled = 0; how_many =0; persistent_data = 0; 
+		enabled = 0; how_many_daemons =0; persistent_data = 0; 
 		persistent_collection = 0; phase_persistent_data = 0; 
     }
-    ~DM_enableType(){ delete request; delete done; delete enabled;}
+    ~DM_enableType() {
+       delete request;
+       delete done;
+       delete enabled;
+       delete requests_received;
+    }
 
     metricInstance *findMI(metricInstanceHandle mh);
     void setDone(metricInstanceHandle mh);
+    void daemonRequestReceived(metricInstanceHandle mh);
+    bool allRequestsReceived();
 
     void updateAny(pdvector<metricInstance *> &completed_mis,
 		   pdvector<bool> successful);
@@ -108,7 +119,8 @@ class DM_enableType{
     pdvector <metricInstance *> *request;  // MI's assoc. w/ enable request
     pdvector <bool> *done;         // which elements are waiting for replies
     pdvector <bool> *enabled;      // which elements were already enabled
-    u_int how_many;              // number of daemons 
+    pdvector<unsigned> *requests_received;
+    u_int how_many_daemons;              // number of daemons 
     u_int persistent_data;
     u_int persistent_collection;
     u_int phase_persistent_data;
