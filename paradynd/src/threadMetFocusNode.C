@@ -158,13 +158,6 @@ void threadMetFocusNode_Val::updateValue(timeStamp sampleTime, pdSample value)
 		 << ", value: " << value << ", cumVal: " << cumulativeValue 
 		 << "\n";
 
-  /* shouldn't be needed
-  if(hasDeferredInstr()) {
-    sampleVal_cerr << "returning since has deferred instrumentation\n";
-    return;
-  }
-  */
-
   if (value < cumulativeValue) {
   // only use delta from last sample.
     value = cumulativeValue;
@@ -240,16 +233,22 @@ process *threadMetFocusNode::proc() {
 void threadMetFocusNode::initAggInfoObjects(timeStamp startTime, 
 					    pdSample initValue)
 {
-  for(unsigned i=0; i<V.parentsBuf.size(); i++) {  
-    processMetFocusNode *curParent  = V.parentsBuf[i].parent;    
-    if(parent == curParent) {
-      aggComponent *thrNodeAggInfo = V.parentsBuf[i].childNodeAggInfo;
-      thrNodeAggInfo->setInitialStartTime(startTime);
-      thrNodeAggInfo->setInitialActualValue(initValue);
-    }
-  }
-
-  
+  //cerr << "    thrNode (" << (void*)this << ") initAggInfo\n";
+   for(unsigned i=0; i<V.parentsBuf.size(); i++) {  
+      processMetFocusNode *curParent  = V.parentsBuf[i].parent;    
+      if(parent == curParent) {
+	 aggComponent *thrNodeAggInfo = V.parentsBuf[i].childNodeAggInfo;
+	 if(! thrNodeAggInfo->isInitialized()) {
+	   //cerr << "      initializing aggInfo " << (void*)thrNodeAggInfo
+	   //<< "\n";
+	    thrNodeAggInfo->setInitialStartTime(startTime);
+	    thrNodeAggInfo->setInitialActualValue(initValue);
+	 }
+      }
+   }
+   updateAllAggInfoInitialized();
+   //cerr << "    allAggInfoInitialized = " << V.hasAggInfoBeenInitialized() 
+   //     << "\n";
 }
 
 void threadMetFocusNode::initializeForSampling(timeStamp startTime, 
