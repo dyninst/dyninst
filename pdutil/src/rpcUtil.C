@@ -109,32 +109,32 @@ RPC_readReady (int fd)
 }
 
 int 
-RPC_undo_arg_list (int argc, char **arg_list, char **machine, int *family,
-		   int *type, int *well_known_socket, int *flag)
+RPC_undo_arg_list (int argc, char **arg_list, char **machine, int &family,
+		   int &type, int &well_known_socket, int &flag)
 {
   int loop;
   char *ptr;
-  int ret = 0, sum = 0;
+  int sum = 0;
 
   for (loop=0; loop < argc; ++loop)
     {
       if (!strncmp(arg_list[loop], "-p", 2))
 	{
-	  *well_known_socket = (int) strtol (arg_list[loop] + 2, &ptr, 10);
+	  well_known_socket = (int) strtol (arg_list[loop] + 2, &ptr, 10);
 	  if (!ptr)
 	    return(-1);
 	  sum |= 1;
 	}
       else if (!strncmp(arg_list[loop], "-f", 2))
 	{
-	  *family = (int) strtol (arg_list[loop] + 2, &ptr, 10);
+	  family = (int) strtol (arg_list[loop] + 2, &ptr, 10);
 	  if (!ptr)
 	    return(-1);
           sum |= 2;
 	}
       else if (!strncmp(arg_list[loop], "-t", 2))
 	{
-	  *type = (int) strtol (arg_list[loop] + 2, &ptr, 10);
+	  type = (int) strtol (arg_list[loop] + 2, &ptr, 10);
 	  if (!ptr)
 	    return(-1);
           sum |= 4;
@@ -147,7 +147,7 @@ RPC_undo_arg_list (int argc, char **arg_list, char **machine, int *family,
 	}
       else if (!strncmp(arg_list[loop], "-l", 2))
 	{
-	  *flag = (int) strtol (arg_list[loop] + 2, &ptr, 10);
+	  flag = (int) strtol (arg_list[loop] + 2, &ptr, 10);
 	  if (!ptr)
 	    return(-1);
           sum |= 16;
