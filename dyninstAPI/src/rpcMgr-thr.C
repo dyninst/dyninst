@@ -107,7 +107,6 @@ irpcLaunchState_t rpcThr::launchThrIRPC(bool runProcWhenDone) {
 
     // Check if we're in a system call
     if (lwp->executingSystemCall()) {
-        bperr( "We're in a syscall! Wah!\n");
         // We can't do any work. If there is a pending RPC try
         // to set a breakpoint at the exit of the call
         if (postedRPCs_.size() > 0) {
