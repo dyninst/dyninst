@@ -667,14 +667,11 @@ bool pd_process::finalizeParadynLib() {
         str=string("PID=") + string(bs_record.pid) + ", propagating mi's...";
         statusLine(str.c_str());
     }
-    
+
     if (calledFromExec) {
         pd_execCallback(dyninst_process);
     }
-    else { // Not called from exec
-        metricFocusNode::handleNewProcess(dyninst_process);
-    }
-    
+
     str=string("PID=") + string(bs_record.pid) + ", executing new-prog callback...";
     statusLine(str.c_str());
     

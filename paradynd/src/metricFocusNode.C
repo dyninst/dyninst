@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.241 2003/05/23 07:28:04 pcroth Exp $
+// $Id: metricFocusNode.C,v 1.242 2003/05/30 07:28:23 schendel Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -389,11 +389,9 @@ machineMetFocusNode *createMetricInstance(int mid, string& metric_name,
 // for processes started the "normal" way.
 // "this" is an aggregate(AGG_MDN or AGG_MDN) mi, not a component one.
 
-void metricFocusNode::handleNewProcess(process *p) {
+void metricFocusNode::handleNewProcess(pd_process *pd_proc) {
    pdvector<machineMetFocusNode *> allMachNodes;
    machineMetFocusNode::getMachineNodes(&allMachNodes);
-
-   pd_process *pd_proc = getProcMgr().find_pd_process(p);
 
    for (unsigned j=0; j < allMachNodes.size(); j++) {
       machineMetFocusNode *curNode = allMachNodes[j];

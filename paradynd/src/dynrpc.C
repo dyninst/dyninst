@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.104 2003/05/27 21:44:55 bernat Exp $ */
+/* $Id: dynrpc.C,v 1.105 2003/05/30 07:28:18 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/inst.h"
@@ -451,6 +451,8 @@ int dynRPC::addExecutable(pdvector<string> argv, string dir)
   pdvector<string> envp;
   pd_process *p = pd_createProcess(argv, envp, dir);
 
+  metricFocusNode::handleNewProcess(p);
+
   if (p)
       return 1;
   return -1;
@@ -498,6 +500,9 @@ bool dynRPC::attach(string progpath, int pid, int afterAttach)
     }
     else
         assert(0 && "Unknown value for afterAttach");
+
+    metricFocusNode::handleNewProcess(p);
+
     return true;
 }
 
