@@ -103,12 +103,29 @@ struct floatCounterRec {
 };
 typedef struct floatCounterRec floatCounter;
 
+#ifdef SHM_SAMPLING
+struct tTimerRec {
+   volatile time64 total;
+   volatile time64 start;
+   volatile int counter;
+   volatile sampleId id; /* can be made obsolete in the near future */
 
+   /* the following 2 vrbles are used to implement consistent sampling.
+      Updating by rtinst works as follows: bump protector1, do action, then
+      bump protector2.  Shared-memory sampling by paradynd works as follows:
+      read protector2, read the 3 vrbles above, read protector1.  If
+      the 2 protector values differ then try again, else the sample got
+      a good snapshot.  Don't forget to be sure paradynd reads the protector
+      vrbles in the _opposite_ order that rtinst writes them!!! */
+   volatile int protector1;
+   volatile int protector2;
+};
+#else
 struct tTimerRec {
     volatile int 	counter;	/* must be 0 to start; must be 1 to stop */
     volatile time64	total;
     volatile time64	start;
-    volatile time64     lastValue;
+    volatile time64     lastValue;      /* to check for rollback */
     volatile time64	snapShot;	/* used to get consistant value 
 					   during st/stp */
     volatile int	normalize;	/* value to divide total by to 
@@ -118,12 +135,13 @@ struct tTimerRec {
     volatile timerType 	type;
     volatile sampleId 	id;
     volatile char mutex;
-    volatile char sampled;
+//    volatile char sampled; /* is this used? */
 
-   volatile unsigned char theSpinner;
+//   volatile unsigned char theSpinner;
    /* mutex serving 2 purposes: (1) so paradynd won't sample while we're in middle of
       updating and (2) so multiple LWPs or threads won't update at the same time */ 
 };
+#endif
 typedef struct tTimerRec tTimer;
 
 typedef int traceStream;
