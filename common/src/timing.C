@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: timing.C,v 1.11 1999/06/08 21:06:33 csserra Exp $
+// $Id: timing.C,v 1.12 1999/08/09 05:45:06 csserra Exp $
 
 #include "util/h/Timer.h"
 
@@ -48,7 +48,11 @@
 #elif defined(i386_unknown_nt4_0)
 #define NOPS_4 { __asm nop __asm nop __asm nop __asm nop }
 #elif defined(mips_sgi_irix6_4)
+#  ifndef USES_NATIVE_CC
 #define NOPS_4  __asm__("nop"); __asm__("nop"); __asm__("nop"); __asm__("nop")
+#  else
+#define NOPS_4  ; ; ; 
+#  endif
 #else
 #define NOPS_4  asm("nop"); asm("nop"); asm("nop"); asm("nop")
 #endif

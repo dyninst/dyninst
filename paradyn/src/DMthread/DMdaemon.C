@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.81 1999/08/03 20:35:09 nash Exp $
+ * $Id: DMdaemon.C,v 1.82 1999/08/09 05:47:42 csserra Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 
@@ -487,7 +487,6 @@ vector<string> *paradynDaemon::getAvailableDaemons()
 	*names += entry->getName();
     }
     return(names);
-    names = 0;
 }
 
 // For a given machine name, find the appropriate paradynd structure(s).
@@ -1475,7 +1474,7 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	   // find the right component.
 	   component *part = 0;
 	   for(unsigned i=0; i < mi->components.size(); i++) {
-	      if((unsigned)mi->components[i]->daemon == (unsigned)this){
+	      if(mi->components[i]->daemon == this){
 		 part = mi->components[i];
                  // update the weight associated with this component
 		 // this does not necessarily need to be updated with

@@ -41,7 +41,7 @@
 
 //
 // This file defines a set of utility routines for RPC services.
-// $Id: rpcUtil.C,v 1.67 1999/07/14 17:36:04 paradyn Exp $
+// $Id: rpcUtil.C,v 1.68 1999/08/09 05:45:05 csserra Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
@@ -58,6 +58,7 @@
 #include "util/h/headers.h"
 #include "util/h/pdsocket.h"
 #include "util/h/rpcUtil.h"
+#include "util/h/Types.h"    // Address
 
 const char *DEF_RSH_COMMAND="rsh";
 const char *RSH_COMMAND_ENV="PARADYN_RSH";
@@ -72,7 +73,7 @@ bool CreateSocketPair( PDSOCKET& localSock, PDSOCKET& remoteSock );
 
 int RPCdefaultXDRRead(const void* handle, char *buf, const u_int len)
 {
-    PDSOCKET sock = (PDSOCKET) handle;
+    PDSOCKET sock = (PDSOCKET)(Address)handle;
     int ret;
 
 #if defined(i386_unknown_nt4_0)
@@ -101,7 +102,7 @@ int RPCasyncXDRRead(const void* handle, char *buf, const u_int len)
 {
     /* called when paradyn/xdr detects that it needs to read a message
        from paradynd. */
-    PDSOCKET fd = (PDSOCKET) handle;
+    PDSOCKET fd = (PDSOCKET)(Address)handle;
     unsigned header;
     int ret;
     int needCopy = 0;
@@ -228,7 +229,7 @@ int RPCasyncXDRRead(const void* handle, char *buf, const u_int len)
 
 int RPCdefaultXDRWrite(const void* handle, const char *buf, const u_int len)
 {
-    PDSOCKET sock = (PDSOCKET) handle;
+    PDSOCKET sock = (PDSOCKET)(Address)handle;
     int ret;
 
 #if defined(i386_unknown_nt4_0)
@@ -258,7 +259,7 @@ int RPCasyncXDRWrite(const void* handle, const char *buf, const u_int len)
     //printf("RPCasyncXDRWrite(handle=%p, buf=%p, len=%d)\n", handle, buf, len);
 
     rpcBuffer *rb = new rpcBuffer;
-    rb -> fd = (int) handle;
+    rb -> fd = (int)(Address)handle;
     rb -> len = len+sizeof(int);
     rb -> buf = new char[rb -> len];
 

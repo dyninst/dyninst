@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Ident.h: build identification functions (for POSIX systems)
- * $Id: Ident.h,v 1.2 1999/03/03 17:43:47 pcroth Exp $
+ * $Id: Ident.h,v 1.3 1999/08/09 05:44:29 csserra Exp $
 ************************************************************************/
 
 
@@ -69,7 +69,7 @@ class Ident {
      Ident (const char *Vstr, const char *expected_suite); // constructor
     ~Ident ();                                             // destructor
 
-    const bool OK () const { return ok_; }
+    bool OK () const { return ok_; }
 
     // uncapitalized versions are plain C strings
     const char* suite () const { return suite_; }
