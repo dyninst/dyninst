@@ -1,4 +1,7 @@
 /* $Log: xtext2.C,v $
+/* Revision 1.5  2004/04/16 20:41:18  legendre
+/* Fixed compilation errors
+/*
 /* Revision 1.4  1996/01/19 20:56:15  newhall
 /* more chages to visiLib interface
 /*
@@ -36,6 +39,9 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include "pdutil/h/pdsocket.h"
 #include <X11/Intrinsic.h>
 #include <X11/StringDefs.h>
 
@@ -51,7 +57,7 @@
 
 static void ClearText(Widget w,XtPointer text_ptr,XtPointer call_data);
 static void PrintText(Widget w,XtPointer text_ptr,XtPointer call_data);
-static void QuitProgram(Widget w,XtAppContext app_con,XtPointer call_data);
+static void QuitProgram(Widget w,void * app_con,XtPointer call_data);
 static void Syntax(XtAppContext app_con,char *call);
 //////////////////////////////
 XtAppContext app_con;
@@ -195,7 +201,7 @@ int fd_input3(int dummy){
 
 /////////////////////////////////////
 static void GetMetsResCallback(Widget w,
-			       XtAppContext app_con,
+			       void *app_con,
 			       XtPointer call_data)
 {
 
@@ -204,7 +210,7 @@ static void GetMetsResCallback(Widget w,
 }
 
 static void StopMetsResCallback(Widget w,
-				XtAppContext app_con,
+				void *app_con,
 				XtPointer call_data)
 {
 
@@ -212,10 +218,10 @@ static void StopMetsResCallback(Widget w,
   visi_StopMetRes(0,0);  
 }
 
-static void PName(Widget w,XtAppContext app_con,XtPointer call_data){
+static void PName(Widget w, void * app_con,XtPointer call_data){
 
- fprintf(stderr,"@@@@ in PName upcall\n"); 
-  visi_DefinePhase(" ");  
+  fprintf(stderr,"@@@@ in PName upcall\n"); 
+  visi_DefinePhase(" ", 0, 0);  
 }
 /////////////////////////////////////
 
@@ -287,7 +293,7 @@ int main(int argc,char **argv)
 
     XtAddCallback(clear, XtNcallback, ClearText, (XtPointer) text);
     XtAddCallback(print, XtNcallback, PrintText, (XtPointer) text);
-    XtAddCallback(quit, XtNcallback, QuitProgram, (XtPointer) app_con);
+    XtAddCallback(quit,  XtNcallback, QuitProgram, (XtPointer) app_con);
 
 ///////////////////////////////////////
 //  Add callbacks for upcalls to Paradyn: step (3b) from README
@@ -357,10 +363,10 @@ static void PrintText(Widget w,XtPointer text_ptr,XtPointer call_data)
  */
 
 /* ARGSUSED */
-static void QuitProgram(Widget w,XtAppContext app_con,XtPointer call_data)
+static void QuitProgram(Widget w, void *pp_con, XtPointer call_data)
 {
     fprintf(stderr, "Bye!\n");
-    XtDestroyApplicationContext(app_con);
+    XtDestroyApplicationContext((XtAppContext) app_con);
     exit(0);
 }
 

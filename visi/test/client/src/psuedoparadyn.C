@@ -39,10 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: psuedoparadyn.C,v 1.11 2004/03/23 19:13:46 eli Exp $
+/* $Id: psuedoparadyn.C,v 1.12 2004/04/16 20:41:16 legendre Exp $
  * */ 
 #include <stdio.h>
-#include <stream.h>
+#include <iostream>
 #include "common/h/String.h"
 #include "common/h/Vector.h"
 #include "pdutil/h/makenan.h"
@@ -68,7 +68,7 @@ void NewMR();
 void NewPhase(int &currId,double binSize,int lastBucket,double minWidth);
 
 // upcall routines for visualization
-void visualizationUser::GetMetricResource(string metric_res,int num, int type){
+void visualizationUser::GetMetricResource(pdstring metric_res,int num, int type){
 
   cerr << "## in visualizationUser::GetMetricResource " << endl;
   NewMR();
@@ -88,10 +88,10 @@ void visualizationUser::StopMetricResource(u_int metricId,u_int resourceId){
   }}
 }
 
-void visualizationUser::StartPhase(double begin, pdstring name){
+void visualizationUser::StartPhase(double begin, pdstring name, bool wperf, bool wvisi){
 
   cerr << "## in visualizationUser::StartPhase " << endl;
-  cerr << "## begin = " << begin << " name = " << name.string_of() << endl;
+  cerr << "## begin = " << begin << " name = " << name << endl;
   NewPhase(currPhaseId,bucketWidth,lastBucketFilled,minbucketWidth);
 }
 
@@ -125,7 +125,8 @@ main(int argc, char *argv[]){
         } 
     }
 
-    int fd = RPCprocessCreate(pid, "localhost", "", argv[1], arg_list);
+    //    int fd = RPCprocessCreate(pid, "localhost", "", argv[1], arg_list);
+    int fd = RPCprocessCreate("localhost", "", argv[1], "", arg_list, 0);
     if(fd < 0) exit(-1);
     visip = new visualizationUser(fd,NULL,NULL,false);
    
@@ -201,8 +202,8 @@ main(int argc, char *argv[]){
 			cerr << "LIST OF ENABLED METRIC/FOCUS PAIRS" << endl;
                         for(u_int i=0; i < mrlist.size(); i++){
 			    cerr << "    metric[" << i << "] = " << 
-				  mrlist[i].met.name.string_of() << " res[" <<
-				  i << "] = " << mrlist[i].res.name.string_of()
+				  mrlist[i].met.name << " res[" <<
+				  i << "] = " << mrlist[i].res.name
 				  << endl;
 			}
 		    }
@@ -294,7 +295,8 @@ void NewMR(){
 	    sprintf(temp, "%s%d","metric_",nextMetId);
 	    newElement.met.name = temp;
 	    sprintf(temp, "%s%d","units_",nextMetId);
-	    newElement.met.units = temp;
+	    newElement.met.curr_units = temp;
+	    newElement.met.tot_units = temp;       
 	    newElement.met.Id = nextMetId;
 	    newElement.met.aggregate = 1;
 	    sprintf(temp, "%s%d","resource_",nextResId+j);

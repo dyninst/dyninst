@@ -42,6 +42,7 @@
 #include <X11/Xaw/Cardinals.h>
 
 /***************************/
+#include "pdutil/h/pdsocket.h"
 #include "visualization.h"
 /***************************/
 

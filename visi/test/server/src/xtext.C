@@ -1,4 +1,7 @@
 /* $Log: xtext.C,v $
+/* Revision 1.5  2004/04/16 20:41:17  legendre
+/* Fixed compilation errors
+/*
 /* Revision 1.4  2003/07/15 22:47:50  schendel
 /* rename string to pdstring
 /*
@@ -55,12 +58,15 @@
 #include <X11/Xaw/Cardinals.h>
 
 //////////////////////////////////
+#include <math.h>
+#include "pdutil/h/pdsocket.h"
+#include "common/h/String.h"
 #include "visualization.h"
 //////////////////////////////////
 
 static void ClearText(Widget w,XtPointer text_ptr,XtPointer call_data);
 static void PrintText(Widget w,XtPointer text_ptr,XtPointer call_data);
-static void QuitProgram(Widget w,XtAppContext app_con,XtPointer call_data);
+static void QuitProgram(Widget w,void *app_con,XtPointer call_data);
 static void Syntax(XtAppContext app_con,char *call);
 
 //////////////////////////////
@@ -216,7 +222,7 @@ int fd_input2(int dummy){
 
 /////////////////////////////////////
 //
-static void GetMetsResCallback(Widget w,XtAppContext app_con,XtPointer call_data){
+static void GetMetsResCallback(Widget w,void *app_con,XtPointer call_data){
 
   visi_GetMetsRes(0,0);  
 }
@@ -357,7 +363,7 @@ static void PrintText(Widget w,XtPointer text_ptr,XtPointer call_data)
     XtSetArg(args[0], XtNstring, &str);
     XtGetValues(text, args, ONE);
 
-    fprintf(stderr, "Text String is:\n--------\n%s\n--------\n", str);
+    fprintf(stderr, "Text String is:\n--------\n%s\n--------\n", str.c_str());
 }
 
 /*	Function Name: QuitProgram
@@ -369,10 +375,10 @@ static void PrintText(Widget w,XtPointer text_ptr,XtPointer call_data)
  */
 
 /* ARGSUSED */
-static void QuitProgram(Widget w,XtAppContext app_con,XtPointer call_data)
+static void QuitProgram(Widget w, void *app_con,void * call_data)
 {
     fprintf(stderr, "Bye!\n");
-    XtDestroyApplicationContext(app_con);
+    XtDestroyApplicationContext((XtAppContext) app_con);
     exit(0);
 }
 
