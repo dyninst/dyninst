@@ -40,9 +40,12 @@
  */
 
 /* $Log: pvm_support.h,v $
-/* Revision 1.2  1996/08/16 21:19:45  tamches
-/* updated copyright for release 1.1
+/* Revision 1.3  1997/12/01 02:23:40  tung
+/* eliminate warnings
 /*
+ * Revision 1.2  1996/08/16 21:19:45  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.1  1995/12/15 22:27:01  mjrg
  * Merged paradynd and paradyndPVM
  * Get module name for functions from symbol table in solaris

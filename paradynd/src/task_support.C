@@ -57,10 +57,13 @@
 
 
 /* $Log: task_support.C,v $
-/* Revision 1.6  1997/02/21 20:16:05  naim
-/* Moving files from paradynd to dyninstAPI + eliminating references to
-/* dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
+/* Revision 1.7  1997/12/01 02:24:08  tung
+/* eliminate warnings
 /*
+ * Revision 1.6  1997/02/21 20:16:05  naim
+ * Moving files from paradynd to dyninstAPI + eliminating references to
+ * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
+ *
  * Revision 1.5  1996/11/26 16:08:15  naim
  * Fixing asserts - naim
  *
