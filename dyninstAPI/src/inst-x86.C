@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.112 2002/08/16 16:01:37 gaburici Exp $
+ * $Id: inst-x86.C,v 1.113 2002/09/23 21:47:11 gaburici Exp $
  */
 
 #include <iomanip.h>
@@ -2161,6 +2161,13 @@ static inline void emitAddRegImm32(Register reg, int imm, unsigned char *&insn) 
   insn += sizeof(int);
 }
 
+// emit Sub reg, reg
+static inline void emitSubRegReg(Register dest, Register src, unsigned char *&insn)
+{
+  *insn++ = 0x2B;
+  *insn++ = makeModRMbyte(3, dest, src);
+}
+
 // emit JUMP rel32
 static inline void emitJump(unsigned disp32, unsigned char *&insn) {
   if ((signed)disp32 >= 0)
@@ -2386,6 +2393,14 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
 
 
 #ifdef BPATCH_LIBRARY
+static inline void emitSHL(Register dest, unsigned char pos, unsigned char *&insn)
+{
+  //fprintf(stderr, "Emiting SHL\n");
+  *insn++ = 0xC1;
+  *insn++ = makeModRMbyte(3 /* rm gives register */, 4 /* opcode ext. */, dest);
+  *insn++ = pos;
+}
+
 // VG(8/15/02): Emit the jcc over a conditional snippet
 void emitJmpMC(int condition, int offset, char* baseInsn, Address &base)
 {
@@ -2403,7 +2418,7 @@ void emitJmpMC(int condition, int offset, char* baseInsn, Address &base)
   //fprintf(stderr, "OC: %x, NC: %x\n", condition, condition ^ 0x01);
   condition ^= 0x01; // flip last bit to negate the tttn condition
 
-  emitMovRMToReg(0, EBP, SAVED_EFLAGS_OFFSET, insn); // mov eax, offset[ebp]
+  emitMovRMToReg(EAX, EBP, SAVED_EFLAGS_OFFSET, insn); // mov eax, offset[ebp]
   emitSimpleInsn(0x50, insn);  // push eax
   emitSimpleInsn(POPFD, insn); // popfd
   emitJcc(condition, offset, insn);
@@ -2454,14 +2469,14 @@ void emitASload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
   //fprintf(stderr, "ASLOAD: ra=%d rb=%d sc=%d imm=%d\n", ra, rb, sc, imm);
 
   if(havera)
-    restoreGPRtoGPR(ra, 0, insn);        // mov eax, [saved_ra]
+    restoreGPRtoGPR(ra, EAX, insn);        // mov eax, [saved_ra]
 
   if(haverb)
-    restoreGPRtoGPR(rb, 2, insn);        // mov edx, [saved_rb]
+    restoreGPRtoGPR(rb, EDX, insn);        // mov edx, [saved_rb]
 
   // Emit the lea to do the math for us:
   // e.g. lea eax, [eax + edx * sc + imm] if both ra and rb had to be restored
-  emitLEA((havera ? 0 : Null_Register), (haverb ? 2 : Null_Register), sc, imm, 0, insn);
+  emitLEA((havera ? EAX : Null_Register), (haverb ? EDX : Null_Register), sc, imm, EAX, insn);
 
   emitMovRegToRM(EBP, -(dest<<2), EAX, insn); // mov (virtual reg) dest, eax
   
@@ -2475,21 +2490,92 @@ void emitCSload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
   unsigned char *insn = (unsigned char *) (&baseInsn[base]);
   unsigned char *first = insn;
 
-  // TODO 16-bit registers, rep hacks
   int imm = as.getImm();
   int ra  = as.getReg(0);
   int rb  = as.getReg(1);
   int sc  = as.getScale();
 
-  // count is at 1 register or constant or hack (aka pseudoregister)
-  assert((rb == -1) && ((ra == -1) || (imm == 0)) && sc == 0);
+  // count is at most 1 register or constant or hack (aka pseudoregister)
+  assert((ra == -1) && ((rb == -1) || ((imm == 0) && (rb == 1 /*ECX */ || rb >= IA32_EMULATE))));
 
-  if(imm >= 0)
-    emitMovImmToRM(EBP, -(dest<<2), imm, insn);
-  else if(ra > -1)
-    emitMovRegToRM(EBP, -(dest<<2), ra, insn); // TODO: 16-bit & pseudoregisters
+  if(rb >= IA32_EMULATE) {
+    // TODO: firewall code to ensure that direction is up
+    bool neg = false;
+    //fprintf(stderr, "!!!In case rb >= IA32_EMULATE!!!\n");
+    switch(rb) {
+    case IA32_NESCAS:
+      neg = true;
+    case IA32_ESCAS:
+      // plan: restore flags, edi, eax, ecx; do rep(n)e scas(b/w); compute (saved_ecx - ecx) << sc;
+      emitMovRMToReg(EAX, EBP, SAVED_EFLAGS_OFFSET, insn); // mov eax, offset[ebp]
+      emitSimpleInsn(0x50, insn);  // push eax
+      emitSimpleInsn(POPFD, insn); // popfd
+      restoreGPRtoGPR(EAX, EAX, insn);
+      restoreGPRtoGPR(ECX, ECX, insn);
+      restoreGPRtoGPR(EDI, EDI, insn);
+      emitSimpleInsn(neg ? 0xF2 : 0xF3, insn); // rep(n)e
+      switch(sc) {
+      case 0:
+        emitSimpleInsn(0xAE, insn); // scasb
+        break;
+      case 1:
+        emitSimpleInsn(0x66, insn); // operand size override for scasw;
+      case 2:
+        emitSimpleInsn(0xAF, insn); // scasw/d
+        break;
+      default:
+        assert(!"Wrong scale!");
+      }
+      restoreGPRtoGPR(ECX, EAX, insn); // old ecx -> eax
+      emitSubRegReg(EAX, ECX, insn); // eax = eax - ecx
+      if(sc > 0)
+        emitSHL(EAX, sc, insn);              // shl eax, scale
+      emitMovRegToRM(EBP, -(dest<<2), EAX, insn); // mov (virtual reg) dest, eax
+      break;
+    case IA32_NECMPS:
+      neg = true;
+    case IA32_ECMPS:
+      // plan: restore flags, esi, edi, ecx; do rep(n)e cmps(b/w); compute (saved_ecx - ecx) << sc;
+      emitMovRMToReg(EAX, EBP, SAVED_EFLAGS_OFFSET, insn); // mov eax, offset[ebp]
+      emitSimpleInsn(0x50, insn);  // push eax
+      emitSimpleInsn(POPFD, insn); // popfd
+      restoreGPRtoGPR(ECX, ECX, insn);
+      restoreGPRtoGPR(ESI, ESI, insn);
+      restoreGPRtoGPR(EDI, EDI, insn);
+      emitSimpleInsn(neg ? 0xF2 : 0xF3, insn); // rep(n)e
+      switch(sc) {
+      case 0:
+        emitSimpleInsn(0xA6, insn); // cmpsb
+        break;
+      case 1:
+        emitSimpleInsn(0x66, insn); // operand size override for cmpsw;
+      case 2:
+        emitSimpleInsn(0xA7, insn); // cmpsw/d
+        break;
+      default:
+        assert(!"Wrong scale!");
+      }
+      restoreGPRtoGPR(ECX, EAX, insn); // old ecx -> eax
+      emitSubRegReg(EAX, ECX, insn); // eax = eax - ecx
+      if(sc > 0)
+        emitSHL(EAX, sc, insn);              // shl eax, scale
+      emitMovRegToRM(EBP, -(dest<<2), EAX, insn); // mov (virtual reg) dest, eax
+      break;
+    default:
+      assert(!"Wrong emulation!");
+    }
+  }
+  else if(rb > -1) {
+    //fprintf(stderr, "!!!In case rb > -1!!!\n");
+    // TODO: 16-bit pseudoregisters
+    assert(rb < 8); 
+    restoreGPRtoGPR(rb, EAX, insn);        // mov eax, [saved_rb]
+    if(sc > 0)
+      emitSHL(EAX, sc, insn);              // shl eax, scale
+    emitMovRegToRM(EBP, -(dest<<2), EAX, insn); // mov (virtual reg) dest, eax
+  }
   else
-    assert(!"What?");
+    emitMovImmToRM(EBP, -(dest<<2), imm, insn);
 
   base += insn - first;
 }

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.150 2002/09/21 05:18:37 bernat Exp $
+ * $Id: inst-power.C,v 1.151 2002/09/23 21:47:11 gaburici Exp $
  */
 
 #include "common/h/headers.h"
@@ -2418,8 +2418,8 @@ void emitJmpMC(int condition, int offset, char* baseInsn, Address &base)
 // VG(03/15/02): Sync'd with the new AIX tramp
 static inline bool needsRestore(Register x)
 {
-  //return (x == 0) || ((x >= 3) && (x <= 12)) || (x == 9999);
-  return ((x <= 12) && !(x==2)) || (x == 9999);
+  //return (x == 0) || ((x >= 3) && (x <= 12)) || (x == POWER_XER2531);
+  return ((x <= 12) && !(x==2)) || (x == POWER_XER2531);
 }
 
 // VG(03/15/02): Restore mutatee value of GPR reg to dest GPR
@@ -2492,7 +2492,7 @@ static inline void emitAddOriginal(Register src, Register acc,
     // The offset compensates for the gap 0, 3, 4, ...
     // This writes at insn, and updates insn and base.
 
-    if(src == 9999) { // hack for XER_25:31
+    if(src == POWER_XER2531) { // hack for XER_25:31
       //fprintf(stderr, "XER_25:31\n");
       restoreXERtoGPR(insn, base, temp);
       moveGPR2531toGPR(insn, base, temp, temp);

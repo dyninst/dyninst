@@ -1,4 +1,4 @@
-// $Id: arch-ia32.h,v 1.6 2002/08/16 16:01:36 gaburici Exp $
+// $Id: arch-ia32.h,v 1.7 2002/09/23 21:47:11 gaburici Exp $
 // VG(02/06/2002): configurable IA-32 decoder
 
 #if !(defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0))
@@ -53,7 +53,7 @@ struct ia32_memacc
   bool is;
   bool read;
   bool write;
-  bool nt;     // non-temporal, e.g. movnt...
+  bool nt;     // non-temporal, e.g. movntq...
   bool prefetch;
 
   bool addr32; // true if 32-bit addressing, false otherwise
@@ -65,12 +65,12 @@ struct ia32_memacc
 
   int size;
   int sizehack;  // register (E)CX or string based
-  int prftchlvl; // prefetch level
-  int prftchstt; // prefetch state (AMD)
+  int prefetchlvl; // prefetch level
+  int prefetchstt; // prefetch state (AMD)
 
   ia32_memacc() : is(false), read(false), write(false), nt(false), 
        prefetch(false), addr32(true), imm(0), scale(0), size(0), sizehack(0),
-       prftchlvl(0), prftchstt(0)
+       prefetchlvl(-1), prefetchstt(-1)
   {
     regs[0] = -1;
     regs[1] = -1;
@@ -108,6 +108,15 @@ struct ia32_memacc
     size = _size;
     addr32 = _addr32;
   }
+};
+
+
+enum sizehacks {
+  shREP=1,
+  shREPECMPS,
+  shREPESCAS,
+  shREPNECMPS,
+  shREPNESCAS
 };
 
 

@@ -1,9 +1,11 @@
-// $Id: arch-ia32.C,v 1.10 2002/08/20 19:59:51 schendel Exp $
+// $Id: arch-ia32.C,v 1.11 2002/09/23 21:47:10 gaburici Exp $
 
-// Official documentation used:    - IA-32 Intel Architecture Software Developer Manual
-//                                   volume 2: Instruction Set Reference
+// Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
+//                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
 // Unofficial documentation used:  - www.sandpile.org/ia32
 //                                 - NASM documentation
+
+// Note: Unless specified "book" refers to Intel's manual
 
 #include <assert.h>
 #include <stdio.h>
@@ -240,7 +242,10 @@ enum {
   fINDIRJUMP,
   fFXSAVE,
   fFXRSTOR,
-  fCLFLUSH
+  fCLFLUSH,
+  fREP,   // only rep prefix allowed: ins, movs, outs, lods, stos
+  fSCAS,
+  fCMPS
 };
 
 struct ia32_operand {  // operand as given in Intel book tables
@@ -392,10 +397,10 @@ static ia32_entry oneByteMap[256] = {
   { "imul",    t_done, 0, true, { Gv, Ev, Iv }, 0, s1W2R3R },
   { "push",    t_done, 0, false, { STHb, Ib, eSP }, 0, s1W2R3RW },
   { "imul",    t_done, 0, true, { Gv, Ev, Ib }, 0, s1W2R3R },
-  { "insb",    t_done, 0, false, { Yb, DX, Zz }, 0, s1W2R }, // X/Y imply (e)SI/DI changed
-  { "insw/d",  t_done, 0, false, { Yv, DX, Zz }, 0, s1W2R },
-  { "outsb",   t_done, 0, false, { DX, Xb, Zz }, 0, s1W2R },
-  { "outsw/d", t_done, 0, false, { DX, Xv, Zz }, 0, s1W2R },
+  { "insb",    t_done, 0, false, { Yb, DX, Zz }, 0, s1W2R | (fREP << FPOS) }, // (e)SI/DI changed
+  { "insw/d",  t_done, 0, false, { Yv, DX, Zz }, 0, s1W2R | (fREP << FPOS) },
+  { "outsb",   t_done, 0, false, { DX, Xb, Zz }, 0, s1W2R | (fREP << FPOS) },
+  { "outsw/d", t_done, 0, false, { DX, Xv, Zz }, 0, s1W2R | (fREP << FPOS) },
   /* 70 */
   { "jo",         t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
   { "jno",        t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
@@ -456,19 +461,20 @@ static ia32_entry oneByteMap[256] = {
   { "mov",   t_done, 0, false, { eAX, Ov, Zz }, 0, s1W2R },
   { "mov",   t_done, 0, false, { Ob, AL, Zz },  0, s1W2R },
   { "mov",   t_done, 0, false, { Ov, eAX, Zz }, 0, s1W2R },
-  { "movsb", t_done, 0, false, { Yb, Xb, Zz },  0, s1W2R }, // X/Y imply (e)SI/DI changed
-  { "movsw/d", t_done, 0, false, { Yv, Xv, Zz },  0, s1W2R }, // XXX: Xv is source, Yv is dest!
-  { "cmpsb", t_done, 0, false, { Xb, Yb, Zz },  0, s1R2R },
-  { "cmpsw", t_done, 0, false, { Xv, Yv, Zz },  0, s1R2R },
+  // XXX: Xv is source, Yv is destination for movs, so they're swapped!
+  { "movsb", t_done, 0, false, { Yb, Xb, Zz },  0, s1W2R | (fREP << FPOS) }, // (e)SI/DI changed
+  { "movsw/d", t_done, 0, false, { Yv, Xv, Zz }, 0, s1W2R | (fREP << FPOS) },
+  { "cmpsb", t_done, 0, false, { Xb, Yb, Zz },  0, s1R2R | (fCMPS << FPOS) },
+  { "cmpsw", t_done, 0, false, { Xv, Yv, Zz },  0, s1R2R | (fCMPS << FPOS) },
   /* A8 */
   { "test",     t_done, 0, false, { AL, Ib, Zz },  0, s1R2R },
   { "test",     t_done, 0, false, { eAX, Iv, Zz }, 0, s1R2R },
-  { "stosb",    t_done, 0, false, { Yb, AL, Zz },  0, s1W2R },
-  { "stosw/d",  t_done, 0, false, { Yv, eAX, Zz }, 0, s1W2R },
-  { "lodsb",    t_done, 0, false, { AL, Xb, Zz },  0, s1W2R },
-  { "lodsw",    t_done, 0, false, { eAX, Xv, Zz }, 0, s1W2R },
-  { "scasb",    t_done, 0, false, { AL, Yb, Zz },  0, s1R2R },
-  { "scasw/d",  t_done, 0, false, { eAX, Yv, Zz }, 0, s1R2R },
+  { "stosb",    t_done, 0, false, { Yb, AL, Zz },  0, s1W2R | (fREP << FPOS) },
+  { "stosw/d",  t_done, 0, false, { Yv, eAX, Zz }, 0, s1W2R | (fREP << FPOS) },
+  { "lodsb",    t_done, 0, false, { AL, Xb, Zz },  0, s1W2R | (fREP << FPOS) },
+  { "lodsw",    t_done, 0, false, { eAX, Xv, Zz }, 0, s1W2R | (fREP << FPOS) },
+  { "scasb",    t_done, 0, false, { AL, Yb, Zz },  0, s1R2R | (fSCAS << FPOS) },
+  { "scasw/d",  t_done, 0, false, { eAX, Yv, Zz }, 0, s1R2R | (fSCAS << FPOS) },
   /* B0 */
   { "mov", t_done, 0, false, { AL, Ib, Zz }, 0, s1W2R },
   { "mov", t_done, 0, false, { CL, Ib, Zz }, 0, s1W2R },
@@ -1230,9 +1236,9 @@ static ia32_entry sseMap[][4] = {
     { "cvtsi2sd", t_done, 0, true, { Vsd, Ed, Zz }, 0, s1W2R },
   },
   { /* SSE2B */
-    { "movntps", t_done, 0, true, { Wps, Vps, Zz }, 0, s1W2R },
+    { "movntps", t_done, 0, true, { Wps, Vps, Zz }, 0, s1W2R | (fNT << FPOS) },
     { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "movntps", t_done, 0, true, { Wpd, Vpd, Zz }, 0, s1W2R }, // should be movntpd ???
+    { "movntpd", t_done, 0, true, { Wpd, Vpd, Zz }, 0, s1W2R | (fNT << FPOS) }, // bug in book
     { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE2C */
@@ -1734,12 +1740,9 @@ static ia32_entry sseMap[][4] = {
     { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEF7 */
-    // This is non-temporal, although the name doesn't suggest it!
-    // I hope I've got all of these, but there's no easy way to check...
     { "maskmovq", t_done, 0, true, { Ppi, Qpi, Zz }, 0, s1W2R | (fNT << FPOS) },
     { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    // Intel cannot seem to decide if this is maskmovqu [tables] or maskmovdqu [reference]
-    { "maskmovdqu", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1W2R | (fNT << FPOS) },
+    { "maskmovdqu", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1W2R | (fNT << FPOS) }, // bug in book
     { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEF8 */
@@ -1965,7 +1968,34 @@ ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instr
     case sNONE:
       break;
     case s1R:
-      instruct.mac[0].read = true;
+      switch(hack) {
+      case fPREFETCHNT:
+        instruct.mac[0].prefetch = true;
+        instruct.mac[0].prefetchlvl = 0;
+        break;
+      case fPREFETCHT0:
+        instruct.mac[0].prefetch = true;
+        instruct.mac[0].prefetchlvl = 1;
+        break;
+      case fPREFETCHT1:
+        instruct.mac[0].prefetch = true;
+        instruct.mac[0].prefetchlvl = 2;
+        break;
+      case fPREFETCHT2:
+        instruct.mac[0].prefetch = true;
+        instruct.mac[0].prefetchlvl = 3;
+        break;
+      case fPREFETCHAMDE:
+        instruct.mac[0].prefetch = true;
+        instruct.mac[0].prefetchstt = 0;
+        break;
+      case fPREFETCHAMDW:
+        instruct.mac[0].prefetch = true;
+        instruct.mac[0].prefetchstt = 1;
+        break;
+      default:
+        instruct.mac[0].read = true;
+      }
       break;
     case s1W:
       instruct.mac[0].write = true;
@@ -1973,6 +2003,7 @@ ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instr
     case s1RW:
       instruct.mac[0].read = true;
       instruct.mac[0].write = true;
+      instruct.mac[0].nt = hack == fNT;
       break;
     case s1R2R:
       instruct.mac[0].read = true;
@@ -1980,6 +2011,7 @@ ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instr
       break;
     case s1W2R:
       instruct.mac[0].write = true;
+      instruct.mac[0].nt = hack == fNT; // all NTs are s1W2R
       instruct.mac[1].read = true;
       break;
     case s1RW2R:
@@ -2027,6 +2059,45 @@ ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instr
       instruct.mac[1].read = true;
       instruct.mac[1].write = true;
       instruct.mac[2].read = true;
+      break;
+    }
+
+    switch(pref.getPrefix(0)) {
+    case PREFIX_REPNZ:
+      switch(hack) {
+      case fSCAS:
+        instruct.mac[1].sizehack = shREPNESCAS;
+        break;
+      case fCMPS:
+        instruct.mac[0].sizehack = shREPNECMPS;
+        instruct.mac[1].sizehack = shREPNECMPS;
+        break;
+      default:
+        fprintf(stderr, "IA32 DECODER: unexpected repnz prefix ignored...\n");
+      }
+      break;
+    case PREFIX_REP:
+      switch(hack) {
+      case fSCAS:
+        instruct.mac[1].sizehack = shREPESCAS;
+        break;
+      case fCMPS:
+        instruct.mac[0].sizehack = shREPECMPS;
+        instruct.mac[1].sizehack = shREPECMPS;
+        break;
+      case fREP:
+        instruct.mac[0].sizehack = shREP;
+        instruct.mac[1].sizehack = shREP;
+        break;
+      default:
+        fprintf(stderr, "IA32 DECODER: unexpected rep prefix ignored...\n");
+      }
+      break;
+    case 0:
+    case PREFIX_LOCK:
+      break;
+    default:
+      fprintf(stderr, "IA32 WARNING: unknown type 0 prefix!\n");
       break;
     }
   }

@@ -1,4 +1,4 @@
-// $Id: test6.C,v 1.10 2002/08/16 16:01:38 gaburici Exp $
+// $Id: test6.C,v 1.11 2002/09/23 21:47:12 gaburici Exp $
  
 #include <stdio.h>
 #include <string.h>
@@ -216,6 +216,12 @@ void instByteCnt(BPatch_thread* bpthr, const char* fname,
 #define MK_LD2(imm, rs1, rs2, bytes, imm_2, rs1_2, rs2_2, bytes_2) (new BPatch_memoryAccess(true, false, (bytes), (imm), (rs1), (rs2), 0, true, false, (bytes_2), (imm_2), (rs1_2), (rs2_2), 0))
 #define MK_SL2(imm, rs1, rs2, bytes, imm_2, rs1_2, rs2_2, bytes_2) (new BPatch_memoryAccess(false, true, (bytes), (imm), (rs1), (rs2), 0, true, false, (bytes_2), (imm_2), (rs1_2), (rs2_2), 0))
 
+#define MK_SL2vECX(imm, rs1, rs2, imm_2, rs1_2, rs2_2, bop) (new BPatch_memoryAccess(false, true, (imm), (rs1), (rs2), 0, 0, -1, 1, (bop),  true, false, (imm_2), (rs1_2), (rs2_2), 0, 0, -1, 1, (bop)))
+
+#define MK_STnt(imm, rs1, rs2, bytes) (new BPatch_memoryAccess(false, true, \
+                                                               (bytes), (imm), (rs1), (rs2), 0, \
+                                                               -1, true))
+
 
 // what we expect to find in the "loadsnstores" function; platform specific
 #ifdef sparc_sun_solaris2_4
@@ -330,7 +336,7 @@ void init_test_data()
   loadList[++k] = MK_LD(0, 4, -1, 24);
   loadList[++k] = new BPatch_memoryAccess(true, false,
 				   0, 1, 9,
-				   0, 9999, -1); // 9999 means XER_25:31
+				   0, POWER_XER2531, -1);
 
   loadList[++k] = MK_LD(0, -1, 3, 4);  // l30, 0 is -1 in ra...
   loadList[++k] = MK_LD(0, -1, 7, 8);  // l31, idem
@@ -379,7 +385,7 @@ void init_test_data()
 
   storeList[++k] = new BPatch_memoryAccess(false, true,
 				    0, 1, 9,
-				    0, 9999, -1); // 9999 means XER_25:31
+				    0, POWER_XER2531, -1);
 
   storeList[++k] = MK_ST(0, -1, 3, 4); // 0 means -1 (no register) in ra
   storeList[++k] = MK_ST(0, -1, 7, 8);
@@ -398,10 +404,10 @@ void init_test_data()
 #endif
 
 #if defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0)
-const unsigned int nloads = 63;
+const unsigned int nloads = 65;
 const unsigned int nstores = 23;
-const unsigned int nprefes = 0;
-const unsigned int naxses = 81;
+const unsigned int nprefes = 2;
+const unsigned int naxses = 85;
 
 BPatch_memoryAccess* loadList[nloads];
 BPatch_memoryAccess* storeList[nstores];
@@ -412,6 +418,8 @@ void *divarwp, *dfvarsp, *dfvardp, *dfvartp, *dlargep;
 void get_vars_addrs(BPatch_image* bip) // from mutatee
 {
 #ifdef i386_unknown_nt4_0
+  // FIXME: With or without leading _ dyninst cannot find these variables.
+  // VC++6 debugger has no such problems...
   BPatch_variableExpr* bpvep_diwarw = bip->findVariable("_divarw");
   BPatch_variableExpr* bpvep_diwars = bip->findVariable("_dfvars");
   BPatch_variableExpr* bpvep_diward = bip->findVariable("_dfvard");
@@ -495,9 +503,20 @@ void init_test_data()
   loadList[++k] = MK_LD((int)dfvarsp,-1,-1,8); // l48
   loadList[++k] = MK_LD((int)dfvarsp+8,-1,-1,8);
   
-  // FIXME: REP hacks
-  loadList[++k] = MK_SL2(0,7,-1,4,0,6,-1,4); // l50
-  
+
+  //loadList[++k] = MK_SL2(0,7,-1,4,0,6,-1,4); // l50
+  loadList[++k] = MK_SL2vECX(0,7,-1,0,6,-1,2);
+  loadList[++k] = new BPatch_memoryAccess(true, false,
+                                          0, 7, -1, 0,
+                                          0, -1, IA32_NESCAS, 0, 
+                                          -1, false);
+  loadList[++k] = new BPatch_memoryAccess(true, false,
+                                          0, 6, -1, 0,
+                                          0, -1, IA32_ECMPS, 0,
+                                          true, false,
+                                          0, 7, -1, 0,
+                                          0, -1, IA32_ECMPS, 0);
+
   loadList[++k] = MK_LD((int)dfvarsp,-1,-1,4);
   loadList[++k] = MK_LD((int)dfvardp,-1,-1,8);
   loadList[++k] = MK_LD((int)dfvartp,-1,-1,10);
@@ -531,10 +550,15 @@ void init_test_data()
   storeList[++k] = MK_ST((int)divarwp,-1,-1,4);   // s10
   storeList[++k] = MK_LS((int)divarwp+4,-1,-1,4);
 
-  storeList[++k] = MK_ST((int)divarwp,-1,-1,8); // s12
+  storeList[++k] = MK_STnt((int)divarwp,-1,-1,8); // s12
+  //storeList[++k] = MK_ST(0,7,-1,4);
+  storeList[++k] = new BPatch_memoryAccess(false, true,
+                                           0, 7, -1, 0,
+                                           0, -1, 1, 2,
+                                           -1, false);
   storeList[++k] = MK_ST(0,7,-1,4);
-  storeList[++k] = MK_ST(0,7,-1,4);
-  storeList[++k] = MK_SL2(0,7,-1,4,0,6,-1,4); // s15
+  //storeList[++k] = MK_SL2(0,7,-1,4,0,6,-1,4); // s15
+  storeList[++k] = MK_SL2vECX(0,7,-1,0,6,-1,2);
   
   storeList[++k] = MK_ST((int)dfvarsp,-1,-1,4);
   storeList[++k] = MK_ST((int)dfvardp,-1,-1,8);
@@ -546,6 +570,10 @@ void init_test_data()
   storeList[++k] = MK_ST((int)divarwp,-1,-1,2);
   storeList[++k] = MK_ST((int)dlargep,-1,-1,28);
 
+  k=-1;
+
+  prefeList[++k] = MK_PF((int)divarwp,-1,-1,IA32prefetchT0);
+  prefeList[++k] = MK_PF((int)divarwp,-1,-1,IA32AMDprefetch);
 }
 #endif
 
@@ -766,6 +794,11 @@ void mutatorTest4(BPatch_thread *bpthr, BPatch_image *bpimg,
              "Number of accesses seems wrong in function \"loadsnstores\".\n");
 
   instCall(bpthr, "Access", res1);
+#if defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0)
+  const BPatch_Vector<BPatch_point*>* res2 = BPatch_memoryAccess::filterPoints(*res1, 2);
+  instCall(bpthr, "Access", res2);
+#endif
+
 #endif
 }
 

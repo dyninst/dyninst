@@ -273,7 +273,7 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
     else if(xop == LSXxop || xop == STSXxop) {
       return new BPatch_memoryAccess(oci->direc == 0, oci->direc == 1,
                                      0, i.xform.ra, i.xform.rb,
-                                     0, 9999, -1); // 9999 == XER_25:31
+                                     0, POWER_XER2531, -1); // 9999 == XER_25:31
     }
   }
   return BPatch_memoryAccess::none;

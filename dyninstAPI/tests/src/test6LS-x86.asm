@@ -1,4 +1,4 @@
-; $Id: test6LS-x86.asm,v 1.3 2002/08/16 16:01:38 gaburici Exp $
+; $Id: test6LS-x86.asm,v 1.4 2002/09/23 21:47:12 gaburici Exp $
 ;
 ; This file must be assembled with nasm  - http://freshmeat.net/projects/nasm/
 
@@ -79,9 +79,9 @@ segment .data align=16          ; note: all aligns below are relative to this!!!
 
     msg_amd3d   db      "Testing 3DNow! instructions...",0xa
     len_amd3d   equ     $ - msg_amd3d
-
-segment .bss align=16
-    dlarge resb 512
+    
+    dlarge      db      "keep the interface small and easy to understand."
+                times 512-$+dlarge db 0
     
 segment .text
 
@@ -123,7 +123,7 @@ loadsnstores:
     nop
     nop
 ; dyninst thinks function prologue has to be this big and won't let arbitrary inst points in it
-
+    
     push ebp                    ; s1
     mov  ebp,esp
 
@@ -252,7 +252,7 @@ loadsnstores:
     movd mm0, [divarw]          ; l42 a49
     pmaddwd mm0, [divarw+8]
     psraw mm0, 2                ; just decoder test for MMX groups
-    movq [divarw], mm0          ; s12
+    movntq [divarw], mm0        ; s12, non-temporal
     emms
 
 ; TODO:    test fxsr?
@@ -265,6 +265,7 @@ loadsnstores:
 ; SSE test    
     movaps xmm0, [dfvars]       ; book incorrectly tags this as sse2                 - l44 a52
     cmpeqss xmm0, [dfvars]
+    prefetcht0 [divarw]         ; not sure about this, but seem safe only if CPU knows SSE
 
     call ia32features
     test eax, 1<<26
@@ -272,11 +273,9 @@ loadsnstores:
     saymsg sse2
 
 ; SSE2 test
-    movapd xmm1, [dfvard]       ; l46 a54
+    movapd xmm1, [dfvard]       ; l46 a55
     cmpeqsd xmm0, [dfvard]
     psrldq xmm0, 2              ; just decoder test for SSE2 groups
-
-    ;; TODO:    prefetches & non-temporals!!!
 
 .bail:
 
@@ -290,9 +289,8 @@ loadsnstores:
 ; since registers are shared with mmx, there are no special loads
     movq mm0, [dfvars]          ; l48 a56
     pfmin mm0, [dfvars+8]       ; memory is only read by 3DNow! instructions        - l49
+    prefetch   [divarw]
     femms                       ; is this needed?
-
-;; TODO:    prefetches
     
 ; Athlon extensions to 3DNow! not tested (feature bit 30) - most of them are
 ; a subset of SSE which is fully implemented on the Athlon XP/MP anyway...
@@ -302,11 +300,10 @@ loadsnstores:
 ; == REP prefixed stuff test
 
     cld
-    mov ecx, 16/4
+    mov ecx, 12/4
     mov eax, 10
     mov edi, divarw
-    stosd
-;    rep stosd                   ; s13 a58 a56onP4 a54onP3
+    rep stosd                   ; s13 a58 a56onP4 a54onP3
 
     std
     mov ecx, 16/4
@@ -318,8 +315,18 @@ loadsnstores:
     mov ecx, 16/4
     mov esi, dfvars
     mov edi, divarw
-    movsd
-;    rep movsd                   ; l50 s15
+;    movsd
+    rep movsd                   ; l50 s15 
+
+    mov eax, 0                  ; only al matters...
+    mov ecx, 256
+    mov edi, dlarge
+    repne scasb
+
+    mov ecx, 256
+    mov edi, dlarge + 25
+    mov esi, dlarge + 44
+    repe cmpsb
 
 ; == addressing using 16-bit registers ==
 
@@ -365,7 +372,7 @@ loadsnstores:
     ret                         ; FIXME:     this is load too...
 .end:
 
-  
+
 ia32features:
     mov eax,1
     push ebx                    ; cpuid changes ebx as well, but ebx "belongs" to the caller
