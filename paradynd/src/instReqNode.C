@@ -222,24 +222,8 @@ void instReqNode::catchupRPCCallback(void * /*returnValue*/ ) {
 bool instReqNode::triggeredInStackFrame(Frame &frame, 
                                         pd_process *p)
 {
-//  PDSEP, these switches will go away....
-   callWhen cw = callPreInsn;
-   callOrder co = orderFirstAtPoint;
-   switch (when) {
-     case BPatch_callBefore: cw = callPreInsn;
-        break;
-     case BPatch_callAfter: cw = callPostInsn;
-        break;
-   }
-   switch (order) {
-     case BPatch_firstSnippet: co = orderFirstAtPoint;
-        break;
-     case BPatch_lastSnippet: co = orderLastAtPoint;
-        break;
-   }
-
-   return p->triggeredInStackFrame(frame, point->PDSEP_instPoint(), 
-                                   cw, co);
+   return p->triggeredInStackFrame(frame, point,
+                                   when, order);
 }
 
 

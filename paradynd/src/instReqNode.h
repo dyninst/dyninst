@@ -54,17 +54,21 @@ class pd_process;
 
 class catchupReq {
  public:
-   catchupReq() : frame() {};
+   catchupReq() : frame(), handledFunctionEntry(false), handledLoopEntry(false) {};
    catchupReq(Frame frame2) :
-      frame(frame2) {};
+      frame(frame2), handledFunctionEntry(false), handledLoopEntry(false) {};
    catchupReq(const catchupReq &src) {
        frame = src.frame;
        for (unsigned i = 0; i < src.reqNodes.size(); i++)
            reqNodes.push_back(src.reqNodes[i]);
+       handledFunctionEntry = src.handledFunctionEntry;
+       handledLoopEntry = src.handledLoopEntry;
    }
    
    pdvector<instReqNode*> reqNodes;
    Frame        frame;
+   bool handledFunctionEntry;
+   bool handledLoopEntry;
 };
 
 
