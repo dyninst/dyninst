@@ -359,16 +359,21 @@ void parseLineInformation(process* proc,LineInformation* lineInformation,
 				whichFile = includeFiles[j].name;
 				break;
 			}
-		lineInformation->insertSourceFileName(currentFunctionName,
-						      whichFile);
+
+		FunctionInfo* currentFuncInfo = NULL;
+		FileLineInformation* currentFileInfo = NULL;
+		lineInformation->insertSourceFileName(currentFunctionName,whichFile,
+						&currentFileInfo,&currentFuncInfo);
+
 		for(j=initialLineIndex+1;j<nlines;j++){
 			LINENO* lptr = (LINENO*)(lines+j*LINESZ);
 			if(!lptr->l_lnno)
 				break;
-	    		lineInformation->insertLineAddress(
-				currentFunctionName,whichFile,
-				lptr->l_lnno+initialLine-1,
-				(lptr->l_addr.l_paddr-funcStartAddress)+currentFunctionBase);
+			if(currentFileInfo)
+	    			currentFileInfo->insertLineAddress(
+					currentFuncInfo,
+					lptr->l_lnno+initialLine-1,
+					(lptr->l_addr.l_paddr-funcStartAddress)+currentFunctionBase);
 		}
       }
 }
@@ -631,6 +636,8 @@ void BPatch_module::parseTypes()
   Address currentFunctionBase = 0;
   string* currentSourceFile = NULL;
   string* absoluteDirectory = NULL;
+  FunctionInfo* currentFuncInfo = NULL;
+  FileLineInformation* currentFileInfo = NULL;
   
 
   for(i=0;i<stab_nsyms;i++){
@@ -651,6 +658,8 @@ void BPatch_module::parseTypes()
 		currentSourceFile = NULL;
 		delete absoluteDirectory;
 		absoluteDirectory = NULL;
+		currentFileInfo = NULL;
+		currentFuncInfo = NULL;
 	    }
 	    break;
 
@@ -739,23 +748,25 @@ void BPatch_module::parseTypes()
                 if(currentFunctionName)
 			lineInformation->insertSourceFileName(
 				*currentFunctionName,
-				*currentSourceFile);
+				*currentSourceFile,
+				&currentFileInfo,&currentFuncInfo);
             }
             else{
                 currentSourceFile = new string(&stabstrs[stabptr[i].name]);
 	 	currentSourceFile = processDirectories(currentSourceFile);
-                if(/*parseActive && */currentFunctionName)
+                if(currentFunctionName)
 			lineInformation->insertSourceFileName(
 					*currentFunctionName,
-  					*currentSourceFile);
+  					*currentSourceFile,
+					&currentFileInfo,&currentFuncInfo);
             }
             break;
     case N_SLINE:
 	    //if the stab information is a line information
 	    //then insert an entry to the line info object
 	    if(!currentFunctionName) break;
-	    lineInformation->insertLineAddress(
-			*currentFunctionName,*currentSourceFile,
+	    if(currentFileInfo)
+		currentFileInfo->insertLineAddress(currentFuncInfo,
 			stabptr[i].desc,
 			stabptr[i].val+currentFunctionBase);
 	    break;
@@ -801,7 +812,8 @@ void BPatch_module::parseTypes()
 		if(currentSourceFile)
 			lineInformation->insertSourceFileName(
 					*currentFunctionName,
-					*currentSourceFile);
+					*currentSourceFile,
+					&currentFileInfo,&currentFuncInfo);
 	     }
 	     delete ptr;
 	     break;
@@ -1015,10 +1027,6 @@ bool BPatch_module::getLineToAddr(unsigned short lineNo,
 	//if the line information is not created yet return false
 
 	if(!lineInformation){
-#ifdef DEBUG_LINE
-		cerr << "BPatch_module::getLineToAddr : ";
-		cerr << "Line information is not available.\n";
-#endif
 		return false;
 	}
 	

@@ -67,8 +67,6 @@ private:
 	string** functionNameList;
 	FunctionInfo** lineInformationList;
 
-	int latestSearchResult;
-	
 	int binarySearch(string functionName);
 
 public:
@@ -90,7 +88,7 @@ public:
 	/** method that inserts a function entry to the map 
 	  * @param functionName function name to insert 
 	  */
-	void insertFunction(string functionName);
+	FunctionInfo* insertFunction(string functionName);
 
 	/** method that checks the mapping for existence of the function */
 	bool findFunction(string functionName);
@@ -99,7 +97,7 @@ public:
 	void deleteFunction(string functionName);
 
 	/** method that updates the info for a function */
-	bool insertFunction(string functionName,Address beginAddr,
+	FunctionInfo* insertFunction(string functionName,Address beginAddr,
 			    Address functionSize);
 
 	/** method that inserts a line information entry to the array of
@@ -108,6 +106,9 @@ public:
 	  * @param lineNo line number information
 	  * @param codeAddress address corresponding to the line number
 	  */
+	void insertLineAddress(FunctionInfo* fInfo,
+             		       unsigned short lineNo,
+                               Address codeAddress);
 	void insertLineAddress(string functionName,
 			       unsigned short lineNo,Address codeAddress);
 
@@ -180,8 +181,6 @@ private:
 	string** sourceFileList;
 	FileLineInformation** lineInformationList;
 
-	int latestSearchResult;
-
 	int binarySearch(string fileName);
 public:
 
@@ -199,7 +198,9 @@ public:
 	  * previous ones.
 	  * @param functionName function name to insert
 	  * @param fileName file name which the function belongs */
-	void insertSourceFileName(string functionName,string fileName);
+	void insertSourceFileName(string functionName,string fileName,
+				  FileLineInformation** retFileInfo = NULL,
+				  FunctionInfo** funcInfo = NULL);
 
 	/** method that inserts a line information entry to corresponding
 	  * file line information object for the given file name and

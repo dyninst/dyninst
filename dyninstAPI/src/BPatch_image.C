@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.31 2001/10/30 21:02:42 gaburici Exp $
+// $Id: BPatch_image.C,v 1.32 2001/11/20 01:12:51 tikir Exp $
 
 #define BPATCH_FILE
 
@@ -748,10 +748,6 @@ bool BPatch_image::getLineToAddr(const char* fileName,unsigned short lineNo,
 	
 	//if there is no entry for the file is being found then give warning and return
 	if(!fLineInformation){
-#ifdef DEBUG_LINE
-		cerr << "BPatch_image::getLineToAddr : ";
-		cerr << fileName << "/line information  is not found/available in the image\n";
-#endif
 		return false;
 	}
 

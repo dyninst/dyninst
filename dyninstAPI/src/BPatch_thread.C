@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.43 2001/08/29 23:25:27 hollings Exp $
+// $Id: BPatch_thread.C,v 1.44 2001/11/20 01:12:51 tikir Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -1132,14 +1132,7 @@ bool BPatch_thread::loadLibrary(char *libname)
 bool BPatch_thread::getLineAndFile(unsigned long addr,unsigned short& lineNo,
 		    		   char* fileName,int size)
 {
-#ifdef DEBUG_LINE
-	bool avail = false;
-#endif
 	if(!fileName || (size <= 0)){
-#ifdef DEBUG_LINE
-		cerr << "BPatch_thread::getLineAndFile : ";
-		cerr << "Invalid argument\n";
-#endif
 		return false;
 	}
 	size--;
@@ -1149,9 +1142,6 @@ bool BPatch_thread::getLineAndFile(unsigned long addr,unsigned short& lineNo,
 		lineInformation = (*appModules)[i]->lineInformation;
 		if(!lineInformation)
 			continue;
-#ifdef DEBUG_LINE
-		avail = true;
-#endif
 		for(int j=0;j<lineInformation->sourceFileCount;j++){
 			string* fileN = lineInformation->sourceFileList[j];
 			FileLineInformation* fInfo = 
@@ -1165,12 +1155,6 @@ bool BPatch_thread::getLineAndFile(unsigned long addr,unsigned short& lineNo,
 			}	
 		}
 	}
-#ifdef DEBUG_LINE
-	if(!avail){
-		cerr << "BPatch_thread::getLineAndFile : ";
-		cerr << "Line information is not available\n";
-	}
-#endif
 	return false;
 }
 

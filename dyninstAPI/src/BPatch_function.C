@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.16 2001/10/30 21:02:41 gaburici Exp $
+// $Id: BPatch_function.C,v 1.17 2001/11/20 01:12:51 tikir Exp $
 
 #define BPATCH_FILE
 
@@ -479,21 +479,13 @@ bool BPatch_function::getLineToAddr(unsigned short lineNo,
 	//get the line info object and check whether it is available
 	LineInformation* lineInformation = mod->lineInformation;
 	if(!lineInformation){
-#ifdef DEBUG_LINE
-		cerr << "BPatch_function::getLineToAddr : ";
-		cerr << "Line information is not available\n";
-#endif
 		return false;
 	}
 
 	//get the object which contains the function being asked
 	FileLineInformation* fLineInformation = 
-			lineInformation->getFunctionLineInformation(func->prettyName());
+			lineInformation->getFunctionLineInformation(func->symTabName());
 	if(!fLineInformation){
-#ifdef DEBUG_LINE
-		cerr << "BPatch_function::getLineToAddr : ";
-		cerr << func->prettyName() << " is not found in its module\n";
-#endif
 		return false;
 	}
 
@@ -532,7 +524,7 @@ bool BPatch_function::getLineAndFile(unsigned int &start,
 
     //get the object which contains the function being asked
     FileLineInformation* fLineInformation = 
-	lineInformation->getFunctionLineInformation(func->prettyName());
+	lineInformation->getFunctionLineInformation(func->symTabName());
 
     if (!fLineInformation) {
 	logLine("BPatch_function::getLineToAddr: Line info is not available");

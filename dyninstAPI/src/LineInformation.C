@@ -100,8 +100,7 @@ FileLineInformation::FileLineInformation(string fileName)
 	  addrToLine(NULL),
 	  functionCount(0),
 	  functionNameList(NULL),
-	  lineInformationList(NULL),
-	  latestSearchResult(-1) {}
+	  lineInformationList(NULL){}
 
 //destructor
 FileLineInformation::~FileLineInformation(){
@@ -119,12 +118,6 @@ FileLineInformation::~FileLineInformation(){
 }
 
 int FileLineInformation::binarySearch(string functionName){
-	/*
-	if((latestSearchResult >= 0) && (latestSearchResult < functionCount) &&
-	   (functionName == *functionNameList[latestSearchResult]))
-		return latestSearchResult;
-	*/
-
 	int low = 0;
 	int high = functionCount-1;
 	int mid;
@@ -135,12 +128,9 @@ int FileLineInformation::binarySearch(string functionName){
 			high = mid - 1;
 		else if(functionName > entryName)
 			low = mid + 1;
-		else {
-			latestSearchResult = mid;
+		else 
 			return (int)mid;
-		}
 	}
-	latestSearchResult = -1;
 	return -1;
 }
 
@@ -153,7 +143,7 @@ FunctionInfo *FileLineInformation::findFunctionInfo(string functionName){
 }
 
 //inserts function wntry to the mapping from function name to its info
-void FileLineInformation::insertFunction(string functionName){
+FunctionInfo* FileLineInformation::insertFunction(string functionName){
 	FunctionInfo* fInfo = findFunctionInfo(functionName);
 	if(!fInfo){
 		functionNameList = (string**)(functionCount ? 
@@ -173,10 +163,12 @@ void FileLineInformation::insertFunction(string functionName){
                         else
                                 break;
                 }
+		fInfo = new FunctionInfo();
+		lineInformationList[i] = fInfo;
 		functionNameList[i] = new string(functionName);
-		lineInformationList[i] = new FunctionInfo();
 		functionCount++;
 	}	
+	return fInfo;
 }
 
 //returns true if the function has an entry in the mapping
@@ -214,7 +206,7 @@ void FileLineInformation::deleteFunction(string functionName){
 }
 
 //updates records for a function
-bool FileLineInformation::insertFunction(string functionName,Address baseAddr,
+FunctionInfo* FileLineInformation::insertFunction(string functionName,Address baseAddr,
 					 Address functionSize)
 {
 	tuple toSearchBegin(0,baseAddr);
@@ -230,7 +222,7 @@ bool FileLineInformation::insertFunction(string functionName,Address baseAddr,
 		tuple** retEnd = binarySearchAddrFirst(toSearchEnd,
 					addrToLine,size,next);
 		if(!retEnd && !next)
-			return false;
+			return NULL;
 
 		unsigned short endLineIndex;
 		unsigned short endAddrIndex;
@@ -272,9 +264,9 @@ bool FileLineInformation::insertFunction(string functionName,Address baseAddr,
 		lineInformationList[i] = fInfo;
 		functionNameList[i] = new string(functionName);
 		functionCount++;
-		return true;
+		return fInfo;
 	}
-	return false;
+	return NULL;
 }
 
 //insert a mapping from line number to address and address to line number
@@ -286,10 +278,15 @@ void FileLineInformation::insertLineAddress(string functionName,
 {
 
 	FunctionInfo* fInfo = findFunctionInfo(functionName);
-	if(!fInfo){
-		cerr << "FATAL ERROR : Something wrong \n";
+	insertLineAddress(fInfo,lineNo,codeAddress);
+}
+
+void FileLineInformation::insertLineAddress(FunctionInfo* fInfo,
+					    unsigned short lineNo,
+					    Address codeAddress)
+{
+	if(!fInfo)
 		return;
-	}
 
 	lineToAddr = !lineToAddr ? ((tuple**)malloc(sizeof(tuple*))) :
 		     ((tuple**)realloc(lineToAddr,sizeof(tuple*)*(size+1)));
@@ -504,8 +501,7 @@ LineInformation::LineInformation(string mName)
 		: moduleName(mName),
 		  sourceFileCount(0),
 		  sourceFileList(NULL),
-		  lineInformationList(NULL),
-	  	  latestSearchResult(-1){}
+		  lineInformationList(NULL){}
 
 
 //desctructor
@@ -520,7 +516,9 @@ LineInformation::~LineInformation() {
 
 //method to insert entries for the given file name and function name
 //it creates the necessary structures and inserts into the maps
-void LineInformation::insertSourceFileName(string functionName,string fileName)
+void LineInformation::insertSourceFileName(string functionName,string fileName,
+					   FileLineInformation** retFileInfo,
+					   FunctionInfo** retFuncInfo)
 {
 	FileLineInformation* fInfo = getFileLineInformation(fileName);
 	if(!fInfo){
@@ -545,7 +543,13 @@ void LineInformation::insertSourceFileName(string functionName,string fileName)
 		sourceFileList[i] = new string(fileName);
 		sourceFileCount++;
 	}
-	fInfo->insertFunction(functionName);
+
+	FunctionInfo* funcInfo = fInfo->insertFunction(functionName);
+	if(retFileInfo)
+		*retFileInfo = fInfo;
+
+	if(retFuncInfo)
+		*retFuncInfo = funcInfo;
 }
 
 //inserts line to address and address to line mapping to the line info
@@ -623,9 +627,6 @@ bool LineInformation::getAddrFromLine(BPatch_Set<Address>& codeAddress,
 {
 	FileLineInformation* fInfo = getFileLineInformation(moduleName);
 	if(!fInfo){ 
-#ifdef DEBUG_LINE
-                cerr << "Module " << moduleName << " is not source file name\n";
-#endif
 		return false;
 	}
 	return fInfo->getAddrFromLine(moduleName,codeAddress,
@@ -633,11 +634,6 @@ bool LineInformation::getAddrFromLine(BPatch_Set<Address>& codeAddress,
 }
 
 int LineInformation::binarySearch(string fileName){
-	/*
-	if((latestSearchResult >= 0) && (latestSearchResult < sourceFileCount) &&
-	   (fileName == *sourceFileList[latestSearchResult]))
-		return latestSearchResult;
-	*/
 
 	int low = 0;
 	int high = sourceFileCount-1;
@@ -649,12 +645,9 @@ int LineInformation::binarySearch(string fileName){
                         high = mid - 1;
                 else if(fileName > entryName)
                         low = mid + 1;
-                else{
-			latestSearchResult = mid;
+                else
 			return (int)mid;
-		}
 	}
-	latestSearchResult = -1;
 	return -1;
 }
 
@@ -717,7 +710,7 @@ void LineInformation::insertFunction(string functionName,Address baseAddr,
 {
 	if(findFunction(functionName))
 		return;
-	bool ret = false;
+	FunctionInfo* ret = NULL;
 	for(int i=0;!ret && (i<sourceFileCount);i++)
 		ret = lineInformationList[i]->insertFunction(functionName,
 						       baseAddr,functionSize);
