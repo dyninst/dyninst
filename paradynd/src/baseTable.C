@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTable.C,v 1.5 2000/01/10 17:03:27 zhichen Exp $
+// $Id: baseTable.C,v 1.6 2000/03/03 22:08:30 mirg Exp $
 // The superTable class consists of an array of superVectors
 
 #include <sys/types.h>
@@ -90,16 +90,16 @@ void baseTable<HK, RAW>::addRows(unsigned level, unsigned nRows,
 void baseTable<HK, RAW>::addRows(unsigned level, unsigned nRows)
 #endif
 {
-  // we assume that it is valid to add nRows, i.e. maxNumberOfLevels in the superTable
-  // class is greater than or equal to level+nRows.
+  // we assume that it is valid to add nRows, i.e. maxNumberOfLevels 
+  // in the superTable class is greater than or equal to level+nRows.
   for (unsigned i=0; i<nRows; i++) {
+    numberOfRows++;
 #if defined(MT_THREAD)
     theBaseTable += new superVector<HK, RAW>(inferiorProcess,heapNumElems,
 					     level+i,
 					     subHeapIndex,
 					     numberOfColumns,
 					     calledFromBaseTableConst);
-    numberOfRows++;
 #else
     theBaseTable += new superVector<HK, RAW>(inferiorProcess,heapNumElems,subHeapIndex,
 					     numberOfColumns);
@@ -163,6 +163,7 @@ void baseTable<HK, RAW>::setBaseAddrInApplic(RAW *addr)
      theBaseTable[i]->setBaseAddrInApplic(addr,levelMap[i]);
    }
 }
+
 
 template <class HK, class RAW>
 bool baseTable<HK, RAW>::doMajorSample(time64 wallTime, time64 procTime)
