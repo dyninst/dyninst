@@ -10,7 +10,10 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
- * Revision 1.20  1995/08/29 21:47:24  mjrg
+ * Revision 1.21  1995/09/05 23:11:36  mjrg
+ * Initialize splitHeaps.
+ *
+ * Revision 1.20  1995/08/29  21:47:24  mjrg
  * added third argument to declaration of initInferiorHeap.
  *
  * Revision 1.19  1995/08/24  15:04:31  hollings
@@ -183,6 +186,7 @@ friend class ptraceKludge;
     aggregate = false; rid = 0; parent = NULL;
     bufStart = 0; bufEnd = 0; pauseTime = 0.0;
     freed = 0; reachedFirstBreak = 0; 
+    splitHeaps = false;
   }
 
   static string programName;
