@@ -39,7 +39,7 @@ v * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.84 2001/11/27 22:35:26 gurari Exp $ 
+// $Id: metricFocusNode.h,v 1.85 2002/02/05 18:33:16 schendel Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -166,73 +166,6 @@ class dataReqNode {
  *       call DYNINSTreportTimer.
  *
  */
-
-#ifndef SHM_SAMPLING
-class sampledIntCounterReqNode : public dataReqNode {
- // intCounter for use when not shm sampling.  Allocated in the conventional heap
- // with inferiorMalloc().  Sampled the old-fasioned way: by instrumenting
- // DYNINSTsampleValues() to call DYNINSTreportCounter.
- private:
-   // The following fields are always properly initialized in ctor:
-   int theSampleId;
-   rawTime64 initialValue; // needed when dup()'ing
-
-   // The following fields are NULL until insertInstrumentation() called:   
-   intCounter *counterPtr;		/* NOT in our address space !!!! */
-   instInstance *sampler;		/* function to sample value */
-
-   // Since we don't use these, disallow:
-   sampledIntCounterReqNode &operator=(const sampledIntCounterReqNode &);
-   sampledIntCounterReqNode(const sampledIntCounterReqNode &);
-
-   // private fork-ctor called by dup():
-   sampledIntCounterReqNode(const sampledIntCounterReqNode &src,
-			    process *childProc, metricDefinitionNode *, int iCounterId,
-                            const dictionary_hash<instInstance*,instInstance*> &map);
-
-   void writeToInferiorHeap(process *theProc, const intCounter &src) const;
-
- public:
-   sampledIntCounterReqNode(rawTime64 iValue, int iCounterId,
-                            metricDefinitionNode *iMi, bool computingCost);
-  ~sampledIntCounterReqNode() {}
-      // Hopefully, disable() has already been called.  A bit of a complication
-      // since disable() needs an arg passed, which we can't do here.  Too bad.
-
-   dataReqNode *dup(process *, metricDefinitionNode *, int iCounterId,
-                    const dictionary_hash<instInstance*,instInstance*> &map) const;
-
-#if defined(MT_THREAD)
-   bool insertInstrumentation(pdThread *, process *, metricDefinitionNode *, bool doNotSample=false);
-#else
-   bool insertInstrumentation(process *, metricDefinitionNode *, bool doNotSample=false);
-#endif
-      // allocates from inferior heap; initializes it; instruments
-      // DYNINSTsampleValues
-
-   void disable(process *, const vector< vector<Address> > &);
-
-   Address getInferiorPtr(process *) const {
-      // counterPtr could be NULL if we are building AstNodes just to compute
-      // the cost - naim 2/18/97
-      //assert(counterPtr != NULL); // NULL until insertInstrumentation()
-      return (Address)counterPtr;
-   }
-
-   unsigned getAllocatedIndex() const {assert(0); return 0;}
-   unsigned getAllocatedLevel() const {assert(0); return 0;}
-
-   int getSampleId() const {return theSampleId;}
-#if defined(MT_THREAD)
-   int getThreadId() const {assert(0); return 0;}
-#endif
-
-   bool unFork(dictionary_hash<instInstance*,instInstance*> &map);
-     // the fork syscall duplicates all instrumentation (except on AIX), which is a
-     // problem when we determine that a certain mi shouldn't be propagated to the child
-     // process.  Hence this routine (to remove unwanted instr of DYNINSTsampleValues())
-};
-#endif
 
 #ifdef SHM_SAMPLING
 class sampledShmIntCounterReqNode : public dataReqNode {
@@ -364,71 +297,6 @@ class nonSampledIntCounterReqNode : public dataReqNode {
 
    bool unFork(dictionary_hash<instInstance*,instInstance*> &) {return true;}
 };
-
-#ifndef SHM_SAMPLING
-class sampledTimerReqNode : public dataReqNode {
- // tTimer for use when not shm sampling.  Allocated in the conventional heap with
- // inferiorMalloc().  Sampled the old-fasioned way: by instrumenting
- // DYNINSTsampleValues to call DYNINSTreportTimer.
- private:
-   // The following fields are always initialized in the ctor:   
-   int theSampleId;
-   timerType theTimerType;
-
-   // The following fields are NULL until insertInstrumentation():
-   tTimer *timerPtr;			/* NOT in our address space !!!! */
-   instInstance *sampler;		/* function to sample value */
-
-   // since we don't use these, disallow:
-   sampledTimerReqNode(const sampledTimerReqNode &);
-   sampledTimerReqNode &operator=(const sampledTimerReqNode &);
-
-   // fork ctor:
-   sampledTimerReqNode(const sampledTimerReqNode &src, process *childProc,
-		       metricDefinitionNode *, int iCounterId,
-		       const dictionary_hash<instInstance*,instInstance*> &map);
-
-   void writeToInferiorHeap(process *theProc, const tTimer &dataSrc) const;
-
- public:
-   sampledTimerReqNode(timerType iType, int iCounterId,
-                       metricDefinitionNode *iMi, bool computingCost);
-  ~sampledTimerReqNode() {}
-      // hopefully, freeInInferior() has already been called
-      // a bit of a complication since freeInInferior() needs an
-      // arg passed, which we can't do here.  Too bad.
-
-   dataReqNode *dup(process *childProc, metricDefinitionNode *, int iCounterId,
-                    const dictionary_hash<instInstance*,instInstance*> &map) const;
-
-#if defined(MT_THREAD)
-   bool insertInstrumentation(pdThread *, process *, metricDefinitionNode *, bool doNotSample=false);
-#else
-   bool insertInstrumentation(process *, metricDefinitionNode *, bool doNotSample=false);
-#endif
-   void disable(process *, const vector< vector<Address> > &);
-
-   Address getInferiorPtr(process *) const {
-      // counterPtr could be NULL if we are building AstNodes just to compute
-      // the cost - naim 2/18/97
-      //assert(timerPtr != NULL); // NULL until insertInstrumentation()
-      return (Address)timerPtr;
-   }
-
-   unsigned getAllocatedIndex() const {assert(0); return 0;}
-   unsigned getAllocatedLevel() const {assert(0); return 0;}
-
-   int getSampleId() const {return theSampleId;}
-#if defined(MT_THREAD)
-   int getThreadId() const {assert(0); return 0;}
-#endif
-
-   bool unFork(dictionary_hash<instInstance*,instInstance*> &map);
-     // the fork syscall duplicates all instrumentation (except on AIX), which is a
-     // problem when we determine that a certain mi shouldn't be propagated to the child
-     // process.  Hence this routine (to remove unwanted instr of DYNINSTsampleValues())
-};
-#endif
 
 #ifdef SHM_SAMPLING
 class sampledShmWallTimerReqNode : public dataReqNode {
@@ -685,7 +553,6 @@ void mdnContinueCallback(timeStamp timeOfCont);
 // THR_LEV is for threaded paradyn only
 typedef enum {AGG_MDN, COMP_MDN, PRIM_MDN, THR_LEV} MDN_TYPE;
 
-
 // metricDefinitionNode type for MT_THREAD version:
 // AGG_LEV   is similar to AGG_MDN.
 //
@@ -703,11 +570,7 @@ typedef enum {AGG_MDN, COMP_MDN, PRIM_MDN, THR_LEV} MDN_TYPE;
 //   thr_lev has only one aggregator -- a metric prim;
 //   if it has component, it has only one -- the proc_
 //   comp also for its metric prim.
-#ifdef notdefined
-#if defined(MT_THREAD)
-typedef enum {AGG_LEV, PROC_COMP, PROC_PRIM, THR_LEV} AGG_LEVEL;
-#endif
-#endif
+
 
 /*
    metricDefinitionNode describe metric instances. There are two types of
@@ -724,6 +587,101 @@ typedef enum {AGG_LEV, PROC_COMP, PROC_PRIM, THR_LEV} AGG_LEVEL;
    the whole program and cpu time for process p, there will be one non-aggregate
    instance shared between two aggregate metricDefinitionNodes.
 */
+/*
+class metFocusNode {
+  // unique id for a counter or timer
+  static int counterId;
+  
+};
+
+// A metric focus node that does aggregation
+class aggregationMetFocusNode {
+  aggregateOp           aggOp;
+  sampleAggregator aggregator;
+  vector<*>   components;	// X
+ public:
+  void addAggrPart(metricDefinitionNode* part);
+#if defined(MT_THREAD)
+  void addAggrParts(vector<metricDefinitionNode*>& parts);
+#endif
+};
+
+// A metric focus node that is aggregated
+class aggregatedMetFocusNode {
+  // remember, there can be more than one.  E.g. if cpu for whole program and
+  // cpu for process 100 are chosen, then we'll have just one component mi
+  // which is present in two aggregate mi's (cpu/whole and cpu/proc-100).
+                                  // previously aggegators
+  vector<aggregationMetFocusNode*> aggregatorParentNodes;  
+  vector<aggComponent *> sampleInfoBuf;  // previously samples
+  machineMetFocusNode *childNode;
+};
+
+class machineMetFocusNode : public metFocusNode, public aggMetFocusNode {
+  processMetFocusNode *childNode;
+
+ public:
+  metricDefinitionNode(const string& metric_name, 
+		       const vector< vector<string> >& foc,
+		       const string& cat_name,
+		       vector<metricDefinitionNode*>& parts,
+		       aggregateOp agg_op);
+
+  const string &getMetName() const { return met_; }
+  const string &getFullName() const { return flat_name_; }
+  const vector< vector<string> > &getFocus() const {return focus_;}
+  const vector< vector<string> > &getComponentFocus() const { return component_focus; }
+  processMetFocusNode *getChild() { return childNode; }
+  
+};
+
+class processMetFocusNode : public metFocusNode, public aggMetFocusNode,
+                            public childMetFocusNode {
+  process *proc_;
+  machineMetFocusNode *parentNode;
+  threadMetFocusNode *
+
+  public:
+  // styles are enumerated in aggregation.h
+  metricDefinitionNode(process *p, const string& metric_name, 
+                       const vector< vector<string> >& foc,
+                       const vector< vector<string> >& component_foc,
+                       const string& component_flat_name, 
+		       aggregateOp agg_op);
+  process *getProcess();
+  machineMetFocusNode *getParent() { return parentNode; }
+  processMetFocusNode *getChild() { return childNode; }
+};
+
+class threadMetFocusNode : public metFocusNode, public childMetFocusNode {
+  aggMetFocusNode children;  // is-implemented-in-terms-of relationship
+                             // see Item 40, Effective C++ (2nd Edition)
+  // styles are enumerated in aggregation.h
+  metricDefinitionNode(const string& metric_name, 
+                       const vector< vector<string> >& foc,
+                       const vector< vector<string> >& component_foc,
+                       const string& component_flat_name);
+  processMetFocusNode *getParent() { return parentNode; }
+  process *getProcess() { return getParent()->getProcess(); }
+  
+};
+
+class sampleMetFocusNode : public metFocusNode, public childMetFocusNode {
+  // styles are enumerated in aggregation.h
+  metricDefinitionNode(const string& metric_name, 
+                       const vector< vector<string> >& foc,
+                       const vector< vector<string> >& component_foc,
+                       const string& component_flat_name);
+
+  void updateValue(timeStamp, pdSample);
+};
+*/
+
+class processMetFocusNode;
+class threadMetFocusNode;
+class sampleMetFocusNode;
+
+
 class metricDefinitionNode {
 friend timeLength guessCost(string& metric_name, vector<u_int>& focus) ;
 
@@ -731,13 +689,16 @@ friend int startCollecting(string&, vector<u_int>&, int id,
 			   vector<process *> &procsToContinue); // called by dynrpc.C
 friend bool toDeletePrimitiveMDN(metricDefinitionNode *prim); // used in mdl.C
 #if defined(MT_THREAD)
-friend bool checkMetricMIPrimitives(string metric_flat_name, metricDefinitionNode *& metric_prim,
-			     string name, vector< vector<string> >& comp_focus, int processIdx);
+friend bool checkMetricMIPrimitives(string metric_flat_name, 
+				    sampleMetFocusNode *& metric_prim,
+				    string name, 
+				    vector< vector<string> >& comp_focus, 
+				    int processIdx);
 #endif
 
 private:
   /* unique id for a counter or timer */
-  static int counterId;
+ static int counterId;
 
 public:
 
@@ -764,13 +725,14 @@ public:
   // NON_MT_THREAD version:
   // for aggregate (not component) mdn's
 
-  ~metricDefinitionNode();
-  void okayToSample();
+  virtual ~metricDefinitionNode();
   void disable();
   void cleanup_drn();
   bool isReadyForUpdates();
   void updateValue(timeStamp, pdSample);
   void forwardSimpleValue(timeStamp, timeStamp, pdSample);
+
+  sampleAggregator getAggregator() {  return aggregator; }
 
   int getMId() const { return id_; }
 
@@ -784,7 +746,7 @@ public:
   const vector< vector<string> > &getComponentFocus() const { return component_focus; }
 
   process *proc() const { return proc_; }
-  
+  aggregateOp getAggOp() { return aggOp; }
   vector<dataReqNode *> getDataRequests();
   vector<metricDefinitionNode *>& getComponents() { 
     return components; 
@@ -792,13 +754,10 @@ public:
   void addPart(metricDefinitionNode* part);
   void addPartDummySample(metricDefinitionNode* part);  // special purpose
 #if defined(MT_THREAD)
-  void reUseIndexAndLevel(unsigned &p_allocatedIndex, unsigned &p_allocatedLevel);
-  void addParts(vector<metricDefinitionNode*>& parts);
+  void addParts(vector<threadMetFocusNode*>& parts);
 
   //AGG_LEVEL getLevel() { return aggLevel; }
   // vector<dataReqNode *> getDataRequests() { return dataRequests; }      
-  void addThread(pdThread *thr);
-  void deleteThread(pdThread *thr);
   void duplicateInst(metricDefinitionNode *from, metricDefinitionNode *to);
   void duplicateInst(metricDefinitionNode *mn) ;
   
@@ -842,7 +801,6 @@ public:
   timeLength cost() const;
   bool checkAndInstallInstrumentation();
 
-  bool isOkayedToSample() { return okayedToSample; }
   bool childrenMdnNeedingInitializing() { return partsNeedingInitializing; }
   void notifyMdnsOfNewParts();
   void initChildrenMdnPartsWhereNeeded(timeStamp t, pdSample s);
@@ -861,7 +819,7 @@ public:
   dataReqNode *addSampledIntCounter(rawTime64 initialValue, bool computingCost,
 				     bool doNotSample=false);
 #endif
-  dataReqNode *addUnSampledIntCounter(rawTime64 initialValue, bool computingCost);
+
 #if defined(MT_THREAD)
   dataReqNode *addWallTimer(bool computingCost, pdThread *thr=NULL);
   dataReqNode *addProcessTimer(bool computingCost, pdThread *thr=NULL);
@@ -908,24 +866,28 @@ public:
      // the system.
 
   // remove an instance from an aggregate metric
+  metricDefinitionNode* handleExec();
   void removeThisInstance();
-
+  threadMetFocusNode* getThrComp(string tname);
   bool anythingToManuallyTrigger() const;
 
   void adjustManuallyTrigger();
-  void adjustManuallyTrigger(vector<Address> stack_pcs, int tid); // should make it private
 #if defined(MT_THREAD)
   void adjustManuallyTrigger0(int tid);
 #endif
   void manuallyTrigger(int);
 
 #if defined(MT_THREAD)
+  void reUseIndexAndLevel(unsigned &p_allocatedIndex, 
+			  unsigned &p_allocatedLevel);  
   void propagateId(int);
   bool& needData(void) { return needData_; }
 #endif
   bool inserted(void)     { return inserted_; }
+  void setInserted(bool inserted) { inserted_ = inserted; }
   bool hasDeferredInstr();
   bool installed(void)    { return installed_; }
+  void setInstalled(bool installed) { installed_ = installed; } 
   void markAsDeferred() {  
     assert(getMdnType()==PRIM_MDN);
     instrDeferred_ = true;
@@ -940,11 +902,6 @@ public:
 
   dataReqNode* getFlagDRN(void);
 
-  metricDefinitionNode* matchInMIPrimitives();
-  bool condMatch(metricDefinitionNode *mn,
-		 vector<dataReqNode*> &data_tuple1,
-		 vector<dataReqNode*> &data_tuple2);
-
 #if defined(MT_THREAD)
   metricDefinitionNode * getMetricPrim() {
     // should be the last of its components
@@ -953,37 +910,13 @@ public:
     return (components[csize-1]);
   }
 
-  metricDefinitionNode * getThrComp(string tname) {
-    assert(mdn_type_ == PRIM_MDN);
-    unsigned csize = components.size();
-    assert(csize == thr_names.size());
-
-    for (unsigned u=0; u<csize; u++)
-      if (tname == thr_names[u])
-	return components[u];
-
-    return NULL;
-  }
-
   metricDefinitionNode * getProcComp() {
     assert(mdn_type_ == PRIM_MDN);
 
     return aggregators[0];
   }
   // --- ---
-  void rmCompFlatName(unsigned u) {
-    assert(COMP_MDN == mdn_type_);
-    unsigned size = comp_flat_names.size();
-    assert(u < size);
-    
-    extern dictionary_hash<string, metricDefinitionNode*> allMIComponents;
-    if (allMIComponents.defines(comp_flat_names[u])) {
-      allMIComponents.undef(comp_flat_names[u]);
-    }
-    
-    comp_flat_names[u] = comp_flat_names[size-1];
-    comp_flat_names.resize(size-1);
-  }
+  void rmCompFlatName(unsigned u);
 
   void addCompFlatName(string proc_flat_name) {
     assert(COMP_MDN == mdn_type_);
@@ -994,9 +927,12 @@ public:
     assert(PRIM_MDN == mdn_type_);
     thr_names += thr_name;
   }
+  vector<string> getThrNames() {
+    return thr_names;
+  }
 #endif
   
-private:
+protected:
   // Since we don't define these, make sure they're not used:
   metricDefinitionNode &operator=(const metricDefinitionNode &src);
   metricDefinitionNode(const metricDefinitionNode &src);
@@ -1004,7 +940,7 @@ private:
  public:
   void removeComponent(metricDefinitionNode *comp);
 
- private:
+ protected:
   friend void mdnContinueCallback(timeStamp timeOfCont);
 
   void updateWithDeltaValue(timeStamp startTime, timeStamp sampleTime, 
@@ -1047,7 +983,7 @@ private:
   // comments only for NON_MT_THREAD version:
   // for aggregate metrics and component (non-aggregate) metrics
   // for component metrics: the last is "base", others are all constraints
-  vector<metricDefinitionNode*>   components;	
+  vector<metricDefinitionNode*>   components;
   sampleAggregator aggregator;    // current aggregate value
   //  aggregator should be consistent with components to some extents
   //  should be added or removed if necessary;
@@ -1082,7 +1018,6 @@ private:
   // allocated with "aggregateMI.aggregator.newComponent()".
   // samples[i] is the sample of aggregators[i].
 
-  bool okayedToSample;  // set to true when okayToSample
   bool partsNeedingInitializing;
 #if defined(MT_THREAD)
                                        //  following 5 memorizing stuff --- for PROC_COMP only
@@ -1117,12 +1052,63 @@ private:
   //          PROC_PRIM  --- instRequests... , thr_names
   //            THR_LEV  --- dataRequests, cumulativeValue
   
-  metricDefinitionNode* handleExec();
   // called by static void handleExec(process *), for each component mi
   // returns new component mi if propagation succeeded; NULL if not.
   void oldCatchUp(int tid);
   bool checkAndInstallInstrumentation(vector<Address>& pc);
 };
+
+class machineMetFocusNode : public metricDefinitionNode {
+ public:
+  machineMetFocusNode(const string& metric_name, 
+		      const vector< vector<string> >& foc,
+		      const string& cat_name,
+		      vector<metricDefinitionNode*>& parts,
+		      aggregateOp agg_op);
+  void removeAllComponents() {
+    components.resize(0); 
+  }
+};
+
+class processMetFocusNode : public metricDefinitionNode {
+ public:
+  // styles are enumerated in aggregation.h
+  processMetFocusNode(process *p, const string& metric_name, 
+                       const vector< vector<string> >& foc,
+                       const vector< vector<string> >& component_foc,
+                       const string& component_flat_name, 
+		       aggregateOp agg_op);
+  ~processMetFocusNode();
+
+  void addThread(pdThread *thr);
+  void deleteThread(pdThread *thr);
+};
+
+class threadMetFocusNode : public metricDefinitionNode {
+ public:
+  // styles are enumerated in aggregation.h
+  threadMetFocusNode(process *p, const string& metric_name, 
+                       const vector< vector<string> >& foc,
+                       const vector< vector<string> >& component_foc,
+                       const string& component_flat_name, 
+		       aggregateOp agg_op);
+};
+
+class sampleMetFocusNode : public metricDefinitionNode {
+ public:
+  // styles are enumerated in aggregation.h
+  sampleMetFocusNode(process *p, const string& metric_name, 
+                       const vector< vector<string> >& foc,
+                       const vector< vector<string> >& component_foc,
+                       const string& component_flat_name, 
+		       aggregateOp agg_op);
+  sampleMetFocusNode* matchInMIPrimitives();
+  bool condMatch(sampleMetFocusNode *mn, vector<dataReqNode*> &data_tuple1,
+		 vector<dataReqNode*> &data_tuple2);
+  // should make it private
+  void adjustManuallyTrigger(vector<Address> stack_pcs, int tid); 
+};
+
 
 class defInst {
  public:
@@ -1179,10 +1165,6 @@ ostream& operator<<(ostream&s, const metricDefinitionNode &m);
 // allMIs: all aggregate (as opposed to component) metricDefinitionNodes
 extern dictionary_hash<unsigned, metricDefinitionNode*> allMIs;
 
-// allMIComponents: all component (as opposed to aggregate) metricDefinitionNodes,
-// indexed by the component's unique flat_name.
-extern dictionary_hash<string, metricDefinitionNode*> allMIComponents;
-
 // allMIPrimitives: all primitives (variable with all its modifications) metricDefinitionNodes,
 // indexed by the primitive's unique flat_name (metric primitive should have the same unique
 // flat_name as its component
@@ -1209,10 +1191,6 @@ inline void addCurrentPredictedCost(const timeLength &tl) {
 inline void subCurrentPredictedCost(const timeLength &tl) {
   currentPredictedCost -= tl;
 }
-
-#ifndef SHM_SAMPLING
-extern void processCost(process *proc, traceHeader *h, costUpdate *s);
-#endif
 
 extern void reportInternalMetrics(bool force);
 
@@ -1242,9 +1220,6 @@ timeLength guessCost(string& metric_name, vector<u_int>& focus);
  * process a sample ariving from an inferior process
  *
  */
-#ifndef SHM_SAMPLING
-void processSample(int pid, traceHeader*, traceSample *);
-#endif
 
 bool AstNode_condMatch(AstNode* a1, AstNode* a2,
 		       vector<dataReqNode*> &data_tuple1, // initialization?
