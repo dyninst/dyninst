@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.82 2004/01/23 22:01:15 tlmiller Exp $
+// $Id: inst.h,v 1.83 2004/03/02 22:46:01 bernat Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -188,6 +188,7 @@ public:
   pdvector<AstNode *> args;      /* what to pass as arg0 ... n */
   bool useTrampGuard;
   bool mt_only;
+  pdvector<miniTrampHandle *> mtHandles;
   // AstNode *arg;            /* what to pass as arg0 */
 };
 
