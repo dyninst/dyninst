@@ -2,7 +2,6 @@
 #define _LineInformation_h_
 
 #include "common/h/Types.h"
-#include "common/h/Pair.h"
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
 #include "common/h/String.h"

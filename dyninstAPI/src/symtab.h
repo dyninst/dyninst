@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.106 2002/04/01 20:06:08 bernat Exp $
+// $Id: symtab.h,v 1.107 2002/04/09 18:04:58 mjbrim Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -51,7 +51,6 @@ extern "C" {
 #include <assert.h>
 }
 
-#include "common/h/Pair.h"
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
 #include "common/h/list.h"
