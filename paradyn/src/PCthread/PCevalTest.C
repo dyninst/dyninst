@@ -1,6 +1,9 @@
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.17  1994/05/31 21:42:58  markc
+ * Revision 1.18  1994/06/12 22:40:47  karavan
+ * changed printf's to calls to status display service.
+ *
+ * Revision 1.17  1994/05/31  21:42:58  markc
  * Allow compensationFactor to be computed, but keep it within 0 and 1, which
  * is a short term fix.  Enable the hotSyncObject test in PCrules.C.
  *
@@ -105,7 +108,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
   All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.17 1994/05/31 21:42:58 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.18 1994/06/12 22:40:47 karavan Exp $";
 #endif
 
 
@@ -113,6 +116,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include <stdlib.h>
 #include <assert.h>
 
+#include "../pdMain/paradyn.h"
 #include "../DMthread/DMresource.h"
 #include "PCwhy.h"
 #include "PCwhere.h"
@@ -122,18 +126,19 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "PCglobals.h"
 #include "PCauto.h"
 #include "performanceConsultant.SRVR.h"
+#include "../src/UIthread/UIstatDisp.h"
 
 tunableConstant hysteresisRange(0.15, 0.0, 1.0, NULL, "hysteresisRange",
-  "Fraction above and bellow threshold that a test should use.");
+  "Fraction above and below threshold that a test should use.");
 
 //
 // Fix this soon... This should be based on some real information.
 //
 tunableConstant minObservationTime(1.0, 0.0, 60.0, NULL, "minObservationTime",
- "min. time (in seconds) to wait after chaning inst to start try hypotheses.");
+ "min. time (in seconds) to wait after changing inst to start try hypotheses.");
 
 tunableConstant sufficientTime(6.0, 0.0, 1000.0, NULL, "sufficientTime",
-  "How long to wait (in seconds) before we can concule a hypothesis is false.");
+  "How long to wait (in seconds) before we can conclude a hypothesis is false.");
 
 int PCsearchPaused;
 extern Boolean textMode;
@@ -619,10 +624,9 @@ Boolean verifyPreviousRefinements()
 	if (PCrefinementPath[i]->getStatus() != TRUE) {
 	    // pauseApplication(context);
 
-	    printf("The bottleneck we were refining changed\n");
-	    printf("The bottleneck was:");
-	    defaultExplanation(PCrefinementPath[i]);
-
+	  PCstatusDisplay->updateStatusDisplay (PC_STATUSDISPLAY, 
+	   "The bottleneck we were refining changed\nThe bottleneck was:");
+	  defaultExplanation(PCrefinementPath[i]);			       	   
 	    // disable all nodes.
 	    for (currNode = allSHGNodes; curr = *currNode; currNode++) {
 		curr->changeTested(FALSE);
@@ -650,10 +654,12 @@ Boolean verifyPreviousRefinements()
 		if (curr->getActive() == FALSE) curr->changeStatus(FALSE);
 	    }
 
-	    printf("The search has been reset to the bottleneck\n    ");
-	    defaultExplanation(currentSHGNode);
+	  PCstatusDisplay->updateStatusDisplay 
+	    (PC_STATUSDISPLAY, 
+	     "The search has been reset to the bottleneck\n    ");
+	  defaultExplanation(currentSHGNode);
 
-	    return(FALSE);
+	  return(FALSE);
 	}
     }
     return(TRUE);
@@ -663,7 +669,6 @@ Boolean verifyPreviousRefinements()
 void PCevaluateWorld()
 {
     Boolean changed;
-
     //
     // see that we are actively searching before trying to eval tests!
     //
@@ -683,17 +688,18 @@ void PCevaluateWorld()
 	    } else if ((PCshortestEnableTime > sufficientTime.getValue()) &&
 		       (samplesSinceLastChange > sufficientTime.getValue())) {
 		// we have waited sufficient observation time move on.
-		printf("autorefinement timelimit reached at %f\n", 
-		    PCcurrentTime);
-		printf("samplesSinceLastChange = %d\n", samplesSinceLastChange);
-		printf("shortest enable time = %f\n", PCshortestEnableTime);
+
+	      PCstatusDisplay->updateStatusDisplay 
+		(PC_STATUSDISPLAY, "autorefinement timelimit reached at %f\nsamplesSinceLastChange = %d\nshortest enable time = %f\n",
+	PCcurrentTime, samplesSinceLastChange, PCshortestEnableTime);					   
 		autoTimeLimitExpired();
 	    }
 	} else if (changed) {
 	    if (verifyPreviousRefinements() == TRUE) {
 		dataMgr->pauseApplication(context);
 		PCsearchPaused = TRUE;
-		printf("application paused\n");
+		PCstatusDisplay->updateStatusDisplay 
+		  (PC_STATUSDISPLAY, "application paused\n");
 	    } else {
 		// previous refinement now false.
 		dataMgr->pauseApplication(context);
@@ -723,7 +729,8 @@ void performanceConsultant::search(Boolean stopOnChange, int limit)
     }
 
     // refine one step now and then let it go.
-    printf("setting limit to %d\n", limit);
+    PCstatusDisplay->updateStatusDisplay 
+      (PC_STATUSDISPLAY, "setting limit to %d\n", limit);
     PCsearchPaused = FALSE;
     PCautoRefinementLimit = limit;
     autoSelectRefinements();

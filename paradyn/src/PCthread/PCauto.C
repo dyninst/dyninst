@@ -2,7 +2,10 @@
  * Do automated refinement
  *
  * $Log: PCauto.C,v $
- * Revision 1.8  1994/05/19 00:00:25  hollings
+ * Revision 1.9  1994/06/12 22:40:46  karavan
+ * changed printf's to calls to status display service.
+ *
+ * Revision 1.8  1994/05/19  00:00:25  hollings
  * Added tempaltes.
  * Fixed limited number of nodes being evaluated on once.
  * Fixed color coding of nodes.
@@ -67,6 +70,7 @@
 #include "PCevalTest.h"
 #include "PCglobals.h"
 #include "PCauto.h"
+#include "../pdMain/paradyn.h"
 
 
 // 25% to start
@@ -167,6 +171,7 @@ void autoSelectRefinements()
 void autoChangeRefineList()
 {
     int i;
+    char msgBuf[128];
     // float newCost;
     timeStamp timeLimit;
     float totalCost = 0.0;
@@ -196,8 +201,9 @@ void autoChangeRefineList()
     // see if there was any thing to test.
     if (currentRefinementBase >= refineCount) {
 	dataMgr->pauseApplication(context);
-	printf("all refinements considered...application paused\n");
-
+/***
+	uiMgr->updateStatusDisplay(1, "all refinements considered...application paused\n");
+*/
 	// prevent any further auto refinement.
 	PCautoRefinementLimit = 0;
 	PCsearchPaused = TRUE;
@@ -207,8 +213,10 @@ void autoChangeRefineList()
 
     configureTests();
     timeLimit = PCcurrentTime + sufficientTime.getValue();
-    printf("setting autorefinement timelimit to %f\n", timeLimit);
-
+    sprintf (msgBuf, "setting autorefinement timelimit to %f\n", timeLimit);
+/***
+    uiMgr->updateStatusDisplay(1, msgBuf);
+*/
     // see if the new ones are true already.
     // (void) autoTestRefinements();
 }

@@ -1,10 +1,13 @@
 
 /* $Log: PCmain.C,v $
-/* Revision 1.12  1994/05/18 00:48:53  hollings
-/* Major changes in the notion of time to wait for a hypothesis.  We now wait
-/* until the earlyestLastSample for a metrics used by a hypothesis is at
-/* least sufficient observation time after the change was made.
+/* Revision 1.13  1994/06/12 22:40:49  karavan
+/* changed printf's to calls to status display service.
 /*
+ * Revision 1.12  1994/05/18  00:48:53  hollings
+ * Major changes in the notion of time to wait for a hypothesis.  We now wait
+ * until the earlyestLastSample for a metrics used by a hypothesis is at
+ * least sufficient observation time after the change was made.
+ *
  * Revision 1.11  1994/05/12  23:34:06  hollings
  * made path to paradyn.h relative.
  *
@@ -31,14 +34,18 @@
 #include "thread/h/thread.h"
 #include "dataManager.CLNT.h"
 #include "performanceConsultant.SRVR.h"
+#include "UI.CLNT.h"
 #include "PCglobals.h"
 #include "PCmetric.h"
-#include "../pdMain/paradyn.h"
+#include "../src/pdMain/paradyn.h"
+#include "../src/UIthread/UIstatDisp.h"
 
 performanceStream *pcStream;
 extern void initResources();
 extern void PCevaluateWorld();
 extern thread_t MAINtid;
+statusDisplayObj *PCstatusDisplay;   // token needed for PC status calls 
+
 int SHGid;             // id needed for Search History Graph uim dag calls
 static float PCbucketWidth;
 
@@ -138,6 +145,9 @@ void PCmain(int arg)
 	met = dataMgr->findMetric(context, mets.data[i]);
 	PCmetricFunc(pcStream, met);
     }
+
+    // initialize PC status display object
+    PCstatusDisplay = uiMgr->initStatusDisplay (PC_STATUSDISPLAY);
 
     while (1) {
 	tag = MSG_TAG_ANY;

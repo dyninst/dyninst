@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCrules.C,v $
- * Revision 1.9  1994/05/31 21:43:01  markc
+ * Revision 1.10  1994/06/12 22:40:50  karavan
+ * changed printf's to calls to status display service.
+ *
+ * Revision 1.9  1994/05/31  21:43:01  markc
  * Allow compensationFactor to be computed, but keep it within 0 and 1, which
  * is a short term fix.  Enable the hotSyncObject test in PCrules.C.
  *
@@ -64,17 +67,20 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.9 1994/05/31 21:43:01 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.10 1994/06/12 22:40:50 karavan Exp $";
 #endif
 
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
 
+#include "../src/pdMain/paradyn.h"
 #include "PCwhy.h"
 #include "PCmetric.h"
 #include "PCshg.h"
+#include "PCglobals.h"
 #include "PCevalTest.h"
+#include "../src/UIthread/UIstatDisp.h"
 
 // enable printing for eval tests
 // #define PC_PRINT 
@@ -550,13 +556,18 @@ test highPageFaults((changeCollectionFunc) &highPageFaults_ENABLE,
 /* ARGSUSED */
 void defaultExplanation(searchHistoryNode *explainee)
 {
+  char name[80];
     if (explainee && explainee->why) {
-	printf("hypothesis: %s true for", explainee->why->name);
+	  PCstatusDisplay->updateStatusDisplay (PC_STATUSDISPLAY, 
+	   "hypothesis: %s true for", explainee->why->name);
     } else {
-	printf("***** NO HYPOTHESIS *******\n");
-    }
+	  PCstatusDisplay->updateStatusDisplay 
+	    (PC_STATUSDISPLAY, "***** NO HYPOTHESIS *******\n");
+	}
     explainee->where->print();
-    printf("at %f\n", PCcurrentTime);
+    explainee->where->print(name);
+    PCstatusDisplay->updateStatusDisplay
+      (PC_STATUSDISPLAY, "%s at %f\n", name, PCcurrentTime);
 
 }
 
@@ -568,10 +579,12 @@ void cpuProfileExplanation(searchHistoryNode *explainee)
     float elapsed;
     float totalCpu;
     focusList allProcedures;
+    char displayStr[80];
 
     defaultExplanation(explainee);
-
-    printf("your program is cpu bound, the top procedures by CPU time are:\n");
+    PCstatusDisplay->updateStatusDisplay
+      (PC_STATUSDISPLAY, 
+       "your program is cpu bound, the top procedures by CPU time are:\n");
     // allProcedures = whereAxis->magnify(Procedures);
     allProcedures = currentFocus->magnify(Procedures);
     totalCpu = CPUtime.value(whereAxis);
@@ -582,8 +595,10 @@ void cpuProfileExplanation(searchHistoryNode *explainee)
 
 	share = CPUtime.value(i) / totalCpu;
 	i->print(name);
-	printf(" %-25s %-7.2f %-7.2f\n", name, CPUtime.value(i), share*100.0);
-    }
+	sprintf(displayStr, " %-25s %-7.2f %-7.2f\n", name, 
+		CPUtime.value(i), share*100.0);
+	PCstatusDisplay->updateStatusDisplay (PC_STATUSDISPLAY, displayStr);
+      }
 }
 
 //

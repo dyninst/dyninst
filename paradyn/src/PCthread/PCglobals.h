@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCglobals.h,v $
- * Revision 1.3  1994/05/18 02:49:27  hollings
+ * Revision 1.4  1994/06/12 22:40:48  karavan
+ * changed printf's to calls to status display service.
+ *
+ * Revision 1.3  1994/05/18  02:49:27  hollings
  * Changed the time since last change to use the time of the first sample
  * arrivial after the change (rather than the time of the change).
  *
@@ -29,6 +32,8 @@
  *
  */
 
+class statusDisplayObj;
+ 
 // should we print a message when a metric value is printed.
 extern Boolean fetchPrint;
 
@@ -45,8 +50,12 @@ extern Boolean printNodes;
 
 // update the SHG during the search?
 extern Boolean interactiveShgUpdate;
+
 extern int SHGid;
 extern dataManagerUser *dataMgr;
+
+// token for PC status display requests
+extern statusDisplayObj *PCstatusDisplay;
 
 // styles for SHG display
 
