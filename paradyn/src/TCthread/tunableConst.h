@@ -2,6 +2,9 @@
  * tunableConstant - a constant that might be changed during execution.
  *
  * $Log: tunableConst.h,v $
+ * Revision 1.5  1995/12/20 02:26:42  tamches
+ * general cleanup
+ *
  * Revision 1.4  1995/11/06 19:25:54  tamches
  * dictionary_hash --> dictionary_lite
  *
@@ -82,53 +85,23 @@ typedef void (*floatChangeValCallBackFunc)(float value);
  * this base class, which provides name, description, type (bool/float),
  * and use (user/developer) fields.
  *
- * But outside code shouldn't declare variables of this type (or of type
- * tunableBoolConstant or tunableFloatConstant---this is something new to
- * be aware of!).  To create a tunable constant, see class
- * tunableBooleanConstantDeclarator or class tunableFloatConstantDeclarator.
- * These are stub classes that just call the appropriate new static member
- * function of tunableConstantRegistry to create and destroy tunable
- * constants in the central registry.  You could call them manually if you really
- * want, for example:
- *
- *    tunableConstantRegistry::createFloatTunableConstant(name, desc,
- *                   callback, type, initialValue, min, max);
- *
- *    tunableConstantRegistry::destroyBoolTunableConstant(name);
+ * Outside code should probably never need to know about this class.
  *
  * To obtain a read-only copy of a tunable constant, see routines like:
  * 
  *   tunableBooleanConstant myConst = tunableConstantRegistry::findBoolTunableConstant(string);
  *   tunableFloatConstant myConst = tunableConstantRegistry::findFloatTunableConstant(string);
  *
- * Any changes you make to the **copy** that gets returned by these two functions
- * are *** NOT *** really propagated to the central registry.  That's why we say
- * the copy that gets returned is "read-only" (in effect).  To make changes take
- * effect in the central registry, try:
+ * To make changes take effect in the central registry, try:
  * 
- *   tunableConstantRegistry::setFloatTunableConstant(const string &, const float newValue);
- *   tunableConstantRegistry::setBoolTunableConstant(const string &, const bool newValue);
- *
- * Note the static member functions of class "tunableConstantRegistry".  Eventually,
- * these will evolve to become igen calls.  These are the routines that outside code
- * should feel free to call.
+ *   tunableConstantRegistry::setBoolTunableConstant(const string &, bool newValue);
+ *   tunableConstantRegistry::setFloatTunableConstant(const string &, float newValue);
  *
  * Note the purposeful returning of **copies**.  There are no pointers held across
  * threads.  This should lead to a pretty clean design.
  *
- * TO DO LIST:
- * 1) turn the static functions of class tunableConstantRegistry into real igen calls
- * 2) there is a big problem with the "callback" feature: shouldn't callback functions
- *    be arbitrary igen calls? (after all, they can certainly be in different threads)
- *    How to do this? [try replacing passing ptr-to-function when creating a TC
- *    with: a threadid (who to callback to) and other stuff]
  * ****************************************************************
 */
-
-
-/* **************************************************************** */
-/* **************************************************************** */
-
 
 class tunableConstantBase {
  protected:
@@ -164,9 +137,16 @@ class tunableConstantBase {
    tunableType getType() const { return typeName; }
 };
 
-/* **************************************************************** */
-/* ******************** tunableBooleanConstant ******************** */
-/* **************************************************************** */
+/* ****************************************************************
+ * ******************** tunableBooleanConstant ********************
+ * ****************************************************************
+ * 
+ * Outside code should not declare variables of this class, except
+ * as the return value of tunableConstantRegistry::findBoolTunableConstant()
+ * That's why the meaty constructor was made private.
+ *
+ * ****************************************************************
+ */
 
 class tunableBooleanConstant : public tunableConstantBase {
  friend class tunableConstantRegistry;
@@ -193,9 +173,16 @@ class tunableBooleanConstant : public tunableConstantBase {
    bool getValue() const {return value;}
 };
 
-/* **************************************************************** */
-/* ********************** tunableFloatConstant ******************** */
-/* **************************************************************** */
+/* ****************************************************************
+ * ******************** tunableFloatConstant **********************
+ * ****************************************************************
+ * 
+ * Outside code should not declare variables of this class, except
+ * as the return value of tunableConstantRegistry::findFloatTunableConstant()
+ * That's why the meaty constructor was made private.
+ *
+ * ****************************************************************
+ */
 
 class tunableFloatConstant : public tunableConstantBase {
  friend class tunableConstantRegistry;
@@ -238,10 +225,7 @@ class tunableFloatConstant : public tunableConstantBase {
  * ******************** tunableConstantRegistry ********************
  * *****************************************************************
  *
- * The tunable constant central registry.
- * 
- * Contains a lot of static member functions (that will evolve into igen calls),
- * which outside code is encouraged to call at will.
+ * Contains a lot of static member functions meant for use by outside code.
  *
  * Contains two very important local (static) variables: associative arrays
  * for boolean and float constants.
@@ -259,50 +243,49 @@ class tunableConstantRegistry {
    static tunFloatAssocArrayType allFloatTunables;
 
  public:
-   // (FUTURE) IGEN CALLS:
+   // Methods not specific to bool v. float:
 
    static bool existsTunableConstant(const string &);
-      // true iff the tunable constant exists.  Does not return the type.
-
-   static bool existsBoolTunableConstant(const string &);
-      // true iff the tunable constant exists, and is boolean.
-
-   static bool existsFloatTunableConstant(const string &);
-      // true iff the tunable constant exists, and is float.
+      // true iff the tunable constant exists, regardless of type.
 
    static tunableType getTunableConstantType(const string &);
       // Perhaps a prelude to deciding whether to call "findBoolTunableConstant"
       // or "findFloatTunableConstant".  Will (eventually be implemented to) raise
       // an exception if not found.
 
-   static int numTunables();
+   static unsigned numTunables();
 
    static tunableConstantBase getGenericTunableConstantByName(const string &);
       // will (eventually be implemented to) throw an exception if name is not found.
 
-   // (FUTURE) IGEN CALLS SPECIFIC TO BOOLEAN TC'S:
-   static int numBoolTunables();
+   // Methods specific to boolean tunable constants:
+   static unsigned numBoolTunables();
+
    static bool createBoolTunableConstant(const string &iname,
                                          const string &idesc,
                                          booleanChangeValCallBackFunc cb,
                                          tunableUse type,
                                          const bool initialVal);
-      // returns true iff successfully created
+      // returns true iff successfully created in the central repository.
       // outside code can use class tunableBooleanConstantDeclarator to avoid the
       // need to bother with this routine and the next one...
-
    static bool destroyBoolTunableConstant(const string &);
       // returns true iff successfully destroyed.
       // Beware of race conditions...best to only call this routine when
       // completely shutting down paradyn!
      
+   static bool existsBoolTunableConstant(const string &);
+
    static tunableBooleanConstant findBoolTunableConstant(const string &);
    static vector<tunableBooleanConstant> getAllBoolTunableConstants();
 
-   static void setBoolTunableConstant(const string &, const bool newValue);
+   static void setBoolTunableConstant(const string &, bool newValue);
+      // makes change take effect in the central repository.  Will eventually be implemented
+      // to throw and exception if not found.
 
-   // (FUTURE) IGEN CALLS SPECIFIC TO FLOAT TC'S:
-   static int numFloatTunables();
+   // Methods specific to float tunable constants:
+   static unsigned numFloatTunables();
+
    static bool createFloatTunableConstant(const string &iname,
 					  const string &idesc,
                                           floatChangeValCallBackFunc cb,
@@ -311,8 +294,7 @@ class tunableConstantRegistry {
 					  float min, float max);
       // returns true iff successfully created
       // outside code can use class tunableFloatConstantDeclarator to avoid the
-      // need to bother with this routine and the next one...
-
+      // need to bother with this routine and the next two...
    static bool createFloatTunableConstant(const string &iname,
 					  const string &idesc,
                                           floatChangeValCallBackFunc cb,
@@ -320,16 +302,17 @@ class tunableConstantRegistry {
                                           const float initialVal,
 					  isValidFunc ivf);
       // returns true iff successfully created
-
    static bool destroyFloatTunableConstant(const string &);
       // returns true iff successfully destroyed.
       // Beware of race conditions...best to only call this routine when
       // completely shutting down paradyn!
      
+   static bool existsFloatTunableConstant(const string &);
+
    static tunableFloatConstant findFloatTunableConstant(const string &);
    static vector<tunableFloatConstant> getAllFloatTunableConstants();
 
-   static void setFloatTunableConstant(const string &, const float newValue);
+   static void setFloatTunableConstant(const string &, float newValue);
 };
 
 /* **************************************************************

@@ -3,6 +3,9 @@
  *    execution of the system.
  *
  * $Log: tunableConst.C,v $
+ * Revision 1.5  1995/12/20 02:27:01  tamches
+ * general cleanup
+ *
  * Revision 1.4  1995/10/12 18:35:59  tamches
  * Changed a lot of prototypes from "string" to "const string &", thus avoiding
  * an unnecessary string copy.
@@ -62,23 +65,21 @@
 #include <string.h>
 #include "tunableConst.h"
 
-/* ******************************************************************* */
-/* ***************** IGEN calls not specific to tc type ************** */
-/* ******************************************************************* */
+
+/* *******************************************************************
+ * ***************** Tunable Constant Registry Class *****************
+ * *******************************************************************
+ *
+ * Contains a lot of static member functions meant for use by outside code.
+ * 
+ * *******************************************************************
+ */
 
 bool tunableConstantRegistry::existsTunableConstant(const string &theName) {
    return allBoolTunables.defines(theName) || allFloatTunables.defines(theName);
 }
 
-bool tunableConstantRegistry::existsBoolTunableConstant(const string &theName) {
-   return allBoolTunables.defines(theName);
-}
-
-bool tunableConstantRegistry::existsFloatTunableConstant(const string &theName) {
-   return allFloatTunables.defines(theName);
-}
-
-int tunableConstantRegistry::numTunables() {
+unsigned tunableConstantRegistry::numTunables() {
    return allBoolTunables.size() + allFloatTunables.size();
 }
 
@@ -108,11 +109,13 @@ tunableConstantBase tunableConstantRegistry::getGenericTunableConstantByName(con
    return allFloatTunables[theName]; // makes a copy and then returns it
 }
 
-/* ******************************************************************* */
-/* ***************** IGEN calls specific to boolean tc's ************* */
-/* ******************************************************************* */
+/* Tunable Constant Registry Routines specific to boolean tunables: */
 
-int tunableConstantRegistry::numBoolTunables() {
+bool tunableConstantRegistry::existsBoolTunableConstant(const string &theName) {
+   return allBoolTunables.defines(theName);
+}
+
+unsigned tunableConstantRegistry::numBoolTunables() {
    return allBoolTunables.size();
 }
 
@@ -179,12 +182,14 @@ void tunableConstantRegistry::setBoolTunableConstant(const string &theName,
       tbc.newValueCallBack(newValue);
 }
 
-/* ******************************************************************* */
-/* ***************** IGEN calls specific to float tc's *************** */
-/* ******************************************************************* */
+/* Tunable Constant Registry Routines specific to float tunables: */
 
-int tunableConstantRegistry::numFloatTunables() {
+unsigned tunableConstantRegistry::numFloatTunables() {
    return allFloatTunables.size();
+}
+
+bool tunableConstantRegistry::existsFloatTunableConstant(const string &theName) {
+   return allFloatTunables.defines(theName);
 }
 
 bool tunableConstantRegistry::createFloatTunableConstant(const string &theName,
@@ -208,12 +213,6 @@ bool tunableConstantRegistry::createFloatTunableConstant(const string &theName,
 
    allFloatTunables[theName] = theConst;
    assert(allFloatTunables[theName].getName()==theName); // verify name
-
-//   cout << "tunable const registry: now there are " << allFloatTunables.size() << " float tcs." << endl;
-
-//   vector<string> floatTCNames = allFloatTunables.keys();
-//   for (int i=0; i<floatTCNames.size(); i++)
-//      cout << "   " << floatTCNames[i] << endl;
 
    return true; // success
 }
@@ -239,10 +238,7 @@ bool tunableConstantRegistry::createFloatTunableConstant(const string &theName,
 
    allFloatTunables[theName] = theConst;
 
-//   cout << "tunable const registry: just created float tc " << theName << "; verifying name." << endl;
    assert(allFloatTunables[theName].getName()==theName);
-
-//   cout << "tunable const registry: name verified; now there are " << allFloatTunables.size() << " float tcs; they are:" << endl;
 
    return true; // success
 }
@@ -279,14 +275,25 @@ void tunableConstantRegistry::setFloatTunableConstant(const string &theName,
 
    tunableFloatConstant &tfc = allFloatTunables[theName];
 
-   if (tfc.isValidValue && tfc.isValidValue(newValue)) {
-      tfc.value = newValue; // used to be allFloatTunables[theName].setValue(newValue);
-      if (tfc.newValueCallBack)
-         tfc.newValueCallBack(newValue);
+   bool okay = false; // set to true if change should be made & callback should be invoked
+   if (tfc.isValidValue) {
+      // an isValidValue checking routine exists; use it now
+      if (tfc.isValidValue(newValue))
+         // check succeeded; the change to the registry may now go forward
+         // and the callback may be invoked.
+         okay = true;
    }
-   else if (tfc.simpleRangeCheck(newValue)) {
+   else {
+      // perform simpleRangeCheck
+      if (tfc.simpleRangeCheck(newValue))
+         // check succeeded; change to registry may now go forward
+         // and callback may be invoked.
+         okay = true;
+   }
+
+   if (okay) {
       tfc.value = newValue;
-      if (tfc.newValueCallBack) 
+      if (tfc.newValueCallBack)
          tfc.newValueCallBack(newValue);
    }
 }
@@ -334,8 +341,6 @@ tunableFloatConstant::tunableFloatConstant(const tunableFloatConstant &src) :
       tunableConstantBase(src),
       value(src.value), min(src.min), max(src.max), isValidValue(src.isValidValue),
       newValueCallBack(src.newValueCallBack) {
-//   cout << "welcome to tunableFloatConstant [sort of]" << endl;
-//   cout.flush();
 }
 
 bool tunableFloatConstant::simpleRangeCheck(float val) {
@@ -373,9 +378,9 @@ tunableFloatConstant::tunableFloatConstant(const string &theName,
    this->newValueCallBack = cb;
 }
 
-/* ************************************************************** */
-/* ************************ Declarators ************************* */
-/* ************************************************************** */
+/* **************************************************************************** */
+/* **************** Declarators -- meant for use by outside code ************** */
+/* **************************************************************************** */
 
 tunableBooleanConstantDeclarator::tunableBooleanConstantDeclarator
             (const string &theName,
@@ -395,9 +400,6 @@ tunableBooleanConstantDeclarator::tunableBooleanConstantDeclarator
 }
 
 tunableBooleanConstantDeclarator::~tunableBooleanConstantDeclarator() {
-//   cout << "Welcome to ~tunableBooleanConstantDeclarator for " << this->the_name << endl;
-
-   // igen call:
    (void)tunableConstantRegistry::destroyBoolTunableConstant(this->the_name);
 }
 
@@ -408,7 +410,6 @@ tunableFloatConstantDeclarator::tunableFloatConstantDeclarator
 		  float min, float max,
 		  floatChangeValCallBackFunc cb,
 		  tunableUse type) : the_name(theName) {
-   // igen call:
    const bool result = tunableConstantRegistry::createFloatTunableConstant(theName,
 									   theDesc,
 									   cb,
@@ -437,7 +438,5 @@ tunableFloatConstantDeclarator::tunableFloatConstantDeclarator
 }
 
 tunableFloatConstantDeclarator::~tunableFloatConstantDeclarator() {
-//   cout << "Welcome to ~tunableFloatConstantDeclarator for " << this->the_name << endl;
-   // igen call:
    (void)tunableConstantRegistry::destroyFloatTunableConstant(this->the_name);
 }
