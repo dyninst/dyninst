@@ -2,10 +2,13 @@
 // C++ code that provides access to tunable constants from tcl.
 
 /* $Log: tclTunable.C,v $
-/* Revision 1.5  1995/02/27 18:57:51  tamches
-/* Extensive changes, to reflect equally extensive changes which
-/* have been made to tunable constants.
+/* Revision 1.6  1995/07/16 19:01:23  tamches
+/* Changes to be compatible with the new string class
 /*
+ * Revision 1.5  1995/02/27  18:57:51  tamches
+ * Extensive changes, to reflect equally extensive changes which
+ * have been made to tunable constants.
+ *
  * Revision 1.4  1994/12/21  07:40:49  tamches
  * Removed uses of tunableConstant::allConstants (which became a protected
  * class variable), replacing them with tunableConstant::beginIteration();
@@ -24,8 +27,8 @@
 
 #include <assert.h>
 #include <stdlib.h> // atoi()
-#include <tcl.h>
-#include <tk.h>
+#include <tclclean.h>
+#include <tkclean.h>
 #include "../TCthread/tunableConst.h"
 
 #include "tclTunable.h"
@@ -100,7 +103,7 @@ char *getBoolAllNames() {
    vector<tunableBooleanConstant> allBoolConstants = tunableConstantRegistry::getAllBoolTunableConstants();
    assert(allBoolConstants.size() == numBoolTunables);
 
-   char **boolConstantStrings = new char* [numBoolTunables];
+   const char **boolConstantStrings = new const char* [numBoolTunables];
    assert(boolConstantStrings);
 
    for (int lcv=0; lcv<numBoolTunables; lcv++) {
@@ -119,7 +122,7 @@ char *getFloatAllNames() {
    vector<tunableFloatConstant> allFloatConstants = tunableConstantRegistry::getAllFloatTunableConstants();
    assert(allFloatConstants.size() == numFloatTunables);
 
-   char **floatConstantStrings = new char* [numFloatTunables];
+   const char **floatConstantStrings = new const char* [numFloatTunables];
    assert(floatConstantStrings);
 
    for (int lcv=0; lcv<numFloatTunables; lcv++) {
@@ -177,7 +180,7 @@ int TclTunableCommand(ClientData cd, Tcl_Interp *interp,
 	 }
 
          tunableConstantBase tcb = tunableConstantRegistry::getGenericTunableConstantByName(argv[2]);
-         sprintf(interp->result, "%s", (tcb.getDesc()==NULL) ? tcb.getName().string_of() : tcb.getDesc().string_of());
+         sprintf(interp->result, "%s", (tcb.getDesc().string_of()==NULL) ? tcb.getName().string_of() : tcb.getDesc().string_of());
          return TCL_OK;
       }
 
