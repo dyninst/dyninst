@@ -9,7 +9,7 @@
 #include <stdarg.h>
 #include <vector>
 
-#include "mrnet/src/Errors.h"
+#include "mrnet/src/Error.h"
 #include "mrnet/src/pdr.h"
 #include "mrnet/src/refCounter.h"
 #include "mrnet/src/DataElement.h"

@@ -12,7 +12,7 @@
 
 #include "mrnet/MRNet.h"
 #include "mrnet/src/utils.h"
-#include "mrnet/src/Errors.h"
+#include "mrnet/src/Error.h"
 
 namespace MRN
 {

@@ -10,7 +10,7 @@
 #include <vector>
 
 #include "mrnet/src/Packet.h"
-#include "mrnet/src/Errors.h"
+#include "mrnet/src/Error.h"
 
 namespace MRN
 {
