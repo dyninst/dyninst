@@ -24,16 +24,16 @@
 #include <string>
 #include <map>
 
-#if !defined(WIN32)
+#if !defined(os_windows)
 #include <net/if.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
-#endif // defined(WIN32)
+#endif // defined(os_windows)
 
-#if defined(solaris)
+#if defined(os_solaris)
 #include <sys/sockio.h>         //only for solaris
-#endif // defined(solaris)
+#endif // defined(os_windows)
 
 
 
@@ -356,7 +356,7 @@ int getNetworkName( std::string & network_name, const std::string & in_hostname 
     memcpy( ( void * )( &in.s_addr ), ( void * )( hp->h_addr_list[0] ),
             hp->h_length );
 
-#if defined(solaris) || defined(WIN32)
+#if defined(os_solaris) || defined(os_windows)
     hp = gethostbyaddr( ( const char * )&in, sizeof( in ), AF_INET );
 #else
     hp = gethostbyaddr( ( void * )&in, sizeof( in ), AF_INET );
