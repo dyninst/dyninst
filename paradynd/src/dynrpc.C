@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.120 2005/03/07 21:18:53 bernat Exp $ */
+/* $Id: dynrpc.C,v 1.121 2005/03/14 22:17:53 legendre Exp $ */
 
 #include "paradynd/src/metricFocusNode.h"
 #include "paradynd/src/machineMetFocusNode.h"
@@ -226,7 +226,6 @@ void processInstrDeletionRequests() {
 
    for(unsigned k=0; k<procsToCont.size(); k++) {
       pd_process *proc = procsToCont[k];
-      fprintf(stderr, "Continuing in instrDeletionRequests\n");
       proc->continueProc();
    }
 }
@@ -375,7 +374,6 @@ void dynRPC::continueApplication(void)
 void dynRPC::continueProgram(int pid)
 {
 
-  fprintf(stderr, "dynRPC->continueProgram\n");
    pd_process *proc = getProcMgr().find_pd_process(pid);
    if (!proc) {
       if(getProcMgr().hasProcessExited(pid)) {
@@ -419,7 +417,6 @@ void dynRPC::continueProgram(int pid)
 //
 bool dynRPC::pauseApplication(void)
 {
-  fprintf(stderr, "dynRPC::pauseApp\n");
     pauseAllProcesses();
     return true;
 }
@@ -429,7 +426,6 @@ bool dynRPC::pauseApplication(void)
 //
 bool dynRPC::pauseProgram(int program)
 {
-  fprintf(stderr, "dynRPC::pauseProg\n");
    pd_process *proc = getProcMgr().find_pd_process(program);
    if (!proc) {
       sprintf(errorLine, "Internal error: cannot pause PID %d\n", program);
@@ -443,7 +439,6 @@ bool dynRPC::pauseProgram(int program)
 
 bool dynRPC::startProgram(int )
 {
-  fprintf(stderr, "dynRPC::startProgram\n");
     statusLine("starting application");
     continueAllProcesses();
     return(false);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.118 2005/03/14 17:32:12 mjbrim Exp $ */
+/* $Id: context.C,v 1.119 2005/03/14 22:17:52 legendre Exp $ */
 
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/pd_thread.h"
@@ -507,13 +507,11 @@ extern PDSOCKET traceSocket_fd;
 // calls can be handled.
 void wait_for_thread_creation(process *childDynProc,
                               unsigned num_expected) {
-  fprintf(stderr, "wait_for_thread_creation, expecting %d\n", num_expected);
    // recognize and set up meta-data for threads in the child process
    fd_set readSet;
    fd_set errorSet;
    int ct;
    while(! allThreadCreatesReceived(childDynProc, num_expected)) {
-     fprintf(stderr, "entered wait loop\n");
        if(childDynProc->hasExited()) return;
        //getSH()->checkForAndHandleProcessEvent(false);
 
@@ -527,7 +525,6 @@ void wait_for_thread_creation(process *childDynProc,
    
       FD_ZERO(&readSet);
       FD_ZERO(&errorSet);
-      fprintf(stderr, "childDynProc, traceLink %d\n", childDynProc->traceLink);
       if(childDynProc->traceLink >= 0) {
          FD_SET(childDynProc->traceLink, &readSet);
       }
@@ -537,7 +534,6 @@ void wait_for_thread_creation(process *childDynProc,
       // add traceSocket_fd, which accept()'s new connections (from processes
       // not launched via createProcess() [process.C], such as when a process
       // forks, or when we attach to an already-running process).
-      fprintf(stderr, "traceSocket_fd: %d\n", traceSocket_fd);
       if (traceSocket_fd != INVALID_PDSOCKET) FD_SET(traceSocket_fd, &readSet);
       if (traceSocket_fd > width) width = traceSocket_fd;
 
@@ -548,24 +544,20 @@ void wait_for_thread_creation(process *childDynProc,
       // "width" is computed but ignored on Windows NT, where sockets 
       // are not represented by nice little file descriptors.
       if (tp->get_sock() > width) width = tp->get_sock();
-      fprintf(stderr, "Calling select\n");
       // TODO - move this into an os dependent area
       ct = P_select(width+1, &readSet, NULL, &errorSet, &pollTimeStruct);
-      fprintf(stderr, "Select returned %d\n", ct);
       if (ct <= 0)  continue;
 
       if (traceSocket_fd >= 0 && FD_ISSET(traceSocket_fd, &readSet)) {
          // Either (1) a process we're measuring has forked, and the child
          // process is asking for a new connection, or (2) a process we've
          // attached to is asking for a new connection.
-	fprintf(stderr, "Processing new TS connection\n");
 	processNewTSConnection(traceSocket_fd); // context.C
       }      
       
       if(childDynProc->traceLink >= 0 && 
          FD_ISSET(childDynProc->traceLink, &readSet)) {
          processTraceStream(childDynProc);
-	 fprintf(stderr, "processTraceStream\n");
          /* in the meantime, the process may have died, setting
             curProc to NULL */
          
@@ -616,18 +608,12 @@ void initMT_AfterFork(process *proc) {
 }
 
 void MT_lwp_setup(process *parentDynProc, process *childDynProc) {
-
-  cerr << "Entering MT_lwp_setup..." << endl;
-
-   fprintf(stderr, "Child status: %d (stopped %d)\n", childDynProc->status(), stopped);
-
    pdvector<unsigned> par_tids;
    for(unsigned i=0; i<parentDynProc->threads.size(); i++) {
       unsigned tid = parentDynProc->threads[i]->get_tid();
       if(tid == 1)
          continue;
       par_tids.push_back(tid);
-      fprintf(stderr, "Pushing parent TID %d\n", tid);
    }
 
 #if 0
@@ -640,18 +626,14 @@ void MT_lwp_setup(process *parentDynProc, process *childDynProc) {
    do {
       childDynProc->recognize_threads(&completed_lwps);
       for (unsigned foo = 0; foo < completed_lwps.size(); foo++)
-	fprintf(stderr, "lwp %d finished\n", completed_lwps[foo]);
       num_expected += completed_lwps.size();
       completed_lwps.clear();
-      fprintf(stderr, "Entering wait_for_thread_creation\n");
       //wait_for_thread_creation(childDynProc, num_expected);
-      fprintf(stderr, "Leaving wait_for_thread_creation\n");
 #if defined(rs6000_ibm_aix4_1)
       if(childDynProc->threads.size() > 0)
          expected_thrs.push_back(childDynProc->threads[0]->get_tid());
 #endif
    } while(! allThreadsCreated(childDynProc, expected_thrs));
-   fprintf(stderr, "Calling initMT_afterFork\n");
    initMT_AfterFork(childDynProc);
 #endif
 
@@ -662,29 +644,15 @@ void MT_lwp_setup(process *parentDynProc, process *childDynProc) {
 #endif
    pdvector<unsigned> completed_lwps;
 
-   fprintf(stderr, "Child status: %d (stopped %d)\n", childDynProc->status(), stopped);
-
    childDynProc->recognize_threads(&completed_lwps);
 
-   fprintf(stderr, "Child status: %d (stopped %d)\n", childDynProc->status(), stopped);
-
-   for (unsigned foo = 0; foo < completed_lwps.size(); foo++)
-     fprintf(stderr, "lwp %d finished\n", completed_lwps[foo]);
    num_expected += completed_lwps.size();
    completed_lwps.clear();
-   fprintf(stderr, "Entering wait_for_thread_creation\n");
    //wait_for_thread_creation(childDynProc, num_expected);
-   fprintf(stderr, "Leaving wait_for_thread_creation\n");
-
-   fprintf(stderr, "Child status: %d (stopped %d)\n", childDynProc->status(), stopped);
 
    // Idea: we'll catch the threads over the standard trace pipe
 
-   fprintf(stderr, "Calling initMT_afterFork\n");
    initMT_AfterFork(childDynProc);
-
-   fprintf(stderr, "Child status: %d (stopped %d)\n", childDynProc->status(), stopped);
-
 }
 
 

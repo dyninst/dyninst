@@ -457,7 +457,6 @@ void processMetFocusNode::doCatchupInstrumentation(pdvector<pdvector<Frame> >&st
     //    our purposes
     // 3) Waiting for a system call, no trap. Nothing we can do but
     //    wait and pick it up somewhere else.
-    fprintf(stderr, "Doing catchup, currentlyPaused %d\n", currentlyPaused);
     if (!proc_->launchRPCs(currentlyPaused)) {
       if (currentlyPaused) continueProcess();
       return;

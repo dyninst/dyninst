@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.135 2005/03/11 00:38:07 legendre Exp $
+// $Id: main.C,v 1.136 2005/03/14 22:17:54 legendre Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -727,7 +727,6 @@ main( int argc, char* argv[] )
     }
 
     // start handling requests
-    fprintf(stderr, "Going into main loop\n");
     controllerMainLoop( true );
 
     RPC_undo_environment_work();
@@ -793,7 +792,6 @@ StartOrAttach( void )
    }
    
    isInfProcAttached = true;
-   fprintf(stderr, "startOrAttach returning\n");
    return 0;
 }
 

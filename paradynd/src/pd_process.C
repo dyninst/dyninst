@@ -86,7 +86,6 @@ void addLibraryCallback(BPatch_thread *thr,
                         BPatch_module *mod,
                         bool load)
 {
-  fprintf(stderr, "%s[%d]:  inside addLibraryCallback\n", __FILE__, __LINE__);
   if (!mod) {
     fprintf(stderr, "%s[%d]:  addModuleCallback called w/out module!\n",
             __FILE__, __LINE__);
@@ -174,8 +173,6 @@ pd_process *pd_createProcess(pdvector<pdstring> &argv, pdstring dir,
         return NULL;
     }
 
-    fprintf(stderr, "Process creation...\n");
-
     // Load the paradyn runtime lib
     if (!proc->getSharedMemMgr()->initialize()) {
       fprintf(stderr, "%s[%d]:  failed to init shared mem mgr, fatal...\n", __FILE__, __LINE__);
@@ -183,8 +180,6 @@ pd_process *pd_createProcess(pdvector<pdstring> &argv, pdstring dir,
       return NULL;
     }
     proc->loadParadynLib(pd_process::create_load);
-
-    fprintf(stderr, "paradyn lib loaded...\n");
     
     // Run necessary initialization
     proc->init();
@@ -194,16 +189,12 @@ pd_process *pd_createProcess(pdvector<pdstring> &argv, pdstring dir,
     process *llproc = proc->get_dyn_process()->lowlevel_process();
     if(!costMetric::addProcessToAll(llproc))
         assert(false);
-
-    fprintf(stderr, "Adding process...\n");
     
     getProcMgr().addProcess(proc);
 
     pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
     buffer += pdstring(", ready");
     statusLine(buffer.c_str());
-
-    fprintf(stderr, "Should be paused...\n");
 
     return proc;
 }
@@ -237,8 +228,6 @@ pd_process *pd_attachProcess(const pdstring &progpath, int pid, bool parse_loops
     getProcMgr().addProcess(proc);
 
     llproc->recognize_threads(NULL);
-    
-    cerr << "Done recognizing threads" << endl;
 
     pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
     buffer += pdstring(", ready");
@@ -529,7 +518,6 @@ pd_process::pd_process(const pd_process &parent, BPatch_thread *childDynProc) :
 }
 
 pd_process::~pd_process() {
-   fprintf(stderr, "Deconstructing pd_process\n");
    cpuTimeMgr->destroyMechTimers(this);
 
    delete dyninst_process;
@@ -718,11 +706,7 @@ void pd_process::postForkHandler(BPatch_thread *child) {
    if(childDynProc->multithread_capable())
       MT_lwp_setup(parentDynProc, childDynProc);
 
-   fprintf(stderr, "Child status: %d (stopped %d)\n", childDynProc->status(), stopped);
-
    childDynProc->setParadynBootstrap();
-
-   fprintf(stderr, "Child status: %d (stopped %d)\n", childDynProc->status(), stopped);
 
    assert(childDynProc->status() == stopped);
 

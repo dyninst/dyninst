@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.529 2005/03/14 21:12:01 gquinn Exp $
+// $Id: process.C,v 1.530 2005/03/14 22:17:51 legendre Exp $
 
 #include <ctype.h>
 
@@ -6024,8 +6024,6 @@ static void doneRegistering(process *, unsigned, void *data, void *result_arg)
 {
   dyn_lwp *lwp = (dyn_lwp *) data;
   rpcs_completed++;
-  fprintf(stderr, "registering callback... result_arg = %p, lwp_id %d\n",
-	  result_arg, lwp->get_lwp_id());
 
   if (result_arg == (void *) 0x1 && successful_lwps)
     successful_lwps->push_back(lwp->get_lwp_id());
@@ -6051,7 +6049,6 @@ void process::recognize_threads(pdvector<unsigned> *completed_lwps) {
 
      pdvector<AstNode *> ast_args;
      AstNode *ast = new AstNode("DYNINSTregister_running_thread", ast_args);
-     fprintf(stderr, "Posting RPC on discovered LWP %d (%d)\n",
 	     i, lwp_id);
      unsigned id = getRpcMgr()->postRPCtoDo(ast, true, doneRegistering, lwp, 
 					    false, NULL, lwp);          
