@@ -4,6 +4,9 @@
 
 /*
  * $Log: resource.h,v $
+ * Revision 1.3  1995/11/29 18:45:25  krisna
+ * added inlines for compiler. added templates
+ *
  * Revision 1.2  1995/05/18 10:41:51  markc
  * Cache global ids supplied by paradyn
  * have a canonical form for the resource list
@@ -85,7 +88,7 @@ private:
   static dictionary_hash<unsigned, resource*> res_dict;
 };
 
-bool resource::isResourceDescendent(resource *is_a_parent) {
+inline bool resource::isResourceDescendent(resource *is_a_parent) {
   resource *current = this;
   while (current) {
     if (current == is_a_parent)
@@ -96,10 +99,10 @@ bool resource::isResourceDescendent(resource *is_a_parent) {
   return false;
 }
 
-resource::resource()
+inline resource::resource()
 : creation_(0), handle_(NULL), suppressed_(true), parent_(NULL) { }
 
-resource::resource(string& abstraction, string& self_name, timeStamp creat,
+inline resource::resource(string& abstraction, string& self_name, timeStamp creat,
 		   void *hand, bool supp, resource *par,
 		   vector<string>& v_names)
 : names_(v_names), flat_name_(par->full_name() + "/" + self_name),
@@ -107,12 +110,12 @@ resource::resource(string& abstraction, string& self_name, timeStamp creat,
   creation_(creat), handle_(hand), suppressed_(supp), parent_(par),
   part_name_(self_name) { }
 
-resource *resource::findResource(unsigned& name) {
+inline resource *resource::findResource(unsigned& name) {
   if (!res_dict.defines(name)) return NULL;
   return (res_dict[name]);
 }
 
-resource *resource::findResource(string &name) {
+inline resource *resource::findResource(string &name) {
   if (!name.length()) assert(0);
 
   if (allResources.defines(name))
@@ -121,7 +124,7 @@ resource *resource::findResource(string &name) {
     return (NULL);
 }
 
-resource *resource::findResource(vector<string>& name) {
+inline resource *resource::findResource(vector<string>& name) {
   unsigned n_size = name.size();
   if (!n_size) assert(0);
   string flat(string("/")+name[0]);
@@ -137,7 +140,7 @@ resource *resource::findResource(vector<string>& name) {
   }
 }
 
-void resource::set_id(unsigned id) {
+inline void resource::set_id(unsigned id) {
   id_ = id;
   res_dict[id] = this;
 }

@@ -10,6 +10,9 @@
  * symtab.h - interface to generic symbol table.
  *
  * $Log: symtab.h,v $
+ * Revision 1.18  1995/11/29 18:45:26  krisna
+ * added inlines for compiler. added templates
+ *
  * Revision 1.17  1995/08/24 15:04:38  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
@@ -453,7 +456,7 @@ private:
 // TODO -- remove this
 extern resource *moduleRoot;
 
-bool lineDict::getLineAddr (const unsigned line, Address &adr) {
+inline bool lineDict::getLineAddr (const unsigned line, Address &adr) {
   if (!lineMap.defines(line)) {
     return false;
   } else {
@@ -462,12 +465,12 @@ bool lineDict::getLineAddr (const unsigned line, Address &adr) {
   }
 }
 
-module::module(supportedLanguages lang, Address adr, string &fullNm,
+inline module::module(supportedLanguages lang, Address adr, string &fullNm,
 	       string &fileNm, image *e) 
 : fileName_(fileNm), fullName_(fullNm), language_(lang),
   addr_(adr), exec_(e) { }
 
-void module::changeLibFlag(const bool setSuppress) {
+inline void module::changeLibFlag(const bool setSuppress) {
   unsigned fsize = funcs.size();
   for (unsigned f=0; f<fsize; f++) {
     if (setSuppress)
@@ -477,7 +480,7 @@ void module::changeLibFlag(const bool setSuppress) {
   }
 }
 
-pdFunction *module::findFunction (const string &name) {
+inline pdFunction *module::findFunction (const string &name) {
   unsigned fsize = funcs.size();
   for (unsigned f=0; f<fsize; f++) {
     if (funcs[f]->prettyName() == name)
@@ -486,7 +489,7 @@ pdFunction *module::findFunction (const string &name) {
   return NULL;
 }
 
-Word image::get_instruction(Address adr) const {
+inline Word image::get_instruction(Address adr) const {
   // TODO remove assert
   assert(isValidAddress(adr));
 
@@ -508,22 +511,22 @@ Word image::get_instruction(Address adr) const {
 
 // Address must be in code or data range since some code may end up
 // in the data segment
-bool image::isValidAddress(const Address &where) const {
+inline bool image::isValidAddress(const Address &where) const {
   return (!(where & 0x3) &&
 	  (isCode(where) || isData(where)));
 }
 
-bool image::isCode(const Address &where) const {
+inline bool image::isCode(const Address &where) const {
   return (linkedFile.code_ptr() && 
 	  (where >= codeOffset_) && (where < (codeOffset_+(codeLen_<<2))));
 }
 
-bool image::isData(const Address &where) const {
+inline bool image::isData(const Address &where) const {
   return (linkedFile.data_ptr() && 
 	  (where >= dataOffset_) && (where < (dataOffset_+(dataLen_<<2))));
 }
 
-bool image::symbol_info(string& symbol_name, Symbol &ret_sym) {
+inline bool image::symbol_info(string& symbol_name, Symbol &ret_sym) {
   if (!linkedFile.get_symbol(symbol_name, ret_sym))
     return false;
   else

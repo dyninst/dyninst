@@ -7,6 +7,9 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
+ * Revision 1.21  1995/11/29 18:45:23  krisna
+ * added inlines for compiler. added templates
+ *
  * Revision 1.20  1995/08/24 15:04:20  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
@@ -258,7 +261,7 @@ private:
   metricStyle style_; 
 };
 
-dataReqNode *metricDefinitionNode::addIntCounter(int inititalValue, bool report) {
+inline dataReqNode *metricDefinitionNode::addIntCounter(int inititalValue, bool report) {
   dataReqNode *tp;
   tp = new dataReqNode(INTCOUNTER, proc_, inititalValue, report, processTime);
   assert(tp);
@@ -266,7 +269,7 @@ dataReqNode *metricDefinitionNode::addIntCounter(int inititalValue, bool report)
   return(tp);
 };
 
-dataReqNode *metricDefinitionNode::addTimer(timerType type) {
+inline dataReqNode *metricDefinitionNode::addTimer(timerType type) {
   dataReqNode *tp;
   tp = new dataReqNode(TIMER, proc_, 0, true, type);
   assert(tp);
@@ -274,7 +277,7 @@ dataReqNode *metricDefinitionNode::addTimer(timerType type) {
   return(tp);
 };
 
-void metricDefinitionNode::addInst(instPoint *point, AstNode *ast, callWhen when,
+inline void metricDefinitionNode::addInst(instPoint *point, AstNode *ast, callWhen when,
 				   callOrder o) {
   instReqNode *temp;
   if (!point || !ast) return;

@@ -5,6 +5,9 @@
 
 /* 
  * $Log: templates.C,v $
+ * Revision 1.19  1995/11/29 18:45:27  krisna
+ * added inlines for compiler. added templates
+ *
  * Revision 1.18  1995/11/29 00:28:48  tamches
  * will now compile with g++ 2.7.1 on sunos; some templates had been missing.
  *
@@ -161,13 +164,10 @@ template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_metric
 template class  List<sampleInfo*>;
 
 template class  queue<T_dyninstRPC::buf_struct*>;
-template class vector<T_dyninstRPC::buf_struct*>;
 
-template class vector<unsigned>;
-template class vector<float>;
-template class vector<int>;
 template class  vector<Symbol*>;
 template class  vector<Symbol>;
+template class  vector<T_dyninstRPC::buf_struct*>;
 template class  vector<T_dyninstRPC::mdl_constraint *>;
 template class  vector<T_dyninstRPC::mdl_expr *>;
 template class  vector<T_dyninstRPC::mdl_icode *>;
@@ -175,11 +175,13 @@ template class  vector<T_dyninstRPC::mdl_metric *>;
 template class  vector<T_dyninstRPC::mdl_stmt *>;
 template class  vector<T_dyninstRPC::metricInfo>;
 template class  vector<dataReqNode*>;
+template class  vector<float>;
 template class  vector<heapItem*>;
 template class  vector<image*>;
 template class  vector<instMapping*>;
 template class  vector<instPoint *>;
 template class  vector<instReqNode*>;
+template class  vector<int>;
 template class  vector<internalMetric*>;
 template class  vector<mdl_focus_element>;
 template class  vector<mdl_type_desc>;
@@ -190,6 +192,7 @@ template class  vector<pdFunction*>;
 template class  vector<process*>;
 template class  vector<string>;
 template class  vector<sym_data>;
+template class  vector<unsigned>;
 template class  vector<vector<string> >;
 template class  vector<watch_data>;
 
@@ -204,9 +207,8 @@ template class  dictionary_hash <string, resource*>;
 template class  dictionary_hash <string, unsigned>;
 template class  dictionary_hash <string, vector<pdFunction*>*>;
 template class  dictionary_hash <unsigned, Line>;
-template class  dictionary_hash <unsigned, heapItem*>;
 template class  dictionary_hash <unsigned, cpSample*>;
-
+template class  dictionary_hash <unsigned, heapItem*>;
 template class  dictionary_hash <unsigned, metricDefinitionNode*>;
 template class  dictionary_hash <unsigned, pdFunction*>;
 template class  dictionary_hash <unsigned, resource *>;

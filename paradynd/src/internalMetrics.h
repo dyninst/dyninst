@@ -4,6 +4,9 @@
 
 /*
  * $Log: internalMetrics.h,v $
+ * Revision 1.11  1995/11/29 18:45:22  krisna
+ * added inlines for compiler. added templates
+ *
  * Revision 1.10  1995/11/17 17:24:23  newhall
  * support for MDL "unitsType" option, added normalized member to metric class
  *
@@ -82,7 +85,7 @@ private:
   bool normalized_;
 };
 
-float internalMetric::getValue() {
+inline float internalMetric::getValue() {
   if (func)
     return((func)());
   else

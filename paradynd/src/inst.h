@@ -11,6 +11,9 @@
  *   by the instrumentation layer.
  *
  * $Log: inst.h,v $
+ * Revision 1.14  1995/11/29 18:45:21  krisna
+ * added inlines for compiler. added templates
+ *
  * Revision 1.13  1995/08/24 15:04:07  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
@@ -279,13 +282,6 @@ class point {
   point() { inst = NULL; }
   instInstance *inst;
 };
-
-/*
- * prototype for architecture specific function to restore the
- * original instructions during a steering-detach.
- */
-
-extern void restore_original_instructions(process *, instPoint *);
 
 extern string getProcessStatus(const process *p);
 

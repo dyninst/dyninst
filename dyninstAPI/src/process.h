@@ -10,6 +10,9 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
+ * Revision 1.25  1995/11/29 18:45:24  krisna
+ * added inlines for compiler. added templates
+ *
  * Revision 1.24  1995/10/26 21:07:09  tamches
  * corrected constructor for heapItem(), which had been mysteriously
  * named heap() by mistake
@@ -186,7 +189,7 @@ class costC {
 //
 // (const T *) and (T * const)
 //
-inline unsigned ipHash(instPoint * const &ip) {
+static inline unsigned ipHash(instPoint * const &ip) {
   return ((unsigned)ip);
 }
 
@@ -294,13 +297,13 @@ inline process *findProcess(int pid) {
   return NULL;
 }
 
-bool process::detach(const bool paused) {
+inline bool process::detach(const bool paused) {
   bool res;
   assert (res = detach_());
   return res;
 }
 
-bool process::checkStatus() {
+inline bool process::checkStatus() {
   if (status_ == exited) {
     sprintf(errorLine, "attempt to ptrace exited process %d\n", pid);
     logLine(errorLine);
@@ -309,7 +312,7 @@ bool process::checkStatus() {
     return true;
 }
 
-bool process::pause() {
+inline bool process::pause() {
   if (waitingForNodeDaemon)
     return true;
   if (status_ == running && reachedFirstBreak) {
@@ -322,7 +325,7 @@ bool process::pause() {
   return true;
 }
 
-bool process::continueProc() {
+inline bool process::continueProc() {
   if (waitingForNodeDaemon)
     return true;
   if (status_ == stopped) {
@@ -337,7 +340,7 @@ bool process::continueProc() {
 
 
 
-bool process::dumpCore(const string fileOut) {
+inline bool process::dumpCore(const string fileOut) {
   bool res;
   assert (res = dumpCore_(fileOut));
   return res;
@@ -346,25 +349,25 @@ bool process::dumpCore(const string fileOut) {
 /*
  * Copy data from controller process to the named process.
  */
-bool process::writeDataSpace(caddr_t inTracedProcess, int size, caddr_t inSelf) {
+inline bool process::writeDataSpace(caddr_t inTracedProcess, int size, caddr_t inSelf) {
   bool res;
   assert (res = writeDataSpace_(inTracedProcess, size, inSelf));
   return res;
 }
 
-bool process::readDataSpace(caddr_t inTracedProcess, int size, caddr_t inSelf) {
+inline bool process::readDataSpace(caddr_t inTracedProcess, int size, caddr_t inSelf) {
   bool res;
   assert (res = readDataSpace_(inTracedProcess, size, inSelf));
   return res;
 }
 
-bool process::writeTextWord(caddr_t inTracedProcess, int data) {
+inline bool process::writeTextWord(caddr_t inTracedProcess, int data) {
   bool res;
   assert (res = writeTextWord_(inTracedProcess, data));
   return res;
 }
 
-bool process::writeTextSpace(caddr_t inTracedProcess, int amount, caddr_t inSelf) {
+inline bool process::writeTextSpace(caddr_t inTracedProcess, int amount, caddr_t inSelf) {
   bool res;
   assert (res = writeTextSpace_(inTracedProcess, amount, inSelf));
   return res;
@@ -386,7 +389,7 @@ extern resource *machineResource;
 /*
  *  The process has exited. Update its status and notify Paradyn.
  */
-void process::Exited(void) {
+inline void process::Exited(void) {
   if (status_ != exited) {
     status_ = exited;
     tp->processStatus(pid, procExited);
@@ -396,7 +399,7 @@ void process::Exited(void) {
 /*
  * The process was stopped by a signal. Update its status and notify Paradyn.
  */
-void process::Stopped(void) {
+inline void process::Stopped(void) {
   if (status_ != stopped) {
     status_ = stopped;
     tp->processStatus(pid, procPaused);
