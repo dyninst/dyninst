@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-linux.C,v 1.10 2001/10/11 23:58:03 schendel Exp $
+// $Id: init-linux.C,v 1.11 2001/10/29 16:01:59 zandy Exp $
 
 #include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
@@ -78,14 +78,6 @@ bool initOS() {
 					     FUNC_EXIT|FUNC_ARG, retVal);
   } else { /* Fork and exec */
 	  retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
-	  initialRequests += new instMapping("fork", "DYNINSTfork", 
-					     FUNC_EXIT|FUNC_ARG, retVal);
-
-	  retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
-	  initialRequests += new instMapping("_fork", "DYNINSTfork", 
-					     FUNC_EXIT|FUNC_ARG, retVal);
-
-	  retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
 	  initialRequests += new instMapping("__libc_fork", "DYNINSTfork", 
 					     FUNC_EXIT|FUNC_ARG, retVal);
   
@@ -93,12 +85,6 @@ bool initOS() {
 	  initialRequests += new instMapping("__execve", "DYNINSTexec",
 					     FUNC_ENTRY|FUNC_ARG, tidArg);
 	  initialRequests += new instMapping("__execve", "DYNINSTexecFailed", 
-					     FUNC_EXIT);
-
-	  tidArg = new AstNode(AstNode::Param, (void *) 0);
-	  initialRequests += new instMapping("execve", "DYNINSTexec",
-					     FUNC_ENTRY|FUNC_ARG, tidArg);
-	  initialRequests += new instMapping("execve", "DYNINSTexecFailed", 
 					     FUNC_EXIT);
   }
 
