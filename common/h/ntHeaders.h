@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ntHeaders.h,v 1.9 2001/12/06 01:36:20 bernat Exp $
+// $Id: ntHeaders.h,v 1.10 2001/12/06 18:08:11 bernat Exp $
 
 #if !defined(pd_nt_headers_h)
 #define pd_nt_headers_h
@@ -107,7 +107,7 @@ typedef int pid_t;
 typedef int key_t;
 
 // Apparently this doesn't exist on NT? Weird.
-int P_getopt(int argc, char *argv[], char *optstring);
+int P_getopt(int argc, char *argv[], const char *optstring);
 
 /* POSIX */
 inline void P_abort (void) { abort();}
