@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.114 2004/03/15 18:05:55 mirg Exp $ */
+/* $Id: dynrpc.C,v 1.115 2004/03/16 18:15:50 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/inst.h"
@@ -49,6 +49,7 @@
 #include "dyninstAPI/src/dyninstP.h"
 #include "paradynd/src/metricFocusNode.h"
 #include "paradynd/src/machineMetFocusNode.h"
+#include "paradynd/src/processMetFocusNode.h"
 #include "paradynd/src/internalMetrics.h"
 #include "dyninstRPC.xdr.SRVR.h"
 #include "dyninstAPI/src/dyninst.h"
@@ -189,22 +190,24 @@ void dynRPC::getPredictedDataCost(u_int id, u_int req_id, pdvector<u_int> focus,
 
 extern pdvector<int> deferredMetricIDs;
 
+pdvector<int> metricFocusesRequestedForDelete;
 
 void dynRPC::disableDataCollection(int mid)
 {
+   metricFocusesRequestedForDelete.push_back(mid);
+}
+
+
+void deleteMetricFocus(machineMetFocusNode *mi) {
 #if defined(sparc_sun_solaris2_4) && defined(TIMINGDEBUG)
     begin_timing(1);
 #endif
 
-    machineMetFocusNode *mi = machineMetFocusNode::lookupMachNode(mid);
-    
     if(mi == NULL) {
         // Already deleted
         return;
     }
     
-    //cerr << "disable of " << mi->getFullName() << endl; 
-    // timeLength cost = mi->originalCost();
     timeLength cost = mi->cost();
     
     if(cost > currentPredictedCost)
@@ -219,7 +222,7 @@ void dynRPC::disableDataCollection(int mid)
     while (itr != deferredMetricIDs.begin()) {
         itr--;
         int defMID = *itr;
-        if (defMID == mid) {
+        if (defMID == mi->getMetricID()) {
             deferredMetricIDs.erase(itr);
         }
     }
@@ -231,7 +234,8 @@ void dynRPC::disableDataCollection(int mid)
     // Let the frontend know this instrumentation "failed"
     metFocInstResponse *cbi = mi->getMetricFocusResponse();
     if (cbi) {
-        cbi->updateResponse(mid, inst_insert_failure, "Instrumentation cancelled");
+        cbi->updateResponse(mi->getMetricID(), inst_insert_failure,
+                            "Instrumentation cancelled");
         cbi->makeCallback();
     }
 #endif
@@ -240,6 +244,32 @@ void dynRPC::disableDataCollection(int mid)
 #if defined(sparc_sun_solaris2_4) && defined(TIMINGDEBUG)
     end_timing(1,"disable");
 #endif
+}
+
+void processInstrDeletionRequests() {
+   pdvector<pd_process *> procsToCont;
+
+   for(unsigned i=0; i<metricFocusesRequestedForDelete.size(); i++) {
+      int curmid = metricFocusesRequestedForDelete[i];
+      machineMetFocusNode *mi = machineMetFocusNode::lookupMachNode(curmid);
+      pdvector<processMetFocusNode*> procnodes = mi->getProcNodes();
+      for(unsigned j=0; j<procnodes.size(); j++) {
+         processMetFocusNode *cur_procnode = procnodes[j];
+         pd_process *proc = cur_procnode->proc();
+         if(proc->status() != stopped) {
+            proc->pause();
+            procsToCont.push_back(proc);
+         }
+      }
+      
+      deleteMetricFocus(mi);
+   }
+   metricFocusesRequestedForDelete.clear();
+
+   for(unsigned k=0; k<procsToCont.size(); k++) {
+      pd_process *proc = procsToCont[k];
+      proc->continueProc();
+   }
 }
 
 bool dynRPC::setTracking(unsigned target, bool /* mode */)
@@ -273,6 +303,8 @@ void dynRPC::resourceInfoResponse(pdvector<u_int> temporaryIds,
 void dynRPC::enableDataCollection(pdvector<T_dyninstRPC::focusStruct> focus, 
 				  pdvector<pdstring> metric, pdvector<u_int> mi_ids, 
 				  u_int daemon_id, u_int request_id) {
+   processInstrDeletionRequests();
+
    assert(focus.size() == metric.size());
    totalInstTime.start();
 
@@ -293,6 +325,8 @@ dynRPC::enableDataCollection2(pdvector<u_int> focus,
                                 int mid,
                                 u_int daemon_id )
 {
+   processInstrDeletionRequests();
+
    totalInstTime.start();
 
    metFocInstResponse *cbi = new metFocInstResponse( mid, daemon_id );

@@ -197,14 +197,6 @@ instrCodeNode_Val::instrCodeNode_Val(const instrCodeNode_Val &par,
 }
 
 instrCodeNode_Val::~instrCodeNode_Val() {
-   // pause on linux is slow
-   bool needToCont = false;  
-   if(proc()->status() == running) {
-      proc()->pause();
-      needToCont = true;
-   }
-
-
   for (unsigned i=0; i<instRequests.size(); i++) {
     instRequests[i]->disable(proc()); // calls deleteInst()
   }
@@ -227,10 +219,6 @@ instrCodeNode_Val::~instrCodeNode_Val() {
 
   for(unsigned j=0; j<instRequests.size(); j++)
      delete instRequests[j];
-
-   if(needToCont) {
-      proc()->continueProc();
-   }
 }
 
 
@@ -323,8 +311,10 @@ void instrCodeNode::prepareCatchupInstr(pdvector<catchupReq *> &stackWalk)
    {
       instReqNode *curInstReq = V.instRequests[instIter];
       //prepareCatchupInstr_debug(V.instRequests[instIter]);
-      //cerr << "    looking at instReq [" << instIter << "], in func: "
-      //     << curInstReq->Point()->pointFunc()->prettyName().c_str() << endl;
+
+      if (pd_debug_catchup)      
+         cerr << "    looking at instReq [" << instIter << "], in func: "
+              << curInstReq->Point()->pointFunc()->prettyName().c_str() <<endl;
 
       // If the instRequest was not installed, skip...
       if( (curInstReq->getRInstance() != NULL) &&
@@ -343,10 +333,17 @@ void instrCodeNode::prepareCatchupInstr(pdvector<catchupReq *> &stackWalk)
       // in the timer takes care of that.    
       for(unsigned frameIter=0; frameIter < stackWalk.size(); frameIter++)
       {
+         Frame &cur_frame = stackWalk[frameIter]->frame;
+         if(pd_debug_catchup)
+            cerr << "  looking at frame " << frameIter+1 << " "
+                 << (void*)&cur_frame << endl;
+
           bool triggered = 
-             curInstReq->triggeredInStackFrame(stackWalk[frameIter]->frame,
+             curInstReq->triggeredInStackFrame(cur_frame,
                                                proc());
           if(triggered) {
+             if(pd_debug_catchup)
+                cerr << "   TRIGGERED by frame " << frameIter+1 << endl;
               // Push this instRequest onto the list of ones to execute
               stackWalk[frameIter]->reqNodes.push_back(curInstReq);
           }
