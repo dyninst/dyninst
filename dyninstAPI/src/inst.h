@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 1996 Barton P. Miller
  * 
@@ -81,8 +80,12 @@ instInstance *addInstFunc(process *proc,
 			  bool noCost,
 			  returnInstance *&retInstance);
 
-void copyInstInstances(const process *parent, process *child,
+void getAllInstInstancesForProcess(const process *,
+				   vector<instInstance*> &);
+
+void copyInstInstances(const process *parent, const process *child,
 	    dictionary_hash<instInstance *, instInstance *> &instInstanceMapping);
+   // writes to "instInstanceMapping[]"
 
 
 float getPointFrequency(instPoint *point);
@@ -193,6 +196,8 @@ reg getParameter(reg dest, int param);
 
 #define INFERIOR_HEAP_BASE     "DYNINSTdata"
 #define UINFERIOR_HEAP_BASE    "_DYNINSTdata"
+
+// The following 2 are NOT USED ANYMORE; LET'S FRY 'EM
 #define GLOBAL_HEAP_BASE        "DYNINSTglobalData"
 #define U_GLOBAL_HEAP_BASE      "_DYNINSTglobalData"
 

@@ -314,19 +314,34 @@ instInstance *addInstFunc(process *proc, const instPoint *&location,
 // instInstanceMapping[parentInst] will be the corresponding instInstance for the
 // child.
 //
-void copyInstInstances(const process *parent, process *child, 
-	    dictionary_hash<instInstance *, instInstance *> &instInstanceMapping)
-{
+
+void getAllInstInstancesForProcess(const process *proc,
+				   vector<instInstance*> &result) {
     vector<point*> allPoints = activePoints.values();
-    vector<instInstance*> instsToCopy;
  
     // find all instInstances of the parent process
     for (unsigned u = 0; u < allPoints.size(); u++) {
       for (instInstance *inst = allPoints[u]->inst; inst; inst = inst->next) {
-	if (inst->proc == parent)
-	  instsToCopy += inst;
+	if (inst->proc == proc)
+	  result += inst;
       }
     }
+}
+
+void copyInstInstances(const process *parent, const process *child, 
+	    dictionary_hash<instInstance *, instInstance *> &instInstanceMapping)
+{
+//    vector<point*> allPoints = activePoints.values();
+    vector<instInstance*> instsToCopy;
+    getAllInstInstancesForProcess(parent, instsToCopy);
+ 
+//    // find all instInstances of the parent process
+//    for (unsigned u = 0; u < allPoints.size(); u++) {
+//      for (instInstance *inst = allPoints[u]->inst; inst; inst = inst->next) {
+//	if (inst->proc == parent)
+//	  instsToCopy += inst;
+//      }
+//    }
 
     // duplicate the parent instance for the child, and define instMapping
     vector<instInstance *>newInsts;
@@ -570,6 +585,8 @@ void installBootstrapInst(process *proc) {
 
 void installDefaultInst(process *proc, vector<instMapping*>& initialReqs)
 {
+   // NOTE: This should be a member fn of class "process"
+
     unsigned ir_size = initialReqs.size(); 
     for (unsigned u=0; u<ir_size; u++) {
       instMapping *item = initialReqs[u];
