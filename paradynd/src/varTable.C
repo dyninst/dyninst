@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varTable.C,v 1.3 2002/06/10 19:25:08 bernat Exp $
+// $Id: varTable.C,v 1.4 2002/08/12 04:22:09 schendel Exp $
 // The superTable class consists of an array of superVectors
 
 #include <sys/types.h>
@@ -48,18 +48,25 @@
 #include "rtinst/h/rtinst.h" // for time64
 #include "paradynd/src/varTable.h"
 #include "paradynd/src/varInstance.h"
-
+#include "paradynd/src/varInstanceHKs.h"
+#include "paradynd/src/variableMgr.h"
+#include "paradynd/src/init.h"
+#include "dyninstAPI/src/process.h"
 
 template <class HK>
-varTable<HK>::varTable(varTable<HK> &parentVarTable) :
-  baseVarTable(), varMgr(parentVarTable.varMgr)
+varTable<HK>::varTable(const varTable<HK> &parent, variableMgr &vMgr) :
+  baseVarTable(), varMgr(vMgr), freeIndexes(parent.freeIndexes)  
 {
   // Copy over all variables
-  //  for (unsigned i=0; i<parentVarTable.varInstanceBuf.size(); i++) {
-    //    baseVarInstance *varInst = 
-    //  new varInstance<HK>(parentVarTable.varInstanceBuf[i]);
-      //    varInstanceBuf.push_back(varInst);
-  // }
+  for (unsigned i=0; i<parent.varInstanceBuf.size(); i++) {
+    baseVarInstance *varInst = NULL;
+    if(parent.varInstanceBuf[i] != NULL) {  // can be holes in varInstanceBuf
+      varInst = new varInstance<HK>(*dynamic_cast<varInstance<HK>*>(
+					     parent.varInstanceBuf[i]),
+			    varMgr.getShmMgr(), varMgr.getApplicProcess());
+    }
+    varInstanceBuf.push_back(varInst);
+  }
 }
 
 template <class HK>
@@ -92,7 +99,6 @@ inst_var_index varTable<HK>::allocateVar()
   inst_var_index new_index = getFreeIndex();
   // HK tells the varInstance how much memory to allocate.
   baseVarInstance *newVar = new varInstance<HK>(varMgr, HK::initValue);
-  newVar->allocateVar();
   varInstanceBuf[new_index] = newVar;
   return new_index;
 }
@@ -188,7 +194,39 @@ void varTable<HK>::deleteThread(unsigned thrPos) {
   }
 }
 
+template <class HK>
+void varTable<HK>::initializeVarsAfterFork() {
+}
 
+template <>
+void varTable<intCounterHK>::initializeVarsAfterFork() {
+  // no initialization required for counters
+}
+
+template <>
+void varTable<wallTimerHK>::initializeVarsAfterFork() {
+  rawTime64 curWallTime = 0;
+  if(varInstanceBuf.size() > 0)
+    curWallTime = getRawWallTime();
+
+  for(unsigned iter=0; iter<varInstanceBuf.size(); iter++) {
+    if(varInstanceBuf[iter] == NULL) continue;
+    varInstanceBuf[iter]->initializeVarsAfterFork(curWallTime);
+  }
+
+}
+
+template <>
+void varTable<processTimerHK>::initializeVarsAfterFork() {
+  rawTime64 curProcTime = 0;
+  if(varInstanceBuf.size() > 0)
+    curProcTime = varMgr.getApplicProcess()->getRawCpuTime();
+
+  for(unsigned iter=0; iter<varInstanceBuf.size(); iter++) {
+    if(varInstanceBuf[iter] == NULL) continue;
+    varInstanceBuf[iter]->initializeVarsAfterFork(curProcTime);
+  }
+}
 
 
 
