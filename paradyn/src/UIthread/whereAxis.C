@@ -4,9 +4,12 @@
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
 /* $Log: whereAxis.C,v $
-/* Revision 1.11  1996/02/07 19:15:06  tamches
-/* removed include of whereAxisMisc.h, except for the test program
+/* Revision 1.12  1996/02/11 18:27:47  tamches
+/* Added a check for null rootPtr before drawing
 /*
+ * Revision 1.11  1996/02/07 19:15:06  tamches
+ * removed include of whereAxisMisc.h, except for the test program
+ *
  * Revision 1.10  1996/01/11 04:45:37  tamches
  * getSelections replaced - now returns Whole Program selection separately,
  * runs faster, and alone with the new parseSelections of uimpd.tcl.C,
@@ -454,14 +457,15 @@ void whereAxis::draw(bool doubleBuffer,
 
    const int overallWindowBorderPix = 0;
 
-   rootPtr->draw(consts.theTkWindow, consts, theDrawable,
-		 nominal_centerx + horizScrollBarOffset,
-		    // relative (not absolute) coord
-		 overallWindowBorderPix + vertScrollBarOffset,
-		    // relative (not absolute) coord
-		 false, // not root only
-		 false // not listbox only
-		 );
+   if (rootPtr)
+      rootPtr->draw(consts.theTkWindow, consts, theDrawable,
+		    nominal_centerx + horizScrollBarOffset,
+		       // relative (not absolute) coord
+		    overallWindowBorderPix + vertScrollBarOffset,
+		       // relative (not absolute) coord
+		    false, // not root only
+		    false // not listbox only
+		    );
 
    if (doubleBuffer && !xsynchronize)
       // copy from offscreen pixmap onto the 'real' window
