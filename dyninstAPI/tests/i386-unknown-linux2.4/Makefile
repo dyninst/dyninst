@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.5 2000/05/11 04:52:24 zandy Exp $
+# $Id: Makefile,v 1.6 2000/05/14 19:02:52 zandy Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -35,8 +35,11 @@ include ../make.module.tmpl
 
 MUTATEE_SRC = ../src/$(TARGET2:_$(MUTATEE_CC)=.c)
 
-MUTATEE_CFLAGS = -g $(ARCH_DEF) -DDETACH_ON_THE_FLY
-#MUTATEE_CFLAGS = -g $(ARCH_DEF)
+MUTATEE_CFLAGS = -g $(ARCH_DEF)
+
+ifdef DETACH_ON_THE_FLY
+MUTATEE_CFLAGS += -DDETACH_ON_THE_FLY
+endif
 MUTATEE_LIBS = -ldl
 
 ifeq ($(MUTATEE_CC),gcc)
