@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
+/* $Id: inst.C,v 1.64 1998/12/25 23:18:44 wylie Exp $
  * inst.C - Code to install and remove inst funcs from a running process.
  */
 
@@ -60,17 +60,17 @@
 dictionary_hash <string, unsigned> primitiveCosts(string::hash);
 
 #if defined(rs6000_ibm_aix4_1)
-  extern void resetBRL(process *p, unsigned loc, unsigned val); //inst-power.C
-  extern void resetBR( process *p, unsigned loc);               //inst-power.C
+  extern void resetBRL(process *p, Address loc, unsigned val); //inst-power.C
+  extern void resetBR( process *p, Address loc);               //inst-power.C
 #endif
 
 
 // get the address of the branch from the base to the minitramp
-int getBaseBranchAddr(process *, instInstance *inst)
+Address getBaseBranchAddr(process *, instInstance *inst)
 {
-    int fromAddr;
+    Address fromAddr;
 
-    fromAddr = (int) inst->baseInstance->baseAddr;
+    fromAddr = inst->baseInstance->baseAddr;
     if (inst->when == callPreInsn) {
 	fromAddr += inst->baseInstance->localPreOffset;
     } else {
@@ -80,8 +80,8 @@ int getBaseBranchAddr(process *, instInstance *inst)
 }
 
 // get the address in the base tramp where the minitramp should return to
-int getBaseReturnAddr(process *, instInstance *inst) {
-    int returnAddr = (int)inst->baseInstance->baseAddr;
+Address getBaseReturnAddr(process *, instInstance *inst) {
+    Address returnAddr = inst->baseInstance->baseAddr;
     if (inst->when == callPreInsn) {
       returnAddr += inst->baseInstance->localPreReturnOffset;
     } else {
@@ -93,9 +93,9 @@ int getBaseReturnAddr(process *, instInstance *inst) {
 // clear the basetramp jump to a minitramp
 void clearBaseBranch(process *proc, instInstance *inst)
 {
-    int addr;
+    Address addr;
 
-    addr = (int) inst->baseInstance->baseAddr;
+    addr = inst->baseInstance->baseAddr;
     if (inst->when == callPreInsn) {
 	addr += inst->baseInstance->localPreOffset;
     } else {
@@ -109,33 +109,34 @@ void clearBaseBranch(process *proc, instInstance *inst)
     generateNoOp(proc, addr);
 #endif
     // If there is no instrumentation at this point, skip.
-    unsigned fromAddr, toAddr;
+    Address fromAddr, toAddr;
 
     int trampCost;
     if (inst->when == callPreInsn) {
       fromAddr = inst->baseInstance->baseAddr + 
-                 (unsigned)inst->baseInstance->skipPreInsOffset;
+                 inst->baseInstance->skipPreInsOffset;
       toAddr = inst->baseInstance->baseAddr + 
 #if defined(rs6000_ibm_aix4_1) || defined(alpha_dec_osf4_0)
-               (unsigned)inst->baseInstance->emulateInsOffset;
+               inst->baseInstance->emulateInsOffset;
 #else
-               (unsigned)inst->baseInstance->updateCostOffset;
+               inst->baseInstance->updateCostOffset;
 #endif
       inst->baseInstance->prevInstru = false;
       trampCost = -(inst->baseInstance->prevBaseCost);
     }
     else {
       fromAddr = inst->baseInstance->baseAddr + 
-                 (unsigned)inst->baseInstance->skipPostInsOffset; 
+                 inst->baseInstance->skipPostInsOffset; 
       toAddr = inst->baseInstance->baseAddr + 
-               (unsigned)inst->baseInstance->returnInsOffset;
+               inst->baseInstance->returnInsOffset;
       inst->baseInstance->postInstru = false;
       trampCost = -(inst->baseInstance->postBaseCost);
     }
     inst->baseInstance->updateTrampCost(proc, trampCost);
     generateBranch(proc,fromAddr,toAddr);
 #if defined(MT_DEBUG)
-    sprintf(errorLine,"generating branch from address 0x%x to address 0x%x - CLEAR\n",fromAddr,toAddr);
+    sprintf(errorLine,"generating branch from address 0x%lx to address 0x%lx"
+        " - CLEAR\n",fromAddr,toAddr);
     logLine(errorLine);
 #endif
 }
@@ -197,7 +198,7 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
        return(NULL);
 
 #if defined(MT_DEBUG_ON)
-    sprintf(errorLine,"==>BaseTramp is in 0x%x\n",ret->baseInstance->baseAddr);
+    sprintf(errorLine,"==>BaseTramp is in 0x%lx\n",ret->baseInstance->baseAddr);
     logLine(errorLine);
 #endif
 
@@ -296,7 +297,7 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
 
     if (!lastAtPoint) {
         // jump from the base tramp to the minitramp
-	unsigned fromAddr = getBaseBranchAddr(proc, ret);
+        Address fromAddr = getBaseBranchAddr(proc, ret);
 #if defined(rs6000_ibm_aix4_1)
 	resetBRL(proc, fromAddr, ret->trampBase);
 #else
@@ -307,7 +308,7 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
 #if defined(rs6000_ibm_aix4_1)
 	resetBR(proc, ret->returnAddr);
 #else
-	unsigned toAddr = getBaseReturnAddr(proc, ret);
+	Address toAddr = getBaseReturnAddr(proc, ret);
 	generateBranch(proc, ret->returnAddr, toAddr);
 #endif
 
@@ -323,7 +324,7 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
 #if defined(rs6000_ibm_aix4_1)
 	resetBR(proc, ret->returnAddr);
 #else
-	unsigned toAddr = getBaseReturnAddr(proc, ret);
+	Address toAddr = getBaseReturnAddr(proc, ret);
 	generateBranch(proc, ret->returnAddr, toAddr);
 #endif
     } else {
@@ -335,7 +336,7 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
 	generateBranch(proc, ret->returnAddr, firstAtPoint->trampBase);
 
 	/* base tramp branches to us */
-	unsigned fromAddr = getBaseBranchAddr(proc, ret);
+	Address fromAddr = getBaseBranchAddr(proc, ret);
 #if defined(rs6000_ibm_aix4_1)
 	resetBRL(proc, fromAddr, ret->trampBase);
 #else
@@ -380,7 +381,7 @@ void copyInstInstances(const process *parent, const process *child,
     for (unsigned u1 = 0; u1 < instsToCopy.size(); u1++) {
       instInstance *old = instsToCopy[u1];
       instInstance *newInst = new instInstance;
-      newInst->proc = (process *)child;
+      newInst->proc = const_cast<process *>(child);
       newInst->when = old->when;
       newInst->location = old->location;
       newInst->trampBase = old->trampBase;
@@ -412,9 +413,9 @@ void copyInstInstances(const process *parent, const process *child,
 // what data pointers each mini-tramp really used, but I don't think it is 
 // worth the trouble.
 //
-vector<unsigned> getAllTrampsAtPoint(instInstance *instance)
+vector<Address> getAllTrampsAtPoint(instInstance *instance)
 {
-    vector<unsigned> pointsToCheck;
+    vector<Address> pointsToCheck;
     instInstance *start;
     instInstance *next;
     point *thePoint;
@@ -449,7 +450,7 @@ vector<unsigned> getAllTrampsAtPoint(instInstance *instance)
  *    one.
  *
  */
-void deleteInst(instInstance *old, const vector<unsigned> &pointsToCheck)
+void deleteInst(instInstance *old, const vector<Address> &pointsToCheck)
 {
     point *thePoint;
     instInstance *lag;
@@ -498,7 +499,7 @@ void deleteInst(instInstance *old, const vector<unsigned> &pointsToCheck)
 #if defined(rs6000_ibm_aix4_1)
 		resetBR(old->proc, left->returnAddr);
 #else
-		unsigned toAddr = getBaseReturnAddr(old->proc, old);
+		Address toAddr = getBaseReturnAddr(old->proc, old);
 		generateBranch(old->proc, left->returnAddr, toAddr);
 #endif
 	    }
@@ -514,11 +515,12 @@ void deleteInst(instInstance *old, const vector<unsigned> &pointsToCheck)
 	}
     }
 
-    vector<unsigVecType> tmp;
-    tmp += (unsigVecType) pointsToCheck;
+    vector< vector<Address> > tmp;
+    tmp += (vector<Address>) pointsToCheck;
 
 #ifdef FREEDEBUG1
-    sprintf(errorLine,"***** (pid=%d) In inst.C, calling inferiorFree, pointer=0x%x\n",old->proc->pid,old->trampBase);
+    sprintf(errorLine,"***** (pid=%d) In inst.C, calling inferiorFree, "
+	    "pointer=0x%lx\n",old->proc->pid,old->trampBase);
     logLine(errorLine);
 #endif
 #if defined(rs6000_ibm_aix4_1)
@@ -611,19 +613,18 @@ void
 trampTemplate::updateTrampCost(process *proc, int trampCost) {
 
 #ifndef alpha_dec_osf4_0 /* XXX We don't calculate cost yet on Alpha */
-    int caddr;
     cost = cost + trampCost;
     if (cost < 0) cost = 0;
 
     char costInsn[40];
-    unsigned csize = 0;
+    Address csize = 0;
 
     // quick dirty hack; Will be changed soon so that we 
     // don't call getObservedCostAddr() every time  --ling  
     proc->getObservedCostAddr();   
-    caddr = proc->costAddr(); 
+    Address caddr = proc->costAddr(); 
 
-    emit(updateCostOp, cost, 0, caddr, costInsn, csize, false);
+    emitVupdate(updateCostOp, cost, 0, caddr, costInsn, csize, false);
     proc->writeDataSpace((caddr_t)costAddr, csize, costInsn);
 #endif
 }

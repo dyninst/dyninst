@@ -1,3 +1,45 @@
+/*
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
+ */
+
+// $Id: inst-alpha.C,v 1.5 1998/12/25 23:18:45 wylie Exp $
 
 #include "util/h/headers.h"
 
@@ -78,11 +120,11 @@
 // 					 Address, unsigned&, process *proc);
 // static inline Address generate_tramp_preamble(instruction*, Address,
 // 					      Address, unsigned&);
-static inline Address generate_integer_op(instruction *insn, Address, Address,
+static inline void generate_integer_op(instruction *insn, Address, Address,
 					  Address, unsigned long&, opCode,bool Imm = false);
 static inline Address generate_call_code(instruction*, Address, Address,
 					 Address, unsigned long&, process *proc);
-static inline Address generate_tramp_preamble(instruction*, Address,
+static inline void generate_tramp_preamble(instruction*, Address,
 					      Address, unsigned long&);
 
 // Register usage conventions:
@@ -139,6 +181,8 @@ static inline Address generate_tramp_preamble(instruction*, Address,
 #define REG_SP          30
 #define REG_ZERO        31
 
+const unsigned Num_Registers=32;
+
 typedef enum { dw_long, dw_quad } data_width;
 
 #define MASK_4(x)     (x & 0xffffffff)
@@ -153,7 +197,7 @@ const Address bit_47 =     (Address(1)) << 47;
 
 const char *registerNames[] = { "ren", "stimpy" };
 registerSpace *regSpace;
-int regList[] = {1, 2, 3, 4, 5, 6, 7, 8};
+Register regList[] = {1, 2, 3, 4, 5, 6, 7, 8};
 
 trampTemplate baseTemplate;
 
@@ -219,11 +263,11 @@ void instWaitingList::cleanUp(process * , Address ) {
 // generate_operate(instruction *insn, unsigned reg_a, unsigned reg_b, 
 //		 unsigned reg_c, unsigned opcode, unsigned func_code) {
 unsigned long
-generate_operate(instruction *insn, unsigned long reg_a, unsigned long reg_b, 
-	 unsigned long reg_c, unsigned int opcode, unsigned int func_code) {
-  assert(reg_a < 32);
-  assert(reg_b < 32);
-  assert(reg_c < 32);
+generate_operate(instruction *insn, Register reg_a, Register reg_b, 
+	 Register reg_c, unsigned int opcode, unsigned int func_code) {
+  assert(reg_a < Num_Registers);
+  assert(reg_b < Num_Registers);
+  assert(reg_c < Num_Registers);
   insn->raw = 0;
   // insn->oper.zero = 0; insn->oper.sbz = 0;
   insn->oper.ra = reg_a; insn->oper.rb = reg_b; insn->oper.rc = reg_c;
@@ -238,11 +282,11 @@ generate_operate(instruction *insn, unsigned long reg_a, unsigned long reg_b,
 // generate_lit_operate(instruction *insn, unsigned reg_a, int literal,
 //		     unsigned reg_c, unsigned opcode, unsigned func_code) {
 unsigned long
-generate_lit_operate(instruction *insn, unsigned long reg_a, int literal,
-	     unsigned long reg_c, unsigned int opcode, unsigned int func_code) {
-  assert(reg_a < 32);
+generate_lit_operate(instruction *insn, Register reg_a, int literal,
+	     Register reg_c, unsigned int opcode, unsigned int func_code) {
+  assert(reg_a < Num_Registers);
   assert(ABS(literal) < MAX_IMM);
-  assert(reg_c < 32);
+  assert(reg_c < Num_Registers);
   insn->raw = 0;
   insn->oper_lit.one = 1;
   insn->oper_lit.ra = reg_a;
@@ -261,9 +305,12 @@ generate_lit_operate(instruction *insn, unsigned long reg_a, int literal,
 // generate_jump(instruction *insn, unsigned dest_reg, unsigned ext_code,
 //	      unsigned ret_reg, int hint) {
 unsigned long
-generate_jump(instruction *insn, unsigned long dest_reg, unsigned long ext_code,
-	      unsigned long ret_reg, int hint) {
-  assert(dest_reg < 32); assert(ret_reg < 32); assert((ext_code == MD_JSR));
+generate_jump(instruction *insn, Register dest_reg, unsigned long ext_code,
+	      Register ret_reg, int hint) {
+  assert(dest_reg < Num_Registers); 
+  assert(ret_reg < Num_Registers); 
+  assert((ext_code == MD_JSR));
+
   // If you want to use this for other ext_code values, then modify the branch
   // prediction
 
@@ -284,9 +331,11 @@ generate_jump(instruction *insn, unsigned long dest_reg, unsigned long ext_code,
 // unsigned
 // generate_branch(instruction *insn, unsigned src_reg, int offset, unsigned opcode) {
 unsigned long
-generate_branch(instruction *insn, unsigned long src_reg, int offset, unsigned int opcode) {
-  if (ABS(offset >> 2) > MAX_BRANCH) { logLine("a branch too far\n"); assert(0); }
-  assert(src_reg < 32);
+generate_branch(instruction *insn, Register src_reg, int offset,
+                unsigned int opcode) {
+  if (ABS(offset >> 2) > MAX_BRANCH) 
+        { logLine("a branch too far\n"); assert(0); }
+  assert(src_reg < Num_Registers);
   insn->raw = 0;
   insn->branch.opcode = opcode;
   insn->branch.ra = src_reg;
@@ -309,8 +358,8 @@ void generateBranchInsn(instruction *insn, int offset) {
 // genRelOp(instruction *insn, unsigned opcode, unsigned fcode,
 //	 unsigned src1, unsigned src2, unsigned dest, bool do_not=false) {
 unsigned long
-genRelOp(instruction *insn, unsigned opcode, unsigned fcode, unsigned long src1,
-	unsigned long src2, unsigned long dest, bool Imm = false,bool do_not=false) {
+genRelOp(instruction *insn, unsigned opcode, unsigned fcode, Register src1,
+	 Register src2, Register dest, bool Imm=false, bool do_not=false) {
   // cmp?? src1, src2, t8      : leave result in t8
 //  unsigned words = generate_operate(insn, src1, src2, dest, opcode, fcode);
   unsigned long words;
@@ -347,13 +396,13 @@ instPoint::instPoint(pd_Function *f, const instruction &instr,
 // generate_lda(instruction *insn, unsigned rdest, unsigned rstart,
 //	     int offset, bool do_low) {
 unsigned long
-generate_lda(instruction *insn, unsigned long rdest, unsigned long rstart,
+generate_lda(instruction *insn, Register rdest, Register rstart,
 	     long offset, bool do_low) {
 
   assert(ABS(offset) < shifted_16);
   assert(offset >= (- (long) 0xffffffff));
-  assert(rdest < 32);
-  assert(rstart < 32);
+  assert(rdest < Num_Registers);
+  assert(rstart < Num_Registers);
 
   insn->raw = 0;
   insn->mem.opcode = do_low ? OP_LDA : OP_LDAH;
@@ -369,9 +418,11 @@ generate_lda(instruction *insn, unsigned long rdest, unsigned long rstart,
 // generate_sxl(instruction *insn, unsigned rdest, unsigned amount,
 //	     bool left, unsigned rsrc) {
 unsigned long
-generate_sxl(instruction *insn, unsigned long rdest, unsigned long amount,
-	     bool left, unsigned long rsrc) {
-  assert(amount < 32);
+generate_sxl(instruction *insn, Register rdest, unsigned long amount,
+	     bool left, Register rsrc) {
+  assert(rdest < Num_Registers);
+  assert(amount < Num_Registers);
+  assert(rsrc < Num_Registers);
   insn->raw = 0;
   // insn->oper.sbz = 0;
   // insn->oper.zero = 0;
@@ -458,9 +509,11 @@ unsigned long generate_address(instruction *insn,
 // generate_store(instruction* insn, unsigned rsrc, unsigned rbase, int disp,
 //	       data_width width) {
 unsigned long
-generate_store(instruction* insn, unsigned long rsrc, unsigned long rbase, 
+generate_store(instruction* insn, Register rsrc, Register rbase, 
 	int disp, data_width width) {
-  assert((Address)disp < shifted_16); assert(rsrc < 32); assert(rbase < 32);
+  assert((Address)disp < shifted_16); 
+  assert(rsrc < Num_Registers); 
+  assert(rbase < Num_Registers);
   insn->raw = 0;
   insn->mem.disp = FIRST_16(disp);
   insn->mem.ra = rsrc;
@@ -478,9 +531,11 @@ generate_store(instruction* insn, unsigned long rsrc, unsigned long rbase,
 // generate_load(instruction *insn, unsigned rdest, unsigned rbase, int disp,
 //	      data_width width) {
 unsigned long
-generate_load(instruction *insn, unsigned long rdest, unsigned long rbase, 
+generate_load(instruction *insn, Register rdest, Register rbase, 
 	int disp, data_width width,bool aligned = true) {
-  assert(disp < shifted_16); assert(rdest < 32); assert(rbase < 32);
+  assert(disp < shifted_16); 
+  assert(rdest < Num_Registers);
+  assert(rbase < Num_Registers);
   insn->raw = 0;
   insn->mem.disp = disp;
   insn->mem.ra = rdest;
@@ -607,7 +662,8 @@ void initTramps() {
   if (init_done) return;
   init_done = true;
 
-  regSpace = new registerSpace(sizeof(regList)/sizeof(int), regList, 0, NULL);
+  regSpace = new registerSpace(sizeof(regList)/sizeof(Register), regList,
+                                0, NULL);
 
   // Pre branch
   baseTemplate.skipPreInsOffset = words*4;
@@ -784,12 +840,12 @@ trampTemplate *installBaseTramp(Address baseAddr,
 // move the passed parameter into the passed register, or if it is already
 //    in a register return the register number.
 //
-reg getParameter(reg dest, int param) {
+Register getParameter(Register dest, int param) {
   if (param <= 5) {
     return(16+param);
   }
   assert(0); 
-  return((reg)-1);
+  return(Null_Register);
 }
 
 int getInsnCost(opCode op) {
@@ -916,9 +972,9 @@ int software_divide(int src1,int src2,int dest,char *i,Address &base,bool noCost
   return 0;
 }
 
-static inline Address
+static inline void
 generate_integer_op(instruction *insn, Address src1, Address src2, 
-		    Address dest, unsigned long& base, opCode op,bool Imm = FALSE) {
+		    Address dest, unsigned long& base, opCode op, bool Imm = FALSE) {
 //		    Address dest, unsigned & base, opCode op) {
   // integer ops
 //  unsigned op_code=0, func_code=0, words = 0;
@@ -939,28 +995,28 @@ generate_integer_op(instruction *insn, Address src1, Address src2,
 
   case eqOp:
     words += genRelOp(insn, OP_CMPEQ, FC_CMPEQ, src1, src2, dest,Imm);
-    base += words * 4; return(0);
+    base += words * 4; return;
 
   case neOp:
     // last arg == true --> inverts value of comparison		      
     words += genRelOp(insn, OP_CMPEQ, FC_CMPEQ, src1, src2, dest,Imm,true);
-    base += words * 4; return(0);
+    base += words * 4; return;
 
   case lessOp:
     words += genRelOp(insn, OP_CMPLT, FC_CMPLT, src1, src2, dest,Imm);
-    base += words * 4; return(0);
+    base += words * 4; return;
 		      
   case greaterOp:                          
     words += genRelOp(insn, OP_CMPLE, FC_CMPLE, src1, src2, dest,Imm,true);
-    base += words * 4; return(0);
+    base += words * 4; return;
 
   case leOp:
     words += genRelOp(insn, OP_CMPLE, FC_CMPLE, src1, src2, dest,Imm);
-    base += words * 4; return(0);
+    base += words * 4; return;
 
   case geOp:                               
     words += genRelOp(insn, OP_CMPLE, FC_CMPLT, src1, src2, dest,Imm,true);
-    base += words * 4; return(0);
+    base += words * 4; return;
 
   default:
     assert(0);
@@ -971,7 +1027,7 @@ generate_integer_op(instruction *insn, Address src1, Address src2,
     words += generate_lit_operate(insn+words, src1, src2, dest, op_code, func_code);
   else
     words += generate_operate(insn+words, src1, src2, dest, op_code, func_code);
-  base += words * 4; return 0;
+  base += words * 4; return;
 }
 
 /*
@@ -1039,7 +1095,7 @@ generate_call_code(instruction *insn, Address src1, Address src2, Address dest,
   base += words * 4; return 0;
 }
 
-static inline Address
+static inline void
 generate_tramp_preamble(instruction *insn, Address src1,
 			Address dest, unsigned long& base) {
 //			Address dest, unsigned& base) {
@@ -1071,11 +1127,12 @@ generate_tramp_preamble(instruction *insn, Address src1,
   // store new observed cost  
   // st REG_T10, obs_rem[REG_T11]
   words += generate_store(insn+words, REG_T10, REG_T11, obs_rem, dw_long);
-  base += words * 4; return 0;
+  base += words * 4; 
+  return;
 }
 
 
-// The value return by emit can be
+// The value returned by emitA can be
 // 
 // ifOp: address to calculate branch
 // 
@@ -1084,20 +1141,93 @@ generate_tramp_preamble(instruction *insn, Address src1,
 //         calculate branches, the offset of the next instruction should
 //         be used.  The alpha uses the UPDATED pc for branches.
 // 
-// Address emit(opCode op, reg src1, reg src2, reg dest,
-//	     char *i, unsigned &base) {
-Address emit(opCode op, reg src1, reg src2, reg dest,
-	     char *i, Address &base,bool noCost) {
 
+Address emitA(opCode op, Register src1, Register /*src2*/, Register dest,
+	     char *i, Address &base, bool /*noCost*/) {
+
+  //fprintf(stderr,"emitA(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
+
+  instruction *insn = (instruction *) ((void*)&i[base]);
+  assert(!((unsigned long)insn & (unsigned long)3));
+
+  switch (op) {
+  case ifOp: {
+    // beq src1
+    // return address used to calculate branch offset
+    assert(src1 < Num_Registers);
+    // branch calculations use the updated pc
+    unsigned long words = generate_branch(insn, src1, dest-4, OP_BEQ);
+    // return offset of branch instruction
+    base += words * 4; 
+    return (base-4);
+    }
+  case branchOp: {
+    generateBranchInsn(insn, dest-4);
+    base += sizeof(instruction);
+    return(base - sizeof(instruction));
+    }
+  case trampTrailer: {
+    // dest is in words of offset and generateBranchInsn is bytes offset
+    assert(!dest);
+//    unsigned words = generate_branch(insn, REG_ZERO, dest << 2, OP_BR);
+    unsigned long words = generate_branch(insn, REG_ZERO, dest << 2, OP_BR);
+    // return the offset of the branch instruction -- not the updated pc
+    base += words * 4; 
+    return (base-4);
+    }
+  case trampPreamble: {
+    generate_tramp_preamble(insn, src1, dest, base);
+    return(0);          // let's hope this is expected!
+    }
+  default:
+    abort();            // unexpected op for this emit!
+  }
+}
+
+Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
+	     char *i, Address &base, bool /*noCost*/) {
+
+  //fprintf(stderr,"emitR(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
+
+  instruction *insn = (instruction *) ((void*)&i[base]);
+  assert(!((unsigned long)insn & (unsigned long)3));
+
+  switch (op) {
+  case getRetValOp:
+    {
+      // Return value register v0 is the 12th register saved in the base tramp
+      restoreRegister(insn,base,12,dest);
+      return(dest);
+    }
+  case getParamOp:
+    {
+      if (src1 >5) assert(0);
+      /*
+       * We don't save the parameter registers unless we make a function call,
+       * so we can read the values directly out of the registers.
+       */
+      unsigned long words =
+	  generate_operate(insn,REG_A0+src1,REG_A0+src1,dest,OP_BIS, FC_BIS);
+      base += words * sizeof(instruction);
+      return(dest);
+    }
+  default:
+    abort();                    // unexpected op for this emit!
+  }
+  return(Null_Register);        // should never get here!
+}
+
+void emitVload(opCode op, Address src1, Register src2, Register dest,
+	     char *i, Address &base, bool noCost)
+{
   instruction *insn = (instruction *) ((void*)&i[base]);
   assert(!((unsigned long)insn & (unsigned long)3));
 
   if (op == loadConstOp) {
     // lda dest, src1 (LITERAL)     --> put the literal value of src1 into dest
     // it may take several instructions to do this
-    assert(dest < 32);
+    assert(dest < Num_Registers);
     int remainder;
-//    unsigned words = 0;
     unsigned long words = 0;
     // if the constant is a zero -- or it into place
     if (!src1) { 
@@ -1113,7 +1243,7 @@ Address emit(opCode op, reg src1, reg src2, reg dest,
 	  generate_lda(insn+words, (unsigned long) dest, (unsigned long) dest,
 		       remainder, true);
     }
-    base += words * 4; return 0;
+    base += words * 4; return;
 
   } else if (op ==  loadOp) {
     // ld? dest, [src1]             --> src1 is a literal
@@ -1126,9 +1256,20 @@ Address emit(opCode op, reg src1, reg src2, reg dest,
 //    words += generate_load(insn+words, (unsigned) dest, (unsigned) dest,
     words += generate_load(insn+words, (unsigned long) dest, (unsigned long) dest,
 			   remainder, dw_long);
-    base += words * 4; return 0;
+    base += words * 4; return;
 
-  } else if (op ==  storeOp) {
+  } else {
+      abort();       // unexpected op for this emit!
+  }
+}
+
+void emitVstore(opCode op, Register src1, Register src2, Address dest,
+	     char *i, Address &base, bool noCost)
+{
+  instruction *insn = (instruction *) ((void*)&i[base]);
+  assert(!((unsigned long)insn & (unsigned long)3));
+
+  if (op ==  storeOp) {
     // st? dest, [src1]
     // src1 = value to store
     // src2 = register to hold address
@@ -1139,63 +1280,47 @@ Address emit(opCode op, reg src1, reg src2, reg dest,
 //    words += generate_store(insn+words, (unsigned) src1, (unsigned) src2,
     words += generate_store(insn+words, (unsigned long) src1, (unsigned long) src2,
 			    remainder, dw_long);
-    base += words * 4; return 0;
+    base += words * 4; return;
 
-  } else if (op ==  ifOp) {
-    // beq src1
-    // return address used to calculate branch offset
-    assert((src1 < 32) && (src1 >= 0));
-    // branch calculations use the udpated pc
-//    unsigned words = generate_branch(insn, src1, dest-4, OP_BEQ);
-    unsigned long words = generate_branch(insn, src1, dest-4, OP_BEQ);
-    // return offset of branch instruction
-    base += words * 4; return (base-4);
-
-  } else if (op ==  trampPreamble) {
-    return generate_tramp_preamble(insn, src1, dest, base);
-
-  } else if (op ==  trampTrailer) {
-    // dest is in words of offset and generateBranchInsn is bytes offset
-    assert(!dest);
-//    unsigned words = generate_branch(insn, REG_ZERO, dest << 2, OP_BR);
-    unsigned long words = generate_branch(insn, REG_ZERO, dest << 2, OP_BR);
-    // return the offset of the branch instruction -- not the updated pc
-    base += words * 4; return (base - 4);
-
-  } else if (op == noOp) {
-//    unsigned words = generate_nop(insn);
-    unsigned long words = generate_nop(insn);
-    base += words * 4; return 0;
-
-  } else if (op == updateCostOp)
-    {
-      return 0;
-    }
-  else if (op == getRetValOp)
-    {
-      // Return value register v0 is the 12th register saved in the base tramp
-      restoreRegister(insn,base,12,dest);
-      return(dest);
-    }
-  else if (op == getParamOp)
-    {
-      if (src1 >5) assert(0);
-      /*
-       * We don't save the parameter registers unless we make a function call,
-       * so we can read the values directly out of the registers.
-       */
-      unsigned long words =
-	  generate_operate(insn,REG_A0+src1,REG_A0+src1,dest,OP_BIS, FC_BIS);
-      base += words * sizeof(instruction);
-      return(dest);
-    }
-  else if (op == branchOp) {
-    generateBranchInsn(insn, dest-4);
-    base += sizeof(instruction);
-    return(base - sizeof(instruction));
+  } else {
+      abort();       // unexpected op for this emit!
   }
-  else {
-    return generate_integer_op(insn, src1, src2, dest, base, op);
+}
+
+void emitVupdate(opCode op, RegValue src1, Register /*src2*/, Address dest,
+	     char *i, Address &base, bool noCost)
+{
+  instruction *insn = (instruction *) ((void*)&i[base]);
+  assert(!((unsigned long)insn & (unsigned long)3));
+
+  if (op == updateCostOp) {
+      return;
+  } else {
+      abort();       // unexpected op for this emit!
+  }
+}
+
+void emitV(opCode op, Register src1, Register src2, Register dest,
+	     char *i, Address &base, bool /*noCost*/)
+{
+  //fprintf(stderr,"emitV(op=%d,src1=%d,src2=%d,dest=%d)\n",op,src1,src2,dest);
+
+    assert ((op!=branchOp) && (op!=ifOp) && 
+            (op!=trampTrailer) && (op!=trampPreamble));         // !emitA
+    assert ((op!=getRetValOp) && (op!=getParamOp));             // !emitR
+    assert ((op!=loadOp) && (op!=loadConstOp));                 // !emitVload
+    assert ((op!=storeOp));                                     // !emitVstore
+    assert ((op!=updateCostOp));                                // !emitVupdate
+
+  instruction *insn = (instruction *) ((void*)&i[base]);
+  assert(!((unsigned long)insn & (unsigned long)3));
+
+  if (op == noOp) {
+    unsigned long words = generate_nop(insn);
+    base += words * 4; return;
+  } else {
+    generate_integer_op(insn, src1, src2, dest, base, op);
+    return;
   }
 }
 
@@ -1213,7 +1338,7 @@ restore_original_instructions(process* p, instPoint* ip) {
 
 // The only non read only registers are those that are allocated - t0...t7
 
-bool registerSpace::readOnlyRegister(reg reg_number) {
+bool registerSpace::readOnlyRegister(Register reg_number) {
   if ((reg_number >= REG_T0) && (reg_number <= REG_T7))
     return false;
   else 
@@ -1308,10 +1433,10 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 	installBaseTramp(baseAddr, location, globalProc);
 	instruction *insn = new instruction;
 	generateBranchInsn(insn, baseAddr - (location->addr+4));
-	globalProc->baseMap[location] = baseAddr;
+	globalProc->baseMap[location] = (trampTemplate*)baseAddr;
 	retInstance = new returnInstance((instruction *)insn,sizeof(instruction), location->addr, sizeof(instruction)); 
     } else {
-        baseAddr = globalProc->baseMap[location];
+        baseAddr = (Address)globalProc->baseMap[location];
     }
       
     ret = new trampTemplate;
@@ -1465,19 +1590,19 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
   //addInternalSymbol(ghb, instHeapStart);
 
   // check that we can get to our heap.
-  if (instHeapStart > getMaxBranch()+symbols->codeOffset+SYN_INST_BUF_SIZE) {
+  const Address instHeapEnd = 
+        getMaxBranch()+(Address)(symbols->codeOffset)+SYN_INST_BUF_SIZE;
+  if (instHeapStart > instHeapEnd) {
     logLine("*** FATAL ERROR: Program text + data too big for dyninst\n");
-    sprintf(errorLine, "    heap starts at %x\n", instHeapStart);
+    sprintf(errorLine, "    heap starts at 0x%lx\n", instHeapStart);
     logLine(errorLine);
-    sprintf(errorLine, "    max reachable at %x\n", 
-	getMaxBranch());
+    sprintf(errorLine, "    max reachable at 0x%lx\n", getMaxBranch());
     logLine(errorLine);
     showErrorCallback(53,(const char *) errorLine);
     return false;
   } 
 /*
-  else if (instHeapStart + SYN_INST_BUF_SIZE > 
-	     getMaxBranch()) {
+  else if (instHeapStart + SYN_INST_BUF_SIZE > getMaxBranch()) {
     logLine("WARNING: Program text + data could be too big for dyninst\n");
     showErrorCallback(54,(const char *) errorLine);
     return false;
@@ -1498,22 +1623,23 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
   return true;
 }
 
-Address emitImm(opCode op, reg src1, reg src2, reg dest, char *i, 
-                 Address &base, bool noCost)
+void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, 
+             char *i, Address &base, bool noCost)
 {
   instruction *insn = (instruction *) ((void*)&i[base]);
   assert(!((unsigned long)insn & (unsigned long)3));
-  return generate_integer_op(insn, src1, src2, dest, base, op,true);
+  generate_integer_op(insn, src1, src2imm, dest, base, op, true);
+  return;
 }
 
-unsigned long
+Register
 emitFuncCall(opCode op, 
 	     registerSpace *rs,
-	     char *i, unsigned long &base, 
+	     char *i, Address &base, 
 	     const vector<AstNode *> &operands,
-	     const string &func, process *proc,bool noCost)
+	     const string &func, process *proc, bool noCost)
 {
-  vector <reg> srcs;
+  vector <Register> srcs;
 
   // First, generate the parameters
   for (unsigned u = 0; u < operands.size(); u++)
@@ -1523,7 +1649,7 @@ emitFuncCall(opCode op,
   // register move is "bis src, src, dest"  (bis is logical or)
   // save and restore the values currently in the argument registers
   //  unsigned long words = 0;
-  unsigned long addr;
+  Address addr;
   bool err;
   void cleanUpAndExit(int status);
   addr = proc->findInternalAddress(func, false, err);
@@ -1603,7 +1729,7 @@ emitFuncCall(opCode op,
   insn = (instruction *) ((void*)&i[base]);
   base += ( 4 * generate_jump(insn, REG_T10, MD_JSR, REG_RA, remainder));
 
-  reg dest = rs->allocateRegister(i, base, noCost);
+  Register dest = rs->allocateRegister(i, base, noCost);
 
   insn = (instruction *) ((void*)&i[base]);
 

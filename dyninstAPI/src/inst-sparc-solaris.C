@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.44 1998/10/26 23:03:04 mcheyney Exp $
+// $Id: inst-sparc-solaris.C,v 1.45 1998/12/25 23:18:47 wylie Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -329,7 +329,7 @@ void pd_Function::checkCallPoints() {
 //  including a function (w/o stack frame) which ends w/ jmp, nop....
 Address pd_Function::newCallPoint(Address &adr, const instruction instr,
 				 const image *owner, bool &err, 
-				 int &callId, Address &oldAddr,
+				 unsigned &callId, Address &oldAddr,
 				 relocatedFuncInfo *reloc_info,
 				 const instPoint *&location)
 {
@@ -367,7 +367,6 @@ Address pd_Function::newCallPoint(Address &adr, const instruction instr,
 	} else {
 	    // calls to a location within the function are not
 	    // kept in the calls vector
-	    assert(callId >= 0);
 
 #ifdef DEBUG_CALL_POINTS
 	    cerr << " *this = " << *this;
@@ -386,8 +385,8 @@ Address pd_Function::newCallPoint(Address &adr, const instruction instr,
 	    // Alert!!!!
 	    // cannot simply assert that this is true, because of the case
 	    //  where (as a hack), the call site in a tail-call optimization
-	    //  might not have been previously seeen....
-	    assert(((u_int)callId) < calls.size());
+	    //  might not have been previously seen....
+	    assert((callId) < calls.size());
 	  
 	    if(location && (calls[callId] == location)) { 
 		assert(calls[callId]->instId  == location->instId);
@@ -415,8 +414,8 @@ Address pd_Function::newCallPoint(Address &adr, const instruction instr,
  *   any relative addressing that is present.
  * 
  */
-void relocateInstruction(instruction *insn, u_int origAddr, u_int targetAddr,
-			 process *proc)
+void relocateInstruction(instruction *insn, 
+                        Address origAddr, Address targetAddr, process *proc)
 {
     int newOffset;
 
@@ -497,7 +496,7 @@ void pd_Function::relocateInstructionWithFunction(instruction *insn, Address ori
  */
 trampTemplate *installBaseTramp(instPoint *&location, process *proc)
 {
-    unsigned baseAddr = inferiorMalloc(proc, baseTemplate.size, textHeap);
+    Address baseAddr = inferiorMalloc(proc, baseTemplate.size, textHeap);
 
     instruction *code = new instruction[baseTemplate.size];
     assert(code);
@@ -505,7 +504,7 @@ trampTemplate *installBaseTramp(instPoint *&location, process *proc)
     memcpy((char *) code, (char*) baseTemplate.trampTemp, baseTemplate.size);
 
     instruction *temp;
-    unsigned currAddr;
+    Address currAddr;
     for (temp = code, currAddr = baseAddr; 
 	(currAddr - baseAddr) < (unsigned) baseTemplate.size;
 	temp++, currAddr += sizeof(instruction)) {
@@ -855,11 +854,11 @@ trampTemplate *installBaseTrampSpecial(const instPoint *&location,
 				       process *proc,
 				       vector<instruction> &extra_instrs) 
 {
-    unsigned currAddr;
+    Address currAddr;
     instruction *code;
     instruction *temp;
 
-    unsigned baseAddr = inferiorMalloc(proc, baseTemplate.size, textHeap);
+    Address baseAddr = inferiorMalloc(proc, baseTemplate.size, textHeap);
 
     if(!(location->func->isInstalled(proc))) {
         location->func->relocateFunction(proc,location,extra_instrs);
@@ -1215,7 +1214,7 @@ void installTramp(instInstance *inst, char *code, int codeSize)
     // TODO cast
     (inst->proc)->writeDataSpace((caddr_t)inst->trampBase, codeSize, code);
 
-    unsigned atAddr;
+    Address atAddr;
     if (inst->when == callPreInsn) {
 	if (inst->baseInstance->prevInstru == false) {
 	    atAddr = inst->baseInstance->baseAddr+baseTemplate.skipPreInsOffset;
@@ -1234,17 +1233,17 @@ void installTramp(instInstance *inst, char *code, int codeSize)
 }
 
 
-unsigned emitFuncCall(opCode op, 
+Register emitFuncCall(opCode op, 
 		      registerSpace *rs,
-		      char *i, unsigned &base, 
+		      char *i, Address &base, 
 		      const vector<AstNode *> &operands, 
 		      const string &callee, process *proc,
 		      bool noCost)
 {
         assert(op == callOp);
-        unsigned addr;
+        Address addr;
 	bool err;
-	vector <reg> srcs;
+	vector <Register> srcs;
 	void cleanUpAndExit(int status);
 
         addr = proc->findInternalAddress(callee, false, err);
@@ -1292,16 +1291,173 @@ unsigned emitFuncCall(opCode op,
 
         base += 3 * sizeof(instruction);
 
-        // return value is the register with the return value from the
-        //   function.
-        // This needs to be %o0 since it is back in the callers scope.
-        return(8);
+        // return value is the register with the return value from the function.
+        // This needs to be %o0 since it is back in the caller's scope.
+        return(REG_O(8));
 }
  
-unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
-	      bool noCost)
+Address emitA(opCode op, Register src1, Register /*src2*/, Register dest, 
+              char *i, Address &base, bool /*noCost*/)
 {
-    // TODO cast
+    //fprintf(stderr,"emitA(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
+
+    instruction *insn = (instruction *) ((void*)&i[base]);
+
+    switch (op) {
+      case ifOp: {
+	// cmp src1,0
+        genImmInsn(insn, SUBop3cc, src1, 0, 0); insn++;
+	//genSimpleInsn(insn, SUBop3cc, src1, 0, 0); insn++;
+
+	insn->branch.op = 0;
+	insn->branch.cond = BEcond;
+	insn->branch.op2 = BICCop2;
+	insn->branch.anneal = false;
+	insn->branch.disp22 = dest/4;
+	insn++;
+
+	generateNOOP(insn);
+	base += sizeof(instruction)*3;
+	return(base - 2*sizeof(instruction));
+        }
+      case branchOp: {
+	// Unconditional branch
+	generateBranchInsn(insn, dest); insn++;
+
+	generateNOOP(insn);
+	base += sizeof(instruction)*2;
+	return(base - 2*sizeof(instruction));
+        }
+      case trampPreamble: {
+#ifdef ndef
+        // save and restore are done in the base tramp now
+        genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
+	base += sizeof(instruction);
+        insn++;
+
+	// generate code to save global registers
+	for (unsigned u = 0; u < 4; u++) {
+	  genStoreD(insn, 2*u, REG_FP, - (8 + 8*u));
+	  base += sizeof(instruction);
+	  insn++;
+	}
+#endif
+        return(0);      // let's hope this is expected!
+        }
+      case trampTrailer: {
+#ifdef ndef
+        // save and restore are done in the base tramp now
+	// generate code to restore global registers
+	for (unsigned u = 0; u < 4; u++) {
+	  genLoadD(insn, REG_FP, - (8 + 8*u), 2*u);
+	  base += sizeof(instruction);
+	  insn++;
+	}
+
+        // sequence: restore; nop; b,a back to base tramp; nop
+        // we can do better.  How about putting the restore in
+        // the delay slot of the branch instruction, as in:
+        // b <back to base tramp>; restore
+        genSimpleInsn(insn, RESTOREop3, 0, 0, 0); 
+	base += sizeof(instruction);
+	insn++;
+
+	generateNOOP(insn);
+	base += sizeof(instruction);
+	insn++;
+#endif
+	// dest is in words of offset and generateBranchInsn is bytes offset
+	generateBranchInsn(insn, dest << 2);
+	base += sizeof(instruction);
+	insn++;
+
+        // add no-op, SS-5 sometimes seems to try to decode this insn - jkh 2/14
+        generateNOOP(insn);
+        insn++;
+        base += sizeof(instruction);
+
+	return(base -  2 * sizeof(instruction));
+        }
+      default:
+        abort();        // unexpected op for this emit!
+    }
+}
+
+Register emitR(opCode op, Register src1, Register /*src2*/, Register /*dest*/, 
+              char *i, Address &base, bool /*noCost*/)
+{
+    //fprintf(stderr,"emitR(op=%d,src1=%d,src2=XX,dest=XX)\n",op,src1);
+
+    instruction *insn = (instruction *) ((void*)&i[base]);
+
+    switch(op) {
+      case getParamOp: {
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
+        // saving CT/vector address on the stack
+        generateStore(insn, REG_MT, REG_FP, -40);
+        insn++;
+#endif
+	// first 8 parameters are in register bank I (24..31)
+	genSimpleInsn(insn, RESTOREop3, 0, 0, 0);
+	insn++;
+
+	generateStore(insn, REG_I(src1), REG_SP, 68+4*src1); 
+	insn++;
+	      
+	genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
+	insn++;
+
+	generateLoad(insn, REG_SP, 112+68+4*src1, REG_I(src1)); 
+	insn++;
+
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
+        // restoring CT/vector address back in REG_MT
+        generateLoad(insn, REG_FP, -40, REG_MT);
+        insn++;
+        base += 6*sizeof(instruction);
+#else
+	base += 4*sizeof(instruction);
+#endif
+	
+	if (src1 <= 8) {
+	    return(REG_I(src1));
+	}
+	abort();
+      }
+    case getSysParamOp: {
+	if (src1 <= 8) {
+	    return(REG_I(src1));
+	}	
+        abort();
+      }
+    case getRetValOp: {
+	// return value is in register REG_I(0)==24
+	genSimpleInsn(insn, RESTOREop3, 0, 0, 0);
+	insn++;
+
+	generateStore(insn, REG_I(0), REG_SP, 68); 
+	insn++;
+	      
+	genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
+	insn++;
+
+	generateLoad(insn, REG_SP, 112+68, REG_I(0)); 
+	insn++;
+
+	base += 4*sizeof(instruction);
+
+	return(REG_I(0));
+      }
+    case getSysRetValOp:
+	return(REG_I(0));
+    default:
+        abort();        // unexpected op for this emit!
+    }
+}
+
+void emitVload(opCode op, Address src1, Register src2, Register dest, 
+              char *i, Address &base, bool /*noCost*/)
+{
     instruction *insn = (instruction *) ((void*)&i[base]);
 
     if (op == loadConstOp) {
@@ -1314,9 +1470,9 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
 
 	    // or regd,imm,regd
 
-            // Chance for optimization: we should check for LOW10(src1)==0, and
-            // if so, don't generate the following bitwise-or instruction, since
-            // in that case nothing would be done.
+            // Chance for optimization: we should check for LOW10(src1)==0,
+            // and if so, don't generate the following bitwise-or instruction,
+            // since in that case nothing would be done.
 
 	    genImmInsn(insn, ORop3, dest, LOW10(src1), dest);
 	    base += sizeof(instruction);
@@ -1334,10 +1490,17 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
 	generateLoad(insn, dest, LOW10(src1), dest);
 
 	base += sizeof(instruction)*2;
-    } else if (op ==  loadIndirOp) {
-	generateLoad(insn, src1, 0, dest);
-	base += sizeof(instruction);
-    } else if (op ==  storeOp) {
+    } else {
+        abort();       // unexpected op for this emit!
+    }
+}
+
+void emitVstore(opCode op, Register src1, Register src2, Address dest, 
+              char *i, Address &base, bool /*noCost*/)
+{
+    instruction *insn = (instruction *) ((void*)&i[base]);
+
+    if (op == storeOp) {
 	insn->sethi.op = FMT2op;
 	insn->sethi.rd = src2;
 	insn->sethi.op2 = SETHIop2;
@@ -1347,32 +1510,17 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
 	generateStore(insn, src1, src2, LOW10(dest));
 
 	base += sizeof(instruction)*2;
-    } else if (op ==  storeIndirOp) {
-	generateStore(insn, src1, dest, 0);
-	base += sizeof(instruction);
-    } else if (op ==  ifOp) {
-	// cmp src1,0
-        genImmInsn(insn, SUBop3cc, src1, 0, 0); insn++;
-	//genSimpleInsn(insn, SUBop3cc, src1, 0, 0); insn++;
+    } else {
+        abort();       // unexpected op for this emit!
+    }
+}
 
-	insn->branch.op = 0;
-	insn->branch.cond = BEcond;
-	insn->branch.op2 = BICCop2;
-	insn->branch.anneal = false;
-	insn->branch.disp22 = dest/4;
-	insn++;
+void emitVupdate(opCode op, RegValue src1, Register /*src2*/, Address dest, 
+              char *i, Address &base, bool noCost)
+{
+    instruction *insn = (instruction *) ((void*)&i[base]);
 
-	generateNOOP(insn);
-	base += sizeof(instruction)*3;
-	return(base - 2*sizeof(instruction));
-    } else if (op == branchOp) {
-	// Unconditional branch
-	generateBranchInsn(insn, dest); insn++;
-
-	generateNOOP(insn);
-	base += sizeof(instruction)*2;
-	return(base - 2*sizeof(instruction));
-    } else if (op ==  updateCostOp) {
+    if (op == updateCostOp) {
         // generate code to update the observed cost.
 	if (!noCost) {
 	   // sethi %hi(dest), %l0
@@ -1419,116 +1567,36 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
 	   generateStore(insn, REG_L1, REG_L0, LOW10(dest));
 	   base += sizeof(instruction);
 	   insn++;
-	} // if (!noCost)
-    } else if (op ==  trampPreamble) {
-#ifdef ndef
-        // save and restore are done inthe base tramp now
-        genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
-	base += sizeof(instruction);
-        insn++;
-
-	// generate code to save global registers
-	for (unsigned u = 0; u < 4; u++) {
-	  genStoreD(insn, 2*u, REG_FP, - (8 + 8*u));
-	  base += sizeof(instruction);
-	  insn++;
 	}
-#endif
-    } else if (op ==  trampTrailer) {
-#ifdef ndef
-        // save and restore are done inthe base tramp now
-	// generate code to restore global registers
-	for (unsigned u = 0; u < 4; u++) {
-	  genLoadD(insn, REG_FP, - (8 + 8*u), 2*u);
-	  base += sizeof(instruction);
-	  insn++;
-	}
+    } else {
+        abort();       // unexpected op for this emit!
+    }
+}
 
-        // sequence: restore; nop; b,a back to base tramp; nop
-        // we can do better.  How about putting the restore in
-        // the delay slot of the branch instruction, as in:
-        // b <back to base tramp>; restore
-        genSimpleInsn(insn, RESTOREop3, 0, 0, 0); 
+void emitV(opCode op, Register src1, Register src2, Register dest, 
+              char *i, Address &base, bool /*noCost*/)
+{
+    //fprintf(stderr,"emitV(op=%d,src1=%d,src2=%d,dest=%d)\n",op,src1,src2,dest);
+
+    assert ((op!=branchOp) && (op!=ifOp) && 
+            (op!=trampTrailer) && (op!=trampPreamble));         // !emitA
+    assert ((op!=getRetValOp) && (op!=getSysRetValOp) &&
+            (op!=getParamOp) && (op!=getSysParamOp));           // !emitR
+    assert ((op!=loadOp) && (op!=loadConstOp));                 // !emitVload
+    assert ((op!=storeOp));                                     // !emitVstore
+    assert ((op!=updateCostOp));                                // !emitVupdate
+
+    instruction *insn = (instruction *) ((void*)&i[base]);
+
+    if (op == loadIndirOp) {
+	generateLoad(insn, src1, 0, dest);
 	base += sizeof(instruction);
-	insn++;
-
-	generateNOOP(insn);
+    } else if (op == storeIndirOp) {
+	generateStore(insn, src1, dest, 0);
 	base += sizeof(instruction);
-	insn++;
-#endif
-	// dest is in words of offset and generateBranchInsn is bytes offset
-	generateBranchInsn(insn, dest << 2);
-	base += sizeof(instruction);
-	insn++;
-
-        // add no-op, SS-5 sometimes seems to try to decode this insn - jkh 2/14
-        generateNOOP(insn);
-        insn++;
-        base += sizeof(instruction);
-
-	return(base -  2 * sizeof(instruction));
     } else if (op == noOp) {
 	generateNOOP(insn);
 	base += sizeof(instruction);
-    } else if (op == getParamOp) {
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
-        // saving CT/vector address on the stack
-        generateStore(insn, REG_MT, REG_FP, -40);
-        insn++;
-#endif
-	// first 8 parameters are in register 24 ....
-	genSimpleInsn(insn, RESTOREop3, 0, 0, 0);
-	insn++;
-
-	generateStore(insn, 24+src1, REG_SP, 68+4*src1); 
-	insn++;
-	      
-	genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
-	insn++;
-
-	generateLoad(insn, REG_SP, 112+68+4*src1, 24+src1); 
-	insn++;
-
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
-        // restoring CT/vector address back in REG_MT
-        generateLoad(insn, REG_FP, -40, REG_MT);
-        insn++;
-        base += 6*sizeof(instruction);
-#else
-	base += 4*sizeof(instruction);
-#endif
-	
-	if (src1 <= 8) {
-	    return(24+src1);
-	}
-	
-	abort();
-    } else if (op == getSysParamOp) {
-	
-	if (src1 <= 8) {
-	    return(24+src1);
-	}	
-    } else if (op == getRetValOp) {
-	// return value is in register 24
-	genSimpleInsn(insn, RESTOREop3, 0, 0, 0);
-	insn++;
-
-	generateStore(insn, 24, REG_SP, 68); 
-	insn++;
-	      
-	genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
-	insn++;
-
-	generateLoad(insn, REG_SP, 112+68, 24); 
-	insn++;
-
-	base += 4*sizeof(instruction);
-
-	return(24);
-
-    } else if (op == getSysRetValOp) {
-
-	return(24);
     } else if (op == saveRegOp) {
 	// should never be called for this platform.
 	abort();
@@ -1571,32 +1639,32 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
             // we need BLTcond) - naim
 	    case eqOp:
 		genRelOp(insn, BNEcond, src1, src2, dest, base);
-		return(0);
+		return;
 		break;
 
             case neOp:
                 genRelOp(insn, BEcond, src1, src2, dest, base);
-                return(0);
+                return;
                 break;
 
 	    case lessOp:
                 genRelOp(insn, BGEcond, src1, src2, dest, base);
-                return(0);
+                return;
                 break;
 
             case leOp:
                 genRelOp(insn, BGTcond, src1, src2, dest, base);
-                return(0);
+                return;
                 break;
 
             case greaterOp:
                 genRelOp(insn, BLEcond, src1, src2, dest, base);
-                return(0);
+                return;
                 break;
 
             case geOp:
                 genRelOp(insn, BLTcond, src1, src2, dest, base);
-                return(0);
+                return;
                 break;
 
 	    default:
@@ -1607,8 +1675,9 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
 
 	base += sizeof(instruction);
       }
-    return(0);
+   return;
 }
+
 
 static inline bool isRestoreInsn(instruction i) {
     return (i.rest.op == 2 \
@@ -1708,9 +1777,9 @@ static inline bool JmpNopTC(instruction instr, instruction nexti,
   functionSize - size of function (in bytes, NOT # instructions)....
   instructionOffset - BYTE offset in function at which instr occurs....
  */        
-static inline bool is_set_O7_call(instruction instr, int functionSize, 
-			      int instructionOffset) {
-    // if the instruction is callm %register, assume that it is NOT a 
+static inline bool is_set_O7_call(instruction instr, unsigned functionSize, 
+			      unsigned instructionOffset) {
+    // if the instruction is call %register, assume that it is NOT a 
     //  call designed purely to set %O7....
     if(instr.call.op != CALLop) {
         return false;
@@ -1752,7 +1821,7 @@ bool pd_Function::findInstPoints(const image *owner) {
     int jmp_nop_tc;
     instPoint *blah = 0;
     bool err;
-    int dummyId;
+    unsigned dummyId;
 
     enum fuzzyBoolean is_inst_point;
 
@@ -1948,14 +2017,14 @@ bool pd_Function::findInstPoints(const image *owner) {
 	     jump r
 	*/
 
-       reg jumpreg = instr.rest.rs1;
+       Register jumpreg = instr.rest.rs1;
        instruction prev1;
        instruction prev2;
 
        prev1.raw = owner->get_instruction(adr-4);
        prev2.raw = owner->get_instruction(adr-8);
 
-       unsigned targetAddr;
+       Address targetAddr;
 
        if (instr.rest.rd == 0 && (instr.rest.i == 1 || instr.rest.rs2 == 0)
 	   && prev2.sethi.op == FMT2op && prev2.sethi.op2 == SETHIop2 
@@ -2135,8 +2204,8 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
    }    
 
    assert(funcEntry_);
-   int retId = 0;
-   int callsId = 0; 
+   unsigned retId = 0;
+   unsigned callsId = 0; 
 
    for (i = 0; adr < getAddress(0) + size(); adr += sizeof(instruction),  
 	newAdr += sizeof(instruction), i++) {
@@ -2210,7 +2279,7 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
 	   is_inst_point = is_call_outside_function(instr, getAddress(0), adr, size());
 	   if (is_inst_point == eFalse) {
 	       // if this is a call instr to a location within the function, and if 
-               // the offest is not 8 then do not define this function 
+               // the offset is not 8 then do not define this function 
 	       if (!is_set_O7_call(instr, size(), adr - getAddress(0))) {
 		   return false;
 	       }
@@ -2226,9 +2295,9 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
            adr = newCallPoint(newAdr, instr, owner, err, callsId, adr,0,blah);
 	   if (err) return false;
 
-           instPoint *point = new instPoint(this, instr, owner, newAdr
-				      + sizeof(instruction), false,
-				      functionExit, adr);
+           instPoint *point = new instPoint(this, instr, owner, 
+                                        newAdr + sizeof(instruction), false,
+				        functionExit, adr);
            funcReturns += point;
            funcReturns[retId] -> instId = retId++;
      } 
@@ -2250,14 +2319,14 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
 	     jump r
 	*/
 
-	 reg jumpreg = instr.rest.rs1;
+	 Register jumpreg = instr.rest.rs1;
 	 instruction prev1;
 	 instruction prev2;
 	 
 	 prev1.raw = owner->get_instruction(adr-4);
 	 prev2.raw = owner->get_instruction(adr-8);
 
-	 unsigned targetAddr;
+	 Address targetAddr;
 
 	 if (instr.rest.rd == 0 && (instr.rest.i == 1 || instr.rest.rs2 == 0)
 	     && prev2.sethi.op == FMT2op && prev2.sethi.op2 == SETHIop2 
@@ -2638,7 +2707,6 @@ bool pd_Function::calcRelocationExpansions(const image *owner,
  */
 bool pd_Function::PA_attachGeneralRewrites(LocalAlterationSet *p, 
         Address baseAddress, Address firstAddress, instruction loadedCode[], int codeSize) {
-    unsigned i;
     instruction instr, nexti;
     TailCallOptimization *tail_call;
     // previously referred to calls[i] directly, but gdb seems to be having
@@ -2670,8 +2738,8 @@ bool pd_Function::PA_attachGeneralRewrites(LocalAlterationSet *p,
     //    Note that if this call insn is a call to address + 8, it will actually
     //     be replaced by a sequence which does NOT include a call, so don't need to
     //     worry about inserting the extra nop....
-    if (isCallInsn(loadedCode[1]) && !is_set_O7_call(loadedCode[1], \
-					     codeSize, 1 * sizeof(instruction))) {
+    if (isCallInsn(loadedCode[1]) && 
+                !is_set_O7_call(loadedCode[1], codeSize, sizeof(instruction))) {
         NOPExpansion *nop = new NOPExpansion(this, sizeof(instruction), 
 	        sizeof(instruction), baseAddress, sizeof(instruction));
 	p->AddAlteration(nop);
@@ -2683,7 +2751,7 @@ bool pd_Function::PA_attachGeneralRewrites(LocalAlterationSet *p,
     // Iterate over function instruction by instruction, looking for calls to
     //  address + 8....
     assert((codeSize % sizeof(instruction)) == 0);
-    for(i=0;i<(codeSize/sizeof(instruction));i++) {
+    for(unsigned i=0;i<(codeSize/sizeof(instruction));i++) {
         //  want CALL %address, NOT CALL %register
         if (isTrueCallInsn(loadedCode[i])) {
 	    // figure out destination of call....
@@ -2706,7 +2774,7 @@ bool pd_Function::PA_attachGeneralRewrites(LocalAlterationSet *p,
     // There is an unfortunate dependence on the method for detecting tail-call
     //  optimizations in the code for detecting overlapping inst-points, below.
     //  If change this code, may need to update that code correspondingly....
-    for(i=0;i<calls.size();i++) {
+    for(unsigned i=0;i<calls.size();i++) {
         // this should return the offset at which the FIRST instruction which
         //  is ACTUALLY OVEWRITTEN BY INST POINT is located....
         the_call = calls[i];
@@ -2753,7 +2821,6 @@ bool pd_Function::PA_attachOverlappingInstPoints(
         LocalAlterationSet *p, Address baseAddress, Address firstAddress,
 	instruction loadedCode[], int codeSize) {
 
-    unsigned i;
     instruction instr, nexti;
 #ifdef DEBUG_PA_INST
     cerr << "pd_Function::PA_attachOverlappingInstPoints called" <<endl;
@@ -2780,7 +2847,7 @@ bool pd_Function::PA_attachOverlappingInstPoints(
 
     // should hopefully have inst points for fn sorted by address....
     // check for overlaps....
-    for (i=0;i<foo.size()-1;i++) {
+    for (unsigned i=0;i<foo.size()-1;i++) {
         instPoint *this_inst_point = foo[i];
         instPoint *next_inst_point = foo[i+1];
 	// This is kind of a hack - strictly speaking, the peephole alteration 
@@ -2815,7 +2882,7 @@ bool pd_Function::PA_attachOverlappingInstPoints(
 	    //  2 inst points are located at exactly the same place or 
 	    //  1 is located in the delay slot of the other - it will NOT
 	    //  break up the 2 inst points in that case....
-	    int offset = (this_inst_point->iPgetAddress() - getAddress(0)) + \
+	    int offset = (this_inst_point->iPgetAddress() - getAddress(0)) +
 	      sizeof(instruction); 
 	    offset = moveOutOfDelaySlot(offset, loadedCode, codeSize);
 	    NOPExpansion *nops = new NOPExpansion(this, offset, offset, 
@@ -2833,14 +2900,13 @@ bool pd_Function::PA_attachOverlappingInstPoints(
 // find the 1st inst point in v which a overlaps with....
 //  assumes v sorted by address....
 instPoint *find_overlap(vector<instPoint*> v, Address a) {
-    unsigned u;
-    for (u=0;u<v.size();u++) {
+    for (unsigned u=0;u<v.size();u++) {
         instPoint *i = v[u];
 	// too far?
-	if (i->followingAddress() <= a) {
+	if (a >= i->followingAddress()) {
 	    return NULL;
 	}
-	if (a >= i->firstAddress() && a < i->followingAddress()) {
+	if (a > i->firstAddress() && a < i->followingAddress()) {
 	    return i;
 	}
     }
@@ -2859,7 +2925,6 @@ instPoint *find_overlap(vector<instPoint*> v, Address a) {
  */
 bool pd_Function::PA_attachBranchOverlaps(LocalAlterationSet *p, Address baseAddress, 
 	Address firstAddress, instruction loadedCode[], int codeSize)  {
-    int i;
 
 #ifdef DEBUG_PA_INST
     cerr << "pd_Function::PA_attachBranchOverlaps called" <<endl;
@@ -2879,7 +2944,7 @@ bool pd_Function::PA_attachBranchOverlaps(LocalAlterationSet *p, Address baseAdd
 
     // Iterate over function instruction by instruction....
     assert((codeSize % sizeof(instruction)) == 0);
-    for(i=0;i<(codeSize/sizeof(instruction));i++) {
+    for(unsigned i=0;i<(codeSize/sizeof(instruction));i++) {
         // looking for branch instructions inside function....
         if (!branchInsideRange(loadedCode[i], 
 			       firstAddress + (i * sizeof(instruction)),
@@ -2943,7 +3008,6 @@ bool pd_Function::PA_attachBranchOverlaps(LocalAlterationSet *p, Address baseAdd
 void pd_Function::patchOffset(LocalAlterationSet *p, instruction& instr, 
 			      Address adr, Address firstAddress) {
     int disp, extra_offset;
-    Address target;
 
     // Currently applied to :
     //  branches inside function....
@@ -2988,7 +3052,6 @@ bool pd_Function::applyAlterations(LocalAlterationSet *p, Address oldAdr,
 				   process *proc) {
     LocalAlteration *nextAlter;
     Address nextAlterBegins, oldAdrSave, newAdrSave;
-    instruction tmp;
 
     int newOffset, oldOffset;
 
@@ -3058,7 +3121,7 @@ bool pd_Function::applyAlterations(LocalAlterationSet *p, Address oldAdr,
 //  instruction....
 int pd_Function::moveOutOfDelaySlot(int offset, instruction loadedCode[],
 	  int codeSize) {
-    assert(offset < codeSize);
+    assert(offset >= 0 && offset < codeSize);
     if (IS_DELAYED_INST(loadedCode[offset])) {
         return offset + sizeof(instruction);
     }

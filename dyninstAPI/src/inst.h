@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: inst.h,v 1.44 1998/12/25 23:18:43 wylie Exp $
+
 #ifndef INST_HDR
 #define INST_HDR
 
@@ -58,9 +60,8 @@ typedef enum { callNoArgs, callRecordType, callFullArgs } callOptions;
 typedef enum { callPreInsn, callPostInsn } callWhen;
 typedef enum { orderFirstAtPoint, orderLastAtPoint } callOrder;
 
-extern void deleteInst(instInstance *old, const vector<unsigned> &pointsToCheck);
-   // in inst.C
-extern vector<unsigned> getAllTrampsAtPoint(instInstance *);
+extern void deleteInst(instInstance *old, const vector<Address> &pointsToCheck);
+extern vector<Address> getAllTrampsAtPoint(instInstance *);
 
 class AstNode;
 class returnInstance;
@@ -151,43 +152,65 @@ public:
 };
 
 /*
- * get information about the cost of pimitives.
+ * get information about the cost of primitives.
  *
  */
 void initPrimitiveCost();
 void initDefaultPointFrequencyTable();
 
 //
-// Return the expected runtime of the passed function in instruction
-//   times.
+// Return the expected runtime of the passed function in instruction times.
 //
 unsigned getPrimitiveCost(const string &name);
 
-// a register.
-typedef int reg;
-
 /*
  * Generate an instruction.
- *
+ * Previously this was handled by the polymorphic "emit" function, which
+ * took a variety of argument types and variously returned either an
+ * Address or a Register or nothing of value.  The following family of
+ * functions replace "emit" with more strongly typed versions.
  */
-Address emit(opCode op, reg src1, reg src2, reg dest, char *insn, 
-              Address &base, bool noCost);
-Address emitImm(opCode op, reg src1, reg src2, reg dest, char *i, 
-                 Address &base, bool noCost);
+
+// for operations requiring an Address to be returned
+// (e.g., ifOp/branchOp, trampPreambleOp/trampTrailerOp)
+Address  emitA(opCode op, Register src1, Register src2, Register dst, 
+                char *insn, Address &base, bool noCost);
+
+// for operations requiring a Register to be returned
+// (e.g., getRetValOp, getParamOp, getSysRetValOp, getSysParamOp)
+Register emitR(opCode op, Register src1, Register src2, Register dst, 
+                char *insn, Address &base, bool noCost);
+
+// for general arithmetic and logic operations which return nothing
+void     emitV(opCode op, Register src1, Register src2, Register dst, 
+                char *insn, Address &base, bool noCost);
+
+// for loadOp and loadConstOp (reading from an Address)
+void     emitVload(opCode op, Address src1, Register src2, Register dst, 
+                char *insn, Address &base, bool noCost);
+
+// for storeOp (writing to an Address)
+void     emitVstore(opCode op, Register src1, Register src2, Address dst, 
+                char *insn, Address &base, bool noCost);
+
+// for updateCostOp
+void     emitVupdate(opCode op, RegValue src1, Register src2, Address dst, 
+                char *insn, Address &base, bool noCost);
+
+// and the retyped original emitImm companion
+void     emitImm(opCode op, Register src, RegValue src2imm, Register dst, 
+                char *insn, Address &base, bool noCost);
+
 int getInsnCost(opCode t);
 
 /*
  * get the requested parameter into a register.
  *
  */
-reg getParameter(reg dest, int param);
+Register getParameter(Register dest, int param);
 
 #define INFERIOR_HEAP_BASE     "DYNINSTdata"
 #define UINFERIOR_HEAP_BASE    "_DYNINSTdata"
-
-// The following 2 are NOT USED ANYMORE; LET'S FRY 'EM
-//#define GLOBAL_HEAP_BASE        "DYNINSTglobalData"
-//#define U_GLOBAL_HEAP_BASE      "_DYNINSTglobalData"
 
 class point {
  public:

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.58 1998/09/15 04:15:56 buck Exp $
+// $Id: ast.C,v 1.59 1998/12/25 23:18:49 wylie Exp $
 
 #include "dyninstAPI/src/pdThread.h"
 
@@ -77,14 +77,14 @@
 extern registerSpace *regSpace;
 extern bool doNotOverflow(int value);
 
-registerSpace::registerSpace(int deadCount, int *dead, int liveCount, int *live)
+registerSpace::registerSpace(const unsigned int deadCount, Register *dead, 
+                             const unsigned int liveCount, Register *live)
 {
 #if defined(i386_unknown_solaris2_5)
   initTramps();
 #endif
 
-    int i;
-
+    unsigned i;
     numRegisters = deadCount + liveCount;
     registers = new registerSlot[numRegisters];
 
@@ -114,9 +114,9 @@ registerSpace::registerSpace(int deadCount, int *dead, int liveCount, int *live)
 
 }
 
-reg registerSpace::allocateRegister(char *insn, Address &base, bool noCost) 
+Register registerSpace::allocateRegister(char *insn, Address &base, bool noCost) 
 {
-    int i;
+    unsigned i;
     for (i=0; i < numRegisters; i++) {
 	if (!registers[i].inUse && !registers[i].needsSaving) {
 	    registers[i].inUse = true;
@@ -133,7 +133,7 @@ reg registerSpace::allocateRegister(char *insn, Address &base, bool noCost)
             // MT_AIX: we are not saving registers on demand on the power
             // architecture. Instead, we save/restore registers in the base
             // trampoline - naim
- 	    emit(saveRegOp, registers[i].number, 0, 0, insn, base, noCost);
+ 	    emitV(saveRegOp, registers[i].number, 0, 0, insn, base, noCost);
 #endif
 	    registers[i].inUse = true;
 #if !defined(rs6000_ibm_aix4_1)
@@ -150,10 +150,10 @@ reg registerSpace::allocateRegister(char *insn, Address &base, bool noCost)
 
     logLine("==> WARNING! run out of registers...\n");
     abort();
-    return(-1);
+    return(Null_Register);
 }
 
-bool registerSpace::is_keep_register(reg k)
+bool registerSpace::is_keep_register(Register k)
 {
   for (unsigned i=0;i<keep_list.size();i++) {
     if (keep_list[i]==k) return(true);
@@ -161,7 +161,7 @@ bool registerSpace::is_keep_register(reg k)
   return(false);
 }
 
-void registerSpace::keep_register(reg k)
+void registerSpace::keep_register(Register k)
 {
   if (!is_keep_register(k)) {
     keep_list += k;
@@ -172,7 +172,7 @@ void registerSpace::keep_register(reg k)
   }
 }
 
-void registerSpace::unkeep_register(reg k) {
+void registerSpace::unkeep_register(Register k) {
   unsigned ksize = keep_list.size();
   for (unsigned i=0;i<ksize;i++) {
     if (keep_list[i]==k) {
@@ -191,10 +191,10 @@ void registerSpace::unkeep_register(reg k) {
   }
 }
 
-void registerSpace::freeRegister(int reg) {
-    int i;
+void registerSpace::freeRegister(Register reg) {
+
     if (is_keep_register(reg)) return;
-    for (i=0; i < numRegisters; i++) {
+    for (u_int i=0; i < numRegisters; i++) {
 	if (registers[i].number == reg) {
 	    registers[i].inUse = false;
 	    return;
@@ -202,9 +202,9 @@ void registerSpace::freeRegister(int reg) {
     }
 }
 
-bool registerSpace::isFreeRegister(int reg) {
-    int i;
-    for (i=0; i < numRegisters; i++) {
+bool registerSpace::isFreeRegister(Register reg) {
+
+    for (u_int i=0; i < numRegisters; i++) {
 	if ((registers[i].number == reg) &&
 	    (registers[i].inUse == true)) {
 	    return false;
@@ -214,8 +214,8 @@ bool registerSpace::isFreeRegister(int reg) {
 }
 
 void registerSpace::resetSpace() {
-    int i;
-    for (i=0; i < numRegisters; i++) {
+
+    for (u_int i=0; i < numRegisters; i++) {
         if (registers[i].inUse && (registers[i].number != REG_MT)) {
           //sprintf(errorLine,"WARNING: register %d is still in use\n",registers[i].number);
           //logLine(errorLine);
@@ -328,9 +328,6 @@ AstNode &AstNode::operator=(const AstNode &src) {
    roperand = assignAst(src.roperand);
    eoperand = assignAst(src.eoperand);
 
-   firstInsn = src.firstInsn;
-   lastInsn = src.lastInsn;
-
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
    astFlag = src.astFlag;
 #endif
@@ -370,7 +367,7 @@ AstNode::AstNode() {
    loperand = roperand = eoperand = NULL;
    referenceCount = 1;
    useCount = 0;
-   kept_register = -1;
+   kept_register = Null_Register;
    // "operands" is left as an empty vector
    bptype = NULL;
    doTypeCheck = true;
@@ -385,7 +382,7 @@ AstNode::AstNode(const string &func, AstNode *l, AstNode *r) {
 #endif
     referenceCount = 1;
     useCount = 0;
-    kept_register = -1;
+    kept_register = Null_Register;
     type = callNode;
     callee = func;
     loperand = roperand = eoperand = NULL;
@@ -404,7 +401,7 @@ AstNode::AstNode(const string &func, AstNode *l) {
 #endif
     referenceCount = 1;
     useCount = 0;
-    kept_register = -1;
+    kept_register = Null_Register;
     type = callNode;
     loperand = roperand = eoperand = NULL;
     callee = func;
@@ -422,7 +419,7 @@ AstNode::AstNode(const string &func, vector<AstNode *> &ast_args) {
 #endif
    referenceCount = 1;
    useCount = 0;
-   kept_register = -1;
+   kept_register = Null_Register;
    for (unsigned i=0;i<ast_args.size();i++) 
      if (ast_args[i]) operands += assignAst(ast_args[i]);
    loperand = roperand = eoperand = NULL;
@@ -441,7 +438,7 @@ AstNode::AstNode(operandType ot, void *arg) {
 #endif
     referenceCount = 1;
     useCount = 0;
-    kept_register = -1;
+    kept_register = Null_Register;
     type = operandNode;
     oType = ot;
     if (ot == ConstantString)
@@ -462,7 +459,7 @@ AstNode::AstNode(operandType ot, AstNode *l) {
 #endif
     referenceCount = 1;
     useCount = 0;
-    kept_register = -1;
+    kept_register = Null_Register;
     type = operandNode;
     oType = ot;
     oValue = NULL;
@@ -482,7 +479,7 @@ AstNode::AstNode(AstNode *l, AstNode *r) {
 #endif
    referenceCount = 1;
    useCount = 0;
-   kept_register = -1;
+   kept_register = Null_Register;
    type = sequenceNode;
    loperand = assignAst(l);
    roperand = assignAst(r);
@@ -501,7 +498,7 @@ AstNode::AstNode(opCode ot) {
    // a private constructor
    referenceCount = 1;
    useCount = 0;
-   kept_register = -1;
+   kept_register = Null_Register;
    type = opCodeNode;
    op = ot;
    loperand = roperand = eoperand = NULL;
@@ -519,7 +516,7 @@ AstNode::AstNode(opCode ot, AstNode *l) {
    // a private constructor
    referenceCount = 1;
    useCount = 0;
-   kept_register = -1;
+   kept_register = Null_Register;
    type = opCodeNode;
    op = ot;
    loperand = assignAst(l);
@@ -538,7 +535,7 @@ AstNode::AstNode(opCode ot, AstNode *l, AstNode *r, AstNode *e) {
 #endif
    referenceCount = 1;
    useCount = 0;
-   kept_register = -1;
+   kept_register = Null_Register;
    type = opCodeNode;
    op = ot;
    loperand = assignAst(l);
@@ -557,7 +554,7 @@ AstNode::AstNode(AstNode *src) {
 #endif
    referenceCount = 1;
    useCount = 0;
-   kept_register = -1;
+   kept_register = Null_Register;
 
    type = src->type;   
    if (type == opCodeNode)
@@ -583,8 +580,6 @@ AstNode::AstNode(AstNode *src) {
    loperand = assignAst(src->loperand);
    roperand = assignAst(src->roperand);
    eoperand = assignAst(src->eoperand);
-   firstInsn = src->firstInsn;
-   lastInsn = src->lastInsn;
    bptype = src->bptype;
    doTypeCheck = src->doTypeCheck;
 }
@@ -629,7 +624,7 @@ AstNode::~AstNode() {
       removeAst(operands[i]);
     }
   } else if (type == operandNode && oType == ConstantString) {
-      free(oValue);
+      free((char*)oValue);
   }
 }
 
@@ -685,9 +680,9 @@ void terminateAst(AstNode *&ast) {
   }
 }
 
-int AstNode::generateTramp(process *proc, char *i, 
-			   Address &count, 
-			   int &trampCost, bool noCost) {
+Address AstNode::generateTramp(process *proc, char *i, 
+			       Address &count, 
+			       int &trampCost, bool noCost) {
     static AstNode *trailer=NULL;
     if (!trailer) trailer = new AstNode(trampTrailer); // private constructor
                                                        // used to estimate cost
@@ -713,20 +708,20 @@ int AstNode::generateTramp(process *proc, char *i,
                   // leaking memory?
 
     regSpace->resetSpace();
-    reg return_reg;
+    Address ret=0;
     if (type != opCodeNode || op != noOp) {
-        reg tmp;
+        Register tmp;
 	preamble->generateCode(proc, regSpace, i, count, noCost, true);
         removeAst(preamble);
-	tmp = generateCode(proc, regSpace, i, count, noCost, true);
+	tmp = (Register)generateCode(proc, regSpace, i, count, noCost, true);
         regSpace->freeRegister(tmp);
-        return_reg = trailer->generateCode(proc, regSpace, i, count, noCost, true);
+        ret = trailer->generateCode(proc, regSpace, i, count, noCost, true);
     } else {
         removeAst(preamble);
-        return_reg = (unsigned) emit(op, 1, 0, 0, i, count, noCost);
+        emitV(op, 1, 0, 0, i, count, noCost);   // op==noOp
     }
     regSpace->resetSpace();
-    return(return_reg);
+    return(ret);
 }
 
 bool isPowerOf2(int value, int &result)
@@ -749,7 +744,7 @@ void AstNode::setUseCount(void)
 {
 
   useCount=referenceCount ;
-  kept_register=-1;
+  kept_register=Null_Register;
   if (loperand) loperand->setUseCount();
   if (roperand) roperand->setUseCount();
   if (eoperand) eoperand->setUseCount();
@@ -760,7 +755,7 @@ void AstNode::setUseCount(void)
 
 void AstNode::setUseCount(void) {
   if (useCount == 0) {
-    kept_register=-1;
+    kept_register=Null_Register;
     if (loperand) loperand->setUseCount();
     if (roperand) roperand->setUseCount();
     if (eoperand) eoperand->setUseCount();
@@ -773,7 +768,7 @@ void AstNode::setUseCount(void) {
 void AstNode::cleanUseCount(void)
 {
   useCount=0;
-  kept_register=-1;
+  kept_register=Null_Register;
   if (loperand) loperand->cleanUseCount();
   if (roperand) roperand->cleanUseCount();
   if (eoperand) eoperand->cleanUseCount();
@@ -830,10 +825,10 @@ void AstNode::printUseCount(void)
 // currently available. In order to fix this problem, we will need to 
 // implement a "virtual" register allocator - naim 11/06/96
 //
-reg AstNode::generateCode(process *proc,
-			  registerSpace *rs,
-			  char *insn, 
-			  Address &base, bool noCost, bool root) {
+Address AstNode::generateCode(process *proc,
+			      registerSpace *rs,
+			      char *insn, 
+			      Address &base, bool noCost, bool root) {
   if (root) {
     cleanUseCount();
     setUseCount();
@@ -841,8 +836,9 @@ reg AstNode::generateCode(process *proc,
     print() ;
 #endif
   }
-  unsigned start_insn = base ;
-  reg tmp=generateCode_phase2(proc,rs,insn,base,noCost);
+
+  // note: this could return the value "(Address)(-1)" -- csserra
+  Address tmp = generateCode_phase2(proc, rs, insn, base, noCost);
 
 #if defined(ASTDEBUG)
   if (root) {
@@ -853,92 +849,91 @@ reg AstNode::generateCode(process *proc,
   return(tmp);
 }
 
-reg AstNode::generateCode_phase2(process *proc,
-			         registerSpace *rs,
-			         char *insn, 
-			         Address &base, bool noCost) {
+Address AstNode::generateCode_phase2(process *proc,
+				     registerSpace *rs,
+				     char *insn, 
+				     Address &base, bool noCost) {
     Address addr;
     Address fromAddr;
     Address startInsn;
-    reg src1, src2;
-    reg src = -1;
-    reg dest = -1;
-    reg right_dest = -1;
+    Register src1, src2;
+    Register src = Null_Register;
+    Register dest = Null_Register;
+    Register right_dest = Null_Register;
 
     useCount--;
-    if (kept_register>=0) { 
+    if (kept_register!=Null_Register) { 
 #if defined(ASTDEBUG)
       sprintf(errorLine,"==> Returning register %d <==\n",kept_register);
       logLine(errorLine);
 #endif
       if (useCount==0) { 
           rs->unkeep_register(kept_register);
-          reg tmp=kept_register;
-          kept_register=-1;
+          Register tmp=kept_register;
+          kept_register=Null_Register;
 #ifdef BPATCH_LIBRARY_F
 	  assert(!rs->isFreeRegister(tmp));
 #endif
-          return(tmp);
+          return (Address)tmp;
       }
-      return(kept_register);
+      return (Address)kept_register;
     }
 
     if (type == opCodeNode) {
         if (op == branchOp) {
 	    assert(loperand->oType == Constant);
-	    Address offset = (Address)loperand->oValue;
+	    unsigned offset = (RegValue)loperand->oValue;
 	    loperand->useCount--;
-	    loperand->kept_register = -1 ;
-            emit(branchOp, (reg) 0, (reg) 0, (int)offset, insn, base, noCost);
+	    loperand->kept_register = Null_Register ;
+            (void)emitA(branchOp, 0, 0, (RegValue)offset, insn, base, noCost);
         } else if (op == ifOp) {
             // This ast cannot be shared because it doesn't return a register
-	    src = loperand->generateCode_phase2(proc, rs, insn, base, noCost);
+	    src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost);
 	    startInsn = base;
-	    fromAddr = emit(op, src, (reg) 0, (reg) 0, insn, base, noCost);
+	    fromAddr = emitA(op, src, 0, 0, insn, base, noCost);
             rs->freeRegister(src);
-            reg tmp = roperand->generateCode_phase2(proc, rs, insn, base, noCost);
+            Register tmp = (Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost);
             rs->freeRegister(tmp);
 
 	    // Is there and else clause?  If yes, generate branch over it
-	    Address else_fromAddr;
+	    Address else_fromAddr = 0;
 	    Address else_startInsn = base;
 	    if (eoperand) 
-	      else_fromAddr = emit(branchOp, (reg) 0, (reg) 0, (reg) 0,
-				     insn, base, noCost);
+	      else_fromAddr = emitA(branchOp, 0, 0, 0,
+				   insn, base, noCost);
 
 	    // call emit again now with correct offset.
-	    (void) emit(op, src, (reg) 0, (reg) ((long)base - (long)fromAddr), 
+	    (void) emitA(op, src, 0, (Register)(base-fromAddr), 
 			insn, startInsn, noCost);
-            // sprintf(errorLine,branch forward %d\n", base - fromAddr);
+            // sprintf(errorLine,"branch forward %d\n", base - fromAddr);
 	   
 	    if (eoperand) {
 		// If there's an else clause, we need to generate code for it.
-		tmp = eoperand->generateCode_phase2(proc, rs, insn, base,
-						    noCost);
+		tmp = (Register)eoperand->generateCode_phase2(proc, rs, insn,
+						    base, noCost);
 		rs->freeRegister(tmp);
 
 		// We also need to fix up the branch at the end of the "true"
 		// clause to jump around the "else" clause.
-		emit(branchOp, (reg) 0, (reg) 0,
-		     ((long)base - (long)else_fromAddr),
+		emitA(branchOp, 0, 0, (Register)(base-else_fromAddr),
 		     insn, else_startInsn, noCost);
 	    }
 	} else if (op == whileOp) {
-	    unsigned top = base ;
-	    src = loperand->generateCode_phase2(proc, rs, insn, base, noCost);
+	    Address top = base ;
+	    src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost);
 	    startInsn = base;
-	    fromAddr = emit(ifOp, src, (reg) 0, (reg) 0, insn, base, noCost);
+	    fromAddr = emitA(ifOp, src, 0, 0, insn, base, noCost);
             rs->freeRegister(src);
 	    if (roperand) {
-                reg tmp=roperand->generateCode_phase2(proc, rs, insn, base, noCost);
+                Register tmp=(Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost);
                 rs->freeRegister(tmp);
 	    }
 	    //jump back
-	    (void) emit(branchOp, (reg) 0, (reg) 0, ((int) top - (int) base),
+	    (void) emitA(branchOp, 0, 0, (Register)(top-base),
 			insn, base, noCost) ;
 
 	    // call emit again now with correct offset.
-	    (void) emit(ifOp, src, (reg) 0, (reg) ((int)base - (int)fromAddr), 
+	    (void) emitA(ifOp, src, 0, (Register)(base-fromAddr), 
 			insn, startInsn, noCost);
             // sprintf(errorLine,branch forward %d\n", base - fromAddr);
 	} else if (op == doOp) {
@@ -948,50 +943,51 @@ reg AstNode::generateCode_phase2(process *proc,
             // Check loperand because we are not generating code for it on
             // this node.
             loperand->useCount--;
-            if (loperand->useCount==0 && loperand->kept_register>=0) {
+            if (loperand->useCount==0 && loperand->kept_register!=Null_Register) {
                 rs->unkeep_register(loperand->kept_register);
 #if defined(BPATCH_LIBRARY_F)
 		rs->freeRegister(loperand->kept_register);
 #endif
-                loperand->kept_register=-1;
+                loperand->kept_register=Null_Register;
 	    }
-	    src1 = roperand->generateCode_phase2(proc, rs, insn, base, noCost);
+	    src1 = (Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost);
 	    src2 = rs->allocateRegister(insn, base, noCost);
 	    addr = (Address) loperand->oValue;
 	    assert(addr != 0); // check for NULL
-	    (void) emit(op, src1, src2, (reg) addr, insn, base, noCost);
+	    emitVstore(op, src1, src2, addr, insn, base, noCost);
 	    rs->freeRegister(src1);
 	    rs->freeRegister(src2);
 	} else if (op == storeIndirOp) {
-	    src1 = roperand->generateCode_phase2(proc, rs, insn, base, noCost);
-            dest = loperand->generateCode_phase2(proc, rs, insn, base, noCost);
-            (void) emit(op, src1, 0, dest, insn, base, noCost);          
+	    src1 = (Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost);
+            dest = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost);
+            emitV(op, src1, 0, dest, insn, base, noCost);          
 	    rs->freeRegister(src1);
             rs->freeRegister(dest);
 	} else if (op == trampTrailer) {
             // This ast cannot be shared because it doesn't return a register
-	    return((unsigned) emit(op, 0, 0, 0, insn, base, noCost));
+	    return emitA(op, 0, 0, 0, insn, base, noCost);
 	} else if (op == trampPreamble) {
             // This ast cannot be shared because it doesn't return a register
 #if defined (i386_unknown_solaris2_5) || (sparc_sun_solaris2_4)
 	    // loperand is a constant AST node with the cost, in cycles.
-	    int cost = noCost ? 0 : (int) loperand->oValue;
-            int costAddr = 0; // for now... (won't change if noCost is set)
+	    //int cost = noCost ? 0 : (int) loperand->oValue;
+            Address costAddr = 0; // for now... (won't change if noCost is set)
             loperand->useCount--;
 
 #ifndef SHM_SAMPLING
 	    bool err;
 	    costAddr = proc->findInternalAddress("DYNINSTobsCostLow", true, err);
 	    if (err) {
-//		logLine("Internal error: unable to find addr of DYNINSTobsCostLow\n");
-		showErrorCallback(79, "");
+                string msg = string("Internal error: "
+                        "unable to find addr of DYNINSTobsCostLow\n");
+		showErrorCallback(79, msg.string_of());
 		P_abort();
 	    }
 #else
 	    if (!noCost)
-	       costAddr = (int)proc->getObsCostLowAddrInApplicSpace();
+	       costAddr = (Address)proc->getObsCostLowAddrInApplicSpace();
 #endif
-	    return (Address) emit(op, 0, 0, 0, insn, base, noCost);
+	    return emitA(op, 0, 0, 0, insn, base, noCost);
 #endif
 	} else {
 	    AstNode *left = assignAst(loperand);
@@ -1031,7 +1027,7 @@ reg AstNode::generateCode_phase2(process *proc,
 	    }
 
 	    if (left)
-	      src = left->generateCode_phase2(proc, rs, insn, base, noCost);
+	      src = (Register)left->generateCode_phase2(proc, rs, insn, base, noCost);
 
 	    rs->freeRegister(src);
 	    dest = rs->allocateRegister(insn, base, noCost);
@@ -1058,26 +1054,25 @@ reg AstNode::generateCode_phase2(process *proc,
 		  bool err;
 		  Address divlAddr = proc->findInternalAddress("divide", true, err);  
 		  assert(divlAddr);
-		  software_divide(src,(reg)right->oValue,dest,insn,base,noCost,divlAddr,true);
+		  software_divide(src,(RegValue)right->oValue,dest,insn,base,noCost,divlAddr,true);
 		  */
 		}
-	      else emitImm(op, src, (reg)right->oValue, dest, insn, base, noCost);
-#else
-	      emitImm(op, src, (reg)right->oValue, dest, insn, base, noCost);
+	      else
 #endif
+	      emitImm(op, src, (RegValue)right->oValue, dest, insn, base, noCost);
 	     
               right->useCount--;
-              if (right->useCount==0 && right->kept_register>=0) {
+              if (right->useCount==0 && right->kept_register!=Null_Register) {
                 rs->unkeep_register(right->kept_register);
 #if defined(BPATCH_LIBRARY_F)
 		rs->freeRegister(right->kept_register);
 #endif
-                right->kept_register=-1;
+                right->kept_register=Null_Register;
 	      }
 	    }
 	    else {
 	      if (right)
-		right_dest = right->generateCode_phase2(proc, rs, insn, base, noCost);
+		right_dest = (Register)right->generateCode_phase2(proc, rs, insn, base, noCost);
               rs->freeRegister(right_dest);
 #ifdef alpha_dec_osf4_0
 	      if (op == divOp)
@@ -1096,10 +1091,8 @@ reg AstNode::generateCode_phase2(process *proc,
 		  */
 		}
 	      else
-		(void) emit(op, src, right_dest, dest, insn, base, noCost);
-#else
-	      (void) emit(op, src, right_dest, dest, insn, base, noCost);
 #endif
+	      emitV(op, src, right_dest, dest, insn, base, noCost);
 	    }
             removeAst(left);
             removeAst(right);
@@ -1111,43 +1104,45 @@ reg AstNode::generateCode_phase2(process *proc,
           rs->keep_register(dest);
         }
 	if (oType == Constant) {
-	    (void) emit(loadConstOp, (reg) oValue, dest, dest, insn, base, noCost);
+	    emitVload(loadConstOp, (Address)oValue, dest, dest, 
+                        insn, base, noCost);
 	} else if (oType == ConstantPtr) {
-	    (void) emit(loadConstOp, (reg) (*(unsigned int *) oValue),
-		dest, dest, insn, base, noCost);
+	    emitVload(loadConstOp, (*(Address *) oValue), dest, dest, 
+                        insn, base, noCost);
 	} else if (oType == DataPtr) {
 	    addr = (Address) oValue;
             assert(addr != 0); // check for NULL
-	    (void) emit(loadConstOp, (reg) addr, dest, dest, insn, base, noCost);
+	    emitVload(loadConstOp, addr, dest, dest, insn, base, noCost);
 	} else if (oType == DataIndir) {
-	    src = loperand->generateCode_phase2(proc, rs, insn, base, noCost);
-	    (void) emit(loadIndirOp, src, 0, dest, insn, base, noCost); 
+	    src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost);
+	    emitV(loadIndirOp, src, 0, dest, insn, base, noCost); 
             rs->freeRegister(src);
 	} else if (oType == DataReg) {
             rs->unkeep_register(dest);
             rs->freeRegister(dest);
-            dest = (reg)oValue;
+            dest = (Register)oValue;
 	} else if (oType == DataId) {
-	    (void) emit(loadConstOp, (reg) oValue, dest, dest, insn, base, noCost);
+	    emitVload(loadConstOp, (Address)oValue, dest, dest, 
+                        insn, base, noCost);
 	} else if (oType == DataValue) {
 	    addr = (Address) oValue;
-
 	    assert(addr != 0); // check for NULL
-	    (void) emit(loadOp, (reg) addr, dest, dest, insn, base, noCost);
+	    emitVload(loadOp, addr, dest, dest, insn, base, noCost);
 	} else if (oType == ReturnVal) {
             rs->unkeep_register(dest);
 	    rs->freeRegister(dest);
 	    src = rs->allocateRegister(insn, base, noCost);
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
 	    if (loperand) {
-		unsigned emitOptReturn(unsigned, reg, char *, unsigned &, bool);
-		dest = emitOptReturn((unsigned)loperand->oValue, src, insn, base, noCost);
+                instruction instr;
+                instr.raw = (unsigned)(loperand->oValue);
+		dest = emitOptReturn(instr, src, insn, base, noCost);
 	    }
 	    else if (astFlag)
-		dest = emit(getSysRetValOp, 0, 0, src, insn, base, noCost);
+		dest = emitR(getSysRetValOp, 0, 0, src, insn, base, noCost);
 	    else 
 #endif
-	        dest = emit(getRetValOp, 0, 0, src, insn, base, noCost);
+	        dest = emitR(getRetValOp, 0, 0, src, insn, base, noCost);
 	    if (src != dest) {
 		rs->freeRegister(src);
 	    }
@@ -1158,23 +1153,23 @@ reg AstNode::generateCode_phase2(process *proc,
 	    // return the actual reg it is in.
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
 	    if (astFlag)
-		dest = emit(getSysParamOp, (reg)oValue, 0, src, insn, base, noCost);
+		dest = emitR(getSysParamOp, (Register)oValue, 0, src, insn, base, noCost);
 	    else 
 #endif
-		dest = emit(getParamOp, (reg)oValue, 0, src, insn, base, noCost);
+		dest = emitR(getParamOp, (Register)oValue, 0, src, insn, base, noCost);
 	    if (src != dest) {
 		rs->freeRegister(src);
 	    }
 	} else if (oType == DataAddr) {
 	  addr = (Address) oValue;
-	  emit(loadOp, (reg) addr, dest, dest, insn, base, noCost);
+	  emitVload(loadOp, addr, dest, dest, insn, base, noCost);
 	} else if (oType == ConstantString) {
 	  // XXX This is for the string type.  If/when we fix the string type
 	  // to make it less of a hack, we'll need to change this.
 	  int len = strlen((char *)oValue) + 1;
 	  addr = (Address) inferiorMalloc(proc, len, dataHeap);
 	  proc->writeDataSpace((char *)addr, len, (char *)oValue);
-	  emit(loadConstOp, (reg) addr, dest, dest, insn, base, noCost);
+	  emitVload(loadConstOp, addr, dest, dest, insn, base, noCost);
 	} 
     } else if (type == callNode) {
 	dest = emitFuncCall(callOp, rs, insn, base, operands, callee, proc, noCost);
@@ -1186,13 +1181,15 @@ reg AstNode::generateCode_phase2(process *proc,
 #if defined(BPATCH_LIBRARY_F)
 	(void) loperand->generateCode_phase2(proc, rs, insn, base, noCost);
 #else
-	reg tmp = loperand->generateCode_phase2(proc, rs, insn, base, noCost);
+	Register tmp = loperand->generateCode_phase2(proc, rs, insn, base, noCost);
 	rs->freeRegister(tmp);
 #endif
- 	return(roperand->generateCode_phase2(proc, rs, insn, base, noCost));
+ 	return roperand->generateCode_phase2(proc, rs, insn, base, noCost);
     }
 
-    return(dest);
+    // assert (dest != Null_Register); // oh dear, it seems this happens!
+
+    return (Address)dest;
 }
 
 
@@ -1558,11 +1555,11 @@ BPatch_type *AstNode::checkType()
 		// XXX Params and ReturnVals untyped for now
 		ret = BPatch::bpatch->type_Untyped; 
 	    } else
-    		ret = (BPatch_type *)getType(); /* XXX Cast away const */
+    		ret = const_cast<BPatch_type *>(getType());
 	    assert(ret != NULL);
 	    break;
 	case callNode:
-	    int i;
+            unsigned i;
 	    for (i = 0; i < operands.size(); i++) {
 		BPatch_type *operandType = operands[i]->checkType();
 		/* XXX Check operands for compatibility */

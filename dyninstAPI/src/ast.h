@@ -39,79 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: ast.h,v 1.33 1998/12/25 23:18:48 wylie Exp $
+
 #ifndef AST_HDR
 #define AST_HDR
 
-/*
- * $Log: ast.h,v $
- * Revision 1.32  1998/08/26 21:12:50  zhichen
- * AstNode::generateCode now has an extra parameter that indicate if we
- * are generating code at the DAG root, if so, useCount should be properly
- * initialized
- *
- * Revision 1.30  1998/08/26 20:57:20  zhichen
- * Fixed dag code generation.
- *
- * Revision 1.29  1998/08/25 19:35:04  buck
- * Initial commit of DEC Alpha port.
- *
- * Revision 1.5  1997/07/08 20:48:21  buck
- * Merge changes from Wisconsin into Maryland repository.
- *
- * Revision 1.28  1997/06/23 19:15:50  buck
- * Added features to the dyninst API library, including an optional "else"
- * in a BPatch_ifExpr; the BPatch_setMutationsActive call to temporarily
- * disable all snippets; and the replaceFunctionCall and removeFunctionCall
- * member functions of BPatch_thread to retarget or NOOP out a function
- * call.
- *
- * Revision 1.27  1997/06/23 17:06:09  tamches
- * opCode moved into this file
- *
- * Revision 1.26  1997/05/07 19:02:55  naim
- * Getting rid of old support for threads and turning it off until the new
- * version is finished. Additionally, new superTable, baseTable and superVector
- * classes for future support of multiple threads. The fastInferiorHeap class has
- * also changed - naim
- *
- * Revision 1.25  1997/04/29 16:58:51  buck
- * Added features to dyninstAPI library, including the ability to delete
- * inserted snippets and the start of type checking.
- *
- * Revision 1.2  1997/04/09 17:20:14  buck
- * Added getThreads calls to BPatch, support for deleting snippets,
- * and the start of support for the type system.
- *
- * Revision 1.1.1.1  1997/04/01 20:25:00  buck
- * Update Maryland repository with latest from Wisconsin.
- *
- * Revision 1.24  1997/03/18 19:44:08  buck
- * first commit of dyninst library.  Also includes:
- * 	moving templates from paradynd to dyninstAPI
- * 	converting showError into a function (in showerror.C)
- * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
- *
- * Revision 1.23  1997/03/14 15:58:13  lzheng
- * Dealing with complier optimization related to the return value
- *
- * Revision 1.22  1997/02/26 23:42:50  mjrg
- * First part on WindowsNT port: changes for compiling with Visual C++;
- * moved unix specific code to unix.C
- *
- * Revision 1.21  1997/02/21 20:13:17  naim
- * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
- * out of the ast class. The is the first pre-dyninstAPI commit! - naim
- *
- * Revision 1.20  1997/01/27 19:40:38  naim
- * Part of the base instrumentation for supporting multithreaded applications
- * (vectors of counter/timers) implemented for all current platforms +
- * different bug fixes - naim
- *
- */
-
 //
 // Define a AST class for use in generating primitive and pred calls
-//
 //
 
 #include <stdio.h>
@@ -125,8 +59,8 @@ class instPoint;
 
 class BPatch_type;
 
-// a register.
-typedef int reg;
+// a register number, e.g. [0,31]
+// typedef int reg; // see new Register type in "util/h/Types.h"
 
 typedef enum { plusOp,
                minusOp,
@@ -162,7 +96,7 @@ typedef enum { plusOp,
 
 class registerSlot {
  public:
-    int number;         // what register is it
+    Register number;    // what register is it
     bool inUse;      	// free or in use.
     bool needsSaving;	// been used since last rest
     bool mustRestore;   // need to restore it before we are done.		
@@ -171,22 +105,23 @@ class registerSlot {
 
 class registerSpace {
     public:
-	registerSpace(int dCount, int *deads, int lCount, int *lives);
-	reg allocateRegister(char *insn, Address &base, bool noCost);
-	void freeRegister(int reg);
+	registerSpace(const unsigned int dCount, Register *deads,
+                      const unsigned int lCount, Register *lives);
+	Register allocateRegister(char *insn, Address &base, bool noCost);
+	void freeRegister(Register k);
 	void resetSpace();
-	bool isFreeRegister(reg reg_number);
-	int getRegisterCount() { return numRegisters; }
-	registerSlot *getRegSlot(int i) { return (&registers[i]); }
-	bool readOnlyRegister(reg reg_number);
-        void keep_register(reg k);
-        void unkeep_register(reg k);
-        bool is_keep_register(reg k);
+	bool isFreeRegister(Register k);
+	u_int getRegisterCount() { return numRegisters; }
+	registerSlot *getRegSlot(Register k) { return (&registers[k]); }
+	bool readOnlyRegister(Register k);
+        void keep_register(Register k);
+        void unkeep_register(Register k);
+        bool is_keep_register(Register k);
     private:
-	int numRegisters;
-	int highWaterRegister;
+	u_int numRegisters;
+	Register highWaterRegister;
 	registerSlot *registers;
-        vector<reg> keep_list;
+        vector<Register> keep_list;
 };
 
 class AstNode {
@@ -217,12 +152,12 @@ class AstNode {
 
        ~AstNode();
 
-	int generateTramp(process *proc, char *i, Address &base,
-			  int &trampCost, bool noCost);
-	reg generateCode(process *proc, registerSpace *rs, char *i, 
-			 Address &base, bool noCost, bool root);
-	reg generateCode_phase2(process *proc, registerSpace *rs, char *i, 
-			        Address &base, bool noCost);
+        Address generateTramp(process *proc, char *i, Address &base,
+			      int &trampCost, bool noCost);
+	Address generateCode(process *proc, registerSpace *rs, char *i, 
+			     Address &base, bool noCost, bool root);
+	Address generateCode_phase2(process *proc, registerSpace *rs, char *i, 
+				    Address &base, bool noCost);
 
 	int cost() const;	// return the # of instruction times in the ast.
 	void print() const;
@@ -232,7 +167,7 @@ class AstNode {
         void cleanUseCount(void);
         bool checkUseCount(registerSpace*, bool&);
         void printUseCount(void);
-        reg kept_register;      // Use when generating code for shared nodes
+        Register kept_register; // Use when generating code for shared nodes
         void updateOperandsRC(bool flag); // Update operand's referenceCount
                                           // if "flag" is true, increments the
                                           // counter, otherwise it decrements 
@@ -271,9 +206,6 @@ class AstNode {
 	AstNode *roperand;
 	AstNode *eoperand;
 
-	int firstInsn;
-	int lastInsn;
-
     public:
 	// Functions for getting and setting type decoration used by the
 	// dyninst API library
@@ -299,10 +231,8 @@ AstNode *createCounter(const string &func, void *, AstNode *arg);
 AstNode *createTimer(const string &func, void *, 
                      vector<AstNode *> &arg_args);
 #endif
-Address emitFuncCall(opCode op, registerSpace *rs, char *i,Address &base, 
+Register emitFuncCall(opCode op, registerSpace *rs, char *i, Address &base, 
 		      const vector<AstNode *> &operands, const string &func,
 		      process *proc, bool noCost);
-#endif
 
-
-
+#endif /* AST_HDR */
