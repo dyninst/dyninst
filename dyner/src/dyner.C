@@ -208,6 +208,7 @@ int help(ClientData, Tcl_Interp *, int, char **)
 
     printf("at <function> [entry|exit|preCall|postCall] <statement> - insert statement\n");
     printf("at termination <statement> - Execute <statement> at program exit callback\n");
+    printf("attach <pid> <program> - attach dyner to a running program\n");
     printf("declare <type> <variable> - create a new variable of type <type>\n");
     printf("deletebreak <breakpoint number ...> - delete breakpoint(s)\n");
     printf("break <function> [entry|exit|preCall|postCall] [<condition>] - set a (conditional)\n");
@@ -392,6 +393,45 @@ int loadCommand(ClientData, Tcl_Interp *, int argc, char *argv[])
 
     return loadApp(argv[1], &argv[1]);
 }
+
+int attachPid(ClientData, Tcl_Interp *, int argc, char *argv[])
+{
+    int pid;
+    char *pathName = "";
+
+    if ((argc < 2) || (argc > 3)) {
+	printf("Usage attach <pid> <program>\n");
+	return TCL_ERROR;
+    }
+
+    if (appThread != NULL) delete appThread;
+    bplist.clear();
+    iplist.clear();
+    varList.clear();
+
+    pid = atoi(argv[1]);
+    if (argc == 3) pathName = argv[2];
+
+    appThread = bpatch->attachProcess(pathName, pid);
+    bpNumber = NULL;
+
+    if (!appThread || !appThread->getImage() || appThread->isTerminated()) {
+	fprintf(stderr, "Unable to attach to pid %d\n", pid);
+	appThread = NULL;
+	return TCL_ERROR;
+    }
+
+    // Read the program's image and get an associated image object
+    appImage = appThread->getImage();
+
+    if (!appImage) return TCL_ERROR;
+
+    //Create type info
+    appImage->getModules();
+
+    return TCL_OK;
+}
+
 
 int listBreak(ClientData, Tcl_Interp *, int, char **)
 {
@@ -2034,6 +2074,7 @@ int Tcl_AppInit(Tcl_Interp *interp)
 	return TCL_ERROR;
 
     Tcl_CreateCommand(interp, "at", instStatement, NULL, NULL);
+    Tcl_CreateCommand(interp, "attach", attachPid, NULL, NULL);
     Tcl_CreateCommand(interp, "break", condBreak, NULL, NULL);
     Tcl_CreateCommand(interp, "declare", newVar, NULL, NULL);
     Tcl_CreateCommand(interp, "listbreak", listBreak, NULL, NULL);
