@@ -7,7 +7,10 @@
  * list.h - list ADT
  *
  * $Log: List.h,v $
- * Revision 1.20  1994/08/17 18:22:54  markc
+ * Revision 1.21  1994/09/22 03:17:22  markc
+ * added postfix ++ operator
+ *
+ * Revision 1.20  1994/08/17  18:22:54  markc
  * Moved the definitions of the << operator into the class declaration to
  * keep gcc happy.
  *
@@ -84,9 +87,8 @@
  */
 #ifndef LIST_H
 #define LIST_H
-#include <stdio.h>
+
 #include <iostream.h>
-#include <stdlib.h>
 
 typedef char Boolean;
 
@@ -118,12 +120,11 @@ template <class Type> class List {
 	int  empty() { return (head == NULL);}
 	friend ostream &operator<<(ostream &os, List<Type> &data) {
 	  List<Type> curr;
-	  for (curr= data; *curr; curr++) {
+	  for (curr= data; *curr; ++curr) {
 	    os << *curr << endl;
 	  }
 	  return os;
 	}
-
 	void add(Type data, void *key);
 	void add(Type data);
 	Boolean addUnique(Type data);
@@ -161,6 +162,16 @@ template <class Type> class List {
 		addUnique(curr->data, curr->key);
 	    }
 	}
+	// postfix - the beauty of c++ 
+	Type operator ++(int i) { 
+	    Type ret = (Type) NULL;
+	    if (head) {
+		ret = head->data;
+		head = head->next; 
+	    }
+	    return(ret); 
+	}
+	// prefix
 	Type operator ++() { 
 	    Type ret = (Type) NULL;
 	    if (head) {
@@ -290,16 +301,33 @@ template <class Type> class HTable {
 
 	    // find the first item.
 	    currHid = -1;
-	    (*this)++;
+	    ++(*this);
 	    return(*this);
 	}
         Type operator *() {
             return(*currList);
         }
+	// postfix
+	Type operator ++(int i) {
+	  Type curr;
+	  
+	  ++currList;
+	  curr = *currList;
+	  if (curr) return(curr);
+	  for (currHid++; currHid < tableSize; currHid++) {
+	    if (table[currHid]) {
+	      currList = *table[currHid];
+	      curr = *currList;
+	      if (curr) return(curr);
+	    }
+	  }
+	  return(NULL);
+	}
+	// prefix
 	Type operator ++() {
 	    Type curr;
 
-	    currList++;
+	    ++currList;
             curr = *currList;
             if (curr) return(curr);
             for (currHid++; currHid < tableSize; currHid++) {
