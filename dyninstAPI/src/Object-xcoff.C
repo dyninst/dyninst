@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.22 2003/05/15 22:12:20 bernat Exp $
+// $Id: Object-xcoff.C,v 1.23 2003/05/16 21:22:24 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -713,14 +713,27 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
                (bctr.xlform.op == BCLRop) && (bctr.xlform.xo == BCCTRxop))
                name += "_linkage";
        }
-       
-       
 
        // HACK. This avoids double-loading various tramp spaces
        if (name.prefixed_by("DYNINSTstaticHeap") &&
            size == 0x18) {
            continue;
        }
+
+       // We ignore the symbols for the floating-point and general purpose
+       // register save/restore macros
+       if (name.prefixed_by("_savef") ||
+           name.prefixed_by("_restf") ||
+           name.prefixed_by("_savegpr") ||
+           name.prefixed_by("_restgpr") ||
+           name.prefixed_by("$SAVEF") ||
+           name.prefixed_by("$RESTF") ||
+           name.prefixed_by("Ssavef") ||
+           name.prefixed_by("Srestf") ||
+           name == "fres" ||
+           name == "fsav")
+           continue;
+       
        
 
        Symbol sym(name, modName, type, linkage, value, false, size);
