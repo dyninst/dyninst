@@ -706,7 +706,7 @@ bool pd_Function::applyAlterations(LocalAlterationSet &norm_alt_set,
       code = NEW_CODE;
 #endif
  
-  Address mutator_before, mutator_after, newAdr_before, newAdr_after; 
+  Address oldAdr_before, oldAdr_after, newAdr_before, newAdr_after; 
 
 #ifdef DEBUG_FUNC_RELOC
     cerr << "pd_Function::applyAlterations called" <<endl;
@@ -823,9 +823,9 @@ bool pd_Function::applyAlterations(LocalAlterationSet &norm_alt_set,
       // so we have to make sure we fix any altered values
       // 
 
-      // mutator_before: address of current insn in mutator  
-      // mutator_after: address of next instruction to be dealt with
-      //                (in mutator), after alteration has been applied
+      // oldAdr_before: address of current insn in mutatee  
+      // oldAdr_after: address of next instruction to be dealt with
+      //                (in mutatee), after alteration has been applied
 
       // newAdr_before: address where current insn will be relocated to   
       // newAdr_after: address where next instruction will be relocated to 
@@ -837,17 +837,17 @@ bool pd_Function::applyAlterations(LocalAlterationSet &norm_alt_set,
       // newInsnOffset: offset of instruction object (in newInstructions) 
       //                corresponding to current insn
 
-      mutator_after = mutator_before = mutator + oldOffset;
+      oldAdr_after = oldAdr_before = mutatee + oldOffset;
       newAdr_after = newAdr_before = newAdr + newOffset;
 
-      nextAlter->RewriteFootprint(mutator, mutator_after, 
+      nextAlter->RewriteFootprint(mutatee, oldAdr_after, 
                                   newAdr, newAdr_after, 
                                   oldInstructions, newInstructions, oldInsnOffset,  
                                   newInsnOffset, newDisp, 
                                   codeOffset, code);
 
       // update offsets by the # of bytes RewriteFootprint walked over
-      oldOffset += (mutator_after - mutator_before);
+      oldOffset += (oldAdr_after - oldAdr_before);
       newOffset += (newAdr_after - newAdr_before);
     }
   } 
