@@ -39,10 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * Generate all the templates in one file.
- *
- */
+// $Id: templates0.C,v 1.17 2000/03/14 23:24:47 wylie Exp $
+// Generate all the templates in one file.
 
 /*
  * This file (and the other templatesXXX.C files) exist for a single purpose:
@@ -70,8 +68,10 @@
 #pragma implementation "Symbol.h"
 #include "util/h/Symbol.h"
 
+#ifdef BPATCH_LIBRARY
 #pragma implementation "BPatch_Set.h"
-#include "BPatch_Set.h"
+#include "dyninstAPI/h/BPatch_Set.h"
+#endif
 
 #include "util/h/String.h"
 
@@ -132,7 +132,9 @@ template class vector<FERNode*>;
 template class vector<LocalAlteration*>;
 #endif
 
+#ifdef BPATCH_LIBRARY
 template struct comparison<unsigned short>;
 template class BPatch_Set<unsigned short>;
 template struct comparison<Address>;
 template class BPatch_Set<Address>;
+#endif
