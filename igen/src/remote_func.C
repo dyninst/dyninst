@@ -80,10 +80,14 @@ bool remote_func::handle_request(const pdstring &spaces, ofstream &out_stream,
             << "if (buffer != NULL) { *buffer = msgBuf; break; }" 
             << endl;
      }
+
+     // declare the typed parameter buffer
+     pdstring typedMsgBufType = ((call_sig_.num_args() > 0) ?
+                                    call_sig_.type() : "char");
      out_stream << spacesp2
-                << call_sig_.type() 
+                << typedMsgBufType
                 << "* typedMsgBuf = (" 
-                << call_sig_.type() 
+                << typedMsgBufType
                 << "*)msgBuf;\n";
      out_stream << spacesp2;
    }
@@ -91,19 +95,31 @@ bool remote_func::handle_request(const pdstring &spaces, ofstream &out_stream,
    // Now make the method call
 
    if (!is_async_call()) {
-     if (return_arg_.base_type() != "void")
-     {
-       out_stream << return_arg_.type(true) 
-                << "* ret = new " << return_arg_.type(true)
-                << ";\n";
-       out_stream << spacesp2 << "(*ret)=";
-     }
-     else
-     {
-       // we allocate something so the buffer for our return 
-       // message is non-NULL
-       out_stream << "char* ret = new char;\n";
-     }
+
+        if( Options::ml->address_space() == message_layer::AS_one )
+        {
+            if (return_arg_.base_type() != "void")
+            {
+               out_stream << return_arg_.type(true) 
+                        << "* ret = new " << return_arg_.type(true)
+                        << ";\n";
+               out_stream << spacesp2 << "(*ret)=";
+            }
+            else
+            {
+               // we allocate something so the buffer for our return 
+               // message is non-NULL
+               out_stream << "char* ret = new char;\n";
+            }
+        }
+        else
+        {
+            if( return_arg_.base_type() != "void" )
+            {
+                out_stream << return_arg_.type(true) 
+                            << " ret = ";
+            }
+        }
    }
    out_stream << name() << "(";
    
