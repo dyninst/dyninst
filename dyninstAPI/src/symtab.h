@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.142 2003/10/24 21:25:54 jaw Exp $
+// $Id: symtab.h,v 1.143 2004/01/23 22:01:29 tlmiller Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -174,18 +174,15 @@ public:
     
     static pdstring emptyString;
 
-  /*
-    function_base(const pdstring &symbol, const pdstring &pretty,
-		  Address adr, const unsigned size): line_(0), addr_(adr),size_(size) 
-      { 
-	symTabName_.push_back(symbol); 
-	prettyName_.push_back(pretty); 
-      }
-  */
-    // and a constructor for the case where no pretty name is supplied (initially)
-
     function_base(const pdstring &symbol, Address adr, const unsigned size)
-	: line_(0), addr_(adr),size_(size) { 
+#if defined( ia64_unknown_linux2_4 )
+		/* This appears to be the only constructor, so this should be
+		   sufficient to make sure we don't think we have an AST when
+		   we don't. */
+		: framePointerCalculator( NULL ), line_(0), addr_(adr), size_(size) {
+#else
+		: line_(0), addr_(adr), size_(size) { 
+#endif
 
 	symTabName_.push_back(symbol); 
 
@@ -255,6 +252,15 @@ public:
 	// in the base tramp.  (I'd put this in pd_Function, but
 	// iPgetFunction() returns a function_base...)
 	pdvector< Address > allocs;
+	
+	// Since the IA-64 ABI does not define a frame pointer register,
+	// we use DWARF debug records (DW_AT_frame_base entries) to 
+	// construct an AST which calculates the frame pointer.  I
+	// put this pointer here, rather than in the BPatch_function
+	// that parseDwarf.C uses because instPoints store pd_Functions,
+	// not BPatch_functions.
+	
+	AstNode * framePointerCalculator;
 #endif
 
 private:
@@ -353,9 +359,8 @@ class pd_Function : public function_base {
 
 #if defined(i386_unknown_nt4_0) || \
     defined(i386_unknown_linux2_0) || \
-    defined(sparc_sun_solaris2_4) || \
-    defined(ia64_unknown_linux2_4)
-
+    defined(sparc_sun_solaris2_4)
+    
         if(insp && p && relocatable_)
 	  for(u_int i=0; i < relocatedByProcess.size(); i++)
 	    if((relocatedByProcess[i])->getProcess() == p) {
@@ -367,8 +372,7 @@ class pd_Function : public function_base {
 
 #if defined(i386_unknown_nt4_0) || \
     defined(i386_unknown_linux2_0) || \
-    defined(sparc_sun_solaris2_4) || \
-    defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
+    defined(sparc_sun_solaris2_4)
 
     void addArbitraryPoint(instPoint*,process*,relocatedFuncInfo*);
 
