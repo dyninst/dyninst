@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.126 2005/03/17 23:26:39 bernat Exp $
+// $Id: inst.C,v 1.127 2005/04/06 04:26:44 rchen Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -716,7 +716,7 @@ bool deleteInst(process *proc, miniTrampHandle *&mtHandle)
               }
           } else {
               /* thisMT is first one make code call right tramp */
-              int fromAddr;
+              long fromAddr;
               fromAddr = nextMT->getBaseBranchAddr();
 #if defined(rs6000_ibm_aix4_1)
               resetBRL(proc, fromAddr, nextMT->miniTrampBase);
