@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.26 2003/03/06 20:59:57 zandy Exp $
+# $Id: Makefile,v 1.27 2003/03/29 03:27:53 hollings Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -86,8 +86,8 @@ ifeq ($(NATIVE_FC), $(MUTATEE_FC))
 # FORTRAN_BASE = test1.mutateeFort, etc.
 FORTRAN_BASE = $(TARGET2:_$(NATIVE_FC)=Fort)
 
-$(TARGET2): $(FORTRAN_BASE)_$(NATIVE_FC).o $(FORTRAN_BASE)C_$(NATIVE_FC).o
-	-$(NATIVE_FC) $(FORTRAN_BASE)_$(NATIVE_FC).o $(FORTRAN_BASE)C_$(NATIVE_FC).o $(MUTATEE_FLINKFLAGS) -o $(TARGET2)
+$(TARGET2): $(FORTRAN_BASE)_$(NATIVE_FC).o $(FORTRAN_BASE)C_$(NATIVE_FC).o test1.mutateeCommon.o mutatee_util.o
+	-$(NATIVE_FC) $(FORTRAN_BASE)_$(NATIVE_FC).o $(FORTRAN_BASE)C_$(NATIVE_FC).o test1.mutateeCommon.o mutatee_util.o $(MUTATEE_FLINKFLAGS) -o $(TARGET2)
 
 $(FORTRAN_BASE)_$(NATIVE_FC).o: ../src/$(FORTRAN_BASE).F
 	-$(NATIVE_FC) $(MUTATEE_FFLAGS) -c -o $(FORTRAN_BASE)_$(NATIVE_FC).o ../src/$(FORTRAN_BASE).F
