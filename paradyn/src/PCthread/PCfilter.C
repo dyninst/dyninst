@@ -21,7 +21,10 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.C,v $
- * Revision 1.15  1996/05/01 16:05:00  naim
+ * Revision 1.16  1996/05/01 18:11:43  newhall
+ * fixed some purify errors, added clientId parameter to predicted cost calls
+ *
+ * Revision 1.15  1996/05/01  16:05:00  naim
  * More debugging stuff to PCfilter.C - naim
  *
  * Revision 1.14  1996/05/01  14:06:55  naim
@@ -113,7 +116,7 @@ static int enableCounter=0;
 
 extern performanceConsultant *pc;
 extern float getPredictedDataCostAsync(perfStreamHandle, resourceListHandle, 
-				       metricHandle);
+				       metricHandle,u_int);
 perfStreamHandle filteredDataServer::pstream = 0;
 
 ostream& operator <<(ostream &os, filter& f)
@@ -149,7 +152,7 @@ float
 filter::getNewEstimatedCost()
 {
   estimatedCost = getPredictedDataCostAsync(filteredDataServer::pstream,
-					    foc, metric);
+					    foc, metric,0);
   return estimatedCost;
 }
 
@@ -455,7 +458,7 @@ filteredDataServer::resubscribeAllData()
       vector<metricInstInfo> *response;
       // wait for response from DM
       while(!ready){
-	  T_dataManager::msg_buf buffer;
+	  T_dataManager::msg_buf buffer; 
 	  T_dataManager::message_tags waitTag;
 	  tag_t tag = T_dataManager::enableDataCallback_REQ;
 	  int from = msg_poll(&tag, true);
@@ -484,6 +487,7 @@ filteredDataServer::resubscribeAllData()
 	  curr = new metricInstanceHandle;
 	  *curr = (*response)[0].mi_id; 
       }
+      delete response;
 
 #ifdef MYPCDEBUG
       // -------------------------- PCDEBUG ------------------
@@ -572,7 +576,7 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
 
       // wait for response from DM
       while(!ready){
-	  T_dataManager::msg_buf buffer;
+	  T_dataManager::msg_buf buffer; 
 	  T_dataManager::message_tags waitTag;
 	  tag_t tag = T_dataManager::enableDataCallback_REQ;
 	  int from = msg_poll(&tag, true);
@@ -601,6 +605,7 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
 	  index = new metricInstanceHandle;
 	  *index = (*response)[0].mi_id; 
       }
+      delete response;
 
 #ifdef MYPCDEBUG
   t2=TESTgetTime();
@@ -654,7 +659,7 @@ float
 filteredDataServer::getEstimatedCost(metricHandle mh,
 				     focus f)
 {
-  return(getPredictedDataCostAsync(filteredDataServer::pstream,f, mh));
+  return(getPredictedDataCostAsync(filteredDataServer::pstream,f, mh,0));
 }
 
 float

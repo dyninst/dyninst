@@ -16,10 +16,13 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.57  1996/05/01 14:06:57  naim
-/* Multiples changes in PC to make call to requestNodeInfoCallback async.
-/* (UI<->PC). I also added some debugging information - naim
+/* Revision 1.58  1996/05/01 18:11:45  newhall
+/* fixed some purify errors, added clientId parameter to predicted cost calls
 /*
+ * Revision 1.57  1996/05/01  14:06:57  naim
+ * Multiples changes in PC to make call to requestNodeInfoCallback async.
+ * (UI<->PC). I also added some debugging information - naim
+ *
  * Revision 1.56  1996/04/30  18:56:59  newhall
  * changes to support the asynchrounous enable data calls to the DM
  * this code contains a kludge to make the PC wait for the DM's async response
@@ -185,14 +188,14 @@ void PCfold(perfStreamHandle,
 // the call to getPredictedDataCost is handled in a truely asynchronous
 // manner, then this routine should contain the code to handle the upcall
 // from the DM
-void PCpredData(metricHandle ,resourceListHandle ,float ){
+void PCpredData(metricHandle ,resourceListHandle ,float,u_int ){
     cout << "PCpredData: THIS SHOULD NEVER EXECUTE" << endl;
 }
 // Currently this routine never executes because of a kludge 
 // that receives the response message from the DM before a call to this
 // routine is made.  This routine must still be registered with the DM on
 // createPerformanceStream, otherwise the DM will not send the response
-// message.  If the PC is changed so that the call to getPredictedDataCost
+// message.  If the PC is changed so that the call to enableDataRequest
 // is handled in a truely asynchronous manner, then this routine should
 // contain the code to handle the upcall from the DM
 void PCenableDataCallback(vector<metricInstInfo> *,  u_int){
@@ -203,7 +206,8 @@ void PCenableDataCallback(vector<metricInstInfo> *,  u_int){
 //
 float getPredictedDataCostAsync(perfStreamHandle pstream, 
 				resourceListHandle foc, 
-				metricHandle metric) {
+				metricHandle metric,
+				u_int clientID) {
 
 #ifdef MYPCDEBUG
   double t1,t2;
@@ -213,7 +217,7 @@ float getPredictedDataCostAsync(perfStreamHandle pstream,
   t1=TESTgetTime();
 #endif
 
-  dataMgr->getPredictedDataCost(pstream,metric,foc);
+  dataMgr->getPredictedDataCost(pstream,metric,foc,clientID);
 
   // KLUDGE: make the PC wait for the async response from the DM
   T_dataManager::message_tags tagPC = T_dataManager::predictedDataCost_REQ;
