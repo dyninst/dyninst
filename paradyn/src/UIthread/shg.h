@@ -4,18 +4,22 @@
 // Ariel Tamches
 
 /* $Log: shg.h,v $
-/* Revision 1.1  1995/10/17 22:07:07  tamches
-/* First version of "new search history graph".
+/* Revision 1.2  1995/11/06 19:27:47  tamches
+/* slider bug fixes
+/* dictionary_hash --> dictionary_lite
 /*
+ * Revision 1.1  1995/10/17 22:07:07  tamches
+ * First version of "new search history graph".
+ *
  */
 
 #ifndef _SHG_H_
 #define _SHG_H_
 
 #ifndef PARADYN
-#include "Dictionary.h"
+#include "DictionaryLite.h"
 #else
-#include "util/h/Dictionary.h"
+#include "util/h/DictionaryLite.h"
 #endif
 
 #include "where4tree.h"
@@ -45,18 +49,25 @@ class shg {
    whereNodeGraphicalPath<shgRootNode>::pathEndsIn nonSliderButtonPressRegion;
    Tk_TimerToken buttonAutoRepeatToken;
    where4tree<shgRootNode> *nonSliderCurrentSubtree;
-   int nonSliderSubtreeCenter;
-   int nonSliderSubtreeTop;
+   int nonSliderSubtreeCenter; // WARNING: what if an expansion takes place during a drag (can happen with shg, tho not where axis)!
+   int nonSliderSubtreeTop; // WARNING: what if an expansion takes place during a drag (can happen with shg, tho not where axis)!
 
    // Analagous to above; used only for scrollbar slider
-   int slider_scrollbar_left, slider_scrollbar_top, slider_scrollbar_bottom;
-   int slider_initial_yclick, slider_initial_scrollbar_slider_top;
+   simpSeq<unsigned> slider_scrollbar_path;
+      // why don't we keep track of left/top, etc.?  Because in the SHG, things
+      // can expand at any time --- even when one is sliding a scrollbar.  Hence,
+      // screen locations can change.  Hence it is safest to go with this slower approach.
+   int slider_initial_yclick;
+   int slider_initial_scrollbar_slider_top;
+      // WARNING: what if an expansion takes place during a drag (can happen
+      // with shg, tho not where axis)!
    where4tree<shgRootNode> *slider_currently_dragging_subtree;
+      // rechecked at each use
 
    where4tree<shgRootNode> *rootPtr;
-   dictionary_hash<unsigned, where4tree<shgRootNode> *> hash;
+   dictionary_lite<unsigned, where4tree<shgRootNode> *> hash;
       // associative array: shg-node-id --> its corresponding data node
-   dictionary_hash<where4tree<shgRootNode> *, where4tree<shgRootNode> *> hash2;
+   dictionary_lite<where4tree<shgRootNode> *, where4tree<shgRootNode> *> hash2;
       // associative array: shg-node --> its parent
 
    where4TreeConstants consts; // yuck
@@ -74,7 +85,6 @@ class shg {
    string currItemLabelName; // tk window name
    whereNodeGraphicalPath<shgRootNode> lastItemUnderMousePath;
    int lastItemUnderMouseX, lastItemUnderMouseY;
-//   bool lastItemUnderMouseWasNothing;
 
    void resizeScrollbars();
 
