@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: shmMgr.h,v 1.6 2002/08/12 04:22:00 schendel Exp $
+/* $Id: shmMgr.h,v 1.7 2002/08/21 19:42:11 schendel Exp $
  * shmMgr: an interface to allocating/freeing memory in the 
  * shared segment. Will eventually support allocating a new
  * shared segment and attaching to it.
@@ -110,6 +110,7 @@ class shmMgr {
   // Tell the manager to preallocate a chunk of space
   // Can be called repeatedly to allocate multiple sizes
   void preMalloc(unsigned size, unsigned num);
+  unsigned getNumAllocated() { return num_allocated; }
 
   /* Do all the work of creating a new shared memory segment
      and getting the RT lib to hook to it */
