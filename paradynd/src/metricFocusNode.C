@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.224 2002/05/09 21:42:35 schendel Exp $
+// $Id: metricFocusNode.C,v 1.225 2002/05/10 18:36:40 schendel Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -67,7 +67,7 @@
 #include "common/h/Timer.h"
 #include "dyninstAPI/src/showerror.h"
 #include "paradynd/src/costmetrics.h"
-#include "paradynd/src/metric.h"
+#include "paradynd/src/metricFocusNode.h"
 #include "paradynd/src/machineMetFocusNode.h"
 #include "paradynd/src/processMetFocusNode.h"
 #include "paradynd/src/threadMetFocusNode.h"
@@ -100,7 +100,7 @@ void batchSampleData(string metname, int mid, timeStamp startTimeStamp,
 
 timeLength currentPredictedCost = timeLength::Zero();
 
-unsigned mdnHash(const metricDefinitionNode *&mdn) {
+unsigned mdnHash(const metricFocusNode *&mdn) {
   return ((unsigned)(Address)mdn) >> 2; // assume all addrs are 4-byte aligned
   //  return ((unsigned) mdn);
 }
@@ -138,7 +138,7 @@ vector<internalMetric*> internalMetric::allInternalMetrics;
 
 // for NON_MT_THREAD:  PRIM_MDN is non-aggregate
 // for MT_THREAD:  THR_LEV could be aggregate (component being PROC_COMP)
-metricDefinitionNode::metricDefinitionNode()
+metricFocusNode::metricFocusNode()
 : originalCost_(timeLength::Zero())
 {
 }
@@ -163,7 +163,7 @@ machineMetFocusNode *doInternalMetric(int mid,
 {
   // called by createMetricInstance, below.
   // return values:
-  //   a valid metricDefinitionNode* when successful
+  //   a valid metricFocusNode* when successful
   //   -1 --> enable was false
   //   -2 --> not legal to instrument this focus
   //   NULL --> a more serious error (probably metric-is-unknown)
@@ -316,7 +316,7 @@ machineMetFocusNode *createMetricInstance(int mid, string& metric_name,
 // for processes started the "normal" way.
 // "this" is an aggregate(AGG_MDN or AGG_MDN) mi, not a component one.
 
-void metricDefinitionNode::propagateToNewProcess(process *) {
+void metricFocusNode::propagateToNewProcess(process *) {
   /*
   unsigned comp_size = components.size();
 
@@ -392,7 +392,7 @@ void metricDefinitionNode::propagateToNewProcess(process *) {
 
 
 
-void metricDefinitionNode::handleExec(process *) {
+void metricFocusNode::handleExec(process *) {
    // a static member fn.  handling exec is tricky.  At the time this routine
    // is called, the "new" process has been bootstrapped and is ready for
    // stuff to get inserted.  No mi's have yet been propagated, and the data
@@ -414,8 +414,8 @@ void metricDefinitionNode::handleExec(process *) {
    // note the two loops; we can't safely combine into one since the second
    // loop modifies the dictionary.
   /*
-   vector<metricDefinitionNode*> allcomps;
-   dictionary_hash_iter<string,metricDefinitionNode*> iter =
+   vector<metricFocusNode*> allcomps;
+   dictionary_hash_iter<string,metricFocusNode*> iter =
                                              getIter_processMetFocusBuf();
    for (; iter; iter++)
       allcomps += iter.currval();
@@ -521,9 +521,9 @@ void removeFromMetricInstances(process *proc) {
 // non-threaded
 
 //before
-//metricDefinitionNode *metricDefinitionNode::forkProcess(process *child,
+//metricFocusNode *metricFocusNode::forkProcess(process *child,
 //			const dictionary_hash<instInstance*,instInstance*> &map) const {
-metricDefinitionNode *metricDefinitionNode::forkProcess(process *,
+metricFocusNode *metricFocusNode::forkProcess(process *,
 		   const dictionary_hash<instInstance*,instInstance*> &) const
 {
     // The "focus_" member vrble stays the same, because it was always for the
@@ -581,7 +581,7 @@ metricDefinitionNode *metricDefinitionNode::forkProcess(process *,
     //  need to reimplement, in instrDataNode
     //incrementCounterId();
 
-    forkexec_cerr << "metricDefinitionNode::forkProcess -- component flat name for parent is " << flat_name_ << "; for child is " << mi->flat_name_ << endl;
+    forkexec_cerr << "metricFocusNode::forkProcess -- component flat name for parent is " << flat_name_ << "; for child is " << mi->flat_name_ << endl;
 
     // not attempt to register all names
     assert(! isKeyDef_processMetFocusBuf(newComponentFlatName));
@@ -592,7 +592,7 @@ metricDefinitionNode *metricDefinitionNode::forkProcess(process *,
     // the threadMetFocusNode.  So it would have to go through all of mi's
     // threadMetFocusNodes and duplicate all of it's data request nodes.
     // Then I suppose it would assign those duplicated dataRequestNodes to be
-    // used by this metricDefinitionNode's threadMetFocusNodes.
+    // used by this metricFocusNode's threadMetFocusNodes.
 
     for (unsigned u1 = 0; u1 < dataRequests.size(); u1++) {
        // must add to drnIdToMdnMap[] before dup() to avoid some assert fails
@@ -600,10 +600,10 @@ metricDefinitionNode *metricDefinitionNode::forkProcess(process *,
           // no relation to mi->getMetricID();
        forkexec_cerr << "forked dataReqNode going into drnIdToMdnMap with id " << newCounterId << endl;
        assert(!drnIdToMdnMap.defines(newCounterId));
-       drnIdToMdnMap[newCounterId] = static_cast<metricDefinitionNode*>(mi);
+       drnIdToMdnMap[newCounterId] = static_cast<metricFocusNode*>(mi);
        
        dataReqNode *newNode = dataRequests[u1]->dup(child, 
-                   static_cast<metricDefinitionNode*>(mi), newCounterId, map);
+                   static_cast<metricFocusNode*>(mi), newCounterId, map);
          // remember, dup() is a virtual fn, so the right dup() and hence the
          // right fork-ctor is called.
        assert(newNode);
@@ -617,17 +617,17 @@ metricDefinitionNode *metricDefinitionNode::forkProcess(process *,
     }
 
     mi->instrLoaded_ = true;
-    return static_cast<metricDefinitionNode*>(mi);
+    return static_cast<metricFocusNode*>(mi);
   */
   return NULL;  // just while function body is commented out
 }
 
 // unforkInstRequests and unforkDataRequests only for non-threaded
 
-//bool metricDefinitionNode::unFork(dictionary_hash<instInstance*, instInstance*> &map,
+//bool metricFocusNode::unFork(dictionary_hash<instInstance*, instInstance*> &map,
 //				  bool unForkInstRequests,
 //				  bool unForkDataRequests) {
-bool metricDefinitionNode::unFork(dictionary_hash<instInstance*, instInstance*> &,
+bool metricFocusNode::unFork(dictionary_hash<instInstance*, instInstance*> &,
 				  bool, bool) {
    // see below handleFork() for explanation of why this routine is needed.
    // "this" is a component mi for the parent process; we need to remove copied
@@ -664,9 +664,9 @@ bool metricDefinitionNode::unFork(dictionary_hash<instInstance*, instInstance*> 
 
 // called by forkProcess of context.C, just after the fork-constructor was
 // called for the child process.
-//void metricDefinitionNode::handleFork(const process *parent, process *child,
+//void metricFocusNode::handleFork(const process *parent, process *child,
 //			      dictionary_hash<instInstance*,instInstance*> &map) {
-void metricDefinitionNode::handleFork(const process *, process *,
+void metricFocusNode::handleFork(const process *, process *,
 			     dictionary_hash<instInstance*,instInstance*> &)
 {
   /*
@@ -683,14 +683,14 @@ void metricDefinitionNode::handleFork(const process *, process *,
    // created child component mi.
 
    // 2 loops for safety (2d loop may modify dictionary?)
-   vector<metricDefinitionNode *> allComponents;
-   dictionary_hash_iter<string,metricDefinitionNode*> iter =
+   vector<metricFocusNode *> allComponents;
+   dictionary_hash_iter<string,metricFocusNode*> iter =
                                                  getIter_processMetFocusBuf();
    for (; iter; iter++)
       allComponents += iter.currval();
 
    for (unsigned complcv=0; complcv < allComponents.size(); complcv++) {
-      metricDefinitionNode *comp = allComponents[complcv];
+      metricFocusNode *comp = allComponents[complcv];
 
       // duplicate the component (create a new one) if it belongs in the
       // child process.  It belongs if any of its aggregate mi's should be
@@ -701,7 +701,7 @@ void metricDefinitionNode::handleFork(const process *, process *,
       bool shouldBeUnforkedIfNotPropagated = false; // so far
       assert(comp->aggregators.size() > 0);
       for (unsigned agglcv1=0; agglcv1 < comp->aggregators.size(); agglcv1++) {
-	 metricDefinitionNode *aggMI = comp->aggregators[agglcv1];
+	 metricFocusNode *aggMI = comp->aggregators[agglcv1];
 
 	 if (aggMI->focus_[resource::machine].size() <= 2) {
 	    // wasn't specific to any process
@@ -735,7 +735,7 @@ void metricDefinitionNode::handleFork(const process *, process *,
       // mi's which weren't refined to a specific process.  If we've gotten to this
       // point, then there _is_ at least one such aggregate.
       assert(shouldBePropagated);
-      metricDefinitionNode *newComp = comp->forkProcess(child, map);
+      metricFocusNode *newComp = comp->forkProcess(child, map);
 
 	  if( !newComp )
 		  continue;
@@ -744,7 +744,7 @@ void metricDefinitionNode::handleFork(const process *, process *,
 
       bool foundAgg = false;
       for (unsigned agglcv2=0; agglcv2 < comp->aggregators.size(); agglcv2++) {
-	 metricDefinitionNode *aggMI = comp->aggregators[agglcv2];
+	 metricFocusNode *aggMI = comp->aggregators[agglcv2];
 	 if (aggMI->focus_[resource::machine].size() <= 2) {
 	    // this aggregate mi wasn't specific to any process, so it gets the new
 	    // child component.
@@ -759,11 +759,18 @@ void metricDefinitionNode::handleFork(const process *, process *,
 */
 }
 
+void metricFocusNode::handleNewThread(pdThread *thr) {
+  vector<processMetFocusNode *> MT_procs;
+  processMetFocusNode::getMT_ProcNodes(&MT_procs);
+  for(unsigned i=0; i<MT_procs.size(); i++) {
+    MT_procs[i]->addThread(thr);
+  }
+}
 
 // startCollecting is called by dynRPC::enableDataCollection 
 // (or enableDataCollection2) in dynrpc.C
-// startCollecting is a friend of metricDefinitionNode; can it be
-// made a member function of metricDefinitionNode instead?
+// startCollecting is a friend of metricFocusNode; can it be
+// made a member function of metricFocusNode instead?
 // Especially since it clearly is an integral part of the class;
 // in particular, it sets the crucial vrble "id_"
 //
