@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.126 2003/03/10 23:15:27 bernat Exp $
+// $Id: aix.C,v 1.127 2003/03/11 18:44:16 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -435,7 +435,6 @@ struct dyn_saved_regs *dyn_lwp::getRegisters() {
             if ((value == (unsigned) -1) && (errno)) {
                 perror("ptrace PT_READ_GPR");
                 cerr << "regnum was " << i << endl;
-                return NULL;
             }
             regs->gprs[i] = value;
         }
@@ -456,12 +455,11 @@ struct dyn_saved_regs *dyn_lwp::getRegisters() {
             double value;
             assert(sizeof(double)==8); // make sure it's big enough!
             
-            if (P_ptrace(PT_READ_FPR, proc_->getPid(), &value,
-                         FPR0 + i, // see <sys/reg.h>
-                         0) == -1) {
+            if ((P_ptrace(PT_READ_FPR, proc_->getPid(), &value,
+                          FPR0 + i, // see <sys/reg.h>
+                          0) == -1) && errno) {
                 perror("ptrace PT_READ_FPR");
                 cerr << "regnum was " << FPR0 + i << "; FPR0=" << FPR0 << endl;
-                return NULL;
             }
             regs->fprs[i] = value;
         }
@@ -477,7 +475,6 @@ struct dyn_saved_regs *dyn_lwp::getRegisters() {
             if ((value == (unsigned) -1) && errno) {
                 perror("ptrace PT_READ_GPR for a special register");
                 cerr << "regnum was " << special_register_codenums[i] << endl;
-                return NULL;
             }
             regs->sprs[i] = value;
         }
@@ -600,36 +597,36 @@ bool dyn_lwp::executingSystemCall()
 bool dyn_lwp::changePC(Address loc, struct dyn_saved_regs *)
 {
   if (!lwp_) {
-    if ( !P_ptrace(PT_READ_GPR, proc_->getPid(), (void *)IAR, 0, 0)) {
-      cerr << "changePC failed because couldn't re-read IAR register" << endl;
-      return false;
-    }
-    
-    
-    if (P_ptrace(PT_WRITE_GPR, proc_->getPid(), (void *)IAR, loc, 0) == -1) {
-      perror("changePC (PT_WRITE_GPR) failed");
-      return false;
-    }
-    
-    // Double-check that the change was made by reading the IAR register
-    if (P_ptrace(PT_READ_GPR, proc_->getPid(), (void *)IAR, 0, 0) != (int)loc) {
-      cerr << "changePC failed because couldn't re-read IAR register" << endl;
-      return false;
-    }
+      if ( !P_ptrace(PT_READ_GPR, proc_->getPid(), (void *)IAR, 0, 0)) {
+          perror("changePC (PT_READ_GPR) failed");
+          return false;
+      }
+      
+      
+      if (P_ptrace(PT_WRITE_GPR, proc_->getPid(), (void *)IAR, loc, 0) == -1) {
+          perror("changePC (PT_WRITE_GPR) failed");
+          return false;
+      }
+      
+      // Double-check that the change was made by reading the IAR register
+      if (P_ptrace(PT_READ_GPR, proc_->getPid(), (void *)IAR, 0, 0) != (int)loc) {
+          perror("changePC (verify) failed");
+          return false;
+      }
   }
   else {
-    struct ptsprs spr_contents;
-    if (P_ptrace(PTT_READ_SPRS, lwp_, (void *)&spr_contents, 0, 0) == -1) {
-      perror("changePC: PTT_READ_SPRS failed");
-      return false;
-    }
-    spr_contents.pt_iar = loc;
-    // Write the registers back in
-    
-    if (P_ptrace(PTT_WRITE_SPRS, lwp_, (void *)&spr_contents, 0, 0) == -1) {
-      perror("changePC: PTT_WRITE_SPRS failed");
-      return false;
-    }
+      struct ptsprs spr_contents;
+      if (P_ptrace(PTT_READ_SPRS, lwp_, (void *)&spr_contents, 0, 0) == -1) {
+          perror("changePC: PTT_READ_SPRS failed");
+          return false;
+      }
+      spr_contents.pt_iar = loc;
+      // Write the registers back in
+      
+      if (P_ptrace(PTT_WRITE_SPRS, lwp_, (void *)&spr_contents, 0, 0) == -1) {
+          perror("changePC: PTT_WRITE_SPRS failed");
+          return false;
+      }
   }
   return true;
 }
