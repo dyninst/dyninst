@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/primitives.C,v 1.4 1994/07/28 22:40:44 krisna Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/primitives.C,v 1.5 1994/09/22 02:22:17 markc Exp $";
 #endif
 
 /*
  * primitives.C - instrumentation primitives.
  *
  * $Log: primitives.C,v $
- * Revision 1.4  1994/07/28 22:40:44  krisna
+ * Revision 1.5  1994/09/22 02:22:17  markc
+ * changed *allocs to news
+ * cast args to memset
+ *
+ * Revision 1.4  1994/07/28  22:40:44  krisna
  * changed definitions/declarations of xalloc functions to conform to alloc.
  *
  * Revision 1.3  1994/07/12  19:45:21  jcargill
@@ -56,9 +60,13 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *
  *
  */
+
+extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <memory.h>
+}
 
 #include "rtinst/h/trace.h"
 #include "rtinst/h/rtinst.h"
@@ -85,9 +93,9 @@ intCounterHandle *createIntCounter(process *proc, int value, Boolean report)
 {
     AstNode *ast;
     intCounterHandle *ret;
-    function *sampleFunction;
+    pdFunction *sampleFunction;
 
-    ret = (intCounterHandle*) xcalloc(1, sizeof(intCounterHandle));
+    ret = new intCounterHandle;
     ret->proc = proc;
     ret->data.id.aggregate = proc->aggregate;
     ret->data.id.id = counterId++;
@@ -131,13 +139,13 @@ timerHandle *createTimer(process *proc, timerType type, Boolean report)
 {
     AstNode *ast;
     timerHandle *ret;
-    function *sampleFunction;
+    pdFunction *sampleFunction;
 
-    ret = (timerHandle*) xcalloc(1, sizeof(timerHandle));
+    ret = new timerHandle;
     ret->proc = proc;
     ret->timerPtr = (tTimer *) inferriorMalloc(proc, sizeof(tTimer));
 
-    memset(&ret->data, '\0', sizeof(tTimer));
+    memset((char*)&ret->data, '\0', sizeof(tTimer));
     ret->data.id.aggregate = proc->aggregate;
     ret->data.id.id = counterId++;
     ret->data.type = type;
