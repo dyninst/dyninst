@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.87 2000/03/02 18:38:56 chambrea Exp $
+ * $Id: DMdaemon.C,v 1.88 2000/03/15 17:42:56 pcroth Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 
@@ -992,7 +992,7 @@ static bool execIrixMPI(const string &dir, vector<string>& cmdLineVec)
   // mpirun cds to "current directory" based on PWD environment variable
   char* buf = new char[dir.length()+5]();
   sprintf(buf, "PWD=%s",dir.string_of());
-  putenv(P_strdup(buf));
+  putenv(buf);
 
   int execRetVal = execvp(s[0], s);
 
