@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.495 2004/04/09 18:03:01 legendre Exp $
+// $Id: process.C,v 1.496 2004/04/21 04:04:56 chadd Exp $
 
 #include <ctype.h>
 
@@ -4000,6 +4000,33 @@ bool process::addASharedObject(shared_object *new_obj, Address newBaseAddr){
     img->defineModules(this);
 
     new_obj->addImage(img);
+
+#if defined(i386_unknown_linux2_0)
+        ///ccw 20 apr 2004 : test4 linux bug hack
+        /* what is going on here? If you relocate a function in a shared library,
+           then call exec (WITHOUT CALLING FORK) the function will continue to be
+           marked as relocated BY THE EXEC'ED PROCESS even though the shared 
+           library will have been reloaded.
+
+           So, to fix this, we look to see if each function is marked as relocated 
+	   by the exec'ed process and remove the relocation tag connecting it with 
+	   the said process.  
+
+           The function unrelocatedByProcess was added to pd_Function in symtab.h
+
+           This only effects exec and not fork since fork creates a new process
+           and exec does not.  check to see how pd_Function::hasBeenRelocated()
+           works for more info.
+        */
+                   
+        const pdvector<pd_Function*> *allFuncs = new_obj->getAllFunctions();
+
+        for(int funcIndex=0; execed_ && funcIndex<allFuncs->size();funcIndex++){
+                if( (*allFuncs)[funcIndex]->hasBeenRelocated(this) ){
+                        (*allFuncs)[funcIndex]->unrelocatedByProcess(this);
+                }
+        }
+#endif
 
     // TODO: check for "is_elf64" consistency (Object)
 
