@@ -11,12 +11,12 @@
 #include <signal.h>
 #endif
 
+#include "dynerList.h"
 #include "BPatch.h"
 #include "BPatch_type.h"
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
 #include "BPatch_snippet.h"
-#include "dynerList.h"
 #include "breakpoint.h"
 
 extern "C" {
@@ -217,12 +217,41 @@ void IPListElem::Print()
     printf("%2d: %s (%s)-->%s\n", number, function, loc2name(where, when), statement);
 }
 
+
+BPListElem *removeBPlist(int n)
+{
+    DynerList<BPListElem *>::iterator i;
+
+    for (i = bplist.begin(); i != bplist.end(); i++) {
+	if ((*i)->number == n) {
+	    bplist.erase(i);
+	    return (*i);
+	}
+    }
+    return NULL;
+}
+
+
 BPListElem *findBP(int n)
 {
     DynerList<BPListElem *>::iterator i;
 
     for (i = bplist.begin(); i != bplist.end(); i++) {
 	if ((*i)->number == n) return (*i);
+    }
+
+    return NULL;
+}
+
+IPListElem *removeIP(int n)
+{
+    DynerList<IPListElem *>::iterator i;
+
+    for (i = iplist.begin(); i != iplist.end(); i++) {
+	if ((*i)->number == n) {
+	    iplist.erase(i);
+	    return (*i);
+	}
     }
 
     return NULL;
@@ -385,7 +414,7 @@ BPatch_module *FindModule(char *name) {
     char modName[1024];
     BPatch_module *module = NULL;
 
-    for(int i=0; i<modules->size(); ++i) {
+    for(unsigned int i=0; i<modules->size(); ++i) {
 	(*modules)[i]->getName(modName, 1024);
 
 	if (!strcmp(modName, name)) {
@@ -591,13 +620,12 @@ int deleteBreak(ClientData, Tcl_Interp *, int argc, char *argv[])
     for (int j = 1; j < argc; j++) {
 	int n = atoi(argv[j]);
 
-       	BPListElem *i = findBP(n);
+       	BPListElem *i = removeBPlist(n);
 	if (i == NULL) {
 	    printf("No such breakpoint: %d\n", n);
 	    ret = TCL_ERROR;
 	} else {
 	    appThread->deleteSnippet(i->handle);
-	    bplist.erase(i);
 	    delete i;
 	    printf("Breakpoint %d deleted.\n", n);
 	}
@@ -619,12 +647,11 @@ int deleteInstrument(ClientData, Tcl_Interp *, int argc, char *argv[])
     for (int j = 1; j < argc; j++) {
 	int n = atoi(argv[j]);
 
-       	IPListElem *i = findIP(n);
+       	IPListElem *i = removeIP(n);
 	if (i == NULL) {
 	    printf("No such intrument point: %d\n", n);
 	    ret = TCL_ERROR;
 	} else {
-	    iplist.erase(i);
 	    delete i;
 	    printf("Instrument number %d deleted.\n", n);
 	}
@@ -1147,7 +1174,7 @@ void printVarRecursive(BPatch_variableExpr *var, int level)
 	printf("struct {\n");
 	level++;
 	BPatch_Vector<BPatch_variableExpr *> *fields = var->getComponents();
-	for (int i=0; i < fields->size(); i++) {
+	for (unsigned int i=0; i < fields->size(); i++) {
 	     BPatch_variableExpr *fieldVar = (*fields)[i];
 	     for (int i=0;i < level; i++) printf("    ");
 	     printf("%s = ", fieldVar->getName());
@@ -1388,7 +1415,7 @@ int whatisFunc(ClientData, Tcl_Interp *, int, char *argv[])
       printf("*unknown*");
     printf(" %s(", argv[1]);
     BPatch_Vector<BPatch_localVar *> *params = func->getParams();
-    for (int i=0; i < params->size(); i++) {
+    for (unsigned int i=0; i < params->size(); i++) {
       BPatch_localVar *localVar = (*params)[i];
       BPatch_type *lType = (BPatch_type *) localVar->getType();
       if (lType){
@@ -1407,7 +1434,7 @@ int whatisFunc(ClientData, Tcl_Interp *, int, char *argv[])
     }    
     printf(") \n");
     if (func->getBaseAddr()) {
-	short unsigned int firstLine, lastLine;
+	unsigned int firstLine, lastLine;
 	char file[1024];
 	printf("   starts at 0x%lx", (long)func->getBaseAddr());
 	unsigned int size = sizeof(file);
@@ -1445,7 +1472,7 @@ int whatisType(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
     case BPatch_structure: {
       printf("    struct %s {\n", argv[1]);
       BPatch_Vector<BPatch_field *> *fields = type->getComponents();
-      for (int i=0; i < fields->size(); i++) {
+      for (unsigned int i=0; i < fields->size(); i++) {
 	BPatch_field *field = (*fields)[i];
 	BPatch_type *fType = (BPatch_type *) field->getType();
 	if (fType){
@@ -1475,7 +1502,7 @@ int whatisType(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
     case BPatch_union: {
       printf("    union %s {\n", argv[1]);
       BPatch_Vector<BPatch_field *> *fields = type->getComponents();
-      for (int i=0; i < fields->size(); i++) {
+      for (unsigned int i=0; i < fields->size(); i++) {
 	BPatch_field *field = (*fields)[i];
 	BPatch_type *fType = (BPatch_type *) field->getType();
 	if (fType){
@@ -1505,7 +1532,7 @@ int whatisType(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
     case BPatch_enumerated: {
       printf("    enum %s {\n", argv[1]);
       BPatch_Vector<BPatch_field *> *fields = type->getComponents();
-      for (int i=0; i < fields->size(); i++) {
+      for (unsigned int i=0; i < fields->size(); i++) {
 	BPatch_field *field = (*fields)[i];
 	printf("        %s    \t%d\n", field->getName(),
 	       field->getValue());
@@ -1586,7 +1613,7 @@ int whatisVar(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
     case BPatch_structure: {
       printf("    struct %s {\n", argv[1]);
       BPatch_Vector<BPatch_field *> *fields = type->getComponents();
-      for (int i=0; i < fields->size(); i++) {
+      for (unsigned int i=0; i < fields->size(); i++) {
 	BPatch_field *field = (BPatch_field *) (*fields)[i];
 	BPatch_type *fType = (BPatch_type *) field->getType();
 	if (fType){
@@ -1602,7 +1629,7 @@ int whatisVar(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
     case BPatch_union: {
       printf("    union %s {\n", argv[1]);
       BPatch_Vector<BPatch_field *> *fields = type->getComponents();
-      for (int i=0; i < fields->size(); i++) {
+      for (unsigned int i=0; i < fields->size(); i++) {
 	BPatch_field *field = (*fields)[i];
 	BPatch_type *fType = (BPatch_type *) field->getType();
 	if (fType){
@@ -1618,7 +1645,7 @@ int whatisVar(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
     case BPatch_enumerated: {
       printf("    enum %s {\n", argv[1]);
       BPatch_Vector<BPatch_field *> *fields = type->getComponents();
-      for (int i=0; i < fields->size(); i++) {
+      for (unsigned int i=0; i < fields->size(); i++) {
 	BPatch_field *field = (*fields)[i];
 	printf("        %s    \t%d\n", field->getName(),
 	       field->getValue());
@@ -1740,7 +1767,7 @@ int ShowFunctions(int argc, char *argv[]) {
 
     //Now print all the functions in the module
     char funcName[1024];
-    for(int i=0; i<functions->size(); ++i) {
+    for(unsigned int i=0; i<functions->size(); ++i) {
 	(*functions)[i]->getName(funcName, 1024);
 	PrintTypeInfo(funcName, (*functions)[i]->getReturnType());
     }
@@ -1767,14 +1794,14 @@ int ShowModules()
     }
 
     names = (char **) calloc(modules->size(), sizeof(char *));
-    for(int m=0; m<modules->size(); ++m) {
+    for(unsigned int m=0; m<modules->size(); ++m) {
 	(*modules)[m]->getName(modName, 1024);
 	names[m] = strdup(modName);
     }
 
     qsort(names, modules->size(), sizeof(char *), stringCompare);
     prevName = strdup("");
-    for (int i=0; i<modules->size(); ++i) {
+    for (unsigned int i=0; i<modules->size(); ++i) {
 	 if (strcmp(prevName, names[i])) {
 	     printf("%s\n", names[i]);
 	 }
@@ -1805,7 +1832,7 @@ int ShowParameters(int argc, char *argv[]) {
     }
 
     BPatch_Vector<BPatch_localVar *> *params = fp->getParams();
-    for(int i=0; i<params->size(); ++i) {
+    for(unsigned int i=0; i<params->size(); ++i) {
 	PrintTypeInfo((char *) (*params)[i]->getName(), (*params)[i]->getType());
     }
 
@@ -1825,7 +1852,7 @@ int ShowLocalVars(char *funcName) {
     }
 
     BPatch_Vector<BPatch_localVar *> *vars = fp->getVars();
-    for(int i=0; i<vars->size(); ++i) {
+    for(unsigned int i=0; i<vars->size(); ++i) {
 	PrintTypeInfo((char *) (*vars)[i]->getName(), (*vars)[i]->getType());
     }
 
@@ -1843,7 +1870,7 @@ int ShowGlobalVars() {
 	return TCL_ERROR;
     }
 
-    for(int i=0; i<vars->size(); ++i) {
+    for(unsigned int i=0; i<vars->size(); ++i) {
 	PrintTypeInfo((*vars)[i]->getName(), (BPatch_type *) (*vars)[i]->getType());
     }
 
@@ -1961,7 +1988,7 @@ int repFunc(char *name1, char *name2) {
 int repCall(char *func1, char *func2) {
 
     // Replace function calls
-    int n = -1;
+    int n = 0;
     char *ptr = strchr(func1,':');
     if (ptr) {
 	*ptr = '\0';
@@ -1990,14 +2017,14 @@ int repCall(char *func1, char *func2) {
 	return TCL_ERROR;
     }
 
-    if (n > points->size()) {
+    if (n > (int) points->size()) {
 	printf("Function %s does not have %d calls!\n", func1, n);
 	return TCL_ERROR;
     }
 
     if (n == -1) {
 	//Remove all function calls
-	for(int i=0; i<points->size(); ++i) {
+	for(unsigned int i=0; i<points->size(); ++i) {
 		if (!appThread->replaceFunctionCall(*((*points)[i]), *newFunc) ) {
 			printf("Unable to replace call %d !\n", i);
 			return TCL_ERROR;
@@ -2081,7 +2108,7 @@ int traceMod(Tcl_Interp *interp, char *name) {
 
     //Now print all the functions in the module
     char funcName[1024];
-    for(int i=0; i<functions->size(); ++i) {
+    for(unsigned int i=0; i<functions->size(); ++i) {
 	(*functions)[i]->getName(funcName, 1024);
 	if (traceFunc(interp, funcName) == TCL_ERROR)
 		return TCL_ERROR;
@@ -2116,20 +2143,19 @@ int untraceFunc(char *name)
 {
     DynerList<IPListElem *>::iterator i;
 
-    i = iplist.begin(); 
-
-    while(i != iplist.end()) {
+    for (i = iplist.begin(); i != iplist.end(); i++) {
 	IPListElem *ip = *i;
 
-	i++;
-
-        if ( (ip->instType == TRACE) && !strcmp(name, ip->function)) {
-		iplist.erase(ip);
-		delete ip;
+        if ((ip->instType == TRACE) && !strcmp(name, ip->function)) {
+	    printf("removing tracing for function %s\n", ip->function);
+	    iplist.erase(i);
+	    delete ip;
+	    return TCL_OK;
 	}
     }
 
-    return TCL_OK;
+    printf("function %s is not currently traced\n", name);
+    return TCL_ERROR;
 }
 
 int untraceMod(char *name)
@@ -2150,7 +2176,7 @@ int untraceMod(char *name)
 
     //Now print all the functions in the module
     char funcName[1024];
-    for(int i=0; i<functions->size(); ++i) {
+    for(unsigned int i=0; i<functions->size(); ++i) {
 	(*functions)[i]->getName(funcName, 1024);
 	if (untraceFunc(funcName) == TCL_ERROR)
 		return TCL_ERROR;
@@ -2242,14 +2268,14 @@ int removeCommand(ClientData, Tcl_Interp *, int argc, char *argv[])
 	return TCL_ERROR;
     }
 
-    if (n > points->size()) {
+    if (n > (int) points->size()) {
 	printf("Function %s does not have %d calls!\n", argv[1], n);
 	return TCL_ERROR;
     }
 
     if (n == -1) {
 	//Remove all function calls
-	for(int i=0; i<points->size(); ++i) {
+	for(unsigned int i=0; i<points->size(); ++i) {
 		if (!appThread->removeFunctionCall(*((*points)[i])) ) {
 			printf("Unable to remove call %d !\n", i);
 			return TCL_ERROR;
@@ -2335,7 +2361,7 @@ int debugParse(ClientData, Tcl_Interp *, int argc, char **argv)
     return TCL_OK;
 }
 	
-int exitDyner(ClientData, Tcl_Interp *, int argc, char **argv)
+int exitDyner(ClientData, Tcl_Interp *, int, char **)
 {
 
     if (haveApp()) {

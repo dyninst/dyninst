@@ -1,6 +1,10 @@
 #ifndef __DYNERLIST__
 #define __DYNERLIST__
 
+#ifdef USE_STL_VECTOR
+#define DynerList	list
+#else
+
 template<class T> 
 class DynerList {
 	struct ListItem {
@@ -49,7 +53,7 @@ public:
         ~DynerList();
 
         const T& operator[](int n) const;
-        bool erase(const T& x);
+        bool erase(const iterType &x);
         void clear();
         void push_back(const T& x);
         void push_front(const T& x);
@@ -89,13 +93,13 @@ const T& DynerList<T>::operator[](int n) const {
 }
 
 template<class T>
-bool DynerList<T>::erase(const T& x) {
+bool DynerList<T>::erase(const iterType &x) {
 	ListItem *item, *prev;
 
 	prev = item = _vector;
 
 	while(item) {
-		if (item->_item == x)
+		if (item == x._ptr)
 			break;
 
 		prev = item;
@@ -149,5 +153,6 @@ void DynerList<T>::push_front(const T& x) {
 	item->_next = _vector;
 	_vector = item;
 }
+#endif
 
 #endif //__DYNERLIST__
