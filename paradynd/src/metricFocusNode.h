@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.93 2002/05/14 19:00:30 schendel Exp $ 
+// $Id: metricFocusNode.h,v 1.94 2002/08/12 04:21:56 schendel Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -123,8 +123,7 @@ public:
      // process.  "map" maps instInstance's of the parent to those of the
      // child.
 
-  static void handleFork(const process *parent, process *child,
-                         dictionary_hash<instInstance*, instInstance*> &map);
+  static void handleFork(const process *parent, process *child);
      // called once per fork.  "map" maps all instInstance's of the parent
      // process to the corresponding copy in the child process...we'll delete
      // some instrumentation in the child process if we find that some
@@ -142,7 +141,6 @@ public:
 protected:
   // Since we don't define these, make sure they're not used:
   metricFocusNode &operator=(const metricFocusNode &src);
-  metricFocusNode(const metricFocusNode &src);
 };
 
 
