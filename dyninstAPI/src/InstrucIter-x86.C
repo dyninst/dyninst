@@ -366,9 +366,11 @@ void InstrucIter::getMultipleJumpTargets(pdvector<Address>& result,
     {
         Address tableEntry = jumpTable + (i * sizeof(Address));
         int jumpAddress = 0;
-        void* jt = (void*)addressImage->getPtrToInstruction( tableEntry );
-        jumpAddress = *(int*)(jt);
-        result.push_back( jumpAddress );
+        if( addressImage->isValidAddress( tableEntry ) )
+        {    
+            jumpAddress = *(int*)addressImage->getPtrToInstruction(tableEntry);
+            result.push_back( jumpAddress );
+        }
     }
 }
 
