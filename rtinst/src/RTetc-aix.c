@@ -41,7 +41,7 @@
 
 /************************************************************************
  * RTaix.c: clock access functions for AIX.
- * $Id: RTetc-aix.c,v 1.39 2003/04/10 17:17:55 bernat Exp $
+ * $Id: RTetc-aix.c,v 1.40 2003/04/11 22:46:46 schendel Exp $
  ************************************************************************/
 
 #include <malloc.h>
@@ -203,7 +203,10 @@ void PARADYNos_init(int calledByFork, int calledByAttach) {
   hintBestCpuTimerLevel  = HARDWARE_TIMER_LEVEL;
   hintBestWallTimerLevel = HARDWARE_TIMER_LEVEL;
 
-   PARADYN_initialize_pmapi(0);
+  if(! calledByFork) {
+     /* should already have been initialized by parent process */
+     PARADYN_initialize_pmapi(0);
+  }
 
   /* needs to be reinitialized when fork occurs */
   wallPrevious_hw = 0;
