@@ -2,7 +2,7 @@
 // Since the author of this file chose to use tabs instead of spaces
 // for the indentation mode, the above line switches users into tabs
 // mode with emacs when editing this file.
-/* $Id: addLibrary.C,v 1.7 2003/01/02 19:51:33 schendel Exp $ */
+/* $Id: addLibrary.C,v 1.8 2003/07/01 19:57:15 chadd Exp $ */
 
 
 #if defined(BPATCH_LIBRARY) && defined(sparc_sun_solaris2_4)
@@ -57,13 +57,33 @@
  * UPDATE: 17 may 2002
  * Previously it was assumed there would be a DT_CHECKSUM entry
  * in the dynamic table.  this is not always the case. some
- * compilers done put this entry in.  If it is not present there
+ * compilers dont put this entry in.  If it is not present there
  * is no place to put the link to the dyninstAPI runtime shared
  * library and everything fails.  
- * NOW: The dynamic section is moved to the start of the data 
- * segment.  This lets the dynamic table be expanded and the 
- * dyninstAPI library gets its own entry without overwriting a 
- * slot in the dynamic table. 
+ *
+ * UPDATE: 25 june 2003
+ * corrected moveDynamic() to move the .dynamic section to the end
+ * of the text segment
+ * corrected fixUpPhdrForDynamic() to reflect the above change and
+ * make the text segment read/write/execute, instead of just read/execute,
+ * because the .dynamic section gets updated by the loader
+ * 
+ * UPDATE: 26 june 2003
+ * Now the TEXTGAP/DATAGAP test determines if there is enough room for
+ * both the PHT and the .dynamic section in the gap.  
+ *
+ * UPDATE: 27 june 2003
+ * There is a gap of 0x10000 (+ some padding for alignment) bytes between
+ * the end of the text segment and the start of the data segment in MEMORY.
+ * In the original ELF file, the OFFSET for the last byte of the last section
+ * in the text segment and the first byte of the first section in the data section 
+ * are different by 0 to 0x10 bytes (alignment padding).  In the NEW ELF file,
+ * the data segment is shifted down IN THE FILE 0x10000 bytes, keeping the 
+ * 0x0FFFF part of the offset the same so it can be loaded correctly to memory
+ * in the specified location.
+ * This means that there is ALWAYS room to put the PHT and .dynamic section
+ * immediately after the text segment.  The notion of the TEXT and DATA gap
+ * is not important!  
  *
  * (*) The Program Header Table should be able to be located
  * anywhere in the file and loaded to any place in memory.
@@ -123,26 +143,12 @@ void addLibrary::createNewElf(){
 
 void addLibrary::updateDynamic(Elf_Data *newData, unsigned int hashOff, unsigned int dynsymOff,
 	unsigned int dynstrOff){
-/*
-	for(unsigned int k =(newData->d_size/sizeof(Elf32_Dyn))-1 ; k>0;k--){
-		memcpy( &(((Elf32_Dyn*) (newData->d_buf))[k]),&(((Elf32_Dyn*) (newData->d_buf))[k-1]),
-				sizeof(Elf32_Dyn));	
-	}
-	((Elf32_Dyn*) (newData->d_buf))[0].d_tag = DT_NEEDED;
-        ((Elf32_Dyn*) (newData->d_buf))[0].d_un.d_val = libnameIndx;
-
-	//ok, if we do the above, and remove DT_NULL if below, we are reordering
-	//the _DYNAMIC table, putting libdyninstAPI_RT.so in the first position
-	//this reorders the load of the SO and moves it! once i get the
-	//dlopen problem fixed then this will be handled ok.
-*/	
 
 	char *d_buf = new char[newData->d_size +sizeof(Elf32_Dyn) ];
 
 	memset(d_buf, '\0', newData->d_size +sizeof(Elf32_Dyn) ); // make them all DT_NULL
 	memcpy(d_buf, newData->d_buf, newData->d_size );
 
-//	delete [] newData;
 	delete [] newData->d_buf;
 	newData->d_buf = d_buf;
 	newData->d_size += sizeof(Elf32_Dyn);
@@ -188,7 +194,7 @@ int addLibrary::findSection(const char* name){
 }
 
 
-void addLibrary::updateProgramHeaders(Elf32_Phdr *phdr, unsigned int dynstrOffset, Elf32_Shdr **newSegs){
+void addLibrary::updateProgramHeaders(Elf32_Phdr *phdr, unsigned int dynstrOffset){
 
 
 	//update PT_PHDR
@@ -196,20 +202,26 @@ void addLibrary::updateProgramHeaders(Elf32_Phdr *phdr, unsigned int dynstrOffse
 	phdr[0].p_vaddr =  newPhdrAddr ;
 	phdr[0].p_paddr = phdr[0].p_vaddr;
 
-	if(gapFlag == TEXTGAP){
-		//update TEXT SEGMENT
-		phdr[2].p_memsz += phdr[0].p_filesz;
-		phdr[2].p_filesz += phdr[0].p_filesz;
+	//ccw 27 jun 2003 ALWAYS PUT THE PHT AND .dynamic section IN THE TEXT SEGMENT
+	//update TEXT SEGMENT
 
-	}else if(gapFlag == DATAGAP){
-		//update DATA SEGMENT
-		phdr[3].p_memsz += phdr[0].p_filesz;
-		phdr[3].p_filesz += phdr[0].p_filesz;
-		phdr[3].p_offset = newPhdrOffset;
-		phdr[3].p_vaddr = newPhdrAddr;
-		phdr[3].p_paddr = newPhdrAddr;
+	//the PHT is put AFTER the .dynamic section. The phdr slot [0] for the PHT is
+	//already correct.  the new size of the text segment is the distance from
+	//the start of the text segment to the start of the PHT plus the size of the
+	//PHT.  This accounts for the .dynamic section and all padding.
+	phdr[2].p_filesz = ((phdr[0].p_offset - phdr[2].p_offset) + phdr[0].p_filesz);
+	phdr[2].p_memsz = phdr[2].p_filesz;
 
-	}
+	/* 	i need to make the text section writeable b/c the 
+		dynamic section is now there and needs
+		to be updated during execution
+	*/	
+	
+	phdr[2].p_flags = PF_R+PF_W+PF_X ; //ccw 26 jun 2003
+	phdr[0].p_flags = PF_R+PF_W+PF_X ; //ccw 30 jun 2003
+
+
+	
 
 	for(int i=0;i<newElfFileEhdr->e_phnum;i++){
 		if(phdr[i].p_offset && phdr[i].p_offset < dynstrOffset){
@@ -222,20 +234,6 @@ void addLibrary::updateProgramHeaders(Elf32_Phdr *phdr, unsigned int dynstrOffse
 			phdr[i].p_offset +=_pageSize;
 		}
 	}
-/*
-	int current;	
-	for(int i=0;i<numberExtraSegs;i++){
-		current = newElfFileEhdr->e_phnum - (numberExtraSegs - i);
-		//start off from a valid PT_LOAD phdr
-		memcpy(&(phdr[current]), &(phdr[2]), sizeof(Elf32_Phdr));
-
-		phdr[current].p_offset = newSegs[i]->sh_offset;
-		phdr[current].p_vaddr = newSegs[i]->sh_addr;
-		phdr[current].p_paddr = phdr[current].p_vaddr;
-		phdr[current].p_memsz = newSegs[i]->sh_size;
-		phdr[current].p_filesz =phdr[current].p_memsz; 
-	}
-*/
 } 
 
 
@@ -453,10 +451,10 @@ int addLibrary::writeNewElf(char* filename, const char* libname){
 	realEhdr ->e_shoff += _pageSize + extraSegmentPad;;	
 	elf_update(newElf, ELF_C_NULL);
 
-	updateProgramHeaders(realPhdr, dynstrOffset,newSegments);
+	updateProgramHeaders(realPhdr, dynstrOffset);
 	
 	elf_update(newElf, ELF_C_WRITE);
-	return gapFlag;
+	return 1;
 }
 
 //if we cannot edit the file (no space at the top, no space
@@ -478,14 +476,14 @@ int addLibrary::driver(Elf *elf,  char* newfilename, const char *libname) {
 	textSegEndIndx = findEndOfTextSegment();
 	dataSegStartIndx = findStartOfDataSegment();
 	
-	checkFile();
-	if(gapFlag){
+	int gapFlag = checkFile();
+	if(gapFlag){  
 		
-		findNewPhdrAddr();
-		findNewPhdrOffset();
 	
 		moveDynamic();
-	
+		findNewPhdrAddr();
+		findNewPhdrOffset();
+
 		gapFlag = writeNewElf(newfilename, libname);
 		elf_end(newElf);
 	}else{
@@ -502,18 +500,13 @@ void addLibrary::fixUpPhdrForDynamic(){
 	unsigned int dataSegSizeChange;
 	int dataSegIndex=0, dynSegIndex=0;
 
-
 	while( newElfFilePhdr[dataSegIndex].p_offset != newElfFileSec[dataSegStartIndx+1].sec_hdr->sh_offset){
+
 		dataSegIndex++;	
 	}
 		
 	dataSegSizeChange = newElfFileSec[dataSegStartIndx+1].sec_hdr->sh_offset - 
 			newElfFileSec[dataSegStartIndx].sec_hdr->sh_offset;
-	/* change data segment*/
-	newElfFilePhdr[dataSegIndex].p_offset = newElfFileSec[dataSegStartIndx].sec_hdr->sh_offset;
-	newElfFilePhdr[dataSegIndex].p_filesz += dataSegSizeChange;
-	newElfFilePhdr[dataSegIndex].p_memsz += dataSegSizeChange;
-	newElfFilePhdr[dataSegIndex].p_vaddr =  newElfFileSec[dataSegStartIndx].sec_hdr->sh_addr;
 
 	while( newElfFilePhdr[dynSegIndex].p_type != PT_DYNAMIC){
 		dynSegIndex ++;
@@ -528,7 +521,6 @@ void addLibrary::fixUpPhdrForDynamic(){
 
 void addLibrary::moveDynamic(){
 
-	int newIndex;
 	int oldDynamicIndex;
 	int newDynamicIndex;
 	Elf_element *updatedElfFile;
@@ -552,14 +544,26 @@ void addLibrary::moveDynamic(){
 
 			memcpy( &(updatedElfFile[newIndex]), &(newElfFileSec[oldDynamicIndex]), sizeof(Elf_element));
 
-			updatedElfFile[newIndex].sec_hdr->sh_offset = newElfFileSec[cnt].sec_hdr->sh_offset - 
-				updatedElfFile[newIndex].sec_hdr->sh_size - sizeof(Elf32_Dyn); /* increase in size */
+			//ok, now the .dynamic section is at the offset for .got (or whatever is the first in the
+			//segment
+			updatedElfFile[newIndex].sec_hdr->sh_offset = newElfFileSec[cnt].sec_hdr->sh_offset; //ccw 27 jun 2003 - 
+				//updatedElfFile[newIndex].sec_hdr->sh_size - sizeof(Elf32_Dyn); /* increase in size */
 
 			while(updatedElfFile[newIndex].sec_hdr->sh_offset  % 0x10){
-				 updatedElfFile[newIndex].sec_hdr->sh_offset --;
+				 updatedElfFile[newIndex].sec_hdr->sh_offset ++; //ccw 27 jun 2003 was: --
 			}
-			updatedElfFile[newIndex].sec_hdr->sh_addr = newElfFileSec[cnt].sec_hdr->sh_addr - 
-				 newElfFileSec[cnt].sec_hdr->sh_offset +updatedElfFile[newIndex].sec_hdr->sh_offset;
+
+			// ccw 25 jun 2003
+			//ok, we need to find the address of the dynamic section.
+			//we know the offset in the file.  Given that offset, the address should
+			//be that offset plus the 'memory offset'.  the 'memory offset' is the difference
+			//between the real mem location and the file offset.  we calcuate this by using
+			//the previous (if the dynamic section is at the end of the text segment; if the dynamic section
+			//is at the start of the data section we use the next) section's information (on the assumption that 
+			//the previous (next) section and the .dynamic section are in the same segment).
+
+			updatedElfFile[newIndex].sec_hdr->sh_addr = updatedElfFile[newIndex].sec_hdr->sh_offset +
+			( updatedElfFile[newIndex-1].sec_hdr->sh_addr -updatedElfFile[newIndex-1].sec_hdr->sh_offset);
 
 			newIndex++;
 			//copy old entry to to next slot
@@ -571,18 +575,16 @@ void addLibrary::moveDynamic(){
 			updatedElfFile[newIndex].sec_hdr = new Elf32_Shdr;//(Elf32_Shdr*) new char[sizeof(Elf32_Shdr)];
 
 
-			//updatedElfFile[newIndex].sec_data = new Elf_Data;//(Elf_Data*) new char[sizeof(Elf_Data)];
-			//updatedElfFile[newIndex].sec_data->d_size = newElfFileSec[cnt].sec_data->d_size;
-			//updatedElfFile[newIndex].sec_data->d_buf = new char[newElfFileSec[cnt].sec_data->d_size];
 
 			memcpy( updatedElfFile[newIndex].sec_hdr, &tmpShdr, sizeof(Elf32_Shdr));
+			//updatedElfFile[newIndex].sec_hdr->sh_addr = updatedElfFile[newDynamicIndex].sec_hdr->sh_addr; //ccw 1 jul 2003
 			
 		}	
 
-		if(updatedElfFile[newIndex].sec_hdr->sh_link >= newDynamicIndex){
+		if(updatedElfFile[newIndex].sec_hdr->sh_link >= (unsigned int) newDynamicIndex){
 			updatedElfFile[newIndex].sec_hdr->sh_link++;
 		}
-		if(updatedElfFile[newIndex].sec_hdr->sh_info >= newDynamicIndex){
+		if(updatedElfFile[newIndex].sec_hdr->sh_info >=  (unsigned int) newDynamicIndex){
 			updatedElfFile[newIndex].sec_hdr->sh_info++;
 		}
 
@@ -686,15 +688,15 @@ unsigned int addLibrary::findStartOfDataSegment(){
 
 
 int addLibrary::findNewPhdrAddr(){
+	//ccw 27 jun 2003 THIS MUST BE CALLED AFTER moveDynamic() !!
+	//and before writeElf
 	Elf32_Shdr *tmpShdr;
 
-	if(gapFlag == TEXTGAP){
-		tmpShdr = newElfFileSec[/*findSection(".rodata")*/ textSegEndIndx].sec_hdr;
-		newPhdrAddr = tmpShdr->sh_addr + tmpShdr->sh_size;
-	} else if(gapFlag == DATAGAP) {
-		tmpShdr = newElfFileSec[/*findSection(".data")*/ dataSegStartIndx].sec_hdr;
-		newPhdrAddr = tmpShdr->sh_addr - phdrSize;
-	}
+
+	tmpShdr = newElfFileSec[findSection(".dynamic")].sec_hdr;
+	//i have not yet added the extra record the .dynamic table so account for that 
+	//in the addr calc!
+	newPhdrAddr = tmpShdr->sh_addr + tmpShdr->sh_size + sizeof(Elf32_Dyn);
 	
 	while(newPhdrAddr %4){
 		newPhdrAddr ++;
@@ -705,14 +707,14 @@ int addLibrary::findNewPhdrAddr(){
 
 int addLibrary::findNewPhdrOffset(){
 	Elf32_Shdr *tmpShdr;
+	//ccw 27 jun 2003 THIS MUST BE CALLED AFTER moveDynamic() !!
+	//and before writeElf
+	
+	tmpShdr = newElfFileSec[findSection(".dynamic")].sec_hdr;
+	//i have not yet added the extra record the .dynamic table so account for that 
+	//in the offset calc!
+	newPhdrOffset = tmpShdr->sh_offset + tmpShdr->sh_size + sizeof(Elf32_Dyn);
 
-	if(gapFlag == TEXTGAP){
-		tmpShdr = newElfFileSec[/*findSection(".rodata")*/textSegEndIndx].sec_hdr;
-		newPhdrOffset = tmpShdr->sh_offset + tmpShdr->sh_size;
-	}else if(gapFlag == DATAGAP){
-		tmpShdr = newElfFileSec[/*findSection(".data")*/dataSegStartIndx].sec_hdr; 
-		newPhdrOffset = tmpShdr->sh_offset - phdrSize + _pageSize;
-	}
 	while(newPhdrOffset %4){
 		newPhdrOffset ++;
 	}	
@@ -723,7 +725,6 @@ int addLibrary::findNewPhdrOffset(){
 
 
 int addLibrary::checkFile(){
-	int result=0;
         Elf32_Shdr *roDataShdr, *dataShdr;
         unsigned int endrodata, startdata;
 	char extraSegName[20];
@@ -735,7 +736,6 @@ int addLibrary::checkFile(){
 	
 	if(newElfFileSec[0].sec_hdr->sh_offset < (unsigned int) (sizeof(Elf32_Ehdr)+libnameLen) ){
 		//there is not enough room
-		gapFlag = 0;
 		return 0;
 	}
 
@@ -754,34 +754,7 @@ int addLibrary::checkFile(){
 
         startdata = dataShdr -> sh_addr;
 
-        if( startdata - endrodata >= phdrSize ){
-
-		//where to put the phdr?
-		//find the gap between the text segment
-		//end and the next page boundry
-		unsigned int nextPage = endrodata >> 12;
-		nextPage ++;
-		nextPage = nextPage << 12;
-
-		unsigned int textSideGap = nextPage - endrodata;
-
-		//find the gap between the data segment start
-		//and the previous page boundry
-                unsigned int prevPage = startdata >> 12;
-                prevPage = prevPage << 12;
-		unsigned int dataSideGap = startdata - prevPage;
-
-		if(textSideGap >= phdrSize ){ // i prefer the text side gap, no real reason
-			result = TEXTGAP;
-		}else if(dataSideGap >= phdrSize){
-			result = DATAGAP;
-		} 
-        }else{
-		result = 0;
-        }
-	gapFlag = result;
-
-	return result;
+	return 1;//result; //ccw 27 jun 2003
 
 }
 

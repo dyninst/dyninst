@@ -3,7 +3,7 @@
 // for the indentation mode, the above line switches users into tabs
 // mode with emacs when editing this file.
 
-/* $Id: addLibrary.h,v 1.4 2003/01/02 19:51:34 schendel Exp $ */
+/* $Id: addLibrary.h,v 1.5 2003/07/01 19:57:20 chadd Exp $ */
 
 #if defined(BPATCH_LIBRARY) && defined(sparc_sun_solaris2_4)
 
@@ -39,7 +39,6 @@ class addLibrary {
 
 
 	int numberExtraSegs;
-	int gapFlag;
 	unsigned int newPhdrAddr;
 	unsigned int newPhdrOffset;
 	int libnameLen;
@@ -52,7 +51,7 @@ class addLibrary {
 	void createNewElf();
 	int findSection(const char *name);
 	void updateDynamic(Elf_Data*newData,unsigned int hashOff, unsigned int dynsymOff, unsigned int dynstrOff);
-	void updateProgramHeaders(Elf32_Phdr *phdr, unsigned int dynstrOffset, Elf32_Shdr**newSegs);
+	void updateProgramHeaders(Elf32_Phdr *phdr, unsigned int dynstrOffset);
 	void addStr(Elf_Data* newData, Elf_Data* oldData, const char *str);
 	int writeNewElf(char* filename, const char* libname);
 	unsigned int findEndOfTextSegment();
