@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.183 2003/07/30 22:07:04 bernat Exp $
+ * $Id: inst-power.C,v 1.184 2003/08/01 23:07:04 jodom Exp $
  */
 
 #include "common/h/headers.h"
@@ -4003,7 +4003,7 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
 
     pointFunction->addArbitraryPoint(newpt,NULL);
 
-    return proc->findOrCreateBPPoint(NULL, newpt, BPatch_instruction);
+    return proc->findOrCreateBPPoint(NULL, newpt, BPatch_arbitrary);
 }
 
 /*
