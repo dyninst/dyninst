@@ -422,8 +422,8 @@ Object::load_object() {
 
         /* The remaing symbols go without module */
         vector<string> k = global_symbols.keys();
-        for (unsigned i1 = 0; i1 < k.size(); i1++) {
-	  Symbol sym = global_symbols[k[i1]];
+        for (unsigned i2 = 0; i2 < k.size(); i2++) {
+	  Symbol sym = global_symbols[k[i2]];
 	  symbols_[sym.name()] = sym;
 	}
 
