@@ -731,15 +731,19 @@ paradynDaemon::paradynDaemon(int f)
   }
 }
 
+bool our_print_sample_arrival = false;
+void printSampleArrivalCallback(bool newVal) {
+   our_print_sample_arrival = newVal;
+}
+
 void paradynDaemon::sampleDataCallbackFunc(int program,
 					   int  mid,
 					   double startTimeStamp,
 					   double endTimeStamp,
 					   double value)
 {
-    component *part;
-    metricInstance *mi;
-    struct sampleInterval ret;
+   // TAKE NOTE: This routine is _the_ critical path in the paradyn process.
+   //            Be quick!
 
     // get the earliest first time that had been reported by any paradyn
     // daemon to use as the base (0) time
@@ -748,16 +752,14 @@ void paradynDaemon::sampleDataCallbackFunc(int program,
     startTimeStamp -= getEarliestFirstTime();
     endTimeStamp -= getEarliestFirstTime();
 
-    // get a fresh version of TC "printSampleArrival" for use in this routine
-    tunableBooleanConstant printSampleArrival = 
-	tunableConstantRegistry::findBoolTunableConstant("printSampleArrival");
-
-    if (printSampleArrival.getValue()) {
+    if (our_print_sample_arrival) {
       cout << "mid " << mid << " " << value << " from " 
 	<< startTimeStamp << " to " << endTimeStamp << "\n";
     }
     assert(mid >= 0);
     if (!activeMids.defines((unsigned)mid)) {
+      // we're either gonna print a "data for disabled mid" error (in status line),
+      // or "data for unknown mid".  The latter is a fatal error.
       bool found = false;
       for (unsigned ve=0; ve<disabledMids.size(); ve++) {
 	if (disabledMids[ve] == (unsigned) mid) {
@@ -765,6 +767,7 @@ void paradynDaemon::sampleDataCallbackFunc(int program,
 	  break;
 	}
       }
+
       if (found) {
 	char msg[80];
 	// TODO -- data may be in transit when the disable request is made
@@ -778,11 +781,14 @@ void paradynDaemon::sampleDataCallbackFunc(int program,
 	exit(-1);
       }
     }
-    mi = activeMids[(unsigned)mid];
+
+    metricInstance *mi = activeMids[(unsigned)mid];
     assert(mi);
+
+    struct sampleInterval ret;
     if(mi->components.size()){
         // find the right component.
-	part = NULL;
+	component *part = NULL;
         for(unsigned i=0; i < mi->components.size(); i++){
 	    if((unsigned)mi->components[i]->daemon == (unsigned)this)
 		part = mi->components[i];
