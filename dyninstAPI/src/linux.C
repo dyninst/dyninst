@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.132 2004/03/15 03:36:23 tlmiller Exp $
+// $Id: linux.C,v 1.133 2004/03/15 03:53:17 tlmiller Exp $
 
 #include <fstream>
 
@@ -310,29 +310,6 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
       wait_options |= WNOHANG;
    }
 
-	/* If we're blocking, check to make sure we don't do so forever. */
-	if( block ) {
-		/* If we're waiting on just one process, only check it. */
-		if( wait_arg > 0 ) { 
-			process * proc = process::findProcess( wait_arg );
-			assert( proc != NULL );
-			
-			if( proc->status() == exited ) { return false; }
-			}
-		else {
-			/* Iterate over all the processes. */
-			bool allExited = true;
-			for( unsigned i = 0; i < processVec.size(); i++ ) {
-				if( processVec[i] != NULL ) {
-					process * proc = processVec[i];
-					
-					if( proc->status() != exited ) { allExited = false; }
-					}
-				}
-			if( allExited ) { return false; }
-			} /* end multiple-process wait */
-		} /* end if we're blocking */
-		
    result = waitpid( wait_arg, &status, wait_options );
 
    if (result < 0 && errno == ECHILD) {
@@ -408,16 +385,15 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
            // Linux fork() sends a SIGCHLD once the fork has been created
            why = procForkSigChild;
            break;
-        case SIGILL: {
-           Address pc = getPC( pertinentPid );
-           // /* DEBUG */ fprintf( stderr, "SIGILL: PC = 0x%lx\n", pc );
+        case SIGILL:
+           Address pc = getPC(pertinentPid);
            
-           if( pc == pertinentProc->dyninstlib_brk_addr ||
-               pc == pertinentProc->main_brk_addr || 
-               pertinentProc->getDyn()->reachedLibHook(pc) ) {
+           if(pc == pertinentProc->dyninstlib_brk_addr ||
+              pc == pertinentProc->main_brk_addr || 
+              pertinentProc->getDyn()->reachedLibHook(pc)) {
                what = SIGTRAP;
-           	   }
-           } break;
+           }
+           break;
       }
    }
 
@@ -447,6 +423,33 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
       wait_on_spawned_lwp = true;
    }
 
+	/* If we're blocking, check to make sure we don't do so forever. */
+	if( block ) {
+		/* If we're waiting on just one process, only check it. */
+		if( wait_arg > 0 ) { 
+			process * proc = process::findProcess( wait_arg );
+			assert( proc != NULL );
+			
+			/* Having to enumerate everything is broken. */
+			if( proc->status() == exited || proc->status() == stopped || proc->status() == detached ) { return false; }
+			}
+		else {
+			/* Iterate over all the processes.  Prove progress because the processVec
+			   may be empty. */
+			bool noneLeft = true;
+
+			for( unsigned i = 0; i < processVec.size(); i++ ) {
+				if( processVec[i] != NULL ) {
+					process * proc = processVec[i];
+					
+					/* Enumeration is broken, but I'm also wondering why we keep processes around that are 'exited.' */
+					if( proc->status() != exited && proc->status() != stopped && proc->status() != detached ) { noneLeft = false;	}
+					}
+				}
+			if( noneLeft ) { return false; }
+			} /* end multiple-process wait */
+		} /* end if we're blocking */
+		
    procevent *new_event = new procevent;
    bool gotevent = false;
    while(1) {
