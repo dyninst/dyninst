@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.h,v 1.11 2003/07/18 15:43:51 schendel Exp $
+// $Id: frame.h,v 1.12 2003/10/21 17:21:56 bernat Exp $
 
 #ifndef FRAME_H
 #define FRAME_H
@@ -49,13 +49,15 @@
 class dyn_thread;
 class process;
 class dyn_lwp;
+struct codeRange;
 
 class Frame {
  public:
   
   // default ctor (zero frame)
   Frame() : uppermost_(false), pc_(0), fp_(0), sp_(0),
-    pid_(0), thread_(NULL), lwp_(NULL), isLeaf_(false) {}
+    pid_(0), thread_(NULL), lwp_(NULL), isLeaf_(false), range_(0)
+  {}
 
   // I'm keeping the frame class (relatively) stupid,
   // so the standard method of getting a frame is to
@@ -70,7 +72,8 @@ class Frame {
 	bool uppermost, bool isLeaf=false) :
     uppermost_(uppermost),
     pc_(pc), fp_(fp), sp_(0),
-    pid_(pid), thread_(thread), lwp_(lwp), isLeaf_(isLeaf)
+  pid_(pid), thread_(thread), lwp_(lwp), isLeaf_(isLeaf),
+  range_(0)
     {};
   // Identical, with sp definition
   Frame(Address pc, Address fp, Address sp,
@@ -78,7 +81,8 @@ class Frame {
 	bool uppermost, bool isLeaf=false) :
     uppermost_(uppermost),
     pc_(pc), fp_(fp), sp_(sp),
-    pid_(pid), thread_(thread), lwp_(lwp), isLeaf_(isLeaf)
+  pid_(pid), thread_(thread), lwp_(lwp), isLeaf_(isLeaf),
+  range_(0)
     {};
 
   Frame &operator=(const Frame &F) {
@@ -91,6 +95,7 @@ class Frame {
     lwp_ = F.lwp_;
     saved_fp = F.saved_fp;
     isLeaf_ = F.isLeaf_;
+    range_ = F.range_;
     return *this;
   }
 
@@ -114,7 +119,8 @@ class Frame {
   dyn_lwp  *getLWP() const { return lwp_;}
   bool     isUppermost() const { return uppermost_; }
   void setLeaf(bool isLeaf) { isLeaf_ = isLeaf; }
-
+  codeRange *getRange() const { return range_;}
+  void setRange(codeRange *r) { range_ = r;}
   friend ostream& operator<<(ostream&s, const Frame &m);
 
   // check for zero frame
@@ -135,7 +141,8 @@ class Frame {
   dyn_lwp  *lwp_;    // kernel-level thread (LWP)
   Address   saved_fp;// IRIX
   bool      isLeaf_; // Linux/x86
-  
+  codeRange *range_; // If we've done a by-address lookup,
+                    // keep it here  
 };
 
 ostream& operator<<(ostream&s, const Frame &m);
