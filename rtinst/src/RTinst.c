@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.36 2000/08/08 15:09:12 wylie Exp $
+ * $Id: RTinst.c,v 1.37 2000/08/18 20:12:38 zandy Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -160,8 +160,8 @@ int DYNINST_shmSegNumBytes;
 int DYNINST_shmSegShmId; /* needed? */
 void *DYNINST_shmSegAttachedPtr;
 #endif
-int DYNINST_paradyndPid; /* set in DYNINSTinit(); pass to connectToDaemon();
-			       needed if we fork */
+int DYNINST_mutatorPid = -1; /* set in DYNINSTinit(); pass to connectToDaemon();
+				 needed if we fork */
 #ifndef SHM_SAMPLING
 static int DYNINSTin_sample = 0;
 #endif
@@ -846,7 +846,7 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
   if (calledFromAttach)
     paradyndPid = -paradyndPid;
   
-  DYNINST_paradyndPid = paradyndPid; /* important -- needed in case we fork() */
+  DYNINST_mutatorPid = paradyndPid; /* important -- needed in case we fork() */
   
   TagGroupInfo.TagHierarchy = 0; /* FALSE; */
   TagGroupInfo.NumGroups = 0;
@@ -1186,8 +1186,8 @@ DYNINSTfork(int pid) {
 	DYNINSTcloseTrace();
 
 	forkexec_printf("dyninst-fork child opening new connection.\n");
-	assert(DYNINST_paradyndPid > 0);
-	DYNINSTinitTrace(DYNINST_paradyndPid);
+	assert(DYNINST_mutatorPid > 0);
+	DYNINSTinitTrace(DYNINST_mutatorPid);
 
 	forkexec_printf("dyninst-fork child pid %d opened new connection...now sending pid etc. along it\n", (int)getpid());
 
@@ -1214,7 +1214,7 @@ DYNINSTfork(int pid) {
 	forkexec_printf("dyninst-fork child past PARADYNbreakPoint()"
                         " ...calling DYNINSTinit(-1,-1)\n");
 
-	DYNINSTinit(-1, -1, DYNINST_paradyndPid);
+	DYNINSTinit(-1, -1, DYNINST_mutatorPid);
 	   /* -1 params indicate called from DYNINSTfork */
 
 	forkexec_printf("dyninst-fork child done...running freely.\n");

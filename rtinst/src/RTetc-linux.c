@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTetc-linux.c,v 1.16 2000/08/08 15:25:52 wylie Exp $ */
+/* $Id: RTetc-linux.c,v 1.17 2000/08/18 20:12:37 zandy Exp $ */
 
 /************************************************************************
  * RTetc-linux.c: clock access functions, etc.
@@ -101,41 +101,6 @@ void PARADYNos_init(int calledByFork, int calledByAttach) {
     }
 #endif
 }
-
-
-#ifdef DETACH_ON_THE_FLY 
-unsigned long DYNINSTinferiorPC;
-extern int DYNINST_paradyndPid;
-
-static void DYNINSTillHandler(int sig, struct sigcontext uap)
-{
-     int saved_errno;
-     unsigned char *p;
-
-     saved_errno = errno;
-
-     DYNINSTinferiorPC = uap.eip;
-
-     if (DYNINST_paradyndPid <= 0) {
-	  fprintf(stderr, "DYNINST_paradyndPid is not a pid (%d)\n",
-		  DYNINST_paradyndPid);
-	  assert(0);
-     }
-     if (0 > kill(DYNINST_paradyndPid, 33)) {
-	  perror("RTinst kill");
-	  assert(0);
-     }
-     kill(getpid(), SIGSTOP);
-     errno = saved_errno;
-#if 1
-     /* We won't need this once we fix this to return to reexecute the ill instruction */
-     if (*((char*) (uap.eip)) == '\017' && *((char*) (uap.eip+1)) == '\013') {
-	  uap.eip += 6;
-     }
-#endif     
-}
-#endif /* DETACH_ON_THE_FLY */
-
 
 
 
