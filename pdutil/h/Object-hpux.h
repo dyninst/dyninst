@@ -154,6 +154,8 @@ Object::load_object() {
         const char*   strs   = &ptr[hdrp->symbol_strings_location];
         string        module = "DEFAULT_MODULE";
         string        name   = "DEFAULT_SYMBOL";
+	bool          underScore = false;
+	bool          priProg = false;
 
         for (unsigned i = 0; i < nsyms; i++) {
             Symbol::SymbolType type = Symbol::PDST_UNKNOWN;
@@ -169,8 +171,11 @@ Object::load_object() {
                 break;
 
             case ST_CODE:
+		if (syms[i].symbol_scope != SS_UNIVERSAL)
+		    continue;
             case ST_ENTRY:
                 type   = Symbol::PDST_FUNCTION;
+		underScore = true;
                 value  = (value >> 2) << 2; /* get rid of the lower-order 2 bits */
                 break;
 
@@ -179,11 +184,34 @@ Object::load_object() {
                 type   = Symbol::PDST_MODULE;
                 break;
 
+	    case ST_PRI_PROG:
+	    	type  = Symbol::PDST_FUNCTION;
+	    	if (syms[i].arg_reloc) {
+	    	    priProg = true;
+		    //underScore = true;    
+	    	} else
+		    continue;
+		value  = (value >> 2) << 2;
+	    	break;
+		
             default:
-                break;
+                continue;
             }
 
-            string name = string(&strs[syms[i].name.n_strx]);
+	    string name;  
+	    if (priProg==true) { 
+		priProg = false;
+		name = "main";
+	    }else { 
+		name = string(&strs[syms[i].name.n_strx]);
+	    }
+	    // XXXX - Hack to make names match assumptions of symtab.C
+	    if (underScore) {
+		char temp[512];
+                sprintf(temp, "_%s", name.string_of());
+                name = string(temp);
+		underScore = false;
+	    }
             if (!symbols_.defines(name)
                 || (symbols_[name].linkage() == Symbol::SL_LOCAL)) {
                 symbols_[name] = Symbol(name, module, type, linkage,
