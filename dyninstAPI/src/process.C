@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.473 2004/02/28 00:26:32 schendel Exp $
+// $Id: process.C,v 1.474 2004/03/02 22:46:11 bernat Exp $
 
 #include <ctype.h>
 
@@ -76,6 +76,8 @@
 #elif defined(rs6000_ibm_aix4_1)
 #include "dyninstAPI/src/writeBackXCOFF.h"
 #endif
+
+#include "dyninstAPI/src/syscallNotification.h"
 
 #if !defined(BPATCH_LIBRARY)
 #include "rtinst/h/rtinst.h"
@@ -303,18 +305,13 @@ bool process::walkStackFromFrame(Frame startFrame,
   Address fpNew   = 0;
 
   Frame currentFrame = startFrame;
+  
+  if (!isStopped())
+      return false;
 
 #ifndef BPATCH_LIBRARY
   startTimingStackwalk();
 #endif
-
-  if (status_ == running) {
-    cerr << "Error: stackwalk attempted on running process" << endl;
-#ifndef BPATCH_LIBRARY
-    stopTimingStackwalk();
-#endif
-    return false;
-  }
 
 
 #if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
@@ -1581,66 +1578,150 @@ void process::inferiorFree(Address block)
   hp->freed += h->length;
   inferiorMemAvailable = hp->totalFreeMemAvailable;
 }
+ 
 
+// Cleanup the process object. Delete all sub-objects to ensure we aren't 
+// leaking memory and prepare for new versions. Useful when the process exits
+// (and the process object is deleted) and when it execs
 
-//
-// cleanup when a process is deleted
-//
-process::~process()
-{
-   /*  The instPoints in the installedMiniTramps_... will be shared
-       between forked processes.  Since there is currently no reference
-       counting mechanism, don't delete instPoints until something like
-       this exists.  Otherwise, an error occurs when the instPoint is
-       attempted to be deleted after it was already deleted.
-   */
-    // We do however delete the basetramps
-    // Shouldn't we delete instpoints when we delete the associated
-    // image object?
+void process::deleteProcess() {
+    // A lot of the behavior here is keyed off the current process status....
+    // if it is exited we'll delete things without performing any operations
+    // on the process. Otherwise we'll attempt to reverse behavior we've made.
     
-    {
-        dictionary_hash_iter<const instPoint *, trampTemplate *> baseMap_iter(baseMap);
+    // If this assert fires check whether we're setting the status vrble correctly
+    // before calling this function
+    fprintf(stderr, "Calling deleteProcess for pid %d\n", getPid());
+    assert(!isAttached());
+           
+    // Get rid of our syscall tracing.
+    if (tracedSyscalls_) {
+        delete tracedSyscalls_;
+        tracedSyscalls_ = NULL;
+    }
+    // Delete the base (and minitramp) handles if the process execed or exited
+    // We keep them around if we detached.
+    if (status_ != detached) {        
+        dictionary_hash_iter<const instPoint *, trampTemplate *>baseMap_iter(baseMap);
         for (; baseMap_iter; baseMap_iter++) {
-#if defined(REFERENCE_COUNTING_INSTPOINTS)
-            const instPoint *p = baseMap_iter.currkey();
-            delete p;
-#endif
+            // WE ARE NOT DELETING INSTPOINTS as they are shared between processes.
+            // const instPoint *p = baseMap_iter.currkey();
+            // delete p;
+            // Note: we do not remove the base and mini tramps from the codeRange address
+            // mapping, since we'll clear it later.
             trampTemplate *t = baseMap_iter.currval();
             delete t;
         }
+        // instpoints to base tramps
+        baseMap.clear();
+        // Address to instpoint (for arb. instpoints)
+        instPointMap.clear();
+        // pdFunctions to bpatch 'parents'
+        PDFuncToBPFuncMap.clear();
     }
-
-#ifndef BPATCH_LIBRARY
-    // the varMgr needs to be deleted before the shmMgr because the varMgr
-    // needs to free the memory it's allocated from the sharedMemoryMgr
-    delete shMetaOffsetData;
-    delete shmMetaData;    // needs to occur before shmMgr is deleted
-    delete theSharedMemMgr;
-#endif
-#ifdef BPATCH_LIBRARY
-    detach(false);
-
-    // remove it from the processVec
-    unsigned int size = processVec.size();
-    bool found = false;
     
-    for (unsigned lcv=0; lcv < size; lcv++) {
-       if (processVec[lcv] == this) {
-          assert(!found);
-          found = true;
-          processVec[lcv] = processVec[processVec.size()-1];
-          processVec.resize(size-1);
-       }
-    }
+#if defined(SHM_SAMPLING)
+    delete shMetaOffsetData;
+    shMetaOffsetData = NULL;
+    delete shmMetaData;
+    shmMetaData = NULL;
 #endif
-   dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
-   dyn_lwp *lwp;
-   unsigned index;
+
+    // Our modifications to the dynamic linker so that we're made aware
+    // of new shared libraries
+    if (dyn) {
+        delete dyn;
+        dyn = NULL;
+    }
+    
+    // Delete all shared_object objects
+    if (shared_objects) {
+        for (unsigned shared_objects_iter = 0;
+             shared_objects_iter < (*shared_objects).size();
+             shared_objects_iter++)
+            delete (*shared_objects)[shared_objects_iter];
+        // Note: we don't remove the shared objects from the codeRange address
+        // mapping, as we clear it later.
+        delete shared_objects;
+        shared_objects = NULL;
+    }
+    runtime_lib = NULL;
+    
+    // Clear the codeRange address mapping
+    if (codeRangesByAddr_) {
+        delete codeRangesByAddr_;
+        codeRangesByAddr_ = NULL;
+    }
+
+    // Signal handler
+#if defined(i386_unknown_linux2_0)
+   signal_restore = 0;
+#else
+   signal_handler = 0;
+#endif
+
+   // Huh?
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) \
+ || defined(i386_unknown_nt4_0) || defined(ia64_unknown_linux2_4)
+   trampTableItems = 0;
+   memset(trampTable, 0, sizeof(trampTable));
+#endif
    
-   while (lwp_iter.next(index, lwp)) {
-      deleteLWP(lwp);
+   // pdFunctions should be deleted as part of the image class... when the reference count
+   // hits 0... this is TODO
+   delete some_modules; some_modules = NULL;
+   delete some_functions; some_functions = NULL;
+   delete all_functions; all_functions = NULL;
+   delete all_modules; all_modules = NULL;
+   
+   if (status_ == exited || status_ == detached) {
+// Delete the thread and lwp structures
+       dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
+       dyn_lwp *lwp;
+       unsigned index;
+       
+       while (lwp_iter.next(index, lwp)) {
+           deleteLWP(lwp);
+       }
+       real_lwps.clear();
+       
+       for (unsigned thr_iter = 0; thr_iter < threads.size(); thr_iter++) {
+           delete threads[thr_iter];
+       }
+       threads.clear();
+       // Delete the RPC manager
+       if (theRpcMgr) delete theRpcMgr;
+       theRpcMgr = NULL;
    }
-  
+
+   // TODO: thread and lwp cleanup when we exec.
+
+}
+
+//
+// cleanup when a process is deleted. Assumed we are detached or the process is exited.
+//
+process::~process()
+{
+    // We require explicit detaching if the process still exists.
+
+    fprintf(stderr, "Deleting process %d\n", getPid());
+    assert(!isAttached());
+    
+    // Most of the deletion is encapsulated in deleteProcess
+    deleteProcess();
+
+    // We used to delete the particular process, but this created no end of problems
+    // with people storing pointers into particular indices. We set the pointer to NULL.
+
+
+    for (unsigned lcv=0; lcv < processVec.size(); lcv++) {
+        fprintf(stderr, "Checking %d..\n", lcv);
+        if (processVec[lcv] == this) {
+            processVec[lcv] = NULL;
+        }
+        
+    }
 }
 
 unsigned hash_bp(function_base * const &bp ) { return(addrHash4((Address) bp)); }
@@ -1698,6 +1779,8 @@ process::process(int iPid, image *iImage, int iTraceLink
 
    nextTrapIsFork = false;
    nextTrapIsExec = false;
+   // Instrumentation points for tracking syscalls
+   preForkInst = postForkInst = preExecInst = postExecInst = preExitInst = NULL;
 
    LWPstoppedFromForkExit = 0;  
 
@@ -1721,12 +1804,12 @@ process::process(int iPid, image *iImage, int iTraceLink
    // but we only want it to occupy the area in our memory map that the
    // functions take up. So we insert it at the codeOffset, and then
    // _don't_ pass in offsets for recursed function lookups
+   codeRangesByAddr_ = new codeRangeTree;
    addCodeRange(symbols->codeOffset(), symbols);
     
    mainFunction = NULL; // set in platform dependent function heapIsOk
 
    theRpcMgr = new rpcMgr(this);
-
    set_status(neonatal);
    previousSignalAddr_ = 0;
    continueAfterNextStop_ = 0;
@@ -1805,6 +1888,8 @@ process::process(int iPid, image *iImage, int iTraceLink
 
    // attach to the child process (machine-specific implementation)
    if (!attach()) { // error check?
+       status_ = detached;
+       
       pdstring msg = pdstring("Warning: unable to attach to specified process :")
          + pdstring(pid);
       showErrorCallback(26, msg.c_str());
@@ -1903,6 +1988,8 @@ process::process(int iPid, image *iSymbols,
     parent = NULL;
     inExec = false;
 
+    // Instrumentation points for tracking syscalls
+    preForkInst = postForkInst = preExecInst = postExecInst = preExitInst = NULL;
     cumObsCost = 0;
     lastObsCostLow = 0;
 
@@ -1956,6 +2043,8 @@ process::process(int iPid, image *iSymbols,
    // Note that solaris in particular seems able to attach even if the process
    // is running.
    if (!attach()) {
+       status_ = detached;
+       
       pdstring msg = pdstring("Warning: unable to attach to specified process: ")
                    + pdstring(pid);
       showErrorCallback(26, msg.c_str());
@@ -1988,6 +2077,7 @@ process::process(int iPid, image *iSymbols,
    // this doesn't leak, since the old theImage was deleted. 
    symbols = theImage;
 #endif
+   codeRangesByAddr_ = new codeRangeTree;
    addCodeRange(symbols->codeOffset(), symbols);
 
    // Record what the process was doing when we attached, for possible
@@ -2038,7 +2128,6 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
   PARADYNhasBootstrapped(false),
 #endif
   savedRegs(NULL),
-  codeRangesByAddr_(parentProc.codeRangesByAddr_),
 #ifdef SHM_SAMPLING
   previous(0),
 #endif
@@ -2048,8 +2137,6 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
   representativeLWP(NULL),
   real_lwps(CThash)
 {
-   tracingRequests = parentProc.tracingRequests;
-    
    // This is the "fork" ctor
    bootstrapState = initialized;
 
@@ -2091,6 +2178,12 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
            baseMap[p] = new trampTemplate(t, this);
        }
    }
+
+   codeRangesByAddr_ = new codeRangeTree(*(parentProc.codeRangesByAddr_));
+
+
+   // Copy over the system call notifications and reinitialize (if necessary)
+   tracedSyscalls_ = new syscallNotification(parentProc.tracedSyscalls_, this);
 
    theRpcMgr = new rpcMgr(this);
 
@@ -2180,6 +2273,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
    createRepresentativeLWP();
 
    if (!attach()) {     // moved from ::forkProcess
+       status_ = detached;
       showErrorCallback(69, "Error in fork: cannot attach to child process");
       set_status(exited);
       return;
@@ -2662,7 +2756,7 @@ bool process::loadDyninstLib() {
        }
        getSH()->checkForAndHandleProcessEvents(true);
     }
-    assert(status_ == stopped);
+    assert (isStopped());
 
     // We've hit the initialization trap, so load dyninst lib and
     // force initialization
@@ -2874,8 +2968,7 @@ bool process::attach() {
          return false;
       }
    }
-
-   return installSyscallTracing();
+   return setProcessFlags();
 }
 
 void process::DYNINSTinitCompletionCallback(process* theProc,
@@ -2889,7 +2982,7 @@ void process::DYNINSTinitCompletionCallback(process* theProc,
 // Callback: finish mutator-side processing for dyninst lib
 
 bool process::finalizeDyninstLib() {
-    assert(status_ == stopped);
+    assert (isStopped());
 
    if (reachedBootstrapState(bootstrapped)) {
        return true;
@@ -2923,10 +3016,17 @@ bool process::finalizeDyninstLib() {
 
        // Install process-specific instrumentation requests
        installInstrRequests(tracingRequests);
+       
+       // Install our system call tracing
+       tracedSyscalls_ = new syscallNotification(this);
+       // TODO: prefork and pre-exit should depend on whether a callback is defined
+       if (!tracedSyscalls_->installPreFork()) cerr << "Warning: failed pre-fork notification setup" << endl;
+       if (!tracedSyscalls_->installPostFork()) cerr << "Warning: failed post-fork notification setup" << endl;
+       if (!tracedSyscalls_->installPreExec()) cerr << "Warning: failed pre-exec notification setup" << endl;
+       if (!tracedSyscalls_->installPostExec()) cerr << "Warning: failed post-exec notification setup" << endl;
+       if (!tracedSyscalls_->installPreExit()) cerr << "Warning: failed pre-exit notification setup" << endl;
    }
-   
-   
-   if (calledFromFork) {
+   else { // called from a forking process
        process *parentProcess = process::findProcess(bs_record.ppid);
        if (parentProcess) {
            if (parentProcess->status() == stopped) {
@@ -3295,8 +3395,7 @@ bool process::writeDataSpace(void *inTracedProcess, unsigned size,
                              const void *inSelf) {
    bool needToCont = false;
 
-   if (status_ == exited)
-      return false;
+   if (!isAttached()) return false;
 
    dyn_lwp *stopped_lwp = query_for_stopped_lwp();
    if(stopped_lwp == NULL) {
@@ -3304,7 +3403,7 @@ bool process::writeDataSpace(void *inTracedProcess, unsigned size,
       if(stopped_lwp == NULL) {
          pdstring msg =
             pdstring("System error: unable to write to process data "
-                     "space: couldn't stop an lwp\n");
+                     "space (WDS): couldn't stop an lwp\n");
          showErrorCallback(38, msg);
          return false;
       }
@@ -3313,7 +3412,7 @@ bool process::writeDataSpace(void *inTracedProcess, unsigned size,
    bool res = stopped_lwp->writeDataSpace(inTracedProcess, size, inSelf);
    if (!res) {
       pdstring msg = pdstring("System error: unable to write to process data "
-                              "space:") + pdstring(strerror(errno));
+                              "space (WDS):") + pdstring(strerror(errno));
       showErrorCallback(38, msg);
       return false;
    }
@@ -3328,9 +3427,8 @@ bool process::readDataSpace(const void *inTracedProcess, unsigned size,
                             void *inSelf, bool displayErrMsg) {
    bool needToCont = false;
 
-   if (status_ == exited) {
-      return false;
-   }
+   if (!isAttached()) return false;
+
 
    dyn_lwp *stopped_lwp = query_for_stopped_lwp();
    if(stopped_lwp == NULL) {
@@ -3367,9 +3465,7 @@ bool process::readDataSpace(const void *inTracedProcess, unsigned size,
 bool process::writeTextWord(caddr_t inTracedProcess, int data) {
    bool needToCont = false;
 
-   if (status_ == exited) {
-      return false;
-   }
+   if (!isAttached()) return false;
 
    dyn_lwp *stopped_lwp = query_for_stopped_lwp();
    if(stopped_lwp == NULL) {
@@ -3409,16 +3505,14 @@ bool process::writeTextSpace(void *inTracedProcess, u_int amount,
                              const void *inSelf) {
    bool needToCont = false;
 
-   if (status_ == exited)
-      return false;
-
+   if (!isAttached()) return false;
    dyn_lwp *stopped_lwp = query_for_stopped_lwp();
    if(stopped_lwp == NULL) {
       stopped_lwp = stop_an_lwp(&needToCont);
       if(stopped_lwp == NULL) {
          pdstring msg =
             pdstring("System error: unable to write to process text "
-                     "space: couldn't stop an lwp\n");
+                     "space (WTS): couldn't stop an lwp\n");
          showErrorCallback(38, msg);
          return false;
       }
@@ -3436,7 +3530,7 @@ bool process::writeTextSpace(void *inTracedProcess, u_int amount,
 
   if (!res) {
      pdstring msg = pdstring("System error: unable to write to process text "
-                             "space:") + pdstring(strerror(errno));
+                             "space (WTS):") + pdstring(strerror(errno));
      showErrorCallback(38, msg);
      return false;
   }
@@ -3454,9 +3548,7 @@ bool process::readTextSpace(const void *inTracedProcess, u_int amount,
 {
    bool needToCont = false;
 
-   if (status_ == exited) {
-      return false;
-   }
+   if (!isAttached()) return false;
 
    dyn_lwp *stopped_lwp = query_for_stopped_lwp();
    if(stopped_lwp == NULL) {
@@ -3575,12 +3667,7 @@ void process::clearCachedRegister() {
 }
 
 bool process::pause() {
-   if (status_ == exited) {
-      sprintf(errorLine, "warn : in process::pause, trying to pause exited "
-              "process, returning FALSE\n");
-      logLine(errorLine);
-      return false;
-   }
+    if (!isAttached()) return false;
 
    // The only remaining combination is: status==running but haven't yet
    // reached first break.  We never want to pause before reaching the first
@@ -3613,6 +3700,7 @@ bool process::pause() {
 
    // Let's try having stopped mean all lwps stopped and running mean
    // atleast one lwp running.
+   
    if (status_ == stopped || status_ == neonatal) {
       return true;
    }
@@ -4512,7 +4600,7 @@ bool process::getSymbolInfo( const pdstring &name, Symbol &ret )
 
 codeRange *process::findCodeRangeByAddress(const Address &addr) {
     codeRange *range;
-    if (!codeRangesByAddr_.precessor(addr, range))
+    if (!codeRangesByAddr_->precessor(addr, range))
         return false;
 
     assert(range);
@@ -4630,7 +4718,7 @@ bool process::addCodeRange(Address addr, miniTrampHandle *mini) {
     range->minitramp_ptr = mini;
     range->reloc_ptr = NULL;
     //fprintf(stderr, "Added minitramp %p at 0x%x\n", mini, addr);
-    codeRangesByAddr_.insert(addr, range);
+    codeRangesByAddr_->insert(addr, range);
     return true;
 }
 
@@ -4643,7 +4731,7 @@ bool process::addCodeRange(Address addr, trampTemplate *base) {
     range->minitramp_ptr = NULL;
     range->reloc_ptr = NULL;
     //fprintf(stderr, "Added basetramp %p at 0x%x\n", base, addr);
-    codeRangesByAddr_.insert(addr, range);
+    codeRangesByAddr_->insert(addr, range);
     return true;
 }
 
@@ -4656,12 +4744,11 @@ bool process::addCodeRange(Address addr, image *img) {
     range->basetramp_ptr = NULL;
     range->minitramp_ptr = NULL;
     range->reloc_ptr = NULL;
-    codeRangesByAddr_.insert(addr, range);
+    codeRangesByAddr_->insert(addr, range);
     return true;
 }
 
 bool process::addCodeRange(Address addr, shared_object *shr) {
-    //fprintf(stderr, "Adding shared obj at 0x%x\n", addr);
     codeRange *range = new codeRange;
     range->function_ptr = NULL;
     range->image_ptr = NULL;
@@ -4669,7 +4756,7 @@ bool process::addCodeRange(Address addr, shared_object *shr) {
     range->basetramp_ptr = NULL;
     range->minitramp_ptr = NULL;
     range->reloc_ptr = NULL;
-    codeRangesByAddr_.insert(addr, range);
+    codeRangesByAddr_->insert(addr, range);
     return true;
 }
 bool process::addCodeRange(Address addr, relocatedFuncInfo *reloc) {
@@ -4680,13 +4767,13 @@ bool process::addCodeRange(Address addr, relocatedFuncInfo *reloc) {
     range->basetramp_ptr = NULL;
     range->minitramp_ptr = NULL;
     range->reloc_ptr = reloc;
-    codeRangesByAddr_.insert(addr, range);
+    codeRangesByAddr_->insert(addr, range);
     return true;
 }
 
 
 bool process::deleteCodeRange(Address addr) {
-    codeRangesByAddr_.remove(addr);
+    codeRangesByAddr_->remove(addr);
     return true;
 }
 
@@ -5058,10 +5145,9 @@ Address process::findInternalAddress(const pdstring &name, bool warn, bool &err)
 }
 
 bool process::continueProc(int signalToContinueWith) {
-   if (status_ == exited) {
-      return false;
-   }
-
+    if (!isAttached()) {
+        return false;
+    }
    if (status_ == running) {
       return true;
    }
@@ -5094,41 +5180,69 @@ bool process::continueProc(int signalToContinueWith) {
    return true;
 }
 
-bool process::detach(const bool /*paused*/ ) {
-    // paused appears to be ignored...
+bool process::detachProcess(const bool leaveRunning) {
+    // First, remove all syscall tracing and notifications
+    delete tracedSyscalls_;
+    tracedSyscalls_ = NULL;
+    
+    // Next, delete the dynamic linker instrumentation
+    delete dyn;
+    dyn = NULL;
 
-   // On linux, if process found to be MT, there will be no representativeLWP
-   // since there is no lwp which controls the entire process for MT linux.
-   if(getRepresentativeLWP()) 
-      getRepresentativeLWP()->detach();   
+    // Unset process flags
+    unsetProcessFlags();
+    
+    // Detach from the application
+    if (!detach(leaveRunning)) {
+        fprintf(stderr, "Failed to detach from process %d\n", getPid());
+        return false;
+    }
+    
+    set_status(detached);
 
-   dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
-   dyn_lwp *lwp;
-   unsigned index;
-   while (lwp_iter.next(index, lwp)) {
-      lwp->detach();
-   }
-
-   return true;
+    // deleteProcess does the right thing depending on the status vrble
+    deleteProcess();
+    return true;
 }
 
-// XXX Eventually detach() above should go away and this should be
-//     renamed detach()
-/* process::API_detach: detach from the application, leaving all
-   instrumentation place.  Returns true upon success and false upon failure.
-   Fails if the application is not stopped when the call is made.  The
-   parameter "cont" indicates whether or not the application should be made
-   running or not as a consquence of detaching (true indicates that it should
-   be run).
-*/
-bool process::API_detach(const bool cont)
-{
-  // if (status() != neonatal && status() != stopped)
-  // We should cleanup even if the process is not stopped - jkh 5/21/99
-  if (status() == neonatal)
-      return false;
+    
 
-  return API_detach_(cont);
+// Note: this may happen when the process is already gone. 
+bool process::detach(const bool leaveRunning ) {
+
+#if !defined(i386_unknown_linux2_0) && !defined(ia64_unknown_linux2_4)
+    // Run the process if desired
+    // Linux does not support this for two reasons: 1) the process must be paused
+    // when we detach, and 2) the process is _always_ continued when we detach
+    if (leaveRunning)
+        continueProc();
+#endif
+
+    // Detach by detaching each LWP handle
+
+    // On linux, if process found to be MT, there will be no representativeLWP
+    // since there is no lwp which controls the entire process for MT linux.
+    if(getRepresentativeLWP()) 
+        getRepresentativeLWP()->detach();   
+    
+    dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
+    dyn_lwp *lwp;
+    unsigned index;
+    while (lwp_iter.next(index, lwp)) {
+        lwp->detach();
+    }
+
+#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
+    // On Lee-nucks the process occasionally does _not_ continue. On the
+    // other hand, we've detached from it. So here we send a SIGCONT
+    // to continue the proc (if the user wants it) and SIGSTOP to stop it
+    if (leaveRunning)
+        kill(getPid(), SIGCONT);
+    else
+        kill(getPid(), SIGSTOP);
+#endif
+
+    return true;
 }
 
 /*
@@ -5201,15 +5315,6 @@ void process::triggerNormalExitCallback(int exitCode) {
 #endif
    // Solaris, IRIX, Alpha, NT: no manual intervention is necessary
 
-  // Perhaps these lines can be un-commented out in the future, but since
-  // cleanUpAndExit() does the same thing, and it always gets called
-  // (when paradynd detects that paradyn died), it's not really necessary
-  // here.  -ari
-//  for (unsigned lcv=0; lcv < processVec.size(); lcv++)
-//     if (processVec[lcv] == proc) {
-//        delete proc; // destructor removes shm segments...
-//      processVec[lcv] = NULL;
-//     }
 }
 
 void process::triggerSignalExitCallback(int signalnum) {
@@ -5228,9 +5333,11 @@ void process::handleProcessExit() {
    }
 
    --activeProcesses;
-   
+
+   // Set exited first, so detach doesn't try impossible things
    set_status(exited);
    detach(false);
+
   // Perhaps these lines can be un-commented out in the future, but since
   // cleanUpAndExit() does the same thing, and it always gets called
   // (when paradynd detects that paradyn died), it's not really necessary
@@ -5290,58 +5397,21 @@ void process::handleExecExit() {
 #if !defined(BPATCH_LIBRARY) //ccw 22 apr 2002 : SPLIT
 	PARADYNhasBootstrapped = false;
 #endif
+
    // all instrumentation that was inserted in this process is gone.
    // set exited here so that the disables won't try to write to process
-   set_status(exited);
-   
-   // Clean up state from old exec: all dynamic linking stuff, all lists 
-   // of functions and modules from old executable
-   
-   // can't delete dynamic linking stuff here, because parent process
-   // could still have pointers
-   dynamiclinking = false;
-   runtime_lib = NULL;
-   dyn = 0; // AHEM.  LEAKED MEMORY!  not if the parent still has a pointer
-   // to this dynamic_linking object.
-   dyn = new dynamic_linking;
-   if(shared_objects){
-     for(u_int j=0; j< shared_objects->size(); j++){
-       delete (*shared_objects)[j];
-     }
-     delete shared_objects;
-     shared_objects = 0;
-   }
-   
-   // TODO: when can pdFunction's be deleted???  definitely not here.
-   delete some_modules;
-   delete some_functions;
-   delete all_functions;
-   delete all_modules;
-   some_modules = 0;
-   some_functions = 0;
-   all_functions = 0;
-   all_modules = 0;
-#if defined(i386_unknown_linux2_0)
-   signal_restore = 0;
-#else
-   signal_handler = 0;
-#endif
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) \
- || defined(i386_unknown_nt4_0) || defined(ia64_unknown_linux2_4)
-   trampTableItems = 0;
-   memset(trampTable, 0, sizeof(trampTable));
-#endif
-   baseMap.clear();
-   instPointMap.clear(); /* XXX Should delete instPoints first? */
-   PDFuncToBPFuncMap.clear();
+   set_status(execing);
 
-#ifdef SHM_SAMPLING   
-   // the shared memory segment is unusable after the exec
-   delete shMetaOffsetData;
-   shMetaOffsetData = NULL;
-   delete shmMetaData;          // frees malloced vars in shmMgr
-   shmMetaData = NULL;
-   shmMetaData = new sharedMetaData(*theSharedMemMgr, maxNumberOfThreads());
+   deleteProcess();
+
+   ///////////////////////////// CONSTRUCTION STAGE ///////////////////////////
+   dyn = new dynamic_linking;
+
+   codeRangesByAddr_ = new codeRangeTree;
+   
+#ifdef SHM_SAMPLING
+   shmMetaData = 
+      new sharedMetaData(*theSharedMemMgr, MAX_NUMBER_OF_THREADS); 
 #endif
    
    int status = pid;
@@ -5379,6 +5449,7 @@ void process::handleExecExit() {
      image::removeImage(symbols);
    
     symbols = img;
+    addCodeRange(symbols->codeOffset(), symbols);
 
     // see if new image contains the signal handler function
     this->findSignalHandler();
@@ -5407,8 +5478,7 @@ void process::handleExecExit() {
     
 
     /* update process status */
-       // we haven't yet seen initial SIGTRAP for this proc (is this right?)
-    
+
     set_status(stopped); // was 'exited'
 
    // TODO: We should remove (code) items from the where axis, if the exec'd process
@@ -5498,19 +5568,19 @@ BPatchSnippetHandle *handle; //ccw 17 jul 2002
 #endif
 
 void process::installInstrRequests(const pdvector<instMapping*> &requests) {
-   for (unsigned lcv=0; lcv < requests.size(); lcv++) {
-      instMapping *req = requests[lcv];
-
-      if(!multithread_capable() && req->is_MTonly())
-         continue;
-
-      pdstring func_name;
-      pdstring lib_name;
-      pdvector<function_base *>matchingFuncs;
-      
-      getLibAndFunc(req->func, lib_name, func_name);
-      
-      if ((lib_name != "*") && (lib_name != "")) {
+    for (unsigned lcv=0; lcv < requests.size(); lcv++) {
+        instMapping *req = requests[lcv];
+        
+        if(!multithread_capable() && req->is_MTonly())
+            continue;
+        
+        pdstring func_name;
+        pdstring lib_name;
+        pdvector<function_base *>matchingFuncs;
+        
+        getLibAndFunc(req->func, lib_name, func_name);
+        
+        if ((lib_name != "*") && (lib_name != "")) {
          function_base *func2 = static_cast<function_base *>(findOnlyOneFunction(req->func));
          if(func2 != NULL)
             matchingFuncs.push_back(func2);
@@ -5519,9 +5589,8 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
       }
       else {
          // Wildcard: grab all functions matching this name
-         findAllFuncsByName(func_name, matchingFuncs);
+          findAllFuncsByName(func_name, matchingFuncs);
       }
-      
       for (unsigned funcIter = 0; funcIter < matchingFuncs.size(); funcIter++) {
          function_base *func = matchingFuncs[funcIter];
          
@@ -5551,6 +5620,7 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
                                                            req->when, req->order, false, 
                                                            (!req->useTrampGuard));
                assert( opResult == success_res );
+               req->mtHandles.push_back(mtHandle);
             }
 	  
          }
@@ -5563,7 +5633,7 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
                                                         req->when, req->order, false,
                                                         (!req->useTrampGuard));
             assert( opResult == success_res );
-            
+               req->mtHandles.push_back(mtHandle);
          }
          
          if (req->where & FUNC_CALL) {
@@ -5578,12 +5648,13 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
                                                 req->when, req->order, false, 
                                                 (!req->useTrampGuard));
                assert( opResult == success_res);
+               req->mtHandles.push_back(mtHandle);
             }
          }
          
          removeAst(ast);
       }
-   }
+    }
 }
 
 
@@ -5603,45 +5674,6 @@ bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record)
   return true;
 }
 
-#if 0
-bool process::handleStopDueToExecEntry() {
-   // returns true iff we are processing a stop due to the entry point of exec
-   // The exec hasn't yet occurred.
-
-   assert(status_ == stopped);
-   PARADYN_bootstrapStruct bs_record;
-
-   if (!extractBootstrapStruct(&bs_record))
-      assert(false);
-
-   if (bs_record.event != 4) {
-      return false;
-   }
-
-#ifndef mips_unknown_ce2_11 //ccw 28 oct 2000 : 29 mar 2001
-   assert(getPid() == bs_record.pid);
-#endif
-   // for now, we just set aside the following information, 
-   // to be used after the exec actually happens 
-   // (we'll get a SIGTRAP for that).
-   // assert(!inExec); // If exec fails we should be able to call this again
-   inExec = true;
-   execFilePath = pdstring(bs_record.path);
-
-   // the process was stopped...let's continue it so we can process the exec...
-   assert(status_ == stopped);
-   if (!continueProc())
-      assert(false);
-
-   // should we set status_ to neonatal now?  Nah, probably having 
-   // the inExec flag set is good enough...
-
-   // shouldn't we be setting reachedInitializationTrap to false???
-
-   return true;
-}
-#endif
-
 void process::getObservedCostAddr() {
 
 #if !defined(SHM_SAMPLING) || 1 //ccw 19 apr 2002 : SPLIT
@@ -5658,11 +5690,24 @@ void process::getObservedCostAddr() {
 #endif
 }
 
-bool process::checkStatus() {
-  if (status_ == exited)
-    return(false);
-  else
+bool process::isAttached() const {
+    if (status_ == exited ||
+        status_ == detached ||
+        status_ == execing)
+        return false;
+    else
+        return true;
+}
+
+bool process::isStopped() const {
+    if (!isAttached()) return false;
+    if (status_ == running) return false;
+    // What about "neonatal"?
     return true;
+}
+
+bool process::hasExited() const {
+    return (status_ == exited);
 }
 
 bool process::dumpCore(const pdstring fileOut) {
@@ -5713,7 +5758,8 @@ pdstring process::getStatusAsString() const {
       return "running";
    if (status_ == exited)
       return "exited";
-
+   if (status_ == detached)
+       return "detached";
    assert(false);
    return "???";
 }
@@ -5736,7 +5782,7 @@ bool process::saveOriginalInstructions(Address addr, int size) {
 bool process::writeMutationList(mutationList &list) {
    bool needToCont = false;
 
-   if (status_ == exited)
+   if (!isAttached())
       return false;
 
    dyn_lwp *stopped_lwp = query_for_stopped_lwp();
@@ -5761,7 +5807,7 @@ bool process::writeMutationList(mutationList &list) {
          //     it could leave the process with only some mutations
          //     installed?
          pdstring msg =
-            pdstring("System error: unable to write to process text space: ")
+            pdstring("System error: unable to write to process text space (WML): ")
             + pdstring(strerror(errno));
          showErrorCallback(38, msg); // XXX Own error number?
          return false;
@@ -6003,14 +6049,16 @@ void process::gcInstrumentation(pdvector<pdvector<Frame> > &stackWalks)
              walkIter++) {
             Frame frame = stackWalk[walkIter];
             codeRange *range = findCodeRangeByAddress(frame.getPC());
-            if (range == NULL) // We didn't find a match
-                continue;            
+            if (!range) {
+                // Odd... couldn't find a match at this PC
+                continue;
+            }
             if (deletedInst->oldBase) {
                 // If we're in the base tramp we can't delete
                 if (range->basetramp_ptr == deletedInst->oldBase)
                     safeToDelete = false;
                 // If we're in a child minitramp, we also can't delete
-                if ((range->minitramp_ptr) &&
+                if ((range->minitramp_ptr) && 
                     (range->minitramp_ptr->baseTramp == deletedInst->oldBase))
                     safeToDelete = false;
             }
@@ -6132,7 +6180,8 @@ void process::deleteLWP(dyn_lwp *lwp_to_delete) {
    if(real_lwps.size() > 0 && lwp_to_delete!=NULL) {
       theRpcMgr->deleteLWP(lwp_to_delete);
       unsigned index = lwp_to_delete->get_lwp_id();
-      real_lwps.undef(index);
+      if (index)
+          real_lwps.undef(index);
    }
    delete lwp_to_delete;
 }
@@ -6349,6 +6398,4 @@ void process::deleteThread(int tid)
 }
 
 #endif /* MT*/
-
-
 

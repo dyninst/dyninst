@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.284 2004/02/28 00:26:33 schendel Exp $
+/* $Id: process.h,v 1.285 2004/03/02 22:46:12 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -93,6 +93,15 @@
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
 #include <procfs.h>
 #endif
+#if defined(rs6000_ibm_aix5_1)
+#include <sys/procfs.h>
+#endif
+#if defined(alpha_dec_osf5_1)
+#include <sys/procfs.h>
+#endif
+#if defined(mips_sgi_irix6_4)
+#include <sys/procfs.h>
+#endif
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -107,6 +116,7 @@ extern unsigned activeProcesses; // number of active processes
 
 class instPoint;
 class trampTemplate;
+class miniTrampHandle;
 class instReqNode;
 class dyn_thread;
 // TODO a kludge - to prevent recursive includes
@@ -114,6 +124,7 @@ class image;
 class instPoint;
 class dyn_lwp;
 class rpcMgr;
+class syscallNotification;
 
 #ifdef BPATCH_LIBRARY
 class BPatch_thread;
@@ -411,15 +422,11 @@ class process {
   }
                   
   void continueAfterNextStop() { continueAfterNextStop_ = true; }
-  bool hasExited() { return (status_ == exited); }
   static process *findProcess(int pid);
   bool findInternalSymbol(const pdstring &name, bool warn, internalSym &ret_sym)
          const;
 
   Address findInternalAddress(const pdstring &name, bool warn, bool &err) const;
-
-  bool installSyscallTracing();
-  pdvector<instMapping*> tracingRequests;
 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
   char* dumpPatchedImage(pdstring outFile);//ccw 28 oct 2001
@@ -581,15 +588,28 @@ class process {
   bool continueProc(int signalToContinueWith = NoSignal);
 
   bool terminateProc();
+
+  // Detach from a process, deleting data to prep for reattaching
+  // NOTE: external callers should use this function, not ::detach
+  bool detachProcess(const bool leaveRunning);
+
+  private:
+    bool detach(const bool leaveRunning);
+  public:
+  
+  // Clear out all dynamically allocated process data
+  void deleteProcess();
   ~process();
   bool pause();
 
   bool replaceFunctionCall(const instPoint *point,const function_base *newFunc);
 
   bool dumpCore(const pdstring coreFile);
-  bool detach(const bool paused); // why the param?
-  bool API_detach(const bool cont); // XXX Should eventually replace detach()
   bool attach();
+  // Set whatever OS-level process flags are needed
+  bool setProcessFlags();
+  bool unsetProcessFlags(); // Counterpart to above
+  
 #ifndef BPATCH_LIBRARY
   bool MonitorCallSite(instPoint *callSite);
   bool isDynamicCallSite(instPoint *callSite); 
@@ -703,7 +723,11 @@ class process {
   bool checkTrappedSyscallsInternal(Address syscall);
     
   private:
-  // A list of traps inserted at system calls
+  // Tracing for whatever mechanism we use to notify us of syscalls made
+  // by the process (fork/exec/exit)
+  syscallNotification *tracedSyscalls_;
+
+// A list of traps inserted at system calls
   pdvector<syscallTrap *> syscallTraps_;
   
   // Trampoline guard location -- actually an addr in the runtime library.
@@ -1011,6 +1035,12 @@ class process {
   bool wasExeced(){ return execed_;}
   private:
   bool execed_;  // true if this process does an exec...set in handleExec
+
+  pdvector<instMapping*> tracingRequests;
+
+  /* If we use instrumentation to catch syscalls, the points are stored here */
+  instMapping *preForkInst, *postForkInst, *preExecInst, *postExecInst, *preExitInst;
+
   public:
 
   // True if we're in the process of an exec (from exec entry until we load
@@ -1130,7 +1160,7 @@ private:
   process *parent;        /* parent of this process */
   image *symbols;               /* information related to the process */
   shared_object *runtime_lib;           /* shortcut to the runtime library */
-  codeRangeTree codeRangesByAddr_;
+  codeRangeTree *codeRangesByAddr_;
 
   int pid;                      /* id of this process */
 
@@ -1220,7 +1250,6 @@ private:
   bool terminateProc_();
   bool dumpCore_(const pdstring coreFile);
   bool osDumpImage(const pdstring &imageFileName,  pid_t pid, Address codeOff);
-  bool API_detach_(const bool cont); // XXX Should eventually replace detach_()
 
   dyn_lwp *query_for_stopped_lwp();
   dyn_lwp *stop_an_lwp(bool *wasRunning);
@@ -1228,12 +1257,20 @@ private:
   // stops a process
   bool waitUntilStopped();
 
-  // returns true iff ok to do a ptrace; false (and prints a warning) if not
-  bool checkStatus();
+ public:
+
+  // returns true iff ok to operate on the process (attached)
+  bool isAttached() const;
+
+  // returns true if the process is stopped (AKA we can operate on it)
+  bool isStopped() const;
+
+  // if the process has exited
+  bool hasExited() const;
+
 
   // Prolly shouldn't be public... but then we need a stack of 
   // access methods. 
- public:
   // This is an lwp which controls the entire process.  This lwp is a
   // fictional lwp in the sense that it isn't associated with a specific lwp
   // in the system.  For both single-threaded and multi-threaded processes,
@@ -1245,15 +1282,21 @@ private:
 
   pdvector<dyn_thread *> threads;   /* threads belonging to this process */
 
-#if defined(sparc_sun_solaris2_4) || defined(AIX_PROC)
-  bool get_status(pstatus_t *) const;
-  bool set_syscalls (sysset_t *, sysset_t *) const;
-  bool process::get_entry_syscalls(pstatus_t *status,
-                                   sysset_t *entry);
-  bool process::get_exit_syscalls(pstatus_t *status,
-                                  sysset_t *exit);
+  // /proc platforms
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5) || \
+    defined(rs6000_ibm_aix4_1) || defined(alpha_dec_osf4_0) || \
+    defined(mips_sgi_irix6_4)
+  bool get_entry_syscalls(sysset_t *entry);
+  bool get_exit_syscalls(sysset_t *exit);
+  bool set_entry_syscalls(sysset_t *entry);
+  bool set_exit_syscalls(sysset_t *exit);
 #endif  
-  
+  // Only AIX/Solaris use get_status
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5) || \
+    defined(rs6000_ibm_aix4_1)
+    bool get_status(pstatus_t *) const;
+#endif
+
   private:
   // TODO: public access functions. The NT handler needs direct access
   // to this (or a NT-compatible handleIfDueToSharedObjectMapping)
@@ -1316,21 +1359,9 @@ private:
    bool writeMutationList(mutationList &list);
 #endif
 
-   // Data gathered via /proc
-   pdstring argv0;
-   // argv[0] of program, at the time it started up
-   pdstring pathenv;
-   // path env var of program, at the time it started up
-   pdstring cwdenv;
-   // curr working directory of program, at the time it started
-
    int invalid_thr_create_msgs;
 
   public:
-   const pdstring &getArgv0() const { return argv0; }
-   const pdstring &getPathEnv() const { return pathenv; }
-   const pdstring &getCwdEnv() const { return cwdenv; }
-   
    int numInvalidThrCreateMsgs() const { return invalid_thr_create_msgs; }
    void receivedInvalidThrCreateMsg() { invalid_thr_create_msgs++; }
 
