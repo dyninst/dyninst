@@ -79,8 +79,11 @@
 #include "stats.h"
 #include "util/h/Types.h"
 #include "util/h/Object.h"
+#include "util/h/Dictionary.h"
+#include "instP.h" // class instInstance
 
 #include <sys/ioctl.h>
+#include <sys/types.h>
 #include <fcntl.h>
 #include <assert.h>
 #include <stdlib.h>
@@ -95,12 +98,23 @@
 #include <sys/user.h>
 #include <sys/wait.h>
 #include <sys/ptrace.h>
+#include <procinfo.h> // struct procsinfo
 
 #include "showerror.h"
+#include "util/h/debugOstream.h"
 
 extern "C" {
 extern int ioctl(int, int, ...);
 };
+
+// The following vrbles were defined in process.C:
+extern debug_ostream attach_cerr;
+extern debug_ostream inferiorrpc_cerr;
+extern debug_ostream shmsample_cerr;
+extern debug_ostream forkexec_cerr;
+extern debug_ostream metric_cerr;
+
+extern process* findProcess(int);
 
 unsigned AIX_TEXT_OFFSET_HACK;
 unsigned AIX_DATA_OFFSET_HACK;
@@ -1335,10 +1349,58 @@ int getNumberOfCPUs()
 #include "metric.h"
 #include "costmetrics.h"
 
-bool handleAIXsigTraps(int pid, int status) {
-  
-    process *curr = findProcess(pid);
+class instInstance;
 
+// the following MUST become process member vrbles, since paradynd can have
+// more than one process active doing a fork!!!
+static bool seenForkTrapForParent = false;
+static bool seenForkTrapForChild  = false;
+static pid_t pidForParent;
+static pid_t pidForChild;
+
+extern bool completeTheFork(process *, int);
+   // in inst-power.C since class instPoint is too
+
+static void process_whenBothForkTrapsReceived() {
+   assert(seenForkTrapForParent);
+   assert(seenForkTrapForChild);
+
+   forkexec_cerr << "welcome to: process_whenBothForkTrapsReceived" << endl;
+
+   process *parent = findProcess(pidForParent);
+   assert(parent);
+
+   // complete the fork!
+
+   forkexec_cerr << "calling completeTheFork" << endl;
+
+   if (!completeTheFork(parent, pidForChild))
+      assert(false);
+
+   // let's continue both processes
+
+   if (!parent->continueProc())
+      assert(false);
+
+   // Note that we use PT_CONTINUE on the child instead of kill(pid, SIGSTOP).
+   // Is this right?  (I think so)
+
+//   int ret = ptrace(PT_CONTINUE, pidForChild, (int*)1, 0, 0);
+   int ret = ptrace(PT_CONTINUE, pidForChild, (int*)1, SIGCONT, 0);
+   if (ret == -1)
+      assert(false);
+
+   seenForkTrapForParent = seenForkTrapForChild = false;
+
+   forkexec_cerr << "leaving process_whenBothForkTrapsReceived (parent & child running and should execute DYNINSTfork soon)" << endl;
+}
+
+bool handleAIXsigTraps(int pid, int status) {
+    process *curr = findProcess(pid); // NULL for child of a fork
+
+    // see man page for "waitpid" et al for descriptions of constants such
+    // as W_SLWTED, W_SFWTED, etc.
+ 
     if (WIFSTOPPED(status) && WSTOPSIG(status)==SIGTRAP 
 	&& ((status & 0x7f) == W_SLWTED)) {
       // process is stopped on a load, ignore this SIGTRAP 
@@ -1348,72 +1410,59 @@ bool handleAIXsigTraps(int pid, int status) {
 	curr->continueProc();
       }
       return true;
-    }
+    } // W_SLWTED (stopped-on-load)
 
     // On AIX the processes will get a SIGTRAP when they execute a fork.
+    // (Both the parent and the child will get this TRAP).
     // we must check for the SIGTRAP here, and handle the fork.
     // On aix the instrumentation on the parent will not be duplicated on 
     // the child, so we need to insert instrumentation again.
+
     if (WIFSTOPPED(status) && WSTOPSIG(status)==SIGTRAP 
 	&& ((status & 0x7f) == W_SFWTED)) {
       if (curr) {
-	// parent process, ignore the trap and continue the process
-	fprintf(stderr, "handleSigChild: got SIGTRAP from parent process %d\n", pid);
+	// parent process.  Stay stopped until the child process has completed
+	// calling "completeTheFork()".
+	forkexec_cerr << "AIX: got fork SIGTRAP from parent process " << pid << endl;
+
 	curr->status_ = stopped;
-	curr->continueProc();
+
+	seenForkTrapForParent = true;
+	pidForParent = curr->getPid();
+
+	if (seenForkTrapForChild)
+	   process_whenBothForkTrapsReceived();
+
 	return true;
       } else {
 	// child process
-	fprintf(stderr, "handleSigChild: got SIGTRAP from forked process %d\n", pid);
-	//fprintf(stderr, "handleSigChild: %x %x %x %x %x\n", status, WIFSTOPPED(status), 
-	//	WSTOPSIG(status), WEXITSTATUS(status), W_SFWTED);
+	forkexec_cerr << "AIX: got SIGTRAP from forked (child) process " << pid << endl;
 
 	// get process info
 	struct procsinfo psinfo;
 	pid_t process_pid = pid;
-	if (getprocs(&psinfo, sizeof(psinfo), NULL, 0, &process_pid, 1) == 1) {
-	  assert((pid_t)psinfo.pi_pid == pid);
-	  fprintf(stderr, "Parent of process %d is %d\n", pid, psinfo.pi_ppid);
-	  process *parent = findProcess(psinfo.pi_ppid);
-	  assert(parent);
-	  process *child = process::forkProcess(parent, pid, false);
-	  child->status_ = stopped;
-	  fprintf(stderr, "Forked process %d stopped at %x\n", pid, child->currentPC());
-	  // now must insert initial instrumentation
-
-	  if (!child->handleStartProcess(child))
-	     logLine("warning: handleStartProcess failed\n");
-
-	  extern vector<instMapping*> initialRequests; // init.C
-	  installDefaultInst(child, initialRequests);
-
-	  // propagate any metric that is already enabled to the new process.
-	  vector<metricDefinitionNode *> MIs = allMIs.values();
-	  for (unsigned j = 0; j < MIs.size(); j++) {
-	    MIs[j]->propagateMetricInstance(child);
-	  }
-
-	  tp->newProgramCallbackFunc(pid, child->arg_list, 
-			      machineResource->part_name());
-
-	  extern time64 firstRecordTime;
-	  const time64 currWallTime = getCurrWallTime();
-
-	  if (!firstRecordTime) {
-	    //cerr << "process.C setting firstRecordTime to " << currWallTime << endl;
-	    firstRecordTime = currWallTime; 
-	  }
-	  tp->firstSampleCallback(child->getPid(), (double)currWallTime / 1000000.0);
-
-          return true;
-	} else {
-	  perror("getprocs");
-	  assert(0);
+	if (getprocs(&psinfo, sizeof(psinfo), NULL, 0, &process_pid, 1) == -1) {
+	  assert(false);
 	  return false;
 	}
+
+	assert((pid_t)psinfo.pi_pid == pid);
+
+	string str = string("Parent of process ") + string(pid) + " is " +
+	               string(psinfo.pi_ppid) + "\n";
+	logLine(str.string_of());
+
+	seenForkTrapForChild = true;
+	pidForChild = pid;
+	if (seenForkTrapForParent) {
+	   assert(pidForParent == psinfo.pi_ppid);
+
+	   process_whenBothForkTrapsReceived();
+	}
+
         return true;
-      }
-    }
+      } // child process
+    } //  W_SFWTED (stopped-on-fork)
+
     return false;
 }
-
