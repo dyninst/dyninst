@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.33 2000/03/12 23:28:28 hollings Exp $ */
+/* $Id: test1.mutatee.c,v 1.34 2000/03/14 22:33:53 tikir Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -49,7 +49,7 @@ int debugPrint = 0;
 #define FALSE	0
 
 int runAllTests = TRUE;
-#define MAX_TEST 29
+#define MAX_TEST 30
 int runTest[MAX_TEST+1];
 int passedTest[MAX_TEST+1];
 
@@ -182,6 +182,14 @@ int globalVariable22_1 = 0;
 int globalVariable22_2 = 0;
 int globalVariable22_3 = 0;
 int globalVariable22_4 = 0;
+
+int globalVariable30_1 = 0;
+int globalVariable30_2 = 0;
+
+int globalVariable30_3 = 0;
+int globalVariable30_4 = 0;
+int globalVariable30_5 = 0;
+int globalVariable30_6 = 0;
 
 #define TEST20_A 3
 #define TEST20_B 4.3
@@ -527,6 +535,7 @@ void call22_7(int x)
      globalVariable22_4 += MAGIC22_7;
 }
 
+void call30_1(){ globalVariable30_1 = __LINE__; globalVariable30_2 = (int)call30_1;}
 
 /*
  * This is a series of nearly empty functions to attach code to 
@@ -1872,6 +1881,49 @@ int func29_1()
     return 0;
 }
 
+void func30_2()
+{
+    DUMMY_FN_BODY;
+}
+
+int func30_1()
+{
+    func30_2();
+    /*printf("VALUE %d  %x\n",globalVariable30_1,globalVariable30_2);*/
+    func30_2();
+
+    passedTest[30] = 
+    !(globalVariable30_3 && (globalVariable30_2 != globalVariable30_3));
+    if (!passedTest[30]){ 
+    	printf("**Failed** test #30 (line information)\n");
+	return 0;
+    }
+
+    passedTest[30] = 
+    !(globalVariable30_4 && (globalVariable30_2 != globalVariable30_4));
+    if (!passedTest[30]){
+    	printf("**Failed** test #30 (line information)\n");
+	return 0;
+    }
+
+    passedTest[30] = 
+    !(globalVariable30_5 && (globalVariable30_2 != globalVariable30_5));
+    if (!passedTest[30]){ 
+    	printf("**Failed** test #30 (line information)\n");
+	return 0;
+    }
+   
+    passedTest[30] = 
+    !(globalVariable30_6 && (globalVariable30_1 != globalVariable30_6));
+    if (!passedTest[30]){ 
+    	printf("**Failed** test #30 (line information)\n");
+	return 0;
+    }
+    printf("Passed test #30 (line information)\n");
+
+    return 1;
+}
+
 /* "replaceFunctionCall()" on Irix usually requires that the new
    callee have a GOT entry.  This dummy function forces GOT entries to
    be created for these functions. */
@@ -1983,6 +2035,7 @@ int main(int iargc, char *argv[])
     if (runTest[27]) func27_1();
     if (runTest[28]) func28_1();
     if (runTest[29]) func29_1();
+    if (runTest[30]) func30_1();
 
     /* See how we did running the tests. */
     for (i=1; i <= MAX_TEST; i++) {

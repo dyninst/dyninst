@@ -1,4 +1,4 @@
-// $Id: test1.C,v 1.47 2000/03/12 23:28:28 hollings Exp $
+// $Id: test1.C,v 1.48 2000/03/14 22:33:53 tikir Exp $
 //
 // libdyninst validation suite test #1
 //    Author: Jeff Hollingsworth (1/7/97)
@@ -37,7 +37,7 @@ int debugPrint = 0; // internal "mutator" tracing
 int errorPrint = 0; // external "dyninst" tracing (via errorFunc)
 
 bool runAllTests = true;
-const unsigned int MAX_TEST = 29;
+const unsigned int MAX_TEST = 30;
 bool runTest[MAX_TEST+1];
 bool passedTest[MAX_TEST+1];
 
@@ -2214,6 +2214,91 @@ void mutatorTest29(BPatch_thread *appThread, BPatch_image *appImage)
     expr29_1->writeValue(&n);
 }
 
+//
+// Start Test Case #30 - (line information)
+//
+void mutatorTest30(BPatch_thread *appThread, BPatch_image *appImage)
+{
+
+	BPatch_Vector<BPatch_point *> *point30_1 =
+		appImage->findProcedurePoint("func30_1", BPatch_entry);
+	if (!point30_1 || (point30_1->size() < 1)) {
+		fprintf(stderr, "Unable to find point func30_1 - entry.\n");
+		exit(-1);
+	}
+	BPatch_function *call30_1func = appImage->findFunction("call30_1");
+	if (call30_1func == NULL) {
+		fprintf(stderr, "Unable to find function \"call30_1.\"\n");
+		exit(1);
+	}
+	BPatch_Vector<BPatch_snippet *> nullArgs;
+	BPatch_funcCallExpr call30_1Expr(*call30_1func, nullArgs);
+
+	checkCost(call30_1Expr);
+    	appThread->insertSnippet(call30_1Expr, *point30_1);
+
+	BPatch_variableExpr *expr30_3 =appImage->findVariable("globalVariable30_3");
+	if (expr30_3 == NULL) {
+        	fprintf(stderr, "**Failed** test #30 (line information)\n");
+        	fprintf(stderr, "    Unable to locate globalVariable30_3\n");
+        	exit(1);
+    	}
+	BPatch_Vector<unsigned long> buffer1; 
+	if(appImage->getLineToAddr("test1.mutatee.c",538,buffer1)){
+    		int n = buffer1[0];
+    		expr30_3->writeValue(&n);
+	}
+
+	BPatch_variableExpr *expr30_4 =appImage->findVariable("globalVariable30_4");
+	if (expr30_4 == NULL) {
+        	fprintf(stderr, "**Failed** test #30 (line information)\n");
+        	fprintf(stderr, "    Unable to locate globalVariable30_4\n");
+        	exit(1);
+    	}
+
+	BPatch_Vector<BPatch_module*>* appModules = appImage->getModules();
+	for(int i=0;i<appModules->size();i++){
+		char mname[256];
+		(*appModules)[i]->getName(mname,255);mname[255] = '\0';
+		if(!strcmp(mname,"test1.mutatee.c")){
+			BPatch_Vector<unsigned long> buffer2;
+			if((*appModules)[i]->getLineToAddr(538,buffer2)){
+				int n = buffer2[0];
+				expr30_4->writeValue(&n);
+			}
+			break;
+		}
+	}
+
+	BPatch_variableExpr *expr30_5 =appImage->findVariable("globalVariable30_5");
+	if (expr30_5 == NULL) {
+        	fprintf(stderr, "**Failed** test #30 (line information)\n");
+        	fprintf(stderr, "    Unable to locate globalVariable30_5\n");
+        	exit(1);
+	}
+	BPatch_Vector<unsigned long> buffer3; 
+	BPatch_function* appFunc = appImage->findBPFunction("call30_1");
+	if(appFunc->getLineToAddr(538,buffer3)){
+		int n = buffer3[0];
+		expr30_5->writeValue(&n);
+	}
+
+	BPatch_variableExpr *expr30_6 =appImage->findVariable("globalVariable30_6");
+	if (expr30_6 == NULL) {
+        	fprintf(stderr, "**Failed** test #30 (line information)\n");
+        	fprintf(stderr, "    Unable to locate globalVariable30_6\n");
+        	exit(1);
+	}
+
+	unsigned short lineNo;
+	char fileName[256];
+	unsigned long addr = (unsigned long)(appFunc->getBaseAddr());
+	if(appThread->getLineAndFile(addr,lineNo,fileName,256)){
+		int n = lineNo;
+		expr30_6->writeValue(&n);
+	}
+}
+
 int mutatorMAIN(char *pathname, bool useAttach)
 {
     BPatch_thread *appThread;
@@ -2320,6 +2405,7 @@ int mutatorMAIN(char *pathname, bool useAttach)
     if (runTest[27]) mutatorTest27(appThread, appImage);
     if (runTest[28]) mutatorTest28(appThread, appImage);
     if (runTest[29]) mutatorTest29(appThread, appImage);
+    if (runTest[30]) mutatorTest30(appThread, appImage);
 
     // Start of code to continue the process.  All mutations made
     // above will be in place before the mutatee begins its tests.
