@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.83 2002/12/20 07:50:06 jaw Exp $ */
+/* $Id: context.C,v 1.84 2003/02/04 14:59:38 bernat Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -315,66 +315,6 @@ PDSOCKET connect_Svr(string machine,int port)
 }
 #endif
 
-int pd_createProcess(pdvector<string> &argv, pdvector<string> &envp, string dir) {
-
-#if !defined(i386_unknown_nt4_0)
-   if (termWin_port == -1)
-      return -1;
-  
-   PDSOCKET stdout_fd = INVALID_PDSOCKET;
-   if ((stdout_fd = connect_Svr(pd_machine,termWin_port)) == INVALID_PDSOCKET)
-      return -1;
-   if (write(stdout_fd,"from_app\n",strlen("from_app\n")) <= 0)
-   {
-      CLOSEPDSOCKET(stdout_fd);
-      return -1;
-   }
-#endif
-
-	// NEW: We bump up batch mode here; the matching bump-down occurs after
-	// shared objects are processed (after receiving the SIGSTOP indicating
-	// the end of running DYNINSTinit; more specifically,
-	// procStopFromDYNINSTinit().  Prevents a diabolical w/w deadlock on
-	// solaris --ari
-	tp->resourceBatchMode(true);
-
-#if !defined(i386_unknown_nt4_0)
-   process *proc = createProcess(argv[0], argv, envp, dir, 0, stdout_fd, 2);
-#else 
-   process *proc = createProcess(argv[0], argv, envp, dir, 0, 1, 2);
-#endif
-
-	if (!costMetric::addProcessToAll(proc))
-      assert(false);
-
-   pd_process *new_pd_proc = new pd_process(proc);
-   getProcMgr().addProcess(new_pd_proc);
-
-   if(proc) {
-      return(proc->getPid());
-   } else {
-#if !defined(i386_unknown_nt4_0)
-      CLOSEPDSOCKET(stdout_fd);
-#endif
-      return(-1);
-   }
-}
-
-bool pd_attachProcess(const string &progpath, int pid, int afterAttach) { 
-	// matching bump-down occurs in procStopFromDYNINSTinit().
-	tp->resourceBatchMode(true);
-
-	process *new_proc;
-	bool res = attachProcess(progpath, pid, afterAttach, &new_proc);
-
-	if (!costMetric::addProcessToAll(new_proc))
-		assert(false);
-
-	pd_process *new_pd_proc = new pd_process(new_proc);
-	getProcMgr().addProcess(new_pd_proc);
-	
-	return res;
-}
 
 #ifdef notdef
 bool addDataSource(char *name, char *machine,
