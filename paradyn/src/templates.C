@@ -5,7 +5,11 @@
 
 /*
  * $Log: templates.C,v $
- * Revision 1.7  1995/02/26 02:27:51  newhall
+ * Revision 1.8  1995/02/27 18:40:05  tamches
+ * Minor changes to reflect new TCthread (tunable constant header
+ * files have moved)
+ *
+ * Revision 1.7  1995/02/26  02:27:51  newhall
  * added source file DMphase.C
  *
  * Revision 1.6  1995/02/16  08:05:27  markc
@@ -42,7 +46,7 @@
 #include "util/h/list.h"
 
 #include "util/h/String.h"
-#include "util/h/tunableConst.h"
+//#include "util/h/tunableConst.h"
 
 // Igen includes
 #pragma implementation "Vector.h"
@@ -69,7 +73,7 @@
 #include "paradyn/src/DMthread/DMinternals.h"
 class uniqueName;
 
-template class List<tunableConstant*>;
+//template class List<tunableConstant*>; --AT 2/95
 
 template class List<uniqueName*>;
 template class List<executable *>;
