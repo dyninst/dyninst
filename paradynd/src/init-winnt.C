@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-winnt.C,v 1.11 2003/04/14 16:29:32 pcroth Exp $
+// $Id: init-winnt.C,v 1.12 2003/05/19 03:02:52 schendel Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "dyninstAPI/src/inst.h"
@@ -58,9 +58,6 @@ static AstNode *retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
 bool initOS() {
 //ccw 29 apr 2002 : SPLIT3 initialRequestsPARADYN is changed to
 // initialRequestsPARADYNPARADYN
-
-  initialRequestsPARADYN += new instMapping("main", "DYNINSTexit", FUNC_EXIT);
-  initialRequestsPARADYN += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);
 
   AstNode *tidArg = new AstNode(AstNode::Param, (void *) 0);
   initialRequestsPARADYN += new instMapping("execve", "DYNINSTexecFailed", FUNC_EXIT);

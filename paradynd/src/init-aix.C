@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-aix.C,v 1.29 2003/05/09 17:33:08 mirg Exp $
+// $Id: init-aix.C,v 1.30 2003/05/19 03:02:44 schendel Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "dyninstAPI/src/inst.h"
@@ -83,11 +83,6 @@ static AstNode mpiScanCommArg(AstNode::Param, (void *) 5);
 
 bool initOS()
 {
-    // Is this necessary?
-    initialRequestsPARADYN += new instMapping("main", "DYNINSTexit", FUNC_EXIT);
-    
-    initialRequestsPARADYN += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);
-
     initialRequestsPARADYN += new instMapping("DYNINSTsampleValues", 
                                               "DYNINSTreportNewTags", FUNC_ENTRY);
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-linux.C,v 1.18 2003/03/14 23:18:38 bernat Exp $
+// $Id: init-linux.C,v 1.19 2003/05/19 03:02:49 schendel Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "dyninstAPI/src/inst.h"
@@ -61,10 +61,6 @@ bool initOS() {
   AstNode *cmdArg;
   AstNode *tidArg;
   AstNode *retVal;
-
-  initialRequestsPARADYN += new instMapping("main", "DYNINSTexit", FUNC_EXIT);
-
-  initialRequestsPARADYN += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);
 
   if (process::pdFlavor == "mpi") {
 	  instMPI();

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: init-osf.C,v 1.5 2002/05/10 18:37:25 schendel Exp $ */
+/* $Id: init-osf.C,v 1.6 2003/05/19 03:02:50 schendel Exp $ */
 
 #include "paradynd/src/internalMetrics.h"
 #include "dyninstAPI/src/inst.h"
@@ -60,10 +60,6 @@ bool initOS() {
 
 
   AstNode *retVal;
-
-  initialRequests += new instMapping("main", "DYNINSTexit", FUNC_EXIT);
-
-  initialRequests += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);
 
   if (process::pdFlavor == "mpi") {
 	  instMPI();

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-irix.C,v 1.9 2002/12/20 07:50:06 jaw Exp $
+// $Id: init-irix.C,v 1.10 2003/05/19 03:02:48 schendel Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "dyninstAPI/src/inst.h"
@@ -78,10 +78,6 @@ bool initOS() {
 //  initialRequests += new instMapping("main", "DYNINSTinit", FUNC_ENTRY);
 // (obsoleted by installBootstrapInst() --ari)
 
-
-  initialRequests += new instMapping("main", "DYNINSTexit", FUNC_EXIT);
-
-  initialRequests += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);
   AstNode *retVal;
     // TODO: use "___tp_fork_XXX" hooks?
 
