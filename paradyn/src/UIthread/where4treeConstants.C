@@ -2,9 +2,12 @@
 // Ariel Tamches
 
 /* $Log: where4treeConstants.C,v $
-/* Revision 1.3  1995/10/17 22:16:58  tamches
-/* Removed masterwindow and several unused gc's.
+/* Revision 1.4  1995/11/06 02:42:03  tamches
+/* removed tclpanic(), used the one in tkTools.h
 /*
+ * Revision 1.3  1995/10/17 22:16:58  tamches
+ * Removed masterwindow and several unused gc's.
+ *
  * Revision 1.2  1995/09/20 01:24:55  tamches
  * fixed tclpanic to properly print msg
  *
@@ -16,13 +19,15 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <iostream.h>
+
+#include "tkTools.h" // tclpanic
 #include "where4treeConstants.h"
 
-void tclpanic(Tcl_Interp *interp, const char *msg) {
-   cout << msg << " " << interp->result << endl;
-   cout.flush();
-   exit(5);
-}
+//void tclpanic(Tcl_Interp *interp, const char *msg) {
+//   cout << msg << " " << interp->result << endl;
+//   cout.flush();
+//   exit(5);
+//}
 
 where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
 					 Tk_Window theWindow) {
@@ -31,6 +36,7 @@ where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
    display = Tk_Display(theWindow);
 
    theTkWindow = theWindow;
+   display = Tk_Display(theTkWindow);
 
    offscreenPixmap = XCreatePixmap(display, Tk_WindowId(theTkWindow),
 				   1, // dummy width (for now)
@@ -199,3 +205,4 @@ void where4TreeConstants::resize() {
    listboxHeightWhereSBappears = Tk_Height(theTkWindow) * 8 / 10;
       // 80%
 }
+
