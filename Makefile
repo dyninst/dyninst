@@ -3,6 +3,9 @@
 # First cut at a topLevel makefile for the paradyn system.
 #
 # $Log: Makefile,v $
+# Revision 1.23  1996/08/16 18:42:46  newhall
+# removed bininst and paradyndSIM from Makefile
+#
 # Revision 1.22  1995/12/20 00:16:41  tamches
 # removed paradyndPVM, a now-obsolete directory, from the nightly build
 #
@@ -25,10 +28,9 @@
 # Subsystems is the list of all other pieces which should be built.
 #
 buildfirst	= util igen thread visi hist
-subsystems	= bininst paradyn \
-		  rtinst rthist \
-		  paradynd paradyndSIM \
-		  visiClients/tclVisi visiClients/barchart visiClients/tableVisi visiClients/phaseTable
+subsystems	= paradyn rtinst rthist \
+		paradynd  visiClients/tclVisi visiClients/barchart \
+		visiClients/tableVisi visiClients/phaseTable
 
 # This rule makes most of the normal recursive stuff.  Just about any
 # target can be passed down to the lower-level Makefiles by listing it
