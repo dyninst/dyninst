@@ -1112,6 +1112,13 @@ void process::registerInferiorAttachedSegs(void *inferiorAttachedAtPtr) {
 }
 #endif
 
+
+extern bool forkNewProcess(string file, string dir, vector<string> argv, 
+		    vector<string>envp, string inputFile, string outputFile,
+		    int &traceLink, int &ioLink, 
+		    int &pid, int &tid, 
+		    int &procHandle, int &thrHandle);
+
 /*
  * Create a new instance of the named process.  Read the symbols and start
  *   the program
@@ -1126,72 +1133,38 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 
     // check for I/O redirection in arg list.
     string inputFile;
-    for (unsigned i=0; i<argv.size(); i++) {
-      if (argv[i] == "<") {
-	inputFile = argv[i+1];
-	for (unsigned j=i+2, k=i; j<argv.size(); j++, k++)
+    for (unsigned i1=0; i1<argv.size(); i1++) {
+      if (argv[i1] == "<") {
+	inputFile = argv[i1+1];
+	for (unsigned j=i1+2, k=i1; j<argv.size(); j++, k++)
 	  argv[k] = argv[j];
 	argv.resize(argv.size()-2);
       }
     }
     // TODO -- this assumes no more than 1 of each "<", ">"
     string outputFile;
-    for (unsigned i=0; i<argv.size(); i++) {
-      if (argv[i] == ">") {
-	outputFile = argv[i+1];
-	for (unsigned j=i+2, k=i; j<argv.size(); j++, k++)
+    for (unsigned i2=0; i2<argv.size(); i2++) {
+      if (argv[i2] == ">") {
+	outputFile = argv[i2+1];
+	for (unsigned j=i2+2, k=i2; j<argv.size(); j++, k++)
 	  argv[k] = argv[j];
 	argv.resize(argv.size()-2);
       }
     }
 
-    // Strange, but using socketpair here doesn't seem to work OK on SunOS.
-    // Pipe works fine.
-    // r = P_socketpair(AF_UNIX, SOCK_STREAM, (int) NULL, tracePipe);
-    int tracePipe[2];
-    int r = P_pipe(tracePipe);
-    if (r) {
-	// P_perror("socketpair");
-        string msg = string("Unable to create trace pipe for program '") + File +
-	               string("': ") + string(sys_errlist[errno]);
-	showErrorCallback(68, msg);
-	return(NULL);
+    int traceLink;
+    int ioLink;
+    int pid;
+    int tid;
+    int procHandle;
+    int thrHandle;
+
+    if (!forkNewProcess(file, dir, argv, envp, inputFile, outputFile,
+		   traceLink, ioLink, pid, tid, procHandle, thrHandle)) {
+      // forkNewProcess is resposible for displaying error messages
+      return NULL;
     }
 
-    // ioPipe is used to redirect the child's stdout & stderr to a pipe which is in
-    // turn read by the parent via the process->ioLink socket.
-    int ioPipe[2];
-
-    // r = P_socketpair(AF_UNIX, SOCK_STREAM, (int) NULL, ioPipe);
-    r = P_pipe(ioPipe);
-    if (r) {
-	// P_perror("socketpair");
-        string msg = string("Unable to create IO pipe for program '") + File +
-	               string("': ") + string(sys_errlist[errno]);
-	showErrorCallback(68, msg);
-	return(NULL);
-    }
-
-    //
-    // WARNING This code assumes that vfork is used, and a failed exec will
-    //   corectly change failed in the parent process.
-    //
-    errno = 0;
-#ifdef PARADYND_PVM
-// must use fork, since pvmendtask will do some writing in the address space
-    int pid = fork();
-    // fprintf(stderr, "FORK: pid=%d\n", pid);
-#else
-    int pid = vfork();
-#endif
-
-    if (pid > 0) {
-	if (errno) {
-	    sprintf(errorLine, "Unable to start %s: %s\n", file.string_of(), sys_errlist[errno]);
-	    logLine(errorLine);
-	    showErrorCallback(68, (const char *) errorLine);
-	    return(NULL);
-	}
 
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
 	extern bool establishBaseAddrs(int pid, int &status, bool waitForTrap);
@@ -1238,20 +1211,13 @@ tp->resourceBatchMode(true);
 	theShmHeapStats[2].maxNumElems  = numProcTimers;
 #endif
 
-//	const char *envptr=getenv("PARADYND_DEBUG_CREATEPROCESS");
-//	if (envptr) {
-//	   cerr << "welcome to createProcess before process ctor...paradynd pid=" << getpid() << endl;
-//	   kill(getpid(), SIGSTOP);
-//	}
-
-	process *ret = new process(pid, img,
-				   tracePipe[0], // trace link
-				   ioPipe[0] // io link
+	process *ret = new process(pid, img, traceLink, ioLink
 #ifdef SHM_SAMPLING
 				   , 7000, // shm seg key to try first
 				   theShmHeapStats
 #endif
 				   );
+	   // change this to a ctor that takes in more args
 
 	assert(ret);
 
@@ -1276,16 +1242,6 @@ tp->resourceBatchMode(true);
         ret->numOfActProcTimers_is=0;
         ret->numOfActWallTimers_is=0;
 
-	close(tracePipe[1]);
-	   // parent never writes trace records; it only receives them.
-
-	close(ioPipe[1]);
-           // parent closes write end of io pipe; child closes its read end.
-           // pipe output goes to the parent's read fd (ret->ioLink); pipe input
-           // comes from the child's write fd.  In short, when the child writes to
-           // its stdout/stderr, it gets sent to the pipe which in turn sends it to
-           // the parent's ret->ioLink fd for reading.
-
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
 	// XXXX - this is a hack since establishBaseAddrs needed to wait for
 	//    the TRAP signal.
@@ -1298,148 +1254,12 @@ tp->resourceBatchMode(true);
 
 	(void) handleSigChild(pid, status);
 #endif
+    return ret;
 
-	return(ret);
-    } else if (pid == 0) {
-#ifdef PARADYND_PVM
-	if (pvm_running)
-	  pvmendtask(); 
-#endif   
-
-	// handle stdio.
-
-        // We only write to ioPipe.  Hence we close ioPipe[0], the read end.  Then we
-        // call dup2() twice to assign our stdout and stderr to the write end of the
-	// pipe.
-	close(ioPipe[0]);
-	dup2(ioPipe[1], 1);
-           // assigns fd 1 (stdout) to be a copy of ioPipe[1].  (Since stdout is already
-           // in use, dup2 will first close it then reopen it with the characteristics
-	   // of ioPipe[1].)
-           // In short, stdout gets redirected towards the write end of the pipe.
-           // The read end of the pipe is read by the parent (paradynd), not by us.
-
-	dup2(ioPipe[1], 2); // redirect fd 2 (stderr) to the pipe, like above.
-
-        // We're not using ioPipe[1] anymore; close it.
-	if (ioPipe[1] > 2) close (ioPipe[1]);
-
-	// Now that stdout is going to a pipe, it'll (unfortunately) be block buffered
-        // instead of the usual line buffered (when it goes to a tty).  In effect the
-        // stdio library is being a little too clever for our purposes.  We don't want
-        // the "bufferedness" to change.  So we set it back to line-buffered.
-        // The command to do this is setlinebuf(stdout) [stdio.h call]  But we don't
-        // do it here, since the upcoming execve() would undo our work [execve keeps
-        // fd's but resets higher-level stdio information, which is recreated before
-        // execution of main()]  So when do we do it?  In rtinst's DYNINSTinit
-        // (RTposix.c et al.)
-
-	// setup stderr for rest of exec try.
-	FILE *childError = P_fdopen(2, "w");
-
-	P_close(tracePipe[0]);
-
-	if (P_dup2(tracePipe[1], 3) != 3) {
-	    fprintf(childError, "dup2 failed\n");
-	    fflush(childError);
-	    P__exit(-1);
-	}
-
-	/* close if higher */
-	if (tracePipe[1] > 3) close(tracePipe[1]);
-
-	if ((dir.length() > 0) && (P_chdir(dir.string_of()) < 0)) {
-	  sprintf(errorLine, "cannot chdir to '%s': %s\n", dir.string_of(), sys_errlist[errno]);
-	  logLine(errorLine);
-	  P__exit(-1);
-	}
-
-	/* see if I/O needs to be redirected */
-	if (inputFile.length()) {
-	    int fd = P_open(inputFile.string_of(), O_RDONLY, 0);
-	    if (fd < 0) {
-		fprintf(childError, "stdin open of %s failed\n", inputFile.string_of());
-		fflush(childError);
-		P__exit(-1);
-	    } else {
-		dup2(fd, 0);
-		P_close(fd);
-	    }
-	}
-
-	if (outputFile.length()) {
-	    int fd = P_open(outputFile.string_of(), O_WRONLY|O_CREAT, 0444);
-	    if (fd < 0) {
-		fprintf(childError, "stdout open of %s failed\n", outputFile.string_of());
-		fflush(childError);
-		P__exit(-1);
-	    } else {
-		dup2(fd, 1); // redirect fd 1 (stdout) to a copy of descriptor "fd"
-		P_close(fd); // not using descriptor fd any more; close it.
-	    }
-	}
-
-	/* indicate our desire to be traced */
-	errno = 0;
-	OS::osTraceMe();
-	if (errno != 0) {
-	  sprintf(errorLine, "ptrace error, exiting, errno=%d\n", errno);
-	  logLine(errorLine);
-	  logLine(sys_errlist[errno]);
-	  showErrorCallback(69, string("Internal error: ") + 
-	                        string((const char *) errorLine)); 
-	  P__exit(-1);   // double underscores are correct
-	}
-#ifdef PARADYND_PVM
-	if (pvm_running && envp.size())
-	  for (int ep=envp.size()-1; ep>=0; ep--) {
-	    pvmputenv(envp[ep].string_of());
-	  }
-#endif
-        // hand off info about how to start a paradynd to the application.
-	//   used to catch rexec calls, and poe events.
-	//
-	char paradynInfo[1024];
-	sprintf(paradynInfo, "PARADYN_MASTER_INFO= ");
-	for (unsigned i=0; i < process::arg_list.size(); i++) {
-	    const char *str;
-
-	    str = P_strdup(process::arg_list[i].string_of());
-	    if (!strcmp(str, "-l1")) {
-		strcat(paradynInfo, "-l0");
-	    } else {
-		strcat(paradynInfo, str);
-	    }
-	    strcat(paradynInfo, " ");
-	}
-	P_putenv(paradynInfo);
-
-	char **args;
-	args = new char*[argv.size()+1];
-	for (unsigned ai=0; ai<argv.size(); ai++)
-	  args[ai] = P_strdup(argv[ai].string_of());
-	args[argv.size()] = NULL;
-	P_execvp(file.string_of(), args);
-
-	sprintf(errorLine, "paradynd: execv failed, errno=%d\n", errno);
-	logLine(errorLine);
-
-	logLine(sys_errlist[errno]);
-	int i=0;
-	while (args[i]) {
-	  sprintf(errorLine, "argv %d = %s\n", i, args[i]);
-	  logLine(errorLine);
-	  i++;
-	}
-	P__exit(-1);
-	return(NULL);
-    } else {
-	sprintf(errorLine, "vfork failed, errno=%d\n", errno);
-	logLine(errorLine);
-	showErrorCallback(71, (const char *) errorLine);
-	return(NULL);
-    }
 }
+
+
+
 
 void process::DYNINSTinitCompletionCallback(process *theProc,
 					    void *, // user data
@@ -1581,7 +1401,7 @@ bool attachProcess(const string &progpath, int pid, int afterAttach) {
 }
 
 #ifdef SHM_SAMPLING
-bool process::doMajorShmSample(unsigned long long theWallTime) {
+bool process::doMajorShmSample(time64 theWallTime) {
    bool result = true; // will be set to false if any processAll() doesn't complete
                        // successfully.
 
@@ -1600,7 +1420,7 @@ bool process::doMajorShmSample(unsigned long long theWallTime) {
       // Come to think of it: the same may have to be done for the wall time too!!!
       result = false;
 
-   const unsigned long long theProcTime = getInferiorProcessCPUtime();
+   const time64 theProcTime = getInferiorProcessCPUtime();
 
    // Now sample the observed cost.
    unsigned *costAddr = this->getObsCostLowAddrInParadyndSpace();
@@ -1722,7 +1542,7 @@ process *process::forkProcess(const process *theParent, pid_t childPid,
     forkexec_cerr << "paradynd welcome to process::forkProcess; parent pid=" << theParent->getPid() << "; calling fork ctor now" << endl;
 
     // Call the "fork" ctor:
-    process *ret = new process(*theParent, childPid, iTrace_fd
+    process *ret = new process(*theParent, (int)childPid, iTrace_fd
 #ifdef SHM_SAMPLING
 			       , theKey,
 			       applAttachedPtr,
@@ -1760,8 +1580,8 @@ process *process::forkProcess(const process *theParent, pid_t childPid,
 
 #ifdef SHM_SAMPLING
 void process::processCost(unsigned obsCostLow,
-			  unsigned long long wallTime,
-			  unsigned long long processTime) {
+			  time64 wallTime,
+			  time64 processTime) {
    // wallTime and processTime should compare to DYNINSTgetWallTime() and
    // DYNINSTgetCPUtime().
 
@@ -2345,13 +2165,6 @@ bool process::continueProc() {
   if (status_ == exited) return false;
 
   if (status_ != stopped && status_ != neonatal) {
-    //TEST_DEL
-      sprintf(errorLine,"********** (%s) Error in continue proc (state=%d). Here we go...\n",getHostName().string_of(),status_);
-      logLine(errorLine);
-      kill(getpid(),SIGSTOP);
-      int statusp;
-      wait(&statusp);
-    //TEST_DEL
     showErrorCallback(38, "Internal paradynd error in process::continueProc");
     return false;
   }
@@ -2958,12 +2771,13 @@ void process::installBootstrapInst() {
 
    // 2 dummy args when not shm sampling (just don't use -1, which is reserved
    // for fork)
-   key_t theKey      = (key_t)0; // so far
    unsigned numBytes = 0;
    
 #ifdef SHM_SAMPLING
-   theKey   = getShmKeyUsed();
+   key_t theKey   = getShmKeyUsed();
    numBytes = getShmHeapTotalNumBytes();
+#else
+   int theKey = 0;
 #endif
 
 #ifdef SHM_SAMPLING_DEBUG
@@ -2983,7 +2797,7 @@ void process::installBootstrapInst() {
    pdFunction *func = findOneFunction("main");
    assert(func);
 
-   instPoint *func_entry = func->funcEntry(this);
+   instPoint *func_entry = (instPoint *)func->funcEntry(this);
    addInstFunc(this, func_entry, ast, callPreInsn,
 	       orderFirstAtPoint,
 	       true // true --> don't try to have tramp code update the cost
@@ -3019,7 +2833,7 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
       }
 
       if (req->where & FUNC_ENTRY) {
-	 instPoint *func_entry = func->funcEntry(this);
+	 instPoint *func_entry = (instPoint *)func->funcEntry(this);
 	 (void)addInstFunc(this, func_entry, ast,
 			   callPreInsn, orderLastAtPoint, false);
 

@@ -336,8 +336,8 @@ public:
   image(const string &file, u_int baseAddr, bool &err);
   ~image() { /* TODO */ }
 
-  internalSym *findInternalSymbol(const string &name, bool warn);
-  Address findInternalAddress(const string &name, bool warn, bool &err);
+  internalSym *findInternalSymbol(const string &name, const bool warn);
+  Address findInternalAddress(const string &name, const bool warn, bool &err);
 
   // find the named module 
   module *findModule(const string &name);

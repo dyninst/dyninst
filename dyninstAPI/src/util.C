@@ -43,6 +43,10 @@
  * util.C - support functions.
  *
  * $Log: util.C,v $
+ * Revision 1.14  1997/02/26 23:43:10  mjrg
+ * First part on WindowsNT port: changes for compiling with Visual C++;
+ * moved unix specific code to unix.C
+ *
  * Revision 1.13  1997/02/21 20:13:59  naim
  * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
  * out of the ast class. The is the first pre-dyninstAPI commit! - naim
@@ -86,6 +90,7 @@
  */
 
 #include "util/h/headers.h"
+#include "rtinst/h/rtinst.h" // for time64
 #include "dyninstAPI/src/util.h"
 
 // TIMING code
@@ -111,7 +116,6 @@ int TIMINGcounter[MAX_N_TIMERS];
 
 // TIMING code
 
-typedef long long int time64;
 time64 firstRecordTime = 0; // time64 = long long int (rtinst/h/rtinst.h)
 timeStamp getCurrentTime(bool firstRecordRelative)
 {
@@ -167,34 +171,9 @@ time64 getCurrWallTime() {
    return result;
 }
 
-unsigned long long getCurrWallTimeULL() {
-   // like the above routine but doesn't return a double value representing
-   // # of seconds; instead, it returns a long long int representing the # of
-   // microseconds since the beginning of time.
- 
-   static unsigned long long previousTime = 0;
-   unsigned long long result;
-    
-   do {
-      struct timeval tv;
-      if (-1 == gettimeofday(&tv, NULL)) {
-	 perror("getCurrWallTimeULL");
-	 return 0;
-      }
-
-      result = tv.tv_sec;
-      result *= 1000000;
-      result += tv.tv_usec;
-   } while (result < previousTime);
-
-   previousTime = result;
-
-   return result;
-}
-
-unsigned long long userAndSysTime2uSecs(const timeval &uTime,
+time64 userAndSysTime2uSecs(const timeval &uTime,
                                         const timeval &sysTime) {
-   unsigned long long result = uTime.tv_sec + sysTime.tv_sec;
+   time64 result = uTime.tv_sec + sysTime.tv_sec;
    result *= 1000000;
 
    result += uTime.tv_usec + sysTime.tv_usec;

@@ -552,7 +552,6 @@ void image::defineModules() {
   }
 
 #ifdef DEBUG_MDL
-#include <strstream.h>
   char buffer[100];
   ostrstream osb(buffer, 100, ios::out);
   osb << "IMAGE_" << name() << "__" << getpid() << ends;
@@ -575,7 +574,6 @@ void image::defineModules() {
 void module::define() {
   resource *modResource = NULL;
 #ifdef DEBUG_MODS
-#include <strstream.h>
   char buffer[100];
   ostrstream osb(buffer, 100, ios::out);
   osb << "MODS_" << exec->name() << "__" << getpid() << ends;

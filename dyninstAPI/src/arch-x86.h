@@ -43,6 +43,10 @@
  * arch-x86.h - x86 instruction declarations
  *
  * $Log: arch-x86.h,v $
+ * Revision 1.3  1997/02/26 23:42:46  mjrg
+ * First part on WindowsNT port: changes for compiling with Visual C++;
+ * moved unix specific code to unix.C
+ *
  * Revision 1.2  1996/11/12 17:48:27  mjrg
  * Moved the computation of cost to the basetramp in the x86 platform,
  * and changed other platform to keep code consistent.
@@ -55,7 +59,7 @@
  *
  */
 
-#if !defined(i386_unknown_solaris2_5)
+#if !(defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0))
 #error "invalid architecture-os inclusion"
 #endif
 

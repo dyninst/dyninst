@@ -56,6 +56,9 @@
 #elif defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
 #include "dyninstAPI/src/aixDL.h"
 
+#elif defined(i386_unknown_nt4_0)
+#include "dyninstAPI/src/ntDL.h"
+
 #endif
 
 #endif

@@ -43,6 +43,10 @@
  * arch-x86.C - x86 instruction decoder
  *
  * $Log: arch-x86.C,v $
+ * Revision 1.4  1997/02/26 23:42:44  mjrg
+ * First part on WindowsNT port: changes for compiling with Visual C++;
+ * moved unix specific code to unix.C
+ *
  * Revision 1.3  1997/02/21 20:13:13  naim
  * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
  * out of the ast class. The is the first pre-dyninstAPI commit! - naim
@@ -857,7 +861,7 @@ static unsigned doOperand(const unsigned operandType,   // type descriptor of op
   }
   // should not be reached
   assert(0);
-
+  return 0;
 }
 
 /* decodes the operands, return the total size in bytes of the operands */
@@ -1040,25 +1044,25 @@ unsigned get_target(const unsigned char *instr, unsigned type, unsigned size, un
 
   if (type & IS_JUMP) {
     if (type & REL_B) {
-      disp = *(char *)(instr+1);
+      disp = *(const char *)(instr+1);
     } else if (type & REL_W) {
-      disp = *(short *)(instr+2); // skip prefix and opcode
+      disp = *(const short *)(instr+2); // skip prefix and opcode
     } else if (type & REL_D) {
-      disp = *(int *)(instr+1);
+      disp = *(const int *)(instr+1);
     }
   } else if (type & IS_JCC) {
     if (type & REL_B) {
-      disp = *(char *)(instr+1);
+      disp = *(const char *)(instr+1);
     } else if (type & REL_W) {
-      disp = *(short *)(instr+3); // skip prefix and two byte opcode
+      disp = *(const short *)(instr+3); // skip prefix and two byte opcode
     } else if (type & REL_D) {
-      disp = *(int *)(instr+2);   // skip two byte opcode
+      disp = *(const int *)(instr+2);   // skip two byte opcode
     }
   } else if (type & IS_CALL) {
     if (type & REL_W) {
-      disp = *(short *)(instr+2); // skip prefix and opcode
+      disp = *(const short *)(instr+2); // skip prefix and opcode
     } else if (type & REL_D) {
-      disp = *(int *)(instr+1);
+      disp = *(const int *)(instr+1);
     }
   }
   target = (unsigned)((int)(addr + size) + disp);

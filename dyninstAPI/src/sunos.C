@@ -41,6 +41,10 @@
 
 /* 
  * $Log: sunos.C,v $
+ * Revision 1.24  1997/02/26 23:43:03  mjrg
+ * First part on WindowsNT port: changes for compiling with Visual C++;
+ * moved unix specific code to unix.C
+ *
  * Revision 1.23  1997/02/21 20:13:53  naim
  * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
  * out of the ast class. The is the first pre-dyninstAPI commit! - naim
@@ -127,7 +131,7 @@ extern struct rusage *mapUarea();
 #include "util/h/Types.h"
 #include "paradynd/src/showerror.h"
 #include "paradynd/src/main.h"
-#include "dyninstAPI/src/util.h" // getCurrWallTimeULL
+#include "dyninstAPI/src/util.h" // getCurrWallTime
 #include "util/h/pathName.h"
 #include "paradynd/src/metric.h" // getCurrentTime
 
@@ -521,17 +525,17 @@ bool process::readDataSpace_(const void *inTraced, int amount, void *inSelf) {
 }
 
 #ifdef SHM_SAMPLING
-unsigned long long process::getInferiorProcessCPUtime() const {
+time64 process::getInferiorProcessCPUtime() const {
    // kvm_getproc returns a ptr to a _copy_ of the proc structure
    // in static memory.
-//   unsigned long long wall1 = getCurrWallTimeULL();
+//   time64 wall1 = getCurrWallTime();
    proc *p = kvm_getproc(kvmHandle, getPid());
    if (p == NULL) {
       perror("could not getInferiorProcessCPUtime because kvm_getproc failed");
       exit(5);
    }
-//   unsigned long long wall2 = getCurrWallTimeULL();
-//   unsigned long long difference = wall2-wall1;
+//   time64 wall2 = getCurrWallTime();
+//   time64 difference = wall2-wall1;
 //   unsigned long difference_long = difference;
 //   cout << "took " << difference_long << " usecs to kvm_getproc" << endl;
 
@@ -557,10 +561,10 @@ unsigned long long process::getInferiorProcessCPUtime() const {
       return 0;
    }
 
-   static unsigned long long prevResult = 0;  // to check for rollback
+   static time64 prevResult = 0;  // to check for rollback
 
    while (true) {
-      unsigned long long result = userAndSysTime2uSecs(childUareaPtr->u_ru.ru_utime,
+      time64 result = userAndSysTime2uSecs(childUareaPtr->u_ru.ru_utime,
                                                        childUareaPtr->u_ru.ru_stime);
       if (result < prevResult) {
          cout << "process::getInferiorProcessCPUtime() retrying due to rollback!" << endl;
@@ -588,14 +592,14 @@ assert(0);
 
    // kvm_getproc returns a ptr to a _copy_ of the proc structure
    // in static memory.
-   unsigned long long wall1 = getCurrWallTimeULL();
+   time64 wall1 = getCurrWallTime();
    proc *p = kvm_getproc(kvmfd, childpid);
    if (p == NULL) {
       perror("could not map child's uarea because kvm_getproc failed");
       return NULL;
    }
-   unsigned long long wall2 = getCurrWallTimeULL();
-   unsigned long long difference = wall2-wall1;
+   time64 wall2 = getCurrWallTime();
+   time64 difference = wall2-wall1;
    unsigned long difference_long = difference;
    cout << "took " << difference_long << " usecs to kvm_getproc" << endl;
 
@@ -631,14 +635,14 @@ assert(0);
 }
 #endif
 
-//unsigned long long process::getInferiorProcessCPUtime() const {
+//time64 process::getInferiorProcessCPUtime() const {
 //   // We get the inferior process's cpu time via a ptrace() of the u-area
 //   // of the inferior process, though it should be possible to mmap()
 //   // the inferior process's uarea into paradynd if we really want to...
 //
 //   // UH OH: this will only work if the inferior process has been stopped!!!
 //
-//   static unsigned long long prevResult = 0;
+//   static time64 prevResult = 0;
 //
 //   while (true) {
 //      // assumes child process has been stopped
@@ -667,7 +671,7 @@ assert(0);
 //         numBytesNeeded -= 4;
 //      }
 //
-//      unsigned long long result = userAndSysTime2uSecs(theUsage.ru_utime, theUsage.ru_stime);
+//      time64 result = userAndSysTime2uSecs(theUsage.ru_utime, theUsage.ru_stime);
 //      if (result < prevResult) {
 //         cout << "process::getInferiorProcessCPUtime() retrying due to rollback!" << endl;
 //         continue;

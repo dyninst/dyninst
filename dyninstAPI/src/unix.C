@@ -1,0 +1,655 @@
+/*
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
+ */
+
+
+#include "util/h/headers.h"
+#include "util/h/String.h"
+#include "util/h/Vector.h"
+#include "paradynd/src/showerror.h"
+#include "dyninstAPI/src/os.h"
+#include "paradynd/src/perfStream.h"
+#include "dyninstAPI/src/util.h"
+#include "paradynd/src/main.h"
+
+// the following are needed for handleSigChild
+#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/instP.h"
+#include "dyninstAPI/src/stats.h"
+extern process *findProcess(int);
+
+// The following were all defined in process.C (for no particular reason)
+extern debug_ostream attach_cerr;
+extern debug_ostream inferiorrpc_cerr;
+extern debug_ostream shmsample_cerr;
+extern debug_ostream forkexec_cerr;
+extern debug_ostream metric_cerr;
+extern debug_ostream signal_cerr;
+extern debug_ostream sharedobj_cerr;
+
+
+extern "C" {
+#ifdef PARADYND_PVM
+int pvmputenv (const char *);
+int pvmendtask();
+#endif
+}
+
+/*****************************************************************************
+ * forkNewProcess: starts a new process, setting up trace and io links between
+ *                the new process and the daemon
+ * Returns true if succesfull.
+ * 
+ * Arguments:
+ *   file: file to execute
+ *   dir: working directory for the new process
+ *   argv: arguments to new process
+ *   envp: environment **** not in use
+ *   inputFile: where to redirect standard input
+ *   outputFile: where to redirect standard output
+ *   traceLink: handle or file descriptor of trace link (read only)
+ *   ioLink: handle or file descriptor of io link (read only)
+ *   pid: process id of new process
+ *   tid: thread id for main thread (needed by WindowsNT)
+ *   procHandle: handle for new process (needed by WindowsNT)
+ *   thrHandle: handle for main thread (needed by WindowsNT)
+ ****************************************************************************/
+bool forkNewProcess(string file, string dir, vector<string> argv, 
+		    vector<string>envp, string inputFile, string outputFile,
+		    int &traceLink, int &ioLink, 
+		    int &pid, int & /*tid*/, 
+		    int & /*procHandle*/, int & /*thrHandle*/) {
+
+    // Strange, but using socketpair here doesn't seem to work OK on SunOS.
+    // Pipe works fine.
+    // r = P_socketpair(AF_UNIX, SOCK_STREAM, (int) NULL, tracePipe);
+    int tracePipe[2];
+    int r = P_pipe(tracePipe);
+    if (r) {
+	// P_perror("socketpair");
+        string msg = string("Unable to create trace pipe for program '") + file +
+	               string("': ") + string(sys_errlist[errno]);
+	showErrorCallback(68, msg);
+	return false;
+    }
+
+    // ioPipe is used to redirect the child's stdout & stderr to a pipe which is in
+    // turn read by the parent via the process->ioLink socket.
+    int ioPipe[2];
+
+    // r = P_socketpair(AF_UNIX, SOCK_STREAM, (int) NULL, ioPipe);
+    r = P_pipe(ioPipe);
+    if (r) {
+	// P_perror("socketpair");
+        string msg = string("Unable to create IO pipe for program '") + file +
+	               string("': ") + string(sys_errlist[errno]);
+	showErrorCallback(68, msg);
+	return false;
+    }
+
+    //
+    // WARNING This code assumes that vfork is used, and a failed exec will
+    //   corectly change failed in the parent process.
+    //
+    
+    errno = 0;
+#ifdef PARADYND_PVM
+// must use fork, since pvmendtask will do some writing in the address space
+    pid = fork();
+    // fprintf(stderr, "FORK: pid=%d\n", pid);
+#else
+    pid = vfork();
+#endif
+
+    if (pid > 0) {
+
+        //*** parent
+
+	if (errno) {
+	    sprintf(errorLine, "Unable to start %s: %s\n", file.string_of(), 
+		    sys_errlist[errno]);
+	    logLine(errorLine);
+	    showErrorCallback(68, (const char *) errorLine);
+	    return false;
+	}
+
+	close(tracePipe[1]);
+	   // parent never writes trace records; it only receives them.
+
+	close(ioPipe[1]);
+           // parent closes write end of io pipe; child closes its read end.
+           // pipe output goes to the parent's read fd (ret->ioLink); pipe input
+           // comes from the child's write fd.  In short, when the child writes to
+           // its stdout/stderr, it gets sent to the pipe which in turn sends it to
+           // the parent's ret->ioLink fd for reading.
+
+	traceLink = tracePipe[0];
+	ioLink = ioPipe[0];
+	return true;
+
+    } else if (pid == 0) {
+        //*** child
+
+#ifdef PARADYND_PVM
+	if (pvm_running)
+	  pvmendtask(); 
+#endif   
+
+	// handle stdio.
+
+        // We only write to ioPipe.  Hence we close ioPipe[0], the read end.  Then we
+        // call dup2() twice to assign our stdout and stderr to the write end of the
+	// pipe.
+	close(ioPipe[0]);
+	dup2(ioPipe[1], 1);
+           // assigns fd 1 (stdout) to be a copy of ioPipe[1].  (Since stdout is already
+           // in use, dup2 will first close it then reopen it with the characteristics
+	   // of ioPipe[1].)
+           // In short, stdout gets redirected towards the write end of the pipe.
+           // The read end of the pipe is read by the parent (paradynd), not by us.
+
+	dup2(ioPipe[1], 2); // redirect fd 2 (stderr) to the pipe, like above.
+
+        // We're not using ioPipe[1] anymore; close it.
+	if (ioPipe[1] > 2) close (ioPipe[1]);
+
+	// Now that stdout is going to a pipe, it'll (unfortunately) be block buffered
+        // instead of the usual line buffered (when it goes to a tty).  In effect the
+        // stdio library is being a little too clever for our purposes.  We don't want
+        // the "bufferedness" to change.  So we set it back to line-buffered.
+        // The command to do this is setlinebuf(stdout) [stdio.h call]  But we don't
+        // do it here, since the upcoming execve() would undo our work [execve keeps
+        // fd's but resets higher-level stdio information, which is recreated before
+        // execution of main()]  So when do we do it?  In rtinst's DYNINSTinit
+        // (RTposix.c et al.)
+
+	// setup stderr for rest of exec try.
+	FILE *childError = P_fdopen(2, "w");
+
+	P_close(tracePipe[0]);
+
+	if (P_dup2(tracePipe[1], 3) != 3) {
+	    fprintf(childError, "dup2 failed\n");
+	    fflush(childError);
+	    P__exit(-1);
+	}
+
+	/* close if higher */
+	if (tracePipe[1] > 3) close(tracePipe[1]);
+
+	if ((dir.length() > 0) && (P_chdir(dir.string_of()) < 0)) {
+	  sprintf(errorLine, "cannot chdir to '%s': %s\n", dir.string_of(), 
+		  sys_errlist[errno]);
+	  logLine(errorLine);
+	  P__exit(-1);
+	}
+
+	/* see if I/O needs to be redirected */
+	if (inputFile.length()) {
+	    int fd = P_open(inputFile.string_of(), O_RDONLY, 0);
+	    if (fd < 0) {
+		fprintf(childError, "stdin open of %s failed\n", inputFile.string_of());
+		fflush(childError);
+		P__exit(-1);
+	    } else {
+		dup2(fd, 0);
+		P_close(fd);
+	    }
+	}
+
+	if (outputFile.length()) {
+	    int fd = P_open(outputFile.string_of(), O_WRONLY|O_CREAT, 0444);
+	    if (fd < 0) {
+		fprintf(childError, "stdout open of %s failed\n", outputFile.string_of());
+		fflush(childError);
+		P__exit(-1);
+	    } else {
+		dup2(fd, 1); // redirect fd 1 (stdout) to a copy of descriptor "fd"
+		P_close(fd); // not using descriptor fd any more; close it.
+	    }
+	}
+
+	/* indicate our desire to be traced */
+	errno = 0;
+	OS::osTraceMe();
+	if (errno != 0) {
+	  sprintf(errorLine, "ptrace error, exiting, errno=%d\n", errno);
+	  logLine(errorLine);
+	  logLine(sys_errlist[errno]);
+	  showErrorCallback(69, string("Internal error: ") + 
+	                        string((const char *) errorLine)); 
+	  P__exit(-1);   // double underscores are correct
+	}
+#ifdef PARADYND_PVM
+	if (pvm_running && envp.size())
+	  for (int ep=envp.size()-1; ep>=0; ep--) {
+	    pvmputenv(envp[ep].string_of());
+	  }
+#endif
+        // hand off info about how to start a paradynd to the application.
+	//   used to catch rexec calls, and poe events.
+	//
+	char paradynInfo[1024];
+	sprintf(paradynInfo, "PARADYN_MASTER_INFO= ");
+	for (unsigned i=0; i < process::arg_list.size(); i++) {
+	    const char *str;
+
+	    str = P_strdup(process::arg_list[i].string_of());
+	    if (!strcmp(str, "-l1")) {
+		strcat(paradynInfo, "-l0");
+	    } else {
+		strcat(paradynInfo, str);
+	    }
+	    strcat(paradynInfo, " ");
+	}
+	P_putenv(paradynInfo);
+
+	/* put the traceSocketPath in the environment variable PARADYND_TRACE_SOCKET
+	   This will be use by forked processes to get a connection with the daemon
+	*/
+	string paradyndSockInfo = string("PARADYND_TRACE_SOCKET=") + string(traceSocketPath);
+
+	P_putenv(paradyndSockInfo.string_of());
+
+	char **args;
+	args = new char*[argv.size()+1];
+	for (unsigned ai=0; ai<argv.size(); ai++)
+	  args[ai] = P_strdup(argv[ai].string_of());
+	args[argv.size()] = NULL;
+	P_execvp(file.string_of(), args);
+
+	sprintf(errorLine, "paradynd: execv failed, errno=%d\n", errno);
+	logLine(errorLine);
+
+	logLine(sys_errlist[errno]);
+{
+	int i=0;
+	while (args[i]) {
+	  sprintf(errorLine, "argv %d = %s\n", i, args[i]);
+	  logLine(errorLine);
+	  i++;
+	}
+}
+	P__exit(-1);
+	// not reached
+
+	return false;
+
+    } else { // pid == 0 --- error
+        sprintf(errorLine, "vfork failed, errno=%d\n", errno);
+        logLine(errorLine);
+        showErrorCallback(71, (const char *) errorLine);
+	return false;
+    }
+
+}
+
+
+
+/* 
+   TODO: cleanup handleSigChild. This function has a lot of code that
+   should be moved to a machine independent place (a lot of what is
+   going on here will probably have to be moved anyway once we move to
+   the dyninstAPI).
+
+   There is a different version of this function for WindowsNT. If any changes
+   are made here, they will probably also be needed in the NT version.
+
+   --mjrg
+*/
+
+// TODO -- make this a process method
+int handleSigChild(int pid, int status)
+{
+
+#ifdef rs6000_ibm_aix4_1
+    // On AIX, we get sigtraps on fork and load, and must handle
+    // these cases specially
+    extern bool handleAIXsigTraps(int, int);
+    if (handleAIXsigTraps(pid, status)) {
+      return 0;
+    }
+    /* else check for regular traps and signals */
+#endif
+
+    // ignore signals from unknown processes
+    process *curr = findProcess(pid);
+    if (!curr) {
+       forkexec_cerr << "handleSigChild pid " << pid << " is an unknown process." << endl;
+       forkexec_cerr << "WIFSTOPPED=" << (WIFSTOPPED(status) ? "true" : "false");
+       if (WIFSTOPPED(status)) {
+	  forkexec_cerr << "WSTOPSIG=" << WSTOPSIG(status);
+       }
+       forkexec_cerr << endl << flush;
+       return -1;
+    }
+
+    if (WIFSTOPPED(status)) {
+	int sig = WSTOPSIG(status);
+	switch (sig) {
+
+	    case SIGTSTP:
+		sprintf(errorLine, "process %d got SIGTSTP", pid);
+		statusLine(errorLine);
+		curr->Stopped();
+		break;
+
+	    case SIGTRAP: {
+		// Note that there are now several uses for SIGTRAPs in paradynd.
+		// The original use was to detect when a ptraced process had
+		// started up.  Several have been added.  We must be careful
+		// to make sure that uses of SIGTRAPs do not conflict.
+
+	        signal_cerr << "welcome to SIGTRAP for pid " << curr->getPid() << " status=" << curr->getStatusAsString() << endl;
+		const bool wasRunning = (curr->status() == running);
+		curr->status_ = stopped; // probably was 'neonatal'
+
+		//If the list is not empty, it means some previous
+		//instrumentation has yet need to be finished.
+		if (instWList.size() != 0) {
+	            // cerr << "instWList is full" << endl;
+		    if(curr -> cleanUpInstrumentation(wasRunning)){
+		        break; // successfully processed the SIGTRAP
+                    }
+		}
+
+		if (curr->handleTrapIfDueToRPC()) {
+		   inferiorrpc_cerr << "processed RPC response in SIGTRAP" << endl;
+		   break;
+		}
+
+		if (curr->inExec) {
+		   // the process has executed a succesful exec, and is now
+		   // stopped at the exit of the exec call.
+
+		   forkexec_cerr << "SIGTRAP: inExec is true, so doing process::handleExec()!" << endl;
+		   string buffer = string("process ") + string(curr->getPid()) +
+		                   " has performed exec() syscall";
+		   statusLine(buffer.string_of());
+
+		   // call handleExec to clean our internal data structures, reparse
+		   // symbol table.  handleExec does not insert instrumentation or do
+		   // any propagation.  Why not?  Because it wouldn't be safe -- the
+		   // process hasn't yet been bootstrapped (run DYNINST, etc.)  Only
+		   // when we get the breakpoint at the end of DYNINSTinit() is it safe
+		   // to insert instrumentation and allocate timers & counters...
+		   curr->handleExec();
+
+		   // need to start resourceBatchMode here because we will call
+		   //  tryToReadAndProcessBootstrapInfo which
+		   // calls tp->resourceBatchMode(false)
+		   tp->resourceBatchMode(true);
+
+		   // set reachedFirstBreak to false here, so we execute
+		   // the code below, and insert the initial instrumentation
+		   // in the new image. (Actually, this is already done by handleExec())
+		   curr->reachedFirstBreak = false;
+
+		   // fall through...
+		}
+
+                // Now we expect that this TRAP is the initial trap sent when a ptrace'd
+		// process completes startup via exec (or when an exec syscall was
+		// executed in an already-running process).
+                // But we must query 'reachedFirstBreak' because on machines where we
+		// attach/detach on pause/continue, a TRAP is generated on each pause!
+
+		if (!curr->reachedFirstBreak) { // vrble should be renamed 'reachedFirstTrap'
+	           // cerr << "!reachedFirstBreak" << endl;
+		   string buffer = string("PID=") + string(pid);
+		   buffer += string(", passed trap at start of program");
+		   statusLine(buffer.string_of());
+
+//		   (void)(curr->findDynamicLinkingInfo()); // SHOULD THIS BE HERE???
+
+		   curr->reachedFirstBreak = true;
+
+		   buffer=string("PID=") + string(pid) + ", installing call to DYNINSTinit()";
+		   statusLine(buffer.string_of());
+
+		   curr->installBootstrapInst();
+			
+		   // now, let main() and then DYNINSTinit() get invoked.  As it
+		   // completes, DYNINSTinit() does a DYNINSTbreakPoint, at which time
+		   // we read bootstrap information "sent back" (in a global vrble),
+		   // propagate metric instances, do tp->newProgramCallbackFunc(), etc.
+		   if (!curr->continueProc()) {
+		      cerr << "continueProc after installBootstrapInst() failed, so DYNINSTinit() isn't being invoked yet, which it should!" << endl;
+		   }
+		   else {
+		      buffer=string("PID=") + string(pid) + ", running DYNINSTinit()...";
+		      statusLine(buffer.string_of());
+		   }
+		}
+		else {
+		   signal_cerr << "SIGTRAP not handled for pid " << pid << " so just leaving process in stopped state" << endl << flush;
+		}
+
+		break;
+	    }
+
+	    case SIGSTOP:
+	    case SIGINT: {
+	        signal_cerr << "welcome to SIGSTOP/SIGINT for proc pid " << curr->getPid() << endl;
+
+		const processState prevStatus = curr->status_;
+		// assert(prevStatus != stopped); (bombs on sunos and AIX, when lots of spurious sigstops are delivered)
+
+		curr->status_ = stopped;
+		   // the following routines expect (and assert) this status.
+
+		int result = curr->procStopFromDYNINSTinit();
+		assert(result >=0 && result <= 2);
+		if (result != 0) {
+		   forkexec_cerr << "processed SIGSTOP from DYNINSTinit for pid " << curr->getPid() << endl << flush;
+
+		   if (result == 1)
+		      assert(curr->status_ == stopped);
+		      // DYNINSTinit() after normal startup, after fork, or after exec
+		      // syscall was made by a running program; leave paused
+		      // (tp->newProgramCallback() to paradyn will result in the process
+		      // being continued soon enough, assuming the applic was running,
+		      // which is true in all cases except when an applic is just being
+		      // started up).  Fall through (we want the status line to change)
+		   else {
+		      assert(result == 2);
+		      break; // don't fall through...prog is finishing the inferiorRPC
+		   }
+		}
+		else if (curr->handleTrapIfDueToRPC()) {
+		   inferiorrpc_cerr << "processed RPC response in SIGSTOP" << endl;
+		   break; // don't want to execute ->Stopped() which changes status line
+		}
+		else if (curr->handleStopDueToExecEntry()) {
+		   // grabs data from DYNINST_bootstrap_info
+		   forkexec_cerr << "fork/exec -- handled stop before exec" << endl;
+		   string buffer = string("process ") + string(curr->getPid()) +
+		                   " performing exec() syscall...";
+		   statusLine(buffer.string_of());
+
+		   // note: status will now be 'running', since handleStopDueToExec()
+		   // did a continueProc() to let the exec() syscall go forward.
+		   assert(curr->status_ == running);
+		      // would neonatal be better? or exited?
+
+		   break; // don't want to change status line in conventional way
+		}
+		else {
+		   forkexec_cerr << "unhandled SIGSTOP for pid " << curr->getPid() << " so just leaving process in paused state." << endl << flush;
+		}
+
+		curr->status_ = prevStatus; // so Stopped() below won't be a nop
+		curr->Stopped();
+
+		break;
+	    }
+
+	    case SIGILL:
+	       signal_cerr << "welcome to SIGILL" << endl << flush;
+	       curr->status_ = stopped;
+
+	       if (curr->handleTrapIfDueToRPC()) {
+		  inferiorrpc_cerr << "processed RPC response in SIGILL" << endl; cerr.flush();
+
+		  break; // we don't forward the signal -- on purpose
+	       }
+	       else
+		  // fall through, on purpose
+		  ;
+
+	    case SIGIOT:
+	    case SIGBUS:
+#if (defined(POWER_DEBUG) || defined(HP_DEBUG)) && (defined(rs6000_ibm_aix4_1) || defined(hppa1_1_hp_hpux))
+                // In this way, we will detach from the application and we
+                // will be able to attach again using gdb. We need to send
+                // a kill -ILL pid signal to the application in order to
+                // get here - naim
+                if (ptrace(PT_DETACH,pid,(int *) 1, SIGSTOP, NULL) == -1) { 
+                  logLine("ptrace error\n");
+                }
+#else
+		signal_cerr << "caught signal, dying...  (sig="
+                            << WSTOPSIG(status) << ")" << endl << flush;
+
+		curr->status_ = stopped;
+		curr->dumpImage();
+		curr->continueWithForwardSignal(WSTOPSIG(status));
+#endif
+		break;
+
+	    case SIGALRM:
+#ifndef SHM_SAMPLING
+		// Due to the DYNINSTin_sample variable, it's safest to launch
+		// inferior-RPCs only when we know that the inferior is not in the
+		// middle of processing an alarm-expire.  Otherwise, code that does
+		// stuff like call DYNINSTstartWallTimer will appear to do nothing
+		// (DYNINSTstartWallTimer will be invoked but will see that
+		//  DYNINSTin_sample is set and so bails out!!!)
+		// Ick.
+		if (curr->existsRPCreadyToLaunch()) {
+		   curr -> status_ = stopped;
+		   (void)curr->launchRPCifAppropriate(true);
+		   break; // sure, we lose the SIGALARM, but so what.
+		}
+		else
+		   ; // no break, on purpose
+#endif
+
+	    case SIGCHLD:
+	    case SIGUSR1:
+	    case SIGUSR2:
+	    case SIGVTALRM:
+	    case SIGCONT:
+	    case SIGSEGV:	// treadmarks needs this signal
+#if (defined(POWER_DEBUG) || defined(HP_DEBUG)) && (defined(rs6000_ibm_aix4_1) || defined(hppa1_1_hp_hpux))
+                // In this way, we will detach from the application and we
+                // will be able to attach again using gdb - naim
+                if (sig==SIGSEGV)
+		{
+                  logLine("==> Detaching paradynd from the application...\n");
+                  if (ptrace(PT_DETACH,pid,(int *) 1, SIGSTOP, NULL) == -1) 
+                    logLine("ptrace error\n");
+                  break;
+                }
+#endif
+		if (!curr->continueWithForwardSignal(WSTOPSIG(status))) {
+                     logLine("error  in forwarding  signal\n");
+		     showErrorCallback(38, "Error  in forwarding  signal");
+                     //P_abort();
+                }
+
+		break;
+
+#ifdef notdef
+	    // XXXX for debugging
+	    case SIGSEGV:	// treadmarks needs this signal
+		sprintf(errorLine, "DEBUG: forwarding signal (sig=%d, pid=%d)\n"
+			, WSTOPSIG(status), pid);
+		logLine(errorLine);
+#endif
+	    default:
+		if (!curr->continueWithForwardSignal(WSTOPSIG(status))) {
+                     logLine("error  in forwarding  signal\n");
+                     P_abort();
+                }
+		break;
+
+	}
+    } else if (WIFEXITED(status)) {
+#if defined(PARADYND_PVM)
+//        if (pvm_running) {
+//            PDYN_reportSIGCHLD (pid, WEXITSTATUS(status));
+//	}
+#endif
+	sprintf(errorLine, "Process %d has terminated\n", curr->getPid());
+	statusLine(errorLine);
+	logLine(errorLine);
+
+	printDyninstStats();
+        handleProcessExit(curr, WEXITSTATUS(status));
+    } else if (WIFSIGNALED(status)) {
+	sprintf(errorLine, "process %d has terminated on signal %d\n", curr->getPid(), WTERMSIG(status));
+	logLine(errorLine);
+	statusLine(errorLine);
+	handleProcessExit(curr, WTERMSIG(status));
+    } else {
+	sprintf(errorLine, "Unknown state %d from process %d\n", status, curr->getPid());
+	logLine(errorLine);
+	showErrorCallback(39,(const char *) errorLine);
+    }
+    return(0);
+}
+
+
+void checkProcStatus() {
+   /* check for status change on inferior processes, or the arrival of
+      a signal. */
+
+   int wait_status;
+   int wait_pid = process::waitProcs(&wait_status);
+   if (wait_pid > 0) {
+      if (handleSigChild(wait_pid, wait_status) < 0) {
+	 cerr << "handleSigChild failed for pid " << wait_pid << endl;
+      }
+   }
+}
+
+
+

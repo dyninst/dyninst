@@ -43,6 +43,10 @@
  * inst-x86.C - x86 dependent functions and code generator
  *
  * $Log: inst-x86.C,v $
+ * Revision 1.13  1997/02/26 23:42:52  mjrg
+ * First part on WindowsNT port: changes for compiling with Visual C++;
+ * moved unix specific code to unix.C
+ *
  * Revision 1.12  1997/02/21 20:13:38  naim
  * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
  * out of the ast class. The is the first pre-dyninstAPI commit! - naim
@@ -165,7 +169,7 @@ class instPoint {
     addr = adr;
     jumpAddr = adr;
     func = f;
-    owner = im;
+    owner = (image *)im;
     callee = NULL;
     insnAtPoint = inst;
     insnsBefore = 0;
@@ -339,9 +343,9 @@ void pdFunction::checkCallPoints() {
 }
 
 // this function is not needed
-Address pdFunction::newCallPoint(const Address, const instruction,
+Address pdFunction::newCallPoint(Address, const instruction,
 				 const image *, bool &)
-{ assert(0); }
+{ assert(0); return 0; }
 
 
 // see if we can recognize a jump table and skip it
@@ -525,9 +529,10 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3")
      assert(numInsns < size());
    }
 
+   unsigned u;
    // there are often nops after the end of the function. We get them here,
    // since they may be usefull to instrument the return point
-   for (unsigned u = 0; u < 4; u++) {
+   for (u = 0; u < 4; u++) {
      if (owner->isValidAddress(adr)) {
        insnSize = insn.getNextInstruction(instr);
        if (insn.isNop()) {
@@ -545,7 +550,7 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3")
    // add extra instructions to the points that need it.
    unsigned lastPointEnd = 0;
    unsigned thisPointEnd = 0;
-   for (unsigned u = 0; u < npoints; u++) {
+   for (u = 0; u < npoints; u++) {
      instPoint *p = points[u].point;
      unsigned index = points[u].index;
      unsigned type = points[u].type;
@@ -931,6 +936,7 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
 
 */
 
+  unsigned u;
   trampTemplate *ret = new trampTemplate;
   ret->trampTemp = 0;
 
@@ -946,11 +952,11 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
 #else
   unsigned trampSize = 73;
 #endif
-  for (unsigned u = 0; u < location->insnsBefore; u++) {
+  for (u = 0; u < location->insnsBefore; u++) {
     trampSize += getRelocatedInstructionSz(location->insnBeforePt[u]);
   }
   trampSize += getRelocatedInstructionSz(location->insnAtPoint);
-  for (unsigned u = 0; u < location->insnsAfter; u++) {
+  for (u = 0; u < location->insnsAfter; u++) {
     trampSize += getRelocatedInstructionSz(location->insnAfterPt[u]);
   }
 
@@ -987,7 +993,7 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
 
   // emulate the instructions before the point
   unsigned origAddr = location->jumpAddr + imageBaseAddr;
-  for (unsigned u = location->insnsBefore; u > 0; ) {
+  for (u = location->insnsBefore; u > 0; ) {
     --u;
     if (currentPC == origAddr) {
       fprintf(stderr, "changed PC: %x to %x\n", currentPC, currAddr);
@@ -1109,7 +1115,7 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
   currAddr = baseAddr + (insn - code);
   assert(origAddr == location->addr + imageBaseAddr + location->insnAtPoint.size());
   origAddr = location->addr + imageBaseAddr + location->insnAtPoint.size();
-  for (unsigned u = 0; u < location->insnsAfter; u++) {
+  for (u = 0; u < location->insnsAfter; u++) {
     if (currentPC == origAddr) {
       fprintf(stderr, "changed PC: %x to %x\n", currentPC, currAddr);
       proc->setNewPC(currAddr);
@@ -1489,7 +1495,7 @@ void emitEnter(short imm16, unsigned char *&insn) {
 
 unsigned emitFuncCall(opCode op, 
 		      registerSpace *rs,
-		      char *i, unsigned &base,
+		      char *ibuf, unsigned &base,
 		      const vector<AstNode *> &operands, 
 		      const string &callee, process *proc,
 	              bool noCost)
@@ -1513,9 +1519,9 @@ unsigned emitFuncCall(opCode op,
   }
 
   for (unsigned u = 0; u < operands.size(); u++)
-    srcs += operands[u]->generateCode(proc, rs, i, base, noCost);
+    srcs += operands[u]->generateCode(proc, rs, ibuf, base, noCost);
 
-  unsigned char *insn = (unsigned char *) ((void*)&i[base]);
+  unsigned char *insn = (unsigned char *) ((void*)&ibuf[base]);
   unsigned char *first = insn;
 
   // push arguments in reverse order, last argument first
@@ -1892,6 +1898,7 @@ int getInsnCost(opCode op)
 		return(1+2+1);
 	    default:
 		assert(0);
+		return 0;
 		break;
 	}
     }
@@ -2029,14 +2036,14 @@ float getPointFrequency(instPoint *point)
 
     if (!funcFrequencyTable.defines(func->prettyName())) {
       if (func->isLibTag()) {
-	return(100);
+	return(100.0);
       } else {
         // Changing this value from 250 to 100 because predictedCost was
         // too high - naim 07/18/96
-	return(100); 
+	return(100.0); 
       }
     } else {
-      return (funcFrequencyTable[func->prettyName()]);
+      return ((float)funcFrequencyTable[func->prettyName()]);
     }
 }
 

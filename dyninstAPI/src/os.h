@@ -51,6 +51,10 @@
 
 /*
  * $Log: os.h,v $
+ * Revision 1.14  1997/02/26 23:42:55  mjrg
+ * First part on WindowsNT port: changes for compiling with Visual C++;
+ * moved unix specific code to unix.C
+ *
  * Revision 1.13  1997/02/21 20:13:41  naim
  * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
  * out of the ast class. The is the first pre-dyninstAPI commit! - naim
@@ -80,6 +84,9 @@
 #include "dyninstAPI/src/aix.h"
 #elif defined(hppa1_1_hp_hpux)
 #include "dyninstAPI/src/hpux.h"
+#elif defined(i386_unknown_nt4_0)
+#include "dyninstAPI/src/pdwinnt.h"
+
 #endif
 
 #include "util/h/String.h"

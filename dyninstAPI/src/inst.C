@@ -56,7 +56,6 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "paradynd/src/internalMetrics.h"
-#include <strstream.h>
 #include "dyninstAPI/src/stats.h"
 #include "paradynd/src/init.h"
 #include "paradynd/src/showerror.h"
@@ -341,7 +340,7 @@ void copyInstInstances(const process *parent, const process *child,
     for (unsigned u1 = 0; u1 < instsToCopy.size(); u1++) {
       instInstance *old = instsToCopy[u1];
       instInstance *newInst = new instInstance;
-      newInst->proc = child;
+      newInst->proc = (process *)child;
       newInst->when = old->when;
       newInst->location = old->location;
       newInst->trampBase = old->trampBase;

@@ -44,6 +44,10 @@
 
 /*
  * $Log: ast.h,v $
+ * Revision 1.22  1997/02/26 23:42:50  mjrg
+ * First part on WindowsNT port: changes for compiling with Visual C++;
+ * moved unix specific code to unix.C
+ *
  * Revision 1.21  1997/02/21 20:13:17  naim
  * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
  * out of the ast class. The is the first pre-dyninstAPI commit! - naim
@@ -109,7 +113,6 @@
 //
 
 #include <stdio.h>
-#include <strstream.h>
 #include "dyninstAPI/src/inst.h"
 
 // a register.

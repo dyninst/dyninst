@@ -627,7 +627,7 @@ bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool uppermost
 #endif
 
 #ifdef SHM_SAMPLING
-unsigned long long process::getInferiorProcessCPUtime() const {
+time64 process::getInferiorProcessCPUtime() const {
    // returns user+sys time from the u or proc area of the inferior process, which in
    // turn is presumably obtained by mmapping it (sunos) or by using a /proc ioctl
    // to obtain it (solaris).  It must not stop the inferior process in order
@@ -653,7 +653,7 @@ unsigned long long process::getInferiorProcessCPUtime() const {
 
    // Note: we can speed up the multiplication and division; see RTsolaris.c in rtinst
 
-   unsigned long long result = utime.tv_sec + stime.tv_sec;
+   time64 result = utime.tv_sec + stime.tv_sec;
    result *= 1000000; // sec to usec
    result += utime.tv_nsec/1000 + stime.tv_nsec/1000;
 
@@ -825,6 +825,13 @@ bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool )
 
 #endif
 
+#ifdef i386_unknown_solaris2_5
+// ******** TODO **********
+bool process::needToAddALeafFrame(Frame , Address &) {
+  return false;
+}
+
+#else
 
 // needToAddALeafFrame: returns true if the between the current frame 
 // and the next frame there is a leaf function (this occurs when the 
@@ -862,6 +869,7 @@ bool process::needToAddALeafFrame(Frame current_frame, Address &leaf_pc){
    }
    return false;
 }
+#endif
 
 string process::tryToFindExecutable(const string &iprogpath, int pid) {
    // returns empty string on failure.
@@ -929,3 +937,4 @@ unsigned process::read_inferiorRPC_result_register(reg) {
    return theIntRegs[R_O0];
 #endif
 }
+

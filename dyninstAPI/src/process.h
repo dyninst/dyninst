@@ -161,7 +161,7 @@ class inferiorHeap {
 };
 
 
-static inline unsigned ipHash(instPoint * const &ip)
+static inline unsigned ipHash(const instPoint * const &ip)
 {
   // assume all addresses are 4-byte aligned
   unsigned result = (unsigned)ip;
@@ -230,7 +230,7 @@ class process {
 
 
 #ifdef SHM_SAMPLING
-  unsigned long long getInferiorProcessCPUtime() const;
+  time64 getInferiorProcessCPUtime() const;
      // returns user+sys time from the u or proc area of the inferior process, which in
      // turn is presumably obtained by mmapping it (sunos) or by using a /proc ioctl
      // to obtain it (solaris).  It is hoped that the implementation would not have to
@@ -555,7 +555,7 @@ class process {
 
 #ifdef SHM_SAMPLING
   key_t getShmKeyUsed() const {return inferiorHeapMgr.getShmKey();}
-  bool doMajorShmSample(unsigned long long currWallTime);
+  bool doMajorShmSample(time64 currWallTime);
   bool doMinorShmSample();
 
   const fastInferiorHeap<intCounterHK, intCounter> &getInferiorIntCounters() const {
@@ -591,7 +591,7 @@ class process {
      return result;
   }
   void processCost(unsigned obsCostLow,
-                   unsigned long long wallTime, unsigned long long processTime);
+                   time64 wallTime, time64 processTime);
 
 
 #ifdef sparc_sun_sunos4_1_3
@@ -681,7 +681,7 @@ private:
   bool hasNewPC;
 
   // for processing observed cost (see method processCost())
-  unsigned long long cumObsCost; // in cycles
+  int64 cumObsCost; // in cycles
   unsigned lastObsCostLow; // in cycles
 
   int costAddr_;  // why an integer?

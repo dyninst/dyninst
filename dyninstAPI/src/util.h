@@ -43,6 +43,10 @@
  * util.h - support functions.
  *
  * $Log: util.h,v $
+ * Revision 1.16  1997/02/26 23:43:11  mjrg
+ * First part on WindowsNT port: changes for compiling with Visual C++;
+ * moved unix specific code to unix.C
+ *
  * Revision 1.15  1997/02/21 20:14:00  naim
  * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
  * out of the ast class. The is the first pre-dyninstAPI commit! - naim
@@ -85,6 +89,7 @@
 #ifndef UTIL_H
 #define UTIL_H
 
+#include "rtinst/h/rtinst.h" // for time64
 #include "util/h/String.h"
 
 typedef double timeStamp;
@@ -93,12 +98,11 @@ timeStamp getCurrentTime(bool firstRecordRelative);
    //    If firstRecordRelative is true, time starts at the arrival of record 0.
    //    otherwise it starts at 1/1/1970 0:00 GMT.
 
-typedef long long int time64;
 time64 getCurrWallTime();
-unsigned long long getCurrWallTimeULL();
+//unsigned long long getCurrWallTimeULL();
    // Like the above routine but doesn't return # of seconds as a double; instead,
    // returns # of microseconds as a long long int
-unsigned long long userAndSysTime2uSecs(const timeval &uTime,
+time64 userAndSysTime2uSecs(const timeval &uTime,
                                         const timeval &sysTime);
 
 extern void logLine(const char *line);

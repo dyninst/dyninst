@@ -41,6 +41,10 @@
 
 /*
  * $Log: arch.h,v $
+ * Revision 1.8  1997/02/26 23:42:47  mjrg
+ * First part on WindowsNT port: changes for compiling with Visual C++;
+ * moved unix specific code to unix.C
+ *
  * Revision 1.7  1997/02/21 20:13:14  naim
  * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
  * out of the ast class. The is the first pre-dyninstAPI commit! - naim
@@ -77,7 +81,7 @@
 #include "arch-power.h"
 #endif
 
-#if defined(i386_unknown_solaris2_5)
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0)
 #include "arch-x86.h"
 #endif
 
