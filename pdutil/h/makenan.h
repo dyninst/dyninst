@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: makenan.h,v 1.8 1998/08/16 23:21:26 wylie Exp $
+// $Id: makenan.h,v 1.9 1998/08/17 02:05:34 wylie Exp $
 
 #ifndef makenan_H
 #define makenan_H
@@ -47,18 +47,19 @@
 #include <math.h>
 #include <assert.h>
 
-#if !defined (MATH_EXCEPTION_STRUCT)
-   // provide a suitable definition if one is not available from the
+#if defined (i386_unknown_linux2_0)
+   // provide suitable definitions if one is not available from the
    // platform's /usr/include/math.h or similar
-   #define MATH_EXCEPTION_STRUCT __math_exception
    #define DOMAIN 1
+   #define MATH_EXCEPTION_STRUCT __math_exception
    struct MATH_EXCEPTION_STRUCT {
         int type;       // exception type
         char *name;     // name of function where error occured
         double arg1;    // 1st argument to function
         double arg2;    // 2nd argument to function (if any)
         double retval;  // value to be returned by function
-};
+   };
+   extern int matherr(struct MATH_EXCEPTION_STRUCT *x);
 #endif
 
 extern float f_paradyn_nan;
@@ -66,7 +67,6 @@ extern bool nan_created;
 extern bool matherr_flag;
 
 // There is no standard macro to create a NaN valued float
-extern int matherr(struct MATH_EXCEPTION_STRUCT *x);
 extern float make_Nan();
 #define PARADYN_NaN make_Nan()
 
