@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.126 2002/05/28 02:19:14 bernat Exp $
+// $Id: inst-sparc.C,v 1.127 2002/06/10 19:24:47 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -2022,15 +2022,15 @@ bool deleteBaseTramp(process *proc, instPoint* location,
       }
   }
 
-  vector<Address> pointsToCheck;
-  pointsToCheck.push_back( currentBaseTramp->baseAddr );
-  pointsToCheck.push_back( instance->trampBase );
-
-  vector< vector<Address> > checkPointHolder;
-  checkPointHolder.push_back( (vector<Address>)(pointsToCheck) );
+  // Grrr... well, the inferiorFree mechanism has been replaced
+  // with one that handles instInstances extremely well. Unfortunately,
+  // this doesn't match up with a base tramp. 
+  // The correct answer is probably to come up with a generic
+  // "installed instrumentation" data structure and use that. For
+  // now we fake an instInstance and add it to the list.
 
   // Free up the base trampoline
-  inferiorFree( proc, currentBaseTramp->baseAddr, checkPointHolder );
+  proc->deleteBaseTramp(currentBaseTramp, instance);
 
   return true;
 }

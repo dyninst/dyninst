@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.102 2002/05/29 19:19:23 bernat Exp $
+// $Id: ast.C,v 1.103 2002/06/10 19:24:41 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1185,15 +1185,6 @@ Address AstNode::generateCode_phase2(process *proc,
 	      emitV(storeIndirOp, src1, 0, dest, insn, base, noCost, size);
 	      loperand->useCount--;
 	      break;
-#if defined(MT_THREAD)
-	    case OffsetConstant:
-	      // Stupid stupid STUPID.
-	      // None of the above are capable of handling an AST tree
-	      // passed in via the left operand. Sigh.
-	      dest = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, location);
-	      emitV(storeIndirOp, src1, 0, dest, insn, base, noCost, size);
-	      break;
-#endif
 	    default:
 	      // Could be an error, could be an attempt to load based on an arithmetic expression
 	      if (type == opCodeNode) {
@@ -1517,7 +1508,7 @@ Address AstNode::generateCode_phase2(process *proc,
 	  // XXX This is for the string type.  If/when we fix the string type
 	  // to make it less of a hack, we'll need to change this.
 	  len = strlen((char *)oValue) + 1;
-	  addr = (Address) inferiorMalloc(proc, len, textHeap); //dataheap
+	  addr = (Address) proc->inferiorMalloc(len, dataHeap); //dataheap
 	  if (!proc->writeDataSpace((char *)addr, len, (char *)oValue))
 	    perror("ast.C(1351): writing string value");
 	  emitVload(loadConstOp, addr, dest, dest, insn, base, noCost);

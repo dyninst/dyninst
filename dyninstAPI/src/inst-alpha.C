@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.45 2002/05/13 19:52:07 mjbrim Exp $
+// $Id: inst-alpha.C,v 1.46 2002/06/10 19:24:43 bernat Exp $
 
 #include "common/h/headers.h"
 
@@ -818,7 +818,7 @@ void installBaseTramp(instPoint *location,
   assert(words < MAX_BASE_TRAMP);
 
   tramp.size = words * sizeof(instruction);
-  tramp.baseAddr = inferiorMalloc(proc, tramp.size, textHeap, pointAddr);
+  tramp.baseAddr = proc->inferiorMalloc(tramp.size, textHeap, pointAddr);
   assert(tramp.baseAddr);
 
   // pointAddr + 4 is address of instruction after relocated instr
@@ -2115,7 +2115,7 @@ bool process::replaceFunctionCall(const instPoint *point,
 }
 
 static const Address lowest_addr = 0x00400000;
-void inferiorMallocConstraints(Address near, Address &lo, Address &hi,
+void process::inferiorMallocConstraints(Address near, Address &lo, Address &hi,
 			       inferiorHeapType type)
 {
   if (near)
@@ -2133,7 +2133,7 @@ void inferiorMallocConstraints(Address near, Address &lo, Address &hi,
     }
 }
 
-void inferiorMallocAlign(unsigned &size)
+void process::inferiorMallocAlign(unsigned &size)
 {
   // quadword-aligned (stack alignment)
   unsigned align = 16;
@@ -2182,7 +2182,7 @@ void emitFuncJump(opCode op,
     // save gp and ra in special location
     // **** Warning this fails in the case of replacing a mutually recursive
     //    function
-    Address saveArea = inferiorMalloc(proc, 2*sizeof(long), dataHeap, 0);
+    Address saveArea = proc->inferiorMalloc(2*sizeof(long), dataHeap, 0);
 
     count += generate_address(&insn[count], REG_T12, saveArea, remainder);
     count += generate_store(&insn[count], REG_GP, REG_T12, remainder, 

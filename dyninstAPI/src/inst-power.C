@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.134 2002/05/29 19:19:23 bernat Exp $
+ * $Id: inst-power.C,v 1.135 2002/06/10 19:24:45 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -1555,7 +1555,7 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   // Okay, actually build this sucker.
   bool isReinstall = true;
   if (!baseAddr) {
-    baseAddr = inferiorMalloc(proc, theTemplate->size, anyHeap, location->addr);
+    baseAddr = proc->inferiorMalloc(theTemplate->size, anyHeap, location->addr);
     isReinstall = false;
   }
   // InferiorMalloc can ignore our "hints" when necessary, but that's 

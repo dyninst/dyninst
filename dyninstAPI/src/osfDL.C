@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.20 2002/05/13 19:52:30 mjbrim Exp $
+// $Id: osfDL.C,v 1.21 2002/06/10 19:24:51 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/osfDL.h"
@@ -304,7 +304,7 @@ void dynamic_linking::setMappingHooks(process *proc)
     words += generate_nop(&tempSpace[words]);
 
     // The first instruction is the address of the trap instruction.
-    dlopenRetAddr = inferiorMalloc(proc, words * INSN_SIZE, anyHeap,
+    dlopenRetAddr = proc->inferiorMalloc(words * INSN_SIZE, anyHeap,
 	origDlopenRetAddr);
     assert(dlopenRetAddr);
 

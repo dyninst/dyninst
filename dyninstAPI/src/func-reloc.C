@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: func-reloc.C,v 1.31 2002/05/13 19:52:04 mjbrim Exp $
+ * $Id: func-reloc.C,v 1.32 2002/06/10 19:24:42 bernat Exp $
  */
 
 #include "dyninstAPI/src/func-reloc.h"
@@ -434,7 +434,7 @@ bool pd_Function::findAndApplyAlterations(const image *owner,
       Address ipAddr = 0;
       proc->getBaseAddress(owner,ipAddr);
       ipAddr += location->iPgetAddress();
-      u_int ret = inferiorMalloc(proc, size() + totalSizeChange, textHeap, ipAddr);
+      u_int ret = proc->inferiorMalloc(size() + totalSizeChange, textHeap, ipAddr);
       newAdr = ret;
       if(!newAdr) {
         delete []oldInstructions; 

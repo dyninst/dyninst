@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.56 2002/05/15 17:23:48 chadd Exp $
+// $Id: BPatch_thread.C,v 1.57 2002/06/10 19:24:38 bernat Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -588,7 +588,7 @@ BPatch_variableExpr *BPatch_thread::malloc(int n)
 {
     assert(BPatch::bpatch != NULL);
 
-    void *ptr = (void *) inferiorMalloc(proc, n, dataHeap);
+    void *ptr = (void *) proc->inferiorMalloc(n, dataHeap);
     if (!ptr) {
 	return NULL;
     }
@@ -616,7 +616,7 @@ BPatch_variableExpr *BPatch_thread::malloc(int n)
  */
 BPatch_variableExpr *BPatch_thread::malloc(const BPatch_type &type)
 {
-    void *mem = (void *)inferiorMalloc(proc, type.getSize(), dataHeap);
+    void *mem = (void *)proc->inferiorMalloc(type.getSize(), dataHeap);
 
     if (!mem) return NULL;
 
@@ -633,9 +633,7 @@ BPatch_variableExpr *BPatch_thread::malloc(const BPatch_type &type)
  */
 void BPatch_thread::free(const BPatch_variableExpr &ptr)
 {
-    vector<addrVecType> pointsToCheck;	// We'll leave this empty
-
-    inferiorFree(proc, (Address)ptr.getBaseAddr(), pointsToCheck);
+    proc->inferiorFree((Address)ptr.getBaseAddr());
 }
 
 
@@ -886,8 +884,7 @@ bool BPatch_thread::deleteSnippet(BPatchSnippetHandle *handle)
 {
     if (handle->proc == proc) {
 	for (unsigned int i=0; i < handle->instance.size(); i++) {
-	    deleteInst(handle->instance[i], 
-		getAllTrampsAtPoint(handle->instance[i]));
+	  deleteInst(handle->instance[i]);
 	}
 	delete handle;
 	return true;

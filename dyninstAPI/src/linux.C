@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.70 2002/05/14 20:20:50 chadd Exp $
+// $Id: linux.C,v 1.71 2002/06/10 19:24:50 bernat Exp $
 
 #include <fstream.h>
 
@@ -2389,8 +2389,8 @@ fileDescriptor *getExecFileDescriptor(string filename,
 
 #if defined(USES_DYNAMIC_INF_HEAP)
 static const Address lowest_addr = 0x0;
-void inferiorMallocConstraints(Address near, Address &lo, Address &hi,
-			       inferiorHeapType /* type */ )
+void process::inferiorMallocConstraints(Address near, Address &lo, Address &hi,
+					inferiorHeapType /* type */ )
 {
   if (near)
     {
@@ -2399,7 +2399,7 @@ void inferiorMallocConstraints(Address near, Address &lo, Address &hi,
     }
 }
 
-void inferiorMallocAlign(unsigned &size)
+void process::inferiorMallocAlign(unsigned &size)
 {
      /* 32 byte alignment.  Should it be 64? */
   size = (size + 0x1f) & ~0x1f;

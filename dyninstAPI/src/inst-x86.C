@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.106 2002/05/13 19:52:19 mjbrim Exp $
+ * $Id: inst-x86.C,v 1.107 2002/06/10 19:24:48 bernat Exp $
  */
 
 #include <iomanip.h>
@@ -1424,7 +1424,7 @@ trampTemplate *installBaseTramp( const instPoint *location,
   }
 
   ret->size = trampSize;
-  Address baseAddr = inferiorMalloc(proc, trampSize, textHeap);
+  Address baseAddr = proc->inferiorMalloc(trampSize, textHeap);
   // cout << "installBaseTramp(): trampoline base address = 0x"
   //      << setw( 8 ) << setfill( '0' ) << hex << baseAddr << dec << endl;
   ret->baseAddr = baseAddr;

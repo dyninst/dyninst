@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.96 2002/05/13 19:51:57 mjbrim Exp $
+// $Id: aix.C,v 1.97 2002/06/10 19:24:40 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -139,7 +139,11 @@ Frame process::getActiveFrame(unsigned lwp = 0)
   unsigned pc, fp;
   errno = 0;
   if (!lwp) lwp = curr_lwp;
-
+  bool wasPaused = true;
+  // We need to be paused...
+  if (status() == running) wasPaused = false;
+  if (!wasPaused && !pause()) 
+    return Frame();
   if (lwp) { // We have a kernel thread to target. Nifty, eh?
     struct ptsprs spr_contents;
     bool kernel_mode = false;
@@ -186,6 +190,8 @@ Frame process::getActiveFrame(unsigned lwp = 0)
     fp = P_ptrace(PT_READ_GPR, getPid(), (int *) STKP, 0, 0); // aix 4.1 likes int *
       if (errno != 0) return Frame();
     }
+  if (!wasPaused)
+    continueProc();
   return Frame(pc, fp, getPid(), NULL, lwp, true);
 }
 
@@ -554,7 +560,7 @@ static bool executeDummyTrap(process *theProc) {
    
    // Allocate a tempTramp. Assume there is text heap space available,
    // since otherwise we're up a creek.
-   unsigned tempTramp = inferiorMalloc(theProc, 8, textHeap);
+   unsigned tempTramp = theProc->inferiorMalloc(8, textHeap);
    assert(tempTramp);
 
    unsigned theInsns[2];
@@ -2032,8 +2038,8 @@ static const Address data_hi_addr = 0xcfffff00;
 // Segment 15 (f) is shared library data, and we don't care about it.
 // However, we can scavenge some space in with the shared libraries.
 
-void inferiorMallocConstraints(Address near, Address &lo, 
-			       Address &hi, inferiorHeapType type)
+void process::inferiorMallocConstraints(Address near, Address &lo, 
+					Address &hi, inferiorHeapType type)
 {
   lo = lowest_addr;
   hi = highest_addr;
@@ -2072,7 +2078,7 @@ void inferiorMallocConstraints(Address near, Address &lo,
     }
 }
 
-void inferiorMallocAlign(unsigned &size)
+void process::inferiorMallocAlign(unsigned &size)
 {
      /* 32 byte alignment.  Should it be 64? */
   size = (size + 0x1f) & ~0x1f;

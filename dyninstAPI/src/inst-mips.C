@@ -3570,7 +3570,7 @@ int relocateInstruction(instruction *insn, Address origAddr,
        * The branch is too far, so we need to branch to another location
        * and hopefully we can use a jump from there.
        */
-      Address extra = inferiorMalloc(p, 2 * INSN_SIZE, anyHeap, relocAddr);
+      Address extra = p->inferiorMalloc(2 * INSN_SIZE, anyHeap, relocAddr);
       if (!extra) {
 	TRACE_E("relocateInstruction");
 	return -1;
@@ -3607,9 +3607,8 @@ int relocateInstruction(instruction *insn, Address origAddr,
 	  /* We'll need to move the delay slot, too. */
 	  assert(numInsns > 1);
 
-	  vector<addrVecType> pointsToCheck;
-	  inferiorFree(p, extra, pointsToCheck);
-	  Address extra = inferiorMalloc(p, 6 * INSN_SIZE, anyHeap, relocAddr);
+	  p->inferiorFree(extra);
+	  Address extra = p->inferiorMalloc(6 * INSN_SIZE, anyHeap, relocAddr);
 	  if (!extra) {
 	    TRACE_E("relocateInstruction");
 	    return -1;
@@ -3837,9 +3836,8 @@ trampTemplate * installBaseTramp( process * p,
 
   // btAddr : base tramp address in inferior process
   // allocate basetramp buffer (inferior)
-  Address btAddr = inferiorMalloc( p, btSize, anyHeap, ipAddr );
+  Address btAddr = p->inferiorMalloc(btSize, anyHeap, ipAddr );
   assert( btAddr );
-  // TODO: if inferiorMalloc fails, try again w/o address constraints
 
   ret->baseAddr = btAddr;
   ret->costAddr = btAddr + ret->updateCostOffset;

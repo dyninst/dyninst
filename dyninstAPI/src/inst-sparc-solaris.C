@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.106 2002/05/28 02:19:14 bernat Exp $
+// $Id: inst-sparc-solaris.C,v 1.107 2002/06/10 19:24:46 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -255,8 +255,8 @@ void relocateInstruction(instruction*& insn, Address origAddr,
 	// target of the branch
 	if (!offsetWithinRangeOfBranchInsn(newOffset)) {
 //	if (ABS(newOffset) > getMaxBranch1Insn()) {
-	    int ret = inferiorMalloc(proc, 3*sizeof(instruction), textHeap,
-                                                                targetAddr);
+	    int ret = proc->inferiorMalloc(3*sizeof(instruction), textHeap,
+					   targetAddr);
 	    assert(ret);
 	    u_int old_offset = insn->branch.disp22 << 2;
 	    insn->branch.disp22  = (ret - targetAddr)>>2;
@@ -414,8 +414,7 @@ trampTemplate * installBaseTramp( instPoint * & location,
          location->needsLongJump)
     {
         // Free up the space allocated for the base tramp
-	vector<addrVecType> pointsToCheck;
-	inferiorFree(proc, baseTrampAddress, pointsToCheck);
+	proc->inferiorFree(baseTrampAddress);
         location->needsLongJump = false;
 
         // Creation of base tramp failed
@@ -935,8 +934,8 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
     if ( location->func->mayNeedRelocation() ) { 
 
       // Allocate space for the base trampoline
-      baseTrampAddress = inferiorMalloc(proc, current_template->size, 
-                                                   textHeap, ipAddr);
+      baseTrampAddress = proc->inferiorMalloc(current_template->size, 
+					      textHeap, ipAddr);
       assert( baseTrampAddress );
 
       // Determine if the base trampoline is within the range of a branch
@@ -951,8 +950,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
         // Free up the space allocated for the base tramp
         // (Since we are relocating the function, we want to allocate
         // the base tramp near the NEW instPoint location).
-	vector<addrVecType> pointsToCheck;
-	inferiorFree(proc, baseTrampAddress, pointsToCheck);
+	proc->inferiorFree(baseTrampAddress);
         baseTrampAddress = 0;
 
       }
@@ -994,8 +992,8 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
     if (baseTrampAddress == 0) {
 
       // Allocate space for the base trampoline
-      baseTrampAddress = inferiorMalloc(proc, current_template->size, 
-                                                   textHeap, ipAddr);
+      baseTrampAddress = proc->inferiorMalloc(current_template->size, 
+					      textHeap, ipAddr);
       assert( baseTrampAddress );
     }
 
