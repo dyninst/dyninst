@@ -1,7 +1,11 @@
 /* $Log: UImain.C,v $
-/* Revision 1.47  1995/07/18 19:14:29  krisna
-/* changes to convert Tcl sources to C
+/* Revision 1.48  1995/07/24 21:30:40  tamches
+/* added a useful status line for the ui (when it's receiving where axis
+/* data)
 /*
+ * Revision 1.47  1995/07/18  19:14:29  krisna
+ * changes to convert Tcl sources to C
+ *
  * Revision 1.46  1995/07/17 05:05:44  tamches
  * Changes for the new version of the where axis
  *
@@ -184,8 +188,6 @@
 #include "../pdMain/paradyn.h"
 #include "dag.h"
 
-#include "Status.h"
-
 #include "abstractions.h"
 #include "whereAxisTcl.h"
 
@@ -244,6 +246,7 @@ Tcl_HashTable UIMwhereDagTbl;
 int UIMMsgTokenID;
 appState PDapplicState = appPaused;     // used to update run/pause buttons  
 
+status_line *ui_status;
 
 /*
  * Command-line options:
@@ -251,7 +254,7 @@ appState PDapplicState = appPaused;     // used to update run/pause buttons
 
 static int synchronize = 0;
 static char *fileName = NULL;
-static char *name = NULL;
+//static char *name = NULL; (unused)
 static char *display = NULL;
 static char *geometry = NULL;
 
@@ -283,7 +286,7 @@ extern void resourceAddedCB (perfStreamHandle handle,
 		      resourceHandle newResource, 
 		      const char *name,
 		      const char *abstraction);
-extern int initMainWhereDisplay ();
+//extern int initMainWhereDisplay ();
 
 /*
  * Forward declarations for procedures defined later in this file:
@@ -320,6 +323,8 @@ void             StdinProc _ANSI_ARGS_((ClientData clientData,
 void resourceBatchChanged(perfStreamHandle handle, batchMode mode)
 {
     if (mode == batchStart) {
+      ui_status->message("receiving where axis items [batch mode]");
+
       UIM_BatchMode++;
       // cout << "+" << endl; cout.flush();
     } else {
@@ -335,6 +340,8 @@ void resourceBatchChanged(perfStreamHandle handle, batchMode mode)
             // super-expensive
 
          initiateWhereAxisRedraw(interp, true); // true--> double buffer
+
+         ui_status->message("ready");
       }
     }
     assert(UIM_BatchMode >= 0);
@@ -586,8 +593,12 @@ UImain(void* vargs)
     //
     status_line::status_init(interp);
 
-    status_line ui_status("UIM status");
-    ui_status.message("WELCOME to Paradyn.  Interfaces ready");
+    ui_status = new status_line("UIM status");
+    assert(ui_status);
+
+//    status_line ui_status("UIM status");
+    ui_status->message("ready");
+//    ui_status.message("WELCOME to Paradyn.  Interfaces ready");
 
 /*******************************
  *    Main Loop for UIM thread.  
