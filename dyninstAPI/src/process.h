@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.231 2003/01/02 19:51:39 schendel Exp $
+/* $Id: process.h,v 1.232 2003/01/03 21:57:39 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -94,7 +94,7 @@
 #endif
 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
-#include <sys/procfs.h>
+#include <procfs.h>
 #endif
 
 #if defined(HRTIME) && !defined(BPATCH_LIBRARY)
@@ -396,13 +396,6 @@ class process {
 			     callWhen when, callOrder order);
 
   bool isInSignalHandler(Address addr);
-
-#if defined(rs6000_ibm_aix4_1) && defined(MT_THREAD)
-  // We have the pthread debug library to deal with
-  pthdb_session_t *get_pthdb_session() { return &pthdb_session_; }
-  pthdb_session_t pthdb_session_;
-  bool init_pthdb_library();
-#endif
 
   // Notify daemon of threads
 #if defined(MT_THREAD)
@@ -858,10 +851,13 @@ void saveWorldData(Address address, int size, const void* src);
   bool isIRPCwaitingForSyscall_;
   bool runningRPC_;
   bool wasRunningBeforeSyscall_;
-
-  void *save_exitset_ptr; // platform-specific (for now, just solaris;
-                          // it's actually a sysset_t*)
- 
+#if defined(sparc_sun_solaris2_4)
+  sysset_t *save_exitset_ptr;
+#else
+  // Make initialization easy
+  void *save_exitset_ptr;
+#endif
+  
   // Trampoline guard location -- actually an addr in the runtime library.
   Address trampGuardAddr_;
                                                
@@ -894,7 +890,7 @@ void saveWorldData(Address address, int size, const void* src);
  private:
 
   bool set_breakpoint_for_syscall_completion();
-  void clear_breakpoint_for_syscall_completion();
+  bool clear_breakpoint_for_syscall_completion();
 
  public:
 
@@ -1417,11 +1413,34 @@ private:
   // access methods. 
  public:
   dictionary_hash<unsigned, dyn_lwp *> lwps;
+
   pdvector<dyn_thread *> threads;   /* threads belonging to this process */
-  handleT getProcessHandle() const { return procHandle_; };
- private:
+  handleT getProcessHandle() const { return procHandle_; }
+  handleT as_fd() const     { return as_fd_; }
+  handleT auxv_fd() const    { return auxv_fd_; }
+  handleT map_fd() const    { return map_fd_; }
+  handleT ps_fd() const     { return ps_fd_; }
+  handleT status_fd() const { return status_fd_; }
+  handleT usage_fd() const  { return usage_fd_; }
+
+#if defined(sparc_sun_solaris2_4)
+  bool get_status(pstatus_t *) const;
+  bool set_syscalls (sysset_t *, sysset_t *) const;
+  bool process::get_entry_syscalls(pstatus_t *status,
+                                   sysset_t *entry);
+  bool process::get_exit_syscalls(pstatus_t *status,
+                                  sysset_t *exit);
+#endif  
+  
+  private:
   handleT procHandle_; // Process-specific, as opposed to thread-specific,
-                      // handle. Currently used by NT
+                       // handle. Currently used by NT
+  handleT as_fd_; // Process memory image (/proc)
+  handleT auxv_fd_;
+  handleT map_fd_;
+  handleT status_fd_; // Status (/proc)
+  handleT ps_fd_; // ps (/proc)
+  handleT usage_fd_;
   
  private:
   dynamic_linking *dyn;   // platform specific dynamic linking routines & data
@@ -1481,27 +1500,19 @@ private:
    bool writeMutationList(mutationList &list);
 #endif
 
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_solaris2_5) \
- || defined(i386_unknown_linux2_0) \
- || defined(mips_sgi_irix6_4) \
- || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
-   // some very useful items gathered from /proc as soon as /proc fd is opened)
-   // (initialized in attach() [solaris.C],
-   string argv0; // argv[0] of program, at the time it started up
-   string pathenv; // path env var of program, at the time it started up
-   string cwdenv; // curr working directory of program, at the time it started
+   // Data gathered via /proc
+   string argv0;
+   // argv[0] of program, at the time it started up
+   string pathenv;
+   // path env var of program, at the time it started up
+   string cwdenv;
+   // curr working directory of program, at the time it started
 
-//   string fullPathToExecutable_;
-      // very useful, especially on attach (need this to parse the symbol table)
-
-
- public:
-   const string &getArgv0() const {return argv0;}
-   const string &getPathEnv() const {return pathenv;}
-   const string &getCwdEnv() const {return cwdenv;}
-#endif
-
+  public:
+   const string &getArgv0() const { return argv0; }
+   const string &getPathEnv() const { return pathenv; }
+   const string &getCwdEnv() const { return cwdenv; }
+   
  private:
    static void inferiorMallocCallback(process *proc, void *data, void *result);
    void inferiorMallocDynamic(int size, Address lo, Address hi);
