@@ -41,6 +41,9 @@
 
 /* 
  * $Log: sunos.C,v $
+ * Revision 1.33  1997/07/16 19:24:08  naim
+ * Minor change to my previous commit - naim
+ *
  * Revision 1.32  1997/07/16 19:13:48  naim
  * Fixing fork on sunos - naim
  *
@@ -472,7 +475,7 @@ bool process::continueProc_() {
  * ptraceKludge::continueProcess.
  */
 #ifndef PTRACE_ATTACH_DETACH
-  if (!ptraceKludge::deliverPtrace(this, PTRACE_CONT, (char*)1, SIGCONT, NULL))
+  if (!ptraceKludge::deliverPtrace(this, PTRACE_CONT, (char*)1, 0, NULL))
     ret = -1;
   else
     ret = 0;
