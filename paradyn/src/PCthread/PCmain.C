@@ -16,11 +16,15 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.45  1996/02/09 20:57:30  karavan
-/* Added performanceConsultant::globalRawDataServer and
-/* performanceConsultant::currentRawDataServer to streamline new data
-/* storage.
+/* Revision 1.46  1996/02/12 20:00:53  karavan
+/* part one of change to newDataCallback, streamlining here since this is
+/* the critical path for the PC.
 /*
+ * Revision 1.45  1996/02/09 20:57:30  karavan
+ * Added performanceConsultant::globalRawDataServer and
+ * performanceConsultant::currentRawDataServer to streamline new data
+ * storage.
+ *
  * Revision 1.44  1996/02/09 05:30:51  karavan
  * changes to support multiple per phase searching.
  *
@@ -78,55 +82,33 @@ void PCfold(perfStreamHandle,
   // properly initialized when each search is created.)   
   if (PChyposDefined) { 
     PCsearch *search = PCsearch::findSearch (phase_type);
-    search->changeBinSize(newWidth);
+    if (search)
+      search->changeBinSize(newWidth);
   }
 }
 
-/*
-// all new data on any active search arrives via this upcall from the 
-// data manager.  Data arrival is what triggers experiment evaluation 
-// and search updates.
-void PCnewData(metricInstanceHandle m_handle,
-	       int bucketNum,
-	       sampleValue value,
-	       phaseType phase_type)
-{
-#ifdef PCDEBUG
-  if (performanceConsultant::printDataTrace) {
-    const char *metname = dataMgr->getMetricNameFromMI(m_handle);
-    const char *focname = dataMgr->getFocusNameFromMI(m_handle);
-    cout << "AR: " << metname << " " << focname;
-    cout << " value: " << value;
-    cout << " bin: " << bucketNum << endl;
-  }
-#endif
-
-  PCsearch *search = PCsearch::findSearch (phase_type);
-  assert (search);
-  search-> newData(m_handle, value, bucketNum);
-}
-*/
-
+//
+// all new data arrives at the PC thread via this upcall
+//
 void PCnewDataCallback(vector<dataValueType> *values,
-		       u_int num_values) {
-
+		       u_int num_values) 
+{
     if (values->size() < num_values) num_values = values->size();
     dataValueType *curr;
+    cout << "AR: new data CB NUM VALUES = " << num_values << endl;
     for(unsigned i=0; i < num_values;i++){
-//	PCnewData((*values)[i].mi,
-//	    	  (*values)[i].bucketNum,
-//		  (*values)[i].value,
-//    		  (*values)[i].type);
       curr = &((*values)[i]);
 #ifdef PCDEBUG
       if (performanceConsultant::printDataTrace) {
-	const char *metname = dataMgr->getMetricNameFromMI(curr->mi);
-	const char *focname = dataMgr->getFocusNameFromMI(curr->mi);
+	const char *metname = dataMgr->getMetricNameFromMI((*values)[i].mi);
+	const char *focname = dataMgr->getFocusNameFromMI((*values)[i].mi);
 	cout << "AR: " << metname << " " << focname;
-	cout << " value: " << curr->value;
-	cout << " bin: " << curr->bucketNum << endl;
+	cout << " value: " << (*values)[i].value;
+	cout << " bin: " << (*values)[i].bucketNum << " " << (*values)[i].type
+	  << endl;
       }
 #endif
+/*
       filteredDataServer *rawInput;
       if (curr->type == GlobalPhase)
 	rawInput = performanceConsultant::globalRawDataServer;
@@ -134,6 +116,11 @@ void PCnewDataCallback(vector<dataValueType> *values,
 	rawInput = performanceConsultant::currentRawDataServer;
       assert (rawInput);
       rawInput-> newData(curr->mi, curr->value, curr->bucketNum);      
+*/
+      PCsearch *search = PCsearch::findSearch (curr->type);
+      assert (search);
+      search-> newData(curr->mi, curr->value, curr->bucketNum);
+
     }
     // dealloc buffer space
     datavalues_bufferpool.dealloc(values);
