@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.172 2003/09/29 20:47:54 bernat Exp $
+// $Id: aix.C,v 1.173 2003/10/07 19:05:58 schendel Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -247,7 +247,7 @@ Frame Frame::getCallerFrame(process *p) const
       }
       else { // normal
 #if defined(AIX_PROC)
-          dyn_saved_regs *regs = p->getDefaultLWP()->getRegisters();
+          dyn_saved_regs *regs = p->getProcessLWP()->getRegisters();
           if (!regs) {
               return Frame();
           }
@@ -821,14 +821,14 @@ bool process::catchupSideEffect(Frame &frame, instReqNode *inst)
       else {
           // Old method
 #if defined(AIX_PROC)
-          dyn_saved_regs *regs = getDefaultLWP()->getRegisters();
+          dyn_saved_regs *regs = getProcessLWP()->getRegisters();
           if (!regs) {
               fprintf(stderr, "Failure to get registers in catchupSideEffect\n");
               return false;
           }
           oldReturnAddr = regs->theIntRegs.__lr;
           regs->theIntRegs.__lr = exitTrampAddr;
-          getDefaultLWP()->restoreRegisters(regs);
+          getProcessLWP()->restoreRegisters(regs);
           delete regs;
 #else
           oldReturnAddr = P_ptrace(PT_READ_GPR, pid, (void *)LR, 0, 0);
@@ -1614,40 +1614,40 @@ sysset_t *SYSSET_ALLOC(int pid)
 bool process::get_entry_syscalls(pstatus_t *status,
                                  sysset_t *entry)
 {
-    // If the offset is 0, no syscalls are being traced
-    if (status->pr_sysentry_offset == 0) {
-        premptysysset(entry);
-    }
-    else {
-        // The entry member of the status vrble is a pointer
-        // to the sysset_t array.
-        if (pread(status_fd(), entry, 
-                  SYSSET_SIZE(entry), status->pr_sysentry_offset)
-            != SYSSET_SIZE(entry)) {
-            perror("get_entry_syscalls: read");
-            return false;
-        }
-    }
-    return true;
+   // If the offset is 0, no syscalls are being traced
+   if (status->pr_sysentry_offset == 0) {
+      premptysysset(entry);
+   }
+   else {
+      // The entry member of the status vrble is a pointer
+      // to the sysset_t array.
+      if(pread(getProcessLWP()->status_fd(), entry, 
+               SYSSET_SIZE(entry), status->pr_sysentry_offset)
+          != SYSSET_SIZE(entry)) {
+         perror("get_entry_syscalls: read");
+         return false;
+      }
+   }
+   return true;
 }
 
 bool process::get_exit_syscalls(pstatus_t *status,
                                 sysset_t *exit)
 {
-    // If the offset is 0, no syscalls are being traced
-    if (status->pr_sysexit_offset == 0) {
-        premptysysset(exit);
-    }
-    else {
-        if (pread(status_fd(), exit, 
-                  SYSSET_SIZE(exit), status->pr_sysexit_offset)
-            != SYSSET_SIZE(exit)) {
-            perror("get_exit_syscalls: read");
-            return false;
-        }
-    }
+   // If the offset is 0, no syscalls are being traced
+   if(status->pr_sysexit_offset == 0) {
+      premptysysset(exit);
+   }
+   else {
+      if(pread(getProcessLWP()->status_fd(), exit, 
+               SYSSET_SIZE(exit), status->pr_sysexit_offset)
+         != SYSSET_SIZE(exit)) {
+         perror("get_exit_syscalls: read");
+           return false;
+      }
+   }
     
-    return true;
+   return true;
 }
 
 bool process::dumpCore_(const pdstring coreFile)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.42 2003/07/15 22:43:57 schendel Exp $
+// $Id: aixDL.C,v 1.43 2003/10/07 19:05:59 schendel Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -526,10 +526,10 @@ bool process::loadDYNINSTlib()
   dyninstlib_brk_addr = dlopentrap_addr;
 
   // save registers
-  savedRegs = getDefaultLWP()->getRegisters();
+  savedRegs = getProcessLWP()->getRegisters();
   assert((savedRegs!=NULL) && (savedRegs!=(void *)-1));
 
-  if (!getDefaultLWP()->changePC(dlopencall_addr, NULL)) {
+  if (!getProcessLWP()->changePC(dlopencall_addr, NULL)) {
     logLine("WARNING: changePC failed in loadDYNINSTlib\n");
     assert(0);
   }
@@ -545,7 +545,7 @@ bool process::loadDYNINSTlib()
 
 bool process::loadDYNINSTlibCleanup()
 {
-  getDefaultLWP()->restoreRegisters(savedRegs);
+  getProcessLWP()->restoreRegisters(savedRegs);
   delete savedRegs;
   savedRegs = NULL;
   // We was never here.... 
@@ -633,7 +633,7 @@ pdvector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
 
 pdvector <shared_object *> *dynamic_linking::processSharedObjects(process *p)
 {
-      // First things first, get a list of all loader info structures.
+    // First things first, get a list of all loader info structures.
     int pid;
     int ret;
 
@@ -645,13 +645,12 @@ pdvector <shared_object *> *dynamic_linking::processSharedObjects(process *p)
     
     // We want to fill in this vector.
     pdvector<shared_object *> *result = new(pdvector<shared_object *>);
+    int mapfd = p->getProcessLWP()->map_fd();
     do {
-        pread(p->map_fd(), &mapEntry, sizeof(prmap_t), 
-              iter*sizeof(prmap_t));
+        pread(mapfd, &mapEntry, sizeof(prmap_t), iter*sizeof(prmap_t));
         if (mapEntry.pr_size != 0) {
             prmap_t next;
-            pread(p->map_fd(), &next, sizeof(prmap_t),
-                  (iter+1)*sizeof(prmap_t));
+            pread(mapfd, &next, sizeof(prmap_t), (iter+1)*sizeof(prmap_t));
             if (strcmp(mapEntry.pr_mapname, next.pr_mapname)) {
                 // Must only have a text segment (?)
                 next.pr_vaddr = 0;
@@ -663,7 +662,7 @@ pdvector <shared_object *> *dynamic_linking::processSharedObjects(process *p)
             
             char objname[256];
             if (mapEntry.pr_pathoff) {
-                pread(p->map_fd(), objname, 256,
+                pread(mapfd, objname, 256,
                       mapEntry.pr_pathoff);
             }
             else

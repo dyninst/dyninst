@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.C,v 1.30 2003/07/15 22:44:40 schendel Exp $
+// $Id: solarisDL.C,v 1.31 2003/10/07 19:06:00 schendel Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/solarisDL.h"
@@ -468,10 +468,13 @@ pdvector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
     // Three-step process.
     // 1) Examine aux vector for address of the loader
     Address ld_base = 0;
-    if(!(this->get_ld_base_addr(ld_base,p->auxv_fd()))) { return 0;}
+    if(!(this->get_ld_base_addr(ld_base, p->getProcessLWP()->auxv_fd()))) {
+       return 0;
+    }
     // 2) Examine virtual address map for the name of the object (inode style)
     char ld_name[128+PRMAPSZ];
-    if(!(this->get_ld_name(ld_name, ld_base, p->map_fd(), p->getPid()))) { return 0;}    
+    if(!(this->get_ld_name(ld_name, ld_base, p->getProcessLWP()->map_fd(),
+                           p->getPid()))) { return 0; }    
     // 3) Open that file
     int ld_fd = -1;    
     ld_fd = open(ld_name, O_RDONLY, 0);
