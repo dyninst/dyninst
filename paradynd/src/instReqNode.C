@@ -97,6 +97,17 @@ loadMiniTramp_result instReqNode::loadInstrIntoApp(pd_process *theProc,
    // NEW: We may manually trigger the instrumentation, via a call to
    // postRPCtoDo()
    
+   bool trampRecursiveDesired = false;
+
+   // --------------------------------------------------------------
+   // can remove this once implement MT tramp guards on linux
+#if defined(os_linux)
+   // ignore tramp guards on MT Linux until it is implemented
+   if(theProc->multithread_capable())
+      trampRecursiveDesired = true;
+#endif
+   // --------------------------------------------------------------
+
    // addInstFunc() is one of the key routines in all paradynd.  It installs a
    // base tramp at the point (if needed), generates code for the tramp, calls
    // inferiorMalloc() in the text heap to get space for it, and actually
@@ -107,7 +118,7 @@ loadMiniTramp_result instReqNode::loadInstrIntoApp(pd_process *theProc,
                     point, ast, when, order,
                     false, // false --> don't exclude cost
                     retInstance,
-                    false // false --> do not allow recursion
+                    trampRecursiveDesired
                     );
    if(theProc->hasExited()) {
       res = failure_res;
