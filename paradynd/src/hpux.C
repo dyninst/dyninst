@@ -48,12 +48,13 @@
 #include "showerror.h"
 #include "main.h"
 #include "symtab.h"
+#include <machine/save_state.h>
 
 class ptraceKludge {
 public:
   static bool haltProcess(process *p);
-  static bool deliverPtrace(process *p, int req, char *addr,
-			    int data, char *addr2);
+  static bool deliverPtrace(process *p, int req, void *addr,
+			    int data, void *addr2);
   static void continueProcess(process *p, const bool halted);
 };
 
@@ -99,20 +100,20 @@ findUnwindEntry(image* symbols,int pc)
 // To see if this frame is valid to determine if this frame is the 
 // innermost frame. Return true if it is, otherwise return false. 
 bool 
-frameChainValid(process *proc, int pc)
+frameChainValid(process *proc, unsigned pc)
 {
-    pdFunction *funcStart = (proc->symbols)->findOneFunction("_start");
-
+    pdFunction *funcStart = proc->findOneFunction("_start");
     if (funcStart) {
 	if (pc >= funcStart->addr() && pc <= (funcStart->addr() + funcStart->size())) {   
 	    return false;
 	}
     }
     
-    funcStart = (proc->symbols)->findOneFunction("$START$");
+    funcStart = proc->findOneFunction("$START$");
 
-    sprintf(errorLine,"func $start is at %x", funcStart);
+    sprintf(errorLine,"func $start is at %x", (unsigned)funcStart);
     logLine(errorLine);
+
     if (funcStart) {
 	if (pc >= funcStart->addr() && pc <= (funcStart->addr() + funcStart->size())) {   
 	    return false;
@@ -194,7 +195,7 @@ bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool uppermost
     bool readOK=true;
     char buf[20];
 
-    pdFunction *func;
+    //pdFunction *func;
     int pc = *rtn;
 
     //XXX: leaf routine might not necessarily the uppermost routine?
@@ -268,10 +269,319 @@ bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool uppermost
     return(readOK);
 }
 
+static save_state save_state_foo;
+#define saveStateRegAddr(field) ((char*)&save_state_foo.field - (char*)&save_state_foo.ss_flags)
+#define saveStateFPRegAddr(field) ((char*)&save_state_foo.ss_fpblock.fpdbl.field - (char*)&save_state_foo.ss_flags)
 
+static unsigned readCurrPC(int pid, unsigned flagsreg) {
+   // If IN_SYSCALL then we should return the contents
+   // of register 31 (the link register for BLE should contain
+   // the return address, in user code); else, return the contents
+   // of reg 33 (the PCOQ_HEAD).
+   // Note that in any event, we clear the low 2 bits (I think that they
+   // have something to do w/ privilege level -- please confirm this)
 
-bool ptraceKludge::deliverPtrace(process *p, int req, char *addr,
-                                 int data, char *addr2) {
+   errno = 0;
+   unsigned result;
+
+   if (flagsreg & SS_INSYSCALL) {
+      result = ptrace(PT_RUREGS, pid, 4 * 31, 0, 0);
+   }
+   else {
+      result = ptrace(PT_RUREGS, pid, 4 * 33, 0, 0);
+   }
+
+   if (errno != 0) {
+      perror("readCurrPC");
+      cerr << "SS_INSYSCALL was " << (flagsreg & SS_INSYSCALL) << endl;
+
+      return (unsigned)-1;
+   }
+
+   return result & ~0x03;
+}
+
+static const unsigned getRegistersNumBytes = 
+                             4 // for save-state flags (not sure this needs to be saved)
+                           + 4 * 31 // for integer regs 1 thru 31 (can skip reg 0)
+			   + 8 * 32 // for floating pt regs 0 thru 31
+			   + 4 // IPSW
+			   + 4 // SAR
+			   + 4 // pc, to be restored as PCOQ_HEAD
+			   + 4 // pcspace, to be restored as PCSQ_HEAD
+			   + 4 // pc+4, to be restored as PCOQ_TAIL
+			   + 4 // pcspace, to be restored as PCSQ_TAIL
+			   ;
+
+void *process::getRegisters() {
+   // ptrace - GETREGS call
+   // assumes the process is stopped (ptrace requires it)
+
+   assert(status_ == stopped);
+
+   void *result = new char[getRegistersNumBytes];
+   assert(result);
+
+   unsigned *resultPtr = (unsigned *)result;
+
+   // See <machine/save_state.h>, <sys/param.h> and <machine/param.h>
+
+   // The first thing we need to do is read the save-state flags
+   const unsigned saveStateFlagAddr = saveStateRegAddr(ss_flags);
+   assert(saveStateFlagAddr == 0);
+   errno = 0;
+   const unsigned saveStateFlags = ptrace(PT_RUREGS, getPid(), saveStateFlagAddr, 0, 0);
+   if (errno != 0) {
+      perror("process::getRegisters PT_RUREGS");
+      cerr << "addr was " << saveStateFlagAddr << endl;
+      return NULL;
+   }
+
+   *resultPtr++ = saveStateFlags;
+
+   if (saveStateFlags & SS_INSYSCALL) {
+      cerr << "hpux getRegisters(): SS_INSYSCALL is true, so deferring..." << endl;
+      return (void *)-1;
+   }
+
+   // Now set 'thePCspace' to the value of PCSQ_HEAD_REGNUM,
+   // and save registers "normally" (as read from ptrace).
+   errno = 0;
+   const unsigned thePCspace = ptrace(PT_RUREGS, getPid(), saveStateRegAddr(ss_pcsq_head), 0, 0);
+   if (errno != 0) {
+      perror("ptrace PT_RUREGS for ss_pcsq_head");
+      return NULL;
+   }
+
+   // save integer registers now (skip reg 0, which is hardwired to value 0)
+   for (unsigned regnum=1; regnum < 32; regnum++) {
+      errno = 0;
+      const unsigned regvalue = ptrace(PT_RUREGS, getPid(), 4 * regnum, 0, 0);
+      if (errno != 0) {
+	 perror("ptrace PT_RUREGS for an integer register");
+	 cerr << "the int reg num was " << regnum << endl;
+	 return NULL;
+      }
+
+      *resultPtr++ = regvalue;
+   }
+
+   // save floating-point registers now (32 of them, each 8 bytes)
+   const unsigned fpbaseoffset = saveStateFPRegAddr(ss_fp0);
+   for (unsigned regnum=0; regnum < 32; regnum++) {
+      const unsigned offset = fpbaseoffset + 8 * regnum;
+
+      // 2 ptrace calls are needed (get 4 bytes at a time)
+      errno = 0;
+      const unsigned part1 = ptrace(PT_RUREGS, getPid(), offset, 0, 0);
+      if (errno != 0) {
+	 perror("ptrace PT_RUREGS for part 1 of an fp reg");
+	 cerr << "the fp reg num was " << regnum << endl;
+	 return NULL;
+      }
+
+      errno = 0;
+      const unsigned part2 = ptrace(PT_RUREGS, getPid(), offset+4, 0, 0);
+      if (errno != 0) {
+	 perror("ptrace PT_RUREGS for part 2 of an fp reg");
+	 cerr << "the fp reg num was " << regnum << endl;
+	 return NULL;
+      }
+
+      *resultPtr++ = part1;
+      *resultPtr++ = part2;
+   }
+
+   // save IPSW_REGNUM (#41) and SAR (#32)
+   errno = 0;
+   const unsigned ipsw = ptrace(PT_RUREGS, getPid(), 4 * 41, 0, 0);
+   if (errno != 0) {
+      perror("ptrace PT_RUREGS for IPSW (regnum 41)");
+      return NULL;
+   }
+   *resultPtr++ = ipsw;
+
+   errno = 0;
+   const unsigned sar = ptrace(PT_RUREGS, getPid(), 4 * 32, 0, 0);
+   if (errno != 0) {
+      perror("ptrace PT_RUREGS for SAR (regnum 32)");
+      return NULL;
+   }
+   *resultPtr ++ = sar;
+
+   // save pc (to be restored as PCOQ_HEAD),
+   // pcspace (to be restored as PCSQ_HEAD),
+   // pc+4 (to be restored as PCOQ_TAIL),
+   // and pcspace (to be restored as PCSQ_TAIL)
+
+   const unsigned pc_reg = readCurrPC(getPid(), saveStateFlags);
+   if (pc_reg == (unsigned)-1) {
+      cerr << "getRegisters() failed because readCurrPC() failed" << endl;
+      return NULL;
+   }
+   *resultPtr++ = pc_reg; // to be restored as PCOQ_HEAD
+
+   *resultPtr++ = thePCspace; // to be restored as PCSQ_HEAD
+
+   *resultPtr++ = pc_reg + 4; // to be restored as PCOQ_TAIL
+
+   *resultPtr++ = thePCspace; // to be restored as PCSQ_TAIL
+
+   assert((char *)resultPtr - (char *)result == getRegistersNumBytes);
+
+   return result;
+}
+
+bool process::changePC(unsigned loc, void *savedRegs) {
+   unsigned flagsReg = *(unsigned *)savedRegs;
+
+   // In in a system call then we also set reg #31, setting low 2 bits (privilege)
+   // to true
+   if (flagsReg & SS_INSYSCALL) {
+      unsigned valueToWrite = loc | 0x03;
+      errno = 0;
+      ptrace(PT_WUREGS, getPid(), 31 * 4, valueToWrite, 0);
+      if (errno != 0) {
+	 perror("process::changePC");
+	 cerr << "reg num was 31" << endl;
+	 return false;
+      }
+
+      // fall through, on purpose
+   }
+
+   // Now write reg 33 (PCOQ_HEAD) with loc and reg 35 (PCOQ_TAIL) with loc+4
+   errno = 0;
+   ptrace(PT_WUREGS, getPid(), 33 * 4, loc, 0);
+   if (errno != 0) {
+      perror("process::changePC");
+      cerr << "reg num was 33 (PCOQ_HEAD)" << endl;
+      return false;
+   }
+
+   errno = 0;
+   ptrace(PT_WUREGS, getPid(), 35 * 4, loc, 0);
+   if (errno != 0) {
+      perror("process::changePC");
+      cerr << "reg num was 35 (PCOQ_TAIL)" << endl;
+   }
+
+   return true;
+}
+
+bool process::restoreRegisters(void *buffer) {
+   // assumes process is stopped (ptrace requires it)
+   assert(status_ == stopped);
+
+   const unsigned saveStateFlags = *(unsigned *)buffer;
+
+   // First, restore the PC queue (PC[S/O]Q_HEAD and _TAIL)
+   const unsigned *bufferPtr = buffer;
+   bufferPtr += 1 + 31 + 64 + 2; // skip past save-state, 31 int regs, 32 fp regs @ 8 bytes each,
+                                 // ipsw, and sar
+   const unsigned savedPCOQ_HEAD = *bufferPtr++;
+   const unsigned savedPCSQ_HEAD = *bufferPtr++;
+   const unsigned savedPCOQ_TAIL = *bufferPtr++;
+   const unsigned savedPCSQ_TAIL = *bufferPtr++;
+
+   assert(savedPCSQ_TAIL == savedPCSQ_HEAD); // they're always equal when saved
+   assert(savedPCOQ_TAIL == savedPCOQ_HEAD + 4); // it's always this way when saved
+
+   errno = 0;
+   ptrace(PT_WUREGS, getPid(), 33*4, savedPCOQ_HEAD, 0); // 33 --> PCOQ_HEAD
+   if (errno != 0) {
+      perror("PT_WUREGS for PCOQ_HEAD");
+      return false;
+   }
+
+   errno = 0;
+   ptrace(PT_WUREGS, getPid(), 35*4, savedPCOQ_TAIL, 0); // 35 --> PCOQ_TAIL
+   if (errno != 0) {
+      perror("PT_WUREGS for PCOQ_TAIL");
+      return false;
+   }
+
+   cerr << "restoreRegisters: restored PCOQ head and tail...now trying for PCSQ" << endl;
+
+   errno = 0;
+   ptrace(PT_WUREGS, getPid(), 33*4, savedPCSQ_HEAD, 0); // 33 --> PCSQ_HEAD
+   if (errno != 0) {
+      perror("PT_WUREGS for PCSQ_HEAD");
+      return false;
+   }
+
+   errno = 0;
+   ptrace(PT_WUREGS, getPid(), 35*4, savedPCSQ_TAIL, 0); // 35 --> PCSQ_TAIL
+   if (errno != 0) {
+      perror("PT_WUREGS for PCSQ_TAIL");
+      return false;
+   }
+
+   cerr << "restoreRegisters: got past the hard part!" << endl;
+
+   // Now restore the integer registers
+   bufferPtr = (unsigned *)buffer;
+   bufferPtr++; // skip past saved state flags
+   for (unsigned regnum = 1; regnum < 32; regnum++) {
+      const unsigned value = *bufferPtr++;
+
+      errno = 0;
+      ptrace(PT_WUREGS, getPid(), regnum * 4, value, 0);
+      if (errno != 0) {
+         perror("PT_WUREGS for an integer register");
+	 cerr << "the register num was " << regnum << endl;
+	 return false;
+      }
+   }
+
+   // Now restore the floating point registers 0 thru 31, @ 8 bytes each
+   for (unsigned regnum = 64; regnum < 96; regnum++) {
+      const unsigned part1 = *bufferPtr++;
+      const unsigned part2 = *bufferPtr++;
+
+      errno = 0;
+      ptrace(PT_WUREGS, getPid(), regnum * 4, part1, 0);
+      if (errno != 0) {
+	 perror("PT_WUREGS for part 1 of an fp register");
+	 cerr << "the fp register num was " << regnum-64 << endl;
+	 return false;
+      }
+
+      errno = 0;
+      ptrace(PT_WUREGS, getPid(), (regnum * 4) + 4, part2, 0);
+      if (errno != 0) {
+	 perror("PT_WUREGS for part 2 of an fp register");
+	 cerr << "the fp register num was " << regnum-64 << endl;
+	 return false;
+      }
+   }
+
+   // Lastly, restore IPSW (cr 22, aka reg num 41) and SAR (cr 11, aka reg num 32)
+   const unsigned savedIPSW = *bufferPtr++;
+   const unsigned savedSAR  = *bufferPtr++;
+   assert((unsigned)bufferPtr - (unsigned)buffer == getRegistersNumBytes);
+
+   errno = 0;
+   ptrace(PT_WUREGS, getPid(), 4 * 41, savedIPSW, 0);
+   if (errno != 0) {
+      perror("PT_WUREGS for IPSW (reg num 41)");
+      return false;
+   }
+
+   errno = 0;
+   ptrace(PT_WUREGS, getPid(), 4 * 32, savedSAR, 0);
+   if (errno != 0) {
+      perror("PT_WUREGS for SAR (reg num 32)");
+      return false;
+   }
+
+   cerr << "restoreRegisters: all done!" << endl;
+
+   return true;
+}
+
+bool ptraceKludge::deliverPtrace(process *p, int req, void *addr,
+                                 int data, void *addr2) {
   bool halted;
   bool ret;
   int  valu;
@@ -332,8 +642,12 @@ bool OS::osDumpCore(pid_t pid, const string dumpTo) {
   return false;
 }
 
-bool OS::osForwardSignal (pid_t pid, int cont_status) {
-  return (P_ptrace(PT_CONTIN, pid, 1, cont_status, 0) != -1);
+//bool OS::osForwardSignal (pid_t pid, int cont_status) {
+//  return (P_ptrace(PT_CONTIN, pid, 1, cont_status, 0) != -1);
+//}
+
+bool process::continueWithForwardSignal(int sig) {
+  return (P_ptrace(PT_CONTIN, pid, 1, sig, 0) != -1);
 }
 
 void OS::osTraceMe(void) { P_ptrace(PT_SETTRC, 0, 0, 0, 0); }
@@ -363,7 +677,7 @@ bool process::continueProc_() {
   ptraceOps++; ptraceOtherOps++;
 /* choose either one of the following ptrace calls, but not both. 
  * The choice must be consistent with that in OS::osStop and
-ptraceKludge::continueProcess.
+ * ptraceKludge::continueProcess.
  */
 #ifndef PTRACE_ATTACH_DETACH
   ret = P_ptrace(PT_CONTIN, pid, 1, 0, 0);
@@ -413,7 +727,7 @@ bool process::writeTextWord_(caddr_t inTraced, int data) {
   return (ptraceKludge::deliverPtrace(this, PT_WIUSER, inTraced, data, NULL));
 }
 
-bool process::writeTextSpace_(caddr_t inTraced, int amount, caddr_t inSelf) {
+bool process::writeTextSpace_(void *inTraced, int amount, const void *inSelf) {
   if (!checkStatus()) 
     return false;
   ptraceBytes += amount; ptraceOps++;
@@ -433,7 +747,7 @@ bool process::writeTextSpace_(caddr_t inTraced, int amount, caddr_t inSelf) {
   //return true;
 }
 
-bool process::writeDataSpace_(caddr_t inTraced, int amount, caddr_t inSelf) {
+bool process::writeDataSpace_(void *inTraced, int amount, const void *inSelf) {
   if (!checkStatus())
     return false;
   ptraceOps++; ptraceBytes += amount;
@@ -452,7 +766,7 @@ bool process::writeDataSpace_(caddr_t inTraced, int amount, caddr_t inSelf) {
   //return true;
 }
 
-bool process::readDataSpace_(caddr_t inTraced, int amount, caddr_t inSelf) {
+bool process::readDataSpace_(const void *inTraced, int amount, void *inSelf) {
   if (!checkStatus())
     return false;
   ptraceOps++; ptraceBytes += amount;
