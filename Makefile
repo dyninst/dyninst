@@ -1,12 +1,12 @@
 #
 # TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.68 2005/03/07 21:19:52 legendre Exp $
+# $Id: Makefile,v 1.69 2005/04/06 04:37:38 rchen Exp $
 #
 
 TO_CORE = .
 # Include additional local definitions (if available)
-include ./make.config.local
+-include ./make.config.local
 # Include the make configuration specification (site configuration options)
 include ./make.config
 
@@ -29,7 +29,7 @@ ParadynVC	= visi \
 		visiClients/histVisi visiClients/terrain \
 		visiClients/termWin
 subSystems	= $(ParadynD) $(ParadynFE) $(ParadynVC)
-DyninstAPI	= dyninstAPI_RT dyninstAPI dyninstAPI/tests dyner codeCoverage
+DyninstAPI	= ready dyninstAPI_RT dyninstAPI dyninstAPI/tests dyner codeCoverage
 
 threadComps	= rtinst/multi-thread-aware
 
@@ -91,7 +91,8 @@ install:	ready world
 	done	
 
 # Check that the main installation directories, etc., are ready for a build,
-# creating them if they don't already exist!
+# creating them if they don't already exist!  Also touch make.config.local
+# if needed.
 
 ready:
 	+@for installdir in $(LIBRARY_DEST) $(PROGRAM_DEST); do \
@@ -104,12 +105,16 @@ ready:
 	    fi							\
 	done
 
-	@echo "Primary compiler for Paradyn build is:"
-        @if [ $(CXX) = "xlC" ]; then \
+	+@if [ ! -f make.config.local ]; then	\
+	    touch make.config.local;		\
+	fi
+
+	+@echo "Primary compiler for Paradyn build is:"
+	+@if [ $(CXX) = "xlC" ]; then		\
                echo "xlC"; \
         else \
 	  $(CXX) -v; \
-        endif
+	fi
 
 # The "make world" target is set up to build things in the "correct"
 # order for a build from scratch.  It builds and installs things in the
