@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.173 2000/05/22 15:11:43 zhichen Exp $
+// $Id: metricFocusNode.C,v 1.174 2000/07/13 18:29:22 pcroth Exp $
 
 #include "util/h/headers.h"
 #include <limits.h>
@@ -835,9 +835,18 @@ void metricDefinitionNode::removeThisInstance() {
   for (unsigned u = 0; u < aggregators.size() && u < samples.size(); u++) {
     aggregators[u]->aggSample.removeComponent(samples[u]);
   }
-  while(aggregators.size()) {
-    aggregators[0]->removeFromAggregate(this,true); //why was 0
+
+  // we must be careful here, since the removeFromAggregate call
+  // could delete us.  If it does, we have to be sure that we don't
+  // refer to any of our member variables once we've been deleted.
+  unsigned int agsz = aggregators.size();
+  while( agsz )
+  {
+    aggregators[0]->removeFromAggregate(this,true);
+    agsz--;
   }
+  // we have been deleted - be sure not to refer to any member variables 
+  // from here till the end of the method
 }
 
 
