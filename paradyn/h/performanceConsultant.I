@@ -3,6 +3,9 @@
  * Interface between the Performance Consultant and the rest of paradyn.
  *
  * $Log: performanceConsultant.I,v $
+ * Revision 1.15  1996/01/08 22:07:15  tamches
+ * Added igen call getNodeInof() and related struct shg_node_info
+ *
  * Revision 1.14  1995/10/17 03:21:05  tamches
  * (really Karen)
  * Bumped version number from 5 to 6
@@ -77,6 +80,20 @@ typedef struct SHNptr_Array {
   SHNptr *data;
 } SHNptr_Array;
 
+// Note: the following structure (used by the "getNodeInfo" igen call) is
+//       subject to fairly frequent change, as we thing of more goodies.
+struct shg_node_info {
+   string why;
+   string where;
+   bool currentConclusion;
+   timeStamp timeTrueFalse;
+   sampleValue currentValue;
+   timeStamp startTime;
+   timeStamp endTime;
+   sampleValue estimatedCost;
+   bool persistent;
+};
+
 $remote performanceConsultant {
     $base 6000;
     $version 6;
@@ -123,4 +140,8 @@ $remote performanceConsultant {
 
     // Really just setCurrentSHGnode(id of root node).
     $async void resetRefinement();
+
+    // Get loads of information about a node:
+    bool getNodeInfo(int nodeID, shg_node_info *theInfo);
+       // "theInfo" gets filled in for you.  Returns true iff successful.
 };
