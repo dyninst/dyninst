@@ -2,9 +2,13 @@
 #  tabVis -- A tabular display visualization for Paradyn
 #
 #  $Log: tabVis.tcl,v $
-#  Revision 1.9  1994/11/10 18:06:56  tamches
-#  Fixed a bug where a shrinkage of window height would resize the
-#  resources axis incorrectly.
+#  Revision 1.10  1995/02/26 02:02:25  newhall
+#  added callback functions for new visiLib phase info.
+#  added new phase table visi
+#
+# Revision 1.9  1994/11/10  18:06:56  tamches
+# Fixed a bug where a shrinkage of window height would resize the
+# resources axis incorrectly.
 #
 # Revision 1.8  1994/11/08  00:23:08  tamches
 # Major update/rewrite.  blt_table influences are gone.
@@ -726,6 +730,30 @@ proc DgConfigCallback {} {
 
    UpdateStatus
 }
+
+#
+#  DgPhaseStartCallback -- visi calls this when a phase has started
+#
+proc DgPhaseStartCallback {phaseId} {
+
+    return
+}
+
+#
+#  DgPhaseEndCallback -- visi calls this when a phase has started
+#
+proc DgPhaseEndCallback {phaseId} {
+    return
+}
+
+
+#
+#  DgPhaseDataCallback -- visi calls this when a phase has started
+#
+proc DgPhaseDataCallback {} {
+   return
+}
+
 
 #
 #  Default dataformat is Instantaneous

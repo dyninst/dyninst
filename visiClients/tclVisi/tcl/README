@@ -1,6 +1,10 @@
 #
 # $Log: README,v $
-# Revision 1.4  1994/11/08 00:21:41  tamches
+# Revision 1.5  1995/02/26 02:02:22  newhall
+# added callback functions for new visiLib phase info.
+# added new phase table visi
+#
+# Revision 1.4  1994/11/08  00:21:41  tamches
 # updated barchart entry
 #
 # Revision 1.3  1994/09/08  00:13:40  tamches
@@ -28,3 +32,7 @@ barChart.tcl -- Bar chart display of paradyn data.  Currently limited
 		some performance and interface problems...
 		*** OBSOLETED by /p/paradyn/core/visiClients/barchart ***
 
+phaseTable.tcl -- A tabular display of paradyn phase data.  displays phase
+		  start, stop, and name information for all phases that 
+		  exist in the system as well as providing a mechanism to
+		  define a new phase.
