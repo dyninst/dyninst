@@ -87,7 +87,7 @@ module *image::newModule(const string &name, const Address addr)
       fullNm = string("/default/") + out;
       fileNm = out;
     }
-    delete out;
+    free(out);
 
     ret = new module(langUnknown, addr, fullNm, fileNm, this);
     modsByFileName[ret->fileName()] = ret;
@@ -105,11 +105,11 @@ bool buildDemangledName(const string &mangled, string &use)
 
     if (demangled) {
       use = demangled;
-      delete tempName;
-      delete demangled;
+      free(tempName);
+      free(demangled);
       return true;
     } else {
-      delete tempName;
+      free(tempName);
       return false;
     }
 }
@@ -141,7 +141,7 @@ bool image::newFunc(module *mod, const string name, const Address addr, const un
   string demangled;
   if (!buildDemangledName(out, demangled)) 
     demangled = out;
-  delete out; // FIXME! calling delete when allocated with malloc() I think!
+  free(out); 
 
   bool err;
 
@@ -927,7 +927,7 @@ sharedobj_cerr << "image::image for non-sharedobj; file name=" << file_ << endl;
 
   // find the "user" code boundaries
   statusLine("finding user code boundaries");
-  Address startUserAddr, endUserAddr;
+  Address startUserAddr=0, endUserAddr=0;
   bool startBound = findStartSymbol(linkedFile, startUserAddr);
   bool endBound = findEndSymbol(linkedFile, endUserAddr);
 
