@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.11 2002/01/08 22:16:29 pcroth Exp $
+// $Id: Object-nt.C,v 1.12 2002/04/09 18:04:59 mjbrim Exp $
 
 #include <iostream.h>
 #include <iomanip.h>
@@ -402,16 +402,16 @@ Object::ParseExports( IMAGE_DEBUG_INFORMATION* pDebugInfo )
             }
         }
 
-		// The rest of our code doesn't handle symbols with zero size well.
-		// Unless we build a complete CFG and can identify all exit points of
-		// a function, the best approximation we have for the size of the symbol is
-		// the difference between a symbol and its successor.
+	// The rest of our code doesn't handle symbols with zero size well.
+	// Unless we build a complete CFG and can identify all exit points of
+	// a function, the best approximation we have for the size of the symbol is
+	// the difference between a symbol and its successor.
         //
-		allSymbols.sort( sym_offset_compare );
-		CVPatchSymbolSizes( allSymbols );
+	VECTOR_SORT(allSymbols, sym_offset_compare);
+	CVPatchSymbolSizes( allSymbols );
 
-		// now that we've sorted and sized symbols for the exports,
-		// we add them to the global set
+	// now that we've sorted and sized symbols for the exports,
+	// we add them to the global set
         for( unsigned int i = 0; i < allSymbols.size(); i++ )
         {
             symbols_[allSymbols[i].name()] = allSymbols[i];
@@ -570,7 +570,7 @@ Object::ParseCodeViewSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo )
         }
 
         // sort list of modules by offset to give us our CodeView module map
-        cvMods.sort( ModInfo::CompareByOffset );
+	VECTOR_SORT(cvMods, ModInfo::CompareByOffset);
 
 #ifdef CV_DEBUG
         // dump the CodeView module map
@@ -995,7 +995,7 @@ Object::CVProcessSymbols( CodeView& cv,
     }
     
     // sort symbols by offset
-    allSymbols.sort( sym_offset_compare );
+    VECTOR_SORT(allSymbols, sym_offset_compare);
 }
 
 
@@ -1211,7 +1211,7 @@ Object::ParseCOFFSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo )
                     false));
 
     // Sort the symbols on address to find the function boundaries
-    allSymbols.sort(sym_offset_compare);
+    VECTOR_SORT(allSymbols, sym_offset_compare);
 
     // find the function boundaries
     for( u = 0; u < allSymbols.size(); u++ )
@@ -1441,7 +1441,7 @@ bool Object::ParseMapSymbols(IMAGE_DEBUG_INFORMATION *pDebugInfo, char *mapFile)
 	}
 
 	/** do size/length fix up here **/
-	allSymbols.sort(sym_offset_compare);
+	VECTOR_SORT(allSymbols, sym_offset_compare);
 
 	/* from Object-nt.C */
 	// find the function boundaries
