@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.129 2003/03/14 23:18:22 bernat Exp $
+// $Id: aix.C,v 1.130 2003/03/17 03:05:33 schendel Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -1339,6 +1339,7 @@ bool process::loopUntilStopped() {
         procSignalWhy_t why;
         procSignalWhat_t what;
         procSignalInfo_t info;
+        if(hasExited()) false;
         process *proc = decodeProcessEvent(pid, why, what, info, true);
         assert(proc == NULL ||
                proc == this);

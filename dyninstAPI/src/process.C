@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.397 2003/03/14 23:18:26 bernat Exp $
+// $Id: process.C,v 1.398 2003/03/17 03:05:42 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1652,6 +1652,7 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
   bool wasRunning = (status() == running);
   do {
       bool result = launchRPCs(wasRunning);
+      if(hasExited()) return;
       decodeAndHandleProcessEvent(false);
   } while (!ret.ready); // Loop until callback has fired.
   switch ((int)(Address)ret.result) {
@@ -2107,7 +2108,7 @@ process::process(int iPid, image *iImage, int iTraceLink
       showErrorCallback(26, msg.c_str());
       cerr << "Process: failed attach!" << endl;
    }
-  
+
 #ifndef BPATCH_LIBRARY
 #ifdef PAPI
    if (isPapiInitialized()) {
@@ -2751,12 +2752,12 @@ process *createProcess(const string File, pdvector<string> argv,
       OS::osKill(pid);
       return(NULL);
     }
-    
+
     /* parent */
     statusLine("initializing process data structures");
-    
+
     process *theProc = new process(pid, img, traceLink
-			       
+
 #ifdef SHM_SAMPLING
 			       , 7000 // shm seg key to try first
 #endif
@@ -2779,7 +2780,7 @@ process *createProcess(const string File, pdvector<string> argv,
     
     // find the signal handler function
     theProc->findSignalHandler(); // should this be in the ctor?
-    
+
     // In the ST case, threads[0] (the only one) is effectively
     // a pass-through for process operations. In MT, it's the
     // main thread of the process and is handled correctly
@@ -2803,13 +2804,19 @@ process *createProcess(const string File, pdvector<string> argv,
     handleProcessEvent(theProc, procSignalled, fileDescSignal, 0);
     
 #endif
-    theProc->loadDyninstLib();
+
+    bool res = theProc->loadDyninstLib();
+    if(res == false)
+       return NULL;
+
     while (!theProc->reachedBootstrapState(bootstrapped)) {
-        // We're waiting for something... so wait
-        // true: block until a signal is received (efficiency)
-        decodeAndHandleProcessEvent(true);
+       // We're waiting for something... so wait
+       // true: block until a signal is received (efficiency)
+       if(theProc->hasExited())
+          return NULL;
+       decodeAndHandleProcessEvent(true);
     }
-    
+
     return theProc;    
 }
 
@@ -2953,10 +2960,11 @@ bool process::loadDyninstLib() {
     // Wait for the process to get to an initialized (dlopen exists)
     // state
     while (!reachedBootstrapState(initialized)) {
-        decodeAndHandleProcessEvent(true);
+       if(hasExited())
+          return false;
+       decodeAndHandleProcessEvent(true);
     }
     assert(status_ == stopped);
-    
 
     // We've hit the initialization trap, so load dyninst lib and
     // force initialization
@@ -3026,7 +3034,9 @@ bool process::loadDyninstLib() {
     }
     // Loop until the dyninst lib is loaded
     while (!reachedBootstrapState(loadedRT)) {
-        decodeAndHandleProcessEvent(true);
+       if(hasExited())
+          return false;
+       decodeAndHandleProcessEvent(true);
     }
 
     // Get rid of the callback
@@ -3137,7 +3147,7 @@ bool process::iRPCDyninstInit() {
     the_args[1] = new AstNode(AstNode::Constant, (void*)pid);
     AstNode *dynInit = new AstNode("DYNINSTinit", the_args);
     removeAst(the_args[0]); removeAst(the_args[1]);
-    
+
     postRPCtoDo(dynInit,
                 true, // Don't update cost
                 process::DYNINSTinitCompletionCallback,
@@ -3148,6 +3158,8 @@ bool process::iRPCDyninstInit() {
     // We loop until dyninst init has run (check via the callback)
     while (!reachedBootstrapState(bootstrapped)) {
         launchRPCs(false); // false: not running
+        if(hasExited())
+           return false;
         decodeAndHandleProcessEvent(true);
     }
     return true;

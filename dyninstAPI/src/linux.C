@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.90 2003/03/14 23:18:24 bernat Exp $
+// $Id: linux.C,v 1.91 2003/03/17 03:05:41 schendel Exp $
 
 #include <fstream.h>
 
@@ -1061,6 +1061,7 @@ bool process::loopUntilStopped() {
         procSignalWhy_t why;
         procSignalWhat_t what;
         procSignalInfo_t info;
+        if(hasExited()) return false;
         process *proc = decodeProcessEvent(getPid(), why, what, info, true);
         assert(proc == NULL ||
                proc == this);

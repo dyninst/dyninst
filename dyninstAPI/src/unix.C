@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.82 2003/03/14 23:18:33 bernat Exp $
+// $Id: unix.C,v 1.83 2003/03/17 03:05:43 schendel Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -926,46 +926,49 @@ int handleProcessEvent(process *proc,
                        procSignalWhy_t why,
                        procSignalWhat_t what,
                        procSignalInfo_t info) {
-    int ret = 0;
-    // One big switch statement
-    switch(why) {
-        // First the platform-independent stuff
-        // (/proc and waitpid)
-  case procExitedNormally:
-      sprintf(errorLine, "Process %d has terminated with code 0x%x\n", 
-              proc->getPid(), what);
-      statusLine(errorLine);
-      logLine(errorLine);
-      handleProcessExit(proc, what);
-      ret = 1;
-      break;
-  case procExitedViaSignal:
-      sprintf(errorLine, "process %d has terminated on signal %d\n", 
-              proc->getPid(), what);
-      logLine(errorLine);
-      statusLine(errorLine);
-      printDyninstStats();
-      handleProcessExit(proc, what);
-      ret = 1;
-      break;
-  case procSignalled:
-      ret = handleSignal(proc, what, info);
-      break;
-      // Now the /proc only
-      // AIX clones some of these (because of the fork/exec/load notification)
-  case procSyscallEntry:
-      ret = handleSyscallEntry(proc, what, info);
-      break;
-  case procSyscallExit:
-      ret = handleSyscallExit(proc, what, info);
-      break;
-  case procUndefined:
-      // Do nothing
-      break;
-  default:
-      assert(0 && "Undefined");
-    }
-    return ret;
+   int ret = 0;
+   if(proc->hasExited())  return 1;
+
+
+   // One big switch statement
+   switch(why) {
+      // First the platform-independent stuff
+      // (/proc and waitpid)
+     case procExitedNormally:
+        sprintf(errorLine, "Process %d has terminated with code 0x%x\n", 
+                proc->getPid(), what);
+        statusLine(errorLine);
+        logLine(errorLine);
+        handleProcessExit(proc, what);
+        ret = 1;
+        break;
+     case procExitedViaSignal:
+        sprintf(errorLine, "process %d has terminated on signal %d\n", 
+                proc->getPid(), what);
+        logLine(errorLine);
+        statusLine(errorLine);
+        printDyninstStats();
+        handleProcessExit(proc, what);
+        ret = 1;
+        break;
+     case procSignalled:
+        ret = handleSignal(proc, what, info);
+        break;
+        // Now the /proc only
+        // AIX clones some of these (because of fork/exec/load notification)
+     case procSyscallEntry:
+        ret = handleSyscallEntry(proc, what, info);
+        break;
+     case procSyscallExit:
+        ret = handleSyscallExit(proc, what, info);
+        break;
+     case procUndefined:
+        // Do nothing
+        break;
+     default:
+        assert(0 && "Undefined");
+   }
+   return ret;
 }
 
 void decodeAndHandleProcessEvent (bool block) {
