@@ -2,7 +2,11 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.32  1995/02/26 22:46:19  markc
+ * Revision 1.33  1995/05/18 10:38:17  markc
+ * deleted metric callbacks -- these are now requested from the daemon
+ * initialize mdl data before parsing an image
+ *
+ * Revision 1.32  1995/02/26  22:46:19  markc
  * Fixed for pvm version.  The pvm ifdefs are still ugly, but they compile.
  *
  * Revision 1.31  1995/02/16  08:53:38  markc
@@ -144,6 +148,7 @@
 #include "init.h"
 #include "perfStream.h"
 #include "clock.h"
+#include "paradynd/src/mdld.h"
 
 pdRPC *tp;
 
@@ -168,7 +173,7 @@ static int pd_family;
 static int pd_type;
 static int pd_known_socket;
 static int pd_flag;
-
+static string pd_flavor;
 
 void configStdIO(bool closeStdIn)
 {
@@ -189,23 +194,18 @@ void configStdIO(bool closeStdIn)
 
 int main(int argc, char *argv[])
 {
-    int i;
-    metricListRec *stuff;
-
     process::programName = argv[0];
-
-    initLibraryFunctions();
-    if (!init())
-      abort();
 
     // process command line args passed in
     // pd_flag == 1 --> started by paradyn
     int pvm_first;
-    assert (RPC_undo_arg_list (argc, argv, pd_machine, pd_family, pd_type,
+    assert (RPC_undo_arg_list (pd_flavor, argc, argv, pd_machine, pd_family, pd_type,
 			       pd_known_socket, pd_flag, pvm_first));
     assert (RPC_make_arg_list(process::arg_list, pd_family, pd_type,
 			      pd_known_socket, pd_flag, 0,
 			      pd_machine, true));
+    string flav_arg(string("-z")+ pd_flavor);
+    process::arg_list += flav_arg;
     struct utsname un;
     P_uname(&un);
     P_strcpy(machine_name, un.nodename);
@@ -220,9 +220,11 @@ int main(int argc, char *argv[])
 
     if (pvm_parent() != PvmNoParent) {
       // started by pvm_spawn
-      assert(!PDYN_initForPVM (argv, pd_machine, pd_family, pd_type, pd_known_socket, 0));
+      // TODO -- report error here
+      if (!PDYN_initForPVM (argv, pd_machine, pd_family, pd_type, pd_known_socket, 0))
+	exit(0);
       tp = new pdRPC(pd_family, pd_known_socket, pd_type, pd_machine, NULL, NULL, 0);
-      tp->reportSelf (machine_name, argv[0], getpid(), metPVM);
+      tp->reportSelf (machine_name, argv[0], getpid(), "pvm");
     } else if (!pd_flag) {
       // started via rsh/rexec --> use socket
       int pid;
@@ -230,7 +232,9 @@ int main(int argc, char *argv[])
       if (pid == 0) {
 	// configStdIO(true);
 	// setup socket
-	assert(!PDYN_initForPVM (argv, pd_machine, pd_family, pd_type, pd_known_socket, 1));
+	// TODO -- report error here
+	if (!PDYN_initForPVM (argv, pd_machine, pd_family, pd_type, pd_known_socket, 1))
+	  exit(0);
 	tp = new pdRPC(pd_family, pd_known_socket, pd_type, pd_machine, NULL, NULL, 0);
       } else if (pid > 0) {
 	// Handshaking with handleRemoteConnect() of paradyn [rpcUtil.C]
@@ -244,8 +248,10 @@ int main(int argc, char *argv[])
 	exit(-1);
       }
      } else {
-      // started via exec   --> use pipe
-      assert(!PDYN_initForPVM (argv, pd_machine, pd_family, pd_type, pd_known_socket, 1));
+       // started via exec   --> use pipe
+       // TODO -- report error here
+      if (!PDYN_initForPVM (argv, pd_machine, pd_family, pd_type, pd_known_socket, 1))
+	exit(0);
       // already setup on this FD.
       // disconnect from controlling terminal 
       OS::osDisconnect();
@@ -268,7 +274,7 @@ int main(int argc, char *argv[])
       } else if (pid > 0) {
 	// Handshaking with handleRemoteConnect() of paradyn [rpcUtil.C]
 	sprintf(errorLine, "PARADYND %d\n", pid);
-	//logLine(errorLine); <<--- WON'T WORK SINCE SOCKETS NOT YET SET UP!!
+	// logLine(errorLine); <<--- WON'T WORK SINCE SOCKETS NOT YET SET UP!!
 	fprintf(stdout, errorLine); // this works just fine...no need for logLine()
 	fflush(stdout);
 	_exit(-1);
@@ -285,20 +291,20 @@ int main(int argc, char *argv[])
 
     cyclesPerSecond = timing_loop() * 1000000;
 
-    //
-    // tell client about our metrics.
-    //
-    stuff = getMetricList();
-    for (i=0; i < stuff->count; i++) {
-	tp->newMetricCallback(stuff->elements[i].getMetInfo());
-    }
+    // Note -- it is important that this daemon receives all mdl info
+    // before starting a process
+    assert(mdl_get_initial(pd_flavor, tp));
 
-    controllerMainLoop();
+    initLibraryFunctions();
+    if (!init())
+      abort();
+
+    controllerMainLoop(true);
 }
 
 #ifdef PARADYND_PVM
 
-int
+bool
 PDYND_report_to_paradyn (int pid, int argc, char **argv)
 {
     assert(tp);
@@ -307,6 +313,6 @@ PDYND_report_to_paradyn (int pid, int argc, char **argv)
       as += argv[i];
 
     tp->newProgramCallbackFunc(pid, as, machine_name);
-    return 0;
+    return true;
 }
 #endif
