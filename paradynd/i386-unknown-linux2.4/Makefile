@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.6 2001/02/02 21:24:19 gurari Exp $
+# $Id: Makefile,v 1.7 2001/02/20 21:45:36 gurari Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -36,8 +36,9 @@ SRCS =		../../dyninstAPI/src/linux.C \
 		../../dyninstAPI/src/arch-x86.C \
 		../../dyninstAPI/src/Object-elf.C \
 		../../dyninstAPI/src/func-reloc.C \
+	        ../../dyninstAPI/src/LocalAlteration.C \
 	        ../../dyninstAPI/src/LocalAlteration-x86.C \
-	        ../../dyninstAPI/src/FunctionExpansionRecord-x86.C \
+	        ../../dyninstAPI/src/FunctionExpansionRecord.C \
 		../../dyninstAPI/src/unix.C  \
 		../../rtinst/src/RThwtimer-linux.c
 

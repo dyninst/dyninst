@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.9 2001/02/02 21:15:54 gurari Exp $
+# $Id: Makefile,v 1.10 2001/02/20 21:45:46 gurari Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -20,8 +20,9 @@ SRCS =		../src/pdwinnt.C \
 		../src/inst-winnt.C \
 		../src/inst-x86.C \
 		../src/func-reloc.C \
+		../src/LocalAlteration.C \
 		../src/LocalAlteration-x86.C \
-		../src/FunctionExpansionRecord-x86.C \
+		../src/FunctionExpansionRecord.C \
 		../src/arch-x86.C \
 		../src/AddressHandle-x86.C
 
@@ -30,8 +31,9 @@ OBJS = 		pdwinnt.obj \
 		inst-x86.obj \
 		arch-x86.obj \
 		func-reloc.obj \
+		LocalAlteration.obj \
 		LocalAlteration-x86.obj \
-		FunctionExpansionRecord-x86.obj \
+		FunctionExpansionRecord.obj \
 		AddressHandle-x86.obj
 
 LIBS		= imagehlp.lib advapi32.lib

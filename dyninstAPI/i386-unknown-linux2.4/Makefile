@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.6 2001/02/02 21:15:49 gurari Exp $
+# $Id: Makefile,v 1.7 2001/02/20 21:45:44 gurari Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -25,8 +25,9 @@ SRCS =          ../src/linux.C \
 		../src/parseStab.C \
 		../src/AddressHandle-x86.C \
 		../src/func-reloc.C \
+	        ../src/LocalAlteration.C \
 	        ../src/LocalAlteration-x86.C \
-		../src/FunctionExpansionRecord-x86.C \
+		../src/FunctionExpansionRecord.C \
 		../../common/src/linuxKludges.C \
 		../../common/src/timing-linux.C
 
