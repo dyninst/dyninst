@@ -42,6 +42,11 @@
 /*
  * 
  * $Log: aggregateSample.C,v $
+ * Revision 1.15  1997/09/26 15:51:07  tamches
+ * startTime() --> firstTimeAndValue().
+ * newValue() now returns void
+ * Provided an int version of newValue()
+ *
  * Revision 1.14  1996/08/16 21:31:50  tamches
  * updated copyright for release 1.1
  *
@@ -74,46 +79,67 @@
 
 #include "util/h/aggregateSample.h"
 
-void sampleInfo::startTime(timeStamp time) {
+// void sampleInfo::startTime(timeStamp time) {
+//   assert(numAggregators > 0);
+//   firstSampleReceived = true;
+//   lastSampleStart = time;
+//   // The remaining fields should be zero.
+//   // It is important that the value of lastSampleEnd is zero, otherwise the
+//   // aggregation code in newValue will not work.
+// }
+
+void sampleInfo::firstTimeAndValue(timeStamp time, int firstValue) {
   assert(numAggregators > 0);
   firstSampleReceived = true;
   lastSampleStart = time;
+
+  assert(lastSample == 0);
+  lastSample = firstValue;
+  
   // The remaining fields should be zero.
   // It is important that the value of lastSampleEnd is zero, otherwise the
   // aggregation code in newValue will not work.
 }
 
-struct sampleInterval sampleInfo::newValue(timeStamp sampleTime, 
-					   sampleValue newVal, 
-					   unsigned weight_)
-{
-    struct sampleInterval ret;
+void sampleInfo::firstTimeAndValue(timeStamp time, float firstValue) {
+  assert(numAggregators > 0);
+  firstSampleReceived = true;
+  lastSampleStart = time;
 
+  assert(lastSample == 0);
+  lastSample = firstValue;
+  
+  // The remaining fields should be zero.
+  // It is important that the value of lastSampleEnd is zero, otherwise the
+  // aggregation code in newValue will not work.
+}
+
+void sampleInfo::newValue(timeStamp sampleTime, 
+                          int newVal,
+                          unsigned weight_) {
     assert(firstSampleReceived);
     assert(sampleTime > lastSampleEnd);
-    // use the first sample to define a baseline in time and value.
-    //if (!firstSampleReceived) {
-    //	firstSampleReceived = true;
-    //	lastSampleStart = sampleTime;
-    //	lastSampleEnd = sampleTime;
-    //	lastSample = 0.0;
-    //	value = newVal;
-    //	ret.valid = false;
-    //	return(ret);
-    //}
-
-    //ret.valid = true;
-    //ret.start = lastSampleEnd;
-    //ret.end = sampleTime;
-    //ret.value = newVal;
 
     // used when it's a component of an aggregate.
     lastSample += newVal;
     lastSampleEnd = sampleTime;
     weight = weight_;
 
-    ret.valid = false;
-    return ret;
+    cout << "sampleInfo::newValue() -- lastSample is now: " << lastSample << endl;
+}
+
+void sampleInfo::newValue(timeStamp sampleTime, 
+                          sampleValue newVal, 
+                          unsigned weight_) {
+    // why does this routine return a value (which is essentially useless)?
+
+    assert(firstSampleReceived);
+    assert(sampleTime > lastSampleEnd);
+
+    // used when it's a component of an aggregate.
+    lastSample += newVal;
+    lastSampleEnd = sampleTime;
+    weight = weight_;
 }
 
 
