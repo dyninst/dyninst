@@ -41,7 +41,7 @@
 
 /*
    DYNINSTsigill:
-	
+
    DYNINSTsigill executes an illegal instruction, causing SIGILL to be
    sent to the calling process.  It is only needed for
    detach-on-the-fly, where detached mutatees stop to wait for the
@@ -50,7 +50,7 @@
    A detached mutatee that stops itself with SIGSTOP will not be
    noticed by the mutator or paradynd.  It must send SIGILL to be
    noticed.
-    
+
    There are two ways to send SIGILL to yourself: call kill() or
    execute an illegal instruction.
 
@@ -61,13 +61,14 @@
    The test suite calls this function through the dynamic loader to
    avoid duplication of code in the test suite and additional makefile
    complexity.
-    
-   3000 bytes of source code for 3 bytes of object code.
+
+   Since ia-64 has no explicit undefined or illegal instruction, we
+   simply try to write into the reserved general register r0.
 */
 
     .text
     .globl DYNINSTsigill
 
 DYNINSTsigill:
-    ud2
-    ret
+    mov r0 = 0
+    br.ret.sptk rp

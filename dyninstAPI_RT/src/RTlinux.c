@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.15 2002/06/10 20:20:33 jaw Exp $
+ * $Id: RTlinux.c,v 1.16 2002/07/22 20:20:52 rchen Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -55,8 +55,11 @@
 
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
+#ifndef ia64_unknown_linux2_4
 extern struct sigaction DYNINSTactTrap;
 extern struct sigaction DYNINSTactTrapApp;
+#endif
+
 #ifdef DETACH_ON_THE_FLY 
 extern struct sigaction DYNINSTactIll;
 extern struct sigaction DYNINSTactIllApp;
@@ -105,7 +108,7 @@ static void DYNINSTillHandler(int sig, struct sigcontext uap)
      unsigned char* eip;
 
      saved_errno = errno;
-     eip = (char*)uap.eip; /* PC at which process will continue when
+     eip = (char*)uap.sc_ip; /* PC at which process will continue when
                               this handler returns */
 
      /* Don't proceed unless we got here because ud2 (0f 0b) was
@@ -166,6 +169,7 @@ DYNINSTos_init(int calledByFork, int calledByAttach)
        Install trap handler.  Currently being used only on x86 platforms.
     */
     
+#ifndef ia64_unknown_linux2_4
     DYNINSTactTrap.sa_handler = (void(*)(int))DYNINSTtrapHandler;
     DYNINSTactTrap.sa_flags = 0;
     sigfillset(&DYNINSTactTrap.sa_mask);
@@ -188,6 +192,7 @@ DYNINSTos_init(int calledByFork, int calledByAttach)
                    DYNINSTactTrapApp.sa_handler);
         }
     }
+#endif /* !ia64_unknown_linux2_4 */
 
 #ifdef DETACH_ON_THE_FLY
     sigfillset(&DYNINSTactIll.sa_mask);
@@ -219,10 +224,6 @@ DYNINSTos_init(int calledByFork, int calledByAttach)
     ptrace(PTRACE_TRACEME, 0, 0, 0);
 }
 
-
-
-
-
 /****************************************************************************
    The trap handler. Currently being used only on x86 platform.
 
@@ -232,6 +233,8 @@ DYNINSTos_init(int calledByFork, int calledByAttach)
    The paradynd is responsible for updating the tramp table when it
    inserts instrumentation.
 *****************************************************************************/
+
+#ifndef ia64_unknown_linux2_4
 
 trampTableEntry DYNINSTtrampTable[TRAMPTABLESZ];
 unsigned DYNINSTtotalTraps = 0;
@@ -252,7 +255,7 @@ static unsigned lookup(unsigned key) {
 }
 
 void DYNINSTtrapHandler(int sig, struct sigcontext uap) {
-    unsigned pc = uap.eip;
+    unsigned pc = uap.sc_ip;
     unsigned nextpc;
 
     /* If we're in the process of running an inferior RPC, we'll
@@ -312,7 +315,7 @@ void DYNINSTtrapHandler(int sig, struct sigcontext uap) {
     if (nextpc) {
       RTprintf("DYNINST trap [%d] 0x%08X -> 0x%08X\n",
                DYNINSTtotalTraps, pc, nextpc);
-      uap.eip = nextpc;
+      uap.sc_ip = nextpc;
     } else {
       if ((DYNINSTactTrapApp.sa_flags&SA_SIGINFO)) {
         if (DYNINSTactTrapApp.sa_sigaction != NULL) {
@@ -348,6 +351,7 @@ void DYNINSTtrapHandler(int sig, struct sigcontext uap) {
     }
     DYNINSTtotalTraps++;
 }
+#endif /* !ia64_unknown_linux2_4 */
 
 int DYNINSTloadLibrary(char *libname)
 {

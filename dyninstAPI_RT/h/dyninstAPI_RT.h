@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: dyninstAPI_RT.h,v 1.14 2002/06/24 15:25:00 chadd Exp $
+ * $Id: dyninstAPI_RT.h,v 1.15 2002/07/22 20:20:48 rchen Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the run-time instrumentation layer.
  */
@@ -64,7 +64,7 @@
 #include <stdio.h>
 #include "common/h/Types.h"
 
-#if defined(i386_unknown_linux2_0) 
+#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
 #include "dyninstAPI/src/linux-signals.h"  // jaw 06-02 -- source definition of SIG_REATTACH
 #endif
 
