@@ -406,13 +406,13 @@ trampTemplate *installBaseTramp(instPoint *&location, process *proc)
             // First, relocate the "FIRST instruction" in the sequence;  
 	    Address fromAddr = location->addr;
 
-	    if (!location -> hasNoStackFrame())
+	    if (!(location -> hasNoStackFrame())) {
 		if (location -> ipType == functionEntry) {
 		    *temp = location -> saveInsn;
 		    temp++;
 		    currAddr += sizeof(instruction);
 		}
-
+            }
 	    *temp = location->originalInstruction;
 
 	    // compute the real from address if this instrumentation
@@ -421,6 +421,7 @@ trampTemplate *installBaseTramp(instPoint *&location, process *proc)
 	    if(proc->getBaseAddress(location->image_ptr,baseAddress)){
 		fromAddr += baseAddress;		
             }
+
             // If the instruction is a call instruction to a location somewhere 
 	    // within the function, then the 07 regester must be saved and 
 	    // resored around the relocated call from the base tramp...the call
@@ -480,6 +481,55 @@ trampTemplate *installBaseTramp(instPoint *&location, process *proc)
 	    // Again, for leaf function, one more is needed to move for one
 	    // more spot;
 	    if (location->hasNoStackFrame()) {
+		// check to see if the otherInstruction is a call instruction
+		// to itself, if so then generate the following
+		// before 		after 		basetramp
+		// ------		-----		---------
+		// mov   originalInsn	mov		sethi
+		// call  otherInsn 	call 		save
+		// sethi delaySlot	nop		call
+		//					restore
+		// the idea is to not really relocate the originalInsn, and
+		// relocate only the call otherInsn and delaySlot instrn
+		// then do a save and restore around the relocated call to
+		// save the value of the o7 register from the call to base tramp
+		*temp = location->otherInstruction;
+		fromAddr += sizeof(instruction);
+ 	        if (isInsnType(*temp, CALLmask, CALLmatch)) {
+ 		  Address offset = fromAddr + (temp->call.disp30 << 2);
+ 		  if ((offset > (location->func->getAddress(0)+baseAddress)) && 
+ 		    (offset < ((location->func->getAddress(0)+ baseAddress)+
+ 				 location->func->size()))) {
+		       location -> isLongJump = true;
+		       // need to replace retore instr with nop 
+		       temp--;
+		       generateNOOP(temp);
+                       // relocate delaySlot instr
+		       temp++;
+		       *temp = location->delaySlotInsn;
+		       fromAddr += sizeof(instruction);
+	               relocateInstruction(temp,fromAddr,currAddr, 
+					  (process *)proc);
+ 		       temp++; 
+ 		       currAddr += sizeof(instruction);
+ 		       genImmInsn(temp, SAVEop3, REG_SP, -112, REG_SP); 
+
+		       // relocate the call instruction     
+ 		       temp++; 
+ 		       currAddr += sizeof(instruction);
+		       fromAddr -= sizeof(instruction);
+		       *temp = location->otherInstruction;
+	               relocateInstruction(temp,fromAddr,currAddr, 
+					   (process *)proc);
+ 		       temp++; 
+ 		       fromAddr += sizeof(instruction); 
+ 		       currAddr += sizeof(instruction);
+ 		       genImmInsn(temp, RESTOREop3, 0, 0, 0);
+                       continue;
+                  }
+                }
+
+                // otherwise relocate the other instruction
 		fromAddr += sizeof(instruction);
 		currAddr += sizeof(instruction);
 		*++temp = location->otherInstruction;
@@ -906,14 +956,43 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 			         2*sizeof(instruction));
 
 	  } else {
-	     instruction *insn = new instruction[3];
-	     genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
-	     generateCallInsn(insn+1, adr+4, (int) ret->baseAddr);
-	     generateNOOP(insn+2);
-	     retInstance = new returnInstance((instructUnion *)insn, 
-						     3*sizeof(instruction), adr, 
-						     3*sizeof(instruction));
-		    
+	    bool already_done = false; 
+	    // check to see if the otherInstruction is a call instruction
+	    // to itself, if so then generate the following
+	    // before 			after 		basetramp
+	    // ------			-----		---------
+	    // mov     originalInsn	mov		sethi
+	    // call    otherInsn	call 		save
+	    // sethi   delaySlot	nop		call
+	    //						restore
+	    // only generate a call and nop...leave the originalInsn
+	    //
+ 	    if (isInsnType(location->otherInstruction, CALLmask, CALLmatch)) {
+ 	      Address offset = location-> func -> getAddress(0)+4 + 
+			       (location->otherInstruction.call.disp30 << 2);
+ 	      if ((offset > (location->func->getAddress(0))) && 
+ 	          (offset < ((location->func->getAddress(0))+
+ 			 location->func->size()))) {
+	             instruction *insn = new instruction[2];
+	             generateCallInsn(insn, adr+4, (int) ret->baseAddr);
+	             generateNOOP(insn+1);
+	             retInstance = new returnInstance((instructUnion *)insn, 
+					     2*sizeof(instruction), adr+4, 
+					     2*sizeof(instruction));
+
+                     already_done = true;
+                 }
+             }
+
+             if(!already_done) {
+	         instruction *insn = new instruction[3];
+	         genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
+	         generateCallInsn(insn+1, adr+4, (int) ret->baseAddr);
+	         generateNOOP(insn+2);
+	         retInstance = new returnInstance((instructUnion *)insn, 
+					     3*sizeof(instruction), adr, 
+					     3*sizeof(instruction));
+	     }	
 	  }
 		
 	  assert(retInstance);
