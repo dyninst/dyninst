@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -40,6 +40,11 @@
  */
 
 #include "parse.h"
+
+
+// utility functions used from main.C
+string	unqual_type( const string& type );
+
 
 interface_spec::interface_spec(const string *name, const unsigned &b,
 			       const unsigned &v)
@@ -118,7 +123,7 @@ bool interface_spec::gen_ctor_hdr(ofstream &out_stream, const bool &server) cons
   if (Options::ml->serial()) {
     out_stream << "// returns true if any requests are buffered\n";
     out_stream << "bool buffered_requests() {\n"
-      << "return (async_buffer.size());\n}\n";
+      << "return (async_buffer.size() > 0);\n}\n";
 
     out_stream << "// Wait until this mesage tag is received, or is found buffered\n";
     out_stream << "bool wait_for(" << Options::type_prefix() << "message_tags m);\n";
@@ -292,9 +297,9 @@ bool interface_spec::gen_scope(ofstream &out_h, ofstream &out_c) const {
        remote_func *rf = rfi.currval();
 
       if (rf->sig_type() != "void")
-	out_h << rf->sig_type(true) << " " << rf->name() << "_call;\n";
+	out_h << unqual_type(rf->sig_type(true)) << " " << rf->name() << "_call;\n";
       if (rf->ret_type() != "void")
-	out_h << rf->ret_type(true) << " " << rf->name() << "_req;\n";
+	out_h << unqual_type(rf->ret_type(true)) << " " << rf->name() << "_req;\n";
     }
     out_h << "};\n";
   }
@@ -384,14 +389,14 @@ bool interface_spec::gen_ctor_1(ofstream &out_stream, const bool &server,
 				const bool &hdr) const {
   out_stream << (!hdr ? gen_class_prefix(server) : string(""))
     << gen_class_name(server) 
-      << "(int use_fd, xdr_rd_func r, xdr_wr_func w, const int nblock)";
+      << "(PDSOCKET use_sock, xdr_rd_func r, xdr_wr_func w, const int nblock)";
   if (hdr) {
     out_stream << ";\n";
     return true;
   }
   
   out_stream << "\n: RPCBase(igen_no_err, 0),\n"
-    << Options::ml->rpc_parent() << "(use_fd, r, w, nblock) ";
+    << Options::ml->rpc_parent() << "(use_sock, r, w, nblock) ";
   if (Options::ml->serial()) out_stream << " , head(0) ";
   out_stream << "\n";
   return true;
@@ -812,8 +817,10 @@ bool interface_spec::gen_wait_loop(ofstream &out_stream, const bool srvr) const 
     out_stream << Options::type_prefix() << "msg_buf KLUDGE_msg_buf;\n";    
     out_stream << "// unsigned len = sizeof(msg_buf);\n";
     out_stream << "unsigned len = sizeof(KLUDGE_msg_buf);\n";
+	out_stream << "thread_t tid = THR_TID_UNSPEC;\n";
     out_stream << "// setRequestingThread(msg_recv((unsigned*)&tag, &msg_buf, &len));\n";
-    out_stream << "setRequestingThread(msg_recv((unsigned*)&tag, &KLUDGE_msg_buf, &len));\n";
+	out_stream << "int err = msg_recv(&tid, (unsigned*)&tag, &KLUDGE_msg_buf, &len);\n";
+    out_stream << "setRequestingThread((err == THR_ERR) ? (unsigned)err : tid);\n";
     out_stream << "if (getRequestingThread() == THR_ERR) ";
     out_stream << Options::error_state("igen_read_err", Options::type_prefix()+"error");
     out_stream << "return switch_on(tag, KLUDGE_msg_buf, buffer);\n"; 
@@ -851,7 +858,7 @@ bool interface_spec::gen_wait_loop(ofstream &out_stream, const bool srvr) const 
   out_stream << "}\n";
 
   if (Options::ml->address_space() == message_layer::AS_one) {
-    out_stream << "if (val != THR_OKAY) ";
+    out_stream << "if (val == THR_ERR) ";
     out_stream <<
       Options::error_state("igen_read_err", Options::type_prefix()+"error");
   }

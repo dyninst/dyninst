@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1998 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.48 1998/04/06 04:26:52 wylie Exp $
+// $Id: main.C,v 1.49 1999/03/03 17:54:06 pcroth Exp $
 
 #include "parse.h"
 #include <iostream.h>
@@ -1207,7 +1207,7 @@ bool remote_func::handle_request(ofstream &out_stream, const bool srvr, bool spe
   }
 
   if (return_arg_.base_type() != "void") 
-    out_stream << return_arg_.type() << " ret = ";
+    out_stream << return_arg_.type( true ) << " ret = ";
   out_stream << name() << "(";
 
   if (Options::ml->address_space() == message_layer::AS_one) {
@@ -1367,12 +1367,14 @@ bool remote_func::gen_stub_helper(ofstream &out_srvr, ofstream &out_clnt,
 bool remote_func::gen_stub_helper_many(ofstream &out_srvr, ofstream &out_clnt,
 				       const bool srvr) const
 {
-  gen_signature((srvr ? out_srvr : out_clnt), false, srvr);
-  (srvr ? out_srvr : out_clnt) << "{\n";
-  if (!is_async_call() && !is_void()) 
-    (srvr ? out_srvr : out_clnt) << return_arg_.type() << " ret_arg;\n";
+  ofstream& out_str = (srvr ? out_srvr : out_clnt);
 
-  (srvr ? out_srvr : out_clnt) << "if (get_err_state() != igen_no_err) {\n"
+  gen_signature(out_str, false, srvr);
+  out_str << "{\n";
+  if (!is_async_call() && !is_void()) 
+    out_str << return_arg_.type() << " ret_arg;\n";
+
+  out_str << "if (get_err_state() != igen_no_err) {\n"
     << "IGEN_ERR_ASSERT;\nreturn " << return_value() << ";\n}\n";
   
   if (srvr) {
@@ -1382,55 +1384,58 @@ bool remote_func::gen_stub_helper_many(ofstream &out_srvr, ofstream &out_clnt,
     out_srvr << "\n}\n";
   }
 
-  (srvr ? out_srvr : out_clnt) << "unsigned tag = " << request_tag() << ";\n";
-  call_sig_.tag_bundle_send((srvr ? out_srvr : out_clnt), return_value(),
+  out_str << "tag_t tag = " << request_tag() << ";\n";
+  call_sig_.tag_bundle_send(out_str, return_value(),
 			    request_tag());
 
   if (!is_async_call()) {
-    (srvr?out_srvr:out_clnt) << "if (!awaitResponse(" << response_tag() << ")) "
+    out_str << "if (!awaitResponse(" << response_tag() << ")) "
       << Options::error_state("igen_read_err", return_value());
 
     // set direction decode 
     if (!is_void()) {
-    // (srvr?out_srvr:out_clnt) << Options::set_dir_decode() << ";\n";
+    // out_str << Options::set_dir_decode() << ";\n";
 
       // decode something
-      (srvr?out_srvr:out_clnt) << "if(!"
+      out_str << "if(!"
 	<< (Options::all_types[return_arg_.base_type()])->gen_bundler_call("net_obj()",
 								      "&ret_arg",
 								      return_arg_.stars())
 	  << ") ";
-      (srvr?out_srvr:out_clnt) << Options::error_state("igen_decode_err", return_value());
+      out_str << Options::error_state("igen_decode_err", return_value());
     }
 
-    (srvr?out_srvr:out_clnt) << "return " << return_value() << ";\n";
+    out_str << "return " << return_value() << ";\n";
   }
 
-  (srvr ? out_srvr : out_clnt) << "}\n";
+  out_str << "}\n";
   return true;
 }
 
 bool remote_func::gen_stub_helper_one(ofstream &out_srvr, ofstream &out_clnt,
 				      const bool srvr) const
 {
-  gen_signature((srvr ? out_srvr : out_clnt), false, srvr);
-  (srvr ? out_srvr : out_clnt) << "{\n";
-  if (!is_async_call() && !is_void()) 
-    (srvr ? out_srvr : out_clnt) << return_arg_.type() << " ret_arg;\n";
+  ofstream& out_str = (srvr ? out_srvr : out_clnt);
 
-  (srvr ? out_srvr : out_clnt) << "if (get_err_state() != igen_no_err) {\n"
+  gen_signature(out_str, false, srvr);
+  out_str << "{\n";
+  if (!is_async_call() && !is_void()) 
+    out_str << return_arg_.type() << " ret_arg;\n";
+
+  out_str << "if (get_err_state() != igen_no_err) {\n"
     << "IGEN_ERR_ASSERT;\nreturn " << return_value() << ";\n}\n";
   
-  call_sig_.tag_bundle_send((srvr ? out_srvr : out_clnt), return_value(),
+  call_sig_.tag_bundle_send(out_str, return_value(),
 			    request_tag());
 
   if (!is_async_call()) {
     if (return_arg_.type() != "void") {
-      (srvr?out_srvr:out_clnt) << "unsigned len = sizeof(ret_arg);\n";
+      out_str << "unsigned len = sizeof(ret_arg);\n";
     } else
-      (srvr?out_srvr:out_clnt) << "unsigned len = 0;\n";
+      out_str << "unsigned len = 0;\n";
 
-    (srvr?out_srvr:out_clnt) << "unsigned tag = " << response_tag() << ";\n";
+	out_str << "thread_t tid = THR_TID_UNSPEC;\n";
+    out_str << "tag_t tag = " << response_tag() << ";\n";
 
     string rb;
     string lb;
@@ -1442,20 +1447,20 @@ bool remote_func::gen_stub_helper_one(ofstream &out_srvr, ofstream &out_clnt,
       lb = "0";
     }
 
-    (srvr?out_srvr:out_clnt) << "if (" << Options::ml->recv_message()
-      << "(&tag, " << rb << "&len) == " << Options::ml->bundle_fail() << ") ";
-    (srvr?out_srvr:out_clnt) << Options::error_state("igen_read_err", return_value());
+    out_str << "if (" << Options::ml->recv_message()
+      << "(&tid, &tag, " << rb << "&len) == " << Options::ml->bundle_fail() << ") ";
+    out_str << Options::error_state("igen_read_err", return_value());
     
-    (srvr?out_srvr:out_clnt) << "if (len != " << lb << ") ";
-    (srvr?out_srvr:out_clnt) << Options::error_state("igen_read_err", return_value());
+    out_str << "if (len != " << lb << ") ";
+    out_str << Options::error_state("igen_read_err", return_value());
 
-    (srvr?out_srvr:out_clnt) << "if (tag != " << response_tag() << ") ";
-    (srvr?out_srvr:out_clnt) << Options::error_state("igen_read_err", return_value());
+    out_str << "if (tag != " << response_tag() << ") ";
+    out_str << Options::error_state("igen_read_err", return_value());
 
-    (srvr?out_srvr:out_clnt) << "return " << return_value() << ";\n";
+    out_str << "return " << return_value() << ";\n";
   }
 
-  (srvr ? out_srvr : out_clnt) << "}\n";
+  out_str << "}\n";
   return true;
 }
 
@@ -1552,8 +1557,8 @@ bool signature::tag_bundle_send_one(ofstream &out_stream, const string return_va
   case 0:
     break;
   case 1:
-    out_stream << type(true) << " send_buffer(";
-    out_stream << args[0]->name() << ");\n";
+    out_stream << type(true) << " send_buffer = ";
+    out_stream << args[0]->name() << ";\n";
     break;
   default:
     out_stream << type(true) << " send_buffer;\n";
@@ -1571,7 +1576,7 @@ bool signature::tag_bundle_send_one(ofstream &out_stream, const string return_va
     << Options::ml->send_message() << "(net_obj(), " << req_tag
       << ", " << sb;
 
-  out_stream << "if (res != " << Options::ml->bundle_ok() << ") ";
+  out_stream << "if (res == " << Options::ml->bundle_fail() << ") ";
   out_stream << Options::error_state("igen_send_err", return_value);
 
   return true;

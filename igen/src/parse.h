@@ -156,7 +156,7 @@ public:
   bool is_derived() const { return is_derived_;}
   string parent() const { return parent_;}
   void add_kid(const string kid_name);
-  bool has_kids() const { return (kids_.size());}
+  bool has_kids() const { return (kids_.size() > 0);}
 
 private:
   type_type my_type_;
