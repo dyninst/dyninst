@@ -43,8 +43,8 @@
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
- * Revision 1.45  1996/09/12 15:53:23  naim
- * Minor fix to my previous commit - naim
+ * Revision 1.46  1996/09/12 18:25:14  naim
+ * Another minor fix to my previous commit! - naim
  *
  * Revision 1.44  1996/09/12 15:08:21  naim
  * This commit move all saves and restores from the mini-tramps to the base
@@ -1227,6 +1227,7 @@ void installTramp(instInstance *inst, char *code, int codeSize)
     else {
       atAddr = inst->baseAddr+baseTemplate.skipPostInsOffset; 
     }
+    generateNoOp(inst->proc, atAddr);
 }
 
 /*
