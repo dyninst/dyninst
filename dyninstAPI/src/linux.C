@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.141 2004/04/11 04:52:11 legendre Exp $
+// $Id: linux.C,v 1.142 2004/07/23 20:39:00 tlmiller Exp $
 
 #include <fstream>
 
@@ -215,11 +215,9 @@ bool checkForAndHandleProcessEventOnLwp(bool block, dyn_lwp *lwp) {
 #endif
 
 bool dyn_lwp::stop_() {
-#if defined(arch_x86) && defined(os_linux)
-  enqStop();
-#endif
-   return (P_kill(get_lwp_id(), SIGSTOP) != -1); 
-}
+	enqStop();
+	return ( P_kill( get_lwp_id(), SIGSTOP ) != -1 );
+	} /* end dyn_lwp::stop_() */
 
 void OS::osTraceMe(void) { P_ptrace(PTRACE_TRACEME, 0, 0, 0); }
 
@@ -729,7 +727,7 @@ bool waitUntilStoppedGeneral(dyn_lwp *lwp, int options) {
         if(didProcReceiveSignal(new_event.why) && new_event.what == SIGSTOP &&
            new_event.lwp == lwp)
         {
-#if defined(arch_x86) && defined(os_linux)
+#if defined( os_linux )
 	  lwp->deqStop();
 #endif
 	  haveStopped = true;
@@ -1027,7 +1025,8 @@ rawTime64 dyn_lwp::getRawCpuTime_hw()
 rawTime64 dyn_lwp::getRawCpuTime_sw()
 {
   rawTime64 result = 0;
-  int bufsize = 150, utime, stime;
+  int bufsize = 150;
+  unsigned long utime, stime;
   char procfn[bufsize], *buf;
 
   sprintf( procfn, "/proc/%d/stat", get_lwp_id());
@@ -1051,7 +1050,10 @@ rawTime64 dyn_lwp::getRawCpuTime_sw()
       return false;
     }
 
-    if(2==sscanf(buf,"%*d %*s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %d %d "
+	/* While I'd bet that any of the numbers preceding utime and stime could overflow 
+	   a signed int on IA-64, the compiler whines if you add length specifiers to
+	   elements whose conversion has been surpressed. */
+    if(2==sscanf(buf,"%*d %*s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %lu %lu "
 		 , &utime, &stime ) ) {
       // These numbers are in 'jiffies' or timeslices.
       // Oh, and I'm also assuming that process time includes system time
