@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: Monitor-win.C,v 1.2 2004/03/23 01:12:23 eli Exp $
+// $Id: Monitor-win.C,v 1.3 2005/03/14 21:12:48 gquinn Exp $
 //
 // Implementation of the WinMonitor class.
 // A WinMonitor is a Win32-based Monitor.
@@ -28,8 +28,7 @@ Monitor::Monitor( void )
 
 
 WinMonitorData::WinMonitorData( void )
-  : hMutex( CreateMutex( NULL, FALSE, NULL ) ),
-    locked( false )
+  : hMutex( CreateMutex( NULL, FALSE, NULL ) )
 {
     // nothing else to do
 }
@@ -60,10 +59,6 @@ WinMonitorData::Lock( void )
 {
     assert( hMutex != NULL );
     DWORD dwRet = WaitForSingleObject( hMutex, INFINITE );
-    if( dwRet == WAIT_OBJECT_0 )
-    {
-        locked = true;
-    }
     return ((dwRet == WAIT_OBJECT_0) ? 0 : -1);
 }
 
@@ -72,9 +67,7 @@ int
 WinMonitorData::Unlock( void )
 {
     assert( hMutex != NULL );
-    assert( locked );
 
-    locked = false;
     ReleaseMutex( hMutex );
 
     return 0;
@@ -118,7 +111,6 @@ WinMonitorData::WaitOnCondition( unsigned int cvid )
     int ret = -1;
 
     assert( hMutex != NULL );
-    assert( locked );
 
     ConditionVariableMap::iterator iter = cvmap.find( cvid );
     if( iter != cvmap.end() )
@@ -132,6 +124,7 @@ WinMonitorData::WaitOnCondition( unsigned int cvid )
     {
         // bad cvid
         // TODO how to indicate the error?
+	assert(0);
     }
     return ret;
 }
@@ -143,8 +136,7 @@ WinMonitorData::SignalCondition( unsigned int cvid )
     int ret = -1;
 
     assert( hMutex != NULL );
-    assert( locked );
-
+ 
     ConditionVariableMap::iterator iter = cvmap.find( cvid );
     if( iter != cvmap.end() )
     {
@@ -168,7 +160,6 @@ WinMonitorData::BroadcastCondition( unsigned int cvid )
     int ret = -1;
 
     assert( hMutex != NULL );
-    assert( locked );
 
     ConditionVariableMap::iterator iter = cvmap.find( cvid );
     if( iter != cvmap.end() )

@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: Monitor-win.h,v 1.2 2004/03/23 01:12:23 eli Exp $
+// $Id: Monitor-win.h,v 1.3 2005/03/14 21:12:49 gquinn Exp $
 //
 // Declaration of the WinMonitor class.
 // A WinMonitor is a Win32-based Monitor.
@@ -67,7 +67,6 @@ private:
                                 // access to critical section
     ConditionVariableMap cvmap; // map of condition variables, indexed
                                 // by user-chosen id
-    bool locked;                // true iff we are in the critical section
 
 public:
     WinMonitorData( void );
