@@ -10,7 +10,11 @@
 
 /*
  * $Log: metMain.C,v $
- * Revision 1.23  1995/11/03 18:33:51  tamches
+ * Revision 1.24  1995/11/13 14:58:36  naim
+ * Adding "mode" option to the Metric Description Language to allow specificacion
+ * of developer mode for metrics (default mode is "normal") - naim
+ *
+ * Revision 1.23  1995/11/03  18:33:51  tamches
  * changed Paradynrc_NEW to paradyn.rc and
  * .Paradynrc_NEW to .paradyn.rc
  *
@@ -196,7 +200,7 @@ bool metMain(string &userFile)
   // metDoVisi();
   bool mdl_res = mdl_apply();
 
-  return true;
+  return(mdl_res);
 }
 
 bool metDoDaemon()
