@@ -57,31 +57,6 @@ Network::Network( const char *cfgFileName, Network::LeafInfo *** leafInfo,
     }
 }
 
-Network::Network( const char *_configBuf, 
-                    bool unused, const char *_application )
-{
-    network = new NetworkImpl( this, _configBuf, unused, _application );
-}
-
-Network::Network( const char *_configBuf, bool unused,
-                    Network::LeafInfo *** leafInfo, unsigned int *nLeaves )
-{
-    // build the network
-    network = new NetworkImpl( this, _configBuf, unused, NULL );
-    if( !network->fail( ) ) {
-        if( (leafInfo != NULL) && (nLeaves != NULL) )
-        {
-            network->get_LeafInfo( leafInfo, nLeaves );
-        }
-        else
-        {
-            // indicate the error
-            network->error( ESYSTEM, "invalid argument" );
-            network->MRN_errno = MRN_ENETWORK_FAILURE;
-        }
-    }
-}
-
 Network::Network( const char* _configBuffer, 
                     bool /* unused */,
                     const char* _application )
