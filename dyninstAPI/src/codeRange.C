@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: codeRange.C,v 1.7 2005/02/24 20:06:09 tlmiller Exp $
+// $Id: codeRange.C,v 1.8 2005/03/01 23:07:41 bernat Exp $
 
 #include <stdio.h>
 #include "codeRange.h"
@@ -50,6 +50,7 @@
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/func-reloc.h"
+#include "dyninstAPI/src/edgeTrampTemplate.h"
 
 multitrampTemplate *codeRange::is_multitramp() {
    return dynamic_cast<multitrampTemplate *>(this);
@@ -77,6 +78,10 @@ shared_object *codeRange::is_shared_object() {
 
 relocatedFuncInfo *codeRange::is_relocated_func() {
    return dynamic_cast<relocatedFuncInfo *>(this);
+}
+
+edgeTrampTemplate *codeRange::is_edge_tramp() {
+   return dynamic_cast<edgeTrampTemplate *>(this);
 }
 
 void codeRangeTree::leftRotate(entry* pivot){

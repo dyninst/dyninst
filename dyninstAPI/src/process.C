@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.524 2005/02/25 07:04:46 jaw Exp $
+// $Id: process.C,v 1.525 2005/03/01 23:07:43 bernat Exp $
 
 #include <ctype.h>
 
@@ -49,6 +49,7 @@
 #include "common/h/headers.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/func-reloc.h"
+#include "dyninstAPI/src/edgeTrampTemplate.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/dyn_lwp.h"
@@ -1628,7 +1629,7 @@ void process::deleteProcess() {
     }
     // Delete the base (and minitramp) handles if the process execed or exited
     // We keep them around if we detached.
-    if (status_ != detached) {        
+    if (status_ != detached) {
         dictionary_hash_iter<const instPoint *, trampTemplate *>baseMap_iter(baseMap);
         for (; baseMap_iter; baseMap_iter++) {
             // WE ARE NOT DELETING INSTPOINTS as they are shared between processes.
@@ -1938,6 +1939,7 @@ process::process(int iPid, image *iSymbols,
   requestTextMiniTramp(0), //ccw 30 jul 2002
 #endif
   bpatch_thread( NULL ),
+
   baseMap(ipHash),
   PDFuncToBPFuncMap(hash_bp),
   instPointMap(hash_address),
@@ -2141,7 +2143,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
 #if defined(BPATCH_LIBRARY) && defined(rs6000_ibm_aix4_1)
   requestTextMiniTramp(0), //ccw 30 jul 2002
 #endif
-  baseMap(ipHash), // could change to baseMap(parentProc.baseMap)
+  baseMap(ipHash),
   PDFuncToBPFuncMap(hash_bp),
   instPointMap(hash_address),
   trampTrapMapping(parentProc.trampTrapMapping),
@@ -4570,6 +4572,7 @@ int_function *process::findFuncByAddr(Address addr) {
     trampTemplate *basetramp_ptr = range->is_basetramp();
     miniTrampHandle *minitramp_ptr = range->is_minitramp();
     relocatedFuncInfo *reloc_ptr = range->is_relocated_func();
+    edgeTrampTemplate *edge_ptr = range->is_edge_tramp();
     multitrampTemplate *multitramp_ptr = range->is_multitramp();
 
     if(func_ptr) {
@@ -4583,6 +4586,9 @@ int_function *process::findFuncByAddr(Address addr) {
     }
     else if (reloc_ptr) {
         return reloc_ptr->func();
+    }
+    else if (edge_ptr) {
+      return findFuncByAddr(edge_ptr->addrInFunc);
     }
     else if (multitramp_ptr) {
         return multitramp_ptr->location->pointFunc();
@@ -5595,7 +5601,7 @@ BPatch_point *process::findOrCreateBPPoint(BPatch_function *bpfunc,
    }
 
    if (instPointMap.defines(addr)) {
-      return instPointMap[addr];
+     return instPointMap[addr];
    } else {
       if (bpfunc == NULL) {
          const int_function *fc =

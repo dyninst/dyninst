@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: codeRange.h,v 1.7 2005/02/24 20:06:10 tlmiller Exp $
+// $Id: codeRange.h,v 1.8 2005/03/01 23:07:42 bernat Exp $
 
 
 #ifndef _codeRangeTree_h_
@@ -70,6 +70,7 @@ class shared_object;
 class trampTemplate;
 class miniTrampHandle;
 class relocatedFuncInfo;
+class edgeTrampTemplate;
 class multitrampTemplate;
 
 class codeRange {
@@ -90,6 +91,7 @@ class codeRange {
     image *is_image();
     shared_object *is_shared_object();
     relocatedFuncInfo *is_relocated_func();
+    edgeTrampTemplate *is_edge_tramp();
     multitrampTemplate *is_multitramp();
 };
 
