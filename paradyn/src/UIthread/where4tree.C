@@ -2,11 +2,15 @@
 // Ariel Tamches
 
 /* $Log: where4tree.C,v $
-/* Revision 1.2  1995/07/18 03:41:22  tamches
-/* Added ctrl-double-click feature for selecting/unselecting an entire
-/* subtree (nonrecursive).  Added a "clear all selections" option.
-/* Selecting the root node now selects the entire program.
+/* Revision 1.3  1995/07/24 21:35:00  tamches
+/* Added sorting.
+/* Removed member function addChildren()
 /*
+ * Revision 1.2  1995/07/18  03:41:22  tamches
+ * Added ctrl-double-click feature for selecting/unselecting an entire
+ * subtree (nonrecursive).  Added a "clear all selections" option.
+ * Selecting the root node now selects the entire program.
+ *
  * Revision 1.1  1995/07/17  04:59:03  tamches
  * First version of the new where axis
  *
@@ -2068,16 +2072,6 @@ void where4tree<USERNODEDATA>::toggle_highlight_root_only(const bool redrawNow,
    theRootNode.toggle_highlight(redrawNow, tc, middlex, topy);
 }
 
-//template <class USERNODEDATA>
-//void where4tree<USERNODEDATA>::toggle_highlight_entire_subtree(const bool redrawNow,
-//                                                 const int middlex, const int topy) {
-//   toggle_highlight_root_only(redrawNow);
-//
-//   const int numChildren = children.size();
-//   for (int childlcv=0; childlcv < numChildren; childlcv++)
-//      children[childlcv]->toggle_highlight_entire_subtree(redrawNow);
-//}
-
 
 /* ***************************************************************************
  *
@@ -2130,16 +2124,12 @@ template <class USERNODEDATA>
 void where4tree<USERNODEDATA>::addChild(where4tree *theNewChild,
 					const bool explicitlyExpanded,
 					const where4TreeConstants &tc,
-					const bool rethinkGraphicsNow) {
+					const bool rethinkGraphicsNow,
+					bool resortNow) {
    // theNewChild _must_ have been created with C++ new -- not negotiable
    // theNewChild _must_ be fully initialized, too.
    // NOTE: In the current implementation, we always put the child into the listbox
    //       unless explicitlyExpanded is true.
-
-   if (rethinkGraphicsNow) {
-      this->addChildren(1, &theNewChild, &explicitlyExpanded, tc);
-      return;
-   }
 
    const string &childString = theNewChild->getRootName();
    const int childTextWidth = XTextWidth(tc.listboxFontStruct,
@@ -2148,6 +2138,17 @@ void where4tree<USERNODEDATA>::addChild(where4tree *theNewChild,
                                          
    childstruct cs={theNewChild, explicitlyExpanded, childTextWidth};
    this->theChildren += cs;
+
+   if (rethinkGraphicsNow)
+      if (explicitlyExpanded)
+         // no need to rethink listbox dimensions, but a need to
+         // rethink expanded children dimensions
+         rethink_all_expanded_children_dimensions(tc);
+      else
+         rethink_listbox_dimensions(tc);
+
+   if (resortNow)
+      this->sortChildren();
 }
 
 template <class USERNODEDATA>
@@ -2157,6 +2158,8 @@ void where4tree<USERNODEDATA>::doneAddingChildren(const where4TreeConstants &tc)
    rethink_listbox_dimensions(tc); // expensive; cost is O(numchildren)
 
    rethink_all_expanded_children_dimensions(tc);
+
+   sortChildren();
 }
 
 template <class USERNODEDATA>
@@ -2171,38 +2174,48 @@ recursiveDoneAddingChildren(const where4TreeConstants &tc) {
 }
 
 template <class USERNODEDATA>
-void where4tree<USERNODEDATA>::addChildren(const int numChildrenBeingAdded,
-					   where4tree **theNewChildren,
-					   const bool *newExplicitlyExpandedChildren,
-					   const where4TreeConstants &tc) {
-   // Each theNewChild[] _must_ have been created with C++ new -- not negotiable
-   // NOTE: In the current implementation, we assume the existence of a listbox
-   bool allExplicitlyExpanded = true;
-   for (int childlcv=0; childlcv < numChildrenBeingAdded; childlcv++) {
-      const string &childString = theNewChildren[childlcv]->getRootName();
-      const int childTextWidth = XTextWidth(tc.listboxFontStruct,
-                                            childString.string_of(),
-                                            childString.length());
-                                         
-      childstruct cs={theNewChildren[childlcv],
-                      newExplicitlyExpandedChildren[childlcv],
-                      childTextWidth};
+int where4tree<USERNODEDATA>::partitionChildren(int left, int right) {
+   childstruct partitionAroundMe = theChildren[left];
+   
+   left = left-1;
+   right = right+1;
 
-      this->theChildren += cs;
+   while (true) {
+      do {
+         right--;
+      } while (theChildren[right] > partitionAroundMe);
 
-      if (!newExplicitlyExpandedChildren[childlcv]) 
-         allExplicitlyExpanded = false;
+      do {
+         left++;
+      } while (theChildren[left] < partitionAroundMe);
+
+      if (left < right) {
+         // swap theChildren[left] and theChildren[right]
+         childstruct temp = theChildren[left];
+         theChildren[left] = theChildren[right];
+         theChildren[right] = temp;
+      }
+      else
+         return right;
    }
+}
 
-   // If we already have a listbox, then its bounds have changed.
-   // If we don't already have a listbox, then maybe we need one now.
-   if (!allExplicitlyExpanded)
-      // something was added to the listbox
-      rethink_listbox_dimensions(tc); // expensive; cost is O(numchildren)
-   else
-      // nothing was added to the listbox, but something changed w.r.t.
-      // expanded-children-stats
-      rethink_all_expanded_children_dimensions(tc);
+template <class USERNODEDATA>
+void where4tree<USERNODEDATA>::sortChildren() {
+   if (theChildren.size() > 1)
+      sortChildren(0, theChildren.size()-1);
+}
+
+template <class USERNODEDATA>
+void where4tree<USERNODEDATA>::sortChildren(unsigned left, unsigned right) {
+   // quicksort
+
+   if (left >= right)
+      return;
+
+   int partitionIndex = partitionChildren(left, right);
+   sortChildren(left, partitionIndex);
+   sortChildren(partitionIndex + 1, right);
 }
 
 template <class USERNODEDATA>

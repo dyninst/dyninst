@@ -4,11 +4,15 @@
 // Header file for subtree based on where4.fig [and where5.fig]
 
 /* $Log: where4tree.h,v $
-/* Revision 1.2  1995/07/18 03:41:20  tamches
-/* Added ctrl-double-click feature for selecting/unselecting an entire
-/* subtree (nonrecursive).  Added a "clear all selections" option.
-/* Selecting the root node now selects the entire program.
+/* Revision 1.3  1995/07/24 21:34:58  tamches
+/* Added sorting.
+/* Removed member function addChildren()
 /*
+ * Revision 1.2  1995/07/18  03:41:20  tamches
+ * Added ctrl-double-click feature for selecting/unselecting an entire
+ * subtree (nonrecursive).  Added a "clear all selections" option.
+ * Selecting the root node now selects the entire program.
+ *
  * Revision 1.1  1995/07/17  04:59:01  tamches
  * First version of the new where axis
  *
@@ -29,15 +33,14 @@ extern "C" {
    #include <stdlib.h>
 }
 
-#include "String.h"
-
 #ifndef PARADYN
 // The test program already has the correct -I paths set
 #include "Vector.h"
+#include "String.h"
 #else
 #include "util/h/Vector.h"
+#include "util/h/String.h"
 #endif
-
 
 #include "simpSeq.h"
 
@@ -107,6 +110,13 @@ class where4tree {
       bool isExplicitlyExpanded;
       int  nameTextWidthIfInListbox; // caches away an XTextWidth() call [lb width],
          // easing the pain of rethink_listbox_dimensions()
+
+      bool operator<(const childstruct &other) {
+         return theTree->getRootName() < other.theTree->getRootName();
+      }
+      bool operator>(const childstruct &other) {
+         return theTree->getRootName() > other.theTree->getRootName();
+      }
    };
 
    vector<childstruct> theChildren;
@@ -180,9 +190,9 @@ class where4tree {
          }
       }
       else {
-         if (thePath[index].childnum < 0) {
+         if (thePath[index].childnum < 0)
             thePath[index].childnum = -thePath[index].childnum - 1;
-         }
+
          theChildren[thePath[index].childnum].theTree->
                                               noNegativeChildNums(thePath, index+1);
       }
@@ -209,8 +219,7 @@ class where4tree {
 		     const int triangleEndX, const int currBaseLine) const;
       // cost is O(XFillPolygon())
 
-   void draw_listbox(const where4TreeConstants &tc,
-			    int theDrawable,
+   void draw_listbox(const where4TreeConstants &tc, int theDrawable,
                             const int left, const int top,
 			    const int datapart_relative_starty,
 			    const int datapart_relative_height
@@ -283,6 +292,8 @@ class where4tree {
    void manual_construct(const where4TreeConstants &tc);
       // the constructor
 
+   int partitionChildren(int left, int right); // for quicksort
+
  public:
 
    where4tree(const USERNODEDATA &iUserNodeData,
@@ -297,9 +308,10 @@ class where4tree {
 
    // Adding children
    void addChild(where4tree *theNewChild,
-			 const bool explicitlyExpanded,
-			 const where4TreeConstants &tc,
-			 const bool rethinkGraphicsNow=true);
+		 const bool explicitlyExpanded,
+		 const where4TreeConstants &tc,
+		 const bool rethinkGraphicsNow,
+                 const bool resortNow);
       // add a child subtree **that has been allocated with new** (not negotiable)
       // NOTE: In the current implementation, we always put the child into the listbox
       //       unless explicitlyExpanded is true.
@@ -310,14 +322,9 @@ class where4tree {
       // had passed false as the last parameter...(Of course, calling addChildren()
       // just once would have been even better, but it's not always convenient to use.)
 
-   void addChildren(const int numChildrenBeingAdded,
-			    where4tree **theNewChildren, // array of ptrs
-			    const bool *newExplicitlyExpandedChildren, // array
-			    const where4TreeConstants &tc);
-      // add several children at once; more efficient than calling
-      // addChild() several times.
-      // NOTE: In the current implementation, we always put children into listbox,
-      //       unless the corresponding theNewChildren[] entry is true.
+   void sortChildren(unsigned left, unsigned right);
+   void sortChildren();
+      // does no redrawing.
 
    void draw(const where4TreeConstants &tc,
 	     Drawable theDrawable,
@@ -460,10 +467,6 @@ class where4tree {
 				   const int middlex, const int topy);
       // when called, the next redraw will (presumably) look different (although
       // the derived class could be written to ignore highlightedness, I suppose).
-
-//   virtual void toggle_highlight_entire_subtree(const bool redrawNow,
-//                                                const int middlex, const int topy);
-//      // a variant of above routine...recursively highlights each node
 
    bool isHighlighted() const {
       return theRootNode.getHighlighted();
