@@ -2,6 +2,9 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
+ * Revision 1.89  1996/02/26 20:33:18  tamches
+ * where appropriate, changed 2d arg of showError to empty string
+ *
  * Revision 1.88  1996/02/05 18:50:51  newhall
  * StartPhase and newPhaseCallback to take 2 more parameters indicating if the
  * new phase is with new visi and/or a new PC.  The new_visis option is not
@@ -636,9 +639,9 @@ DMnewParadynd ()
 {
   // accept the connection
   int new_fd = RPC_getConnect(dataManager::dm->sock_fd);
-  if (new_fd < 0) {
-    uiMgr->showError(4, "unable to connect to new paradynd");
-  }
+  if (new_fd < 0)
+    uiMgr->showError(4, "");
+
   // add new daemon to dictionary of all deamons
   paradynDaemon::addDaemon(new_fd); 
 }
