@@ -14,9 +14,12 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.40  1996/01/19 20:55:44  newhall
-/* more chages to visiLib interface
+/* Revision 1.41  1996/01/26 19:24:26  newhall
+/* changes so that visiLib can be used by C visis
 /*
+ * Revision 1.40  1996/01/19  20:55:44  newhall
+ * more chages to visiLib interface
+ *
  * Revision 1.39  1996/01/17 18:29:18  newhall
  * reorginization of visiLib
  *
@@ -910,16 +913,22 @@ const visi_sampleType *visi_DataValues(int metric_num, int resource_num){
 //  returns true if the data grid cell corresponding to metric_num
 //  and resource_num contains data
 //
-bool visi_Valid(int metric_num, int resource_num){
-    return visi_dataGrid.Valid(metric_num,resource_num);
+int visi_Valid(int metric_num, int resource_num){
+    if (visi_dataGrid.Valid(metric_num,resource_num))
+	return 1;
+    else
+	return 0;
 }
 
 //
 //  returns true if the data collection has been enabled for metric_num
 //  and resource_num
 //
-bool visi_Enabled(int metric_num, int resource_num){
-    return visi_dataGrid[metric_num][resource_num].Enabled();
+int visi_Enabled(int metric_num, int resource_num){
+    if (visi_dataGrid[metric_num][resource_num].Enabled())
+	return 1;
+    else
+	return 0;
 }
 
 
@@ -955,8 +964,9 @@ int visi_LastBucketFilled(int metric_num,int resource_num){
 // returns true if there are invalid spans of data between the first
 // valid bucket and the last bucket filled
 //
-bool visi_InvalidSpans(int metric_num,int resource_num){
-    return visi_dataGrid.InvalidSpans(metric_num, resource_num);
+int visi_InvalidSpans(int metric_num,int resource_num){
+    if(visi_dataGrid.InvalidSpans(metric_num, resource_num)) return 1;
+    else return 0;
 }
 
 //
@@ -975,13 +985,13 @@ void *visi_GetUserData(int metric_num, int resource_num){
 //
 // sets the user data associated with metric_num and resource_num
 //
-bool visi_SetUserData(int metric_num, int resource_num, void *data){
+int visi_SetUserData(int metric_num, int resource_num, void *data){
 
     if((metric_num >= 0) && (metric_num < visi_dataGrid.NumMetrics())
        && (resource_num >= 0) && (resource_num < visi_dataGrid.NumResources())){
         visi_dataGrid[metric_num][resource_num].userdata = data;
-	return true;
+	return 1;
     }
-    return false;
+    return 0;
 }
 

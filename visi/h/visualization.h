@@ -21,9 +21,11 @@
 //  interface routines.  
 /////////////////////////////////////////////////////////
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #include "visiTypes.h"
-
 /////////////////////////////////////////////////////////////
 // these functions invoke upcalls to a visi interface client
 // (call from visualization process to paradyn)
@@ -205,16 +207,16 @@ extern visi_sampleType visi_DataValue(int metric_num, int resource_num,
 extern const visi_sampleType *visi_DataValues(int metric_num, int resource_num);
 
 //
-//  returns true if the data grid cell corresponding to metric_num   
-//  and resource_num contains data 
+//  returns 1 if the data grid cell corresponding to metric_num   
+//  and resource_num contains data, otherwise returns 0 
 //
-extern bool visi_Valid(int metric_num, int resource_num);
+extern int visi_Valid(int metric_num, int resource_num);
 
 //
-//  returns true if the data collection has been enabled for metric_num   
-//  and resource_num  
+//  returns 1 if the data collection has been enabled for metric_num   
+//  and resource_num, otherwise returns 0  
 //
-extern bool visi_Enabled(int metric_num, int resource_num);
+extern int visi_Enabled(int metric_num, int resource_num);
 
 
 //
@@ -238,10 +240,10 @@ extern int visi_FirstValidBucket(int metric_num, int resource_num);
 extern int visi_LastBucketFilled(int metric_num,int resource_num);
 
 //
-// returns true if there are invalid spans of data between the first
-// valid bucket and the last bucket filled
+// returns 1 if there are invalid spans of data between the first
+// valid bucket and the last bucket filled, otherwise returns 0
 //
-extern bool visi_InvalidSpans(int metric_num,int resource_num);
+extern int visi_InvalidSpans(int metric_num,int resource_num);
 
 //
 // returns the user data associated with metric_num and resource_num
@@ -251,7 +253,12 @@ extern void *visi_GetUserData(int metric_num, int resource_num);
 
 //
 // sets the user data associated with metric_num and resource_num
+// returns 1 on success, or returns 0 on error
 //
-extern bool visi_SetUserData(int metric_num, int resource_num, void *data);
+extern int visi_SetUserData(int metric_num, int resource_num, void *data);
+
+#if defined(__cplusplus)
+};
+#endif /* defined(__cplusplus) */
 
 #endif
