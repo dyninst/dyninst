@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstRPC.I,v 1.115 2004/07/14 18:23:58 eli Exp $
+/* $Id: dyninstRPC.I,v 1.116 2004/07/23 20:39:06 tlmiller Exp $
  */
 
 #define MetStyleEventCounter	0
@@ -190,7 +190,7 @@ $remote class mdl_icode {
 $ignore
 public:
   mdl_icode(mdl_expr *if_expr, mdl_expr *expr);
-  ~mdl_icode();
+  virtual ~mdl_icode();
   bool apply();
 
   const mdl_expr* GetIfExpression( void ) const             { return if_expr_; }
@@ -340,7 +340,7 @@ public:
   mdl_constraint(pdstring id, pdvector<pdstring> *match_path,
 		 pdvector<mdl_stmt*> *stmts, bool replace, u_int d_type,
 		 u_int hierarchy, u_int type);
-  ~mdl_constraint();
+  virtual ~mdl_constraint();
   bool apply();
   bool replace();
   pdstring id();
@@ -401,7 +401,7 @@ public:
 	     pdvector<mdl_stmt*> *mv, pdvector<pdstring> *flavs, 
 	     pdvector<mdl_constraint*> *cons,
 	     pdvector<pdstring> *temp_c, bool developerMode,int unitstype);
-  ~mdl_metric();
+  virtual ~mdl_metric();
 #ifdef NO_MDL_PRINT
   friend ostream& operator<< (ostream &os, const mdl_metric& met) {
     os << "\nMetric: " << met.id_ << " " << met.name_ << " agg_op=" << met.agg_op_ << " style=" 
