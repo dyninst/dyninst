@@ -20,6 +20,10 @@
  * The searchHistoryNode and searchHistoryGraph class methods.
  * 
  * $Log: PCshg.C,v $
+ * Revision 1.32  1996/02/15 23:26:23  tamches
+ * WHYEDGESTYLE to (unsigned)axis in refinement parameter when calling
+ * uiMgr->DAGaddEdge.
+ *
  * Revision 1.31  1996/02/09 05:31:40  karavan
  * changes to support multiple per-phase searches
  *
@@ -152,7 +156,7 @@ searchHistoryNode::addToDisplay(unsigned parentID, const char *label,
     uiMgr->DAGaddNode (mamaGraph->guiToken, nodeID, INACTIVEUNKNOWNNODESTYLE, 
 		       sname.string_of(), name.string_of(), 0);
   }
-  uiMgr->DAGaddEdge (mamaGraph->guiToken, parentID, nodeID, WHYEDGESTYLE,
+  uiMgr->DAGaddEdge (mamaGraph->guiToken, parentID, nodeID, (unsigned)axis,
 		     label);
 }
 
