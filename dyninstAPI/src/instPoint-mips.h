@@ -42,13 +42,15 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: instPoint-mips.h,v 1.2 1999/05/24 21:42:49 cain Exp $
+
 #ifndef _INST_POINT_MIPS_H_
 #define _INST_POINT_MIPS_H_
 
 #include <stdio.h>
 #include "util/h/Types.h" // Address
 #include "arch-mips.h"    // instruction
-#include "symtab.h"       // pd_Function, function_base, image
+#include "dyninstAPI/src/symtab.h"       // pd_Function, function_base, image
 
 typedef Address Offset;
 typedef enum {

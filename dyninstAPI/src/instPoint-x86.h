@@ -41,8 +41,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: instPoint-x86.h,v 1.3 1999/05/24 21:42:49 cain Exp $
+
 #ifndef _INST_POINT_X86_H_
 #define _INST_POINT_X86_H_
+
+#include "dyninstAPI/src/symtab.h"
 
 /************************************************************************
  *

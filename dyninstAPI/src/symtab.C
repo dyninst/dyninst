@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.93 1999/05/03 20:00:09 zandy Exp $
+// $Id: symtab.C,v 1.94 1999/05/24 21:42:55 cain Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -410,7 +410,6 @@ bool image::addInternalSymbol(const string &str, const Address symValue) {
   return false;
 }
 
-
 #ifndef BPATCH_LIBRARY
 /*
  * will search for symbol NAME or _NAME
@@ -536,17 +535,17 @@ pd_Function *image::findOneFunctionFromAll(const string &name) {
 	return ret;
 
     //cerr << "image::findOneFunctionFromAll " << name <<
-    //        " called, unable to find function in hash table" << endl; 
+    //" called, unable to find function in hash table" << endl; 
 
     if (notInstruFunctions.defines(name)) {
-        //cerr << "  (image::findOneFunctionFromAll) found in notInstruFunctions"
-	//     << endl;
+      //cerr << "  (image::findOneFunctionFromAll) found in notInstruFunctions"
+      //<< endl;
         return notInstruFunctions[name];
     }
 
     if (excludedFunctions.defines(name)) {
-        //cerr << "  (image::findOneFunctionFromAll) found in excludedFunctions"
-	//     << endl;
+      //cerr << "  (image::findOneFunctionFromAll) found in excludedFunctions"
+      //<< endl;
         return excludedFunctions[name];
     }
     return NULL;
@@ -621,8 +620,6 @@ pd_Function *image::findFunctionInInstAndUnInst(const Address &addr,const proces
 
   if (funcsByAddr.find(addr, pdf))
      return pdf;
-  else
-     return NULL;
   
   // If not found, we are going to search them in the 
   // uninstrumentable function
@@ -814,6 +811,40 @@ void image::defineModules() {
 #endif
 }
 
+#ifndef BPATCH_LIBRARY
+void image::FillInCallGraphStatic(process *proc) {
+  unsigned i;
+  string pds; pdmodule *mod;
+  pd_Function *mainFunction;
+  dictionary_hash_iter<string, pdmodule*> mi(modsByFileName);
+
+  // define call graph relations for all non-excluded modules.
+  while (mi.next(pds, mod)){
+    mod->FillInCallGraphStatic(proc);
+  }
+
+  // also define call graph relations for all excluded modules.
+  //  Call graph gets information about both included and excluded 
+  //  modules and functions, and allows the DM and PC to decide whether
+  //  to look at a given function based on whether the function is 
+  //  included or excluded....
+  for(i=0;i<excludedMods.size();i++) {
+    mod = excludedMods[i];
+    mod->FillInCallGraphStatic(proc);
+  }
+}
+#endif
+
+//  Comments on what this does would be nice....
+//  Appears to run over a pdmodule, after all code in it has been processed
+//   and parsed into functions, and define a resource for the module + a 
+//   resource for every function found in the module (apparently includes 
+//   excluded functions, but not uninstrumentable ones)....
+//  Can't directly register call graph relationships here as resources
+//   are being defined, because need all resources defined to 
+//   do that....
+
+
 void pdmodule::define() {
 #ifndef BPATCH_LIBRARY
   resource *modResource = NULL;
@@ -848,12 +879,14 @@ void pdmodule::define() {
 					    MDL_T_MODULE,
 					    false);
       }
-      resource::newResource(modResource, pdf,
-			    nullString, // abstraction
-			    pdf->prettyName(), 0.0,
-			    nullString, // uniquifier
-			    MDL_T_PROCEDURE,
-			    false);
+
+      pdf->SetFuncResource(resource::newResource(modResource, pdf,
+						 nullString, // abstraction
+						 pdf->prettyName(), 0.0,
+						 nullString, // uniquifier
+						 MDL_T_PROCEDURE,
+						 false));		   
+      
     }
 #endif
   }
@@ -864,6 +897,106 @@ void pdmodule::define() {
 }
 
 #ifndef BPATCH_LIBRARY
+// send message to data manager to specify the entry function for the
+//  call graph corresponding to a given image.  r should hold the 
+//  FULL resourcename of the entry function (e.g. "/Code/module.c/main")
+void CallGraphSetEntryFuncCallback(process *proc, string r) {
+    tp->CallGraphSetEntryFuncCallback(0, r);
+}
+
+//send message to the data manager, notifying it that all of the statically
+//determinable functions have been registered with the call graph. The
+//data manager will then be able to create the call graph.
+void CallGraphFillDone(process *proc){
+  tp->CallGraphFillDone(0);
+}
+
+//send message to the data manager in order to register a function 
+//in the call graph.
+void AddCallGraphNodeCallback(process *proc, string r) {
+    tp->AddCallGraphNodeCallback(0, r);
+}
+
+//send a message to the data manager in order register a the function
+//calls made by a function (whose name is stored in r).
+void AddCallGraphStaticChildrenCallback(process *proc,  string r,
+        const vector <string>children) {
+    tp->AddCallGraphStaticChildrenCallback(0, r, children);
+}
+
+// Called across all modules (in a given image) to define the call
+//  graph relationship between functions.
+// Must be called AFTER all functions in all modules (in image) are
+//  registered as resource (e.g. w/ pdmodule::define())....
+void pdmodule::FillInCallGraphStatic(process *proc) {
+    pd_Function *pdf, *callee;
+    vector <pd_Function *>callees;
+    resource *r , *callee_as_resource;
+    string callee_full_name;
+    vector <string>callees_as_strings;
+    unsigned f, g, f_size = funcs.size();
+
+    string resource_full_name;
+
+    // for each INSTRUMENTABLE function in the module (including excluded 
+    //  functions, but NOT uninstrumentable ones)....
+    for (f=0;f<f_size;f++) {
+        pdf = funcs[f];
+
+        callees_as_strings.resize(0);
+
+	// Translate from function name to resource *.
+	// Note that this probably is NOT the correct translation, as 
+	//  function names are not necessarily unique, but the paradyn
+	//  code assumes that they are in several places (e.g. 
+	//  resource::findResource)....
+	resource_full_name = pdf->ResourceFullName();
+	r = resource::findResource(resource_full_name);
+	                          // functions registered under pretty name....
+        assert(r != NULL);
+
+	// get list of statically determined call destinations from pdf,
+        //  using the process info to help fill in calls througb PLT
+        //  entries....
+      
+        pdf->getStaticCallees(proc, callees); 
+	
+	// and convert them into a list of resources....
+	for (g=0;g<callees.size();g++) {
+	    callee = callees[g];
+	    assert(callee);
+
+	    if (callee->FuncResourceSet() == false) {
+	      //cerr << " WARNING (finding call graph children of function "
+	      // << resource_full_name.string_of() 
+	      // << " ) : callee function: " << endl 
+	      // << callee->prettyName().string_of() 
+	      // << " never registered as resource " 
+	      // << " (function probably uninstrumentable) "
+	      // << " not including link in call graph"
+	      // << endl;
+	    }
+	    else {
+	      callee_full_name = callee->ResourceFullName();
+	      
+	      // if callee->funcResource has been set, then it should have 
+              //  been registered as a resource.... 
+	      callee_as_resource = resource::findResource(callee_full_name);
+	      assert(callee_as_resource);
+	      
+	      callees_as_strings += callee_full_name;
+	    }
+	}//end for
+
+	// register that callee_resources holds list of resource*s 
+	//  describing children of resource r....
+	AddCallGraphNodeCallback(proc, resource_full_name);
+	AddCallGraphStaticChildrenCallback(proc, resource_full_name,
+				   callees_as_strings);
+    } 
+}
+#endif // ndef BPATCH_LIBRARY
+
 // get all functions in module which are not "excluded" (e.g.
 //  with mdl "exclude" command.  
 // Assed to provide support for mdl "exclude" on functions in
@@ -878,19 +1011,23 @@ vector<function_base *> *pdmodule::getIncludedFunctions() {
         //print_func_vector_by_pretty_name(string("  "), (vector<function_base *>*)&some_funcs);
         return (vector<function_base *>*)&some_funcs;
     }
+#ifdef BPATCH_LIBRARY  //BPatch Library doesn't know about excluded funcs 
+    some_funcs = funcs;
+#else
     some_funcs.resize(0);
     
     if (filter_excluded_functions(funcs, some_funcs, fileName()) == FALSE) {
         //cerr << "  about to return NULL";
 	return NULL;
     }
+#endif
     some_funcs_inited = TRUE;
     
     //cerr << "  about to return : " << endl;
     //print_func_vector_by_pretty_name(string("  "),(vector<function_base *>*) &some_funcs);
     return (vector<function_base *>*)&some_funcs;
 }
-#endif
+
 
 const vector<pd_Function*> &image::getAllFunctions() {
     //cerr << "pdmodule::getAllFunctions() called, about to return instrumentableFunctions = " << endl;
@@ -1607,7 +1744,6 @@ void image::initialize(const string &fileName, bool &err,
     // sort the modules by address
     statusLine("sorting modules");
     tmods.sort(symbol_compare);
-    //  assert(mods.sorted(symCompare));
 
     // remove duplicate entries -- some .o files may have the same 
     // address as .C files.  kludge is true for module symbols that 
@@ -1764,6 +1900,9 @@ pd_Function::pd_Function(const string &symbol, const string &pretty,
   function_base(symbol, pretty, adr, size,tg),
   file_(f),
   funcEntry_(0),
+#ifndef BPATCH_LIBRARY
+  funcResource(0),
+#endif
   relocatable_(false)
 {
   err = findInstPoints(owner) == false;

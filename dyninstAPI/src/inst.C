@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: inst.C,v 1.65 1999/03/19 18:11:07 csserra Exp $
+/* $Id: inst.C,v 1.66 1999/05/24 21:42:47 cain Exp $
  * inst.C - Code to install and remove inst funcs from a running process.
  */
 
@@ -47,7 +47,7 @@
 //#include <sys/signal.h>
 //#include <sys/param.h>
 
-
+#include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
@@ -64,6 +64,68 @@ dictionary_hash <string, unsigned> primitiveCosts(string::hash);
   extern void resetBR( process *p, Address loc);               //inst-power.C
 #endif
 
+#ifndef BPATCH_LIBRARY
+static unsigned function_base_ptr_hash(function_base *const &f) {
+  function_base *ptr = f;
+  unsigned l = (unsigned)ptr;
+  return addrHash4(l); 
+}
+
+// Fill in <callees> with list of statically determined callees of
+//  function.  
+// Uses process specific info to try to fill in the unbound call
+//  destinations through PLT entries.  Note that when it determines
+//  the destination of a call through the PLT, it puts that
+//  call destination into <callees>, but DOES NOT fill in the
+//  call destination in the function's instPoint.  This is because
+//  the (through PLT) binding is process specific.  It is possible, 
+//  for example, that one could have 2 processes, both sharing the
+//  same a.out image, but which are linked with different versions of
+//  the same shared library (or with the same shared libraries in 
+//  a different order), in which case the pd_Function data would be 
+//  shared between the processes, but the (through-PLT) call 
+//  destinations might NOT be the same.
+// Should filter out any duplicates in this callees list....
+
+bool pd_Function::getStaticCallees(process *proc,
+				   vector <pd_Function *>&callees) {
+    unsigned u;
+    function_base *f;
+    bool found;
+    
+    dictionary_hash<function_base *, function_base *> 
+      filter(function_base_ptr_hash);
+    
+    callees.resize(0);
+
+    // possible algorithm : iterate over calls (vector of instPoint *)
+    //   for each elem : use iPgetCallee() to get statically determined
+    //   callee....
+    for(u=0;u<calls.size();u++) {
+      //this call to iPgetCallee is platform specific
+      f = (function_base *) calls[u]->iPgetCallee();
+      
+      if (f == NULL) {
+	//cerr << " unkown call destination";
+	found = proc->findCallee((*calls[u]), f);
+	if (f != NULL) {
+	  //cerr << " found w/ process specific PLT info" << endl;
+	} else {
+	  //cerr << " not found in PLT info" << endl;
+	}
+      } else if (filter.defines(f)) {
+	//cerr << " call destination " << f->prettyName().string_of() << 
+	//" already seen by filer" << endl;
+      }
+      
+      if (f != NULL && !filter.defines(f)) {
+      callees += (pd_Function *)f;
+	filter[f] = f;
+	}
+      }
+    return true;
+}
+#endif
 
 // get the address of the branch from the base to the minitramp
 Address getBaseBranchAddr(process *, instInstance *inst)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.170 1999/05/21 17:32:39 wylie Exp $
+// $Id: process.C,v 1.171 1999/05/24 21:42:50 cain Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2180,6 +2180,9 @@ bool process::handleStartProcess(){
 #endif
 
 #ifndef BPATCH_LIBRARY
+    statusLine("building process call graph");
+    this->FillInCallGraphStatic();
+
     if(resource::num_outstanding_creates)
        this->setWaitingForResources();
 #endif
@@ -2335,10 +2338,10 @@ function_base *process::findOneFunction(resource *func,resource *mod){
     const vector<string> &m_names = mod->names();
     string func_name = f_names[f_names.size() -1]; 
     string mod_name = m_names[m_names.size() -1]; 
-
+    
     //cerr << "process::findOneFunction called.  function name = " 
-    //	   << func_name.string_of() << endl;
-
+    //   << func_name.string_of() << endl;
+    
     // KLUDGE: first search any shared libraries for the module name 
     //  (there is only one module in each shared library, and that 
     //  is the library name)
@@ -2348,13 +2351,13 @@ function_base *process::findOneFunction(resource *func,resource *mod){
 	    next = ((*shared_objects)[j])->findModule(mod_name,true);
 	    if(next){
 	        if(((*shared_objects)[j])->includeFunctions()){	
-		    //cerr << "function found in module " << mod_name.string_of() << endl;
+		  //cerr << "function found in module " << mod_name.string_of() << endl;
 	            return(((*shared_objects)[j])->findOneFunction(func_name,
 								   true));
 		} 
 		else { 
-		    //cerr << "function found in module " << mod_name.string()
-		    //     << " that module excluded" << endl;
+		  //cerr << "function found in module " << mod_name.string_of()
+		  //    << " that module excluded" << endl;
 		  return 0;
 		} 
 	    }
@@ -2442,8 +2445,6 @@ function_base *process::findOneFunctionFromAll(const string &func_name){
 	        return(pdf);
 	    }
     } }
-    return(0);
-
     return(0);
 }
 
@@ -4116,3 +4117,59 @@ void mutationList::insertTail(Address addr, int size, const void *data) {
     tail = n;
 }
 #endif /* BPATCH_SET_MUTATIONS_ACTIVE */
+
+//
+// Fill in the statically determinable components of the call
+//  graph for process.  "statically determinable" refers to
+//  the problem that some call destinations cannot be determined
+//  statically, but rather instrumentation must be inserted to
+//  determine the actual target (which may change depending on when 
+//  the call is executed).  For example conmsider the assembly code 
+//  fragment:
+//   ....
+//   call <random>  // puts random number (in some range) in g1
+//   nop
+//   call %g1
+//   nop
+//   ....
+//  Code where the call target cannot be statically determined has
+//   been observed w/ pointers to functions, switch statements, and 
+//   some heavily optimized SPARC code.
+//  Parameters:
+//   Called just after an image is parsed and added to process
+//   (image can represent either a.out or shared object).  
+//   img - pointer to image just parsed and added.
+//   shared_object - boolean inidcating whether img refers to an
+//   a.out or shared object.
+//
+//  NOTE : Paradynd keeps 1 copy of each image, even when that image
+//   appears in multiple processes (e.g. when that image represents
+//   a shared object).  However, for keeping track of call graphs,
+//   we want to keep a SEPERATE call graph for every process - this
+//   includes the images which may be shared by multiple processes.
+//   The reason for this is that when adding dynamically determined
+//   call destinations, we want them to apply ONLY to the process
+//   in which they are observed, NOT to other processes which may share
+//   e.g. the same shared library. 
+#ifndef BPATCH_LIBRARY
+void process::FillInCallGraphStatic() {
+    pd_Function *entry_point;
+    
+    // specify entry point (location in code hierarchy to begin call 
+    //  graph searches) for call graph.  Currently, begin searches at
+    //  "main" - note that main is usually NOT the actual entry point
+    //  there is usually a function which does env specific initialization
+    //  and sets up exit handling (at least w/ gcc on solaris).  However,
+    //  this function is typically in an excluded module.  Anyway, setting
+    //  main as the entry point should usually work fairly well, except
+    //  that call graph PC searches will NOT catch time spent in the
+    //  environment specific setup of _start.
+    entry_point = (pd_Function *)findOneFunction("main");
+    assert(entry_point);
+ 
+    CallGraphSetEntryFuncCallback(this, entry_point->ResourceFullName());
+    symbols->FillInCallGraphStatic(this);
+    CallGraphFillDone(this);
+    // FILL IN CALL GRAPH FOR ALL SHARED LIBRARIES....
+}
+#endif

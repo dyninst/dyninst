@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.60 1999/05/03 20:00:11 zandy Exp $
+// $Id: symtab.h,v 1.61 1999/05/24 21:42:58 cain Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -263,6 +263,14 @@ class pd_Function : public function_base {
        // By renaming this fn, we make clear that we're returning (1), not (2).
 
     bool isTrapFunc() {return isTrap;}
+    
+#ifndef BPATCH_LIBRARY
+    // Fill in <callees> vector with pointers to all other pd functions
+    //  statically determined to be called from any call sites in 
+    //  this function.
+    // Returns false if unable to fill in that information....
+    bool getStaticCallees(process *proc, vector <pd_Function *> &callees);
+#endif
 
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)   
 
@@ -289,7 +297,7 @@ class pd_Function : public function_base {
     // address for the instPoint
     void modifyInstPoint(const instPoint *&location,process *proc);
 
-    bool calcRelocationExpansions(const image *owner, \
+    bool calcRelocationExpansions(const image *owner,
         FunctionExpansionRecord *fer, int *size_change);
 
     //
@@ -333,12 +341,30 @@ class pd_Function : public function_base {
     Address findStackFrame(const image *owner); // populate above fields
 #endif
 
+#ifndef BPATCH_LIBRARY
+    void SetFuncResource(resource *r) {
+      assert(r != NULL); 
+      funcResource = r;
+    }
+
+    string ResourceFullName() {
+      assert(funcResource); 
+      return funcResource->full_name();
+    }
+
+    bool FuncResourceSet() {
+      return (funcResource != NULL);
+    }
+#endif
+
   private:
     pdmodule *file_;		/* pointer to file that defines func. */
     instPoint *funcEntry_;	/* place to instrument entry (often not addr) */
     vector<instPoint*> funcReturns;	/* return point(s). */
     vector<instPoint*> calls;		/* pointer to the calls */
-
+#ifndef BPATCH_LIBRARY
+    resource *funcResource;
+#endif
     // these are for relocated functions
     bool relocatable_;		// true if func will be relocated when instr
 
@@ -394,7 +420,10 @@ friend class image;
 public:
   pdmodule(supportedLanguages lang, Address adr, string &fullNm,
 	   string &fileNm, image *e): module(lang,adr,fullNm,fileNm),
-	   exec_(e){
+#ifndef BPATCH_LIBRARY
+    modResource(0),
+#endif
+    exec_(e){
     some_funcs_inited = FALSE;
   }
   ~pdmodule() { /* TODO */ }
@@ -409,11 +438,21 @@ public:
   void checkAllCallPoints();
   inline void changeLibFlag(const bool setSuppress);
   void define();    // defines module to paradyn
+
+#ifndef BPATCH_LIBRARY
+  void FillInCallGraphStatic(process *proc);
+      // fill in statically determined part of caller-callee relationship
+      //  for paradyn....
+#endif
+
   vector<function_base *> *getFunctions() { return (vector<function_base *>*)&funcs;} 
   vector<function_base *> *getIncludedFunctions();
   function_base *findFunction (const string &name);
 
 private:
+#ifndef BPATCH_LIBRARY
+  resource *modResource;
+#endif
   image *exec_;                      // what executable it came from 
   lineDict lines_;
   //  list of all found functions in module....
@@ -532,6 +571,11 @@ public:
 
   // report modules to paradyn
   void defineModules();
+
+#ifndef BPATCH_LIBRARY
+ // report statically determinable caller-callee relationship to paradyn....
+  void FillInCallGraphStatic(process *proc);
+#endif
 
   bool symbolExists(const string &); /* Does the symbol exist in the image? */
   void postProcess(const string);          /* Load .pif file */
@@ -753,7 +797,11 @@ public:
 
 };
 
-
+#ifndef BPATCH_LIBRARY
+// forward declarations....
+void CallGraphSetEntryFuncCallback(process *proc, string r);
+void CallGraphFillDone(process *proc);
+#endif
 /*
  * a definition of a library function that we may wish to identify.  This is
  *   how we describe it to the symbol table parser, not how it appears in

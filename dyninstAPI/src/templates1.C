@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates1.C,v 1.22 1999/03/19 18:07:22 csserra Exp $
+// $Id: templates1.C,v 1.23 1999/05/24 21:42:59 cain Exp $
 
 #pragma implementation "Dictionary.h"
 #include "util/src/Dictionary.C"
@@ -108,6 +108,10 @@ template class  dictionary_hash_iter <string, metricDefinitionNode*>;
 template class  dictionary_hash <unsigned, pd_Function*>;
 template class  dictionary_hash <unsigned long, pd_Function*>;
 template class  vector<dictionary_hash <unsigned, pd_Function*>::entry>;
+#ifndef BPATCH_LIBRARY
+template class  dictionary_hash <function_base*, function_base*>;
+template class  vector<dictionary_hash <function_base*, function_base*>::entry>;
+#endif
 template class  vector<dictionary_hash <unsigned long, pd_Function*>::entry>;
 template class  dictionary_hash <unsigned, resource *>;
 template class  vector<dictionary_hash <unsigned long, resource *>::entry>;

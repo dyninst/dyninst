@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.108 1999/05/13 23:08:20 hollings Exp $
+/* $Id: process.h,v 1.109 1999/05/24 21:42:53 cain Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -424,7 +424,9 @@ class process {
   bool detach(const bool paused); // why the param?
   bool API_detach(const bool cont); // XXX Should eventually replace detach()
   bool attach();
-
+#ifndef BPATCH_LIBRARY
+  void FillInCallGraphStatic();
+#endif
   //  
   //  PUBLIC DATA MEMBERS
   //  
@@ -723,6 +725,11 @@ class process {
   // Returns false on error (ex. process doesn't contain this instPoint).
   bool findCallee(instPoint &instr, function_base *&target);
 
+#ifndef BPATCH_LIBRARY
+  bool SearchRelocationEntries(const image *owner, instPoint &instr,
+			       function_base *&target,
+			       Address target_addr, Address base_addr);
+#endif
   // these routines are for testing, setting, and clearing the 
   // waiting_for_resources flag, if this flag is true a process is not 
   // started until all outstanding resourceInfoResponses have been received
