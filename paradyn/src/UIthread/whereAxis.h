@@ -4,9 +4,12 @@
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
 /* $Log: whereAxis.h,v $
-/* Revision 1.8  1995/12/09 04:07:58  tamches
-/* added const qualifier to hashFunc
+/* Revision 1.9  1996/01/11 04:43:45  tamches
+/* added necessary Whole Program kludge for getSelections
 /*
+ * Revision 1.8  1995/12/09 04:07:58  tamches
+ * added const qualifier to hashFunc
+ *
  * Revision 1.7  1995/11/06 19:28:44  tamches
  * dictionary_hash --> dictionary_lite
  *
@@ -251,7 +254,7 @@ class whereAxis {
       // pass true for the 2nd param iff you want to select it; false
       // if you want to unselect it.
    
-   vector< vector<resourceHandle> > getSelections() const;
+   vector< vector<resourceHandle> > getSelections(bool &wholeProgram, vector<unsigned> &wholeProgramFocus) const;
    void clearSelections();
 };
 
