@@ -10,7 +10,10 @@
  * symtab.h - interface to generic symbol table.
  *
  * $Log: symtab.h,v $
- * Revision 1.14  1995/02/24 04:42:01  markc
+ * Revision 1.15  1995/05/18 10:42:42  markc
+ * Added code to build procedure lists for the mdl
+ *
+ * Revision 1.14  1995/02/24  04:42:01  markc
  * Check if an address could be for an instruction before checking to see if it
  * is delayed, since we should not be checking instructions that are out of range.
  *
@@ -140,7 +143,7 @@ class pdFunction {
  public:
     pdFunction(const string symbol, const string &pretty, module *f, Address adr,
 	       const unsigned tg, const image *owner, bool &err);
-
+    ~pdFunction() { /* TODO */ }
     void checkCallPoints();
     bool defineInstPoint();
     Address newCallPoint(const Address adr, const instruction code, const image *owner, 
@@ -157,6 +160,7 @@ class pdFunction {
     inline bool isTagSimilar(const unsigned comp) const { return(tag_ & comp);}
     bool isLibTag() const { return (tag_ & TAG_LIB_FUNC);}
     vector<instPoint*> calls;		/* pointer to the calls */
+    unsigned tag() const { return tag_; }
 
   private:
     unsigned tag_;
@@ -170,22 +174,41 @@ class pdFunction {
 };
 
 class instPoint {
- public:
-    instPoint(pdFunction *f, const instruction &instr, const image *owner,
-	      const Address adr, const bool delayOK);
+public:
+  instPoint(pdFunction *f, const instruction &instr, const image *owner,
+	    const Address adr, const bool delayOK);
+  ~instPoint() {  /* TODO */ }
+#ifdef notdef
+  Address addr() const { return addr_; } 
+  instruction originalInstruction() const { return originalInstruction_;} 
+  instruction delaySlotInsn() const { return delaySlotInsn_; }
+  instruction aggregateInsn() const { return aggregateInsn_; }
+  bool inDelaySlot() const { return inDelaySlot_;}
+  bool isDelayed() const { return isDelayed_;}
+  bool callIndirect() const { return callIndirect_;}
+  bool callAggregate() const { return callAggregate_;}
+  pdFunction *callee() const { return callee_; }
+  pdFunction *func() const { return func_;}
+private:
+#endif
 
-    Address addr;                   /* address of inst point */
-    instruction originalInstruction;    /* original instruction */
-    instruction delaySlotInsn;  /* original instruction */
-    instruction aggregateInsn;  /* aggregate insn */
-    bool inDelaySlot;            /* Is the instruction in a delay slot */
-    bool isDelayed;		/* is the instruction a delayed instruction */
-    bool callIndirect;		/* is it a call whose target is rt computed ? */
-    bool callAggregate;		/* calling a func that returns an aggregate
+  // can't set this in the constructor because call points can't be classified until
+  // all functions have been seen -- this might be cleaned up
+  void set_callee(pdFunction *to) { callee = to; }
+
+
+  Address addr;                   /* address of inst point */
+  instruction originalInstruction;    /* original instruction */
+  instruction delaySlotInsn;  /* original instruction */
+  instruction aggregateInsn;  /* aggregate insn */
+  bool inDelaySlot;            /* Is the instruction in a delay slot */
+  bool isDelayed;		/* is the instruction a delayed instruction */
+  bool callIndirect;		/* is it a call whose target is rt computed ? */
+  bool callAggregate;		/* calling a func that returns an aggregate
 				   we need to reolcate three insns in this case
-				 */
-    pdFunction *callee;		/* what function is called */
-    pdFunction *func;		/* what function we are inst */
+				   */
+  pdFunction *callee;		/* what function is called */
+  pdFunction *func;		/* what function we are inst */
 };
 
 
@@ -193,66 +216,50 @@ class instPoint {
 class lineDict {
 public:
   lineDict() : lineMap(uiHash) { }
-  void setLineAddr (const unsigned line, const Address addr) {
-    lineMap[line] = addr; }
-
-  bool getLineAddr (const unsigned line, Address &adr) {
-    if (!lineMap.defines(line)) {
-      return false;
-    } else {
-      adr = lineMap[line];
-      return true;
-    }
-  }
+  ~lineDict() { /* TODO */ }
+  void setLineAddr (unsigned line, Address addr) { lineMap[line] = addr; }
+  inline bool getLineAddr (const unsigned line, Address &adr);
 
 private:
   dictionary_hash<unsigned, Address> lineMap;
 };
 
 class module {
- public:
-    module();
-    void setLineAddr(const unsigned line, const Address addr) {
-      lines.setLineAddr(line, addr); }
+public:
+  inline module(supportedLanguages lang, Address adr, string &fullNm,
+		string &fileNm, image *e);
+  ~module() { /* TODO */ }
 
-    bool getLineAddr(const unsigned line, Address &addr) {
-      return (lines.getLineAddr(line, addr)); }
+  void setLineAddr(unsigned line, Address addr) { lines_.setLineAddr(line, addr); }
+  bool getLineAddr(unsigned line, Address &addr) { 
+                                         return (lines_.getLineAddr(line, addr)); }
 
-    // defines module to paradyn
-    void define();
+  void define();                // defines module to paradyn
 
-    void changeLibFlag(const bool setSuppress) {
-      dictionary_hash_iter<string, pdFunction*> fi(funcMap);
-      string pds; pdFunction *func;
+  inline void changeLibFlag(const bool setSuppress);
+  inline pdFunction *findFunction (const string &name);
+  void mapLines() { }           // line number info is not used now
+  void checkAllCallPoints();
 
-      while (fi.next(pds, func)) {
-	if (setSuppress)
-	  func->tagAsLib();
-	else
-	  func->untagAsLib();
-      }
-    }
-    
-    pdFunction *findFunction (const string &name) {
-      if (funcMap.defines(name)) 
-	return (funcMap[name]);
-      else
-	return NULL;
-    }
+  string fileName() const { return fileName_; }
+  string fullName() const { return fullName_; }
+  supportedLanguages language() const { return language_;}
+  Address addr() const { return addr_; }
+  image *exec() const { return exec_; }
 
-    void mapLines() { }   // line number info is not used now
-    char *compileInfo;
-    string fileName;		/* short file */
-    string fullName;		/* full path to file */
-    supportedLanguages language;
-    Address addr;		/* starting address of module */
-    dictionary_hash<string, pdFunction*> funcMap;    /* functions.defines in this module */
-    image *exec;		/* what executable it came from */
-    void checkAllCallPoints();
+  // Note -- why by address?, this structure is rarely used
+  // the MDL should be the most frequent user and it needs this data structure
+  // to be the same type as the function dictionary in class image
+  vector<pdFunction*> funcs;
 
-  private:
+private:
 
-    lineDict lines;
+  string fileName_;                   // short file 
+  string fullName_;                   // full path to file 
+  supportedLanguages language_;
+  Address addr_;                      // starting address of module
+  image *exec_;                      // what executable it came from 
+  lineDict lines_;
 };
 
 
@@ -267,10 +274,22 @@ class internalSym {
 public:
   internalSym(const Address adr, const string &nm) : name(nm), addr(adr) { }
   Address getAddr() const { return addr;}
+
 private:
   string name;            /* name as it appears in the symbol table. */
   Address addr;      /* absolute address of the symbol */
 };
+
+typedef struct watch_data {
+  string name;
+  bool is_lib;
+  vector<pdFunction*> *funcs;
+  vector<module*> *mods;
+  bool is_func;
+  vector<string> prefix;
+  vector<string> non_prefix;
+} watch_data;
+
 
 class image {
 public:
@@ -278,8 +297,7 @@ public:
   static void changeLibFlag(resource*, const bool);
 
   image(const string &file, bool &err);
-  // TODO
-  ~image() { }
+  ~image() { /* TODO */ }
 
   internalSym *findInternalSymbol(const string name, const bool warn);
   Address findInternalAddress(const string name, const bool warn, bool &err);
@@ -300,6 +318,7 @@ public:
 
   // data member access
   inline Word get_instruction(Address adr) const;
+
   string file() const {return file_;}
   string name() const { return name_;}
   Address codeOffset() const { return codeOffset_;}
@@ -308,7 +327,27 @@ public:
   // functions by address for all modules
   dictionary_hash <Address, pdFunction*> funcsByAddr;
 
+  // TODO -- get rid of one of these
+  dictionary_hash <string, module *> modsByFileName;
+  dictionary_hash <string, module*> modsByFullName;
+
   inline bool isValidAddress(const Address &where) const;
+
+  // Return symbol table information
+  inline bool symbol_info(string& symbol_name, Symbol& ret);
+
+  // Called from the mdl -- lists of functions to look for
+  static void watch_functions(string& name, vector<string> *vs, bool is_lib,
+			      vector<pdFunction*> *updateDict);
+
+  // called from function/module destructor, removes the pointer from the watch list
+  // TODO
+  static void destroy(pdFunction *pdf) { }
+  static void destroy(module *mod) { }
+
+  vector<pdFunction*> mdlLib;
+  vector<pdFunction*> mdlNormal;
+  vector<module*> mods;
 
 private:
   string file_;		/* image file name */
@@ -322,19 +361,16 @@ private:
   // data from the symbol table 
   Object linkedFile;
 
-  // dictionary_hash <string, vector<pdFunction*>*> funcsBySymbol; // by symbol
   dictionary_hash <string, internalSym*> iSymsMap;   // internal RTinst symbols
-  dictionary_hash <string, module *> modsByFileName;
-  dictionary_hash <string, module*> modsByFullName;
 
-  static dictionary_hash <string, image*> allImages;
+  static vector<image*> allImages;
 
   dictionary_hash <string, vector<pdFunction*>*> funcsByPretty;
   // note, a prettyName is not unique, it may map to a function appearing
   // in several modules
 
   bool newFunc(module *, const string name, const Address addr,
-	       const unsigned tags);
+	       const unsigned tags, pdFunction *&retFunc);
 
   void checkAllCallPoints();
 
@@ -351,7 +387,7 @@ private:
 			  vector<Symbol> &mods);
 
   bool addOneFunction(vector<Symbol> &mods, module *lib, module *dyn,
-		      const Symbol &lookUp);
+		      const Symbol &lookUp, pdFunction *&retFunc);
 
   bool addAllFunctions(vector<Symbol> &mods,
 		       module *lib, module *dyn,
@@ -360,13 +396,20 @@ private:
 
   // if useLib = true or the functions' tags signify a library function
   // the function is put in the library module
-  bool defineFunction(module *use, const Symbol &sym, const unsigned tags);
+  bool defineFunction(module *use, const Symbol &sym, const unsigned tags,
+		      pdFunction *&retFunc);
   bool defineFunction(module *lib, const Symbol &sym,
-		      const string &modName, const Address modAdr);
+		      const string &modName, const Address modAdr,
+		      pdFunction *&retFunc);
 
   inline bool isCode(const Address &where) const;
   inline bool isData(const Address &where) const;
   bool heapIsOk(const vector<sym_data>&);
+  
+  static vector<watch_data> watch_vec;
+  static void update_watch_map(unsigned index, vector<string> *vs,
+			       vector<string>& pref,
+			       vector<string>& non_pref);
 };
 
 
@@ -389,8 +432,41 @@ private:
   unsigned tags;
 };
 
-
+// TODO -- remove this
 extern resource *moduleRoot;
+
+bool lineDict::getLineAddr (const unsigned line, Address &adr) {
+  if (!lineMap.defines(line)) {
+    return false;
+  } else {
+    adr = lineMap[line];
+    return true;
+  }
+}
+
+module::module(supportedLanguages lang, Address adr, string &fullNm,
+	       string &fileNm, image *e) 
+: fileName_(fileNm), fullName_(fullNm), language_(lang),
+  addr_(adr), exec_(e) { }
+
+void module::changeLibFlag(const bool setSuppress) {
+  unsigned fsize = funcs.size();
+  for (unsigned f=0; f<fsize; f++) {
+    if (setSuppress)
+      funcs[f]->tagAsLib();
+    else
+      funcs[f]->untagAsLib();    
+  }
+}
+
+pdFunction *module::findFunction (const string &name) {
+  unsigned fsize = funcs.size();
+  for (unsigned f=0; f<fsize; f++) {
+    if (funcs[f]->prettyName() == name)
+      return funcs[f];
+  }
+  return NULL;
+}
 
 Word image::get_instruction(Address adr) const {
   // TODO remove assert
@@ -427,6 +503,13 @@ bool image::isCode(const Address &where) const {
 bool image::isData(const Address &where) const {
   return (linkedFile.data_ptr() && 
 	  (where >= dataOffset_) && (where < (dataOffset_+(dataLen_<<2))));
+}
+
+bool image::symbol_info(string& symbol_name, Symbol &ret_sym) {
+  if (!linkedFile.get_symbol(symbol_name, ret_sym))
+    return false;
+  else
+    return true;
 }
 
 #endif
