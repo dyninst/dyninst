@@ -7,9 +7,12 @@
  * mmthread.h - exported services of the mmthread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.1  1994/01/27 00:41:37  hollings
- * First version of data manager interfaces.
+ * Revision 1.2  1994/02/01 18:47:33  hollings
+ * Upgrades for performanceConsultant thread.
  *
+# Revision 1.1  1994/01/27  00:41:37  hollings
+# First version of data manager interfaces.
+#
  *
  */
 
@@ -92,11 +95,12 @@ typedef (*traceDataCallbackFunc)(performanceStream *ps, metricInstance *mi,
  * union to hold two types of data callback.
  *
  */
-typedef union {
+union dataCallback {
     sampleDataCallbackFunc 	sample;
     traceDataCallbackFunc	trace;
-} dataCallback;
+};
 
+typedef union dataCallback dataCallback;
 
 /*
  * Handler that gets called when a new metric is defined.
@@ -119,10 +123,12 @@ typedef void (*metricInfoCallback)(performanceStream*, metric*);
 typedef void (*resourceInfoCallback)(performanceStream*, resource *parent, 
     resource *newResource, char *name);
 
-typedef struct {
+struct controlCallback {
     metricInfoCallback mFunc;
     resourceInfoCallback rFunc;
-} controlCallback;
+};
+
+typedef struct controlCallback controlCallback;
 
 
 $remote dataManager {
@@ -249,6 +255,10 @@ $remote dataManager {
 
     resource *getResourceParent(resource*);
 
+    resource *newResource(applicationContext *app,
+			  resource *parent, 
+			  char *name);
+
     resourceList *getResourceChildren(resource*);
 
     Boolean isResourceDescendent(resource *parent, resource *child);
@@ -262,8 +272,6 @@ $remote dataManager {
     resourceList *createResourceList();
 
     void addResourceList(resourceList*, resource*);
-
-    resource *newResource(resource *parent, char *name);
 
     // Get the static config. information for the passed applicationContext.
     //
@@ -280,9 +288,14 @@ $remote dataManager {
     char *getMetricName(metric*);
 
     //
+    // get the supporting info about a metric.
+    metricInfo *getMetricInfo(metric*);
+
+    //
     // Get metric out of a metric instance.
     //
     metric *getMetric(metricInstance*);
+    char *getMetricNameFromMI(metricInstance*);
 
     //
     // Get the value of a metric.

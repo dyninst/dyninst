@@ -22,7 +22,7 @@ int createDaemon(String machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 4;
+    $version 8;
 
     //
     // Define a program to run. 
@@ -81,7 +81,6 @@ $remote dynRPC {
     //
     // Handler that gets called when a new resource is defined.
     //
-    // performanceStream	- a stream returned by createPerformanceStream
     // parent		- parent of new resource
     // newResource		- new resource being created (full name)
     // name			- short name of the new resource
@@ -90,6 +89,11 @@ $remote dynRPC {
 					      String parent, 
 					      String newResource, 
 					      String name);
+
+    //
+    // Upcall for a new metric being defined.
+    //
+    $upcall $async void newMetricCallback(metricInfo info); 
 
     void setSampleRate(double sampleInterval);
 
@@ -118,6 +122,11 @@ $remote dynRPC {
     // Get the static configuration information.
     //
     $array metricInfo getAvailableMetrics();
+
+    //
+    // Create a new resource.
+    //
+    void addResource(String parent, String name);
 
     //
     // Debugger style calls.
