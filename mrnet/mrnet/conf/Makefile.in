@@ -13,6 +13,7 @@ CC  = @CC@
 CXX = @CXX@
 CFLAGS      += $(INCDIR) $(WARNFLAGS)
 CXXFLAGS    += $(INCDIR) $(WARNFLAGS)
+C_AS_CPLUSPLUS  = @C_AS_CPLUSPLUS@
 
 MAKEDEPENDS = $(SRCDIR)/conf/makedepends.sh
 DEPENDDIR = ./depends
@@ -213,7 +214,7 @@ tar:
 
 $(OBJDIR)/%.o: %.c $(FRC)
 	echo Compiling `basename $@` ...
-	$(CXX) -x c++ $(CXXFLAGS) -o $@ -c $<
+	$(CXX) $(C_AS_CPLUSPLUS) $(CXXFLAGS) -o $@ -c $<
 
 $(OBJDIR)/%.o: %.C $(FRC)
 	echo Compiling `basename $@` ...

@@ -8,7 +8,6 @@
 
 #include "mrnet/src/pdr.h"
 #include "mrnet/src/pdr_mem.h"
-#include "mrnet/src/utils.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -282,18 +281,16 @@ bool_t pdr_string(PDR *pdrs, char **cpp, uint32_t maxsize)
     if (sp == NULL)
       return FALSE;
     size = strlen(sp);
-    nodesize = (size == 0 ? 0 : size+1); //add 1-byte null terminator
+    nodesize = (size == 0 ? 0 : size+1); /* add 1-byte null terminator */
     break;
   case PDR_DECODE:
     break;
   }
 
   if (! pdr_uint32(pdrs, &nodesize)) {
-    mrn_printf(1, MCFL, stderr, "pdr_uint32() failed\n");
     return FALSE;
   }
   if (size > maxsize) {
-    mrn_printf(3, MCFL, stderr, "size:%d > maxsize:%d\n", size, maxsize);
     return FALSE;
   }
 

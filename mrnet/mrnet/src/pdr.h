@@ -81,7 +81,6 @@ extern bool_t   pdr_double(PDR *pdrs, double *ip);
 extern bool_t   pdr_bool(PDR *pdrs, bool_t *bp);
 extern bool_t   pdr_enum(PDR *pdrs, enum_t *bp);
 
-//extern bool_t   pdr_union();
 extern bool_t   pdr_opaque(PDR *pdrs, char * cp, uint32_t cnt);
 extern bool_t   pdr_bytes(PDR *pdrs, char **cpp, uint32_t *sizep,
                           uint32_t maxsize);
@@ -104,11 +103,6 @@ extern bool_t   pdr_vector(PDR *pdrs, char *basep, uint32_t nelem,
  */
 extern void   pdrmem_create(PDR *pdrs, char * addr, uint32_t size,
                             enum pdr_op op);          /* PDR using memory buffers */
-//extern void   pdrstdio_create();        /* PDR using stdio library */
-//extern void   pdrrec_create();          /* PDR pseudo records for tcp */
-//extern bool_t pdrrec_endofrecord();     /* make end of pdr record */
-//extern bool_t pdrrec_skiprecord();      /* move to beginning of next record */
-//extern bool_t pdrrec_eof();             /* true if no more input */
 
 extern void     pdr_free (pdrproc_t proc, char *objp);
 
@@ -139,12 +133,6 @@ extern uint32_t pdr_sizeof (pdrproc_t, void *);
 #define NULL_xdrproc_t NULL_pdrproc_t
 #endif
 
-//struct xdr_discrim
-//{
-  //int value;
-  //xdrproc_t proc;
-//};
-
 #define xdr_void          pdr_void
 #define xdr_char          pdr_char
 #define xdr_u_char        pdr_uchar
@@ -172,50 +160,17 @@ extern uint32_t pdr_sizeof (pdrproc_t, void *);
 
 
 #define xdr_opaque        pdr_opaque
-//#define xdr_union         pdr_union
 #define xdr_reference     pdr_reference
 #define xdr_pointer       pdr_pointer
 #define xdr_wrapstring    pdr_wrapstring
-
-/*
- * Common opaque bytes objects used by many rpc protocols;
- * declared here due to commonality.
- */
-//#define MAX_NETOBJ_SZ 1024
-//struct netobj
-//{
-  //u_int n_len;
-  //char *n_bytes;
-//};
-//typedef struct netobj netobj;
-//extern bool_t xdr_netobj (XDR *__xdrs, struct netobj *__np) __THROW;
 
 /*
  * These are the public routines for the various implementations of
  * xdr streams.
  */
 
-/* XDR using memory buffers */
+
 #define xdrmem_create pdrmem_create
-
-/* XDR using stdio library */
-//extern void xdrstdio_create (XDR *__xdrs, FILE *__file, enum xdr_op __xop)
-//__THROW;
-
-/* XDR pseudo records for tcp */
-//extern void xdrrec_create (XDR *__xdrs, u_int __sendsize,
-			   //u_int __recvsize, caddr_t __tcp_handle,
-			   //int (*__readit) (char *, char *, int),
-			   //int (*__writeit) (char *, char *, int)) __THROW;
-
-/* make end of xdr record */
-//extern bool_t xdrrec_endofrecord (XDR *__xdrs, bool_t __sendnow) __THROW;
-
-/* move to beginning of next record */
-//extern bool_t xdrrec_skiprecord (XDR *__xdrs) __THROW;
-
-/* true if no more input */
-//extern bool_t xdrrec_eof (XDR *__xdrs) __THROW;
 
 /* free memory buffers for xdr */
 #define xdr_free pdr_free

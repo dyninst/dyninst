@@ -309,7 +309,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT build build_cpu build_vendor build_os host host_cpu host_vendor host_os MRNET_ARCH MRNET_OS MRNET_ROOT MRNET_VERSION CLINKER CXX_LINKER CXX CXXFLAGS ac_ct_CXX ARFLAGS SET_MAKE RANLIB ac_ct_RANLIB AR FLEX BISON CPP EGREP LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT build build_cpu build_vendor build_os host host_cpu host_vendor host_os MRNET_ARCH MRNET_OS MRNET_ROOT MRNET_VERSION CLINKER CXX_LINKER CXX CXXFLAGS ac_ct_CXX C_AS_CPLUSPLUS ARFLAGS SET_MAKE RANLIB ac_ct_RANLIB AR FLEX BISON CPP EGREP LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -3060,6 +3060,13 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
+
+
+if test "$CXX" = "g++" ; then
+    C_AS_CPLUSPLUS="-x c++"
+elif test "$CXX" = "xlC" ; then
+    C_AS_CPLUSPLUS="-+"
+fi
 
 
 ARFLAGS="cr"
@@ -6719,6 +6726,7 @@ s,@CXX_LINKER@,$CXX_LINKER,;t t
 s,@CXX@,$CXX,;t t
 s,@CXXFLAGS@,$CXXFLAGS,;t t
 s,@ac_ct_CXX@,$ac_ct_CXX,;t t
+s,@C_AS_CPLUSPLUS@,$C_AS_CPLUSPLUS,;t t
 s,@ARFLAGS@,$ARFLAGS,;t t
 s,@SET_MAKE@,$SET_MAKE,;t t
 s,@RANLIB@,$RANLIB,;t t

@@ -2,6 +2,7 @@
 /*             Network Class DEFINITIONS                  */
 /*===========================================================*/
 #include <stdio.h>
+#include <algorithm>
 
 #include "mrnet/src/NetworkImpl.h"
 #include "mrnet/src/CommunicatorImpl.h"

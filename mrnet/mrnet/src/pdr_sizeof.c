@@ -4,7 +4,6 @@
 
 #include "mrnet/src/pdr.h"
 #include "mrnet/src/pdr_mem.h"
-#include "mrnet/src/utils.h"
 #include "src/config.h"
 
 static bool_t _putchar(PDR *pdrs, char *)
@@ -150,10 +149,9 @@ uint32_t pdr_sizeof (pdrproc_t func, void *data)
   PDR pdrs;
   bool_t stat;
 
-  mrn_printf(3, MCFL, stderr, "In pdr_sizeof()\n");
   pdrs.p_op = XDR_ENCODE;
   pdrs.p_ops = &_ops;
-  pdrs.space = 4;  //4-byte byte ordering entity
+  pdrs.space = 4;  /* 4-byte byte ordering entity */
   pdrs.cur = (caddr_t) NULL;
   pdrs.base = (caddr_t) 0;
 
@@ -161,6 +159,5 @@ uint32_t pdr_sizeof (pdrproc_t func, void *data)
   if (pdrs.cur)
     free (pdrs.cur);
 
-  mrn_printf(3, MCFL, stderr, "pdr_sizeof() returning %d\n", pdrs.space);
   return stat == TRUE ? pdrs.space : 0;
 }

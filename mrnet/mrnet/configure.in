@@ -148,6 +148,13 @@ AC_SUBST(CFLAGS)
 AC_SUBST(CXX)
 AC_SUBST(CXXFLAGS)
 
+if test "$CXX" = "g++" ; then
+    C_AS_CPLUSPLUS="-x c++"
+elif test "$CXX" = "xlC" ; then
+    C_AS_CPLUSPLUS="-+"
+fi
+AC_SUBST(C_AS_CPLUSPLUS)
+
 ARFLAGS="cr"
 AC_SUBST(ARFLAGS)
 

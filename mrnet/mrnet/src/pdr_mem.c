@@ -1,5 +1,7 @@
+#include <assert.h>
+#include <string.h>
+
 #include "mrnet/src/byte_order.h"
-#include "mrnet/src/utils.h"
 #include "mrnet/src/pdr_mem.h"
 #include "src/config.h"
 
@@ -71,12 +73,9 @@ void pdrmem_create(PDR *pdrs, char * addr, uint32_t size, enum pdr_op op)
       pdrs->space = 0;
     }
     if(remote_bo != local_bo){
-      mrn_printf(3, MCFL, stderr, "Remote_bo:%d != local_bo:%d -- swapping\n",
-                 remote_bo, local_bo);
       pdrs->p_ops = &pdrmem_ops_swap;
       return;
     }
-    mrn_printf(3, MCFL, stderr, "Remote_bo == local_bo -- not swapping\n");
   }
 }
 
