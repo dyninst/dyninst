@@ -3,7 +3,10 @@
  * Interface between the Performance Consultant and the rest of paradyn.
  *
  * $Log: performanceConsultant.I,v $
- * Revision 1.11  1995/02/16 08:01:45  markc
+ * Revision 1.12  1995/10/05 04:48:24  karavan
+ * changes to support multiple searches, one per phase.
+ *
+ * Revision 1.11  1995/02/16  08:01:45  markc
  * Modified interfaces:
  *   1) XDR interfaces use strings and vectors instead of igen arrays and char*'s
  *   2) No sync upcalls are allowed by the server in xdr interfaces
@@ -68,7 +71,7 @@ typedef struct SHNptr_Array {
 
 $remote performanceConsultant {
     $base 6000;
-    $version 4;
+    $version 5;
 
     // for all of the configured tests print their status.
     //  This is intended for debugging only.
@@ -84,28 +87,25 @@ $remote performanceConsultant {
     searchHistoryNode *getCurrentRefinement();
     int getCurrentNodeId();
 
-    // make PC available to user
-    $async void startSHG();
-
-    // destroy any shg state we have
-    $async void clearSHG();
+    // all initialization for new search; checks first if search already
+    // active for specified phase, to enforce 1 search/phase rule
+    // this calls ui->initSHG which opens new display
+    $async void newSearch(phaseType pt);
 
     void printSHGNode(searchHistoryNode *);
     void printSHGList();
 
     // try to make automated refinements.  Up to limit number of steps.
-    $async void search(bool, int limit);
+    $async void search(bool, int limit, int phaseID);
 
     // stop the automated search process in its tracks.
-    $async void pauseSearch();
+    $async void pauseSearch(int phaseID);
 
     // change the current refinement node.
     //  NOTE:  The node must be true and an ancestral path to the root must
     //         also be true or set will fail.
     //         As a side effect, searching is paused!!
     int setCurrentSHGnode(int node);
-
-    void createInterval(int, timeStamp, timeStamp, char*);
 
     // This doesn't work yet !!
     void doRefine(int_Array ids);
