@@ -296,8 +296,8 @@ class paradynDaemon: public dynRPCUser {
 
         static bool applicationDefined(){return(programs.size() != 0);}
 	static vector<string> *getAvailableDaemons();
-        static paradynDaemon  *machineName2Daemon(const string &theMachName);
-           // returns the paradynDaemon w/ this machine name, NULL if not found.
+        static vector<paradynDaemon*> machineName2Daemon(const string &mach);
+           // returns the paradynDaemon(s) w/ this machine name.
 
 	static void getPredictedDataCostCall(perfStreamHandle,metricHandle,
 				      resourceListHandle,resourceList*,metric*,

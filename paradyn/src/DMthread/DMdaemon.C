@@ -503,15 +503,15 @@ vector<string> *paradynDaemon::getAvailableDaemons()
     names = 0;
 }
 
-// For a given machine name, find the appropriate paradynd structure.
-// Returns NULL if an appropriate matching entry can't be found.
-paradynDaemon *paradynDaemon::machineName2Daemon(const string &theMachineName) {
+// For a given machine name, find the appropriate paradynd structure(s).
+vector<paradynDaemon*> paradynDaemon::machineName2Daemon(const string &mach) {
+   vector<paradynDaemon*> v;
    for (unsigned i=0; i < allDaemons.size(); i++) {
       paradynDaemon *theDaemon = allDaemons[i];
-      if (theDaemon->getDaemonMachineName() == theMachineName)
-	 return theDaemon;
+      if (theDaemon->getDaemonMachineName() == mach)
+        v += theDaemon;
    }
-   return 0; // failure; this machine name isn't known!
+   return v;
 }
 
 //Tempest
@@ -1148,18 +1148,19 @@ void paradynDaemon::enableData(vector<metricInstance *> *miVec,
 		    if(rl->getMachineNameReferredTo(machine_name)){
 			// get the daemon corr. to this focus and add it
 			// to the list of daemons
-			paradynDaemon *pd = 
+			vector<paradynDaemon*> vpd = 
 				paradynDaemon::machineName2Daemon(machine_name);
-                        assert(pd);
-			bool found = false;
-			for(u_int k=0; k< daemon_subset.size(); k++){
-			  if(pd->id == daemon_subset[k]->id){
+			assert(vpd.size());
+			for(u_int j=0; j < vpd.size(); j++){
+			  bool found = false;
+
+			  for(u_int k=0; k<daemon_subset.size() && !found; k++)
+			    if(vpd[j]->id == daemon_subset[k]->id) 
 			      found = true;    
-			} }
-			if(!found){ // add new daemon to subset list
-			    daemon_subset += pd;    
-			}
-			pd = 0;
+
+			  if(!found)  // add new daemon to subset list
+			    daemon_subset += vpd[j];
+			}  
 		    }
 		    else {  // foucs is not refined on process or machine 
 			whole_prog_focus = true;
