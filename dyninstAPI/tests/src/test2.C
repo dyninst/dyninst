@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.22 1999/06/30 23:16:12 wylie Exp $
+// $Id: test2.C,v 1.23 1999/07/07 19:02:20 davisj Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -650,6 +650,10 @@ main(unsigned int argc, char *argv[])
             fflush(stdout);
 	} else if (!strcmp(argv[i], "-attach")) {
 	    useAttach = true;
+#if defined ( i386_unknown_nt4_0)
+	    printf(" attach option not supported on this platform.\n");
+	    exit(0);
+#endif
         } else if (!strcmp(argv[i], "-run")) {
             unsigned int j;
             runAllTests = false;
