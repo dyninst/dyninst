@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.97 2002/06/25 20:26:17 bernat Exp $
+// $Id: inst.C,v 1.98 2002/06/26 21:14:07 schendel Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -130,12 +130,12 @@ bool pd_Function::getStaticCallees(process *proc,
 #endif
 
 // get the address of the branch from the base to the minitramp
-Address getBaseBranchAddr(process *, instInstance *inst)
+Address getBaseBranchAddr(process *, const instInstance *inst, callWhen when)
 {
     Address fromAddr;
 
     fromAddr = inst->baseInstance->baseAddr;
-    if (inst->when == callPreInsn) {
+    if(when == callPreInsn) {
 	fromAddr += inst->baseInstance->localPreOffset;
     } else {
 	fromAddr += inst->baseInstance->localPostOffset;
@@ -144,9 +144,9 @@ Address getBaseBranchAddr(process *, instInstance *inst)
 }
 
 // get the address in the base tramp where the minitramp should return to
-Address getBaseReturnAddr(process *, instInstance *inst) {
+Address getBaseReturnAddr(process *, const instInstance *inst, callWhen when) {
     Address returnAddr = inst->baseInstance->baseAddr;
-    if (inst->when == callPreInsn) {
+    if(when == callPreInsn) {
       returnAddr += inst->baseInstance->localPreReturnOffset;
     } else {
       returnAddr += inst->baseInstance->localPostReturnOffset;
@@ -155,12 +155,12 @@ Address getBaseReturnAddr(process *, instInstance *inst) {
 }
 
 // clear the basetramp jump to a minitramp
-void clearBaseBranch(process *proc, instInstance *inst)
+void clearBaseBranch(process *proc, const instInstance *inst, callWhen when)
 {
     Address addr;
 
     addr = inst->baseInstance->baseAddr;
-    if (inst->when == callPreInsn) {
+    if (when == callPreInsn) {
 	addr += inst->baseInstance->localPreOffset;
     } else {
 	addr += inst->baseInstance->localPostOffset;
@@ -176,7 +176,7 @@ void clearBaseBranch(process *proc, instInstance *inst)
     Address fromAddr, toAddr;
 
     int trampCost;
-    if (inst->when == callPreInsn) {
+    if (when == callPreInsn) {
       fromAddr = inst->baseInstance->baseAddr + 
                  inst->baseInstance->skipPreInsOffset;
       toAddr = inst->baseInstance->baseAddr + 
@@ -210,294 +210,273 @@ static int insn[65536/sizeof(int)]; // Made into array of int so it would be
 				    // aligned correctly on platforms that
 				    // need it to be (like SPARC) - BRB
 
-static dictionary_hash<const instPoint*, point*> activePoints(ipHash);
-
 vector<instWaitingList *> instWList;
 
 // Shouldn't this be a member fn of class process?
-instInstance *addInstFunc(process *proc, instPoint *&location,
-			  AstNode *&ast, // ast may change (sysFlag stuff)
-			  callWhen when, callOrder order,
-			  bool noCost,
-			  bool trampRecursiveDesired)
+// writes into miniTrampHandle
+loadMiniTramp_result addInstFunc(miniTrampHandle *mtHandle_save, process *proc,
+			    instPoint *&location,
+			    AstNode *&ast, // ast may change (sysFlag stuff)
+			    callWhen when, callOrder order,
+			    bool noCost,
+			    bool trampRecursiveDesired)
 {
-    returnInstance *retInstance = NULL;
-       // describes how to jmp to the base tramp
+   returnInstance *retInstance = NULL;
+   // describes how to jmp to the base tramp
 
-    bool deferred = false;  // dummy variable
-    instInstance *inst = addInstFunc(proc, location, ast, when, order,
-				     noCost, retInstance, deferred,
-                                     trampRecursiveDesired);
-    if(inst!=NULL)  hookupMiniTramp(inst);
-    if (retInstance) {
-       // Looking at the code for the other addInstFunc below, it seems that
-       // this will always be true...retInstance is never NULL.
+   instInstance *mtInfo = new instInstance;
+   loadMiniTramp_result res = loadMiniTramp(mtInfo, proc, location, ast, 
+					    when, order, noCost, retInstance,
+					    trampRecursiveDesired);
+   
+   miniTrampHandle mtHandle;
+   mtHandle.inst     = mtInfo;
+   mtHandle.location = location;
+   mtHandle.when     = when;
+   
+   if(res == success_res) {
+      hookupMiniTramp(proc, mtHandle, order);
+   } else {
+      delete mtInfo;
+      mtHandle.inst = NULL;
+   }
+   if (retInstance) {
+      // Looking at the code for the other addInstFunc below, it seems that
+      // this will always be true...retInstance is never NULL.
+      
+      retInstance->installReturnInstance(proc);
+      // writes to addr space
+   }
+   
+   // delete retInstance; 
+   // safe if NULL (may have been alloc'd by findAndInstallBaseTramp)
 
-       retInstance-> installReturnInstance(proc);
-       // writes to addr space
-    }
-
-    // delete retInstance; 
-    // safe if NULL (may have been alloc'd by findAndInstallBaseTramp)
-
-    return inst;
+   installed_miniTramps_list *mtList;
+   proc->getMiniTrampList(mtHandle.location, when, &mtList);
+   (*mtHandle_save) = mtHandle;
+   return res;
 }
 
 // Shouldn't this be a member fn of class process?
 // The trampRecursiveDesired flag decides which base tramp is used,
 // _if_ a base tramp is installed. If there is already a base tramp
 // at the instrumentation point, the flag is ignored.
-instInstance *addInstFunc(process *proc, instPoint *&location,
-			  AstNode *&ast, // the ast could be changed 
-			  callWhen when, callOrder order,
-			  bool noCost,
-			  returnInstance *&retInstance, 
-                          bool &deferred,
-			  bool trampRecursiveDesired = false)
+
+// writes to *mtInfo
+loadMiniTramp_result loadMiniTramp(instInstance *mtInfo, process *proc, 
+			    instPoint *&location,
+		            AstNode *&ast, // the ast could be changed 
+		            callWhen when, callOrder order, bool noCost,
+		            returnInstance *&retInstance,
+		            bool trampRecursiveDesired)
 {
+   // retInstance gets filled in with info on how to jmp to the base tramp
+   // (the call to findAndInstallBaseTramp doesn't do that)
+   assert(proc && location);
+   initTramps();
 
-    // retInstance gets filled in with info on how to jmp to the base tramp
-    // (the call to findAndInstallBaseTramp doesn't do that)
-
-    assert(proc && location);
-    initTramps();
-
-    instInstance *ret = new instInstance;
-    assert(ret);
-
-    ret->proc = proc;
-    ret->baseInstance = findAndInstallBaseTramp(proc, location, retInstance,
-   					        trampRecursiveDesired, noCost, 
-                                                deferred);
-
-    if (!ret->baseInstance) {
-       return(NULL);
-    }
+   bool deferred = false;  // dummy variable
+   mtInfo->baseInstance = findAndInstallBaseTramp(proc, location, 
+					    retInstance, trampRecursiveDesired,
+					    noCost, deferred);
+   if (! mtInfo->baseInstance) {
+      if(deferred) return deferred_res;
+      else         return failure_res;
+   }
 #if defined(MT_DEBUG_ON)
-    sprintf(errorLine,"==>BaseTramp is in 0x%lx\n",ret->baseInstance->baseAddr);
-    logLine(errorLine);
+   sprintf(errorLine,"==>BaseTramp is in 0x%lx\n",
+	   mtInfo->baseInstance->baseAddr);
+   logLine(errorLine);
 #endif
 
-    /* check if there are other inst points at this location. for this process
-       at the same pre/post mode */
-    instInstance *firstAtPoint = NULL;
-    instInstance *lastAtPoint = NULL;
+   // must do this before findAndInstallBaseTramp, puts the tramp in to
+   // get the correct cost.
+   // int trampCost = getPointCost(proc, (const instPoint*)location);
 
-    point *thePoint;
-    if (!activePoints.find((const instPoint *)location, thePoint)) {
-       thePoint = new point;
-       activePoints[(const instPoint*)location] = thePoint;
-    }
-    
-//    point *thePoint;
-//    if (!activePoints.defines((const instPoint *)location)) {
-//      thePoint = new point;
-//      activePoints[(const instPoint*)location] = thePoint;
-//    } else
-//      thePoint = activePoints[(const instPoint*)location];
-//    assert(thePoint);
-
-    instInstance *next;
-    for (next = thePoint->inst; next; next = next->next) {
-	if ((next->proc == proc) && (next->when == when)) {
-	    if (!next->nextAtPoint) lastAtPoint = next;
-	    if (!next->prevAtPoint) firstAtPoint = next;
-	}
-    }
-
-    // must do this before findAndInstallBaseTramp, puts the tramp in to
-    // get the correct cost.
-    // int trampCost = getPointCost(proc, (const instPoint*)location);
-
-    // 
-    // Generate the code for this (mini-)tramp.
-    //
-    // return value is offset of return stmnt.
-    //
+   // 
+   // Generate the code for this (mini-)tramp.
+   //
+   // return value is offset of return stmnt.
+   //
 
 #if defined(MEMSET)
-    // clear out old stuff - for debugging.
-    memset(insn, 0x00, 65536);
+   // clear out old stuff - for debugging.
+   memset(insn, 0x00, 65536);
 #endif
-
-    Address count = 0;
-
+   
+   Address count = 0;
+    
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)     
-    ast->sysFlag((instPoint*)location);  
+   ast->sysFlag((instPoint*)location);  
 
-    // If the return value is in the case of compiler optimization,
-    // modify the ast node tree to insert an instruction to get the 
-    // return the value
-    extern bool processOptimaRet(instPoint *location, AstNode *&ast);
-    bool isOpt = processOptimaRet(location, ast);
+   // If the return value is in the case of compiler optimization,
+   // modify the ast node tree to insert an instruction to get the 
+   // return the value
+   extern bool processOptimaRet(instPoint *location, AstNode *&ast);
+   bool isOpt = processOptimaRet(location, ast);
 #endif
 
-    int trampCost = 0;
-
-    /* VG(11/06/01): Added location, needed by effective address AST node */
-    ret->returnAddr = ast->generateTramp(proc, (const instPoint *)location,
+   int trampCost = 0;
+   
+   /* VG(11/06/01): Added location, needed by effective address AST node */
+   mtInfo->returnAddr = ast->generateTramp(proc, (const instPoint *)location,
 				      (char *)insn, count, &trampCost, noCost);
 
 #if defined(DEBUG)
-    cerr << endl << endl << endl << "mini tramp: " << endl;
-    for (unsigned i = 0; i < count/4; i++)
+   cerr << endl << endl << endl << "mini tramp: " << endl;
+   for (unsigned i = 0; i < count/4; i++)
       fprintf(stderr, "0x%x,\n", insn[i]);
 #endif
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
-    // The ast node might be shared, so remove the changes made to
-    // ast node tree  
-    if (isOpt)
-	ast->optRetVal(NULL); 
+   // The ast node might be shared, so remove the changes made to
+   // ast node tree  
+   if (isOpt)
+      ast->optRetVal(NULL); 
 #endif
 
-    if (!noCost) {
-	ret->cost = trampCost; 
-	ret->baseInstance->updateTrampCost(proc, trampCost);
-    }
+   mtInfo->cost = trampCost; 
+   if(trampCost > 0)
+      mtInfo->baseInstance->updateTrampCost(proc, trampCost);
+
 #if defined(rs6000_ibm_aix4_1)
-    // We use the data heap on AIX because it is unlimited, unlike
-    // the textHeap. The text heap is allocated from spare parts of 
-    // pages, and as such can run out. Since minitramps can be arbitrarily
-    // far from the base tramp (link register branching), but only a 
-    // single jump from each other, we cluster them in the dataHeap.
-    // Note for future reference: shouldn't this near_ be the address
-    // of the previous/next minitramp instead of the base tramp?
-    inferiorHeapType htype = dataHeap;
+   // We use the data heap on AIX because it is unlimited, unlike
+   // the textHeap. The text heap is allocated from spare parts of 
+   // pages, and as such can run out. Since minitramps can be arbitrarily
+   // far from the base tramp (link register branching), but only a 
+   // single jump from each other, we cluster them in the dataHeap.
+   // Note for future reference: shouldn't this near_ be the address
+   // of the previous/next minitramp instead of the base tramp?
+   inferiorHeapType htype = dataHeap;
 #else
-    inferiorHeapType htype = (proc->splitHeaps) ? (textHeap) : (anyHeap);
+   inferiorHeapType htype = (proc->splitHeaps) ? (textHeap) : (anyHeap);
 #endif
-    // Let's be intelligent about near_. If we've got any other minitramp,
-    // try and allocate near that one. This is because we use single-instruction
-    // jumps between minis.
-    Address near_;
+   // Let's be intelligent about near_. If we've got any other minitramp,
+   // try and allocate near that one. This is because we use single-instruction
+   // jumps between minis.
+   Address near_;
 #if defined(rs6000_ibm_aix4_1)
-    // On AIX, the branch from base to mini is limitless --
-    // we use a register branch. Mini to mini is limited.
-    // So cluster the minis in their own space.
-    if (!lastAtPoint) // We are the only mini in the chain
+   // On AIX, the branch from base to mini is limitless --
+   // we use a register branch. Mini to mini is limited.
+   // So cluster the minis in their own space.
+   installed_miniTramps_list *mtList;
+   proc->getMiniTrampList(location, when, &mtList);
+
+   if (mtList->numMiniTramps() == 0) // We are the only mini in the chain
       near_ = 0;
-    else // Other minis. so let's try and get near them
+   else // Other minis. so let's try and get near them
       if (order == orderLastAtPoint)
-	near_ = lastAtPoint->returnAddr;
+	 near_ = mtList->getLastMT()->returnAddr;
       else // First at point
-	near_ = firstAtPoint->trampBase;
+	 near_ = mtList->getFirstMT()->trampBase;
 #else
-    // Non-AIX, old behavior
-    near_ = ret->baseInstance->baseAddr;
+   // Non-AIX, old behavior
+   near_ = mtInfo->baseInstance->baseAddr;
 #endif
-    bool err = false;
-    ret->trampBase = proc->inferiorMalloc(count, htype, near_, &err);
-
-    //fprintf(stderr, "Got %d bytes at 0x%x\n", count, ret->trampBase);
-
-    if (err) {
+   bool err = false;
+   mtInfo->trampBase = proc->inferiorMalloc(count, htype, near_, &err);
+   
+   //fprintf(stderr, "Got %d bytes at 0x%x\n", count, (*mtInfo)->trampBase);
+   
+   if (err) {
       cerr << "Returning inst.C:line 369" << endl;
-      return NULL;
-    }
-    assert(ret->trampBase);
+      return failure_res;
+   }
+   assert(mtInfo->trampBase);
 
-    if (!ret->trampBase) {
+   if (! mtInfo->trampBase) {
       cerr << "Returning inst.C:line 375" << endl;
-      return(NULL);
-    }
-    trampBytes += count;
-    ret->returnAddr += ret->trampBase;
+      return failure_res;
+   }
+   trampBytes += count;
+   mtInfo->returnAddr += mtInfo->trampBase;
 
-    ret->when = when;
-    ret->order = order;
-    ret->location = (instPoint*)location;
-
-    /*
-     * Now make the call to actually put the code in place.
-     *
-     */
-    installTramp(ret, (char *)insn, count); // install mini-tramp into inferior addr space
-
-    return(ret);
+   /*
+    * Now make the call to actually put the code in place.
+    */
+   installTramp(mtInfo, proc, (char *)insn, count, location, when);
+   
+   return success_res;
 }
 
-void hookupMiniTramp(instInstance *inst) {
-    instInstance *firstAtPoint = NULL;
-    instInstance *lastAtPoint = NULL;
+// returns the address of the new instInstance (the one to use)
+// this new instInstance is a copied from the one passed in, into the data
+// structures
+void hookupMiniTramp(process *proc, const miniTrampHandle &mtHandle,
+		     callOrder order) {
+   instInstance *firstAtPoint = NULL;
+   instInstance *lastAtPoint = NULL;
+   instInstance *inst = mtHandle.inst;
+   installed_miniTramps_list *mtList = NULL;
+   const callWhen &when = mtHandle.when;
 
-    point *thePoint;
-    if (!activePoints.find((const instPoint *)inst->location, thePoint)) {
-       thePoint = new point;
-       activePoints[(const instPoint*)inst->location] = thePoint;
-    }
-    
-    process *proc = inst->proc;
-    
-    instInstance *next;
-    for (next = thePoint->inst; next; next = next->next) {
-	if ((next->proc == proc) && (next->when == inst->when)) {
-	    if (!next->nextAtPoint) lastAtPoint = next;
-	    if (!next->prevAtPoint) firstAtPoint = next;
-	}
-    }
+   proc->getMiniTrampList(mtHandle.location, when, &mtList);
 
-    inst->next = thePoint->inst;
-    inst->prev = NULL;
-    if (thePoint->inst) thePoint->inst->prev = inst;
-    thePoint->inst = inst;
+   if(mtList == NULL) {
+      proc->newMiniTrampList(mtHandle.location, when, &mtList);
+   } else if(order == orderFirstAtPoint) {
+      firstAtPoint = mtList->getFirstMT();
+   } else if(order == orderLastAtPoint) {
+      lastAtPoint = mtList->getLastMT();
+   }
+   mtList->addMiniTramp(order, inst);
 
-    if (!lastAtPoint) {
-	// jump from the minitramp back to the basetramp
+   if (mtList->numMiniTramps() == 1) {
+      // jump from the minitramp back to the basetramp
 #if defined(rs6000_ibm_aix4_1)
-	resetBR(proc, inst->returnAddr);
+      resetBR(proc, inst->returnAddr);
 #else
-	Address toAddr = getBaseReturnAddr(proc, inst);
-	//fprintf(stderr, "  Branch from 0x%x to 0x%x\n",
-	//	inst->returnAddr, toAddr);
-	generateBranch(proc, inst->returnAddr, toAddr);
+      Address toAddr = getBaseReturnAddr(proc, inst, when);
+      //fprintf(stderr, "1-  Branch from 0x%x to 0x%x\n",
+      //      inst->returnAddr, toAddr);
+      generateBranch(proc, inst->returnAddr, toAddr);
 #endif
 
-        // jump from the base tramp to the minitramp
-        Address fromAddr = getBaseBranchAddr(proc, inst);
+      // jump from the base tramp to the minitramp
+      Address fromAddr = getBaseBranchAddr(proc, inst, when);
 #if defined(rs6000_ibm_aix4_1)
-	resetBRL(proc, fromAddr, inst->trampBase);
+      resetBRL(proc, fromAddr, inst->trampBase);
 #else
-	//fprintf(stderr, "  Branch from 0x%x to 0x%x\n",
-	//	  fromAddr, inst->trampBase);
-	generateBranch(proc, fromAddr, inst->trampBase);
+      //fprintf(stderr, "1-  Branch from 0x%x to 0x%x\n",
+      //      fromAddr, inst->trampBase);
+      generateBranch(proc, fromAddr, inst->trampBase);
 #endif
 
-	// just activated this slot.
-	//activeSlots->value += 1.0;
-    } else if (inst->order == orderLastAtPoint) {
-	/* patch previous tramp to call us rather than return */
-	generateBranch(proc,lastAtPoint->returnAddr,inst->trampBase);
-	lastAtPoint->nextAtPoint = inst;
-	inst->prevAtPoint = lastAtPoint;
-	
-	// jump from the minitramp to the basetramp
-#if defined(rs6000_ibm_aix4_1)
-	resetBR(proc, inst->returnAddr);
-#else
-	Address toAddr = getBaseReturnAddr(proc, inst);
-	generateBranch(proc, inst->returnAddr, toAddr);
-#endif
-    } else {
-	/* first at point */
-	firstAtPoint->prevAtPoint = inst;
-	inst->nextAtPoint = firstAtPoint;
+      // just activated this slot.
+      //activeSlots->value += 1.0;
+   } else if (order == orderLastAtPoint) {
+      /* patch previous tramp to call us rather than return */
+      //fprintf(stderr, "2-  Branch from 0x%x to 0x%x\n",
+      //      lastAtPoint->returnAddr, inst->trampBase);
 
-	/* branch to the old first one */
-	generateBranch(proc, inst->returnAddr, firstAtPoint->trampBase);
-	//fprintf(stderr, "  Branch from 0x%x to 0x%x\n",
-	//	inst->returnAddr, firstAtPoint->trampBase);
-	
-	/* base tramp branches to us */
-	Address fromAddr = getBaseBranchAddr(proc, inst);
+      generateBranch(proc, lastAtPoint->returnAddr, inst->trampBase);
+      
+      // jump from the minitramp to the basetramp
 #if defined(rs6000_ibm_aix4_1)
-	resetBRL(proc, fromAddr, inst->trampBase);
+      resetBR(proc, inst->returnAddr);
 #else
-	generateBranch(proc, fromAddr, inst->trampBase);
-	//fprintf(stderr, "  Branch from 0x%x to 0x%x\n",
-	//	fromAddr, inst->trampBase);
-
+      Address toAddr = getBaseReturnAddr(proc, inst, when);
+      //fprintf(stderr, "2-  Branch from 0x%x to 0x%x\n",
+      //      inst->returnAddr, toAddr);
+      generateBranch(proc, inst->returnAddr, toAddr);
 #endif
-    }
+   } else if(order == orderFirstAtPoint) {
+      /* branch to the old first one */
+      //fprintf(stderr, "3-  Branch from 0x%x to 0x%x\n",
+      //     inst->returnAddr, firstAtPoint->trampBase);
+      generateBranch(proc, inst->returnAddr, firstAtPoint->trampBase);
+      
+      /* base tramp branches to us */
+      Address fromAddr = getBaseBranchAddr(proc, inst, when);
+#if defined(rs6000_ibm_aix4_1)
+      resetBRL(proc, fromAddr, inst->trampBase);
+#else
+      //fprintf(stderr, "3-  Branch from 0x%x to 0x%x\n",
+      //      fromAddr, inst->trampBase);
+      generateBranch(proc, fromAddr, inst->trampBase);      
+#endif
+   } else {
+      assert(false);  // shouldn't get here
+   }
 }
 
 bool trampTemplate::inBasetramp( Address addr ) {
@@ -513,172 +492,55 @@ bool trampTemplate::inSavedRegion( Address addr ) {
 		|| ( addr > (Address)savePostInsOffset && addr <= (Address)restorePostInsOffset );
 }
 
+trampTemplate *findBaseTramp(const instPoint * ip, const process *proc) {
+   const installed_miniTramps_list *mtListBef;
+   proc->getMiniTrampList(ip, callPreInsn, &mtListBef);
+   
+   if(mtListBef != NULL) {
+      const List<instInstance*>::iterator curMT = mtListBef->get_begin_iter();
+      const List<instInstance*>::iterator endMT = mtListBef->get_end_iter();
 
-instPoint * findInstPointFromAddress(const process *proc, Address addr) {
-    unsigned u;
-
-    vector<const instPoint*> ips;
-    vector<trampTemplate*> bts;
-    ips = proc->baseMap.keys();
-    bts = proc->baseMap.values();
-    assert( ips.size() == bts.size() );
-    for( u = 0; u < bts.size(); ++u ) {
-	if( bts[u]->inBasetramp( addr ) )
-	{
-	    return const_cast<instPoint*>( ips[u] );
-	}
-    }
-
-    vector<point*> allPoints = activePoints.values();
-
-    for( u = 0; u < allPoints.size(); ++u ) {
-	for( instInstance *inst = allPoints[u]->inst; inst; inst = inst->next ) {
-	    if( inst->proc == proc ) {
-		if( ( inst->trampBase <= addr && inst->returnAddr >= addr )
-		    || inst->baseInstance->inBasetramp( addr ) )
-		{
-		    return inst->location;
-		}
-	    }
-	}
-    }
-    return NULL;
-}
-
-trampTemplate * findBaseTramp( const instPoint * ip, const process *proc ) {
-    if( activePoints.defines( ip ) ) {
-	point *p = activePoints[ ip ];
-	assert( p );
-	for( instInstance *ii = p->inst; ii; ii = ii->next )
-	    if( ii->proc == proc )
-		return ii->baseInstance;
-    }
-    return NULL;
-}
-
-instInstance * findMiniTramps( const instPoint * ip ) {
-    if( activePoints.defines( ip ) ) {
-	point *p = activePoints[ ip ];
-	assert( p );
-	return p->inst;
-    }
-    return NULL;
-}
-
-
-// TODO: this functionality overlaps with "findInstPointFromAddress()"
-pd_Function *findAddressInFuncsAndTramps(process *p, Address addr,
-					 instPoint *&ip,
-					 trampTemplate *&bt,
-					 instInstance *&mt)
-{
-  unsigned n;
-
-  // default return values
-  ip = NULL;
-  bt = NULL;
-  mt = NULL;
-
-  // look for address in user code
-  function_base *fn = p->findFuncByAddr(addr);
-  if (fn != NULL) return (pd_Function *)fn;
-
-  // look for address in basetramps ("baseMap")
-  vector<const instPoint *> ips = p->baseMap.keys();
-  vector<trampTemplate *> bts = p->baseMap.values();
-  n = ips.size();
-  assert(n == bts.size());
-  for (unsigned i = 0; i < n; i++) {
-    if (bts[i]->inBasetramp(addr)) {
-      ip = const_cast<instPoint *>(ips[i]);
-      bt = bts[i];
-      return (pd_Function*)const_cast<function_base*>(ip->iPgetFunction());
-    }
-  }
-    
-  // look for address in minitramps ("activePoints")
-  vector<point *> pts = activePoints.values();
-  instInstance *inst;
-  n = pts.size();
-  for (unsigned i2 = 0; i2 < n; i2++) {
-    inst = pts[i2]->inst;
-    for ( ; inst != NULL; inst = inst->next) {
-      if (inst->proc == p) {
-	if (addr >= inst->trampBase && addr <= inst->returnAddr) {
-	  ip = inst->location;
-	  mt = inst;
-	  return (pd_Function*)const_cast<function_base*>(ip->iPgetFunction());
-	} else if (inst->baseInstance->inBasetramp(addr)) {
-	  // the basetramp search should have turned this up
-	  assert(0);
-	}
+      for(; curMT != endMT; curMT++) {
+	 const instInstance *inst = *curMT;
+	 return inst->baseInstance;
       }
-    }
+   }
+
+   const installed_miniTramps_list *mtListAft;
+   proc->getMiniTrampList(ip, callPostInsn, &mtListAft);
+
+   if(mtListAft != NULL) {
+      const List<instInstance*>::iterator curMT = mtListAft->get_begin_iter();
+      const List<instInstance*>::iterator endMT = mtListAft->get_end_iter();
+
+      for(; curMT != endMT; curMT++) {
+	 const instInstance *inst = *curMT;
+	 return inst->baseInstance;
+      }
+   }
+
+   return NULL;
+}
+
+void getMiniTrampsAtPoint(process *proc, instPoint *loc, callWhen when,
+			  vector<miniTrampHandle> *mt_buf) {
+  installed_miniTramps_list *mtList = NULL;
+  proc->getMiniTrampList(loc, when, &mtList);
+  if(mtList == NULL) {
+     return;  // no minitramps found for this point
   }
 
-  return NULL;
-}
+  miniTrampHandle handle;
+  handle.location = loc;
+  handle.when     = when;
 
-
-//
-// copyInstInstances: called when a process we are tracing forks.
-// The child will have a copy of all instrumentation in the parent, so we
-// must duplicate all instInstances of the parent for the child.
-// 
-// On return, for each active instInstance parentInst in the parent
-// instInstanceMapping[parentInst] will be the corresponding instInstance for the
-// child.
-//
-
-void getAllInstInstancesForProcess(const process *proc,
-				   vector<instInstance*> &result) {
-    vector<point*> allPoints = activePoints.values();
- 
-    // find all instInstances of the parent process
-    for (unsigned u = 0; u < allPoints.size(); u++) {
-      for (instInstance *inst = allPoints[u]->inst; inst; inst = inst->next) {
-	if (inst->proc == proc)
-	  result.push_back(inst);
-      }
-    }
-}
-
-void copyInstInstances(const process *parent, const process *child, 
-	    dictionary_hash<instInstance *, instInstance *> &instInstanceMapping)
-{
-    vector<instInstance*> instsToCopy;
-    getAllInstInstancesForProcess(parent, instsToCopy);
- 
-    // duplicate the parent instance for the child, and define instMapping
-    vector<instInstance *>newInsts;
-    for (unsigned u1 = 0; u1 < instsToCopy.size(); u1++) {
-      instInstance *old = instsToCopy[u1];
-      instInstance *newInst = new instInstance;
-      newInst->proc = const_cast<process *>(child);
-      newInst->when = old->when;
-      newInst->location = old->location;
-      newInst->trampBase = old->trampBase;
-      newInst->returnAddr = old->returnAddr;
-      newInst->baseInstance = old->baseInstance;
-      newInst->cost = old->cost;
-      instInstanceMapping[old] = newInst;
-      newInsts.push_back(newInst);
-    }
-
-    // update nextAtPoint and prevAtPoint
-    for (unsigned u2 = 0; u2 < newInsts.size(); u2++) {
-      instInstance *newInst = newInsts[u2];
-      instInstance *old = instsToCopy[u2];
-      newInst->nextAtPoint = instInstanceMapping[old->nextAtPoint];
-      newInst->prevAtPoint = instInstanceMapping[old->prevAtPoint];
-
-      assert(activePoints.defines(newInst->location));
-      point *thePoint = activePoints[newInst->location];
-      newInst->next = thePoint->inst;
-      newInst->prev = NULL;
-      if (thePoint->inst) thePoint->inst->prev = newInst;
-      thePoint->inst = newInst;
-    }
+  List<instInstance*>::iterator curMT = mtList->get_begin_iter();
+  List<instInstance*>::iterator endMT = mtList->get_end_iter();	 
+  for(; curMT != endMT; curMT++) {
+     instInstance *inst = *curMT;
+     handle.inst = inst;
+     (*mt_buf).push_back(handle);
+  }
 }
 
 // This procedure assumes that any mini-tramp for an inst request could refer 
@@ -686,39 +548,35 @@ void copyInstInstances(const process *parent, const process *child,
 // what data pointers each mini-tramp really used, but I don't think it is 
 // worth the trouble.
 //
-vector<Address> getAllTrampsAtPoint(instInstance *instance)
+vector<Address> getTrampAddressesAtPoint(process *proc, const instPoint *loc,
+					 callWhen when)
 {
-    vector<Address> pointsToCheck;
-    instInstance *start;
-    instInstance *next;
-    point *thePoint;
+   vector<Address> pointsToCheck;
+   
+   installed_miniTramps_list *mtList = NULL;
+   proc->getMiniTrampList(loc, when,  &mtList);
 
-    if (instance) {
-      if (activePoints.defines(instance->location)) {
-        thePoint = activePoints[instance->location];
-        start = thePoint->inst;
-        // Base tramp
-        pointsToCheck.push_back(start->baseInstance->baseAddr); 
-        pointsToCheck.push_back(start->trampBase);
-        // All mini-tramps at this point
-	// abernat, 22MAY02 Isn't this a bit overzealous?
-	// At this point we've nuked the jumps, so we should
-	// be safe just checking whether any PC is within
-	// the range occupied by the minitramp in question,
-	// not the entire list.
-        for (next = start->next; next; next = next->next) {
-	  if ((next->location == instance->location) && 
-	      (next->proc == instance->proc) &&
-	      (next->when == instance->when)) {
-  	      if (next != instance) {
-                pointsToCheck.push_back(next->trampBase);
-                //pointsToCheck += start->trampBase;
-	      }
-	  }
-        }
+   if(mtList != NULL && mtList->numMiniTramps()>0) {
+      List<instInstance*>::iterator curMT = mtList->get_begin_iter();
+      // Base tramp
+      pointsToCheck.push_back((*curMT)->baseInstance->baseAddr); 
+      pointsToCheck.push_back((*curMT)->trampBase);
+      curMT++;
+
+      // abernat, 22MAY02 Isn't this a bit overzealous?
+      // At this point we've nuked the jumps, so we should
+      // be safe just checking whether any PC is within
+      // the range occupied by the minitramp in question,
+      // not the entire list.
+      
+      List<instInstance*>::iterator endMT = mtList->get_end_iter();  
+      for(; curMT != endMT; curMT++) {
+	 instInstance *inst = *curMT;
+	 pointsToCheck.push_back(inst->trampBase);
       }
-    }
-    return(pointsToCheck);
+   }
+
+   return pointsToCheck;
 }
 
 /*
@@ -737,127 +595,112 @@ vector<Address> getAllTrampsAtPoint(instInstance *instance)
  * for any data which may rely on the minitramp (i.e. Paradyn variables)
  *
  */
-void deleteInst(instInstance *old)
+
+void deleteInst(process *proc, const miniTrampHandle &mtHandle)
 {
-    point *thePoint;
-    instInstance *lag;
-    instInstance *left;
-    instInstance *right;
-    instInstance *othersAtPoint;
-    if (!old) {
-      // logLine("Internal error in inst.C: instInstance pointer \"old\" is NULL\n");
-      return;
-    }
-
-    // First check: have we started to delete this guy already?
-    // This happens when we try to delete an instInstance and GC it
-    // We then pause the process, but if the process is exited Paradyn
-    // tries to disable all instrumentation... thus causing this one
-    // to be deleted again. Sigh. 
-
-    // Better fix: figure out why we're double-deleting instrCodeNodes.
-    
-    if (old->proc->checkIfInstAlreadyDeleted(old))
-      return;
-
-    /* check if there are other inst points at this location. */
-    othersAtPoint = NULL;
-    left = right = NULL;
-
-    if (!activePoints.defines(old->location)) {
+   installed_miniTramps_list *mtList;
+   callWhen when = mtHandle.when;
+   proc->getMiniTrampList(mtHandle.location, when, &mtList);
+   if(mtList == NULL) {
+      cerr << "in inst.C: location is NOT defined" << endl;
 #if !defined(MT_THREAD)
       abort();
 #else
-      cerr << "in inst.C: location is NOT defined in activePoints" << endl;
       return ;
 #endif
-    }
-    thePoint = activePoints[old->location];
+   }
 
-    for (lag= thePoint->inst; lag; lag = lag->next) {
-	if ((lag->location == old->location) && 
-	    (lag->proc == old->proc) &&
-	    (lag->when == old->when)) {
-	    if (lag != old) {
-		othersAtPoint = lag;
-		left = old->prevAtPoint;
-		right = old->nextAtPoint;
-		assert(right || left);
-	    }
-	}
-    }
+   // First check: have we started to delete this guy already?
+   // This happens when we try to delete an instInstance and GC it
+   // We then pause the process, but if the process is exited Paradyn
+   // tries to disable all instrumentation... thus causing this one
+   // to be deleted again. Sigh. 
+   
+   // Better fix: figure out why we're double-deleting instrCodeNodes.
+   
+   if (proc->checkIfInstAlreadyDeleted(mtHandle.inst))
+     return;
 
-  if (old->proc->status() != exited) {
-    if (!othersAtPoint) {
-	clearBaseBranch(old->proc, old);
-	//activeSlots->value -= 1.0;
-    } else {
-	if (left) {
-	    if (right) {
-		/* set left's return insn to branch to tramp to the right */
-		generateBranch(old->proc, left->returnAddr, right->trampBase);
-	    } else {
-		/* branch back to the correct point in the base tramp */
-#if defined(rs6000_ibm_aix4_1)
-		resetBR(old->proc, left->returnAddr);
-#else
-		Address toAddr = getBaseReturnAddr(old->proc, old);
-		generateBranch(old->proc, left->returnAddr, toAddr);
-#endif
-	    }
-	} else {	    /* old is first one make code call right tramp */
-	    int fromAddr;
-	    fromAddr = getBaseBranchAddr(old->proc, right);
-#if defined(rs6000_ibm_aix4_1)
-	    resetBRL(old->proc, fromAddr, right->trampBase);
-#else
-	    generateBranch(old->proc, fromAddr, right->trampBase);
-#endif
-	}
-    }
+   List<instInstance*>::iterator curMT = mtList->get_begin_iter();
+   List<instInstance*>::iterator endMT = mtList->get_end_iter();	 
+   instInstance *thisMT = NULL;
+   instInstance *prevMT = NULL;
+   instInstance *nextMT = NULL;
 
-  }
-
-  /* remove old from atPoint linked list */
-  if (right) right->prevAtPoint = left;
-  if (left) left->nextAtPoint = right;
-  
-  /* remove from doubly linked list for all insts */
-  if (old->prev) {
-    lag = old->prev;
-    lag->next = old->next;
-    if (old->next) old->next->prev = lag;
-  } else {
-    thePoint->inst = old->next;
-    if (old->next) old->next->prev = NULL;
-  }
-  int trampCost = 0-(old->cost);
-  old->baseInstance->updateTrampCost(old->proc, trampCost);
-  
-#ifdef BPATCH_LIBRARY
-  
-  // If the thePoint->inst value is NULL then there is no more
-  // instrumentation instances left for this point.
-  
-  if(BPatch::bpatch->baseTrampDeletion() &&
-     !thePoint->inst)
-    {
-      extern bool deleteBaseTramp(process*,instPoint*,instInstance*);
-      if(deleteBaseTramp(old->proc,old->location,old)){
-	activePoints.undef((const instPoint*)(old->location));
-	old->proc->baseMap.undef((const instPoint*)(old->location));
-	//delete[] old->baseInstance->trampTemp;
-	delete old->baseInstance;
+   for(; curMT != endMT; curMT++) {
+      instInstance *inst = *curMT;
+      if(inst == mtHandle.inst) {
+	 thisMT = inst;
+	 curMT++;
+	 if(curMT == endMT) nextMT = NULL;
+	 else               nextMT = *curMT;
+	 break;
       }
-    }
+      prevMT = inst;
+   }
+   assert(thisMT != NULL);  // couldn't find the minitramp to delete
+
+   if(proc->status() != exited) {
+      bool noOtherMTsAtPoint = (prevMT==NULL && nextMT==NULL);
+      if(noOtherMTsAtPoint) {
+	 clearBaseBranch(proc, thisMT, when);
+	 //activeSlots->value -= 1.0;
+      } else {
+	 if(prevMT) {
+	    if (nextMT) {
+	       /* set left's return insn to branch to tramp to the right */
+	       generateBranch(proc, prevMT->returnAddr,nextMT->trampBase);
+	    } else {
+	       /* branch back to the correct point in the base tramp */
+#if defined(rs6000_ibm_aix4_1)
+	       resetBR(proc, prevMT->returnAddr);
+#else
+	       Address toAddr = getBaseReturnAddr(proc, thisMT, when);
+	       generateBranch(proc, prevMT->returnAddr, toAddr);
+#endif
+	    }
+	 } else {
+	    /* thisMT is first one make code call right tramp */
+	    int fromAddr;
+	    fromAddr = getBaseBranchAddr(proc, nextMT, when);
+#if defined(rs6000_ibm_aix4_1)
+	    resetBRL(proc, fromAddr, nextMT->trampBase);
+#else
+	    generateBranch(proc, fromAddr, nextMT->trampBase);
+#endif
+	 }
+      }
+      
+   }
+
+   int trampCost = 0 - (thisMT->cost);
+   if(thisMT->cost > 0)
+      thisMT->baseInstance->updateTrampCost(proc, trampCost);
   
-#endif  
-  // At this point the to-be-deleted minitramp is gapped out
-  // of the sequence of minis. Place it on the list to be deleted.
-  
-  old->proc->deleteInstInstance(old);
-  // DON'T delete the instInstance. When it is deleted, the callback
-  // is made... which should only happen when the memory is freed.
+   // DON'T delete the instInstance. When it is deleted, the callback
+   // is made... which should only happen when the memory is freed.
+   // Place it on the list to be deleted.
+   proc->deleteInstInstance(thisMT);
+
+   /* remove instInstance from linked list */
+   mtList->deleteMiniTramp(thisMT);  // deletes instInstance
+   
+#ifdef BPATCH_LIBRARY
+   trampTemplate *baseInstance = thisMT->baseInstance;
+
+   if(BPatch::bpatch->baseTrampDeletion() && mtList->numMiniTramps()==0)
+   {
+      extern bool deleteBaseTramp(process*, instPoint*, trampTemplate*,
+				  instInstance *lastMT);
+      instPoint *loc = mtHandle.location;
+      if(deleteBaseTramp(proc, loc, baseInstance, thisMT)) {
+	 proc->removeMiniTrampList(loc, when);
+	 proc->baseMap.undef((const instPoint*)(loc));
+	 //delete[] mtHandle.baseInstance->trampTemp;
+	 delete baseInstance;
+      }
+   }   
+#endif
 }
 
 //
@@ -930,52 +773,5 @@ trampTemplate::updateTrampCost(process *proc, int trampCost) {
     emitVupdate(updateCostOp, cost, 0, caddr, costInsn, csize, false);
     proc->writeDataSpace((caddr_t)costAddr, csize, costInsn);
 #endif
-}
-
-void cleanInstFromActivePoints(process *proc)
-{
-    assert(proc);
-    vector<point*> allPoints = activePoints.values();
- 
-    // is it ok to have activePoints elements with empty points? - naim
-    for (unsigned u = 0; u < allPoints.size(); u++) {
-      instInstance *inst = allPoints[u]->inst;
-      while (inst) {
-	assert(inst->proc);
-	if (inst->proc->getPid() == proc->getPid()) {
-	  if (!inst->prev) {
-	    // this is the first one on the list
-	    if (!inst->next) {
-	      // this is the only one on the list
-	      delete inst;
-	      allPoints[u]->inst = NULL;
-	      inst = NULL;
-	    } else {
-	      inst->next->prev = NULL;
-	      allPoints[u]->inst = inst->next;
-	      delete inst;
-	      inst = allPoints[u]->inst;
-	    }
-	  } else {
-	    // this is not the first one
-	    if (!inst->next) {
-	      // this is the last one
-	      inst->prev->next = NULL;
-	      delete inst;
-	      inst = NULL;
-	    } else {
-	      // we are somewhere in the middle of the list
-	      inst->prev->next = inst->next;
-	      inst->next->prev = inst->prev;
-	      instInstance *next_inst = inst->next;
-	      delete inst;
-	      inst = next_inst;
-	    }
-	  }
-	} else {
-	  inst = inst->next;
-	}
-      }
-    }
 }
 

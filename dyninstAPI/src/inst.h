@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.67 2002/06/13 19:53:05 mirg Exp $
+// $Id: inst.h,v 1.68 2002/06/26 21:14:06 schendel Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -62,6 +62,7 @@
 
 class instPoint;
 class instInstance;
+class miniTrampHandle;
 class trampTemplate;
 class process;
 class pd_Function;
@@ -71,61 +72,51 @@ typedef enum { callNoArgs, callRecordType, callFullArgs } callOptions;
 typedef enum { callPreInsn, callPostInsn } callWhen;
 typedef enum { orderFirstAtPoint, orderLastAtPoint } callOrder;
 
-extern void deleteInst(instInstance *old);
-extern vector<Address> getAllTrampsAtPoint(instInstance *);
+extern void deleteInst(process *proc, const miniTrampHandle &mtHandle);
+
+extern vector<Address> getTrampAddressesAtPoint(process *proc, 
+						const instPoint *loc,
+						callWhen when);
 
 class AstNode;
 class returnInstance;
+
+typedef enum loadMiniTramp_result { success_res, failure_res, deferred_res } 
+                                  loadMiniTramp_result;
 
 /*
  * Insert instrumentation at the specified codeLocation.
  * TODO: make these methods of class process
  */
-instInstance *addInstFunc(process *proc,
-			  instPoint *&location,
-			  AstNode *&ast, // ast could change (sysFlag stuff)
-			  callWhen when,
-			  callOrder order,
-			  bool noCost,
-			  bool trampRecursionDesired);
+loadMiniTramp_result addInstFunc(miniTrampHandle *mtHandle_save, 
+			     process *proc,
+			     instPoint *&location,
+			     AstNode *&ast, // ast could change (sysFlag stuff)
+			     callWhen when,
+			     callOrder order,
+			     bool noCost,
+			     bool trampRecursionDesired);
 
-instInstance *addInstFunc(process *proc,
-			  instPoint *&location,
-			  AstNode *&ast, // ast could change (sysFlag stuff)
-			  callWhen when,
-			  callOrder order,
-			  bool noCost,
-			  returnInstance *&retInstance,
-                          bool &deferred,
-			  bool trampRecursionDesired);
+// writes to (*mtInfo)
+loadMiniTramp_result loadMiniTramp(instInstance *mtInfo, process *proc, 
+				   instPoint *&location,
+				   AstNode *&ast, // the ast could be changed 
+				   callWhen when, callOrder order, bool noCost,
+				   returnInstance *&retInstance,
+				   bool trampRecursiveDesired = false);
 
-void hookupMiniTramp(instInstance *inst);
+void hookupMiniTramp(process *proc, const miniTrampHandle &mtHande,
+		     callOrder order);
 
 /* Utility functions */
 
 void getAllInstInstancesForProcess(const process *,
 				   vector<instInstance*> &);
 
-instPoint * findInstPointFromAddress(const process *, Address);
-instInstance * findMiniTramps( const instPoint * );
+void getMiniTrampsAtPoint(process *proc, instPoint *loc, callWhen when,
+			  vector<miniTrampHandle> *mt_buf);
+
 trampTemplate * findBaseTramp( const instPoint *, const process * );
-
-// findAddressInFuncsAndTramps: returns the function which contains
-// this address.  This checks the a.out image and shared object images
-// for this function, as well as checking base- and mini-tramps which 
-// correspond to this function.  If the address was in a tramp, the 
-// trampTemplate is returned as well.
-pd_Function *findAddressInFuncsAndTramps(process *, Address,
-					 instPoint *&,
-					 trampTemplate *&,
-					 instInstance *&);
-
-
-
-void copyInstInstances(const process *parent, const process *child,
-	    dictionary_hash<instInstance *, instInstance *> &instInstanceMapping);
-   // writes to "instInstanceMapping[]"
-
 
 float getPointFrequency(instPoint *point);
 int getPointCost(process *proc, const instPoint *point);
@@ -269,12 +260,6 @@ int getInsnCost(opCode t);
  */
 Register getParameter(Register dest, int param);
 
-class point {
- public:
-  point() { inst = NULL; }
-  instInstance *inst;
-};
-
 extern string getProcessStatus(const process *p);
 
 // TODO - what about mangled names ?
@@ -294,7 +279,5 @@ extern Address getMaxBranch();
 // find these internal functions before finding any other functions
 // extern dictionary_hash<string, unsigned> tagDict;
 extern dictionary_hash <string, unsigned> primitiveCosts;
-
-void cleanInstFromActivePoints(process *proc);
 
 #endif
