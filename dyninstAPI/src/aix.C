@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.174 2003/10/21 17:21:54 bernat Exp $
+// $Id: aix.C,v 1.175 2003/10/22 16:04:53 schendel Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -249,7 +249,7 @@ Frame Frame::getCallerFrame(process *p) const
       }
       else { // normal
 #if defined(AIX_PROC)
-          dyn_saved_regs *regs = p->getProcessLWP()->getRegisters();
+          dyn_saved_regs *regs = p->getRepresentativeLWP()->getRegisters();
           if (!regs) {
               return Frame();
           }
@@ -781,14 +781,14 @@ bool process::catchupSideEffect(Frame &frame, instReqNode *inst)
       else {
           // Old method
 #if defined(AIX_PROC)
-          dyn_saved_regs *regs = getProcessLWP()->getRegisters();
+          dyn_saved_regs *regs = getRepresentativeLWP()->getRegisters();
           if (!regs) {
               fprintf(stderr, "Failure to get registers in catchupSideEffect\n");
               return false;
           }
           oldReturnAddr = regs->theIntRegs.__lr;
           regs->theIntRegs.__lr = exitTrampAddr;
-          getProcessLWP()->restoreRegisters(regs);
+          getRepresentativeLWP()->restoreRegisters(regs);
           delete regs;
 #else
           oldReturnAddr = P_ptrace(PT_READ_GPR, pid, (void *)LR, 0, 0);
@@ -1578,7 +1578,7 @@ bool process::get_entry_syscalls(pstatus_t *status,
    else {
       // The entry member of the status vrble is a pointer
       // to the sysset_t array.
-       if(pread(getProcessLWP()->status_fd(), entry, 
+       if(pread(getRepresentativeLWP()->status_fd(), entry, 
                 SYSSET_SIZE(entry), status->pr_sysentry_offset)
           != (int) SYSSET_SIZE(entry)) {
            perror("get_entry_syscalls: read");
@@ -1596,7 +1596,7 @@ bool process::get_exit_syscalls(pstatus_t *status,
       premptysysset(exit);
    }
    else {
-      if(pread(getProcessLWP()->status_fd(), exit, 
+      if(pread(getRepresentativeLWP()->status_fd(), exit, 
                SYSSET_SIZE(exit), status->pr_sysexit_offset)
          != (int) SYSSET_SIZE(exit)) {
          perror("get_exit_syscalls: read");

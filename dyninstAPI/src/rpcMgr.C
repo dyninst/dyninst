@@ -205,8 +205,7 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
         return false;
     }
     
-    dictionary_hash<unsigned, rpcLWP *>::iterator rpc_iter = 
-    lwps_.begin();
+    dictionary_hash<unsigned, rpcLWP *>::iterator rpc_iter = lwps_.begin();
     while(rpc_iter != lwps_.end()) {
         rpcLWP *cur_rpc_lwp = (*rpc_iter);
         if (cur_rpc_lwp) {
@@ -286,9 +285,9 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
             rpcThr *curThr = thrs_[iter];
             if (curThr == NULL) continue;
             
-            irpcLaunchState_t thrState = thrs_[iter]->launchProcIRPC(wasRunning);
+            irpcLaunchState_t thrState = curThr->launchProcIRPC(wasRunning);
             if (thrState == irpcStarted) {
-                proc_->overrideProcessLWP(thrs_[iter]->get_thr()->get_lwp());
+                proc_->overrideRepresentativeLWP(curThr->get_thr()->get_lwp());
                 processingProcessRPC = true;
                 break;
             }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.44 2003/10/21 17:21:55 bernat Exp $
+// $Id: aixDL.C,v 1.45 2003/10/22 16:04:54 schendel Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -527,10 +527,10 @@ bool process::loadDYNINSTlib()
   dyninstlib_brk_addr = dlopentrap_addr;
 
   // save registers
-  savedRegs = getProcessLWP()->getRegisters();
+  savedRegs = getRepresentativeLWP()->getRegisters();
   assert((savedRegs!=NULL) && (savedRegs!=(void *)-1));
-  
-  if (!getProcessLWP()->changePC(dlopencall_addr, NULL)) {
+
+  if (!getRepresentativeLWP()->changePC(dlopencall_addr, NULL)) {
     logLine("WARNING: changePC failed in loadDYNINSTlib\n");
     assert(0);
   }
@@ -546,7 +546,7 @@ bool process::loadDYNINSTlib()
 
 bool process::loadDYNINSTlibCleanup()
 {
-  getProcessLWP()->restoreRegisters(savedRegs);
+  getRepresentativeLWP()->restoreRegisters(savedRegs);
   delete savedRegs;
   savedRegs = NULL;
   // We was never here.... 
@@ -652,7 +652,7 @@ pdvector <shared_object *> *dynamic_linking::processSharedObjects(process *p)
     
     // We want to fill in this vector.
     pdvector<shared_object *> *result = new(pdvector<shared_object *>);
-    int mapfd = p->getProcessLWP()->map_fd();
+    int mapfd = p->getRepresentativeLWP()->map_fd();
     do {
         pread(mapfd, &mapEntry, sizeof(prmap_t), iter*sizeof(prmap_t));
         if (mapEntry.pr_size != 0) {

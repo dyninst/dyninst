@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.34 2003/10/07 19:06:17 schendel Exp $
+// $Id: osfDL.C,v 1.35 2003/10/22 16:00:51 schendel Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/osfDL.h"
@@ -146,7 +146,7 @@ pdvector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
 	return 0;
     }
    
-    int proc_fd = p->getProcessLWP()->get_fd();
+    int proc_fd = p->getRepresentativeLWP()->get_fd();
     if(!proc_fd){ return 0;}
 
     // step 2: find the base address and file descriptor of ld.so.1
@@ -228,11 +228,11 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
 
   dyn_saved_regs *regs;
 
-  pc = proc->getProcessLWP()->getActiveFrame().getPC();
+  pc = proc->getRepresentativeLWP()->getActiveFrame().getPC();
 
   // dumpMap(proc->getProcFileDescriptor());
   if (pc == dlopenRetAddr) {
-      regs = proc->getProcessLWP()->getRegisters();
+      regs = proc->getRepresentativeLWP()->getRegisters();
       
       // We overwrote a return instruction to put the trap in.
       // We need to patch that up with a return to the caller
@@ -265,7 +265,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
       // delete new_shared_objs;
       // Get return address
       Address retAddr = (regs->theIntRegs).regs[REG_RA];
-      proc->getProcessLWP()->changePC(retAddr, NULL);
+      proc->getRepresentativeLWP()->changePC(retAddr, NULL);
       return true;
   } else if (pc == dlcloseRetAddr) {
       fprintf(stderr, ">>> dlclose event\n");
@@ -318,12 +318,12 @@ bool process::trapDueToDyninstLib()
 
   if (dyninstlib_brk_addr == 0) return false;
 
-  if (ioctl(getProcessLWP()->get_fd(), PIOCSTATUS, &stat) < 0) {
+  if (ioctl(getRepresentativeLWP()->get_fd(), PIOCSTATUS, &stat) < 0) {
       perror("ioctl");
   }
 
   //pc = Frame(this).getPC();
-  pc = getProcessLWP()->getActiveFrame().getPC();
+  pc = getRepresentativeLWP()->getActiveFrame().getPC();
 
   // printf("testing for trap at entry to DyninstLib, current pc = 0x%lx\n",pc);
   // printf("    breakpoint addr = 0x%lx\n", dyninstlib_brk_addr);
@@ -348,7 +348,7 @@ bool process::loadDYNINSTlibCleanup()
   assert(code);
   writeDataSpace((void *)code, sizeof(savedCodeBuffer), savedCodeBuffer);
 
-  getProcessLWP()->restoreRegisters(savedRegs);
+  getRepresentativeLWP()->restoreRegisters(savedRegs);
 
   delete [] (char*)savedRegs;
   savedRegs = NULL;
@@ -525,7 +525,8 @@ bool process::insertTrapAtEntryPointOfMain()
 
   // dumpMap(proc_fd);
 
-  while (!osfTestProc(getProcessLWP()->get_fd(), (void *)main_brk_addr)) {
+  while (!osfTestProc(getRepresentativeLWP()->get_fd(), (void *)main_brk_addr))
+  {
       // POSSIBLE BUG:  We expect the first SIGTRAP to occur after a
       // successful exec call, but we seem to get an early signal.
       // At the time of the first SIGTRAP, attempts to read or write the
@@ -542,13 +543,13 @@ bool process::insertTrapAtEntryPointOfMain()
       //
       // Ray Chen 03/22/02
       if (--countdown < 0) {
-	  // looped too many times.
-	  showErrorCallback(108, "Could not access mutatee (even after 10 tries).\n");
-	  return false;
+         // looped too many times.
+         showErrorCallback(108, "Could not access mutatee (even after 10 tries).\n");
+         return false;
       }
       
-      continueProc_();
-      osfWaitProc(getProcessLWP()->get_fd());
+      getRepresentativeLWP()->continueLWP_();
+      osfWaitProc(getRepresentativeLWP()->get_fd());
   }
   readDataSpace((void *)main_brk_addr, INSN_SIZE, savedCodeBuffer, true);
 
@@ -567,7 +568,7 @@ bool process::trapAtEntryPointOfMain(Address)
   if (main_brk_addr == 0) return false;
 
   //pc = Frame(this).getPC();
-  pc = getProcessLWP()->getActiveFrame().getPC();
+  pc = getRepresentativeLWP()->getActiveFrame().getPC();
 
   // printf("testing for trap at enttry to main, current pc = %lx\n", pc);
 
@@ -583,7 +584,8 @@ bool process::handleTrapAtEntryPointOfMain()
 
     // set PC to be value at the address.
    gregset_t theIntRegs;
-   if (ioctl(getProcessLWP()->get_fd(), PIOCGREG, &theIntRegs) == -1) {
+   dyn_lwp *replwp = getRepresentativeLWP();
+   if (ioctl(replwp->get_fd(), PIOCGREG, &theIntRegs) == -1) {
       perror("dyn_lwp::getRegisters PIOCGREG");
       if (errno == EBUSY) {
          cerr << "It appears that the process was not stopped in the eyes of /pr
@@ -593,16 +595,16 @@ oc" << endl;
       return false;
    }
    theIntRegs.regs[PC_REGNUM] -= 4;
-   getProcessLWP()->changePC(theIntRegs.regs[PC_REGNUM], NULL);
+   replwp->changePC(theIntRegs.regs[PC_REGNUM], NULL);
    
    prstatus info;
-   ioctl(getProcessLWP()->get_fd(), PIOCSTATUS,  &info);
+   ioctl(replwp->get_fd(), PIOCSTATUS,  &info);
    while (!prismember(&info.pr_flags, PR_STOPPED))
    {
        sleep(1);
-       ioctl(getProcessLWP()->get_fd(), PIOCSTATUS,  &info);
+       ioctl(replwp->get_fd(), PIOCSTATUS,  &info);
    }
-   if (ioctl(getProcessLWP()->get_fd(), PIOCSREG, &theIntRegs) == -1) {
+   if (ioctl(replwp->get_fd(), PIOCSREG, &theIntRegs) == -1) {
        perror("dyn_lwp::getRegisters PIOCGREG");
        if (errno == EBUSY) {
            cerr << "It appears that the process was not stopped in the eyes of /pr
@@ -712,7 +714,7 @@ bool process::loadDYNINSTlib()
 
   // save registers and "_start" code
   readDataSpace((void *)baseAddr, BYTES_TO_SAVE, (void *) savedCodeBuffer,true);
-  savedRegs = getProcessLWP()->getRegisters();
+  savedRegs = getRepresentativeLWP()->getRegisters();
   assert(savedRegs);
 
   // step 3: trap instruction (code)
@@ -729,7 +731,7 @@ bool process::loadDYNINSTlib()
   // fprintf(stderr, ">>> loadDYNINSTlib <0x%lx(_start): %ld insns>\n",
       // baseAddr, bufSize/INSN_SIZE);
   writeDataSpace((void *)baseAddr, bufSize, (void *)buf);
-  bool ret = getProcessLWP()->changePC(codeAddr, savedRegs);
+  bool ret = getRepresentativeLWP()->changePC(codeAddr, savedRegs);
   assert(ret);
 
   dyninstlib_brk_addr = trapAddr;

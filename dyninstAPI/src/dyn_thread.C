@@ -54,7 +54,7 @@ bool dyn_thread::updateLWP()
   // ST case
   if ((!proc->multithread_ready(true)) || 
       (index == (unsigned) -1)) {
-    lwp = proc->getProcessLWP();
+    lwp = proc->getRepresentativeLWP();
     return true;
   }
           
