@@ -266,7 +266,9 @@ sampleInterval costMetricValueUpdate(costMetric *met,
         // sample, we have to loose it, but we set the start time here.
         // ret = (met->parts[proc_num])->startTime(endTime);
         // (met->parts[proc_num])->value = value;
-        (met->parts[proc_num])->startTime(endTime);
+
+//        (met->parts[proc_num])->startTime(endTime);
+        (met->parts[proc_num])->firstTimeAndValue(endTime, value);
     }
     // update value if we have a new value from each part
     // ret = met->sample.newValue(met->parts, endTime, value);

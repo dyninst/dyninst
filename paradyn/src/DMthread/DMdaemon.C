@@ -1339,7 +1339,10 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	if (!found) {
 	   // this can occur due to asynchrony of enable or disable requests
 	   // so just ignore the data
-	  continue;
+           if (our_print_sample_arrival)
+              cout << "ignoring that sample since it's no longer active" << endl;
+
+           continue;
         }
        	assert(mi);
 
@@ -1388,8 +1391,10 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	   // the daemon that sent the value 
 	   //
 	   if (!part->sample->firstValueReceived())
-	     part->sample->startTime(startTimeStamp);
-	   part->sample->newValue(endTimeStamp, value, weight);
+              //part->sample->startTime(startTimeStamp);
+	     part->sample->firstTimeAndValue(startTimeStamp, 0);
+
+	   part->sample->newValue(endTimeStamp, (float)value, weight);
 	}
 
 	// don't aggregate if this metric is still being enabled (we may 
