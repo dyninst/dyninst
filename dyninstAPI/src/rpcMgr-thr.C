@@ -137,7 +137,7 @@ irpcLaunchState_t rpcThr::launchThrIRPC(bool runProcWhenDone) {
             }
         }
         else {
-            // No RPCs anyway
+			/* We assume that some other thread will run the process IRPC(s). */
             return irpcNoIRPC;
         }
     }
