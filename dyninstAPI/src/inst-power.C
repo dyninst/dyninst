@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.131 2002/05/13 19:52:11 mjbrim Exp $
+ * $Id: inst-power.C,v 1.132 2002/05/22 15:41:50 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -935,8 +935,7 @@ static void restoreFPRegister(instruction *&insn, Address &base, Register reg,
  *            hashed thread ID * sizeof(int) in REG_GUARD_OFFSET
  *
  * So: call DYNINSTthreadPos, which returns the POS value. This is
- *     done automatically (AST), the rest by hand. Save the POS,
- *     multiply by sizeof(unsigned), and add to the addr of threadTable
+ *     done automatically (AST), the rest by hand. Save the POS.
  *
  * If the POS returned is -2, we need to skip the instrumentation
  *   because the appropriate counter/timers aren't set yet. So we return
@@ -976,22 +975,11 @@ unsigned generateMTTrampCode(instruction *insn, Address &base, process *proc)
   tmp_insn++; scratchBase+=sizeof(instruction);
 
   // Store POS on the stack
-  // Store POS on the stack
   // Don't use saveReg because we don't want the reg offset calculation
   genImmInsn(tmp_insn, STop, REG_MT_POS, 1, PDYN_MT_POS);
   tmp_insn++;
   scratchBase += sizeof(instruction);
-  // Get sizeof (int) and multiply
-  base += scratchBase; scratchBase = 0; // reset
-  emitImm(timesOp, REG_MT_POS, sizeof(int), REG_GUARD_OFFSET, 
-	  (char *)tmp_insn, scratchBase, true);
-  
-  // Now we leave that be. Build the addr of threadTable in REG_MT_BASE
-  // and add REG_MT_POS to it
-  emitVload(loadConstOp, proc->findInternalAddress("DYNINSTthreadTable",true,err),
-	    REG_MT_BASE, REG_MT_BASE, (char *)tmp_insn, scratchBase, false);
-  emitV(plusOp, REG_GUARD_OFFSET, REG_MT_BASE, REG_MT_BASE, 
-	(char *)tmp_insn, scratchBase, false);
+
   base += scratchBase;
 
   return returnVal;
@@ -1608,13 +1596,13 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
 	    location->addr);
     */
   }
-  /*
+#if defined(DEBUG)
   fprintf(stderr, "------------\n");
   for (int i = 0; i < (theTemplate->size/4); i++)
     fprintf(stderr, "0x%x,\n", tramp[i].raw);
   fprintf(stderr, "------------\n");
   fprintf(stderr, "\n\n\n");
-  */
+#endif
   /*
   fprintf(stderr, "Dumping template: localPre %d, preReturn %d, localPost %d, postReturn %d\n",
 	  theTemplate->localPreOffset, theTemplate->localPreReturnOffset, 
@@ -1932,18 +1920,6 @@ Address process::generateMTRPCCode(void *insnPtr, Address &base,
   // Don't use saveReg because we don't want the reg offset calculation
   genImmInsn(tmp_insn, STop, REG_MT_POS, 1, PDYN_MT_POS);
   tmp_insn++; base += sizeof(instruction);
-
-  // Get sizeof (int) and multiply
-  emitImm(timesOp, REG_MT_POS, sizeof(int), REG_GUARD_OFFSET, 
-	  (char *)insnPtr, base, true);
-  
-  // Now we leave that be. Build the addr of threadTable in REG_MT_BASE
-  // and add REG_MT_POS to it
-  emitVload(loadConstOp, findInternalAddress("DYNINSTthreadTable",true,err),
-	    REG_MT_BASE, REG_MT_BASE, (char *)insnPtr, base, false);
-  emitV(plusOp, REG_GUARD_OFFSET, REG_MT_BASE, REG_MT_BASE, 
-	(char *)insnPtr, base, false);
-
   return returnVal;
 }
 
@@ -2215,9 +2191,9 @@ Register emitFuncCall(opCode /* ocode */,
   savedRegs.push_back(2);
 
 #if defined(MT_THREAD)
-  // save REG_MT_BASE
-  saveRegister(insn,base,REG_MT_BASE, FUNC_CALL_SAVE);
-  savedRegs += REG_MT_BASE;
+  // save REG_MT_POS
+  saveRegister(insn,base,REG_MT_POS, FUNC_CALL_SAVE);
+  savedRegs += REG_MT_POS;
 #endif
 
   // see what others we need to save.

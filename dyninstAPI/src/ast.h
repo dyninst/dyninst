@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.51 2002/05/04 21:47:15 schendel Exp $
+// $Id: ast.h,v 1.52 2002/05/22 15:41:50 bernat Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -153,9 +153,6 @@ class AstNode {
 	AstNode(const string &func, AstNode *l, AstNode *r);
         AstNode(const string &func, AstNode *l); // needed by inst.C
 	AstNode(operandType ot, void *arg);
-#if defined(MT_THREAD)
-	AstNode(operandType ot, void *arg, bool isLev, unsigned v_level, unsigned v_index);
-#endif
 	AstNode(AstNode *l, AstNode *r);
 
         AstNode(opCode, AstNode *left); 
@@ -272,18 +269,11 @@ AstNode *assignAst(AstNode *src);
 void removeAst(AstNode *&ast);
 void terminateAst(AstNode *&ast);
 AstNode *createIf(AstNode *expression, AstNode *action, process *proc=NULL);
-#if defined(MT_THREAD)
+AstNode *getTimerAddress(void *base, unsigned struct_size);
+AstNode *getCounterAddress(void *base, unsigned struct_size);
 AstNode *createCounter(const string &func, void *, AstNode *arg);
 AstNode *createTimer(const string &func, void *, 
                      vector<AstNode *> &arg_args);
-AstNode *computeAddress(void *level, int type);
-AstNode *addIndexToAddress(AstNode *addr, void *index, int type);
-AstNode *computeTheAddress(void *);
-#else
-AstNode *createCounter(const string &func, void *, AstNode *arg);
-AstNode *createTimer(const string &func, void *, 
-                     vector<AstNode *> &arg_args);
-#endif
 // VG(11/06/01): This should be in inst.h I suppose; moved there...
 /*
 Register emitFuncCall(opCode op, registerSpace *rs, char *i, Address &base, 

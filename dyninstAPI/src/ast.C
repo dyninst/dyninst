@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.97 2002/05/13 19:52:03 mjbrim Exp $
+// $Id: ast.C,v 1.98 2002/05/22 15:41:50 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -110,7 +110,7 @@ registerSpace::registerSpace(const unsigned int deadCount, Register *dead,
 	registers[i+deadCount].needsSaving = true;
 	registers[i+deadCount].startsLive = true;
 #if defined(MT_THREAD)
-        if (registers[i+deadCount].number == REG_MT_BASE) {
+        if (registers[i+deadCount].number == REG_MT_POS) {
           registers[i+deadCount].inUse = true;
           registers[i+deadCount].needsSaving = true;
         }
@@ -220,7 +220,7 @@ void registerSpace::resetSpace() {
 
 // Drew, do you still want this for anything?  -- TLM ( 03/18/2002 )
 // (Should be #if defined(MT_THREAD) - protected, if you do.)
-//        if (registers[i].inUse && (registers[i].number != REG_MT_BASE)) {
+//        if (registers[i].inUse && (registers[i].number != REG_MT_POS)) {
           //sprintf(errorLine,"WARNING: register %d is still in use\n",registers[i].number);
           //logLine(errorLine);
 //        }
@@ -229,7 +229,7 @@ void registerSpace::resetSpace() {
 	registers[i].mustRestore = false;
 	registers[i].needsSaving = registers[i].startsLive;
 #if defined(MT_THREAD)
-        if (registers[i].number == REG_MT_BASE) {
+        if (registers[i].number == REG_MT_POS) {
           registers[i].inUse = true;
           registers[i].needsSaving = true;
         }
@@ -528,38 +528,6 @@ AstNode::AstNode(operandType ot, void *arg) {
 };
 
 // to create a newly added type for recognizing offset for locating variables
-#if defined(MT_THREAD)
-AstNode::AstNode(operandType ot, void *arg, bool isLev, unsigned v_level, unsigned v_index) {
-    assert(ot == OffsetConstant);
-#if defined(ASTDEBUG)
-    ASTcounterNP();
-#endif
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
-    astFlag = false;
-#endif
-    referenceCount = 1;
-    useCount = 0;
-    kept_register = Null_Register;
-    type = operandNode;
-    oType = ot;
-    if (ot == ConstantString)
-	oValue = (void *)P_strdup((char *)arg);
-    else
-    	oValue = (void *) arg;
-    loperand = roperand = eoperand = NULL;
-    size = 4;
-#if defined(BPATCH_LIBRARY)
-    bptype = NULL;
-    doTypeCheck = true;
-#endif
-    // so far it's the same as AstNode(operandType ot, void *arg)
-    // now assign isLevel and lvlOrIdx
-    isLevel = isLev;
-    lvl     = v_level;
-    idx     = v_index;
-};
-#endif
-
 
 AstNode::AstNode(operandType ot, AstNode *l) {
 #if defined(ASTDEBUG)
@@ -1004,14 +972,14 @@ static Register shareDestWithSrc(Register left, Register right,
 
     if (left != Null_Register && 
 #if defined(MT_THREAD)
-	left != REG_MT_BASE && // MT code uses this reg, but marks it as free
+	left != REG_MT_POS && // MT code uses this reg, but marks it as free
 #endif
 	!rs->is_keep_register(left) && !wasKept(left, kept_state)) {
 	dest = left;
     }
     else if (right != Null_Register && 
 #if defined(MT_THREAD)
-	     right != REG_MT_BASE && // MT code uses this reg
+	     right != REG_MT_POS && // MT code uses this reg
 #endif
 	     !rs->is_keep_register(right) && !wasKept(right, kept_state)) {
 	dest = right;
@@ -1213,6 +1181,7 @@ Address AstNode::generateCode_phase2(process *proc,
 	    } else {
 		// invalid oType passed to store
 		cerr << "invalid oType passed to store: " << (int)loperand->oType << endl;
+		cerr << "dataValue " << DataValue << " dataPtr " << DataPtr << " dataId " << DataId << endl;
 		abort();
 	    }
             // We are not calling generateCode for the left branch,
@@ -1391,14 +1360,10 @@ Address AstNode::generateCode_phase2(process *proc,
 	} else if (oType == ConstantPtr) {
 	  emitVload(loadConstOp, (*(Address *) oValue), dest, dest, 
 		    insn, base, noCost);
-#if defined(MT_THREAD)
-	} else if (oType == OffsetConstant) {  // a newly added type for recognizing offset for locating variables
-	  emitVload(loadConstOp, (Address)oValue, dest, dest, 
-		    insn, base, noCost);
-#endif
 	} else if (oType == DataPtr) { // restore AstNode::DataPtr type
 	  addr = (Address) oValue;
 	  assert(addr != 0); // check for NULL
+	  fprintf(stderr, "Emitting load to 0x%x\n", (unsigned) addr);
 	  emitVload(loadConstOp, addr, dest, dest, insn, base, noCost);
 	} else if (oType == DataIndir) {
 	  src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, location);
@@ -1767,246 +1732,80 @@ AstNode *createIf(AstNode *expression, AstNode *action, process *proc)
 
 #ifndef BPATCH_LIBRARY
 
-// Multithreaded case with shared memory sampling
-
-#if defined(MT_THREAD)
-
-/* Short version:
-   return * ((thread_counter_base) + (MAX_THREADS * level * sizeof(unsigned)))
-
-   level = 0 for counter, 1 for wall timer, 2 for proc timer.
-   So we have an array of all the counter vectors (of MAX_THREADS size), and each slot
-   points to the actual start of a given counter vector. Dereference to get the
-   start. If it hasn't been "allocated", dereferencing returns 0.   
-*/
-
-AstNode *computeAddress(void *level, void *index, int type)
-{
-  int tSize;
-
-  /* DYNINSTthreadTable[0][thr_self()] */
-  AstNode* base = new AstNode(AstNode::DataReg, (void *)REG_MT_BASE);
-
-  //fprintf(stderr, "Emitting computeAddr with level %d, index %d, type %d\n",
-  //  (unsigned) level, (unsigned) index, type);
-  
-  /* Now we compute the offset for the corresponding level. We assume */
-  /* that the DYNINSTthreadTable is stored by rows - naim 4/18/97 */
-
-  tSize = sizeof(unsigned);
-  
-  // AstNode* t5 = new AstNode(AstNode::Constant, 
-  // (void*) (MAX_NUMBER_OF_THREADS*((unsigned) level)*tSize)) ;
-  AstNode* offset = new AstNode(AstNode::OffsetConstant, 
-				(void*) (MAX_NUMBER_OF_THREADS*((unsigned) level)*tSize),
-				true,  // this IS level
-				(unsigned) level,
-				(unsigned) index) ;  // value of level
-  
-  /* Given the level and tid, we compute the position in the thread */
-  /* table. */
-  AstNode* slot = new AstNode(plusOp, base, offset);
-  
-  removeAst(base);
-  removeAst(offset);
-  /* We then read the address, which is really the base address of the */
-  /* vector of counters and timers in the shared memory segment. */
-  AstNode *dereference = new AstNode(AstNode::DataIndir, slot); 
-  removeAst(slot);
-  
-  return(dereference);
-}
-
-
 /*
-  Okay, why is this here? We calculate the address and op it? Why can't this be
-  inlined (or work more intelligently)? 
-
-  Seems to be a simple compare (either equal or not equal) with 0.
-*/
-
-AstNode *compWithZero(AstNode *addr, opCode op)
-{  
-  AstNode *null_value, *expression;
-  null_value = new AstNode(AstNode::Constant,(void *)0);
-  expression = new AstNode(op, addr, null_value);
-  removeAst(null_value) ;
-  return(expression);
-}
-
-
-/* Take addr (given) and add the offset to the particular counter/timer we want */
-
-AstNode *addIndexToAddress(AstNode *addr, void *level, void *index, int type)
-{
-  int tSize;
-
-  /* Finally, using the index as an offset, we compute the address of the */
-  /* counter/timer. */
-  if (type==0) {
-    /* intCounter */
-    tSize = sizeof(intCounter);
-  } else {
-    /* Timer */
-    tSize = sizeof(tTimer);
-  }
-
-  AstNode *array_index = new AstNode(AstNode::OffsetConstant,
-		    (void*) (((unsigned)index)*tSize),
-		    false,  // this is NOT level
-		    (unsigned) level,
-		    (unsigned) index);  // value of index
-  AstNode *offset = new AstNode(plusOp, addr, array_index); /* address of counter/timer */
-  removeAst(array_index);
-
-  return(offset);
-}
-
-/*
- * Determine the base (dependent on the thread POS) and add in
- * the array offset (depends on the counter/timer used, fixed in instru)
- */
-
-
-AstNode *computeTheAddress(void *dataPtr) {
-  /*  need to implement
-  AstNode* base = computeAddress(level, index, type) ;
-  AstNode* addr = addIndexToAddress(base, level, index, type) ;
-  removeAst(base) ;
-  return addr ;
-  */
-  return &AstNode();
-}
-
-/*
- * Pseudocode: (yay)
- * Find the pointer to the appropriate counter/timer array and dereference.
- * Loop until the above is non-zero
- * Add on the timer offset and get the pointer to the structure
- * Call start/stop timer
+ * Simple: return base + (POS * size). ST: POS==0, so return base
  */
  
-
-AstNode *createTimer(const string &func, void *dataPtr, 
-                     vector<AstNode *> &ast_args)
+AstNode *getTimerAddress(void *base, unsigned struct_size)
 {
-  /*  Needs to be implemented
-  AstNode *noop = new AstNode();
-
-  vector<AstNode *> noArgs;
-  AstNode *loopFunc = new AstNode("DYNINSTloop", noArgs);
-
-  AstNode *baseAddress = computeAddress(level, index, 1);
-  AstNode *checkAddr = compWithZero(baseAddress, eqOp);
-
-  AstNode *waitForValidAddr = new AstNode(whileOp, checkAddr, loopFunc);
-  removeAst(checkAddr);
-  removeAst(noop);
-  removeAst(loopFunc);
-
-  //t1:
-  // Timer
-  AstNode* structAddr = addIndexToAddress(baseAddress, level, index, 1); // 1 means tTimer 
-  removeAst(baseAddress);
-  ast_args += structAddr;
-  AstNode* timer = new AstNode(func, ast_args);
-  for(unsigned i=0; i<ast_args.size(); i++)
-    removeAst(ast_args[i]) ;
-
-  AstNode *body = new AstNode(waitForValidAddr, timer);
-  removeAst(waitForValidAddr);
-  removeAst(timer);
-
-  //if(t29) t5 ;
-  vector<AstNode *> arg;
-  // Could be inlined prolly
-  AstNode* notDeleted = new AstNode("DYNINST_not_deleted", arg);
-  AstNode* ret = new AstNode(ifOp, notDeleted, body) ;
-
-  removeAst(notDeleted);
-  removeAst(body);
-  return(ret);
-*/
-  return &AstNode();
-}
-
-AstNode *createCounter(const string &func, void *dataPtr,
-                       AstNode *ast) 
-{ 
-  /*  need to implement
-  AstNode *t0=NULL,*t1=NULL,*t2=NULL,*t3=NULL;
-  AstNode *t4=NULL,*t5=NULL,*t6=NULL;
-
-  t0 = computeAddress(level, index, 0); // 0 means intCounter
-  t4 = compWithZero(t0, neOp);
-  t5 = addIndexToAddress(t0, level, index, 0); // 0 means intCounter
-  removeAst(t0) ;
-
-  if (func == "addCounter") {
-    t1 = new AstNode(AstNode::DataIndir, t5);
-    t2 = new AstNode(plusOp, t1, ast);
-    t3 = new AstNode(storeIndirOp, t5, t2);
-    removeAst(t2) ;
-  } else if (func == "subCounter") {
-    t1 = new AstNode(AstNode::DataIndir, t5);
-    t2 = new AstNode(minusOp, t1, ast);
-    t3 = new AstNode(storeIndirOp, t5, t2);
-    removeAst(t2);
-  } else if (func == "setCounter") {
-    t3 = new AstNode(storeIndirOp, t5, ast);
-  }
-  removeAst(t5) ;
-
-  t6 = new AstNode(ifOp, t4, t3) ;
-  removeAst(t4);
-  removeAst(t3);
-
-  return(t6);
-*/
-  return &AstNode();
-}
-
+#if !defined(MT_THREAD)
+  return new AstNode(AstNode::DataPtr, base);
 #else
+  // Return base + struct_size*POS. Problem is, POS is unknown
+  // until we are running the instrumentation
 
-// Single threaded case
+  fprintf(stderr, "Called handleMT with base of 0x%x, structure size %d\n",
+	  (unsigned) base, struct_size);
+  AstNode *pos        = new AstNode(AstNode::DataReg, (void *)REG_MT_POS);
+  AstNode *increment  = new AstNode(AstNode::Constant, (void *)struct_size);
+  AstNode *var_base   = new AstNode(AstNode::DataPtr, base);
+
+  AstNode *offset     = new AstNode(timesOp, pos, increment);
+  AstNode *var        = new AstNode(plusOp, var_base, offset);
+
+  removeAst(pos);
+  removeAst(increment);
+  removeAst(var_base);
+  removeAst(offset);
+  return var;
+#endif
+}
 
 AstNode *createTimer(const string &func, void *dataPtr, 
                      vector<AstNode *> &ast_args)
 {
-  AstNode *t0=NULL,*t1=NULL;
+  AstNode *var_base=NULL,*timer=NULL;
 
   // t0 = new AstNode(AstNode::Constant, (void *) dataPtr);  // This was AstNode::DataPtr
-  t0 = new AstNode(AstNode::DataPtr, (void *) dataPtr);  // restore AstNode::DataPtr
-  ast_args += assignAst(t0);
-  removeAst(t0);
-  t1 = new AstNode(func, ast_args);
+  var_base = getTimerAddress(dataPtr, sizeof(tTimer));
+  ast_args += assignAst(var_base);
+  removeAst(var_base);
+  timer = new AstNode(func, ast_args);
   for (unsigned i=0;i<ast_args.size();i++) removeAst(ast_args[i]);  
-  return(t1);
+  return(timer);
 }
+
+
+AstNode *getCounterAddress(void *base, unsigned struct_size)
+{
+#if !defined(MT_THREAD)
+  return new AstNode(AstNode::DataAddr, base);
+#else
+  return NULL;
+#endif
+}
+
 
 AstNode *createCounter(const string &func, void *dataPtr, 
                        AstNode *ast) 
 {
-   AstNode *t0=NULL, *t1=NULL, *t2=NULL;
+   AstNode *calc=NULL, *store=NULL;
 
-   t0 = new AstNode(AstNode::DataAddr, (void *)dataPtr);  // This was AstNode::DataValue
-   // t0 = new AstNode(AstNode::DataValue, (void *)dataPtr);  // restore AstNode::DataValue
+   AstNode *counter_base = getCounterAddress(dataPtr, sizeof(intCounter));
    if (func=="addCounter") {
-     t1 = new AstNode(plusOp,t0,ast);
-     t2 = new AstNode(storeOp,t0,t1);
-     removeAst(t1);
+     calc = new AstNode(plusOp,counter_base,ast);
+     store = new AstNode(storeOp,counter_base,calc);
+     removeAst(calc);
    } else if (func=="subCounter") {
-     t1 = new AstNode(minusOp,t0,ast);
-     t2 = new AstNode(storeOp,t0,t1);
-     removeAst(t1);
+     calc = new AstNode(minusOp,counter_base,ast);
+     store = new AstNode(storeOp,counter_base,calc);
+     removeAst(calc);
    } else if (func=="setCounter") {
-     t2 = new AstNode(storeOp,t0,ast);
+     store = new AstNode(storeOp,counter_base,ast);
    } else abort();
-   removeAst(t0);
-   return(t2);
+   removeAst(counter_base);
+   return(store);
 }
-
-#endif
 #endif
 
 #ifdef BPATCH_LIBRARY

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.h - Common definitions to the POWER specific instrumentation code.
- * $Id: inst-power.h,v 1.18 2002/04/09 18:56:37 tikir Exp $
+ * $Id: inst-power.h,v 1.19 2002/05/22 15:41:50 bernat Exp $
  */
 
 #ifndef INST_POWER_H
@@ -77,8 +77,7 @@ extern trampTemplate withArgsTemplate;
 #define REG_GUARD_ADDR        5   /* Arbitrary                             */
 #define REG_GUARD_VALUE       6
 #define REG_GUARD_OFFSET      7
-#define REG_MT_POS           11   /* Hashed thread ID                      */
-#define REG_MT_BASE          12   /* Base addr of the vector of counter/timers */
+#define REG_MT_POS           12   /* Register to reserve for MT implementation */
 #define NUM_INSN_MT_PREAMBLE 26   /* number of instructions required for   */
                                   /* the MT preamble.                      */ 
 
