@@ -39,13 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dyn_thread.h,v 1.9 2003/03/12 01:50:03 schendel Exp $
+// $Id: dyn_thread.h,v 1.10 2003/04/16 21:07:12 bernat Exp $
 
 #ifndef _DYNTHREAD_H_
 #define _DYNTHREAD_H_
 
 #include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/inferiorRPC.h"
 
 class Frame;
 class dyn_lwp;
@@ -60,11 +59,13 @@ class dyn_thread {
     start_pc(0),
     start_func(NULL),
     rid(NULL),
-    pending_tramp_addr( ADDR_NULL )
+  pending_tramp_addr( ADDR_NULL ),
+  useRPCStack_(false)
     { 
       proc = pproc; 
       ppid = pproc->getPid();
       lwp  = pproc->getDefaultLWP();
+      proc->getRpcMgr()->addThread(this);
     }
   dyn_thread(process *proc_, unsigned tid_, unsigned pos_, dyn_lwp *lwp_) :
     tid(tid_),
@@ -74,10 +75,13 @@ class dyn_thread {
     start_pc(0),
     start_func(NULL),
     rid(NULL),
-    pending_tramp_addr( ADDR_NULL )
+  pending_tramp_addr( ADDR_NULL ),
+    useRPCStack_(false)
+
     {
       proc = proc_;
       ppid = proc_->getPid();
+      proc->getRpcMgr()->addThread(this);
     }
 
   dyn_thread(process *parent, dyn_thread *src) {
@@ -93,6 +97,8 @@ class dyn_thread {
      rid = src->rid;
      proc = parent;
      pending_tramp_addr = ADDR_NULL;
+     useRPCStack_ = false;
+     proc->getRpcMgr()->addThread(this);
   }
 
   ~dyn_thread() {
@@ -133,6 +139,11 @@ class dyn_thread {
   Address get_pending_tramp_addr( void ) const	{ return pending_tramp_addr; }
   void set_pending_tramp_addr( Address a )	{ pending_tramp_addr = a; }
 
+  // When we're in an inferior RPC we use a cached stack walk from where
+  // the process "was"
+  bool savePreRPCStack();
+  void clearPreRPCStack();
+  
   ///
  private:
   int ppid;
@@ -149,6 +160,9 @@ class dyn_thread {
   Address pending_tramp_addr;	// address of pending instrumentation
   // currently used on NT only
 
+  bool useRPCStack_;
+  pdvector<Frame> RPCstack_;
+  
 };
 
 #endif

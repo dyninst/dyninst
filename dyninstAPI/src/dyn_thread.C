@@ -169,18 +169,17 @@ bool dyn_thread::updateLWP()
     lwp = proc->getDefaultLWP();
     return true;
   }
-  
+          
   int lwp_id;
   if (lwp) lwp_id = lwp->get_lwp_id();
   else lwp_id = 0;
   int vt_lwp = proc->shmMetaData->getVirtualTimer(pos)->lwp;
-
+  
   if (vt_lwp < 0) {
     lwp = NULL; // Not currently scheduled
     return false;
   }
   if (lwp_id == vt_lwp) return true;
-
   lwp = proc->getLWP(vt_lwp);
 
   if (!lwp) // Odd, not made yet?
@@ -218,9 +217,13 @@ Frame dyn_thread::getActiveFrame()
 // stackWalk: return parameter.
 bool dyn_thread::walkStack(pdvector<Frame> &stackWalk)
 {
-   updateLWP();
-   assert(lwp);
-   return lwp->walkStack(stackWalk);
+    if (useRPCStack_) {
+        stackWalk = RPCstack_;
+        return true;
+    }
+    Frame active = getActiveFrame();
+    
+    return proc->walkStackFromFrame(active, stackWalk);
 }
 
 dyn_lwp *dyn_thread::get_lwp()
@@ -230,3 +233,17 @@ dyn_lwp *dyn_thread::get_lwp()
   return lwp;
 }
 
+bool dyn_thread::savePreRPCStack()
+{
+    if (useRPCStack_)
+        assert(0);
+    RPCstack_.clear();
+    
+    walkStack(RPCstack_);
+    useRPCStack_ = true;
+    return true;
+}
+
+void dyn_thread::clearPreRPCStack() {
+    useRPCStack_ = false;
+}
