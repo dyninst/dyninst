@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.48 2002/05/04 21:47:20 schendel Exp $
+// $Id: mdl.C,v 1.49 2002/05/09 21:42:58 schendel Exp $
 
 #include "dyninstRPC.xdr.CLNT.h"
 #include "paradyn/src/met/globals.h"
@@ -166,10 +166,8 @@ bool mdl_data::new_metric(string id, string name, string units,
 }
 
 machineMetFocusNode *T_dyninstRPC::mdl_metric::apply(int, 
-						     vector< vector<string> >&,
-						     string& , 
+						     const Focus &,
 						     vector<process *>,
-					        vector< vector<pdThread *> > &,
 						     bool, bool) {
   mdl_env::push();
   if (!mdl_env::add(id_, true, type_)) return NULL;
@@ -196,7 +194,7 @@ machineMetFocusNode *T_dyninstRPC::mdl_metric::apply(int,
     if ((*constraints_)[u1]->match_path_) {
       // inlined constraint def
       instrDataNode *drn = NULL;
-      vector<string> res;
+      Hierarchy res;
       if (!(*constraints_)[u1]->apply(NULL, &drn, res, NULL, false))
       {
         cerr << "In metric " << name_ << ": apply of " << u1
@@ -310,7 +308,7 @@ T_dyninstRPC::mdl_constraint::~mdl_constraint() {
 
 bool T_dyninstRPC::mdl_constraint::apply(instrCodeNode *,
 					 instrDataNode **,
-					 const vector<string>&,
+					 const Hierarchy &,
 					 process *, 
 					 bool)
 {
@@ -1251,7 +1249,7 @@ bool mdl_apply() {
   size = mdl_data::all_constraints.size();
   for (unsigned u1=0; u1<size; u1++) {
     instrDataNode *drn = NULL;
-    vector<string> res;
+    Hierarchy res;
     if (mdl_data::all_constraints[u1]->apply(NULL, &drn, res, NULL, false)) {
       ok_cons += mdl_data::all_constraints[u1];
       // cout << "constraint defined: " << mdl_data::all_constraints[u1]->id_ << endl;
@@ -1266,15 +1264,16 @@ bool mdl_apply() {
   //
   // apply metrics
   //
-  vector< vector<string> >vs;
+  Focus focus;
   string empty;
   vector<process*> emptyP;
-  vector< vector<pdThread *> > emptyThr;
 
   vector<T_dyninstRPC::mdl_metric*> ok_mets;
   size = mdl_data::all_metrics.size();
   for (unsigned u2=0; u2<size; u2++) {
-    if (mdl_data::all_metrics[u2]->apply(0, vs, empty, emptyP, emptyThr, false, false) == (machineMetFocusNode*)1) {
+    if (mdl_data::all_metrics[u2]->apply(0, focus, emptyP, false, false) 
+	== (machineMetFocusNode*)1)
+    {
       ok_mets += mdl_data::all_metrics[u2];
       // cout << "metric defined: " << mdl_data::all_metrics[u2]->id_ << endl;
     } else {
