@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.121 2003/12/08 19:03:38 schendel Exp $
+// $Id: linux.C,v 1.122 2003/12/18 17:15:37 schendel Exp $
 
 #include <fstream>
 
@@ -199,8 +199,33 @@ void OS::osDisconnect(void) {
   P_close (ttyfd);
 }
 
+// may be needed in the future
+#if defined(DECODEANDHANDLE_EVENT_ON_LWP)
+// returns true if it handled an event
+bool decodeAndHandleProcessEventOnLwp(bool block, dyn_lwp *lwp) {
+    procSignalWhy_t why;
+    procSignalWhat_t what;
+    procSignalInfo_t info;
+    process *proc;
+    dyn_lwp *selectedLWP;
+
+    proc = decodeProcessEvent(&selectedLWP, lwp->get_lwp_id(), why, what, info,
+                              block);
+
+    if (!proc) {
+       return false;
+    }
+
+    assert(selectedLWP == lwp);
+
+    if (!handleProcessEvent(proc, selectedLWP, why, what, info)) 
+        fprintf(stderr, "handleProcessEvent failed!\n");
+    return true;
+}
+#endif
+
 bool dyn_lwp::stop_() {
-     return (P_kill(get_lwp_id(), SIGSTOP) != -1); 
+   return (P_kill(get_lwp_id(), SIGSTOP) != -1); 
 }
 
 bool process::continueWithForwardSignal( int sig ) {
@@ -339,8 +364,9 @@ process *decodeProcessEventLinux(dyn_lwp **pertinantLWP, int wait_arg,
          dyn_lwp *curlwp = NULL;
          if( (curlwp = curproc->lookupLWP(pertinantPid)) ) {
             pertinantProc = curproc;
-            if(pertinantLWP)
+            if(pertinantLWP) {
                (*pertinantLWP) = curlwp;
+            }
             pertinantProc->set_lwp_status(curlwp, stopped);
             break;
          }
@@ -400,13 +426,33 @@ process *decodeProcessEvent(dyn_lwp **pertinantLWP, int wait_arg,
                             procSignalWhy_t &why, procSignalWhat_t &what,
                             procSignalInfo_t &info, bool block) {
    process *proc = NULL;
+   bool wait_on_initial_lwp = false;
+   bool wait_on_spawned_lwp = false;
+
+   if(wait_arg != -1) {
+      if(process::findProcess(wait_arg))
+         wait_on_initial_lwp = true;
+      else wait_on_spawned_lwp = true;
+   } else {
+      wait_on_initial_lwp = true;
+      wait_on_spawned_lwp = true;
+   }
+
    while(1) {
-      proc = decodeProcessEventLinux(pertinantLWP, -1, why, what, info, false,
-                                     0);
-      if(proc)  break;
-      proc = decodeProcessEventLinux(pertinantLWP, -1, why, what, info, false, 
-                                     __WCLONE);
-      if(proc)  break;
+      if(wait_on_initial_lwp) {
+         proc = decodeProcessEventLinux(pertinantLWP, wait_arg, why, what,
+                                        info, false, 0);
+         if(proc) {
+            break;
+         }
+      }
+      if(wait_on_spawned_lwp) {
+         proc = decodeProcessEventLinux(pertinantLWP, wait_arg, why, what,
+                                        info, false, __WCLONE);
+         if(proc) {
+            break;
+         }
+      }
       if(! block) break;
    }
 
@@ -546,15 +592,16 @@ bool dyn_lwp::isRunning() const {
    assert(read(fd, buf, sizeof(buf)) > 0);
    close(fd);
    buf[399] = 0;
-   
+
    /* Parse status and pending signals */
    parse_procstat_status(buf, &status);   
    //cerr << "  isRunning, got status: " << status << endl;
 
-   if(status == 'T')
+   if(status == 'T') {
       return false;
-   else
+   } else {
       return true;
+   }
 }
 
 bool dyn_lwp::isStopPending() const {
@@ -575,17 +622,12 @@ bool dyn_lwp::isStopPending() const {
    /* Parse status and pending signals */
    bool couldparse = parse_procstat_pending(buf, &shdsigpend);
 
-   /*
-   cerr << "  got status number of " << shdsigpend;
-   if(shdsigpend & 040000)
-      cerr << ", yes stop pending\n";
-   else
-      cerr << ", no stop pending\n";
-   */
    if(couldparse) {
-      if(shdsigpend & 040000)
+      if(shdsigpend & 040000) {
          return true;
+      }
    }
+
    return false;
 }
 
@@ -609,9 +651,9 @@ bool process::isRunning_() const {
   status = token[0];
 
   if( status == 'T' )
-    return false;
+     return false;
   else
-    return true;
+     return true;
 }
 
 
@@ -659,13 +701,13 @@ bool process::waitUntilStopped() {
    return result;
 }
 
-
 bool waitUntilStoppedGeneral(dyn_lwp *lwp, int options) {
    /* make sure the process is stopped in the eyes of ptrace */
    bool haveStopped = false;
     
    // Loop handling signals until we receive a sigstop. Handle
    // anything else.
+   int loopCt = 0;
    while (!haveStopped) {
       procSignalWhy_t why;
       procSignalWhat_t what;
@@ -673,10 +715,17 @@ bool waitUntilStoppedGeneral(dyn_lwp *lwp, int options) {
       if(lwp->proc()->hasExited()) {
          return false;
       }
+      ++loopCt;
       dyn_lwp *chosen_lwp = NULL;
+
+      if(loopCt>10000) {
+         lwp->stop_();
+         loopCt = 0;
+      }
+
       process *proc = decodeProcessEventLinux(&chosen_lwp, lwp->get_lwp_id(),
-                                              why, what, info, true, options);
-      
+                                              why, what, info, false, options);
+
       if (didProcReceiveSignal(why) && what == SIGSTOP) {
          if(chosen_lwp == lwp) {
             haveStopped = true;
@@ -684,9 +733,8 @@ bool waitUntilStoppedGeneral(dyn_lwp *lwp, int options) {
          // Don't call the general handler
       }
       else {
-         if(proc) {
-            handleProcessEvent(proc, why, what, info);
-         }
+         if(proc)
+            handleProcessEvent(proc, chosen_lwp, why, what, info);
       }
    }
 
@@ -694,23 +742,21 @@ bool waitUntilStoppedGeneral(dyn_lwp *lwp, int options) {
 }
 
 bool dyn_lwp::waitUntilStopped() {
-   bool looped_flag = false;
-
-   //int total_loop_count = 0;   
    while(this->isRunning()==true && this->isStopPending()==true) {
-      looped_flag = true;
       struct timeval timeout;
       timeout.tv_sec = 0;
       timeout.tv_usec = 40;
       select(0, NULL, NULL, NULL, &timeout);
-      //total_loop_count++;
    }
 
+   bool res;
    if(proc_->getInitialThread()->get_lwp() == this) {
-      return waitUntilStoppedGeneral(this, 0);
+      res = waitUntilStoppedGeneral(this, 0);
    } else {
-      return waitUntilStoppedGeneral(this, __WCLONE);
+      res = waitUntilStoppedGeneral(this, __WCLONE);
    }
+
+   return res;
 }
 
 
