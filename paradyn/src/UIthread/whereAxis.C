@@ -4,9 +4,13 @@
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
 /* $Log: whereAxis.C,v $
-/* Revision 1.5  1995/08/07 00:02:53  tamches
-/* Added selectUnSelectFromFullPathName
+/* Revision 1.6  1995/09/20 01:27:55  tamches
+/* Better set_scrollbars() (mouse moves).  Use of graphicalPath, a new class.
+/* Other major cleanifications to go along with where4tree changes.
 /*
+ * Revision 1.5  1995/08/07  00:02:53  tamches
+ * Added selectUnSelectFromFullPathName
+ *
  * Revision 1.4  1995/08/01  23:03:54  tamches
  * Fixed a layout bug whereby scrolling a listbox whose width was less
  * than that of the parent (pink) node would redraw the listbox incorrectly.
@@ -35,8 +39,36 @@
 #include "paradyn/src/DMthread/DMinclude.h"
 #endif
 
+#include "graphicalPath.h"
 #include "whereAxis.h"
 #include "whereAxisMisc.h"
+
+template <class USERNODEDATA>
+whereAxis<USERNODEDATA>::whereAxis(Tcl_Interp *in_interp, Tk_Window theTkWindow,
+				   const string &root_str,
+				   const string &iHorizSBName,
+				   const string &iVertSBName,
+				   const string &iNavigateMenuName) :
+				   consts(in_interp, theTkWindow),
+				   hash(hashFunc, 32),
+				   horizSBName(iHorizSBName),
+				   vertSBName(iVertSBName),
+				   navigateMenuName(iNavigateMenuName) {
+   USERNODEDATA rootUND = 0;
+
+   rootPtr = new where4tree<USERNODEDATA>(rootUND, root_str, consts);
+   assert(rootPtr);
+
+   hash[rootUND] = rootPtr;
+
+   beginSearchFromPtr = NULL;
+
+   interp = in_interp;
+      
+   horizScrollBarOffset = vertScrollBarOffset = 0;
+      
+   rethink_nominal_centerx();
+}
 
 template <class USERNODEDATA>
 void whereAxis<USERNODEDATA>::rethink_nominal_centerx() {
@@ -44,10 +76,7 @@ void whereAxis<USERNODEDATA>::rethink_nominal_centerx() {
    // using root->myEntireWidthAsDrawn(consts) as the amount of screen real
    // estate used, this routine rethinks this->nominal_centerx.
 
-   // NOTE: It seems that we must rethink_nominal_centerx() every
-   // time we call the tcl script informTclOfOverallSizeChange
-   // Coincidence?  Probably not.  But why?
-   const int horizSpaceUsedByTree = rootPtr->myEntireWidthAsDrawn(consts);
+   const int horizSpaceUsedByTree = rootPtr->entire_width(consts);
 
    // If the entire tree fits, then set center-x to window-width / 2.
    // Otherwise, set center-x to used-width / 2;
@@ -59,45 +88,48 @@ void whereAxis<USERNODEDATA>::rethink_nominal_centerx() {
 
 template <class USERNODEDATA>
 void whereAxis<USERNODEDATA>::resizeScrollbars() {
-   char buffer[100];
-   (void)sprintf(buffer, "resize1Scrollbar %s %d %d",
-                 horizSBName.string_of(),
-                 rootPtr->myEntireWidthAsDrawn(consts), // total
-                 Tk_Width(consts.theTkWindow) // visible
-                 );
-   myTclEval(interp, buffer);
+   string commandStr = string("resize1Scrollbar ") + horizSBName + " " +
+                       string(rootPtr->entire_width(consts)) + " " +
+		       string(Tk_Width(consts.theTkWindow));
+   myTclEval(interp, commandStr);
 
-   (void)sprintf(buffer, "resize1Scrollbar %s %d %d",
-                 vertSBName.string_of(),
-                 rootPtr->myEntireHeightAsDrawn(consts), // total
-                 Tk_Height(consts.theTkWindow) // visible
-                 );
-   myTclEval(interp, buffer);
+   commandStr = string("resize1Scrollbar ") + vertSBName + " " +
+                       string(rootPtr->entire_height(consts)) + " " +
+		       string(Tk_Height(consts.theTkWindow));
+   myTclEval(interp, commandStr);
 }
 
 template <class USERNODEDATA>
 bool whereAxis<USERNODEDATA>::
-set_scrollbars(const int absolute_x, const int relative_x,
-	       const int absolute_y, const int relative_y) {
+set_scrollbars(int absolute_x, int relative_x,
+	       int absolute_y, int relative_y,
+	       bool warpPointer) {
    // Sets the scrollbars s.t. (absolute_x, absolute_y) will appear
    // at window (relative) location (relative_x, relative_y).
    // May need to take into account the current scrollbar setting...
 
    bool anyChanges = true;
 
-   // First, the horizontal scrollbar:
-   const int newXpixFirst = absolute_x - relative_x;
-   const int widthOfEverything = rootPtr->myEntireWidthAsDrawn(consts);
-   float newXpixRelativeFirst = (1.0 * newXpixFirst / widthOfEverything);
-   newXpixRelativeFirst = moveScrollBar(interp, horizSBName, newXpixRelativeFirst);
-   horizScrollBarOffset = -(int)(newXpixRelativeFirst * widthOfEverything);
+   horizScrollBarOffset = -set_scrollbar(interp, horizSBName,
+					 rootPtr->entire_width(consts),
+					 absolute_x, relative_x);
+      // relative_x will be updated
+   
+   vertScrollBarOffset = -set_scrollbar(interp, vertSBName,
+					rootPtr->entire_height(consts),
+					absolute_y, relative_y);
 
-   // And now the vertical scrollbar:
-   const int newYpixFirst = absolute_y - relative_y;
-   const int heightOfEverything = rootPtr->myEntireHeightAsDrawn(consts);
-   float newYpixRelativeFirst = (1.0 * newYpixFirst / heightOfEverything);
-   newYpixRelativeFirst = moveScrollBar(interp, vertSBName, newYpixRelativeFirst);
-   vertScrollBarOffset = -(int)(newYpixRelativeFirst * heightOfEverything);
+   if (warpPointer) {
+//      cout << "warping pointer to " << relative_x << "," << relative_y << endl;
+
+      XWarpPointer(Tk_Display(consts.theTkWindow),
+		   Tk_WindowId(consts.theTkWindow), // src win
+		   Tk_WindowId(consts.theTkWindow), // dest win
+		   0, 0, // src x,y
+		   0, 0, // src height, width
+		   relative_x, relative_y
+		   );
+   }
 
    return anyChanges;
 }
@@ -234,8 +266,8 @@ whereAxis<USERNODEDATA>::whereAxis(ifstream &infile, Tcl_Interp *in_interp,
 const int overallWindowBorderPix = 0;
 
 template <class USERNODEDATA>
-void whereAxis<USERNODEDATA>::draw(const bool doubleBuffer,
-				   const bool xsynchronize // are we debugging?
+void whereAxis<USERNODEDATA>::draw(bool doubleBuffer,
+				   bool xsynchronize // are we debugging?
 				   ) const {
    Drawable theDrawable = (doubleBuffer && !xsynchronize) ? consts.offscreenPixmap :
                                                             consts.masterWindow;
@@ -251,15 +283,14 @@ void whereAxis<USERNODEDATA>::draw(const bool doubleBuffer,
                      Tk_Height(consts.theTkWindow)
                      );
 
-   rootPtr->draw(consts,
-             theDrawable,
-             nominal_centerx + horizScrollBarOffset,
-                // relative (not absolute) coord
-             overallWindowBorderPix + vertScrollBarOffset,
-                // relative (not absolute) coord
-             false, // not root only
-             false // not listbox only
-             );
+   rootPtr->draw(consts, theDrawable,
+		 nominal_centerx + horizScrollBarOffset,
+		    // relative (not absolute) coord
+		 overallWindowBorderPix + vertScrollBarOffset,
+		    // relative (not absolute) coord
+		 false, // not root only
+		 false // not listbox only
+		 );
 
    if (doubleBuffer && !xsynchronize)
       // copy from offscreen pixmap onto the 'real' window
@@ -277,15 +308,10 @@ void whereAxis<USERNODEDATA>::draw(const bool doubleBuffer,
 /* *********************************************************** */
 
 template <class USERNODEDATA>
-void whereAxis<USERNODEDATA>::resize(const int newWindowWidth,
-                                     const int newWindowHeight) {
-   if (newWindowWidth != Tk_Width(consts.theTkWindow)) {
-      cout << "whereAxis::resize() warning -- newWindowWidth of " << newWindowWidth << " does not match window width of " << Tk_Width(consts.theTkWindow) << endl;
-   }
-
-   if (newWindowHeight != Tk_Height(consts.theTkWindow)) {
-      cout << "whereAxis::resize() warning -- newWindowHeight of " << newWindowHeight << " does not match window height of " << Tk_Height(consts.theTkWindow) << endl;
-   }
+void whereAxis<USERNODEDATA>::resize(int newWindowWidth,
+                                     int newWindowHeight) {
+   assert(newWindowWidth == Tk_Width(consts.theTkWindow));
+   assert(newWindowHeight == Tk_Height(consts.theTkWindow));
 
    resize(true);
 }
@@ -300,7 +326,7 @@ void whereAxis<USERNODEDATA>::resize(bool currentlyDisplayedAbstraction) {
 
    // Loop through EVERY listbox (gasp) and rethink whether or not it needs
    // a scrollbar and (possibly) change listBoxActualHeight...
-   // Must go _after_ the consts.resize()
+   // _Must_ go _after_ the consts.resize()
    (void)rootPtr->rethinkListboxAfterResize(consts);
 
    // Now the more conventional resize code:
@@ -321,7 +347,7 @@ void whereAxis<USERNODEDATA>::resize(bool currentlyDisplayedAbstraction) {
 /* *********************************************************** */
 
 extern bool nonSliderButtonCurrentlyPressed;
-extern int nonSliderButtonPressRegion;
+extern whereNodeGraphicalPath<unsigned>::pathEndsIn nonSliderButtonPressRegion;
 extern Tk_TimerToken buttonAutoRepeatToken;
 
 extern where4tree<resourceHandle> *nonSliderCurrentSubtree;
@@ -346,101 +372,106 @@ extern void sliderCallMeOnButtonRelease(ClientData cd, XEvent *eventPtr);
 /* *********************************************************** */
 
 template <class USERNODEDATA>
-void whereAxis<USERNODEDATA>::processSingleClick(const int x, const int y,
-                                                 const bool redrawNow) {
+void whereAxis<USERNODEDATA>::processSingleClick(int x, int y,
+                                                 bool redrawNow) {
    const int rootNodeCenterX = nominal_centerx + horizScrollBarOffset;
-      // relative (not absolute) coord.  note: horizScollBarOffset <= 0
+      // relative (not absolute) coord.  note: horizScrollBarOffset <= 0
    const int rootNodeTopY = overallWindowBorderPix + vertScrollBarOffset;
-      // relative (not absolute) coord.  note: vertScollBarOffset <= 0
+      // relative (not absolute) coord.  note: vertScrollBarOffset <= 0
 
-   whereNodeGraphicalPath theGraphicalPath(whereNodeGraphicalPathItem(rootPtr->theChildren.size()));
-   const int result = rootPtr->point2GraphicalPath(theGraphicalPath, consts, x, y,
-						   rootNodeCenterX,
-						   rootNodeTopY);
-   if (result == -1) {
-      //cout << "single-click in nothing at (" << x << "," << y << ")" << endl;
-   }
-   else if (result == 1) {
-      // cout << "click on an non-listbox item; adjusting NAVIGATE menu..." << endl;
-      lastClickPath = graphical2RawPath(theGraphicalPath);
-      rethinkNavigateMenu();
+   whereNodeGraphicalPath<USERNODEDATA> thePath(x, y, consts, rootPtr,
+						rootNodeCenterX, rootNodeTopY);
+   switch (thePath.whatDoesPathEndIn()) {
+      case whereNodeGraphicalPath<USERNODEDATA>::Nothing:
+//         cout << "single-click in nothing at (" << x << "," << y << ")" << endl;
+         return;
+      case whereNodeGraphicalPath<USERNODEDATA>::ExpandedNode: {
+//         cout << "click on an non-listbox item; adjusting NAVIGATE menu..." << endl;
+         lastClickPath = thePath.getPath();
+         rethinkNavigateMenu();
 
-      // Now we have to redraw the node in question...(its highlightedness changed)
-      rootPtr->toggleHighlightFromPath(consts, theGraphicalPath,
-                                       true // redrawNow
-                                       );
-   }
-   else if (result == 2) {
-      // cout << "click on a listbox item; adjusting NAVIGATE menu..." << endl;
-      lastClickPath = graphical2RawPath(theGraphicalPath);
-      rootPtr->noNegativeChildNums(lastClickPath, 0);
-      rethinkNavigateMenu();
-
-      // Now we have to redraw the node in question...(its highlightedness changed)
-      rootPtr->toggleHighlightFromPath(consts, theGraphicalPath,
-                                       true // redrawNow
-                                       );
-   }
-   else if (result >= 3 && result <= 6) {
-      // 3 --> up-arrow; 4 --> down-arrow
-      // 5 --> pageup;   6 --> pagedown
-
-      nonSliderButtonCurrentlyPressed = true;
-      nonSliderButtonPressRegion = result;
-
-      nonSliderCurrentSubtree = rootPtr;
-      for (int i=0; i < theGraphicalPath.getSize()-1; i++) {
-         const int childnum = theGraphicalPath[i].childnum;
-         nonSliderCurrentSubtree = nonSliderCurrentSubtree->theChildren[childnum].theTree;
+         // Now redraw the node in question...(its highlightedness changed)
+         where4tree<USERNODEDATA> *ptr = thePath.getLastPathNode(rootPtr);
+         ptr->toggle_highlight();
+         ptr->getRootNode().draw(consts, consts.masterWindow,
+				 thePath.get_endpath_centerx(),
+				 thePath.get_endpath_topy());
+         return;
       }
-   
-      nonSliderSubtreeCenter=theGraphicalPath.getConstLastItem().root_centerxpix;
-      nonSliderSubtreeTop=theGraphicalPath.getConstLastItem().root_topypix;
+      case whereNodeGraphicalPath<USERNODEDATA>::ListboxItem:
+//         cout << "click on a listbox item; adjusting NAVIGATE menu..." << endl;
+         lastClickPath = thePath.getPath();
+         rethinkNavigateMenu();
 
-      Tk_CreateEventHandler(consts.theTkWindow,
-                            ButtonReleaseMask,
-                            nonSliderCallMeOnButtonRelease,
-                            &consts);
+         // Now we have to redraw the item in question...(its highlightedness changed)
+         thePath.getLastPathNode(rootPtr)->toggle_highlight();
+         if (redrawNow)
+ 	    thePath.getParentOfLastPathNode(rootPtr)->draw(consts, consts.masterWindow,
+							   thePath.get_endpath_centerx(),
+							   thePath.get_endpath_topy(),
+							   false, // not root only
+							   true // listbox only
+							   );
+         break;
+      case whereNodeGraphicalPath<USERNODEDATA>::ListboxScrollbarUpArrow:
+      case whereNodeGraphicalPath<USERNODEDATA>::ListboxScrollbarDownArrow:
+      case whereNodeGraphicalPath<USERNODEDATA>::ListboxScrollbarPageup:
+      case whereNodeGraphicalPath<USERNODEDATA>::ListboxScrollbarPagedown:
+         nonSliderButtonCurrentlyPressed = true;
+         nonSliderButtonPressRegion = thePath.whatDoesPathEndIn();
+         nonSliderCurrentSubtree = thePath.getLastPathNode(rootPtr);
+         nonSliderSubtreeCenter = thePath.get_endpath_centerx();
+         nonSliderSubtreeTop = thePath.get_endpath_topy();
 
-      nonSliderButtonAutoRepeatCallback(&consts);
-   }
-   else if (result == 7) {
-      // cout << "looks like a click in a listbox scrollbar slider" << endl;
-      // cout << "installing mouse-move and button-release handlers" << endl;
+         Tk_CreateEventHandler(consts.theTkWindow,
+			       ButtonReleaseMask,
+			       nonSliderCallMeOnButtonRelease,
+			       &consts);
 
-      slider_initial_yclick = y;
-      slider_initial_scrollbar_slider_top = rootPtr->path2lbScrollBarSliderTopPix
-                                            (consts, theGraphicalPath, 0);
-      slider_currently_dragging_subtree=rootPtr;
-      for (int i=0; i < theGraphicalPath.getSize()-1; i++) {
-         const int childnum = theGraphicalPath[i].childnum;
-         slider_currently_dragging_subtree = slider_currently_dragging_subtree->
-                                             theChildren[childnum].theTree;
+         nonSliderButtonAutoRepeatCallback(&consts);
+         return;
+      case whereNodeGraphicalPath<USERNODEDATA>::ListboxScrollbarSlider: {
+//         cout << "looks like a click in a listbox scrollbar slider" << endl;
+
+         where4tree<USERNODEDATA> *parentPtr = thePath.getLastPathNode(rootPtr);
+
+         slider_initial_yclick = y;
+         slider_currently_dragging_subtree = parentPtr;
+
+         const int lbTop = thePath.get_endpath_topy() + parentPtr->getRootNode().getHeight() +
+			   consts.vertPixParent2ChildTop;
+
+         int dummyint;
+         parentPtr->getScrollbar().getSliderCoords(lbTop,
+		     lbTop + parentPtr->getListboxActualPixHeight() - 1,
+		     parentPtr->getListboxActualPixHeight() - 2*listboxBorderPix,
+		     parentPtr->getListboxFullPixHeight() - 2*listboxBorderPix,
+		     slider_initial_scrollbar_slider_top, // filled in
+		     dummyint);
+
+         slider_scrollbar_left = thePath.get_endpath_centerx() -
+	                         parentPtr->horiz_pix_everything_below_root(consts) / 2;
+         slider_scrollbar_top = thePath.get_endpath_topy() +
+                                parentPtr->getRootNode().getHeight() +
+				consts.vertPixParent2ChildTop;
+         slider_scrollbar_bottom = slider_scrollbar_top +
+                                   parentPtr->getListboxActualPixHeight() - 1;
+
+//         cout << "slider click was on subtree whose root name is "
+//              << parentPtr->getRootName() << endl;
+
+         Tk_CreateEventHandler(consts.theTkWindow,
+			       ButtonReleaseMask,
+			       sliderCallMeOnButtonRelease,
+			       &consts);
+	 Tk_CreateEventHandler(consts.theTkWindow,
+			       PointerMotionMask,
+			       sliderCallMeOnMouseMotion,
+			       &consts);
+         break;
       }
-
-      slider_scrollbar_left = theGraphicalPath.getConstLastItem().root_centerxpix -
-                              slider_currently_dragging_subtree->
-				horiz_pix_everything_below_root(consts)/2;
-//                                myEntireWidthAsDrawn(consts)/2;
-      slider_scrollbar_top = theGraphicalPath.getConstLastItem().root_topypix +
-                             slider_currently_dragging_subtree->
-                               theRootNode.getHeight() +
-                             consts.vertPixParent2ChildTop;
-      slider_scrollbar_bottom = slider_scrollbar_top +
-                                slider_currently_dragging_subtree->
-                                  listboxActualPixHeight - 1;
-
-      //cout << "slider click was on subtree whose root name is "
-      //     << slider_currently_dragging_subtree->getRootName() << endl;
-
-      Tk_CreateEventHandler(consts.theTkWindow,
-                            ButtonReleaseMask,
-                            sliderCallMeOnButtonRelease,
-                            &consts);
-      Tk_CreateEventHandler(consts.theTkWindow,
-                            PointerMotionMask,
-                            sliderCallMeOnMouseMotion,
-                            &consts);
+      default:
+         assert(false);
    }
 }
 
@@ -451,39 +482,44 @@ bool whereAxis<USERNODEDATA>::processShiftDoubleClick(const int x, const int y) 
    // returns true iff a complete redraw is called for
 
    const int rootNodeCenterX = nominal_centerx + horizScrollBarOffset;
-      // relative (not absolute) coord.  note: horizScollBarOffset <= 0
+      // relative (not absolute) coord.  note: horizScrollBarOffset <= 0
    const int rootNodeTopY = overallWindowBorderPix + vertScrollBarOffset;
-      // relative (not absolute) coord.  note: vertScollBarOffset <= 0
+      // relative (not absolute) coord.  note: vertScrollBarOffset <= 0
 
-   whereNodeGraphicalPath theGraphicalPath(whereNodeGraphicalPathItem(rootPtr->theChildren.size()));
-   const int result = rootPtr->point2GraphicalPath(theGraphicalPath, consts, x, y,
-						   rootNodeCenterX, rootNodeTopY);
+   whereNodeGraphicalPath<USERNODEDATA> thePath(x, y, consts, rootPtr,
+						rootNodeCenterX, rootNodeTopY);
 
-   if (result == -1) {
-      //cout << "shift-double-click in nothing" << endl;
-      return false;
+   switch (thePath.whatDoesPathEndIn()) {
+      case whereNodeGraphicalPath<USERNODEDATA>::Nothing:
+//         cout << "shift-double-click in nothing" << endl;
+         return false;
+      case whereNodeGraphicalPath<USERNODEDATA>::ListboxItem:
+//         cout << "shift-double-click in lb item; ignoring" << endl;
+         return false;
+      case whereNodeGraphicalPath<USERNODEDATA>::ExpandedNode:
+         break; // some breathing room for lots of code to follow...
+      case whereNodeGraphicalPath<USERNODEDATA>::ListboxScrollbarUpArrow:
+      case whereNodeGraphicalPath<USERNODEDATA>::ListboxScrollbarDownArrow:
+      case whereNodeGraphicalPath<USERNODEDATA>::ListboxScrollbarPageup:
+      case whereNodeGraphicalPath<USERNODEDATA>::ListboxScrollbarPagedown:
+         // in this case, do the same as a single-click
+         nonSliderButtonCurrentlyPressed = true;
+	 nonSliderButtonPressRegion = thePath.whatDoesPathEndIn();
+	 nonSliderCurrentSubtree = thePath.getLastPathNode(rootPtr);
+	 nonSliderSubtreeCenter = thePath.get_endpath_centerx();
+	 nonSliderSubtreeTop = thePath.get_endpath_topy();
+	 Tk_CreateEventHandler(consts.theTkWindow,
+			       ButtonReleaseMask,
+			       nonSliderCallMeOnButtonRelease,
+			       &consts);
+         nonSliderButtonAutoRepeatCallback(&consts);
+         return false; // no need to redraw further
+      case whereNodeGraphicalPath<USERNODEDATA>::ListboxScrollbarSlider:
+//         cout << "shift-double-click in a listbox scrollbar slider...doing nothing" << endl;
+         return false;
+      default:
+         assert(false);
    }
-   else if (result >= 3 && result <= 6) {
-      // 3 --> up-arrow; 4 --> down-arrow
-      // 5 --> pageup;   6 --> pagedown
-
-      rootPtr->path2lbScrollBarClick(consts, theGraphicalPath, 0,
-                                     result, // indicates page-up
-                                     true // redrawNow
-                                     );
-      return false; // no need to redraw further
-   }
-   else if (result == 7) {
-      //cout << "shift-double-click in a listbox scrollbar slider...doing nothing" << endl;
-      return false;
-   }
-
-   if (result != 1)
-      return false;
-
-   //cout << "shift-double-click:" << endl;
-
-   assert (result == 1); // a "regular" node (not a listbox item) was clicked on
 
    // How do we know whether to expand-all or un-expand all?
    // Well, if there is no listbox up, then we should _definitely_ unexpand.
@@ -491,28 +527,15 @@ bool whereAxis<USERNODEDATA>::processShiftDoubleClick(const int x, const int y) 
    //    then we should _definitely_ expand.
    // But, if there is a listbox up with _some_ explicitly expanded items, then
    //    are we supposed to expand out the remaining ones; or un-expand the expanded
-   //    ones?  For now, we'll say that we should un-expand.
+   //    ones?  It could go either way.  For now, we'll say that we should un-expand.
 
-   assert(theGraphicalPath.getSize() > 0);
-   
-   where4tree<USERNODEDATA> *clickee = rootPtr;
-   for (int lcv=0; lcv < theGraphicalPath.getSize()-1; lcv++) {
-      const whereNodeGraphicalPathItem &item = theGraphicalPath[lcv];
-      assert(item.childnum >= 0 && item.childnum < clickee->theChildren.size());
+   bool anyChanges = false; // so far...
+   where4tree<USERNODEDATA> *ptr = thePath.getLastPathNode(rootPtr);
 
-      clickee = clickee->theChildren[item.childnum].theTree;
-   }
-   assert(theGraphicalPath.getConstLastItem().childnum == clickee->theChildren.size());
-   
-   // Now examine "clickee" to determine whether or not a listbox is up
-   bool anyChanges = false;
-
-   whereNodeRawPath theRawPath = graphical2RawPath(theGraphicalPath);
-
-   if (clickee->listboxPixWidth > 0) {
+   if (ptr->getListboxPixWidth() > 0) {
       bool noExplicitlyExpandedChildren = true; // so far...
-      for (int childlcv=0; childlcv < clickee->theChildren.size(); childlcv++)
-         if (clickee->theChildren[childlcv].isExplicitlyExpanded) {
+      for (unsigned childlcv=0; childlcv < ptr->getNumChildren(); childlcv++)
+         if (ptr->getChildIsExpandedFlag(childlcv)) {
             noExplicitlyExpandedChildren = false; 
             break;
          }
@@ -520,18 +543,18 @@ bool whereAxis<USERNODEDATA>::processShiftDoubleClick(const int x, const int y) 
       if (noExplicitlyExpandedChildren)
          // There is a listbox up, and it contains ALL children.
          // So, obviously, we want to expand them all...
-         anyChanges = rootPtr->path2ExpandAllChildren(consts, theRawPath, 0);
+         anyChanges = rootPtr->path2ExpandAllChildren(consts, thePath.getPath(), 0);
       else
          // There is a listbox up, but there are also some expanded children.
          // This call (whether to expand the remaining listbox items, or whether
          // to un-expand the expanded items) could go either way; we choose the
          // latter (for now, at least)
-         anyChanges = rootPtr->path2UnExpandAllChildren(consts, theRawPath, 0);
+         anyChanges = rootPtr->path2UnExpandAllChildren(consts, thePath.getPath(), 0);
    }
    else
       // No listbox is up; hence, all children are expanded.
       // So obviously, we wish to un-expand all the children.
-      anyChanges = rootPtr->path2UnExpandAllChildren(consts, theRawPath, 0);
+      anyChanges = rootPtr->path2UnExpandAllChildren(consts, thePath.getPath(), 0);
 
    if (!anyChanges)
       return false;
@@ -550,51 +573,35 @@ bool whereAxis<USERNODEDATA>::processShiftDoubleClick(const int x, const int y) 
 }
 
 template <class USERNODEDATA>
-bool whereAxis<USERNODEDATA>::processCtrlDoubleClick(const int x, const int y) {
+bool whereAxis<USERNODEDATA>::processCtrlDoubleClick(int x, int y) {
    // returns true iff changes were made
 
    const int rootNodeCenterX = nominal_centerx + horizScrollBarOffset;
-      // relative (not absolute) coord.  note: horizScollBarOffset <= 0
+      // relative (not absolute) coord.  note: horizScrollBarOffset <= 0
    const int rootNodeTopY = overallWindowBorderPix + vertScrollBarOffset;
-      // relative (not absolute) coord.  note: vertScollBarOffset <= 0
+      // relative (not absolute) coord.  note: vertScrollBarOffset <= 0
 
-   whereNodeGraphicalPath theGraphicalPath(whereNodeGraphicalPathItem(rootPtr->theChildren.size()));
-   const int result = rootPtr->point2GraphicalPath(theGraphicalPath, consts, x, y,
-						   rootNodeCenterX, rootNodeTopY);
-
-      // 1 --> node; 2--> listbox item
-      // 3 --> up-arrow; 4 --> down-arrow
-      // 5 --> pageup;   6 --> pagedown
-
-   if (result != 1)
+   whereNodeGraphicalPath<USERNODEDATA> thePath(x, y, consts, rootPtr,
+						rootNodeCenterX, rootNodeTopY);
+   if (thePath.whatDoesPathEndIn() != whereNodeGraphicalPath<USERNODEDATA>::ExpandedNode)
       return false;
 
-   //cout << "ctrl-double-click:" << endl;
+//   cout << "ctrl-double-click:" << endl;
 
    // How do we know whether to select-all or unselect-all?
    // Well, if noone is selected, then we should _definitely_ select all.
    // And, if everyone is selected, then we should _definitely_ unselect all.
-   // But, if _some_ items are selected, what should we do?  For now, we'll
-   //    say unselect.
+   // But, if _some_ items are selected, what should we do?  It could go either way.
+   // For now, we'll say unselect.
 
-   assert(theGraphicalPath.getSize() > 0);
-   
-   where4tree<USERNODEDATA> *clickee = rootPtr;
-   for (int lcv=0; lcv < theGraphicalPath.getSize()-1; lcv++) {
-      const whereNodeGraphicalPathItem &item = theGraphicalPath[lcv];
-      assert(item.childnum >= 0 && item.childnum < clickee->theChildren.size());
-
-      clickee = clickee->theChildren[item.childnum].theTree;
-   }
-   assert(theGraphicalPath.getConstLastItem().childnum == clickee->theChildren.size());
-   
-   if (clickee->theChildren.size()==0)
+   where4tree<USERNODEDATA> *ptr = thePath.getLastPathNode(rootPtr);
+   if (ptr->getNumChildren()==0)
       return false;
 
    bool allChildrenSelected = true;
    bool noChildrenSelected = true;
-   for (int childlcv=0; childlcv < clickee->theChildren.size(); childlcv++)
-      if (clickee->theChildren[childlcv].theTree->isHighlighted()) {
+   for (unsigned childlcv=0; childlcv < ptr->getNumChildren(); childlcv++)
+      if (ptr->getChildTree(childlcv)->isHighlighted()) {
          noChildrenSelected = false;
          if (!allChildrenSelected)
             break;
@@ -609,21 +616,20 @@ bool whereAxis<USERNODEDATA>::processCtrlDoubleClick(const int x, const int y) {
 
    if (allChildrenSelected || !noChildrenSelected) {
       // unselect all children
-      for (int childlcv=0; childlcv < clickee->theChildren.size(); childlcv++)
-         clickee->theChildren[childlcv].theTree->unhighlight();
+      for (unsigned childlcv=0; childlcv < ptr->getNumChildren(); childlcv++)
+         ptr->getChildTree(childlcv)->unhighlight();
       return true; // changes were made
    }
    else {
       assert(noChildrenSelected);
-      for (int childlcv=0; childlcv < clickee->theChildren.size(); childlcv++)
-         clickee->theChildren[childlcv].theTree->highlight();
+      for (unsigned childlcv=0; childlcv < ptr->getNumChildren(); childlcv++)
+         ptr->getChildTree(childlcv)->highlight();
       return true; // changes were made
    }
 }
 
 template <class USERNODEDATA>
-bool whereAxis<USERNODEDATA>::processDoubleClick(const int x, const int y,
-                                                 const bool redrawNow) {
+bool whereAxis<USERNODEDATA>::processDoubleClick(int x, int y) {
    // returns true iff a complete redraw is called for
 
    const int rootNodeCenterX = nominal_centerx + horizScrollBarOffset;
@@ -631,78 +637,81 @@ bool whereAxis<USERNODEDATA>::processDoubleClick(const int x, const int y,
    const int rootNodeTopY = overallWindowBorderPix + vertScrollBarOffset;
       // relative (not absolute) coord      
 
-   whereNodeGraphicalPath theGraphicalPath(whereNodeGraphicalPathItem(rootPtr->theChildren.size()));
-   const int result = rootPtr->point2GraphicalPath(theGraphicalPath, consts, x, y,
-						   rootNodeCenterX, rootNodeTopY);
+   bool scrollToWhenDone = false; // for now...
 
-   if (result == -1) {
-      // cout << "looks like a double-click in nothing" << endl;
-      return false;
-   }
-   else if (result >= 3 && result <= 6) {
-      // 3 --> up-arrow; 4 --> down-arrow
-      // 5 --> pageup;   6 --> pagedown
-
-      rootPtr->path2lbScrollBarClick(consts, theGraphicalPath, 0,
-                                     result, // indicates page-up
-                                     true // redrawNow
-                                     );
-      return false; // no need to redraw further
-   }
-   else if (result == 7) {
-      // cout << "double-click in a listbox scrollbar slider...doing nothing" << endl;
-      return false;
-   }
-
-   bool scrolltoWhenDone=false;
-
-   whereNodeRawPath theRawPath = graphical2RawPath(theGraphicalPath);
-
-   if (result == 1) {
-      // double-click in a "regular" node (not in listbox): un-expand
-      // cout << "double-click on a non-listbox item" << endl;
-
-      assert(theGraphicalPath.getSize() > 0);
-      if (theGraphicalPath.getSize() == 1 && theGraphicalPath.getConstLastItem().childnum > 0) {
-         assert(theGraphicalPath.getConstLastItem().childnum == rootPtr->theChildren.size());
-         // cout << "double-click un-expansion on the root..ignoring" << endl;
+   whereNodeGraphicalPath<USERNODEDATA> thePath(x, y, consts, rootPtr,
+						rootNodeCenterX, rootNodeTopY);
+   switch (thePath.whatDoesPathEndIn()) {
+      case whereNodeGraphicalPath<USERNODEDATA>::Nothing:
+//         cout << "looks like a double-click in nothing" << endl;
          return false;
-      }
-
-      if (!rootPtr->path2lbItemUnexpand(consts, theRawPath, 0)) {
-         // probably an attempt to expand a leaf item (w/o a triangle next to it)
-         // cout << "could not un-expand this subtree (a leaf?)...continuing" << endl;
+      case whereNodeGraphicalPath<USERNODEDATA>::ListboxScrollbarUpArrow:
+      case whereNodeGraphicalPath<USERNODEDATA>::ListboxScrollbarDownArrow:
+      case whereNodeGraphicalPath<USERNODEDATA>::ListboxScrollbarPageup:
+      case whereNodeGraphicalPath<USERNODEDATA>::ListboxScrollbarPagedown:
+         // in this case, do the same as a single-click
+         nonSliderButtonCurrentlyPressed = true;
+	 nonSliderButtonPressRegion = thePath.whatDoesPathEndIn();
+	 nonSliderCurrentSubtree = thePath.getLastPathNode(rootPtr);
+	 nonSliderSubtreeCenter = thePath.get_endpath_centerx();
+	 nonSliderSubtreeTop = thePath.get_endpath_topy();
+	 Tk_CreateEventHandler(consts.theTkWindow,
+			       ButtonReleaseMask,
+			       nonSliderCallMeOnButtonRelease,
+			       &consts);
+         nonSliderButtonAutoRepeatCallback(&consts);
+         return false; // no need to redraw further
+      case whereNodeGraphicalPath<USERNODEDATA>::ListboxScrollbarSlider:
+//         cout << "double-click in a listbox scrollbar slider...doing nothing" << endl;
          return false;
-      }
-   }      
-   else if (result == 2) {
-      // double-click in a listbox item
-      // cout << "double-click on a listbox item" << endl;
-      int result = rootPtr->path2lbItemExpand(consts, theRawPath, 0);
-      if (result == 0) {
-         // cout << "could not expand already-expanded item" << endl;
-         return false;
-      }
-      else if (result == 1) {
-         // cout << "could not expand listbox leaf item" << endl;
-         // Just change highlightedness:
-         
-         rootPtr->toggleHighlightFromPath(consts, theGraphicalPath, true);
-         return false;
-      }
-      else {
-         assert(result==2);
+      case whereNodeGraphicalPath<USERNODEDATA>::ExpandedNode:
+         // double-click in a "regular" node (not in listbox): un-expand
+//         cout << "double-click on a non-listbox item" << endl;
 
-         // expansion was successful...later, we'll scroll to the expanded item.
-         // NOTE: rootPtr->path2lbItemExpand will have modified "thePath"
-         //       for us (by changing the last item from a listbox item to
-         //       an expanded one, which is the proper thing to do).
+         if (thePath.getSize() == 0) {
+//            cout << "double-click un-expansion on the root..ignoring" << endl;
+            return false;
+         }
 
-         scrolltoWhenDone = true;
+         if (!rootPtr->path2lbItemUnexpand(consts, thePath.getPath(), 0)) {
+            // probably an attempt to expand a leaf item (w/o a triangle next to it)
+//            cout << "could not un-expand this subtree (a leaf?)...continuing" << endl;
+            return false;
+         }
+         break;
+      case whereNodeGraphicalPath<USERNODEDATA>::ListboxItem: {
+         // double-click in a listbox item
+//         cout << "double-click on a listbox item" << endl;
+         int result = rootPtr->path2lbItemExpand(consts, thePath.getPath(), 0);
+         if (result == 1) {
+//            cout << "could not expand listbox leaf item" << endl;
+            // Just change highlightedness:
+            thePath.getLastPathNode(rootPtr)->toggle_highlight(); // doesn't redraw
+
+            thePath.getParentOfLastPathNode(rootPtr)->
+	         draw(consts, consts.masterWindow,
+		      thePath.get_endpath_centerx(),
+		      thePath.get_endpath_topy(),
+		      false, // not root only
+		      true // listbox only
+		      );
+            return false;
+         }
+         else {
+            assert(result==2);
+
+            // expansion was successful...later, we'll scroll to the expanded item.
+            // NOTE: rootPtr->path2lbItemExpand will have modified "thePath"
+            //       for us (by changing the last item from a listbox item to
+            //       an expanded one, which is the proper thing to do).
+
+            scrollToWhenDone = true;
+         }
+         break;
       }
+      default:
+         assert(false);
    }
-   else
-      assert(false);
 
    // expansion or un-expansion successful
 
@@ -716,131 +725,133 @@ bool whereAxis<USERNODEDATA>::processDoubleClick(const int x, const int y,
    adjustHorizSBOffset(); // obtain FirstPix from the actual tk scrollbar
    adjustVertSBOffset (); // obtain FirstPix from the actual tk scrollbar
 
-   if (scrolltoWhenDone) {
-      int absolute_scrollto_x, absolute_scrollto_y;
-      rootPtr->path2pixOffset(consts, theRawPath, 0,
-                              nominal_centerx,
-                                 // absolute centerx-coord of root,
-                                 // irregardless of curr scrollbar value
-                              overallWindowBorderPix,
-                                 // absolute topy-coord of root,
-                                 // irregardless of curr scrollbar value
-                              absolute_scrollto_x, // filled in
-                              absolute_scrollto_y // filled in
-                              );
+   if (scrollToWhenDone) {
+      whereNodeGraphicalPath<USERNODEDATA>
+	   path_to_scroll_to(thePath.getPath(),
+			consts, rootPtr,
+			nominal_centerx,
+                           // root centerx (abs. pos., regardless of sb [intentional])
+			overallWindowBorderPix
+                           // topy of root (abs. pos., regardless of sb [intentional])
+			);
 
-      // cout << "You clicked at relative=(" << x << "," << y << "); absolute-scrollto=(" << absolute_scrollto_x << "," << absolute_scrollto_y << ")" << endl;
+      int newlyExpandedElemCenterX = path_to_scroll_to.get_endpath_centerx();
+      int newlyExpandedElemTopY    = path_to_scroll_to.get_endpath_topy();
+      int newlyExpandedElemMiddleY = newlyExpandedElemTopY +
+	                             path_to_scroll_to.getLastPathNode(rootPtr)->getRootNode().getHeight() / 2;
 
-      (void)set_scrollbars(absolute_scrollto_x, x,
-                           absolute_scrollto_y, y);
-         // set_scrollbars() returns true iff any changes were made to the scrollbars
-         // but we _always_ want to redraw, regardless of whether or not
-         // the expansion caused a scrollbar bounds change
+      (void)set_scrollbars(newlyExpandedElemCenterX, x,
+			   newlyExpandedElemMiddleY, y,
+			   true);
    }
 
    return true;
 }
 
 template <class USERNODEDATA>
-bool whereAxis<USERNODEDATA>::softScrollToPathItem(const whereNodeRawPath &thePath,
-						   const int index) {
-   // scrolls s.t. the (centerx, topy) of the path item in
-   // question is placed in the middle of the screen.
+bool whereAxis<USERNODEDATA>::softScrollToPathItem(const whereNodePosRawPath &thePath,
+						   unsigned index) {
+   // scrolls s.t. the (centerx, topy) of path index is in middle of screen.
 
-   // Simply a stub which generates a new path and calls scrollToEndOfPath()   
-
-   whereNodeRawPath newPath = thePath; // make a copy, because we're gonna
-                                       // hack it up a bit.
-
-   // If thePath[index] is a non-listbox item, then, in order to truncate
-   // the path right there, we need to change its childNum field to
-   // numChildren.  If thePath[index] is a listbox item, however, then
-   // make no changes.
-
-   where4tree<USERNODEDATA> *theTree = rootPtr;
-   for (int item=0; item < index; item++) {
-      int childnum = thePath[item].childnum;
-      theTree = theTree->theChildren[childnum].theTree;
-   }
-   whereNodeRawPathItem &newItem = newPath[index];
-   if (newItem.childnum < 0) {
-      // a listbox item...should only happen at end of path
-      assert(index == thePath.getSize()-1);
-   }
-   else {
-      newItem.childnum = theTree->theChildren.size();
-      newPath.rigSize(index+1);
-   }
-
-   // Okay, now we have "newPath" to work with.  Don't use "thePath" anymore.
+   whereNodePosRawPath newPath = thePath;
+     // make a copy, because we're gonna hack it up a bit.
+   newPath.rigSize(index);
    return softScrollToEndOfPath(newPath);
 }
 
 template <class USERNODEDATA>
-bool whereAxis<USERNODEDATA>::forciblyScrollToPathItem(const whereNodeRawPath &thePath,
-						       const int index) {
+bool whereAxis<USERNODEDATA>::
+forciblyScrollToPathItem(const whereNodePosRawPath &thePath, unsigned pathLen) {
    // Simply a stub which generates a new path and calls forciblyScrollToEndOfPath()   
+   // "index" indicates the length of the new path; in particular, 0 will give
+   // and empty path (the root node).
 
-   whereNodeRawPath newPath = thePath; // make a copy, because we're gonna
-                                       // hack it up a bit.
-
-   // If thePath[index] is a non-listbox item, then, in order to truncate
-   // the path right there, we need to change its childNum field to
-   // numChildren.  If thePath[index] is a listbox item, however, then
-   // make no changes.
-
-   where4tree<USERNODEDATA> *theTree = rootPtr;
-   for (int item=0; item < index; item++) {
-      int childnum = thePath[item].childnum;
-      theTree = theTree->theChildren[childnum].theTree;
-   }
-   whereNodeRawPathItem &newItem = newPath[index];
-   if (newItem.childnum < 0) {
-      // a listbox item...should only happen at end of path
-      assert(index == thePath.getSize()-1);
-   }
-   else {
-      newItem.childnum = theTree->theChildren.size();
-      newPath.rigSize(index+1);
-   }
-
-   // Okay, now we have "newPath" to work with.  Don't use "thePath" anymore.
+   // make a copy of "thePath", truncate it to "pathLen", and forciblyScrollToEndOfPath
+   whereNodePosRawPath newPath = thePath;
+   newPath.rigSize(pathLen);
    return forciblyScrollToEndOfPath(newPath);
 }
 
 template <class USERNODEDATA>
-bool whereAxis<USERNODEDATA>::softScrollToEndOfPath(const whereNodeRawPath &thePath) {
-   int absolute_scrollto_x, absolute_scrollto_y;
+bool whereAxis<USERNODEDATA>::
+softScrollToEndOfPath(const whereNodePosRawPath &thePath) {
+   whereNodeGraphicalPath<USERNODEDATA>
+         scrollToPath(thePath, consts, rootPtr,
+		      nominal_centerx,
+		         // ignores scrollbar settings (an absolute coord),
+		      overallWindowBorderPix
+		         // absolute coord of root topy
+		      );
+   const int last_item_centerx = scrollToPath.get_endpath_centerx();
+   const int last_item_topy    = scrollToPath.get_endpath_topy();
+      // note: if the path ends in an lb item, these coords refer to the PARENT
+      //       node, which is expanded.
 
-   // WARNING: the following will bomb if ANY path element corresponds to an
-   //          unexpanded node!
-   rootPtr->path2pixOffset(consts, thePath, 0,
-                           nominal_centerx, // absolute coord of root's center-x
-                           overallWindowBorderPix, // absol coord of root's top-y
-                           absolute_scrollto_x, // filled in
-                           absolute_scrollto_y // filled in
-                           );
-   bool anySBChanges = set_scrollbars(absolute_scrollto_x,
-                                      Tk_Width(consts.theTkWindow) / 2,
-                                      absolute_scrollto_y,
-                                      Tk_Height(consts.theTkWindow) / 2
-                                      );
-   return anySBChanges;
+   switch (scrollToPath.whatDoesPathEndIn()) {
+      case whereNodeGraphicalPath<USERNODEDATA>::ExpandedNode: {
+//         cout << "soft scrolling to expanded node" << endl;
+         const int last_item_middley =
+            last_item_topy +
+            scrollToPath.getLastPathNode(rootPtr)->getRootNode().getHeight() / 2;
+         return set_scrollbars(last_item_centerx,
+			       Tk_Width(consts.theTkWindow) / 2,
+			       last_item_middley,
+			       Tk_Height(consts.theTkWindow) / 2,
+			       true);
+      }
+      case whereNodeGraphicalPath<USERNODEDATA>::ListboxItem: {
+//         cout << "soft scrolling to lb item" << endl;
+
+         // First, let's scroll within the listbox (no redrawing yet)
+         where4tree<USERNODEDATA> *parent = scrollToPath.getParentOfLastPathNode(rootPtr);
+
+         const unsigned itemHeight = consts.listboxVertPadAboveItem +
+	                             consts.listboxFontStruct->ascent +
+   	                             consts.listboxVertPadAfterItemBaseline;
+   
+         int scrollToVertPix = 0; // relative to listbox top
+         const unsigned childnum = scrollToPath.getPath().getLastItem();
+         for (unsigned childlcv=0; childlcv < childnum; childlcv++)
+            if (!parent->getChildIsExpandedFlag(childlcv))
+               scrollToVertPix += itemHeight;
+
+         int destItemRelToListboxTop = scrollToVertPix;   
+         if (parent->getScrollbar().isValid()) {
+            (void)parent->scroll_listbox(scrollToVertPix -
+					 parent->getScrollbar().getPixFirst());
+
+            destItemRelToListboxTop -= parent->getScrollbar().getPixFirst();
+         }
+
+         if (destItemRelToListboxTop < 0)
+            cout << "note: softScrollToEndOfPath() failed to scroll properly to item w/in listbox" << endl;
+
+         return set_scrollbars(scrollToPath.get_endpath_centerx() -
+			          parent->horiz_pix_everything_below_root(consts)/2 +
+  			          parent->getListboxPixWidth() / 2,
+   			          // listbox centerx
+			       Tk_Width(consts.theTkWindow) / 2,
+			       scrollToPath.get_endpath_topy() +
+			          parent->getRootNode().getHeight() +
+			          consts.vertPixParent2ChildTop +
+			          destItemRelToListboxTop + itemHeight / 2,
+			          // should be the middley of the lb item
+			       Tk_Height(consts.theTkWindow) / 2,
+			       true);
+      }
+      default:
+         assert(false);
+   }
+
+   assert(false);
 }
 
 template <class USERNODEDATA>
 bool whereAxis<USERNODEDATA>::
-forciblyScrollToEndOfPath(const whereNodeRawPath &theRawPath) {
-   // Given a path with no negative childnum's [i.e., one in which we manually
-   // determine which children are in listboxes]...
+forciblyScrollToEndOfPath(const whereNodePosRawPath &thePath) {
+   // Forcibly expands path items as needed, then calls softScrollToEndOfPath()
 
-   // Strategy:
-   // 1) go through the path, explicitly expanding items as necessary
-   // 2) rethink nominal centerx, and anything else necessary due to the
-   //    explicit expansions
-   // 3) call softScrollToEndOfPath
-
-   const bool anyChanges = rootPtr->expandEntirePath(consts, theRawPath, 0);
+   const bool anyChanges = rootPtr->expandEntirePath(consts, thePath, 0);
    if (anyChanges) {
       rethink_nominal_centerx();
       resizeScrollbars();
@@ -848,14 +859,14 @@ forciblyScrollToEndOfPath(const whereNodeRawPath &theRawPath) {
       adjustVertSBOffset();
    }
 
-   softScrollToEndOfPath(theRawPath);
+   softScrollToEndOfPath(thePath);
 
    return anyChanges;
 }
 
 template <class USERNODEDATA>
-void whereAxis<USERNODEDATA>::navigateTo(const int index) {
-   (void)forciblyScrollToPathItem(lastClickPath, index);
+void whereAxis<USERNODEDATA>::navigateTo(unsigned pathLen) {
+   (void)forciblyScrollToPathItem(lastClickPath, pathLen);
 }
 
 template <class USERNODEDATA>
@@ -871,38 +882,23 @@ int whereAxis<USERNODEDATA>::find(const string &str) {
 
    // Uses and alters "beginSearchFromPtr"
 
-   whereNodeRawPath thePath(whereNodeRawPathItem(rootPtr->theChildren.size()));
+   whereNodePosRawPath thePath(rootPtr->getNumChildren());
    int result = rootPtr->string2Path(thePath, consts, str, beginSearchFromPtr, true);
-      // NOTE: the path returned by this routine will not contain ANY listbox
-      //       childnums, except perhaps at the end.  We must check for this
-      //       manually in forciblyScrollToEndOfPath().
 
    if (result == 0)
       if (beginSearchFromPtr == NULL)
          return 0; // not found
       else {
          // try again with beginSearchFromPtr of NULL (wrap-around search)
+//         cout << "search wrap-around" << endl;
          beginSearchFromPtr = NULL;
          return find(str);
       }
 
    // found.  Update beginSearchFromPtr.
-   beginSearchFromPtr = rootPtr;
-   for (int i=0; i < thePath.getSize(); i++) {
-      if (i == thePath.getSize()-1) {
-         int childnum = thePath[i].childnum;
-         if (childnum < 0) {
-            childnum = -childnum - 1;
-            beginSearchFromPtr = beginSearchFromPtr->theChildren[childnum].theTree;
-         }
-         else
-            assert(childnum == beginSearchFromPtr->theChildren.size());
-      }
-      else {
-         int childnum = thePath[i].childnum;
-         beginSearchFromPtr = beginSearchFromPtr->theChildren[childnum].theTree;
-      }
-   }
+   where4tree<USERNODEDATA> *beginSearchFromPtr = rootPtr;
+   for (unsigned i=0; i < thePath.getSize(); i++)
+      beginSearchFromPtr = beginSearchFromPtr->getChildTree(thePath[i]);
 
    if (result==1)
       (void)softScrollToEndOfPath(thePath);
@@ -912,124 +908,96 @@ int whereAxis<USERNODEDATA>::find(const string &str) {
          // rethinks nominal centerx, resizes scrollbars, etc.
    }
 
-   const bool pathEndsInLBitem = thePath.getConstLastItem().childnum < 0;
-   if (pathEndsInLBitem) {
-      whereNodeGraphicalPath theGraphicalPath;
-      const int rootNodeCenterX = nominal_centerx + horizScrollBarOffset;
-         // relative (not absolute) coord.  note: horizScollBarOffset <= 0
-      const int rootNodeTopY = overallWindowBorderPix + vertScrollBarOffset;
-         // relative (not absolute) coord.  note: vertScollBarOffset <= 0
-
-      rootPtr->makeGraphicalPathFromRawPath(consts,
-					    0, theGraphicalPath,
-					    thePath,
-					    rootNodeCenterX,
-					    rootNodeTopY);
-					       
-      (void)rootPtr->path2lbItemScrollSoVisible(consts, theGraphicalPath, 0);
-   }
-
    return result;
 }
 
 template <class USERNODEDATA>
-void whereAxis<USERNODEDATA>::adjustHorizSBOffset(const float newFirst) {
-   // does not redraw
+bool whereAxis<USERNODEDATA>::adjustHorizSBOffset(float newFirst) {
+   // does not redraw.  Returns true iff any changes.
 
    // First, we need to make the change to the tk scrollbar
    newFirst = moveScrollBar(interp, horizSBName, newFirst);
 
    // Then, we update our C++ variables
-   int widthOfEverything = rootPtr->myEntireWidthAsDrawn(consts);
+   int widthOfEverything = rootPtr->entire_width(consts);
+   int oldHorizScrollBarOffset = horizScrollBarOffset;
    horizScrollBarOffset = -(int)(newFirst * widthOfEverything);
       // yes, horizScrollBarOffset is always negative (unless it's zero)
+   return (horizScrollBarOffset != oldHorizScrollBarOffset);
 }
 
 template <class USERNODEDATA>
-void whereAxis<USERNODEDATA>::adjustHorizSBOffsetFromDeltaPix(const int deltapix) {
-   // does not redraw
+bool whereAxis<USERNODEDATA>::adjustHorizSBOffsetFromDeltaPix(int deltapix) {
+   // does not redraw.  Returns true iff any changes.
 
-   // Make the change to the tk scrollbar
-   const int widthOfEverything = rootPtr->myEntireWidthAsDrawn(consts);
+   const int widthOfEverything = rootPtr->entire_width(consts);
    float newFirst = (float)(-horizScrollBarOffset + deltapix) / widthOfEverything;
-   newFirst = moveScrollBar(interp, horizSBName, newFirst);
-
-   // Next, update C++ internals:
-   horizScrollBarOffset = -(int)(newFirst * widthOfEverything);
+   return adjustHorizSBOffset(newFirst);
 }
 
-template <class USERNODEDATA>
-void whereAxis<USERNODEDATA>::adjustHorizSBOffsetFromDeltaPages(const int deltapages) {
-   // does not redraw
-
-   // First, update the tk scrollbar
-   const int widthOfEverything = rootPtr->myEntireWidthAsDrawn(consts);
-   const int widthOfVisible = Tk_Width(consts.theTkWindow);
-   float newFirst = (float)(-horizScrollBarOffset + widthOfVisible*deltapages) /
-                     widthOfEverything;
-   newFirst = moveScrollBar(interp, horizSBName, newFirst);
-
-   // Then, update C++ internals
-   horizScrollBarOffset = -(int)(newFirst * widthOfEverything);
-}
+//template <class USERNODEDATA>
+//bool whereAxis<USERNODEDATA>::adjustHorizSBOffsetFromDeltaPages(int deltapages) {
+//   // does not redraw.  Returns true iff any changes.
+//
+//   // First, update the tk scrollbar
+//   const int widthOfEverything = rootPtr->entire_width(consts);
+//   const int widthOfVisible = Tk_Width(consts.theTkWindow);
+//   float newFirst = (float)(-horizScrollBarOffset + widthOfVisible*deltapages) /
+//                     widthOfEverything;
+//   return adjustHorizSBOffset(newFirst);
+//}
 
 template <class USERNODEDATA>
-void whereAxis<USERNODEDATA>::adjustHorizSBOffset() {
+bool whereAxis<USERNODEDATA>::adjustHorizSBOffset() {
    // Does not redraw.  Obtains PixFirst from actual tk scrollbar.
    float first, last; // fractions (0.0 to 1.0)
    getScrollBarValues(interp, horizSBName, first, last);
 
-   adjustHorizSBOffset(first);
+   return adjustHorizSBOffset(first);
 }
 
 template <class USERNODEDATA>
-void whereAxis<USERNODEDATA>::adjustVertSBOffset(const float newFirst) {
-   // does not redraw
-
+bool whereAxis<USERNODEDATA>::adjustVertSBOffset(float newFirst) {
+   // does not redraw.  Returns true iff any changes.
    // First, we need to make the change to the tk scrollbar
    newFirst = moveScrollBar(interp, vertSBName, newFirst);
 
    // Then, we update our C++ variables
-   int heightOfEverything = rootPtr->myEntireHeightAsDrawn(consts);
+   int heightOfEverything = rootPtr->entire_height(consts);
+   int oldVertScrollBarOffset = vertScrollBarOffset;
    vertScrollBarOffset = -(int)(newFirst * heightOfEverything);
       // yes, vertScrollBarOffset is always negative (unless it's zero)
+   return (vertScrollBarOffset != oldVertScrollBarOffset);
 }
 
 template <class USERNODEDATA>
-void whereAxis<USERNODEDATA>::adjustVertSBOffsetFromDeltaPix(const int deltapix) {
-   // does not redraw
+bool whereAxis<USERNODEDATA>::adjustVertSBOffsetFromDeltaPix(int deltapix) {
+   // does not redraw.  Returns true iff any changes were made.
 
-   // Make the change to the tk scrollbar
-   const int heightOfEverything = rootPtr->myEntireHeightAsDrawn(consts);
+   const int heightOfEverything = rootPtr->entire_height(consts);
    float newFirst = (float)(-vertScrollBarOffset + deltapix) / heightOfEverything;
-   newFirst = moveScrollBar(interp, vertSBName, newFirst);
-
-   // Next, update C++ internals:
-   vertScrollBarOffset = -(int)(newFirst * heightOfEverything);
+   return adjustVertSBOffset(newFirst);
 }
 
-template <class USERNODEDATA>
-void whereAxis<USERNODEDATA>::adjustVertSBOffsetFromDeltaPages(const int deltapages) {
-   // does not redraw
-
-   // First, update the tk scrollbar
-   const int heightOfEverything = rootPtr->myEntireHeightAsDrawn(consts);
-   const int heightOfVisible = Tk_Height(consts.theTkWindow);
-   float newFirst = (float)(-vertScrollBarOffset + heightOfVisible*deltapages) /
-                    heightOfEverything;
-   newFirst = moveScrollBar(interp, vertSBName, newFirst);
-
-   // Then, update C++ internals
-   vertScrollBarOffset = -(int)(newFirst * heightOfEverything);
-}
+//template <class USERNODEDATA>
+//bool whereAxis<USERNODEDATA>::adjustVertSBOffsetFromDeltaPages(int deltapages) {
+//   // does not redraw
+//
+//   // First, update the tk scrollbar
+//   const int heightOfEverything = rootPtr->entire_height(consts);
+//   const int heightOfVisible = Tk_Height(consts.theTkWindow);
+//   float newFirst = (float)(-vertScrollBarOffset + heightOfVisible*deltapages) /
+//                    heightOfEverything;
+//   return adjustVertSBOffset(newFirst);
+//}
 
 template <class USERNODEDATA>
-void whereAxis<USERNODEDATA>::adjustVertSBOffset() {
+bool whereAxis<USERNODEDATA>::adjustVertSBOffset() {
    // Does not redraw.  Obtains PixFirst from actual tk scrollbar.
    float first, last; // fractions (0.0 to 1.0)
    getScrollBarValues(interp, vertSBName, first, last);
 
-   adjustVertSBOffset(first);
+   return adjustVertSBOffset(first);
 }
 
 /* ************************************************************************ */
@@ -1039,35 +1007,37 @@ void whereAxis<USERNODEDATA>::rethinkNavigateMenu() {
    // We loop through the items of "lastClickPath".  For each item,
    // we get the name of the root node, and append the full-path entry
    // to the navigate menu.
-   string theString; // we'll keep appending to this...
 
    where4tree<USERNODEDATA> *currTree = rootPtr;   
 
    // Note: in tk4.0, menu indices start at 1, not 0 (0 is reserved for tearoff)
-   char buffer[200];
-   sprintf(buffer, "%s delete 1 100", navigateMenuName.string_of());
-   myTclEval(interp, buffer);
+   string commandStr = navigateMenuName + " delete 1 100";
+   myTclEval(interp, commandStr);
 
-   for (int item=0; item < lastClickPath.getSize(); item++) {
-      if (item > 0)
+   string theString;
+
+   unsigned itemlcv = 0;
+   while (true) {
+      if (itemlcv >= 1)
          theString += "/";
       theString += currTree->getRootName();
 
-      sprintf(buffer, "%s add command -label \"%s\" -command \"navigateTo %d\"",
-              navigateMenuName.string_of(), theString.string_of(), item);
-      myTclEval(interp, buffer);
+//      cout << "adding " << theString << " to the navigate menu" << endl;
 
-      if (item < lastClickPath.getSize()-1) {
-         const whereNodeRawPathItem &theItem = lastClickPath.getConstItem(item);
-         currTree = currTree->theChildren[theItem.childnum].theTree;
-      }
+      string commandStr = navigateMenuName + " add command -label \"" + theString + "\" -command \"navigateTo " + string(itemlcv) + "\"";
+      myTclEval(interp, commandStr);
+
+      if (itemlcv >= lastClickPath.getSize())
+         break;
+
+      unsigned theItem = lastClickPath[itemlcv++];
+      currTree = currTree->getChildTree(theItem);
    }
 }
 
 template <class USERNODEDATA>
 bool whereAxis<USERNODEDATA>::
-selectUnSelectFromFullPathName(const string &name,
-			       const bool selectFlag) const {
+selectUnSelectFromFullPathName(const string &name, bool selectFlag) const {
    // returns true iff found
    const char *str = name.string_of();
    if (str == NULL)
@@ -1081,28 +1051,28 @@ vector< vector<USERNODEDATA> > whereAxis<USERNODEDATA>::getSelections() const {
    // returns a vector[num-hierarchies] of vector of selections.
    // The number of hierarchies is defined as the number of children of the
    // root node.
-   const unsigned numHierarchies = rootPtr->theChildren.size();
+   const unsigned numHierarchies = rootPtr->getNumChildren();
 
    vector < vector<USERNODEDATA> > result(numHierarchies);
 
-   for (int i=0; i < numHierarchies; i++) {
-      where4tree<USERNODEDATA> *hierarchyRoot = rootPtr->theChildren[i].theTree;
+   for (unsigned i=0; i < numHierarchies; i++) {
+      where4tree<USERNODEDATA> *hierarchyRoot = rootPtr->getChildTree(i);
 
       result[i] = hierarchyRoot->getSelections();
       if (result[i].size()==0) {
          // this hierarchy had no selections; therefore, choose the hierarchy's
          // root item...
          vector<USERNODEDATA> defaultHierarchy(1);
-         defaultHierarchy[0] = hierarchyRoot->theUserNodeData;
+         defaultHierarchy[0] = hierarchyRoot->getUserNodeData();
          result[i] = defaultHierarchy;
       }
       else if (rootPtr->isHighlighted()) {
          // The root node was highlighted --> add this hierarchy's root item,
          // if not already done.
-         USERNODEDATA hierarchyRootId = hierarchyRoot->theUserNodeData;
+         USERNODEDATA hierarchyRootId = hierarchyRoot->getUserNodeData();
 
          bool hierarchyRootAlreadyAdded = false;
-         for (int j=0; j < result[i].size(); j++) {
+         for (unsigned j=0; j < result[i].size(); j++) {
             if (result[i][j] == hierarchyRootId) {
                hierarchyRootAlreadyAdded = true;
                break;
