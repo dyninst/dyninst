@@ -3,7 +3,10 @@
  *   functions for a SUNOS SPARC processor.
  *
  * $Log: RTfuncs.c,v $
- * Revision 1.12  1994/08/02 18:18:56  hollings
+ * Revision 1.13  1994/09/20 18:27:17  hollings
+ * removed hard coded clock value.
+ *
+ * Revision 1.12  1994/08/02  18:18:56  hollings
  * added code to save/restore FP state on entry/exit to signal handle
  * (really jcargill, but commited by hollings).
  *
@@ -73,7 +76,7 @@ char DYNINSTglobalData[SYN_INST_BUF_SIZE];
 /*
  * for now costCount is in cycles. 
  */
-float DYNINSTcyclesToUsec = 1/60.0;
+float DYNINSTcyclesToUsec;
 time64 DYNINSTtotalSampleTime;
 
 void DYNINSTreportCounter(intCounter *counter)
