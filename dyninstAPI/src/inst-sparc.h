@@ -106,6 +106,7 @@ inline unsigned ABS(int x) {
 //  names....
 #define REG_I(x) (x + 24)
 #define REG_O(x) (x + 8)
+#define REG_G(x) (x)
 
 extern "C" void baseTramp();
 extern trampTemplate baseTemplate;

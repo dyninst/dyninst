@@ -1488,11 +1488,90 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
     return(0);
 }
 
+static inline bool CallRestoreTC(instruction instr, instruction nexti) {
+    return (isCallInsn(instr) && 
+           (nexti.rest.op == 2 \
+	       && ((nexti.rest.op3 == ORop3 && nexti.rest.rd == 15)
+		       || nexti.rest.op3 == RESTOREop3)));
+}
+
+/*
+    Return integer value indicating whether instruction sequence
+     found signals tail call 
+     jmp 
+     nop 
+    sequence.  Note that this should NOT include jmpl nop, ret nop, retl
+     nop....
+    Current heuristic to detect such sequences :
+     look for jmp %reg, nop in function w/ no stack frame, if jmp, nop
+     are last 2 instructions, return 1 (definate TC), at any other point,
+     return 2 (possible TC).  Otherwise, return 0 (no TC).
+     w/ no stack frame....
+    instr is instruction being examioned.
+    nexti is instruction after
+    addr is address of <instr>
+    func is pointer to function class object describing function
+     instructions come from....
+ */
+static inline int JmpNopTC(instruction instr, instruction nexti, \
+			    Address addr, pd_Function *func) {
+
+    if (!isInsnType(instr, JMPLmask, JMPLmatch)) {
+        return 0;
+    }
+
+    assert(instr.resti.op3 == 0x38);
+
+    // only looking for jump instructions which don't overwrite a register
+    //  with the PC which the jump comes from (g0 is hardwired to 0, so a write
+    //  there has no effect?)....  
+    //  instr should have gdb disass syntax : 
+    //      jmp  %reg, 
+    //  NOT jmpl %reg1, %reg2
+    if (instr.resti.rd != REG_G(0)) {
+        return 0;
+    }
+
+    // only looking for jump instructions in which the destination is
+    //  NOT %i7 + 8 or %o7 + 8 (ret and retl synthetic instructions, respectively)
+    if (instr.resti.i == 1) {
+        if (instr.resti.rs1 == REG_I(7) || instr.resti.rs1 == REG_O(7)) {
+	    // NOTE : some return and retl instructions jump to {io}7 + 12,
+	    //  not + 8, to have some extra space to store the size of a 
+	    //  return structure....
+            if (instr.resti.simm13 == 0x8 || instr.resti.simm13 == 12) {
+	        return 0;
+	    }
+        }
+    }  
+
+    // jmp, foloowed by NOP....
+    if (!isNopInsn(nexti)) {
+        return 0;
+    }
+
+    // in function w/o stack frame....
+    if (!func->hasNoStackFrame()) {
+        return 0;
+    }
+
+    // if sequence is detected, but not at end of fn 
+    //  (last 2 instructions....), return value indicating possible TC.
+    //  This should (eventually) mark the fn as uninstrumenatble....
+    if (addr != (func->getAddress(0) + func->size() - 8)) {
+        return 2;
+    }
+
+    return 1;
+}
+    
+
 /*
  * Find the instPoints of this function.
  */
 bool pd_Function::findInstPoints(const image *owner) {
-
+    bool call_restore_tc;
+    int jmp_nop_tc;
 
    //cerr << "pd_Function::findInstPoints called " << *this;
    if (size() == 0) {
@@ -1504,7 +1583,7 @@ bool pd_Function::findInstPoints(const image *owner) {
 
    Address adr;
    Address adr1 = getAddress(0);
-   instruction instr;
+   instruction instr, nexti;
    instr.raw = owner->get_instruction(adr1);
    if (!IS_VALID_INSN(instr)) {
      //cerr << " IS_VALID_ISIN(adr1) == 0, returning FALSE" << endl;
@@ -1518,6 +1597,7 @@ bool pd_Function::findInstPoints(const image *owner) {
 
    for ( ; adr1 < getAddress(0) + size(); adr1 += 4) {
        instr.raw = owner->get_instruction(adr1);
+       nexti.raw = owner->get_instruction(adr1+4);
 
        // If there's an TRAP instruction in the function, we 
        // assume that it is an system call and will relocate it 
@@ -1537,20 +1617,35 @@ bool pd_Function::findInstPoints(const image *owner) {
        //  This is only done if libc is statically linked...if the
        //  libTag is set, otherwise we instrument read and _read
        //  both for the dynamically linked case
-       
-       if (isCallInsn(instr)) {
-	   instruction nexti; 
-	   nexti.raw = owner->get_instruction(adr1+4);
-	       
-	   if (nexti.rest.op == 2 
-	       && ((nexti.rest.op3 == ORop3 && nexti.rest.rd == 15)
-		       || nexti.rest.op3 == RESTOREop3)) {
-	       isTrap = true;
-	       // ALERT ALERT
-	       //cerr << " tail call optimization pattern detected, returning findInstPoints, function name = " << prettyName().string_of()  << endl;
-	       return findInstPoints(owner, getAddress(0), 0);
-	   }
-       }   
+       // New for Solaris 2.6 support - new form of tail-call opt-
+       //  imization found:
+       //   jmp %register
+       //   nop
+       //  as last 2 instructions in function which does not have
+       //  own register frame.
+       call_restore_tc = CallRestoreTC(instr, nexti);
+       jmp_nop_tc = JmpNopTC(instr, nexti, adr1, this);
+       // TEMPORARY HACK to get release out door which supports 
+       //  Solaris 2.6 - mark any function w/o stack frame which 
+       //  has a jmp, nop sequence inside it, but not at end, 
+       //  (may or may not be tail-call opt. sequence) as 
+       //  uninstrumentable....
+       if (jmp_nop_tc == 2) {
+	   cerr << "WARN : Function " << prettyName().string_of() << \
+	     " jmp, nop sequence detected in interior of function," <<
+	     " marking uninstrumentable" << endl;
+	   return false;
+       }
+       if (call_restore_tc || jmp_nop_tc) {
+           isTrap = true;
+	   // ALERT ALERT
+	   //if (call_restore_tc) {
+	   //    cerr << " Call, Restore tail call optimization pattern detected, returning findInstPoints, function name = " << prettyName().string_of()  << endl;
+	   //} else {
+	   //    cerr << " Jmp, Nop tail call optimization pattern detected, returning findInstPoints, function name = " << prettyName().string_of()  << endl;
+	   //}
+	   return findInstPoints(owner, getAddress(0), 0);
+       }
        
 
        // The function Entry is defined as the first SAVE instruction plus
@@ -1567,7 +1662,7 @@ bool pd_Function::findInstPoints(const image *owner) {
 	   adr = adr1;
 	   assert(funcEntry_);
        }
-   }
+  }
 
    // If there's no SAVE instruction found, this is a leaf function and
    // and function Entry will be defined from the first instruction
@@ -1634,9 +1729,7 @@ bool pd_Function::findInstPoints(const image *owner) {
 	   && ((nexti.rest.op3 == ORop3 && nexti.rest.rd == 15)
 	      || nexti.rest.op3 == RESTOREop3)) {
 	 // ALERT ALERT
-	 //fprintf(stderr, "#### Tail-call optimization in function %s, addr %x\n",
-	 //	prettyName().string_of(), adr);
-	 // cerr << "tail-call optimization detected for function " << prettyName().string_of() << endl;
+         //cerr << "tail-call optimization detected for function " << prettyName().string_of() << endl;
 	 funcReturns += new instPoint(this, instr, owner, adr, false,
 				      functionExit);
 
@@ -1713,12 +1806,16 @@ bool pd_Function::checkInstPoints(const image *owner) {
 #ifndef BPATCH_LIBRARY /* XXX Users of libdyninstAPI might not agree. */
     // The function is too small to be worthing instrumenting.
     if (size() <= 12){
+        cerr << "WARN : function " << prettyName().string_of() \
+	     << " too small (size <= 12), can't instrument" << endl;
 	return false;
     }
 #endif
 
     // No function return! return false;
     if (sizeof(funcReturns) == 0) {
+        cerr << "WARN : function " << prettyName().string_of() \
+	     << " no return point found, can't instrument" << endl;
 	return false;
     }
 
@@ -1743,7 +1840,8 @@ bool pd_Function::checkInstPoints(const image *owner) {
 	    if ((target > funcEntry_->addr)&&
 		(target < (funcEntry_->addr + funcEntry_->size))) {
 		if (adr > (funcEntry_->addr+funcEntry_->size)){
-		    //cout << "Function " << prettyName().string_of() <<" entry" << endl;
+		    cerr << "WARN : function " << prettyName().string_of() \
+			 << " has branch target inside fn entry point, can't instrument" << endl;
 		    return false;
 	    } }
 
@@ -1752,7 +1850,9 @@ bool pd_Function::checkInstPoints(const image *owner) {
 		    (target < (funcReturns[i]->addr + funcReturns[i]->size))) {
 		    if ((adr < funcReturns[i]->addr)||
 			(adr > (funcReturns[i]->addr + funcReturns[i]->size))){
-			return false;
+			cerr << "WARN : function " << prettyName().string_of() \
+			 << " has branch target inside fn return point, can't instrument" << endl;
+		        return false;
 		} }
 	    }
 	}
@@ -1762,7 +1862,9 @@ bool pd_Function::checkInstPoints(const image *owner) {
     // function then this is a way messed up function...well, at least we
     // we can't deal with this...the only example I can find is _cerror
     // and _cerror64 in libc.so.1
-    if(retl_inst && !noStackFrame){
+    if(retl_inst && !noStackFrame){ 
+         cerr << "WARN : function " << prettyName().string_of() \
+	      << " retl instruction in non-leaf function, can't instrument function" << endl;
 	 return false;
     }
 
@@ -1775,6 +1877,8 @@ bool pd_Function::checkInstPoints(const image *owner) {
 	if(i >= 1){ // check if return points overlap
 	    Address prev_exit = funcReturns[i-1]->addr+funcReturns[i-1]->size;  
 	    if(funcReturns[i]->addr < prev_exit) {
+	        cerr << "WARN : function " << prettyName().string_of() \
+	             << " overlapping instrumentation points, can't instrument function" << endl;
 		return false;
 	    } 
 	}
@@ -1789,7 +1893,10 @@ bool pd_Function::checkInstPoints(const image *owner) {
 // that will be relocated if it is instrumented. 
 bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
 
-   int i;
+   int i, jmp_nop_tc;
+   instruction second_instr;
+   instruction nexti; 
+
    if (size() == 0) {
      return false;
    }
@@ -1815,7 +1922,6 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
    //  a jump to itself....
    if(size() > sizeof(instruction)){
        Address second_adr = adr + sizeof(instruction);
-       instruction second_instr;
        second_instr.raw =  owner->get_instruction(second_adr); 
 
        if (isCallInsn(second_instr)) {
@@ -1844,6 +1950,8 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
 
      instr.raw = owner->get_instruction(adr);
      newInstr[i] = instr;
+     nexti.raw = owner->get_instruction(adr+4);
+
      bool done;
 
      // check for return insn and as a side affect decide if we are at the
@@ -1873,17 +1981,19 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
 
      } else if (isCallInsn(instr)) {
 
-       // first, check for tail-call optimization: a call where the instruction 
-       // in the delay slot write to register %o7(15), usually just moving
-       // the caller's return address, or doing a restore
-       // Tail calls are instrumented as return points, not call points.
-       instruction nexti; 
-       nexti.raw = owner->get_instruction(adr+4);
-
-       if (nexti.rest.op == 2 
-	   && ((nexti.rest.op3 == ORop3 && nexti.rest.rd == 15)
-	      || nexti.rest.op3 == RESTOREop3)) {
-
+       // SNIP - incorrect comment removed)
+       //  check for 2 types of tail-call optimization.  The first
+       //  (seen on Solaris 2.4, 2.5 and 2.6) is a CALL, RESTORE
+       //  anywhere inside function.  The second (seen to date on
+       //  Solaris 2.6 only) is a JMP, NOP in the last 2 instructions 
+       //  of a function w/o a stack frame.
+       //  In both cases, the sequence is marked here as a function
+       //   return point (not call site).  This is possibly meaningless
+       //   however, as the first time the function is called, 
+       //   it is relocated, and (theoretically) the tail-call sequence
+       //   is opened up and seperate call site and exit point
+       //   should be falgged.
+       if (CallRestoreTC(instr, nexti)) {
            instPoint *point = new instPoint(this, instr, owner, newAdr, false,
 				      functionExit, adr);
            funcReturns += point;
@@ -1911,7 +2021,14 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
 	   return false;
        }
      }
-
+     else if ((jmp_nop_tc = JmpNopTC(instr, nexti, adr, this)) == 1) {
+           instPoint *point = new instPoint(this, instr, owner, newAdr, false,
+				      functionExit, adr);
+           funcReturns += point;
+           funcReturns[retId] -> instId = retId++;
+     } else if (jmp_nop_tc == 2) {
+           return false;
+     }
      else if (isInsnType(instr, JMPLmask, JMPLmatch)) {
        /* A register indirect jump. Some jumps may exit the function 
           (e.g. read/write on SunOS). In general, the only way to 
@@ -1974,6 +2091,9 @@ bool pd_Function::findNewInstPoints(const image *owner,
 				int size_change) {
 
    int i, extra_offset, disp;
+   instruction nexti; 
+   bool call_restore_tc, jmp_nop_tc;
+
    if (size() == 0) {
        cerr << "WARN : attempting to relocate function " \
        	    << prettyName().string_of() << " with size 0, unable to instrument" \
@@ -2033,6 +2153,7 @@ bool pd_Function::findNewInstPoints(const image *owner,
     
      instr.raw = owner->get_instruction(adr);
      newInstr[i] = instr;
+     nexti.raw = owner->get_instruction(adr+4);
 
      bool done;
 
@@ -2118,18 +2239,20 @@ bool pd_Function::findNewInstPoints(const image *owner,
 	   newInstr[i].branch.disp22 += extra_offset >> 2;
        }
 
-     } else if (isCallInsn(instr)) {
-
-       // first, check for tail-call optimization: a call where the instruction 
-       // in the delay slot write to register %o7(15), usually just moving
-       // the caller's return address, or doing a restore
-       // Tail calls are instrumented as return points, not call points.
-       instruction nexti; 
-       nexti.raw = owner->get_instruction(adr+4);
-
-       if (nexti.rest.op == 2 
-	   && ((nexti.rest.op3 == ORop3 && nexti.rest.rd == 15)
-	      || nexti.rest.op3 == RESTOREop3)) {
+     } 
+     else if ((call_restore_tc = CallRestoreTC(instr, nexti)) \
+	      || (jmp_nop_tc = JmpNopTC(instr, nexti, adr, this))) {
+        // First, check for tail-call optimization: a call where the instruction 
+        // in the delay slot write to register %o7(15), usually just moving
+        // the caller's return address, or doing a restore
+        // Tail calls are instrumented as return points, not call points.
+        // New Tail-Call Optimization sequence (found by pd grp 
+        //  to-date only in Solaris 2.6, not in 2.5 or 2.4)
+        //  jmp %reg, nop as last 2 instructions in function w/o
+        //  own stack frame.  This sequence gets rewritten so
+        //  as to seperate the call site and exit point, similar
+        //  to what's done in the call, restore TC opt sequence
+        //  above.
 	    // Undoing the tail-call optimazation when the function
 	    // is relocated. Here is an example:
 	    //   before:          --->             after
@@ -2169,6 +2292,27 @@ bool pd_Function::findNewInstPoints(const image *owner,
 	    //                                    mov %i5 %o5
 	    //                                    ret
 	    //                                    restore
+            //   before:          --->             after
+	    // ---------------------------------------------------
+            //                                    save  %sp, -96, %sp
+	    //                                    mov %reg %g1
+	    //   jmp  %reg                        mov %i0 %o0
+	    //   restore                          mov %i1 %o1
+	    //                                    mov %i2 %o2
+	    //                                    mov %i3 %o3
+	    //                                    mov %i4 %o4
+	    //                                    mov %i5 %o5
+	    //                                    call %g1
+	    //                                    nop
+	    //                                    mov %o0 %i0
+	    //                                    mov %o1 %i1
+	    //                                    mov %i2 %o2
+	    //                                    mov %i3 %o3
+	    //                                    mov %i4 %o4
+	    //                                    mov %i5 %o5
+	    //                                    ret
+	    //                                    restore
+
 	 //    Note : Assuming that %g1 is safe to use, since g1 is scratch
 	 //     register that is defined to be volatile across procedure
 	 //     calls.
@@ -2189,21 +2333,37 @@ bool pd_Function::findNewInstPoints(const image *owner,
 	    //      as it is.
 	    //    ( If you could give an counter-example, please
 	    //      let me know.                         --ling )
+
+            //  Should both be false for jmp, nop tail call sequences........
 	    bool true_call = isTrueCallInsn(instr);
 	    bool jmpl_call = isJmplCallInsn(instr);
 
-	    if (!true_call && !jmpl_call) {
-	        cerr << "WARN : attempting to unwind tail-call optimization, call instruction appears to be neither TRUE call nor JMPL call, bailing.  Function is : " << prettyName().string_of() << endl;
-	        return FALSE;
-	    }
+            if (call_restore_tc) {
+	        if (!true_call && !jmpl_call) {
+	            cerr << "WARN : attempting to unwind tail-call optimization, call instruction appears to be neither TRUE call nor JMPL call, bailing.  Function is : " << prettyName().string_of() << endl;
+	            return FALSE;
+	        }
 
-	    // if the call instruction was a call to a register, stick in extra
-	    //  initial mov as above....
-	    if (jmpl_call) {
-	        // added extra mv *, g1
-	        // translation : mv inst %1 %2 is synthetic inst. implemented as
-	        //  orI %1, 0, %2  
-	        genImmInsn(&newInstr[i++], ORop3, instr.rest.rs1, 0, 1);
+	        // if the call instruction was a call to a register, stick in extra
+	        //  initial mov as above....
+	        if (jmpl_call) {
+	            // added extra mv *, g1
+	            // translation : mv inst %1 %2 is synthetic inst. implemented as
+	            //  orI %1, 0, %2  
+	            genImmInsn(&newInstr[i++], ORop3, instr.rest.rs1, 0, 1);
+	        }
+	    } else {
+	        assert(jmp_nop_tc);
+		
+		// generate save instruction to free up new stack frame for
+		//  inserted call....
+		// ALERT ALERT - -112 seems like apparently random number
+		//  used in solaris specific code where save instructions 
+		//  are generated.  Why -112?
+		genImmInsn(&newInstr[i++], SAVEop3, REG_SP, -112, REG_SP);
+		 
+		// mv %reg %g1
+		genImmInsn(&newInstr[i++], ORop3, instr.rest.rs1, 0, 1);
 	    }
 
 	    // generate mov i0 ... i5 ==> O0 ... 05 instructions....
@@ -2216,53 +2376,65 @@ bool pd_Function::findNewInstPoints(const image *owner,
 	    genImmInsn(&newInstr[i++], ORop3, REG_I(4), 0, REG_O(4));
 	    genImmInsn(&newInstr[i++], ORop3, REG_I(5), 0, REG_O(5));
 
-	    // if origional call instruction was call to a register, that
-	    //  register should have been pushed into g0, so generate a call
-	    //  to %g0.
-	    if (jmpl_call) { 
-	        // note: changed here.
-	        // origional was : 
-                //  replicate origional jump instruction from target code.
-	        //  newInstr[i++].raw = owner->get_instruction(adr);
-	        // new is :
+	    if (jmp_nop_tc) {
+	        // if origional jmp/call instruction was call to a register, that
+	        //  register should have been pushed into g0, so generate a call
+	        //  to %g0.
 	        //  generate <call %g1>
 	        generateJmplInsn(&newInstr[i++], 1, 0, 15);
-		// in the case of a jmpl call, 17 instructions are generated
-	        // and used to replace origional 2 (call, restore), resulting
-	        // in a new addition of 17 instructions....
-	        newAdr += 15 * sizeof(instruction);
-	    } else {
-	        // if the origional call was a call to an ADDRESS, then want
-	        //  to copy the origional call.  There is, however, a potential
-	        //  caveat:  The sparc- CALL instruction is apparently PC
-	        //  relative (even though disassemblers like that in gdb will
-	        //  show a call to an absolute address).
-	        //  As such, want to change the call target to account for 
-	        //  the difference in PCs.
 
-	        newInstr[i].raw = owner->get_instruction(adr);
-	        relocateInstruction(&newInstr[i],
+		// here, 18 instructions are generated and used to replace
+		//  the origional 2 (jmp, nop), resulting in an addition 
+		//  of 16 instructions....
+		newAdr += 16 * sizeof(instruction);
+	        
+	    } else {
+	        assert(call_restore_tc);
+	        if (jmpl_call) { 
+	            // if origional jmp/call instruction was call to a register, that
+	            //  register should have been pushed into g0, so generate a call
+	            //  to %g0.
+	            //  generate <call %g1>
+	            generateJmplInsn(&newInstr[i++], 1, 0, 15);
+		    if (jmpl_call) {
+		        // in the case of a jmpl call, 17 instructions are generated
+	                // and used to replace origional 2 (call, restore), resulting
+	                // in a new addition of 15 instructions....
+	                newAdr += 15 * sizeof(instruction);
+	            } 
+	        } else {
+	            // if the origional call was a call to an ADDRESS, then want
+	            //  to copy the origional call.  There is, however, a potential
+	            //  caveat:  The sparc- CALL instruction is apparently PC
+	            //  relative (even though disassemblers like that in gdb will
+	            //  show a call to an absolute address).
+	            //  As such, want to change the call target to account for 
+	            //  the difference in PCs.
+
+	            newInstr[i].raw = owner->get_instruction(adr);
+	            relocateInstruction(&newInstr[i],
 		        adr+baseAddress,
 		        newAdr + 6 * sizeof(instruction), \
 			proc);
-		//cerr << "adr+baseAddress = " << adr+baseAddress << \
-		//  " (i - orig_call_insn) = " << (i - orig_call_insn) << \
-		//  " newAdr = " << newAdr << endl;
-		i++;
-		// in the case of a "true" call, 16 instructions are generated
-	        //  + replace origional 2, resulting in addition of 18 instrs.
-		//  this addition of 14 here should make newAdr point to
-		//  the retl instruction 2nd to last in unwound tail-call 
-		//  opt. sequence....
-	        newAdr += 14 * sizeof(instruction);
+		    //cerr << "adr+baseAddress = " << adr+baseAddress << \
+		    //  " (i - orig_call_insn) = " << (i - orig_call_insn) << \
+		    //  " newAdr = " << newAdr << endl;
+		    i++;
+		    // in the case of a "true" call, 16 instructions are generated
+	            //  + replace origional 2, resulting in addition of 18 instrs.
+		    //  this addition of 14 here should make newAdr point to
+		    //  the retl instruction 2nd to last in unwound tail-call 
+		    //  opt. sequence....
+	            newAdr += 14 * sizeof(instruction);
+	        }
 	    }
 
 	    // generate NOP following call instruction (for delay slot)
 	    //  ....
 	    generateNOOP(&newInstr[i++]);
 
-	    // generate mov instructions moving %o0 ... %o7 ==> 
-	    //     %i0 ... %i7.  
+	    // generate mov instructions moving %o0 ... %o5 ==> 
+	    //     %i0 ... %i5.  
             genImmInsn(&newInstr[i++], ORop3, REG_O(0), 0, REG_I(0));
 	    genImmInsn(&newInstr[i++], ORop3, REG_O(1), 0, REG_I(1));
 	    genImmInsn(&newInstr[i++], ORop3, REG_O(2), 0, REG_I(2));
@@ -2293,7 +2465,8 @@ bool pd_Function::findNewInstPoints(const image *owner,
 	    // skip the restore instruction (in nexti)....
 	    adr += 4;
 	    newAdr += 4;
-       } else {
+     }
+     else if (isCallInsn(instr)) {
 	 // if the second instruction in the function is a call instruction
          // then this cannot go in the delay slot of the branch to the
          // base tramp, so add a noop between first and second instructions
@@ -2382,10 +2555,12 @@ bool pd_Function::findNewInstPoints(const image *owner,
 			       callsId, adr,reloc_info,location);
 	    if (err) return false;
          }
-       }
      }
 
      else if (isInsnType(instr, JMPLmask, JMPLmatch)) {
+	 reg jumpreg = instr.rest.rs1;
+         nexti.raw = owner->get_instruction(adr+4);
+
        /* A register indirect jump. Some jumps may exit the function 
           (e.g. read/write on SunOS). In general, the only way to 
 	  know if a jump is exiting the function is to instrument
@@ -2403,8 +2578,6 @@ of doing this, we just check the
 	     or addr_lo, r, r
 	     jump r
 	*/
-
-	 reg jumpreg = instr.rest.rs1;
 	 instruction prev1;
 	 instruction prev2;
 	 
@@ -2479,9 +2652,7 @@ bool pd_Function::calcRelocationExpansions(const image *owner, \
 
 	    // if next instruction is "restore", then sequence is recognised as
 	    //  a tail-call optimization, and unwound....
-	    if (nexti.rest.op == 2 
-	       && ((nexti.rest.op3 == ORop3 && nexti.rest.rd == 15)
-	          || nexti.rest.op3 == RESTOREop3)) {
+	    if (CallRestoreTC(instr, nexti)) {
 	        // adds either 7 or 8 extra instructions, depending on which type
 	        // of call the call instruction is (e.g. call %REGISTER, call ADDRESS,
 	        // etc....)....
@@ -2508,6 +2679,16 @@ bool pd_Function::calcRelocationExpansions(const image *owner, \
 		    return FALSE;
 	        }
     	    }
+	}
+	// Also search for a new form of tail-call optimization 
+	//  (to date only seen in Solaris 2.6) : a jump %reg, nop
+	//  at the end of a function which doesn't have a stack
+	//  frame....
+        // This type of tail-call optimization adds HOW_BIG
+	//  instructions to function size....
+	if (JmpNopTC(instr, nexti, adr, this)) {
+	    fer->AddExpansion(i * sizeof(instruction), 16);
+	    total_shift += 16 * sizeof(instruction);
 	}
     }
 

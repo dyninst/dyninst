@@ -48,6 +48,15 @@
 
 /*
  * $Log: arch-sparc.h,v $
+ * Revision 1.21  1998/04/10 18:08:12  mcheyney
+ * Changes to support instrumentation of optimizd code sequences
+ * found on Solaris 2.6.
+ * Support for:
+ *  jmp, nop at end of fn w/ no stack frame - tail-call optimization
+ *   detected + (hopefully) unwound.
+ *  jmp, nop inside fn w/ no stack frame - possible TC optimization, marked
+ *   as uninstrumentable to be safe.
+ *
  * Revision 1.20  1997/12/04 18:49:36  mcheyney
  * Added functions to differentiate between 'true' call instructions
  * (CALL - Opcode 01), and 'jmpl' call instructions (show up under
@@ -315,6 +324,16 @@ inline bool isInsnType(const instruction i,
 		       const unsigned mask,
 		       const unsigned match) {
   return ((i.raw & mask) == match);
+}
+
+/*
+   Return boolean value specifying whether instruction is NOP....
+ */
+inline bool isNopInsn(const instruction i) {
+    if (i.sethi.op == 0 && i.sethi.op2 == 0x4) {
+        return true;
+    }
+    return false;
 }
 
 inline bool isCallInsn(const instruction i) {

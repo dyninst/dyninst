@@ -685,6 +685,17 @@ bool isReturnInsn(const image *owner, Address adr, bool &lastOne)
 
     if (isInsnType(instr, RETmask, RETmatch) ||
         isInsnType(instr, RETLmask, RETLmatch)) {
+        //  Why 8 or 12?
+        //  According to the sparc arch manual (289), ret or retl are
+        //   synthetic instructions for jmpl %i7+8, %g0 or jmpl %o7+8, %go.
+        //  Apparently, the +8 is not really a hard limit though, as 
+        //   sometimes some extra space is allocated after the jump 
+        //   instruction for various reasons.
+        //  1 possible reason is to include information on the size of
+        //   returned structure (4 bytes).
+        //  So, 8 or 12 here is a heuristic, but doesn't seem to 
+        //   absolutely have to be true.
+        //  -matt
         if ((instr.resti.simm13 != 8) && (instr.resti.simm13 != 12)) {
 	  sprintf(errorLine,"WARNING: unsupported return in module %s",(owner->name()).string_of());
 	  showErrorCallback(55, errorLine);
