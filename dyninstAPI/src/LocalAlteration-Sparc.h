@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: LocalAlteration-Sparc.h,v 1.3 1998/12/25 22:34:23 wylie Exp $
+
 #ifndef __LocalAlteration_SPARC_H__
 #define __LocalAlteration_SPARC_H__
 

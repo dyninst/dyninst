@@ -1,5 +1,45 @@
+/*
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
+ */
 
-
+// $Id: LocalAlteration-Sparc.C,v 1.3 1998/12/25 22:34:22 wylie Exp $
 
 #include "dyninstAPI/src/LocalAlteration-Sparc.h"
 #include "dyninstAPI/src/LocalAlteration.h"
@@ -14,9 +54,12 @@
 
 //--------------------------------- SPARC SPECIFIC -----------------------------
 
+extern void relocateInstruction(instruction *insn, 
+                        Address origAddr, Address targetAddr, process *proc);
+
 // constructor for SPARC LocalAlteration....
 SparcLocalAlteration::SparcLocalAlteration
-        (pd_Function *f, int beginning_offset, \
+        (pd_Function *f, int beginning_offset,
 	 int ending_offset, Address nBaseAddress) :
 	  LocalAlteration(f, beginning_offset, ending_offset) {
     // set (protected data member) baseAddress
@@ -27,7 +70,7 @@ SparcLocalAlteration::SparcLocalAlteration
 
 // constructor for NOPExpansion....
 NOPExpansion::NOPExpansion(pd_Function *f, int 
-			   beginning_offset, int ending_offset, \
+			   beginning_offset, int ending_offset,
                            Address nBaseAddress, int size) :
     SparcLocalAlteration(f, beginning_offset, ending_offset, 
 			    nBaseAddress)
@@ -289,8 +332,6 @@ CallRestoreTailCallOptimization::CallRestoreTailCallOptimization(pd_Function *f,
 //                                    mov %i5 %o5
 //                                    ret
 //                                    restore
-void relocateInstruction(instruction *insn, u_int origAddr, u_int targetAddr,
-			 process *proc);
 bool CallRestoreTailCallOptimization::RewriteFootprint(Address &adr, 
         Address newBaseAdr, Address &newAdr, instruction oldInstr[], 
         instruction newInstr[]) {
@@ -335,7 +376,7 @@ bool CallRestoreTailCallOptimization::RewriteFootprint(Address &adr,
     //  l registers & i registers ->  ???? W
     //   Would seem to discard the value - return false indicating don't
     //   know how to handle this case....
-    reg restore_add_side_effect_destination = oldInstr[oldOffset + 1].resti.rd;
+    Register restore_add_side_effect_destination = oldInstr[oldOffset + 1].resti.rd;
     if (restore_add_side_effect_destination >= REG_O(0) && 
 	  restore_add_side_effect_destination <= REG_O(7)) {
         restore_add_side_effect_destination = REG_I(0) + 
@@ -384,8 +425,8 @@ bool CallRestoreTailCallOptimization::RewriteFootprint(Address &adr,
     genImmInsn(&newInstr[newOffset++], ORop3, REG_I(5), 0, REG_O(5));
 
     if (jmpl_call) { 
-        // if origional jmp/call instruction was call to a register, that
-        //  register should have been pushed into g0, so generate a call
+        // if original jmp/call instruction was call to a register, that
+        //  register should have been pushed into %g0, so generate a call
         //  to %g0.
         //  generate <call %g1>
         generateJmplInsn(&newInstr[newOffset++], 1, 0, 15);
@@ -398,8 +439,8 @@ bool CallRestoreTailCallOptimization::RewriteFootprint(Address &adr,
         // in a new addition of 16 instructions....
         newAdr += 18 * sizeof(instruction); 
     } else {
-        // if the origional call was a call to an ADDRESS, then want
-        //  to copy the origional call.  There is, however, a potential
+        // if the original call was a call to an ADDRESS, then want
+        //  to copy the original call.  There is, however, a potential
         //  caveat:  The sparc- CALL instruction is apparently PC
         //  relative (even though disassemblers like that in gdb will
         //  show a call to an absolute address).
@@ -409,7 +450,7 @@ bool CallRestoreTailCallOptimization::RewriteFootprint(Address &adr,
         newInstr[newOffset].raw = oldInstr[oldOffset].raw;
         relocateInstruction(&newInstr[newOffset++],
 			    adr,
-			    newAdr + 7 * sizeof(instruction), \
+			    newAdr + 7 * sizeof(instruction),
 			    NULL);
             
         // in the case of a "true" call, 17 instructions are generated
