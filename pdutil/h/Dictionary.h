@@ -122,6 +122,8 @@ dictionary<K,V>::~dictionary() {
 
 static const unsigned DEFAULT_CHAIN_SIZE = 32;
 
+template<class K, class V> class dictionary_hash_iter;
+
 template<class K, class V>
 class dictionary_hash : public dictionary<K,V> {
 
