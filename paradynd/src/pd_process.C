@@ -328,6 +328,56 @@ void pd_process::handleExit(int exitStatus) {
 }
 
 /********************************************************************
+ **** Fork/Exec handling code                                    ****
+ ********************************************************************/
+
+void pd_process::paradynPreForkDispatch(process *p, void *data) {
+    ((pd_process *)data)->preForkHandler(p);
+}
+
+void pd_process::paradynPostForkDispatch(process *p, void *data, process *c) {
+    ((pd_process *)data)->postForkHandler(p, c);
+}
+
+void pd_process::paradynPreExecDispatch(process *p, void *data, char *arg0) {
+    ((pd_process *)data)->preExecHandler(p, arg0);
+}
+
+void pd_process::paradynPostExecDispatch(process *p, void *data) {
+    fprintf(stderr, "postExecDispatch called\n");
+    ((pd_process *)data)->postExecHandler(p);
+}
+
+void pd_process::paradynPreExitDispatch(process *p, void *data, int code) {
+    ((pd_process *)data)->preExitHandler(p, code);
+}
+
+void pd_process::preForkHandler(process *p) {
+}
+
+void pd_process::postForkHandler(process *p, process *c) {
+}
+
+void pd_process::preExecHandler(process *p, char *arg0) {
+}
+
+void pd_process::postExecHandler(process *p) {
+    // We need to reload the Paradyn library
+    paradynRTState = libUnloaded; // It was removed when we execed
+    inExec = true;
+    wasExeced = true;
+
+    // Renew the metadata: it's been scribbled on
+    //sharedMetaDataOffset = dyninst_process->initSharedMetaData();
+
+    loadParadynLib();
+}
+
+void pd_process::preExitHandler(process *p, int code) {
+}
+
+
+/********************************************************************
  **** Paradyn runtime library code                               ****    
  ********************************************************************/
 
@@ -385,7 +435,6 @@ bool pd_process::loadParadynLib() {
         launchRPCs(false);
         decodeAndHandleProcessEvent(true);
     }
-
     removeAst(loadLib);
 
     // Unregister callback now that the library is loaded
@@ -404,7 +453,6 @@ bool pd_process::loadParadynLib() {
         // inferior RPC
         iRPCParadynInit();
     }
-
     assert(reachedLibState(paradynRTState, libReady));
 
     return true;
@@ -423,6 +471,7 @@ bool pd_process::setParadynLibParams()
 {
     // Now we write these variables into the following global vrbles
     // in the dyninst library:
+    
     /*
       int libparadynRT_init_localparadynPid=-1;
       int libparadynRT_init_localCreationMethod=-1;
@@ -593,21 +642,25 @@ bool pd_process::finalizeParadynLib() {
                 parentProcess->continueAfterNextStop();
         }
     }
-    
-/*
-    if (!calledFromAttach || !wasAttached) {
-        str=string("PID=") + string(bs_record.pid) + ", ready.";
-        statusLine(str.c_str());
-    }
-    
-    if (calledFromAttach && !wasRunning && createdViaAttach) {
-        statusLine("application paused");
-    }
-*/
-    // though not for long, if 'wasRunning' is true (paradyn will soon continue us)
-    
+
     // Set library state to "ready"
     setLibState(paradynRTState, libReady);
+
+    // Add callbacks for events we care about
+    /*
+      dyninst_process->registerPreForkCallback(paradynPreForkDispatch,
+      (void *)this);
+      dyninst_process->registerPostForkCallback(paradynPostForkDispatch,
+      (void *)this);
+      dyninst_process->registerPreExecCallback(paradynPreExecDispatch,
+      (void *)this);
+    */
+    dyninst_process->registerPostExecCallback(paradynPostExecDispatch,
+                                              (void *)this);
+    /*
+      dyninst_process->registerPreExitCallback(paradynPreExitDispatch,
+      (void *)this);
+    */
     return true;
 }
 
@@ -730,7 +783,7 @@ bool pd_process::getParadynRTname() {
     const char ParadynEnvVar[]="PARADYN_LIB_MT";
 #else
     const char ParadynEnvVar[]="PARADYN_LIB";
-#endif MT_THREAD
+#endif // MT_THREAD
     
     // If there is a default set, use it
     if (defaultParadynRTname.length())

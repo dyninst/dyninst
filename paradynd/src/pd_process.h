@@ -298,7 +298,24 @@ class pd_process {
       assert(numThr() > 0);
       return (*beginThr());
    }
-      
+
+  /************************************
+   *** Fork and Exec handling       ***
+   ************************************/
+  public:
+   static void paradynPreForkDispatch(process *p, void *data);
+   static void paradynPostForkDispatch(process *p, void *data, process *c);
+   static void paradynPreExecDispatch(process *p, void *data, char *arg0);
+   static void paradynPostExecDispatch(process *p, void *data);
+   static void paradynPreExitDispatch(process *p, void *data, int code);
+
+  private:
+   void preForkHandler(process *p);
+   void postForkHandler(process *p, process *c);
+   void preExecHandler(process *p, char *arg0);
+   void postExecHandler(process *p);
+   void preExitHandler(process *p, int code);
+   
   /************************************
    *** Runtime library functions    ***
    ************************************/
