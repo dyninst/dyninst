@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.149 2004/01/23 22:01:20 tlmiller Exp $
+ * $Id: inst-x86.C,v 1.150 2004/02/25 04:36:41 schendel Exp $
  */
 
 #include <iomanip>
@@ -181,7 +181,7 @@ static void emitMovImmToMem( Address maddr, int imm,
    before and after the point.
 */
 void instPoint::checkInstructions() {
-   Address currAddr = addr_;
+   Address currAddr = pointAddr();
    unsigned OKinsns = 0;
 
    // if jumpAddr_ is not zero, this point has been checked already
@@ -190,18 +190,18 @@ void instPoint::checkInstructions() {
 
    unsigned tSize;
    unsigned maxSize = JUMP_SZ;
-   if (address() == func()->getAddress(0)) // entry point
+   if (pointAddr() == pointFunc()->getAddress(0)) // entry point
       maxSize = 2*JUMP_SZ;
    tSize = insnAtPoint_.size();
 
-   if (!owner()->isJumpTarget(currAddr)) {
+   if (!getOwner()->isJumpTarget(currAddr)) {
       // check instructions before point
       unsigned insnsBefore_ = insnsBefore();
       for (unsigned u = 0; u < insnsBefore_; u++) {
          OKinsns++;
          tSize += (*insnBeforePt_)[u].size();
          currAddr -= (*insnBeforePt_)[u].size();
-         if (owner()->isJumpTarget(currAddr)) {
+         if (getOwner()->isJumpTarget(currAddr)) {
             // must remove instruction from point
             // fprintf(stderr,"check instructions point 0x%lx, jmp to 0x%lx\n",
             //                addr,currAddr);
@@ -216,11 +216,11 @@ void instPoint::checkInstructions() {
    jumpAddr_ = currAddr;
 
    // check instructions after point
-   currAddr = addr_ + insnAtPoint_.size();
+   currAddr = pointAddr() + insnAtPoint_.size();
    OKinsns = 0;
    unsigned insnsAfter_ = insnsAfter();
    for (unsigned u = 0; tSize < maxSize && u < insnsAfter_; u++) {
-      if (owner()->isJumpTarget(currAddr))
+      if (getOwner()->isJumpTarget(currAddr))
          break;
       OKinsns++;
       unsigned size = (*insnAfterPt_)[u].size();
@@ -233,7 +233,7 @@ void instPoint::checkInstructions() {
 #ifdef notdef
    if (tSize < maxSize) {
       tSize = insnAtPoint_.size();
-      jumpAddr_ = addr_;
+      jumpAddr_ = pointAddr();
       if (insnBeforePt_) (*insnBeforePt_).resize(0);
       if (insnAfterPt_) (*insnAfterPt_).resize(0);
    }
@@ -283,8 +283,8 @@ static bool _canUseExtraSlot(const instPoint *pt, const instPoint *entry,
 bool instPoint::canUseExtraSlot(process *proc) const
 {
    return _canUseExtraSlot(this,
-                           func()->funcEntry(proc),
-                           func()->funcExits(proc));
+                           pointFunc()->funcEntry(proc),
+                           pointFunc()->funcExits(proc));
 }
 
 /* ENTRY and EXITS are the entry and exit points of a function.  PT
@@ -309,7 +309,8 @@ static bool _usesTrap(const instPoint *pt,
 
 bool instPoint::usesTrap(process *proc) const
 {
-   return _usesTrap(this, func()->funcEntry(proc), func()->funcExits(proc));
+   return _usesTrap(this, pointFunc()->funcEntry(proc),
+                    pointFunc()->funcExits(proc));
 }
 
 /**************************************************************
@@ -336,12 +337,12 @@ void pd_Function::checkCallPoints() {
       assert(p);
 
       if (!p->insnAtPoint().isCallIndir()) {
-         loc_addr = p->insnAtPoint().getTarget(p->address());
+         loc_addr = p->insnAtPoint().getTarget(p->pointAddr());
          file()->exec()->addJumpTarget(loc_addr);
          pd_Function *pdf = (file_->exec())->findFuncByOffset(loc_addr);
 
          if (pdf) {
-            p->set_callee(pdf);
+            p->setCallee(pdf);
             non_lib.push_back(p);
          } else {
             // if this is a call outside the fuction, keep it
@@ -356,8 +357,8 @@ void pd_Function::checkCallPoints() {
       } else {
          // Indirect call -- be conservative, assume it is a call to
          // an unnamed user function
-         //assert(!p->callee());
-         p->set_callee(NULL);
+         //assert(!p->getCallee());
+         p->setCallee(NULL);
          non_lib.push_back(p);
       }
    }
@@ -539,6 +540,8 @@ bool pd_Function::findInstPoints(const image *i_owner) {
    const unsigned char *instr;
    Address funcEnd;
 
+   const unsigned char *begAddr = owner->getPtrToInstruction(getAddress(0));
+   
    if (size() == 0) {
       //fprintf(stderr,"Function %s, size = %d\n",
       //        prettyName().c_str(), size());
@@ -566,7 +569,7 @@ bool pd_Function::findInstPoints(const image *i_owner) {
    }
    //point_ *points = (point_ *)alloca(size()*sizeof(point));
 
-   instr = (const unsigned char *)owner->getPtrToInstruction(getAddress(0));
+   instr = (const unsigned char *)begAddr;
    adr = getAddress(0);
    numInsns = 0;
 
@@ -587,6 +590,11 @@ bool pd_Function::findInstPoints(const image *i_owner) {
    if (insn.isJumpDir()) {
       Address target = insn.getTarget(adr);
       owner->addJumpTarget(target);
+
+      const unsigned char *tgt = (const unsigned char *)target;
+      if(tgt >= begAddr && tgt <= begAddr+5)
+         has_jump_to_first_five_bytes = true;
+
       if (target < getAddress(0) || target >= getAddress(0) + size()) {
          // jump out of function
          // this is an empty function
@@ -619,6 +627,13 @@ bool pd_Function::findInstPoints(const image *i_owner) {
          noStackFrame = false;       
    }
 
+   if (insn.isJumpDir()) {
+      Address target = insn.getTarget(adr);
+      const unsigned char *tgt = (const unsigned char *)target;
+      if(tgt >= begAddr && tgt <= begAddr+5)
+         has_jump_to_first_five_bytes = true;
+   }
+
    // get all the instructions for this function, and define the
    // instrumentation points. For now, we only add one instruction to each
    // point.  Additional instructions, for the points that need them, will be
@@ -637,9 +652,7 @@ bool pd_Function::findInstPoints(const image *i_owner) {
    }
 
    for ( ; adr < funcEnd; instr += insnSize, adr += insnSize) {
-
       insnSize = insn.getNextInstruction(instr);
-
       assert(insnSize > 0);
 
       if (adr + insnSize > funcEnd) {
@@ -677,6 +690,11 @@ bool pd_Function::findInstPoints(const image *i_owner) {
          // check for jumps out of this function
          Address target = insn.getTarget(adr);
          owner->addJumpTarget(target);
+
+         const unsigned char *tgt = (const unsigned char *)target;
+         if(tgt >= begAddr && tgt <= begAddr+5)
+            has_jump_to_first_five_bytes = true;
+
          if (target < getAddress(0) || target >= getAddress(0) + size()) {
             // jump out of function
             instPoint *p = new instPoint(this, owner, adr, functionExit, insn);
@@ -716,7 +734,6 @@ bool pd_Function::findInstPoints(const image *i_owner) {
       assert(npoints <= size());
       assert(numInsns <= size());
    }
-
 
    unsigned u;
    // there are often nops after the end of the function. We get them here,
@@ -759,7 +776,7 @@ bool pd_Function::findInstPoints(const image *i_owner) {
       lastPointEnd = index;
 
       // add instructions after the point
-      if (type == ReturnPt && p->address() == funcEnd-1) {
+      if (type == ReturnPt && p->pointAddr() == funcEnd-1) {
 
          /* If an instrumentation point at the end of the function
             does not end on a 4-byte boundary, we claim the bytes up
@@ -1230,7 +1247,7 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point,
    }
    /* Extra slot */
    else if (point->canUseExtraSlot(proc)) {
-      pd_Function *f = point->func();
+      pd_Function *f = point->pointFunc();
       const instPoint *the_entry = f->funcEntry(proc);
     
       int displacement = the_entry->jumpAddr() + 5 - point->jumpAddr();
@@ -1239,7 +1256,7 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point,
       assert(point->size() >= 2);
 #ifdef INST_TRAP_DEBUG
       cerr << "Using extra slot in entry of " << f->prettyName()
-           << " to avoid need for trap @" << (void*)point->address() << endl;
+           << " to avoid need for trap @" << (void*)point->pointAddr() << endl;
 #endif
     
       instPoint *nonConstEntry = const_cast<instPoint *>(the_entry);
@@ -1260,8 +1277,8 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point,
    else { /* Trap */
 #ifdef INST_TRAP_DEBUG
       cerr << "Warning: unable to insert jump in function " 
-           << point->func()->prettyName() << " @" << (void*)point->address()
-           << ". Using trap!" << endl;
+           << point->pointFunc()->prettyName() << " @"
+           << (void*)point->pointAddr() << ". Using trap!" << endl;
 #endif
       if (!insertInTrampTable(proc, point->jumpAddr()+imageBaseAddr, baseAddr))
          return 0;
@@ -1507,11 +1524,11 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
      A total of 58 bytes are added to the base tramp.
    */
 
-   //pd_Function *f = location->func();
+   //pd_Function *f = location->pointFunc();
 
    unsigned u;
    trampTemplate *ret = 0;
-   
+
    if( trampRecursiveDesired )
    {
        ret = new trampTemplate(location, proc);
@@ -1556,7 +1573,7 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
 
 
    Address imageBaseAddr;
-   if (!proc->getBaseAddress(location->owner(), imageBaseAddr)) {
+   if (!proc->getBaseAddress(location->getOwner(), imageBaseAddr)) {
       abort();
    }
 
@@ -1644,8 +1661,8 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
    if (location->insnAtPoint().type() & IS_JCC) {
 
       currAddr = baseAddr + (insn - code);
-      assert(origAddr == location->address() + imageBaseAddr);
-      origAddr = location->address() + imageBaseAddr;
+      assert(origAddr == location->pointAddr() + imageBaseAddr);
+      origAddr = location->pointAddr() + imageBaseAddr;
       if (currentPC == origAddr &&
           currentPC != (location->jumpAddr() + imageBaseAddr)) {
          //fprintf(stderr, "changed PC: 0x%lx to 0x%lx\n", currentPC,currAddr);
@@ -1676,7 +1693,7 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
    emitSimpleInsn(PUSHAD, insn);    // pushad
 
    // return address for stack frame format
-   emitPushImm(location->iPgetAddress(), insn);
+   emitPushImm(location->pointAddr(), insn);
 
    emitSimpleInsn(PUSH_EBP, insn);  // push ebp (new stack frame)
    emitMovRegToReg(EBP, ESP, insn); // mov ebp, esp  (2-byte instruction)
@@ -1755,8 +1772,8 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
       // emulate the instruction at the point 
       ret->emulateInsOffset = insn-code;
       currAddr = baseAddr + (insn - code);
-      assert(origAddr == location->address() + imageBaseAddr);
-      origAddr = location->address() + imageBaseAddr;
+      assert(origAddr == location->pointAddr() + imageBaseAddr);
+      origAddr = location->pointAddr() + imageBaseAddr;
       if (currentPC == origAddr &&
           currentPC != (location->jumpAddr() + imageBaseAddr)) {
          //fprintf(stderr, "changed PC: 0x%lx to 0x%lx\n", currentPC,currAddr);
@@ -1789,7 +1806,7 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
    ret->savePostInsOffset = insn-code;
    emitSimpleInsn(PUSHFD, insn);    // pushfd
    emitSimpleInsn(PUSHAD, insn);    // pushad
-   emitPushImm(location->iPgetAddress(), insn);
+   emitPushImm(location->pointAddr(), insn);
    emitSimpleInsn(PUSH_EBP, insn);  // push ebp
    emitMovRegToReg(EBP, ESP, insn); // mov ebp, esp
    // allocate space for temporaries (virtual registers)
@@ -1848,9 +1865,9 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
    // emulate the instructions after the point
    ret->returnInsOffset = insn-code;
    currAddr = baseAddr + (insn - code);
-   assert(origAddr == location->address() + imageBaseAddr + 
+   assert(origAddr == location->pointAddr() + imageBaseAddr + 
                       location->insnAtPoint().size());
-   origAddr = location->address() + imageBaseAddr +
+   origAddr = location->pointAddr() + imageBaseAddr +
               location->insnAtPoint().size();
    for (u = 0; u < location->insnsAfter(); u++) {
       if (currentPC == origAddr) {
@@ -1939,20 +1956,22 @@ trampTemplate* findOrInstallBaseTramp(process *proc,
    trampTemplate *ret;
    retInstance = NULL;
 
-   pd_Function *f = location->func();
+   pd_Function *f = location->pointFunc();
 
    // location may not have been updated since relocation of function
-   if (f->needsRelocation() && f->isInstalled(proc)) {
+   if (f->needsRelocation() && f->hasBeenRelocated(proc)) {
       f->modifyInstPoint(const_cast<const instPoint *&>(location), proc);
    }
 
-   if (!proc->baseMap.defines(location)) {
-
+   if (!proc->baseMap.defines(location))
+   {
       // if function needs relocation  
       if (f->needsRelocation()) {
 	
          // if function has not already been relocated
-         if (!f->isInstalled(proc)) {
+         if (!f->hasBeenRelocated(proc)) {
+            // if in function don't relocate, defer, but insert traps
+            // then when retrying to relocate, can be in function to relocate
             bool relocated = f->relocateFunction(proc, location, deferred);
      
             // Silence warnings
@@ -1969,13 +1988,14 @@ trampTemplate* findOrInstallBaseTramp(process *proc,
 
       // generate branch from instrumentation point to base tramp
       Address imageBaseAddr;
-      if (!proc->getBaseAddress(location->owner(), imageBaseAddr))
+      if (!proc->getBaseAddress(location->getOwner(), imageBaseAddr))
          abort();
       unsigned char *insn = new unsigned char[JUMP_REL32_SZ];
       unsigned size = generateBranchToTramp(proc, location, ret->baseAddr, 
                                             imageBaseAddr, insn, deferred);
-      if (size == 0)
+      if (size == 0) {
          return NULL;
+      }
       retInstance = new returnInstance(location->insns(), 
                                        new instruction(insn, 0, size), size,
                                        location->jumpAddr() + imageBaseAddr, 
@@ -3304,10 +3324,10 @@ void initDefaultPointFrequencyTable()
  */
 float getPointFrequency(instPoint *point)
 {
-   pd_Function *func = point->callee();
+   pd_Function *func = point->getCallee();
     
    if (!func)
-      func = point->func();
+      func = point->pointFunc();
    
    if (!funcFrequencyTable.defines(func->prettyName())) {
       // Changing this value from 250 to 100 because predictedCost was
@@ -3481,7 +3501,7 @@ bool process::replaceFunctionCall(const instPoint *point,
       unsigned char *p = newInsn;
       for (unsigned i = 0; i < point->insnAtPoint().size(); i++)
          emitSimpleInsn(NOP, p);
-      writeTextSpace((void *)point->iPgetAddress(),
+      writeTextSpace((void *)point->pointAddr(),
                      point->insnAtPoint().size(), newInsn);
    } else { // Replace with a call to a different function
       // XXX Right only, call has to be 5 bytes -- sometime, we should make
@@ -3489,8 +3509,8 @@ bool process::replaceFunctionCall(const instPoint *point,
       assert(point->insnAtPoint().size() == CALL_REL32_SZ);
       unsigned char *newInsn = new unsigned char[CALL_REL32_SZ];
       unsigned char *p = newInsn;
-      emitCallRel32(func->addr() - (point->iPgetAddress()+CALL_REL32_SZ), p);
-      writeTextSpace((void *)point->iPgetAddress(), CALL_REL32_SZ, newInsn);
+      emitCallRel32(func->addr() - (point->pointAddr()+CALL_REL32_SZ), p);
+      writeTextSpace((void *)point->pointAddr(), CALL_REL32_SZ, newInsn);
    }
 
    return true;
@@ -3575,7 +3595,7 @@ bool process::MonitorCallSite(instPoint *callSite){
               the_args[0] = new AstNode(AstNode::PreviousStackFrameDataReg,
                                         (void *) base_reg);
               the_args[1] = new AstNode(AstNode::Constant,
-                                        (void *) callSite->iPgetAddress());
+                                        (void *) callSite->pointAddr());
               func = new AstNode("DYNINSTRegisterCallee", the_args);
               miniTrampHandle *mtHandle;
               addInstFunc(this, mtHandle, callSite, func, callPreInsn,
@@ -3589,7 +3609,7 @@ bool process::MonitorCallSite(instPoint *callSite){
                              (void *) base_reg);
               the_args[0] = new AstNode(AstNode::DataIndir, prevReg);
               the_args[1] = new AstNode(AstNode::Constant,
-                                        (void *) callSite->iPgetAddress());
+                                        (void *) callSite->pointAddr());
               func = new AstNode("DYNINSTRegisterCallee", the_args);
               miniTrampHandle *mtHandle;
               addInstFunc(this, mtHandle, callSite, func, callPreInsn,
@@ -3607,7 +3627,7 @@ bool process::MonitorCallSite(instPoint *callSite){
 	
               the_args[0] = new AstNode(AstNode::DataIndir, sum);
               the_args[1] = new AstNode(AstNode::Constant,
-                                        (void *) callSite->iPgetAddress());
+                                        (void *) callSite->pointAddr());
               func = new AstNode("DYNINSTRegisterCallee", the_args);
               miniTrampHandle *mtHandle;
               addInstFunc(this, mtHandle, callSite, func, callPreInsn,
@@ -3620,7 +3640,7 @@ bool process::MonitorCallSite(instPoint *callSite){
                                             (void *) displacement);
               the_args[0] = new AstNode(AstNode::DataIndir, offset);
               the_args[1] = new AstNode(AstNode::Constant,
-                                        (void *) callSite->iPgetAddress());
+                                        (void *) callSite->pointAddr());
               func = new AstNode("DYNINSTRegisterCallee", the_args);
               miniTrampHandle *mtHandle;
               addInstFunc(this, mtHandle, callSite, func, callPreInsn,
@@ -3635,7 +3655,7 @@ bool process::MonitorCallSite(instPoint *callSite){
                  if(Mod == 0 && base_reg == 5){
                     cerr << "Inserting untested call site monitoring "
                          << "instrumentation at address " << std::hex
-                         << callSite->iPgetAddress() << std::dec << endl;
+                         << callSite->pointAddr() << std::dec << endl;
                     useBaseReg = false;
                  }
 	  
@@ -3663,7 +3683,7 @@ bool process::MonitorCallSite(instPoint *callSite){
                                               effective_address);
 	    
                     the_args[1] = new AstNode(AstNode::Constant,
-                                            (void *) callSite->iPgetAddress());
+                                            (void *) callSite->pointAddr());
                     func = new AstNode("DYNINSTRegisterCallee", the_args);
                     miniTrampHandle *mtHandle;
                     addInstFunc(this, mtHandle, callSite, func, callPreInsn,
@@ -3688,7 +3708,7 @@ bool process::MonitorCallSite(instPoint *callSite){
                                               effective_address);
                     
                     the_args[1] = new AstNode(AstNode::Constant,
-                                            (void *) callSite->iPgetAddress());
+                                            (void *) callSite->pointAddr());
                     func = new AstNode("DYNINSTRegisterCallee", the_args);
                     miniTrampHandle *mtHandle;	    
                     addInstFunc(this, mtHandle, callSite, func, callPreInsn,
@@ -3698,7 +3718,7 @@ bool process::MonitorCallSite(instPoint *callSite){
               else { //We do not use a scaled index. 
                  cerr << "Inserting untested call site monitoring "
                       << "instrumentation at address " << std::hex
-                      << callSite->iPgetAddress() << std::dec << endl;
+                      << callSite->pointAddr() << std::dec << endl;
                  AstNode *base =
                     new AstNode(AstNode::PreviousStackFrameDataReg,
                                 (void *) base_reg);
@@ -3710,7 +3730,7 @@ bool process::MonitorCallSite(instPoint *callSite){
                                            effective_address);
 	  
                  the_args[1] = new AstNode(AstNode::Constant,
-                                           (void *) callSite->iPgetAddress());
+                                           (void *) callSite->pointAddr());
                  func = new AstNode("DYNINSTRegisterCallee", the_args);
                  miniTrampHandle *mtHandle;
                  addInstFunc(this, mtHandle, callSite, func, callPreInsn,
@@ -3721,7 +3741,7 @@ bool process::MonitorCallSite(instPoint *callSite){
       
         default:
            cerr << "Unexpected addressing type in MonitorCallSite at addr:" 
-                << std::hex << callSite->iPgetAddress() << std::dec 
+                << std::hex << callSite->pointAddr() << std::dec 
                 << "The daemon declines the monitoring request of"
                 << " this call site." << endl; 
            break;
@@ -3837,7 +3857,7 @@ BPatch_point *createInstructionInstPoint(process* proc, void *address,
    instPoint *entry = const_cast<instPoint *>(func->funcEntry(NULL));
    assert(entry);
 
-   begin_addr = entry->iPgetAddress();
+   begin_addr = entry->pointAddr();
    end_addr = begin_addr + entry->size();
 
    if (curr_addr >= begin_addr && curr_addr < end_addr) { 
@@ -3852,7 +3872,7 @@ BPatch_point *createInstructionInstPoint(process* proc, void *address,
    for (i = 0; i < exits.size(); i++) {
       assert(exits[i]);
 
-      begin_addr = exits[i]->iPgetAddress();
+      begin_addr = exits[i]->pointAddr();
       end_addr = begin_addr + exits[i]->size();
 
       if (curr_addr >= begin_addr && curr_addr < end_addr) {
@@ -3869,7 +3889,7 @@ BPatch_point *createInstructionInstPoint(process* proc, void *address,
    for (i = 0; i < calls.size(); i++) {
       assert(calls[i]);
 
-      begin_addr = calls[i]->iPgetAddress();
+      begin_addr = calls[i]->pointAddr();
       end_addr = begin_addr + calls[i]->size();
 
       if (curr_addr >= begin_addr && curr_addr < end_addr) {
@@ -4247,7 +4267,7 @@ void pd_Function::instrAroundPt(instPoint *p, instruction allInstr[],
                                 int numBefore, int numAfter, 
                                 unsigned type, int index)
 {   
-   Address newJumpAddr = p->address();
+   Address newJumpAddr = p->pointAddr();
 
    // add instructions before the point
    unsigned size = (p->insnAtPoint()).size();
@@ -4312,7 +4332,7 @@ void pd_Function::instrAroundPt(instPoint *p, instruction allInstr[],
 
 
 #define CALC_OFFSETS(ip)						      \
-     originalOffset = ((ip->iPgetAddress() + imageBaseAddr) - mutatee);	      \
+     originalOffset = ((ip->pointAddr() + imageBaseAddr) - mutatee);	      \
      originalArrayOffset = getArrayOffset(originalOffset + mutator, oldCode); \
      if (originalArrayOffset < 0) return false;				      \
      newOffset = originalOffset + alteration_set.getShift(originalOffset);    \
@@ -4328,7 +4348,7 @@ void pd_Function::instrAroundPt(instPoint *p, instruction allInstr[],
 bool pd_Function::fillInRelocInstPoints(
                             const image *owner, process *proc,
                             instPoint *&location, 
-                            relocatedFuncInfo *&reloc_info, Address mutatee, 
+                            relocatedFuncInfo *reloc_info, Address mutatee, 
                             Address mutator,instruction oldCode[], 
                             Address newAdr,instruction newCode[],
                             LocalAlterationSet &alteration_set)
@@ -4362,8 +4382,8 @@ bool pd_Function::fillInRelocInstPoints(
       //  figure out how far entry inst point is from beginning of function..
       CALC_OFFSETS(funcEntry_)
          
-      point = new instPoint(this, owner, adr-imageBaseAddr, functionEntry,
-                            newCode[newArrayOffset]);
+      point = new instPoint(funcEntry_->getID(), this, owner,adr-imageBaseAddr,
+                            functionEntry, newCode[newArrayOffset]);
       
 #ifdef DEBUG_FUNC_RELOC    
       cerr << std::dec << " added entry point at originalOffset = " 
@@ -4371,8 +4391,6 @@ bool pd_Function::fillInRelocInstPoints(
 #endif
       
       assert(point != NULL);
-      
-      point->setRelocated();
       
       int numAddedInstr = 0;
       LocalAlteration *alter =
@@ -4398,8 +4416,9 @@ bool pd_Function::fillInRelocInstPoints(
    {
       CALC_OFFSETS(funcReturns[retId])
          
-      point = new instPoint(this, owner, adr-imageBaseAddr, functionExit, 
-                            newCode[newArrayOffset]);
+      unsigned int orig_id = funcReturns[retId]->getID();   
+      point = new instPoint(orig_id, this, owner, adr-imageBaseAddr,
+                            functionExit, newCode[newArrayOffset]);
       
 #ifdef DEBUG_FUNC_RELOC
       cerr << std::dec << " added return point at originalOffset = " 
@@ -4407,8 +4426,6 @@ bool pd_Function::fillInRelocInstPoints(
 #endif
 
       assert(point != NULL);
-      
-      point->setRelocated();
       
       int numAddedInstr = 0;
       LocalAlteration *alter =
@@ -4433,7 +4450,8 @@ bool pd_Function::fillInRelocInstPoints(
    {
       CALC_OFFSETS(calls[callId])
 
-      point = new instPoint(this, owner, adr-imageBaseAddr, callSite,
+      unsigned int orig_id = calls[callId]->getID();
+      point = new instPoint(orig_id, this, owner, adr-imageBaseAddr, callSite,
                             newCode[newArrayOffset]);
       
 #ifdef DEBUG_FUNC_RELOC
@@ -4442,8 +4460,6 @@ bool pd_Function::fillInRelocInstPoints(
 #endif
 
       assert(point != NULL);
-      
-      point->setRelocated();
       
       int numAddedInstr = 0;
       LocalAlteration *alter =
@@ -4466,12 +4482,11 @@ bool pd_Function::fillInRelocInstPoints(
    {  
       CALC_OFFSETS(arbitraryPoints[arbitraryId]);
 
-      point = new instPoint(this, owner, adr-imageBaseAddr, otherPoint,
-                            newCode[newArrayOffset], true);
+      unsigned int orig_id = arbitraryPoints[arbitraryId]->getID();
+      point = new instPoint(orig_id, this, owner, adr-imageBaseAddr,
+                            otherPoint, newCode[newArrayOffset], true);
 
       assert(point != NULL);
-      
-      point->setRelocated();
       
       int numAddedInstr = 0;
       LocalAlteration *alter =
@@ -4795,14 +4810,14 @@ bool pd_Function::PA_attachOverlappingInstPoints(
       instPoint *this_inst_point = foo[i];
       instPoint *next_inst_point = foo[i+1];
 
-      overlap = ((this_inst_point->iPgetAddress() + 
+      overlap = ((this_inst_point->pointAddr() + 
                   this_inst_point->sizeOfInstrumentation()) - 
-                 next_inst_point->iPgetAddress()); 
+                 next_inst_point->pointAddr()); 
 
       // check if inst point overlaps with next inst point
       if (overlap > 0) {
          offset =
-            ((this_inst_point->iPgetAddress() + baseAddress) - firstAddress);
+            ((this_inst_point->pointAddr() + baseAddress) - firstAddress);
 
          // LocalAlteration inserting nops after this_inst_point
          InsertNops *nops = new InsertNops(this, offset, overlap);
@@ -4872,7 +4887,7 @@ bool pd_Function::PA_attachBranchOverlaps(
       if (overlap == NULL) continue;
 
       // offset of instruction from the beginning of the function 
-      offset = overlap->iPgetAddress() - firstAddress;
+      offset = overlap->pointAddr() - firstAddress;
 
       temp_alteration_set->iterReset();
 
@@ -4934,17 +4949,17 @@ bool pd_Function::PA_attachGeneralRewrites(
       // check if instPoint has enough space for jump
       instPoint *ip = foo[i];
       if (ip->size() < JUMP_REL32_SZ) {
-         offset = (ip->iPgetAddress() + baseAddress) - firstAddress; 
+         offset = (ip->pointAddr() + baseAddress) - firstAddress; 
 
          InsertNops *nops = new InsertNops(this, offset, ip->extraBytes());
          temp_alteration_set->AddAlteration(nops);
 
 #ifdef DEBUG_FUNC_RELOC
          cerr << "adding LocalAlteration for inserting nops" << endl;
-         cerr << "ipAddress = " << std::hex << ip->iPgetAddress() + baseAddress
+         cerr << "ipAddress = " << std::hex << ip->pointAddr() + baseAddress
               << endl;
          cerr << "offset = "
-              << (ip->iPgetAddress() + baseAddress) - firstAddress << endl;
+              << (ip->pointAddr() + baseAddress) - firstAddress << endl;
 #endif 
       }
    }
@@ -5037,7 +5052,7 @@ void pd_Function::modifyInstPoint(const instPoint *&location, process *proc) {
    if (!call_points_have_been_checked)
       checkCallPoints();
 
-   if(relocatable_ && !(const_cast<instPoint *>(location)->getRelocated())){
+   if(relocatable_ && !(location->isRelocatedPointType())) {
       for(u_int i=0; i < relocatedByProcess.size(); i++){
          if((relocatedByProcess[i])->getProcess() == proc){
             if(location == funcEntry_){
@@ -5169,33 +5184,11 @@ LocalAlteration *fixOverlappingAlterations(LocalAlteration *alteration,
    return NULL;
 }
 
-
-// needed in metric.C
-bool instPoint::match(instPoint *p)
-{
-  if (this == p)
-    return true;
-  
-  // should we check anything else?
-  if (addr_ == p->addr_)
-    return true;
-  
-  return false;
-}
-
-// Get the absolute address of an instPoint
-Address instPoint::iPgetAddress(process *p) const {
-   if (!p) return addr_;
-   Address baseAddr;
-   p->getBaseAddress(iPgetOwner(), baseAddr);
-   return addr_ + baseAddr;
-}
-
 void pd_Function::addArbitraryPoint(instPoint* location,
-				    process* proc,
-				    relocatedFuncInfo* reloc_info)
+                                    process* proc,
+                                    relocatedFuncInfo* reloc_info)
 {
-   if(!isInstalled(proc))
+   if(! hasBeenRelocated(proc))
       return;
 
    instPoint *point;
@@ -5209,7 +5202,7 @@ void pd_Function::addArbitraryPoint(instPoint* location,
 
    instruction *oldCode = NULL, *newCode = NULL;
 
-   const image* owner = location->iPgetOwner();
+   const image* owner = location->getOwner();
 
    findAlterations(owner,proc,oldCode,alteration_set,
                    mutator, mutatee);
@@ -5219,7 +5212,7 @@ void pd_Function::addArbitraryPoint(instPoint* location,
 
    newAdr = reloc_info->address();
 
-   originalOffset = ((location->iPgetAddress() + imageBaseAddr) - mutatee);
+   originalOffset = ((location->pointAddr() + imageBaseAddr) - mutatee);
    originalArrayOffset = getArrayOffset(originalOffset + mutator, oldCode);
    assert(originalArrayOffset >= 0);
    newOffset = originalOffset + alteration_set.getShift(originalOffset);
@@ -5228,11 +5221,10 @@ void pd_Function::addArbitraryPoint(instPoint* location,
    adr = newAdr + newOffset;
 
    newCode  = reinterpret_cast<instruction *> (relocatedCode);
- 
-   point = new instPoint(this, owner, newAdr-imageBaseAddr, otherPoint,
-                         newCode[newArrayOffset], true);
 
-   point->setRelocated();
+   unsigned int original_id = location->getID();
+   point = new instPoint(original_id, this, owner, newAdr-imageBaseAddr,
+                         otherPoint, newCode[newArrayOffset], true);
 
    int numAddedInstr = 0;
    LocalAlteration *alter =
