@@ -65,7 +65,7 @@ protected:
    * to iterate through the address space
    */
   Address currentAddress;
-
+public:
 
   /** returns the instruction in the address of handle */
   instruction getInstruction();
@@ -79,24 +79,8 @@ protected:
   /** returns the image */
   image *getImage() { return addressImage; };
 
-#if defined(i386_unknown_linux2_0) ||\
-    defined(i386_unknown_solaris2_5) ||\
-    defined(i386_unknown_nt4_0)
-
- public:
-  typedef BPatch_function::InstrucPos InstrucPos;
-  static InstrucPos *instructionPointerUnused;
-
- protected:
-  // changing this will change the common list in the function;
-  InstrucPos*& instructionPointers;
-
-  void init();
-  void kill();
-  void copy(const InstrucIter& ii);
-  
-#endif
-
+  instruction insn;
+  const unsigned char* instPtr;
 
 public:
   /** static method that returns true if the delay instruction is supported */
@@ -110,38 +94,37 @@ public:
   // added useRelativeAddr to baseAddr line
   InstrucIter(function_base* func, process* proc, pdmodule *mod, 
 	      bool useRelativeAddr = true) :
-    addressProc(proc),
-    addressImage(mod->exec()),
-    baseAddress((Address) ( useRelativeAddr ? (void *)func->addr()
-					    : (void *)func->getEffectiveAddress(proc) )),
-    //range(bpFunction->getSize()),
-    range(func->size()),
-    currentAddress((Address) (useRelativeAddr ?
-                              (void *)func->addr() :
-                              (void *)func->getEffectiveAddress(proc)))
+      addressProc(proc),
+      addressImage(mod->exec()),
+      baseAddress((Address) ( useRelativeAddr ? (void *)func->addr()
+                              : (void *)func->getEffectiveAddress(proc) )),
+      range(func->size()),
+      currentAddress((Address) (useRelativeAddr ?
+                                (void *)func->addr() :
+                                (void *)func->getEffectiveAddress(proc)))
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) ||\
     defined(i386_unknown_nt4_0)
-    ,instructionPointers(func->iptrs)
     {
-      init();
+        instPtr = mod->exec()->getPtrToInstruction( func->addr() );
+        insn.getNextInstruction( instPtr );
 #else
     {
 #endif
     }
-
-  InstrucIter(const BPatch_basicBlock* bpBasicBlock) :
-    addressProc(bpBasicBlock->flowGraph->getProcess()),
-    addressImage(bpBasicBlock->flowGraph->getModule()->exec()),
-    baseAddress(bpBasicBlock->startAddress),
-    range(bpBasicBlock->endAddress - bpBasicBlock->startAddress + sizeof(instruction)),
-    currentAddress(bpBasicBlock->startAddress)
+        
+   InstrucIter(const BPatch_basicBlock* bpBasicBlock) :
+       addressProc(bpBasicBlock->flowGraph->getProcess()),
+       addressImage(bpBasicBlock->flowGraph->getModule()->exec()),
+       baseAddress(bpBasicBlock->startAddress),
+       range(bpBasicBlock->endAddress - bpBasicBlock->startAddress + sizeof(instruction)),
+       currentAddress(bpBasicBlock->startAddress)
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) ||\
     defined(i386_unknown_nt4_0)
-    , instructionPointers(InstrucIter::instructionPointerUnused)
     {
-      init();
+        instPtr =addressImage->getPtrToInstruction(bpBasicBlock->startAddress);
+        insn.getNextInstruction( instPtr ); 
 #else
     {
 #endif
@@ -151,18 +134,38 @@ public:
   /** copy constructor
    * @param ii InstrucIter to copy
    */
-  InstrucIter(const InstrucIter& ii) :
-    addressProc(ii.addressProc),
-    addressImage(ii.addressImage),
-    baseAddress(ii.baseAddress),
-    range(ii.range),
-    currentAddress(ii.currentAddress)
+    InstrucIter(const InstrucIter& ii) :
+        addressProc(ii.addressProc),
+        addressImage(ii.addressImage),
+        baseAddress(ii.baseAddress),
+        range(ii.range),
+        currentAddress(ii.currentAddress)
 #if defined(i386_unknown_linux2_0) ||\
      defined(i386_unknown_solaris2_5) ||\
-     defined(i386_unknown_nt4_0)
-     ,instructionPointers(ii.instructionPointers)
-#endif
+     defined(i386_unknown_nt4_0)    
     {
+        instPtr = ii.addressImage->getPtrToInstruction( ii.baseAddress );
+        insn.getNextInstruction( instPtr );
+#else
+    {
+#endif
+    }
+
+    //used by findInstPoints
+    InstrucIter( Address addr, Address base,  image* img, 
+                 bool useRelativeAddr = true ) :
+        currentAddress( addr )
+#if defined(i386_unknown_linux2_0) ||\
+    defined(i386_unknown_solaris2_5) ||\
+    defined(i386_unknown_nt4_0)
+    {
+        addressImage = img;
+        baseAddress = base;
+        instPtr = img->getPtrToInstruction( addr );
+        insn.getNextInstruction( instPtr );        
+#else
+    {
+#endif   
     }
 
   ~InstrucIter() {  }
@@ -185,7 +188,17 @@ public:
     defined(i386_unknown_nt4_0)
                               ,InstrucIter& mayUpdate
 #endif
-                              );
+      );
+
+void getMultipleJumpTargets( pdvector<Address>& result
+#if defined(i386_unknown_linux2_0) ||\
+       defined(i386_unknown_solaris2_5) ||\
+       defined(i386_unknown_nt4_0)					 
+			     ,instruction& tableInsn, 
+			     instruction& maxSwitchInsn, 
+			     bool isAddressInJmp
+#endif
+    );
 
   /** method that returns true if there are more instructions to iterate */
   bool hasMore();
@@ -227,12 +240,18 @@ public:
 
   /* Predicates */
 
+  bool isALeaveInstruction();
+  bool isIndir();
   bool isAReturnInstruction();
   bool isACondBranchInstruction();
   bool isAJumpInstruction();
   bool isACallInstruction();
   bool isAnneal();
-  Address getBranchTargetAddress(Address pos);
+  bool isStackFramePreamble();
+  bool isANopInstruction();
+  Address getBranchTargetAddress( Address pos );
+  Address getBranchTarget();
+
   BPatch_memoryAccess* isLoadOrStore();
   BPatch_instruction* getBPInstruction();
 
