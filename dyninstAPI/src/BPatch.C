@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.76 2004/03/11 22:20:28 bernat Exp $
+// $Id: BPatch.C,v 1.77 2004/03/12 19:44:31 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -852,7 +852,11 @@ bool BPatch::getThreadEventOnly(bool block)
    bool	result = false;
 
    // Handles all process (object)-level events.
-   pdvector<procevent *> unhandledEvents = getSH()->checkForAndHandleProcessEvents(block);
+   
+   pdvector<procevent *> events;
+   result = getSH()->checkForProcessEvents(&events, -1, block);
+
+   pdvector<procevent *> unhandledEvents = getSH()->handleProcessEvents(events);
 
    for(unsigned i=0; i < unhandledEvents.size(); i++)
    {
@@ -1235,9 +1239,9 @@ bool BPatch::waitUntilStopped(BPatch_thread *appThread){
 	}
 #else
 	else if ((appThread->stopSignal() != SIGSTOP) &&
-#ifdef USE_IRIX_FIXES
+#if defined(bug_irix_broken_sigstop)
 		 (appThread->stopSignal() != SIGEMT) &&
-#endif /* USE_IRIX_FIXES */
+#endif 
 		 (appThread->stopSignal() != SIGHUP)) {
 		cerr << "ERROR :  process stopped on signal "
 		     << "different than SIGSTOP" << endl;
