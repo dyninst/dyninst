@@ -321,6 +321,8 @@ int ParentNode::proc_newSubTree(Packet * packet)
 
       if(threaded){ childnodebybackendid_sync.lock(); }
       ChildNodeByBackendId[rootid] = cur_node;
+      mrn_printf(3, MCFL, stderr, "Setting ChildNodebyBackendId[%d] to %p\n",
+        rootid, cur_node );
       backend_descendant_nodes.push_back(rootid);
       if(threaded){ childnodebybackendid_sync.unlock(); }
 
@@ -428,6 +430,7 @@ int ParentNode::proc_newSubTreeReport(Packet *packet)
 	     ChildNodeByBackendId[0]);
   childnodebybackendid_sync.unlock( );
   if( threaded ){ 
+      // TODO always send the signal?
       if( num_descendants == num_descendants ){
           subtreereport_sync.signal(MRN_ALLNODESREPORTED);
       }
@@ -442,7 +445,9 @@ StreamManager *
 ParentNode::proc_newStream(Packet * packet)
 {
   unsigned int i, num_backends;
-  int stream_id, filter_id, sync_id, *backends;
+  int stream_id, sync_id, *backends;
+  int ds_filter_id = -1;
+  int us_filter_id = -1;
 
   std::list <RemoteNode *> node_set;
 
@@ -451,8 +456,9 @@ ParentNode::proc_newStream(Packet * packet)
   //assert( !StreamImpl::get_Stream(stream_id));
   //register new stream, though not yet needed.
   //new Stream(stream_id, backends, num_backends, filter_id);
-  if( packet->ExtractArgList("%d %ad %d %d", &stream_id, &backends,
-			     &num_backends, &filter_id, &sync_id) == -1){
+  if( packet->ExtractArgList("%d %ad %d %d %d", &stream_id, &backends,
+			     &num_backends, &sync_id,
+                 &ds_filter_id, &us_filter_id) == -1){
     mrn_printf(1, MCFL, stderr, "ExtractArgList() failed\n");
     return NULL;
   }
@@ -478,6 +484,7 @@ ParentNode::proc_newStream(Packet * packet)
   std::list <RemoteNode *>::iterator iter, del_iter;
   for(i=0,iter = node_set.begin(); iter != node_set.end(); i++){
     if( (*iter) == NULL){ //temporary fix for adding unreachable backends
+        mrn_printf(3, MCFL, stderr, "node[%d] in stream %d is temporary fix case\n", i, stream_id);
         del_iter = iter;
         iter++;
         node_set.erase(del_iter);
@@ -488,8 +495,8 @@ ParentNode::proc_newStream(Packet * packet)
     }
   }
 
-  StreamManager * stream_mgr = new StreamManager(stream_id, filter_id, sync_id,
-						       node_set);
+  StreamManager * stream_mgr = new StreamManager(stream_id, node_set, sync_id,
+                                                ds_filter_id, us_filter_id);
   if(threaded){ streammanagerbyid_sync.lock(); }
   mrn_printf(3, MCFL, stderr, "DCA: adding stream_mgr(%p) to strmgr[%d]\n",
             stream_mgr, stream_id);
@@ -1096,6 +1103,7 @@ ParentNode::proc_connectLeavesResponse( Packet* pkt )
 
     return ret;
 }
+
 
 
 int

@@ -175,9 +175,10 @@ void Network::error_str(const char *s)
 /*================================================*/
 /*             Stream class DEFINITIONS        */
 /*================================================*/
-Stream * Stream::new_Stream(Communicator *comm, int _filter_id, int _stream_id)
+Stream * Stream::new_Stream(Communicator *comm, int us_filter_id,
+                                int sync_id, int ds_filter_id)
 {
-  return new StreamImpl(comm, _filter_id, _stream_id);
+  return new StreamImpl(comm, sync_id, ds_filter_id, us_filter_id);
 }
 
 int Stream::recv(int *tag, void **buf, Stream ** stream, bool blocking)
@@ -185,7 +186,7 @@ int Stream::recv(int *tag, void **buf, Stream ** stream, bool blocking)
   return StreamImpl::recv(tag, buf, stream, blocking);
 }
 
-int Stream::unpack(char * buf, char const *fmt_str, ...)
+int Stream::unpack(void * buf, char const *fmt_str, ...)
 {
     va_list arg_list;
 

@@ -30,7 +30,7 @@ int FrontEndNode::proc_DataFromDownStream(Packet *packet)
   std::list<Packet *> packets;
   std::list<Packet *> ::iterator iter;
 
-  stream_mgr->push_packet(packet, packets);
+  stream_mgr->push_packet(packet, packets, true);
 
   if(packets.size() != 0){
     for(iter = packets.begin(); iter != packets.end(); iter++){

@@ -5,33 +5,43 @@
 namespace MRN
 {
 
-StreamManager::StreamManager(int sid, int fid, int sync_id,
-		   std::list <RemoteNode *> &_downstream)
+StreamManager::StreamManager(int sid, std::list <RemoteNode *> &_downstream,
+                                int sync_id, int ds_agg_id, int us_agg_id)
   : stream_id(sid),
+    ds_agg( new Aggregator( ds_agg_id ) ),
+    us_agg( new Aggregator( us_agg_id ) ),
+    sync( new Synchronizer(sync_id, _downstream)),
     upstream_node( NULL ),
     downstream_nodes(_downstream)
 {
-  aggregator = (Filter *) new Aggregator(fid);
-  sync = (Filter *) new Synchronizer(sync_id, downstream_nodes);
 }
 
-int
-StreamManager::push_packet(Packet *packet,
-                              std::list<Packet *> & out_packet_list){
+int StreamManager::push_packet(Packet *packet,
+                              std::list<Packet *> & out_packet_list,
+                              bool going_upstream){
   std::list<Packet *> in_packet_list;
 
   mrn_printf(3, MCFL, stderr, "Entering StreamMgr.push_packet()\n");
 
   in_packet_list.push_back(packet);
-  if( sync->push_packets(in_packet_list, out_packet_list) == -1){
-    mrn_printf(1, MCFL, stderr, "Sync.push_packets() failed\n");
-    return -1;
+
+  // we only allow synchronization filters on packets flowing upstream
+  if( going_upstream ){
+      if( sync->push_packets(in_packet_list, out_packet_list) == -1){
+        mrn_printf(1, MCFL, stderr, "Sync.push_packets() failed\n");
+        return -1;
+      }
+
+      if( out_packet_list.size() != 0 ){
+        in_packet_list = out_packet_list;
+        out_packet_list.clear();
+      }
   }
 
-  if( out_packet_list.size() != 0 ){
-    in_packet_list = out_packet_list;
-    out_packet_list.clear();
-    if( aggregator->push_packets(in_packet_list, out_packet_list) == -1){
+  if( in_packet_list.size() > 0 )
+  {
+    Filter* cur_agg = (going_upstream ? us_agg : ds_agg);
+    if( cur_agg->push_packets(in_packet_list, out_packet_list) == -1){
       mrn_printf(1, MCFL, stderr, "Sync.push_packets() failed\n");
       return -1;
     }

@@ -23,16 +23,17 @@ class StreamImpl: public Stream {
   static bool force_network_recv;
 
   std::list <Packet *> IncomingPacketBuffer;
-  unsigned short filter_id;
-  unsigned short sync_id;
+  int ds_filter_id;
+  int us_filter_id;
+  int sync_id;
   unsigned short stream_id;
   CommunicatorImpl * communicator;
 
  public:
-  StreamImpl(Communicator *, int _filter_id = AGGR_NULL,
-                int _sync_id = SYNC_DONTWAIT );
+  StreamImpl(Communicator *, int sync_id, int ds_filter_id, int us_filter_id );
   StreamImpl(int stream_id, int * backends=0, int num_backends=-1,
-                int filter_id=-AGGR_NULL, int sync_id=SYNC_DONTWAIT);
+                int sync_id=SYNC_DONTWAIT,
+                int ds_filter_id=AGGR_NULL, int us_filter_id=AGGR_NULL);
   virtual ~StreamImpl();
   static int recv(int *tag, void **buf, Stream ** stream, bool blocking=true);
   static StreamImpl * get_Stream(int stream_id);
@@ -47,7 +48,7 @@ class StreamImpl: public Stream {
 
 
     int send_aux(int tag, const char * format_str, va_list arg_list ); 
-    static int unpack(char* buf, const char* fmt, va_list arg_list );
+    static int unpack(void* buf, const char* fmt, va_list arg_list );
 
     virtual Communicator* get_Communicator( void ) { return communicator; }
 };

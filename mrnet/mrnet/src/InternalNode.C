@@ -138,18 +138,34 @@ int InternalNode::proc_DataFromUpStream(Packet *packet)
   streammanagerbyid_sync.unlock();
   mrn_printf(3, MCFL, stderr, "DCA: extracted stream_mgr(%p) to strmgr[%d]\n",
             stream_mgr, packet->get_StreamId());
-  std::list <RemoteNode *>::iterator iter;
-  for(i=0,iter = stream_mgr->downstream_nodes.begin();
-      iter != stream_mgr->downstream_nodes.end();
-      iter++, i++){
-    mrn_printf(3, MCFL, stderr, "Calling node_set[%d(%p)].send() ...\n", i,
-              *iter);
-    if( (*iter)->send(packet) == -1){
-      mrn_printf(1, MCFL, stderr, "node_set.send() failed\n");
-      retval = -1;
-      continue;
+
+  std::list<Packet *> packets;
+  stream_mgr->push_packet(packet, packets, false);  // packet going downstream
+
+  if( packets.size() > 0 )
+  {
+    // deliver all packets to all downstream nodes
+    for( std::list<Packet*>::iterator pkt_iter = packets.begin();
+            pkt_iter != packets.end();
+            pkt_iter++ ){
+
+      Packet* cur_packet = *pkt_iter;
+
+      std::list <RemoteNode *>::iterator iter;
+      for(i=0,iter = stream_mgr->downstream_nodes.begin();
+          iter != stream_mgr->downstream_nodes.end();
+          iter++, i++){
+
+        mrn_printf(3, MCFL, stderr,
+                "Calling node_set[%d(%p)].send() ...\n", i, *iter);
+        if( (*iter)->send(cur_packet) == -1){
+          mrn_printf(1, MCFL, stderr, "node_set.send() failed\n");
+          retval = -1;
+          continue;
+        }
+        mrn_printf(3, MCFL, stderr, "node_set.send() succeeded\n");
+      }
     }
-    mrn_printf(3, MCFL, stderr, "node_set.send() succeeded\n");
   }
 
   mrn_printf(3, MCFL, stderr, "internal.procDataFromUpStream() succeeded\n");
@@ -160,15 +176,14 @@ int InternalNode::proc_DataFromDownStream(Packet *packet)
 {
   mrn_printf(3, MCFL, stderr, "In internal.proc_DataFromUpStream()\n");
 
-  // TODO why aren't these locks necessary?
-  // streammanagerbyid_sync.lock();
+  streammanagerbyid_sync.lock();
   StreamManager * stream_mgr = StreamManagerById[ packet->get_StreamId() ];
-  // streammanagerbyid_sync.unlock();
+  streammanagerbyid_sync.unlock();
 
   std::list<Packet *> packets;
   std::list<Packet *> ::iterator iter;
 
-  stream_mgr->push_packet(packet, packets);
+  stream_mgr->push_packet(packet, packets, true);
   if(packets.size() != 0){
       for(iter = packets.begin(); iter != packets.end() ; iter++ ){
           if( upstream_node->send( *iter ) == -1){

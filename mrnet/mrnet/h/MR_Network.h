@@ -73,10 +73,11 @@ class Communicator{
 
 class Stream{
  public:
-  static Stream * new_Stream(Communicator *, int _filter_id=AGGR_NULL,
-			     int _sync_id=SYNC_WAITFORALL);
+  static Stream * new_Stream(Communicator *, int us_filter_id=AGGR_NULL,
+			     int _sync_id=SYNC_WAITFORALL,
+                 int _ds_filter_id=AGGR_NULL);
   static int recv(int *tag, void **buf, Stream ** stream, bool blocking=true);
-  static int unpack(char * buf, const char * format_str, ...);
+  static int unpack(void * buf, const char * format_str, ...);
   static void set_BlockingTimeOut(int timeout);
   static int get_BlockingTimeOut( );
 
