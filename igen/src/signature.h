@@ -61,7 +61,7 @@ public:
   pdstring type(const bool use_bool=false) const;
   pdstring base_type() const { return type_;}
   void type(const pdstring t, const unsigned star);
-  bool gen_sig(ofstream &out_stream) const;
+  bool gen_sig(ofstream &out_stream, bool is_syncCall) const;
   bool tag_bundle_send(ofstream &out_stream, const pdstring &return_value,
 		       const pdstring &req_tag) const;
   bool tag_bundle_send_many(ofstream &out_stream,
@@ -70,6 +70,20 @@ public:
   bool tag_bundle_send_one(ofstream &out_stream,
                            const pdstring return_value,
                            const pdstring req_tag) const;
+
+  bool tag_bundle_send_mrnet(ofstream &out_stream, const pdstring &return_value,
+		       const pdstring &req_tag,const pdstring &fnc_name) const;
+  bool tag_bundle_send_many_mrnet(ofstream &out_stream,
+                            const pdstring &return_value,
+                            const pdstring &req_tag,
+			    const pdstring &fnc_name ) const;
+  bool tag_bundle_send_one_mrnet(ofstream &out_stream,
+                           const pdstring return_value,
+                           const pdstring req_tag,
+			   const pdstring &fnc_name) const;
+ 
+ pdstring getFormatType(pdstring old_type) const;
+
   bool arg_struct(ofstream &out_stream) const;
   pdstring dump_args(const pdstring message, const pdstring sep) const;
   pdstring gen_bundler_call(bool send_routine, const pdstring &obj_name,

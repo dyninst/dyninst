@@ -73,22 +73,29 @@ pdstring Options::set_dir_encode() {
 pdstring Options::error_state(bool braces,
                             unsigned nspaces,
                             const pdstring &err_name, const pdstring &return_value) {
-   pdstring spacesm3;
-   for (unsigned lcv=0; lcv < nspaces-3; ++lcv)
-      spacesm3 += " ";
-   const pdstring spaces = spacesm3 + "   ";
+  pdstring spacesm3;
+  for (unsigned lcv=0; lcv < nspaces-3; ++lcv)
+    spacesm3 += " ";
+  const pdstring spaces = spacesm3 + "   ";
+  
+  pdstring result;
+  if (braces)
+    result += "{\n";
+  result += spaces + "IGEN_ERR_ASSERT;\n" +
+    spaces + "set_err_state(" + err_name + ");\n";
+    if (Options::ml->name() != "mrnet")
+      {
+	result += spaces + "handle_error();\n" ;
+      }
+    else
+      {
+	result +=spaces + "handle_error_mrnet();\n" ;
+      }
+  result +=spaces + "return " + return_value + ";\n";
+  if (braces)
+    result += spacesm3 + "}\n";
 
-   pdstring result;
-   if (braces)
-      result += "{\n";
-   result += spaces + "IGEN_ERR_ASSERT;\n" +
-          spaces + "set_err_state(" + err_name + ");\n" +
-          spaces + "handle_error();\n" +
-          spaces + "return " + return_value + ";\n";
-   if (braces)
-      result += spacesm3 + "}\n";
-
-   return result;
+  return result;
 }
 
 pdstring Options::gen_name() {
