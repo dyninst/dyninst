@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.4 1999/05/29 23:46:39 wylie Exp $
+# $Id: nmake.module.tmpl,v 1.5 1999/06/18 23:54:44 wylie Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -16,11 +16,15 @@ DEST		= $(TO_CORE)\$(PROGRAM_DEST)\testprogs
 SRCS	      = ../src/$(TARGET:.exe=.C) ../src/test_util.C
 OBJS          = $(TARGET:.exe=.obj) test_util.obj
 !else
-TARGETS       = test1.exe test2.exe test1.mutatee.exe test2.mutatee.exe
-SRCS	      = ../src/test1.C ../src/test2.C ../src/test_util.C \
-		../src/test1.mutatee.c ../src/test2.mutatee.c
-OBJS          = test1.obj test2.obj test_util.obj \
-                test1.mutatee.obj test2.mutatee.obj
+TARGETS       = test1.exe test1.mutatee.exe \
+                test2.exe test2.mutatee.exe \
+                test3.exe test3.mutatee.exe
+SRCS	      = ../src/test1.C ../src/test1.mutatee.c ../src/test_util.C \
+		../src/test2.C ../src/test2.mutatee.c \
+		../src/test3.C ../src/test3.mutatee.c
+OBJS          = test1.obj test1.mutatee.obj test_util.obj \
+                test2.obj test2.mutatee.obj \
+                test3.obj test3.mutatee.obj
 !endif
 
 CXXFLAGS     = $(CXXFLAGS) -I../../h
@@ -37,6 +41,7 @@ SYSLIBS		= imagehlp.lib
 all:
 	$(MAKE) aTest TARGET=test1.exe TARGET2=test1.mutatee.exe
 	$(MAKE) aTest TARGET=test2.exe TARGET2=test2.mutatee.exe
+	$(MAKE) aTest TARGET=test3.exe TARGET2=test3.mutatee.exe
 
 aTest: $(TARGET) $(TARGET2)
 
