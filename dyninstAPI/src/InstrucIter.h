@@ -102,10 +102,12 @@ public:
    * @param useRelativeAddr whether we shall store absolute or relative address
    */
 
+	// added useRelativeAddr to baseAddr line
   InstrucIter(BPatch_function* const bpFunction, bool useRelativeAddr = true) :
     addressProc(bpFunction->proc),
     addressImage(bpFunction->mod->mod->exec()),
-    baseAddress((Address) (bpFunction->getBaseAddrRelative())),
+    baseAddress((Address) ( useRelativeAddr 	? bpFunction->getBaseAddrRelative()
+						:bpFunction->getBaseAddr() )),
     range(bpFunction->getSize()),
     currentAddress((Address) (useRelativeAddr ?
                               bpFunction->getBaseAddrRelative() :
