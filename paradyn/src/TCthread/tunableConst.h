@@ -43,6 +43,9 @@
  * tunableConstant - a constant that might be changed during execution.
  *
  * $Log: tunableConst.h,v $
+ * Revision 1.9  1999/06/08 05:53:00  csserra
+ * ctor missing member initialization
+ *
  * Revision 1.8  1999/03/03 18:15:26  pcroth
  * Updated to support Windows NT as a front-end platform
  * Changes made to X code, to use Tcl analogues when appropriate
@@ -177,7 +180,8 @@ class tunableBooleanConstant : public tunableConstantBase {
  public:
    tunableBooleanConstant() : tunableConstantBase() {} // needed by Pair.h ONLY
    tunableBooleanConstant(unsigned) : tunableConstantBase() {} // needed by Pair.h ONLY
-   tunableBooleanConstant(const tunableBooleanConstant &src) {
+   tunableBooleanConstant(const tunableBooleanConstant &src) :
+                                          tunableConstantBase(src) {
       this->value = src.value;
       this->newValueCallBack = src.newValueCallBack;
    }
