@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.3  1994/04/06 22:40:15  markc
-/* Included assert.h.
+/* Revision 1.4  1994/04/09 18:37:20  hollings
+/* Fixed paramter to tunable constant to work.
 /*
+ * Revision 1.3  1994/04/06  22:40:15  markc
+ * Included assert.h.
+ *
  * Revision 1.2  1994/04/05  23:49:25  rbi
  * Fixed a bunch of tcl related stuff.
  *
@@ -262,7 +265,7 @@ int ParadynSetCmd (ClientData clientData,
     return TCL_ERROR;
   }
   assert (tunableConstant::allConstants && tunableConstant::pool);
-  sp = tunableConstant::pool->findAndAdd(argv[0]);
+  sp = tunableConstant::pool->findAndAdd(argv[1]);
   curr = tunableConstant::allConstants->find(sp);
 
   if (Tcl_GetDouble(interp, argv[2], &d) == TCL_ERROR)
