@@ -1,7 +1,10 @@
 /*
  *
  * $Log: PCwhen.h,v $
- * Revision 1.1  1994/02/02 00:38:22  hollings
+ * Revision 1.2  1994/02/03 23:27:04  hollings
+ * Changes to work with g++ version 2.5.2.
+ *
+ * Revision 1.1  1994/02/02  00:38:22  hollings
  * First version of the Performance Consultant using threads.
  *
  * Revision 1.4  1993/08/05  19:00:47  hollings
@@ -25,7 +28,7 @@
 
 #include "util/h/list.h"
 
-extern class timeInterval;
+class timeInterval;
 typedef List<timeInterval*> timeIntervalList;
 
 class timeInterval {

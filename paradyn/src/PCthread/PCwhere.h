@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCwhere.h,v $
- * Revision 1.1  1994/02/02 00:38:23  hollings
+ * Revision 1.2  1994/02/03 23:27:06  hollings
+ * Changes to work with g++ version 2.5.2.
+ *
+ * Revision 1.1  1994/02/02  00:38:23  hollings
  * First version of the Performance Consultant using threads.
  *
  * Revision 1.8  1993/08/05  19:00:59  hollings
@@ -38,10 +41,10 @@
 #include "util/h/stringPool.h"
 #include "dataManager.h"
 
-extern class PCmetric;
-extern class testValue;
-extern class focus;
-extern class searchHistoryNode;
+class PCmetric;
+class testValue;
+class focus;
+class searchHistoryNode;
 class focusList;
 
 //
@@ -82,8 +85,12 @@ class focusList: public HTable<focus*> {
     public:
 	focusList(focus *f) { focusList(); add(f,f->getName()); }
 	focusList() {  HTable<focus*>(); }
-	focus *find(focus *f) { return(find(f->getName())); }
-	Boolean addUnique(focus *f) { return(addUnique(f, f->getName())); }
+	focus *find(focus *f) { 
+	    return(HTable<focus*>::find((char *) f->getName())); 
+	}
+	Boolean addUnique(focus *f) { 
+	    return(HTable<focus*>::addUnique(f, f->getName())); 
+	}
 };
 
 extern stringPool strSpace;

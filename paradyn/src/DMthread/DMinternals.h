@@ -3,7 +3,10 @@
  * Define the classes used in the implementation of the data manager.
  *
  * $Log: DMinternals.h,v $
- * Revision 1.2  1994/02/02 00:42:32  hollings
+ * Revision 1.3  1994/02/03 23:26:57  hollings
+ * Changes to work with g++ version 2.5.2.
+ *
+ * Revision 1.2  1994/02/02  00:42:32  hollings
  * Changes to the Data manager to reflect the file naming convention and
  * to support the integration of the Performance Consultant.
  *
@@ -111,6 +114,7 @@ class performanceStream {
 	void enableResourceCreationNotification(resource*);
 	void disableResourceCreationNotification(resource*);
 	void callSampleFunc(metricInstance *, double, double, double);
+	void callResourceFunc(resource *p, resource *c, char *name);
     private:
 	applicationContext      *appl;
 	dataType                type;
@@ -140,16 +144,37 @@ class component {
 	int id;
 };
 
+class metric {
+    public:
+	metric(metricInfo i) { info = i; }
+	metricInfo *getInfo() { return(&info); }
+	String getName() { return(info.name); }
+	metricStyle getStyle() { return((metricStyle) info.style); }
+	List<metricInstance*> enabledCombos;
+	static stringPool names;
+	static HTable<metric*> allMetrics;
+    private:
+	metricInfo info;
+};
+
+
 class metricInstance {
     public:
 	metricInstance(resourceList *rl, metric *m) {
 	    met = m;
 	    focus = rl;
 	    count = 0;
+	    enabledTime = 0.0;
 	}
 	float getValue() {
+	    float ret;
+
 	    if (!data) abort();
-	    return(data->getValue());
+	    ret = data->getValue();
+	    if (met->getStyle() != MetStyleSampledFunction) {
+		ret /= enabledTime;
+	    }
+	    return(ret);
 	}
 	int count;		// active users (perfStreams)
 	resourceList *focus;
@@ -157,18 +182,7 @@ class metricInstance {
 	List<component*> components;
 	List<performanceStream*> users;
 	Histogram *data;
+	float enabledTime;
     private:
 };
 
-class metric {
-    public:
-	metric(metricInfo i) { info = i; }
-	metricInfo *getInfo() { return(&info); }
-	String getName() { return(info.name); }
-	metricStyle getStyle() { return(info.style); }
-	List<metricInstance*> enabledCombos;
-	static stringPool names;
-	static HTable<metric*> allMetrics;
-    private:
-	metricInfo info;
-};

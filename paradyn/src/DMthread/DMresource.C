@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.1 1994/02/02 00:42:35 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.2 1994/02/03 23:26:59 hollings Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
- * Revision 1.1  1994/02/02 00:42:35  hollings
+ * Revision 1.2  1994/02/03 23:26:59  hollings
+ * Changes to work with g++ version 2.5.2.
+ *
+ * Revision 1.1  1994/02/02  00:42:35  hollings
  * Changes to the Data manager to reflect the file naming convention and
  * to support the integration of the Performance Consultant.
  *
@@ -30,17 +33,6 @@ stringPool resource::names;
 resource *resource::rootResource = new resource();
 HTable<resource*> resource::allResources;
 
-resource *createResource(resource *p, char *newResource)
-{
-    resource *temp;
-
-    /* first check to see if the resource has already been defined */
-    temp = p->children.find(newResource);
-    if (temp) return(temp);
-
-    /* then create it */
-    return(new resource(p, newResource));
-}
 
 //
 // used only to construct root.

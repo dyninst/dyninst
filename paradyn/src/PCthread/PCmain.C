@@ -21,6 +21,7 @@ void PCnewData(performanceStream *ps,
 {
     datum *dp;
 
+    // printf("mi %x = %f %f to %f\n", mi, value, startTimeStamp, endTimeStamp);
     dp = miToDatumMap.find(mi);
     assert(dp);
     dp->newSample(startTimeStamp, endTimeStamp, value);

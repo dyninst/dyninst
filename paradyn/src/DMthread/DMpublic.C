@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.1  1994/02/02 00:42:34  hollings
+ * Revision 1.2  1994/02/03 23:26:59  hollings
+ * Changes to work with g++ version 2.5.2.
+ *
+ * Revision 1.1  1994/02/02  00:42:34  hollings
  * Changes to the Data manager to reflect the file naming convention and
  * to support the integration of the Performance Consultant.
  *
@@ -227,6 +230,15 @@ void dataManagerUser::newMetricDefined(metricInfoCallback cb,
 				  metric *m)
 {
     (cb)(ps, m);
+}
+
+void dataManagerUser::newResourceDefined(resourceInfoCallback cb,
+					 performanceStream *ps,
+					 resource *parent,
+					 resource *newResource,
+					 char *name)
+{
+    (cb)(ps, parent, newResource, name);
 }
 
 void dataManagerUser::newPerfData(sampleDataCallbackFunc func,

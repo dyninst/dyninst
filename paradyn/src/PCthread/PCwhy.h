@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCwhy.h,v $
- * Revision 1.1  1994/02/02 00:38:25  hollings
+ * Revision 1.2  1994/02/03 23:27:06  hollings
+ * Changes to work with g++ version 2.5.2.
+ *
+ * Revision 1.1  1994/02/02  00:38:25  hollings
  * First version of the Performance Consultant using threads.
  *
  * Revision 1.7  1993/08/11  18:52:50  hollings
@@ -55,7 +58,7 @@ class test {
 class testList: public List<test*> {
     public:
 	void addUnique(test *t) { 
-	    addUnique(t, t->name); 
+	    List<test*>::addUnique(t, t->name); 
 	}
 	test *find(char *key) { 
 	    return(List<test*>::find((void *)key)); 
@@ -65,7 +68,7 @@ class testList: public List<test*> {
 	}
 };
 
-extern class searchHistoryNode;
+class searchHistoryNode;
 typedef void (*explanationFunction)(searchHistoryNode*);
 
 class hypothesisList;		// forward decl.

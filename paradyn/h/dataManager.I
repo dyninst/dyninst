@@ -1,18 +1,15 @@
-/* 
- *  Copyright 1993 Jeff Hollingsworth.  All rights reserved.
- *
- */
-
 /*
- * mmthread.h - exported services of the mmthread of paradyn.
+ * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.2  1994/02/01 18:47:33  hollings
+ * Revision 1.3  1994/02/03 23:26:50  hollings
+ * Changes to work with g++ version 2.5.2.
+ *
+ * Revision 1.2  1994/02/01  18:47:33  hollings
  * Upgrades for performanceConsultant thread.
  *
-# Revision 1.1  1994/01/27  00:41:37  hollings
-# First version of data manager interfaces.
-#
+ * Revision 1.1  1994/01/27  00:41:37  hollings
+ * First version of data manager interfaces.
  *
  */
 
@@ -315,6 +312,12 @@ $remote dataManager {
     $upcall $async void newMetricDefined(metricInfoCallback, 
 					 performanceStream*, 
 					 metric*);
+
+    $upcall $async void newResourceDefined(resourceInfoCallback,
+					   performanceStream *ps, 
+					   resource *parent,
+					   resource *newResource, 
+					   char *name);
 
     $upcall $async void newPerfData(sampleDataCallbackFunc, 
 				    performanceStream *ps,

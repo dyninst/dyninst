@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCwhere.C,v $
- * Revision 1.1  1994/02/02 00:38:23  hollings
+ * Revision 1.2  1994/02/03 23:27:05  hollings
+ * Changes to work with g++ version 2.5.2.
+ *
+ * Revision 1.1  1994/02/02  00:38:23  hollings
  * First version of the Performance Consultant using threads.
  *
  * Revision 1.10  1993/12/15  21:03:50  hollings
@@ -39,10 +42,10 @@
 
 
 #ifndef lint
-static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
+static volatile char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhere.C,v 1.1 1994/02/02 00:38:23 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhere.C,v 1.2 1994/02/03 23:27:05 hollings Exp $";
 #endif
 
 #include <stdio.h>

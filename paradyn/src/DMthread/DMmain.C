@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.2  1994/02/02 00:42:33  hollings
+ * Revision 1.3  1994/02/03 23:26:58  hollings
+ * Changes to work with g++ version 2.5.2.
+ *
+ * Revision 1.2  1994/02/02  00:42:33  hollings
  * Changes to the Data manager to reflect the file naming convention and
  * to support the integration of the Performance Consultant.
  *
@@ -82,6 +85,16 @@ void performanceStream::callSampleFunc(metricInstance *mi,
     }
 }
 
+void performanceStream::callResourceFunc(resource *p,
+				         resource *c,
+				         char *name)
+{
+    if (controlFunc.rFunc) {
+	dm->setTid(threadId);
+	dm->newResourceDefined(controlFunc.rFunc, this, p, c, name);
+    }
+}
+
 //
 // upcalls from remote process.
 //
@@ -139,6 +152,7 @@ void dynRPCUser::sampleDataCallbackFunc(int program,
 	exit(-1);
     }
 
+    mi->enabledTime += endTimeStamp - startTimeStamp;
     mi->data->addInterval(startTimeStamp, endTimeStamp, value, FALSE);
 
     //
@@ -213,3 +227,27 @@ void addMetric(metricInfo info)
     }
 }
 
+
+resource *createResource(resource *p, char *newResource)
+{
+    resource *ret;
+    char *fullName;
+    resource *temp;
+    performanceStream *stream;
+    List<performanceStream *> curr;
+
+    /* first check to see if the resource has already been defined */
+    temp = p->children.find(newResource);
+    if (temp) return(temp);
+
+    /* then create it */
+    ret = new resource(p, newResource);
+    fullName = ret->getFullName();
+
+    /* inform others about it */
+    for (curr = applicationContext::streams; stream = *curr; curr++) {
+	stream->callResourceFunc(p, ret, fullName);
+    }
+
+    return(ret);
+}

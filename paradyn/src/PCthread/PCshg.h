@@ -1,7 +1,10 @@
 /*
  *
  * $Log: PCshg.h,v $
- * Revision 1.1  1994/02/02 00:38:20  hollings
+ * Revision 1.2  1994/02/03 23:27:03  hollings
+ * Changes to work with g++ version 2.5.2.
+ *
+ * Revision 1.1  1994/02/02  00:38:20  hollings
  * First version of the Performance Consultant using threads.
  *
  * Revision 1.6  1993/08/11  18:53:16  hollings
@@ -33,8 +36,8 @@
 #include "PCwhen.h"
 
 
-extern class searchHistoryNode;
-extern class hint;
+class searchHistoryNode;
+class hint;
 
 typedef List<searchHistoryNode*> searchHistoryNodeList;
 

@@ -1,6 +1,9 @@
 /*
  * $Log: PCevalTest.h,v $
- * Revision 1.1  1994/02/02 00:38:13  hollings
+ * Revision 1.2  1994/02/03 23:27:01  hollings
+ * Changes to work with g++ version 2.5.2.
+ *
+ * Revision 1.1  1994/02/02  00:38:13  hollings
  * First version of the Performance Consultant using threads.
  *
  * Revision 1.5  1993/08/11  19:08:27  hollings
@@ -72,7 +75,7 @@ class testResultList: public List<testResult*> {
 
 	    sprintf(str, "%d %d %d", res->t, res->f, res->at);
 	    id = resultPool.findAndAdd(str);
-	    ret = find(id);
+	    ret = List<testResult*>::find(id);
 	    if (ret) {
 		return(0);
 	    } else {
@@ -89,7 +92,7 @@ class testResultList: public List<testResult*> {
 
 	    sprintf(str, "%d %d %d", t, f, when);
 	    id = resultPool.findAndAdd(str);
-	    return find(id); 
+	    return (List<testResult*>::find(id)); 
 	}
         Boolean remove(testResult *res) {
             char *id;
@@ -97,7 +100,7 @@ class testResultList: public List<testResult*> {
   
             sprintf(str, "%d %d %d", res->t, res->f, res->at);
             id = resultPool.findAndAdd(str);
-            return remove(id);
+            return List<testResult*>::remove(id);
 	}
 
     private:
