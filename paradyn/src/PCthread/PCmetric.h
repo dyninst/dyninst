@@ -1,7 +1,11 @@
 /*
  * 
  * $Log: PCmetric.h,v $
- * Revision 1.2  1994/02/24 04:36:49  markc
+ * Revision 1.3  1994/04/12 15:32:48  hollings
+ * generalized hysteresis into a normalization constant to cover pause,
+ * contention, and ignored bottlenekcks too.
+ *
+ * Revision 1.2  1994/02/24  04:36:49  markc
  * Added an upcall to dyninstRPC.I to allow paradynd's to report information at
  * startup.  Added a data member to the class that igen generates.
  * Make depend differences due to new header files that igen produces.
@@ -216,6 +220,7 @@ extern PCmetric vmDeficit;
 extern PCmetric vmFree;
 extern PCmetric vmDirty;
 extern PCmetric activeVM;
+extern PCmetric compensationFactor;
 
 // 
 extern PCmetricList allMetrics;

@@ -1,7 +1,11 @@
 /*
  * 
  * $Log: PCmetric.C,v $
- * Revision 1.4  1994/03/11 21:04:07  hollings
+ * Revision 1.5  1994/04/12 15:32:47  hollings
+ * generalized hysteresis into a normalization constant to cover pause,
+ * contention, and ignored bottlenekcks too.
+ *
+ * Revision 1.4  1994/03/11  21:04:07  hollings
  * Wait min. observation time between calls to eval.  This prevents over
  * evaulation of the hypotheses when new data is arriving at a high frequency.
  *
@@ -53,7 +57,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.4 1994/03/11 21:04:07 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.5 1994/04/12 15:32:47 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -482,6 +486,8 @@ PCmetric procedureCalls("procedure_calls");
 PCmetric blockingLocks("blocking_locks");
 PCmetric LockWaits("spin_waits");
 PCmetric unbalancedWorkWaits("system_busy_waits");
+
+PCmetric compensationFactor("pause_time");
 
 // EDCU based metrics.
 PCmetric pageFaults("vm_faults");

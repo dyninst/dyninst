@@ -1,6 +1,10 @@
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.5  1994/04/11 23:19:28  hollings
+ * Revision 1.6  1994/04/12 15:32:46  hollings
+ * generalized hysteresis into a normalization constant to cover pause,
+ * contention, and ignored bottlenekcks too.
+ *
+ * Revision 1.5  1994/04/11  23:19:28  hollings
  * Changed default hyst. to 15%.
  *
  * Revision 1.4  1994/03/01  21:25:09  hollings
@@ -61,7 +65,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
   All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.5 1994/04/11 23:19:28 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.6 1994/04/12 15:32:46 hollings Exp $";
 #endif
 
 
@@ -293,6 +297,9 @@ void configureTests()
 
     dataMgr->pauseApplication(context);
 
+    // make sure we know who to compensate for data.
+    compensationFactor.changeCollection(whereAxis, enableCollection);
+
     if (currentTestResults) {
 	prevTestResults = *currentTestResults;
     }
@@ -328,11 +335,14 @@ void configureTests()
 Boolean evalTests()
 {
     Boolean ret;
+    float factor;
     testResult *r;
+    float normalize;
     float hysteresis;
     testResultList curr;
     Boolean previousStatus;
 
+    factor = (1.0-compensationFactor.value(whereAxis));
     for (curr = *currentTestResults; r=*curr; curr++) {
 	// try the test
 	// FIX passed arg.
@@ -360,7 +370,10 @@ Boolean evalTests()
 	    } else {
 		hysteresis = 1.0 + hysteresisRange.getValue();
 	    }
-	    (r->t->evaluate(&(r->state), hysteresis));
+
+	    // allow for "compensated" time.
+	    normalize = hysteresis * factor;
+	    (r->t->evaluate(&(r->state), normalize));
 	}
 	// always return for now
 	// this is done to pick up changes in shg that are due to
