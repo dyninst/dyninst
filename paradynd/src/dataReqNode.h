@@ -70,9 +70,8 @@ class dataReqNode {
 
   virtual int getSampleId() const = 0;
 
-#if defined(MT_THREAD)
   virtual int getThreadId() const = 0;
-#endif
+
      // Allocates stuff from inferior heap, instrumenting DYNINSTreportCounter
      // as appropriate.  
      // Returns true iff successful.
@@ -159,9 +158,7 @@ class sampledShmIntCounterReqNode : public dataReqNode {
  private:
    // The following fields are always properly initialized in ctor:
    int theSampleId; // obsolete with shm sampling; can be removed.
-#if defined(MT_THREAD)
    pdThread *thr_;
-#endif
 
    rawTime64 initialValue; // needed when dup()'ing
 
@@ -180,22 +177,12 @@ class sampledShmIntCounterReqNode : public dataReqNode {
                                process *childProc,
 			       int iCounterId, const process *parentProc);
    // allocates from inferior heap; initializes it, etc.
-#if defined(MT_THREAD)
    bool insertShmVar(pdThread *, process *, bool);
-#else
-   bool insertShmVar(process *, bool);
-#endif
 
  public:
-#if defined(MT_THREAD)
    sampledShmIntCounterReqNode(pdThread *thr, rawTime64 iValue, int iCounterId,
 			       process *proc, bool dontInsertData,
                                bool doNotSample, unsigned, unsigned);
-#else
-   sampledShmIntCounterReqNode(rawTime64 iValue, int iCounterId,
-			       process *proc, bool dontInsertData,
-			       bool doNotSample);
-#endif
   ~sampledShmIntCounterReqNode() {}
       // Hopefully, disable() has already been called.
       // A bit of a complication since disable() needs an
@@ -214,10 +201,8 @@ class sampledShmIntCounterReqNode : public dataReqNode {
 
    unsigned getPosition() const {return position_;}
    int getSampleId() const {return theSampleId;}
-#if defined(MT_THREAD)
    int getThreadId() const;
    pdThread *getThread() {return thr_;}
-#endif
 
    bool unFork(dictionary_hash<instInstance*,instInstance*> &) {return true;}
 };
@@ -230,9 +215,7 @@ class sampledShmWallTimerReqNode : public dataReqNode {
  private:
    // The following fields are always initialized in the ctor:   
    int theSampleId;
-#if defined(MT_THREAD)
    pdThread *thr_;
-#endif
 
    // The following fields are NULL until insertShmVar():
    unsigned allocatedIndex;
@@ -248,21 +231,12 @@ class sampledShmWallTimerReqNode : public dataReqNode {
    sampledShmWallTimerReqNode(const sampledShmWallTimerReqNode &src, 
 			      process *childProc, int iCounterId,
 			      const process *parentProc);
-#if defined(MT_THREAD)
    bool insertShmVar(pdThread *, process *, bool doNotSample = false);
-#else
-   bool insertShmVar(process *, bool doNotSample = false);
-#endif
 
  public:
-#if defined(MT_THREAD)
    sampledShmWallTimerReqNode(pdThread *thr, int iCounterId,
                               process *proc, bool dontInsertData,
 			      unsigned, unsigned);
-#else
-   sampledShmWallTimerReqNode(int iCounterId,
-                              process *proc, bool dontInsertData);
-#endif
   ~sampledShmWallTimerReqNode() {}
       // hopefully, freeInInferior() has already been called
       // a bit of a complication since freeInInferior() needs an
@@ -281,10 +255,8 @@ class sampledShmWallTimerReqNode : public dataReqNode {
    unsigned getPosition() const {return position_;}
 
    int getSampleId() const {return theSampleId;}
-#if defined(MT_THREAD)
    int getThreadId() const;
    pdThread *getThread() {return thr_;}
-#endif
 
    bool unFork(dictionary_hash<instInstance*,instInstance*> &) {return true;}
 };
@@ -297,9 +269,7 @@ class sampledShmProcTimerReqNode : public dataReqNode {
  private:
    // The following fields are always initialized in the ctor:   
    int theSampleId;
-#if defined(MT_THREAD)
    pdThread *thr_;
-#endif
 
    // The following fields are NULL until insertShmVar():
    unsigned allocatedIndex;
@@ -315,21 +285,12 @@ class sampledShmProcTimerReqNode : public dataReqNode {
    sampledShmProcTimerReqNode(const sampledShmProcTimerReqNode &src, 
 			      process *proc, int iCounterId,
 			      const process *parentProc);
-#if defined(MT_THREAD)
    bool insertShmVar(pdThread *, process *, bool doNotSample = false);
-#else
-   bool insertShmVar(process *, bool doNotSample = false);
-#endif
 
  public:
-#if defined(MT_THREAD)
    sampledShmProcTimerReqNode(pdThread *thr, int iCounterId,
 			      process *proc, bool dontInsertData,
 			      unsigned, unsigned);
-#else
-   sampledShmProcTimerReqNode(int iCounterId, process *proc, 
-			      bool dontInsertData);
-#endif
   ~sampledShmProcTimerReqNode() {}
       // hopefully, freeInInferior() has already been called
       // a bit of a complication since freeInInferior() needs an
@@ -348,10 +309,8 @@ class sampledShmProcTimerReqNode : public dataReqNode {
    unsigned getPosition() const {return position_;}
 
    int getSampleId() const {return theSampleId;}
-#if defined(MT_THREAD)
    int getThreadId() const;
    pdThread *getThread() {return thr_;}
-#endif
 
    bool unFork(dictionary_hash<instInstance*,instInstance*> &) {return true;}
 };
