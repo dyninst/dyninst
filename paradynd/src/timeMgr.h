@@ -91,9 +91,18 @@ class timeMgrBase {
   //  - can have spaces in installed levels
   //  - don't need timeMechanisms installed
   void installLevel(timeMechLevel l, MECH_T::timeAvailFunc_t taf,
-		   const timeUnit u, const timeBase b, 
-		   MECH_T::timeQueryFunc_t dmTimerFunc,const char *rtTimerFunc,
-		   MECH_T::timeDestroyFunc_t destroyFunc = NULL);
+		    const timeUnit u, const timeBase b, 
+		    MECH_T::timeQueryFunc_t dmTimerFunc,
+		    const char *rtTimerFunc,
+		    MECH_T::timeDestroyFunc_t destroyFunc = NULL);
+  // LEVEL_ONE will be chosen first if available, LEVEL_FOUR is last choice
+  //  - can have spaces in installed levels
+  //  - don't need timeMechanisms installed
+  void installLevel(timeMechLevel l, MECH_T::timeAvailFunc_t taf,
+		    MECH_T::nsCvtFunc_t cvtToNsFunc, const timeBase b, 
+		    MECH_T::timeQueryFunc_t dmTimerFunc,
+		    const char *rtTimerFunc, 
+		    MECH_T::timeDestroyFunc_t destroyFunc = NULL);
   // timeMgr works with int64_t instead of rawTime64 because I consider
   // rawTime64 a paradyn concept, and I want to keep the timeMgr decoupled
   // from paradyn as best as possible
@@ -162,7 +171,7 @@ get_rtTimeQueryFuncName(timeMechLevel l) const {
   return pMech->get_rtTimeQueryFuncName();
 }
 
-// installLevel()
+// installLevel() for passing timeUnit
 template<class dmTimeFuncClass_t, class dmTimeQyFuncParam_t>
 inline void timeMgrBase<dmTimeFuncClass_t, dmTimeQyFuncParam_t>::
 installLevel(timeMechLevel l, MECH_T::timeAvailFunc_t taf, const timeUnit u, 
@@ -173,13 +182,31 @@ installLevel(timeMechLevel l, MECH_T::timeAvailFunc_t taf, const timeUnit u,
   installMechLevel(l, curMech);
 }
 
+// installLevel() for passing nsCvtFunc
+template<class dmTimeFuncClass_t, class dmTimeQyFuncParam_t>
+inline void timeMgrBase<dmTimeFuncClass_t, dmTimeQyFuncParam_t>::
+installLevel(timeMechLevel l, MECH_T::timeAvailFunc_t taf,
+	     MECH_T::nsCvtFunc_t cvtToNsFunc, const timeBase b, 
+	     MECH_T::timeQueryFunc_t dmTimerFunc,const char *rtTimerFunc,
+	     MECH_T::timeDestroyFunc_t destroyFunc = NULL) {
+  MECH_T *curMech = new MECH_T(taf, cvtToNsFunc, b, dmTimerFunc, rtTimerFunc,
+			       destroyFunc);
+  installMechLevel(l, curMech);
+}
+
 // units2timeLength()
 template<class dmTimeFuncClass_t, class dmTimeQyFuncParam_t>
 inline timeLength timeMgrBase<dmTimeFuncClass_t, dmTimeQyFuncParam_t>::
 units2timeLength(int64_t rawunits, timeMechLevel l) {
   MECH_T *mechToUse = getMechLevel(l);
   if(mechToUse == NULL) {  errLevelNotInstalled(); return timeLength::Zero(); }
-  return timeLength(rawunits, mechToUse->getTimeUnit());
+  MECH_T::nsCvtFunc_t nsCvtFunc = mechToUse->getCvtFunc();
+  if(nsCvtFunc == NULL) {
+    return timeLength(rawunits, mechToUse->getTimeUnit());
+  } else {
+    rawTime64 ns = (*nsCvtFunc)(rawunits);
+    return timeLength(ns, timeUnit::ns());
+  }
 }
 
 // units2timeStamp()
@@ -188,7 +215,14 @@ inline timeStamp timeMgrBase<dmTimeFuncClass_t, dmTimeQyFuncParam_t>::
 units2timeStamp(int64_t rawunits, timeMechLevel l) {
   MECH_T *mechToUse = getMechLevel(l);
   if(mechToUse == NULL) {  errLevelNotInstalled(); return timeStamp::tsStd(); }
-  return timeStamp(rawunits,mechToUse->getTimeUnit(),mechToUse->getTimeBase());
+  MECH_T::nsCvtFunc_t nsCvtFunc = mechToUse->getCvtFunc();
+  if(nsCvtFunc == NULL) {
+    return timeStamp(rawunits, mechToUse->getTimeUnit(),
+		     mechToUse->getTimeBase());
+  } else {
+    rawTime64 ns = (*nsCvtFunc)(rawunits);
+    return timeStamp(ns, timeUnit::ns(), mechToUse->getTimeBase());
+  }
 }
 
 //  timeMechLevel getBestLevel();
@@ -206,8 +240,6 @@ getBestLevel() const {
   // a best level hasn't been chosen yet
 }
 
-
-
 //--- timeMgr Class  ----------------------------------------------------------
 //--- timeMgr: <Class>, <Arg> --------------------
 template<class dmTimeFuncClass_t = NoClass, class dmTimeQyFuncParam_t = NoArgs>
@@ -219,9 +251,15 @@ class timeMgr : public timeMgrBase<dmTimeFuncClass_t, dmTimeQyFuncParam_t> {
     mech_t *mechToUse = getMechLevel(l);
     if(mechToUse == NULL) { errLevelNotInstalled(); return timeStamp::tsStd();}
     mech_t::timeQueryFunc_t daemonFunc = mechToUse->getDmTimeQueryFunc();
+    mech_t::nsCvtFunc_t nsCvtFunc = mechToUse->getCvtFunc();
     int64_t rawunits = (pObj->*daemonFunc)(timeFuncArg);
-    return timeStamp(rawunits, mechToUse->getTimeUnit(),
-		     mechToUse->getTimeBase());
+    if(nsCvtFunc == NULL) {
+      return timeStamp(rawunits, mechToUse->getTimeUnit(),
+		       mechToUse->getTimeBase());
+    } else {
+      rawTime64 ns = (*nsCvtFunc)(rawunits);
+      return timeStamp(ns, timeUnit::ns(), mechToUse->getTimeBase());
+    }
   }
   int64_t getRawTime(mech_t::dtClass_t* pObj, mech_t::dtParam_t timeFuncArg, 
 		     timeMechLevel l) {
@@ -346,9 +384,15 @@ class timeMgr<NoClass, NoArgs> : public timeMgrBase<NoClass, NoArgs> {
     nmech_t *mechToUse = getMechLevel(l);
     if(mechToUse == NULL) { errLevelNotInstalled(); return timeStamp::tsStd();}
     nmech_t::timeQueryFunc_t daemonFunc = mechToUse->getDmTimeQueryFunc();
+    nmech_t::nsCvtFunc_t nsCvtFunc = mechToUse->getCvtFunc();
     int64_t rawunits = (*daemonFunc)();
-    return timeStamp(rawunits, mechToUse->getTimeUnit(),
-		     mechToUse->getTimeBase());
+    if(nsCvtFunc == NULL) {
+      return timeStamp(rawunits, mechToUse->getTimeUnit(),
+		       mechToUse->getTimeBase());
+    } else {
+      rawTime64 ns = (*nsCvtFunc)(rawunits);
+      return timeStamp(ns, timeUnit::ns(), mechToUse->getTimeBase());
+    }
   }
   int64_t getRawTime(timeMechLevel l) {
     nmech_t *mechToUse = getMechLevel(l);

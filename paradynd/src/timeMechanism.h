@@ -56,9 +56,17 @@ class NoClass { };
 
 class timeMechanismBase {
  public:
+  typedef rawTime64 (*nsCvtFunc_t)(rawTime64);
+
   timeMechanismBase(const timeUnit u, const timeBase b, 
 		    const char *rtTimeQyFunc) :
-    timeunit(u), timebase(b), rtTimeQueryFuncName(rtTimeQyFunc) {
+    timeunit(u), timebase(b), rtTimeQueryFuncName(rtTimeQyFunc), 
+    nsCvtFunc(NULL) {
+  }
+  timeMechanismBase(nsCvtFunc_t cvtFunc, const timeBase b, 
+		    const char *rtTimeQyFunc) :
+    timeunit(timeUnit::sec()), // this is just a holder value, it's not used
+    timebase(b), rtTimeQueryFuncName(rtTimeQyFunc), nsCvtFunc(cvtFunc) {
   }
 
   // Selectors
@@ -66,12 +74,16 @@ class timeMechanismBase {
   const timeUnit &getTimeUnit() const { return timeunit; }
   const timeBase &getTimeBase() const { return timebase; }
   const string get_rtTimeQueryFuncName() const { return rtTimeQueryFuncName; }
+  nsCvtFunc_t getCvtFunc() const { return nsCvtFunc; }
 
  protected:
   timeUnit timeunit;
   timeBase timebase;
   mutable bool available;
   string rtTimeQueryFuncName;
+  // unitConversionFunc can be used instead of the timeunit, if timeunit
+  // is used instead, then func == NULL
+  nsCvtFunc_t nsCvtFunc;
 };
 
 
@@ -111,6 +123,12 @@ class timeMechanism : public timeMechanismBase {
 		timeQueryFunc_t dqf, const char *rtTimeQyFunc, 
 		timeDestroyFunc_t df = NULL) : 
   timeMechanismBase(u, b,rtTimeQyFunc), timeAvailFunc(taf), 
+  dmQueryFunc(dqf), timeDestroyFunc(df) {
+  }
+  timeMechanism(timeAvailFunc_t taf, nsCvtFunc_t cvtFunc, const timeBase b, 
+		timeQueryFunc_t dqf, const char *rtTimeQyFunc, 
+		timeDestroyFunc_t df = NULL) : 
+  timeMechanismBase(cvtFunc, b,rtTimeQyFunc), timeAvailFunc(taf), 
   dmQueryFunc(dqf), timeDestroyFunc(df) {
   }
   ~timeMechanism() {
@@ -222,12 +240,18 @@ class timeMechanism<NoClass, NoArgs> : public timeMechanismBase {
   timeAvailFunc_t   timeAvailFunc;
   timeQueryFunc_t   dmQueryFunc;
   timeDestroyFunc_t timeDestroyFunc;
-  
+
   public:
   timeMechanism(timeAvailFunc_t taf, const timeUnit u, const timeBase b, 
 		timeQueryFunc_t dqf, const char *rtTimeQyFunc, 
 		timeDestroyFunc_t df = NULL) : 
     timeMechanismBase(u, b,rtTimeQyFunc), timeAvailFunc(taf), 
+    dmQueryFunc(dqf), timeDestroyFunc(df) {
+  }
+  timeMechanism(timeAvailFunc_t taf, nsCvtFunc_t cvtFunc, const timeBase b, 
+		timeQueryFunc_t dqf, const char *rtTimeQyFunc, 
+		timeDestroyFunc_t df = NULL) : 
+    timeMechanismBase(cvtFunc, b,rtTimeQyFunc), timeAvailFunc(taf), 
     dmQueryFunc(dqf), timeDestroyFunc(df) {
   }
   ~timeMechanism() {
