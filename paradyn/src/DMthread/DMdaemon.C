@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.133 2003/05/29 19:24:51 schendel Exp $
+ * $Id: DMdaemon.C,v 1.134 2003/05/30 04:20:35 bernat Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -2189,21 +2189,26 @@ void filter_based_on_process_in_focus(
 
 void strip_duplicate_daemons(const pdvector<paradynDaemon *> &daemon_list,
                              pdvector<paradynDaemon *> *to_list) {
-   for(u_int j=0; j < daemon_list.size(); j++) {
-      paradynDaemon *cur_dmn = daemon_list[j];
-      bool duplicate = false;
-      
-      for(u_int k=0; k<daemon_list.size(); k++) {
-         paradynDaemon *sec_dmn = daemon_list[k];
-         if(cur_dmn != sec_dmn  &&  cur_dmn->get_id() == sec_dmn->get_id()) {
-            duplicate = true;    
-            break;
-         }
-      }
-      
-      if(!duplicate)
-         (*to_list).push_back(cur_dmn);
-   }
+    to_list->clear();
+    
+    if (daemon_list.size() == 0)
+        return;
+    
+    to_list->push_back(daemon_list[0]);
+    
+    for (u_int i = 1; i < daemon_list.size(); i++) {
+        paradynDaemon *cur_dmn = daemon_list[i];
+        bool found = false;
+        
+        for (u_int j = 0; j < to_list->size(); j++)
+            if ((*to_list)[j] == cur_dmn ||
+                (*to_list)[j]->get_id() == cur_dmn->get_id()) {
+                found = true;
+                break;
+            }
+        if (!found)
+            to_list->push_back(cur_dmn);
+    }
 }
 
 // if whole_prog_focus is false, then the relevant daemons are in daemon_subset
@@ -2217,36 +2222,40 @@ void paradynDaemon::getMatchingDaemons(pdvector<metricInstance *> *miVec,
       // check to see if this focus is refined on the machine
       // or process heirarcy, if so then add the approp. daemon
       // to the matching_daemons, else set whole_prog_focus to true
-      if(! whole_prog_focus) {
-         string machine_name;
-         resourceList *focus_resources = (*miVec)[i]->getresourceList(); 
-         assert(focus_resources);
-         // focus is refined on machine or process heirarchy 
-         if(focus_resources->getMachineNameReferredTo(machine_name)){
-            // get the daemon corr. to this focus and add it
-            // to the list of daemons
-            pdvector<paradynDaemon*> vpd = 
-               paradynDaemon::machineName2Daemon(machine_name);
-            assert(vpd.size());
-
-            pdvector<paradynDaemon*> new_vpd;
-            filter_based_on_process_in_focus(vpd, &new_vpd, focus_resources);
-
-            strip_duplicate_daemons(new_vpd, matching_daemons);
-         }
-         else {  // focus is not refined on process or machine 
-            whole_prog_focus = true;
-         }
-      }
+       string machine_name;
+       resourceList *focus_resources = (*miVec)[i]->getresourceList(); 
+       assert(focus_resources);
+       // focus is refined on machine or process heirarchy 
+       if(focus_resources->getMachineNameReferredTo(machine_name)){
+           // get the daemon corr. to this focus and add it
+           // to the list of daemons
+           pdvector<paradynDaemon*> vpd = 
+           paradynDaemon::machineName2Daemon(machine_name);
+           assert(vpd.size());
+           
+           // Add daemons into daemon_subset
+           filter_based_on_process_in_focus(vpd, &daemon_subset, focus_resources);
+       }
+       else {  // focus is not refined on process or machine 
+           whole_prog_focus = true;
+           // As soon as this is true, we add all the daemons to the list.
+           break;
+       }
    }
 
    if(whole_prog_focus) {
-      (*matching_daemons).clear();
-      for(unsigned i=0; i<paradynDaemon::allDaemons.size(); i++)
-         (*matching_daemons).push_back(paradynDaemon::allDaemons[i]);
+       // Don't need to prune, as there's only one daemon
+       (*matching_daemons).clear();
+       for(unsigned i=0; i<paradynDaemon::allDaemons.size(); i++)
+           (*matching_daemons).push_back(paradynDaemon::allDaemons[i]);
    }
-
-   assert(daemon_subset.size() <= paradynDaemon::allDaemons.size());
+   else {
+       // Prune the list we generated, since there might be duplicates
+       strip_duplicate_daemons(daemon_subset, matching_daemons);
+   }
+   
+   
+   assert(matching_daemons->size() <= paradynDaemon::allDaemons.size());
 }
 
 
