@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.107 2002/06/10 19:24:48 bernat Exp $
+ * $Id: inst-x86.C,v 1.108 2002/06/13 19:53:04 mirg Exp $
  */
 
 #include <iomanip.h>
@@ -2145,6 +2145,7 @@ Register emitFuncCall(opCode op,
 		      const vector<AstNode *> &operands, 
 		      const string &callee, process *proc,
 	              bool noCost, const function_base *calleefunc,
+		      const vector<AstNode *> &ifForks,
 		      const instPoint *location) // FIXME: pass it!
 {
   assert(op == callOp);
@@ -2169,7 +2170,9 @@ Register emitFuncCall(opCode op,
        }
   }
   for (unsigned u = 0; u < operands.size(); u++)
-    srcs.push_back((Register)operands[u]->generateCode(proc, rs, ibuf, base, noCost, false));
+      srcs.push_back((Register)operands[u]->generateCode_phase2(proc, rs, ibuf,
+								base, noCost, 
+								ifForks));
 
   unsigned char *insn = (unsigned char *) ((void*)&ibuf[base]);
   unsigned char *first = insn;

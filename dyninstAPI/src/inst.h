@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.66 2002/06/10 19:24:54 bernat Exp $
+// $Id: inst.h,v 1.67 2002/06/13 19:53:05 mirg Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -256,7 +256,9 @@ void emitASload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
 // VG(11/06/01): moved here and added location
 Register emitFuncCall(opCode op, registerSpace *rs, char *i, Address &base, 
 		      const vector<AstNode *> &operands, const string &func,
-		      process *proc, bool noCost, const function_base *funcbase,
+		      process *proc, bool noCost, 
+		      const function_base *funcbase,
+		      const vector<AstNode *> &ifForks, // control-flow path
 		      const instPoint *location = NULL);
 
 int getInsnCost(opCode t);

@@ -3368,6 +3368,7 @@ void initTramps()
 Register emitFuncCall(opCode op, registerSpace *rs, char *code, Address &base, 
 		      const vector<AstNode *> &params, const string &calleeName,
 		      process *p, bool noCost, const function_base *callee,
+		      const vector<AstNode *> &ifForks,
 		      const instPoint *location) // FIXME: pass it!
   // Note: MIPSPro compiler complains about redefinition of default argument
 {
@@ -3409,7 +3410,8 @@ Register emitFuncCall(opCode op, registerSpace *rs, char *code, Address &base,
 #endif
 
   for (unsigned i = 0; i < params.size(); i++) {
-    args.push_back(params[i]->generateCode(p, rs, code, base, noCost, false));
+    args.push_back(params[i]->generateCode_phase2(p, rs, code, base, noCost, 
+						  ifForks));
 #ifdef mips_unknown_ce2_11 //ccw 22 jan 2001 : 28 mar 2001
 		//since we allocted extra memory on the stack for the
 		//parameters, we need to fix up the 'lw XX, XX(sp)' that is

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.46 2002/06/10 19:24:43 bernat Exp $
+// $Id: inst-alpha.C,v 1.47 2002/06/13 19:53:02 mirg Exp $
 
 #include "common/h/headers.h"
 
@@ -1923,13 +1923,15 @@ emitFuncCall(opCode /* op */,
 	     const vector<AstNode *> &operands,
 	     const string &callee, process *proc, bool noCost,
 	     const function_base *calleebase,
+	     const vector<AstNode *> &ifForks,
              const instPoint *location = NULL) // FIXME: pass it!
 {
   vector <Register> srcs;
   
   // First, generate the parameters
   for (unsigned u = 0; u < operands.size(); u++)
-    srcs.push_back(operands[u]->generateCode(proc, rs, i , base, false, false));
+    srcs.push_back(operands[u]->generateCode_phase2(proc, rs, i , base, 
+						    false, ifForks));
 
   // put parameters in argument registers
   // register move is "bis src, src, dest"  (bis is logical or)

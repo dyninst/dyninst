@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.135 2002/06/10 19:24:45 bernat Exp $
+ * $Id: inst-power.C,v 1.136 2002/06/13 19:53:03 mirg Exp $
  */
 
 #include "common/h/headers.h"
@@ -2123,6 +2123,7 @@ Register emitFuncCall(opCode /* ocode */,
 		      const vector<AstNode *> &operands, 
 		      const string &callee, process *proc, bool noCost,
 		      const function_base *calleefunc,
+		      const vector<AstNode *> &ifForks,
 		      const instPoint *location = NULL)
 {
 
@@ -2166,7 +2167,8 @@ Register emitFuncCall(opCode /* ocode */,
 	genImmInsn(insn, CALop, dummyReg, 0, 0);
 	base += sizeof(instruction);
     }
-    srcs.push_back(operands[u]->generateCode(proc, rs, iPtr, base, false, false, location));
+    srcs.push_back(operands[u]->generateCode_phase2(proc, rs, iPtr, base, 
+						    false, ifForks, location));
     //fprintf(stderr, "Generated operand %d, base %d\n", u, base);
   }
   
