@@ -2,7 +2,11 @@
  * tunableConstant - a constant that might be changed during execution.
  *
  * $Log: tunableConst.h,v $
- * Revision 1.6  1994/10/26 22:32:50  tamches
+ * Revision 1.7  1994/11/01 16:07:35  markc
+ * Added Object classes that provide os independent symbol tables.
+ * Added stl-like container classes with iterators.
+ *
+ * Revision 1.6  1994/10/26  22:32:50  tamches
  * Defaulted min&max to 0 for floats with no min/max in constructor.
  * Wrote min() and max() functions.
  * Wrote use() function
@@ -66,9 +70,7 @@ class tunableBooleanConstant: public tunableConstant {
 			       const char *name,
 			       const char *desc);
 	Boolean getValue() { return value; }
-	Boolean setValue(Boolean newVal) {
-	    value = newVal;
-	}
+	Boolean setValue(Boolean newVal) { value = newVal; return TRUE; }
 	virtual void print();
     private:
 	Boolean value;

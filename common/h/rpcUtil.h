@@ -4,7 +4,11 @@
 
 /*
  * $Log: rpcUtil.h,v $
- * Revision 1.24  1994/10/12 20:22:08  krisna
+ * Revision 1.25  1994/11/01 16:07:33  markc
+ * Added Object classes that provide os independent symbol tables.
+ * Added stl-like container classes with iterators.
+ *
+ * Revision 1.24  1994/10/12  20:22:08  krisna
  * hpux update
  *
  * Revision 1.23  1994/09/22  03:18:05  markc
@@ -104,7 +108,7 @@ public:
   inline XDR *getXdrs() {
     return __xdrs__;
   }
-  inline setDir(xdr_op d) {__xdrs__->x_op = d;}
+  inline void setDir(xdr_op d) {__xdrs__->x_op = d;}
  private:
   XDR *__xdrs__;
   int fd;
@@ -120,10 +124,10 @@ public:
   inline RPCBase(int st=0, int v=0) { err_state = st; versionVerifyDone = v;}
   // ~RPCBase() { }
   inline int get_err_state() { return err_state;}
-  inline int clear_err_state() {err_state = 0;}
+  inline void clear_err_state() {err_state = 0;}
   inline int did_error_occur() {return (err_state != 0);}
   inline int getVersionVerifyDone() { return versionVerifyDone;}
-  inline int setVersionVerifyDone() { versionVerifyDone = 1;}
+  inline void setVersionVerifyDone() { versionVerifyDone = 1;}
   inline void set_err_state(int s) { err_state = s;}
  private:
   int versionVerifyDone;
