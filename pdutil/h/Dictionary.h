@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Dictionary.h,v 1.20 1999/03/03 17:43:46 pcroth Exp $
+// $Id: Dictionary.h,v 1.21 1999/03/19 00:08:55 csserra Exp $
 
 #ifndef _DICTIONARY_H_
 #define _DICTIONARY_H_
@@ -239,11 +239,11 @@ class dictionary_hash_iter {
       return curr->val;
    }
 
+ public:
    dictionary_hash_iter(const dictionary_hash_iter &src) : dict(src.dict) {
       curr = src.curr;
       last = src.last;
    }
-
  private:
 	// private to make sure they're not used:
 	// Visual C++ requires that it at least have a body
