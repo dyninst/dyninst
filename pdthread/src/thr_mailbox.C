@@ -262,11 +262,12 @@ void* thr_mailbox::sock_select_loop(void* which_mailbox) {
 
             ready_visitor.owner = owner;
             
+            ready_visitor.populate_from = sock_visitor.to_populate;
+
             ready_visitor.descs_from = owner->bound_socks;
             ready_visitor.populate_to = owner->ready_socks;            
 
-            owner->ready_socks->visit(&ready_visitor);
-            
+            owner->bound_socks->visit(&ready_visitor);
             monitor->unlock();
 
             // we don't need to signal that a recv is available
@@ -286,8 +287,7 @@ void* thr_mailbox::sock_select_loop(void* which_mailbox) {
             ready_visitor.descs_from = owner->bound_socks;
             ready_visitor.populate_to = owner->ready_socks;            
 
-            owner->ready_socks->visit(&ready_visitor);
-            
+            owner->bound_socks->visit(&ready_visitor);
             monitor->unlock();
 
             // we don't need to signal that a recv is available

@@ -94,13 +94,13 @@ int msg_bind_sig(int sig, thread_t* tid) {
 }
 
 
-int msg_bind_socket(PDSOCKET s, unsigned special, int (*will_block)(void*), void* arg, thread_t* tid) {
+int msg_bind_socket(PDSOCKET s, unsigned special, int (*will_block)(void*), void* arg, thread_t* ptid) {
     thr_debug_msg(CURRENT_FUNCTION, "s = %d, special = %d, will_block = %p, arg = %p\n", s, special, will_block, arg);
     int ret = THR_OKAY;
 
     thr_mailbox* my_mail = (thr_mailbox*)lwp::get_mailbox();
     thread_t me = thr_self();
-    my_mail->bind_sock(s, special, will_block, (void*)(&s), &me);
+    my_mail->bind_sock(s, special, will_block, (void*)(&s), ptid);
     
   done:
     thr_debug_msg(CURRENT_FUNCTION, "returning %d\n", ret);

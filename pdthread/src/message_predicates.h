@@ -140,7 +140,7 @@ class yank_sender_predicate {
     }
     
     inline bool satisfied_by(message* m) {
-        *yanked_sender = m->type();
+        *yanked_sender = m->from();
         return true;
     }
 };
