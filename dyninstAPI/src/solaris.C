@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.91 2000/06/14 23:03:22 wylie Exp $
+// $Id: solaris.C,v 1.92 2000/06/15 15:24:44 paradyn Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -903,7 +903,7 @@ void process::handleIfDueToDyninstLib()
   writeDataSpace ((void*)(theEBP-6*sizeof(int)),6*sizeof(int),savedStackFrame);
 #endif
 
-  delete[] savedRegs;
+  delete[] (char*)savedRegs;
   savedRegs = NULL;
 }
 
@@ -2043,7 +2043,12 @@ Frame Frame::getCallerFrameLWP(process *p) const
 #endif
 
 #ifdef SHM_SAMPLING
-time64 process::getInferiorProcessCPUtime(int /*lwp_id*/) {
+#ifdef MT_THREAD
+time64 process::getInferiorProcessCPUtime(int lwp_id)
+#else
+time64 process::getInferiorProcessCPUtime(int /*lwp_id*/)
+#endif
+{
    // returns user time from the u or proc area of the inferior process, which in
    // turn is presumably obtained by mmapping it (sunos) or by using a /proc ioctl
    // to obtain it (solaris).  It must not stop the inferior process in order
