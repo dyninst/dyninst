@@ -214,8 +214,8 @@ string unqual_type(const string &type) { // also referenced by interface_spec.C
 bool type_defn::gen_class(const string, ofstream &out_stream) {
    // We no longer emit fwd declarations; it causes problems if it's templated.
    if ( (numFields() == 0) && (!is_abstract() || is_stl()) ) {
-      cout << "Not emitting anything for " << unqual_name() << " since no fields"
-           << " and not abstract class" << endl;
+      //cout << "Not emitting anything for " << unqual_name() << " since no fields"
+      //     << " and not abstract class" << endl;
       return true;
    }
  
