@@ -41,7 +41,7 @@
 
 /*
  * The searchHistoryNode and searchHistoryGraph class methods.
- * $Id: PCshg.C,v 1.75 2005/01/28 18:12:03 legendre Exp $
+ * $Id: PCshg.C,v 1.76 2005/03/05 03:39:33 tlmiller Exp $
  */
 
 #include "PCintern.h"
@@ -88,7 +88,8 @@ why(why), where(whereowhere),
 persistent(persist), altMetricFlag(amFlag), 
 exp(NULL), active(false), deferredInstrumentation( false ),
 truthValue(tunknown), 
-axis(axis), nodeID(newID), exStat(expandedNone),  
+axis(axis), nodeID(newID), exStat(expandedNone),
+originalParent( NULL ),
 mamaGraph (mama), sname(shortName)
 {
   unsigned i;
@@ -136,6 +137,7 @@ persistent(persist), altMetricFlag(amFlag),
 exp(NULL), active(false), deferredInstrumentation( false ),
 truthValue(tunknown), 
 axis(axis), nodeID(newID), exStat(expandedNone),  
+originalParent( NULL ),
 mamaGraph (mama), sname(shortName), alreadySearched(as)
 {
   // full name of node (both why and where)
