@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test2.mutatee.c,v 1.12 1999/06/17 14:58:41 wylie Exp $ */
+/* $Id: test2.mutatee.c,v 1.13 1999/06/29 19:02:14 hollings Exp $ */
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -38,6 +38,10 @@ int debugPrint = 0;
 #define TRUE    1
 #define FALSE   0
 
+#define MAX_TEST 14
+int runTest[MAX_TEST+1];
+int passedTest[MAX_TEST+1];
+
 int isAttached = 0;
 
 void doFork();
@@ -64,7 +68,31 @@ void stop_process()
 #endif
 }
 
-void func10_1()
+
+void func6_1()
+{
+#if defined(sparc_sun_solaris2_4)  || defined(i386_unknown_solaris2_5) || \
+    defined(i386_unknown_linux2_0) || defined(mips_sgi_irix6_4) || \
+    defined(alpha_dec_osf4_0)
+
+    void *ref;
+
+    /* now use the dlopen interface to force an object to load. */
+#if defined(alpha_dec_osf4_0)
+    ref = dlopen(TEST_DYNAMIC_LIB, RTLD_NOW);
+#else
+    ref = dlopen(TEST_DYNAMIC_LIB, RTLD_NOW | RTLD_GLOBAL);
+#endif
+
+    if (!ref) {
+	fprintf(stderr, "%s\n", dlerror());
+	fflush(stderr);
+    }
+
+#endif
+}
+
+void func8_1()
 {
     /* Does nothing.  Will be instrumented with a BPatch_breakPointExpr */
 }
@@ -87,13 +115,16 @@ void func12_1()
 
 int main(int argc, char *argv[])
 {
-    int i;
+    int i, j;
 #if !defined(i386_unknown_nt4_0)
-    void *ref;
     int pfd;
 #endif
     int useAttach = FALSE;
  
+    for (j=0; j <= MAX_TEST; j++) {
+        runTest[j] = TRUE;
+    }
+
     for (i=1; i < argc; i++) {
         if (!strcmp(argv[i], "-verbose")) {
             debugPrint = 1;
@@ -101,6 +132,7 @@ int main(int argc, char *argv[])
             useAttach = TRUE;
 #ifndef i386_unknown_nt4_0
 	    if (++i >= argc) {
+		printf("attach usage\n");
 		fprintf(stderr, "%s\n", USAGE);
 		exit(-1);
 	    }
@@ -108,7 +140,25 @@ int main(int argc, char *argv[])
 #endif
         } else if (!strcmp(argv[i], "-fork")) {
 	    doFork();
+        } else if (!strcmp(argv[i], "-run")) {
+            for (j=0; j <= MAX_TEST; j++) runTest[j] = FALSE;
+            for (j=i+1; j < argc; j++) {
+                int testId;
+                if (argv[j] && isdigit(*argv[j]) && (testId = atoi(argv[j]))) {
+                    if ((testId > 0) && (testId <= MAX_TEST)) {
+                        runTest[testId] = 1;
+                    } else {
+                        printf("invalid test %d requested\n", testId);
+                        exit(-1);
+                    }
+                } else {
+                    // end of test list
+                    break;
+                }
+            }
+            i = j-1;
         } else {
+	    printf("unexpected parameter %s\n", argv[i]);
             fprintf(stderr, "%s\n", USAGE);
             exit(-1);
         }
@@ -129,26 +179,15 @@ int main(int argc, char *argv[])
 	printf("Mutator attached.  Mutatee continuing.\n");
     }
 
-#if defined(sparc_sun_solaris2_4)  || defined(i386_unknown_solaris2_5) || \
-    defined(i386_unknown_linux2_0) || defined(mips_sgi_irix6_4) || \
-    defined(alpha_dec_osf4_0)
-    /* now use the dlopen interface to force an object to load. */
-#if defined(alpha_dec_osf4_0)
-    ref = dlopen(TEST_DYNAMIC_LIB, RTLD_NOW);
-#else
-    ref = dlopen(TEST_DYNAMIC_LIB, RTLD_NOW | RTLD_GLOBAL);
-#endif
-    if (!ref) {
-	fprintf(stderr, "%s\n", dlerror());
-	fflush(stderr);
+
+    if (runTest[6] || runTest[7]) {
+	if (runTest[6]) func6_1();
+
+	/* Stop and wait for the mutator to check that we linked the library */
+	stop_process();
     }
 
-    /* Stop and wait for the mutator to check that we linked the library */
-    stop_process();
-
-#endif
-
-    func10_1();
+    if (runTest[8]) func8_1();
 
     while(1);
 

@@ -1,4 +1,4 @@
-// $Id: test1.C,v 1.27 1999/06/17 19:30:14 wylie Exp $
+// $Id: test1.C,v 1.28 1999/06/29 19:02:12 hollings Exp $
 //
 // libdyninst validation suite test #1
 //    Author: Jeff Hollingsworth (1/7/97)
@@ -33,6 +33,11 @@
 extern "C" const char V_libdyninstAPI[];
 
 int debugPrint = 0;
+
+bool runAllTests = true;
+const int MAX_TEST = 22;
+bool runTest[MAX_TEST+1];
+bool passedTest[MAX_TEST+1];
 
 template class BPatch_Vector<BPatch_variableExpr*>;
 
@@ -261,13 +266,206 @@ BPatchSnippetHandle *insertCallSnippetAt(BPatch_thread *appThread,
  **************************************************************************/
 
 //
+// Start Test Case #1 - (zero arg function call)
+//
+void mutatorTest1(BPatch_thread *appThread, BPatch_image *appImage)
+{
+    // Find the entry point to the procedure "func1_1"
+    BPatch_Vector<BPatch_point *> *point1_1 =
+	appImage->findProcedurePoint("func1_1", BPatch_entry);
+
+    if ((*point1_1).size() == 0) {
+        fprintf(stderr, "**Failed** test #1 (zero arg function call)\n");
+	fprintf(stderr, "    Unable to find entry point to \"func1_1.\"\n");
+	exit(1);
+    }
+
+    BPatch_function *call1_func = appImage->findFunction("call1_1");
+    if (call1_func == NULL) {
+        fprintf(stderr, "**Failed** test #1 (zero arg function call)\n");
+	fprintf(stderr, "Unable to find function \"call1_1\"\n");
+	exit(1);
+    }
+
+    BPatch_Vector<BPatch_snippet *> call1_args;
+    BPatch_funcCallExpr call1Expr(*call1_func, call1_args);
+
+    dprintf("Inserted snippet2\n");
+    checkCost(call1Expr);
+    appThread->insertSnippet(call1Expr, *point1_1);
+}
+
+//
+// Start Test Case #2 - mutator side (call a three argument function)
+//
+void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
+{
+
+    // Find the entry point to the procedure "func2_1"
+    BPatch_Vector<BPatch_point *> *point2_1 =
+	appImage->findProcedurePoint("func2_1", BPatch_entry);
+
+    if (!point2_1 || ((*point2_1).size() == 0)) {
+	fprintf(stderr, "**Failed** test #2 (three parameter function)\n");
+	fprintf(stderr, "    Unable to find entry point to \"func2_1.\"\n");
+	exit(1);
+    }
+
+    BPatch_function *call2_func = appImage->findFunction("call2_1");
+    if (call2_func == NULL) {
+	fprintf(stderr, "**Failed** test #2 (three parameter function)\n");
+	fprintf(stderr, "    Unable to find function \"call2_1.\"\n");
+	exit(1);
+    }
+
+    BPatch_Vector<BPatch_snippet *> call2_args;
+    BPatch_constExpr expr2_1(1);
+    BPatch_constExpr expr2_2(2);
+    BPatch_constExpr expr2_3("testString2_1");
+    call2_args.push_back(&expr2_1);
+    call2_args.push_back(&expr2_2);
+    call2_args.push_back(&expr2_3);
+
+    BPatch_funcCallExpr call2Expr(*call2_func, call2_args);
+
+    dprintf("Inserted snippet2\n");
+    checkCost(call2Expr);
+    appThread->insertSnippet(call2Expr, *point2_1);
+}
+
+//
+// Start Test Case #3 - mutator side (passing variables to function)
+//
+void mutatorTest3(BPatch_thread *appThread, BPatch_image *appImage)
+{
+
+    // Find the entry point to the procedure "func3_1"
+    BPatch_Vector<BPatch_point *> *point3_1 =
+	appImage->findProcedurePoint("func3_1", BPatch_entry);
+
+    if (!point3_1 || ((*point3_1).size() == 0)) {
+	fprintf(stderr, "Unable to find entry point to \"func3_1.\"\n");
+	exit(1);
+    }
+
+    BPatch_function *call3_func = appImage->findFunction("call3_1");
+    if (call3_func == NULL) {
+	fprintf(stderr, "Unable to find function \"call3_1.\"\n");
+	exit(1);
+    }
+
+    BPatch_Vector<BPatch_snippet *> call3_args;
+
+    BPatch_variableExpr *expr3_1 = appImage->findVariable("globalVariable3_1");
+    if (!expr3_1) {
+	fprintf(stderr, "**Failed** test #3 (passing variables)\n");
+	fprintf(stderr, "    Unable to locate variable globalVariable3_1\n");
+	exit(1);
+    }
+    // see if we can find the address
+    if (expr3_1->getBaseAddr() <= 0) {
+	printf("*Error*: address %d for globalVariable3_1 is not valid\n",
+		(int) expr3_1->getBaseAddr());
+    }
+
+    BPatch_variableExpr *expr3_2 = appThread->malloc(*appImage->findType("int"));
+    if (!expr3_2) {
+	fprintf(stderr, "**Failed** test #3 (passing variables)\n");
+	fprintf(stderr, "    Unable to create new int variable\n");
+	exit(1);
+    }
+
+    call3_args.push_back(expr3_1);
+    call3_args.push_back(expr3_2);
+
+    BPatch_funcCallExpr call3Expr(*call3_func, call3_args);
+    checkCost(call3Expr);
+    appThread->insertSnippet(call3Expr, *point3_1);
+
+    BPatch_arithExpr expr3_3(BPatch_assign, *expr3_2, BPatch_constExpr(32));
+    checkCost(expr3_3);
+    appThread->insertSnippet(expr3_3, *point3_1);
+
+    dprintf("Inserted snippet3\n");
+}
+
+//
+// Start Test Case #4 - mutator side (sequence)
+//	Use the BPatch sequence operation to glue to expressions togehter.
+//	The test is constructed to verify the correct exectuion order.
+//
+void mutatorTest4(BPatch_thread *appThread, BPatch_image *appImage)
+{
+    // Find the entry point to the procedure "func4_1"
+    BPatch_Vector<BPatch_point *> *point4_1 =
+	appImage->findProcedurePoint("func4_1", BPatch_entry);
+
+
+    BPatch_variableExpr *expr4_1 = appImage->findVariable("globalVariable4_1");
+    if (!expr4_1) {
+	fprintf(stderr, "**Failed** test #4 (sequence)\n");
+	fprintf(stderr, "    Unable to locate variable globalVariable4_1\n");
+	exit(1);
+    }
+
+    BPatch_arithExpr expr4_2(BPatch_assign, *expr4_1, BPatch_constExpr(42));
+    BPatch_arithExpr expr4_3(BPatch_assign, *expr4_1, BPatch_constExpr(43));
+
+    BPatch_Vector<BPatch_snippet*> vect4_1;
+    vect4_1.push_back(&expr4_2);
+    vect4_1.push_back(&expr4_3);
+
+    BPatch_sequence expr4_4(vect4_1);
+    checkCost(expr4_4);
+    appThread->insertSnippet(expr4_4, *point4_1);
+}
+
+//
+// Start Test Case #5 - mutator side (if w.o. else)
+//
+void mutatorTest5(BPatch_thread *appThread, BPatch_image *appImage)
+{
+
+    // Find the entry point to the procedure "func5_2"
+    BPatch_Vector<BPatch_point *> *point5_1 =
+	appImage->findProcedurePoint("func5_2", BPatch_entry);
+    BPatch_variableExpr *expr5_1 = appImage->findVariable("globalVariable5_1");
+    BPatch_variableExpr *expr5_2 = appImage->findVariable("globalVariable5_2");
+    if (!expr5_1 || !expr5_2) {
+	fprintf(stderr, "**Failed** test #5 (1f w.o. else)\n");
+	fprintf(stderr, "    Unable to locate variable globalVariable5_1 or ");
+	fprintf(stderr, "    variable globalVariable5_2\n");
+	exit(1);
+    }
+
+    BPatch_Vector<BPatch_snippet*> vect5_1;
+
+    // if (0 == 1) globalVariable5_1 = 52;
+    BPatch_ifExpr expr5_3(
+	BPatch_boolExpr(BPatch_eq, BPatch_constExpr(0), BPatch_constExpr(1)), 
+	BPatch_arithExpr(BPatch_assign, *expr5_1, BPatch_constExpr(52)));
+
+    // if (1 == 1) globalVariable5_2 = 53;
+    BPatch_ifExpr expr5_4(
+	BPatch_boolExpr(BPatch_eq, BPatch_constExpr(1), BPatch_constExpr(1)), 
+	BPatch_arithExpr(BPatch_assign, *expr5_2, BPatch_constExpr(53)));
+
+    vect5_1.push_back(&expr5_3);
+    vect5_1.push_back(&expr5_4);
+
+    BPatch_sequence expr5_5(vect5_1);
+    checkCost(expr5_5);
+    appThread->insertSnippet(expr5_5, *point5_1);
+}
+
+//
 // Start Test Case #6 - mutator side (arithmetic operators)
 //
 void mutatorTest6(BPatch_thread *appThread, BPatch_image *appImage)
 {
-    // Find the entry point to the procedure "func6_1"
+    // Find the entry point to the procedure "func6_2"
     BPatch_Vector<BPatch_point *> *point6_1 =
-	appImage->findProcedurePoint("func6_1", BPatch_entry);
+	appImage->findProcedurePoint("func6_2", BPatch_entry);
     BPatch_variableExpr *expr6_1 = appImage->findVariable("globalVariable6_1");
     BPatch_variableExpr *expr6_2 = appImage->findVariable("globalVariable6_2");
     BPatch_variableExpr *expr6_3 = appImage->findVariable("globalVariable6_3");
@@ -414,9 +612,9 @@ void genVRelTest(BPatch_image *appImage,
 //
 void mutatorTest7(BPatch_thread *appThread, BPatch_image *appImage)
 {
-    // Find the entry point to the procedure "func7_1"
+    // Find the entry point to the procedure "func7_2"
     BPatch_Vector<BPatch_point *> *point7_1 =
-	appImage->findProcedurePoint("func7_1", BPatch_entry);
+	appImage->findProcedurePoint("func7_2", BPatch_entry);
     BPatch_Vector<BPatch_snippet*> vect7_1;
 
     genRelTest(appImage, vect7_1, BPatch_lt, 0, 1, "globalVariable7_1");
@@ -1158,9 +1356,9 @@ void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
 // bad input to replaceFunction is a non-existent BPatch_function.
 // But this is already checked by the "non-existent function" test in
 // test2.
-void mutatorTest21(BPatch_thread *appThread, BPatch_image *appImage)
+
+readyTest21or22(BPatch_thread *appThread)
 {
-#if defined(sparc_sun_solaris2_4) || defined(mips_sgi_irix6_4) || defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(alpha_dec_osf4_0)
     if (! appThread->loadLibrary("./libtestA.so")) {
 	 fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
 	 fprintf(stderr, "  Mutator couldn't load libtestA.so into mutatee\n");
@@ -1171,6 +1369,11 @@ void mutatorTest21(BPatch_thread *appThread, BPatch_image *appImage)
 	 fprintf(stderr, "  Mutator couldn't load libtestB.so into mutatee\n");
 	 exit(1);
     }
+}
+
+void mutatorTest21(BPatch_thread *appThread, BPatch_image *appImage)
+{
+#if defined(sparc_sun_solaris2_4) || defined(mips_sgi_irix6_4) || defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(alpha_dec_osf4_0)
 
     // Lookup the libtestA.so and libtestB.so modules that we've just loaded
     BPatch_module *modA = NULL;
@@ -1357,11 +1560,23 @@ void mutatorMAIN(char *pathname, bool useAttach)
     // Start the mutatee
     printf("Starting \"%s\"\n", pathname);
 
-    char *child_argv[4];
+    char *child_argv[MAX_TEST+5];
    
     int n = 0;
     child_argv[n++] = pathname;
     if (debugPrint) child_argv[n++] = "-verbose";
+
+    if (!runAllTests) {
+	child_argv[n++] = "-run";
+	for (int j=0; j <= MAX_TEST; j++) {
+	    if (runTest[j]) {
+		char str[5];
+		sprintf(str, "%d", j);
+		child_argv[n++] = strdup(str);
+	    }
+	}
+    }
+
     child_argv[n] = NULL;
 
     if (useAttach) {
@@ -1385,8 +1600,9 @@ void mutatorMAIN(char *pathname, bool useAttach)
     BPatch_image *appImage = appThread->getImage();
 
     // Signal the child that we've attached
-    if (useAttach)
+    if (useAttach) {
 	signalAttached(appThread, appImage);
+    }
 
     int i;
     BPatch_Vector<BPatch_module *> *m = appImage->getModules();
@@ -1399,203 +1615,35 @@ void mutatorMAIN(char *pathname, bool useAttach)
     for (i=0; i < p->size(); i++) {
         // dprintf("func %s\n", (*p)[i]->name());
     }
-    // Start Test Case #1 - mutator side (call a zero argument function)
 
-    // Find the entry point to the procedure "func1_1"
-    BPatch_Vector<BPatch_point *> *point1_1 =
-	appImage->findProcedurePoint("func1_1", BPatch_entry);
+    if (runTest[1]) mutatorTest1(appThread, appImage);
+    if (runTest[2]) mutatorTest2(appThread, appImage);
+    if (runTest[3]) mutatorTest3(appThread, appImage);
+    if (runTest[4]) mutatorTest4(appThread, appImage);
+    if (runTest[5]) mutatorTest5(appThread, appImage);
+    if (runTest[6]) mutatorTest6(appThread, appImage);
+    if (runTest[7]) mutatorTest7(appThread, appImage);
+    if (runTest[8]) mutatorTest8(appThread, appImage);
+    if (runTest[9]) mutatorTest9(appThread, appImage);
+    if (runTest[10]) mutatorTest10(appThread, appImage);
+    if (runTest[11]) mutatorTest11(appThread, appImage);
 
-    if ((*point1_1).size() == 0) {
-        fprintf(stderr, "**Failed** test #1 (zero arg function call)\n");
-	fprintf(stderr, "    Unable to find entry point to \"func1_1.\"\n");
-	exit(1);
-    }
+    if (runTest[12]) mutatorTest12a(appThread, appImage);
 
-    BPatch_function *call1_func = appImage->findFunction("call1_1");
-    if (call1_func == NULL) {
-        fprintf(stderr, "**Failed** test #1 (zero arg function call)\n");
-	fprintf(stderr, "Unable to find function \"call1_1\"\n");
-	exit(1);
-    }
+    if (runTest[13]) mutatorTest13(appThread, appImage);
+    if (runTest[14]) mutatorTest14(appThread, appImage);
 
-    BPatch_Vector<BPatch_snippet *> call1_args;
-    BPatch_funcCallExpr call1Expr(*call1_func, call1_args);
+    if (runTest[15]) mutatorTest15a(appThread, appImage);
 
-    dprintf("Inserted snippet2\n");
-    checkCost(call1Expr);
-    appThread->insertSnippet(call1Expr, *point1_1);
+    if (runTest[16]) mutatorTest16(appThread, appImage);
 
-    //
-    // Start Test Case #2 - mutator side (call a three argument function)
-    //
+    if (runTest[17]) mutatorTest17(appThread, appImage);
+    if (runTest[18]) mutatorTest18(appThread, appImage);
+    if (runTest[20]) mutatorTest20(appThread, appImage);
 
-    // Find the entry point to the procedure "func2_1"
-    BPatch_Vector<BPatch_point *> *point2_1 =
-	appImage->findProcedurePoint("func2_1", BPatch_entry);
-
-    if (!point2_1 || ((*point2_1).size() == 0)) {
-	fprintf(stderr, "**Failed** test #2 (three parameter function)\n");
-	fprintf(stderr, "    Unable to find entry point to \"func2_1.\"\n");
-	exit(1);
-    }
-
-    BPatch_function *call2_func = appImage->findFunction("call2_1");
-    if (call2_func == NULL) {
-	fprintf(stderr, "**Failed** test #2 (three parameter function)\n");
-	fprintf(stderr, "    Unable to find function \"call2_1.\"\n");
-	exit(1);
-    }
-
-    BPatch_Vector<BPatch_snippet *> call2_args;
-    BPatch_constExpr expr2_1(1);
-    BPatch_constExpr expr2_2(2);
-    BPatch_constExpr expr2_3("testString2_1");
-    call2_args.push_back(&expr2_1);
-    call2_args.push_back(&expr2_2);
-    call2_args.push_back(&expr2_3);
-
-    BPatch_funcCallExpr call2Expr(*call2_func, call2_args);
-
-    dprintf("Inserted snippet2\n");
-    checkCost(call2Expr);
-    appThread->insertSnippet(call2Expr, *point2_1);
-
-    //
-    // Start Test Case #3 - mutator side (passing variables to function)
-    //
-
-    // Find the entry point to the procedure "func3_1"
-    BPatch_Vector<BPatch_point *> *point3_1 =
-	appImage->findProcedurePoint("func3_1", BPatch_entry);
-
-    if (!point3_1 || ((*point3_1).size() == 0)) {
-	fprintf(stderr, "Unable to find entry point to \"func3_1.\"\n");
-	exit(1);
-    }
-
-    BPatch_function *call3_func = appImage->findFunction("call3_1");
-    if (call3_func == NULL) {
-	fprintf(stderr, "Unable to find function \"call3_1.\"\n");
-	exit(1);
-    }
-
-    BPatch_Vector<BPatch_snippet *> call3_args;
-
-    BPatch_variableExpr *expr3_1 = appImage->findVariable("globalVariable3_1");
-    if (!expr3_1) {
-	fprintf(stderr, "**Failed** test #3 (passing variables)\n");
-	fprintf(stderr, "    Unable to locate variable globalVariable3_1\n");
-	exit(1);
-    }
-    // see if we can find the address
-    if (expr3_1->getBaseAddr() <= 0) {
-	printf("*Error*: address %d for globalVariable3_1 is not valid\n",
-		(int) expr3_1->getBaseAddr());
-    }
-
-    BPatch_variableExpr *expr3_2 = appThread->malloc(*appImage->findType("int"));
-    if (!expr3_2) {
-	fprintf(stderr, "**Failed** test #3 (passing variables)\n");
-	fprintf(stderr, "    Unable to create new int variable\n");
-	exit(1);
-    }
-
-    call3_args.push_back(expr3_1);
-    call3_args.push_back(expr3_2);
-
-    BPatch_funcCallExpr call3Expr(*call3_func, call3_args);
-    checkCost(call3Expr);
-    appThread->insertSnippet(call3Expr, *point3_1);
-
-    BPatch_arithExpr expr3_3(BPatch_assign, *expr3_2, BPatch_constExpr(32));
-    checkCost(expr3_3);
-    appThread->insertSnippet(expr3_3, *point3_1);
-
-    dprintf("Inserted snippet3\n");
-    //
-    // Start Test Case #4 - mutator side (sequence)
-    //
-
-    // Find the entry point to the procedure "func4_1"
-    BPatch_Vector<BPatch_point *> *point4_1 =
-	appImage->findProcedurePoint("func4_1", BPatch_entry);
-
-
-    BPatch_variableExpr *expr4_1 = appImage->findVariable("globalVariable4_1");
-    if (!expr4_1) {
-	fprintf(stderr, "**Failed** test #4 (sequence)\n");
-	fprintf(stderr, "    Unable to locate variable globalVariable4_1\n");
-	exit(1);
-    }
-
-    BPatch_arithExpr expr4_2(BPatch_assign, *expr4_1, BPatch_constExpr(42));
-    BPatch_arithExpr expr4_3(BPatch_assign, *expr4_1, BPatch_constExpr(43));
-
-    BPatch_Vector<BPatch_snippet*> vect4_1;
-    vect4_1.push_back(&expr4_2);
-    vect4_1.push_back(&expr4_3);
-
-    BPatch_sequence expr4_4(vect4_1);
-    checkCost(expr4_4);
-    appThread->insertSnippet(expr4_4, *point4_1);
-
-    //
-    // Start Test Case #5 - mutator side (if w.o. else)
-    //
-
-    // Find the entry point to the procedure "func5_1"
-    BPatch_Vector<BPatch_point *> *point5_1 =
-	appImage->findProcedurePoint("func5_1", BPatch_entry);
-    BPatch_variableExpr *expr5_1 = appImage->findVariable("globalVariable5_1");
-    BPatch_variableExpr *expr5_2 = appImage->findVariable("globalVariable5_2");
-    if (!expr5_1 || !expr5_2) {
-	fprintf(stderr, "**Failed** test #5 (1f w.o. else)\n");
-	fprintf(stderr, "    Unable to locate variable globalVariable5_1 or ");
-	fprintf(stderr, "    variable globalVariable5_2\n");
-	exit(1);
-    }
-
-    BPatch_Vector<BPatch_snippet*> vect5_1;
-
-    // if (0 == 1) globalVariable5_1 = 52;
-    BPatch_ifExpr expr5_3(
-	BPatch_boolExpr(BPatch_eq, BPatch_constExpr(0), BPatch_constExpr(1)), 
-	BPatch_arithExpr(BPatch_assign, *expr5_1, BPatch_constExpr(52)));
-
-    // if (1 == 1) globalVariable5_2 = 53;
-    BPatch_ifExpr expr5_4(
-	BPatch_boolExpr(BPatch_eq, BPatch_constExpr(1), BPatch_constExpr(1)), 
-	BPatch_arithExpr(BPatch_assign, *expr5_2, BPatch_constExpr(53)));
-
-    vect5_1.push_back(&expr5_3);
-    vect5_1.push_back(&expr5_4);
-
-    BPatch_sequence expr5_5(vect5_1);
-    checkCost(expr5_5);
-    appThread->insertSnippet(expr5_5, *point5_1);
-    mutatorTest6(appThread, appImage);
-    mutatorTest7(appThread, appImage);
-
-    mutatorTest8(appThread, appImage);
-
-    mutatorTest9(appThread, appImage);
-
-    mutatorTest10(appThread, appImage);
-
-    mutatorTest11(appThread, appImage);
-
-    mutatorTest12a(appThread, appImage);
-    mutatorTest13(appThread, appImage);
-    mutatorTest14(appThread, appImage);
-    mutatorTest15a(appThread, appImage);
-    mutatorTest16(appThread, appImage);
-    mutatorTest17(appThread, appImage);
-
-    mutatorTest18(appThread, appImage);
-
-    mutatorTest20(appThread, appImage);
-    mutatorTest21(appThread, appImage);    // find function in module
-    mutatorTest22(appThread, appImage);    // replaceFunction
+    if (runTest[21] || runTest[22]) readyTest21or22(appThread);
+    if (runTest[21]) mutatorTest21(appThread, appImage); 
+    if (runTest[22]) mutatorTest22(appThread, appImage);
 
     // Start of code to continue the process.  All mutations made
     // above will be in place before the mutatee begins its tests.
@@ -1606,9 +1654,9 @@ void mutatorMAIN(char *pathname, bool useAttach)
     // Test poll for status change
     bool changed = bpatch->pollForStatusChange();
 
-    mutatorTest12b(appThread, appImage);
-    mutatorTest15b(appThread, appImage);
-    mutatorTest19(appThread, appImage);
+    if (runTest[12]) mutatorTest12b(appThread, appImage);
+    if (runTest[15]) mutatorTest15b(appThread, appImage);
+    if (runTest[19]) mutatorTest19(appThread, appImage);
 
     while (!appThread->isTerminated())
 	bpatch->waitForStatusChange();
@@ -1622,9 +1670,9 @@ void mutatorMAIN(char *pathname, bool useAttach)
 int
 main(int argc, char *argv[])
 {
+    char libname[256];
     bool useAttach = false;
 
-    char libname[256];
     libname[0]='\0';
 
 #if !defined(USES_LIBDYNINSTRT_SO)
@@ -1643,7 +1691,14 @@ main(int argc, char *argv[])
     }
 #endif
 
-    for (int i=1; i < argc; i++) {
+    unsigned int i;
+    // by default run all tests
+    for (i=0; i <= MAX_TEST; i++) {
+        runTest[i] = true;
+        passedTest[i] = false;
+    }
+
+    for (i=1; i < argc; i++) {
 	if (!strcmp(argv[i], "-verbose")) {
 	    debugPrint = 1;
 	} else if (!strcmp(argv[i], "-V")) {
@@ -1652,11 +1707,39 @@ main(int argc, char *argv[])
             fflush(stdout);
 	} else if (!strcmp(argv[i], "-attach")) {
 	    useAttach = true;
+	} else if (!strcmp(argv[i], "-run")) {
+	    unsigned int j;
+	    runAllTests = false;
+            for (j=0; j <= MAX_TEST; j++) runTest[j] = false;
+            for (j=i+1; j < argc; j++) {
+                int testId;
+                if (testId = atoi(argv[j])) {
+                    if ((testId > 0) && (testId <= MAX_TEST)) {
+                        runTest[testId] = true;
+                    } else {
+                        printf("invalid test %d requested\n", testId);
+                        exit(-1);
+                    }
+                } else {
+                    // end of test list
+		    break;
+                }
+            }
+            i=j-1;
 	} else {
-	    fprintf(stderr, "Usage: test1 [-V] [-attach] [-verbose]\n");
+	    fprintf(stderr, "Usage: test1 [-V] [-attach] [-verbose] [-run <test#> <test #> ...]\n");
 	    exit(-1);
 	}
     }
+
+    if (!runAllTests) {
+        printf("Running Tests: ");
+	for (int j=1; j <= MAX_TEST; j++) {
+	    if (runTest[j]) printf("%d ", j);
+	}
+	printf("\n");
+    }
+
 
 #if defined(sparc_sun_sunos4_1_3)
     if (useAttach) {
@@ -1665,12 +1748,16 @@ main(int argc, char *argv[])
     }
 #endif
 
-
 #ifdef i386_unknown_nt4_0
     mutatorMAIN("test1.mutatee.exe", useAttach);
 #else
     mutatorMAIN("test1.mutatee", useAttach);
 #endif
+
+    bool allPassed = true;
+    for (i=1; i <= MAX_TEST; i++) {
+        if (runTest[i] && !passedTest[i]) allPassed = false;
+    }
 
     return 0;
 }

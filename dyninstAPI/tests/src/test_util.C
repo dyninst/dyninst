@@ -1,5 +1,5 @@
 //
-// $Id: test_util.C,v 1.9 1999/06/08 06:01:26 csserra Exp $
+// $Id: test_util.C,v 1.10 1999/06/29 19:02:15 hollings Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -144,6 +144,7 @@ int startNewProcessForAttach(char *pathname, char *argv[])
     // Wait for the child to write to the pipe
     char ch;
     if (read(fds[0], &ch, sizeof(char)) != sizeof(char)) {
+	perror("read");
 	fprintf(stderr, "*ERROR*: Error reading from pipe\n");
 	exit(-1);
     }

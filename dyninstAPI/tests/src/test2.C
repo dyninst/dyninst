@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.19 1999/06/17 19:30:14 wylie Exp $
+// $Id: test2.C,v 1.20 1999/06/29 19:02:14 hollings Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -44,26 +44,273 @@
 #define MUTATEE_NAME	"./test2.mutatee"
 #endif
 
+BPatch_thread *mutatorMAIN(char *path);
 extern "C" const char V_libdyninstAPI[];
 
+bool useAttach = false;
 int debugPrint = 0;
 bool expectErrors = false;
 bool gotError = false;
+
+bool runAllTests = true;
+const int MAX_TEST = 14;
+bool runTest[MAX_TEST+1];
+bool passedTest[MAX_TEST+1];
 
 BPatch *bpatch;
 
 // control debug printf statements
 #define dprintf	if (debugPrint) printf
 
-void test10a(BPatch_thread *appThread, BPatch_image *appImage)
+//
+// Test #1 - run an executable that does not exist
+//	Attempt to run a program file that does not exist.  Should return a
+//	null values from createProcess (called via mutatorMAIN)
+//
+
+void test1()
+{
+    if (useAttach) {
+	printf("Skipping test #1 (run an executable that does not exist)\n");
+	printf("    not relevant with -attach option\n");
+	passedTest[1] = true;
+    } else {
+	// try to run a program that does not exist
+	gotError = false;
+	BPatch_thread *ret = mutatorMAIN("./noSuchFile");
+	if (ret || !gotError) {
+	    printf("**Failed** test #1 (run an executable that does not exist)\n");
+	    if (ret)
+		printf("    created a thread handle for a non-existant file\n");
+	    if (!gotError)
+		printf("    the error callback should have been called but wasn't\n");
+	} else {
+	    printf("Passed test #1 (run an executable that does not exist)\n");
+	    passedTest[1] = true;
+	}
+    }
+}
+
+//
+// Test #2 - try to execute a file that is not a valid program
+//	Try to run a createProcess on a file that is not an executable file 
+//	(via mutatorMAIN).
+//
+void test2()
+{
+    if (useAttach) {
+	printf("Skipping test #2 (try to execute a file that is not a valid program)\n");
+	printf("    not relevant with -attach option\n");
+	passedTest[2] = true;
+	return;
+    }
+
+    // try to run a files that is not a valid program
+    gotError = false;
+#ifdef i386_unknown_nt4_0
+    BPatch_thread *ret = mutatorMAIN("nul:");
+#else
+    BPatch_thread *ret = mutatorMAIN("/dev/null");
+#endif
+    if (ret || !gotError) {
+	printf("**Failed** test #2 (try to execute a file that is not a valid program)\n");
+	if (ret)
+	    printf("    created a thread handle for invalid executable\n");
+	if (!gotError)
+	    printf("    the error callback should have been called but wasn't\n");
+    } else {
+	printf("Passed test #2 (try to execute a file that is not a valid program)\n");
+	passedTest[2] = true;
+    }
+}
+
+//
+// Test #3 - attach to an invalid pid
+//	Try to attach to an invalid pid number (65539).
+//
+void test3()
+{
+#if defined(sparc_sun_sunos4_1_3)
+    printf("Skipping test #3 (attach to an invalid pid)\n");
+    printf("    attach is not supported on this platform\n");
+    passedTest[3] = true;
+#else
+    // attach to an an invalid pid
+    gotError = false;
+    BPatch_thread *ret = bpatch->attachProcess(MUTATEE_NAME, 65539);
+    if (ret || !gotError) {
+	printf("**Failed** test #3 (attach to an invalid pid)\n");
+	if (ret)
+    	    printf("    created a thread handle for invalid executable\n");
+	if (!gotError)
+	    printf("    the error callback should have been called but wasn't\n");
+    } else {
+	printf("Passed test #3 (attach to an invalid pid)\n");
+	passedTest[3] = true;
+    }
+#endif
+}
+
+//
+// Test #4 - attach to a protected pid
+//	Try to attach to a "protected pid" number.  This should test the
+//	procfs attach to a pid that we don't have "rw" access to. The pid
+//	selected is pid #1 which is a OS kernel process that user processes
+//	can't read or write.
+//
+
+void test4()
+{
+#if defined(sparc_sun_sunos4_1_3)
+    printf("Skipping test #4 (attach to a protected pid)\n");
+    printf("    attach is not supported on this platform\n");
+    passedTest[4] = true;
+#else
+    // attach to an a protected pid
+    gotError = false;
+    BPatch_thread *ret = bpatch->attachProcess(MUTATEE_NAME, 1);
+    if (ret || !gotError) {
+	printf("**Failed** test #4 (attach to a protected pid)\n");
+	if (ret)
+    	    printf("    created a thread handle for invalid executable\n");
+	if (!gotError)
+	    printf("    the error callback should have been called but wasn't\n");
+    } else {
+	printf("Passed test #4 (attach to a protected pid)\n");
+	passedTest[4] = true;
+    }
+#endif
+}
+
+//
+// Test #5 - look up nonexistent function)
+//	Try to call findFunction on a function that is not defined for the
+//	process.
+//
+void test5(BPatch_image *img)
+{
+    gotError = false;
+    expectErrors = true; // test #5 causes error #100 (Unable to find function)
+    BPatch_function *func = img->findFunction("NoSuchFunction");
+    expectErrors = false;
+    if (func || !gotError) {
+	printf("**Failed** test #5 (look up nonexistent function)\n");
+	if (func)
+    	    printf("    non-null for findFunction on non-existant func\n");
+	if (!gotError)
+	    printf("    the error callback should have been called but wasn't\n");
+    } else {
+	printf("Passed test #5 (look up nonexistent function)\n");
+	passedTest[5] = true;
+    }
+}
+
+//
+// Test #6 - load a dynamically linked library from the mutatee
+//	Have the mutatee use dlopen (or NT loadLibrary) to load a shared library
+//	into itself.  We should then be able to see the new functions from the
+//	library via getModules.
+//
+
+void test6(BPatch_thread *thread, BPatch_image *img)
+{
+    int i;
+
+#if !defined(sparc_sun_solaris2_4)  && !defined(i386_unknown_solaris2_5) && \
+    !defined(i386_unknown_linux2_0) && !defined(mips_sgi_irix6_4) && \
+    !defined(alpha_dec_osf4_0)
+    printf("Skipping test #6 (load a dynamically linked library from the mutatee)\n");
+    printf("    feature not implemented on this platform\n");
+    passedTest[6] = true;
+#else
+
+    bool found = false;
+
+    // see if the dlopen happended.
+    char match2[256];
+    sprintf(match2, "%s_module", TEST_DYNAMIC_LIB);
+    BPatch_Vector<BPatch_module *> *m = img->getModules();
+    for (i=0; i < m->size(); i++) {
+	    char name[80];
+	    (*m)[i]->getName(name, sizeof(name));
+	    if (strcmp(name, TEST_DYNAMIC_LIB) == 0 ||
+		strcmp(name, match2) == 0) {
+		found = true;
+		break;
+	    }
+    }
+    if (found) {
+    	printf("Passed test #6 (load a dynamically linked library from the mutatee)\n");
+	passedTest[6] = true;
+    } else {
+    	printf("**Failed** test #6 (load a dynamically linked library from the mutatee)\n");
+	printf("    image::getModules() did not indicate that the library had been loaded\n");
+    }
+#endif
+}
+
+//
+// Test #7 - load a dynamically linked library from the mutator
+// 	Have the mutator "force" a load of a library into the mutatee.
+//	We then check that the new symbols are found in the thread via the
+//	getModules method.
+//
+void test7(BPatch_thread *thread, BPatch_image *img)
+{
+#if !defined(sparc_sun_solaris2_4)  && !defined(i386_unknown_solaris2_5) && \
+    !defined(i386_unknown_linux2_0) && !defined(mips_sgi_irix6_4)
+    printf("Skipping test #7 (load a dynamically linked library from the mutator)\n");
+    printf("    feature not implemented on this platform\n");
+    passedTest[7] = true;
+#else
+
+    if (!thread->loadLibrary(TEST_DYNAMIC_LIB2)) {
+    	printf("**Failed** test #7 (load a dynamically linked library from the mutator)\n");
+	printf("    BPatch_thread::loadLibrary returned an error\n");
+    } else {
+	// see if it worked
+	bool found = false;
+	char match2[256];
+	sprintf(match2, "%s_module", TEST_DYNAMIC_LIB2);
+	BPatch_Vector<BPatch_module *> *m = img->getModules();
+	for (int i=0; i < m->size(); i++) {
+		char name[80];
+		(*m)[i]->getName(name, sizeof(name));
+		if (strcmp(name, TEST_DYNAMIC_LIB2) == 0 ||
+		    strcmp(name, match2) == 0) {
+		    found = true;
+		    break;
+		}
+	}
+	if (found) {
+	    printf("Passed test #7 (load a dynamically linked library from the mutator)\n");
+	    passedTest[7] = true;
+	} else {
+	    printf("**Failed** test #7 (load a dynamically linked library from the mutator)\n");
+	    printf("    image::getModules() did not indicate that the library had been loaded\n");
+	}
+    }
+#endif
+}
+
+//
+// Start of test #8 - BPatch_breakPointExpr
+//
+//   There are two parts to the mutator side of this test.  The first part
+//     (test8a) inserts a BPatch_breakPointExpr into the entry point of
+//     the function test8_1.  The secon pat (test8b) waits for this breakpoint
+//     to be reached.  The first part is run before the processes is continued
+//     (i.e. just after process creation or attach).
+//
+void test8a(BPatch_thread *appThread, BPatch_image *appImage)
 {
     /*
      * Instrument a function with a BPatch_breakPointExpr.
      */
     BPatch_Vector<BPatch_point*> *points =
-	appImage->findProcedurePoint("func10_1", BPatch_entry);
+	appImage->findProcedurePoint("func8_1", BPatch_entry);
     if (points == NULL) {
-	printf("**Failed** test #10 (BPatch_breakPointExpr)\n");
+	printf("**Failed** test #8 (BPatch_breakPointExpr)\n");
 	printf("    unable to locate function \"func10_1\".\n");
 	exit(1);
     }
@@ -71,18 +318,118 @@ void test10a(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_breakPointExpr bp;
 
     if (appThread->insertSnippet(bp, *points) == NULL) {
-	printf("**Failed** test #10 (BPatch_breakPointExpr)\n");
+	printf("**Failed** test #8 (BPatch_breakPointExpr)\n");
 	printf("    unable to insert breakpoint snippet\n");
 	exit(1);
     }
 }
 
+void test8b(BPatch_thread *thread)
+{
+    // Wait for process to finish
+    waitUntilStopped(bpatch, thread, 8, "BPatch_breakPointExpr");
+
+    // waitUntilStopped would not return is we didn't stop
+    printf("Passed test #8 (BPatch_breakPointExpr)\n");
+    passedTest[8] = true;
+}
+
+//
+// Test #9 - dump core but do not terminate
+//	This test dumps the core file from the mutatee process, without having
+//	the process terminate exuection.  It looks for the creation of the file
+//	"mycore" in the current directory.
+//      
+void test9(BPatch_thread *thread)
+{
+#if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4) && !defined(mips_sgi_irix6_4)
+    printf("Skipping test #9 (dump core but do not terminate)\n");
+    printf("    BPatch_thread::dumpCore not implemented on this platform\n");
+    passedTest[9] = true;
+#else
+    // dump core, but do not terminate.
+    // this doesn't seem to do anything - jkh 7/12/97
+    if (access("mycore", F_OK) == 0) {
+        dprintf("File \"mycore\" exists.  Deleting it.\n");
+	if (unlink("mycore") != 0) {
+	    printf("Couldn't delete the file \"mycore\".  Exiting.\n");
+	    exit(-1);
+	}
+    }
+
+    gotError = false;
+    thread->dumpCore("mycore", true);
+    bool coreExists = (access("mycore", F_OK) == 0);
+    if (gotError || !coreExists) {
+	printf("**Failed** test #9 (dump core but do not terminate)\n");
+	if (gotError)
+	    printf("    error reported by dumpCore\n");
+	if (!coreExists)
+	    printf("    the core file wasn't written\n");
+    } else {
+	unlink("mycore");
+    	printf("Passed test #9 (dump core but do not terminate)\n");
+	passedTest[9] = true;
+    }
+#endif
+}
+
+//
+// Test #10 - dump image
+//	This test dumps out the modified program file.  Note: only the 
+//      modified executable is written, any shared libraries that have been
+//	instrumented are not written.  In addition, the current dyninst
+//	shared library is *NOT* written either.  Thus the results image is
+//	really only useful for checking the state of instrumentation code
+//	via gdb. It will crash if you try to run it.
+//
+void test10(BPatch_thread *thread)
+{
+#if !defined(rs6000_ibm_aix4_1)    && !defined(sparc_sun_sunos4_1_3)  && \
+    !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_linux2_0) && \
+    !defined(mips_sgi_irix6_4) && !defined(alpha_dec_osf4_0)
+    printf("Skipping test #10 (dump image)\n");
+    printf("    BPatch_thread::dumpImage not implemented on this platform\n");
+    passedTest[10] = true;
+#else
+    // dump image
+    if (access("myimage", F_OK) == 0) {
+	dprintf("File \"myimage\" exists.  Deleting it.\n");
+	if (unlink("myimage") != 0) {
+	    printf("Couldn't delete the file \"myimage\".  Exiting.\n");
+	    exit(-1);
+	}
+    }
+
+    gotError = false;
+    thread->dumpImage("myimage");
+    bool imageExists = (access("myimage", F_OK) == 0);
+    if (gotError || !imageExists) {
+	printf("**Failed** test #10 (dump image)\n");
+	if (gotError)
+	    printf("    error reported by dumpImage\n");
+	if (!imageExists)
+	    printf("    the image file wasn't written\n");
+    } else {
+    	printf("Passed test #10 (dump image)\n");
+	unlink("myimage");
+	passedTest[10] = true;
+    }
+#endif
+}
+
+//
+// Test 11 - getDisplacedInstructions
+//	This function tests the getDisplacedInstructions instructions methods.
+//	Currently this tests is only enabled on AIX platforms.
+//
 void test11(BPatch_thread * /*appThread*/, BPatch_image *appImage)
 {
 #if !defined(rs6000_ibm_aix4_1)
     // Test getDisplacedInstructions
     printf("Skipping test #11 (getDisplacedInstructions)\n");
     printf("         - not implemented on this platform\n");
+    passedTest[11] = true;
 #else
     BPatch_Vector<BPatch_point*> *points =
 	appImage->findProcedurePoint("func11_1", BPatch_entry);
@@ -111,6 +458,14 @@ void test11(BPatch_thread * /*appThread*/, BPatch_image *appImage)
 #endif
 }
 
+//
+// Test #12 - BPatch_point query funcs
+//	This tests the BPatch_point functions that supply information about
+//	an inst. point:
+//		getAddress - should return the address of the point
+//		usesTrap_NP - returns true of the point requires a trap
+//			instruction.
+
 void test12(BPatch_thread *appThread, BPatch_image *appImage)
 {
 
@@ -128,9 +483,71 @@ void test12(BPatch_thread *appThread, BPatch_image *appImage)
     bool trapFlag = (*points)[0]->usesTrap_NP();
 
     printf("Passed test #12 (BPatch_point query funcs)\n");
+    passedTest[12] = true;
 }
 
-BPatch_thread *mutatorMAIN(char *pathname, bool useAttach)
+//
+// Test 13 - Look through the thread list and make sure the thread has
+//    been deleted as required.
+//
+void test13(BPatch_thread *thread)
+{
+    bool failed_this = false;
+    BPatch_Vector<BPatch_thread *> *threads = bpatch->getThreads();
+    for (int i=0; i < threads->size(); i++) {
+	if ((*threads)[i] == thread) {
+	    printf("**Failed** test #13 (delete thread)\n"); 
+	    printf("    thread %d was deleted, but getThreads found it\n",
+		thread->getPid());
+	    failed_this = true;
+	}
+    }
+
+    if (!failed_this) {
+	printf("Passed test #13 (delete thread)\n");
+	passedTest[13] = true;
+    }
+}
+
+//
+// Test 14 - Test process management
+//	createThread
+//	continueThread
+//	terminateThread
+//
+void test14()
+{
+    BPatch_thread *ret;
+
+    // Now test forking.
+    char *child_argv[4];
+
+    child_argv[0] = MUTATEE_NAME;
+    child_argv[1] = "-fork";
+    child_argv[2] = NULL;
+    ret = bpatch->createProcess(MUTATEE_NAME, child_argv);
+
+    if (!ret) {
+	printf("**Failed** test #14 (process mgmnt. tests)\n"); // LAST TEST
+	printf("    unable to create the new process\n");
+	return;
+    }
+
+    if (ret->isStopped()) ret->continueExecution();
+
+    bool dead = ret->terminateExecution();
+    if (!dead) {
+	printf("**Failed** test #14 (process mgmnt. tests)\n"); // LAST TEST
+	printf("    unable to terminate the new process\n");
+	return;
+    }
+
+    printf("Passed test #14 (process mgmnt. tests)\n");
+    passedTest[14] = true;
+    return;
+}
+
+BPatch_thread *mutatorMAIN(char *pathname)
 {
     BPatch_thread *appThread;
 
@@ -142,6 +559,18 @@ BPatch_thread *mutatorMAIN(char *pathname, bool useAttach)
     int n = 0;
     child_argv[n++] = pathname;
     if (debugPrint) child_argv[n++] = "-verbose";
+
+    if (!runAllTests) {
+        child_argv[n++] = "-run";
+        for (int j=0; j <= MAX_TEST; j++) {
+            if (runTest[j]) {
+                char str[5];
+                sprintf(str, "%d", j);
+                child_argv[n++] = strdup(str);
+            }
+        }
+    }
+
     child_argv[n] = NULL;
 
     if (useAttach) {
@@ -175,37 +604,6 @@ void errorFunc(BPatchErrorLevel level, int num, const char **params)
     }
 }
 
-bool processMgmntTests()
-{
-    BPatch_thread *ret;
-
-    // Now test forking.
-    char *child_argv[4];
-
-    child_argv[0] = MUTATEE_NAME;
-    child_argv[1] = "-fork";
-    child_argv[2] = NULL;
-    ret = bpatch->createProcess(MUTATEE_NAME, child_argv);
-
-    if (!ret) {
-	printf("**Failed** test #14 (process mgmnt. tests)\n"); // LAST TEST
-	printf("    unable to create the new process\n");
-	return(true);
-    }
-
-    if (ret->isStopped()) ret->continueExecution();
-
-    bool dead = ret->terminateExecution();
-    if (!dead) {
-	printf("**Failed** test #14 (process mgmnt. tests)\n"); // LAST TEST
-	printf("    unable to terminate the new process\n");
-	return(true);
-    }
-
-    printf("Passed test #14 (process mgmnt. tests)\n");
-    return false;
-}
-
 //
 // main - decide our role and call the correct "main"
 //
@@ -213,8 +611,6 @@ int
 main(int argc, char *argv[])
 {
     BPatch_thread *ret;
-    bool useAttach = false;
-    bool failed = false;
 
     char libname[256];
     libname[0]='\0';
@@ -236,6 +632,13 @@ main(int argc, char *argv[])
 #endif
 
     int i;
+
+    // by default run all tests
+    for (i=0; i <= MAX_TEST; i++) {
+        runTest[i] = true;
+        passedTest[i] = false;
+    }
+
     for (i=1; i < argc; i++) {
 	if (!strcmp(argv[i], "-verbose")) {
 	    debugPrint = 1;
@@ -245,8 +648,27 @@ main(int argc, char *argv[])
             fflush(stdout);
 	} else if (!strcmp(argv[i], "-attach")) {
 	    useAttach = true;
+        } else if (!strcmp(argv[i], "-run")) {
+            unsigned int j;
+            runAllTests = false;
+            for (j=0; j <= MAX_TEST; j++) runTest[j] = false;
+            for (j=i+1; j < argc; j++) {
+                int testId;
+                if (testId = atoi(argv[j])) {
+                    if ((testId > 0) && (testId <= MAX_TEST)) {
+                        runTest[testId] = true;
+                    } else {
+                        printf("invalid test %d requested\n", testId);
+                        exit(-1);
+                    }
+                } else {
+                    // end of test list
+                    break;
+                }
+            }
+            i = j-1;
 	} else {
-	    fprintf(stderr, "Usage: test2 [-V] [-attach] [-verbose]\n");
+	    fprintf(stderr, "Usage: test2 [-V] [-attach] [-verbose] [-run <test#> <test #> ...]\n");
 	    exit(-1);
 	}
     }
@@ -266,86 +688,19 @@ main(int argc, char *argv[])
     // Try failure cases
     expectErrors = true;
 
-    if (useAttach) {
-	printf("Skipping test #1 (run an executable that does not exist)\n");
-	printf("    not relevant with -attach option\n");
-    } else {
-	// try to run a program that does not exist
-	gotError = false;
-	ret = mutatorMAIN("./noSuchFile", useAttach);
-	if (ret || !gotError) {
-	    failed = true;
-	    printf("**Failed** test #1 (run an executable that does not exist)\n");
-	    if (ret)
-		printf("    created a thread handle for a non-existant file\n");
-	    if (!gotError)
-		printf("    the error callback should have been called but wasn't\n");
-	} else {
-	    printf("Passed test #1 (run an executable that does not exist)\n");
-	}
-    }
-
-    // try to run a files that is not a valid program
-    gotError = false;
-#ifdef i386_unknown_nt4_0
-    ret = mutatorMAIN("nul:", false);
-#else
-    ret = mutatorMAIN("/dev/null", false);
-#endif
-    if (ret || !gotError) {
-	printf("**Failed** test #2 (try to execute a file that is not a valid program)\n");
-	failed = true;
-	if (ret)
-	    printf("    created a thread handle for invalid executable\n");
-	if (!gotError)
-	    printf("    the error callback should have been called but wasn't\n");
-    } else {
-	printf("Passed test #2 (try to execute a file that is not a valid program)\n");
-    }
-
-#if defined(sparc_sun_sunos4_1_3)
-    printf("Skipping test #3 (attach to an invalid pid)\n");
-    printf("Skipping test #4 (attach to a protected pid)\n");
-    printf("    attach is not supported on this platform\n");
-#else
-    // attach to an an invalid pid
-    gotError = false;
-    ret = bpatch->attachProcess(MUTATEE_NAME, 65539);
-    if (ret || !gotError) {
-	printf("**Failed** test #3 (attach to an invalid pid)\n");
-	failed = true;
-	if (ret)
-    	    printf("    created a thread handle for invalid executable\n");
-	if (!gotError)
-	    printf("    the error callback should have been called but wasn't\n");
-    } else {
-	printf("Passed test #3 (attach to an invalid pid)\n");
-    }
-
-    // attach to an a protected pid
-    gotError = false;
-    ret = bpatch->attachProcess(MUTATEE_NAME, 1);
-    if (ret || !gotError) {
-	printf("**Failed** test #4 (attach to a protected pid)\n");
-	failed = true;
-	if (ret)
-    	    printf("    created a thread handle for invalid executable\n");
-	if (!gotError)
-	    printf("    the error callback should have been called but wasn't\n");
-    } else {
-	printf("Passed test #4 (attach to a protected pid)\n");
-    }
-#endif
+    if (runTest[1]) test1();
+    if (runTest[2]) test2();
+    if (runTest[3]) test3();
+    if (runTest[4]) test4();
 
     // Finished trying failure cases
     expectErrors = false;
 
     // now start a real program
     gotError = false;
-    ret = mutatorMAIN(MUTATEE_NAME, useAttach);
+    ret = mutatorMAIN(MUTATEE_NAME);
     if (!ret || gotError) {
 	printf("*ERROR*: unable to create handle for executable\n");
-	failed = true;
     }
 
     BPatch_image *img = ret->getImage();
@@ -354,166 +709,28 @@ main(int argc, char *argv[])
     if ( useAttach )
 		signalAttached( ret, img );
 
-    gotError = false;
-    expectErrors = true; // test #5 causes error #100 (Unable to find function)
-    BPatch_function *func = img->findFunction("NoSuchFunction");
-    expectErrors = false;
-    if (func || !gotError) {
-	printf("**Failed** test #5 (look up nonexistent function)\n");
-	failed = true;
-	if (func)
-    	    printf("    non-null for findFunction on non-existant func\n");
-	if (!gotError)
-	    printf("    the error callback should have been called but wasn't\n");
-    } else {
-	printf("Passed test #5 (look up nonexistent function)\n");
-    }
 
-    test10a(ret, img);
+    if (runTest[5]) test5(img);
+
+    if (runTest[8]) test8a(ret, img);
 
     ret->continueExecution();
 
-#if !defined(sparc_sun_solaris2_4)  && !defined(i386_unknown_solaris2_5) && \
-    !defined(i386_unknown_linux2_0) && !defined(mips_sgi_irix6_4) && \
-    !defined(alpha_dec_osf4_0)
-    printf("Skipping test #6 (load a dynamically linked library from the mutatee)\n");
-    printf("    feature not implemented on this platform\n");
+    // Tests 6 and 7 need to be run with the thread stopped
+    if (runTest[6] || runTest[7]) {
+	waitUntilStopped(bpatch, ret, 6, "load a dynamically linked library");
 
-    printf("Skipping test #7 (load a dynamically linked library from the mutator)\n");
-    printf("    feature not implemented on this platform\n");
-#else
+	if (runTest[6]) test6(ret, img);
+	if (runTest[7]) test7(ret, img);
 
-    bool found = false;
-
-    waitUntilStopped(bpatch, ret, 6, "load a dynamically linked library");
-
-    // see if the dlopen happended.
-    char match2[256];
-    sprintf(match2, "%s_module", TEST_DYNAMIC_LIB);
-    BPatch_Vector<BPatch_module *> *m = img->getModules();
-    for (i=0; i < m->size(); i++) {
-	    char name[80];
-	    (*m)[i]->getName(name, sizeof(name));
-	    if (strcmp(name, TEST_DYNAMIC_LIB) == 0 ||
-		strcmp(name, match2) == 0) {
-		found = true;
-		break;
-	    }
-    }
-    if (found) {
-    	printf("Passed test #6 (load a dynamically linked library from the mutatee)\n");
-    } else {
-    	printf("**Failed** test #6 (load a dynamically linked library from the mutatee)\n");
-	printf("    image::getModules() did not indicate that the library had been loaded\n");
-	failed = true;
+	ret->continueExecution();
     }
 
-#if defined(alpha_dec_osf4_0)
-    printf("Skipping test #7 (load a dynamically linked library from the mutator)\n");
-#else
-    if (!ret->loadLibrary(TEST_DYNAMIC_LIB2)) {
-    	printf("**Failed** test #7 (load a dynamically linked library from the mutator)\n");
-	printf("    BPatch_thread::loadLibrary returned an error\n");
-	failed = true;
-    } else {
-	// see if it worked
-	found = false;
-	char match2[256];
-	sprintf(match2, "%s_module", TEST_DYNAMIC_LIB2);
-	BPatch_Vector<BPatch_module *> *m = img->getModules();
-	for (i=0; i < m->size(); i++) {
-		char name[80];
-		(*m)[i]->getName(name, sizeof(name));
-		if (strcmp(name, TEST_DYNAMIC_LIB2) == 0 ||
-		    strcmp(name, match2) == 0) {
-		    found = true;
-		    break;
-		}
-	}
-	if (found) {
-	    printf("Passed test #7 (load a dynamically linked library from the mutator)\n");
-	} else {
-	    printf("**Failed** test #7 (load a dynamically linked library from the mutator)\n");
-	    printf("    image::getModules() did not indicate that the library had been loaded\n");
-	    failed = true;
-	}
-    }
-#endif
-
-    ret->continueExecution();
-
-#endif
-
-    // Wait for process to finish
-    waitUntilStopped(bpatch, ret, 8, "BPatch_breakPointExpr");
-
-    // waitUntilStopped would not return is we didn't stop
-    printf("Passed test #8 (BPatch_breakPointExpr)\n");
-
-#if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4) && !defined(mips_sgi_irix6_4)
-    printf("Skipping test #9 (dump core but do not terminate)\n");
-    printf("    BPatch_thread::dumpCore not implemented on this platform\n");
-#else
-    // dump core, but do not terminate.
-    // this doesn't seem to do anything - jkh 7/12/97
-    if (access("mycore", F_OK) == 0) {
-        dprintf("File \"mycore\" exists.  Deleting it.\n");
-	if (unlink("mycore") != 0) {
-	    printf("Couldn't delete the file \"mycore\".  Exiting.\n");
-	    exit(-1);
-	}
-    }
-
-    gotError = false;
-    ret->dumpCore("mycore", true);
-    bool coreExists = (access("mycore", F_OK) == 0);
-    if (gotError || !coreExists) {
-	printf("**Failed** test #9 (dump core but do not terminate)\n");
-	failed = true;
-	if (gotError)
-	    printf("    error reported by dumpCore\n");
-	if (!coreExists)
-	    printf("    the core file wasn't written\n");
-    } else {
-    	printf("Passed test #9 (dump core but do not terminate)\n");
-    }
-#endif
-
-#if !defined(rs6000_ibm_aix4_1)    && !defined(sparc_sun_sunos4_1_3)  && \
-    !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_linux2_0) && \
-    !defined(mips_sgi_irix6_4) && !defined(alpha_dec_osf4_0)
-    printf("Skipping test #10 (dump image)\n");
-    printf("    BPatch_thread::dumpImage not implemented on this platform\n");
-#else
-    // dump image
-    if (access("myimage", F_OK) == 0) {
-	dprintf("File \"myimage\" exists.  Deleting it.\n");
-	if (unlink("myimage") != 0) {
-	    printf("Couldn't delete the file \"myimage\".  Exiting.\n");
-	    exit(-1);
-	}
-    }
-
-    gotError = false;
-    ret->dumpImage("myimage");
-    bool imageExists = (access("myimage", F_OK) == 0);
-    if (gotError || !imageExists) {
-	printf("**Failed** test #10 (dump image)\n");
-	failed = true;
-	if (gotError)
-	    printf("    error reported by dumpImage\n");
-	if (!imageExists)
-	    printf("    the image file wasn't written\n");
-    } else {
-    	printf("Passed test #10 (dump image)\n");
-    }
-#endif
-
-    // Test getDisplacedInstructions
-    test11(ret, img);
-
-    // BPatch_point information functions
-    test12(ret, img);
+    if (runTest[8]) test8b(ret);
+    if (runTest[9]) test9(ret);
+    if (runTest[10]) test10(ret);
+    if (runTest[11]) test11(ret, img);
+    if (runTest[12]) test12(ret, img);
 
     /**********************************************************************
      * Kill process and make sure it goes away
@@ -538,30 +755,27 @@ main(int argc, char *argv[])
 #endif
 
     delete (ret);
-    bool failed_this = false;
-    BPatch_Vector<BPatch_thread *> *threads = bpatch->getThreads();
-    for (i=0; i < threads->size(); i++) {
-	if ((*threads)[i] == ret) {
-	    printf("**Failed** test #13 (delete thread)\n"); 
-	    printf("    thread %d was deleted, but getThreads found it\n",
-		ret->getPid());
-	    failed = true;
-	    failed_this = true;
-	}
-    }
 
-    if (!failed_this) {
-	printf("Passed test #13 (delete thread)\n");
-    }
-
-    failed |= processMgmntTests();
+    if (runTest[13]) test13(ret);
+    if (runTest[14]) test14();
 
     delete (bpatch);
 
-    if (failed) {
-	printf("**Failed** tests\n");
+    bool allPassed = true;
+    for (i=1; i <= MAX_TEST; i++) {
+	if (runTest[i] && !passedTest[i]) {
+	    allPassed = false;
+	}
+    }
+
+    if (allPassed) {
+	if (runAllTests) {
+	    printf("Passed all tests\n");
+	} else {
+	    printf("All requested tests passed\n");
+	}
     } else {
-	printf("Passed all tests\n");
+	printf("**Failed** tests\n");
     }
 
     return 0;
