@@ -64,7 +64,7 @@ bool BPatch_basicBlockLoop::containsAddress(unsigned long addr)
 
     for(unsigned int i = 0; i < blks.size(); i++) {
 	if (addr >= blks[i]->getStartAddress() &&
-	    addr <= blks[i]->getEndAddress()) 
+	    addr < blks[i]->getStartAddress() + blks[i]->size() ) 
 	    return true;
     }
 
