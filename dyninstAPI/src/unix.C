@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.91 2003/05/08 02:22:08 buck Exp $
+// $Id: unix.C,v 1.92 2003/05/08 23:48:42 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -490,6 +490,7 @@ int forwardSigToProcess(process *proc,
 #endif
     // Pass the signal along to the child
     if (!proc->continueWithForwardSignal(what)) {
+        cerr << "Couldn't forward signal " << what << endl;
         logLine("error  in forwarding  signal\n");
         showErrorCallback(38, "Error  in forwarding  signal");
         return 0;
@@ -661,12 +662,41 @@ int handleSigCritical(process *proc, procSignalWhat_t what, procSignalInfo_t inf
        return 0;
    }
 #endif
+
+#ifdef DEBUG
    signal_cerr << "caught signal, dying...  (sig="
                << (int) what << ")" << endl << flush;
 
-   proc->dumpImage("imagefile");
-   forwardSigToProcess(proc, what, info);
+   pdvector<pdvector<Frame> > stackwalks;
+   proc->walkStacks(stackwalks);
    
+   for (unsigned i = 0; i < stackwalks.size(); i++) {
+       pdvector<Frame> stackWalk = stackwalks[i];
+       fprintf(stderr, "LWP: %d, TID: %d\n",
+               stackWalk[0].getLWP()->get_lwp_id(),
+               stackWalk[0].getThread()->get_tid());
+#if defined(sparc_sun_solaris2_4)
+       lwpstatus status;
+       stackWalk[0].getLWP()->get_status(&status);
+       fprintf(stderr, "why: %d, what: %d\n",
+               status.pr_why, 
+               status.pr_what);
+#endif
+       
+       for (unsigned j = 0; j < stackWalk.size(); j++) {
+           fprintf(stderr, "PC: 0x%x   ", stackWalk[j].getPC());
+           pd_Function *func = proc->findFuncByAddr(stackWalk[j].getPC());
+           if (func)
+               fprintf(stderr, "%s", func->prettyName().c_str());
+           fprintf(stderr, "\n");
+       }
+       fprintf(stderr, "\n\n\n");
+   }
+
+#endif
+   proc->dumpImage("imagefile");
+   
+   forwardSigToProcess(proc, what, info);   
    return 1;
 }
 
@@ -777,7 +807,6 @@ int handleSyscallEntry(process *proc, procSignalWhat_t what,
 /* Only dyninst for now... paradyn should use this soon */
 int handleForkExit(process *proc, procSignalInfo_t info) {
     proc->nextTrapIsFork = false;
-
     // Fork handler time
     extern pdvector<process*> processVec;
     int childPid = info;
