@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.164 2003/11/24 17:38:33 schendel Exp $
+// $Id: perfStream.C,v 1.165 2003/12/08 19:04:56 schendel Exp $
 
 #include "common/h/headers.h"
 #include "rtinst/h/rtinst.h"
@@ -421,8 +421,10 @@ void processTraceStream(process *dproc)
 
                if(!callee || !caller){
                   cerr << "callee for addr " << ostream::hex << c->callee 
-                       << ostream::dec << " not found, caller = "
-                       << caller->ResourceFullName() << endl;
+                       << ostream::dec << " not found\n";
+                  if(caller)
+                     cerr << "   caller = " << caller->ResourceFullName()
+                          << endl;
                   break;
                }
 		 
