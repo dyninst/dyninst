@@ -206,9 +206,6 @@ DYNINSTstopProcessTimer(tTimer* timer) {
          * been restarted).
          */
         timer->total = DYNINSTgetCPUtime() - timer->start + timer->total; 
-        timer->counter = 0;
-        timer->mutex = 0;
-
         if (now < timer->start) {
             printf("id=%d, snapShot=%f total=%f, \n start=%f  now=%f\n",
                    timer->id.id, (double)timer->snapShot,
@@ -217,6 +214,8 @@ DYNINSTstopProcessTimer(tTimer* timer) {
             printf("process timer rollback\n"); fflush(stdout);
             abort();
         }
+        timer->counter = 0;
+        timer->mutex = 0;
     }
     else {
       timer->counter--;
@@ -305,9 +304,6 @@ DYNINSTstopWallTimer(tTimer* timer) {
          * been restarted).
          */
         timer->total    = DYNINSTgetWalltime() - timer->start + timer->total;
-        timer->counter  = 0;
-        timer->mutex    = 0;
-
         if (now < timer->start) {
             printf("id=%d, snapShot=%f total=%f, \n start=%f  now=%f\n",
                    timer->id.id, (double)timer->snapShot,
@@ -317,6 +313,8 @@ DYNINSTstopWallTimer(tTimer* timer) {
             fflush(stdout);
             abort();
         }
+        timer->counter  = 0;
+        timer->mutex    = 0;
     }
     else {
         timer->counter--;

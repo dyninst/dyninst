@@ -3,7 +3,10 @@
  *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
- * Revision 1.32  1996/06/27 14:35:03  naim
+ * Revision 1.33  1996/07/29 21:00:06  naim
+ * Fixing race condition - naim
+ *
+ * Revision 1.32  1996/06/27  14:35:03  naim
  * Preventing race condition in DYNINSTgenerateTraceRecord (change made by Xu
  * and commited by Oscar) - naim
  *
@@ -313,8 +316,6 @@ void DYNINSTstopProcessTimer(tTimer *timer)
          * been restarted).
          */
 	timer->total = DYNINSTgetCPUtime() - timer->start + timer->total;
-	timer->counter = 0;
-	timer->mutex = 0;
 	if (now < timer->start) {
             printf("id=%d, snapShot=%f total=%f, \n start=%f  now=%f\n",
                    timer->id.id, (double)timer->snapShot,
@@ -323,6 +324,8 @@ void DYNINSTstopProcessTimer(tTimer *timer)
             printf("RTunix: process timer rollback\n"); fflush(stdout);
             abort();
 	}
+	timer->counter = 0;
+	timer->mutex = 0;
     } else {
 	timer->counter--;
     }
@@ -364,9 +367,6 @@ void DYNINSTstopWallTimer(tTimer *timer)
          * been restarted).
          */
         timer->total    = DYNINSTgetWalltime() - timer->start + timer->total;
-        timer->counter  = 0;
-        timer->mutex    = 0;
-
         if (now < timer->start) {
             printf("id=%d, snapShot=%f total=%f, \n start=%f  now=%f\n",
                    timer->id.id, (double)timer->snapShot,
@@ -376,6 +376,8 @@ void DYNINSTstopWallTimer(tTimer *timer)
             fflush(stdout);
             abort();
         }
+        timer->counter  = 0;
+        timer->mutex    = 0;
     }
     else {
         timer->counter--;
