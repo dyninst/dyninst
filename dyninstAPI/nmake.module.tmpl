@@ -3,14 +3,20 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.17 2000/10/17 17:42:09 schendel Exp $
+# $Id: nmake.module.tmpl,v 1.18 2001/02/01 16:23:28 pcroth Exp $
 #
 
 SUITE_NAME	= Dyninst
 RELEASE_NUM	= 2.2
 #BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
 
-TARGET = libdyninstAPI.lib
+TARGET = libdyninstAPI.dll
+
+# building as a DLL is not the common case
+UNCOMMON_LINK		= true
+UNCOMMON_INSTALL	= true
+
+
 
 DEFINES      = -DBPATCH_LIBRARY -DBPATCH_SET_MUTATIONS_ACTIVE -DBPATCH_LIBRARY_F -DNEW_TIME_TYPES
 CFLAGS       = $(CFLAGS) $(DEFINES)
@@ -113,3 +119,7 @@ all: $(TARGET)
 
 {..\src\}.C.obj:
 	$(CXX) $(CXXFLAGS) -c $<
+
+$(DEST)/libdyninstAPI.dll:	libdyninstAPI.dll
+	$(CP) libdyninstAPI.dll $(DEST)
+

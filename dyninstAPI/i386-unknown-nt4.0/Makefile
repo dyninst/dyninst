@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.7 2001/02/01 01:07:31 schendel Exp $
+# $Id: Makefile,v 1.8 2001/02/01 16:23:30 pcroth Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -10,6 +10,11 @@
 include ../../nmake.config 
 
 # Now make any necessary architecture specific changes to variables:
+
+# we require an uncommon link
+LD		= link
+LDFLAGS	= -DLL -debug -pdb:none -export:V_libdyninstAPI
+
 
 SRCS =		../src/pdwinnt.C \
 		../src/inst-winnt.C \
@@ -23,11 +28,9 @@ OBJS = 		pdwinnt.obj \
 		arch-x86.obj \
 		AddressHandle-x86.obj
 
+LIBS		= imagehlp.lib advapi32.lib
 
-CXXFLAGS 	= $(CXXFLAGS) -DNO_MDL_PRINT
-
-# Link in advapi32.lib when gets converted to a dll
-#SYSLIBS	= $(SYSLIBS) advapi32.lib
+CXXFLAGS 	= $(CXXFLAGS) -DNO_MDL_PRINT -DBPATCH_DLL_BUILD
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
@@ -39,5 +42,13 @@ include ../nmake.module.tmpl
 
 include ../../nmake.library.tmpl
 
+# override target rule to force link to happen
+$(TARGET): $(OBJS)
+	@$(MAKE) $(VOUCHER)
+	$(LD) $(LDFLAGS) -out:$(TARGET) $(VOUCHER).obj $(OBJS) $(LIBS)
+
+install:	$(TARGET)
+	$(CP) $(TARGET) $(DEST)/$(TARGET)
+	$(CP) libdyninstAPI.lib $(DEST)/libdyninstAPI.lib
 
 # DO NOT DELETE
