@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.49 2004/04/06 21:47:23 legendre Exp $
+// $Id: linux-x86.C,v 1.50 2004/04/08 21:15:43 legendre Exp $
 
 #include <fstream>
 
@@ -382,9 +382,6 @@ bool process::loadDYNINSTlibCleanup()
   // this is pretty kludge. if the stack frame of _start is not the right
   // size, this would break.
   if (!writeDataSpace ((void*)(theEBP-6*sizeof(int)),6*sizeof(int),savedStackFrame)) return false;
-
-  if( isRunning_() )
-	  cerr << "WARNING -- process is running at trap from dlopenDYNINSTlib" << endl;
 
   delete savedRegs;
   savedRegs = NULL;
