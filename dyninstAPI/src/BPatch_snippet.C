@@ -39,12 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.15 1999/05/30 00:00:39 paradyn Exp $
+// $Id: BPatch_snippet.C,v 1.16 1999/06/29 15:59:11 wylie Exp $
 
 #include <string.h>
 #include "ast.h"
 #include "symtab.h"
 #include "process.h"
+#include "instPoint.h"
 
 #include "BPatch.h"
 #include "BPatch_snippet.h"
@@ -74,11 +75,11 @@ BPatch_snippet &BPatch_snippet::operator=(const BPatch_snippet &src)
 {
     // Check for x = x
     if (&src == this)
-	return *this;
+        return *this;
 
     // Since we're copying over this snippet, release the old AST
     if (ast != NULL)
-	removeAst(ast);
+        removeAst(ast);
 
     // We'll now contain another reference to the ast in the other snippet
     ast = assignAst(src.ast);
@@ -107,7 +108,7 @@ float BPatch_snippet::getCost()
 BPatch_snippet::~BPatch_snippet()
 {
     // if (ast != NULL)
-	// removeAst(ast);
+        // removeAst(ast);
 }
 
 
@@ -116,47 +117,47 @@ BPatch_snippet::~BPatch_snippet()
  *
  * Construct a snippet representing a binary arithmetic operation.
  *
- * op		The desired operation.
- * lOperand	The left operand for the operation.
- * rOperand	The right operand.
+ * op           The desired operation.
+ * lOperand     The left operand for the operation.
+ * rOperand     The right operand.
  */
 BPatch_arithExpr::BPatch_arithExpr(BPatch_binOp op,
-	const BPatch_snippet &lOperand, const BPatch_snippet &rOperand)
+        const BPatch_snippet &lOperand, const BPatch_snippet &rOperand)
 {
     assert(BPatch::bpatch != NULL);
 
     opCode astOp;
     switch(op) {
       case BPatch_assign:
-	astOp = storeOp;
-	break;
+        astOp = storeOp;
+        break;
       case BPatch_plus:
-	astOp = plusOp;
-	break;
+        astOp = plusOp;
+        break;
       case BPatch_minus:
-	astOp = minusOp;
-	break;
+        astOp = minusOp;
+        break;
       case BPatch_divide:
-	astOp = divOp;
-	break;
+        astOp = divOp;
+        break;
       case BPatch_times:
-	astOp = timesOp;
-	break;
+        astOp = timesOp;
+        break;
       case BPatch_mod:
-	/* XXX Not yet implemented. */
-	assert(0);
-	break;
+        /* XXX Not yet implemented. */
+        assert(0);
+        break;
       case BPatch_ref:
-	/* XXX Not yet implemented. */
-	assert(0);
-	break;
+        /* XXX Not yet implemented. */
+        assert(0);
+        break;
       case BPatch_seq:
-	ast = new AstNode(lOperand.ast, rOperand.ast);
-	ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
-	return;
+        ast = new AstNode(lOperand.ast, rOperand.ast);
+        ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
+        return;
       default:
-	/* XXX handle error */
-	assert(0);
+        /* XXX handle error */
+        assert(0);
     };
 
 #ifdef alpha_dec_osf4_0
@@ -167,17 +168,17 @@ BPatch_arithExpr::BPatch_arithExpr(BPatch_binOp op,
      * generate a callNode AST that calls a divide function.
      */
     if (astOp == divOp) {
-	vector<AstNode *> args;
+        vector<AstNode *> args;
 
-	args += assignAst(lOperand.ast);
-	args += assignAst(rOperand.ast);
+        args += assignAst(lOperand.ast);
+        args += assignAst(rOperand.ast);
 
-	ast = new AstNode("divide", args);
+        ast = new AstNode("divide", args);
 
-	removeAst(args[0]);
-	removeAst(args[1]);
+        removeAst(args[0]);
+        removeAst(args[1]);
     } else {
-    	ast = new AstNode(astOp, lOperand.ast, rOperand.ast);
+        ast = new AstNode(astOp, lOperand.ast, rOperand.ast);
     }
 #else
     ast = new AstNode(astOp, lOperand.ast, rOperand.ast);
@@ -192,43 +193,43 @@ BPatch_arithExpr::BPatch_arithExpr(BPatch_binOp op,
  *
  * Constructs a snippet representing a boolean expression.
  *
- * op		The operator for the boolean expression.
- * lOperand	The left operand.
- * rOperand	The right operand.
+ * op           The operator for the boolean expression.
+ * lOperand     The left operand.
+ * rOperand     The right operand.
  */
 BPatch_boolExpr::BPatch_boolExpr(BPatch_relOp op,
-				 const BPatch_snippet &lOperand,
-				 const BPatch_snippet &rOperand)
+                                 const BPatch_snippet &lOperand,
+                                 const BPatch_snippet &rOperand)
 {
     opCode astOp;
     switch(op) {
       case BPatch_lt:
-	astOp = lessOp;
-	break;
+        astOp = lessOp;
+        break;
       case BPatch_eq:
-	astOp = eqOp;
-	break;
+        astOp = eqOp;
+        break;
       case BPatch_gt:
-	astOp = greaterOp;
-	break;
+        astOp = greaterOp;
+        break;
       case BPatch_le:
-	astOp = leOp;
-	break;
+        astOp = leOp;
+        break;
       case BPatch_ne:
-	astOp = neOp;
-	break;
+        astOp = neOp;
+        break;
       case BPatch_ge:
-	astOp = geOp;
-	break;
+        astOp = geOp;
+        break;
       case BPatch_and:
-	astOp = andOp;
-	break;
+        astOp = andOp;
+        break;
       case BPatch_or:
-	astOp = orOp;
-	break;
+        astOp = orOp;
+        break;
       default:
-	/* XXX Handle the error case here */
-	assert( 0 );
+        /* XXX Handle the error case here */
+        assert( 0 );
     };
     
     ast = new AstNode(astOp, lOperand.ast, rOperand.ast);
@@ -242,7 +243,7 @@ BPatch_boolExpr::BPatch_boolExpr(BPatch_relOp op,
  *
  * Constructs a snippet representing a constant integer value.
  *
- * value	The desired value.
+ * value        The desired value.
  */
 BPatch_constExpr::BPatch_constExpr(int value)
 {
@@ -263,7 +264,7 @@ BPatch_constExpr::BPatch_constExpr(int value)
  *
  * Constructs a snippet representing a constant string value.
  *
- * value	The desired constant string.
+ * value        The desired constant string.
  */
 BPatch_constExpr::BPatch_constExpr(const char *value)
 {
@@ -284,8 +285,8 @@ BPatch_constExpr::BPatch_constExpr(const char *value)
  *
  * Constructs a snippet representing a function call.
  *
- * func		Identifies the function to call.
- * args		A vector of the arguments to be passed to the function.
+ * func         Identifies the function to call.
+ * args         A vector of the arguments to be passed to the function.
  */
 BPatch_funcCallExpr::BPatch_funcCallExpr(
     const BPatch_function &func,
@@ -295,12 +296,12 @@ BPatch_funcCallExpr::BPatch_funcCallExpr(
 
     int i;
     for (i = 0; i < args.size(); i++)
-	ast_args += assignAst(args[i]->ast);
+        ast_args += assignAst(args[i]->ast);
 
     ast = new AstNode(func.func, ast_args);
 
     for (i = 0; i < args.size(); i++)
-	removeAst(ast_args[i]);
+        removeAst(ast_args[i]);
 
     assert(BPatch::bpatch != NULL);
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -323,7 +324,7 @@ BPatch_funcJumpExpr::BPatch_funcJumpExpr(
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
 #else
     BPatch_reportError(BPatchSerious, 109,
-		       "BPatch_funcJumpExpr is not implemented on this platform");
+                       "BPatch_funcJumpExpr is not implemented on this platform");
 #endif
 }
 
@@ -333,11 +334,11 @@ BPatch_funcJumpExpr::BPatch_funcJumpExpr(
  *
  * Constructs a snippet representing a conditional expression.
  *
- * conditional		The conditional.
- * tClause		A snippet to execute if the conditional is true.
+ * conditional          The conditional.
+ * tClause              A snippet to execute if the conditional is true.
  */
 BPatch_ifExpr::BPatch_ifExpr(const BPatch_boolExpr &conditional,
-			     const BPatch_snippet &tClause)
+                             const BPatch_snippet &tClause)
 {
     ast = new AstNode(ifOp, conditional.ast, tClause.ast);
 
@@ -352,12 +353,12 @@ BPatch_ifExpr::BPatch_ifExpr(const BPatch_boolExpr &conditional,
  * Constructs a snippet representing a conditional expression with an else
  * clause.
  *
- * conditional		The conditional.
- * tClause		A snippet to execute if the conditional is true.
+ * conditional          The conditional.
+ * tClause              A snippet to execute if the conditional is true.
  */
 BPatch_ifExpr::BPatch_ifExpr(const BPatch_boolExpr &conditional,
-			     const BPatch_snippet &tClause,
-			     const BPatch_snippet &fClause)
+                             const BPatch_snippet &tClause,
+                             const BPatch_snippet &fClause)
 {
     ast = new AstNode(ifOp, conditional.ast, tClause.ast, fClause.ast);
 
@@ -386,8 +387,8 @@ BPatch_nullExpr::BPatch_nullExpr()
  * Construct a snippet representing a parameter of the function in which
  * the snippet is inserted.
  *
- * n	The position of the parameter (0 is the first parameter, 1 the second,
- * 	and so on).
+ * n    The position of the parameter (0 is the first parameter, 1 the second,
+ *      and so on).
  */
 BPatch_paramExpr::BPatch_paramExpr(int n)
 {
@@ -418,13 +419,13 @@ BPatch_retExpr::BPatch_retExpr()
  *
  * Construct a snippet representing a sequence of snippets.
  *
- * items	The snippets that are to make up the sequence.
+ * items        The snippets that are to make up the sequence.
  */
 BPatch_sequence::BPatch_sequence(const BPatch_Vector<BPatch_snippet *> &items)
 {
     if (items.size() == 0) {
-	// XXX do something to indicate an error
-	return;
+        // XXX do something to indicate an error
+        return;
     }
 
     assert(BPatch::bpatch != NULL);
@@ -433,10 +434,10 @@ BPatch_sequence::BPatch_sequence(const BPatch_Vector<BPatch_snippet *> &items)
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
 
     for (int i = 1; i < items.size(); i++) {
-	AstNode *tempAst = new AstNode(ast, items[i]->ast);
-	tempAst->setTypeChecking(BPatch::bpatch->isTypeChecked());
-	removeAst(ast);
-	ast = tempAst;
+        AstNode *tempAst = new AstNode(ast, items[i]->ast);
+        tempAst->setTypeChecking(BPatch::bpatch->isTypeChecked());
+        removeAst(ast);
+        ast = tempAst;
     }
 }
 
@@ -447,20 +448,20 @@ BPatch_sequence::BPatch_sequence(const BPatch_Vector<BPatch_snippet *> &items)
  * Construct a snippet representing a variable of the given type at the given
  * address.
  *
- * in_process	The process that the variable resides in.
- * in_address	The address of the variable in the inferior's address space.
- * type		The type of the variable.
+ * in_process   The process that the variable resides in.
+ * in_address   The address of the variable in the inferior's address space.
+ * type         The type of the variable.
  */
 BPatch_variableExpr::BPatch_variableExpr(process *in_process,
-					 void *in_address,
-					 const BPatch_type *type,
-					 bool frameRelative) :
+                                         void *in_address,
+                                         const BPatch_type *type,
+                                         bool frameRelative) :
     proc(in_process), address(in_address)
 {
     if (frameRelative) {
-	ast = new AstNode(AstNode::FrameAddr, address);
+        ast = new AstNode(AstNode::FrameAddr, address);
     } else {
-	ast = new AstNode(AstNode::DataAddr, address);
+        ast = new AstNode(AstNode::DataAddr, address);
     }
 
     assert(BPatch::bpatch != NULL);
@@ -478,11 +479,11 @@ BPatch_variableExpr::BPatch_variableExpr(process *in_process,
  * Construct a snippet representing an untyped variable of a given size at the
  * given address.
  *
- * in_address	The address of the variable in the inferior's address space.
+ * in_address   The address of the variable in the inferior's address space.
  */
 BPatch_variableExpr::BPatch_variableExpr(process *in_process,
-					 void *in_address,
-					 int in_size) :
+                                         void *in_address,
+                                         int in_size) :
     proc(in_process), address(in_address)
 {
     ast = new AstNode(AstNode::DataAddr, address);
@@ -501,8 +502,8 @@ BPatch_variableExpr::BPatch_variableExpr(process *in_process,
  *
  * Read the value of a variable in a thread's address space.
  *
- * dst		A pointer to a buffer in which to place the value of the
- *		variable.  It is assumed to be the same size as the variable.
+ * dst          A pointer to a buffer in which to place the value of the
+ *              variable.  It is assumed to be the same size as the variable.
  */
 void BPatch_variableExpr::readValue(void *dst)
 {
@@ -516,9 +517,9 @@ void BPatch_variableExpr::readValue(void *dst)
  * Read the a given number of bytes starting at the base address of a variable
  * in the a thread's address space.
  *
- * dst		A pointer to a buffer in which to place the value of the
- *		variable.  It is assumed to be the same size as the variable.
- * len		Number of bytes to read.
+ * dst          A pointer to a buffer in which to place the value of the
+ *              variable.  It is assumed to be the same size as the variable.
+ * len          Number of bytes to read.
  */
 void BPatch_variableExpr::readValue(void *dst, int len)
 {
@@ -531,8 +532,8 @@ void BPatch_variableExpr::readValue(void *dst, int len)
  *
  * Write a value into a variable in a thread's address space.
  *
- * dst		A pointer to a buffer in which to place the value of the
- *		variable.  It is assumed to be the same size as the variable.
+ * dst          A pointer to a buffer in which to place the value of the
+ *              variable.  It is assumed to be the same size as the variable.
  */
 void BPatch_variableExpr::writeValue(const void *src)
 {
@@ -546,8 +547,8 @@ void BPatch_variableExpr::writeValue(const void *src)
  * Write the a given number of bytes starting at the base address of a
  * variable in the a thread's address space.
  *
- * dst		A pointer to a buffer in which to place the value of the
- *		variable.  It is assumed to be the same size as the variable.
+ * dst          A pointer to a buffer in which to place the value of the
+ *              variable.  It is assumed to be the same size as the variable.
  */
 void BPatch_variableExpr::writeValue(const void *src, int len)
 {
@@ -585,8 +586,8 @@ BPatch_breakPointExpr::BPatch_breakPointExpr()
  * length.  Returns a pointer to the beginning of the buffer that was
  * passed in.
  *
- * s		The buffer into which the name will be copied.
- * len		The size of the buffer.
+ * s            The buffer into which the name will be copied.
+ * len          The size of the buffer.
  */
 char *BPatch_function::getName(char *s, int len)
 {
@@ -625,48 +626,82 @@ unsigned int BPatch_function::getSize()
  *
  * Returns a vector of the instrumentation points from a procedure that is
  * identified by the parameters, or returns NULL upon failure.
+ * (Points are sorted by address in the vector returned.)
  *
- * loc		The points within the procedure to return.  The following
- *		values are valid for this parameter:
- * 		  BPatch_entry         The function's entry point.
- * 		  BPatch_exit          The function's exit point(s).
- * 		  BPatch_subroutine    The points at which the procedure calls
- * 		                       other procedures.
- * 		  BPatch_longJump      The points at which the procedure make
- * 		                       long jump calls.
- *		  BPatch_allLocations  All of the points described above.
+ * loc          The points within the procedure to return.  The following
+ *              values are valid for this parameter:
+ *                BPatch_entry         The function's entry point.
+ *                BPatch_exit          The function's exit point(s).
+ *                BPatch_subroutine    The points at which the procedure calls
+ *                                     other procedures.
+ *                BPatch_longJump      The points at which the procedure make
+ *                                     long jump calls.
+ *                BPatch_allLocations  All of the points described above.
  */
 BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
-	const BPatch_procedureLocation loc)
+        const BPatch_procedureLocation loc)
 {
+    // function does not exist!
     if (func == NULL) return NULL;
+
+    // function is generally uninstrumentable (with current technology)
+    if (func->funcEntry(proc) == NULL) return NULL;
 
     BPatch_Vector<BPatch_point*> *result = new BPatch_Vector<BPatch_point *>;
 
     if (loc == BPatch_entry || loc == BPatch_allLocations) {
-	BPatch_point *new_point = new BPatch_point(proc,
-		const_cast<instPoint *>(func->funcEntry(proc)), BPatch_entry);
-	result->push_back(new_point);
+        BPatch_point *new_point = new BPatch_point(proc,
+                const_cast<instPoint *>(func->funcEntry(proc)), BPatch_entry);
+        result->push_back(new_point);
     }
-    if (loc ==  BPatch_exit || loc == BPatch_allLocations) {
-	const vector<instPoint *> &points = func->funcExits(proc);
-	for (unsigned i = 0; i < points.size(); i++) {
-	    BPatch_point *new_point = new BPatch_point(proc, points[i],
-						       BPatch_exit);
-	    result->push_back(new_point);
-	}
-    }
-    if (loc ==  BPatch_subroutine || loc == BPatch_allLocations) {
-	const vector<instPoint *> &points = func->funcCalls(proc);
-	for (unsigned i = 0; i < points.size(); i++) {
-	    BPatch_point *new_point = new BPatch_point(proc, points[i],
-						       BPatch_subroutine);
-	    result->push_back(new_point);
-	}
-    }
-    if (loc ==  BPatch_longJump /* || loc == BPatch_allLocations */) {
-	/* XXX Not yet implemented */
-	assert( 0 );
+    switch (loc) {
+      case BPatch_allLocations:
+        {
+          const vector<instPoint *> &Rpoints = func->funcExits(proc);
+          const vector<instPoint *> &Cpoints = func->funcCalls(proc);
+          BPatch_point *new_point;
+          unsigned int c=0, r=0;
+          Address cAddr, rAddr;
+          while (c < Cpoints.size() || r < Rpoints.size()) {
+              if (c < Cpoints.size()) cAddr = Cpoints[c]->iPgetAddress();
+              else                    cAddr = (Address)(-1);
+              if (r < Rpoints.size()) rAddr = Rpoints[r]->iPgetAddress();
+              else                    rAddr = (Address)(-1);
+              if (cAddr <= rAddr) {
+                  new_point = new BPatch_point(proc, Cpoints[c], BPatch_subroutine);
+                  c++;
+              } else {
+                  new_point = new BPatch_point(proc, Rpoints[r], BPatch_exit);
+                  r++;
+              }
+              result->push_back(new_point);
+          }
+          break;
+        }
+      case BPatch_exit:
+        {
+          const vector<instPoint *> &points = func->funcExits(proc);
+          for (unsigned i = 0; i < points.size(); i++) {
+              BPatch_point *new_point = new BPatch_point(proc, points[i],
+                                                         BPatch_exit);
+              result->push_back(new_point);
+          }
+          break;
+        }
+      case BPatch_subroutine:
+        {
+          const vector<instPoint *> &points = func->funcCalls(proc);
+          for (unsigned i = 0; i < points.size(); i++) {
+              BPatch_point *new_point = new BPatch_point(proc, points[i],
+                                                         BPatch_subroutine);
+              result->push_back(new_point);
+          }
+          break;
+        }
+      case BPatch_longJump:
+        /* XXX Not yet implemented */
+      default:
+        assert( 0 );
     }
 
     return result;
