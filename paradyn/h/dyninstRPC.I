@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstRPC.I,v 1.99 2002/05/14 19:00:34 schendel Exp $
+/* $Id: dyninstRPC.I,v 1.100 2002/08/31 16:53:17 mikem Exp $
  */
 
 #define MetStyleEventCounter	0
@@ -136,6 +136,7 @@ public:
   ~mdl_v_expr();
   bool apply(mdl_var &ret); // non-code-gen version
   bool apply(AstNode*& mn); // code-gen version
+
   bool mk_list(vector<string> &funcs);
 #ifdef NO_MDL_PRINT
   virtual void print(ostream& os) 
@@ -329,6 +330,7 @@ $remote class mdl_metric {
   u_int agg_op_; // avg, sum, min, or max
   u_int style_;  // currently, always EventCounter
   u_int type_;   // counter, processTimer, or wallTimer
+  string hwcntr_;  // string denoting hw counter event
   vector<mdl_stmt*> *stmts_; // for "base is <type_> { ... }
   vector<string> *flavors_; // which flavors this metric is valid for
   vector<mdl_constraint*> *constraints_;
@@ -339,7 +341,7 @@ $remote class mdl_metric {
 $ignore
 public:
   mdl_metric(string id, string name, string units,
-	     u_int agg, u_int style, u_int type,
+	     u_int agg, u_int style, u_int type, string hwcntr, 
 	     vector<mdl_stmt*> *mv, vector<string> *flavs, 
 	     vector<mdl_constraint*> *cons,
 	     vector<string> *temp_c, bool developerMode,int unitstype);
