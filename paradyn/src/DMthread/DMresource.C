@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.C,v 1.50 1999/08/09 05:40:09 csserra Exp $
+// $Id: DMresource.C,v 1.51 1999/09/13 20:04:59 cain Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -333,7 +333,7 @@ bool resource::get_lib_constraints(vector<string> &list, vector<unsigned> &flags
 		    lib_constraints += string(next);
 		    lib_constraint_flags += tmp_flags[i];
 		}
-		delete next;
+	        delete next;
 	    }
         }
     }
@@ -388,8 +388,8 @@ bool resource::get_func_constraints(vector< vector<string> > &list, vector<unsig
 			// constraint flags
 			func_constraint_flags += tmp_flags[i];
 		  }
-	          delete [] temp_str;	
-                }
+		  delete [] temp_str;
+		}
 	        if(next) delete next;
 	    }
         }
@@ -581,10 +581,24 @@ vector<rlNameId> *resourceList::magnify(resourceHandle rh, magnifyType type){
 	  // if so, create a new focus with this child
 	  resource *child_res = resource::handle_to_resource((*children)[j]);
 	  if(child_res && !(child_res->isMagnifySuppressed())){
+	    //Call Graph magnification requests should not return functions
+	    //that are in excluded libraries.
+	    if(type == CallGraphSearch){
+	      resourceHandle parent_handle = child_res->getParent();
+	      resource *parent = resource::handle_to_resource(parent_handle);
+	      if(!parent->isMagnifySuppressed()){
+		new_focus[rIndex] = (*children)[j];
+		temp.id = resourceList::getResourceList(new_focus);
+		temp.res_name = resource::getName((*children)[j]);
+		*return_list += temp;
+	      }
+	    }
+	    else{
 	      new_focus[rIndex] = (*children)[j];
 	      temp.id = resourceList::getResourceList(new_focus);
 	      temp.res_name = resource::getName((*children)[j]);
 	      *return_list += temp; 
+	    }
 	  }
 	}
 	delete children;
