@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.416 2003/04/24 14:28:42 bernat Exp $
+// $Id: process.C,v 1.417 2003/04/25 22:31:13 jaw Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -4110,22 +4110,27 @@ bool process::addASharedObject(shared_object &new_obj, Address newBaseAddr){
     //  JAW -- 04-03  SIGNAL HANDLER seems to only be validly defined for solaris/linux/mips
     //      I don't know if this is correct, but given this fact, I'm putting in the following #if
 #if defined(sparc_sun_solaris2_4)  \
-    || defined(mips_sgi_irix6_4) \
     || defined(sparc_sun_solaris2_5)
  
     if(!signal_handler){
       pdvector<pd_Function *> *pdfv;
       if (NULL == (pdfv = img->findFuncVectorByPretty(string(SIGNAL_HANDLER)))
 	  || ! pdfv->size()) {
-	cerr << __FILE__ << __LINE__ << ": findFuncVectorByPretty could not find "
-	     << string(SIGNAL_HANDLER) << endl;
+	//cerr << __FILE__ << __LINE__ << ": findFuncVectorByPretty could not find "
+	//    << string(SIGNAL_HANDLER) << endl;
 	// what to do here?
+
+	// JAW: ANSWER, for now:  NOTHING
+	//signal_handler will eventually be found (hopefully)
+	// the search for SIGNAL_HANDLER should probably be moved somewhere else
+	// but, for the time being, not finding it here is not an error
       }
       else {
 	if (pdfv->size() > 1){
 	  cerr << __FILE__ << __LINE__ << ": findFuncVectorByPretty found " << pdfv->size()
 	       <<" functions called "<< string(SIGNAL_HANDLER) << endl;
 	}
+	//cerr << SIGNAL_HANDLER << " found." << endl;
         signal_handler = (*pdfv)[0];
       }
     }

@@ -135,6 +135,32 @@ BPatch_module::BPatch_module(process *_proc, pdmodule *_mod,BPatch_image *_img):
     _srcType = BPatch_sourceModule;
     nativeCompiler = _mod->exec()->isNativeCompiler();
 
+  switch(mod->language()) {
+  case lang_C:
+    setLanguage(BPatch_c);
+    break;
+  case lang_CPlusPlus:
+  case lang_GnuCPlusPlus:
+    setLanguage(BPatch_cPlusPlus);
+    break;
+  case lang_Fortran_with_pretty_debug:
+    setLanguage(BPatch_f90_demangled_stabstr);
+    break;
+  case lang_Fortran:
+  case lang_CMFortran:
+    setLanguage(BPatch_fortran);
+    break;
+  case lang_Assembly:
+    setLanguage(BPatch_assembly);
+    break;
+
+  case lang_Unknown: 
+  default:
+    setLanguage(BPatch_unknownLanguage);
+    break;
+
+  }
+
     moduleTypes = new BPatch_typeCollection;
 
     // load all of the type information
@@ -281,8 +307,8 @@ BPatch_module::findUninstrumentableFunction(const char *name,
    BPatch_function *found = NULL;
    for (unsigned int j = 0; j < BPfuncs_uninstrumentable->size(); ++j) {
      string mangled_name1 = pdfuncs[i]->symTabName(); // problem -- more than 1 name possible here
-     char mangled_name2[1024];
-     (*BPfuncs_uninstrumentable)[j]->getMangledName(mangled_name2, 1024);
+     char mangled_name2[2048];
+     (*BPfuncs_uninstrumentable)[j]->getMangledName(mangled_name2, 2048);
      if (!strcmp(mangled_name1.c_str(), mangled_name2)) {
        found = (*BPfuncs_uninstrumentable)[j];
        break;
@@ -832,32 +858,36 @@ void BPatch_module::parseStabTypes()
 
       if (!strcmp(modName, mod->fileName().c_str())) {
 	parseActive = true;
+	BPatch_language lang;
+	// language should be set in the constructor, this is probably redundant
 	switch (stabptr[i].desc) {
 	case N_SO_FORTRAN:
-	  setLanguage(BPatch_fortran);
+	  lang = BPatch_fortran;
 	  break;
 	  
 	case N_SO_F90:
-	  setLanguage(BPatch_fortran90);
+	  lang = BPatch_fortran90;
 	  break;
 	  
 	case N_SO_AS:
-	  setLanguage(BPatch_assembly);
+	  lang = BPatch_assembly;
 	  break;
 	  
 	case N_SO_ANSI_C:
 	case N_SO_C:
-	  setLanguage(BPatch_c);
+	  lang = BPatch_c;
 	  break;
 	  
 	case N_SO_CC:
-	  setLanguage(BPatch_cPlusPlus);
+	  lang = BPatch_cPlusPlus;
 	  break;
 	  
 	default:
-	  setLanguage(BPatch_unknownLanguage);
+	  lang = BPatch_unknownLanguage;
 	  break;
 	}
+	if (BPatch_f90_demangled_stabstr != getLanguage())
+	  setLanguage(lang);
       } else {
 	parseActive = false;
       }
@@ -887,7 +917,8 @@ void BPatch_module::parseStabTypes()
 	//all we have to do with function stabs at this point is to assure that we have
 	//properly set the var currentFunctionName for the later case of (parseActive)
       int currentEntry = i;
-      ptr = new char[1024];
+      int funlen = strlen(&stabstrs[stabptr[currentEntry].name]);
+      ptr = new char[funlen+1];
       strcpy(ptr,(const char *)&stabstrs[stabptr[currentEntry].name]);
       while(strlen(ptr) != 0 && ptr[strlen(ptr)-1] == '\\'){
 	ptr[strlen(ptr)-1] = '\0';
@@ -1272,7 +1303,8 @@ void BPatch_module::parseFileLineInfo()
       //if it is a function stab then we have to insert an entry 
       //to initialize the entries in the line information object
       int currentEntry = i;
-      ptr = new char[1024];
+      int funlen = strlen(&stabstrs[stabptr[currentEntry].name]);
+      ptr = new char[funlen+1];
       strcpy(ptr,(const char *)&stabstrs[stabptr[currentEntry].name]);
       while(strlen(ptr) != 0 && ptr[strlen(ptr)-1] == '\\'){
 	ptr[strlen(ptr)-1] = '\0';
@@ -1341,7 +1373,7 @@ void BPatch_module::parseFileLineInfo()
   cout << "     Sliness: " << sline_count << " took " << sline_dur << "msec" << endl;
   cout << "     Total: " << sline_dur + sol_dur + fun_dur + src_dur 
        << " msec" << endl;
-  lineInformation->print();
+  //lineInformation->print();
   cout << "Max addr per line = " << max_addr_per_line << ".  Max line per addr = "
        << max_line_per_addr << endl;
 #endif
@@ -1459,32 +1491,35 @@ void BPatch_module::parseStabTypes()
 
 	    if (!strcmp(modName, mod->fileName().c_str())) {
 		parseActive = true;
+		BPatch_language lang;
 		switch (stabptr[i].desc) {
 		    case N_SO_FORTRAN:
-			setLanguage(BPatch_fortran);
+		      lang = BPatch_fortran;
 			break;
 
 		    case N_SO_F90:
-			setLanguage(BPatch_fortran90);
+			lang = BPatch_fortran90;
 			break;
 
 		    case N_SO_AS:
-			setLanguage(BPatch_assembly);
+			 lang = BPatch_assembly;
 			break;
 
 	            case N_SO_ANSI_C:
 		    case N_SO_C:
-			setLanguage(BPatch_c);
+			lang = BPatch_c;
 			break;
 
 		    case N_SO_CC:
-			setLanguage(BPatch_cPlusPlus);
+			lang = BPatch_cPlusPlus;
 			break;
 
 		    default:
-			setLanguage(BPatch_unknownLanguage);
+			lang = BPatch_unknownLanguage;
 			break;
 		}
+		if (BPatch_f90_demangled_stabstr != getLanguage())
+		  setLanguage(lang);
 	    } else {
 		parseActive = false;
 	    }
@@ -1587,7 +1622,8 @@ void BPatch_module::parseStabTypes()
 	//if it is a function stab then we have to insert an entry 
 	//to initialize the entries in the line information object
 	int currentEntry = i;
-	ptr = new char[1024];
+	int funlen = strlen(&stabstrs[stabptr[currentEntry].name]);
+	ptr = new char[funlen+1];
 	strcpy(ptr,(const char *)&stabstrs[stabptr[currentEntry].name]);
 	while(ptr[strlen(ptr)-1] == '\\'){
 	  ptr[strlen(ptr)-1] = '\0';
@@ -1676,7 +1712,7 @@ void BPatch_module::parseStabTypes()
 #ifdef TIMED_PARSE
       cout << __FILE__ << __LINE__ << ": parseTypes N_ECOMM "<< currentFunctionName << endl;
 #endif
-      if (NULL == findFunction(currentFunctionName->c_str(), &bpfv) || !bpfv.size()) {
+      if (NULL == findFunction(currentFunctionName->c_str(), bpfv) || !bpfv.size()) {
 	fprintf(stderr,"unable to locate current function %s\n", currentFunctionName->c_str());
       } else {
 	if (bpfv.size() > 1) {
@@ -1764,7 +1800,7 @@ void BPatch_module::parseStabTypes()
   cout << "     parseStabString: " << pss_count << " took " << pss_dur << "msec" << endl;
   cout << "     Total: " << pss_dur +sline_dur + sol_dur + fun_dur + src_dur 
        << " msec" << endl;
-  lineInformation->print();
+  //lineInformation->print();
   cout << "Max addr per line = " << max_addr_per_line << ".  Max line per addr = "
        << max_line_per_addr << endl;
 #endif

@@ -817,7 +817,7 @@ int condBreak(ClientData, Tcl_Interp *, int argc, char *argv[])
 	}
 
 	BPatch_Vector<BPatch_function *> found_funcs;
-	if ((NULL == appImage->findFunction(argv[1], &found_funcs)) 
+	if ((NULL == appImage->findFunction(argv[1], found_funcs)) 
 	    || (0 == found_funcs.size())) {
 	  printf("%s[%d]:  CANNOT CONTINUE  :  %s not found\n", __FILE__, __LINE__, argv[1]);
 	  return TCL_ERROR;
@@ -875,7 +875,7 @@ int condBreak(ClientData, Tcl_Interp *, int argc, char *argv[])
 
     // Make a snippet to break at the breakpoint
     BPatch_Vector<BPatch_function *> bpfv;
-    if (NULL == appImage->findFunction("DYNINSTbreakPoint", &bpfv) || ! bpfv.size()) {
+    if (NULL == appImage->findFunction("DYNINSTbreakPoint", bpfv) || ! bpfv.size()) {
       fprintf(stderr, "Unable to find function DYNINSTbreakPoint "
 	      "(required for setting break points)\n");
       if (argc > 3) {
@@ -1092,7 +1092,7 @@ int instStatement(ClientData, Tcl_Interp *, int argc, char *argv[])
 	when = BPatch_callBefore;
     }
     BPatch_Vector<BPatch_function *> bpfv;
-    if (NULL == appImage->findFunction(argv[1], &bpfv) || !bpfv.size()) {
+    if (NULL == appImage->findFunction(argv[1], bpfv) || !bpfv.size()) {
 	fprintf(stderr, "Unable to locate function: %s\n", argv[1]);
 	return TCL_ERROR;
     }
@@ -1359,7 +1359,7 @@ int whatisParam(ClientData, Tcl_Interp *, int, char *argv[])
 {
   if (!haveApp()) return TCL_ERROR;
   BPatch_Vector<BPatch_function *> pdfv;
-  if (NULL == appImage->findFunction(argv[3], &pdfv) || !pdfv.size()) {
+  if (NULL == appImage->findFunction(argv[3], pdfv) || !pdfv.size()) {
     printf("%s is not defined\n", argv[3]);
     return TCL_ERROR;
   }
@@ -1475,7 +1475,7 @@ int whatisFunc(ClientData, Tcl_Interp *, int, char *argv[])
   if (!haveApp()) return TCL_ERROR;
   
   BPatch_Vector<BPatch_function *> pdfv;
-  if (NULL == appImage->findFunction(argv[3], &pdfv) || ! pdfv.size()) {
+  if (NULL == appImage->findFunction(argv[3], pdfv) || ! pdfv.size()) {
     printf("%s is not defined\n", argv[1]);
     return TCL_ERROR;
   }
@@ -1853,7 +1853,7 @@ int findAndShowCommand(ClientData, Tcl_Interp *, int argc, char *argv[])
   }
 
   if (argc == 3) {
-    if (NULL == appImage->findFunction(argv[2], &functions) || !functions.size()) {
+    if (NULL == appImage->findFunction(argv[2], functions) || !functions.size()) {
       printf("No matches for %s\n", argv[2]);
       return TCL_OK;
     }
@@ -1966,7 +1966,7 @@ int ShowParameters(int argc, char *argv[]) {
     }
 
     BPatch_Vector<BPatch_function *> bpfv;
-    if (NULL == appImage->findFunction(argv[3], &bpfv) || !bpfv.size()) {
+    if (NULL == appImage->findFunction(argv[3], bpfv) || !bpfv.size()) {
 	printf("Invalid function name: %s\n", argv[3]);
 	return TCL_ERROR;
     }
@@ -1998,7 +1998,7 @@ int ShowParameters(int argc, char *argv[]) {
 int ShowLocalVars(char *funcName) {
   BPatch_Vector<BPatch_function *> bpfv;
 
-  if (NULL == appImage->findFunction(funcName, &bpfv) || !bpfv.size()) {
+  if (NULL == appImage->findFunction(funcName, bpfv) || !bpfv.size()) {
     printf("Invalid function name: %s\n", funcName);
     return TCL_ERROR;
   }
@@ -2094,7 +2094,7 @@ int countCommand(ClientData, Tcl_Interp *interp, int argc, char *argv[])
     }
 
     BPatch_Vector<BPatch_function *> bpfv;
-    if (NULL == appImage->findFunction(argv[1], &bpfv) || !bpfv.size()) {
+    if (NULL == appImage->findFunction(argv[1], bpfv) || !bpfv.size()) {
       printf("Invalid function name: %s\n", argv[1]);
       return TCL_ERROR;
     }
@@ -2140,7 +2140,7 @@ int countCommand(ClientData, Tcl_Interp *interp, int argc, char *argv[])
 int repFunc(char *name1, char *name2) {
 
   BPatch_Vector<BPatch_function *> bpfv;
-  if (NULL == appImage->findFunction(name1, &bpfv) || !bpfv.size()) {
+  if (NULL == appImage->findFunction(name1, bpfv) || !bpfv.size()) {
     printf("Invalid function name: %s\n", name1);
     return TCL_ERROR;
   }
@@ -2158,7 +2158,7 @@ int repFunc(char *name1, char *name2) {
   }
 
   BPatch_Vector<BPatch_function *> bpfv2;
-  if (NULL == appImage->findFunction(name2, &bpfv2) || !bpfv2.size()) {
+  if (NULL == appImage->findFunction(name2, bpfv2) || !bpfv2.size()) {
     printf("Invalid function name: %s\n", name2);
     return TCL_ERROR;
   }
@@ -2199,7 +2199,7 @@ int repCall(char *func1, char *func2) {
   }
   
   BPatch_Vector<BPatch_function *> bpfv2;
-  if (NULL == appImage->findFunction(func2, &bpfv2) || !bpfv2.size()) {
+  if (NULL == appImage->findFunction(func2, bpfv2) || !bpfv2.size()) {
     printf("Invalid function name: %s\n", func2);
     return TCL_ERROR;
   }
@@ -2216,7 +2216,7 @@ int repCall(char *func1, char *func2) {
   }
 
   BPatch_Vector<BPatch_function *> found_funcs;
-  if ((NULL == appImage->findFunction(func1, &found_funcs, 1)) || !found_funcs.size()) {
+  if ((NULL == appImage->findFunction(func1, found_funcs, 1)) || !found_funcs.size()) {
     printf("%s[%d]:  CANNOT CONTINUE  :  %s not found\n", __FILE__, __LINE__, func1);
     return TCL_ERROR;
   }
@@ -2295,7 +2295,7 @@ int replaceCommand(ClientData, Tcl_Interp *, int argc, char *argv[])
 int traceFunc(Tcl_Interp *interp, char *name) 
 {
   BPatch_Vector<BPatch_function *> bpfv2;
-  if (NULL == appImage->findFunction(name, &bpfv2) || !bpfv2.size()) {
+  if (NULL == appImage->findFunction(name, bpfv2) || !bpfv2.size()) {
     printf("Invalid function name: %s\n", name);
     return TCL_ERROR;
   }
@@ -2501,7 +2501,7 @@ int removeCommand(ClientData, Tcl_Interp *, int argc, char *argv[])
     }
 
     BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction(argv[1], &found_funcs, 1)) || !found_funcs.size()) {
+    if ((NULL == appImage->findFunction(argv[1], found_funcs, 1)) || !found_funcs.size()) {
       printf("%s[%d]:  CANNOT CONTINUE  :  %s not found\n", __FILE__, __LINE__, argv[1]);
       return TCL_ERROR;
     }

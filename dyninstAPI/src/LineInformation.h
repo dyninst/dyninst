@@ -38,14 +38,9 @@ typedef struct FunctionInfo {
 	//  The following typedefs define map-of-maps structures for storing tuple information
 	//  maps are nice here because they have a fast access time while remaining ordered,
 	//  so we can also find nearest elements to a nonexistent target.
-typedef std::map<unsigned short, tuple *, std::less<unsigned short> > line_to_tuple_t;
-typedef line_to_tuple_t::iterator lt_iter_t;
-typedef std::map<Address, tuple *, std::less<Address> > addr_to_tuple_t;
-typedef addr_to_tuple_t::iterator at_iter_t;
-
-typedef std::map<unsigned short, addr_to_tuple_t *, std::less<unsigned short> > line_to_addr_t;
+typedef std::map<unsigned short, pdvector<tuple *> *, std::less<unsigned short> > line_to_addr_t;
 typedef line_to_addr_t::iterator l2a_iter_t;
-typedef std::map<Address, line_to_tuple_t *, std::less<Address> > addr_to_line_t;
+typedef std::map<Address, pdvector<tuple *> *, std::less<Address> > addr_to_line_t;
 typedef addr_to_line_t::iterator a2l_iter_t;
 #endif
 
@@ -211,6 +206,13 @@ public:
 #endif
 	/** tempoprary method to be deleted in commit */
 	void print();
+
+#ifdef DEBUG_LINE_INFO
+	void dump(FILE *f, string *modName);
+	void dumpFunctionInfo(FILE *f);
+	void dumpAddrToLine(FILE *f);
+	void dumpLineToAddr(FILE *f);
+#endif
 };
 
 /** class which contains a mapping from file names to the line information
@@ -332,6 +334,9 @@ public:
 
 	/** tempoprary method to be deleted in commit */
 	void print();
+#ifdef DEBUG_LINE_INFO
+	void dump(const char *modName);
+#endif
 };
 
 #ifdef rs6000_ibm_aix4_1

@@ -1,4 +1,4 @@
-// $Id: test4.C,v 1.18 2003/04/02 07:12:27 jaw Exp $
+// $Id: test4.C,v 1.19 2003/04/25 22:31:15 jaw Exp $
 //
 
 #include <stdio.h>
@@ -103,7 +103,7 @@ void forkFunc(BPatch_thread *parent, BPatch_thread *child)
        assert(appImage);
 
        char *fn = "func2_3";
-       if (NULL == appImage->findFunction(fn, &bpfv) || !bpfv.size()
+       if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
 	   || NULL == bpfv[0]){
 	 fprintf(stderr, "    Unable to find function %s\n",fn);
 	 exit(1);
@@ -114,7 +114,7 @@ void forkFunc(BPatch_thread *parent, BPatch_thread *child)
  
        bpfv.clear();
        char *fn2 = "func2_2";
-       if (NULL == appImage->findFunction(fn2, &bpfv) || !bpfv.size()
+       if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
 	   || NULL == bpfv[0]){
 	 fprintf(stderr, "    Unable to find function %s\n",fn2);
 	 exit(1);
@@ -132,7 +132,7 @@ void forkFunc(BPatch_thread *parent, BPatch_thread *child)
 
        bpfv.clear();
        char *fn3 = "func2_4";
-       if (NULL == appImage->findFunction(fn3, &bpfv) || !bpfv.size()
+       if (NULL == appImage->findFunction(fn3, bpfv) || !bpfv.size()
 	   || NULL == bpfv[0]){
 	 fprintf(stderr, "    Unable to find function %s\n",fn3);
 	 exit(1);
@@ -143,7 +143,7 @@ void forkFunc(BPatch_thread *parent, BPatch_thread *child)
 
        bpfv.clear();
        char *fn4 = "func2_2";
-       if (NULL == appImage->findFunction(fn4, &bpfv) || !bpfv.size()
+       if (NULL == appImage->findFunction(fn4, bpfv) || !bpfv.size()
 	   || NULL == bpfv[0]){
 	 fprintf(stderr, "    Unable to find function %s\n",fn4);
 	 exit(1);
@@ -165,7 +165,7 @@ void forkFunc(BPatch_thread *parent, BPatch_thread *child)
        assert(appImage);
 
        char *fn5 = "func4_3";
-       if (NULL == appImage->findFunction(fn5, &bpfv) || !bpfv.size()
+       if (NULL == appImage->findFunction(fn5, bpfv) || !bpfv.size()
 	   || NULL == bpfv[0]){
 	 fprintf(stderr, "    Unable to find function %s\n",fn5);
 	 exit(1);
@@ -176,7 +176,7 @@ void forkFunc(BPatch_thread *parent, BPatch_thread *child)
 
        bpfv.clear();
        char *fn6 = "func4_2";
-       if (NULL == appImage->findFunction(fn6, &bpfv) || !bpfv.size()
+       if (NULL == appImage->findFunction(fn6, bpfv) || !bpfv.size()
 	   || NULL == bpfv[0]){
 	 fprintf(stderr, "    Unable to find function %s\n",fn6);
 	 exit(1);
@@ -297,7 +297,7 @@ void execFunc(BPatch_thread *thread)
         assert(appImage);
 
 	char *fn = "func3_2";
-	if (NULL == appImage->findFunction(fn, &bpfv) || !bpfv.size()
+	if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
 	    || NULL == bpfv[0]){
 	  fprintf(stderr, "    Unable to find function %s\n",fn);
 	  exit(1);
@@ -308,7 +308,7 @@ void execFunc(BPatch_thread *thread)
 
 	bpfv.clear();
 	char *fn2 = "func3_1";
-	if (NULL == appImage->findFunction(fn2, &bpfv) || !bpfv.size()
+	if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
 	    || NULL == bpfv[0]){
 	  fprintf(stderr, "    Unable to find function %s\n",fn2);
 	  exit(1);
@@ -328,7 +328,7 @@ void execFunc(BPatch_thread *thread)
         assert(appImage);
 
 	char *fn3 = "func4_4";
-	if (NULL == appImage->findFunction(fn3, &bpfv) || !bpfv.size()
+	if (NULL == appImage->findFunction(fn3, bpfv) || !bpfv.size()
 	    || NULL == bpfv[0]){
 	  fprintf(stderr, "    Unable to find function %s\n",fn3);
 	  exit(1);
@@ -339,7 +339,7 @@ void execFunc(BPatch_thread *thread)
 	
 	bpfv.clear();
 	char *fn4 = "func4_2";
-	if (NULL == appImage->findFunction(fn4, &bpfv) || !bpfv.size()
+	if (NULL == appImage->findFunction(fn4, bpfv) || !bpfv.size()
 	    || NULL == bpfv[0]){
 	  fprintf(stderr, "    Unable to find function %s\n",fn4);
 	  exit(1);

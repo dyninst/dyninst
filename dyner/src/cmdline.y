@@ -119,7 +119,7 @@ block: statement
 func_call: IDENTIFIER '(' param_list ')'
     { 
       BPatch_Vector<BPatch_function *>bpfv;
-      if (NULL == appImage->findFunction($1, &bpfv) || !bpfv.size()) {
+      if (NULL == appImage->findFunction($1, bpfv) || !bpfv.size()) {
 	printf("unable to find function %s\n", $1);
 	free($1);
 	return 1;

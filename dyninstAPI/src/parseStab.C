@@ -82,7 +82,7 @@ void vectorNameMatchKLUDGE(char *demangled_sym, BPatch_Vector<BPatch_function *>
     char l_mangled[bufsize];
     bpfv[i]->getMangledName(l_mangled, bufsize);
     
-    char *l_demangled_raw = cplus_demangle(l_mangled, DMGL_PARAMS | DMGL_ANSI);
+      char *l_demangled_raw = cplus_demangle(l_mangled, DMGL_PARAMS | DMGL_ANSI);
     if(l_demangled_raw==NULL){
       //cerr << __FILE__ << __LINE__ << ":  KLUDGE Cannot demangle " << l_mangled << endl;
       //continue;
@@ -109,9 +109,23 @@ BPatch_function *mangledNameMatchKLUDGE(char *pretty, char *mangled,
 
   BPatch_Vector<BPatch_function *> bpfv;
   if ((NULL == mod->findFunction(pretty, bpfv)) || !bpfv.size()) {
-    //cerr << __FILE__ << __LINE__ << ":  KLUDGE Cannot find " << pretty << endl;
+    // cerr << __FILE__ << __LINE__ << ":  KLUDGE Cannot find " << pretty << endl;
     return NULL;  // no pretty name hits, expecting multiple
   }
+
+  //cerr << __FILE__ << __LINE__ << ":  mangledNameMatchKLUDGE: language = " 
+  //     << mod->getLanguageStr() << endl;
+  if (BPatch_f90_demangled_stabstr == mod->getLanguage()) {
+      // debug function symbols are presented in "demangled" style.
+      if (bpfv.size() == 1)
+	return bpfv[0];
+      else {
+	cerr << __FILE__ << __LINE__ << ":  FIXME!" << endl;
+	return NULL;
+      }
+    }
+
+
 
   // demangle name with extra parameters
   char *demangled_sym = cplus_demangle(mangled, DMGL_PARAMS | DMGL_ANSI | DMGL_VERBOSE);

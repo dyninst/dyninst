@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.140 2003/04/23 22:59:43 bernat Exp $
+// $Id: aix.C,v 1.141 2003/04/25 22:31:13 jaw Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -2901,7 +2901,7 @@ void process::addLib(char* lname){
 	bool isTrampRecursive = BPatch::bpatch->isTrampRecursive();
     BPatch::bpatch->setTrampRecursive( true ); //ccw 31 jan 2003
     BPatch_Vector<BPatch_function *> bpfv;
-    if (NULL == appImage->findFunction("main", &bpfv) || !bpfv.size()) {
+    if (NULL == appImage->findFunction("main", bpfv) || !bpfv.size()) {
       fprintf(stderr,"Unable to find function \"main\". Save the world will fail.\n");
       return;
     }
@@ -2915,7 +2915,7 @@ void process::addLib(char* lname){
     }
 
     bpfv.clear();
-    if (NULL == appImage->findFunction("dlopen", &bpfv) || !bpfv.size()) {
+    if (NULL == appImage->findFunction("dlopen", bpfv) || !bpfv.size()) {
       fprintf(stderr,"Unable to find function \"dlopen\". Save the world will fail.\n");
       return;
     }

@@ -185,20 +185,20 @@ FileLineInformation::~FileLineInformation(){
 	//  Delete all tuples from just one of our maps (contents are duplicates)
 	l2a_iter_t map_iter;
 	for (map_iter = lineToAddr.begin(); map_iter != lineToAddr.end(); ++map_iter) {
-	  addr_to_tuple_t * tmap = map_iter->second;
-	  at_iter_t tuple_iter;
-	  for (tuple_iter = tmap->begin(); tuple_iter != tmap->end(); ++tuple_iter) 
-	    delete (tuple_iter->second);
-	  tmap->clear();
-	  delete tmap;
+	  pdvector<tuple *> *line_tuples = map_iter->second;
+	  for (unsigned int i = 0; i < line_tuples->size(); i++) {
+	    delete (*line_tuples)[i];
+	    line_tuples->clear();
+	  }
+	  delete line_tuples;
 	}
 
 	//  Delete sub-maps (but not tuples) from second structure
 	a2l_iter_t map_iter2;
 	for (map_iter2 = addrToLine.begin(); map_iter2 != addrToLine.end(); ++map_iter2) {
-	  line_to_tuple_t *tmap = map_iter2->second;
-	  tmap->clear();
-	  delete tmap;
+	  pdvector<tuple *> *addr_tuples = map_iter->second;
+	  addr_tuples->clear();
+	  delete addr_tuples;
 	}
 
 	lineToAddr.clear();
@@ -288,8 +288,15 @@ FunctionInfo* FileLineInformation::insertFunction(string functionName){
 		functionCount++;
 	}		
 #else
-	FunctionInfo *fInfo = new FunctionInfo();
-	functionInfoHash[functionName] = fInfo;
+	
+	FunctionInfo *fInfo = NULL;
+	if (functionInfoHash.defines(functionName)) {
+	  fInfo = functionInfoHash[functionName];
+	}
+	else {
+	  fInfo = new FunctionInfo();
+	  functionInfoHash[functionName] = fInfo;
+	}
 #endif
 
 	return fInfo;
@@ -494,13 +501,13 @@ FunctionInfo* FileLineInformation::insertFunction(string functionName,Address ba
 	  return NULL; // baseAddress not found
 	}
 
-	line_to_tuple_t *base_addr_tuples = a2l_iter->second;
+	pdvector<tuple *> *base_addr_tuples = a2l_iter->second;
 	if (!base_addr_tuples->size()) {
 	  cerr << __FILE__ ":" << __LINE__ << ": no tuples for address " << baseAddr << endl;
 	  return NULL;  // this should never happen
 	}
 
-	tuple *start_tuple = base_addr_tuples->begin()->second;
+	tuple *start_tuple = (*base_addr_tuples)[0];
 
 	// find the end address of this function in our maps
 	// if end is not represented, find next address greater than end
@@ -529,7 +536,7 @@ FunctionInfo* FileLineInformation::insertFunction(string functionName,Address ba
 	  }
 	}
 
-	line_to_tuple_t *end_addr_tuples = a2l_iter->second;
+	pdvector<tuple *> *end_addr_tuples = a2l_iter->second;
 	if (!end_addr_tuples->size()) {
 	  cerr << __FILE__ ":" << __LINE__ << ": no tuples for address " 
 	       << baseAddr +functionSize -1<< endl;
@@ -538,7 +545,7 @@ FunctionInfo* FileLineInformation::insertFunction(string functionName,Address ba
 
 	//  this next line should probably be end_addr_tuples->end()--, or some such???
 	//  in theory there should be only one anyways...
-	tuple *end_tuple = end_addr_tuples->begin()->second;
+	tuple *end_tuple = (*end_addr_tuples)[0];
 
 	FunctionInfo* fInfo = new FunctionInfo();
 	fInfo->startLinePtr = start_tuple;
@@ -546,6 +553,10 @@ FunctionInfo* FileLineInformation::insertFunction(string functionName,Address ba
 	fInfo->startAddrPtr = start_tuple;
 	fInfo->endAddrPtr = end_tuple;
 	fInfo->validInfo = true;
+	// let's do a check here -- not sure if its needed...
+	if (functionInfoHash.defines(functionName)) {
+	  cerr << __FILE__ ":" << __LINE__ << ": ERROR:  Duplicate insert! " << endl;
+	}
 	functionInfoHash[functionName] = fInfo;
 	return fInfo;
 	
@@ -657,8 +668,9 @@ void FileLineInformation::insertLineAddress(FunctionInfo* fInfo,
 	l2a_iter_t l2a_iter;
 	if (lineToAddr.end() == (l2a_iter = lineToAddr.find(lineNo))) {
 	  // not in map yet 
-	  addr_to_tuple_t *newTupleMap = new addr_to_tuple_t();
-	  (*newTupleMap)[codeAddress] = newTuple;
+	  pdvector<tuple *> *newTupleMap = new pdvector<tuple *>();
+	  newTupleMap->push_back(newTuple);
+
 	  if (newTupleMap != (lineToAddr[lineNo] = newTupleMap)) {
 	    cerr << __FILE__ << ":" << __LINE__ << ": broken insert!" << endl;
 	  }
@@ -669,10 +681,10 @@ void FileLineInformation::insertLineAddress(FunctionInfo* fInfo,
 	}
 	else {
 	  // in map, get map and add tuple 
-	  addr_to_tuple_t *tupleMap = l2a_iter->second;
+
+	  pdvector<tuple *> *tupleMap = l2a_iter->second;
 	  assert(tupleMap);
-	  // do we care about collisions here -- I think not -- they lead to replacement
-	  (*tupleMap)[codeAddress] = newTuple;
+	  tupleMap->push_back(newTuple);
 
 #ifdef TIMED_PARSE
 	  if (tupleMap->size() > max_addr_per_line) 
@@ -683,8 +695,11 @@ void FileLineInformation::insertLineAddress(FunctionInfo* fInfo,
 	a2l_iter_t a2l_iter;
 	if (addrToLine.end() == (a2l_iter = addrToLine.find(codeAddress))) {
 	  // not in map yet
-	  line_to_tuple_t *newTupleMap = new line_to_tuple_t();
-	  (*newTupleMap)[lineNo] = newTuple;
+
+
+	  pdvector<tuple *> *newTupleMap = new pdvector<tuple *>();
+	  newTupleMap->push_back(newTuple);
+
 	  if (newTupleMap != (addrToLine[codeAddress] = newTupleMap)){
 	    cerr << __FILE__ << ":" << __LINE__ << ": broken insert!" << endl;
 	  }
@@ -695,9 +710,11 @@ void FileLineInformation::insertLineAddress(FunctionInfo* fInfo,
 	}
 	else {
 	  // in map, get list and add tuple 
-	  line_to_tuple_t *tupleMap = a2l_iter->second;
+
+	  pdvector<tuple *> *tupleMap = a2l_iter->second;
 	  assert(tupleMap);
-	  (*tupleMap)[lineNo] = newTuple;
+	  tupleMap->push_back(newTuple);
+
 
 #ifdef TIMED_PARSE
 	  if (tupleMap->size() > max_line_per_addr) 
@@ -831,28 +848,44 @@ bool FileLineInformation::getLineFromAddr(string name,
     closest = a2l_iter->first;
   }  
 
-  line_to_tuple_t *addr_tuples = a2l_iter->second;
+  pdvector<tuple *> *addr_tuples = a2l_iter->second;
 
   if (isFile) 
     // in case of isFile, just grab them all
-    for (lt_iter_t iter = addr_tuples->begin(); iter != addr_tuples->end(); ++iter) 
-      lines += iter->second->lineNo;
+    for (unsigned int i = 0; i < addr_tuples->size(); ++i)
+      lines += (*addr_tuples)[i]->lineNo;
   
   else {
-    lt_iter_t iter;
     Address startAddr = fInfo->startAddrPtr->codeAddress;
     Address endAddr = fInfo->endAddrPtr->codeAddress;
-    
-    if (addr_tuples->end() == (iter = addr_tuples->find(startAddr))) {
+    unsigned int i, n_elem = addr_tuples->size();
+    int found = 0;
+
+    for (i = 0; i < n_elem; i++) {
+      if ((*addr_tuples)[i]->codeAddress == startAddr) {
+	found = 1;
+	break;
+      }
+    }
+
+    if (!found) {
       //  startAddr not in map, this is an error
       cerr << "!!!! startAddress not in map !!!!   addr_tuples->size() = "<< addr_tuples->size() << endl;
       return false;
     }
 
-    // SOMETHING IS NOT RIGHT HERE!!!!
-
-    for (; iter != addr_tuples->end() && iter->second->codeAddress <= endAddr; ++iter)
-      lines += iter->second->lineNo;
+    int end_found = 0;
+    Address currentAddress;
+    // accumulate following tuples until endAddr is found
+    for (; i < n_elem; i++) {
+      currentAddress = (*addr_tuples)[i]->codeAddress;
+      if (currentAddress > endAddr) break;
+      lines += (*addr_tuples)[i]->lineNo;
+      if (currentAddress == endAddr)
+	end_found = 1;
+    }
+    if (!end_found)
+      cerr << "!!!! startAddress not in map !!!!   addr_tuples->size() = "<< addr_tuples->size() << endl;
   }
 #endif
   return true;
@@ -941,33 +974,46 @@ bool FileLineInformation::getAddrFromLine(string name,
   }
 
   // map representing all addresses on this line
-  addr_to_tuple_t *line_tuple_map = l2a_iter->second;
+  pdvector<tuple *> *line_tuple_map = l2a_iter->second;
   
   if (isFile) {
-    at_iter_t iter;
-    for (iter = line_tuple_map->begin(); iter != line_tuple_map->end(); ++iter) {
-      codeAddress += iter->second->codeAddress;
-    }
+    unsigned int n_elem = line_tuple_map->size();
+    // in case of isFile, just grab them all
+    for (unsigned int i = 0; i < n_elem; i++)
+      codeAddress += (*line_tuple_map)[i]->codeAddress;
   }
   else {
-    at_iter_t iter;
     Address startAddress = fInfo->startLinePtr->codeAddress;
     Address endAddress = fInfo->endAddrPtr->codeAddress;
-    if (line_tuple_map->end() == (iter = line_tuple_map->find(startAddress)))
-      return false; // could not find startAddress
-
-    do {
-      codeAddress += iter->second->codeAddress;
-      iter++;
-    } while(iter != line_tuple_map->end() && iter->second->codeAddress <= endAddress);
-
-    //    unsigned short startLine = fInfo->startLinePtr->lineNo;
-    //unsigned short endLine = fInfo->endLinePtr->lineNo;
+    unsigned int i, n_elem = line_tuple_map->size();
+    int found = 0;
     
-    //for (iter = line_tuple_map->begin(); iter != line_tuple_map->end(); ++iter) {
-    //if ( ((*iter)->lineNo >= startLine) && (((*iter)->lineNo) <= endLine))
-    //codeAddress += (*iter)->codeAddress;
-    //}
+    for (i = 0; i < n_elem; i++) {
+      if ((*line_tuple_map)[i]->codeAddress == startAddress) {
+	found = 1;
+	break;
+      }
+    }
+
+    if (!found) {
+      //  startAddr not in map, this is an error
+      cerr << "!!!! startAddress not in map !!!!   addr_tuples->size() = "
+	   << line_tuple_map->size() << endl;
+      return false;
+    }
+
+    int end_found = 0;
+    Address currentAddress;
+    // accumulate following tuples until endAddr is found
+    for (; i < n_elem; i++) {
+      currentAddress = (*line_tuple_map)[i]->codeAddress;
+      if (currentAddress > endAddress) break;
+      codeAddress += (*line_tuple_map)[i]->codeAddress;
+      if (currentAddress == endAddress)
+	end_found = 1;
+    }
+    if (!end_found)
+      cerr << "!!!! startAddress not in map !!!!   addr_tuples->size() = "<< line_tuple_map->size() << endl;
   }
 #endif
 
@@ -1221,6 +1267,16 @@ FileLineInformation* LineInformation::getFileLineInformation(string fileName){
 	return NULL;
 } 
 
+#ifdef DEBUG_LINE_INFO
+void FileLineInformation::dump(FILE *f, string *modName)
+{
+  fprintf(f, "FileLineInformation for module: %s\n", modName);
+  dumpFunctionInfo(f);
+  dumpAddrToLine(f);
+  dumpLineToAddr(f);
+}
+#endif
+
 //method retuns the file line information object which the function belongs to.
 //if there is no entry than it retuns NULL
 FileLineInformation* 
@@ -1376,8 +1432,52 @@ unsigned short LineInformation::getSourceFileCount(){
 #endif
 }
 
+#ifdef DEBUG_LINE_INFO
+void LineInformation::dump(const char *modName)
+{
 
+  if (!modName) return NULL;
+  // dump info herein to file
+  FILE *dumpfile;
+  char dumpname[256];
 
+#ifdef OLD_LINE_INFO
+  sprintf(dumpname, "/tmp/%s.old", modName);
+#else
+  sprintf(dumpname, "/tmp/%s.new", modName);
+#endif
+
+  if (NULL == (dumpfile = fopen(dumpname, "w"))) {
+    assert(0);
+  }
+
+ 
+#ifdef OLD_LINE_INFO
+  fprintf(dumpfile, "moduleName: %s, sourceFileCount %d\n", moduleName.c_str(), sourceFileCount);
+  for (unsigned int i = 0; i < sourceFileCount; i++) {
+    lineInformationList[i]->dump(dumpfile, sourceFileList[i]);
+  }
+#else
+  fprintf(dumpfile, "moduleName: %s, sourceFileCount %d\n", moduleName.c_str(), fileLineInfoHash.size());
+  // first need to sort hash elements so dump produces alphabetical module order
+  pdvector<string> source_names;
+  string aName;
+  FileLineInformation *flInfo;
+  dictionary_hash_iter<string, FileLineInformation * > iter(fileLineInfoHash);
+  while(iter.next(aName, flInfo)) {
+    source_names.push_back(aName);
+  }
+  source_names.sort();
+
+  for (unsigned int i = 0; i < source_names.size(); i++) {
+    fileLineInfoHash[source_names[i]]->dump(dumpfile, &source_names[i]);
+  }
+#endif
+
+  fclose(dumpfile);
+
+}
+#endif
 ostream& operator<<(ostream& os,FileLineInformation& linfo){
 
 	cerr << "\tLINE TO ADDRESS \t\t ADDRESS TO LINE:\n";

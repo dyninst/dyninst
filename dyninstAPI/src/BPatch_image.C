@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.42 2003/04/18 22:35:21 tlmiller Exp $
+// $Id: BPatch_image.C,v 1.43 2003/04/25 22:31:12 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -460,25 +460,25 @@ void BPatch_image::findFunctionPatternInImage(regex_t *comp_pat, image *img,
 
 
 BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(
-	const char *name, BPatch_Vector<BPatch_function*> *funcs, bool showError,
+	const char *name, BPatch_Vector<BPatch_function*> &funcs, bool showError,
 	bool regex_case_sensitive)
 {
 
   if (NULL == strpbrk(name, REGEX_CHARSET)) {
     //  usual case, no regex
-    findFunctionInImage(name, proc->symbols, funcs);
+    findFunctionInImage(name, proc->symbols, &funcs);
     
     if (proc->dynamiclinking && proc->shared_objects) {
       for(unsigned int j = 0; j < proc->shared_objects->size(); j++){
 	const image *obj_image = ((*proc->shared_objects)[j])->getImage();
 	if (obj_image) {
-	  findFunctionInImage(name, (image*)obj_image, funcs);
+	  findFunctionInImage(name, (image*)obj_image, &funcs);
 	}
       }
     }
     
-    if (funcs->size() > 0) {
-      return funcs;
+    if (funcs.size() > 0) {
+      return &funcs;
     } else {
       
       if (showError) {
@@ -513,23 +513,23 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(
     return NULL;
   }
     
-  findFunctionPatternInImage(&comp_pat, proc->symbols, funcs);
-  cerr << "matched regex: " <<name<<"in symbols, results: "<<funcs->size()<<endl;
+  findFunctionPatternInImage(&comp_pat, proc->symbols, &funcs);
+  cerr << "matched regex: " <<name<<"in symbols, results: "<<funcs.size()<<endl;
 
   if (proc->dynamiclinking && proc->shared_objects) {
     for(unsigned int j = 0; j < proc->shared_objects->size(); j++){
       const image *obj_image = ((*proc->shared_objects)[j])->getImage();
       if (obj_image) {
-	findFunctionPatternInImage(&comp_pat, (image*)obj_image, funcs);
-	cerr << "matched regex: " <<name<<"in so, results: "<<funcs->size()<<endl;
+	findFunctionPatternInImage(&comp_pat, (image*)obj_image, &funcs);
+	cerr << "matched regex: " <<name<<"in so, results: "<<funcs.size()<<endl;
       }
     }
   }
   
   regfree(&comp_pat);
 
-  if (funcs->size() > 0) {
-    return funcs;
+  if (funcs.size() > 0) {
+    return &funcs;
   } 
     
   if (showError) {
@@ -573,24 +573,24 @@ void BPatch_image::sieveFunctionsInImage(image *img, BPatch_Vector<BPatch_functi
  */
 
 BPatch_Vector<BPatch_function *> *
-BPatch_image::findFunction(BPatch_Vector<BPatch_function *> *funcs, 
+BPatch_image::findFunction(BPatch_Vector<BPatch_function *> &funcs, 
 			   BPatchFunctionNameSieve bpsieve,
 			   void *user_data, int showError)
 {
 
-  sieveFunctionsInImage(proc->symbols, funcs, bpsieve, user_data);
+  sieveFunctionsInImage(proc->symbols, &funcs, bpsieve, user_data);
   
   if (proc->dynamiclinking && proc->shared_objects) {
     for(unsigned int j = 0; j < proc->shared_objects->size(); j++){
       const image *obj_image = ((*proc->shared_objects)[j])->getImage();
       if (obj_image) {
-	sieveFunctionsInImage(const_cast<image *>(obj_image), funcs, bpsieve, user_data);
+	sieveFunctionsInImage(const_cast<image *>(obj_image), &funcs, bpsieve, user_data);
       }
     }
   }
 
-  if (funcs->size() > 0) {
-    return funcs;
+  if (funcs.size() > 0) {
+    return &funcs;
   } 
     
   if (showError) {

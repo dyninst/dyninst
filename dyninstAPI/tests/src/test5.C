@@ -121,7 +121,7 @@ void mutatorTest1(BPatch_thread *appThread, BPatch_image *appImage)
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn = "arg_test::call_cpp";
-  if (NULL == appImage->findFunction(fn, &bpfv) || !bpfv.size()
+  if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
     fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
     fprintf(stderr, "    Unable to find function %s\n", fn);
@@ -185,7 +185,7 @@ void mutatorTest1(BPatch_thread *appThread, BPatch_image *appImage)
    // pass a paramter to a class member function
    bpfv.clear();
    char *fn2 = "arg_test::func_cpp";
-   if (NULL == appImage->findFunction(fn2, &bpfv) || !bpfv.size()
+   if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
        || NULL == bpfv[0]){
      fprintf(stderr, "**Failed** test #1 (C++ argument pass)\n");
      fprintf(stderr, "    Unable to find function %s\n", fn2);
@@ -202,7 +202,7 @@ void mutatorTest1(BPatch_thread *appThread, BPatch_image *appImage)
 
    bpfv.clear();
    char *fn3 = "arg_test::arg_pass";
-   if (NULL == appImage->findFunction(fn3, &bpfv) || !bpfv.size()
+   if (NULL == appImage->findFunction(fn3, bpfv) || !bpfv.size()
        || NULL == bpfv[0]) {
      fprintf(stderr, "**Failed** test #1 (C++ argument pass)\n");
      fprintf(stderr, "    Unable to find function %s\n", fn3);
@@ -239,7 +239,7 @@ void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
 
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn = "overload_func_test::func_cpp";
-  if (NULL == appImage->findFunction(fn, &bpfv) || !bpfv.size()
+  if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
     fprintf(stderr, "**Failed** test #2 (overloaded functions)\n");
     fprintf(stderr, "    Unable to find function %s\n", fn);
@@ -325,7 +325,7 @@ void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
 
     bpfv.clear();  
     char *fn2 = "cpp_test_util::call_cpp";
-    if (NULL == appImage->findFunction(fn2, &bpfv) || !bpfv.size()
+    if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
 	|| NULL == bpfv[0]){
       fprintf(stderr, "**Failed** test #2 (overloaded functions)\n");
       fprintf(stderr, "    Unable to find function %s\n", fn2);
@@ -360,7 +360,7 @@ void mutatorTest3(BPatch_thread *appThread, BPatch_image *appImage)
 
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn = "overload_op_test::func_cpp";
-  if (NULL == appImage->findFunction(fn, &bpfv) || !bpfv.size()
+  if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
     fprintf(stderr, "**Failed** test #3 (overloaded operation)\n");
     fprintf(stderr, "    Unable to find function %s\n", fn);
@@ -390,7 +390,7 @@ void mutatorTest3(BPatch_thread *appThread, BPatch_image *appImage)
   
   bpfv.clear();
   char *fn2 = "overload_op_test_call_cpp";
-  if (NULL == appImage->findFunction(fn2, &bpfv) || !bpfv.size()
+  if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
     fprintf(stderr, "**Failed** test #3 (overloaded operation)\n");
     fprintf(stderr, "    Unable to find function %s\n", fn2);
@@ -416,7 +416,7 @@ void mutatorTest4(BPatch_thread *appThread, BPatch_image *appImage)
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn = "static_test::func_cpp";
-  if (NULL == appImage->findFunction(fn, &bpfv) || !bpfv.size()
+  if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
     fprintf(stderr, "**Failed** test #4 (static member)\n");
     fprintf(stderr, "    Unable to find function %s\n", fn);
@@ -472,7 +472,7 @@ void mutatorTest4(BPatch_thread *appThread, BPatch_image *appImage)
   
   bpfv.clear();
   char *fn2 = "static_test_call_cpp";
-  if (NULL == appImage->findFunction(fn2, &bpfv) || !bpfv.size()
+  if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
     fprintf(stderr, "**Failed** test #4 (static member)\n");
     fprintf(stderr, "    Unable to find function %s\n", fn2);
@@ -500,7 +500,7 @@ void mutatorTest5(BPatch_thread *appThread, BPatch_image *appImage)
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn = "namespace_test::func_cpp";
-  if (NULL == appImage->findFunction(fn, &bpfv) || !bpfv.size()
+  if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
     fprintf(stderr, "**Failed** test #5 (namespace)\n");
     fprintf(stderr, "    Unable to find function %s\n", fn);
@@ -530,7 +530,7 @@ void mutatorTest5(BPatch_thread *appThread, BPatch_image *appImage)
 
    bpfv.clear();
    char *fn2 = "main";
-   if (NULL == appImage->findFunction(fn2, &bpfv) || !bpfv.size()
+   if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
 	 || NULL == bpfv[0]){
     fprintf(stderr, "**Failed** test #5 (namespace)\n");
     fprintf(stderr, "    Unable to find function %s\n", fn2);
@@ -562,7 +562,7 @@ void mutatorTest5(BPatch_thread *appThread, BPatch_image *appImage)
 
 	BPatch_Vector<BPatch_function *> bpfv2;
 	char *fn3 = "cpp_test_util::call_cpp";
-	if (NULL == appImage->findFunction(fn3, &bpfv2) || !bpfv2.size()
+	if (NULL == appImage->findFunction(fn3, bpfv2) || !bpfv2.size()
 	    || NULL == bpfv2[0]){
 	  fprintf(stderr, "**Failed** test #5 (namespace)\n");
 	  fprintf(stderr, "    Unable to find function %s\n", fn3);
@@ -604,7 +604,7 @@ void mutatorTest6(BPatch_thread *appThread, BPatch_image *appImage)
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn2 = "exception_test::func_cpp";
-  if (NULL == appImage->findFunction(fn2, &bpfv) || !bpfv.size()
+  if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
     fprintf(stderr, "**Failed** test #6 (exception)\n");
     fprintf(stderr, "    Unable to find function %s\n", fn2);
@@ -639,7 +639,7 @@ void mutatorTest6(BPatch_thread *appThread, BPatch_image *appImage)
 
 	 bpfv.clear();
 	 char *fn3 = "exception_test_call_cpp";
-	 if (NULL == appImage->findFunction(fn3, &bpfv) || !bpfv.size()
+	 if (NULL == appImage->findFunction(fn3, bpfv) || !bpfv.size()
 	     || NULL == bpfv[0]){
 	   fprintf(stderr, "**Failed** test #6 (exception)\n");
 	   fprintf(stderr, "    Unable to find function %s\n", fn3);
@@ -670,7 +670,7 @@ void mutatorTest7(BPatch_thread *appThread, BPatch_image *appImage)
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn2 = "template_test::func_cpp";
-  if (NULL == appImage->findFunction(fn2, &bpfv) || !bpfv.size()
+  if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
     fprintf(stderr, "**Failed** test #7 (template)\n");
     fprintf(stderr, "    Unable to find function %s\n", fn2);
@@ -746,7 +746,7 @@ void mutatorTest7(BPatch_thread *appThread, BPatch_image *appImage)
    
    bpfv.clear();
    char *fn3 = "template_test_call_cpp";
-   if (NULL == appImage->findFunction(fn3, &bpfv) || !bpfv.size()
+   if (NULL == appImage->findFunction(fn3, bpfv) || !bpfv.size()
        || NULL == bpfv[0]){
      fprintf(stderr, "**Failed** test #7 (template)\n");
      fprintf(stderr, "    Unable to find function %s\n", fn3);
@@ -779,7 +779,7 @@ void mutatorTest8(BPatch_thread *appThread, BPatch_image *appImage)
    // Find the exit point to the procedure "func_cpp"
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn = "decl_test::func_cpp";
-  if (NULL == appImage->findFunction(fn, &bpfv) || !bpfv.size()
+  if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
     fprintf(stderr, "**Failed** test #8 (declaration)\n");
     fprintf(stderr, "    Unable to find function %s\n", fn);
@@ -794,7 +794,7 @@ void mutatorTest8(BPatch_thread *appThread, BPatch_image *appImage)
 
   bpfv.clear();
   char *fn2 = "main";
-  if (NULL == appImage->findFunction(fn2, &bpfv) || !bpfv.size()
+  if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
     fprintf(stderr, "**Failed** test #8 (declaration)\n");
     fprintf(stderr, "    Unable to find function %s\n", fn2);
@@ -809,7 +809,7 @@ void mutatorTest8(BPatch_thread *appThread, BPatch_image *appImage)
 
   bpfv.clear();
   char *fn3 = "decl_test::call_cpp";
-  if (NULL == appImage->findFunction(fn3, &bpfv) || !bpfv.size()
+  if (NULL == appImage->findFunction(fn3, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
     fprintf(stderr, "**Failed** test #8 (declaration)\n");
     fprintf(stderr, "    Unable to find function %s\n", fn3);
@@ -875,7 +875,7 @@ void mutatorTest9(BPatch_thread *, BPatch_image *appImage)
    
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn = "derivation_test::func_cpp";
-  if (NULL == appImage->findFunction(fn, &bpfv) || !bpfv.size()
+  if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
     fprintf(stderr, "**Failed** test #9 (derivation)\n");
     fprintf(stderr, "    Unable to find function %s\n", fn);
@@ -890,7 +890,7 @@ void mutatorTest9(BPatch_thread *, BPatch_image *appImage)
    
   bpfv.clear();
   char *fn2 = "main";
-  if (NULL == appImage->findFunction(fn2, &bpfv) || !bpfv.size()
+  if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
     fprintf(stderr, "**Failed** test #9 (derivation)\n");
     fprintf(stderr, "    Unable to find function %s\n", fn2);
@@ -1054,7 +1054,7 @@ void mutatorTest11(BPatch_thread *appThread, BPatch_image *appImage)
    // Replace a shlib function with an a.out function
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn = "stdlib_test2::call_cpp";
-  if (NULL == appImage->findFunction(fn, &bpfv) || !bpfv.size()
+  if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
     fprintf(stderr, "**Failed** test #11 (replace function in standard C++ library)\n");
     fprintf(stderr, "    Unable to find function %s\n", fn);
@@ -1089,7 +1089,7 @@ void mutatorTest12(BPatch_thread *appThread, BPatch_image *appImage)
   const char *fn4="func_test::call_cpp";
 
   BPatch_Vector<BPatch_function *> bpfv;
-  if (NULL == appImage->findFunction(fn1, &bpfv) || !bpfv.size()
+  if (NULL == appImage->findFunction(fn1, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
     fprintf(stderr, "**Failed** test #12 (C++ member function)\n");
     fprintf(stderr, "    Unable to find function %s\n", fn1);
@@ -1098,7 +1098,7 @@ void mutatorTest12(BPatch_thread *appThread, BPatch_image *appImage)
   BPatch_function *f1 = bpfv[0];  
 
   bpfv.clear();
-  if (NULL == appImage->findFunction(fn2, &bpfv) || !bpfv.size()
+  if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
     fprintf(stderr, "**Failed** test #12 (C++ member function)\n");
     fprintf(stderr, "    Unable to find function %s\n", fn2);
@@ -1107,7 +1107,7 @@ void mutatorTest12(BPatch_thread *appThread, BPatch_image *appImage)
   BPatch_function *f2 = bpfv[0];  
 
   bpfv.clear();
-  if (NULL == appImage->findFunction(fn3, &bpfv) || !bpfv.size()
+  if (NULL == appImage->findFunction(fn3, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
     fprintf(stderr, "**Failed** test #12 (C++ member function)\n");
     fprintf(stderr, "    Unable to find function %s\n", fn3);
@@ -1116,7 +1116,7 @@ void mutatorTest12(BPatch_thread *appThread, BPatch_image *appImage)
   BPatch_function *f3 = bpfv[0];  
 
   bpfv.clear();
-  if (NULL == appImage->findFunction(fn4, &bpfv) || !bpfv.size()
+  if (NULL == appImage->findFunction(fn4, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
     fprintf(stderr, "**Failed** test #12 (C++ member function)\n");
     fprintf(stderr, "    Unable to find function %s\n", fn4);

@@ -108,9 +108,9 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj {
 					BPatch_function* bpf = NULL);
 
 
-    BPatch_Vector<BPatch_function*>	*findFunction(const char *name, BPatch_Vector<BPatch_function*> *funcs, bool showError=true, bool regex_case_sensitive=true);
+    BPatch_Vector<BPatch_function*>	*findFunction(const char *name, BPatch_Vector<BPatch_function*> &funcs, bool showError=true, bool regex_case_sensitive=true);
 
-    BPatch_Vector<BPatch_function *> *findFunction(BPatch_Vector<BPatch_function *> *funcs, BPatchFunctionNameSieve bpsieve, void *user_data=NULL, int showError=0);
+    BPatch_Vector<BPatch_function *> *findFunction(BPatch_Vector<BPatch_function *> &funcs, BPatchFunctionNameSieve bpsieve, void *user_data=NULL, int showError=0);
     BPatch_variableExpr	*findVariable(const char *name, bool showError=true);
     BPatch_variableExpr *findVariable(BPatch_point &scp, const char *nm); 
 

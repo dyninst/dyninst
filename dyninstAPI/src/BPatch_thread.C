@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.85 2003/04/20 01:00:19 schendel Exp $
+// $Id: BPatch_thread.C,v 1.86 2003/04/25 22:31:12 jaw Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -107,7 +107,7 @@ static void insertVForkInst(BPatch_thread *thread)
 #if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
 
     BPatch_Vector<BPatch_function *>  dyninst_vforks;
-    if (NULL == appImage->findFunction("DYNINSTvfork", &dyninst_vforks) || 
+    if (NULL == appImage->findFunction("DYNINSTvfork", dyninst_vforks) || 
 	!dyninst_vforks.size()) {
       fprintf(stderr, "%s[%d]:  FATAL  : findFunction(`DYNINSTvfork`, ...), "
 	      "no DYNINSTvfork found!\n", __FILE__, __LINE__);
@@ -122,7 +122,7 @@ static void insertVForkInst(BPatch_thread *thread)
     BPatch_function *vforkFunc = dyninst_vforks[0];
 
     BPatch_Vector<BPatch_function *>  vforks;
-    if (NULL == appImage->findFunction("vfork", &vforks) || !vforks.size()) {
+    if (NULL == appImage->findFunction("vfork", vforks) || !vforks.size()) {
       fprintf(stderr, "%s[%d]:  FATAL  : findFunction(`vfork`, ...), no vfork found!\n",
 	      __FILE__, __LINE__);
       return;
@@ -1295,7 +1295,7 @@ bool BPatch_thread::loadLibrary(const char *libname, bool reload)
     args.push_back(&nameArg);
     // args.push_back(&modeArg);
     BPatch_Vector<BPatch_function *> bpfv;
-    if ((NULL == image->findFunction("DYNINSTloadLibrary", &bpfv) || !bpfv.size())) {
+    if ((NULL == image->findFunction("DYNINSTloadLibrary", bpfv) || !bpfv.size())) {
       cout << __FILE__ << ":" << __LINE__ << ": FATAL:  Cannot find Internal Function "
 	   << "DYNINSTloadLibrary" << endl;
       abort();

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.163 2003/04/18 22:35:37 tlmiller Exp $
+// $Id: symtab.C,v 1.164 2003/04/25 22:31:14 jaw Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -195,7 +195,7 @@ bool buildDemangledName(const string &mangled, string &use, bool nativeCompiler,
     char *tempName = P_strdup(mangled.c_str());
     char demangled[1000];
     //cerr << "build demangled name. language = " << lang <<endl;
-    if ((lang == lang_Fortran || lang == lang_CMFortran) 
+    if ((lang == lang_Fortran || lang == lang_CMFortran || lang == lang_Fortran_with_pretty_debug) 
 	&& tempName[strlen(tempName)-1] == '_') {
       strcpy(demangled, tempName)[strlen(tempName)-1] = '\0';
       //cerr << "generating fortran name:  mangled = " << mangled << "demangled = " << demangled << endl;
@@ -1589,27 +1589,13 @@ image *image::parseImage(fileDescriptor *desc, Address newBaseAddr)
   return(ret);
 }
 
-/*
-// a helper routine that checks to see if arg <mod_name> ends in arg <suffix>
-bool compare_suffix(char *mod_name, char *suffix) 
-{
-  int endp = strlen(mod_name) - strlen(suffix) -1;
-  int j = strlen(suffix) - 1;
-
-  if (endp < 0) return false;
-
-  for (int i = strlen(mod_name)-1; i > endp; --i) {
-    if (mod_name[i] != suffix[j]) return false;
-    j--;
-  } 
-  return true;
-}
-*/
 
 //  a helper routine that selects a language based on information from the symtab
-supportedLanguages pickLanguage(string &working_module, char *working_options)
+supportedLanguages pickLanguage(string &working_module, char *working_options, 
+				supportedLanguages working_lang)
 {
   supportedLanguages lang = lang_Unknown;
+  static int sticky_fortran_modifier_flag = 0;
 
   // (2) -- check suffixes -- try to keep most common suffixes near the top of the checklist
   if (working_module.suffixed_by(".c", 2)) lang = lang_C;
@@ -1619,26 +1605,52 @@ supportedLanguages pickLanguage(string &working_module, char *working_options)
   else if (working_module.suffixed_by(".f",2)) lang = lang_Fortran; 
   else if (working_module.suffixed_by(".cc",3)) lang = lang_C;
   else if (working_module.suffixed_by(".a",2)) lang = lang_Assembly; // is this right?
-  else if (working_module.suffixed_by(".S",2)) lang = lang_Assembly; // is this right?
-  else if (working_module.suffixed_by(".s",2)) lang = lang_Assembly; // is this right?
+  else if (working_module.suffixed_by(".S",2)) lang = lang_Assembly; 
+  else if (working_module.suffixed_by(".s",2)) lang = lang_Assembly; 
   else {
     //(3) -- try to use options string -- if we have 'em
     if (working_options) {
       //  NOTE:  a binary is labeled "gcc2_compiled" even if compiled w/g77 -- thus this is
       //         quite inaccurate to make such assumptions
-      if (strstr(working_options, "gcc")) // catch option strings of the form "gccx--compiled"
-	lang = lang_C; // we also have lang_gnuC, but I don't think we need to make the distinction
-      else if (strstr(working_options, "g++")) // catch option strings of the form "g++x--compiled"
-	lang = lang_CPlusPlus; // we also have lang_gnuC, but I don't think we need to make the distinction
-      //cerr << __FILE__ << __LINE__ << ":  Compiler options: " << working_options << endl; 
-    }
-    else {
-      //  Probably don't need to warn here...  but I'll leave it in until it gets annoying
-      // cerr << __FILE__ << __LINE__ << ":  WARNING:  unable to determine language of " 
-      //   << working_name << endl; 
+      if (strstr(working_options, "gcc")) 
+	lang = lang_C; 
+      else if (strstr(working_options, "g++")) 
+	lang = lang_CPlusPlus; 
     }
   }
-	  //cerr << __FILE__ << __LINE__ << ":  Module: " <<working_module<< " infers language "<< lang << endl;  
+
+  //  This next section tries to determine the version of the debug info generator for a
+  //  Sun fortran compiler.  Some leave the underscores on names in the debug info, and some
+  //  have the "pretty" names, we need to detect this in order to properly read the debug.
+  if (working_lang == lang_Fortran) {
+    if (sticky_fortran_modifier_flag) {
+      //cerr << __FILE__ << __LINE__ << ": UPDATE: lang_Fortran->lang_Fortran_with_pretty_debug." << endl;
+      working_lang = lang_Fortran_with_pretty_debug;
+    }
+    else if (working_options) {
+      char *dbg_gen = NULL;
+      //      cerr << __FILE__ << __LINE__ << ":  OPT: " << working_options << endl; 
+      if (NULL != (dbg_gen = strstr(working_options, "DBG_GEN="))) {
+	//cerr << __FILE__ << __LINE__ << ":  OPT: " << dbg_gen << endl; 
+	// Sun fortran compiler (probably), need to examine version
+	char *dbg_gen_ver_maj = dbg_gen + strlen("DBG_GEN=");
+	//cerr << __FILE__ << __LINE__ << ":  OPT: " << dbg_gen_ver_maj << endl; 
+	char *next_dot = strchr(dbg_gen_ver_maj, '.');
+	if (NULL != next_dot) {
+	  next_dot = '\0';  //terminate major version number string
+	  int ver_maj = atoi(dbg_gen_ver_maj);
+	  //cerr <<"Major Debug Ver. "<<ver_maj<< endl;
+	  if (ver_maj < 3) {
+	    working_lang = lang_Fortran_with_pretty_debug;
+	    sticky_fortran_modifier_flag = 1;
+	    //cerr << __FILE__ << __LINE__ << ": UPDATE: lang_Fortran->lang_Fortran_with_pretty_debug.  "
+	    //	 <<"Major Debug Ver. "<<ver_maj<< endl;
+	  }
+	}
+      }
+    }
+  }
+  
   return lang;
 }
 void image::getModuleLanguageInfo(dictionary_hash<string, supportedLanguages> *mod_langs)
@@ -1653,6 +1665,18 @@ void image::getModuleLanguageInfo(dictionary_hash<string, supportedLanguages> *m
   const char *stabstrs = 0;
   char *modName, *ptr;
   string mod_string;
+
+  // This ugly flag is set when certain (sun) fortran compilers are detected.
+  // If it is set at any point during the following iteration, this routine
+  // ends with "backtrack mode" and reiterates through all chosen languages, changing
+  // lang_Fortran to lang_Fortran_with_pretty_debug.
+  //
+  // This may be ugly, but it is set up this way since the information that is used
+  // to determine whether this flag is set comes from the N_OPT field, which 
+  // seems to come only once per image.  The kludge is that we assume that all
+  // fortran sources in the module have this property (they probably do, but
+  // could conceivably be mixed (???)).
+  int fortran_kludge_flag = 0;
 
   // "state variables" we use to accumulate potentially useful information
   //  A final module<->language decision is not made until we have arrived at the
@@ -1690,13 +1714,19 @@ void image::getModuleLanguageInfo(dictionary_hash<string, supportedLanguages> *m
     else if ((stabptr[i].type == N_SO)  || (stabptr[i].type == N_ENDM)){ /* compilation source or file name */
       // We have arrived at the next source file, finish up with the last one and reset state
       // before starting next
+
+
+      //   XXXXXXXXXXX  This block is mirrored near the end of routine, if you edit it,
+      //   XXXXXXXXXXX  change it there too.
       if  (working_name) {
-	if (working_lang == lang_Unknown)
-	  working_lang = pickLanguage(working_module, working_options);	  
-
+	working_lang = pickLanguage(working_module, working_options, working_lang);
+	if (working_lang == lang_Fortran_with_pretty_debug)
+	  fortran_kludge_flag = 1;
 	(*mod_langs)[working_module] = working_lang;
-      }
 
+      }
+      //   XXXXXXXXXXX
+	
       // reset "state" here
       working_lang = lang_Unknown;
       working_options = NULL;
@@ -1705,6 +1735,7 @@ void image::getModuleLanguageInfo(dictionary_hash<string, supportedLanguages> *m
 
       if (stabptr[i].type == N_ENDM) {
 	// special case:
+	// which is most likely both broken (and ignorable ???)
 	working_name = "DEFAULT_MODULE";
       }
       else {
@@ -1720,37 +1751,36 @@ void image::getModuleLanguageInfo(dictionary_hash<string, supportedLanguages> *m
       if (mod_langs->defines(working_module) && (*mod_langs)[working_module] != lang_Unknown) {
 	//  we already have a module with this name in the map.  If it has been given
 	//  a language assignment (not lang_Unknown), we can just skip ahead
-	if ((*mod_langs)[working_module] != lang_Unknown) {
 	  working_name = NULL;
 	  working_options = NULL;
 	  continue;
-	} 
-	else {
-	  //cerr << __FILE__ << __LINE__ << ":  Module: " <<working_module<< " has language "<< stabptr[i].desc << endl;  
-	  switch (stabptr[i].desc) {
-	  case N_SO_FORTRAN: 
-	    working_lang = lang_Fortran;
-	    break;
-	  case N_SO_F90:
-	    working_lang = lang_Fortran;  // not sure if this should be different from N_SO_FORTRAN
-	    break;
-	  case N_SO_AS:
-	    working_lang = lang_Assembly;
-	    break;
-	  case N_SO_ANSI_C:
-	  case N_SO_C:
-	    working_lang = lang_C;
-	    break;
-	  case N_SO_CC:
-	    working_lang = lang_CPlusPlus;
-	    break;
-	  default:
-	    //  currently uncovered options are lang_CMFortran, and lang_GnuCPlusPlus
-	    //  do we need to make this kind of distinction here?
-	    working_lang = lang_Unknown;
-	    break;
-	  }
+      } 
+      else {
+	//cerr << __FILE__ << __LINE__ << ":  Module: " <<working_module<< " has language "<< stabptr[i].desc << endl;  
+	switch (stabptr[i].desc) {
+	case N_SO_FORTRAN: 
+	  working_lang = lang_Fortran;
+	  break;
+	case N_SO_F90:
+	  working_lang = lang_Fortran;  // not sure if this should be different from N_SO_FORTRAN
+	  break;
+	case N_SO_AS:
+	  working_lang = lang_Assembly;
+	  break;
+	case N_SO_ANSI_C:
+	case N_SO_C:
+	  working_lang = lang_C;
+	  break;
+	case N_SO_CC:
+	  working_lang = lang_CPlusPlus;
+	  break;
+	default:
+	  //  currently uncovered options are lang_CMFortran, and lang_GnuCPlusPlus
+	  //  do we need to make this kind of distinction here?
+	  working_lang = lang_Unknown;
+	  break;
 	}
+	
       } 
     } // end N_SO section
 #ifdef NOTDEF
@@ -1777,13 +1807,28 @@ void image::getModuleLanguageInfo(dictionary_hash<string, supportedLanguages> *m
 
   //  Need to make sure we finish up with the module we were last collecting information 
   //  about
+
+  //   XXXXXXXXXXX  see note above (find the X's)
   if  (working_name) {
-    if (working_lang == lang_Unknown)
-      working_lang = pickLanguage(working_module, working_options);	  
-    
+    working_lang = pickLanguage(working_module, working_options, working_lang);	  
+   if (working_lang == lang_Fortran_with_pretty_debug)
+      fortran_kludge_flag = 1;
     (*mod_langs)[working_module] = working_lang;
   }
+  //   XXXXXXXXXXX
 
+  if (fortran_kludge_flag) {
+    // go through map and change all lang_Fortran to lang_Fortran_with_pretty_symtab
+    dictionary_hash_iter<string, supportedLanguages> iter(*mod_langs);
+    string aname;
+    supportedLanguages alang;
+    while (iter.next(aname, alang)) {
+      if (lang_Fortran == alang) {
+	(*mod_langs)[aname] = lang_Fortran_with_pretty_debug;
+	cerr << __FILE__ << __LINE__ << ": UPDATE: lang_Fortran->lang_Fortran_with_pretty_debug.  " << endl;
+      }
+    }
+  }
 #if defined(TIMED_PARSE)
   struct timeval endtime;
   gettimeofday(&endtime, NULL);

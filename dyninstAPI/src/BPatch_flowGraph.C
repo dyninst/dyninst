@@ -49,7 +49,7 @@ BPatch_flowGraph::BPatch_flowGraph(BPatch_image *bpim,char *functionName, bool &
 
 	BPatch_Vector<BPatch_function *> bpfv;
 
-	if (NULL == bpim->findFunction(functionName, &bpfv)) {
+	if (NULL == bpim->findFunction(functionName, bpfv)) {
 	  cerr << "ERROR : BPatch_flowGraph::BPatch_flowGraph : ";
 	  cerr << functionName <<" does not have BPatch_function object\n" ;
 	}

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.126 2003/04/18 22:35:36 tlmiller Exp $
+// $Id: symtab.h,v 1.127 2003/04/25 22:31:14 jaw Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -93,6 +93,7 @@ typedef enum { lang_Unknown,
 	       lang_CPlusPlus,
 	       lang_GnuCPlusPlus,
 	       lang_Fortran,
+	       lang_Fortran_with_pretty_debug,
 	       lang_CMFortran
 	       } supportedLanguages;
 

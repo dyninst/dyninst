@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.22 2003/04/18 22:35:31 tlmiller Exp $
+// $Id: templates2.C,v 1.23 2003/04/25 22:31:14 jaw Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -79,10 +79,9 @@ template class  dictionary_hash <string, FileLineInformation *>;
 template class  pdvector< dictionary_hash <string, FileLineInformation * >::entry >;
 template class  dictionary_hash_iter <string, FileLineInformation *>;
 
-template class std::map<unsigned short, tuple *, std::less<unsigned short> >;
-template class  std::map<Address, tuple *, std::less<Address> >;
-template class std::map<unsigned short, std::map<Address, tuple *, std::less<Address> > *, std::less<unsigned short> >;
-template class std::map<Address,std::map<unsigned short, tuple *, std::less<unsigned short> > *, std::less<Address> >;
+template class pdvector<tuple *>;
+template class std::map<unsigned short, pdvector<tuple *> *, std::less<unsigned short> >;
+template class std::map<Address, pdvector<tuple *> *, std::less<Address> >;
 #endif
 #endif
 

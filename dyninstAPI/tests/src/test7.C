@@ -1,4 +1,4 @@
-// $Id: test7.C,v 1.5 2003/04/02 07:12:27 jaw Exp $
+// $Id: test7.C,v 1.6 2003/04/25 22:31:15 jaw Exp $
 //
 
 #include <stdio.h>
@@ -175,7 +175,7 @@ void prepareTestCase1(procType proc_type, BPatch_thread *thread, forkWhen when)
       
       BPatch_Vector<BPatch_function *> found_funcs;
       const char *inFunction = "func7_1";
-      if ((NULL == parImage->findFunction(inFunction, &found_funcs, 1)) || !found_funcs.size()) {
+      if ((NULL == parImage->findFunction(inFunction, found_funcs, 1)) || !found_funcs.size()) {
 	fprintf(stderr, "    Unable to find function %s\n",
 		inFunction);
 	exit(1);
@@ -239,7 +239,7 @@ void prepareTestCase2(procType proc_type, BPatch_thread *thread, forkWhen when)
       
       BPatch_Vector<BPatch_function *> found_funcs;
       const char *inFunction = "func7_2";
-      if ((NULL == parImage->findFunction(inFunction, &found_funcs, 1)) || !found_funcs.size()) {
+      if ((NULL == parImage->findFunction(inFunction, found_funcs, 1)) || !found_funcs.size()) {
 	fprintf(stderr, "    Unable to find function %s\n",
 		inFunction);
 	exit(1);
@@ -270,7 +270,7 @@ void prepareTestCase2(procType proc_type, BPatch_thread *thread, forkWhen when)
 
       BPatch_Vector<BPatch_function *> found_funcs;
       const char *inFunction = "func7_2";
-      if ((NULL == childImage->findFunction(inFunction, &found_funcs, 1)) || !found_funcs.size()) {
+      if ((NULL == childImage->findFunction(inFunction, found_funcs, 1)) || !found_funcs.size()) {
 	fprintf(stderr, "    Unable to find function %s\n",
 		inFunction);
 	exit(1);
@@ -337,7 +337,7 @@ void prepareTestCase3(procType proc_type, BPatch_thread *thread, forkWhen when)
 
       BPatch_Vector<BPatch_function *> found_funcs;
       const char *inFunction = "func7_3";
-      if ((NULL == parImage->findFunction(inFunction, &found_funcs, 1)) || !found_funcs.size()) {
+      if ((NULL == parImage->findFunction(inFunction, found_funcs, 1)) || !found_funcs.size()) {
 	fprintf(stderr, "    Unable to find function %s\n",
 		inFunction);
 	exit(1);
@@ -375,7 +375,7 @@ void prepareTestCase3(procType proc_type, BPatch_thread *thread, forkWhen when)
 
       BPatch_Vector<BPatch_function *> found_funcs;
       const char *inFunction = "func7_3";
-      if ((NULL == childImage->findFunction(inFunction, &found_funcs, 1)) || !found_funcs.size()) {
+      if ((NULL == childImage->findFunction(inFunction, found_funcs, 1)) || !found_funcs.size()) {
 	fprintf(stderr, "    Unable to find function %s\n",
 		inFunction);
 	exit(1);
@@ -442,7 +442,7 @@ void prepareTestCase4(procType proc_type, BPatch_thread *thread, forkWhen when)
 
       BPatch_Vector<BPatch_function *> found_funcs;
       const char *inFunction = "func7_4";
-      if ((NULL == childImage->findFunction(inFunction, &found_funcs, 1)) || !found_funcs.size()) {
+      if ((NULL == childImage->findFunction(inFunction, found_funcs, 1)) || !found_funcs.size()) {
 	fprintf(stderr, "    Unable to find function %s\n",
 		inFunction);
 	exit(1);
@@ -507,7 +507,7 @@ void prepareTestCase5(procType proc_type, BPatch_thread *thread, forkWhen when)
 
       BPatch_Vector<BPatch_function *> found_funcs;
       const char *inFunction = "func7_5";
-      if ((NULL == parImage->findFunction(inFunction, &found_funcs, 1)) || !found_funcs.size()) {
+      if ((NULL == parImage->findFunction(inFunction, found_funcs, 1)) || !found_funcs.size()) {
 	fprintf(stderr, "    Unable to find function %s\n",
 		inFunction);
 	exit(1);
@@ -538,7 +538,7 @@ void prepareTestCase5(procType proc_type, BPatch_thread *thread, forkWhen when)
 
       BPatch_Vector<BPatch_function *> found_funcs;
       const char *inFunction = "func7_5";
-      if ((NULL == parImage->findFunction(inFunction, &found_funcs, 1)) || !found_funcs.size()) {
+      if ((NULL == parImage->findFunction(inFunction, found_funcs, 1)) || !found_funcs.size()) {
 	fprintf(stderr, "    Unable to find function %s\n",
 		inFunction);
 	exit(1);
@@ -575,7 +575,7 @@ void prepareTestCase5(procType proc_type, BPatch_thread *thread, forkWhen when)
 
       BPatch_Vector<BPatch_function *> found_funcs;
       const char *inFunction = "func7_5";
-      if ((NULL == childImage->findFunction(inFunction, &found_funcs, 1)) || !found_funcs.size()) {
+      if ((NULL == childImage->findFunction(inFunction, found_funcs, 1)) || !found_funcs.size()) {
 	fprintf(stderr, "    Unable to find function %s\n",
 		inFunction);
 	exit(1);
@@ -709,7 +709,7 @@ void prepareTestCase7(procType proc_type, BPatch_thread *thread, forkWhen when)
 
       BPatch_Vector<BPatch_function *> found_funcs;
       const char *inFunction = "func7_7";
-      if ((NULL == parImage->findFunction(inFunction, &found_funcs, 1)) || !found_funcs.size()) {
+      if ((NULL == parImage->findFunction(inFunction, found_funcs, 1)) || !found_funcs.size()) {
 	fprintf(stderr, "    Unable to find function %s\n",
 		inFunction);
 	exit(1);
@@ -736,7 +736,7 @@ void prepareTestCase7(procType proc_type, BPatch_thread *thread, forkWhen when)
 
       BPatch_Vector<BPatch_function *> found_funcs;
       const char *inFunction = "func7_7";
-      if ((NULL == childImage->findFunction(inFunction, &found_funcs, 1)) || !found_funcs.size()) {
+      if ((NULL == childImage->findFunction(inFunction, found_funcs, 1)) || !found_funcs.size()) {
 	fprintf(stderr, "    Unable to find function %s\n",
 		inFunction);
 	exit(1);
@@ -809,7 +809,7 @@ void prepareTestCase8(procType proc_type, BPatch_thread *thread, forkWhen when)
 
       BPatch_Vector<BPatch_function *> found_funcs;
       const char *inFunction = "func7_8";
-      if ((NULL == parImage->findFunction(inFunction, &found_funcs, 1)) || !found_funcs.size()) {
+      if ((NULL == parImage->findFunction(inFunction, found_funcs, 1)) || !found_funcs.size()) {
 	fprintf(stderr, "    Unable to find function %s\n",
 		inFunction);
 	exit(1);
@@ -891,7 +891,7 @@ void prepareTestCase9(procType proc_type, BPatch_thread *thread, forkWhen when)
 
       BPatch_Vector<BPatch_function *> found_funcs;
       const char *inFunction = "func7_9";
-      if ((NULL == childImage->findFunction(inFunction, &found_funcs, 1)) || !found_funcs.size()) {
+      if ((NULL == childImage->findFunction(inFunction, found_funcs, 1)) || !found_funcs.size()) {
 	fprintf(stderr, "    Unable to find function %s\n",
 		inFunction);
 	exit(1);

@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.87 2003/04/02 07:12:27 jaw Exp $ */
+/* $Id: test1.mutatee.c,v 1.88 2003/04/25 22:31:14 jaw Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -1875,8 +1875,8 @@ int func30_1()
 
 		      if (!passedTest[30]){
 			printf("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
-    printf("gv30_6 = %d, gv30_1 = %d, should be equal and nonzero!\n", globalVariable30_6,
-	     globalVariable30_1);
+			printf("gv30_5 = %d, gv30_2 = %d, gv30_9 = %d\n", globalVariable30_5,
+			       globalVariable30_2, globalVariable30_9);
 			return 0;
 		      }
 
