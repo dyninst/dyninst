@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.28 1999/11/09 17:07:30 hollings Exp $ */
+/* $Id: test1.mutatee.c,v 1.29 1999/11/11 16:50:10 paradyn Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -197,7 +197,7 @@ int checkIfAttached()
  * Stop the process (in order to wait for the mutator to finish what it's
  * doing and restart us).
  */
-#ifdef alpha_dec_osf4_0
+#if defined(alpha_dec_osf4_0) && defined(__GNUC__)
 static long long int  beginFP;
 #endif
 void stop_process()
@@ -206,7 +206,12 @@ void stop_process()
     DebugBreak();
 #else
 
-#ifdef alpha_dec_osf4_0
+#if defined(alpha_dec_osf4_0) && defined(__GNUC__)
+    /* This GCC-specific hack doesn't compile with other compilers, 
+       which is unfortunate, since the native build test fails part 15
+       with the error "process did not signal mutator via stop". */
+    /* It also doesn't appear to be necessary when compiling with gcc-2.8.1,
+       which makes its existance even more curious. */
     register long int fp asm("15");
 
     beginFP = fp;
@@ -214,7 +219,7 @@ void stop_process()
 
     kill(getpid(), SIGSTOP);
 
-#ifdef alpha_dec_osf4_0
+#if defined(alpha_dec_osf4_0) && defined(__GNUC__)
     fp = beginFP;
 #endif
 
