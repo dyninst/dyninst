@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aggregateSample.C,v 1.17 1999/07/14 17:36:03 paradyn Exp $
+// $Id: aggregateSample.C,v 1.18 1999/12/08 23:23:06 schendel Exp $
 
 #include <assert.h>
 #include <math.h>
@@ -85,7 +85,7 @@ void sampleInfo::newValue(timeStamp sampleTime,
                           int newVal,
                           unsigned weight_) {
     assert(firstSampleReceived);
-    assert(sampleTime > lastSampleEnd);
+    assert(sampleTime >= lastSampleEnd);
 
     // used when it's a component of an aggregate.
     lastSample += newVal;
@@ -99,7 +99,7 @@ void sampleInfo::newValue(timeStamp sampleTime,
     // why does this routine return a value (which is essentially useless)?
 
     assert(firstSampleReceived);
-    assert(sampleTime > lastSampleEnd);
+    assert(sampleTime >= lastSampleEnd);
 
     // used when it's a component of an aggregate.
     lastSample += newVal;
