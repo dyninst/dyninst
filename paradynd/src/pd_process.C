@@ -309,6 +309,10 @@ pd_process::pd_process(const pdstring argv0, pdvector<pdstring> &argv,
     dyninst_process = getBPatch().createProcess(path, 
         (const char **) argv_array, NULL, 
         stdin_fd, stdout_fd, stderr_fd);
+    if (dyninst_process == 0) {
+	// createProcess will print proper error message in the paradyn msg box
+	P__exit(-1);
+    }
 
     delete []argv_array;
     delete path;
