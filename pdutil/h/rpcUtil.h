@@ -44,6 +44,9 @@
 
 /*
  * $Log: rpcUtil.h,v $
+ * Revision 1.35  1997/04/29 23:04:50  mjrg
+ * added explicit "int" to declaration
+ *
  * Revision 1.34  1997/04/21 16:57:39  hseom
  * added support for trace data (in a byte array)
  *
@@ -113,7 +116,7 @@ class XDRrpc {
 public:
   XDRrpc(const string &machine, const string &user, const string &program,
 	 xdr_rd_func r, xdr_wr_func w,
-	 const vector<string> &arg_list, const bool nblock, const wellKnownPortFd);
+	 const vector<string> &arg_list, const bool nblock, const int wellKnownPortFd);
   XDRrpc(const int use_fd, xdr_rd_func readRoutine, xdr_wr_func writeRoutine,
 	 const bool nblock);
   XDRrpc(int family, int port, int type, const string machine,
