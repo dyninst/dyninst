@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.25  1994/08/13 20:55:33  newhall
-/* changed call to VMCreateVisi
+/* Revision 1.26  1994/08/22 15:55:29  markc
+/* Added extra argument to addExecutable call.
 /*
+ * Revision 1.25  1994/08/13  20:55:33  newhall
+ * changed call to VMCreateVisi
+ *
  * Revision 1.24  1994/08/08  20:15:25  hollings
  * added suppress instrumentation command.
  *
@@ -195,6 +198,7 @@ int ParadynListCmd(ClientData clientData,
   }
   printf("bucketWidth %f\n", dataMgr->getCurrentBucketWidth());
   printf("number of buckets = %d\n", dataMgr->getMaxBins());
+  dataMgr->printDaemons(context);
   return TCL_OK;
 }
 
@@ -330,8 +334,8 @@ int ParadynProcessCmd(ClientData clientData,
 	}
     }
 
-    if (dataMgr->addExecutable(context, machine, user, paradynd, argc-i, 
-			       &argv[i]) == False)
+    if (dataMgr->addExecutable(context, machine, user, paradynd, (char*)0,
+			       argc-i, &argv[i]) == False)
       return TCL_ERROR;
     else
       return TCL_OK;
