@@ -39,64 +39,34 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap-irix.c,v 1.2 1999/07/13 04:18:58 csserra Exp $ */
-/* RTheap-irix.c: Irix-specific heap management */
+/* $Id: RTheap.h,v 1.1 1999/07/13 04:18:59 csserra Exp $ */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <assert.h>
+#ifndef _RT_HEAP_H
+#define _RT_HEAP_H
+
+
 #include <sys/types.h>
-#include <sys/stat.h>                 /* open() */
-#include <fcntl.h>                    /* open() */
-#include <sys/procfs.h>               /* ioctl() */
-#include <unistd.h>                   /* ioctl(), sbrk() */
-#include <sys/mman.h>                 /* mmap() */
-#include "rtinst/h/rtinst.h"          /* RT_Boolean, Address */
-#include "rtinst/src/RTheap.h"
+#include <sys/procfs.h>
+#include "rtinst/h/rtinst.h"        /* RT_Boolean, Address */
 
 
-int     DYNINSTheap_align = 4; /* heaps are word-aligned */
+/* 
+ * platform-specific variables
+ */
 
-/* avoid kernel, zero page, and stack */
-#if (_MIPS_SZPTR == 64)
-Address DYNINSTheap_loAddr = (Address)0x0000000000400000UL;
-Address DYNINSTheap_hiAddr = (Address)0x000000ffffffffffUL;
-#else
-Address DYNINSTheap_loAddr = (Address)0x00400000UL;
-Address DYNINSTheap_hiAddr = (Address)0x6fffffffUL;
-#endif
-
-int     DYNINSTheap_mmapFlags = MAP_FIXED | MAP_SHARED;
+extern int     DYNINSTheap_align;
+extern Address DYNINSTheap_loAddr;
+extern Address DYNINSTheap_hiAddr;
+extern int     DYNINSTheap_mmapFlags;
 
 
-#define REGION_OFF        (28)
-#define REGION_OFF_MASK   ((Address)((1 << REGION_OFF) - 1))
-#define REGION_NUM_MASK   (~(Address)REGION_OFF_MASK)
-#define region_num(addr)  (((Address)addr) >> REGION_OFF)
-#define region_lo(addr)   (((Address)addr) & REGION_NUM_MASK)
-#define region_hi(addr)   (region_lo(addr) | REGION_OFF_MASK)
+/* 
+ * platform-specific functions
+ */
 
-RT_Boolean DYNINSTheap_useMalloc(void *lo, void *hi)
-{
-  Address lo_addr = (Address)lo;
-  Address hi_addr = (Address)hi;
-  Address sbrk_addr = (Address)sbrk(0);
+RT_Boolean DYNINSTheap_useMalloc(void *lo, void *hi);
+int        DYNINSTheap_mmapFdOpen();
+void       DYNINSTheap_mmapFdClose(int fd);
 
-  /* TODO: smarter malloc conditions */
-  if (region_num(sbrk_addr) == region_num(lo_addr)) return RT_TRUE;
-  if (region_num(sbrk_addr) == region_num(hi_addr)) return RT_TRUE;
-  if (sbrk_addr >= lo_addr && sbrk_addr <= hi_addr) return RT_TRUE;
-  return RT_FALSE;
-}
 
-int DYNINSTheap_mmapFdOpen(void)
-{
-  int fd = open("/dev/zero", O_RDWR);
-  return fd;
-}
-
-void DYNINSTheap_mmapFdClose(int fd)
-{
-  close(fd);
-}
-
+#endif /* _RT_HEAP_H */

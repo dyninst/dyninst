@@ -113,8 +113,6 @@ static unsigned lookup(unsigned key) {
         return DYNINSTtrampTable[u].val;
     }
     /* not reached */
-    assert(0);
-    abort();
 }
 
 void DYNINSTtrapHandler(int sig, siginfo_t *info, ucontext_t *uap) {

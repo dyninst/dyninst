@@ -60,18 +60,17 @@
 
 /************************************************************************
  * EXPORTED SYMBOLS:
- *   void   DYNINSTloadLibrary(int, int): dlopen wrapper
- *   void   DYNINSTos_init(void): os initialization function
- * (below symbols in "RTheap-irix.c")
- *   seg_t *DYNINSTos_malloc(size_t, void *): directed heap allocation
+ *   void  *DYNINSTloadLibrary(char *): dlopen wrapper
+ *   void   DYNINSTos_init(int, int): OS-specific initialization
+ * (below symbols implemented in "RTheap.c" and "RTheap-irix.c")
+ *   void  *DYNINSTos_malloc(size_t, void *, void *): heap allocation
  *   int    DYNINSTos_free(void *): heap deallocation
  ************************************************************************/
 
-int DYNINSTloadLibrary(char *libname)
+void *DYNINSTloadLibrary(char *libname)
 {
-  /* TODO: return dlopen() handle? */
   void *ret = dlopen(libname, RTLD_NOW | RTLD_GLOBAL);
-  return (ret != NULL) ? (1) : (0);
+  return ret;
 }
 
 void DYNINSTos_init(int calledByFork, int calledByAttach)

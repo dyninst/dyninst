@@ -41,6 +41,7 @@
 #if !defined(i386_unknown_nt4_0)
 #include <unistd.h>
 #endif
+#include <assert.h>
 #include "dyninstAPI_RT/h/rtinst.h"
 #include "dyninstAPI_RT/h/trace.h"
 
@@ -65,6 +66,11 @@ void DYNINSTinit(int cause, int pid)
 
     if (cause == 2) calledByFork = 1;
     else if (cause == 3) calledByAttach = 1;
+
+    /* sanity check */
+    assert(sizeof(time64) == 8);
+    assert(sizeof(int64)  == 8);
+    assert(sizeof(int32)  == 4);
 
     DYNINSTos_init(calledByFork, calledByAttach);
 
