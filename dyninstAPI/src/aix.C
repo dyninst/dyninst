@@ -1510,10 +1510,10 @@ bool handleAIXsigTraps(int pid, int status) {
     if (WIFSTOPPED(status) && (WSTOPSIG(status)==SIGTRAP)
 	&& ((status & 0x7f) == W_SLWTED)) {
       // process is stopped on a load, ignore this SIGTRAP 
-      fprintf(stderr, "Got load SIGTRAP from pid %d, PC=%x\n", pid,
-	      curr->currentPC());
       if (curr) {
 	curr->status_ = stopped;
+        fprintf(stderr, "Got load SIGTRAP from pid %d, PC=%x\n", pid,
+	                curr->currentPC());
 	curr->continueProc();
       }
       return true;

@@ -435,7 +435,7 @@ void initATramp(trampTemplate *thisTemp, instruction *tramp)
 	    case LOCAL_PRE_BRANCH:
 		thisTemp->localPreOffset = ((void*)temp - (void*)tramp);
 		thisTemp->localPreReturnOffset = thisTemp->localPreOffset
-		                                 + sizeof(temp->raw);
+		                                 + 4 * sizeof(temp->raw);
 		break;
 	    case GLOBAL_PRE_BRANCH:
 		thisTemp->globalPreOffset = ((void*)temp - (void*)tramp);
@@ -443,7 +443,7 @@ void initATramp(trampTemplate *thisTemp, instruction *tramp)
 	    case LOCAL_POST_BRANCH:
 		thisTemp->localPostOffset = ((void*)temp - (void*)tramp);
 		thisTemp->localPostReturnOffset = thisTemp->localPostOffset
-		                                  + sizeof(temp->raw);
+		                                  + 4 * sizeof(temp->raw);
 		break;
 	    case GLOBAL_POST_BRANCH:
 		thisTemp->globalPostOffset = ((void*)temp - (void*)tramp);
@@ -497,6 +497,136 @@ void initTramps()
 
     regSpace = new registerSpace(sizeof(deadRegList)/sizeof(int), deadRegList, 
 				 sizeof(liveRegList)/sizeof(int), liveRegList);
+}
+
+
+           ////////////////////////////////////////////////////////////////////
+	   //Generates instructions to save link register onto stack.
+	   //  Returns the number of bytes needed to store the generated
+	   //    instructions.
+	   //  The instruction storage pointer is advanced the number of 
+	   //    instructions generated.
+	   //
+static int saveLR(instruction *&insn,       //Instruction storage pointer
+		  reg           scratchReg, //Scratch register
+		  int           stkOffset)  //Offset from stack pointer
+{
+  insn->raw = 0;                    //mfspr:  mflr scratchReg
+  insn->xform.op = 31;
+  insn->xform.rt = scratchReg;
+  insn->xform.ra = 8;
+  insn->xform.xo = 339;
+  insn++;
+
+  insn->raw = 0;                    //st:     st scratchReg, stkOffset(r1)
+  insn->dform.op      = 36;
+  insn->dform.rt      = scratchReg;
+  insn->dform.ra      = 1;
+  insn->dform.d_or_si = stkOffset;
+  insn++;
+
+  return 2 * sizeof(instruction);
+}
+
+           ////////////////////////////////////////////////////////////////////
+           //Generates instructions to restore link register from stack.
+           //  Returns the number of bytes needed to store the generated
+	   //    instructions.
+	   //  The instruction storage pointer is advanced the number of 
+	   //    instructions generated.
+	   //
+static int restoreLR(instruction *&insn,       //Instruction storage pointer
+		     reg           scratchReg, //Scratch register
+		     int           stkOffset)  //Offset from stack pointer
+{
+  insn->raw = 0;                    //l:      l scratchReg, stkOffset(r1)
+  insn->dform.op      = 32;
+  insn->dform.rt      = scratchReg;
+  insn->dform.ra      = 1;
+  insn->dform.d_or_si = stkOffset;
+  insn++;
+
+  insn->raw = 0;                    //mtspr:  mtlr scratchReg
+  insn->xform.op = 31;
+  insn->xform.rt = scratchReg;
+  insn->xform.ra = 8;
+  insn->xform.xo = 467;
+  insn++;
+
+  return 2 * sizeof(instruction);
+}
+
+
+           ////////////////////////////////////////////////////////////////////
+           //Generates instructions to place a given value into link register.
+	   //  The entire instruction sequence consists of the generated
+	   //    instructions followed by a given (tail) instruction.
+	   //  Returns the number of bytes needed to store the entire
+	   //    instruction sequence.
+	   //  The instruction storage pointer is advanced the number of 
+	   //    instructions in the sequence.
+	   //
+static int setBRL(instruction *&insn,        //Instruction storage pointer
+		  reg           scratchReg,  //Scratch register
+		  unsigned      val,         //Value to set link register to
+		  unsigned      ti)          //Tail instruction
+{
+  insn->raw =0;                  //cau:  cau scratchReg, 0, HIGH(val)
+  insn->dform.op      = 15;
+  insn->dform.rt      = scratchReg;
+  insn->dform.ra      = 0;
+  insn->dform.d_or_si = ((val >> 16) & 0x0000ffff);
+  insn++;
+
+  insn->raw = 0;                 //oril:  oril scratchReg, scratchReg, LOW(val)
+  insn->dform.op      = 24;
+  insn->dform.rt      = scratchReg;
+  insn->dform.ra      = scratchReg;
+  insn->dform.d_or_si = (val & 0x0000ffff);
+  insn++;
+ 
+  insn->raw = 0;                 //mtspr:  mtlr scratchReg
+  insn->xform.op = 31;
+  insn->xform.rt = scratchReg;
+  insn->xform.ra = 8;
+  insn->xform.xo = 467;
+  insn++;
+
+  insn->raw = ti;
+  insn++;
+
+  return 4 * sizeof(instruction);
+}
+
+
+     //////////////////////////////////////////////////////////////////////////
+     //Writes out instructions to place a value into the link register.
+     //  If val == 0, then the instruction sequence is followed by a `nop'.
+     //  If val != 0, then the instruction sequence is followed by a `brl'.
+     //
+void resetBRL(process  *p,   //Process to write instructions into
+	      unsigned  loc, //Address in process to write into
+	      unsigned  val) //Value to set link register
+{
+  instruction  i[8];                          //8 just to be safe
+  instruction *t        = i;                  //To avoid side-effects on i
+  int          numBytes = val ? setBRL(t, 10, val, BRLraw)
+                              : setBRL(t, 10, val, NOOPraw);
+
+  p->writeTextSpace((void *)loc, numBytes, i);
+}
+
+     //////////////////////////////////////////////////////////////////////////
+     //Writes out a `br' instruction
+     //
+void resetBR(process  *p,    //Process to write instruction into
+	     unsigned  loc)  //Address in process to write into
+{
+  instruction i;
+
+  i.raw = BRraw;
+
+  p->writeDataSpace((void *)loc, sizeof(instruction), &i);
 }
 
 static void saveRegister(instruction *&insn, unsigned &base, int reg,
@@ -684,6 +814,9 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc,
                 currAddr += numInsn;
 	      }
 	    }
+
+	    currAddr += saveLR(temp, 10, -56);  //Save link register on stack
+
 	    // Also save the floating point registers which could
 	    // be modified, f0-r13
 	    for(int i=0; i <= 13; i++) {
@@ -699,6 +832,9 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc,
 	    }
 	} else if ((temp->raw == RESTORE_PRE_INSN) || 
                    (temp->raw == RESTORE_POST_INSN)) {
+
+            currAddr += restoreLR(temp, 10, -56); //Restore link register from
+						  //  stack
             unsigned numInsn=0;
             for (int i = 0; i < regSpace->getRegisterCount(); i++) {
 	      registerSlot *reg = regSpace->getRegSlot(i);
@@ -743,8 +879,10 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc,
                 temp += NUM_INSN_MT_PREAMBLE;
 	    }
 #endif
-	    /* fill with no-op */
-	    generateNOOP(temp);
+	    currAddr += setBRL(temp, 10, 0, NOOPraw); //Basically `nop'
+
+	    temp--;                                   //`for' loop compensate
+	    currAddr -= sizeof(instruction);          //`for' loop compensate
 	}
     }
     // TODO cast
@@ -1470,7 +1608,6 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 	    }
 	}
 */
-
 	generateBranchInsn(insn, dest);
 	insn++;
 	base += sizeof(instruction);
