@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.124 2004/02/07 18:34:09 schendel Exp $
+// $Id: linux.C,v 1.125 2004/02/25 04:36:44 schendel Exp $
 
 #include <fstream>
 
@@ -451,6 +451,7 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
          // a slight delay to lesson impact of spinning.  this is
          // particularly noticable when traps are hit at instrumentation
          // points (seems to occur frequently in test1).
+         // *** important for performance ***
          struct timeval timeout;
          timeout.tv_sec = 0;
          timeout.tv_usec = 1;
@@ -748,6 +749,12 @@ bool waitUntilStoppedGeneral(dyn_lwp *lwp, int options) {
             getSH()->handleProcessEvent(new_event);
          }
       }
+      // a slight delay to lesson impact of spinning
+      // *** important for performance ***
+      struct timeval timeout;
+      timeout.tv_sec = 0;
+      timeout.tv_usec = 1;
+      select(0, NULL, NULL, NULL, &timeout);
    }
    
    return true;
@@ -1346,12 +1353,12 @@ int getNumberOfCPUs()
 // it is unlikely to happen in practice.
 bool process::findCallee(instPoint &instr, function_base *&target){
 
-   if((target = const_cast<function_base *>(instr.iPgetCallee()))) {
+   if((target = static_cast<function_base *>(instr.getCallee()))) {
       return true; // callee already set
    }
    
    // find the corresponding image in this process  
-   const image *owner = instr.iPgetOwner();
+   const image *owner = instr.getOwner();
    bool found_image = false;
    Address base_addr = 0;
    if(symbols == owner) {  found_image = true; } 
@@ -1372,7 +1379,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 
    // get the target address of this function
    Address target_addr = 0;
-   //    Address insn_addr = instr.iPgetAddress(); 
+   //    Address insn_addr = instr.pointAddr(); 
    target_addr = instr.getTargetAddress();
 
    if(!target_addr) {  
@@ -1387,7 +1394,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
    pd_Function *pdf = 0;
    if( (pdf = this->findFuncByAddr(target_addr))) {
        target = pdf;
-       instr.set_callee(pdf);
+       instr.setCallee(pdf);
        return true; // target found...target is in this image
    }
    
@@ -1408,7 +1415,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
          pd_Function *target_pdf = 0;
          if(hasBeenBound((*fbt)[i], target_pdf, base_addr)) {
             target = target_pdf;
-            instr.set_callee(target_pdf);
+            instr.setCallee(target_pdf);
             return true;  // target has been bound
          } 
          else {
