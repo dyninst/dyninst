@@ -126,6 +126,9 @@ class metricFocusReqBundle {
    void accumulatePerfStreamMsgs(const metricInstInfo &new_miInfo);
    void flushPerfStreamMsgs();
 
+   bool request_already_sent_on_daemon(paradynDaemon *dmn);
+
+
 };
 
 

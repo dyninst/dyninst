@@ -291,12 +291,27 @@ void metricFocusReq_Val::flushPerfStreamMsgs() {
    }
 }
 
+bool metricFocusReq_Val::request_already_sent_on_daemon(paradynDaemon *dmn) {
+   pdvector<metricFocusReqBundle *> bundleClients;      
+   getBundleClients(&bundleClients);
+
+   bool sent_on_dmn = false;
+   for(unsigned i=0; i<bundleClients.size(); i++) {
+       if(bundleClients[i]->request_already_sent_on_daemon(dmn)) {
+           sent_on_dmn = true;
+       }
+   }
+   return sent_on_dmn;
+}
+
 void metricFocusReq_Val::propagateToDaemon(paradynDaemon *dmn) {
    inst_insert_result_t cur_state = getOverallState();
    if(cur_state == inst_insert_failure || cur_state == inst_insert_success) {
-      cerr << "  PARADYN: Can't propagate metric-focus in failed or success\n"
-           << "  state to new machine " << dmn->getMachineName() << endl;
       return;
+   }
+
+   if(request_already_sent_on_daemon(dmn)) {
+       return;
    }
 
    num_daemons++;
@@ -332,6 +347,7 @@ void metricFocusReq_Val::propagateToDaemon(paradynDaemon *dmn) {
 
    //cerr << " request for metfocus in " << state_str(cur_state) 
    //     << " state, on machine: " << dmn->getMachineName() << endl;
+
    dmn->enableDataCollection(foci, metric_names, mi_ids, dmn->get_id(),
                              chosen_req_id);
 }

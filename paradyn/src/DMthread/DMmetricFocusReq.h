@@ -139,6 +139,9 @@ class metricFocusReq_Val {
    void readyMetricInstanceForSampling();
    void accumulatePerfStreamMsgs();
    void flushPerfStreamMsgs();
+
+   bool request_already_sent_on_daemon(paradynDaemon *dmn);
+
 };
 
 

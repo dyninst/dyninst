@@ -253,6 +253,7 @@ void metricFocusReqBundle::flushPerfStreamMsgs() {
    bool sentOnStream = false;
    while(allS.next(h,ps)) {
       if(h == (perfStreamHandle)(ps_handle)) {
+
          ps->callDataEnableFunc(psPacket, client_id,
                                 is_last_of_perfstream_msgs);
          sentOnStream = true;
@@ -407,8 +408,9 @@ void metricFocusReqBundle::updateWithEnableCallback(
    pdvector<metricFocusReq *> mfReqsToReport;
    update_mfReq_states(resp, &mfReqsToReport);
 
-   for(unsigned i=0; i<mfReqsToReport.size(); i++) {
-      metricFocusReq *cur_mfReq = mfReqsToReport[i];
+   for(unsigned i=0; i<mfReqsThatChanged.size(); i++) {
+      metricFocusReq *cur_mfReq = mfReqsThatChanged[i];
+
       if(cur_mfReq->getOverallState() == inst_insert_success)
          cur_mfReq->readyMetricInstanceForSampling();
 
@@ -421,7 +423,7 @@ void metricFocusReqBundle::updateWithEnableCallback(
    }
 
    if(isBundleComplete()) {
-      delete this;
+       delete this;
    }
 }
 
@@ -441,7 +443,6 @@ void metricFocusReqBundle::enableWithDaemons() {
          mfiter++;
          continue;  // if request already sent, don't need to resend it
       }
-      
       mi_ids.push_back(cur_mi->getHandle());
       T_dyninstRPC::focusStruct focus;
       bool aflag = cur_mi->convertToIDList(focus.focus);
@@ -465,11 +466,17 @@ void metricFocusReqBundle::enableWithDaemons() {
 
 
    for(unsigned j=0; j<daemons_requested_on->size(); j++) {
-      paradynDaemon *pd = (*daemons_requested_on)[j];
-      pd->enableDataCollection(foci, metric_names, mi_ids, pd->get_id(),
+       paradynDaemon *pd = (*daemons_requested_on)[j];
+       pd->enableDataCollection(foci, metric_names, mi_ids, pd->get_id(),
                                request_id);
    }
 }
 
-
-
+bool metricFocusReqBundle::request_already_sent_on_daemon(paradynDaemon *dmn) {
+   for(unsigned i=0; i<(*daemons_requested_on).size(); i++) {
+      paradynDaemon *cur_dmn = (*daemons_requested_on)[i];
+      if(cur_dmn->get_id() == dmn->get_id())
+         return true;
+   }
+   return false;
+}
