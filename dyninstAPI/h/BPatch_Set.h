@@ -276,7 +276,9 @@ public:
             return ent->data;
         }
     };
-    
+   
+    friend class iterator;
+ 
     iterator begin()
     {
         entry* b = setData;
