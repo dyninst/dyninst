@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1 2003/05/25 01:06:29 rchen Exp $
+# $Id: Makefile,v 1.2 2003/06/22 22:40:38 rchen Exp $
 #
 # Makefile for dyninstAPI test programs on Tru64 Alpha
 #
@@ -17,15 +17,40 @@ include $(TO_CORE)/make.config
 
 CXXFLAGS += -mcpu=ev56 
 CFLAGS += -g
+MUTATEE_FFLAGS += -Dalpha_dec_osf4_0 -g
 
 NATIVE_CC = cc
 NATIVE_CXX = cxx
 M_GXX = g++
 M_GCC = gcc
+NATIVE_FC = f90
+COMMA=,
 
 MINI_PLATFORM = alpha
 TEST6_ASFLAGS = -P 
 TEST6_ASSUFFIX = s
+
+ifeq ($(NATIVE_FC), $(MUTATEE_FC))
+
+COMPILER = f90
+# FORTRAN_BASE = test1.mutateeFort, etc.
+FORTRAN_BASE = $(TARGET2:_$(NATIVE_FC)=Fort)
+FORTRAN_BASE = test1.mutateeFort
+
+$(TARGET2): $(FORTRAN_BASE)_$(NATIVE_FC).o $(FORTRAN_BASE)C_$(NATIVE_FC).o test1.mutateeCommon.o mutatee_util.o
+	-$(MUTATEE_CC) -c ../src/mutatee_util.c
+	-$(NATIVE_FC) -g -nofor_main $(FORTRAN_BASE)_$(NATIVE_FC).o $(FORTRAN_BASE)C_$(NATIVE_FC).o test1.mutateeCommon.o mutatee_util.o $(MUTATEE_FLINKFLAGS) -o $(TARGET2)
+
+$(FORTRAN_BASE)_$(NATIVE_FC).o: ../src/$(FORTRAN_BASE).F
+	-$(NATIVE_FC) $(MUTATEE_FFLAGS) -c -o $(FORTRAN_BASE)_$(NATIVE_FC).o ../src/$(FORTRAN_BASE).F
+
+$(FORTRAN_BASE)C_$(NATIVE_FC).o: ../src/$(TARGET2:_$(NATIVE_FC)=).c
+	-$(MUTATEE_CC) $(filter-out -Wl$(COMMA)-bgcbypass:3, $(MUTATEE_CFLAGS)) -fno-implicit-templates -W -Wall $(FORT_SQGL_FLAG) -DFortran -c -o $(FORTRAN_BASE)C_$(NATIVE_FC).o ../src/$(FORTRAN_BASE)C.c
+else
+$(TARGET2): $(MUTATEE_SRC) $(MUTATEE_OBJS)
+	-$(MUTATEE_CC) -g $(MUTATEE_CFLAGS) \
+	$(MUTATEE_SRC) $(MUTATEE_OBJS) -o $(TARGET2)
+endif
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
@@ -53,8 +78,8 @@ ifdef GCC_2_95
 MUTATEE_CFLAGS += -gcoff
 endif
 
-$(TARGET2): $(MUTATEE_SRC) $(MUTATEE_OBJS)
-	-$(MUTATEE_CC) $(MUTATEE_CFLAGS) $(MUTATEE_SRC) $(MUTATEE_OBJS) -o $(TARGET2) $(MUTLIBS)
+#$(TARGET2): $(MUTATEE_SRC) $(MUTATEE_OBJS)
+#	-$(MUTATEE_CC) $(MUTATEE_CFLAGS) $(MUTATEE_SRC) $(MUTATEE_OBJS) -o $(TARGET2) $(MUTLIBS)
 
 libtestA.o:
 	$(CC) -g -fpic -c ../src/libtestA.c

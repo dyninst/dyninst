@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutateeFortC.c,v 1.7 2003/06/20 20:35:12 hollings Exp $ */
+/* $Id: test1.mutateeFortC.c,v 1.8 2003/06/22 22:40:46 rchen Exp $ */
 
 #include <stdlib.h>
 #include "test1.mutateeCommon.h"
@@ -17,6 +17,11 @@ struct struct26_2_ {
     struct struct26_1 field4_;
 };
 
+// **********************************************************************
+// The following structure (struct block_) is made to correspond with the
+// Fortran common block (globals) defined in test1_common.h.  Be sure all
+// changes to this structure are reflected in the other.
+// **********************************************************************
 struct block_ {
 	double globalVariable20_2_;
 
@@ -67,7 +72,12 @@ struct block_ {
 		globalVariable25_6_, globalVariable25_7_;
 
 /*	struct struct26_2_ globalVariable26_1; */
-	int globalVariable26_2_, globalVariable26_3_, globalVariable26_4_, globalVariable26_5_, globalVariable26_6_,
+#if defined(alpha_dec_osf4_0)
+    long globalVariable26_2_;
+#else
+    int globalVariable26_2_;
+#endif
+	int globalVariable26_3_, globalVariable26_4_, globalVariable26_5_, globalVariable26_6_,
 		globalVariable26_7_, globalVariable26_8_, globalVariable26_9_, globalVariable26_10_, globalVariable26_11_,
 		globalVariable26_12_, globalVariable26_13_;
 
@@ -88,7 +98,7 @@ struct block_ {
    int passedTest_ [37];
 };
 
-#if defined (sparc_sun_solaris2_4)
+#if defined (sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0)
 #define func1_1 func1_1_
 #define func2_1 func2_1_
 #define func3_1 func3_1_

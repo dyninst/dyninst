@@ -69,7 +69,13 @@
      & globalVariable16_7, globalVariable16_8, globalVariable16_9,
      & globalVariable16_10, globalVariable17_1, globalVariable17_2,
      & globalVariable18_1, globalVariable19_1, globalVariable19_2,
-     & globalVariable20_1, globalVariable25_1, globalVariable25_2,
+     & globalVariable20_1, globalVariable25_1,
+
+#if defined(alpha_dec_osf4_0)
+     & globalVariable25_2*8,
+#else
+     & globalVariable25_2,
+#endif
      & globalVariable25_3, globalVariable25_4, globalVariable25_5,
      & globalVariable25_6, globalVariable25_7, globalVariable26_2,
      & globalVariable26_3, globalVariable26_4, globalVariable26_5,
@@ -94,6 +100,12 @@
 
 	REAL globalVariable27_7 (10), globalVariable27_8 (12)
 
+! **********************************************************************
+! The following common block (globals) has a corresponding c structure 
+! (struct block_) defined in test1.mutateeFortC.c.  Make sure all changes
+! to this structure are reflected in the other. (Including the size of
+! each memeber defined above)
+! **********************************************************************
 	common /globals/ globalVariable20_2, globalVariable1_1,
      & globalVariable3_1, globalVariable4_1, globalVariable5_1,
      & globalVariable5_2, globalVariable6_1, globalVariable6_2,
