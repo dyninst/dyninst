@@ -43,6 +43,9 @@
  * RTaix.c: clock access functions for aix.
  *
  * $Log: RTetc-aix.c,v $
+ * Revision 1.19  2000/02/18 20:41:48  bernat
+ * Disabled the WALLTIME_* workarounds.
+ *
  * Revision 1.18  1999/12/08 20:23:08  bernat
  * Returning microseconds instead of nanoseconds in GetWallTime
  *
@@ -253,7 +256,7 @@ time64 DYNINSTgetCPUtime(void)
     now = cpuPrevious;
   }
   else  cpuPrevious = now;
-
+  
   return now;
 }
 

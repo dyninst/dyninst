@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.21 2000/02/04 21:53:09 zhichen Exp $
+ * $Id: RTinst.c,v 1.22 2000/02/18 20:41:48 bernat Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -335,22 +335,6 @@ DYNINSTstopProcessTimer(tTimer* timer) {
 #endif
 }
 
-
-/* TODO: FIX THIS!!!! */
-
-#ifdef BERNAT_HORRIBLE_HACK
-static int DYNINST_local_write = 0;
-
-#define walltime_printf(x) do {DYNINST_local_write = 1; printf(x); DYNINST_local_write = 0;} while (0)
-#define LOCAL_WRITE_printf(x) {walltime_printf(x);}
-#define LOCAL_WRITE_assert(x) {DYNINST_local_write = 1; assert(x); DYNINST_local_write = 0;}
-
-#else
-#define walltime_printf(x) do {printf(x);} while(0)
-#define LOCAL_WRITE_printf(x) {printf(x);}
-#define LOCAL_WRITE_assert(x) {assert(x);}
-#endif
-
 /************************************************************************
  * void DYNINSTstartWallTimer(tTimer* timer)
  ************************************************************************/
@@ -363,12 +347,6 @@ DYNINSTstartWallTimer(tTimer* timer) {
   /* In addition, avoid assert() which makes a printf call. If you use assert,
      wrap it with a (DYNINST_local_write = 1; assert(); DYNINST_local_write = 0) */
      
-#ifdef BERNAT_HORRIBLE_HACK
-  /* Return directly -- this is the horrible hack. It should be handled at the
-     base tramp level */
-  if (DYNINST_local_write) return;
-#endif
-  
 #ifndef SHM_SAMPLING
     /* if "write" is instrumented to start/stop timers, then a timer could be
        (incorrectly) started/stopped every time a sample is written back */
@@ -379,9 +357,11 @@ DYNINSTstartWallTimer(tTimer* timer) {
 #endif
 
 #ifdef SHM_SAMPLING
-    LOCAL_WRITE_assert(timer->protector1 == timer->protector2);
+    assert(timer->protector1 == timer->protector2);
     timer->protector1++;
 #endif
+
+    fprintf(stderr, "Hey! The code works!\n");
 
     /* Note that among the data vrbles, counter is incremented last; in particular,
        after start has been written.  This avoids a nasty little race condition in
@@ -394,11 +374,10 @@ DYNINSTstartWallTimer(tTimer* timer) {
 
 #ifdef SHM_SAMPLING
     timer->protector2++; /* or, timer->protector2 = timer->protector1 */
-    LOCAL_WRITE_assert(timer->protector1 == timer->protector2);
+    assert(timer->protector1 == timer->protector2);
 #else
     timer->normalize = MILLION; /* I think this vrble is obsolete & can be removed */
 #endif
-
 }
 
 
@@ -416,13 +395,9 @@ DYNINSTstopWallTimer(tTimer* timer) {
     return;
 #endif
 
-#ifdef BERNAT_HORRIBLE_HACK
-  if (DYNINST_local_write) return;
-#endif
-
 #ifdef SHM_SAMPLING
-    LOCAL_WRITE_assert(timer->protector1 == timer->protector2);
-    timer->protector1++;
+  assert(timer->protector1 == timer->protector2);
+  timer->protector1++;
 
     if (timer->counter == 0)
       /* a strange condition; should we make it an assert fail? */
@@ -434,7 +409,7 @@ DYNINSTstopWallTimer(tTimer* timer) {
     }
     
     timer->protector2++; /* or, timer->protector2 = timer->protector1 */
-    LOCAL_WRITE_assert(timer->protector1 == timer->protector2);
+    assert(timer->protector1 == timer->protector2);
 #else
     if (timer->counter == 0)
        ; /* a strange condition; should we make it an assert fail? */
