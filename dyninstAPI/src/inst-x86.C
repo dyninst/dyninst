@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.122 2003/03/13 00:47:55 buck Exp $
+ * $Id: inst-x86.C,v 1.123 2003/03/28 23:28:18 pcroth Exp $
  */
 
 #include <iomanip.h>
@@ -522,6 +522,10 @@ bool pd_Function::findInstPoints(const image *i_owner) {
       return false;
 
    point_ *points = new point_[size()];
+   if( points == NULL )
+   {
+		assert( false );
+   }
    //point_ *points = (point_ *)alloca(size()*sizeof(point));
    unsigned npoints = 0;
 
@@ -675,7 +679,7 @@ bool pd_Function::findInstPoints(const image *i_owner) {
 
       allInstr[numInsns] = insn;
       numInsns++;
-      assert(npoints < size());
+      assert(npoints <= size());
       assert(numInsns <= size());
    }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-nt.C,v 1.36 2003/03/12 01:50:12 schendel Exp $
+// $Id: templates-nt.C,v 1.37 2003/03/28 23:28:19 pcroth Exp $
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
  * "template class specialization XXXX is already instantiated"
@@ -115,6 +115,7 @@ class BPatch_basicBlock;
 template class  dictionary_hash<Address,BPatch_basicBlock*>;
 template class  pdvector<dictionary_hash<Address,BPatch_basicBlock*>::entry>;
 
+template class BPatch_Vector<BPatch_frame>;
 #endif
 
 

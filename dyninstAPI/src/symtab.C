@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.155 2003/03/24 01:38:27 jodom Exp $
+// $Id: symtab.C,v 1.156 2003/03/28 23:28:19 pcroth Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1390,6 +1390,16 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
 {
   sharedobj_cerr << "image::image for file name="
 		 << desc->file() << endl;
+
+  // on some platforms (e.g. Windows) we try to parse
+  // the image too soon, before we have a process we can
+  // work with reliably.  If so, we must recognize it
+  // and reparse at some later time.
+  if( linkedFile.have_deferred_parsing() )
+  {
+    // nothing else to do here
+    return;
+  }
 
   // initialize (data members) codeOffset_, dataOffset_,
   //  codeLen_, dataLen_.

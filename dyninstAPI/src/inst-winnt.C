@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-winnt.C,v 1.11 2002/05/13 19:52:18 mjbrim Exp $
+// $Id: inst-winnt.C,v 1.12 2003/03/28 23:28:18 pcroth Exp $
 
 #include "dyninstAPI/src/dyninstP.h"
 #include "dyninstAPI/src/os.h"
@@ -171,8 +171,42 @@ bool process::findCallee(instPoint &instr, function_base *&target)
 	{
         return true;
     }
+	assert( instr.insnAtPoint().isCall() );
 
-	if( instr.insnAtPoint().isCallIndir() )
+	if( !instr.insnAtPoint().isCallIndir() )
+	{
+		// We have a direct call but don't yet know the callee.
+		// This may be because we didn't see a symbol for a
+		// thunk in the ILT.
+		// (I.e., the call is 'call @ILT+<smallconstant>'
+		// and at @ILT+<smallconstant> there is a 'jmp <realfuncaddr>'
+		// instruction.
+		//
+		// We consider the callee to be the real function that
+		// is eventually called.
+
+		// get the target address of the call
+		Address callTarget = instr.insnAtPoint().getTarget(instr.address());
+
+		// get the instruction at the target address
+		unsigned int itype = 0;
+		Address offset = callTarget - instr.address();
+		const unsigned char* insnLocalAddr = instr.insnAtPoint().ptr() + offset;
+		unsigned int isize = get_instruction( insnLocalAddr, itype );
+		instruction callTargetInst( insnLocalAddr, itype, isize );
+
+		if( callTargetInst.isJumpDir() ||
+			callTargetInst.isJumpIndir() )
+		{
+			// the instruction is a jmp
+			// get the target address of the jmp
+			Address jmpTargetAddr = callTargetInst.getTarget(callTarget);
+
+			// see if we know about that target address
+			target = findFuncByAddr( jmpTargetAddr );
+		}
+	}
+	else
 	{
 		// An call that uses an indirect call instruction could be one
 		// of three things:

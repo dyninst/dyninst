@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2002 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.18 2002/12/20 07:49:56 jaw Exp $
+ * $Id: Object-nt.h,v 1.19 2003/03/28 23:28:18 pcroth Exp $
 ************************************************************************/
 
 
@@ -61,15 +61,52 @@
 #include "common/h/Symbol.h"
 #include "common/h/Types.h"
 #include "common/h/Vector.h"
-#include "dyninstAPI/src/CodeView.h"
 
 #include <stdlib.h>
-#include <winnt.h>
-#ifdef mips_unknown_ce2_11
-#include <imagehlp.h> //ccw 7 apr 2001
-#endif
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 
 
+
+class fileDescriptor_Win : public fileDescriptor
+{
+private:
+    HANDLE hProc;
+    HANDLE hFile;
+
+public:
+    fileDescriptor_Win( string file,
+                        HANDLE _hProc,
+                        Address _baseAddr = 0,
+                        HANDLE _hFile = NULL )
+      : fileDescriptor( file, _baseAddr ),
+        hProc( _hProc ),
+        hFile( _hFile )
+    { }
+	fileDescriptor_Win( const fileDescriptor_Win& desc )
+		: fileDescriptor( desc ),
+		  hProc( desc.hProc ),
+		  hFile( desc.hFile )
+	{ }
+
+    HANDLE GetProcessHandle( void ) const   { return hProc; }
+    HANDLE GetFileHandle( void ) const   { return hFile; }
+    void SetFileHandle( HANDLE h )          { hFile = h; }
+    void SetAddr( Address a )               { addr_ = a; }
+
+protected:
+    virtual bool IsEqual( const fileDescriptor* fd ) const
+    {
+        bool ret = fileDescriptor::IsEqual( fd );
+        if( ret )
+        {
+            fileDescriptor_Win* desc = (fileDescriptor_Win*)fd;
+            ret = ((hProc == desc->GetProcessHandle()) &&
+                    (hFile == desc->GetFileHandle()));
+        }
+        return ret;
+    }
+};
 
 
 
@@ -80,16 +117,124 @@
 class Object : public AObject
 {
 public:
-	Object(const string, void (*)(const char *) = log_msg);
-	Object(const string, Address baseAddress = NULL,
-			void (*)(const char *) = log_msg);
-	Object(const Object&);
-	// "Filedescriptor" ctor
-	Object(fileDescriptor *desc, Address baseAddress = 0, void (*)(const char *) = log_msg);
+	class Symbol
+	{
+	private:
+		string name;
+		DWORD64 addr;
+		DWORD type;
+		DWORD linkage;
+		DWORD size;
+		DWORD line;
+
+	public:
+		Symbol( string _name,
+				DWORD64 _addr,
+				DWORD _type,
+				DWORD _linkage,
+				DWORD _size,
+				DWORD _lineNumber )
+		  : name(_name),
+			addr(_addr),
+			type(_type),
+			size(_size),
+			line(_lineNumber)
+		{}
+
+        string GetName( void ) const                { return name; }
+        DWORD64 GetAddr( void ) const               { return addr; }
+		DWORD	GetSize( void ) const				{ return size; }
+        DWORD   GetLine( void ) const               { return line; }
+		DWORD	GetType( void ) const				{ return type; }
+		DWORD	GetLinkage( void ) const			{ return linkage; }
+
+		void	SetSize( DWORD cb )					{ size = cb; }
+
+        void DefineSymbol( dictionary_hash<string,::Symbol>& syms,
+                            const string& modName ) const;
+	};
+
+	class File
+	{
+	private:
+		string name;
+		pdvector<Symbol*> syms;
+
+	public:
+		File( string _name = "" )
+		  : name(_name)
+		{}
+
+		void AddSymbol( Symbol* pSym )
+		{
+			syms.push_back( pSym );
+		}
+
+        void DefineSymbols( dictionary_hash<string,::Symbol>& syms,
+                            const string& modName ) const;
+		string GetName( void ) const		{ return name; }
+		const pdvector<Symbol*>& GetSymbols( void )	const		{ return syms; }
+	};
+
+	class Module
+	{
+	private:
+		string name;
+		DWORD64 baseAddr;
+		DWORD64 extent;
+        bool isDll;
+
+		pdvector<File*> files;
+		File* defFile;
+
+		void PatchSymbolSizes( const Object* obj,
+							   const pdvector<Symbol*>& allSyms ) const;
+
+	public:
+		Module( string name,
+				DWORD64 baseAddr,
+				DWORD64 extent = 0 );
+
+		File* GetDefaultFile( void )			{ return defFile; }
+		File* FindFile( string name );
+		void AddFile( File* pFile )				{ files.push_back( pFile ); }
+
+        void DefineSymbols( const Object* obj,
+                            dictionary_hash<string,::Symbol>& syms ) const;
+		void BuildSymbolMap( const Object* obj ) const; 
+
+        string GetName( void ) const            { return name; }
+        bool IsDll( void ) const                { return isDll; }
+        void SetIsDll( bool v )                 { isDll = v; }
+	};
+
+private:
+	class CurrentModuleScoper
+	{
+	private:
+		Module** pCurModPtr;
+
+	public:
+		CurrentModuleScoper( Module** pCurrentModulePtr )
+			: pCurModPtr( pCurrentModulePtr )
+		{}
+		~CurrentModuleScoper( void )
+		{
+            delete *pCurModPtr;
+			(*pCurModPtr) = NULL;
+		}
+	};
+
+	Module* curModule;
+
+
+public:
+	Object(fileDescriptor *desc,
+            Address baseAddress = 0,
+            void (*)(const char *) = log_msg);
 
 	virtual ~Object( void );
 
-	Object&   operator=(const Object &);
 
 	bool isEEL() const { return false; }
 
@@ -98,89 +243,16 @@ public:
 	bool set_gp_value(Address addr) {  gp_value = addr; return true;} //ccw 27 july 2000
 	Address get_gp_value() const { return gp_value;} //ccw 20 july 2000
 #endif
+    fileDescriptor_Win* GetDescriptor( void ) const     { return desc; }
+	Module* GetCurrentModule( void )				    { return curModule; }
+
+    unsigned int GetTextSectionId( void ) const         { return textSectionId;}
+    PIMAGE_NT_HEADERS   GetImageHeader( void ) const    { return peHdr; }
+    PVOID GetMapAddr( void ) const                      { return mapAddr; }
 
 private:
-    // struct defining information we keep about a Paradyn module
-    struct PDModInfo
-    {
-        string          name;       // name of Paradyn module
-        unsigned int    offText;    // offset of module's code in text segment
-        unsigned int    cbText;     // size of module's code in text segment
-
-        PDModInfo( void )
-          : name( "" ),
-            offText( 0 ),
-            cbText( 0 )
-        {}
-
-        PDModInfo( string modName, unsigned int offset, unsigned int cb )
-          : name( modName ),
-            offText( offset ),
-            cbText( cb )
-        {}
-
-        PDModInfo& operator=( const PDModInfo& mi )
-        {
-            if( &mi != this )
-            {
-                name = mi.name;
-                offText = mi.offText;
-                cbText = mi.cbText;
-            }
-            return *this;
-        }
-    };
-
-    // struct defining information we keep about a CodeView module
-    struct ModInfo
-    {
-	    const CodeView::Module*	pCVMod;     // CodeView information
-        unsigned int pdModIdx;              // index of Paradyn module
-                                            // this module is associated with
-                                            // in the pdMods array
-
-	    ModInfo( const CodeView::Module* pCVModule = NULL,
-                 unsigned int pdModIndex = 0 )
-	      : pCVMod( pCVModule ),
-		    pdModIdx( pdModIndex )
-        {}
-
-        ModInfo& operator=( const ModInfo& mi )
-        {
-            if( &mi != this )
-            {
-                pCVMod = mi.pCVMod;
-                pdModIdx = mi.pdModIdx;
-            }
-            return *this;
-        }
-
-        static int CompareByOffset( const void* x, const void* y );
-    };
-
-	static	string	FindName(const char* stringTable, const IMAGE_SYMBOL& sym);
-    static  string  FindModuleByOffset( unsigned int offset,
-                                        const pdvector<PDModInfo>& pdMods );
-
     void    ParseDebugInfo( void );
-	void	ParseSectionMap( IMAGE_DEBUG_INFORMATION* pDebugInfo );
-	void	ParseCOFFSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo );
-#ifdef mips_unknown_ce2_11 
-	bool	ParseMapSymbols(IMAGE_DEBUG_INFORMATION *pDebugInfo, char *mapFile); //ccw 19 july 2000 : 28 mar 2001
-#endif
-
-
-#ifndef mips_unknown_ce2_11
-	void	ParseExports( IMAGE_DEBUG_INFORMATION* pDebugInfo );
-#endif // mips_unknown_ce2_11
-
-    bool	ParseCodeViewSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo );
-    void    CVPatchSymbolSizes( pdvector<Symbol>& allSymbols );
-    void    CVProcessSymbols( CodeView& cv,
-                              pdvector<ModInfo>& cvMods,
-                              pdvector<PDModInfo>& pdMods,
-                              pdvector<Symbol>& allSymbols );
-
+    void    FindInterestingSections( HANDLE hProc, HANDLE hFile );
 
 	Address	baseAddr;					// location of this object in 
 								// mutatee address space
@@ -190,64 +262,33 @@ private:
 							//ccw 20 july 2000 : 28 mar 2001
 #endif
 
-	IMAGE_DEBUG_INFORMATION* pDebugInfo;	// debugging information 
-						// mapped into our address space
+    PIMAGE_NT_HEADERS   peHdr;      // PE file headers
+
 	unsigned int textSectionId;		// id of .text segment (section)
 	unsigned int dataSectionId;		// id of .data segment (section)
+
+    HANDLE  hMap;                   // handle to mapping object
+    LPVOID  mapAddr;                // location of mapped file in *our* address space
+    fileDescriptor_Win* desc;
 };
 
 
-inline
-Object::Object(const string file, 
-				Address baseAddress,
-				void (*err_func)(const char *))
-  : AObject(file, err_func),
-	baseAddr( baseAddress ),
-	pDebugInfo( NULL )
-{
-	ParseDebugInfo();
-}
-
 
 inline
-Object::Object(const string file, void (*err_func)(const char *))
-  : AObject(file, err_func),
-	baseAddr( 0 ),
-	pDebugInfo( NULL )
-{
-	ParseDebugInfo();
-}
-
-inline
-Object::Object(fileDescriptor *desc, Address baseAddress, void (*err_func)(const char *)) 
-  : AObject(desc->file(), err_func),
-    baseAddr(desc->addr()),
-    pDebugInfo( NULL) 
+Object::Object(fileDescriptor* _desc,
+                Address baseAddress,
+                void (*err_func)(const char *)) 
+  : AObject(_desc->file(), err_func),
+    baseAddr(_desc->addr()),
+    hMap( INVALID_HANDLE_VALUE ),
+    mapAddr( NULL ),
+    desc( (fileDescriptor_Win*)_desc ),
+	curModule( NULL ),
+    peHdr( NULL )
 {
 	baseAddr = baseAddress;
-  ParseDebugInfo();
+    ParseDebugInfo();
 }
 
-inline
-Object::Object(const Object& obj)
-  : AObject(obj),
-	baseAddr( obj.baseAddr ),
-	pDebugInfo( obj.pDebugInfo )
-{
-	ParseDebugInfo();
-}
-
-inline
-Object&
-Object::operator=(const Object& obj)
-{
-	if( &obj != this )
-	{
-		AObject::operator=(obj);
-		baseAddr = obj.baseAddr;
-		pDebugInfo = obj.pDebugInfo;
-	}
-    return *this;
-}
 
 #endif /* !defined(_Object_nt_h_) */

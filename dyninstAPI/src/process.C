@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.399 2003/03/21 21:18:58 bernat Exp $
+// $Id: process.C,v 1.400 2003/03/28 23:28:18 pcroth Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2765,7 +2765,11 @@ process *createProcess(const string File, pdvector<string> argv,
     BPatch::bpatch->registerProvisionalThread(pid);
 #endif
 
+#if defined(i386_unknown_nt4_0)
+    int status = procHandle_temp;
+#else
     int status = pid;
+#endif // defined(i386_unknown_nt4_0)
     
     // Get the file descriptor for the executable file
     // "true" value is for AIX -- waiting for an initial trap

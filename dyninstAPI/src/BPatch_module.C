@@ -978,65 +978,45 @@ void BPatch_module::parseTypes()
   // with BPatch_functions
   this->BPfuncs = this->getProcedures();
 
-  //The code below is adapted from Object-nt.C
-  IMAGE_DEBUG_INFORMATION* pDebugInfo = NULL;
+  // trying to get at codeview symbols
+  // need text section id and addr of codeview symbols
+  unsigned int textSectionId = imgPtr->getObject().GetTextSectionId();
+  PIMAGE_NT_HEADERS peHdr = imgPtr->getObject().GetImageHeader();
 
-  // access the module's debug information
-  pDebugInfo = MapDebugInformation(NULL, (LPTSTR)(imgPtr->file()).c_str(), NULL, 0);
-  if( pDebugInfo == NULL )
+  DWORD modBaseAddr = imgPtr->getObject().code_off();
+  PVOID mapAddr = imgPtr->getObject().GetMapAddr();
+
+  PVOID pCodeViewSymbols = NULL;
+  ULONG dirEntSize = 0;
+  PIMAGE_SECTION_HEADER pDebugSectHeader = NULL;
+  PIMAGE_DEBUG_DIRECTORY baseDirEnt = 
+	  (PIMAGE_DEBUG_DIRECTORY)ImageDirectoryEntryToDataEx( mapAddr,
+											FALSE,   // we mapped using MapViewOfFile
+											IMAGE_DIRECTORY_ENTRY_DEBUG,
+											&dirEntSize,
+											&pDebugSectHeader );
+  if( baseDirEnt != NULL )
   {
-	printf("Unable to get debug information!\n");
-	return;
-  }
-
-  // determine the location of the relevant sections
-  unsigned int i, textSectionId;
-
-  // currently we care only about the .text and .data segments
-  for( i = 0; i < pDebugInfo->NumberOfSections; i++ )
-  {
-	IMAGE_SECTION_HEADER& section = pDebugInfo->Sections[i];
-
-	if( strncmp( (const char*)section.Name, ".text", 5 ) == 0 ) {
-		textSectionId = i + 1; // note that section numbers are one-based
-		break;
-	}
-  }
-  DWORD executableBaseAddress = 0;
-  for( i = 0; i < pDebugInfo->NumberOfSections; i++ )
-  {
-	IMAGE_SECTION_HEADER& section = pDebugInfo->Sections[i];
-	if(section.Characteristics & IMAGE_SCN_MEM_EXECUTE){
-  		executableBaseAddress = 
-			pDebugInfo->ImageBase + section.VirtualAddress;
-		//cerr << "BASE ADDRESS : " << hex << executableBaseAddress 
-		//    << dec << "\n";
-		break;
+	PIMAGE_DEBUG_DIRECTORY pDirEnt = baseDirEnt;
+	unsigned int nDirEnts = dirEntSize / sizeof(IMAGE_DEBUG_DIRECTORY);
+	for( unsigned int i = 0; i < nDirEnts; i++ )
+	{
+		if( pDirEnt->Type == IMAGE_DEBUG_TYPE_CODEVIEW )
+		{
+			pCodeViewSymbols = (PVOID)(((char*)mapAddr) + pDirEnt->PointerToRawData);
+			break;
+		}
+		// advance to next entry
+		pDirEnt++;
 	}
   }
 
-
-  //
-  // parse the symbols, if available
-  // (note that we prefer CodeView over COFF)
-  //
-  if( pDebugInfo->CodeViewSymbols != NULL )
+  if( pCodeViewSymbols != NULL )
   {
-	// we have CodeView debug information
-	CodeView *cv = new CodeView( (const char*)pDebugInfo->CodeViewSymbols, 
+	CodeView* cv = new CodeView( (const char*)pCodeViewSymbols, 
 					textSectionId );
 
-	cv->CreateTypeAndLineInfo(this,executableBaseAddress,
-			   lineInformation);
-  }
-  else if( pDebugInfo->CoffSymbols != NULL )
-  {
-	// we have COFF debug information
-	// ParseCOFFSymbols( pDebugInfo );
-  }
-  else
-  {
-	// TODO - what to do when there's no debug information?
+	cv->CreateTypeAndLineInfo(this, modBaseAddr, lineInformation);
   }
 }
 #endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.245 2003/03/21 21:18:59 bernat Exp $
+/* $Id: process.h,v 1.246 2003/03/28 23:28:19 pcroth Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -459,6 +459,8 @@ class process {
 
   // This will find the named symbol in the image or in a shared object
   bool getSymbolInfo( const string &name, Symbol &ret );
+
+  void setImage( image* img )                   { symbols = img; }
 
   image *getImage() const {
      assert(symbols);

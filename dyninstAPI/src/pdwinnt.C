@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2002 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.85 2003/03/21 23:40:39 jodom Exp $
+// $Id: pdwinnt.C,v 1.86 2003/03/28 23:28:18 pcroth Exp $
 
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
@@ -72,6 +72,8 @@
 static string GetLoadedDllImageName( process* p, const DEBUG_EVENT& ev );
 
 
+void InitSymbolHandler( HANDLE hProcess );
+void ReleaseSymbolHandler( HANDLE hProcess );
 
 //ccw  27 july 2000 : dummy methods to get the thing to compile before i add
 //the remoteDevice : 29 mar 2001
@@ -755,6 +757,24 @@ DWORD handleProcessCreate(process *proc, procSignalInfo_t info) {
     
     if (proc) {
         
+		if( proc->getImage()->getObject().have_deferred_parsing() )
+		{
+            fileDescriptor_Win* oldDesc = 
+                proc->getImage()->getObject().GetDescriptor();
+
+			// now we have an process to work with -
+			// build a new descriptor with the new information
+			fileDescriptor_Win* desc = new fileDescriptor_Win( *oldDesc );
+
+			// update the descriptor with the new information
+			desc->SetAddr( (Address)info.u.CreateProcessInfo.lpBaseOfImage );
+			desc->SetFileHandle( info.u.CreateProcessInfo.hFile );
+
+			// reparse the image with the updated descriptor
+			image* img = image::parseImage( desc );
+			proc->setImage( img );
+		}
+
         dyn_lwp *l = proc->getDefaultLWP();
         if (!l) {
             // It's possible we never created the default LWP
@@ -772,9 +792,9 @@ DWORD handleProcessCreate(process *proc, procSignalInfo_t info) {
             proc->threads[0]->update_tid(info.dwThreadId);
             proc->threads[0]->update_lwp(l);
         }
+        proc->continueProc();
     }
     
-    proc->continueProc();
     return DBG_CONTINUE;
 }
 
@@ -825,29 +845,19 @@ DWORD handleDllLoad(process *proc, procSignalInfo_t info) {
     // obtain the name of the DLL
     string imageName = GetLoadedDllImageName( proc, info );
     
-    // try to load symbols for the DLL
-    if (!SymLoadModule((HANDLE)proc->getProcessHandle(),
-                       info.u.LoadDll.hFile,
-                       NULL, NULL, 0, 0)) {
-        
-        char msgText[1024];
-        
-        sprintf( msgText, "SymLoadModule failed for %s: 0x%x\n",
-                 imageName.c_str(), GetLastError() );
-        
-        logLine(msgText);
-    }
-    
+    fileDescriptor* desc = new fileDescriptor_Win( imageName,
+                                (HANDLE)proc->getProcessHandle(),
+                                (Address)info.u.LoadDll.lpBaseOfDll,
+                                info.u.LoadDll.hFile );
+
     // discover structure of new DLL, and incorporate into our
     // list of known DLLs
     if (imageName.length() > 0) {
-        shared_object *so = 
-#if defined( mips_unknown_ce2_11 )//ccw 29 mar 2001
-        new shared_object(imageName, (unsigned long) info.u.LoadDll.lpBaseOfDll,
-                          false, true, true, 0);
-#else
-        new shared_object(imageName, 0,false, true, true, 0);
-#endif
+        shared_object *so = new shared_object( desc,
+                                                false,
+                                                true,
+                                                true,
+                                                0 );
         assert(proc->dyn);
         proc->dyn->sharedObjects.push_back(so);
         if (!proc->shared_objects) {
@@ -1099,26 +1109,32 @@ bool process::attach_() {
 	//printf("Error: DebugActiveProcess failed\n");
 	return false;
       }
-  }
 
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-  procHandle_ = BPatch::bpatch->rDevice->RemoteOpenProcess(PROCESS_ALL_ACCESS, false, getPid());
+    procHandle_ = BPatch::bpatch->rDevice->RemoteOpenProcess(PROCESS_ALL_ACCESS, false, getPid());
 #else
-  procHandle_ = OpenProcess(PROCESS_ALL_ACCESS, false, getPid());
+    procHandle_ = OpenProcess(PROCESS_ALL_ACCESS, false, getPid());
 #endif
 
-  
-  if (procHandle_ == NULL) {
-    //printf("Error: OpenProcess failed\n");
-    assert(0);
+    if (procHandle_ == NULL) {
+        //printf("Error: OpenProcess failed\n");
+        assert(0);
+    }
+
+    // TODO do we still do this in the attach case?
+    InitSymbolHandler( (HANDLE)procHandle_ );
   }
-  
-  void initSymbols(HANDLE procH, const string file, const string dir);
-  initSymbols((HANDLE)procHandle_, symbols->file(), "");
-  if (createdViaAttach) {
-    //
-    //void initSymbols(HANDLE procH, const string file, const string dir);
-    //initSymbols((HANDLE)getDefaultLWP()->get_fd(), symbols->file(), "");
+  else
+  {
+    // We created this process.
+    // We passed DEBUG_PROCESS in the creation flags, and we
+    // already have a HANDLE to it in our image's descriptor.
+    // (We use that HANDLE because that was the one we used
+    // in the SymInitialize call.)
+    fileDescriptor_Win* fdw = (fileDescriptor_Win*)(getImage()->desc());
+    assert( fdw != NULL );
+    procHandle_ = fdw->GetProcessHandle();
+    assert( procHandle_ != NULL );
   }
 
   return true;
@@ -1189,7 +1205,6 @@ bool process::detach_() {
 }
 
 
-#ifdef BPATCH_LIBRARY
 /*
    detach from thr process, continuing its execution if the parameter "cont"
    is true.
@@ -1200,7 +1215,6 @@ bool process::API_detach_(const bool cont)
     assert(false);
     return false;
 }
-#endif
 
 
 bool process::dumpCore_(const string) {
@@ -1503,24 +1517,29 @@ bool dyn_lwp::executingSystemCall() {
 }
 
 
-void initSymbols(HANDLE procH, const string file, const string dir) {
-  string searchPath;
-  char sysRootDir[MAX_PATH+1];
-  if (GetSystemDirectory(sysRootDir, MAX_PATH) == 0)
-     assert(0);
-  string sysSymsDir = string(sysRootDir) + "\\..\\symbols";
-  if (dir.length())
-    searchPath = dir + ";";
-  searchPath = searchPath + sysSymsDir + ";" + sysSymsDir + "\\dll";
-  if (!SymInitialize(procH, (char *)searchPath.c_str(), 0)) {
-    fprintf(stderr,"SymInitialize failed, %x\n", GetLastError()); fflush(stderr);
-    return;
-  }
-  if (!SymLoadModule(procH, NULL, (char *)file.c_str(), NULL, 0, 0)) {
-    printf("SymLoadModule failed for \"%s\", %x\n",
-	    file.c_str(), GetLastError());
-    return;
-  }
+void
+InitSymbolHandler( HANDLE hProcess )
+{
+#if READY
+    fprintf( stderr, "Calling SymInitialize with handle %x\n", hProcess );
+    if( !SymInitialize( hProcess, NULL, FALSE ) )
+    {
+        // TODO how to report error?
+        fprintf( stderr, "failed to initialize symbol handler: %x\n",
+            GetLastError() );
+    }
+#endif // READY
+}
+
+void
+ReleaseSymbolHandler( HANDLE hProcess )
+{
+    if( !SymCleanup( hProcess ) )
+    {
+        // TODO how to report error?
+        fprintf( stderr, "failed to release symbol handler: %x\n",
+            GetLastError() );
+    }
 }
 
 
@@ -1672,7 +1691,6 @@ bool forkNewProcess(string &file, string dir, pdvector<string> argv,
         //ioLink = (Word)rIoPipe;
         CloseHandle(wIoPipe);
         */
-        //initSymbols((HANDLE)procHandle, file, dir);
 #else
         traceLink = -1;
 	/* removed for output redirection
@@ -1887,10 +1905,11 @@ bool process::heapIsOk(const pdvector<sym_data>&findUs)
 #endif
 
 
-fileDescriptor *getExecFileDescriptor(string filename, int &, bool)
+fileDescriptor*
+getExecFileDescriptor(string filename, int& status, bool)
 {
-  fileDescriptor *desc = new fileDescriptor(filename);
-  return desc;
+    // "status" holds the process handle
+    return new fileDescriptor_Win( filename, (HANDLE)status );
 }
 
 #ifndef BPATCH_LIBRARY
@@ -2252,12 +2271,12 @@ bool process::loadDYNINSTlib()
 		}
 	}
 #else
-	if (!getSymbolInfo("_LoadLibraryA@4", sym, LoadLibBase)) {
-        if( !getSymbolInfo( "_LoadLibraryA", sym, LoadLibBase ))
-        {
-	        printf("unable to find function LoadLibrary\n");
-	        assert(0);
-        }
+	if (!getSymbolInfo("_LoadLibraryA@4", sym, LoadLibBase) &&
+		!getSymbolInfo("_LoadLibraryA", sym, LoadLibBase ) &&
+		!getSymbolInfo("LoadLibraryA", sym, LoadLibBase ) )
+    {
+	    printf("unable to find function LoadLibrary\n");
+	    assert(0);
     }
     LoadLibAddr = sym.addr() + LoadLibBase;
     assert(LoadLibAddr);
@@ -2489,3 +2508,469 @@ bool process::loadDYNINSTlibCleanup()
 #endif
 
 void loadNativeDemangler() {}
+
+#ifdef BPATCH_LIBRARY
+
+#include "BPatch_collections.h"
+#include "LineInformation.h"
+#include "NTTypes.h"
+
+BPatch_type*
+CreatePrimitiveType(DWORD index)
+{
+	BPatch_type *lastType;
+
+	switch(index) {
+	case T_NOTYPE: //Regarded as void
+ 	case T_VOID:
+		lastType = new BPatch_type("void", -11, BPatch_built_inType, 0);
+		break;
+	case T_PVOID:
+	case T_PFVOID:
+	case T_PHVOID:
+	case T_32PVOID:
+	case T_32PFVOID:
+	case T_64PVOID:
+		lastType = new BPatch_type("void", -11, BPatch_built_inType, 0);
+		lastType = new BPatch_type("", -1, BPatch_pointer, lastType);
+		break;
+	case T_CHAR:
+	case T_RCHAR:
+		lastType = new BPatch_type("char", -2, BPatch_built_inType, 1);
+		break;
+	case T_PCHAR:
+	case T_PFCHAR:
+	case T_PHCHAR:
+	case T_32PCHAR:
+	case T_32PFCHAR:
+	case T_64PCHAR:
+	case T_PRCHAR:
+	case T_PFRCHAR:
+	case T_PHRCHAR:
+	case T_32PRCHAR:
+	case T_32PFRCHAR:
+	case T_64PRCHAR:
+		lastType = new BPatch_type("char", -2, BPatch_built_inType, 1);
+		lastType = new BPatch_type("", -1, BPatch_pointer, lastType);
+                break;
+	case T_UCHAR:
+		lastType = new BPatch_type("unsigned char", -5, BPatch_built_inType, 1);
+		break;
+	case T_PUCHAR:
+	case T_PFUCHAR:
+	case T_PHUCHAR:
+	case T_32PUCHAR:
+	case T_32PFUCHAR:
+	case T_64PUCHAR:
+		lastType = new BPatch_type("unsigned char", -5, BPatch_built_inType, 1);
+		lastType = new BPatch_type("", -1, BPatch_pointer, lastType);
+                break;
+	case T_SHORT:
+	case T_INT2:
+		lastType = new BPatch_type("short", -3, BPatch_built_inType, 2);
+		break;
+	case T_PINT2:
+	case T_PFINT2:
+	case T_PHINT2:
+	case T_32PINT2:
+	case T_32PFINT2:
+	case T_64PINT2:
+	case T_PSHORT:
+	case T_PFSHORT:
+	case T_PHSHORT:
+	case T_32PSHORT:
+	case T_32PFSHORT:
+	case T_64PSHORT:
+		lastType = new BPatch_type("short", -3, BPatch_built_inType, 2);
+		lastType = new BPatch_type("", -1, BPatch_pointer, lastType);
+		break;
+ 	case T_USHORT:
+	case T_UINT2:
+		lastType = new BPatch_type("unsigned short", -7, BPatch_built_inType, 2);
+		break;
+	case T_PUINT2:
+	case T_PFUINT2:
+	case T_PHUINT2:
+	case T_32PUINT2:
+	case T_32PFUINT2:
+	case T_64PUINT2:
+	case T_PUSHORT:
+	case T_PFUSHORT:
+	case T_PHUSHORT:
+	case T_32PUSHORT:
+	case T_32PFUSHORT:
+	case T_64PUSHORT:
+		lastType = new BPatch_type("unsigned short", -7, BPatch_built_inType, 2);
+		lastType = new BPatch_type("", -1, BPatch_pointer, lastType);
+		break;
+ 	case T_INT4:
+		lastType = new BPatch_type("int", -1, BPatch_built_inType, 4);
+		break;
+	case T_PINT4:
+	case T_PFINT4:
+	case T_PHINT4:
+	case T_32PINT4:
+	case T_32PFINT4:
+	case T_64PINT4:
+		lastType = new BPatch_type("int", -1, BPatch_built_inType, 4);
+		lastType = new BPatch_type("", -1, BPatch_pointer, lastType);
+		break;
+ 	case T_UINT4:
+		lastType = new BPatch_type("unsigned int", -8, BPatch_built_inType, 4);
+		break;
+	case T_PUINT4:
+	case T_PFUINT4:
+	case T_PHUINT4:
+	case T_32PUINT4:
+	case T_32PFUINT4:
+	case T_64PUINT4:
+		lastType = new BPatch_type("unsigned int", -8, BPatch_built_inType, 4);
+		lastType = new BPatch_type("", -1, BPatch_pointer, lastType);
+		break;
+ 	case T_LONG:
+		lastType = new BPatch_type("long", -4, BPatch_built_inType, sizeof(long));
+		break;
+	case T_PLONG:
+	case T_PFLONG:
+	case T_PHLONG:
+	case T_32PLONG:
+	case T_32PFLONG:
+	case T_64PLONG:
+		lastType = new BPatch_type("long", -4, BPatch_built_inType, sizeof(long));
+		lastType = new BPatch_type("", -1, BPatch_pointer, lastType);
+		break;
+ 	case T_ULONG:
+		lastType = new BPatch_type("unsigned long", -10, BPatch_built_inType, 
+								sizeof(unsigned long));
+		break;
+	case T_PULONG:
+	case T_PFULONG:
+	case T_PHULONG:
+	case T_32PULONG:
+	case T_32PFULONG:
+	case T_64PULONG:
+		lastType = new BPatch_type("unsigned long", -10, BPatch_built_inType, 
+								sizeof(unsigned long));
+		lastType = new BPatch_type("", -1, BPatch_pointer, lastType);
+		break;
+ 	case T_REAL32:
+		lastType = new BPatch_type("float", -12, BPatch_built_inType, 
+									sizeof(float));
+		break;
+	case T_PREAL32:
+	case T_PFREAL32:
+	case T_PHREAL32:
+	case T_32PREAL32:
+	case T_32PFREAL32:
+	case T_64PREAL32:
+		lastType = new BPatch_type("float", -12, BPatch_built_inType,
+									sizeof(float));
+		lastType = new BPatch_type("", -1, BPatch_pointer, lastType);
+		break;
+ 	case T_REAL64:
+		lastType = new BPatch_type("double", -13, BPatch_built_inType, 
+									sizeof(double));
+		break;
+	case T_PREAL64:
+	case T_PFREAL64:
+	case T_PHREAL64:
+	case T_32PREAL64:
+	case T_32PFREAL64:
+	case T_64PREAL64:
+		lastType = new BPatch_type("double", -13, BPatch_built_inType, 
+									sizeof(double));
+		lastType = new BPatch_type("", -1, BPatch_pointer, lastType);
+		break;
+ 	case T_INT8:
+ 	case T_UINT8:
+		lastType = new BPatch_type("long long", -32, BPatch_built_inType, 8);
+		break;
+	case T_PINT8:
+	case T_PUINT8:
+	case T_PFINT8:
+	case T_PFUINT8:
+	case T_PHINT8:
+	case T_PHUINT8:
+	case T_32PINT8:
+	case T_32PUINT8:
+	case T_32PFINT8:
+	case T_32PFUINT8:
+	case T_64PINT8:
+	case T_64PUINT8:
+		lastType = new BPatch_type("long long", -32, BPatch_built_inType, 8);
+		lastType = new BPatch_type("", -1, BPatch_pointer, lastType);
+		break;
+	case T_REAL80:
+		lastType = new BPatch_type("long double", -14, BPatch_built_inType, 
+								sizeof(long double));
+		break;
+	case T_PREAL80:
+	case T_PFREAL80:
+	case T_PHREAL80:
+	case T_32PREAL80:
+	case T_32PFREAL80:
+	case T_64PREAL80:
+		lastType = new BPatch_type("long double", -14, BPatch_built_inType,
+								sizeof(long double));
+		lastType = new BPatch_type("", -1, BPatch_pointer, lastType);
+		break;
+	default:
+		lastType = NULL;
+	}
+
+	return lastType;
+}
+
+
+struct 
+TypeAndLineEnumInfoStruct
+{
+	HANDLE hProc;
+	DWORD64 baseAddr;
+    BPatch_module* mod;
+    BPatch_function* func;
+    LineInformation* linfo;
+};
+
+
+BPatch_type*
+GetTypeInfo( TypeAndLineEnumInfoStruct* pEnumInfo, PSYMBOL_INFO pSymInfo )
+{
+	// obtain the real type for this symbol
+	DWORD baseType = 0;
+	if( !SymGetTypeInfo( pEnumInfo->hProc,
+										pEnumInfo->baseAddr,
+										pSymInfo->TypeIndex,
+										TI_GET_BASETYPE,
+										&baseType ) )
+	{
+		fprintf( stderr, "failed to get base type info for TypeIndex %u: %x\n",
+				pSymInfo->TypeIndex,
+				GetLastError() );
+		return NULL;
+	}
+
+	SYMBOL_INFO intTypeInfo;
+	if( !SymGetTypeFromName( pEnumInfo->hProc,
+								pEnumInfo->baseAddr,
+								"int",
+								&intTypeInfo ) )
+	{
+		fprintf( stderr, "failed to get type info for int: %x\n",
+				GetLastError() );
+	}
+
+	if( pSymInfo->Address != 0 )
+	{
+		WCHAR* symName = NULL;
+		if( SymGetTypeInfo( pEnumInfo->hProc,
+							pEnumInfo->baseAddr,
+							pSymInfo->TypeIndex,
+							TI_GET_SYMNAME,
+							&symName ) )
+		{
+			fprintf( stderr, "TAL: type is %S\n", symName );
+		}
+		else
+		{
+			fprintf( stderr, "TAL: failed to get type name for TypeIndex %u: %x\n",
+				pSymInfo->TypeIndex,
+				GetLastError() );
+		}
+	}
+
+#if RREADY
+    // First check whether this type was seen before
+    BPatch_type* ret = pEnumInfo->mod->moduleTypes->findType( baseType );
+    if( ret == NULL )
+    {
+        // we didn't find the type
+
+        if( realType < 0x1000)
+        {
+            // this symbol has a primitive type
+            ret = CreatePrimitiveType( realType );
+        }
+        else
+        {
+            // this symbol has a complex type
+#if READY            
+#else
+            cerr << "GetTypeInfo: punting on complex type" << endl;
+#endif // READY
+        }
+
+        if( ret != NULL )
+        {
+            ret->setID( realType );
+            pEnumInfo->mod->moduleTypes->addType( ret );
+        }
+    }
+    return ret;
+#endif // RREADY
+	return NULL;
+}
+
+
+
+
+
+BOOL
+CALLBACK
+TypeAndLineInfoEnumSymsCB( PSYMBOL_INFO pSymInfo, ULONG symSize, PVOID uc )
+{
+    cout << "TAL: examining " << pSymInfo->Name << endl;
+    if( (pSymInfo->Flags & SYMFLAG_PARAMETER) ||
+        (pSymInfo->Flags & SYMFLAG_LOCAL) ||
+        (pSymInfo->Flags == 0) &&
+            (pSymInfo->Tag == 0x07) )
+    {
+        TypeAndLineEnumInfoStruct* pEnumInfo = (TypeAndLineEnumInfoStruct*)uc;
+        assert( pEnumInfo != NULL );
+
+        // obtain type info for variable
+        BPatch_type* pTypeInfo = GetTypeInfo( pEnumInfo, pSymInfo );
+        if( pTypeInfo != NULL )
+        {
+            BPatch_localVar* newVar = new BPatch_localVar( pSymInfo->Name,
+                                                            pTypeInfo,
+                                                            -1,
+                                                            pSymInfo->Address );
+            if( pSymInfo->Flags & SYMFLAG_PARAMETER )
+            {
+                cout << "adding PARAMETER: "
+                    << "name: " << pSymInfo->Name
+                    << "addr: " << (DWORD)(pSymInfo->Address)
+                    << endl;
+                pEnumInfo->func->funcParameters->addLocalVar(newVar);
+                pEnumInfo->func->addParam( pSymInfo->Name,
+                                pTypeInfo,
+                                -1,
+                                pSymInfo->Address );
+            }
+            else if( (pSymInfo->Flags & SYMFLAG_PARAMETER) ||
+                        ((pSymInfo->Flags == 0) && (pSymInfo->Tag == 0x07)) )
+            {
+                cout << "adding LOCAL: "
+                    << "name: " << pSymInfo->Name
+                    << "addr: " << (DWORD)(pSymInfo->Address)
+                    << endl;
+                pEnumInfo->func->localVariables->addLocalVar(newVar);                
+            }
+            else
+            {
+                cout << "warning: punting on local " << pSymInfo->Name << endl;
+            }
+        }
+    }
+    return TRUE;
+}
+
+// Obtain type and line number information for a given module
+void
+WinCreateTypeAndLineInfo( BPatch_module* inpMod,
+                            image* img,
+				            LineInformation* lineInformation)
+{
+    // we want to get type and line information for a particular
+    // Dyninst module
+    // TODO do dyninst modules correspond to Windows modules (EXEs and DLLs),
+    // or potentially to *.obj files?
+
+	char* inpModNameBuf = new char[1024];
+	inpMod->getName( inpModNameBuf, 1024 );
+	string inpModName = inpModNameBuf;
+	delete[] inpModNameBuf;
+
+	BPatch_Vector<BPatch_function*>* funcs = inpMod->getProcedures();
+	if( funcs == NULL )
+	{
+		fprintf( stderr, "failed to obtain functions for module %s\n",
+			inpModName.c_str() );
+		return;
+	}
+
+    // load symbols for module
+	fileDescriptor_Win* fdw = (fileDescriptor_Win*)(img->desc());
+	HANDLE hProc = fdw->GetProcessHandle();
+	HANDLE hFile = fdw->GetFileHandle();
+	DWORD64 baseAddr = fdw->addr();
+    if( !SymLoadModule64( hProc,                // process handle
+                            hFile,              // file handle
+                            NULL,               // image name
+                            NULL,               // shortcut name
+                            baseAddr,			// DLL/EXE load address
+                            0 ) )               // size of DLL/EXE
+    {
+		fprintf( stderr, "failed to load symbols for %s: %x\n",
+				inpModName.c_str(),
+				GetLastError() );
+    }
+
+	for( unsigned int i = 0; i < funcs->size(); i++  )
+	{
+		BPatch_function* curFunc = (*funcs)[i];
+		assert( curFunc != NULL );
+
+		// set symbol handler context to current function
+		IMAGEHLP_STACK_FRAME sfinfo;
+		ZeroMemory( &sfinfo, sizeof(sfinfo) );
+		sfinfo.InstructionOffset = (DWORD64)curFunc->getBaseAddr();
+		if( SymSetContext( hProc, &sfinfo, NULL ) )
+		{
+            TypeAndLineEnumInfoStruct talis;
+			talis.hProc = hProc;
+			talis.baseAddr = baseAddr;
+            talis.mod = inpMod;
+            talis.func = curFunc;
+            talis.linfo = lineInformation;
+
+			// enumerate symbols for the module
+			if( !SymEnumSymbols( hProc,                 // process handle
+									0,					// module load address (use 0 when using SymSetContext)
+									"",                 // symbol mask (no mask)
+									TypeAndLineInfoEnumSymsCB,  // called for each symbol
+									&talis ) )
+			{
+                DWORD err = GetLastError();
+                if( err != 0 )
+                {
+                    fprintf( stderr, "Failed to enumerate symbols for %s: %x\n",
+                        inpModName.c_str(),
+                        err );
+                }
+			}
+		}
+		else
+		{
+#if READY
+			DWORD err = GetLastError();
+
+			char* funcNameBuf = new char[1024];
+			curFunc->getName( funcNameBuf, 1024 );
+			string funcName = funcNameBuf;
+			delete[] funcNameBuf;
+
+			fprintf( stderr, "Failed to set symbol context to function %s in module %s: %x\n",
+				funcName.c_str(),
+				inpModName.c_str(),
+				err );
+#endif // READY
+		}
+
+	}
+
+    // unload symbols for module
+    if( !SymUnloadModule64( hProc, baseAddr ) )
+    {
+        fprintf( stderr, "Failed to unload symbols for %s: %x\n",
+            inpModName.c_str(),
+            GetLastError() );
+    }
+}
+
+
+
+
+
+#endif // BPATCH_LIBRARY
