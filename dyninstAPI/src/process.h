@@ -626,6 +626,22 @@ private:
   bool hasBootstrapped;
      // set to true when we get callback from inferiorRPC call to DYNINSTinit
 
+  // the following two variables are used when libdyninstRT is dynamically linked
+  // which currently is done only on the Windows NT platform.
+  // On other platforms the values are undefined
+  bool hasLoadedDyninstLib; // true iff dyninstlib has been loaded already
+  bool isLoadingDyninstLib; // true iff we are currently loading dyninst lib
+  
+  // the next two variables are used when we are loading dyninstlib -- currently
+  // Windows NT only
+  // They are used by the special inferior RPC that makes the call to load the
+  // library -- we use a special inferior RPC because the regular RPC assumes
+  // that the inferior heap already exists, which is not true if libdyninstRT
+  // has not been loaded yet.
+  char savedData[32];
+  void *savedRegs;
+
+
   const process *parent;	/* parent of this process */
   image *symbols;		/* information related to the process */
   int pid;			/* id of this process */

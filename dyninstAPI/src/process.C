@@ -774,6 +774,11 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
 #endif
 {
     hasBootstrapped = false;
+
+    // the next two variables are used only if libdyninstRT is dynamically linked
+    hasLoadedDyninstLib = false;
+    isLoadingDyninstLib = false;
+
     reachedFirstBreak = false; // haven't yet seen first trap
     createdViaAttach = false;
 
@@ -877,6 +882,10 @@ process::process(int iPid, image *iSymbols,
    hasBootstrapped = false;
    reachedFirstBreak = true; // the initial trap of program entry was passed long ago...
    createdViaAttach = true;
+
+   // the next two variables are used only if libdyninstRT is dynamically linked
+   hasLoadedDyninstLib = false;
+   isLoadingDyninstLib = false;
 
    symbols = iSymbols;
    mainFunction = NULL; // set in platform dependent function heapIsOk
@@ -1005,6 +1014,10 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 
     hasBootstrapped = false;
        // The child of fork ("this") has yet to run DYNINSTinit.
+
+    // the next two variables are used only if libdyninstRT is dynamically linked
+    hasLoadedDyninstLib = false; // TODO: is this the right value?
+    isLoadingDyninstLib = false;
 
     createdViaAttach = parentProc.createdViaAttach;
     wasRunningWhenAttached = true;
@@ -1260,7 +1273,12 @@ tp->resourceBatchMode(true);
 
         // initializing vector of threads - thread[0] is really the 
         // same process
+
+#if defined(i386_unknown_nt4_0)
+        ret->threads += new pdThread(ret, tid, (handleT)thrHandle);
+#else
         ret->threads += new pdThread(ret);
+#endif
 
         // initializing hash table for threads. This table maps threads to
         // positions in the superTable - naim 4/14/97

@@ -41,6 +41,9 @@
 
 /* 
  * $Log: ast.C,v $
+ * Revision 1.43  1997/05/08 00:38:47  mjrg
+ * Changes for Windows NT port; added flags for loading libdyninst dynamically
+ *
  * Revision 1.42  1997/05/07 19:02:53  naim
  * Getting rid of old support for threads and turning it off until the new
  * version is finished. Additionally, new superTable, baseTable and superVector
@@ -153,8 +156,10 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "paradynd/src/showerror.h"
+#if defined(BPATCH_LIBRARY)
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/src/BPatch_type.h"
+#endif
 
 #ifndef BPATCH_LIBRARY
 #include "rtinst/h/rtinst.h"
