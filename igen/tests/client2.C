@@ -1,9 +1,10 @@
 #include <unistd.h>
 #include <assert.h>
 #include "test2.CLNT.h"
+#include "thread/h/thread.h"
 
-String str1 = "A Test String with server words in it";
-String str2 = "Different String";
+char *str1 = "A Test String with server words in it";
+char *str2 = "Different String";
 
 int numbers[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
 int_Array vect;
@@ -75,6 +76,7 @@ main()
     }
 
     printf("ThreadPC test1 passed\n");
+    delete remote;
 }
 
 

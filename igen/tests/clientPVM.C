@@ -3,8 +3,8 @@
 #include <assert.h>
 #include "testPVM.CLNT.h"
 
-String str1 = "A Test String with server words in it";
-String str2 = "Different String";
+char * str1 = "A Test String with server words in it";
+char * str2 = "Different String";
 
 int numbers[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
 int_Array vect;

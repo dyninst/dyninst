@@ -4,10 +4,12 @@ $remote typedef struct {
     int style;
 } intStruct;		
 
-typedef struct s1 {
+$remote typedef struct {
    int i1;
    int i2;
 } s2;
+
+$remote array int int_Array;
 
 /*
  *
@@ -20,11 +22,11 @@ $remote test {
     s2 *isSp(s2*);
     s2 isS(s2);
     void nullStruct(intStruct);
-    int intString(String);
+    int intString(char *);
     int add(int, int);
-    int sumVector($array int);
-    $array int retVector(int len, int start);
-    String stringString(String);
+    int sumVector(int_Array);
+    int_Array retVector(int len, int start);
+    char *stringString(char *);
     void triggerAsyncUpcall(int val);
     $upcall $async void asyncUpcall(int x1);
 };

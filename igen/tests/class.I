@@ -44,15 +44,21 @@ $remote test {
     $version 1;
     intStruct echoIntStruct(intStruct);
     twoStruct echoTwoStruct(twoStruct);
-    intStruct *echoIntStructP(intStruct*);
-    twoStruct *echoTwoStructP(twoStruct*);
+    $noFree intStruct *echoIntStructP(intStruct*);
+    $noFree twoStruct *echoTwoStructP(twoStruct*);
     metric testClass(metric);
-    metric *testClassPtr(metric*);
+    $noFree metric *testClassPtr(metric*);
     metricA echoMetricA(metricA);
     metricB echoMetricB(metricB);
 
     metric *echoMetricPtrStatic(metric);
-    metric *echoMetricPtrPtr(metric*);
+    $noFree metric *echoMetricPtrPtr(metric*);
 
+    $async void startUpcalls();
+    $upcall $noFree metric *echoMetricP(metric*);
+    $upcall metric *echoMetricPF(metric*);
+    $upcall void signalUpcallsDone();
+    $upcall void upcallOK();
+    $upcall void upcallNotOK();
     $async void quit();
 };

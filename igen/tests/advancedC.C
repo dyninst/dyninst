@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include "class.CLNT.h"
 
+int noSignal=1; 
+
+
 int intStructEqual (intStruct one, intStruct two)
 {
     return (one.style == two.style);
@@ -59,10 +62,10 @@ main()
     oneM.i = 3;
     oneM.j = 'c';
 
-    A1.x = 'c'; A1.y = 'f';
-    B1.c = 7; B1.b = 16;
+    A1.x = 'c'; A1.y = 'f'; A1.i = 1; A1.j = 7;
+    B1.a = 4; B1.c = 7; B1.b = 16; B1.i = 0; B1.j = 2;
 
-    fd = RPCprocessCreate(&pid, "localhost", "", "advS");
+    fd = RPCprocessCreate(pid, "localhost", "", "advS");
 
     remote = new testUser(fd, NULL, NULL);
 
@@ -73,6 +76,7 @@ main()
     is1 = remote->echoIntStructP(&resOne);
     printf("echoIntStructP %s\n",
 	   intStructEqual(resOne, *is1) ? "OK" : "FAILS");
+    delete is1;
 
     resTwo = remote->echoTwoStruct(two);
     printf("echoTwoStruct %s\n",
@@ -81,12 +85,14 @@ main()
     ts1 = remote->echoTwoStructP(&two);
     printf("echoTwoStructP %s\n",
 	   twoStructEqual(*ts1, two) ? "OK" : "FAILS");
+    delete ts1;
 
     twoM = remote->testClass(oneM);
     printf("testClass %s\n", metricEqual(oneM, twoM) ? "OK" : "FAILS");
 
     pM = remote->testClassPtr(&oneM);
     printf("testClassPtr %s\n", metricEqual(oneM, *pM) ? "OK" : "FAILS");
+    delete(pM); pM = 0;
 
     A2 = remote->echoMetricA(A1);
     printf("echoMetricA %s\n", metricAEqual(A1, A2) ? "OK" : "FAILS");
@@ -119,13 +125,47 @@ main()
     printf("These should be equal (to 0) \n");
     printf("pM->do_it() = %d\n", pM->do_it());
     printf("qM->do_it() = %d\n\n", qM->do_it());
+    delete (qM);
 
     qM = remote->testClassPtr(pA);
     printf("These should be equal (to 1) \n");
     printf("pA->do_it() = %d\n", pA->do_it());
     printf("qM->do_it() = %d\n\n", qM->do_it());
 
+    delete (qM);
+    delete(pM); pM = 0;
+    delete(pA);
+
+    remote->startUpcalls();
+    while (noSignal)
+      remote->awaitResponce(-1);
+    
+
     remote->quit();
     printf("Bye now\n");
     delete(remote);
+}
+
+void testUser::signalUpcallsDone() {
+  noSignal = 0;
+}
+
+void testUser::upcallOK() {
+  printf("UPCALL OK\n");
+}
+
+void testUser::upcallNotOK() {
+  printf("UPCALL NOT OK\n");
+}
+
+metric *testUser::echoMetricP(metric *get) {
+  return get;
+}
+
+metric *testUser::echoMetricPF(metric *get) {
+  metric *ret;
+  ret = new metric;
+  ret->i = get->i;
+  ret->j = get->j;
+  return ret;
 }

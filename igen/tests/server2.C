@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "test2.SRVR.h"
+#include "thread/h/thread.h"
 
 void *serverMainFunc(void *parentId)
 {
@@ -40,12 +41,12 @@ void test::nullStruct(intStruct s)
     return;
 }
 
-int test::intString(String s)
+int test::intString(char *s)
 {
     return(strlen(s));
 }
 
-String test::stringString(String s)
+char *test::stringString(char *s)
 {
     return(s);
 }
@@ -94,3 +95,4 @@ s2 *test::isSp(s2 *parm)
 {
   return parm;
 }
+

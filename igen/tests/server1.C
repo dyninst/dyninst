@@ -43,12 +43,12 @@ void test::nullStruct(intStruct s)
     return;
 }
 
-int test::intString(String s)
+int test::intString(const char *s)
 {
     return(strlen(s));
 }
 
-String test::stringString(String s)
+char *test::stringString(char *s)
 {
     return(s);
 }
@@ -101,4 +101,25 @@ void test::asyncClient()
 {
   printf("In test::asyncClient(), goodbye!\n");
   exit(-1);
+  delete this;
+}
+
+char_PTR_Array test::echoCPA(char_PTR_Array input) {
+  return input;
+}
+
+charStruct test::echoCS(charStruct csin) {
+  return csin;
+}
+
+charStruct *test::echoCSP(charStruct *csin) {
+  return csin;
+}
+
+charStruct_Array test::echoCSA(charStruct_Array csa) {
+  return csa;
+}
+
+charStruct_Array *test::echoCSAP(charStruct_Array *csap) {
+  return csap;
 }

@@ -18,11 +18,11 @@ $remote test {
     void nullNull();				// a comment
     int intNull();
     void nullStruct(intStruct);
-    int intString(String);
+    int intString(char *);
     int add(int, int);
     int sumVector($array int);
     $array int retVector(int len, int start);
-    String stringString(String);
+    char *stringString(char *);
     void triggerAsyncUpcall(int val);
     $upcall $async void asyncUpcall(int x);
 };
