@@ -47,15 +47,6 @@
 class dataReqNode;
 class instrCodeNode_Val;
 
-class dataInstHandle {
- public:
-  unsigned level;
-  unsigned index;
-};
-
-inline ostream& operator<<(ostream&s, const dataInstHandle &handle) {
-  return s << "level: " << handle.level << ", index: " << handle.index;
-}
 
 class instrThrDataNode {
  private:
@@ -69,12 +60,8 @@ class instrThrDataNode {
   /* unique id for a counter or timer */
   static int counterId;
 
-  dataReqNode *makeIntCounter(pdThread *thr, rawTime64 initialValue,
-			      unsigned *level, unsigned *index,
-			      bool doNotSample);
-  dataReqNode *makeWallTimer(pdThread *thr, unsigned *level, unsigned *index);
-  dataReqNode *makeProcessTimer(pdThread *thr, unsigned *level, 
-				unsigned *index);
+  dataReqNode *makeIntCounter(inst_var_index index, pdThread *thr, 
+			      rawTime64 initialValue);
  protected:
   virtual ~instrThrDataNode(); // use disableAndDelete() to delete
 
@@ -88,6 +75,7 @@ class instrThrDataNode {
     return tempCtrDataRequests.size() + ((sampledDataReq!=NULL)? 1:0)
                                       + ((constraintDataReq!=NULL)? 1:0);
   }
+  bool dontInsertData() { return dontInsertData_; }
   bool nonNull() const { return (numDataRequests() > 0); }
   void disableAndDelete(vector< vector<Address> > pointsToCheck);
   const dataReqNode *getConstraintDRN() const { return constraintDataReq; }
@@ -101,27 +89,23 @@ class instrThrDataNode {
   void stopSampling();
 
   // --- Counters -------------
-  dataReqNode *createSampledCounter(pdThread *thr, rawTime64 initialValue,
-				    dataInstHandle *handle);
-  dataReqNode *createConstraintCounter(pdThread *thr, rawTime64 initialValue,
-				       dataInstHandle *handle);
-  dataReqNode *createTemporaryCounter(pdThread *thr, rawTime64 initialValue,
-				      dataInstHandle *handle);
-
-  dataReqNode *reuseSampledCounter(pdThread *thr, rawTime64 initialValue,
-				   const dataInstHandle &dataHandle);
-  dataReqNode *reuseConstraintCounter(pdThread *thr, rawTime64 initialValue,
-				      const dataInstHandle &dataHandle);
-  dataReqNode *reuseTemporaryCounter(pdThread *thr, rawTime64 initialValue,
-				     const dataInstHandle &dataHandle);
+  static inst_var_index allocateForCounter(process *proc,bool bDontInsertData);
+  dataReqNode *createSampledCounter(inst_var_index index, pdThread *thr, 
+				    rawTime64 initialValue);
+  dataReqNode *createConstraintCounter(inst_var_index index, pdThread *thr, 
+				       rawTime64 initialValue);
+  dataReqNode *createTemporaryCounter(inst_var_index index, pdThread *thr, 
+				      rawTime64 initialValue);
 
   // --- Wall Timers ----------
-  dataReqNode *createWallTimer(pdThread *thr, dataInstHandle *handle); 
-  dataReqNode *reuseWallTimer(pdThread *thr, const dataInstHandle &handle);
+  static inst_var_index allocateForWallTimer(process *proc,
+					     bool bDontInsertData);
+  dataReqNode *createWallTimer(inst_var_index index, pdThread *thr);
 
   // --- Process Timers -------
-  dataReqNode *createProcessTimer(pdThread *thr, dataInstHandle *handle);
-  dataReqNode *reuseProcessTimer(pdThread *thr, const dataInstHandle &handle);
+  static inst_var_index allocateForProcTimer(process *proc,
+					     bool bDontInsertData);
+  dataReqNode *createProcessTimer(inst_var_index index, pdThread *thr);
 
   virtual int getThreadID() const = 0;
 };
