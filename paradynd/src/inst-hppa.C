@@ -43,6 +43,9 @@
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.26  1996/10/31 08:46:44  tamches
+ * the shm-sampling commit
+ *
  * Revision 1.25  1996/10/30 02:46:08  lzheng
  * Minor bug fixes for call site instrumentation and emitImm.
  *
@@ -460,9 +463,8 @@ void generateToBranch(process *proc, instPoint *location, unsigned dest )
 instPoint::instPoint(pdFunction *f, const instruction &instr,
 		     const image *owner, Address adr, bool delayOK, 
 		     bool &err, instPointType pointType )
-: addr(adr), originalInstruction(instr), inDelaySlot(false), isDelayed(false),
-  callIndirect(false), callAggregate(false), callee(NULL), func(f),
-  ipType(pointType)
+: addr(adr), originalInstruction(instr), ipType(pointType), inDelaySlot(false), isDelayed(false),
+  callIndirect(false), callAggregate(false), callee(NULL), func(f)
 {
 
   err = false;
@@ -551,13 +553,14 @@ instPoint::instPoint(pdFunction *f, const instruction &instr,
 // classified
 //
 void pdFunction::checkCallPoints() {
-  int i;
   instPoint *p;
   Address loc_addr;
 
   vector<instPoint*> non_lib;
 
-  for (i=0; i<calls.size(); ++i) {
+  for (unsigned i=0; i<calls.size(); ++i) {
+    /* check to see where we are calling */
+
     p = calls[i];
     assert(p);
 
@@ -749,7 +752,7 @@ void relocateInstruction(process *proc, instruction *&insn, int origAddr,
 	insn++; 
         generateLoadConst(insn, dest, 28, 0);
 	insn += 2;
-        pdFunction *midfunc = (proc->symbols)->findOneFunction("baseCall");
+        pdFunction *midfunc = proc->findOneFunction("baseCall");
 	if (!midfunc) {
 		ostrstream os(errorLine, 1024, ios::out);
 		os << "Internal error: unable to find addr of miniCall" << endl;
@@ -1014,8 +1017,9 @@ void generateNoOp(process *proc, int addr)
 
 
 trampTemplate *findAndInstallBaseTramp(process *proc,
-				 instPoint *location,
-				 returnInstance *&retInstance)
+				       instPoint *location,
+				       returnInstance *&retInstance,
+				       bool noCost)
 {
     trampTemplate *ret;
     process *globalProc;
@@ -1171,7 +1175,7 @@ pdFunction *getFunction(instPoint *point)
 }
 
 unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i, 
-                 unsigned &base)
+                 unsigned &base, bool noCost)
 {        
     instruction *insn = (instruction *) ((void*)&i[base]);
     int result;
@@ -1212,8 +1216,9 @@ unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i,
 unsigned emitFuncCall(opCode op, 
 		      registerSpace *rs,
 		      char *i, unsigned &base, 
-		      vector<AstNode> operands, 
-		      string callee, process *proc)
+		      const vector<AstNode> &operands, 
+		      const string &callee, process *proc,
+		      bool noCost)
 {
         register srcs;
 
@@ -1225,27 +1230,27 @@ unsigned emitFuncCall(opCode op,
                  showErrorCallback(94,msg);
                  cleanUpAndExit(-1);
             }  
-	    srcs = operands[u].generateCode(proc, rs, i, base);
-	    emit(storeMemOp, srcs, 30, -36-4*u, i, base);
+	    srcs = operands[u].generateCode(proc, rs, i, base, noCost);
+	    emit(storeMemOp, srcs, 30, -36-4*u, i, base, noCost);
 	    rs->freeRegister(srcs);
         }
 
 	for (unsigned u = 0; u < operands.size(); u++) {
 	    assert(u < 4);
-	    emit(loadMemOp, 30, 26-u,-36-4*u, i, base);  
+	    emit(loadMemOp, 30, 26-u,-36-4*u, i, base, noCost);
 	}
 
 	instruction *insn = (instruction *) ((void*)&i[base]);
         unsigned dest;
         bool err;
         pdFunction *func;
-        dest = (proc->symbols)->findInternalAddress(callee, false, err);
+        dest = proc->findInternalAddress(callee, false, err);
         if (!err) {
-          func = (proc->symbols)->findOneFunction(callee);
+          func = proc->findOneFunction(callee);
           dest=functionKludge(func, proc); 
 	}  
         else {
-	    func = (proc->symbols)->findOneFunction(callee);
+	    func = proc->findOneFunction(callee);
             if (!func) {
              ostrstream os(errorLine, 1024, ios::out);
              os << "Internal error: unable to find addr of " << callee << endl;
@@ -1257,7 +1262,7 @@ unsigned emitFuncCall(opCode op,
         
 	    generateLoadConst(insn, dest, 28, base);
 	    insn = (instruction *) ((void*)&i[base]);
-	    pdFunction *midfunc = (proc->symbols)->findOneFunction("miniCall");
+	    pdFunction *midfunc = proc->findOneFunction("miniCall");
 	    if (!midfunc) {
 		ostrstream os(errorLine, 1024, ios::out);
 		os << "Internal error: unable to find addr of miniCall" << endl;
@@ -1279,10 +1284,70 @@ unsigned emitFuncCall(opCode op,
         return(28);
 }
  
+bool process::emitInferiorRPCheader(void *, unsigned &) {
+   // Is anything needed here?
+   return true;
+}
 
+void generateBreakPoint(instruction &insn) {
+    insn.raw = BREAK_POINT_INSN;
+}
 
+void genIllegalInsn(instruction &insn) {
+   // according to page D-2 (opcodes) of the hppa 1.1 manual,
+   // an opcode with the value 7 in bits 2 thru 5 is illegal.
+   // (where bit 0 is the MSB).
+   // So the following binary value should be illegal:
+   // xx0111xxx... (where x represents anything)
+   // If we set x to 0 everywhere, we get 0x1c000000
 
-unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
+   insn.raw = 0x1c000000;
+}
+
+bool process::emitInferiorRPCtrailer(void *insnPtr, unsigned &baseBytes,
+				     unsigned &firstPossibBreakOffset,
+				     unsigned &lastPossibBreakOffset) {
+   // Sequence: trap, 2 special instructions to restore PCSQ, illegal
+   // (the 2 special instructions should never return)
+
+//   generateBreakPoint(insn[baseInstruc]);
+//   firstPossibBreakOffset = lastPossibBreakOffset = baseInstruc * sizeof(instruction);
+//   baseInstruc++;
+
+   // Call DYNINSTbreakPoint, with no arguments
+   vector<AstNode> args; // no arguments to DYNINSTbreakPoint
+   AstNode ast("DYNINSTbreakPoint", args);
+
+   initTramps();
+   extern registerSpace *regSpace;
+   regSpace->resetSpace();
+
+   reg resultReg = ast.generateCode(this, regSpace, (char*)insnPtr, baseBytes, false);
+   regSpace->freeRegister(resultReg);
+
+   instruction *insn = (instruction *)insnPtr;
+   unsigned baseInstruc = baseBytes / sizeof(instruction);
+
+   // Put 2 special instructions here:
+   // the special instructions are:
+   // mtsp r21, sr0  (move value from r21 to space register 0)
+   // ble,n 0(sr0, r22) (branch and link external)
+   //                   (puts offset of return point [4 bytes beyond following instr]
+   //                    into reg 31, and space of following str addr into SR 0)
+
+   // NOT YET IMPLEMENTED!!!
+
+   // And just to make sure that the special instructions don't fall through:
+   genIllegalInsn(insn[baseInstruc++]);
+   genIllegalInsn(insn[baseInstruc++]);
+
+   baseBytes = baseInstruc * sizeof(instruction); // convert back
+
+   return true;
+}
+
+unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
+	      bool noCost)
 {
     // TODO cast
     instruction *insn = (instruction *) ((void*)&i[base]);
@@ -1312,6 +1377,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 	base += sizeof(instruction)*2;
 	return(base - 2*sizeof(instruction)); 
     } else if (op ==  trampPreamble) {
+        // store arguments (which were passed in registers) onto the stack.
 /*
         // this is being done in the base tramp now - naim
 	for (int ind=0; ind < 4; ind++) {
@@ -1320,23 +1386,26 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 	    insn = (instruction *) ((void*)&i[base]);
 	}
 */
-	generateLoadConst(insn, dest, 29, base);
-        insn = (instruction *) ((void*)&i[base]);
 
-	generateLoad(insn, 29, 29);
-	base += sizeof(instruction);
-	insn = (instruction *) ((void*)&i[base]);
+	// Calculate observed cost:
+	if (!noCost) {
+	   generateLoadConst(insn, dest, 29, base);
+	   insn = (instruction *) ((void*)&i[base]);
+
+	   generateLoad(insn, 29, 29);
+	   base += sizeof(instruction);
+	   insn = (instruction *) ((void*)&i[base]);
 	
-	genArithImmn(insn, ADDIop, 29, 28, src1);
-	base += sizeof(instruction);	
-	insn = (instruction *) ((void*)&i[base]);
+	   genArithImmn(insn, ADDIop, 29, 28, src1);
+	   base += sizeof(instruction);	
+	   insn = (instruction *) ((void*)&i[base]);
 
-	generateLoadConst(insn, dest, 29, base);
-        insn = (instruction *) ((void*)&i[base]);
-	generateStore(insn, 28, 29);
-	base += sizeof(instruction);
-	
-
+	   generateLoadConst(insn, dest, 29, base);
+	   insn = (instruction *) ((void*)&i[base]);
+	   
+	   generateStore(insn, 28, 29);
+	   base += sizeof(instruction);
+        }	
     } else if (op ==  trampTrailer) {
 /*
         // this is being done in the base tramp now - naim
@@ -1524,7 +1593,7 @@ bool isReturnInsn(const image *owner, Address adr, bool &lastOne)
 
 
 
-bool pdFunction::findInstPoints(image *owner) {
+bool pdFunction::findInstPoints(const image *owner) {
 
   Address adr = addr();
   instruction instr;
@@ -1690,10 +1759,6 @@ void returnInstance::addToReturnWaitingList(Address pc, process * proc) {
 }
 
 
-void generateBreakPoint(instruction &insn) {
-    insn.raw = BREAK_POINT_INSN;
-}
-
 bool doNotOverflow(int value)
 {
   //
@@ -1710,11 +1775,3 @@ void instWaitingList::cleanUp(process *proc, Address pc) {
 		    (caddr_t)&relocatedInstruction);
     proc->writeTextSpace((caddr_t)addr_, instSeqSize, (caddr_t)instructionSeq);
 }
-
-
-
-
-
-
-
-

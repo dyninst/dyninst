@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+#include "dyninstP.h" // nullString
+
 #include "metric.h"
 #include "internalMetrics.h"
 #include "costmetrics.h"
@@ -192,7 +194,13 @@ bool init() {
 						  Sampled);
 
   sym_data sd;
+
+#ifndef SHM_SAMPLING
   sd.name = "DYNINSTobsCostLow"; sd.must_find = true; syms_to_find += sd;
+#endif
+
+  sd.name = "DYNINST_bootstrap_info"; sd.must_find = true; syms_to_find += sd;
+
   // if libc is dynamically linked in then the exit symbol will not
   // be found when we call heapIsOk, so we don't want to set must_find 
   // to true here
