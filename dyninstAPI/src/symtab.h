@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.167 2005/01/19 17:41:11 bernat Exp $
+// $Id: symtab.h,v 1.168 2005/01/20 15:31:09 legendre Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -141,12 +141,6 @@ class module;
 class BPatch_flowGraph;
 class BPatch_loopTreeNode;
 class instPoint;
-
-
-typedef pdpair< pdstring, pd_Function * > nameFunctionPair;
-typedef pdpair< pdstring, pdvector< pd_Function * > * > nameFunctionListPair;
-extern void runCompiledRegexOn( regex_t * compiledRegex, pdvector< nameFunctionPair > * nameToFunctionMap, pdvector< function_base * > * found );
-extern void runCompiledRegexOnList( regex_t * compiledRegex, pdvector< nameFunctionListPair > * nameToFunctionListMap, pdvector< function_base * > * found );
 
 /* Stores source code to address in text association for modules */
 class lineDict {

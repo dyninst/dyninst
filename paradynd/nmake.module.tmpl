@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.40 2004/07/14 18:24:07 eli Exp $
+# $Id: nmake.module.tmpl,v 1.41 2005/01/20 15:31:10 legendre Exp $
 #
 
 TARGET	      = paradynd.exe
@@ -33,6 +33,7 @@ TARGET	      = paradynd.exe
 #		../src/resource.C \
 #		../src/stats.C \
 #		../src/symtab.C \
+#		../src/function.C \
 #		../src/util.C \
 # 		../src/mdl.C \
 # 		../src/focus.C \
@@ -116,6 +117,7 @@ OBJS      = $(OBJS) ast.obj \
 		resource.obj \
 		stats.obj \
 		symtab.obj \
+		function.obj \
 		util.obj \
  		mdl.obj \
  		mdld_data.obj \

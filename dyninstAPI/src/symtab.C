@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.224 2005/01/19 17:41:10 bernat Exp $
+ // $Id: symtab.C,v 1.225 2005/01/20 15:31:08 legendre Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2201,6 +2201,10 @@ pdmodule::findFunction( const pdstring &name, pdvector<function_base *> * found 
 
 #if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11)
 /* private refactoring functions */
+
+typedef pdpair< pdstring, pd_Function * > nameFunctionPair;
+typedef pdpair< pdstring, pdvector< pd_Function * > * > nameFunctionListPair;
+
 void runCompiledRegexOn( regex_t * compiledRegex, pdvector< nameFunctionPair > * nameToFunctionMap, pdvector< function_base * > * found ) {
 	int status = 0;
 	for( unsigned int i = 0; i < nameToFunctionMap->size(); i++ ) {

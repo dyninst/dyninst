@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.35 2005/01/13 23:53:04 legendre Exp $
+# $Id: nmake.module.tmpl,v 1.36 2005/01/20 15:31:06 legendre Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -62,6 +62,7 @@ SRCS	     = $(SRCS) BPatch.C \
 		installed_miniTramps_list.C \
 		stats.C \
 		symtab.C \
+		function.C \
 		util.C \
 		sharedobject.C \
 		trampTemplate.C \
@@ -120,6 +121,7 @@ OBJS         = $(OBJS) BPatch.obj \
 		installed_miniTramps_list.obj \
 		stats.obj \
 		symtab.obj \
+		function.obj \
 		util.obj \
 		sharedobject.obj \
                 Dictionary.obj \
