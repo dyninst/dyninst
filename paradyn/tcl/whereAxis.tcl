@@ -1,12 +1,12 @@
-# $Id: whereAxis.tcl,v 1.14 2001/10/31 19:33:02 willb Exp $
+# $Id: whereAxis.tcl,v 1.15 2004/03/20 20:44:50 pcroth Exp $
 
 # ##################################################################
 
 proc whereAxisInitialize {} {
-   toplevel .whereAxis -class "WhereAxis"
-   option add *whereAxis*Background grey
-   option add *whereAxis*activeBackground LightGrey
-   option add *activeForeground black
+   toplevel .whereAxis -class Paradyn
+   option add *whereAxis*Background grey widgetDefault
+   option add *whereAxis*activeBackground LightGrey widgetDefault
+   option add *activeForeground black widgetDefault
    wm protocol .whereAxis WM_DELETE_WINDOW {wm iconify .whereAxis}
    
    frame .whereAxis.top
@@ -59,11 +59,10 @@ proc whereAxisInitialize {} {
    frame .whereAxis.nontop.find
    pack  .whereAxis.nontop.find -side top -fill both -expand false
    
-   label .whereAxis.nontop.find.label -relief sunken -text "Search:" \
-        -font { Helvetica 12 }
+   label .whereAxis.nontop.find.label -relief sunken -text "Search:"
    pack  .whereAxis.nontop.find.label -side left -fill y -expand false
    
-   entry .whereAxis.nontop.find.entry -relief sunken -font { Helvetica 12 }
+   entry .whereAxis.nontop.find.entry -relief sunken
    pack  .whereAxis.nontop.find.entry -side left -fill x -expand true
    
    bind  .whereAxis.nontop.find.entry <Return> {whereAxisFindHook [.whereAxis.nontop.find.entry get]}
@@ -102,34 +101,29 @@ proc whereAxisDrawTips {} {
    }
 
    label .whereAxis.nontop.tips.tip1 -relief groove \
-	   -text "Click to select; double-click to expand/un-expand" \
-	   -font { Helvetica 12 }
+	   -text "Click to select; double-click to expand/un-expand"
    pack  .whereAxis.nontop.tips.tip1 -side top -fill both -expand false
       # fill both (instead of just x) seems needed to prevent from shrinking
       # when window made shorter
    
    label .whereAxis.nontop.tips.tip2 -relief groove \
-	   -text "Shift-double-click to expand/un-expand all subtrees of a node" \
-	   -font { Helvetica 12 }
+	   -text "Shift-double-click to expand/un-expand all subtrees of a node"
    pack  .whereAxis.nontop.tips.tip2 -side top -fill both -expand false
       # fill both (instead of just x) seems needed to prevent from shrinking
       # when window made shorter
    
    label .whereAxis.nontop.tips.tip3 -relief groove \
-	   -text "Ctrl-double-click to select/un-select all subtrees of a node" \
-	   -font { Helvetica 12 }
+	   -text "Ctrl-double-click to select/un-select all subtrees of a node"
    pack  .whereAxis.nontop.tips.tip3 -side top -fill both -expand false
       # fill both (instead of just x) seems needed to prevent from shrinking
       # when window made shorter
 
    label .whereAxis.nontop.tips.tip4 -relief groove \
-	   -text "Hold down Alt and move the mouse to scroll freely" \
-	   -font { Helvetica 12 }
+	   -text "Hold down Alt and move the mouse to scroll freely"
    pack  .whereAxis.nontop.tips.tip4 -side top -fill both -expand false
 
    label .whereAxis.nontop.tips.tip5 -relief groove \
-	   -text "Ctrl-Single-Click right button to show Visi table" \
-	   -font { Helvetica 12 }
+	   -text "Ctrl-Single-Click right button to show Visi table"
    pack  .whereAxis.nontop.tips.tip5 -side top -fill both -expand false
 }
 

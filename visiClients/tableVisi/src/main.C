@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2003 Barton P. Miller
+ * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.21 2003/07/18 15:45:40 schendel Exp $
+// $Id: main.C,v 1.22 2004/03/20 20:44:58 pcroth Exp $
 
 #include <assert.h>
 #include <stdlib.h>
@@ -127,6 +127,15 @@ int main(int argc, char **argv) {
    if (TCL_OK != Tcl_Init(mainInterp))
       tclpanic(mainInterp, "Could not Tcl_Init");
 
+    // Set argv0 before we do any other Tk program initialization because
+    // Tk takes the main window's class and instance name from argv0
+    // We set it to "paradyn" instead of "termwin" so that we can 
+    // set resources for all paradyn-related windows with the same root.
+    Tcl_SetVar( mainInterp,
+                "argv0", 
+                "paradyn",
+                TCL_GLOBAL_ONLY );
+
    if (TCL_OK != Tk_Init(mainInterp))
       tclpanic(mainInterp, "Could not Tk_Init");
 
@@ -179,21 +188,17 @@ int main(int argc, char **argv) {
 
    // Create our main data structure:
    theTableVisi = new tableVisi(mainInterp,
-				Tk_NameToWindow(mainInterp, ".body",
-						Tk_MainWindow(mainInterp)),
-				"*-Helvetica-*-r-*-14-*", // metric font
-				"*-Helvetica-*-r-*-12-*", // metric units font
-				"*-Helvetica-*-r-*-14-*", // focus font
-				"*-Helvetica-*-r-*-12-*", // cell font
-				"lightBlue", // line color
-				"blue", // metric color
-				"black", // metric units color
-				"maroon3", // focus color
-				"black", // cell color
-				"gray", // background color
-				"lightGray", // highlight background color
-				3 // initial # sig figs
-				);
+                                Tk_NameToWindow(mainInterp, ".body",
+                                Tk_MainWindow(mainInterp)),
+                                "lightBlue", // line color
+                                "blue", // metric color
+                                "black", // metric units color
+                                "maroon3", // focus color
+                                "black", // cell color
+                                "gray", // background color
+                                "lightGray", // highlight background color
+                                3 // initial # sig figs
+                                );
    assert(theTableVisi);
 
    Tk_MainLoop(); // returns when all tk windows are closed

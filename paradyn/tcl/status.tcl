@@ -1,4 +1,4 @@
-# $Id: status.tcl,v 1.8 1999/12/22 21:31:24 wylie Exp $
+# $Id: status.tcl,v 1.9 2004/03/20 20:44:50 pcroth Exp $
 #
 # status line configuration variables and associated commands.
 # C++ status lines can be used after proper initialization.
@@ -10,8 +10,6 @@ set status_parent_p      .parent.procstatus.canvas.f    ;# process status lines
 set procstatus_parent    .parent.procstatus
 
 set status_title_fg       black
-set status_title_font     { Courier 10 bold }    ;# 8x13bold
-set status_mesg_font      { Courier 10 normal }  ;# 8x13
 set status_mesg_fg_normal blue
 set status_mesg_fg_urgent red
 
@@ -149,7 +147,7 @@ proc ProcCanvasScroll {offset size} {
 proc ProcCanvasCreate { procstatus } {
     global procstatus_canvas procstatus_container
     global procstatus_scrollbar procstatus_placeholder scrollbarVisible
-    global status_title_font indent_chars
+    global indent_chars
     set procstatus_canvas $procstatus.canvas
     set procstatus_container $procstatus_canvas.f
     set procstatus_scrollbar $procstatus.scrollbar
@@ -157,7 +155,8 @@ proc ProcCanvasCreate { procstatus } {
     set scrollbarVisible false
 
     #puts stderr "ProcCanvasCreate..."
-    set ch_width [font measure $status_title_font "X"]
+    set bogofont [option get $procstatus font Font]
+    set ch_width [font measure $bogofont "M"]
     set indwidth [expr $ch_width * $indent_chars - 2]
     set barwidth [expr $indwidth - 6]
 
@@ -234,18 +233,14 @@ proc status_create {type id title} {
     $widget mark set $mark     1.$tmark
 
     global status_title_fg
-    global status_title_font
-    global status_mesg_font
     global status_mesg_fg_normal
 
     wm geometry . {}
 
     $widget tag configure $tag       \
-        -foreground $status_title_fg \
-        -font       $status_title_font
+        -foreground $status_title_fg
     $widget configure                      \
         -foreground $status_mesg_fg_normal \
-        -font       $status_mesg_font      \
         -height     1                      \
         -wrap       none                   \
         -state      disabled \

@@ -44,6 +44,12 @@
 
 /*
  * $Log: tableVisi.h,v $
+ * Revision 1.12  2004/03/20 20:44:58  pcroth
+ * Fixed Tk font resource specifications to have "widgetDefault" priority so
+ * that fonts can be overridden by X resources.  Changed class of main windows
+ * for all Paradyn-related windows to be the same, to ease the task of
+ * setting fonts to be used in all Paradyn windows.
+ *
  * Revision 1.11  2003/07/15 22:48:02  schendel
  * rename string to pdstring
  *
@@ -222,10 +228,6 @@ class tableVisi {
  public:
    tableVisi(Tcl_Interp *interp,
              Tk_Window iTkWindow,
-             const pdstring &metricNameFontName,
-             const pdstring &metricUnitsFontName,
-             const pdstring &focusFontName,
-             const pdstring &cellFontName,
              const pdstring &iLineColorName,
              const pdstring &iMetricColorName,
              const pdstring &iMetricUnitsColorName,

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphConsts.C,v 1.4 2000/08/11 16:32:13 pcroth Exp $
+// $Id: callGraphConsts.C,v 1.5 2004/03/20 20:44:47 pcroth Exp $
 
 
 #include "callGraphConsts.h"
@@ -49,11 +49,21 @@ callGraphConsts::callGraphConsts(Tcl_Interp *interp, Tk_Window theTkWindow) {
 
    textColor = Tk_GetColor(interp, theTkWindow, Tk_GetUid("black"));
    assert(textColor);
-   // Root Item FontStruct's:
-   rootItemFontStruct = Tk_GetFont(interp, theTkWindow,
-				   "*-Helvetica-*-r-*-14-*");
-   rootItemItalicFontStruct = Tk_GetFont(interp, theTkWindow, 
-					 "*-Helvetica-*-o-*-14-*");
+
+    // Root Item FontStruct's:
+    Tk_Uid rootItemFontName = Tk_GetOption( theTkWindow,
+                                                "listRootItemFont",
+                                                "Font" );
+    assert( rootItemFontName != NULL );
+    rootItemFontStruct = Tk_GetFont( interp, theTkWindow, rootItemFontName );
+
+    Tk_Uid rootItemItalicFontName = Tk_GetOption( theTkWindow,
+                                                "listRootItemEmphFont",
+                                                "Font" );
+    assert( rootItemItalicFontName != NULL );
+    rootItemItalicFontStruct = Tk_GetFont( interp, theTkWindow,
+                                            rootItemItalicFontName );
+
    // Root Item Text GCs:
    XGCValues values;
    values.foreground = textColor->pixel;
@@ -67,11 +77,22 @@ callGraphConsts::callGraphConsts(Tcl_Interp *interp, Tk_Window theTkWindow) {
 					 &values);
    assert(rootItemShadowTextGC);
 
-   // Listbox FontStruct's:
-   listboxItemFontStruct = Tk_GetFont(interp, theTkWindow, 
-				      "*-Helvetica-*-r-*-12-*");
-   listboxItemItalicFontStruct = 
-     Tk_GetFont(interp, theTkWindow, "*-Helvetica-*-o-*-12-*");
+    // Listbox FontStruct's:
+    Tk_Uid listboxItemFontName = Tk_GetOption( theTkWindow,
+                                                "listItemFont",
+                                                "Font" );
+    assert( listboxItemFontName );
+    listboxItemFontStruct = Tk_GetFont(interp, 
+                                        theTkWindow,
+                                        listboxItemFontName );
+    Tk_Uid listboxItemItalicFontName = Tk_GetOption( theTkWindow,
+                                                "listItemEmphFont",
+                                                "Font" );
+    assert( listboxItemItalicFontName );
+    listboxItemItalicFontStruct = Tk_GetFont(interp,
+                                        theTkWindow,
+                                        listboxItemItalicFontName );
+
    // Listbox Item Text GCs:
    values.foreground = textColor->pixel;
    values.font = Tk_FontId(listboxItemFontStruct);

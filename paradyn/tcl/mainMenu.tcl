@@ -1,6 +1,6 @@
 #
 # main tool bar
-# $Id: mainMenu.tcl,v 1.68 2000/03/23 01:30:34 wylie Exp $
+# $Id: mainMenu.tcl,v 1.69 2004/03/20 20:44:49 pcroth Exp $
 #
 
 ## changeApplicState
@@ -23,69 +23,77 @@ proc changeApplicState {newVal} {
     }
 }
 
-proc drawToolBar {} {
+
+proc buildMainWindow {} {
+
     global fmap metMenuCtr
 
     # setup fontmap for dumping postscript files
-    set fmap(-*-Times-Bold-R-Normal--*-80*)  \
-	    {Times-Bold 10}
-    set fmap(-*-Times-Medium-R-Normal--*-100*) \
-	    {Times-Roman 12}
-    set fmap(-*-Times-Bold-R-Normal--*-140*)  \
-	    {Times-Bold 16}
-    set fmap(-*-Times-Medium-R-Normal--*-140*) \
-	    {Times-Roman 16}
-    set fmap(-*-Times-Medium-R-Normal--*-80*) \
-	    {Times-Roman 10}
-    set fmap(-*-Times-Bold-R-Normal--*-100*) \
-	    {Times-Bold 16}
-    set fmap(-*-Courier-Medium-R-Normal--*-100*) \
-	    {Courier 12}
-    set fmap(-*-Courier-Bold-R-Normal--*-100*) \
-	    {Courier-Bold 12}
-    set fmap(-*-Courier-Medium-R-Normal--*-80*) \
-	    {Courier-Medium 10}
-    set fmap(-*-Courier-Bold-R-Normal--*-80*) \
-	    {Courier-Bold 10}
+#    set fmap(-*-Times-Bold-R-Normal--*-80*)  \
+#	    {Times-Bold 10}
+#    set fmap(-*-Times-Medium-R-Normal--*-100*) \
+#	    {Times-Roman 12}
+#    set fmap(-*-Times-Bold-R-Normal--*-140*)  \
+#	    {Times-Bold 16}
+#    set fmap(-*-Times-Medium-R-Normal--*-140*) \
+#	    {Times-Roman 16}
+#    set fmap(-*-Times-Medium-R-Normal--*-80*) \
+#	    {Times-Roman 10}
+#    set fmap(-*-Times-Bold-R-Normal--*-100*) \
+#	    {Times-Bold 16}
+#    set fmap(-*-Courier-Medium-R-Normal--*-100*) \
+#	    {Courier 12}
+#    set fmap(-*-Courier-Bold-R-Normal--*-100*) \
+#	    {Courier-Bold 12}
+#    set fmap(-*-Courier-Medium-R-Normal--*-80*) \
+#	    {Courier-Medium 10}
+#    set fmap(-*-Courier-Bold-R-Normal--*-80*) \
+#	    {Courier-Bold 10}
 
     # used in metric menu creation code
     # unique id for each menu window
     set metMenuCtr 0 
     # state = 1 during met/res selection, 0 otherwise
     if {[winfo depth .] > 1} {
-      # . created before options are added
-      . config -bg #e830e830e830
+        # . created before options are added
+        . config -bg #e830e830e830
 
-      option add *background #e830e830e830
-      option add *Scrollbar*background DimGray
+        option add *background #e830e830e830 widgetDefault
+        option add *Scrollbar*background DimGray widgetDefault
 
-      option add *Scrollbar*foreground grey
-      option add *activeBackground LightGrey
-      option add *activeForeground black
-      option add *Scrollbar*activeForeground LightGrey
-      option add *Entry.relief sunken
+        option add *Scrollbar*foreground grey widgetDefault
+        option add *activeBackground LightGrey widgetDefault
+        option add *activeForeground black widgetDefault
+        option add *Scrollbar*activeForeground LightGrey widgetDefault
+        option add *Entry.relief sunken widgetDefault
     } else {
-      option add *Background white
-      option add *Foreground black
-      option add *Entry.relief groove
+        option add *Background white widgetDefault
+        option add *Foreground black widgetDefault
+        option add *Entry.relief groove widgetDefault
     }
-    option add *TopMenu*font { Times 13 bold }
+    # sadly, there is not enclosing frame for status and procstatus
+    option add Paradyn*status.Font {Courier 9 roman} widgetDefault
+    option add Paradyn*procstatus.Font {Courier 9 roman} widgetDefault
+
+    option add Paradyn*listRootItemFont {Helvetica 10 bold roman} widgetDefault
+    option add Paradyn*listRootItemEmphFont {Helvetica 10 bold italic} widgetDefault
+    option add Paradyn*listItemFont {Helvetica 10 bold roman} widgetDefault
+    option add Paradyn*listItemEmphFont {Helvetica 10 bold italic} widgetDefault
 
     # the Paradyn main window can be resized horizontally but not vertically:
 ####    wm resizable . 1 0
     # it can now!
 
-    frame .parent 
+    frame .parent
     frame .parent.menub -relief raised
     frame .parent.status
     frame .parent.procstatus -borderwidth 2 -relief sunken
-####frame .parent.main
     frame .parent.buttons -relief raised -height 20
     mkButtonBar .parent.buttons {} retval { \
-	    {RUN "paradyn cont"} \
-	    {PAUSE "paradyn pause"} \
-	    {EXPORT "drawSaveMenu"} \
-	    {EXIT "procExit"}}
+	    {Run "paradyn cont"} \
+	    {Pause "paradyn pause"} \
+	    {Export "drawSaveMenu"} \
+	    {Exit "procExit"}}
 
 #   Both RUN and PAUSE buttons are disabled when paradyn starts running
 #   since there is no process to RUN or to PAUSE
@@ -102,7 +110,6 @@ proc drawToolBar {} {
     pack  .parent.menub.left.top -side top -fill both -expand 1
 
     label .parent.menub.left.top.title -text "Paradyn Main Control" \
-          -font { Times 13 bold } \
           -relief flat \
 	  -background #b3331e1b53c7 \
 	  -foreground white -anchor c
@@ -113,7 +120,6 @@ proc drawToolBar {} {
 	    
     label .parent.menub.left.top.title.versionFrame.version \
             -text "v3.0" \
-	    -font { Helvetica 8 bold } \
 	    -background #b3331e1b53c7 \
 	    -foreground white \
 	    -relief flat \
@@ -122,7 +128,8 @@ proc drawToolBar {} {
 	    -expand false
 
 
-    frame .parent.menub.left.men -class TopMenu -borderwidth 2 -relief raised
+#    frame .parent.menub.left.men -borderwidth 2 -relief raised
+    frame .parent.menub.left.men -borderwidth 2 -relief raised
     menubutton .parent.menub.left.men.b0 -text "File" -menu .parent.menub.left.men.b0.m 
     menubutton .parent.menub.left.men.b1 -text "Setup" -menu .parent.menub.left.men.b1.m 
 
@@ -150,8 +157,8 @@ proc drawToolBar {} {
     .parent.menub.left.men.b0.m add command \
         -label "Daemon start-up info" -command "paradyn daemonStartInfo"
     .parent.menub.left.men.b0.m add command \
-        -label "Exit Paradyn" -command "procExit"
-       # the -command is the same as the command executed when "EXIT"
+        -label "Exit" -command "procExit"
+       # the -command is the same as the command executed when "Exit"
        # button (lower right of screen) is clicked on.  If this is not right,
        # then by all means change it.
  
@@ -221,3 +228,4 @@ proc drawToolBar {} {
 
     pack .parent -fill both -expand true
 }
+

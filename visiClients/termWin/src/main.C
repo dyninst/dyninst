@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2001 Barton P. Miller
+ * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.9 2003/06/20 02:23:31 pcroth Exp $
+// $Id: main.C,v 1.10 2004/03/20 20:45:01 pcroth Exp $
 
 #include <stdio.h>
 #include <signal.h>
@@ -102,8 +102,19 @@ int app_init() {
     if (Tcl_Init(MainInterp) == TCL_ERROR)
 	return TCL_ERROR;
 
+    // Set argv0 before we do any other Tk program initialization because
+    // Tk takes the main window's class and instance name from argv0
+    // We set it to "paradyn" instead of "termwin" so that we can 
+    // set resources for all paradyn-related windows with the same root.
+    Tcl_SetVar( MainInterp,
+                "argv0", 
+                "paradyn",
+                TCL_GLOBAL_ONLY );
+
     if (Tk_Init(MainInterp) == TCL_ERROR)
-	return TCL_ERROR;
+    {
+        return TCL_ERROR;
+    }
 
     Tcl_CreateCommand(MainInterp,"close_mode",CloseOptionCmd,NULL,NULL);
 
@@ -117,10 +128,8 @@ int app_init() {
     // now initialize_tcl_sources created by tcl2c:
    extern int initialize_tcl_sources(Tcl_Interp *);
    if (TCL_OK != initialize_tcl_sources(MainInterp))
-      tclpanic(MainInterp, "phaseTable: could not initialize_tcl_sources");
+      tclpanic(MainInterp, "termWin: could not initialize_tcl_sources");
 
-//    assert(TCL_OK == Tcl_EvalFile(MainInterp, "/p/paradyn/development/tamches/core/visiClients/phaseTable/tcl/phasetbl.tcl"));
-    
     return TCL_OK;
 }
 

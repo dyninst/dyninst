@@ -1,4 +1,4 @@
-# $Id: startVisi.tcl,v 1.9 2000/04/06 18:08:41 pcroth Exp $
+# $Id: startVisi.tcl,v 1.10 2004/03/20 20:44:50 pcroth Exp $
 
 proc AcceptProc {} {
    global W 
@@ -50,7 +50,7 @@ proc drawVisiMenu {} {
 
   set W .vStart
   catch {destroy $W}
-  toplevel $W
+  toplevel $W -class Paradyn
   wm title $W "Start Visi"
   wm iconname $W "Start Visi"
 
@@ -69,8 +69,7 @@ proc drawVisiMenu {} {
   label $T -text "Start A Visualization" \
             -anchor center -relief raised \
 	    -foreground seashell1 \
-	    -background SeaGreen4 \
-            -font { Times 12 bold }
+	    -background SeaGreen4
   pack $T -side top -expand false -fill both 
 
   frame $W.bottom

@@ -43,7 +43,7 @@
  *  tclVisi.C -- This file handles the bare essentials of tcl application
  *     initialization.  Essentially, it implements the Tcl_AppInit() function.
  *
- *  $Id: tclVisi.C,v 1.15 2003/04/15 18:09:55 pcroth Exp $
+ *  $Id: tclVisi.C,v 1.16 2004/03/20 20:45:00 pcroth Exp $
  */
 
 #include <stdio.h>
@@ -85,6 +85,15 @@ int My_AppInit(Tcl_Interp *interp) {
 
     if (Tcl_Init(interp) == TCL_ERROR)
 	return TCL_ERROR;
+
+    // Set argv0 before we do any other Tk program initialization because
+    // Tk takes the main window's class and instance name from argv0
+    // We set it to "paradyn" instead of "termwin" so that we can 
+    // set resources for all paradyn-related windows with the same root.
+    Tcl_SetVar( interp,
+                "argv0", 
+                "paradyn",
+                TCL_GLOBAL_ONLY );
 
     if (Tk_Init(interp) == TCL_ERROR)
 	return TCL_ERROR;

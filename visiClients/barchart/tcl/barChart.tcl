@@ -1,46 +1,7 @@
 #
 #  barChart -- A bar chart display visualization for Paradyn
 #
-#  $Log: barChart.tcl,v $
-#  Revision 1.34  2001/11/07 05:03:20  darnold
-#  Histogram Save Functionality added:
-#  .tcl files add "save ..." menu item that initiates Export.tcl:HandlExport()
-#
-#  Revision 1.33  1999/07/13 17:16:04  pcroth
-#  Fixed ordering problem of destroying GUI and destructing static variable
-#  pdLogo::all_logos.  On NT, the static variable is destroyed before the
-#  GUI, but a callback for the GUI ends up referencing the variable causing
-#  an access violation error.
-#
-#  Revision 1.32  1996/05/15 18:02:44  tamches
-#  modified processNewMetricMax to use the new callback scheme
-#
-#  Revision 1.31  1996/04/30 20:44:18  tamches
-#  added label for the phase name
-#
-#  Revision 1.30  1996/01/19 20:56:02  newhall
-#  changes due to visiLib interface changes
-#
-#  Revision 1.29  1996/01/11 01:52:18  tamches
-#  call to long2shortFocusName to calculate short focus names
-#
-#  Revision 1.28  1996/01/10 21:09:41  tamches
-#  added metric2units
-#  MetricMinValues and MetricMaxValues are now indexed by unit name
-#  Metric Unit Names are now displayed
-#  All metric max values for a given unit are kept the same
-#
-#  Revision 1.27  1996/01/10 19:35:35  tamches
-#  metric units are now displayed along with their names
-#
-#  Revision 1.26  1996/01/10 02:30:15  tamches
-#  highlightthickness of many tk widgets set to 0 for asthetics;
-#  similarly, borderwidth set to 2.
-#  numMetrics, numResources are no longer global variables; we use the Dg
-#  command to fetch the latest values.  Same for metricNames, metricUnits,
-#  and resourceNames.
-#  bar colors are no longer hard-coded here.
-#  removed getMetricHints
+#  $Id: barChart.tcl,v 1.35 2004/03/20 20:44:52 pcroth Exp $
 #
 
 # ######################################################
@@ -65,19 +26,17 @@ proc metric2units {mindex} {
 }
 
 proc init_barchart_window {} {
-   option add *Data*font *-Helvetica-*-r-*-12-*
-   option add *MyMenu*font *-New*Century*Schoolbook-Bold-R-*-14-*
 
    if {[winfo depth .] > 1} {
       # You have a color monitor...
-      option add *Background grey
-      option add *activeBackground LightGrey
-      option add *activeForeground black
-      option add *Scale.activeForeground grey
+      option add *Background grey widgetDefault
+      option add *activeBackground LightGrey widgetDefault
+      option add *activeForeground black widgetDefault
+      option add *Scale.activeForeground grey widgetDefault
    } else {
       # You don't have a color monitor...
-      option add *Background white
-      option add *Foreground black
+      option add *Background white widgetDefault
+      option add *Foreground black widgetDefault
    }
    
    # ####################  Overall frame ###########################
@@ -189,7 +148,7 @@ proc init_barchart_window {} {
 
    # #################### Phase Name Label
 
-   label $W.phaseName -font  *-Helvetica-*-r-*-12-* -relief groove
+   label $W.phaseName -relief groove
    pack  $W.phaseName -side top -fill x -expand false
    
    # #######################  Scrollbar ######################
@@ -340,7 +299,6 @@ proc Initialize {} {
    global numMetricLabelsDrawn
    global validMetrics
 
-   global metricsLabelFont resourceNameFont
    global prevLeftSectionWidth
 
    global numValidResources validResources
@@ -397,11 +355,6 @@ proc Initialize {} {
       # as resources are added, we try to shrink the resource height down to a minimum of
       # (minResourceHeight) rather than having to invoke the scrollbar.
    set prevLeftSectionWidth 1
-
-  set resourceNameFont *-Helvetica-*-r-*-12-*
-  set metricsLabelFont *-Helvetica-*-r-*-12-*
-#   set resourceNameFont "7x13bold"
-#   set metricsLabelFont "7x13bold"
 
    # launch our C++ barchart code
    # launchBarChart $W.body.barCanvas doublebuffer noflicker $numMetrics $numResources 0
@@ -567,7 +520,6 @@ proc drawResourcesAxis {windowHeight} {
    global Wmbar
    global WresourcesCanvas
 
-   global resourceNameFont
    global resourcesAxisWidth
    global metricsAxisHeight
 
@@ -620,8 +572,7 @@ proc drawResourcesAxis {windowHeight} {
          set theName [long2shortFocusName $theName]
       }
    
-      label $WresourcesCanvas.message$numResourcesDrawn -text $theName \
-	      -font $resourceNameFont
+      label $WresourcesCanvas.message$numResourcesDrawn -text $theName
 
       bind $WresourcesCanvas.message$numResourcesDrawn <Enter> \
 	      {processEnterResource %W}
@@ -709,7 +660,6 @@ proc drawMetricsAxis {metricsAxisWidth} {
    global validMetrics
 
    global metricUnitTypes
-   global metricsLabelFont
 
    set keyWindow $W.left.metricsKey
 
@@ -774,7 +724,7 @@ proc drawMetricsAxis {metricsAxisWidth} {
          # msg widgets instead of labels help us get the justification right
          # (I'm not convinced anymore that we couldn't do this somehow with labels)
          message $W.metricsAxisCanvas.label$labelDrawnCount -text $labelText \
-                    -justify $theJust -font $metricsLabelFont \
+                    -justify $theJust \
 		    -width [getWindowWidth $W.metricsAxisCanvas]
          $W.metricsAxisCanvas create window $tickx [expr $top+$tickHeight] \
                     -anchor $theAnchor -tag metricsAxisItemTag \
@@ -790,7 +740,6 @@ proc drawMetricsAxis {metricsAxisWidth} {
       set theText [Dg metricname $metriclcv]
       set theUnitsText [metric2units $metriclcv]
       label $keyWindow.key$numMetricsDrawn -text "$theText ($theUnitsText)" \
-              -font $metricsLabelFont \
 	      -foreground $theMetricColor
       $keyWindow create window [expr [getWindowWidth $keyWindow] - 5] \
               [expr $top + $tickHeight] -tag metricsAxisTag \

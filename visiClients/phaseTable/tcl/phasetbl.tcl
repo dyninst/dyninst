@@ -1,26 +1,17 @@
 #
-# $Id: phasetbl.tcl,v 1.6 1999/07/13 17:16:08 pcroth Exp $
+# $Id: phasetbl.tcl,v 1.7 2004/03/20 20:44:57 pcroth Exp $
 #
 
 if {[string match [winfo depth .] color] == 1} {
   # always defaults to bisque so reset it to grey
-  . config -bg grey
-   option add *Background grey
-  option add *activeBackground LightGrey
-  option add *activeForeground black
-  option add *Scale.activeForeground grey
+  option add Paradyn*Background grey widgetDefault
+  option add Paradyn*activeBackground LightGrey widgetDefault
+  option add Paradyn*activeForeground black widgetDefault
+  option add Paradyn*Scale.activeForeground grey widgetDefault
 } else {
-  option add *Background white
-  option add *Foreground black
+  option add Paradyn*Background white widgetDefault
+  option add Paradyn*Foreground black widgetDefault
 }
-
-option add *Visi*font *-New*Century*Schoolbook-Bold-R-*-18-*
-option add *Data*font *-Helvetica-*-r-*-12-* 
-option add *MyMenu*font *-New*Century*Schoolbook-Bold-R-*-14-*
-option add *title*font *-New*Century*Schoolbook-Bold-R-*-18-*
-option add *phaseName*font *-New*Century*Schoolbook-Bold-R-*-14-*
-option add *phaseStart*font *-New*Century*Schoolbook-Bold-R-*-14-*
-option add *phaseEnd*font *-New*Century*Schoolbook-Bold-R-*-14-*
 
 proc getWindowWidth {wName} {
    # warning!  This routine will return an old number if an important
@@ -239,7 +230,6 @@ proc NameUpdate {phaseId} {
    $theCanvas create text $xOffset $yOffset\
 	-anchor nw \
 	-fill black \
-	-font *-Helvetica-*-r-*-12-* \
 	-justify center \
 	-tag dataTag \
 	-text $theText 
@@ -261,7 +251,6 @@ proc StartUpdate {phaseId} {
    $theCanvas create text $xOffset $yOffset\
 	-anchor nw \
 	-fill black \
-	-font *-Helvetica-*-r-*-12-* \
 	-justify center \
 	-tag dataTag \
 	-text $theText 
@@ -286,7 +275,6 @@ proc EndUpdate {phaseId} {
    $theCanvas create text $xOffset $yOffset\
 	-anchor nw \
 	-fill black \
-	-font *-Helvetica-*-r-*-12-* \
 	-justify center \
 	-tag dataTag \
 	-text $theText 

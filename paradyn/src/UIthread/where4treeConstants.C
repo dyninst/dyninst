@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1998 Barton P. Miller
+ * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -42,7 +42,7 @@
 // where4treeConstants.C
 // Ariel Tamches
 
-/* $Id: where4treeConstants.C,v 1.16 2003/07/18 15:44:45 schendel Exp $ */
+/* $Id: where4treeConstants.C,v 1.17 2004/03/20 20:44:47 pcroth Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -71,7 +71,11 @@ where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
 
    listboxHeightWhereSBappears = Tk_Height(theTkWindow) * 8 / 10; // 80%
 
-   rootTextFontStruct = Tk_GetFont(interp, theWindow, "*-Helvetica-*-r-*-14-*");
+    Tk_Uid rootTextFontName = Tk_GetOption( theTkWindow,
+                                                "listRootItemFont",
+                                                "Font" );
+    assert( rootTextFontName != NULL );
+    rootTextFontStruct = Tk_GetFont(interp, theWindow, rootTextFontName );
 
    grayColor = Tk_GetColor(interp, theWindow, Tk_GetUid("gray"));
    if (grayColor == NULL)
@@ -143,8 +147,13 @@ where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
 			     GCForeground | GCBackground | GCLineWidth | GCCapStyle,
 			     &values);
 
-   // Master listbox Font				  
-   listboxFontStruct = Tk_GetFont(interp, theWindow, "*-Helvetica-*-r-*-12-*");
+    // Master listbox Font                               
+    Tk_Uid listboxFontName = Tk_GetOption( theTkWindow,
+                                            "listItemFont",
+                                            "Font" );
+    assert( listboxFontName != NULL );
+    listboxFontStruct = Tk_GetFont(interp, theWindow, listboxFontName );
+
 
    // Master listbox Borders
    listboxBorder = Tk_Get3DBorder(interp, theWindow, Tk_GetUid("#6495ED"));

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.11 2003/04/15 18:09:55 pcroth Exp $
+// $Id: main.C,v 1.12 2004/03/20 20:44:56 pcroth Exp $
 
 #include <stdio.h>
 #include <signal.h>
@@ -70,8 +70,19 @@ int app_init() {
     if (Tcl_Init(MainInterp) == TCL_ERROR)
 	return TCL_ERROR;
 
+    // Set argv0 before we do any other Tk program initialization because
+    // Tk takes the main window's class and instance name from argv0
+    // We set it to "paradyn" instead of "termwin" so that we can 
+    // set resources for all paradyn-related windows with the same root.
+    Tcl_SetVar( MainInterp,
+                "argv0", 
+                "paradyn",
+                TCL_GLOBAL_ONLY );
+
     if (Tk_Init(MainInterp) == TCL_ERROR)
-	return TCL_ERROR;
+    {
+        return TCL_ERROR;
+    }
 
     if (Dg_Init(MainInterp) == TCL_ERROR)
         return TCL_ERROR;

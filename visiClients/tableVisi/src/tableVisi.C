@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -43,83 +43,7 @@
 // Ariel Tamches
 
 /*
- * $Log: tableVisi.C,v $
- * Revision 1.19  2003/07/18 15:45:41  schendel
- * fix obsolete header file warnings by updating to new C++ header files;
- *
- * Revision 1.18  2003/07/15 22:48:01  schendel
- * rename string to pdstring
- *
- * Revision 1.17  2002/12/20 07:50:09  jaw
- * This commit fully changes the class name of "vector" to "pdvector".
- *
- * A nice upshot is the removal of a bunch of code previously under the flag
- * USE_STL_VECTOR, which is no longer necessary in many cases where a
- * functional difference between common/h/Vector.h and stl::vector was
- * causing a crash.
- *
- * Generally speaking, Dyninst and Paradyn now use pdvector exclusively.
- * This commit DOES NOT cover the USE_STL_VECTOR flag, which will now
- * substitute stl::vector for BPatch_Vector only.  This is currently, to
- * the best of my knowledge, only used by DPCL.  This will be updated and
- * tested in a future commit.
- *
- * The purpose of this, again, is to create a further semantic difference
- * between two functionally different classes (which both have the same
- * [nearly] interface).
- *
- * Revision 1.16  2002/05/13 19:54:07  mjbrim
- * update string class to eliminate implicit number conversions
- * and replace all use of string_of with c_str  - - - - - - - - - - - - - -
- * change implicit number conversions to explicit conversions,
- * change all use of string_of to c_str
- *
- * Revision 1.15  2001/11/07 05:03:27  darnold
- * Bug fix: gcvt() => sprintf() so that values in table are of fixed
- *          length regardless of "zeroes after the decimal point"
- *
- * Revision 1.14  2000/07/28 17:23:01  pcroth
- * Updated #includes to reflect util library split
- *
- * Revision 1.13  2000/03/21 23:58:39  pcroth
- * Added guard to protect against division by zero when resizing scroll bars.
- *
- * Revision 1.12  1999/11/09 15:55:11  pcroth
- * Updated uses of XCreateGC and XFreeGC to Tk_GetGC and Tk_FreeGC.
- *
- * Revision 1.11  1999/07/13 17:16:11  pcroth
- * Fixed ordering problem of destroying GUI and destructing static variable
- * pdLogo::all_logos.  On NT, the static variable is destroyed before the
- * GUI, but a callback for the GUI ends up referencing the variable causing
- * an access violation error.
- *
- * Revision 1.10  1999/03/13 15:24:04  pcroth
- * Added support for building under Windows NT
- *
- * Revision 1.9  1996/08/16 21:36:56  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.8  1996/04/30 20:17:37  tamches
- * double2string optimized for 0
- * gcvt called instead of sprintf on the off-chance that
- * it's a bit faster.
- *
- * Revision 1.7  1995/12/22 22:43:10  tamches
- * selection
- * deletion
- * sort foci by value
- *
- * Revision 1.6  1995/12/19 00:46:19  tamches
- * calls to tvMetric constructor use new args
- * changeNumSigFigs now recognizes possibility of column pix width change
- *
- * Revision 1.5  1995/12/03 21:09:19  newhall
- * changed units labeling to match type of data being displayed
- *
- * Revision 1.4  1995/11/20  20:20:20  tamches
- * horizontal & vertical grid lines no longer expand past the
- * last cells.
- *
+ * $Id: tableVisi.C,v 1.20 2004/03/20 20:44:58 pcroth Exp $
  */
 
 #include <iostream>
@@ -229,10 +153,6 @@ XColor *tableVisi::myTkGetColor(Tcl_Interp *interp, const pdstring &colorName) c
 
 tableVisi::tableVisi(Tcl_Interp *interp,
 		     Tk_Window iTkWindow,
-		     const pdstring &metricFontName,
-		     const pdstring &metricUnitsFontName,
-		     const pdstring &focusFontName,
-		     const pdstring &cellFontName,
 		     const pdstring &iLineColorName,
 		     const pdstring &iMetricColorName,
 		     const pdstring &iMetricUnitsColorName,
@@ -257,18 +177,34 @@ tableVisi::tableVisi(Tcl_Interp *interp,
    offset_x = offset_y = 0;
    all_cells_width = all_cells_height = 0;
 
-   // access fonts and font metrics
-   metricNameFont = myTkGetFont(interp, metricFontName);
-   Tk_GetFontMetrics( metricNameFont, &metricNameFontMetrics );
+    // access fonts and font metrics
+    Tk_Uid metricFontName = Tk_GetOption( theTkWindow,
+                                            "metricFont",
+                                            "Font" );
+    assert( metricFontName != NULL );
+    metricNameFont = myTkGetFont(interp, metricFontName);
+    Tk_GetFontMetrics( metricNameFont, &metricNameFontMetrics );
 
-   metricUnitsFont = myTkGetFont(interp, metricUnitsFontName);
-   Tk_GetFontMetrics( metricUnitsFont, &metricUnitsFontMetrics );
+    Tk_Uid metricUnitsFontName = Tk_GetOption( theTkWindow,
+                                            "metricUnitsFont",
+                                            "Font" );
+    assert( metricUnitsFontName != NULL );
+    metricUnitsFont = myTkGetFont(interp, metricUnitsFontName);
+    Tk_GetFontMetrics( metricUnitsFont, &metricUnitsFontMetrics );
 
-   focusNameFont = myTkGetFont(interp, focusFontName);
-   Tk_GetFontMetrics( focusNameFont, &focusNameFontMetrics );
+    Tk_Uid focusFontName = Tk_GetOption( theTkWindow,
+                                            "focusFont",
+                                            "Font" );
+    assert( focusFontName != NULL );
+    focusNameFont = myTkGetFont(interp, focusFontName);
+    Tk_GetFontMetrics( focusNameFont, &focusNameFontMetrics );
 
-   cellFont = myTkGetFont(interp, cellFontName);
-   Tk_GetFontMetrics( cellFont, &cellFontMetrics );
+    Tk_Uid cellFontName = Tk_GetOption( theTkWindow,
+                                            "cellFont",
+                                            "Font" );
+    assert( cellFontName != NULL );
+    cellFont = myTkGetFont(interp, cellFontName);
+    Tk_GetFontMetrics( cellFont, &cellFontMetrics );
 
    focusLongNameMode = true;
    numSigFigs = iSigFigs;

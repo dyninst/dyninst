@@ -1,4 +1,4 @@
-# $Id: mets.tcl,v 1.20 1998/03/03 23:09:48 wylie Exp $
+# $Id: mets.tcl,v 1.21 2004/03/20 20:44:50 pcroth Exp $
 # this file contains procedures used in prompting user for metric/resource
 # choices for a visualization.  When the resource hierarchy display is 
 # complete, this will be changed and will only be used to get the metric
@@ -157,7 +157,7 @@ proc getMetsAndRes {metsAndResID requestingThread numMetrics metIndexes2Id} {
     }
 
     # toplevel window
-    toplevel $w  -bd 0
+    toplevel $w  -bd 0 -class Paradyn
     wm title $w "Paradyn Metrics Menu"
     wm iconname $w "PD Metrics Menu"
     wm geometry $w +425+100
@@ -165,14 +165,12 @@ proc getMetsAndRes {metsAndResID requestingThread numMetrics metIndexes2Id} {
 
     mkFrame $w.top {top fill expand} -relief raised -border 1
     mkMessage $w.top.msg "" {top expand padx 20 pady 20} \
-	    -aspect 1000 -text "Select Metrics and Focus(es) below" \
-	    -font { Times 12 bold } 
+	    -aspect 1000 -text "Select Metrics and Focus(es) below"
    
     set metSelected($requestingThread) 0
     if {$numMetrics == 0} {
         set msg3 "No Metrics Currently Defined"
-	mkMessage $w.top.nometsmsg $msg3 {top expand} \
-		-font { Times 12 normal }
+	mkMessage $w.top.nometsmsg $msg3 {top expand}
     } else {
 	frame $w.top.1 
 	frame $w.top.2
@@ -219,13 +217,13 @@ proc getMetsAndRes {metsAndResID requestingThread numMetrics metIndexes2Id} {
     # buttons
     mkFrame $w.bot {bottom fill expand} -relief raised -borderwidth 4
 
-    button $w.bot.b0 -text "ACCEPT" -width 12 \
+    button $w.bot.b0 -text "Accept" -width 12 \
 	    -command "endSelection $metsAndResID 0 $requestingThread $numMetrics {$metIndexes2Id}"
 
-    button $w.bot.b1 -text "CLEAR" -width 12 \
+    button $w.bot.b1 -text "Clear" -width 12 \
 	    -command "clearMetSelects $requestingThread $numMetrics {$metIndexes2Id}"
 
-    button $w.bot.b2 -text "CANCEL" -width 12 \
+    button $w.bot.b2 -text "Cancel" -width 12 \
 	    -command "endSelection $metsAndResID 1 $requestingThread $numMetrics {$metIndexes2Id}"
 
     if {$metSelected($requestingThread)==0} {

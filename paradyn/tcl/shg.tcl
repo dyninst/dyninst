@@ -1,4 +1,4 @@
-# $Id: shg.tcl,v 1.20 2003/05/23 14:50:20 pcroth Exp $
+# $Id: shg.tcl,v 1.21 2004/03/20 20:44:50 pcroth Exp $
 
 proc shgChangeCurrLabelHeight {numlines} {
    if {[winfo exists .shg.nontop.labelarea.current]} {
@@ -85,7 +85,6 @@ proc shgDrawKey {} {
 
    label $leftLabels.key0 -relief groove \
 	   -text "Deferred" -anchor c \
-	   -font { Helvetica 12 bold } \
        -foreground blue \
 	   -background #60c0a0
            # a nice green...
@@ -93,7 +92,6 @@ proc shgDrawKey {} {
 
    label $leftLabels.key1 -relief groove \
 	   -text "Unknown" -anchor c \
-	   -font { Helvetica 12 bold } \
 	   -background #60c0a0
            # a nice green...
    pack   $leftLabels.key1 -side top -fill x -expand false
@@ -101,13 +99,11 @@ proc shgDrawKey {} {
 
    label $leftLabels.key2 -relief groove \
 	   -text "True" -anchor c \
-	   -font { Helvetica 12 bold } \
 	   -background #6495ED
    pack   $leftLabels.key2 -side top -fill x -expand false
 
    label $leftLabels.key3 -relief groove \
 	   -text "False" -anchor c \
-	   -font { Helvetica 12 bold } \
 	   -background pink
 #	   -background "#cc85d5c2777d" 
                 # yuck --ari
@@ -122,35 +118,30 @@ proc shgDrawKey {} {
 	   -fill palegoldenrod -width 2
 
    label  $leftLabels.key4.label -relief flat \
-	   -text "Why Axis Refinement" -anchor c \
-	   -font { Helvetica 12 }
+	   -text "Why Axis Refinement" -anchor c
    pack   $leftLabels.key4.label -side right -fill y -expand true
 
 
 
    label $rightLabels.key0 -relief groove \
-	   -font { Helvetica 12 } \
 	   -text "instrumented" \
 	   -foreground ivory \
 	   -background gray
    pack  $rightLabels.key0 -side top -fill x
 
    label $rightLabels.key1 -relief groove \
-	   -font { Helvetica 12 } \
 	   -text "uninstrumented" \
 	   -foreground black \
 	   -background gray
    pack  $rightLabels.key1 -side top -fill x
 
    label $rightLabels.key2 -relief groove \
-	   -font { Helvetica 12 italic } \
 	   -text "instrumented; shadow node" \
 	   -foreground ivory \
 	   -background gray
    pack  $rightLabels.key2 -side top -fill x
 
    label $rightLabels.key3 -relief groove \
-	   -font { Helvetica 12 italic } \
 	   -text "uninstrumented; shadow node" \
 	   -foreground black \
 	   -background gray
@@ -165,8 +156,7 @@ proc shgDrawKey {} {
 	   -fill orchid -width 2
 
    label  $rightLabels.key4.label -relief flat \
-	   -text "Where Axis Refinement" -anchor c \
-	   -font { Helvetica 12 }
+	   -text "Where Axis Refinement" -anchor c
    pack   $rightLabels.key4.label -side right -fill y -expand true
 
 }
@@ -188,14 +178,12 @@ proc shgDrawTips {} {
    set tipArea .shg.nontop.tiparea
 
    label $tipArea.tip0 -relief groove \
-	   -text "Hold down Alt and move the mouse to scroll freely" \
-	   -font { Helvetica 12 }
+	   -text "Hold down Alt and move the mouse to scroll freely"
    pack $tipArea.tip0 -side top -fill both
       # fill both prevents shrinking when window is made shorter
 
    label $tipArea.tip1 -relief groove \
-	   -text "Click middle button on a node to obtain more info on it" \
-	   -font { Helvetica 12 }
+	   -text "Click middle button on a node to obtain more info on it"
    pack $tipArea.tip1 -side top -fill both
       # fill both prevents shrinking when window is made shorter
 
@@ -243,10 +231,10 @@ proc shgInitialize2 {iDeveloperMode iDrawKey iDrawTips} {
       return
    }
 
-   toplevel .shg -class "Shg"
-   option add *shg*Background grey
-   option add *shg*activeBackground LightGrey
-   option add *shg*activeForeground black
+   toplevel .shg -class Paradyn
+   option add *shg*Background grey widgetDefault
+   option add *shg*activeBackground LightGrey widgetDefault
+   option add *shg*activeForeground black widgetDefault
    wm protocol .shg WM_DELETE_WINDOW {wm iconify .shg}
 
    # area for title, menubar, logo
@@ -263,8 +251,7 @@ proc shgInitialize2 {iDeveloperMode iDrawKey iDrawTips} {
    pack  .shg.titlearea.left -side left -fill both -expand true
 
    label .shg.titlearea.left.title -text "The Performance Consultant" \
-	   -foreground white -anchor c \
-           -font { Times 14 bold } -relief raised \
+	   -foreground white -anchor c -relief raised \
 	   -background mediumseagreen
    pack  .shg.titlearea.left.title -side top -fill both -expand true
 
@@ -291,11 +278,11 @@ proc shgInitialize2 {iDeveloperMode iDrawKey iDrawTips} {
    pack  .shg.nontop.currphasearea -side top -fill x -expand false
 
    label .shg.nontop.currphasearea.label1 -text "Current Search: " \
-	   -font { Helvetica 12 } -anchor e
+        -anchor e
    pack  .shg.nontop.currphasearea.label1 -side left -fill both -expand true
 
    label .shg.nontop.currphasearea.label2 -text "" \
-	   -font { Helvetica 12 } -anchor w
+        -anchor w
    pack  .shg.nontop.currphasearea.label2 -side left -fill both -expand true
 
    # -----------------------------------------------------------
@@ -304,7 +291,6 @@ proc shgInitialize2 {iDeveloperMode iDrawKey iDrawTips} {
    pack  .shg.nontop.textarea -side top -fill x -expand false
 
    text .shg.nontop.textarea.text -borderwidth 2 -width 40 -height 5 -relief sunken \
-	   -font { Helvetica 12 } \
 	   -yscrollcommand ".shg.nontop.textarea.sb set" \
 	   -selectbackground black
    pack .shg.nontop.textarea.text -side left -fill both -expand true
@@ -339,8 +325,7 @@ proc shgInitialize2 {iDeveloperMode iDrawKey iDrawTips} {
    frame .shg.nontop.labelarea
    pack  .shg.nontop.labelarea -side top -fill x -expand false
 
-   text .shg.nontop.labelarea.current -relief sunken -height 1 \
-	   -font { Helvetica 12 } -wrap none
+   text .shg.nontop.labelarea.current -relief sunken -height 1 -wrap none
    if {$iDeveloperMode} {
       set numlines 4
    } else {

@@ -41,7 +41,7 @@
 
 // shgConsts.C
 
-/* $Id: shgConsts.C,v 1.10 2003/05/23 14:50:19 pcroth Exp $ */
+/* $Id: shgConsts.C,v 1.11 2004/03/20 20:44:47 pcroth Exp $ */
 
 #include "shgConsts.h"
 
@@ -55,10 +55,22 @@ shgConsts::shgConsts(Tcl_Interp *interp, Tk_Window theTkWindow) {
    deferredTextColor = Tk_GetColor(interp, theTkWindow, Tk_GetUid("blue"));
    assert(deferredTextColor);
 
-   // Root Item FontStruct's:
-   rootItemFontStruct = Tk_GetFont(interp, theTkWindow, "*-Helvetica-*-r-*-14-*");
+    // Root Item FontStruct's:
+    Tk_Uid rootItemFontName = Tk_GetOption( theTkWindow,
+                                            "listRootItemFont",
+                                            "Font" );
+    assert( rootItemFontName != NULL );
+    rootItemFontStruct = Tk_GetFont(interp, 
+                                        theTkWindow, 
+                                        rootItemFontName );
 
-   rootItemItalicFontStruct = Tk_GetFont(interp, theTkWindow, "*-Helvetica-*-o-*-14-*");
+    Tk_Uid rootItemItalicFontName = Tk_GetOption( theTkWindow,
+                                            "listRootItemEmphFont",
+                                            "Font" );
+    assert( rootItemItalicFontName != NULL );
+    rootItemItalicFontStruct = Tk_GetFont(interp, 
+                                            theTkWindow, 
+                                            rootItemItalicFontName );
 
    // Root Item Text GCs:
    XGCValues values;
@@ -93,10 +105,22 @@ shgConsts::shgConsts(Tcl_Interp *interp, Tk_Window theTkWindow) {
 					   &values);
    assert(rootItemDeferredShadowTextGC);
 
-   // Listbox FontStruct's:
-   listboxItemFontStruct = Tk_GetFont(interp, theTkWindow, "*-Helvetica-*-r-*-12-*");
+    // Listbox FontStruct's:
+    Tk_Uid listboxItemFontName = Tk_GetOption( theTkWindow,
+                                                "listItemFont",
+                                                "Font" );
+    assert( listboxItemFontName != NULL );
+    listboxItemFontStruct = Tk_GetFont( interp,
+                                        theTkWindow,
+                                        listboxItemFontName );
 
-   listboxItemItalicFontStruct = Tk_GetFont(interp, theTkWindow, "*-Helvetica-*-o-*-12-*");
+    Tk_Uid listboxItemItalicFontName = Tk_GetOption( theTkWindow,
+                                                "listItemEmphFont",
+                                                "Font" );
+    assert( listboxItemItalicFontName != NULL );
+    listboxItemItalicFontStruct = Tk_GetFont(interp, 
+                                        theTkWindow,
+                                        listboxItemItalicFontName );
 
    // Listbox Item Text GCs:
    values.foreground = activeTextColor->pixel;

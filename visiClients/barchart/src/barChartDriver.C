@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2003 Barton P. Miller
+ * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: barChartDriver.C,v 1.26 2003/07/18 15:45:23 schendel Exp $
+// $Id: barChartDriver.C,v 1.27 2004/03/20 20:44:51 pcroth Exp $
 
 #include <assert.h>
 #include <stdlib.h>
@@ -113,6 +113,16 @@ int main(int argc, char **argv) {
 
    if (TCL_OK != Tcl_Init(MainInterp))
       tclpanic(MainInterp, "Could not Tcl_Init()");
+
+    // Set argv0 before we do any other Tk program initialization because
+    // Tk takes the main window's class and instance name from argv0
+    // We set it to "paradyn" instead of "termwin" so that we can 
+    // set resources for all paradyn-related windows with the same root.
+    Tcl_SetVar( MainInterp,
+                "argv0", 
+                "paradyn",
+                TCL_GLOBAL_ONLY );
+
 
    if (TCL_OK != Tk_Init(MainInterp))
       tclpanic(MainInterp, "Could not Tk_Init");

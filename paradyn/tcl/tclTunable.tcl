@@ -1,4 +1,4 @@
-# $Id: tclTunable.tcl,v 1.21 2000/08/11 16:32:48 pcroth Exp $
+# $Id: tclTunable.tcl,v 1.22 2004/03/20 20:44:50 pcroth Exp $
 
 # To do list:
 # 1) if user deletes tunable descriptions window (using window mgr), then
@@ -46,34 +46,31 @@ proc tunableInitialize {} {
    global tunableMinHeight
    set tunableMinHeight 175
 
-   toplevel .tune -class Tunable
+   toplevel .tune -class Paradyn
    wm title .tune "Tunable Constants"
    # one does not pack a toplevel window...
 
    #  ################### Default options #################
-   option add *Visi*font   { Times 18 bold }
-   option add *Data*font   { Helvetica 10 }
-   option add *MyMenu*font { Times 13 bold }
 
    if {[winfo depth .] > 1} {
       # You have a color monitor...
       # change primary background color from 'bisque' to 'grey'
-      option add *tune*Background grey
-      option add *tune*activeBackground LightGrey
-      option add *tune*activeForeground black
-      option add *tune*Scale.activeForeground grey
+      option add *tune*Background grey widgetDefault
+      option add *tune*activeBackground LightGrey widgetDefault
+      option add *tune*activeForeground black widgetDefault
+      option add *tune*Scale.activeForeground grey widgetDefault
 
-      option add *tunableDescriptions*Background grey
-      option add *tunableDescriptions*activeBackground LightGrey
-      option add *tunableDescriptions*activeForeground black
-      option add *tunableDescriptions*Scale.activeForeground grey
+      option add *tunableDescriptions*Background grey widgetDefault
+      option add *tunableDescriptions*activeBackground LightGrey widgetDefault
+      option add *tunableDescriptions*activeForeground black widgetDefault
+      option add *tunableDescriptions*Scale.activeForeground grey widgetDefault
    } else {
       # You don't have a color monitor...
-      option add *tune*Background white
-      option add *tune*Foreground black
+      option add *tune*Background white widgetDefault
+      option add *tune*Foreground black widgetDefault
 
-      option add *tunableDescriptions*Background white
-      option add *tunableDescriptions*Foreground black
+      option add *tunableDescriptions*Background white widgetDefault
+      option add *tunableDescriptions*Foreground black widgetDefault
    }
 
    # .tune.top -- stuff at the top (menu bar, title bar, logo, other miscellanea)
@@ -105,7 +102,7 @@ proc tunableInitialize {} {
 
    # .tune.top.left.titlebar -- Title ("Tunable Constants") (above menu bar)
    label .tune.top.left.titlebar -text "Tunable Constants" -foreground white \
-	   -background #6495ED -font { Times 13 bold } \
+	   -background #6495ED \
 	   -anchor c -relief raised
    pack  .tune.top.left.titlebar -side top -fill both -expand true
       # expand is true; we want to fill up .tune.top.left (which itself won't enlarge so OK)
@@ -118,7 +115,7 @@ proc tunableInitialize {} {
    frame  .tune.bottom.buttonFrame
    pack   .tune.bottom.buttonFrame -side top -fill y -expand true
 
-   button .tune.bottom.buttonFrame.accept -text "Accept" -anchor c \
+   button .tune.bottom.buttonFrame.accept -text "OK" -anchor c \
            -command processCommitFinalTunableValues
    pack   .tune.bottom.buttonFrame.accept -side left -ipadx 10
 
@@ -260,26 +257,23 @@ proc drawBoolTunable {theName onlyDeveloperTunable} {
    set buttonLabelWin $namesWin.label
    set valuesLabelWin $valuesWin.box
    
-   set labelFont { Helvetica 12 bold }
-
    # dummy label.  At first, I used a checkbutton to guarantee that
    # all 3 widgets would have the same height.  But using
    # -highlightthickness 0 for the realcheckbutton made them all the
    # same anyway in tk 4.0
-   label $valuesWin.dummy -relief flat -font $labelFont 
+   label $valuesWin.dummy -relief flat
    pack  $valuesWin.dummy -side left -fill y
 
    # In order to get the appearance of a checkbutton with the on/off red square
    # on the right instead of on the left, we use 2 labels & a checkbutton.
    # The second one is the checkbutton, it has an indicator but no text.
 
-   label $buttonLabelWin -text $theName -anchor w -height 1 -relief flat \
-        -font $labelFont
+   label $buttonLabelWin -text $theName -anchor w -height 1 -relief flat
    if {$onlyDeveloperTunable} { $buttonLabelWin config -foreground $devModeColor }
    pack  $buttonLabelWin -side top -fill both -expand true
 
    checkbutton $valuesLabelWin -variable boolTunableNewValues($theName) -anchor w \
-	   -relief flat -font $labelFont -highlightthickness 0
+	   -relief flat -highlightthickness 0
    pack $valuesLabelWin -side left -fill both -expand true
 
    # now make the label and the checkbutton appear as 1; we play some bind tricks
@@ -426,8 +420,7 @@ proc drawFloatTunable {theName onlyDeveloperTunable leftTickWidth rightTickWidth
    pack  $valuesWin -side top -fill x -expand true
 
    # dummy label widget (so the right side of the screen will be as tall as the left)
-   set labelFont { Helvetica 12 bold }
-   label $valuesWin.label -relief flat -height 1 -font $labelFont
+   label $valuesWin.label -relief flat -height 1
    pack  $valuesWin.label -side left -fill y
    valueBind $valuesWin.label $numTunablesDrawn
 
@@ -446,7 +439,7 @@ proc drawFloatTunable {theName onlyDeveloperTunable leftTickWidth rightTickWidth
    
    # entry widget
    set entryWin $valuesWin.right.top.entry
-   entry $entryWin -relief sunken -width 8 -font $labelFont \
+   entry $entryWin -relief sunken -width 8 \
         -highlightthickness 0 -textvariable floatTunableNewValues($theName)
 
    # turn off some useless characters (such as "return" key)
@@ -460,7 +453,6 @@ proc drawFloatTunable {theName onlyDeveloperTunable leftTickWidth rightTickWidth
       # expand is false; if the window is made taller, we don't want the extra height
 
    # scale widget 
-   set tickFont { Helvetica 10 }
 
    set tickWin $valuesWin.left
    # a bit of padding between the rightmost tick and the entry widget
@@ -470,15 +462,15 @@ proc drawFloatTunable {theName onlyDeveloperTunable leftTickWidth rightTickWidth
    valueBind $tickWin.padAfterRightTick $numTunablesDrawn
 
    if {$tunableMin!=0 || $tunableMax!= 0} {
-      label $tickWin.leftTick -text $tunableMin -font $tickFont -width $leftTickWidth -anchor e
+      label $tickWin.leftTick -text $tunableMin -width $leftTickWidth -anchor e
       pack $tickWin.leftTick -side left
       valueBind $tickWin.leftTick $numTunablesDrawn
 
-      label $tickWin.rightTick -text $tunableMax -font $tickFont -width $rightTickWidth -anchor w
+      label $tickWin.rightTick -text $tunableMax -width $rightTickWidth -anchor w
       pack $tickWin.rightTick -side right -fill y
       valueBind $tickWin.rightTick $numTunablesDrawn
 
-      # [other options to try: -font -length -sliderlength -width -showValue]
+      # [other options to try: -length -sliderlength -width -showValue]
       set scaleWin $valuesWin.left.top
 
       scale $scaleWin -orient horizontal \
@@ -513,7 +505,7 @@ proc drawFloatTunable {theName onlyDeveloperTunable leftTickWidth rightTickWidth
 #   pack propagate $namesWin false
    pack  $namesWin -side top -fill x -expand true
 
-   label $namesWin.label -text $theName -anchor w -font $labelFont -height 1
+   label $namesWin.label -text $theName -anchor w -height 1
    if {$onlyDeveloperTunable} { $namesWin.label config -foreground $devModeColor }
    pack  $namesWin.label -side top -fill x -expand true
    valueBind $namesWin.label $numTunablesDrawn
@@ -790,9 +782,6 @@ proc processShowTunableDescriptions {} {
 
    set numTunableDescriptionsDrawn 0
 
-   set tunableTitleFont         { Helvetica 13 bold }
-   set tunableDescriptionFont   { Helvetica 12 }
-
    #set titleFontHeight [ font metrics $tunableTitleFont -linespace ]
    #set descFontHeight [ font metrics $tunableDescriptionFont -linespace ]
    #set diffFontHeight [ expr $titleFontHeight - $descFontHeight ]
@@ -803,7 +792,7 @@ proc processShowTunableDescriptions {} {
    set lastVisibleDescriptionsWidth 0
    set lastVisibleDescriptionsHeight 0
 
-   toplevel .tunableDescriptions -class TunableDescriptions
+   toplevel .tunableDescriptions -class Paradyn
    wm title .tunableDescriptions "Tunable Constants Descriptions"
    # one does not pack a toplevel window
 
@@ -814,7 +803,7 @@ proc processShowTunableDescriptions {} {
    frame .tunableDescriptions.bottom.frame
    pack  .tunableDescriptions.bottom.frame -side bottom -fill y -expand true
 
-   button .tunableDescriptions.bottom.frame.okay -text "Dismiss" -command closeTunableDescriptions
+   button .tunableDescriptions.bottom.frame.okay -text "OK" -command closeTunableDescriptions
    pack   .tunableDescriptions.bottom.frame.okay -side left -pady 6
 
    frame .tunableDescriptions.top
@@ -883,8 +872,7 @@ proc draw1TunableDescription {theName theDescription onlyDeveloperTunable} {
 	   -side right -fill x -expand true
 
    label .tunableDescriptions.top.canvas.frame$numTunableDescriptionsDrawn.top.left.label \
-      -text $theName -foreground "blue" -anchor sw \
-      -font $tunableTitleFont
+      -text $theName -foreground "blue" -anchor sw
    if {$onlyDeveloperTunable} {
         .tunableDescriptions.top.canvas.frame$numTunableDescriptionsDrawn.top.left.label \
             config -foreground $devModeColor }
@@ -898,8 +886,7 @@ proc draw1TunableDescription {theName theDescription onlyDeveloperTunable} {
 
    message .tunableDescriptions.top.canvas.frame$numTunableDescriptionsDrawn.bottom.right.msg \
 	 -justify left -anchor nw -text "$theDescription" \
-         -width $tunableDescriptionsTextWidth -pady 0 \
-	 -font $tunableDescriptionFont
+         -width $tunableDescriptionsTextWidth -pady 0
 
    pack .tunableDescriptions.top.canvas.frame$numTunableDescriptionsDrawn.bottom.right.msg \
 	 -side top -fill x -expand true

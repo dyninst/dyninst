@@ -1,5 +1,5 @@
 #
-# Copyright (c) 1996-1999 Barton P. Miller
+# Copyright (c) 1996-2004 Barton P. Miller
 # 
 # We provide the Paradyn Parallel Performance Tools (below
 # described as Paradyn") on an AS IS basis, and do not warrant its
@@ -48,7 +48,7 @@
 # actually a custom pdgraph Tk widget.
 #
 #---------------------------------------------------------------------------
-# $Id: histVisi.tcl,v 1.5 2001/11/07 05:03:21 darnold Exp $
+# $Id: histVisi.tcl,v 1.6 2004/03/20 20:44:55 pcroth Exp $
 #---------------------------------------------------------------------------
 
 
@@ -72,9 +72,7 @@ namespace eval RTHist {
     #
     proc init {} \
     {
-		option add *Font "Helvetica 9 roman" widgetDefault
-        option add *Pdheader*Font "{New Century Schoolbook} 12 bold roman" widgetDefault
-		option add *Pdgraph*Font "Helvetica 9 roman" widgetDefault
+#		option add Paradyn*Font {Helvetica 10 roman} widgetDefault
 
         # set up main window
         wm title . "Histogram"
@@ -196,7 +194,7 @@ namespace eval RTHist {
     proc init_header {} {
 
         # frame around header widgets
-        frame .header -class Pdheader
+        frame .header -class Header
         pack .header -side top -fill x
 
         # logo

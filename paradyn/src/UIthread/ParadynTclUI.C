@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParadynTclUI.C,v 1.1 2003/09/05 19:14:20 pcroth Exp $
+// $Id: ParadynTclUI.C,v 1.2 2004/03/20 20:44:47 pcroth Exp $
 #include "tcl.h"
 #include "tkTools.h"
 #include "paradyn/src/pdMain/paradyn.h"
@@ -133,8 +133,15 @@ ParadynTclUI::Init( void )
         Panic( "Tcl_Init() failed (perhaps TCL_LIBRARY is not set?)" );
     }
 
-    // TODO is this necessary anymore?
 	Tcl_SetVar(interp, "tcl_interactive", "0", TCL_GLOBAL_ONLY);
+
+    // set argv0 before we do any other program initialization because
+    // Tk takes the main window's class and instance name from argv0
+    Tcl_SetVar( interp,
+                "argv0", 
+                GetProgramName().c_str(),
+                TCL_GLOBAL_ONLY );
+
 
     // initialize number of errors read in from error database 
     Tcl_VarEval (interp, "getNumPdErrors", (char *)NULL);

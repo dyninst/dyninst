@@ -1,22 +1,22 @@
 #
-# $Id: tableVisi.tcl,v 1.10 2001/11/07 05:03:22 darnold Exp $
+# $Id: tableVisi.tcl,v 1.11 2004/03/20 20:44:59 pcroth Exp $
 #
 
 proc initializeTableVisi {} {
    if {[winfo depth .] > 1} {
    #  . config -bg grey
-     option add *Background grey
-     option add *activeBackground LightGrey
-     option add *activeForeground black
-     option add *Scale.activeForeground grey
+     option add *Background grey widgetDefault
+     option add *activeBackground LightGrey widgetDefault
+     option add *activeForeground black widgetDefault
+     option add *Scale.activeForeground grey widgetDefault
    } else {
-     option add *Background white
-     option add *Foreground black
+     option add *Background white widgetDefault
+     option add *Foreground black widgetDefault
    }
-   
-   option add *Visi*font *-New*Century*Schoolbook-Bold-R-*-18-*
-   option add *Data*font *-Helvetica-*-r-*-12-* 
-   option add *MyMenu*font *-New*Century*Schoolbook-Bold-R-*-14-*
+   option add Paradyn*metricFont {Helvetica 10 bold} widgetDefault
+   option add Paradyn*metricUnitsFont {Helvetica 10 bold} widgetDefault
+   option add Paradyn*focusFont {Helvetica 10 bold} widgetDefault
+   option add Paradyn*cellFont {Helvetica 10 roman} widgetDefault
    
    # Create the title bar, menu bar, and logo at the top:
    frame .top
@@ -26,7 +26,6 @@ proc initializeTableVisi {} {
    pack .top.left -side left -fill both -expand true
    
    label .top.left.title -relief raised -text "Table Visualization" \
-         -font *-New*Century*Schoolbook-Bold-R-*-14-* \
          -foreground white -background HotPink2
    pack .top.left.title -side top -fill both -expand true
    
@@ -112,8 +111,7 @@ proc initializeTableVisi {} {
 
    # Phase Name, below the menus (not filled in yet since asking for the
    # phase name would fail this early.)
-   label .phasename -relief groove \
-	   -font *-Helvetica-*-r-*-12-* 
+   label .phasename -relief groove
    pack  .phasename -side top -fill x -expand false
    
    # Horizontal Scrollbar

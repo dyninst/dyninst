@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Status.C,v 1.7 2002/04/17 16:07:23 willb Exp $
+// $Id: Status.C,v 1.8 2004/03/20 20:44:47 pcroth Exp $
 
 #include "Status.h"
 #include <string.h>
@@ -67,8 +67,14 @@ status_line::status_line(const char* title, const LineType type)
     pair->name = title;
     pair->sl = this;
     
-    if (type_==PROCESS) id_=n_procs_++; else id_=n_lines_++;
-    
+    if (type_==PROCESS)
+    {
+        id_=n_procs_++;
+    }
+    else 
+    {
+        id_=n_lines_++;
+    }
     create(title);
 }
 

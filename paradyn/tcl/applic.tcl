@@ -1,4 +1,4 @@
-# $Id: applic.tcl,v 1.22 1998/03/03 23:09:44 wylie Exp $
+# $Id: applic.tcl,v 1.23 2004/03/20 20:44:49 pcroth Exp $
 # window to get application choices from user
 
 #
@@ -51,7 +51,7 @@ proc AttachProcess {} {
      destroy .pDefn
   }
 
-  toplevel $W
+  toplevel $W -class Paradyn
   wm title $W "Attach"
   wm iconname $W "Attach"
 
@@ -68,8 +68,7 @@ proc AttachProcess {} {
 # define all of the main frames
   set T $W.title
   label $T -text "Attach to a Process" \
-            -anchor center -relief raised \
-            -font { Times 12 bold }
+            -anchor center -relief raised
   set D $W.data
   frame $D
   set B $W.buttons
@@ -148,14 +147,13 @@ proc AttachProcess {} {
   pack  $D.tips.1 -side top -fill x
 
   label $D.tips.1.label -text "Entering a pid is mandatory." \
-	  -font { Helvetica 12 } -justify left
+        -justify left
   pack  $D.tips.1.label -side left
 
   frame $D.tips.2
   pack  $D.tips.2 -side top -fill x
   
-  label $D.tips.2.label \
-	  -font { Helvetica 12 } -justify left \
+  label $D.tips.2.label -justify left \
 	  -text "Enter the full path to the executable in 'Executable file'.\
                 It will be used just to parse the symbol table.\n\
                 Paradyn tries to determine this information automatically,\
@@ -167,8 +165,7 @@ proc AttachProcess {} {
   frame $D.run -border 2
   pack  $D.run -side top -fill x
 
-  label $D.run.label -text "After attaching: " -justify left \
-	  -font { Helvetica 12 }
+  label $D.run.label -text "After attaching: " -justify left 
   pack  $D.run.label -side left
 
   global afterAttaching
@@ -178,26 +175,23 @@ proc AttachProcess {} {
   pack  $D.run.fr -ipady 2 -pady 4 -side left -fill x -expand true
 
   radiobutton $D.run.fr.1 -text "Pause application" -variable afterAttaching \
-	  -value 1 -justify left -relief groove -highlightthickness 0 \
-	  -font { Helvetica 12 }
+	  -value 1 -justify left -relief groove -highlightthickness 0
   pack $D.run.fr.1 -side left -fill x -expand true
 
   radiobutton $D.run.fr.2 -text "Run application" -variable afterAttaching \
-	  -value 2 -justify left -relief groove -highlightthickness 0 \
-	  -font { Helvetica 12 }
+	  -value 2 -justify left -relief groove -highlightthickness 0
   pack $D.run.fr.2 -side left -fill x -expand true
 
   radiobutton $D.run.fr.3 -text "Leave as is" -variable afterAttaching \
-	  -value 0 -justify left -relief groove -highlightthickness 0 \
-	  -font { Helvetica 12 }
+	  -value 0 -justify left -relief groove -highlightthickness 0
   pack $D.run.fr.3 -side left -fill x -expand true
 
 
 
   mkButtonBar $B {} retVal \
-  {{"ATTACH" {AcceptAttachDefn $applicUser $applicMachine \
+  {{"Attach" {AcceptAttachDefn $applicUser $applicMachine \
 	  $applicCommand $applicPid $applicDaemon $afterAttaching}} \
-  {"CANCEL" {destroy .attachDefn}}}
+  {"Cancel" {destroy .attachDefn}}}
 
   focus $D.machine.ent
 }
@@ -222,7 +216,7 @@ proc DefineProcess {} {
      destroy .attachDefn
   }
 
-  toplevel $W
+  toplevel $W -class Paradyn
   wm title $W "Process Defn"
   wm iconname $W "Process Defn"
 
@@ -239,8 +233,7 @@ proc DefineProcess {} {
 # define all of the main frames
   set T $W.title
   label $T -text "Define A Process" \
-            -anchor center -relief raised \
-            -font { Times 12 bold }
+            -anchor center -relief raised
   set D $W.data
   frame $D
   set B $W.buttons
@@ -291,9 +284,9 @@ proc DefineProcess {} {
   pack $D.cmd.lbl $D.cmd.ent -side left -expand yes -fill x
 
   mkButtonBar $B {} retVal \
-  {{"ACCEPT" {AcceptNewApplicDefn $applicUser $applicMachine \
+  {{"Accept" {AcceptNewApplicDefn $applicUser $applicMachine \
 	  $applicDaemon $applicDir $applicCmd}} \
-  {"CANCEL" {destroy .pDefn}}}
+  {"Cancel" {destroy .pDefn}}}
 
   focus $D.machine.ent
 }

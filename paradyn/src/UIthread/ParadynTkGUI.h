@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParadynTkGUI.h,v 1.1 2003/09/05 19:14:20 pcroth Exp $
+// $Id: ParadynTkGUI.h,v 1.2 2004/03/20 20:44:47 pcroth Exp $
 #ifndef PARADYNTKGUI_H
 #define PARADYNTKGUI_H
 
@@ -213,6 +213,9 @@ public:
         { return haveSeenFirstShgWindow; }
 
     virtual bool Init( void );
+
+    // igen interface methods
+    virtual void DMready( void );
 };
 
 #endif // PARADYNTKGUI_H

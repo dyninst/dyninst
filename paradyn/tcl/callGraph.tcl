@@ -1,5 +1,5 @@
 #This is used to create the actual call graph window. 
-# $Id: callGraph.tcl,v 1.5 2000/08/11 16:32:48 pcroth Exp $
+# $Id: callGraph.tcl,v 1.6 2004/03/20 20:44:49 pcroth Exp $
 
 proc callGraphChangeCurrLabelHeight {numlines} {
    if {[winfo exists .callGraph.nontop.labelarea.current]} {
@@ -27,10 +27,10 @@ proc callGraphInitialize {} {
       return
    }
    
-   toplevel .callGraph -class "callGraph"
-   option add *callGraph*Background grey
-   option add *callGraph*activeBackground LightGrey
-   option add *callGraph*activeForeground black
+   toplevel .callGraph -class Paradyn
+   option add *callGraph*Background grey widgetDefault
+   option add *callGraph*activeBackground LightGrey widgetDefault
+   option add *callGraph*activeForeground black widgetDefault
    wm protocol .callGraph WM_DELETE_WINDOW {wm iconify .callGraph}
 
    # area for title, menubar, logo
@@ -47,8 +47,7 @@ proc callGraphInitialize {} {
    pack  .callGraph.titlearea.left -side left -fill both -expand true
 
    label .callGraph.titlearea.left.title -text "Call Graph" \
-	   -foreground white -anchor c \
-           -font { Times 14 bold } -relief raised \
+	   -foreground white -anchor c -relief raised \
 	   -background navy
    pack  .callGraph.titlearea.left.title -side top -fill both -expand true
 
@@ -82,11 +81,11 @@ proc callGraphInitialize {} {
    pack  .callGraph.nontop.currprogramarea -side top -fill x -expand false
 
     label .callGraph.nontop.currprogramarea.label1 -text "Current Program: " \
-	    -font { Helvetica 12 } -anchor e
+            -anchor e
     pack  .callGraph.nontop.currprogramarea.label1 -side left -fill both -expand true
 
    label .callGraph.nontop.currprogramarea.label2 -text "" \
-	   -font { Helvetica 12 } -anchor w
+            -anchor w
    pack  .callGraph.nontop.currprogramarea.label2 -side left -fill both -expand true
 
    # -----------------------------------------------------------
@@ -114,11 +113,10 @@ proc callGraphInitialize {} {
    frame .callGraph.nontop.find
    pack  .callGraph.nontop.find -side top -fill both -expand false
    
-   label .callGraph.nontop.find.label -relief sunken -text "Search:" \
-	   -font { Helvetica 12 }
+   label .callGraph.nontop.find.label -relief sunken -text "Search:"
    pack  .callGraph.nontop.find.label -side left -fill y -expand false
 
-   entry .callGraph.nontop.find.entry -relief sunken -font { Helvetica 12 }
+   entry .callGraph.nontop.find.entry -relief sunken
    pack  .callGraph.nontop.find.entry -side left -fill x -expand true
    
    bind  .callGraph.nontop.find.entry <Return> {callGraphFindHook [.callGraph.nontop.find.entry get]}

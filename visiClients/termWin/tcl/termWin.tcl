@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 1996-2001 Barton P. Miller
+#  Copyright (c) 1996-2004 Barton P. Miller
 #  
 #  We provide the Paradyn Parallel Performance Tools (below
 #  described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,22 +39,20 @@
 #  incur to third parties resulting from your use of Paradyn.
 #
 #
-# $Id: termWin.tcl,v 1.4 2003/01/17 19:00:04 willb Exp $
+# $Id: termWin.tcl,v 1.5 2004/03/20 20:45:02 pcroth Exp $
 #
 
 #
 # default resources for TermWin header
 #
-option add *Pdtermwin*Header*headerBackground green4 widgetDefault
-option add *Pdtermwin*Header*headerForeground white widgetDefault
-option add *Pdtermwin*Header*Font "{New Century Schoolbook} 12 bold roman" widgetDefault
+option add Paradyn*Header*Label.background green4 widgetDefault
+option add Paradyn*Header*Label.foreground white widgetDefault
 
 #
 # default resources for TermWin text area
 #
-option add *Pdtermwin*TextArea*Font {Courier 10 roman} widgetDefault
-option add *Pdtermwin*TextArea*daemonForeground	red	widgetDefault
-option add *Pdtermwin*TextArea*appForeground black	widgetDefault
+option add Paradyn*TextArea*daemonForeground red widgetDefault
+option add Paradyn*TextArea*appForeground black widgetDefault
 
 
 
@@ -93,7 +91,7 @@ proc getWindowHeight {wName} {
 #  Create the overall frame
 #
 
-frame .termwin -class Pdtermwin
+frame .termwin -class Termwin
 pack .termwin -side top -fill both -expand true
 
 
@@ -106,10 +104,7 @@ pack .termwin.top -side top -fill x
 frame .termwin.top.left
 pack .termwin.top.left -side left -fill both -expand 1
 
-label .termwin.top.left.title -relief raised -text "Application Output" \
-      -foreground [option get .termwin.top headerForeground HeaderForeground] \
-	  -background [option get .termwin.top headerBackground HeaderBackground]
-
+label .termwin.top.left.title -relief raised -text "Terminal"
 pack .termwin.top.left.title -side top -fill both -expand true
 
 #
@@ -161,7 +156,6 @@ frame .termwin.textarea -class TextArea
 pack  .termwin.textarea -side top -fill both -expand true
 
 text .termwin.textarea.text -borderwidth 2 -width 80 -height 24 -relief sunken \
-    -font [option get .termwin.textarea font Font] \
 	-yscrollcommand ".termwin.textarea.sb set"
 
 pack .termwin.textarea.text -side left -fill both -expand true
@@ -180,7 +174,7 @@ pack .termwin.textarea.sb -side right -fill y
 #
 # display everything
 #
-wm title . "Term Win"
+wm title . "TermWin"
 
 
 #

@@ -1,4 +1,4 @@
-# $Id: uimProcs.tcl,v 1.21 1999/03/03 18:18:30 pcroth Exp $
+# $Id: uimProcs.tcl,v 1.22 2004/03/20 20:44:50 pcroth Exp $
 # utilities for UIM tcl functions
 #
 
@@ -47,7 +47,7 @@ proc mkButtonBar {w every retval blist} {
 #
 proc mkDialogWindow {w} {
     catch {destroy $w}
-    toplevel $w -class Dialog -bd 0
+    toplevel $w -class Paradyn -bd 0
     wm title $w "Dialog box"
     wm iconname $w "Dialog"
     wm geometry $w +425+300
@@ -61,12 +61,11 @@ proc mkDialogWindow {w} {
 
 proc mkDialogWindowTitle {w theTitle} {
     catch {destroy $w}
-    toplevel $w -class Dialog -bd 0 
+    toplevel $w -class Paradyn -bd 0 
     wm title $w $theTitle
     wm iconname $w $theTitle
     label $w.la -text $theTitle \
 	    -foreground white -anchor c \
-	    -font { Times 13 bold } \
 	    -relief raised \
 	    -background red \
 	    -width 40
@@ -104,7 +103,7 @@ proc showMsg {infoCode infoStr} {
     # title
     ## **** don't forget to use class for this font!!!!
     label $w.out.top -text "Paradyn Information \#$infoCode: $ehead" \
-        -fg orange -font { Times 13 bold }
+        -fg orange 
     pack $w.out.top -pady 5 -padx 5
 
     frame $w.out.explain
@@ -146,7 +145,7 @@ proc explError {errorCode} {
     # title
     ## **** don't forget to use class for this font!!!!
     label $w.out.top -text "Paradyn Message \#\ $errorCode Explanation" \
-        -fg red -font { Times 13 bold }
+        -fg red 
     pack $w.out.top -pady 5 -padx 5
 
     frame $w.out.explain
@@ -243,7 +242,7 @@ proc showError {errorCode errorStr} {
        
        mkDialogWindowTitle $w "Paradyn Error Window"
        $w configure -bg red
-       frame $w.out -class "Paradyn.Error" 
+       frame $w.out
        pack $w.out -padx 5 -pady 5 -fill both -expand true
 
        # Error screen header: bitmap, title and Error Number
@@ -265,17 +264,17 @@ proc showError {errorCode errorStr} {
 
        # option buttons 
        frame $w.out.buttons 
-       mkButtonBar $w.out.buttons {} retval {{CONTINUE ""} \
-	    {EXIT PARADYN "destroy ."} }
+       mkButtonBar $w.out.buttons {} retval {{Continue ""} \
+	    {Exit PARADYN "destroy ."} }
 
        #$w.out.buttons.2 configure -command "errorExit $w"
        $w.out.buttons.2 configure -command "procExit"
        $w.out.buttons.1 configure -command "destroy $w"
        pack $w.out.buttons -fill both -padx 5 -expand false
 
-       $theText tag configure categoryTag -font { Helvetica 12 }
-       $theText tag configure errorPrefixTag -foreground red \
-                -font { Times 13 bold }
+       $theText tag configure categoryTag 
+       $theText tag configure errorPrefixTag -foreground red
+                
     } else {
        #puts stderr "window already up"
        #flush stderr
@@ -297,7 +296,6 @@ proc showError {errorCode errorStr} {
 
     button $w.explain$numErrorsShown -text "Explain..." \
 	    -command "explError $errorCode" \
-	    -font { Helvetica 12 } \
 	    -relief groove
     $theText window create end -padx 5 -pady 5 -window $w.explain$numErrorsShown
     $theText insert end "\n"
@@ -332,11 +330,11 @@ proc procExit {} {
     mkDialogWindowTitle $w "Exit Paradyn"
     frame $w.fr -borderwidth 2
     pack $w.fr -side top
-    label $w.fr.l -text "Are you sure (Y/N)?"
+    label $w.fr.l -text "Are you sure?"
     pack $w.fr.l -side top -pady 10
 
     frame $w.fr.buttons
-    mkButtonBar $w.fr.buttons {} retval {{YES ""} {NO ""}}
+    mkButtonBar $w.fr.buttons {} retval {{Yes ""} {No ""}}
     $w.fr.buttons.1 configure -command "destroy ."
     $w.fr.buttons.2 configure -command "destroy $w"
     pack $w.fr.buttons -side top -fill both

@@ -20,7 +20,7 @@
  *
  * terrain.c - main entry point and x driver.
  *
- * $Id: terrain.c,v 1.21 2003/04/15 18:09:56 pcroth Exp $
+ * $Id: terrain.c,v 1.22 2004/03/20 20:45:03 pcroth Exp $
  */
 
 #ifdef i386_unknown_linux2_0 || defined(ia64_unknown_linux2_4)
@@ -116,12 +116,12 @@ String fallback_resources[] = {
  "*background: Grey",
  "*foreground: Black",
  "*font: *-Helvetica-*-r-*-12-*",
- "*titlebar*font: *-New*Century*Schoolbook-Bold-R-*-18-*",
+ "*titlebar*font: *-Helvetica-Bold-R-*-14-*",
  "*titlebar*background: Red",
  "*titlebar*foreground: White",
  "*logo*background: White",
  "*logo*foreground: #c06077",
- "*title*font: *-New*Century*Schoolbook-*-R-*-14-*",
+ "*title*font: *-Helvetica-*-R-*-12-*",
  NULL,
 };
 
@@ -694,7 +694,7 @@ int main(int argc, char *argv[])
 
 
    /* initialize application */
-   w_top = XtAppInitialize(&app_con, "Terrain", NULL, ZERO, &argc, argv,
+   w_top = XtAppInitialize(&app_con, "Pdterrain", NULL, ZERO, &argc, argv,
 			   fallback_resources, NULL, ZERO);
 
    /* Initialize application action for scroll bar jump clean-ups */

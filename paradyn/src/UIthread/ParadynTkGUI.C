@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParadynTkGUI.C,v 1.2 2003/10/28 22:06:50 pcroth Exp $
+// $Id: ParadynTkGUI.C,v 1.3 2004/03/20 20:44:47 pcroth Exp $
 #include "pdutil/h/TclTools.h"
 #include "ParadynTkGUI.h"
 #include "paradyn/src/pdMain/paradyn.h"
@@ -123,6 +123,15 @@ ParadynTkGUI::Init( void )
     {
         Panic( "Tk_Init() failed (perhaps TK_LIBRARY not set?)" );
     }
+
+#if READY
+    Tk_Window mainWin = Tk_MainWindow( interp );
+    if( mainWin == NULL )
+    {
+        Panic( "Tk_MainWindow gave NULL after Tk_Init" );
+    }
+    Tk_SetClass( mainWin, "Paradyn" );
+#endif // READY
 
     tunableBooleanConstantDeclarator* tcWaShowTips = 
         new tunableBooleanConstantDeclarator("showWhereAxisTips",
@@ -242,7 +251,7 @@ ParadynTkGUI::Init( void )
                    (ClientData)Tk_MainWindow( interp ));
 
     /* display the paradyn main menu tool bar */
-    myTclEval( interp, "drawToolBar");
+    myTclEval( interp, "buildMainWindow");
     
     // New Where Axis: --ari
     installWhereAxisCommands( interp );
@@ -1325,4 +1334,17 @@ ParadynTkGUI::showSHGShadowNodes(bool show)
 	tcShgShowGeneric(shg::ct_shadow, show);
 }
 
+
+void
+ParadynTkGUI::DMready( void )
+{
+    ParadynUI::DMready();
+
+    // The TermWin has an annoying habit of being mapped 
+    // on top of the main Paradyn window.  Give it a chance
+    // to be mapped and then raise the main window to the
+    // foreground in case it has been covered.
+    usleep( 1000 );
+    myTclEval( interp, "raise ." );
+}
 
