@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.103 1999/03/03 18:13:48 pcroth Exp $
+// $Id: DMpublic.C,v 1.104 1999/05/19 21:14:59 karavan Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -357,7 +357,7 @@ void dataManager::saveAllData (const char *dirname, SaveRequestType optionFlag)
 }
 
 void
-dataManager::saveAllResources (const char *dirname)
+dataManager::saveAllResources (char *dirname)
 {
   bool success = true;
   string dir = string (dirname) + string("/resources");
@@ -369,11 +369,7 @@ dataManager::saveAllResources (const char *dirname)
     resource::saveHierarchiesToFile(saveFile);
     saveFile.close();
   }
-
-  // TODO - is there a way to deallocate this memory
-  // at the caller?  parameter was passed as const
-  delete (char*)dirname;
-
+  delete dirname;
   uiMgr->resourcesSaved(success);
 }
 
