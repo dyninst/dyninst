@@ -2,9 +2,12 @@
 // C++ code that provides access to tunable constants from tcl.
 
 /* $Log: tclTunable.C,v $
-/* Revision 1.8  1996/02/05 19:13:56  tamches
-/* proper use of Tcl_SetResult fixes a purify problem
+/* Revision 1.9  1996/02/07 00:10:52  tamches
+/* yet more proper usage of Tcl_SetResult
 /*
+ * Revision 1.8  1996/02/05 19:13:56  tamches
+ * proper use of Tcl_SetResult fixes a purify problem
+ *
  * Revision 1.7  1995/12/20 02:27:52  tamches
  * general cleanup and warning reduction
  *
@@ -190,7 +193,7 @@ int TclTunableCommand(ClientData, Tcl_Interp *interp,
 	 }
 
          tunableConstantBase tcb = tunableConstantRegistry::getGenericTunableConstantByName(argv[2]);
-         sprintf(interp->result, "%s", (tcb.getDesc().string_of()==NULL) ? tcb.getName().string_of() : tcb.getDesc().string_of());
+	 Tcl_SetResult(interp, (tcb.getDesc().string_of()==NULL) ? tcb.getName().string_of() : tcb.getDesc().string_of(), TCL_VOLATILE);
          return TCL_OK;
       }
 
