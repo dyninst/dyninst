@@ -220,9 +220,22 @@ int process::waitProcs(int *status) {
 	 *status = stat.pr_what << 8 | 0177;
 	 ret = processVec[curr]->getPid();
 	 break;
-       case PR_SYSEXIT:
-	 // exit of exec
-	 if (!execResult(stat)) {
+       case PR_SYSEXIT: {
+	 // exit of a system call.
+	 process *p = processVec[curr];
+
+	 if (p->RPCs_waiting_for_syscall_to_complete) {
+ 	    // reset PIOCSEXIT mask
+	    inferiorrpc_cerr << "solaris got PR_SYSEXIT!" << endl;
+	    assert(p->save_exitset_ptr != NULL);
+	    if (-1 == ioctl(p->proc_fd, PIOCSEXIT, p->save_exitset_ptr))
+	       assert(false);
+	    delete [] p->save_exitset_ptr;
+	    p->save_exitset_ptr = NULL;
+
+	    // fall through on purpose (so status, ret get set)
+	 }
+	 else if (!execResult(stat)) {
 	   // a failed exec. continue the process
            processVec[curr]->continueProc_();
            break;
@@ -231,6 +244,7 @@ int process::waitProcs(int *status) {
 	 *status = SIGTRAP << 8 | 0177;
 	 ret = processVec[curr]->getPid();
 	 break;
+       }
        case PR_REQUESTED:
          assert(0);
        case PR_JOBCONTROL:
@@ -300,6 +314,7 @@ void get_ps_stuff(int proc_fd, string &argv0, string &pathenv, string &cwdenv) {
    // get argv[0].  It's in the_psinfo.pr_argv[0], but that's a ptr in the inferior
    // space, so we need to /proc read() it out.  Also, the_psinfo.pr_argv is a char **
    // not a char* so we even need to /proc read() to get a pointer value.  Ick.
+   assert(the_psinfo.pr_argv != NULL);
    char *ptr_to_argv0 = extract_string_ptr(proc_fd, the_psinfo.pr_argv);
    argv0 = extract_string(proc_fd, ptr_to_argv0);
 
@@ -429,7 +444,7 @@ bool process::continueProc_() {
   if ((ioctl(proc_fd, PIOCSTATUS, &stat) != -1)
       && (stat.pr_flags & PR_STOPPED)
       && (stat.pr_why == PR_SIGNALLED)
-      && ((stat.pr_what == SIGSTOP) || (stat.pr_what == SIGINT))) {
+      && (stat.pr_what == SIGSTOP || stat.pr_what == SIGINT)) {
     flags.pr_flags = PRSTOP;
     if (ioctl(proc_fd, PIOCRUN, &flags) == -1) {
       fprintf(stderr, "continueProc_: PIOCRUN failed: %s\n", sys_errlist[errno]);
@@ -766,7 +781,7 @@ time64 process::getInferiorProcessCPUtime() {
 }
 #endif
 
-void *process::getRegisters(bool &) {
+void *process::getRegisters() {
    // Astonishingly, this routine can be shared between solaris/sparc and
    // solaris/x86.  All hail /proc!!!
 
@@ -816,6 +831,7 @@ bool process::executingSystemCall() {
    prstatus theStatus;
    if (ioctl(proc_fd, PIOCSTATUS, &theStatus) != -1) {
      if (theStatus.pr_syscall > 0) {
+       inferiorrpc_cerr << "pr_syscall=" << theStatus.pr_syscall << endl;
        return(true);
      }
    } else assert(0);
@@ -997,7 +1013,7 @@ string process::tryToFindExecutable(const string &iprogpath, int pid) {
 
    attach_cerr << "welcome to tryToFindExecutable; progpath=" << iprogpath << ", pid=" << pid << endl;
 
-   const string &progpath = expand_tilde_pathname(iprogpath);
+   const string progpath = expand_tilde_pathname(iprogpath);
 
    // Trivial case: if "progpath" is specified and the file exists then nothing needed
    if (exists_executable(progpath)) {
@@ -1031,6 +1047,28 @@ string process::tryToFindExecutable(const string &iprogpath, int pid) {
 
    (void)close(procfd);
    return "";
+}
+
+bool process::set_breakpoint_for_syscall_completion() {
+   /* Can assume: (1) process is paused and (2) in a system call.
+      We want to set a TRAP for the syscall exit, and do the
+      inferiorRPC at that time.  We'll use /proc PIOCSEXIT.
+      Returns true iff breakpoint was successfully set. */
+
+   sysset_t save_exitset;
+   if (-1 == ioctl(proc_fd, PIOCGEXIT, &save_exitset))
+      return false;
+
+   sysset_t new_exit_set;
+   prfillset(&new_exit_set);
+   if (-1 == ioctl(proc_fd, PIOCSEXIT, &new_exit_set))
+      return false;
+
+   assert(save_exitset_ptr == NULL);
+   save_exitset_ptr = new sysset_t;
+   memcpy(save_exitset_ptr, &save_exitset, sizeof(save_exitset));
+
+   return true;
 }
 
 unsigned process::read_inferiorRPC_result_register(reg) {

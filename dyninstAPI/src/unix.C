@@ -375,7 +375,24 @@ int handleSigChild(int pid, int status)
 
 	        signal_cerr << "welcome to SIGTRAP for pid " << curr->getPid() << " status=" << curr->getStatusAsString() << endl;
 		const bool wasRunning = (curr->status() == running);
-		curr->status_ = stopped; // probably was 'neonatal'
+		curr->status_ = stopped;
+
+		// Check to see if the TRAP is due to a system call exit which
+		// we were waiting for, in order to launch an inferior rpc safely.
+		if (curr->isRPCwaitingForSysCallToComplete()) {
+		   inferiorrpc_cerr << "got SIGTRAP indicating syscall completion!"
+		                    << endl;
+		   curr->setRPCwaitingForSysCallToComplete(false);
+
+		   if (curr->launchRPCifAppropriate(false, // not running
+						    true   // finishing a syscall
+						    )) {
+		      inferiorrpc_cerr << "syscall completion: rpc launched ok, as expected " << endl;
+		   }
+		   else
+		     inferiorrpc_cerr << "syscall completion: failed to launch rpc" << endl;
+		   break;
+		}
 
                 // check to see if trap is due to dlopen or dlcose event
 		if(curr->isDynamicallyLinked()){
@@ -579,7 +596,7 @@ int handleSigChild(int pid, int status)
 		// Ick.
 		if (curr->existsRPCreadyToLaunch()) {
 		   curr -> status_ = stopped;
-		   (void)curr->launchRPCifAppropriate(true);
+		   (void)curr->launchRPCifAppropriate(true, false);
 		   break; // sure, we lose the SIGALARM, but so what.
 		}
 		else
