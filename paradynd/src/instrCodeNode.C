@@ -252,7 +252,6 @@ void instrCodeNode::prepareCatchupInstr(vector<vector<catchupReq *> > &allStackW
 	bool triggered = V.instRequests[instIter].triggeredInStackFrame(thisFrame, proc());
 	if (triggered) {
 	  // Push this instRequest onto the list of ones to execute
-	  cerr << "catchup was triggered in frame " << thisFrame << endl;
 	  allStackWalks[stackIter][frameIter]->reqNodes.push_back(&(V.instRequests[instIter]));
 	} // If we want catchup
       } // loop through instrumentation requests
