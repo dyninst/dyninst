@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.125 2003/03/06 20:58:57 zandy Exp $
+// $Id: ast.C,v 1.126 2003/03/07 20:14:58 mirg Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1596,7 +1596,16 @@ Address AstNode::generateCode_phase2(process *proc,
 	    break;
 	case Param:
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
-	    if (astFlag)
+	    // Here is what a "well-named" astFlag seems to mean.
+	    // astFlag is true iff the function does not begin with a save
+	    // or our instumentation is placed before the save instruction.
+	    // Notice that we do emit a save in the basetramp in any case,
+	    // so if (astFlag) then arguments are in the previous frame's
+	    // O registers (this frame's I registers). If (!astFlag) then
+	    // arguments are two frames above us.
+	    // For callsite instrumentation, callee's arguments are always
+	    // in I registers (remember, we did a save)
+	    if (astFlag || location->getPointType() == callSite)
 		src = emitR(getSysParamOp, (Register)oValue, Null_Register, 
 			    dest, insn, base, noCost, location);
 	    else 
