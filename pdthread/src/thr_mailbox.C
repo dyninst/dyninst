@@ -257,6 +257,24 @@ thr_mailbox::thr_mailbox(thread_t owner)
 
     int pipe_success = pipe( msg_avail_pipe );
     assert(pipe_success == 0);
+
+    // Set the write end of the pipe to be non-blocking.
+    //
+    // A non-blocking pipe is a way to avoid the deadlock that
+    // occurs in case the sender sends so many messages that it
+    // fills the pipe causing the sender to block writing into the pipe
+    // (and holding the receiver's mailbox's mutex), while the receiver
+    // is blocked waiting to acquire the mutex in order to consume
+    // the bytes from the pipe.
+    int fret = fcntl( msg_avail_pipe[1], F_GETFL );
+    if( fret >= 0 )
+    {
+        fret = fcntl( msg_avail_pipe[1], F_SETFL, fret | O_NONBLOCK );
+    }
+    if( fret < 0 )
+    {
+        thr_debug_msg(CURRENT_FUNCTION, "unable to set msg_avail pipe to non-blocking mode\n" );
+    }
 }
 
 thr_mailbox::~thr_mailbox() {
@@ -557,7 +575,12 @@ void
 thr_mailbox::raise_msg_avail( void )
 {
     static char s = '0';
-    write( msg_avail_pipe[1], &s, sizeof(char));
+    ssize_t nWritten = write( msg_avail_pipe[1], &s, sizeof(char));
+    if( (nWritten == -1) && (errno == EAGAIN) )
+    {
+        thr_debug_msg(CURRENT_FUNCTION,
+            "write to msg_avail pipe would've blocked\n" );
+    }
 }    
 
 void
