@@ -23,7 +23,10 @@
  * Kludges to handle broken system includes and such...
  *
  * $Log: kludges.h,v $
- * Revision 1.1  1994/11/01 16:07:28  markc
+ * Revision 1.2  1995/02/10 22:35:06  jcargill
+ * Fixed bzero prototype
+ *
+ * Revision 1.1  1994/11/01  16:07:28  markc
  * Added Object classes that provide os independent symbol tables.
  * Added stl-like container classes with iterators.
  *
@@ -131,7 +134,7 @@ extern char *strchr(char *s, char c);
 extern char *strrchr(char *s, char c);
 extern int gettimeofday(struct timeval *tp, struct timezone *tzp);
 extern char *memset(char *, int, int);
-extern void bzero(char *, int);
+extern void bzero(void *, long unsigned int);
 int gethostname(char*, int);
 
 #if defined(__cplusplus)
