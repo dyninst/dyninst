@@ -340,10 +340,18 @@ Object::load_object() {
 
         Elf_Data* stabdatap = elf_getdata(stabscnp, 0);
         Elf_Data* stabstrdatap = elf_getdata(stabstrscnp, 0);
-        struct stab_entry * stabsyms = (struct stab_entry *) stabdatap->d_buf;
-        unsigned stab_nsyms = stabdatap->d_size / sizeof(struct stab_entry);
-        const char* stabstrs = (const char *) stabstrdatap->d_buf;
-        
+        struct stab_entry *stabsyms = 0;
+        unsigned stab_nsyms;
+        const char *stabstrs = 0;
+
+        if (stabdatap && stabstrdatap) {
+	  stabsyms = (struct stab_entry *) stabdatap->d_buf;
+	  stab_nsyms = stabdatap->d_size / sizeof(struct stab_entry);
+	  stabstrs = (const char *) stabstrdatap->d_buf;
+	}
+	else 
+	  stab_nsyms = 0;
+
         // the stabstr contains one string table for each module.
         // stabstr_offset gives the offset from the begining of stabstr of the
         // string table for the current module.
