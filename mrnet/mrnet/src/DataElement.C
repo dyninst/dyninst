@@ -1,7 +1,7 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
 #include <string.h>
 #include <stdlib.h>
@@ -32,7 +32,7 @@ DataElement::~DataElement()
     case FLOAT_ARRAY_T:
     case DOUBLE_ARRAY_T:
         if( val.p != NULL){
-            free(val.p);
+            free( (void*)val.p );
         }
         break;
     case CHAR_T:

@@ -1,7 +1,7 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
 #if !defined(__backendnode_h)
 #define __backendnode_h 1
@@ -20,26 +20,27 @@ class BackEndNode: public ChildNode, public CommunicationNode{
     Network * network;
     Rank rank;
 
-    int proc_newStream( Packet & pkt );
+    int proc_newStream( Packet & pkt ) const;
 
  public:
     BackEndNode(Network * _network, 
                     std::string _my_hostname, Port _my_port, Rank _my_rank,
                     std::string _parent_hostname, Port _parent_port);
     virtual ~BackEndNode(void);
-    virtual int proc_PacketsFromUpStream(std::list <Packet> &);
-    virtual int proc_DataFromUpStream(Packet &);
-    int send(Packet &);
-    int flush();
-    int recv( bool blocking=true );
+
+    virtual int proc_PacketsFromUpStream(std::list <Packet> &) const;
+    virtual int proc_DataFromUpStream(Packet &) const;
+    int send(Packet &) const;
+    int flush() const;
+    int recv( bool blocking=true ) const;
 
     int get_SocketFd() const ;
 };
 
 inline int BackEndNode::get_SocketFd() const
 {
-    assert(upstream_node);
-    return upstream_node->get_SocketFd();
+    assert( ChildNode::get_UpStreamNode() );
+    return ChildNode::get_UpStreamNode()->get_SocketFd();
 }
 } // namespace MRN
 

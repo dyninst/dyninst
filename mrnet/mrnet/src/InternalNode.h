@@ -1,7 +1,7 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
 #if !defined(__internalnode_h)
 #define __internalnode_h 1
@@ -21,19 +21,20 @@ class InternalNode: public ParentNode, public ChildNode,
     public CommunicationNode
 {
  protected:
-    virtual int deliverLeafInfoResponse( Packet& pkt );
-    virtual int deliverConnectLeavesResponse( Packet& pkt );
+    virtual int deliverLeafInfoResponse( Packet& pkt ) const;
+    virtual int deliverConnectLeavesResponse( Packet& pkt ) const;
 
  public:
     InternalNode(std::string hostname, Port port,
                  std::string _phostname, Port _pport);
     virtual ~InternalNode(void);
-    void waitLoop();
-    int send_newSubTreeReport(bool status);
-    virtual int proc_PacketsFromUpStream(std::list <Packet> &);
-    virtual int proc_DataFromUpStream(Packet&);
-    virtual int proc_PacketsFromDownStream(std::list <Packet> &);
-    virtual int proc_DataFromDownStream(Packet&);
+
+    void waitLoop() const;
+    int send_newSubTreeReport(bool status) const;
+    virtual int proc_PacketsFromUpStream(std::list <Packet> &) const;
+    virtual int proc_DataFromUpStream(Packet&) const;
+    virtual int proc_PacketsFromDownStream(std::list <Packet> &) const;
+    virtual int proc_DataFromDownStream(Packet&) const;
 };
 
 } // namespace MRN

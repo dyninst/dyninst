@@ -1,7 +1,7 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
 #include <vector>
 
@@ -133,13 +133,13 @@ int TransFilter::push_packets( std::vector < Packet >&packets_in,
  *    SyncFilter Class Definition        *
  *============================================*/
 SyncFilter::SyncFilter( unsigned short _filter_id,
-                        const std::list < RemoteNode * >&nodes )
+                        const std::list < const RemoteNode * >&nodes )
     :    Filter( _filter_id ), downstream_nodes( nodes )
 {
     sync_filter = ( void ( * )
              ( std::vector < Packet >&,
                std::vector < Packet >&,
-               const std::list < RemoteNode * >&,
+               const std::list < const RemoteNode * >&,
                void ** ) )
         FilterFuncById[_filter_id];
 }

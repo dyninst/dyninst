@@ -1,7 +1,7 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
 #include <stdio.h>
 
@@ -207,12 +207,12 @@ int RemoteNode::connect()
     return 0;
 }
 
-int RemoteNode::accept_Connection( int lsock_fd, bool do_connect )
+int RemoteNode::accept_Connection( int lsock_fd, bool do_connect ) const
 {
     int retval = 0;
 
     if( do_connect ) {
-        if( (sock_fd = getSocketConnection(lsock_fd)) == -1){
+        if( ( *((int*)&sock_fd) = getSocketConnection(lsock_fd)) == -1){
             mrn_dbg(1, mrn_printf(FLF, stderr, "get_socket_connection() failed\n"));
             error( MRN_ESYSTEM, "getSocketConnection(): %s\n",
                    strerror(errno) );
@@ -221,7 +221,7 @@ int RemoteNode::accept_Connection( int lsock_fd, bool do_connect )
     }
     else {
         // socket is already connected
-        sock_fd = lsock_fd;
+        *((int*)&sock_fd) = lsock_fd;
     }
     assert( sock_fd != -1 );
 
@@ -229,7 +229,7 @@ int RemoteNode::accept_Connection( int lsock_fd, bool do_connect )
         mrn_dbg(3, mrn_printf(FLF, stderr, "Creating Downstream recv thread ...\n"));
         retval = XPlat::Thread::Create( RemoteNode::recv_thread_main,
                                         (void *) this,
-                                        &recv_thread_id );
+                                        (long int *)&recv_thread_id );
         if(retval != 0){
             error( MRN_ESYSTEM, "XPlat::Thread::Create() failed: %s\n",
                     strerror(errno) );
@@ -238,7 +238,7 @@ int RemoteNode::accept_Connection( int lsock_fd, bool do_connect )
         mrn_dbg(3, mrn_printf(FLF, stderr, "Creating Downstream send thread ...\n"));
         retval = XPlat::Thread::Create( RemoteNode::send_thread_main,
                                         (void *) this,
-                                        &send_thread_id );
+                                        (long int *)&send_thread_id );
         if(retval != 0){
             error( MRN_ESYSTEM, "XPlat::Thread::Create() failed: %s\n",
                     strerror(errno) );
@@ -253,6 +253,7 @@ int RemoteNode::accept_Connection( int lsock_fd, bool do_connect )
 int RemoteNode::new_InternalNode(int listening_sock_fd,
                                  std::string parent_host, Port parent_port,
                                  std::string commnode_cmd)
+const
 {
     char parent_port_str[128];
     sprintf(parent_port_str, "%d", parent_port);
@@ -262,7 +263,7 @@ int RemoteNode::new_InternalNode(int listening_sock_fd,
     mrn_dbg(3, mrn_printf(FLF, stderr, "In new_InternalNode(%s:%d) ...\n",
                hostname.c_str(), port ));
 
-    _is_internal_node = true;
+    *((bool*)&_is_internal_node) = true;
 
     // set up arguments for the new process
     std::vector <std::string> args;
@@ -297,7 +298,9 @@ int RemoteNode::new_InternalNode(int listening_sock_fd,
 int RemoteNode::new_Application(int listening_sock_fd,
                                 std::string parent_host, Port parent_port,
                                 Rank be_rank,
-                                std::string &cmd, std::vector <std::string> &args){
+                                std::string &cmd, std::vector <std::string> &args)
+const
+{
 
     mrn_dbg(3, mrn_printf(FLF, stderr, "In new_Application(\n"
                "\thost: %s:%d,\n"
@@ -344,13 +347,13 @@ int RemoteNode::new_Application(int listening_sock_fd,
     // establish connection with the backend
     // because we created the process and delivered its rank on 
     // the command line, the back-end should know its own rank.
-    sock_fd = connect_to_backend( listening_sock_fd, &be_rank );
+    *((int *)&sock_fd) = connect_to_backend( listening_sock_fd, &be_rank );
     if( sock_fd == -1 )
     {
         // callee handled the error
         return -1;
     }
-    rank = be_rank;
+    *((int*)&rank) = be_rank;
 
     mrn_dbg(5, mrn_printf(FLF, stderr, "success!.\nnew_Application() calling accept()...\n"));
     // finalize the connection
@@ -451,7 +454,7 @@ int RemoteNode::connect_to_leaf( Rank myRank )
 
 
 
-int RemoteNode::send(Packet& packet)
+int RemoteNode::send(Packet& packet) const
 {
     mrn_dbg(3, mrn_printf(FLF, stderr, "In remotenode.send(). Calling msg.add_packet()\n"));
 
@@ -509,7 +512,7 @@ bool RemoteNode::has_data() const
 }
 
 
-int RemoteNode::flush()
+int RemoteNode::flush() const
 {
     if(threaded){
         return 0;

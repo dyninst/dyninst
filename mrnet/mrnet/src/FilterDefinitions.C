@@ -1,7 +1,7 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
 #include <map>
 #include <string>
@@ -39,10 +39,10 @@ FilterId SFILTER_WAITFORALL=0;
 FilterId SFILTER_DONTWAIT=0;
 FilterId SFILTER_TIMEOUT=0;
 
-static inline void mrn_max(void *in1, void *in2, void* out, DataType type);
-static inline void mrn_min(void *in1, void *in2, void* out, DataType type);
-static inline void div(void *in1, int in2, void* out, DataType type);
-static inline void sum(void *in1, void *in2, void* out, DataType type);
+static inline void mrn_max(const void *in1, const void *in2, void* out, DataType type);
+static inline void mrn_min(const void *in1, const void *in2, void* out, DataType type);
+static inline void div(const void *in1, int in2, void* out, DataType type);
+static inline void sum(const void *in1, const void *in2, void* out, DataType type);
 
 /*=====================================================*
  *    Default Transformation Filter Definitions        *
@@ -473,12 +473,12 @@ void tfilter_IntEqClass( const std::vector < Packet >&packets_in,
     // find equivalence classes across our input 
     for( i = 0; i < packets_in.size(); i++ ) {
         Packet cur_packet = packets_in[i];
-        unsigned int *vals = ( unsigned int * )
-	  ( cur_packet[0]->get_array(&type, &array_len0) );
-	unsigned int *memcnts = ( unsigned int * )
-	  ( cur_packet[1]->get_array(&type, &array_len1) );
-	unsigned int *mems = ( unsigned int * )
-	  ( cur_packet[2]->get_array(&type, &array_len2) );
+        const unsigned int *vals = ( const unsigned int * )
+            ( cur_packet[0]->get_array(&type, &array_len0) );
+        const unsigned int *memcnts = ( const unsigned int * )
+            ( cur_packet[1]->get_array(&type, &array_len1) );
+        const unsigned int *mems = ( const unsigned int * )
+            ( cur_packet[2]->get_array(&type, &array_len2) );
 
 	assert( array_len0 == array_len1 );
 	unsigned int curClassMemIdx = 0;
@@ -560,12 +560,12 @@ void sfilter_WaitForAll( std::vector < Packet >&packets_in,
                          const std::list < RemoteNode * >&downstream_nodes,
                          void **local_storage )
 {
-    std::map < RemoteNode *, std::list < Packet >*>*PacketListByNode;
+    std::map < const RemoteNode *, std::list < Packet >*>*PacketListByNode;
     
     mrn_dbg( 3, mrn_printf(FLF, stderr, "In sync_WaitForAll()\n" ));
     if( *local_storage == NULL ) {
         PacketListByNode =
-            new std::map < RemoteNode *, std::list < Packet >*>;
+            new std::map < const RemoteNode *, std::list < Packet >*>;
         *local_storage = PacketListByNode;
 
         std::list < RemoteNode * >::const_iterator iter;
@@ -579,7 +579,7 @@ void sfilter_WaitForAll( std::vector < Packet >&packets_in,
     }
     else {
         PacketListByNode =
-            ( std::map < RemoteNode *, std::list < Packet >*>* )
+            ( std::map < const RemoteNode *, std::list < Packet >*>* )
             * local_storage;
     }
 
@@ -595,7 +595,7 @@ void sfilter_WaitForAll( std::vector < Packet >&packets_in,
     //check to see if all lists have at least one packet, "a wave"
     mrn_dbg( 3, mrn_printf(FLF, stderr,
                 "Checking if all downstream_nodes are ready ..." ));
-    std::map < RemoteNode *, std::list < Packet >*>::iterator iter2;
+    std::map < const RemoteNode *, std::list < Packet >*>::iterator iter2;
     for( iter2 = PacketListByNode->begin(  );
          iter2 != PacketListByNode->end(  ); iter2++ ) {
         if( ( ( *iter2 ).second )->size(  ) == 0 ) {
@@ -624,38 +624,38 @@ void sfilter_TimeOut( std::vector < Packet >&,
 {
 }
 
-static inline void sum(void *in1, void *in2, void* out, DataType type)
+static inline void sum(const void *in1, const void *in2, void* out, DataType type)
 {
   switch (type){
   case CHAR_T:
-    *( (char*) out ) = *((char*)in1) + *((char*)in2);
+    *( (char*) out ) = *((const char*)in1) + *((const char*)in2);
     break;
   case UCHAR_T:
-    *( (uchar_t*) out ) = *((uchar_t*)in1) + *((uchar_t*)in2);
+    *( (uchar_t*) out ) = *((const uchar_t*)in1) + *((const uchar_t*)in2);
     break;
   case INT16_T:
-    *( (int16_t*) out ) = *((int16_t*)in1) + *((int16_t*)in2);
+    *( (int16_t*) out ) = *((const int16_t*)in1) + *((const int16_t*)in2);
     break;
   case UINT16_T:
-    *( (uint16_t*) out ) = *((uint16_t*)in1) + *((uint16_t*)in2);
+    *( (uint16_t*) out ) = *((const uint16_t*)in1) + *((const uint16_t*)in2);
     break;
   case INT32_T:
-    *( (int32_t*) out ) = *((int32_t*)in1) + *((int32_t*)in2);
+    *( (int32_t*) out ) = *((const int32_t*)in1) + *((const int32_t*)in2);
     break;
   case UINT32_T:
-    *( (uint32_t*) out ) = *((uint32_t*)in1) + *((uint32_t*)in2);
+    *( (uint32_t*) out ) = *((const uint32_t*)in1) + *((const uint32_t*)in2);
     break;
   case INT64_T:
-    *( (int64_t*) out ) = *((int64_t*)in1) + *((int64_t*)in2);
+    *( (int64_t*) out ) = *((const int64_t*)in1) + *((const int64_t*)in2);
     break;
   case UINT64_T:
-    *( (uint64_t*) out ) = *((uint64_t*)in1) + *((uint64_t*)in2);
+    *( (uint64_t*) out ) = *((const uint64_t*)in1) + *((const uint64_t*)in2);
     break;
   case FLOAT_T:
-    *( (float*) out ) = *((float*)in1) + *((float*)in2);
+    *( (float*) out ) = *((const float*)in1) + *((const float*)in2);
     break;
   case DOUBLE_T:
-    *( (double*) out ) = *((double*)in1) + *((double*)in2);
+    *( (double*) out ) = *((const double*)in1) + *((const double*)in2);
     break;
   case CHAR_ARRAY_T:
   case UCHAR_ARRAY_T:
@@ -674,38 +674,38 @@ static inline void sum(void *in1, void *in2, void* out, DataType type)
   }
 }
 
-static inline void div(void *in1, int in2, void* out, DataType type)
+static inline void div(const void *in1, int in2, void* out, DataType type)
 {
   switch (type){
   case CHAR_T:
-    *( (char*) out ) = *((char*)in1) / in2;
+    *( (char*) out ) = *((const char*)in1) / in2;
     break;
   case UCHAR_T:
-    *( (uchar_t*) out ) = *((uchar_t*)in1) / in2;
+    *( (uchar_t*) out ) = *((const uchar_t*)in1) / in2;
     break;
   case INT16_T:
-    *( (int16_t*) out ) = *((int16_t*)in1) / in2;
+    *( (int16_t*) out ) = *((const int16_t*)in1) / in2;
     break;
   case UINT16_T:
-    *( (uint16_t*) out ) = *((uint16_t*)in1) / in2;
+    *( (uint16_t*) out ) = *((const uint16_t*)in1) / in2;
     break;
   case INT32_T:
-    *( (int32_t*) out ) = *((int32_t*)in1) / in2;
+    *( (int32_t*) out ) = *((const int32_t*)in1) / in2;
     break;
   case UINT32_T:
-    *( (uint32_t*) out ) = *((uint32_t*)in1) / in2;
+    *( (uint32_t*) out ) = *((const uint32_t*)in1) / in2;
     break;
   case INT64_T:
-    *( (int64_t*) out ) = *((int64_t*)in1) / (int64_t)in2;
+    *( (int64_t*) out ) = *((const int64_t*)in1) / (int64_t)in2;
     break;
   case UINT64_T:
-    *( (uint64_t*) out ) = *((uint64_t*)in1) / (int64_t)in2;
+    *( (uint64_t*) out ) = *((const uint64_t*)in1) / (int64_t)in2;
     break;
   case FLOAT_T:
-    *( (float*) out ) = *((float*)in1) / (float)in2;
+    *( (float*) out ) = *((const float*)in1) / (float)in2;
     break;
   case DOUBLE_T:
-    *( (double*) out ) = *((double*)in1) / (double)in2;
+    *( (double*) out ) = *((const double*)in1) / (double)in2;
     break;
   case CHAR_ARRAY_T:
   case UCHAR_ARRAY_T:
@@ -724,48 +724,48 @@ static inline void div(void *in1, int in2, void* out, DataType type)
   }
 }
 
-static inline void mrn_min(void *in1, void *in2, void* out, DataType type)
+static inline void mrn_min(const void *in1, const void *in2, void* out, DataType type)
 {
   switch (type){
   case CHAR_T:
-    *( (char*) out ) = ( ( *((char*)in1) < *((char*)in2) ) ?
-			 *((char*)in1) : *((char*)in2) );
+    *( (char*) out ) = ( ( *((const char*)in1) < *((const char*)in2) ) ?
+			 *((const char*)in1) : *((const char*)in2) );
     break;
   case UCHAR_T:
-    *( (uchar_t*) out ) = ( ( *((uchar_t*)in1) < *((uchar_t*)in2) ) ?
-			    *((uchar_t*)in1) : *((uchar_t*)in2) );
+    *( (uchar_t*) out ) = ( ( *((const uchar_t*)in1) < *((const uchar_t*)in2) ) ?
+			    *((const uchar_t*)in1) : *((const uchar_t*)in2) );
     break;
   case INT16_T:
-    *( (int16_t*) out ) = ( ( *((int16_t*)in1) < *((int16_t*)in2) ) ?
-			    *((int16_t*)in1) : *((int16_t*)in2) );
+    *( (int16_t*) out ) = ( ( *((const int16_t*)in1) < *((const int16_t*)in2) ) ?
+			    *((const int16_t*)in1) : *((const int16_t*)in2) );
     break;
   case UINT16_T:
-    *( (uint16_t*) out ) = ( ( *((uint16_t*)in1) < *((uint16_t*)in2) ) ?
-			     *((uint16_t*)in1) : *((uint16_t*)in2) );
+    *( (uint16_t*) out ) = ( ( *((const uint16_t*)in1) < *((const uint16_t*)in2) ) ?
+			     *((const uint16_t*)in1) : *((const uint16_t*)in2) );
     break;
   case INT32_T:
-    *( (int32_t*) out ) = ( ( *((int32_t*)in1) < *((int32_t*)in2) ) ?
-			    *((int32_t*)in1) : *((int32_t*)in2) );
+    *( (int32_t*) out ) = ( ( *((const int32_t*)in1) < *((const int32_t*)in2) ) ?
+			    *((const int32_t*)in1) : *((const int32_t*)in2) );
     break;
   case UINT32_T:
-    *( (uint32_t*) out ) = ( ( *((uint32_t*)in1) < *((uint32_t*)in2) ) ?
-			     *((uint32_t*)in1) : *((uint32_t*)in2) );
+    *( (uint32_t*) out ) = ( ( *((const uint32_t*)in1) < *((const uint32_t*)in2) ) ?
+			     *((const uint32_t*)in1) : *((const uint32_t*)in2) );
     break;
   case INT64_T:
-    *( (int64_t*) out ) = ( ( *((int64_t*)in1) < *((int64_t*)in2) ) ?
-			    *((int64_t*)in1) : *((int64_t*)in2) );
+    *( (int64_t*) out ) = ( ( *((const int64_t*)in1) < *((const int64_t*)in2) ) ?
+			    *((const int64_t*)in1) : *((const int64_t*)in2) );
     break;
   case UINT64_T:
-    *( (uint64_t*) out ) = ( ( *((uint64_t*)in1) < *((uint64_t*)in2) ) ?
-			     *((uint64_t*)in1) : *((uint64_t*)in2) );
+    *( (uint64_t*) out ) = ( ( *((const uint64_t*)in1) < *((const uint64_t*)in2) ) ?
+			     *((const uint64_t*)in1) : *((const uint64_t*)in2) );
     break;
   case FLOAT_T:
-    *( (float*) out ) = ( ( *((float*)in1) < *((float*)in2) ) ?
-			  *((float*)in1) : *((float*)in2) );
+    *( (float*) out ) = ( ( *((const float*)in1) < *((const float*)in2) ) ?
+			  *((const float*)in1) : *((const float*)in2) );
     break;
   case DOUBLE_T:
-    *( (double*) out ) = ( ( *((double*)in1) < *((double*)in2) ) ?
-			   *((double*)in1) : *((double*)in2) );
+    *( (double*) out ) = ( ( *((const double*)in1) < *((const double*)in2) ) ?
+			   *((const double*)in1) : *((const double*)in2) );
     break;
   case CHAR_ARRAY_T:
   case UCHAR_ARRAY_T:
@@ -784,48 +784,48 @@ static inline void mrn_min(void *in1, void *in2, void* out, DataType type)
   }
 }
 
-static inline void mrn_max(void *in1, void *in2, void* out, DataType type)
+static inline void mrn_max(const void *in1, const void *in2, void* out, DataType type)
 {
   switch (type){
   case CHAR_T:
-    *( (char*) out ) = ( ( *((char*)in1) > *((char*)in2) ) ?
-			 *((char*)in1) : *((char*)in2) );
+    *( (char*) out ) = ( ( *((const char*)in1) > *((const char*)in2) ) ?
+			 *((const char*)in1) : *((const char*)in2) );
     break;
   case UCHAR_T:
-    *( (uchar_t*) out ) = ( ( *((uchar_t*)in1) > *((uchar_t*)in2) ) ?
-			    *((uchar_t*)in1) : *((uchar_t*)in2) );
+    *( (uchar_t*) out ) = ( ( *((const uchar_t*)in1) > *((const uchar_t*)in2) ) ?
+			    *((const uchar_t*)in1) : *((const uchar_t*)in2) );
     break;
   case INT16_T:
-    *( (int16_t*) out ) = ( ( *((int16_t*)in1) > *((int16_t*)in2) ) ?
-			    *((int16_t*)in1) : *((int16_t*)in2) );
+    *( (int16_t*) out ) = ( ( *((const int16_t*)in1) > *((const int16_t*)in2) ) ?
+			    *((const int16_t*)in1) : *((const int16_t*)in2) );
     break;
   case UINT16_T:
-    *( (uint16_t*) out ) = ( ( *((uint16_t*)in1) > *((uint16_t*)in2) ) ?
-			     *((uint16_t*)in1) : *((uint16_t*)in2) );
+    *( (uint16_t*) out ) = ( ( *((const uint16_t*)in1) > *((const uint16_t*)in2) ) ?
+			     *((const uint16_t*)in1) : *((const uint16_t*)in2) );
     break;
   case INT32_T:
-    *( (int32_t*) out ) = ( ( *((int32_t*)in1) > *((int32_t*)in2) ) ?
-			    *((int32_t*)in1) : *((int32_t*)in2) );
+    *( (int32_t*) out ) = ( ( *((const int32_t*)in1) > *((const int32_t*)in2) ) ?
+			    *((const int32_t*)in1) : *((const int32_t*)in2) );
     break;
   case UINT32_T:
-    *( (uint32_t*) out ) = ( ( *((uint32_t*)in1) > *((uint32_t*)in2) ) ?
-			     *((uint32_t*)in1) : *((uint32_t*)in2) );
+    *( (uint32_t*) out ) = ( ( *((const uint32_t*)in1) > *((const uint32_t*)in2) ) ?
+			     *((const uint32_t*)in1) : *((const uint32_t*)in2) );
     break;
   case INT64_T:
-    *( (int64_t*) out ) = ( ( *((int64_t*)in1) > *((int64_t*)in2) ) ?
-			    *((int64_t*)in1) : *((int64_t*)in2) );
+    *( (int64_t*) out ) = ( ( *((const int64_t*)in1) > *((const int64_t*)in2) ) ?
+			    *((const int64_t*)in1) : *((const int64_t*)in2) );
     break;
   case UINT64_T:
-    *( (uint64_t*) out ) = ( ( *((uint64_t*)in1) > *((uint64_t*)in2) ) ?
-			     *((uint64_t*)in1) : *((uint64_t*)in2) );
+    *( (uint64_t*) out ) = ( ( *((const uint64_t*)in1) > *((const uint64_t*)in2) ) ?
+			     *((const uint64_t*)in1) : *((const uint64_t*)in2) );
     break;
   case FLOAT_T:
-    *( (float*) out ) = ( ( *((float*)in1) > *((float*)in2) ) ?
-			  *((float*)in1) : *((float*)in2) );
+    *( (float*) out ) = ( ( *((const float*)in1) > *((const float*)in2) ) ?
+			  *((const float*)in1) : *((const float*)in2) );
     break;
   case DOUBLE_T:
-    *( (double*) out ) = ( ( *((double*)in1) > *((double*)in2) ) ?
-			   *((double*)in1) : *((double*)in2) );
+    *( (double*) out ) = ( ( *((const double*)in1) > *((const double*)in2) ) ?
+			   *((const double*)in1) : *((const double*)in2) );
     break;
   case CHAR_ARRAY_T:
   case UCHAR_ARRAY_T:

@@ -1,7 +1,7 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
 #include <stdio.h>
 #include "mrnet/src/FrontEndNode.h"
@@ -29,7 +29,7 @@ FrontEndNode::~FrontEndNode(  )
 {
 }
 
-int FrontEndNode::proc_DataFromDownStream( Packet& packet )
+int FrontEndNode::proc_DataFromDownStream( Packet& packet ) const
 {
     mrn_dbg( 3, mrn_printf(FLF, stderr, "In frontend.proc_DataFromDownStream()\n" ));
 
@@ -66,7 +66,7 @@ int FrontEndNode::proc_DataFromDownStream( Packet& packet )
 }
 
 int FrontEndNode::proc_PacketsFromDownStream( std::list < Packet >&
-                                              packet_list )
+                                              packet_list ) const
 {
     int retval = 0;
     Packet cur_packet;
@@ -125,14 +125,14 @@ int FrontEndNode::proc_PacketsFromDownStream( std::list < Packet >&
     return retval;
 }
 
-int FrontEndNode::recv( bool blocking )
+int FrontEndNode::recv( bool blocking ) const
 {
     std::list < Packet >packet_list;
     mrn_dbg( 3, mrn_printf(FLF, stderr,
                 "In frontend.recv(). Calling recvfromdownstream()\n" ));
 
 
-    if( recv_PacketsFromDownStream( packet_list, NULL, blocking ) == -1 ) {
+    if( recv_PacketsFromDownStream( packet_list, blocking ) == -1 ) {
         // mrn_dbg( 1, mrn_printf(FLF, stderr,
         //           "recv_packetsfromdownstream() failed\n" ));
         return -1;
@@ -154,7 +154,7 @@ int FrontEndNode::recv( bool blocking )
 }
 
 
-int FrontEndNode::deliverConnectLeavesResponse( Packet& pkt )
+int FrontEndNode::deliverConnectLeavesResponse( Packet& pkt ) const
 {
     //
     // stash the aggregated response for subsequent retrieval
@@ -196,7 +196,7 @@ int FrontEndNode::deliverConnectLeavesResponse( Packet& pkt )
     return 0;
 }
 
-int FrontEndNode::deliverLeafInfoResponse( Packet& pkt )
+int FrontEndNode::deliverLeafInfoResponse( Packet& pkt ) const
 {
     //
     // stash the aggregated response for subsequent retrieval

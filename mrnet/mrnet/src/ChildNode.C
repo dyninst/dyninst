@@ -1,7 +1,7 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
 #include <stdio.h>
 
@@ -10,20 +10,17 @@
 
 namespace MRN
 {
+const RemoteNode * ChildNode::upstream_node=NULL;
 
 /*===================================================*/
 /*  ChildNode CLASS METHOD DEFINITIONS            */
 /*===================================================*/
-ChildNode::ChildNode(bool _threaded, std::string _host, Port _port)
-    :hostname(_host), port(_port), threaded(_threaded)
+ChildNode::ChildNode(std::string ihostname, Port iport, bool ithreaded )
+    :hostname(ihostname), port(iport), threaded(ithreaded)
 {
 }
 
-ChildNode::~ChildNode(void)
-{
-}
-
-int ChildNode::send_Events( )
+int ChildNode::send_Events( ) const
 {
     int status=0;
     mrn_dbg( 3, mrn_printf(FLF, stderr, "Entering send_Event() ... \n" ));
@@ -54,7 +51,7 @@ int ChildNode::send_Events( )
     return status;
 }
 
-int ChildNode::getConnections( int** conns, unsigned int* nConns )
+int ChildNode::getConnections( int** conns, unsigned int* nConns ) const
 {
     int ret = 0;
 
@@ -69,7 +66,7 @@ int ChildNode::getConnections( int** conns, unsigned int* nConns )
     return ret;
 }
 
-void ChildNode::error( ErrorCode e, const char *fmt, ... )
+void ChildNode::error( ErrorCode e, const char *fmt, ... ) const
 {
     char buf[1024];
 

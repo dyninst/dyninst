@@ -1,7 +1,7 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
 #if !defined(__filter_h)
 #define __filter_h 1
@@ -55,16 +55,16 @@ class TransFilter:public Filter {
 class RemoteNode;
 class SyncFilter:public Filter {
  private:
-    std::map < RemoteNode *, std::vector < Packet >*>PacketsByNode;
+    std::map < const RemoteNode *, std::vector < Packet >*>PacketsByNode;
     void ( *sync_filter ) ( std::vector < Packet >&,
                             std::vector < Packet >&,
-                            const std::list < RemoteNode * >&, void ** );
-    const std::list < RemoteNode * >downstream_nodes;
+                            const std::list < const RemoteNode * >&, void ** );
+    const std::list < const RemoteNode * >downstream_nodes;
     XPlat::Mutex fsync;
     
  public:
     SyncFilter( unsigned short _filter_id,
-                const std::list < RemoteNode * >& );
+                const std::list < const RemoteNode * >& );
     virtual ~ SyncFilter(  );
     virtual int push_packets( std::vector < Packet >&packets_in,
                               std::vector < Packet >&packets_out );

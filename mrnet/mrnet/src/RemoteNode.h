@@ -1,7 +1,7 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
 #if !defined(__remotenode_h) 
 #define __remotenode_h 1
@@ -22,13 +22,14 @@ class RemoteNode:public CommunicationNode, public Error {
  private:
     enum {MRN_MESSAGEOUT_NONEMPTY};
     bool threaded;
-    Message msg_in, msg_out;
+    mutable Message msg_in;
+    mutable Message msg_out;
 
     int sock_fd;
     bool _is_internal_node;
     Rank rank;              // UnknownRank for all but connections to a BE
 
-    int accept_Connection( int sock_fd, bool doConnect = true );
+    int accept_Connection( int sock_fd, bool doConnect = true ) const;
     static int poll_timeout;
     static XPlat::Mutex poll_timeout_mutex;
 
@@ -39,25 +40,25 @@ class RemoteNode:public CommunicationNode, public Error {
     static void * send_thread_main(void * arg);
     XPlat::Thread::Id recv_thread_id, send_thread_id;
     bool _is_upstream;
-    XPlat::Monitor msg_out_sync;
+    mutable XPlat::Monitor msg_out_sync;
 
     RemoteNode(bool threaded, std::string &_hostname, Port _port );
     int connect();
     int new_InternalNode(int listening_sock_fd,
-                        std::string parent_hostname, Port parent_port,
-                         std::string commnode);
+                         std::string parent_hostname, Port parent_port,
+                         std::string commnode) const;
     int new_Application(int listening_sock_fd,
                         std::string parent_hostname, Port parent_port,
                         Rank be_rank,
-                        std::string &cmd, std::vector <std::string> &args);
-    int accept_Application( int sock_fd );
+                        std::string &cmd, std::vector <std::string> &args) const;
+    int accept_Application( int sock_fd )const;
 
     static int connect_to_backend( int listening_sock, Rank* rank );
     int connect_to_leaf( Rank r );
 
-    int send(Packet&);
-    int flush();
-    int recv(std::list <Packet> &); //blocking recv
+    int send(Packet&) const ;
+    int flush() const ;
+    int recv(std::list <Packet> &) const; //blocking recv
     bool has_data() const;
     bool is_backend() const;
     bool is_internal() const;
@@ -71,12 +72,12 @@ class RemoteNode:public CommunicationNode, public Error {
     static int get_BlockingTimeOut( );
 };
 
-inline int RemoteNode::accept_Application( int connected_sock_fd )
+inline int RemoteNode::accept_Application( int connected_sock_fd ) const
 {
     return accept_Connection( connected_sock_fd, false );    
 }
 
-inline int RemoteNode::recv(std::list <Packet> &packet_list)
+inline int RemoteNode::recv(std::list <Packet> &packet_list) const
 {
     return msg_in.recv(sock_fd, packet_list, this);
 }

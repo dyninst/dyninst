@@ -1,7 +1,7 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
 #if !defined(dataelement_h)
 #define dataelement_h 1
@@ -21,7 +21,7 @@ typedef union{
     uint64_t uld;
     float f;
     double lf;
-    void * p; // May need to be allocated by pdr routine
+    const void * p; // May need to be allocated by pdr routine
 } DataValue;
 
 typedef enum {
@@ -83,15 +83,14 @@ class DataElement{
     double get_double( void ) const { return val.lf; }
     void set_double( double lf ) { val.lf = lf; type = DOUBLE_T; };
 
-    char * get_string( void ) { return (char *)val.p; }
     const char * get_string( void ) const { return (const char *)val.p; }
-    void set_string( char *p ) { val.p = (void *)p; type = STRING_T; };
+    void set_string( const char *p ) { val.p = p; type = STRING_T; };
 
-    void * get_array( DataType *t, uint32_t *len )
+    const void * get_array( DataType *t, uint32_t *len )
         { *t=type; *len=array_len; return val.p; }
     const void * get_array( DataType *t, uint32_t *len ) const
         { *t=type; *len=array_len; return val.p; }
-    void set_array( void *p, DataType t, uint32_t len )
+    void set_array( const void *p, DataType t, uint32_t len )
         { val.p = p; type = t; array_len = len; }
 };
 

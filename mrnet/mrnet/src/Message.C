@@ -1,7 +1,7 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
 #include "mrnet/src/Types.h"
 #include <stdarg.h>
@@ -20,7 +20,7 @@ int read( int fd, void *buf, int size );
 int write( int fd, const void *buf, int size );
 
 int Message::recv( int sock_fd, std::list < Packet >&packets_in,
-                   RemoteNode * remote_node )
+                   const RemoteNode * remote_node )
 {
     unsigned int i;
     int32_t buf_len;
@@ -161,7 +161,7 @@ int Message::recv( int sock_fd, std::list < Packet >&packets_in,
     //
 
     for( i = 0; i < no_packets; i++ ) {
-        Packet new_packet ( ncbufs[i].len, ncbufs[i].buf );
+        Packet new_packet ( ncbufs[i].len, ncbufs[i].buf, remote_node  );
         if( new_packet.fail(  ) ) {
             mrn_dbg( 1, mrn_printf(FLF, stderr, "packet creation failed\n" ));
             for( i = 0; i < no_packets; i++ )
@@ -172,7 +172,6 @@ int Message::recv( int sock_fd, std::list < Packet >&packets_in,
             free( packet_sizes );
             return -1;
         }
-        new_packet.set_InletNode( remote_node );
         packets_in.push_back( new_packet );
     }
 
@@ -218,7 +217,7 @@ int Message::send( int sock_fd )
 
         Packet curPacket = *iter;
 
-        ncbufs[i].buf = curPacket.get_Buffer( );
+        ncbufs[i].buf = (char *)curPacket.get_Buffer( );
         ncbufs[i].len = curPacket.get_BufferLen( );
         packet_sizes[i] = curPacket.get_BufferLen( );
 

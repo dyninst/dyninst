@@ -1,7 +1,7 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
 #if !defined(Message_h)
 #define Message_h
@@ -20,7 +20,7 @@ class Message: public Error{
 
  public:
     int send( int sock_fd );
-    int recv( int sock_fd, std::list < Packet >&packets, RemoteNode * );
+    int recv( int sock_fd, std::list < Packet >&packets, const RemoteNode * );
     void add_Packet( Packet & );
     int size_Packets(  );
     int size_Bytes(  );

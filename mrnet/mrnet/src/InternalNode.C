@@ -1,7 +1,7 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
 #include <stdio.h>
 
@@ -17,7 +17,7 @@ namespace MRN
 InternalNode::InternalNode( std::string _hostname, Port _port,
                             std::string _phostname, Port _pport )
     :ParentNode( true, _hostname, _port ),
-     ChildNode( true, _hostname, _port ),
+     ChildNode( _hostname, _port, true ),
      CommunicationNode( _hostname, _port )
 {
     int retval;
@@ -25,22 +25,22 @@ InternalNode::InternalNode( std::string _hostname, Port _port,
                 "In InternalNode: parent_host: %s, parent_port: %d\n",
                 _phostname.c_str(  ), _pport ));
 
-    upstream_node = new RemoteNode( true, _phostname, _pport );
+    RemoteNode * tmp_upstream_node = new RemoteNode( true, _phostname, _pport );
     RemoteNode::local_child_node = this;
     RemoteNode::local_parent_node = this;
 
     //printf(3, mrn_printf(FLF, stderr, "Calling connect() ...\n");
-    upstream_node->connect(  );
-    upstream_node->_is_upstream = true;
-    if( upstream_node->fail(  ) ) {
+    tmp_upstream_node->connect(  );
+    tmp_upstream_node->_is_upstream = true;
+    if( tmp_upstream_node->fail(  ) ) {
         mrn_dbg( 1, mrn_printf(FLF, stderr, "connect() failed\n" ));
         return;
     }
 
     mrn_dbg( 3, mrn_printf(FLF, stderr, "Creating Upstream recv thread ...\n" ));
     retval = XPlat::Thread::Create( RemoteNode::recv_thread_main,
-                                    ( void * )upstream_node,
-                                    &( upstream_node->recv_thread_id ) );
+                                    ( void * )tmp_upstream_node,
+                                    &( tmp_upstream_node->recv_thread_id ) );
     if( retval != 0 ) {
         //Call childnode's error here, because we want to record event
         //locally as well as send upstream
@@ -51,8 +51,10 @@ InternalNode::InternalNode( std::string _hostname, Port _port,
 
     mrn_dbg( 3, mrn_printf(FLF, stderr, "Creating Upstream send thread ...\n" ));
     retval = XPlat::Thread::Create( RemoteNode::send_thread_main,
-                                    ( void * )upstream_node,
-                                    &( upstream_node->send_thread_id ) );
+                                    ( void * )tmp_upstream_node,
+                                    &( tmp_upstream_node->send_thread_id ) );
+
+    set_UpStreamNode( tmp_upstream_node );
     if( retval != 0 ) {
         //Call childnode's error here, because we want to record event
         //locally as well as send upstream
@@ -66,8 +68,7 @@ InternalNode::InternalNode( std::string _hostname, Port _port,
 
 InternalNode::~InternalNode( void )
 {
-    delete upstream_node;
-    std::list < RemoteNode * >::iterator iter;
+    std::list < const RemoteNode * >::iterator iter;
 
     for( iter = children_nodes.begin(  ); iter != children_nodes.end(  );
          iter++ ) {
@@ -75,7 +76,7 @@ InternalNode::~InternalNode( void )
     }
 }
 
-void InternalNode::waitLoop( )
+void InternalNode::waitLoop( ) const
 {
     // TODO what should we base our termination decision on?
     // * whether we have *any* connections remaining?
@@ -84,7 +85,7 @@ void InternalNode::waitLoop( )
     //
 
     // for now, we base our termination on when we lose our upstream connection
-    int iret = XPlat::Thread::Join( upstream_node->recv_thread_id, NULL );
+    int iret = XPlat::Thread::Join( get_UpStreamNode()->recv_thread_id, NULL );
     if( iret != 0 ) {
         mrn_dbg( 1, mrn_printf(FLF, stderr,
                     "comm_node failed to join with upstream internal receive thread: %d\n",
@@ -92,7 +93,7 @@ void InternalNode::waitLoop( )
     }
 }
 
-int InternalNode::send_newSubTreeReport( bool status )
+int InternalNode::send_newSubTreeReport( bool status ) const
 {
     unsigned int *backends, i;
     mrn_dbg( 3, mrn_printf(FLF, stderr, "In send_newSubTreeReport()\n" ));
@@ -100,7 +101,7 @@ int InternalNode::send_newSubTreeReport( bool status )
     backends = new unsigned int[backend_descendant_nodes.size(  )];
     assert( backends );
 
-    std::list < int >::iterator iter;
+    std::list < int >::const_iterator iter;
     mrn_dbg( 3, mrn_printf(FLF, stderr, "Creating subtree report from %p: [ ",
                 &backend_descendant_nodes ));
     for( i = 0, iter = backend_descendant_nodes.begin(  );
@@ -113,8 +114,8 @@ int InternalNode::send_newSubTreeReport( bool status )
     Packet packet( 0, PROT_RPT_SUBTREE, "%d %ad", status,
                    backends, backend_descendant_nodes.size(  ) );
     if( packet.good(  ) ) {
-        if( upstream_node->send( packet ) == -1 ||
-            upstream_node->flush(  ) == -1 ) {
+        if( get_UpStreamNode()->send( packet ) == -1 ||
+            get_UpStreamNode()->flush(  ) == -1 ) {
             mrn_dbg( 1, mrn_printf(FLF, stderr, "send/flush failed\n" ));
             return -1;
         }
@@ -128,7 +129,7 @@ int InternalNode::send_newSubTreeReport( bool status )
     return 0;
 }
 
-int InternalNode::proc_DataFromUpStream( Packet& packet )
+int InternalNode::proc_DataFromUpStream( Packet& packet ) const
 {
     int retval;
 
@@ -144,10 +145,10 @@ int InternalNode::proc_DataFromUpStream( Packet& packet )
         for( unsigned int i = 0; i < packets.size(  ); i++ ) {
             Packet cur_packet = packets[i];
 
-            std::list < RemoteNode * >::iterator iter;
+            std::list < const RemoteNode * >::const_iterator iter;
             unsigned int j;
-            for( j = 0, iter = stream_mgr->downstream_nodes.begin(  );
-                 iter != stream_mgr->downstream_nodes.end(  );
+            for( j = 0, iter = stream_mgr->get_DownStreamNodes().begin(  );
+                 iter != stream_mgr->get_DownStreamNodes().end(  );
                  iter++, j++ ) {
 
                 mrn_dbg( 3, mrn_printf(FLF, stderr,
@@ -170,7 +171,7 @@ int InternalNode::proc_DataFromUpStream( Packet& packet )
     return 0;
 }
 
-int InternalNode::proc_DataFromDownStream( Packet& packet )
+int InternalNode::proc_DataFromDownStream( Packet& packet ) const
 {
     mrn_dbg( 3, mrn_printf(FLF, stderr, "In internal.proc_DataFromUpStream()\n" ));
 
@@ -181,7 +182,7 @@ int InternalNode::proc_DataFromDownStream( Packet& packet )
     stream_mgr->push_packet( packet, packets, true );
     if( !packets.empty(  ) ) {
         for( unsigned int i = 0; i < packets.size(  ); i++ ) {
-            if( upstream_node->send( packets[i] ) == -1 ) {
+            if( get_UpStreamNode()->send( packets[i] ) == -1 ) {
                 mrn_dbg( 1, mrn_printf(FLF, stderr, "upstream.send() failed()\n" ));
                 return -1;
             }
@@ -197,7 +198,7 @@ int InternalNode::proc_DataFromDownStream( Packet& packet )
 /*===================================================*/
 /*  LocalNode CLASS METHOD DEFINITIONS            */
 /*===================================================*/
-int InternalNode::proc_PacketsFromUpStream( std::list < Packet >&packets )
+int InternalNode::proc_PacketsFromUpStream( std::list < Packet >&packets ) const
 {
     int retval = 0;
     Packet cur_packet;
@@ -258,7 +259,6 @@ int InternalNode::proc_PacketsFromUpStream( std::list < Packet >&packets )
                 retval = -1;
                 break;
             }
-            stream_mgr->upstream_node = upstream_node;
             if( send_newStream( cur_packet, stream_mgr ) == -1 ) {
                 mrn_dbg( 1, mrn_printf(FLF, stderr, "send_newStream() failed\n" ));
                 retval = -1;
@@ -318,7 +318,7 @@ int InternalNode::proc_PacketsFromUpStream( std::list < Packet >&packets )
 }
 
 int InternalNode::proc_PacketsFromDownStream( std::list < Packet >&
-                                              packet_list )
+                                              packet_list ) const
 {
     int retval = 0;
     Packet cur_packet;
@@ -380,26 +380,26 @@ int InternalNode::proc_PacketsFromDownStream( std::list < Packet >&
     return retval;
 }
 
-int InternalNode::deliverLeafInfoResponse( Packet& pkt )
+int InternalNode::deliverLeafInfoResponse( Packet& pkt ) const
 {
     int ret = 0;
 
     // deliver the aggregated response to our parent
-    if( ( upstream_node->send( pkt ) == -1 ) ||
-        ( upstream_node->flush(  ) == -1 ) ) {
+    if( ( get_UpStreamNode()->send( pkt ) == -1 ) ||
+        ( get_UpStreamNode()->flush(  ) == -1 ) ) {
         mrn_dbg( 1, mrn_printf(FLF, stderr,
                     "failed to deliver response to parent\n" ));
     }
     return ret;
 }
 
-int InternalNode::deliverConnectLeavesResponse( Packet& pkt )
+int InternalNode::deliverConnectLeavesResponse( Packet& pkt ) const
 {
     int ret = 0;
 
     // deliver the aggregated response to our parent
-    if( ( upstream_node->send( pkt ) == -1 ) ||
-        ( upstream_node->flush(  ) == -1 ) ) {
+    if( ( get_UpStreamNode()->send( pkt ) == -1 ) ||
+        ( get_UpStreamNode()->flush(  ) == -1 ) ) {
         mrn_dbg( 1, mrn_printf(FLF, stderr,
                     "failed to deliver response to parent\n" ));
     }

@@ -1,7 +1,7 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
 #if !defined(__parentnode_h)
 #define __parentnode_h 1
@@ -34,29 +34,29 @@ class ParentNode: public Error {
     bool threaded;
 
     bool isLeaf_;           // am I a leaf in the MRNet tree?
-    std::vector < Packet >childLeafInfoResponses;
-    XPlat::Mutex childLeafInfoResponsesLock;
-    std::vector < Packet >childConnectedLeafResponses;
-    XPlat::Mutex childConnectedLeafResponsesLock;
+    mutable std::vector < Packet >childLeafInfoResponses;
+    mutable XPlat::Mutex childLeafInfoResponsesLock;
+    mutable std::vector < Packet >childConnectedLeafResponses;
+    mutable XPlat::Mutex childConnectedLeafResponsesLock;
 
-    int wait_for_SubTreeReports(  );
+    int wait_for_SubTreeReports( ) const;
 
  protected:
     enum
         { ALLNODESREPORTED };
-    std::list < RemoteNode * >children_nodes;
-    std::list < int >backend_descendant_nodes;
-    XPlat::Monitor subtreereport_sync;
-    unsigned int num_descendants, num_descendants_reported;
+    mutable std::list < const RemoteNode * >children_nodes;
+    mutable std::list < int >backend_descendant_nodes;
+    mutable XPlat::Monitor subtreereport_sync;
+    mutable unsigned int num_descendants, num_descendants_reported;
 
-    std::map < unsigned int, RemoteNode * >ChildNodeByRank;
-    XPlat::Mutex childnodebybackendid_sync;
+    mutable std::map < unsigned int, const RemoteNode * >ChildNodeByRank;
+    mutable XPlat::Mutex childnodebybackendid_sync;
 
     //std::map < unsigned int, StreamManager * >StreamManagerById;
     //XPlat::Mutex streammanagerbyid_sync;
 
-    virtual int deliverLeafInfoResponse( Packet& pkt ) = 0;
-    virtual int deliverConnectLeavesResponse( Packet& pkt ) = 0;
+    virtual int deliverLeafInfoResponse( Packet& pkt )const = 0;
+    virtual int deliverConnectLeavesResponse( Packet& pkt )const = 0;
 
     bool isLeaf( void ) const {
         return isLeaf_;
@@ -66,53 +66,53 @@ class ParentNode: public Error {
     ParentNode( bool _threaded, std::string, Port );
     virtual ~ ParentNode( void );
 
-    virtual int proc_PacketsFromDownStream( std::list < Packet >& ) = 0;
-    virtual int proc_DataFromDownStream( Packet& ) = 0;
+    virtual int proc_PacketsFromDownStream( std::list < Packet >& ) const = 0;
+    virtual int proc_DataFromDownStream( Packet& ) const = 0;
 
     int recv_PacketsFromDownStream( std::list < Packet >&packet_list,
-                                    std::list < RemoteNode * >*rmt_nodes =
-                                    NULL, bool blocking = true );
+                                    bool blocking = true ) const;
     int send_PacketDownStream( Packet & packet, bool internal_only =
-                               false );
-    int flush_PacketsDownStream( unsigned int stream_id );
-    int flush_PacketsDownStream( void );
+                               false ) const;
+    int flush_PacketsDownStream( unsigned int stream_id ) const;
+    int flush_PacketsDownStream( void ) const;
 
-    int proc_newSubTree( Packet & );
-    int proc_delSubTree( Packet & );
+    int proc_newSubTree( Packet & ) const;
+    int proc_delSubTree( Packet & ) const;
 
-    int proc_newSubTreeReport( Packet & );
-    int proc_Event( Packet & );
-    int send_Event( Packet & );
+    int proc_newSubTreeReport( Packet & ) const;
+    int proc_Event( Packet & ) const;
+    int send_Event( Packet & ) const;
 
-    StreamManager *proc_newStream( Packet & );
-    int send_newStream( Packet &, StreamManager * );
-    int proc_delStream( Packet & );
-    int proc_newApplication( Packet & );
-    int proc_delApplication( Packet & );
+    StreamManager *proc_newStream( Packet & ) const;
+    int send_newStream( Packet &, StreamManager * ) const;
+    int proc_delStream( Packet & ) const;
+    int proc_newApplication( Packet & ) const;
+    int proc_delApplication( Packet & ) const;
 
-    int proc_newFilter( Packet & );
+    int proc_newFilter( Packet & ) const;
 
-    int proc_getLeafInfo( Packet & );
-    int proc_getLeafInfoResponse( Packet & );
+    int proc_getLeafInfo( Packet & ) const;
+    int proc_getLeafInfoResponse( Packet & ) const;
 
-    int proc_connectLeaves( Packet & );
-    int proc_connectLeavesResponse( Packet & );
+    int proc_connectLeaves( Packet & ) const;
+    int proc_connectLeavesResponse( Packet & ) const;
 
-    std::string get_HostName(  );
-    Port get_Port(  );
-    int get_SocketFd(int **array, unsigned int *array_size);
-    int getConnections( int **conns, unsigned int *nConns );
+    std::string get_HostName(  ) const;
+    Port get_Port(  ) const;
+    int get_SocketFd(int **array, unsigned int *array_size) const;
+    int getConnections( int **conns, unsigned int *nConns ) const;
 };
 
 bool lt_RemoteNodePtr( RemoteNode * p1, RemoteNode * p2 );
 bool equal_RemoteNodePtr( RemoteNode * p1, RemoteNode * p2 );
 
 
-inline std::string ParentNode::get_HostName(  ) {
+inline std::string ParentNode::get_HostName(  ) const
+{
     return hostname;
 }
 
-inline Port ParentNode::get_Port(  )
+inline Port ParentNode::get_Port(  ) const
 {
     return port;
 }

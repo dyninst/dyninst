@@ -1,7 +1,7 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
 #include <stdio.h>
 
@@ -18,9 +18,9 @@ namespace MRN
 /*=====================================================*/
 
 BackEndNode::BackEndNode(Network * _network, 
-                        std::string _my_hostname, Port _my_port, Rank _my_rank,
+                         std::string _my_hostname, Port _my_port, Rank _my_rank,
                          std::string _parent_hostname, Port _parent_port)
-    :ChildNode(false, _my_hostname, _my_port), 
+    :ChildNode( _my_hostname, _my_port, false ), 
      CommunicationNode(_my_hostname, _my_port),
      network(_network),
      rank( _my_rank )
@@ -31,25 +31,25 @@ BackEndNode::BackEndNode(Network * _network,
                "host=%s, port=%u, rank=%u, parHost=%s, parPort=%u\n",
                _my_hostname.c_str(), _my_port, rank,
                _parent_hostname.c_str(), _parent_port ));
-    upstream_node = new RemoteNode(false, _parent_hostname, _parent_port);
-    upstream_node->_is_upstream = true;
+    RemoteNode * tmp_upstream_node = new RemoteNode(false, _parent_hostname, _parent_port);
+    tmp_upstream_node->_is_upstream = true;
 
-
-    if( upstream_node->connect_to_leaf( rank ) == -1 )
+    if( tmp_upstream_node->connect_to_leaf( rank ) == -1 )
     {
         mrn_dbg( 1, mrn_printf(FLF, stderr, "connect_to_leaf() failed\n" ));
         return;
     }
+
+    set_UpStreamNode( tmp_upstream_node );
 
     mrn_dbg(3, mrn_printf(FLF, stderr, "Leaving BackEndNode()\n"));
 }
 
 BackEndNode::~BackEndNode(void)
 {
-    delete upstream_node;
 }
 
-int BackEndNode::proc_PacketsFromUpStream(std::list <Packet> &packets)
+int BackEndNode::proc_PacketsFromUpStream(std::list <Packet> &packets) const
 {
     int retval=0;
     Packet cur_packet;
@@ -76,7 +76,7 @@ int BackEndNode::proc_PacketsFromUpStream(std::list <Packet> &packets)
             break;
 
         case PROT_NEW_STREAM:
-            if(proc_newStream(cur_packet) == -1){
+            if( proc_newStream(cur_packet) == -1){
                 mrn_dbg(1, mrn_printf(FLF, stderr, "proc_newStream() failed\n"));
                 retval = -1;
             }
@@ -98,7 +98,7 @@ int BackEndNode::proc_PacketsFromUpStream(std::list <Packet> &packets)
     return retval;
 }
 
-int BackEndNode::proc_DataFromUpStream(Packet& packet)
+int BackEndNode::proc_DataFromUpStream(Packet& packet) const
 {
     Stream * stream;
 
@@ -117,19 +117,19 @@ int BackEndNode::proc_DataFromUpStream(Packet& packet)
     return 0;
 }
 
-int BackEndNode::send(Packet& packet)
+int BackEndNode::send(Packet& packet) const
 {
     mrn_dbg(3, mrn_printf(FLF, stderr, "In backend.send(). Calling sendUpStream()\n"));
     return send_PacketUpStream(packet);
 }
 
-int BackEndNode::flush()
+int BackEndNode::flush() const
 {
     mrn_dbg(3, mrn_printf(FLF, stderr, "In backend.flush(). Calling flushUpStream()\n"));
     return flush_PacketsUpStream();
 }
 
-int BackEndNode::recv( bool iblocking )
+int BackEndNode::recv( bool iblocking ) const
 {
     std::list <Packet> packet_list;
     mrn_dbg(3, mrn_printf(FLF, stderr, "In backend.recv(%s)...\n",
@@ -164,7 +164,7 @@ int BackEndNode::recv( bool iblocking )
 }
 
 
-int BackEndNode::proc_newStream(Packet& pkt)
+int BackEndNode::proc_newStream(Packet& pkt) const
 {
     mrn_dbg( 3, mrn_printf(FLF, stderr, "In proc_newStream()\n" ));
 
