@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/process.C,v 1.13 1994/06/29 02:52:47 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/process.C,v 1.14 1994/07/14 23:29:03 hollings Exp $";
 #endif
 
 /*
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.13  1994/06/29 02:52:47  hollings
+ * Revision 1.14  1994/07/14 23:29:03  hollings
+ * Corrected file mask on io redirection.
+ *
+ * Revision 1.13  1994/06/29  02:52:47  hollings
  * Added metricDefs-common.{C,h}
  * Added module level performance data
  * cleanedup types of inferrior addresses instrumentation defintions
@@ -380,7 +383,7 @@ process *createProcess(char *file, char *argv[], int nenv, char *envp[])
 	}
 
 	if (outputFile) {
-	    fd = open(outputFile, O_WRONLY|O_CREAT, 0);
+	    fd = open(outputFile, O_WRONLY|O_CREAT, 0444);
 	    if (fd < 0) {
 		fprintf(childError, "stdout open of %s failed\n", inputFile);
 		fflush(childError);
