@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.137 2004/04/02 06:34:13 jaw Exp $
+// $Id: linux.C,v 1.138 2004/04/05 14:47:05 chadd Exp $
 
 #include <fstream>
 
@@ -829,15 +829,19 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int nbytes, const void *inSelf)
 #if defined(BPATCH_LIBRARY)
 #if defined(i386_unknown_linux2_0)
    if (proc_->collectSaveWorldData) {
-       codeRange *range = proc_->findCodeRangeByAddress((Address)inTraced);
-       shared_object *sharedobj_ptr = range->is_shared_object();
-       if (range && sharedobj_ptr) {
-           // If we're writing into a shared object, mark it as dirty.
-           // _Unless_ we're writing "__libc_sigaction"
-           pd_Function *func = range->is_pd_Function();
-           if ((! func) || (func->prettyName() != "__libc_sigaction"))
-              sharedobj_ptr->setDirty();
-       }
+       codeRange *range = NULL;
+	proc_->codeRangesByAddr_->precessor((Address)inTraced, range); //findCodeRangeByAddress((Address)inTraced);
+	if(range){
+	        shared_object *sharedobj_ptr = range->is_shared_object();
+	       if (sharedobj_ptr) {
+        	   // If we're writing into a shared object, mark it as dirty.
+	           // _Unless_ we're writing "__libc_sigaction"
+        	   pd_Function *func = range->is_pd_Function();
+	           if ((! func) || (func->prettyName() != "__libc_sigaction")){
+        	      sharedobj_ptr->setDirty();
+		   }
+	       }
+	}
    }
 #endif
 #endif

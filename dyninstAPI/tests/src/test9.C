@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test9.C,v 1.10 2004/03/23 19:11:40 eli Exp $
+// $Id: test9.C,v 1.11 2004/04/05 14:47:06 chadd Exp $
 //
 // libdyninst validation suite test #9
 //    Author: Chadd Williams (30 jun 2003) 
@@ -339,6 +339,9 @@ int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
 		fprintf(stderr,"can't fork\n");
     	    		exit(-1);
 		case 0 : 
+			//child
+			fprintf(stderr," running: %s %s %s\n", mutatedBinary, fileName, testID);
+
 			for(int i=0;environ[i]!= '\0';i++){
 
 				if( strstr(environ[i], "LD_LIBRARY_PATH=") ){
@@ -842,8 +845,8 @@ void mutatorTest6(char *pathname)
 	/*instrument func6_2()  to call call6_2() 
 	  each of this functions are in libInstMe.so
 	*/
-	instrumentToCallZeroArg(appThread, appImage, "func6_2", "call6_2", testNo, testName);
 
+	instrumentToCallZeroArg(appThread, appImage, "func6_2", "call6_2", testNo, testName);
 	
 	char * dirname = saveWorld(appThread);
 	savedDirectories[testNo]=dirname;
@@ -854,7 +857,7 @@ void mutatorTest6(char *pathname)
 
 	if( retValue == 0){
 	
-		passedTest[testNo] = runMutatedBinary(dirname, "test9_mutated", TEST6);
+		passedTest[testNo] = runMutatedBinaryLDLIBRARYPATH(dirname, "test9_mutated", TEST6);
 	}else{
 		fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
 	}
