@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.24  1994/08/08 20:15:25  hollings
-/* added suppress instrumentation command.
+/* Revision 1.25  1994/08/13 20:55:33  newhall
+/* changed call to VMCreateVisi
 /*
+ * Revision 1.24  1994/08/08  20:15:25  hollings
+ * added suppress instrumentation command.
+ *
  * Revision 1.23  1994/08/05  16:04:28  hollings
  * more consistant use of stringHandle vs. char *.
  *
@@ -686,7 +689,7 @@ int ParadynVisiCmd (ClientData clientData,
     int ok, i;
     if (Tcl_GetInt (interp, argv[2], &i) != TCL_OK) 
       return TCL_ERROR;
-    ok = vmMgr->VMCreateVisi(i); 
+    ok = vmMgr->VMCreateVisi(1,i,NULL,NULL); 
   } 
   else if (argv[1][0] == 'k') {
     int i;
