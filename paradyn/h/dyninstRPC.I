@@ -473,7 +473,7 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 40;
+    $version 42;
 
     //
     // Define a program to run. 
@@ -619,22 +619,24 @@ $remote dynRPC {
     // resourceList	- a list of resources
     // metric	- what metric to collect data for
     //
-    $async void enableDataCollection(vector<u_int> focus, string metric,
-				     int id, int daemon_id);
-    $async void enableDataCollectionBatch(
-                                      vector<focusStruct> focus, 
+    $async void enableDataCollection(vector<focusStruct> focus, 
                                       vector<string> metric,
-				      vector<int> id, int daemon_id);
+				      vector<u_int> mi_ids, 
+				      u_int daemon_id,
+				      u_int request_id);
+    //
+    // synchronous enable call, for propogating metrics
+    //
     int enableDataCollection2(vector<u_int> focus, string metric, int id);
 
     //
     // Upcall to tell paradyn that all daemons are ready after a metric 
     // enable request
     //
-    $upcall $async void enableDataCallback(int daemon_id, int return_id);
-    $upcall $async void enableDataCallbackBatch(int daemon_id, 
-                                                vector<int> return_id);
-
+    $upcall $async void enableDataCallback(u_int daemon_id, 
+                                           vector<int> return_id,
+                                           vector<u_int> mi_ids,
+					   u_int request_id);
     //
     // Upcall to tell paradyn that all daemons are ready after computing 
     // the value for predicted data cost

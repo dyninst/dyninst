@@ -27,7 +27,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.44  1996/04/29 03:32:56  tamches
+ * Revision 1.45  1996/04/30 18:58:38  newhall
+ * changes to enableDataCollection calls and upcalls
+ *
+ * Revision 1.44  1996/04/29  03:32:56  tamches
  * bucket_width handling slightly changed to conform to new internalMetrics.h/.C
  *
  * Revision 1.43  1996/04/21 21:42:02  newhall
@@ -278,9 +281,10 @@ void dynRPC::disableDataCollection(int mid)
     metricDefinitionNode *mi;
 
     if (!allMIs.defines(mid)) {
-      sprintf(errorLine, "Internal error: disableDataCollection mid %d not found\n", mid);
-      logLine(errorLine);
-      showErrorCallback(61,(const char *) errorLine);
+      // sprintf(errorLine, "Internal error: disableDataCollection mid %d not found\n", mid);
+      // logLine(errorLine);
+      // showErrorCallback(61,(const char *) errorLine);
+      // because of async enables this can happen, so ignore it
       return;
     }
 
@@ -324,36 +328,21 @@ void dynRPC::resourceInfoResponse(vector<string> resource_name, u_int resource_i
 }
 
 // TODO -- startCollecting  Returns -1 on failure ?
-void dynRPC::enableDataCollection(vector<u_int> focus, string met, 
-				  int gid, int daemon_id)
-{
-    int id;
-    totalInstTime.start();
-    id = startCollecting(met, focus, gid);
-    totalInstTime.stop();
-    // cout << "Enabled " << met.string_of() << " = " << id << endl;
-    enableDataCallback(daemon_id, id);
-}
+void dynRPC::enableDataCollection(vector<T_dyninstRPC::focusStruct> focus, 
+                              vector<string> metric,
+			      vector<u_int> mi_ids, 
+		 	      u_int daemon_id,
+			      u_int request_id){
 
-void 
-dynRPC::enableDataCollectionBatch(vector<T_dyninstRPC::focusStruct> focus, 
-                                  vector<string> met,
-				  vector<int> gid, int daemon_id)
-{
     vector<int> return_id;
-    assert(focus.size() == met.size());
-    return_id.resize(met.size());
+    assert(focus.size() == metric.size());
+    return_id.resize(metric.size());
     totalInstTime.start();
-    for (int i=0;i<met.size();i++) {
-      if (gid[i]>=0) {
-        return_id[i] = startCollecting(met[i], focus[i].focus, gid[i]);
-      }
-      else {
-        return_id[i] = gid[i];
-      }        
+    for (u_int i=0;i<metric.size();i++) {
+        return_id[i] = startCollecting(metric[i], focus[i].focus, mi_ids[i]);
     }
     totalInstTime.stop();
-    enableDataCallbackBatch(daemon_id, return_id);
+    enableDataCallback(daemon_id,return_id,mi_ids,request_id);
 }
 
 int dynRPC::enableDataCollection2(vector<u_int> focus, string met, int gid)

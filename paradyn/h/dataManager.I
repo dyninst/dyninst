@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.70  1996/04/22 17:56:40  newhall
+ * Revision 1.71  1996/04/30 18:57:37  newhall
+ * changes to enableDataCollection calls and upcalls
+ *
+ * Revision 1.70  1996/04/22  17:56:40  newhall
  * minor change to predictedDataCost
  *
  * Revision 1.69  1996/04/21  21:39:44  newhall
@@ -304,17 +307,6 @@ typedef void (*traceDataCallbackFunc)(perfStreamHandle handle,
 				      void *eventData);
 
 /*
- * Handler that gets called when there is a response to a 
- * getPredictedDataCost call 
- *   
- *   m_handle - the metricHandle assoc. with the request
- *   rl_handle - the resourceListHandle assoc. with the request 
- *   cost     - the cost of enabling the metric/focus pair
- */
-typedef void (*predDataCostCallbackFunc)(metricHandle m_handle,
-					 resourceListHandle rl_handle,
-					 float cost);
-/*
  * union to hold two types of data callback.
  *
  */
@@ -374,6 +366,29 @@ typedef void (*newPhaseCallback)(perfStreamHandle handle,
 				 bool with_new_pc,
 				 bool with_visis); 
 
+/*
+ * Handler that gets called when there is a response to a 
+ * getPredictedDataCost call 
+ *   
+ *   m_handle - the metricHandle assoc. with the request
+ *   rl_handle - the resourceListHandle assoc. with the request 
+ *   cost     - the cost of enabling the metric/focus pair
+ */
+typedef void (*predDataCostCallbackFunc)(metricHandle m_handle,
+					 resourceListHandle rl_handle,
+					 float cost);
+
+/*
+ * Handler that gets called when there is a response to an enableData request 
+ *   
+ * response -   vector of responses to enable request one element for each   
+ *		element in the vector passed by client to enableData request
+ * request_id - identifier that client thread associated with this call
+ *              (passed to DM on enableDataRequest)
+ */
+typedef void (*enableDataCallbackFunc)(vector<metricInstInfo> *response,
+				       u_int request_id);
+
 struct controlCallback {
     metricInfoCallback 		mFunc;
     resourceInfoCallback 	rFunc;
@@ -382,13 +397,14 @@ struct controlCallback {
     appStateChangeCallback	sFunc;
     newPhaseCallback	        pFunc;
     predDataCostCallbackFunc    cFunc;
+    enableDataCallbackFunc	eFunc;
 };
 
 typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2500;
-    $version 42;
+    $version 43;
 
     //
     // Start a paradyn daemon
@@ -496,50 +512,45 @@ $remote dataManager {
     //
     // Routines to control data collection on a performance Stream.
     //
-    // perfStreamHandle	- a handle returned by createPerformanceStream
-    // resourceList	- a focus : DM deletes this 
-    // metric		- what metric to collect data for
-    // metricInstInfo   - info. about enabled metric/focus
-    //                    client must delete this struct
-    // phaseType        - enable collection for either the current phase
-    //                    or for global data
-    // pers_data        - if set, archive old data
-    // pers_collection  - if set, keep MI enabled on new phase definition  
-    //
-    metricInstInfo *enableDataCollection(perfStreamHandle,
-					 const vector<resourceHandle>*,
-					 metricHandle,
-					 phaseType,
-					 unsigned persistent_data,
-					 unsigned persistent_collection);
-
-    vector<metricInstInfo *> *enableDataCollectionBatch(
-                                        perfStreamHandle,
-                                        vector<metric_focus_pair> *,
-					phaseType,
-					unsigned persistent_data,
-					unsigned persistent_collection);
 
     //
-    // same as other enableDataCollection routine, except takes focus handle
-    // argument and returns metricInstanceHandle on successful enable 
+    // Request to enable a set of metric/focus pairs  
+    // ps_handle - the perfStreamHandle of the calling thread 
+    // request   - vector of metic/focus pairs to enable
+    // request_Id - identifier passed by calling thread  
+    // type - which phase type to enable data for
+    // phaseId - the identifier of the phase for which data is requested
+    // persistent_data, persistent_collection - flags for data collection 
     //
-    metricInstanceHandle *enableDataCollection2(perfStreamHandle, 
-					   resourceListHandle,
-					   metricHandle, 
-					   phaseType,
-					   unsigned,
-					   unsigned persistent_data,
-					   unsigned persistent_collection);
+    $async void enableDataRequest(perfStreamHandle ps_handle,
+                                  vector<metric_focus_pair> *request,
+				  u_int request_Id,
+				  phaseType type,
+				  u_int phaseId,
+				  u_int persistent_data,
+				  u_int persistent_collection);
+
+    //
+    // same as enableDataRequest, but with diff type request
+    //
+    $async void enableDataRequest2(perfStreamHandle ps_handle,
+                                   vector<metricRLType> *request,
+				   u_int request_Id,
+				   phaseType type,
+				   u_int phaseId,
+				   u_int persistent_data,
+				   u_int persistent_collection);
+
+
     //
     // stop collecting data for the named metricInstance.
     // perfStreamHandle	- a handle returned by createPerformanceStream
     // metricInstance	- a metricInstance returned by enableDataCollection.
     // phaseType - specifies either global or current phase data
     //
-    void disableDataCollection(perfStreamHandle, 
-			       metricInstanceHandle,
-			       phaseType);
+    $async void disableDataCollection(perfStreamHandle, 
+			              metricInstanceHandle,
+			              phaseType);
 
     //
     // This routine returns a list of foci which are the result of combining
@@ -647,7 +658,9 @@ $remote dataManager {
     //
     // create a new resource and return it's handle
     //
-    resourceHandle newResource(resourceHandle parent, const char *name, u_int type);
+    resourceHandle newResource(resourceHandle parent, 
+			       const char *name, 
+			       u_int type);
 
     //
     // converts from a vector of resourceHandles to a resourceListHandle
@@ -694,7 +707,8 @@ $remote dataManager {
     //
     // don't search the SHG for children of this node.
     //
-    void setResourceSearchChildrenSuppress(resourceHandle res_handle, bool newValue);
+    void setResourceSearchChildrenSuppress(resourceHandle res_handle, 
+					   bool newValue);
 
     //
     // consider this resource a black box (applies to modules/procedures now).
@@ -855,6 +869,16 @@ $remote dataManager {
 				     metricHandle m_handle,
 				     resourceListHandle rl_handle, 
 				     float cost);
+    
+    //
+    // response to enableDataRequest call
+    // func - callback function registered by client thread on createPerfStream
+    // response - vector of enable reponses to enable
+    // request_id - identifier passed by client to enableDataRequest
+    //
+    $upcall $async void enableDataCallback(enableDataCallbackFunc func,
+    				           vector<metricInstInfo> *response,
+					   u_int request_id);
 
 
     $upcall $async void histFold(histFoldCallback, 
@@ -878,14 +902,6 @@ $remote dataManager {
 				     float,            // bucketwidth
 				     bool,		// with_new_pc
 				     bool);		// with_visis
-
-
-    // Called to inform the data manager that it is ok to parse the mdl files
-    // This informs the data manager that all igen interfaces have been created
-    // and that it is ok to use them -- the start up of all the thread is
-    // inelegant
-    // $async void kludge(char *metric_file);
-
 
     $signore
     static int socket;
