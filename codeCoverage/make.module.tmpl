@@ -1,0 +1,50 @@
+# 
+# Common makefile template for the dyninstAPI library.  This file is not
+# intended to be a useful Makefile in isolation; instead, it should be
+# included from within an architecture-specific Makefile.
+#
+# $Id: make.module.tmpl,v 1.1 2001/09/25 22:21:55 tikir Exp $
+#
+
+SUITE_NAME	= DynCov
+RELEASE_NUM	= 1.0
+#BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
+
+DEFINES		     += -UMT_THREAD \
+			-DBPATCH_LIBRARY -DBPATCH_SET_MUTATIONS_ACTIVE \
+			-DBPATCH_LIBRARY_F -DNEW_TIME_TYPES
+
+CFLAGS		     += $(USEFULWARNINGS) $(DEFINES)
+CXXFLAGS	     += $(USEFULWARNINGS) $(DEFINES)
+TFLAGS		     += $(TCLFRIENDLYWARNINGS) $(DEFINES)
+
+# This may cause problems on Alpha
+# GCC has a new mangled name squisher (-fsquangle) which can be 
+# set to "on" by default. This causes linker problems, so we
+# default to "off".
+
+CFLAGS		+= -fno-squangle
+CXXFLAGS	+= -fno-squangle
+TFLAGS		+= -fno-squangle
+
+TARGET		= dyncov
+
+VPATH	     += ../../dyninstAPI/src:../dyninstAPI/h:\
+		../../common/src:../../common/h:../../paradyn/h:\
+		../src:../h
+
+SRCS	     +=	../src/main.C
+
+ifndef AUTO_TEMPLATES
+SRCS         += 
+endif
+
+ifdef CROSSCOMPILER
+SYSLIBS		+= -liberty -lg++ -lstdc++ -lm
+else
+SYSLIBS         += -liberty
+endif
+
+IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../dyninstAPI/h -I../../common/h
+
+all: $(TARGET)

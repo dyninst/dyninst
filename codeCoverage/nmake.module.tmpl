@@ -1,0 +1,27 @@
+SUITE_NAME	= dyncov
+RELEASE_NUM	= 1.0
+#BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
+
+TARGET = dyncov.exe
+
+# building as a DLL is not the common case
+UNCOMMON_LINK		= true
+UNCOMMON_INSTALL	= true
+
+
+
+DEFINES      = -DBPATCH_LIBRARY -DBPATCH_SET_MUTATIONS_ACTIVE -DBPATCH_LIBRARY_F -DNEW_TIME_TYPES
+CFLAGS       = $(CFLAGS) $(DEFINES)
+CXXFLAGS     = $(CXXFLAGS) $(DEFINES)
+
+IFLAGS       = $(IFLAGS) -I../h -I../src 
+
+SRCS	     = $(SRCS) main.C
+
+OBJS         = $(OBJS) main.obj
+
+all: $(TARGET)
+
+{..\src\}.C.obj:
+	$(CXX) $(CXXFLAGS) -c $<
+
