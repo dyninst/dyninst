@@ -1,8 +1,11 @@
 /* $Log: main.C,v $
-/* Revision 1.19  1995/08/11 21:51:16  newhall
-/* Parsing of PDL files is done before thread creation
-/* Removed call to dataManager kludge method function
+/* Revision 1.20  1995/08/12 22:27:51  newhall
+/* added calls to DM and VM sequential initialization routines
 /*
+ * Revision 1.19  1995/08/11  21:51:16  newhall
+ * Parsing of PDL files is done before thread creation
+ * Removed call to dataManager kludge method function
+ *
  * Revision 1.18  1995/06/02  20:55:58  newhall
  * made code compatable with new DM interface
  *
@@ -75,6 +78,8 @@
 #include "util/h/headers.h"
 #include "paradyn.h"
 #include "thread/h/thread.h"
+#include "dataManager.thread.SRVR.h"
+#include "VM.thread.SRVR.h"
 
 extern void *UImain(void *);
 extern void *DMmain(void *);
@@ -178,10 +183,12 @@ main (int argc, char *argv[])
 // get tid of parent
   MAINtid = thr_self();
 
-// parse PDL files 
-// TODO: this should go in DM_init_seq routine 
-  string filename = fname;
-  metMain(filename);
+// Structure used to pass initial arguments to data manager
+  init_struct init; init.tid = MAINtid; init.met_file = fname;
+
+// call sequential initialization routines
+  dataManager::DM_sequential_init(&init);
+  VM::VM_sequential_init();
 
 
      /* initialize the 4 main threads of paradyn: data manager, visi manager,
@@ -270,8 +277,6 @@ main (int argc, char *argv[])
 					       userConstant);
 
 // initialize DM
-  // Structure used to pass initial arguments to data manager
-  init_struct init; init.tid = MAINtid; init.met_file = fname;
 
   if (thr_create(0, 0, DMmain, (void *) &init, 0, 
 		 (unsigned int *) &DMtid) == THR_ERR)
@@ -339,7 +344,6 @@ main (int argc, char *argv[])
     uiMgr->readStartupFile (sname);
 
 // wait for UIM thread to exit 
-//  dataMgr->kludge(fname);
 
   thr_join (UIMtid, NULL, NULL);
 }
