@@ -4,7 +4,10 @@
  *   functions for a normal Sparc with SUNOS.
  *
  * $Log: RTsparc.c,v $
- * Revision 1.7  1994/11/11 10:39:10  markc
+ * Revision 1.8  1994/11/12 17:32:12  rbi
+ * removed /dev/kmem warning messages
+ *
+ * Revision 1.7  1994/11/11  10:39:10  markc
  * Commented out non-emergency printfs
  *
  * Revision 1.6  1994/09/20  18:25:00  hollings
@@ -114,11 +117,15 @@ int DYNINSTmapUarea()
     uAddr = DYNINSTprobeUarea();
 
     if (!uAddr) {
-	printf("WARNING: program compiled for wrong version of SPARC chip.\n");
-	printf(" using getrusage for times, this may slow your program down\n");
-	printf(" by a factor of ten or more.\n");
-	printf("\n");
-	fflush(stdout);
+/*
+ *  commented out to avoid dirty looks during SC94   -rbi 11/11/94
+ *
+ *   printf("WARNING: program compiled for wrong version of SPARC chip.\n");
+ *   printf(" using getrusage for times, this may slow your program down\n");
+ *   printf(" by a factor of ten or more.\n");
+ *   printf("\n"); 
+ *   fflush(stdout);
+ */
 	return(0);
     }
 

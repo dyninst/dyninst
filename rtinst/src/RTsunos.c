@@ -119,12 +119,16 @@ DYNINSTmapUarea(void) {
     static struct user* u;
 
     if (!(uAddr = DYNINSTprobeUarea())) {
-        printf("WARNING: program compiled for wrong version of SPARC chip.\n");
-        printf(" using getrusage for times, this may slow your program down\n");
-        printf(" by a factor of ten or more.\n");
-        printf("\n");
-        fflush(stdout);
-        return;
+/*
+ *  commented out to avoid dirty looks during SC94   -rbi 11/11/94
+ *
+ *   printf("WARNING: program compiled for wrong version of SPARC chip.\n");
+ *   printf(" using getrusage for times, this may slow your program down\n");
+ *   printf(" by a factor of ten or more.\n");
+ *   printf("\n"); 
+ *   fflush(stdout);
+ */
+       return;
     }
 
     if ((kmem = open("/dev/kmem", O_RDONLY, 0)) == -1) {
