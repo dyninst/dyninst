@@ -322,8 +322,28 @@ metricDefinitionNode *createMetricInstance(string& metric_name,
     if (mdl_can_do(metric_name)) {
       internal = false;
 
-      extern vector<process*> processVec;
-      mi = mdl_do(canonicalFocus, metric_name, flat_name, processVec, false);
+      /* select the processes that should be instrumented. We skip process
+	 that have exited, and processes that have been created but are not
+	 completely initialized yet.
+	 If we try to insert instrumentation in a process that is not ready
+	 yet, we get a core dump.
+	 A process is ready when it is not in neonatal state and the 
+	 isBootstrappedYet returns true.
+      */
+      vector<process*> procs;
+
+      for (unsigned u = 0; u < processVec.size(); u++) {
+	if (processVec[u]->status()==exited || processVec[u]->status()==neonatal
+	    || processVec[u]->isBootstrappedYet())
+	  procs += processVec[u];
+      }
+
+      if (procs.size() == 0) {
+	// there are no processes to instrument
+	return NULL;
+      }
+
+      mi = mdl_do(canonicalFocus, metric_name, flat_name, procs, false);
       if (mi == NULL) {
 	 metric_cerr << "createMetricInstance failed since mdl_do failed" << endl;
 	 metric_cerr << "metric name was " << metric_name << "; focus was ";
