@@ -84,6 +84,7 @@ void performanceStream::flushBuffer(){
     // send data to client
     if(next_buffer_loc){
 	assert(my_buffer);
+	dataManager::dm->setTid(threadId);
         dataManager::dm->newPerfData(dataFunc.sample, 
 				     my_buffer, next_buffer_loc);
     }
@@ -102,7 +103,6 @@ void performanceStream::callSampleFunc(metricInstanceHandle mi,
 				       phaseType type)
 {
     if (dataFunc.sample) {
-	dataManager::dm->setTid(threadId);
 	for(unsigned i = first; i < (first+count); i++) {
 	    if(!my_buffer) {
 	         if (!this->reallocBuffer()) assert(0);	
