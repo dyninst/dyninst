@@ -17,7 +17,7 @@ static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
  Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/FormatBox.c,v 1.3 1997/05/19 01:00:05 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/FormatBox.c,v 1.4 1997/05/23 05:23:04 tung Exp $";
 #endif
 
 /* 
@@ -27,7 +27,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
  * Changed order of include files for X.
  *
  * Revision 1.2  1991/03/14  20:48:17  hollings
- * Fixed $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/FormatBox.c,v 1.3 1997/05/19 01:00:05 tung Exp $ definition.
+ * Fixed $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/FormatBox.c,v 1.4 1997/05/23 05:23:04 tung Exp $ definition.
  *
  * Revision 1.1  1990/08/24  13:00:50  hollings
  * Initial revision
@@ -132,7 +132,7 @@ void StringToOption(XrmValue *args, int a_count, XrmValue *from, XrmValue *to)
 
 static void InitStuff()
 {
-    XtAddConverter(XtRString, XtRFormatOption, StringToOption, NULL, 0);
+    XtAddConverter(XtRString, XtRFormatOption, (XtConverter)StringToOption, NULL, 0);
 }
 
 /*
@@ -221,6 +221,6 @@ static void ChangedManaged(FormatBoxWidget w)
    CompositeClassRec *super= (CompositeClassRec *) 
        formatBoxClassRec.core_class.superclass;
 
-   super->composite_class.change_managed(w);
+   super->composite_class.change_managed((Widget)w);
    Resize(w);
 }

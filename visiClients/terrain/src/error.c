@@ -17,7 +17,7 @@ static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
  Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/error.c,v 1.5 1997/05/22 02:18:20 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/error.c,v 1.6 1997/05/23 05:23:12 tung Exp $";
 #endif
 
 /* Modified by Chi-Ting Lam for terrain plot */
@@ -143,7 +143,7 @@ void popUpMsgs(int title, char *message)
     InitAction(winInfo.x + (winInfo.width>>1),
 	       winInfo.y + (winInfo.height>>1));
  
-    RequestAction(title, (int)NULL, (int)NULL, (char*)lCount, log, (char*)BUTTONC,
+    RequestAction(title, (int)NULL, (int)NULL, (char*)lCount, log, buttons,
                   (struct Logo*)buttons, (struct Logo*)XtJustifyCenter, ErrorWrapup);
 }
 

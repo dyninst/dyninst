@@ -21,13 +21,16 @@
  */
 
 #ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/terrain.c,v 1.9 1997/05/22 02:18:26 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/terrain.c,v 1.10 1997/05/23 05:23:14 tung Exp $";
 #endif
 
 /*
  * terrain.c - main entry point and x driver.
  *
  * $Log: terrain.c,v $
+ * Revision 1.10  1997/05/23 05:23:14  tung
+ * Revised.
+ *
  * Revision 1.9  1997/05/22 02:18:26  tung
  * Revised.
  *
@@ -206,6 +209,7 @@ static int add_new_curve(unsigned m, unsigned r)
   char* m_name;
   char* r_name;
   char* p_name;
+  char* label_name;
 
     if (visi_Enabled((signed)m,(signed)r) &&
        (hdp = (struct HistData *) visi_GetUserData((signed)m,(signed)r)) == 0) {
@@ -222,7 +226,7 @@ static int add_new_curve(unsigned m, unsigned r)
         m_name = visi_MetricName((signed)m);
         r_name = visi_ResourceName((signed)r);
 	p_name = visi_GetMyPhaseName();
-
+	label_name = visi_MetricLabel((signed)m);
         m_name = (m_name) ? (m_name) : "";
         r_name = (r_name) ? (r_name) : "";
 
@@ -234,7 +238,7 @@ static int add_new_curve(unsigned m, unsigned r)
         hdp->groupId = get_groupId(visi_MetricLabel((signed)m));
 
         hdp->curve_id = Graph3DAddNewCurve(m_name, r_name, p_name, 
-					   visi_MetricLabel((signed)m),  
+					   label_name,  
 					   visi_NumBuckets(), numRes);
 
         visi_SetUserData((signed)m,(signed)r,(void *) hdp);
@@ -781,7 +785,8 @@ int main(int argc, char *argv[])
    vchar = (rv.font->ascent + rv.font->descent);
 
    /* add callbacks on window-resized */
-   XtAddEventHandler(w_label, StructureNotifyMask, FALSE, resize, NULL);
+   XtAddEventHandler(w_label, StructureNotifyMask, FALSE, (XtEventHandler)resize,
+		     NULL);
    
 
 
@@ -791,7 +796,9 @@ int main(int argc, char *argv[])
   (void) visi_RegistrationCallback(DATAVALUES, process_datavalues);
   (void) visi_RegistrationCallback(FOLD,       process_fold);
 
-  XtAppAddInput(app_con, fd, XtInputReadMask, visi_callback, input);
+  XtAppAddInput(app_con, fd, (XtPointer)XtInputReadMask,
+		(XtInputCallbackProc)visi_callback,
+		(XtPointer)input);
 
 
 /**************************modified section ends ************************************

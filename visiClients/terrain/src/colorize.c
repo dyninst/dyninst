@@ -17,13 +17,16 @@ static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
  Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/colorize.c,v 1.4 1997/05/21 02:27:22 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/colorize.c,v 1.5 1997/05/23 05:23:11 tung Exp $";
 #endif
 
 /*
  * colorize.c - colorize surfaces according to their height.
  *
  * $Log: colorize.c,v $
+ * Revision 1.5  1997/05/23 05:23:11  tung
+ * Revised.
+ *
  * Revision 1.4  1997/05/21 02:27:22  tung
  * Revised.
  *
@@ -78,11 +81,11 @@ void colorPoly(ptLst_t, int);
 void colorize(ptLst_t, ticLst_t);
 void colorizeLayers(ptLst_t, ticLst_t);
  
-ptLst_t findGoUnder(ptLst_t, ptLst_t, float);
-ptLst_t findGoAbove(ptLst_t, ptLst_t, float);
-ptLst_t makeMidPt(ptLst_t, float);
-ptLst_t copyPt(ptLst_t);
-void freePtLst(ptLst_t);
+ptLst_t findGoUnder(/*ptLst_t, ptLst_t, float*/);
+ptLst_t findGoAbove(/*ptLst_t, ptLst_t, float*/);
+ptLst_t makeMidPt(/*ptLst_t, float*/);
+ptLst_t copyPt(/*ptLst_t*/);
+void freePtLst(/*ptLst_t*/);
 
 extern float zmin, zmax;	/* Max & min points of the graph */
 extern int Ntcolors;		/* Number of colors available */

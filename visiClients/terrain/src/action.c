@@ -17,7 +17,7 @@ static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
  Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/action.c,v 1.5 1997/05/22 02:18:17 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/action.c,v 1.6 1997/05/23 05:23:11 tung Exp $";
 #endif
 
 
@@ -28,6 +28,9 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
  *   message.
  *
  * $Log: action.c,v $
+ * Revision 1.6  1997/05/23 05:23:11  tung
+ * Revised.
+ *
  * Revision 1.5  1997/05/22 02:18:17  tung
  * Revised.
  *
@@ -48,7 +51,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
  *
  *
  * Revision 2.14  1991/03/14  20:48:17  hollings
- * Fixed $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/action.c,v 1.5 1997/05/22 02:18:17 tung Exp $ definition.
+ * Fixed $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/action.c,v 1.6 1997/05/23 05:23:11 tung Exp $ definition.
  *
  * Revision 2.13  1990/08/24  13:01:40  hollings
  * Added include of <X11/Intrinsic.h>.
@@ -287,7 +290,8 @@ int RequestAction(int labelc, int buttonc, int justify, char *banner, char *labe
     for (i=0; i < buttonc; i++) {
         last = act.buttons[i] = XtCreateManagedWidget(buttons[i], 
             commandWidgetClass, act.box, NULL, 0);
-        XtAddCallback(act.buttons[i], XtNcallback, EndActFunc, (int)i);
+        XtAddCallback(act.buttons[i], XtNcallback, (XtCallbackProc)EndActFunc,
+	             (XtPointer)i);
     }
 
     XtRealizeWidget(act.shell);
@@ -295,11 +299,11 @@ int RequestAction(int labelc, int buttonc, int justify, char *banner, char *labe
     width = info.width - 2 * DEF_DIST;
     width -= Rlogo ? (Rlogo->w + DEF_DIST): 0;
     width -= Llogo ? (Llogo->w + DEF_DIST): 0;
-    XtSetValue(act.banner, XtNwidth, (int)width);
+    XtSetValue(act.banner, XtNwidth, (XtPointer)width);
 
     width = info.width - 2 * DEF_DIST;
-    if (labelc) XtSetValue(act.message, XtNwidth, (int)width);
-    XtSetValue(act.box, XtNwidth, width);
+    if (labelc) XtSetValue(act.message, XtNwidth, (XtPointer)width);
+    XtSetValue(act.box, XtNwidth, (XtPointer)width);
 
     hints.flags = USPosition;
     hints.x = start_x;

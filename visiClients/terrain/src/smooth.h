@@ -16,6 +16,9 @@
  * smooth.h - header file of smooth.c
  *
  * $Log: smooth.h,v $
+ * Revision 1.4  1997/05/23 05:23:13  tung
+ * Revised.
+ *
  * Revision 1.3  1997/05/22 02:18:25  tung
  * Revised.
  *
@@ -40,7 +43,7 @@ float avg_elem (float window[]);
 void smooth_med (struct surface_points *new_surface, struct surface_points *surface,
                  int wsize);
 float med_elem (float window[]);
-void shift_win (float window[], float);
+void shift_win (float window[], float );
 
 
 
