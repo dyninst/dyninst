@@ -16,9 +16,12 @@
  */
 
 /* $Log: VMmain.C,v $
-/* Revision 1.19  1994/09/05 20:05:36  jcargill
-/* Fixed read-before-write of thread stack data (spotted by purify)
+/* Revision 1.20  1994/09/22 01:21:32  markc
+/* access tid using getTid() method
 /*
+ * Revision 1.19  1994/09/05  20:05:36  jcargill
+ * Fixed read-before-write of thread stack data (spotted by purify)
+ *
  * Revision 1.18  1994/08/17  01:44:55  markc
  * Correction, recommitted incorrect file, this should be the correct one.
  * Adds strdups to VMAddNewVisualization.
@@ -337,13 +340,13 @@ VMactiveVisi *temp;
      if((activeVisis.remove((void *)visiThreadId)) == FALSE){
        PARADYN_DEBUG(("remove in VM::VMDestroyVisi"));
        ERROR_MSG(20,"remove in VM::VMDestroyVisi");
-       PARADYN_DEBUG(("in VM::VMDestroyVisi: tid = %d can't be removed",tid));
+       PARADYN_DEBUG(("in VM::VMDestroyVisi: tid = %d can't be removed", getTid()));
      }
      else{
        // call destructor for visip 
        delete(temp->visip);
        currNumActiveVisis--;
-       PARADYN_DEBUG(("in VM::VMDestroyVisi: tid = %d removed",tid));
+       PARADYN_DEBUG(("in VM::VMDestroyVisi: tid = %d removed", getTid()));
      }
   }
   PARADYN_DEBUG(("VM::VMDestroyVisi: after temp->visip->VISIKillVisi"));
@@ -356,7 +359,7 @@ void VM::VMVisiDied(int visiThreadId){
   if(!(activeVisis.remove((void *)visiThreadId))){
     PARADYN_DEBUG(("remove in VM::VMVisiDied"));
     ERROR_MSG(20,"remove in VM::VMVisiDied");
-    PARADYN_DEBUG(("in VM::VMVisiDied: tid = %d can't be removed",tid));
+    PARADYN_DEBUG(("in VM::VMVisiDied: tid = %d can't be removed", getTid()));
   }
   currNumActiveVisis--;
 
