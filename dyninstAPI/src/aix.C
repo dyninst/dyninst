@@ -222,16 +222,20 @@ bool OS::osAttach(pid_t process_id) {
 
 bool OS::osStop(pid_t pid) { 
 	// attach generates a SIG TRAP which we catch
-	osAttach(pid);
+	if (!osAttach(pid)) {
+          assert(kill(pid, SIGSTOP) != -1);
+        }
+        return(true);
 #ifdef notdef
 	// for some reason AIX is much happier to send SIGINT. SIGSTOPS seem
 	//   to get lost sometimes - jkh 5/13/95
-	okStop = (kill(pid, SIGINT) != -1);
+	bool okStop = (kill(pid, SIGINT) != -1);
 	if (okStop) {
 	    return(osAttach(pid));
 	}
-#endif
+        else logLine("-----> okStop returned FALSE in osStop\n");
 	return false;
+#endif
 }
 
 // TODO dump core
@@ -353,7 +357,7 @@ bool process::readDataSpace_(caddr_t inTraced, int amount, caddr_t inSelf) {
 
 bool process::loopUntilStopped() {
   /* make sure the process is stopped in the eyes of ptrace */
-  OS::osStop(pid);
+  assert(OS::osStop(pid));
   bool isStopped = false;
   int waitStatus;
   while (!isStopped) {
