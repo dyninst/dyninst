@@ -1,6 +1,42 @@
 /*
- *  Copyright 1993 Jeff Hollingsworth.  All rights reserved.
- *
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
  */
 
 /*
@@ -33,63 +69,8 @@
  * Revision 1.16  1994/05/30  19:37:39  hollings
  * added pragma for external g++ functions.
  *
- * Revision 1.15  1994/03/11  21:01:23  hollings
- * Changed Boolean from int to char to match X11 convention.
- *
- * Revision 1.14  1994/02/25  00:25:57  hollings
- * added tunable constants.
- *
- * Revision 1.13  1994/02/24  07:05:28  markc
- * Man page for librpcUtil.a
- * Extended list class to provide map function.  rpcUtil supports internet domain
- * sockets.
- *
- * Revision 1.12  1994/02/10  23:08:21  hollings
- * Fixed list.h ++ function to work when a hash table has an element at
- * slot zero in the table.
- *
- * Removed unused fields in hist class.
- *
- * Revision 1.11  1994/02/09  22:37:09  hollings
- * Added print routines to list and hash table.
- *
- * Revision 1.10  1994/02/08  00:30:32  hollings
- * Make libutil more compatable with ATT CC.
- *
- * Revision 1.9  1994/02/03  23:30:43  hollings
- * changed listHash to a macro to work with g++ 2.5.2.
- *
- * Revision 1.8  1994/01/25  20:49:40  hollings
- * First real version of utility library.
- *
- * Revision 1.7  1994/01/19  20:46:17  hollings
- * guardef defn of true/false.
- *
- * Revision 1.6  1993/12/15  21:06:54  hollings
- * removed destructors.  Our current list semantics don't support auto
- * destruction of list comonents since list elements can be shared between
- * lists.
- *
- * Revision 1.5  1993/12/13  20:11:14  hollings
- * added destructor for List class.
- *
- * Revision 1.4  1993/10/19  15:31:52  hollings
- * assorted small fixes.
- *
- * Revision 1.3  1993/08/02  22:46:37  hollings
- * added remove which was missing.
- *
- * Revision 1.2  1993/07/01  17:02:36  hollings
- * ansi endif comments
- *
- * Revision 1.1  1993/05/07  20:21:15  hollings
- * Initial revision
- *
- * Revision 1.1  1993/03/19  22:51:05  hollings
- * Initial revision
- *
- *
  */
+
 #ifndef LIST_H
 #define LIST_H
 

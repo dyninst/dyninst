@@ -1,9 +1,53 @@
 /*
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
+ */
+
+/*
  * This file contains the implementation of runtime dynamic instrumentation
  *   functions for a TMC CM-5 machine.
  *
  *
  * $Log: RTcm5_pn.c,v $
+ * Revision 1.44  1996/08/16 21:27:30  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.43  1996/06/27 14:34:57  naim
  * Preventing race condition in DYNINSTgenerateTraceRecord (change made by Xu
  * and commited by Oscar) - naim
@@ -28,137 +72,8 @@
  * a bug that occured when the appl. is paused between reading a timer to compute
  * a metric value and reading a timer again to compute a header value.
  *
- * Revision 1.37  1996/03/01  22:29:06  mjrg
- * Added type to resources.
- * Added function DYNINSTexit for better support for exit from the application.
- * Added reporting of sample in DYNINSTinit to avoid loosing sample values.
- *
- * Revision 1.36  1996/02/15 16:16:38  naim
- * Fixing wall timer. It if goes backwards, then we retry again - naim
- *
- * Revision 1.35  1996/02/15  14:55:42  naim
- * Minor changes to timers and cost model - naim
- *
- * Revision 1.34  1996/02/01  22:09:34  naim
- * Minor change - naim
- *
- * Revision 1.33  1996/02/01  17:47:54  naim
- * Fixing some problems related to timers and race conditions. I also tried to
- * make a more standard definition of certain procedures (e.g. reportTimer)
- * across all platforms - naim
- *
- * Revision 1.32  1996/01/15  16:58:13  zhichen
- * Devided sampleInterval by 2 (bart's information theory)
- * The other change is in dynrpc.C , search for SAMPLEnodes
- *
- * Revision 1.31  1995/12/17  20:57:12  zhichen
- * This time i hope i really fixed the no sample problem
- *
- * Revision 1.30  1995/12/17  05:13:15  zhichen
- * Hopefully, i have fixed the sample not reporting problem
- *
- * Revision 1.29  1995/12/10  16:35:21  zhichen
- * Minor cleanup
- *
- * Revision 1.28  1995/11/05  00:03:51  zhichen
- * *** empty log message ***
- *
- * Revision 1.27  1995/11/04  23:58:54  zhichen
- * added timer->normalize, so that wall clock time is no longer junk data
- *
- * Revision 1.26  1995/11/03  00:06:22  newhall
- * initialize sampling rate to BASESAMPLEINTERVAL (defined in util/h/sys.h)
- * changed type of all DYNINSTsampleMultiple to "volatile int"
- *
- * Revision 1.25  1995/10/27  01:02:25  zhichen
- * took out some static storage class for global variables,
- * for the first version of paradyn-blizzard
- *
- * Revision 1.24  1995/05/18  11:08:22  markc
- * added guard prevent timer start-stop during alarm handler
- * added version number
- *
- * Revision 1.23  1995/03/13  16:05:47  jcargill
- * fixed Double/float mix-up; could cause store-double instruction to an
- * incorrectly aligned address.
- *
- * Revision 1.22  1995/02/16  09:07:10  markc
- * Made Boolean type RT_Boolean to prevent picking up a different boolean
- * definition.
- *
- * Revision 1.21  1994/11/06  09:46:21  jcargill
- * Removed outdated cost-model code that initialized g7
- *
- * Revision 1.20  1994/10/27  16:15:49  hollings
- * Temporary hack to normalize cost data until the CM-5 inst supports a max
- * operation.
- *
- * Revision 1.19  1994/10/04  18:52:54  jcargill
- * Got rid of "previous" array; now uses the per-timer lastValue instead
- *
- * Revision 1.18  1994/08/02  18:18:52  hollings
- * added code to save/restore FP state on entry/exit to signal handle
- * (really jcargill, but commited by hollings).
- *
- * changed comparisons on time regression to use 64 bit int compares rather
- * than floats to prevent fp rounding error from causing false alarms.
- *
- * Revision 1.17  1994/07/28  23:22:55  hollings
- * clear g7 on init, and fixed DYNINSTcyclesToUsec.
- *
- * Revision 1.16  1994/07/26  20:06:12  hollings
- * fixed clock code.
- *
- * Revision 1.15  1994/07/22  19:24:51  hollings
- * added actual paused time for CM-5.
- *
- * Revision 1.14  1994/07/16  03:39:30  hollings
- * stopped using assembly version of clocks (temporary).
- *
- * Revision 1.13  1994/07/15  04:19:47  hollings
- * added code to report stats at the end.
- *
- * Revision 1.12  1994/07/14  23:35:08  hollings
- * Added extra arg to generateTrace, ifdefs out DYNINST{start,top}* to use
- * assembly versions.
- *
- * Revision 1.11  1994/07/11  22:47:47  jcargill
- * Major CM5 commit: include syntax changes, some timer changes, removal
- * of old aggregation code, old pause code, added signal-driven sampling
- * within node processes
- *
- * Revision 1.10  1993/12/14  17:27:21  jcargill
- * Put sampleMultiple and length alignment fixes back, and one retry fix
- *
- * Revision 1.9  1993/12/14  16:35:27  hollings
- * moved getProcessTime() out of the ifdef notdef.
- *
- * Revision 1.8  1993/12/13  19:47:06  hollings
- * use assembly version of clock code.
- *
- * Revision 1.7  1993/10/19  15:29:58  hollings
- * new simpler primitives.
- *
- * Revision 1.6  1993/10/07  19:09:12  jcargill
- * Added true combines for global instrumentation
- *
- * Revision 1.5  1993/10/01  18:15:53  hollings
- * Added filtering and resource discovery.
- *
- * Revision 1.4  1993/09/02  22:09:38  hollings
- * fixed race condition caused be no re-trying sampling of process time.
- *
- * Revision 1.3  1993/08/26  23:07:34  hollings
- * made initTraceLibPN called from DYNINSTinitTraceLib.
- *
- * Revision 1.2  1993/07/02  21:53:33  hollings
- * removed unnecessary include files
- *
- * Revision 1.1  1993/07/02  21:49:35  hollings
- * Initial revision
- *
- *
  */
+
 #include <stdlib.h>
 /* #include <signal.h> */
 #include <assert.h>

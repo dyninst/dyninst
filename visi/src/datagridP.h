@@ -1,25 +1,54 @@
-#ifndef _datagrid_h
-#define _datagrid_h
 /*
- * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
- *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
- *     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
+ * Copyright (c) 1996 Barton P. Miller
  * 
- * This software is furnished under the condition that it may not be
- * provided or otherwise made available to, or used by, any other
- * person, except as provided for by the terms of applicable license
- * agreements.  No title to or ownership of the software is hereby
- * transferred.  The name of the principals may not be used in any
- * advertising or publicity related to this software without specific,
- * written prior authorization.  Any use of this software must include
- * the above copyright notice.
- *
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
  */
 
+#ifndef _datagrid_h
+#define _datagrid_h
+
 /* $Log: datagridP.h,v $
-/* Revision 1.2  1996/01/19 20:55:42  newhall
-/* more chages to visiLib interface
+/* Revision 1.3  1996/08/16 21:33:51  tamches
+/* updated copyright for release 1.1
 /*
+ * Revision 1.2  1996/01/19 20:55:42  newhall
+ * more chages to visiLib interface
+ *
  * Revision 1.1  1996/01/17 18:29:15  newhall
  * reorginization of visiLib
  *
@@ -37,66 +66,8 @@
  * Revision 1.19  1995/11/12  00:45:05  newhall
  * added PARADYNEXITED event, added "InvalidSpans" dataGrid method
  *
- * Revision 1.18  1995/08/01  01:58:43  newhall
- * changes relating to phase interface stuff
- *
- * Revision 1.17  1995/06/02  21:01:54  newhall
- * changed type of metric and focus handles to u_int
- *
- * Revision 1.16  1995/02/26  01:59:27  newhall
- * added phase interface functions
- *
- * Revision 1.15  1994/11/08  01:51:04  newhall
- * array bounds error fix to visi_GridCellHisto::Value
- *
- * Revision 1.14  1994/11/02  04:14:35  newhall
- * memory leak fixes
- *
- * Revision 1.13  1994/09/25  01:57:45  newhall
- * added visi_DataGrid method functions ResourceIndex, MetricIndex
- *
- * Revision 1.12  1994/08/11  02:49:35  newhall
- * removed deleted member to gridcell
- *
- * Revision 1.11  1994/07/30  03:25:25  newhall
- * added enabled member to gridcell to indicate that the metric associated
- * w/ this cell has been enabled and data will arrive for it eventually
- * updated member functions affected by this addition
- *
- * Revision 1.10  1994/07/20  22:17:20  newhall
- * added FirstValidBucket method function to visi_GridCellHisto class
- *
- * Revision 1.9  1994/06/16  18:21:46  newhall
- * bug fix to AddNewValues
- *
- * Revision 1.8  1994/06/07  17:47:16  newhall
- * added method functions to support adding metrics
- * and resources to an existing data grid
- *
- * Revision 1.7  1994/05/23  20:55:16  newhall
- * To visi_GridCellHisto class: added deleted flag, SumValue
- * method function, and fixed AggregateValue method function
- *
- * Revision 1.6  1994/05/11  17:11:03  newhall
- * changed data values from double to float
- *
- * Revision 1.5  1994/04/13  21:22:51  newhall
- * *** empty log message ***
- *
- * Revision 1.4  1994/03/26  04:17:44  newhall
- * change all floats to double
- *
- * Revision 1.3  1994/03/17  05:17:25  newhall
- * added lastBucketFilled data member to class visi_GridCellHisto:  value of
- * the largest bucket number for which new data values have been added
- *
- * Revision 1.2  1994/03/15  02:03:19  newhall
- * added public member "userdata" to class visi_GridCellHisto
- * to allow visi writer to add info to grid cells
- *
- * Revision 1.1  1994/03/14  20:27:26  newhall
- * changed visi subdirectory structure
- *  */ 
+ */ 
+
 /////////////////////////////////
 //  Data Grid Class definitions
 /////////////////////////////////

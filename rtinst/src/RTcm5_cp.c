@@ -1,8 +1,52 @@
 /*
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
+ */
+
+/*
  * This file contains the implementation of runtime dynamic instrumentation
  *   functions for a normal Sparc with SUNOS.
  *
  * $Log: RTcm5_cp.c,v $
+ * Revision 1.13  1996/08/16 21:27:28  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.12  1996/04/09 22:20:50  newhall
  * changed DYNINSTgetWallTime to DYNINSTgetWalltime to fix undefined symbol
  * errors when applications are linked with libdyninstRT_cp.a
@@ -25,32 +69,8 @@
  * Revision 1.8  1995/12/10  16:34:57  zhichen
  * Minor cleanup
  *
- * Revision 1.7  1995/10/27  00:59:50  zhichen
- * fixed prototype for DYNINSTnodeCreate
- *
- * Revision 1.6  1995/02/16  09:07:04  markc
- * Made Boolean type RT_Boolean to prevent picking up a different boolean
- * definition.
- *
- * Revision 1.5  1994/07/14  23:36:06  hollings
- * added extra arg to generateTrace.
- *
- * Revision 1.4  1994/07/11  22:47:43  jcargill
- * Major CM5 commit: include syntax changes, some timer changes, removal
- * of old aggregation code, old pause code, added signal-driven sampling
- * within node processes
- *
- * Revision 1.3  1993/09/02  22:10:10  hollings
- * new include syntax.
- *
- * Revision 1.2  1993/07/02  21:53:33  hollings
- * removed unnecessary include files
- *
- * Revision 1.1  1993/07/02  21:49:35  hollings
- * Initial revision
- *
- *
  */
+
 #include <stdio.h>
 #include <sys/time.h>
 #include <sys/resource.h>

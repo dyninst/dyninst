@@ -1,9 +1,53 @@
+/*
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
+ */
+
 // barChartTcl.C
 
 /* $Log: barChartTcl.C,v $
-/* Revision 1.14  1996/05/15 18:03:48  tamches
-/* added newMetricMaxValCallbackCommand
+/* Revision 1.15  1996/08/16 21:35:25  tamches
+/* updated copyright for release 1.1
 /*
+ * Revision 1.14  1996/05/15 18:03:48  tamches
+ * added newMetricMaxValCallbackCommand
+ *
  * Revision 1.13  1996/04/30 20:45:24  tamches
  * moved some Dg2 cmds here
  * added functionality for phase label displayed in the tk window
@@ -22,34 +66,7 @@
  * added getMetricColorNameCommand
  * hardcoded barColorNames here
  *
- * Revision 1.8  1995/09/22 19:25:29  tamches
- * removed warnings under g++ 2.7.0
- *
- * Revision 1.7  1994/11/06  10:24:59  tamches
- * minor cleanups (especially comments)
- *
- * Revision 1.6  1994/10/14  10:29:33  tamches
- * commented out diagnosted message when gracefully closing
- *
- * Revision 1.5  1994/10/13  00:52:38  tamches
- * Minor additions to support a new command related to sorting
- * of resources
- *
- * Revision 1.4  1994/10/10  23:08:44  tamches
- * preliminary changes on the way to swapping the x and y axes
- *
- * Revision 1.3  1994/10/10  14:36:17  tamches
- * fixed some resizing bugs
- *
- * Revision 1.2  1994/09/29  20:05:37  tamches
- * minor cvs fixes
- *
- * Revision 1.1  1994/09/29  19:51:38  tamches
- * initial implementation.
- * Receiving point for visi lib callback routines.  Pretty much
- * just calls the appropriate class member function in barChart.C
- *
-*/
+ */
 
 #include <iostream.h>
 

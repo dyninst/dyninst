@@ -1,22 +1,51 @@
 /*
- * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
- *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
- *     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
+ * Copyright (c) 1996 Barton P. Miller
  * 
- * This software is furnished under the condition that it may not be
- * provided or otherwise made available to, or used by, any other
- * person, except as provided for by the terms of applicable license
- * agreements.  No title to or ownership of the software is hereby
- * transferred.  The name of the principals may not be used in any
- * advertising or publicity related to this software without specific,
- * written prior authorization.  Any use of this software must include
- * the above copyright notice.
- *
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
  */
+
 /* $Log: datagrid.C,v $
-/* Revision 1.21  1996/01/19 20:55:40  newhall
-/* more chages to visiLib interface
+/* Revision 1.22  1996/08/16 21:33:50  tamches
+/* updated copyright for release 1.1
 /*
+ * Revision 1.21  1996/01/19 20:55:40  newhall
+ * more chages to visiLib interface
+ *
  * Revision 1.20  1996/01/17 18:29:13  newhall
  * reorginization of visiLib
  *
@@ -31,58 +60,8 @@
  * Revision 1.17  1995/11/12  23:29:48  newhall
  * removed warnings, removed error.C
  *
- * Revision 1.16  1995/08/01  01:59:33  newhall
- * changes relating to phase interface stuff
- *
- * Revision 1.15  1995/06/02  21:02:04  newhall
- * changed type of metric and focus handles to u_int
- *
- * Revision 1.14  1995/02/26  01:59:37  newhall
- * added phase interface functions
- *
- * Revision 1.13  1994/11/02  04:14:57  newhall
- * memory leak fixes
- *
- * Revision 1.12  1994/08/11  02:52:09  newhall
- * removed calls to grid cell Deleted member functions
- *
- * Revision 1.11  1994/07/30  03:25:35  newhall
- * added enabled member to gridcell to indicate that the metric associated
- * w/ this cell has been enabled and data will arrive for it eventually
- * updated member functions affected by this addition
- *
- * Revision 1.10  1994/07/20  22:17:50  newhall
- * added FirstValidBucket method function to visi_GridCellHisto class
- *
- * Revision 1.9  1994/07/07  22:40:30  newhall
- * fixed compile warnings
- *
- * Revision 1.8  1994/06/16  18:24:50  newhall
- * fix to visualization::Data
- *
- * Revision 1.7  1994/06/07  17:48:46  newhall
- * support for adding metrics and resources to existing visualization
- *
- * Revision 1.6  1994/05/23  20:56:46  newhall
- * To visi_GridCellHisto class: added deleted flag, SumValue
- * method function, and fixed AggregateValue method function
- *
- * Revision 1.5  1994/05/11  17:12:44  newhall
- * changed data values type from double to float
- * fixed fold method function to support a folding
- * at any point in the histogram, rather than only
- * when the histogram is full
- *
- * Revision 1.4  1994/03/26  04:19:46  newhall
- * changed all floats to double
- * fix problem with null string returned for first resource name
- *
- * Revision 1.3  1994/03/17  05:19:59  newhall
- * changed bucket width and time value's type to double
- *
- * Revision 1.2  1994/03/14  20:28:44  newhall
- * changed visi subdirectory structure
- *  */ 
+ */
+
 ///////////////////////////////////////////////
 // Member functions for the following classes:
 //  Metric, Resource, visi_GridCellHisto,

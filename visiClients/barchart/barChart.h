@@ -1,9 +1,53 @@
+/*
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
+ */
+
 // barChart.h
 
 /* $Log: barChart.h,v $
-/* Revision 1.11  1996/05/15 18:01:22  tamches
-/* added setMetricNewMaxLL
+/* Revision 1.12  1996/08/16 21:35:21  tamches
+/* updated copyright for release 1.1
 /*
+ * Revision 1.11  1996/05/15 18:01:22  tamches
+ * added setMetricNewMaxLL
+ *
  * Revision 1.10  1996/01/10 02:33:23  tamches
  * changed uses of dynamic1dArray/2d to the vector class
  * removed theWindowName
@@ -25,28 +69,7 @@
  * are now shown in the metrics axis.  Metric names are shown in
  * a "key" in the lower-left.
  *
- * Revision 1.6  1994/10/13  00:51:03  tamches
- * Removed xoffsets and widths while implementing
- * sorting and bug-fixing deletion of resources.
- * double-buffer is now the only drawing option
- *
- * Revision 1.5  1994/10/11  22:02:48  tamches
- * added validMetrics and validResources arrays to avoid
- * drawing bars of deleted resources
- *
- * Revision 1.4  1994/10/10  23:08:39  tamches
- * preliminary changes on the way to swapping the x and y axes
- *
- * Revision 1.3  1994/10/10  14:36:14  tamches
- * fixed some resizing bugs
- *
- * Revision 1.2  1994/09/29  20:05:34  tamches
- * minor cvs fixes
- *
- * Revision 1.1  1994/09/29  19:48:42  tamches
- * initial implementation
- *
-*/
+ */
 
 #ifndef _BARCHART_H_
 #define _BARCHART_H_

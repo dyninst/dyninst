@@ -1,8 +1,52 @@
 /*
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
+ */
+
+/*
  * This file contains the implementation of runtime dynamic instrumentation
  *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
+ * Revision 1.34  1996/08/16 21:27:49  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.33  1996/07/29 21:00:06  naim
  * Fixing race condition - naim
  *
@@ -25,112 +69,8 @@
  * Revision 1.28  1996/02/15  14:55:51  naim
  * Minor changes to timers and cost model - naim
  *
- * Revision 1.27  1996/02/01  17:49:54  naim
- * Fixing some problems related to timers and race conditions. I also tried to
- * make a more standard definition of certain procedures (e.g. reportTimer)
- * across all platforms - naim
- *
- * Revision 1.26  1995/11/03  00:06:25  newhall
- * initialize sampling rate to BASESAMPLEINTERVAL (defined in util/h/sys.h)
- * changed type of all DYNINSTsampleMultiple to "volatile int"
- *
- * Revision 1.25  1995/10/27  01:06:20  zhichen
- * Included <stdlib.h> to remove some warnings
- *
- * Revision 1.24  1995/10/19  22:44:45  mjrg
- * Removed breakpoint from DYNINSTinit.
- *
- * Revision 1.23  1995/05/18  11:08:28  markc
- * added guard prevent timer start-stop during alarm handler
- * added version number
- *
- * Revision 1.22  1995/02/16  09:07:33  markc
- * Made Boolean type RT_Boolean to prevent picking up a different boolean
- * definition.
- *
- * Revision 1.21  1994/11/11  10:39:14  markc
- * Commented out non-emergency printfs
- *
- * Revision 1.20  1994/10/09  21:26:05  hollings
- * Fixed cycles to time conversion.
- *
- * Revision 1.19  1994/09/20  18:26:51  hollings
- * added DYNINSTcyclesPerSecond to get cost values no matter the clock speed.
- *
- * removed a race condition in DYNINSTcyclesPerSecond.
- *
- * Revision 1.18  1994/08/22  16:05:37  markc
- * Removed lastValue array.
- * Added lastValue variable to timer structure.
- * Added error messages for timer regression.
- * Removed lastValue array.
- * Added lastValue variable to timer structure.
- * Added error messages for timer regression.
- *
- * Revision 1.17  1994/08/17  17:16:45  markc
- * Increased the size of the lastValue and lastTime arrays.  lastValue is
- * referenced by the timer id, which can be greater than 200.  There should
- * be some way of enforcing a limit between paradynd and rtinst.
- *
- * Revision 1.16  1994/08/02  18:18:57  hollings
- * added code to save/restore FP state on entry/exit to signal handle
- * (really jcargill, but commited by hollings).
- *
- * changed comparisons on time regression to use 64 bit int compares rather
- * than floats to prevent fp rounding error from causing false alarms.
- *
- * Revision 1.15  1994/07/26  20:04:48  hollings
- * removed slots used variables.
- *
- * Revision 1.14  1994/07/22  19:24:54  hollings
- * added actual paused time for CM-5.
- *
- * Revision 1.13  1994/07/16  03:39:31  hollings
- * stopped using assembly version of clocks (temporary).
- *
- * Revision 1.12  1994/07/14  23:35:36  hollings
- * added return of cost model record.
- *
- * Revision 1.11  1994/07/11  22:47:51  jcargill
- * Major CM5 commit: include syntax changes, some timer changes, removal
- * of old aggregation code, old pause code, added signal-driven sampling
- * within node processes
- *
- * Revision 1.10  1994/07/05  03:25:11  hollings
- * obsereved cost model.
- *
- * Revision 1.9  1994/05/18  00:53:28  hollings
- * added flush's after error printfs to force data out pipes on the way
- * to paradyn.
- *
- * Revision 1.8  1994/04/07  01:21:30  markc
- * Cleaned up writes.  Writes interrupted by system calls get retried, others
- * do not.
- *
- * Revision 1.7  1994/03/25  16:03:11  markc
- * Added retry to write which could be interrupted by a signal.
- *
- * Revision 1.6  1994/02/16  00:07:24  hollings
- * Added a default sampling interval of 500msec.  Previous default was not
- * to collect any data.
- *
- * Revision 1.5  1994/02/02  00:46:14  hollings
- * Changes to make it compile with the new tree.
- *
- * Revision 1.4  1993/12/13  19:48:12  hollings
- * force records to be word aligned.
- *
- * Revision 1.3  1993/10/19  15:29:58  hollings
- * new simpler primitives.
- *
- * Revision 1.2  1993/08/26  19:43:17  hollings
- * added uarea mapping code.
- *
- * Revision 1.1  1993/07/02  21:49:35  hollings
- * Initial revision
- *
- *
  */
+
 #include <stdlib.h> /* atoi() */
 #include <stdio.h>
 #include <string.h>

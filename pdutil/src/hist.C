@@ -1,21 +1,51 @@
-/* 
- * Copyright (c) 1992 Barton P. Miller, Morgan Clark, Timothy Torzewski,
- *     Jeff Hollingsworth, and Bruce Irvin. All rights reserved.
- *
- * This software is furnished under the condition that it may not
- * be provided or otherwise made available to, or used by, any
- * other person.  No title to or ownership of the software is
- * hereby transferred.  The name of the principals
- * may not be used in any advertising or publicity related to this
- * software without specific, written prior authorization.
- * Any use of this software must include the above copyright notice.
- *
+/*
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
  */
 
 /*
  * hist.C - routines to manage hisograms.
  *
  * $Log: hist.C,v $
+ * Revision 1.28  1996/08/16 21:31:56  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.27  1996/05/16 05:27:30  newhall
  * bug fix to foldAllHists, so that a check is done before folding to see if
  * the histogram has already been folded.  Changed how bucketWidth is computed
@@ -38,93 +68,6 @@
  *
  * Revision 1.22  1996/02/12 19:54:19  karavan
  * bug fix: changed arguments to histFoldCallBack
- *
- * Revision 1.21  1996/02/12 08:07:14  karavan
- *  added new data member, bool globalData, set to true if this histogram
- *  contains global phase data, and used in histDataCallBack.
- *
- * Revision 1.20  1995/12/12 04:34:52  newhall
- * bug fix
- *
- * Revision 1.19  1995/12/11 02:20:47  newhall
- * initialize bucket values to NaN rather than to zero
- *
- * Revision 1.18  1995/10/13 22:05:16  newhall
- * use BASEBUCKETWIDTH to initialize bucket widths.  Purify fix
- *
- * Revision 1.17  1995/08/20  03:34:29  newhall
- * added fold_on_inactive flag
- * fixed scope problems assoc. with for loop variables
- *
- * Revision 1.16  1995/08/08  03:09:20  newhall
- * changed initial bin width to 0.2
- *
- * Revision 1.15  1995/08/01  01:56:32  newhall
- * fix to how global time is computed
- *
- * Revision 1.14  1995/07/20 22:30:13  rbi
- * Fixed a folding bug
- *
- * Revision 1.13  1995/07/06  01:52:13  newhall
- * support for Histograms with non-zero start time
- *
- * Revision 1.12  1995/06/02  21:00:08  newhall
- * added a NaN value generator
- * fixed memory leaks in Histogram class
- * added newValue member with a vector<sampleInfo *> to class sampleInfo
- *
- * Revision 1.11  1995/02/16  09:28:02  markc
- * Removed compiler warnings.
- * Changed Boolean to bool
- *
- * Revision 1.10  1994/06/29  02:48:31  hollings
- * Added destructor to Histogram class.
- *
- * Revision 1.9  1994/05/10  03:56:47  hollings
- * Changed hist data upcall to return array of buckets not single value.
- *
- * Revision 1.8  1994/04/30  21:00:03  hollings
- * Fixed bug in fold callback that caused all fold message to go to the
- * Histogram that caused the fold not the correct ones.
- *
- * Revision 1.7  1994/04/20  15:19:30  hollings
- * Added method to get histogram buckets.
- *
- * Revision 1.6  1994/04/12  22:11:22  hollings
- * removed special case of bucket a zero value since it caused upcalls not to
- * happen.
- *
- * Revision 1.5  1994/03/08  17:12:29  hollings
- * Added fold callback and changed from multiple data callbacks to one per
- * histogram instance.  Also made the data callbacks happen once per bucket.
- *
- * Revision 1.4  1994/02/10  23:08:26  hollings
- * Fixed list.h ++ function to work when a hash table has an element at
- * slot zero in the table.
- *
- * Removed unused fields in hist class.
- *
- * Revision 1.3  1994/02/08  00:30:39  hollings
- * Make libutil more compatable with ATT CC.
- *
- * Revision 1.2  1994/01/26  04:53:42  hollings
- * Change to using <module>/h/.h
- *
- * Revision 1.1  1994/01/25  20:50:25  hollings
- * First real version of utility library.
- *
- * Revision 1.4  1993/12/15  21:06:23  hollings
- * changed initial bucket width to 0.1.
- *
- * Revision 1.3  1993/08/11  18:03:54  hollings
- * removed printf for folding hist.
- *
- * Revision 1.2  1993/08/05  18:55:08  hollings
- * general fixups and include format.
- *
- * Revision 1.1  1993/05/07  20:19:17  hollings
- * Initial revision
- *
  *
  */
 

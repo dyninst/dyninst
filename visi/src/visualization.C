@@ -1,23 +1,52 @@
 /*
- * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
- *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
- *     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
+ * Copyright (c) 1996 Barton P. Miller
  * 
- * This software is furnished under the condition that it may not be
- * provided or otherwise made available to, or used by, any other
- * person, except as provided for by the terms of applicable license
- * agreements.  No title to or ownership of the software is hereby
- * transferred.  The name of the principals may not be used in any
- * advertising or publicity related to this software without specific,
- * written prior authorization.  Any use of this software must include
- * the above copyright notice.
- *
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
  */
+
 /* $Log: visualization.C,v $
-/* Revision 1.43  1996/03/11 17:42:21  newhall
-/* changed bool to int params in visi_DefinePhase, changed some params to
-/* unsigned
+/* Revision 1.44  1996/08/16 21:33:55  tamches
+/* updated copyright for release 1.1
 /*
+ * Revision 1.43  1996/03/11 17:42:21  newhall
+ * changed bool to int params in visi_DefinePhase, changed some params to
+ * unsigned
+ *
  * Revision 1.42  1996/02/23  17:47:16  tamches
  * added 2 bool params to visi_DefinePhase
  *
@@ -34,132 +63,8 @@
  * changed parameters to showErrorVisiCallback, so that visilib users are
  * not forced into using our string class
  *
- * Revision 1.37  1995/12/18 23:22:05  newhall
- * changed metric units type so that it can have one of 3 values (normalized,
- * unnormalized or sampled)
- *
- * Revision 1.36  1995/12/18 17:22:07  naim
- * Adding function showErrorVisiCallback to display error messages from
- * visis - naim
- *
- * Revision 1.35  1995/12/15  20:15:24  naim
- * Adding call back function to display error messages from visis - naim
- *
- * Revision 1.34  1995/11/17  17:28:40  newhall
- * added normalized member to Metric class which specifies units type
- * added MetricLabel, MetricAveLabel, and MetricSumLabel DG method functions
- *
- * Revision 1.33  1995/11/13  17:24:25  newhall
- * bug fix
- *
- * Revision 1.32  1995/11/12  23:29:55  newhall
- * removed warnings, removed error.C
- *
- * Revision 1.31  1995/11/12  00:45:19  newhall
- * added PARADYNEXITED event, added "InvalidSpans" dataGrid method
- *
- * Revision 1.30  1995/11/02  02:12:51  newhall
- * added class derived from igen generated visualization class that contains
- * a handle_error method that won't print an error msg when an error occurs
- *
- * Revision 1.29  1995/09/18  18:26:06  newhall
- * updated test subdirectory, added visilib routine GetMetRes()
- *
- * Revision 1.28  1995/09/08  19:47:00  krisna
- * stupid way to avoid the for-scope problem
- *
- * Revision 1.27  1995/08/05 17:12:18  krisna
- * use `0' instead of `NULL'
- *
- * Revision 1.26  1995/08/01 01:59:35  newhall
- * changes relating to phase interface stuff
- *
- * Revision 1.25  1995/06/02  21:02:06  newhall
- * changed type of metric and focus handles to u_int
- *
- * Revision 1.24  1995/03/31  15:56:11  jcargill
- * Changed malloc's to new's, so that constructors would get fired;
- * otherwise, bogus memory references/free's occur.
- *
- * Revision 1.23  1995/02/26  01:59:40  newhall
- * added phase interface functions
- *
- * Revision 1.22  1995/02/16  09:31:03  markc
- * Modified NaN generation code for machines that do not have nan.h.
- * This code has not been tested.
- *
- * Revision 1.21  1995/01/30  17:35:27  jcargill
- * Updated igen-generated includes to new naming convention
- *
- * Revision 1.20  1994/11/02  04:15:00  newhall
- * memory leak fixes
- *
- * Revision 1.19  1994/10/13  15:39:17  newhall
- * QuitVisi added
- *
- * Revision 1.18  1994/09/30  21:00:51  newhall
- * use datagrid method functions MetricId and ResourceId
- *
- * Revision 1.17  1994/09/25  02:00:29  newhall
- * changes to visi interface routines that take list of met/focus pairs:
- * AddMetricsResources, GetMetRes
- * and changes to support the new version of igen
- *
- * Revision 1.16  1994/09/22  03:14:41  markc
- * declared arrays at start
- * incremented version number
- *
- * Added stronger compiler warnings
- * removed compiler warnings
- *
- * Revision 1.15  1994/08/13  20:34:50  newhall
- * removed all code associated with class visi_MRList
- * removed mrlist src and obj
- * removed
- *
- * Revision 1.14  1994/08/11  02:52:11  newhall
- * removed calls to grid cell Deleted member functions
- *
- * Revision 1.13  1994/08/03  20:49:12  newhall
- * removed code for interface routines NewMetricsResources and Enabled
- * changed AddMetricsResources to set grid cell's enabled flag
- *
- * Revision 1.12  1994/07/30  03:27:27  newhall
- * added visi interface functions Enabled and BulkDataTransfer
- *
- * Revision 1.11  1994/07/20  22:41:11  rbi
- * Small arguments fix to make identification of wildcards easier.
- *
- * Revision 1.10  1994/07/07  22:40:31  newhall
- * fixed compile warnings
- *
- * Revision 1.9  1994/06/16  18:24:53  newhall
- * fix to visualization::Data
- *
- * Revision 1.8  1994/06/07  17:48:49  newhall
- * support for adding metrics and resources to existing visualization
- *
- * Revision 1.7  1994/05/23  20:56:48  newhall
- * To visi_GridCellHisto class: added deleted flag, SumValue
- * method function, and fixed AggregateValue method function
- *
- * Revision 1.6  1994/05/11  17:13:14  newhall
- * changed data type from double to float
- *
- * Revision 1.5  1994/04/13  21:34:54  newhall
- * added routines: GetMetsRes StopMetRes NamePhase
- *
- * Revision 1.4  1994/03/26  04:19:49  newhall
- * changed all floats to double
- * fix problem with null string returned for first resource name
- *
- * Revision 1.3  1994/03/17  05:23:09  newhall
- * changed eventCallbacks type, and the constraints on triggering the
- * callback routine associated with the DATAVALUES event
- *
- * Revision 1.2  1994/03/14  20:28:55  newhall
- * changed visi subdirectory structure
- *  */ 
+ */ 
+
 #include <stream.h> 
 #include "visi/src/visualizationP.h"
 #include "visi/src/datagridP.h"

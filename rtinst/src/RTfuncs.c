@@ -1,8 +1,52 @@
 /*
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
+ */
+
+/*
  * This file contains the implementation of runtime dynamic instrumentation
  *   functions for a SUNOS SPARC processor.
  *
  * $Log: RTfuncs.c,v $
+ * Revision 1.31  1996/08/16 21:27:35  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.30  1996/04/09 22:20:54  newhall
  * changed DYNINSTgetWallTime to DYNINSTgetWalltime to fix undefined symbol
  * errors when applications are linked with libdyninstRT_cp.a
@@ -33,88 +77,8 @@
  * make a more standard definition of certain procedures (e.g. reportTimer)
  * across all platforms - naim
  *
- * Revision 1.23  1995/12/17  20:58:10  zhichen
- * Hopefully, the samples will arrive
- *
- * Revision 1.22  1995/12/10  16:35:52  zhichen
- * Minor clean up
- *
- * Revision 1.21  1995/10/27  01:04:40  zhichen
- * Added some comments to DYNINSTsampleValues.
- * Added some prototypes
- *
- * Revision 1.20  1995/08/29  20:26:55  mjrg
- * changed sample.observedCost to sample.obsCostIdeal
- *
- * Revision 1.19  1995/05/18  11:08:25  markc
- * added guard prevent timer start-stop during alarm handler
- * added version number
- *
- * Revision 1.18  1995/02/16  09:07:15  markc
- * Made Boolean type RT_Boolean to prevent picking up a different boolean
- * definition.
- *
- * Revision 1.17  1994/11/11  10:16:00  jcargill
- * "Fixed" pause_time definition for CM5
- *
- * Revision 1.16  1994/11/06  09:45:29  jcargill
- * Added prototype for clock functions to fix pause_time metric for cm5
- *
- * Revision 1.15  1994/11/02  19:03:54  hollings
- * Made the observed cost model use a normal variable rather than a reserved
- * register.
- *
- * Revision 1.14  1994/10/27  16:15:53  hollings
- * Temporary hack to normalize cost data until the CM-5 inst supports a max
- * operation.
- *
- * Revision 1.13  1994/09/20  18:27:17  hollings
- * removed hard coded clock value.
- *
- * Revision 1.12  1994/08/02  18:18:56  hollings
- * added code to save/restore FP state on entry/exit to signal handle
- * (really jcargill, but commited by hollings).
- *
- * changed comparisons on time regression to use 64 bit int compares rather
- * than floats to prevent fp rounding error from causing false alarms.
- *
- * Revision 1.11  1994/07/26  20:04:49  hollings
- * removed slots used variables.
- *
- * Revision 1.10  1994/07/22  19:24:53  hollings
- * added actual paused time for CM-5.
- *
- * Revision 1.9  1994/07/14  23:35:34  hollings
- * added return of cost model record.
- *
- * Revision 1.8  1994/07/11  22:47:49  jcargill
- * Major CM5 commit: include syntax changes, some timer changes, removal
- * of old aggregation code, old pause code, added signal-driven sampling
- * within node processes
- *
- * Revision 1.7  1994/07/05  03:25:09  hollings
- * obsereved cost model.
- *
- * Revision 1.6  1994/02/02  00:46:11  hollings
- * Changes to make it compile with the new tree.
- *
- * Revision 1.5  1993/12/13  19:47:29  hollings
- * support for DYNINSTsampleMultiple.
- *
- * Revision 1.4  1993/10/19  15:29:58  hollings
- * new simpler primitives.
- *
- * Revision 1.3  1993/10/01  18:15:53  hollings
- * Added filtering and resource discovery.
- *
- * Revision 1.2  1993/08/26  19:43:58  hollings
- * new include syntax.
- *
- * Revision 1.1  1993/07/02  21:49:35  hollings
- * Initial revision
- *
- *
  */
+
 #include <sys/types.h>
 #include <assert.h>
 #include <sys/signal.h>

@@ -1,9 +1,53 @@
+/*
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
+ */
+
 // barChartDriver.C
 
 /* $Log: barChartDriver.C,v $
-/* Revision 1.15  1996/08/05 07:09:14  tamches
-/* update for tcl7.5
+/* Revision 1.16  1996/08/16 21:35:23  tamches
+/* updated copyright for release 1.1
 /*
+ * Revision 1.15  1996/08/05 07:09:14  tamches
+ * update for tcl7.5
+ *
  * Revision 1.14  1996/05/15 18:03:15  tamches
  * added newMetricMaxValCallbackCommand
  *
@@ -21,40 +65,7 @@
  * now include tkTools.h, pdLogo.h
  * Now hardcode the pdLogo
  *
- * Revision 1.9  1995/11/08 21:17:12  naim
- * Adding matherr exception handler function to avoid error message when
- * computing the "not a number" (NaN) value - naim
- *
- * Revision 1.8  1995/11/08  02:17:06  tamches
- * minor cleanups
- *
- * Revision 1.7  1995/09/22 19:25:04  tamches
- * removed warnings under g++ 2.7.0
- *
- * Revision 1.6  1995/08/06  22:11:13  tamches
- * barChart now uses tcl2c.
- * Now needs no command-line args.
- *
- * Revision 1.5  1995/07/06  18:55:31  tamches
- * Now contains a main program suitable for tk4.0
- *
- * Revision 1.4  1994/10/13  00:52:36  tamches
- * Minor additions to support a new command related to sorting
- * of resources
- *
- * Revision 1.3  1994/10/10  23:08:43  tamches
- * preliminary changes on the way to swapping the x and y axes
- *
- * Revision 1.2  1994/09/29  20:05:36  tamches
- * minor cvs fixes
- *
- * Revision 1.1  1994/09/29  19:50:51  tamches
- * initial implementation.
- * entrypoint for barchart C++ program.  we create new tcl
- * commands (which will eventually call back to barChartTcl.C
- * and from there barChart.C) and then launch barChart.tcl.
- *
-*/
+ */
 
 #include <assert.h>
 #include <stdlib.h>
