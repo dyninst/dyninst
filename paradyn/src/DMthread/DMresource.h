@@ -2,6 +2,12 @@
  * DMresource.h - define the resource data abstraction.
  *
  * $Log: DMresource.h,v $
+ * Revision 1.26  1996/02/02 02:14:53  karavan
+ * changed resource::magnify to return struct like magnify2.
+ *
+ * removed obsolete friend classes for compatibility with new PC.
+ *
+ *
  * Revision 1.25  1995/12/11 02:25:13  newhall
  * changed magnify2 to return the resourceList label with each
  * magnified focus
@@ -132,13 +138,6 @@ class resource {
       friend string DMcreateRLname(const vector<resourceHandle> &res);
       friend resourceHandle createResource(vector<string>&, string&);
 
-      // TODO: these should go when PC is re-written *******************
-      friend class testValue;
-      friend class focus;
-      friend void initResources();
-//      friend class dag;
-
-      // ***************************************************************
   public:
     vector<resourceHandle> *getChildren();
     const char *getName() { return(fullName[fullName.size()-1].string_of());}
@@ -196,11 +195,6 @@ class resourceList {
       friend class metricInstance;
       friend class dataManager;
       friend class paradynDaemon;
-      // TODO: these should go when PC is re-written *******************
-      friend class datum;
-      friend class focus;
-      friend void initResources();
-      // ***************************************************************
   public:
       // resourceList(string name); 
       resourceList(const vector<resourceHandle> &resources); 
@@ -221,7 +215,7 @@ class resourceList {
       bool convertToIDList(vector<u_int>& flist);
       bool isSuppressed(){return(suppressed);}
 
-      vector<resourceListHandle> *magnify(resourceHandle rh);
+      vector<rlNameId> *magnify(resourceHandle rh);
       vector<rlNameId> *magnify();
       resourceListHandle *constrain(resourceHandle);
 

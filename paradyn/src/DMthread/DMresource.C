@@ -7,6 +7,11 @@
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
+ * Revision 1.33  1996/02/02 02:14:51  karavan
+ * changed resource::magnify to return struct like magnify2.
+ *
+ * removed obsolete friend classes for compatibility with new PC.
+ *
  * Revision 1.32  1995/12/11 02:25:11  newhall
  * changed magnify2 to return the resourceList label with each
  * magnified focus
@@ -157,6 +162,7 @@ resource::resource()
         allResources[name] = res;
     }
 }
+
 
 resource::resource(resourceHandle p_handle, 
 		   vector<string>& resource_name,
@@ -429,7 +435,7 @@ bool resourceList::convertToIDList(vector<u_int> &fs) {
 // This routine returns a list of foci which are the result of combining
 // each child of resource rh with the remaining resources that make up the
 // focus, otherwise it returns 0
-vector<resourceListHandle> *resourceList::magnify(resourceHandle rh){
+vector<rlNameId> *resourceList::magnify(resourceHandle rh){
 
     // check to see if rh is a component of this resourceList
     unsigned rIndex = elements.size();
@@ -440,21 +446,23 @@ vector<resourceListHandle> *resourceList::magnify(resourceHandle rh){
 	}
     }
     if(rIndex < elements.size()){
-        vector<resourceListHandle> *return_list = 
-				    new vector<resourceListHandle>;
-        vector<resourceHandle> *children = (elements[rIndex])->getChildren();
-	if(children->size()){ // for each child create a new focus
-	    vector<resourceHandle> new_focus; 
-	    for(unsigned i=0; i < elements.size(); i++){
-                new_focus += (elements[i])->getHandle();
-	    }
-	    for(unsigned j=0; j < children->size(); j++){
-		new_focus[rIndex] = (*children)[j];
-		*return_list += resourceList::getResourceList(new_focus);
-	    }
-	    delete children;
-	    return return_list;
+      vector<rlNameId> *return_list = new vector<rlNameId>;
+      vector<resourceHandle> *children = (elements[rIndex])->getChildren();
+      if(children->size()){ // for each child create a new focus
+	vector<resourceHandle> new_focus; 
+	for(unsigned i=0; i < elements.size(); i++){
+	  new_focus += (elements[i])->getHandle();
 	}
+	rlNameId temp;
+	for(unsigned j=0; j < children->size(); j++){
+	  new_focus[rIndex] = (*children)[j];
+	  temp.id = resourceList::getResourceList(new_focus);
+	  temp.res_name = resource::getName((*children)[j]);
+	  *return_list += temp; 
+	}
+	delete children;
+	return return_list;
+      }
     }
     return 0;
 }
@@ -511,25 +519,15 @@ vector<rlNameId> *resourceList::magnify(){
     
     vector<rlNameId> *return_list = new vector<rlNameId>;
     for(unsigned i=0; i < elements.size(); i++){
-	vector<resourceListHandle> *next = 
-				   this->magnify((elements[i])->getHandle());
-        if(next){
-            rlNameId temp;
-            for(unsigned j=0; j < next->size(); j++){
-	        temp.id = (*next)[j];
-		resourceList *new_rl = resourceList::getFocus((*next)[j]);
-		if (new_rl) {
-	            temp.res_name = resource::getName(
-				    (new_rl->elements[i])->getHandle()); 
-		}
-		else {
-                    temp.res_name = string(0);
-		}
-                *return_list += temp;
-	    }
-	    delete next;
+	vector<rlNameId> *next = 
+	                 this->magnify((elements[i])->getHandle());
+        if(next) {
+	  for (unsigned j=0; j < next->size(); j++){
+	    *return_list += (*next)[j];
+	  }
+	  delete next;
 	}
-    }
+      }
     if(return_list->size()) return return_list;
     return 0;
 }
