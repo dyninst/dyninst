@@ -1,6 +1,14 @@
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.18  1994/06/12 22:40:47  karavan
+ * Revision 1.19  1994/06/14 15:28:52  markc
+ * Added conflict flag to moreSpecific procedure since a desired magnification
+ * may conflict with the current focus (if the desired magnification has the
+ * same base as the focus, but one is not an ancestor of the other).
+ *
+ * Allowed compensationFactor to be computed from pause_time since pause_time
+ * is now aggregated and averaged.
+ *
+ * Revision 1.18  1994/06/12  22:40:47  karavan
  * changed printf's to calls to status display service.
  *
  * Revision 1.17  1994/05/31  21:42:58  markc
@@ -108,7 +116,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
   All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.18 1994/06/12 22:40:47 karavan Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.19 1994/06/14 15:28:52 markc Exp $";
 #endif
 
 
@@ -257,10 +265,11 @@ void testValue::addHint(focus *f, char* message)
 void testValue::addHint(resource *res, char* message)
 {
     focus *f;
+    Boolean conflicts;
 
     // now find the focus that has this focus cell.
     while (res) {
-	f = currentFocus->moreSpecific(res);
+	f = currentFocus->moreSpecific(res, conflicts);
 	if (f) {
 	    if (!hints) hints = new(hintList);
 	    hints->add(f, message);
@@ -402,9 +411,11 @@ Boolean evalTests()
     float hysteresis;
     testResultList curr;
     Boolean previousStatus;
+    float fctr;
 
-    factor = (1.0-compensationFactor.value(whereAxis));
-    if (factor < 0.0) factor = 0.01;
+    factor = (1.0-(fctr=compensationFactor.value(whereAxis)));
+    // printf("factor=%f\n", fctr);
+    // if (factor < 0.0) factor = 0.01;
     assert ((factor <= 1.0) && (factor > 0.0));
 
     for (curr = *currentTestResults; r=*curr; curr++) {
