@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.33  1994/11/10 17:35:57  rbi
-/* physical illness and possible death in the family
+/* Revision 1.34  1994/11/11 15:12:35  rbi
+/* causing serious illness to debugging printf()
 /*
+ * Revision 1.33  1994/11/10  17:35:57  rbi
+ * physical illness and possible death in the family
+ *
  * Revision 1.32  1994/11/07  08:25:14  jcargill
  * Added ability to suppress search on children of a resource, rather than
  * the resource itself.
@@ -416,7 +419,6 @@ resourceList *build_resource_list (Tcl_Interp *interp, char *list)
   resource *parent, *child;
   int res, el;
 
-  printf("list is %s\n",list);
   ret = new resourceList;
 
   if (Tcl_SplitList(interp, list, &argc1, &argv1) != TCL_OK) {
