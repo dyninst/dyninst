@@ -2,8 +2,11 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.40  1995/08/01 02:15:29  newhall
- * added phase type parameter to VMCreateVisi
+ * Revision 1.41  1995/08/01 02:17:02  newhall
+ * *** empty log message ***
+ *
+ * Revision 1.40  1995/08/01  02:15:29  newhall
+ * changes to support phase interface  
  *
  * Revision 1.39  1995/06/02  20:57:40  newhall
  * * removed all pointers to datamanager class objects from datamanager
