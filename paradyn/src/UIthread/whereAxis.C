@@ -44,7 +44,7 @@
 
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
-/* $Id: whereAxis.C,v 1.25 2002/05/13 19:53:34 mjbrim Exp $ */
+/* $Id: whereAxis.C,v 1.26 2002/11/25 23:52:38 schendel Exp $ */
 
 #include <stdlib.h> // exit()
 
@@ -74,8 +74,10 @@ Tk_Font whereAxis::theRootItemFontStruct = NULL;
 Tk_Font whereAxis::theListboxItemFontStruct = NULL;
 Tk_3DBorder  whereAxis::rootItemTk3DBorder = NULL;
 GC           whereAxis::rootItemTextGC = NULL;
+GC           whereAxis::rootRetiredItemTextGC = NULL;
 Tk_3DBorder  whereAxis::listboxItem3DBorder = NULL;
 GC           whereAxis::listboxItemGC = NULL;
+GC           whereAxis::listboxRetiredItemGC = NULL;
 GC           whereAxis::listboxRayGC = NULL;
 GC           whereAxis::nonListboxRayGC = NULL;
 int          whereAxis::listboxBorderPix = 3;
@@ -99,12 +101,19 @@ void whereAxis::initializeStaticsIfNeeded() {
       // somewhat kludgy
       rootItemTextGC = consts.rootItemTextGC;
 
+   if (rootRetiredItemTextGC == NULL)
+      // somewhat kludgy
+      rootRetiredItemTextGC = consts.rootRetiredTextGC;
+
    if (listboxItem3DBorder == NULL)
       // somewhat kludgy
       listboxItem3DBorder = consts.listboxBorder; // ???
 
    if (listboxItemGC == NULL)
       listboxItemGC = consts.listboxTextGC;
+
+   if(listboxRetiredItemGC == NULL)
+      listboxRetiredItemGC = consts.listboxRetiredTextGC;
 
    if (listboxRayGC == NULL)
       listboxRayGC = consts.listboxRayGC;
@@ -353,6 +362,13 @@ void whereAxis::addItem(const string &newName,
    assert(!hash.defines(newNodeUniqueId));
    hash[newNodeUniqueId] = newNode;
    assert(hash.defines(newNodeUniqueId));
+}
+
+void whereAxis::retireItem(resourceHandle uniqueId) {
+   assert(hash.defines(uniqueId));
+   where4tree<whereAxisRootNode> *itemPtr = hash[uniqueId];
+   assert(itemPtr != NULL);
+   itemPtr->getNodeData().mark_as_retired();
 }
 
 #ifndef PARADYN
@@ -638,11 +654,15 @@ void whereAxis::processSingleClick(int x, int y) {
 
          // Now redraw the node in question...(its highlightedness changed)
          where4tree<whereAxisRootNode> *ptr = thePath.getLastPathNode(rootPtr);
+         if(ptr->getNodeData().is_retired())
+            return;
+
          ptr->toggle_highlight();
+
          ptr->getNodeData().drawAsRoot(consts.theTkWindow,
-				       Tk_WindowId(consts.theTkWindow),
-				       thePath.get_endpath_centerx(),
-				       thePath.get_endpath_topy());
+                                       Tk_WindowId(consts.theTkWindow),
+                                       thePath.get_endpath_centerx(),
+                                       thePath.get_endpath_topy());
 
 	 bool ishighlight=ptr->isHighlighted();
 	 map_to_CallGraph(ptr->getNodeData().getUniqueId(),ishighlight);
@@ -654,18 +674,23 @@ void whereAxis::processSingleClick(int x, int y) {
          rethinkNavigateMenu();
 
          // Now we have to redraw the item in question...(its highlightedness changed)
-         thePath.getLastPathNode(rootPtr)->toggle_highlight();
-
-         thePath.getParentOfLastPathNode(rootPtr)->draw(consts.theTkWindow,
-							consts, Tk_WindowId(consts.theTkWindow),
-							thePath.get_endpath_centerx(),
-							thePath.get_endpath_topy(),
-							false, // not root only
-							true // listbox only
-							);
          where4tree<whereAxisRootNode> *ptr = thePath.getLastPathNode(rootPtr);
+         if(ptr->getNodeData().is_retired())
+            return;
+
+         ptr->toggle_highlight();
+         
+         thePath.getParentOfLastPathNode(rootPtr)->draw(consts.theTkWindow,
+                               consts, Tk_WindowId(consts.theTkWindow),
+                               thePath.get_endpath_centerx(), 
+                               thePath.get_endpath_topy(),
+                               false, // not root only
+                               true // listbox only
+                               );
+         
 	 bool ishighlight=ptr->isHighlighted();
 	 map_to_CallGraph(ptr->getNodeData().getUniqueId(),ishighlight);
+
          return;
 	}
       case whereNodeGraphicalPath<whereAxisRootNode>::ListboxScrollbarUpArrow:
