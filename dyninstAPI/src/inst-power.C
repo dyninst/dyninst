@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.180 2003/07/23 22:27:54 bernat Exp $
+ * $Id: inst-power.C,v 1.181 2003/07/28 21:08:52 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -1305,12 +1305,17 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
 
   theTemplate->savePreInsOffset = currAddr;
 
+  // Push a new stack frame
+  genImmInsn(insn, STUop, REG_SP, REG_SP, -TRAMP_FRAME_SIZE);
+  insn++; currAddr += sizeof(instruction);
+
+
   // Save registers
-  saveGPRegisters(insn, currAddr, TRAMP_GPR_OFFSET - TRAMP_FRAME_SIZE, theRegSpace);
-  saveFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET - TRAMP_FRAME_SIZE);
+  saveGPRegisters(insn, currAddr, TRAMP_GPR_OFFSET, theRegSpace);
+  saveFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
   if (location->ipLoc == ipOther) {
     // Save special purpose registers
-    saveSPRegisters(insn, currAddr, TRAMP_SPR_OFFSET - TRAMP_FRAME_SIZE);
+    saveSPRegisters(insn, currAddr, TRAMP_SPR_OFFSET);
     // Save GPR0 here also? 
   }
   
@@ -1318,14 +1323,10 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   // or a call site (ipFuncCallPoint)
   if (location->ipLoc == ipOther ||
       location->ipLoc == ipFuncCallPoint) {
-      currAddr += saveSPR(insn, 10, SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR - TRAMP_FRAME_SIZE);
+      currAddr += saveSPR(insn, 10, SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
   }
 
-  currAddr += saveLR(insn, 10, TRAMP_SPR_OFFSET + STK_LR - TRAMP_FRAME_SIZE);
-
-  // Push a new stack frame
-  genImmInsn(insn, STUop, REG_SP, REG_SP, -TRAMP_FRAME_SIZE);
-  insn++; currAddr += sizeof(instruction);
+  currAddr += saveLR(insn, 10, TRAMP_SPR_OFFSET + STK_LR);
 
   // Let the stack walk code/anyone else know we're in a base tramp
   // via cookie writing.
@@ -1437,10 +1438,6 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   // Register restore. 
   theTemplate->restorePreInsOffset = currAddr;
 
-  // Pop stack flame, could also be a load indirect R1->R1
-  genImmInsn(insn, CALop, REG_SP, REG_SP, TRAMP_FRAME_SIZE);
-  insn++; currAddr += sizeof(instruction);
-
   // Not in a base tramp any more
   {
       unsigned int cookie_value = 0x0;
@@ -1455,18 +1452,24 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
       insn++; currAddr += sizeof(instruction);
   }
 
-  currAddr += restoreLR(insn, 10, TRAMP_SPR_OFFSET + STK_LR - TRAMP_FRAME_SIZE);
+  currAddr += restoreLR(insn, 10, TRAMP_SPR_OFFSET + STK_LR);
   if (location->ipLoc == ipOther ||
       location->ipLoc == ipFuncCallPoint) {
-      currAddr += restoreSPR(insn, 10, SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR - TRAMP_FRAME_SIZE);
+      currAddr += restoreSPR(insn, 10, SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
   }  
 
   if (location->ipLoc == ipOther)
-    restoreSPRegisters(insn, currAddr, TRAMP_SPR_OFFSET - TRAMP_FRAME_SIZE);
+      restoreSPRegisters(insn, currAddr, TRAMP_SPR_OFFSET);
       
-  restoreFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET - TRAMP_FRAME_SIZE);
-  restoreGPRegisters(insn, currAddr, TRAMP_GPR_OFFSET - TRAMP_FRAME_SIZE, theRegSpace);
+  restoreFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
+  restoreGPRegisters(insn, currAddr, TRAMP_GPR_OFFSET, theRegSpace);
   
+  // Pop stack flame, could also be a load indirect R1->R1
+  genImmInsn(insn, CALop, REG_SP, REG_SP, TRAMP_FRAME_SIZE);
+  insn++; currAddr += sizeof(instruction);
+
+
+
   // FINALLY, we get to the original instruction! W00T!
   generateNOOP(insn);
   theTemplate->emulateInsOffset = currAddr;  
