@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.21 2000/11/15 22:56:04 bernat Exp $
+ * $Id: Object-elf.C,v 1.22 2000/12/01 22:05:07 pcroth Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -616,7 +616,7 @@ void Object::load_object()
     
     // dump "allsymbols" into "symbols_" (data member)
     // or "global_symbols" (parameter) according to linkage
-    dictionary_hash<string, Symbol> global_symbols(string::hash, allsymbols.size(), 1.0);
+    dictionary_hash<string, Symbol> global_symbols(string::hash, allsymbols.size(), 100);
     insert_symbols_static(allsymbols, global_symbols);
     
     // try to resolve the module names of global symbols
