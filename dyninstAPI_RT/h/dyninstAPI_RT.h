@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: dyninstAPI_RT.h,v 1.5 2000/07/28 17:21:39 pcroth Exp $
+ * $Id: dyninstAPI_RT.h,v 1.6 2000/08/07 00:59:36 wylie Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the run-time instrumentation layer.
  */
@@ -61,6 +61,7 @@
 /* We sometimes include this into assembly files, so guard the struct defs. */
 #if !defined(__ASSEMBLER__)
 
+#include <stdio.h>
 #include "common/h/Types.h"
 
 /* If we must make up a boolean type, we should make it unique */
@@ -129,6 +130,9 @@ extern rpcInfo curRPC;
 extern unsigned pcAtLastIRPC;
 extern int trapNotHandled;  /* 1 a trap hasn't been handled, 0 traps handled */
 
+extern int DYNINSTdebugPrintRT; /* control run-time lib debug/trace prints */
+#define RTprintf                if (DYNINSTdebugPrintRT) printf
+                                /* Yes, this is crude, but this is plain C */
 
 #endif /* !defined(__ASSEMBLER__) */
 
