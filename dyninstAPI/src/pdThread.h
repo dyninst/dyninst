@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdThread.h,v 1.13 2002/04/18 19:40:01 bernat Exp $
+// $Id: pdThread.h,v 1.14 2002/05/10 18:37:03 schendel Exp $
 
 #ifndef _PDTHREAD_H_
 #define _PDTHREAD_H_
@@ -135,18 +135,18 @@ class pdThread {
 
     Frame getActiveFrame();
 
-    int            get_tid()           { return(tid); }
-    unsigned       get_pos()           { return(pos); }
-    unsigned       get_pd_pos()        { return(pd_pos); }
-    unsigned       get_stack_addr()    { return(stack_addr); }
-    int            get_fd()            { return(fd); }
-    int            get_ppid()          { return(ppid); }
-    resource*      get_rid()           { return(rid); }
-    process*       get_proc()          { return(proc); }
-    handleT        get_handle()        { return(handle); }
-    function_base* get_start_func()    { return(start_func); }
-    unsigned       get_start_pc()      { return(start_pc); }
-    void*          get_resumestate_p() { return resumestate_p; }
+    int            get_tid()           const { return(tid); }
+    unsigned       get_pos()           const { return(pos); }
+    unsigned       get_pd_pos()        const { return(pd_pos); }
+    unsigned       get_stack_addr()    const { return(stack_addr); }
+    int            get_fd()            const { return(fd); }
+    int            get_ppid()          const { return(ppid); }
+    resource*      get_rid()                 { return(rid); }
+    process*       get_proc()                { return(proc); }
+    handleT        get_handle()        const { return(handle); }
+    function_base* get_start_func()          { return(start_func); }
+    unsigned       get_start_pc()      const { return(start_pc); }
+    void*          get_resumestate_p()       { return resumestate_p; }
 #if defined(MT_THREAD)
     static rawTime64  getInferiorVtime(tTimer* , process*, bool&);
 #endif
