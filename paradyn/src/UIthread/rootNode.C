@@ -2,11 +2,15 @@
 // Ariel Tamches
 
 /* $Log: rootNode.C,v $
-/* Revision 1.4  1995/10/17 22:05:08  tamches
-/* Changed name from rootNode to whereAxisRootNode
-/* Added pixWidthAsListboxItem and drawAsListboxItem,
-/* along the lines of shgRootNode.C
+/* Revision 1.5  1996/02/15 23:09:31  tamches
+/* added getGCforListboxRay and getGCforNonListboxRay, to better support
+/* why vs. where axis refinement in the shg
 /*
+ * Revision 1.4  1995/10/17 22:05:08  tamches
+ * Changed name from rootNode to whereAxisRootNode
+ * Added pixWidthAsListboxItem and drawAsListboxItem,
+ * along the lines of shgRootNode.C
+ *
  * Revision 1.3  1995/09/20 01:18:03  tamches
  * minor cleanifications hardly worth mentioning
  *
@@ -89,6 +93,20 @@ void whereAxisRootNode::drawAsRoot(Tk_Window theTkWindow,
 	       whereAxis::getRootItemTextGC(),
 	       textLeft, textBaseLine,
 	       name.string_of(), name.length());
+}
+
+GC whereAxisRootNode::getGCforListboxRay(const whereAxisRootNode &, // parent
+					 const whereAxisRootNode & // 1st child
+					 ) {
+   // a static member function
+   return whereAxis::getGCforListboxRay();
+}
+
+GC whereAxisRootNode::getGCforNonListboxRay(const whereAxisRootNode &, // parent
+					    const whereAxisRootNode &  // 1st child
+					    ) {
+   // a static member function
+   return whereAxis::getGCforNonListboxRay();
 }
 
 void whereAxisRootNode::prepareForDrawingListboxItems(Tk_Window theTkWindow,
