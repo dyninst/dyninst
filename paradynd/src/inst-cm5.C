@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.12 1994/07/20 23:23:17 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.13 1994/07/21 01:34:48 hollings Exp $";
 #endif
 
 /*
  * inst-cm5.C - runtime library specific files to inst on this machine.
  *
  * $Log: inst-cm5.C,v $
- * Revision 1.12  1994/07/20 23:23:17  hollings
+ * Revision 1.13  1994/07/21 01:34:48  hollings
+ * removed extra polls of the nodes for printfs.
+ *
+ * Revision 1.12  1994/07/20  23:23:17  hollings
  * Added real code for cost model.
  *
  * Revision 1.11  1994/07/15  20:22:00  hollings
@@ -425,9 +428,11 @@ int nodePtrace (int request, process *proc, int scalarPid, int nodeId,
     /* Check for node I/O */
     int i;
 
+#ifdef notdef
     for (i=0; i< 1000; i++)
 	while (CMMD_poll_for_services() == 1)
 	    ;			/* TEMPORARY:    XXXXXX */
+#endif
 
     /* Create the request header */
     header.request = request;

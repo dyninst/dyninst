@@ -19,7 +19,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, \
   Karen Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/perfStream-cm5.C,v 1.1 1994/07/14 14:45:52 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/perfStream-cm5.C,v 1.2 1994/07/21 01:34:49 hollings Exp $";
 #endif
 
 
@@ -29,7 +29,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  * still need this after changing to synchronous sampling of the nodes?
  *
  * $Log: perfStream-cm5.C,v $
- * Revision 1.1  1994/07/14 14:45:52  jcargill
+ * Revision 1.2  1994/07/21 01:34:49  hollings
+ * removed extra polls of the nodes for printfs.
+ *
+ * Revision 1.1  1994/07/14  14:45:52  jcargill
  * Added new file for dynRPC functions, and a default (null) function for
  * processArchDependentTraceStream, and the cm5 version.
  *
@@ -62,9 +65,11 @@ void processArchDependentTraceStream()
     static char buffer[TRACE_BUF_SIZE];	/* buffer for data */
     static int bufEnd = 0;	/* last valid data in buffer */
 
+#ifdef notdef
     /* Check for node I/O */
     while (CMMD_poll_for_services() == 1)
 	;	/* TEMPORARY:    XXXXXX */
+#endif
 
 
     /*  */
