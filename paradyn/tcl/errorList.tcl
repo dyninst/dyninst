@@ -1,5 +1,8 @@
 #
 # $Log: errorList.tcl,v $
+# Revision 1.31  1997/06/24 18:18:03  newhall
+# changed msg for error #86
+#
 # Revision 1.30  1997/06/06 22:03:01  mjrg
 # Added option for manual daemon start-up
 #
@@ -690,7 +693,8 @@ set pdError(86) {
 {Cannot enable metric}
 {dm}
 {information}
-{Paradyn cannot enable this particular metric. This might be due to constraints in the definition of the metric (e.g. the metric is restricted to the whole program and we have selected a particular process).  Another cause could be if the enable request is for the current phase, and if a new phase was started in the middle of the enable request, then some metric/focus pairs may not have been enabled for the old phase.}
+{Paradyn cannot enable this particular metric. This might be due to constraints in the definition of the metric (e.g. the metric is restricted to the whole program and we have selected a particular process), or because a resource component of the focus was excluded in a Paradyn configuration file by the "exclude" option.  
+Another cause could be if the enable request is for the current phase, and if a new phase was started in the middle of the enable request, then some metric/focus pairs may not have been enabled for the old phase.}
 }
 
 set pdError(87) {
