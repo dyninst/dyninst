@@ -14,15 +14,20 @@
  *
  */
 /* $Log: error.C,v $
-/* Revision 1.3  1994/05/11 17:13:09  newhall
-/* changed data type from double to float
+/* Revision 1.4  1994/09/25 02:00:26  newhall
+/* changes to visi interface routines that take list of met/focus pairs:
+/* AddMetricsResources, GetMetRes
+/* and changes to support the new version of igen
 /*
+ * Revision 1.3  1994/05/11  17:13:09  newhall
+ * changed data type from double to float
+ *
  * Revision 1.2  1994/03/14  20:28:47  newhall
  * changed visi subdirectory structure
  *  */ 
 #include "visi/h/visiTypes.h"
 
-static char *visi_errmsg[] =
+static const char *visi_errmsg[] =
 {
 	"No Error",
 	"Error: realloc",
@@ -37,7 +42,7 @@ static char *visi_errmsg[] =
 };
 
 
-void visi_ErrorHandler(int errno,char *msg){
+void visi_ErrorHandler(int errno, const char *msg){
 
   if((errno < (VISI_ERROR_BASE))&&(errno >= VISI_ERROR_MAX))
     fprintf(stderr,"%s : %s\n",visi_errmsg[VISI_ERROR_BASE-errno],msg);
