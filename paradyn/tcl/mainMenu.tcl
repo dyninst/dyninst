@@ -1,4 +1,7 @@
+#
 # main tool bar
+# $Id: mainMenu.tcl,v 1.66 1998/03/04 19:50:41 wylie Exp $
+#
 
 ## changeApplicState
 ## changes button status of "run" and "pause" buttons, so that opposite 
@@ -66,15 +69,17 @@ proc drawToolBar {} {
       option add *Foreground black
       option add *Entry.relief groove
     }
-    option add *TopMenu*font *-New*Century*Schoolbook-Bold-R-*-14-*
+    option add *TopMenu*font { Times 13 bold }
 
-    # the paradyn main window can be resized horizontally but not vertically:
-    wm resizable . 1 0
+    # the Paradyn main window can be resized horizontally but not vertically:
+####    wm resizable . 1 0
+    # it can now!
 
     frame .parent 
     frame .parent.menub -relief raised
     frame .parent.status
-    frame .parent.main
+    frame .parent.procstatus -borderwidth 2 -relief sunken
+####frame .parent.main
     frame .parent.buttons -relief raised -height 20
     mkButtonBar .parent.buttons {} retval { \
 	    {RUN "paradyn cont"} \
@@ -87,15 +92,17 @@ proc drawToolBar {} {
     .parent.buttons.1 configure -state disabled
     .parent.buttons.2 configure -state disabled
 
+# menubar
+#
     frame .parent.menub.left
     pack .parent.menub.left -side left -fill both -expand 1
 
-    frame .parent.menub.left.top -borderwidth 2 -relief raised \
+    frame .parent.menub.left.top -borderwidth 1 -relief raised \
 	  -background #b3331e1b53c7
     pack  .parent.menub.left.top -side top -fill both -expand 1
 
     label .parent.menub.left.top.title -text "Paradyn Main Control" \
-          -font *-New*Century*Schoolbook-Bold-R-*-14-* \
+          -font { Times 13 bold } \
           -relief flat \
 	  -background #b3331e1b53c7 \
 	  -foreground white -anchor c
@@ -104,8 +111,9 @@ proc drawToolBar {} {
     frame .parent.menub.left.top.title.versionFrame -background #b3331e1b53c7
     pack  .parent.menub.left.top.title.versionFrame -side right -fill y -expand false
 	    
-    label .parent.menub.left.top.title.versionFrame.version -text "v2.1" \
-	    -font "*-Helvetica-*-r-*-12-*" \
+    label .parent.menub.left.top.title.versionFrame.version \
+            -text "v2.1" \
+	    -font { Helvetica 8 bold } \
 	    -background #b3331e1b53c7 \
 	    -foreground white \
 	    -relief flat \
@@ -124,11 +132,25 @@ proc drawToolBar {} {
     button .parent.menub.left.men.b8 -text "Visi" \
 	    -command "drawVisiMenu" -relief flat -highlightthickness 0
 
-    menubutton .parent.menub.left.men.b7 -text "Help" -state disabled
+#   menubutton .parent.menub.left.men.b7 -text "Help" -state disabled
+    menubutton .parent.menub.left.men.b7 -text "Help" \
+            -menu .parent.menub.left.men.b7.m
+
+    menu .parent.menub.left.men.b7.m
+    .parent.menub.left.men.b7.m add command \
+        -label "General info" -command "paradyn generalInfo"
+    .parent.menub.left.men.b7.m add command \
+        -label "License info" -command "paradyn licenseInfo"
+    .parent.menub.left.men.b7.m add command \
+        -label "Release info" -command "paradyn releaseInfo"
+    .parent.menub.left.men.b7.m add command \
+        -label "Version info" -command "paradyn versionInfo"
 
     menu .parent.menub.left.men.b0.m
-    .parent.menub.left.men.b0.m add command -label "Daemon start-up info" -command "paradyn daemonStartInfo"
-    .parent.menub.left.men.b0.m add command -label "Exit Paradyn" -command "procExit"
+    .parent.menub.left.men.b0.m add command \
+        -label "Daemon start-up info" -command "paradyn daemonStartInfo"
+    .parent.menub.left.men.b0.m add command \
+        -label "Exit Paradyn" -command "procExit"
        # the -command is the same as the command executed when "EXIT"
        # button (lower right of screen) is clicked on.  If this is not right,
        # then by all means change it.
@@ -187,9 +209,13 @@ proc drawToolBar {} {
 
     pack .parent.menub.left.men -side top -fill x -expand false
 
-    pack .parent.menub -side top -fill x -expand 0
-    pack .parent.buttons -side bottom -fill x -expand 0
-    pack .parent.status -side bottom -fill x -expand 0
+    pack .parent.menub -side top -fill x -expand false
+    pack .parent.buttons -side bottom -fill x -expand false
 
-    pack .parent -fill both -expand 1
+    pack .parent.status -side top -fill x -expand false
+####pack .parent.status -side bottom -fill both -expand true
+
+    pack .parent.procstatus -side top -fill both -expand true
+
+    pack .parent -fill both -expand true
 }
