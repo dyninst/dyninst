@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.63  1996/02/02 01:01:32  karavan
-/* Changes to support the new PC/UI interface
+/* Revision 1.64  1996/02/15 22:46:02  tamches
+/* added applicationDefined
 /*
+ * Revision 1.63  1996/02/02 01:01:32  karavan
+ * Changes to support the new PC/UI interface
+ *
  * Revision 1.62  1996/01/09 01:39:57  tamches
  * added phaseId argument to paradyn shg getNodeInfo
  *
@@ -888,6 +891,13 @@ int ParadynWaUnSelect(ClientData, Tcl_Interp *interp,
    return ParadynWaSelectUnselect(interp, argv[1], false);
 }
 
+int ParadynApplicationDefinedCmd(ClientData, Tcl_Interp *interp,
+				 int, char **) {
+   // returns true iff an application has been defined
+   setResultBool(interp, dataMgr->applicationDefined());
+   return TCL_OK;
+}
+				
 int ParadynSuppressCmd (ClientData,
 		       Tcl_Interp *interp,
 		       int argc,
@@ -1022,6 +1032,7 @@ int ParadynExitCmd (ClientData,
 }
 
 static struct cmdTabEntry Pd_Cmds[] = {
+  {"applicationDefined", ParadynApplicationDefinedCmd},
   {"pause", ParadynPauseCmd},
   {"cont", ParadynContCmd},
   {"status", ParadynStatusCmd},
