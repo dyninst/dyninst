@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.56 2003/01/23 17:55:50 tlmiller Exp $
+// $Id: inst-alpha.C,v 1.57 2003/02/04 15:18:56 bernat Exp $
 
 #include "common/h/headers.h"
 
@@ -126,63 +126,6 @@ static inline Address generate_call_code(instruction*, Address, Address,
 					 Address, unsigned long&, process *proc);
 static inline void generate_tramp_preamble(instruction*, Address,
 					      Address, unsigned long&);
-
-// Register usage conventions:
-//   a0-a5 are saved in the base trampoline
-//   t0-t10 are scratch and do not have to be saved as long as instrumentation
-//      is restricted to function entry/exit, and call points
-//      these will be allocated by paradynd
-//
-//   t0-t7 : allocated by paradynd
-//   t8: stores compare results, scratch for paradynd
-//   t9,t10 : used as scratch registers by paradynd
-
-// Return value register
-#define REG_V0           0
-// scratch registers -- not saved across procedure calls
-#define REG_T0           1
-#define REG_T1           2
-#define REG_T2           3
-#define REG_T3           4
-#define REG_T4           5
-#define REG_T5           6
-#define REG_T6           7
-#define REG_T7           8
-
-// caller save registers
-#define REG_S0           9
-#define REG_S1          10
-#define REG_S2          11
-#define REG_S3          12
-#define REG_S4          13
-#define REG_S5          14
-
-// argument registers
-#define REG_A0          16
-#define REG_A1          17
-#define REG_A2          18
-#define REG_A3          19
-#define REG_A4          20
-#define REG_A5          21
-
-// more scratch registers
-#define REG_T8          22
-#define REG_T9          23
-#define REG_T10         24
-#define REG_T11         25
-
-// return address register
-#define REG_RA          26
-
-// undocumented pv/t12
-#define REG_PV          27
-#define REG_T12		27
-
-#define REG_GP          29
-#define REG_SP          30
-#define REG_ZERO        31
-
-const unsigned Num_Registers=32;
 
 typedef enum { dw_long, dw_quad } data_width;
 
