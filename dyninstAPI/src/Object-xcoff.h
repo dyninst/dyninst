@@ -41,7 +41,7 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-xcoff.h,v 1.7 2003/07/15 22:43:52 schendel Exp $
+ * $Id: Object-xcoff.h,v 1.8 2003/07/29 00:32:35 eli Exp $
 ************************************************************************/
 
 
@@ -171,13 +171,15 @@ public:
 
     Object&   operator= (const Object &);
     Address getTOCoffset() const { return toc_offset_; }
-    void get_stab_info(char *&stabstr, int &nstabs, Address &stabs, char *&stringpool) {
+
+    void get_stab_info(char *&stabstr, int &nstabs, Address &stabs, char *&stringpool) const {
 	stabstr = (char *) stabstr_;
 	nstabs = nstabs_;
 	stabs = stabs_;
 	stringpool = (char *) stringpool_;
     }
-    void get_line_info(int& nlines, char*& lines,unsigned long& fdptr){
+
+    void get_line_info(int& nlines, char*& lines,unsigned long& fdptr) const {
 	nlines = nlines_;
 	lines = (char*) linesptr_; 
 	fdptr = linesfdptr_;
