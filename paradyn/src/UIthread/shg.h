@@ -4,9 +4,12 @@
 // Ariel Tamches
 
 /* $Log: shg.h,v $
-/* Revision 1.8  1996/02/15 23:10:01  tamches
-/* added proper support for why vs. where axis refinement
+/* Revision 1.9  1996/03/08 00:21:20  tamches
+/* added support for hidden nodes
 /*
+ * Revision 1.8  1996/02/15 23:10:01  tamches
+ * added proper support for why vs. where axis refinement
+ *
  * Revision 1.7  1996/02/11 18:23:57  tamches
  * removed addToStatusDisplay
  *
@@ -117,6 +120,11 @@ class shg {
    whereNodeGraphicalPath<shgRootNode> lastItemUnderMousePath;
    int lastItemUnderMouseX, lastItemUnderMouseY;
 
+   // values of "tunable constants" saying which node types should be hidden:
+   bool hideTrueNodes, hideFalseNodes, hideUnknownNodes, hideNeverSeenNodes;
+   bool hideActiveNodes, hideInactiveNodes;
+   bool hideShadowNodes;
+
    void resizeScrollbars();
 
    bool set_scrollbars(int absolute_x, int relative_x,
@@ -146,6 +154,12 @@ class shg {
          adjustVertSBOffset();
       }
    }
+
+   bool state2hidden(shgRootNode::evaluationState, bool active,
+                     bool shadow) const;
+
+   bool recursiveUpdateHiddenNodes(where4tree<shgRootNode> *ptr);
+      // called by changeHiddenNodes.
 
  protected:
    void rethink_nominal_centerx();
@@ -226,7 +240,9 @@ class shg {
    shg(int phaseId,
        Tcl_Interp *interp, Tk_Window theTkWindow,
        const string &iHorizSBName, const string &iVertSBName,
-       const string &iCurrItemLabelName);
+       const string &iCurrItemLabelName,
+       bool iHideTrue, bool iHideFalse, bool iHideUnknown, bool iHideNever,
+       bool iHaveActive, bool iHideInactive, bool iHideShadow);
   ~shg() {delete rootPtr;}
 
    int getPhaseId() const {return thePhaseId;}
@@ -272,6 +288,16 @@ class shg {
 //      // returns true iff a complete redraw is needed
 //   void processShiftDoubleClick(int x, int y);
 //   void processCtrlDoubleClick(int x, int y);
+
+   enum changeType{ct_true, ct_false, ct_unknown, ct_never, ct_active, ct_inactive,
+                   ct_shadow};
+   bool changeHiddenNodes(bool newHideTrue, bool newHideFalse, bool newHideUnknown,
+                          bool newHideNeverSeen, bool newHideActive,
+                          bool newHideInactive, bool newHideShadow,
+                          bool isCurrShg);
+      // Returns true iff any changes.
+   bool changeHiddenNodes(changeType, bool hide, bool isCurrShg);
+      // Like above routine but just changes 1 trait
 
    // The following are very high-level routines; they tend to correspond
    // with shg-related igen calls in UI.I:

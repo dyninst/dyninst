@@ -4,10 +4,13 @@
 // Header file for subtree based on where4.fig [and where5.fig]
 
 /* $Log: where4tree.h,v $
-/* Revision 1.9  1995/11/20 03:25:54  tamches
-/* changed vector<NODEDATA *> to vector<const NODEDATA *>, enabling compilation
-/* under g++ 2.7.1
+/* Revision 1.10  1996/03/08 00:23:13  tamches
+/* added support for hidden nodes
 /*
+ * Revision 1.9  1995/11/20 03:25:54  tamches
+ * changed vector<NODEDATA *> to vector<const NODEDATA *>, enabling compilation
+ * under g++ 2.7.1
+ *
  * Revision 1.8  1995/10/17 22:13:35  tamches
  * The templated class has changed from a unique-id class to
  * a full root-node class.
@@ -57,8 +60,8 @@
 
 #include <stdlib.h>
 
-#include "tclclean.h"
-#include "tkclean.h"
+#include "tcl.h"
+#include "tk.h"
 
 #ifndef PARADYN
 // The test program already has the correct -I paths set
@@ -87,6 +90,12 @@ class where4tree {
       // must have several particular routines defined:
       // getName(), getPixWidthAsListboxItem(), getPixHeightAsListboxItem() [constant],
       // draw_as_listbox_item(), getPixHeightAsRoot(), drawAsRoot(), more...
+
+   bool anything2Draw;
+      // if false, drawing & measurement routines will ignore the entire
+      // subtree rooted here.  This value is updated when outside code calls
+      // updateAnything2Draw(), which in turn checks the value of
+      // NODEDATA::anything2Draw() for each node.
 
    unsigned numChildrenAddedSinceLastSort;
       // if << children.size(), then resort using selection sort; else, quicksort.
@@ -120,12 +129,9 @@ class where4tree {
    };
 
    vector<childstruct> theChildren;
-      // Why a vector instead of a set?  Because the children must be ordered.
-      // Why do we group these into a childstruct?  To make memory allocation faster.
-
-// Sorry, "not yet implemented" in g++ 2.6.3: static members of a template type
-//   static int masterlistboxBorderPix;
-//   static int masterlistboxScrollBarWidth;
+      // Why a vector instead of a set?  Because the children are ordered.
+      // Why do we group these into a childstruct?  To make memory allocation faster
+      // and more efficient.
 
    int listboxPixWidth; // includes scrollbar, if applicable
    int listboxFullPixHeight; // total lb height (if no SB used)
@@ -231,9 +237,11 @@ class where4tree {
 
    unsigned getNumChildren() const {return theChildren.size();}
    where4tree *getChildTree(unsigned index) {
+      // should this routine return a reference instead?
       return theChildren[index].theTree;
    }
    const where4tree *getChildTree(unsigned index) const {
+      // should this routine return a reference instead?
       return theChildren[index].theTree;
    }
    bool getChildIsExpandedFlag(unsigned index) const {
@@ -329,10 +337,14 @@ class where4tree {
    bool expandAllChildren(const where4TreeConstants &tc);
    bool unExpandAllChildren(const where4TreeConstants &tc);
 
+   bool updateAnything2Draw1(const where4TreeConstants &tc);
+
  public:
 
    where4tree(const NODEDATA &iNodeData);
   ~where4tree();
+
+   bool updateAnything2Draw(const where4TreeConstants &tc);
 
    const NODEDATA &getNodeData() const {return theNodeData;}
    NODEDATA &getNodeData() {return theNodeData;}

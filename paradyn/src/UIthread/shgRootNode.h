@@ -3,9 +3,12 @@
 // analagous to rootNode.h (for the where axis)
 
 /* $Log: shgRootNode.h,v $
-/* Revision 1.4  1996/02/15 23:13:19  tamches
-/* added code to properly support why vs. where axis refinement
+/* Revision 1.5  1996/03/08 00:22:31  tamches
+/* added support for hidden nodes
 /*
+ * Revision 1.4  1996/02/15 23:13:19  tamches
+ * added code to properly support why vs. where axis refinement
+ *
  * Revision 1.3  1996/01/23 07:09:04  tamches
  * style split up into evaluationState & active flag
  * added shadow node features
@@ -36,6 +39,8 @@ class shgRootNode {
    enum refinement {ref_why, ref_where, ref_undefined};
 
  private:
+   bool hidden;
+
    unsigned id;
    string label;
    string fullInfo;
@@ -65,25 +70,40 @@ class shgRootNode {
    void initialize(unsigned iId, bool iActive, evaluationState iEvalState,
 		   refinement iRefinement,
 		   bool iShadowNode,
-		   const string &iLabel, const string &iFullInfo);
+		   const string &iLabel, const string &iFullInfo,
+		   bool hidden);
 
  public:
 
    shgRootNode(unsigned iId, bool iActive, evaluationState iEvalState,
 	       refinement iRefinement,
 	       bool iShadowNode,
-	       const string &iLabel, const string &iFullInfo);
+	       const string &iLabel, const string &iFullInfo,
+	       bool iHidden);
    shgRootNode(unsigned iId, bool iActive, evaluationState iEvalState,
 	       bool iShadowNode,
-	       const string &iLabel, const string &iFullInfo);
+	       const string &iLabel, const string &iFullInfo,
+	       bool iHidden);
    shgRootNode(const shgRootNode &src);
   ~shgRootNode() {}
 
+   shgRootNode &operator=(const shgRootNode &src);
+
+   bool anything2draw() const {return !hidden;}
+
+   void hidify() {
+      hidden = true;
+   }
+   void unhide() {
+      hidden = false;
+   }
+
+   bool isShadowNode() const {return shadowNode;}
    shgRootNode shadowify(const char *newlabel) const {
       return shgRootNode(id, active, evalState,
 			 theRefinement,
 			 true, // shadow node
-			 newlabel, fullInfo);
+			 newlabel, fullInfo, hidden);
    }
 
    unsigned getId() const {return id;}

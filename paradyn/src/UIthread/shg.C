@@ -4,9 +4,12 @@
 // Ariel Tamches
 
 /* $Log: shg.C,v $
-/* Revision 1.13  1996/02/15 23:10:34  tamches
-/* added proper code for why vs. where axis refinement
+/* Revision 1.14  1996/03/08 00:21:39  tamches
+/* added support for hidden nodes
 /*
+ * Revision 1.13  1996/02/15 23:10:34  tamches
+ * added proper code for why vs. where axis refinement
+ *
  * Revision 1.12  1996/02/11 18:24:16  tamches
  * removed addToStatusDisplay
  *
@@ -114,7 +117,9 @@ void shg::initializeStaticsIfNeeded() {
 
 shg::shg(int iPhaseId, Tcl_Interp *iInterp, Tk_Window theTkWindow,
 	 const string &iHorizSBName, const string &iVertSBName,
-	 const string &iCurrItemLabelName) :
+	 const string &iCurrItemLabelName,
+	 bool iHideTrue, bool iHideFalse, bool iHideUnknown, bool iHideNever,
+	 bool iHideActive, bool iHideInactive, bool iHideShadow) :
 	    hash(&hashFunc, 32), hash2(&hashFunc2, 32),
 	    shadowNodeHash(&hashFuncShadow, 32),
 	    consts(iInterp, theTkWindow),
@@ -135,6 +140,29 @@ shg::shg(int iPhaseId, Tcl_Interp *iInterp, Tk_Window theTkWindow,
    rethink_nominal_centerx(); // will bomb if rootPtr is undefined, so we defer this...
 
    lastItemUnderMouseX = lastItemUnderMouseY = -1;
+
+   hideTrueNodes = iHideTrue;
+   hideFalseNodes = iHideFalse;
+   hideUnknownNodes = iHideUnknown;
+   hideNeverSeenNodes = iHideNever;
+   hideActiveNodes = iHideActive;
+   hideInactiveNodes = iHideInactive;
+   hideShadowNodes = iHideShadow;
+}
+
+bool shg::state2hidden(shgRootNode::evaluationState es,
+		       bool active, bool shadow) const {
+   if (active && hideActiveNodes) return true;
+   if (!active && hideInactiveNodes) return true;
+
+   if (shadow && hideShadowNodes) return true;
+
+   if (es==shgRootNode::es_true && hideTrueNodes) return true;
+   else if (es==shgRootNode::es_false && hideFalseNodes) return true;
+   else if (es==shgRootNode::es_unknown && hideUnknownNodes) return true;
+   else if (es==shgRootNode::es_never && hideNeverSeenNodes) return true;
+
+   return false;
 }
 
 void shg::rethink_nominal_centerx() {
@@ -807,6 +835,101 @@ bool shg::softScrollToEndOfPath(const whereNodePosRawPath &thePath) {
    return false; // placate compiler
 }
 
+bool shg::changeHiddenNodes(bool newHideTrue, bool newHideFalse, bool newHideUnknown,
+			    bool newHideNeverSeen, bool newHideActive,
+			    bool newHideInactive, bool newHideShadow,
+			    bool isCurrShg) {
+   // returns true iff any changes
+   if (hideTrueNodes == newHideTrue && hideFalseNodes == newHideFalse &&
+       hideUnknownNodes == newHideUnknown && hideNeverSeenNodes == newHideNeverSeen &&
+       hideActiveNodes == newHideActive && hideInactiveNodes == newHideInactive &&
+       hideShadowNodes == newHideShadow)
+      return false; // nothing changed
+
+   hideTrueNodes = newHideTrue;
+   hideFalseNodes = newHideFalse;
+   hideUnknownNodes = newHideUnknown;
+   hideNeverSeenNodes = newHideNeverSeen;
+   hideActiveNodes = newHideActive;
+   hideInactiveNodes = newHideInactive;
+   hideShadowNodes = newHideShadow;
+
+   // Now we need to loop thru each node in the dag, rethinking
+   // whether or not it is hidden:
+   if (!recursiveUpdateHiddenNodes(rootPtr))
+      return false; // nothing changed.  Somewhat surprising.
+
+   rethink_entire_layout(isCurrShg);
+   return true;
+}
+bool shg::changeHiddenNodes(shg::changeType ct, bool hide, bool isCurrShg) {
+   switch (ct) {
+      case shg::ct_true:
+         if (hideTrueNodes == hide) return false;
+	 hideTrueNodes = hide;
+	 break;
+       case shg::ct_false:
+	 if (hideFalseNodes == hide) return false;
+	 hideFalseNodes = hide;
+	 break;
+       case shg::ct_unknown:
+	 if (hideUnknownNodes == hide) return false;
+	 hideUnknownNodes = hide;
+	 break;
+       case shg::ct_never:
+	 if (hideNeverSeenNodes == hide) return false;
+	 hideNeverSeenNodes = hide;
+	 break;
+       case shg::ct_active:
+	 if (hideActiveNodes == hide) return false;
+	 hideActiveNodes = hide;
+	 break;
+       case shg::ct_inactive:
+	 if (hideInactiveNodes == hide) return false;
+	 hideInactiveNodes = hide;
+	 break;
+       case shg::ct_shadow:
+	 if (hideShadowNodes == hide) return false;
+	 hideShadowNodes = hide;
+	 break;
+       default:
+	 assert(false);
+   }
+
+   if (!recursiveUpdateHiddenNodes(rootPtr))
+      return false; // nothing changed; somewhat surprising.
+
+   rethink_entire_layout(isCurrShg);
+   return true;
+}
+
+bool shg::recursiveUpdateHiddenNodes(where4tree<shgRootNode> *ptr) {
+   // returns true iff any changes
+   bool anyChanges = false; // so far...
+
+   shgRootNode &theRootNode = ptr->getNodeData();
+   bool isShadowNode = theRootNode.isShadowNode();
+   bool curr_hidden = !theRootNode.anything2draw();
+
+   bool this_node_should_be_hidden = state2hidden(theRootNode.getEvalState(),
+						  theRootNode.isActive(),
+						  isShadowNode);
+   if (this_node_should_be_hidden != curr_hidden) {
+      anyChanges = true;
+      if (this_node_should_be_hidden)
+         theRootNode.hidify();
+      else
+         theRootNode.unhide();
+   }
+
+   // Continue for children:
+   for (unsigned childlcv=0; childlcv < ptr->getNumChildren(); childlcv++)
+      if (recursiveUpdateHiddenNodes(ptr->getChildTree(childlcv)))
+         anyChanges = true;
+
+   return anyChanges;
+}
+
 void shg::addNode(unsigned id, bool iActive, shgRootNode::evaluationState iEvalState,
 		  const string &label, const string &fullInfo,
 		  bool rootNodeFlag, bool isCurrShg) {
@@ -819,11 +942,13 @@ void shg::addNode(unsigned id, bool iActive, shgRootNode::evaluationState iEvalS
       assert(rootPtr != NULL);
    }
 
-   shgRootNode tempNewNode(id, iActive, iEvalState, false, label, fullInfo);
+   bool hidden = state2hidden(iEvalState, iActive, false);
       // false --> not a shadow node
+   shgRootNode tempNewNode(id, iActive, iEvalState, false, label, fullInfo, hidden);
+
    where4tree<shgRootNode> *newNode = new where4tree<shgRootNode>(tempNewNode);
    assert(newNode);
-
+ 
    if (rootNodeFlag)
       rootPtr = newNode;
 
@@ -858,10 +983,11 @@ bool shg::configNode(unsigned id, bool newActive,
    // returns true iff any changes.  Does not redraw.
    // Note: a change from "tentatively-true" to (anything else)
    // will un-expand the node, leading to a massive layout rethinkification.
+   // In addition, changing to or from a hidden state will also lead to
+   // layout rethinkification.
    // Other changes are more simple -- simply changing the color of a node.
    assert(rootPtr);
 
-   // returns true iff any changes.  Does not redraw.
    assert(hash.defines(id));
    where4tree<shgRootNode> *ptr = hash[id];
    assert(ptr);
@@ -877,6 +1003,9 @@ bool shg::configNode(unsigned id, bool newActive,
    } 
 
    const shgRootNode::evaluationState oldEvalState = ptr->getNodeData().getEvalState();
+   const bool oldActive = ptr->getNodeData().isActive();
+   const bool oldHidden = state2hidden(oldEvalState, oldActive, false);
+      // false --> we are not a shadow node
 
    bool anyChanges = ptr->getNodeData().configStyle(newActive, newEvalState);
 
@@ -900,6 +1029,8 @@ bool shg::configNode(unsigned id, bool newActive,
 
    // Note that we make no effort to alter the expanded-ness of any shadowed nodes.
 
+   bool rethink_all = false; // so far...
+
    if (newEvalState == shgRootNode::es_true) {
       // if we have changed to true (whether active or not)
       where4tree<shgRootNode> *parentPtr = hash2[ptr];
@@ -912,16 +1043,13 @@ bool shg::configNode(unsigned id, bool newActive,
          if (parentPtr->getChildTree(childlcv) == ptr) {
             parentPtr->explicitlyExpandSubchild(consts, childlcv, true);
                // true --> force expansion, even if it's a leaf node
- 
-            // now rethink all-expanded-children dimensions for all ancestors
-            // of parentPtr.  For now, we are sloppy, and just rethink those traits
-            // for the entier shg (!):
-            rethink_entire_layout(isCurrShg);
-            return true;
-	 }
 
-      assert(false);
-      return true; // placate compiler
+            rethink_all = true;
+               // (all we really need to do is rethink all-expanded-children
+	       // dimensions for all ancestors of parentPtr)
+         } 
+
+      assert(rethink_all);
    }
    else if (oldEvalState == shgRootNode::es_true) {
       // It used to be true (active or not), but ain't anymore.
@@ -934,25 +1062,47 @@ bool shg::configNode(unsigned id, bool newActive,
          if (parentPtr->getChildTree(childlcv) == ptr) {
             parentPtr->explicitlyUnexpandSubchild(consts, childlcv);
 
-            // now rethink all-expanded-children dimensions for all ancestors
-            // of parentPtr.  For now, we are sloppy, and just rethink those traits
-            // for the entier shg (!):
-	    rethink_entire_layout(isCurrShg);
-            return true;
+            rethink_all = true;
+               // (all we really need to do is rethink all-expanded-children
+               //  dimensions for all ancestors of parentPtr.)
 	 }
 
-      assert(false);
-      return true; // placate compiler
+      assert(rethink_all);
    }
-   else
-      return true;
+
+   // Perhaps some node(s) have become hidden or unhidden.
+   if (!rethink_all) {
+      // set rethink_all to true if some node(s) have become hidden or unhidden
+      // Note that there's no need to check our shadow children, because the
+      // only trait that may lead to a different hidden-ness is that they're shadow
+      // nodes, and that's not gonna change.
+      assert(oldHidden == !ptr->getNodeData().anything2draw());
+      bool new_hidden = state2hidden(newEvalState, newActive,
+				     false); // false --> not shadow node
+      if (oldHidden != new_hidden) {
+         if (new_hidden)
+            ptr->getNodeData().hidify();
+         else
+            ptr->getNodeData().unhide();
+         rethink_all = true;
+      }
+   }
+
+   if (rethink_all)
+      rethink_entire_layout(isCurrShg);
+
+   return true; // changes were made
 }
 
 void shg::addEdge(unsigned fromId, unsigned toId,
 		  shgRootNode::refinement theRefinement,
 		  const char *label, // only used for shadow nodes; else NULL
-		  bool isCurrShg
-		  ) {
+		  bool isCurrShg) {
+   // What to do about hidden nodes?
+   // 1) If child is a shadow node then we must initialize the hidden flag properly
+   // 2) If not a shadow node then probably nothing to do, assuming the hidden
+   //    flag was properly set when the child was addNode'd.
+
    assert(rootPtr);
 
    // Obviously, both nodes must already exist.
@@ -990,6 +1140,15 @@ void shg::addEdge(unsigned fromId, unsigned toId,
 
       // copy all information from the existing "real" node...
       shgRootNode tempNewNode = childPtr->getNodeData();
+      // ...and decide if it should be hidden...(if hide-shadow is in effect, the
+      //    shadow node might be hidden while the real node isn't)
+      if (state2hidden(tempNewNode.getEvalState(),
+		       tempNewNode.isActive(),
+		       true))
+         tempNewNode.hidify();
+      else
+         tempNewNode.unhide();
+
       // ...and make it a shadow node:
       childPtr = new where4tree<shgRootNode> (tempNewNode.shadowify(label));
       assert(childPtr);
@@ -1002,7 +1161,7 @@ void shg::addEdge(unsigned fromId, unsigned toId,
       // Note: we make no attempt to set the refinement field of the child shadow node.
       // It will have been copied from the "real" non-shadow node it points to, and
       // is presumably correct.  Hence no need to look at "theRefinement", except
-      // perhaps to assert that it's the same as that already present in the shadow node.
+      // perhaps to assert it's the same as that already present in the shadow node.
    }
 
    // Should the child node be explicitly expanded when added to its parent?

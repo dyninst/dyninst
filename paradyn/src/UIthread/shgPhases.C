@@ -4,9 +4,12 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.C,v $
-/* Revision 1.11  1996/02/26 18:16:54  tamches
-/* bug fix when changing phases
+/* Revision 1.12  1996/03/08 00:22:15  tamches
+/* added support for hidden nodes
 /*
+ * Revision 1.11  1996/02/26 18:16:54  tamches
+ * bug fix when changing phases
+ *
  * Revision 1.10  1996/02/15 23:12:30  tamches
  * corrected parameters of addEdge to properly handle why vs. where
  * axis refinements
@@ -81,6 +84,9 @@ shgPhases::shgPhases(const string &iMenuName,
 
    currInstalledAltMoveHandler=false;
    ignoreNextShgAltMove=false;
+
+   hideTrueNodes = hideFalseNodes = hideUnknownNodes = hideNeverSeenNodes = false;
+   hideActiveNodes = hideInactiveNodes = hideShadowNodes = false;
 }
 
 shgPhases::~shgPhases() {
@@ -376,7 +382,10 @@ bool shgPhases::defineNewSearch(int phaseId, const string &phaseName) {
    shgStruct theStruct(phaseId, phaseName,
 		       interp, theTkWindow,
 		       horizSBName, vertSBName,
-		       currItemLabelName);
+		       currItemLabelName,
+		       hideTrueNodes, hideFalseNodes, hideUnknownNodes,
+		       hideNeverSeenNodes, hideActiveNodes, hideInactiveNodes,
+		       hideShadowNodes);
 
    bool result = false; // so far, nothing has changed
 
@@ -486,6 +495,75 @@ bool shgPhases::resumeCurrSearch() {
    return true;
 }
 
+bool shgPhases::changeHiddenNodes(bool newHideTrue, bool newHideFalse,
+				  bool newHideUnknown, bool newHideNeverSeen,
+				  bool newHideActive, bool newHideInactive,
+				  bool newHideShadow) {
+   if (hideTrueNodes == newHideTrue && hideFalseNodes == newHideFalse &&
+       hideUnknownNodes == newHideUnknown && hideNeverSeenNodes == newHideNeverSeen &&
+       hideActiveNodes == newHideActive && hideInactiveNodes == newHideInactive &&
+       hideShadowNodes == newHideShadow)
+      return false; // nothing changed
+
+   bool anyChanges = false; // so far
+   for (unsigned shgindex=0; shgindex < theShgPhases.size(); shgindex++) {
+      shgStruct &theShgStruct = theShgPhases[shgindex];
+      shg *theShg = theShgStruct.theShg;
+
+      if (theShg->changeHiddenNodes(newHideTrue, newHideFalse, newHideUnknown,
+				    newHideNeverSeen, newHideActive, newHideInactive,
+				    newHideShadow,
+				    shgindex == currShgPhaseIndex))
+         anyChanges = true;
+   }
+
+   return anyChanges;
+}
+bool shgPhases::changeHiddenNodes(shg::changeType ct, bool hide) {
+   switch (ct) {
+      case shg::ct_true:
+         if (hideTrueNodes == hide) return false;
+	 hideTrueNodes = hide;
+	 break;
+       case shg::ct_false:
+	 if (hideFalseNodes == hide) return false;
+	 hideFalseNodes = hide;
+	 break;
+       case shg::ct_unknown:
+	 if (hideUnknownNodes == hide) return false;
+	 hideUnknownNodes = hide;
+	 break;
+       case shg::ct_never:
+	 if (hideNeverSeenNodes == hide) return false;
+	 hideNeverSeenNodes = hide;
+	 break;
+       case shg::ct_active:
+	 if (hideActiveNodes == hide) return false;
+	 hideActiveNodes = hide;
+	 break;
+       case shg::ct_inactive:
+	 if (hideInactiveNodes == hide) return false;
+	 hideInactiveNodes = hide;
+	 break;
+       case shg::ct_shadow:
+	 if (hideShadowNodes == hide) return false;
+	 hideShadowNodes = hide;
+	 break;
+       default:
+	 assert(false);
+   }
+
+   bool anyChanges = false; // so far
+   for (unsigned shgindex = 0; shgindex < theShgPhases.size(); shgindex++) {
+      shgStruct &theShgStruct = theShgPhases[shgindex];
+      shg *theShg = theShgStruct.theShg;
+      if (theShg->changeHiddenNodes(ct, hide, currShgPhaseIndex == shgindex))
+	 anyChanges = true;
+   }
+
+   return anyChanges;
+}
+
 bool shgPhases::addNode(int phaseId, unsigned nodeId,
 			bool active,
 			shgRootNode::evaluationState es,
@@ -494,6 +572,7 @@ bool shgPhases::addNode(int phaseId, unsigned nodeId,
    // returns true iff a redraw should take place
    shg &theShg = getByID(phaseId);
    const bool isCurrShg = (getCurrentId() == phaseId);
+
    theShg.addNode(nodeId, active, es, label, fullInfo, rootNodeFlag, isCurrShg);
 
    return isCurrShg;

@@ -4,10 +4,13 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.h,v $
-/* Revision 1.9  1996/02/15 23:12:29  tamches
-/* corrected parameters of addEdge to properly handle why vs. where
-/* axis refinements
+/* Revision 1.10  1996/03/08 00:21:53  tamches
+/* added support for hidden nodes
 /*
+ * Revision 1.9  1996/02/15 23:12:29  tamches
+ * corrected parameters of addEdge to properly handle why vs. where
+ * axis refinements
+ *
  * Revision 1.8  1996/02/11 18:25:54  tamches
  * shg message window now works correctly for multiple phases
  * internal cleanup; more tk window name entities parameterized
@@ -92,10 +95,17 @@ class shgPhases {
       shgStruct(unsigned phaseId, const string &iPhaseName,
 		Tcl_Interp *interp, Tk_Window theTkWindow,
 		const string &horizSBName, const string &vertSBName,
-		const string &currItemLabelName) : phaseName(iPhaseName) {
+		const string &currItemLabelName,
+		bool hideTrueNodes, bool hideFalseNodes, bool hideUnknownNodes,
+		bool hideNeverSeenNodes, bool hideActiveNodes, bool hideInactiveNodes,
+		bool hideShadowNodes
+		) : phaseName(iPhaseName) {
          shg *theNewShg = new shg(phaseId, interp, theTkWindow,
 				  horizSBName, vertSBName,
-				  currItemLabelName);
+				  currItemLabelName,
+				  hideTrueNodes, hideFalseNodes, hideUnknownNodes,
+				  hideNeverSeenNodes, hideActiveNodes,
+				  hideInactiveNodes, hideShadowNodes);
          assert(theNewShg);
 
          this->theShg = theNewShg;
@@ -148,6 +158,11 @@ class shgPhases {
    bool ignoreNextShgAltMove;
    int shgAltAnchorX;
    int shgAltAnchorY;
+
+   // values of "tunable constants" saying which node types should be hidden:
+   bool hideTrueNodes, hideFalseNodes, hideUnknownNodes, hideNeverSeenNodes;
+   bool hideActiveNodes, hideInactiveNodes;
+   bool hideShadowNodes;
 
    shg &getByID(int phaseID);
    shgStruct &getByIDLL(int phaseID);
@@ -210,6 +225,13 @@ class shgPhases {
       // returns true iff search successfully paused
    bool resumeCurrSearch();
       // returns true iff search successfully resumed
+
+   bool changeHiddenNodes(bool newHideTrue, bool newHideFalse, bool newHideUnknown,
+                          bool newHideNeverSeen, bool newHideActive,
+                          bool newHideInactive, bool newHideShadow);
+      // simply calls changeHiddenNodes() for every shg.  Returns true iff any changes.
+   bool changeHiddenNodes(shg::changeType ct, bool hide);
+      // like above but just changes one characteristic.
 
    bool addNode(int phaseId, unsigned nodeId,
                 bool active,
