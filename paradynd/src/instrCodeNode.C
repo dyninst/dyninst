@@ -136,7 +136,6 @@ instrCodeNode::instrCodeNode(const instrCodeNode &par, pd_process *childProc)
 instrCodeNode_Val::instrCodeNode_Val(const instrCodeNode_Val &par,
 				     pd_process *childProc) :
   name(par.name), focus(adjustFocusForPid(par.focus, childProc->getPid())),
-  thrStartFuncBuf(par.thrStartFuncBuf), thridsCatchuped(ui_hash__),
   hwEvent(par.hwEvent)
 {
    if(par.sampledDataNode)
@@ -166,7 +165,8 @@ instrCodeNode_Val::instrCodeNode_Val(const instrCodeNode_Val &par,
                                        affectedNodes);
    }
    baseTrampInstances = par.baseTrampInstances;
-   _trampsHookedUp = par._trampsHookedUp;
+   trampsNeedHookup_ = par.trampsNeedHookup_;
+   needsCatchup_ = par.needsCatchup_;
    instrDeferred_ = par.instrDeferred_;
    instrLoaded_ = par.instrLoaded_;
    proc_ = childProc;
@@ -202,9 +202,6 @@ instrCodeNode_Val::~instrCodeNode_Val() {
 
   for(unsigned j=0; j<instRequests.size(); j++)
      delete instRequests[j];
-
-  // don't delete startThreadInstRequests since these objects are also
-  // in instRequests and would have been already deleted (above)
 }
 
 
@@ -238,14 +235,6 @@ void instrCodeNode::cleanup_drn() {
   //  for (unsigned u=0; u<V.dataNodes.size(); u++) {
     //    dataNodes[u]->cleanup_drn();
   //}
-}
-
-void instrCodeNode::markAsCatchuped(const pd_thread *thr) {
-   V.thridsCatchuped[thr->get_tid()] = 1;
-}
-
-bool instrCodeNode::hasBeenCatchuped(const pd_thread *thr) {
-   return V.thridsCatchuped.defines(thr->get_tid());
 }
 
 // A debug function for prepareCatchupInstr
@@ -308,18 +297,9 @@ void prepareCatchupInstr_debug(instReqNode &iRN)
 //
 }
 
-void instrCodeNode::prepareCatchupInstr(pd_thread *thr,
-                                        vector<catchupReq *> &stackWalk)
+void instrCodeNode::prepareCatchupInstr(vector<catchupReq *> &stackWalk)
 {
-   // do catchup on a per thread basis, this is needed because want to skip
-   // catchup on threads already catchuped, this arises when new threads are
-   // created;
-
-   // don't check for whether it's been catchuped here, because this
-   // depends on the thread, do this up a level in procMetFocusNode
-   if(hasBeenCatchuped(thr)) {
-      return;
-   }
+   if(needsCatchup()==false) return;
 
    // Okay, we have a stack frame and a list of instPoints (instRequests). We
    // want to get a list of the instRequests that are on the stack. So, we
@@ -344,20 +324,6 @@ void instrCodeNode::prepareCatchupInstr(pd_thread *thr,
    {
       instReqNode *curInstReq = V.instRequests[instIter];
       //prepareCatchupInstr_debug(V.instRequests[instIter]);
-
-      // Only do catchup on instReqNodes which haven't already been
-      // catchuped, necessary because instReqNodes can be added to
-      // instrCodeNode when new thread is recognized; 
-
-      // Also, fixes the following case.  Let's say a metric-focus is active
-      // on a function when a new thread is recognized.  We don't need to
-      // insert instr. since it's already been inserted.  We also don't want
-      // to run catchup on instrum. for this function because the app
-      // continues to run when we receive notice that the thread is created.
-      // The instrumentation instrumentation that's already present for this
-      // function will get executed appropriately so no catchup is needed.
-      if(curInstReq->hasBeenCatchuped() == true)
-         continue;
 
       // If the instRequest was not installed, skip...
       if( (curInstReq->getRInstance() != NULL) &&
@@ -384,10 +350,12 @@ void instrCodeNode::prepareCatchupInstr(pd_thread *thr,
 	    stackWalk[frameIter]->reqNodes.push_back(curInstReq);
 	 }
       }
-      curInstReq->markAsHavingBeenCatchuped();
    }
 
-   markAsCatchuped(thr);
+   // don't mark catchup as having completed because we don't want to mark
+   // this until the processMetFocusNode has completed initiating catchup for
+   // all of the threads
+
    // if MTHREAD
    // Not sure what the following did: figure it out and set it up.
    //oldCatchUp(tid);
@@ -398,6 +366,9 @@ instr_insert_result_t instrCodeNode::loadInstrIntoApp() {
       return insert_success;
    }
 
+   V.trampsNeedHookup_ = true;
+   V.needsCatchup_ = true;
+  
    // Loop thru "instRequests", an array of instReqNode:
    // (Here we insert code instrumentation, tramps, etc. via addInstFunc())
    unsigned int inst_size = V.instRequests.size();
@@ -467,38 +438,6 @@ void instrCodeNode::prepareForSampling(
 
 }
 
-// returns true if new instReqNodes were added to the code node
-bool instrCodeNode::updateForNewThread(pd_thread *thr) {
-   // duplicates instReqNodes associated with thread start functions ($start in
-   // mdl) for new threads with different start functions
-   assert(proc()->multithread_ready());
-
-   function_base* start_func = thr->get_start_func();
-   if (!start_func) return false;
-   
-   string start_func_str = start_func->prettyName();
-   if(handledThrStartFunc(start_func_str))  return false;
-   markAsHandledThrStartFunc(start_func_str);
-
-   int size_before = V.instRequests.size();
-   for(unsigned i=0; i<V.startThreadInstRequest.size(); i++) {
-      instPoint *entryPt = const_cast<instPoint *>(
-                             start_func->funcEntry(proc()->get_dyn_process()));
-      instReqNode *newThrInstReq = 
-	 new instReqNode(*V.startThreadInstRequest[i]);
-      newThrInstReq->changePoint(entryPt);
-      newThrInstReq->resetInsertedState();
-      V.instRequests.push_back(newThrInstReq);
-   }
-   // cerr << "there are " << V.instRequests.size() - size_before
-   //      << " new instRequests\n";
-   if(V.instRequests.size() > size_before) {
-      resetInsertedState();
-      return true;
-   }
-   else  return false;
-}
-
 void instrCodeNode::prepareForSampling(threadMetFocusNode *thrNode) {
   V.sampledDataNode->prepareForSampling(thrNode->getThreadPos(), 
 					thrNode->getValuePtr());
@@ -517,7 +456,7 @@ bool instrCodeNode::needToWalkStack() {
 }
 
 bool instrCodeNode::insertJumpsToTramps(vector<vector<Frame> > &stackWalks) {
-   if(trampsHookedUp()) return true;
+   if(trampsNeedHookup()==false) return true;
 
    for(unsigned k=0; k<V.instRequests.size(); k++) {
       V.instRequests[k]->hookupJumps(proc());
@@ -656,19 +595,15 @@ const instrDataNode *instrCodeNode::getFlagDataNode() const {
 }
 
 void instrCodeNode::addInst(instPoint *point, AstNode *ast,
-			    callWhen when, callOrder o,
-			    bool refersToStartThreadPoint)
+			    callWhen when, callOrder o)
 {
   if (!point) return;
 
+  //cerr << "codeNode: " << getID() << ", addInst in func: " 
+  //     << point->iPgetFunction()->prettyName() << "\n";
+
   instReqNode *newInstReqNode = new instReqNode(point, ast, when, o);
   V.instRequests.push_back(newInstReqNode);
-
-  if(refersToStartThreadPoint && V.getDontInsertData() == false) {
-     V.startThreadInstRequest.push_back(newInstReqNode);
-  }
-
-  resetInsertedState();
 }
 
 
