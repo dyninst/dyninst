@@ -4,6 +4,9 @@
 # included from within an architecture-specific Makefile.
 #
 # $Log: nmake.module.tmpl,v $
+# Revision 1.3  1997/10/31 20:11:32  naim
+# updating dictionary class - naim
+#
 # Revision 1.2  1997/06/16 22:09:39  mjrg
 # added Object.C
 #
@@ -46,7 +49,7 @@ TARGET	      = libpdutil.lib
 
 SRCS	     = $(SRCS) ../src/String.C \
 		../src/ByteArray.C \
-		../src/DictionaryLite.C \
+		../src/Dictionary.C \
 		../src/lprintf.C \
 		../src/rpcUtil-nt.C \
 		../src/aggregateSample.C \
@@ -62,7 +65,7 @@ SRCS	     = $(SRCS) ../src/String.C \
 		../src/vectorSet.C \
 		../src/debugOstream.C
 
-OBJS         = $(OBJS) String.obj ByteArray.obj DictionaryLite.obj \
+OBJS         = $(OBJS) String.obj ByteArray.obj Dictionary.obj \
 		lprintf.obj rpcUtil.obj aggregateSample.obj \
  		stringPool.obj hist.obj timing.obj  Timer.obj \
 		makenan.obj pathName.obj \
