@@ -2,7 +2,11 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.67  1995/08/01 02:11:08  newhall
+ * Revision 1.68  1995/08/11 21:50:31  newhall
+ * Removed DM kludge method function.  Added calls to metDoDaemon,
+ * metDoProcess and metDoTunable that were moved out of metMain
+ *
+ * Revision 1.67  1995/08/01  02:11:08  newhall
  * complete implementation of phase interface:
  *   - additions and changes to DM interface functions
  *   - changes to DM classes to support data collection at current or
@@ -267,7 +271,7 @@ double   quiet_nan();
 #include "util/h/String.h"
 #include "DMphase.h"
 
-bool parse_metrics(string metric_file);
+// bool parse_metrics(string metric_file);
 bool metMain(string &userFile);
 
 // this has to be declared before baseAbstr, cmfAbstr, and rootResource 
@@ -551,6 +555,10 @@ void DM_eFunction(int errno, char *message)
     abort();
 }
 
+extern bool metDoDaemon();
+extern bool metDoProcess();
+extern bool metDoTunable();
+
 //
 // Main loop for the dataManager thread.
 //
@@ -607,14 +615,18 @@ void *DMmain(void* varg)
 
 
     // start initial phase
-
     string dm_phase0 = "phase_0";
     phaseInfo::startPhase(0.0,dm_phase0);
     msg_send (MAINtid, MSG_TAG_DM_READY, (char *) NULL, 0);
     tag = MSG_TAG_ALL_CHILDREN_READY;
     msg_recv (&tag, DMbuff, &msgSize);
-
     paradynDaemon *pd = NULL;
+
+    // get the parsed PDL file stuff
+    bool ok = metDoDaemon();
+    ok = metDoProcess();
+    ok = metDoTunable();
+
 
     while (1) {
         for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
@@ -797,10 +809,12 @@ void newSampleRate(float rate)
 }
 
 
+#ifdef ndef
 // Note - the metric parser has been moved into the dataManager
 bool parse_metrics(string metric_file) {
      bool parseResult = metMain(metric_file);
     return parseResult;
 }
+#endif
 
 

@@ -4,7 +4,11 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.43  1995/08/08 03:10:06  newhall
+ * Revision 1.44  1995/08/11 21:50:33  newhall
+ * Removed DM kludge method function.  Added calls to metDoDaemon,
+ * metDoProcess and metDoTunable that were moved out of metMain
+ *
+ * Revision 1.43  1995/08/08  03:10:06  newhall
  * bug fix to DMresourceListNameCompare
  * changed newPerfData and sampleDataCallbackFunc definitions
  *
@@ -186,10 +190,12 @@ extern "C" {
 // the argument list passed to paradynds
 vector<string> paradynDaemon::args = 0;
 
+#ifdef n_def
 extern bool parse_metrics(string metric_file);
 void dataManager::kludge(char *file) {
   parse_metrics(file);
 }
+#endif
 
 void histDataCallBack(sampleValue *buckets,
                       timeStamp start_time,
