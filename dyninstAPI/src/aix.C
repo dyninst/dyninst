@@ -1088,276 +1088,288 @@ bool seekAndRead(int fd, int offset, void **dest, int length, bool allocate)
     return true;
 }
 
+unsigned long roundup4(unsigned long val) {
+   while (val % 4 != 0)
+      val++;
+   return val;
+}
+
 void Object::load_object()
 {
-    long i;
-    int fd;
-    int cnt;
-    string name;
-    string module;
-    unsigned value;
-    int poolOffset;
-    int poolLength;
-    union auxent *aux;
-    struct filehdr hdr;
-    struct syment *sym;
-    struct aouthdr aout;
-    union auxent *csect;
-    char *stringPool=NULL;
-    bool newModule = false;
-    Symbol::SymbolType type; 
-    int *lengthPtr = &poolLength;
-    struct syment *symbols = NULL;
-    struct scnhdr *sectHdr = NULL;
-    Symbol::SymbolLinkage linkage;
-    unsigned toc_offset = 0;
+   // all these vrble declarations need to be up here due to the gotos,
+   // which mustn't cross vrble initializations.  Too bad.
+   long i;
+   int fd;
+   int cnt;
+   string name;
+   unsigned value;
+   int poolOffset;
+   int poolLength;
+   union auxent *aux;
+   struct filehdr hdr;
+   struct syment *sym;
+   struct aouthdr aout;
+   union auxent *csect;
+   char *stringPool=NULL;
+   Symbol::SymbolType type; 
+   int *lengthPtr = &poolLength;
+   struct syment *symbols = NULL;
+   struct scnhdr *sectHdr = NULL;
+   Symbol::SymbolLinkage linkage;
+   unsigned toc_offset = 0;
+   string modName;
 
-    fd = open(file_.string_of(), O_RDONLY, 0);
-    if (fd <0) {
-        sprintf(errorLine, "Unable to open executable file %s\n", 
-	    file_.string_of());
-	statusLine(errorLine);
-	showErrorCallback(27,(const char *) errorLine);
-	goto cleanup;
-    }
+   fd = open(file_.string_of(), O_RDONLY, 0);
+   if (fd <0) {
+      sprintf(errorLine, "Unable to open executable file %s\n", 
+              file_.string_of());
+      statusLine(errorLine);
+      showErrorCallback(27,(const char *) errorLine);
+      goto cleanup;
+   }
 
-    cnt = read(fd, &hdr, sizeof(struct filehdr));
-    if (cnt != sizeof(struct filehdr)) {
-        sprintf(errorLine, "Error reading executable file %s\n", 
-	    file_.string_of());
-	statusLine(errorLine);
-	showErrorCallback(49,(const char *) errorLine);
-	goto cleanup;
-    }
+   cnt = read(fd, &hdr, sizeof(struct filehdr));
+   if (cnt != sizeof(struct filehdr)) {
+      sprintf(errorLine, "Error reading executable file %s\n", 
+              file_.string_of());
+      statusLine(errorLine);
+      showErrorCallback(49,(const char *) errorLine);
+      goto cleanup;
+   }
 
-    cnt = read(fd, &aout, sizeof(struct aouthdr));
-    if (cnt != sizeof(struct aouthdr)) {
-        sprintf(errorLine, "Error reading executable file %s\n", 
-	    file_.string_of());
-	statusLine(errorLine);
-	showErrorCallback(49,(const char *) errorLine);
-	goto cleanup;
-    }
+   cnt = read(fd, &aout, sizeof(struct aouthdr));
+   if (cnt != sizeof(struct aouthdr)) {
+      sprintf(errorLine, "Error reading executable file %s\n", 
+              file_.string_of());
+      statusLine(errorLine);
+      showErrorCallback(49,(const char *) errorLine);
+      goto cleanup;
+   }
 
-    sectHdr = (struct scnhdr *) malloc(sizeof(struct scnhdr) * hdr.f_nscns);
-    assert(sectHdr);
-    cnt = read(fd, sectHdr, sizeof(struct scnhdr) * hdr.f_nscns);
-    if ((unsigned) cnt != sizeof(struct scnhdr)* hdr.f_nscns) {
-        sprintf(errorLine, "Error reading executable file %s\n", 
-	    file_.string_of());
-	statusLine(errorLine);
-	showErrorCallback(49,(const char *) errorLine);
-	goto cleanup;
-    }
+   sectHdr = (struct scnhdr *) malloc(sizeof(struct scnhdr) * hdr.f_nscns);
+   assert(sectHdr);
+   cnt = read(fd, sectHdr, sizeof(struct scnhdr) * hdr.f_nscns);
+   if ((unsigned) cnt != sizeof(struct scnhdr)* hdr.f_nscns) {
+      sprintf(errorLine, "Error reading executable file %s\n", 
+              file_.string_of());
+      statusLine(errorLine);
+      showErrorCallback(49,(const char *) errorLine);
+      goto cleanup;
+   }
 
-    // fprintf(stderr, "symbol table has %d entries starting at %d\n",
-    //    (int) hdr.f_nsyms, (int) hdr.f_symptr);
+   // fprintf(stderr, "symbol table has %d entries starting at %d\n",
+   //    (int) hdr.f_nsyms, (int) hdr.f_symptr);
 
-    if (!seekAndRead(fd, hdr.f_symptr, (void**) &symbols, 
-	hdr.f_nsyms * SYMESZ, true)) {
-	goto cleanup;
-    }
+   if (!seekAndRead(fd, hdr.f_symptr, (void**) &symbols, 
+                    hdr.f_nsyms * SYMESZ, true)) {
+      goto cleanup;
+   }
 
-    /*
-     * Get the string pool
-     */
-    poolOffset = hdr.f_symptr + hdr.f_nsyms * SYMESZ;
-    /* length is stored in the first 4 bytes of the string pool */
-    if (!seekAndRead(fd, poolOffset, (void**) &lengthPtr, sizeof(int), false)) {
-	goto cleanup;
-    }
+   /*
+    * Get the string pool
+    */
+   poolOffset = hdr.f_symptr + hdr.f_nsyms * SYMESZ;
+   /* length is stored in the first 4 bytes of the string pool */
+   if (!seekAndRead(fd, poolOffset, (void**) &lengthPtr, sizeof(int), false)) {
+      goto cleanup;
+   }
 
-    if (!seekAndRead(fd, poolOffset, (void**) &stringPool, poolLength, true)) {
-	goto cleanup;
-    }
+   if (!seekAndRead(fd, poolOffset, (void**) &stringPool, poolLength, true)) {
+      goto cleanup;
+   }
 
-    // identify the code region.
-    if ((unsigned) aout.tsize != sectHdr[aout.o_sntext-1].s_size) {
-	// consistantcy check failed!!!!
-        sprintf(errorLine, 
-	    "Executable header file internal error: text segment size %s\n", 
-	    file_.string_of());
-	statusLine(errorLine);
-	showErrorCallback(45,(const char *) errorLine);
-	goto cleanup;
-    }
+   // identify the code region.
+   if ((unsigned) aout.tsize != sectHdr[aout.o_sntext-1].s_size) {
+      // consistantcy check failed!!!!
+      sprintf(errorLine, 
+              "Executable header file internal error: text segment size %s\n", 
+              file_.string_of());
+      statusLine(errorLine);
+      showErrorCallback(45,(const char *) errorLine);
+      goto cleanup;
+   }
 
-    if (!seekAndRead(fd, sectHdr[aout.o_sntext-1].s_scnptr, 
-	(void **) &code_ptr_, aout.tsize, true)) {
-	goto cleanup;
-    }
+   if (!seekAndRead(fd, roundup4(sectHdr[aout.o_sntext-1].s_scnptr), 
+                    (void **) &code_ptr_, aout.tsize, true)) {
+      goto cleanup;
+   }
 
-    //code_off_ =  aout.text_start + AIX_TEXT_OFFSET_HACK; (OLD, pre-4.1)
-     code_off_ =  aout.text_start;
-     if (aout.text_start < TEXTORG) {
-       code_off_ += AIX_TEXT_OFFSET_HACK;
-     } else {
-       AIX_TEXT_OFFSET_HACK = 0;
-     }
+   //code_off_ =  aout.text_start + AIX_TEXT_OFFSET_HACK; (OLD, pre-4.1)
+   code_off_ =  aout.text_start;
+   if (aout.text_start < TEXTORG) {
+      code_off_ += AIX_TEXT_OFFSET_HACK;
+   } else {
+      AIX_TEXT_OFFSET_HACK = 0;
+   }
 
+   code_len_ = aout.tsize;
 
-    // fprintf(stderr, "reading code starting at %x\n", code_off_);
+   // now the init data segment (as opposed to .bss, the uninitialized data segment)
+   if ((unsigned long) aout.dsize != sectHdr[aout.o_sndata-1].s_size) {
+      // consistantcy check failed!!!!
+      sprintf(errorLine, 
+              "Executable header file interal error: data segment size %s\n", 
+              file_.string_of());
+      statusLine(errorLine);
+      showErrorCallback(45,(const char *) errorLine);
+      goto cleanup;
+   }
+   if (!seekAndRead(fd, roundup4(sectHdr[aout.o_sndata-1].s_scnptr), 
+                    (void **) &data_ptr_, aout.dsize, true)) {
+      cerr << "seekAndRead for initialized data section failed!" << endl;
+      goto cleanup;
+   }
 
-    code_len_ = aout.tsize;
+   // data_off_ = sectHdr[aout.o_sndata-1].s_vaddr + AIX_DATA_OFFSET_HACK; 
+   // (OLD, pre-4.1)
+   data_off_ = aout.data_start;
+   if (aout.data_start < DATAORG) {
+      data_off_ += AIX_DATA_OFFSET_HACK;
+   } else {
+      AIX_DATA_OFFSET_HACK = 0;
+   }
+//   cerr << "load_object for aix: data_off=" << (void*)data_off_ << endl;
+//   cerr << "after an original aout.data_start of " << (void*)aout.data_start << endl;
+//   cerr << "and a DATAORG of " << (void*)DATAORG << endl;
+//   cerr << "and an AIX_DATA_OFFSET_HACK of " << (void*)AIX_DATA_OFFSET_HACK << endl;
+//   cerr << "aout.dsize is " << (void*)aout.dsize << endl;
 
-    // now the init data segment.
-    if ((unsigned) aout.dsize != sectHdr[aout.o_sndata-1].s_size) {
-	// consistantcy check failed!!!!
-        sprintf(errorLine, 
-	    "Executable header file interal error: data segment size %s\n", 
-	    file_.string_of());
-	statusLine(errorLine);
-	showErrorCallback(45,(const char *) errorLine);
-	goto cleanup;
-    }
-    if (!seekAndRead(fd, sectHdr[aout.o_sndata-1].s_scnptr, 
-	(void **) &data_ptr_, aout.dsize, true)) {
-	goto cleanup;
-    }
+   data_len_ = aout.dsize;
 
-    // data_off_ = sectHdr[aout.o_sndata-1].s_vaddr + AIX_DATA_OFFSET_HACK; 
-    // (OLD, pre-4.1)
-    data_off_ = aout.data_start;
-    if (aout.data_start < DATAORG) {
-       data_off_ += AIX_DATA_OFFSET_HACK;
-    } else {
-       AIX_DATA_OFFSET_HACK = 0;
-    }
-
-    data_len_ = aout.dsize;
-
-    for (i=0; i < hdr.f_nsyms; i++) {
-	/* do the pointer addition by hand since sizeof(struct syment)
-         *   seems to be 20 not 18 as it should be */
-        sym = (struct syment *) (((unsigned) symbols) + i * SYMESZ);
-        if (!(sym->n_sclass & DBXMASK)) {
-	    if ((sym->n_sclass == C_HIDEXT) || 
-		(sym->n_sclass == C_EXT) ||
-		(sym->n_sclass == C_FILE)) {
-		if (!sym->n_zeroes) {
-		    name = string(&stringPool[sym->n_offset]);
-		} else {
-		    char tempName[9];
-		    memset(tempName, 0, 9);
-		    strncpy(tempName, sym->n_name, 8);
-		    name = string(tempName);
-		}
-	    }
+   // Now the symbol table itself:
+   for (i=0; i < hdr.f_nsyms; i++) {
+      /* do the pointer addition by hand since sizeof(struct syment)
+       *   seems to be 20 not 18 as it should be */
+      sym = (struct syment *) (((unsigned) symbols) + i * SYMESZ);
+      if (sym->n_sclass & DBXMASK)
+         continue;
+      
+      if ((sym->n_sclass == C_HIDEXT) || 
+          (sym->n_sclass == C_EXT) ||
+          (sym->n_sclass == C_FILE)) {
+         if (!sym->n_zeroes) {
+            name = string(&stringPool[sym->n_offset]);
+         } else {
+            char tempName[9];
+            memset(tempName, 0, 9);
+            strncpy(tempName, sym->n_name, 8);
+            name = string(tempName);
+         }
+      }
 	    
-	    if ((sym->n_sclass == C_HIDEXT) || (sym->n_sclass == C_EXT)) {
-		if (sym->n_sclass == C_HIDEXT) {
-		    linkage = Symbol::SL_LOCAL;
-	        } else {
-		    linkage = Symbol::SL_GLOBAL;
-		}
+      if ((sym->n_sclass == C_HIDEXT) || (sym->n_sclass == C_EXT)) {
+         if (sym->n_sclass == C_HIDEXT) {
+            linkage = Symbol::SL_LOCAL;
+         } else {
+            linkage = Symbol::SL_GLOBAL;
+         }
 
-		if (sym->n_scnum == aout.o_sntext) {
-		    type = Symbol::PDST_FUNCTION;
-		    // XXX - Hack for AIX loader.
-		    value = sym->n_value + AIX_TEXT_OFFSET_HACK;
-	        } else {
-		    // bss or data
-		    csect = (union auxent *)
-			((char *) sym + sym->n_numaux * SYMESZ);
+         if (sym->n_scnum == aout.o_sntext) {
+            type = Symbol::PDST_FUNCTION;
+            // XXX - Hack for AIX loader.
+            value = sym->n_value + AIX_TEXT_OFFSET_HACK;
+         } else {
+            // bss or data
+            csect = (union auxent *)
+               ((char *) sym + sym->n_numaux * SYMESZ);
 		    
-		    if (csect->x_csect.x_smclas == XMC_TC0) { 
-			if (toc_offset)
-			    logLine("Found more than one XMC_TC0 entry.");
-			toc_offset = sym->n_value;
-			continue;
-		    }
+            if (csect->x_csect.x_smclas == XMC_TC0) { 
+               if (toc_offset)
+                  logLine("Found more than one XMC_TC0 entry.");
+               toc_offset = sym->n_value;
+               continue;
+            }
 
-		    if ((csect->x_csect.x_smclas == XMC_TC) ||
-		        (csect->x_csect.x_smclas == XMC_DS)) {
-			// table of contents related entry not a real symbol.
-			continue;
-		    }
-		    type = Symbol::PDST_OBJECT;
-		    // XXX - Hack for AIX loader.
-		    value = sym->n_value + AIX_DATA_OFFSET_HACK;
-		}
+            if ((csect->x_csect.x_smclas == XMC_TC) ||
+                (csect->x_csect.x_smclas == XMC_DS)) {
+               // table of contents related entry not a real symbol.
+               //dump << " toc entry -- ignoring" << endl;
+               continue;
+            }
+            type = Symbol::PDST_OBJECT;
+            // XXX - Hack for AIX loader.
+            value = sym->n_value + AIX_DATA_OFFSET_HACK;
+         }
 
 
-		if (newModule) {
-		    // modules are defined multiple times for xlf Fortran.
-		    if (symbols_.defines(module)) {
-			Symbol &oldValue = symbols_[module];
-			// symbols should be in assending order.
-			if (oldValue.addr() > value) {
-			    logLine("Symbol table out of order, use -Xlinker -bnoobjreorder");
-			    showErrorCallback(48, "");
-			    goto cleanup;
-			}
-		    } else {
-			symbols_[module] = Symbol(module, module, 
-			    Symbol::PDST_MODULE, linkage, value, false);
-		    }
-		    newModule = false;
-		}
+         // skip .text entries
+         if (name == ".text") continue;
+         if (name.prefixed_by(".")) {
+            // XXXX - Hack to make names match assumptions of symtab.C
+            name = string(name.string_of()+1);
+         }
+         else if (type == Symbol::PDST_FUNCTION) {
+            // text segment without a leady . is a toc item
+            //dump << " (no leading . so assuming toc item & ignoring)" << endl;
+            continue;
+         }
 
-		// skip .text entries
-		if (name == ".text") continue;
-		if (name.prefixed_by(".")) {
-		    // XXXX - Hack to make names match assumptions of symtab.C
-		    char temp[512];
-		    //sprintf(temp, "_%s", &name.string_of()[1]);
-		    //Just skip the "."
-		    sprintf(temp, "%s", &name.string_of()[1]);
-		    name = string(temp);
-		} else if (type == Symbol::PDST_FUNCTION) {
-		    // text segment without a leady . is a toc item
-		    continue;
-		}
+         //dump << "name \"" << name << "\" in module \"" << modName << "\" value=" << (void*)value << endl;
+            
+         //fprintf(stderr, "Found symbol %s in (%s) at %x\n", 
+         //   name.string_of(), modName.string_of(), value);
+         Symbol sym(name, modName, type, linkage, value, false);
+         symbols_[name] = sym;
 
-		//fprintf(stderr, "Found symbol %s in (%s) at %x\n", 
-		//   name.string_of(), module.string_of(), value);
-		symbols_[name] = Symbol(name, module, type, linkage, 
-			    value, false);
-	    } else if (sym->n_sclass == C_FILE) {
-		if (!strcmp(name.string_of(), ".file")) {
-		    int j;
-		    /* has aux record with additional information. */
-		    for (j=1; j <= sym->n_numaux; j++) {
-			aux = (union auxent *) ((char *) sym + j * SYMESZ);
-			if (aux->x_file._x.x_ftype == XFT_FN) {
-			    // this aux record contains the file name.
-			    if (!aux->x_file._x.x_zeroes) {
-				name = 
-				  string(&stringPool[aux->x_file._x.x_offset]);
-			    } else {
-				// x_fname is 14 bytes
-				char tempName[14];
-				memset(tempName, 0, 15);
-				strncpy(tempName, aux->x_file.x_fname, 14);
-				name = string(tempName);
-			    }
-			}
-		    }
-		}
-		// fprintf(stderr, "Found module %s\n", name.string_of());
-		// mark it to be added, but don't add it until the next symbol
-		//    tells us the address.
-		newModule = true;
-		module = name;
-		continue;
-	    }
-        }
-    }
+         if (symbols_.defines(modName)) {
+            // Adjust module's address, if necessary, to ensure that it's <= the
+            // address of this new symbol
+            Symbol &mod_symbol = symbols_[modName];
+            if (value < mod_symbol.addr()) {
+               //cerr << "adjusting addr of module " << modName
+               //     << " to " << value << endl;
+               mod_symbol.setAddr(value);
+            }
+         }
+      } else if (sym->n_sclass == C_FILE) {
+         if (!strcmp(name.string_of(), ".file")) {
+            int j;
+            /* has aux record with additional information. */
+            for (j=1; j <= sym->n_numaux; j++) {
+               aux = (union auxent *) ((char *) sym + j * SYMESZ);
+               if (aux->x_file._x.x_ftype == XFT_FN) {
+                  // this aux record contains the file name.
+                  if (!aux->x_file._x.x_zeroes) {
+                     name = 
+                        string(&stringPool[aux->x_file._x.x_offset]);
+                  } else {
+                     // x_fname is 14 bytes
+                     char tempName[15];
+                     memset(tempName, 0, 15);
+                     strncpy(tempName, aux->x_file.x_fname, 14);
+                     name = string(tempName);
+                  }
+               }
+            }
+         }
+         //dump << "found module \"" << name << "\"" << endl;
+
+         modName = name;
+         
+         const Symbol modSym(modName, modName, 
+                             Symbol::PDST_MODULE, linkage,
+                             UINT_MAX, // dummy address for now!
+                             false);
+         symbols_[modName] = modSym;
+         
+         continue;
+      }
+   }
     	
-    // cout << "The value of TOC is: " << toc_offset << endl;
-    //extern void initTocOffset(int);	
-    //initTocOffset(toc_offset);
-    // this value is now defined per object. toc_offset_ is a private member
-    // of class Object in Object-aix.h - naim
-    toc_offset_ = toc_offset;
+   // cout << "The value of TOC is: " << toc_offset << endl;
+   //extern void initTocOffset(int);	
+   //initTocOffset(toc_offset);
+   // this value is now defined per object. toc_offset_ is a private member
+   // of class Object in Object-aix.h - naim
+   toc_offset_ = toc_offset;
 
-cleanup:
-    close(fd);
-    if (sectHdr) free(sectHdr);
-    if (stringPool) free(stringPool);
-    if (symbols) free(symbols);
+  cleanup:
+   close(fd);
+   if (sectHdr) free(sectHdr);
+   if (stringPool) free(stringPool);
+   if (symbols) free(symbols);
 
-    return;
+   return;
 }
 
 
@@ -1396,6 +1408,7 @@ bool establishBaseAddrs(int pid, int &status, bool waitForTrap)
     struct ld_info info[64];
 
     // check that the program was loaded at the correct address.
+    //logLine("welcome to establishBaseAddrs\n");
 
     // wait for the TRAP point.
     if (waitForTrap)
@@ -1426,7 +1439,17 @@ bool establishBaseAddrs(int pid, int &status, bool waitForTrap)
     AIX_TEXT_OFFSET_HACK = (unsigned) ptr->ldinfo_textorg + 0x200;
     AIX_DATA_OFFSET_HACK = (unsigned) ptr->ldinfo_dataorg;
 
+    // turn on 'multiprocess debugging', which allows ptracing of both the
+    // parent and child after a fork.  In particular, both parent & child will
+    // TRAP after a fork.  Also, a process will TRAP after an exec (after the
+    // new image has loaded but before it has started to execute at all).
+    // Note that turning on multiprocess debugging enables two new values to be
+    // returned by wait(): W_SEWTED and W_SFWTED, which indicate stops during
+    // execution of exec and fork, respectively.
     ptrace(PT_MULTI, pid, 0, 1, 0);
+
+//    cerr << "done with establishBaseAddrs; DATA hack=" << (void*)AIX_DATA_OFFSET_HACK
+//         << endl;
 
     return true;
 }
