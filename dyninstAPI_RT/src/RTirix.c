@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTirix.c,v 1.5 1999/11/11 00:55:03 wylie Exp $
+ * $Id: RTirix.c,v 1.6 2000/03/23 01:25:57 wylie Exp $
  * RTirix.c: mutatee-side library function specific to IRIX
  ************************************************************************/
 
@@ -59,20 +59,20 @@
 
 /************************************************************************
  * EXPORTED SYMBOLS:
- *   void  *DYNINSTloadLibrary(char *): dlopen wrapper
  *   void   DYNINSTos_init(int, int): OS-specific initialization
+ *   void  *DYNINSTloadLibrary(char *): dlopen wrapper
  * (below symbols implemented in "RTheap.c" and "RTheap-irix.c")
  *   void  *DYNINSTos_malloc(size_t, void *, void *): heap allocation
  *   int    DYNINSTos_free(void *): heap deallocation
  ************************************************************************/
 
+void DYNINSTos_init(int calledByFork, int calledByAttach)
+{
+}
+
 void *DYNINSTloadLibrary(char *libname)
 {
   void *ret = dlopen(libname, RTLD_NOW | RTLD_GLOBAL);
   return ret;
-}
-
-void DYNINSTos_init(int calledByFork, int calledByAttach)
-{
 }
 
