@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.11 1999/06/24 18:20:14 pcroth Exp $
+// $Id: pdwinnt.C,v 1.12 1999/07/04 23:27:28 wylie Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -839,7 +839,7 @@ bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) 
 		      buf, 1000, NULL);
 	printf(">>> %d %s\n", GetLastError(), buf);
 	printf("WriteProcessMem: %d bytes, addr = 0x%lx, %d\n", 
-	       amount, inTraced, res);
+	       amount, inTraced, (int)res);
     }
     return res && (nbytes == amount);
 }
@@ -856,7 +856,7 @@ bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
 		      buf, 1000, NULL);
 	printf(">>> %d %s\n", GetLastError(), buf);
 	printf("ReadProcessMem: %d bytes, addr = 0x%lx, %d\n", 
-	       amount, inTraced, res);
+	       amount, inTraced, (int)res);
     }
     return res && (nbytes == amount);
 }
@@ -1092,7 +1092,7 @@ bool forkNewProcess(string file, string dir, vector<string> argv,
     HANDLE wTracePipe;
     HANDLE rIoPipe;
     HANDLE wIoPipe;
-#ifdef notdef
+#ifdef notdef_Pipes     // isn't this all obsolete???
     // security attributes to make handles inherited
     SECURITY_ATTRIBUTES sa;
     sa.nLength = sizeof(SECURITY_ATTRIBUTES);
@@ -1101,15 +1101,15 @@ bool forkNewProcess(string file, string dir, vector<string> argv,
     
     // create trace pipe
     if (!CreatePipe(&rTracePipe, &wTracePipe, &sa, 0)) {
-	string msg = string("Unable to create trace pipe for program '") + File +
-	    string("': ") + string(sys_errlist[errno]);
+	string msg = string("Unable to create trace pipe for program '") 
+	    + File + string("': ") + string(sys_errlist[errno]);
 	showErrorCallback(68, msg);
 	return(NULL);
     }
     
     // create IO pipe
-    // ioPipe is used to redirect the child's stdout & stderr to a pipe which is in
-    // turn read by the parent via the process->ioLink socket.
+    // ioPipe is used to redirect the child's stdout & stderr to a pipe which
+    // is in turn read by the parent via the process->ioLink socket.
     if (!CreatePipe(&rIoPipe, &wIoPipe, &sa, 0)) {
 	string msg = string("Unable to create IO pipe for program '") + File +
 	    string("': ") + string(sys_errlist[errno]);
@@ -1149,23 +1149,26 @@ bool forkNewProcess(string file, string dir, vector<string> argv,
 	thrHandle = (Word)procInfo.hThread;
 	pid = (Word)procInfo.dwProcessId;
 	tid = (Word)procInfo.dwThreadId;
-	/*
-	  traceLink = (Word)rTracePipe;
-	  ioLink = (Word)rIoPipe;
-	  */
-	traceLink = -1;
-	ioLink = -1;
-	//    CloseHandle(wTracePipe);
-	//    CloseHandle(wIoPipe);
-	//initSymbols((HANDLE)procHandle, file, dir);
+#ifdef notdef_Pipes
+        traceLink = (Word)rTracePipe;
+        ioLink = (Word)rIoPipe;
+        CloseHandle(wTracePipe);
+        CloseHandle(wIoPipe);
+        //initSymbols((HANDLE)procHandle, file, dir);
+#else
+        traceLink = -1;
+        ioLink = -1;
+#endif
 	return true;
     }
    
 #ifndef BPATCH_LIBRARY
+#ifdef notdef_Pipes
     CloseHandle(rTracePipe);
     CloseHandle(wTracePipe);
     CloseHandle(rIoPipe);
     CloseHandle(wIoPipe);
+#endif
 #endif /* BPATCH_LIBRARY */
 
     // Output failure message

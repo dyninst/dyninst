@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.97 1999/06/17 21:54:20 wylie Exp $
+// $Id: symtab.C,v 1.98 1999/07/04 23:27:35 wylie Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -207,7 +207,7 @@ bool image::newFunc(pdmodule *mod, const string &name, const Address addr,
   if (!buildDemangledName(mangled_name, demangled)) 
     demangled = mangled_name;
 
-  bool err;
+  bool err=false;
 
   func = new pd_Function(name, demangled, mod, addr, size, tag, this, err);
   assert(func);
@@ -305,7 +305,7 @@ image *image::parseImage(const string file)
    */
 
   statusLine("Process executable file");
-  bool err;
+  bool err=false;
 
   // TODO -- kill process here
   image *ret = new image(file, err);
@@ -360,7 +360,7 @@ image *image::parseImage(const string file, Address baseAddr)
 
   if(!baseAddr) statusLine("Processing an executable file");
   else  statusLine("Processing a shared object file");
-  bool err;
+  bool err=false;
 
   // TODO -- kill process here
   image *ret = new image(file, baseAddr, err);

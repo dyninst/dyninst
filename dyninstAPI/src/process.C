@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.178 1999/06/30 21:51:27 hollings Exp $
+// $Id: process.C,v 1.179 1999/07/04 23:27:35 wylie Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1537,7 +1537,7 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
 #endif
 
    // NOTE: the actual attach happens in the process "attach" constructor:
-   bool success;
+   bool success=false;
    process *theProc = new process(pid, theImage, afterAttach, success
 #ifdef SHM_SAMPLING
 				  ,7000, // shm seg key to try first
