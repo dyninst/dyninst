@@ -806,7 +806,8 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
              baseMap(ipHash), 
 	     pid(iPid) // needed in fastInferiorHeap ctors below
 #ifdef SHM_SAMPLING
-	     ,inferiorHeapMgr(theShmKey, iShmHeapStats, iPid),
+             ,previous(0),
+	     inferiorHeapMgr(theShmKey, iShmHeapStats, iPid),
              theSuperTable(this,
 			iShmHeapStats[0].maxNumElems,
 			iShmHeapStats[1].maxNumElems,
@@ -912,7 +913,8 @@ process::process(int iPid, image *iSymbols,
 		 baseMap(ipHash),
 		 pid(iPid)
 #ifdef SHM_SAMPLING
-	     ,inferiorHeapMgr(theShmKey, iShmHeapStats, iPid),
+             ,previous(0),
+	     inferiorHeapMgr(theShmKey, iShmHeapStats, iPid),
 	     theSuperTable(this,
 			iShmHeapStats[0].maxNumElems,
 			iShmHeapStats[1].maxNumElems,
@@ -1044,7 +1046,8 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 		 ) :
                      baseMap(ipHash) // could change to baseMap(parentProc.baseMap)
 #ifdef SHM_SAMPLING
-		     ,inferiorHeapMgr(parentProc.inferiorHeapMgr, 
+                     ,previous(0),
+		     inferiorHeapMgr(parentProc.inferiorHeapMgr, 
 				      applShmSegPtr,
 				      theShmKey, iShmHeapStats, iPid)
                      ,theSuperTable(parentProc.getTable(),this)

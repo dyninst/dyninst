@@ -232,7 +232,7 @@ class process {
 
 
 #ifdef SHM_SAMPLING
-  time64 getInferiorProcessCPUtime() const;
+  time64 getInferiorProcessCPUtime();
      // returns user+sys time from the u or proc area of the inferior process, which in
      // turn is presumably obtained by mmapping it (sunos) or by using a /proc ioctl
      // to obtain it (solaris).  It is hoped that the implementation would not have to
@@ -649,6 +649,11 @@ private:
   int pid;			/* id of this process */
 
 #ifdef SHM_SAMPLING
+  time64 previous; // This is being used to avoid time going backwards in
+                   // getInferiorProcessCPUtime. We can't use a static variable
+                   // inside this procedure because there is one previous for
+                   // each process - naim 5/28/97
+
   // New components of the conceptual "inferior heap"
   fastInferiorHeapMgr inferiorHeapMgr;
 

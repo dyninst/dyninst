@@ -52,6 +52,7 @@
 #include "paradynd/src/showerror.h"
 #include "util/h/pathName.h" // concat_pathname_components()
 #include "util/h/debugOstream.h"
+#include "util/h/solarisKludges.h"
 
 #include <sys/procfs.h>
 #include <poll.h>
@@ -635,7 +636,7 @@ bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool uppermost
 #endif
 
 #ifdef SHM_SAMPLING
-time64 process::getInferiorProcessCPUtime() const {
+time64 process::getInferiorProcessCPUtime() {
    // returns user+sys time from the u or proc area of the inferior process, which in
    // turn is presumably obtained by mmapping it (sunos) or by using a /proc ioctl
    // to obtain it (solaris).  It must not stop the inferior process in order
@@ -650,20 +651,24 @@ time64 process::getInferiorProcessCPUtime() const {
    // PIOCSTATUS does _not_ work because its results are not in sync
    // with DYNINSTgetCPUtime
 
-   prusage_t theUsage;
-   if (ioctl(proc_fd, PIOCUSAGE, &theUsage) == -1) {
-      perror("could not read CPU time of inferior PIOCUSAGE");
+   time64 result;
+   prpsinfo_t theUsage;
+
+   if (ioctl(proc_fd, PIOCPSINFO, &theUsage) == -1) {
+      perror("could not read CPU time of inferior PIOCPSINFO");
       return 0;
    }
+   result = PDYN_mulMillion(theUsage.pr_time.tv_sec); // sec to usec
+   result += PDYN_div1000(theUsage.pr_time.tv_nsec);  // nsec to usec
 
-   timestruc_t &utime = theUsage.pr_utime;
-   timestruc_t &stime = theUsage.pr_stime;
-
-   // Note: we can speed up the multiplication and division; see RTsolaris.c in rtinst
-
-   time64 result = utime.tv_sec + stime.tv_sec;
-   result *= 1000000; // sec to usec
-   result += utime.tv_nsec/1000 + stime.tv_nsec/1000;
+   if (result<previous) {
+     // time shouldn't go backwards, but we have seen this happening
+     // before, so we better check it just in case - naim 5/30/97
+     logLine("********* time going backwards in paradynd **********\n");
+     result=previous;
+   } else {
+     previous=result;
+   }
 
    return result;
 }

@@ -259,7 +259,7 @@ DYNINSTgetCPUtime(void) {
 
 /*     time64 now = (time64)gethrvtime()/(time64)1000; */
 
-     struct prusage theUsage; /* for /proc PIOCUSAGE call */
+     struct prpsinfo theUsage; /* for /proc PIOCPSINFO call */
      time64 now;
 
      if (firstTime) {
@@ -267,21 +267,17 @@ DYNINSTgetCPUtime(void) {
 	firstTime = 0;
      }
 
-     if (ioctl(procfd, PIOCUSAGE, &theUsage) < 0) {
-        perror("rtinst get-cpu-time PIOCUSAGE");
+     if (ioctl(procfd, PIOCPSINFO, &theUsage) < 0) {
+        perror("rtinst get-cpu-time PIOCPSINFO");
 	abort();
      }
 
-     now = theUsage.pr_utime.tv_sec + theUsage.pr_stime.tv_sec;
-
-     now = mulMillion(now); /* sec to usec */
-/*     now *= 1000000; */
-
-     now += div1000(theUsage.pr_utime.tv_nsec + theUsage.pr_stime.tv_nsec);
-/*     now += (theUsage.pr_utime.tv_nsec + theUsage.pr_stime.tv_nsec) / 1000; */
+     now = mulMillion(theUsage.pr_time.tv_sec); /* sec to usec */
+     now += div1000(theUsage.pr_time.tv_nsec);  /* nsec to usec */
 
      if (now < previous)
         /* I don't think that this ever happens for solaris, thankfully */
+        /* ...well, it can happen if we use PIOCRUSAGE! - naim 5/29/97 */
         continue;
 
      previous = now;
