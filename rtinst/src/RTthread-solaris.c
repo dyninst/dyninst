@@ -122,6 +122,40 @@ typedef struct thread_sol27_s {
 } thread_sol27;
 
 
+/* Thread structure for libthread sparc-solaris2.8 */
+typedef struct {
+        int     sp;
+        int     pc;
+        int     fsr;
+        int     fpu_en;
+        int     g2;
+        int     g3;
+        int     g4;
+        uint8_t dontcare5;
+} rs_sol28;
+
+/* stack structure for libthread sparc-solaris2.8 */
+typedef struct {
+        char   *sp;
+        int     size;
+        int     flags;
+} stack_sol28;
+
+typedef struct thread_sol28_s {
+        struct thread_sol28_s   *dontcare1;   
+        caddr_t         thread_stack;    
+        size_t          thread_stacksize;
+        size_t          dontcare2;
+        stack_sol28     dontcare3;
+        caddr_t         dontcare4;      
+        rs_sol28        t_resumestate;
+        void            (*start_pc)(); 
+        thread_t        thread_id;     
+        lwpid_t         lwp_id;       
+        int             opts;      
+        int             flag; 
+} thread_sol28;
+
 
 /*
 // A simple test to determine the right thread package
@@ -130,21 +164,29 @@ typedef struct thread_sol27_s {
 #define LIBTHR_UNKNOWN 0
 #define LIBTHR_SOL26   1
 #define LIBTHR_SOL27   2
+#define LIBTHR_SOL28   3
 
 int which(void *tls) {
 static int w = 0;
 
   if (!w) {
     int tid = thr_self();
-    if ( ((thread_sol27*) tls)->thread_id == tid) {
-      if (((thread_sol26*) tls)->thread_id == tid) 
-      { assert(!"simple test failed ..."); }
 
-      fprintf(stderr, "Detected libthread, sol2.7\n");
-      w = LIBTHR_SOL27;
-    }  else  if (((thread_sol26*) tls)->thread_id == tid) {
-      fprintf(stderr, "Detected libthread, sol2.6\n");
-      w = LIBTHR_SOL26;
+    if ( ((thread_sol28*) tls)->thread_id == tid) {
+      if ( ((thread_sol27*) tls)->thread_id == tid) {
+        if (((thread_sol26*) tls)->thread_id == tid) { 
+          assert(!"simple test failed ...");
+        }
+
+        fprintf(stderr, "Detected libthread, sol2.8\n");
+        w = LIBTHR_SOL28;
+      }
+    }  else if (((thread_sol27*) tls)->thread_id == tid) {
+        fprintf(stderr, "Detected libthread, sol2.7\n");
+        w = LIBTHR_SOL27;
+    }  else if (((thread_sol26*) tls)->thread_id == tid) {
+        fprintf(stderr, "Detected libthread, sol2.6\n");
+        w = LIBTHR_SOL26;
     }
   }
 
@@ -164,6 +206,16 @@ void idtot(int tid) {
 
 void DYNINST_ThreadPInfo(void* tls, void** stkbase, int* tid, long *pc, int* lwp, void** rs) {
   switch (which(tls)) {
+
+    case LIBTHR_SOL28: {
+      thread_sol28 *ptr = (thread_sol28 *) tls ;
+      *stkbase = (void*) (ptr->thread_stack);
+      *tid = (int) ptr->thread_id ;
+      *pc = (long) ptr->start_pc ;
+      *lwp = (int) ptr->lwp_id ;
+      *rs = &(ptr->t_resumestate);
+      break;
+    }
     case LIBTHR_SOL27: {
       thread_sol27 *ptr = (thread_sol27 *) tls ;
       *stkbase = (void*) (ptr->thread_stack);
