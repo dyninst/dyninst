@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-Sparc.h,v 1.7 2001/05/21 23:25:13 gurari Exp $
+// $Id: LocalAlteration-Sparc.h,v 1.8 2001/08/06 23:21:59 gurari Exp $
 
 #ifndef __LocalAlteration_SPARC_H__
 #define __LocalAlteration_SPARC_H__
@@ -196,6 +196,7 @@ class RetlSetO7 : public LocalAlteration {
     virtual int getOffset() const { return beginning_offset; }
     virtual int getShift() const;
     virtual int numInstrAddedAfter();
+    instruction delaySlotInsn() { return retlSlotInsn; } 
 
  private:
     instruction retlSlotInsn;   // Instruction in the delay slot of the retl

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.93 2001/08/01 15:39:57 chadd Exp $
+// $Id: symtab.h,v 1.94 2001/08/06 23:22:00 gurari Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -334,6 +334,9 @@ class pd_Function : public function_base {
                          const image *owner, bool &err, unsigned &id, 
 			 Address &addr, relocatedFuncInfo *reloc_info,
 			 const instPoint *&location);
+
+    bool PA_attachTailCalls(LocalAlterationSet *temp_alteration_set);
+
     //
     // NEW routines for function code rewrites using peephole alterations....
     //

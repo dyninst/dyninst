@@ -473,7 +473,7 @@ bool pd_Function::expandInstPoints(const image *owner,
                                Address mutatee, instruction oldInstructions[], 
                                unsigned numInstructions) {
 
-  bool combined1, combined2, combined3;
+  bool combined1, combined2, combined3, combined4;
 
 #ifdef DEBUG_FUNC_RELOC
     cerr << "pd_Function::expandInstPoints called "<< endl;
@@ -485,6 +485,7 @@ bool pd_Function::expandInstPoints(const image *owner,
 
   LocalAlterationSet tmp_alt_set1(this);
   LocalAlterationSet tmp_alt_set2(this);
+  LocalAlterationSet tmp_alt_set3(this);
 
   // Perform three passes looking for instPoints that need expansion
 
@@ -494,15 +495,19 @@ bool pd_Function::expandInstPoints(const image *owner,
                                  mutatee, oldInstructions, size());
   PA_attachBranchOverlaps(&tmp_alt_set2, baseAddress, mutator, 
                           oldInstructions, numInstructions, size());
+#if defined (sparc_sun_solaris2_4)
+  PA_attachTailCalls(&tmp_alt_set3);
+#endif
 
   // merge the LocalAlterations discovered in the above passes, placing
   // them in normalized_alteration_set 
 
   combined1 = combineAlterationSets(temp_alteration_set, &tmp_alt_set1);
   combined2 = combineAlterationSets(temp_alteration_set, &tmp_alt_set2);
-  combined3 = combineAlterationSets(&normalized_alteration_set, temp_alteration_set);    
+  combined3 = combineAlterationSets(temp_alteration_set, &tmp_alt_set3);
+  combined4 = combineAlterationSets(&normalized_alteration_set, temp_alteration_set);    
 
-  if (!combined1 || !combined2 || !combined3) {
+  if (!combined1 || !combined2 || !combined3 || !combined4) {
     return false;
   }
 
@@ -1098,6 +1103,7 @@ bool pd_Function::relocateFunction(process *proc,
 
     // original address of function (before relocation)
     u_int origAddress = baseAddress + getAddress(0);    
+
  
     // address to which function will be relocated.
     // memory is not allocated until total size change of function is known

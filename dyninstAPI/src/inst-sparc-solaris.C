@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.87 2001/07/11 21:19:57 gurari Exp $
+// $Id: inst-sparc-solaris.C,v 1.88 2001/08/06 23:22:00 gurari Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1598,10 +1598,13 @@ Register emitFuncCall(opCode op,
 	vector <Register> srcs;
 	void cleanUpAndExit(int status);
 
-	if (calleefunc)
-	     addr = calleefunc->getEffectiveAddress(proc);
+	if (calleefunc) {
+	  addr = calleefunc->getEffectiveAddress(proc);
+        }
 	else {
+
 	     addr = proc->findInternalAddress(callee, false, err);
+
 	     if (err) {
 		  function_base *func = proc->findOneFunction(callee);
 		  if (!func) {
@@ -3015,6 +3018,25 @@ bool pd_Function::PA_attachGeneralRewrites( const image *owner,
         }
     }
 
+    return true;
+}
+
+
+bool pd_Function::PA_attachTailCalls(LocalAlterationSet *p) {
+    instruction instr, nexti;
+    TailCallOptimization *tail_call;
+    // previously referred to calls[i] directly, but gdb seems to be having
+    //  trouble with templated types with the new compiler - making debugging
+    //  difficult - so, directly assign calls[i] to the_call so can use gdb
+    //  to get at info about it....
+    instPoint *the_call;
+
+#ifdef DEBUG_PA_INST
+    cerr << "pd_Function::PA_tailCallOptimizations called" <<endl;
+    cerr << " prettyName = " << prettyName() << endl;
+#endif
+
+
     // Look for an instPoint in funcCalls where the instruction is 
     //  a call instruction and the next instruction is a restore op
     //  or where the instruction is a jmp (out of function?), and the next 
@@ -3033,19 +3055,23 @@ bool pd_Function::PA_attachGeneralRewrites( const image *owner,
 	    tail_call = new CallRestoreTailCallOptimization(this, offset, 
 				   offset + 2 * sizeof(instruction), instr);
 	    p->AddAlteration(tail_call);
+
 #ifdef DEBUG_PA_INST
 	    cerr << " detected call, restore tail-call optimization at offset " 
 		 << offset << endl;
 #endif
+
 	}
 	if (JmpNopTC(instr, nexti, the_call->iPgetAddress(), this)) {
 	    tail_call = new JmpNopTailCallOptimization(this, offset, 
 				   offset + 2 * sizeof(instruction));
 	    p->AddAlteration(tail_call);
+
 #ifdef DEBUG_PA_INST
 	    cerr << " detected jmp, nop tail-call optimization at offset " 
 		 << offset << endl;
 #endif
+
 	}
     }
 
@@ -3239,22 +3265,26 @@ bool pd_Function::PA_attachBranchOverlaps(
                                (target - firstAddress) - sizeof(instruction), 
 			       target - overlap->firstAddress());
 	    p->AddAlteration(nops);
+
 #ifdef DEBUG_PA_INST
 	    cerr << " detected overlap between branch target and inst point : offset "
 		 << target - firstAddress << " # bytes " 
 		 << target - overlap->firstAddress() << endl;
 #endif
+
 	} else {
 	    InsertNops *nops = new InsertNops(this, 
                                  (target - firstAddress) - sizeof(instruction),
 				 overlap->followingAddress() - target);
 	    p->AddAlteration(nops);
+
 #ifdef DEBUG_PA_INST
 	    cerr << " detected overlap between branch target and inst point : offset "
 		 << (target - firstAddress) - sizeof(instruction) 
                  << " # bytes " 
 		 << overlap->firstAddress() - target << endl;
 #endif
+
 	}
     }
 
@@ -3666,12 +3696,13 @@ bool pd_Function::isNearBranchInsn(const instruction insn) {
 // It may be that in two different passes over a function, we note 
 // two different LocalAlterations at the same offset. This function 
 // reconciles any conflict between the LocalAlterations and merges them into 
-// a single LocalAlteration, or ignores one of them,
+// a single LocalAlteration, or discards one of the alterations, returning 
+// the relevant alteration
 
 LocalAlteration *fixOverlappingAlterations(LocalAlteration *alteration, 
                                            LocalAlteration *tempAlteration) {
 
-  LocalAlteration *casted_alteration = 0, *casted_tempAlteration = 0; 
+  LocalAlteration *alt = 0, *tmpAlt = 0; 
 
 #ifdef DEBUG_FUNC_RELOC 
 	   cerr << "fixOverlappingAlterations " << endl;
@@ -3680,10 +3711,10 @@ LocalAlteration *fixOverlappingAlterations(LocalAlteration *alteration,
   // assert that there is indeed a conflict  
   assert (alteration->getOffset() == tempAlteration->getOffset()); 
 
-  casted_alteration = dynamic_cast<InsertNops *> (alteration); 
-  casted_tempAlteration = dynamic_cast<InsertNops *> (tempAlteration); 
-  if (casted_alteration != NULL) {
-    if (casted_tempAlteration != NULL) {
+  alt = dynamic_cast<InsertNops *> (alteration); 
+  tmpAlt = dynamic_cast<InsertNops *> (tempAlteration); 
+  if (alt != NULL) {
+    if (tmpAlt != NULL) {
       if (alteration->getShift() >= tempAlteration->getShift()) {
         return alteration;
       } else {  
@@ -3692,6 +3723,39 @@ LocalAlteration *fixOverlappingAlterations(LocalAlteration *alteration,
     }
   }
 
-  cerr << "ERROR: Conflicting LocalAlterations in function relocation" << endl;
+  /* Check for tail call optimization and set o7 sequence at same location */
+
+  alt = dynamic_cast<CallRestoreTailCallOptimization *>(alteration); 
+  tmpAlt = dynamic_cast<SetO7 *> (tempAlteration); 
+  if (alt != NULL) {
+    if (tmpAlt != NULL) {
+       return alteration;
+    }
+  }
+
+  alt = dynamic_cast<CallRestoreTailCallOptimization *>(alteration); 
+  tmpAlt = dynamic_cast<RetlSetO7 *> (tempAlteration); 
+  if (alt != NULL) {
+    if (tmpAlt != NULL) {
+       return alteration;
+    }
+  }
+
+  alt = dynamic_cast<JmpNopTailCallOptimization *>(alteration); 
+  tmpAlt = dynamic_cast<SetO7 *> (tempAlteration); 
+  if (alt != NULL) {
+    if (tmpAlt != NULL) {
+        return alteration;
+    }
+  }
+  alt = dynamic_cast<JmpNopTailCallOptimization *>(alteration); 
+  tmpAlt = dynamic_cast<RetlSetO7 *> (tempAlteration); 
+  if (alt != NULL) {
+    if (tmpAlt != NULL) {
+        return alteration;
+    }
+  }
+
+  cerr << "WARNING: Conflicting Alterations in function relocation" << endl;
   return NULL;
 }
