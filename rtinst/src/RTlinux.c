@@ -39,8 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+/* $Id */
+
 /************************************************************************
- * RTlinux.c: clock access functions for linux-2.0.x
+ * RTlinux.c: clock access functions for linux-2.0.x and linux-2.2.x
 ************************************************************************/
 
 #include <signal.h>
@@ -292,8 +294,8 @@ DYNINSTgetCPUtime(void) {
 		assert( 1 == fscanf( tmp, "%*s %*d %*d %*d %d", &uptimeJiffies ) );
 		fclose( tmp );
 		realHZ = (double)uptimeJiffies / uptimeReal;
-		realMul = (int)floor( 1000000.0L / realHZ + 0.5 );
-#ifndef notdef
+		realMul = (int)( 1000000.0L / realHZ + 0.5 );
+#ifdef notdef
 		fprintf( stderr, "Determined usec/jiffy as %d\n", realMul );
 #endif
 	}
