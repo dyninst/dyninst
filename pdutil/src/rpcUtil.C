@@ -1,8 +1,11 @@
 /*
 $Log: rpcUtil.C,v $
-Revision 1.16  1994/04/01 04:59:13  markc
-Put in support to encode NULL ptrs to strings in xdr_String.
+Revision 1.17  1994/04/01 20:05:27  hollings
+Removed kill of rsh process (not needed and it causes a race condition).
 
+ * Revision 1.16  1994/04/01  04:59:13  markc
+ * Put in support to encode NULL ptrs to strings in xdr_String.
+ *
  * Revision 1.15  1994/03/31  22:59:08  hollings
  * added well known port as a paramter to xdrRPC constructor.
  *
@@ -380,6 +383,7 @@ int RPCprocessCreate(int *pid, char *hostName, char *userName,
     } else {
 	int total;
 	int fd[2];
+	int retFd;
 	char *ret;
 	FILE *pfp;
 	char **curr;
@@ -433,11 +437,8 @@ int RPCprocessCreate(int *pid, char *hostName, char *userName,
 		// got the good stuff
 		sscanf(line, "PARADYND %d", pid);
 
-		// dump rsh process
-		kill(shellPid, SIGTERM);
-		while (wait(NULL) != shellPid);
-
-		return(RPC_getConnect(portFd));
+		retFd = RPC_getConnect(portFd);
+		return(retFd);
 	    } else if (ret) {
 		// some sort of error message from rsh.
 		printf("%s", line);
