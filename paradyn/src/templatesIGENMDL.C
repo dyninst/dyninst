@@ -74,7 +74,7 @@ template class vector<daemonMet*>;
 template class vector<visiMet*>;
 template class vector<tunableMet*>;
 template class vector<string_list*>;
-template class vector<pdFunction*>;
+template class vector<function_base*>;
 template class vector<module*>;
 template class vector<instPoint*>;
 
