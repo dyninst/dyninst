@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.57 2005/03/17 17:40:31 bernat Exp $
+// $Id: aixDL.C,v 1.58 2005/03/17 23:26:37 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -67,41 +67,59 @@ bool dynamic_linking::installTracing() {
     // We capture dlopen/dlclose by overwriting the return address
     // of their worker functions (load1 for dlopen, dlclose is TODO).
     // We get this from the (already-parsed) listing of libc.
-    
-    pdvector<shared_object *> *objs = proc->sharedObjects();
 
+  // Should check only libc.a...
+  //int_function *load1 = proc->findOnlyOneFunction(pdstring("load1"));
+  AstNode *retval = new AstNode(AstNode::ReturnVal, (void *)0);
+  instMapping *loadInst = new instMapping("load1", "DYNINST_instLoadLibrary",
+					  FUNC_EXIT | FUNC_ARG,
+					  retval);
+  loadInst->dontUseTrampGuard();
+  removeAst(retval);
+  pdvector<instMapping *>instReqs;
+  instReqs.push_back(loadInst);
+  proc->installInstrRequests(instReqs);
+  if (loadInst->mtHandles.size()) {
+    sharedLibHook *sharedHook = new sharedLibHook(proc, SLH_UNKNOWN,
+						  loadInst);
+    instru_based = true;
+    return true;
+  }
+  else {
+    pdvector<shared_object *> *objs = proc->sharedObjects();
+    
     // Get libc
     shared_object *libc = NULL;
     fileDescriptor *libc_desc = NULL;
     for (unsigned i = 0; i < objs->size(); i++) {
-        fileDescriptor_AIX *desc = (fileDescriptor_AIX *)(*objs)[i]->getFileDesc();
-        if (((*objs)[i]->getName().suffixed_by("libc.a")) &&
-            (desc->member() == "shr.o")) {
-            libc_desc = (fileDescriptor *)desc;
-            libc = ((*objs)[i]);
-        }
+      fileDescriptor_AIX *desc = (fileDescriptor_AIX *)(*objs)[i]->getFileDesc();
+      if (((*objs)[i]->getName().suffixed_by("libc.a")) &&
+	  (desc->member() == "shr.o")) {
+	libc_desc = (fileDescriptor *)desc;
+	libc = ((*objs)[i]);
+      }
     }
     assert(libc);
-
+    
     // Now, libc may have been parsed... in which case we pull the function vector
     // from it. If not, we parse it manually.
     
     pdvector<int_function *> *loadFuncs;
     if (libc->isProcessed()) {
-        loadFuncs = libc->findFuncVectorByPretty(pdstring("load1"));
+      loadFuncs = libc->findFuncVectorByPretty(pdstring("load1"));
     }
     else {
-        image *libc_image = image::parseImage(libc_desc, libc_desc->addr());
-        assert(libc_image);
-        libc_image->defineModules(proc);
-        loadFuncs = libc_image->findFuncVectorByPretty(pdstring("load1"));
+      image *libc_image = image::parseImage(libc_desc, libc_desc->addr());
+      assert(libc_image);
+      libc_image->defineModules(proc);
+      loadFuncs = libc_image->findFuncVectorByPretty(pdstring("load1"));
     }
     assert(loadFuncs);
     assert(loadFuncs->size() > 0);
     
     int_function *loadfunc = (*loadFuncs)[0];
     assert(loadfunc);
-
+    
     // There is no explicit place to put a trap, so we'll replace
     // the final instruction (brl) with a trap, and emulate the branch
     // mutator-side
@@ -133,9 +151,9 @@ bool dynamic_linking::installTracing() {
 	sharedLibHooks_.push_back(sharedHook);
       }
     }
-
-    return true;
-    // TODO: handle dlclose as well
+  }
+  return true;
+  // TODO: handle dlclose as well
 }
 
 /* Parse a binary to extract all shared objects it
@@ -231,17 +249,19 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<shared_object *>
     
     dyn_lwp *brk_lwp = NULL;
     sharedLibHook *hook;
-    
-    for (unsigned frame_iter = 0; frame_iter < activeFrames.size();frame_iter++)
-    {
-        hook = reachedLibHook(activeFrames[frame_iter].getPC());
-        if (hook) {
+
+    if (!instru_based) {
+      for (unsigned frame_iter = 0; frame_iter < activeFrames.size();frame_iter++)
+	{
+	  hook = reachedLibHook(activeFrames[frame_iter].getPC());
+	  if (hook) {
             brk_lwp = activeFrames[frame_iter].getLWP();
             break;
-        }
+	  }
+	}
     }
-    
-    if (brk_lwp ||
+    if (brk_lwp || 
+	instru_based || 
         force_library_load) {
         // A thread hit the breakpoint, so process a change in the dynamic objects
         // List of current shared objects
@@ -333,23 +353,23 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<shared_object *>
                 else found_object = false; // reset
             }
         }
-        if (force_library_load)
-            return true;
-        else {
-            // Now we need to fix the PC. We overwrote the return instruction,
-            // so grab the value in the link register and set the PC to it.
-            dyn_saved_regs regs;
-            bool status = brk_lwp->getRegisters(&regs);
-            assert(status == true);
-            brk_lwp->changePC(regs.theIntRegs.__lr, NULL);
-            return true;
+	if (brk_lwp) {
+	  // Now we need to fix the PC. We overwrote the return instruction,
+	  // so grab the value in the link register and set the PC to it.
+	  dyn_saved_regs regs;
+	  bool status = brk_lwp->getRegisters(&regs);
+	  assert(status == true);
+	  brk_lwp->changePC(regs.theIntRegs.__lr, NULL);
+	  return true;
         }
+	else
+	  return true;
     }
     return false;
 }
 
 sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b) 
-        : proc_(p), type_(t), breakAddr_(b) {
+        : proc_(p), type_(t), breakAddr_(b), loadinst_(NULL) {
 
     // Before putting in the breakpoint, save what is currently at the
     // location that will be overwritten.
@@ -364,6 +384,22 @@ sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b)
     
 }
 
-sharedLibHook::~sharedLibHook() {
-    proc_->writeDataSpace((void *)breakAddr_, SLH_SAVE_BUFFER_SIZE, saved_);
+sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, instMapping *inst) 
+        : proc_(p), type_(t), breakAddr_(0), loadinst_(inst) {
 }
+
+sharedLibHook::~sharedLibHook() {
+  if (breakAddr_)
+    proc_->writeDataSpace((void *)breakAddr_, SLH_SAVE_BUFFER_SIZE, saved_);
+  else if (loadinst_) {
+    if (proc_->isAttached()) {
+      miniTrampHandle *handle;
+      for (unsigned i = 0; i < loadinst_->mtHandles.size(); i++) {
+	handle = loadinst_->mtHandles[i];
+	deleteInst(proc_, handle);
+      }
+    }
+    delete loadinst_;
+  }
+}
+
