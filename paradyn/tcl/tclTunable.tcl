@@ -1,6 +1,9 @@
 # tclTunable.tcl
 
 # $Log: tclTunable.tcl,v $
+# Revision 1.16  1995/11/29 00:22:21  tamches
+# removed refs to PdBitmapDir; we now call makeLogo (pdLogo.C)
+#
 # Revision 1.15  1995/11/16 00:48:25  tamches
 # logo is now looked for in $PdBitmapDir, instead of being hard-coded in.
 # selecting "tunable constants" when the window already exists will now
@@ -147,13 +150,10 @@ proc tunableInitialize {} {
       # expand is false; if the window is made taller, we don't want the extra height
    
    # .tune.top.logo -- paradyn logo
-   global PdBitmapDir
-   label .tune.top.logo -relief raised \
-                     -bitmap @$PdBitmapDir/logo.xbm \
-                     -foreground cornflowerblue
+   makeLogo .tune.top.logo paradynLogo raised 2 cornflowerblue
    pack  .tune.top.logo -side right
       # expand is false; if the window is made wider, we don't want the extra width
-   
+ 
    # .tune.top.left -- stuff to the left of the logo (title bar & menu bar)
    frame .tune.top.left
    pack  .tune.top.left -side left -fill both -expand true

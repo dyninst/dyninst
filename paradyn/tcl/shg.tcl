@@ -3,6 +3,9 @@
 
 #
 # $Log: shg.tcl,v $
+# Revision 1.3  1995/11/29 00:21:56  tamches
+# removed refs to PdBitmapDir; we now call makeLogo (pdLogo.C)
+#
 # Revision 1.2  1995/11/20 04:06:02  tamches
 # fixed activeBackground/activeForeground colors that were making for ugly
 # menu highlighting.
@@ -86,11 +89,8 @@ proc shgInitialize {} {
    frame .shg.titlearea.right
    pack  .shg.titlearea.right -side right -fill y -expand false
 
-   global PdBitmapDir
-   label .shg.titlearea.right.logo -bitmap @$PdBitmapDir/logo.xbm -foreground mediumseagreen -relief raised
+   makeLogo .shg.titlearea.right.logo paradynLogo raised 2 mediumseagreen
    pack  .shg.titlearea.right.logo -side top
-
-#   mkLogo .shg.titlearea.right.logo top
 
    frame .shg.titlearea.left
    pack  .shg.titlearea.left -side left -fill both -expand true
