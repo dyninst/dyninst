@@ -4,6 +4,9 @@
 # included from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.11  1995/12/20 18:33:00  newhall
+# added makenan.C
+#
 # Revision 1.10  1995/12/09 05:06:19  tamches
 # added Timer.C
 #
@@ -50,11 +53,13 @@ SRCS	     += ../src/String.C \
 		../src/hist.C \
 		../src/timing.C \
 		../src/Timer.C \
+		../src/makenan.C \
 		../src/PriorityQueue.C
 
 OBJS         += String.o DictionaryLite.o \
 		lprintf.o rpcUtil.o aggregateSample.o \
  		stringPool.o hist.o timing.o \
+		makenan.o \
 		PriorityQueue.C
 
 SRCS2	     += rpcUtilPVM.C

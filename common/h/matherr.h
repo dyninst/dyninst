@@ -1,3 +1,5 @@
+#ifndef matherr_H
+#define matherr_H
 #include <math.h>
 
 //
@@ -10,14 +12,7 @@
 // NOTE: The file "matherr.h" should be included before "main", otherwise
 // the customized matherr would not get called.
 //
+extern bool matherr_flag;
+extern int matherr(struct exception *x);
 
-bool matherr_flag=false;
-
-int matherr(struct exception *x) {
-  if ((x->type == DOMAIN) && !strcmp(x->name, "sqrt")) {
-    if (matherr_flag)
-      return(1);
-  } 
-  return(0);
-}
-
+#endif
