@@ -3,11 +3,11 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.5 1999/06/18 23:54:44 wylie Exp $
+# $Id: nmake.module.tmpl,v 1.6 1999/11/07 21:47:54 wylie Exp $
 #
 
 SUITE_NAME	= Dyninst
-RELEASE_NUM	= 1.2
+RELEASE_NUM	= 2.0beta
 #BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
 
 DEST		= $(TO_CORE)\$(PROGRAM_DEST)\testprogs
@@ -16,15 +16,23 @@ DEST		= $(TO_CORE)\$(PROGRAM_DEST)\testprogs
 SRCS	      = ../src/$(TARGET:.exe=.C) ../src/test_util.C
 OBJS          = $(TARGET:.exe=.obj) test_util.obj
 !else
-TARGETS       = test1.exe test1.mutatee.exe \
-                test2.exe test2.mutatee.exe \
-                test3.exe test3.mutatee.exe
+TARGETS       = test1.exe test2.exe test3.exe
+!ifdef NATIVE_CC
+TARGETS       = $(TARGETS) \
+                test1.mutatee_$(NATIVE_CC).exe \
+                test2.mutatee_$(NATIVE_CC).exe \
+                test3.mutatee_$(NATIVE_CC).exe
+!endif
+!ifdef GNU_CC
+TARGETS       = $(TARGETS) \
+                test1.mutatee_$(GNU_CC).exe \
+                test2.mutatee_$(GNU_CC).exe \
+                test3.mutatee_$(GNU_CC).exe
+!endif
 SRCS	      = ../src/test1.C ../src/test1.mutatee.c ../src/test_util.C \
 		../src/test2.C ../src/test2.mutatee.c \
 		../src/test3.C ../src/test3.mutatee.c
-OBJS          = test1.obj test1.mutatee.obj test_util.obj \
-                test2.obj test2.mutatee.obj \
-                test3.obj test3.mutatee.obj
+OBJS          = test1.obj test2.obj test3.obj test_util.obj
 !endif
 
 CXXFLAGS     = $(CXXFLAGS) -I../../h
@@ -35,13 +43,20 @@ LIBS		= $(TO_CORE)\$(LIBRARY_DEST)\libdyninstAPI.lib \
 
 SYSLIBS		= imagehlp.lib
 
-{..\..\dyninstAPI\src\}.C.obj:
-	$(CXX) $(CXXFLAGS) -c $<
-
 all:
-	$(MAKE) aTest TARGET=test1.exe TARGET2=test1.mutatee.exe
-	$(MAKE) aTest TARGET=test2.exe TARGET2=test2.mutatee.exe
-	$(MAKE) aTest TARGET=test3.exe TARGET2=test3.mutatee.exe
+	$(MAKE) aTest TARGET=test1.exe
+	$(MAKE) aTest TARGET=test2.exe
+	$(MAKE) aTest TARGET=test3.exe
+!ifdef NATIVE_CC
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test1.mutatee_$(NATIVE_CC).exe
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test2.mutatee_$(NATIVE_CC).exe
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test3.mutatee_$(NATIVE_CC).exe
+!endif
+!ifdef GNU_CC
+	$(MAKE) aTest MUTATEE_CC=$(GNU_CC) TARGET2=test1.mutatee_$(GNU_CC).exe
+	$(MAKE) aTest MUTATEE_CC=$(GNU_CC) TARGET2=test2.mutatee_$(GNU_CC).exe
+	$(MAKE) aTest MUTATEE_CC=$(GNU_CC) TARGET2=test3.mutatee_$(GNU_CC).exe
+!endif
 
 aTest: $(TARGET) $(TARGET2)
 
