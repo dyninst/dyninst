@@ -110,17 +110,6 @@ extern process *global_proc;
 
 // --- Counters --------------------
 
-inst_var_index instrThrDataNode::
-allocateForCounter(process *proc, bool bDontInsertData) {
-  inst_var_index retIndex;
-  if(bDontInsertData) {
-    retIndex = 0;  // this isn't actually used, but need to return something
-  } else {
-    retIndex = dataReqNode::allocateForInstVar(proc, Counter);
-  }
-  return retIndex;
-}
-
 dataReqNode *instrThrDataNode::makeIntCounter(inst_var_index index, 
 					      pdThread *thr, 
 					      rawTime64 initialValue)
@@ -163,17 +152,6 @@ dataReqNode *instrThrDataNode::createTemporaryCounter(inst_var_index index,
 }
 
 // --- Wall Timers -------------
-inst_var_index instrThrDataNode::
-allocateForWallTimer(process *proc, bool bDontInsertData) {
-  inst_var_index retIndex;
-  if(bDontInsertData) {
-    retIndex = 0;  // this isn't actually used, but need to return something
-  } else {
-    retIndex = dataReqNode::allocateForInstVar(proc, WallTimer);
-  }
-  return retIndex;
-}
-
 dataReqNode *instrThrDataNode::createWallTimer(inst_var_index index,
 					       pdThread *thr)
 {
@@ -188,17 +166,6 @@ dataReqNode *instrThrDataNode::createWallTimer(inst_var_index index,
 }
 
 // --- Proc Timers -------------
-inst_var_index instrThrDataNode::
-allocateForProcTimer(process *proc, bool bDontInsertData) {
-  inst_var_index retIndex;
-  if(bDontInsertData) {
-    retIndex = 0;  // this isn't actually used, but need to return something
-  } else {
-    retIndex = dataReqNode::allocateForInstVar(proc, ProcTimer);
-  }
-  return retIndex;
-}
-
 dataReqNode *instrThrDataNode::createProcessTimer(inst_var_index index,
 						  pdThread *thr)
 {
@@ -222,14 +189,12 @@ void instrThrDataNode::print() {
 void instrThrDataNode::startSampling(threadMetFocusNode_Val *thrClient) { 
   thrNodeClientSet = true;
   assert(sampledDataReq!=NULL);
-  sampledDataReq->setThrNodeClient(thrClient);
-  sampledDataReq->markAsSampled();
+  sampledDataReq->markAsSampled(thrClient);
 }
 
 void instrThrDataNode::stopSampling() {
   thrNodeClientSet = false;
   assert(sampledDataReq!=NULL);
-  sampledDataReq->setThrNodeClient(NULL);
   sampledDataReq->markAsNotSampled();
 }
 

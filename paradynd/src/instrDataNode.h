@@ -89,7 +89,6 @@ class instrThrDataNode {
   void stopSampling();
 
   // --- Counters -------------
-  static inst_var_index allocateForCounter(process *proc,bool bDontInsertData);
   dataReqNode *createSampledCounter(inst_var_index index, pdThread *thr, 
 				    rawTime64 initialValue);
   dataReqNode *createConstraintCounter(inst_var_index index, pdThread *thr, 
@@ -98,13 +97,9 @@ class instrThrDataNode {
 				      rawTime64 initialValue);
 
   // --- Wall Timers ----------
-  static inst_var_index allocateForWallTimer(process *proc,
-					     bool bDontInsertData);
   dataReqNode *createWallTimer(inst_var_index index, pdThread *thr);
 
   // --- Process Timers -------
-  static inst_var_index allocateForProcTimer(process *proc,
-					     bool bDontInsertData);
   dataReqNode *createProcessTimer(inst_var_index index, pdThread *thr);
 
   virtual int getThreadID() const = 0;
