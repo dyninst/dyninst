@@ -226,6 +226,7 @@ sampleInterval costMetricValueUpdate(costMetric *met,
     }
     // update value if we have a new value from each part
     ret = met->sample.newValue(met->parts, endTime, value);
+    if(ret.valid) met->sample.value = ret.value;
     return ret;
 }
 
