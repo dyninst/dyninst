@@ -5,7 +5,10 @@
 # included from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.5  1995/08/24 15:12:04  hollings
+# Revision 1.6  1995/08/29 23:21:44  hollings
+# Fixed missing UNCOMMON_LINK flag.
+#
+# Revision 1.5  1995/08/24  15:12:04  hollings
 # AIX/SP-2 port (including option for split instruction/data heaps)
 # Tracing of rexec (correctly spawns a paradynd if needed)
 # Added rtinst function to read getrusage stats (can now be used in metrics)
@@ -46,7 +49,6 @@ DYNSRCS	      = ../src/DYNINSTstartCode.c \
 
 all: $(TARGET) $(TARGET2) $(ALT_TARGET)
 
-AR		= gcc
 #
 # override standard link rule; libdyninst is not really a library or a program.
 #
@@ -68,10 +70,14 @@ ifndef DEST
 DEST		= $(TO_CORE)/../lib/$(PLATFORM)
 endif
 
+UNCOMMON_INSTALL= true
 install: $(DEST)/$(TARGET) \
 	 $(DEST)/DYNINSTstartCode.o \
 	 $(DEST)/DYNINSTendCode.o \
 	 $(DEST)/RTpvmPiggy.o
+
+$(DEST)/libdyninstRT.a:       libdyninstRT.a
+	cp libdyninstRT.a ../../../lib/$(PLATFORM)
 
 $(DEST)/RTpvmPiggy.o: RTpvmPiggy.o
 	cp RTpvmPiggy.o ../../../lib/$(PLATFORM)
