@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.152 2003/05/30 21:32:32 bernat Exp $
+// $Id: aix.C,v 1.153 2003/06/02 22:04:42 mjbrim Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -2088,7 +2088,7 @@ rawTime64 dyn_lwp::getRawCpuTime_hw()
 
    // PM counters are only valid when the process is paused. 
    bool needToCont = (proc_->status() == running);
-   if(proc_->status() == running) {
+   if(needToCont) { // process running
       if(! proc_->pause()) {
          return -1;  // pause failed, so returning failure
       }
@@ -2116,10 +2116,12 @@ rawTime64 dyn_lwp::getRawCpuTime_hw()
    }
 
    if (ret) {
-       pm_error("dyn_lwp::getRawCpuTime_hw: pm_get_data_thread", ret);
-       fprintf(stderr, "Attempted pm_get_data(%d, %d, %d)\n",
-               proc_->getPid(), lwp_id_, lwp_to_use);
-       return -1;
+      if(!proc_->hasExited()) {
+         pm_error("dyn_lwp::getRawCpuTime_hw: pm_get_data_thread", ret);
+         fprintf(stderr, "Attempted pm_get_data(%d, %d, %d)\n",
+		 proc_->getPid(), lwp_id_, lwp_to_use);
+      }
+      return -1;
    }
    rawTime64 result = data.accu[get_hwctr_binding(PM_CYC_EVENT)];
 
