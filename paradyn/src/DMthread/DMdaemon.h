@@ -124,8 +124,12 @@ class paradynDaemon: public dynRPCUser {
 	virtual void nodeDaemonReadyCallback(void);
 	
 	virtual void reportSelf (string m, string p, int pd, string flav);
-	virtual void sampleDataCallbackFunc(int, int, double, 
-					    double, double);
+//	virtual void sampleDataCallbackFunc(int, int, double, 
+//					    double, double);
+
+	virtual void batchSampleDataCallbackFunc(int program,
+                                                 vector<T_dyninstRPC::batch_buffer_entry>);
+
 	virtual void cpDataCallbackFunc(int, double, int, double, double);
 	double getEarliestFirstTime() const { return earliestFirstTime;}
 	static void setEarliestFirstTime(double f){
