@@ -11,7 +11,10 @@
 
 /*
  * $Log: os.h,v $
- * Revision 1.3  1995/02/16 08:53:52  markc
+ * Revision 1.4  1995/05/18 10:39:54  markc
+ * Added calls to getrusage
+ *
+ * Revision 1.3  1995/02/16  08:53:52  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.2  1995/02/16  08:34:17  markc
@@ -41,7 +44,6 @@
 #include "util/h/String.h"
 #include "util/h/Types.h"
 
-// Gee, I have always wanted to design my own OS, well, here goes
 class OS {
 public:
   static bool osAttach(pid_t process_id);
@@ -51,6 +53,21 @@ public:
   static bool osForwardSignal(pid_t pid, int status);
   static void osTraceMe(void);
   static void osDisconnect(void);
+
+  // getrusage is a bsd system call, sunos, solaris, and hp seem to support it
+  // TODO -- what if this sys call is unsupported
+  static float compute_rusage_cpu();
+  static float compute_rusage_sys();
+  static float compute_rusage_min();
+  static float compute_rusage_maj();
+  static float compute_rusage_swap();
+  static float compute_rusage_io_in();
+  static float compute_rusage_io_out();
+  static float compute_rusage_msg_send();
+  static float compute_rusage_msg_recv();
+  static float compute_rusage_sigs();
+  static float compute_rusage_vol_cs();
+  static float compute_rusage_inv_cs();
 };
 
 #endif
