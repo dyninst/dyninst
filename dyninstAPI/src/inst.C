@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.115 2004/03/08 23:45:59 bernat Exp $
+// $Id: inst.C,v 1.116 2004/03/11 22:20:34 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -370,7 +370,7 @@ loadMiniTramp_result loadMiniTramp(miniTrampHandle *&mtHandle, // filled in
    // of the previous/next minitramp instead of the base tramp?
    inferiorHeapType htype = dataHeap;
 #else
-   inferiorHeapType htype = (proc->splitHeaps) ? (textHeap) : (anyHeap);
+   inferiorHeapType htype = (proc->splitHeaps) ? ((inferiorHeapType) (textHeap | uncopiedHeap)) : (anyHeap);
 #endif
    // Let's be intelligent about near_. If we've got any other minitramp,
    // try and allocate near that one. This is because we use single-instruction
@@ -418,7 +418,7 @@ loadMiniTramp_result loadMiniTramp(miniTrampHandle *&mtHandle, // filled in
 #if defined(bug_aix_proc_broken_fork)
        // We need the fork minitramp to go in the data heap
    if (mtHandle->baseTramp->location->pointFunc()->prettyName() == pdstring("__fork")) {
-       mtHandle->miniTrampBase = proc->inferiorMalloc(count, dataHeap);
+       mtHandle->miniTrampBase = proc->inferiorMalloc(count, (inferiorHeapType) (dataHeap | textHeap));
    }
    else
 #endif

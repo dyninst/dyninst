@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.193 2004/03/08 23:45:55 bernat Exp $
+ * $Id: inst-power.C,v 1.194 2004/03/11 22:20:33 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -1709,7 +1709,7 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
       // text space, because scavenged text space is _not_ copied on fork.
   if (!baseAddr) {
       if (location->pointFunc()->prettyName() == pdstring("__fork")) {
-          baseAddr = proc->inferiorMalloc(theTemplate->size, dataHeap,
+          baseAddr = proc->inferiorMalloc(theTemplate->size, (inferiorHeapType) (textHeap | dataHeap),
                                           location->absPointAddr(proc));
           isReinstall = false;
       }
