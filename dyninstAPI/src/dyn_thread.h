@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dyn_thread.h,v 1.10 2003/04/16 21:07:12 bernat Exp $
+// $Id: dyn_thread.h,v 1.11 2003/05/12 21:28:59 bernat Exp $
 
 #ifndef _DYNTHREAD_H_
 #define _DYNTHREAD_H_
@@ -54,7 +54,7 @@ class dyn_thread {
   //
   dyn_thread(process *pproc) : 
     tid(0),
-    pos(0),
+    index(0),
     stack_addr(0),
     start_pc(0),
     start_func(NULL),
@@ -67,9 +67,9 @@ class dyn_thread {
       lwp  = pproc->getDefaultLWP();
       proc->getRpcMgr()->addThread(this);
     }
-  dyn_thread(process *proc_, unsigned tid_, unsigned pos_, dyn_lwp *lwp_) :
+  dyn_thread(process *proc_, unsigned tid_, unsigned index_, dyn_lwp *lwp_) :
     tid(tid_),
-    pos(pos_),
+    index(index_),
     lwp(lwp_),
     stack_addr(0),
     start_pc(0),
@@ -88,7 +88,7 @@ class dyn_thread {
      assert(src && parent);
      ppid = parent->getPid();
      tid = src->tid;
-     pos = src->pos;
+     index = src->index;
      lwp  = parent->getDefaultLWP();
      stack_addr = src->stack_addr;
      start_pc = src->start_pc;
@@ -115,7 +115,7 @@ class dyn_thread {
   bool updateLWP();
   
   unsigned       get_tid()           const { return(tid); }
-  unsigned       get_pos()           const { return(pos); }
+  unsigned       get_index()           const { return(index); }
   dyn_lwp *      get_lwp();
   unsigned       get_stack_addr()    const { return(stack_addr); }
   int            get_ppid()          const { return(ppid); }
@@ -128,7 +128,7 @@ class dyn_thread {
   rawTime64  getInferiorVtime(virtualTimer*, bool&);
 #endif
   void update_tid          (unsigned tid_)        { tid = tid_; }
-  void update_pos          (unsigned pos_)        { pos = pos_; }
+  void update_index          (unsigned index_)        { index = index_; }
   void update_lwp          (dyn_lwp *lwp_)        { lwp = lwp_; }
   void update_rid          (resource *rid_)       { rid = rid_; } 
   void update_stack_addr   (unsigned stack_addr_) { stack_addr=stack_addr_; }
@@ -149,7 +149,7 @@ class dyn_thread {
   int ppid;
 
   unsigned tid;
-  unsigned pos;
+  unsigned index;
   dyn_lwp *lwp;
   unsigned stack_addr;
   unsigned start_pc ;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.422 2003/05/08 23:48:57 bernat Exp $
+// $Id: process.C,v 1.423 2003/05/12 21:29:02 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -105,7 +105,7 @@ int pvmendtask();
 
 #ifndef BPATCH_LIBRARY
 extern void generateRPCpreamble(char *insn, Address &base, process *proc, 
-                                unsigned offset, int tid, unsigned pos);
+                                unsigned offset, int tid, unsigned index);
 #endif
 
 #include "common/h/debugOstream.h"
@@ -6867,12 +6867,12 @@ dyn_thread *process::createThread(
 // CALLED for mainThread
 //
 void process::updateThread(dyn_thread *thr, int tid, 
-			   unsigned pos, void* resumestate_p, 
+			   unsigned index, void* resumestate_p, 
 			   resource *rid)
 {
   assert(thr);
   thr->update_tid(tid);
-  thr->update_pos(pos);
+  thr->update_index(index);
   thr->update_rid(rid);
   thr->update_resumestate_p(resumestate_p);
   function_base *f_main = findOnlyOneFunction("main");
@@ -6883,7 +6883,7 @@ void process::updateThread(dyn_thread *thr, int tid,
   thr->update_start_pc(0) ;
   thr->update_start_func(f_main) ;
 
-  //sprintf(errorLine,"+++++ updateThread--> creating new thread{main}, pos=%u, tid=%d, resumestate=0x%x\n", pos,tid, (unsigned) resumestate_p);
+  //sprintf(errorLine,"+++++ updateThread--> creating new thread{main}, index=%u, tid=%d, resumestate=0x%x\n", index,tid, (unsigned) resumestate_p);
   //logLine(errorLine);
 }
 
@@ -6893,19 +6893,19 @@ void process::updateThread(dyn_thread *thr, int tid,
 void process::updateThread(
   dyn_thread *thr, 
   int tid, 
-  unsigned pos, 
+  unsigned index, 
   unsigned stackbase, 
   unsigned startpc, 
   void* resumestate_p) 
 {
   assert(thr);
   //  
-  sprintf(errorLine," updateThread(tid=%d, pos=%d, stackaddr=0x%x, startpc=0x%x)\n",
-	 tid, pos, stackbase, startpc);
+  sprintf(errorLine," updateThread(tid=%d, index=%d, stackaddr=0x%x, startpc=0x%x)\n",
+	 tid, index, stackbase, startpc);
   logLine(errorLine);
 
   thr->update_tid(tid);
-  thr->update_pos(pos);
+  thr->update_index(index);
   thr->update_resumestate_p(resumestate_p);
 
   function_base *pdf;
@@ -6924,8 +6924,8 @@ void process::updateThread(
     thr->update_stack_addr(stackbase);
   } //else
 
-  //sprintf(errorLine,"+++++ creating new thread{%s/0x%x}, pos=%u, tid=%d, stack=0x%xs, resumestate=0x%x\n",
-  //pdf->prettyName().c_str(), startpc, pos, tid, stackbase, (unsigned) resumestate_p);
+  //sprintf(errorLine,"+++++ creating new thread{%s/0x%x}, index=%u, tid=%d, stack=0x%xs, resumestate=0x%x\n",
+  //pdf->prettyName().c_str(), startpc, index, tid, stackbase, (unsigned) resumestate_p);
   //logLine(errorLine);
 }
 
@@ -6937,12 +6937,12 @@ void process::deleteThread(int tid)
       if(thr->get_tid() != (unsigned) tid)  continue;
 
       // ===  Found It  ==========================
-      // Set the POS to "reusable"
+      // Set the INDEX to "reusable"
       // Note: we don't acquire a lock. This is okay, because we're simply
       //       clearing the bit, which was not usable before now anyway.
-      assert(shmMetaData->getPosToThread(thr->get_pos()) 
+      assert(shmMetaData->getIndexToThread(thr->get_index()) 
              == THREAD_AWAITING_DELETION);
-      shmMetaData->setPosToThread(thr->get_pos(), 0);
+      shmMetaData->setIndexToThread(thr->get_index(), 0);
 
       getRpcMgr()->deleteThread(thr);
 

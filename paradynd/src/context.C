@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.93 2003/05/09 18:55:49 pcroth Exp $ */
+/* $Id: context.C,v 1.94 2003/05/12 21:29:04 bernat Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -149,7 +149,7 @@ void createThread(traceThread *fr) {
     
    // creating new thread
    dyn_thread *thr =
-      dyn_proc->createThread(fr->tid, fr->pos, fr->stack_addr, fr->start_pc,
+      dyn_proc->createThread(fr->tid, fr->index, fr->stack_addr, fr->start_pc,
                              fr->resumestate_p, fr->context==FLAG_SELF);
    assert(thr);
 
@@ -204,7 +204,7 @@ void updateThreadId(traceThread *fr) {
    resource *rid;
    process *dynproc = pdproc->get_dyn_process();
    if(fr->context == FLAG_ATTACH) {
-      dynproc->updateThread(thr, fr->tid, fr->pos, 
+      dynproc->updateThread(thr, fr->tid, fr->index, 
 			    fr->stack_addr, fr->start_pc, fr->resumestate_p);
       // computing resource id
       string pretty_name = string(thr->get_start_func()->prettyName().c_str());
@@ -219,9 +219,9 @@ void updateThreadId(traceThread *fr) {
 			  buffer, timeStamp::ts1970(), "", MDL_T_STRING, true);
       
       // updating main thread
-      dynproc->updateThread(thr, fr->tid, fr->pos, fr->resumestate_p, rid);
+      dynproc->updateThread(thr, fr->tid, fr->index, fr->resumestate_p, rid);
    }
-   //sprintf(errorLine, "*****updateThreadId, tid=%d, pos=%d, stack=0x%x, startpc=0x%x, resumestat=0x%x\n", fr->tid, fr->pos, fr->stack_addr, fr->start_pc, fr->resumestate_p) ;
+   //sprintf(errorLine, "*****updateThreadId, tid=%d, index=%d, stack=0x%x, startpc=0x%x, resumestat=0x%x\n", fr->tid, fr->index, fr->stack_addr, fr->start_pc, fr->resumestate_p) ;
    //logLine(errorLine) ;
 }
 
@@ -625,13 +625,13 @@ void show_proc_threads(process *proc) {
       cerr << "  thr_id: " << curthr->get_tid();
       if(curthr->get_lwp())
          cerr << ", lwp_id: " << curthr->get_lwp()->get_lwp_id();
-      cerr << ", pos: " << curthr->get_pos() << endl;
+      cerr << ", index: " << curthr->get_index() << endl;
    }
 }
 
 // This function sets the variable DYNINST_initialize_done to 1 in the
 // multi-threaded rtinst library.  This variable is a way to keep certain
-// rtinst functions from being called, like DYNINSTthreadPos.
+// rtinst functions from being called, like DYNINSTthreadIndex.
 void initMT_AfterFork(process *proc) {
    bool err = false;
    err = false;

@@ -164,8 +164,8 @@ bool threadMetFocusNode_Val::instrInserted() {
 unsigned threadMetFocusNode_Val::getThreadID() const { 
   return pdThr->get_tid(); 
 }
-unsigned threadMetFocusNode_Val::getThreadPos() const { 
-  return pdThr->get_pos(); 
+unsigned threadMetFocusNode_Val::getThreadIndex() const { 
+  return pdThr->get_index(); 
 }
 
 bool threadMetFocusNode_Val::isReadyForUpdates() {
@@ -181,7 +181,7 @@ bool threadMetFocusNode_Val::isReadyForUpdates() {
   return true;
 }
 
-// takes an actual value as input, as opposed to a change in sample value
+// takes an actual value as input, as opindexed to a change in sample value
 void threadMetFocusNode_Val::updateValue(timeStamp sampleTime, pdSample value)
 {
   assert(value >= pdSample::Zero());
@@ -254,7 +254,7 @@ void threadMetFocusNode_Val::removeParent(processMetFocusNode *procNode) {
       }
    }
 
-   // it's possible that one of the parents caused allAggInfoInitialized
+   // it's indexsible that one of the parents caused allAggInfoInitialized
    // to be turned off, now this parent could have been deleted and so
    // it's possible allAggInfoInitialized should be changed to true
    // or 

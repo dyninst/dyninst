@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.168 2003/04/25 04:00:38 buck Exp $
+ * $Id: inst-power.C,v 1.169 2003/05/12 21:29:00 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -969,8 +969,8 @@ static void restoreFPRegister(instruction *&insn, Address &base, Register reg,
  *            Get the hashed thread ID on the stack and in REG_MT_POS
  *            hashed thread ID * sizeof(int) in REG_GUARD_OFFSET
  *
- * So: call DYNINSTthreadPos, which returns the POS value. This is
- *     done automatically (AST), the rest by hand. Save the POS.
+ * So: call DYNINSTthreadIndex, which returns the INDEX value. This is
+ *     done automatically (AST), the rest by hand. Save the INDEX.
  *
  */
 
@@ -991,7 +991,7 @@ unsigned generateMTpreamble(char *insn, Address &base, process *proc)
     threadPOS = new AstNode("DYNINSTreturnZero", dummy);
   }
   else 
-    threadPOS = new AstNode("DYNINSTthreadPos", dummy);
+    threadPOS = new AstNode("DYNINSTthreadIndex", dummy);
   src = threadPOS->generateCode(proc, regSpace, insn,
 				base, 
 				false, // noCost 

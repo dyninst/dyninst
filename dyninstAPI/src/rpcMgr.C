@@ -66,8 +66,8 @@ unsigned rpcMgr::postRPCtoDo(AstNode *action, bool noCost,
     theStruct->aixHACK = aixHACK;
     
     if (thr) {
-       int pos = thr->get_pos();
-       rpcThr *rpc_thr = thrs_[pos];
+       int index = thr->get_index();
+       rpcThr *rpc_thr = thrs_[index];
        assert(rpc_thr != NULL);
        rpc_thr->postIRPC(theStruct);
     }
@@ -215,12 +215,14 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
     lwps_.begin();
     while(rpc_iter != lwps_.end()) {
         rpcLWP *cur_rpc_lwp = (*rpc_iter);
-        if(cur_rpc_lwp->isReadyForIRPC()) {
-            readyLWPRPC = true;
-            break;
-        }
-        if (cur_rpc_lwp->isProcessingIRPC()) {
-            processingLWPRPC = true;
+        if (cur_rpc_lwp) {
+            if(cur_rpc_lwp->isReadyForIRPC()) {
+                readyLWPRPC = true;
+                break;
+            }
+            if (cur_rpc_lwp->isProcessingIRPC()) {
+                processingLWPRPC = true;
+            }
         }
         rpc_iter++;
     }
@@ -264,13 +266,14 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
         dictionary_hash<unsigned, rpcLWP *>::iterator lwp_iter = lwps_.begin();
         while(lwp_iter != lwps_.end()) {
             rpcLWP *cur_rpc_lwp = (*lwp_iter);
-            irpcLaunchState_t lwpState = cur_rpc_lwp->launchLWPIRPC(wasRunning);
-            if (lwpState == irpcBreakpointSet ||
-                lwpState == irpcAgain ||
-                lwpState == irpcStarted) {
-                runProcessWhenDone = true;
+            if (cur_rpc_lwp) {            
+                irpcLaunchState_t lwpState = cur_rpc_lwp->launchLWPIRPC(wasRunning);
+                if (lwpState == irpcBreakpointSet ||
+                    lwpState == irpcAgain ||
+                    lwpState == irpcStarted) {
+                    runProcessWhenDone = true;
+                }
             }
-            
             lwp_iter++;
         }
     }
@@ -443,7 +446,7 @@ bool rpcMgr::cancelRPC(unsigned id) {
        inferiorRPCtoDo *rpc = allPostedRPCs_[i];
        if (rpc->id == id) {
           if (rpc->thr)
-             thrs_[rpc->thr->get_pos()]->deleteThrIRPC(id);
+             thrs_[rpc->thr->get_index()]->deleteThrIRPC(id);
           else if (rpc->lwp)
              lwps_[rpc->lwp->get_lwp_id()]->deleteLWPIRPC(id);
           else
@@ -458,7 +461,7 @@ bool rpcMgr::cancelRPC(unsigned id) {
        inferiorRPCinProgress *inprog = allPendingRPCs_[j];
         if (inprog->rpc->id == id) {
             if (inprog->rpc->thr)
-                thrs_[inprog->rpc->thr->get_pos()]->deleteThrIRPC(id);
+                thrs_[inprog->rpc->thr->get_index()]->deleteThrIRPC(id);
             else if (inprog->rpc->lwp)
                 lwps_[inprog->rpc->lwp->get_lwp_id()]->deleteLWPIRPC(id);
             removePendingRPC(inprog);
@@ -470,22 +473,22 @@ bool rpcMgr::cancelRPC(unsigned id) {
 
 void rpcMgr::addThread(dyn_thread *thr) {
     rpcThr *newThread = new rpcThr(this, thr);
-    int pos = newThread->get_thr()->get_pos();
+    int index = newThread->get_thr()->get_index();
 
     // this code will fill in NULLs in any array entries that haven't yet
     // been assigned a thread
-    int new_size = pos + 1;
+    int new_size = index + 1;
     if(new_size > thrs_.size()) {
        for(int i=thrs_.size(); i < new_size; i++)
           thrs_.push_back(NULL);
     }
-    thrs_[pos] = newThread;
+    thrs_[index] = newThread;
 }
 
 void rpcMgr::deleteThread(dyn_thread *thr) {
-   int pos = thr->get_pos();
-   delete thrs_[pos];
-   thrs_[pos] = NULL;
+   int index = thr->get_index();
+   delete thrs_[index];
+   thrs_[index] = NULL;
 }
 
 void rpcMgr::addLWP(dyn_lwp *lwp) {

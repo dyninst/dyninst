@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: variableMgr.C,v 1.13 2002/11/25 23:53:03 schendel Exp $
+// $Id: variableMgr.C,v 1.14 2003/05/12 21:29:12 bernat Exp $
 
 #include <sys/types.h>
 #include "common/h/Types.h"
@@ -213,11 +213,11 @@ void variableMgr::deleteThread(pd_thread *thr)
 {
   assert(applicProcess->multithread_capable());
   assert(thr);
-  unsigned thrPos = thr->get_pos();
+  unsigned thrIndex = thr->get_index();
 
   // This will just go through and zero out all the data. 
   for (unsigned iter = 0; iter < varTables.size(); iter++)
-    varTables[iter]->deleteThread(thrPos);
+    varTables[iter]->deleteThread(thrIndex);
 }
 
 void variableMgr::initializeVarsAfterFork() {

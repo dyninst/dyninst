@@ -99,7 +99,7 @@ class threadMetFocusNode_Val {
 			    pdSample value);
 
   unsigned getThreadID() const;
-  unsigned getThreadPos()const ;
+  unsigned getThreadIndex()const ;
   bool instrInserted();
   bool isReadyForUpdates();
   pd_process *proc();
@@ -148,7 +148,7 @@ class threadMetFocusNode : public metricFocusNode {
   bool isReadyForUpdates() { return V.isReadyForUpdates(); }
 
   unsigned getThreadID()  const { return V.getThreadID(); }
-  unsigned getThreadPos() const { return V.getThreadPos(); }
+  unsigned getThreadIndex() const { return V.getThreadIndex(); }
   pd_thread *getThread() { return V.getThread(); }
   threadMetFocusNode_Val *getValuePtr() { return &V; }
   const threadMetFocusNode_Val *getValuePtr() const { return &V; }

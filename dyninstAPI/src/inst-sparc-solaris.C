@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.129 2003/05/06 20:45:21 mirg Exp $
+// $Id: inst-sparc-solaris.C,v 1.130 2003/05/12 21:29:01 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -455,15 +455,15 @@ void generateMTpreamble(char *insn, Address &base, process *proc)
     threadPOS = new AstNode("DYNINSTreturnZero", dummy);
   }
   else 
-    threadPOS = new AstNode("DYNINSTthreadPos", dummy);
+    threadPOS = new AstNode("DYNINSTthreadIndex", dummy);
   src = threadPOS->generateCode(proc, regSpace, (char *)insn,
-				base, 
-				false, // noCost 
-				true); // root node
+                                base, 
+                                false, // noCost 
+                                true); // root node
   if ((src) != REG_MT_POS) {
-    // This is always going to happen... we reserve REG_MT_POS, so the
-    // code generator will never use it as a destination
-    emitV(orOp, src, 0, REG_MT_POS, insn, base, false);
+      // This is always going to happen... we reserve REG_MT_POS, so the
+      // code generator will never use it as a destination
+      emitV(orOp, src, 0, REG_MT_POS, insn, base, false);
   }
 }
 

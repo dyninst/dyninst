@@ -165,7 +165,7 @@ bool dyn_thread::updateLWP()
 {
   // ST case
   if ((!proc->multithread_ready()) || 
-      (pos == (unsigned) -1)) {
+      (index == (unsigned) -1)) {
     lwp = proc->getDefaultLWP();
     return true;
   }
@@ -173,7 +173,7 @@ bool dyn_thread::updateLWP()
   int lwp_id;
   if (lwp) lwp_id = lwp->get_lwp_id();
   else lwp_id = 0;
-  int vt_lwp = proc->shmMetaData->getVirtualTimer(pos)->lwp;
+  int vt_lwp = proc->shmMetaData->getVirtualTimer(index)->lwp;
   
   if (vt_lwp < 0) {
     lwp = NULL; // Not currently scheduled

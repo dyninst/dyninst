@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.C,v 1.14 2003/03/04 19:16:19 willb Exp $
+// $Id: varInstanceHKs.C,v 1.15 2003/05/12 21:29:11 bernat Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -378,7 +378,7 @@ bool processTimerHK::perform(const tTimer *theTimer,
    const rawTime64 start = (count > 0) ? theTimer->start : 0; // not needed if count==0
 
 #if defined(MT_THREAD)
-   virtualTimer *vt = inferiorProc->getVirtualTimer(theTimer->pos);
+   virtualTimer *vt = inferiorProc->getVirtualTimer(theTimer->index);
    assert(vt != NULL);
    assert(thrNval->getThread() != NULL);
    dyn_thread *thr = thrNval->getThread()->get_dyn_thread();

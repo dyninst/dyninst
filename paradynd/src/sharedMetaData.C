@@ -52,7 +52,7 @@ sharedMetaData::~sharedMetaData() {
     theShmMgr.free(reinterpret_cast<Address>(daemon_pid));
     theShmMgr.free(reinterpret_cast<Address>(observed_cost));
     theShmMgr.free(reinterpret_cast<Address>(virtualTimers));
-    theShmMgr.free(reinterpret_cast<Address>(posToThread));
+    theShmMgr.free(reinterpret_cast<Address>(indexToThread));
     for(unsigned i = 0; i < maxThreads; i++) {
       theShmMgr.free(reinterpret_cast<Address>(pendingIRPCs[i]));
     }
@@ -102,14 +102,14 @@ sharedMetaData::sharedMetaData(const sharedMetaData &par, shmMgr &shmMgrToUse)
    virtualTimers = reinterpret_cast<virtualTimer *>(
 			     theShmMgr.getBaseAddrInDaemon2() + offset);
 
-   // posToThread
-   offset = reinterpret_cast<Address>(par.posToThread) -
+   // indexToThread
+   offset = reinterpret_cast<Address>(par.indexToThread) -
             par.theShmMgr.getBaseAddrInDaemon2();
-   posToThread = reinterpret_cast<unsigned *>(
+   indexToThread = reinterpret_cast<unsigned *>(
 			     theShmMgr.getBaseAddrInDaemon2() + offset);
 
    for(unsigned i=0; i<par.maxThreads; i++) {
-      // posToThread
+      // indexToThread
       offset = reinterpret_cast<Address>(par.pendingIRPCs[i]) -
 	       par.theShmMgr.getBaseAddrInDaemon2();
       pendingIRPCs[i] = reinterpret_cast<rpcToDo *>(
@@ -131,7 +131,7 @@ void sharedMetaData::mallocInShm() {
   /* MT */
   virtualTimers= reinterpret_cast<virtualTimer *>(
 			    theShmMgr.malloc(sizeof(virtualTimer) * maxThreads));
-  posToThread  = reinterpret_cast<unsigned *>(
+  indexToThread  = reinterpret_cast<unsigned *>(
 			    theShmMgr.malloc(sizeof(unsigned) * maxThreads));
   for(unsigned i = 0; i < maxThreads; i++) {
     pendingIRPCs[i] = reinterpret_cast<rpcToDo *>(
@@ -174,8 +174,8 @@ void sharedMetaData::adjustToNewBaseAddr(Address newBaseAddr) {
   virtualTimers = reinterpret_cast<virtualTimer *>(
 	         (reinterpret_cast<Address>(virtualTimers) - curBaseAddr) + 
                   newBaseAddr);
-  posToThread = reinterpret_cast<unsigned *>(
-	         (reinterpret_cast<Address>(posToThread) - curBaseAddr) + 
+  indexToThread = reinterpret_cast<unsigned *>(
+	         (reinterpret_cast<Address>(indexToThread) - curBaseAddr) + 
                   newBaseAddr);
   for (unsigned i = 0; i < maxThreads; i++) {
     pendingIRPCs[i] = reinterpret_cast<rpcToDo *>(
@@ -201,8 +201,8 @@ void sharedMetaData::saveOffsetsIntoRTstructure(sharedMetaOffsetData
                      reinterpret_cast<Address>(observed_cost) - curBaseAddr);
   RTdata->virtualTimers = reinterpret_cast<virtualTimer *>(
                      reinterpret_cast<Address>(virtualTimers) - curBaseAddr);
-  RTdata->posToThread = reinterpret_cast<unsigned *>(
-		     reinterpret_cast<Address>(posToThread) - curBaseAddr);
+  RTdata->indexToThread = reinterpret_cast<unsigned *>(
+		     reinterpret_cast<Address>(indexToThread) - curBaseAddr);
   for (unsigned i = 0; i < maxThreads; i++) {
     RTdata->pendingIRPCs[i] = reinterpret_cast<rpcToDo *>(
                   reinterpret_cast<Address>(pendingIRPCs[i]) - curBaseAddr);

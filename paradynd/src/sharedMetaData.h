@@ -62,7 +62,7 @@ class sharedMetaData {
   unsigned *observed_cost;
   /* MT */
   virtualTimer *virtualTimers;
-  unsigned *posToThread;
+  unsigned *indexToThread;
 
   enum { rpcSize = sizeof(rpcToDo), rpcPtrSize = sizeof(rpcToDo*),
          numRPCs = MAX_PENDING_RPC, 
@@ -72,7 +72,7 @@ class sharedMetaData {
   // buffers, where there is a buffer for each thread that stores the
   // rpcs
   const unsigned rpcPtrBufferSize;  
-  rpcToDo **pendingIRPCs; /* By POS, then by index */
+  rpcToDo **pendingIRPCs; /* By INDEX, then by number */
 
   bool malloced;
   Address curBaseAddr;
@@ -94,9 +94,9 @@ class sharedMetaData {
 
   unsigned *getObservedCost() { return observed_cost; }
   virtualTimer *getVirtualTimers() { return virtualTimers; }
-  virtualTimer *getVirtualTimer(int pos) { return &virtualTimers[pos]; }
-  unsigned getPosToThread(int pos) const { return posToThread[pos]; }
-  void setPosToThread(int pos, unsigned v) { posToThread[pos] = v; }
+  virtualTimer *getVirtualTimer(int index) { return &virtualTimers[index]; }
+  unsigned getIndexToThread(int index) const { return indexToThread[index]; }
+  void setIndexToThread(int index, unsigned v) { indexToThread[index] = v; }
 
   // malloc some memory for the sharedMetaData in shared memory
   void mallocInShm();

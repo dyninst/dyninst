@@ -449,7 +449,7 @@ void instrCodeNode::prepareForSampling(
 
   for(unsigned i=0; i<thrNodes.size(); i++) {
     threadMetFocusNode *curThrNode = thrNodes[i];
-    V.sampledDataNode->prepareForSampling(curThrNode->getThreadPos(), 
+    V.sampledDataNode->prepareForSampling(curThrNode->getThreadIndex(), 
                                           curThrNode->getValuePtr());
   }
 
@@ -462,12 +462,12 @@ void instrCodeNode::prepareForSampling(
 }
 
 void instrCodeNode::prepareForSampling(threadMetFocusNode *thrNode) {
-  V.sampledDataNode->prepareForSampling(thrNode->getThreadPos(), 
+  V.sampledDataNode->prepareForSampling(thrNode->getThreadIndex(), 
 					thrNode->getValuePtr());
 }
 
 void instrCodeNode::stopSamplingThr(threadMetFocusNode_Val *thrNodeVal) {
-  V.sampledDataNode->stopSampling(thrNodeVal->getThreadPos());
+  V.sampledDataNode->stopSampling(thrNodeVal->getThreadIndex());
 }
 
 bool instrCodeNode::needToWalkStack() {
