@@ -2,7 +2,11 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.15  1994/04/18 22:28:30  hollings
+ * Revision 1.16  1994/04/20 15:30:09  hollings
+ * Added error numbers.
+ * Added data manager function to get histogram buckets.
+ *
+ * Revision 1.15  1994/04/18  22:28:30  hollings
  * Changes to create a canonical form of a resource list.
  *
  * Revision 1.14  1994/03/31  01:42:19  markc
@@ -131,6 +135,7 @@ void applicationContext::removeDaemon(paradynDaemon *d, Boolean informUser)
 
     if (informUser) {
 	printf("paradynd (pid %d) had died\n", d->pid);
+	printf("paradyn Error #5\n");
     }
 
     daemons.remove(d);
@@ -185,6 +190,7 @@ int applicationContext::addExecutable(char  *machine,
 	daemon = new paradynDaemon(machine, login, program, NULL, NULL);
 	if (daemon->fd < 0) {
 	    printf("unable to start paradynd: %s\n", program);
+	    printf("paradyn Error #6\n");
 	    return(-1);
 	}
 	daemons.add(daemon);

@@ -4,7 +4,11 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.11  1994/04/19 22:08:38  rbi
+ * Revision 1.12  1994/04/20 15:30:11  hollings
+ * Added error numbers.
+ * Added data manager function to get histogram buckets.
+ *
+ * Revision 1.11  1994/04/19  22:08:38  rbi
  * Added getTotValue method to get non-normalized metric data.
  *
  * Revision 1.10  1994/04/18  22:28:32  hollings
@@ -279,6 +283,20 @@ float dataManager::getPredictedDataCost(applicationContext *a,
 					metric *m)
 {
     return(a->getPredictedDataCost(rl, m));
+}
+
+int dataManager::getSampleValues(metricInstance *mi,
+				 sampleValue *buckets,
+				 int numberOfBuckets,
+				 int first)
+{
+    Histogram *hist;
+
+    hist = mi->data;
+
+    if (!hist) return(-1);
+
+    return(hist->getBuckets(buckets, numberOfBuckets, first));
 }
 
 void dataManager::printResources()

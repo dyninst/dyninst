@@ -2,7 +2,11 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.17  1994/04/18 22:28:31  hollings
+ * Revision 1.18  1994/04/20 15:30:10  hollings
+ * Added error numbers.
+ * Added data manager function to get histogram buckets.
+ *
+ * Revision 1.17  1994/04/18  22:28:31  hollings
  * Changes to create a canonical form of a resource list.
  *
  * Revision 1.16  1994/04/12  22:33:34  hollings
@@ -207,6 +211,7 @@ void dynRPCUser::newProgramCallbackFunc(int pid,
     if (!daemon) {
 	printf("process started on %s, can't find paradynd there\n",
 		machine_name);
+	printf("paradyn error #1 encountered\n");
 	exit(-1);
     }
    argv = (char **) malloc (argvString.count);
@@ -254,6 +259,7 @@ void paradynDaemon::sampleDataCallbackFunc(int program,
     mi = activeMids.find((void*) mid);
     if (!mi) {
 	printf("ERROR: data for unknown mid: %d\n", mid);
+	printf("paradyn Error #2\n");
 	exit(-1);
     }
 
@@ -263,6 +269,7 @@ void paradynDaemon::sampleDataCallbackFunc(int program,
 
 	if (!part) {
 	    printf("Unable to find component!!!\n");
+	    printf("paradyn Error #3\n");
 	    exit(-1);
 	}
 	ret = part->sample.newValue(endTimeStamp, value);
@@ -343,6 +350,7 @@ DMnewParadynd (int sockfd, dataManager *dm)
   new_fd = RPC_getConnect(sockfd);
   if (new_fd < 0) {
     printf ("unable to connect to new paradynd\n");
+    printf("paradyn Error #4\n");
     exit(-1);
   }
 
