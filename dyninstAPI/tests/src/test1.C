@@ -1,4 +1,4 @@
-// $Id: test1.C,v 1.24 1999/05/29 22:31:48 wylie Exp $
+// $Id: test1.C,v 1.25 1999/06/10 19:16:29 hollings Exp $
 //
 // libdyninst validation suite test #1
 //    Author: Jeff Hollingsworth (1/7/97)
@@ -1659,7 +1659,7 @@ main(int argc, char *argv[])
 #ifdef i386_unknown_nt4_0
     mutatorMAIN("test1.mutatee.exe", useAttach);
 #else
-    mutatorMAIN("./test1.mutatee", useAttach);
+    mutatorMAIN("test1.mutatee", useAttach);
 #endif
 
     return 0;
