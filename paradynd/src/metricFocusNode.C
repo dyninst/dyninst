@@ -1320,7 +1320,7 @@ void metricDefinitionNode::disable()
     inserted_ = false;
     if (aggregate_) {
         /* disable components of aggregate metrics */
-        unsigned c_size = components.size();
+        // unsigned c_size = components.size();
         //for (unsigned u=0; u<c_size; u++) {
 	for (unsigned u=0; u<components.size(); u++) {
 	  //components[u]->disable();
@@ -1611,7 +1611,7 @@ void processCost(process *proc, traceHeader *h, costUpdate *s)
 #endif
 
 #ifndef SHM_SAMPLING
-void processSample(int pid, traceHeader *h, traceSample *s)
+void processSample(int /* pid */, traceHeader *h, traceSample *s)
 {
     // called from processTraceStream (perfStream.C) when a TR_SAMPLE record
     // has arrived from the appl.
@@ -1697,7 +1697,8 @@ bool instReqNode::unFork(dictionary_hash<instInstance*,instInstance*> &map) cons
 }
 
 bool instReqNode::insertInstrumentation(process *theProc,
-					returnInstance *&retInstance) {
+					returnInstance *&retInstance) 
+{
     // NEW: We may manually trigger the instrumentation, via a call to postRPCtoDo()
 
     // addInstFunc() is one of the key routines in all paradynd.
