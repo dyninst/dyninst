@@ -252,6 +252,20 @@ bool rpcLWP::deleteLWPIRPC(unsigned id) {
     return removed;
 }
 
+bool rpcLWP::cancelLWPIRPC(unsigned id) {
+  // It better be running...
+  assert (runningRPC_->rpc->id == id);
+
+  // We handle it as a completed, no-callback IRPC
+  runningRPC_->rpc->callbackFunc = NULL; /* Void the callback */
+
+  // I don't want to deal with "it finished" races...
+  assert(mgr_->proc()->isStopped());
+
+  return handleCompletedIRPC();
+}
+
+
 bool rpcLWP::handleCompletedIRPC() {
     // step 1) restore registers:
     if (runningRPC_->savedRegs) {

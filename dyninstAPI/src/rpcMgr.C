@@ -46,6 +46,7 @@
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/stats.h"
+#include "dyninstAPI/src/showerror.h"
 
 // post RPC toDo for process
 unsigned rpcMgr::postRPCtoDo(AstNode *action, bool noCost,
@@ -173,11 +174,17 @@ bool rpcMgr::handleSignalIfDueToIRPC(dyn_lwp *lwp_of_trap) {
 
        if(rpcThr) {
           dyn_thread *cur_dthr = rpcThr->get_thr();
+
           // skip comparing against any outstanding rpcs from threads/lwps
           // that aren't stopped; couldn't be the one if not stopped
-          if(cur_dthr->get_lwp()->status() != stopped) {
-             continue;
-          }
+	  // Only for independently-controlled LWPs. Otherwise they're in
+	  // the same state as the process.	 
+	  if(process::IndependentLwpControl()) {
+	    if(cur_dthr->get_lwp()->status() != stopped) {
+	      continue;
+	    }
+	  }
+
 #if !defined(rs6000_ibm_aix4_1)  || defined(AIX_PROC)  // non AIX-PTRACE
           if(cur_dthr->get_lwp()->get_lwp_id() != lwp_of_trap->get_lwp_id()) {
              continue;
@@ -186,10 +193,15 @@ bool rpcMgr::handleSignalIfDueToIRPC(dyn_lwp *lwp_of_trap) {
           activeFrame = cur_dthr->getActiveFrame();
        } else {
           assert(rpcLwp != NULL);
+
           dyn_lwp *cur_dlwp = rpcLwp->get_lwp();
-          if(cur_dlwp->status() != stopped) {
-             continue;
-          }
+
+	  // See thread comment
+	  if(process::IndependentLwpControl()) {
+	    if(cur_dlwp->status() != stopped) {
+	      continue;
+	    }
+	  }
 #if !defined(rs6000_ibm_aix4_1)  || defined(AIX_PROC)  // non AIX-PTRACE
           if(cur_dlwp->get_lwp_id() != lwp_of_trap->get_lwp_id()) {
              continue;
@@ -197,12 +209,12 @@ bool rpcMgr::handleSignalIfDueToIRPC(dyn_lwp *lwp_of_trap) {
 #endif
           activeFrame = rpcLwp->get_lwp()->getActiveFrame();
        }
-
        if (activeFrame.getPC() == currRPC->rpcResultAddr) {
           if(rpcThr)
              rpcThr->getReturnValueIRPC();
-          else
+          else {
              rpcLwp->getReturnValueIRPC();
+	  }
           handledTrap = true;
           runProcess = true;
        }
@@ -210,7 +222,9 @@ bool rpcMgr::handleSignalIfDueToIRPC(dyn_lwp *lwp_of_trap) {
           if(rpcThr)
              runProcess = rpcThr->handleCompletedIRPC();
           else
+	    {
              runProcess = rpcLwp->handleCompletedIRPC();
+	    }
           handledTrap = true;
        }
 
@@ -226,6 +240,8 @@ bool rpcMgr::handleSignalIfDueToIRPC(dyn_lwp *lwp_of_trap) {
        if (handledTrap) break;
    }
    if (handledTrap) {
+     inferiorrpc_printf("Completed RPC: pending %d, requestedRun %d\n",
+			allRunningRPCs_.size(), runProcess);
       if (runProcess || allRunningRPCs_.size() > 0) {
          if(process::IndependentLwpControl()) {
             lwp_to_cont->continueLWP();
@@ -275,12 +291,16 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
     // We have a central list of all posted or pending RPCs... if those are empty
     // then don't bother doing work
     if (allPostedRPCs_.size() == 0) {
-      if (wasRunning)
+      // Here's an interesting design question. "wasRunning" means "what do I do
+      // after the RPCs are done". Now, if there weren't any RPCs, do we 
+      // run the process? 
+      if (wasRunning && proc_->isStopped()) {
 	proc_->continueProc();
+      }
       recursionGuard = false;
       return false;
     }
-    
+
     dictionary_hash<unsigned, rpcLWP *>::iterator rpc_iter = lwps_.begin();
     while(rpc_iter != lwps_.end()) {
         rpcLWP *cur_rpc_lwp = (*rpc_iter);
@@ -299,8 +319,9 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
 #if defined(sparc_sun_solaris2_4)
     if(proc_->multithread_capable()) {
        if (!readyLWPRPC && !processingLWPRPC) {
-          if (postedProcessRPCs_.size())
-             readyProcessRPC = true;
+	 if (postedProcessRPCs_.size()) {
+	   readyProcessRPC = true;
+	 }
        }
     }
 #endif
@@ -321,7 +342,7 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
                 processingThrRPC = true;
         }
     }
-    
+
     if (!readyLWPRPC && !readyThrRPC && !readyProcessRPC) {
         if (wasRunning || processingLWPRPC || processingThrRPC) {
             // the caller expects the process to be running after
@@ -330,7 +351,7 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
         }
         recursionGuard = false;
         return false;
-    }   
+    }
 
     // We have work to do. Pause the process.
     if (!proc_->pause()) {
@@ -403,9 +424,9 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
     // poll for completion)
     if (runProcessWhenDone || 
         allRunningRPCs_.size() > 0) {
-        proc_->continueProc();
-        recursionGuard = false;
-        return true;
+      proc_->continueProc();
+      recursionGuard = false;
+      return true;
     }
     if (wasRunning) {
         proc_->continueProc();
@@ -507,14 +528,13 @@ Address rpcMgr::createRPCImage(AstNode *action,
       stopForResultAddr = justAfter_stopForResultAddr = 0;
    }
   
-   if (pd_debug_infrpc)
-      cerr << "createRPCtempTramp: temp tramp base=" << (void*)tempTrampBase
-           << ", stopForResultAddr=" << (void*)stopForResultAddr
-           << ", justAfter_stopForResultAddr="
-           << (void*)justAfter_stopForResultAddr
-           << ", breakAddr=" << (void*)breakAddr
-           << ", count=" << count << " so end addr="
-           << (void*)(tempTrampBase + count - 1) << endl;
+   inferiorrpc_cerr << "createRPCtempTramp: temp tramp base=" << (void*)tempTrampBase
+		    << ", stopForResultAddr=" << (void*)stopForResultAddr
+		    << ", justAfter_stopForResultAddr="
+		    << (void*)justAfter_stopForResultAddr
+		    << ", breakAddr=" << (void*)breakAddr
+		    << ", count=" << count << " so end addr="
+		    << (void*)(tempTrampBase + count - 1) << endl;
   
   
    /* Now, write to the tempTramp, in the inferior addr's data space
@@ -535,14 +555,16 @@ Address rpcMgr::createRPCImage(AstNode *action,
   
    extern unsigned int trampBytes; // stats.h
    trampBytes += count;
-  
+
    return tempTrampBase;
 }
 
 bool rpcMgr::cancelRPC(unsigned id) {
+  inferiorrpc_printf("Cancelling RPC %d...\n", id);
     // We can cancel posted or pending RPCs
     for (unsigned i = 0; i < allPostedRPCs_.size(); i++) {
        inferiorRPCtoDo *rpc = allPostedRPCs_[i];
+       inferiorrpc_printf("Checking RPC %d against %d\n", rpc->id, id);
        if (rpc->id == id) {
           if (rpc->thr)
              thrs_[rpc->thr->get_index()]->deleteThrIRPC(id);
@@ -558,6 +580,8 @@ bool rpcMgr::cancelRPC(unsigned id) {
     // Check pending
     for (unsigned j = 0; j < allPendingRPCs_.size(); j++) {
        inferiorRPCinProgress *inprog = allPendingRPCs_[j];
+       inferiorrpc_printf("Checking pending RPC %d against %d\n", inprog->rpc->id, id);
+
         if (inprog->rpc->id == id) {
             if (inprog->rpc->thr)
                 thrs_[inprog->rpc->thr->get_index()]->deleteThrIRPC(id);
@@ -565,6 +589,17 @@ bool rpcMgr::cancelRPC(unsigned id) {
                 lwps_[inprog->rpc->lwp->get_lwp_id()]->deleteLWPIRPC(id);
             removePendingRPC(inprog);
             return true;
+        }
+    }
+
+    // And running...
+    for (unsigned l = 0; l < allRunningRPCs_.size(); l++) {
+       inferiorRPCinProgress *running = allRunningRPCs_[l];
+       inferiorrpc_printf("Checking running RPC %d against %d\n", running->rpc->id, id);
+
+        if (running->rpc->id == id) {
+	  assert(0);
+	  return false;
         }
     }
     return false;

@@ -291,6 +291,19 @@ bool rpcThr::deleteThrIRPC(unsigned id) {
     return removed;
 }
 
+bool rpcThr::cancelThrIRPC(unsigned id) {
+  // It better be running...
+  assert (runningRPC_->rpc->id == id);
+
+  // We handle it as a completed, no-callback IRPC
+  runningRPC_->rpc->callbackFunc = NULL; /* Void the callback */
+
+  // I don't want to deal with "it finished" races...
+  assert(mgr_->proc()->isStopped());
+
+  return handleCompletedIRPC();
+}
+
 bool rpcThr::handleCompletedIRPC() {
     // The LWP can be a different one than the lwp the RPC was originally
     // started on if the thread was migrated.

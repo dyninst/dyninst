@@ -161,6 +161,9 @@ class rpcThr {
     
     // Remove a pending IRPC
     bool deleteThrIRPC(unsigned id);
+
+    // Cancel a running IRPC
+    bool cancelThrIRPC(unsigned id);
     
     // Handle completion states
     bool handleCompletedIRPC();
@@ -222,6 +225,9 @@ class rpcLWP {
     
     // Remove a pending IRPC
     bool deleteLWPIRPC(unsigned id);
+
+    // Cancel a running IRPC
+    bool cancelLWPIRPC(unsigned id);
     
     // Handle completion states
     bool handleCompletedIRPC();
