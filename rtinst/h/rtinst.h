@@ -79,6 +79,9 @@ typedef (*filterFunc)(void *cdata, parameters *params);
  * return the current CPU time in usec.
  */
 time64 DYNINSTgetCPUtime();
+time64 DYNINSTgetWallTime();
+
+void DYNINSTflushTrace();
 
 /*
  * start a timer.
