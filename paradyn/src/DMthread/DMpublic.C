@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.141 2004/03/23 01:12:26 eli Exp $
+// $Id: DMpublic.C,v 1.142 2004/05/31 00:22:52 pcroth Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -192,28 +192,6 @@ void dataManager::setResourceInstSuppress(resourceHandle res, bool newValue)
     if (r) paradynDaemon::setInstSuppress(r, newValue);
 }
 
-bool dataManager::addDaemon(const char *machine,
-			    const char *login,
-			    const char *name)
-{
-  // fix args so that if char * points to "" then it pts to NULL
-  pdstring m = 0;
-  if(machine && strlen(machine))  m = machine;
-  pdstring l = 0;
-  if(login && strlen(login)) l = login;
-  pdstring n = 0;
-  if(!name) { 
-      char *temp = 0; 
-      if(!paradynDaemon::setDefaultArgs(temp))
-	  return false;
-      n = temp;
-      delete temp;
-  }
-  else {
-      n = name;
-  }
-  return (paradynDaemon::getDaemon(m, l, n));
-}
 
 //
 // define a new entry for the daemon dictionary
