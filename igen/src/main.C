@@ -2,7 +2,11 @@
  * main.C - main function of the interface compiler igen.
  *
  * $Log: main.C,v $
- * Revision 1.16  1994/03/07 23:28:46  markc
+ * Revision 1.17  1994/03/25 20:57:02  hollings
+ * Changed all asserts to set the error member variable.  This makes it
+ * possible to detect/continue when the remote process dies.
+ *
+ * Revision 1.16  1994/03/07  23:28:46  markc
  * Added support to free arrays of classes.
  *
  * Revision 1.15  1994/03/07  02:50:56  markc
@@ -368,8 +372,11 @@ void interfaceSpec::genProtoVerify()
     printf("    __tag__ = 0;\n");
     printf("    __xdrs__->x_op = XDR_ENCODE;\n");
     printf("    callErr = 0;\n");
-    printf("    assert(xdr_int(__xdrs__, &__tag__));\n");
-    printf("    assert(xdrrec_endofrecord(__xdrs__, TRUE));\n");
+    printf("    if ((xdr_int(__xdrs__, &__tag__) != TRUE) ||\n");
+    printf("        !xdrrec_endofrecord(__xdrs__, TRUE)) {\n");
+    printf("        callErr = -1;\n");
+    printf("        return;\n");
+    printf("    }\n");
     printf("    awaitResponce(0);\n");
     printf("    if (callErr == -1) {\n");
     printf("        printf(\"Protocol verify - no response from server\\n\");\n");
@@ -928,31 +935,43 @@ void remoteFunc::genXDRStub(char *className)
 	printf("    if (!__versionVerifyDone__) {\n");
 	printf("        char *__ProtocolName__ = \"%s\";\n", spec->getName());
 	printf("	int __status__;\n");
+	printf("	int __version__;\n");
 	printf("        __xdrs__->x_op = XDR_DECODE;\n");
 	printf("        if (xdrrec_skiprecord(__xdrs__) == FALSE)\n");
 	printf("          {callErr = -1; return ");
 	if (retS) printf("(%s);}\n", retVar);
 	else printf(";}\n");
 	printf("        __status__ = xdr_int(__xdrs__, &__tag__);\n");
-	printf("	assert(__status__ && (__tag__ == 0));\n");
+	printf("	if ((__status__ != TRUE) || (__tag__ != 0)) {\n");
+	printf("            callErr = -1; return");
+	if (retS) printf("(%s)", retVar);
+	printf(";\n        }\n");
 	printf("        __xdrs__->x_op = XDR_ENCODE;\n");
-	printf("        assert (xdr_int(__xdrs__, &__tag__));\n");
-	printf("        assert (xdr_String(__xdrs__, &__ProtocolName__));\n");
-	printf("        __tag__ = %d;\n", spec->getVersion());
-	printf("        assert (xdr_int(__xdrs__, &__tag__));\n");
-	printf("        assert (xdrrec_endofrecord(__xdrs__, TRUE));\n");
+	printf("        __version__ = %d;\n", spec->getVersion());
+	printf("        if ((xdr_int(__xdrs__, &__tag__) != TRUE) ||\n");
+	printf("            (xdr_String(__xdrs__,&__ProtocolName__) != TRUE) || \n");
+	printf("            (xdr_int(__xdrs__, &__version__) != TRUE) ||\n");
+	printf("            (xdrrec_endofrecord(__xdrs__, TRUE))) {\n");
+	printf("            callErr = -1; return");
+	if (retS) printf("(%s)", retVar);
+	printf(";\n        }\n");
 	printf("	__versionVerifyDone__ = TRUE;\n");
 	printf("    }\n");
     }
     printf("    __tag__ = %s_%s_REQ;\n", spec->getName(), name);
     printf("    __xdrs__->x_op = XDR_ENCODE;\n");
-    printf("    assert (xdr_int(__xdrs__, &__tag__) == TRUE);\n");
 
+    // the error check depends on short circuit boolean expression evaluation!
+    printf("    if ((xdr_int(__xdrs__, &__tag__) != TRUE) ||\n");
     for (lp = args; *lp; lp++) {
-      printf("    assert(xdr_%s(__xdrs__, &%s) == TRUE);\n",
-	     (*lp)->type, (*lp)->name);
+	  printf("        (xdr_%s(__xdrs__, &%s) != TRUE) ||\n",
+		 (*lp)->type, (*lp)->name);
     }
-    printf("    assert(xdrrec_endofrecord(__xdrs__, TRUE));\n");
+    printf("        !xdrrec_endofrecord(__xdrs__, TRUE)) {\n");
+    printf("            callErr == -1;\n");
+    printf("            return");
+    if (retS) printf("(%s)", retVar);
+    printf(";\n    }\n");
 
     if (upcall != asyncUpcall) {
 	if (upcall == notUpcall) {
