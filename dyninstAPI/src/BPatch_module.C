@@ -212,13 +212,14 @@ string* processDirectories(string* fn){
 
 	string* ret = NULL;
 	char* suffix = NULL;
+	char* prefix = NULL;
 	char* pPath = new char[strlen(fn->string_of())+1];
 	strcpy(pPath,fn->string_of());
 
 	if(pPath[0] == '/')
-		ret = new string("/");
+		prefix = "/";
 	else
-		ret = new string;
+		prefix = "";
 
 	if(pPath[strlen(pPath)-1] == '/')
 		suffix = "/";
@@ -226,7 +227,7 @@ string* processDirectories(string* fn){
 		suffix = "";
 
 	int count = 0;
-	char* pPathLocs[256];
+	char* pPathLocs[1024];
 	char* p = strtok(pPath,"/");
 	while(p){
 		if(!strcmp(p,".")){
@@ -235,23 +236,26 @@ string* processDirectories(string* fn){
 		}
 		else if(!strcmp(p,"..")){
 			count--;
-			if((count < 0) || 
-			   !strcmp(pPathLocs[count],"..")){
+			if(((count < 0) && (*prefix != '/')) || 
+			   ((count >= 0) && !strcmp(pPathLocs[count],"..")))
+			{
 				count++;
 				pPathLocs[count++] = p;
 			}
+			if(count < 0) count = 0;
 		}
 		else
 			pPathLocs[count++] = p;
 
 		p = strtok(NULL,"/");
 	}
+	ret = new string;
+	*ret += prefix;
 	for(int i=0;i<count;i++){
 		*ret += pPathLocs[i];
 		if(i != (count-1))
 			*ret += "/";
 	}
-
 	*ret += suffix;
 
 	delete pPath;
@@ -643,26 +647,33 @@ void BPatch_module::parseTypes()
 
     case N_SOL:
 	    if(currentSourceFile){
-   		char* tmp = new char[currentSourceFile->length()+1];
-                strncpy(tmp,currentSourceFile->string_of(),
-			currentSourceFile->length());
-                tmp[currentSourceFile->length()] = '\0';
-		if(strstr(tmp,&stabstrs[stabptr[i].name])){
-			delete[] tmp;
-			break;
+	        const char* newSuffix = &stabstrs[stabptr[i].name];
+		if(newSuffix[0] == '/'){
+			delete currentSourceFile;
+			currentSourceFile = new string;
 		}
-                char* p=strrchr(tmp,'/');
-		if(p) 
-                	*(++p)='\0';
-                delete currentSourceFile;
-                currentSourceFile = new string(tmp);
-                (*currentSourceFile) += &stabstrs[stabptr[i].name];
+		else{
+   			char* tmp = new char[currentSourceFile->length()+1];
+                	strncpy(tmp,currentSourceFile->string_of(),
+				currentSourceFile->length());
+                	tmp[currentSourceFile->length()] = '\0';
+			if(strstr(tmp,&stabstrs[stabptr[i].name])){
+				delete[] tmp;
+				break;
+			}
+                	char* p=strrchr(tmp,'/');
+			if(p) 
+                		*(++p)='\0';
+                	delete currentSourceFile;
+                	currentSourceFile = new string(tmp);
+                	delete[] tmp;
+		}
+                (*currentSourceFile) += newSuffix;
 		currentSourceFile = processDirectories(currentSourceFile);
                 if(currentFunctionName)
 			lineInformation->insertSourceFileName(
 				*currentFunctionName,
 				*currentSourceFile);
-                delete[] tmp;
             }
             else{
                 currentSourceFile = new string(&stabstrs[stabptr[i].name]);
