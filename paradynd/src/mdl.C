@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.161 2004/09/21 05:33:45 jaw Exp $
+// $Id: mdl.C,v 1.162 2004/10/07 00:45:58 jaw Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -50,20 +50,14 @@
 #include "paradynd/src/threadMetFocusNode.h"
 #include "paradynd/src/instrCodeNode.h"
 #include "paradynd/src/instrDataNode.h"
-#include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/ast.h"
 #include "paradynd/src/main.h"
-#include "dyninstAPI/src/symtab.h"
 #include "common/h/Timer.h"
 #include "paradynd/src/mdld.h"
-#include "dyninstAPI/src/showerror.h"
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/pd_image.h"
 #include "paradynd/src/pd_thread.h"
-#include "dyninstAPI/src/dyn_thread.h"
 #include "common/h/debugOstream.h"
 #include "pdutil/h/pdDebugOstream.h"
-#include "dyninstAPI/src/instPoint.h" // new...for class instPoint
 #include "paradynd/src/focus.h"
 #include "paradynd/src/papiMgr.h"
 #include "paradynd/src/init.h"
@@ -1709,32 +1703,17 @@ mdld_instr_stmt::apply_be(instrCodeNode *mn,
     code = new BPatch_snippet();
   }
 
-  callOrder corder = orderFirstAtPoint; // gcc likes this initialized
-  switch (position_) {
-      case MDL_PREPEND: 
-	  //corder = orderFirstAtPoint; 
-	  break;
-      case MDL_APPEND: 
-	  corder = orderLastAtPoint; 
-	  break;
-      default: assert(0);
-  }
+  BPatch_snippetOrder corder = (MDL_PREPEND == position_)
+                                ? BPatch_firstSnippet
+                                : BPatch_lastSnippet;
+  BPatch_callWhen cwhen = (MDL_PRE_INSN == where_instr_)
+                           ? BPatch_callBefore
+                           : BPatch_callAfter;
 
-  callWhen cwhen = callPreInsn; // gcc likes this initialized
-  switch (where_instr_) {
-      case MDL_PRE_INSN: 
-	  //cwhen = callPreInsn; 
-	  break;
-      case MDL_POST_INSN: 
-	  cwhen = callPostInsn; 
-	  break;
-      default: assert(0);
-  }
-  
 
   // for all of the inst points, insert the predicates and the code itself.
   for (unsigned i = 0; i < points.size(); i++) {
-     mn->addInst(points[i]->PDSEP_instPoint(), code, cwhen, corder);
+     mn->addInst(points[i], code, cwhen, corder);
      // appends an instReqNode to mn's instRequests; actual 
      // instrumentation only
      // takes place when mn->loadInstrIntoApp() is later called.
@@ -2507,8 +2486,9 @@ static bool apply_to_process_list(pdvector<pd_process*>& instProcess,
       assert(proc);
       global_proc = proc;     // TODO -- global
       
-      // skip neonatal and exited processes.
-      if (proc->status() == exited || proc->status() == neonatal) continue;
+     // skip exited processes 
+     if (proc->isTerminated()) 
+       continue;
       
       processMetFocusNode *procRetNode = 
          apply_to_process(proc, id, name, focus, agg_op, type, hw_cntr_str, 

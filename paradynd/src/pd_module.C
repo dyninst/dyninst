@@ -43,9 +43,10 @@
 
 
 #include "paradynd/src/pd_module.h"
-#include "dyninstAPI/src/symtab.h"
+#include "paradynd/src/resource.h"
 #include "paradynd/src/comm.h"
-#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/symtab.h" // for ResourceFullName()
+#include "dyninstAPI/src/process.h" // for isDynamicCallSite()
 
 #include "dyninstAPI/h/BPatch_flowGraph.h"
 extern bool module_is_excluded(BPatch_module *m);
@@ -132,7 +133,7 @@ void FillInCallGraphNodeNested(pdstring exe_name,
 
     // add callees
     for (unsigned i = 0; i < node->callees.size(); i++) {
-	pd_Function *f = static_cast<pd_Function *>(node->callees[i]);
+	pd_Function *f = (pd_Function *)(node->callees[i]);
         assert(f != NULL);
 	children.push_back(f->ResourceFullName());
     }
@@ -216,7 +217,10 @@ void pd_module::FillInCallGraphStatic(process *proc) {
     
       // register that callee_resources holds list of resource*s 
       //  describing children of resource r....
-      pdstring exe_name = proc->getImage()->file();
+      BPatch_image *appImage = (BPatch_image* ) get_dyn_module()->getObjParent();
+      char buf[1024];
+      appImage->getProgramFileName(buf, 1024);
+      pdstring exe_name = pdstring(buf);
 
       // if displaying loops as resources for the current module...
       // add nested loops and function calls

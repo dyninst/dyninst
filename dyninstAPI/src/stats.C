@@ -41,7 +41,7 @@
 
 /*
  * Report statistics about dyninst and data collection.
- * $Id: stats.C,v 1.31 2004/03/23 01:12:10 eli Exp $
+ * $Id: stats.C,v 1.32 2004/10/07 00:45:57 jaw Exp $
  */
 
 #include <sstream>
@@ -53,31 +53,14 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 
-#ifndef BPATCH_LIBRARY
-#include "common/h/timing.h"
-#include "common/h/Timer.h"
-#include "rtinst/h/rtinst.h"
-#include "rtinst/h/trace.h"
-#include "paradynd/src/internalMetrics.h"
-#include "paradynd/src/init.h"
-#include "paradynd/src/dynrpc.h"
-#include "paradynd/src/perfStream.h"
-#include "common/h/int64iostream.h"
-#endif
-
-int trampBytes = 0;
-int pointsUsed=0;
-int samplesDelivered=0;
-int insnGenerated = 0;
-int totalMiniTramps=0;
-int metResPairsEnabled=0;
+unsigned int trampBytes = 0;
+unsigned int pointsUsed=0;
+unsigned int insnGenerated = 0;
+unsigned int totalMiniTramps=0;
 double timeCostLastChanged=0;
 // HTable<resourceListRec*> fociUsed;
 // HTable<metric*> metricsUsed;
-int metricsUsed = 0;
-int fociUsed = 0;
-int ptraceOtherOps=0, ptraceOps=0, ptraceBytes=0;
-timer totalInstTime;
+unsigned int ptraceOtherOps=0, ptraceOps=0, ptraceBytes=0;
 
 void printDyninstStats()
 {
@@ -95,52 +78,5 @@ void printDyninstStats()
     logLine(errorLine);
     sprintf(errorLine, "    %d instructions generated\n", insnGenerated);
     logLine(errorLine);
-    sprintf(errorLine, "    %f time used to generate instrumentation\n",
-	totalInstTime.wsecs());
-    logLine(errorLine);
 }
-
-#ifndef BPATCH_LIBRARY
-void printAppStats(struct endStatsRec *stats)
-{
-  if (stats) {
-    logStream << "    DYNINSTtotalAlaramExpires: " << stats->alarms <<"\n";
-#ifdef notdef
-    logStream << "    DYNINSTnumReported: " << stats->numReported << "\n";
-#endif
-    logStream << "    Raw cycle count: " << stats->instCycles << "\n";
-
-    timeUnit cps = getCyclesPerSecond();
-    logStream << "    Cycle rate: " << cps << " units/nanoseconds" << "\n";
-
-    timeLength instTime(stats->instCycles, cps);
-    logStream << "    Total instrumentation cost: " << instTime << "\n";
-    // variable only defined if using profiler, see RTinst.C
-    //logStream << "    Total inst (via prof): " << stats->instTicks << "\n";
-
-    timeLength cpuTime(stats->totalCpuTime, cps);
-    
-    logStream << "    Total cpu time of program: " << cpuTime << "\n";
-
-    // variable only defined if using profiler, see RTinst.C
-    //logStream << "    Total cpu time (via prof): ",stats->userTicks);
-
-    timeLength wallTime(stats->totalWallTime, cps);
-    logStream << "    Total wall time of program: " << wallTime << "\n";
-    
-    logStream << "    Total data samples: " << stats->samplesReported << "\n";
-#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
-    logStream <<  "    Total traps hit: " << stats->totalTraps << "\n";
-#endif
-    sprintf(errorLine, "    %d metric/resource pairs enabled\n",metResPairsEnabled);
-    logLine(errorLine);
-    sprintf(errorLine, "    %d metrics used\n", metricsUsed);
-    logLine(errorLine);
-    sprintf(errorLine, "    %d foci used\n", fociUsed);
-    logLine(errorLine);
-    sprintf(errorLine, "    %d samples delivered\n", samplesDelivered);
-    logLine(errorLine);
-  }
-}
-#endif
 

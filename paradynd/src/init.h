@@ -39,13 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.h,v 1.39 2004/03/23 01:12:34 eli Exp $
+// $Id: init.h,v 1.40 2004/10/07 00:45:58 jaw Exp $
 
 #ifndef INIT_HDR
 #define INIT_HDR
 
 #include "paradynd/src/timeMgr.h"
-#include "dyninstAPI/src/util.h"
 
 class BPatch;
 
@@ -97,7 +96,7 @@ bool bShowTimerInfo();
 
 class internalMetric;
 class costMetric;
-class instMapping;
+class pdinstMapping;
 
 extern internalMetric *activeProcs;
 extern internalMetric *sampling_rate;
@@ -116,7 +115,7 @@ extern costMetric *observed_cost;
 extern bool paradyn_init();
 extern bool initOS();
 extern void instMPI();
-extern pdvector<instMapping*> initialRequestsPARADYN;//ccw 19 apr 2002 : SPLIT
+extern pdvector<pdinstMapping*> initialRequestsPARADYN;//ccw 19 apr 2002 : SPLIT
 
 extern int numberOfCPUs;
 

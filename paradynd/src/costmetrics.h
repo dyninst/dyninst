@@ -39,12 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: costmetrics.h,v 1.19 2004/03/23 01:12:34 eli Exp $
+// $Id: costmetrics.h,v 1.20 2004/10/07 00:45:57 jaw Exp $
 
 #ifndef COST_METRICS_HDR 
 #define COST_METRICS_HDR
 
-#include "dyninstAPI/src/process.h"
 #include "paradynd/src/im_preds.h"
 #include "paradynd/src/internalMetrics.h"
 #include "paradynd/src/resource.h"

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.188 2004/04/20 01:27:54 jaw Exp $
+// $Id: aix.C,v 1.189 2004/10/07 00:45:56 jaw Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -678,7 +678,7 @@ bool process::catchupSideEffect(Frame &frame, instReqNode *inst)
   //       12: our save slot for the LR
 
   Address exitTrampAddr;
-  pd_Function *instFunc = (pd_Function *)(inst->Point()->pointFunc());
+  pd_Function *instFunc = (pd_Function *)(inst->Point()->PDSEP_instPoint()->pointFunc());
   if (!instFunc) return false;
   // Check: see if the PC is within the instFunc. We might be within
   // an entry or exit tramp, at which point we don't need to fix anything.

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templatesPD.C,v 1.41 2004/07/28 07:24:47 jaw Exp $
+// $Id: templatesPD.C,v 1.42 2004/10/07 00:45:59 jaw Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -49,14 +49,7 @@
 #include "pdutil/h/sampleAggregator.h"
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
-#include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/instP.h"
-#include "dyninstAPI/src/dyninstP.h"
-#include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/util.h"
-#include "dyninstAPI/src/Object.h"
+#include "dyninstAPI/h/BPatch_snippet.h"
 
 #include "paradynd/src/machineMetFocusNode.h"
 #include "paradynd/src/processMetFocusNode.h"
@@ -71,6 +64,7 @@
 #include "pdutil/h/mdl.h"
 #include "paradynd/src/pd_image.h"
 #include "paradynd/src/pd_module.h"
+#include "paradynd/src/pd_process.h"
 #include "paradynd/src/shmMgr.h"
 #include "paradynd/src/shmSegment.h"
 
@@ -192,3 +186,6 @@ template class varTable<hwTimerHK>;
 template class varTable<hwCounterHK>;
 #endif
 template class pdvector<baseVarTable *>;
+template class pdvector<pdinstMapping *>;
+template class pdvector<BPatchSnippetHandle *>;
+template class pdvector<BPatch_snippet *>;

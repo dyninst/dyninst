@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.163 2004/09/21 05:33:44 jaw Exp $
+// $Id: symtab.h,v 1.164 2004/10/07 00:45:57 jaw Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -1078,13 +1078,6 @@ class image : public codeRange {
 
    bool isDyninstRTLib() const { return is_libdyninstRT; }
 
-#ifdef NOTDEF // PDSEP
-#if !defined(BPATCH_LIBRARY) //ccw 19 apr 2002 : SPLIT
-   //  bool is_libparadynRT;
-   bool isParadynRTLib() const { return is_libparadynRT; }
-#endif
-#endif // PDSEP
-
    bool isAOut() const { return is_a_out; }
 
    inline bool isCode(const Address &where) const;
@@ -1205,11 +1198,6 @@ class image : public codeRange {
    Address dataValidEnd_;
 
    bool is_libdyninstRT;
-#ifdef NOTDEF // PDSEP
-#if !defined(BPATCH_LIBRARY) //ccw 19 apr 2002 : SPLIT
-   bool is_libparadynRT;
-#endif
-#endif // PDSEP
    bool is_a_out;
    Address main_call_addr_; // address of call to main()
 

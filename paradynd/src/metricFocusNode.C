@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.252 2004/03/23 01:12:35 eli Exp $
+// $Id: metricFocusNode.C,v 1.253 2004/10/07 00:45:58 jaw Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -48,24 +48,14 @@
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
 #include "pdutil/h/sampleAggregator.h"
-#include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/dyn_thread.h"
-#include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/instP.h"
-#include "dyninstAPI/src/dyninstP.h"
-#include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/util.h"
 #include "paradynd/src/comm.h"
 #include "paradynd/src/internalMetrics.h"
 #include "paradynd/src/init.h"
 #include "paradynd/src/perfStream.h"
 #include "paradynd/src/main.h"
-#include "dyninstAPI/src/stats.h"
 #include "paradynd/src/dynrpc.h"
 #include "paradynd/src/mdld.h"
 #include "common/h/Timer.h"
-#include "dyninstAPI/src/showerror.h"
 #include "paradynd/src/costmetrics.h"
 #include "paradynd/src/metricFocusNode.h"
 #include "paradynd/src/machineMetFocusNode.h"
@@ -78,6 +68,7 @@
 #include "paradynd/src/focus.h"
 #include "paradynd/src/processMgr.h"
 #include "paradynd/src/pd_process.h"
+#include "paradynd/src/context.h"
 
 #ifdef FREEDEBUG
 #  include <sstream>
@@ -137,6 +128,8 @@ extern unsigned enable_pd_samplevalue_debug;
 
 extern unsigned inferiorMemAvailable;
 extern pdvector<Address> getAllTrampsAtPoint(miniTrampHandle *);
+
+unsigned int metResPairsEnabled = 0; // PDSEP from stats.C
 
 void flush_batch_buffer();
 void batchSampleData(pdstring metname, int mid, timeStamp startTimeStamp, 
@@ -290,8 +283,15 @@ machineMetFocusNode *createMetricInstance(int mid, pdstring& metric_name,
       while(itr != getProcMgr().end()) {
          pd_process *curProc = *itr++;
          if(!curProc) continue;
+#ifdef NOTDEF // PDSEP
+   //  I think there must be an error in this predicate?
+   //  Doesn't match the comment above
          if(curProc->status()==exited || curProc->status()==neonatal || 
             curProc->isBootstrappedYet())
+#endif
+         if (!curProc->isTerminated() 
+             && !curProc->isDetached()
+             && curProc->isBootstrappedYet())
          {
             procs += curProc;
          }

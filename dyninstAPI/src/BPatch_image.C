@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.61 2004/09/21 05:33:44 jaw Exp $
+// $Id: BPatch_image.C,v 1.62 2004/10/07 00:45:56 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -180,7 +180,7 @@ BPatch_variableExpr *BPatch_image::createVarExprByName(BPatch_module *mod, const
     }
     BPatch_variableExpr *var = AddrToVarExpr->hash[syminfo.addr()];
     if (!var) {
-	var = new BPatch_variableExpr( (char *)name, appThread, 
+	var = new BPatch_variableExpr( const_cast<char *>(name), appThread, 
 	    (void *)syminfo.addr(), (const BPatch_type *) type);
 	AddrToVarExpr->hash[syminfo.addr()] = var;
     }
@@ -463,7 +463,6 @@ void BPatch_image::findFunctionInImage(
 void BPatch_image::findFunctionPatternInImage(regex_t *comp_pat, image *img, 
 					      BPatch_Vector<BPatch_function*> *funcs)
 {
-  pd_Function *pdf;
   pdvector<pd_Function*> pdfv;
   
   img->findFuncVectorByPrettyRegex(&pdfv, comp_pat);

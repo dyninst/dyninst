@@ -42,14 +42,10 @@
 /*
  * association.C - Manage mapping information (associations)
  *
- * $Id: association.C,v 1.14 2004/03/23 01:12:33 eli Exp $
+ * $Id: association.C,v 1.15 2004/10/07 00:45:57 jaw Exp $
  */
 
 #include "common/h/headers.h"
-#include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/dyninstP.h"
-#include "dyninstAPI/src/util.h"
 #include "paradynd/src/main.h"
 
 #include <stdio.h>

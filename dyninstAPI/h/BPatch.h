@@ -98,6 +98,23 @@ extern int eCodes[BP_lastCode];
 
 #endif
 
+//  BPatch_stats is a collection of instrumentation statistics.
+//  Introduced to export this information to paradyn, which 
+//  produces a summary of these numbers upon application exit.
+//  It probably makes more sense to maintain such numbers on a
+//  per-process basis.  But is set up globally due to historical
+//  precendent.   
+
+typedef struct {
+  unsigned int pointsUsed;
+  unsigned int totalMiniTramps;
+  unsigned int trampBytes;
+  unsigned int ptraceOtherOps;
+  unsigned int ptraceOps;
+  unsigned int ptraceBytes;
+  unsigned int insnGenerated;
+} BPatch_stats;
+
 class BPATCH_DLL_EXPORT BPatch {
     friend class BPatch_thread;
     friend class process;
@@ -128,6 +145,8 @@ class BPATCH_DLL_EXPORT BPatch {
        deems it necessary.  Defaults to true */
     bool        autoRelocation_NP;
 
+    BPatch_stats stats;
+    void updateStats();
 public:
     static BPatch		 *bpatch;
 
@@ -246,6 +265,11 @@ public:
     bool 	waitForStatusChange();
 
     bool waitUntilStopped(BPatch_thread *appThread);
+
+    BPatch_stats &getBPatchStatistics() {
+      updateStats();
+      return stats;
+    } 
 };
 
 #if defined(IBM_BPATCH_COMPAT) && (defined(rs6000_ibm_aix4_1) || defined(rs6000_ibm_aix5_1)) 

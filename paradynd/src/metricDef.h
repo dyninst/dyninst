@@ -44,17 +44,25 @@
 
 /* 
  * $Log: metricDef.h,v $
- * Revision 1.10  2004/09/21 05:33:45  jaw
- * Changes mdl to use BPatch_snippets instead of AstNodes.  These account for
- * many, but not all AstNodes in paradynd.  Remaining groups of AstNodes
- * include:  OS specific init calls (ie anything that uses the class
- * instMapping -- these will have to be dealt with as a group), Anything
- * related to PAPI, MPI...  probably more.
+ * Revision 1.11  2004/10/07 00:45:58  jaw
+ * eliminates many "pass through" functions in pd_process.h.  These are
+ * functions that simply wrap calls to class process(), via the
+ * BPatch_thread::lowlevel_process().
+ * Since pd_process::status() no longer exists, paradynd is no longer aware
+ * of "neonatal" processes.  I don't think this should be a problem, since
+ * createProcess() and attachProcess() should be atomic.
  *
- * Some more (smallish) modifications of the paradynd init including a bugfix
- * (for a bug introduced by my last commit) for Windows involving the DllMain
- * function.  Also variables in libparadynRT that are set by paradynd during
- * the init stages are now dealt with as BPatch_variableExpr's.
+ * more BPatch_variableExpr's now used for getting/setting vars in
+ * paradyn runtime lib.
+ *
+ * eliminates paradynd references to class instMapping -- using instead a
+ * new class called pdinstMapping.  pdinstMapping is analagous to instMapping,
+ * except it is a container class for BPatch_snippets instead of AstNodes.
+ * When instrumentation specified by a pdinstMapping is inserted, insertSnippet
+ * is used.
+ *
+ * Revision 1.10  2004/09/21 05:33:45  jaw
+ * Changes mdl to use BPatch_snippets instead of AstNodes. 
  *
  * Revision 1.9  2004/03/23 01:12:35  eli
  * Updated copyright string

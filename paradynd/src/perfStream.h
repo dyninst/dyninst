@@ -43,11 +43,11 @@
 #ifndef PERF_STREAM_H
 #define PERF_STREAM_H
 
-// $Id: perfStream.h,v 1.14 2004/03/23 01:12:36 eli Exp $
+// $Id: perfStream.h,v 1.15 2004/10/07 00:45:59 jaw Exp $
 
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
-#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/h/BPatch.h"
 
 extern void controllerMainLoop(bool check_buffer_first);
 extern bool firstSampleReceived;
@@ -61,6 +61,7 @@ extern pdstring traceSocketPath; /* file path of trace socket */
 extern ostream logStream;
 extern ostream statusStream;
 
-
+void printAppStats(endStatsRec *stats);
+void printDyninstStats(BPatch_stats &stats);
 #endif
 

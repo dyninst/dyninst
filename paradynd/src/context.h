@@ -39,13 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: context.h,v 1.18 2004/03/23 01:12:34 eli Exp $
+// $Id: context.h,v 1.19 2004/10/07 00:45:57 jaw Exp $
 
 #ifndef CONTEXT_HDR
 #define CONTEXT_HDR
 
 #include "rtinst/h/trace.h"
-#include "dyninstAPI/src/dyninst.h"
 
 extern timeStamp startPause;
 extern timeLength elapsedPauseTime;
@@ -62,5 +61,7 @@ bool markApplicationPaused();
 bool markApplicationRunning();
 void processNewTSConnection(int tracestream_fd);
    // either fork or attach
-
+bool continueAllProcesses();
+bool pauseAllProcesses();
+bool isApplicationPaused();
 #endif

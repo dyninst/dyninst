@@ -39,13 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.h,v 1.17 2004/04/06 16:37:10 bernat Exp $
+// $Id: frame.h,v 1.18 2004/10/07 00:45:56 jaw Exp $
 
 #ifndef FRAME_H
 #define FRAME_H
 
 #include <iostream>
-
+#include "common/h/Types.h"
 class dyn_thread;
 class process;
 class dyn_lwp;

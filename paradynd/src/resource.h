@@ -60,6 +60,10 @@
 #undef current
 #endif
 
+inline unsigned pd_uiHash(const unsigned &val) {
+  return val;
+}
+
 class resource;
 
 /*

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.107 2004/03/23 01:12:35 eli Exp $ 
+// $Id: metricFocusNode.h,v 1.108 2004/10/07 00:45:59 jaw Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -48,10 +48,7 @@
 // trace data streams
 #include "common/h/Vector.h"
 #include "pdutil/h/sampleAggregator.h"
-#include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/util.h"
 #include "rtinst/h/trace.h"
-#include "dyninstAPI/src/inst.h" // for "enum callWhen"
 #include "dyninstRPC.xdr.SRVR.h" // for flag_cons
 #include "common/h/Time.h"
 #include "pdutil/h/metricStyle.h"

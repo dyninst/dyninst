@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.129 2004/09/13 21:48:09 legendre Exp $
+// $Id: unix.C,v 1.130 2004/10/07 00:45:57 jaw Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -48,10 +48,10 @@
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/util.h"
 
+
 #ifndef BPATCH_LIBRARY
-#include "paradynd/src/perfStream.h"
-#include "paradynd/src/main.h"
-#include "paradynd/src/pd_process.h"
+#include "paradynd/src/main.h"  // for "tp" ?
+#include "paradynd/src/pd_process.h" // for class pd_process
 #endif
 
 // the following are needed for handleSigChild

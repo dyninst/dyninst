@@ -39,13 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: costmetrics.C,v 1.32 2004/03/23 01:12:34 eli Exp $
+// $Id: costmetrics.C,v 1.33 2004/10/07 00:45:57 jaw Exp $
 
 #include "common/h/Types.h"
 #include "common/h/int64iostream.h"
 #include "paradynd/src/costmetrics.h"
 #include "paradynd/src/machineMetFocusNode.h"
-#include "dyninstAPI/src/process.h"
 #include "pdutil/h/pdDebugOstream.h"
 #include "paradynd/src/dynrpc.h"
 #include "paradynd/src/focus.h"
@@ -72,7 +71,7 @@ costMetric::costMetric(const pdstring n, aggregateOp a, const pdstring units,
    processMgr::procIter itr = getProcMgr().begin();
    while(itr != getProcMgr().end()) {
       pd_process *p = *itr++;
-      if(p && p->status() != exited) {
+      if(p && !p->isTerminated()) {
          components += p->get_dyn_process()->lowlevel_process();
          //aggComponent *s = new aggComponent;
          aggComponent *s = aggregator.newComponent();
@@ -108,7 +107,7 @@ bool costMetric::legalToInst(const Focus& focus) {
     bool all_exited = true;
     processMgr::procIter itr = getProcMgr().begin();
     while(itr != getProcMgr().end()) {
-       if((*itr) && (*itr)->status() != exited) {
+       if((*itr) && !(*itr)->isTerminated()) {
 	  all_exited = false;
        }
        itr++;

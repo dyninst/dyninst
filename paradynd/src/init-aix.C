@@ -39,139 +39,137 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-aix.C,v 1.33 2004/03/23 01:12:34 eli Exp $
+// $Id: init-aix.C,v 1.34 2004/10/07 00:45:57 jaw Exp $
 
 #include "paradynd/src/internalMetrics.h"
-#include "dyninstAPI/src/inst.h"
+#include "paradynd/src/pd_process.h"
 #include "paradynd/src/init.h"
 #include "paradynd/src/metricDef.h"
-#include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/util.h"
-#include "dyninstAPI/src/os.h"
 #include "common/h/timing.h"
 
 /* For read_real_time */
 #include <sys/systemcfg.h>
 
 
-// NOTE - the tagArg integer number starting with 0.  
-static AstNode tagArg(AstNode::Param, (void *) 1);
-static AstNode argvArg(AstNode::Param, (void *) 1);
-static AstNode cmdArg(AstNode::Param, (void *) 4);
-
-static AstNode mpiNormTagArg(AstNode::Param, (void *) 4);
-static AstNode mpiNormCommArg(AstNode::Param, (void *) 5);
-static AstNode mpiSRSendTagArg(AstNode::Param, (void *) 4);
-static AstNode mpiSRCommArg(AstNode::Param, (void *) 10);
-static AstNode mpiSRRSendTagArg(AstNode::Param, (void *) 4);
-static AstNode mpiSRRCommArg(AstNode::Param, (void *) 7);
-
-static AstNode mpiBcastCommArg(AstNode::Param, (void *) 4);
-static AstNode mpiAlltoallCommArg(AstNode::Param, (void *) 6);
-static AstNode mpiAlltoallvCommArg(AstNode::Param, (void *) 8);
-static AstNode mpiGatherCommArg(AstNode::Param, (void *) 7);
-static AstNode mpiGathervCommArg(AstNode::Param, (void *) 8);
-static AstNode mpiAllgatherCommArg(AstNode::Param, (void *) 6);
-static AstNode mpiAllgathervCommArg(AstNode::Param, (void *) 7);
-static AstNode mpiReduceCommArg(AstNode::Param, (void *) 6);
-static AstNode mpiAllreduceCommArg(AstNode::Param, (void *) 5);
-static AstNode mpiReduceScatterCommArg(AstNode::Param, (void *) 5);
-static AstNode mpiScatterCommArg(AstNode::Param, (void *) 7);
-static AstNode mpiScattervCommArg(AstNode::Param, (void *) 8);
-static AstNode mpiScanCommArg(AstNode::Param, (void *) 5);
-
-
 bool initOS()
 {
-    initialRequestsPARADYN += new instMapping("DYNINSTsampleValues", 
-                                              "DYNINSTreportNewTags", FUNC_ENTRY);
+// NOTE - the tagArg integer number starting with 0.  
+  static BPatch_paramExpr tagArg(1);
+  static BPatch_paramExpr argvArg(1);
+  static BPatch_paramExpr cmdArg(4);
 
-    initialRequestsPARADYN += new instMapping("system", "DYNINSTsystem", 
-                                              FUNC_ENTRY);
-    
-    pdvector<AstNode*> argList(2);
+  static BPatch_paramExpr mpiNormTagArg(4);
+  static BPatch_paramExpr mpiNormCommArg(5);
+  static BPatch_paramExpr mpiSRSendTagArg(4);
+  static BPatch_paramExpr mpiSRCommArg(10);
+  static BPatch_paramExpr mpiSRRSendTagArg(4);
+  static BPatch_paramExpr mpiSRRCommArg(7);
+
+  static BPatch_paramExpr mpiBcastCommArg(4);
+  static BPatch_paramExpr mpiAlltoallCommArg(6);
+  static BPatch_paramExpr mpiAlltoallvCommArg(8);
+  static BPatch_paramExpr mpiGatherCommArg(7);
+  static BPatch_paramExpr mpiGathervCommArg(8);
+  static BPatch_paramExpr mpiAllgatherCommArg(6);
+  static BPatch_paramExpr mpiAllgathervCommArg(7);
+  static BPatch_paramExpr mpiReduceCommArg(6);
+  static BPatch_paramExpr mpiAllreduceCommArg(5);
+  static BPatch_paramExpr mpiReduceScatterCommArg(5);
+  static BPatch_paramExpr mpiScatterCommArg(7);
+  static BPatch_paramExpr mpiScattervCommArg(8);
+  static BPatch_paramExpr mpiScanCommArg(5);
+
+
+    initialRequestsPARADYN += new pdinstMapping("DYNINSTsampleValues", 
+                                                "DYNINSTreportNewTags", FUNC_ENTRY);
+
+    initialRequestsPARADYN += new pdinstMapping("system", "DYNINSTsystem", 
+                                                FUNC_ENTRY);
+    //  mpi inst mappings are set to not be noisy if they fail. 
+    static const bool no_warn = false;
+    pdvector<BPatch_snippet*> argList(2);
     argList[0] = &mpiNormTagArg;
     argList[1] = &mpiNormCommArg;
-    initialRequestsPARADYN += new instMapping("MPI_Send", "DYNINSTrecordTagAndGroup",
-                                              FUNC_ENTRY|FUNC_ARG, argList);
-    initialRequestsPARADYN += new instMapping("MPI_Bsend", "DYNINSTrecordTagAndGroup",
-                                              FUNC_ENTRY|FUNC_ARG, argList);
-    initialRequestsPARADYN += new instMapping("MPI_Ssend", "DYNINSTrecordTagAndGroup",
-                                              FUNC_ENTRY|FUNC_ARG, argList);
-    initialRequestsPARADYN += new instMapping("MPI_Isend", "DYNINSTrecordTagAndGroup",
-                                              FUNC_ENTRY|FUNC_ARG, argList);
-    initialRequestsPARADYN += new instMapping("MPI_Issend", "DYNINSTrecordTagAndGroup",
-                                              FUNC_ENTRY|FUNC_ARG, argList);
+    initialRequestsPARADYN += new pdinstMapping("MPI_Send", "DYNINSTrecordTagAndGroup",
+                                              FUNC_ENTRY|FUNC_ARG, argList, no_warn);
+    initialRequestsPARADYN += new pdinstMapping("MPI_Bsend", "DYNINSTrecordTagAndGroup",
+                                              FUNC_ENTRY|FUNC_ARG, argList, no_warn);
+    initialRequestsPARADYN += new pdinstMapping("MPI_Ssend", "DYNINSTrecordTagAndGroup",
+                                              FUNC_ENTRY|FUNC_ARG, argList, no_warn);
+    initialRequestsPARADYN += new pdinstMapping("MPI_Isend", "DYNINSTrecordTagAndGroup",
+                                              FUNC_ENTRY|FUNC_ARG, argList, no_warn);
+    initialRequestsPARADYN += new pdinstMapping("MPI_Issend", "DYNINSTrecordTagAndGroup",
+                                              FUNC_ENTRY|FUNC_ARG, argList, no_warn);
     argList[0] = &mpiSRSendTagArg;
     argList[1] = &mpiSRCommArg;
-    initialRequestsPARADYN += new instMapping("MPI_Sendrecv", "DYNINSTrecordTagAndGroup",
-                                              FUNC_ENTRY|FUNC_ARG, argList);
+    initialRequestsPARADYN += new pdinstMapping("MPI_Sendrecv", "DYNINSTrecordTagAndGroup",
+                                              FUNC_ENTRY|FUNC_ARG, argList, no_warn);
     argList[0] = &mpiSRRSendTagArg;
     argList[1] = &mpiSRRCommArg;
-    initialRequestsPARADYN += new instMapping("MPI_Sendrecv_replace",
+    initialRequestsPARADYN += new pdinstMapping("MPI_Sendrecv_replace",
                                               "DYNINSTrecordTagAndGroup",
-                                              FUNC_ENTRY|FUNC_ARG, argList);
-    initialRequestsPARADYN += new instMapping("MPI_Bcast", "DYNINSTrecordGroup",
-                                              FUNC_ENTRY|FUNC_ARG, &mpiBcastCommArg);
-    initialRequestsPARADYN += new instMapping("MPI_Alltoall", "DYNINSTrecordGroup",
-                                              FUNC_ENTRY|FUNC_ARG, &mpiAlltoallCommArg);
-    initialRequestsPARADYN += new instMapping("MPI_Alltoallv", "DYNINSTrecordGroup",
-                                              FUNC_ENTRY|FUNC_ARG, &mpiAlltoallvCommArg);
-    initialRequestsPARADYN += new instMapping("MPI_Gather", "DYNINSTrecordGroup",
-                                              FUNC_ENTRY|FUNC_ARG, &mpiGatherCommArg);
-    initialRequestsPARADYN += new instMapping("MPI_Gatherv", "DYNINSTrecordGroup",
-                                              FUNC_ENTRY|FUNC_ARG, &mpiGathervCommArg);
-    initialRequestsPARADYN += new instMapping("MPI_Allgather", "DYNINSTrecordGroup",
-                                              FUNC_ENTRY|FUNC_ARG, &mpiAllgatherCommArg);
-    initialRequestsPARADYN += new instMapping("MPI_Allgatherv", "DYNINSTrecordGroup",
-                                              FUNC_ENTRY|FUNC_ARG, &mpiAllgathervCommArg);
-    initialRequestsPARADYN += new instMapping("MPI_Reduce", "DYNINSTrecordGroup",
-                                              FUNC_ENTRY|FUNC_ARG, &mpiReduceCommArg);
-    initialRequestsPARADYN += new instMapping("MPI_Allreduce", "DYNINSTrecordGroup",
-                                              FUNC_ENTRY|FUNC_ARG, &mpiAllreduceCommArg);
-    initialRequestsPARADYN += new instMapping("MPI_Reduce_scatter", "DYNINSTrecordGroup",
-                                              FUNC_ENTRY|FUNC_ARG, &mpiReduceScatterCommArg);
-    initialRequestsPARADYN += new instMapping("MPI_Scatter", "DYNINSTrecordGroup",
-                                              FUNC_ENTRY|FUNC_ARG, &mpiScatterCommArg);
-    initialRequestsPARADYN += new instMapping("MPI_Scatterv", "DYNINSTrecordGroup",
-                                              FUNC_ENTRY|FUNC_ARG, &mpiScattervCommArg);
-    initialRequestsPARADYN += new instMapping("MPI_Scan", "DYNINSTrecordGroup",
-                                              FUNC_ENTRY|FUNC_ARG, &mpiScanCommArg);
+                                              FUNC_ENTRY|FUNC_ARG, argList, no_warn);
+    initialRequestsPARADYN += new pdinstMapping("MPI_Bcast", "DYNINSTrecordGroup",
+                                              FUNC_ENTRY|FUNC_ARG, &mpiBcastCommArg, no_warn);
+    initialRequestsPARADYN += new pdinstMapping("MPI_Alltoall", "DYNINSTrecordGroup",
+                                              FUNC_ENTRY|FUNC_ARG, &mpiAlltoallCommArg, no_warn);
+    initialRequestsPARADYN += new pdinstMapping("MPI_Alltoallv", "DYNINSTrecordGroup",
+                                              FUNC_ENTRY|FUNC_ARG, &mpiAlltoallvCommArg, no_warn);
+    initialRequestsPARADYN += new pdinstMapping("MPI_Gather", "DYNINSTrecordGroup",
+                                              FUNC_ENTRY|FUNC_ARG, &mpiGatherCommArg, no_warn);
+    initialRequestsPARADYN += new pdinstMapping("MPI_Gatherv", "DYNINSTrecordGroup",
+                                              FUNC_ENTRY|FUNC_ARG, &mpiGathervCommArg, no_warn);
+    initialRequestsPARADYN += new pdinstMapping("MPI_Allgather", "DYNINSTrecordGroup",
+                                              FUNC_ENTRY|FUNC_ARG, &mpiAllgatherCommArg, no_warn);
+    initialRequestsPARADYN += new pdinstMapping("MPI_Allgatherv", "DYNINSTrecordGroup",
+                                              FUNC_ENTRY|FUNC_ARG, &mpiAllgathervCommArg, no_warn);
+    initialRequestsPARADYN += new pdinstMapping("MPI_Reduce", "DYNINSTrecordGroup",
+                                              FUNC_ENTRY|FUNC_ARG, &mpiReduceCommArg, no_warn);
+    initialRequestsPARADYN += new pdinstMapping("MPI_Allreduce", "DYNINSTrecordGroup",
+                                              FUNC_ENTRY|FUNC_ARG, &mpiAllreduceCommArg, no_warn);
+    initialRequestsPARADYN += new pdinstMapping("MPI_Reduce_scatter", "DYNINSTrecordGroup",
+                                              FUNC_ENTRY|FUNC_ARG, &mpiReduceScatterCommArg, no_warn);
+    initialRequestsPARADYN += new pdinstMapping("MPI_Scatter", "DYNINSTrecordGroup",
+                                              FUNC_ENTRY|FUNC_ARG, &mpiScatterCommArg, no_warn);
+    initialRequestsPARADYN += new pdinstMapping("MPI_Scatterv", "DYNINSTrecordGroup",
+                                              FUNC_ENTRY|FUNC_ARG, &mpiScattervCommArg, no_warn);
+    initialRequestsPARADYN += new pdinstMapping("MPI_Scan", "DYNINSTrecordGroup",
+                                              FUNC_ENTRY|FUNC_ARG, &mpiScanCommArg, no_warn);
     
     // ===  MULTI-THREADED FUNCTIONS  ======================================
     // Official gotten-from-tracing name. While pthread_create() is the
     // call made from user space, _pthread_body is the parent of any created
     // thread, and so is a good place to instrument.
-    instMapping *mapping;
-    mapping = new instMapping("_pthread_body", "DYNINST_dummy_create",
-                              FUNC_ENTRY, callPreInsn, orderFirstAtPoint);
+    pdinstMapping *mapping;
+    mapping = new pdinstMapping("_pthread_body", "DYNINST_dummy_create",
+                              FUNC_ENTRY, BPatch_callBefore, BPatch_firstSnippet);
     mapping->markAs_MTonly();
     initialRequestsPARADYN.push_back(mapping);
 
 
-    mapping = new instMapping("pthread_exit", "DYNINSTthreadDelete", 
-                              FUNC_ENTRY, callPreInsn, orderLastAtPoint);
+    mapping = new pdinstMapping("pthread_exit", "DYNINSTthreadDelete", 
+                              FUNC_ENTRY, BPatch_callBefore, BPatch_lastSnippet);
     mapping->markAs_MTonly();
     initialRequestsPARADYN.push_back(mapping);
 
 
     // Should really be the longjmp in the pthread library
-    mapping = new instMapping("_longjmp", "DYNINSTthreadStart",
-                              FUNC_ENTRY, callPreInsn, orderLastAtPoint) ;
+    mapping = new pdinstMapping("_longjmp", "DYNINSTthreadStart",
+                              FUNC_ENTRY, BPatch_callBefore, BPatch_lastSnippet) ;
     mapping->markAs_MTonly();
     initialRequestsPARADYN.push_back(mapping);
 
 
-    mapping = new instMapping("_usched_swtch", "DYNINSTthreadStop",
-                              FUNC_ENTRY, callPreInsn, orderLastAtPoint) ;
+    mapping = new pdinstMapping("_usched_swtch", "DYNINSTthreadStop",
+                              FUNC_ENTRY, BPatch_callBefore, BPatch_lastSnippet) ;
     mapping->markAs_MTonly();
     initialRequestsPARADYN.push_back(mapping);
 
 
     // Thread SyncObjects
     // mutex
-    AstNode* arg0 = new AstNode(AstNode::Param, (void*) 0);
-    mapping = new instMapping("pthread_mutex_init", "DYNINSTreportNewMutex", 
+    BPatch_snippet* arg0 = new BPatch_paramExpr(0);
+    mapping = new pdinstMapping("pthread_mutex_init", "DYNINSTreportNewMutex", 
                               FUNC_ENTRY|FUNC_ARG, arg0);
     mapping->markAs_MTonly();
     initialRequestsPARADYN.push_back(mapping);
@@ -179,8 +177,8 @@ bool initOS()
     
     // rwlock
     //
-    arg0 = new AstNode(AstNode::Param, (void*) 0);
-    mapping = new instMapping("pthread_rwlock_init", "DYNINSTreportNewRwLock", 
+    arg0 = new BPatch_paramExpr(0);
+    mapping = new pdinstMapping("pthread_rwlock_init", "DYNINSTreportNewRwLock", 
                               FUNC_ENTRY|FUNC_ARG, arg0);
     mapping->markAs_MTonly();
     initialRequestsPARADYN.push_back(mapping);
@@ -188,8 +186,8 @@ bool initOS()
     
     //Semaphore
     //
-    arg0 = new AstNode(AstNode::Param, (void*) 0);
-    mapping = new instMapping("i_need_a_name", "DYNINSTreportNewSema", 
+    arg0 = new BPatch_paramExpr(0);
+    mapping = new pdinstMapping("i_need_a_name", "DYNINSTreportNewSema", 
                               FUNC_ENTRY|FUNC_ARG, arg0);
     mapping->markAs_MTonly();
     initialRequestsPARADYN.push_back(mapping);
@@ -197,8 +195,8 @@ bool initOS()
     
     // Conditional variable
     //
-    arg0 = new AstNode(AstNode::Param, (void*) 0);
-    mapping = new instMapping("pthread_cond_init", "DYNINSTreportNewCondVar", 
+    arg0 = new BPatch_paramExpr(0); 
+    mapping = new pdinstMapping("pthread_cond_init", "DYNINSTreportNewCondVar", 
                               FUNC_ENTRY|FUNC_ARG, arg0);
     mapping->markAs_MTonly();
     initialRequestsPARADYN.push_back(mapping);

@@ -44,7 +44,6 @@
 
 #include "paradynd/src/metricFocusNode.h"
 #include "common/h/Dictionary.h"
-#include "dyninstAPI/src/frame.h"
 #include "paradynd/src/focus.h"
 #include "paradynd/src/pd_thread.h"
 #include "common/h/Vector.h"

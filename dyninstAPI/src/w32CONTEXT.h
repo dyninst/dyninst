@@ -41,7 +41,7 @@
 
 
 /* 
- * $Id: w32CONTEXT.h,v 1.2 2004/03/23 01:12:11 eli Exp $
+ * $Id: w32CONTEXT.h,v 1.3 2004/10/07 00:45:57 jaw Exp $
  */
 
 #ifndef _w32CONTEXT_H
@@ -59,7 +59,6 @@
 
 // The following flags control the contents of the CONTEXT structure.
 //
-
 #define mipsCONTEXT_R4000   0x00010000    // r4000 context
 
 #define mipsCONTEXT_CONTROL         (mipsCONTEXT_R4000 | 0x00000001L)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.219 2004/09/21 05:33:44 jaw Exp $
+ // $Id: symtab.C,v 1.220 2004/10/07 00:45:57 jaw Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -608,17 +608,6 @@ bool image::addAllFunctions(pdvector<Symbol> &mods,
     is_libdyninstRT = true;
   else
     is_libdyninstRT = false;
- 
-#ifdef NOTDEF // PDSEP
-#if !defined(BPATCH_LIBRARY) //ccw 19 apr 2002 : SPLIT
-  if (linkedFile.get_symbol(symString="PARADYNinit",  lookUp) ||
-      linkedFile.get_symbol(symString="PARADYNinit", lookUp))
-    is_libparadynRT = true;
-  else
-    is_libparadynRT = false;
- 
-#endif
-#endif //  PDSEP
  
   // JAW 02-03 -- restructured below slightly to get rid of multiple loops
   // through entire symbol list
@@ -1999,11 +1988,6 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
    : 
    desc_(desc),
    is_libdyninstRT(false),
-#ifdef NOTDEF // PDSEP
-#ifndef BPATCH_LIBRARY
-   is_libparadynRT(false),
-#endif
-#endif // PDSEP
    is_a_out(false),
    main_call_addr_(0),
    nativeCompiler(false),    

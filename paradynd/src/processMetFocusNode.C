@@ -45,7 +45,6 @@
 #include "paradynd/src/instrCodeNode.h"
 #include "paradynd/src/instrDataNode.h"
 #include "paradynd/src/dynrpc.h"
-#include "dyninstAPI/src/dyn_lwp.h"
 #include "pdutil/h/pdDebugOstream.h"
 #include "paradynd/src/init.h"
 #include "paradynd/src/pd_process.h"
@@ -817,12 +816,11 @@ void processMetFocusNode::removeProcNodesToDeleteLater() {
 void processMetFocusNode::pauseProcess() {
   if(currentlyPaused == true)  return;
 
-  if (proc()->status() == running) {
-    if (proc()->pause())
-    {
-      currentlyPaused = true;
-    }
+  if (proc()->pause())
+  {
+    currentlyPaused = true;
   }
+
 }
 
 void processMetFocusNode::continueProcess() {
@@ -938,7 +936,7 @@ bool processMetFocusNode::cancelPendingRPC(unsigned rpc_id) {
       unsigned cur_rpc_id = (*iter);
       if(rpc_id == cur_rpc_id) {
          rpc_id_buf.erase(iter);
-         erased = proc_->cancelRPC(cur_rpc_id);
+         erased = proc_->get_dyn_process()->PDSEP_process()->getRpcMgr()->cancelRPC(cur_rpc_id);
          break;
       }
    }

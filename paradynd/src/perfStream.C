@@ -39,35 +39,27 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.171 2004/07/14 18:24:10 eli Exp $
+// $Id: perfStream.C,v 1.172 2004/10/07 00:45:59 jaw Exp $
 
 #include "common/h/headers.h"
+#include "common/h/timing.h" // getCyclesPerSecond
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
-#include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/instP.h"
-#include "dyninstAPI/src/dyninstP.h"
 #include "paradynd/src/machineMetFocusNode.h"
-#include "dyninstAPI/src/util.h"
 #include "paradynd/src/comm.h"
-#include "dyninstAPI/src/stats.h"
 #include "paradynd/src/debugger.h"
 #include "paradynd/src/main.h"
 #include "paradynd/src/init.h"
 #include "paradynd/src/context.h"
 #include "paradynd/src/perfStream.h"
 #include "paradynd/src/dynrpc.h"
-#include "dyninstAPI/src/os.h"
 #include "paradynd/src/mdld.h"
-#include "dyninstAPI/src/showerror.h"
 #include "paradynd/src/main.h"
 #include "common/h/debugOstream.h"
+#include "common/h/int64iostream.h"
 #include "pdutil/h/pdDebugOstream.h"
 #include "paradynd/src/processMgr.h"
 #include "paradynd/src/pd_process.h"
-#include "dyninstAPI/src/signalhandler.h"
 #include "pdutil/h/airtStreambuf.h"
 #include "pdutil/h/mdl_data.h"
 
@@ -139,6 +131,18 @@ extern unsigned enable_pd_samplevalue_debug;
 #define sampleVal_cerr if (0) cerr
 #endif /* ENABLE_DEBUG_CERR == 1 */
 
+extern unsigned int metResPairsEnabled; // definied in metricFocusNode.C
+
+#if 1
+//  As far as I can tell these vars are unused except in the
+//  functions that print statistics...  kept for legacy purposes
+//  (moved here from dyninstAPI/src/stats.C)
+//  Unless future use of these is expected, they can probably be
+//  deleted
+unsigned int fociUsed = 0;
+unsigned int metricsUsed = 0;
+unsigned int samplesDelivered = 0;
+#endif
 
 pdstring traceSocketPath; /* file path for trace socket */
 int traceConnectInfo;
@@ -413,7 +417,11 @@ void processTraceStream(process *dproc)
                logLine(errorLine);
                memcpy(&r, recordData, sizeof(r));
                printAppStats(&r);
-               printDyninstStats();
+               sprintf(errorLine, "    %d metric/resource pairs enabled\n",
+                       metResPairsEnabled);
+               logLine(errorLine);
+               BPatch_stats &dyn_stats = getBPatch().getBPatchStatistics(); 
+               printDyninstStats(dyn_stats);
                P_close(dproc->traceLink);
                dproc->traceLink = -1;
                dproc->handleProcessExit();
@@ -441,7 +449,6 @@ void processTraceStream(process *dproc)
             {
                pd_Function *caller, *callee;
                resource *caller_res, *callee_res;
-               pdvector<shared_object *> *sh_objs = NULL;
                image *symbols = dproc->getImage();
                callercalleeStruct *c = (struct callercalleeStruct *) 
                   ((void*)recordData);
@@ -449,8 +456,6 @@ void processTraceStream(process *dproc)
                //cerr << "DYNAMIC trace record received!!, caller = " << hex 
                //   << c->caller << " callee = " << c->callee << dec << endl;
                assert(symbols);	
-               if (dproc->isDynamicallyLinked())
-                  sh_objs  = dproc->sharedObjects();
                // Have to look in main image and (possibly) in shared objects
                codeRange *range;
                range = dproc->findCodeRangeByAddress(c->caller);
@@ -545,11 +550,16 @@ void doDeferredRPCs() {
         itr++;
         if (!theProc) continue;
 
-        processState status = theProc->status();
+        if (theProc->isTerminated()) continue;
+#ifdef NOTDEF // PDSEP
+        // PDSEP note:  "neonatal" is not a concept that is
+        //  exported by dyninstAPI, not sure, however, if it is
+        //  really a necessary concept here.
         if (status == exited) continue;
         if (status == neonatal) continue;
+#endif
         
-        theProc->launchRPCs(status == running);
+        theProc->launchRPCs(!theProc->isStopped());
     }
 }
 
@@ -649,7 +659,7 @@ static void checkAndDoShmSampling(timeLength *pollTime) {
        // that haven't been bootstrapped yet (i.e. haven't called DYNINSTinit yet),
        // or processes that are in the middle of an inferiorRPC (we like for
        // inferiorRPCs to finish up quickly).
-       if (theProc->status() != running) {
+       if (theProc->isStopped() || theProc->isTerminated()) {
            //shmsample_cerr << "(-" << theProc->getStatusAsString() << "-)";
            continue;
        }
@@ -665,7 +675,7 @@ static void checkAndDoShmSampling(timeLength *pollTime) {
        // processes that haven't been bootstrapped yet (i.e. haven't called
        // DYNINSTinit yet), or processes that are in the middle of an
        // inferiorRPC (we like for inferiorRPCs to finish up quickly).
-       if (theProc->status() != running) {
+       if (theProc->isStopped() || theProc->isTerminated()) {
            //shmsample_cerr << "(-" << theProc->getStatusAsString() << "-)";
            continue;
        }
@@ -1062,3 +1072,61 @@ static void createResource(int pid, traceHeader *header, struct _newresource *r)
    }
    //cerr << "cr - return normal\n";
 }
+void printAppStats(struct endStatsRec *stats)
+{
+  if (stats) {
+    logStream << "    DYNINSTtotalAlaramExpires: " << stats->alarms <<"\n";
+#ifdef notdef
+    logStream << "    DYNINSTnumReported: " << stats->numReported << "\n";
+#endif
+    logStream << "    Raw cycle count: " << (int64_t) stats->instCycles << "\n";
+
+    timeUnit cps = getCyclesPerSecond();
+    logStream << "    Cycle rate: " << cps << " units/nanoseconds" << "\n";
+
+    timeLength instTime(stats->instCycles, cps);
+    logStream << "    Total instrumentation cost: " << instTime << "\n";
+    // variable only defined if using profiler, see RTinst.C
+    //logStream << "    Total inst (via prof): " << stats->instTicks << "\n";
+
+    timeLength cpuTime(stats->totalCpuTime, cps);
+
+    logStream << "    Total cpu time of program: " << cpuTime << "\n";
+
+    // variable only defined if using profiler, see RTinst.C
+    //logStream << "    Total cpu time (via prof): ",stats->userTicks);
+
+    timeLength wallTime(stats->totalWallTime, cps);
+    logStream << "    Total wall time of program: " << wallTime << "\n";
+
+    logStream << "    Total data samples: " << stats->samplesReported << "\n";
+#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
+    logStream <<  "    Total traps hit: " << stats->totalTraps << "\n";
+#endif
+    sprintf(errorLine, "    %d metrics used\n", metricsUsed);
+    logLine(errorLine);
+    sprintf(errorLine, "    %d foci used\n", fociUsed);
+    logLine(errorLine);
+    sprintf(errorLine, "    %d samples delivered\n", samplesDelivered);
+    logLine(errorLine);
+  }
+}
+
+void printDyninstStats(BPatch_stats &st)
+{
+    sprintf(errorLine, "    %d total points used\n", st.pointsUsed);
+    logLine(errorLine);
+    sprintf(errorLine, "    %d mini-tramps used\n", st.totalMiniTramps);
+    logLine(errorLine);
+    sprintf(errorLine, "    %d tramp bytes\n", st.trampBytes);
+    logLine(errorLine);
+    sprintf(errorLine, "    %d ptrace other calls\n", st.ptraceOtherOps);
+    logLine(errorLine);
+    sprintf(errorLine, "    %d ptrace write calls\n", st.ptraceOps-st.ptraceOtherOps);
+    logLine(errorLine);
+    sprintf(errorLine, "    %d ptrace bytes written\n", st.ptraceBytes);
+    logLine(errorLine);
+    sprintf(errorLine, "    %d instructions generated\n", st.insnGenerated);
+    logLine(errorLine);
+}
+

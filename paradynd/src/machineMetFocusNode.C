@@ -44,7 +44,6 @@
 #include "paradynd/src/processMetFocusNode.h"
 #include "paradynd/src/dynrpc.h"
 #include "paradynd/src/comm.h"
-#include "dyninstAPI/src/symtab.h"
 #include "paradynd/src/internalMetrics.h"
 #include "paradynd/src/costmetrics.h"
 #include "pdutil/h/pdDebugOstream.h"

@@ -39,65 +39,61 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-linux.C,v 1.23 2004/03/23 01:12:34 eli Exp $
+// $Id: init-linux.C,v 1.24 2004/10/07 00:45:58 jaw Exp $
 
 #include "paradynd/src/internalMetrics.h"
-#include "dyninstAPI/src/inst.h"
 #include "paradynd/src/init.h"
-#include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/util.h"
-#include "dyninstAPI/src/os.h"
+#include "paradynd/src/pd_process.h"
 #include "paradynd/src/init.h"
 #include "common/h/Time.h"
 #include "common/h/timing.h"
 #include "paradynd/src/timeMgr.h"
 #include "rtinst/h/RThwtimer-linux.h"
-#include "dyninstAPI/src/process.h"
 
 bool initOS() {
-   AstNode *cmdArg;
+   BPatch_snippet *cmdArg;
    
    if (process::pdFlavor == "mpi") {
       instMPI();
    } 
-   cmdArg = new AstNode(AstNode::Param, (void *) 4);
-   initialRequestsPARADYN += new instMapping("rexec", "DYNINSTrexec",
+   cmdArg = new BPatch_paramExpr(4);
+   initialRequestsPARADYN += new pdinstMapping("rexec", "DYNINSTrexec",
                                              FUNC_ENTRY|FUNC_ARG, cmdArg);
    
    // ===  MULTI-THREADED FUNCTIONS  ======================================
    // Official gotten-from-tracing name. While pthread_create() is the
    // call made from user space, _pthread_body is the parent of any created
    // thread, and so is a good place to instrument.
-   instMapping *mapping;
-   mapping = new instMapping("start_thread", "DYNINST_dummy_create",
-                             FUNC_ENTRY, callPreInsn, orderFirstAtPoint);
+   pdinstMapping *mapping;
+   mapping = new pdinstMapping("start_thread", "DYNINST_dummy_create",
+                               FUNC_ENTRY, BPatch_callBefore, BPatch_firstSnippet);
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
    
 
-   mapping = new instMapping("pthread_exit", "DYNINSTthreadDelete", 
-                             FUNC_ENTRY, callPreInsn, orderLastAtPoint);
+   mapping = new pdinstMapping("pthread_exit", "DYNINSTthreadDelete", 
+                               FUNC_ENTRY, BPatch_callBefore, BPatch_lastSnippet);
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
    
    
    // Should really be the longjmp in the pthread library
-   mapping = new instMapping("_longjmp", "DYNINSTthreadStart",
-                             FUNC_ENTRY, callPreInsn, orderLastAtPoint) ;
+   mapping = new pdinstMapping("_longjmp", "DYNINSTthreadStart",
+                               FUNC_ENTRY, BPatch_callBefore, BPatch_lastSnippet) ;
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
    
    
-   mapping = new instMapping("_usched_swtch", "DYNINSTthreadStop",
-                             FUNC_ENTRY, callPreInsn, orderLastAtPoint) ;
+   mapping = new pdinstMapping("_usched_swtch", "DYNINSTthreadStop",
+                               FUNC_ENTRY, BPatch_callBefore, BPatch_lastSnippet) ;
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
    
 
    // Thread SyncObjects
    // mutex
-   AstNode* arg0 = new AstNode(AstNode::Param, (void*) 0);
-   mapping = new instMapping("pthread_mutex_init", "DYNINSTreportNewMutex", 
+   BPatch_snippet* arg0 = new BPatch_paramExpr(0);
+   mapping = new pdinstMapping("pthread_mutex_init", "DYNINSTreportNewMutex", 
                              FUNC_ENTRY|FUNC_ARG, arg0);
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
@@ -106,8 +102,8 @@ bool initOS() {
 #ifdef none    // rwlocks don't appear to exist on linux
    // rwlock
    //
-   arg0 = new AstNode(AstNode::Param, (void*) 0);
-   mapping = new instMapping("pthread_rwlock_init", "DYNINSTreportNewRwLock", 
+   arg0 = new BPatch_paramExpr(0);
+   mapping = new pdinstMapping("pthread_rwlock_init", "DYNINSTreportNewRwLock", 
                              FUNC_ENTRY|FUNC_ARG, arg0);
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
@@ -115,8 +111,8 @@ bool initOS() {
     
    //Semaphore
    //
-   arg0 = new AstNode(AstNode::Param, (void*) 0);
-   mapping = new instMapping("i_need_a_name", "DYNINSTreportNewSema", 
+   arg0 = new BPatch_paramExpr(0);
+   mapping = new pdinstMapping("i_need_a_name", "DYNINSTreportNewSema", 
                              FUNC_ENTRY|FUNC_ARG, arg0);
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
@@ -124,9 +120,9 @@ bool initOS() {
    
    // Conditional variable
    //
-   arg0 = new AstNode(AstNode::Param, (void*) 0);
-   mapping = new instMapping("pthread_cond_init", "DYNINSTreportNewCondVar", 
-                             FUNC_ENTRY|FUNC_ARG, arg0);
+   arg0 = new BPatch_paramExpr(0);
+   mapping = new pdinstMapping("pthread_cond_init", "DYNINSTreportNewCondVar", 
+                               FUNC_ENTRY|FUNC_ARG, arg0);
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
    // =======
@@ -136,17 +132,17 @@ bool initOS() {
    // Note that this is currently replicated in dyninstAPI_init until
    // dyninst is updated to refer to this (or a similar) initialization.
    const char *sigactionF="__sigaction";
-   pdvector<AstNode*> argList(3);
-   static AstNode  sigArg(AstNode::Param, (void*) 0); argList[0] = &sigArg;
-   static AstNode  actArg(AstNode::Param, (void*) 1); argList[1] = &actArg;
-   static AstNode oactArg(AstNode::Param, (void*) 2); argList[2] = &oactArg;
+   pdvector<BPatch_snippet*> argList(3);
+   static BPatch_paramExpr  sigArg(0); argList[0] = &sigArg;
+   static BPatch_paramExpr  actArg(1); argList[1] = &actArg;
+   static BPatch_paramExpr oactArg(2); argList[2] = &oactArg;
 
-   mapping = new instMapping(sigactionF, "DYNINSTdeferSigHandler",
-                             FUNC_ENTRY|FUNC_ARG, argList);
+   mapping = new pdinstMapping(sigactionF, "DYNINSTdeferSigHandler",
+                               FUNC_ENTRY|FUNC_ARG, argList);
    initialRequestsPARADYN.push_back(mapping);
 
-   mapping = new instMapping(sigactionF, "DYNINSTresetSigHandler",
-                             FUNC_EXIT|FUNC_ARG, argList);
+   mapping = new pdinstMapping(sigactionF, "DYNINSTresetSigHandler",
+                               FUNC_EXIT|FUNC_ARG, argList);
    initialRequestsPARADYN.push_back(mapping);
 
    return true;

@@ -42,8 +42,12 @@
 // $Id: proc-windows.C,v
 
 
-#include "paradynd/src/pd_process.h"
+#include "dyninstAPI/src/os.h"
 #include "common/h/timing.h"
+#include "common/h/Types.h"
+#include "paradynd/src/pd_process.h"
+#include "dyninstAPI/h/BPatch.h"
+#include "dyninstAPI/h/BPatch_thread.h"
 
 
 void pd_process::initCpuTimeMgrPlt() {

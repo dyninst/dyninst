@@ -43,8 +43,7 @@
 
 #include "common/h/headers.h"
 #include "paradynd/src/comm.h"
-#include "dyninstAPI/src/util.h"
-#include "dyninstAPI/src/showerror.h"
+#include "dyninstAPI/src/util.h" // logLine, errorLine, etc
 #include "paradynd/src/main.h"
 #include "paradynd/src/resource.h"
 

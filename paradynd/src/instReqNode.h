@@ -45,11 +45,8 @@
 
 #include "common/h/Vector.h"
 #include "dyninstAPI/h/BPatch_snippet.h"
-#include "dyninstAPI/src/instP.h"
-#include "dyninstAPI/src/frame.h"
-
-class instPoint;
-class AstNode;
+#include "dyninstAPI/h/BPatch_thread.h"
+#include "dyninstAPI/src/instP.h" // for mtHandle
 
 class instrDataNode;
 class instReqNode;
@@ -77,8 +74,9 @@ class instReqNode {
    instReqNode &operator=(const instReqNode &) { return *this; }
    
  public:
-   instReqNode(instPoint *iPoint, BPatch_snippet *iSnip, callWhen iWhen,
-	       callOrder o) : point(iPoint), snip(iSnip),
+   instReqNode(BPatch_point *iPoint, BPatch_snippet *iSnip, 
+               BPatch_callWhen iWhen, BPatch_snippetOrder o) :
+      point(iPoint), snip(iSnip),
       when(iWhen), order(o), loadedIntoApp_(false), trampsHookedUp_(false),
       rinstance(NULL), rpcCount(0), loadInstAttempts(0) 
    {
@@ -115,16 +113,16 @@ class instReqNode {
    bool triggeredInStackFrame(Frame &frame,
                               pd_process *p);
    
-   instPoint *Point() {return point;}
+   BPatch_point *Point() {return point;}
    BPatch_snippet* Snippet()  {return snip;}
-   callWhen When() {return when;}
-   callOrder Order() { return order; }
+   BPatch_callWhen When() {return when;}
+   BPatch_snippetOrder Order() { return order; }
 
  private:
-   instPoint *point;
+   BPatch_point *point;
    BPatch_snippet   *snip;
-   callWhen  when;
-   callOrder order;
+   BPatch_callWhen  when;
+   BPatch_snippetOrder order;
    
    miniTrampHandle *mtHandle;
 

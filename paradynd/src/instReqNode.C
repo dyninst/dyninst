@@ -40,12 +40,10 @@
  */
 
 #include "paradynd/src/instReqNode.h"
-#include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/h/BPatch_snippet.h"
 #include "common/h/timing.h"
 #include "paradynd/src/pd_process.h"
 #include "pdutil/h/pdDebugOstream.h"
-#include "dyninstAPI/src/instPoint.h"
 
 extern unsigned enable_pd_metric_debug;
 
@@ -90,7 +88,8 @@ loadMiniTramp_result instReqNode::loadInstrIntoApp(pd_process *theProc,
       
    ++loadInstAttempts;
    if(loadInstAttempts == MAX_INSERTION_ATTEMPTS_USING_RELOCATION) {
-      pd_Function *function_not_inserted = point->pointFunc();
+      BPatch_function *bpf = const_cast<BPatch_function *>(point->getFunction());
+      pd_Function *function_not_inserted = (pd_Function *)bpf->PDSEP_pdf();
 
       if(function_not_inserted != NULL)
          function_not_inserted->markAsNeedingRelocation(false);
@@ -119,10 +118,28 @@ loadMiniTramp_result instReqNode::loadInstrIntoApp(pd_process *theProc,
    AstNode * l_ast = snip->PDSEP_ast();
    AstNode * &lr_ast = l_ast;
 
+
+//  PDSEP, these switches will go away....
+   callWhen cw = callPreInsn;
+   callOrder co = orderFirstAtPoint;
+   switch (when) {
+     case BPatch_callBefore: cw = callPreInsn;
+        break;
+     case BPatch_callAfter: cw = callPostInsn;
+        break;
+   }
+   switch (order) {
+     case BPatch_firstSnippet: co = orderFirstAtPoint;
+        break;
+     case BPatch_lastSnippet: co = orderLastAtPoint;
+        break;
+   }
+
+   instPoint *pt = point->PDSEP_instPoint();
    loadMiniTramp_result res = 
       loadMiniTramp(mtHandle,
-                    theProc->get_dyn_process()->lowlevel_process(),
-                    point, lr_ast, when, order,
+                    theProc->get_dyn_process()->PDSEP_process(),
+                    pt, lr_ast, cw, co,
                     false, // false --> don't exclude cost
                     retInstance,
                     trampRecursiveDesired,
@@ -143,8 +160,17 @@ loadMiniTramp_result instReqNode::loadInstrIntoApp(pd_process *theProc,
 void instReqNode::hookupJumps(pd_process *proc) {
    if(trampsHookedUp()) 
       return;
+//  PDSEP, these switches will go away....
+   callOrder co = orderFirstAtPoint;
+   switch (order) {
+     case BPatch_firstSnippet: co = orderFirstAtPoint;
+        break;
+     case BPatch_lastSnippet: co = orderLastAtPoint;
+        break;
+   }
+
    hookupMiniTramp(proc->get_dyn_process()->lowlevel_process(), mtHandle,
-                   order);
+                   co);
    // since we've used it for it's only stated purpose, get rid of it
    trampsHookedUp_ = true;
 }
@@ -177,10 +203,11 @@ timeLength instReqNode::cost(pd_process *theProc) const
   // Feel free to change the maxCost call below to ast->minCost or
   // ast->avgCost if the semantics need to be changed.
    process *llproc = theProc->get_dyn_process()->lowlevel_process();
-  int unitCostInCycles = snip->PDSEP_ast()->maxCost() + getPointCost(llproc, point) +
+  int unitCostInCycles = snip->PDSEP_ast()->maxCost() 
+                       + getPointCost(llproc, point->PDSEP_instPoint()) +
                         getInsnCost(trampPreamble) + getInsnCost(trampTrailer);
   timeLength unitCost(unitCostInCycles, getCyclesPerSecond());
-  float frequency = getPointFrequency(point);
+  float frequency = getPointFrequency(point->PDSEP_instPoint());
   timeLength value = unitCost * frequency;
   return(value);
 }
@@ -193,7 +220,24 @@ void instReqNode::catchupRPCCallback(void * /*returnValue*/ ) {
 bool instReqNode::triggeredInStackFrame(Frame &frame, 
                                         pd_process *p)
 {
-   return p->triggeredInStackFrame(frame, point, when, order);
+//  PDSEP, these switches will go away....
+   callWhen cw = callPreInsn;
+   callOrder co = orderFirstAtPoint;
+   switch (when) {
+     case BPatch_callBefore: cw = callPreInsn;
+        break;
+     case BPatch_callAfter: cw = callPostInsn;
+        break;
+   }
+   switch (order) {
+     case BPatch_firstSnippet: co = orderFirstAtPoint;
+        break;
+     case BPatch_lastSnippet: co = orderLastAtPoint;
+        break;
+   }
+
+   return p->triggeredInStackFrame(frame, point->PDSEP_instPoint(), 
+                                   cw, co);
 }
 
 

@@ -44,6 +44,23 @@
  * metricDefs-critPath.C - Compute the Critical Path.
  *
  * $Log: metricDefs-critPath.C,v $
+ * Revision 1.10  2004/10/07 00:45:58  jaw
+ * eliminates many "pass through" functions in pd_process.h.  These are
+ * functions that simply wrap calls to class process(), via the
+ * BPatch_thread::lowlevel_process().
+ * Since pd_process::status() no longer exists, paradynd is no longer aware
+ * of "neonatal" processes.  I don't think this should be a problem, since
+ * createProcess() and attachProcess() should be atomic.
+ *
+ * more BPatch_variableExpr's now used for getting/setting vars in
+ * paradyn runtime lib.
+ *
+ * eliminates paradynd references to class instMapping -- using instead a
+ * new class called pdinstMapping.  pdinstMapping is analagous to instMapping,
+ * except it is a container class for BPatch_snippets instead of AstNodes.
+ * When instrumentation specified by a pdinstMapping is inserted, insertSnippet
+ * is used.
+ *
  * Revision 1.9  2004/03/23 01:12:35  eli
  * Updated copyright string
  *
@@ -107,23 +124,17 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/process.h"
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/critPath.h"
-#include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/dyninstP.h"
-#include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/util.h"
 #include "rtinst/h/trace.h"
 #include "paradynd/src/metricDef.h"
-#include "dyninstAPI/src/os.h"
 #include "paradynd/src/main.h"
 #include "paradynd/src/init.h"
+#include "paradynd/src/resource.h" // for pd_uiHash
 
 #define MILLION	1000000.0
 
-dictionary_hash<unsigned, cpSample*> contextToSample(uiHash);
+dictionary_hash<unsigned, cpSample*> contextToSample(pd_uiHash);
 
 void processCP(pd_process *, traceHeader *hdr, cpSample *sample)
 {

@@ -39,29 +39,32 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-winnt.C,v 1.14 2004/03/23 01:12:34 eli Exp $
+// $Id: init-winnt.C,v 1.15 2004/10/07 00:45:58 jaw Exp $
 
 #include "paradynd/src/internalMetrics.h"
-#include "dyninstAPI/src/inst.h"
 #include "paradynd/src/init.h"
-#include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/util.h"
-#include "dyninstAPI/src/os.h"
+#include "paradynd/src/pd_process.h"
 #include "common/h/timing.h"
 #include "rtinst/h/RThwtimer-winnt.h"
 
+#ifdef NOTDEF // PDSEP
+   // why were these here?
 // NOTE - the tagArg integer number starting with 0.  
 static AstNode *tagArg = new AstNode(AstNode::Param, (void *) 1);
 static AstNode *cmdArg = new AstNode(AstNode::Param, (void *) 4);
 static AstNode *retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
+#endif
 
 bool initOS() {
    //ccw 29 apr 2002 : SPLIT3 initialRequestsPARADYN is changed to
    // initialRequestsPARADYNPARADYN
 
-   AstNode *tidArg = new AstNode(AstNode::Param, (void *) 0);
-   instMapping *mapping = new instMapping("execve", "DYNINSTexecFailed",
-                                          FUNC_EXIT);
+#ifdef NOTDEF // PDSEP
+   // why was this here?
+   BPatch_paramExpr *tidArg = new BPatch_paramExpr(0);
+#endif
+   pdinstMapping *mapping = new pdinstMapping("execve", "DYNINSTexecFailed",
+                                              FUNC_EXIT, BPatch_callAfter, BPatch_firstSnippet);
    initialRequestsPARADYN.push_back(mapping);
    
    return true;

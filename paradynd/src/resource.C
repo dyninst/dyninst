@@ -43,17 +43,14 @@
 
 
 #include "common/h/Types.h"
-#include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/dyninstP.h"
-#include "dyninstAPI/src/util.h"
 #include "paradynd/src/comm.h"
+#include "paradynd/src/resource.h"
 #include "common/h/String.h"
 #include "common/h/Dictionary.h"
 #include "paradynd/src/main.h"
 
 dictionary_hash<pdstring, resource*> resource::allResources(pdstring::hash);
-dictionary_hash<unsigned, resource*> resource::res_dict(uiHash);
+dictionary_hash<unsigned, resource*> resource::res_dict(pd_uiHash);
 
 /*
  * handle the notification of resource creation and deletion.

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.508 2004/09/13 21:48:07 legendre Exp $
+// $Id: process.C,v 1.509 2004/10/07 00:45:56 jaw Exp $
 
 #include <ctype.h>
 
@@ -184,7 +184,6 @@ unsigned enable_pd_aggregate_debug = 0;
 
 #endif
 
-unsigned MAX_NUMBER_OF_THREADS = 32;
 
 
 #define FREE_WATERMARK (hp->totalFreeMemAvailable/2)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstP.h,v 1.22 2004/03/23 01:12:03 eli Exp $
+/* $Id: dyninstP.h,v 1.23 2004/10/07 00:45:56 jaw Exp $
  *
  * private structures used by the implementation of the instrumentation 
  *   interface.  modules that use the instrumentation interface should not
@@ -57,7 +57,6 @@
 typedef enum { selfTermination, controlTermination } executableType;
 typedef enum { Trace, Sample } dataType;
 
-bool isApplicationPaused();
 
 /*
  * error handler call back.
@@ -86,22 +85,6 @@ bool applicationDefined();
 bool startApplication();
 
 /*
- *   Stop all processes associted with the application.
- *	app - an application context from createPerformanceConext.
- *
- * Pause an application (I am not sure about this but I think we want it).
- *      - Does this force buffered data to be delivered?
- *	- Does a paused application respond to enable/disable commands?
- */
-bool pauseAllProcesses();
-
-/*
- * Continue a paused application.
- *    app - an application context from createPerformanceConext.
- */
-bool continueAllProcesses();
-
-/*
  * Disconnect the tool from the process.
  *    pause - leave the process in a stopped state.
  *
@@ -109,7 +92,5 @@ bool continueAllProcesses();
 bool detachProcess(int pid, bool pause);
 
 
-// TODO -- is this needed
-const pdstring nullString("");
 
 #endif

@@ -44,7 +44,8 @@
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/instP.h" // initTramps
 #include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/rpcMgr.h"
+#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/stats.h"
 
 // post RPC toDo for process
 unsigned rpcMgr::postRPCtoDo(AstNode *action, bool noCost,
@@ -528,7 +529,7 @@ Address rpcMgr::createRPCImage(AstNode *action,
       return 0;
    }
   
-   extern int trampBytes; // stats.h
+   extern unsigned int trampBytes; // stats.h
    trampBytes += count;
   
    return tempTrampBase;

@@ -44,8 +44,12 @@
 #include "paradynd/src/processMetFocusNode.h"
 #include "paradynd/src/threadMetFocusNode.h"
 #include "paradynd/src/pd_process.h"
+#include "dyninstAPI/h/BPatch_point.h"
+#ifdef NOTDEF // PDSEP
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/instPoint.h"
+#include "dyninstAPI/src/instPoint.h" // for pointFunc
+#endif
 #include "pdutil/h/pdDebugOstream.h"
 #include "paradynd/src/instReqNode.h"
 #include "paradynd/src/variableMgr.h"
@@ -257,28 +261,28 @@ void instrCodeNode::cleanup_drn() {
 // A debug function for prepareCatchupInstr
 void prepareCatchupInstr_debug(instReqNode &iRN)
 {
-  pd_Function *instPoint_fn = iRN.Point()->pointFunc();
+  const BPatch_function *instPoint_fn = iRN.Point()->getFunction();
      
   if (instPoint_fn) {
-    pdvector<pdstring> name = instPoint_fn->prettyNameVector();
-    if (name.size())
-      cerr << "instP function: " << name[0] << " ";
+    char buf[2048];
+    instPoint_fn->getName(buf, 2048);
+    cerr << "instP function: " << buf << " ";
   }
 
   switch (iRN.When()) {
-  case callPreInsn:
+  case BPatch_callBefore:
     cerr << " callPreInsn for ";
     break;
-  case callPostInsn:
+  case BPatch_callAfter:
     cerr << " callPostInsn for ";
     break;
   }
 
-  if( iRN.Point()->getPointType() == functionEntry )
+  if( iRN.Point()->getPointType() == BPatch_entry )
      cerr << " Function Entry " << endl;
-  else if( iRN.Point()->getPointType() == functionExit )
+  else if( iRN.Point()->getPointType() == BPatch_exit )
      cerr << " FunctionExit " << endl;
-  else if( iRN.Point()->getPointType() == callSite )
+  else if( iRN.Point()->getPointType() == BPatch_subroutine )
      cerr << " callSite " << endl;
   else
      cerr << " other" << endl;
@@ -312,9 +316,17 @@ void instrCodeNode::prepareCatchupInstr(pdvector<catchupReq *> &stackWalk)
       instReqNode *curInstReq = V.instRequests[instIter];
       //prepareCatchupInstr_debug(V.instRequests[instIter]);
 
-      if (pd_debug_catchup)      
+      if (pd_debug_catchup) {     
+         char buf[2048];
+         const BPatch_function *bpf = curInstReq->Point()->getFunction();
+         if (! bpf) {
+           sprintf(buf, "<bad function> in instReq");
+         }
+         else 
+           bpf->getName(buf, 2048);
          cerr << "    looking at instReq [" << instIter << "], in func: "
-              << curInstReq->Point()->pointFunc()->prettyName().c_str() <<endl;
+              << buf <<endl;
+      }
 
       // If the instRequest was not installed, skip...
       if( (curInstReq->getRInstance() != NULL) &&
@@ -593,8 +605,8 @@ const instrDataNode *instrCodeNode::getFlagDataNode() const {
   return V.constraintDataNode;
 }
 
-void instrCodeNode::addInst(instPoint *point, BPatch_snippet *snip,
-			    callWhen when, callOrder o)
+void instrCodeNode::addInst(BPatch_point *point, BPatch_snippet *snip,
+			    BPatch_callWhen when, BPatch_snippetOrder o)
 {
   if (!point) return;
 

@@ -229,7 +229,8 @@ public:
     int getExitCode()   { return exitCode; }
     int getExitSignal() { return lastSignal; }
 
-    void	detach(bool cont);
+    bool	detach(bool cont);
+    bool        isDetached() {return detached;}
 
     bool	dumpCore(const char *file, bool terminate);
     bool	dumpImage(const char *file);

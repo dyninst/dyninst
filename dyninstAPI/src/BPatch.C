@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.82 2004/09/21 05:33:44 jaw Exp $
+// $Id: BPatch.C,v 1.83 2004/10/07 00:45:56 jaw Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -47,6 +47,7 @@
 
 #define BPATCH_FILE
 #include "signalhandler.h"
+#include "stats.h"
 #include "BPatch.h"
 #include "BPatch_typePrivate.h"
 #include "BPatch_libInfo.h"
@@ -62,6 +63,16 @@ extern bool dyninstAPI_init();
 extern void loadNativeDemangler();
 
 BPatch *BPatch::bpatch = NULL;
+
+//  global stat vars defined in stats.C
+extern unsigned int trampBytes;
+extern unsigned int pointsUsed;
+extern unsigned int insnGenerated;
+extern unsigned int totalMiniTramps;
+extern unsigned int ptraceOtherOps;
+extern unsigned int ptraceOps;
+extern unsigned int ptraceBytes;
+
 
 /*
  * BPatch::BPatch
@@ -85,6 +96,7 @@ BPatch::BPatch()
     type_Error(NULL),
     type_Untyped(NULL)
 {
+    memset(&stats, 0, sizeof(BPatch_stats));
     extern bool init();
 
     // Save a pointer to the one-and-only bpatch object.
@@ -1316,4 +1328,19 @@ void BPatch::launchDeferredOneTimeCode()
 
         proc->getRpcMgr()->launchRPCs(proc->status() == running);        
     }
+}
+
+//  updateStats() -- an internal function called before returning
+//  statistics buffer to caller of BPatch_getStatistics(),
+//  -- just copies global variable statistics counters into 
+//  the buffer which is returned to the user.
+void BPatch::updateStats() 
+{
+  stats.pointsUsed = pointsUsed;
+  stats.totalMiniTramps = totalMiniTramps;
+  stats.trampBytes = trampBytes;
+  stats.ptraceOtherOps = ptraceOtherOps;
+  stats.ptraceOps = ptraceOps;
+  stats.ptraceBytes = ptraceBytes;
+  stats.insnGenerated = insnGenerated;
 }

@@ -39,28 +39,18 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.113 2004/07/28 07:24:47 jaw Exp $ */
+/* $Id: context.C,v 1.114 2004/10/07 00:45:57 jaw Exp $ */
 
-#include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/dyn_thread.h"
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/pd_thread.h"
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
-#include "dyninstAPI/src/dyninst.h"
-#include "dyninstAPI/src/dyninstP.h"
-#include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/instP.h"
-#include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/util.h"
 #include "paradynd/src/metricFocusNode.h"
 #include "paradynd/src/perfStream.h"
-#include "dyninstAPI/src/os.h"
-#include "dyninstAPI/src/showerror.h"
 #include "paradynd/src/costmetrics.h"
 #include "paradynd/src/init.h"
+#include "paradynd/src/context.h"
 #include "processMgr.h"
-#include "dyninstAPI/src/dyn_lwp.h"
 #include "paradynd/src/pd_image.h"
 
 
@@ -407,8 +397,8 @@ bool continueAllProcesses()
    processMgr::procIter itr = getProcMgr().begin();
    while(itr != getProcMgr().end()) {
       pd_process *p = *itr++;
-      if(p != NULL && p->status() != running) {
-          if(! p->continueProc())
+      if(p != NULL && p->isStopped()) {
+          if(p->isTerminated() || ! p->continueProc())
           {
               sprintf(errorLine,"WARNING: cannot continue process %d\n",
                       p->getPid());
@@ -434,7 +424,7 @@ bool pauseAllProcesses()
    processMgr::procIter itr = getProcMgr().begin();
    while(itr != getProcMgr().end()) {
       pd_process *p = *itr++;
-      if (p != NULL && p->status() == running) {
+      if (p != NULL && !p->isStopped() && !p->isTerminated()) {
          p->pause();
       }
    }

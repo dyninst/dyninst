@@ -39,17 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: init-sunos.C,v 1.50 2004/03/23 01:12:34 eli Exp $ */
+/* $Id: init-sunos.C,v 1.51 2004/10/07 00:45:58 jaw Exp $ */
 
 #include <sys/time.h>
 #include "paradynd/src/internalMetrics.h"
-#include "dyninstAPI/src/inst.h"
+#include "paradynd/src/pd_process.h"
 #include "paradynd/src/init.h"
-#include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/util.h"
-#include "dyninstAPI/src/os.h"
 #include "common/h/timing.h"
-#include "dyninstAPI/src/process.h"
 
 
 //ccw 19 apr 2002 : SPLIT
@@ -57,69 +53,69 @@
 
 // NOTE - the tagArg integer number starting with 0.  
 bool initOS() {
-   AstNode *retVal;
+   BPatch_snippet *retVal;
 
    // the use of system on Solaris needs to be implemented
    // /bin/sh uses it's own version of malloc which is causing us a problem
-   initialRequestsPARADYN += new instMapping("system", "DYNINSTsystem",
-                                             FUNC_ENTRY);
+   initialRequestsPARADYN += new pdinstMapping("system", "DYNINSTsystem",
+                                               FUNC_ENTRY);
 
    if (process::pdFlavor == "mpi") {
       instMPI();
-      retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
-      initialRequestsPARADYN += new instMapping("fork", "DYNINSTmpi_fork", 
+      retVal = new BPatch_retExpr();
+      initialRequestsPARADYN += new pdinstMapping("fork", "DYNINSTmpi_fork", 
                                                 FUNC_EXIT|FUNC_ARG, retVal);
-      retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
-      initialRequestsPARADYN += new instMapping("_fork", "DYNINSTmpi_fork", 
+      retVal = new BPatch_retExpr();
+      initialRequestsPARADYN += new pdinstMapping("_fork", "DYNINSTmpi_fork", 
                                                 FUNC_EXIT|FUNC_ARG, retVal);
    } else { /* Fork and exec */
    }
 
    // ===  MULTI-THREADED FUNCTIONS  ======================================  
-   instMapping *mapping;
-   mapping = new instMapping("_thread_start", "DYNINST_dummy_create",
-                             FUNC_ENTRY, callPreInsn, orderLastAtPoint);
+   pdinstMapping *mapping;
+   mapping = new pdinstMapping("_thread_start", "DYNINST_dummy_create",
+                               FUNC_ENTRY, BPatch_callBefore, BPatch_lastSnippet);
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
 
 
-   mapping = new instMapping("_thr_exit_common", "DYNINSTthreadDelete", 
-                             FUNC_ENTRY, callPreInsn, orderLastAtPoint);
+   mapping = new pdinstMapping("_thr_exit_common", "DYNINSTthreadDelete", 
+                               FUNC_ENTRY, BPatch_callBefore, BPatch_lastSnippet);
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
 
 #if 0
    // Unsupported
-   mapping = new instMapping("_resume_ret", "DYNINSTthreadStart",
-                             FUNC_ENTRY, callPreInsn, orderLastAtPoint) ;
+   mapping = new pdinstMapping("_resume_ret", "DYNINSTthreadStart",
+                               FUNC_ENTRY, callPreInsn, orderLastAtPoint) ;
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
 
 
-   mapping = new instMapping("_resume", "DYNINSTthreadStop",
-                             FUNC_ENTRY, callPreInsn, orderLastAtPoint) ;
+   mapping = new pdinstMapping("_resume", "DYNINSTthreadStop",
+                               FUNC_ENTRY, callPreInsn, orderLastAtPoint) ;
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
 #endif
 
    // Thread SyncObjects
    // mutex
-   AstNode* arg0 = new AstNode(AstNode::Param, (void*) 0);
-   mapping = new instMapping("_cmutex_lock",  "DYNINSTreportNewMutex", 
+   BPatch_paramExpr *arg0 = new BPatch_paramExpr(0);
+   mapping = new pdinstMapping("_cmutex_lock",  "DYNINSTreportNewMutex", 
                              FUNC_ENTRY|FUNC_ARG, arg0);
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
 
 
-   arg0 = new AstNode(AstNode::Param, (void*) 0);
-   mapping = new instMapping("pthread_mutex_init", "DYNINSTreportNewMutex",
+   arg0 = new BPatch_paramExpr(0);
+   mapping = new pdinstMapping("pthread_mutex_init", "DYNINSTreportNewMutex",
                              FUNC_ENTRY|FUNC_ARG, arg0);
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
 
 
-   arg0 = new AstNode(AstNode::Param, (void*) 0);
-   mapping = new instMapping("pthread_mutex_lock", "DYNINSTreportNewMutex",
+   arg0 = new BPatch_paramExpr(0);
+   mapping = new pdinstMapping("pthread_mutex_lock", "DYNINSTreportNewMutex",
                              FUNC_ENTRY|FUNC_ARG, arg0);
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
@@ -127,8 +123,8 @@ bool initOS() {
 
    // rwlock
    //
-   arg0 = new AstNode(AstNode::Param, (void*) 0);
-   mapping = new instMapping("_lrw_rdlock", "DYNINSTreportNewRwLock", 
+   arg0 = new BPatch_paramExpr(0);
+   mapping = new pdinstMapping("_lrw_rdlock", "DYNINSTreportNewRwLock", 
                              FUNC_ENTRY|FUNC_ARG, arg0);
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
@@ -136,8 +132,8 @@ bool initOS() {
 
    //Semaphore
    //
-   arg0 = new AstNode(AstNode::Param, (void*) 0);
-   mapping = new instMapping("_sema_wait_cancel", "DYNINSTreportNewSema", 
+   arg0 = new BPatch_paramExpr(0);
+   mapping = new pdinstMapping("_sema_wait_cancel", "DYNINSTreportNewSema", 
                              FUNC_ENTRY|FUNC_ARG, arg0);
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
@@ -145,18 +141,18 @@ bool initOS() {
 
    // Conditional variable
    //
-   arg0 = new AstNode(AstNode::Param, (void*) 0);
-   mapping = new instMapping("_cond_wait_cancel", "DYNINSTreportNewCondVar", 
+   arg0 = new BPatch_paramExpr(0);
+   mapping = new pdinstMapping("_cond_wait_cancel", "DYNINSTreportNewCondVar", 
                              FUNC_ENTRY|FUNC_ARG, arg0);
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
    // =====================================================================
 
   
-   AstNode *cmdArg = new AstNode(AstNode::Param, (void *) 4);
-   initialRequestsPARADYN += new instMapping("rexec", "DYNINSTrexec",
+   BPatch_paramExpr *cmdArg = new BPatch_paramExpr(4);
+   initialRequestsPARADYN += new pdinstMapping("rexec", "DYNINSTrexec",
                                              FUNC_ENTRY|FUNC_ARG, cmdArg);
-   //   initialRequestsPARADYN += new instMapping("PROCEDURE_LINKAGE_TABLE","DYNINSTdynlinker",FUNC_ENTRY);
+   //   initialRequestsPARADYN += new pdinstMapping("PROCEDURE_LINKAGE_TABLE","DYNINSTdynlinker",FUNC_ENTRY);
   
   
 #if defined(i386_unknown_solaris2_5)
@@ -165,15 +161,15 @@ bool initOS() {
    // Note that this is currently replicated in dyninstAPI_init until
    // dyninst is updated to refer to this (or a similar) initialization.
    const char *sigactionF="_libc_sigaction";
-   pdvector<AstNode*> argList(3);
-   static AstNode  sigArg(AstNode::Param, (void*) 0); argList[0] = &sigArg;
-   static AstNode  actArg(AstNode::Param, (void*) 1); argList[1] = &actArg;
-   static AstNode oactArg(AstNode::Param, (void*) 2); argList[2] = &oactArg;
+   pdvector<BPatch_snippet*> argList(3);
+   static BPatch_paramExpr  sigArg(0); argList[0] = &sigArg;
+   static BPatch_paramExpr  actArg(1); argList[1] = &actArg;
+   static BPatch_paramExpr oactArg(2); argList[2] = &oactArg;
       
-   initialRequestsPARADYN += new instMapping(sigactionF, "DYNINSTdeferSigHandler",
-                                             FUNC_ENTRY|FUNC_ARG, argList);
-   initialRequestsPARADYN += new instMapping(sigactionF, "DYNINSTresetSigHandler",
-                                             FUNC_EXIT|FUNC_ARG, argList);
+   initialRequestsPARADYN += new pdinstMapping(sigactionF, "DYNINSTdeferSigHandler",
+                                               FUNC_ENTRY|FUNC_ARG, argList);
+   initialRequestsPARADYN += new pdinstMapping(sigactionF, "DYNINSTresetSigHandler",
+                                               FUNC_EXIT|FUNC_ARG, argList);
 #endif
 
    return true;

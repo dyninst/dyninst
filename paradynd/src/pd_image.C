@@ -43,7 +43,6 @@
 
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/pd_image.h"
-#include "dyninstAPI/src/symtab.h"
 #include "paradynd/src/pd_module.h"
 
 

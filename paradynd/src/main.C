@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.126 2004/05/11 19:01:52 bernat Exp $
+// $Id: main.C,v 1.127 2004/10/07 00:45:58 jaw Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -53,14 +53,6 @@ Ident V_id(V_paradynd,"Paradyn");
 Ident V_Uid(V_libpdutil,"Paradyn");
 
 #include "rtinst/h/rtinst.h"
-
-#include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/instP.h"
-#include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/util.h"
-#include "dyninstAPI/src/dyninstP.h"
 #include "paradynd/src/comm.h"
 #include "paradynd/src/internalMetrics.h"
 #include "common/h/machineType.h"
@@ -242,7 +234,7 @@ RPC_undo_arg_list (pdstring &flavor, unsigned argc, char **argv,
       stop = true;
       break;
   case 't':
-      // MAX_NUMBER_OF_THREADS is found in process.h
+      // MAX_NUMBER_OF_THREADS is found in pd_process.h
       MAX_NUMBER_OF_THREADS = P_strtol(optarg, &ptr, 10);
       break;
   case 's':

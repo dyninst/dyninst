@@ -47,14 +47,88 @@
 #ifndef __PD_PROCESS__
 #define __PD_PROCESS__
 
-#include "dyninstAPI/src/process.h"
+#include "common/h/Vector.h"
+#include "dyninstAPI/src/rpcMgr.h"  //for inferiorRPCcallbackFunc
+#include "dyninstAPI/src/libState.h"  //for libraryState_t
+#include "dyninstAPI/src/process.h" // for getRpcMgr and everything else
+
+#include "dyninstAPI/h/BPatch_Vector.h"
 #include "dyninstAPI/h/BPatch_thread.h"
+#include "dyninstAPI/h/BPatch_snippet.h"
 #include "paradynd/src/threadMgr.h"
 #include "paradynd/src/timeMgr.h"
 #include "paradynd/src/shmMgr.h"
 #include "paradynd/src/sharedMetaData.h"
 #include "paradynd/src/variableMgr.h"
+#include "paradynd/src/resource.h"
+#include "paradynd/src/instReqNode.h"
+#include "rtinst/h/trace.h" // for PARADYN_bootstrapStruct
 
+#define FUNC_ENTRY      0x1             /* entry to the function */
+#define FUNC_EXIT       0x2             /* exit from function */
+#define FUNC_CALL       0x4             /* subroutines called from func */
+#define FUNC_ARG        0x8             /* use arg as argument */
+
+static unsigned  MAX_NUMBER_OF_THREADS =  32;
+class pdinstMapping {
+public:
+  // other parameters:  allow_trap, useTrampGuard (might have to add)
+  //  PDSEP
+  pdinstMapping(const pdstring f, const pdstring i, const int w,
+               BPatch_callWhen wh, BPatch_snippetOrder ord, 
+               BPatch_snippet *s = NULL, bool warn_on_error = true) :
+    func(f),
+    inst(i),
+    where(w),
+    when(wh),
+    order(ord),
+    mt_only(false),
+    quiet_fail(!warn_on_error) 
+  {  if (s) args.push_back(s); }
+
+  pdinstMapping(const pdstring f, const pdstring i, const int w,
+               BPatch_snippet *s = NULL, bool warn_on_error = true) :
+    func(f),
+    inst(i),
+    where(w),
+    when(BPatch_callBefore),
+    order(BPatch_lastSnippet),
+    mt_only(false),
+    quiet_fail(!warn_on_error) 
+  {  if (s) args.push_back(s); }
+
+  pdinstMapping(const pdstring f, const pdstring i, const int w,
+               pdvector<BPatch_snippet *> &snips, bool warn_on_error = true) :
+    func(f),
+    inst(i),
+    where(w),
+    when(BPatch_callBefore),
+    order(BPatch_lastSnippet),
+    mt_only(false),
+    quiet_fail(!warn_on_error) 
+  {  
+     for (unsigned int j = 0; j < snips.size(); ++j) 
+       args.push_back(snips[j]);
+  }
+
+  ~pdinstMapping() {} // might want to delete all snippets here?
+
+  bool is_MTonly() { return mt_only; }
+  void markAs_MTonly() { mt_only = true; }
+
+//private:
+  pdstring func;
+  pdstring inst;
+  int where;
+  BPatch_callWhen when;
+  BPatch_snippetOrder order;
+  bool mt_only;
+  bool quiet_fail;
+  BPatch_Vector<BPatch_snippet *> args;
+  pdvector<BPatchSnippetHandle *> snippetHandles;  
+  // what about useTrampGuard, and allow_trap?
+  //  (looks like we can ignore ? )
+};
 
 class pd_image;
 
@@ -70,6 +144,7 @@ class pd_process {
 
    pd_image *img;
    resource *rid;
+   bool created_via_attach;
 
  public:
    // Paradyn daemon arguments, etc.
@@ -207,81 +282,27 @@ class pd_process {
       return dyninst_process;
    }
 
-   processState status() const {
-      return dyninst_process->lowlevel_process()->status(); }
-
-   bool continueProc() {
-      return dyninst_process->lowlevel_process()->continueProc();
-   }
-   bool pause() {
-      return dyninst_process->lowlevel_process()->pause();
-   }
-
-   void continueAfterNextStop() {
-      dyninst_process->lowlevel_process()->continueAfterNextStop();
-   }
+   bool isStopped() const {return dyninst_process->isStopped();}
+   bool isTerminated() const {return dyninst_process->isTerminated();}
+   bool isDetached() const {return dyninst_process->isDetached();}
+   bool continueProc() { return dyninst_process->continueExecution(); }
+   int getPid() const { return dyninst_process->getPid(); }
+   bool pause(); 
+   shmMgr *getSharedMemMgr() { return sharedMemManager; }
 
    bool detachProcess(const bool leaveRunning) {
-      return dyninst_process->lowlevel_process()->detachProcess(leaveRunning);
-   }
-
-   int getPid() const {
-      return dyninst_process->lowlevel_process()->getPid();
-   }
-
-   bool cancelRPC(unsigned rpc_id) {
-    return dyninst_process->lowlevel_process()->getRpcMgr()->cancelRPC(rpc_id);
-   }
-
-   shmMgr *getSharedMemMgr() {
-       return sharedMemManager;
-   }
-   
-   bool findInternalSymbol(const pdstring &name, bool warn,
-                           internalSym &ret_sym) const {
-      return dyninst_process->lowlevel_process()->findInternalSymbol(name, warn, ret_sym);
-   }
-
-   Address findInternalAddress(const pdstring &name, bool warn,
-                               bool &err) const {
-      process *llproc = dyninst_process->lowlevel_process();
-      return llproc->findInternalAddress(name, warn, err);
-   }
-
-   bool writeDataSpace(void *inTracedProcess, u_int amount,
-		       const void *inSelf) {
-      process *llproc = dyninst_process->lowlevel_process();
-      return llproc->writeDataSpace(inTracedProcess, amount, inSelf);
+      return dyninst_process->detach(leaveRunning);
    }
 
    bool isBootstrappedYet() const {
-      return dyninst_process->lowlevel_process()->isBootstrappedYet();
+      return dyninst_process->PDSEP_process()->isBootstrappedYet();
    }
-
-   bool hasExited() {
-      return dyninst_process->lowlevel_process()->hasExited();
-   }
-
-   bool wasCreatedViaAttach() { 
-      return dyninst_process->lowlevel_process()->wasCreatedViaAttach();
-   }
+   bool hasExited() { return dyninst_process->isTerminated();}
+   bool wasCreatedViaAttach() const {return created_via_attach;}
 
    bool launchRPCs(bool wasRunning) {
       process *llproc = dyninst_process->lowlevel_process();
       return llproc->getRpcMgr()->launchRPCs(wasRunning);
-   }
-
-   bool readDataSpace(const void *inTracedProcess, u_int amount,
-                      void *inSelf, bool displayErrMsg) {
-      process *llproc = dyninst_process->lowlevel_process();
-      return llproc->readDataSpace(inTracedProcess, amount, inSelf,
-                                   displayErrMsg);
-   }
-
-   bool writeTextSpace(void *inTracedProcess, u_int amount,
-                       const void *inSelf) {
-      process *llproc = dyninst_process->lowlevel_process();
-      return llproc->writeTextSpace(inTracedProcess, amount, inSelf);
    }
 
    bool isPARADYNBootstrappedYet() const {
@@ -304,9 +325,7 @@ class pd_process {
       return dyninst_process->lowlevel_process()->getRepresentativeLWP();
    }
 
-   void installInstrRequests(const pdvector<instMapping*> &requests) {
-      dyninst_process->lowlevel_process()->installInstrRequests(requests);
-   }
+   bool installInstrRequests(const pdvector<pdinstMapping*> &requests); 
 
    unsigned postRPCtoDo(AstNode *action, bool noCost,
                         inferiorRPCcallbackFunc callbackFunc,
@@ -355,36 +374,6 @@ class pd_process {
           //        __FILE__, __LINE__, func_name.c_str());
        return false;
      } 
-#ifdef NOTDEF
-     //  kludge this for now -- findFunction is getting matches on both thr_exit
-     //  and _thr_exit(), verify that our vector contains only the explicitly 
-     //  requested function names.
-
-     if ( res.size() > 1) {
-       BPatch_Vector<BPatch_function *> bpfv;
-       for (unsigned int i = 0; i < res.size(); ++i) {
-         char fn[1024];
-         res[i]->getName(fn, 1024);
-         if (pdstring(fn) == func_name) {
-           bpfv.push_back(res[i]);
-         }
-         else {
-           fprintf(stderr, "%s[%d]:  discarding function %s as bad match -- FIXME\n",
-                  __FILE__, __LINE__, fn);
-         }
-       }
-       if (bpfv.size()) {
-         res.clear();
-         for (unsigned int i = 0; i < bpfv.size(); ++i) {
-           res.push_back(bpfv[i]);
-         }
-       }
-       else {
-         fprintf(stderr, "%s[%d]:  no legit matches for %s, keeping bogus ones\n",
-                 __FILE__, __LINE__, func_name.c_str());
-       }
-     }
-#endif
      return true;
 
    }
@@ -431,20 +420,7 @@ class pd_process {
      return true;
    }
 
-   bool getSymbolInfo(const pdstring &n, Symbol &info,
-                      Address &baseAddr) const {
-      process *llproc = dyninst_process->lowlevel_process();
-      return llproc->getSymbolInfo(n, info, baseAddr);
-   }
-
-   pd_image *getImage() const {
-      return img;
-   }
-
-   bool findCallee(instPoint &instr, function_base *&target) {
-      process *llproc = dyninst_process->lowlevel_process();
-      return llproc->findCallee(instr, target);
-   }
+   pd_image *getImage() const { return img; }
 
    BPatch_Vector<BPatch_function *> *getIncludedFunctions(BPatch_module *mod); 
 
@@ -454,19 +430,11 @@ class pd_process {
 
    BPatch_module *findModule(const pdstring &mod_name,bool check_excluded); 
 
-   bool isDynamicallyLinked() { 
-      process *llproc = dyninst_process->lowlevel_process();
-      return llproc->isDynamicallyLinked();
-   }
-
-   pdvector<shared_object *> *sharedObjects() {
-      process *llproc = dyninst_process->lowlevel_process();
-      return llproc->sharedObjects();
-   }
-
    unsigned maxNumberOfThreads() {
-      process *llproc = dyninst_process->lowlevel_process();
-      return llproc->maxNumberOfThreads();
+     if(multithread_capable())
+        return MAX_NUMBER_OF_THREADS;
+     else
+        return 1;
    }
 
    BPatch_function *getMainFunction() const {
@@ -481,14 +449,8 @@ class pd_process {
       return bpfv[0];
    }
 
-   bool dumpCore(const pdstring coreFile) {
-      process *llproc = dyninst_process->lowlevel_process();
-      return llproc->dumpCore(coreFile);
-   }
-
-   pdstring getProcessStatus() const {
-      process *llproc = dyninst_process->lowlevel_process();
-      return llproc->getProcessStatus();
+   bool dumpCore(const pdstring coreFile) { 
+     return dyninst_process->dumpCore(coreFile.c_str(), false);
    }
 
    virtualTimer *getVirtualTimer(unsigned index);

@@ -41,7 +41,7 @@
 
 /************************************************************************
  * String.h: a simple character string class.
- * $Id: String.h,v 1.26 2004/04/20 01:27:53 jaw Exp $
+ * $Id: String.h,v 1.27 2004/10/07 00:45:56 jaw Exp $
 ************************************************************************/
 
 #if !defined(_String_h_)
@@ -403,6 +403,8 @@ class pdstring {
       return (string_ll::hash(it));
    }
 };
+
+const pdstring nullString("");
 
 // See Stroustrup, D & E, sec 3.11.4.2:
 class string_counter {

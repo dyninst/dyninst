@@ -39,12 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: showerror.C,v 1.5 2004/03/23 01:12:37 eli Exp $
+// $Id: showerror.C,v 1.6 2004/10/07 00:45:59 jaw Exp $
 
 #include "paradynd/src/comm.h"
-#include "dyninstAPI/src/dyninst.h"
 #include "paradynd/src/resource.h"
-#include "dyninstAPI/src/showerror.h"
 
 extern resource *machineResource;
 extern pdRPC *tp;

@@ -132,15 +132,17 @@ void papiMgr::enableSampling()
 
   if (!papiAttached_) {
 
-    processState stat = proc_->status();
-    if (stat == running) {
+    bool need_to_continue = false;
+    if (! proc_->isStopped()) {
       proc_->pause();
+      need_to_continue = true;
     }
+
     retval = PAPI_attach_remote(papiEventSet_, proc_->getPid());
     assert(retval == PAPI_OK);
     papiAttached_ = true;
 
-    if (stat == running) {
+    if (need_to_continue) {
       proc_->continueProc();
     }
   }

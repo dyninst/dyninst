@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.110 2004/09/21 05:33:44 jaw Exp $
+// $Id: BPatch_thread.C,v 1.111 2004/10/07 00:45:56 jaw Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -505,12 +505,11 @@ BPatch_exitType BPatch_thread::terminationStatus() {
  * cont		True if the thread should be continued as the result of the
  * 		detach, false if it should not.
  */
-void BPatch_thread::detach(bool cont)
+bool BPatch_thread::detach(bool cont)
 {
     // CHANGED: API_detach to detach
-    proc->detachProcess(cont);
-
-    detached = true;
+    detached = proc->detachProcess(cont);
+    return detached;
 }
 
 

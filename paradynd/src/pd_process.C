@@ -43,7 +43,6 @@
 
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/pd_thread.h"
-#include "dyninstAPI/src/signalhandler.h"
 #include "paradynd/src/init.h"
 #include "paradynd/src/metricFocusNode.h"
 #include "paradynd/src/processMgr.h"
@@ -52,9 +51,11 @@
 #include "paradynd/src/pd_image.h"
 
 #include "dyninstAPI/h/BPatch.h"
-#include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/instP.h"
-#include "dyninstAPI/src/instPoint.h"
+
+#include "dyninstAPI/src/instPoint.h" // needed for triggeredInStackFrame()
+#if defined(i386_unknown_nt4_0)
+#include <Windows.h>
+#endif
 
 
 
@@ -69,8 +70,6 @@ extern void pd_execCallback(pd_process *proc);
 
 pdvector<pdstring> pd_process::arg_list;
 pdstring pd_process::defaultParadynRTname;
-
-const pdstring nullString("");
 
 extern resource *machineResource;
 
@@ -259,7 +258,6 @@ void pd_process::init() {
                              false);
        has_mt_resource_heirarchies_been_defined = true;
     }
-    
     FillInCallGraphStatic();
 }
 
@@ -298,6 +296,8 @@ pd_process::pd_process(const pdstring argv0, pdvector<pdstring> &argv,
 
     delete []argv_array;
     delete path;
+
+    created_via_attach = false;
 
     img = new pd_image(dyninst_process->getImage(), this);
 
@@ -379,6 +379,8 @@ pd_process::pd_process(const pdstring &progpath, int pid)
         // Ummm.... 
         return;
     }
+
+    created_via_attach = true;
 
     initCpuTimeMgr();
 
@@ -492,6 +494,7 @@ pd_process::pd_process(const pd_process &parent, BPatch_thread *childDynProc) :
                                     getSharedMemMgr());
    theVariableMgr->initializeVarsAfterFork();
 
+   created_via_attach = parent.wasCreatedViaAttach();
 }
 
 pd_process::~pd_process() {
@@ -520,7 +523,7 @@ bool pd_process::doMajorShmSample() {
    if(! getVariableMgr().doMajorSample())
       result = false;
 
-   if(status() == exited) {
+   if(isTerminated()) {
       return false;
    }
 
@@ -751,8 +754,7 @@ bool pd_process::loadParadynLib(load_cause_t ldcause)
     loadAuxiliaryLibrary("libsocket.so");
 #endif
 
-    process *llproc = dyninst_process->lowlevel_process();
-    assert(status() == stopped);
+    assert(isStopped());
 
     pdstring buffer = pdstring("PID=") + pdstring(getPid());
     buffer += pdstring(", loading Paradyn RT lib via iRPC");
@@ -805,90 +807,6 @@ bool pd_process::loadParadynLib(load_cause_t ldcause)
 
 }
 
-#ifdef NOTDEF // PDSEP   
-bool pd_process::loadParadynLib(load_cause_t ldcause) {
-    // Force a load of the paradyn runtime library. We use
-    // the dyninst runtime DYNINSTloadLibrary call, as in
-    // BPatch_thread::loadLibrary
-
-    process *llproc = dyninst_process->lowlevel_process();
-    assert(status() == stopped);
-
-    pdstring buffer = pdstring("PID=") + pdstring(getPid());
-    buffer += pdstring(", loading Paradyn RT lib via iRPC");       
-    statusLine(buffer.c_str());
-
-    loadLibCallbackInfo_t *cbInfo = new loadLibCallbackInfo_t;
-    cbInfo->proc = this;
-    cbInfo->load_cause = ldcause;
-
-#if defined(i386_unknown_nt4_0)
-    // Another FIXME: NT strips the path from the loaded
-    // library for recognition purposes. 
-    char dllFilename[_MAX_FNAME];
-    _splitpath (paradynRTname.c_str(),
-                NULL, NULL, dllFilename, NULL);
-    // Set the callback to run setParams
-    llproc->registerLoadLibraryCallback(pdstring(dllFilename),
-                                        setParadynLibParamsCallback,
-                                        (void *)cbInfo);
-#else
-    llproc->registerLoadLibraryCallback(paradynRTname,
-                                        setParadynLibParamsCallback,
-                                        (void *)cbInfo);
-#endif
-#if defined(sparc_sun_solaris2_4)
-    // Sparc requires libsocket to be loaded before the paradyn lib can be :/
-    loadAuxiliaryLibrary("libsocket.so");
-#endif
-
-    pdvector<AstNode*> loadLibAstArgs(1);
-    loadLibAstArgs[0] = new AstNode(AstNode::ConstantString, 
-          reinterpret_cast<void *>(const_cast<char *>(paradynRTname.c_str())));
-    AstNode *loadLib = new AstNode("DYNINSTloadLibrary", loadLibAstArgs);
-    removeAst(loadLibAstArgs[0]);
-
-    // We've built a call to loadLibrary, now run it via inferior RPC
-    postRPCtoDo(loadLib, true, // Don't update cost
-                pd_process::paradynLibLoadCallback,
-                (void *)this, // User data
-                false,
-                NULL, NULL); // Not metric definition
-
-    setLibState(paradynRTState, libLoading);
-    // .. run RPC
-
-    // We block on paradynRTState, which is set to libLoaded
-    // via the inferior RPC callback
-    while (!reachedLibState(paradynRTState, libLoaded)) {
-        if(hasExited()) return false;
-        launchRPCs(false);
-        getSH()->checkForAndHandleProcessEvents(true);
-    }
-
-    removeAst(loadLib);
-    
-    // Unregister callback now that the library is loaded
-    llproc->unregisterLoadLibraryCallback(paradynRTname);
-
-    buffer = pdstring("PID=") + pdstring(getPid());
-    buffer += pdstring(", finalizing Paradyn RT lib");       
-    statusLine(buffer.c_str());
-
-    // Now call finalizeParadynLib which will handle any initialization
-    if (!finalizeParadynLib()) {
-        buffer = pdstring("PID=") + pdstring(getPid());
-        buffer += pdstring(", finalizing Paradyn RT lib via iRPC");       
-        statusLine(buffer.c_str());
-        // Paradyn init probably hasn't run, so trigger it with an
-        // inferior RPC
-        iRPCParadynInit();
-    }
-    assert(reachedLibState(paradynRTState, libReady));
-    return true;
-}
-#endif
-
 void pd_process::paradynLibLoadCallback(process * /*p*/, unsigned /* rpc_id */,
                                         void *data, void * /*ret*/)
 {
@@ -902,7 +820,6 @@ void pd_process::paradynLibLoadCallback(process * /*p*/, unsigned /* rpc_id */,
 bool pd_process::setParadynLibParams(load_cause_t ldcause)
 {
     Symbol sym;
-    Address baseAddr;
     // TODO: this shouldn't be paradynPid, it should be traceConnectInfo
     int paradynPid = traceConnectInfo;
     // UNIX: the daemon's PID. NT: a socket.
@@ -990,19 +907,7 @@ bool pd_process::setParadynLibParams(load_cause_t ldcause)
 
     return true;
 }
-#ifdef NOTDEF
-// Callback from dyninst's loadLibrary callbacks
-void pd_process::setParadynLibParamsCallback(process* /*ignored*/,
-                                             pdstring /*ignored*/,
-                                             shared_object * /*libobj*/,
-                                             void *data) {
-   loadLibCallbackInfo_t *info = (loadLibCallbackInfo_t *)data;
-   pd_process *p = info->proc;
-   load_cause_t ldcause = info->load_cause;
-   p->setParadynLibParams(ldcause);
-   delete info;
-}
-#endif
+
 bool pd_process::finalizeParadynLib() {
     // Check to see if paradyn init has been run, and if
     // not run it manually via inferior RPC
@@ -1040,7 +945,7 @@ bool pd_process::finalizeParadynLib() {
         llproc->setParadynBootstrap();
 
         // Install initial instrumentation requests
-        extern pdvector<instMapping*> initialRequestsPARADYN; // init.C //ccw 18 apr 2002 : SPLIT
+        extern pdvector<pdinstMapping*> initialRequestsPARADYN; // init.C //ccw 18 apr 2002 : SPLIT
         installInstrRequests(initialRequestsPARADYN); 
         str=pdstring("PID=") + pdstring(bs_record.pid) + ", propagating mi's...";
         statusLine(str.c_str());
@@ -1061,7 +966,7 @@ bool pd_process::finalizeParadynLib() {
         if (!isInitFirstRecordTime())
             setFirstRecordTime(currWallTime);
     }
-    assert(status() == stopped);
+    assert(isStopped());
     
     tp->newProgramCallbackFunc(bs_record.pid, arg_list, 
                                machineResource->part_name(),
@@ -1140,9 +1045,13 @@ bool pd_process::iRPCParadynInit() {
 
     // And force a flush...
     while(!reachedLibState(paradynRTState, libReady)) {
-       if(hasExited()) return false;
+       if(hasExited()) {
+           fprintf(stderr, "%s[%d]:  bootstrap aborted, appl. terminated\n", __FILE__, __LINE__);
+           return false;
+       }
         launchRPCs(false);
-        getSH()->checkForAndHandleProcessEvents(true);
+        if (!reachedLibState(paradynRTState, libReady))
+          getSH()->checkForAndHandleProcessEvents(true);
     }
     return true;
 }
@@ -1159,18 +1068,21 @@ void pd_process::paradynInitCompletionCallback(process* /*p*/,
 
 bool pd_process::extractBootstrapStruct(PARADYN_bootstrapStruct *bs_record)
 {
-    const pdstring vrbleName = "PARADYN_bootstrap_info";
-    internalSym sym;
-    bool flag = findInternalSymbol(vrbleName, true, sym);
-    assert(flag);
-    Address symAddr = sym.getAddr();
-    // bulk read of bootstrap structure
-    
-    if (! readDataSpace((const void*)symAddr, sizeof(*bs_record), 
-                        bs_record, true)) {
-        cerr << "extractBootstrapStruct failed because readDataSpace failed" 
-             << endl;
-        return false;
+
+    BPatch_image *appImage = dyninst_process->getImage();
+    assert(appImage);
+
+    const char *vname = "PARADYN_bootstrap_info";
+    BPatch_variableExpr *v_bs = appImage->findVariable(vname);
+    if (! v_bs) {
+      fprintf(stderr, "%s[%d]:  could not find var named %s\n", 
+              __FILE__, __LINE__, vname);
+      assert(0  && "fatal init error");
+    }
+    if (! v_bs->readValue((void *) bs_record, sizeof(*bs_record))) {
+      fprintf(stderr, "%s[%d]:  could not read var named %s\n", 
+              __FILE__, __LINE__, vname);
+      return false;
     }
 
 #if 0 
@@ -1324,7 +1236,7 @@ void pd_process::initCpuTimeMgr() {
 }
 
 timeStamp pd_process::getCpuTime(int lwp_id) {
-   if(status() == exited) {
+   if(isTerminated()) {
       return timeStamp::tsLongAgoTime();
    }
    
@@ -1396,14 +1308,22 @@ timeLength pd_process::units2timeLength(int64_t rawunits) {
 
 void pd_process::verifyTimerLevels() {
    int hintBestCpuTimerLevel, hintBestWallTimerLevel;
-   bool err = false;
    int appAddrWidth = getImage()->getAddressWidth();
-   Address addr = findInternalAddress("hintBestCpuTimerLevel", true, err);
-   assert(err==false);
 
-   if (! readDataSpace((caddr_t)addr, appAddrWidth, &hintBestCpuTimerLevel,
-                       true)) {
-      return;  // readDataSpace has it's own error reporting
+   BPatch_image *appImage = dyninst_process->getImage();
+   assert(appImage);
+
+   const char *vname = "hintBestCpuTimerLevel";
+   BPatch_variableExpr *v_hint = appImage->findVariable(vname);
+   if (! v_hint) {
+     fprintf(stderr, "%s[%d]:  could not find var named %s\n", 
+             __FILE__, __LINE__, vname);
+     assert(0  && "fatal init error");
+   }
+   if (! v_hint->readValue((void *) &hintBestCpuTimerLevel, appAddrWidth)) {
+      fprintf(stderr, "%s[%d]:  could not read var named %s\n", 
+              __FILE__, __LINE__, vname);
+      //return;
    }
 
    int curCpuTimerLevel = int(cpuTimeMgr->getBestLevel())+1;
@@ -1416,12 +1336,17 @@ void pd_process::verifyTimerLevels() {
       assert(0);
    }
 
-   addr = findInternalAddress("hintBestWallTimerLevel",
-                                               true, err);
-   assert(err==false);
-   if(! readDataSpace((caddr_t)addr, appAddrWidth, &hintBestWallTimerLevel,
-                      true))
-      return;  // readDataSpace has it's own error reporting
+   vname = "hintBestWallTimerLevel";
+   v_hint = appImage->findVariable(vname);
+   if (! v_hint) {
+     fprintf(stderr, "%s[%d]:  could not find var named %s\n", __FILE__, __LINE__, vname);
+     assert(0  && "fatal init error");
+   }
+   if (! v_hint->readValue((void *) &hintBestWallTimerLevel, appAddrWidth)) {
+      fprintf(stderr, "%s[%d]:  could not read var named %s\n", __FILE__, 
+              __LINE__, vname);
+      //return;
+   }
 
    int curWallTimerLevel = int(getWallTimeMgr().getBestLevel())+1;
    if(curWallTimerLevel < hintBestWallTimerLevel) {
@@ -1460,21 +1385,25 @@ bool pd_process::writeTimerFuncAddr_Force32(const char *rtinstVar,
    function. 
 */
 Address pd_process::getTimerQueryFuncTransferAddress(const char *helperFPtr) {
-   bool err = false;
-   Address transferAddrVar = findInternalAddress(helperFPtr, true, err);
-   
-   //logStream << "address of var " << helperFPtr << " = " << hex 
-   //    << transferAddrVar <<"\n";
-
+   Address transferAddr = 0;
    int appAddrWidth = getImage()->getAddressWidth();
 
-   Address transferAddr = 0;
-   assert(err==false);
-   if (! readDataSpace((caddr_t)transferAddrVar, appAddrWidth, &transferAddr,
-                       true)) {
-      cerr << "getTransferAddress: can't read var " << helperFPtr << "\n";
-      return 0;
+   BPatch_image *appImage = dyninst_process->getImage();
+   assert(appImage);
+
+   const char *vname = helperFPtr;
+   BPatch_variableExpr *v_hint = appImage->findVariable(vname);
+   if (! v_hint) {
+     fprintf(stderr, "%s[%d]:  could not find var named %s\n",
+             __FILE__, __LINE__, vname);
+     assert(0  && "fatal internal error");
    }
+   if (! v_hint->readValue((void *) &transferAddr, appAddrWidth)) {
+      fprintf(stderr, "%s[%d]:  could not read var named %s\n",
+              __FILE__, __LINE__, vname);
+      //return;
+   }
+
    return transferAddr;
 }
 
@@ -1482,15 +1411,24 @@ bool pd_process::writeTimerFuncAddr_(const char *rtinstVar,
 				   const char *rtinstHelperFPtr)
 {
    Address rtfuncAddr = getTimerQueryFuncTransferAddress(rtinstHelperFPtr);
-   //logStream << "transfer address at var " << rtinstHelperFPtr << " = " 
-   //     << hex << rtfuncAddr <<"\n";
-   bool err = false;
-   Address timeFuncVarAddr = findInternalAddress(rtinstVar, true, err);
-   //logStream << "timeFuncVarAddr (" << rtinstVar << "): " << hex
-   //   << timeFuncVarAddr << "\n";
-   assert(err==false);
-   return writeTextSpace((void *)(timeFuncVarAddr), sizeof(rtfuncAddr),
-                         (void *)(&rtfuncAddr));
+   BPatch_image *appImage = dyninst_process->getImage();
+   assert(appImage);
+
+   const char *vname = rtinstVar;
+   BPatch_variableExpr *v_funcaddr = appImage->findVariable(vname);
+   if (! v_funcaddr) {
+     fprintf(stderr, "%s[%d]:  could not find var named %s\n",
+             __FILE__, __LINE__, vname);
+     assert(0  && "fatal internal error");
+   }
+   if (! v_funcaddr->writeValue((void *) &rtfuncAddr, sizeof(rtfuncAddr),
+                                 false /*saveWorld*/)) {
+      fprintf(stderr, "%s[%d]:  could not write var named %s\n",
+              __FILE__, __LINE__, vname);
+      return false;
+   }
+
+   return true;
 }
 
 void pd_process::writeTimerFuncAddr(const char *rtinstVar, 
@@ -1667,7 +1605,7 @@ void pd_process::MonitorDynamicCallSites(pdstring function_name) {
    callPoints = func->findPoint(BPatch_subroutine);
 
    bool needToCont = false;  
-   if(status() == running && callPoints->size() > 0) {
+   if(!(isStopped() || isTerminated()) && callPoints->size() > 0) {
       // going to insert instrumentation, pause it from up here.
       // pausing at lower levels can cause performance problems, particularly
       // on ptrace systems, where pauses are slow
@@ -1745,7 +1683,6 @@ bool process::triggeredInStackFrame(Frame &frame,
                       func_ptr->prettyName().c_str());
             return false;
         }
-        pd_Function *func = func_ptr;
         collapsedFrameAddr = frame.getPC();
 
         // if stack shows we're in non-relocated func and inst-point
@@ -1865,7 +1802,7 @@ bool process::triggeredInStackFrame(Frame &frame,
         // minitramps to the beginning or end of the current tramp
         // chain (between 1 and 2 or 2 and 3... but not within 2)
 
-        unsigned locationInPoint;
+        unsigned locationInPoint = 0;
         
         if (func_ptr) {
             // Not in the inst point... 
@@ -1948,7 +1885,185 @@ BPatch_module *pd_process::findModule(const pdstring &mod_name,bool check_exclud
 
 }
 
+bool pd_process::installInstrRequests(const pdvector<pdinstMapping*> &requests)
+{
+  BPatch_image *appImage = img->get_dyn_image();
+  BPatch_thread *appThread = get_dyn_process();
+  bool err = false;
 
+  for (unsigned i = 0; i < requests.size(); ++i) {
+    pdinstMapping *req = requests[i];
+
+    if (!multithread_capable() && req->is_MTonly())
+       continue;
+   
+    //  used to split the func name into lib and func in some cases,
+    //  not sure this is necessary anymore.
+    BPatch_Vector<BPatch_function *> bpfv;
+    if (!appImage->findFunction(req->func.c_str(), bpfv, !req->quiet_fail)
+        || !bpfv.size()) {
+      if (!req->quiet_fail) {
+        fprintf(stderr, "%s[%d]:  cannot find function %s, instrRequest skipped\n",
+               __FILE__, __LINE__, req->func.c_str());
+      }
+      err = true;
+      continue;
+    }    
+    for (unsigned int j = 0; j < bpfv.size(); ++j) {
+      BPatch_function *bpf = bpfv[j];
+      if (!bpf) {
+        fprintf(stderr, "%s[%d]:  BAD NEWS, got NULL BPatch_function for %s\n",
+                __FILE__, __LINE__, req->func.c_str());
+        err = true;
+        continue;
+      }
+      BPatch_Vector<BPatch_function *> bpfv2;
+      if (!appImage->findFunction(req->inst.c_str(), bpfv2)
+          || !bpfv2.size()) {
+         fprintf(stderr, "%s[%d]:  cannot find function %s, instrRequest skipped\n",
+                 __FILE__, __LINE__, req->inst.c_str());
+         err = true;
+         continue;
+      }
+      if (bpfv2.size() > 1) {
+        fprintf(stderr, "%s[%d]: %d matches for function %s, using the first\n",
+               __FILE__, __LINE__, bpfv2.size(), req->inst.c_str());
+      }
+      BPatch_function *bpf_inst = bpfv2[0];
+      BPatch_snippet *snip;
+
+      if ((req->where & FUNC_ARG) && req->args.size()) {
+         snip = new BPatch_funcCallExpr(*bpf_inst, req->args);
+      } else {
+         BPatch_constExpr *tmp = new BPatch_constExpr(0);
+         BPatch_Vector<BPatch_snippet *> tmp_args;
+         tmp_args.push_back(tmp);
+         snip = new BPatch_funcCallExpr(*bpf_inst, tmp_args);
+         delete tmp; // is this safe ?
+      }
+
+      if (req->where & FUNC_EXIT) {
+         BPatch_Vector<BPatch_point *> *exit_points = bpf->findPoint(BPatch_exit);
+         if ((!exit_points) || !exit_points->size()) {
+           fprintf(stderr, "%s[%d]:  function %s has no exit points, %s\n",
+                   __FILE__, __LINE__, req->func.c_str(),
+                   "cannot perform instrumentation request.");
+           err = true;
+         }
+         else {
+           for (unsigned k = 0; k < exit_points->size(); ++k) {
+             BPatch_point *exit_pt = (*exit_points)[k];
+             BPatchSnippetHandle *snipHandle;
+             //  allow_trap is always true with insertSnippet
+             //  useTrampGuard is generally controlled by BPatch::isTrampRecursive
+             snipHandle = appThread->insertSnippet(*snip, *exit_pt,
+                                                   req->when, req->order);
+             if (NULL == snipHandle) {
+               //  this request failed, but keep going...
+               //  QUESTION:  should we add the NULL to req->snippetHandles so that
+               //  a 1-1 mapping between requests and results is maintained?
+
+               fprintf(stderr, "%s[%d]:  failed to insert inst request for %s exit\n",
+                      __FILE__, __LINE__, req->func.c_str());
+               err = true;
+             }
+             else {
+               //  add returned handle to the request class and keep going...
+               req->snippetHandles.push_back(snipHandle);
+             }
+           } // for k
+        }
+      }
+
+      if (req->where & FUNC_ENTRY) {
+         BPatch_Vector<BPatch_point *> *entry_points = bpf->findPoint(BPatch_entry);
+         if ((!entry_points) || !entry_points->size()) {
+           fprintf(stderr, "%s[%d]:  function %s has no entry points, %s\n",
+                   __FILE__, __LINE__, req->func.c_str(),
+                   "cannot perform instrumentation request.");
+           err = true;
+         }
+         else {
+           BPatch_point *entry_pt = (*entry_points)[0];
+           BPatchSnippetHandle *snipHandle;
+           //  allow_trap is always true with insertSnippet
+           //  useTrampGuard is generally controlled by BPatch::isTrampRecursive
+           snipHandle = appThread->insertSnippet(*snip, *entry_pt,
+                                                 req->when, req->order);
+           if (NULL == snipHandle) {
+             //  this request failed, but keep going...
+             //  QUESTION:  should we add the NULL to req->snippetHandles so that
+             //  a 1-1 mapping between requests and results is maintained?
+
+             fprintf(stderr, "%s[%d]:  failed to insert inst request for %s entry\n",
+                    __FILE__, __LINE__, req->func.c_str());
+             err = true;
+           }
+           else {
+             //  add returned handle to the request class and keep going...
+             req->snippetHandles.push_back(snipHandle);
+           }
+        }
+      }
+
+      if (req->where & FUNC_CALL) {
+         BPatch_Vector<BPatch_point *> *call_points = bpf->findPoint(BPatch_subroutine);
+         if ((!call_points) || !call_points->size()) {
+           fprintf(stderr, "%s[%d]:  function %s has no call points, %s\n",
+                   __FILE__, __LINE__, req->func.c_str(),
+                   "cannot perform instrumentation request.");
+           err = true;
+         }
+         else {
+           for (unsigned k = 0; k < call_points->size(); ++k) {
+             BPatch_point *call_pt = (*call_points)[k];
+             BPatchSnippetHandle *snipHandle;
+             //  allow_trap is always true with insertSnippet
+             //  useTrampGuard is generally controlled by BPatch::isTrampRecursive
+             snipHandle = appThread->insertSnippet(*snip, *call_pt,
+                                                   req->when, req->order);
+             if (NULL == snipHandle) {
+               //  this request failed, but keep going...
+               //  QUESTION:  should we add the NULL to req->snippetHandles so that
+               //  a 1-1 mapping between requests and results is maintained?
+               fprintf(stderr, "%s[%d]:  failed to insert inst request for %s call (%s)\n",
+                      __FILE__, __LINE__, req->func.c_str(), req->inst.c_str());
+               err = true;
+             }
+             else {
+               //  add returned handle to the request class and keep going...
+               req->snippetHandles.push_back(snipHandle);
+             }
+           } // for k
+        }
+      }
+
+      delete snip;
+    } // for j
+  } // for i
+
+  return err;
+}
+
+bool pd_process::pause() 
+{
+  dyninst_process->stopExecution();
+
+  while (!dyninst_process->isStopped() && !dyninst_process->isTerminated())
+    getBPatch().bpatch->waitForStatusChange();
+
+  if (!dyninst_process->isStopped()) {
+    fprintf(stderr, "%s[%d]:  failed to pause process\n", __FILE__, __LINE__);
+    return false;
+  }
+  if (dyninst_process->isTerminated()) {
+    // ok this is redundant
+    fprintf(stderr, "%s[%d]:  process has exited, cannot pause\n", __FILE__, __LINE__);
+    return false;
+  }
+
+  return true;
+}
 #if 0
 // triggeredInStackFrame is used to determine whether instrumentation
 //   added at the specified instPoint/callWhen/callOrder would have been

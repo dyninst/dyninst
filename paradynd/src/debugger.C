@@ -41,6 +41,23 @@
 
 /*
  * $Log: debugger.C,v $
+ * Revision 1.22  2004/10/07 00:45:57  jaw
+ * eliminates many "pass through" functions in pd_process.h.  These are
+ * functions that simply wrap calls to class process(), via the
+ * BPatch_thread::lowlevel_process().
+ * Since pd_process::status() no longer exists, paradynd is no longer aware
+ * of "neonatal" processes.  I don't think this should be a problem, since
+ * createProcess() and attachProcess() should be atomic.
+ *
+ * more BPatch_variableExpr's now used for getting/setting vars in
+ * paradyn runtime lib.
+ *
+ * eliminates paradynd references to class instMapping -- using instead a
+ * new class called pdinstMapping.  pdinstMapping is analagous to instMapping,
+ * except it is a container class for BPatch_snippets instead of AstNodes.
+ * When instrumentation specified by a pdinstMapping is inserted, insertSnippet
+ * is used.
+ *
  * Revision 1.21  2004/03/23 01:12:34  eli
  * Updated copyright string
  *
@@ -104,18 +121,9 @@
 // support for debugger style commands and interface.
 //
 
-#include "dyninstAPI/src/symtab.h"
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/processMgr.h"
 #include "rtinst/h/rtinst.h"
-#include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/instP.h"
-#include "dyninstAPI/src/dyninst.h"
-#include "dyninstAPI/src/dyninstP.h"
-#include "dyninstAPI/src/util.h"
-#include "dyninstAPI/src/os.h"
-#include "dyninstAPI/src/showerror.h"
-
 
 pd_process *defaultProcess=NULL;
 

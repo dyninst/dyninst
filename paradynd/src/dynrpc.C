@@ -39,30 +39,20 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.116 2004/03/23 01:12:34 eli Exp $ */
+/* $Id: dynrpc.C,v 1.117 2004/10/07 00:45:57 jaw Exp $ */
 
-#include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/instP.h"
-#include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/util.h"
-#include "dyninstAPI/src/dyninstP.h"
 #include "paradynd/src/metricFocusNode.h"
 #include "paradynd/src/machineMetFocusNode.h"
 #include "paradynd/src/processMetFocusNode.h"
 #include "paradynd/src/internalMetrics.h"
 #include "dyninstRPC.xdr.SRVR.h"
-#include "dyninstAPI/src/dyninst.h"
-#include "dyninstAPI/src/stats.h"
 #include "paradynd/src/resource.h"
 #include "paradynd/src/mdld.h"
 #include "paradynd/src/init.h"
 #include "paradynd/src/costmetrics.h"
 #include "paradynd/src/context.h"
-#include "dyninstAPI/src/showerror.h"
 #include "common/h/debugOstream.h"
 #include "pdutil/h/hist.h"
-#include "dyninstAPI/src/process.h"
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/processMgr.h"
 #include "pdutil/h/mdlParse.h"
@@ -71,6 +61,8 @@
 // The following were defined in process.C
 extern unsigned enable_pd_attach_detach_debug;
 
+// from perfStream.C
+extern void printDyninstStats(BPatch_stats &); 
 #if ENABLE_DEBUG_CERR == 1
 #define attach_cerr if (enable_pd_attach_detach_debug) cerr
 #else
@@ -113,6 +105,8 @@ int StartOrAttach( void );
 extern bool startOnReportSelfDone;
 extern pdstring pd_flavor;
 
+timer totalInstTime;
+
 timeLength *imetricSamplingRate = NULL;
 timeLength *currSamplingRate = NULL;
 
@@ -140,9 +134,9 @@ const timeLength &getCurrSamplingRate() {
 
 void dynRPC::printStats(void)
 {
-  printDyninstStats();
+  BPatch_stats st = getBPatch().getBPatchStatistics();
+  printDyninstStats(st);
 }
-
 
 void dynRPC::coreProcess(int id)
 {
@@ -158,8 +152,12 @@ pdstring dynRPC::getStatus(int id)
       pdstring ret = pdstring("PID: ") + pdstring(id);
       ret += pdstring(" not found for getStatus\n");
       return (P_strdup(ret.c_str()));
-   } else 
-      return (proc->getProcessStatus());
+   } 
+
+   if (proc->isTerminated()) return pdstring("exited");
+   if (proc->isDetached()) return pdstring("detached"); // might just want "running" here
+   if (proc->isStopped()) return pdstring("stopped"); // maybe example stopSignal here?
+   return pdstring("running");
 }
 
 pdvector<T_dyninstRPC::metricInfo> dynRPC::getAvailableMetrics(void) {
@@ -256,10 +254,8 @@ void processInstrDeletionRequests() {
       for(unsigned j=0; j<procnodes.size(); j++) {
          processMetFocusNode *cur_procnode = procnodes[j];
          pd_process *proc = cur_procnode->proc();
-         if(proc->status() != stopped) {
-            proc->pause();
-            procsToCont.push_back(proc);
-         }
+         proc->pause();
+         procsToCont.push_back(proc);
       }
       
       deleteMetricFocus(mi);
@@ -368,17 +364,22 @@ void dynRPC::setSampleRate(double sampleInterval)
 	    pd_process *proc = *itr++;
 	    if (!proc)
 	       continue;
-	    if(proc->status() != exited) {
-	       internalSym ret_sym; 
-	       if(! proc->findInternalSymbol("DYNINSTsampleMultiple",
-					     true, ret_sym)) {
-		  sprintf(errorLine, "error2 in dynRPC::setSampleRate\n");
-		  logLine(errorLine);
-		  P_abort();
-	       }
-	       Address addr = ret_sym.getAddr();
-	       proc->writeDataSpace((caddr_t)addr, sizeof(int),
-				    (caddr_t)&sample_multiple);
+	    if(!proc->isTerminated()) {
+              BPatch_image *appImage = proc->get_dyn_process()->getImage();
+              assert(appImage);
+
+              const char *vname = "DYNINSTsampleMultiple";
+              BPatch_variableExpr *v_dsm = appImage->findVariable(vname);
+              if (! v_dsm) {
+                fprintf(stderr, "%s[%d]:  could not find var named %s\n", 
+                        __FILE__, __LINE__, vname);
+                assert(0  && "fatal internal error");
+              }
+              if (! v_dsm->writeValue((void *) &sample_multiple)) {
+                 fprintf(stderr, "%s[%d]:  could not write var named %s\n", 
+                         __FILE__, __LINE__, vname);
+                 assert(0  && "fatal internal error");
+              }
 	    }
 	 }
 	 setCurrSamplingRate(newSampleRate);
@@ -428,7 +429,17 @@ void dynRPC::continueProgram(int pid)
          return;
       }
    }
-   if( proc->status() != running ) {
+   if( proc->isStopped()) {
+     if (proc->isTerminated()) {
+         sprintf(errorLine,
+                 "%s[%d]: Internal error: PID %d terminated\n", 
+                 __FILE__, __LINE__, pid);
+         logLine(errorLine);
+         showErrorCallback(62,(const char *) errorLine,
+                           machineResource->part_name());
+
+     }
+     else
        proc->continueProc();
    }
    // we are no longer paused, are we?
@@ -446,7 +457,7 @@ bool dynRPC::pauseApplication(void)
     pauseAllProcesses();
     return true;
 }
-
+ 
 //
 //  Stop a single process
 //
