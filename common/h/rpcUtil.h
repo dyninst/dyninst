@@ -4,7 +4,10 @@
 
 /*
  * $Log: rpcUtil.h,v $
- * Revision 1.12  1994/03/11 21:01:24  hollings
+ * Revision 1.13  1994/03/20 01:45:23  markc
+ * Changed xdr_Boolean to char rather than int to reflect Boolean change.
+ *
+ * Revision 1.12  1994/03/11  21:01:24  hollings
  * Changed Boolean from int to char to match X11 convention.
  *
  *
@@ -52,13 +55,13 @@ int vfork();
 int accept(int, struct sockaddr *addr, int *);
 #endif
 
-#define xdr_Boolean 	xdr_bool
+#define xdr_Boolean xdr_char
 typedef XDR *XDRptr;
 typedef int (*xdrIOFunc)(int handle, char *buf, unsigned int len);
 
 typedef char Boolean;
 typedef char *String;
- 
+
 //
 // Functions common to server and client side.
 //
@@ -69,7 +72,7 @@ class XDRrpc {
     XDRrpc(int fd, xdrIOFunc readRoutine, xdrIOFunc writeRoutine, int nblock=0);
     XDRrpc(int family, int port, int type, char *machine, xdrIOFunc readFunc,
 	   xdrIOFunc writeFunc, int nblock=0);
-    ~XDRrpc();
+    virtual ~XDRrpc();
     void closeConnect() { if (fd >= 0) close(fd); fd = -1;}
     void setNonBlock();
     int get_fd() { return fd;}
