@@ -111,5 +111,11 @@ double timing_loop(const unsigned TRIES, const unsigned LOOP_LIMIT) {
     if (speed > max_speed)
       max_speed = speed;
   }
+
+#ifdef i386_unknown_solaris2_5
+  // the speed of the pentium is being overestimated by a factor of 2
+  max_speed /= 2;
+#endif
+
   return max_speed;
 }

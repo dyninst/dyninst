@@ -169,7 +169,7 @@ timer::print(ostream& os) {
 
 
 
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
 #if !defined(HAVE_GET_CURRENT_DEFINITION)
 #define HAVE_GET_CURRENT_DEFINITION
 

@@ -55,6 +55,9 @@ typedef int (*xdr_wr_func)(const void *, const char *, const int);
 #elif defined(sparc_sun_solaris2_4)
 #include "util/h/solarisHeaders.h"
 
+#elif defined(i386_unknown_solaris2_5)
+#include "util/h/solarisHeaders.h"
+
 #elif defined(i386_unknown_netbsd1_0)
 #include "util/h/netbsdHeaders.h"
 

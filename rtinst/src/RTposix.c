@@ -446,6 +446,10 @@ DYNINSTcyclesPerSecond(void) {
     elapsed = (double) (end_cpu - start_cpu);
     speed   = (double) (MILLION*256*LOOP_LIMIT)/elapsed;
 
+#ifdef i386_unknown_solaris2_5
+    /* speed for the pentium is being overestimated by a factor of 2 */
+    speed /= 2;
+#endif
     return speed;
 }
 
@@ -463,6 +467,12 @@ DYNINSTcyclesPerSecond(void) {
 
 static void
 saveFPUstate(float* base) {
+#ifdef i386_unknown_solaris2_5
+    /* kludge for the pentium: we need to reset the FPU here, or we get 
+       strange results on fp operations.
+    */
+    asm("finit");
+#endif
 }
 
 static void
@@ -882,6 +892,10 @@ DYNINSTinit(int doskip) {
 #endif
 
     sigfillset(&act.sa_mask);
+#ifdef i386_unknown_solaris2_5
+    /* we need to catch SIGTRAP inside the alarm handler */    
+    sigdelset(&act.sa_mask, SIGTRAP);
+#endif
 
     if (sigaction(SIGALRM, &act, 0) == -1) {
         perror("sigaction(SIGALRM)");

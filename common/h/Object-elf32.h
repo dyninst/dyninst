@@ -350,6 +350,14 @@ Object::loaded_elf_obj(int fd, bool& did_elf, Elf*& elfp, Elf32_Ehdr*& ehdrp,
     return true;
 }
 
+
+static int symbol_compare(const void *x, const void *y) {
+    Symbol *s1 = (Symbol *)x;
+    Symbol *s2 = (Symbol *)y;
+    return (s1->addr() - s2->addr());
+}
+
+
 inline
 void
 Object::load_object() {
@@ -429,6 +437,8 @@ Object::load_object() {
         // stab section to find the module to where they belong.
         dictionary_hash<string, Symbol> global_symbols(string::hash);
 
+        vector<Symbol> allsymbols;
+
         for (unsigned i1 = 0; i1 < nsyms; i1++) {
 	  // First, we must check st_shndx. 
 	  // if st_shndx == SHN_UNDEF, this is an undefined symbol,
@@ -457,21 +467,46 @@ Object::load_object() {
 
             name = string(&strs[syms[i1].st_name]);
 
-            // We are done with the local symbols. We save the global so that
-            // we can get their module from the .stab section.
             if (ELF32_ST_BIND(syms[i1].st_info) == STB_LOCAL) {
-	       symbols_[name] = Symbol(name, module, type, Symbol::SL_LOCAL,
+               allsymbols += Symbol(name, module, type, Symbol::SL_LOCAL,
                                     syms[i1].st_value, st_kludge, 
                                     syms[i1].st_size);
 	    }
             else {
-               assert(!(global_symbols.defines(name))); // globals should be unique
-	       global_symbols[name] = Symbol(name, string(""), type, Symbol::SL_GLOBAL,
+	       allsymbols += Symbol(name, string(""), type, Symbol::SL_GLOBAL,
                                     syms[i1].st_value, st_kludge,
                                     syms[i1].st_size);
 	    }
 	  }
         }
+
+        // some functions may have size zero in the symbol table,
+        // we need to find the correct size
+        allsymbols.sort(symbol_compare);
+        unsigned nsymbols = allsymbols.size();
+        for (unsigned u = 0; u < nsymbols; u++) {
+          if (allsymbols[u].type() == Symbol::PDST_FUNCTION
+              && allsymbols[u].size() == 0) {
+	    unsigned v = u+1;
+	    while (v < nsymbols && allsymbols[v].addr() == allsymbols[u].addr())
+              v++;
+            if (v < nsymbols) {
+              allsymbols[u].change_size((unsigned)allsymbols[v].addr()
+                                        - (unsigned)allsymbols[u].addr());
+            }
+          }
+
+          // We are done with the local symbols. We save the global so that
+          // we can get their module from the .stab section.
+          if (allsymbols[u].linkage() == Symbol::SL_LOCAL)
+	    symbols_[allsymbols[u].name()] = allsymbols[u];
+          else {
+            // globals should be unique
+            assert(!(global_symbols.defines(allsymbols[u].name()))); 
+	    global_symbols[allsymbols[u].name()] = allsymbols[u];
+	  }
+	}      
+	
 
         // Read the stab section to find the module of global symbols.
         // The symbols appear in the stab section by module. A module begins
@@ -592,11 +627,6 @@ cleanup: {
     }
 }
 
-static int symbol_compare(const void *x, const void *y) {
-    Symbol *s1 = (Symbol *)x;
-    Symbol *s2 = (Symbol *)y;
-    return (s1->addr() - s2->addr());
-}
 
 inline
 void
@@ -766,6 +796,19 @@ Object::load_shared_object() {
 	for(u_int i=0; i < (allsymbols.size() -1); i++){
 	    u_int new_size = 0;
 	    bool  change_size = false;
+
+            // some functions may have size zero in the symbol table
+            // we have to fix the size of the global functions
+            if (allsymbols[i].type() == Symbol::PDST_FUNCTION
+                && allsymbols[i].linkage() == Symbol::SL_GLOBAL
+                && allsymbols[i].size() == 0) {
+               unsigned j = i+1;
+               while (j < allsymbols.size() 
+                      && allsymbols[j].addr() == allsymbols[i].addr())
+                 j++;
+               allsymbols[i].change_size(allsymbols[j].addr()-allsymbols[i].addr());
+            }
+
 	    if((allsymbols[i].type() == Symbol::PDST_FUNCTION)
 		&& (allsymbols[i+1].type() == Symbol::PDST_FUNCTION)){
 		u_int next_start=allsymbols[i].addr()+allsymbols[i].size();

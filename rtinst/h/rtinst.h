@@ -129,6 +129,28 @@ void DYNINSTgenerateTraceRecord(traceStream sid, short type,
 extern time64 DYNINSTgetCPUtime(void);
 extern time64 DYNINSTgetWalltime(void);
 
+
+/*
+   The tramp table is used when we need to insert traps in instrumentation
+   points. It is used by the trap handler to lookup the base tramp for
+   an address (point).
+
+   The table is updated by the paradyn daemon.
+*/
+
+#define TRAMPTABLESZ (4096)
+
+#define HASH1(x) ((x) % TRAMPTABLESZ)
+#define HASH2(x) (((x) % TRAMPTABLESZ-1) & 1)
+
+typedef struct trampTableEntryStruct trampTableEntry;
+struct trampTableEntryStruct {
+  unsigned key;
+  unsigned val;
+};
+
+
+
 #endif
 
 /*

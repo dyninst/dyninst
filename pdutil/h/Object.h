@@ -113,7 +113,7 @@ private:
 
 inline
 AObject::AObject(const string file, void (*err_func)(const char*))
-    : file_(file), symbols_(string::hash), 
+     : file_(file), symbols_(string::hash),
     code_ptr_(0), code_off_(0), code_len_(0),
     data_ptr_(0), data_off_(0), data_len_(0),
     err_func_(err_func) {
@@ -216,7 +216,7 @@ AObject::data_len() const {
 #define HAVE_SPECIFIC_OBJECT
 #endif /* defined(hppa1_1_hp_hpux) */
 
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
 #include <util/h/Object-elf32.h>
 #define HAVE_SPECIFIC_OBJECT
 #endif /* defined(sparc_sun_solaris2_4) */

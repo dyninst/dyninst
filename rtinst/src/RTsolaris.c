@@ -54,7 +54,8 @@
 /************************************************************************
  * header files.
 ************************************************************************/
-
+#include <signal.h>
+#include <sys/ucontext.h>
 #include <sys/time.h>
 #include "rtinst/h/rtinst.h"
 
@@ -83,6 +84,24 @@ static const double MILLION       = 1.0e6;
 
 void
 DYNINSTos_init(void) {
+
+    /*
+       Install trap handler.
+       This is currently being used only on the x86 platform.
+    */
+#ifdef i386_unknown_solaris2_5
+    void DYNINSTtrapHandler(int sig, siginfo_t *info, ucontext_t *uap);
+    struct sigaction act;
+    act.sa_handler = DYNINSTtrapHandler;
+    act.sa_flags = 0;
+    sigfillset(&act.sa_mask);
+    if (sigaction(SIGTRAP, &act, 0) != 0) {
+        perror("sigaction(SIGTRAP)");
+	abort();
+    }
+#endif
+
+
 }
 
 
@@ -143,3 +162,45 @@ retryWall:
     previous = now;
     return(now);
 }
+
+
+
+/****************************************************************************
+   The trap handler. Currently being used only on x86 platform.
+
+   Traps are used when we can't insert a jump at a point. The trap
+   handler looks up the address of the base tramp for the point that
+   uses the trap, and set the pc to this base tramp.
+   The paradynd is responsible for updating the tramp table when it
+   inserts instrumentation.
+*****************************************************************************/
+
+#ifdef i386_unknown_solaris2_5
+trampTableEntry DYNINSTtrampTable[TRAMPTABLESZ];
+unsigned DYNINSTtotalTraps = 0;
+
+static unsigned lookup(unsigned key) {
+    unsigned u;
+    unsigned k;
+    for (u = HASH1(key); 1; u += HASH2(key) % TRAMPTABLESZ) {
+      k = DYNINSTtrampTable[u].key;
+      if (k == 0)
+        return 0;
+      else if (k == key)
+        return DYNINSTtrampTable[u].val;
+    }
+    /* not reached */
+    abort();
+}
+
+void DYNINSTtrapHandler(int sig, siginfo_t *info, ucontext_t *uap) {
+    unsigned pc = uap->uc_mcontext.gregs[PC];
+    unsigned nextpc = lookup(pc);
+    if (nextpc) {
+      uap->uc_mcontext.gregs[PC] = nextpc;
+    } else {
+      abort();
+    }
+    DYNINSTtotalTraps++;
+}
+#endif
