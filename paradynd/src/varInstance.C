@@ -45,10 +45,10 @@
 #include "dyninstAPI/src/process.h"
  
 template <class HK>
-varInstance<HK>::varInstance(variableMgr &varMgr, const RAWTYPE &initValue_)
+varInstance<HK>::varInstance(variableMgr &varMgr, const RAWTYPE &initValue_, HwEvent* hw)
   : numElems(varMgr.getMaxNumberOfThreads()),  hkBuf(1, NULL), 
     elementsToBeSampled(false), proc(varMgr.getApplicProcess()), 
-    initValue(initValue_), theShmMgr(varMgr.getShmMgr())
+    initValue(initValue_), theShmMgr(varMgr.getShmMgr()), hwEvent(hw)
 {
   unsigned mem_amount = sizeof(RAWTYPE) * varMgr.getMaxNumberOfThreads();
   //  Address baseAddrInApp_;
@@ -69,7 +69,7 @@ varInstance<HK>::varInstance(const varInstance<HK> &par, shmMgr &sMgr,
   // start with not sampling anything, let the sample requests be 
   // reinitiated, ... so leave hkBuf as empty
   elementsToBeSampled(false), proc(p), initValue(par.initValue), 
-  theShmMgr(sMgr), permanentSamplingSet(), currentSamplingSet() {
+  theShmMgr(sMgr), hwEvent(par.hwEvent), permanentSamplingSet(), currentSamplingSet() {
   baseAddrInDaemon = theShmMgr.applicAddrToDaemonAddr(baseAddrInApplic);
 }
 
@@ -88,6 +88,7 @@ void varInstance<HK>::createHKifNotPresent(unsigned thrPos) {
    }
    if(hkBuf[thrPos] == NULL) {
       hkBuf[thrPos] = new HK();
+      hkBuf[thrPos]->setHwEvent(hwEvent);
    }
 }
 

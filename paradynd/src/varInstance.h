@@ -72,6 +72,7 @@ class baseVarInstance {
 class variableMgr;
 class process;
 class shmMgr;
+class HwEvent;
 
 template <class HK>
 class varInstance : public baseVarInstance {
@@ -86,6 +87,8 @@ class varInstance : public baseVarInstance {
   process *proc;
   RAWTYPE  initValue;
   shmMgr &theShmMgr;
+  HwEvent* hwEvent;
+
   vector<unsigned> permanentSamplingSet;
   vector<unsigned> currentSamplingSet;
 
@@ -99,7 +102,7 @@ class varInstance : public baseVarInstance {
   // --------------------------------------
 
  public:
-  varInstance(variableMgr &varMgr, const RAWTYPE &initValue);
+  varInstance(variableMgr &varMgr, const RAWTYPE &initValue, HwEvent* hwEvent);
   varInstance(const varInstance<HK> &par, shmMgr &sMgr, process *p);
 
   ~varInstance();
