@@ -129,6 +129,7 @@ func_call: IDENTIFIER '(' param_list ')'
 	free($1);
 	$$ = new BPatch_funcCallExpr(*func, *$3); 
     }
+    ;
 
 param_list: 
     {
@@ -307,6 +308,7 @@ inc_decr_expr:
 	$$ = new BPatch_arithExpr(BPatch_assign, *$2, BPatch_arithExpr(BPatch_minus, 
 			*$2, BPatch_constExpr(1)));
     }
+    ;
 
 %%
 
