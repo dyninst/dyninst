@@ -14,9 +14,12 @@
  *
  */
 /* $Log: VISIthreadpublic.C,v $
-/* Revision 1.14  1996/01/05 20:01:03  newhall
-/* removed warnings
+/* Revision 1.15  1996/02/05 18:51:57  newhall
+/* Change to DM interface: StartPhase and newPhaseCallback
 /*
+ * Revision 1.14  1996/01/05 20:01:03  newhall
+ * removed warnings
+ *
  * Revision 1.13  1995/12/15 20:12:54  naim
  * Adding call back function to display error messages from visis - naim
  *
@@ -246,7 +249,7 @@ void visualizationUser::StartPhase(double, string){
   }
 
   // call datamanager start phase routine
-  ptr->dmp->StartPhase((timeStamp)-1.0, NULL);
+  ptr->dmp->StartPhase((timeStamp)-1.0, NULL,false,false);
 
 }
 

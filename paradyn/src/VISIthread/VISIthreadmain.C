@@ -22,9 +22,12 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.58  1996/01/31 19:56:18  newhall
-/* added comments
+/* Revision 1.59  1996/02/05 18:51:55  newhall
+/* Change to DM interface: StartPhase and newPhaseCallback
 /*
+ * Revision 1.58  1996/01/31  19:56:18  newhall
+ * added comments
+ *
  * Revision 1.57  1996/01/05 20:01:00  newhall
  * removed warnings
  *
@@ -519,7 +522,8 @@ void VISIthreadPhaseCallback(perfStreamHandle,
 			     phaseHandle handle,
 			     timeStamp begin,
 			     timeStamp end,
-			     float bucketWidth){
+			     float bucketWidth,
+			     bool, bool){
 
    VISIthreadGlobals *ptr;
    if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {

@@ -16,9 +16,12 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.41  1996/02/02 02:06:38  karavan
-/* A baby Performance Consultant is born!
+/* Revision 1.42  1996/02/05 18:51:35  newhall
+/* Change to DM interface: StartPhase and newPhaseCallback
 /*
+ * Revision 1.41  1996/02/02  02:06:38  karavan
+ * A baby Performance Consultant is born!
+ *
  */
 
 #include <assert.h>
@@ -107,7 +110,9 @@ void PCphase (perfStreamHandle,
 	      phaseHandle phase,
 	      timeStamp begin, 
 	      timeStamp end, 
-	      float bucketwidth)
+	      float bucketwidth,
+	      bool with_new_pc,
+	      bool with_visis)
 {
   // Guard here against case that no search has ever been initialized, 
   // in which case we don't want to do anything.

@@ -1,8 +1,11 @@
 /* $Log: UImain.C,v $
-/* Revision 1.70  1996/02/02 18:39:18  tamches
-/* added prelim version of ui_newPhaseDetected
-/* added shgShowKey, shgShowTips tunables
+/* Revision 1.71  1996/02/05 18:51:47  newhall
+/* Change to DM interface: StartPhase and newPhaseCallback
 /*
+ * Revision 1.70  1996/02/02  18:39:18  tamches
+ * added prelim version of ui_newPhaseDetected
+ * added shgShowKey, shgShowTips tunables
+ *
  * Revision 1.69  1996/01/09 23:55:18  tamches
  * moved whereAxisDrawTipsCallback to whereAxisTcl.C
  * added tclPromptCallback to better implement the "tclPrompt"
@@ -227,7 +230,9 @@ int latest_detected_new_phase_id = 0;
 void ui_newPhaseDetected(perfStreamHandle,
 			 const char *name, phaseHandle ph,
 			 timeStamp begin, timeStamp end,
-			 float bucketwidth) {
+			 float bucketwidth,
+			 bool with_new_pc,
+			 bool with_visis) {
    cout << "welcome to new_phase_detected" << endl;
    cout << "name=" << name << endl;
    cout << "begin=" << begin << "; end=" << end << endl;
