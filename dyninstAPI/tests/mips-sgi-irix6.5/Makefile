@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.13 2001/11/09 03:01:21 gaburici Exp $
+# $Id: Makefile,v 1.14 2002/03/15 15:26:39 hollings Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -143,3 +143,7 @@ testlibs: libtestA_n32.so libtestB_n32.so
 # common targets like "clean", "install", etc.
 
 include $(TO_CORE)/make.program.tmpl
+
+clean::
+	$(RM) *.o *.[hC] test?* *.so
+
