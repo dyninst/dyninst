@@ -10,7 +10,10 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
- * Revision 1.10  1994/08/17 18:18:07  markc
+ * Revision 1.11  1994/09/22 02:23:44  markc
+ * Changed structs to classes
+ *
+ * Revision 1.10  1994/08/17  18:18:07  markc
  * Added reachedFirstBreak variable.
  *
  * Revision 1.9  1994/07/26  20:02:08  hollings
@@ -71,25 +74,34 @@
 
 #include "util/h/list.h"
 #include "rtinst/h/rtinst.h"
-#include "dyninst.h"
 
-typedef struct processRec process;
+class resource;
 
 typedef enum { neonatal, running, stopped, exited } processState;
-
-typedef struct heapRec heapItem;
-
 typedef enum { HEAPfree, HEAPallocated } heapStatus;
 
-struct heapRec {
-    int addr;
-    int length;
-    heapStatus status;
+class heapItem {
+ public:
+  heap() {
+    addr =0; length = 0; status = HEAPfree;
+  }
+  int addr;
+  int length;
+  heapStatus status;
 }; 
 
 #define HIST_LIMIT      6
 
-struct costRec {
+class costC {
+ public:
+    costC() {
+      currentHist=0; lastObservedCost = 0.0; totalPredictedCost=0.0;
+      currentPredictedCost=0.0; timeLastTrampSample = 0; hybrid = 0.0;
+      wallTimeLastTrampSample = 0;
+      int i;
+      for (i=0; i<HIST_LIMIT; ++i)
+	past[i] = 0.0;
+    }
     float hybrid;
     int currentHist;
     float lastObservedCost;
@@ -100,7 +112,15 @@ struct costRec {
     time64 wallTimeLastTrampSample;
 };
 
-struct processRec {
+class process {
+ public:
+    process() {
+      symbols = NULL; traceLink = 0; ioLink = 0;
+      status = neonatal; pid = 0; thread = 0;
+      aggregate = FALSE; rid = 0; parent = NULL;
+      bufStart = 0; bufEnd = 0; pauseTime = 0.0;
+      freed = 0; reachedFirstBreak = 0;
+    }
     image *symbols;		/* information related to the process */
     int traceLink;		/* pipe to transfer traces data over */
     int ioLink;			/* pipe to transfer stdout/stderr over */
@@ -110,13 +130,13 @@ struct processRec {
     Boolean aggregate;		/* is this process a pseudo process ??? */
     HTable<heapItem*> heapActive;	/* acctive part of inferior heap */
     List<heapItem*> heapFree;	/* free block of inferrior heap */
-    resource rid;		/* handle to resource for this process */
+    resource *rid;		/* handle to resource for this process */
     process *parent;		/* parent of this proces */
     List<void *> baseMap;	/* map and inst point to its base tramp */
     char buffer[2048];
     int bufStart;
     int bufEnd;
-    struct costRec cost;
+    costC theCost;
     float pauseTime;		/* only used on the CM-5 version for now 
 				   jkh 7/21/94 */
     int freed;
