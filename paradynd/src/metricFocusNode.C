@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.163 1999/09/09 16:00:23 zhichen Exp $
+// $Id: metricFocusNode.C,v 1.164 1999/11/06 22:54:27 paradyn Exp $
 
 #include "util/h/headers.h"
 #include <limits.h>
@@ -1449,7 +1449,7 @@ void metricDefinitionNode::adjustManuallyTrigger()
 	    if( !find( manuallyTriggerNodes, &(instRequests[k]), l ) ) {
 #if defined(mips_sgi_irix6_4)
 	      if( instRequests[ k ].Point()->type() == IPT_ENTRY )
-#elif defined(sparc_sun_solaris2_4) || defined(sparc_sun_sunos4_1_3)
+#elif defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0)
 	      if( instRequests[ k ].Point()->ipType == functionEntry )
 #elif defined(rs6000_ibm_aix4_1)
 	      if( instRequests[ k ].Point()->ipLoc == ipFuncEntry )
