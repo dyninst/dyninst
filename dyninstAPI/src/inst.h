@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.78 2003/07/15 22:44:18 schendel Exp $
+// $Id: inst.h,v 1.79 2003/10/21 17:22:07 bernat Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -61,65 +61,59 @@
 /****************************************************************************/
 
 class instPoint;
-class instInstance;
 class miniTrampHandle;
 class trampTemplate;
 class process;
 class pd_Function;
 class metricFocusNode;
+class miniTramps_list;
 
 typedef enum { callNoArgs, callRecordType, callFullArgs } callOptions;
 typedef enum { callPreInsn, callPostInsn } callWhen;
 typedef enum { orderFirstAtPoint, orderLastAtPoint } callOrder;
 
-extern bool deleteInst(process *proc, const miniTrampHandle &mtHandle);
+extern bool deleteInst(process *proc, miniTrampHandle *&mtHandle);
 
 extern pdvector<Address> getTrampAddressesAtPoint(process *proc, 
-						const instPoint *loc,
-						callWhen when);
+                                                  const instPoint *loc,
+                                                  callWhen when);
 
 class AstNode;
 class returnInstance;
 
-typedef enum loadMiniTramp_result { success_res, failure_res, deferred_res } 
-                                  loadMiniTramp_result;
+typedef enum loadMiniTramp_result { success_res, failure_res, deferred_res } loadMiniTramp_result;
 
 /*
  * Insert instrumentation at the specified codeLocation.
  * TODO: make these methods of class process
  */
-loadMiniTramp_result addInstFunc(miniTrampHandle *mtHandle_save, 
-			     process *proc,
-			     instPoint *&location,
-			     AstNode *&ast, // ast could change (sysFlag stuff)
-			     callWhen when,
-			     callOrder order,
-			     bool noCost,
-			     bool trampRecursionDesired);
+loadMiniTramp_result addInstFunc(process *proc,
+                                 miniTrampHandle *&mtHandle, 
+                                 instPoint *&location,
+                                 AstNode *&ast, // ast could change (sysFlag stuff)
+                                 callWhen when,
+                                 callOrder order,
+                                 bool noCost,
+                                 bool trampRecursionDesired);
 
 // writes to (*mtInfo)
-loadMiniTramp_result loadMiniTramp(instInstance *mtInfo, process *proc, 
-				   instPoint *&location,
-				   AstNode *&ast, // the ast could be changed 
-				   callWhen when, callOrder order, bool noCost,
-				   returnInstance *&retInstance,
-				   bool trampRecursiveDesired = false);
+loadMiniTramp_result loadMiniTramp(miniTrampHandle *&mtHandle,
+                                   process *proc, 
+                                   instPoint *&location,
+                                   AstNode *&ast, // the ast could be changed 
+                                   callWhen when, callOrder order, bool noCost,
+                                   returnInstance *&retInstance,
+                                   bool trampRecursiveDesired = false);
 
-void hookupMiniTramp(process *proc, const miniTrampHandle &mtHande,
-		     callOrder order);
+void hookupMiniTramp(process *proc,
+                     miniTrampHandle *&mtHandle,
+                     callOrder order);
 
 /* Utility functions */
 
-void getAllInstInstancesForProcess(const process *,
-				   pdvector<instInstance*> &);
-
-void getMiniTrampsAtPoint(process *proc, instPoint *loc, callWhen when,
-			  pdvector<miniTrampHandle> *mt_buf);
-
 bool getInheritedMiniTramp(const miniTrampHandle *parentMT, 
-			   miniTrampHandle *childMT, process *childProc);
-
-trampTemplate * findBaseTramp( const instPoint *, const process * );
+                           miniTrampHandle *&childMT,
+                           process *childProc);
 
 float getPointFrequency(instPoint *point);
 int getPointCost(process *proc, const instPoint *point);
