@@ -14,6 +14,7 @@ template class vector<message_layer*>;
 template class vector<string>;
 template class vector<Options::el_data>;
 template class vector<Options::stl_data>;
+template class vector<type_defn *>;
 
 template class dictionary_hash<string, remote_func*>;
 template class dictionary_hash<string, type_defn*>;
