@@ -71,12 +71,12 @@ void pdrmem_create(PDR *pdrs, char * addr, uint32_t size, enum pdr_op op)
       pdrs->space = 0;
     }
     if(remote_bo != local_bo){
-      mc_printf((stderr, "Remote_bo:%d != local_bo:%d -- swapping\n",
-                 remote_bo, local_bo));
+      mc_printf(MCFL, stderr, "Remote_bo:%d != local_bo:%d -- swapping\n",
+                 remote_bo, local_bo);
       pdrs->p_ops = &pdrmem_ops_swap;
       return;
     }
-    mc_printf((stderr, "Remote_bo == local_bo -- not swapping\n"));
+    mc_printf(MCFL, stderr, "Remote_bo == local_bo -- not swapping\n");
   }
 }
 

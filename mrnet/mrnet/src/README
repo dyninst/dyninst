@@ -1,0 +1,7 @@
+New Details:
+- Front end is now considered root of infrastructure since it can
+  now do aggregations. It is an error if the root specified in the
+  config file is not the host on which the frontend is run.
+
+- "proc_newsubtree()" creates the internal nodes and the application backend in
+  a single shot.

@@ -16,21 +16,21 @@ MC_CommunicatorImpl * MC_CommunicatorImpl::get_BroadcastCommunicator(void)
 
 void MC_CommunicatorImpl::create_BroadcastCommunicator(vector <MC_EndPoint *> * _endpoints)
 {
-  unsigned int i;
+  //unsigned int i;
   comm_Broadcast = new MC_CommunicatorImpl();
 
-  mc_printf((stderr, "In create_BroadCastComm(). comm_bc: [ "));
+  //mc_printf(MCFL, stderr, "In create_BroadCastComm(). comm_bc: [ ");
   comm_Broadcast->endpoints = _endpoints;
-  for(i=0; i<comm_Broadcast->endpoints->size(); i++){
-    _fprintf((stderr, "%s:%d:%d, ",
-              (*comm_Broadcast->endpoints)[i]->get_HostName(),
-              (*comm_Broadcast->endpoints)[i]->get_Port(),
-              (*comm_Broadcast->endpoints)[i]->get_Id()));
-  }
-  _fprintf((stderr, "]\n"));
+  //for(i=0; i<comm_Broadcast->endpoints->size(); i++){
+    //_fprintf((stderr, "%s:%d:%d, ",
+              //(*comm_Broadcast->endpoints)[i]->get_HostName(),
+              //(*comm_Broadcast->endpoints)[i]->get_Port(),
+              //(*comm_Broadcast->endpoints)[i]->get_Id()));
+  //}
+  //_fprintf((stderr, "]\n"));
 
-  mc_printf((stderr, "comm_bc size: %d\n",
-             comm_Broadcast->get_EndPoints()->size()));
+  //mc_printf(MCFL, stderr, "comm_bc size: %d\n",
+             //comm_Broadcast->get_EndPoints()->size());
   return;  
 }
 

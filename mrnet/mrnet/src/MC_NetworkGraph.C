@@ -26,9 +26,9 @@ string MC_NetworkNode::get_HostName()
 
 void MC_NetworkNode::add_Child(MC_NetworkNode * child)
 {
-  //mc_printf((stderr, "Adding %s:%d as child %d of Node %s:%d(%p)\n", 
+  //mc_printf(MCFL, stderr, "Adding %s:%d as child %d of Node %s:%d(%p)\n", 
 	     //child->hostname.c_str(), child->port, children.size(),
-             //hostname.c_str(), port, this));
+             //hostname.c_str(), port, this);
   children.push_back(child);
 }
 
@@ -108,23 +108,24 @@ bool MC_NetworkGraph::has_cycle(){
 void MC_NetworkGraph::preorder_traversal(MC_NetworkNode * node){
   static int next_leaf_id=0;
 
-  //mc_printf((stderr, "Preorder_traversing node %s:%d (%p) ...\n",
-             //node->get_HostName().c_str(), node->get_Port(), node ));
+  //mc_printf(MCFL, stderr, "Preorder_traversing node %s:%d (%p) ...\n",
+             //node->get_HostName().c_str(), node->get_Port(), node );
 
   if( node->visited() == true ){
-    //mc_printf((stderr, "Node already visited\n"));
+    //mc_printf(MCFL, stderr, "Node already visited\n");
     //Should I stop here?
     _has_cycle=true;
   }
   else{
-    //mc_printf((stderr, "Node's 1st visit\n"));
+    //mc_printf(MCFL, stderr, "Node's 1st visit\n");
     node->visit();
     visited_nodes++;
 
     if(node->children.size() == 0){
       // Leaf node, just add my name to the serial representation and return
       node->id = next_leaf_id++;
-      serial_graph.add_Child(node->id, node->get_HostName(), node->get_Port());
+      serial_graph.add_BackEnd(node->get_HostName(), node->get_Port(),
+                               node->id);
       endpoints->push_back(MC_EndPoint::new_EndPoint( node->id,
 						 node->get_HostName().c_str(),
 						 node->get_Port()));
@@ -132,7 +133,7 @@ void MC_NetworkGraph::preorder_traversal(MC_NetworkNode * node){
     }
     else{
       //Starting new sub-tree component in graph serialization:
-      serial_graph.add_SubTree(node->get_HostName(), node->get_Port());
+      serial_graph.add_SubTreeRoot(node->get_HostName(), node->get_Port());
     }
   }
 
@@ -152,8 +153,8 @@ bool MC_NetworkGraph::fully_connected()
     graph_checked=true;
   }
 
-  //mc_printf((stderr, "In fully_connected(). visited %d, exist %d\n",
-             //visited_nodes, nodes.size() ));
+  //mc_printf(MCFL, stderr, "In fully_connected(). visited %d, exist %d\n",
+             //visited_nodes, nodes.size() );
   return ( visited_nodes == nodes.size() ) ;
 }
 
@@ -166,6 +167,11 @@ int MC_NetworkGraph::get_Size()
 /***************************************************
  * MC_SerialGraph
  **************************************************/
+MC_SerialGraph::MC_SerialGraph(const char * _byte_array)
+  :byte_array(_byte_array), num_nodes(0), num_backends(0)
+{
+}
+
 MC_SerialGraph::MC_SerialGraph(string _byte_array)
   :byte_array(_byte_array), num_nodes(0), num_backends(0)
 {
@@ -176,7 +182,8 @@ MC_SerialGraph::MC_SerialGraph()
 {
 }
 
-void MC_SerialGraph::add_Child(int id, string hostname, unsigned short port)
+void MC_SerialGraph::add_BackEnd(string hostname, unsigned short port,
+                                 unsigned short id)
 {
   char id_str[128], port_str[128];
   sprintf(id_str, "%d", id);
@@ -185,7 +192,7 @@ void MC_SerialGraph::add_Child(int id, string hostname, unsigned short port)
   num_nodes++; num_backends++;
 }
 
-void MC_SerialGraph::add_SubTree(string hostname, unsigned short port)
+void MC_SerialGraph::add_SubTreeRoot(string hostname, unsigned short port)
 {
   char port_str[128];
   sprintf(port_str, "%d", port);
@@ -208,9 +215,9 @@ void MC_SerialGraph::set_ToFirstChild()
   buf_idx++;
 
 
-  //mc_printf((stderr, "In set_tofirstchild():\n"));
-  //mc_printf((stderr, "byte_array: %s\n", byte_array.c_str()));
-  //mc_printf((stderr, "1st child : "));
+  //mc_printf(MCFL, stderr, "In set_tofirstchild():\n");
+  //mc_printf(MCFL, stderr, "byte_array: %s\n", byte_array.c_str());
+  //mc_printf(MCFL, stderr, "1st child : ");
   //for(i=0; i<buf_idx; i++){
     //_fprintf((stderr, " "));
   //}
@@ -224,15 +231,15 @@ MC_SerialGraph * MC_SerialGraph::get_NextChild()
   const char * buf = byte_array.c_str();
   bool leaf_node=false;
 
-  //mc_printf((stderr, "In get_nextchild():\n"));
-  //mc_printf((stderr, "byte_array: %s\n", byte_array.c_str()));
-  //mc_printf((stderr, "    child : "));
+  //mc_printf(MCFL, stderr, "In get_nextchild():\n");
+  //mc_printf(MCFL, stderr, "byte_array: %s\n", byte_array.c_str());
+  //mc_printf(MCFL, stderr, "    child : ");
   //for(i=0; i<buf_idx; i++){
     //_fprintf((stderr, " "));
   //}
   //_fprintf((stderr, "^\n"));
 
-  //mc_printf((stderr, "buf_idx: %d, array_len: %d\n", buf_idx, byte_array.length()));
+  //mc_printf(MCFL, stderr, "buf_idx: %d, array_len: %d\n", buf_idx, byte_array.length());
   if(buf_idx >= byte_array.length()-2){
     return NULL;
   }
@@ -265,7 +272,7 @@ MC_SerialGraph * MC_SerialGraph::get_NextChild()
     retval = new MC_SerialGraph("[ " + byte_array.substr(begin, end) + " ]");
   }
 
-  //mc_printf((stderr, "get_nextchild() returning:"));  retval->print();
+  //mc_printf(MCFL, stderr, "get_nextchild() returning:");  retval->print();
   return retval;
 }
 
@@ -301,8 +308,8 @@ string MC_SerialGraph::get_RootName()
   //}
 
   retval = byte_array.substr(begin, end-begin);
-  //mc_printf((stderr, "In get_rootname(). array: %s, root %s\n",
-	     //byte_array.c_str(), retval.c_str()));
+  //mc_printf(MCFL, stderr, "In get_rootname(). array: %s, root %s\n",
+	     //byte_array.c_str(), retval.c_str());
 
   return retval;
 }
@@ -318,8 +325,8 @@ unsigned short MC_SerialGraph::get_RootPort()
   end = byte_array.find(' ', begin);
   string port_string = byte_array.substr(begin, end-begin);
   retval = atoi(port_string.c_str());
-  //mc_printf((stderr, "In get_port(). array: %s, port: %d\n",
-	     //byte_array.c_str(), retval));
+  //mc_printf(MCFL, stderr, "In get_port(). array: %s, port: %d\n",
+	     //byte_array.c_str(), retval);
   return retval;
 }
 
@@ -352,8 +359,8 @@ int MC_SerialGraph::get_Id(){
   string idstring = byte_array.substr(begin, end-begin);
 
   retval = atoi(idstring.c_str());
-  //mc_printf((stderr, "In get_Id(). byte_array: %s, id: %s, %d\n",
-             //byte_array.c_str(), idstring.c_str(), retval));
+  //mc_printf(MCFL, stderr, "In get_Id(). byte_array: %s, id: %s, %d\n",
+             //byte_array.c_str(), idstring.c_str(), retval);
 
   return retval;
 }

@@ -2,14 +2,14 @@
 #define mc_networkimpl_h 1
 
 #include <vector>
-
 #include <string>
 
 
 #include "mrnet/src/MC_Errors.h"
 #include "mrnet/src/MC_Message.h"
 #include "mrnet/src/MC_NetworkGraph.h"
-#include "mrnet/src/MC_CommunicationNode.h"
+#include "mrnet/src/MC_BackEndNode.h"
+#include "mrnet/src/MC_FrontEndNode.h"
 
 #include "mrnet/h/MC_Network.h"
 

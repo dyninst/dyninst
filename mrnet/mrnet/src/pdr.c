@@ -289,11 +289,11 @@ bool_t pdr_string(PDR *pdrs, char **cpp, uint32_t maxsize)
   }
 
   if (! pdr_uint32(pdrs, &nodesize)) {
-    mc_printf((stderr, "pdr_uint32() failed\n"));
+    mc_printf(MCFL, stderr, "pdr_uint32() failed\n");
     return FALSE;
   }
   if (size > maxsize) {
-    mc_printf((stderr, "size:%d > maxsize:%d\n", size, maxsize));
+    mc_printf(MCFL, stderr, "size:%d > maxsize:%d\n", size, maxsize);
     return FALSE;
   }
 

@@ -11,7 +11,7 @@
 #include "mrnet/src/utils.h"
 #include "mrnet/src/config.h"
 #include "mrnet/src/MC_NetworkImpl.h"
-#include "mrnet/src/MC_CommunicationNode.h"
+#include "mrnet/src/MC_BackEndNode.h"
 #include "mrnet/src/MC_StreamImpl.h"
 #include "mrnet/src/MC_CommunicatorImpl.h"
 #include "mrnet/src/MC_EndPointImpl.h"
@@ -39,10 +39,38 @@ void MC_Network::delete_Network()
   delete MC_Network::network;
 }
 
-int MC_Network::init_Backend(const char *_hostname, const char *_port)
+int MC_Network::init_Backend(const char *_hostname, const char *_port,
+                             const char *_phostname,
+                             const char *_pport, const char *_pid)
 {
-  string host(_hostname); unsigned short port(atoi(_port));
-  MC_Network::back_end = new MC_BackEndNode(host, port);
+  string host(_hostname);
+  unsigned short port(atoi(_port));
+  string phost(_phostname);
+  unsigned short pport(atoi(_pport));
+  unsigned short pid(atoi(_pid));
+
+  //TLS: setup thread local storage for frontend
+  //I am "BE(host:port)"
+  string name("BE(");
+  name += getHostName(host);
+  name += ":";
+  name += _port;
+  name += ")";
+
+  int status;
+  if( (status = pthread_key_create(&tsd_key, NULL)) != 0){
+    fprintf(stderr, "pthread_key_create(): %s\n", strerror(status)); 
+    exit(-1);
+  }
+  tsd_t * local_data = new tsd_t;
+  local_data->thread_id = pthread_self();
+  local_data->thread_name = strdup(name.c_str());
+  if( (status = pthread_setspecific(tsd_key, local_data)) != 0){
+    fprintf(stderr, "pthread_key_create(): %s\n", strerror(status)); 
+    exit(-1);
+  }
+
+  MC_Network::back_end = new MC_BackEndNode(host, port, phost, pport, pid);
 
   if( MC_Network::back_end->fail()){
     return -1;
@@ -62,9 +90,9 @@ void MC_Network::error_str(const char *s)
 /*================================================*/
 MC_Stream * MC_Stream::new_Stream(MC_Communicator *comm, int _filter_id)
 {
-  mc_printf((stderr, "comm(%p) size:%d\n",
-	     comm, ((MC_CommunicatorImpl*)(comm))->get_EndPoints()->size()));
-  mc_printf((stderr, "comm's endpoint: %p\n", ((MC_CommunicatorImpl*)(comm))->get_EndPoints()));
+  //mc_printf(MCFL, stderr, "comm(%p) size:%d\n",
+	     //comm, ((MC_CommunicatorImpl*)(comm))->get_EndPoints()->size());
+  //mc_printf(MCFL, stderr, "comm's endpoint: %p\n", ((MC_CommunicatorImpl*)(comm))->get_EndPoints());
   return new MC_StreamImpl(comm, _filter_id);
 }
 
@@ -79,14 +107,14 @@ int MC_Stream::unpack(char * buf, char const *fmt_str, ...)
   int status;
   va_list arg_list;
 
-  mc_printf((stderr, "In stream.unpack()\n"));
-  mc_printf((stderr, "packet(%p) tag: %d, fmt: %s\n", packet, packet->get_Tag(), packet->get_FormatString()));
+  mc_printf(MCFL, stderr, "In stream.unpack()\n");
+  mc_printf(MCFL, stderr, "packet(%p) tag: %d, fmt: %s\n", packet, packet->get_Tag(), packet->get_FormatString());
   va_start(arg_list, fmt_str);
   status = packet->ExtractVaList(fmt_str, arg_list); 
   va_end(arg_list);
 
-  mc_printf((stderr, "stream.unpack() %s",
-             (status==-1 ? "failed\n" : "succeeded\n")));
+  mc_printf(MCFL, stderr, "stream.unpack() %s",
+             (status==-1 ? "failed\n" : "succeeded\n"));
   return status;
 }
 

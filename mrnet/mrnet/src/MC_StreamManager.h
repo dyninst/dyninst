@@ -6,9 +6,8 @@
 
 class MC_RemoteNode;
 class MC_StreamManager{
-  friend class MC_LocalNode;
+  friend class MC_ParentNode;
   friend class MC_InternalNode;
-  friend class MC_FrontEndNode;
  private:
   unsigned short stream_id;
   MC_Filter * aggregator;
@@ -18,8 +17,9 @@ class MC_StreamManager{
   std::list <MC_RemoteNode *> downstream_nodes;
 
  public:
-  MC_StreamManager(int stream_id, int filter_id, MC_RemoteNode * _upstream,
+  MC_StreamManager(int stream_id, int filter_id,
 		   std::list <MC_RemoteNode *> &_downstream);
+  int push_packet(MC_Packet *);
 };
 
 #endif /* __mc_streammanager_h  */

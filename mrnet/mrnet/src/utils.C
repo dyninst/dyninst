@@ -1,7 +1,3 @@
-#include <errno.h>
-#include <string.h>
-
-
 #include "mrnet/src/utils.h"
 #include "mrnet/src/config.h"
 #include <sys/types.h>
@@ -10,10 +6,17 @@
 #include <sys/utsname.h>
 #include <netdb.h>
 #include <stdio.h>
+#include <stdarg.h>
+#include <libgen.h>
+#include <assert.h>
+#include <errno.h>
+#include <string.h>
 
 #define SA struct sockaddr
 
 unsigned int _count;
+pthread_key_t tsd_key;
+
 Line::Line(const char * buf)
 {
   unsigned int i;
@@ -28,11 +31,11 @@ Line::Line(const char * buf)
   }
   free(begin);
 
-  mc_printf((stderr, "Number of words: %d\n", words.size()));
+  mc_printf(MCFL, stderr, "Number of words: %d\n", words.size());
   for(i=0; i<words.size(); i++){
-    mc_printf((stderr, "%s ", words[i].c_str()));
+    mc_printf(MCFL, stderr, "%s ", words[i].c_str());
   }
-  mc_printf((stderr, "\n"));
+  mc_printf(MCFL, stderr, "\n");
   return;
 }
 
@@ -53,13 +56,13 @@ int connect_to_host(int *sock_in, const char * hostname, unsigned short port)
   struct sockaddr_in server_addr;
   struct hostent * server_hostent;
 
-  mc_printf((stderr, "In connect_to_host(%s:%d) ...\n", hostname, port));
+  mc_printf(MCFL, stderr, "In connect_to_host(%s:%d) ...\n", hostname, port);
 
   if(sock == 0){
     sock = socket(AF_INET, SOCK_STREAM, 0);
 
     if(sock == -1){
-      mc_printf((stderr, "socket() failed\n"));
+      mc_printf(MCFL, stderr, "socket() failed\n");
       perror("socket()");
       return -1;
     }
@@ -85,14 +88,14 @@ int connect_to_host(int *sock_in, const char * hostname, unsigned short port)
 
   //char *_hostname; unsigned short _p;
   //if(get_socket_peer(sock, &_hostname, &_p) == -1){
-    //mc_printf((stderr, "%s", ""));
+    //mc_printf(MCFL, stderr, "%s", ""));
     //perror("get_socket_peer()");
   //}
   //else{
-    //mc_printf((stderr, "really connected to %s:%d\n", _hostname, _p));
+    //mc_printf(MCFL, stderr, "really connected to %s:%d\n", _hostname, _p));
   //}
 
-  mc_printf((stderr, "Leaving Connect_to_host(). Returning sock: %d\n", sock));
+  mc_printf(MCFL, stderr, "Leaving Connect_to_host(). Returning sock: %d\n", sock);
   *sock_in = sock;
   return 0;
 }
@@ -103,7 +106,7 @@ int bind_to_port(int *sock_in, unsigned short *port_in)
   unsigned short port=*port_in;
   struct sockaddr_in local_addr;
 
-  mc_printf((stderr, "In bind_to_port(sock:%d, port:%d)\n", sock, port));
+  //mc_printf(MCFL, stderr, "In bind_to_port(sock:%d, port:%d)\n", sock, port);
 
   sock = socket(AF_INET, SOCK_STREAM, 0);
   if(sock == -1){
@@ -139,15 +142,15 @@ int bind_to_port(int *sock_in, unsigned short *port_in)
   }
 
   if(listen(sock, 1) == -1){
-    mc_printf((stderr, "%s", ""));
+    mc_printf(MCFL, stderr, "%s", "");
     perror("listen()");
     return -1;
   }
 
   *sock_in = sock;
   *port_in = port;
-  mc_printf((stderr, "Leaving bind_to_port(). Returning sock:%d, port:%d\n",
-             sock, port));
+  //mc_printf(MCFL, stderr, "Leaving bind_to_port(). Returning sock:%d, port:%d\n",
+             //sock, port);
   return 0;
 }
 
@@ -155,17 +158,17 @@ int get_socket_connection(int bound_socket)
 {
   int connected_socket;
 
-  mc_printf((stderr, "In get_connection(sock:%d).\n", bound_socket));
+  mc_printf(MCFL, stderr, "In get_connection(sock:%d).\n", bound_socket);
 
   connected_socket = accept(bound_socket, NULL, NULL);
   if(connected_socket == -1){
-    mc_printf((stderr, "%s", ""));
+    mc_printf(MCFL, stderr, "%s", "");
     perror("accept()");
     return -1;
   }
 
-  mc_printf((stderr, "Leaving get_connection(). Returning sock:%d\n",
-             connected_socket));
+  mc_printf(MCFL, stderr, "Leaving get_connection(). Returning sock:%d\n",
+             connected_socket);
   return connected_socket;
 }
 
@@ -175,24 +178,24 @@ int get_socket_peer(int connected_socket, char **hostname, unsigned short * port
   unsigned int peer_addrlen=sizeof(peer_addr);
   char buf[256];
 
-  mc_printf((stderr, "In get_socket_peer()\n"));
+  mc_printf(MCFL, stderr, "In get_socket_peer()\n");
 
   if( getpeername(connected_socket, (struct sockaddr *)(&peer_addr), &peer_addrlen) == -1){
-    mc_printf((stderr,"%s", ""));
+    mc_printf(MCFL, stderr,"%s", "");
     perror("getpeername()");
     return -1;
   }
 
   if(inet_ntop(AF_INET, &peer_addr.sin_addr, buf, sizeof(buf)) == NULL){
-    mc_printf((stderr, "%s", ""));
+    mc_printf(MCFL, stderr, "%s", "");
     perror("inet_ntop()");
     return -1;
   }
 
   *port = ntohs(peer_addr.sin_port);
   *hostname = strdup(buf);
-  mc_printf((stderr, "Leaving get_socket_peer(). Returning %s:%d\n",
-             *hostname, *port));
+  mc_printf(MCFL, stderr, "Leaving get_socket_peer(). Returning %s:%d\n",
+             *hostname, *port);
   return 0;
 }
 
@@ -277,17 +280,23 @@ int connect_socket_by_IP(int IP, short port){
 }
 
 // get the current (localhost) machine name, e.g. "grilled"
-const string getHostName()
+const string getHostName(const string _hostname)
 {
   char hostname[256];
+  string hostname_str;
 
-  if (gethostname(hostname,sizeof(hostname)) == -1) {
-    mc_printf((stderr, "%s", ""));
-    perror("gethostname()");
-    return string("");
+  if(_hostname == ""){
+    if (gethostname(hostname,sizeof(hostname)) == -1) {
+      mc_printf(MCFL, stderr, "%s", "");
+      perror("gethostname()");
+      return string("");
+    }
+    hostname_str=hostname;
+  }
+  else{
+    hostname_str=_hostname;
   }
 
-  string hostname_str = string(hostname);
   int idx=hostname_str.find('.');
   if(idx != -1){
     return hostname_str.substr(0, idx);
@@ -315,8 +324,8 @@ const string getDomainName (const string hostname)
     index++;
 
   if (index == networkname.length()) {
-    mc_printf((stderr, "cannot determine network name for %s\n",
-               hostname.c_str()));
+    mc_printf(MCFL, stderr, "cannot determine network name for %s\n",
+               hostname.c_str());
     return string("");
   }
   else {
@@ -324,7 +333,7 @@ const string getDomainName (const string hostname)
     const string domain = networkname.substr(index+1,networkname.length());
     //why can't a hostname contain numerals?
     //if (simplename.regexEquiv("[0-9]*",false)) {
-      //mc_printf((stderr, "Got invalid simplename: %s\n", simplename.c_str()));
+      //mc_printf(MCFL, stderr, "Got invalid simplename: %s\n", simplename.c_str());
       //return ("");
     //}
     //else {
@@ -350,7 +359,7 @@ const string getNetworkName (const string hostname)
 
   hp = gethostbyname(name);
   if (hp == NULL) {
-    mc_printf((stderr, "Host information not found for %s\n", name));
+    mc_printf(MCFL, stderr, "Host information not found for %s\n", name);
     return string("");
   }
 
@@ -361,7 +370,7 @@ const string getNetworkName (const string hostname)
     networkname = getNetworkAddr(networkname); // default to IP address
   }
 
-  return (networkname);
+  return networkname;
 }
 
 // get the network IP address for given hostname (default=localhost)
@@ -382,7 +391,7 @@ const string getNetworkAddr (const string hostname)
 
   hp = gethostbyname(name);
   if (hp == NULL) {
-    mc_printf((stderr, "Host information not found for %s", name));
+    mc_printf(MCFL, stderr, "Host information not found for %s", name);
     return string("");
   }
 
@@ -418,7 +427,7 @@ int execCmd(const string command, const vector<string> &args)
   char **arglist = new char*[arglist_len+2];
   char *cmd = strdup(command.c_str());
 
-  mc_printf((stderr, "In execCmd(%s) with %d args\n", cmd, arglist_len));
+  mc_printf(MCFL, stderr, "In execCmd(%s) with %d args\n", cmd, arglist_len);
 
   arglist[0] = strdup(basename(cmd));
   free(cmd); //basename may modify!
@@ -429,7 +438,7 @@ int execCmd(const string command, const vector<string> &args)
 
   ret = fork();
   if (ret == 0) {
-    mc_printf((stderr, "Forked child calling execvp:"));
+    mc_printf(MCFL, stderr, "Forked child calling execvp:");
     for(i=0; arglist[i] != NULL; i++){
       _fprintf((stderr, "%s ", arglist[i]));
     }
@@ -455,7 +464,7 @@ int remoteCommand(const string remoteExecCmd,
   vector<string> tmp;
   string cmd;
 
-  mc_printf((stderr, "In remoteCommand()\n"));
+  mc_printf(MCFL, stderr, "In remoteCommand()\n");
 #if defined(DEFAULT_RUNAUTH_COMMAND)
   //might be necessary to call runauth to pass credentials
   cmd = DEFAULT_RUNAUTH_COMMAND;
@@ -479,18 +488,18 @@ int remoteCommand(const string remoteExecCmd,
   //remoteExecArgList.push_back("-l0");
 
   // execute the command
-  mc_printf((stderr, "Calling execCmd: %s ", cmd.c_str()));
+  mc_printf(MCFL, stderr, "Calling execCmd: %s ", cmd.c_str());
   for(i=0; i<remoteExecArgList.size(); i++){
     _fprintf((stderr, "%s ", remoteExecArgList[i].c_str()));
   }
   _fprintf((stderr, "\n"));
 
   if( execCmd(cmd, remoteExecArgList ) == -1){
-    mc_printf((stderr, "execCmd() failed\n"));
+    mc_printf(MCFL, stderr, "execCmd() failed\n");
     return -1;
   }
 
-  mc_printf((stderr, "Leaving remoteCommand()\n"));
+  mc_printf(MCFL, stderr, "Leaving remoteCommand()\n");
   return 0;
 }
 
@@ -509,8 +518,24 @@ int rshCommand(const string &hostName, const string &userName,
     rshCmd = rsh;
   }
 
-  mc_printf((stderr, "In rshCmd(). Calling remoteCmd(%s, %s, %s)\n",
-	     rshCmd.c_str(), hostName.c_str(), command.c_str()));
+  mc_printf(MCFL, stderr, "In rshCmd(). Calling remoteCmd(%s, %s, %s)\n",
+	     rshCmd.c_str(), hostName.c_str(), command.c_str());
   return remoteCommand( rshCmd, hostName, userName, command, arg_list);
 }
 
+int mc_printf(const char * file, int line, FILE * fp, const char * format, ...){
+  int retval;
+  va_list arglist;
+
+  tsd_t * tsd = (tsd_t*)pthread_getspecific(tsd_key);
+  // basename modifies 1st arg, so copy
+  strncpy(tsd->tmp_filename, file, sizeof(tsd->tmp_filename));
+  fprintf(fp, "%s:%s:%d: ", tsd->thread_name, basename(tsd->tmp_filename),
+          line);
+
+  va_start(arglist, format);
+  retval = vfprintf(fp, format, arglist);
+  va_end(arglist);
+
+  return retval;
+}

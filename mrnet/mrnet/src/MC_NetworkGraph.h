@@ -44,9 +44,10 @@ class MC_SerialGraph{
 
  public:
   MC_SerialGraph();
+  MC_SerialGraph(const char *);
   MC_SerialGraph(string);
-  void add_Child(int, string, unsigned short);
-  void add_SubTree(string, unsigned short);
+  void add_BackEnd(string, unsigned short, unsigned short);
+  void add_SubTreeRoot(string, unsigned short);
   void end_SubTree();
   string get_ByteArray();
   void print();

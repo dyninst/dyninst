@@ -3,7 +3,6 @@
 
 #include <list>
 #include <vector>
-#include <string>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -83,6 +82,7 @@ class MC_Packet: public MC_Error{
   MC_Packet(int _tag, const char * fmt, ...);
   MC_Packet(unsigned short stream_id, int _tag, const char * fmt, va_list);
   MC_Packet(unsigned int _buf_len, char * _buf);
+  MC_Packet(MC_DataElement *, const char * fmt);
 
   int ExtractVaList(const char * fmt, va_list arg_list); 
   int ExtractArgList(const char * fmt, ...); 
@@ -102,5 +102,5 @@ int MC_read(int fd, void * buf, int size);
 int MC_readmsg(int fd, struct msghdr *msg);
 int MC_write(int fd, const void * buf, int size);
 
-MC_DataTypes Fmt2Type(string cur_fmt);
+MC_DataTypes Fmt2Type(const char * cur_fmt);
 #endif /* MC_Message_h */

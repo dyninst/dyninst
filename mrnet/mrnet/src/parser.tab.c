@@ -652,12 +652,12 @@ case 2:
 #line 36 "/u/d/a/darnold/paradyn/core/mrnet/src/parser.y"
 {
 	    if(potential_root.size() != 1){
-	      mc_printf((stderr, "graph is not connected\n"));
+	      mc_printf(MCFL, stderr, "graph is not connected\n");
 	      YYABORT;
 	    }	   
             std::list<MC_NetworkNode *>::iterator iter=potential_root.begin();
 	    parsed_graph->set_Root(*iter);
-	    fprintf(stderr, "graph's root is %s:%hd\n",
+	    fprintf(stderr, "Graph's Root/FE is %s:%hd\n",
                        (*iter)->get_HostName().c_str(), (*iter)->get_Port() );
 	  ;
     break;}

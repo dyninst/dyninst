@@ -36,9 +36,11 @@ class MC_Aggregator: public MC_Filter{
 class MC_RemoteNode;
 class MC_Synchronizer: public MC_Filter{
  private:
+  std::map <MC_RemoteNode *, std::list<MC_Packet*> *> PacketListByNode;
   void(*sync)(std::list <MC_Packet *>&, std::list <MC_Packet *>&,
-              std::list <MC_RemoteNode *> &);
+              std::list <MC_RemoteNode *> &, void **);
   std::list <MC_RemoteNode *> downstream_nodes;
+  void * object_local_storage;
 
  public:
   MC_Synchronizer(unsigned short _filter_id, std::list <MC_RemoteNode *> &);
@@ -46,6 +48,9 @@ class MC_Synchronizer: public MC_Filter{
   virtual int push_packets(std::list <MC_Packet *> &packets_in,
 			   std::list <MC_Packet *> &packets_out);
 };
+
+#define AGGR_NULL 0
+#define AGGR_NULL_FORMATSTR ""
 
 #define AGGR_INT_SUM_ID 200
 #define AGGR_INT_SUM_FORMATSTR "%d"
@@ -61,14 +66,14 @@ void aggr_CharArray_Concat(MC_DataElement **, int, MC_DataElement ***, int*);
 
 #define SYNC_WAITFORALL 203
 void sync_WaitForAll(std::list <MC_Packet *>&, std::list <MC_Packet *>&,
-                     std::list <MC_RemoteNode *> &);
+                     std::list <MC_RemoteNode *> &, void **);
 
 #define SYNC_DONTWAIT 204
 void sync_DontWait(std::list <MC_Packet *>&, std::list <MC_Packet *>&,
-                   std::list <MC_RemoteNode *> &);
+                   std::list <MC_RemoteNode *> &, void **);
 
 #define SYNC_TIMEOUT 205
 void sync_TimeOut(std::list <MC_Packet *>&, std::list <MC_Packet *>&,
-                  std::list <MC_RemoteNode *> &);
+                  std::list <MC_RemoteNode *> &, void **);
 
 #endif /* __mc_filter_h */

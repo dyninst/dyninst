@@ -4,7 +4,10 @@
 #include <sys/time.h>
 
 
-#include "mrnet/src/MC_CommunicationNode.h"
+#include <list>
+
+#include "mrnet/src/MC_Message.h"
+#include "mrnet/src/MC_InternalNode.h"
 #include "mrnet/src/utils.h"
 
 int main(int argc, char **argv)
@@ -13,25 +16,45 @@ int main(int argc, char **argv)
   int i, status;
   list <MC_Packet *> packet_list;
 
-  if( (status = pthread_key_create(&thread_name_key, NULL)) != 0){
+  if(argc != 6){
+    mc_printf(MCFL, stderr, "Usage: %s hostname port phostname pport pid\n",
+               argv[0]);
+    mc_printf(MCFL, stderr, "Called with (%d) args: ", argc);
+    for(i=0; i<argc; i++){
+      mc_printf(MCFL, stderr, "%s ", argv[i]);
+    }
+    exit(-1);
+  }
+
+  string hostname(argv[1]);
+  unsigned short port = atoi(argv[2]);
+  string parent_hostname(argv[3]);
+  unsigned short parent_port = atol(argv[4]);
+  unsigned short parent_id = atol(argv[5]);
+
+  //TLS: setup thread local storage for internal node
+  //I am "COMM(hostname:port)"
+  string name("COMM(");
+  name += hostname;
+  name += ":";
+  name += argv[2];
+  name += ")";
+
+  if( (status = pthread_key_create(&tsd_key, NULL)) != 0){
     fprintf(stderr, "pthread_key_create(): %s\n", strerror(status)); 
     exit(-1);
   }
   tsd_t * local_data = new tsd_t;
   local_data->thread_id = pthread_self();
-
-  if(argc !=3 && argc != 4){  // remember arg of -l0 added by rpccreateproc()
-    mc_printf((stderr, "Usage: %s hostname port\n", argv[0]));
-    mc_printf((stderr, "Called with (%d) args: ", argc));
-    for(i=0; i<argc; i++){
-      mc_printf((stderr, "%s ", argv[i]));
-    }
+  local_data->thread_name = strdup(name.c_str());
+  if( (status = pthread_setspecific(tsd_key, local_data)) != 0){
+    fprintf(stderr, "pthread_key_create(): %s\n", strerror(status)); 
     exit(-1);
   }
 
-  string parent_hostname(argv[1]);
-  unsigned short parent_port = atol(argv[2]);
-  comm_node = new MC_InternalNode(parent_hostname, parent_port);
+
+  comm_node = new MC_InternalNode(hostname, port, parent_hostname,
+                                  parent_port, parent_id);
 
   comm_node->waitLoop();
 
