@@ -20,13 +20,9 @@ OBJDIR             = $(MRNET_ROOT)/obj/$(PLATFORM)
 #### COMPILERS AND OPTIONS ####
 ###############################
 CC               = @CC@
-C_OPT_FLAGS      = @C_OPT_FLAGS@
-C_NOOPT_FLAGS    = @C_NOOPT_FLAGS@
 CFLAGS           = @CFLAGS@
 
 CXX              = @CXX@
-CXX_OPT_FLAGS    = @CXX_OPT_FLAGS@
-CXX_NOOPT_FLAGS  = @CXX_NOOPT_FLAGS@
 CXXFLAGS         = @CXXFLAGS@
 
 C_LINKER     = @CC@
