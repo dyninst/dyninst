@@ -2,7 +2,12 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.48  1995/01/26 17:58:11  jcargill
+ * Revision 1.49  1995/02/16 08:11:16  markc
+ * Changed Boolean to bool
+ * Changed interfaces that call igen-xdr calls to use strings and vectors rather
+ *    than char*'s and igen-arrays
+ *
+ * Revision 1.48  1995/01/26  17:58:11  jcargill
  * Changed igen-generated include files to new naming convention; fixed
  * some bugs compiling with gcc-2.6.3.
  *
@@ -228,16 +233,13 @@ String_Array convertResourceList(resourceList *rl)
 
 // called when a program is started external to paradyn and
 // must inform paradyn that it exists
-Boolean applicationContext::addRunningProgram (int pid,
-					   int argc,
-					   char **argv,
-					   paradynDaemon *daemon)
+bool applicationContext::addRunningProgram (int pid,
+					    const vector<string> &argv,
+					    paradynDaemon *daemon)
 {
-	executable *exec;
-
-	exec = new executable (pid, argc, argv, daemon);
+	executable *exec = new executable (pid, argv, daemon);
 	programs.add(exec);
-	return TRUE;
+	return true;
 }
 
 
@@ -245,14 +247,14 @@ Boolean applicationContext::addRunningProgram (int pid,
 // add a new paradyn daemon
 // called when a new paradynd contacts the advertised socket
 //
-Boolean applicationContext::addDaemon (int new_fd)
+bool applicationContext::addDaemon (int new_fd)
 {
   paradynDaemon *new_daemon;
 
-  new_daemon = new paradynDaemon (new_fd, NULL, NULL);
+  new_daemon = new paradynDaemon (new_fd);
 
-  msg_bind_buffered (new_daemon->getFd(), TRUE, (int(*)(void*)) xdrrec_eof,
-		     (void*)new_daemon->getXdrs());
+  msg_bind_buffered (new_daemon->get_fd(), true, (int(*)(void*)) xdrrec_eof,
+		     (void*)new_daemon->net_obj());
 
   // TODO - do I need the pid for this ?
   // The pid is reported later in an upcall
@@ -260,7 +262,7 @@ Boolean applicationContext::addDaemon (int new_fd)
 
   daemons.add(new_daemon);
 
-  return (TRUE);
+  return (true);
 }
 
 //
@@ -268,7 +270,7 @@ Boolean applicationContext::addDaemon (int new_fd)
 //    This is called because someone wants to kill a daemon, or the daemon
 //       died and we need to cleanup after it.
 //
-void applicationContext::removeDaemon(paradynDaemon *d, Boolean informUser)
+void applicationContext::removeDaemon(paradynDaemon *d, bool informUser)
 {
 #ifdef notdef
     executable *e;
@@ -281,7 +283,7 @@ void applicationContext::removeDaemon(paradynDaemon *d, Boolean informUser)
       uiMgr->showError (5, "paradynd has died");
     }
 
-    d->dead = TRUE;
+    d->dead = true;
 #ifdef notdef
     daemons.remove(d);
 
@@ -298,7 +300,7 @@ void applicationContext::removeDaemon(paradynDaemon *d, Boolean informUser)
 #endif
 
     // tell the thread package to ignore the fd to the daemon.
-    msg_unbind(d->getFd());
+    msg_unbind(d->get_fd());
 }
 
 //
@@ -319,13 +321,13 @@ paradynDaemon *applicationContext::getDaemonHelper (char *machine,
   // if name is null, use the default daemon name
   if (!name) 
     if (!setDefaultArgs(name))
-      return FALSE;
+      return NULL;
   
   // find out if we have a paradynd on this machine+login+paradynd
   for (curr=daemons, daemon = NULL; *curr; curr++) {
-    if ((!machine || !strcmp((*curr)->machine, machine)) &&
-	(!login || !strcmp((*curr)->login, login)) &&
-	(name && !strcmp((*curr)->name, name))) {
+    if ((!machine || ((*curr)->machine == machine)) &&
+	(!login || ((*curr)->login == login)) &&
+	(name && ((*curr)->name == name))) {
       return (*curr);
     }
   }
@@ -337,31 +339,28 @@ paradynDaemon *applicationContext::getDaemonHelper (char *machine,
 
   // fill in machine name if emtpy
   if (!machine) {
-    char hostStr[80];
-    int len;
-    gethostname(hostStr, 79);
-    len = strlen(hostStr);
-    machine = new char[len+1];
-    strcpy(machine, hostStr);
+    struct utsname un;
+    P_uname(&un);
+    machine = P_strdup(un.nodename);
   }
 
   sprintf(statusLine, "Starting daemon on %s",machine);
   (*DMstatus) << statusLine;
 
   daemon = new paradynDaemon(machine, login, def->getCommand(), def->getName(),
-			     NULL, NULL, def->getFlavor());
+			     def->getFlavor());
 
   (*DMstatus) << "ready";
 
-  if (daemon->getFd() < 0) {
+  if (daemon->get_fd() < 0) {
     //printf("unable to start paradynd: %s\n", def->getCommand());
     //printf("paradyn Error #6\n");
     uiMgr->showError (6, "unable to start paradynd");
     return((paradynDaemon*) NULL);
   }
   daemons.add(daemon);
-  msg_bind_buffered (daemon->getFd(), TRUE, (int(*)(void*))xdrrec_eof,
-		     (void*) daemon->getXdrs());
+  msg_bind_buffered (daemon->get_fd(), true, (int(*)(void*))xdrrec_eof,
+		     (void*) daemon->net_obj());
 
   paradynDdebug(daemon->getPid());
   return daemon;
@@ -371,7 +370,7 @@ paradynDaemon *applicationContext::getDaemonHelper (char *machine,
 // add a new daemon, unless a daemon is already running on that machine
 // with the same machine, login, and program
 //
-Boolean applicationContext::getDaemon (char *machine,
+bool applicationContext::getDaemon (char *machine,
 				       char *login,
 				       char *name)
 {
@@ -379,12 +378,12 @@ Boolean applicationContext::getDaemon (char *machine,
   fixArg(machine); fixArg(login); fixArg(name);
 
   if (!getDaemonHelper(machine, login, name))
-    return FALSE;
+    return false;
   else
-    return TRUE;
+    return true;
 }
 
-Boolean applicationContext::defineDaemon (const char *command,
+bool applicationContext::defineDaemon (const char *command,
 					  const char *dir,
 					  const char *login,
 					  const char *name,
@@ -395,21 +394,20 @@ Boolean applicationContext::defineDaemon (const char *command,
   daemonEntry *newE;
 
   if (!name || !command)
-    return FALSE;
+    return false;
 
   for (walk=allEntries; *walk; walk++)
-    if (!strcmp(name, (*walk)->getName())) {
-      if ((*walk)->freeAll() && (*walk)->setAll(machine, command, name,
-						login, dir, flavor))
-	return TRUE;
+    if ((*walk)->getName() == name) {
+      if ((*walk)->setAll(machine, command, name, login, dir, flavor))
+	return true;
       else
-	return FALSE;
+	return false;
     }
   newE = new daemonEntry(machine, command, name, login, dir, flavor);
   if (!newE)
-    return FALSE;
+    return false;
   allEntries.add(newE);
-  return TRUE;
+  return true;
 }
 
 daemonEntry *applicationContext::findEntry(const char *m, const char *n)
@@ -418,8 +416,9 @@ daemonEntry *applicationContext::findEntry(const char *m, const char *n)
 
   if (!n)
     return ((daemonEntry*) 0);
+  // TODO -- casting
   for (walk=allEntries; *walk; walk++) {
-    if (!strcmp(n, (*walk)->getName()))
+    if ((*walk)->getName() == n)
       return (*walk);
   }
   return ((daemonEntry*) 0);
@@ -445,8 +444,10 @@ String_Array applicationContext::getAvailableDaemons()
     walk=allEntries;
     names.count = walk.count();
     names.data = (char **) malloc(sizeof(char*) * names.count);
+    // TODO -- casting stringHandle to char*
+    // TODO -- memory leak ?
     for (i=0; *walk; walk++,i++) {
-       names.data[i] = (*walk)->getName();
+       names.data[i] = P_strdup((*walk)->getName().string_of());
        assert(names.data[i]);
     }
     assert(i==names.count);
@@ -456,17 +457,15 @@ String_Array applicationContext::getAvailableDaemons()
 //
 // add a new executable (binary) to a program.
 //
-Boolean applicationContext::addExecutable(char  *machine,
+bool applicationContext::addExecutable(char  *machine,
 					  char *login,
 					  char *name,
 					  char *dir,
-					  int argc,
-					  char **argv)
+				          const vector<string> &argv)
 {
   int pid;
   executable *exec;
   paradynDaemon *daemon;
-  String_Array programToRun; 
   static status_line pidnum("Processes");
   static char tmp_buf[256];
 
@@ -476,24 +475,11 @@ Boolean applicationContext::addExecutable(char  *machine,
 
   if ((daemon = getDaemonHelper(machine, login, name)) ==
       (paradynDaemon*) NULL)
-    return FALSE;
-
-  //
-  //  we assume that argv is null terminated
-  //  our String_array must also be null terminated
-  //
-  assert(argv[argc] == NULL);
-  programToRun.count = argc+1;
-  programToRun.data = new char*[argc+1];
-  int i;
-  for (i=0; i<=argc; i++)
-    programToRun.data[i] = argv[i];
+    return false;
 
   startResourceBatchMode();
-  pid = daemon->addExecutable(programToRun);
+  pid = daemon->addExecutable(argv);
   endResourceBatchMode();
-
-  delete [] programToRun.data;
 
   // did the application get started ok?
   if (pid > 0 && !daemon->did_error_occur()) {
@@ -502,25 +488,25 @@ Boolean applicationContext::addExecutable(char  *machine,
     sprintf (tmp_buf, "%sPID=%d ", tmp_buf, pid);
     pidnum.message(tmp_buf);
 
-    exec = new executable(pid, argc, argv, daemon);
+    exec = new executable(pid, argv, daemon);
     programs.add(exec);
-    return (TRUE);
+    return (true);
   } else {
-    return(FALSE);
+    return(false);
   }
 }
 
 //
 // Indicate if at least one application has been defined.
 //
-Boolean applicationContext::applicationDefined() {
+bool applicationContext::applicationDefined() {
     return(programs.count() != 0);
 }
 
 //
 // start the programs running.
 //
-Boolean applicationContext::startApplication()
+bool applicationContext::startApplication()
 {
     executable *exec;
     List<executable*> curr;
@@ -528,13 +514,13 @@ Boolean applicationContext::startApplication()
     for (curr = programs; exec = *curr; curr++) {
 	exec->controlPath->startProgram(exec->pid);
     }
-    return(TRUE);
+    return(true);
 }
 
 //
 // pause all processes.
 //
-Boolean applicationContext::pauseApplication()
+bool applicationContext::pauseApplication()
 {
     paradynDaemon *dm;
     performanceStream* s;
@@ -550,13 +536,13 @@ Boolean applicationContext::pauseApplication()
 	s->callStateFunc(appPaused);
     }
 
-    return(TRUE);
+    return(true);
 }
 
 //
 // pause one processes.
 //
-Boolean applicationContext::pauseProcess(int pid)
+bool applicationContext::pauseProcess(int pid)
 {
     executable *exec;
     List<executable*> curr;
@@ -566,15 +552,15 @@ Boolean applicationContext::pauseProcess(int pid)
     }
     if (exec) {
         exec->controlPath->pauseProgram(exec->pid);
-        return(TRUE); 
+        return(true); 
     } else
-	return (FALSE);
+	return (false);
 }
 
 //
 // continue all processes.
 //
-Boolean applicationContext::continueApplication()
+bool applicationContext::continueApplication()
 {
     paradynDaemon *dm;
     performanceStream* s;
@@ -590,13 +576,13 @@ Boolean applicationContext::continueApplication()
 	s->callStateFunc(appRunning);
     }
 
-    return(TRUE);
+    return(true);
 }
 
 //
 // continue one processes.
 //
-Boolean applicationContext::continueProcess(int pid)
+bool applicationContext::continueProcess(int pid)
 {
     executable *exec;
     List<executable*> curr;
@@ -606,24 +592,24 @@ Boolean applicationContext::continueProcess(int pid)
     }
     if (exec) {
         exec->controlPath->continueProgram(exec->pid);
-        return(TRUE); 
+        return(true); 
     } else
-	return (FALSE);
+	return (false);
 }
 
 //
 // detach the paradyn tool from a running program.  This should clean all
 //   of the dynamic instrumentation that has been inserted.
 //
-Boolean applicationContext::detachApplication(Boolean)
+bool applicationContext::detachApplication(bool pause)
 {
     executable *exec;
     List<executable*> curr;
 
     for (curr = programs; exec = *curr; curr++) {
-	exec->controlPath->continueProgram(exec->pid);
+	exec->controlPath->detachProgram(exec->pid, pause);
     }
-    return(TRUE);
+    return(true);
 }
 
 //
@@ -631,14 +617,13 @@ Boolean applicationContext::detachApplication(Boolean)
 //
 void applicationContext::printStatus()
 {
-    char *status;
     executable *exec;
     List<executable*> curr;
 
     for (curr = programs; exec = *curr; curr++) {
-	status = exec->controlPath->getStatus(exec->pid);
+      string status = exec->controlPath->getStatus(exec->pid);
 	if (!exec->controlPath->did_error_occur()) {
-	    printf("%s\n", status);
+	  cout << status << endl;
 	}
     }
 }
@@ -672,8 +657,9 @@ String_Array applicationContext::getAvailableMetrics()
 
     names.count = metric::allMetrics.count();
     names.data = (char **) malloc(sizeof(char*) * names.count);
+    // TODO -- storing stringHandles into char* ?
     for (cm=metric::allMetrics,i=0; *cm; cm++,i++) {
-       names.data[i] = (*cm)->getName();
+       names.data[i] = (char*) (*cm)->getName();
        assert(names.data[i]);
     }
     assert(i==names.count);
@@ -691,13 +677,13 @@ metric *applicationContext::findMetric(char *name)
     return(metric::allMetrics.find(iName));
 }
 
-Boolean applicationContext::setInstSuppress(resource *res, Boolean newValue)
+bool applicationContext::setInstSuppress(resource *res, bool newValue)
 {
-    Boolean ret;
+    bool ret;
     paradynDaemon *daemon;
     List<paradynDaemon*> curr;
 
-    ret = FALSE;
+    ret = false;
     for (curr = daemons; daemon = *curr; curr++) {
 	ret |= daemon->setTracking((char*)res->getFullName(), newValue);
     }
@@ -712,20 +698,22 @@ float applicationContext::getPredictedDataCost(resourceList *rl, metric *m)
 {
     char *metName;
     double val, max;
-    String_Array ra;
     paradynDaemon *daemon;
     List<paradynDaemon*> curr;
 
     if (!rl || !m) return(0.0);
 
-    ra = convertResourceList(rl);
+    vector<string> vs;
+    assert(rl->convertToStringList(vs));
+
     max = 0.0;
 
-    metName = m->getName();
+    // TODO -- stringHandle or char*
+    metName = (char*) m->getName();
     assert(metName);
     for (curr = daemons; *curr; curr++) {
 	daemon = *curr;
-	val = daemon->getPredictedDataCost(ra, metName);
+	val = daemon->getPredictedDataCost(vs, metName);
 	if (val > max) max = val;
     }
     return(max);
@@ -785,31 +773,31 @@ metricInstance *applicationContext::enableDataCollection(resourceList *rl,
 {
     int id;
     component *comp;
-    String_Array ra;
-    Boolean foundOne;
+    bool foundOne;
     stringHandle name;
     metricInstance *mi;
     paradynDaemon *daemon;
     List<paradynDaemon*> curr;
 
-    ra = convertResourceList(rl);
+    vector<string> vs;
+    assert(rl->convertToStringList(vs));
 
     // 
     // for each daemon request the data to be enabled.
     //
     mi = new metricInstance(rl, m);
-    foundOne = FALSE;
+    foundOne = false;
     for (curr = daemons; daemon = *curr; curr++) {
-	id = daemon->enableDataCollection(ra, m->getName());
+	id = daemon->enableDataCollection(vs, (const char*) m->getName());
 	if (printChangeCollection.getValue()) {
-	  cout << "EDC:  " << (char *) rl->getCanonicalName() 
-	    << " " << id <<"\n";
+	  cout << "EDC:  " << (char*)m->getName()
+	    << (char *) rl->getCanonicalName() << " " << id <<"\n";
 	}
 	if (id > 0 && !daemon->did_error_occur()) {
 	    comp = new component(*curr, id, mi);
 	    mi->components.add(comp, (void *) *curr);
 	    mi->parts.add(&comp->sample, (void *) *curr);
-	    foundOne = TRUE;
+	    foundOne = true;
 	}
     }
     if (foundOne) {
@@ -853,6 +841,7 @@ void applicationContext::disableDataCollection(metricInstance *mi)
     for (curr = mi->components; c = *curr; curr++) {
 	delete(c);
     }
+    // TODO -- is this safe, what if data is reported for this ?
     delete(mi);
 }
 
@@ -872,12 +861,12 @@ void applicationContext::endResourceBatchMode()
     }
 }
 
-Boolean applicationContext::setDefaultArgs(char *&name)
+bool applicationContext::setDefaultArgs(char *&name)
 {
   if (!name)
     name = strdup("defd");
   if (name)
-    return TRUE;
+    return true;
   else 
-    return FALSE;
+    return false;
 }
