@@ -77,7 +77,7 @@ vector<pd_Function *> *shared_object::getSomeFunctions(){
 	    if(mod_name) delete mod_name;
 	    if(mod_part) delete mod_part;
           }
-	  if(next) delete next;
+	  if(next) free(next); // strdup allocs via malloc, so we use free() here
 
       } }
 
