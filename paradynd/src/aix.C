@@ -160,7 +160,7 @@ bool process::readDataFromFrame(int currentFP, int *fp, int *rtn)
     if (readDataSpace((caddr_t) currentFP, 
 		      sizeof(linkArea), 
 		      (caddr_t) &linkArea,
-		      true)) {
+		      false)) {
         *fp = linkArea.oldFp;
         *rtn = linkArea.savedLR;
         if (currentFP == firstFrame) {
@@ -191,11 +191,19 @@ bool ptraceKludge::deliverPtrace(process *p, int req, char *addr,
 }
 
 void ptraceKludge::continueProcess(process *p, const bool wasStopped) {
-#ifdef notdef
-    if (ptrace(PT_CONTINUE, p->pid, (caddr_t) 1, SIGCONT, NULL) == -1) {
-#endif
   if ((p->status() != neonatal) && (!wasStopped)) {
-    if (ptrace(PT_DETACH, p->pid, (int *) 1, SIGCONT, NULL) == -1) { // aix 4.1 likes int *
+
+/* Choose either one of the following methods to continue a process.
+ * The choice must be consistent with that in process::continueProc_ and 
+ * OS::osStop.
+ */
+
+#if !defined(PTRACE_ATTACH_DETACH)
+    if (ptrace(PT_CONTINUE, p->pid, (int *) 1, SIGCONT, NULL) == -1) {
+#else
+    if (ptrace(PT_DETACH, p->pid, (int *) 1, SIGCONT, NULL) == -1) { 
+    // aix 4.1 likes int *
+#endif
       cerr << "error in continueProcess\n";
       assert(0);
     }
@@ -213,28 +221,27 @@ void OS::osDisconnect(void) {
 bool OS::osAttach(pid_t process_id) {
   int ret;
 
-  ret = ptrace(PT_ATTACH, process_id, 0, 0, 0);
+  ret = ptrace(PT_ATTACH, process_id, (int *)0, 0, 0);
   if (ret == -1) {
-      ret = ptrace(PT_REATT, process_id, 0, 0, 0);
+      ret = ptrace(PT_REATT, process_id, (int *)0, 0, 0);
   }
   return (ret != -1);
 }
 
 bool OS::osStop(pid_t pid) { 
+/* Choose either one of the following methods for stopping a process, 
+ * but not both. 
+ * The choice must be consistent with that in process::continueProc_ 
+ * and ptraceKludge::continueProcess
+ */
+#if !defined(PTRACE_ATTACH_DETACH)
+	return (P_kill(pid, SIGSTOP) != -1); 
+#else
 	// attach generates a SIG TRAP which we catch
 	if (!osAttach(pid)) {
           assert(kill(pid, SIGSTOP) != -1);
         }
         return(true);
-#ifdef notdef
-	// for some reason AIX is much happier to send SIGINT. SIGSTOPS seem
-	//   to get lost sometimes - jkh 5/13/95
-	bool okStop = (kill(pid, SIGINT) != -1);
-	if (okStop) {
-	    return(osAttach(pid));
-	}
-        else logLine("-----> okStop returned FALSE in osStop\n");
-	return false;
 #endif
 }
 
@@ -247,12 +254,16 @@ bool OS::osDumpCore(pid_t pid, const string dumpTo) {
 }
 
 bool OS::osForwardSignal (pid_t pid, int stat) {
+#if defined(PTRACE_ATTACH_DETACH)
   if (stat != 0) {
       ptrace(PT_DETACH, pid, (int*)1, stat, 0); // aix 4.1 likes int *
       return (true);
   } else {
       return (ptrace(PT_CONTINUE, pid, (int*)1, 0, 0) != -1); // aix 4.1 likes int *
   }
+#else
+  return (ptrace(PT_CONTINUE, pid, (int*)1, stat, NULL) != -1);
+#endif
 }
 
 void OS::osTraceMe(void) { ptrace(PT_TRACE_ME, 0, 0, 0, 0); }
@@ -276,17 +287,25 @@ bool process::attach() {
 
 // TODO is this safe here ?
 bool process::continueProc_() {
-  int ret1, ret2;
+  int ret;
 
   if (!checkStatus()) 
     return false;
   ptraceOps++; ptraceOtherOps++;
-#ifdef notdef
+
+/* Choose either one of the following methods to continue a process.
+ * The choice must be consistent with that in process::continueProc_ and 
+ * OS::osStop.
+ */
+
+#if !defined(PTRACE_ATTACH_DETACH)
   // switch these to not detach after every call.
-  ret1 = ptrace(PT_CONTINUE, pid, (char*)1, SIGCONT, (char*)NULL);
+  ret = ptrace(PT_CONTINUE, pid, (int *)1, 0, NULL);
+#else
+  ret = ptrace(PT_DETACH, pid, (int *)1, SIGCONT, NULL);
 #endif
-  ret2 = ptrace(PT_DETACH, pid, (int*)1, SIGCONT, NULL);
-  return (ret1 != -1 && ret2 != -2);
+
+  return (ret != -1);
 }
 
 // TODO ??
