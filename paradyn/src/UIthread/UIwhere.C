@@ -44,7 +44,7 @@
  * code related to displaying the where axes lives here
  */
 
-/* $Id: UIwhere.C,v 1.25 1999/12/17 16:24:56 pcroth Exp $ */
+/* $Id: UIwhere.C,v 1.26 2002/11/25 23:52:20 schendel Exp $ */
 
 #include "UIglobals.h" // UIM_BatchMode
 #include "dataManager.thread.h"
@@ -61,11 +61,9 @@
  *  Creates dag for abstraction if none exists.
 */
 int numResourceAddedCBSoFar = 0;
-void resourceAddedCB (perfStreamHandle,
-		      resourceHandle parent, 
-		      resourceHandle newResource, 
-		      const char *name,
-		      const char *abs)
+void resourceAddedCB(perfStreamHandle, resourceHandle parent, 
+                     resourceHandle newResource, const char *name,
+                     const char *abs)
 {
 
 #if UIM_DEBUG
@@ -126,3 +124,19 @@ void resourceAddedCB (perfStreamHandle,
      ui_status->message("ready");
   }
 }
+
+void resourceRetiredCB(perfStreamHandle handle, resourceHandle uniqueID, 
+                       const char *name, const char *abs) {
+   extern abstractions *theAbstractions;
+   assert(theAbstractions);
+   
+   abstractions &theAbs = *theAbstractions;
+   string theAbstractionName = abs;
+   whereAxis &theWhereAxis = theAbs[theAbstractionName];
+   // may create a where axis!
+
+   theWhereAxis.retireItem(uniqueID);
+   initiateWhereAxisRedraw(interp, true);
+}
+
+

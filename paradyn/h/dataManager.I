@@ -1,6 +1,6 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
- * $Id: dataManager.I,v 1.105 2001/08/23 14:43:31 schendel Exp $
+ * $Id: dataManager.I,v 1.106 2002/11/25 23:51:41 schendel Exp $
  */
 
 #ifndef MMTHREAD_H
@@ -96,6 +96,11 @@ typedef void (*resourceInfoCallback)(perfStreamHandle handle,
 				     const char *name,
 				     const char *abstraction);
 
+typedef void (*resourceRetireCallback)(perfStreamHandle handle, 
+				       resourceHandle uniqueID, 
+				       const char *name,
+                                       const char *abstr);
+
 typedef enum { batchStart, batchEnd } batchMode;
 
 typedef void (*resourceBatchModeCallback)(perfStreamHandle, batchMode mode); 
@@ -152,6 +157,7 @@ typedef void (*enableDataCallbackFunc)(vector<metricInstInfo> *response,
 struct controlCallback {
     metricInfoCallback		mFunc;
     resourceInfoCallback	rFunc;
+    resourceRetireCallback	retireFunc;
     resourceBatchModeCallback	bFunc;
     // histFoldCallback must delete memory at widthPtr
     histFoldCallback		fFunc;
@@ -690,6 +696,12 @@ $remote dataManager {
 					   resourceHandle newResource, 
 					   const char *name,
 					   const char *abstr);
+
+    $upcall $async void retireResource_(resourceRetireCallback,
+				        perfStreamHandle, 
+                                        resourceHandle uniqueID, 
+					const char *name,
+                                        const char *abstr);
 
     $upcall $async void changeResourceBatchMode(resourceBatchModeCallback,
 					        perfStreamHandle, 
