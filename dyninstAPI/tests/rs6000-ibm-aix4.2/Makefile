@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.10 2000/11/15 22:56:38 bernat Exp $
+# $Id: Makefile,v 1.11 2000/12/15 22:28:28 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -37,7 +37,7 @@ DYNINSTAPI_RT_LIB=$(TO_CORE)/$(LIBRARY_DEST)/libdyninstAPI_RT.o
 MUTATEE_OBJ = $(TARGET2:_$(MUTATEE_CC)=.o)
 
 ifeq (xl,$(findstring xl,$(MUTATEE_CC)))
-COMPILER = $(shell strings `which $(MUTATEE_CC)` | grep Compiler | head -1)
+COMPILER = $(MUTATEE_CC) -- version not known
 MUTATEE_CFLAGS = $(ARCH_DEF) -bkeepfile:$(MUTATEE_OBJ)
 ifeq ($(MUTATEE_CC),$(NATIVE_CXX))
 MUTATEE_CFLAGS += -+
