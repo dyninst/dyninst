@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.142 2002/06/27 19:01:43 schendel Exp $
+// $Id: symtab.C,v 1.143 2002/10/28 04:54:07 schendel Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -130,8 +130,9 @@ pdmodule *image::newModule(const string &name, const Address addr)
     pdmodule *ret;
     // modules can be defined several times in C++ due to templates and
     //   in-line member functions.
-    if ((ret = findModule(name, TRUE)))
+    if ((ret = findModule(name, TRUE))) {
       return(ret);
+    }
 
     string fullNm, fileNm;
     char *out = P_strdup(name.c_str());
@@ -152,7 +153,7 @@ pdmodule *image::newModule(const string &name, const Address addr)
     // if module was excluded,stuff it into excludedMods (and dont
     //  index it in modeByFileName && modsByFullName.
     if (module_is_excluded(ret)) {
-        excludedMods += ret;
+       excludedMods += ret;
     } else {
 #endif /* BPATCH_LIBRARY */
         modsByFileName[ret->fileName()] = ret;
@@ -569,14 +570,14 @@ pdmodule *image::findModule(const string &name, bool find_if_excluded)
     //cerr << " (image::findModule) found module in modsByFullName" << endl;
     return (modsByFullName[name]);
   }
-  
+
   // if also looking for excluded functions, check through 
   //  excludedFunction list to see if any match function by FullName
   //  or FileName....
   if (find_if_excluded) {
       for(i=0;i<excludedMods.size();i++) {
-	if ((excludedMods[i]->fileName() == name) ||
-                  (excludedMods[i]->fullName() == name)) {
+         if ((excludedMods[i]->fileName() == name) ||
+             (excludedMods[i]->fullName() == name)) {
 	  //cerr << " (image::findModule) found module in excludedMods" << endl;
 	  return excludedMods[i];
 	}
@@ -737,9 +738,6 @@ void image::FillInCallGraphStatic(process *proc)
 
 
 void pdmodule::define() {
-#ifndef BPATCH_LIBRARY
-  resource *moduleResource = NULL;
-#endif
 #ifdef DEBUG_MODS
   char buffer[100];
   ostrstream osb(buffer, 100, ios::out);
@@ -761,17 +759,17 @@ void pdmodule::define() {
     //if (!(pdf->isLibTag())) {
     if (1) {
       // see if we have created module yet.
-      if (!moduleResource) {
-	moduleResource = resource::newResource(moduleRoot, this,
+      if (!modResource) {
+	modResource = resource::newResource(moduleRoot, this,
 					    nullString, // abstraction
 					    fileName(), // name
-					    timeStamp::ts1970(), // creation time
+					  timeStamp::ts1970(), // creation time
 					    string(), // unique-ifier
 					    MDL_T_MODULE,
 					    false);
       }
 
-      pdf->SetFuncResource(resource::newResource(moduleResource, pdf,
+      pdf->SetFuncResource(resource::newResource(modResource, pdf,
 						 nullString, // abstraction
 						 pdf->prettyName(), 
 						 timeStamp::ts1970(),
@@ -793,9 +791,9 @@ void pdmodule::define() {
 // send message to data manager to specify the entry function for the
 //  call graph corresponding to a given image.  r should hold the 
 //  FULL resourcename of the entry function (e.g. "/Code/module.c/main")
-void CallGraphSetEntryFuncCallback(string exe_name, string r)
+void CallGraphSetEntryFuncCallback(string exe_name, string r, int tid)
 {
-    tp->CallGraphSetEntryFuncCallback(exe_name, r);
+    tp->CallGraphSetEntryFuncCallback(exe_name, r, tid);
 }
 
 void CallGraphAddProgramCallback(string name){
@@ -822,7 +820,7 @@ void AddCallGraphNodeCallback(string exe_name, string r)
 void AddCallGraphStaticChildrenCallback(string exe_name, string r,
 					const vector<string> children) 
 {
-    tp->AddCallGraphStaticChildrenCallback(exe_name, r, children);
+   tp->AddCallGraphStaticChildrenCallback(exe_name, r, children);
 }
 
 // Called across all modules (in a given image) to define the call
@@ -887,6 +885,7 @@ void pdmodule::FillInCallGraphStatic(process *proc) {
     //  describing children of resource r....
     string exe_name = proc->getImage()->file();
     AddCallGraphNodeCallback(exe_name, resource_full_name);
+
     AddCallGraphStaticChildrenCallback(exe_name, resource_full_name,
 				       callees_as_strings);
 
@@ -999,6 +998,14 @@ const vector <pdmodule*> &image::getIncludedModules() {
     //print_module_vector_by_short_name(string("  "), &includedMods);
 
     return includedMods;
+}
+
+const vector <pdmodule*> &image::getExcludedModules() {
+    //cerr << "image::getIncludedModules called" << endl;
+    //cerr << " about to return includedMods = " << endl;
+    //print_module_vector_by_short_name(string("  "), &includedMods);
+
+   return excludedMods;
 }
 #endif
 
@@ -1834,6 +1841,14 @@ void image::updateForFork(process *childProcess, const process *parentProcess)
   }
 }
 
+pdmodule *image::findModule(function_base *func) {
+   for(unsigned i=0; i<includedMods.size(); i++) {
+      pdmodule *curMod = includedMods[i];
+      function_base *foundFunc = curMod->findFunction(func->prettyName());
+      if(foundFunc != NULL) return curMod;
+   }
+   return NULL;
+}
 
 #if 0
 // Only looks for function by pretty name.
