@@ -112,7 +112,7 @@ bool init() {
   syncRoot = resource::newResource(rootResource, NULL, nullString, 
 				   string("SyncObject"), 0.0, "", MDL_T_STRING);
   // TODO -- should these be detected and built ?
-  resource::newResource(syncRoot, NULL, nullString, "MsgTag", 0.0, "", MDL_T_STRING);
+  resource::newResource(syncRoot, NULL, nullString, "Message", 0.0, "", MDL_T_STRING);
   resource::newResource(syncRoot, NULL, nullString, "SpinLock", 0.0, "", MDL_T_STRING);
   resource::newResource(syncRoot, NULL, nullString, "Barrier", 0.0, "", MDL_T_STRING);
   resource::newResource(syncRoot, NULL, nullString, "Semaphore", 0.0, "", MDL_T_STRING);
