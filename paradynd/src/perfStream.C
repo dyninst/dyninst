@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.114 2000/11/15 22:57:58 bernat Exp $
+// $Id: perfStream.C,v 1.115 2001/03/09 20:01:44 shergali Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -290,6 +290,7 @@ void processTraceStream(process *curr)
 							      timeBase::bStd()));
 	  done_yet = true;
 	}
+
 	switch (header.type) {
 #if defined(MT_THREAD)
 	    case TR_THR_CREATE:
@@ -331,15 +332,27 @@ void processTraceStream(process *curr)
 		break;
 #endif
 
+ 
 	    case TR_EXIT:
-		sprintf(errorLine, "process %d exited\n", curr->getPid());
-		logLine(errorLine);
-		printAppStats((struct endStatsRec *) ((void*)recordData));
-		printDyninstStats();
-  		P_close(curr->traceLink);
-  		curr->traceLink = -1;
-		handleProcessExit(curr, 0);
-		break;
+            {
+		/* 03/09/2001 - Jeffrey Shergalis
+		 * Under Optimization level 3 on SPARC this portion of
+		 * code was breaking due to an unalligned address issue
+		 * to fix this, we create an endStatsRec struct and memcopy
+		 * all of the data into it, then pass the address of that
+		 * struct to the printAppStats call
+		 */
+                struct endStatsRec r;
+                sprintf(errorLine, "process %d exited\n", curr->getPid());
+                logLine(errorLine);
+                memcpy(&r, recordData, sizeof(r));
+                printAppStats(&r);
+                printDyninstStats();
+                P_close(curr->traceLink);
+                curr->traceLink = -1;
+                handleProcessExit(curr, 0);
+                break;
+            }
 
 #ifndef SHM_SAMPLING
 	    case TR_COST_UPDATE:
