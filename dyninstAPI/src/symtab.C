@@ -7,7 +7,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/symtab.C,v 1.19 1994/11/10 18:58:19 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/symtab.C,v 1.20 1994/11/10 21:01:21 markc Exp $";
 #endif
 
 /*
@@ -16,7 +16,11 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyn
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
- * Revision 1.19  1994/11/10 18:58:19  jcargill
+ * Revision 1.20  1994/11/10 21:01:21  markc
+ * Turn off creation of MODS file.
+ * Don't assume a .o is a module until all of the real modules have been seen.
+ *
+ * Revision 1.19  1994/11/10  18:58:19  jcargill
  * The "Don't Blame Me Either" commit
  *
  * Revision 1.18  1994/11/09  18:40:38  rbi
@@ -596,14 +600,14 @@ void module::define() {
   pdFunction *pdf; string pds;
   resource *modResource = NULL;
   char buffer[100];
-  ostrstream osb(buffer, 100, ios::out);
-  osb << "MODS_" << exec->name << "__" << getpid() << ends;
-  ofstream of(buffer, ios::app);
+  // ostrstream osb(buffer, 100, ios::out);
+  // osb << "MODS_" << exec->name << "__" << getpid() << ends;
+  // ofstream of(buffer, ios::app);
 
   dictionary_hash_iter<string, pdFunction*> fi(funcMap);
   while (fi.next(pds, pdf)) {
-    of << fileName << ":  " << pdf->prettyName <<  "  " <<
-      (pdf->tag & TAG_LIB_FUNC) << endl;
+    // of << fileName << ":  " << pdf->prettyName <<  "  " <<
+    // (pdf->tag & TAG_LIB_FUNC) << endl;
     if (!(pdf->tag & TAG_LIB_FUNC)) { // IGNORE LINE NUMBERS FOR NOW
       // see if we have created module yet.
       if (!modResource) {
@@ -792,6 +796,7 @@ image::image(char *fileName, bool &err)
   // since calls to "real" functions that have yet to be seen must be handled
   vector<Symbol> almostFuncs;
   dictionary_hash<Address, Symbol*> modDict(hash_address);
+  dictionary_hash<Address, Symbol*> tempDict(hash_address);
 
   symIter.reset();
   char nameBuf[300];
@@ -818,10 +823,10 @@ image::image(char *fileName, bool &err)
       strcpy(nameBuf, (lookUp.name()).string_of());
       int len = strlen(nameBuf);
       if ((len > 2) && (nameBuf[len-1] == 'o') && (nameBuf[len-2] == '.')) {
-	if (!modDict.defines(lookUp.addr())) {
+	if (!tempDict.defines(lookUp.addr())) {
 	  Symbol *s = new Symbol(lookUp);
 	  assert(s);
-	  modDict[lookUp.addr()] = s;
+	  tempDict[lookUp.addr()] = s;
 	}
 	// END NASTY KLUDGE
       } else if (isValidAddress(lookUp.addr()))
@@ -852,6 +857,14 @@ image::image(char *fileName, bool &err)
   }
 
   Address adr; Symbol *s;
+  dictionary_hash_iter<Address, Symbol*> ti(tempDict);
+  while (ti.next(adr, s)) {
+    if (!modDict.defines(adr)) 
+      modDict[adr] = s;
+    else 
+      delete s;
+  }
+
   dictionary_hash_iter<Address, Symbol*> di(modDict);
   vector<Symbol> mods(modDict.size());
   int i =0;
