@@ -1,7 +1,10 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.41  1995/10/17 22:25:00  tamches
+# Revision 1.42  1995/11/03 21:19:22  naim
+# Changing exit option - naim
+#
+# Revision 1.41  1995/10/17  22:25:00  tamches
 # "performance consultant" now calls shgInitialize instead of
 # "paradyn shg start global".
 # Added a "Where Axis" item to de-iconify the where axis.
@@ -244,7 +247,7 @@ proc drawToolBar {} {
 	    -height 20
     mkButtonBar .parent.buttons {} retval {{RUN "paradyn cont"} \
 	    {PAUSE "paradyn pause"} {SAVE ""} \
-	    {EXIT "destroy ."}}
+	    {EXIT "paradyn exit"}}
 
 #   Both RUN and PAUSE buttons are disabled when paradyn starts running
 #   since there is no process to RUN or to PAUSE
