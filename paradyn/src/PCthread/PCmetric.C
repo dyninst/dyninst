@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCmetric.C,v $
- * Revision 1.15  1994/07/02 01:43:37  markc
+ * Revision 1.16  1994/07/14 23:48:28  hollings
+ * added checks to make sure met is non null.
+ *
+ * Revision 1.15  1994/07/02  01:43:37  markc
  * Remove aggregation operator from enableDataCollection call.
  *
  * Revision 1.14  1994/06/29  02:56:20  hollings
@@ -111,7 +114,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.15 1994/07/02 01:43:37 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.16 1994/07/14 23:48:28 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -277,6 +280,9 @@ Boolean PCmetric::changeCollection(focus *f, collectMode newMode)
     if (newMode == getCollectionCost) {
 	float predictedCost;
 
+	if (!met) return(FALSE);
+
+	assert(f->data);
 	predictedCost = dataMgr->getPredictedDataCost(context, f->data, met);
 
 	globalPredicatedCost += predictedCost;
