@@ -2,7 +2,10 @@
  *  DGclient.C -- Code for the visi<->tcl interface.
  *    
  * $Log: DGclient.C,v $
- * Revision 1.14  1996/02/23 17:51:11  tamches
+ * Revision 1.15  1996/04/04 22:28:58  newhall
+ * changed type of args to visi_DefinePhase to match visi interface
+ *
+ * Revision 1.14  1996/02/23  17:51:11  tamches
  * DEFINEPHASE now takes 3 params instead of 1
  *
  * Revision 1.13  1996/02/11 21:25:09  tamches
@@ -284,13 +287,14 @@ int Dg_TclCommand(ClientData,
 
   case DEFINEPHASE: {
     // argv[2] --> phase name (currently unused!)
-    // argv[3] --> with perf consult (boolean value)
-    // argv[4] --> with visis (boolean value)
+    // argv[3] --> with perf consult (int value)
+    // argv[4] --> with visis (int value)
 
     int withPerfConsult = 0;
     int withVisis = 0;
-    (void)Tcl_GetBoolean(interp, argv[3], &withPerfConsult);
-    (void)Tcl_GetBoolean(interp, argv[4], &withVisis);
+    withPerfConsult = atoi(argv[3]);
+    withVisis = atoi(argv[4]);
+
 
     visi_DefinePhase(NULL, (bool)withPerfConsult, (bool)withVisis);
        // let paradyn pick the phase's name
