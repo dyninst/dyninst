@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisMT.C,v 1.2 2002/04/22 13:48:58 bernat Exp $
+// $Id: solarisMT.C,v 1.3 2002/05/02 21:29:08 schendel Exp $
 
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/pdThread.h"
@@ -66,7 +66,9 @@ pdThread *process::createThread(
   unsigned pd_pos;
   if(!threadMap->add(tid,pd_pos)) {
     // we run out of space, so we should try to get some more - naim
-    if (getTable().increaseMaxNumberOfThreads()) {
+
+    /* is this still needed ? - bhs
+    if (getVariableMgr().increaseMaxNumberOfThreads()) {
       if (!threadMap->add(tid,pd_pos)) {
 	// we should be able to add more threads! - naim
 	assert(0);
@@ -75,6 +77,7 @@ pdThread *process::createThread(
       // we completely run out of space! - naim
       assert(0);
     }
+    */
   }
   thr->update_pd_pos(pd_pos);
   thr->update_resumestate_p(resumestate_p);
@@ -100,7 +103,7 @@ pdThread *process::createThread(
     }
   }
 
-  getTable().addThread(thr);
+  //getVariableMgr().addThread(thr);  // is this still needed? - bhs
 
   //  
   sprintf(errorLine,"+++++ creating new thread{%s}, pd_pos=%u, pos=%u, tid=%d, stack=0x%x, resumestate=0x%x, by[%s]\n",
@@ -125,7 +128,8 @@ void process::updateThread(pdThread *thr, int tid, unsigned pos, void* resumesta
   assert(threadMap);
   if(!threadMap->add(tid,pd_pos)) {
     // we run out of space, so we should try to get some more - naim
-    if (getTable().increaseMaxNumberOfThreads()) {
+    /*  bhs
+    if (getVariableMgr().increaseMaxNumberOfThreads()) {
       if (!threadMap->add(tid,pd_pos)) {
         // we should be able to add more threads! - naim
         assert(0);
@@ -134,6 +138,7 @@ void process::updateThread(pdThread *thr, int tid, unsigned pos, void* resumesta
       // we completely run out of space! - naim
       assert(0);
     }
+    */
   }
   thr->update_pd_pos(pd_pos);
   thr->update_rid(rid);
@@ -187,7 +192,8 @@ void process::updateThread(
   assert(threadMap);
   if(!threadMap->add(tid,pd_pos)) {
     // we run out of space, so we should try to get some more - naim
-    if (getTable().increaseMaxNumberOfThreads()) {
+    /*  bhs
+    if (getVariableMgr().increaseMaxNumberOfThreads()) {
       if (!threadMap->add(tid,pd_pos)) {
 	// we should be able to add more threads! - naim
 	assert(0);
@@ -196,6 +202,7 @@ void process::updateThread(
       // we completely run out of space! - naim
       assert(0);
     }
+    */
   }
 
   thr->update_pd_pos(pd_pos);
@@ -240,7 +247,7 @@ void process::deleteThread(int tid)
     }   
   }
   if (thr != NULL) {
-    getTable().deleteThread(thr);
+    getVariableMgr().deleteThread(thr);
     unsigned theSize = threads.size();
     threads[i] = threads[theSize-1];
     threads.resize(theSize-1);
