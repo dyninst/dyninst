@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.174 2005/03/01 23:08:01 bernat Exp $
+// $Id: solaris.C,v 1.175 2005/03/03 21:51:36 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -863,8 +863,8 @@ Frame Frame::getCallerFrame()
 	assert(status == true);
 	newPC = regs.theIntRegs[R_O7] + 8;
 	newFP = fp_; // frame pointer unchanged
+	return Frame(newPC, newFP, newSP, 0, this);
       }
-      return Frame(newPC, newFP, newSP, 0, this);
     }
   }
   //
@@ -884,12 +884,11 @@ Frame Frame::getCallerFrame()
   if (getProc()->readDataSpace((caddr_t)(fp_ + 56), 2*sizeof(int),
 			       (caddr_t)&addrs, true))
     {
+
       newFP = addrs.fp;
       newPC = addrs.rtn + 8;
-      
-      // Check if we're in a sig handler, since we don't know if the
-      // _current_ frame has its type set at all.
-      if (getProc()->isInSignalHandler(pc_)) {
+
+      if (isSignalFrame()) {
          // get the value of the saved PC: this value is stored in the
          // address specified by the value in register i2 + 44. Register i2
          // must contain the address of some struct that contains, among
@@ -920,18 +919,16 @@ Frame Frame::getCallerFrame()
          // since we think we're at a function entry.
          if (newFP == 0) newPC = 0;
       }
-
       Frame ret = Frame(newPC, newFP, 0, 0, this);
 
       // If we're in a base tramp, skip this frame (return getCallerFrame)
       // as we only return minitramps
       codeRange *range = getRange();
-      if (range->is_basetramp())
+      if (range->is_basetramp()) {
           return ret.getCallerFrame();
-
+      }
       return ret;
     }
-  
    return Frame(); // zero frame
 }
 
