@@ -164,6 +164,8 @@ class metricInstance {
 	metricInstanceHandle getHandle(){ return(id); }
 	metricHandle getMetricHandle(){ return(met); }
 	resourceListHandle getFocusHandle(){ return(focus); }
+	const char *getMetricName(){ return(metric::getName(met));}
+	const char *getFocusName(){return(resourceList::getName(focus));}
 	void addInterval(timeStamp s,timeStamp e,sampleValue v,bool b){
 	     if(data) 
                  data->addInterval(s,e,v,b);
