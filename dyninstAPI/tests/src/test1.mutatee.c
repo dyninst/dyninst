@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.93 2003/09/11 15:38:06 eli Exp $ */
+/* $Id: test1.mutatee.c,v 1.94 2003/09/17 17:06:29 eli Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -2376,6 +2376,7 @@ void call37_3()
 
 
 void func37_1() {
+    
     printf("Skipped test #37 (instrument loops)\n");
     printf("\t- work in progress\n");
     passedTest[37] = TRUE;
@@ -2414,6 +2415,56 @@ void func37_1() {
 	printf( "Passed test #37 (instrument loops)\n" );    
     }
     */
+}
+
+
+/* Test #38 (basic block addresses) */
+
+int globalVariable38_1 = 0;
+
+void funCall38_1() { globalVariable38_1++; }
+void funCall38_2() { globalVariable38_1++; }
+void funCall38_3() { globalVariable38_1++; }
+void funCall38_4() { globalVariable38_1++; }
+void funCall38_5() { globalVariable38_1++; }
+void funCall38_6() { globalVariable38_1++; }
+void funCall38_7() { globalVariable38_1++; }
+
+
+/* the mutator checks if the addresses of these call* functions are within 
+   the address ranges of the basic blocks in the flowgraph */
+void call38_1() {
+    int i, j, k, m;
+
+    funCall38_1();
+
+    for (i = 0; i < 50; i++) {
+	m = i;
+	funCall38_2();
+
+	for (j = 0; i < 100; i++) {
+	    for (k = 0; k < j / 50 ; i++) {
+		funCall38_3();
+	    }
+	}
+
+	funCall38_4();
+
+	while (m < 100) {
+	    funCall38_5();
+	    m++;
+	}
+
+	funCall38_6();
+    }
+
+    funCall38_7();
+}
+
+void func38_1() {
+    /* The only possible failures occur in the mutator. */
+    passedTest[ 38 ] = TRUE;
+    printf( "Passed test #38 (basic block addresses)\n" );
 }
 
 
@@ -2491,4 +2542,5 @@ void runTests()
     if (runTest[35]) func35_1();
     if (runTest[36]) func36_1();    
     if (runTest[37]) func37_1();
+    if (runTest[38]) func38_1();
 }
