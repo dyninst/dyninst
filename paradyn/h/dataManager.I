@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.45  1995/08/12 22:26:47  newhall
+ * Revision 1.46  1995/08/18 21:40:49  mjrg
+ * uncommented defineDaemon
+ *
+ * Revision 1.45  1995/08/12  22:26:47  newhall
  * added DM_sequential_init() & DM_post_thread_create_init() members
  * moved struct init_struct from paradyn.h to dataManager.I
  *
@@ -314,12 +317,12 @@ $remote dataManager {
     //     Note - arguments that are not used should be passed in
     //            as null, anything else will be assumed to be a
     //            valid string.
-    // bool defineDaemon (const char *command,
-    // 	               const char *dir,
-    // 	               const char *login,
-    //                 const char *name,
-    // 	               const char *machine,
-    //                 const char *flavor);
+     bool defineDaemon (const char *command,
+     	                const char *dir,
+     	                const char *login,
+                        const char *name,
+     	                const char *machine,
+                        const char *flavor);
 
     //
     // Define a program to run. 
