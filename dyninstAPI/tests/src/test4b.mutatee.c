@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test4b.mutatee.c,v 1.5 2000/08/07 00:33:30 wylie Exp $ */
+/* $Id: test4b.mutatee.c,v 1.6 2004/01/23 22:01:34 tlmiller Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -9,7 +9,7 @@
 #include <signal.h>
 #include <string.h>
 #include <stdlib.h>
-
+#include <stdarg.h>
 
 #if defined(i386_unknown_nt4_0) && !defined(__GNUC__)
 #define WIN32_LEAN_AND_MEAN
@@ -30,10 +30,20 @@ int mutateeCplusplus = 0;
 #endif
 const char *Builder_id=COMPILER; /* defined on compile line */
 
-/* control debug printf statements */
-#define dprintf if (debugPrint) printf
 int debugPrint = 0;
 
+/* control debug printf statements */
+void dprintf(const char *fmt, ...) {
+	va_list args;
+	va_start(args, fmt);
+     
+	if( debugPrint ) {
+		vfprintf(stderr, fmt, args);
+		}
+	va_end(args);
+	fflush(stderr);
+	}
+	
 #define TRUE    1
 #define FALSE   0
 
