@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 1998/04/01 02:50:10 wylie Exp $
+# $Id: Makefile,v 1.3 2000/02/15 23:54:22 hollings Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -15,12 +15,14 @@ include ../../nmake.config
 # Now make any necessary architecture specific changes to variables:
 
 SRCS =		../src/pdwinnt.C \
+		../src/Object-nt.C \
 		../src/init-winnt.C \
 		../src/inst-winnt.C \
 		../src/inst-x86.C \
 		../src/arch-x86.C 
 
 OBJS = 		pdwinnt.obj \
+		Object-nt.obj \
 		init-winnt.obj \
 		inst-winnt.obj \
 		inst-x86.obj \
