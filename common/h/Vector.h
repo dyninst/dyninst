@@ -46,16 +46,7 @@
 #pragma interface
 #endif
 
-//ifdef this to nothing if it bothers old broken compilers
-#define TYPENAME typename
-
-#if ! defined( TYPENAME31 )
-#if ( __GNUC__ == 3 ) && ( __GNUC_MINOR__ == 1 )
-#define TYPENAME31 typename
-#else
-#define TYPENAME31
-#endif
-#endif
+#include "common/h/language.h"
 
 #if defined(i386_unknown_nt4_0)
 //turn off 255 char identifier truncation message
@@ -66,7 +57,7 @@
 //#include <stdlib.h>
 //#include <stl.h>
 //extern "C" {
-//typedef int (*qsort_cmpfunc_t)(const void *, const void *);
+//extern "C" typedef int (*qsort_cmpfunc_t)(const void *, const void *);
 //}
 //#define VECTOR_APPEND(l1, l2) 	{ for (unsigned int _i=0; _i < (l2).size(); _i++) (l1).push_back((l2)[_i]); }
 //#define VECTOR_SORT(l1, f) 	qsort((l1).begin(),(l1).size(),sizeof((l1).front()), (qsort_cmpfunc_t) f);
@@ -90,7 +81,7 @@
 
 #ifndef _KERNEL
 extern "C" {
-typedef int (*qsort_cmpfunc_t)(const void *, const void *);
+   typedef int (*qsort_cmpfunc_t)(const void *, const void *);
 }
 #endif
 
@@ -271,7 +262,7 @@ class pdvector {
    // back to the beginning of the pdvector if you intend to erase an element.
    DO_INLINE_F void erase(unsigned start, unsigned end);
    DO_INLINE_F void erase(iterator itr);
-   DO_INLINE_F void sort (int (*)(const void *, const void *));
+   DO_INLINE_F void sort(qsort_cmpfunc_t cmpfunc);
 
    DO_INLINE_F
    void swap(pdvector<T, A> &other) {
@@ -472,8 +463,8 @@ pdvector<T, A>::push_back(const T& t) {
 
 template<class T, class A>
 DO_INLINE_F
-void pdvector<T, A>::sort(int (*cmpfunc)(const void *, const void *)) {
-   qsort((void *) data_, sz_, sizeof(T), (qsort_cmpfunc_t)cmpfunc);
+void pdvector<T, A>::sort(qsort_cmpfunc_t cmpfunc) {
+   qsort((void *) data_, sz_, sizeof(T), cmpfunc);
 }
 
 template<class T, class A>
