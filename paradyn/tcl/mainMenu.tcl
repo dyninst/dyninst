@@ -1,35 +1,5 @@
 # main tool bar
 
-#
-# $Log: mainMenu.tcl,v $
-# Revision 1.57  1997/01/15 00:15:48  tamches
-# added an attach menu item
-#
-# Revision 1.56  1996/10/31 08:23:33  tamches
-# v1.1 --> v1.2 internal
-#
-# Revision 1.55  1996/09/04 21:22:17  tamches
-# added version # on screen
-#
-# Revision 1.54  1996/05/06 16:41:44  naim
-# Adding window to confirm whether the user wants to exit paradyn - naim
-#
-# Revision 1.53  1996/04/01  22:34:56  tamches
-# removed tclSelectionState
-#
-# Revision 1.52  1996/02/12 18:31:35  tamches
-# shgInitialize now takes 3 params
-#
-# Revision 1.51  1996/02/08 01:01:49  tamches
-# starting a new phase w/ visis greyed out since not yet implemented
-#
-# Revision 1.50  1996/02/08 00:01:44  tamches
-# Dimmed the Help menu, since it's not yet implemented
-#
-# Revision 1.49  1996/02/07 19:16:14  tamches
-# added new phase menu
-#
-
 ## changeApplicState
 ## changes button status of "run" and "pause" buttons, so that opposite 
 ## of current state can always be pressed but current state cannot.
@@ -136,7 +106,7 @@ proc drawToolBar {} {
     frame .parent.menub.left.top.title.versionFrame -background #b3331e1b53c7
     pack  .parent.menub.left.top.title.versionFrame -side right -fill y -expand false
 	    
-    label .parent.menub.left.top.title.versionFrame.version -text "v1.2 internal" \
+    label .parent.menub.left.top.title.versionFrame.version -text "v1.2 alpha 1" \
 	    -font "*-Helvetica-*-r-*-12-*" \
 	    -background #b3331e1b53c7 \
 	    -foreground white \
