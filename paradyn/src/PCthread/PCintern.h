@@ -20,6 +20,9 @@
  * Included by PC modules only
  *  
  * $Log: PCintern.h,v $
+ * Revision 1.3  1996/02/22 18:31:18  karavan
+ * changed GUI node styles from #defines to enum
+ *
  * Revision 1.2  1996/02/12 08:23:47  karavan
  * eliminated (ugh) full pathname from include
  *
@@ -31,7 +34,20 @@
 #ifndef PC_INTERN_H
 #define PC_INTERN_H
 
+#include <iostream.h>
 #include "util/h/sys.h"
+//sys.h defines the following:
+//  typedef double timeStamp;
+//  typedef float sampleValue;
+//  typedef struct {
+//     timeStamp start;
+//     timeStamp end;
+//      sampleValue value;
+//  } Interval;
+#define PCdataQSize 20
+typedef struct Interval Interval;
+ostream& operator <<(ostream &os, Interval &i);
+
 #include "../pdMain/paradyn.h"
 #include "util/h/list.h"
 #include "util/h/PriorityQueue.h"
@@ -70,15 +86,5 @@ extern hypothesis *const topLevelHypothesis;
 extern bool PChyposDefined;
 extern int PCnumActiveExperiments;
 
-// display styles for search GUI
-#define INACTIVEUNKNOWNNODESTYLE 1
-#define ACTIVEUNKNOWNNODESTYLE 4
-#define ACTIVETRUENODESTYLE 3
-#define ACTIVEFALSENODESTYLE 5
-#define INACTIVETRUENODESTYLE 6
-#define INACTIVEFALSENODESTYLE 2
-#define WHEREEDGESTYLE 1
-#define WHYEDGESTYLE 2
-#define WHENEDGESTYLE 3
-
 #endif
+
