@@ -65,7 +65,7 @@ void DYNINST_initialize_index_list()
   if (init_index_done) return;
   tc_lock_init(&DYNINST_index_lock);
   for (i = 0; i < MAX_NUMBER_OF_THREADS; i++)
-    RTsharedData.indexToThread[i] = 0;
+      indexToThreads[i] = 0;
   /* 0 means a free slot. */
   DYNINST_next_free_index = 0;
   DYNINST_num_index_free = MAX_NUMBER_OF_THREADS;
@@ -95,8 +95,8 @@ unsigned DYNINST_alloc_index(int tid)
     /* We've got the lock, stay here as short a time as indexsible */
     next_free_index = DYNINST_next_free_index;
     
-    while (RTsharedData.indexToThread[next_free_index] != 0) {
-        if (RTsharedData.indexToThread[next_free_index] == THREAD_AWAITING_DELETION)
+    while (indexToThreads[next_free_index] != 0) {
+        if (indexToThreads[next_free_index] == THREAD_AWAITING_DELETION)
             saw_deleted_index = 1;
         next_free_index++;
         if (next_free_index >= MAX_NUMBER_OF_THREADS)
@@ -115,7 +115,7 @@ unsigned DYNINST_alloc_index(int tid)
     }
     /* next_free_index is free */
     
-    RTsharedData.indexToThread[next_free_index] = tid;
+    indexToThreads[next_free_index] = tid;
     DYNINST_num_index_free--;
     DYNINST_next_free_index = next_free_index+1;
     
@@ -136,7 +136,7 @@ unsigned DYNINST_alloc_index(int tid)
 void DYNINST_free_index(unsigned index, int tid)
 {
     unsigned hashed_tid;
-    if (RTsharedData.indexToThread[index] != tid) {
+    if (indexToThreads[index] != tid) {
         return;
     }
     if (DYNINST_DEAD_LOCK == tc_lock_lock(&DYNINST_index_lock)) {
@@ -144,7 +144,7 @@ void DYNINST_free_index(unsigned index, int tid)
     }
     /* Don't free immediately -- the daemon needs to clear out the
        variable arrays first */
-    RTsharedData.indexToThread[index] = THREAD_AWAITING_DELETION;
+    indexToThreads[index] = THREAD_AWAITING_DELETION;
     DYNINST_num_index_free++;
     
     hashed_tid = tid % MAX_NUMBER_OF_THREADS;
@@ -165,7 +165,7 @@ unsigned DYNINST_lookup_index(int tid)
   /* Readonly... no need to lock */
   unsigned i;
   for (i = 0; i < MAX_NUMBER_OF_THREADS; i++)
-    if (RTsharedData.indexToThread[i] == tid)
+    if (indexToThreads[i] == tid)
       return i;
   return MAX_NUMBER_OF_THREADS;
 }
@@ -185,7 +185,7 @@ unsigned DYNINSTthreadIndexSLOW(int tid)
 
   while(1) {
       index = DYNINST_indexHash[hashed_tid];
-      if ((index >= 0) && (RTsharedData.indexToThread[index] == tid)) {
+      if ((index >= 0) && (indexToThreads[index] == tid)) {
          /* Found it */
           break;
       }

@@ -92,14 +92,14 @@ void DYNINST_initialize_once(char *DYNINST_shmSegAttachedPtr) {
     DYNINST_initialize_index_list();
     DYNINST_initialize_done=1;
     for (i = 0; i < MAX_NUMBER_OF_THREADS; i++) {
-      RTsharedData.virtualTimers[i].total = 0;
-      RTsharedData.virtualTimers[i].start = 0;
-      RTsharedData.virtualTimers[i].counter = 0;
-      RTsharedData.virtualTimers[i].lwp = 0;
-      RTsharedData.virtualTimers[i].rt_fd = 0;
-      RTsharedData.virtualTimers[i].protector1 = 0;
-      RTsharedData.virtualTimers[i].protector2 = 0;
-      RTsharedData.virtualTimers[i].rt_previous = 0;
+      virtualTimers[i].total = 0;
+      virtualTimers[i].start = 0;
+      virtualTimers[i].counter = 0;
+      virtualTimers[i].lwp = 0;
+      virtualTimers[i].rt_fd = 0;
+      virtualTimers[i].protector1 = 0;
+      virtualTimers[i].protector2 = 0;
+      virtualTimers[i].rt_previous = 0;
     }    
   }
   tc_lock_unlock(&DYNINST_initLock);

@@ -68,6 +68,7 @@ int DYNINST_reportThreadUpdate(int flag) {
       traceRec.ppid   = getpid();
       traceRec.tid    = tid;
       traceRec.index    = index;
+      traceRec.lwp = P_lwp_self();
       traceRec.ntids  = 1;
       traceRec.stride = 0;
       traceRec.stack_addr = (unsigned) stackbase;
@@ -84,7 +85,7 @@ int DYNINST_reportThreadUpdate(int flag) {
   } 
   
   /* Called by parent thread... start its virtual timer */
-  _VirtualTimerStart(&(RTsharedData.virtualTimers[index]), THREAD_CREATE) ;
+  _VirtualTimerStart(&(virtualTimers[index]), THREAD_CREATE) ;
   return index ;
 }
 
@@ -103,12 +104,13 @@ void DYNINST_reportNewThread(unsigned index, int tid)
             traceThread traceRec ;
             traceRec.ppid   = getpid();
             traceRec.tid    = tid;
+            traceRec.index=index ;
+            traceRec.lwp = P_lwp_self();
             traceRec.ntids  = 1;
             traceRec.stride = 0;
             traceRec.stack_addr = (unsigned) stackbase;
             traceRec.start_pc = (unsigned) startpc ;
             traceRec.resumestate_p = resumestate_p ;
-            traceRec.index=index ;
             traceRec.context = FLAG_SELF ;
             DYNINSTgenerateTraceRecord(0,
                                        TR_THR_CREATE,sizeof(traceRec),
@@ -150,7 +152,7 @@ void DYNINSTthreadDelete(void) {
 
   DYNINST_reportThreadDeletion(index, tid);
 
-  _VirtualTimerStop(&(RTsharedData.virtualTimers[index]));
+  _VirtualTimerStop(&(virtualTimers[index]));
 
 }
 
@@ -183,7 +185,7 @@ int DYNINSTregister_running_thread(void) {
 */
       return 0;
    }
-   vt = &(RTsharedData.virtualTimers[index]);
+   vt = &(virtualTimers[index]);
 /*
    sprintf(line, "  register, tid: %d, index: %d, lwp: %d, addr: %p\n",
            tid, index, P_lwp_self(), vt);
@@ -215,9 +217,9 @@ unsigned DYNINSTthreadCreate(int tid)
   index = DYNINST_alloc_index(tid);
   lwpid = P_lwp_self();
   /* Set up virtual timers */
-  if (&(RTsharedData.virtualTimers[index])) {
-      _VirtualTimerDestroy(&(RTsharedData.virtualTimers[index]));
-      _VirtualTimerStart(&(RTsharedData.virtualTimers[index]), THREAD_CREATE) ;
+  if (&(virtualTimers[index])) {
+      _VirtualTimerDestroy(&(virtualTimers[index]));
+      _VirtualTimerStart(&(virtualTimers[index]), THREAD_CREATE) ;
   }
 
   /* Report new thread */
@@ -238,15 +240,17 @@ void DYNINSTthreadStart() {
   if (index >= 0) {
     int lwpid = P_lwp_self() ;
     /* Restart the virtual timer */
-    _VirtualTimerStart(&(RTsharedData.virtualTimers[index]), VIRTUAL_TIMER_START) ;
+    _VirtualTimerStart(&(virtualTimers[index]), VIRTUAL_TIMER_START) ;
 
+#if 0
     /* Check to see if there are pending iRPCs to run */
     for (i = 0; i < MAX_PENDING_RPC; i++)
-      if (RTsharedData.pendingIRPCs[index][i].flag == 1) { /* Ha! We have an RPC! */
-	if (RTsharedData.pendingIRPCs[index][i].rpc)
-	  (*RTsharedData.pendingIRPCs[index][i].rpc)();
-	RTsharedData.pendingIRPCs[index][i].flag = 2;
+      if (pendingIRPCs[index][i].flag == 1) { /* Ha! We have an RPC! */
+	if (pendingIRPCs[index][i].rpc)
+	  (*pendingIRPCs[index][i].rpc)();
+	pendingIRPCs[index][i].flag = 2;
       }
+#endif
   }
 }
 
@@ -255,8 +259,8 @@ void DYNINSTthreadStop() {
   int index; /* in mini */
   index = DYNINSTthreadIndexFAST() ; /* in mini */
   if (index >=0) {
-    _VirtualTimerStop(&(RTsharedData.virtualTimers[index])) ;
-    _VirtualTimerFinalize(&(RTsharedData.virtualTimers[index])) ;
+    _VirtualTimerStop(&(virtualTimers[index])) ;
+    _VirtualTimerFinalize(&(virtualTimers[index])) ;
   }
 }
 
