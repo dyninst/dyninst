@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_Vector.h,v 1.9 2001/08/29 23:25:24 hollings Exp $
+// $Id: BPatch_Vector.h,v 1.10 2001/10/22 19:35:41 buck Exp $
 
 #ifndef _BPatch_Vector_h_
 #define _BPatch_Vector_h_
@@ -59,9 +59,13 @@
 #pragma interface
 #endif /* external_templates */
 
+/*
+ * This causes problems when including this file in code that uses STL,
+ * so I'm taking it out for now.  - brb
 #ifndef BPATCH_LIBRARY
 #define vector	BPatch_Vector
 #endif
+ */
 
 template<class T>
 class BPATCH_DLL_EXPORT BPatch_Vector {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.41 2001/09/12 19:36:22 tikir Exp $
+// $Id: BPatch.C,v 1.42 2001/10/22 19:35:43 buck Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -483,7 +483,7 @@ void BPatch::reportError(BPatchErrorLevel severity, int number, const char *str)
 
     if (bpatch->errorHandler != NULL) {
 	bpatch->errorHandler(severity, number, &str);
-    } else {
+    } else if ((severity == BPatchFatal) || (severity == BPatchSerious)){
 	fprintf(stdout, "DYNINST ERROR: %s\n", str);
 	fflush(stdout);
     }
