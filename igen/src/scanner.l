@@ -124,6 +124,7 @@ FWD     "forward"
 		    REJECT;
 		}
 "forward"     	{ printf("forward!\n"); return(tFORWARD); }
+\$nobundle      { return(tNOBUNDLE); }
 \$upcall	{ return(tUPCALL); }
 \$virtual	{ return(tVIRTUAL); }
 \$base		{ return(tBASE); }

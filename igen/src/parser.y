@@ -55,7 +55,7 @@ extern void yyerror(char*);
 
 %token tIDENT tCOMMA tSTAR tNAME tBASE tUNS tUPCALL tASYNC
 %token tLPAREN tRPAREN tSEMI tLBLOCK tRBLOCK 
-%token tTYPEDEF tSTRUCT tVERSION tVIRTUAL
+%token tTYPEDEF tSTRUCT tVERSION tVIRTUAL tNOBUNDLE
 %token tCLASS tCOLON tCIGNORE tSIGNORE tLINE tCONST tIGNORE
 %token tANGLE_L tANGLE_R tFREE tREF tABSTRACT tFORWARD
 %%
@@ -176,6 +176,12 @@ typeSpec: classOrStruct tIDENT optDerived
 					     type_defn::TYPE_COMPLEX,
                                              false, false));
    delete $2.cp;
+}
+| tNOBUNDLE classOrStruct tIDENT tSEMI {
+   $$.cp = new string(Options::allocate_type(*$3.cp, $2.class_data.b,
+					     type_defn::TYPE_COMPLEX,
+                                             false, true));
+   delete $3.cp; 
 }
 
 ; 

@@ -41,21 +41,7 @@ string type_defn::gen_bundler_call(bool send_routine,
                                    const string &obj, const string &data,
 				   const unsigned /*pointer_count*/) const
 {
-  //string pointer_suffix;
-  //switch (pointer_count) {
-  //  case 0: pointer_suffix = ""; break;
-  //  case 1: pointer_suffix = "_PTR"; break;
-  //  default: assert(0);
-  //}
   return gen_bundler_name(send_routine) + "(" + obj + ", " + data + ")";
-  //if (!is_stl())
-  //  return (gen_bundler_name(send_routine) + "(" + obj + ", " 
-  //	    + (send_routine? "" : "&") + data + ")");
-  //else 
-  //  return (gen_bundler_name_stl(send_routine) + pointer_suffix + "(" + obj + ", &" + 
-  //	    data + ", (" + stl_arg_->type() + "*)NULL)");
-	    //data + ", " + stl_arg_->gen_bundler_name(send_routine) + 
-	    //", (" + stl_arg_->type() + "*)NULL)");
 }
 
 string type_defn::dump_args(const string data_name, const string sep) const {
