@@ -1,3 +1,5 @@
+/* -*- Mode: C; indent-tabs-mode: true -*- */
+
 /*
  * Copyright (c) 1996 Barton P. Miller
  * 
@@ -41,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.21 2003/01/23 17:55:49 tlmiller Exp $
+ * $Id: inst-ia64.C,v 1.22 2003/02/25 21:11:08 tlmiller Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -1211,7 +1213,11 @@ fprintf( stderr, "Generating return instance from 0x%lx to 0x%lx\n", returnFrom,
 bool pd_Function::isNearBranchInsn( const instruction insn ) { assert( 0 ); return false; }
 
 /* Required by process.C */
-bool process::emitInferiorRPCheader( void * void_insnPtr, Address & baseBytes, bool isFunclet ) { assert( 0 ); return false; }
+bool process::emitInferiorRPCheader( void * insnPtr, Address & baseBytes, bool isFunclet ) {
+		
+
+	assert(0); return false;
+	} /* end emitInferiorRPCheader() */
 
 void generateMTpreamble(char *, Address &, process *) {
 	assert( 0 );	// We don't yet handle multiple threads.

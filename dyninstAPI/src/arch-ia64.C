@@ -1,3 +1,5 @@
+/* -*- Mode: C; indent-tabs-mode: true -*- */
+
 /*
  * Copyright (c) 1996 Barton P. Miller
  * 
@@ -39,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.15 2003/01/23 17:55:49 tlmiller Exp $
+// $Id: arch-ia64.C,v 1.16 2003/02/25 21:11:08 tlmiller Exp $
 // ia64 instruction decoder
 
 #include <assert.h>

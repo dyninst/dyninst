@@ -1,3 +1,5 @@
+/* -*- Mode: C; indent-tabs-mode: true -*- */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>

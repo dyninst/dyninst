@@ -1,3 +1,5 @@
+/* -*- Mode: C; indent-tabs-mode: true -*- */
+
 #ifndef LINUX_IA64_HDR
 #define LINUX_IA64_HDR
 

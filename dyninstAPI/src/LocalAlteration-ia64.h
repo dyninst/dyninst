@@ -1,3 +1,5 @@
+/* -*- Mode: C; indent-tabs-mode: true -*- */
+
 /*
  * Copyright (c) 1996-2001 Barton P. Miller
  * 
@@ -39,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-ia64.h,v 1.1 2002/02/11 22:01:56 tlmiller Exp $
+// $Id: LocalAlteration-ia64.h,v 1.2 2003/02/25 21:11:08 tlmiller Exp $
 
 #ifndef __LocalAlteration_X86_H__
 #define __LocalAlteration_X86_H__

@@ -1,3 +1,5 @@
+/* -*- Mode: C; indent-tabs-mode: true -*- */
+
 #include <stdio.h>
 
 // debugging... is there a Paradyn Standard for this?
@@ -186,7 +188,7 @@ Address getPC( int pid ) {
 	errno = 0;
 	Address pc = P_ptrace( PTRACE_PEEKUSER, pid, PT_CR_IIP, 0 );
 	if( errno ) { perror( "getPC()" ); exit( -1 ); return 0; }
-	
+
 	return pc;
 	} /* end getPC() */
 
@@ -389,14 +391,14 @@ bool process::loadDYNINSTlib() {
 	dyninstlib_brk_addr = entry + ((DLOPEN_CALL_LENGTH) * 16);
 
 	/* Let them know we're working on it. */
-	isLoadingDyninstLib = true;
+	setBootstrapState( loadingRT );
 
 	/* We finished successfully. */
 	fprintf( stderr, "*** Hijacked function at 0x%lx to force DYNINSTLIB loading, installed SIGILL at 0x%lx\n", entry, dyninstlib_brk_addr );
 	return true;
 	} /* end dlopenDYNINSTlib() */
 
-void process::handleIfDueToDyninstLib() {
+bool process::loadDYNINSTlibCleanup() {
 	/* We function did we hijack? */
 	Address entry = findFunctionToHijack(symbols, this);	// We can avoid using InsnAddr because we know 
 								// that function entry points are aligned.
@@ -419,7 +421,8 @@ void process::handleIfDueToDyninstLib() {
 	changePC( pid, entry );
 
 	fprintf( stderr, "*** Handled trap due to dyninstLib.\n" );
-	} /* end handleIfDueToDyninstLib() */
+	return true;
+	} /* end loadDYNINSTlibCleanup() */
 
 Frame Frame::getCallerFrame( process * /* p */ ) const {
 	assert( 0 );

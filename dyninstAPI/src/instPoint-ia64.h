@@ -1,3 +1,5 @@
+/* -*- Mode: C; indent-tabs-mode: true -*- */
+
 /*
  * Copyright (c) 1996 Barton P. Miller
  * 
@@ -39,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-ia64.h,v 1.4 2002/08/23 01:56:03 tlmiller Exp $
+// $Id: instPoint-ia64.h,v 1.5 2003/02/25 21:11:08 tlmiller Exp $
 
 #ifndef _INST_POINT_IA64_H_
 #define _INST_POINT_IA64_H_
