@@ -2,9 +2,12 @@
 // Ariel Tamches
 
 /* $Log: abstractions.C,v $
-/* Revision 1.4  1995/08/07 00:00:34  tamches
-/* Added name2index
+/* Revision 1.5  1995/09/20 01:15:48  tamches
+/* minor change; some usages of int --> unsigned
 /*
+ * Revision 1.4  1995/08/07  00:00:34  tamches
+ * Added name2index
+ *
  * Revision 1.3  1995/07/24  21:32:48  tamches
  * Added getTkWindow(), get*SBName(), and change(string) member
  * functions.
@@ -63,7 +66,7 @@ whereAxis<USERNODEDATA> &abstractions<USERNODEDATA>::operator[](string &absName)
    // name, however, we ADD A NEW WHERE-AXIS and return that one.
    // This routine pretty much ignores the concept of a current where axis.
 
-   for (int i=0; i < theAbstractions.size(); i++) {
+   for (unsigned i=0; i < theAbstractions.size(); i++) {
       if (absName == theAbstractions[i].abstractionName) {
          assert(theAbstractions[i].theWhereAxis);
          return *(theAbstractions[i].theWhereAxis);
@@ -83,7 +86,7 @@ whereAxis<USERNODEDATA> &abstractions<USERNODEDATA>::operator[](string &absName)
 template <class USERNODEDATA>
 int abstractions<USERNODEDATA>::name2index(const string &name) const {
    // returns -1 if not found
-   for (int i=0; i < theAbstractions.size(); i++)
+   for (unsigned i=0; i < theAbstractions.size(); i++)
       if (name == theAbstractions[i].abstractionName)
          return i;
 
@@ -95,7 +98,7 @@ bool abstractions<USERNODEDATA>::change(string &newName) {
    // unlike change(unsigned), we return true if successful (as opposed
    // to if any changes were made)
 
-   for (int i=0; i < theAbstractions.size(); i++) {
+   for (unsigned i=0; i < theAbstractions.size(); i++) {
       whereAxisStruct &was = theAbstractions[i];
       if (was.abstractionName == newName) {
          (void)change(i);

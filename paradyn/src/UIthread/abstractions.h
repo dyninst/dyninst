@@ -6,9 +6,12 @@
 // abstractions.
 
 /* $Log: abstractions.h,v $
-/* Revision 1.4  1995/08/07 00:00:51  tamches
-/* Added name2index(), getAbsMenuName()
+/* Revision 1.5  1995/09/20 01:15:47  tamches
+/* minor change; some usages of int --> unsigned
 /*
+ * Revision 1.4  1995/08/07  00:00:51  tamches
+ * Added name2index(), getAbsMenuName()
+ *
  * Revision 1.3  1995/07/24  21:32:47  tamches
  * Added getTkWindow(), get*SBName(), and change(string) member
  * functions.
@@ -88,7 +91,7 @@ class abstractions {
       theTkWindow = iTkWindow;
    }
   ~abstractions() {
-      for (int i=0; i < theAbstractions.size(); i++)
+      for (unsigned i=0; i < theAbstractions.size(); i++)
          delete theAbstractions[i].theWhereAxis;
  
       currAbstractionIndex = ULONG_MAX;
@@ -136,7 +139,7 @@ class abstractions {
       if (!existsCurrent())
          return;
 
-      for (int i=0; i < theAbstractions.size(); i++) {
+      for (unsigned i=0; i < theAbstractions.size(); i++) {
          theAbstractions[i].theWhereAxis->recursiveDoneAddingChildren();
          theAbstractions[i].theWhereAxis->resize(i==currAbstractionIndex);
       }
