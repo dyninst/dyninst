@@ -1,6 +1,11 @@
 /*
  * $Log: PCevalTest.h,v $
- * Revision 1.6  1994/09/05 20:00:53  jcargill
+ * Revision 1.7  1994/09/22 01:00:21  markc
+ * Added const to char* for addHint()
+ *
+ * Made printfs expecting n args get n args
+ *
+ * Revision 1.6  1994/09/05  20:00:53  jcargill
  * Better control of PC output through tunable constants.
  *
  * Revision 1.5  1994/08/05  16:04:11  hollings
@@ -54,8 +59,8 @@
 class testValue {
     public:
 	testValue() { status = FALSE; }
-	void addHint(focus*, char*);
-	void addHint(resource*, char*);
+	void addHint(focus*, const char*);
+	void addHint(resource*, const char*);
 	void addHint(hypothesis*, char*);
 	void addHint(timeInterval*, char*);
 
@@ -76,7 +81,7 @@ class testResult {
     public:
 	testResult() 	{ state.hints = NULL; time = 0.0; ableToEnable = FALSE;}
 	void print();
-	operator ==(testResult *);
+	int operator == (testResult *);
 	testValue state;
 	test *t;		// which test
 	focus *f;		// at this focus
@@ -94,7 +99,8 @@ class testResultList: public List<testResult*> {
 	    stringHandle id;
 	    testResult *ret;
 
-	    sprintf(str, "%d %d %d", res->t, res->f, res->at);
+	    sprintf(str, "%x %x %x", (unsigned) res->t, (unsigned) res->f,
+		    (unsigned) res->at);
 	    id = resultPool.findAndAdd(str);
 	    ret = List<testResult*>::find(id);
 	    if (ret) {
@@ -111,7 +117,7 @@ class testResultList: public List<testResult*> {
 	    char str[80];
 	    stringHandle id;
 
-	    sprintf(str, "%d %d %d", t, f, when);
+	    sprintf(str, "%x %x %x", (unsigned) t, (unsigned) f, (unsigned) when);
 	    id = resultPool.findAndAdd(str);
 	    return (List<testResult*>::find(id)); 
 	}
@@ -119,7 +125,8 @@ class testResultList: public List<testResult*> {
             char str[80];
             stringHandle id;
   
-            sprintf(str, "%d %d %d", res->t, res->f, res->at);
+            sprintf(str, "%x %x %x", (unsigned) res->t, (unsigned) res->f,
+		    (unsigned) res->at);
             id = resultPool.findAndAdd(str);
             return List<testResult*>::remove(id);
 	}
