@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.160 2003/06/29 19:55:49 hollings Exp $
+// $Id: aix.C,v 1.161 2003/06/30 15:11:39 hollings Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -1358,6 +1358,7 @@ char *(*P_varName)(Name *);
 char *(*P_text)(Name *);
 NameKind (*P_kind)(Name *);
 
+#if defined(BPATCH_LIBRARY)
 void loadNativeDemangler() 
 {
    char *buffer[1024];
@@ -1398,6 +1399,8 @@ void loadNativeDemangler()
 #endif
    }
 }
+
+#endif
 
 extern "C" char *cplus_demangle(char *, int);
 extern void dedemangle( const char * demangled, char * dedemangled );
