@@ -10,11 +10,8 @@
 #define DEFAULT_RUNAUTH_COMMAND "/s/std/bin/runauth"
 #define RSH_COMMAND_ENV "RSH_COMMAND"
 
-#define COMMNODE_EXE "/u/d/a/darnold/paradyn/core/mrnet/bin/i686-pc-linux-gnu/comm_node"
-// #define EXE_COMMNODE "/home/darnold/WORK/mrnet/bin/comm_node"
-
 //Autoconfigured macros below
-/* #undef WORDS_BIGENDIAN */
+#define WORDS_BIGENDIAN 1
 
 #define SIZEOF_CHAR 1
 #define SIZEOF_INT 4

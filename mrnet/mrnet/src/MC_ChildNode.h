@@ -11,12 +11,12 @@ class MC_ChildNode{
   MC_RemoteNode * upstream_node;
 
  private:
-  string hostname;
+  std::string hostname;
   unsigned short port;
   bool threaded;
 
  public:
-  MC_ChildNode(bool, string, unsigned short);
+  MC_ChildNode(bool, std::string, unsigned short);
   virtual ~MC_ChildNode(void);
   virtual int proc_PacketsFromUpStream(std::list <MC_Packet *> &)=0;
   virtual int proc_DataFromUpStream(MC_Packet *)=0;
@@ -25,7 +25,7 @@ class MC_ChildNode{
   int send_PacketUpStream(MC_Packet *packet);
   int flush_PacketsUpStream();
 
-  string get_HostName();
+  std::string get_HostName();
   unsigned short get_Port();
 };
 

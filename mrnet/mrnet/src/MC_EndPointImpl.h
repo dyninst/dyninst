@@ -8,7 +8,7 @@ class MC_NetworkNode;
 class MC_EndPointImpl: public MC_EndPoint{
  private:
   unsigned int id;
-  string hostname;
+  std::string hostname;
   unsigned short port;
   //MC_NetworkNode * downstream_node;
 

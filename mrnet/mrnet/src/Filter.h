@@ -18,12 +18,13 @@ class MC_Filter{
 };
 
 class MC_Aggregator: public MC_Filter{
- private:
+ public:
   typedef struct{
-    string format_str;
+    std::string format_str;
     void(*filter)(MC_DataElement **, int, MC_DataElement ***, int*);
   }AggregatorSpec;
 
+ private:
   AggregatorSpec * aggr_spec;
 
  public:

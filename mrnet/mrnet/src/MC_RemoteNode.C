@@ -13,12 +13,12 @@ MC_ChildNode * MC_RemoteNode::local_child_node=NULL;
 
 void * MC_RemoteNode::recv_thread_main(void * args)
 {
-  list <MC_Packet *>packet_list;
+  std::list <MC_Packet *>packet_list;
   MC_RemoteNode * remote_node = (MC_RemoteNode *)args;
 
   //TLS: setup thread local storage for recv thread
   // I am localhost:localport_UPRECVFROM_remotehost:remoteport
-  string name;
+  std::string name;
   char local_port_str[128];
   char remote_port_str[128];
   if( remote_node->is_upstream() ){
@@ -91,7 +91,7 @@ void * MC_RemoteNode::send_thread_main(void * args)
 
   //TLS: setup thread local storage for recv thread
   // I am localhost:localport_UPRECVFROM_remotehost:remoteport
-  string name;
+  std::string name;
   char local_port_str[128];
   char remote_port_str[128];
   if( remote_node->is_upstream() ){
@@ -151,7 +151,7 @@ void * MC_RemoteNode::send_thread_main(void * args)
   return NULL;
 }
 
-MC_RemoteNode::MC_RemoteNode(bool _threaded, string &_hostname,
+MC_RemoteNode::MC_RemoteNode(bool _threaded, std::string &_hostname,
                              unsigned short _port)
   :MC_CommunicationNode(_hostname, _port), threaded(_threaded), sock_fd(0),
    _is_internal_node(false), _is_upstream(false)
@@ -159,7 +159,7 @@ MC_RemoteNode::MC_RemoteNode(bool _threaded, string &_hostname,
   msg_out_sync.register_cond(MC_MESSAGEOUT_NONEMPTY);
 }
 
-MC_RemoteNode::MC_RemoteNode(bool _threaded, string &_hostname,
+MC_RemoteNode::MC_RemoteNode(bool _threaded, std::string &_hostname,
                              unsigned short _port, unsigned short _id)
   :MC_CommunicationNode(_hostname, _port, _id), threaded(_threaded), sock_fd(0),
    _is_internal_node(false), _is_upstream(false)
@@ -183,17 +183,17 @@ int MC_RemoteNode::connect()
   return 0;
 }
 
-int MC_RemoteNode::new_InternalNode(int listening_sock_fd, string parent_host,
+int MC_RemoteNode::new_InternalNode(int listening_sock_fd, std::string parent_host,
                                     unsigned short parent_port,
-                                    unsigned short parent_id)
+                                    unsigned short parent_id,
+                                    std::string commnode_cmd)
 {
   int retval;
   char parent_port_str[128];
   char parent_id_str[128];
-  string rsh("");
-  string username("");
-  string cmd(COMMNODE_EXE);
-  vector <string> args;
+  std::string rsh("");
+  std::string username("");
+  std::vector <std::string> args;
 
   mc_printf(MCFL, stderr, "In new_InternalNode(%s:%d) ...\n",
              hostname.c_str(), port);
@@ -202,11 +202,11 @@ int MC_RemoteNode::new_InternalNode(int listening_sock_fd, string parent_host,
 
   args.push_back(parent_host);
   sprintf(parent_port_str, "%d", parent_port);
-  args.push_back(string(parent_port_str));
+  args.push_back(std::string(parent_port_str));
   sprintf(parent_id_str, "%d", parent_id);
-  args.push_back(string(parent_id_str));
+  args.push_back(std::string(parent_id_str));
 
-  if(create_Process(rsh, hostname, username, cmd, args) == -1){
+  if(create_Process(rsh, hostname, username, commnode_cmd, args) == -1){
     mc_printf(MCFL, stderr, "createProcess() failed\n"); 
     mc_errno = MC_ECREATPROCFAILURE;
     return -1;
@@ -242,13 +242,13 @@ int MC_RemoteNode::new_InternalNode(int listening_sock_fd, string parent_host,
   return 0;
 }
 
-int MC_RemoteNode::new_Application(int listening_sock_fd, string parent_host,
+int MC_RemoteNode::new_Application(int listening_sock_fd, std::string parent_host,
                                    unsigned short parent_port,
-                                   unsigned short parent_id, string &cmd,
-                                   vector <string> &args){
+                                   unsigned short parent_id, std::string &cmd,
+                                   std::vector <std::string> &args){
   int retval;
-  string rsh("");
-  string username("");
+  std::string rsh("");
+  std::string username("");
 
   mc_printf(MCFL, stderr, "In new_Application(%s:%d,\n"
                      "                   cmd: %s)\n",
@@ -263,10 +263,10 @@ int MC_RemoteNode::new_Application(int listening_sock_fd, string parent_host,
 
   //append args: hostname, port, parent_hostname, parent_port, parent_id
   args.push_back(hostname);
-  args.push_back(string(port_str));
+  args.push_back(std::string(port_str));
   args.push_back(parent_host);
-  args.push_back(string(parent_port_str));
-  args.push_back(string(parent_id_str));
+  args.push_back(std::string(parent_port_str));
+  args.push_back(std::string(parent_id_str));
 
   if(create_Process(rsh, hostname, username, cmd, args) == -1){
     mc_printf(MCFL, stderr, "createProcess() failed\n"); 
@@ -323,7 +323,7 @@ int MC_RemoteNode::send(MC_Packet *packet)
   return 0;
 }
 
-int MC_RemoteNode::recv(list <MC_Packet *> &packet_list)
+int MC_RemoteNode::recv(std::list <MC_Packet *> &packet_list)
 {
   return msg_in.recv(sock_fd, packet_list, this);
 }

@@ -9,8 +9,10 @@
 
 extern MC_NetworkGraph * parsed_graph;
 
-MC_NetworkImpl::MC_NetworkImpl(const char * _filename, const char * _application)
-  :filename(_filename), application(_application)
+MC_NetworkImpl::MC_NetworkImpl(const char * _filename,
+                                const char * _commnode,
+                                const char * _application)
+  :filename(_filename), commnode(_commnode), application(_application)
 {
   if( parse_configfile() == -1){
     return;
@@ -28,7 +30,7 @@ MC_NetworkImpl::MC_NetworkImpl(const char * _filename, const char * _application
   //I am "FE(hostname:port)"
   char port_str[128];
   sprintf(port_str, "%d", graph->get_Root()->get_Port());
-  string name("FE(");
+  std::string name("FE(");
   name += graph->get_Root()->get_HostName();
   name += ":";
   name += port_str;
@@ -57,9 +59,14 @@ MC_NetworkImpl::MC_NetworkImpl(const char * _filename, const char * _application
 
   MC_SerialGraph sg = graph->get_SerialGraph();
   sg.print();
-  MC_Packet *packet = new MC_Packet(MC_NEW_SUBTREE_PROT, "%s%s",
-                                    sg.get_ByteArray().c_str(),
-				    application.c_str() );
+
+  // save the serialized graph string in a variable on the stack,
+  // so that we don't build a packet with a pointer into a temporary
+  std::string sg_str = sg.get_ByteArray();
+  MC_Packet *packet = new MC_Packet(MC_NEW_SUBTREE_PROT, "%s%s%s",
+                                    sg_str.c_str(),
+                                    application.c_str(),
+                                    commnode.c_str() );
   if( MC_NetworkImpl::front_end->proc_newSubTree( packet )
       == -1){
     mc_errno = MC_ENETWORK_FAILURE;

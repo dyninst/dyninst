@@ -30,7 +30,7 @@ unsigned int MC_EndPointImpl::get_Id()
 
 bool MC_EndPointImpl::compare(const char * _hostnamestr, unsigned short _port)
 {
-  string _hostname(_hostnamestr);
+  std::string _hostname(_hostnamestr);
 
   if( (_port == port) &&
       (_hostname == hostname) ) {

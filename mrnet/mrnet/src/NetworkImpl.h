@@ -19,8 +19,9 @@ class MC_NetworkImpl: public MC_Error {
   friend class MC_StreamImpl;
 
  private:
-  string filename;          /* Name of topology configuration file */
-  string application;       /* Name of application to launch */
+  std::string filename;          /* Name of topology configuration file */
+  std::string commnode;          // path to comm_node executable
+  std::string application;       /* Name of application to launch */
   std::vector <MC_EndPoint *> * endpoints; //BackEnds addressed by communicator
   static MC_BackEndNode * back_end;
   MC_FrontEndNode *front_end;
@@ -34,7 +35,9 @@ class MC_NetworkImpl: public MC_Error {
   static int recv(void);
   static int send(MC_Packet *);
 
-  MC_NetworkImpl(const char * _filename, const char * _application);
+  MC_NetworkImpl(const char * _filename,
+                    const char * _commnode,
+                    const char * _application);
   ~MC_NetworkImpl();
 };
 

@@ -9,9 +9,9 @@
 /*  MC_BackEndNode CLASS METHOD DEFINITIONS            */
 /*=====================================================*/
 
-MC_BackEndNode::MC_BackEndNode(string _hostname,
+MC_BackEndNode::MC_BackEndNode(std::string _hostname,
                                unsigned short _port,
-                               string _parent_hostname,
+                               std::string _parent_hostname,
                                unsigned short _parent_port,
                                unsigned short _parent_id)
   :MC_ChildNode(false, _hostname, _port), 

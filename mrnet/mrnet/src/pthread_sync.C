@@ -7,8 +7,8 @@
 
 pthread_sync::pthread_sync() {
     this->num_registered_conds = 0;
-    this->conds = new (pthread_cond_t*)[MAX_CONDS];
-    this->registered_conds = new (int)[MAX_CONDS]; 
+    this->conds = new pthread_cond_t*[MAX_CONDS];
+    this->registered_conds = new int[MAX_CONDS]; 
     this->mutex = new pthread_mutex_t;
     pthread_mutex_init(mutex, NULL);
 }

@@ -10,6 +10,7 @@
 #include "mrnet/src/pthread_sync.h"
 
 class MC_ChildNode;
+class MC_ParentNode;
 class MC_RemoteNode:public MC_CommunicationNode{
  private:
   enum {MC_MESSAGEOUT_NONEMPTY};
@@ -29,15 +30,16 @@ class MC_RemoteNode:public MC_CommunicationNode{
   bool _is_upstream;
   pthread_sync msg_out_sync;
 
-  MC_RemoteNode(bool threaded, string &_hostname, unsigned short _port);
-  MC_RemoteNode(bool threaded, string &_hostname, unsigned short _port,
+  MC_RemoteNode(bool threaded, std::string &_hostname, unsigned short _port);
+  MC_RemoteNode(bool threaded, std::string &_hostname, unsigned short _port,
                 unsigned short _id);
   int connect();
-  int new_InternalNode(int listening_sock_fd, string parent_hostname,
-                       unsigned short parent_port, unsigned short parent_id);
-  int new_Application(int listening_sock_fd, string parent_hostname,
+  int new_InternalNode(int listening_sock_fd, std::string parent_hostname,
+                       unsigned short parent_port, unsigned short parent_id,
+                       std::string commnode);
+  int new_Application(int listening_sock_fd, std::string parent_hostname,
                       unsigned short parent_port, unsigned short parent_id,
-                      string &cmd, std::vector <string> &args);
+                      std::string &cmd, std::vector <std::string> &args);
   int send(MC_Packet *);
   int flush();
   int recv(std::list <MC_Packet *> &); //blocking recv

@@ -260,7 +260,7 @@ bool_t pdr_bytes(PDR *pdrs, char **cpp, uint32_t *sizep, uint32_t maxsize)
  * terminated by a NULL character.  The parameter cpp references a
  * pointer to storage; If the pointer is null, then the necessary
  * storage is allocated.  The last parameter is the max allowed length
- * of the string as specified by a protocol.
+ * of the std::string as specified by a protocol.
  */
 bool_t pdr_string(PDR *pdrs, char **cpp, uint32_t maxsize)
 {
@@ -269,7 +269,7 @@ bool_t pdr_string(PDR *pdrs, char **cpp, uint32_t maxsize)
   uint32_t nodesize;
 
   /*
-    * first deal with the length since pdr strings are counted-strings
+    * first deal with the length since pdr strings are counted-std::strings
     */
   switch (pdrs->p_op) {
   case PDR_FREE:
@@ -353,7 +353,7 @@ bool_t pdr_reference(PDR *pdrs, char * *pp, uint32_t size, pdrproc_t proc)
       if (loc == NULL) {
         return (FALSE);
       }
-      bzero(loc, (int)size);
+      memset(loc, 0, (int)size);
       break;
 
     case PDR_ENCODE:
@@ -444,7 +444,7 @@ bool_t pdr_array(PDR *pdrs, char **addrp, uint32_t *sizep, uint32_t maxsize,
       if (target == NULL) {
         return (FALSE);
       }
-      bzero(target, nodesize);
+      memset(target, 0, nodesize);
       break;
     case PDR_FREE:
       return (TRUE);

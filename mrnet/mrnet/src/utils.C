@@ -11,6 +11,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <string.h>
+#include <pthread.h>
 
 #define SA struct sockaddr
 
@@ -27,7 +28,7 @@ Line::Line(const char * buf)
 
   for(cur = strtok(begin, " \t\n"); cur != NULL;
       cur = strtok(NULL, " \t\n")){
-      words.push_back(string(cur));
+      words.push_back(std::string(cur));
   }
   free(begin);
 
@@ -44,7 +45,7 @@ int Line::get_NumWords()
   return words.size();
 }
 
-string Line::get_Word(int i)
+std::string Line::get_Word(int i)
 {
   assert( (unsigned int)i < words.size() );
   return words[i];
@@ -75,7 +76,7 @@ int connect_to_host(int *sock_in, const char * hostname, unsigned short port)
     return -1;
   }
   
-  bzero(&server_addr, sizeof(server_addr));
+  memset(&server_addr, 0, sizeof(server_addr));
   server_addr.sin_family = AF_INET;
   server_addr.sin_port = htons(port);
   memcpy(&server_addr.sin_addr, server_hostent->h_addr_list[0],
@@ -114,7 +115,7 @@ int bind_to_port(int *sock_in, unsigned short *port_in)
     return -1;
   }
 
-  bzero(&local_addr, sizeof(local_addr));
+  memset(&local_addr, 0, sizeof(local_addr));
   local_addr.sin_family = AF_INET;
   local_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
@@ -175,7 +176,7 @@ int get_socket_connection(int bound_socket)
 int get_socket_peer(int connected_socket, char **hostname, unsigned short * port)
 {
   struct sockaddr_in peer_addr;
-  unsigned int peer_addrlen=sizeof(peer_addr);
+  socklen_t peer_addrlen=sizeof(peer_addr);
   char buf[256];
 
   mc_printf(MCFL, stderr, "In get_socket_peer()\n");
@@ -266,7 +267,7 @@ int connect_socket_by_IP(int IP, short port){
     return -1;
   }
 
-  bzero(&server_addr, sizeof(server_addr));
+  memset(&server_addr, 0, sizeof(server_addr));
   server_addr.sin_family = AF_INET;
   server_addr.sin_port = htons(port);
   server_addr.sin_addr.s_addr = IP;
@@ -280,16 +281,16 @@ int connect_socket_by_IP(int IP, short port){
 }
 
 // get the current (localhost) machine name, e.g. "grilled"
-const string getHostName(const string _hostname)
+const std::string getHostName(const std::string _hostname)
 {
   char hostname[256];
-  string hostname_str;
+  std::string hostname_str;
 
   if(_hostname == ""){
     if (gethostname(hostname,sizeof(hostname)) == -1) {
       mc_printf(MCFL, stderr, "%s", "");
       perror("gethostname()");
-      return string("");
+      return std::string("");
     }
     hostname_str=hostname;
   }
@@ -308,10 +309,10 @@ const string getHostName(const string _hostname)
 
 // get the network domain name from the given hostname (default=localhost)
 // e.g. "grilled.cs.wisc.edu" -> "cs.wisc.edu"
-const string getDomainName (const string hostname)
+const std::string getDomainName (const std::string hostname)
 {
   unsigned index=0;
-  string networkname;
+  std::string networkname;
 
   if (hostname.length() == 0){
     networkname = getNetworkName();
@@ -326,11 +327,11 @@ const string getDomainName (const string hostname)
   if (index == networkname.length()) {
     mc_printf(MCFL, stderr, "cannot determine network name for %s\n",
                hostname.c_str());
-    return string("");
+    return std::string("");
   }
   else {
-    const string simplename = networkname.substr(0,index);
-    const string domain = networkname.substr(index+1,networkname.length());
+    const std::string simplename = networkname.substr(0,index);
+    const std::string domain = networkname.substr(index+1,networkname.length());
     //why can't a hostname contain numerals?
     //if (simplename.regexEquiv("[0-9]*",false)) {
       //mc_printf(MCFL, stderr, "Got invalid simplename: %s\n", simplename.c_str());
@@ -344,13 +345,13 @@ const string getDomainName (const string hostname)
 
 // get the fully-qualified network name for given hostname (default=localhost)
 // e.g. "grilled" -> "grilled.cs.wisc.edu"
-const string getNetworkName (const string hostname)
+const std::string getNetworkName (const std::string hostname)
 {
   struct hostent *hp;
   char name[256];
 
   if (!hostname[0]) { // find this machine's hostname
-    const string thishostname=getHostName();
+    const std::string thishostname=getHostName();
     strcpy(name,thishostname.c_str());
   }
   else{
@@ -360,10 +361,10 @@ const string getNetworkName (const string hostname)
   hp = gethostbyname(name);
   if (hp == NULL) {
     mc_printf(MCFL, stderr, "Host information not found for %s\n", name);
-    return string("");
+    return std::string("");
   }
 
-  string networkname = string(hp->h_name);
+  std::string networkname = std::string(hp->h_name);
 
   // check that networkname is fully-qualified with domain information
   if (getDomainName(networkname) == ""){
@@ -375,14 +376,14 @@ const string getNetworkName (const string hostname)
 
 // get the network IP address for given hostname (default=localhost)
 // e.g. "grilled" -> "128.105.166.40"
-const string getNetworkAddr (const string hostname)
+const std::string getNetworkAddr (const std::string hostname)
 {
   struct hostent *hp;
 
   char name[256];
 
   if (!hostname[0]) { // find this machine's hostname
-    const string thishostname=getHostName();
+    const std::string thishostname=getHostName();
     strcpy(name,thishostname.c_str());
   }
   else{
@@ -392,18 +393,18 @@ const string getNetworkAddr (const string hostname)
   hp = gethostbyname(name);
   if (hp == NULL) {
     mc_printf(MCFL, stderr, "Host information not found for %s", name);
-    return string("");
+    return std::string("");
   }
 
   struct in_addr in;
   memcpy(&in.s_addr, *(hp->h_addr_list), sizeof (in.s_addr));
 
-  return string(inet_ntoa(in));
+  return std::string(inet_ntoa(in));
 }
 
-int create_Process(const string &remote_shell,
-                   const string &hostName, const string &userName,
-                   const string &command, const vector<string> &arg_list)
+int create_Process(const std::string &remote_shell,
+                   const std::string &hostName, const std::string &userName,
+                   const std::string &command, const std::vector<std::string> &arg_list)
 {
   if((hostName == "") ||
      (hostName == "localhost") ||
@@ -420,7 +421,7 @@ int create_Process(const string &remote_shell,
 }
 
 // directly exec the command (local).
-int execCmd(const string command, const vector<string> &args)
+int execCmd(const std::string command, const std::vector<std::string> &args)
 {
   int ret, i;
   int arglist_len = args.size();
@@ -455,14 +456,14 @@ int execCmd(const string command, const vector<string> &args)
 // Execute 'command' on a remote machine using 'remote_shell' (which can 
 // include arguments) passing an argument list of 'arg_list'
 
-int remoteCommand(const string remoteExecCmd,
-                  const string hostName, const string userName,
-                  const string command, const vector<string> &arg_list)
+int remoteCommand(const std::string remoteExecCmd,
+                  const std::string hostName, const std::string userName,
+                  const std::string command, const std::vector<std::string> &arg_list)
 {
   unsigned int i;
-  vector<string> remoteExecArgList;
-  vector<string> tmp;
-  string cmd;
+  std::vector<std::string> remoteExecArgList;
+  std::vector<std::string> tmp;
+  std::string cmd;
 
   mc_printf(MCFL, stderr, "In remoteCommand()\n");
 #if defined(DEFAULT_RUNAUTH_COMMAND)
@@ -476,7 +477,7 @@ int remoteCommand(const string remoteExecCmd,
   // add the hostname and username to arglist
   remoteExecArgList.push_back(hostName);
   if( userName.length() > 0 ) {
-    remoteExecArgList.push_back(string("-l"));
+    remoteExecArgList.push_back(std::string("-l"));
     remoteExecArgList.push_back(userName);
   }
 
@@ -505,11 +506,11 @@ int remoteCommand(const string remoteExecCmd,
 
 // use rsh to get a remote process started.
 
-int rshCommand(const string &hostName, const string &userName, 
-               const string &command, const vector<string> &arg_list)
+int rshCommand(const std::string &hostName, const std::string &userName, 
+               const std::string &command, const std::vector<std::string> &arg_list)
 {
   // ensure we know the user's desired rsh command
-  string rshCmd;
+  std::string rshCmd;
   const char* rsh = getenv( RSH_COMMAND_ENV );
   if( rsh == NULL ) {
     rshCmd = DEFAULT_RSH_COMMAND;

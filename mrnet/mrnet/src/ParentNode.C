@@ -13,7 +13,7 @@ std::map<unsigned int, void(*)(std::list <MC_Packet*>&, std::list <MC_Packet*>&,
                                std::list<MC_RemoteNode *> &, void **)>
    MC_ParentNode::SyncById;
 
-MC_ParentNode::MC_ParentNode(bool _threaded, string _hostname,
+MC_ParentNode::MC_ParentNode(bool _threaded, std::string _hostname,
                              unsigned short _port)
   :hostname(_hostname), port(_port), config_port(_port), listening_sock_fd(0),
    threaded(_threaded), num_descendants(0), num_descendants_reported(0)
@@ -171,15 +171,16 @@ int MC_ParentNode::proc_newSubTree(MC_Packet * packet)
 {
   char *byte_array=NULL;
   char *appl=NULL;
+  char *commnode=NULL;
   mc_printf(MCFL, stderr, "In proc_newSubTree()\n");
 
-  if( packet->ExtractArgList("%s%s", &byte_array, &appl) == -1){
+  if( packet->ExtractArgList("%s%s%s", &byte_array, &appl, &commnode) == -1){
     mc_printf(MCFL, stderr, "ExtractArgList() failed\n");
     return -1;
   }
 
   MC_SerialGraph sg(byte_array);
-  string application(appl);
+  std::string application(appl);
 
   //mc_printf(MCFL, stderr, "sg.root:%s:%d, local:%s:%d\n", sg.get_RootName().c_str(),
 	     //sg.get_RootPort(), hostname.c_str(), port);
@@ -194,19 +195,21 @@ int MC_ParentNode::proc_newSubTree(MC_Packet * packet)
       num_descendants++;
       if(threaded){ subtreereport_sync.unlock(); }
 
-      string rootname = cur_sg->get_RootName();
+      std::string rootname = cur_sg->get_RootName();
       unsigned short rootport = cur_sg->get_RootPort();
       mc_printf(MCFL, stderr, "cur_child(%s:%d) has children (internal node)\n",
                  rootname.c_str(), rootport);
       //If the cur_child has children launch him
       MC_RemoteNode *cur_node = new MC_RemoteNode(threaded, rootname, rootport);
 
-      cur_node->new_InternalNode(listening_sock_fd, hostname, port, config_port);
+      cur_node->new_InternalNode(listening_sock_fd,
+                                    hostname, port, config_port, commnode);
 
       if(cur_node->good() ){
-        packet = new MC_Packet(MC_NEW_SUBTREE_PROT, "%s%s",
+        packet = new MC_Packet(MC_NEW_SUBTREE_PROT, "%s%s%s",
                                cur_sg->get_ByteArray().c_str(),
-			       application.c_str());
+			       application.c_str(),
+                   commnode);
         if( cur_node->send(packet) == -1 ||
             cur_node->flush() == -1){
           mc_printf(MCFL, stderr, "send/flush failed\n");
@@ -216,11 +219,11 @@ int MC_ParentNode::proc_newSubTree(MC_Packet * packet)
       }
     }
     else{
-      string rootname = cur_sg->get_RootName();
+      std::string rootname = cur_sg->get_RootName();
       unsigned short rootport = cur_sg->get_RootPort();
       unsigned short rootid = cur_sg->get_Id();
 
-      vector <string> dummy_args;
+      std::vector <std::string> dummy_args;
       mc_printf(MCFL, stderr, "cur_child(%s:%d) is backend[%d]\n",
                  rootname.c_str(), rootport, rootid);
       MC_RemoteNode *cur_node = new MC_RemoteNode(threaded, rootname, rootport);
@@ -503,8 +506,8 @@ int MC_ParentNode::proc_newApplication(MC_Packet * packet)
       mc_printf(MCFL, stderr, "child_node.send() succeeded\n");
     }
     else{
-      string cmd_str(cmd);
-      vector <string> dummy_args;
+      std::string cmd_str(cmd);
+      std::vector <std::string> dummy_args;
       mc_printf(MCFL, stderr, "Calling child_node.new_application(%s) ...\n", cmd);
       if( (*iter)->new_Application(listening_sock_fd, hostname, port,
                                    config_port, cmd_str, dummy_args) == -1){
@@ -569,7 +572,7 @@ bool equal_RemoteNodePtr(MC_RemoteNode *p1, MC_RemoteNode *p2){
   }
 }
 
-string MC_ParentNode::get_HostName(){
+std::string MC_ParentNode::get_HostName(){
   return hostname;
 }
 

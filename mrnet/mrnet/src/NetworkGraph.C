@@ -19,7 +19,7 @@ unsigned short MC_NetworkNode::get_Port()
   return port;
 }
 
-string MC_NetworkNode::get_HostName()
+std::string MC_NetworkNode::get_HostName()
 {
   return hostname;
 }
@@ -49,7 +49,7 @@ MC_NetworkGraph::MC_NetworkGraph()
   :graph_checked(false), visited_nodes(0), _has_cycle(false)
 {
   //add_Node(root);
-  endpoints = new vector <MC_EndPoint *>;
+  endpoints = new std::vector <MC_EndPoint *>;
 }
 
 void MC_NetworkGraph::set_Root(MC_NetworkNode * _root)
@@ -57,7 +57,7 @@ void MC_NetworkGraph::set_Root(MC_NetworkNode * _root)
   root = _root;
 }
 
-vector <MC_EndPoint *> * MC_NetworkGraph::get_EndPoints()
+std::vector <MC_EndPoint *> * MC_NetworkGraph::get_EndPoints()
 {
   return endpoints;
 }
@@ -73,7 +73,7 @@ void MC_NetworkGraph::add_Node(MC_NetworkNode* new_node)
   sprintf(port_str, "%d", new_node->get_Port());
 
   if(new_node){
-    string key = new_node->get_HostName() + string(port_str);
+    std::string key = new_node->get_HostName() + std::string(port_str);
     nodes[key] = new_node;
   }
 }
@@ -87,9 +87,9 @@ MC_NetworkNode * MC_NetworkGraph::find_Node(char * hostname, unsigned short port
 {
   char port_str[128];
   sprintf(port_str, "%d", port);
-  string key = string(hostname) + string(port_str);
+  std::string key = std::string(hostname) + std::string(port_str);
 
-  std::map<string, MC_NetworkNode*>::iterator iter = nodes.find(key);
+  std::map<std::string, MC_NetworkNode*>::iterator iter = nodes.find(key);
   if( iter == nodes.end() ){
     return NULL;
   }
@@ -172,7 +172,7 @@ MC_SerialGraph::MC_SerialGraph(const char * _byte_array)
 {
 }
 
-MC_SerialGraph::MC_SerialGraph(string _byte_array)
+MC_SerialGraph::MC_SerialGraph(std::string _byte_array)
   :byte_array(_byte_array), num_nodes(0), num_backends(0)
 {
 }
@@ -182,21 +182,21 @@ MC_SerialGraph::MC_SerialGraph()
 {
 }
 
-void MC_SerialGraph::add_BackEnd(string hostname, unsigned short port,
+void MC_SerialGraph::add_BackEnd(std::string hostname, unsigned short port,
                                  unsigned short id)
 {
   char id_str[128], port_str[128];
   sprintf(id_str, "%d", id);
   sprintf(port_str, "%d", port);
-  byte_array += hostname + ":" + string(port_str) + ":" + string(id_str) + " ";
+  byte_array += hostname + ":" + std::string(port_str) + ":" + std::string(id_str) + " ";
   num_nodes++; num_backends++;
 }
 
-void MC_SerialGraph::add_SubTreeRoot(string hostname, unsigned short port)
+void MC_SerialGraph::add_SubTreeRoot(std::string hostname, unsigned short port)
 {
   char port_str[128];
   sprintf(port_str, "%d", port);
-  byte_array += "[ " + hostname + ":" + string(port_str) + " ";
+  byte_array += "[ " + hostname + ":" + std::string(port_str) + " ";
   num_nodes++;
 }
 
@@ -295,9 +295,9 @@ bool MC_SerialGraph::has_children()
   }
 }
 
-string MC_SerialGraph::get_RootName()
+std::string MC_SerialGraph::get_RootName()
 {
-  string retval;
+  std::string retval;
   int begin=2, end=1; //Byte array begins [ xxx ...
 
   //find first ':'
@@ -323,14 +323,14 @@ unsigned short MC_SerialGraph::get_RootPort()
   assert( begin != -1);
   begin++;
   end = byte_array.find(' ', begin);
-  string port_string = byte_array.substr(begin, end-begin);
+  std::string port_string = byte_array.substr(begin, end-begin);
   retval = atoi(port_string.c_str());
   //mc_printf(MCFL, stderr, "In get_port(). array: %s, port: %d\n",
 	     //byte_array.c_str(), retval);
   return retval;
 }
 
-string MC_SerialGraph::get_ByteArray()
+std::string MC_SerialGraph::get_ByteArray()
 {
   return byte_array;
 }
@@ -356,7 +356,7 @@ int MC_SerialGraph::get_Id(){
   begin++;
   end = byte_array.find(' ', begin);
 
-  string idstring = byte_array.substr(begin, end-begin);
+  std::string idstring = byte_array.substr(begin, end-begin);
 
   retval = atoi(idstring.c_str());
   //mc_printf(MCFL, stderr, "In get_Id(). byte_array: %s, id: %s, %d\n",

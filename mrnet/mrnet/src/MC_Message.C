@@ -11,7 +11,8 @@ void MC_Message::add_Packet(MC_Packet *packet)
   packets.push_back(packet);
 }
 
-int MC_Message::recv(int sock_fd, list <MC_Packet *> &packets, MC_RemoteNode *remote_node)
+int MC_Message::recv(int sock_fd,
+                        std::list <MC_Packet *> &packets, MC_RemoteNode *remote_node)
 {
   int i;
   int32_t buf_len;
@@ -141,7 +142,7 @@ int MC_Message::send(int sock_fd)
   //Process packets in list to prepare for send()
   packet_sizes = (uint32_t *)malloc( sizeof(uint32_t) * no_packets );
   assert(packet_sizes);
-  list<MC_Packet *>::iterator iter=packets.begin();
+  std::list<MC_Packet *>::iterator iter=packets.begin();
   mc_printf(MCFL, stderr, "Writing %d packets of size: [ ", no_packets);
   int total_bytes =0;
   for(i=0; iter != packets.end(); iter++, i++){
@@ -275,7 +276,7 @@ MC_Packet::MC_Packet(unsigned short _stream_id, int _tag, const char *fmt, va_li
 
   fmt_str = strdup(fmt);
 
-  string tmp = getNetworkName();
+  std::string tmp = getNetworkName();
   src = strdup(tmp.c_str());
   //src = strdup(getNetworkName().c_str());
 

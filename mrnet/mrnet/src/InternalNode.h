@@ -13,8 +13,8 @@ class MC_InternalNode: public MC_ParentNode, public MC_ChildNode,
 		       public MC_CommunicationNode
 {
  public:
-  MC_InternalNode(string hostname, unsigned short port,
-                  string _phostname, unsigned short _pport, unsigned short _pid);
+  MC_InternalNode(std::string hostname, unsigned short port,
+                  std::string _phostname, unsigned short _pport, unsigned short _pid);
   virtual ~MC_InternalNode(void);
   void waitLoop();
   int send_newSubTreeReport(bool status);

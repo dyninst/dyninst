@@ -6,8 +6,11 @@
 #include "mrnet/src/MC_Message.h"
 
 class MC_FrontEndNode: public MC_ParentNode, public MC_CommunicationNode{
+ private:
+    std::string commnode;
+
  public:
-  MC_FrontEndNode(string _hostname, unsigned short _port);
+  MC_FrontEndNode(std::string _hostname, unsigned short _port);
   virtual ~MC_FrontEndNode(void);
   virtual int proc_PacketsFromDownStream(std::list <MC_Packet *> &);
   virtual int proc_DataFromDownStream(MC_Packet *);

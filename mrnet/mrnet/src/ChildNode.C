@@ -6,7 +6,7 @@
 /*===================================================*/
 /*  MC_ChildNode CLASS METHOD DEFINITIONS            */
 /*===================================================*/
-MC_ChildNode::MC_ChildNode(bool _threaded, string _hostname,
+MC_ChildNode::MC_ChildNode(bool _threaded, std::string _hostname,
                            unsigned short _port)
   :hostname(_hostname), port(_port), threaded(_threaded)
 {}
@@ -31,7 +31,7 @@ int MC_ChildNode::flush_PacketsUpStream()
   mc_printf(MCFL, stderr, "In flush_PacketsUpStream()\n");
   return upstream_node->flush();
 }
-string MC_ChildNode::get_HostName(){
+std::string MC_ChildNode::get_HostName(){
   return hostname;
 }
 

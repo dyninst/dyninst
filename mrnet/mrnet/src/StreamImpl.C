@@ -2,13 +2,14 @@
 /*             MC_StreamImpl CLASS METHOD DEFINITIONS            */
 /*===========================================================*/
 
+#include <stdarg.h>
 #include "mrnet/src/MC_StreamImpl.h"
 #include "mrnet/src/MC_NetworkImpl.h"
 #include "mrnet/src/utils.h"
 
 unsigned int MC_StreamImpl::cur_stream_idx=0;
 unsigned int MC_StreamImpl::next_stream_id=0;
-map <unsigned int, MC_StreamImpl *> MC_StreamImpl::streams;
+std::map <unsigned int, MC_StreamImpl *> MC_StreamImpl::streams;
 
 MC_StreamImpl::MC_StreamImpl(MC_Communicator *_comm, int _filter_id)
   :filter_id(_filter_id)
@@ -22,7 +23,7 @@ MC_StreamImpl::MC_StreamImpl(MC_Communicator *_comm, int _filter_id)
   MC_StreamImpl::streams[stream_id] = this;
 
   if ( MC_Network::network ){
-    vector <MC_EndPoint *> * endpoints = communicator->get_EndPoints();
+    std::vector <MC_EndPoint *> * endpoints = communicator->get_EndPoints();
     int * backends = (int *) malloc (sizeof(int) * endpoints->size());
     unsigned int i;
 
@@ -40,8 +41,8 @@ MC_StreamImpl::MC_StreamImpl(MC_Communicator *_comm, int _filter_id)
   }
 }
 
-MC_StreamImpl::MC_StreamImpl(int _stream_id, int * backends=0, int num_backends=-1,
-                     int _filter_id=-1)
+MC_StreamImpl::MC_StreamImpl(int _stream_id, int * backends, int num_backends,
+                     int _filter_id)
   :filter_id(_filter_id), stream_id(_stream_id)
 {
   MC_StreamImpl::streams[stream_id] = this;
@@ -73,7 +74,7 @@ int MC_StreamImpl::recv(int *tag, void **ptr, MC_Stream **stream)
     if( cur_stream->IncomingPacketBuffer.size() != 0 ){
       mc_printf(MCFL, stderr, "found %d packets\n",
                 cur_stream->IncomingPacketBuffer.size());
-      list<MC_Packet *>::iterator iter = cur_stream->IncomingPacketBuffer.begin();
+      std::list<MC_Packet *>::iterator iter = cur_stream->IncomingPacketBuffer.begin();
 
       cur_packet = *iter;
       *tag = cur_packet->get_Tag();
@@ -147,7 +148,7 @@ int MC_StreamImpl::recv(int *tag, void ** ptr)
 
   if( IncomingPacketBuffer.size() != 0){
     mc_printf(MCFL, stderr, "stream has packets\n");
-    list<MC_Packet *>::iterator iter = IncomingPacketBuffer.begin();
+    std::list<MC_Packet *>::iterator iter = IncomingPacketBuffer.begin();
 
     cur_packet = *iter;
     *tag = cur_packet->get_Tag();
@@ -185,7 +186,7 @@ void MC_StreamImpl::add_IncomingPacket(MC_Packet *packet)
   IncomingPacketBuffer.push_back(packet);
 }
 
-vector <MC_EndPoint *> * MC_StreamImpl::get_EndPoints()
+std::vector <MC_EndPoint *> * MC_StreamImpl::get_EndPoints()
 {
   return communicator->get_EndPoints();
 }

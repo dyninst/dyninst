@@ -6,8 +6,8 @@
 /*======================================================*/
 /*  MC_InternalNode CLASS METHOD DEFINITIONS            */
 /*======================================================*/
-MC_InternalNode::MC_InternalNode(string _hostname, unsigned short _port,
-                                 string _phostname, unsigned short _pport,
+MC_InternalNode::MC_InternalNode(std::string _hostname, unsigned short _port,
+                                 std::string _phostname, unsigned short _pport,
                                  unsigned short _pid)
   :MC_ParentNode(true, _hostname, _port),
    MC_ChildNode(true, _hostname, _port),

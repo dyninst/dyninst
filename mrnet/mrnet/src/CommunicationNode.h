@@ -12,15 +12,15 @@ enum MC_ProtocolTags{MC_NEW_SUBTREE_PROT=200, MC_DEL_SUBTREE_PROT,
 
 class MC_CommunicationNode: public MC_Error{
  protected:
-  string hostname;
+  std::string hostname;
   unsigned short port;
   unsigned short config_port;
 
  public:
-  MC_CommunicationNode(string &_hostname, unsigned short _port);
-  MC_CommunicationNode(string &_hostname, unsigned short _port,
+  MC_CommunicationNode(std::string &_hostname, unsigned short _port);
+  MC_CommunicationNode(std::string &_hostname, unsigned short _port,
                        unsigned short _id);
-  string get_HostName();
+  std::string get_HostName();
   unsigned short get_Port();
 };
 

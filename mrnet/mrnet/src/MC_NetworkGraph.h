@@ -18,7 +18,7 @@ class MC_NetworkNode{
   friend class MC_NetworkGraph;
  private:
   unsigned int id;
-  string hostname;
+  std::string hostname;
   unsigned short port;
   MC_NetworkGraph * network_graph;
   std::vector <MC_NetworkNode *> children;
@@ -26,7 +26,7 @@ class MC_NetworkNode{
 
  public:
   MC_NetworkNode(char * _hostname, unsigned short port);
-  string get_HostName();
+  std::string get_HostName();
   unsigned short get_Port();
   void add_Child(MC_NetworkNode *);
   void visit();
@@ -35,7 +35,7 @@ class MC_NetworkNode{
 
 class MC_SerialGraph{
  private:
-  string byte_array;
+  std::string byte_array;
   unsigned int buf_idx;
   unsigned int num_nodes;
   unsigned int num_backends;
@@ -45,14 +45,14 @@ class MC_SerialGraph{
  public:
   MC_SerialGraph();
   MC_SerialGraph(const char *);
-  MC_SerialGraph(string);
-  void add_BackEnd(string, unsigned short, unsigned short);
-  void add_SubTreeRoot(string, unsigned short);
+  MC_SerialGraph(std::string);
+  void add_BackEnd(std::string, unsigned short, unsigned short);
+  void add_SubTreeRoot(std::string, unsigned short);
   void end_SubTree();
-  string get_ByteArray();
+  std::string get_ByteArray();
   void print();
 
-  string get_RootName();
+  std::string get_RootName();
   unsigned short get_RootPort();
   void set_ToFirstChild();
   MC_SerialGraph * get_NextChild();
@@ -65,7 +65,7 @@ class MC_SerialGraph{
 class MC_NetworkGraph{
  private:
   MC_NetworkNode * root;
-  std::map<string, MC_NetworkNode*> nodes; 
+  std::map<std::string, MC_NetworkNode*> nodes; 
   bool graph_checked;
   unsigned int visited_nodes;
   bool _has_cycle;

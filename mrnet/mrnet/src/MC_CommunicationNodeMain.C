@@ -14,7 +14,7 @@ int main(int argc, char **argv)
 {
   MC_InternalNode *comm_node;
   int i, status;
-  list <MC_Packet *> packet_list;
+  std::list <MC_Packet *> packet_list;
 
   if(argc != 6){
     mc_printf(MCFL, stderr, "Usage: %s hostname port phostname pport pid\n",
@@ -26,15 +26,15 @@ int main(int argc, char **argv)
     exit(-1);
   }
 
-  string hostname(argv[1]);
+  std::string hostname(argv[1]);
   unsigned short port = atoi(argv[2]);
-  string parent_hostname(argv[3]);
+  std::string parent_hostname(argv[3]);
   unsigned short parent_port = atol(argv[4]);
   unsigned short parent_id = atol(argv[5]);
 
   //TLS: setup thread local storage for internal node
   //I am "COMM(hostname:port)"
-  string name("COMM(");
+  std::string name("COMM(");
   name += hostname;
   name += ":";
   name += argv[2];

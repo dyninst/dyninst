@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Types.h,v 1.1 2002/10/17 18:55:42 darnold Exp $
+ * $Id: Types.h,v 1.2 2002/11/14 22:47:42 pcroth Exp $
  * Types.h: commonly used types (used by runtime libs and other modules)
 ************************************************************************/
 
@@ -88,7 +88,9 @@ WindowsNT    nonexistant
    typedef unsigned __int64 uint64_t;
    typedef unsigned __int32 uint32_t;
 #elif defined(rs6000_ibm_aix4_1) /* aix4.{23} ------------------- */
-#  define _ALL_SOURCE
+#  if !defined(_ALL_SOURCE)
+#    define _ALL_SOURCE
+#  endif // defined(_ALL_SOURCE)
 #  include <sys/types.h>     /* if aix4.3, this will include inttypes.h */
 #  ifndef _H_INTTYPES        /* for aix4.2 */
    typedef int int32_t;

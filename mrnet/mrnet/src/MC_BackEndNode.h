@@ -9,8 +9,8 @@
 
 class MC_BackEndNode: public MC_ChildNode, public MC_CommunicationNode {
  public:
-  MC_BackEndNode(string _hostname, unsigned short _port,
-                 string _phostname, unsigned short _pport, 
+  MC_BackEndNode(std::string _hostname, unsigned short _port,
+                 std::string _phostname, unsigned short _pport, 
                  unsigned short _pid);
   virtual ~MC_BackEndNode(void);
   virtual int proc_PacketsFromUpStream(std::list <MC_Packet *> &);

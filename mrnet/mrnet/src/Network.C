@@ -22,9 +22,11 @@ MC_BackEndNode * MC_Network::back_end = NULL;
 /*===========================================================*/
 /*             MC_Network static function DEFINITIONS        */
 /*===========================================================*/
-int MC_Network::new_Network(const char * _filename, const char * _application)
+int MC_Network::new_Network(const char * _filename,
+                                const char * _commnode,
+                                const char * _application)
 {
-  MC_Network::network = new MC_NetworkImpl(_filename, _application);
+  MC_Network::network = new MC_NetworkImpl(_filename, _commnode, _application);
 
   if( MC_Network::network->fail() ){
     return -1;
@@ -43,15 +45,15 @@ int MC_Network::init_Backend(const char *_hostname, const char *_port,
                              const char *_phostname,
                              const char *_pport, const char *_pid)
 {
-  string host(_hostname);
+  std::string host(_hostname);
   unsigned short port(atoi(_port));
-  string phost(_phostname);
+  std::string phost(_phostname);
   unsigned short pport(atoi(_pport));
   unsigned short pid(atoi(_pid));
 
   //TLS: setup thread local storage for frontend
   //I am "BE(host:port)"
-  string name("BE(");
+  std::string name("BE(");
   name += getHostName(host);
   name += ":";
   name += _port;

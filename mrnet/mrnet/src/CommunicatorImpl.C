@@ -14,7 +14,7 @@ MC_CommunicatorImpl * MC_CommunicatorImpl::get_BroadcastCommunicator(void)
   return comm_Broadcast;
 }
 
-void MC_CommunicatorImpl::create_BroadcastCommunicator(vector <MC_EndPoint *> * _endpoints)
+void MC_CommunicatorImpl::create_BroadcastCommunicator(std::vector <MC_EndPoint *> * _endpoints)
 {
   //unsigned int i;
   comm_Broadcast = new MC_CommunicatorImpl();
@@ -97,7 +97,7 @@ unsigned int MC_CommunicatorImpl::get_Id(int id)
   return (*MC_Network::network->endpoints)[id]->get_Id();
 }
 
-vector <MC_EndPoint *> * MC_CommunicatorImpl::get_EndPoints()
+std::vector <MC_EndPoint *> * MC_CommunicatorImpl::get_EndPoints()
 {
   return endpoints;
 }

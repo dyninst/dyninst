@@ -6,7 +6,7 @@
 /*  MC_FrontEndNode CLASS METHOD DEFINITIONS            */
 /*======================================================*/
 
-MC_FrontEndNode::MC_FrontEndNode(string _hostname, unsigned short _port)
+MC_FrontEndNode::MC_FrontEndNode(std::string _hostname, unsigned short _port)
  :MC_ParentNode(false, _hostname, _port),
   MC_CommunicationNode(_hostname, _port)
 {
@@ -106,16 +106,15 @@ int MC_FrontEndNode::send_newSubTree(MC_SerialGraph &sg)
   int num_descendants_to_report=0;
   std::list <MC_Packet *> packet_list;
   MC_Packet * packet;
-  string cmd_commnode(COMMNODE_EXE);
-  vector <string> arglist_commnode;
-  string rootname(sg.get_RootName());
+  std::vector <std::string> arglist_commnode;
+  std::string rootname(sg.get_RootName());
   unsigned short rootport(sg.get_RootPort());
 
   mc_printf(MCFL, stderr, "In frontend.sendnewsubtree()\n");
 
   MC_RemoteNode *cur_node = new MC_RemoteNode(rootname, rootport, false);
 
-  cur_node->new_InternalNode(listening_sock_fd, hostname, port);
+  cur_node->new_InternalNode(listening_sock_fd, hostname, port, commnode);
 
   if(cur_node->good() ){
     packet = new MC_Packet(MC_NEW_SUBTREE_PROT, "%s", sg.get_ByteArray().c_str());
@@ -194,7 +193,7 @@ int MC_FrontEndNode::send_newStream(int stream_id, int filter_id)
 {
   unsigned int i;
   int retval;
-  vector <MC_EndPoint *> * endpoints = MC_StreamImpl::get_Stream(stream_id)->
+  std::vector <MC_EndPoint *> * endpoints = MC_StreamImpl::get_Stream(stream_id)->
                                        get_EndPoints();
   MC_Packet *packet;
 
@@ -276,7 +275,7 @@ int MC_FrontEndNode::send_delStream(int stream_id)
   return 0;
 }
 
-int MC_FrontEndNode::send_newApplication(string cmd, vector<string> args)
+int MC_FrontEndNode::send_newApplication(std::string cmd, std::vector<std::string> args)
 {
   MC_Packet *packet;
   unsigned int i;

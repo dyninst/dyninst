@@ -148,14 +148,13 @@ void aggr_CharArray_Concat(MC_DataElement **in_elems, int in_count,
   for(i=0; i<in_count; i++){
     result_array_size += in_elems[i][0].array_len;
   }
+  result_array = (char *)malloc(result_array_size * sizeof(char));
 
   int pos=0;
   for(i=0; i<in_count; i++){
     memcpy(result_array+pos, in_elems[i][0].val.p, in_elems[i][0].array_len);
     pos += in_elems[i][0].array_len;
   }
-
-  result_array = (char *)malloc(result_array_size * sizeof(char));
 
   *out_count = 1;
   (*out_elems) = new MC_DataElement* [1];

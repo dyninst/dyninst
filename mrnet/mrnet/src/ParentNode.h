@@ -20,7 +20,7 @@ class MC_ParentNode{
            void(*)(std::list<MC_Packet*>&, std::list<MC_Packet*>&,
                    std::list<MC_RemoteNode *> &, void **) > SyncById;
 
-  string hostname;
+  std::string hostname;
   unsigned short port;
   unsigned short config_port;
   int listening_sock_fd;
@@ -43,7 +43,7 @@ class MC_ParentNode{
   pthread_sync streammanagerbyid_sync;
 
  public:
-  MC_ParentNode(bool _threaded, string, unsigned short);
+  MC_ParentNode(bool _threaded, std::string, unsigned short);
   virtual ~MC_ParentNode(void);
 
   virtual int proc_PacketsFromDownStream(std::list <MC_Packet *> &)=0;
@@ -62,7 +62,7 @@ class MC_ParentNode{
   int proc_newApplication(MC_Packet *);
   int proc_delApplication(MC_Packet *);
 
-  string get_HostName();
+  std::string get_HostName();
   unsigned short get_Port();
 };
 

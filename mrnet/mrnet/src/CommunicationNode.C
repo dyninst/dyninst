@@ -4,18 +4,18 @@
 /*===========================================================*/
 /*  MC_CommunicationNode CLASS METHOD DEFINITIONS            */
 /*===========================================================*/
-MC_CommunicationNode::MC_CommunicationNode(string &_h, unsigned short _p)
+MC_CommunicationNode::MC_CommunicationNode(std::string &_h, unsigned short _p)
   :hostname(getNetworkName(_h)), port(0), config_port(_p)
 {
 }
 
-MC_CommunicationNode::MC_CommunicationNode(string &_h, unsigned short _p,
+MC_CommunicationNode::MC_CommunicationNode(std::string &_h, unsigned short _p,
                                            unsigned short _id)
   :hostname(getNetworkName(_h)), port(_p), config_port(_id)
 {
 }
 
-string MC_CommunicationNode::get_HostName()
+std::string MC_CommunicationNode::get_HostName()
 {
   return hostname;
 }
