@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.122 2002/04/22 17:39:44 bernat Exp $
+// $Id: inst-sparc.C,v 1.123 2002/04/23 16:28:01 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -991,7 +991,6 @@ void generateMTpreamble(char *insn, Address &base, process *proc)
   (void) emitV(orOp, src, 0, REG_MT_BASE, insn, base, false);
   regSpace->freeRegister(src);
 }
-#endif
 
 /****************************************************************************/
 /****************************************************************************/
@@ -1052,7 +1051,8 @@ Address process::generateMTRPCCode(void *insnPtr, Address &base,
   }
   return 0;
 }
-#endif
+#endif /* MT_THREAD */
+#endif /* !BPATCH */
 
 void generateMTSkipBranch(void *insnPtr, Address addr, Address offset)
 {
