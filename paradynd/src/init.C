@@ -1,7 +1,10 @@
 
 /*
  * $Log: init.C,v $
- * Revision 1.12  1995/11/13 16:28:24  naim
+ * Revision 1.13  1995/11/17 17:24:21  newhall
+ * support for MDL "unitsType" option, added normalized member to metric class
+ *
+ * Revision 1.12  1995/11/13  16:28:24  naim
  * Making observed_cost, predicted_cost, active_processes and pause_time "normal"
  * metrics and not "developer" mode metrics - naim
  *
@@ -117,26 +120,29 @@ bool init() {
   totalPredictedCost = internalMetric::newInternalMetric("predicted_cost",
 							 EventCounter,
 					                 aggMax,	
-							 "Wasted CPUs",
+							 "CPUs",
 							 NULL,
 							 default_im_preds,
-							 false);
+							 true,
+							 true);
 
   hybridPredictedCost = internalMetric::newInternalMetric("hybrid_cost", 
 							  SampledFunction,
 							  aggMax,
-							  "Wasted CPUs",
+							  "CPUs",
 							  NULL,
 							  default_im_preds,
+							  true,
 							  true);
 
   observed_cost = internalMetric::newInternalMetric("observed_cost",
 						   EventCounter,
 						   aggMax,
-						   "Wasted CPUs",
+						   "CPUs",
 						   NULL,
 						   default_im_preds,
-						   false);
+						   true,
+						   true);
 
 //  activeSlots = internalMetric::newInternalMetric("active_slots", 
 //						  SampledFunction,
@@ -144,118 +150,133 @@ bool init() {
 //						  "Number",
 //						  NULL,
 //						  default_im_preds,
-//						  true);
+//						  true,
+//						  false);
 
   cpu_daemon = internalMetric::newInternalMetric("cpu_daemon",
 						 EventCounter,
 						 aggSum,
-						 "Seconds",
+						 "CPUs",
 						 OS::compute_rusage_cpu,
 						 default_im_preds,
+						 true,
 						 true);
   
   sys_daemon = internalMetric::newInternalMetric("sys_daemon",
 						 EventCounter,
 						 aggSum,
-						 "Seconds",
+						 "CPUs",
 						 OS::compute_rusage_sys,
 						 default_im_preds,
+						 true,
 						 true);
 
   minflt_daemon = internalMetric::newInternalMetric("min_fault_daemon",
 						    EventCounter,
 						    aggSum,
-						    "Seconds",
+						    "operations",
 						    OS::compute_rusage_min,
 						    default_im_preds,
-						    true);
+						    true,
+						    false);
 
   majflt_daemon = internalMetric::newInternalMetric("maj_fault_daemon",
 						    EventCounter,
 						    aggSum,
-						    "Seconds",
+						    "operations",
 						    OS::compute_rusage_maj,
 						    default_im_preds,
-						    true);
+						    true,
+						    false);
 
   swap_daemon = internalMetric::newInternalMetric("swap_daemon",
 						  EventCounter,
 						  aggSum,
-						  "Seconds",
+						  "operations",
 						  OS::compute_rusage_swap,
 						  default_im_preds,
-						  true);
+						  true,
+						  false);
 
   io_in_daemon = internalMetric::newInternalMetric("io_in_daemon",
 						   EventCounter,
 						   aggSum,
-						   "Seconds",
+						   "operations",
 						   OS::compute_rusage_io_in,
 						   default_im_preds,
-						   true);
+						   true,
+						   false);
 
   io_out_daemon = internalMetric::newInternalMetric("io_out_daemon",
 						    EventCounter,
 						    aggSum,
-						    "Seconds",
+						    "operations",
 						    OS::compute_rusage_io_out,
 						    default_im_preds,
-						    true);
+						    true,
+						    false);
 
   msg_send_daemon = internalMetric::newInternalMetric("msg_send_daemon",
 						    EventCounter,
 						    aggSum,
-						    "Seconds",
+						    "operations",
 						    OS::compute_rusage_msg_send,
 						    default_im_preds,
-						    true);
+						    true,
+						    false);
 
   msg_recv_daemon = internalMetric::newInternalMetric("msg_recv_daemon",
 						    EventCounter,
 						    aggSum,
-						    "Seconds",
+						    "operations",
 						    OS::compute_rusage_msg_recv,
 						    default_im_preds,
-						    true);
+						    true,
+						    false);
 
   sigs_daemon = internalMetric::newInternalMetric("signals_daemon",
 						  EventCounter,
 						  aggSum,
-						  "Seconds",
+						  "operations",
 						  OS::compute_rusage_sigs,
 						  default_im_preds,
-						  true);
+						  true,
+						  false);
 
   vol_csw_daemon = internalMetric::newInternalMetric("vol_csw_daemon",
 						     EventCounter,
 						     aggSum,
-						     "Seconds",
+						     "operations",
 						     OS::compute_rusage_vol_cs,
 						     default_im_preds,
-						     true);
+						     true,
+						     false);
 
   inv_csw_daemon = internalMetric::newInternalMetric("inv_csw_daemon",
 						     EventCounter,
 						     aggSum,
-						     "Seconds",
+						     "operations",
 						     OS::compute_rusage_inv_cs,
 						     default_im_preds,
-						     true);
+						     true,
+						     false);
  
    pauseTime = internalMetric::newInternalMetric("pause_time",
 						 EventCounter,
 						 aggMax,
-						 "Seconds",
+						 "CPUs",
 						 computePauseTimeMetric,
 						 default_im_preds,
-						 false);
+						 true,
+						 true);
 
   activeProcs = internalMetric::newInternalMetric("active_processes",
 						  EventCounter,
 						  aggSum,
-						  "Processes",
+						  "operations",
 						  NULL,
 						  obs_cost_preds,
+						  true,
 						  false);
 
   sym_data sd;

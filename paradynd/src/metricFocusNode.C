@@ -14,7 +14,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.57  1995/11/13 14:54:12  naim
+ * Revision 1.58  1995/11/17 17:24:31  newhall
+ * support for MDL "unitsType" option, added normalized member to metric class
+ *
+ * Revision 1.57  1995/11/13  14:54:12  naim
  * Adding "mode" option to the Metric Description Language to allow specificacion
  * of developer mode for metrics (default mode is "normal") - naim
  *
@@ -1019,9 +1022,10 @@ internalMetric *internalMetric::newInternalMetric(const string n,
 						  const string units, 
 						  sampleValueFunc f,
 						  im_pred_struct& im_pred,
-						  bool developerMode) {
+						  bool developerMode,
+						  bool normalized) {
   internalMetric *im = new internalMetric(n, style, a, units, f, im_pred,
-					  developerMode);
+					  developerMode, normalized);
   assert(im);
   unsigned size = allInternalMetrics.size();
   for (unsigned u=0; u<size; u++)

@@ -4,7 +4,10 @@
 
 /*
  * $Log: internalMetrics.h,v $
- * Revision 1.9  1995/11/13 14:52:21  naim
+ * Revision 1.10  1995/11/17 17:24:23  newhall
+ * support for MDL "unitsType" option, added normalized member to metric class
+ *
+ * Revision 1.9  1995/11/13  14:52:21  naim
  * Adding "mode" option to the Metric Description Language to allow specificacion
  * of developer mode for metrics (default mode is "normal") - naim
  *
@@ -32,9 +35,11 @@ typedef float (*sampleValueFunc)();
 class internalMetric {
  public:
   internalMetric(const string n, metricStyle style, int a, const string units,
-		 sampleValueFunc f, im_pred_struct& im_preds, bool developermode=false) 
-    : value(0.0), cumulativeValue(0.0), func(f), node(NULL), name_(n), agg_(a),
-      style_(style), units_(units), pred(im_preds), developermode_(developermode) { }
+		 sampleValueFunc f, im_pred_struct& im_preds, 
+		 bool developermode, bool normalized) 
+    : value(0.0), cumulativeValue(0.0), func(f), node(NULL), name_(n), 
+      agg_(a), style_(style), units_(units), pred(im_preds), 
+      developermode_(developermode), normalized_(normalized) { }
 
   inline float getValue();
   void enable(metricDefinitionNode *n) { node = n; }
@@ -49,7 +54,8 @@ class internalMetric {
 					   const string units,
 					   sampleValueFunc f, 
 					   im_pred_struct& preds,
-					   bool developerMode);
+					   bool developerMode,
+					   bool normalized);
   float value;
   float cumulativeValue;
   sampleValueFunc func;
@@ -61,6 +67,7 @@ class internalMetric {
     ret.name = name_; ret.style = style_;
     ret.aggregate = agg_; ret.units = units_;
     ret.developerMode = developermode_;
+    ret.normalized = normalized_;
     return ret;
   }
   bool legalToInst(vector< vector<string> >& focus);
@@ -72,6 +79,7 @@ private:
   string units_;
   im_pred_struct pred;
   bool developermode_;
+  bool normalized_;
 };
 
 float internalMetric::getValue() {

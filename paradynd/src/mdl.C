@@ -3,7 +3,10 @@
 
 /* 
  * $Log: mdl.C,v $
- * Revision 1.8  1995/11/13 14:52:55  naim
+ * Revision 1.9  1995/11/17 17:24:26  newhall
+ * support for MDL "unitsType" option, added normalized member to metric class
+ *
+ * Revision 1.8  1995/11/13  14:52:55  naim
  * Adding "mode" option to the Metric Description Language to allow specificacion
  * of developer mode for metrics (default mode is "normal") - naim
  *
@@ -139,9 +142,10 @@ T_dyninstRPC::mdl_metric::mdl_metric(string id, string name, string units,
 				    vector<string> *flav,
 				    vector<T_dyninstRPC::mdl_constraint*> *cons,
 				    vector<string> *temp_counters,
-				    bool developerMode)
+				    bool developerMode,
+				    bool normalized)
 : id_(id), name_(name), units_(units), fold_op_(fold), agg_op_(agg), 
-  style_(sty), developerMode_(developerMode),
+  style_(sty), developerMode_(developerMode), normalized_(normalized),
   type_(type), stmts_(mv), flavors_(flav), constraints_(cons), temp_ctr_(temp_counters) { }
 T_dyninstRPC::mdl_metric::mdl_metric() { }
 
@@ -169,13 +173,15 @@ bool mdl_data::new_metric(string id, string name, string units,
 			  vector<string> *flav,
 			  vector<T_dyninstRPC::mdl_constraint*> *cons,
 			  vector<string> *temp_counters,
-			  bool developerMode) {
+			  bool developerMode,
+			  bool normalized) {
   T_dyninstRPC::mdl_metric *m = new T_dyninstRPC::mdl_metric(id, name, 
 							     units, fold, agg,
 							     sty, type, mv,
 							     flav, cons,
 							     temp_counters,
-							     developerMode);
+							     developerMode,
+							     normalized);
   if (!m)
     return false;
   else {
@@ -1212,7 +1218,7 @@ void dynRPC::send_metrics(vector<T_dyninstRPC::mdl_metric*>* var_0) {
     string obs_cost = "observed_cost";
     assert(mdl_data::new_metric("observedCost", obs_cost, "# CPUS",
 				aggMax, aggMax, EventCounter, 0,
- 			        NULL, NULL, NULL, NULL, true));
+ 			        NULL, NULL, NULL, NULL, true, true));
   }
 
   if (var_0) {
@@ -1650,6 +1656,7 @@ void mdl_get_info(vector<T_dyninstRPC::metricInfo>& metInfo) {
     element.aggregate = mdl_data::all_metrics[u]->agg_op_;
     element.units = mdl_data::all_metrics[u]->units_;
     element.developerMode = mdl_data::all_metrics[u]->developerMode_;
+    element.normalized = mdl_data::all_metrics[u]->normalized_;
     metInfo += element;
   }
 }
