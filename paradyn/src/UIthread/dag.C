@@ -25,7 +25,7 @@ dag::dag (Tcl_Interp *nterp)
 
   flags = 0;
   mode = ALL;
-  node_internal_width = 6;
+  node_internal_width = 2;
   node_internal_height = 2;
   graph_x_extent = 100;
   graph_y_extent = 100;
@@ -126,8 +126,8 @@ dag::createDisplay (char *parentWindow)
 {
   int nameLength;
   nameLength = strlen(parentWindow);
-  dframe = new char[nameLength];
-  dcanvas = new char[nameLength+4];
+  dframe = new char[nameLength + 1];
+  dcanvas = new char[nameLength + 5];
   strcpy (dframe, parentWindow);
   strcpy (dcanvas, parentWindow);
   if (nameLength == 1) {
@@ -1199,8 +1199,9 @@ dag::PaintNode(nStyle *styleRec,
 	      int width, int height) 
 {
 #if UIM_DAG_DEBUG
-  fprintf (stderr, "%s: bg: %s outline: %s stipple: %s width: %s\n",
-	   dcanvas, styleRec->bg, styleRec->outline, styleRec->stipple,
+  fprintf (stderr, "%d: style: %d bg: %s outline: %s stipple: %s width: %s\n",
+	   node->aNode, styleRec->styleID, styleRec->bg, 
+	   styleRec->outline, styleRec->stipple,
 	   styleRec->width);
 #endif
   sprintf (tcommand, 

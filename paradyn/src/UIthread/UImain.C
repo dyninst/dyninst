@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.39  1994/11/07 07:26:58  karavan
-/* changed requested main window size.
+/* Revision 1.40  1994/11/08 07:50:43  karavan
+/* Purified code; narrowed side margins for dag nodes.
 /*
+ * Revision 1.39  1994/11/07  07:26:58  karavan
+ * changed requested main window size.
+ *
  * Revision 1.38  1994/11/03  22:18:42  karavan
  * eliminated redundancy in status display
  *
@@ -353,8 +356,12 @@ UImain(void* vargs)
     }
 
     // Tk main window initialization
-
-    mainWindow = Tk_CreateMainWindow(interp, display, "paradyn", "Tk");
+    char *name, *cls;
+    name = new char[8];
+    cls = new char[3];
+    strcpy (name, "paradyn");
+    strcpy (cls, "Tk");
+    mainWindow = Tk_CreateMainWindow(interp, display, name, cls);
     if (mainWindow == NULL) {
 	fprintf(stderr, "%s\n", interp->result);
 	exit(1);
@@ -559,6 +566,8 @@ UImain(void* vargs)
      * no windows remaining for the application -- either grievous error 
      * or user has selected "EXIT".
      */
+    delete name;
+    delete cls;
     thr_exit(0);
   }
     

@@ -30,9 +30,12 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.19  1994/11/02 23:44:12  karavan
-/* added error service call for startup script error.
+/* Revision 1.20  1994/11/08 07:50:47  karavan
+/* Purified code; narrowed side margins for dag nodes.
 /*
+ * Revision 1.19  1994/11/02  23:44:12  karavan
+ * added error service call for startup script error.
+ *
  * Revision 1.18  1994/11/02  04:40:44  karavan
  * added new interface function UIM::readStartupFile which implements
  * the new -s commandline option to read in a tcl script after initialization
@@ -485,7 +488,7 @@ UIM::initSHG()
   sprintf (win, ".shg%02d", token);
   shgdag = new dag (interp);
       /* set global tcl variable to unique window name */
-  SHGwinName = new char [strlen(win)];
+  SHGwinName = new char [strlen(win) + 1];
   strcpy (SHGwinName, win);
   
   if (Tcl_VarEval (interp, "initSHG ", win, " ", tokstr, (char *) NULL) 
