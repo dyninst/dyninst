@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.165 2004/04/02 06:34:12 jaw Exp $
+ * $Id: inst-x86.C,v 1.166 2004/04/05 18:25:22 bernat Exp $
  */
 
 #include <iomanip>
@@ -1967,6 +1967,22 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
 #endif
    }
 
+   // PC FIXUP
+   // Since we're overwriting multiple instructions we have to handle the case
+   // when the PC(s) are within the jump footprint. We do this by getting a 
+   // vector of PCs and checking when each instruction is relocated. If a PC
+   // is at the instruction's address we jump the corresponding LWP to the 
+   // new address
+   pdvector<Address> currAddrs;
+   // Build the vector
+   for (unsigned thr_iter = 0; thr_iter < proc->threads.size(); thr_iter++) {
+       // IMPERATIVE that the ordering in the currAddrs vector and the proc->threads
+       // vector be IDENTICAL.
+       Frame frame = proc->threads[thr_iter]->get_lwp()->getActiveFrame();
+       currAddrs.push_back(frame.getPC());
+   }
+   
+
    ret->size = trampSize;
    Address baseAddr = proc->inferiorMalloc(trampSize, textHeap);
    // cout << "installBaseTramp(): trampoline base address = 0x"
@@ -1978,44 +1994,26 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
    unsigned char *insn = code;
    Address currAddr = baseAddr;
 
-   // MT FIXME
-
-   // get the current instruction that is being executed. If the PC is at a
-   // instruction that is being relocated, we must change the PC.
-
-   // The code in this function looks like it needs to be updated for
-   // multi-threaded processes.
-
-   dyn_lwp *lwp_to_use = NULL;
-   if(process::IndependentLwpControl() && proc->getRepresentativeLWP() ==NULL)
-      lwp_to_use = proc->getInitialThread()->get_lwp();
-   else
-      lwp_to_use = proc->getRepresentativeLWP();
-
-   Frame frame = lwp_to_use->getActiveFrame();
-   Address currentPC = frame.getPC();
-
-   // emulate the instructions before the point
    Address origAddr = location->jumpAddr() + imageBaseAddr;
 
    for (u = location->insnsBefore(); u > 0; ) {
-      --u;
+       --u;
 
-      // CONSIDER BELOW IN VIEW OF MT
-      if (currentPC == origAddr) {
-         //bperr("changed PC: 0x%lx to 0x%lx\n", currentPC,currAddr);
-         lwp_to_use->changePC(currAddr, NULL);
-      }
+       // MT change: for each thread
+       {
+           for (unsigned ca_iter = 0; ca_iter < currAddrs.size(); ca_iter++) {
+               if (currAddrs[ca_iter] == origAddr)
+                   proc->threads[ca_iter]->get_lwp()->changePC(currAddr, NULL);
+           }
+       }
 
-      // CONSIDER BELOW IN VIEW OF MT
-      unsigned newSize = relocateInstruction(location->insnBeforePt(u),
-                                             origAddr, currAddr, insn);
-      aflag=(newSize == getRelocatedInstructionSz(location->insnBeforePt(u)));
-      assert(aflag);
-      currAddr += newSize;
-      origAddr += location->insnBeforePt(u).size();
+       unsigned newSize = relocateInstruction(location->insnBeforePt(u),
+                                              origAddr, currAddr, insn);
+       aflag=(newSize == getRelocatedInstructionSz(location->insnBeforePt(u)));
+       assert(aflag);
+       currAddr += newSize;
+       origAddr += location->insnBeforePt(u).size();
    }
-
 
    /***
        If the instruction at the point is a conditional jump, we relocate it
@@ -2038,29 +2036,30 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
        then later at the base tramp, at the point where we relocate the
        instruction at the point, we insert a jump to target
    ***/
-      // CONSIDER BELOW IN VIEW OF MT
    if (location->insnAtPoint().type() & IS_JCC) {
+       currAddr = baseAddr + (insn - code);
+       assert(origAddr == location->pointAddr() + imageBaseAddr);
+       origAddr = location->pointAddr() + imageBaseAddr;
 
-      currAddr = baseAddr + (insn - code);
-      assert(origAddr == location->pointAddr() + imageBaseAddr);
-      origAddr = location->pointAddr() + imageBaseAddr;
-      if (currentPC == origAddr &&
-          currentPC != (location->jumpAddr() + imageBaseAddr)) {
-         //bperr( "changed PC: 0x%lx to 0x%lx\n", currentPC,currAddr);
-         lwp_to_use->changePC(currAddr, NULL);
-      }
-
-      jccTarget =
-         changeConditionalJump(location->insnAtPoint(), origAddr, currAddr,
-                               currAddr+location->insnAtPoint().size()+5,insn);
-      currAddr += location->insnAtPoint().size();
-      auxJumpOffset = insn-code;
-      emitJump(0, insn);
-      origAddr += location->insnAtPoint().size();
+       // MT change: for each thread
+       {
+           for (unsigned ca_iter = 0; ca_iter < currAddrs.size(); ca_iter++) {
+               if (currAddrs[ca_iter] == origAddr)
+                   proc->threads[ca_iter]->get_lwp()->changePC(currAddr, NULL);
+           }
+       }
+       
+       jccTarget =
+       changeConditionalJump(location->insnAtPoint(), origAddr, currAddr,
+                             currAddr+location->insnAtPoint().size()+5,insn);
+       currAddr += location->insnAtPoint().size();
+       auxJumpOffset = insn-code;
+       emitJump(0, insn);
+       origAddr += location->insnAtPoint().size();
    }
    if (location->isConservative() && !noCost)
-      emitSimpleInsn(PUSHFD, insn);    // pushfd
-
+       emitSimpleInsn(PUSHFD, insn);    // pushfd
+   
    // pre branches
    // skip pre instrumentation
    ret->skipPreInsOffset = insn-code;
@@ -2154,11 +2153,14 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
       currAddr = baseAddr + (insn - code);
       assert(origAddr == location->pointAddr() + imageBaseAddr);
       origAddr = location->pointAddr() + imageBaseAddr;
-      if (currentPC == origAddr &&
-          currentPC != (location->jumpAddr() + imageBaseAddr)) {
-         //bperr("changed PC: 0x%lx to 0x%lx\n", currentPC,currAddr);
-         lwp_to_use->changePC(currAddr, NULL);
-      }
+
+       // MT change: for each thread
+       {
+           for (unsigned ca_iter = 0; ca_iter < currAddrs.size(); ca_iter++) {
+               if (currAddrs[ca_iter] == origAddr)
+                   proc->threads[ca_iter]->get_lwp()->changePC(currAddr, NULL);
+           }
+       }
 
       unsigned newSize =
          relocateInstruction(location->insnAtPoint(), origAddr, currAddr,insn);
@@ -2250,10 +2252,15 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
    origAddr = location->pointAddr() + imageBaseAddr +
               location->insnAtPoint().size();
    for (u = 0; u < location->insnsAfter(); u++) {
-      if (currentPC == origAddr) {
-         //bperr( "changed PC: 0x%lx to 0x%lx\n", currentPC,currAddr);
-         lwp_to_use->changePC(currAddr, NULL);
-      }
+
+       // MT change: for each thread
+       {
+           for (unsigned ca_iter = 0; ca_iter < currAddrs.size(); ca_iter++) {
+               if (currAddrs[ca_iter] == origAddr)
+                   proc->threads[ca_iter]->get_lwp()->changePC(currAddr, NULL);
+           }
+       }
+
       unsigned newSize = relocateInstruction(location->insnAfterPt(u), 
                                              origAddr, currAddr, insn);
       aflag=(newSize == getRelocatedInstructionSz(location->insnAfterPt(u)));
