@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// templates1.C
+// $Id: templates1.C,v 1.18 1998/09/02 21:34:56 wylie Exp $
 
 #pragma implementation "Dictionary.h"
 #include "util/src/Dictionary.C"
@@ -101,6 +101,7 @@ template class  vector<dictionary_hash <unsigned long, pd_Function*>::entry>;
 template class  dictionary_hash <unsigned, resource *>;
 template class  vector<dictionary_hash <unsigned long, resource *>::entry>;
 template class  dictionary_hash <unsigned, unsigned>;
+template class  vector<dictionary_hash <unsigned, unsigned>::entry>;
 template class  dictionary_hash <unsigned, unsigned long>;
 template class  dictionary_hash <unsigned long, unsigned long>;
 template class  vector<dictionary_hash <unsigned long, unsigned long>::entry>;
@@ -167,7 +168,8 @@ template class vector<fastInferiorHeapMgr::oneHeapStats>;
 #endif
 
 #ifdef BPATCH_LIBRARY
-template class  dictionary_hash <string, Symbol>;
+template class dictionary_hash <string, Symbol>;
+template class vector<dictionary_hash <string, Symbol>::entry>;
 
 template class dictionary_hash<string, BPatch_type *>;
 template class dictionary_hash<int, BPatch_thread *>;
@@ -177,7 +179,8 @@ template class vector<dictionary_hash <string, BPatch_type *>::entry>;
 template class dictionary_hash_iter<int, BPatch_thread *>;
 template class vector<dictionary_hash <int, BPatch_thread *>::entry>;
 #endif
-template class  dictionary_hash <string, vector<string>*>;
+template class dictionary_hash <string, vector<string>*>;
+template class vector<dictionary_hash <string, vector<string>*>::entry>;
 
 template class vector<process::inferiorRPCtoDo>;
 template class vector<process::inferiorRPCinProgress>;
