@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.h,v 1.32 2002/06/17 21:31:16 chadd Exp $
+// $Id: init.h,v 1.33 2002/08/31 16:53:29 mikem Exp $
 
 #ifndef INIT_HDR
 #define INIT_HDR
@@ -53,6 +53,8 @@
 typedef timeMgr<> wallTimeMgr_t; // <> indicates that wall time querying
                          // function is a member of no class and takes no args
 extern wallTimeMgr_t *wallTimeMgr;   
+
+extern bool papiInitialized;
 
 // This function is responsible for platform specific initialization of the
 // timeMgr for the wall time.
@@ -73,7 +75,14 @@ inline wallTimeMgr_t &getWallTimeMgr() {
 // and in this case for timer level that is always available
 // (eg. gettimeofday)
 bool yesFunc();
+
+void initPapi();
+
 // ---------------------------------------------------------------------
+
+inline bool isPapiInitialized() {
+	return papiInitialized;
+}
 
 bool bShowTimerInfo();
 

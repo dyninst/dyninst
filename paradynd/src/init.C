@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.67 2002/06/25 20:27:36 bernat Exp $
+// $Id: init.C,v 1.68 2002/08/31 16:53:28 mikem Exp $
 
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
@@ -57,6 +57,11 @@
 #include "dyninstAPI/src/dyninstP.h" // isApplicationPaused
 #include "paradynd/src/dynrpc.h"
 #include "pdutil/h/aggregationDefines.h"
+
+#ifdef PAPI
+#include "papi.h"
+#endif
+
 
 extern pdRPC *tp;
 extern int getNumberOfCPUs();
@@ -227,6 +232,8 @@ bool init() {
 
   initCyclesPerSecond();
   initWallTimeMgr();
+
+  initPapi();
 
   machineRoot = resource::newResource(rootResource, NULL, nullString,
 				      string("Machine"), timeStamp::ts1970(), 
@@ -488,6 +495,8 @@ void instMPI() {
 
 wallTimeMgr_t *wallTimeMgr = NULL; //time querying function, member of no class
 
+bool papiInitialized = false;
+
 // a time available function for timeMgr levels that always returns true
 // (ie. the level is always available), eg. gettimeofday
 bool yesFunc() { return true; }
@@ -549,3 +558,22 @@ void initWallTimeMgrPlt();  // platform specific initialization
 // ---------------------------------------------------------------------
 
 
+void initPapi() {
+ 
+#ifdef PAPI
+   /* try to initialize PAPI library for daemon */
+
+
+  int retval;
+  retval = PAPI_library_init(PAPI_VER_CURRENT);
+  if ( retval != PAPI_VER_CURRENT) {
+    papiInitialized = false;
+    fprintf(stderr, "PAPI init failed\n");
+  }
+  else {
+    papiInitialized = true;
+    fprintf(stderr, "PAPI init successful\n");
+  }
+#endif
+
+}
