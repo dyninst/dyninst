@@ -14,9 +14,14 @@
  *
  */
 /* $Log: VISIthreadpublic.C,v $
-/* Revision 1.17  1996/02/23 17:45:28  tamches
-/* added 2 bool params to visualizationUser::StartPhase
+/* Revision 1.18  1996/04/04 21:54:27  newhall
+/* changes to enable routines so that they only enable mi_limit metric/focus
+/* pairs if mi_limit has a positive value, also use the value of DM_DATABUF_LIMIT
+/* to limit the size of the buffer used to send data values to the visi
 /*
+ * Revision 1.17  1996/02/23  17:45:28  tamches
+ * added 2 bool params to visualizationUser::StartPhase
+ *
  * Revision 1.16  1996/02/19 18:19:13  newhall
  * fix to avoid error #16 when a visi exits
  *
@@ -214,8 +219,10 @@ void visualizationUser::StopMetricResource(u_int metricId,
 	  ptr->mrlist.resize(size - 1);
 
           assert(ptr->buffer.size() > 0);
-          unsigned newMaxBufferSize = ptr->buffer.size() - 1;
-          ptr->buffer.resize(newMaxBufferSize);
+	  if(ptr->mrlist.size() < ptr->buffer.size()){
+              unsigned newMaxBufferSize = ptr->buffer.size() - 1;
+              ptr->buffer.resize(newMaxBufferSize);
+	  }
 
           return;
       }

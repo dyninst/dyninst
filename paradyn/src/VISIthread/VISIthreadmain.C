@@ -22,9 +22,14 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.65  1996/03/14 14:22:23  naim
-/* Batching enable data requests for better performance - naim
+/* Revision 1.66  1996/04/04 21:54:24  newhall
+/* changes to enable routines so that they only enable mi_limit metric/focus
+/* pairs if mi_limit has a positive value, also use the value of DM_DATABUF_LIMIT
+/* to limit the size of the buffer used to send data values to the visi
 /*
+ * Revision 1.65  1996/03/14  14:22:23  naim
+ * Batching enable data requests for better performance - naim
+ *
  * Revision 1.64  1996/02/21  22:28:49  tamches
  * added \n to showError 86 call
  *
@@ -268,7 +273,7 @@
 
 #define  ERROR_MSG(s1, s2) \
 	 uiMgr->showError(s1,s2); 
-
+#define  min(a,b) ((a)<(b) ? (a):(b))
 /*
 #define DEBUG3
 */
@@ -279,20 +284,6 @@ char *AbbreviatedFocus(const char *);
 #define  ASSERTTRUE(x) assert(x); 
 */
 #define  ASSERTTRUE(x) 
-
-
-#ifdef VISIDEBUG
-#include <sys/time.h>
-double VISIgetTime()
-{
-  double now;
-  struct timeval tv;
-  gettimeofday(&tv,NULL);
-  now = (double) tv.tv_sec + ((double)tv.tv_usec/(double)1000000.0);
-  return(now);
-}
-#endif
-
 
 void flush_buffer_if_full(VISIGlobalsStruct *ptr) {
    assert(ptr->buffer_next_insert_index <= ptr->buffer.size());
@@ -665,66 +656,8 @@ sampleValue getPacketSizeTC ()
   return packetSizeTC.getValue();
 }
 
-
-#ifdef n_def
-// this is used in persistence flag test code in VISIchooseMetRes
-static u_int VISIthread_num_enabled = 0;
-#endif
-///////////////////////////////////////////////////////////////////
-//  VISIthreadchooseMetRes: callback for User Interface Manager 
-//    chooseMetricsandResources upcall
-//    input: list of metric/focus matrices 
-//
-//  if the focus has already been enabled, make enable requests to
-//  the dataManager for only those metric/focus pairs that have not
-//  been previously enabled for this visualization
-//  else try to enable all metric/focus pairs
-//
-//  send each successfully enabled metric and focus to visualization 
-//  process (call visualizationUser::AddMetricsResources)
-//
-//  the visi process is started only after the first set of enabled
-//  metrics and resources has been obtained 
-///////////////////////////////////////////////////////////////////
-int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
-
-#ifdef VISIDEBUG
-int VISIcount=0;
-#endif
-
-  if(newMetRes)
-      PARADYN_DEBUG(("In VISIthreadchooseMetRes size = %d",newMetRes->size()));
-
-  VISIthreadGlobals *ptr;
-  if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
-    PARADYN_DEBUG(("thr_getspecific in VISIthreadchooseMetRes"));
-    ERROR_MSG(13,"thr_getspecific VISIthread::VISIthreadchooseMetRes");
-    return 1;
-  }
-
-  // check for invalid reply  ==> user picked "Cancel" menu option
-  if(newMetRes == NULL){
-      if(ptr->start_up){
-          ptr->quit = 1;
-      }
-      return 1;
-  }
-
-  // try to enable metric/focus pairs
-  vector<metric_focus_pair>  *retryList = new vector<metric_focus_pair> ;
-
-  u_int  numEnabled = 0;
-  metricInstInfo **newEnabled = new (metricInstInfo *)[newMetRes->size()];
-
-  vector<metric_focus_pair> *metResParts;
-  vector<metricInstInfo *> *newPair = NULL;
-  vector<metricInstInfo *> *partPair = NULL;
-
-#ifdef VISIDEBUG
-double t1,t2;
-t1=VISIgetTime();
-#endif  
-
+void GetPacketSize(unsigned nSize,unsigned &pSize,unsigned &lPacket, 
+		   unsigned &nTimes){ 
   //
   // This section of the code will select the current packet size for batching
   // the enable requests.
@@ -736,13 +669,8 @@ t1=VISIgetTime();
   // send 6 packets of size 10 (6x10) and one packet of size 10+3=13 
   // (lPacket=13).
   //
-  int nTimes,lPacket,nSize,pSize,quo,r,d,current=0;
-  nSize = newMetRes->size();
+  int quo,r,d;
   d = (int) getPacketSizeTC();
-
-#ifdef VISIDEBUG
-  printf("==> TEST <== Packet Size = %d\n",d);
-#endif
 
   quo = nSize/d;
   r = nSize%d;
@@ -772,80 +700,236 @@ t1=VISIgetTime();
       lPacket = d+r;
     }
   }
+}
 
-#ifdef VISIDEBUG
-  printf("==> TEST <== VISI: nSize=%d, nTimes=%d, r=%d, quo=%d, pSize=%d, lPacket=%d, d=%d\n",nSize,nTimes,r,quo,pSize,lPacket,d);
-#endif
+//
+// try to enable all pairs, returns true if no error
+//
+bool TryToEnableAll(vector<metric_focus_pair> *newMetRes,  // list of choces
+		    vector<metricInstInfo *> &newEnabled,  // list of enabled
+		    vector<metric_focus_pair>  *retryList, // list unenabled
+		    u_int &numEnabled,                    // number enalbed
+		    VISIthreadGlobals *ptr)
+{
+  vector<metric_focus_pair> *metResParts;
+  vector<metricInstInfo *> *newPair = NULL;
+  vector<metricInstInfo *> *partPair = NULL;
+  u_int current =0;
+
+  // get the packet size for data enable requests
+  u_int nTimes=0,lPacket=0,pSize=0;
+  GetPacketSize(newMetRes->size(),pSize,lPacket,nTimes);
 
   //
   // Next, we will batch enable requests by packets of size "pSize" and
   // we will collect the result in "newPair" until we have finished.
+  // if there is an mi_limit then we only enable upto mi_limit pairs
   //
   newPair = new vector<metricInstInfo *> ((*newMetRes).size());
-  for (int i=0;i<nTimes;i++) {
-    if ((lPacket > 0) && (i==(nTimes-1)))
-      pSize=lPacket;    
 
-#ifdef VISIDEBUG
-    printf("==> TEST <== VISI: Time (%d), Packet Size=%d, current=%d\n",i,pSize,current);
-#endif
+  for (u_int i=0;i<nTimes;i++) {
+      if ((lPacket > 0) && (i==(nTimes-1))) pSize=lPacket;    
 
-    metResParts = new vector<metric_focus_pair> (pSize);
-    for (int k=0;k<pSize;k++) 
-      (*metResParts)[k]=(*newMetRes)[current+k];
+        metResParts = new vector<metric_focus_pair> (pSize);
+        for (int k=0;k<pSize;k++) (*metResParts)[k]=(*newMetRes)[current+k];
 
-    partPair = ptr->dmp->enableDataCollectionBatch(ptr->ps_handle,
+        partPair = ptr->dmp->enableDataCollectionBatch(ptr->ps_handle,
 	                 metResParts,ptr->args->phase_type,0,0);
   
-    for (unsigned int k=0;k<(*partPair).size();k++) 
-      (*newPair)[k+current] = (*partPair)[k];
-    current+=pSize;
-    delete metResParts;
+        for (unsigned int k=0;k<(*partPair).size();k++) 
+          (*newPair)[k+current] = (*partPair)[k];
+        current+=pSize;
+        delete metResParts;
   }
-
-#ifdef VISIDEBUG
-t2=VISIgetTime();
-printf("==> TEST %d <== VISI: enableDataCollection took %5.2f secs\n",VISIcount++,t2-t1);
-#endif
 
   if (newPair) {
-    for (unsigned int j=0;j<(*newPair).size();j++) {
-      if ((*newPair)[j]) {
-        // check to see if this pair has already been enabled
-        bool found = false;
-        for(unsigned i = 0; i < ptr->mrlist.size(); i++){
-          if((ptr->mrlist[i]->mi_id == (*newPair)[j]->mi_id)) {
-            found = true;
-            break;
+      for (unsigned int j=0;j<(*newPair).size();j++) {
+          if ((*newPair)[j]) {
+              // check to see if this pair has already been enabled
+              bool found = false;
+              for(unsigned i = 0; i < ptr->mrlist.size(); i++){
+                  if((ptr->mrlist[i]->mi_id == (*newPair)[j]->mi_id)) {
+                      found = true;
+                      break;
+                  }
+              }
+              if(!found){  // this really is a new metric/focus pair
+                  ptr->mrlist += (*newPair)[j];
+		  numEnabled++;
+                  newEnabled += (*newPair)[j];
+              }
           }
-        }
-        if(!found){  // this really is a new metric/focus pair
-          ptr->mrlist += (*newPair)[j];
-          newEnabled[numEnabled++] = (*newPair)[j];
-        }
+          else {  // add to retry list        
+            *retryList += (*newMetRes)[j];
+          }
       }
-      else {  // add to retry list        
+  }
+  return(true);
+}
 
-#ifdef VISIDEBUG
-        printf("TEST: VISI, newPair[%d] = NULL\n",j);
-#endif
+//
+// try to enable num_to_enable pairs, returns true if no error
+//
+bool TryToEnableSome(int num_to_enable,		// max num to enable
+		    vector<metric_focus_pair> *newMetRes,  // list of choces
+		    vector<metricInstInfo *> &newEnabled, // list of enabled
+		    vector<metric_focus_pair>  *retryList, // list unenabled
+		    u_int &numEnabled,                    // number enalbed
+		    VISIthreadGlobals *ptr)
+{
 
-        *retryList += (*newMetRes)[j];
-      }
-    }
+
+  if(num_to_enable <= 0){ // if can't enable any more  
+     string msg("A visi has enabled the maximum number of metric/focus ");
+     msg += string("pairs that it can enable. limit = ");
+     msg += string(ptr->args->mi_limit); 
+     msg += string("\n");
+     uiMgr->showError(97,P_strdup(msg.string_of()));
+     numEnabled = 0;
+     return true;
   }
 
-#ifdef VISIDEBUG
-  printf("==> TEST <== VISI: numEnabled = %d\n",numEnabled);
+  vector<metric_focus_pair> *metResParts;
+  vector<metricInstInfo *> *newPair = NULL;
+  vector<metricInstInfo *> *partPair = NULL;
+
+  // get the packet size for data enable requests
+  u_int nTimes=0,lPacket=0,pSize=0;
+  GetPacketSize(newMetRes->size(),pSize,lPacket,nTimes);
+  
+  u_int total_num = (*newMetRes).size();
+  newPair = new vector<metricInstInfo *> (total_num);
+  u_int current = 0;
+
+  // keep trying to enable stuff until the mi_limit is reached or
+  // until there is nothing left to try to enable 
+  while ((num_to_enable) && (current < total_num )){
+
+      if(num_to_enable > (total_num - current)) 
+	  num_to_enable = (total_num - current); 
+      if(pSize > num_to_enable) 
+	  pSize = num_to_enable;
+      assert(num_to_enable >= pSize);
+      metResParts = new vector<metric_focus_pair> (pSize);
+
+      for (u_int k=0;k<pSize;k++) (*metResParts)[k]=(*newMetRes)[current+k];
+      partPair = ptr->dmp->enableDataCollectionBatch(ptr->ps_handle,
+	                                metResParts,ptr->args->phase_type,0,0);
+
+      for (u_int m=0;m<(*partPair).size();m++) 
+          (*newPair)[m+current] = (*partPair)[m];
+
+      if (partPair) {
+          for (unsigned int j=current;j<((*partPair).size()+ current);j++) {
+              if ((*newPair)[j]) {
+                  // check to see if this pair has already been enabled
+                  bool found = false;
+                  for(unsigned i = 0; i < ptr->mrlist.size(); i++){
+                      if((ptr->mrlist[i]->mi_id == (*newPair)[j]->mi_id)) {
+                          found = true;
+                          break;
+                      }
+                  }
+                  if(!found){  // this really is a new metric/focus pair
+                      ptr->mrlist += (*newPair)[j];
+		      numEnabled++;
+                      newEnabled += (*newPair)[j];
+		      num_to_enable--;
+                  }
+              }
+              else {  // add to retry list        
+                *retryList += (*newMetRes)[j];
+              }
+      } }
+      current+=pSize;
+      delete metResParts;
+  }
+
+  if(current < total_num){
+     string msg("A visi has enabled the maximum number of metric/focus ");
+     msg += string("pairs that it can enable. Some pairs may not have ");
+     msg += string("been enabled.  limit =  ");
+     msg += string(ptr->args->mi_limit); 
+     msg += string("\n");
+     uiMgr->showError(97,P_strdup(msg.string_of()));
+  }
+  return(true);
+}
+
+#ifdef n_def
+// this is used in persistence flag test code in VISIchooseMetRes
+static u_int VISIthread_num_enabled = 0;
 #endif
+///////////////////////////////////////////////////////////////////
+//  VISIthreadchooseMetRes: callback for User Interface Manager 
+//    chooseMetricsandResources upcall
+//    input: list of metric/focus matrices 
+//
+//  if the focus has already been enabled, make enable requests to
+//  the dataManager for only those metric/focus pairs that have not
+//  been previously enabled for this visualization
+//  else try to enable all metric/focus pairs
+//
+//  send each successfully enabled metric and focus to visualization 
+//  process (call visualizationUser::AddMetricsResources)
+//
+//  the visi process is started only after the first set of enabled
+//  metrics and resources has been obtained 
+///////////////////////////////////////////////////////////////////
+int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
+
+  if(newMetRes)
+      PARADYN_DEBUG(("In VISIthreadchooseMetRes size = %d",newMetRes->size()));
+
+  VISIthreadGlobals *ptr;
+  if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
+    PARADYN_DEBUG(("thr_getspecific in VISIthreadchooseMetRes"));
+    ERROR_MSG(13,"thr_getspecific VISIthread::VISIthreadchooseMetRes");
+    return 1;
+  }
+
+  // check for invalid reply  ==> user picked "Cancel" menu option
+  if(newMetRes == NULL){
+      if(ptr->start_up){
+          ptr->quit = 1;
+      }
+      return 1;
+  }
+
+  // try to enable metric/focus pairs
+  vector<metric_focus_pair>  *retryList = new vector<metric_focus_pair> ;
+  u_int  numEnabled = 0;
+  vector<metricInstInfo *> newEnabled;
+
+  // if there is no upper limit on number of MI's that can be enabled
+  // or if the number of new pairs + num already enabled is less than 
+  // the limit, then try to enable all of them
+  if((ptr->args->mi_limit <= 0) 
+      || ((newMetRes->size() + ptr->mrlist.size()) <= ptr->args->mi_limit)) {
+      if(!TryToEnableAll(newMetRes,newEnabled,retryList,numEnabled,ptr)){
+          ptr->quit = 1;
+	  delete newMetRes;
+	  delete(retryList);
+	  return 1;
+      }
+  }
+  else {  // else try to enable only upto mi_limit 
+     if(!TryToEnableSome((ptr->args->mi_limit - ptr->mrlist.size()),
+		     newMetRes,newEnabled,retryList,numEnabled,ptr)){
+          ptr->quit = 1;
+	  delete newMetRes;
+	  delete(retryList);
+	  return 1;
+     }
+  }
 
   // something was enabled
-
   if(numEnabled > 0){
       // increase the buffer size
       flush_buffer_if_nonempty(ptr);
 
-      unsigned newMaxBufferSize = ptr->buffer.size() + numEnabled;
+      unsigned newMaxBufferSize = min(ptr->buffer.size()+numEnabled,
+					DM_DATABUF_LIMIT);
       ptr->buffer.resize(newMaxBufferSize); // new
 
       // if this is the first set of enabled values, start visi process
