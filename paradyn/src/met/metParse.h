@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metParse.h,v 1.21 2002/08/31 16:53:21 mikem Exp $
+// $Id: metParse.h,v 1.22 2002/09/05 19:46:56 mikem Exp $
 
 #ifndef _MET_PARSE_H
 #define _MET_PARSE_H
@@ -233,7 +233,7 @@ private:
 typedef struct mdl_base {
   vector<T_dyninstRPC::mdl_stmt*> *m_stmt_v;
   unsigned type;
-  string hwcntr_str;
+  string* hwcntr_str;
 } mdl_base;
 
 typedef enum { ERR_NO_ERROR,
