@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTwinnt.c,v 1.5 2001/08/01 15:39:59 chadd Exp $
+ * $Id: RTwinnt.c,v 1.6 2003/02/04 14:59:37 bernat Exp $
  * RTwinnt.c: runtime instrumentation functions for Windows NT
  ************************************************************************/
 #ifndef mips_unknown_ce2_11 //ccw 29 mar 2001
@@ -73,4 +73,19 @@ void DYNINSTos_init(int calledByFork, int calledByAttach)
 #ifndef mips_unknown_ce2_11 //ccw 23 july 2001
   RTprintf("DYNINSTos_init(%d,%d)\n", calledByFork, calledByAttach);
 #endif
+}
+
+char gLoadLibraryErrorString[ERROR_STRING_LENGTH];
+int DYNINSTloadLibrary(char *libname)
+{
+    HMODULE res;
+    gLoadLibraryErrorString[0] = '\0';
+    fprintf(stderr, "Attempting to load %s\n", libname);
+    
+    res = LoadLibrary(libname);
+    if (res == NULL) {
+        perror("DYNINSTloadLibrary");
+        return 0;
+    }
+    return 1;
 }
