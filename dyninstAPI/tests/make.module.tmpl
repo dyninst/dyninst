@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.50 2003/08/08 15:32:58 hollings Exp $
+# $Id: make.module.tmpl,v 1.51 2003/08/19 18:36:32 hollings Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -15,7 +15,7 @@ DEST		= $(TO_CORE)/$(PROGRAM_DEST)/testprogs
 ifdef TARGET
 SRCS	     += ../src/$(TARGET).C ../src/test_util.C
 else
-TARGETS       =  test1 test2 test3 test4 test5 test6 test7 test8 test9
+TARGETS       =  test1 test2 test3 test4 test5 test6 test7 test8 test9 test10
 TARGETS      +=	 test1.mutatee_$(M_GCC) \
 		 test2.mutatee_$(M_GCC) \
 		 test3.mutatee_$(M_GCC) \
@@ -24,7 +24,8 @@ TARGETS      +=	 test1.mutatee_$(M_GCC) \
 		 test6.mutatee_$(M_GCC) \
 		 test7.mutatee_$(M_GCC) \
 		 test8.mutatee_$(M_GCC) \
-		 test9.mutatee_$(M_GCC)
+		 test9.mutatee_$(M_GCC) \
+		 test10.mutatee_$(M_GCC)
 
 ifdef NATIVE_CC
 TARGETS      +=  test1.mutatee_$(NATIVE_CC) \
@@ -81,11 +82,13 @@ SRCS	     += ../src/test1.C ../src/test1.mutatee.c ../src/test_util.C \
 		../src/test3.C ../src/test3.mutatee.c \
 		../src/test4.C ../src/test4a.mutatee.c ../src/test4b.mutatee.c \
 		../src/test5.C ../src/test5.mutatee.C \
-                ../src/libtestA.c ../src/libtestB.c \
 		../src/test6.C \
 		../src/test7.C \
-		../src/test8.C ../src/test8.mutatee.c ../src/libLoadMe.c  ../src/libInstMe.c \
-		../src/test9.C ../src/test9.mutatee.c
+		../src/test8.C ../src/test8.mutatee.c \
+		../src/test9.C ../src/test9.mutatee.c \
+		../src/test10.C ../src/test10.mutatee.c\
+                ../src/libtestA.c ../src/libtestB.c \
+		../src/libLoadMe.c  ../src/libInstMe.c 
 endif
 
 ifdef NATIVE_FC
@@ -191,6 +194,7 @@ endif
 	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test7 TARGET2=test7.mutatee_$(M_GCC)
 	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test8 TARGET2=test8.mutatee_$(M_GCC)
 	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test9 TARGET2=test9.mutatee_$(M_GCC)
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test10 TARGET2=test10.mutatee_$(M_GCC)
 
 ifneq ($(NATIVE_CC),)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test1.mutatee_$(NATIVE_CC)
