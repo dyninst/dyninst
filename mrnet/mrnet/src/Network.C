@@ -127,7 +127,7 @@ Network::Network( const char *_phostname, Port pport, Rank myrank )
     _network_impl = new NetworkImpl( this, _phostname, pport, myrank );
 }
 
-void Network::error_str( const char *s )
+void Network::print_error( const char *s )
 {
     assert(_network_impl);
     _network_impl->perror( s );

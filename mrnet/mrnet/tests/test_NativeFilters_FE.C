@@ -36,7 +36,7 @@ int main(int argc, char **argv)
     Network * network = new Network( topology_file, backend_exe, &dummy_argv  );
     if( network->fail() ){
         fprintf(stderr, "Network Initialization failure\n");
-        network->error_str(argv[0]);
+        network->print_error(argv[0]);
         exit(-1);
     }
 

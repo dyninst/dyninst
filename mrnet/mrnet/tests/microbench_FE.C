@@ -120,7 +120,7 @@ BuildNetwork( std::string cfgfile, std::string backend_exe )
     if( network->fail() )
     {
         std::cerr << "FE: network initialization failed" << std::endl;
-        network->error_str("FE:");
+        network->print_error("FE:");
         delete network;
         exit(-1);
     }

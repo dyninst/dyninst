@@ -229,7 +229,7 @@ class Network{
     bool is_BackEnd( void );
     bool fail( void );
     bool good( void );
-    void error_str( const char * );
+    void print_error( const char * );
 };
 
 } /* namespace MRN */

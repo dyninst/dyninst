@@ -43,7 +43,7 @@ int main(int argc, char **argv)
     Network * network = new Network( argv[1], argv[2], &dummy_argv );
     if( network->fail() ){
         fprintf(stderr, "Network Initialization failure\n");
-        network->error_str(argv[0]);
+        network->print_error(argv[0]);
         delete network;
         exit(-1);
     }

@@ -39,7 +39,7 @@ int main(int argc, char **argv)
     Network * network = new Network( topology_file, backend_exe, &dummy_argv );
     if( network->fail() ){
         fprintf(stderr, "Network Initialization failure\n");
-        network->error_str(argv[0]);
+        network->print_error(argv[0]);
         exit(-1);
     }
 
@@ -58,13 +58,13 @@ int main(int argc, char **argv)
 
     if(stream->send(PROT_EXIT, "") == -1){
         fprintf(stderr, "stream->send(\"PROT_EXIT\") failed\n");
-        network->error_str(argv[0]);
+        network->print_error(argv[0]);
         return -1;
     }
 
     if(stream->flush() == -1){
         fprintf(stderr, "stream->flush() failed\n");
-        network->error_str(argv[0]);
+        network->print_error(argv[0]);
         return -1;
     }
 
