@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap-solaris.c,v 1.7 2000/08/28 20:41:09 zandy Exp $ */
+/* $Id: RTheap-solaris.c,v 1.8 2001/11/05 18:47:39 zandy Exp $ */
 /* RTheap-solaris.c: Solaris-specific heap components */
 
 #include <stdlib.h>
@@ -120,6 +120,9 @@ void DYNINSTheap_setbounds()
 #if defined(sparc_sun_solaris2_4)
      DYNINSTheap_loAddr = 0;
      DYNINSTheap_hiAddr = (Address)ps.pr_stkbase;
+     /* shrink this bound to allow stack room to grow */
+     assert(DYNINSTheap_hiAddr > 128*1024);
+     DYNINSTheap_hiAddr -= 128*1024;
 #elif defined(i386_unknown_solaris2_5)
      /* x86 Solaris memory layout (ca. Solaris 2.6):
 
