@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dynamiclinking.h,v 1.13 2005/03/16 22:59:40 bernat Exp $
+// $Id: dynamiclinking.h,v 1.14 2005/03/17 23:27:12 bernat Exp $
 
 #if !defined(dynamic_linking_h)
 #define dynamic_linking_h
@@ -69,6 +69,7 @@ class sharedLibHook {
   public:
     // Insert a hook into the shared library process
     sharedLibHook(process *p, sharedLibHookType t, Address b);
+    sharedLibHook(process *p, sharedLibHookType t, instMapping *inst);
     // Remove the hook
     ~sharedLibHook();
 
@@ -84,6 +85,7 @@ class sharedLibHook {
     sharedLibHookType type_;
     char *saved_[SLH_SAVE_BUFFER_SIZE];
     Address breakAddr_;
+    instMapping *loadinst_;
 };
 
 // Class which encapsulates hooking to dlopen and dlclose. All platform specific
@@ -150,6 +152,8 @@ public:
     Address dlopen_addr; // Address of dlopen, used for calling it directly
 
     pdvector<sharedLibHook *> sharedLibHooks_;
+
+    bool instru_based;
     
     // Whether to ignore the PC check in handleIfDue...
     bool force_library_load;
