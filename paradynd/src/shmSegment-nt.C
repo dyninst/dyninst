@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 //----------------------------------------------------------------------------
-// $Id: shmSegment-nt.C,v 1.3 2003/03/20 23:20:58 mjbrim Exp $
+// $Id: shmSegment-nt.C,v 1.4 2003/05/21 20:12:50 schendel Exp $
 //----------------------------------------------------------------------------
 //
 // Definition of the ShmSegment class.
@@ -78,12 +78,14 @@ ShmSegment::~ShmSegment( void )
 #endif // READY
     }
 
-    // release the segment
-    if( !CloseHandle( seg_id ) )
-    {
+    if(! leaveSegmentAroundOnExit) {  
+       // release the segment
+       if( !CloseHandle( seg_id ) )
+       {
 #if READY
-        indicate error to user? how?
+       // indicate error to user? how?
 #endif // READY
+       }
     }
 }
 

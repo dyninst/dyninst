@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.426 2003/05/14 20:46:18 bernat Exp $
+// $Id: process.C,v 1.427 2003/05/21 20:12:48 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -6865,7 +6865,7 @@ void process::init_shared_memory(process *parentProc) {
    // need to inherit the parent process's data also
    theSharedMemMgr = 
       new shmMgr(*parentProc->theSharedMemMgr, shm_key, shmSegAttachedPtr,
-                 getPid());
+                 this);
    shmMetaData = new sharedMetaData(*(parentProc->shmMetaData), 
                                     *theSharedMemMgr);
    shMetaOffsetData = 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 //----------------------------------------------------------------------------
-// $Id: shmSegment.h,v 1.1 2000/02/22 23:12:14 pcroth Exp $
+// $Id: shmSegment.h,v 1.2 2003/05/21 20:12:52 schendel Exp $
 //----------------------------------------------------------------------------
 //
 // Declaration of ShmSegment class.
@@ -66,13 +66,11 @@ private:
     unsigned int seg_size;  // size of segment
     void*   seg_addr;   // address at which segment is
                         // attached to current process
-    
+    bool leaveSegmentAroundOnExit;  // for example, if we attach to process
 
     ShmSegment( shmid_t id, key_t key, unsigned int size, void* addr )
-        : seg_id( id ),
-          seg_key( key ),
-          seg_size( size ),
-          seg_addr( addr )
+       : seg_id( id ), seg_key( key ), seg_size( size ), seg_addr( addr ), 
+         leaveSegmentAroundOnExit(false)
     {}
 
 public:
@@ -85,6 +83,8 @@ public:
     key_t   GetKey( void ) const            { return seg_key; }
     unsigned int    GetSize( void ) const   { return seg_size; }
     void*   GetMappedAddress( void ) const  { return seg_addr; }
+
+    void markAsLeaveSegmentAroundOnExit() { leaveSegmentAroundOnExit = true; }
 };
 
 #endif // SHMSEGMENT_H

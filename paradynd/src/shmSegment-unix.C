@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 //----------------------------------------------------------------------------
-// $Id: shmSegment-unix.C,v 1.8 2002/10/15 17:12:08 schendel Exp $
+// $Id: shmSegment-unix.C,v 1.9 2003/05/21 20:12:51 schendel Exp $
 //----------------------------------------------------------------------------
 //
 // Definition of the ShmSegment class.
@@ -83,12 +83,14 @@ ShmSegment::~ShmSegment( void )
     }
     seg_addr = NULL;
 
-    // destroy the segment
-    if( P_shmctl( seg_id, IPC_RMID, 0 ) == -1 )
-    {
-        perror( "ShmSegment dtor shmctl" );
+    if(! leaveSegmentAroundOnExit) {
+       // destroy the segment
+       if( P_shmctl( seg_id, IPC_RMID, 0 ) == -1 )
+       {
+          perror( "ShmSegment dtor shmctl" );
+       }
+       seg_id = -1;
     }
-    seg_id = -1;
 }
 
 

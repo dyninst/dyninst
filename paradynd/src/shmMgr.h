@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: shmMgr.h,v 1.10 2003/02/10 16:46:28 bernat Exp $
+/* $Id: shmMgr.h,v 1.11 2003/05/21 20:12:49 schendel Exp $
  * shmMgr: an interface to allocating/freeing memory in the 
  * shared segment. Will eventually support allocating a new
  * shared segment and attaching to it.
@@ -104,7 +104,7 @@ class shmMgr {
   shmMgr();
   shmMgr(process *proc, key_t shmSegKey, unsigned shmSize_);
   shmMgr(const shmMgr &par, key_t theShmKey, void *applShmSegPtr, 
-	 pid_t inferiorPid);
+         process *childProc);
   ~shmMgr();
 
   // Tell the manager to preallocate a chunk of space
