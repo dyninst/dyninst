@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.71 2003/01/31 18:55:41 chadd Exp $
+// $Id: BPatch_thread.C,v 1.72 2003/02/04 14:59:20 bernat Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -192,11 +192,13 @@ BPatch_thread::BPatch_thread(const char *path, char *argv[], char *envp[],
     //#endif
 
     proc = createProcess(path, argv_vec, envp_vec, directoryName, stdin_fd,
-      stdout_fd, stderr_fd);
-
+                         stdout_fd, stderr_fd);
     // XXX Should do something more sensible.
-    if (proc == NULL) return;
-
+    if (proc == NULL) { 
+        cerr << "Process is NULL!" << endl;
+        return;
+    }
+    
     proc->thread = this;
 
     // Add this object to the list of threads
@@ -207,7 +209,7 @@ BPatch_thread::BPatch_thread(const char *path, char *argv[], char *envp[],
     image = new BPatch_image(proc);
 
     while (!proc->isBootstrappedYet() && !statusIsTerminated())
-	BPatch::bpatch->getThreadEvent(false);
+        BPatch::bpatch->getThreadEvent(false);
 
     if (BPatch::bpatch->postForkCallback) {
       insertVForkInst(this);
@@ -229,17 +231,20 @@ BPatch_thread::BPatch_thread(const char *path, int pid)
     createdViaAttach(true), detached(false),
     unreportedStop(false), unreportedTermination(false)
 {
-
     /* For some reason, on Irix, evaluating the return value of
        attachProcess directly (i.e. no "ret" variable) causes the
        expression to be incorrectly evaluated as false.  This appears
        to be a compiler bug ("g++ -mabi=64 -O3"). */
-    bool ret = attachProcess(path, pid, 1, &proc);
-    if (!(ret)) {
+    // Giving this another try -- bernat, JAN03 */
+    proc = attachProcess(path, pid);
+    if (!proc) {
+        cerr << "attachProcess failed" << endl;
       // XXX Should do something more sensible
-      proc = NULL;
-      return;
+        return;
     }
+
+    // Just to be sure, pause the process....
+    proc->pause();
 
     proc->thread = this;
 
@@ -996,13 +1001,16 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(
  */
 bool BPatch_thread::deleteSnippet(BPatchSnippetHandle *handle)
 {
+    
     if (handle->proc == proc) {
-	for (unsigned int i=0; i < handle->mtHandles.size(); i++) {
-	  deleteInst(proc, *(handle->mtHandles[i]));
-	}
+        for (unsigned int i=0; i < handle->mtHandles.size(); i++) {
+            deleteInst(proc, *(handle->mtHandles[i]));
+        }
 	delete handle;
 	return true;
     } else { // Handle isn't to a snippet instance in this process
+        cerr << "Error: wrong process in deleteSnippet" << endl;
+        
 	return false;
     }
 }
@@ -1263,8 +1271,8 @@ bool BPatch_thread::loadLibrary(const char *libname, bool reload)
 {
 #if defined(sparc_sun_solaris2_4)  || defined(i386_unknown_solaris2_5) || \
     defined(i386_unknown_linux2_0) || defined(mips_sgi_irix6_4) || \
-    defined(alpha_dec_osf4_0) || defined(rs6000_ibm_aix4_1) ||\
-    defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
+    defined(alpha_dec_osf4_0) || defined(rs6000_ibm_aix4_1) || \
+    defined(ia64_unknown_linux2_4) ||  defined(i386_unknown_nt4_0)
   if (!statusIsStopped()) {
     return false;
   }
