@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.10 1999/06/17 22:06:52 wylie Exp $
+// $Id: pdwinnt.C,v 1.11 1999/06/24 18:20:14 pcroth Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -252,8 +252,11 @@ Address loadDyninstDll(process *p, char Buffer[LOAD_DYNINST_BUF_SIZE]) {
     Address LoadLibAddr;
     Symbol sym;
     if (!p->getSymbolInfo("_LoadLibraryA@4", sym, LoadLibBase)) {
-	printf("unable to find function LoadLibrary\n");
-	assert(0);
+        if( !p->getSymbolInfo( "_LoadLibraryA", sym, LoadLibBase ))
+        {
+	        printf("unable to find function LoadLibrary\n");
+	        assert(0);
+        }
     }
     LoadLibAddr = sym.addr() + LoadLibBase;
     assert(LoadLibAddr);
@@ -278,28 +281,27 @@ Address loadDyninstDll(process *p, char Buffer[LOAD_DYNINST_BUF_SIZE]) {
     // int3
     *iptr++ = (char)0xcc;
 
-    char libname[256];
+	char* libname = NULL;
     // check for an environment variable
 #ifdef BPATCH_LIBRARY  // dyninstAPI loads a different run-time library
-    strcpy((char*)libname,(char*)getenv("DYNINSTAPI_RT_LIB"));
+	libname = getenv("DYNINSTAPI_RT_LIB");
 #else
-    strcpy((char*)libname,(char*)getenv("PARADYN_LIB"));
+	libname = getenv("PARADYN_LIB");
 #endif
 
-    if (strlen(libname) == 0) {
+    if ((libname == NULL) || (strlen(libname) == 0)) {
         // if environment variable unset, use the default name/strategy
 #ifdef BPATCH_LIBRARY
-        strcpy((char*)libname, "libdyninstAPI_RT.dll");
+		libname = "libdyninstAPI_RT.dll";
 #else
-        strcpy((char*)libname, "libdyninstRT.dll");
+		libname = "libdyninstRT.dll";
 #endif
-    } else {
-        // make sure that directory separators are what LoadLibrary expects
-        for (unsigned int i=0; i<strlen(libname); i++)
-            if (libname[i]=='/') libname[i]='\\';
-    }
-
+	}
+	
+    // make sure that directory separators are what LoadLibrary expects
     strcpy(iptr, libname);
+    for (unsigned int i=0; i<strlen(iptr); i++)
+        if (iptr[i]=='/') iptr[i]='\\';
 
     p->readDataSpace((void *)codeBase, LOAD_DYNINST_BUF_SIZE, Buffer, false);
     p->writeDataSpace((void *)codeBase, LOAD_DYNINST_BUF_SIZE, ibuf);
