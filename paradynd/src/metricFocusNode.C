@@ -7,14 +7,19 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.38 1994/09/20 18:18:28 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.39 1994/09/22 02:13:35 markc Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.38  1994/09/20 18:18:28  hollings
+ * Revision 1.39  1994/09/22 02:13:35  markc
+ * cast args to memset
+ * cast stringHandles for string functions
+ * change *allocs to news
+ *
+ * Revision 1.38  1994/09/20  18:18:28  hollings
  * added code to use actual clock speed for cost model numbers.
  *
  * Revision 1.37  1994/09/05  20:33:34  jcargill
@@ -203,10 +208,12 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *
  *
  */
+
+extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <string.h>
+}
 
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
@@ -223,21 +230,20 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "internalMetrics.h"
 
 
-extern "C" {
-// <sys/time.h> should define this
-int gettimeofday(struct timeval *tp, struct timezone *tzp);
-}
+extern Boolean CMMDhostless;
+extern double currentPredictedCost;
+extern float computePauseTimeMetric();
 
 extern pdRPC *tp;
 extern int metricCount;
 extern int metResPairsEnabled;
-extern HTable<metric> metricsUsed;
-extern HTable<resourceList> fociUsed;
+extern HTable<metric*> metricsUsed;
+extern HTable<resourceListRec*> fociUsed;
 
-HTable<metricInstance> midToMiMap;
+HTable<metricDefinitionNode*> midToMiMap;
 
 double currentHybridValue;
-metricList globalMetricList;
+metricListRec *globalMetricList;
 extern process *nodePseudoProcess;
 
 // used to indicate the mi is no longer used.
@@ -246,7 +252,7 @@ extern process *nodePseudoProcess;
 
 metricDefinitionNode::metricDefinitionNode(process *p, int agg_style)
 {
-    memset(this, '\0', sizeof(metricDefinitionNode));
+    memset((char*)this, '\0', sizeof(metricDefinitionNode));
 
     proc = p;
     aggregate = FALSE;
@@ -272,11 +278,11 @@ float metricDefinitionNode::getMetricValue()
     return((*data)->getMetricValue());
 }
 
-metricDefinitionNode::metricDefinitionNode(metric m, 
+metricDefinitionNode::metricDefinitionNode(metric *m, 
 					    List<metricDefinitionNode*> parts)
 {
 
-    memset(this, '\0', sizeof(metricDefinitionNode));
+    memset((char*)this, '\0', sizeof(metricDefinitionNode));
 
     met = m;
     aggregate = TRUE;
@@ -291,21 +297,21 @@ metricDefinitionNode::metricDefinitionNode(metric m,
     }
 }
 
-metricInstance buildMetricInstRequest(resourceList l, metric m)
+metricDefinitionNode *buildMetricInstRequest(resourceListRec *l, metric *m)
 {
     int i;
     int tid;
     int count;
-    resource r;
+    resource *r;
     int covered;
     List<process*> pl;
-    metricInstance ret;
+    metricDefinitionNode *ret;
     internalMetric *im;
     process *proc = NULL;
     resourcePredicate *pred;
-    struct _metricRec *curr;
+    metric *curr;
     process **instProcessList;
-    resource complexPredResource;
+    resource *complexPredResource;
     resourcePredicate *complexPred;
     List<metricDefinitionNode*> parts;
     metricDefinitionNode *mn;
@@ -336,15 +342,15 @@ metricInstance buildMetricInstRequest(resourceList l, metric m)
 	    }
 
 	    /* test predicate for this resource */
-	    if (!strncmp(pred->namePrefix, r->parent->info.fullName, 
+	    if (!strncmp(pred->namePrefix, (char*)r->parent->info.fullName, 
 			 strlen(pred->namePrefix)) ||
-		!strcmp(pred->namePrefix, r->info.fullName)) {
+		!strcmp(pred->namePrefix, (char*)r->info.fullName)) {
 		break;
 	    }
 	}
 	if (i== l->count) continue;
 
-	if (!strcmp(pred->namePrefix, r->info.fullName)) {
+	if (!strcmp(pred->namePrefix, (char*)r->info.fullName)) {
 	    // null refinement skip it .
 	    continue;
 	}
@@ -358,7 +364,7 @@ metricInstance buildMetricInstRequest(resourceList l, metric m)
     if (im) {
 	mn = new metricDefinitionNode(*pl, m->info.aggregate);
 	im->enable(mn);
-	sprintf(errorLine, "enabled internal metric %s\n", (m->info.name));
+	sprintf(errorLine, "enabled internal metric %s\n", (char*)(m->info.name));
 	logLine(errorLine);
 	return(mn);
     }
@@ -371,27 +377,30 @@ metricInstance buildMetricInstRequest(resourceList l, metric m)
     for (i=0; i < l->count; i++) {
 	r = l->elements[i];
 	/* HACK for process for now */
-	if (!strcmp("/Process", r->parent->info.fullName)) {
+	if (!strcmp("/Process", (char*)r->parent->info.fullName)) {
 	    proc = (process *) r->handle;
 	}
 	/* HACK for machine for now */
-	if (!strcmp("/Machine", r->parent->info.fullName)) {
+	if (!strcmp("/Machine", (char*)r->parent->info.fullName)) {
 	    tid = (int) r->handle;
 	}
     }
 
     if (proc) {
-	instProcessList = (process **) xcalloc(2, sizeof(process *));
-	if (!tid || (proc->thread == tid)) {
+        instProcessList = new process*[2];
+	if (!tid || (proc->thread == tid))
 	    instProcessList[0] = proc;
-	}
+	instProcessList[1] = NULL;
     } else if (nodePseudoProcess) {
-	instProcessList = (process **) xcalloc(3, sizeof(process *));
+	instProcessList = new process*[3];
 	instProcessList[0] = nodePseudoProcess;
 	instProcessList[1] = nodePseudoProcess->parent;
+	instProcessList[2] = NULL;
     } else {
+        int i;
 	count = processList.count();
-	instProcessList = (process **) xcalloc(count+1, sizeof(process *));
+	instProcessList = new process*[count+1];
+	for (i=0; i<count+1; i++) instProcessList[i] = NULL;
 	for (pl = processList,count = 0; proc = *pl; pl++) {
 	    /* HACK for machine for now */
 	    if (!tid || (proc->thread == tid)) {
@@ -418,9 +427,9 @@ metricInstance buildMetricInstRequest(resourceList l, metric m)
 		r = l->elements[i];
 
 		/* test predicate for this resource */
-		if (!strncmp(pred->namePrefix, r->parent->info.fullName, 
+		if (!strncmp(pred->namePrefix, (char*)r->parent->info.fullName, 
 			     strlen(pred->namePrefix)) ||
-		    !strcmp(pred->namePrefix, r->info.fullName)) {
+		    !strcmp(pred->namePrefix, (char*)r->info.fullName)) {
 		    break;
 		}
 	    }
@@ -428,7 +437,7 @@ metricInstance buildMetricInstRequest(resourceList l, metric m)
 
 	    covered++;
 
-	    if (!strcmp(pred->namePrefix, r->info.fullName)) {
+	    if (!strcmp(pred->namePrefix, (char*)r->info.fullName)) {
 		// null refinement skip it .
 		continue;
 	    }
@@ -442,7 +451,7 @@ metricInstance buildMetricInstRequest(resourceList l, metric m)
 
 		// make constraint the part after the match in namePrefix
 		//   also skip next /.
-		temp = constraint = strdup(r->info.fullName);
+		temp = constraint = strdup((char*)r->info.fullName);
 		for (i=0; i <= strlen(pred->namePrefix); i++) constraint++;
 		predInstance = pred->creator(mn, constraint, predInstance);
 		free(temp);
@@ -480,11 +489,13 @@ metricInstance buildMetricInstRequest(resourceList l, metric m)
 
 	    // make constraint the part after the match in namePrefix
 	    //   also skip next /.
-	    temp = constraint = strdup(complexPredResource->info.fullName);
+	    temp = constraint = strdup((char*)complexPredResource->info.fullName);
 	    for (i=0; i <= strlen(complexPred->namePrefix); i++) constraint++;
 
 	    (void) complexPred->creator(mn, constraint, predInstance);
 	} else {
+	  metricDefinition di;
+	  di = curr->definition;
 	    curr->definition.baseFunc(mn, predInstance);
 	}
 	if (mn && mn->nonNull()) {
@@ -527,7 +538,7 @@ List<metricDefinitionNode*> allMIs;
  *
  */
 
-metricInstance createMetricInstance(resourceList l, metric m)
+metricDefinitionNode *createMetricInstance(resourceListRec *l, metric *m)
 {
     static int MICount;
     metricDefinitionNode *mi;
@@ -547,13 +558,10 @@ metricInstance createMetricInstance(resourceList l, metric m)
     return(mi);
 }
 
-int startCollecting(resourceList l, metric m)
+int startCollecting(resourceListRec *l, metric *m)
 {
     float cost;
-    metricInstance mi;
-    extern Boolean CMMDhostless;
-    extern double currentPredictedCost;
-    extern void printResourceList(resourceList);
+    metricDefinitionNode *mi;
 
     if (CMMDhostless == TRUE) return(-1);
 
@@ -582,10 +590,10 @@ int startCollecting(resourceList l, metric m)
     return(mi->id);
 }
 
-float guessCost(resourceList l , metric m)
+float guessCost(resourceListRec *l , metric *m)
 {
     float cost;
-    metricInstance mi;
+    metricDefinitionNode *mi;
 
     mi = createMetricInstance(l, m);
     if (!mi) return(0.0);
@@ -714,7 +722,7 @@ void metricDefinitionNode::updateValue(time64 wallTime,
 				       sampleValue value)
 {
     timeStamp sampleTime;
-    struct sampleInterval ret;
+    sampleInterval ret;
     List<metricDefinitionNode*> curr;
     // extern timeStamp elapsedPauseTime;
 
@@ -766,7 +774,7 @@ void metricDefinitionNode::updateAggregateComponent(metricDefinitionNode *curr,
 						    timeStamp sampleTime, 
 						    sampleValue value)
 {
-    struct sampleInterval ret;
+    sampleInterval ret;
 
     ret = sample.newValue(valueList, sampleTime, value);
     if (ret.valid) {
@@ -783,39 +791,39 @@ void processCost(process *proc, traceHeader *h, costUpdate *s)
     extern internalMetric totalPredictedCost;
     extern internalMetric hybridPredictedCost;
 
-    if (proc->cost.wallTimeLastTrampSample) {
+    if (proc->theCost.wallTimeLastTrampSample) {
 	proc->pauseTime = s->pauseTime/ 
-	    ((h->wall - proc->cost.wallTimeLastTrampSample)/1000000.0);
+	    ((h->wall - proc->theCost.wallTimeLastTrampSample)/1000000.0);
     }
-    proc->cost.wallTimeLastTrampSample = h->wall;
+    proc->theCost.wallTimeLastTrampSample = h->wall;
 
     // should really compute this on a per process basis.
-    proc->cost.currentPredictedCost = currentPredictedCost;
+    proc->theCost.currentPredictedCost = currentPredictedCost;
 
     // update totalPredicted cost.
-    proc->cost.totalPredictedCost += proc->cost.currentPredictedCost *
-	    (h->process - proc->cost.timeLastTrampSample)/1000000.0;
-    proc->cost.timeLastTrampSample = h->process;
+    proc->theCost.totalPredictedCost += proc->theCost.currentPredictedCost *
+	    (h->process - proc->theCost.timeLastTrampSample)/1000000.0;
+    proc->theCost.timeLastTrampSample = h->process;
 
     //
     // build circular buffer of recent values.
     //
-    proc->cost.past[proc->cost.currentHist] = 
-	(s->observedCost - proc->cost.lastObservedCost);
-    if (++proc->cost.currentHist == HIST_LIMIT) proc->cost.currentHist = 0;
+    proc->theCost.past[proc->theCost.currentHist] = 
+	(s->observedCost - proc->theCost.lastObservedCost);
+    if (++proc->theCost.currentHist == HIST_LIMIT) proc->theCost.currentHist = 0;
 
     // now compute current value of hybrid;
-    for (i=0, proc->cost.hybrid = 0.0; i < HIST_LIMIT; i++) {
-	proc->cost.hybrid += proc->cost.past[i];
+    for (i=0, proc->theCost.hybrid = 0.0; i < HIST_LIMIT; i++) {
+	proc->theCost.hybrid += proc->theCost.past[i];
     }
-    proc->cost.hybrid /= HIST_LIMIT;
+    proc->theCost.hybrid /= HIST_LIMIT;
 
-    proc->cost.lastObservedCost = s->observedCost;
+    proc->theCost.lastObservedCost = s->observedCost;
 
     currentHybridValue = 0.0;
     for (curr = processList; p = *curr; curr++) {
-	if (p->cost.hybrid > currentHybridValue) {
-	    currentHybridValue = p->cost.hybrid;
+	if (p->theCost.hybrid > currentHybridValue) {
+	    currentHybridValue = p->theCost.hybrid;
 	}
     }
     hybridPredictedCost.value = currentHybridValue;
@@ -825,8 +833,8 @@ void processCost(process *proc, traceHeader *h, costUpdate *s)
     //
     totalPredictedCost.value = 0.0;
     for (curr = processList; p = *curr; curr++) {
-	if (p->cost.totalPredictedCost > totalPredictedCost.value) {
-	    totalPredictedCost.value = p->cost.totalPredictedCost;
+	if (p->theCost.totalPredictedCost > totalPredictedCost.value) {
+	    totalPredictedCost.value = p->theCost.totalPredictedCost;
 	}
     }
 
@@ -851,56 +859,57 @@ void processSample(traceHeader *h, traceSample *s)
     samplesDelivered++;
 }
 
-metricList getMetricList()
+metricListRec *getMetricList()
 {
     int i;
     List<internalMetric*> curr;
-    extern struct _metricRec DYNINSTallMetrics[];
+    extern metric DYNINSTallMetrics[];
 
     if (!globalMetricList) {
 	 // merge internal and external metrics into one list.
-	 globalMetricList = (metricList) 
-	     xcalloc(1, sizeof(struct _metricListRec));
+	 globalMetricList =  new metricListRec;
 	 globalMetricList->count = 
 	     metricCount + internalMetric::allInternalMetrics.count();
-	 globalMetricList->elements = (struct _metricRec *)
-	     xcalloc(globalMetricList->count, sizeof(struct _metricRec));
+	 globalMetricList->elements = new metric[globalMetricList->count];
 	 for (i=0; i < metricCount; i++) {
 	     globalMetricList->elements[i] = DYNINSTallMetrics[i];
 	 }
-	 for (curr = internalMetric::allInternalMetrics; *curr; curr++) {
-	     globalMetricList->elements[i++] = (*curr)->metRec;
+	 for (i=metricCount, curr = internalMetric::allInternalMetrics; *curr; curr++, i++) {
+	     globalMetricList->elements[i] = (*curr)->metRec;
 	 }
     }
     return(globalMetricList);
 }
 
-metric findMetric(char *name)
+metric *findMetric(char *name)
 {
-    int i;
-    metric met;
-    metricList metrics;
+  int i;
+  metric *met;
+  metricListRec *metrics;
+  stringHandle nHandle;
 
-    metrics = getMetricList();
-    for (i=0, met = metrics->elements; i < metrics->count; i++, met++) {
-	if (!strcmp(met->info.name, name)) {
- 	    return(met);
-	}
-    }
-    return(NULL);
+  metrics = getMetricList();
+  for (i=0, met = metrics->elements; i < metrics->count; i++, met++) {
+    nHandle = pool.find(name);
+    if (!nHandle)
+      return NULL;
+    else if (nHandle == met->info.name)
+      return(met);
+  }
+  return(NULL);
 }
 
-char *getMetricName(metric m)
+char *getMetricName(metric *m)
 {
-    return(m->info.name);
+    return((char*)m->info.name);
 }
 
-metricInfo *getMetricInfo(metric m)
+dynMetricInfo *getMetricInfo(metric *m)
 {
     return(&m->info);
 }
 
-metric getMetric(metricInstance mi)
+metric *getMetric(metricDefinitionNode *mi)
 {
     return(mi->met);
 }
@@ -1049,7 +1058,7 @@ void dataReqNode::insertInstrumentation(metricDefinitionNode *mi)
 void dataReqNode::disable()
 {
     Boolean found;
-    metricInstance mi;
+    metricDefinitionNode *mi;
 
     if (!instance) return;
 
@@ -1076,8 +1085,6 @@ dataReqNode::~dataReqNode()
 }
 
 
-extern float computePauseTimeMetric();
-
 resourcePredicate defaultInternalPreds[] = {
   { "/SyncObject", invalidPredicate, (createPredicateFunc) NULL },
   { "/Machine", nullPredicate, (createPredicateFunc) NULL },
@@ -1086,21 +1093,17 @@ resourcePredicate defaultInternalPreds[] = {
   { NULL, nullPredicate, (createPredicateFunc) NULL },
 };
 
-internalMetric::internalMetric(char *n, 
+internalMetric::internalMetric(const char *n, 
 			       int style, 
 			       int a, 
-		               char *units, 
-  			       sampleValueFunc f) 
+		               const char *units, 
+  			       sampleValueFunc f)
+: metRec(n, style, a, units, NULL, defaultInternalPreds)
 {
-    allInternalMetrics.add(this, n);
+    allInternalMetrics.add(this, pool.findAndAdd(n));
     value = 0.0;
     cumlativeValue = 0.0;
-    metRec.info.name = n;
-    metRec.info.style = style;
-    metRec.info.aggregate = a;
-    metRec.info.units = units;
-    metRec.definition.baseFunc = NULL;
-    metRec.definition.predicates = defaultInternalPreds;
+
     func = f;
 }
 
