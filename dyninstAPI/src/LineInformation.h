@@ -340,9 +340,9 @@ public:
 };
 
 #ifdef rs6000_ibm_aix4_1
-// This is only used in BPatch_module.C; the only reason it needs to be in a
-// header file is so that BPatch_templates.C can include it to instantiate
-// BPatch_Vector<IncludeFileInfo>.
+// This is only used in symbtab.C; the only reason it needs to be in a
+// header file is so that template files can include it to instantiate
+// pdvector<IncludeFileInfo>.
 class IncludeFileInfo {
 public:
 	unsigned int begin;
