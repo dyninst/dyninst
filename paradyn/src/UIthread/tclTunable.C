@@ -2,9 +2,13 @@
 // C++ code that provides access to tunable constants from tcl.
 
 /* $Log: tclTunable.C,v $
-/* Revision 1.3  1994/12/21 00:44:07  tamches
-/* Reduces compiler warnings e.g Bool to bool, char * to const char *
+/* Revision 1.4  1994/12/21 07:40:49  tamches
+/* Removed uses of tunableConstant::allConstants (which became a protected
+/* class variable), replacing them with tunableConstant::beginIteration();
 /*
+ * Revision 1.3  1994/12/21  00:44:07  tamches
+ * Reduces compiler warnings e.g Bool to bool, char * to const char *
+ *
  * Revision 1.2  1994/11/04  15:51:26  tamches
  * Fixed a bug when searching for tunable constants by name.
  * Added some extra error checking.
@@ -94,9 +98,7 @@ tunableConstant *tunableConstantListEntryByIndex(int index) {
    // We'll say that index numbers start at 0
    // If 1 proves more convenient, we'll change it later...
 
-   assert(NULL != tunableConstant::allConstants);
-
-   List<tunableConstant *> iterList = *tunableConstant::allConstants;
+   List<tunableConstant *> iterList = tunableConstant::beginIteration();
       // make a copy of the list for iteration purposes
       // (actually, it just copies the head element, which itself
       // is merely a pointer)
@@ -114,9 +116,10 @@ tunableConstant *tunableConstantListEntryByIndex(int index) {
 }
 
 tunableConstant *findTunableConstantListEntryByName(char *name) {
-   assert(NULL != tunableConstant::allConstants);
-
-   List<tunableConstant *> iterList = *tunableConstant::allConstants;
+   List<tunableConstant *> iterList = tunableConstant::beginIteration();
+      // make a copy of the list for iteration purposes
+      // (actually, it just copies the head element, which itself
+      // is merely a pointer)
 
    tunableConstant *tc;
    while (NULL != (tc = *iterList)) {
@@ -127,13 +130,6 @@ tunableConstant *findTunableConstantListEntryByName(char *name) {
 
    cerr << "findTunableConstantListEntryByName: could not find tc with name=" << name << endl;
    return NULL;
-
-//   tunableConstant *result = tunableConstant::allConstants->find(name);
-//      // will be NULL if not found...
-//
-//   if (result==NULL)
-//
-//   return result;
 }
 
 int getValue(Tcl_Interp *interp, tunableConstant *tc) {
@@ -218,8 +214,7 @@ int TclTunableCommand(ClientData cd, Tcl_Interp *interp,
 
    switch (commandIndex) {
       case GETNUMTUNABLES:
-  	 assert(tunableConstant::allConstants);
-         sprintf(interp->result, "%d", tunableConstant::allConstants->count());
+         sprintf(interp->result, "%d", tunableConstant::numTunables());
          return TCL_OK;
 
       case GETNAME: {
