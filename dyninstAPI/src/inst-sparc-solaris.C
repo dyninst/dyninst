@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.77 2001/05/07 19:22:35 tikir Exp $
+// $Id: inst-sparc-solaris.C,v 1.78 2001/05/08 19:19:31 tikir Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -460,6 +460,7 @@ void relocateInstruction(instruction*& insn,
     // If the instruction is a CALL instruction, calculate the new
     // offset
     if (isInsnType(*insn, CALLmask, CALLmatch)) {
+#ifdef BPATCH_LIBRARY
 	Address callTarget = (Address)(origAddr + (insn->call.disp30 << 2));
 	if(proc && proc->callToDummyStatic.defines(callTarget)){
 		//cout << hex << origAddr << " calls " << callTarget
@@ -486,9 +487,12 @@ void relocateInstruction(instruction*& insn,
 		insn->raw =  proc->callToDummyStatic[callTarget];
 	}
 	else {
+#endif
 		newOffset = origAddr  - targetAddr + (insn->call.disp30 << 2);
 		insn->call.disp30 = newOffset >> 2;
+#ifdef BPATCH_LIBRARY
 	}
+#endif
     } else if (isInsnType(*insn, BRNCHmask, BRNCHmatch)||
 	       isInsnType(*insn, FBRNCHmask, FBRNCHmatch)) {
 
