@@ -230,11 +230,23 @@ class paradynDaemon: public dynRPCUser {
 	static bool defineDaemon(const char *command, const char *dir,
 				 const char *login, const char *name,
 				 const char *machine, const char *flavor);
+
 	static bool addRunningProgram(int pid, const vector<string> &argv, 
-			              paradynDaemon *daemon);	
+			              paradynDaemon *daemon,
+                                      bool calledFromExec);
+           // start a new program; propagate all enabled metrics to it
+
 	static bool newExecutable(const string &machine, const string &login,
 				  const string &name, const string &dir, 
 				  const vector<string> &argv);
+           // launch new process
+
+        static bool attachStub(const string &machine, const string &user,
+                               const string &daemonName, int pid);
+           // attach to an already-running process
+           // the word Stub was appended to the name to avoid conflict with the
+           // igen call "attach"
+
         static bool addDaemon(int new_fd);
         static bool getDaemon (const string &machine, 
 			       const string &login, 
