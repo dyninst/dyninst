@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.85 2005/03/14 22:31:56 tlmiller Exp $
+ * $Id: Object-elf.C,v 1.86 2005/03/22 20:52:06 tlmiller Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -1834,7 +1834,7 @@ void fixSymbolsInModule( Dwarf_Debug dbg, pdstring & moduleName, Dwarf_Die dieEn
 							}
 						}
 					if( count < syms.size() ) {
-						/* DEBUG */ fprintf( stderr, "%s[%d]: DWARF-derived module information not applied to all symbols of name '%s'\n", __FILE__, __LINE__, globalSymbol.c_str() );
+						// /* DEBUG */ fprintf( stderr, "%s[%d]: DWARF-derived module information not applied to all symbols of name '%s'\n", __FILE__, __LINE__, globalSymbol.c_str() );
 						}
 					}
 				} /* end if we found the name in the global symbols */
@@ -1852,7 +1852,7 @@ void fixSymbolsInModule( Dwarf_Debug dbg, pdstring & moduleName, Dwarf_Die dieEn
 							}
 						}
 					if( count < syms.size() ) {
-						/* DEBUG */ fprintf( stderr, "%s[%d]: DWARF-derived module information not applied to all symbols of name '%s'\n", __FILE__, __LINE__, dieName );
+						// /* DEBUG */ fprintf( stderr, "%s[%d]: DWARF-derived module information not applied to all symbols of name '%s'\n", __FILE__, __LINE__, dieName );
 						}
 					}
 				} /* end if we think it's a local symbol */
@@ -1923,7 +1923,7 @@ void fixSymbolsInModule( Dwarf_Debug dbg, pdstring & moduleName, Dwarf_Die dieEn
 							}
 						}
 					if( count < syms.size() ) {
-						/* DEBUG */ fprintf( stderr, "%s[%d]: DWARF-derived module information not applied to all symbols of name '%s'\n", __FILE__, __LINE__, symName.c_str() );
+						// /* DEBUG */ fprintf( stderr, "%s[%d]: DWARF-derived module information not applied to all symbols of name '%s'\n", __FILE__, __LINE__, symName.c_str() );
 						}									
 					}
 				}				
@@ -2160,7 +2160,7 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_Scn* stabscnp, Elf_Scn* s
 	    			}
 		    	}
 				if( count < syms.size() ) {
-					/* DEBUG */ fprintf( stderr, "%s[%d]: STABS-derived module information not applied to all symbols of name '%s'\n", __FILE__, __LINE__, SymName.c_str() );
+					// /* DEBUG */ fprintf( stderr, "%s[%d]: STABS-derived module information not applied to all symbols of name '%s'\n", __FILE__, __LINE__, SymName.c_str() );
 				}
 			}
 	    }
