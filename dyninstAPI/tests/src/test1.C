@@ -84,6 +84,7 @@ int debugPrint = 0; // internal "mutator" tracing
 int errorPrint = 0; // external "dyninst" tracing (via errorFunc)
 
 bool forceRelocation = false; // force relocation of functions
+bool delayedParse = false;
 
 int mutateeCplusplus = 0;
 int mutateeFortran = 0;
@@ -4916,7 +4917,9 @@ int mutatorMAIN(char *pathname, bool useAttach)
     if (forceRelocation) {
       bpatch->setForcedRelocation_NP(true);
     }
-
+    if (delayedParse) {
+      bpatch->setDelayedParsing(true);
+    }
     // Register a callback function that prints any error messages
     bpatch->registerErrorCallback(errorFunc);
 
@@ -5242,6 +5245,8 @@ main(unsigned int argc, char *argv[])
 	} else if (!strcmp(argv[i], "-relocate")) {
             forceRelocation = true;
 #endif
+        } else if (!strcmp(argv[i], "-delayedparse")) {
+	  delayedParse = true;
 #if defined(mips_sgi_irix6_4)
 	} else if (!strcmp(argv[i], "-n32")) {
             N32ABI = true;
