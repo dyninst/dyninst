@@ -538,6 +538,18 @@ class process {
   // in processes address space, otherwise it returns 0
   bool getBaseAddress(const image *which, u_int &baseAddress) const;
 
+  // findCallee: finds the function called by the instruction corresponding
+  // to the instPoint "instr". If the function call has been bound to an
+  // address, then the callee function is returned in "target" and the
+  // instPoint "callee" data member is set to pt to callee's function_base.
+  // If the function has not yet been bound, then "target" is set to the
+  // function_base associated with the name of the target function (this is
+  // obtained by the PLT and relocation entries in the image), and the instPoint
+  // callee is not set.  If the callee function cannot be found, (ex. function
+  // pointers, or other indirect calls), it returns false.
+  // Returns false on error (ex. process doesn't contain this instPoint).
+  bool findCallee(instPoint &instr, function_base *&target);
+
   // these routines are for testing, setting, and clearing the 
   // waiting_for_resources flag, if this flag is true a process is not 
   // started until all outstanding resourceInfoResponses have been received
@@ -780,6 +792,25 @@ private:
   // and the next frame there is a leaf function (this occurs when the 
   // current frame is the signal handler)
   bool needToAddALeafFrame(Frame current_frame, Address &leaf_pc);
+
+  // hasBeenBound: returns true if the runtime linker has bound the
+  // function symbol corresponding to the relocation entry in at the address 
+  // specified by entry and base_addr.  If it has been bound, then the callee 
+  // function is returned in "target_pdf", else it returns false. 
+  bool hasBeenBound(const relocationEntry entry, pd_Function *&target_pdf, 
+		    Address base_addr) ;
+
+  // findpdFunctionIn: returns the function which contains this address
+  // This routine checks both the a.out image and any shared object images 
+  // for this function
+  pd_Function *findpdFunctionIn(Address adr);
+
+  // hasBeenBound: returns true if the runtime linker has bound the
+  // function symbol corresponding to the relocation entry in the specified 
+  // image.  If it has been bound, then the callee function is returned in 
+  // "target_pdf".  Returns false on error.
+  bool hasBeenBound(const relocationEntry entry, const image *owner,
+		    pd_Function *&target_pdf, Address base_addr);
 
   bool isRunning_() const;
      // needed to initialize the 'wasRunningWhenAttached' member vrble.  Determines
