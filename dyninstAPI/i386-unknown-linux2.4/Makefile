@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.18 2003/07/29 00:32:22 eli Exp $
+# $Id: Makefile,v 1.19 2003/08/08 15:32:58 hollings Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -63,8 +63,8 @@ TFLAGS          += $(MYFLAGS)
 # Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space
 #TFLAGS		+= -g
 
-SYSLIBS		= -lelf -ldl
-LIBS		= -L$(LIBDWARFDIR)/lib -ldwarf
+SYSLIBS		= -lelf -ldl 
+LIBS		= -L$(LIBDWARFDIR)/lib -ldwarf -lgcc
 
 AS		= /usr/bin/as
 

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2003/05/25 01:06:20 rchen Exp $
+# $Id: Makefile,v 1.2 2003/08/08 15:32:57 hollings Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -10,10 +10,16 @@ NO_IMPLICIT_TEMPLATES	 = true
 #NO_OPT_FLAG		 = true
 #DEBUG_FLAG = -g
 
+ifdef COVERAGE
+NO_OPT_FLAG             = true
+endif
+
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
 
 include ../../make.config 
+
+CXXFLAGS += -O0
 
 # Now make any necessary architecture specific changes to variables:
 

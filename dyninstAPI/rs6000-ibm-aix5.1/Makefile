@@ -10,6 +10,10 @@ DO_INLINE_ALL           = true
 #NO_IMPLICIT_TEMPLATES    = true
 #AUTO_TEMPLATES 		 = true
 
+ifdef COVERAGE
+NO_OPT_FLAG		= true
+endif
+
 # Use /proc support
 AIX_PROC	= true
 
@@ -17,6 +21,10 @@ AIX_PROC	= true
 # in the paradyn tree.
 
 include ../../make.config 
+
+ifdef COVERAGE
+CXXFLAGS += -O0
+endif
 
 # Now make any necessary architecture specific changes to variables:
 
@@ -46,7 +54,7 @@ include ../make.module.tmpl
 LD = $(GXX)
 # On AIX all symbols must be resolved at link time, even for a library.
 # We need the cplus.demangle function from libiberty.
-LDFLAGS += -liberty -Wl,-bbigtoc 
+LDFLAGS += -liberty -Wl,-bbigtoc -lgcc
 
 # Include the "standard library template".  This defines all the
 # common targets like "clean", "install", etc.

@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.49 2003/07/25 15:52:49 chadd Exp $
+# $Id: make.module.tmpl,v 1.50 2003/08/08 15:32:58 hollings Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -282,4 +282,4 @@ install: all
 	-$(CP) $(TARGETS) $(DEST)
 
 clean::
-	rm -f libtestA.so libtestB.so tests.done libInstMe.so libLoadMe.so
+	rm -f *.da *.bb *.bbg libtestA.so libtestB.so tests.done libInstMe.so libLoadMe.so

@@ -1,1 +1,1 @@
-DEPENDS libdyninstAPI.a libdyninstAPI.so V_libdyninstAPI.c so_locations
+DEPENDS libdyninstAPI.a libdyninstAPI.so V_libdyninstAPI.c so_locations *.bbg *.da *.bb
