@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.35 2003/09/23 17:28:52 tlmiller Exp $
+ * $Id: inst-ia64.C,v 1.36 2003/10/21 17:21:59 bernat Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -607,8 +607,10 @@ void emitV( opCode op, Register src1, Register src2, Register dest,
 	} /* end emitV() */
 
 /* Required by inst.C */
-bool deleteBaseTramp( process *, instPoint *, trampTemplate *,
-		      instInstance * lastMT ) { assert( 0 ); return false; }
+bool deleteBaseTramp( process */*proc*/, trampTemplate *) {
+	return false;
+}
+
 
 /* Required by ast.C */
 void emitImm( opCode op, Register src1, RegValue src2imm, Register dest,
@@ -1816,32 +1818,33 @@ bool pd_Function::PA_attachOverlappingInstPoints(
 		instruction * loadedCode , int codeSize ) { assert( 0 ); return false; }
 
 /* Required by inst.C; install a single mini-tramp */
-void installTramp( instInstance * inst, process * proc, char * code, int codeSize,
-		  instPoint * /* location */, callWhen when ) {
+void installTramp( miniTrampHandle *mtHandle,
+				   process *proc,
+				   char *code, int codeSize) {
 	/* Book-keeping. */
 	totalMiniTramps++; insnGenerated += codeSize / 16;
-
+	
 	/* Write the minitramp. */
-	fprintf( stderr, "* Installing minitramp at 0x%lx\n", inst->trampBase );
-	proc->writeDataSpace( (caddr_t)inst->trampBase, codeSize, code );
-
+	fprintf( stderr, "* Installing minitramp at 0x%lx\n", mtHandle->trampBase );
+	proc->writeDataSpace( (caddr_t)mtHandle->trampBase, codeSize, code );
+	
 	/* Make sure that it's not skipped. */
-	Address insertNOPAt = inst->baseInstance->baseAddr;
-	if( when == callPreInsn && inst->baseInstance->prevInstru == false ) {
-		inst->baseInstance->cost += inst->baseInstance->prevBaseCost;
-		insertNOPAt += inst->baseInstance->skipPreInsOffset;
-		inst->baseInstance->prevInstru = true;
+	Address insertNOPAt = mtHandle->baseTramp->baseAddr;
+	if( when == callPreInsn && mtHandle->baseTramp->prevInstru == false ) {
+		mtHandle->baseTramp->cost += mtHandle->baseTramp->prevBaseCost;
+		insertNOPAt += mtHandle->baseTramp->skipPreInsOffset;
+		mtHandle->baseTramp->prevInstru = true;
 		} 
-	else if( when == callPostInsn && inst->baseInstance->postInstru == false ) {
-		inst->baseInstance->cost += inst->baseInstance->postBaseCost;
-		insertNOPAt += inst->baseInstance->skipPostInsOffset;
-		inst->baseInstance->postInstru = true;
+	else if( when == callPostInsn && mtHandle->baseTramp->postInstru == false ) {
+		mtHandle->baseTramp->cost += mtHandle->baseTramp->postBaseCost;
+		insertNOPAt += mtHandle->baseTramp->skipPostInsOffset;
+		mtHandle->baseTramp->postInstru = true;
 		}
-
+	
 	/* Write the NOP */
 	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( insertNOPAt, proc );
 	iAddr.replaceBundleWith( IA64_bundle( MIIstop, NOP_M, NOP_I, NOP_I ) );
-	} /* end installTramp() */
+} /* end installTramp() */
 
 /* Required by func-reloc.C */
 void pd_Function::copyInstruction( instruction & newInsn,
@@ -2053,6 +2056,15 @@ instPoint::instPoint( Address encodedAddress, pd_Function * pdfn, const image * 
 	/* Extract from that its target address. */
 	myTargetAddress = myInstruction->getTargetAddress() + myPDFunction->addr();
 	} /* end instPoint constructor */
+
+// Get the absolute address of an instPoint
+Address instPoint::iPgetAddress(process *p) const {
+    if (!p) return addr;
+    Address baseAddr;
+    p->getBaseAddress(iPgetOwner(), baseAddr);
+    return addr + baseAddr;
+}
+
 
 /* The IA-64 instrumentation code always displaces a single three-instruction bundle.
    We'll return the machine code, since that's easier and the type of insns isn't specificed. */ 

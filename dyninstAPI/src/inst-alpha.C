@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.68 2003/09/05 16:27:42 schendel Exp $
+// $Id: inst-alpha.C,v 1.69 2003/10/21 17:21:58 bernat Exp $
 
 #include "common/h/headers.h"
 
@@ -329,7 +329,7 @@ instPoint::instPoint(pd_Function *f, const instruction &instr,
 		     const image *img, Address &adr,
 		     const bool,instPointType pointType)
 : addr(adr), originalInstruction(instr), inDelaySlot(false), isDelayed(false),
-  callIndirect(false), callAggregate(false), callee(NULL), func(f),
+  callIndirect(false), callAggregate(false), callee(NULL), func_(f),
   ipType(pointType), image_ptr(img)
 {
 }
@@ -526,13 +526,13 @@ void pd_Function::checkCallPoints() {
     } else if (isBsr(p->originalInstruction)) {
       loc_addr = p->addr + (p->originalInstruction.branch.disp << 2)+4;
       non_lib.push_back(p);
-      pd_Function *pdf = (file_->exec())->findFuncByAddr(loc_addr);
+      pd_Function *pdf = (file_->exec())->findFuncByOffset(loc_addr);
 
       if (pdf == NULL)
 	{
 	  /* Try alternate entry point in the symbol table */
 	  loc_addr = loc_addr - 8;
-	  pdf = (file_->exec())->findFuncByAddr(loc_addr);
+	  pdf = (file_->exec())->findFuncByOffset(loc_addr);
 	}
 
       if (pdf && 1 /*!pdf->isLibTag()*/)
@@ -611,14 +611,14 @@ inline void callAbsolute(instruction *code,
  * An obvious optimization is to turn off the save-restore calls when they 
  * are not needed.
  */
-void installBaseTramp(instPoint *location,
-		      process *proc,
-		      trampTemplate &tramp
-		      ) {
+trampTemplate *installBaseTramp(instPoint *location,
+                                process *proc) 
+{
 //  unsigned words = 0;
   unsigned long words = 0;
   const int MAX_BASE_TRAMP = 128;
-
+  trampTemplate *tramp = new trampTemplate(location, proc);
+  
   // XXX - for now assume base tramp is less than 1K
   instruction *code = new instruction[MAX_BASE_TRAMP]; assert(code);
 
@@ -644,11 +644,11 @@ void installBaseTramp(instPoint *location,
 
   // Pre branch
   instruction *skipPreBranch = &code[words];
-  tramp.skipPreInsOffset = words*4;
+  tramp->skipPreInsOffset = words*4;
   words += generate_nop(code+words);
 
   // decrement stack by 16
-  tramp.savePreInsOffset = words*4;
+  tramp->savePreInsOffset = words*4;
   words += generate_lda(code+words, REG_SP, REG_SP, -16, true);
 
   // push ra onto the stack
@@ -660,19 +660,15 @@ void installBaseTramp(instPoint *location,
   // Call to DYNINSTsave_temp
   callAbsolute(code, words, dyn_save);
 
-  // global_pre
-  tramp.globalPreOffset = words * 4;
-  words += generate_nop(code+words);
-
   // local_pre
-  tramp.localPreOffset = words * 4;
+  tramp->localPreOffset = words * 4;
   words += generate_nop(code+words);
 
   words += generate_nop(code+words);
 
   // **** When you change these code also look at emitFuncJump ****
   // Call to DYNINSTrestore_temp
-  tramp.localPreReturnOffset = words * 4;
+  tramp->localPreReturnOffset = words * 4;
   callAbsolute(code, words, dyn_restore);
 
   // load ra from the stack
@@ -682,13 +678,13 @@ void installBaseTramp(instPoint *location,
   words += generate_load(code+words, REG_GP, REG_SP, 8, dw_quad);
 
   // increment stack by 16
-  tramp.restorePreInsOffset = words*4;
+  tramp->restorePreInsOffset = words*4;
   words += generate_lda(code+words, REG_SP, REG_SP, 16, true);
 
   // *** end code cloned in emitFuncJump ****
 
   // slot for emulate instruction
-  tramp.emulateInsOffset = words*4;
+  tramp->emulateInsOffset = words*4;
   instruction *reloc = &code[words]; 
   *reloc = location->originalInstruction;
   words += 1;
@@ -703,11 +699,11 @@ void installBaseTramp(instPoint *location,
 
   // Post branch
   instruction *skipPostBranch = &code[words];
-  tramp.skipPostInsOffset = words*4;
+  tramp->skipPostInsOffset = words*4;
   words += generate_nop(code+words);
 
   // decrement stack by 16
-  tramp.savePostInsOffset = words*4;
+  tramp->savePostInsOffset = words*4;
   words += generate_lda(code+words, REG_SP, REG_SP, -16, true);
 
   // push ra onto the stack
@@ -719,16 +715,12 @@ void installBaseTramp(instPoint *location,
   // Call to DYNINSTsave_temp
   callAbsolute(code, words, dyn_save);
 
-  // global_post
-  tramp.globalPostOffset = words * 4;
-  words += generate_nop(code+words);
-
   // local_post
-  tramp.localPostOffset = words * 4;
+  tramp->localPostOffset = words * 4;
   words += generate_nop(code+words);
 
   // Call to DYNINSTrestore_temp
-  tramp.localPostReturnOffset = words * 4;
+  tramp->localPostReturnOffset = words * 4;
   callAbsolute(code, words, dyn_restore);
 
   // load ra from the stack
@@ -738,7 +730,7 @@ void installBaseTramp(instPoint *location,
   words += generate_load(code+words, REG_GP, REG_SP, 8, dw_quad);
 
   // increment stack by 16
-  tramp.restorePostInsOffset = words*4;
+  tramp->restorePostInsOffset = words*4;
   words += generate_lda(code+words, REG_SP, REG_SP, 16, true);
 
   // If the relocated insn is a Jsr or Bsr then 
@@ -753,7 +745,7 @@ void installBaseTramp(instPoint *location,
   // slot for return (branch) instruction
   // actual code after we know its locations
   // branchFromAddr offset from base until we know base of tramp 
-  tramp.returnInsOffset = (words * 4);		
+  tramp->returnInsOffset = (words * 4);		
   instruction *branchBack = &code[words];
   words += 1;
 
@@ -761,9 +753,9 @@ void installBaseTramp(instPoint *location,
 
   assert(words < static_cast<const unsigned>(MAX_BASE_TRAMP));
 
-  tramp.size = words * sizeof(instruction);
-  tramp.baseAddr = proc->inferiorMalloc(tramp.size, textHeap, pointAddr);
-  assert(tramp.baseAddr);
+  tramp->size = words * sizeof(instruction);
+  tramp->baseAddr = proc->inferiorMalloc(tramp->size, textHeap, pointAddr);
+  assert(tramp->baseAddr);
 
   // pointAddr + 4 is address of instruction after relocated instr
   // branchFromAddr = address of the branch insn that returns to user code
@@ -771,7 +763,7 @@ void installBaseTramp(instPoint *location,
   // we assumed this one was instruction long before
 
   // update now that we know base
-  Address branchFromAddr = tramp.returnInsOffset + tramp.baseAddr;
+  Address branchFromAddr = tramp->returnInsOffset + tramp->baseAddr;
 
   int count = generate_branch(branchBack, REG_ZERO,
 			   (pointAddr+4) - (branchFromAddr+4), OP_BR);
@@ -779,19 +771,22 @@ void installBaseTramp(instPoint *location,
 
   // Do actual relocation once we know the base address of the tramp
   relocateInstruction(reloc, pointAddr, 
-       tramp.baseAddr + tramp.emulateInsOffset);
+       tramp->baseAddr + tramp->emulateInsOffset);
 
   // Generate skip pre and post instruction branches
   generateBranchInsn(skipPreBranch,
-		     tramp.emulateInsOffset - (tramp.skipPreInsOffset+4));
+		     tramp->emulateInsOffset - (tramp->skipPreInsOffset+4));
   generateBranchInsn(skipPostBranch,
-		     tramp.returnInsOffset - (tramp.skipPostInsOffset+4));
+		     tramp->returnInsOffset - (tramp->skipPostInsOffset+4));
 
-  tramp.prevInstru = false;
-  tramp.postInstru = false;
+  tramp->prevInstru = false;
+  tramp->postInstru = false;
 
-  proc->writeDataSpace((caddr_t)tramp.baseAddr, tramp.size, (caddr_t) code);
+  proc->writeDataSpace((caddr_t)tramp->baseAddr, tramp->size, (caddr_t) code);
+  proc->addCodeRange(tramp->baseAddr, tramp);
+  
   delete (code);
+  return tramp;
 }
 
 /*
@@ -1588,8 +1583,8 @@ void initDefaultPointFrequencyTable()
 
 
 
-// unsigned findAndInstallBaseTramp(process *proc, 
-trampTemplate *findAndInstallBaseTramp(process *proc, 
+// unsigned findOrInstallBaseTramp(process *proc, 
+trampTemplate *findOrInstallBaseTramp(process *proc, 
 				       instPoint *&location,
 				       returnInstance *&retInstance, 
 				       bool /*trampRecursiveDesired*/,
@@ -1605,29 +1600,28 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 	globalProc = nodePseudoProcess;
 	// logLine("findAndInstallBaseTramp global\n");
     } else {
-	globalProc = proc;
+        globalProc = proc;
     }
 #endif
     globalProc = proc;
-
+    
     if (!globalProc->baseMap.defines(location)) {
-	ret = new trampTemplate;
-	installBaseTramp(location, globalProc, *ret);
-	instruction *insn = new instruction;
-
-	Address pointAddr = location->addr;
-	Address baseAddress;
-	if (proc->getBaseAddress(location->image_ptr, baseAddress)) {
-	    pointAddr += baseAddress;
-	}
-	generateBranchInsn(insn, ret->baseAddr - (pointAddr+4));
-	globalProc->baseMap[location] = ret;
-	retInstance = new returnInstance(1, (instruction *)insn,sizeof(instruction), 
-	    pointAddr, sizeof(instruction)); 
+        ret = installBaseTramp(location, globalProc);
+        instruction *insn = new instruction;
+        
+        Address pointAddr = location->addr;
+        Address baseAddress;
+        if (proc->getBaseAddress(location->image_ptr, baseAddress)) {
+            pointAddr += baseAddress;
+        }
+        generateBranchInsn(insn, ret->baseAddr - (pointAddr+4));
+        globalProc->baseMap[location] = ret;
+        retInstance = new returnInstance(1, (instruction *)insn,sizeof(instruction), 
+                                         pointAddr, sizeof(instruction)); 
     } else {
         ret = globalProc->baseMap[location];
     }
-      
+    
     return(ret);
 }
 
@@ -1635,25 +1629,25 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
  * Install a single tramp.
  *
  */
-void installTramp(instInstance *inst, process *proc, char *code, int codeSize,
-		  instPoint * /*location*/, callWhen when)
+void installTramp(miniTrampHandle *mtHandle, process *proc,
+                  char *code, int codeSize)
 {
     totalMiniTramps++;
     insnGenerated += codeSize/sizeof(int);
 
     // TODO cast
-    proc->writeDataSpace((caddr_t)inst->trampBase, codeSize, code);
+    proc->writeDataSpace((caddr_t)mtHandle->miniTrampBase, codeSize, code);
 
     // overwrite branches for skipping instrumentation
-    trampTemplate *base = inst->baseInstance;
-    if(when == callPreInsn && base->prevInstru == false) {
-	base->cost += base->prevBaseCost;
-	base->prevInstru = true;
-	generateNoOp(proc, base->baseAddr + base->skipPreInsOffset);
-    } else if (when == callPostInsn && base->postInstru == false) {
-	base->cost += base->postBaseCost;
-	base->postInstru = true;
-	generateNoOp(proc, base->baseAddr + base->skipPostInsOffset);
+    trampTemplate *base = mtHandle->baseTramp;
+    if(mtHandle->when == callPreInsn && base->prevInstru == false) {
+        base->cost += base->prevBaseCost;
+        base->prevInstru = true;
+        generateNoOp(proc, base->baseAddr + base->skipPreInsOffset);
+    } else if (mtHandle->when == callPostInsn && base->postInstru == false) {
+        base->cost += base->postBaseCost;
+        base->postInstru = true;
+        generateNoOp(proc, base->baseAddr + base->skipPostInsOffset);
     }
 }
 
@@ -1666,7 +1660,7 @@ float getPointFrequency(instPoint *point)
     if (point->callee)
         func = point->callee;
     else
-        func = point->func;
+        func = point->func();
 
     if (!funcFrequencyTable.defines(func->prettyName())) {
       if (0 /*func->isLibTag()*/) {
@@ -2223,8 +2217,7 @@ bool process::MonitorCallSite(instPoint *callSite){
 }
 #endif
 
-bool deleteBaseTramp(process * /*proc*/, instPoint* /*location*/,
-                     trampTemplate *, instInstance * /*lastMT*/)
+bool deleteBaseTramp(process * /*proc*/, trampTemplate *)
 {
 	cerr << "WARNING : deleteBaseTramp is unimplemented "
 	     << "(after the last instrumentation deleted)" << endl;
@@ -2303,3 +2296,13 @@ bool instPoint::match(instPoint *p)
   
   return false;
 }
+
+
+// Get the absolute address of an instPoint
+Address instPoint::iPgetAddress(process *p) const {
+    if (!p) return addr;
+    Address baseAddr;
+    p->getBaseAddress(iPgetOwner(), baseAddr);
+    return addr + baseAddr;
+}
+

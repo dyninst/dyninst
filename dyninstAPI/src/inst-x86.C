@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.143 2003/10/07 19:06:13 schendel Exp $
+ * $Id: inst-x86.C,v 1.144 2003/10/21 17:22:04 bernat Exp $
  */
 
 #include <iomanip>
@@ -145,7 +145,9 @@ class NonRecursiveTrampTemplate : public trampTemplate
 {
 
 public:
-
+    NonRecursiveTrampTemplate(const instPoint *l, process *p)
+            :trampTemplate(l,p) {}
+    
   int guardOnPre_beginOffset;
   int guardOnPre_endOffset;
 
@@ -337,7 +339,7 @@ void pd_Function::checkCallPoints() {
     if (!p->insnAtPoint().isCallIndir()) {
       loc_addr = p->insnAtPoint().getTarget(p->address());
       file()->exec()->addJumpTarget(loc_addr);
-      pd_Function *pdf = (file_->exec())->findFuncByAddr(loc_addr);
+      pd_Function *pdf = (file_->exec())->findFuncByOffset(loc_addr);
 
       if (pdf) {
         p->set_callee(pdf);
@@ -1232,7 +1234,7 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point,
     returnInstance *retInstance;
     
     trampTemplate *entryBase =
-      findAndInstallBaseTramp(proc, nonConstEntry,
+      findOrInstallBaseTramp(proc, nonConstEntry,
                               retInstance, false, false, deferred);
     assert(entryBase);
     if (retInstance) {
@@ -1451,13 +1453,12 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
      a+7:   push ebp                  1
      a+8:   mov esp, ebp              1
      a+10:  subl esp, 0x80            1
-     a+16:  jmp <global pre inst>     1
-     a+21:  jmp <local pre inst>      1
-     a+26:  leave                     3
-     a+27:  popad                    14
-     a+28:  popfd                     5
-     a+29:  add costAddr, cost        3
-     a+39:  <relocated instructions at point>
+     a+16:  jmp <local pre inst>      1
+     a+21:  leave                     3
+     a+22:  popad                    14
+     a+23:  popfd                     5
+     a+24:  add costAddr, cost        3
+     a+34:  <relocated instructions at point>
 
      b = a +30 + size of relocated instructions at point
      b+0:   jmp b+30 <skip post insn>
@@ -1466,12 +1467,11 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
      b+7:   push ebp
      b+8:   mov esp, ebp
      b+10:  subl esp, 0x80
-     b+16:  jmp <global post inst>
-     b+21:  jmp <local post inst>
-     b+26:  leave
-     b+27:  popad
-     b+28:  popfd
-     b+29:  <relocated instructions after point>
+     b+16:  jmp <local post inst>
+     b+21:  leave
+     b+22:  popad
+     b+23:  popfd
+     b+24:  <relocated instructions after point>
 
      c:     jmp <return to user code>
 
@@ -1496,13 +1496,15 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
 
    unsigned u;
    trampTemplate *ret = 0;
+   
    if( trampRecursiveDesired )
    {
-      ret = new trampTemplate;
+       ret = new trampTemplate(location, proc);
    }
    else
    {
-      ret = new NonRecursiveTrampTemplate;
+       // Stores a few more data members
+       ret = new NonRecursiveTrampTemplate(location, proc);
    }
    ret->trampTemp = 0;
 
@@ -1513,9 +1515,9 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
    // if there are any changes to the tramp, the size must be updated.
    unsigned trampSize;
    if(proc->multithread_capable())
-      trampSize = 12+73 + 38;  // 38 needs to be verified
+      trampSize = 12+63 + 38;  // 38 needs to be verified
    else
-      trampSize = 12+73;
+      trampSize = 12+63;
 
    if (location->isConservative()) trampSize += 13*2;
 
@@ -1678,10 +1680,6 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
       temp_ret->guardOnPre_endOffset = insn - code;
    }
 
-   // global pre branch
-   ret->globalPreOffset = insn-code;
-   emitJump(0, insn);
-
    // local pre branch
    ret->localPreOffset = insn-code;
    emitJump(0, insn);
@@ -1796,10 +1794,6 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
       temp_ret->guardOnPost_endOffset = insn - code;
    }
 
-   // global post branch
-   ret->globalPostOffset = insn-code; 
-   emitJump(0, insn);
-
    // local post branch
    ret->localPostOffset = insn-code;
    emitJump(0, insn);
@@ -1851,6 +1845,7 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
    cerr << "installBaseTramp jump back to " <<
       (void*)( location->returnAddr() + imageBaseAddr ) << endl;
 #endif
+   
    assert((unsigned)(insn-code) == trampSize);
 
    // update the jumps to skip pre and post instrumentation
@@ -1875,6 +1870,7 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
   
    // put the tramp in the application space
    proc->writeDataSpace((caddr_t)baseAddr, insn-code, (caddr_t) code);
+   proc->addCodeRange(baseAddr, ret);
 
    delete [] code;
 
@@ -1906,7 +1902,7 @@ void generateNoOp(process *proc, Address addr)
 }
 
 
-trampTemplate* findAndInstallBaseTramp(process *proc, 
+trampTemplate* findOrInstallBaseTramp(process *proc, 
 			   	       instPoint *&location, 
 				       returnInstance *&retInstance,
 				       bool trampRecursiveDesired,
@@ -1969,26 +1965,26 @@ trampTemplate* findAndInstallBaseTramp(process *proc,
  * Install a single mini-tramp.
  *
  */
-void installTramp(instInstance *inst, process *proc, char *code, int codeSize,
-		  instPoint * /*location*/, callWhen when)
+void installTramp(miniTrampHandle *mt, process *proc, 
+                  char *code, int codeSize)
 {
     totalMiniTramps++;
     //insnGenerated += codeSize/sizeof(int);
-    proc->writeDataSpace((caddr_t)inst->trampBase, codeSize, code);
+    proc->writeDataSpace((caddr_t)mt->miniTrampBase, codeSize, code);
     Address atAddr;
-    if (when == callPreInsn) {
-	if (inst->baseInstance->prevInstru == false) {
-	    atAddr = inst->baseInstance->baseAddr+inst->baseInstance->skipPreInsOffset;
-	    inst->baseInstance->cost += inst->baseInstance->prevBaseCost;
-	    inst->baseInstance->prevInstru = true;
+    if (mt->when == callPreInsn) {
+        if (mt->baseTramp->prevInstru == false) {
+	    atAddr = mt->baseTramp->baseAddr+mt->baseTramp->skipPreInsOffset;
+	    mt->baseTramp->cost += mt->baseTramp->prevBaseCost;
+	    mt->baseTramp->prevInstru = true;
 	    generateNoOp(proc, atAddr);
 	}
     }
     else {
-	if (inst->baseInstance->postInstru == false) {
-	    atAddr = inst->baseInstance->baseAddr+inst->baseInstance->skipPostInsOffset; 
-	    inst->baseInstance->cost += inst->baseInstance->postBaseCost;
-	    inst->baseInstance->postInstru = true;
+	if (mt->baseTramp->postInstru == false) {
+	    atAddr = mt->baseTramp->baseAddr+mt->baseTramp->skipPostInsOffset; 
+	    mt->baseTramp->cost += mt->baseTramp->postBaseCost;
+	    mt->baseTramp->postInstru = true;
 	    generateNoOp(proc, atAddr);
 	}
     }
@@ -2489,6 +2485,7 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
          emitMovRMToReg(EAX, EBP, SAVED_EAX_OFFSET, insn);
          emitMovRegToRM(EBP, -(dest*4), EAX, insn);
          base += insn - first;
+
          return dest;
       }
       case getParamOp: {
@@ -3510,8 +3507,8 @@ bool process::MonitorCallSite(instPoint *callSite){
       the_args[1] = new AstNode(AstNode::Constant,
 				(void *) callSite->iPgetAddress());
       func = new AstNode("DYNINSTRegisterCallee", the_args);
-      miniTrampHandle mtHandle;
-      addInstFunc(&mtHandle, this, callSite, func, callPreInsn,
+      miniTrampHandle *mtHandle;
+      addInstFunc(this, mtHandle, callSite, func, callPreInsn,
 		  orderFirstAtPoint, true,false);
       break;
       }
@@ -3523,8 +3520,8 @@ bool process::MonitorCallSite(instPoint *callSite){
 	the_args[1] = new AstNode(AstNode::Constant,
 				  (void *) callSite->iPgetAddress());
 	func = new AstNode("DYNINSTRegisterCallee", the_args);
-	miniTrampHandle mtHandle;
-	addInstFunc(&mtHandle, this, callSite, func, callPreInsn,
+	miniTrampHandle *mtHandle;
+	addInstFunc(this, mtHandle, callSite, func, callPreInsn,
 		    orderFirstAtPoint, true,false);
 	break;
       }
@@ -3540,8 +3537,8 @@ bool process::MonitorCallSite(instPoint *callSite){
  	the_args[1] = new AstNode(AstNode::Constant,
  				  (void *) callSite->iPgetAddress());
   	func = new AstNode("DYNINSTRegisterCallee", the_args);
-	miniTrampHandle mtHandle;
- 	addInstFunc(&mtHandle, this, callSite, func, callPreInsn,
+	miniTrampHandle *mtHandle;
+ 	addInstFunc(this, mtHandle, callSite, func, callPreInsn,
 		    orderFirstAtPoint, true,false);
 	break;
       }
@@ -3553,8 +3550,8 @@ bool process::MonitorCallSite(instPoint *callSite){
 	the_args[1] = new AstNode(AstNode::Constant,
 				  (void *) callSite->iPgetAddress());
 	func = new AstNode("DYNINSTRegisterCallee", the_args);
-	miniTrampHandle mtHandle;
-	addInstFunc(&mtHandle, this, callSite, func, callPreInsn,
+	miniTrampHandle *mtHandle;
+	addInstFunc(this, mtHandle, callSite, func, callPreInsn,
 		    orderFirstAtPoint, true, false);
 	break;
       }
@@ -3592,8 +3589,8 @@ bool process::MonitorCallSite(instPoint *callSite){
 	    the_args[1] = new AstNode(AstNode::Constant,
 				      (void *) callSite->iPgetAddress());
 	    func = new AstNode("DYNINSTRegisterCallee", the_args);
-	    miniTrampHandle mtHandle;
-	    addInstFunc(&mtHandle, this, callSite, func, callPreInsn,
+	    miniTrampHandle *mtHandle;
+	    addInstFunc(this, mtHandle, callSite, func, callPreInsn,
 			orderFirstAtPoint, true, false);
 	  }
 	  else {
@@ -3617,8 +3614,8 @@ bool process::MonitorCallSite(instPoint *callSite){
 	    the_args[1] = new AstNode(AstNode::Constant,
 				      (void *) callSite->iPgetAddress());
 	    func = new AstNode("DYNINSTRegisterCallee", the_args);
-	    miniTrampHandle mtHandle;	    
-	    addInstFunc(&mtHandle, this, callSite, func, callPreInsn,
+	    miniTrampHandle *mtHandle;	    
+	    addInstFunc(this, mtHandle, callSite, func, callPreInsn,
 			orderFirstAtPoint, true,false);
 	  }
 	}
@@ -3637,8 +3634,8 @@ bool process::MonitorCallSite(instPoint *callSite){
 	  the_args[1] = new AstNode(AstNode::Constant,
 				    (void *) callSite->iPgetAddress());
 	  func = new AstNode("DYNINSTRegisterCallee", the_args);
-	  miniTrampHandle mtHandle;
-	  addInstFunc(&mtHandle, this, callSite, func, callPreInsn,
+	  miniTrampHandle *mtHandle;
+	  addInstFunc(this, mtHandle, callSite, func, callPreInsn,
 		      orderFirstAtPoint, true, false);
 	}
       }
@@ -3681,8 +3678,7 @@ BaseTrampTrapHandler (int)//, siginfo_t*, ucontext_t*)
 }
 #endif
 
-bool deleteBaseTramp(process *, instPoint *,
-		     trampTemplate *, instInstance * /* lastMT */ )
+bool deleteBaseTramp(process *, trampTemplate *)
 {
 	cerr << "WARNING : deleteBaseTramp is unimplemented "
 	     << "(after the last instrumentation deleted)" << endl;
@@ -5100,6 +5096,14 @@ bool instPoint::match(instPoint *p)
     return true;
   
   return false;
+}
+
+// Get the absolute address of an instPoint
+Address instPoint::iPgetAddress(process *p) const {
+    if (!p) return addr_;
+    Address baseAddr;
+    p->getBaseAddress(iPgetOwner(), baseAddr);
+    return addr_ + baseAddr;
 }
 
 void pd_Function::addArbitraryPoint(instPoint* location,

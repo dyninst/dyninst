@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.138 2003/09/05 16:27:47 schendel Exp $
+// $Id: inst-sparc-solaris.C,v 1.139 2003/10/21 17:22:02 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -106,7 +106,7 @@ void pd_Function::checkCallPoints() {
     if (isInsnType(p->firstInstruction, CALLmask, CALLmatch)) {
 
       loc_addr = p->addr + (p->firstInstruction.call.disp30 << 2);
-      pd_Function *pdf = (file_->exec())->findFuncByAddr(loc_addr);
+      pd_Function *pdf = (file_->exec())->findFuncByEntry(loc_addr);
 
       if (pdf) {
 	p->callee = pdf;
@@ -307,130 +307,7 @@ void relocateInstruction(instruction*& insn, Address origAddr,
 /****************************************************************************/
 /****************************************************************************/
 
-void generate_base_tramp_recursive_guard_code( process & p,
-					       instruction * code,
-					       Address base_addr,
-					       NonRecursiveTrampTemplate & templ )
-{
-  /* prepare guard flag memory, if needed */
-  Address guard_flag_address = p.trampGuardAddr();
-  
-  instruction * curr_instr;
-  Address curr_addr;
 
-  /* Assignments: L0 holds the tramp guard addr, L1 holds the loaded value
-     and L2 holds the compare/set to value. Oh, and L3 has the shifted POS
-     for MT calcs
-  */
-
-  /* fill the 'guard on' pre-instruction instrumentation */
-  curr_instr = code + templ.guardOnPre_beginOffset / sizeof( instruction );
-  curr_addr = base_addr + templ.guardOnPre_beginOffset;
-  generateSetHi( curr_instr, guard_flag_address, REG_L(0) );
-  curr_instr++; curr_addr += sizeof( instruction );
-  if (p.multithread_capable()) {
-    int shift_val;
-    isPowerOf2(sizeof(unsigned), shift_val);
-    generateLShift(curr_instr, REG_MT_POS, (Register)shift_val, REG_L(3));
-    curr_instr++; curr_addr += sizeof(instruction);
-    genSimpleInsn(curr_instr, ADDop3, REG_L(3), REG_L(0), REG_L(0));
-    curr_instr++; curr_addr += sizeof(instruction);
-  }    
-  genSimpleInsn( curr_instr, ADDop3, REG_G(0), REG_G(0), REG_L(1) );
-  curr_instr++; curr_addr += sizeof( instruction );
-  generateLoad( curr_instr, REG_L(0), LOW10( guard_flag_address ), REG_L(2) );
-  curr_instr++; curr_addr += sizeof( instruction );
-  generateStore( curr_instr, REG_L(1), REG_L(0), LOW10( guard_flag_address ) );
-  curr_instr++; curr_addr += sizeof( instruction );
-  genSimpleInsn( curr_instr, SUBop3cc, REG_L(2), REG_G(0), REG_G(0) );
-  curr_instr++; curr_addr += sizeof( instruction );
-  int branch_offset_in_bytes =
-    ( base_addr + templ.guardOffPre_endOffset )
-    -
-    curr_addr
-    ;
-  genBranch( curr_instr,
-	     branch_offset_in_bytes,
-	     BEcond,
-	     false );
-  curr_instr++; curr_addr += sizeof( instruction );
-  generateNOOP ( curr_instr );
-
-  /* fill the 'guard off' pre-instruction instrumentation */
-  curr_instr = code + templ.guardOffPre_beginOffset / sizeof( instruction );
-  curr_addr = base_addr + templ.guardOffPre_beginOffset;
-  generateSetHi( curr_instr, guard_flag_address, REG_L(0) );
-  curr_instr++; curr_addr += sizeof( instruction );
-  // We should store this value... but where?
-  if (p.multithread_capable()) {
-    int shift_val;
-    isPowerOf2(sizeof(unsigned), shift_val);
-    generateLShift(curr_instr, REG_MT_POS, (Register)shift_val, REG_L(3));
-    curr_instr++; curr_addr += sizeof(instruction);
-    genSimpleInsn(curr_instr, ADDop3, REG_L(3), REG_L(0), REG_L(0));
-    curr_instr++; curr_addr += sizeof(instruction);
-  }    
-
-  genImmInsn( curr_instr, ADDop3, REG_G(0), 1, REG_L(1) );
-  curr_instr++; curr_addr += sizeof( instruction );
-  generateStore( curr_instr, REG_L(1), REG_L(0), LOW10( guard_flag_address ) );
-
-  /* fill the 'guard on' post-instruction instrumentation */
-  curr_instr = code + templ.guardOnPost_beginOffset / sizeof( instruction );
-  curr_addr = base_addr + templ.guardOnPost_beginOffset;
-  generateSetHi( curr_instr, guard_flag_address, REG_L(0) );
-  curr_instr++; curr_addr += sizeof( instruction );
-
-  if (p.multithread_capable()) {
-    int shift_val;
-    isPowerOf2(sizeof(unsigned), shift_val);
-    generateLShift(curr_instr, REG_MT_POS, (Register)shift_val, REG_L(3));
-    curr_instr++; curr_addr += sizeof(instruction);
-    genSimpleInsn(curr_instr, ADDop3, REG_L(3), REG_L(0), REG_L(0));
-    curr_instr++; curr_addr += sizeof(instruction);
-  }    
-
-  genSimpleInsn( curr_instr, ADDop3, REG_G(0), REG_G(0), REG_L(1) );
-  curr_instr++; curr_addr += sizeof( instruction );
-  generateLoad( curr_instr, REG_L(0), LOW10( guard_flag_address ), REG_L(2) );
-  curr_instr++; curr_addr += sizeof( instruction );
-  generateStore( curr_instr, REG_L(1), REG_L(0), LOW10( guard_flag_address ) );
-  curr_instr++; curr_addr += sizeof( instruction );
-  genSimpleInsn( curr_instr, SUBop3cc, REG_L(2), REG_G(0), REG_G(0) );
-  curr_instr++; curr_addr += sizeof( instruction );
-  branch_offset_in_bytes =
-    ( base_addr + templ.guardOffPost_endOffset )
-    -
-    curr_addr
-    ;
-  genBranch( curr_instr,
-	     branch_offset_in_bytes,
-	     BEcond,
-	     false );
-  curr_instr++; curr_addr += sizeof( instruction );
-  generateNOOP ( curr_instr );
-
-  /* fill the 'guard off' post-instruction instrumentation */
-  curr_instr = code + templ.guardOffPost_beginOffset / sizeof( instruction );
-  curr_addr = base_addr + templ.guardOffPost_beginOffset;
-  generateSetHi( curr_instr, guard_flag_address, REG_L(0) );
-  curr_instr++; curr_addr += sizeof( instruction );
-
-  if (p.multithread_capable()) {
-    int shift_val;
-    isPowerOf2(sizeof(unsigned), shift_val);
-    generateLShift(curr_instr, REG_MT_POS, (Register)shift_val, REG_L(3));
-    curr_instr++; curr_addr += sizeof(instruction);
-    genSimpleInsn(curr_instr, ADDop3, REG_L(3), REG_L(0), REG_L(0));
-    curr_instr++; curr_addr += sizeof(instruction);
-  }    
-
-  genImmInsn( curr_instr, ADDop3, REG_G(0), 1, REG_L(1) );
-  curr_instr++; curr_addr += sizeof( instruction );
-  generateStore( curr_instr, REG_L(1), REG_L(0), LOW10( guard_flag_address ) );
-}
-
-//
 // For multithreaded applications and shared memory sampling, this routine 
 // will compute the address where the corresponding counter/timer vector for
 // level 0 is (by default). In the mini-tramp, if the counter/timer is at a
@@ -513,7 +390,7 @@ trampTemplate * installBaseTramp( instPoint * & location,
    // very conservative installation as o7 can be live 
    // at this arbitrary inst point
    if( (location->ipType == otherPoint) &&
-       location->func && location->func->is_o7_live() &&
+       location->func() && location->func()->is_o7_live() &&
        location->needsLongJump)
    {
       // Free up the space allocated for the base tramp
@@ -863,9 +740,9 @@ trampTemplate * installBaseTramp( instPoint * & location,
                  location->iPgetAddress() + 
                  numInsnsCopied*sizeof(instruction);
                
-              if (location->func->hasNoStackFrame() ||
+              if (location->func()->hasNoStackFrame() ||
                   ((location->ipType == otherPoint) &&
-                   location->func->is_o7_live())){
+                   location->func()->is_o7_live())){
                   
                  /* to save value of live o7 register we save and call*/
                  genImmInsn(temp, SAVEop3, REG_SPTR, -120, REG_SPTR);
@@ -881,7 +758,7 @@ trampTemplate * installBaseTramp( instPoint * & location,
            break;
         case SKIP_PRE_INSN:
            offset =
-              baseTrampAddress + current_template->updateCostOffset - currAddr;
+              baseTrampAddress + current_template->emulateInsOffset - currAddr;
            generateBranchInsn(temp,offset);
            break;
         case SKIP_POST_INSN:
@@ -907,19 +784,84 @@ trampTemplate * installBaseTramp( instPoint * & location,
               generateNOOP(temp); /* Not yet ready for MT tramp */
            break;
         case RECURSIVE_GUARD_ON_PRE_INSN:
+            if (trampRecursiveDesired)
+                generateNOOP(temp);
+            else {
+                generateSetHi(temp, proc->trampGuardAddr(), REG_L(0));
+                temp++; currAddr += sizeof(instruction);
+                if (proc->multithread_capable()) {
+                    int shift_val;
+                    isPowerOf2(sizeof(unsigned), shift_val);
+                    generateLShift(temp, REG_MT_POS, (Register)shift_val, REG_L(3));
+                    temp++; currAddr += sizeof(instruction);
+                    genSimpleInsn(temp, ADDop3, REG_L(3), REG_L(0), REG_L(0));
+                    temp++; currAddr += sizeof(instruction);
+                }
+                genSimpleInsn(temp, ADDop3, REG_G(0), REG_G(0), REG_L(1));
+                temp++; currAddr += sizeof(instruction);
+                generateLoad(temp, REG_L(0), LOW10(proc->trampGuardAddr()), REG_L(2));
+                temp++; currAddr += sizeof(instruction);
+                generateStore(temp, REG_L(1), REG_L(0), LOW10(proc->trampGuardAddr()));
+                temp++; currAddr += sizeof(instruction);
+                genSimpleInsn(temp, SUBop3cc, REG_L(2), REG_G(0), REG_G(0));
+                temp++; currAddr += sizeof(instruction);
+                genBranch(temp, (current_template->restorePreInsOffset - (currAddr - baseTrampAddress)),
+                          BEcond, false);
+                temp++; currAddr += sizeof(instruction);
+                generateNOOP(temp);
+            }
+            break;
         case RECURSIVE_GUARD_OFF_PRE_INSN:
-        case RECURSIVE_GUARD_ON_POST_INSN:
         case RECURSIVE_GUARD_OFF_POST_INSN:
-           generateNOOP( temp );
-           break;
+            if (trampRecursiveDesired)
+                generateNOOP(temp);
+            else {
+                generateSetHi(temp, proc->trampGuardAddr(), REG_L(0));
+                temp++; currAddr += sizeof(instruction);
+                if (proc->multithread_capable()) {
+                    int shift_val;
+                    isPowerOf2(sizeof(unsigned), shift_val);
+                    generateLShift(temp, REG_MT_POS, (Register)shift_val, REG_L(3));
+                    temp++; currAddr += sizeof(instruction);
+                    genSimpleInsn(temp, ADDop3, REG_L(3), REG_L(0), REG_L(0));
+                    temp++; currAddr += sizeof(instruction);
+                }
+                genImmInsn(temp, ADDop3, REG_G(0), 1, REG_L(1));
+                temp++; currAddr += sizeof(instruction);
+                generateStore(temp, REG_L(1), REG_L(0), LOW10(proc->trampGuardAddr()));
+            }
+            break;
+        case RECURSIVE_GUARD_ON_POST_INSN:
+            if (trampRecursiveDesired)
+                generateNOOP(temp);
+            else {
+                generateSetHi(temp, proc->trampGuardAddr(), REG_L(0));
+                temp++; currAddr += sizeof(instruction);
+                if (proc->multithread_capable()) {
+                    int shift_val;
+                    isPowerOf2(sizeof(unsigned), shift_val);
+                    generateLShift(temp, REG_MT_POS, (Register)shift_val, REG_L(3));
+                    temp++; currAddr += sizeof(instruction);
+                    genSimpleInsn(temp, ADDop3, REG_L(3), REG_L(0), REG_L(0));
+                    temp++; currAddr += sizeof(instruction);
+                }
+                genSimpleInsn(temp, ADDop3, REG_G(0), REG_G(0), REG_L(1));
+                temp++; currAddr += sizeof(instruction);
+                generateLoad(temp, REG_L(0), LOW10(proc->trampGuardAddr()), REG_L(2));
+                temp++; currAddr += sizeof(instruction);
+                generateStore(temp, REG_L(1), REG_L(0), LOW10(proc->trampGuardAddr()));
+                temp++; currAddr += sizeof(instruction);
+                genSimpleInsn(temp, SUBop3cc, REG_L(2), REG_G(0), REG_G(0));
+                temp++; currAddr += sizeof(instruction);
+                genBranch(temp, (current_template->restorePostInsOffset - (currAddr - baseTrampAddress)),
+                          BEcond, false);
+                temp++; currAddr += sizeof(instruction);
+                generateNOOP(temp);
+            }
+            break;
         default: /* May catch an unknown instruction (or a noop) */
            break;
       }
-   }
-    
-   if( ! trampRecursiveDesired ) {
-      generate_base_tramp_recursive_guard_code( *proc, code, baseTrampAddress,
-                                                (NonRecursiveTrampTemplate &) *current_template);
    }
    /*
      fprintf(stderr, "------------\n");
@@ -933,17 +875,11 @@ trampTemplate * installBaseTramp( instPoint * & location,
    proc->writeDataSpace( ( caddr_t )baseTrampAddress,
                          current_template->size,
                          ( caddr_t )code );
+   proc->addCodeRange(baseTrampAddress, current_template);
    delete [] code;
     
    trampTemplate * baseInst;
-   if( trampRecursiveDesired )
-   {
-      baseInst = new trampTemplate;
-   }
-   else
-   {
-      baseInst = new NonRecursiveTrampTemplate;
-   }
+   baseInst = new trampTemplate(location, proc);
    * baseInst = *current_template;
    baseInst->baseAddr = baseTrampAddress;
 
@@ -962,11 +898,11 @@ trampTemplate * installBaseTramp( instPoint * & location,
  * 'retInstance' tells you how to modify the code to jump to the base tramp
  *
  */
-trampTemplate *findAndInstallBaseTramp(process *proc, 
+trampTemplate *findOrInstallBaseTramp(process *proc, 
                                        instPoint *&location,
                                        returnInstance *&retInstance,
                                        bool trampRecursionDesired,
-                                       bool, 
+                                      bool /*noCost*/, 
                                        bool &deferred)
 {
     Address baseAddress;
@@ -987,20 +923,10 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 
 
     // Generate the template for the trampoline
-    trampTemplate *current_template = &nonRecursiveBaseTemplate;
-
+    trampTemplate *current_template = &baseTemplate;
     if(location->ipType == otherPoint) {
-      current_template = &nonRecursiveConservativeBaseTemplate;
-    }
-
-    if( trampRecursionDesired ) {
-      current_template = &baseTemplate;
-
-      if(location->ipType == otherPoint) {
         current_template = &conservativeBaseTemplate;
-      }
     }
-
 
     // Get the base address of the shared object 
     proc->getBaseAddress( location->image_ptr, baseAddress );
@@ -1014,58 +940,57 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
     // If the base tramp is too far away, force relocation, and rewrite
     // the function so that a save; call; restore; sequence can be used
     // to transfer to the base trampoline.
-    if ( location->func->mayNeedRelocation() ) { 
-
+    if ( location->func()->mayNeedRelocation() ) { 
+        
       // Allocate space for the base trampoline
-      baseTrampAddress = proc->inferiorMalloc(current_template->size, 
-					      textHeap, ipAddr);
-      assert( baseTrampAddress );
-
-      // Determine if the base trampoline is within the range of a branch
-      // instruction from the instrumentation point. This is used to determine
-      // How we transfer between the function and instrumentation, as well
-      // as how many instructions get copied to the base trampoline
-      if ( !offsetWithinRangeOfBranchInsn(baseTrampAddress - ipAddr) ) {
-
-        // The function needs to be relocated to be instrumentable
-        location->func->setRelocatable(true);
-
-        // Free up the space allocated for the base tramp
-        // (Since we are relocating the function, we want to allocate
-        // the base tramp near the NEW instPoint location).
-	proc->inferiorFree(baseTrampAddress);
-        baseTrampAddress = 0;
-
-      }
+        baseTrampAddress = proc->inferiorMalloc(current_template->size, 
+                                                textHeap, ipAddr);
+        assert( baseTrampAddress );
+        
+        // Determine if the base trampoline is within the range of a branch
+        // instruction from the instrumentation point. This is used to determine
+        // How we transfer between the function and instrumentation, as well
+        // as how many instructions get copied to the base trampoline
+        if ( !offsetWithinRangeOfBranchInsn(baseTrampAddress - ipAddr) ) {
+            // The function needs to be relocated to be instrumentable
+            location->func()->setRelocatable(true);
+            
+            // Free up the space allocated for the base tramp
+            // (Since we are relocating the function, we want to allocate
+            // the base tramp near the NEW instPoint location).
+            proc->inferiorFree(baseTrampAddress);
+            baseTrampAddress = 0;
+            
+        }
     }
 
 
     // Relocate the function if needed 
-    if (location->func->needsRelocation()) {
-
-      const BPatch_point *old_bppoint = location->getBPatch_point();
-      if(!(location->func->isInstalled(proc))) {
-
-        // Relocate the function
-        bool relocated = location->func->relocateFunction(proc, location, 
+    if (location->func()->needsRelocation()) {
+        const BPatch_point *old_bppoint = location->getBPatch_point();
+        if(!(location->func()->isInstalled(proc))) {
+            // Relocate the function
+            bool relocated = location->func()->relocateFunction(proc, location, 
                                                                 deferred);
-
-        // Unable to relocate function
-        if (relocated == false) {
-          return NULL;
-	}
-	location->setBPatch_point(old_bppoint);
-
-      } else {
-
-          if(!location->relocated_){
-
-            // need to find new instPoint for location...
-            // it has the pre-relocated address of the instPoint
-            location->func->modifyInstPoint(cLocation,proc);
-	    location->setBPatch_point(old_bppoint);
-	  }
-      }
+            
+            // Unable to relocate function
+            if (relocated == false) {
+                fprintf(stderr, "Unable to relocate\n");
+                
+                return NULL;
+            }
+            location->setBPatch_point(old_bppoint);
+            
+        } else {
+            
+            if(!location->relocated_){
+                
+                // need to find new instPoint for location...
+                // it has the pre-relocated address of the instPoint
+                location->func()->modifyInstPoint(cLocation,proc);
+                location->setBPatch_point(old_bppoint);
+            }
+        }
     }
 
 
@@ -1227,15 +1152,16 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
  * Install a single tramp.
  *
  */
-void installTramp(instInstance *inst, process *proc, char *code, int codeSize,
-		  instPoint *location, callWhen when) 
+void installTramp(miniTrampHandle *inst, process *proc, 
+                  char *code, int codeSize)
 {
     //the default base trampoline template is the regular base trampoline.
     //However if the location iptype is  randomPoint then we have to use
     //the conservatibve base trampoline which saves the condition codes
 
     trampTemplate* current_template = &baseTemplate;
-
+    const instPoint *location = inst->baseTramp->location;
+    
     if(location->ipType == otherPoint)
         current_template = &conservativeBaseTemplate;
 
@@ -1243,21 +1169,21 @@ void installTramp(instInstance *inst, process *proc, char *code, int codeSize,
     insnGenerated += codeSize/sizeof(int);
     
     // TODO cast
-    proc->writeDataSpace((caddr_t)inst->trampBase, codeSize, code);
+    proc->writeDataSpace((caddr_t)inst->miniTrampBase, codeSize, code);
 
     Address atAddr;
-    if(when == callPreInsn) {
-	if (inst->baseInstance->prevInstru == false) {
-	    atAddr = inst->baseInstance->baseAddr+current_template->skipPreInsOffset;
-	    inst->baseInstance->cost += inst->baseInstance->prevBaseCost;
-	    inst->baseInstance->prevInstru = true;
+    if(inst->when == callPreInsn) {
+	if (inst->baseTramp->prevInstru == false) {
+	    atAddr = inst->baseTramp->baseAddr+current_template->skipPreInsOffset;
+	    inst->baseTramp->cost += inst->baseTramp->prevBaseCost;
+	    inst->baseTramp->prevInstru = true;
 	    generateNoOp(proc, atAddr);
 	}
     } else {
-	if (inst->baseInstance->postInstru == false) {
-	    atAddr = inst->baseInstance->baseAddr+current_template->skipPostInsOffset; 
-	    inst->baseInstance->cost += inst->baseInstance->postBaseCost;
-	    inst->baseInstance->postInstru = true;
+	if (inst->baseTramp->postInstru == false) {
+	    atAddr = inst->baseTramp->baseAddr+current_template->skipPostInsOffset; 
+	    inst->baseTramp->cost += inst->baseTramp->postBaseCost;
+	    inst->baseTramp->postInstru = true;
 	    generateNoOp(proc, atAddr);
 	}
     }
@@ -1511,7 +1437,7 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
                char *i, Address &base, bool /*noCost*/,
                const instPoint * /* location */, bool for_multithreaded)
 {
-   //fprintf(stderr,"emitR(op=%d,src1=%d,src2=XX,dest=XX)\n",op,src1);
+    fprintf(stderr,"emitR(op=%d,src1=%d,src2=XX,dest=XX)\n",op,src1);
 
    instruction *insn = (instruction *) ((void*)&i[base]);
 
@@ -1594,7 +1520,6 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
         
         generateLoad(insn, REG_FPTR, 4*8, dest); 
         insn++; base += sizeof(instruction);
-        
         return dest;
      }
      case getSysRetValOp:
@@ -2304,7 +2229,7 @@ bool pd_Function::findInstPoints(const image *owner) {
     // If there's an TRAP instruction in the function, we assume
     // that it is an system call and will relocate it to the heap
     if (isInsnType(instr, TRAPmask, TRAPmatch)) {
-      relocatable_ = true;
+        relocatable_ = true;
     } 
 
     // TODO: This is a hacking for the solaris(solaris2.5 actually)
@@ -2323,8 +2248,8 @@ bool pd_Function::findInstPoints(const image *owner) {
     //  as last 2 instructions in function which does not have
     //  own register frame.
     if (CallRestoreTC(instr, nexti) || 
-	JmpNopTC(instr, nexti, adr, this) ||
-	MovCallMovTC(instr, nexti)) {
+        JmpNopTC(instr, nexti, adr, this) ||
+        MovCallMovTC(instr, nexti)) {
       relocatable_ = true;
     }
 
@@ -2734,29 +2659,31 @@ bool pd_Function::checkInstPoints(const image *owner) {
 	if(isInsnType(instr, RESTOREmask, RESTOREmatch)) restore_inst = true;
 	if (isInsnType(instr, BRNCHmask, BRNCHmatch)||
 	    isInsnType(instr, FBRNCHmask, FBRNCHmatch)) {
-
+        
 	    int disp = instr.branch.disp22;
 	    Address target = adr + (disp << 2);
-
+        
 	    if ((target > funcEntry_->addr)&&
-		(target < (funcEntry_->addr + funcEntry_->size))) {
-		if (adr > (funcEntry_->addr+funcEntry_->size)){
-
-                  // function can be instrumented if we relocate it
-                  relocatable_ = true;
-		}
+            (target < (funcEntry_->addr + funcEntry_->size))) {
+            if (adr > (funcEntry_->addr+funcEntry_->size)){
+                
+                // function can be instrumented if we relocate it
+                
+                relocatable_ = true;
+            }
 	    }
-
+        
 	    for (u_int i = 0; i < funcReturns.size(); i++) {
-		if ((target > funcReturns[i]->addr)&&
-		    (target < (funcReturns[i]->addr + funcReturns[i]->size))) {
-		    if ((adr < funcReturns[i]->addr)||
-			(adr > (funcReturns[i]->addr + funcReturns[i]->size))){
-
-                      // function can be instrumented if we relocate it
-                      relocatable_ = true; 
-		    }
-		}
+            if ((target > funcReturns[i]->addr)&&
+                (target < (funcReturns[i]->addr + funcReturns[i]->size))) {
+                if ((adr < funcReturns[i]->addr)||
+                    (adr > (funcReturns[i]->addr + funcReturns[i]->size))){
+                    
+                    // function can be instrumented if we relocate it
+                    
+                    relocatable_ = true; 
+                }
+            }
 	    }
 	}
     }
@@ -2783,7 +2710,6 @@ bool pd_Function::checkInstPoints(const image *owner) {
 	if(i >= 1){ // check if return points overlap
 	    Address prev_exit = funcReturns[i-1]->addr+funcReturns[i-1]->size;  
 	    if(funcReturns[i]->addr < prev_exit) {
-
               // function can be instrumented if we relocate it 
               relocatable_ = true;
 	    } 

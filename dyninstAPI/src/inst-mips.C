@@ -75,25 +75,6 @@
 typedef signed short       SignedImm;
 typedef unsigned short     UnsignedImm;
 
-class NonRecursiveTrampTemplate : public trampTemplate
-{
-
-public:
-
-  int guardOnPre_beginOffset;
-  int guardOnPre_endOffset;
-
-  int guardOffPre_beginOffset;
-  int guardOffPre_endOffset;
-
-  int guardOnPost_beginOffset;
-  int guardOnPost_endOffset;
-
-  int guardOffPost_beginOffset;
-  int guardOffPost_endOffset;
-
-};
-
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
@@ -134,8 +115,11 @@ const unsigned int nDead = sizeof(Dead) / sizeof(Dead[0]);
  * with several public member variables added. These
  * public member variables store the offsets of the
  * recursive guard code.
+ *
+ * bernat -- 13OCT03 
+ * the non recursive template has been rolled into the main one
  */
-NonRecursiveTrampTemplate nonRecursiveBaseTemplate;
+trampTemplate nonRecursiveBaseTemplate;
 
 /****************************************************************************/
 /****************************************************************************/
@@ -200,7 +184,7 @@ char * selected_for_trace[] = { "",
 				// "emitVload",
 				// "emitVstore",
 				// "emitVupdate",
-				"findAndInstallBaseTramp",
+				"findOrInstallBaseTramp",
 				"findFunctionLikeRld",
 				"generate_base_tramp_recursive_guard_code",
 				// "genBranch",
@@ -337,7 +321,6 @@ Address baseTramp;
 
 Address baseTemplate_savePreInsOffset;
 Address baseTemplate_skipPreInsOffset;
-Address baseTemplate_globalPreOffset;
 Address baseTemplate_localPreOffset;
 Address baseTemplate_localPreReturnOffset;
 Address baseTemplate_updateCostOffset;
@@ -345,7 +328,6 @@ Address baseTemplate_restorePreInsOffset;
 Address baseTemplate_emulateInsOffset;
 Address baseTemplate_skipPostInsOffset;
 Address baseTemplate_savePostInsOffset;
-Address baseTemplate_globalPostOffset;
 Address baseTemplate_localPostOffset;
 Address baseTemplate_localPostReturnOffset;
 Address baseTemplate_restorePostInsOffset;
@@ -366,7 +348,6 @@ Address baseNonRecursiveTramp;
 
 Address nonRecursiveBaseTemplate_savePreInsOffset;
 Address nonRecursiveBaseTemplate_skipPreInsOffset;
-Address nonRecursiveBaseTemplate_globalPreOffset ;
 Address nonRecursiveBaseTemplate_localPreOffset;
 Address nonRecursiveBaseTemplate_localPreReturnOffset;
 Address nonRecursiveBaseTemplate_updateCostOffset;
@@ -374,7 +355,6 @@ Address nonRecursiveBaseTemplate_restorePreInsOffset;
 Address nonRecursiveBaseTemplate_emulateInsOffset;
 Address nonRecursiveBaseTemplate_skipPostInsOffset;
 Address nonRecursiveBaseTemplate_savePostInsOffset;
-Address nonRecursiveBaseTemplate_globalPostOffset;
 Address nonRecursiveBaseTemplate_localPostOffset;
 Address nonRecursiveBaseTemplate_localPostReturnOffset;
 Address nonRecursiveBaseTemplate_restorePostInsOffset;
@@ -1256,14 +1236,14 @@ void pd_Function::checkCallPoints()
     
     Address tgt_addr = findTarget(ip);
     if (tgt_addr) {
-      pd_Function *tgt_fn = file_->exec()->findFuncByAddr(tgt_addr);
-      ip->setCallee(tgt_fn); // possibly NULL
-      // NOTE: (target == fnStart) => optimized recursive call
-      if (!tgt_fn && tgt_addr > fnStart && tgt_addr < fnStart + size()) {
-	// target is inside same function (i.e. branch)
-	delete ip;
-	continue;
-      }
+        pd_Function *tgt_fn = file_->exec()->findFuncByEntry(tgt_addr);
+        ip->setCallee(tgt_fn); // possibly NULL
+        // NOTE: (target == fnStart) => optimized recursive call
+        if (!tgt_fn && tgt_addr > fnStart && tgt_addr < fnStart + size()) {
+            // target is inside same function (i.e. branch)
+            delete ip;
+            continue;
+        }
     }
      
     /* fallthrough cases (call sites are kept):
@@ -2160,7 +2140,7 @@ Address emitA(opCode op, Register src1, Register /*src2*/, Register dst,
 
   case trampTrailer:
     // return = offset (in bytes) of branch insn
-    // TODO: instInstance::returnAddr stores return value
+    // TODO: mtHandle::returnAddr stores return value
     //       offset of branch insn could change (nops padded in front)
     //fprintf(stderr, ">>> emit(trampTrailer)\n");
     // allocate enough space for indirect jump (just in case)
@@ -3025,7 +3005,6 @@ int getInsnCost(opCode op)
 extern "C" void baseTramp();
 extern "C" void baseTramp_savePreInsn();
 extern "C" void baseTramp_skipPreInsn();
-extern "C" void baseTramp_globalPreBranch();
 extern "C" void baseTramp_localPreBranch();
 extern "C" void baseTramp_localPreReturn();
 extern "C" void baseTramp_updateCostInsn();
@@ -3033,7 +3012,6 @@ extern "C" void baseTramp_restorePreInsn();
 extern "C" void baseTramp_emulateInsn();
 extern "C" void baseTramp_skipPostInsn();
 extern "C" void baseTramp_savePostInsn();
-extern "C" void baseTramp_globalPostBranch();
 extern "C" void baseTramp_localPostBranch();
 extern "C" void baseTramp_localPostReturn();
 extern "C" void baseTramp_restorePostInsn();
@@ -3045,7 +3023,6 @@ extern "C" void baseNonRecursiveTramp_savePreInsn();
 extern "C" void baseNonRecursiveTramp_skipPreInsn();
 extern "C" void baseNonRecursiveTramp_guardOnPre_begin();
 extern "C" void baseNonRecursiveTramp_guardOnPre_end();
-extern "C" void baseNonRecursiveTramp_globalPreBranch();
 extern "C" void baseNonRecursiveTramp_localPreBranch();
 extern "C" void baseNonRecursiveTramp_localPreReturn();
 extern "C" void baseNonRecursiveTramp_guardOffPre_begin();
@@ -3057,7 +3034,6 @@ extern "C" void baseNonRecursiveTramp_skipPostInsn();
 extern "C" void baseNonRecursiveTramp_savePostInsn();
 extern "C" void baseNonRecursiveTramp_guardOnPost_begin();
 extern "C" void baseNonRecursiveTramp_guardOnPost_end();
-extern "C" void baseNonRecursiveTramp_globalPostBranch();
 extern "C" void baseNonRecursiveTramp_localPostBranch();
 extern "C" void baseNonRecursiveTramp_localPostReturn();
 extern "C" void baseNonRecursiveTramp_guardOffPost_begin();
@@ -3069,7 +3045,6 @@ extern "C" void baseNonRecursiveTramp_endTramp();
 extern "C" void conservativeTramp();
 extern "C" void conservativeTramp_savePreInsn();
 extern "C" void conservativeTramp_skipPreInsn();
-extern "C" void conservativeTramp_globalPreBranch();
 extern "C" void conservativeTramp_localPreBranch();
 extern "C" void conservativeTramp_localPreReturn();
 extern "C" void conservativeTramp_updateCostInsn();
@@ -3077,7 +3052,6 @@ extern "C" void conservativeTramp_restorePreInsn();
 extern "C" void conservativeTramp_emulateInsn();
 extern "C" void conservativeTramp_skipPostInsn();
 extern "C" void conservativeTramp_savePostInsn();
-extern "C" void conservativeTramp_globalPostBranch();
 extern "C" void conservativeTramp_localPostBranch();
 extern "C" void conservativeTramp_localPostReturn();
 extern "C" void conservativeTramp_restorePostInsn();
@@ -3108,7 +3082,6 @@ void initTramps(bool is_multithreaded)
 #ifdef mips_unknown_ce2_11 //ccw 3 aug 2000 : 28 mar 2001
 	baseTemplate.savePreInsOffset = baseTemplate_savePreInsOffset;
 	baseTemplate.skipPreInsOffset = baseTemplate_skipPreInsOffset;
-	baseTemplate.globalPreOffset = baseTemplate_globalPreOffset;
 	baseTemplate.localPreOffset = baseTemplate_localPreOffset;
 	baseTemplate.localPreReturnOffset = baseTemplate_localPreReturnOffset;
 	baseTemplate.updateCostOffset = baseTemplate_updateCostOffset;
@@ -3116,7 +3089,6 @@ void initTramps(bool is_multithreaded)
 	baseTemplate.emulateInsOffset = baseTemplate_emulateInsOffset;
 	baseTemplate.skipPostInsOffset = baseTemplate_skipPostInsOffset;
 	baseTemplate.savePostInsOffset = baseTemplate_savePostInsOffset;
-	baseTemplate.globalPostOffset = baseTemplate_globalPostOffset;
 	baseTemplate.localPostOffset = baseTemplate_localPostOffset;
 	baseTemplate.localPostReturnOffset = baseTemplate_localPostReturnOffset;
 	baseTemplate.restorePostInsOffset = baseTemplate_restorePostInsOffset;
@@ -3134,7 +3106,6 @@ void initTramps(bool is_multithreaded)
 	nonRecursiveBaseTemplate.guardOffPost_beginOffset = nonRecursiveBaseTemplate_guardOffPost_beginOffset;
 	nonRecursiveBaseTemplate.savePreInsOffset = nonRecursiveBaseTemplate_savePreInsOffset;
 	nonRecursiveBaseTemplate.skipPreInsOffset = nonRecursiveBaseTemplate_skipPreInsOffset;
-	nonRecursiveBaseTemplate.globalPreOffset  = nonRecursiveBaseTemplate_globalPreOffset;
 	nonRecursiveBaseTemplate.localPreOffset = nonRecursiveBaseTemplate_localPreOffset;
 	nonRecursiveBaseTemplate.localPreReturnOffset = nonRecursiveBaseTemplate_localPreReturnOffset;
 	nonRecursiveBaseTemplate.updateCostOffset = nonRecursiveBaseTemplate_updateCostOffset;
@@ -3142,7 +3113,6 @@ void initTramps(bool is_multithreaded)
 	nonRecursiveBaseTemplate.emulateInsOffset = nonRecursiveBaseTemplate_emulateInsOffset;
 	nonRecursiveBaseTemplate.skipPostInsOffset = nonRecursiveBaseTemplate_skipPostInsOffset;
 	nonRecursiveBaseTemplate.savePostInsOffset = nonRecursiveBaseTemplate_savePostInsOffset;
-	nonRecursiveBaseTemplate.globalPostOffset = nonRecursiveBaseTemplate_globalPostOffset;
 	nonRecursiveBaseTemplate.localPostOffset = nonRecursiveBaseTemplate_localPostOffset;
 	nonRecursiveBaseTemplate.localPostReturnOffset = nonRecursiveBaseTemplate_localPostReturnOffset;
 	nonRecursiveBaseTemplate.restorePostInsOffset = nonRecursiveBaseTemplate_restorePostInsOffset;
@@ -3170,53 +3140,51 @@ void initTramps(bool is_multithreaded)
   // base trampoline template
   Address i, base = (Address)baseTramp;
   for (i = base; i < (Address)baseTramp_endTramp; i += INSN_SIZE) {
-    Address off = i - base;
-    // note: these should not be made into if..else blocks
-    // (some of the label values are the same)
-
-    if (i == (Address)baseTramp_savePreInsn)
-      baseTemplate.savePreInsOffset = off;
-
-    if (i == (Address)baseTramp_skipPreInsn)
-      baseTemplate.skipPreInsOffset = off;
-
-    if (i == (Address)baseTramp_globalPreBranch)
-      baseTemplate.globalPreOffset = off;
-
-    if (i == (Address)baseTramp_localPreBranch)
-      baseTemplate.localPreOffset = off;
-    if (i == (Address)baseTramp_localPreReturn)
-      baseTemplate.localPreReturnOffset = off;
-
-    if (i == (Address)baseTramp_updateCostInsn)
-      baseTemplate.updateCostOffset = off;
-
-    if (i == (Address)baseTramp_restorePreInsn)
-      baseTemplate.restorePreInsOffset = off;
-
-    if (i == (Address)baseTramp_emulateInsn)
-      baseTemplate.emulateInsOffset = off;
-
-    if (i == (Address)baseTramp_skipPostInsn)
-      baseTemplate.skipPostInsOffset = off;
-
-    if (i == (Address)baseTramp_savePostInsn)
-      baseTemplate.savePostInsOffset = off;
-
-    if (i == (Address)baseTramp_globalPostBranch)
-      baseTemplate.globalPostOffset = off;
-
-    if (i == (Address)baseTramp_localPostBranch)
-      baseTemplate.localPostOffset = off;
-    if (i == (Address)baseTramp_localPostReturn)
-      baseTemplate.localPostReturnOffset = off;
-
-    if (i == (Address)baseTramp_restorePostInsn)
-      baseTemplate.restorePostInsOffset = off;
-
-    if (i == (Address)baseTramp_returnInsn)
-      baseTemplate.returnInsOffset = off;
+      Address off = i - base;
+      // note: these should not be made into if..else blocks
+      // (some of the label values are the same)
+      
+      if (i == (Address)baseTramp_savePreInsn)
+          baseTemplate.savePreInsOffset = off;
+      
+      if (i == (Address)baseTramp_skipPreInsn)
+          baseTemplate.skipPreInsOffset = off;
+      
+      if (i == (Address)baseTramp_localPreBranch)
+          baseTemplate.localPreOffset = off;
+      if (i == (Address)baseTramp_localPreReturn)
+          baseTemplate.localPreReturnOffset = off;
+      
+      if (i == (Address)baseTramp_updateCostInsn)
+          baseTemplate.updateCostOffset = off;
+      
+      if (i == (Address)baseTramp_restorePreInsn)
+          baseTemplate.restorePreInsOffset = off;
+      
+      if (i == (Address)baseTramp_emulateInsn)
+          baseTemplate.emulateInsOffset = off;
+      
+      if (i == (Address)baseTramp_skipPostInsn)
+          baseTemplate.skipPostInsOffset = off;
+      
+      if (i == (Address)baseTramp_savePostInsn)
+          baseTemplate.savePostInsOffset = off;
+      
+      if (i == (Address)baseTramp_localPostBranch)
+          baseTemplate.localPostOffset = off;
+      if (i == (Address)baseTramp_localPostReturn)
+          baseTemplate.localPostReturnOffset = off;
+      
+      if (i == (Address)baseTramp_restorePostInsn)
+          baseTemplate.restorePostInsOffset = off;
+      
+      if (i == (Address)baseTramp_returnInsn)
+          baseTemplate.returnInsOffset = off;
   }
+  baseTemplate.recursiveGuardPreOnOffset = 0;
+  baseTemplate.recursiveGuardPreOffOffset = 0;
+  baseTemplate.recursiveGuardPostOnOffset = 0;
+  baseTemplate.recursiveGuardPostOffOffset = 0;
   baseTemplate.trampTemp = (void *)baseTramp;
   // TODO: include endTramp insns? (2 nops)
   baseTemplate.size = (Address)baseTramp_endTramp - (Address)baseTramp;
@@ -3242,9 +3210,6 @@ void initTramps(bool is_multithreaded)
       if( i == ( Address )baseNonRecursiveTramp_skipPreInsn )
 	nonRecursiveBaseTemplate.skipPreInsOffset = off;
 
-      if( i == ( Address )baseNonRecursiveTramp_globalPreBranch )
-	nonRecursiveBaseTemplate.globalPreOffset = off;
-
       if( i == ( Address )baseNonRecursiveTramp_localPreBranch )
 	nonRecursiveBaseTemplate.localPreOffset = off;
       if( i == ( Address )baseNonRecursiveTramp_localPreReturn )
@@ -3265,8 +3230,6 @@ void initTramps(bool is_multithreaded)
       if( i == ( Address )baseNonRecursiveTramp_savePostInsn )
 	nonRecursiveBaseTemplate.savePostInsOffset = off;
 
-      if( i == ( Address )baseNonRecursiveTramp_globalPostBranch )
-	nonRecursiveBaseTemplate.globalPostOffset = off;
 
       if( i == ( Address )baseNonRecursiveTramp_localPostBranch )
 	nonRecursiveBaseTemplate.localPostOffset = off;
@@ -3282,44 +3245,30 @@ void initTramps(bool is_multithreaded)
       if( i == ( Address )baseNonRecursiveTramp_guardOnPre_begin )
 	{
 	  DEBUG( "baseNonRecursiveTramp_guardOnPre_begin offset initialized." );
-	  nonRecursiveBaseTemplate.guardOnPre_beginOffset = off;
+	  nonRecursiveBaseTemplate.recursiveGuardPreOnOffset = off;
 	}
       if( i == ( Address )baseNonRecursiveTramp_guardOffPre_begin )
 	{
 	  DEBUG( "baseNonRecursiveTramp_guardOffPre_begin offset initialized." );
-	  nonRecursiveBaseTemplate.guardOffPre_beginOffset = off;
+	  nonRecursiveBaseTemplate.recursiveGuardPreOffOffset = off;
 	}
       if( i == ( Address )baseNonRecursiveTramp_guardOnPost_begin )
 	{
 	  DEBUG( "baseNonRecursiveTramp_guardOnPost_begin offset initialized." );
-	  nonRecursiveBaseTemplate.guardOnPost_beginOffset = off;
+	  nonRecursiveBaseTemplate.recursiveGuardPostOnOffset = off;
 	}
       if( i == ( Address )baseNonRecursiveTramp_guardOffPost_begin )
 	{
 	  DEBUG( "baseNonRecursiveTramp_guardOffPost_begin offset initialized." );
-	  nonRecursiveBaseTemplate.guardOffPost_beginOffset = off;
-	}
-      if( i == ( Address )baseNonRecursiveTramp_guardOnPre_end )
-	{
-	  DEBUG( "baseNonRecursiveTramp_guardOnPre_end offset initialized." );
-	  nonRecursiveBaseTemplate.guardOnPre_endOffset = off;
-	}
-      if( i == ( Address )baseNonRecursiveTramp_guardOffPre_end )
-	{
-	  DEBUG( "baseNonRecursiveTramp_guardOffPre_end offset initialized." );
-	  nonRecursiveBaseTemplate.guardOffPre_endOffset = off;
-	}
-      if( i == ( Address )baseNonRecursiveTramp_guardOnPost_end )
-	{
-	  DEBUG( "baseNonRecursiveTramp_guardOnPost_end offset initialized." );
-	  nonRecursiveBaseTemplate.guardOnPost_endOffset = off;
-	}
-      if( i == ( Address )baseNonRecursiveTramp_guardOffPost_end )
-	{
-	  DEBUG( "baseNonRecursiveTramp_guardOffPost_end offset initialized." );
-	  nonRecursiveBaseTemplate.guardOffPost_endOffset = off;
+	  nonRecursiveBaseTemplate.recursiveGuardPostOffOffset = off;
 	}
     }
+
+  fprintf(stderr, "non-recursive on offset = %d\n",
+          nonRecursiveBaseTemplate.recursiveGuardPostOnOffset);
+  fprintf(stderr, "non-recursive off offset = %d\n",
+          nonRecursiveBaseTemplate.recursiveGuardPostOffOffset);
+  
   nonRecursiveBaseTemplate.trampTemp = ( void * )baseNonRecursiveTramp;
   // TODO: include endTramp insns? (2 nops)
   nonRecursiveBaseTemplate.size =
@@ -3345,8 +3294,6 @@ void initTramps(bool is_multithreaded)
       conservativeTemplate.savePreInsOffset = off;
     if (i == (Address)conservativeTramp_skipPreInsn)
       conservativeTemplate.skipPreInsOffset = off;
-    if (i == (Address)conservativeTramp_globalPreBranch)
-      conservativeTemplate.globalPreOffset = off;
     if (i == (Address)conservativeTramp_localPreBranch)
       conservativeTemplate.localPreOffset = off;
     if (i == (Address)conservativeTramp_localPreReturn)
@@ -3361,8 +3308,6 @@ void initTramps(bool is_multithreaded)
       conservativeTemplate.skipPostInsOffset = off;
     if (i == (Address)conservativeTramp_savePostInsn)
       conservativeTemplate.savePostInsOffset = off;
-    if (i == (Address)conservativeTramp_globalPostBranch)
-      conservativeTemplate.globalPostOffset = off;
     if (i == (Address)conservativeTramp_localPostBranch)
       conservativeTemplate.localPostOffset = off;
     if (i == (Address)conservativeTramp_localPostReturn)
@@ -3706,7 +3651,7 @@ int relocateInstruction(instruction *insn, Address origAddr,
 
 void generate_base_tramp_recursive_guard_code( process * p,
 					       char * code,
-					       NonRecursiveTrampTemplate * templ )
+					       trampTemplate * templ )
 {
   TRACE_B( "generate_base_tramp_recursive_guard_code" );
   int offset = 0;//ccw 24 oct 2000 : 28 mar 2001 used to calculate offset of BEQ
@@ -3742,7 +3687,7 @@ void generate_base_tramp_recursive_guard_code( process * p,
 #endif
 
   /* populate guardOnPre section */
-  instruction * guardOnInsn = ( instruction * )( code + templ->guardOnPre_beginOffset );
+  instruction * guardOnInsn = ( instruction * )( code + templ->recursiveGuardPreOnOffset );
   offset = 7;//ccw 24 oct 2000 : 28 mar 2001
 
 #ifndef mips_unknown_ce2_11 //ccw 24 oct 2000 : 28 mar 2001
@@ -3754,15 +3699,16 @@ void generate_base_tramp_recursive_guard_code( process * p,
 #else
   genItype ( guardOnInsn     , LUIop,  0, 13, chunk_A );
   genItype ( guardOnInsn + 1 , ORIop, 13, 13, chunk_B );
-
 #endif
 
-  genItype ( guardOnInsn + offset , BEQop, 12, 0, //ccw 24 oct 2000 : offset was 7 : 28 mar 2001
-	     ( templ->guardOffPre_endOffset -
-	       ( templ->guardOnPre_beginOffset + ( 7 + 1 ) * INSN_SIZE ) ) / INSN_SIZE );
+  int pre_offset = (templ->updateCostOffset - templ->recursiveGuardPreOnOffset);
+  pre_offset /= sizeof(instruction);
+  pre_offset += 7; // 4 to build addr, dsl, or, load
+  genItype ( guardOnInsn + 7 , BEQop, 12, 0, //ccw 24 oct 2000 : offset was 7 : 28 mar 2001
+             pre_offset);
 
   /* populate guardOffPre section */
-  instruction * guardOffInsn = ( instruction * )( code + templ->guardOffPre_beginOffset );
+  instruction * guardOffInsn = ( instruction * )( code + templ->recursiveGuardPreOffOffset);
 #ifndef mips_unknown_ce2_11 //ccw 24 oct 2000 : 28 mar 2001
   genItype ( guardOffInsn     , LUIop,  0, 12, chunk_A );
   genItype ( guardOffInsn + 1 , ORIop, 12, 12, chunk_B );
@@ -3775,7 +3721,7 @@ void generate_base_tramp_recursive_guard_code( process * p,
 #endif
 
   /* populate guardOnPost section */
-  guardOnInsn = ( instruction * )( code + templ->guardOnPost_beginOffset );
+  guardOnInsn = ( instruction * )( code + templ->recursiveGuardPostOnOffset );
 #ifndef mips_unknown_ce2_11 //ccw 24 oct 2000 : 28 mar 2001
   genItype ( guardOnInsn     , LUIop,  0, 12, chunk_A );
   genItype ( guardOnInsn + 1 , ORIop, 12, 12, chunk_B );
@@ -3785,13 +3731,16 @@ void generate_base_tramp_recursive_guard_code( process * p,
   genItype ( guardOnInsn     , LUIop,  0, 13, chunk_A );
   genItype ( guardOnInsn + 1 , ORIop, 13, 13, chunk_B );
 #endif
-
-  genItype ( guardOnInsn + offset , BEQop, 12, 0,//ccw 24 oct 2000 : offset was 7 : 28 mar 2001
-	     ( templ->guardOffPost_endOffset -
-	       ( templ->guardOnPost_beginOffset + ( 7 + 1 ) * INSN_SIZE ) ) / INSN_SIZE );
-
+  int post_offset = (templ->restorePostInsOffset - templ->recursiveGuardPostOnOffset);
+  post_offset /= sizeof(instruction);
+  post_offset += 7; // 4 to build addr, dsl, or, load
+  fprintf(stderr, "Pre-branch: %d, post-branch: %d\n",
+          pre_offset, post_offset);
+  genItype ( guardOnInsn + 7 , BEQop, 12, 0,//ccw 24 oct 2000 : offset was 7 : 28 mar 2001
+             post_offset);
+  
   /* populate guardOffPost section */
-  guardOffInsn = ( instruction * )( code + templ->guardOffPost_beginOffset );
+  guardOffInsn = ( instruction * )( code + templ->recursiveGuardPostOffOffset );
 #ifndef mips_unknown_ce2_11 //ccw 24 oct 2000
   genItype ( guardOffInsn     , LUIop,  0, 12, chunk_A );
   genItype ( guardOffInsn + 1 , ORIop, 12, 12, chunk_B );
@@ -3838,7 +3787,9 @@ trampTemplate * installBaseTramp( process * p,
       memcpy( code, ( char * )conservativeTemplate.trampTemp, btSize );
 
       // trampTemplate return value: copy template
-      ret = new trampTemplate( conservativeTemplate );
+      ret = new trampTemplate( ip, p);
+      // Copy data fields
+      *ret = conservativeTemplate;
     }
   else if( trampRecursiveDesired )
     {
@@ -3849,7 +3800,8 @@ trampTemplate * installBaseTramp( process * p,
       memcpy( code, ( char * )baseTemplate.trampTemp, btSize );
 
       // trampTemplate return value: copy template
-      ret = new trampTemplate( baseTemplate );
+      ret = new trampTemplate(ip, p);
+      *ret = baseTemplate;
     }
   else
     {
@@ -3862,7 +3814,8 @@ trampTemplate * installBaseTramp( process * p,
       memcpy( code, ( char * )nonRecursiveBaseTemplate.trampTemp, btSize );
 
       // NonRecursiveTrampTemplate return value: copy template
-      ret = new NonRecursiveTrampTemplate( nonRecursiveBaseTemplate );
+      ret = new trampTemplate(ip, p);
+      *ret = nonRecursiveBaseTemplate;
     }
 
   // btAddr : base tramp address in inferior process
@@ -3922,7 +3875,7 @@ trampTemplate * installBaseTramp( process * p,
     {
       generate_base_tramp_recursive_guard_code( p,
 						code,
-						( NonRecursiveTrampTemplate * )ret );
+						ret );
       /* mihai Mon Feb 21 15:28:57 CST 2000: note that the cast above is safe
 	 due to the fact that we know that is trampRecursiveDesired is false,
 	 than we are using the base non recursive tramp. */
@@ -3931,9 +3884,7 @@ trampTemplate * installBaseTramp( process * p,
   /*
     implicitly populated fields (NOPs):
     - updateCostInsn
-    - globalPreBranch
     - localPreBranch
-    - globalPostBranch
     - localPostBranch
   */
 
@@ -3943,6 +3894,8 @@ trampTemplate * installBaseTramp( process * p,
 
   // copy basetramp to application
   p->writeDataSpace( ( void * )btAddr, btSize, code );
+  proc->addCodeRange(btAddr, ret);
+  
   delete[] code;
 
   TRACE_E( "installBaseTramp" );
@@ -3954,23 +3907,23 @@ trampTemplate * installBaseTramp( process * p,
 /****************************************************************************/
 /****************************************************************************/
 
-trampTemplate *findAndInstallBaseTramp(process *p, 
+trampTemplate *findOrInstallBaseTramp(process *p, 
 				       instPoint *&ip,
 				       returnInstance *&retInst,
 				       bool trampRecursiveDesired,
 				       bool /*noCost*/,
                                        bool& /*deferred*/)
 {
-  TRACE_B( "findAndInstallBaseTramp" );
+  TRACE_B( "findOrInstallBaseTramp" );
 
-  //fprintf(stderr, ">>> findAndInstallBaseTramp(): "); ip->print();
+  //fprintf(stderr, ">>> findOrInstallBaseTramp(): "); ip->print();
   retInst = NULL;
   trampTemplate *ret = NULL;
 
   // check if base tramp already exists
   if (p->baseMap.find((const instPoint *)ip, ret))
     { 
-      TRACE_E( "findAndInstallBaseTramp" );
+      TRACE_E( "findOrInstallBaseTramp" );
 
       return ret;
     }
@@ -4003,7 +3956,7 @@ trampTemplate *findAndInstallBaseTramp(process *p,
   
   if (ret) p->baseMap[ip] = ret;
 
-  TRACE_E( "findAndInstallBaseTramp" );
+  TRACE_E( "findOrInstallBaseTramp" );
 
   return ret;
 }
@@ -4012,8 +3965,7 @@ trampTemplate *findAndInstallBaseTramp(process *p,
 /****************************************************************************/
 /****************************************************************************/
 
-void installTramp(instInstance *inst, process *proc, char *code, int codeSize,
-		  instPoint * /*location*/, callWhen when)
+void installTramp(miniTrampHandle *mtHandle, process *proc, char *code, int codeSize)
 {
   TRACE_B( "installTramp" );
 
@@ -4023,15 +3975,15 @@ void installTramp(instInstance *inst, process *proc, char *code, int codeSize,
   insnGenerated += codeSize/INSN_SIZE;
 
   // write tramp to application space
-  proc->writeDataSpace((void *)inst->trampBase, codeSize, code);
+  proc->writeDataSpace((void *)mtHandle->miniTrampBase, codeSize, code);
 
   // overwrite branches for skipping instrumentation
-  trampTemplate *base = inst->baseInstance;
-  if (when == callPreInsn && base->prevInstru == false) {
+  trampTemplate *base = mtHandle->baseTramp;
+  if (mtHandle->when == callPreInsn && base->prevInstru == false) {
     base->cost += base->prevBaseCost;
     base->prevInstru = true;
     generateNoOp(proc, base->baseAddr + base->skipPreInsOffset);
-  } else if (when == callPostInsn && base->postInstru == false) {
+  } else if (mtHandle->when == callPostInsn && base->postInstru == false) {
     base->cost += base->postBaseCost;
     base->postInstru = true;
     generateNoOp(proc, base->baseAddr + base->skipPostInsOffset);
@@ -4042,7 +3994,7 @@ void installTramp(instInstance *inst, process *proc, char *code, int codeSize,
   char buf[1024];
   sprintf(buf, "!!! installed minitramp (%i insns): ", codeSize/INSN_SIZE);
   location->print(stderr, buf);
-  disDataSpace(proc, (void *)inst->trampBase, codeSize/INSN_SIZE, "  ");
+  disDataSpace(proc, (void *)mtHandle->trampBase, codeSize/INSN_SIZE, "  ");
   */
 
   TRACE_E( "installTramp" );
@@ -4950,8 +4902,7 @@ void initLibraryFunctions()
 }
 #endif
 
-bool deleteBaseTramp(process *, instPoint *,
-                     trampTemplate *, instInstance *lastMT)
+bool deleteBaseTramp(process *, trampTemplate *)
 {
 	cerr << "WARNING : deleteBaseTramp is unimplemented "
 	     << "(after the last instrumentation deleted)" << endl;
@@ -5120,3 +5071,13 @@ bool instPoint::match(instPoint *p)
   return false;
 }
 #endif
+
+
+// Get the absolute address of an instPoint
+Address instPoint::iPgetAddress(process *p) const {
+    if (!p) return addr_;
+    Address baseAddr;
+    p->getBaseAddress(iPgetOwner(), baseAddr);
+    return addr_ + baseAddr;
+}
+

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.149 2003/09/05 16:27:44 schendel Exp $
+// $Id: inst-sparc.C,v 1.150 2003/10/21 17:22:03 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -60,12 +60,10 @@
 static dictionary_hash<pdstring, unsigned> funcFrequencyTable(pdstring::hash);
 
 trampTemplate baseTemplate;
-NonRecursiveTrampTemplate nonRecursiveBaseTemplate;
 
 //declaration of conservative base trampoline template
 
 trampTemplate conservativeBaseTemplate;
-NonRecursiveTrampTemplate nonRecursiveConservativeBaseTemplate;
 
 
 
@@ -92,7 +90,7 @@ instPoint::instPoint(pd_Function *f, const image *owner, Address &adr,
   fifthIsAggregate(false),
   usesPriorInstructions(false),
   numPriorInstructions(0),
-  callIndirect(false), callee(NULL), func(f), isBranchOut(false),
+  callIndirect(false), callee(NULL), func_(f), isBranchOut(false),
   ipType(pointType), image_ptr(owner),
   relocated_(false), needsLongJump(false), dontUseCall(noCall)
 {
@@ -392,7 +390,7 @@ instPoint::instPoint(pd_Function *f, const instruction instr[],
   fifthIsAggregate(false),
   usesPriorInstructions(false),
   numPriorInstructions(0),
-  callIndirect(false), callee(NULL), func(f), isBranchOut(false),
+ callIndirect(false), callee(NULL), func_(f), isBranchOut(false),
   ipType(pointType), image_ptr(owner),
   relocated_(true), needsLongJump(false), dontUseCall(false)
 {
@@ -743,7 +741,7 @@ float getPointFrequency(instPoint *point)
     if (point->callee)
         func = point->callee;
     else
-        func = point->func;
+        func = point->func();
 
     if (!funcFrequencyTable.defines(func->prettyName())) {
       // Changing this value from 250 to 100 because predictedCost was
@@ -812,16 +810,10 @@ void initATramp (trampTemplate *thisTemp, Address tramp,
            thisTemp->localPreReturnOffset = thisTemp->localPreOffset 
               + sizeof(temp->raw);
            break;
-        case GLOBAL_PRE_BRANCH:
-           thisTemp->globalPreOffset = offset;
-           break;
         case LOCAL_POST_BRANCH:
            thisTemp->localPostOffset = offset;
            thisTemp->localPostReturnOffset = thisTemp->localPostOffset
               + sizeof(temp->raw);
-           break;
-        case GLOBAL_POST_BRANCH:
-           thisTemp->globalPostOffset = offset;
            break;
         case SKIP_PRE_INSN:
            thisTemp->skipPreInsOffset = offset;
@@ -832,8 +824,8 @@ void initATramp (trampTemplate *thisTemp, Address tramp,
         case SKIP_POST_INSN:
            thisTemp->skipPostInsOffset = offset;
            break;
-        case RETURN_INSN:
-           thisTemp->returnInsOffset = offset;
+        case RETURN_INSN: 
+          thisTemp->returnInsOffset = offset;
            break;
         case EMULATE_INSN:
            thisTemp->emulateInsOffset = offset;
@@ -846,6 +838,11 @@ void initATramp (trampTemplate *thisTemp, Address tramp,
            if(isConservative)
               temp->raw = 0x85806000; /*write condition codes fromg1*/
            break;
+        case RECURSIVE_GUARD_ON_PRE_INSN:
+        case RECURSIVE_GUARD_OFF_PRE_INSN:
+        case RECURSIVE_GUARD_ON_POST_INSN:
+        case RECURSIVE_GUARD_OFF_POST_INSN:
+            break;
       }       
    }
    
@@ -863,41 +860,43 @@ void initATramp (trampTemplate *thisTemp, Address tramp,
 /****************************************************************************/
 /****************************************************************************/
 
-void initATramp(NonRecursiveTrampTemplate *thisTemp, Address tramp,
-		bool isConservative=false)
+#if 0
+void initATramp(trampTemplate *thisTemp, Address tramp,
+                bool isConservative=false)
 {
-   initATramp((trampTemplate *)thisTemp, tramp,isConservative);
-
-   instruction *temp;
-   
-   for (temp = (instruction*)tramp; temp->raw != END_TRAMP; temp++) {
-      const Address offset = (Address)temp - tramp;
-      switch (temp->raw)
-      {
-        case RECURSIVE_GUARD_ON_PRE_INSN:
-           thisTemp->guardOnPre_beginOffset = offset;
-           thisTemp->guardOnPre_endOffset = thisTemp->guardOnPre_beginOffset
-              + RECURSIVE_GUARD_ON_CODE_SIZE * INSN_SIZE;
-           break;
-        case RECURSIVE_GUARD_OFF_PRE_INSN:
-           thisTemp->guardOffPre_beginOffset = offset;
-           thisTemp->guardOffPre_endOffset = thisTemp->guardOffPre_beginOffset
-              + RECURSIVE_GUARD_OFF_CODE_SIZE * INSN_SIZE;
-           break;
-        case RECURSIVE_GUARD_ON_POST_INSN:
-           thisTemp->guardOnPost_beginOffset = offset;
-           thisTemp->guardOnPost_endOffset = thisTemp->guardOnPost_beginOffset
-              + RECURSIVE_GUARD_ON_CODE_SIZE * INSN_SIZE;
-           break;           
-        case RECURSIVE_GUARD_OFF_POST_INSN:
-           thisTemp->guardOffPost_beginOffset = offset;
-           thisTemp->guardOffPost_endOffset =
-              thisTemp->guardOffPost_beginOffset
-                                 + RECURSIVE_GUARD_OFF_CODE_SIZE * INSN_SIZE;
-           break;
-      }
-   }
+    initATramp((trampTemplate *)thisTemp, tramp,isConservative);
+    
+    instruction *temp;
+    
+    for (temp = (instruction*)tramp; temp->raw != END_TRAMP; temp++) {
+        const Address offset = (Address)temp - tramp;
+        switch (temp->raw)
+        {
+      case RECURSIVE_GUARD_ON_PRE_INSN:
+          thisTemp->guardOnPre_beginOffset = offset;
+          thisTemp->guardOnPre_endOffset = thisTemp->guardOnPre_beginOffset
+          + RECURSIVE_GUARD_ON_CODE_SIZE * INSN_SIZE;
+          break;
+      case RECURSIVE_GUARD_OFF_PRE_INSN:
+          thisTemp->guardOffPre_beginOffset = offset;
+          thisTemp->guardOffPre_endOffset = thisTemp->guardOffPre_beginOffset
+          + RECURSIVE_GUARD_OFF_CODE_SIZE * INSN_SIZE;
+          break;
+      case RECURSIVE_GUARD_ON_POST_INSN:
+          thisTemp->guardOnPost_beginOffset = offset;
+          thisTemp->guardOnPost_endOffset = thisTemp->guardOnPost_beginOffset
+          + RECURSIVE_GUARD_ON_CODE_SIZE * INSN_SIZE;
+          break;           
+      case RECURSIVE_GUARD_OFF_POST_INSN:
+          thisTemp->guardOffPost_beginOffset = offset;
+          thisTemp->guardOffPost_endOffset =
+          thisTemp->guardOffPost_beginOffset
+          + RECURSIVE_GUARD_OFF_CODE_SIZE * INSN_SIZE;
+          break;
+        }
+    }
 }
+#endif
 
 /****************************************************************************/
 /****************************************************************************/
@@ -911,12 +910,8 @@ void initTramps(bool is_multithreaded)
     inited = true;
 
     initATramp(&baseTemplate, (Address) baseTramp);
-    initATramp(&nonRecursiveBaseTemplate, (Address)baseTramp);
-
 
     initATramp(&conservativeBaseTemplate,
-	       (Address)conservativeBaseTramp,true);
-    initATramp(&nonRecursiveConservativeBaseTemplate,
 	       (Address)conservativeBaseTramp,true);
 
     // registers 8 to 15: out registers 
@@ -1053,7 +1048,7 @@ int callsTrackedFuncP(instPoint *point)
  */
 pd_Function *getFunction(instPoint *point)
 {
-    return(point->callee ? point->callee : point->func);
+    return(point->callee ? point->callee : point->func());
 }
 
 /****************************************************************************/
@@ -1727,9 +1722,9 @@ bool process::MonitorCallSite(instPoint *callSite){
 			      (void *) callSite->iPgetAddress());
     AstNode *func = new AstNode("DYNINSTRegisterCallee", 
 				the_args);
-    miniTrampHandle mtHandle;
-    addInstFunc(&mtHandle, this, callSite, func, callPreInsn,
-		orderFirstAtPoint, true, false);
+    miniTrampHandle *mtHandle;
+    addInstFunc(this, mtHandle, callSite, func, callPreInsn,
+                orderFirstAtPoint, true, false);
   }
   else if(isTrueCallInsn(callSite->firstInstruction)){
     //True call destinations are always statically determinable.
@@ -1773,130 +1768,115 @@ void emitFuncJump(opCode op, char *i, Address &base,
 // and undo the operations done in findAndInstallBaseTramp. (i.e. replace
 // the ba, a and save; call; restore; sequences with the instructions
 // originally at those locations in the function
-bool deleteBaseTramp(process *proc, instPoint* location,
-		     trampTemplate *baseInstance, 
-		     instInstance *lastMT)
+bool deleteBaseTramp(process *proc,
+                     trampTemplate *baseTramp)
 {
-  Address ipAddr, baseAddress;
-  trampTemplate* currentBaseTramp;
-
-  if(!proc->baseMap.find((const instPoint*)location,currentBaseTramp)) {
-    return false;
-  }
-
-  assert(currentBaseTramp == baseInstance);
-
-  // If the function has been relocated and the instPoint is from
-  // the original instPoint, change the instPoint to be the one 
-  // in the corresponding relocated function instead
-  if(location->func->isInstalled(proc) && !location->relocated_) {
-
-    location->func->modifyInstPoint( (const instPoint *)(location), proc );
-  }
-
-  // Get the base address of the shared object
-  proc->getBaseAddress(location->image_ptr, baseAddress);
-
-  // Get the address of the instPoint
-  ipAddr = location->iPgetAddress() + baseAddress;
-
-
-  // Replace the branch instruction with the instruction that was
-  // originally there
-  if( !location->needsLongJump ) {
-
-    proc->writeTextWord( (caddr_t)(ipAddr), location->firstInstruction.raw );
-
-  } else {
-
-      // A call was used to transfer to the base tramp, clear out the
-      // call and any other instructions that were written into the
-      // function
-
-      // Address of the first instruction in the instPoint's footprint
-      Address firstAddress = ipAddr;
-
-      if( location->hasNoStackFrame() ) {
-
-          if (location->usesPriorInstructions) {
-
-            firstAddress = ipAddr - 
-                           location->numPriorInstructions*sizeof(instruction);
-	  }
-
-          // Replace the instruction overwritten by the save instruction
-   	  proc->writeTextWord( (caddr_t)(firstAddress), 
-                               location->firstInstruction.raw );
-
-          // Replace the instruction overwritten by the call instruction
-	  proc->writeTextWord( (caddr_t)(firstAddress) + sizeof(instruction), 
-                               location->secondInstruction.raw );
-
-	  if (location->ipType != otherPoint) {
-
-              // Replace the instruction overwritten by the nop instruction
-	      proc->writeTextWord( (caddr_t)(firstAddress) + 
-                                     2*sizeof(instruction),
-                                    location->thirdInstruction.raw );
-	  }
-
-      } else {
-
-          if (location->ipType == functionEntry) {
-
+    const instPoint *location = baseTramp->location;
+    
+    // If the function has been relocated and the instPoint is from
+    // the original instPoint, change the instPoint to be the one 
+    // in the corresponding relocated function instead
+    if(location->func()->isInstalled(proc) && !location->relocated_) {
+        
+        location->func()->modifyInstPoint(location, proc );
+    }
+    
+    // Get the base address of the shared object
+    Address baseAddress;
+    proc->getBaseAddress(location->image_ptr, baseAddress);
+    
+    // Get the address of the instPoint
+    Address ipAddr = location->iPgetAddress() + baseAddress;
+    
+    // Replace the branch instruction with the instruction that was
+    // originally there
+    if( !location->needsLongJump ) {
+        
+        proc->writeTextWord( (caddr_t)(ipAddr), location->firstInstruction.raw );
+        
+    } else {
+        
+        // A call was used to transfer to the base tramp, clear out the
+        // call and any other instructions that were written into the
+        // function
+        
+        // Address of the first instruction in the instPoint's footprint
+        Address firstAddress = ipAddr;
+        
+        if( location->hasNoStackFrame() ) {
+            
+            if (location->usesPriorInstructions) {
+                
+                firstAddress = ipAddr - 
+                location->numPriorInstructions*sizeof(instruction);
+            }
+            
             // Replace the instruction overwritten by the save instruction
-	    proc->writeTextWord( (caddr_t)(firstAddress),
-	      		         location->firstInstruction.raw);
-
+            proc->writeTextWord( (caddr_t)(firstAddress), 
+                                 location->firstInstruction.raw );
+            
             // Replace the instruction overwritten by the call instruction
-	    proc->writeTextWord( (caddr_t)(firstAddress) + 
-                                   sizeof(instruction),
-	      		         location->secondInstruction.raw);
-  
-            // Replace the instruction overwritten by the nop instruction
-	    proc->writeTextWord( (caddr_t)(firstAddress) + 
-                                   2*sizeof(instruction),
-				 location->thirdInstruction.raw);
-
-	  } else if ( location->ipType == callSite || 
-                      location->ipType == functionExit ) {
-
-              // Replace the instruction overwritten by the call instruction
-	      proc->writeTextWord( (caddr_t)(firstAddress),
-				   location->firstInstruction.raw);
-  
-              // Replace the instruction overwritten by the nop instruction
-	      proc->writeTextWord( (caddr_t)(firstAddress) + 
+            proc->writeTextWord( (caddr_t)(firstAddress) + sizeof(instruction), 
+                                 location->secondInstruction.raw );
+            
+            if (location->ipType != otherPoint) {
+                
+                // Replace the instruction overwritten by the nop instruction
+                proc->writeTextWord( (caddr_t)(firstAddress) + 
+                                     2*sizeof(instruction),
+                                     location->thirdInstruction.raw );
+            }
+            
+        } else {
+            
+            if (location->ipType == functionEntry) {
+                
+                // Replace the instruction overwritten by the save instruction
+                proc->writeTextWord( (caddr_t)(firstAddress),
+                                     location->firstInstruction.raw);
+                
+                // Replace the instruction overwritten by the call instruction
+                proc->writeTextWord( (caddr_t)(firstAddress) + 
                                      sizeof(instruction),
-				   location->secondInstruction.raw);
-
-
-	  } else if (location->ipType == otherPoint) {
-
-              // Replace the instruction overwritten by the call instruction
-   	      proc->writeTextWord( (caddr_t)(firstAddress), 
-                                   location->firstInstruction.raw );
-
-              // Replace the instruction overwritten by the nop instruction
-	      proc->writeTextWord( (caddr_t)(firstAddress) + 
+                                     location->secondInstruction.raw);
+                
+                // Replace the instruction overwritten by the nop instruction
+                proc->writeTextWord( (caddr_t)(firstAddress) + 
+                                     2*sizeof(instruction),
+                                     location->thirdInstruction.raw);
+                
+            } else if ( location->ipType == callSite || 
+                        location->ipType == functionExit ) {
+                
+                // Replace the instruction overwritten by the call instruction
+                proc->writeTextWord( (caddr_t)(firstAddress),
+                                     location->firstInstruction.raw);
+                
+                // Replace the instruction overwritten by the nop instruction
+                proc->writeTextWord( (caddr_t)(firstAddress) + 
+                                     sizeof(instruction),
+                                     location->secondInstruction.raw);
+                
+                
+            } else if (location->ipType == otherPoint) {
+                
+                // Replace the instruction overwritten by the call instruction
+                proc->writeTextWord( (caddr_t)(firstAddress), 
+                                     location->firstInstruction.raw );
+                
+                // Replace the instruction overwritten by the nop instruction
+                proc->writeTextWord( (caddr_t)(firstAddress) + 
                                      sizeof(instruction), 
-                                   location->secondInstruction.raw );
-
-	  }
-      }
-  }
-
-  // Grrr... well, the inferiorFree mechanism has been replaced
-  // with one that handles instInstances extremely well. Unfortunately,
-  // this doesn't match up with a base tramp. 
-  // The correct answer is probably to come up with a generic
-  // "installed instrumentation" data structure and use that. For
-  // now we fake an instInstance and add it to the list.
-
-  // Free up the base trampoline
-  proc->deleteBaseTramp(currentBaseTramp, lastMT);
-
-  return true;
+                                     location->secondInstruction.raw );
+                
+            }
+        }
+    }
+    
+    // Free up the base trampoline
+    proc->deleteBaseTramp(baseTramp);
+    
+    return true;
 }
 
 #include <sys/systeminfo.h>
@@ -2307,3 +2287,14 @@ bool instPoint::match(instPoint *p)
   
   return false;
 }
+
+
+// Get the absolute address of an instPoint
+Address instPoint::iPgetAddress(process *p) const {
+    if (!p) return addr;
+    Address baseAddr;
+    p->getBaseAddress(iPgetOwner(), baseAddr);
+    return addr + baseAddr;
+}
+
+
