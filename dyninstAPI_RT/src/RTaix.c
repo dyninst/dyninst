@@ -59,9 +59,11 @@ DYNINSTos_init(int calledByFork, int calledByAttach)
 
 int DYNINSTloadLibrary(char *libname)
 {
-    void *res;
+    void *res = 1;
 
-    res = dlopen( libname, RTLD_NOW | RTLD_GLOBAL );
+    fprintf(stderr, "Attempting to load %s\n", libname);
+
+    //res = dlopen( libname, RTLD_NOW | RTLD_GLOBAL );
 
     if( res == NULL ) {
 	perror( "DYNINSTloadLibrary -- dlopen" );

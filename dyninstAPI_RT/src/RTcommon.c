@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.20 2002/02/12 15:42:06 chadd Exp $ */
+/* $Id: RTcommon.c,v 1.21 2002/02/21 21:48:01 bernat Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -95,6 +95,7 @@ typedef struct {
 extern void DYNINSTbreakPoint();
 extern void DYNINSTos_init(int calledByFork, int calledByAttach);
 
+unsigned int DYNINST_tramp_guard = 1;
 unsigned int DYNINSTversion = 1;
 unsigned int DYNINSTobsCostLow;
 unsigned int DYNINSThasInitialized = 0; /* 0 : has not initialized
@@ -412,9 +413,8 @@ void DYNINSTinit(int cause, int pid)
 {
     int calledByFork = 0, calledByAttach = 0;
 	int isRestart=0;
-
+	
     initFPU();
-
 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
 	/* this checks to see if this is a restart or a
@@ -467,7 +467,6 @@ void DYNINSTinit(int cause, int pid)
 #endif
 
 #endif
-
 }
 
 #if defined(i386_unknown_nt4_0)  /*ccw 13 june 2001*/
