@@ -5,10 +5,13 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.39  1995/02/16 08:20:52  markc
-/* Changed Boolean to bool
-/* Changed wait loop code for igen messages
+/* Revision 1.40  1995/02/27 18:56:48  tamches
+/* Changes to reflect the new TCthread.
 /*
+ * Revision 1.39  1995/02/16  08:20:52  markc
+ * Changed Boolean to bool
+ * Changed wait loop code for igen messages
+ *
  * Revision 1.38  1995/02/07  21:52:54  newhall
  * changed parameters to VMCreateVisi call
  *
@@ -149,7 +152,7 @@
 #include <string.h>
 #include "UIglobals.h"
 #include "../DMthread/DMresource.h"
-#include "util/h/tunableConst.h"
+#include "../TCthread/tunableConst.h"
 #include "VM.thread.CLNT.h"
 #include "thread/h/thread.h"
 #include "../pdMain/paradyn.h"
@@ -266,13 +269,17 @@ int ParadynListCmd(ClientData clientData,
   }
 
   printf("CONSTANTS\n");
-  
-  List<tunableConstant *> listPtr = tunableConstant::beginIteration();
-  tunableConstant *tc;
-  while ((tc=*listPtr) != NULL) {
-     tc->print();
 
-     listPtr++;
+  vector<tunableBooleanConstant> allBoolConstants = tunableConstantRegistry::getAllBoolTunableConstants();
+  for (int boollcv = 0; boollcv < allBoolConstants.size(); boollcv++) {
+     tunableBooleanConstant &tbc = allBoolConstants[boollcv];
+     tbc.print();
+  }
+
+  vector<tunableFloatConstant> allFloatConstants = tunableConstantRegistry::getAllFloatTunableConstants();
+  for (int floatlcv = 0; floatlcv < allFloatConstants.size(); floatlcv++) {
+     tunableFloatConstant &tfc = allFloatConstants[floatlcv];
+     tfc.print();
   }
 
   printf("bucketWidth %f\n", dataMgr->getCurrentBucketWidth());
@@ -597,65 +604,48 @@ int ParadynSetCmd (ClientData clientData,
 		    int argc,
 		    char *argv[])
 {
-  int val;
-  stringHandle sp;
-  tunableConstant *curr;
-  tunableFloatConstant *fConst;
-  tunableBooleanConstant *bConst;
-  float f;
-  double d;
+//  int val;
+//  stringHandle sp;
+//  tunableConstant *curr;
+//  tunableFloatConstant *fConst;
+//  tunableBooleanConstant *bConst;
+//  float f;
+//  double d;
 
   if (argc != 3) {
     sprintf(interp->result,"USAGE: %s <variable> <value>", argv[0]);
     return TCL_ERROR;
   }
 
-  curr = tunableConstant::findTunableConstant(argv[1]);
-//  assert (tunableConstant::allConstants && tunableConstant::pool);
-//  sp = tunableConstant::pool->findAndAdd(argv[1]);
-//  curr = tunableConstant::allConstants->find(sp);
-
-  if (!curr) {
-    sprintf (interp->result, "variable %s not defined\n", argv[1]);
-    return TCL_ERROR;
-  } else if (curr->getType() == tunableFloat) {
-      fConst = (tunableFloatConstant *) curr;
-      if (Tcl_GetDouble(interp, argv[2], &d) == TCL_ERROR) {
-	return TCL_ERROR;
-      } else {
-	f = (float) d;
-      }
-
-      if (!fConst->setValue(f)) {
-	  sprintf (interp->result, "value %f not valid.\n", f);
-	  return TCL_ERROR;
-      } else {
-//
-//   this printf was preventing the demonstation of vital computer
-//   science research.  i was ordered to remove it, and i have done so.
-//                                     -rbi  11/10/94
-//
-//	  printf ("%s set to %f\n", (char*) fConst->getName(), fConst->getValue());
-      }
-  } else if (curr->getType() == tunableBoolean) {
-      bConst = (tunableBooleanConstant *) curr;
-      if (Tcl_GetBoolean(interp, argv[2], &val) == TCL_ERROR) {
-	  return TCL_ERROR;
-      }
-
-      if (val) {
-	  bConst->setValue(true);
+  if (!tunableConstantRegistry::existsTunableConstant(argv[1])) {
+     cout << "Tunable constant " << argv[1] << " does not exist; cannot set its value to " << argv[2] << endl;
+     return TCL_ERROR;
+  }
+  
+  if (tunableConstantRegistry::getTunableConstantType(argv[1]) == tunableBoolean) {
+     int boolVal;
+     if (TCL_ERROR == Tcl_GetBoolean(interp, argv[2], &boolVal))
+        return TCL_ERROR;
+     else {
+        tunableConstantRegistry::setBoolTunableConstant(argv[1], (bool)boolVal);
 //
 //   these printfs were preventing the demonstation of vital computer
 //   science research.  i was ordered to remove them, and i have done so.
 //                                     -rbi  11/10/94
 //
-//	  printf ("%s set to true\n", (char*)bConst->getName());
-      } else {
-	  bConst->setValue(false);
-//	  printf ("%s set to False\n", (char*)bConst->getName());
-      }
+        cout << "tunable boolean constant " << argv[1] << " set to " << boolVal << endl;
+     }
   }
+  else {
+     double doubleVal;
+     if (TCL_ERROR == Tcl_GetDouble(interp, argv[2], &doubleVal))
+        return TCL_ERROR;
+     else {
+        tunableConstantRegistry::setFloatTunableConstant(argv[1], (float)doubleVal);
+        cout << "tunable float constant " << argv[1] << " set to " << doubleVal << endl;
+     }
+  }
+
   return TCL_OK;
 }
 
