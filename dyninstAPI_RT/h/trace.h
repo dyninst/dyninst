@@ -47,7 +47,7 @@
 #ifndef _TRACE_H
 #define _TRACE_H
 
-#include "rtinst/h/rtinst.h"
+#include "dyninstAPI_RT/h/rtinst.h"
 #include "util/h/sys.h"
 #include <sys/types.h> /* key_t */
 
@@ -100,16 +100,21 @@ typedef struct _traceHeader traceHeader;
 #define TR_CP_SAMPLE		10 /* critical path */
 #define TR_EXEC_FAILED          12
 
-#if defined(MT_THREAD)
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
 #define TR_THREAD               13
 #define TR_THRSELF              14
 #endif
+
+
+#define TR_NEW_MEMORY           15
+/* trace data streams */
+#define TR_DATA                 16
 
 /* types for resources that may be reported */
 #define RES_TYPE_INT    0
 #define RES_TYPE_STRING 1
 
-#if defined(MT_THREAD)
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
 struct _traceThread {
     int	ppid;	/* id of creating thread */
     int	tid;	/* id of new thread */
@@ -137,6 +142,17 @@ struct _traceSample {
 };
 typedef struct _traceSample traceSample;
 #endif
+
+//Shared-memory resource for Blizzard
+struct _traceMemory {
+    char        name[32];               /* name of the variable*/
+    int         va ;                    /* va                  */
+    unsigned    memSize ;               /* size of this piece  */
+    unsigned    blkSize ;               /* block size          */
+    /* type of leaf is integer */
+} ;
+typedef struct _traceMemory traceMemory ;
+
 
 /* a map from one name space to another.  
  *   For example 

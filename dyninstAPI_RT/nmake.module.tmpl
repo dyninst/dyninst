@@ -1,0 +1,43 @@
+#
+# Common makefile template for dyninstAPI_RT library.  This file is not
+# intended to be a useful Makefile in isolation; instead, it should be
+# included from within an architecture-specific Makefile.
+#
+#
+
+!ifndef TARGET
+TARGET	      = libdyninstAPI_RT.dll
+!endif
+
+MODCC         = $(CC)
+MODCFLAGS     = $(CFLAGS)
+
+!ifdef USES_SHM_SAMPLING
+CFLAGS	+= -DSHM_SAMPLING
+!endif
+
+#all: $(TARGET) $(TARGET2) $(ALT_TARGET)
+all: $(TARGET)
+
+#
+# override standard link rule; libdyninst is not really a library or a program.
+#
+UNCOMMON_LINK= true
+
+OBJS		= $(OBJS) RTcommon.obj
+
+#$(TARGET): $(OBJS) $(DYNOBJS) $(LIBS)
+#	$(LD) $(LDFLAGS) -out:$(TARGET) $(OBJS) $(LIBS)
+
+#
+# override standard install rule; provide a default DEST if not already set
+#
+!ifndef DEST
+DEST		= $(TO_CORE)/../lib/$(PLATFORM)
+!endif
+
+UNCOMMON_INSTALL= true
+install: $(DEST)/$(TARGET)
+
+$(DEST)/libdyninstAPI_RT.dll:       libdyninstAPI_RT.dll
+	copy libdyninstAPI_RT.dll ..\..\..\lib\$(PLATFORM)

@@ -146,7 +146,11 @@ class string {
  public:
    static string nil;
 
-   string() : data(nil.data) {} // should be more efficient than above
+   // The second of the constructors below should be faster, but it means
+   // we must rely on nil.data being initialized before any global string
+   // objects (or static class members) created with this constructor.
+   string() : data(string_ll()) {};
+   // string() : data(nil.data) {} // should be more efficient than above
 
    string(const char *str) : data(string_ll(str)) {}
 

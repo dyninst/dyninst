@@ -1,0 +1,315 @@
+
+//
+//
+// libdyninst validation suite test #2
+//    Author: Jeff Hollingsworth (7/10/97)
+//
+
+//  This program tests the error features of the dyninst API.  
+//	The mutatee that goes with this file is test2.mutatee.c
+//	
+//  Naming conventions:
+//      All functions, variables, etc are name funcXX_YY, exprXX_YY, etc.
+//          XX is the test number
+//          YY is the instance withing the test
+//	    func1_2 is the second function used in test case #1.
+//
+
+#include <stdio.h>
+#include <signal.h>
+#include <string.h>
+#ifdef i386_unknown_nt4_0
+#include <io.h>
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
+#include "BPatch.h"
+#include "BPatch_Vector.h"
+#include "BPatch_thread.h"
+#include "BPatch_snippet.h"
+#include "test_util.h"
+
+#ifdef i386_unknown_nt4_0
+#define access _access
+#define unlink _unlink
+#define F_OK 0
+#endif
+
+#ifdef i386_unknown_nt4_0
+#define MUTATEE_NAME	"test2.mutatee.exe"
+#else
+#define MUTATEE_NAME	"./test2.mutatee"
+#endif
+
+int debugPrint = 0;
+bool expectErrors = false;
+bool gotError = false;
+
+BPatch *bpatch;
+
+// control debug printf statements
+#define dprintf	if (debugPrint) printf
+
+BPatch_thread *mutatorMAIN(char *pathname, bool useAttach)
+{
+    BPatch_thread *appThread;
+
+    // Start the mutatee
+    printf("Starting \"%s\"\n", pathname);
+
+    char *child_argv[4];
+   
+    int n = 0;
+    child_argv[n++] = pathname;
+    if (useAttach) child_argv[n++] = "-attach";
+    if (debugPrint) child_argv[n++] = "-verbose";
+    child_argv[n] = NULL;
+
+    if (useAttach) {
+	int pid = startNewProcess(pathname, child_argv);
+	if (pid < 0 && !expectErrors) {
+	    printf("*ERROR*: unable to start tests due to error starting mutatee process\n");
+	    exit(-1);
+	}
+	appThread = bpatch->attachProcess(pathname, pid);
+    } else {
+	appThread = bpatch->createProcess(pathname, child_argv);
+    }
+    return appThread;
+}
+
+void errorFunc(BPatchErrorLevel level, int num, const char **params)
+{
+    char line[256];
+
+    const char *msg = bpatch->getEnglishErrorString(num);
+    bpatch->formatErrorString(line, sizeof(line), msg, params);
+
+    gotError = true;
+
+    if (expectErrors)
+    	printf("Error (expected) #%d (level %d): %s\n", num, level, line);
+    else
+    	printf("Error #%d (level %d): %s\n", num, level, line);
+}
+
+//
+// main - decide our role and call the correct "main"
+//
+main(int argc, char *argv[])
+{
+    BPatch_thread *ret;
+    bool useAttach = false;
+    bool failed = false;
+
+    // Create an instance of the bpatch library
+    bpatch = new BPatch;
+
+    bpatch->registerErrorCallback(errorFunc);
+
+    int i;
+    for (i=1; i < argc; i++) {
+	if (!strcmp(argv[i], "-verbose")) {
+	    debugPrint = 1;
+	} else if (!strcmp(argv[i], "-attach")) {
+	    useAttach = true;
+	} else {
+	    fprintf(stderr, "Usage: test1 [-attach] [-verbose]\n");
+	    exit(-1);
+	}
+    }
+
+#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5)
+    if (useAttach) {
+	printf("Attach is not supported on this platform.\n");
+	exit(1);
+    }
+#endif
+
+    // Try failure cases
+    expectErrors = true;
+
+    if (useAttach) {
+	printf("Skipping test #1 (run an executable that does not exist)\n");
+	printf("    not relevant with -attach option\n");
+    } else {
+	// try to run a program that does not exist
+	gotError = false;
+	ret = mutatorMAIN("./noSuchFile", useAttach);
+	if (ret || !gotError) {
+	    failed = true;
+	    printf("**Failed** test #1 (run an executable that does not exist)\n");
+	    if (ret)
+		printf("    created a thread handle for a non-existant file\n");
+	    if (!gotError)
+		printf("    the error callback should have been called but wasn't\n");
+	} else {
+	    printf("Passed test #1 (run an executable that does not exist)\n");
+	}
+    }
+
+    // try to run a files that is not a valid program
+    gotError = false;
+#ifdef i386_unknown_nt4_0
+    ret = mutatorMAIN("nul:", false);
+#else
+    ret = mutatorMAIN("/dev/null", false);
+#endif
+    if (ret || !gotError) {
+	printf("**Failed** test #2 (try to execute a file that is not a valid program)\n");
+	failed = true;
+	if (ret)
+	    printf("    created a thread handle for invalid executable\n");
+	if (!gotError)
+	    printf("    the error callback should have been called but wasn't\n");
+    } else {
+	printf("Passed test #2 (try to execute a file that is not a valid program)\n");
+    }
+
+#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5)
+    printf("Skipping test #3 (attach to an invalid pid)\n");
+    printf("Skipping test #4 (attach to a protected pid)\n");
+    printf("    attach is not supported on this platform\n");
+#else
+    // attach to an an invalid pid
+    gotError = false;
+    ret = bpatch->attachProcess(MUTATEE_NAME, 65539);
+    if (ret || !gotError) {
+	printf("**Failed** test #3 (attach to an invalid pid)\n");
+	failed = true;
+	if (ret)
+    	    printf("    created a thread handle for invalid executable\n");
+	if (!gotError)
+	    printf("    the error callback should have been called but wasn't\n");
+    } else {
+	printf("Passed test #3 (attach to an invalid pid)\n");
+    }
+
+    // attach to an a protected pid
+    gotError = false;
+    ret = bpatch->attachProcess(MUTATEE_NAME, 1);
+    if (ret || !gotError) {
+	printf("**Failed** test #4 (attach to a protected pid)\n");
+	failed = true;
+	if (ret)
+    	    printf("    created a thread handle for invalid executable\n");
+	if (!gotError)
+	    printf("    the error callback should have been called but wasn't\n");
+    } else {
+	printf("Passed test #4 (attach to a protected pid)\n");
+    }
+#endif
+
+    // Finished trying failure cases
+    expectErrors = false;
+
+    // now start a real program
+    gotError = false;
+    ret = mutatorMAIN(MUTATEE_NAME, false);
+    if (!ret || gotError) {
+	printf("*ERROR*: unable to create handle for executable\n");
+	failed = true;
+    }
+
+    BPatch_image *img = ret->getImage();
+
+    gotError = false;
+    BPatch_function *func = img->findFunction("NoSuchFunction");
+    if (func || !gotError) {
+	printf("**Failed** test #5 (look up nonexistent function)\n");
+	failed = true;
+	if (func)
+    	    printf("    non-null for findFunction on non-existant func\n");
+	if (!gotError)
+	    printf("    the error callback should have been called but wasn't\n");
+    } else {
+	printf("Passed test #5 (look up nonexistent function)\n");
+    }
+
+    ret->continueExecution();
+#ifdef NOT_YET /* Put this in when dlopen works. */
+    ret->stopExecution();
+    ret->continueExecution();
+
+    // see if the dlopen happended.
+    sleep(1);
+    BPatch_Vector<BPatch_module *> *m = img->getModules();
+    for (i=0; i < m->size(); i++) {
+	    char name[80];
+	    (*m)[i]->getName(name, sizeof(name));
+	    printf("modules %s\n", name);
+    }
+#endif
+
+    ret->stopExecution();
+
+    // dump core, but do not terminate.
+    // this doesn't seem to do anything - jkh 7/12/97
+    if (access("mycore", F_OK) == 0) {
+	printf("File \"mycore\" exists.  Deleting it.\n");
+	if (unlink("mycore") != 0) {
+	    printf("Couldn't delete the file \"mycore\".  Exiting.\n");
+	    exit(-1);
+	}
+    }
+
+#ifndef sparc_sun_sunos4_1_3
+    printf("Skipping test #6 (dump core but do not terminate)\n");
+    printf("    BPatch_thread::dumpCore() not implemented on this platform\n");
+#else
+    gotError = false;
+    ret->dumpCore("mycore", true);
+    bool coreExists = (access("mycore", F_OK) == 0);
+    if (gotError || !coreExists) {
+	printf("**Failed** test #6 (dump core but do not terminate)\n");
+	failed = true;
+	if (gotError)
+	    printf("    error reported by dumpCore\n");
+	if (!coreExists)
+	    printf("    the core file wasn't written\n");
+    }
+#endif
+
+    int pid = ret->getPid();
+
+#ifndef i386_unknown_nt4_0 /* Not yet implemented on NT. */
+    // detach from the process.
+    ret->detach(true);
+#endif
+
+    // now kill the process.
+#ifdef i386_unknown_nt4_0
+    HANDLE h = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
+    if (h != NULL) {
+	TerminateProcess(h, 0);
+	CloseHandle(h);
+    }
+#else
+    kill(pid, SIGKILL);
+#endif
+
+    delete (ret);
+    BPatch_Vector<BPatch_thread *> *threads = bpatch->getThreads();
+    for (i=0; i < threads->size(); i++) {
+	if ((*threads)[i] == ret) {
+	    printf("**Failed** test #7 (delete thread)\n");
+	    printf("    thread %d was deleted, but getThreads found it\n",
+		ret->getPid());
+	    failed = true;
+	}
+    }
+
+    delete (bpatch);
+
+    if (failed) {
+	printf("**Failed** tests\n");
+    } else {
+	printf("Passed all tests\n");
+    }
+
+
+    return 0;
+}

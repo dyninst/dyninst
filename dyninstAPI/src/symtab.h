@@ -465,6 +465,8 @@ private:
   // note, a prettyName is not unique, it may map to a function appearing
   // in several modules
 
+  dictionary_hash <string, vector<string>*> varsByPretty;
+
   vector <pd_Function *> notInstruFunction;
   // The functions that we are not going to instrument 
 
@@ -490,6 +492,7 @@ private:
   bool addAllSharedObjFunctions(vector<Symbol> &mods,
 		       pdmodule *lib, pdmodule *dyn);
 
+  bool addAllVariables();
 
   // if useLib = true or the functions' tags signify a library function
   // the function is put in the library module
@@ -628,10 +631,17 @@ inline bool image::isData(const Address &where)  const{
 }
 
 inline bool image::symbol_info(const string& symbol_name, Symbol &ret_sym) {
-  if (!linkedFile.get_symbol(symbol_name, ret_sym))
-    return false;
-  else
+  if (linkedFile.get_symbol(symbol_name, ret_sym))
     return true;
+
+  if (varsByPretty.defines(symbol_name)) {
+    vector<string> *mangledNames = varsByPretty[symbol_name];
+    assert(mangledNames && mangledNames->size() == 1);
+    if (linkedFile.get_symbol((*mangledNames)[0], ret_sym))
+      return true;
+  }
+
+  return false;
 }
 
 #endif

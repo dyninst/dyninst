@@ -42,12 +42,14 @@
 #include <string.h>
 #include "ast.h"
 #include "symtab.h"
-#include "perfStream.h"
+#include "process.h"
 
 #include "BPatch.h"
 #include "BPatch_snippet.h"
 #include "BPatch_type.h"
 
+/* XXX Should be in a dyninst API include file (right now in perfStream.h) */
+extern double cyclesPerSecond;
 
 /*
  * BPatch_snippet::BPatch_snippet
@@ -266,12 +268,13 @@ BPatch_funcCallExpr::BPatch_funcCallExpr(
 {
     vector<AstNode *> ast_args;
 
-    for (int i = 0; i < args.size(); i++)
+    int i;
+    for (i = 0; i < args.size(); i++)
 	ast_args += assignAst(args[i]->ast);
 
     ast = new AstNode(func.func->prettyName(), ast_args);
 
-    for (int i = 0; i < args.size(); i++)
+    for (i = 0; i < args.size(); i++)
 	removeAst(ast_args[i]);
 
     assert(BPatch::bpatch != NULL);
@@ -399,9 +402,10 @@ BPatch_sequence::BPatch_sequence(const BPatch_Vector<BPatch_snippet *> &items)
  *
  * in_address	The address of the variable in the inferior's address space.
  */
-BPatch_variableExpr::BPatch_variableExpr(void *in_address,
+BPatch_variableExpr::BPatch_variableExpr(process *in_process,
+					 void *in_address,
 					 const BPatch_type *type) :
-    address(in_address)
+    proc(in_process), address(in_address)
 {
     ast = new AstNode(AstNode::DataAddr, address);
 
@@ -410,6 +414,35 @@ BPatch_variableExpr::BPatch_variableExpr(void *in_address,
 
     ast->setType(type);
 }
+
+
+/*
+ * BPatch_variableExpr::readValue
+ *
+ * Read the value of a variable in a thread's address space.
+ *
+ * dst		A pointer to a buffer in which to place the value of the
+ *		variable.  It is assumed to be the same size as the variable.
+ */
+void BPatch_variableExpr::readValue(void *dst)
+{
+    proc->readDataSpace(address, sizeof(int), dst, true);
+}
+
+
+/*
+ * BPatch_variableExpr::writeValue
+ *
+ * Write a value into a variable in a thread's address space.
+ *
+ * dst		A pointer to a buffer in which to place the value of the
+ *		variable.  It is assumed to be the same size as the variable.
+ */
+void BPatch_variableExpr::writeValue(const void *src)
+{
+    proc->writeDataSpace(address, sizeof(int), src);
+}
+
 
 /**************************************************************************
  * BPatch_function

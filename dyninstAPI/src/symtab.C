@@ -935,6 +935,36 @@ bool image::addAllSharedObjFunctions(vector<Symbol> &mods,
 } 
 
 
+bool image::addAllVariables()
+{
+/* Eventually we'll have to do this on all platforms (because we'll retrieve
+ * the type information here).
+ */
+#ifdef i386_unknown_nt4_0
+  string mangledName; 
+  Symbol symInfo;
+  SymbolIter symIter(linkedFile);
+
+  while (symIter.next(mangledName, symInfo)) {
+    if (symInfo.type() == Symbol::PDST_OBJECT) {
+      char *name = cplus_demangle((char *)mangledName.string_of(), 0);
+      const char *unmangledName;
+      if (name) unmangledName = name;
+      else unmangledName = mangledName.string_of();
+      if (varsByPretty.defines(unmangledName)) {
+	  *(varsByPretty[unmangledName]) += string(mangledName);
+      } else {
+	  vector<string> *varEntry = new vector<string>;
+	  *varEntry += string(mangledName);
+	  varsByPretty[unmangledName] = varEntry;
+      }
+      if (name) free(name);
+    }
+  }
+#endif
+  return true;
+}
+
 int symCompare(const void *s1, const void *s2) {
   const Symbol *sym1 = (const Symbol*)s1, *sym2 = (const Symbol*)s2;
   // TODO mdc
@@ -956,6 +986,7 @@ image::image(const string &fileName, bool &err)
     linkedFile(fileName, pd_log_perror),
     iSymsMap(string::hash),
     funcsByPretty(string::hash),
+    varsByPretty(string::hash),
     knownJumpTargets(int_addrHash, 8192)
 {
 sharedobj_cerr << "image::image for non-sharedobj; file name=" << file_ << endl;
@@ -1078,6 +1109,12 @@ sharedobj_cerr << "image::image for non-sharedobj; file name=" << file_ << endl;
     err = true;
     return;
   }
+
+  // XXX should have a statusLine("retrieving variable information") here,
+  //     but it's left out for now since addAllVariables only does something
+  //     when BPATCH_LIBRARY is defined
+  addAllVariables();
+
   statusLine("checking call points");
   checkAllCallPoints();
 
@@ -1118,6 +1155,7 @@ image::image(const string &fileName, u_int baseAddr, bool &err)
     linkedFile(fileName, baseAddr,pd_log_perror),
     iSymsMap(string::hash),
     funcsByPretty(string::hash),
+    varsByPretty(string::hash),
     knownJumpTargets(int_addrHash, 8192)
 {
 sharedobj_cerr << "welcome to image::image for shared obj; file name=" << file_ << endl;

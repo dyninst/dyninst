@@ -39,70 +39,54 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#ifndef _BPatch_h_
-#define _BPatch_h_
+/************************************************************************
+ * RTwinnt.c: runtime instrumentation functions for Windows NT
+ *
+ * RTwinnt.c,v
+ *
+ ************************************************************************/
 
+#include <assert.h>
 #include <stdio.h>
-#include "BPatch_Vector.h"
-#include "BPatch_thread.h"
+#include <stdlib.h>
+#include <winsock2.h> // must include winsock2.h before windows.h
+#include <windows.h>
+#include <winbase.h>
+#include <winuser.h>
+#include <mmsystem.h>
+#include <errno.h>
 
-class BPatch_typeCollection;
-class BPatch_type;
-class BPatch_libInfo;
+#include "dyninstAPI_RT/h/trace.h"
+#include "dyninstAPI_RT/h/rtinst.h"
 
-typedef enum BPatchErrorLevel {
-    BPatchFatal, BPatchSerious, BPatchWarning, BPatchInfo
-};
+#ifdef CONTROLLER_FD
+#undef CONTROLLER_FD
+static HANDLE CONTROLLER_FD;
+#endif
 
-typedef void (*BPatchErrorCallback)(BPatchErrorLevel severity,
-				    int number,
-				    const char **params);
+static HANDLE DYNINSTprocHandle;
 
-class BPatch {
-    friend bool pollForStatusChange();
 
-    BPatch_libInfo	*info;
 
-    BPatchErrorCallback	errorHandler;
-    bool		typeCheckOn;
-    int			lastError;
+/************************************************************************
+ * void DYNINSTbreakPoint(void)
+ *
+ * stop oneself.
+************************************************************************/
 
-    BPatch_thread *pidToThread(int pid, bool *exists = NULL);
+void
+DYNINSTbreakPoint(void) {
+  /* TODO: how do we stop all threads? */
+  DebugBreak();
+}
 
-public:
-    static BPatch		*bpatch;
 
-    BPatch_typeCollection	*stdTypes;
-    BPatch_type			*type_Error;
-    BPatch_type			*type_Untyped;
+void DYNINSTos_init(int calledFromFork, int calledFromAttach, int paradyndAddr) {
+  HANDLE h;
+  unsigned ioCookie = 0x33333333;
+  unsigned pid = GetCurrentProcessId();
+  unsigned ppid = paradyndAddr;
+  DYNINSTprocHandle = GetCurrentProcess();
 
-    BPatch();
-    ~BPatch();
+}
 
-    static const char *getEnglishErrorString(int number);
-    static void formatErrorString(char *dst, int size,
-				  const char *fmt, const char **params);
-    BPatchErrorCallback registerErrorCallback(BPatchErrorCallback function);
-    BPatch_Vector<BPatch_thread*> *getThreads();
-
-    void setTypeChecking(bool x) { typeCheckOn = x; }
-
-    BPatch_thread *createProcess(char *path, char *argv[], char *envp[] = NULL);
-    BPatch_thread *attachProcess(char *path, int pid);
-
-    // The following are only to be called by the library:
-    bool isTypeChecked() { return typeCheckOn; }
-
-    void registerProvisionalThread(int pid);
-    void registerThread(BPatch_thread *thread);
-    void unRegisterThread(int pid);
-
-    void reportError(BPatchErrorLevel severity, int number, const char *str);
-
-    void clearError() { lastError = 0; }
-    int	getLastError() { return lastError; }
-};
-
-extern bool pollForStatusChange();
-
-#endif /* _BPatch_h_ */

@@ -42,12 +42,15 @@
 #include <stdio.h>
 #include <assert.h>
 #include <signal.h>
-#include <sys/wait.h>
 
 #include "BPatch.h"
 #include "BPatch_type.h"
 #include "BPatch_libInfo.h"
 #include "process.h"
+
+#ifdef i386_unknown_nt4_0
+#include "nt_signal_emul.h"
+#endif
 
 extern bool dyninstAPI_init();
 extern int handleSigChild(int pid, int status);
@@ -162,6 +165,9 @@ const char *BPatch::getEnglishErrorString(int /* number */)
  */
 void BPatch::reportError(BPatchErrorLevel severity, int number, const char *str)
 {
+    if (severity != BPatchInfo)
+	lastError = number;
+
     if (errorHandler != NULL) {
 	errorHandler(severity, number, &str);
     }
@@ -310,7 +316,9 @@ bool pollForStatusChange()
 	    else if (WIFEXITED(status))
 		thread->lastSignal = 0; /* XXX Make into some constant */
 	}
+#ifndef i386_unknown_nt4_0
 	handleSigChild(pid, status);
+#endif
     }
     return result;
 }
@@ -359,4 +367,56 @@ void BPatch::unRegisterThread(int pid)
 {
     assert(info->threadsByPid.defines(pid));
     info->threadsByPid.undef(pid);	
+}
+
+
+/*
+ * BPatch::createProcess
+ *
+ * Create a process and return a BPatch_thread representing it.
+ * Returns NULL upon failure.
+ *
+ * path		The pathname of the executable for the new process.
+ * argv		A list of the arguments for the new process, terminated by a
+ *		NULL.
+ * envp		A list of values that make up the environment for the new
+ *		process, terminated by a NULL.  If envp is NULL, the new
+ *		new process will inherit the environemnt of the parent.
+ */
+BPatch_thread *BPatch::createProcess(char *path, char *argv[], char *envp[])
+{
+    clearError();
+
+    BPatch_thread *ret = new BPatch_thread(path, argv, envp);
+
+    if (getLastError()) {
+	delete ret;
+	return NULL;
+    }
+
+    return ret;
+}
+
+
+/*
+ * BPatch::attachProcess
+ *
+ * Attach to a running pprocess and return a BPatch_thread representing it.
+ * Returns NULL upon failure.
+ *
+ * path		The pathname of the executable for the process.
+ * pid		The id of the process to attach to.
+ */
+BPatch_thread *BPatch::attachProcess(char *path, int pid)
+{
+    clearError();
+
+    BPatch_thread *ret = new BPatch_thread(path, pid);
+
+    if (getLastError()) {
+	delete ret;
+	return NULL;
+    }
+
+    return ret;
 }

@@ -240,6 +240,12 @@ static bool findDbgFile(const string exeFile, DWORD exeTimeStamp,
 inline
 void
 Object::load_object() {
+    // Set these to invalid values in case we fail along the way
+    baseAddr = NULL;
+    mapHandle = NULL;
+    fileHandle = INVALID_HANDLE_VALUE;
+
+    //
     const char* file = file_.string_of();
     bool        did_open = false;
 
@@ -590,9 +596,12 @@ Object::Object(const Object& obj)
 
 inline
 Object::~Object() {
-    UnmapViewOfFile(baseAddr);
-    CloseHandle(mapHandle);
-    CloseHandle(fileHandle);
+    if (baseAddr != NULL)
+	UnmapViewOfFile(baseAddr);
+    if (mapHandle != NULL)
+    	CloseHandle(mapHandle);
+    if (fileHandle != INVALID_HANDLE_VALUE)
+    	CloseHandle(fileHandle);
 }
 
 inline

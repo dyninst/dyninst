@@ -47,8 +47,16 @@
 #include "dyninstAPI/src/stats.h"
 #include "util/h/Types.h"
 #include "paradynd/src/showerror.h"
-#include "paradynd/src/main.h"
 
+#ifndef BPATCH_LIBRARY
+#include "paradynd/src/main.h"
+#endif
+
+#ifdef BPATCH_LIBRARY
+/* XXX This is only needed for emulating signals. */
+#include "BPatch_thread.h"
+#include "nt_signal_emul.h"
+#endif
 
 extern bool isValidAddress(process *proc, Address where);
 extern process *findProcess(int);
@@ -226,7 +234,7 @@ vector<Address> process::walkStack(bool noPause) {
    to insert the code to call LoadLibraryA("libdyninstRT.dll").
  */
 
-Address loadDyninstDll(process *p, char Buffer[32]) {
+Address loadDyninstDll(process *p, char Buffer[LOAD_DYNINST_BUF_SIZE]) {
     Address codeBase = p->getImage()->codeOffset();
 
     Address LoadLibBase;
@@ -239,7 +247,7 @@ Address loadDyninstDll(process *p, char Buffer[32]) {
     LoadLibAddr = sym.addr() + LoadLibBase;
     assert(LoadLibAddr);
 
-    char ibuf[32];
+    char ibuf[LOAD_DYNINST_BUF_SIZE];
     char *iptr = ibuf;
 
     // push nameAddr ; 5 bytes
@@ -259,10 +267,14 @@ Address loadDyninstDll(process *p, char Buffer[32]) {
     // int3
     *iptr++ = (char)0xcc;
 
+#ifdef BPATCH_LIBRARY
+    strcpy(iptr, "libdyninstAPI_RT.dll");
+#else
     strcpy(iptr, "libdyninstRT.dll");
+#endif
 
-    p->readDataSpace((void *)codeBase,32,Buffer, false);
-    p->writeDataSpace((void *)codeBase,32,ibuf);
+    p->readDataSpace((void *)codeBase, LOAD_DYNINST_BUF_SIZE, Buffer, false);
+    p->writeDataSpace((void *)codeBase, LOAD_DYNINST_BUF_SIZE, ibuf);
     return codeBase;
 }
 
@@ -272,6 +284,7 @@ Address loadDyninstDll(process *p, char Buffer[32]) {
 void OS::osTraceMe(void) {}
 
 
+#ifndef BPATCH_LIBRARY
 void checkProcStatus() {
     int wait_status;
     extern void doDeferredRPCs();
@@ -279,6 +292,7 @@ void checkProcStatus() {
     process::waitProcs(&wait_status);
     doDeferredRPCs();
 }
+#endif
 
 /*
    wait for inferior processes to terminate or stop.
@@ -286,6 +300,9 @@ void checkProcStatus() {
 int process::waitProcs(int *status) {
     DEBUG_EVENT debugEv;
     process *p;
+#ifdef BPATCH_LIBRARY
+    *status = 0;
+#endif
 
     // We wait for 1 milisecond here. On the Unix platforms, the wait
     // happens on the select in controllerMainLoop. But on NT, because
@@ -322,8 +339,7 @@ int process::waitProcs(int *status) {
 
 		if (!p->hasLoadedDyninstLib && !p->isLoadingDyninstLib) {
 		    Address addr = loadDyninstDll(p, p->savedData);
-		    bool foo;
-		    p->savedRegs = p->getRegisters(foo);
+		    p->savedRegs = p->getRegisters();
 		    p->changePC(addr);
 		    //p->LoadDyninstTrapAddr = addr + 0xd;
 		    p->isLoadingDyninstLib = true;
@@ -333,7 +349,8 @@ int process::waitProcs(int *status) {
 		    p->hasLoadedDyninstLib = true;
 		    p->restoreRegisters(p->savedRegs);
 		    delete p->savedRegs;
-		    p->writeDataSpace((void *)p->getImage()->codeOffset(),32,
+		    p->writeDataSpace((void *)p->getImage()->codeOffset(),
+				      LOAD_DYNINST_BUF_SIZE,
 				      (void *)p->savedData);
 		}
 
@@ -345,7 +362,13 @@ int process::waitProcs(int *status) {
 
 		    if (!p->initDyninstLib()) {
 			OS::osKill(pid);
+			handleProcessExit(p, -1);
+#ifdef BPATCH_LIBRARY
+			*status = SIGEM_SIGNALED | SIGTERM;
+			return p->getPid();
+#else
 			return 0;
+#endif
 		    }
 
 		    string buffer = string("PID=") + string(pid);
@@ -427,12 +450,16 @@ int process::waitProcs(int *status) {
 		//p->pause_();
 		break;
 	    } else {
+#ifdef BPATCH_LIBRARY /* Don't ignore unknown bkpt in library; leave stopped. */
+		*status = SIGEM_STOPPED | SIGTRAP;
+#else
 		// Unknown breakpoint: we just ignore it
 		printf("Debug breakpoint exception, %d, addr = %x\n", 
 		       debugEv.u.Exception.ExceptionRecord.ExceptionFlags,
 		       debugEv.u.Exception.ExceptionRecord.ExceptionAddress);
 		p->status_ = running;
 		p->continueProc_();
+#endif
 	    }
 	    break;
 	}
@@ -448,7 +475,7 @@ int process::waitProcs(int *status) {
 	    p->continueProc_();
 	    ContinueDebugEvent(debugEv.dwProcessId, debugEv.dwThreadId, 
 			       DBG_EXCEPTION_NOT_HANDLED);
-	    break;
+	    return 0;
 	case EXCEPTION_ACCESS_VIOLATION:
 	    printf("Access violation exception, %d, addr = %x\n", 
 		   debugEv.u.Exception.ExceptionRecord.ExceptionFlags,
@@ -462,7 +489,7 @@ int process::waitProcs(int *status) {
 	    //   debugEv.u.Exception.ExceptionRecord.ExceptionAddress);
 	    ContinueDebugEvent(debugEv.dwProcessId, debugEv.dwThreadId, 
 			       DBG_EXCEPTION_NOT_HANDLED);
-	    break;
+	    return 0;
 	}
     } break;
 
@@ -510,7 +537,11 @@ int process::waitProcs(int *status) {
 	    //printf("process %d exited\n", p->getPid());
 	    handleProcessExit(p, debugEv.u.ExitProcess.dwExitCode);
 	}
+#ifdef BPATCH_LIBRARY
+	*status = SIGEM_EXITED;
+#else
 	break;
+#endif
 
     case LOAD_DLL_DEBUG_EVENT: {
 	//printf("load dll: hFile=%x, base=%x, debugOff=%x, debugSz=%d lpname=%x, %d\n",
@@ -520,6 +551,11 @@ int process::waitProcs(int *status) {
 	//       debugEv.u.LoadDll.lpImageName,
 	//       /*debugEv.u.LoadDll.fUnicode*/
 	//       GetFileSize(debugEv.u.LoadDll.hFile,NULL));
+
+	// We are currently not handling dynamic libraries loaded after the
+	// application starts.
+	if (p->isBootstrappedYet())
+	  break;
 
         if (!SymLoadModule((HANDLE)p->getProcFileDescriptor(),
 			   debugEv.u.LoadDll.hFile,
@@ -531,11 +567,6 @@ int process::waitProcs(int *status) {
 	// This is need when we use the imagehelp library to get the
 	// symbols for the dll.
 	// kludgeProcHandle = (HANDLE)p->getProcFileDescriptor();
-
-	// We are currently not handling dynamic libraries loaded after the
-	// application starts.
-	if (p->isBootstrappedYet())
-	  break;
 
         void *addr = debugEv.u.LoadDll.lpImageName;
         int ptr = 0;
@@ -587,10 +618,13 @@ int process::waitProcs(int *status) {
 	      p->shared_objects = new vector<shared_object *>;
 	    }
 	    *(p->shared_objects) += so;
+#ifndef BPATCH_LIBRARY
 	    tp->resourceBatchMode(true);
+#endif 
 	    p->addASharedObject(*so);
+#ifndef BPATCH_LIBRARY
 	    tp->resourceBatchMode(false);
-	    
+#endif 
 	    p->setDynamicLinking();
 	  }
       }
@@ -617,7 +651,14 @@ int process::waitProcs(int *status) {
 	printSysError(GetLastError());
     }
 
+#ifdef BPATCH_LIBRARY
+    if (*status)
+	return debugEv.dwProcessId;
+    else
+	return 0;
+#else
     return 0;
+#endif
 }
 
 
@@ -672,6 +713,19 @@ bool process::continueProc_() {
 }
 
 
+#ifdef BPATCH_LIBRARY
+/*
+   terminate execution of a process
+ */
+bool process::terminateProc_()
+{
+    OS::osKill(pid);
+    handleProcessExit(this, -1);
+    return true;
+}
+#endif
+
+
 /*
    pause a process that is running
 */
@@ -694,6 +748,21 @@ bool process::detach_() {
     return false;
 }
 
+
+#ifdef BPATCH_LIBRARY
+/*
+   detach from thr process, continuing its execution if the parameter "cont"
+   is true.
+ */
+bool process::API_detach_(const bool cont)
+{
+    // XXX Not yet implemented
+    assert(false);
+    return false;
+}
+#endif
+
+
 bool process::dumpCore_(const string) {
     return false;
 }
@@ -705,6 +774,12 @@ bool process::writeTextWord_(caddr_t inTraced, int data) {
 bool process::writeTextSpace_(void *inTraced, int amount, const void *inSelf) {
     return writeDataSpace_(inTraced, amount, inSelf);
 }
+
+#ifdef BPATCH_SET_MUTATIONS_ACTIVE
+bool process::readTextSpace_(void *inTraced, int amount, const void *inSelf) {
+  return readDataSpace_(inTraced, amount, (void *)inSelf);
+}
+#endif
 
 bool process::writeDataSpace_(void *inTraced, int amount, const void *inSelf) {
     DWORD nbytes;
@@ -817,7 +892,7 @@ bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool ) {
 }
 
 
-void *process::getRegisters(bool &) {
+void *process::getRegisters() {
     CONTEXT *cont = new CONTEXT;
     if (!cont)
 	return NULL;
@@ -877,6 +952,17 @@ bool process::isRunning_() const {
 
 string process::tryToFindExecutable(const string& iprogpath, int pid) {
   return iprogpath;
+}
+
+bool process::set_breakpoint_for_syscall_completion() {
+   /* Can assume: (1) process is paused and (2) in a system call.
+      We want to set a TRAP for the syscall exit, and do the
+      inferiorRPC at that time.  We'll use /proc PIOCSEXIT.
+      Returns true iff breakpoint was successfully set. */
+
+    // This is never called on Windows NT
+    assert(false);
+    return false;
 }
 
 unsigned process::read_inferiorRPC_result_register(reg) {
@@ -953,6 +1039,7 @@ bool forkNewProcess(string file, string dir, vector<string> argv,
 		    int &traceLink, int &ioLink, 
 		    int &pid, int &tid, 
 		    int &procHandle, int &thrHandle) {
+#ifndef BPATCH_LIBRARY
     HANDLE rTracePipe;
     HANDLE wTracePipe;
     HANDLE rIoPipe;
@@ -990,7 +1077,7 @@ bool forkNewProcess(string file, string dir, vector<string> argv,
 #endif
     //  extern int traceSocket;
     //  SetEnvironmentVariable("PARADYND_TRACE_SOCKET", string((unsigned)traceSocket).string_of());
-    
+#endif /* BPATCH_LIBRARY */
     
     // create the child process
     
@@ -1025,12 +1112,47 @@ bool forkNewProcess(string file, string dir, vector<string> argv,
 	//initSymbols((HANDLE)procHandle, file, dir);
 	return true;
     }
-    
+   
+#ifndef BPATCH_LIBRARY
     CloseHandle(rTracePipe);
     CloseHandle(wTracePipe);
     CloseHandle(rIoPipe);
     CloseHandle(wIoPipe);
-    
+#endif /* BPATCH_LIBRARY */
+
+    // Output failure message
+    LPVOID lpMsgBuf;
+
+    if (FormatMessage( 
+	    FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
+	    NULL,
+	    GetLastError(),
+	    MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // Default language
+	    (LPTSTR) &lpMsgBuf,
+	    0,
+	    NULL 
+	) > 0) {
+	char *errorLine = (char *)malloc(strlen((char *)lpMsgBuf) +
+					 file.length() + 64);
+	if (errorLine != NULL) {
+	    sprintf(errorLine, "Unable to start %s: %s\n", file.string_of(),
+		    (char *)lpMsgBuf);
+	    logLine(errorLine);
+	    showErrorCallback(68, (const char *) errorLine);
+
+	    free(errorLine);
+	}
+
+	// Free the buffer returned by FormatMsg
+	LocalFree(lpMsgBuf);
+    } else {
+	char errorLine[512];
+	sprintf(errorLine, "Unable to start %s: unknown error\n",
+		file.string_of());
+	logLine(errorLine);
+	showErrorCallback(68, (const char *) errorLine);
+    }
+
     return false;
 }
 

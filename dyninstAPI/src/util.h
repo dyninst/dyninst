@@ -43,6 +43,12 @@
  * util.h - support functions.
  *
  * $Log: util.h,v $
+ * Revision 1.19  1997/08/18 01:34:33  buck
+ * Ported the Dyninst API to Windows NT.
+ *
+ * Revision 1.1.1.3  1997/07/08 20:03:24  buck
+ * Bring latest changes from Wisconsin over to Maryland repository.
+ *
  * Revision 1.18  1997/06/23 17:13:40  tamches
  * some additional hash functions
  *
@@ -99,9 +105,9 @@
 #ifndef UTIL_H
 #define UTIL_H
 
+#include "util/h/headers.h"
 #include "rtinst/h/rtinst.h" // for time64
 #include "util/h/String.h"
-#include <sys/time.h> // for timeval
 
 typedef double timeStamp;
 timeStamp getCurrentTime(bool firstRecordRelative);

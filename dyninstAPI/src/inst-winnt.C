@@ -41,6 +41,12 @@
 
 /*
  * $Log: inst-winnt.C,v $
+ * Revision 1.3  1997/08/18 01:34:22  buck
+ * Ported the Dyninst API to Windows NT.
+ *
+ * Revision 1.1.1.2  1997/07/08 20:02:42  buck
+ * Bring latest changes from Wisconsin over to Maryland repository.
+ *
  * Revision 1.2  1997/06/17 20:11:34  newhall
  * Added support to solaris platforms to find the target of call instructions that
  * are in dynamic executables and shared objects and that are bound after startup
@@ -65,6 +71,7 @@
 #include "dyninstAPI/src/ptrace_emul.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/stats.h"
+#include "dyninstAPI/src/instPoint.h"
 
 #ifndef BPATCH_LIBRARY
 #include "rtinst/h/trace.h"

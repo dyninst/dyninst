@@ -303,13 +303,16 @@ string extract_string(int procfd, const char *inferiorptr) {
    }
 }
 
-void get_ps_stuff(int proc_fd, string &argv0, string &pathenv, string &cwdenv) {
+bool get_ps_stuff(int proc_fd, string &argv0, string &pathenv, string &cwdenv) {
    // Use ps info to obtain argv[0], PATH, and curr working directory of the
    // inferior process designated by proc_fd.  Writes to argv0, pathenv, cwdenv.
 
    prpsinfo the_psinfo;
    if (-1 == ioctl(proc_fd, PIOCPSINFO, &the_psinfo))
-      assert(false);
+       return false;
+
+   if (the_psinfo.pr_zomb)
+       return false;
 
    // get argv[0].  It's in the_psinfo.pr_argv[0], but that's a ptr in the inferior
    // space, so we need to /proc read() it out.  Also, the_psinfo.pr_argv is a char **
@@ -338,6 +341,8 @@ void get_ps_stuff(int proc_fd, string &argv0, string &pathenv, string &cwdenv) {
 
       envptr++;
    }
+
+   return true;
 }
 
 /*
@@ -404,7 +409,8 @@ bool process::attach() {
 
   proc_fd = fd;
 
-  get_ps_stuff(proc_fd, this->argv0, this->pathenv, this->cwdenv);
+  if (!get_ps_stuff(proc_fd, this->argv0, this->pathenv, this->cwdenv))
+      return false;
 
   return true;
 }
@@ -1035,13 +1041,13 @@ string process::tryToFindExecutable(const string &iprogpath, int pid) {
    attach_cerr << "tryToFindExecutable: opened /proc okay" << endl;
 
    string argv0, path, cwd;
-   get_ps_stuff(procfd, argv0, path, cwd);
-
-   // the following routine is implemented in the util lib.
-   string result;
-   if (executableFromArgv0AndPathAndCwd(result, argv0, path, cwd)) {
-      (void)close(procfd);
-      return result;
+   if (get_ps_stuff(procfd, argv0, path, cwd)) {
+       // the following routine is implemented in the util lib.
+       string result;
+       if (executableFromArgv0AndPathAndCwd(result, argv0, path, cwd)) {
+	  (void)close(procfd);
+	  return result;
+       }
    }
 
    attach_cerr << "tryToFindExecutable: giving up" << endl;

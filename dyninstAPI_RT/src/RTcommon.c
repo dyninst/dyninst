@@ -38,7 +38,9 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
+#if !defined(i386_unknown_nt4_0)
 #include <unistd.h>
+#endif
 #include "dyninstAPI_RT/h/rtinst.h"
 #include "dyninstAPI_RT/h/trace.h"
 
@@ -50,8 +52,8 @@ unsigned int DYNINSTobsCostLow;
 
 struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
 
-char DYNINSTdata[SYN_INST_BUF_SIZE];
-char DYNINSTglobalData[SYN_INST_BUF_SIZE];
+double DYNINSTdata[SYN_INST_BUF_SIZE/sizeof(double)];
+double DYNINSTglobalData[SYN_INST_BUF_SIZE/sizeof(double)];
 
 /*
  * The Dyninst API arranges for this function to be called at the entry to
@@ -67,6 +69,7 @@ void DYNINSTinit(int cause, int pid)
     DYNINSTos_init(calledByFork, calledByAttach);
 
     DYNINST_bootstrap_info.pid = getpid();
+    DYNINST_bootstrap_info.ppid = pid;
     DYNINST_bootstrap_info.event = cause;
 
     DYNINSTbreakPoint();

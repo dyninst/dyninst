@@ -1,0 +1,31 @@
+# 
+# Common makefile template for dyninst Tests.  This file is not intended to
+# be a useful Makefile in isolation; instead, it should be included
+# from within an architecture-specific Makefile.
+#
+#
+
+!ifndef TARGET
+TARGET       = test1.exe test2.exe
+TARGET2      = test1.mutatee.exe test2.mutatee.exe
+!endif
+
+CXXFLAGS     = $(CXXFLAGS) -I../../h
+CFLAGS       = $(CFLAGS) -I../../h
+
+SRCS	     = $(SRCS) ../src/$(TARGET:.exe=.C) ../src/test_util.C
+
+OBJS         = $(OBJS) $(TARGET:.exe=.obj) test_util.obj
+
+LIBS		= ../../../../lib/$(PLATFORM)/libdyninstAPI.lib ../../../../lib/$(PLATFORM)/libpdutil.lib
+
+SYSLIBS		= imagehlp.lib
+
+{..\..\dyninstAPI\src\}.C.obj:
+	$(CXX) $(CXXFLAGS) -c $<
+
+all:
+	$(MAKE) aTest TARGET=test1.exe TARGET2=test1.mutatee.exe
+	$(MAKE) aTest TARGET=test2.exe TARGET2=test2.mutatee.exe
+
+aTest: $(TARGET) $(TARGET2)

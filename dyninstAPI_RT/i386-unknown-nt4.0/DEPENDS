@@ -1,0 +1,4 @@
+RTwinnt.o: ../src/RTwinnt.c ../../dyninstAPI_RT/h/trace.h \
+ ../../dyninstAPI_RT/h/rtinst.h ../../util/h/sys.h
+RTcommon.o: ../src/RTcommon.c ../../dyninstAPI_RT/h/rtinst.h \
+ ../../dyninstAPI_RT/h/trace.h ../../util/h/sys.h

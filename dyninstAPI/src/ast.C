@@ -41,6 +41,12 @@
 
 /* 
  * $Log: ast.C,v $
+ * Revision 1.46  1997/08/18 01:34:21  buck
+ * Ported the Dyninst API to Windows NT.
+ *
+ * Revision 1.1.1.5  1997/07/11 18:13:53  buck
+ * Import lates changes from Wisconsin to Maryland.
+ *
  * Revision 1.45  1997/07/10 21:44:53  hollings
  * Added BPatch_retExpr
  * Added null type for returnOp and paramOp
@@ -1562,11 +1568,12 @@ BPatch_type *AstNode::checkType()
 		// XXX Params and ReturnVals untyped for now
 		ret = BPatch::bpatch->type_Untyped; 
 	    } else
-    		ret = getType();
+    		ret = (BPatch_type *)getType(); /* XXX Cast away const */
 	    assert(ret != NULL);
 	    break;
 	case callNode:
-	    for (int i = 0; i < operands.size(); i++) {
+	    int i;
+	    for (i = 0; i < operands.size(); i++) {
 		BPatch_type *operandType = operands[i]->checkType();
 		/* XXX Check operands for compatibility */
 		if (operandType == BPatch::bpatch->type_Error)

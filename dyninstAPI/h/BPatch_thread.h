@@ -42,6 +42,15 @@
 #ifndef _BPatch_thread_h_
 #define _BPatch_thread_h_
 
+/*
+ * The following is a kludge so that the functions that refer to signals (such
+ * as BPatch_thread::stopSignal) can emulate the Unix behavior on Windows NT.
+ */
+#include <signal.h>
+#ifndef SIGTRAP
+#define SIGTRAP		5
+#endif
+
 #include "BPatch_Vector.h"
 #include "BPatch_image.h"
 #include "BPatch_snippet.h"

@@ -56,14 +56,19 @@
 #define RT_TRUE 1
 #define RT_FALSE 0
 
-//typedef void (*instFunc)(void *cdata, int type, char *eventData);
+/*typedef void (*instFunc)(void *cdata, int type, char *eventData);*/
 
 /* parameters to a instremented function */
 typedef enum { processTime, wallTime } timerType;
 
 /* 64 bit time values */
+#if defined(i386_unknown_nt4_0)
+typedef __int64 time64;
+typedef __int64 int64;
+#else
 typedef long long int time64;
 typedef long long int int64;
+#endif
 
 struct sampleIdRec {
     unsigned int id;
@@ -153,8 +158,9 @@ void DYNINSTgenerateTraceRecord(traceStream sid, short type,
 extern time64 DYNINSTgetCPUtime(void);
 extern time64 DYNINSTgetWalltime(void);
 
-#if defined(MT_THREAD)
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
 #define MAX_NUMBER_OF_THREADS (100)
+#define MAX_NUMBER_OF_LEVELS (30)
 extern int DYNINSTthreadPos(void);
 extern int DYNINSTthreadSelf(void);
 #endif
@@ -170,7 +176,7 @@ extern int DYNINSTthreadSelf(void);
 #define TRAMPTABLESZ (4096)
 
 #define HASH1(x) ((x) % TRAMPTABLESZ)
-#define HASH2(x) (((x) % TRAMPTABLESZ-1) & 1)
+#define HASH2(x) (((x) % TRAMPTABLESZ-1) | 1)
 
 typedef struct trampTableEntryStruct trampTableEntry;
 struct trampTableEntryStruct {

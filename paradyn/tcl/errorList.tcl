@@ -1,5 +1,8 @@
 #
 # $Log: errorList.tcl,v $
+# Revision 1.32  1997/08/18 01:34:51  buck
+# Ported the Dyninst API to Windows NT.
+#
 # Revision 1.31  1997/06/24 18:18:03  newhall
 # changed msg for error #86
 #
@@ -796,11 +799,19 @@ Manual start-up is needed only when an rshd or rexecd
 is not available on the remote machine.}
 }
 
+set pdError(100) {
+{Attempt to look up nonexistent symbol}
+{paradynd}
+{serious}
+{An attempt was made to look up a function or variable, but no symbol with the
+requested name was found in the application.}
+}
+
 #
 # be sure to change this value if you add/delete an entry to the database
 #
 proc getNumPdErrors {} {
-    return 99
+    return 100
 }
 
 

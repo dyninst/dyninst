@@ -202,8 +202,11 @@ BPatch_function *BPatch_image::findFunction(const char *name)
 	func = proc->findOneFunction(fullname);
     }
 
-    if (func == NULL)
+    if (func == NULL) {
+	string msg = string("Unable to find function: ") + string(name);
+	showErrorCallback(100, msg);
 	return NULL;
+    }
 
     return new BPatch_function(func);
 }
@@ -229,6 +232,8 @@ BPatch_variableExpr *BPatch_image::findVariable(const char *name)
     if (!proc->getSymbolInfo(full_name, syminfo, baseAddr)) {
 	string short_name(name);
 	if (!proc->getSymbolInfo(short_name, syminfo, baseAddr)) {
+	    string msg = string("Unable to find variable: ") + string(name);
+	    showErrorCallback(100, msg);
 	    return NULL;
 	}
     }
@@ -236,7 +241,7 @@ BPatch_variableExpr *BPatch_image::findVariable(const char *name)
     // XXX Need to find out type and use it
     BPatch_type *type = BPatch::bpatch->type_Untyped;
 
-    return new BPatch_variableExpr((void *)syminfo.addr(), type);
+    return new BPatch_variableExpr(proc, (void *)syminfo.addr(), type);
 }
 
 /*

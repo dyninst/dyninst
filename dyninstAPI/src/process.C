@@ -1041,6 +1041,11 @@ process::process(int iPid, image *iSymbols,
    // Note: we used to pause the program here, but not anymore.
    status_ = running;
 
+#ifdef i386_unknown_nt4_0 // Except we still pause on NT.
+    if (!pause())
+	assert(false);
+#endif
+
    if (afterAttach == 0)
       needToContinueAfterDYNINSTinit = wasRunningWhenAttached;
    else if (afterAttach == 1)
@@ -1976,7 +1981,7 @@ bool process::readTextSpace(const void *inTracedProcess, int amount,
     return false;
   }
 
-  bool res = readTextSpace_(inTracedProcess, amount, inSelf);
+  bool res = readTextSpace_((void *)inTracedProcess, amount, inSelf);
   if (!res) {
     string msg;
     msg=string("System error: unable to read from process data space:")
@@ -3776,7 +3781,7 @@ bool process::reinstallMutations() {
     return writeMutationList(afterMutationList);
 }
 
-mutationRecord::mutationRecord(Address _addr, int _size, void *_data) {
+mutationRecord::mutationRecord(Address _addr, int _size, const void *_data) {
     prev = NULL;
     next = NULL;
     addr = _addr;
@@ -3801,7 +3806,7 @@ mutationList::~mutationList() {
     }
 }
 
-void mutationList::insertHead(Address addr, int size, void *data) {
+void mutationList::insertHead(Address addr, int size, const void *data) {
     mutationRecord *n = new mutationRecord(addr, size, data);
     
     assert((head == NULL && tail == NULL) || (head != NULL && tail != NULL));
@@ -3814,7 +3819,7 @@ void mutationList::insertHead(Address addr, int size, void *data) {
     head = n;
 }
 
-void mutationList::insertTail(Address addr, int size, void *data) {
+void mutationList::insertTail(Address addr, int size, const void *data) {
     mutationRecord *n = new mutationRecord(addr, size, data);
     
     assert((head == NULL && tail == NULL) || (head != NULL && tail != NULL));

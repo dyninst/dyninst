@@ -46,11 +46,6 @@
 #include "BPatch.h"
 #include "BPatch_thread.h"
 
-/*
-extern process *createProcess(const string File,
-	vector<string> argv, vector<string> envp, const string dir = "");
-extern process *attachProcess(const string &progpath, int pid, int afterAttach);
-*/
 
 /*
  * BPatch_thread::getPid
@@ -80,7 +75,7 @@ int BPatch_thread::getPid()
  */
 BPatch_thread::BPatch_thread(char *path, char *argv[], char *envp[])
     : lastSignal(-1), mutationsActive(true), createdViaAttach(false),
-      detached(false)
+      detached(false), proc(NULL), image(NULL)
 {
     vector<string> argv_vec;
     vector<string> envp_vec;
@@ -123,7 +118,7 @@ BPatch_thread::BPatch_thread(char *path, char *argv[], char *envp[])
  */
 BPatch_thread::BPatch_thread(char *path, int pid)
     : lastSignal(-1), mutationsActive(true), createdViaAttach(true),
-      detached(false)
+      detached(false), proc(NULL), image(NULL)
 {
     if (!attachProcess(path, pid, 1, proc)) {
     	// XXX Should do something more sensible
@@ -151,6 +146,12 @@ BPatch_thread::BPatch_thread(char *path, int pid)
  */
 BPatch_thread::~BPatch_thread()
 {
+    if (image) delete image;
+
+    // XXX Make sure that anything else that needs to be deallocated
+    //     gets taken care of.
+    if (!proc) return;
+
     if (!detached) {
     	if (createdViaAttach)
     	    proc->API_detach(true);
@@ -201,11 +202,13 @@ bool BPatch_thread::continueExecution()
  */
 bool BPatch_thread::terminateExecution()
 {
-    if (!proc->terminateProc())
+    if (!proc || !proc->terminateProc())
 	return false;
 
     // Wait for the process to die
     while (!isTerminated()) ;
+
+    return true;
 }
 
 
@@ -314,7 +317,7 @@ BPatch_variableExpr *BPatch_thread::malloc(int n)
 {
     // XXX What to do about the type?
     assert(BPatch::bpatch != NULL);
-    return new BPatch_variableExpr(
+    return new BPatch_variableExpr(proc,
 	    (void *)inferiorMalloc(proc, n, dataHeap),
 	    BPatch::bpatch->type_Untyped);
 }
@@ -346,7 +349,7 @@ BPatch_variableExpr *BPatch_thread::malloc(const BPatch_type &type)
     int zero = 0;
     proc->writeDataSpace((char *)mem, sizeof(int), (char *)&zero);
 
-    return new BPatch_variableExpr(mem, &type);
+    return new BPatch_variableExpr(proc, mem, &type);
 }
 
 
@@ -448,13 +451,15 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(
 	    return NULL;
 	}
 
+	AstNode *ast = (AstNode *)expr.ast;  /* XXX no const */
+
 	// XXX We just pass false for the "noCost" parameter here - do we want
 	// to make that an option?
 	instInstance *instance; 
 	if ((instance =
 		addInstFunc(proc,
 			    point,
-			    ((BPatch_snippet)expr).ast,  /* XXX no const */
+			    ast,
 			    _when,
 			    _order,
 			    false)) != NULL) {

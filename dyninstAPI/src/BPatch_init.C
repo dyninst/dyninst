@@ -56,16 +56,10 @@ bool dyninstAPI_init() {
 
   sym_data sd;
 
-#ifndef SHM_SAMPLING
-  sd.name = "DYNINSTobsCostLow"; sd.must_find = true; syms_to_find += sd;
-#endif
-
-#if defined(MT_THREAD)
-  sd.name = "DYNINSTthreadTable"; sd.must_find = true; syms_to_find += sd;
-#endif
-
   numberOfCPUs = getNumberOfCPUs();
 
   initDefaultPointFrequencyTable();
+
+  return true;
 }
 

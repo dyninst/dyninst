@@ -16,12 +16,16 @@
 //
 
 #include <stdio.h>
-#include <signal.h>
+#include <string.h>
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
+#include <unistd.h>
+#endif
 
 #include "BPatch.h"
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
 #include "BPatch_snippet.h"
+#include "test_util.h"
 
 int debugPrint = 0;
 
@@ -71,7 +75,7 @@ int replaceFunctionCalls(BPatch_thread *appThread, BPatch_image *appImage,
 
     BPatch_Vector<BPatch_point *> *points =
 	appImage->findProcedurePoint(inFunction, BPatch_subroutine);
-    if (!points) {
+    if (!points || (points->size() < 1)) {
 	fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
 	fprintf(stderr, "    Unable to find point %s - subroutine calls\n",
 		inFunction);
@@ -222,24 +226,6 @@ BPatchSnippetHandle *insertCallSnippetAt(BPatch_thread *appThread,
     return ret;
 }
 
-//
-// Wait for the mutatee to stop.
-//
-void waitUntilStopped(BPatch_thread *appThread, int testnum, char *testname)
-{
-    // Wait for process to stop
-    while (!appThread->isStopped() && !appThread->isTerminated()) ;
-    if (!appThread->isStopped()) {
-	printf("**Failed test #%d (%s)\n", testnum, testname);
-	printf("    process did not signal mutator via SIGSTOP\n");
-	exit(-1);
-    } else if (appThread->stopSignal() != SIGSTOP) {
-	printf("**Failed test #%d (%s)\n", testnum, testname);
-	printf("    process stopped on signal %d, not SIGSTOP\n", 
-		appThread->stopSignal());
-	exit(-1);
-    }
-}
 
 /**************************************************************************
  * Tests
@@ -478,7 +464,7 @@ void mutatorTest11(BPatch_thread *appThread, BPatch_image *appImage)
     // Find the entry point to the procedure "func11_1"
     BPatch_Vector<BPatch_point *> *point11_1 =
 	appImage->findProcedurePoint("func11_1", BPatch_entry);
-    if (!point11_1) {
+    if (!point11_1 || (point11_1->size() < 1)) {
 	fprintf(stderr, "Unable to find point func11_1 - entry.\n");
 	exit(-1);
     }
@@ -486,7 +472,7 @@ void mutatorTest11(BPatch_thread *appThread, BPatch_image *appImage)
     // Find the subroutine points for the procedure "func11_1"
     BPatch_Vector<BPatch_point *> *point11_2 =
 	appImage->findProcedurePoint("func11_1", BPatch_subroutine);
-    if (!point11_2) {
+    if (!point11_2 || (point11_2->size() < 1)) {
 	fprintf(stderr, "Unable to find point func11_1 - calls.\n");
 	exit(-1);
     }
@@ -494,7 +480,7 @@ void mutatorTest11(BPatch_thread *appThread, BPatch_image *appImage)
     // Find the exit point to the procedure "func11_1"
     BPatch_Vector<BPatch_point *> *point11_3 =
 	appImage->findProcedurePoint("func11_1", BPatch_exit);
-    if (!point11_3) {
+    if (!point11_3 || (point11_3->size() < 1)) {
 	fprintf(stderr, "Unable to find point func11_1 - exit.\n");
 	exit(-1);
     }
@@ -553,7 +539,7 @@ void mutatorTest12a(BPatch_thread *appThread, BPatch_image *appImage)
     // Find the entry point to the procedure "func12_2"
     BPatch_Vector<BPatch_point *> *point12_2 =
 	appImage->findProcedurePoint("func12_2", BPatch_entry);
-    if (!point12_2) {
+    if (!point12_2 || (point12_2->size() < 1)) {
 	fprintf(stderr, "Unable to find point func12_2 - entry.\n");
 	exit(-1);
     }
@@ -582,30 +568,20 @@ void mutatorTest12a(BPatch_thread *appThread, BPatch_image *appImage)
     }
 }
 
-void mutatorTest12b(BPatch_thread *appThread, BPatch_image */*appImage*/)
+void mutatorTest12b(BPatch_thread *appThread, BPatch_image * /*appImage*/)
 {
-    while (!appThread->isStopped() && !appThread->isTerminated()) ;
-    if (appThread->stopSignal() == SIGSTOP) {
-	// remove instrumentation and free memory
-	if (!appThread->deleteSnippet(snippetHandle12_1)) {
-	    printf("**Failed test #12 (insert/remove and malloc/free)\n");
-	    printf("    deleteSnippet returned an error\n");
-	    exit(-1);
-	}
-	appThread->free(*varExpr12_1);
+    waitUntilStopped(appThread, 12, "insert/remove and malloc/free");
 
-	// continue process
-	appThread->continueExecution();
-    } else if (appThread->isStopped()) {
+    // remove instrumentation and free memory
+    if (!appThread->deleteSnippet(snippetHandle12_1)) {
 	printf("**Failed test #12 (insert/remove and malloc/free)\n");
-	printf("    process stopped on signal %d, not SIGSTOP\n", 
-		appThread->stopSignal());
-	exit(-1);
-    } else {
-	printf("**Failed test #12 (insert/remove and malloc/free)\n");
-	printf("    process did not signal mutator via SIGSTOP\n");
+	printf("    deleteSnippet returned an error\n");
 	exit(-1);
     }
+    appThread->free(*varExpr12_1);
+
+    // continue process
+    appThread->continueExecution();
 }
 
 
@@ -617,7 +593,7 @@ void mutatorTest13(BPatch_thread *appThread, BPatch_image *appImage)
     // Find the entry point to the procedure "func13_1"
     BPatch_Vector<BPatch_point *> *point13_1 =
 	appImage->findProcedurePoint("func13_1", BPatch_entry);
-    if (!point13_1) {
+    if (!point13_1 || (point13_1->size() < 1)) {
 	fprintf(stderr, "Unable to find point func13_1 - entry.\n");
 	exit(-1);
     }
@@ -646,7 +622,7 @@ void mutatorTest13(BPatch_thread *appThread, BPatch_image *appImage)
     // now test that a return value can be read.
     BPatch_Vector<BPatch_point *> *point13_2 =
 	appImage->findProcedurePoint("func13_2", BPatch_exit);
-    if (!point13_2) {
+    if (!point13_2 || (point13_2->size() < 1)) {
 	fprintf(stderr, "Unable to find point func13_2 - exit.\n");
 	exit(-1);
     }
@@ -705,7 +681,7 @@ void mutatorTest15a(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 
-void mutatorTest15b(BPatch_thread *appThread, BPatch_image */*appImage*/)
+void mutatorTest15b(BPatch_thread *appThread, BPatch_image * /*appImage*/)
 {
     waitUntilStopped(appThread, 15, "setMutationsActive");
 
@@ -766,7 +742,7 @@ void mutatorTest17(BPatch_thread *appThread, BPatch_image *appImage)
     // Find the entry point to the procedure "func17_1"
     BPatch_Vector<BPatch_point *> *point17_1 =
 	appImage->findProcedurePoint("func17_1", BPatch_exit);
-    if (!point17_1) {
+    if (!point17_1 || (point17_1->size() < 1)) {
 	fprintf(stderr, "Unable to find point func17_1 - entry.\n");
 	exit(-1);
     }
@@ -783,10 +759,10 @@ void mutatorTest17(BPatch_thread *appThread, BPatch_image *appImage)
     checkCost(call17_1Expr);
     appThread->insertSnippet(call17_1Expr, *point17_1);
 
-    // Find the entry point to the procedure "func17_2"
+    // Find the exit point to the procedure "func17_2"
     BPatch_Vector<BPatch_point *> *point17_2 =
-	appImage->findProcedurePoint("func17_2", BPatch_subroutine);
-    if (!point17_2) {
+	appImage->findProcedurePoint("func17_2", BPatch_exit);
+    if (!point17_2 || (point17_2->size() < 1)) {
 	fprintf(stderr, "Unable to find point func17_2 - entry.\n");
 	exit(-1);
     }
@@ -798,11 +774,39 @@ void mutatorTest17(BPatch_thread *appThread, BPatch_image *appImage)
     }
 
     BPatch_Vector<BPatch_snippet *> funcArgs2;
-    // funcArgs2.push_back(new BPatch_paramExpr(0));
+    funcArgs2.push_back(new BPatch_constExpr(1));
     BPatch_funcCallExpr call17_2Expr(*call17_2_func, funcArgs2);
     checkCost(call17_2Expr);
-    appThread->insertSnippet(call17_2Expr, *point17_2, 
-	BPatch_callAfter, BPatch_lastSnippet);
+
+    // test interface to call into insertSnippet with only one parameter
+    const BPatch_point aPoint = *(*point17_2)[0];
+    appThread->insertSnippet(call17_2Expr, aPoint, 
+	BPatch_callBefore, BPatch_lastSnippet);
+}
+
+//
+// Start Test Case #18 - mutator side (read/write a variable in the mutatee)
+//
+void mutatorTest18(BPatch_thread *appThread, BPatch_image *appImage)
+{
+    BPatch_variableExpr *expr18_1 =appImage->findVariable("globalVariable18_1");
+    if (expr18_1 == NULL) {
+	fprintf(stderr, "**Failed** test #18 (read/write a variable in the mutatee)\n");
+	fprintf(stderr, "    Unable to locate globalVariable18_1\n");
+	exit(1);
+    }
+
+    int n;
+    expr18_1->readValue(&n);
+
+    if (n != 42) {
+	fprintf(stderr, "**Failed** test #18 (read/write a variable in the mutatee)\n");
+	fprintf(stderr, "    value read from globalVariable18_1 was %d, not 42 as expected\n", n);
+	exit(1);
+    }
+
+    n = 17;
+    expr18_1->writeValue(&n);
 }
 
 void mutatorMAIN(char *pathname, bool useAttach)
@@ -815,30 +819,27 @@ void mutatorMAIN(char *pathname, bool useAttach)
     // Start the mutatee
     printf("Starting \"%s\"\n", pathname);
 
-    char *child_argv[] = { pathname, "-verbose", NULL };
-    if (!debugPrint) {
-	// null out the verbose mode if not enabled.
-	child_argv[1] = NULL;
-    }
+    char *child_argv[4];
+   
+    int n = 0;
+    child_argv[n++] = pathname;
+    if (useAttach) child_argv[n++] = "-attach";
+    if (debugPrint) child_argv[n++] = "-verbose";
+    child_argv[n] = NULL;
 
     if (useAttach) {
-	// fork and then attach
-	int pid = fork();
-	if (pid == 0) {
-	    // child - so exec 
-	    execl(pathname, child_argv[0], "-attach", child_argv[1], NULL);
-	    _exit(-1);
-	} else if (pid > 0) {
-	    // parrent so use attach
-	    appThread = new BPatch_thread(pathname, pid);
-	} else {
-	    printf("*ERROR*: unable to start tests due to fork failure\n");
+	int pid = startNewProcess(pathname, child_argv);
+	if (pid < 0) {
+	    printf("*ERROR*: unable to start tests due to error creating mutatee process\n");
+	    exit(-1);
 	}
+
+	appThread = bpatch->attachProcess(pathname, pid);
     } else {
-	appThread = new BPatch_thread(pathname, child_argv, NULL);
+	appThread = bpatch->createProcess(pathname, child_argv);
     }
 
-    if (appThread->isTerminated()) {
+    if (appThread == NULL) {
 	fprintf(stderr, "Unable to run test program.\n");
 	exit(1);
     }
@@ -846,13 +847,19 @@ void mutatorMAIN(char *pathname, bool useAttach)
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();
 
+    // Signal the child that we've attached
+    if (useAttach)
+	signalAttached(appThread, appImage);
+
+    int i;
     BPatch_Vector<BPatch_module *> *m = appImage->getModules();
-    for (int i=0; i < m->size(); i++) {
+    for (i=0; i < m->size(); i++) {
         // dprintf("func %s\n", (*m)[i]->name());
     }
+    BPatch_Vector<BPatch_function *> *p1 = (*m)[0]->getProcedures();
 
     BPatch_Vector<BPatch_function *> *p = appImage->getProcedures();
-    for (int i=0; i < p->size(); i++) {
+    for (i=0; i < p->size(); i++) {
         // dprintf("func %s\n", (*p)[i]->name());
     }
 
@@ -944,6 +951,11 @@ void mutatorMAIN(char *pathname, bool useAttach)
 	fprintf(stderr, "**Failed** test #3 (passing variables)\n");
 	fprintf(stderr, "    Unable to locate variable globalVariable3_1\n");
 	exit(1);
+    }
+    // see if we can find the address
+    if (expr3_1->getAddress() <= 0) {
+	printf("*Error*: address %d for globalVariable3_1 is not valid\n",
+		(int) expr3_1->getAddress());
     }
 
     BPatch_variableExpr *expr3_2 = appThread->malloc(*appImage->findType("int"));
@@ -1052,6 +1064,8 @@ void mutatorMAIN(char *pathname, bool useAttach)
 
     mutatorTest17(appThread, appImage);
 
+    mutatorTest18(appThread, appImage);
+
     // Start of code to continue the process.
     dprintf("starting program execution.\n");
     appThread->continueExecution();
@@ -1081,8 +1095,12 @@ main(int argc, char *argv[])
 	    exit(-1);
 	}
     }
-	
+
+#ifdef i386_unknown_nt4_0
+    mutatorMAIN("test1.mutatee.exe", useAttach);
+#else
     mutatorMAIN("./test1.mutatee", useAttach);
+#endif
 
     return 0;
 }

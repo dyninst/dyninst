@@ -46,10 +46,10 @@
 
 class AstNode;
 class function_base;
+class process;
 
 class BPatch_function;
 class BPatch_type;
-
 
 typedef enum {
     BPatch_lt,
@@ -163,12 +163,18 @@ public:
 };
 
 class BPatch_variableExpr : public BPatch_snippet {
+    process	*proc;
     void	*address;
 public:
 // The following functions are for internal use by the library only:
-    BPatch_variableExpr(void *in_address, const BPatch_type *type);
+    BPatch_variableExpr(process *in_process, void *in_address,
+			const BPatch_type *type);
 
     void *getAddress() const { return address; }
+
+// Public functions for use by users of the library:
+    void readValue(void *dst);
+    void writeValue(const void *src);
 };
 
 #endif /* _BPatch_snippet_h_ */

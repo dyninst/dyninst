@@ -43,6 +43,12 @@
  * inst-x86.C - x86 dependent functions and code generator
  *
  * $Log: inst-x86.C,v $
+ * Revision 1.25  1997/08/18 01:34:23  buck
+ * Ported the Dyninst API to Windows NT.
+ *
+ * Revision 1.1.1.5  1997/07/08 20:02:44  buck
+ * Bring latest changes from Wisconsin over to Maryland repository.
+ *
  * Revision 1.24  1997/07/08 19:15:13  buck
  * Added support for the x86 Solaris platform and dynamically linked
  * executables to the dyninst API library.
@@ -1133,7 +1139,7 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
   for (u = location->insnsBefore(); u > 0; ) {
     --u;
     if (currentPC == origAddr) {
-      fprintf(stderr, "changed PC: %x to %x\n", currentPC, currAddr);
+      //fprintf(stderr, "changed PC: %x to %x\n", currentPC, currAddr);
       proc->setNewPC(currAddr);
     }
 
@@ -1171,7 +1177,7 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
      assert(origAddr == location->address() + imageBaseAddr);
      origAddr = location->address() + imageBaseAddr;
      if (currentPC == origAddr) {
-       fprintf(stderr, "changed PC: %x to %x\n", currentPC, currAddr);
+       //fprintf(stderr, "changed PC: %x to %x\n", currentPC, currAddr);
        proc->setNewPC(currAddr);
      }
 
@@ -1305,7 +1311,7 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
   origAddr = location->address() + imageBaseAddr + location->insnAtPoint().size();
   for (u = 0; u < location->insnsAfter(); u++) {
     if (currentPC == origAddr) {
-      fprintf(stderr, "changed PC: %x to %x\n", currentPC, currAddr);
+      //fprintf(stderr, "changed PC: %x to %x\n", currentPC, currAddr);
       proc->setNewPC(currAddr);
     }
     unsigned newSize = relocateInstruction(location->insnAfterPt(u), origAddr, currAddr, insn);

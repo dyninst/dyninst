@@ -4,14 +4,15 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <signal.h>
+#include <string.h>
+#include <stdlib.h>
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
 #include <unistd.h>
 #endif
-
-#include "dyninstAPI_RT/h/rtinst.h"
-#include "dyninstAPI_RT/h/trace.h"
-
-extern struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
+#ifdef i386_unknown_nt4_0
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
 
 /* XXX Currently, there's a bug in the library that prevents a subroutine call
  * instrumentation point from being recognized if it is the first instruction
@@ -26,11 +27,15 @@ int debugPrint = 0;
 
 #define RET13_1 1300100
 
+#define RAN17_1 1701000
+
 #define RET17_1 1700100
 #define RET17_2 1700200
 
 #define TRUE	1
 #define FALSE	0
+
+int isAttached = 0;
 
 int globalVariable1_1 = 0;
 int globalVariable3_1 = 31;
@@ -80,6 +85,30 @@ int globalVariable16_3 = 0;
 int globalVariable16_4 = 0;
 
 int globalVariable17_1 = 0;
+int globalVariable17_2 = 0;
+
+int globalVariable18_1 = 42;
+
+/*
+ * Check to see if the mutator has attached to us.
+ */
+int checkIfAttached()
+{
+    return isAttached;
+}
+
+/*
+ * Stop the process (in order to wait for the mutator to finish what it's
+ * doing and restart us).
+ */
+void stop_process()
+{
+#ifdef i386_unknown_nt4_0
+    DebugBreak();
+#else
+    kill(getpid(), SIGSTOP);
+#endif
+}
 
 void call1_1()
 {
@@ -263,6 +292,7 @@ int call17_2(int p1)
      a5 = a4 + p1;
      a6 = a5 + a1;
      a7 = a6 + p1;
+     globalVariable17_2 = RAN17_1;
      return a7; 
 }
 
@@ -355,7 +385,7 @@ void func12_2()
 void func12_1()
 {
     func12_2();
-    kill(getpid(), SIGSTOP);
+    stop_process();
     func12_2();
     if (globalVariable12_1 == 1) {
         printf("Passed test #12 (insert/remove and malloc/free)\n");
@@ -475,7 +505,7 @@ void func15_1()
 
     /***********************************************************/
 
-    kill(getpid(), SIGSTOP);
+    stop_process();
 
     func15_2();
     check15result("globalVariable15_1", globalVariable15_1, 1,
@@ -493,7 +523,7 @@ void func15_1()
 
     /***********************************************************/
 
-    kill(getpid(), SIGSTOP);
+    stop_process();
 
     func15_2();
     check15result("globalVariable15_1", globalVariable15_1, 2,
@@ -563,6 +593,20 @@ void func17_2()
     return;
 }
 
+void func18_1()
+{
+    if (globalVariable18_1 == 17) {
+    	printf("Passed test #18 (read/write a variable in the mutatee)\n");
+    } else {
+	printf("**Failed test #18 (read/write a variable in the mutatee)\n");
+	if (globalVariable18_1 == 42)
+	    printf("    globalVariable18_1 still contains 42 (probably it was not written to)\n");
+	else
+	    printf("    globalVariable18_1 contained %d, not 17 as expected\n",
+		    globalVariable18_1);
+    }
+}
+
 void fail7Print(int tCase, int fCase, char *op)
 {
     if (tCase != 72) 
@@ -588,11 +632,10 @@ void main(int argc, char *argv[])
         }
     }
 
-    // see if we should wait for the attach
     if (useAttach) {
-	// hack to know when attach is done.
-	printf("testing via attach thread\n");
-	while(!DYNINST_bootstrap_info.pid);
+	printf("Waiting for mutator to attach...\n");
+    	while (!checkIfAttached()) ;
+	printf("Mutator attached.  Mutatee continuing.\n");
     }
 
     // Test #1
@@ -701,7 +744,9 @@ void main(int argc, char *argv[])
     ret17_1 = func17_1();
     func17_2();
 
-    if ((ret17_1 != RET17_1) || (globalVariable17_1 != RET17_2)) {
+    if ((ret17_1 != RET17_1) || 
+	(globalVariable17_1 != RET17_2) ||
+	(globalVariable17_2 != RAN17_1)) {
         printf("**Failed** test case #17 (return values from func calls)\n");
         if (ret17_1 != RET17_1) {
             printf("  return value was %d, not %d\n", ret17_1, RET17_1);
@@ -710,10 +755,14 @@ void main(int argc, char *argv[])
             printf("  return value was %d, not %d\n",
                 globalVariable17_1, RET17_2);
         }
+        if (globalVariable17_2 != RAN17_1) {
+            printf("  function call17_2 was not inserted\n");
+        }
     } else {
         printf("Passed test #17 (return values from func calls)\n");
     }
 
+    func18_1();
 
     exit(0);
 }

@@ -1,0 +1,11 @@
+test1.o: ../src/test1.C ../../h/BPatch.h ../../h/BPatch_Vector.h \
+ ../../h/BPatch_thread.h ../../h/BPatch_image.h ../../h/BPatch_point.h \
+ ../../h/BPatch_snippet.h ../../h/BPatch_module.h ../src/test_util.h
+test2.o: ../src/test2.C ../../h/BPatch.h ../../h/BPatch_Vector.h \
+ ../../h/BPatch_thread.h ../../h/BPatch_image.h ../../h/BPatch_point.h \
+ ../../h/BPatch_snippet.h ../../h/BPatch_module.h ../src/test_util.h
+test_util.o: ../src/test_util.C ../../h/BPatch_Vector.h \
+ ../../h/BPatch_thread.h ../../h/BPatch_image.h ../../h/BPatch_point.h \
+ ../../h/BPatch_snippet.h ../../h/BPatch_module.h
+test1.mutatee.o: ../src/test1.mutatee.c
+test2.mutatee.o: ../src/test2.mutatee.c

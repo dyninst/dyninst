@@ -1,0 +1,58 @@
+#
+# Common makefile template for util library.  This file is not
+# intended to be a useful Makefile in isolation; instead, it should be
+# included from within an architecture-specific Makefile.
+#
+#
+
+TARGET = libdyninstAPI.lib
+
+CFLAGS       = $(CFLAGS) -DBPATCH_LIBRARY -DBPATCH_SET_MUTATIONS_ACTIVE
+CXXFLAGS     = $(CXXFLAGS) -DBPATCH_LIBRARY -DBPATCH_SET_MUTATIONS_ACTIVE
+
+IFLAGS       = $(IFLAGS) -I../h
+
+SRCS	     = $(SRCS) BPatch.C \
+		BPatch_image.C \
+		BPatch_snippet.C \
+		BPatch_templates.C \
+		BPatch_thread.C \
+		BPatch_type.C \
+		BPatch_init.C \
+		BPatch_module.C \
+		BPatch_point.C \
+		dummy.C \
+		api_showerror.C \
+		ast.C \
+		inst.C \
+		process.C \
+		stats.C \
+		symtab.C \
+		util.C \
+		sharedobject.C \
+		templates-nt.C
+
+OBJS         = $(OBJS) BPatch.obj \
+		BPatch_image.obj \
+		BPatch_snippet.obj \
+		BPatch_templates.obj \
+		BPatch_thread.obj \
+		BPatch_type.obj \
+		BPatch_init.obj \
+		BPatch_module.obj \
+		BPatch_point.obj \
+		dummy.obj \
+		api_showerror.obj \
+		ast.obj \
+		inst.obj \
+		process.obj \
+		stats.obj \
+		symtab.obj \
+		util.obj \
+		sharedobject.obj \
+		templates-nt.obj
+
+all: $(TARGET)
+
+{..\src\}.C.obj:
+	$(CXX) $(CXXFLAGS) -c $<

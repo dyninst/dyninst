@@ -96,6 +96,8 @@ typedef enum { HEAPfree, HEAPallocated } heapStatus;
 typedef enum { textHeap=0, dataHeap=1 } inferiorHeapType;
 typedef vector<unsigned> unsigVecType;
 
+const int LOAD_DYNINST_BUF_SIZE = 64;
+
 class heapItem {
  public:
   heapItem() {
@@ -178,7 +180,7 @@ public:
     int		size;
     void	*data;
 
-    mutationRecord(Address _addr, int _size, void *_data);
+    mutationRecord(Address _addr, int _size, const void *_data);
     ~mutationRecord();
 };
 
@@ -190,8 +192,8 @@ public:
     mutationList() : head(NULL), tail(NULL) {};
     ~mutationList();
 
-    void insertHead(Address addr, int size, void *data);
-    void insertTail(Address addr, int size, void *data);
+    void insertHead(Address addr, int size, const void *data);
+    void insertTail(Address addr, int size, const void *data);
     mutationRecord *getHead() { return head; }
     mutationRecord *getTail() { return tail; }
 };
@@ -735,7 +737,7 @@ private:
   // library -- we use a special inferior RPC because the regular RPC assumes
   // that the inferior heap already exists, which is not true if libdyninstRT
   // has not been loaded yet.
-  char savedData[32];
+  char savedData[LOAD_DYNINST_BUF_SIZE];
   void *savedRegs;
 
 
