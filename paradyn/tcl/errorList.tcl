@@ -39,7 +39,7 @@
 # incur to third parties resulting from your use of Paradyn.
 #
 
-# $Id: errorList.tcl,v 1.63 2004/03/23 19:12:08 eli Exp $
+# $Id: errorList.tcl,v 1.64 2004/06/21 19:38:16 pcroth Exp $
 
 #
 # Error message format:
@@ -1203,9 +1203,29 @@ set pdError(130) {
 {libdwarf returned an error while attempting to open the VSyscall DSO.  This was probably caused by a bug in libdwarf.  Please upgrade libdwarf to the build from 12/30/2003 or latter.  Paradyn may work incorrectly.}
 }
 
+set pdError(131) {
+{Failed to instantiate MRNet}
+{dm}
+{serious error}
+{Paradyn was unable to build its internal MRNet network for communicating \
+with its daemons.  Please confirm that you have provided Paradyn with \
+valid MRNet configuration files and that Paradyn can issue commands \
+on the remote system(s).}
+}
+
+set pdError(132) {
+{Failed to connect daemons to MRNet}
+{dm}
+{serious error}
+{Paradyn was unable to connect its daemons to the internal MRNet network \
+it uses for communication within the tool.  Please confirm that you have \
+provided Paradyn with valid MRNet configuration files and that Paradyn can \
+issue commands on the remote system(s).}
+}
+
 #
 # be sure to change this value if you add/delete an entry to the database
 #
 proc getNumPdErrors {} {
-    return 130
+    return 132
 }
