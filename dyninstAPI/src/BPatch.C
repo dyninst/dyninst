@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.50 2003/01/02 19:51:42 schendel Exp $
+// $Id: BPatch.C,v 1.51 2003/01/28 16:23:20 schendel Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -843,63 +843,63 @@ bool BPatch::getThreadEvent(bool block)
  */
 bool BPatch::getThreadEventOnly(bool block)
 {
-    bool	result = false;
-    int		pid, status;
-
-    // while ((pid = process::waitProcs(&status, block)) > 0) {
-    if ((pid = process::waitProcs(&status, block)) > 0) {
-	// There's been a change in a child process
-	result = true;
-	// Since we found something, we don't want to block anymore
-	block = false;
-
-	bool exists;
-	BPatch_thread *thread = getThreadByPid(pid, &exists);
-	if (thread == NULL) {
-	    if (exists) {
-		if (WIFSIGNALED(status) || WIFEXITED(status))
-		    unRegisterThread(pid);
-	    } else {
-    		fprintf(stderr, "Warning - wait returned status of an unknown process (%d)\n", pid);
-	    }
-	}
-	if (thread != NULL) {
-	    if (WIFSTOPPED(status)) {
-    		thread->lastSignal = WSTOPSIG(status);
-		thread->setUnreportedStop(true);
-	    } else if (WIFSIGNALED(status)) {
-		thread->lastSignal = WTERMSIG(status);
-		thread->setUnreportedTermination(true);
-	    } else if (WIFEXITED(status)) {
+   bool	result = false;
+   int		pid, status;
+   
+   // while ((pid = process::waitProcs(&status, block)) > 0) {
+   if ((pid = process::waitProcs(&status, block)) > 0) {
+      // There's been a change in a child process
+      result = true;
+      // Since we found something, we don't want to block anymore
+      block = false;
+      
+      bool exists;
+      BPatch_thread *thread = getThreadByPid(pid, &exists);
+      if (thread == NULL) {
+         if (exists) {
+            if (WIFSIGNALED(status) || WIFEXITED(status))
+               unRegisterThread(pid);
+         } else {
+            fprintf(stderr, "Warning - wait returned status of an unknown process (%d)\n", pid);
+         }
+      }
+      if (thread != NULL) {
+         if (WIFSTOPPED(status)) {
+            thread->lastSignal = WSTOPSIG(status);
+            thread->setUnreportedStop(true);
+         } else if (WIFSIGNALED(status)) {
+            thread->lastSignal = WTERMSIG(status);
+            thread->setUnreportedTermination(true);
+         } else if (WIFEXITED(status)) {
 #if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
-                thread->proc->exitCode_ = WEXITSTATUS(status);
+            thread->proc->exitCode_ = WEXITSTATUS(status);
 #endif
-                thread->exitCode = thread->proc->exitCode();
-		thread->lastSignal = 0; /* XXX Make into some constant */
-		thread->setUnreportedTermination(true);
-	    }
-	}
+            thread->exitCode = thread->proc->exitCode();
+            thread->lastSignal = 0; /* XXX Make into some constant */
+            thread->setUnreportedTermination(true);
+         }
+      }
 #if !(defined i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
-
-	handleSigChild(pid, status);
+      
+      handleSigChild(pid, status);
 #ifdef notdef
-	if (thread->lastSignal == SIGSTOP) {
-	    // need to continue process after initial sigstop
-	    // thread->continueExecution();
-	    printf("BPatch past handleSigChild for SIGSTOP\n");
-	    if (thread->proc->wasCreatedViaFork()) {
-		printf("marking forked process stopped\n");
-		thread->proc->status_ = stopped;
-    		// thread->lastSignal = SIGSTOP;
-		// thread->setUnreportedStop(true);
-		// thread->proc->continueProc();
-	    }
-	}
+      if (thread->lastSignal == SIGSTOP) {
+         // need to continue process after initial sigstop
+         // thread->continueExecution();
+         printf("BPatch past handleSigChild for SIGSTOP\n");
+         if (thread->proc->wasCreatedViaFork()) {
+            printf("marking forked process stopped\n");
+            thread->proc->status_ = stopped;
+            // thread->lastSignal = SIGSTOP;
+            // thread->setUnreportedStop(true);
+            // thread->proc->continueProc();
+         }
+      }
 #endif
 #endif
-    }
+   }
 
-    return result;
+   return result;
 }
 
 
