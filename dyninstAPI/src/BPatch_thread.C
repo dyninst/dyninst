@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.99 2004/03/11 22:20:29 bernat Exp $
+// $Id: BPatch_thread.C,v 1.100 2004/03/15 18:45:58 tlmiller Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -1481,7 +1481,9 @@ void BPatch_thread::getCallStack(BPatch_Vector<BPatch_frame>& stack)
     for (unsigned int i = 0; i < stackWalks[0].size(); i++) {
 	stack.push_back(BPatch_frame(this,
 				     (void*)stackWalks[0][i].getPC(),
-				     (void*)stackWalks[0][i].getFP()));
+				     (void*)stackWalks[0][i].getFP(),
+				     stackWalks[0][i].isSignalFrame(),
+				     stackWalks[0][i].isTrampoline()));
     }
 }
 
@@ -1542,10 +1544,18 @@ bool BPatch_thread::addSharedObject(const char *name, const unsigned long loadad
  */
 BPatch_frameType BPatch_frame::getFrameType()
 {
-    if (thread->proc->isInSignalHandler((Address)getPC()))
-	return BPatch_frameSignal;
-    else
-	return BPatch_frameNormal;
+#if ! defined( ia64_unknown_linux2_4 )
+	if (thread->proc->isInSignalHandler((Address)getPC())) {
+		return BPatch_frameSignal;
+		}
+	else {
+		return BPatch_frameNormal;
+		}
+#else
+	if( isSignalFrame ) { return BPatch_frameSignal; }
+	else if( isTrampoline ) { return BPatch_frameTrampoline; }
+	else { return BPatch_frameNormal; } 
+#endif			
 }
 
 /*

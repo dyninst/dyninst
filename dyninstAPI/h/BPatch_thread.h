@@ -120,10 +120,12 @@ class BPATCH_DLL_EXPORT BPatch_frame {
 
     void *pc;
     void *fp;
+    bool isSignalFrame;
+    bool isTrampoline;
 public:
-    BPatch_frame() : thread(NULL), pc(NULL), fp(NULL) {};
-    BPatch_frame(BPatch_thread *_thread, void *_pc, void *_fp) :
-	thread(_thread), pc(_pc), fp(_fp) {};
+    BPatch_frame() : thread(NULL), pc(NULL), fp(NULL), isSignalFrame(false), isTrampoline(false) {};
+    BPatch_frame(BPatch_thread *_thread, void *_pc, void *_fp, bool isf = false, bool istr = false ) :
+	thread(_thread), pc(_pc), fp(_fp), isSignalFrame(isf), isTrampoline(istr) {};
 
     BPatch_frameType getFrameType();
 
