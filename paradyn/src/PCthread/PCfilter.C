@@ -21,7 +21,10 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.C,v $
- * Revision 1.7  1996/04/07 21:24:36  karavan
+ * Revision 1.8  1996/04/18 22:01:52  naim
+ * Changes to make getPredictedDataCost asynchronous - naim
+ *
+ * Revision 1.7  1996/04/07  21:24:36  karavan
  * added phaseID parameter to dataMgr->enableDataCollection2.
  *
  * Revision 1.6  1996/03/18 07:10:35  karavan
@@ -60,7 +63,6 @@
 #include "PCmetricInst.h"
 
 #ifdef PCDEBUG
-extern "C" FILE *TESTfp;
 #include <sys/time.h>
 double TESTgetTime()
 {
@@ -71,6 +73,8 @@ double TESTgetTime()
   return(now);
 }
 #endif
+
+extern performanceConsultant *pc;
 
 perfStreamHandle filteredDataServer::pstream = 0;
 
@@ -92,14 +96,67 @@ ostream& operator <<(ostream &os, filter& f)
   return os;
 }
 
+float getPredictedDataCostAsync(resourceListHandle foc, metricHandle metric)
+{
+  float result=0.0;
+
+#ifdef PCDEBUG
+  double t1,t2;
+  if (performanceConsultant::collectInstrTimings) {
+    t1=TESTgetTime();
+  }
+#endif
+
+  dataMgr->getPredictedDataCost(foc, metric);
+  T_performanceConsultant::message_tags tagPC = T_performanceConsultant::getPredictedDataCostCallbackPC_REQ;
+  T_performanceConsultant::msg_buf buffer;
+  T_performanceConsultant::message_tags waitTag;
+  bool ready=false;
+  int from;
+  unsigned int tag;
+  while (!ready) {
+    tag = (unsigned int) T_performanceConsultant::getPredictedDataCostCallbackPC_REQ;
+    from = msg_poll(&tag, true);
+    assert(from != THR_ERR);
+    if (pc->isValidTag((T_performanceConsultant::message_tags)tag)) {
+      waitTag=pc->waitLoop(true,(T_performanceConsultant::message_tags)tag,&buffer);
+      if (waitTag==T_performanceConsultant::error) {
+        cerr << "Error in PCfilter.C, needs to be handled\n";
+        assert(0);
+      }
+      if (waitTag==tagPC) {
+        ready=true;
+        result = buffer.getPredictedDataCostCallbackPC_call.val;
+      }
+      else {
+	cerr << "Error in PCfilter.C, tag not valid\n";
+        assert(0);
+      }
+    }
+    else {
+      cerr << "Error in PCfilter.C, tag not valid\n";
+      assert(0);
+    }
+  }
+
+#ifdef PCDEBUG
+  if (performanceConsultant::collectInstrTimings) {
+    t2=TESTgetTime();
+    if ((t2-t1) > 1.0) 
+      printf("==> TEST <== getPredictedDataCost took %5.2f secs\n",t2-t1);
+  }
+#endif
+
+  return(result);
+}
+
 filter::filter(filteredDataServer *keeper, 
 	       metricInstanceHandle mih, metricHandle met, focus focs) 
 : mi(mih), metric(met), foc (focs), intervalLength(0), nextSendTime(0.0),  
   lastDataSeen(0), partialIntervalStartTime(0.0), workingValue(0), 
   workingInterval(0), server(keeper)
 { 
-  estimatedCost = 0.0;
-  estimatedCost = dataMgr->getPredictedDataCost(foc, metric);
+  estimatedCost = getPredictedDataCostAsync(foc,metric);
 }
 
 filter::~filter() {
@@ -109,8 +166,7 @@ filter::~filter() {
 float
 filter::getNewEstimatedCost()
 {
-  float oldcost = estimatedCost;
-  estimatedCost = dataMgr->getPredictedDataCost (foc, metric);
+  estimatedCost = getPredictedDataCostAsync(foc, metric);
   return estimatedCost;
 }
 
@@ -287,7 +343,7 @@ void
 filteredDataServer::resubscribeAllData() 
 {
   metricInstanceHandle *curr;
-  double t1 = 0.0;
+  double t1,t2;
   for (unsigned i = 0; i < AllDataFilters.size(); i++) {
     if (AllDataFilters[i]->isActive()) {
 #ifdef PCDEBUG
@@ -304,7 +360,9 @@ filteredDataServer::resubscribeAllData()
       cout << "reenable attempt on " << AllDataFilters[i]->getMI() <<
 	" yields " << *curr << endl;
       if (performanceConsultant::collectInstrTimings) {
-	fprintf(TESTfp,"==> TEST <== PCfilter 1, enableDataCollection2 took %5.2f secs\n",TESTgetTime()-t1); 
+        t2=TESTgetTime();
+        if ((t2-t1) > 1.0) 
+	  printf("==> TEST <== PCfilter 1, enableDataCollection2 took %5.2f secs\n",t2-t1); 
       }
 #endif
       delete curr;
@@ -318,7 +376,7 @@ filteredDataServer::resubscribeAllData()
 void
 filteredDataServer::unsubscribeAllData() 
 {
-  double t1 = 0.0;
+  double t1,t2;
   for (unsigned i = 0; i < AllDataFilters.size(); i++) {
     if (AllDataFilters[i]->isActive()) {
 #ifdef PCDEBUG
@@ -330,7 +388,9 @@ filteredDataServer::unsubscribeAllData()
 				     AllDataFilters[i]->getMI(), phType);
 #ifdef PCDEBUG
       if (performanceConsultant::collectInstrTimings) {
-	fprintf(TESTfp,"==> TEST <== PCfilter 1, disableDataCollection took %5.2f secs\n",TESTgetTime()-t1); 
+        t2=TESTgetTime();
+        if ((t2-t1) > 1.0) 
+	  printf("==> TEST <== PCfilter 1, disableDataCollection took %5.2f secs\n",t2-t1); 
       }
 #endif
     }
@@ -355,7 +415,7 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
   metricInstanceHandle *index;
   metricInstanceHandle indexCopy;
   *errFlag = false;
-  double t1 = 0.0;
+  double t1,t2;
   // does filter already exist?
 #ifdef PCDEBUG
   if (performanceConsultant::collectInstrTimings) {
@@ -366,7 +426,9 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
 					  f, mh, phType, dmPhaseID, 1, 0);
 #ifdef PCDEBUG
   if (performanceConsultant::collectInstrTimings) {
-    fprintf(TESTfp,"==> TEST <== PCfilter 2, enableDataCollection2 took %5.2f secs\n",TESTgetTime()-t1); 
+    t2=TESTgetTime();
+    if ((t2-t1) > 1.0)
+      printf("==> TEST <== PCfilter 2, enableDataCollection2 took %5.2f secs\n",t2-t1); 
   }
 #endif
   if (index == NULL) {
@@ -392,7 +454,7 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
 	<< "foc=" << dataMgr->getFocusNameFromMI(indexCopy) << endl;
   }
   if (performanceConsultant::collectInstrTimings) {
-    fprintf(TESTfp,"==> TEST <== Metric name = %s, Focus name = %s\n",dataMgr->getMetricNameFromMI(indexCopy),dataMgr->getFocusNameFromMI(indexCopy)); 
+    printf("==> TEST <== Metric name = %s, Focus name = %s\n",dataMgr->getMetricNameFromMI(indexCopy),dataMgr->getFocusNameFromMI(indexCopy)); 
   }
 #endif
   return indexCopy;
@@ -402,7 +464,7 @@ float
 filteredDataServer::getEstimatedCost(metricHandle mh,
 				     focus f)
 {
-  return dataMgr->getPredictedDataCost (f, mh);
+  return(getPredictedDataCostAsync(f, mh));
 }
 
 float
@@ -421,7 +483,7 @@ void
 filteredDataServer::endSubscription(fdsSubscriber sub, 
 				    fdsDataID subID)
 {
-  double t1 = 0.0;
+  double t1,t2;
   // find filter by subID
   int subsLeft;
   if (DataFilters.defines((unsigned)subID)) { 
@@ -436,7 +498,9 @@ filteredDataServer::endSubscription(fdsSubscriber sub,
       dataMgr->disableDataCollection (pstream, subID, phType);
 #ifdef PCDEBUG
       if (performanceConsultant::collectInstrTimings) {
-	fprintf(TESTfp,"==> TEST <== PCfilter 2, disableDataCollection took %5.2f secs\n",TESTgetTime()-t1); 
+        t2=TESTgetTime();
+        if ((t2-t1) > 1.0) 
+	  printf("==> TEST <== PCfilter 2, disableDataCollection took %5.2f secs\n",t2-t1); 
       }
 #endif
     }

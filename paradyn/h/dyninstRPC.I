@@ -473,7 +473,7 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 38;
+    $version 39;
 
     //
     // Define a program to run. 
@@ -639,7 +639,7 @@ $remote dynRPC {
     // Upcall to tell paradyn that all daemons are ready after computing 
     // the value for predicted data cost
     //
-    $upcall $async void getPredictedDataCostCallback(int dummy,float val);
+    $upcall $async void getPredictedDataCostCallback(float val);
 
     //
     // stop collecting data for the named mi.

@@ -571,14 +571,12 @@ bool paradynDaemon::setInstSuppress(resource *res, bool newValue)
 // Get the expected delay (as a fraction of the running program) for the passed
 //   resource list (focus) and metric.
 //
-float paradynDaemon::predictedDataCost(resourceList *rl, metric *m)
+void paradynDaemon::predictedDataCost(resourceList *rl, metric *m)
 {
     if (!rl || !m) return(0.0);
 
     vector<u_int> focus;
     assert(rl->convertToIDList(focus));
-
-    float max = 0.0;
 
     const char *metName = m->getName();
     assert(metName);
@@ -589,33 +587,6 @@ float paradynDaemon::predictedDataCost(resourceList *rl, metric *m)
         pd = paradynDaemon::allDaemons[i];
 	pd->getPredictedDataCost(focus, metName);
     }
-
-    for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
-	T_dyninstRPC::message_tags tag1 = T_dyninstRPC::getPredictedDataCostCallback_REQ;
-	unsigned tag2 = MSG_TAG_FILE;
-        int ready_fd;
-        T_dyninstRPC::T_getPredictedDataCostCallback buffer;
-
-        //
-        // Since getPredictedDataCost is now async, we have to wait until
-        // every daemon is finished with its enable request
-        //
-        bool foundDaemon;
-        do {
-          foundDaemon=false;
-          ready_fd = msg_poll(&tag2, true);
-          for(unsigned j = 0; j < paradynDaemon::allDaemons.size(); j++) {
-            pd = paradynDaemon::allDaemons[j];
-            if (pd->get_fd() == ready_fd) {
-              foundDaemon=true;
-              break;
-	    }
-	  }
-        } while (!foundDaemon || !pd->wait_for_and_read(tag1,&buffer));
-        val = buffer.val;
-	if(val > max) max = val;
-    }
-    return(max);
 }
 
 //

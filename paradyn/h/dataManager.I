@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.67  1996/04/07 21:18:31  karavan
+ * Revision 1.68  1996/04/18 22:00:13  naim
+ * Changes to make getPredictedDataCost asynchronous - naim
+ *
+ * Revision 1.67  1996/04/07  21:18:31  karavan
  * added new phaseID argument to enableDataCollection2
  *
  * Revision 1.66  1996/03/14 14:20:22  naim
@@ -374,7 +377,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2500;
-    $version 39;
+    $version 40;
 
     //
     // Start a paradyn daemon
@@ -593,7 +596,7 @@ $remote dataManager {
     //    metric at a given focus.  The value returned is the fraction of
     //    perturbation expected (i.e. 0.10 == 10% slow down expected).
     //
-    float getPredictedDataCost(resourceListHandle, metricHandle);
+    $async void getPredictedDataCost(resourceListHandle, metricHandle);
 
     // 
     // Histogram/timebase information

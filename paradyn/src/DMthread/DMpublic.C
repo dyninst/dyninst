@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.74  1996/04/10 19:07:54  newhall
+ * Revision 1.75  1996/04/18 22:01:19  naim
+ * Changes to make getPredictedDataCost asynchronous - naim
+ *
+ * Revision 1.74  1996/04/10  19:07:54  newhall
  * fixed bug with disableDataCollection when persistent_data flag is set
  *
  * Revision 1.73  1996/04/07  21:21:36  karavan
@@ -1219,17 +1222,24 @@ resourceListHandle *dataManager::findResourceList(const char *name){
 }
 
 
-float dataManager::getPredictedDataCost(resourceListHandle rl_handle, 
-					metricHandle m_handle)
+void dataManager::getPredictedDataCost(resourceListHandle rl_handle, 
+       				       metricHandle m_handle)
 {
     metric *m = metric::getMetric(m_handle);
     if(m){
 	resourceList *rl = resourceList::getFocus(rl_handle);
         if(rl){
-            return(paradynDaemon::predictedDataCost(rl, m));
-    } }
-    float ret = PARADYN_NaN;
-    return(ret);
+            paradynDaemon::predictedDataCost(rl, m);
+        }
+        else {
+          cerr << "Error in DMpublic.C, rl=NULL\n";
+          assert(0);
+        }
+    }
+    else {
+      cerr << "Error in DMpublic.C, m=NULL\n";
+      assert(0);
+    }
 }
 
 // caller provides array of sampleValue to be filled

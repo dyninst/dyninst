@@ -21,7 +21,10 @@
  * PC thread interface functions
  *
  * $Log: PCpublic.C,v $
- * Revision 1.31  1996/04/07 21:29:40  karavan
+ * Revision 1.32  1996/04/18 22:01:57  naim
+ * Changes to make getPredictedDataCost asynchronous - naim
+ *
+ * Revision 1.31  1996/04/07  21:29:40  karavan
  * split up search ready queue into two, one global one current, and moved to
  * round robin queue removal.
  *
@@ -72,6 +75,13 @@ performanceConsultant::activateSearch(unsigned phaseID)
     specifiedSearch->resume();
   else if (specifiedSearch->newbie())
     specifiedSearch->startSearching();
+}
+
+//
+// Upcall to send result value for predicted data cost asynchronously
+//
+void performanceConsultant::getPredictedDataCostCallbackPC(int dummy,float val)
+{
 }
 
 void 

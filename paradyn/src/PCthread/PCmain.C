@@ -16,9 +16,12 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.51  1996/04/17 21:58:44  karavan
-/* bug fix.
+/* Revision 1.52  1996/04/18 22:01:55  naim
+/* Changes to make getPredictedDataCost asynchronous - naim
 /*
+ * Revision 1.51  1996/04/17  21:58:44  karavan
+ * bug fix.
+ *
  * Revision 1.50  1996/04/07 21:29:35  karavan
  * split up search ready queue into two, one global one current, and moved to
  * round robin queue removal.
@@ -82,9 +85,7 @@
 #include "PCsearch.h"
 #include "PCfilter.h"
 
-#ifdef PCDEBUG
-FILE *TESTfp;
-#endif
+performanceConsultant *pc;
 
 extern thread_t MAINtid;
 extern void initPCconstants();
@@ -214,18 +215,11 @@ void PCmain(void* varg)
 
     int from;
     unsigned int tag;
-    performanceConsultant *pc;
     char PCbuff[64];
     unsigned int msgSize = 64;
 
     // initialize globals
     perfConsultant.PChyposDefined = false;
-
-#ifdef PCDEBUG
-    if (performanceConsultant::collectInstrTimings) {
-      TESTfp = fopen("TESTresult.out","w");
-    }
-#endif
 
     // define all tunable constants used by the performance Consultant
     // tunable constants must be defined here in the sequential section
