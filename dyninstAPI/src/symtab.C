@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.236 2005/03/11 22:04:13 bernat Exp $
+ // $Id: symtab.C,v 1.237 2005/03/13 23:44:11 legendre Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1881,10 +1881,7 @@ bool image::analyzeImage()
 	   strstr(func2->prettyName().c_str(), "_L_mutex_lock")))
 	
 	{ 
-	  func2->updateFunctionEnd(func2->get_address(), this);
-	  everyUniqueFunction.erase(k+1, k+1);
 	  func1->markAsNeedingRelocation(true);
-	  k--;
 	}
       else
 #endif
