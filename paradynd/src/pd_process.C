@@ -53,6 +53,8 @@
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/func-reloc.h"
 
+#include "dyninstAPI/src/edgeTrampTemplate.h"
+
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
@@ -1720,9 +1722,10 @@ bool pd_process::triggeredInStackFrame(Frame &frame,
     
     // Can't figure it out if we don't know where we are
     if (!range) {
-      fprintf(stderr, "ERROR: can't find owner for pc 0x%lx, failing catchup\n",
-	      frame.getPC());
-       return false;
+      if (frame.getPC()) // 0 PC is uninteresting
+	fprintf(stderr, "ERROR: can't find owner for pc 0x%x, failing catchup\n",
+		frame.getPC());
+      return false;
     }
 
     if(pd_debug_catchup) {
@@ -1772,6 +1775,7 @@ bool pd_process::triggeredInStackFrame(Frame &frame,
     miniTrampHandle *minitramp_ptr = range->is_minitramp();
     trampTemplate *basetramp_ptr = range->is_basetramp();
     relocatedFuncInfo *reloc_ptr = range->is_relocated_func();
+    edgeTrampTemplate *edge_ptr = range->is_edge_tramp();
     multitrampTemplate *multitramp_ptr = range->is_multitramp();
 
     int_function *frame_func;
@@ -1813,6 +1817,12 @@ bool pd_process::triggeredInStackFrame(Frame &frame,
        if(pd_debug_catchup)
           fprintf(stderr, "      PC in relocated function (%s)...",
                   frame_func->prettyName().c_str());
+    }
+    else if (edge_ptr) {
+      frame_func = dyninst_process->lowlevel_process()->findFuncByAddr(edge_ptr->addrInFunc);
+      collapsedFrameAddr = edge_ptr->addrInFunc;
+       if(pd_debug_catchup)
+	 fprintf(stderr, "      PC in edge tramp...");
     }
     else if (multitramp_ptr) {
         const instPoint *instP = multitramp_ptr->location;
