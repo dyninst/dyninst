@@ -74,7 +74,8 @@ BPatch_module::BPatch_module(process *_proc, pdmodule *_mod):
 
     // load all of the type information
 #if defined(sparc_sun_solaris2_4) || defined(rs6000_ibm_aix4_1)
-    parseTypes();
+    if (BPatch::bpatch->parseDebugInfo()) 
+	parseTypes();
 #endif
 }
 
@@ -148,7 +149,7 @@ BPatch_function * BPatch_module::findFunction(const char * name)
 
 #if defined(sparc_sun_solaris2_4) 
     // Adding new BPatch_Function to BPatch_function vector
-    this->BPfuncs->push_back(bpfunc);
+    if (this->BPfuncs) this->BPfuncs->push_back(bpfunc);
 #endif
     return bpfunc;
     
@@ -190,6 +191,7 @@ void BPatch_module::parseTypes()
   //printf("GETTING PROCEDURES for BPatch_Function VECTOR %x!!!\n", &(this->BPfuncs));
   this->BPfuncs = this->getProcedures();
   
+
   for(i=0;i<stab_nsyms;i++){
     switch(stabptr[i].type){
 
