@@ -39,417 +39,124 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.12 2004/03/23 22:23:57 pcroth Exp $
+// $Id: main.C,v 1.13 2004/06/21 18:59:04 pcroth Exp $
 
 #include <stdio.h>
-#include <signal.h>
-
 #include "common/h/headers.h"
-
-#include "tcl.h"
-#include "tk.h"
-#include "tkTools.h"
-
-#include "pdLogo.h"
-#include "paradyn/xbm/logo.xbm"
-
-#include "pdthread/h/thread.h"
-#include "pdutil/h/rpcUtil.h"
-#include "visi/h/visualization.h"
-
-#include "clientConn.h"
-
-#include "termWin.xdr.h"
-#include "termWin.xdr.SRVR.h"
-
 #include "common/h/Ident.h"
+
+#if defined(os_windows)
+#include "visiClients/termWin/src/TermWinWinTkGUI.h"
+#else
+#include "visiClients/termWin/src/TermWinUnixTkGUI.h"
+#endif // defined(os_windows)
+#include "visiClients/termWin/src/TermWinCLUI.h"
+
 extern "C" const char V_libpdutil[];
-Ident V_Uid(V_libpdutil,"Paradyn");
-
-Tcl_Interp *MainInterp;
-termWin* twServer = NULL;
-PDSOCKET serv_sock = -1;
-pdvector<clientConn *> conn_pool;
-thread_t stdin_tid = 0;
+Ident V_PdutilUid(V_libpdutil,"Paradyn");
+extern "C" const char V_libpdthread[];
+Ident V_PdthreadUid(V_libpdthread,"Paradyn");
+extern "C" const char V_termWin[];
+Ident V_TermWinUid(V_termWin,"Paradyn");
 
 
-#define PARADYN_EXIT 0
-#define PERSISTENT   1
-int close_mode = PARADYN_EXIT;
-
-
-void
-sighup_handler( int )
+int 
+main(int argc, char **argv) 
 {
-	// we get SIGHUP when Paradyn closes our connection
-	// but we are persistent.
-	//
-	// swallow the signal
-	// cerr << "termWin received SIGHUP" << endl;
-}
+    int ret = 0;
+    bool useGUI = true;           // normally we want to use a GUI
 
-
-int CloseOptionCmd(ClientData,Tcl_Interp *,int argc, TCLCONST char **argv)
-{
-    assert(argc == 2);
-    const int mode = atoi(argv[1]);
-
-    close_mode = mode;
-    return TCL_OK;
-}
-
-int app_init() {
-    if (Tcl_Init(MainInterp) == TCL_ERROR)
-	return TCL_ERROR;
-
-    // Set argv0 before we do any other Tk program initialization because
-    // Tk takes the main window's class and instance name from argv0
-    // We set it to "paradyn" instead of "termwin" so that we can 
-    // set resources for all paradyn-related windows with the same root.
-    Tcl_SetVar( MainInterp,
-                "argv0", 
-                "paradyn",
-                TCL_GLOBAL_ONLY );
-
-    if (Tk_Init(MainInterp) == TCL_ERROR)
+    if( getenv( "TERMWIN_DEBUG" ) != NULL )
     {
-        return TCL_ERROR;
+        fprintf( stderr, "termWin: waiting for debugger, pid=%d\n", getpid() );
+        volatile bool bCont = false;
+        while( !bCont )
+        {
+            // spin!
+        }
     }
 
-    Tcl_CreateCommand(MainInterp,"close_mode",CloseOptionCmd,NULL,NULL);
-
-    // now install "makeLogo", etc:
-    pdLogo::install_fixed_logo("paradynLogo", logo_bits, logo_width,
-			       logo_height);
-
-    tcl_cmd_installer createPdLogo(MainInterp, "makeLogo", pdLogo::makeLogoCommand,
-				   (ClientData)Tk_MainWindow(MainInterp));
-
-    // now initialize_tcl_sources created by tcl2c:
-   extern int initialize_tcl_sources(Tcl_Interp *);
-   if (TCL_OK != initialize_tcl_sources(MainInterp))
-      tclpanic(MainInterp, "termWin: could not initialize_tcl_sources");
-
-    return TCL_OK;
-}
-
-void processPendingTkEventsNoBlock()
-{
-	// We use Tk_DoOneEvent (w/o blocking) to soak up and process
-	// pending tk events, if any.  Returns as soon as there are no
-	// tk events to process.
-	// NOTE: This includes (as it should) tk idle events.
-	// NOTE: This is basically the same as Tcl_Eval(interp, "update"), but
-	//       who wants to incur the expense of tcl parsing?
-	while (Tk_DoOneEvent(TK_DONT_WAIT) > 0)
-		;
-}
-
-void print_data(char *buffer,int num, int from_paradynd)
-{
-	if (num <= 0)
-		return ;
-	char command[2048];
-	if (from_paradynd)
-		sprintf(command,".termwin.textarea.text insert end {%.*s} paradyn_tag",num,buffer);
-	else sprintf(command,".termwin.textarea.text insert end {%.*s} app_tag",num,buffer);
-	Tcl_Eval(MainInterp,command);
-
-	sprintf(command,".termwin.textarea.text yview -pickplace end");
-	Tcl_Eval(MainInterp,command);
-}
-
-
-int main(int argc, char **argv) {
-//sigpause(0);
+    // start our own process group
     (void)setsid();
     
-   if (argc == 1)
-   	return -1;
-   serv_sock = atoi(argv[1]);
-   //int serv_port = RPC_setup_socket(serv_sock,AF_INET,SOCK_STREAM);
-   //assert(serv_port != -1);
-   //fprintf(stderr,"serv_port: %d\n",serv_port);
 
-    // Let Tcl know something about our executable (and do some filesystem-
-    // specific initialization).
-    //
-    // NOTE: this is obligatory with modern versions of Tcl.
-    Tcl_FindExecutable( argv[0] );
-
-   MainInterp = Tcl_CreateInterp();
-   assert(MainInterp);
-
-   if (TCL_OK != app_init()) // formerly Tcl_AppInit()
-      tclpanic(MainInterp, "PhaseTable: app_init() failed");
-
-   thread_t xtid;
-   int retVal=-1;
-   thread_t stid;
-
-   // ensure that the thread library is aware of available input
-   // on our XDR connections
-   rpcSockCallback += (RPCSockCallbackFunc)clear_ready_sock;
-
-#if !defined(i386_unknown_nt4_0)
-   Display *UIMdisplay = Tk_Display (Tk_MainWindow(MainInterp));
-   int xfd = XConnectionNumber (UIMdisplay);
-
-   retVal = msg_bind_socket (xfd,
-        1, // "special" flag --> libthread leaves it to us to manually
-		                           // dequeue these messages
-	NULL,
-	NULL,
-	&xtid
-	);
-
-  retVal = msg_bind_socket(fileno(stdin),1,NULL,NULL,&stdin_tid);
-  retVal = msg_bind_socket(serv_sock,1,NULL,NULL,&stid);
-
-#else // !defined(i386_unknown_nt4_0)
-  retVal = msg_bind_wmsg( &xtid );
-  //need modify: wxd
-  //retVal = msg_bind_socket(fileno(stdin),1,NULL,NULL,&stdin_tid);
-  retVal = msg_bind_socket(serv_sock,1,NULL,NULL,&stid);
-#endif // !defined(i386_unknown_nt4_0)
-
-	// wrap a termWin server around our connection to Paradyn
-	twServer = new termWin( fileno(stdin), NULL, NULL, 0 );
-
-	// ensure that we don't die from SIGHUP when our connection
-	// to Paradyn closes
-	struct sigaction act;
-
-	act.sa_handler = sighup_handler;
-	act.sa_flags = 0;
-	sigfillset( &act.sa_mask );
-
-	if( sigaction( SIGHUP, &act, 0 ) == -1 )
-	{
-		cerr << "Failed to install SIGHUP handler: " << errno << endl;
-		// this isn't a fatal error for us
-	}
-   
-   while (Tk_GetNumMainWindows() > 0) {
-   	
-      // Before we block, let's process any pending tk DoWhenIdle events.
-      processPendingTkEventsNoBlock();
-
-      unsigned msgSize = 1024;
-      thread_t pollsender = THR_TID_UNSPEC;
-      tag_t mtag = MSG_TAG_ANY;
-      int err = msg_poll (&pollsender, &mtag, 1); // 1-->make this a blocking poll
-                                            // i.e., not really a poll at all...
-      if (err == THR_ERR)
-      {
-      	fprintf(stderr,"msg_poll error\n");
-	exit(-1);
-      }
-      // Why don't we do a blocking msg_recv() in all cases?  Because it soaks
-      // up the pending message, throwing off the X file descriptor (tk wants to
-      // dequeue itself).  Plus igen feels that way too.
-      // NOTE: It would be nice if the above poll could take in a TIMEOUT argument,
-      //       so we can handle tk "after <n millisec> do <script>" events properly.
-      //       But libthread doesn't yet support time-bounded blocking!!!
-
-      // check for X events or commands on stdin
-      if (mtag == MSG_TAG_SOCKET) {
-         // Note: why don't we do a msg_recv(), to consume the pending
-         //       event?  Because both of the MSG_TAG_FILE we have set
-         //       up have the special flag set (in the call to msg_bind()),
-         //       which indicated that we, instead of libthread, will take
-         //       responsibility for that.  In other words, a msg_recv()
-         //       now would not dequeue anything, so there's no point in doing it...
-
-     if (pollsender == xtid)
-	 {
-            processPendingTkEventsNoBlock();
-			// indicate to the thread library we've consumed input
-			// from our X connection
-			clear_ready_sock( thr_socket( xtid ) );
-	 }
-         else if (pollsender == stid)
-	 {
-	 	//fprintf(stderr,"accept client request stid=%d\n",stid);
-#if defined(i386_unknown_nt4_0)
-	 	static int first=1;
-		if (first == 0)
-			continue;
-		first = 0;
-#endif
-
-   		PDSOCKET client_sock = -1;
-   		thread_t ctid= THR_TID_UNSPEC;
-
-		client_sock = RPC_getConnect(serv_sock);
-		if (client_sock == PDSOCKET_ERROR)
-		{
-			fprintf(stderr,"getConnect error\n");
-			continue;
-		}//else fprintf(stderr,"getConnect success\n");
-
-   		retVal = msg_bind_socket(client_sock, true, NULL, NULL, &ctid);
-		
-#if defined(i386_unknown_nt4_0)
-		printf("ctid = %d, client_sock = %d\n",ctid,client_sock);
-		msg_unbind(stid);
-#endif
-
-		conn_pool += new clientConn(client_sock,ctid);
-
-		//if (conn_pool.size() > 1)
-			//fprintf(stderr,"current conn_pool size %d\n",conn_pool.size());
-     	 }else if (pollsender == stdin_tid)
-	 {
-	     	bool doneWithInput = false;
-
-		// there's input on the stdin (i.e., igen) connection
-		// so we handle the message
-		while( !doneWithInput )
-		{
-			twServer->waitLoop();
-
-			if( xdrrec_eof( twServer->net_obj() ) )
-			{
-				// there is no more input
-				doneWithInput = true;
-			}
-		}
-		// indicate to the thread library we've consumed input from stdin
-		clear_ready_sock( thr_socket( stdin_tid ));
-	 }
-	 else {
-	 	int	client_is_sender = 0;
-	 	for (int i=0;i<conn_pool.size();i++)
-		{
-			clientConn *client = (clientConn *)conn_pool[i];
-	 		if (client->done == 0 && pollsender == client->tid){
-				client_is_sender = 1;
-		         	char buffer[1024];
-#if !defined(i386_unknown_nt4_0)
-				int num=read(client->sock,buffer,1023);
-#else
-				int num=recv(client->sock,buffer,1023,0);
-#endif
-
-				// indicate to the thread library we've consumed
-				// input from this client connection
-				clear_ready_sock( client->sock );
-
-				//printf("num = %d\n",num);
-		
-				if (num <= 0)
-				{
-					client->done = 1;
-					P_close(client->sock);
-					msg_unbind(client->tid);
-					continue;
-				}
-				buffer[num]=0x00;
-				//printf("%s\n",buffer);
-		
-				if (client->ready)
-					print_data(buffer,num,client->from_paradynd);
-				else {
-					char *buf_pos=NULL;
-					if (!strncmp(buffer,"from_paradynd",strlen("from_paradynd")))
-					{
-						buf_pos = buffer + strlen("from_paradynd\n");
-						client->from_paradynd = 1;
-					}else {
-						buf_pos = buffer + strlen("from_app\n");
-						client->from_paradynd = 0;
-					}
-					client->ready = 1;
-					print_data(buf_pos,buffer+num-buf_pos,client->from_paradynd);
-				}
-			}
-		}
-		if (!client_is_sender)
-		{
-	 		for (int i=0;i<conn_pool.size();i++)
-			{
-				clientConn *client = (clientConn *)conn_pool[i];
-				fprintf(stderr,"tid:\t%d\n",client->tid);
-			}
-			fprintf(stderr,"ser_id:\t%d\n",stid);
-			fprintf(stderr,"error id:\t%d\n",pollsender);
-			fprintf(stderr,"stdin id:\t%d\n",stdin_tid);
-			fprintf(stderr,"Xid:\t%d\n",xtid);
-			cerr << "hmmm...unknown sender of a MSG_TAG_SOCKET message...ignoring" << endl;
-			exit(-1);
-		}
-	}
-     // The above processing may have created some pending tk DoWhenIdle
-     // requests.  If so, process them now.
-         processPendingTkEventsNoBlock();
-      }
-#if defined(i386_unknown_nt4_0)
-        else if( mtag == MSG_TAG_WMSG )
+    // check and parse the command line
+    if( (argc < 2) || (argc > 3) )
+    {
+        exit( -1 );
+    }
+    if( argc == 3 )
+    {
+        if( !strcmp( argv[2], "-cl" ) )
         {
-            // there are events in the Windows message queue - handle them
-            processPendingTkEventsNoBlock();
+            useGUI = false;
         }
-#endif // defined(i386_unknown_nt4_0)
+    }
 
-#if !defined(i386_unknown_nt4_0)
-	else if (mtag == MSG_TAG_FILE)
-	{
-     	    if (pollsender == stdin_tid)
-	    {
-         	char buffer[1024];
-		int num=read(0,buffer,1023);
-		
-		if (num <= 0)
-			exit(-1);
-		buffer[num]=0x00;
-		printf("%s\n",buffer);
-	    }
-	}
-#endif // defined(i386_unknown_nt4_0)
-  }
+    // determine the socket that the front-end set up for us
+    PDSOCKET serv_sock = atoi(argv[1]);
 
-   return 0;
+    // build the desired type of termWin server object
+    TermWin* tw = NULL;
+    if( useGUI )
+    {
+#if defined(os_windows)
+        tw = new TermWinWinTkGUI( argv[0], serv_sock, fileno(stdin) );
+#else
+        tw = new TermWinUnixTkGUI( argv[0], serv_sock, fileno(stdin) );
+#endif // defined(os_windows)
+    }
+    else
+    {
+        tw = new TermWinCLUI( serv_sock, fileno(stdin) );
+    }
+
+    // initialize our TermWin server
+    if( !tw->Init() )
+    {
+        exit( -1 );
+    }
+
+    // handle events
+    while( !tw->IsDoneHandlingEvents() )
+    {
+        bool ok;
+
+
+        // let object perform any per-iteration activity
+        ok = tw->DoPendingWork();
+        if( !ok )
+        {
+            ret = -1;
+            break;
+        }
+
+        // peek at the next event
+        thread_t mtid = THR_TID_UNSPEC;
+        tag_t mtag = MSG_TAG_ANY;
+        int err = msg_poll( &mtid, &mtag, 1 );      // 1 -> non-blocking poll
+        if( err == THR_ERR )
+        {
+            tw->ShowError( "unable to peek at next event" );
+            ret = -1;
+            break;
+        }
+
+        // handle the event
+        if( !tw->DispatchEvent( mtid, mtag ) )
+        {
+            tw->ShowError( "failed to handle event" );
+            ret = -1;
+            break;
+        }
+    }
+
+    // cleanup
+    delete tw;
+
+    return ret;
 }
 
 
-void
-do_graceful_shutdown( void )
-{
-   delete twServer;
-   twServer = NULL;
-
-   Tcl_DeleteCommand(MainInterp, "close_mode");
-
-   P_close(serv_sock);
-   for(unsigned int i=0;i<conn_pool.size();i++)
-   {
-   	clientConn *client = (clientConn *)conn_pool[i];
-	if (client->done == 0)
-		P_close(client->sock);
-   }
-   Tcl_DeleteInterp(MainInterp);
-
-   exit( 0 );
-}
-
-
-void
-termWin::shutdown( void )
-{
-	// Paradyn is telling us that it is shutting down
-
-	// break our connection to Paradyn
-	msg_unbind(stdin_tid);
-
-	// shut ourselves down gracefully if we aren't set to be persistent
-	if( close_mode != PERSISTENT )
-	{
-		// shut ourselves down
-		do_graceful_shutdown();
-		// not reached
-		assert( false );
-	}
-}
 
 
