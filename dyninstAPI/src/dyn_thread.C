@@ -247,9 +247,13 @@ void dyn_thread::postIRPC(inferiorRPCtoDo todo)
 bool dyn_thread::readyIRPC() const
 {
     // If we're running an RPC, we're not ready to start one
-    if (isRunningIRPC()) return false;
-
-    return !thrRPCsWaitingToStart.empty();
+    if (isRunningIRPC()) {
+        return false;
+    }
+    if (thrRPCsWaitingToStart.empty()) {
+        return false;
+    }
+    return true;
 }
 
 // wasRunning: once the RPC is finished, leave process paused (false) or running (true)
@@ -263,16 +267,14 @@ irpcLaunchState_t dyn_thread::launchThreadIRPC(bool wasRunning)
     
     // There is an RPC to run. Yay.
     // We pause at a process level
-    assert (proc->status() == stopped);
+    proc->pause();
 
     // Check if we're in a system call
     updateLWP();
     if (lwp->executingSystemCall()) {
         // Oh, crud. Can't run the iRPC now. Check to see if we'll
         // be able to do it later with any degree of accuracy
-        if (proc->set_breakpoint_for_syscall_completion()) {
-            // Breakpoints are set at a process level still
-            irpcState_ = irpcWaitingForTrap;
+        if (lwp->setSyscallExitTrap()) {
             // Record what we were doing. When the trap is received
             // the process will be paused, so we want to be able
             // to restore _current_ state
@@ -373,6 +375,8 @@ irpcLaunchState_t dyn_thread::launchThreadIRPC(bool wasRunning)
 }
 
 irpcLaunchState_t dyn_thread::launchPendingIRPC() {
+    assert(irpcState_ == irpcWaitingForTrap);
+    irpcState_ = irpcNotRunning;
     return launchThreadIRPC(wasRunningBeforeSyscall_);
 }
 
@@ -380,6 +384,11 @@ bool dyn_thread::isRunningIRPC() const {
     return (irpcState_ == irpcRunning ||
             irpcState_ == irpcWaitingForTrap);
 }
+
+bool dyn_thread::isWaitingForTrap() const {
+    return (irpcState_ == irpcWaitingForTrap);
+}
+
 
 Address dyn_thread::getIRPCRetValAddr()
 {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dyn_thread.h,v 1.7 2003/02/21 20:05:56 bernat Exp $
+// $Id: dyn_thread.h,v 1.8 2003/02/28 22:13:40 bernat Exp $
 
 #ifndef _DYNTHREAD_H_
 #define _DYNTHREAD_H_
@@ -147,6 +147,8 @@ class dyn_thread {
   // 1) An RPC is running, or
   // 2) We're waiting for a trap to be reached
   bool isRunningIRPC() const;
+  // Returns true if we're waiting for a trap
+  bool isWaitingForTrap() const;
   // Launch an iRPC.
   irpcLaunchState_t launchThreadIRPC(bool wasRunning);
   // After a syscall completes, launch an RPC. Special case
@@ -163,7 +165,6 @@ class dyn_thread {
   Address getIRPCFinishedAddr();
   bool handleCompletedIRPC();
 
-  
   irpcState_t getLastIRPCState() { return irpcState_; }
   
   ///
