@@ -3,11 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Log: nmake.module.tmpl,v $
-# Revision 1.1  1997/05/23 23:00:30  mjrg
-# Windows NT port
-#
-#
+# $Id: nmake.module.tmpl,v 1.2 1998/03/02 02:27:45 wylie Exp $
 #
 
 !ifndef TARGET
@@ -45,7 +41,7 @@ OBJS		= $(OBJS) RTinst.obj RTend.obj
 # override standard install rule; provide a default DEST if not already set
 #
 !ifndef DEST
-DEST		= $(TO_CORE)/../lib/$(PLATFORM)
+DEST		= $(LIBRARY_DEST)
 !endif
 
 UNCOMMON_INSTALL= true
@@ -55,13 +51,13 @@ install: $(DEST)/$(TARGET) \
 #	 $(DEST)/RTpvmPiggy.obj
 
 $(DEST)/libdyninstRT.dll:       libdyninstRT.dll
-	copy libdyninstRT.dll ..\..\..\lib\$(PLATFORM)
+	$(CP) libdyninstRT.dll $(DEST)
 
 #$(DEST)/RTpvmPiggy.o: RTpvmPiggy.o
-#	cp RTpvmPiggy.o ../../../lib/$(PLATFORM)
+#	$(CP) RTpvmPiggy.o $(DEST)
 
 $(DEST)/DYNINSTstartCode.obj: DYNINSTstartCode.obj
-	copy DYNINSTstartCode.obj ..\..\..\lib\$(PLATFORM)
+	$(CP) DYNINSTstartCode.obj $(DEST)
 
 $(DEST)/DYNINSTendCode.obj: DYNINSTendCode.obj
-	copy DYNINSTendCode.obj ..\..\..\lib\$(PLATFORM)
+	$(CP) DYNINSTendCode.obj $(DEST)
