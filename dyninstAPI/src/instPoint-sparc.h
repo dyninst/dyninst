@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-sparc.h,v 1.9 2000/07/28 17:21:15 pcroth Exp $
+// $Id: instPoint-sparc.h,v 1.10 2000/08/01 22:39:52 tikir Exp $
 // sparc-specific definition of class instPoint
 
 #ifndef _INST_POINT_SPARC_H_
@@ -55,7 +55,8 @@ typedef enum {
     noneType,
     functionEntry,
     functionExit,
-    callSite
+    callSite,
+    otherPoint
 } instPointType;
 
 class instPoint {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.91 2000/07/27 14:01:17 bernat Exp $
+// $Id: inst-sparc.C,v 1.92 2000/08/01 22:39:51 tikir Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -55,6 +55,15 @@ static dictionary_hash<string, unsigned> funcFrequencyTable(string::hash);
 
 trampTemplate baseTemplate;
 NonRecursiveTrampTemplate nonRecursiveBaseTemplate;
+
+//declaration of conservative base trampoline template
+#if defined(sparcv8plus)
+
+trampTemplate conservativeBaseTemplate;
+NonRecursiveTrampTemplate nonRecursiveConservativeBaseTemplate;
+
+#endif
+
 
 registerSpace *regSpace;
 
@@ -139,6 +148,8 @@ instPoint::instPoint(pd_Function *f, const instruction &instr,
       } else {
           size = 2 * sizeof(instruction);
       }
+  } else if (ipType == otherPoint){
+          size = 2 * sizeof(instruction);
   } else {
       assert(false);  
   }
@@ -321,14 +332,30 @@ int getPointCost(process *proc, const instPoint *point)
 /****************************************************************************/
 /****************************************************************************/
 
-void initATramp (trampTemplate *thisTemp, Address tramp)
+void initATramp (trampTemplate *thisTemp, Address tramp,
+		 bool isConservative=false)
 {
     instruction *temp;
+
+    if(!isConservative){
 
     thisTemp->savePreInsOffset = ((Address)baseTramp_savePreInsn - tramp);
     thisTemp->restorePreInsOffset = ((Address)baseTramp_restorePreInsn - tramp);
     thisTemp->savePostInsOffset = ((Address)baseTramp_savePostInsn - tramp);
     thisTemp->restorePostInsOffset = ((Address)baseTramp_restorePostInsn - tramp);
+    }
+#if defined(sparcv8plus)
+    else{
+	thisTemp->savePreInsOffset =
+		((Address)conservativeBaseTramp_savePreInsn - tramp);
+	thisTemp->restorePreInsOffset =
+		((Address)conservativeBaseTramp_restorePreInsn - tramp);
+	thisTemp->savePostInsOffset =
+		((Address)conservativeBaseTramp_savePostInsn - tramp);
+	thisTemp->restorePostInsOffset =
+		((Address)conservativeBaseTramp_restorePostInsn - tramp);
+    }
+#endif
 
     // TODO - are these offsets always positive?
     thisTemp->trampTemp = (void *) tramp;
@@ -383,9 +410,10 @@ void initATramp (trampTemplate *thisTemp, Address tramp)
 /****************************************************************************/
 /****************************************************************************/
 
-void initATramp(NonRecursiveTrampTemplate *thisTemp, Address tramp)
+void initATramp(NonRecursiveTrampTemplate *thisTemp, Address tramp,
+		bool isConservative=false)
 {
-  initATramp((trampTemplate *)thisTemp, tramp);
+  initATramp((trampTemplate *)thisTemp, tramp,isConservative);
 
   instruction *temp;
 
@@ -435,6 +463,15 @@ void initTramps()
 
     initATramp(&baseTemplate, (Address) baseTramp);
     initATramp(&nonRecursiveBaseTemplate, (Address)baseTramp);
+
+
+#if defined(sparcv8plus)
+
+    initATramp(&conservativeBaseTemplate,
+	       (Address)conservativeBaseTramp,true);
+    initATramp(&nonRecursiveConservativeBaseTemplate,
+	       (Address)conservativeBaseTramp,true);
+#endif
 
     regSpace = new registerSpace(sizeof(deadList)/sizeof(Register), deadList,
                                          0, NULL);
@@ -1474,6 +1511,27 @@ void emitFuncJump(opCode op,
 }
 
 #ifdef BPATCH_LIBRARY
+
+#include "BPatch_flowGraph.h"
+
+#include <sys/systeminfo.h>
+
+/*
+ * function which check whether the architecture is 
+ * sparcv8plus or not. For the earlier architectures 
+ * it is not possible to support random instrumentation 
+ */
+bool isV8plusISA()
+{
+    char isaOptions[256];
+
+    if (sysinfo(SI_ISALIST, isaOptions, 256) < 0)
+        return false;
+    if (strstr(isaOptions, "sparcv8plus"))
+        return true;
+    return false;
+}
+
 /*
  * createInstructionInstPoint
  *
@@ -1485,8 +1543,158 @@ void emitFuncJump(opCode op,
  */
 BPatch_point *createInstructionInstPoint(process *proc, void *address)
 {
+#if defined(sparcv8plus)
+
+    unsigned i;
+    Address begin_addr,end_addr,curr_addr = (Address)address;
+
+    //the method to check whether conservative base tramp can be installed
+    //or not since it contains condition code instructions which is
+    //available after version8plus of sparc
+
+    if(!isV8plusISA()){
+	cerr << "BPatch_image::createInstPointAtAddr : is not supported for";
+	cerr << " sparc architecture earlier than v8plus\n";
+	return NULL;
+    }
+
+    //if the address is not aligned then there is a problem
+    if(!isAligned(curr_addr))	
+	return NULL;
+
+    function_base *func = proc->findFunctionIn(curr_addr);
+
+    if (func != NULL) {
+	instPoint *entry = const_cast<instPoint *>(func->funcEntry(proc));
+	assert(entry);
+
+	begin_addr = entry->iPgetAddress();
+	end_addr = begin_addr + entry->Size();
+
+	if(((begin_addr - INSN_SIZE) <= curr_addr) && 
+	   (curr_addr < end_addr)){ 
+	    BPatch_reportError(BPatchSerious, 117,
+			       "instrumentation point conflict");
+	    //cerr << "Conflict 1\n";
+	    return NULL;
+	}
+
+	const vector<instPoint*> &exits = func->funcExits(proc);
+	for (i = 0; i < exits.size(); i++) {
+	    assert(exits[i]);
+
+	    begin_addr = exits[i]->iPgetAddress();
+	    end_addr = begin_addr + exits[i]->Size();
+
+	    if (((begin_addr - INSN_SIZE) <= curr_addr) &&
+		(curr_addr < end_addr)){
+		BPatch_reportError(BPatchSerious, 117,
+				   "instrumentation point conflict");
+	        //cerr << "Conflict 2\n";
+		return NULL;
+	    }
+	}
+
+	const vector<instPoint*> &calls = func->funcCalls(proc);
+	for (i = 0; i < calls.size(); i++) {
+	    assert(calls[i]);
+
+	    begin_addr = calls[i]->iPgetAddress();
+	    end_addr = begin_addr + calls[i]->Size();
+
+	    if (((begin_addr - INSN_SIZE) <= curr_addr) &&
+		(curr_addr < end_addr)){
+		BPatch_reportError(BPatchSerious, 117,
+				   "instrumentation point conflict");
+	        //cerr << "Conflict 3\n";
+		return NULL;
+	    }
+	}
+    }
+
+    /* Check for conflict with a previously created inst point. */
+    if (proc->instPointMap.defines(curr_addr - INSN_SIZE)) {
+	BPatch_reportError(BPatchSerious,117,"instrumentation point conflict");
+	//cerr << "Conflict 4\n";
+	return NULL;
+    } else if (proc->instPointMap.defines(curr_addr + INSN_SIZE)) {
+	BPatch_reportError(BPatchSerious,117,"instrumentation point conflict");
+	//cerr << "Conflict 5\n";
+	return NULL;
+    }
+
+    /* Check for instrumentation where the delay slot of the jump to the
+       base tramp would be a branch target from elsewhere in the function. */
+
+    BPatch_function *bpfunc = proc->PDFuncToBPFuncMap[func];
+    /* XXX Should create here with correct module, but we don't know it. */
+    if (bpfunc == NULL) bpfunc = new BPatch_function(proc, func, NULL);
+
+    BPatch_flowGraph *cfg = bpfunc->getCFG();
+    BPatch_basicBlock** belements =
+                new BPatch_basicBlock*[cfg->allBlocks.size()];
+    cfg->allBlocks.elements(belements);
+
+    for(i=0; i< (unsigned)cfg->allBlocks.size(); i++) {
+	void *bbsa, *bbea;
+	if (belements[i]->getAddressRange(bbsa,bbea)) {
+	    begin_addr = (Address)bbsa;
+	    if ((begin_addr - INSN_SIZE) == curr_addr) {
+		delete[] belements;
+		BPatch_reportError(BPatchSerious, 118,
+				   "point uninstrumentable");
+		//cerr << "Conflict 6\n";
+		return NULL;
+	    }
+	}
+    }
+    delete[] belements;
+
+    /* Check for instrumenting just before or after a branch. */
+
+    if (curr_addr > func->getEffectiveAddress(proc)) {
+	instruction prevInstr;
+	proc->readTextSpace((char *)address - INSN_SIZE,
+			    sizeof(instruction),
+			    &prevInstr.raw);
+	if (IS_DELAYED_INST(prevInstr)){
+	    BPatch_reportError(BPatchSerious, 118, "point uninstrumentable");
+	    //cerr << "Conflict 7777777777777777777777777\n";
+	    return NULL;
+	}
+    }
+
+    if ((Address)address + INSN_SIZE <
+	func->getEffectiveAddress(proc) + func->size()) {
+	instruction nextInstr;
+	proc->readTextSpace((char *)address + INSN_SIZE,
+			    sizeof(instruction),
+			    &nextInstr.raw);
+	if (IS_DELAYED_INST(nextInstr)){
+	    BPatch_reportError(BPatchSerious, 118, "point uninstrumentable");
+	    //cerr << "Conflict 888888888888888888888888888888888888888\n";
+	    return NULL;
+	}
+    }
+
+    instruction instr;
+    proc->readTextSpace(address, sizeof(instruction), &instr.raw);
+	
+    //then create the instrumentation point object for the address
+    instPoint *newpt = new instPoint((pd_Function *)func,
+				     (const instructUnion &)instr,
+				     (const image*)(proc->getImage()),
+				     (Address &)address,
+				     false, // bool delayOk - ignored,
+				     otherPoint);
+
+    return proc->findOrCreateBPPoint(bpfunc, newpt, BPatch_instruction);
+
+#else
     BPatch_reportError(BPatchSerious, 109,
 	"BPatch_image::createInstPointAtAddr unimplemented on this platform");
     return NULL;
+#endif
 }
+
 #endif

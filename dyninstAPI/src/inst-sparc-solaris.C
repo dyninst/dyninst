@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.67 2000/07/28 17:21:14 pcroth Exp $
+// $Id: inst-sparc-solaris.C,v 1.68 2000/08/01 22:39:50 tikir Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -186,7 +186,9 @@ instPoint::instPoint(pd_Function *f, const instruction &instr,
 		  extraInsn.raw = owner->get_instruction(addr+16);
 	      }
 	  }
-
+      } else if(ipType == otherPoint) {
+	  delaySlotInsn.raw = owner->get_instruction(addr+4);
+	  size += 2*sizeof(instruction);
       } else {
 	  assert(ipType == callSite);
 	  // Usually, a function without a stack frame won't have any call sites
@@ -471,7 +473,7 @@ void relocateInstruction(instruction *insn,
 	// target of the branch
 	if (!offsetWithinRangeOfBranchInsn(newOffset)) {
 //	if (ABS(newOffset) > getMaxBranch1Insn()) {
-	    int ret = inferiorMalloc(proc,3*sizeof(instruction), textHeap);
+	    int ret = inferiorMalloc(proc,3*sizeof(instruction), textHeap,targetAddr);
 	    assert(ret);
 	    u_int old_offset = insn->branch.disp22 << 2;
 	    insn->branch.disp22  = (ret - targetAddr)>>2;
@@ -630,30 +632,52 @@ trampTemplate * installBaseTramp( instPoint * & location,
 				  process * proc,
 				  bool trampRecursiveDesired = false )
 {
-  trampTemplate & current_template = nonRecursiveBaseTemplate;
+  trampTemplate*  current_template = &nonRecursiveBaseTemplate;
+
+#if defined(sparcv8plus)
+  if(location->ipType == otherPoint)
+        current_template = &nonRecursiveConservativeBaseTemplate;
+#endif
 
   if( trampRecursiveDesired )
     {
-      current_template = baseTemplate;
+      current_template = &baseTemplate;
+
+#if defined(sparcv8plus)
+      if(location->ipType == otherPoint)
+                current_template = &conservativeBaseTemplate;
+#endif
     }
 
     Address ipAddr = 0;
     proc->getBaseAddress( location->image_ptr, ipAddr );
     ipAddr += location->addr;
 
-    Address baseAddr = inferiorMalloc( proc, current_template.size, textHeap, ipAddr );
+    Address baseAddr = inferiorMalloc( proc, current_template->size, textHeap, ipAddr );
     assert( baseAddr );
-    instruction * code = new instruction[ current_template.size ];
+
+    /* very conservative installation as o7 can be live at 
+      this arbitrary inst point */
+    if((location->ipType == otherPoint) && 
+       (in1BranchInsnRange(ipAddr, baseAddr) == false))
+    {
+	vector<addrVecType> pointsToCheck;
+	inferiorFree(proc,baseAddr,pointsToCheck);
+	cerr << "HEYYYYYY THIS OCCURED AT LEAST ONCE \n";
+	return NULL;
+    }
+
+    instruction * code = new instruction[ current_template->size ];
     assert( code );
 
     memcpy( ( char * )code,
-	    ( char * )current_template.trampTemp,
-	    current_template.size );
+	    ( char * )current_template->trampTemp,
+	    current_template->size );
 
     instruction * temp;
     Address currAddr;
     for (temp = code, currAddr = baseAddr; 
-	(currAddr - baseAddr) < (unsigned) current_template.size;
+	(currAddr - baseAddr) < (unsigned) current_template->size;
 	temp++, currAddr += sizeof(instruction)) {
 
 	if (temp->raw == EMULATE_INSN) {
@@ -944,22 +968,28 @@ trampTemplate * installBaseTramp( instPoint * & location,
 		generateCallInsn(temp, currAddr, 
 				(baseAddress + location->addr)+location->size);
 		genImmInsn(temp+1, RESTOREop3, 0, 0, 0);
+	    } else if(location->ipType == otherPoint){
+		/** to save the value of live o7 register we save and call*/
+		genImmInsn(temp, SAVEop3, REG_SPTR, -120, REG_SPTR);
+		generateCallInsn(temp+1, currAddr+sizeof(instruction), 
+				(baseAddress + location->addr)+location->size);
+		genImmInsn(temp+2, RESTOREop3, 0, 0, 0);
 	    } else {
 		generateCallInsn(temp, currAddr, 
 				(baseAddress + location->addr)+location->size);
 	    }
         } else if (temp->raw == SKIP_PRE_INSN) {
 	    unsigned offset;
-	    offset = baseAddr+current_template.updateCostOffset-currAddr;
+	    offset = baseAddr+current_template->updateCostOffset-currAddr;
 	    generateBranchInsn(temp,offset);
         } else if (temp->raw == SKIP_POST_INSN) {
 
 	    unsigned offset;
-	    offset = baseAddr+current_template.returnInsOffset-currAddr;
+	    offset = baseAddr+current_template->returnInsOffset-currAddr;
 	    generateBranchInsn(temp,offset);
 
         } else if (temp->raw == UPDATE_COST_INSN) {	    
-	    current_template.costAddr = currAddr;
+	    current_template->costAddr = currAddr;
 	    generateNOOP(temp);
 	} else if ((temp->raw == LOCAL_PRE_BRANCH) ||
                    (temp->raw == GLOBAL_PRE_BRANCH) ||
@@ -1001,12 +1031,12 @@ trampTemplate * installBaseTramp( instPoint * & location,
       generate_base_tramp_recursive_guard_code( * proc,
 						code,
 						baseAddr,
-						( NonRecursiveTrampTemplate & )current_template );
+						( NonRecursiveTrampTemplate & )*current_template );
     }
 
     // TODO cast
     proc->writeDataSpace( ( caddr_t )baseAddr,
-			  current_template.size,
+			  current_template->size,
 			  ( caddr_t )code );
     delete [] code;
 
@@ -1019,7 +1049,7 @@ trampTemplate * installBaseTramp( instPoint * & location,
       {
 	baseInst = new NonRecursiveTrampTemplate;
       }
-    * baseInst = current_template;
+    * baseInst = *current_template;
     baseInst->baseAddr = baseAddr;
 
     return baseInst;
@@ -1041,11 +1071,21 @@ trampTemplate *installBaseTrampSpecial(const instPoint *&location,
 				       vector<instruction> &extra_instrs,
 				       bool trampRecursiveDesired = false )
 {
-  trampTemplate & current_template = nonRecursiveBaseTemplate;
+  trampTemplate* current_template = &nonRecursiveBaseTemplate;
+
+#if defined(sparcv8plus)
+  if(location->ipType == otherPoint)
+        current_template = &nonRecursiveConservativeBaseTemplate;
+#endif
 
   if( trampRecursiveDesired )
     {
-      current_template = baseTemplate;
+      current_template = &baseTemplate;
+
+#if defined(sparcv8plus)
+      if(location->ipType == otherPoint)
+                current_template = &conservativeBaseTemplate;
+#endif
     }
 
   Address currAddr;
@@ -1061,14 +1101,14 @@ trampTemplate *installBaseTrampSpecial(const instPoint *&location,
     location->func->modifyInstPoint(location,proc);
   }
 
-  code = new instruction[current_template.size];
-  memcpy((char *) code, (char*) current_template.trampTemp, current_template.size);
+  code = new instruction[current_template->size];
+  memcpy((char *) code, (char*) current_template->trampTemp, current_template->size);
 
-  Address baseAddr = inferiorMalloc(proc, current_template.size, textHeap, location->addr);
+  Address baseAddr = inferiorMalloc(proc, current_template->size, textHeap, location->addr);
   assert(baseAddr);
 
   for (temp = code, currAddr = baseAddr; 
-       (currAddr - baseAddr) < (unsigned) current_template.size;
+       (currAddr - baseAddr) < (unsigned) current_template->size;
        temp++, currAddr += sizeof(instruction)) {
 
     if (temp->raw == EMULATE_INSN) {
@@ -1117,15 +1157,15 @@ trampTemplate *installBaseTrampSpecial(const instPoint *&location,
             }
         } else if (temp->raw == SKIP_PRE_INSN) {
           unsigned offset;
-          offset = baseAddr+current_template.updateCostOffset-currAddr;
+          offset = baseAddr+current_template->updateCostOffset-currAddr;
           generateBranchInsn(temp,offset);
         } else if (temp->raw == SKIP_POST_INSN) {
           unsigned offset;
-          offset = baseAddr+current_template.returnInsOffset-currAddr;
+          offset = baseAddr+current_template->returnInsOffset-currAddr;
           generateBranchInsn(temp,offset);
         } else if (temp->raw == UPDATE_COST_INSN) {	    
 
-	    current_template.costAddr = currAddr;
+	    current_template->costAddr = currAddr;
 	    generateNOOP(temp);
 	} else if ((temp->raw == LOCAL_PRE_BRANCH) ||
                    (temp->raw == GLOBAL_PRE_BRANCH) ||
@@ -1167,11 +1207,11 @@ trampTemplate *installBaseTrampSpecial(const instPoint *&location,
       generate_base_tramp_recursive_guard_code( * proc,
 						code,
 						baseAddr,
-						( NonRecursiveTrampTemplate & )current_template );
+						( NonRecursiveTrampTemplate & )*current_template );
     }
 
     // TODO cast
-    proc->writeDataSpace((caddr_t)baseAddr, current_template.size,(caddr_t) code);
+    proc->writeDataSpace((caddr_t)baseAddr, current_template->size,(caddr_t) code);
 
     delete [] code;
 
@@ -1184,7 +1224,7 @@ trampTemplate *installBaseTrampSpecial(const instPoint *&location,
       {
 	baseInst = new NonRecursiveTrampTemplate;
       }
-    * baseInst = current_template;
+    * baseInst = *current_template;
     baseInst->baseAddr = baseAddr;
 
     return baseInst;
@@ -1230,6 +1270,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
        vector<instruction> extra_instrs;
 
        ret = installBaseTrampSpecial(cLocation, proc,extra_instrs, trampRecursionDesired );
+       if(!ret) return NULL;
 
        // add a branch from relocated function to the base tramp
        // if function was just relocated then location has old address
@@ -1296,6 +1337,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
        }
 
        ret = installBaseTramp(location, proc, trampRecursionDesired);
+       if(!ret) return NULL;
        // check to see if this is an entry point and if the delay 
        // slot instruction is a call insn, if so, then if the 
        // call is to a location within the function, then we need to 
@@ -1457,6 +1499,17 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
  */
 void installTramp(instInstance *inst, char *code, int codeSize) 
 {
+    //the default base trampoline template is the regular base trampoline.
+    //However if the location iptype is  randomPoint then we have to use
+    //the conservatibve base trampoline which saves the condition codes
+
+    trampTemplate* current_template = &baseTemplate;
+
+#if defined(sparcv8plus)
+    if(inst->location->ipType == otherPoint)
+        current_template = &conservativeBaseTemplate;
+#endif
+
     totalMiniTramps++;
     insnGenerated += codeSize/sizeof(int);
     
@@ -1466,14 +1519,14 @@ void installTramp(instInstance *inst, char *code, int codeSize)
     Address atAddr;
     if (inst->when == callPreInsn) {
 	if (inst->baseInstance->prevInstru == false) {
-	    atAddr = inst->baseInstance->baseAddr+baseTemplate.skipPreInsOffset;
+	    atAddr = inst->baseInstance->baseAddr+current_template->skipPreInsOffset;
 	    inst->baseInstance->cost += inst->baseInstance->prevBaseCost;
 	    inst->baseInstance->prevInstru = true;
 	    generateNoOp(inst->proc, atAddr);
 	}
     } else {
 	if (inst->baseInstance->postInstru == false) {
-	    atAddr = inst->baseInstance->baseAddr+baseTemplate.skipPostInsOffset; 
+	    atAddr = inst->baseInstance->baseAddr+current_template->skipPostInsOffset; 
 	    inst->baseInstance->cost += inst->baseInstance->postBaseCost;
 	    inst->baseInstance->postInstru = true;
 	    generateNoOp(inst->proc, atAddr);

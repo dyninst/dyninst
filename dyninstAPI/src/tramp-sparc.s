@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: tramp-sparc.s,v 1.20 2000/03/22 00:44:50 mihai Exp $ */
+/* $Id: tramp-sparc.s,v 1.21 2000/08/01 22:39:52 tikir Exp $ */
 
 /*
  * trampoline code to get from a code location to an inst. primitive.
@@ -243,3 +243,233 @@ _baseTramp_restorePostInsn:
 	.word	RETURN_INSN
 	nop			/* see if this prevents crash jkh 4/4/95 */
 	.word	END_TRAMP
+
+
+#if defined(sparcv8plus)
+
+/* conservative base trampoline which also saves the condition codes 
+   It is used for random instrumentation points in sun-sparc-solaris
+*/
+
+.data
+	.global conservativeBaseTramp
+	.global	_conservativeBaseTramp
+conservativeBaseTramp:
+_conservativeBaseTramp:
+	/* should update cost of base tramp here, but we don't have a
+	   register to use!
+	*/
+	.global conservativeBaseTramp_savePreInsn
+	.global	_conservativeBaseTramp_savePreInsn
+conservativeBaseTramp_savePreInsn:
+_conservativeBaseTramp_savePreInsn:
+	save  %sp, -256, %sp	/* saving registers before jumping to */
+	.word   SKIP_PRE_INSN
+	nop			/* delay slot for jump if there is no inst. */
+	.word	GLOBAL_PRE_BRANCH
+	std  %g0, [ %fp + -8 ]	/* to a minitramp		      */
+	std  %g2, [ %fp + -16 ]
+	std  %g4, [ %fp + -24 ]
+	std  %g6, [ %fp + -32 ] 
+	std  %f0, [ %fp + -40 ] /* floating point registers are saved */
+	std  %f2, [ %fp + -48 ]
+	std  %f4, [ %fp + -56 ]
+	std  %f6, [ %fp + -64 ]
+	std  %f8, [ %fp + -72 ]
+	std  %f10, [ %fp + -80 ]
+	std  %f12, [ %fp + -88 ]
+	std  %f14, [ %fp + -96 ]
+	std  %f16, [ %fp + -104 ]
+	std  %f18, [ %fp + -112 ]
+	std  %f20, [ %fp + -120 ]
+	std  %f22, [ %fp + -128 ]
+	std  %f24, [ %fp + -136 ]
+	std  %f26, [ %fp + -144 ]
+	std  %f28, [ %fp + -152 ]
+	std  %f30, [ %fp + -160 ]
+	rd   %ccr, %g1		/* saving the condition codes to [%fp+-36] */
+	st   %g1, [ %fp + -164 ]
+	nop			/* fill this in with instructions to  */
+	nop			/* compute the address of the vector  */
+	nop			/* of counter/timers for each thread  */
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+#if defined(MT_THREAD)
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+#endif
+	.word RECURSIVE_GUARD_ON_PRE_INSN /* turn on the recursive guard : 7 instrs */
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	.word	LOCAL_PRE_BRANCH
+	nop
+	.word RECURSIVE_GUARD_OFF_PRE_INSN /* turn off the recursive guard : 3 instrs */
+	nop
+	nop
+	ld   [ %fp + -164 ], %g1 /* restoring the value of condition codes */
+	wr   %g1, 0, %ccr
+	ldd   [ %fp + -160 ], %f30 /* restoring the floating point registers */
+	ldd   [ %fp + -152 ], %f28
+	ldd   [ %fp + -144 ], %f26
+	ldd   [ %fp + -136 ], %f24
+	ldd   [ %fp + -128 ], %f22
+	ldd   [ %fp + -120 ], %f20
+	ldd   [ %fp + -112 ], %f18
+	ldd   [ %fp + -104 ], %f16
+	ldd   [ %fp + -96 ], %f14
+	ldd   [ %fp + -88 ], %f12
+	ldd   [ %fp + -80 ], %f10
+	ldd   [ %fp + -72 ], %f8
+	ldd   [ %fp + -64 ], %f6
+	ldd   [ %fp + -56 ], %f4
+	ldd   [ %fp + -48 ], %f2
+	ldd   [ %fp + -40 ], %f0
+	ldd  [ %fp + -8 ], %g0	/* restoring registers after coming   */
+	ldd  [ %fp + -16 ], %g2	/* back from a minitramp	      */
+	ldd  [ %fp + -24 ], %g4
+	ldd  [ %fp + -32 ], %g6
+	.word  UPDATE_COST_INSN /* updating the cost for this inst point */ 
+	nop
+	nop
+	nop
+	nop
+	nop
+	.global conservativeBaseTramp_restorePreInsn
+	.global	_conservativeBaseTramp_restorePreInsn
+conservativeBaseTramp_restorePreInsn:
+_conservativeBaseTramp_restorePreInsn:
+	restore
+	.word 	EMULATE_INSN
+	nop			/* second instruction if it's leaf */
+	nop			/* delay slot */
+	nop			/* if the previous instruction is a DCTI  */
+	nop			/* this slot is needed for leaf procedure */
+	nop			/* extra nop for aggregate size */
+	nop			/* extra nop for set condition code insn */
+	.word   SKIP_POST_INSN
+	nop
+	.word	GLOBAL_POST_BRANCH
+	.global conservativeBaseTramp_savePostInsn
+	.global	_conservativeBaseTramp_savePostInsn
+conservativeBaseTramp_savePostInsn:
+_conservativeBaseTramp_savePostInsn:
+	save  %sp, -256, %sp	/* saving registers before jumping to */
+	std  %g0, [ %fp + -8 ]	/* to a minitramp		      */
+	std  %g2, [ %fp + -16 ]
+	std  %g4, [ %fp + -24 ]
+	std  %g6, [ %fp + -32 ]
+	std  %f0, [ %fp + -40 ] /* floating point registers are saved */
+	std  %f2, [ %fp + -48 ]
+	std  %f4, [ %fp + -56 ]
+	std  %f6, [ %fp + -64 ]
+	std  %f8, [ %fp + -72 ]
+	std  %f10, [ %fp + -80 ]
+	std  %f12, [ %fp + -88 ]
+	std  %f14, [ %fp + -96 ]
+	std  %f16, [ %fp + -104 ]
+	std  %f18, [ %fp + -112 ]
+	std  %f20, [ %fp + -120 ]
+	std  %f22, [ %fp + -128 ]
+	std  %f24, [ %fp + -136 ]
+	std  %f26, [ %fp + -144 ]
+	std  %f28, [ %fp + -152 ]
+	std  %f30, [ %fp + -160 ]
+	rd   %ccr, %g1		/* saving the condition codes to [%fp+-36] */
+	st   %g1, [ %fp + -164 ]
+	nop			/* fill this in with instructions to  */
+	nop			/* compute the address of the vector  */
+	nop			/* of counter/timers for each thread  */
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+#if defined(MT_THREAD)
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+#endif
+	.word RECURSIVE_GUARD_ON_POST_INSN /* turn on the recursive guard : 7 instrs */
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	.word	LOCAL_POST_BRANCH
+	nop
+	.word RECURSIVE_GUARD_OFF_POST_INSN /* turn off the recursive guard : 3 instrs */
+	nop
+	nop
+	ld   [ %fp + -164 ], %g1 /* restoring the value of condition codes */
+	wr   %g1, 0, %ccr
+	ldd   [ %fp + -160 ], %f30 /* restoring the floating point registers */
+	ldd   [ %fp + -152 ], %f28
+	ldd   [ %fp + -144 ], %f26
+	ldd   [ %fp + -136 ], %f24
+	ldd   [ %fp + -128 ], %f22
+	ldd   [ %fp + -120 ], %f20
+	ldd   [ %fp + -112 ], %f18
+	ldd   [ %fp + -104 ], %f16
+	ldd   [ %fp + -96 ], %f14
+	ldd   [ %fp + -88 ], %f12
+	ldd   [ %fp + -80 ], %f10
+	ldd   [ %fp + -72 ], %f8
+	ldd   [ %fp + -64 ], %f6
+	ldd   [ %fp + -56 ], %f4
+	ldd   [ %fp + -48 ], %f2
+	ldd   [ %fp + -40 ], %f0
+	ldd  [ %fp + -8  ], %g0	/* restoring registers after coming   */ 
+	ldd  [ %fp + -16 ], %g2	/* back from a minitramp	      */
+	ldd  [ %fp + -24 ], %g4
+	ldd  [ %fp + -32 ], %g6
+	.global conservativeBaseTramp_restorePostInsn
+	.global	_conservativeBaseTramp_restorePostInsn
+conservativeBaseTramp_restorePostInsn:
+_conservativeBaseTramp_restorePostInsn:
+	restore
+	.word	RETURN_INSN
+	nop
+	nop
+	.word	END_TRAMP
+#endif
