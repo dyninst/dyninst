@@ -4397,6 +4397,10 @@ void instrumentFuncLoopsWithCall(BPatch_thread *appThread,
 
 void mutatorTest37(BPatch_thread *appThread, BPatch_image *appImage)
 {
+    if (mutateeFortran) {
+	return;
+    } 
+
     instrumentFuncLoopsWithCall(appThread, appImage,"call37_1", "inc37_1");
 
     instrumentFuncLoopsWithCall(appThread, appImage,"call37_2", "inc37_2");
@@ -4412,6 +4416,10 @@ void mutatorTest37(BPatch_thread *appThread, BPatch_image *appImage)
 
 void mutatorTest38(BPatch_thread *appThread, BPatch_image *appImage)
 {
+    if (mutateeFortran) {
+	return;
+    } 
+
     BPatch_Vector<BPatch_function *> funcs0;
     
     appImage->findFunction("call38_1", funcs0);
