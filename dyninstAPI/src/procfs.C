@@ -1,0 +1,641 @@
+/*
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
+ */
+
+/* 
+ * $Log: procfs.C,v $
+ * Revision 1.1  1998/08/25 19:35:29  buck
+ * Initial commit of DEC Alpha port.
+ *
+ * Revision 1.1.1.3  1996/09/04 23:00:36  hollings
+ * Paradyn version 1.1 (plus a few small commits)
+ *
+ * Revision 1.12  1996/08/20 19:17:40  lzheng
+ * Implementation of moving multiple instructions sequence and
+ * splitting the instrumentation into two phases
+ *
+ * Revision 1.11  1996/08/16 21:19:49  tamches
+ * updated copyright for release 1.1
+ *
+ * Revision 1.10  1996/05/08 23:55:07  mjrg
+ * added support for handling fork and exec by an application
+ * use /proc instead of ptrace on solaris
+ * removed warnings
+ *
+ * Revision 1.9  1996/04/03 14:27:56  naim
+ * Implementation of deallocation of instrumentation for solaris and sunos - naim
+ *
+ * Revision 1.8  1996/03/12  20:48:39  mjrg
+ * Improved handling of process termination
+ * New version of aggregateSample to support adding and removing components
+ * dynamically
+ * Added error messages
+ *
+ * Revision 1.7  1996/02/12 16:46:18  naim
+ * Updating the way we compute number_of_cpus. On solaris we will return the
+ * number of cpus; on sunos, hp, aix 1 and on the CM-5 the number of processes,
+ * which should be equal to the number of cpus - naim
+ *
+ * Revision 1.6  1996/02/09  23:53:46  naim
+ * Adding new internal metric number_of_nodes - naim
+ *
+ * Revision 1.5  1995/09/26  20:17:52  naim
+ * Adding error messages using showErrorCallback function for paradynd
+ *
+ */
+
+#include "symtab.h"
+#include "util/h/headers.h"
+#include "os.h"
+#include "process.h"
+#include "stats.h"
+#include "util/h/Types.h"
+#include <sys/ioctl.h>
+#include <fcntl.h>
+#include <sys/termios.h>
+#include <unistd.h>
+#include "showerror.h"
+
+#include <sys/procfs.h>
+#include <sys/syscall.h>
+#include <sys/fault.h>
+#include <poll.h>
+#include <limits.h>
+
+// PC register index into the gregset_t array for the alphas
+#define PC_REGNUM 31
+
+extern "C" {
+extern int ioctl(int, int, ...);
+extern long sysconf(int);
+};
+
+extern bool isValidAddress(process *proc, Address where);
+
+/*
+   osTraceMe is called after we fork a child process to set
+   a breakpoint on the exit of the exec system call.
+   When /proc is used, this breakpoint **will not** cause a SIGTRAP to 
+   be sent to the process. The parent should use PIOCWSTOP to wait for 
+   the child.
+*/
+void OS::osTraceMe(void) {
+  sysset_t exitSet;
+  char procName[128];
+
+  sprintf(procName,"/proc/%05d", (int)getpid());
+  int fd = P_open(procName, O_RDWR, 0);
+  if (fd < 0) {
+    fprintf(stderr, "osTraceMe: open failed: %s\n", sys_errlist[errno]); 
+    fflush(stderr);
+    P__exit(-1); // must use _exit here.
+  }
+
+  /* set a breakpoint at the exit of exec/execve */
+  premptyset(&exitSet);
+#ifdef SYS_exec
+  praddset(&exitSet, SYS_exec);
+#endif
+#ifdef SYS_execve
+  praddset(&exitSet, SYS_execve);
+#endif
+
+  /* DIGITAL UNIX USES THIS */
+#ifdef SYS_execv
+  praddset(&exitSet,SYS_execv);
+#endif
+
+  if (ioctl(fd, PIOCSEXIT, &exitSet) < 0) {
+    fprintf(stderr, "osTraceMe: PIOCSEXIT failed: %s\n", sys_errlist[errno]); 
+    fflush(stderr);
+    P__exit(-1); // must use _exit here.
+  }
+  /* DIGITAL UNIX (ver 3.2) uses PRFS_STOPEXEC to indicate a breakpoint after exec */
+  /*#ifdef PRFS_STOPEXEC
+  {
+    long pr_flags;
+    if (ioctl(fd, PIOCGSPCACT, &pr_flags) < 0) {
+      sprintf(errorLine, "Cannot get status\n");
+      logLine(errorLine);
+      close(fd);
+      return false;
+    }
+    pr_flags |= PRFS_STOPEXEC;
+    ioctl(fd, PIOCSSPCACT, &pr_flags);
+  }
+#endif*/
+  
+  errno = 0;
+  close(fd);
+  return;
+}
+
+
+// already setup on this FD.
+// disconnect from controlling terminal 
+void OS::osDisconnect(void) {
+  int ttyfd = open ("/dev/tty", O_RDONLY);
+  ioctl (ttyfd, TIOCNOTTY, NULL); 
+  P_close (ttyfd);
+}
+
+bool process::stop_()
+{
+  assert(false);
+}
+
+//bool OS::osAttach(pid_t) { assert(0); }
+
+//bool OS::osStop(pid_t) { assert(0); }
+
+//bool OS::osDumpCore(pid_t, const string) { return false; }
+
+//bool OS::osForwardSignal (pid_t, int) { assert(0); }
+
+bool process::isRunning_() const {
+   // determine if a process is running by doing low-level system checks, as
+   // opposed to checking the 'status_' member vrble.  May assume that attach()
+   // has run, but can't assume anything else.
+   prstatus theStatus;
+   if (-1 == ioctl(proc_fd, PIOCSTATUS, &theStatus)) {
+      perror("process::isRunning_()");
+      assert(false);
+   }
+
+   if (theStatus.pr_flags & PR_STOPPED)
+      return false;
+   else
+      return true;
+}
+
+
+/*
+   Open the /proc file correspoding to process pid, 
+   set the signals to be caught to be only SIGSTOP,
+   and set the kill-on-last-close and inherit-on-fork flags.
+*/
+bool process::attach() {
+  char procName[128];
+  prrun_t flags;
+
+  sleep(15);
+  sprintf(procName,"/proc/%05d", (int)pid);
+  int fd = P_open(procName, O_RDWR, 0);
+  if (fd < 0) {
+    fprintf(stderr, "attach: open failed: %s\n", sys_errlist[errno]);
+    return false;
+  }
+  proc_fd = fd;
+  /*  dumpCore_("core.real"); */
+
+  /* we don't catch any child signals, except SIGSTOP */
+  sigset_t sigs;
+  fltset_t faults;
+  premptyset(&sigs);
+  praddset(&sigs, SIGSTOP);
+  praddset(&sigs, SIGTRAP);
+  praddset(&sigs, SIGSEGV);
+
+  if (ioctl(fd, PIOCSTRACE, &sigs) < 0) {
+    fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
+    close(fd);
+    return false;
+  }
+  premptyset(&faults);
+  praddset(&faults,FLTBPT);
+  if (ioctl(fd,PIOCSFAULT,&faults) <0) {
+    fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
+    close(fd);
+    return false;
+  }
+
+  /* turn on the kill-on-last-close and inherit-on-fork flags. This will cause
+     the process to be killed when paradynd exits.
+     Also, any child of this process will stop at the exit of an exec call.
+  */
+#if defined(PIOCSET)
+  {
+    long flags = PR_KLC | PR_FORK;
+    if (ioctl (fd, PIOCSET, &flags) < 0) {
+      fprintf(stderr, "attach: PIOCSET failed: %s\n", sys_errlist[errno]);
+      close(fd);
+      return false;
+    }
+  }
+  #else
+  #if defined(PRFS_KOLC)
+  {
+    long pr_flags;
+    if (ioctl(fd, PIOCGSPCACT, &pr_flags) < 0) {
+      sprintf(errorLine, "Cannot get status\n");
+      logLine(errorLine);
+      close(fd);
+      return false;
+    }
+    pr_flags |= PRFS_KOLC;
+    ioctl(fd, PIOCSSPCACT, &pr_flags);
+  }
+#endif
+#endif
+
+  // flags.pr_flags = PRSTOP;
+//   if (ioctl(fd, PIOCRUN, &flags) == -1) {
+//       fprintf(stderr, "attach: PIOCRUN failed: %s\n", sys_errlist[errno])
+// ;
+//       return false;
+//   }
+
+  proc_fd = fd;
+  return true;
+}
+
+bool process::restoreRegisters(void *buffer) {
+   // The fact that this routine can be shared between solaris/sparc and
+   // solaris/x86 is just really, really cool.  /proc rules!
+
+   assert(status_ == stopped); // /proc requires it
+
+   gregset_t theIntRegs = *(gregset_t *)buffer;
+   fpregset_t theFpRegs = *(fpregset_t *)((char *)buffer + sizeof(theIntRegs));
+
+   if (ioctl(proc_fd, PIOCSREG, &theIntRegs) == -1) {
+      perror("process::restoreRegisters PIOCSREG failed");
+      if (errno == EBUSY) {
+         cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
+	 assert(false);
+      }
+      return false;
+   }
+
+   if (ioctl(proc_fd, PIOCSFPREG, &theFpRegs) == -1) {
+      perror("process::restoreRegisters PIOCSFPREG failed");
+      if (errno == EBUSY) {
+         cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
+         assert(false);
+      }
+      return false;
+   }
+
+   return true;
+}
+
+bool process::continueProc_(Address vaddr)
+{
+  ptraceOps++; ptraceOtherOps++;
+  prrun_t flags;
+  prstatus_t stat;
+
+  // a process that receives a stop signal stops twice. We need to run the process
+  // and wait for the second stop.
+  if ((ioctl(proc_fd, PIOCSTATUS, &stat) != -1)
+      && (stat.pr_flags & PR_STOPPED)
+      && (stat.pr_why == PR_SIGNALLED)
+      && (stat.pr_what == SIGSTOP) || (stat.pr_what == SIGINT)) {
+    flags.pr_flags = PRSTOP || PRSVADDR;
+    flags.pr_vaddr = vaddr;
+    if (ioctl(proc_fd, PIOCRUN, &flags) == -1) {
+      fprintf(stderr, "continueProc_: PIOCRUN failed: %s\n", sys_errlist[errno]);
+      return false;
+    }
+    if (ioctl(proc_fd, PIOCWSTOP, 0) == -1) {
+      fprintf(stderr, "continueProc_: PIOCWSTOP failed: %s\n", sys_errlist[errno]);
+      return false;
+    }
+  }
+  flags.pr_flags = PRCSIG; // clear current signal
+  if (ioctl(proc_fd, PIOCRUN, &flags) == -1) {
+    fprintf(stderr, "continueProc_: PIOCRUN failed: %s\n", sys_errlist[errno]);
+    return false;
+  }
+  return true;
+}
+
+/* 
+   continue a process that is stopped 
+*/
+bool process::continueProc_() {
+  ptraceOps++; ptraceOtherOps++;
+  prrun_t flags;
+  prstatus_t stat;
+
+  // a process that receives a stop signal stops twice. We need to run the process
+  // and wait for the second stop.
+  if ((ioctl(proc_fd, PIOCSTATUS, &stat) != -1)
+      && (stat.pr_flags & PR_STOPPED)
+      && (stat.pr_why == PR_SIGNALLED)
+      && (stat.pr_what == SIGSTOP) || (stat.pr_what == SIGINT)) {
+    flags.pr_flags = PRSTOP;
+    if (ioctl(proc_fd, PIOCRUN, &flags) == -1) {
+      fprintf(stderr, "continueProc_: PIOCRUN failed: %s\n", sys_errlist[errno]);
+      return false;
+    }
+    if (ioctl(proc_fd, PIOCWSTOP, 0) == -1) {
+      fprintf(stderr, "continueProc_: PIOCWSTOP failed: %s\n", sys_errlist[errno]);
+      return false;
+    }
+  }
+  flags.pr_flags = PRCSIG; // clear current signal
+  if (ioctl(proc_fd, PIOCRUN, &flags) == -1) {
+    fprintf(stderr, "continueProc_: PIOCRUN failed: %s\n", sys_errlist[errno]);
+    return false;
+  }
+  return true;
+}
+
+/*
+   pause a process that is running
+*/
+bool process::pause_() {
+  ptraceOps++; ptraceOtherOps++;
+  return (ioctl(proc_fd, PIOCSTOP, 0) != -1);
+}
+
+/*
+   close the file descriptor for the file associated with a process
+*/
+bool process::detach_() {
+  close(proc_fd);
+  return true;
+}
+
+bool process::continueWithForwardSignal(int) {
+   if (-1 == ioctl(proc_fd, PIOCRUN, NULL)) {
+      perror("could not forward signal in PIOCRUN");
+      return false;
+   }
+
+   return true;
+}
+
+bool process::dumpImage(string outFile) {return false;}
+
+
+void *process::getRegisters() {
+   // Astonishingly, this routine can be shared between solaris/sparc and
+   // solaris/x86.  All hail /proc!!!
+
+   // assumes the process is stopped (/proc requires it)
+   assert(status_ == stopped);
+
+   gregset_t theIntRegs;
+   if (ioctl(proc_fd, PIOCGREG, &theIntRegs) == -1) {
+      perror("process::getRegisters PIOCGREG");
+      if (errno == EBUSY) {
+         cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
+	 assert(false);
+      }
+
+      return NULL;
+   }
+
+   fpregset_t theFpRegs;
+   if (ioctl(proc_fd, PIOCGFPREG, &theFpRegs) == -1) {
+      perror("process::getRegisters PIOCGFPREG");
+      if (errno == EBUSY)
+         cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
+      else if (errno == EINVAL)
+	 // what to do in this case?  Probably shouldn't even do a print, right?
+	 // And it certainly shouldn't be an error, right?
+	 // But I wonder if any sparcs out there really don't have floating point.
+	 cerr << "It appears that this machine doesn't have floating-point instructions" << endl;
+
+      return NULL;
+   }
+
+   const int numbytesPart1 = sizeof(gregset_t);
+   const int numbytesPart2 = sizeof(fpregset_t);
+   assert(numbytesPart1 % 4 == 0);
+   assert(numbytesPart2 % 4 == 0);
+
+   void *buffer = new char[numbytesPart1 + numbytesPart2];
+   assert(buffer);
+
+   memcpy(buffer, &theIntRegs, sizeof(theIntRegs));
+   memcpy((char *)buffer + sizeof(theIntRegs), &theFpRegs, sizeof(theFpRegs));
+
+   return buffer;
+}
+
+bool process::changePC(Address addr, const void *savedRegs) {
+   assert(status_ == stopped);
+
+   gregset_t theIntRegs = *(const gregset_t *)savedRegs; // makes a copy, on purpose
+   theIntRegs.regs[PC_REGNUM] = addr;
+   if (ioctl(proc_fd, PIOCSREG, &theIntRegs) == -1) {
+      perror("process::changePC PIOCSREG failed");
+      if (errno == EBUSY)
+	 cerr << "It appears that the process wasn't stopped in the eyes of /proc" << endl;
+      return false;
+   }
+
+   return true;
+}
+
+bool process::changePC(Address addr) {
+   assert(status_ == stopped); // /proc will require this
+
+   gregset_t theIntRegs;
+   if (-1 == ioctl(proc_fd, PIOCGREG, &theIntRegs)) {
+      perror("process::changePC PIOCGREG");
+      if (errno == EBUSY) {
+	 cerr << "It appears that the process wasn't stopped in the eyes of /proc" << endl;
+	 assert(false);
+      }
+      return false;
+   }
+
+   theIntRegs.regs[PC_REGNUM] = addr;
+
+   if (-1 == ioctl(proc_fd, PIOCSREG, &theIntRegs)) {
+      perror("process::changePC PIOCSREG");
+      if (errno == EBUSY) {
+	 cerr << "It appears that the process wasn't stopped in the eyes of /proc" << endl;
+	 assert(false);
+      }
+      return false;
+   }
+
+   return true;
+}
+
+bool process::executingSystemCall() {
+   prstatus theStatus;
+   if (ioctl(proc_fd, PIOCSTATUS, &theStatus) != -1) {
+     if ((theStatus.pr_flags & PR_ISSYS) == PR_ISSYS) {
+       return(true);
+     }
+   } else assert(0);
+   return(false);
+}
+
+bool process::set_breakpoint_for_syscall_completion() {
+   /* Can assume: (1) process is paused and (2) in a system call.
+      We want to set a TRAP for the syscall exit, and do the
+      inferiorRPC at that time.  We'll use /proc PIOCSEXIT.
+      Returns true iff breakpoint was successfully set. */
+
+   sysset_t save_exitset;
+   if (-1 == ioctl(proc_fd, PIOCGEXIT, &save_exitset))
+      return false;
+
+   sysset_t new_exit_set;
+   prfillset(&new_exit_set);
+   if (-1 == ioctl(proc_fd, PIOCSEXIT, &new_exit_set))
+      return false;
+
+   assert(save_exitset_ptr == NULL);
+   save_exitset_ptr = new sysset_t;
+   memcpy(save_exitset_ptr, &save_exitset, sizeof(save_exitset));
+
+   return true;
+}
+
+
+#ifdef BPATCH_LIBRARY
+/*
+   detach from thr process, continuing its execution if the parameter "cont"
+   is true.
+ */
+bool process::API_detach_(const bool cont)
+{
+  // Reset the kill-on-close flag, and the run-on-last-close flag if necessary
+  long pr_flags = 0;
+    if (ioctl(proc_fd, PIOCGSPCACT, &pr_flags) < 0) {
+      sprintf(errorLine, "Cannot get status\n");
+      logLine(errorLine);
+      close(proc_fd);
+      return false;
+    }
+
+  // Set the run-on-last-close-flag if necessary
+  if (cont) {
+    long pr_flags = 0;
+    if (ioctl (proc_fd,PIOCSRLC, &pr_flags) < 0) {
+      fprintf(stderr, "detach: PIOCSET failed: %s\n", sys_errlist[errno]);
+      close(proc_fd);
+      return false;
+    }
+  }
+  
+  close(proc_fd);
+  return true;
+}
+#endif
+
+bool process::writeTextWord_(caddr_t inTraced, int data) {
+  return writeDataSpace_(inTraced, sizeof(int), (caddr_t) &data);
+}
+
+bool process::writeTextSpace_(void  *inTracedProcess, int amount,const void *inSelf) {
+  return writeDataSpace_(inTracedProcess, amount, inSelf);
+}
+
+#ifdef BPATCH_SET_MUTATIONS_ACTIVE
+bool process::readTextSpace_(void *inTraced, int amount, const void *inSelf) {
+  return readDataSpace_(inTraced, amount, inSelf);
+}
+#endif
+
+bool process::writeDataSpace_(void *inTracedProcess, int amount,const void *inSelf) {
+  ptraceOps++; ptraceBytes += amount;
+  if (lseek(proc_fd, (off_t)inTracedProcess, SEEK_SET) != (off_t)inTracedProcess)
+    return false;
+  return (write(proc_fd, inSelf, amount) == amount);
+}
+
+bool process::readDataSpace_(const void *inTracedProcess, int amount, void *inSelf) {
+  ptraceOps++; ptraceBytes += amount;
+  if (lseek(proc_fd, (off_t)inTracedProcess, SEEK_SET) != (off_t)inTracedProcess) {
+    return false;
+  }
+  return (read(proc_fd, inSelf, amount) == amount);
+}
+
+bool process::loopUntilStopped() {
+  assert(0);
+}
+
+#ifdef notdef
+// TODO -- only call getrusage once per round
+static struct rusage *get_usage_data() {
+  return NULL;
+}
+#endif
+
+float OS::compute_rusage_cpu() {
+  return 0;
+}
+
+float OS::compute_rusage_sys() {
+  return 0;
+}
+
+float OS::compute_rusage_min() {
+  return 0;
+}
+float OS::compute_rusage_maj() {
+  return 0;
+}
+
+float OS::compute_rusage_swap() {
+  return 0;
+}
+float OS::compute_rusage_io_in() {
+  return 0;
+}
+float OS::compute_rusage_io_out() {
+  return 0;
+}
+float OS::compute_rusage_msg_send() {
+  return 0;
+}
+float OS::compute_rusage_msg_recv() {
+  return 0;
+}
+float OS::compute_rusage_sigs() {
+  return 0;
+}
+float OS::compute_rusage_vol_cs() {
+  return 0;
+}
+float OS::compute_rusage_inv_cs() {
+  return 0;
+}
+

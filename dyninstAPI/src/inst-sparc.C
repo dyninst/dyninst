@@ -358,7 +358,7 @@ void generateMTpreamble(char *insn, unsigned &base, process *proc)
   regSpace->freeRegister(src);
 }
 
-void generateNoOp(process *proc, int addr)
+void generateNoOp(process *proc, Address addr)
 {
     instruction insn;
 

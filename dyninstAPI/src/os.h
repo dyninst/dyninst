@@ -51,6 +51,12 @@
 
 /*
  * $Log: os.h,v $
+ * Revision 1.17  1998/08/25 19:35:17  buck
+ * Initial commit of DEC Alpha port.
+ *
+ * Revision 1.1.1.3  1998/02/04  01:06:48  buck
+ * Import latest changes from Wisconsin into Maryland repository.
+ *
  * Revision 1.16  1997/12/01 02:30:19  tung
  * For Linux/X86 port
  *
@@ -92,6 +98,8 @@
 #include "dyninstAPI/src/solaris.h"
 #elif defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
 #include "dyninstAPI/src/aix.h"
+#elif defined(alpha_dec_osf4_0)
+#include "dyninstAPI/src/alpha.h"
 #elif defined(hppa1_1_hp_hpux)
 #include "dyninstAPI/src/hpux.h"
 #elif defined(i386_unknown_nt4_0)

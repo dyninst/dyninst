@@ -117,12 +117,12 @@ public:
     }
 
     const Word*       code_ptr () const { return code_ptr_; } 
-    unsigned          code_off () const { return code_off_; }
-    unsigned          code_len () const { return code_len_; }
+    Address           code_off () const { return code_off_; }
+    Address           code_len () const { return code_len_; }
 
     const Word*       data_ptr () const { return data_ptr_; }
-    unsigned          data_off () const { return data_off_; }
-    unsigned          data_len () const { return data_len_; }
+    Address           data_off () const { return data_off_; }
+    Address           data_len () const { return data_len_; }
 
     virtual  bool   needs_function_binding()  const;
     virtual  bool   get_func_binding_table(vector<relocationEntry> &) const;
@@ -159,12 +159,12 @@ protected:
     dictionary_hash<string, Symbol> symbols_;
 
     Word*    code_ptr_;
-    unsigned code_off_;
-    unsigned code_len_;
+    Address code_off_;
+    Address code_len_;
 
     Word*    data_ptr_;
-    unsigned data_off_;
-    unsigned data_len_;
+    Address  data_off_;
+    Address data_len_;
 
     void (*err_func_)(const char*);
 
@@ -212,6 +212,11 @@ private:
 #include "util/h/Object-nt.h"
 #define HAVE_SPECIFIC_OBJECT
 #endif /* defined(i386_unknown_nt4_0) */
+
+#if defined(alpha_dec_osf4_0)
+#include <util/h/Object-coff.h>
+#define HAVE_SPECIFIC_OBJECT
+#endif /* defined (alpha-dec-osf4.0)) */
 
 #if !defined(HAVE_SPECIFIC_OBJECT)
 #error "unable to locate system-specific object files"

@@ -153,12 +153,12 @@ extern trampTemplate *findAndInstallBaseTramp(process *proc,
 				 returnInstance *&retInstance,
 				 bool noCost);
 extern void installTramp(instInstance *inst, char *code, int codeSize);
-extern void modifyTrampReturn(process*, int returnAddr, int newReturnTo);
-extern void generateReturn(process *proc, int currAddr, instPoint *location);
-extern void generateEmulationInsn(process *proc, int addr, instPoint *location);
-extern void generateNoOp(process *proc, int addr);
+extern void modifyTrampReturn(process*, Address returnAddr, int newReturnTo);
+extern void generateReturn(process *proc, Address currAddr, instPoint *location);
+extern void generateEmulationInsn(process *proc, Address addr, instPoint *location);
+extern void generateNoOp(process *proc, Address addr);
 extern void initTramps();
-extern void generateBranch(process *proc, unsigned fromAddr,unsigned newAddr);
+extern void generateBranch(process *proc, Address fromAddr,Address newAddr);
 extern void removeTramp(process *proc, instPoint *location);
 
 extern int flushPtrace();

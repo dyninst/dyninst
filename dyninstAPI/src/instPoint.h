@@ -54,10 +54,11 @@
 #include "instPoint-x86.h"
 #elif defined(i386_unknown_solaris2_5)
 #include "instPoint-x86.h"
+#elif defined(alpha_dec_osf4_0)
+#include "instPoint-alpha.h"
 #elif defined(i386_unknown_linux2_0)
 #include "instPoint-x86.h"
 #else
 #error unknown architecture
 #endif
-
 #endif

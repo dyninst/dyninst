@@ -46,6 +46,9 @@
 #if !defined(_ByteArray_h_)
 #define _ByteArray_h_
 
+#if defined(alpha_dec_osf4_0)
+#include <rpc/xdr.h>
+#endif
 
 /************************************************************************
  * header files.

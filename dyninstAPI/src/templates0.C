@@ -110,6 +110,8 @@ template class  vector<process*>;
 template class  vector<string>;
 template class  vector<sym_data>;
 template class  vector<unsigned>;
+template class  vector<unsigned long>;
+template class  vector<long>;
 template class  vector<disabledItem>;
 template class  vector<unsigVecType>;
 template class  vector<vector<string> >;

@@ -161,7 +161,7 @@ class inferiorHeap {
   }
   inferiorHeap(const inferiorHeap &src);  // create a new heap that is a copy of src.
                                           // used on fork.
-  dictionary_hash<unsigned, heapItem*> heapActive; // active part of heap 
+  dictionary_hash<Address, heapItem*> heapActive; // active part of heap 
   vector<heapItem*> heapFree;  		// free block of data inferior heap 
   vector<disabledItem> disabledList;	// items waiting to be freed.
   int disabledListTotalMem;		// total size of item waiting to free
@@ -346,7 +346,7 @@ class process {
      // look for curr PC reg value in 'trapInstrAddr' of 'currRunningRPCs'.  Return
      // true iff found.  Also, if true is being returned, then additionally does
      // a 'launchRPCifAppropriate' to fire off the next waiting RPC, if any.
-  bool changePC(unsigned addr);
+  bool changePC(Address addr);
 
 
   void installBootstrapInst();
@@ -479,19 +479,19 @@ class process {
 
      bool wasRunning; // were we running when we launched the inferiorRPC?
 
-     unsigned firstInstrAddr; // start location of temp tramp
+     Address firstInstrAddr; // start location of temp tramp
 
-     unsigned stopForResultAddr;
+     Address stopForResultAddr;
         // location of the TRAP or ILL which marks point where paradynd should grab the
 	// result register.  Undefined if no callback fn.
-     unsigned justAfter_stopForResultAddr; // undefined if no callback fn.
+     Address justAfter_stopForResultAddr; // undefined if no callback fn.
      reg resultRegister; // undefined if no callback fn.
 
      unsigned resultValue; // undefined until we stop-for-result, at which time we
                            // fill this in.  The callback fn (which takes in this value)
 			   // isn't invoked until breakAddr (the final break)
 
-     unsigned breakAddr;
+     Address breakAddr;
         // location of the TRAP or ILL insn which marks the end of the inferiorRPC
   };
   vectorSet<inferiorRPCinProgress> currRunningRPCs;
@@ -503,25 +503,25 @@ class process {
   // 
 
   // The follwing 5 routines are implemented in an arch-specific .C file
-  bool emitInferiorRPCheader(void *, unsigned &base);
-  bool emitInferiorRPCtrailer(void *, unsigned &base,
-                              unsigned &breakOffset,
+  bool emitInferiorRPCheader(void *, Address&base);
+  bool emitInferiorRPCtrailer(void *, Address &base,
+                              Address &breakOffset,
 			      bool stopForResult,
-			      unsigned &stopForResultOffset,
-			      unsigned &justAfter_stopForResultOffset);
+			      Address &stopForResultOffset,
+			      Address &justAfter_stopForResultOffset);
 
-  unsigned createRPCtempTramp(AstNode *action,
+  Address createRPCtempTramp(AstNode *action,
 			      bool noCost, bool careAboutResult,
-			      unsigned &breakAddr,
-			      unsigned &stopForResultAddr,
-			      unsigned &justAfter_stopForResultAddr,
+			      Address  &breakAddr,
+			      Address &stopForResultAddr,
+			      Address &justAfter_stopForResultAddr,
 			      reg &resultReg);
 
   void *getRegisters();
      // ptrace-GETREGS and ptrace-GETFPREGS (or /proc PIOCGREG and PIOCGFPREG).
      // Result is returned in an opaque type which is allocated with new[]
 
-  bool changePC(unsigned addr,
+  bool changePC(Address addr,
                 const void *savedRegs // returned by getRegisters()
                 );
 
@@ -668,7 +668,7 @@ class process {
   // getBaseAddress: sets baseAddress to the base address of the 
   // image corresponding to which.  It returns true  if image is mapped
   // in processes address space, otherwise it returns 0
-  bool getBaseAddress(const image *which, u_int &baseAddress) const;
+  bool getBaseAddress(const image *which, Address &baseAddress) const;
 
   // findCallee: finds the function called by the instruction corresponding
   // to the instPoint "instr". If the function call has been bound to an
@@ -723,6 +723,10 @@ class process {
   static int waitProcs(int *status, bool block = false);
 #else
   static int waitProcs(int *status);
+#endif
+
+#if defined(alpha_dec_osf4_0)
+  int waitforRPC(int *status,bool block = false);
 #endif
   const process *getParent() const {return parent;}
 
@@ -892,10 +896,14 @@ private:
 #endif
   bool pause_();
   bool continueProc_();
+#ifdef alpha_dec_osf4_0
+  bool continueProc_(Address vaddr);
+#endif
 #ifdef BPATCH_LIBRARY
   bool terminateProc_();
 #endif
   bool dumpCore_(const string coreFile);
+  bool osDumpImage(const string &imageFileName,  pid_t pid, Address codeOff);
   bool detach_();
 #ifdef BPATCH_LIBRARY
   bool API_detach_(const bool cont); // XXX Should eventually replace detach_()
@@ -998,7 +1006,7 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
 
 void handleProcessExit(process *p, int exitStatus);
 
-unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type);
+Address inferiorMalloc(process *proc, int size, inferiorHeapType type);
 void inferiorFree(process *proc, unsigned pointer, inferiorHeapType type,
                   const vector<unsigVecType> &pointsToCheck);
 

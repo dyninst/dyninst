@@ -56,6 +56,5 @@
 #include "dyninstAPI/src/util.h"
 #include "util/h/Object.h"
 
-
 template class  vector< instWaitingList *>;
 

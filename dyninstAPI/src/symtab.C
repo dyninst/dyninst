@@ -116,7 +116,7 @@ pdmodule *image::newModule(const string &name, const Address addr)
     }
     free(out);
 
-    ret = new pdmodule(langUnknown, addr, fullNm, fileNm, this);
+    ret = new pdmodule(lang_Unknown, addr, fullNm, fileNm, this);
 
 #ifndef BPATCH_LIBRARY
     // if module was excluded,stuff it into excludedMods (and dont
@@ -985,7 +985,6 @@ static bool cache_func_constraint_hash() {
 
     // strings holding exclude constraints....
     vector<string> func_constraints;
-
     // if unble to get list of excluded functions, assume all functions
     //  are NOT excluded!!!!
     if(mdl_get_lib_constraints(func_constraints) == FALSE) {
@@ -1401,8 +1400,8 @@ int symCompare(const void *s1, const void *s2) {
 }
 
 
-unsigned int_addrHash(const unsigned &addr) {
-  return addr;
+unsigned int int_addrHash(const Address& addr) {
+  return (unsigned int)addr;
 }
 
 // Please note that this is now machine independent-almost.  Let us keep it that way

@@ -46,6 +46,7 @@
 #include "util/h/Dictionary.h"
 #include "util/h/String.h"
 #include "ast.h" // enum opCode now defined here.
+#include "util/h/Types.h"
 
 class instPoint;
 class instInstance;
@@ -169,10 +170,10 @@ typedef int reg;
  * Generate an instruction.
  *
  */
-unsigned emit(opCode op, reg src1, reg src2, reg dest, char *insn, 
-              unsigned &base, bool noCost);
-unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i, 
-                 unsigned &base, bool noCost);
+Address emit(opCode op, reg src1, reg src2, reg dest, char *insn, 
+              Address &base, bool noCost);
+Address emitImm(opCode op, reg src1, reg src2, reg dest, char *i, 
+                 Address &base, bool noCost);
 int getInsnCost(opCode t);
 
 /*
@@ -204,7 +205,7 @@ extern float computePauseTimeMetric(const metricDefinitionNode *);
 
 extern void initLibraryFunctions();
 
-extern unsigned getMaxBranch();
+extern Address getMaxBranch();
 
 // find these internal functions before finding any other functions
 // extern dictionary_hash<string, unsigned> tagDict;

@@ -260,7 +260,6 @@ void mutatorTest6(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_arithExpr arith6_2 (BPatch_assign, *expr6_2, 
       BPatch_arithExpr(BPatch_minus,BPatch_constExpr(64),BPatch_constExpr(1)));
     vect6_1.push_back(&arith6_2);
-
     // globalVariable6_3 = 66 / 3
     BPatch_arithExpr arith6_3 (BPatch_assign, *expr6_3, BPatch_arithExpr(
       BPatch_divide,BPatch_constExpr(66),BPatch_constExpr(3)));
@@ -270,7 +269,6 @@ void mutatorTest6(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_arithExpr arith6_4 (BPatch_assign, *expr6_4, BPatch_arithExpr(
       BPatch_divide,BPatch_constExpr(67),BPatch_constExpr(3)));
     vect6_1.push_back(&arith6_4);
-
     // globalVariable6_5 = 6 * 5
     BPatch_arithExpr arith6_5 (BPatch_assign, *expr6_5, BPatch_arithExpr(
       BPatch_times,BPatch_constExpr(6),BPatch_constExpr(5)));
@@ -327,7 +325,6 @@ void mutatorTest7(BPatch_thread *appThread, BPatch_image *appImage)
     genRelTest(appImage, vect7_1, BPatch_and, 1, 0, "globalVariable7_14");
     genRelTest(appImage, vect7_1, BPatch_or, 1, 0, "globalVariable7_15");
     genRelTest(appImage, vect7_1, BPatch_or, 0, 0, "globalVariable7_16");
-
     dprintf("relops test vector length is %d\n", vect7_1.size());
 
     checkCost(BPatch_sequence(vect7_1));
@@ -854,7 +851,7 @@ void mutatorMAIN(char *pathname, bool useAttach)
 
 	appThread = bpatch->attachProcess(pathname, pid);
     } else {
-	appThread = bpatch->createProcess(pathname, child_argv);
+	appThread = bpatch->createProcess(pathname, child_argv,NULL);
     }
 
     if (appThread == NULL) {
@@ -880,7 +877,6 @@ void mutatorMAIN(char *pathname, bool useAttach)
     for (i=0; i < p->size(); i++) {
         // dprintf("func %s\n", (*p)[i]->name());
     }
-
     // Start Test Case #1 - mutator side (call a zero argument function)
 
     // Find the entry point to the procedure "func1_1"
@@ -906,7 +902,6 @@ void mutatorMAIN(char *pathname, bool useAttach)
     dprintf("Inserted snippet2\n");
     checkCost(call1Expr);
     appThread->insertSnippet(call1Expr, *point1_1);
-
 
     //
     // Start Test Case #2 - mutator side (call a three argument function)
@@ -995,7 +990,6 @@ void mutatorMAIN(char *pathname, bool useAttach)
     appThread->insertSnippet(expr3_3, *point3_1);
 
     dprintf("Inserted snippet3\n");
-
     //
     // Start Test Case #4 - mutator side (sequence)
     //
@@ -1057,9 +1051,7 @@ void mutatorMAIN(char *pathname, bool useAttach)
     BPatch_sequence expr5_5(vect5_1);
     checkCost(expr5_5);
     appThread->insertSnippet(expr5_5, *point5_1);
-
     mutatorTest6(appThread, appImage);
-
     mutatorTest7(appThread, appImage);
 
     mutatorTest8(appThread, appImage);
@@ -1070,33 +1062,24 @@ void mutatorMAIN(char *pathname, bool useAttach)
 
     mutatorTest11(appThread, appImage);
 
+
     mutatorTest12a(appThread, appImage);
-
     mutatorTest13(appThread, appImage);
-
     mutatorTest14(appThread, appImage);
-
     mutatorTest15a(appThread, appImage);
-
     mutatorTest16(appThread, appImage);
-
     mutatorTest17(appThread, appImage);
 
     mutatorTest18(appThread, appImage);
-
     // Start of code to continue the process.
     dprintf("starting program execution.\n");
     appThread->continueExecution();
-
     mutatorTest12b(appThread, appImage);
-
     mutatorTest15b(appThread, appImage);
-
     mutatorTest19(appThread, appImage);
 
     while (!appThread->isTerminated())
 	waitForStatusChange();
-
     dprintf("Done.\n");
 }
 

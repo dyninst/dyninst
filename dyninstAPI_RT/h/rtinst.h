@@ -65,6 +65,9 @@ typedef enum { processTime, wallTime } timerType;
 #if defined(i386_unknown_nt4_0)
 typedef __int64 time64;
 typedef __int64 int64;
+#elif defined(alpha_dec_osf4_0)
+typedef  long int time64;
+typedef  long int int64;
 #else
 typedef long long int time64;
 typedef long long int int64;

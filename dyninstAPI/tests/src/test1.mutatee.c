@@ -682,7 +682,6 @@ void main(int argc, char *argv[])
     	while (!checkIfAttached()) ;
 	printf("Mutator attached.  Mutatee continuing.\n");
     }
-
     /* Test #1 */
     dprintf("Value of globalVariable1_1 is %d.\n", globalVariable1_1);
     func1_1();
@@ -724,7 +723,6 @@ void main(int argc, char *argv[])
 	    printf("    condition not executed for true\n");
 	}
     }
-
     func6_1();
     if ((globalVariable6_1 == 60+2) && (globalVariable6_2 == 64-1) &&
 	(globalVariable6_3 == 66/3) && (globalVariable6_4 == 67/3) &&
@@ -775,15 +773,12 @@ void main(int argc, char *argv[])
     func10_1();
 
     func11_1();
-
     func12_1();
-
     func13_1(131,132,133,134,135);
 
     func14_1();
 
     func15_1();
-
     func16_1();
 
     ret17_1 = func17_1();
@@ -808,8 +803,6 @@ void main(int argc, char *argv[])
     }
 
     func18_1();
-
     func19_1();
-
     exit(0);
 }

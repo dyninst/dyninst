@@ -43,6 +43,12 @@
  * util.h - support functions.
  *
  * $Log: util.h,v $
+ * Revision 1.21  1998/08/25 19:35:39  buck
+ * Initial commit of DEC Alpha port.
+ *
+ * Revision 1.1.1.5  1997/09/29 00:12:18  buck
+ * Import latest changes from Wisconsin into Maryland repository.
+ *
  * Revision 1.20  1997/09/28 22:22:36  buck
  * Added some more #ifdef BPATCH_LIBRARYs to eliminate some Dyninst API
  * library dependencies on files in rtinst.
@@ -110,6 +116,7 @@
 #define UTIL_H
 
 #include "util/h/headers.h"
+#include "util/h/Types.h"
 #ifdef BPATCH_LIBRARY
 #include "dyninstAPI_RT/h/rtinst.h" // for time64
 #else
@@ -142,11 +149,11 @@ inline unsigned CThash(const unsigned &val) {
   return val % 1048573;
 }
 
-unsigned addrHash4(const unsigned &addr);
+unsigned addrHash4(const Address &addr);
    // use when you know the address is divisible by 4 (lo 2 bits 0)
-unsigned addrHash16(const unsigned &addr);
+unsigned addrHash16(const Address &addr);
    // use when you know the address is divisible by 16 (lo 4 bits 0)
-unsigned addrHash(const unsigned &addr);
+unsigned addrHash(const Address &addr);
    // use when you cannot assume anything about the address
 
 inline unsigned intHash(const int &val) {

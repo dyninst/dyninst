@@ -138,7 +138,7 @@ bool forkNewProcess(string file, string dir, vector<string> argv,
     //
     
     errno = 0;
-#if defined(PARADYND_PVM) || defined(BPATCH_LIBRARY)
+#if defined(PARADYND_PVM) || (defined(BPATCH_LIBRARY) && !defined(alpha_dec_osf4_0))
 // must use fork, since pvmendtask will do some writing in the address space
     pid = fork();
     // fprintf(stderr, "FORK: pid=%d\n", pid);

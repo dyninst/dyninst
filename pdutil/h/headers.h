@@ -76,6 +76,9 @@ typedef int (*xdr_wr_func)(const void *, const char *, const int);
 #elif defined(rs6000_ibm_aix4_1)
 #include "util/h/aixv41Headers.h"
 
+#elif defined(alpha_dec_osf4_0)
+#include "util/h/osfHeaders.h"
+
 #elif defined(i386_unknown_nt4_0)
 #include "util/h/ntHeaders.h"
 

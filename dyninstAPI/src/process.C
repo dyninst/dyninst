@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.154 1998/08/16 23:36:29 wylie Exp $
+// $Id: process.C,v 1.155 1998/08/25 19:35:25 buck Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -321,7 +321,7 @@ bool isFreeOK(process *proc, disabledItem &disItem, vector<Address> &pcs) {
       logLine(errorLine);
 #endif
 
-      const dictionary_hash<unsigned, heapItem*> &heapActivePart =
+      const dictionary_hash<Address, heapItem*> &heapActivePart =
 	      proc->splitHeaps ? proc->heaps[textHeap].heapActive :
                                  proc->heaps[dataHeap].heapActive;
 
@@ -630,7 +630,7 @@ bool findFreeIndex(inferiorHeap *hp, int size, unsigned *index)
   return(foundFree);
 }  
 
-unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
+Address inferiorMalloc(process *proc, int size, inferiorHeapType type)
 {
     inferiorHeap *hp;
     heapItem *np=NULL, *newEntry = NULL;
@@ -926,7 +926,7 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
 
    splitHeaps = false;
 
-#if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
+#if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1) || defined(alpha_dec_osf4_0)
 	// XXXX - move this to a machine dependant place.
 
 	// create a seperate text heap.
@@ -2650,9 +2650,9 @@ vector<module *> *process::getIncludedModules(){
 // getBaseAddress: sets baseAddress to the base address of the 
 // image corresponding to which.  It returns true  if image is mapped
 // in processes address space, otherwise it returns 0
-bool process::getBaseAddress(const image *which,u_int &baseAddress) const {
+bool process::getBaseAddress(const image *which,Address &baseAddress) const {
 
-  if((u_int)(symbols) == (u_int)(which)){
+  if((Address)(symbols) == (Address)(which)){
       baseAddress = 0; 
       return true;
   }
@@ -2660,7 +2660,7 @@ bool process::getBaseAddress(const image *which,u_int &baseAddress) const {
       // find shared object corr. to this image and compute correct address
       for(unsigned j=0; j < shared_objects->size(); j++){ 
 	  if(((*shared_objects)[j])->isMapped()){
-            if(((*shared_objects)[j])->getImageId() == (u_int)which) { 
+            if(((*shared_objects)[j])->getImageId() == (Address)which) { 
 	      baseAddress = ((*shared_objects)[j])->getBaseAddress();
 	      return true;
 	  } }
@@ -2720,7 +2720,7 @@ Address process::findInternalAddress(const string &name, bool warn, bool &err) c
      if (name==string("dlopen")) {
        // if the function is dlopen, we use the address in ld.so.1 directly
        baseAddr = get_dlopen_addr();
-       if (baseAddr != 0) { // check for NULL
+       if (baseAddr != (Address)NULL) {
          err = false;
          return baseAddr;
        } else {
@@ -3137,7 +3137,7 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
       // If finishing up a system call, current state is paused, but we want to
       // set wasRunning to true so that it'll continue when the inferiorRPC
       // completes.  Sorry for the kludge.
-   unsigned tempTrampBase = createRPCtempTramp(todo.action,
+   Address tempTrampBase = createRPCtempTramp(todo.action,
 					       todo.noCost,
 					       inProgStruct.callbackFunc != NULL,
 					       inProgStruct.breakAddr,
@@ -3170,22 +3170,29 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
       return false;
    }
 
+#ifdef alpha_dec_osf4_0
+   if (!continueProc_(tempTrampBase)) {
+      cerr << "launchRPCifAppropriate: continueProc() failed" << endl;
+      return false;
+   }
+   status_ = running; /* Since we called continueProc_ instead of continueProc we need to update the process status explicitly */
+#else
    if (!continueProc()) {
       cerr << "launchRPCifAppropriate: continueProc() failed" << endl;
       return false;
    }
-
+#endif
    inferiorrpc_cerr << "inferiorRPC should be running now" << endl;
 
    return true; // success
 }
 
-unsigned process::createRPCtempTramp(AstNode *action,
+Address process::createRPCtempTramp(AstNode *action,
 				     bool noCost,
 				     bool shouldStopForResult,
-				     unsigned &breakAddr,
-				     unsigned &stopForResultAddr,
-				     unsigned &justAfter_stopForResultAddr,
+				     Address &breakAddr,
+				     Address &stopForResultAddr,
+				     Address &justAfter_stopForResultAddr,
 				     reg &resultReg) {
 
    // Returns addr of temp tramp, which was allocated in the inferior heap.
@@ -3205,13 +3212,13 @@ unsigned process::createRPCtempTramp(AstNode *action,
    extern registerSpace *regSpace;
    regSpace->resetSpace();
 
-   unsigned count = 0;
+   Address count = 0;
 
    // The following is implemented in an arch-specific source file...
    if (!emitInferiorRPCheader(insnBuffer, count)) {
       // a fancy dialog box is probably called for here...
       cerr << "createRPCtempTramp failed because emitInferiorRPCheader failed." << endl;
-      return 0; // NULL
+      return NULL;
    }
 
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
@@ -3231,16 +3238,16 @@ unsigned process::createRPCtempTramp(AstNode *action,
    // Now, the trailer (restore, TRAP, illegal)
    // (the following is implemented in an arch-specific source file...)
 
-   unsigned breakOffset, stopForResultOffset, justAfter_stopForResultOffset;
+   Address breakOffset, stopForResultOffset, justAfter_stopForResultOffset;
    if (!emitInferiorRPCtrailer(insnBuffer, count,
 			       breakOffset, shouldStopForResult, stopForResultOffset,
 			       justAfter_stopForResultOffset)) {
       // last 4 args except shouldStopForResult are modified by the call
       cerr << "createRPCtempTramp failed because emitInferiorRPCtrailer failed." << endl;
-      return 0; // NULL
+      return NULL;
    }
 
-   unsigned tempTrampBase = inferiorMalloc(this, count, textHeap);
+   Address tempTrampBase = inferiorMalloc(this, count, textHeap);
    assert(tempTrampBase);
 
 
@@ -3270,11 +3277,35 @@ unsigned process::createRPCtempTramp(AstNode *action,
    if (!writeDataSpace((void*)tempTrampBase, count, insnBuffer)) {
       // should put up a nice error dialog window
       cerr << "createRPCtempTramp failed because writeDataSpace failed" << endl;
-      return 0; // NULL
+      return NULL;
    }
 
    extern int trampBytes; // stats.h
    trampBytes += count;
+   /* Put an illegal instruction at the top of the mini tramp */
+   /* For debugging purposes only */
+
+   /* BEGIN */
+#ifdef notdef
+   instruction *temp_insn = new instruction;
+   temp_insn->raw = 0;
+   if (!writeDataSpace((void*)tempTrampBase,sizeof(instruction),temp_insn)) {
+     // should put up a nice error dialog window
+      cerr << "createRPCtempTramp failed because writeDataSpace failed" << endl;
+      return NULL;
+   }
+   if (!writeDataSpace((void*)(tempTrampBase+4),sizeof(instruction),temp_insn)) {
+     // should put up a nice error dialog window
+      cerr << "createRPCtempTramp failed because writeDataSpace failed" << endl;
+      return NULL;
+   }
+   if (!writeDataSpace((void*)(tempTrampBase+8),sizeof(instruction),temp_insn)) {
+     // should put up a nice error dialog window
+      cerr << "createRPCtempTramp failed because writeDataSpace failed" << endl;
+      return NULL;
+   }
+#endif
+   /* END */
 
    return tempTrampBase;
 }
@@ -3303,14 +3334,14 @@ bool process::handleTrapIfDueToRPC() {
    Frame theFrame(this);
    while (true) {
       // do we have a match?
-      const int framePC = theFrame.getPC();
-      if ((unsigned)framePC == currRunningRPCs[0].breakAddr) {
+      const Address framePC = theFrame.getPC();
+      if ((Address)framePC == currRunningRPCs[0].breakAddr) {
 	 // we've got a match!
 	 match_type = 2;
 	 break;
       }
       else if (currRunningRPCs[0].callbackFunc != NULL &&
-	       ((unsigned)framePC == currRunningRPCs[0].stopForResultAddr)) {
+	       ((Address)framePC == currRunningRPCs[0].stopForResultAddr)) {
 	 match_type = 1;
 	 break;
       }
@@ -3350,9 +3381,14 @@ bool process::handleTrapIfDueToRPC() {
       if (!changePC(theStruct.justAfter_stopForResultAddr))
 	 assert(false);
 
+#if defined(alpha_dec_osf4_0)
+      if (!continueProc_(theStruct.justAfter_stopForResultAddr))
+	 cerr << "RPC getting result: continueProc failed" << endl;
+      status_ = running;
+#else
       if (!continueProc())
 	 cerr << "RPC getting result: continueProc failed" << endl;
-
+#endif
       return true;
    }
 
@@ -3383,6 +3419,11 @@ bool process::handleTrapIfDueToRPC() {
    inferiorFree(this, theStruct.firstInstrAddr, textHeap, pointsToCheck);
 
    // step 3) continue process, if appropriate
+#if defined(alpha_dec_osf4_0)
+   if (!continueProc()){
+     cerr << "RPC completion: continueProc failed" << endl;
+   }
+#else
    if (theStruct.wasRunning) {
       inferiorrpc_cerr << "end of rpc -- continuing process, since it had been running" << endl;
 
@@ -3392,6 +3433,7 @@ bool process::handleTrapIfDueToRPC() {
    }
    else
       inferiorrpc_cerr << "end of rpc -- leaving process paused, since it wasn't running before" << endl;
+#endif
 
    // step 4) invoke user callback, if any
    // note: I feel it's important to do the user callback last, since it
@@ -3891,14 +3933,11 @@ bool process::saveOriginalInstructions(Address addr, int size) {
     assert(data);
 
     if (!readTextSpace((const void *)addr, size, data))
-      {
-        delete [] data;
 	return false;
-      }
 
     beforeMutationList.insertHead(addr, size, data);
 
-    delete [] data;
+    delete data;
     
     return true;
 }

@@ -410,7 +410,7 @@ inline void genLoadD(instruction *insn, int rs1, int offset, int rd)
 bool processOptimaRet(instPoint *location, AstNode *&ast);
 
 extern bool isPowerOf2(int value, int &result);
-extern void generateNoOp(process *proc, int addr);
+extern void generateNoOp(process *proc, Address addr);
 extern void changeBranch(process *proc, unsigned fromAddr, unsigned newAddr,
 		  instruction originalBranch);
 extern trampTemplate *findAndInstallBaseTramp(process *proc,

@@ -41,6 +41,12 @@
 
 /* 
  * $Log: ast.C,v $
+ * Revision 1.52  1998/08/25 19:35:03  buck
+ * Initial commit of DEC Alpha port.
+ *
+ * Revision 1.1.1.10  1998/06/15  23:15:15  buck
+ * Import changes from Wisconsin to Maryland repository.
+ *
  * Revision 1.51  1998/05/15 23:17:19  czhang
  * Added initTramps() to registerSpace::registerSpace().
  *
@@ -183,8 +189,9 @@
  *
  */
 
-#include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/pdThread.h"
+
+#include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
@@ -210,6 +217,8 @@
 #include "dyninstAPI/src/inst-power.h"
 #elif defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
 #include "dyninstAPI/src/inst-x86.h"
+#elif defined(alpha_dec_osf4_0)
+#include "dyninstAPI/src/inst-alpha.h"
 #else
 #endif
 
@@ -253,7 +262,7 @@ registerSpace::registerSpace(int deadCount, int *dead, int liveCount, int *live)
 
 }
 
-reg registerSpace::allocateRegister(char *insn, unsigned &base, bool noCost) 
+reg registerSpace::allocateRegister(char *insn, Address &base, bool noCost) 
 {
     int i;
     for (i=0; i < numRegisters; i++) {
@@ -827,7 +836,7 @@ void terminateAst(AstNode *&ast) {
 }
 
 int AstNode::generateTramp(process *proc, char *i, 
-			   unsigned &count, 
+			   Address &count, 
 			   int &trampCost, bool noCost) {
     static AstNode *trailer=NULL;
     if (!trailer) trailer = new AstNode(trampTrailer); // private constructor
@@ -955,7 +964,7 @@ void AstNode::printUseCount(void)
 reg AstNode::generateCode(process *proc,
 			  registerSpace *rs,
 			  char *insn, 
-			  unsigned &base, bool noCost) {
+			  Address &base, bool noCost) {
   cleanUseCount();
   setUseCount();
   reg tmp=generateCode_phase2(proc,rs,insn,base,noCost);
@@ -965,10 +974,10 @@ reg AstNode::generateCode(process *proc,
 reg AstNode::generateCode_phase2(process *proc,
 			         registerSpace *rs,
 			         char *insn, 
-			         unsigned &base, bool noCost) {
-    unsigned addr;
-    unsigned fromAddr;
-    unsigned startInsn;
+			         Address &base, bool noCost) {
+    Address addr;
+    Address fromAddr;
+    Address startInsn;
     reg src1, src2;
     reg src = -1;
     reg dest = -1;
@@ -992,7 +1001,7 @@ reg AstNode::generateCode_phase2(process *proc,
     if (type == opCodeNode) {
         if (op == branchOp) {
 	    assert(loperand->oType == Constant);
-	    unsigned offset = (unsigned)loperand->oValue;
+	    Address offset = (Address)loperand->oValue;
             emit(branchOp, (reg) 0, (reg) 0, (int)offset, insn, base, noCost);
         } else if (op == ifOp) {
             // This ast cannot be shared because it doesn't return a register
@@ -1004,15 +1013,15 @@ reg AstNode::generateCode_phase2(process *proc,
             rs->freeRegister(tmp);
 
 	    // Is there and else clause?  If yes, generate branch over it
-	    unsigned else_fromAddr;
-	    unsigned else_startInsn = base;
+	    Address else_fromAddr;
+	    Address else_startInsn = base;
 	    if (eoperand) {
 		else_fromAddr = emit(branchOp, (reg) 0, (reg) 0, (reg) 0,
 				     insn, base, noCost);
 	    }
 
 	    // call emit again now with correct offset.
-	    (void) emit(op, src, (reg) 0, (reg) ((int)base - (int)fromAddr), 
+	    (void) emit(op, src, (reg) 0, (reg) ((long)base - (long)fromAddr), 
 			insn, startInsn, noCost);
             // sprintf(errorLine,branch forward %d\n", base - fromAddr);
 	   
@@ -1025,7 +1034,7 @@ reg AstNode::generateCode_phase2(process *proc,
 		// We also need to fix up the branch at the end of the "true"
 		// clause to jump around the "else" clause.
 		emit(branchOp, (reg) 0, (reg) 0,
-		     ((int)base - (int)else_fromAddr),
+		     ((long)base - (long)else_fromAddr),
 		     insn, else_startInsn, noCost);
 	    }
 	} else if (op == storeOp) {
@@ -1039,7 +1048,7 @@ reg AstNode::generateCode_phase2(process *proc,
 	    }
 	    src1 = roperand->generateCode_phase2(proc, rs, insn, base, noCost);
 	    src2 = rs->allocateRegister(insn, base, noCost);
-	    addr = (unsigned) loperand->oValue;
+	    addr = (Address) loperand->oValue;
 	    assert(addr != 0); // check for NULL
 	    (void) emit(op, src1, src2, (reg) addr, insn, base, noCost);
 	    rs->freeRegister(src1);
@@ -1073,7 +1082,7 @@ reg AstNode::generateCode_phase2(process *proc,
 	    if (!noCost)
 	       costAddr = (int)proc->getObsCostLowAddrInApplicSpace();
 #endif
-	    return (unsigned) emit(op, 0, 0, 0, insn, base, noCost);
+	    return (Address) emit(op, 0, 0, 0, insn, base, noCost);
 #endif
 	} else {
 	    AstNode *left = assignAst(loperand);
@@ -1127,7 +1136,19 @@ reg AstNode::generateCode_phase2(process *proc,
                 doNotOverflow((int)right->oValue) &&
                 (type == opCodeNode))
 	    {
+#ifdef alpha_dec_osf4_0
+	      if (op == divOp)
+		{
+		  bool err;
+		  Address divlAddr = proc->findInternalAddress("divide", true, err);  
+		  assert(divlAddr);
+		  software_divide(src,(reg)right->oValue,dest,insn,base,noCost,divlAddr,true);
+		}
+	      else emitImm(op, src, (reg)right->oValue, dest, insn, base, noCost);
+#else
 	      emitImm(op, src, (reg)right->oValue, dest, insn, base, noCost);
+#endif
+	     
               right->useCount--;
               if (right->useCount==0 && right->kept_register>=0) {
                 rs->unkeep_register(right->kept_register);
@@ -1138,7 +1159,19 @@ reg AstNode::generateCode_phase2(process *proc,
 	      if (right)
 		right_dest = right->generateCode_phase2(proc, rs, insn, base, noCost);
               rs->freeRegister(right_dest);
+#ifdef alpha_dec_osf4_0
+	      if (op == divOp)
+		{
+		  bool err;
+		  Address divlAddr = proc->findInternalAddress("divide", true, err);  
+		  assert(divlAddr);
+		  software_divide(src,right_dest,dest,insn,base,noCost,divlAddr);
+		}
+	      else
+		(void) emit(op, src, right_dest, dest, insn, base, noCost);
+#else
 	      (void) emit(op, src, right_dest, dest, insn, base, noCost);
+#endif
 	    }
             removeAst(left);
             removeAst(right);
@@ -1155,7 +1188,7 @@ reg AstNode::generateCode_phase2(process *proc,
 	    (void) emit(loadConstOp, (reg) (*(unsigned int *) oValue),
 		dest, dest, insn, base, noCost);
 	} else if (oType == DataPtr) {
-	    addr = (unsigned) oValue;
+	    addr = (Address) oValue;
             assert(addr != 0); // check for NULL
 	    (void) emit(loadConstOp, (reg) addr, dest, dest, insn, base, noCost);
 	} else if (oType == DataIndir) {
@@ -1173,7 +1206,7 @@ reg AstNode::generateCode_phase2(process *proc,
 	} else if (oType == DataId) {
 	    (void) emit(loadConstOp, (reg) oValue, dest, dest, insn, base, noCost);
 	} else if (oType == DataValue) {
-	    addr = (unsigned) oValue;
+	    addr = (Address) oValue;
 
 	    assert(addr != 0); // check for NULL
 	    (void) emit(loadOp, (reg) addr, dest, dest, insn, base, noCost);
@@ -1217,13 +1250,13 @@ reg AstNode::generateCode_phase2(process *proc,
 		rs->freeRegister(src);
 	    }
 	} else if (oType == DataAddr) {
-	  addr = (unsigned) oValue;
+	  addr = (Address) oValue;
 	  emit(loadOp, (reg) addr, dest, dest, insn, base, noCost);
 	} else if (oType == ConstantString) {
 	  // XXX This is for the string type.  If/when we fix the string type
 	  // to make it less of a hack, we'll need to change this.
 	  int len = strlen((char *)oValue) + 1;
-	  addr = (unsigned) inferiorMalloc(proc, len, dataHeap);
+	  addr = (Address) inferiorMalloc(proc, len, dataHeap);
 	  proc->writeDataSpace((char *)addr, len, (char *)oValue);
 	  emit(loadConstOp, (reg) addr, dest, dest, insn, base, noCost);
 	}
@@ -1411,7 +1444,7 @@ AstNode *computeAddress(void *level, void *index, int type)
   /* Now we compute the offset for the corresponding level. We assume */
   /* that the DYNINSTthreadTable is stored by rows - naim 4/18/97 */
   if ((int)level != 0) {
-    tSize = sizeof(unsigned);
+    tSize = sizeof(unsigned long);
     t1 = new AstNode(AstNode::Constant, (void *)MAX_NUMBER_OF_THREADS);
     t2 = new AstNode(AstNode::Constant, level);
     t3 = new AstNode(timesOp, t1, t2);

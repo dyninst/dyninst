@@ -76,13 +76,13 @@ extern "C" {
  * List of supported languages.
  *
  */
-typedef enum { langUnknown,
-	       langAssembly,
-	       langC,
-	       langCPlusPlus,
-	       langGnuCPlusPlus,
-	       langFortran,
-	       langCMFortran
+typedef enum { lang_Unknown,
+	       lang_Assembly,
+	       lang_C,
+	       lang_CPlusPlus,
+	       lang_GnuCPlusPlus,
+	       lang_Fortran,
+	       lang_CMFortran
 	       } supportedLanguages;
 
  

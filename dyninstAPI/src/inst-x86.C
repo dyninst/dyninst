@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.35 1998/05/28 20:02:34 buck Exp $
+ * $Id: inst-x86.C,v 1.36 1998/08/25 19:35:13 buck Exp $
  */
 
 #include <limits.h>
@@ -1347,7 +1347,7 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
 
 // This function is used to clear a jump from base to minitramps
 // For the x86 platform, we generate a jump to the next instruction
-void generateNoOp(process *proc, int addr) 
+void generateNoOp(process *proc, Address addr) 
 {
   static unsigned char jump0[5] = { 0xE9, 0, 0, 0, 0 };
   proc->writeDataSpace((caddr_t) addr, 5, (caddr_t)jump0);

@@ -44,6 +44,12 @@
 
 /*
  * $Log: ast.h,v $
+ * Revision 1.29  1998/08/25 19:35:04  buck
+ * Initial commit of DEC Alpha port.
+ *
+ * Revision 1.5  1997/07/08 20:48:21  buck
+ * Merge changes from Wisconsin into Maryland repository.
+ *
  * Revision 1.28  1997/06/23 19:15:50  buck
  * Added features to the dyninst API library, including an optional "else"
  * in a BPatch_ifExpr; the BPatch_setMutationsActive call to temporarily
@@ -104,6 +110,7 @@
 #include "util/h/Vector.h"
 #include "util/h/Dictionary.h"
 #include "util/h/String.h"
+#include "util/h/Types.h"
 
 class process;
 class instPoint;
@@ -157,7 +164,7 @@ class registerSlot {
 class registerSpace {
     public:
 	registerSpace(int dCount, int *deads, int lCount, int *lives);
-	reg allocateRegister(char *insn, unsigned &base, bool noCost);
+	reg allocateRegister(char *insn, Address &base, bool noCost);
 	void freeRegister(int reg);
 	void resetSpace();
 	bool isFreeRegister(reg reg_number);
@@ -201,12 +208,12 @@ class AstNode {
 
        ~AstNode();
 
-	int generateTramp(process *proc, char *i, unsigned &base,
+	int generateTramp(process *proc, char *i, Address &base,
 			  int &trampCost, bool noCost);
 	reg generateCode(process *proc, registerSpace *rs, char *i, 
-			 unsigned &base, bool noCost);
+			 Address &base, bool noCost);
 	reg generateCode_phase2(process *proc, registerSpace *rs, char *i, 
-			        unsigned &base, bool noCost);
+			        Address &base, bool noCost);
 
 	int cost() const;	// return the # of instruction times in the ast.
 	void print() const;
@@ -279,7 +286,7 @@ AstNode *createCounter(const string &func, void *, AstNode *arg);
 AstNode *createTimer(const string &func, void *, 
                      vector<AstNode *> &arg_args);
 #endif
-unsigned emitFuncCall(opCode op, registerSpace *rs, char *i,unsigned &base, 
+Address emitFuncCall(opCode op, registerSpace *rs, char *i,Address &base, 
 		      const vector<AstNode *> &operands, const string &func,
 		      process *proc, bool noCost);
 

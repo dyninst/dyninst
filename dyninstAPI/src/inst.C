@@ -116,7 +116,7 @@ void clearBaseBranch(process *proc, instInstance *inst)
       fromAddr = inst->baseInstance->baseAddr + 
                  (unsigned)inst->baseInstance->skipPreInsOffset;
       toAddr = inst->baseInstance->baseAddr + 
-#if defined(rs6000_ibm_aix4_1)
+#if defined(rs6000_ibm_aix4_1) || defined(alpha_dec_osf4_0)
                (unsigned)inst->baseInstance->emulateInsOffset;
 #else
                (unsigned)inst->baseInstance->updateCostOffset;
@@ -243,7 +243,7 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
     memset(insn, 0x00, 65536);
 #endif
 
-    u_int count = 0;
+    Address count = 0;
 
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)     
     ast->sysFlag((instPoint*)location);  

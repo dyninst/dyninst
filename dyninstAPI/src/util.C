@@ -43,6 +43,12 @@
  * util.C - support functions.
  *
  * $Log: util.C,v $
+ * Revision 1.20  1998/08/25 19:35:38  buck
+ * Initial commit of DEC Alpha port.
+ *
+ * Revision 1.1.1.5  1997/09/29 00:12:16  buck
+ * Import latest changes from Wisconsin into Maryland repository.
+ *
  * Revision 1.19  1997/09/28 22:22:35  buck
  * Added some more #ifdef BPATCH_LIBRARYs to eliminate some Dyninst API
  * library dependencies on files in rtinst.
@@ -257,17 +263,17 @@ static unsigned addrHashCommon(unsigned addr) {
    return result;
 }
 
-unsigned addrHash(const unsigned iaddr) {
+unsigned addrHash(const Address iaddr) {
    return addrHashCommon(iaddr);
 }
 
-unsigned addrHash4(const unsigned &iaddr) {
+unsigned addrHash4(const Address &iaddr) {
    // call when you know that the low 2 bits are 0 (meaning they contribute
    // nothing to an even hash distribution)
    return addrHashCommon(iaddr >> 2);
 }
 
-unsigned addrHash16(const unsigned &iaddr) {
+unsigned addrHash16(const Address &iaddr) {
    // call when you know that the low 4 bits are 0 (meaning they contribute
    // nothing to an even hash distribution)
    return addrHashCommon(iaddr >> 4);

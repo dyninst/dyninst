@@ -53,6 +53,9 @@
 #elif defined(hppa1_1_hp_hpux)
 #include "dyninstAPI/src/hpuxDL.h"
 
+#elif defined(alpha_dec_osf4_0)
+#include "dyninstAPI/src/osfDL.h"
+
 #elif defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
 #include "dyninstAPI/src/aixDL.h"
 

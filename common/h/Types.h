@@ -59,7 +59,11 @@
 ************************************************************************/
 
 typedef unsigned Word;
+#if defined(alpha_dec_osf4_0)
+typedef unsigned long Address;
+#else
 typedef unsigned Address;
+#endif
 
 
 

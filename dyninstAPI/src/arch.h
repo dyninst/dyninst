@@ -41,6 +41,12 @@
 
 /*
  * $Log: arch.h,v $
+ * Revision 1.10  1998/08/25 19:35:03  buck
+ * Initial commit of DEC Alpha port.
+ *
+ * Revision 1.1.1.2  1998/02/04  01:06:12  buck
+ * Import latest changes from Wisconsin into Maryland repository.
+ *
  * Revision 1.9  1997/12/01 02:28:38  tung
  * For Linux/X86 Platform
  *
@@ -82,6 +88,10 @@
 
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
 #include "arch-power.h"
+#endif
+
+#if defined(alpha_dec_osf4_0)
+#include "arch-alpha.h"
 #endif
 
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)

@@ -39,69 +39,24 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#ifndef _PDTHREAD_H_
-#define _PDTHREAD_H_
+#if !defined(alpha_dec_osf4_0)
+#error "invalid architecture-os inclusion"
+#endif
 
-#include "dyninstAPI/src/process.h"
+#ifndef ALPHA_PD_HDR
+#define ALPHA_PD_HDR
 
-class pdThread {
-  public:
-    // This definition must be completed later when we get the result of a call
-    // to thr_self in the application. We are assuming that 
-    // 0 <= thr_self,tid < MAX_NUMBER_OF_THREADS - naim
-    // We are also assuming that the position in the paradynd super table
-    // for this thread is initially 0, until it gets updated with the record
-    // sent in DYNINSTinit - naim 4/15/97
-    pdThread(process *pproc) : tid(0), pos(0), pd_pos(0), rid(NULL)
-    { 
-      proc = pproc; 
-      ppid = pproc->getPid();
-    }
-    pdThread(process *proc_, int tid_, unsigned pos_, resource *rid_ )
-    { 
-      proc = proc_; 
-      ppid = proc_->getPid();
-      tid = tid_;
-      pos = pos_;
-      rid = rid_;
-    }
-    pdThread(process *pproc, 
-	     int tid_, 
-	     handleT handle_) 
-      : tid(tid_), pos(0), rid(NULL), handle(handle_)
-    {
-      assert(pproc);
-      proc = pproc;
-      ppid = pproc->getPid();
-    }
-    pdThread(process *parent, pdThread *src) {
-      assert(src && parent);
-      tid = src->tid;
-      ppid = parent->getPid();
-      pos = src->pos;
-      pd_pos = src->pd_pos;
-      rid = src->rid;
-      proc = parent;
-    }
-    ~pdThread() {}
-    int get_tid() { return(tid); }
-    unsigned get_pos() { return(pos); }
-    unsigned get_pd_pos() { return(pd_pos); }
-    void update_tid(int id, unsigned p) { tid = id; pos = p; }
-    void update_handle(int id, handleT h) { tid = id; handle = h; }
-    void update_pd_pos(unsigned p) { pd_pos = p; }
-    int get_ppid() { return(ppid); }
-    resource *get_rid() { return(rid); }
-    process *get_proc() { return(proc); }
-    handleT get_handle() { return(handle); }
-  private:
-    int tid;
-    int ppid;
-    unsigned pos;
-    unsigned pd_pos;
-    resource *rid;
-    process *proc;
-    handleT handle; // the thread handle (/proc file descriptor or NT handle)
-};
+#include <sys/param.h>
+#define EXIT_NAME "exit"
+
+#define START_WALL_TIMER "DYNINSTstartWallTimer"
+#define STOP_WALL_TIMER  "DYNINSTstopWallTimer"
+#define START_PROC_TIMER "DYNINSTstartProcessTimer"
+#define STOP_PROC_TIMER  "DYNINSTstopProcessTimer" 
+#define SIGNAL_HANDLER  0
+
+/*extern unsigned AIX_TEXT_OFFSET_HACK;
+extern unsigned AIX_DATA_OFFSET_HACK;*/
+typedef int handleT; // defined for compatibility with other platforms
 
 #endif
