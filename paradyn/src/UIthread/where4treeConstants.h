@@ -42,7 +42,7 @@
 // where4treeConstants.h
 // Ariel Tamches
 
-/* $Id: where4treeConstants.h,v 1.8 1999/04/27 16:03:53 nash Exp $ */
+/* $Id: where4treeConstants.h,v 1.9 2002/11/25 23:52:37 schendel Exp $ */
 
 #ifndef _WHERE4TREECONSTANTS_H_
 #define _WHERE4TREECONSTANTS_H_
@@ -62,7 +62,7 @@ struct where4TreeConstants {
    // Root Item:   
    Tk_Font rootTextFontStruct;
    Tk_3DBorder rootNodeBorder;
-   GC rootItemTextGC;
+   GC rootItemTextGC, rootRetiredTextGC;
 
    // Rays:
    GC listboxRayGC;
@@ -77,7 +77,7 @@ struct where4TreeConstants {
    Tk_Font listboxFontStruct;
    Tk_3DBorder listboxBorder;
    Tk_3DBorder listboxScrollbarBorderNormal;
-   GC listboxTextGC, listboxTriangleGC;
+   GC listboxTextGC, listboxTriangleGC, listboxRetiredTextGC;
    int listboxHorizPadBeforeText, listboxHorizPadBeforeTriangle;
    int listboxTriangleWidth, listboxTriangleHeight;
    int listboxHorizPadAfterTriangle;

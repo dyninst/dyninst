@@ -42,7 +42,7 @@
 // where4treeConstants.C
 // Ariel Tamches
 
-/* $Id: where4treeConstants.C,v 1.14 2000/08/11 16:32:13 pcroth Exp $ */
+/* $Id: where4treeConstants.C,v 1.15 2002/11/25 23:52:36 schendel Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -74,6 +74,11 @@ where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
    rootTextFontStruct = Tk_GetFont(interp, theWindow, "*-Helvetica-*-r-*-14-*");
 
    grayColor = Tk_GetColor(interp, theWindow, Tk_GetUid("gray"));
+   if (grayColor == NULL)
+      tclpanic(interp, "could not allocate gray color");
+
+   XColor *darkGrayColor;
+   darkGrayColor = Tk_GetColor(interp, theWindow, Tk_GetUid("DarkSlateGray"));
    if (grayColor == NULL)
       tclpanic(interp, "could not allocate gray color");
 
@@ -159,8 +164,24 @@ where4TreeConstants::where4TreeConstants(Tcl_Interp *interp,
    values.background = pinkColor->pixel;
    values.font = Tk_FontId(listboxFontStruct);
    listboxTextGC = Tk_GetGC(theTkWindow,
-				   GCForeground | GCBackground | GCFont,
-				   &values);
+                            GCForeground | GCBackground | GCFont,
+                            &values);
+
+   // Master listbox Text
+   values.foreground = grayColor->pixel;
+   values.background = pinkColor->pixel;
+   values.font = Tk_FontId(listboxFontStruct);
+   listboxRetiredTextGC = Tk_GetGC(theTkWindow,
+                                   GCForeground | GCBackground | GCFont,
+                                   &values);
+
+   // Master listbox Text
+   values.foreground = darkGrayColor->pixel;
+   values.background = pinkColor->pixel;
+   values.font = Tk_FontId(listboxFontStruct);
+   rootRetiredTextGC = Tk_GetGC(theTkWindow,
+                                GCForeground | GCBackground | GCFont,
+                                &values);
 
    // Master listbox Triangle
    values.foreground = blackColor->pixel;
