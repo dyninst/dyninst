@@ -39,11 +39,95 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.7 2002/02/11 22:02:19 tlmiller Exp $
+// $Id: instPoint.h,v 1.8 2004/02/25 04:36:49 schendel Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
 #define _INST_POINT_H_
+
+#include <stdlib.h>
+#include "common/h/Types.h"
+
+typedef enum {
+    noneType,
+    functionEntry,
+    functionExit,
+    callSite,
+    otherPoint
+} instPointType;
+
+class pd_Function;
+class instPoint;
+class process;
+class image;
+
+class instPointBase {
+   static unsigned int id_ctr;
+   unsigned int id;       // for tracking matching instPoints in original
+                          // and relocated functions
+
+   bool relocated_;       // true if the function where this instPoint belongs
+                          // has been relocated, and this instPoint has been 
+                          // updated to reflect that relocation. 
+
+   instPointType ipType;
+   Address      addr_;    //The address of this instPoint: this is the address
+                          // of the actual point (i.e. a function entry point,
+                          // a call or a return instruction)
+   pd_Function *func_;	 //The function where this instPoint belongs to
+   pd_Function *callee_;	//If this point is a call, the function being called
+
+   instPoint *getMatchingInstPoint(process *p) const;
+
+ public:
+   instPointBase(instPointType iptype, Address addr, pd_Function *func) :
+      id(id_ctr++), relocated_(false), ipType(iptype), addr_(addr),
+      func_(func), callee_(NULL) { }
+
+   instPointBase(unsigned int id_to_use, instPointType iptype, Address addr,
+                 pd_Function *func) :
+      id(id_to_use), relocated_(true), ipType(iptype), addr_(addr),
+      func_(func), callee_(NULL) { }
+
+   virtual ~instPointBase() { }
+
+   unsigned int getID() const { return id; }   
+   bool isRelocatedPointType() const { return relocated_; }   
+   instPointType getPointType() const { return ipType; }
+
+   // returns NULL if can't find a matching relocated inst-point
+   // should be called from an original inst point
+   instPoint *getMatchingRelocInstPoint(process *p) const {
+      if(isRelocatedPointType())
+         return NULL;
+      
+      return getMatchingInstPoint(p);
+   }
+
+   // returns NULL if can't find a matching original inst-point
+   // should be called from a relocated inst point
+   instPoint *getMatchingOrigInstPoint() const {
+      if(! isRelocatedPointType())
+         return NULL;
+      
+      return getMatchingInstPoint(NULL);
+   }
+
+   Address pointAddr() const { return addr_; }
+   pd_Function *pointFunc() const { return func_; }
+   virtual pd_Function *getCallee() const { return callee_; }
+
+   image *getOwner();
+   const image *getOwner() const;
+
+   Address absPointAddr(process *proc) const;
+   
+   // can't set this in the constructor because call points can't be
+   // classified until all functions have been seen -- this might be cleaned
+   // up
+   void setCallee(pd_Function * to) { callee_ = to;  }
+};
+
 
 // architecture-specific implementation of class instPoint
 #if defined(sparc_sun_solaris2_4) || defined(sparc_sun_sunos4_1_3)
