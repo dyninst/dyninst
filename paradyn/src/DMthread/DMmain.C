@@ -2,6 +2,9 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
+ * Revision 1.79  1995/11/11 00:45:58  tamches
+ * added a callback func for the tunable constant printSampleArrival (DMdaemon.C)
+ *
  * Revision 1.78  1995/11/03 00:05:21  newhall
  * second part of sampling rate change
  *
@@ -695,10 +698,13 @@ void *DMmain(void* varg)
 	      developerConstant);
 
     // Now the same for "printSampleArrival"
+    extern bool our_print_sample_arrival;
+    our_print_sample_arrival = false;
+    extern void printSampleArrivalCallback(bool);
     tunableBooleanConstantDeclarator printSA("printSampleArrival", 
               "Print out status lines to show the arrival of samples",
-	      false, // initial value
-	      NULL, // callback
+	      our_print_sample_arrival, // init val
+	      printSampleArrivalCallback,
 	      developerConstant);
 
 // TODO remove this
