@@ -94,7 +94,7 @@ class BPATCH_DLL_EXPORT BPatch_Set {
 	entry* nil;
 
 	/** size of the BPatch_Set */
-	int setSize;
+	unsigned int setSize;
 	
 	/** pointer to the tree structure */
 	entry* setData;
@@ -165,7 +165,7 @@ public:
 	}
 
 	/** returns the cardinality of the tree , number of elements */
-	DO_INLINE_F int size() const { return setSize; }
+	DO_INLINE_F unsigned int size() const { return setSize; }
 
 	/** returns true if tree is empty */
 	DO_INLINE_F bool empty() const { return (setData == nil); }
@@ -347,7 +347,7 @@ DO_INLINE_F BPatch_Set<T,Compare>& BPatch_Set<T,Compare>::operator= (const BPatc
 }
 template <class T,class Compare>
 DO_INLINE_F bool BPatch_Set<T,Compare>::operator== (const BPatch_Set<T,Compare>& newBPatch_Set) const{
-	int i;
+        unsigned int i;
 	if(this == &newBPatch_Set)
 		return true;
 	T* all = new T[newBPatch_Set.size()];
@@ -379,7 +379,7 @@ DO_INLINE_F BPatch_Set<T,Compare>& BPatch_Set<T,Compare>::operator|= (const BPat
 		return *this;
 	T* all = new T[newBPatch_Set.size()];
 	newBPatch_Set.elements(all);
-	for(int i=0;i<newBPatch_Set.size();i++)
+	for(unsigned int i=0;i<newBPatch_Set.size();i++)
 		insert(all[i]);	
 	delete[] all;
 	return *this;
@@ -390,8 +390,8 @@ DO_INLINE_F BPatch_Set<T,Compare>& BPatch_Set<T,Compare>::operator&= (const BPat
 		return *this;
 	T* all = new T[setSize];
 	elements(all);
-	int s = setSize;
-	for(int i=0;i<s;i++)
+	unsigned int s = setSize;
+	for(unsigned int i=0;i<s;i++)
 		if(!newBPatch_Set.contains(all[i]))
 			remove(all[i]);
 	delete[] all;
@@ -401,8 +401,8 @@ template <class T,class Compare>
 DO_INLINE_F BPatch_Set<T,Compare>& BPatch_Set<T,Compare>::operator-= (const BPatch_Set<T,Compare>& newBPatch_Set){
 	T* all = new T[setSize];
 	elements(all);
-	int s = setSize;
-	for(int i=0;i<s;i++)
+	unsigned int s = setSize;
+	for(unsigned int i=0;i<s;i++)
 		if(newBPatch_Set.contains(all[i]))
 			remove(all[i]);
 	delete[] all;
