@@ -1531,9 +1531,9 @@ DYNINSTfork(int pid) {
 	  char *s1 = 0, *s2 = 0;
 	  traceEnv = getenv("PARADYND_TRACE_SOCKET");
 	  assert(traceEnv);
-	  tracePort = strtoul(traceEnv, &s1, 10);
+	  tracePort = (unsigned long)strtol(traceEnv, &s1, 10);
 	  assert(traceEnv != s1);
-	  hostAddr = strtoul(s1, &s2, 10);
+	  hostAddr = (unsigned long)strtol(s1, &s2, 10);
 	  assert(s1 != s2);
 	}
 
