@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.65 2005/02/24 10:15:33 rchen Exp $
+// $Id: BPatch_snippet.C,v 1.66 2005/03/17 19:03:03 jodom Exp $
 
 #define BPATCH_FILE
 
@@ -1242,7 +1242,7 @@ void BPatch_effectiveAddressExpr::BPatch_effectiveAddressExprInt(int _which)
 {
 #if defined(i386_unknown_nt4_0)
   assert(_which >= 0 && _which <= 2);
-#elif defined (__XLC__)
+#elif defined (__XLC__) || defined(__xlC__)
   assert(_which >= 0 && _which <= 1);
 #else
   assert(_which >= 0 && _which <= (int) BPatch_instruction::nmaxacc_NP);
@@ -1260,7 +1260,7 @@ void BPatch_bytesAccessedExpr::BPatch_bytesAccessedExprInt(int _which)
 {
 #if defined(i386_unknown_nt4_0)
   assert(_which >= 0 && _which <= 2);
-#elif defined (__XLC__)
+#elif defined (__XLC__) || defined(__xlC__)
   assert(_which >= 0 && _which <= 1);
 #else
   assert(_which >= 0 && _which <= (int)BPatch_instruction::nmaxacc_NP);

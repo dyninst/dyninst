@@ -39,9 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.43 2005/03/16 22:59:48 bernat Exp $
+// $Id: templates2.C,v 1.44 2005/03/17 19:03:03 jodom Exp $
 
-#ifdef __XLC__
+#if defined(__XLC__) || defined(__xlC__)
 #include "common/h/Dictionary.h"
 #else
 #pragma implementation "Dictionary.h"

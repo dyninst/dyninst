@@ -54,7 +54,7 @@
 #pragma interface
 #endif
 
-#ifdef __XLC__
+#if defined(__XLC__) || defined(__xlC__)
 #pragma implementation("../src/vectorSet.C")
 #endif
 

@@ -41,7 +41,7 @@
 
 // Dictionary.C
 
-#if !defined (__XLC__) || defined(DICT_C_IS_HEADER)
+#if (!defined (__XLC__) && !defined(__xlC__)) || defined(DICT_C_IS_HEADER)
 
 #include "common/h/std_namesp.h"
 #include "common/h/Dictionary.h"

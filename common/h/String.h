@@ -41,13 +41,13 @@
 
 /************************************************************************
  * String.h: a simple character string class.
- * $Id: String.h,v 1.27 2004/10/07 00:45:56 jaw Exp $
+ * $Id: String.h,v 1.28 2005/03/17 18:59:38 jodom Exp $
 ************************************************************************/
 
 #if !defined(_String_h_)
 #define _String_h_
 
-#ifdef __XLC__
+#if defined(__XLC__) || defined(__xlC__)
 #pragma implementation ("../src/String.C")
 #endif
 

@@ -47,7 +47,7 @@
 #include "common/h/language.h"
 #include "common/h/std_namesp.h"
 
-#ifdef __XLC__
+#if defined(__XLC__) || defined(__xlC__)
 #pragma implementation ("../src/List.C")
 #endif
 
@@ -475,7 +475,7 @@ template <class Type> class StringList: public List<Type> {
 template <class Type> DO_INLINE_F Type StringList<Type>::find(void *data) 
 {
     // This didn't use to have StringList<Type>::, but it barfs without it, so... - TLM (2002/08/06)
-#ifdef __XLC__
+#if defined(__XLC__) || defined(__xlC__)
     node *curr;
 #else
     TYPENAME StringList<Type>::node *curr;

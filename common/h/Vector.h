@@ -583,7 +583,7 @@ void pdvector<T, A>::reserve_roundup(unsigned nelems) {
 
 template<class T, class A>
 DO_INLINE_F
-TYPENAME pdvector<T, A>::iterator
+TYPENAME pdvector<T,A>::iterator
 pdvector<T, A>::append_with_inplace_construction() {
    reserve_roundup(sz_ + 1);
       // used to be reserve_exact(), but with huge performance penalty!

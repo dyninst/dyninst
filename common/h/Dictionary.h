@@ -44,7 +44,7 @@
 #ifndef _DICTIONARY_H_
 #define _DICTIONARY_H_
 
-#if defined(__XLC__) && defined(__TEMPINC__)
+#if (defined(__XLC__) || defined(__xlC__)) && defined(__TEMPINC__)
 //#pragma implementation("../src/Dictionary.C")
 #endif
 
@@ -390,7 +390,7 @@ class dictionary_hash_iter {
   operator bool() const {return i < the_end;}
 };
 
-#if defined(__XLC__)
+#if defined(__XLC__) || defined(__xlC__)
 #define DICT_C_IS_HEADER
 #include "../src/Dictionary.C"
 #endif
