@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.23 1999/10/19 03:54:43 nick Exp $
+// $Id: linux.C,v 1.24 1999/11/07 00:10:03 wylie Exp $
 
 #include <fstream.h>
 
@@ -855,8 +855,9 @@ bool process::dlopenDYNINSTlib() {
 #ifdef BPATCH_LIBRARY  /* dyninst API loads a different run-time library */
   if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
     strcpy((char*)libname,(char*)getenv("DYNINSTAPI_RT_LIB"));
-    if (access(libname, R_OK|X_OK)) {
-	 string msg = string(libname) + string(" does not exist or cannot be accessed");
+    if (access(libname, R_OK)) {
+	 string msg = string(libname) + 
+                      string(" does not exist or cannot be accessed");
 	 showErrorCallback(101, msg);
 	 return false;
     }
@@ -869,8 +870,9 @@ bool process::dlopenDYNINSTlib() {
 #else
   if (getenv("PARADYN_LIB") != NULL) {
     strcpy((char*)libname,(char*)getenv("PARADYN_LIB"));
-    if (access(libname, R_OK|X_OK)) {
-	 string msg = string(libname) + string(" does not exist or cannot be accessed");
+    if (access(libname, R_OK)) {
+	 string msg = string(libname) + 
+                      string(" does not exist or cannot be accessed");
 	 showErrorCallback(101, msg);
 	 return false;
     }

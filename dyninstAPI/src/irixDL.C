@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irixDL.C,v 1.6 1999/10/14 22:28:38 zandy Exp $
+// $Id: irixDL.C,v 1.7 1999/11/07 00:10:02 wylie Exp $
 
 #include <stdio.h>
 #include <sys/ucontext.h>             // gregset_t
@@ -465,8 +465,9 @@ bool process::dlopenDYNINSTlib()
   //Address libStart = bufSize; // debug
   Address libAddr = baseAddr + bufSize;
   char *libPath = getenv(rtlib_var); // see above
-  if (access(libPath, R_OK|X_OK)) {
-       string msg = string(libPath) + string(" does not exist or cannot be accessed");
+  if (access(libPath, R_OK)) {
+       string msg = string(libPath) + 
+                    string(" does not exist or cannot be accessed");
        showErrorCallback(101, msg);
        return false;
   }

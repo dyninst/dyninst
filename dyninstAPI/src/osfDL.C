@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.6 1999/10/14 22:28:38 zandy Exp $
+// $Id: osfDL.C,v 1.7 1999/11/07 00:10:03 wylie Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/osfDL.h"
@@ -359,8 +359,9 @@ void process::handleIfDueToDyninstLib()
   char *libVar = "PARADYN_LIB";
 #endif
   char *libName = getenv(libVar);
-  if (access(libName, R_OK|X_OK)) {
-       string msg = string(libName) + string(" does not exist or cannot be accessed");
+  if (access(libName, R_OK)) {
+       string msg = string(libName) + 
+                    string(" does not exist or cannot be accessed");
        showErrorCallback(101, msg);
        return false;
   }
