@@ -41,33 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- *
- * inst-power.C,v
- * Revision 1.16  1996/05/12  05:16:45  tamches
- * (really Jeff)
- * Now works with aix 4.1
- *
- * Revision 1.15  1996/05/10 05:12:34  tamches
- * changed vrble addr to dest; can now compile ok
- *
- * Revision 1.14  1996/04/29 22:18:44  mjrg
- * Added size to functions (get size from symbol table)
- * Use size to define function boundary
- * Find multiple return points for sparc
- * Instrument branches and jumps out of a function as return points (sparc)
- * Recognize tail-call optimizations and instrument them as return points (sparc)
- * Move instPoint to machine dependent files
- *
- * Revision 1.13  1996/04/26 20:53:36  lzheng
- * Changes to the procedure emitFuncCall. (move all the code dealing with
- * the function Calls in the miniTrampoline to here)
- *
- * Revision 1.12  1996/03/25 22:58:02  hollings
- * Support functions that have multiple exit points.
- *
- * Revision 1.11  1996/03/20  20:40:31  hollings
- * Fixed bug in register save/restore for function calls and conditionals
- *
+ * $Id: inst-power.C,v 1.68 1998/08/17 03:14:08 wylie Exp $
  */
 
 #include "util/h/headers.h"
@@ -2367,7 +2341,7 @@ bool completeTheFork(process *parentProc, int childpid) {
       // content of the baseAddr field in the parent - naim
       //if (theBaseInstance) theBaseInstance->baseAddr = theTrampBase;
 
-      if (theLocation->addr==NULL) {
+      if (theLocation->addr==0) {
 	// This happens when we are only instrumenting the return point of
 	// a function, so we need to find the address where to insert the
 	// jump to the base trampoline somewhere else. Actually, if we have
