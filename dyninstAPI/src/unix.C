@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.130 2004/10/07 00:45:57 jaw Exp $
+// $Id: unix.C,v 1.131 2004/12/09 05:01:20 rchen Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -135,6 +135,7 @@ extern unsigned enable_pd_sharedobj_debug;
  *   file: file to execute
  *   dir: working directory for the new process
  *   argv: arguments to new process
+ *   argp: environment variables for new process
  *   inputFile: where to redirect standard input
  *   outputFile: where to redirect standard output
  *   traceLink: handle or file descriptor of trace link (read only)
@@ -146,14 +147,16 @@ extern unsigned enable_pd_sharedobj_debug;
  *   thrHandle: handle for main thread (needed by WindowsNT)
  ****************************************************************************/
 #ifdef BPATCH_LIBRARY
-bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> argv, 
+bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> *argv, 
+		    pdvector<pdstring> *envp,
                     pdstring /*inputFile*/, pdstring /*outputFile*/,
                     int & /*traceLink*/, 
                     int &pid, int & /*tid*/, 
                     int & /*procHandle*/, int & /*thrHandle*/, 
                     int stdin_fd, int , int )
 #else
-bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> argv, 
+bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> *argv, 
+		    pdvector<pdstring> *envp,
                     pdstring inputFile, pdstring outputFile, int &traceLink,
                     int &pid, int & /*tid*/, int & /*procHandle*/,
                     int & /*thrHandle*/, int stdin_fd, int stdout_fd, int)
@@ -352,10 +355,18 @@ bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> argv,
          logLine(errorLine);
          logLine(strerror(errno));
          showErrorCallback(69, pdstring("Internal error: ") + 
-	                        pdstring((const char *) errorLine)); 
+	                        pdstring((const char *) errorLine));
          P__exit(-1);   // double underscores are correct
       }
 
+      char **envs = NULL;
+      if (envp) {
+	  envs = new char*[envp->size() + 2]; // Also room for PARADYN_MASTER_INFO
+	  for(unsigned ei = 0; ei < envp->size(); ++ei)
+	      envs[ei] = P_strdup((*envp)[ei].c_str());
+	  envs[envp->size()] = NULL;
+      }
+      
 #ifndef BPATCH_LIBRARY
       // hand off info about how to start a paradynd to the application.
       //   used to catch rexec calls, and poe events.
@@ -373,15 +384,26 @@ bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> argv,
          }
          strcat(paradynInfo, " ");
       }
-      P_putenv(paradynInfo);
+
+      if (envp) {
+	  envs[envp->size()] = P_strdup(paradynInfo);
+	  envs[envp->size() + 1] = NULL;
+      } else {
+	  P_putenv(paradynInfo);
+      }
 #endif
 
       char **args;
-      args = new char*[argv.size()+1];
-      for (unsigned ai=0; ai<argv.size(); ai++)
-         args[ai] = P_strdup(argv[ai].c_str());
-      args[argv.size()] = NULL;
-      P_execvp(file.c_str(), args);
+      args = new char*[argv->size()+1];
+      for (unsigned ai=0; ai<argv->size(); ai++)
+         args[ai] = P_strdup((*argv)[ai].c_str());
+      args[argv->size()] = NULL;
+
+      if (envp)
+	  P_execve(file.c_str(), args, envs);
+      else
+	  P_execvp(file.c_str(), args);
+
       sprintf(errorLine, "paradynd: execv failed, errno=%d\n", errno);
       logLine(errorLine);
     
@@ -394,6 +416,12 @@ bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> argv,
             i++;
          }
       }
+      {
+	  for(unsigned i = 0; envs[i] != NULL; ++i) {
+	      sprintf(errorLine, "envp %d = %s\n", i, envs[i]);
+	      logLine(errorLine);
+	  }
+      }	      
       P__exit(-1);
       // not reached
     
