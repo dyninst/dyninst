@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.129 2000/03/06 16:46:54 paradyn Exp $
+/* $Id: process.h,v 1.130 2000/03/06 21:41:10 zhichen Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -490,8 +490,10 @@ class process {
   void cleanRPCreadyToLaunch(int mid);
 #if defined(MT_THREAD)
   void postRPCtoDo(AstNode *, bool noCost,
-                   inferiorRPCcallbackFunc, void *data, int, bool lowmem=false,
-                   int thrId=(-1), bool isSAFE=false);
+                   inferiorRPCcallbackFunc, void *data, int, 
+                   int thrId=(-1), 
+		   bool isSAFE=false,
+		   bool lowmem=false);
 #else
   void postRPCtoDo(AstNode *, bool noCost,
                    inferiorRPCcallbackFunc, void *data, int, bool lowmem=false);

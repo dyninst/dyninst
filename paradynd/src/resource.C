@@ -43,6 +43,9 @@
  * resource.C - handle resource creation and queries.
  *
  * $Log: resource.C,v $
+ * Revision 1.30  2000/03/06 21:41:25  zhichen
+ * Moved /Process hierarchy to /Machine hierarchy.
+ *
  * Revision 1.29  1997/06/27 18:15:39  tamches
  * optimized newResource w.r.t. its igen behavior
  *
@@ -286,7 +289,7 @@ void resource::make_canonical(const vector< vector<string> >& focus,
 			      vector< vector<string> >& ret) {
   unsigned size = focus.size();
   bool machine=false, procedure=false, process=false, sync=false, memory = false;
-  ret.resize(5); //changed from 4 to 5 Zhichen for resource::memory
+  ret.resize(4); 
   for (unsigned f=0; f<size; f++) {
     assert(focus[f].size() > 0);
     if (focus[f][0] == "Machine") {
@@ -295,9 +298,6 @@ void resource::make_canonical(const vector< vector<string> >& focus,
     } else if (focus[f][0] == "Code") {      
       procedure = true;
       ret[resource::procedure] = focus[f];
-    } else if (focus[f][0] == "Process") {
-      process = true;
-      ret[resource::process] = focus[f];
     } else if (focus[f][0] == "SyncObject") {
       sync = true;
       ret[resource::sync_object] = focus[f];
@@ -311,7 +311,6 @@ void resource::make_canonical(const vector< vector<string> >& focus,
 
   if (!machine) {temp[0]="Machine"; ret[resource::machine] = temp;}
   if (!procedure) {temp[0]="Code"; ret[resource::procedure] = temp;}
-  if (!process) {temp[0]="Process"; ret[resource::process] = temp;}
   if (!sync) {temp[0]="SyncObject"; ret[resource::sync_object] = temp;}
   if (!memory) {temp[0]="Memory"; ret[resource::memory] = temp; }
 }

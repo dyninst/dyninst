@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.168 2000/02/18 20:41:17 bernat Exp $
+// $Id: metricFocusNode.C,v 1.169 2000/03/06 21:41:24 zhichen Exp $
 
 #include "util/h/headers.h"
 #include <limits.h>
@@ -725,9 +725,9 @@ void metricDefinitionNode::handleExec(process *proc) {
 	 // except to update allMIComponents.
 
 	 assert(replaceWithComponentMI->flat_name_ == componentMI->flat_name_);
-
 	 delete componentMI; // old component mi (dtor removes it from allMIComponents)
-	 assert(!allMIComponents.defines(replaceWithComponentMI->flat_name_));
+	 // This is redundant, see mdl.C, apply_to_process 
+	 // assert(!allMIComponents.defines(replaceWithComponentMI->flat_name_));
 	 allMIComponents[replaceWithComponentMI->flat_name_] = replaceWithComponentMI;
       }
    }
@@ -1105,17 +1105,17 @@ metricDefinitionNode *metricDefinitionNode::forkProcess(process *child,
     bool foundProcess = false;
 
     for (unsigned hier=0; hier < component_focus.size(); hier++) {
-       if (component_focus[hier][0] == "Process") {
+       if (component_focus[hier][0] == "Machine") {
 	  foundProcess = true;
-	  assert(component_focus[hier].size() == 2);
+	  assert(component_focus[hier].size() >= 3);
 	     // since a component focus is by definition specific to some process
 
-	  //assert(component_focus[hier][1] == parentPartName); -- DAN
-	  if( component_focus[hier][1] != parentPartName )
+	  //assert(component_focus[hier][2] == parentPartName); -- DAN
+	  if( component_focus[hier][2] != parentPartName )
 		  return NULL;
 
 	  // change the process:
-	  newComponentFocus[hier][1] = childPartName;
+	  newComponentFocus[hier][2] = childPartName;
 
 	  break;
        }
@@ -1238,7 +1238,7 @@ void metricDefinitionNode::handleFork(const process *parent, process *child,
       for (unsigned agglcv1=0; agglcv1 < comp->aggregators.size(); agglcv1++) {
 	 metricDefinitionNode *aggMI = comp->aggregators[agglcv1];
 
-	 if (aggMI->focus_[resource::process].size() == 1) {
+	 if (aggMI->focus_[resource::machine].size() <= 2) {
 	    // wasn't specific to any process
 	    shouldBeUnforkedIfNotPropagated = false; // we'll definitely be using it
 	    shouldBePropagated = true;
@@ -1280,7 +1280,7 @@ void metricDefinitionNode::handleFork(const process *parent, process *child,
       bool foundAgg = false;
       for (unsigned agglcv2=0; agglcv2 < comp->aggregators.size(); agglcv2++) {
 	 metricDefinitionNode *aggMI = comp->aggregators[agglcv2];
-	 if (aggMI->focus_[resource::process].size() == 1) {
+	 if (aggMI->focus_[resource::machine].size() <= 2) {
 	    // this aggregate mi wasn't specific to any process, so it gets the new
 	    // child component.
 	    aggMI->components += newComp;
@@ -2968,7 +2968,7 @@ bool instReqNode::triggerNow(process *theProc, int mid) {
 #if defined(MT_THREAD)
 			mid,
 			thrId,
-			true); //false --> regular RPC, true-->SAFE RPC
+			false); //false --> regular RPC, true-->SAFE RPC
 #else
 			mid);
 #endif
@@ -4132,11 +4132,11 @@ void metricDefinitionNode::addThread(pdThread *thr)
   string pretty_name = string(thr->get_start_func()->prettyName().string_of()) ;
   thrName = string("thr_") + tid + string("{") + pretty_name + string("}");
   for (unsigned i=0;i<component_focus_thr.size();i++) {
-    if (component_focus_thr[i][0] == "Process")
+    if (component_focus_thr[i][0] == "Machine")
       component_focus_thr[i] += thrName;
   }
   for (unsigned i=0;i<focus_thr.size();i++) {
-    if (focus_thr[i][0] == "Process")
+    if (focus_thr[i][0] == "Machine")
       focus_thr[i] += thrName;
   }
   component_flat_name_thr = metricAndCanonFocus2FlatName(met_,component_focus_thr);
@@ -4251,7 +4251,7 @@ void metricDefinitionNode::deleteThread(pdThread *thr)
     metricDefinitionNode *mi;
     mi = components[i];
     for (unsigned j=0;j<mi->component_focus.size();j++) {
-      if (mi->component_focus[j][0]=="Process") {
+      if (mi->component_focus[j][0]=="Machine") {
 	for (unsigned k=0;k<mi->component_focus[j].size();k++) {
 	  if (mi->component_focus[j][k]==thrName) {
 	    foundComponent = true;

@@ -42,7 +42,7 @@
 /*
  * The specific metric and hypothesis definitions which will eventually 
  * be parsed from a configuration file.
- * $Id: PCrules.C,v 1.47 2000/01/06 20:20:20 cain Exp $
+ * $Id: PCrules.C,v 1.48 2000/03/06 21:41:23 zhichen Exp $
  */
 
 #include "PCintern.h"
@@ -330,8 +330,8 @@ void initPChypos()
   stringList plumList3;
   stringList suppress;
   plumList3 += plum;
-  plum = new string ("/Process");
-  plumList3 += plum;
+  //plum = new string ("/Process");
+  //plumList3 += plum;
   //plum = new string  ("/Code/anneal.c");
   //suppress += plum;
   flag = PCWhyAxis->

@@ -115,6 +115,7 @@ bool costMetric::legalToInst(vector< vector<string> >& focus) {
     switch (focus[resource::machine].size()) {
         case 1: break;
         case 2:
+	case 3:
             switch(pred.machine) {
 	        case pred_invalid: return false;
 	        case pred_null: break;
@@ -132,16 +133,6 @@ bool costMetric::legalToInst(vector< vector<string> >& focus) {
 		default: return false;
 	    }
         default: return false;
-    }
-    switch (focus[resource::process].size()) {
-	case 1: break;
-	case 2:
-	    switch(pred.process) {
-		case pred_invalid: return false;
-		case pred_null: break;
-		default: return false;
-	    }
-	default: return false;
     }
     switch (focus[resource::sync_object].size()) {
 	case 1: break;

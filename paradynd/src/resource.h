@@ -44,6 +44,9 @@
 
 /*
  * $Log: resource.h,v $
+ * Revision 1.13  2000/03/06 21:41:25  zhichen
+ * Moved /Process hierarchy to /Machine hierarchy.
+ *
  * Revision 1.12  1997/06/27 18:15:08  tamches
  * new param to newResource.  send_now() is new.
  *
@@ -56,7 +59,7 @@
  *
  * Revision 1.10  1997/04/14 20:07:31  zhichen
  * Added
- * 	enum index { machine, procedure, process, sync_object, memory };
+ * 	enum index { machine, procedure, sync_object, memory};
  *         resource *memoryRoot; // shared-memory resource
  *         resource *memoryResource; // shared-memory resource
  *         resource *resource::newResource_ncb(...)
@@ -112,7 +115,7 @@ class resource;
 extern resource *rootResource;
 extern resource *machineRoot;
 extern resource *machineResource;
-extern resource *processResource;
+// extern resource *processResource;
 extern resource *moduleRoot;
 extern resource *syncRoot;
 
@@ -123,7 +126,7 @@ extern resource *memoryResource;
 
 class resource {
 public:
-  enum index { machine, procedure, process, sync_object, memory };
+  enum index { machine, procedure, sync_object, memory };
 
   inline resource();
   inline resource(const string& abstraction, const string& self_name,

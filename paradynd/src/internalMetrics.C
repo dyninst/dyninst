@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: internalMetrics.C,v 1.7 1999/01/21 20:57:55 wylie Exp $
+// $Id: internalMetrics.C,v 1.8 2000/03/06 21:41:24 zhichen Exp $
 
 #include "dyninstAPI/src/process.h" // processVec
 #include "internalMetrics.h"
@@ -163,6 +163,8 @@ bool internalMetric::legalToInst(const vector< vector<string> >& focus) const {
   switch (focus[resource::machine].size()) {
   case 1: break;
   case 2:
+  case 3:
+  case 4:
     switch(pred.machine) {
     case pred_invalid: return false;
     case pred_null: break;
@@ -178,19 +180,6 @@ bool internalMetric::legalToInst(const vector< vector<string> >& focus) const {
   case 2:
   case 3:
     switch(pred.procedure) {
-    case pred_invalid: return false;
-    case pred_null: break;
-    default: return false;
-    }
-    break;
-  default: return false;
-  }
-
-  // How many components are there for the /Process part of the focus?
-  switch (focus[resource::process].size()) {
-  case 1: break;
-  case 2:
-    switch(pred.process) {
     case pred_invalid: return false;
     case pred_null: break;
     default: return false;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.C,v 1.54 2000/01/06 20:19:27 cain Exp $
+// $Id: DMresource.C,v 1.55 2000/03/06 21:41:22 zhichen Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -705,8 +705,6 @@ bool resourceList::getMachineNameReferredTo(string &machName) const {
    // true.  Else, leave "machName" alone and return false.
    // What does it mean for a focus to be specific to a machine?
    // For one, if the focus is a descendant of a machine, then it's obvious.
-   // If the focus is a descendant of a process, then we can probably find a specific
-   // machine to which it's referring, too.
    // NOTE: If this routine gets confused or isn't sure whether the resource is
    // specific to a machine, it returns false.
    
@@ -714,7 +712,6 @@ bool resourceList::getMachineNameReferredTo(string &machName) const {
    // Since these are expensive operations (the string constructor is called,
    // which in turn calls new[]), we only do them once.
    static resource *machine_resource_ptr = NULL; // NULL --> not yet defined
-   static resource *process_resource_ptr = NULL; // NULL --> not yet defined
 
    if (machine_resource_ptr == NULL) {
       machine_resource_ptr = resource::string_to_resource("/Machine");
@@ -724,18 +721,8 @@ bool resourceList::getMachineNameReferredTo(string &machName) const {
       }
    }
 
-   if (process_resource_ptr == NULL) {
-      process_resource_ptr = resource::string_to_resource("/Process");
-      if (process_resource_ptr == NULL) {
-	 cout << "getMachineNameReferredTo(): couldn't find /Process" << endl;
-	 return false;
-      }
-   }
-
    assert(machine_resource_ptr);
-   assert(process_resource_ptr);
    const resource &machineResource = *machine_resource_ptr;
-   const resource &processResource = *process_resource_ptr;
 
    for (unsigned hierarchy=0; hierarchy < elements.size(); hierarchy++) {
       const resource *the_resource_ptr = elements[hierarchy];
@@ -762,7 +749,7 @@ bool resourceList::getMachineNameReferredTo(string &machName) const {
 	    cout << "getMachineNameReferredTo: nothing below 'Machine'" << endl;
 	    return false;
 	 }
-	 if (components.size() > 2) {
+	 if (components.size() > 4) {
             // currently, there is only one level below "Machine"
 	    // Maybe in the future we can have stuff like "/Machine/cluster1/goat"
 	    // But for now this acts as a nice assert (in that if the following error
@@ -774,73 +761,6 @@ bool resourceList::getMachineNameReferredTo(string &machName) const {
 
 	 // success!
 	 machName = components[1];
-	 return true;
-      }
-      else if (theResource.isDescendantOf(processResource)) {
-         // bingo.  Now check out the resource's components.
-         // For example, if the resource is "/Process/bubba.pd{9984_goat}"
-         // then we extract the machine name from the 2d component.
-	 const vector<string> &components = theResource.getParts();
-
-         // The following line is not fast; calls string's constructor which calls
-	 // malloc.  But it's really just an assert, so we could get rid of it for
-	 // speed.
-	 if (components[0] != "Process") {
-	    // I am confused; I expected "Process"
-	    cout << "getMachineNameReferredTo: expected Process; found "
-	         << components[0] << endl;
-	    return false;
-	 }
-	 if (components.size() < 2) {
-            // I am confused; I expected something below "Process"
-	    cout << "getMachineNameReferredTo: nothing below 'Process'" << endl;
-	    return false;
-	 }
-	 if (components.size() > 3) {
-            // currently, there is only one level below "Process"
-	    // Maybe in the future we can have stuff like "/Process/cluster2/process1"
-	    // But for now this acts as a nice assert (in that if the error msg is ever
-	    // seen then we know that we need to rethink how we extract machine names
-	    // from processes).
-	    cout << "getMachineNameReferredTo: too much below 'Process'" << endl;
-	    return false;
-	 }
-
-	 // Now all that's left to do is to extract the machine name, given the process.
-	 // Currently, processes are of the form:
-	 // <procname>{<pid>_<machname>}
-	 // I would use one sscanf except for the well-known problems that it has
-	 // (it can overflow buffers).  So, we parse manually.
-	 const char *ptr = components[1].string_of();
-	 const char *ptr1 = strchr(ptr, '{');
-	 if (ptr1 == NULL) {
-	    cout << "getMachineNameReferredTo: expected { in the proc name" << endl;
-	    return false;
-	 }
-	 const char *ptr2 = strchr(ptr1, '_');
-	 if (ptr2 == NULL) {
-	    cout << "getMachineNameReferredTo: expected _ in the proc name" << endl;
-	    return false;
-	 }
-	 ptr2++;
-	 if (strlen(ptr2) < 2) {
-            // expected at least 1 char for machine name, plus 1 char for closing '}'
-	    cout << "getMachineNameReferredTo: blank machine name?" << endl;
-	    return false;
-	 }
-
-	 // The last character should be '}'; overwrite it with a '\0'.
-	 // Unfortunately, we cannot write to the string without messing
-	 // up the resource.  So, we play with a _copy_ of the string.
-	 if (ptr2[strlen(ptr2)-1] != '}') {
-	    cout << "getMachineNameReferredTo: expected }" << endl;
-	    return false;
-	 }
-
-	 // We're basically done.  Return the string pointed to by ptr2
-         // _except_ the last character, which is '}' (so we use the string constructor
-	 // which copies only part of a char*)
-	 machName = string(ptr2, strlen(ptr2)-1); // not a fast operation; calls malloc
 	 return true;
       }
    }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.209 2000/03/06 21:30:08 zandy Exp $
+// $Id: process.C,v 1.210 2000/03/06 21:41:10 zhichen Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1146,16 +1146,16 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
     deferredContinueProc = false;
 
 #ifndef BPATCH_LIBRARY
-    string buffer = string(pid) + string("_") + getHostName();
-    rid = resource::newResource(processResource, // parent
-                                (void*)this, // handle
-                                nullString, // abstraction
-                                iImage->name(), // process name
-                                0.0, // creation time
-                                buffer, // unique name (?)
-                                MDL_T_STRING, // mdl type (?)
-                                true
-                                );
+    string buffer = string(pid); // + string("_") + getHostName();
+    rid = resource::newResource(machineResource, // parent
+				(void*)this, // handle
+				nullString, // abstraction
+				iImage->name(), // process name
+				0.0, // creation time
+				buffer, // unique name (?)
+				MDL_T_STRING, // mdl type (?)
+				true
+				);
 #endif
 
     parent = NULL;
@@ -1316,16 +1316,16 @@ process::process(int iPid, image *iSymbols,
    deferredContinueProc = false;
 
 #ifndef BPATCH_LIBRARY
-    string buffer = string(pid) + string("_") + getHostName();
-    rid = resource::newResource(processResource, // parent
-                                (void*)this, // handle
-                                nullString, // abstraction
-                                symbols->name(),
-                                0.0, // creation time
-                                buffer, // unique name (?)
-                                MDL_T_STRING, // mdl type (?)
-                                true
-                                );
+    string buffer = string(pid); // + string("_") + getHostName();
+    rid = resource::newResource(machineResource, // parent
+				(void*)this, // handle
+				nullString, // abstraction
+				symbols->name(),
+				0.0, // creation time
+				buffer, // unique name (?)
+				MDL_T_STRING, // mdl type (?)
+				true
+				);
 #endif
 
     parent = NULL;
@@ -1510,16 +1510,16 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     pid = iPid; 
 
 #ifndef BPATCH_LIBRARY
-    string buffer = string(pid) + string("_") + getHostName();
-    rid = resource::newResource(processResource, // parent
-                                (void*)this, // handle
-                                nullString, // abstraction
-                                parentProc.symbols->name(),
-                                0.0, // creation time
-                                buffer, // unique name (?)
-                                MDL_T_STRING, // mdl type (?)
-                                true
-                                );
+    string buffer = string(pid); // + string("_") + getHostName();
+    rid = resource::newResource(machineResource, // parent
+				(void*)this, // handle
+				nullString, // abstraction
+				parentProc.symbols->name(),
+				0.0, // creation time
+				buffer, // unique name (?)
+				MDL_T_STRING, // mdl type (?)
+				true
+				);
 #endif
 
     parent = &parentProc;
@@ -3662,9 +3662,9 @@ void process::postRPCtoDo(AstNode *action, bool noCost,
                           inferiorRPCcallbackFunc callbackFunc,
                           void *userData,
                           int mid, 
-                          bool lowmem,
                           int thrId,
-                          bool isSAFE)
+                          bool isSAFE,
+                          bool lowmem)
 #else
 void process::postRPCtoDo(AstNode *action, bool noCost,
                           inferiorRPCcallbackFunc callbackFunc,

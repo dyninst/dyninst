@@ -41,7 +41,7 @@
 
 /*
  * The searchHistoryNode and searchHistoryGraph class methods.
- * $Id: PCshg.C,v 1.60 2000/01/06 20:16:35 cain Exp $
+ * $Id: PCshg.C,v 1.61 2000/03/06 21:41:23 zhichen Exp $
  */
 
 #include "PCintern.h"
@@ -398,7 +398,6 @@ bool searchHistoryNode::expandWhereOldPC(){
   assert(!performanceConsultant::useCallGraphSearch);
   searchHistoryNode *curr;
   bool newNodeFlag;
-  bool altFlag;
   bool expansionPossible = false;
   // expand along where axis
   vector<resourceHandle> *parentFocus = dataMgr->getResourceHandles(where);
@@ -407,10 +406,6 @@ bool searchHistoryNode::expandWhereOldPC(){
   vector<rlNameId> *kids;
   for (unsigned m = 0; m < parentFocus->size(); m++) {
     currHandle = (*parentFocus)[m];
-    altFlag = (currHandle == Processes);
-    if (altFlag && (where == topLevelFocus))
-      // it is never useful to refine along process from the top level
-      continue;
     if (!why->isPruned(currHandle)) {
       // prunes limit the resource trees along which we will expand this node
 
@@ -435,7 +430,7 @@ bool searchHistoryNode::expandWhereOldPC(){
 				       refineWhereAxis,
 				       false,  
 				       (*kids)[j].res_name,
-				       (altFlag || altMetricFlag),
+				       altMetricFlag,
 				       &newNodeFlag);
 	    if (newNodeFlag) {
 	      // a new node was added
@@ -524,7 +519,6 @@ searchHistoryNode::expandWhereNarrow()
   assert(performanceConsultant::useCallGraphSearch);
   searchHistoryNode *curr;
   bool newNodeFlag;
-  bool altFlag;
   bool expansionPossible = false;
   bool searchExhausted;
 
@@ -541,12 +535,7 @@ searchHistoryNode::expandWhereNarrow()
     if(currentSearchPath < parentFocus->size() && 
        !alreadySearched[currentSearchPath]){
       currHandle = (*parentFocus)[currentSearchPath];
-      altFlag = (currHandle == Processes);
       
-      //shouldn't be here if we are a topLevelFocus
-      if (altFlag && (where == topLevelFocus))
-	return false;	
-
       if (!why->isPruned(currHandle)) {
 	//If the current resource is pruned, we ignore it and expand the next
 	//one. 
@@ -573,7 +562,7 @@ searchHistoryNode::expandWhereNarrow()
 					 refineWhereAxis,
 					 false,  
 					 (*kids)[j].res_name,
-					 (altFlag || altMetricFlag),
+					 altMetricFlag,
 					 &newNodeFlag);
 	      if (newNodeFlag) {
 		// a new node was added
@@ -629,7 +618,6 @@ searchHistoryNode::expandWhereNarrow()
 bool searchHistoryNode::expandWhereWide(){
   searchHistoryNode *curr;
   bool newNodeFlag;
-  bool altFlag;
   bool expansionPossible = false;
   assert(performanceConsultant::useCallGraphSearch);
   // expand along where axis
@@ -639,10 +627,6 @@ bool searchHistoryNode::expandWhereWide(){
   vector<rlNameId> *kids;
   for (unsigned m = 0; m < parentFocus->size(); m++) {
     currHandle = (*parentFocus)[m];
-    altFlag = (currHandle == Processes);
-    if (altFlag && (where == topLevelFocus))
-      // it is never useful to refine along process from the top level
-      continue;
     if (!why->isPruned(currHandle)) {
       // prunes limit the resource trees along which we will expand this node
 
@@ -672,7 +656,7 @@ bool searchHistoryNode::expandWhereWide(){
                                        refineWhereAxis,
                                        false,  
                                        (*kids)[j].res_name,
-                                       (altFlag || altMetricFlag),
+                                       altMetricFlag,
 				       &newNodeFlag);
 	    narrowedSearch = false;
 	    assert(m < alreadySearched.size());
@@ -950,8 +934,16 @@ searchHistoryNode::retest()
     //** this will be replaced with more rational priority calculation
     if (axis == refineWhyAxis)
       PCsearch::addToQueue(5, this, getPhase());
-    else
+    else {
       PCsearch::addToQueue(10, this, getPhase());
+
+      // zhichen added the following
+      if (performanceConsultant::useCallGraphSearch && narrowedSearch) {
+
+        if (truthValue == tfalse)
+	  originalParent->numExpandedChildren++;
+      }
+    }
   }
 }
 

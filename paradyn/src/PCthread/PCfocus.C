@@ -45,6 +45,9 @@
  * Initializing focus info needed by PC from DM's resource hierarchies.
  * 
  * $Log: PCfocus.C,v $
+ * Revision 1.5  2000/03/06 21:41:22  zhichen
+ * Moved /Process hierarchy to /Machine hierarchy.
+ *
  * Revision 1.4  1997/03/29 02:04:18  sec
  * Changed /MsgTag to /Message in MDL/paradyn.rc
  *
@@ -69,7 +72,6 @@
 resourceHandle RootResource;
 resourceHandle SyncObject;
 resourceHandle Procedures;
-resourceHandle Processes;
 resourceHandle Machines;
 resourceHandle Locks;
 resourceHandle Barriers;
@@ -105,11 +107,6 @@ void initResources()
   h = dataMgr->findResource ("/Code");
   assert (h != NULL); 
   Procedures = *h;
-  delete h;
-
-  h = dataMgr->findResource ("/Process");
-  assert (h != NULL); 
-  Processes = *h;
   delete h;
 
   h = dataMgr->findResource ("/Machine");

@@ -79,10 +79,10 @@ vector<sym_data> syms_to_find;
 float activeProcessesProc(const metricDefinitionNode *node) {
    const vector< vector<string> > &theFocus = node->getFocus();
 
-   // Now let's take a look at the /Process hierarchy of the focus.
+   // Now let's take a look at the /Machine hierarchy of the focus.
    // If there's a non-trivial refinement, then we obviously return
    // 1, since the focus refers to a single process.
-   if (theFocus[resource::process].size() > 1)
+   if (theFocus[resource::machine].size() > 2)
       return 1.0;
 
    // Okay, if we've gotten this far, then the focus does _not_ refer
@@ -109,9 +109,12 @@ bool init() {
   machineResource = resource::newResource(machineRoot, NULL, nullString, hostName, 
 					  0.0, "", MDL_T_STRING,
 					  false);
-  processResource = resource::newResource(rootResource, NULL, nullString,
-					  string("Process"), 0.0, "", MDL_T_STRING,
-					  false);
+//
+// processResource = resource::newResource(machineResource, NULL, nullString,
+//					  string("Process"), 0.0, "", MDL_T_STRING,
+//					  false);
+//
+
   moduleRoot = resource::newResource(rootResource, NULL, nullString,
 				     string("Code"), 0.0, "", MDL_T_STRING,
 				     false);

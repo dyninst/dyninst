@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.78 1999/12/01 14:41:45 zhichen Exp $
+// $Id: mdl.C,v 1.79 2000/03/06 21:41:24 zhichen Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -293,7 +293,9 @@ static bool other_machine_specified(vector< vector<string> > &focus,
 
   switch (focus[resource::machine].size()) {
   case 1: break;
-  case 2:
+  case 2: //Machine/grilled
+  case 3: //Machine/grilled/process
+  case 4: //Machine/grilled/process/thread
     if (machine != focus[resource::machine][1]) return true;
     break;
   default:
@@ -311,22 +313,23 @@ static void add_processes(vector< vector<string> > &focus,
 #else
 				 vector<process*> &ip) {
 #endif
-  assert(focus[resource::process][0] == "Process");
+  assert(focus[resource::machine][0] == "Machine");
   unsigned pi, ps;
 
   metric_cerr << "add_processes()" << endl;
 
-  switch(focus[resource::process].size()) {
+  switch(focus[resource::machine].size()) {
   case 1:
+  case 2:
     ip = procs;
 #if defined(MT_THREAD)
     instThreadsVec = threadsVec;
 #endif
     break;
-  case 2:
+  case 3:
     ps = procs.size();
     for (pi=0; pi<ps; pi++)
-      if (procs[pi]->rid->part_name() == focus[resource::process][1]) {
+      if (procs[pi]->rid->part_name() == focus[resource::machine][2]) {
 	ip += procs[pi];
 	break;
       }
@@ -337,17 +340,17 @@ static void add_processes(vector< vector<string> > &focus,
 #endif
     break;
 #if defined(MT_THREAD)
-  case 3:
+  case 4:
     ps = threadsVec.size();
     for (pi=0; pi<ps; pi++) {
       vector<pdThread *> tmpThrVec; 
-      if (procs[pi]->rid->part_name() == focus[resource::process][1]) {
+      if (procs[pi]->rid->part_name() == focus[resource::machine][2]) {
 	ip += procs[pi];
 	for (unsigned ti=0; ti<threadsVec[pi].size(); ti++) {
 	  pdThread *thr;
 	  thr = (threadsVec[pi])[ti];
 	  if (thr && thr->get_rid()) {
-	    if (thr->get_rid()->part_name() == focus[resource::process][2]) {
+	    if (thr->get_rid()->part_name() == focus[resource::machine][3]) {
 	      tmpThrVec += thr;
 	      break;
 	    }
@@ -590,26 +593,28 @@ apply_to_process(process *proc,
 
     string component_flat_name(name);
     for (unsigned u1 = 0; u1 < focus.size(); u1++) {
-      if (focus[u1][0] == "Process") {
-	component_flat_name += focus[u1][0] + proc->rid->part_name();
-	if (focus[u1].size() == 1) {
-	   // there was no refinement to a specific process...but the component
-	   // focus must have such a refinement.
-	   component_focus[u1] += proc->rid->part_name();
-	}
+      for (unsigned u2 = 0; u2 < focus[u1].size(); u2++)
+	 component_flat_name += focus[u1][u2];
+
+      if (focus[u1][0] == "Machine") {
+        switch ( (focus[u1].size()) ) {
+	  case 1: {
+            // there was no refinement to a specific machine...but the component focus
+            // must have such a refinement.
+            component_flat_name += machineResource->part_name();
+            component_focus[u1] += machineResource->part_name();
+	    // no break
+	  }
+          case 2: {
+             // there was no refinement to a specific process...but the component
+             // focus must have such a refinement.
+            component_flat_name += proc->rid->part_name();
+            component_focus[u1] += proc->rid->part_name();
+	    break;
+          }
+	} 
       }
-      else if (focus[u1][0] == "Machine") {
-	component_flat_name += focus[u1][0] + machineResource->part_name();
-	if (focus[u1].size() == 1) {
-	   // there was no refinement to a specific machine...but the component focus
-	   // must have such a refinement.
-	   component_focus[u1] += machineResource->part_name();
-	}
-      }
-      else
-	for (unsigned u2 = 0; u2 < focus[u1].size(); u2++)
-	  component_flat_name += focus[u1][u2];
-    }
+    }//for u1
 
     // now assert that focus2flatname(component_focus) equals component_flat_name
     extern string metricAndCanonFocus2FlatName(const string &met,
@@ -648,7 +653,7 @@ apply_to_process(process *proc,
     assert(mn);
 
     assert(!allMIComponents.defines(component_flat_name));
-    allMIComponents[component_flat_name] = mn;
+    allMIComponents[component_flat_name] = mn; // see metricDefinitionNode::handleExec, metric.C:734
 
     // Create the timer, counter
     dataReqNode *the_node = create_data_object(type, mn, computingCost);
@@ -829,35 +834,35 @@ apply_to_process(process *proc,
     int thrSelected = -1;
     int processIdx = -1;
     string component_flat_name(name);
+
     for (unsigned u1 = 0; u1 < focus.size(); u1++) {
-      if (focus[u1][0] == "Process") {
-        processIdx = u1;
-        component_flat_name += focus[u1][0] + proc->rid->part_name();
+      for (unsigned u2 = 0; u2 < focus[u1].size(); u2++)
+         component_flat_name += focus[u1][u2];
 
-        if (focus[u1].size() == 1) 
-           // there was no refinement to a specific process...but the component
-           // focus must have such a refinement.
-           component_focus[u1] += proc->rid->part_name();
-
-        // This maeans that a thread was selected - naim
-        if (focus[u1].size() == 3) {
-          thrSelected = u1;
-          for (unsigned u2 = 2; u2 < focus[u1].size(); u2++)
-            component_flat_name += focus[u1][u2];
-        }
-      }
-      else if (focus[u1][0] == "Machine") {
-        component_flat_name += focus[u1][0] + machineResource->part_name();
-        if (focus[u1].size() == 1) 
-          // there was no refinement to a specific machine...but the component focus
-          // must have such a refinement.
-          component_focus[u1] += machineResource->part_name();
-      }
-      else {
-        for (unsigned u2 = 0; u2 < focus[u1].size(); u2++)
-          component_flat_name += focus[u1][u2];
-      }
-    }
+      if (focus[u1][0] == "Machine") {
+	processIdx = u1;
+        switch ( (focus[u1].size()) ) {
+	  case 1: {
+            // there was no refinement to a specific machine...but the component focus
+            // must have such a refinement.
+            component_flat_name += machineResource->part_name();
+            component_focus[u1] += machineResource->part_name();
+	    // no break
+	  }
+          case 2: {
+             // there was no refinement to a specific process...but the component
+             // focus must have such a refinement.
+            component_flat_name += proc->rid->part_name();
+            component_focus[u1] += proc->rid->part_name();
+	    break;
+          }
+	  case 4: {
+	    thrSelected = u1;
+	    break;
+	  }
+	}
+      } // Machine 
+    }//for u1
 
     // now assert that focus2flatname(component_focus) equals component_flat_name
     extern string metricAndCanonFocus2FlatName(const string &met, const vector< vector<string> > &focus);
@@ -938,7 +943,6 @@ apply_to_process(process *proc,
 
 
     proc_component_flat_name = metricAndCanonFocus2FlatName(name,component_focus);
-
     if (!allMIComponents.find(proc_component_flat_name,proc_mn)) { 
       proc_mn=new metricDefinitionNode(proc,name,focus,
             component_focus,proc_component_flat_name,agg_op,PROC_COMP);
@@ -2499,13 +2503,11 @@ bool mdl_init(string& flavor) {
   mdl_data::foci += fe;
   kids.resize(0);
 
-  self.name = "Process"; self.type = MDL_T_PROCESS; self.end_allowed = true;
-  fe.self = self; fe.kids.resize(0);
-  mdl_data::foci += fe;
-
   self.name = "Machine"; self.type = MDL_T_STRING; self.end_allowed = true;
-  fe.self = self; fe.kids.resize(0);
+  kid.name = "Process"; kid.type = MDL_T_PROCESS; kid.end_allowed = true; kids += kid;
+  fe.self = self; fe.kids = kids;
   mdl_data::foci += fe;
+  kids.resize(0);
 #endif
 
   mdl_env::push();

@@ -45,6 +45,9 @@
  * Included by PC modules only
  *  
  * $Log: PCintern.h,v $
+ * Revision 1.13  2000/03/06 21:41:22  zhichen
+ * Moved /Process hierarchy to /Machine hierarchy.
+ *
  * Revision 1.12  1999/08/09 05:40:35  csserra
  * - added support for (mips-sgi-irix6.4) native compiler build
  * - eliminated misc. compiler warnings
@@ -167,7 +170,6 @@ typedef enum { averaging, nonfiltering} filterType;
 extern resourceHandle rootResource;
 extern resourceHandle SyncObject;
 extern resourceHandle Procedures;
-extern resourceHandle Processes;
 extern resourceHandle Machines;
 extern resourceHandle Locks;
 extern resourceHandle Barriers;
