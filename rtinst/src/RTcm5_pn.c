@@ -4,7 +4,10 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.5  1993/10/01 18:15:53  hollings
+ * Revision 1.6  1993/10/07 19:09:12  jcargill
+ * Added true combines for global instrumentation
+ *
+ * Revision 1.5  1993/10/01  18:15:53  hollings
  * Added filtering and resource discovery.
  *
  * Revision 1.4  1993/09/02  22:09:38  hollings
@@ -36,7 +39,9 @@
 #include <cm/cmmd/util.h>
 #include <cm/cmmd/cmmd_constants.h>
 #include <cm/cmmd.h>
+#define pe_obj
 #include <cm/cmna.h>
+#include <cmsys/ni_interface.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -202,6 +207,22 @@ void DYNINSTstopProcessTimer(tTimer *timer)
     }
 }
 
+void DYNINSTreportAggregateCounter(intCounter *counter)
+{
+    traceSample sample;
+    int aggregate;
+
+    /* Everyone aggregates to a single value */
+    CMNA_com(ADD_SCAN, SCAN_REDUCE, &counter->value, 1, &aggregate);
+
+    sample.value = aggregate;
+    sample.id = counter->id;
+
+    if (CMNA_self_address == 0)
+	DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample);
+}
+
+
 void DYNINSTreportTimer(tTimer *timer)
 {
     double temp;
@@ -249,6 +270,91 @@ void DYNINSTreportTimer(tTimer *timer)
 
     DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample);
 }
+
+
+Add_combine_64bit (x, aggregate)
+    time64 *x, *aggregate;
+{
+    unsigned int *x_lsw_p;
+    unsigned int *x_msw_p;
+    unsigned int *agg_lsw_p;
+    unsigned int *agg_msw_p;
+
+   x_lsw_p = (((unsigned int *) x) + 1);
+    x_msw_p = ((unsigned int *) x);
+    agg_lsw_p = (((unsigned int *) aggregate) + 1);
+    agg_msw_p = ((unsigned int *) aggregate);
+
+    do {
+	CMNA_com_send_first (UADD_SCAN, SCAN_REDUCE, 2, *x_lsw_p);
+	CMNA_com_send_word (*x_msw_p);
+    }
+    while (!SEND_OK(CMNA_com_status()));
+
+    while (!(RECEIVE_OK(CMNA_com_status())))
+	continue;
+/*     recv_length = RECEIVE_LENGTH_LEFT(CMNA_com_status()); */
+    
+    *agg_lsw_p = CMNA_com_receive_word();
+    *agg_msw_p = CMNA_com_receive_word();
+}
+
+
+void DYNINSTreportAggregateTimer(tTimer *timer)
+{
+    double temp;
+    double temp2;
+    time64 now;
+    double value;
+    time64 total;
+    time64 aggregate;
+    tTimer timerTemp;
+    traceSample sample;
+
+
+    if (timer->mutex) {
+	total = timer->snapShot;
+    } else if (timer->counter) {
+	/* timer is running */
+	if (timer->type == processTime) {
+	    now = getProcessTime();
+	    total = now - timer->start;
+	} else {
+	    CMOS_get_time(&now);
+	    total = (now - timer->start);
+	}
+	total += timer->total;
+    } else {
+	total = timer->total;
+    }
+
+    if (total < 0) {
+	timerTemp = *timer;
+	abort();
+    }
+
+    /* Combine all timers to get a single aggregate 64-bit timer */
+    Add_combine_64bit (&total, &aggregate);
+
+    sample.value = aggregate / (double) timer->normalize;
+    sample.id = timer->id;
+
+    /* only node 0 does sanity check and reports the timer */
+    if (CMNA_self_address == 0) {
+	temp = sample.value;
+	if (temp < previous[sample.id.id]) {
+	    timerTemp = *timer;
+	    temp2 = previous[sample.id.id];
+	    abort();
+	    while(1);
+	}
+	previous[sample.id.id] = temp;
+
+	DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample);
+    }
+}
+
+
 
 static time64 startWall;
 int DYNINSTnoHandlers;
@@ -317,20 +423,20 @@ void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
     traceHeader header;
 
     /* check and see if we should aggregate to other nodes */
-    if ((type == TR_SAMPLE) && (((traceSample*) eventData)->id.aggregate)) {
+/*     if ((type == TR_SAMPLE) && (((traceSample*) eventData)->id.aggregate)) { */
 	 /* not ready yet! */
-	 abort();
+/* 	 abort(); */
 
 	 /* use reduction net to compute aggregate */
-	 sample = (traceSample*) eventData;
+/* 	 sample = (traceSample*) eventData; */
 	 /* newVal = CMMD_reduce_float(sample->value, CMMD_combiner_fadd); */
-	 newVal = CMCN_reduce_float(sample->value, CMMD_combiner_fadd);
-	 sample->value = newVal;
+/* 	 newVal = CMCN_reduce_float(sample->value, CMMD_combiner_fadd); */
+/* 	 sample->value = newVal; */
 
 
 	 /* only node zero reports value */
-	 if (CMMD_self_address()) return;
-    }
+/* 	 if (CMMD_self_address()) return; */
+/*     } */
 
     CMOS_get_time(&header.wall);
     header.wall += startWall;
