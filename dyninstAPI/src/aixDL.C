@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.45 2003/10/22 16:04:54 schendel Exp $
+// $Id: aixDL.C,v 1.46 2003/11/24 17:38:43 schendel Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -159,8 +159,6 @@ pdvector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
       fileDescriptor_AIX *fda = new fileDescriptor_AIX(obj_name, member,
                                                        text_org, data_org,
                                                        pid, false);
-      fprintf(stderr, "Making new shared_object\n");
-      
       shared_object *newobj = new shared_object(fda,
                                                 false,true,true,0);
       (*result).push_back(newobj);      
@@ -567,8 +565,6 @@ Address process::get_dlopen_addr() const {
   pd_Function *pdf = (pd_Function *) findOnlyOneFunction("dlopen");
 
   if (pdf) {
-      fprintf(stderr, "dlopen address: 0x%x\n",
-              pdf->getEffectiveAddress(this));
       return pdf->getEffectiveAddress(this);
   }
   
