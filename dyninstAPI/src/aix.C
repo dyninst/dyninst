@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.194 2005/03/07 21:18:31 bernat Exp $
+// $Id: aix.C,v 1.195 2005/03/09 00:53:57 chadd Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -1264,6 +1264,8 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 	addLibraryXCOFF->outputXCOFF();
 */
    delete [] fullName;
+
+	delete newXCOFF;
 
 	return directoryName;
 }
