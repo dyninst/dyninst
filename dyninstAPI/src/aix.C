@@ -1,6 +1,10 @@
 
 /* 
  * $Log: aix.C,v $
+ * Revision 1.10  1996/05/12 05:12:57  tamches
+ * (really Jeff)
+ * Added ability to process aix 4.1-linked files.
+ *
  * Revision 1.9  1996/05/08 23:54:33  mjrg
  * added support for handling fork and exec by an application
  * use /proc instead of ptrace on solaris
@@ -114,11 +118,11 @@ bool process::getActiveFrame(int *fp, int *pc)
     int dummy;
 
     errno = 0;
-    sp = ptrace(PT_READ_GPR, pid, (char *) STKP, 0, 0);
+    sp = ptrace(PT_READ_GPR, pid, (int *) STKP, 0, 0); // aix 4.1 likes int *
     if (errno != 0) return false;
 
     errno = 0;
-    *pc = ptrace(PT_READ_GPR, pid, (char *) IAR, 0, 0);
+    *pc = ptrace(PT_READ_GPR, pid, (int *) IAR, 0, 0); // aix 4.1 likes int *
     if (errno != 0) return false;
 
     // now we need to read the first frame from memory.
@@ -162,7 +166,7 @@ bool process::readDataFromFrame(int currentFP, int *fp, int *rtn)
         if (currentFP == firstFrame) {
             // use the value stored in the link register instead.
             errno = 0;
-            *rtn = ptrace(PT_READ_GPR, pid, LR, 0, 0);
+            *rtn = ptrace(PT_READ_GPR, pid, (int *)LR, 0, 0); // aix 4.1 likes int *
             if (errno != 0) return false;
         }
         return true;
@@ -178,7 +182,7 @@ bool ptraceKludge::deliverPtrace(process *p, int req, char *addr,
   
   
   if (req != PT_DETACH) halted = haltProcess(p);
-  if (ptrace(req, p->getPid(), addr, data, addr2) == -1)
+  if (ptrace(req, p->getPid(), (int *)addr, data, (int *)addr2) == -1) // aix 4.1 likes int *
     ret = false;
   else
     ret = true;
@@ -191,7 +195,7 @@ void ptraceKludge::continueProcess(process *p, const bool wasStopped) {
     if (ptrace(PT_CONTINUE, p->pid, (caddr_t) 1, SIGCONT, NULL) == -1) {
 #endif
   if ((p->status() != neonatal) && (!wasStopped)) {
-    if (ptrace(PT_DETACH, p->pid, (caddr_t) 1, SIGCONT, NULL) == -1) {
+    if (ptrace(PT_DETACH, p->pid, (int *) 1, SIGCONT, NULL) == -1) { // aix 4.1 likes int *
       cerr << "error in continueProcess\n";
       assert(0);
     }
@@ -240,10 +244,10 @@ bool OS::osDumpCore(pid_t pid, const string dumpTo) {
 
 bool OS::osForwardSignal (pid_t pid, int stat) {
   if (stat != 0) {
-      ptrace(PT_DETACH, pid, (char*)1, stat, 0);
+      ptrace(PT_DETACH, pid, (int*)1, stat, 0); // aix 4.1 likes int *
       return (true);
   } else {
-      return (ptrace(PT_CONTINUE, pid, (char*)1, 0, 0) != -1);
+      return (ptrace(PT_CONTINUE, pid, (int*)1, 0, 0) != -1); // aix 4.1 likes int *
   }
 }
 
@@ -277,7 +281,7 @@ bool process::continueProc_() {
   // switch these to not detach after every call.
   ret1 = ptrace(PT_CONTINUE, pid, (char*)1, SIGCONT, (char*)NULL);
 #endif
-  ret2 = ptrace(PT_DETACH, pid, (char*)1, SIGCONT, (char*)NULL);
+  ret2 = ptrace(PT_DETACH, pid, (int*)1, SIGCONT, NULL);
   return (ret1 != -1 && ret2 != -2);
 }
 
@@ -314,7 +318,7 @@ bool process::dumpCore_(const string coreFile) {
 
   assert(OS::osDumpImage(symbols->file(), pid, symbols->codeOffset()));
   errno = 0;
-  (void) ptrace(PT_CONTINUE, pid, (char*)1, SIGBUS, NULL);
+  (void) ptrace(PT_CONTINUE, pid, (int*)1, SIGBUS, NULL);
   assert(errno == 0);
   return true;
 }
@@ -369,7 +373,7 @@ bool process::loopUntilStopped() {
     if ((sig == SIGTRAP) || (sig == SIGSTOP) || (sig == SIGINT)) {
       isStopped = true;
     } else {
-      if (ptrace(PT_CONTINUE, pid, (char*)1, WSTOPSIG(waitStatus), 0) == -1) {
+      if (ptrace(PT_CONTINUE, pid, (int*)1, WSTOPSIG(waitStatus), 0) == -1) {
 	cerr << "Ptrace error\n";
 	assert(0);
       }
@@ -468,7 +472,7 @@ bool OS::osDumpImage(const string &imageFileName,  int pid, const Address codeOf
     for (i=0; i < aout.tsize; i+= 1024) {
         errno = 0;
         length = ((i + 1024) < aout.tsize) ? 1024 : aout.tsize -i;
-        ptrace(PT_READ_BLOCK, pid, (char*) (codeOff + i), length, buffer);
+        ptrace(PT_READ_BLOCK, pid, (int*) (codeOff + i), length, (int *)buffer);
         if (errno) {
 	    perror("ptrace");
 	    assert(0);
@@ -476,7 +480,7 @@ bool OS::osDumpImage(const string &imageFileName,  int pid, const Address codeOf
 	write(ofd, buffer, length);
     }
 
-    ptrace(PT_CONTINUE, pid, (char*) 1, SIGCONT, 0);
+    ptrace(PT_CONTINUE, pid, (int*) 1, SIGCONT, 0);
 
     close(ofd);
     close(ifd);
@@ -535,7 +539,7 @@ void Object::load_object()
     struct syment *sym;
     struct aouthdr aout;
     union auxent *csect;
-    char *stringPool NULL;
+    char *stringPool=NULL;
     bool newModule = false;
     Symbol::SymbolType type; 
     int *lengthPtr = &poolLength;
@@ -617,8 +621,18 @@ void Object::load_object()
 	(void **) &code_ptr_, aout.tsize, true)) {
 	goto cleanup;
     }
-    code_off_ =  aout.text_start + AIX_TEXT_OFFSET_HACK;
+
+    //code_off_ =  aout.text_start + AIX_TEXT_OFFSET_HACK; (OLD, pre-4.1)
+     code_off_ =  aout.text_start;
+     if (aout.text_start < TEXTORG) {
+       code_off_ += AIX_TEXT_OFFSET_HACK;
+     } else {
+       AIX_TEXT_OFFSET_HACK = 0;
+     }
+
+
     // fprintf(stderr, "reading code starting at %x\n", code_off_);
+
     code_len_ = aout.tsize;
 
     // now the init data segment.
@@ -635,7 +649,15 @@ void Object::load_object()
 	(void **) &data_ptr_, aout.dsize, true)) {
 	goto cleanup;
     }
-    data_off_ = sectHdr[aout.o_sndata-1].s_vaddr + AIX_DATA_OFFSET_HACK;
+
+    // data_off_ = sectHdr[aout.o_sndata-1].s_vaddr + AIX_DATA_OFFSET_HACK; (OLD, pre-4.1)
+    data_off_ = aout.data_start;
+    if (aout.data_start < DATAORG) {
+       data_off_ += AIX_DATA_OFFSET_HACK;
+    } else {
+       AIX_DATA_OFFSET_HACK = 0;
+    }
+
     data_len_ = aout.dsize;
 
     for (i=0; i < hdr.f_nsyms; i++) {
@@ -795,7 +817,7 @@ bool establishBaseAddrs(int pid, int &status)
     waitpid(pid, &status, WUNTRACED);
 
 
-    ret = ptrace(PT_LDINFO, pid, (char *) &info, sizeof(info), (char *) &info);
+    ret = ptrace(PT_LDINFO, pid, (int *) &info, sizeof(info), (int *) &info);
     if (ret != 0) {
 	statusLine("Unable to get loader info about process, application aborted");
 	showErrorCallback(43, "Unable to get loader info about process, application aborted");
