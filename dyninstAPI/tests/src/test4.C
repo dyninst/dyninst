@@ -1,9 +1,10 @@
-// $Id: test4.C,v 1.22 2003/10/21 22:43:53 bernat Exp $
+// $Id: test4.C,v 1.23 2004/01/19 21:54:16 schendel Exp $
 //
 
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <stdarg.h>
 #ifdef i386_unknown_nt4_0
 #include <windows.h>
 #include <winbase.h>
@@ -27,7 +28,17 @@ int errorPrint = 0; // external "dyninst" tracing (via errorFunc)
 
 bool forceRelocation = false;  // Force relocation upon instrumentation
 
-#define dprintf if (debugPrint) printf
+void dprintf(const char *fmt, ...) {
+   va_list args;
+   va_start(args, fmt);
+
+   if(debugPrint)
+      vfprintf(stderr, fmt, args);
+
+   va_end(args);
+
+   fflush(stderr);
+}
 
 bool runAllTests = true;
 const unsigned int MAX_TEST = 4;
@@ -88,9 +99,9 @@ void forkFunc(BPatch_thread *parent, BPatch_thread *child)
     if (child) mythreads[threadCount++] = child;
 
     if (!child) {
-	dprintf("in prefork for %d\n", parent->getPid());
+       dprintf("in prefork for %d\n", parent->getPid());
     } else {
-	dprintf("in fork of %d to %d\n", parent->getPid(), child->getPid());
+       dprintf("in fork of %d to %d\n", parent->getPid(), child->getPid());
     }
 
     if (inTest == 1) {
@@ -193,92 +204,117 @@ void forkFunc(BPatch_thread *parent, BPatch_thread *child)
     }
 }
 
-void exitFunc(BPatch_thread *thread, int code)
+void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type)
 {
     // Read out the values of the variables.
-    if (inTest == 1) {
-	if (thread->getPid() == code) {
-	    if (verifyChildMemory(thread, "globalVariable1_1", 1000001)) {
-		printf("Passed test #1 (exit callback)\n");
-		passedTest[1] = true;
-	    } else {
-		passedTest[1] = false;
-	    }
-	} else {
-	    printf("**Failed** test #1 (exit callback)\n");
-	    printf("    exit code = %d, was not equal to pid\n", code);
-	}
-    } else if (inTest == 2) {
-	static int exited = 0;
-	exited++;
-	if (thread->getPid() != code) {
-	    printf("Failed test #2 (fork callback)\n");
-	    printf("    exit code was not equal to pid\n");
-        
-	    exited = 0;
-	} else {
-	    dprintf("test #2, pid %d exited\n", code);
-	    if ((test2Parent == thread) &&
-		!verifyChildMemory(test2Parent, "globalVariable2_1", 2000002)) {
-		failedTest[2] = true;
-	    }
-	    if ((test2Child == thread) &&
-	        !verifyChildMemory(test2Child, "globalVariable2_1", 2000003)) {
-		failedTest[2] = true;
-	    }
+    int exitCode = thread->getExitCode();
 
-	    // See if all the processes are done
-	    if (exited == 2) {
-		if (!failedTest[2]) {
-		    printf("Passed test #2 (fork callback)\n");
-		    passedTest[2] = true;
-		} else {
-		    printf("Failed test #2 (fork callback)\n");
-		}
-	    }
-	}
+    assert(thread->terminationStatus() == exit_type);
+    // Read out the values of the variables.
+    if (inTest == 1) {
+        if (exit_type == ExitedNormally) {
+            if(thread->getPid() == exitCode) {
+                if (verifyChildMemory(thread, "globalVariable1_1", 1000001)) {
+                    printf("Passed test #1 (exit callback)\n");
+                    passedTest[1] = true;
+                } else {
+                    printf("**Failed** test #1 (exit callback)\n");
+                    printf("    verifyChildMemory failed\n");
+                    passedTest[1] = false;
+                }
+            } else {
+                printf("**Failed** test #1 (exit callback)\n");
+                printf("    exit code = %d, was not equal to pid\n", exitCode);
+                passedTest[1] = false;
+            }
+        } else if (exit_type == ExitedViaSignal) {
+           printf("**Failed** test #1 (exit callback), exited via signal %d\n",
+                   thread->getExitSignal());
+            passedTest[1] = false;
+        } else assert(false);
+    } else if (inTest == 2) {
+        static int exited = 0;
+        exited++;
+        if(exit_type == ExitedViaSignal) {
+            printf("Failed test #2 (fork callback)\n");
+            printf("    a process terminated via signal %d\n",
+                   thread->getExitSignal());
+            exited = 0;            
+        } else if (thread->getPid() != exitCode) {
+            printf("Failed test #2 (fork callback)\n");
+            printf("    exit code was not equal to pid\n");            
+            exited = 0;
+        } else {
+            dprintf("test #2, pid %d exited\n", exitCode);
+            if ((test2Parent == thread) &&
+                !verifyChildMemory(test2Parent, "globalVariable2_1", 2000002)) {
+                failedTest[2] = true;
+            }
+            if ((test2Child == thread) &&
+                !verifyChildMemory(test2Child, "globalVariable2_1", 2000003)) {
+                failedTest[2] = true;
+            }
+            
+            // See if all the processes are done
+            if (exited == 2) {
+                if (!failedTest[2]) {
+                    printf("Passed test #2 (fork callback)\n");
+                    passedTest[2] = true;
+                } else {
+                    printf("Failed test #2 (fork callback)\n");
+                }
+            }
+        }
     } else if (inTest == 3) {
-	// simple exec 
-	if (!verifyChildMemory(thread, "globalVariable3_1", 3000002)) {
-	    printf("Failed test #3 (exec callback)\n");
-	} else {
-	    printf("Passed test #3 (exec callback)\n");
-	    passedTest[3] = true;
-	}
+        // simple exec 
+        if(exit_type == ExitedViaSignal) {
+            printf("Failed test #3 (exec callback), exited via signal %d\n",
+                   thread->getExitSignal());
+        } else if (!verifyChildMemory(thread, "globalVariable3_1", 3000002)) {
+            printf("Failed test #3 (exec callback)\n");
+        } else {
+            printf("Passed test #3 (exec callback)\n");
+            passedTest[3] = true;
+        }
     } else if (inTest == 4) {
-	static int exited = 0;
-	exited++;
-	if (thread->getPid() != code) {
-	    printf("Failed test #4 (fork callback)\n");
-	    printf("    exit code was not equal to pid\n");
-	    failedTest[4] = true;
-	} else if (test4Parent == thread) {
-	    dprintf("test #4, pid %d exited\n", code);
-	    if (!verifyChildMemory(test4Parent,"globalVariable4_1",4000002)){
-		failedTest[4] = true;
-	    }
-	} else if (test4Child == thread) {
-	    dprintf("test #4, pid %d exited\n", code);
-	    if (!verifyChildMemory(test4Child, "globalVariable4_1", 4000003)) {
-		failedTest[4] = true;
-	    }
-	} else {
-	    // exit from unknown thread
-	    printf("Failed test #4 (fork callback)\n");
-	    printf("    exit from unknown pid = %d\n", code);
-	    failedTest[4] = true;
-	}
-	// See if all the processes are done
-	if (exited == 2) {
-	    if (!failedTest[4]) {
-		printf("Passed test #4 (fork & exec)\n");
-		passedTest[4] = true;
-	    } else {
-		printf("Failed test #4 (fork & exec)\n");
-	    }
-	}
+        static int exited = 0;
+        exited++;
+        if (exit_type == ExitedViaSignal) {
+            printf("Failed test #4 (fork callback)\n");
+            printf("    process exited via signal %d\n",
+                   thread->getExitSignal());
+            failedTest[4] = true;            
+        } else if (thread->getPid() != exitCode) {
+            printf("Failed test #4 (fork callback)\n");
+            printf("    exit code was not equal to pid\n");
+            failedTest[4] = true;
+        } else if (test4Parent == thread) {
+            dprintf("test #4, pid %d exited\n", exitCode);
+            if (!verifyChildMemory(test4Parent,"globalVariable4_1",4000002)){
+                failedTest[4] = true;
+            }
+        } else if (test4Child == thread) {
+            dprintf("test #4, pid %d exited\n", exitCode);
+            if (!verifyChildMemory(test4Child, "globalVariable4_1", 4000003)) {
+                failedTest[4] = true;
+            }
+        } else {
+            // exit from unknown thread
+            printf("Failed test #4 (fork callback)\n");
+            printf("    exit from unknown pid = %d\n", exitCode);
+            failedTest[4] = true;
+        }
+        // See if all the processes are done
+        if (exited == 2) {
+            if (!failedTest[4]) {
+                printf("Passed test #4 (fork & exec)\n");
+                passedTest[4] = true;
+            } else {
+                printf("Failed test #4 (fork & exec)\n");
+            }
+        }
     } else {
-	printf("**Exit from unknown test case**\n");
+        printf("**Exit from unknown test case**\n");
     }
 }
 
@@ -385,32 +421,32 @@ void errorFunc(BPatchErrorLevel level, int num, const char **params)
 
 void contAndWaitForAllThreads(BPatch_thread *appThread)
 {
-    mythreads[threadCount++] = appThread;
+   mythreads[threadCount++] = appThread;
+   appThread->continueExecution();
 
-    appThread->continueExecution();
-    while (1) {
-	int i;
-	for (i=0; i < threadCount; i++) {
-	    if (!mythreads[i]->isTerminated()) {
-		break;
-	    }
-	}
+   while (1) {
+      int i;
+      for (i=0; i < threadCount; i++) {
+         if (!mythreads[i]->isTerminated()) {
+            break;
+         }
+      }
 
-	// see if all exited
-	if (i== threadCount) break;
+      // see if all exited
+      if (i== threadCount) break;
 
-	bpatch->waitForStatusChange();
-	for (i=0; i < threadCount; i++) {
-	    if (mythreads[i]->isStopped()) {
-		mythreads[i]->continueExecution();
-	    }
-	}
-    }
-
-    for (int i=0; i < threadCount; i++) {
-	delete mythreads[i];
-    }
-    threadCount = 0;
+      bpatch->waitForStatusChange();
+      for (i=0; i < threadCount; i++) {
+         if (mythreads[i]->isStopped()) {
+            mythreads[i]->continueExecution();
+         }
+      }
+   }
+   
+   for (int i=0; i < threadCount; i++) {
+      delete mythreads[i];
+   }
+   threadCount = 0;
 }
 
 void mutatorTest1(char *pathname)
@@ -576,7 +612,6 @@ void mutatorMAIN(char *pathname)
     if (runTest[2]) mutatorTest2(pathname);
     if (runTest[3]) mutatorTest3(pathname);
     if (runTest[4]) mutatorTest4(pathname);
-
     unsigned int testsFailed = 0;
     for (unsigned int i=1; i <= MAX_TEST; i++) {
         if (runTest[i] && !passedTest[i]) testsFailed++;
