@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test8.C,v 1.13 2004/04/26 20:53:46 rchen Exp $
+// $Id: test8.C,v 1.14 2004/05/26 21:29:23 legendre Exp $
 //
 
 #include <stdio.h>
@@ -282,6 +282,9 @@ void mutatorTest1(BPatch_thread *appThread, BPatch_image *appImage)
 {
 #if !defined(alpha_dec_osf4_0)
     static const frameInfo_t correct_frame_info[] = {
+#if defined( os_linux ) && defined( arch_x86 )
+	{ true, true, BPatch_frameNormal, "_dl_sysinfo_int80" },
+#endif
 #if !defined(rs6000_ibm_aix4_1)
 	{ false, false, BPatch_frameNormal, NULL },
 #endif
@@ -316,6 +319,9 @@ void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
 {
 #if defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4) || defined( ia64_unknown_linux2_4 )
     static const frameInfo_t correct_frame_info[] = {
+#if defined( os_linux ) && defined( arch_x86 )
+	{ true, true, BPatch_frameNormal, "_dl_sysinfo_int80" },
+#endif
 #if !defined(rs6000_ibm_aix4_1)
 	{ false, false, BPatch_frameNormal, NULL },
 #endif	
@@ -360,6 +366,9 @@ void mutatorTest3( BPatch_thread * appThread, BPatch_image * appImage ) {
 #else
 	static const frameInfo_t correct_frame_info[] = {
 	
+#if defined( os_linux ) && defined( arch_x86 )
+	  { true, true, BPatch_frameNormal, "_dl_sysinfo_int80" },
+#endif
 #if defined( os_aix ) && defined( arch_power )
 		/* AIX uses kill(), but the PC of a process in a syscall can
 		   not be correctly determined, and appears to be the address
