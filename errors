@@ -1,7 +1,10 @@
 
 #
 # $Log: errors,v $
-# Revision 1.29  1994/09/13 20:50:58  karavan
+# Revision 1.30  1994/11/02 23:41:51  karavan
+# created error #24
+#
+# Revision 1.29  1994/09/13  20:50:58  karavan
 # created error #23
 #
 # Revision 1.28  1994/09/13  20:48:39  karavan
@@ -303,4 +306,13 @@ this error needs to be diagnosed.
 %X
 The tcl interpreter has failed unexpectedly.  This is a fatal error; 
 this error needs to be diagnosed.
+%Y
+
+%N 24
+%E Unable to read tcl startup script
+%A ui
+%S information
+%X
+A tcl error occurred finding or reading the tcl script specified on the 
+paradyn command line with the -s option.
 %Y
