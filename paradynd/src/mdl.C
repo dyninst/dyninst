@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.117 2002/10/15 17:11:53 schendel Exp $
+// $Id: mdl.C,v 1.118 2002/10/28 04:54:31 schendel Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -211,7 +211,7 @@ public:
       case MDL_T_STRING:
         s = (*string_list)[index++];
         return (mdl_env::set(s, index_name));
-      case MDL_T_PROCEDURE_NAME:
+      case MDL_T_PROCEDURE_NAME: {
         // lookup-up the functions defined in resource lists
         // the function may not exist in the image, in which case we get the
         // next one
@@ -219,15 +219,20 @@ public:
         {
           functionName *fn = (*funcName_list)[index++];
           pdf = global_proc->findOneFunction(fn->get());
-        }
-        while (pdf == NULL && index < max_index);
+        } while (pdf == NULL && index < max_index);
         if (pdf == NULL)
           return false;
-        return (mdl_env::set(pdf, index_name));
-      case MDL_T_PROCEDURE:
+        vector<function_base *> *func_buf = new vector<function_base*>;
+        (*func_buf).push_back(pdf);
+        return (mdl_env::set(func_buf, index_name));
+      }
+      case MDL_T_PROCEDURE: {
         pdf = (*func_list)[index++];
+        vector<function_base *> *func_buf = new vector<function_base*>;
+        (*func_buf).push_back(pdf);
         assert(pdf);
-        return (mdl_env::set(pdf, index_name));
+        return (mdl_env::set(func_buf, index_name));
+      }
       case MDL_T_MODULE: 
         m = (*mod_list)[index++];
         assert (m);
@@ -436,38 +441,68 @@ static bool pick_out_matched_constraints(
    return true;
 }
 
+// put $start in the environment
+bool update_environment_start_point(instrCodeNode *codeNode) {
+   vector<function_base *> *start_func_buf = new vector<function_base*>;
+   pd_process *proc = codeNode->proc();
+
+   if(proc->multithread_ready()) {
+      threadMgr::thrIter itr = proc->thrMgr().begin();
+      while(itr != proc->thrMgr().end()) {
+         pd_thread *thr = *itr++;
+	 
+	 //pdf = proc->getMainFunction();
+	 function_base* start_func = thr->get_start_func();
+	 if (!start_func) continue;
+	 string start_func_str = start_func->prettyName();
+	 if(codeNode->handledThrStartFunc(start_func_str))  continue;
+	 codeNode->markAsHandledThrStartFunc(start_func_str);
+	 
+	 (*start_func_buf).push_back(start_func);
+      }
+   } else {
+      function_base *pdf = proc->getMainFunction();      
+      (*start_func_buf).push_back(pdf);      
+   }
+      
+   string vname = "$start";
+   // change this to MDL_T_LIST_PROCEDURE
+   mdl_env::add(vname, false, MDL_T_PROCEDURE);
+   mdl_env::set(start_func_buf, vname);
+   return true;
+}
+
 // update the interpreter environment for this processor
 // Variable updated: $procedures, $modules, $exit, $start
 static bool update_environment(pd_process *proc) {
+   // for cases when libc is dynamically linked, the exit symbol is not
+   // correct
+   string vname = "$exit";
+   vector<function_base *> *exit_func_buf = new vector<function_base*>;
+   function_base *pdf = proc->findOneFunction(string(EXIT_NAME));
+   (*exit_func_buf).push_back(pdf);
 
-  // for cases when libc is dynamically linked, the exit symbol is not
-  // correct
-  string vname = "$exit";
-  function_base *pdf = 
-     proc->findOneFunction(string(EXIT_NAME));
-   if (pdf) { 
+   pdf = proc->findOneFunction(string("pthread_exit"));
+   if(pdf)  (*exit_func_buf).push_back(pdf);
+
+   pdf = proc->findOneFunction(string("thr_exit"));
+   if(pdf) (*exit_func_buf).push_back(pdf);
+
+   if ((*exit_func_buf).size() > 0) { 
       mdl_env::add(vname, false, MDL_T_PROCEDURE);
-      mdl_env::set(pdf, vname);
-  }
+      mdl_env::set(exit_func_buf, vname);
+   }
 
-  vname = "$start";
-  pdf = proc->getMainFunction();
-  if (!pdf) return false;
+   vname = "$procedures";
+   mdl_env::add(vname, false, MDL_T_LIST_PROCEDURE);
+   // only get the functions that are not excluded by exclude_lib or 
+   // exclude_func
+   mdl_env::set(proc->getIncludedFunctions(), vname);
 
-  vname = "$start";
-  mdl_env::add(vname, false, MDL_T_PROCEDURE);
-  mdl_env::set(pdf, vname);
-
-  vname = "$procedures";
-  mdl_env::add(vname, false, MDL_T_LIST_PROCEDURE);
-  // only get the functions that are not excluded by exclude_lib or 
-  // exclude_func
-  mdl_env::set(proc->getIncludedFunctions(), vname);
-
-  vname = "$modules";
-  mdl_env::add(vname, false, MDL_T_LIST_MODULE);
-  // only get functions that are not excluded by exclude_lib or exclude_func
-  mdl_env::set(proc->getIncludedModules(), vname);
+   vname = "$modules";
+   mdl_env::add(vname, false, MDL_T_LIST_MODULE);
+   // only get functions that are not excluded by exclude_lib or exclude_func
+   mdl_env::set(proc->getIncludedModules(), vname);
 
   return true;
 }
@@ -482,6 +517,8 @@ bool setup_sampled_code_node(const processMetFocusNode* procNode,
 			     const Hierarchy &repl_focus_data,
 			     bool dontInsertData)
 {
+   update_environment_start_point(codeNode);
+
    instrDataNode *sampledDataNode = 
       new instrDataNode(proc, type, dontInsertData, codeNode->getHwEvent());
 
@@ -555,7 +592,7 @@ bool createCodeAndDataNodes(processMetFocusNode **procNode_arg,
       unsigned flag_size = flag_cons.size(); // could be zero
       metric_cerr << " there are " << flag_size << " flags (constraints)\n";
 
-      for (unsigned fs=0; fs < flag_size; fs++) {
+      for(unsigned fs=0; fs<flag_size; fs++) {
 	 string cons_name(flag_cons[fs]->id());
 	 
 	 instrCodeNode *consCodeNode = 
@@ -563,9 +600,9 @@ bool createCodeAndDataNodes(processMetFocusNode **procNode_arg,
 					    proc, dontInsertData);
 	 bool consCodeNodeComplete = (consCodeNode->numDataNodes() > 0);
 	 
-	 if (! consCodeNodeComplete) {
+	 if(! consCodeNodeComplete) {
 	    metric_cerr << "  flag not already there " << endl;
-	    if (! setup_constraint_code_node(consCodeNode, proc, flag_cons[fs],
+	    if(! setup_constraint_code_node(consCodeNode, proc, flag_cons[fs],
 				       *flags_focus_data[fs], dontInsertData)) 
 	    {
 	       delete consCodeNode;
@@ -579,7 +616,8 @@ bool createCodeAndDataNodes(processMetFocusNode **procNode_arg,
       }
    }
    instrCodeNode *metCodeNode = 
-        instrCodeNode::newInstrCodeNode(name, no_thr_focus, proc,dontInsertData, hw_cntr_str);
+      instrCodeNode::newInstrCodeNode(name, no_thr_focus, proc, dontInsertData,
+                                      hw_cntr_str);
 
    /* if hw_cntr_str is no good, metCodeNode is NULL */
    if (metCodeNode == NULL) {
@@ -591,9 +629,9 @@ bool createCodeAndDataNodes(processMetFocusNode **procNode_arg,
    if(! metCodeNodeComplete) {
       // Create the data objects (timers/counters) and create the
       // astNodes which will be used to generate the instrumentation
-      if ( !setup_sampled_code_node(procNode, metCodeNode, proc, id, type, 
-				    repl_cons, stmts, temp_ctr,
-				    repl_focus_data, dontInsertData)) {
+      if(! setup_sampled_code_node(procNode, metCodeNode, proc, id, type, 
+				   repl_cons, stmts, temp_ctr,
+				   repl_focus_data, dontInsertData)) {
 	 delete metCodeNode;
 	 return false;
       }
@@ -601,7 +639,7 @@ bool createCodeAndDataNodes(processMetFocusNode **procNode_arg,
       //cerr << "  met code node already there, reuse it! " << endl;
    }
 
-   if (!metCodeNode->nonNull()) {
+   if(!metCodeNode->nonNull()) {
       metric_cerr << "metCodeNode->nonNull()" << endl;
       delete metCodeNode;
       return false;
@@ -700,6 +738,7 @@ apply_to_process(pd_process *proc,
 			      type, hw_cntr_str, flag_cons, repl_cons, stmts, 
 			      flags_focus_data, repl_focus_data, temp_ctr, 
 			      replace_component);
+   assert(procNode->getMetricVarCodeNode() != NULL);
    if(ret == false) {
       return NULL;
    }
@@ -732,11 +771,11 @@ static bool apply_to_process_list(vector<pd_process*>& instProcess,
       if (proc->status() == exited || proc->status() == neonatal) continue;
       
       processMetFocusNode *procRetNode = 
-	 apply_to_process(proc, id, name, focus, agg_op, type, hw_cntr_str, 
-			  flag_cons, repl_cons, stmts, flags_focus_data, 
-			  repl_focus_data, temp_ctr,
-			  replace_components_if_present, dontInsertData);
-
+         apply_to_process(proc, id, name, focus, agg_op, type, hw_cntr_str, 
+                          flag_cons, repl_cons, stmts, flags_focus_data, 
+                          repl_focus_data, temp_ctr, 
+                          replace_components_if_present, dontInsertData);
+      
       if(procRetNode)  (*procParts).push_back(procRetNode);
    }
    
@@ -752,16 +791,6 @@ bool T_dyninstRPC::mdl_metric::apply(
 			    vector<processMetFocusNode *> *createdProcNodes,
 			    const Focus &focus, vector<pd_process *> procs, 
 	                    bool replace_components_if_present, bool enable) {
-  // TODO -- check to see if this is active ?
-  // TODO -- create counter or timer
-  // TODO -- put it into the environment ?
-  // TODO -- this can be passed directly -- faster - later
-  // TODO -- internal metrics
-  // TODO -- assume no constraints, all processes instrumented
-  // TODO -- support two-level aggregation: one at the daemon, one at paradyn
-  // TODO -- how is folding specified ?
-  // TODO -- are lists updated here ?
-
   mdl_env::push();
   mdl_env::add(id_, false, MDL_T_DATANODE);
   assert(stmts_);
@@ -796,7 +825,7 @@ bool T_dyninstRPC::mdl_metric::apply(
   T_dyninstRPC::mdl_constraint *repl_cons = NULL;
 
   // build list of global constraints that match and choose local replace constraint
-  const Hierarchy *repl_focus;
+  const Hierarchy *repl_focus = NULL;
   vector<const Hierarchy *> flags_focus_data;
   if (! pick_out_matched_constraints(*constraints_, focus, &flag_cons,
 				 &repl_cons, &flags_focus_data, &repl_focus)) {
@@ -907,7 +936,6 @@ static bool do_trailing_resources(const vector<string>& resource_,
     string   caStr = string("$constraint") + 
                      string(resource_.size()-pLen-1);
     string   trailingRes = resource_[pLen];
-
     resPath += resource_[pLen];
     assert(resPath.size() == (pLen+1));
 
@@ -917,8 +945,9 @@ static bool do_trailing_resources(const vector<string>& resource_,
     switch (r->type()) {
     case MDL_T_INT: {
       const char* p = trailingRes.c_str();
-      char*       q;
+      char*       q = NULL;
       int         val = (int) strtol(p, &q, 0);
+
       if (p == q) {
 	string msg = string("unable to convert resource '") + trailingRes + 
                      string("' to integer.");
@@ -945,17 +974,39 @@ static bool do_trailing_resources(const vector<string>& resource_,
       if(!m_resource) {
 	return(false);
       }
-      function_base *pdf = proc->findOneFunction(r,m_resource);
+      function_base *pdf = proc->findOneFunction(r, m_resource);
+      vector<function_base *> *func_buf = new vector<function_base*>;
+      (*func_buf).push_back(pdf);
       if (!pdf) {
+         const vector<string> &f_names = r->names();
+         const vector<string> &m_names = m_resource->names();
+         string func_name = f_names[f_names.size() -1]; 
+         string mod_name = m_names[m_names.size() -1]; 
+         //module *mod = findModule(mod_name, true);
+         //if(! mod) return false;
+
+         // cerr << "func_name = " << func_name << ", mod_name: " << mod_name
+         //      << "\n";
+         // cerr << " return 403\n";
 	return(false);
       }
       mdl_env::add(caStr, false, MDL_T_PROCEDURE);
-      mdl_env::set(pdf, caStr);
+      mdl_env::set(func_buf, caStr);
       break;
     }
     case MDL_T_MODULE: {
-      module *mod = proc->findModule(trailingRes,true);
-      if (!mod) return(false);
+      module *mod = proc->findModule(trailingRes, true);
+      if (!mod) {
+         cerr << "couldn't find module " << trailingRes << "\n";
+
+         image *img = proc->getImage();
+         vector<pdmodule *> mods = img->getExcludedModules();
+         for(unsigned i=0; i<mods.size(); i++) {
+            cerr << "  i: " << i << ", filenm: " << mods[i]->fileName()
+                 << ", fullnm: " << mods[i]->fullName() << "\n";
+         }
+         return(false);
+      }
       mdl_env::add(caStr, false, MDL_T_MODULE);
       mdl_env::set(mod, caStr);
       break;
@@ -1249,6 +1300,15 @@ T_dyninstRPC::mdl_v_expr::~mdl_v_expr()
     delete args_;
   }
   delete left_; delete right_;
+}
+
+bool T_dyninstRPC::mdl_v_expr::isThreadStartPoint() { 
+   if(type_ == MDL_EXPR_DOT) {
+      return left_->isThreadStartPoint();
+   } else if(type_ == MDL_EXPR_VAR) {
+      if(var_ == string("$start"))  return true;
+   }
+   return false;
 }
 
 bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
@@ -1768,7 +1828,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret)
         return true;
       else
       { // do_type_walk and type_walk are set in paradyn's mdl.C
-        return (walk_deref(ret, type_walk)); 
+         return walk_deref(ret, type_walk);
       }
     }
     case MDL_EXPR_ASSIGN:
@@ -2006,6 +2066,11 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(instrCodeNode *mn,
     return false; // no instrumentation code to put in!
   }
 
+  bool refersToStartThreadPoint = false;
+
+  if(point_expr_->isThreadStartPoint())
+     refersToStartThreadPoint = true;
+
   mdl_var pointsVar(false);
   if (!point_expr_->apply(pointsVar)) { // process the 'point(s)' e.g. "$start.entry"
     return false;
@@ -2092,7 +2157,7 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(instrCodeNode *mn,
 
   // for all of the inst points, insert the predicates and the code itself.
   for (unsigned i = 0; i < points.size(); i++) {
-      mn->addInst(points[i], code, cwhen, corder );
+      mn->addInst(points[i], code, cwhen, corder, refersToStartThreadPoint);
          // appends an instReqNode to mn's instRequests; actual 
          // instrumentation only
          // takes place when mn->loadInstrIntoApp() is later called.
@@ -2511,194 +2576,213 @@ static bool do_operation(mdl_var& ret, mdl_var& left_val,
 
 static bool walk_deref(mdl_var& ret, vector<unsigned>& types) 
 {
-  unsigned index=0;
-  unsigned max = types.size();
-
-  while (index < max) 
-  {
-    unsigned current_type = types[index++];
-    unsigned next_field = types[index++];
-
-    switch (current_type) 
-    {
-      case MDL_T_PROCEDURE_NAME:
-      case MDL_T_PROCEDURE:
+   unsigned index=0;
+   unsigned max = types.size();
+   while (index < max) 
+   {
+      unsigned current_type = types[index++];
+      unsigned next_field = types[index++];
+      switch (current_type) 
       {
-        function_base *pdf = 0;
-        if (!ret.get(pdf)) return false;
-        switch (next_field) 
+        case MDL_T_PROCEDURE_NAME:
+        case MDL_T_PROCEDURE: {
+           vector<function_base *> *func_buf_ptr;
+           if (!ret.get(func_buf_ptr)) return false;
+           vector<instPoint *> *inst_point_buf = new vector<instPoint*>;
+                          
+           switch (next_field) {
+             case 0:  // .name
+             {
+                vector<string> *nameBuf = new vector<string>;
+                for(unsigned i=0; i<(*func_buf_ptr).size(); i++) {
+                   string prettyName = (*func_buf_ptr)[i]->prettyName();
+                   (*nameBuf).push_back(prettyName);
+                }
+                if (!ret.set(nameBuf)) return false;
+                break;
+                // TODO: should these be passed a process?  yes, they definitely should!
+             }
+             case 1:  // .calls
+             {
+                //  here we should check the calls and exclude the calls to
+                //  fns in the global_excluded_funcs list.
+                //
+                // ARI -- This is probably the spot!
+                for(unsigned i=0; i<(*func_buf_ptr).size(); i++) {
+                   function_base *pdf = (*func_buf_ptr)[i];
+                   
+                   vector<instPoint*> calls =
+                      pdf->funcCalls(global_proc->get_dyn_process());
+                   // makes a copy of the return value (on purpose), since we 
+                   // may delete some items that shouldn't be a call site for 
+                   // this metric.
+                   bool anythingRemoved = false; // so far
+                   
+                   // metric_cerr << "global_excluded_funcs size is: "
+                   // << global_excluded_funcs.size() << endl;
+                   
+                   // metric_cerr << "pdf->funcCalls() returned the following call sites:" 
+                   // << endl;
+                                                 
+                   unsigned oldSize;
+                   for (unsigned u = 0; u < (oldSize = calls.size());
+                        (oldSize == calls.size()) ? u++ : u) 
+                   {  // calls.size() can change!
+                      // metric_cerr << u << ") ";
+                                                         
+                      instPoint *point = calls[u];
+                      function_base *callee = const_cast<function_base*>(point->iPgetCallee());
+                                                         
+                      const char *callee_name=NULL;
+                                                         
+                      if (callee == NULL) 
+                      {
+                         // call Tia's new process::findCallee() to fill in point->callee
+                         if (!global_proc->findCallee(*point, callee)) 
+                         {
+                            // an unanalyzable function call; sorry.
+                            callee_name = NULL;
+                            // metric_cerr << "-unanalyzable-" << endl;
+                         }
+                         else 
+                         {
+                            // success -- either (a) the call has been bound
+                            // already, in which case the instPoint is updated
+                            // _and_ callee is set, or (b) the call hasn't yet
+                            // been bound, in which case the instPoint isn't
+                            // updated but callee *is* updated.
+                            callee_name = callee->prettyName().c_str();
+                            // metric_cerr << "(successful findCallee() was required) "
+                            // << callee_name << endl;
+                         }
+                      }
+                      else 
+                      {
+                         callee_name = callee->prettyName().c_str();
+                         // metric_cerr << "(easy case) " << callee->prettyName() << endl;
+                      }
+                      
+                      // If this callee is in global_excluded_funcs for this
+                      // metric (a global vrble...sorry for that), then it's not
+                      // really a callee (for this metric, at least), and thus,
+                      // it should be removed from whatever we eventually pass
+                      // to "ret.set()" below.
+
+                      if (callee_name != NULL) // could be NULL (e.g. indirect fn call)
+                         for (unsigned lcv=0; lcv < global_excluded_funcs.size(); lcv++) 
+                         {
+                            if (0==strcmp(global_excluded_funcs[lcv].c_str(),callee_name))
+                            {
+                               anythingRemoved = true;
+                               
+                               // remove calls[u] from calls.  To do this, swap
+                               // calls[u] with calls[maxndx], and resize-1.
+                               const unsigned maxndx = calls.size()-1;
+                               calls[u] = calls[maxndx];
+                               calls.resize(maxndx);
+                               
+                               // metric_cerr << "removed something! -- " << callee_name << endl;
+                               
+                               break;
+                            }
+                         }
+                   }
+                   
+                   if (!anythingRemoved) 
+                   {
+                      // metric_cerr << "nothing was removed -- doing set() now" << endl;
+                      const vector<instPoint*> *pt_hold = 
+                         &(pdf->funcCalls(global_proc->get_dyn_process()));
+                      for(unsigned i=0; i<(*pt_hold).size(); i++)
+                         (*inst_point_buf).push_back((*pt_hold)[i]);
+                   }
+                   else 
+                   {
+                      // metric_cerr << "something was removed! -- doing set() now" << endl;
+                      vector<instPoint*> pt_hold(calls);
+                      for(unsigned i=0; i<pt_hold.size(); i++)
+                         (*inst_point_buf).push_back(pt_hold[i]);
+                      
+                      // WARNING: "setMe" will now be leaked memory!  The
+                      // culprit is "ret", which can only take in a _pointer_ to
+                      // a vector of instPoint*'s; it can't take in a vector of
+                      // instPoints*'s, which we'd prefer.
+                   }
+                }
+                if(! ret.set(inst_point_buf))
+                   return false;
+                break;
+             }
+             case 2:  // .entry  (eg. $start.entry or $exit.entry)
+             {
+                for(unsigned i=0; i<(*func_buf_ptr).size(); i++) {
+                   function_base *pdf = (*func_buf_ptr)[i];
+                   instPoint *entryPt = 
+                      const_cast<instPoint *>(pdf->funcEntry(global_proc->get_dyn_process()));
+                   (*inst_point_buf).push_back(entryPt);
+                }
+                if(! ret.set(inst_point_buf))
+                   return false;
+                break;
+             }
+             case 3:   // .return
+             {
+                for(unsigned i=0; i<(*func_buf_ptr).size(); i++) {
+                   function_base *pdf = (*func_buf_ptr)[i];
+                   const vector<instPoint *> func_exit_pts = 
+                      pdf->funcExits(global_proc->get_dyn_process());
+                   for(unsigned j=0; j<func_exit_pts.size(); j++)
+                      (*inst_point_buf).push_back(func_exit_pts[j]);
+                }
+                if(! ret.set(const_cast<vector<instPoint*>*>(inst_point_buf)))
+                   return false;
+                break;
+             }
+             default:
+                assert(0);
+                break;
+           } //switch(next_field)
+           break;
+        }
+        case MDL_T_MODULE:
         {
-          case 0: 
-          {
-            string prettyName = pdf->prettyName();
-            if (!ret.set(prettyName)) return false;
-            break;
-            // TODO: should these be passed a process?  yes, they definitely should!
-          }
-          case 1:
-          {
-            //
-            /*****
-             here we should check the calls and exclude the calls to fns in the
-             global_excluded_funcs list.
-             *****/
-            // ARI -- This is probably the spot!
-
-            vector<instPoint*> calls = 
-	       pdf->funcCalls(global_proc->get_dyn_process());
-            // makes a copy of the return value (on purpose), since we 
-            // may delete some items that shouldn't be a call site for 
-            // this metric.
-            bool anythingRemoved = false; // so far
-
-	    // metric_cerr << "global_excluded_funcs size is: "
-	    // << global_excluded_funcs.size() << endl;
-
-	    // metric_cerr << "pdf->funcCalls() returned the following call sites:" 
-	    // << endl;
-
-            unsigned oldSize;
-            for (unsigned u = 0; u < (oldSize = calls.size());
-                                 (oldSize == calls.size()) ? u++ : u) 
-            {  // calls.size() can change!
-              // metric_cerr << u << ") ";
-
-              instPoint *point = calls[u];
-              function_base *callee = const_cast<function_base*>(point->iPgetCallee());
-
-              const char *callee_name=NULL;
-
-              if (callee == NULL) 
-              {
-                // call Tia's new process::findCallee() to fill in point->callee
-                if (!global_proc->findCallee(*point, callee)) 
+           module *mod;
+           if (!ret.get(mod)) return false;
+           switch (next_field) 
+           {
+             case 0: 
+             {
+                string fileName = mod->fileName();
+                if (!ret.set(fileName)) return false; 
+             } break;
+             case 1: 
+             {
+                if (global_proc) 
                 {
-                  // an unanalyzable function call; sorry.
-                  callee_name = NULL;
-                  // metric_cerr << "-unanalyzable-" << endl;
+                   // this is the correct thing to do...get only the included
+                   // funcs associated with this module, but since we seem to
+                   // be testing for global_proc elsewhere in this file I
+                   // guess we will here too
+                   if (!ret.set(global_proc->getIncludedFunctions(mod))) return false; 
                 }
                 else 
                 {
-                  // success -- either (a) the call has been bound already, 
-                  // in which case the instPoint is updated _and_ callee is 
-                  // set, or (b) the call hasn't yet been bound, in which 
-                  // case the instPoint isn't updated but callee *is* updated.
-                  callee_name = callee->prettyName().c_str();
-                  // metric_cerr << "(successful findCallee() was required) "
-		  // << callee_name << endl;
+                   // if there is not a global_proc, then just get all
+                   // functions associtated with this module....under what
+                   // circumstances would global_proc == 0 ???
+                   if (!ret.set(mod->getFunctions())) return false; 
                 }
-              }
-              else 
-              {
-                callee_name = callee->prettyName().c_str();
-                // metric_cerr << "(easy case) " << callee->prettyName() << endl;
-              }
-
-              // If this callee is in global_excluded_funcs for this metric 
-              // (a global vrble...sorry for that), then it's not really a 
-              // callee (for this metric, at least), and thus, it should be 
-              // removed from whatever we eventually pass to "ret.set()" below.
-
-              if (callee_name != NULL) // could be NULL (e.g. indirect fn call)
-                for (unsigned lcv=0; lcv < global_excluded_funcs.size(); lcv++) 
-                {
-                  if (0==strcmp(global_excluded_funcs[lcv].c_str(),callee_name))
-                  {
-                    anythingRemoved = true;
-
-                    // remove calls[u] from calls.  To do this, swap
-                    // calls[u] with calls[maxndx], and resize-1.
-                    const unsigned maxndx = calls.size()-1;
-                    calls[u] = calls[maxndx];
-                    calls.resize(maxndx);
-
-                    // metric_cerr << "removed something! -- " << callee_name << endl;
-
-                    break;
-                  }
-                }
-            }
-
-            if (!anythingRemoved) 
-            {
-              // metric_cerr << "nothing was removed -- doing set() now" << endl;
-              const vector<instPoint*> *setMe = (const vector<instPoint*> *) 
-                             (&pdf->funcCalls(global_proc->get_dyn_process()));
-              if (!ret.set(const_cast<vector<instPoint*>*>(setMe)))
-                return false;
-            }
-            else 
-            {
-              // metric_cerr << "something was removed! -- doing set() now" << endl;
-              vector<instPoint*> *setMe = new vector<instPoint*>(calls);
-              assert(setMe);
-	     
-              if (!ret.set(setMe))
-                return false;
-
-              // WARNING: "setMe" will now be leaked memory!  The culprit is
-              // "ret", which can only take in a _pointer_ to a vector of 
-              // instPoint*'s;
-              // it can't take in a vector of instPoints*'s, which we'd prefer.
-            }
-            break;
-          }
-          case 2: 
-          {
-            if (!ret.set(const_cast<instPoint *>(pdf->funcEntry(global_proc->get_dyn_process()))))
-              return false; 
-            break;
-          }
-          case 3:
-          {
-            if (!ret.set(const_cast<vector<instPoint *>*>(&pdf->funcExits(global_proc->get_dyn_process()))))
-              return false;
-            break;
-          }
-          default:
-            assert(0);
-            break;
-        } //switch(next_field)
-        break;
-      }
-      case MDL_T_MODULE:
-      {
-        module *mod;
-        if (!ret.get(mod)) return false;
-        switch (next_field) 
-        {
-          case 0: 
-          {
-            string fileName = mod->fileName();
-            if (!ret.set(fileName)) return false; 
-          } break;
-          case 1: 
-          {
-            if (global_proc) 
-            {
-              // this is the correct thing to do...get only the included funcs
-              // associated with this module, but since we seem to be testing
-              // for global_proc elsewhere in this file I guess we will here too
-              if (!ret.set(global_proc->getIncludedFunctions(mod))) return false; 
-            }
-            else 
-            {
-              // if there is not a global_proc, then just get all functions
-              // associtated with this module....under what circumstances
-              // would global_proc == 0 ???
-              if (!ret.set(mod->getFunctions())) return false; 
-            }
-            break;
-          }
-          default: assert(0); break;	       
-        } //switch (next_field)
-        break;
-      }
-      default:
-        assert(0); return false;
-    } // big switch
-  } // while
-  return true;
+                break;
+             }
+             default: assert(0); break;             
+           } //switch (next_field)
+           break;
+        }
+        default:
+           assert(0); return false;
+      } // big switch
+   } // while
+   return true;
 }
 
 
