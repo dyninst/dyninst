@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Vector.h: resizable vectors.
- * $Id: Vector.h,v 1.11 2001/06/15 20:48:28 hollings Exp $
+ * $Id: Vector.h,v 1.12 2001/07/30 22:28:04 gurari Exp $
 ************************************************************************/
 
 
@@ -117,10 +117,10 @@ public:
     DO_INLINE_F bool       operator== (const vector<T> &)                      const;
     DO_INLINE_F unsigned         size ()                                       const;
     DO_INLINE_F void           resize (unsigned);
-
+    /*
 	DO_INLINE_F vector<T>&     insert (unsigned, const vector<T> &);
 	DO_INLINE_F vector<T>&     insert (unsigned, const T &);
-
+    */
     DO_INLINE_F void             sort (int (*)(const void *, const void *));
 
 private:
@@ -209,7 +209,7 @@ vector<T>::push_back(const T& v0) {
     data_[sz_-1] = v0;
     return *this;
 }
-
+/*
 template<class T>
 DO_INLINE_F
 vector<T>&
@@ -245,7 +245,7 @@ vector<T>::insert(unsigned l, const T& v0) {
 	data_[l] = v0;
     return *this;
 }
-
+*/
 template<class T>
 DO_INLINE_F
 T&
