@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.27 1995/02/16 08:53:03 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.28 1995/02/26 22:44:29 markc Exp $";
 #endif
 
 /*
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
- * Revision 1.27  1995/02/16 08:53:03  markc
+ * Revision 1.28  1995/02/26 22:44:29  markc
+ * Changed vector of strings to reference to vector of strings for addProcess(...)
+ *
+ * Revision 1.27  1995/02/16  08:53:03  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.26  1995/02/16  08:33:00  markc
@@ -212,7 +215,7 @@ void forkProcess(traceHeader *hr, traceFork *fr)
 }
 
 // TODO mdc
-int addProcess(vector<string> argv, vector<string> envp)
+int addProcess(vector<string> &argv, vector<string> &envp)
 {
     process *proc = createProcess(argv[0], argv, envp);
 
