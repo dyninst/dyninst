@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.69 2001/05/24 18:38:45 wxd Exp $ */
+/* $Id: context.C,v 1.70 2001/08/23 14:43:59 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/pdThread.h"
@@ -199,7 +199,7 @@ void forkProcess(int pid, int ppid, int trace_fd
 #else
     process *childProc = process::forkProcess(parentProc, (pid_t)pid, map, trace_fd);
 #endif
-
+    childProc->setCallbackBeforeContinue(mdnContinueCallback);
    // For each mi with a component in parentProc, copy it to the child process --- if
    // the mi isn't refined to a specific process (i.e. is for 'any process')
    // NOTE: It's easy to not copy data items (timers, ctrs) that don't belong in the
@@ -310,6 +310,7 @@ int addProcess(vector<string> &argv, vector<string> &envp, string dir) {
 #else 
   process *proc = createProcess(argv[0], argv, envp, dir, 0, 1, 2);
 #endif
+  proc->setCallbackBeforeContinue(mdnContinueCallback);
 
     if (proc) {
       return(proc->getPid());
