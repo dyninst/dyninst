@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.25 2002/11/14 20:26:31 bernat Exp $
+// $Id: aixDL.C,v 1.26 2002/11/25 23:51:37 schendel Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -61,7 +61,7 @@ extern int getprocs(struct procsinfo *ProcessBuffer,
 		    int FileSize,
 		    pid_t *IndexPointer,
 		    int Count);
-extern int getthrds(pid_t, struct thrdsinfo *, int, tid_t, int);
+extern int getthrds(pid_t, struct thrdsinfo *, int, tid_t *, int);
 }
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
 extern void generateBreakPoint(instruction &);
