@@ -16,7 +16,11 @@
  * hist.C - routines to manage hisograms.
  *
  * $Log: hist.C,v $
- * Revision 1.4  1994/02/10 23:08:26  hollings
+ * Revision 1.5  1994/03/08 17:12:29  hollings
+ * Added fold callback and changed from multiple data callbacks to one per
+ * histogram instance.  Also made the data callbacks happen once per bucket.
+ *
+ * Revision 1.4  1994/02/10  23:08:26  hollings
  * Fixed list.h ++ function to work when a hash table has an element at
  * slot zero in the table.
  *
@@ -26,7 +30,7 @@
  * Make libutil more compatable with ATT CC.
  *
  * Revision 1.2  1994/01/26  04:53:42  hollings
- * Change to using <module>/h/*.h
+ * Change to using <module>/h/.h
  *
  * Revision 1.1  1994/01/25  20:50:25  hollings
  * First real version of utility library.
@@ -64,7 +68,7 @@ timeStamp Histogram::total_time = (Histogram::numBins * Histogram::bucketSize);
 Histogram *Histogram::allHist = NULL;
 int Histogram::lastGlobalBin = 0;
 
-Histogram::Histogram(metricStyle type)
+Histogram::Histogram(metricStyle type, dataCallBack d, foldCallBack f, void *c)
 {
     smooth = False;
     lastBin = 0;
@@ -75,16 +79,23 @@ Histogram::Histogram(metricStyle type)
     dataPtr.intervals = (Interval *) calloc(sizeof(Interval)*intervalLimit, 1);
     next = allHist;
     allHist = this;
+    dataFunc = d;
+    foldFunc = f;
+    cData = c;
 }
 
 /*
  * Given an array of buckets - turn them into a histogram.
  *
  */
-Histogram::Histogram(Bin *buckets, metricStyle type)
+Histogram::Histogram(Bin *buckets, 
+		     metricStyle type, 
+		     dataCallBack d, 
+		     foldCallBack f,
+		     void *c)
 {
     // First call default constructor.
-    (void) Histogram(type);
+    (void) Histogram(type, d, f, c);
 
     storageType = HistBucket;
     dataPtr.buckets = (Bin *) calloc(sizeof(Bin), numBins);
@@ -105,9 +116,6 @@ void Histogram::addInterval(timeStamp start,
 			    Boolean smooth)
 {
     Histogram *h;
-    List<HistogramSubscriber*> currS;
-    Interval *currentInterval;
-
 
     while ((end >= total_time) || (start >= total_time)) {
 	// colapse histogram.
@@ -125,39 +133,10 @@ void Histogram::addInterval(timeStamp start,
     if (value == 0.0) return;
 
     if (storageType == HistInterval) {
-	if (intervalCount == intervalLimit) {
-	    intervalLimit *= 2;
-	    if (intervalLimit * sizeof(Interval) < 
-		numBins * sizeof(Bin)) {
-		dataPtr.intervals = (Interval *) 
-		    realloc(dataPtr.intervals, 
-		    sizeof(Interval)*intervalLimit);
-		    goto normal;
-	    } else {
-		/* convert to buckets */
-		convertToBins();
-		bucketValue(start, end, value, smooth);
-	    }
-	} else {
-normal:
-	    currentInterval = &(dataPtr.intervals[intervalCount]);
-	    assert(start >= 0.0);
-	    assert(start <= total_time);
-	    currentInterval->start = start;
-
-	    assert(end >= 0.0);
-	    assert(end <= total_time);
-	    currentInterval->end = end;
-
-	    currentInterval->value = value;
-	    intervalCount++;
-	}
-    } else {
-	bucketValue(start, end, value, smooth);
+	/* convert to buckets */
+	convertToBins();
     }
-    for (currS = subscribers; *currS; currS++) {
-	(*currS)->callBack(HistNewValue, end, (*currS)->userData);
-    }
+    bucketValue(start, end, value, smooth);
 }
 
 void Histogram::convertToBins()
@@ -187,8 +166,6 @@ void Histogram::foldAllHist()
     int i;
     Bin *bins;
     Histogram *curr;
-    List<HistogramSubscriber*> currS;
-
 
     bucketSize *= 2.0;
     total_time = (numBins * bucketSize);
@@ -204,21 +181,8 @@ void Histogram::foldAllHist()
 	    curr->lastBin = i-1;
 	    memset(&bins[i], '\0', (numBins - i) * sizeof(Bin));
 	}
-	for (currS = curr->subscribers; *currS; currS++) {
-	    (*currS)->callBack(HistNewTimeBase, bucketSize, (*currS)->userData);
-	}
+	if (foldFunc) (foldFunc)(bucketSize, cData);
     }
-}
-
-int Histogram::subscribe(timeStamp maxRate, 
-			   subscriberCallBack func, 
-			   void *userData)
-{
-    HistogramSubscriber *curr;
-
-    curr = new HistogramSubscriber(maxRate, func, userData);
-    subscribers.add(curr);
-    return((int) curr);
 }
 
 void Histogram::bucketValue(timeStamp start_clock, 
@@ -227,6 +191,7 @@ void Histogram::bucketValue(timeStamp start_clock,
 			   Boolean smooth)
 {
     register int i;
+    timeStamp start, end;
     int first_bin, last_bin;
     timeStamp elapsed_clock = (timeStamp) 0.0;
     timeStamp first_bin_start, last_bin_start;
@@ -291,6 +256,16 @@ void Histogram::bucketValue(timeStamp start_clock,
 	for (i = first_bin; i <= last_bin; i++) {
 	    if (dataPtr.buckets[i] > bucketSize) 
 		smoothBins(dataPtr.buckets, i, bucketSize);
+	}
+    }
+
+    // inform users about the data.
+    if (dataFunc) {
+	start = first_bin * bucketSize;
+	for (i=first_bin; i < last_bin; i++) {
+	    end = start + bucketSize;
+	    (dataFunc)(start, end, dataPtr.buckets[i], cData);
+	    start = end;
 	}
     }
 }
@@ -402,13 +377,4 @@ sampleValue Histogram::getValue(timeStamp start, timeStamp end)
 sampleValue Histogram::getValue()
 {		
     return(getValue(0.0, numBins * bucketSize));
-}
-
-HistogramSubscriber::HistogramSubscriber(timeStamp max, 
-					 subscriberCallBack func, 
-					 void *u)
-{
-    interval = max;
-    userData = u;
-    callBack = func;
 }

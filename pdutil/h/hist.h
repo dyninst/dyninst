@@ -21,25 +21,14 @@ typedef enum { HistInterval, HistBucket } histType;
 typedef enum { HistNewValue, HistNewTimeBase } callType;
 typedef sampleValue Bin;
 
-typedef void (*subscriberCallBack)(callType, timeStamp, void* userData);
-class Histogram;
+typedef void (*foldCallBack)(timeStamp, void* userData);
 
-/*
- * upcall mechanism for routines that need to find out about changes to
- *   a histogram.
- *
- */
-class HistogramSubscriber {
-	friend Histogram;
-    public:
-	HistogramSubscriber(timeStamp maxRate, subscriberCallBack func, void *userData);
-	deliver(int bin);
-    private:
-	void *userData;
-	timeStamp interval;
-	timeStamp lastCall;
-	subscriberCallBack callBack; 
-};
+typedef void (*dataCallBack)(timeStamp st,
+			     timeStamp en,
+			     timeStamp value,
+			     void *userData);
+
+class Histogram;
 
 typedef enum { histActive, histInactive } histStatus;
 typedef enum { histSum, histAverage } histCompact;
@@ -50,22 +39,14 @@ class Histogram {
 	friend class histDisplay;
 	void newDataFunc(callType type, timeStamp time, void* userData);
     public:
-	Histogram(metricStyle);
-	Histogram(Bin *buckets, metricStyle);
-#ifdef notdef
-	void enable() { status = histActive; }
-	void disable() { status = histInactive; }
-#endif
+	Histogram(metricStyle, dataCallBack, foldCallBack, void* );
+	Histogram(Bin *buckets, metricStyle, dataCallBack, foldCallBack, void*);
 	sampleValue getValue();
 	sampleValue getValue(timeStamp start, timeStamp end);
 	void addInterval(timeStamp start, timeStamp end, 
 	    sampleValue value, Boolean smooth);
 	void addPoint(timeStamp start, sampleValue value) {
 	    addInterval(start, start, value, False);
-	}
-	int subscribe(timeStamp maxRate,subscriberCallBack func,void *);
-	void unsubscribe(int id) { 
-		subscribers.remove((HistogramSubscriber*)id); 
 	}
 	timeStamp currentTime() { 
 		return((timeStamp)(lastGlobalBin*bucketSize)); 
@@ -94,10 +75,9 @@ class Histogram {
 	    Bin *buckets;
 	    Interval *intervals;
 	} dataPtr; 
-	List<HistogramSubscriber*> subscribers;
-#ifdef notdef
-	histStatus status;
-#endif
+	dataCallBack dataFunc;
+	foldCallBack foldFunc;
+	void *cData;
 };
 
 #endif
