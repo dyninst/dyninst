@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.100 1999/07/19 22:57:02 wylie Exp $
+// $Id: symtab.C,v 1.101 1999/07/26 21:50:48 cain Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -487,11 +487,11 @@ pdmodule *image::findModule(const string &name, bool find_if_excluded)
   //  or FileName....
   if (find_if_excluded) {
       for(i=0;i<excludedMods.size();i++) {
-          if ((excludedMods[i]->fileName() == name) ||
+	if ((excludedMods[i]->fileName() == name) ||
                   (excludedMods[i]->fullName() == name)) {
-	      //cerr << " (image::findModule) found module in excludedMods" << endl;
-              return excludedMods[i];
-          }
+	  //cerr << " (image::findModule) found module in excludedMods" << endl;
+	  return excludedMods[i];
+	}
       }
   }
 
@@ -906,32 +906,36 @@ void pdmodule::define() {
 // send message to data manager to specify the entry function for the
 //  call graph corresponding to a given image.  r should hold the 
 //  FULL resourcename of the entry function (e.g. "/Code/module.c/main")
-void CallGraphSetEntryFuncCallback(process * /*p*/, string r)
+void CallGraphSetEntryFuncCallback(string exe_name, string r)
 {
-    tp->CallGraphSetEntryFuncCallback(0, r);
+    tp->CallGraphSetEntryFuncCallback(exe_name, r);
+}
+
+void CallGraphAddProgramCallback(string name){
+  tp->CallGraphAddProgramCallback(name);
 }
 
 //send message to the data manager, notifying it that all of the statically
 //determinable functions have been registered with the call graph. The
 //data manager will then be able to create the call graph.
-void CallGraphFillDone(process * /*p*/)
+void CallGraphFillDone(string exe_name)
 {
-  tp->CallGraphFillDone(0);
+  tp->CallGraphFillDone(exe_name);
 }
 
 //send message to the data manager in order to register a function 
 //in the call graph.
-void AddCallGraphNodeCallback(process * /*p*/, string r)
+void AddCallGraphNodeCallback(string exe_name, string r)
 {
-    tp->AddCallGraphNodeCallback(0, r);
+    tp->AddCallGraphNodeCallback(exe_name, r);
 }
 
 //send a message to the data manager in order register a the function
 //calls made by a function (whose name is stored in r).
-void AddCallGraphStaticChildrenCallback(process * /*p*/, string r,
+void AddCallGraphStaticChildrenCallback(string exe_name, string r,
 					const vector<string> children) 
 {
-    tp->AddCallGraphStaticChildrenCallback(0, r, children);
+    tp->AddCallGraphStaticChildrenCallback(exe_name, r, children);
 }
 
 // Called across all modules (in a given image) to define the call
@@ -939,71 +943,73 @@ void AddCallGraphStaticChildrenCallback(process * /*p*/, string r,
 // Must be called AFTER all functions in all modules (in image) are
 //  registered as resource (e.g. w/ pdmodule::define())....
 void pdmodule::FillInCallGraphStatic(process *proc) {
-    pd_Function *pdf, *callee;
-    vector <pd_Function *>callees;
-    resource *r , *callee_as_resource;
-    string callee_full_name;
-    vector <string>callees_as_strings;
-    unsigned f, g, f_size = funcs.size();
-
-    string resource_full_name;
-
-    // for each INSTRUMENTABLE function in the module (including excluded 
-    //  functions, but NOT uninstrumentable ones)....
-    for (f=0;f<f_size;f++) {
-        pdf = funcs[f];
-
-        callees_as_strings.resize(0);
-
-	// Translate from function name to resource *.
-	// Note that this probably is NOT the correct translation, as 
-	//  function names are not necessarily unique, but the paradyn
-	//  code assumes that they are in several places (e.g. 
-	//  resource::findResource)....
-	resource_full_name = pdf->ResourceFullName();
-	r = resource::findResource(resource_full_name);
-	                          // functions registered under pretty name....
-        assert(r != NULL);
-
-	// get list of statically determined call destinations from pdf,
-        //  using the process info to help fill in calls througb PLT
-        //  entries....
+  pd_Function *pdf, *callee;
+  vector <pd_Function *>callees;
+  resource *r , *callee_as_resource;
+  string callee_full_name;
+  vector <string>callees_as_strings;
+  unsigned f, g, f_size = funcs.size();
+  
+  string resource_full_name;
+  
+  //vector <instPoint*> callPoints;
+  
+  // for each INSTRUMENTABLE function in the module (including excluded 
+  //  functions, but NOT uninstrumentable ones)....
+  for (f=0;f<f_size;f++) {
+    pdf = funcs[f];
+    
+    callees_as_strings.resize(0);
+    
+    // Translate from function name to resource *.
+    // Note that this probably is NOT the correct translation, as 
+    //  function names are not necessarily unique, but the paradyn
+    //  code assumes that they are in several places (e.g. 
+    //  resource::findResource)....
+    resource_full_name = pdf->ResourceFullName();
+    r = resource::findResource(resource_full_name);
+    // functions registered under pretty name....
+    assert(r != NULL);
+    
+    // get list of statically determined call destinations from pdf,
+    //  using the process info to help fill in calls througb PLT
+    //  entries....
+    
+    pdf->getStaticCallees(proc, callees); 
+    
+    // and convert them into a list of resources....
+    for (g=0;g<callees.size();g++) {
+      callee = callees[g];
+      assert(callee);
       
-        pdf->getStaticCallees(proc, callees); 
+      if (callee->FuncResourceSet() == false) {
+	//cerr << " WARNING (finding call graph children of function "
+	//<< resource_full_name.string_of() 
+	//<< " ) : callee function: " << endl 
+	//<< "\t" << callee->prettyName().string_of() 
+	//<< " never registered as resource " 
+	//<< " (function probably uninstrumentable) "
+	//<< " not including link in call graph"
+	//<< endl;
+      }
+      else {
+	callee_full_name = callee->ResourceFullName();
 	
-	// and convert them into a list of resources....
-	for (g=0;g<callees.size();g++) {
-	    callee = callees[g];
-	    assert(callee);
-
-	    if (callee->FuncResourceSet() == false) {
-	      //cerr << " WARNING (finding call graph children of function "
-	      // << resource_full_name.string_of() 
-	      // << " ) : callee function: " << endl 
-	      // << callee->prettyName().string_of() 
-	      // << " never registered as resource " 
-	      // << " (function probably uninstrumentable) "
-	      // << " not including link in call graph"
-	      // << endl;
-	    }
-	    else {
-	      callee_full_name = callee->ResourceFullName();
-	      
-	      // if callee->funcResource has been set, then it should have 
-              //  been registered as a resource.... 
-	      callee_as_resource = resource::findResource(callee_full_name);
-	      assert(callee_as_resource);
-	      
-	      callees_as_strings += callee_full_name;
-	    }
-	}//end for
-
-	// register that callee_resources holds list of resource*s 
-	//  describing children of resource r....
-	AddCallGraphNodeCallback(proc, resource_full_name);
-	AddCallGraphStaticChildrenCallback(proc, resource_full_name,
-				   callees_as_strings);
-    } 
+	// if callee->funcResource has been set, then it should have 
+	//  been registered as a resource.... 
+	callee_as_resource = resource::findResource(callee_full_name);
+	assert(callee_as_resource);
+	
+	callees_as_strings += callee_full_name;
+      }
+    }//end for
+    
+    // register that callee_resources holds list of resource*s 
+    //  describing children of resource r....
+    AddCallGraphNodeCallback(exec()->file(), resource_full_name);
+    AddCallGraphStaticChildrenCallback(exec()->file(), resource_full_name,
+				       callees_as_strings);
+  }
 }
 #endif // ndef BPATCH_LIBRARY
 

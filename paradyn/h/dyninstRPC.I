@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstRPC.I,v 1.81 1999/07/07 15:55:49 zhichen Exp $
+/* $Id: dyninstRPC.I,v 1.82 1999/07/26 21:50:35 cain Exp $
  */
 
 #define MetStyleEventCounter	0
@@ -428,7 +428,7 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 56;
+    $version 57;
 
     //
     // Define a program to run. 
@@ -553,12 +553,28 @@ $remote dynRPC {
     // Names post-fixed w/ Callback to preserve convention that functions
     //  names *Callback represent callbacks from paradynd TO paradyn....
     //
-    $virtual $upcall $async void AddCallGraphNodeCallback(int program, string resource);
-    $virtual $upcall $async void 
-	AddCallGraphStaticChildrenCallback(int program, string resource, 
-	vector<string> children);
-    $virtual $upcall $async void CallGraphSetEntryFuncCallback(int program, string entry_func);
-    $virtual $upcall $async void CallGraphFillDone(int program);
+
+    //Notify the DM that a new executable file is being parsed, so it
+    //will be ready for the call graph relationships for this graph.
+    $virtual $upcall $async void CallGraphAddProgramCallback(string exe_name);
+
+    //Add resource to the call graph specified by "exe_name", 
+    $virtual $upcall $async void AddCallGraphNodeCallback(string exe_name, 
+                                                          string resource);
+
+    //Specify the children of a resource for CallGraph "exe_name"
+    $virtual $upcall $async void AddCallGraphStaticChildrenCallback(
+                                                      string exe_name, 
+                                                      string resource, 
+	                                              vector<string> children);
+    //Specify the root node if CallGraph "exe_name"
+    $virtual $upcall $async void CallGraphSetEntryFuncCallback(string exe_name,
+                                                            string entry_func);
+    
+    //Notify the DM that all static info for a given call graph has been
+    //reported.
+    $virtual $upcall $async void CallGraphFillDone(string exe_name);	
+
     // Handler that gets called when a new memory is defined.
     //
     // data_structure   - name of memory chunk, divided into blks

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.66 1999/07/13 04:33:15 csserra Exp $
+// $Id: symtab.h,v 1.67 1999/07/26 21:50:48 cain Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -807,8 +807,9 @@ public:
 
 #ifndef BPATCH_LIBRARY
 // forward declarations....
-void CallGraphSetEntryFuncCallback(process *proc, string r);
-void CallGraphFillDone(process *proc);
+void CallGraphSetEntryFuncCallback(string exe_name, string r);
+void CallGraphFillDone(string exe_name);
+void CallGraphAddProgramCallback(string exe_name);
 #endif
 /*
  * a definition of a library function that we may wish to identify.  This is

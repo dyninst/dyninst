@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.184 1999/07/19 22:56:23 wylie Exp $
+// $Id: process.C,v 1.185 1999/07/26 21:50:47 cain Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -4649,30 +4649,33 @@ void mutationList::insertTail(Address addr, int size, const void *data) {
 #ifndef BPATCH_LIBRARY
 void process::FillInCallGraphStatic()
 {
-    // specify entry point (location in code hierarchy to begin call 
-    //  graph searches) for call graph.  Currently, begin searches at
-    //  "main" - note that main is usually NOT the actual entry point
-    //  there is usually a function which does env specific initialization
-    //  and sets up exit handling (at least w/ gcc on solaris).  However,
-    //  this function is typically in an excluded module.  Anyway, setting
-    //  main as the entry point should usually work fairly well, except
-    //  that call graph PC searches will NOT catch time spent in the
-    //  environment specific setup of _start.
-    pd_Function *entry_pdf = (pd_Function *)findOneFunction("main");
-    assert(entry_pdf);
+  // specify entry point (location in code hierarchy to begin call 
+  //  graph searches) for call graph.  Currently, begin searches at
+  //  "main" - note that main is usually NOT the actual entry point
+  //  there is usually a function which does env specific initialization
+  //  and sets up exit handling (at least w/ gcc on solaris).  However,
+  //  this function is typically in an excluded module.  Anyway, setting
+  //  main as the entry point should usually work fairly well, except
+  //  that call graph PC searches will NOT catch time spent in the
+  //  environment specific setup of _start.
+  
+  pd_Function *entry_pdf = (pd_Function *)findOneFunction("main");
+  assert(entry_pdf);
+  
+  CallGraphAddProgramCallback(symbols->file());
+  CallGraphSetEntryFuncCallback(symbols->file(), 
+				entry_pdf->ResourceFullName());
     
-    CallGraphSetEntryFuncCallback(this, entry_pdf->ResourceFullName());
+  // build call graph for executable
+  symbols->FillInCallGraphStatic(this);
+  // build call graph for module containing entry point
+  // ("main" is not always defined in the executable)
+  image *main_img = entry_pdf->file()->exec();
+  if (main_img != symbols) {
+    main_img->FillInCallGraphStatic(this);
+  }
+  // TODO: build call graph for all shared objects?
+  CallGraphFillDone(symbols->file());
 
-    // build call graph for executable
-    symbols->FillInCallGraphStatic(this);
-    // build call graph for module containing entry point
-    // ("main" is not always defined in the executable)
-    image *main_img = entry_pdf->file()->exec();
-    if (main_img != symbols) {
-      main_img->FillInCallGraphStatic(this);
-    }
-    // TODO: build call graph for all shared objects?
-
-    CallGraphFillDone(this);
 }
 #endif
