@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphRootNode.C,v 1.1 1999/05/24 16:58:45 cain Exp $
+// $Id: callGraphRootNode.C,v 1.2 1999/06/29 15:52:53 cain Exp $
 
 #include <assert.h>
 #include "callGraphRootNode.h"
@@ -53,29 +53,30 @@ int callGraphRootNode::vertPad = 2;
 callGraphRootNode::callGraphRootNode(resourceHandle iUniqueId, 
 				     const string &ishortName, 
 				     const string &ifullName, 
-				     const bool recursiveFlag) :
+				     const bool recursiveFlag,
+				     const bool shadowFlag) :
   shortName(ishortName), fullName(ifullName), currentName((class string *)&ishortName) {
   
   shortNameIsDisplayed = true;
   uniqueId = iUniqueId;
   highlighted = false;
   isRecursive = recursiveFlag;
+  isShadowNode = shadowFlag;
   
+  Tk_Font rootItemFontStruct = 
+    callGraphDisplay::getRootItemFontStruct(isShadowNode);
   pixWidthAsRoot = borderPix + horizPad +
-    Tk_TextWidth(callGraphDisplay::getRootItemFontStruct(),
-		 currentName->string_of(), currentName->length()) +
-    horizPad + borderPix;
+    Tk_TextWidth(rootItemFontStruct, currentName->string_of(), 
+		 currentName->length()) +
+		 horizPad+borderPix;
   
   Tk_FontMetrics rootItemFontMetrics; // filled in
-  Tk_GetFontMetrics(callGraphDisplay::getRootItemFontStruct(),
-		    &rootItemFontMetrics);
-  pixHeightAsRoot = borderPix + vertPad +
-    rootItemFontMetrics.ascent +
-    rootItemFontMetrics.descent +
-    vertPad + borderPix;
+  Tk_GetFontMetrics(rootItemFontStruct, &rootItemFontMetrics);
+  pixHeightAsRoot = borderPix + vertPad + rootItemFontMetrics.ascent +
+    rootItemFontMetrics.descent + vertPad + borderPix;
   
   pixWidthAsListboxItem = 
-    Tk_TextWidth(callGraphDisplay::getListboxItemFontStruct(),
+    Tk_TextWidth(callGraphDisplay::getListboxItemFontStruct(isShadowNode),
 		 currentName->string_of(), currentName->length());
 }
 
@@ -86,11 +87,11 @@ void callGraphRootNode::showFullName(){
   shortNameIsDisplayed = false;
   currentName = &fullName;
   pixWidthAsRoot = borderPix + horizPad +
-    Tk_TextWidth(callGraphDisplay::getRootItemFontStruct(),
+    Tk_TextWidth(callGraphDisplay::getRootItemFontStruct(isShadowNode),
 		 currentName->string_of(), currentName->length()) +
     horizPad + borderPix;
   pixWidthAsListboxItem = 
-    Tk_TextWidth(callGraphDisplay::getListboxItemFontStruct(),
+    Tk_TextWidth(callGraphDisplay::getListboxItemFontStruct(isShadowNode),
 		 currentName->string_of(), currentName->length());
 }
 
@@ -100,11 +101,11 @@ void callGraphRootNode::showShortName(){
   shortNameIsDisplayed = true;
   currentName = &shortName;
   pixWidthAsRoot = borderPix + horizPad +
-    Tk_TextWidth(callGraphDisplay::getRootItemFontStruct(),
+    Tk_TextWidth(callGraphDisplay::getRootItemFontStruct(isShadowNode),
 		 currentName->string_of(), currentName->length()) +
     horizPad + borderPix;
   pixWidthAsListboxItem = 
-    Tk_TextWidth(callGraphDisplay::getListboxItemFontStruct(),
+    Tk_TextWidth(callGraphDisplay::getListboxItemFontStruct(isShadowNode),
 		 currentName->string_of(), currentName->length());
 }
 
@@ -141,15 +142,16 @@ void callGraphRootNode::drawAsRoot(Tk_Window theTkWindow,
 
    // Third, draw the text
    Tk_FontMetrics rootItemFontMetrics; // filled in
-   Tk_GetFontMetrics(callGraphDisplay::getRootItemFontStruct(), &rootItemFontMetrics);
+   Tk_GetFontMetrics(callGraphDisplay::getRootItemFontStruct(isShadowNode), 
+		     &rootItemFontMetrics);
    
    const int textLeft = boxLeft + borderPix + horizPad;
    const int textBaseLine = root_topy + borderPix + vertPad +
                             rootItemFontMetrics.ascent - 1;
 
     Tk_DrawChars(Tk_Display(theTkWindow),theDrawable,
-		 callGraphDisplay::getRootItemTextGC(),
-		 callGraphDisplay::getRootItemFontStruct(),
+		 callGraphDisplay::getRootItemTextGC(isShadowNode),
+		 callGraphDisplay::getRootItemFontStruct(isShadowNode),
                 currentName->string_of(), currentName->length(),
                 textLeft, textBaseLine );
 
@@ -174,11 +176,14 @@ void callGraphRootNode::prepareForDrawingListboxItems(Tk_Window theTkWindow,
 						   XRectangle &listboxBounds){
   
 #if !defined(i386_unknown_nt4_0)
-  
+  //not shadow node
   XSetClipRectangles (Tk_Display(theTkWindow),
-		      callGraphDisplay::getListboxItemGC(),
+		      callGraphDisplay::getListboxItemGC(false),
 		      0, 0, &listboxBounds, 1, YXBanded);
-
+  //shadow node
+  XSetClipRectangles (Tk_Display(theTkWindow),
+		      callGraphDisplay::getListboxItemGC(true),
+		      0, 0, &listboxBounds, 1, YXBanded);
   //Clip non-recursive node colors
   Tk_3DBorder thisStyleTk3DBorder = callGraphDisplay::getListboxItemTk3DBorder(false);
   XSetClipRectangles(Tk_Display(theTkWindow),
@@ -210,8 +215,13 @@ void callGraphRootNode::prepareForDrawingListboxItems(Tk_Window theTkWindow,
 void callGraphRootNode::doneDrawingListboxItems(Tk_Window theTkWindow) {
 
 #if !defined(i386_unknown_nt4_0)
+  //for non-shadow nodes
   XSetClipMask(Tk_Display(theTkWindow), 
-	       callGraphDisplay::getListboxItemGC(), None);
+	       callGraphDisplay::getListboxItemGC(false), None);
+  //for shadow nodes
+  XSetClipMask(Tk_Display(theTkWindow), 
+	       callGraphDisplay::getListboxItemGC(true), None);
+  
   //For non recursive nodes
   Tk_3DBorder thisStyleTk3DBorder = callGraphDisplay::getListboxItemTk3DBorder(false);
 
@@ -258,8 +268,8 @@ void callGraphRootNode::drawAsListboxItem(Tk_Window theTkWindow,
 		      highlighted ? TK_RELIEF_SUNKEN : TK_RELIEF_RAISED);
 
    Tk_DrawChars(Tk_Display(theTkWindow),theDrawable,
-		callGraphDisplay::getListboxItemGC(),
-		callGraphDisplay::getRootItemFontStruct(),
+		callGraphDisplay::getListboxItemGC(isShadowNode),
+		callGraphDisplay::getRootItemFontStruct(isShadowNode),
 		currentName->string_of(), currentName->length(),
 		textLeft, textBaseline );          
 

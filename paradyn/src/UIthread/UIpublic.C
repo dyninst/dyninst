@@ -44,7 +44,7 @@
  *              of Paradyn
  */
  
-/* $Id: UIpublic.C,v 1.68 1999/05/24 16:59:32 cain Exp $
+/* $Id: UIpublic.C,v 1.69 1999/06/29 15:52:52 cain Exp $
  */
 
 #include <stdio.h>
@@ -438,9 +438,9 @@ UIM::DAGaddNode(int dagID, unsigned nodeID, int styleID,
 //Add node to the call graph
 void UIM::CGaddNode(int pid, resourceHandle parent, resourceHandle newNode,
 		   const char *shortName, const char *fullName, 
-		    bool recursiveFlag){
+		    bool recursiveFlag, bool shadowFlag){
   theCallGraphPrograms->addNode(pid, parent, newNode, shortName, fullName,
-				recursiveFlag);
+				recursiveFlag, shadowFlag);
 }
 
 //This is called when the daemon notifies the DM that it has already sent

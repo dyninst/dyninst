@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CallGraph.h,v 1.1 1999/05/24 16:55:07 cain Exp $
+// $Id: CallGraph.h,v 1.2 1999/06/29 15:50:04 cain Exp $
 
 /**********************************************************
  *
@@ -83,6 +83,10 @@ class CallGraph {
     // for each resource registered w/ call graph, list of parents
     //  in call graph....
     dictionary_hash <resource *, vector<resource *> > parents;
+    
+    //used to avoid revisiting nodes that we have already visited when
+    //traversing the call graph in displayCallGraph()
+    dictionary_hash <resource *, int> visited;
 
     // pointer to root resource for code hierarchy....  This is the resource 
     //  with which searches on a call graph should start.
@@ -147,7 +151,6 @@ class CallGraph {
     // See above for discussion of why alternate resource hierarchies
     //  were not used....
     vector <resourceHandle>* getChildren(resource *rh);
-
 
     // Call Graph class also holds static directory of call graphs indexed
     //  by program id.  This function should return a pointer to the call

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphs.h,v 1.1 1999/05/24 16:58:48 cain Exp $
+// $Id: callGraphs.h,v 1.2 1999/06/29 15:52:54 cain Exp $
 
 //callGraphs.h: the callGraphs class, whose code is taken  
 //from the shgPhases class, is just used to keep track of multiple 
@@ -84,8 +84,7 @@ class callGraphs {
 
       callGraphStruct(unsigned programId, resourceHandle rootId, const string &ishortName, const string &ifullName,
 		Tcl_Interp *interp, Tk_Window theTkWindow,
-		const string &horizSBName, const string &vertSBName,
-		const string &currItemLabelName
+		const string &horizSBName, const string &vertSBName
 		) : shortName(ishortName), fullName(ifullName) {
 	callGraphDisplay *theNewCallGraphDisplay = 
 	  new callGraphDisplay(programId, rootId, interp, theTkWindow,
@@ -199,7 +198,8 @@ class callGraphs {
          
    bool addNode(int programId, resourceHandle parent,
                 resourceHandle newResource, const char *shortName, 
-		const char *fullName, const bool recursiveFlag);
+		const char *fullName, const bool recursiveFlag,
+		bool isShadowNode);
 
    void addToStatusDisplay(int programId, const string &msg);
       // currently, we do not append the newline character for you

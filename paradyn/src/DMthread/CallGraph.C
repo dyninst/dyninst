@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CallGraph.C,v 1.1 1999/05/24 16:55:06 cain Exp $
+// $Id: CallGraph.C,v 1.2 1999/06/29 15:50:04 cain Exp $
 
 #include "CallGraph.h"
 #include "paradyn/src/met/mdl.h"
@@ -71,7 +71,7 @@ static char *stripCodeFromName(const char *c){
 }
 
 CallGraph::CallGraph(int program) : 
-    children(hash_dummy), parents(hash_dummy)
+    children(hash_dummy), parents(hash_dummy), visited(hash_dummy)
 {
   rootResource = NULL;
   program_id = program;
@@ -79,7 +79,7 @@ CallGraph::CallGraph(int program) :
 }
 
 CallGraph::CallGraph(int program, resource *nroot) : 
-    children(hash_dummy), parents(hash_dummy)
+    children(hash_dummy), parents(hash_dummy), visited(hash_dummy)
 {
     rootResource = nroot;
     program_id = program;
@@ -119,13 +119,14 @@ int CallGraph::SetChildren(resource *r, const vector <resource *>rchildren) {
     //because SetChildren() is called once per function. We run into problems
     //when there are multiple functions with the same name...the call
     //Graph doesn't distinguish between them.
-    //    assert(children[r].size() == 0);
+    //assert(children[r].size() == 0);
+
     for(u=0;u<rchildren.size();u++) {
-      
-        rchild = rchildren[u];
-        AddResource(rchild);
-	children[r] += rchild;
-	parents[rchild] += r;
+
+      rchild = rchildren[u];
+      AddResource(rchild);
+      children[r] += rchild;
+      parents[rchild] += r;
     }
 
     return (int)u;
@@ -137,7 +138,6 @@ int CallGraph::SetChild(resource *p, resource *c) {
     // assert (p had no previously defined children)
     //assert(children[p].size() == 0);
     AddResource(c);
-    
     children[p] += c;
     parents[c] += p;
     return 1;
@@ -212,15 +212,15 @@ void CallGraph::displayCallGraph(){
 
   dictionary_hash <resource *, int> callPath(hash_dummy); 
   //callPath is used to avoid cycles in CG
-  
   callPath.clear();
   callGraphInitialized = true;
   //add program function to display, which is probably 
   //rooted by the function "main"
+
   uiMgr->callGraphProgramAddedCB(0,entryFunction->getHandle(), 
 		     entryFunction->getName(),
 		     stripCodeFromName(entryFunction->getFullName())); 
-   
+  
   callPath[entryFunction] = 1;
   addChildrenToDisplay(entryFunction,callPath);
   uiMgr->CGDoneAddingNodesForNow(0);
@@ -235,33 +235,47 @@ void CallGraph::addChildrenToDisplay(resource *parent,
   
   unsigned i;
   const vector<resource *> &these_children = children[parent];
-
+  visited[parent] = 1;
+  
   for(i =0; i < these_children.size(); i++){
-    if(!callPath[these_children[i]]){
+    if(!callPath[these_children[i]] && !visited[these_children[i]]){
       //For this call path, this is the first time that we have seen this
       //function. 
       callPath[these_children[i]] = 1;
+      
       uiMgr->CGaddNode(program_id, parent->getHandle(), 
 		       these_children[i]->getHandle(),
 		       these_children[i]->getName(),
 		       stripCodeFromName(these_children[i]->getFullName()),
-		       false);//function is not recursive
-      addChildrenToDisplay(these_children[i],callPath);
+		       false,//function is not recursive
+		       false); //function is not a shadow node
+      addChildrenToDisplay(these_children[i], callPath);
       callPath.undef(these_children[i]);
     }
-    else if(callPath[these_children[i]] == 1){
+    else if(callPath[these_children[i]] == 1){//function is recursive
       //For this call path, this is the second time that we have seen this 
       //function, meaning that this function is recursive.
-      callPath[these_children[i]] = 2;
       uiMgr->CGaddNode(program_id, parent->getHandle(), 
 		       these_children[i]->getHandle(),
 		       these_children[i]->getName(),
 		       stripCodeFromName(these_children[i]->getFullName()),
-		       true);//function is recursive
-    }       
-  } 
+		       true,//function is recursive
+		       true);//function is a shadown node
+    }
+    else if(visited[these_children[i]]){
+      uiMgr->CGaddNode(program_id, parent->getHandle(), 
+		       these_children[i]->getHandle(),
+		       these_children[i]->getName(),
+		       stripCodeFromName(these_children[i]->getFullName()),
+		       false,//function is not recursive
+		       true);//function is a shadown node
+    }
+    else {
+      //we should never get here
+      assert(false);
+    }
+  }
 }
-
 vector <resourceHandle> *CallGraph::getChildren(resource *rh) {
     unsigned i;
     vector <resourceHandle> *ret;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphDisplay.C,v 1.1 1999/05/24 16:58:44 cain Exp $
+// $Id: callGraphDisplay.C,v 1.2 1999/06/29 15:52:53 cain Exp $
 
 //callGraphDisplay.C: this code is an adaptation of the code from shg.C,
 //for use with the call graph
@@ -66,9 +66,14 @@ vector<Tk_3DBorder> callGraphDisplay::listboxItemTk3DBordersByStyle;
 // inits to empty vector
 
 Tk_Font callGraphDisplay::theRootItemFontStruct = NULL;
+Tk_Font callGraphDisplay::theRootItemShadowFontStruct = NULL;
 Tk_Font callGraphDisplay::theListboxItemFontStruct = NULL;
+Tk_Font callGraphDisplay::theListboxItemShadowFontStruct = NULL;
+
 GC           callGraphDisplay::rootItemTextGC = NULL;
+GC           callGraphDisplay::rootItemShadowTextGC = NULL;
 GC           callGraphDisplay::listboxItemGC = NULL;
+GC           callGraphDisplay::listboxItemShadowTextGC = NULL;
 GC           callGraphDisplay::listboxRayGC = NULL;
 GC           callGraphDisplay::nonListboxRayGC = NULL;
 int          callGraphDisplay::listboxBorderPix = 3;
@@ -85,9 +90,15 @@ void callGraphDisplay::initializeStaticsIfNeeded() {
   }
   
   theRootItemFontStruct = theCallGraphConsts.rootItemFontStruct;
+  theRootItemShadowFontStruct = theCallGraphConsts.rootItemItalicFontStruct;
   theListboxItemFontStruct = theCallGraphConsts.listboxItemFontStruct;
+  theListboxItemShadowFontStruct = 
+    theCallGraphConsts.listboxItemItalicFontStruct;
+
   rootItemTextGC = theCallGraphConsts.rootItemTextGC;
+  rootItemShadowTextGC = theCallGraphConsts.rootItemShadowTextGC;
   listboxItemGC = theCallGraphConsts.listboxItemGC;
+  listboxItemShadowTextGC = theCallGraphConsts.listboxItemShadowTextGC;
   listboxRayGC = consts.listboxRayGC;
   nonListboxRayGC = consts.subchildRayGC;
 }
@@ -100,9 +111,6 @@ callGraphDisplay::callGraphDisplay(int pid, resourceHandle rootId, Tcl_Interp *i
   consts(in_interp, theTkWindow),
   theCallGraphConsts(in_interp, theTkWindow),
   hash(&callGraphDisplay::hashFunc),
-  parents(&callGraphDisplay::hashFunc),
-  children(&callGraphDisplay::hashFunc),
-  shadowNodes(&callGraphDisplay::hashFunc),
   horizSBName(iHorizSBName),
   vertSBName(iVertSBName){
 
@@ -110,18 +118,13 @@ callGraphDisplay::callGraphDisplay(int pid, resourceHandle rootId, Tcl_Interp *i
   
   const resourceHandle rootResHandle = rootId;
   
-  callGraphRootNode tempRootNode(rootResHandle, shortName, fullName,false);
+  callGraphRootNode tempRootNode(rootResHandle, shortName, fullName,
+				 false, false);
 
   rootPtr = new where4tree<callGraphRootNode>(tempRootNode);
   assert(rootPtr);
-  vector<where4tree<callGraphRootNode>*> tempVector;
   
   hash[rootResHandle] = rootPtr;
-  parents[rootResHandle] = tempVector;
-  children[rootResHandle] = tempVector;
-  
-  vector<where4tree<callGraphRootNode>*> shadowVector;
-  shadowNodes[rootResHandle] = shadowVector;
 
   beginSearchFromPtr = NULL;
 
@@ -338,91 +341,30 @@ void callGraphDisplay::addItem(const string &newShortName,const string &newFullN
 			resourceHandle parentUniqueId,
 			resourceHandle newNodeUniqueId,
 			bool recursiveFlag,
+			bool isShadowNode,
 			bool rethinkGraphicsNow,
 			bool resortNow) {
   unsigned int i;
   callGraphRootNode tempRootNode(newNodeUniqueId, newShortName, newFullName,
-				 recursiveFlag);
+				 recursiveFlag, isShadowNode);
   where4tree<callGraphRootNode> *newNode = 
     new where4tree<callGraphRootNode>(tempRootNode);
   assert(newNode);
   
-  if(!hash.defines(newNodeUniqueId)){
-    vector<where4tree<callGraphRootNode>*> child_vec;
-    children[newNodeUniqueId] = child_vec;
-    vector<where4tree<callGraphRootNode>*> parent_vec;
-    parents[newNodeUniqueId] = parent_vec;
-    vector<where4tree<callGraphRootNode>*> shadow_vec;
-    shadowNodes[newNodeUniqueId] = shadow_vec;
-    
+  assert(hash.defines(parentUniqueId));
+  where4tree<callGraphRootNode> *parentPtr = hash[parentUniqueId];
+  assert(parentPtr != NULL);
+  parentPtr->addChild(newNode, false, // not explicitly expanded
+		       consts,
+		       rethinkGraphicsNow,
+		       resortNow);
+  if(!isShadowNode){
+    assert(!hash.defines(newNodeUniqueId));
     hash[newNodeUniqueId] = newNode;
-    
-    assert(hash.defines(parentUniqueId));
-    where4tree<callGraphRootNode> *parentPtr = hash[parentUniqueId];
-    assert(parentPtr != NULL);
-    parents[newNodeUniqueId] +=parentPtr;
-    children[parentUniqueId] += newNode;
-    
-    parentPtr->addChild(newNode, false,  //Add new child to parent
-			consts,
-    	       rethinkGraphicsNow,
-			resortNow);
-    assert(shadowNodes.defines(parentUniqueId));
-    for(i = 0; i < shadowNodes[parentUniqueId].size(); i++){ 
-      //add the child to all of this parent's shadowNodes as well
-      where4tree<callGraphRootNode> *shadowNode = 
-	shadowNodes[parentUniqueId][i];
-      shadowNode->addChild(newNode, false, consts, rethinkGraphicsNow,
-			   resortNow);
-    }
-     
-     
-   }
-  else { //We're adding a shadow node, so we want to add the pre-existing
-    //children of the original node to this node
-    bool already_added = false;
-    shadowNodes[newNodeUniqueId] += newNode;
-    
-    for(i = 0; i < children[parentUniqueId].size(); i++){
-      if(children[parentUniqueId][i]->getRootName() == 
-	 hash[newNodeUniqueId]->getRootName()){
-	already_added = true;
-	break;
-      }
-    }
-    if(!already_added){
-      assert(hash.defines(parentUniqueId));
-      where4tree<callGraphRootNode> *parentPtr = hash[parentUniqueId];
-      assert(parentPtr != NULL);
-      parentPtr->addChild(newNode, false, consts,
-			  rethinkGraphicsNow, resortNow);
-      parents[newNodeUniqueId]+=parentPtr;
-      children[parentUniqueId] += newNode;
-      
-      assert(shadowNodes.defines(parentUniqueId));
-      if(!recursiveFlag){
-	//For each shadow node belonging to this shadow node's parent
-	for(i = 0; i < shadowNodes[parentUniqueId].size(); i++){ 
-	  //add this shadow node
-	  where4tree<callGraphRootNode> *shadowNode = 
-	    shadowNodes[parentUniqueId][i];
-	  shadowNode->addChild(newNode, false, consts, rethinkGraphicsNow,
-			       resortNow);
-	}
-      }
-      
-    }
-    
-    //For each preexisting child of the new node
-    if(!recursiveFlag){
-      for(i = 0; i < children[newNodeUniqueId].size(); i++){
-	//add that child to the shadow node
-	where4tree<callGraphRootNode> *childNode =children[newNodeUniqueId][i];
-	newNode->addChild(childNode, false,consts,
-			  rethinkGraphicsNow,resortNow);
-      }
-    }
   }
+  
+  assert(hash.defines(newNodeUniqueId));
+  
 }
 
 void callGraphDisplay::draw(bool doubleBuffer,

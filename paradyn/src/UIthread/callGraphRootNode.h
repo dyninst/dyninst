@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphRootNode.h,v 1.1 1999/05/24 16:58:46 cain Exp $
+// $Id: callGraphRootNode.h,v 1.2 1999/06/29 15:52:53 cain Exp $
 
 #ifndef _CALLGRAPH_ROOTNODE_H_
 #define _CALLGRAPH_ROOTNODE_H_
@@ -64,6 +64,7 @@ class callGraphRootNode {
  private:
   resourceHandle uniqueId;
   bool isRecursive;
+  bool isShadowNode;
   bool shortNameIsDisplayed;
   string shortName; // name of the root of this subtree
   string fullName;
@@ -90,7 +91,7 @@ class callGraphRootNode {
   
  public:
   
-  callGraphRootNode(resourceHandle uniqueId, const string &shortName, const string &fullName, bool recursiveFlag);
+  callGraphRootNode(resourceHandle uniqueId, const string &shortName, const string &fullName, bool recursiveFlag, bool shadowNode);
   callGraphRootNode(const callGraphRootNode &src)  : shortNameIsDisplayed(src.shortNameIsDisplayed), shortName(src.shortName) , fullName(src.fullName), currentName(shortNameIsDisplayed? &shortName : &fullName) {
     uniqueId = src.uniqueId;
     highlighted = src.highlighted;
@@ -98,6 +99,7 @@ class callGraphRootNode {
     pixHeightAsRoot = src.pixHeightAsRoot;
     pixWidthAsListboxItem = src.pixWidthAsListboxItem;
     isRecursive = src.isRecursive;
+    isShadowNode = src.isShadowNode;
   }
   ~callGraphRootNode() {}
 

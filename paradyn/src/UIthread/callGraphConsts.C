@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphConsts.C,v 1.1 1999/05/24 16:58:42 cain Exp $
+// $Id: callGraphConsts.C,v 1.2 1999/06/29 15:52:52 cain Exp $
 
 
 #include "callGraphConsts.h"
@@ -52,7 +52,8 @@ callGraphConsts::callGraphConsts(Tcl_Interp *interp, Tk_Window theTkWindow) {
    // Root Item FontStruct's:
    rootItemFontStruct = Tk_GetFont(interp, theTkWindow,
 				   "*-Helvetica-*-r-*-14-*");
-
+   rootItemItalicFontStruct = Tk_GetFont(interp, theTkWindow, 
+					 "*-Helvetica-*-o-*-14-*");
    // Root Item Text GCs:
    XGCValues values;
    values.foreground = textColor->pixel;
@@ -60,15 +61,31 @@ callGraphConsts::callGraphConsts(Tcl_Interp *interp, Tk_Window theTkWindow) {
    rootItemTextGC = Tk_GetGC(theTkWindow, GCForeground | GCFont, &values);
    assert(rootItemTextGC);
 
+   values.font = Tk_FontId(rootItemItalicFontStruct);
+   values.foreground = textColor->pixel;
+   rootItemShadowTextGC = Tk_GetGC(theTkWindow, GCForeground | GCFont,
+					 &values);
+   assert(rootItemShadowTextGC);
+
    // Listbox FontStruct's:
    listboxItemFontStruct = Tk_GetFont(interp, theTkWindow, 
 				      "*-Helvetica-*-r-*-12-*");
-
+   listboxItemItalicFontStruct = 
+     Tk_GetFont(interp, theTkWindow, "*-Helvetica-*-o-*-12-*");
    // Listbox Item Text GCs:
    values.foreground = textColor->pixel;
    values.font = Tk_FontId(listboxItemFontStruct);
    listboxItemGC = Tk_GetGC(theTkWindow, GCForeground | GCFont, &values);
    assert(listboxItemGC);
+
+   values.font = Tk_FontId(listboxItemItalicFontStruct);
+   values.foreground = textColor->pixel;
+   listboxItemShadowTextGC = Tk_GetGC(theTkWindow, GCForeground | GCFont,
+					       &values);
+   assert(listboxItemShadowTextGC);
+
+   
+
    rootItemTk3DBordersByStyle.resize(2);
    //Color for non-recursive nodes
    rootItemTk3DBordersByStyle[0] = Tk_Get3DBorder(interp, theTkWindow,

@@ -1,6 +1,6 @@
 /*
  * input file for igen for User Interface Manager (UIM) interface to Paradyn
- * $Id: UI.I,v 1.37 1999/05/24 17:09:28 cain Exp $
+ * $Id: UI.I,v 1.38 1999/06/29 15:50:51 cain Exp $
  */
 
 #include "paradyn/src/DMthread/DMinclude.h"
@@ -50,7 +50,7 @@ struct uiSHGrequest {
 
 $remote UIM {
 	$base 3000;
-	$version 23;
+	$version 24;
 	//
 	// provides user with appropriate choices and passes back selections
 
@@ -120,8 +120,13 @@ $remote UIM {
 	//CallGraph Stuff
 	//
 	
-	//$upcall $async void callGraphNodeAddedCB(unsigned programId);
-	$async void CGaddNode(int pid, resourceHandle parent, resourceHandle newNode, const char *shortName, const char *fullName, bool isRecursive);
-	$async void callGraphProgramAddedCB(unsigned programId,resourceHandle newId, const char *shortName, const char *fullName); 
+	$async void CGaddNode(int pid, resourceHandle parent, 
+	                      resourceHandle newNode, const char *shortName, 
+                              const char *fullName, bool isRecursive,
+                              bool shadowNode);
+	$async void callGraphProgramAddedCB(unsigned programId,
+                                            resourceHandle newId, 
+                                            const char *shortName,  
+                                            const char *fullName); 
 	$async void CGDoneAddingNodesForNow(int programId);
 };

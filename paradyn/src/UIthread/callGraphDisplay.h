@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphDisplay.h,v 1.1 1999/05/24 16:58:45 cain Exp $
+// $Id: callGraphDisplay.h,v 1.2 1999/06/29 15:52:53 cain Exp $
 
 #ifndef _CALLGRAPH_DISPLAY_H_
 #define _CALLGRAPH_DISPLAY_H_
@@ -64,12 +64,12 @@
 class callGraphDisplay {
  private:
    // these static members are needed by whereAxisRootNode (rootNode.h)
-   static Tk_Font theRootItemFontStruct;
-   static Tk_Font theListboxItemFontStruct;
+   static Tk_Font theRootItemFontStruct, theRootItemShadowFontStruct;
+   static Tk_Font theListboxItemFontStruct, theListboxItemShadowFontStruct;
    static vector<Tk_3DBorder> rootItemTk3DBordersByStyle;
    static vector<Tk_3DBorder> listboxItemTk3DBordersByStyle;
-   static GC rootItemTextGC;
-   static GC listboxItemGC;
+   static GC rootItemTextGC, rootItemShadowTextGC;
+   static GC listboxItemGC, listboxItemShadowTextGC;
    static GC listboxRayGC;
    static GC nonListboxRayGC;
 
@@ -97,15 +97,11 @@ class callGraphDisplay {
    
    where4TreeConstants consts;
    callGraphConsts theCallGraphConsts;
-      // Each where axis has its own set of constants, so different axis may,
-      // for example, have different color configurations.
+   // Each where axis has its own set of constants, so different axis may,
+   // for example, have different color configurations.
    where4tree<callGraphRootNode> *rootPtr;
 
    dictionary_hash<resourceHandle, where4tree<callGraphRootNode> *> hash;
-   dictionary_hash<resourceHandle, vector<where4tree<callGraphRootNode> *> > parents;
-   dictionary_hash<resourceHandle, vector<where4tree<callGraphRootNode> *> > children;
-   dictionary_hash<resourceHandle, vector<where4tree<callGraphRootNode> *> > shadowNodes;
-      // associative array: resource unique id --> its corresponding node
    
    string horizSBName; // e.g. ".nontop.main.bottsb"
    string vertSBName;  // e.g. ".nontop.main.leftsb"
@@ -181,6 +177,7 @@ class callGraphDisplay {
 		resourceHandle parentUniqueId,
 		resourceHandle newNodeUniqueId,
 		bool recursiveFlag,
+		bool isShadowNode,
 		bool rethinkGraphicsNow,
 		bool resortNow);
    void rethinkEntireLayout();
@@ -189,27 +186,39 @@ class callGraphDisplay {
       rootPtr->recursiveDoneAddingChildren(consts, resortNow);
    }
 
-   static Tk_Font &getRootItemFontStruct() {
+   static Tk_Font &getRootItemFontStruct(bool shadow) {
       assert(theRootItemFontStruct); // a static member vrble
-      return theRootItemFontStruct;
+      if(shadow)
+	return theRootItemShadowFontStruct;
+      else 
+	return theRootItemFontStruct;
    }
-   static Tk_Font &getListboxItemFontStruct() {
+   static Tk_Font &getListboxItemFontStruct(bool shadow) {
       assert(theListboxItemFontStruct); // a static member vrble
-      return theListboxItemFontStruct;
+      if(shadow)
+	return theListboxItemShadowFontStruct;
+      else 
+	return theListboxItemFontStruct;
    }
    static Tk_3DBorder getRootItemTk3DBorder(bool isRecursive) {
      unsigned index = (int) isRecursive;
      return rootItemTk3DBordersByStyle[index];
    }
-   static GC getRootItemTextGC() {
-      return rootItemTextGC;
+   static GC getRootItemTextGC(bool shadow) {
+     if(shadow)
+       return rootItemShadowTextGC;
+     else 
+       return rootItemTextGC;
    }
    static Tk_3DBorder getListboxItemTk3DBorder(bool isRecursive) {
      unsigned index = (int) isRecursive;
      return rootItemTk3DBordersByStyle[index];
    }
-   static GC getListboxItemGC() {
-      return listboxItemGC;
+   static GC getListboxItemGC(bool shadow) {
+     if(shadow)
+       return listboxItemShadowTextGC;
+     else
+       return listboxItemGC;
    }
    static GC getGCforListboxRay() {
       return listboxRayGC;

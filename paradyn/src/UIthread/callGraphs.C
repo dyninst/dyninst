@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphs.C,v 1.2 1999/06/03 19:40:45 paradyn Exp $
+// $Id: callGraphs.C,v 1.3 1999/06/29 15:52:53 cain Exp $
 
 #include <limits.h>
 #include "callGraphTcl.h"
@@ -341,8 +341,7 @@ bool callGraphs::addNewProgram(int programId, resourceHandle rootId, const strin
 
     callGraphStruct theStruct(programId, rootId, shortName,fullName,
 		      interp, theTkWindow,
-		      horizSBName, vertSBName,
-		      currItemLabelName);
+		      horizSBName, vertSBName);
   
   bool result = false; // so far, nothing has changed
   
@@ -397,13 +396,13 @@ void callGraphs::rethinkLayout(int pid){
 bool callGraphs::addNode(int programId,resourceHandle parent, 
 			 resourceHandle newResource,
 			 const char *shortName, const char *fullName,
-			 const bool recursiveFlag)
+			 const bool recursiveFlag, bool isShadowNode)
 {
    // returns true iff a redraw should take place
    callGraphDisplay &theCallGraphDisplay = getByID(programId);
    
    theCallGraphDisplay.addItem(shortName, fullName,parent, newResource, 
-			       recursiveFlag,false,false);
+			       recursiveFlag,isShadowNode,false,false);
    return true;
 }
 
