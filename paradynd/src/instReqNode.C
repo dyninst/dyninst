@@ -70,8 +70,13 @@ instReqNode::instReqNode(const instReqNode &par, pd_process *childProc) :
    rinstance(par.rinstance), rpcCount(par.rpcCount), 
    loadInstAttempts(par.loadInstAttempts)
 {
+   if(!par.instrLoaded() || !par.trampsHookedUp()) {
+      // can't setup the child if the parent isn't setup
+      return;
+   }
+
 	bool res = getInheritedMiniTramp(&par.mtHandle, &mtHandle, 
-                                         childProc->get_dyn_process());
+                                    childProc->get_dyn_process());
 	assert(res == true);
 }
 
@@ -80,16 +85,16 @@ instReqNode::instReqNode(const instReqNode &par, pd_process *childProc) :
 loadMiniTramp_result instReqNode::loadInstrIntoApp(pd_process *theProc,
 					      returnInstance *&retInstance) {
    if(loadedIntoApp_) return success_res;
-     pd_Function *function_not_inserted = 
-	         dynamic_cast<pd_Function *>(const_cast<function_base *>(
+   pd_Function *function_not_inserted = 
+      dynamic_cast<pd_Function *>(const_cast<function_base *>(
 				                     point->iPgetFunction()));
    ++loadInstAttempts;
    if(loadInstAttempts == MAX_INSERTION_ATTEMPTS_USING_RELOCATION) {
       pd_Function *function_not_inserted = 
-	         dynamic_cast<pd_Function *>(const_cast<function_base *>(
+         dynamic_cast<pd_Function *>(const_cast<function_base *>(
 				                     point->iPgetFunction()));
       if(function_not_inserted != NULL)
-	 function_not_inserted->setRelocatable(false);
+         function_not_inserted->setRelocatable(false);
    }
    
    // NEW: We may manually trigger the instrumentation, via a call to
@@ -100,6 +105,7 @@ loadMiniTramp_result instReqNode::loadInstrIntoApp(pd_process *theProc,
    // inferiorMalloc() in the text heap to get space for it, and actually
    // inserts the instrumentation.
    instInstance *instI = new instInstance;
+   
    loadMiniTramp_result res = 
       loadMiniTramp(instI, theProc->get_dyn_process(), point, ast, when, order,
 		    false, // false --> don't exclude cost
@@ -140,8 +146,8 @@ void instReqNode::disable(pd_process *proc)
   //     << loadedIntoApp << ", hookedUp: " << trampsHookedUp_
   //     << ", deleting inst: " << mtHandle.inst << "\n";
   //     << " points to check\n";
-  if(loadedIntoApp_ == true && trampsHookedUp_ == true)
-    deleteInst(proc->get_dyn_process(), mtHandle);
+   if(loadedIntoApp_ == true && trampsHookedUp_ == true)
+      deleteInst(proc->get_dyn_process(), mtHandle);
 }
 
 instReqNode::~instReqNode()
