@@ -296,11 +296,11 @@ daemonEntry *paradynDaemon::findEntry(const string &,
 }
 
 void paradynDaemon::tellDaemonsOfResource(u_int parent, u_int my_id, 
-					  const char *name) {
+					  const char *name, unsigned type) {
     paradynDaemon *pd;
     for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
         pd = paradynDaemon::allDaemons[i];
-	pd->addResource(parent,my_id,name);
+	pd->addResource(parent,my_id,name, type);
     }
 
 }
@@ -771,7 +771,6 @@ int paradynDaemon::read(const void* handle, char *buf, const int len) {
     return ret;
 }
 
-
 void paradynDaemon::firstSampleCallback(int program,
 					double firstTime) {
   static bool done = false;
@@ -891,11 +890,25 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	metricInstance *mi = activeMids[mid];
 	assert(mi);
 
+	// Any sample sent by a daemon should not have the start time
+	// less than lastSampleEnd for the aggregate sample. When a new
+	// component is added to a metric, the first sample could have
+	// the startTime less than lastSampleEnd. If this happens,
+	// the daemon clock must be late (or the time adjustment
+	// factor is not good enough), and so we must update
+	// the time adjustment factor for this daemon.
+	if (startTimeStamp < mi->sample.lastSampleEnd) {
+	  timeStamp diff = mi->sample.lastSampleEnd - startTimeStamp;
+	  startTimeStamp += diff;
+	  endTimeStamp += diff;
+	  this->setTimeFactor(this->getTimeFactor() + diff);
+	  //printf("*** Adjusting time for %s: diff = %f\n", this->machine, diff);
+	}
+
 	struct sampleInterval ret;
 	if (mi->components.size()){
 	   // find the right component.
 	   component *part = 0;
-
 	   for(unsigned i=0; i < mi->components.size(); i++) {
 	      if((unsigned)mi->components[i]->daemon == (unsigned)this){
 		 part = mi->components[i];
@@ -914,18 +927,16 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	   }
 	   if (!part) {
 	      uiMgr->showError(3, "");
-	      exit(-1);
+	      return;
+	      //exit(-1);
 	   }
 
 	   // update the sampleInfo value associated with 
 	   // the daemon that sent the value 
 	   //
-	   if (part->sample.firstValueReceived()) {
-	     ret = part->sample.newValue(endTimeStamp, value);
-	   }
-	   else {
-	     ret = part->sample.firstValue(startTimeStamp, endTimeStamp, value);
-	   }
+	   if (!part->sample.firstValueReceived())
+	     part->sample.startTime(startTimeStamp);
+	   part->sample.newValue(endTimeStamp, value);
 	}
 
 	//
@@ -950,7 +961,6 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	   assert(ret.start >= 0.0);
 	   assert(ret.end >= ret.start);
 	   mi->enabledTime += ret.end - ret.start;
-
 	   //if (our_print_sample_arrival) {
 	   //    cout << "bucket value: mid " << mid << " start " << ret.start
 	   //         << " end " << ret.end << " value " << ret.value << endl;
@@ -1052,18 +1062,14 @@ paradynDaemon::reportStatus (string line)
 
 /***
  This call is used by a daemon to report a change in the status of a process
- such as when the process exits, or stops.
- If one process stops (due to a breakpoint, for example) we stop the application.
+ such as when the process exits.
  When one process exits, we just decrement procRunning, a counter of the number
  of processes running. If procRunning is zero, there are no more processes running,
  and the status of the application is set to appExited.
 ***/
 void
 paradynDaemon::processStatus(int pid, u_int stat) {
-  if (stat == procPaused) { // process stoped
-    // if one process stops, we stop the application
-    pauseAll();
-  } else if (stat == procExited) { // process exited
+  if (stat == procExited) { // process exited
     for(unsigned i=0; i < programs.size(); i++) {
         if ((programs[i]->pid == (unsigned)pid) && programs[i]->controlPath == this) {
 	  programs[i]->exited = true;
@@ -1095,3 +1101,10 @@ paradynDaemon::nodeDaemonReadyCallback(void) {
     }
 }
 
+
+// Called by a daemon when there is no more data to be sent for a metric instance
+// (because the processes have exited).
+void
+paradynDaemon::endOfDataCollection(int mid) {
+
+}

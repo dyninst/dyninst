@@ -449,7 +449,7 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 32;
+    $version 33;
 
     //
     // Define a program to run. 
@@ -556,10 +556,10 @@ $remote dynRPC {
     //
     // resource_name    - name of resource, divided into parts
     // abstraction      - abstraction to which it belongs     
-    //
+    // type		- the MDL type for this resource (MDL_T_STRING, etc.)
     $upcall $async void resourceInfoCallback(int program, 
 					     vector<string> resource_name,
-					     string abstraction);
+					     string abstraction, u_int type);
 
     // The id that will be used to represent this resource
     $async void resourceInfoResponse(vector<string> resource_name, u_int resource_id);
@@ -603,6 +603,11 @@ $remote dynRPC {
     //
     void disableDataCollection(int mi);
 
+    // 
+    // called by a daemon when there is no more data to be sent for a metric
+    // instance, because all processes have exited.
+    $virtual $upcall $async void endOfDataCollection(int mi);
+
     //
     // Return the expected cost of collecting performance data for a single
     //    metric at a given focus.  The value returned is the fraction of
@@ -618,7 +623,7 @@ $remote dynRPC {
     //
     // Create a new resource.
     //
-    void addResource(u_int parent, u_int id, string name);
+    void addResource(u_int parent, u_int id, string name, u_int type);
 
     //
     // stdio or stderr from an application.

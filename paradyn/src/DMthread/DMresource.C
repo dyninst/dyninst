@@ -7,6 +7,9 @@
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
+ * Revision 1.34  1996/03/01 22:47:04  mjrg
+ * Added type to resources.
+ *
  * Revision 1.33  1996/02/02 02:14:51  karavan
  * changed resource::magnify to return struct like magnify2.
  *
@@ -167,11 +170,12 @@ resource::resource()
 resource::resource(resourceHandle p_handle, 
 		   vector<string>& resource_name,
 		   string& r_name,
-		   string& a) 
+		   string& a, unsigned r_type) 
 {
     
     if(!allResources.defines(r_name)){
-	name = r_name;
+        type = r_type;
+        name = r_name;
 	res_handle = resources.size();
         parent = p_handle;
 	fullName = resource_name;

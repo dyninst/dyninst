@@ -2,6 +2,9 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
+ * Revision 1.90  1996/03/01 22:46:59  mjrg
+ * Added type to resources.
+ *
  * Revision 1.89  1996/02/26 20:33:18  tamches
  * where appropriate, changed 2d arg of showError to empty string
  *
@@ -477,8 +480,8 @@ void dynRPCUser::resourceBatchMode(bool onNow)
 //
 void dynRPCUser::resourceInfoCallback(int,
 				      vector<string> resource_name,
-				      string abstr) {
-    resourceHandle r = createResource(resource_name, abstr);
+				      string abstr, u_int type) {
+    resourceHandle r = createResource(resource_name, abstr, type);
     resourceInfoResponse(resource_name, r);
 }
 
@@ -616,6 +619,12 @@ void
 dynRPCUser::nodeDaemonReadyCallback(void)
 {
     assert(0 && "Invalid virtual function");
+}
+
+void
+dynRPCUser::endOfDataCollection(int)
+{
+  assert(0 && "Invalid virtual function");
 }
 
 
@@ -826,7 +835,7 @@ resourceHandle createResource(resourceHandle parent, vector<string>& res_name,
 #endif
 
 // I don't want to parse for '/' more than once, thus the use of a string vector
-resourceHandle createResource(vector<string>& resource_name, string& abstr) {
+resourceHandle createResource(vector<string>& resource_name, string& abstr, unsigned type) {
   resource *parent = NULL;
   unsigned r_size = resource_name.size();
   string p_name;
@@ -865,7 +874,7 @@ resourceHandle createResource(vector<string>& resource_name, string& abstr) {
 
     /* then create it */
     resource *ret =  new resource(parent->getHandle(),resource_name,
-				  myName,abstr);
+				  myName,abstr, type);
 
     /* inform others about it if they need to know */
     dictionary_hash_iter<perfStreamHandle,performanceStream*> 

@@ -2,6 +2,9 @@
  * DMresource.h - define the resource data abstraction.
  *
  * $Log: DMresource.h,v $
+ * Revision 1.27  1996/03/01 22:47:05  mjrg
+ * Added type to resources.
+ *
  * Revision 1.26  1996/02/02 02:14:53  karavan
  * changed resource::magnify to return struct like magnify2.
  *
@@ -136,7 +139,7 @@ class resource {
       friend void printAllResources();
       friend class dynRPCUser;
       friend string DMcreateRLname(const vector<resourceHandle> &res);
-      friend resourceHandle createResource(vector<string>&, string&);
+      friend resourceHandle createResource(vector<string>&, string&, unsigned);
 
   public:
     vector<resourceHandle> *getChildren();
@@ -146,6 +149,7 @@ class resource {
 	if (abstr) return(abstr->getName());
         return 0;	
     }
+    unsigned getType() const { return type; }
     resourceHandle *findChild(const char*);
     int match(string ptr) { return(ptr == name); }
     bool isDescendent(resourceHandle child);
@@ -169,10 +173,11 @@ class resource {
     resource(resourceHandle p_handle,
 	     vector<string>& resource_name,
 	     string& r_name,
-	     string& abstr);
+	     string& abstr, unsigned type);
     ~resource(){}
   private:
     string name;
+    unsigned type;   // MDL type of this resource (MDL_T_INT, MDL_T_STRING, etc)
     resourceHandle res_handle;  
     resourceHandle parent;  
     vector<string> fullName; 

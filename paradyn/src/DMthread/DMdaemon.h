@@ -131,6 +131,9 @@ class paradynDaemon: public dynRPCUser {
                                                  vector<T_dyninstRPC::batch_buffer_entry>);
 
 	virtual void cpDataCallbackFunc(int, double, int, double, double);
+
+        virtual void endOfDataCollection(int);
+
 	double getEarliestFirstTime() const { return earliestFirstTime;}
 	static void setEarliestFirstTime(double f){
             if(!earliestFirstTime) earliestFirstTime = f;
@@ -169,7 +172,7 @@ class paradynDaemon: public dynRPCUser {
 	static bool setInstSuppress(resource *, bool);
 	static bool enableData(resourceListHandle,metricHandle,metricInstance*);
 	static void tellDaemonsOfResource(u_int parent,
-					  u_int res,const char *name);
+					  u_int res,const char *name, u_int type);
         // sets the name of the daemon to use
         static bool setDefaultArgs(char *&name);
 

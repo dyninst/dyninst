@@ -2,6 +2,9 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
+ * Revision 1.65  1996/03/01 22:42:37  mjrg
+ * Added type to resources.
+ *
  * Revision 1.64  1996/02/22 23:39:18  newhall
  * removed getCurrentSmoothObsCost
  *
@@ -365,7 +368,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2500;
-    $version 36;
+    $version 37;
 
     //
     // Start a paradyn daemon
@@ -612,7 +615,7 @@ $remote dataManager {
     //
     // create a new resource and return it's handle
     //
-    resourceHandle newResource(resourceHandle parent, const char *name);
+    resourceHandle newResource(resourceHandle parent, const char *name, u_int type);
 
     //
     // converts from a vector of resourceHandles to a resourceListHandle

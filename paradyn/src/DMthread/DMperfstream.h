@@ -40,7 +40,7 @@ class performanceStream {
 	friend class paradynDaemon;
 	friend void phaseInfo::startPhase(timeStamp, const string&,bool,bool);
 	friend void addMetric(T_dyninstRPC::metricInfo &info);
-	friend resourceHandle createResource(vector<string>&, string& );
+	friend resourceHandle createResource(vector<string>&, string&, unsigned);
     public:
 	performanceStream(dataType t, dataCallback dc,
 			  controlCallback cc, int tid); 

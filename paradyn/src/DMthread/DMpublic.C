@@ -4,6 +4,9 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
+ * Revision 1.71  1996/03/01 22:47:02  mjrg
+ * Added type to resources.
+ *
  * Revision 1.70  1996/02/22 23:38:37  newhall
  * removed DM and dyninst interface func getCurrentSmoothObsCost
  *
@@ -1220,7 +1223,7 @@ resourceHandle dataManager::newResource(resourceHandle parent,
 #endif
 
 resourceHandle dataManager::newResource(resourceHandle parent,
-			                const char *name)
+			                const char *name, u_int type)
 {
 
     // rbi: kludge
@@ -1234,10 +1237,10 @@ resourceHandle dataManager::newResource(resourceHandle parent,
     resource *parent_res = resource::handle_to_resource(parent);
     vector<string> res_name = parent_res->getParts();
     res_name += name;
-    resourceHandle child = createResource(res_name,abs);
+    resourceHandle child = createResource(res_name,abs, type);
     paradynDaemon::tellDaemonsOfResource(parent_res->getHandle(), 
 			       		 child, 
-			                 name);
+			                 name, type);
     return(child);
 
 }
