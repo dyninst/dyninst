@@ -1,7 +1,10 @@
 
 #
 # $Log: errorList.tcl,v $
-# Revision 1.10  1995/11/13 21:13:34  naim
+# Revision 1.11  1995/11/21 15:16:24  naim
+# Adding error #86: Cannot enable metric - naim
+#
+# Revision 1.10  1995/11/13  21:13:34  naim
 # Minor change to the display of error message 85 - naim
 #
 # Revision 1.9  1995/11/13  14:54:43  naim
@@ -868,4 +871,14 @@ An error was detected when Paradyn was reading the metrics described in
 the Paradyn configuration file.
 }}
 
-set numPdErrors 85
+set pdError(86) {
+{Cannot enable metric
+} {dm
+} {information
+} {
+Paradyn cannot enable this particular metric. This might be due to 
+constraints in the definition of the metric (e.g. the metric is restricted
+to the whole program and we have selected a particular process).
+}}
+
+set numPdErrors 86
