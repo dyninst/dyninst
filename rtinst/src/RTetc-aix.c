@@ -40,75 +40,8 @@
  */
 
 /************************************************************************
- * RTaix.c: clock access functions for aix.
- *
- * $Log: RTetc-aix.c,v $
- * Revision 1.19  2000/02/18 20:41:48  bernat
- * Disabled the WALLTIME_* workarounds.
- *
- * Revision 1.18  1999/12/08 20:23:08  bernat
- * Returning microseconds instead of nanoseconds in GetWallTime
- *
- * Revision 1.17  1999/11/29 16:55:11  bernat
- * Fix to walltime rollback problems
- *
- * Revision 1.16  1999/11/10 22:36:26  schendel
- * modify so run time library reports all rollbacks to the daemon
- * useful for time being to determine extent of rollback problems
- *
- * Revision 1.15  1999/10/27 21:49:52  schendel
- * removed rollback checks in stop/startTimer functions and incorporated
- * standardized rollback checks and reporting via trace records
- *
- * Revision 1.14  1999/10/13 18:18:46  bernat
- * Removed any call to assert(), printf() from getWalltime.
- *
- * Added infrastructure for a better test of what is causing the rollbacks.
- *
- * Revision 1.13  1999/08/27 21:04:01  zhichen
- * tidy up
- *
- * Revision 1.12  1999/08/20 20:38:40  bernat
- * Enabled shared memory.
- *
- * Changed getWallTime to use system library call (more portable)
- *
- * Added getProcs() code (DISABLED) to getCPUTime
- *
- * Revision 1.11  1997/06/02 16:39:40  naim
- * Small change to comment out a warning message - naim
- *
- * Revision 1.10  1997/05/07 18:59:15  naim
- * Getting rid of old support for threads and turning it off until the new
- * version is finished - naim
- *
- * Revision 1.9  1997/02/18 21:34:37  sec
- * There were some bugs in how the time was accessed, fixed those; I also
- * removed DYNISTexecvp which is buggy, and is never called (it was called
- * for MPI stuff, but I replaced it with some modifications for poe/mpi in
- * paradyn/DMthread).
- *
- * Revision 1.8  1997/01/27 19:43:31  naim
- * Part of the base instrumentation for supporting multithreaded applications
- * (vectors of counter/timers) implemented for all current platforms +
- * different bug fixes - naim
- *
- * Revision 1.7  1997/01/16 22:19:34  tamches
- * added proper param names to DYNINSTos_init
- *
- * Revision 1.6  1997/01/16 20:55:45  tamches
- * params to DYNINSTos_init
- *
- * Revision 1.5  1996/08/16 21:27:27  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.4  1996/04/06 21:27:50  hollings
- * Add missing case for system time.
- *
- * Revision 1.3  1996/02/13  16:21:57  hollings
- * Fixed timer64 to be time64.
- *
- *
+ * RTaix.c: clock access functions for AIX.
+ * $Id: RTetc-aix.c,v 1.20 2000/03/23 01:25:20 wylie Exp $
  ************************************************************************/
 
 #include <malloc.h>
@@ -171,10 +104,10 @@ static int MaxRollbackReport = INT_MAX; /* report all rollbacks */
 ************************************************************************/
 time64 DYNINSTgetCPUtime(void) 
 {
-  time64        now;
-
   static time64 cpuPrevious = 0;
   static int cpuRollbackOccurred = 0;
+  time64 now, tmp_cpuPrevious=cpuPrevious;
+
   /* I really hate to use an ifdef, but I don't want to toss the code.
 
      Getprocs: uses the same method as the dyninst library, but causes
@@ -242,11 +175,12 @@ time64 DYNINSTgetCPUtime(void)
 
 #endif
 
-  if (now < cpuPrevious) {
-    if(cpuRollbackOccurred < MaxRollbackReport) {
+  if (now < tmp_cpuPrevious) {
+    if (cpuRollbackOccurred < MaxRollbackReport) {
       rtUIMsg traceData;
-      sprintf(traceData.msgString, "CPU time rollback with current time: "
-	      "%lld usecs, using previous value %lld usecs.",now,cpuPrevious);
+      sprintf(traceData.msgString, "CPU time rollback %lld with current time: "
+	      "%lld usecs, using previous value %lld usecs.",
+                tmp_cpuPrevious-now,now,tmp_cpuPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
       DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,
@@ -270,9 +204,9 @@ time64 DYNINSTgetCPUtime(void)
 
 time64 DYNINSTgetWalltime(void)
 {
-  static time64 wallPrevious = 0;
-  static int wallRollbackOccurred = 0;
-  time64        now;
+  static time64 wallPrevious=0;
+  static int wallRollbackOccurred=0;
+  time64 now, tmp_wallPrevious=wallPrevious;
   register unsigned int timeSec asm("5");
   register unsigned int timeNano asm("6");
   register unsigned int timeSec2 asm("7");
@@ -299,11 +233,12 @@ time64 DYNINSTgetWalltime(void)
   time_base_to_time(&timestruct, TIMEBASE_SZ);
   */
 
-  if (now < wallPrevious) {
-    if(wallRollbackOccurred < MaxRollbackReport) {
+  if (now < tmp_wallPrevious) {
+    if (wallRollbackOccurred < MaxRollbackReport) {
       rtUIMsg traceData;
-      sprintf(traceData.msgString, "Wall time rollback with current time: "
-	      "%lld usecs, using previous value %lld usecs.",now,wallPrevious);
+      sprintf(traceData.msgString, "Wall time rollback %lld with current time: "
+	      "%lld usecs, using previous value %lld usecs.",
+                tmp_wallPrevious-now,now,tmp_wallPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
       DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,

@@ -42,7 +42,7 @@
 /************************************************************************
  * RTwinnt.c: runtime instrumentation functions for Windows NT
  *
- * RTwinnt.c,v
+ * $Id: RTetc-winnt.c,v 1.6 2000/03/23 01:25:20 wylie Exp $
  *
  ************************************************************************/
 
@@ -117,9 +117,9 @@ static int MaxRollbackReport = INT_MAX; /* report all rollbacks */
 time64 DYNINSTgetCPUtime() {
 
   FILETIME kernelT, userT, creatT, exitT;
-  static time64 cpuPrevious = 0;
-  static int cpuRollbackOccurred = 0;
-  time64 now;
+  static time64 cpuPrevious=0;
+  static int cpuRollbackOccurred=0;
+  time64 now, tmp_cpuPrevious=cpuPrevious;
   static HANDLE procHandle;
 
   if(GetProcessTimes(DYNINSTprocHandle, &creatT, &exitT, &kernelT,&userT)==0) {
@@ -129,11 +129,12 @@ time64 DYNINSTgetCPUtime() {
 
   now = (FILETIME2time64(userT)+FILETIME2time64(kernelT)) / (time64)10;
 
-  if (now < cpuPrevious) {
-    if(cpuRollbackOccurred < MaxRollbackReport) {
+  if (now < tmp_cpuPrevious) {
+    if (cpuRollbackOccurred < MaxRollbackReport) {
       rtUIMsg traceData;
-      sprintf(traceData.msgString, "CPU time rollback with current time: "
-	      "%I64d usecs, using previous value %I64d usecs.",now,cpuPrevious);
+      sprintf(traceData.msgString, "CPU time rollback %I64d with current time: "
+	      "%I64d usecs, using previous value %I64d usecs.",
+                tmp_cpuPrevious-now,now,tmp_cpuPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
       DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,
@@ -154,8 +155,8 @@ time64 DYNINSTgetWalltime() {
   static int firstTime;
   static double freq = 1.0;
   static time64 wallPrevious=0;
-  static int wallRollbackOccurred = 0;
-  time64 now;
+  static int wallRollbackOccurred=0;
+  time64 now, tmp_wallPrevious=wallPrevious;
 
   if (firstTime == 0) {
     firstTime = 1;
@@ -173,11 +174,12 @@ time64 DYNINSTgetWalltime() {
     abort();
   }
 
-  if (now < wallPrevious) {
-    if(wallRollbackOccurred < MaxRollbackReport) {
+  if (now < tmp_wallPrevious) {
+    if (wallRollbackOccurred < MaxRollbackReport) {
       rtUIMsg traceData;
-      sprintf(traceData.msgString, "Wall time rollback with current time: "
-	      "%I64d usecs, using previous value %I64d usecs.",now,wallPrevious);
+      sprintf(traceData.msgString, "Wall time rollback %I64d with current time: "
+	      "%I64d usecs, using previous value %I64d usecs.",
+                tmp_wallPrevious-now,now,tmp_wallPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
       DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,

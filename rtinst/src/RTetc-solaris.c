@@ -41,7 +41,8 @@
 
 /************************************************************************
  * RTsolaris.c: clock access functions for solaris-2.
-************************************************************************/
+ * $Id: RTetc-solaris.c,v 1.34 2000/03/23 01:25:20 wylie Exp $
+ ************************************************************************/
 
 #include <signal.h>
 #include <sys/ucontext.h>
@@ -280,17 +281,18 @@ static int MaxRollbackReport = INT_MAX; /* report all rollbacks */
 time64
 DYNINSTgetCPUtime(void) {
   static time64 cpuPrevious=0;
-  static int cpuRollbackOccurred = 0;
-  time64 now;
+  static int cpuRollbackOccurred=0;
+  time64 now, tmp_cpuPrevious=cpuPrevious;
 
   now = gethrvtime() / 1000;
 
 #ifndef MT_THREAD
-  if (now < cpuPrevious) {
-    if(cpuRollbackOccurred < MaxRollbackReport) {
+  if (now < tmp_cpuPrevious) {
+    if (cpuRollbackOccurred < MaxRollbackReport) {
       rtUIMsg traceData;
-      sprintf(traceData.msgString, "CPU time rollback with current time:"
-          " %lld usecs, using previous value %lld usecs.",now,cpuPrevious);
+      sprintf(traceData.msgString, "CPU time rollback %lld with current time:"
+          " %lld usecs, using previous value %lld usecs.",
+        tmp_cpuPrevious-now,now,tmp_cpuPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
       DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,
@@ -318,17 +320,18 @@ DYNINSTgetCPUtime(void) {
 time64
 DYNINSTgetWalltime(void) {
   static time64 wallPrevious=0;
-  static int wallRollbackOccurred = 0;
-  time64 now;
+  static int wallRollbackOccurred=0;
+  time64 now, tmp_wallPrevious=wallPrevious;
 
   now = gethrtime() / 1000;
 
 #ifndef MT_THREAD
-  if (now < wallPrevious) {
-    if(wallRollbackOccurred < MaxRollbackReport) {
+  if (now < tmp_wallPrevious) {
+    if (wallRollbackOccurred < MaxRollbackReport) {
       rtUIMsg traceData;
-      sprintf(traceData.msgString, "Wall time rollback with current time:"
-          " %lld usecs, using previous value %lld usecs.",now,wallPrevious);
+      sprintf(traceData.msgString, "Wall time rollback %lld with current time:"
+          " %lld usecs, using previous value %lld usecs.",
+        tmp_wallPrevious-now,now,tmp_wallPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
       DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,

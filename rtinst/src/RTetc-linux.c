@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTetc-linux.c,v 1.9 2000/03/17 21:57:45 schendel Exp $ */
+/* $Id: RTetc-linux.c,v 1.10 2000/03/23 01:25:20 wylie Exp $ */
 
 /************************************************************************
  * RTlinux.c: clock access functions for linux-2.0.x and linux-2.2.x
@@ -281,8 +281,8 @@ static int MaxRollbackReport = INT_MAX; /* report all rollbacks */
 time64
 DYNINSTgetCPUtime(void) {
 	static time64 cpuPrevious=0;
-	static int cpuRollbackOccurred = 0;
-	time64 now = 0;
+	static int cpuRollbackOccurred=0;
+	time64 now=0, tmp_cpuPrevious=cpuPrevious;
 	FILE *tmp;
 	static int realMul = 0;
 	double realHZ;
@@ -313,12 +313,12 @@ DYNINSTgetCPUtime(void) {
 	now = (time64)tm.tms_utime + (time64)tm.tms_stime;
 	now = now * (time64)realMul;
 
-	if( now < cpuPrevious ) {
-	  if(cpuRollbackOccurred < MaxRollbackReport) {
+	if (now < tmp_cpuPrevious) {
+	  if (cpuRollbackOccurred < MaxRollbackReport) {
 	    rtUIMsg traceData;
-	    sprintf(traceData.msgString, "CPU time rollback with current time: "
+	    sprintf(traceData.msgString, "CPU time rollback %lld with current time: "
 		    "%lld usecs, using previous value %lld usecs.",
-		    now,cpuPrevious);
+		    tmp_cpuPrevious-now,now,tmp_cpuPrevious);
 	    traceData.errorNum = 112;
 	    traceData.msgType = rtWarning;
 	    DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData),
@@ -345,8 +345,8 @@ DYNINSTgetCPUtime(void) {
 time64
 DYNINSTgetWalltime(void) {
   static time64 wallPrevious=0;
-  static int wallRollbackOccurred = 0;
-  time64 now;
+  static int wallRollbackOccurred=0;
+  time64 now, tmp_wallPrevious=wallPrevious;
   struct timeval tv;
 
   if (gettimeofday(&tv,NULL) == -1) {
@@ -358,11 +358,12 @@ DYNINSTgetWalltime(void) {
   now = mulMillion( (time64)tv.tv_sec );
   now += (time64)tv.tv_usec;
 
-  if (now < wallPrevious) {
-    if(wallRollbackOccurred < MaxRollbackReport) {
+  if (now < tmp_wallPrevious) {
+    if (wallRollbackOccurred < MaxRollbackReport) {
       rtUIMsg traceData;
-      sprintf(traceData.msgString, "Wall time rollback with current time: "
-	      "%lld usecs, using previous value %lld usecs.",now,wallPrevious);
+      sprintf(traceData.msgString, "Wall time rollback %lld with current time: "
+	      "%lld usecs, using previous value %lld usecs.",
+                tmp_wallPrevious-now,now,tmp_wallPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
       DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 
