@@ -5,6 +5,9 @@
 
 /* 
  * $Log: templates.C,v $
+ * Revision 1.18  1995/11/29 00:28:48  tamches
+ * will now compile with g++ 2.7.1 on sunos; some templates had been missing.
+ *
  * Revision 1.17  1995/08/24 15:04:40  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
@@ -158,7 +161,11 @@ template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_metric
 template class  List<sampleInfo*>;
 
 template class  queue<T_dyninstRPC::buf_struct*>;
+template class vector<T_dyninstRPC::buf_struct*>;
 
+template class vector<unsigned>;
+template class vector<float>;
+template class vector<int>;
 template class  vector<Symbol*>;
 template class  vector<Symbol>;
 template class  vector<T_dyninstRPC::mdl_constraint *>;
@@ -209,6 +216,7 @@ template class  dictionary_hash <unsigned, vector<mdl_type_desc> >;
 template class  dictionary_hash_iter <Address, Symbol*>;
 template class  dictionary_hash_iter <instPoint*, point*>;
 template class  dictionary_hash_iter <instPoint*, unsigned>;
+template class  dictionary_hash_iter <string, Symbol>;
 template class  dictionary_hash_iter <string, internalSym*>;
 template class  dictionary_hash_iter <string, module *>;
 template class  dictionary_hash_iter <string, pdFunction*>;
