@@ -7,13 +7,16 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/util.C,v 1.8 1996/05/11 23:16:17 tamches Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/util.C,v 1.9 1996/06/01 00:01:48 tamches Exp $";
 #endif
 
 /*
  * util.C - support functions.
  *
  * $Log: util.C,v $
+ * Revision 1.9  1996/06/01 00:01:48  tamches
+ * addrHash replaced by addrHash16
+ *
  * Revision 1.8  1996/05/11 23:16:17  tamches
  * added addrHash
  *
@@ -58,15 +61,25 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyn
 #include "util/h/headers.h"
 #include "util.h"
 
-unsigned addrHash(const unsigned &addr) {
+unsigned addrHash16(const unsigned &iaddr) {
    // inspired by hashs of string class
+   // NOTE: this particular hash fn assumes that "addr" is divisible by 16
+
+   unsigned addr = iaddr >> 4;
+      // since the address is divisible by 16, the low 4 bits
+      // are always the same for each address and hence contribute
+      // nothing to an even hash distribution.  Hence, we zap
+      // those bits right now.
+
    unsigned result = 5381;
 
    unsigned accumulator = addr;
    while (accumulator > 0) {
-      result = (result << 4) + result + (accumulator % 10);
-      accumulator /= 10;
+      // We use 3 bits at a time from the address
+      result = (result << 4) + result + (accumulator & 0x07);
+      accumulator >>= 3;
    }
+
    return result;
 }
 
