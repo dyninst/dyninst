@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
  *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
@@ -14,11 +13,13 @@
  * the above copyright notice.
  *
  */
-
 /* $Log: VMtypes.h,v $
-/* Revision 1.3  1994/04/29 18:57:56  newhall
-/* changed typedefs of structs to deal with g++/gdb bug
+/* Revision 1.4  1994/05/11 17:28:27  newhall
+/* test version 3
 /*
+ * Revision 1.3  1994/04/29  18:57:56  newhall
+ * changed typedefs of structs to deal with g++/gdb bug
+ *
  * Revision 1.2  1994/04/28  22:08:36  newhall
  * test version 2
  *
