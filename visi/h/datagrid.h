@@ -17,9 +17,12 @@
  */
 
 /* $Log: datagrid.h,v $
-/* Revision 1.17  1995/06/02 21:01:54  newhall
-/* changed type of metric and focus handles to u_int
+/* Revision 1.18  1995/08/01 01:58:43  newhall
+/* changes relating to phase interface stuff
 /*
+ * Revision 1.17  1995/06/02  21:01:54  newhall
+ * changed type of metric and focus handles to u_int
+ *
  * Revision 1.16  1995/02/26  01:59:27  newhall
  * added phase interface functions
  *
@@ -421,6 +424,8 @@ class visi_DataGrid {
      timeType    binWidth;
      visi_GridHistoArray  *data_values;
      vector<PhaseInfo *> phases;
+     timeType   start_time;
+     int 	phase_handle; // -1: global -2: not yet defined
   public:
      visi_DataGrid(){
 	 metrics=NULL; 
@@ -429,10 +434,13 @@ class visi_DataGrid {
 	 data_values=NULL; 
 	 numBins= 0; 
 	 binWidth=0.0;
+	 start_time = 0.0;
+	 phase_handle = -2;
      }
 
-     visi_DataGrid(int,int,Metric *,Resource *,int,timeType);
-     visi_DataGrid(int,int,visi_metricType *,visi_resourceType *,int,timeType);
+     visi_DataGrid(int, int, Metric*, Resource*, int, timeType, timeType, int);
+     visi_DataGrid(int, int, visi_metricType*, visi_resourceType*,
+		   int, timeType, timeType, int);
      ~visi_DataGrid();
      const char *MetricName(int i);
      const char *MetricUnits(int i);
@@ -452,6 +460,9 @@ class visi_DataGrid {
      int        MetricInGrid(u_int);
      int	NumPhases(){ return(phases.size());}
      void       AddNewPhase(int,timeType,timeType,timeType,string);
+     timeType   GetStartTime(){ return(start_time);}
+     int 	GetPhaseHandle(){return(phase_handle);}
+     const char *GetMyPhaseName();
 
      PhaseInfo	*GetPhaseInfo(unsigned i){
 	    int j = phases.size();

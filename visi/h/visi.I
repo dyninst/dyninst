@@ -16,9 +16,12 @@
  */
 
 /* $Log: visi.I,v $
-/* Revision 1.11  1995/06/02 21:01:55  newhall
-/* changed type of metric and focus handles to u_int
+/* Revision 1.12  1995/08/01 01:58:45  newhall
+/* changes relating to phase interface stuff
 /*
+# Revision 1.11  1995/06/02  21:01:55  newhall
+# changed type of metric and focus handles to u_int
+#
 # Revision 1.10  1995/02/26  01:59:28  newhall
 # added phase interface functions
 #
@@ -94,7 +97,7 @@ $remote struct phase_info{
 
 $remote visualization {
   $base  7000;
-  $version  11;
+  $version  12;
 
   // data: list of new data values from Paradyn 
   $async void Data(vector<dataValue> data);  
@@ -116,7 +119,9 @@ $remote visualization {
   // nobuckets:   max number of buckets for histograms
   $async void AddMetricsResources(vector<visi_matrix> newElements,
 				  double bucketWidth,
-				  int nobuckets);
+				  int nobuckets,
+				  double start_time,
+				  int phase_handle);
   //
   // A new phase has been defined by paradyn
   //
@@ -135,7 +140,7 @@ $remote visualization {
 
 
   //
-  // A list of phase data from paradyn
+  // A list of phase data from paradyn (response to GetPhaseInfo upcall) 
   //
   $async void PhaseData(vector<phase_info> phases);
 
@@ -146,6 +151,13 @@ $remote visualization {
   $async void BulkDataTransfer(vector<float> values, // array of data values 
 			       u_int metricId,	  // id of met. assoc. w/data
 			       u_int resourceId);   // id of res. assoc. w/data
+
+
+  //
+  //  request from the visi to Paradyn for list of phases currently defined
+  //  in system
+  //
+  $upcall $async void GetPhaseInfo();
 
   //
   // A request from the visualization to Paradyn for new data

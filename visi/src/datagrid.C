@@ -14,9 +14,12 @@
  *
  */
 /* $Log: datagrid.C,v $
-/* Revision 1.15  1995/06/02 21:02:04  newhall
-/* changed type of metric and focus handles to u_int
+/* Revision 1.16  1995/08/01 01:59:33  newhall
+/* changes relating to phase interface stuff
 /*
+ * Revision 1.15  1995/06/02  21:02:04  newhall
+ * changed type of metric and focus handles to u_int
+ *
  * Revision 1.14  1995/02/26  01:59:37  newhall
  * added phase interface functions
  *
@@ -249,7 +252,9 @@ visi_DataGrid::visi_DataGrid(int noMetrics,
 			     Metric *metricList,
 	     		     Resource *resourceList,
 			     int noBins,
-			     timeType width){
+			     timeType width,
+			     timeType startTime,
+			     int phaseHandle){
 int i;
 
   numMetrics   = noMetrics;
@@ -270,6 +275,8 @@ int i;
     data_values[i].visi_GridHistoArray(noResources);
   numBins  = noBins;
   binWidth = width;
+  start_time = startTime;
+  phase_handle = phaseHandle;
 
 }
 
@@ -283,7 +290,9 @@ visi_DataGrid::visi_DataGrid(int noMetrics,
 			     visi_metricType *metricList,
 			     visi_resourceType *resourceList,
 			     int noBins,
-			     timeType width){
+			     timeType width,
+			     timeType startTime,
+			     int phaseHandle){
 int i;
 
   numMetrics   = noMetrics;
@@ -303,6 +312,8 @@ int i;
     data_values[i].visi_GridHistoArray(noResources);
   numBins  = noBins;
   binWidth = width;
+  start_time = startTime;
+  phase_handle = phaseHandle;
 
 }
 
@@ -316,6 +327,17 @@ visi_DataGrid::~visi_DataGrid(){
   delete[] resources;
   delete[] metrics;
   delete[] data_values;
+}
+
+const char *visi_DataGrid::GetMyPhaseName(){
+
+    if (phase_handle == -1) return ("Global");
+    if (phase_handle >= 0){
+        for(unsigned i = 0; i < phases.size(); i++){
+	    if(phase_handle == phases[i]->getPhaseHandle()){
+                return phases[i]->getName();
+    }}}
+    return 0;
 }
 
 // 

@@ -17,9 +17,12 @@
  */
 
 /* $Log: visualization.h,v $
-/* Revision 1.9  1995/02/26 01:59:31  newhall
-/* added phase interface functions
+/* Revision 1.10  1995/08/01 01:58:46  newhall
+/* changes relating to phase interface stuff
 /*
+ * Revision 1.9  1995/02/26  01:59:31  newhall
+ * added phase interface functions
+ *
  * Revision 1.8  1994/10/13  15:38:52  newhall
  * QuitVisi added
  *
@@ -120,7 +123,6 @@ extern void StopMetRes(int metricIndex,    // datagrid index of metric
 //
 extern void DefinePhase(timeType begin,  // in seconds 
 		        char *name);     // name of phase 
-
 
 ////////////////////////////////////////////////////////////////
 //   initialization routines 

@@ -14,9 +14,12 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.25  1995/06/02 21:02:06  newhall
-/* changed type of metric and focus handles to u_int
+/* Revision 1.26  1995/08/01 01:59:35  newhall
+/* changes relating to phase interface stuff
 /*
+ * Revision 1.25  1995/06/02  21:02:06  newhall
+ * changed type of metric and focus handles to u_int
+ *
  * Revision 1.24  1995/03/31  15:56:11  jcargill
  * Changed malloc's to new's, so that constructors would get fired;
  * otherwise, bogus memory references/free's occur.
@@ -138,6 +141,9 @@ int i;
   fileDesc[0] = 0;
   fileDescCallbacks[0] = visi_callback;
   initDone = 1;
+ 
+  // make request for info. about all phases defined so far 
+  vp->GetPhaseInfo();
 
   return(fileDesc[0]);
 }
@@ -215,6 +221,7 @@ void GetMetsRes(char *metres,
     VisiInit();
   vp->GetMetricResource(metres,numElements,0);
 }
+
 
 ///////////////////////////////////////////////////////////
 // invokes upcall to paradyn.  Request to stop data for the 
@@ -368,7 +375,10 @@ int ok;
 ///////////////////////////////////////////////////////////
 void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
 			 		double bucketWidth,
-			 		int nobuckets) {
+			 		int nobuckets,
+					double start_time,
+    				        int phase_handle){
+
 
   int ok,i,j,k;
   visi_metricType *mets = 0;
@@ -428,7 +438,9 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
 			   mets,
 			   res,
 			   nobuckets,
-			   (timeType)bucketWidth);
+			   (timeType)bucketWidth,
+			   (timeType)start_time,
+			   phase_handle);
   }
   else{ // add elements to existing data grid
 
@@ -602,6 +614,7 @@ void visualization::PhaseEnd(double end, u_int handle){
    // update phase end time for phase assoc w/handle
    int ok;
    if(!(ok = dataGrid.AddEndTime(end,handle))){
+       fprintf(stderr,"in visualization::PhaseEnd: phase end not added\n");
    }
    
   //call callback routine assoc. w/event PHASEEND
