@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeap.C,v 1.16 2002/04/09 18:06:17 mjbrim Exp $
+// $Id: fastInferiorHeap.C,v 1.17 2002/04/17 21:18:08 schendel Exp $
 
 #include <sys/types.h>
 #include "common/h/Types.h"
@@ -50,7 +50,6 @@
 
 extern pdDebug_ostream sampleVal_cerr;
 
-#if defined(MT_THREAD)
 template <class HK, class RAW>
 void fastInferiorHeap<HK, RAW>::set_houseKeeping(unsigned idx, 
 						 const HK &iHKValue) 
@@ -75,7 +74,7 @@ void fastInferiorHeap<HK, RAW>::initialize_activemap(unsigned mapsize)
   activemap.resize(0);
   activemap.resize(mapsize);
   for (unsigned i=0;i<activemap.size();i++) {
-    activemap[i] = FIHinactive;
+    activemap[i] = varInactive;
   }
 }
 
@@ -87,7 +86,6 @@ void fastInferiorHeap<HK, RAW>::set_activemap(unsigned idx,
     activemap[idx] = value;
   }
 }
-#endif //MT_THREAD
 
 template <class HK, class RAW>
 fastInferiorHeap<HK, RAW> &
@@ -107,43 +105,32 @@ fastInferiorHeap<HK, RAW>::operator=(const fastInferiorHeap<HK, RAW> &src)
 template <class HK, class RAW>
 fastInferiorHeap<HK, RAW>::
 fastInferiorHeap(RAW *iBaseAddrInParadynd,
-#if defined(MT_THREAD)
 		 process *iInferiorProcess,
-		 unsigned mapsize) : inferiorProcess(iInferiorProcess), houseKeeping(mapsize)
-#else
-                process *iInferiorProcess) : inferiorProcess(iInferiorProcess)
-#endif
+		 unsigned mapsize) : 
+  inferiorProcess(iInferiorProcess), houseKeeping(mapsize)
 {
    baseAddrInApplic   = NULL; // until setBaseAddrInApplic() gets called...
    baseAddrInParadynd = iBaseAddrInParadynd;
-#if defined(MT_THREAD)
    initialize_activemap(mapsize);
    // Note: houseKeeping[] values are uninitialized; each call to alloc() 
    //       initializes one HK (here) and one RAW (in the inferior heap).
-#endif
 }
 
 template <class HK, class RAW>
-#if defined(MT_THREAD)
 fastInferiorHeap<HK, RAW>::fastInferiorHeap(fastInferiorHeap<HK, RAW> *parent,
 					    process *newProc,
-#else
-fastInferiorHeap<HK, RAW>::fastInferiorHeap(process *newProc,
-#endif
                                             void *paradynd_attachedAt,
-                                            void *appl_attachedAt) : inferiorProcess(newProc)
+                                            void *appl_attachedAt) : 
+  inferiorProcess(newProc)
 {
-   // this copy-ctor is a fork()/dup()-like routine.  Call after a process forks.
-#if defined(MT_THREAD)
+   // this copy-ctor is a fork()/dup()-like routine.  Call after process forks.
    assert(parent!=NULL);
    activemap = parent->activemap;
    houseKeeping = parent->houseKeeping;
-#endif
 
    baseAddrInApplic   = (RAW*)appl_attachedAt;
    baseAddrInParadynd = (RAW*)paradynd_attachedAt;
 
-#if defined(MT_THREAD)
    // Now for the houseKeeping, which is quite tricky on a fork.
    // We (intentionally) leave every entry undefined for now.
    // (using a copy-ctor would be a very bad idea, for then we would end up 
@@ -177,24 +164,23 @@ fastInferiorHeap<HK, RAW>::fastInferiorHeap(process *newProc,
       const HK undefinedHK; // default ctor should leave things undefined
       houseKeeping[lcv] = undefinedHK;
    }
-#endif
 
    // permanent and curr sampling sets init'd to null on purpose, since they
    // can differ from those of the parent. forkHasCompleted() initializes them.
 }
 
-#if defined(MT_THREAD)
 template <class HK, class RAW>
-void fastInferiorHeap<HK, RAW>::forkHasCompleted(vector<states> &statemap) {
+void fastInferiorHeap<HK, RAW>::forkHasCompleted(
+                                             const vector<states> &statemap)
+{
   for (unsigned lcv=0; lcv < statemap.size(); lcv++) {
-    if (statemap[lcv] == FIHallocated || 
-	statemap[lcv] == FIHallocatedButDoNotSample) {
+    if (statemap[lcv] == varAllocated || 
+	statemap[lcv] == varAllocatedButDoNotSample) {
       const HK &theHK = houseKeeping[lcv];
       theHK.assertWellDefined();
     }
   }
 }
-#endif
 
 template <class HK, class RAW>
 fastInferiorHeap<HK, RAW>::~fastInferiorHeap() {
@@ -202,7 +188,6 @@ fastInferiorHeap<HK, RAW>::~fastInferiorHeap() {
    // currentSamplingSet[] are called automatically
 }
 
-#if defined(MT_THREAD)
 template <class HK, class RAW>
 void fastInferiorHeap<HK, RAW>::handleExec() {
   // here's a quick-and-dirty way to reinitialize the houseKeeping vector 
@@ -210,16 +195,9 @@ void fastInferiorHeap<HK, RAW>::handleExec() {
   houseKeeping.resize(0);
   houseKeeping.resize(activemap.size());
 }
-#endif
 
 template <class HK, class RAW>
-bool fastInferiorHeap<HK, RAW>::doMajorSample(
-#if defined(MT_THREAD)
-					      const vector<states> &statemap)
-#else
-                     const vector<states> &statemap,
-                     vector<HK> &houseKeeping)
-#endif
+bool fastInferiorHeap<HK, RAW>::doMajorSample(const vector<states> &statemap)
 {
    // return true iff a complete sample was made
    // theWallTime passed in should be in microsecs (since what time?)
@@ -237,38 +215,30 @@ bool fastInferiorHeap<HK, RAW>::doMajorSample(
 #ifdef SHM_SAMPLING_DEBUG
    // Verify that every item in the sampling set is allocated (i.e. should be sampled)
    for (unsigned lcv=0; lcv < currentSamplingSet.size(); lcv++)
-      assert(statemap[currentSamplingSet[lcv]] == FIHallocated);
+      assert(statemap[currentSamplingSet[lcv]] == varAllocated);
 #endif
 
-   // Verify that every allocated statemap item is in the current sampling set,
-   // and that the current sampling set is ordered. (A very strong set of asserts.)
-   // (Note: The curr sampling set is sorted now (at the start of a major sample), but
-   //        it likely won't remain so for long...which is OK.)
-   // It's a bit too expensive to do casually, however, so we ifdef it:
+   // Verify that every allocated statemap item is in the current sampling
+   // set, and that the current sampling set is ordered. (A very strong set
+   // of asserts.)  (Note: The curr sampling set is sorted now (at the start
+   // of a major sample), but it likely won't remain so for long...which is
+   // OK.)  It's a bit too expensive to do casually, however, so we ifdef it:
 #ifdef SHM_SAMPLING_DEBUG
    unsigned cssIndex=0; // current-sampling-set index
    for (unsigned lcv=0; lcv < statemap.size(); lcv++) {
-      if (statemap[lcv] == FIHallocated)
+      if (statemap[lcv] == varAllocated)
 	 assert(currentSamplingSet[cssIndex++] == lcv);
    }
    assert(cssIndex == currentSamplingSet.size());
 #endif
 
-#if defined(MT_THREAD)
    const bool result = doMinorSample(statemap);
-#else
-   const bool result = doMinorSample(statemap,houseKeeping);
-#endif
 
    return result;
 }
 
 template <class HK, class RAW>
-#if defined(MT_THREAD)
 bool fastInferiorHeap<HK, RAW>::doMinorSample(const vector<states> &statemap) 
-#else
-bool fastInferiorHeap<HK, RAW>::doMinorSample(const vector<states> &statemap,  vector<HK> &houseKeeping)
-#endif
 {
    // samples items in currentSamplingSet[]; returns false if all done successfully
 
@@ -281,28 +251,26 @@ bool fastInferiorHeap<HK, RAW>::doMinorSample(const vector<states> &statemap,  v
    while (lcv < numLeftInMinorSample) {
       // try to sample this item
       const unsigned index = currentSamplingSet[lcv];
-      assert(statemap[index] == FIHallocated);
+      assert(statemap[index] == varAllocated);
 
-#if defined(MT_THREAD)
-      if (activemap[index] == FIHactive) {
-#endif
+      if (activemap[index] == varActive) {
       // HK::perform() returns true iff sampling succeeded without having to
       // wait; false otherwise.  It handles all needed synchronization.
       if (!houseKeeping[index].perform(*(baseAddrInParadynd + index), // ptr arith
                                       inferiorProcess)) {
-        // the item remains in "currentSamplingSet[]"; move on to the next candidate
+        // the item remains in "currentSamplingSet[]"; 
+	// move on to the next candidate
         lcv++;
 	
       }
       else {
-        // remove the item from "currentSamplingSet[]"; note that lcv doesn't change
-         // Note also that the current sampling set, unlike the permanent sampling
-         // set, does not remain sorted.
+        // remove the item from "currentSamplingSet[]"; note that lcv doesn't
+        // change
+         // Note also that the current sampling set, unlike the permanent
+         // sampling set, does not remain sorted.
         currentSamplingSet[lcv] = currentSamplingSet[--numLeftInMinorSample];
       }
-#if defined(MT_THREAD)
-      } //if (activemap[index] == FIHactive)
-#endif
+      } //if (activemap[index] == varActive)
    }
 
    const bool result = (numLeftInMinorSample == 0);
@@ -311,34 +279,30 @@ bool fastInferiorHeap<HK, RAW>::doMinorSample(const vector<states> &statemap,  v
 }
 
 template <class HK, class RAW>
-void fastInferiorHeap<HK, RAW>::reconstructPermanentSamplingSet(const vector<states> &statemap) {
+void fastInferiorHeap<HK, RAW>::reconstructPermanentSamplingSet(
+					    const vector<states> &statemap)
+{
    permanentSamplingSet.resize(0);
-#if defined(MT_THREAD)
-   assert(activemap.size()==statemap.size());
-#endif
+   assert(activemap.size() == statemap.size());
+
    for (unsigned lcv=0; lcv < statemap.size(); lcv++)
-#if defined(MT_THREAD)
-      if (statemap[lcv] == FIHallocated && activemap[lcv] == FIHactive)
-#else
-      if (statemap[lcv] == FIHallocated)
-#endif
-         permanentSamplingSet += lcv;
+      if (statemap[lcv] == varAllocated && activemap[lcv] == varActive)
+         permanentSamplingSet.push_back(lcv);
 }
 
-#if defined(MT_THREAD)
 template <class HK, class RAW>
 void fastInferiorHeap<HK, RAW>::makePendingFree(unsigned ndx,
-						const vector<Address> &trampsUsing) 
+					   const vector<Address> &trampsUsing) 
 {
   //cerr << "in fastInferiourHeap::makePendingFree\n";
   houseKeeping[ndx].makePendingFree(trampsUsing, inferiorProcess);
-  activemap[ndx]=FIHinactive;
+  activemap[ndx] = varInactive;
 }
 
 template <class HK, class RAW>
 bool fastInferiorHeap<HK, RAW>::checkIfInactive(unsigned ndx)
 {
-  if (activemap[ndx]==FIHinactive)
+  if (activemap[ndx] == varInactive)
     return true;
   else
     return false;
@@ -349,25 +313,22 @@ bool fastInferiorHeap<HK, RAW>::tryGarbageCollect(const vector<Address> &PCs,
 						  unsigned ndx)
 {
   assert(ndx<houseKeeping.size());
-  return(houseKeeping[ndx].tryGarbageCollect(PCs));    
+  return houseKeeping[ndx].tryGarbageCollect(PCs);
 }
 
 template <class HK, class RAW>
 void fastInferiorHeap<HK, RAW>::initializeHKAfterFork(unsigned allocatedIndex, 
-						      const HK &iHouseKeepingValue)
+						  const HK &iHouseKeepingValue)
 {
-  assert(activemap.size()==houseKeeping.size());
+  assert(activemap.size() == houseKeeping.size());
   assert(allocatedIndex<activemap.size());
-  if (activemap[allocatedIndex]==FIHactive)
+  if(activemap[allocatedIndex] == varActive)
     houseKeeping[allocatedIndex] = iHouseKeepingValue; // HK::operator=()
 }
 
-#endif
 template <class HK, class RAW>
 void fastInferiorHeap<HK, RAW>::addToPermanentSamplingSet(unsigned lcv)
 {     
-#if defined(MT_THREAD)
-  if (activemap[lcv] == FIHactive)
-#endif
-    permanentSamplingSet += lcv;
+  if(activemap[lcv] == varActive)
+    permanentSamplingSet.push_back(lcv);
 }
