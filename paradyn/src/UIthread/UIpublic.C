@@ -30,16 +30,23 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.26  1995/10/05 04:28:03  karavan
-/* added ActiveDags to dag class.
-/* removed globals formerly used for search display to move to multiple-display
-/* model.
-/* removed ui::DAGaddEStyle and ui::DAGaddNStyle from interface (obsolete).
-/* added dagID creation to dag constructor.
-/* Added shgDisplay class.
-/* removed UIstatDisp class.
-/* removed obsolete commented code.
+/* Revision 1.27  1995/10/17 20:48:24  tamches
+/* New search history graph:
+/* Commented out StrNodeIdType (no longer needed w/ new shg).
+/* Commented out references to class shgDisplay (obsoleted class).
+/* Added tryFirstGoodShgWid
+/* DAGaddNode, DAGaddEdge, DAGconfigNode adapted for use with new shg.
 /*
+ * Revision 1.26  1995/10/05 04:28:03  karavan
+ * added ActiveDags to dag class.
+ * removed globals formerly used for search display to move to multiple-display
+ * model.
+ * removed ui::DAGaddEStyle and ui::DAGaddNStyle from interface (obsolete).
+ * added dagID creation to dag constructor.
+ * Added shgDisplay class.
+ * removed UIstatDisp class.
+ * removed obsolete commented code.
+ *
  * Revision 1.25  1995/09/26  20:27:05  naim
  * Minor warning fixes and some other minor error messages fixes
  *
@@ -129,8 +136,12 @@
 #include "thread/h/thread.h"
 #include "UIglobals.h"
 #include "../pdMain/paradyn.h"
+
 #include "dag.h"
 #include "shgDisplay.h"
+
+#include "shgPhases.h"
+#include "shgTcl.h"
 
 extern void initSHGStyles();
 
@@ -381,37 +392,110 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
 //  DAG/SHG Display Service Routines
 // ****************************************************************
 
-nodeIdType
-StrToNodeIdType (char *instring) 
-{
-  nodeIdType retval;
-  if ((sscanf (instring, "%u", &retval)) <= 0)
-    abort(); 
-  return retval;
-}
+//nodeIdType
+//StrToNodeIdType (char *instring) 
+//{
+//  nodeIdType retval;
+//  if ((sscanf (instring, "%u", &retval)) <= 0)
+//    abort(); 
+//  return retval;
+//}
+
+extern shgPhases *theShgPhases;
 
 void
 UIM::updateStatusDisplay (int shgToken, const char *info)
 {
-  shgDisplay::AllSearchDisplays[(unsigned)shgToken]->updateStatus(info);
+//  shgDisplay::AllSearchDisplays[(unsigned)shgToken]->updateStatus(info);
+   if (theShgPhases->existsCurrent())
+      theShgPhases->getByID(shgToken).addToStatusDisplay(info);
+
+//   cout << "STATUS (" << shgToken << "): " << info << endl; // ari temp hack
 }
+
+bool haveSeenFirstGoodShgWid = false;
+
+bool tryFirstGoodShgWid(Tcl_Interp *interp, Tk_Window topLevelTkWindow) {
+   // called in shgTcl.C
+   // like whereAxis's and barChart's techniques...
+   // Tk_WindowId() returns 0 until the tk window has been mapped for the first
+   // time, which takes a surprisingly long time.  Therefore, this hack is needed.
+
+   if (haveSeenFirstGoodShgWid)
+      return true;
+
+   Tk_Window theTkWindow = Tk_NameToWindow(interp, ".shg.nontop.main.all",
+                                           topLevelTkWindow);
+   assert(theTkWindow);
+
+   if (Tk_WindowId(theTkWindow) == 0)
+      return false; // this happens in practice...that's why this routine is needed
+
+   haveSeenFirstGoodShgWid = true;
+
+   /* *********************************************************** */
+
+   theShgPhases = new shgPhases(".shg.titlearea.left.menu.mbar.phase.m",
+                                ".shg.nontop.main.bottsb",
+                                ".shg.nontop.main.leftsb",
+				".shg.nontop.labelarea.current",
+                                interp, theTkWindow);
+   assert(theShgPhases);
+
+   initiateShgRedraw(interp, true);
+
+   return true;
+}
+
 
 //
 // called from Paradyn Search Command when search requested; returns SHG token
 // if successful, -1 for error
 //
+
 int 
 UIM::initSHG(const char *phaseName, int phaseID) 
 {
-  // ** TODO first check if search display already exists for this phase 
+   assert(theShgPhases);
 
-  // create display object
-  shgDisplay *displ = new shgDisplay(phaseName, phaseID);
-  if (displ->initDisplay() == -1) 
-    return -1;
-  return displ->getToken();
+//   extern Tk_Window mainWindow; // UImain.C
+   shg *theNewShg = new shg(interp,
+			    theShgPhases->getTkWindow(), // _not_ the main window!
+			    theShgPhases->getHorizSBName(),
+			    theShgPhases->getVertSBName(),
+			    theShgPhases->getCurrItemLabelName());
+   assert(theNewShg);
+
+   theShgPhases->add(theNewShg, phaseID, phaseName);
+
+   assert(theShgPhases->existsCurrent());
+   theShgPhases->getCurrent().resize(theShgPhases->getCurrentId()==phaseID);
+
+   initiateShgRedraw(interp, true); // true --> double buffer
+
+//  // create display object
+//  shgDisplay *displ = new shgDisplay(phaseName, phaseID);
+//  if (displ->initDisplay() == -1) 
+//    return -1;
+//  return displ->getToken();
+
+   return phaseID;
 }
 
+
+shgRootNode::style int2style(int styleid) {
+   if (styleid == 1)
+      return shgRootNode::Uninstrumented;
+   else if (styleid == 2)
+      return shgRootNode::TestedFalse;
+   else if (styleid == 3)
+      return shgRootNode::TestedTentativelyTrue;
+   else if (styleid == 4)
+      return shgRootNode::InstrumentedAndTesting;
+
+   cerr << "unrecognized style id " << styleid << endl;
+   exit(5);
+}
 
 /*  flags: 1 = root
  *         0 = non-root
@@ -419,33 +503,58 @@ UIM::initSHG(const char *phaseName, int phaseID)
 
 int 
 UIM::DAGaddNode(int dagID, nodeIdType nodeID, int styleID, 
-			char *label, char *shgname, int flags)
+		char *label, char *shgname, int flags)
 {
-  int retVal;
+   shg &theShg = theShgPhases->getByID(dagID);
 
-  retVal = shgDisplay::AllSearchDisplays[dagID]->addNode 
-    (nodeID, styleID, label, shgname, flags);
-						 
+   const bool isRootNode = (flags == 1);
+   shgRootNode::style theStyle = int2style(styleID);
+
+   theShg.addNode(nodeID, theStyle, label, shgname, isRootNode);
+
+   // note: we _intentionally_ don't redraw...do you see why?
+   // (no edge connections to this node --> it shouldn't appear yet) 
+   // exception: the root node
+   if (isRootNode)
+      initiateShgRedraw(interp, true);
+
+   return 1;
+
+//  retVal = shgDisplay::AllSearchDisplays[dagID]->addNode 
+//    (nodeID, styleID, label, shgname, flags);
 }
 
 int 
 UIM::DAGaddEdge (int dagID, nodeIdType srcID, 
 		 nodeIdType dstID, int styleID)
 {
-  return (shgDisplay::AllSearchDisplays[dagID])->
-      addEdge (srcID, dstID, styleID);
+   shg &theShg = theShgPhases->getByID(dagID);
+   shgRootNode::style theStyle = int2style(styleID);
+
+   theShg.addEdge(srcID, // parent
+		  dstID, // child
+		  theStyle);
+
+   initiateShgRedraw(interp, true); // true --> double buffer
+
+   return 1;
+
+//  return (shgDisplay::AllSearchDisplays[dagID])->
+//      addEdge (srcID, dstID, styleID);
 }
 
   
 int 
 UIM::DAGconfigNode (int dagID, nodeIdType nodeID, int styleID)
 {
-  return shgDisplay::AllSearchDisplays[dagID]->
-    configureNode (nodeID, NULL, styleID);
-}
+   shg &theShg = theShgPhases->getByID(dagID);
+   shgRootNode::style theStyle = int2style(styleID);
   
+   if (theShg.configNode(nodeID, theStyle))
+      initiateShgRedraw(interp, true); // interp --> double buffer
 
+   return 1;
 
-
-
-
+//  return shgDisplay::AllSearchDisplays[dagID]->
+//    configureNode (nodeID, NULL, styleID);
+}
