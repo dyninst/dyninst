@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.58 2003/04/18 22:35:34 tlmiller Exp $
+// $Id: irix.C,v 1.59 2003/04/23 22:59:47 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -829,7 +829,7 @@ bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
     return true;
 }
 
-Address dyn_lwp::getCurrentSyscall() {
+Address dyn_lwp::getCurrentSyscall(Address /*ignored*/) {
     prstatus theStatus;
     if (ioctl(fd_, PIOCSTATUS, &theStatus) == -1) {
         return 0;

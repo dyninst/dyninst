@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.8 2003/04/16 21:07:07 bernat Exp $
+ * $Id: dyn_lwp.C,v 1.9 2003/04/23 22:59:45 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -174,7 +174,8 @@ void dyn_lwp::closeFD() {
 // and ask the process class to set a breakpoint there. 
 
 bool dyn_lwp::setSyscallExitTrap(syscallTrapCallbackLWP_t callback,
-                                 void *data)
+                                 void *data,
+                                 Address aixHACK)
 {
     assert(executingSystemCall());
     if (trappedSyscall_) {
@@ -183,14 +184,10 @@ bool dyn_lwp::setSyscallExitTrap(syscallTrapCallbackLWP_t callback,
         assert(0);
     }
     
-    Address syscallInfo = getCurrentSyscall();
-    fprintf(stderr, "Setting trap at syscall %d, lwp %d\n",
-            syscallInfo, get_lwp_id());
-    
+    Address syscallInfo = getCurrentSyscall(aixHACK);
     
     trappedSyscall_ = proc()->trapSyscallExitInternal(syscallInfo);
-    if (trappedSyscall_ == NULL)
-        fprintf(stderr, "ERROR SETTING SYSCALL!\n");
+    
     trappedSyscallCallback_ = callback;
     trappedSyscallData_ = data;
     return (trappedSyscall_ != NULL);

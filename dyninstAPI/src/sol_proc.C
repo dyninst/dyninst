@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.22 2003/04/20 01:00:14 schendel Exp $
+// $Id: sol_proc.C,v 1.23 2003/04/23 22:59:52 bernat Exp $
 
 #ifdef rs6000_ibm_aix4_1
 #include <sys/procfs.h>
@@ -1369,7 +1369,7 @@ bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
     return true;
 }
 
-Address dyn_lwp::getCurrentSyscall() {
+Address dyn_lwp::getCurrentSyscall(Address /*ignored*/) {
     // Return the system call we're currently in
     lwpstatus_t status;
     if (!get_status(&status)) {

@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.16 2003/04/20 01:00:02 schendel Exp $
+ * $Id: dyn_lwp.h,v 1.17 2003/04/23 22:59:46 bernat Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -111,12 +111,13 @@ class dyn_lwp
   // True iff lwp is executing in the kernel
   bool executingSystemCall();
   // And what syscall are we in (or return address)
-  Address getCurrentSyscall();
+  Address getCurrentSyscall(Address aixHACK = 0);
   // Set a breakpoint at the system call exit
   // Actually sets up some state and calls the process version,
   // but hey...
   bool setSyscallExitTrap(syscallTrapCallbackLWP_t callback,
-                          void *data);
+                          void *data,
+                          Address aixHACK = 0);
   void clearSyscallExitTrapCallback() {
      trappedSyscallCallback_ = NULL;
   }

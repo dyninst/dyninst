@@ -549,7 +549,7 @@ bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
     return true;
 }
 
-Address dyn_lwp::getCurrentSyscall() {
+Address dyn_lwp::getCurrentSyscall(Address /*ignored*/) {
     Frame active = getActiveFrame();
     return active.getPC();
 }

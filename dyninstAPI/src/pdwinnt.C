@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.95 2003/04/17 14:24:08 schendel Exp $
+// $Id: pdwinnt.C,v 1.96 2003/04/23 22:59:50 bernat Exp $
 
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
@@ -1473,7 +1473,7 @@ bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
     return true;
 }
 
-Address dyn_lwp::getCurrentSyscall() {
+Address dyn_lwp::getCurrentSyscall(Address /*ignored*/) {
     return 0;
 }
 

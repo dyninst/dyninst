@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.26 2003/04/16 21:07:18 bernat Exp $
+// $Id: linux-x86.C,v 1.27 2003/04/23 22:59:49 bernat Exp $
 
 #include <fstream.h>
 
@@ -641,6 +641,8 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall) {
         generateBreakPoint(insnTrap);
         writeDataSpace((void *)syscall, 2, insnTrap.ptr());
 
+        syscallTraps_.push_back(trappedSyscall);
+        
         return trappedSyscall;
     }
     // Should never be reached
@@ -685,7 +687,7 @@ int dyn_lwp::hasReachedSyscallTrap() {
     return active.getPC() == trappedSyscall_->syscall_id;
 }
 
-Address dyn_lwp::getCurrentSyscall() {
+Address dyn_lwp::getCurrentSyscall(Address /*ignored*/) {
     Frame active = getActiveFrame();
     return active.getPC();
 }
