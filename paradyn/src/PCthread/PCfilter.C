@@ -46,6 +46,9 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.C,v $
+ * Revision 1.31  1997/03/29 02:03:48  sec
+ * Adding some debugging stuff.
+ *
  * Revision 1.30  1996/08/16 21:03:25  tamches
  * updated copyright for release 1.1
  *
@@ -460,7 +463,8 @@ filteredDataServer::newDataEnabled(vector<metricInstInfo> *newlyEnabled)
 
 #ifdef PCDEBUG
     cout << "enable REPLY for m=" << miicurr->m_id << " f=" << miicurr->r_id 
-      << " mi=" << miicurr->mi_id << endl;
+      << " mi=" << miicurr->mi_id  
+      << "  enabled=" << miicurr->successfully_enabled << endl;
 #endif
 
     bool beenEnabled = DataFilters.find(miicurr->mi_id, curr);
