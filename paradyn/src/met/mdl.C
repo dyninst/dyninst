@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.41 1999/11/11 01:02:41 wylie Exp $
+// $Id: mdl.C,v 1.42 2001/12/07 19:15:47 schendel Exp $
 
 #include "dyninstRPC.xdr.CLNT.h"
 #include "paradyn/src/met/globals.h"
@@ -421,7 +421,7 @@ T_dyninstRPC::mdl_icode::mdl_icode(
     : if_expr_(expr1), expr_(expr2) { }
 T_dyninstRPC::mdl_icode::~mdl_icode() { delete if_expr_; delete expr_; }
 
-bool T_dyninstRPC::mdl_icode::apply(AstNode *&, bool)
+bool T_dyninstRPC::mdl_icode::apply(AstNode *&, bool, void *)
 {
   if (!expr_) return false;
   AstNode* ast = NULL;
@@ -1003,7 +1003,7 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode * ,
 
   AstNode *an=NULL;
   for (unsigned u=0; u<size; u++)
-    if (!(*icode_reqs_)[u]->apply(an, u))
+    if (!(*icode_reqs_)[u]->apply(an, u, NULL))
       return false;
   return true;
 }

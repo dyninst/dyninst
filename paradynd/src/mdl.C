@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.100 2001/12/06 20:57:55 schendel Exp $
+// $Id: mdl.C,v 1.101 2001/12/07 19:15:48 schendel Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -2990,7 +2990,7 @@ T_dyninstRPC::mdl_icode::~mdl_icode()
 // global variable when if statements are called in some cases.  This is to
 // account for the cost of the body of the if statement in the observed cost.
 bool T_dyninstRPC::mdl_icode::apply(AstNode *&mn, bool mn_initialized,
-				    process *proc) 
+				    void *proc) 
 {
   // a return value of true implies that "mn" has been written to
 
@@ -3014,7 +3014,8 @@ bool T_dyninstRPC::mdl_icode::apply(AstNode *&mn, bool mn_initialized,
   if (pred) 
   {
     // Note: we don't use assignAst on purpose here
-    code = createIf(pred, ast, proc);
+    process *curProc = static_cast<process *>(proc);
+    code = createIf(pred, ast, curProc);
     removeAst(pred);
     removeAst(ast);
   }
