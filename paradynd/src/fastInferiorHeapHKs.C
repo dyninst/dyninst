@@ -39,8 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// fastInferiorHeapHKs.C
-// Ari Tamches
+// $Id: fastInferiorHeapHKs.C,v 1.9 1998/12/25 23:33:36 wylie Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -84,10 +83,10 @@ void genericHK::makePendingFree(const vector<Address> &iTrampsUsing) {
       const class process &inferiorProc = *(mi->proc());
          // don't ask why 'class' is needed here because I don't know myself.
 
-      const dictionary_hash<unsigned, heapItem*> &heapActivePart =
+      const dictionary_hash<Address, heapItem*> &heapActivePart =
 	inferiorProc.heaps[inferiorProc.splitHeaps ? textHeap : dataHeap].heapActive;
       
-      const unsigned trampBaseAddr = iTrampsUsing[lcv];
+      const Address trampBaseAddr = iTrampsUsing[lcv];
       heapItem *trampHeapItem;
       // fills in "trampHeapItem" if found:
       if (!heapActivePart.find(trampBaseAddr, trampHeapItem)) {
@@ -106,7 +105,7 @@ void genericHK::makePendingFree(const vector<Address> &iTrampsUsing) {
    trampsUsingMe.resize(actualNumTramps);
 }
 
-bool genericHK::tryGarbageCollect(const vector<unsigned> &PCs) {
+bool genericHK::tryGarbageCollect(const vector<Address> &PCs) {
    // returns true iff GC succeeded.
    // We may of course assume that this routine is only called if the
    // item in question is in pending-free state.
@@ -122,7 +121,7 @@ bool genericHK::tryGarbageCollect(const vector<unsigned> &PCs) {
       // to delete us.
 
       for (unsigned stacklcv=0; stacklcv < PCs.size(); stacklcv++) {
-         const unsigned stackPC = PCs[stacklcv];
+         const Address stackPC = PCs[stacklcv];
 
          // If this PC falls within the range of the trampoline we're currently
          // looking at, then it's unsafe to delete it.

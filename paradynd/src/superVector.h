@@ -39,10 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// superVector.h
+// $Id: superVector.h,v 1.2 1998/12/25 23:33:39 wylie Exp $
 // The superVector is an array of vectors of counters and timers, or
-// fastInferiorHeap objects. Part of the functionality of the fastInferiorHeap class
-// has been moved to this new class - naim 3/26/97
+// fastInferiorHeap objects. Part of the functionality of the fastInferiorHeap
+// class has been moved to this new class - naim 3/26/97
 
 #ifndef _SUPER_VECTOR__H_
 #define _SUPER_VECTOR__H_
@@ -50,6 +50,7 @@
 #pragma interface
 
 #include "util/h/Vector.h"
+#include "util/h/Types.h"
 #include "fastInferiorHeap.h"
 
 template <class HK, class RAW>
@@ -149,7 +150,7 @@ class superVector {
       //       to call our base tramp (the last step using a pause; /proc write;
       //       unpause sequence).
 
-   void makePendingFree(unsigned ndx, const vector<unsigned> &trampsUsing);
+   void makePendingFree(unsigned ndx, const vector<Address> &trampsUsing);
       // "free" an item in the shared-memory heap.  More specifically, change its
       // statemap type from allocated to pending-free. A later call to garbageCollect()
       // is the only way to truly free the item.  An item in pending-free
@@ -159,7 +160,7 @@ class superVector {
       // this with the expectation that the raw item will still be written to, except
       // perhaps by a tramp that is itself in the process of being freed up.
 
-   void garbageCollect(const vector<unsigned> &PCs);
+   void garbageCollect(const vector<Address> &PCs);
       // called by alloc() if it needs memory, but it's a good idea to call this
       // periodically; progressive preemptive garbage collection can help make
       // allocations requests faster.

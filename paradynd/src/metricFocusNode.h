@@ -39,86 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * metric.h 
- *
- * $Log: metricFocusNode.h,v $
- * Revision 1.54  1997/09/26 15:55:34  tamches
- * added an int version of updateValue()
- * renamed cumulativeValue to cumulativeValue_float, in anticipation
- * of someday changing cumulativeValue to a union of {float, double, int,
- * long, long long} values.
- *
- * Revision 1.53  1997/07/29 14:36:05  naim
- * Fixing problem with inferiorRPC, non-shared memory sampling and sigalrm - naim
- *
- * Revision 1.52  1997/06/23 17:05:07  tamches
- * slight changes to #include
- *
- * Revision 1.51  1997/06/16 22:07:15  ssuen
- * Added `int deleteComp = 1' to end of argument list for function
- *   metricDefinitionNode::removeFromAggregate
- * to control whether or not to `delete' the `comp' argument.
- *
- * Revision 1.50  1997/06/05 18:04:20  naim
- * Cleaning up dataReqNodes for certain cases of deletion of metricDefinitionNodes
- * - naim
- *
- * Revision 1.49  1997/05/08 00:12:16  mjrg
- * changes for Visual C++ compiler: added return to functions
- *
- * Revision 1.48  1997/05/07 19:01:27  naim
- * Getting rid of old support for threads and turning it off until the new
- * version is finished. Additionally, new superTable, baseTable and superVector
- * classes for future support of multiple threads. The fastInferiorHeap class has
- * also changed - naim
- *
- * Revision 1.47  1997/04/21 16:56:15  hseom
- * added support for trace data
- *
- * Revision 1.46  1997/03/18 19:45:57  buck
- * first commit of dyninst library.  Also includes:
- * 	moving templates from paradynd to dyninstAPI
- * 	converting showError into a function (in showerror.C)
- * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
- *
- * Revision 1.45  1997/02/26 23:46:43  mjrg
- * First part of WindowsNT port: changes for compiling with Visual C++;
- * moved unix specific code to unix.C file
- *
- * Revision 1.44  1997/02/24 14:22:58  naim
- * Minor fix to my previous commit - naim
- *
- * Revision 1.43  1997/02/21 20:15:59  naim
- * Moving files from paradynd to dyninstAPI + eliminating references to
- * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
- *
- * Revision 1.42  1997/01/27 19:41:07  naim
- * Part of the base instrumentation for supporting multithreaded applications
- * (vectors of counter/timers) implemented for all current platforms +
- * different bug fixes - naim
- *
- * Revision 1.41  1997/01/15 01:11:34  tamches
- * completely revamped fork & exec -- they now work for shm sampling.
- *
- * Revision 1.40  1996/11/14 14:28:01  naim
- * Changing AstNodes back to pointers to improve performance - naim
- *
- * Revision 1.39  1996/10/31 09:25:59  tamches
- * the shm-sampling commit; completely redesigned dataReqNode; designed
- * a handful of derived classes of dataReqNode, which replaces a lot of
- * existing code.
- *
- * Revision 1.38  1996/10/03 22:12:03  mjrg
- * Removed multiple stop/continues when inserting instrumentation
- * Fixed bug on process termination
- * Removed machine dependent code from metric.C and process.C
- *
- * Revision 1.37  1996/08/20 19:03:17  lzheng
- * Implementation of moving multiple instructions sequence and
- * Splitting the instrumentation into two phases
- *
- */
+// $Id: metricFocusNode.h,v 1.55 1998/12/25 23:33:37 wylie Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -152,7 +73,7 @@ class dataReqNode {
  public:
   virtual ~dataReqNode() {};
 
-  virtual unsigned getInferiorPtr(process *proc=NULL) const = 0;
+  virtual Address getInferiorPtr(process *proc=NULL) const = 0;
   virtual unsigned getAllocatedIndex() const = 0;
   virtual unsigned getAllocatedLevel() const = 0;
 
@@ -164,7 +85,7 @@ class dataReqNode {
      // Returns true iff successful.
 
   virtual void disable(process *,
-		       const vector< vector<unsigned> > &pointsToCheck) = 0;
+		       const vector< vector<Address> > &pointsToCheck) = 0;
      // the opposite of insertInstrumentation.  Deinstruments, deallocates
      // from inferior heap, etc.
 
@@ -270,13 +191,13 @@ class sampledIntCounterReqNode : public dataReqNode {
       // allocates from inferior heap; initializes it; instruments
       // DYNINSTsampleValues
 
-   void disable(process *, const vector< vector<unsigned> > &);
+   void disable(process *, const vector< vector<Address> > &);
 
-   unsigned getInferiorPtr(process *) const {
+   Address getInferiorPtr(process *) const {
       // counterPtr could be NULL if we are building AstNodes just to compute
       // the cost - naim 2/18/97
       //assert(counterPtr != NULL); // NULL until insertInstrumentation()
-      return (unsigned)counterPtr;
+      return (Address)counterPtr;
    }
 
    unsigned getAllocatedIndex() const {assert(0); return 0;}
@@ -331,9 +252,9 @@ class sampledShmIntCounterReqNode : public dataReqNode {
    bool insertInstrumentation(process *, metricDefinitionNode *, bool);
       // allocates from inferior heap; initializes it, etc.
 
-   void disable(process *, const vector< vector<unsigned> > &);
+   void disable(process *, const vector< vector<Address> > &);
 
-   unsigned getInferiorPtr(process *) const;
+   Address getInferiorPtr(process *) const;
 
    unsigned getAllocatedIndex() const {return allocatedIndex;}
    unsigned getAllocatedLevel() const {return allocatedLevel;}
@@ -381,13 +302,13 @@ class nonSampledIntCounterReqNode : public dataReqNode {
    bool insertInstrumentation(process *, metricDefinitionNode *, bool doNotSample=false);
       // allocates from inferior heap; initializes it
 
-   void disable(process *, const vector< vector<unsigned> > &);
+   void disable(process *, const vector< vector<Address> > &);
 
-   unsigned getInferiorPtr(process *) const {
+   Address getInferiorPtr(process *) const {
       //assert(counterPtr != NULL); // NULL until insertInstrumentation()
       // counterPtr could be NULL if we are building AstNodes just to compute
       // the cost - naim 2/18/97
-      return (unsigned)counterPtr;
+      return (Address)counterPtr;
    }
 
    unsigned getAllocatedIndex() const {assert(0); return 0;}
@@ -435,13 +356,13 @@ class sampledTimerReqNode : public dataReqNode {
                     const dictionary_hash<instInstance*,instInstance*> &map) const;
 
    bool insertInstrumentation(process *, metricDefinitionNode *, bool doNotSample=false);
-   void disable(process *, const vector< vector<unsigned> > &);
+   void disable(process *, const vector< vector<Address> > &);
 
-   unsigned getInferiorPtr(process *) const {
+   Address getInferiorPtr(process *) const {
       // counterPtr could be NULL if we are building AstNodes just to compute
       // the cost - naim 2/18/97
       //assert(timerPtr != NULL); // NULL until insertInstrumentation()
-      return (unsigned)timerPtr;
+      return (Address)timerPtr;
    }
 
    unsigned getAllocatedIndex() const {assert(0); return 0;}
@@ -492,9 +413,9 @@ class sampledShmWallTimerReqNode : public dataReqNode {
                     const dictionary_hash<instInstance*,instInstance*> &) const;
 
    bool insertInstrumentation(process *, metricDefinitionNode *, bool doNotSample=false);
-   void disable(process *, const vector< vector<unsigned> > &);
+   void disable(process *, const vector< vector<Address> > &);
 
-   unsigned getInferiorPtr(process *) const;
+   Address getInferiorPtr(process *) const;
 
    unsigned getAllocatedIndex() const {return allocatedIndex;}
    unsigned getAllocatedLevel() const {return allocatedLevel;}
@@ -541,9 +462,9 @@ class sampledShmProcTimerReqNode : public dataReqNode {
                     const dictionary_hash<instInstance*,instInstance*> &) const;
 
    bool insertInstrumentation(process *, metricDefinitionNode *, bool doNotSample=false);
-   void disable(process *, const vector< vector<unsigned> > &);
+   void disable(process *, const vector< vector<Address> > &);
 
-   unsigned getInferiorPtr(process *) const;
+   Address getInferiorPtr(process *) const;
 
    unsigned getAllocatedIndex() const {return allocatedIndex;}
    unsigned getAllocatedLevel() const {return allocatedLevel;}
@@ -594,7 +515,7 @@ public:
   bool insertInstrumentation(process *theProc,
 			     returnInstance *&retInstance);
 
-  void disable(const vector<unsigned> &pointsToCheck);
+  void disable(const vector<Address> &pointsToCheck);
   float cost(process *theProc) const;
 
   static instReqNode forkProcess(const instReqNode &parent,

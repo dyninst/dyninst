@@ -39,8 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// fastInferiorHeapHKs.h
-// Ari Tamches
+// $Id: fastInferiorHeapHKs.h,v 1.8 1998/12/25 23:33:37 wylie Exp $
 // contains houseKeeping (HK) classes used as the first template input type
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -48,6 +47,7 @@
 #define _FAST_INFERIOR_HEAP_HKS_H_
 
 #include "rtinst/h/rtinst.h" // intCounter, tTimer
+#include "util/h/Types.h"    // Address
 
 class metricDefinitionNode;
 //#include "metric.h" // metricDefinitionNode
@@ -63,7 +63,8 @@ class genericHK {
    
    // Needed for GC use:
    struct trampRange {
-      unsigned startAddr, endAddr;
+      Address startAddr;
+      Address endAddr;
    };
    vector<trampRange> trampsUsingMe;
 
@@ -85,9 +86,9 @@ class genericHK {
   ~genericHK() {}
    genericHK &operator=(const genericHK &src);
 
-   void makePendingFree(const vector<unsigned> &iTrampsUsing);
+   void makePendingFree(const vector<Address> &iTrampsUsing);
 
-   bool tryGarbageCollect(const vector<unsigned> &PCs);
+   bool tryGarbageCollect(const vector<Address> &PCs);
       // Given a list of inferior process PC-registers representing a stack trace
       // (i.e. the current inferior process PC, the PC of its caller, then its
       // caller, etc etc.).  GC will succeed iff none of these PC values fall within

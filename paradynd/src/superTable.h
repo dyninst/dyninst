@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// superTable.h
+// $Id: superTable.h,v 1.2 1998/12/25 23:33:38 wylie Exp $
 // The superTable class consists of an array of baseTable elements (superVectors)
 // and it represents the ThreadTable in paradynd. The superTable class is the class
 // that has contact with the outside world. Rows on this table are represented by
@@ -118,7 +118,7 @@ class superTable {
     void makePendingFree(unsigned type,
 			 unsigned allocatedIndex,
 			 unsigned allocatedLevel, 
-			 const vector<unsigned> &trampsUsing);
+			 const vector<Address> &trampsUsing);
 
     void setBaseAddrInApplic(unsigned type, void *addr);
 

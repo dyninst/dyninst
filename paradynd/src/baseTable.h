@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// baseTable.h
+// $Id: baseTable.h,v 1.2 1998/12/25 23:33:36 wylie Exp $
 // The baseTable class consists of an array of superVectors. The baseTable class is
 // a template class. It has a levelMap vector that keeps track of the levels (rows)
 // that has been allocated (remember that we need not only an index but also a level
@@ -88,7 +88,7 @@ class baseTable {
 
     void makePendingFree(unsigned allocatedIndex,
 			 unsigned allocatedLevel, 
-			 const vector<unsigned> &trampsUsing);
+			 const vector<Address> &trampsUsing);
 
     RAW *index2LocalAddr(unsigned position,
 			 unsigned allocatedIndex,

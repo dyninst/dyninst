@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// baseTable.C
+// $Id: baseTable.C,v 1.2 1998/12/25 23:33:35 wylie Exp $
 // The superTable class consists of an array of superVectors
 
 #include <sys/types.h>
@@ -194,7 +194,7 @@ void baseTable<HK, RAW>::initializeHKAfterFork(unsigned allocatedIndex,
 template <class HK, class RAW>
 void baseTable<HK, RAW>::makePendingFree(unsigned allocatedIndex,
 					 unsigned allocatedLevel, 
-					 const vector<unsigned> &trampsUsing)
+					 const vector<Address> &trampsUsing)
 {
   unsigned i;
   for (i=0; i<levelMap.size(); i++) {

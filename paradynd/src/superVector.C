@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// superVector.C
+// $Id: superVector.C,v 1.3 1998/12/25 23:33:39 wylie Exp $
 
 #include <sys/types.h>
 #include <limits.h>
@@ -243,7 +243,7 @@ bool superVector<HK, RAW>::alloc(const RAW &iValue,
       for (unsigned lcv=0; lcv < statemap.size(); lcv++)
          assert(statemap[lcv] != FIHfree);
 
-      const vector<unsigned> PCs = inferiorProcess->walkStack(); // prob expensive
+      const vector<Address> PCs = inferiorProcess->walkStack(); // prob expensive
       garbageCollect(PCs);
       if (firstFreeIndex == UINT_MAX) {
          // oh no; inferior heap is still full!  Garbage collection has failed.
@@ -325,7 +325,7 @@ bool superVector<HK, RAW>::alloc(const RAW &iValue,
 
 template <class HK, class RAW>
 void superVector<HK, RAW>::makePendingFree(unsigned ndx,
-					   const vector<unsigned> &trampsUsing)
+					   const vector<Address> &trampsUsing)
 {
    bool oldEqualsPermanent = false;
    if (statemap[ndx] == FIHallocatedButDoNotSample) oldEqualsPermanent=true;
@@ -376,7 +376,7 @@ void superVector<HK, RAW>::makePendingFree(unsigned ndx,
 }
 
 template <class HK, class RAW>
-void superVector<HK, RAW>::garbageCollect(const vector<unsigned> &PCs) {
+void superVector<HK, RAW>::garbageCollect(const vector<Address> &PCs) {
    // tries to set some pending-free items to free.
 
    // PCs represents a stack trace (list of PC-register values) in the inferior process,
