@@ -39,17 +39,33 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap.h,v 1.2 1999/11/11 00:55:03 wylie Exp $ */
+/* $Id: RTheap.h,v 1.3 2000/03/04 01:29:22 zandy Exp $ */
 
 #ifndef _RT_HEAP_H
 #define _RT_HEAP_H
 
-
-#include <sys/types.h>
-#include <sys/procfs.h>
-
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h" /* RT_Boolean, Address */
 
+#if defined(sparc_sun_solaris2_4)    \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(mips_sgi_irix6_4)        \
+ || defined(alpha_dec_osf4_0)
+
+/* SVR4 */
+#include <sys/procfs.h>
+typedef prmap_t dyninstmm_t;
+
+#elif defined(i386_unknown_linux2_0)
+
+/* LINUX */
+typedef struct {
+     Address pr_vaddr;
+     unsigned long pr_size;
+} dyninstmm_t;
+
+#else
+#error Dynamic heaps are not implemented on this platform
+#endif
 
 /* 
  * platform-specific variables
@@ -68,6 +84,6 @@ extern int     DYNINSTheap_mmapFlags;
 RT_Boolean DYNINSTheap_useMalloc(void *lo, void *hi);
 int        DYNINSTheap_mmapFdOpen();
 void       DYNINSTheap_mmapFdClose(int fd);
-
+int        DYNINSTheap_getMemoryMap(unsigned *, dyninstmm_t **mmap);
 
 #endif /* _RT_HEAP_H */

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap-solaris.c,v 1.4 2000/02/15 19:20:32 zandy Exp $ */
+/* $Id: RTheap-solaris.c,v 1.5 2000/03/04 01:29:21 zandy Exp $ */
 /* RTheap-solaris.c: Solaris-specific heap components */
 
 #include <stdlib.h>
@@ -69,6 +69,11 @@ RT_Boolean DYNINSTheap_useMalloc(void *lo, void *hi)
   Address hi_addr = (Address)hi;
   Address sbrk_addr = (Address)sbrk(0);
 
+#if defined(i386_unknown_solaris2_5)
+  /* We do not save footprint space by allocating in
+     the user's heap on this platform, so we stay out of it. */
+  return RT_FALSE;
+#endif
   if (lo_addr <= sbrk_addr + 0x800000) return RT_TRUE;
   return RT_FALSE;
 }
@@ -119,7 +124,7 @@ void DYNINSTheap_setbounds()
      DYNINSTheap_hiAddr = (Address)ps.pr_stkbase;
 #elif defined(i386_unknown_solaris2_5)
      DYNINSTheap_loAddr = (Address)ps.pr_stkbase;
-     DYNINSTheap_hiAddr = (Address)0xefffffff;
+     DYNINSTheap_hiAddr = (Address)0xdfffffff;
 #else
 /* To date these bounds work on 32-bit x86 and SPARC Solaris through 2.7. */
 #error unknown architecture
