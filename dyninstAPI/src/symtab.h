@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.91 2001/07/19 14:43:37 bernat Exp $
+// $Id: symtab.h,v 1.92 2001/07/23 18:27:44 shergali Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -157,14 +157,17 @@ public:
     /* The next two asserts should necver be reached, function_base has no
      * default constructor which leaves the string vectors empty, the if
      * is more or less a sanity check, if the asserts here are ever reached
-     * then something really bad must have happened
+     * then something really bad must have happened.  Since we will never
+     * make it past the assert, in order to remove the compiler warnings
+     * we add the return to return the same string from the first part
+     * of the if statement
      */
     const string &symTabName() const { 
  	if (symTabName_.size() > 0) return symTabName_[0];
-	else assert(0 && "symtab name"); return string(); }
+	else assert(0 && "symtab name"); return symTabName_[0]; }
     const string &prettyName() const {
  	if (prettyName_.size() > 0) return prettyName_[0];
-	else assert(0 && "pretty name"); return string(); } 
+	else assert(0 && "pretty name"); return prettyName_[0]; } 
     vector<string> symTabNameVector() { return symTabName_; }
     vector<string> prettyNameVector() { return prettyName_; }
     void addSymTabName(string name) { symTabName_.push_back(name); }
