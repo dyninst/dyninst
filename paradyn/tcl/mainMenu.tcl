@@ -1,7 +1,10 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.12  1994/07/21 01:53:32  rbi
+# Revision 1.13  1994/07/21 17:47:44  rbi
+# No more jumpy resizes.
+#
+# Revision 1.12  1994/07/21  01:53:32  rbi
 # YANS -- Yet another new style
 #
 # Revision 1.11  1994/07/20  18:16:50  rbi
@@ -99,7 +102,7 @@ proc drawToolBar {} {
     wm minsize . 517 400
 
     frame .menub -relief raised -borderwidth 2
-    frame .where 
+    frame .where -height 312
     frame .main -height 0 -width 0
     frame .buttons
     mkButtonBar .buttons {} retval {{RUN "paradyn cont"} \

@@ -1,7 +1,10 @@
 #applic.tcl
 # window to get application choices from user
 # $Log: applic.tcl,v $
-# Revision 1.4  1994/07/21 01:53:30  rbi
+# Revision 1.5  1994/07/21 17:47:43  rbi
+# No more jumpy resizes.
+#
+# Revision 1.4  1994/07/21  01:53:30  rbi
 # YANS -- Yet another new style
 #
 # Revision 1.3  1994/06/18  20:31:10  hollings
@@ -42,7 +45,10 @@ frame $ADparent.applic.top.user -border 2
 frame $ADparent.applic.top.machine -border 2
 frame $ADparent.applic.top.daemon -border 2
 frame $ADparent.applic.top.cmd -border 2
-label $ADparent.applic.title -text "Application Definition Entry"
+label $ADparent.applic.title -text "Application Definition Entry" \
+	-anchor center -relief raised \
+	-font "-Adobe-times-bold-r-normal--*-120*" 
+
 
 # single-line user, machine, daemon, command  entries
 
@@ -55,22 +61,22 @@ label $ADparent.applic.top.daemon.lbl -anchor w -text "Daemon: " \
 label $ADparent.applic.top.cmd.lbl -anchor w -text "Command: " \
 	-anchor e -width 12
 
-entry $ADparent.applic.top.user.ent -width 80 -textvariable applicUser \
+entry $ADparent.applic.top.user.ent -width 50 -textvariable applicUser \
 	-relief sunken
 $ADparent.applic.top.user.ent insert end $env(USER)
 bind $ADparent.applic.top.user.ent <Return> \
 	"focus $ADparent.applic.top.machine.ent"
-entry $ADparent.applic.top.machine.ent -width 80 -textvariable applicMachine \
+entry $ADparent.applic.top.machine.ent -width 50 -textvariable applicMachine \
 	-relief sunken
 $ADparent.applic.top.machine.ent insert end ""
 bind $ADparent.applic.top.machine.ent <Return> \
 	"focus $ADparent.applic.top.daemon.ent"
 
-entry $ADparent.applic.top.daemon.ent -width 80 -textvariable applicDaemon \
+entry $ADparent.applic.top.daemon.ent -width 50 -textvariable applicDaemon \
 	-relief sunken
 bind $ADparent.applic.top.daemon.ent <Return> \
 	"focus $ADparent.applic.top.cmd.ent"
-entry $ADparent.applic.top.cmd.ent -width 80 -textvariable applicCmd \
+entry $ADparent.applic.top.cmd.ent -width 50 -textvariable applicCmd \
 	-relief sunken
 bind $ADparent.applic.top.cmd.ent <Return> \
 	"focus $ADparent.applic.top.user.ent"
@@ -97,7 +103,7 @@ button $ADparent.applic.bot.b1 -text "Accept" \
 	-command {AcceptNewApplicDefn $applicUser $applicMachine \
 		$applicDaemon $applicCmd definedProcesses}
 button $ADparent.applic.bot.b2 -text "Cancel" \
-	-command {pack forget $ADparent.applic; pack $ADparent.show}
+	-command {pack forget $ADparent.applic; pack $ADparent.show -fill both -expand 1}
 
 pack $ADparent.applic.bot.b1 $ADparent.applic.bot.b2 -side left \
 	-fill x -padx 10 
@@ -107,7 +113,9 @@ pack $ADparent.applic.bot.b1 $ADparent.applic.bot.b2 -side left \
 frame $ADparent.show
 
 label $ADparent.show.title -text "Paradyn Process Definition" \
-	-anchor center -relief ridge
+	-anchor center -relief raised \
+        -font "-Adobe-times-bold-r-normal--*-120*" 
+
 frame $ADparent.show.top
 frame $ADparent.show.bottom
 
@@ -116,16 +124,16 @@ button $ADparent.show.bottom.b2 -text "DONE" \
 	-command {pack forget $ADparent.show ; pack forget .main}
 
 label $ADparent.show.top.lbl -text "Currently Defined Processes:" \
-	-anchor w -width 84
+	-anchor w
 
-listbox $ADparent.show.top.alist -geometry 80x12 -bg white
+listbox $ADparent.show.top.alist -bg white
 
 pack $ADparent.show.title $ADparent.show.top $ADparent.show.bottom \
 	-side top -expand yes -fill both 
-pack $ADparent.show.top.lbl -side top -pady 5
+pack $ADparent.show.top.lbl -side top -pady 5 -fill x -expand 1
 pack $ADparent.show.top.alist -side top -fill both -expand yes 
 pack $ADparent.show.bottom.b1 $ADparent.show.bottom.b2 -side left \
-	-fill both -padx 10
+	-padx 10 
 
 }
 
@@ -135,7 +143,7 @@ proc ApplicDefn {} {
 
 global ADshow
 pack .main -side bottom -fill x
-pack $ADshow
+pack $ADshow -fill both -expand yes
 }
 
 proc AddProcess {} {
