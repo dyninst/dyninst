@@ -14,10 +14,13 @@
  *
  */
 /* $Log: VMmain.C,v $
-/* Revision 1.22  1994/09/30 21:20:10  newhall
-/* added interface function VMStringToMetResPair
-/* changed parameters to VMCreateVisi to take list of metrespair
+/* Revision 1.23  1994/10/10 02:51:52  newhall
+/* purify fixes
 /*
+ * Revision 1.22  1994/09/30  21:20:10  newhall
+ * added interface function VMStringToMetResPair
+ * changed parameters to VMCreateVisi to take list of metrespair
+ *
  * Revision 1.21  1994/09/25  01:53:03  newhall
  * updated to support the changes to the  visi, UI and VM interfaces having
  * to do with a new representation of metric/focus lists as a list of
@@ -390,6 +393,7 @@ VMactiveVisi *temp;
       else{
          // call destructor for visip 
          delete(temp->visip);
+	 delete(temp);
          currNumActiveVisis--;
          PARADYN_DEBUG(("in VM::VMDestroyVisi: tid = %d removed",getTid()));
       }
@@ -415,6 +419,8 @@ VMactiveVisi *temp;
       ERROR_MSG(20,"remove in VM::VMVisiDied");
       PARADYN_DEBUG(("in VM::VMVisiDied: tid = %d can't be removed",getTid));
   }
+  delete(temp->visip);
+  delete(temp);
   currNumActiveVisis--;
 
 }
@@ -480,4 +486,5 @@ void *VMmain(void* varg) {
          vmp->mainLoop();
       }
   }
+  return((void *)0);
 }
