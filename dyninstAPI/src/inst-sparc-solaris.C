@@ -43,6 +43,9 @@
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc-solaris.C,v $
+ * Revision 1.4  1996/10/04 04:19:52  newhall
+ * bug fix to pdFunction::checkCallPoints
+ *
  * Revision 1.3  1996/10/03 22:12:12  mjrg
  * Removed multiple stop/continues when inserting instrumentation
  * Fixed bug on process termination
@@ -621,16 +624,18 @@ void pdFunction::checkCallPoints() {
       if (pdf && !pdf->isLibTag()) {
 	p->callee = pdf;
 	non_lib += p;
+      } else if(!pdf){
+	   // if this is a call outside the fuction, keep it
+	   if((loc_addr < addr()) || (loc_addr > (addr() + size()))){
+	        p->callIndirect = true;
+                p->callee = NULL;
+                non_lib += p;
+	   }
+	   else {
+	       delete p;
+	   }
       } else {
-	// if this is a call outside the fuction, keep it
-	if((loc_addr < addr()) || (loc_addr > (addr() + size()))){
-	     p->callIndirect = true;
-             p->callee = NULL;
-             non_lib += p;
-	}
-	else {
-	    delete p;
-	}
+          delete p;
       }
     } else {
       // Indirect call -- be conservative, assume it is a call to 
