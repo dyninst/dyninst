@@ -14,7 +14,8 @@ class socket_q : public io_entity {
     static hashtbl<PDSOCKET,socket_q*,pthread_sync> socket_registry;    
   public:
     socket_q(PDSOCKET the_sock, thread_t owned_by,
-             int (*will_block_func)(void*), void* desc);
+             int (*will_block_func)(void*), void* desc,
+			 bool is_special=false);
 
     virtual ~socket_q();
     

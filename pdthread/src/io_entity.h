@@ -17,10 +17,10 @@ class io_entity : public entity {
     void* desc;
     mailbox* my_mail;
     thread_t my_self;
-    int special;
+    bool special;
     
   public:
-    io_entity(thread_t owned_by, int (*will_block_func)(void*), void* the_desc, int is_desc_special=1) : owner(owned_by), will_block_fn(will_block_func), my_mail(NULL), special(is_desc_special), desc(the_desc) { }
+    io_entity(thread_t owned_by, int (*will_block_func)(void*), void* the_desc, bool is_desc_special=false) : owner(owned_by), will_block_fn(will_block_func), my_mail(NULL), special(is_desc_special), desc(the_desc) { }
     
     virtual ~io_entity() {
         if (my_mail) delete my_mail;
@@ -35,7 +35,7 @@ class io_entity : public entity {
     
     virtual int do_read(void* buf, unsigned bufsize, unsigned* count) = 0;
     virtual int do_write(void* buf, unsigned bufsize, unsigned* count) = 0;
-    int is_special() { return special; }
+    bool is_special() { return special; }
     int will_block() { return will_block_fn && will_block_fn(desc); }
     int self() { return my_self; }
 };

@@ -21,9 +21,11 @@ class thrtab {
                                   lwp::value_t arg,
                                   bool start);
     static thread_t create_file(PDDESC fd, thread_t owner,
-                                int (*will_block_func)(void*), void* desc);
+                                int (*will_block_func)(void*), void* desc,
+								bool is_special);
     static thread_t create_socket(PDSOCKET sock, thread_t owner,
-                                  int (*will_block_func)(void*), void* desc);
+                                  int (*will_block_func)(void*), void* desc,
+								  bool is_special);
     
     static entity* get_entry(thread_t tid);
     static bool is_valid(thread_t tid) {

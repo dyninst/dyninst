@@ -13,7 +13,7 @@ class file_q : public io_entity {
   private:
     static hashtbl<PDDESC,file_q*,pthread_sync> file_registry;
   public:
-    file_q(PDDESC the_fd, thread_t owned_by, int (*will_block_func)(void*), void* desc);
+    file_q(PDDESC the_fd, thread_t owned_by, int (*will_block_func)(void*), void* desc, bool is_special=false);
     virtual ~file_q();
     virtual item_t gettype() { return item_t_file; }
     static file_q* file_from_desc(PDDESC fd);
