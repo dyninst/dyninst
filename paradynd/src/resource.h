@@ -44,6 +44,9 @@
 
 /*
  * $Log: resource.h,v $
+ * Revision 1.12  1997/06/27 18:15:08  tamches
+ * new param to newResource.  send_now() is new.
+ *
  * Revision 1.11  1997/04/29 23:17:45  mjrg
  * Changes for WindowsNT port
  * Delayed check for DYNINST symbols to allow linking libdyninst dynamically
@@ -186,7 +189,10 @@ public:
 			       const string &abstraction,
 			       const string &name, timeStamp creation,
 			       const string &unique, 
-			       unsigned type);
+			       unsigned type,
+			       bool send_now);
+  static void send_now();
+
   static resource *newResource_ncb(resource *parent, void *handle,
 			       const string &abstraction,
 			       const string &name, timeStamp creation,
