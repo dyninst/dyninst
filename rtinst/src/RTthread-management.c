@@ -99,6 +99,7 @@ void DYNINST_reportNewThread(unsigned pos, int tid)
   int   lwpid ; /* Ignored */
   void*  resumestate_p ;
   extern int pipeOK(void); /* RTposix.c */
+
   if (pipeOK())
       if (DYNINST_ThreadInfo(&stackbase, &tid, &startpc, &lwpid, &resumestate_p)) {
           traceThread traceRec ;
@@ -141,6 +142,8 @@ void DYNINST_reportThreadDeletion(unsigned pos, int tid) {
 void DYNINSTthreadDelete(void) {
   unsigned pos = DYNINSTthreadPosFAST();
   int tid = P_thread_self();
+  if(tid == 0)  /* sometimes get invalid tid when forking */
+     return;
 
   /* Order: set the POS to "awaiting deletion",
      report deletion, then stop the virtual timer. The VT will be
@@ -155,6 +158,25 @@ void DYNINSTthreadDelete(void) {
 
 }
 
+int DYNINSTregister_running_thread(void) {
+   int tid;
+   int pos;
+   virtualTimer *vt;
+
+   tid = P_thread_self();
+   pos = DYNINST_lookup_pos(tid);
+   if(pos == MAX_NUMBER_OF_THREADS) {
+      fprintf(stderr, "Couldn't find corresponding pos\n");
+      while(1);
+   }
+   vt = &(RTsharedData.virtualTimers[pos]);
+   _VirtualTimerDestroy(vt);
+   _VirtualTimerStart(vt, 0);
+   DYNINST_reportNewThread(pos, tid);
+
+   return 1;
+}
+
 /* Returns new POS */
 
 unsigned DYNINSTthreadCreate(int tid)
@@ -166,6 +188,7 @@ unsigned DYNINSTthreadCreate(int tid)
 
   if (!DYNINST_initialize_done)
     return 0;
+
   /* Check to see if we already know this thread */
   pos = DYNINST_lookup_pos(tid);
   if (pos < MAX_NUMBER_OF_THREADS)
