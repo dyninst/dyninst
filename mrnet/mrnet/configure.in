@@ -9,6 +9,8 @@ AC_CONFIG_AUX_DIR(conf)
 AC_CONFIG_SUBDIRS(xplat)
 
 dnl === COMPILERS AND FLAGS ===
+CXXFLAGS="-D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS"
+
 dnl hacks to allow user to define CXX, CXXFLAGS, etc without using env vars
 dnl I don't like it -- suggestions?
 
@@ -44,12 +46,16 @@ AC_PROG_CXX(xlC CC g++)
 AC_C_BIGENDIAN
 
 AC_ARG_ENABLE(verbosebuild,
-    [  --enable-verbosebuild                Display commands during build],
-    [if test x"$enableval" = x"no"
-     then VERBOSEMAKE=".SILENT:"
-     else VERBOSEMAKE=""
-     fi],
-    [VERBOSEMAKE=".SILENT:"])
+    [  --enable-verbosebuild                Display commands during build (default off)],
+    [ VERBOSEMAKE="" ],
+    [ VERBOSEMAKE=".SILENT:"] )
+AC_SUBST(VERBOSEMAKE)
+
+AC_ARG_ENABLE(debug,
+    [  --enable-debug                       Enable debug mode options (default off)],
+    [ debug_mode="yes"; CXXFLAGS="$CXXFLAGS -DDEBUG" ],
+    [ debug_mode="no" ])
+
 AC_SUBST(VERBOSEMAKE)
 
 
@@ -69,65 +75,82 @@ MRNET_ROOT=`pwd`
 MRNET_VERSION='`cat "$(srcdir)"/VERSION`'
 changequote([, ])dnl
 
-AC_DEFINE_UNQUOTED(COMMNODE_EXE, "$MRNET_ROOT/$host/bin/mrnet_commnode")
+AC_DEFINE_UNQUOTED(COMMNODE_EXE, "$MRNET_ROOT/bin/$host/mrnet_commnode")
 AC_DEFINE_UNQUOTED(OUTPUT_LEVEL, $OUTPUT_LEVEL)
 AC_SUBST(MRNET_ARCH)
 AC_SUBST(MRNET_OS)
 AC_SUBST(MRNET_ROOT)
 AC_SUBST(MRNET_VERSION)
 
-CXXFLAGS="$CXXFLAGS -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS"
-
 case "$host_os" in
-  *aix4.2*)
-    LIBS="$LIBS -lm -lc -lpthread -ldl"
-    CFLAGS="$CFLAGS -Daix -Daix4_2"
-    CXXFLAGS="$CXXFLAGS -Daix -Daix4_2"
+  *linux*)
+    LIBS="$LIBS $FLEX_LIB -lm -lpthread -ldl"
+    LDFLAGS="-rdynamic"
+    os_release=`uname -r`
+    case "$os_release" in
+      2.4*)
+        CXXFLAGS="$CXXFLAGS -Dos_linux=24"
+        ;;
+      2.6*)
+        CXXFLAGS="$CXXFLAGS -Dos_linux=26"
+        ;;
+      *)
+        CXXFLAGS="$CXXFLAGS -Dos_linux"
+        ;;
+    esac
     ;;
-  *aix4.3*)
-    LIBS="$LIBS -lm -lc -lpthread -ldl"
-    CFLAGS="$CFLAGS -Daix -Daix4_3"
-    CXXFLAGS="$CXXFLAGS -Daix -Daix4_3"
+  *aix4*)
+    LIBS="$LIBS $FLEX_LIB -lm -lc -lpthread -ldl"
+    CXXFLAGS="$CXXFLAGS -Dos_aix=4 -pthread"
+    LDFLAGS="-pthread"
     ;;
   *aix5*)
-    LIBS="$LIBS -lm -lc -lpthread -ldl"
-    CFLAGS="$CFLAGS -Daix -Daix5"
-    CXXFLAGS="$CXXFLAGS -Daix -Daix5"
+    LIBS="$LIBS $FLEX_LIB -lm -lc -lpthread -ldl"
+    CXXFLAGS="$CXXFLAGS -Dos_aix=5 -pthread"
+    LDFLAGS="-pthread"
     ;;
-  *solaris*)
-    LIBS="$LIBS -lrpcsvc -lsocket -lnsl -lm -lpthread -ldl"
-    CFLAGS="$CFLAGS -Dsolaris"
-    CXXFLAGS="$CXXFLAGS -Dsolaris"
+  *solaris2.8*)
+    LIBS="$LIBS $FLEX_LIB -lrpcsvc -lsocket -lnsl -lm -lpthread -ldl"
+    CXXFLAGS="$CXXFLAGS -Dos_solaris=8"
+    ;;
+  *solaris2.9*)
+    LIBS="$LIBS $FLEX_LIB -lrpcsvc -lsocket -lnsl -lm -lpthread -ldl"
+    CXXFLAGS="$CXXFLAGS -Dos_solaris=9"
     ;;
   *sunos*)
-    LIBS="$LIBS -lrpcsvc -lsocket -lnsl -lm -lpthread -ldl"
-    CFLAGS="$CFLAGS -Dsunos"
-    CXXFLAGS="$CXXFLAGS -Dsunos"
+    LIBS="$LIBS $FLEX_LIB -lrpcsvc -lsocket -lnsl -lm -lpthread -ldl"
+    CXXFLAGS="$CXXFLAGS -Dos_sunos"
     ;;
   *irix*)
-    LIBS="$LIBS -lm -lc -lpthread -ldl"
-    CFLAGS="$CFLAGS -Dirix"
-    CXXFLAGS="$CXXFLAGS -Dirix"
-    ;;
-  *linux*)
-    LIBS="$LIBS -lm -lpthread -ldl"
-    CFLAGS="$CFLAGS -Dlinux"
-    CXXFLAGS="$CXXFLAGS -Dlinux"
+    LIBS="$LIBS $FLEX_LIB -lm -lc -lpthread -ldl"
+    CXXFLAGS="$CXXFLAGS -Dos_irix"
     ;;
   *)
-    LIBS="$LIBS -lm -lpthread"
+    LIBS="$LIBS $FLEX_LIB -lm -lpthread"
     ;;
 esac
-LIBS="$LIBS $FLEX_LIB"
 AC_SUBST(LIBS)
 
-if test "$CXX" = "g++" ; then
-    GXX=yes
+PD_COMPILER_TYPE
+if test "$COMPILER_TYPE" = "gnu" ; then
     C_AS_CPLUSPLUS="-x c++"
+
     SOFLAGS=" -fPIC -shared -rdynamic"
-elif test "$CXX" = "xlC" ; then
-    CXXFLAGS="$CXXFLAGS -O2"
+
+    if test "$debug_mode" = "yes" ; then
+      CXXFLAGS="$CXXFLAGS -g"
+    else
+      CXXFLAGS="$CXXFLAGS -O3"
+    fi
+
+elif test "$COMPILER_TYPE" = "aix-native" ; then
     C_AS_CPLUSPLUS="-+"
+
+    if test "$debug_mode" = "$yes" ; then
+      CXXFLAGS="$CXXFLAGS"
+    else
+      CXXFLAGS="$CXXFLAGS -O2"
+    fi
 fi
 
 AC_LANG_CPLUSPLUS
