@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.59 2001/08/23 14:44:08 schendel Exp $
+// $Id: init.C,v 1.60 2002/01/09 04:42:59 schendel Exp $
 
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
@@ -357,11 +357,11 @@ bool init() {
 #endif
 
   totalPredictedCost = costMetric::newCostMetric(
-       "predicted_cost", aggSum, "CPUs", default_im_preds, false, 
+       "predicted_cost", aggSum, "slowdown", default_im_preds, false, 
        Normalized, aggSum);
 
   observed_cost = costMetric::newCostMetric(
-       "observed_cost", aggSum, "CPUs", obs_cost_preds, false, 
+       "observed_cost", aggSum, "slowdown", obs_cost_preds, false, 
        Normalized, aggSum);
 
   pauseTime = internalMetric::newInternalMetric(
