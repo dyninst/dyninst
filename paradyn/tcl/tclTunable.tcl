@@ -1,7 +1,10 @@
 # tclTunable.tcl
 
 # $Log: tclTunable.tcl,v $
-# Revision 1.12  1995/07/02 20:01:08  tamches
+# Revision 1.13  1995/07/13 03:24:41  tamches
+# some geometry and scrollbar fixes for tk4.0
+#
+# Revision 1.12  1995/07/02  20:01:08  tamches
 # port to tk4.0
 #
 # Revision 1.11  1995/02/27  18:38:28  tamches
@@ -97,8 +100,10 @@ proc tunableInitialize {} {
 
    toplevel .tune -class Tunable
    wm title .tune "Tunable Constants"
+
+   wm geometry .tune "420x375"
    # one does not pack a toplevel window...
-   
+
    #  ################### Default options #################
    option add *Visi*font *-New*Century*Schoolbook-Bold-R-*-18-*
    option add *Data*font *-Helvetica-*-r-*-12-*
@@ -191,7 +196,8 @@ proc tunableInitialize {} {
    pack      .tune.middle.scrollbar -side left -fill y -expand false
       # expand is false; if the window is made wider, we don't want the extra width
    
-   canvas .tune.middle.canvas -relief flat -yscrollcommand myScroll -yscrollincrement 1
+   canvas .tune.middle.canvas -relief flat -yscrollcommand myScroll \
+	   -yscrollincrement 1
    pack   .tune.middle.canvas -side left -fill both -expand true
 
    frame .tune.middle.canvas.names
@@ -207,22 +213,22 @@ proc tunableInitialize {} {
 }
 
 proc myScroll {left right} {
-   # gets called whenever the canvas view changes or gets resized.
-   # This includes every scroll the user makes (yikes)
+   # gets called whenever the canvas view changes [scroll] or gets resized.
    # Gives us a chance to rethink the bounds of the scrollbar
+#   puts stderr "welcome to myScroll (canvas must have scrolled or been resized)"
+
    global lastVisibleHeight lastVisibleWidth
 
    set newWidth  [getWindowWidth  .tune.middle.canvas]
    set newHeight [getWindowHeight .tune.middle.canvas]
    
    if {$lastVisibleHeight != $newHeight || $lastVisibleWidth != $newWidth} {
-#      puts stderr "myScroll: expensive drawTunables cuz lastVisibleHeight=$lastVisibleHeight<>newHeight=$newHeight or lastVisibleWidth=$lastVisibleWidth<>newWidth=$newWidth"
-#      puts stderr "btw, totalSize=$totalSize left=$left right=$right"
+#      puts stderr "myScroll: redrawing tunables on canvas due to apparant resize"
 
       drawTunables $newWidth $newHeight
-   } else {
-      .tune.middle.scrollbar set $left $right
    }
+
+   .tune.middle.scrollbar set $left $right
 
    set lastVisibleWidth $newWidth
    set lastVisibleHeight $newHeight
@@ -664,22 +670,26 @@ proc drawTunables {newWidth newHeight} {
 	   -window .tune.middle.canvas.values \
 	   -width $valuesWidth
 
-   set goodMinWidth [expr $namesWidth + [getWindowWidth .tune.middle.scrollbar] + 260]
+   set goodMinWidth [expr $namesWidth + [getWindowWidth .tune.middle.scrollbar] + 245]
    wm minsize .tune $goodMinWidth $tunableMinHeight
 
-   set oldGeometry [wm geometry .tune]
-   if {$oldGeometry!="1x1+0+0"} {
-      set numscanned [scan $oldGeometry "%dx%d+%d+%d" oldWidth oldHeight oldx oldy]
-      if {$numscanned==4} {
-         if {$oldWidth < $goodMinWidth} {
-            wm geometry .tune [format "%dx%d+%d+%d" $goodMinWidth $oldHeight $oldx $oldy]
-         }
-      } else {
-         puts stderr "tclTunable.tcl: could not scan geometry...won't try to resize"
-      }
-   }
+#   set oldGeometry [wm geometry .tune]
+#   if {$oldGeometry!="1x1+0+0"} {
+#      set numscanned [scan $oldGeometry "%dx%d+%d+%d" oldWidth oldHeight oldx oldy]
+#      if {$numscanned==4} {
+#         if {$oldWidth < $goodMinWidth} {
+#            wm geometry .tune [format "%dx%d" $goodMinWidth $oldHeight]
+#         }
+#      } else {
+#         puts stderr "tclTunable.tcl: could not scan geometry...won't try to resize"
+#      }
+#   }
 
    rethinkScrollBarRegions [getWindowWidth .tune.middle.canvas] [getWindowHeight .tune.middle.canvas]
+
+   global lastVisibleHeight lastVisibleWidth
+   set lastVisibleHeight [getWindowHeight .tune.middle.canvas]
+   set lastVisibleWidth  [getWindowWidth .tune.middle.canvas]
 }
 
 proc rethinkScrollBarRegions {newWidth newHeight} {
@@ -698,20 +708,12 @@ proc rethinkScrollBarRegions {newWidth newHeight} {
    set regionList [lreplace $regionList 3 3 $nextStartY]
    .tune.middle.canvas configure -scrollregion $regionList
 
-   set oldconfig [.tune.middle.scrollbar get]
-   set oldTotalHeight [lindex $oldconfig 0]
+   set newFirst 0
+   set fracVisible [expr 1.0 * $newHeight / $nextStartY]
+#   puts stderr "rethinkScrollbarRegion: fracVisible=$fracVisible"
+   set newLast [expr $newFirst + $fracVisible]
 
-   if {$oldTotalHeight != $nextStartY} {
-      set firstUnit 0
-   } else {
-      # no change
-      set firstUnit [lindex $oldconfig 2]
-   }
-
-   set lastUnit [expr $firstUnit + $nextStartY - 1]
-
-   # args to "scrollbar set": total units, visible units, first unit, last unit
-   .tune.middle.scrollbar set $nextStartY $newHeight $firstUnit $lastUnit
+   .tune.middle.scrollbar set $newFirst $newLast
 }
 
 proc gatherInitialTunableValues {} {
