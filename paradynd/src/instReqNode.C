@@ -112,6 +112,9 @@ loadMiniTramp_result instReqNode::loadInstrIntoApp(pd_process *theProc,
 		    retInstance,
 		    false // false --> do not allow recursion
 		    );
+   if(theProc->hasExited()) {
+      res = failure_res;
+   }
    rinstance = retInstance;
    
    if(res == success_res) {
