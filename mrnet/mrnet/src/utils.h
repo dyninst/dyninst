@@ -73,7 +73,7 @@ class tsd_t {
 
 #define mrn_dbg( x, y ) \
 do{ \
-  if( OUTPUT_LEVEL >= x ){  \
+  if( CUR_OUTPUT_LEVEL >= x ){           \
     y; \
   } \
 }while(0);

@@ -6,8 +6,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#if !defined(os_windows)
 #include <unistd.h>
 #include <getopt.h>
+#endif
 
 #include <vector>
 #include <string>

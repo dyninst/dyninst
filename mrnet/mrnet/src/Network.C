@@ -28,20 +28,21 @@ namespace MRN
 
 const int MIN_OUTPUT_LEVEL=0;
 const int MAX_OUTPUT_LEVEL=5;
-int OUTPUT_LEVEL=1;
+int CUR_OUTPUT_LEVEL=1;
+
 
 const Port UnknownPort = (Port)-1;
 const Rank UnknownRank = (Rank)-1;
 
 void set_OutputLevel(int l){
     if(l <=MIN_OUTPUT_LEVEL){
-        OUTPUT_LEVEL = MIN_OUTPUT_LEVEL;
+        CUR_OUTPUT_LEVEL = MIN_OUTPUT_LEVEL;
     }
     else if(l >= MAX_OUTPUT_LEVEL){
-        OUTPUT_LEVEL = MAX_OUTPUT_LEVEL;
+        CUR_OUTPUT_LEVEL = MAX_OUTPUT_LEVEL;
     }
     else{
-        OUTPUT_LEVEL = l;
+        CUR_OUTPUT_LEVEL = l;
     }
 }
 

@@ -21,7 +21,7 @@ namespace MRN
 {
 extern const int MIN_OUTPUT_LEVEL;
 extern const int MAX_OUTPUT_LEVEL;
-extern int OUTPUT_LEVEL;
+extern int CUR_OUTPUT_LEVEL; 
 
 void set_OutputLevel(int l=1);
 

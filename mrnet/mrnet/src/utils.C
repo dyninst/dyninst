@@ -70,6 +70,7 @@ static struct hostent * mrnet_gethostbyaddr( const char *addr, int len, int type
 inline struct hostent * copy_hostent( struct hostent *in)
 {
     struct hostent * out = new struct hostent;
+    unsigned int i=0;
 
     //copy h_name, h_addrtype, and h_length
     out->h_name = strdup( in->h_name );
@@ -82,7 +83,7 @@ inline struct hostent * copy_hostent( struct hostent *in)
         count++;
 
     out->h_aliases = new char * [ count+1 ];
-    for(unsigned int i=0; i<count; i++ ){
+    for(i=0; i<count; i++ ){
         out->h_aliases[i] = strdup( in->h_aliases[i] );
     }
     out->h_aliases[count] = NULL;
@@ -93,7 +94,7 @@ inline struct hostent * copy_hostent( struct hostent *in)
         count++;
 
     out->h_addr_list = new char * [ count+1 ];
-    for(unsigned int i=0; i<count; i++ ){
+    for(i=0; i<count; i++ ){
         out->h_addr_list[i] = new char[4];
         out->h_addr_list[i][0] = in->h_addr_list[i][0];
         out->h_addr_list[i][1] = in->h_addr_list[i][1];
@@ -500,11 +501,7 @@ int getNetworkName( std::string & network_name, const std::string & in_hostname 
             hp->h_length );
     delete_hostent( hp );
 
-#if defined(os_windows)
-    hp = gethostbyaddr_r( ( const char * )&in, sizeof( in ), AF_INET );
-#else
     hp = mrnet_gethostbyaddr( ( const char * )&in, sizeof( in ), AF_INET );
-#endif
 
     if( hp == NULL ) {
         mrn_dbg( 1, mrn_printf(FLF, stderr, "Host information not found for %s;"
