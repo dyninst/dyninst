@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.36 2004/04/02 06:34:11 jaw Exp $
+// $Id: Object-xcoff.C,v 1.37 2004/07/23 18:46:34 jodom Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -1193,7 +1193,10 @@ bool parseCompilerType(Object *objPtr)
 		// Use presence of string "IBM VisualAge C++" to confirm
 		//   it's the IBM compiler
 		//
-		if (!strncmp("IBM VisualAge C++", compilerName, strlen("IBM VisualAge C++"))) {
+                //		if (!strncmp("IBM VisualAge C++", compilerName, strlen("IBM VisualAge C++"))) {
+                if (strstr(compilerName, "IBM") != NULL 
+                    && strstr(compilerName, "VisualAge") != NULL
+                    && strstr(compilerName, "C++") != NULL) {
 		    // bperr( "compiler is IBM C++\n");
 		    return true;
 		}
