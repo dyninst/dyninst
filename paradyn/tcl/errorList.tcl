@@ -1,4 +1,4 @@
-# $Id: errorList.tcl,v 1.36 1998/03/03 23:17:10 wylie Exp $
+# $Id: errorList.tcl,v 1.37 1998/03/26 16:30:08 naim Exp $
 
 #
 # Error message format:
@@ -479,8 +479,8 @@ set pdError(54) {
 set pdError(55) {
 {Internal error: Unsupported return.}
 {paradynd}
-{fatal error}
-{Internal error. Please report this error to paradyn@cs.wisc.edu}
+{serious error}
+{Internal error. Please, report this error to paradyn@cs.wisc.edu}
 }
 
 set pdError(56) {
@@ -953,9 +953,17 @@ set pdError(107) {
 {}
 }
 
+set pdError(108) {
+{Internal error: main could not be instrumented. } 
+{paradynd}
+{fatal error}
+{It was not possible for paradyn to instrument "main". Please, contact
+paradyn@cs.wisc.edu for more information. }
+}
+
 #
 # be sure to change this value if you add/delete an entry to the database
 #
 proc getNumPdErrors {} {
-    return 107
+    return 108
 }

@@ -522,6 +522,13 @@ void process::handleTrapAtEntryPointOfMain()
 void process::insertTrapAtEntryPointOfMain()
 {
   function_base *f_main = findOneFunction("main");
+  if (!f_main) {
+    // we can't instrument main - naim
+    showErrorCallback(108,"");
+    extern void cleanUpAndExit(int);
+    cleanUpAndExit(-1); 
+    return;
+  }
   assert(f_main);
   unsigned addr = f_main->addr();
   // save original instruction first
