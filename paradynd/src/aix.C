@@ -1,7 +1,7 @@
 
 /* 
- * $Log: aix.C,v $
- * Revision 1.10  1996/05/12 05:12:57  tamches
+ * aix.C,v
+ * Revision 1.10  1996/05/12  05:12:57  tamches
  * (really Jeff)
  * Added ability to process aix 4.1-linked files.
  *
@@ -395,8 +395,10 @@ bool OS::osDumpImage(const string &imageFileName,  int pid, const Address codeOf
     int ifd;
     int ofd;
     int cnt;
+    int ret;
     int total;
     int length;
+    Address baseAddr;
     extern int errno;
     char buffer[4096];
     char outFile[256];
@@ -404,6 +406,8 @@ bool OS::osDumpImage(const string &imageFileName,  int pid, const Address codeOf
     struct stat statBuf;
     struct aouthdr aout;
     struct scnhdr *sectHdr;
+    bool needsCont = false;
+    struct ld_info info[64];
 
     ifd = open(imageFileName.string_of(), O_RDONLY, 0);
     if (ifd < 0) {
@@ -465,14 +469,29 @@ bool OS::osDumpImage(const string &imageFileName,  int pid, const Address codeOf
         // make sure it is stopped.
         osStop(pid);
         waitpid(pid, NULL, WUNTRACED);
+	needsCont = true;
     }
+
+    ret = ptrace(PT_LDINFO, pid, (int *) &info, sizeof(info), (int *) &info);
+    if (ret != 0) {
+	statusLine("Unable to get loader info about process");
+	showErrorCallback(43, "Unable to get loader info about process");
+	return false;
+    }
+
+    baseAddr = info[0].ldinfo_textorg + aout.text_start;
+    sprintf(errorLine, "seeking to %d as the offset of the text segment \n",
+	aout.text_start);
+    logLine(errorLine);
+    sprintf(errorLine, " code offset= %d\n", baseAddr);
+    logLine(errorLine);
 
     /* seek to the text segment */
     lseek(ofd, aout.text_start, SEEK_SET);
     for (i=0; i < aout.tsize; i+= 1024) {
         errno = 0;
         length = ((i + 1024) < aout.tsize) ? 1024 : aout.tsize -i;
-        ptrace(PT_READ_BLOCK, pid, (int*) (codeOff + i), length, (int *)buffer);
+        ptrace(PT_READ_BLOCK, pid, (int*) (baseAddr + i), length, (int *)buffer);
         if (errno) {
 	    perror("ptrace");
 	    assert(0);
@@ -480,7 +499,9 @@ bool OS::osDumpImage(const string &imageFileName,  int pid, const Address codeOf
 	write(ofd, buffer, length);
     }
 
-    ptrace(PT_CONTINUE, pid, (int*) 1, SIGCONT, 0);
+    if (needsCont) {
+	ptrace(PT_CONTINUE, pid, (int*) 1, SIGCONT, 0);
+    }
 
     close(ofd);
     close(ifd);

@@ -654,9 +654,14 @@ unsigned emitFuncCall(opCode op,
 	registerSlot *reg = regSpace->getRegSlot(i);
 	if (reg->needsSaving) {
 	    // needsSaving -> caller saves register
-	    reg->needsSaving = false;
-	    reg->mustRestore = true;
+	    // we MUST save restore this and the end of the function call
+	    //     rather than delay it to the end of the tramp due to:
+	    //        (1) we could be in a conditional & the restores would
+	    //            be unconditional (i.e. restore bad data)
+	    //        (2) $arg[n] code depeneds on paramters being in registers
+	    //
 	    saveRegister(reg->number);
+	    savedRegs += reg->number;
 	} else if (reg->inUse && !reg->mustRestore) {
 	    // inUse && !mustRestore -> in use scratch register 
 	    //		(i.e. part of an expression being evaluated).
@@ -747,6 +752,17 @@ unsigned emitFuncCall(opCode op,
     insn++;
     base += sizeof(instruction);
 
+    // get a register to keep the return value in.
+    reg retReg = regSpace->allocateRegister(iPtr, base);
+
+    // This next line is a hack! - jkh 6/27/96
+    //   It is required since allocateRegister can generate code.
+    insn = (instruction *) ((void*)&iPtr[base]);
+
+    // put the return value from register 3 to the newly allocated register.
+    genImmInsn(insn, ORIop, 3, retReg, 0); insn++;
+    base += sizeof(instruction);
+
     // restore saved registers.
     for (i = 0; i < savedRegs.size(); i++) {
 	restoreRegister(savedRegs[i]);
@@ -759,7 +775,7 @@ unsigned emitFuncCall(opCode op,
 
     // return value is the register with the return value from the
     //   called function.
-    return(3);
+    return(retReg);
 }
  
 unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn, 
@@ -819,7 +835,11 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 	}
 
 	// temp register to hold base address for store (added 6/26/96 jkh)
-	reg temp = regSpace->allocateRegister((char *)insn, base);
+	reg temp = regSpace->allocateRegister(baseInsn, base);
+
+	// This next line is a hack! - jkh 6/27/96
+	//   It is required since allocateRegister can generate code.
+	insn = (instruction *) ((void*)&baseInsn[base]);
 
 	// set upper 16 bits of  temp to be the top high.
 	genImmInsn(insn, ADDISop, temp, 0, high);
@@ -860,10 +880,14 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 	// add in the cost to the passed pointer variable.
 
 	// high order bits of the address of the cummlative cost.
-	reg obsCostAddr = regSpace->allocateRegister((char *)insn, base);
+	reg obsCostAddr = regSpace->allocateRegister(baseInsn, base);
 
 	// actual cost.
-	reg obsCostValue = regSpace->allocateRegister((char *)insn, base);
+	reg obsCostValue = regSpace->allocateRegister(baseInsn, base);
+
+	// This next line is a hack! - jkh 6/27/96
+	//   It is required since allocateRegister can generate code.
+	insn = (instruction *) ((void*)&baseInsn[base]);
 
         int high;
 

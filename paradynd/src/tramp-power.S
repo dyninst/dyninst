@@ -24,10 +24,16 @@ _baseTramp:
 	   register to use!
 	*/
 	.long	GLOBAL_PRE_BRANCH
+	nop
 	.long	LOCAL_PRE_BRANCH
+	nop
 	.long 	EMULATE_INSN
+	nop
 	.long	GLOBAL_POST_BRANCH
+	nop
 	.long	LOCAL_POST_BRANCH
+	nop
 	/* should update post insn cost of base tramp here */
 	.long	RETURN_INSN
+	nop
 	.long	END_TRAMP

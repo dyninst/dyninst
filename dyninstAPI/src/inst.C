@@ -7,15 +7,15 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst.C,v 1.29 1996/05/16 15:03:03 naim Exp $";
+static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/inst.C,v 1.29 1996/05/16 15:03:03 naim Exp";
 #endif
 
 
 /*
  * inst.C - Code to install and remove inst funcs from a running process.
  *
- * $Log: inst.C,v $
- * Revision 1.29  1996/05/16 15:03:03  naim
+ * inst.C,v
+ * Revision 1.29  1996/05/16  15:03:03  naim
  * Checking that instInstance pointer is not NULL - naim
  *
  * Revision 1.28  1996/05/15  18:32:45  naim
@@ -291,6 +291,10 @@ instInstance *addInstFunc(process *proc, instPoint *location,
     //
     // return value is offset of return stmnt.
     //
+
+    // clear out old stuff - for debugging.
+    memset(insn, 0x00, 65536);
+
     count = 0;
     ret->returnAddr = ast.generateTramp(proc, insn, count, trampCost); 
 
