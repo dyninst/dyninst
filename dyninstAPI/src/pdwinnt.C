@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.97 2003/04/26 04:09:05 igor Exp $
+// $Id: pdwinnt.C,v 1.98 2003/05/08 18:12:27 pcroth Exp $
 
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
@@ -744,7 +744,7 @@ DWORD handleThreadCreate(process *proc, procSignalInfo_t info) {
                                  info.u.CreateThread.hThread);
     l->openFD();
     dyn_thread *t = new dyn_thread(proc, info.dwThreadId, // thread ID
-                                   proc->threads.size()-1, // POS (unused currently)
+                                   proc->threads.size(), // POS in threads array (and rpcMgr thrs_ array?)
                                    l); // dyn_lwp object for thread handle
     proc->threads.push_back(t);
     proc->continueProc();
@@ -769,8 +769,16 @@ DWORD handleProcessCreate(process *proc, procSignalInfo_t info) {
 			desc->SetAddr( (Address)info.u.CreateProcessInfo.lpBaseOfImage );
 			desc->SetFileHandle( info.u.CreateProcessInfo.hFile );
             // 7APR -- when we attach we get a process handle after oldDesc was created
-            desc->SetProcessHandle (proc->getProcessHandle());
-            
+            if( proc->getProcessHandle() == INVALID_HANDLE_VALUE )
+			{
+				desc->SetProcessHandle( info.u.CreateProcessInfo.hProcess );
+				proc->setProcessHandle( info.u.CreateProcessInfo.hProcess );
+			}
+			else
+			{
+				desc->SetProcessHandle (proc->getProcessHandle());
+            }
+
 			// reparse the image with the updated descriptor
 			image* img = image::parseImage( desc );
 			proc->setImage( img );
@@ -1100,45 +1108,34 @@ bool process::installSyscallTracing()
 
 
 bool process::attach_() {
-  if (createdViaAttach) {
+    if (createdViaAttach) {
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-    if (!BPatch::bpatch->rDevice->RemoteDebugActiveProcess(getPid()))
+        if (!BPatch::bpatch->rDevice->RemoteDebugActiveProcess(getPid()))
+        {
+            return false;
+        }
+        procHandle_ = 
+            BPatch::bpatch->rDevice->RemoteOpenProcess(PROCESS_ALL_ACCESS,
+                                                        false, getPid());
+        assert( procHandle_ != NULL );
+        return true;
 #else
-    if (!DebugActiveProcess(getPid()))
+        if (!DebugActiveProcess(getPid()))
+        {
+            //printf("Error: DebugActiveProcess failed\n");
+            return false;
+        }
 #endif
-      {
-	//printf("Error: DebugActiveProcess failed\n");
-	return false;
-      }
-
-#ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-    procHandle_ = BPatch::bpatch->rDevice->RemoteOpenProcess(PROCESS_ALL_ACCESS, false, getPid());
-#else
-    procHandle_ = OpenProcess(PROCESS_ALL_ACCESS, false, getPid());
-#endif
-
-    if (procHandle_ == NULL) {
-        //printf("Error: OpenProcess failed\n");
-        assert(0);
     }
 
-    // TODO do we still do this in the attach case?
-    InitSymbolHandler( (HANDLE)procHandle_ );
-  }
-  else
-  {
-    // We created this process.
-    // We passed DEBUG_PROCESS in the creation flags, and we
-    // already have a HANDLE to it in our image's descriptor.
-    // (We use that HANDLE because that was the one we used
-    // in the SymInitialize call.)
+    // We either created this process, or we have just attached it.
+    // In either case, our descriptor already has a valid process handle.
     fileDescriptor_Win* fdw = (fileDescriptor_Win*)(getImage()->desc());
     assert( fdw != NULL );
     procHandle_ = fdw->GetProcessHandle();
     assert( procHandle_ != NULL );
-  }
 
-  return true;
+    return true;
 }
 
 /* continue a process that is stopped */
@@ -1263,6 +1260,10 @@ bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
 #else
     bool res = ReadProcessMemory((HANDLE)procHandle_, (LPVOID)inTraced, 
 				 (LPVOID)inSelf, (DWORD)amount, &nbytes);
+	if( !res )
+	{
+		fprintf( stderr, "ReadProcessMemory failed! %x\n", GetLastError() );
+	}
 #endif
     return res && (nbytes == amount);
 }
@@ -1787,7 +1788,7 @@ char *cplus_demangle(char *c, int, bool includeTypes) {
         if (buf[0] == '\0') return 0; // avoid null names which seem to annoy Paradyn
         return strdup(buf);
       } else {
-        if (includeTypes) {
+        if (includeTypes) {
           if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_COMPLETE| UNDNAME_NO_ACCESS_SPECIFIERS|UNDNAME_NO_MEMBER_TYPE|UNDNAME_NO_MS_KEYWORDS)) {
             //   printf("Undecorate with types: %s = %s\n", c, buf);
             stripAtSuffix(buf);

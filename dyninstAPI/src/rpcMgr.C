@@ -476,7 +476,7 @@ void rpcMgr::addThread(dyn_thread *thr) {
     // been assigned a thread
     int new_size = pos + 1;
     if(new_size > thrs_.size()) {
-       for(int i=thrs_.size(); i<=new_size; i++)
+       for(int i=thrs_.size(); i < new_size; i++)
           thrs_.push_back(NULL);
     }
     thrs_[pos] = newThread;

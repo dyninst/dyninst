@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.18 2003/04/26 04:09:07 igor Exp $
+// $Id: Object-nt.C,v 1.19 2003/05/08 18:12:27 pcroth Exp $
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -543,51 +543,6 @@ Object::ParseDebugInfo( void )
 
     HANDLE hProc = desc->GetProcessHandle();
     HANDLE hFile = desc->GetFileHandle();
-    if( baseAddr == 0 )
-    {
-        // this happens only when we've just created the process
-        // unfortunately, the process is in a neo-natal state,
-        // such that many of our Win32 calls on the process will
-        // fail at this point
-        //
-        // we need to let Windows continue to initialize the process
-        // at least as far as delivering to us the "create process" 
-        // debug event.  We'd like to do it in the existing 
-        // event handler context implemented in pdwinnt.C, but this
-        // method ends up getting called before we even have a process
-        // object to keep parity with the other operating systems.
-        // 
-        // So, we let Windows move the process' state forward a bit here
-        DEBUG_EVENT ev;
-        if( !WaitForDebugEvent( &ev, INFINITE ) )
-        {
-            // TODO how to handle this error?
-            fprintf( stderr, "WaitForDebugEvent failed: %x\n", GetLastError() );
-			return;
-        }
-
-        assert( ev.dwDebugEventCode == CREATE_PROCESS_DEBUG_EVENT );
-        baseAddr = (Address)ev.u.CreateProcessInfo.lpBaseOfImage;
-        hFile = ev.u.CreateProcessInfo.hFile;
-
-		// update our descriptor with the info we've found
-		desc->SetAddr( baseAddr );
-		desc->SetFileHandle( hFile );
-
-        // Initialize our symbol handler
-		//cout << "calling SymInitialize with proc=" << hProc << endl;
-        if( !SymInitialize( hProc, NULL, FALSE ) )
-        {
-            fprintf( stderr, "SymInitialize failed: %x\n", GetLastError() );
-        }
-
-		// ensure we load line number information when we load
-		// modules
-		DWORD dwOpts = SymGetOptions();
-		SymSetOptions( dwOpts | SYMOPT_LOAD_LINES );
-
-        ContinueDebugEvent( ev.dwProcessId, ev.dwThreadId, DBG_CONTINUE );
-    }
     assert( hProc != NULL );
     assert( hProc != INVALID_HANDLE_VALUE );
     assert( hFile != NULL );

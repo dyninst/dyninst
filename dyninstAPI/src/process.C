@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.420 2003/05/07 19:10:49 bernat Exp $
+// $Id: process.C,v 1.421 2003/05/08 18:12:31 pcroth Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2978,8 +2978,12 @@ process *attachProcess(const string &progpath, int pid)
   string fullPathToExecutable = process::tryToFindExecutable(progpath, pid);
   if (!fullPathToExecutable.length())
       return NULL;
-      
+
+#if defined(i386_unknown_nt4_0)
+  int status = (int)INVALID_HANDLE_VALUE;	// indicates we need to obtain a valid handle
+#else
   int status = pid;
+#endif // defined(i386_unknown_nt4_0)
   fileDescriptor *desc = getExecFileDescriptor(fullPathToExecutable,
 					       status, false);
   if (!desc)
