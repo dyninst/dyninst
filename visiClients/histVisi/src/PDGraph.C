@@ -59,7 +59,7 @@
 //   PDGraph::DataW       PDGData.C
 //
 //---------------------------------------------------------------------------
-// $Id: PDGraph.C,v 1.20 2003/06/20 02:23:17 pcroth Exp $
+// $Id: PDGraph.C,v 1.21 2003/06/27 17:59:27 pcroth Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include <iostream.h>
@@ -164,7 +164,7 @@ Tk_ConfigSpec PDGraph::configSpecs[] =
         "background",
         "Background",
         DEF_PDGRAPH_BACKGROUND,
-        Tk_Offset(PDGraph, bgBorder),
+        Tk_Offset(GraphTkData, bgBorder),
         TK_CONFIG_COLOR_ONLY,
         NULL
     },
@@ -174,7 +174,7 @@ Tk_ConfigSpec PDGraph::configSpecs[] =
         "background",
         "Background",
         "white",
-        Tk_Offset(PDGraph, bgBorder),
+        Tk_Offset(GraphTkData, bgBorder),
         TK_CONFIG_MONO_ONLY,
         NULL
     },
@@ -204,7 +204,7 @@ Tk_ConfigSpec PDGraph::configSpecs[] =
         "borderWidth", 
         "BorderWidth",
         "2", 
-        Tk_Offset(PDGraph, borderWidth), 
+        Tk_Offset(GraphTkData, borderWidth), 
         0,
         NULL
     },
@@ -224,7 +224,7 @@ Tk_ConfigSpec PDGraph::configSpecs[] =
         "foreground", 
         "Foreground",
         DEF_PDGRAPH_FOREGROUND,
-        Tk_Offset(PDGraph, fgBorder), 
+        Tk_Offset(GraphTkData, fgBorder), 
         TK_CONFIG_COLOR_ONLY,
         NULL
     },
@@ -234,7 +234,7 @@ Tk_ConfigSpec PDGraph::configSpecs[] =
         "foreground", 
         "Foreground",
         "black", 
-        Tk_Offset(PDGraph, fgBorder), 
+        Tk_Offset(GraphTkData, fgBorder), 
         TK_CONFIG_MONO_ONLY,
         NULL
     },
@@ -244,7 +244,7 @@ Tk_ConfigSpec PDGraph::configSpecs[] =
         "relief", 
         "Relief",
         "raised", 
-        Tk_Offset(PDGraph, relief), 
+        Tk_Offset(GraphTkData, relief), 
         0,
         NULL
     },
@@ -254,7 +254,7 @@ Tk_ConfigSpec PDGraph::configSpecs[] =
         "font",
         "Font",
         DEF_PDGRAPH_FONT,
-        Tk_Offset( PDGraph, font ),
+        Tk_Offset(GraphTkData, font ),
         0,
         NULL
     },
@@ -264,7 +264,7 @@ Tk_ConfigSpec PDGraph::configSpecs[] =
         "lineColors",
         "LineColors",
         DEF_LINE_COLORS,
-        Tk_Offset( PDGraph, lineColors ),
+        Tk_Offset(GraphTkData, lineColors ),
         0,
         NULL
     },
@@ -274,7 +274,7 @@ Tk_ConfigSpec PDGraph::configSpecs[] =
         "linePatterns",
         "LinePatterns",
         DEF_LINE_PATTERNS,
-        Tk_Offset( PDGraph, linePatterns ),
+        Tk_Offset(GraphTkData, linePatterns ),
         0,
         NULL
     },
@@ -284,7 +284,7 @@ Tk_ConfigSpec PDGraph::configSpecs[] =
         "doubleBuffer", 
         "DoubleBuffer",
         "true", 
-        Tk_Offset(PDGraph, doubleBuffer), 
+        Tk_Offset(GraphTkData, doubleBuffer), 
         0,
         NULL
     },
@@ -316,17 +316,17 @@ PDGraph::PDGraph( void )
     legendWin( NULL ),
     interp( NULL ),
     widgetCmd( NULL ),
-    borderWidth( 0 ),
-    bgBorder( NULL ),
-    fgBorder( NULL ),
-    relief( TK_RELIEF_FLAT ),
     gc( None ),
-    font( NULL ),
-    lineColors( NULL ),
-    linePatterns( NULL ),
-    doubleBuffer( 1 ),        // true
     redrawPending( false )
 {
+    wdata.bgBorder = NULL;
+    wdata.fgBorder = NULL;
+    wdata.borderWidth = 0;
+    wdata.relief = TK_RELIEF_FLAT;
+    wdata.font = NULL;
+    wdata.lineColors = NULL;
+    wdata.linePatterns = NULL;
+    wdata.doubleBuffer = 1;    // true
 }
 
 
@@ -335,7 +335,7 @@ PDGraph::~PDGraph( void )
 {
     if( tkdisplay != NULL )
     {
-        Tk_FreeOptions(configSpecs, (char *)this, tkdisplay, 0);
+        Tk_FreeOptions(configSpecs, (char *)&(this->wdata), tkdisplay, 0);
         if(gc != None)
         {
             Tk_FreeGC( tkdisplay, gc);
@@ -344,16 +344,16 @@ PDGraph::~PDGraph( void )
         Curve::ReleaseLineSpecs( tkdisplay );
     }
 
-    if( lineColors != NULL )
+    if( wdata.lineColors != NULL )
     {
-        Tcl_Free( lineColors );
-        lineColors = NULL;
+        Tcl_Free( wdata.lineColors );
+        wdata.lineColors = NULL;
     }
 
-    if( linePatterns != NULL )
+    if( wdata.linePatterns != NULL )
     {
-        Tcl_Free( linePatterns );
-        linePatterns = NULL;
+        Tcl_Free( wdata.linePatterns );
+        wdata.linePatterns = NULL;
     }
 }
 
@@ -480,7 +480,10 @@ PDGraph::InitTclTk( Tcl_Interp* interp, Tk_Window mwin,
     }
 
     // ensure we have graphics contexts to use
-    if( Curve::InitLineSpecs( interp, mwin, lineColors, linePatterns, fgBorder ) != TCL_OK )
+    if( Curve::InitLineSpecs( interp, mwin,
+        wdata.lineColors,
+        wdata.linePatterns,
+        wdata.fgBorder ) != TCL_OK )
     {
         Tk_DestroyWindow( tkwin );
         return TCL_ERROR;
@@ -579,7 +582,7 @@ PDGraph::ZoomTo( double position )
     }
 
     assert( (newstart >= 0.0) && (newstart <= 1.0) );
-    assert( (newstart + newfocus) <= 1.0 );
+    assert( (newstart + newfocus) <= (1.0 + 0.0001) );
     visScopeInfo.focus = newfocus;
     visScopeInfo.start = newstart;
 
@@ -1307,7 +1310,7 @@ PDGraph::HandleCmd( Tcl_Interp* interp, int argc, TCLCONST char* argv[] )
         result = Tk_ConfigureValue( interp,
             tkwin,
             configSpecs,
-            (char*)this,
+            (char*)&(this->wdata),
             argv[2],
             0);
     }
@@ -1319,7 +1322,7 @@ PDGraph::HandleCmd( Tcl_Interp* interp, int argc, TCLCONST char* argv[] )
             result = Tk_ConfigureInfo( interp,
                 tkwin,
                 configSpecs,
-                (char*)this,
+                (char*)&(this->wdata),
                 NULL,
                 0);
         }
@@ -1328,7 +1331,7 @@ PDGraph::HandleCmd( Tcl_Interp* interp, int argc, TCLCONST char* argv[] )
             result = Tk_ConfigureInfo( interp,
                 tkwin,
                 configSpecs,
-                (char*)this,
+                (char*)&(this->wdata),
                 argv[2],
                 0);
         }
@@ -1414,14 +1417,14 @@ PDGraph::Configure(Tcl_Interp* interp, int argc,
         tkwin,
         configSpecs,
         argc, argv,
-        (char *)this, flags) != TCL_OK)
+        (char *)&(this->wdata), flags) != TCL_OK)
     {
         return TCL_ERROR;
     }
 
     // set the background for our windows based on our 
     // (possibly) updated background option
-    Tk_SetWindowBackground(tkwin, Tk_3DBorderColor(bgBorder)->pixel);
+    Tk_SetWindowBackground(tkwin, Tk_3DBorderColor(wdata.bgBorder)->pixel);
 
     // create a graphics context for drawing
     if( gc == None )
@@ -1430,20 +1433,20 @@ PDGraph::Configure(Tcl_Interp* interp, int argc,
         unsigned long mask = GCFunction | GCGraphicsExposures | GCFont | 
              GCForeground | GCBackground;
 
-        gcValues.foreground = Tk_3DBorderColor(fgBorder)->pixel;
-        gcValues.background = Tk_3DBorderColor(bgBorder)->pixel;
+        gcValues.foreground = Tk_3DBorderColor(wdata.fgBorder)->pixel;
+        gcValues.background = Tk_3DBorderColor(wdata.bgBorder)->pixel;
         gcValues.function = GXcopy;
         gcValues.graphics_exposures = False;
-        gcValues.font = Tk_FontId( font );
+        gcValues.font = Tk_FontId( wdata.font );
         gc = Tk_GetGC( tkwin, mask, &gcValues );
     }
 
     // register our desired geometry
     Tk_GeometryRequest(tkwin, 200, 150);
-    Tk_SetInternalBorder(tkwin, borderWidth);
+    Tk_SetInternalBorder(tkwin, wdata.borderWidth);
 
     // update our font metrics
-    Tk_GetFontMetrics( font, &fontm );
+    Tk_GetFontMetrics( wdata.font, &fontm );
 
     // arrange for ourselves to be redisplayed with
     // our new configuration
@@ -1537,7 +1540,7 @@ PDGraph::DrawBorder( void ) const
     }
 
     // draw into offscreen pixmap if desired
-    if( doubleBuffer )
+    if( wdata.doubleBuffer )
     {
         pm = Tk_GetPixmap(tkdisplay,
             Tk_WindowId(tkwin),
@@ -1553,14 +1556,14 @@ PDGraph::DrawBorder( void ) const
     // draw the desired border
     Tk_Fill3DRectangle(tkwin,
         d,
-        bgBorder,
+        wdata.bgBorder,
         0, 0,
         Tk_Width(tkwin), Tk_Height(tkwin),
-        borderWidth, relief);
+        wdata.borderWidth, wdata.relief);
 
 
     // copy from the offscreen pixmap if needed
-    if( doubleBuffer )
+    if( wdata.doubleBuffer )
     {
         XCopyArea(tkdisplay,
             pm,
@@ -1583,7 +1586,7 @@ PDGraph::Draw( void )
     redrawPending = false;
 
     // draw our border, if needed
-    if( borderWidth > 0 )
+    if( wdata.borderWidth > 0 )
     {
         DrawBorder();
     }
@@ -2385,9 +2388,9 @@ PDGraph::Curve::Draw( Display* disp,
 int
 PDGraph::Curve::InitLineSpecs( Tcl_Interp* interp,
                                Tk_Window win,
-                               char* lineColors,
-                               char* linePatterns,
-                               Tk_3DBorder fgBorder )
+                               char* lColors,
+                               char* /* lPatterns */,
+                               Tk_3DBorder /* fgb */ )
 {
     unsigned int nColors = 0;
     int ret = TCL_OK;
@@ -2399,8 +2402,8 @@ PDGraph::Curve::InitLineSpecs( Tcl_Interp* interp,
     // the list items.  Unfortunately, we can't build a Tcl list
     // directly from the C string, so we take an intermediate step
     // through a Tcl string object.
-    assert( lineColors != NULL );
-    Tcl_Obj* lcObj = Tcl_NewStringObj( lineColors, -1 );
+    assert( lColors != NULL );
+    Tcl_Obj* lcObj = Tcl_NewStringObj( lColors, -1 );
     if( lcObj != NULL )
     {
         int objc;
@@ -2473,8 +2476,8 @@ PDGraph::Curve::InitLineSpecs( Tcl_Interp* interp,
     unsigned int nPatterns = 0;
 
     // now handle black and white (pattern) specs
-    assert( linePatterns != NULL );
-    Tcl_Obj* lpObj = Tcl_NewStringObj( linePatterns, -1 );
+    assert( lPatterns != NULL );
+    Tcl_Obj* lpObj = Tcl_NewStringObj( lPatterns, -1 );
     if( lpObj != NULL )
     {
         int objc;
@@ -2493,7 +2496,7 @@ PDGraph::Curve::InitLineSpecs( Tcl_Interp* interp,
                     if( pattName != NULL )
                     {
                         // get the foreground color of the given window
-                        XColor* color = Tk_3DBorderColor(fgBorder);
+                        XColor* color = Tk_3DBorderColor(fgb);
 
 
                         // obtain the pixmap for the given stipple

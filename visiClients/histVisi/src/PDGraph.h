@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -47,10 +47,36 @@
 // support the drawing of time-based histograms.
 //
 //---------------------------------------------------------------------------
-// $Id: PDGraph.h,v 1.6 2003/06/20 02:23:17 pcroth Exp $
+// $Id: PDGraph.h,v 1.7 2003/06/27 17:59:33 pcroth Exp $
 //---------------------------------------------------------------------------
 #ifndef PDGRAPH_H
 #define PDGRAPH_H
+
+
+// Tk_ConfigureWidget expects offsets to variables within a structure.
+// Having these variables as members of a class causes problems in
+// finding the offsets of the members within an object instance.
+// So, we specify Tk data in separate structs, which are then 
+// used as members of the corresponding class.
+struct SubWindowTkData
+{
+    int         width;            // window width
+    int         height;           // window height
+};
+
+
+struct GraphTkData
+{
+    Tk_3DBorder bgBorder;       // background border
+    Tk_3DBorder fgBorder;       // foreground border
+    int         borderWidth;    // width of 3D border around widget
+    int         relief;         // relief for main window
+    Tk_Font     font;           // font to use when drawing axes, etc.
+    char*       lineColors;     // string holding allowable line color names
+    char*       linePatterns;   // string holding allowable line pattern names
+    int         doubleBuffer;   // draw into offscreen pixmap?
+};
+
 
 
 
@@ -397,12 +423,11 @@ private:
         PDGraph*    g;
 
         static  Tk_ConfigSpec   configSpecs[];    // configuration descriptions
+        SubWindowTkData wdata;      // Tk configuration data
 
         Tk_Window   tkwin;          // token for widget's (main) window
         Tcl_Command widgetCmd;      // token for widget's instance command
         bool        redrawPending;  // is redraw pending for widget?
-        int         width;            // window width
-        int         height;            // window height
         unsigned int    timeAxisHeight; // height of time axis
 
         // Tcl callbacks
@@ -422,10 +447,11 @@ private:
               tkwin( NULL ),
               widgetCmd( NULL ),
               redrawPending( false ),
-              width( 0 ),
-              height( 0 ),
               timeAxisHeight( 0 )
-        {}
+        {
+            wdata.width = 0;
+            wdata.height = 0;
+        }
         ~ValueAxisW( void ) {}
 
 
@@ -554,8 +580,7 @@ private:
         Tk_Window   tkwin;
         Tcl_Command widgetCmd;      // token for widget's instance command
         bool        redrawPending;  // is a redraw pending for our widget?
-        int         width;            // window width
-        int         height;            // window height
+        SubWindowTkData wdata;      // Tk configuration data
 
 
         // Tcl callbacks
@@ -577,7 +602,10 @@ private:
               tkwin( NULL ),
               widgetCmd( NULL ),
               redrawPending( false )
-        {}
+        {
+            wdata.width = 0;
+            wdata.height = 0;
+        }
         ~TimeAxisW( void )   {}
 
 
@@ -684,9 +712,8 @@ private:
         Tk_Window   tkwin;
         Tcl_Command widgetCmd;      // token for widget's instance command
         bool        redrawPending;  // is a redraw pending for our widget?
-        int         width;            // window width
-        int         height;            // window height
         unsigned int    valLabelHeight;    // height of value axis labels
+        SubWindowTkData   wdata;    // Tk configuration data
 
 
         // Tcl callbacks
@@ -708,10 +735,11 @@ private:
               tkwin( NULL ),
               widgetCmd( NULL ),
               redrawPending( false ),
-              width( 0 ),
-              height( 0 ),
               valLabelHeight( 0 )
-        {}
+        {
+            wdata.width = 0;
+            wdata.height = 0;
+        }
         ~DataW( void )   {}
 
 
@@ -822,17 +850,9 @@ private:
     Tcl_Interp* interp;         // Tcl interpreter associated with widget
     Tcl_Command widgetCmd;      // Token for widget's instance command
 
-    int borderWidth;            // width of 3D border around widget
-    Tk_3DBorder bgBorder;       // background border
-    Tk_3DBorder fgBorder;       // foreground border
-    int relief;                 // relief for main window
     GC gc;                      // graphics context for drawing
-    Tk_Font            font;        // font to use when drawing axes, etc.
     Tk_FontMetrics    fontm;        // metrics for font
-    char*           lineColors;     // string holding allowable line color names
-    char*           linePatterns;   // string holding allowable line pattern names
-
-    int doubleBuffer;           // draw into offscreen pixmap?
+    GraphTkData       wdata;    // Tk configuration data
     bool redrawPending;         // redraw is pending?
 
 
@@ -958,12 +978,12 @@ private:
 
     // accessors
     Tcl_Interp* GetInterp( void )                   { return interp; }
-    bool    IsDoubleBuffered( void ) const          { return doubleBuffer; }
+    bool    IsDoubleBuffered( void ) const          { return wdata.doubleBuffer; }
     GC      GetDrawGC( void ) const                 { return gc; }
-    Tk_3DBorder GetBackground( void ) const         { return bgBorder; }
-    Tk_3DBorder GetForeground( void ) const         { return fgBorder; }
+    Tk_3DBorder GetBackground( void ) const         { return wdata.bgBorder; }
+    Tk_3DBorder GetForeground( void ) const         { return wdata.fgBorder; }
     const Tk_FontMetrics& GetFontMetrics( void ) const    { return fontm; }
-    const Tk_Font& GetFont( void ) const            { return font; }
+    const Tk_Font& GetFont( void ) const            { return wdata.font; }
     const HistogramInfo&    GetHistogramInfo( void ) const  { return histInfo; }
     const VisualScopeInfo&  GetVisScopeInfo( void ) const   { return visScopeInfo; }
     const pdvector<Group*>&   GetGroups( void ) const { return groups; }

@@ -45,7 +45,7 @@
 // Main program for the rthist executable.
 //
 //----------------------------------------------------------------------------
-// $Id: main.C,v 1.7 2003/04/15 18:09:54 pcroth Exp $
+// $Id: main.C,v 1.8 2003/06/27 17:59:33 pcroth Exp $
 //----------------------------------------------------------------------------
 #include "common/h/headers.h"
 
@@ -86,7 +86,7 @@ main( int argc, char* argv[] )
     int ret = 0;
 
     bool sawParadynFlag = false;
-    for( unsigned int i = 0; i < argc; i++ )
+    for( int i = 0; i < argc; i++ )
     {
         if( strcmp( argv[i], "--paradyn" ) == 0 )
         {

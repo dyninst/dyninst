@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -49,7 +49,7 @@
 // megawidget.
 //
 //---------------------------------------------------------------------------
-// $Id: PDGData.C,v 1.4 2003/06/20 02:23:16 pcroth Exp $
+// $Id: PDGData.C,v 1.5 2003/06/27 17:59:26 pcroth Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include <iostream.h>
@@ -77,7 +77,7 @@ Tk_ConfigSpec PDGraph::DataW::configSpecs[] =
         "width", 
         "Width",
         "50", 
-        Tk_Offset(DataW, width), 
+        Tk_Offset(SubWindowTkData, width), 
         0,
         NULL
     },
@@ -87,7 +87,7 @@ Tk_ConfigSpec PDGraph::DataW::configSpecs[] =
         "height", 
         "Height",
         "50", 
-        Tk_Offset(DataW, height), 
+        Tk_Offset(SubWindowTkData, height), 
         0,
         NULL
     },
@@ -229,13 +229,13 @@ PDGraph::DataW::Configure( Tcl_Interp* interp,
         tkwin,
         configSpecs,
         argc, argv,
-        (char *)this, flags) != TCL_OK)
+        (char *)&(this->wdata), flags) != TCL_OK)
     {
         return TCL_ERROR;
     }
 
     // register our desired geometry
-    Tk_GeometryRequest( tkwin, width, height );
+    Tk_GeometryRequest( tkwin, wdata.width, wdata.height );
 
     // arrange for ourselves to be redisplayed with
     // our new configuration
