@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-cm5.C,v 1.13 1994/09/22 02:17:26 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-cm5.C,v 1.14 1994/11/02 11:11:47 markc Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricDefs-cm5.C,v $
- * Revision 1.13  1994/09/22 02:17:26  markc
+ * Revision 1.14  1994/11/02 11:11:47  markc
+ * Removed compiler warnings.
+ *
+ * Revision 1.13  1994/09/22  02:17:26  markc
  * Added static class initializers for DYNINSTallMetrics
  *
  * Revision 1.12  1994/07/12  19:29:48  jcargill
@@ -99,29 +102,23 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *
  */
 
+#include "util/h/kludges.h"
+
 extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <string.h>
 }
 
-#include "rtinst/h/rtinst.h"
-#include "rtinst/h/trace.h"
 #include "symtab.h"
 #include "process.h"
+#include "rtinst/h/rtinst.h"
 #include "inst.h"
 #include "dyninstP.h"
 #include "metric.h"
 #include "ast.h"
-#include "util.h"
+#include "rtinst/h/trace.h"
 #include "metricDefs-common.h"
-
-extern List<libraryFunc*> msgFilterFunctions;
-extern List<libraryFunc*> msgByteFunctions;
-extern List<libraryFunc*> msgByteSentFunctions;
-extern List<libraryFunc*> msgByteRecvFunctions;
-
 
 // A process timer is used because it does not stop on blocking
 // system calls.
@@ -140,21 +137,21 @@ void createSyncWait(metricDefinitionNode *mn, AstNode *trigger)
 	new AstNode(DataValue, dataPtr), NULL);
     if (trigger) stopNode = createIf(trigger, stopNode);
 
-    instAllFunctions(mn, TAG_MSG_FUNC, startNode, stopNode);
+    instAllFunctions(mn, TAG_MSG_FILT, startNode, stopNode);
 }
 
 //
 // ***** Warning this metric is CM-5 specific. *****
 //
 void createMsgBytesMetric(metricDefinitionNode *mn,
-			  List<libraryFunc*> *funcs,
+			  unsigned matchTag,
 			  AstNode *trigger)
 {
     pdFunction *func;
     AstNode *msgBytesAst;
     dataReqNode *dataPtr;
 
-    dataPtr = mn->addIntCounter(0, True);
+    dataPtr = mn->addIntCounter(0, true);
 
     // addCounter(counter, param4 * param5)
     msgBytesAst = new AstNode("addCounter", 
@@ -166,30 +163,31 @@ void createMsgBytesMetric(metricDefinitionNode *mn,
 
     if (trigger) msgBytesAst = createIf(trigger, msgBytesAst);
 
-    for (func = mn->proc->symbols->funcs; func; func = func->next) {
-	printf ("createMsgBytesMetric: considering '%s'\n", (char*)func->prettyName);
-	if (funcs->find(func->prettyName)) {
-	    printf ("createMsgBytesMetric: ********************** '%s'\n", 
-		    (char*)func->prettyName);
-	    mn->addInst(func->funcEntry, msgBytesAst,
-		callPreInsn, orderLastAtPoint);
-	}
+    dictionary_hash_iter<unsigned, pdFunction*> fi(mn->proc->symbols->funcsByAddr);
+    unsigned u;
+
+    while (fi.next(u, func)) {
+      cout << "createMsgBytesMetric: considering " << func->prettyName << endl;
+      if (func->tag & matchTag)  {
+	mn->addInst(func->funcEntry, msgBytesAst, callPreInsn, orderLastAtPoint);
+	cout << "createMsgBytesMetric: ********** " << func->prettyName << endl;
+      }
     }
 }
 
 void createMsgBytesTotal(metricDefinitionNode *mn, AstNode *tr)
 {
-    createMsgBytesMetric(mn, &msgByteFunctions, tr);
+    createMsgBytesMetric(mn, TAG_MSG_SEND | TAG_MSG_RECV, tr);
 }
 
 void createMsgBytesSent(metricDefinitionNode *mn, AstNode *tr)
 {
-    createMsgBytesMetric(mn, &msgByteSentFunctions, tr);
+    createMsgBytesMetric(mn, TAG_MSG_SEND, tr);
 }
 
 void createMsgBytesRecv(metricDefinitionNode *mn, AstNode *tr)
 {
-    createMsgBytesMetric(mn, &msgByteRecvFunctions, tr);
+    createMsgBytesMetric(mn, TAG_MSG_RECV, tr);
 }
 
 AstNode *defaultMSGTagPredicate(metricDefinitionNode *mn, 
@@ -203,7 +201,7 @@ AstNode *defaultMSGTagPredicate(metricDefinitionNode *mn,
 
     iTag = atoi(tag);
 
-    data = mn->addIntCounter(0, False);
+    data = mn->addIntCounter(0, false);
 
     // (== param2, iTag)
     tagTest = new AstNode(eqOp, new AstNode(Param, (void *) 1),
@@ -215,153 +213,17 @@ AstNode *defaultMSGTagPredicate(metricDefinitionNode *mn,
     clearNode = createPrimitiveCall("setCounter", data, 0);
     if (trigger) clearNode = createIf(trigger, clearNode);
 
-    for (func = mn->proc->symbols->funcs; func; func = func->next) {
-        if (msgFilterFunctions.find(func->prettyName)) {
-            mn->addInst(func->funcEntry, filterNode,
-                callPreInsn, orderFirstAtPoint);
-            mn->addInst(func->funcReturn, clearNode,
-                callPreInsn, orderLastAtPoint);
-        }
+    dictionary_hash_iter<unsigned, pdFunction*> fi(mn->proc->symbols->funcsByAddr);
+    unsigned u;
+
+    while (fi.next(u, func)) {
+      if (func->tag & TAG_MSG_FILT) {
+	mn->addInst(func->funcEntry, filterNode,
+		    callPreInsn, orderFirstAtPoint);
+	mn->addInst(func->funcReturn, clearNode,
+		    callPreInsn, orderLastAtPoint);
+      }
     }
     return(new AstNode(DataValue, data));
 }
-
-resourcePredicate cpuTimePredicates[] = {
-  { "/Procedure",	
-    replaceBase,		
-    (createPredicateFunc) perModuleCPUTime },
-  { "/SyncObject/MsgTag",	
-    invalidPredicate,		
-    (createPredicateFunc) NULL },
-  { "/SyncObject",	
-    invalidPredicate,		
-    (createPredicateFunc) NULL },
-  { "/Machine",	
-    nullPredicate,		
-    (createPredicateFunc) NULL },
-  { "/Process",	
-    nullPredicate,		
-    (createPredicateFunc) NULL },
-  { NULL, nullPredicate, (createPredicateFunc) NULL },
-};
-
-resourcePredicate wallTimePredicates[] = {
-  { "/Procedure",	
-    replaceBase,		
-    (createPredicateFunc) perModuleWallTime },
-  { "/SyncObject/MsgTag",	
-    simplePredicate,		
-    (createPredicateFunc) defaultMSGTagPredicate },
-  { "/SyncObject",	
-    invalidPredicate,		
-    (createPredicateFunc) NULL },
-  { "/Machine",	
-    nullPredicate,		
-    (createPredicateFunc) NULL },
-  { "/Process",	
-    nullPredicate,		
-    (createPredicateFunc) NULL },
-  { NULL, nullPredicate, (createPredicateFunc) NULL },
-};
-
-resourcePredicate procCallsPredicates[] = {
-  { "/Procedure",	
-    replaceBase,		
-    (createPredicateFunc) perModuleCalls },
-  { "/SyncObject",	
-    invalidPredicate,		
-    (createPredicateFunc) NULL },
-  { "/Machine",	
-    nullPredicate,		
-    (createPredicateFunc) NULL },
-  { "/Process",	
-    nullPredicate,		
-    (createPredicateFunc) NULL },
-  { NULL, nullPredicate, (createPredicateFunc) NULL },
-};
-
-resourcePredicate msgPredicates[] = {
-  { "/Procedure",
-    simplePredicate,	
-    (createPredicateFunc) defaultModulePredicate },
-  { "/SyncObject/MsgTag",	
-    simplePredicate,		
-    (createPredicateFunc) defaultMSGTagPredicate },
-  { "/SyncObject",	
-    invalidPredicate,		
-    (createPredicateFunc) NULL },
-  { "/Machine",	
-    nullPredicate,		
-    (createPredicateFunc) NULL },
-  { "/Process",	
-    nullPredicate,		
-    (createPredicateFunc) NULL },
- { NULL, nullPredicate, (createPredicateFunc) NULL },
-};
-
-resourcePredicate defaultPredicates[] = {
-  { "/Procedure",
-    simplePredicate,	
-    (createPredicateFunc) defaultModulePredicate },
-  { "/SyncObject/MsgTag",	
-    simplePredicate,		
-    (createPredicateFunc) defaultMSGTagPredicate },
-  { "/SyncObject",	
-    invalidPredicate,		
-    (createPredicateFunc) NULL },
-  { "/Machine",	
-    nullPredicate,		
-    (createPredicateFunc) NULL },
-  { "/Process",	
-    nullPredicate,		
-    (createPredicateFunc) NULL },
- { NULL, nullPredicate, (createPredicateFunc) NULL },
-};
-
-resourcePredicate globalOnlyPredicates[] = {
-  { "/Procedure",
-    simplePredicate,	
-    (createPredicateFunc) NULL },
-  { "/SyncObject/MsgTag",	
-    simplePredicate,		
-    (createPredicateFunc) NULL },
-  { "/SyncObject",	
-    invalidPredicate,		
-    (createPredicateFunc) NULL },
-  { "/Machine",	
-    nullPredicate,		
-    (createPredicateFunc) NULL },
-  { "/Process",	
-    nullPredicate,		
-    (createPredicateFunc) NULL },
- { NULL, nullPredicate, (createPredicateFunc) NULL },
-};
-
-
-metric DYNINSTallMetrics[] = {
-  metric (dynMetricInfo("active_processes", SampledFunction, aggSum, "Processes"),
-	  metricDefinition((createMetricFunc) createActiveProcesses, defaultPredicates)),
-  metric (dynMetricInfo("observed_cost", EventCounter, aggMax, "Wasted CPUs"),
-	  metricDefinition((createMetricFunc) createObservedCost, observedCostPredicates)),
-  metric (dynMetricInfo("cpu", EventCounter, aggSum, "# CPUs"),
-	  metricDefinition((createMetricFunc) createCPUTime, cpuTimePredicates)),
-  metric (dynMetricInfo("exec_time", EventCounter, aggSum, "%Time"),
-	  metricDefinition ((createMetricFunc) createExecTime, wallTimePredicates)),
-  metric (dynMetricInfo("procedure_calls", EventCounter, aggSum, "Calls/sec"),
-	  metricDefinition((createMetricFunc) createProcCalls, procCallsPredicates)),
-  metric (dynMetricInfo("msgs", EventCounter, aggSum, "Ops/sec"),
-	  metricDefinition((createMetricFunc) createMsgs, defaultPredicates)),
-  metric (dynMetricInfo("msg_bytes", EventCounter, aggSum, "Bytes/Sec"),
-	  metricDefinition((createMetricFunc) createMsgBytesTotal, defaultPredicates)),
-  metric (dynMetricInfo("msg_bytes_sent", EventCounter, aggSum, "Bytes/Sec"),
-	  metricDefinition((createMetricFunc) createMsgBytesSent, defaultPredicates)),
-  metric ( dynMetricInfo("msg_bytes_recv", EventCounter, aggSum, "Bytes/Sec"),
-	  metricDefinition((createMetricFunc) createMsgBytesRecv, defaultPredicates)),
-  metric (dynMetricInfo("sync_ops", EventCounter, aggSum, "Ops/sec"),
-	  metricDefinition((createMetricFunc) createSyncOps, defaultPredicates)),
-  metric (dynMetricInfo("sync_wait", EventCounter, aggSum, "# Waiting"),
-	  metricDefinition((createMetricFunc) createSyncWait, defaultPredicates)),
-};
-
-int metricCount = sizeof(DYNINSTallMetrics)/sizeof(DYNINSTallMetrics[0]);
 

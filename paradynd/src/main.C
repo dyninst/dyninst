@@ -2,7 +2,13 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.24  1994/09/22 02:10:45  markc
+ * Revision 1.26  1994/11/02 11:10:22  markc
+ * Removed compiler warnings.
+ *
+ * Revision 1.25  1994/10/13  07:24:49  krisna
+ * solaris porting and updates
+ *
+ * Revision 1.24  1994/09/22  02:10:45  markc
  * access metricList using method
  *
  * Revision 1.23  1994/09/20  18:18:26  hollings
@@ -99,7 +105,6 @@
 #include <fcntl.h>
 #include <sys/termios.h>
 
-#include "util/h/list.h"
 #include "rtinst/h/rtinst.h"
 
 #include "symtab.h"
@@ -111,22 +116,22 @@
 #include "dyninstP.h"
 #include "metric.h"
 #include "comm.h"
-#include "kludges.h"
+#include "util/h/kludges.h"
 #include "internalMetrics.h"
 #include "util/h/machineType.h"
+#include "init.h"
+#include "perfStream.h"
+#include "clock.h"
 
 extern "C" {
 int gethostname(char*, int);
-int ioctl(int, int, caddr_t);
+int ioctl(int, int, ...);
 }
 
 pdRPC *tp;
-extern int controllerMainLoop();
-extern void initLibraryFunctions();
-
-stringPool pool;
 
 #ifdef PARADYND_PVM
+#include "paradyndPVM/h/pvm_support.h"
 static pdRPC *init_pvm_code(char *argv[], char *machine, int family,
 			     int type, int well_known_socket, int flag);
 static char machine_name[80];
@@ -148,7 +153,7 @@ int pd_flag;
 char *programName;
 
 
-void configStdIO(Boolean closeStdIn)
+void configStdIO(bool closeStdIn)
 {
     int nullfd;
 
@@ -169,12 +174,12 @@ main(int argc, char *argv[])
 {
     int i;
     metricListRec *stuff;
-    extern float cyclesPerSecond;
-    extern float getCyclesPerSecond();
 
     programName = argv[0];
 
     initLibraryFunctions();
+    if (!init())
+      abort();
 
     // process command line args passed in
     // pd_flag == 1 --> started by paradyn
@@ -192,14 +197,15 @@ main(int argc, char *argv[])
 
 	pid = fork();
 	if (pid == 0) {
-//	    configStdIO(TRUE);
+//	    configStdIO(true);
 	    // setup socket
 	    tp = new pdRPC(pd_family, pd_known_socket, pd_type, pd_machine, 
 			    NULL, NULL, 0);
 	} else if (pid > 0) {
-	    printf("PARADYND %d\n", pid);
-	    fflush(stdout);
-	    _exit(-1);
+	  sprintf(errorLine, "PARADYND %d\n", pid);
+	  logLine(errorLine);
+	  fflush(stdout);
+	  _exit(-1);
 	} else {
 	    fflush(stdout);
 	    exit(-1);
@@ -215,7 +221,7 @@ main(int argc, char *argv[])
 
 	tp = new pdRPC(0, NULL, NULL);
 
-//	configStdIO(FALSE);
+//	configStdIO(false);
     }
 #endif
 
@@ -238,11 +244,8 @@ init_pvm_code(char *argv[], char *machine, int family,
 	      int type, int well_known_socket, int flag)
 {
   pdRPC *temp;
-  extern int PDYN_initForPVM (char **, char *, int, int, int, int);
 
-  assert(PDYN_initForPVM (argv, machine, family, type, well_known_socket,
-			 flag) == 0);
-
+  assert(!PDYN_initForPVM (argv, machine, family, type, well_known_socket, flag));
   assert(!gethostname(machine_name, 99));
 
   // connect to paradyn

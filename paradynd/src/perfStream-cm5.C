@@ -19,7 +19,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, \
   Karen Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/perfStream-cm5.C,v 1.3 1994/07/26 20:00:52 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/perfStream-cm5.C,v 1.4 1994/11/02 11:13:46 markc Exp $";
 #endif
 
 
@@ -29,7 +29,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  * still need this after changing to synchronous sampling of the nodes?
  *
  * $Log: perfStream-cm5.C,v $
- * Revision 1.3  1994/07/26 20:00:52  hollings
+ * Revision 1.4  1994/11/02 11:13:46  markc
+ * Removed compiler warnings.
+ *
+ * Revision 1.3  1994/07/26  20:00:52  hollings
  * switch to select based polling of nodes.
  *
  * Revision 1.2  1994/07/21  01:34:49  hollings
@@ -49,22 +52,14 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "primitives.h"
 #include "util.h"
 #include "dyninst.h"
-
-
-extern time64 firstRecordTime;
-extern Boolean firstSampleReceived;
-extern int CMMD_enabled;
-
-extern void createResource(traceHeader *header, struct _newresource *res);
-
+#include "metric.h"
 
 void processArchDependentTraceStream()
 {
     timeStamp now;
-    static timeStamp last;
+    static timeStamp last=0;
     extern float SAMPLEnodes;
     extern void sampleNodes();
-    extern timeStamp getCurrentTime(Boolean firstRecordRelative);
 
 #ifdef notdef
     int ret;
@@ -81,7 +76,7 @@ void processArchDependentTraceStream()
 	;	/* TEMPORARY:    XXXXXX */
 #endif
 
-    now = getCurrentTime(FALSE);
+    now = getCurrentTime(false);
     if (now > last + SAMPLEnodes) {
 	sampleNodes();
 	last = now;
@@ -169,7 +164,7 @@ void processArchDependentTraceStream()
 
 	      case TR_SAMPLE:
 		processSample(&header, (traceSample *) recordData);
-		firstSampleReceived = True;
+		firstSampleReceived = true;
 
 //		printf ("Received sample!\n");
 		break;
