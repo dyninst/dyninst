@@ -4,23 +4,25 @@ proc AcceptProc {} {
    global visiIds
    
    set thesel [$W.bottom.menu.list curselection]
-   set itemif [lindex $visiIds $thesel]
+   if {$thesel!=""} {
+     set itemif [lindex $visiIds $thesel]
    
-   if {$phase=="CurrentPhase"} {
+     if {$phase=="CurrentPhase"} {
        paradyn visi create [expr $itemif ]  1
-   } else {
+     } else {
        paradyn visi create [expr $itemif ]  0
-   }
+     }
 
-#   for {set i 0} { $i < [llength $thesel] } {incr i} {
+#    for {set i 0} { $i < [llength $thesel] } {incr i} {
 #       set item [lindex $thesel $i]
 #       set itemstring [$W.bottom.menu.list get $item]
 #       set itemid [lindex $visiIds $i]
 #       puts stdout $itemstring
 #       puts stdout $itemid
 #       puts stdout $i
-#   }
-   destroy $W
+#    }
+     destroy $W
+   }
 }
 
 # set default phase choice to GlobalPhase
