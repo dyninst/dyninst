@@ -5,6 +5,9 @@
 # architecture-specific Makefile.
 # 
 # $Log: make.library.tmpl,v $
+# Revision 1.11  1997/08/21 18:57:25  naim
+# Fixing problem when using cc and -MM - naim
+#
 # Revision 1.10  1997/08/20 22:08:29  naim
 # Fixing a small error with my previous commit - naim
 #
@@ -144,8 +147,8 @@ DEPENDS: $(SRCS)
 endif
 	touch DEPENDS
 	$(MAKE) $(SRCS)
-ifdef USES_LIBDYNINSTRT_SO
-	$(MODCC) $(MODCFLAGS) $(SRCS) > DEPENDS
+ifeq ($(MODCC),cc)
+	gcc -MM $(MODCFLAGS) $(SRCS) > DEPENDS
 else
 	$(MODCC) -MM $(MODCFLAGS) $(SRCS) > DEPENDS
 endif
