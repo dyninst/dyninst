@@ -1,8 +1,11 @@
 /*
 $Log: rpcUtil.C,v $
-Revision 1.15  1994/03/31 22:59:08  hollings
-added well known port as a paramter to xdrRPC constructor.
+Revision 1.16  1994/04/01 04:59:13  markc
+Put in support to encode NULL ptrs to strings in xdr_String.
 
+ * Revision 1.15  1994/03/31  22:59:08  hollings
+ * added well known port as a paramter to xdrRPC constructor.
+ *
  * Revision 1.14  1994/03/31  22:45:04  markc
  * Added Log for rcs.
  *
@@ -301,15 +304,31 @@ void RPCUser::verifyProtocolAndVersion()
 bool_t xdr_String(XDR *xdrs, String *str)
 {
     int len;
+    unsigned char isNull=0;
 
 	// if XDR_FREE, str's memory is freed
     switch (xdrs->x_op) {
 	case XDR_ENCODE:
-		len = strlen(*str)+1;
-		break;
+		if (*str) {
+		    len = strlen(*str)+1;
+                    if (!xdr_u_char(xdrs, &isNull))
+			return FALSE;
+                } else {
+		    isNull = (unsigned char) 1;
+                    if (!xdr_u_char(xdrs, &isNull))
+			return FALSE;
+                    else
+			return TRUE;
+                }
+                return (xdr_string (xdrs, str, 65536));
 	case XDR_DECODE:
 		*str = NULL;
-		break;
+		if (!xdr_u_char(xdrs, &isNull))
+		    return FALSE;
+                if (isNull)
+		    return TRUE;
+                else
+                    return (xdr_string (xdrs, str, 65536));
 	case XDR_FREE:
 		// xdr_free (xdr_string, str);
 		if (*str)
@@ -322,10 +341,6 @@ bool_t xdr_String(XDR *xdrs, String *str)
 		assert(0);
 		// this should never occur	
     }
-    // should we have a better max length ???. 
-    // xdr_bytes(xdrs, str, &len, 65536*32768);
-    // return(TRUE);
-    return (xdr_string (xdrs, str, 65536));
 }
 
 int RPCprocessCreate(int *pid, char *hostName, char *userName,
