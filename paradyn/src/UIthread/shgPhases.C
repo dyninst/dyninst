@@ -4,9 +4,12 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.C,v $
-/* Revision 1.4  1996/01/09 01:40:26  tamches
-/* added existsById
+/* Revision 1.5  1996/01/23 07:06:46  tamches
+/* clarified interface to change()
 /*
+ * Revision 1.4  1996/01/09 01:40:26  tamches
+ * added existsById
+ *
  * Revision 1.3  1996/01/09 01:06:43  tamches
  * changes to reflect moving phase id to shg class
  *
@@ -68,15 +71,8 @@ void shgPhases::add(shg *theNewShg, const string &theNewShgPhaseName) {
                        string(theNewShg->getPhaseId());
    myTclEval(interp, commandStr);
 
-   if (firstShg) {
-      currShgPhaseIndex = 0;
-      string commandStr = string("set currShgPhase ") + string(theNewShg->getPhaseId());
-      myTclEval(interp, commandStr);
-
-      commandStr = string(".shg.nontop.currphasearea.label2 config -text ") +
-	           "\"" + theNewShgPhaseName + "\"";
-      myTclEval(interp, commandStr);
-   }
+   if (firstShg)
+      change(theNewShgPhaseName);
 }
 
 shg &shgPhases::getByID(int phaseID) {
@@ -105,36 +101,57 @@ const string &shgPhases::id2name(int id) const {
    abort();
 }
 
-bool shgPhases::change(unsigned newIndex) {
+bool shgPhases::changeLL(unsigned newIndex) {
    // returns true iff any changes
+   // NOTE: Like currShgPhaseIndex, the param newIndex is an index into
+   //       the low-level array theShgPhases; it is not a dagid/phaseid!
    if (newIndex == currShgPhaseIndex)
       return false;
 
    // Save curr sb values
-   shgStruct &theShgStruct=theShgPhases[currShgPhaseIndex];
+   if (existsCurrent()) {
+      shgStruct &theShgStruct=theShgPhases[currShgPhaseIndex];
 
-   string commandStr = horizSBName + " get";
-   myTclEval(interp, commandStr);
-   assert(2==sscanf(interp->result, "%f %f", &theShgStruct.horizSBfirst,
-		                             &theShgStruct.horizSBlast));
+      string commandStr = horizSBName + " get";
+      myTclEval(interp, commandStr);
+      assert(2==sscanf(interp->result, "%f %f", &theShgStruct.horizSBfirst,
+		       &theShgStruct.horizSBlast));
 
-   commandStr = vertSBName + " get";
-   myTclEval(interp, commandStr);
-   assert(2==sscanf(interp->result, "%f %f", &theShgStruct.vertSBfirst,
-		                             &theShgStruct.vertSBlast));
+      commandStr = vertSBName + " get";
+      myTclEval(interp, commandStr);
+      assert(2==sscanf(interp->result, "%f %f", &theShgStruct.vertSBfirst,
+		       &theShgStruct.vertSBlast));
+   }
 
    // Set new sb values
    shgStruct &theNewShgStruct=theShgPhases[currShgPhaseIndex = newIndex];
 
-   commandStr = horizSBName + " set " + string(theNewShgStruct.horizSBfirst) + " "
-                                      + string(theNewShgStruct.horizSBlast);
+   string commandStr = horizSBName + " set " + string(theNewShgStruct.horizSBfirst) + " "
+                                   + string(theNewShgStruct.horizSBlast);
    myTclEval(interp, commandStr);
 
    commandStr = vertSBName + " set " + string(theNewShgStruct.vertSBfirst) + " "
                                      + string(theNewShgStruct.vertSBlast);
    myTclEval(interp, commandStr);
 
+   commandStr = string("set currShgPhase ") + string(newIndex);
+   myTclEval(interp, commandStr);
+
+   commandStr = string(".shg.nontop.currphasearea.label2 config -text ") +
+	           "\"" + theNewShgStruct.phaseName + "\"";
+   myTclEval(interp, commandStr);
    return true;
+}
+
+bool shgPhases::changeByPhaseId(unsigned id) {
+   // returns true iff changes were made
+   for (unsigned i=0; i < theShgPhases.size(); i++) {
+      shgStruct &theShgStruct = theShgPhases[i];
+      if (theShgStruct.theShg->getPhaseId() == id)
+         return changeLL(i);
+   }
+
+   return false; // could not find any phase with that name
 }
 
 bool shgPhases::change(const string &newPhaseName) {
@@ -142,7 +159,7 @@ bool shgPhases::change(const string &newPhaseName) {
    for (unsigned i=0; i < theShgPhases.size(); i++) {
       shgStruct &theShgStruct = theShgPhases[i];
       if (theShgStruct.phaseName == newPhaseName) {
-         (void)change(i);
+         (void)changeLL(i);
          return true;
       }
    }

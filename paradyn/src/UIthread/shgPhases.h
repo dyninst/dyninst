@@ -4,9 +4,12 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.h,v $
-/* Revision 1.3  1996/01/09 01:40:14  tamches
-/* added existsById
+/* Revision 1.4  1996/01/23 07:04:44  tamches
+/* clarified interface to change()
 /*
+ * Revision 1.3  1996/01/09 01:40:14  tamches
+ * added existsById
+ *
  * Revision 1.2  1996/01/09 01:06:17  tamches
  * changes due to moving phaseId to the shg class
  *
@@ -48,11 +51,15 @@ class shgPhases {
 
    vector<shgStruct> theShgPhases;
    unsigned currShgPhaseIndex;
+      // NOTE: An index into the above array; not a phaseid/dagid!
 
    Tcl_Interp *interp;
    Tk_Window theTkWindow;   
 
    string menuName, horizSBName, vertSBName, currItemLabelName;
+
+   bool changeLL(unsigned newIndex);
+      // returns true iff any changes
 
  public:
 
@@ -76,7 +83,7 @@ class shgPhases {
       // returns -1 if not found
    const string &id2name (int id) const;
 
-   bool change(unsigned newIndex);
+   bool changeByPhaseId(unsigned newIndex);
       // returns true iff any changes
    bool change(const string &phaseName);
       // returns true iff successful
