@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.14  1994/05/09 20:56:22  hollings
+ * Revision 1.15  1994/05/10 03:57:38  hollings
+ * Changed data upcall to return array of buckets.
+ *
+ * Revision 1.14  1994/05/09  20:56:22  hollings
  * added changeState callback.
  *
  * Revision 1.13  1994/04/21  23:24:27  hollings
@@ -347,11 +350,11 @@ void dataManagerUser::changeState(appStateChangeCallback cb,
 void dataManagerUser::newPerfData(sampleDataCallbackFunc func,
                              performanceStream *ps,
                              metricInstance *mi,
-                             timeStamp st,
-                             timeStamp end,
-                             sampleValue value)
+			     sampleValue *buckets,
+			     int count,
+			     int first)
 {
-    (func)(ps, mi, st, end, value);
+    (func)(ps, mi, buckets, count, first);
 }
 
 metricInfo *dataManager::getMetricInfo(metric *met) {

@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.11  1994/05/07 23:27:21  karavan
-/* eliminated [location-dependent] tcl init file.
+/* Revision 1.12  1994/05/10 03:57:49  hollings
+/* Changed data upcall to return array of buckets.
 /*
+ * Revision 1.11  1994/05/07  23:27:21  karavan
+ * eliminated [location-dependent] tcl init file.
+ *
  * Revision 1.10  1994/05/05  23:35:00  karavan
  * changed tcl calls to procedures.  removed conflicting def'n of read.
  * changed name of tcl initialization script.
@@ -169,9 +172,6 @@ void             Prompt _ANSI_ARGS_((Tcl_Interp *interp, int partial));
 void             StdinProc _ANSI_ARGS_((ClientData clientData,
                             int mask));
 void reaper();
-int sampleFunc (performanceStream *ps, metricInstance *mi, 
-		timeStamp startTimeStamp, timeStamp endTimeStamp, 
-		sampleValue value);
 void controlFunc (performanceStream *ps, resource *parent, 
                   resource *newResource, char *name);
 void foldFunc (performanceStream *ps, timeStamp width);
@@ -191,15 +191,6 @@ void reaper()
     } else {
         printf("%x\n", status);
     }
-}
-
-int sampleFunc(performanceStream *ps, 
-           metricInstance *mi, 
-           timeStamp startTimeStamp, 
-           timeStamp endTimeStamp, 
-           sampleValue value)
-{
-    return(0);
 }
 
 void controlFunc (performanceStream *ps , 
@@ -410,7 +401,7 @@ UImain(CLargStruct *clargs)
     controlFuncs.rFunc = controlFunc;
     controlFuncs.mFunc = NULL;
     controlFuncs.fFunc = foldFunc;
-    dataFunc.sample = sampleFunc;
+    dataFunc.sample = NULL;
     uim_defaultStream = dataMgr->createPerformanceStream(context, Sample, 
         dataFunc, controlFuncs);
     dataMgr->enableResourceCreationNotification(uim_defaultStream, uim_rootRes);

@@ -1,8 +1,11 @@
 /* $Log: main.C,v $
-/* Revision 1.5  1994/04/28 22:07:39  newhall
-/* added PARADYN_DEBUG macro: prints debug message if PARADYNDEBUG
-/* environment variable has value >= 1
+/* Revision 1.6  1994/05/10 03:57:54  hollings
+/* Changed data upcall to return array of buckets.
 /*
+ * Revision 1.5  1994/04/28  22:07:39  newhall
+ * added PARADYN_DEBUG macro: prints debug message if PARADYNDEBUG
+ * environment variable has value >= 1
+ *
  * Revision 1.4  1994/04/21  23:25:19  hollings
  * changed to no initial paradynd being defined.
  *
@@ -71,11 +74,10 @@ void print_debug_macro(const char* format, ...){
   return;
 }
 
-int eFunction(int errno, char *message)
+void eFunction(int errno, char *message)
 {
     printf("error: %s\b", message);
     abort();
-    return(-1);
 }
 
 int

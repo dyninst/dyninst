@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.21  1994/05/09 20:56:20  hollings
+ * Revision 1.22  1994/05/10 03:57:37  hollings
+ * Changed data upcall to return array of buckets.
+ *
+ * Revision 1.21  1994/05/09  20:56:20  hollings
  * added changeState callback.
  *
  * Revision 1.20  1994/05/02  20:37:45  hollings
@@ -145,14 +148,13 @@ void performanceStream::disableResourceCreationNotification(resource *r)
 }
 
 void performanceStream::callSampleFunc(metricInstance *mi,
-				       double startTimeStamp,
-				       double endTimeStamp,
-				       double value) 
+				       sampleValue *buckets,
+				       int count,
+				       int first)
 {
     if (dataFunc.sample) {
 	dm->setTid(threadId);
-	dm->newPerfData(dataFunc.sample, this, mi, startTimeStamp, 
-		    endTimeStamp, value);
+	dm->newPerfData(dataFunc.sample, this, mi, buckets, count, first);
     }
 }
 

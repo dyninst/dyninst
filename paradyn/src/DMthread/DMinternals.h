@@ -3,7 +3,10 @@
  * Define the classes used in the implementation of the data manager.
  *
  * $Log: DMinternals.h,v $
- * Revision 1.13  1994/05/09 20:56:19  hollings
+ * Revision 1.14  1994/05/10 03:57:36  hollings
+ * Changed data upcall to return array of buckets.
+ *
+ * Revision 1.13  1994/05/09  20:56:19  hollings
  * added changeState callback.
  *
  * Revision 1.12  1994/04/19  22:08:37  rbi
@@ -188,7 +191,7 @@ class performanceStream {
 	void disableDataCollection(metricInstance*);
 	void enableResourceCreationNotification(resource*);
 	void disableResourceCreationNotification(resource*);
-	void callSampleFunc(metricInstance *, double, double, double);
+	void callSampleFunc(metricInstance *, sampleValue*, int, int);
 	void callResourceFunc(resource *p, resource *c, char *name);
 	void callFoldFunc(timeStamp width);
 	void callStateFunc(appState state);

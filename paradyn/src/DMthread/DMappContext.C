@@ -2,7 +2,10 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.17  1994/05/09 20:56:18  hollings
+ * Revision 1.18  1994/05/10 03:57:35  hollings
+ * Changed data upcall to return array of buckets.
+ *
+ * Revision 1.17  1994/05/09  20:56:18  hollings
  * added changeState callback.
  *
  * Revision 1.16  1994/04/20  15:30:09  hollings
@@ -425,9 +428,9 @@ float applicationContext::getPredictedDataCost(resourceList *rl, metric *m)
     return(max);
 }
 
-void histDataCallBack(timeStamp start, 
-		      timeStamp stop, 
-		      timeStamp value,
+void histDataCallBack(sampleValue *buckets,
+		      int count,
+		      int first,
 		      void *arg)
 {
     metricInstance *mi;
@@ -436,7 +439,7 @@ void histDataCallBack(timeStamp start,
 
     mi = (metricInstance *) arg;
     for (curr = mi->users; ps = *curr; curr++) {
-	ps->callSampleFunc(mi, start, stop, value);
+	ps->callSampleFunc(mi, buckets, count, first);
     }
 }
 

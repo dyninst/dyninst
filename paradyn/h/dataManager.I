@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.12  1994/05/09 20:53:35  hollings
+ * Revision 1.13  1994/05/10 03:57:28  hollings
+ * Changed data upcall to return array of buckets.
+ *
+ * Revision 1.12  1994/05/09  20:53:35  hollings
  * added changeState to dataManager, and clearSHG to performanceConsultant.
  *
  * Revision 1.11  1994/04/21  23:40:28  hollings
@@ -86,7 +89,7 @@ typedef enum { Trace, Sample } dataType;
  * error handler call back.
  *
  */
-typedef (*errorHandler)(int errno, char *message);
+typedef void (*errorHandler)(int errno, char *message);
 
 /*
  * Handler that gets called when new sample data is delivered.
@@ -98,11 +101,11 @@ typedef (*errorHandler)(int errno, char *message);
  *   value - the value of this sample
  *    
  */
-typedef (*sampleDataCallbackFunc)(performanceStream *ps, 
-				  metricInstance *mi,
-				  timeStamp startTimeStamp, 
-				  timeStamp endTimeStamp, 
-				  sampleValue value);
+typedef void (*sampleDataCallbackFunc)(performanceStream *ps, 
+				       metricInstance *mi,
+				       sampleValue *buckets,
+				       int count,
+				       int total);
 
 /*
  * Handler that gets called when new trace data is available.
@@ -113,7 +116,7 @@ typedef (*sampleDataCallbackFunc)(performanceStream *ps,
  *   eventSize - size of the event specific data.
  *   eventData - event specific data.
  */
-typedef (*traceDataCallbackFunc)(performanceStream *ps, metricInstance *mi,
+typedef void (*traceDataCallbackFunc)(performanceStream *ps, metricInstance *mi,
     timeStamp time, int eventSize, void *eventData);
 
 /*
@@ -409,9 +412,9 @@ $remote dataManager {
     $upcall $async void newPerfData(sampleDataCallbackFunc, 
 				    performanceStream *ps,
 				    metricInstance *mi,
-				    timeStamp startTimeStamp, 
-				    timeStamp endTimeStamp, 
-				    sampleValue value);
+				    sampleValue *buckets,
+				    int total,
+				    int first);
 
     $upcall $async void histFold(histFoldCallback, 
 				 performanceStream *ps, 

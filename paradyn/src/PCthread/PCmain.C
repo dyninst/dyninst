@@ -1,8 +1,11 @@
 
 /* $Log: PCmain.C,v $
-/* Revision 1.9  1994/05/06 06:39:34  karavan
-/* SHG now initialized only upon request
+/* Revision 1.10  1994/05/10 03:57:43  hollings
+/* Changed data upcall to return array of buckets.
 /*
+ * Revision 1.9  1994/05/06  06:39:34  karavan
+ * SHG now initialized only upon request
+ *
  * Revision 1.8  1994/05/02  20:38:10  hollings
  * added pause search mode, and cleanedup global variable naming.
  *
@@ -28,19 +31,36 @@ performanceStream *pcStream;
 extern void initResources();
 extern thread_t MAINtid;
 int SHGid;             // id needed for Search History Graph uim dag calls
+static float PCbucketWidth;
+
+void PCfold(performanceStream *ps,
+	    float newWidth)
+{
+    PCbucketWidth = newWidth;
+}
 
 void PCnewData(performanceStream *ps,
 	       metricInstance *mi,
-	       timeStamp startTimeStamp,
-	       timeStamp endTimeStamp, 
-	       sampleValue value)
+	       sampleValue *buckets,
+	       int count, 
+	       int first)
 {
+    int i;
     datum *dp;
+    sampleValue total;
+    timeStamp start, end;
 
-    // printf("mi %x = %f %f to %f\n", mi, value, startTimeStamp, endTimeStamp);
+    for (i=0, total = 0.0; i < count; i++) {
+	// printf("mi %x = bin %d == %f\n", mi, i+first, buckets[i]);
+	total += buckets[i];
+    }
+    total *= PCbucketWidth;
+
     dp = miToDatumMap.find(mi);
     assert(dp);
-    dp->newSample(startTimeStamp, endTimeStamp, value);
+    start = PCbucketWidth * first;
+    end = PCbucketWidth * (first + count);
+    dp->newSample(start, end, total);
 }
 
 void PCnewInfo()
@@ -88,9 +108,11 @@ void PCmain(int arg)
     initResources();
     controlHandlers.mFunc = PCmetricFunc;
     controlHandlers.rFunc = NULL;
-    dataHandlers.sample = (sampleDataCallbackFunc) PCnewData;
+    controlHandlers.fFunc = PCfold;
+    dataHandlers.sample = PCnewData;
     pcStream = dataMgr->createPerformanceStream(context, Sample, 
 	dataHandlers, controlHandlers);
+    PCbucketWidth = dataMgr->getCurrentBucketWidth();
 
     // now find about existing metrics.
     mets = dataMgr->getAvailableMetrics(context);
