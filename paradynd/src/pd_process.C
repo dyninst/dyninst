@@ -526,10 +526,20 @@ void pd_process::paradynExecDispatch(BPatch_thread *dyn_proc) {
    }
 }
 
-void pd_process::paradynExitDispatch(BPatch_thread *thread, int exitCode) {
+void pd_process::paradynExitDispatch(BPatch_thread *thread, 
+                                     BPatch_exitType exit_type) {
    pd_process *matching_pd_process = getProcMgr().find_pd_process(thread);
+   int code = 0;
+   assert(thread->terminationStatus() == exit_type);
+
+   if(exit_type == ExitedNormally) {      
+      code = thread->getExitCode();
+   } else if(exit_type == ExitedViaSignal) {
+      code = - (thread->getExitSignal());
+   } else   assert(false);
+
    if(matching_pd_process)
-      matching_pd_process->handleExit(exitCode);
+      matching_pd_process->handleExit(code);
 }
 
 void pd_process::preForkHandler() {
@@ -652,7 +662,7 @@ bool pd_process::loadParadynLib(load_cause_t ldcause) {
         if(hasExited()) return false;
         launchRPCs(false);
         
-        decodeAndHandleProcessEvent(true);
+        getSH()->checkForAndHandleProcessEvents(true);
     }
     removeAst(loadLib);
 
@@ -912,7 +922,7 @@ bool pd_process::iRPCParadynInit() {
     while(!reachedLibState(paradynRTState, libReady)) {
        if(hasExited()) return false;
         launchRPCs(false);
-        decodeAndHandleProcessEvent(true);
+        getSH()->checkForAndHandleProcessEvents(true);
     }
     return true;
 }
@@ -1044,7 +1054,7 @@ bool pd_process::loadAuxiliaryLibrary(pdstring libname) {
     while (!reachedLibState(auxLibState, libLoaded)) {
         if(hasExited()) return false;
         launchRPCs(false);
-        decodeAndHandleProcessEvent(true);
+        getSH()->checkForAndHandleProcessEvents(true);
     }
     removeAst(loadLib);
     return true;
@@ -1417,6 +1427,15 @@ void pd_process::MonitorDynamicCallSites(pdstring function_name) {
    pdvector<instPoint*> callPoints;
    process *llproc = get_dyn_process()->lowlevel_process();
    callPoints = func->funcCalls(llproc);
+
+   bool needToCont = false;  
+   if(status() == running && callPoints.size() > 0) {
+      // going to insert instrumentation, pause it from up here.
+      // pausing at lower levels can cause performance problems, particularly
+      // on ptrace systems, where pauses are slow
+      if(pause() == true)
+         needToCont = true;
+   }
   
    for(unsigned i = 0; i < callPoints.size(); i++) {
       if(!findCallee(*(callPoints[i]), temp)) {
@@ -1428,6 +1447,9 @@ void pd_process::MonitorDynamicCallSites(pdstring function_name) {
          }
       }
    }
+
+   if(needToCont)
+      continueProc();
 }
 
 bool reachedLibState(libraryState_t lib, libraryState_t state) {
