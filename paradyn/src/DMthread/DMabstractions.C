@@ -2,6 +2,9 @@
  * DMabstractions.C: code to handle programming abstractions
  *
  * $Log: DMabstractions.C,v $
+ * Revision 1.5  1995/11/08 06:22:19  tamches
+ * removed some warnings
+ *
  * Revision 1.4  1995/06/02 20:48:12  newhall
  * * removed all pointers to datamanager class objects from datamanager
  *    interface functions and from client threads, objects are now
@@ -47,7 +50,7 @@ abstraction::abstraction(const char *a)
 
 void abstraction::print()
 {
-    printf("%s ", (char *) name.string_of());
+    printf("%s ", name.string_of());
 }
 
 abstraction *AMfind(const char *aname) 
@@ -84,7 +87,7 @@ void AMnewResource(const char *parent, const char *name, const char *abstr)
   a = AMfind(abstr);
   if (a) {
     printf("AMnewResource: received new resource for abstraction '%s'\n", 
-	   (char *) a->getName());
+	   a->getName());
   }
 }
 

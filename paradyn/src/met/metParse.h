@@ -1,6 +1,9 @@
 
 /*
  * $Log: metParse.h,v $
+ * Revision 1.6  1995/11/08 06:23:16  tamches
+ * removed some warnings
+ *
  * Revision 1.5  1995/05/18 10:58:32  markc
  * mdl
  *
@@ -55,7 +58,7 @@ class daemonMet;
 class tunableMet;
 
 extern metError metParseError;
-extern char *metParseError_list[6];
+extern const char *metParseError_list[6];
 
 typedef struct iop_struct {
   unsigned type;

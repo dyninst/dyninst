@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.63  1995/11/08 05:10:03  tamches
-/* removed reference to obsolete file dag.h
+/* Revision 1.64  1995/11/08 06:24:15  tamches
+/* removed some warnings
 /*
+ * Revision 1.63  1995/11/08 05:10:03  tamches
+ * removed reference to obsolete file dag.h
+ *
  * Revision 1.62  1995/11/06 02:40:19  tamches
  * added an include to tkTools.h
  * removed several warnings
@@ -231,6 +234,8 @@
  *
  */
 
+#include "tclclean.h"
+#include "tkclean.h"
 
 #include "util/h/headers.h"
 #include <sys/param.h>
@@ -450,8 +455,8 @@ void *UImain(void*) {
 		      (Tcl_CmdDeleteProc *) NULL);
 
     /* tell interpreter where the tcl files are */
-    char *temp;
-    if ((temp = (char *) getenv("PARADYNTCL")) != 0) {
+    const char *temp;
+    if ((temp = getenv("PARADYNTCL")) != 0) {
         if (Tcl_VarEval (interp, "set auto_path [linsert $auto_path 0 ",
 		 temp, "]", 0) == TCL_ERROR)
           printf ("can't set auto_path: %s\n", interp->result);

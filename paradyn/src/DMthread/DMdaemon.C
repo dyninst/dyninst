@@ -523,7 +523,7 @@ float paradynDaemon::predictedDataCost(resourceList *rl, metric *m)
 
     double max = 0.0;
 
-    char *metName = (char *)m->getName();
+    const char *metName = m->getName();
     assert(metName);
 
     double val;
@@ -583,8 +583,8 @@ bool paradynDaemon::enableData(resourceListHandle r_handle,
         pd = paradynDaemon::allDaemons[i];
         id = pd->enableDataCollection(vs, (const char*) m->getName(), mi->id);
         if (printChangeCollection.getValue()) {
-            cout << "EDC:  " << (char*)m->getName()
-   	            << (char *) rl->getName() << " " << id <<"\n";
+            cout << "EDC:  " << m->getName()
+   	            << rl->getName() << " " << id <<"\n";
         }
 	if (id > 0 && !pd->did_error_occur()) {
 	    component *comp = new component(pd, id, mi);

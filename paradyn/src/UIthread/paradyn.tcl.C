@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.55  1995/11/08 05:11:10  tamches
-/* no longer prints a msg when a tunable constant value is changed
+/* Revision 1.56  1995/11/08 06:25:22  tamches
+/* removed some warnings
 /*
+ * Revision 1.55  1995/11/08 05:11:10  tamches
+ * no longer prints a msg when a tunable constant value is changed
+ *
  * Revision 1.54  1995/11/07 03:11:31  tamches
  * allowed blank directory names in paradynProcessCmd, fixing a bug of last commit
  *
@@ -205,6 +208,10 @@
  */
 
 #include <string.h>
+
+#include "tclclean.h"
+#include "tkclean.h"
+
 #include "UIglobals.h"
 #include "paradyn/src/DMthread/DMinclude.h"
 #include "../TCthread/tunableConst.h"
@@ -260,7 +267,7 @@ int ParadynMetricsCmd(ClientData,
 {
   vector<string> *ml = dataMgr->getAvailableMetrics();
   for (unsigned i=0; i < ml->size(); i++)
-    Tcl_AppendElement(interp, (char *)((*ml)[i]).string_of());
+    Tcl_AppendElement(interp, (*ml)[i].string_of());
   delete ml;
   return TCL_OK;
 }
@@ -273,7 +280,7 @@ int ParadynDaemonsCmd(ClientData,
 {
   vector<string> *dl = dataMgr->getAvailableDaemons();
   for (unsigned i=0; i < dl->size(); i++)
-    Tcl_AppendElement(interp, (char *)((*dl)[i]).string_of());
+    Tcl_AppendElement(interp, (*dl)[i].string_of());
   delete dl;
   return TCL_OK;
 }

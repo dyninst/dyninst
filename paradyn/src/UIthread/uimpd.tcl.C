@@ -3,9 +3,12 @@
    is used internally by the UIM.
 */
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.23  1995/11/06 02:35:05  tamches
-/* removed some warnings w/g++2.7
+/* Revision 1.24  1995/11/08 06:26:11  tamches
+/* removed some warnings
 /*
+ * Revision 1.23  1995/11/06 02:35:05  tamches
+ * removed some warnings w/g++2.7
+ *
  * Revision 1.22  1995/10/17 22:12:24  tamches
  * commented out closeDAGCmd, addEStyleCmd, addNStyleCmd,
  * refineSHGCmd, hideSubgraphCmd, showAllNodesCmd, shgShortExplainCmd,
@@ -89,6 +92,8 @@
  * */
  
 #include <stdlib.h>
+#include "tclclean.h"
+#include "tkclean.h"
 
 extern "C" {
   int atoi(const char*);
@@ -555,7 +560,7 @@ int drawStartVisiMenuCmd (ClientData,
   Tcl_DStringInit(&numlist);
   
   for (i = 0; i < count; i++) {
-    Tcl_DStringAppendElement(&namelist, (char *)((*via)[i]).name.string_of());
+    Tcl_DStringAppendElement(&namelist, (*via)[i].name.string_of());
     sprintf (num, "%d", ((*via)[i]).visiTypeId);
     Tcl_DStringAppendElement(&numlist, num);
   }

@@ -3,6 +3,9 @@
  * Implements classes used for metric description language
  *
  * $Log: metClass.C,v $
+ * Revision 1.5  1995/11/08 06:23:33  tamches
+ * removed some warnings
+ *
  * Revision 1.4  1995/05/18 10:58:15  markc
  * Added mdl hooks
  *
@@ -39,13 +42,13 @@ void add_string_list(string& name, vector<string>& elem) {
 }
 
 metError metParseError = ERR_NO_ERROR;
-char *metParseError_list[6] = {"No error",
-			       "Name in use, by different type",
-			       "Name in use, by same type",
-			       "Name in use",
-			       "Bad arguments",
-			       "Malloc",
-			       };
+const char *metParseError_list[6] = {"No error",
+				     "Name in use, by different type",
+				     "Name in use, by same type",
+				     "Name in use",
+				     "Bad arguments",
+				     "Malloc",
+				   };
 
 void handle_error() 
 {

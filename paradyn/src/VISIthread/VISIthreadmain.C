@@ -22,9 +22,12 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.48  1995/11/03 00:07:27  newhall
-/* removed sending SIGKILL signal to visi process before thread exits
+/* Revision 1.49  1995/11/08 06:26:56  tamches
+/* removed some warnings
 /*
+ * Revision 1.48  1995/11/03 00:07:27  newhall
+ * removed sending SIGKILL signal to visi process before thread exits
+ *
  * Revision 1.47  1995/10/13  22:08:54  newhall
  * added phaseType parameter to VISIthreadDataHandler.   Purify fixes.
  *
@@ -211,7 +214,7 @@
 #define DEBUG3
 */
 
-char *AbbreviatedFocus(char *);
+char *AbbreviatedFocus(const char *);
 
 /*
 #define  ASSERTTRUE(x) assert(x); 
@@ -675,7 +678,7 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
 	  matrix.met.aggregate = AVE;
 	  matrix.res.Id = newEnabled[l]->r_id;
 	  if((matrix.res.name = 
-	      AbbreviatedFocus((char *)newEnabled[l]->focus_name.string_of()))
+	      AbbreviatedFocus(newEnabled[l]->focus_name.string_of()))
 	      ==0){
 	      ERROR_MSG(12,"in VISIthreadchooseMetRes");
 	      ptr->quit = 1;
@@ -1018,7 +1021,7 @@ void visiUser::handle_error()
   }
 }
 
-char *AbbreviatedFocus(char *longName){
+char *AbbreviatedFocus(const char *longName){
 
 int i,size,num = 0;
 int flag  = 0;
