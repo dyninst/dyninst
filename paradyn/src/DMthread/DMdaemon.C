@@ -561,12 +561,12 @@ float paradynDaemon::predictedDataCost(resourceList *rl, metric *m)
     vector<u_int> focus;
     assert(rl->convertToIDList(focus));
 
-    double max = 0.0;
+    float max = 0.0;
 
     const char *metName = m->getName();
     assert(metName);
 
-    double val;
+    float val;
     paradynDaemon *pd;
     for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
         pd = paradynDaemon::allDaemons[i];

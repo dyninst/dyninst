@@ -27,7 +27,11 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.35  1996/02/22 23:41:40  newhall
+ * Revision 1.36  1996/02/27 20:10:08  naim
+ * Changing getPredictedDataCost from double to float for consistency (it was
+ * double in some places and float in some others) - naim
+ *
+ * Revision 1.35  1996/02/22  23:41:40  newhall
  * removed getCurrentSmoothObsCost, and fix to costMetric::updateSmoothValue
  *
  * Revision 1.34  1996/02/13  22:18:04  newhall
@@ -230,7 +234,7 @@ vector<T_dyninstRPC::metricInfo> dynRPC::getAvailableMetrics(void) {
   return(metInfo);
 }
 
-double dynRPC::getPredictedDataCost(vector<u_int> focus, string metName)
+float dynRPC::getPredictedDataCost(vector<u_int> focus, string metName)
 {
     if (!metName.length()) return(0.0);
     return (guessCost(metName, focus));

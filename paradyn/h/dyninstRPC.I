@@ -449,7 +449,7 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 31;
+    $version 32;
 
     //
     // Define a program to run. 
@@ -608,7 +608,7 @@ $remote dynRPC {
     //    metric at a given focus.  The value returned is the fraction of
     //    perturbation expected (i.e. 0.10 == 10% slow down expected).
     //
-    double getPredictedDataCost(vector<u_int> focus, string metric);
+    float getPredictedDataCost(vector<u_int> focus, string metric);
 
     //
     // Get the static configuration information.
