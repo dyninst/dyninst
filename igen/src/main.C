@@ -262,6 +262,8 @@ static void init_header_files() {
   Options::temp_dot_c << "#pragma implementation \"" << base << "h\"\n";
   Options::temp_dot_c << "#include \"" << base << "h\"\n";
   Options::temp_dot_c << "#include \"util/h/String.h\"\n";
+/* trace data streams */
+  Options::temp_dot_c << "#include \"util/h/ByteArray.h\"\n";
 
   Options::dot_h << "#ifndef " << cpp_base << "BASE_H\n";
   Options::dot_h << "#define " << cpp_base << "BASE_H\n";
@@ -354,6 +356,9 @@ static void init_types() {
 		    NULL);
   Options::add_type("string", false, false, false, "", type_defn::TYPE_SCALAR, false, true,
 		    NULL, "", "string_pd");
+/* trace data streams */
+  Options::add_type("byteArray", false, false, false, "", type_defn::TYPE_SCALAR, false, true,
+                    NULL, "", "byteArray_pd");
 }
 
 static bool set_ml(const string ml_name) {

@@ -47,6 +47,8 @@
  */
 
 #include "util/h/String.h"
+/* trace data streams */
+#include "util/h/ByteArray.h"
 #include "util/h/Vector.h"
 #include "util/h/Dictionary.h"
 #include <fstream.h>
