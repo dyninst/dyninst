@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.166 2004/03/23 01:12:09 eli Exp $
+// $Id: solaris.C,v 1.167 2004/04/06 16:37:18 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -821,34 +821,35 @@ Frame Frame::getCallerFrame(process *p) const
    ret.pid_ = pid_;
    ret.thread_ = thread_;
    ret.lwp_ = lwp_;
-   
    if (uppermost_) {
-      function_base *func = p->findFuncByAddr(pc_);
-      if (func) {
-         if (func->hasNoStackFrame()) { // formerly "isLeafFunc()"
-            if (lwp_) { // We have a LWP and are prepared to use it
-               struct dyn_saved_regs regs;
-               bool status = lwp_->getRegisters(&regs);
-               assert(status == true);
-               ret.pc_ = regs.theIntRegs[R_O7] + 8;
-               ret.fp_ = fp_; // frame pointer unchanged
-               return ret;
-               
-            }
-            else if (thread_)
-               cerr << "Not implemented yet" << endl;
-            else {
-               struct dyn_saved_regs regs;
-               bool status = p->getRepresentativeLWP()->getRegisters(&regs);
-               assert(status == true);
-               ret.pc_ = regs.theIntRegs[R_O7] + 8;
-               ret.fp_ = fp_;
-               return ret;
-            }
-         }
-      }
+       codeRange *range = p->findCodeRangeByAddress(pc_);
+       function_base *func = range->is_pd_Function();
+       if (func) {
+           if (func->hasNoStackFrame()) { // formerly "isLeafFunc()"
+               if (lwp_) { // We have a LWP and are prepared to use it
+                   struct dyn_saved_regs regs;
+                   bool status = lwp_->getRegisters(&regs);
+                   assert(status == true);
+                   ret.pc_ = regs.theIntRegs[R_O7] + 8;
+                   ret.fp_ = fp_; // frame pointer unchanged
+                   ret.frameType_ = FRAME_normal;
+                   return ret;
+                   
+               }
+               else if (thread_)
+                   cerr << "Not implemented yet" << endl;
+               else {
+                   struct dyn_saved_regs regs;
+                   bool status = p->getRepresentativeLWP()->getRegisters(&regs);
+                   assert(status == true);
+                   ret.pc_ = regs.theIntRegs[R_O7] + 8;
+                   ret.fp_ = fp_;
+                   ret.frameType_ = FRAME_normal;
+                   return ret;
+               }
+           }
+       }
    }
-   
    //
    // For the sparc, register %i7 is the return address - 8 and the fp is
    // register %i6. These registers can be located in %fp+14*5 and
@@ -869,6 +870,8 @@ Frame Frame::getCallerFrame(process *p) const
       ret.fp_ = addrs.fp;
       ret.pc_ = addrs.rtn + 8;
       
+      // Check if we're in a sig handler, since we don't know if the
+      // _current_ frame has its type set at all.
       if (p->isInSignalHandler(pc_)) {
          // get the value of the saved PC: this value is stored in the
          // address specified by the value in register i2 + 44. Register i2
@@ -886,18 +889,30 @@ Frame Frame::getCallerFrame(process *p) const
                ret.pc_ = saved_pc;
                if (func && func->hasNoStackFrame())
                   ret.fp_ = fp_;
-               
                return ret;
             }
          }
          return Frame();
       }
+      
+      // If we're in a base tramp, skip this frame (return getCallerFrame)
+      // as we only return minitramps
+      codeRange *range = p->findCodeRangeByAddress(ret.pc_);
+      if (range->is_basetramp())
+          return ret.getCallerFrame(p);
+
       if(p->multithread_capable()) {
          // MT thread adds another copy of the start function
          // to the top of the stack... this breaks instrumentation
          // since we think we're at a function entry.
          if (ret.fp_ == 0) ret.pc_ = 0;
       }
+
+      // Check if the _current_ PC is in a signal handler, and if so set the type
+      if (p->isInSignalHandler(ret.pc_)) {
+          ret.frameType_ = FRAME_signalhandler;
+      }
+
       return ret;
    }
   
