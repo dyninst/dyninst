@@ -4,10 +4,13 @@
 // Implementations of new commands and tk bindings related to the where axis.
 
 /* $Log: whereAxisTcl.C,v $
-/* Revision 1.3  1995/07/24 21:37:37  tamches
-/* better existsCurrent() error checking.
-/* Implemented alt-freescroll feature
+/* Revision 1.4  1995/08/04 19:19:25  tamches
+/* Commented out some cout statements that are for debugging only.
 /*
+ * Revision 1.3  1995/07/24  21:37:37  tamches
+ * better existsCurrent() error checking.
+ * Implemented alt-freescroll feature
+ *
  * Revision 1.2  1995/07/18  03:41:27  tamches
  * Added ctrl-double-click feature for selecting/unselecting an entire
  * subtree (nonrecursive).  Added a "clear all selections" option.
@@ -368,7 +371,7 @@ int whereAxisAltPressCommand(ClientData cd, Tcl_Interp *interp,
       return TCL_OK;
    }
    else {
-      cout << "I detect mouse-motion w/alt pressed at (" << x << ", " << y << ")" << "; installing handler" << endl;
+//      cout << "I detect mouse-motion w/alt pressed at (" << x << ", " << y << ")" << "; installing handler" << endl;
 
       altAnchorX = x;
       altAnchorY = y;
@@ -394,7 +397,7 @@ int whereAxisAltReleaseCommand(ClientData cd, Tcl_Interp *interp,
    // installed by the above routine.
 
    if (currentlyInstalledAltMoveHandler) {
-      cout << "releasing alt-move event handler now." << endl;
+//      cout << "releasing alt-move event handler now." << endl;
       currentlyInstalledAltMoveHandler = false;
    }
    else {

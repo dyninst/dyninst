@@ -103,7 +103,7 @@ int nonSliderSubtreeCenter;
 int nonSliderSubtreeTop;
 
 void nonSliderCallMeOnButtonRelease(ClientData cd, XEvent *theEvent) {
-   cout << "welcome to non-slider button release...un-installing timer handler" << endl;
+//   cout << "welcome to non-slider button release...un-installing timer handler" << endl;
 
    nonSliderButtonCurrentlyPressed = false;
    Tk_DeleteTimerHandler(buttonAutoRepeatToken);
