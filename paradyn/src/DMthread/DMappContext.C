@@ -2,7 +2,10 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.41  1994/11/02 11:45:12  markc
+ * Revision 1.42  1994/11/03 16:10:11  rbi
+ * Updated addExecutable
+ *
+ * Revision 1.41  1994/11/02  11:45:12  markc
  * Put a hack into addExecutable to handle incorrect parameters passed in.
  *
  * Revision 1.40  1994/09/22  00:52:29  markc
@@ -410,31 +413,28 @@ Boolean applicationContext::addExecutable(char  *machine,
   int pid;
   executable *exec;
   paradynDaemon *daemon;
-  String_Array programToRun;
+  String_Array programToRun; 
 
-  // change all "" to NULL
-  fixArg(machine); fixArg(login); fixArg(name); fixArg(dir);
 
   if ((daemon = getDaemonHelper(machine, login, name)) ==
       (paradynDaemon*) NULL)
     return FALSE;
 
-  // KLUDGE -  TODO 
-  // argv is not always null terminated - look into this
-  // programToRun.count = argc;
-  // programToRun.data = argv;
+  //
+  //  we assume that argv is null terminated
+  //  our String_array must also be null terminated
+  //
+  assert(argv[argc] == NULL);
   programToRun.count = argc+1;
   programToRun.data = new char*[argc+1];
   int i;
-  for (i=0; i<argc; i++)
+  for (i=0; i<=argc; i++)
     programToRun.data[i] = argv[i];
-  programToRun.data[argc] = (char*)NULL;
 
   startResourceBatchMode();
-  pid = daemon->addExecutable(argc, programToRun);
+  pid = daemon->addExecutable(programToRun);
   endResourceBatchMode();
 
-  // part of the previous kludge
   delete [] programToRun.data;
 
   // did the application get started ok?
