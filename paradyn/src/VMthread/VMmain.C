@@ -16,10 +16,13 @@
  */
 
 /* $Log: VMmain.C,v $
-/* Revision 1.15  1994/08/13 20:54:26  newhall
-/* visi_thread_args def. changed
-/* VMCreateVisi arguments changed
+/* Revision 1.16  1994/08/16 16:35:53  markc
+/* Removed uses of old string iterators.  Added new VMAddNewVisualization function to support config language.
 /*
+ * Revision 1.15  1994/08/13  20:54:26  newhall
+ * visi_thread_args def. changed
+ * VMCreateVisi arguments changed
+ *
  * Revision 1.14  1994/08/01  17:20:32  newhall
  * bug fixes to VMVisiDied and VMCreateVisi
  *
@@ -87,119 +90,119 @@ VM_activeVisiInfo_Array VM::VMActiveVisis(){
 
   VM_activeVisiInfo_Array temp;
   VMactiveVisi *tempdata;
+  List<VMactiveVisi*> walk;
   int i;
 
   temp.count = activeVisis.count(); 
-  if((temp.data  = 
-      (VM_activeVisiInfo *) malloc(sizeof(VM_activeVisiInfo)*temp.count))
-      == NULL){
+  if (!(temp.data = new VM_activeVisiInfo[temp.count])) {
     ERROR_MSG(18,"malloc in VMActiveVisis");
+    temp.count = 0;
+    temp.data = (VM_activeVisiInfo*) NULL;
+    return temp;
   }
 
-  activeVisis.setCurrent();
-  for(i=0; i < temp.count; i++){
-     if((tempdata = activeVisis.getCurrent()) == 0){
-       PARADYN_DEBUG(("Error in getCurrent() in VMActiveVisis")); 
-       ERROR_MSG(20,"Error in getCurrent() in VMActiveVisis");
-     } 
-     if(tempdata != 0){
-       temp.data[i].visiNum = tempdata->visiThreadId;
-       temp.data[i].visiTypeId = tempdata->visiTypeId;
-       if(tempdata->name != NULL){
-         if((temp.data[i].name = strdup(tempdata->name)) == NULL){
-	   ERROR_MSG(19,"strdup in VM::ActiveVisis");
-	   tempdata->name = NULL;
-         }
-       }
-       else{
-	 temp.data[i].name = NULL;
-	 printf("error #: informational, active visi %d name = NULL\n",i);
-       }
-     } 
-     activeVisis.advanceCurrent();
+  for (walk=activeVisis, i=0; tempdata = *walk; i++, walk++) {
+    temp.data[i].visiNum = tempdata->visiThreadId;
+    temp.data[i].visiTypeId = tempdata->visiTypeId;
+    if(tempdata->name) {
+      if(!(temp.data[i].name = strdup(tempdata->name))) {
+	ERROR_MSG(19,"strdup in VM::ActiveVisis");
+      }
+    } else
+      temp.data[i].name = (char*) NULL;
   }
   return(temp);
 }
-
 
 VM_visiInfo_Array VM::VMAvailableVisis(){
 
   VM_visiInfo_Array  temp; 
   int i;
   VMvisis *temp2;
+  List<VMvisis*> vlist;
 
   PARADYN_DEBUG(("in VMAvailableVisis"));
   temp.count = visiList.count();
-  if((temp.data  = (VM_visiInfo *)malloc(sizeof(VM_visiInfo)*temp.count))
-       == NULL){ 
+
+  if(!(temp.data = new VM_visiInfo[temp.count])) {
     ERROR_MSG(18, "malloc in VMAvailableVisis");
+    temp.count = 0;
+    temp.data = (VM_visiInfo*) NULL;
+    return temp;
   }
-  visiList.setCurrent();
-  for(i=0; i < temp.count; i++){
-    if((temp2 = visiList.getCurrent()) == 0){
-       PARADYN_DEBUG(("Error in getCurrent() in VMAvailableVisis"));
-       ERROR_MSG(20,"Error in getCurrent() in VMAvailableVisis");
-    }
-    else{
-      temp.data[i].visiTypeId = temp2->Id;
-      if(temp2->name != NULL){
-        if((temp.data[i].name = strdup(temp2->name)) == NULL){
-	  ERROR_MSG(19,"strdup in VM::AvailableVisis");
-	  temp.data[i].name = NULL;
-        }
+
+  for (vlist=visiList, i=0; temp2 = *vlist; i++, vlist++) {
+    temp.data[i].visiTypeId = temp2->Id;
+    if (temp2->name) {
+      if(!(temp.data[i].name = strdup(temp2->name))) {
+	ERROR_MSG(19,"strdup in VM::AvailableVisis");
       }
-      else
-	temp.data[i].name = NULL;
     }
-    visiList.advanceCurrent();
+    else
+      temp.data[i].name = (char*) NULL;
   }
   return(temp);
-
 }
 
-
+// 
+// Called to add a new visualization
+//
+// name = unique name
+// argv = the command line used to start the visi
+// 
+// Note - this may add the visi to the list, or update an entry in the
+//            list
+//        this function uses pointers to the arguments, it does not
+//            copy them
 int VM::VMAddNewVisualization(char *name,
 			      int argc,
-			      char *argv[]){
+			      char *argv[])
+{
+  VMvisis *temp = (VMvisis*) NULL;
+  int id;
 
-VMvisis *temp;
-int i;
-int id;
+  List<VMvisis *> walk;
 
-  id = visiList.count();
-  id++;
-
-  // create new VMvisis list element and add to visiList
-  if((temp = (VMvisis *)malloc(sizeof(VMvisis))) == NULL){
-    perror("malloc in VM::VMAddNewVisualization");
-    ERROR_MSG(18,"malloc in VM::VMAddNewVisualization");
-    return(VMERROR);
-  }
-  if((temp->argv = (char **)malloc(sizeof(char *)*(argc+1))) == NULL){
-    ERROR_MSG(18,"malloc in VM::VMAddNewVisualization");
-    return(VMERROR);
+  // walk the list to determine if a visi with
+  // this name is on the list
+  for (walk = visiList; temp = *walk; walk++) {
+    if (!strcmp(temp->name, name)) {
+      break;
+    } else
+      temp = (VMvisis*) NULL;
   }
 
-  // argv must be null terminated
-  temp->argv[argc] = (char *) 0;
-  for(i=0;i<argc;i++){
-    if((temp->argv[i] = strdup(argv[i])) == NULL){
-      ERROR_MSG(19,"strdup in VM::VMAddNewVisualization");
+  if (!temp) {
+    // create new VMvisis list element and add to visiList
+    id = visiList.count();
+    id++;
+
+    if (!(temp = new VMvisis)) {
+      perror("malloc in VM::VMAddNewVisualization");
+      ERROR_MSG(18,"malloc in VM::VMAddNewVisualization");
       return(VMERROR);
     }
+    // don't strdup, use the args directly
+    temp->argv = argv;
+    temp->argc = argc;
+    temp->name = name;
+    temp->Id = id;
+    visiList.add(temp,(void *)id);
+  } else {
+    // redefine an existing entry
+    if (temp->argv) {
+      int i=0;
+      while (temp->argv[i]) {
+	delete (temp->argv[i]);
+	i++;
+      }
+      delete (temp->argv);
+    }
+    temp->argv = argv;
+    temp->argc = argc;
   }
-  if((temp->name = strdup(name)) == NULL){
-    ERROR_MSG(19,"strdup in VM::VMAddNewVisualization");
-    return(VMERROR);
-  }
-  temp->argc = argc;
-  temp->Id = id;
-
-  visiList.add(temp,(void *)id);
-
   return(VMOK); 
 }
-
 
 int  VM::VMCreateVisi(int remenuFlag,
 		      int visiTypeId,
