@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.165 2003/08/05 21:49:22 hollings Exp $
+// $Id: aix.C,v 1.166 2003/08/11 11:57:54 tlmiller Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -1319,11 +1319,11 @@ typedef enum { VirtualName, MemberVar, Function, MemberFunction, Class,
 typedef enum { RegularNames = 0x1, ClassNames = 0x2, SpecialNames = 0x4,
                ParameterText = 0x8, QualifierText = 0x10 } DemanglingOptions;
 
-Name *(*P_native_demangle)(char *, char **, unsigned long);
-char *(*P_functionName)(Name *);
-char *(*P_varName)(Name *);
-char *(*P_text)(Name *);
-NameKind (*P_kind)(Name *);
+Name *(*P_native_demangle)(char *, char **, unsigned long) = NULL;
+char *(*P_functionName)(Name *) = NULL;
+char *(*P_varName)(Name *) = NULL;
+char *(*P_text)(Name *) = NULL;
+NameKind (*P_kind)(Name *) = NULL;
 
 #if defined(BPATCH_LIBRARY)
 void loadNativeDemangler() 
@@ -1366,7 +1366,6 @@ void loadNativeDemangler()
 #endif
    }
 }
-
 #endif
 
 extern "C" char *cplus_demangle(char *, int);
@@ -1375,48 +1374,40 @@ extern void dedemangle( const char * demangled, char * dedemangled );
 #define DMGL_PARAMS      (1 << 0)       /* Include function args */
 #define DMGL_ANSI        (1 << 1)       /* Include const, volatile, etc */
 
-NameKind kind;
+char * P_cplus_demangle( const char * symbol, bool nativeCompiler, bool includeTypes ) {
+	/* If the symbol isn't from the native compiler, or the native demangler
+	   isn't available, use the built-in. */
+	if( !nativeCompiler || P_native_demangle == NULL ) {
+		char * demangled = cplus_demangle( const_cast<char *>(symbol),
+					includeTypes ? DMGL_PARAMS | DMGL_ANSI : 0 );
+		if( demangled == NULL ) { return NULL; }
 
-int P_cplus_demangle(const char *symbol, char *prototype, size_t size, bool nativeCompiler, bool includeTypes) 
-{
-   if( !nativeCompiler || P_native_demangle == NULL) {
-	char *demangled_sym = cplus_demangle(const_cast<char*>(symbol),
-                                        includeTypes ? DMGL_PARAMS|DMGL_ANSI :  0);
-        if(demangled_sym==NULL || strlen(demangled_sym) >= size)
-            return 1;
-        if (!includeTypes) {
-            dedemangle( demangled_sym, prototype );
-        } else
-            strncpy(prototype, demangled_sym,size);
-        free(demangled_sym);
-        return 0;
-   } else {
-	// use Native demangler
-	char demangled_sym[1000];
-	Name *name;
-	char *rest;
+		if( ! includeTypes ) {
+			/* De-demangling never makes a string longer. */
+			char * dedemangled = strdup( demangled );
+		        assert( dedemangled != NULL );
 
-	if (!P_native_demangle || !P_functionName || !P_kind || !P_varName) {
-	    return 1;
-	}
+		        dedemangle( demangled, dedemangled );
+		        assert( dedemangled != NULL );
 
-        char *tempName = strdup(symbol);
-        name = (P_native_demangle)(tempName, (char **) &rest, RegularNames|ClassNames|SpecialNames|ParameterText|QualifierText); 
-	if (name && ((int ) name != -1)) {
-	    strncpy(demangled_sym, (P_text)(name), size);
-	    if (!includeTypes) {
-		dedemangle( demangled_sym, prototype );
-	    } else
-		strncpy(prototype, demangled_sym,size);
-	    free(tempName);
-	    return 0;
-	} else {
-	    free(tempName);
- 	    return 1;
-	}
-   }
-}
+		        free( demangled );
+		        return dedemangled;
+		        }
 
+		return demangled;
+		} /* end if not using native demangler. */
+	 else {
+		/* Use the native demangler, which apparently behaves funny. */
+		Name * name;
+		char * demangled;
+
+		name = (P_native_demangle)( const_cast<char*>(symbol), (char **) & demangled, RegularNames ); 
+		if( name == NULL ) { return NULL; }
+		
+		assert( P_functionName != NULL );
+		return (P_functionName)( name );
+		} /* end if using native demangler. */
+	} /* end P_cplus_demangle() */
 
 //////////////////////////////////////////////////////////
 // This code is for when IBM gets the PMAPI interface working
