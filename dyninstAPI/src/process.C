@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.246 2001/04/03 17:50:03 shergali Exp $
+// $Id: process.C,v 1.247 2001/04/25 20:31:36 wxd Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1600,7 +1600,8 @@ unsigned hash_bp(function_base * const &bp ) { return(addrHash4((Address) bp)); 
 // is fired up by paradynd itself.
 //
 
-process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
+//removed all ioLink related code for output redirection
+process::process(int iPid, image *iImage, int iTraceLink 
 #ifdef SHM_SAMPLING
                  , key_t theShmKey,
                  const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
@@ -1749,7 +1750,8 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
 #endif
 
    traceLink = iTraceLink;
-   ioLink = iIoLink;
+   //removed for output redirection
+   //ioLink = iIoLink;
 
    RPCs_waiting_for_syscall_to_complete = false;
    stoppedInSyscall = false;
@@ -1932,7 +1934,8 @@ process::process(int iPid, image *iSymbols,
 
    traceLink = -1; // will be set later, when the appl runs DYNINSTinit
 
-   ioLink = -1; // (ARGUABLY) NOT YET IMPLEMENTED...MAYBE WHEN WE ATTACH WE DON'T WANT
+   //removed for output redirection
+   //ioLink = -1; // (ARGUABLY) NOT YET IMPLEMENTED...MAYBE WHEN WE ATTACH WE DON'T WANT
                 // TO REDIRECT STDIO SO WE CAN LEAVE IT AT -1.
 
    // Now the actual attach...the moment we've all been waiting for
@@ -2098,7 +2101,8 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 
     traceLink = iTrace_fd;
 
-    ioLink = -1; // when does this get set?
+    //removed for output redireciton
+    //ioLink = -1; // when does this get set?
 
     status_ = neonatal; // is neonatal right?
     exitCode_ = -1;
@@ -2259,7 +2263,7 @@ void process::registerInferiorAttachedSegs(void *inferiorAttachedAtPtr) {
 
 extern bool forkNewProcess(string &file, string dir, vector<string> argv, 
 		    vector<string>envp, string inputFile, string outputFile,
-		    int &traceLink, int &ioLink, 
+		    int &traceLink, 
 		    int &pid, int &tid, 
 		    int &procHandle, int &thrHandle,
 		    int stdin_fd, int stdout_fd, int stderr_fd);
@@ -2307,14 +2311,16 @@ process *createProcess(const string File, vector<string> argv,
 #endif /* BPATCH_LIBRARY */
 
     int traceLink = -1;
-    int ioLink = -1;
+    //remove all ioLink related code for output redirection
+    //int ioLink = stdout_fd;
+
     int pid;
     int tid;
     int procHandle;
     int thrHandle;
 
     if (!forkNewProcess(file, dir, argv, envp, inputFile, outputFile,
-		   traceLink, ioLink, pid, tid, procHandle, thrHandle,
+		   traceLink, pid, tid, procHandle, thrHandle,
 		   stdin_fd, stdout_fd, stderr_fd)) {
       // forkNewProcess is responsible for displaying error messages
       return NULL;
@@ -2373,7 +2379,7 @@ tp->resourceBatchMode(true);
         theShmHeapStats[2].maxNumElems  = numProcTimers;
 #endif
 
-        process *ret = new process(pid, img, traceLink, ioLink
+        process *ret = new process(pid, img, traceLink
 #ifdef SHM_SAMPLING
                                    , 7000, // shm seg key to try first
                                    theShmHeapStats
@@ -4306,7 +4312,7 @@ void process::handleExec() {
    // was the only one who had them.
 
    // the exec'd process has the same fd's as the pre-exec, so we don't need
-   // to re-initialize traceLink or ioLink (is this right???)
+   // to re-initialize traceLink (is this right???)
 
    // we don't need to re-attach after an exec (is this right???)
  
@@ -6006,7 +6012,8 @@ void process::Exited() {
      P_close(traceLink);
      traceLink = -1;
   }
-
+  
+/*removed for output redirection
 // Should not close the ioLink if a child is alive. Hope that 
 // the operating system will close this link when no processes are left around
 #if 0 
@@ -6017,7 +6024,8 @@ void process::Exited() {
      ioLink = -1;
   }
 #endif  
-  // for each component mi of this process, remove it from all aggregate mi's it
+*/
+// for each component mi of this process, remove it from all aggregate mi's it
   // belongs to.  (And if the agg mi now has no components, fry it too.)
   // Also removes this proc from all cost metrics (but what about internal metrics?)
   removeFromMetricInstances(this);

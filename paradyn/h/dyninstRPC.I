@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstRPC.I,v 1.86 2000/10/17 17:27:46 schendel Exp $
+/* $Id: dyninstRPC.I,v 1.87 2001/04/25 20:32:16 wxd Exp $
  */
 
 #define MetStyleEventCounter	0
@@ -691,6 +691,8 @@ $remote dynRPC {
     //
     void addResource(u_int parent, u_int id, string name, u_int type);
 
+    // should be removed for output redirection
+    // left untouched for paradynd log info use
     //
     // stdio or stderr from an application.
     //
@@ -738,5 +740,4 @@ $remote dynRPC {
 
     // get the current wall clock time of the daemon to adjust for clock differences
     double getTime();
-
 };

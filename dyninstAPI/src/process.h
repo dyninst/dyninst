@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.155 2001/02/26 21:34:43 bernat Exp $
+/* $Id: process.h,v 1.156 2001/04/25 20:31:37 wxd Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -413,7 +413,8 @@ class process {
 
  public:
 
-  process(int iPid, image *iImage, int iTraceLink, int iIoLink
+  //removed for output redirection
+  process(int iPid, image *iImage, int iTraceLink
 #ifdef SHM_SAMPLING
           , key_t theShmSegKey,
           const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
@@ -756,7 +757,8 @@ class process {
 
   // These member vrbles should be made private!
   int traceLink;                /* pipe to transfer traces data over */
-  int ioLink;                   /* pipe to transfer stdout/stderr over */
+  //removed for output redirection
+  //int ioLink;                   /* pipe to transfer stdout/stderr over */
   int exitCode_;                /* termination status code */
   processState status_;         /* running, stopped, etc. */
   vector<pdThread *> threads;   /* threads belonging to this process */

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.30 2001/03/06 15:45:16 pcroth Exp $
+// $Id: pdwinnt.C,v 1.31 2001/04/25 20:31:36 wxd Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -1392,6 +1392,7 @@ void initSymbols(HANDLE procH, const string file, const string dir) {
  *   inputFile: where to redirect standard input
  *   outputFile: where to redirect standard output
  *   traceLink: handle or file descriptor of trace link (read only)
+ //removed all ioLink related code for output redirection
  *   ioLink: handle or file descriptor of io link (read only)
  *   pid: process id of new process
  *   tid: thread id for main thread (needed by WindowsNT)
@@ -1400,16 +1401,14 @@ void initSymbols(HANDLE procH, const string file, const string dir) {
  ****************************************************************************/
 bool forkNewProcess(string &file, string dir, vector<string> argv, 
 		    vector<string>envp, string inputFile, string outputFile,
-		    int &traceLink, int &ioLink, 
+		    int &traceLink,  
 		    int &pid, int &tid, 
 		    int &procHandle, int &thrHandle, int /* stdin_fd */, 
-		    int /* stdout_fd */, int /* stderr_fd */) {
+		    int stdout_fd, int /* stderr_fd */) {
 #ifndef BPATCH_LIBRARY
 #ifdef notdef_Pipes     // isn't this all obsolete???
     HANDLE rTracePipe;
     HANDLE wTracePipe;
-    HANDLE rIoPipe;
-    HANDLE wIoPipe;
     // security attributes to make handles inherited
     SECURITY_ATTRIBUTES sa;
     sa.nLength = sizeof(SECURITY_ATTRIBUTES);
@@ -1424,6 +1423,9 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
 	return(NULL);
     }
     
+    /* removed for output redirection
+    HANDLE rIoPipe;
+    HANDLE wIoPipe;
     // create IO pipe
     // ioPipe is used to redirect the child's stdout & stderr to a pipe which
     // is in turn read by the parent via the process->ioLink socket.
@@ -1433,12 +1435,14 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
 	showErrorCallback(68, msg);
 	return(NULL);
     }
+    SetEnvironmentVariable("PARADYN_IO_PIPE",
+			   string((unsigned)wIoPipe).string_of());
+    */
+
     printf("tracepipe = %d\n", (unsigned)wTracePipe);
     // enter trace and IO pipes in child's environment
     SetEnvironmentVariable("PARADYN_TRACE_PIPE", 
 			   string((unsigned)wTracePipe).string_of());
-    SetEnvironmentVariable("PARADYN_IO_PIPE",
-			   string((unsigned)wIoPipe).string_of());
 #endif
     //  extern int traceSocket;
     //  SetEnvironmentVariable("PARADYND_TRACE_SOCKET", string((unsigned)traceSocket).string_of());
@@ -1455,7 +1459,14 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
     STARTUPINFO stinfo;
     memset(&stinfo, 0, sizeof(STARTUPINFO));
     stinfo.cb = sizeof(STARTUPINFO);
-    
+
+    /*to do: output redirection
+    //stinfo.hStdOutput = (HANDLE)ioLink;
+    stinfo.hStdOutput = (HANDLE)stdout_fd;
+    stinfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+    stinfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+    stinfo.dwFlags |= STARTF_USESTDHANDLES;
+    */
     PROCESS_INFORMATION procInfo;
     if (CreateProcess(file.string_of(), (char *)args.string_of(), 
 		      NULL, NULL, TRUE,
@@ -1468,13 +1479,17 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
 	tid = (Word)procInfo.dwThreadId;
 #ifdef notdef_Pipes
         traceLink = (Word)rTracePipe;
-        ioLink = (Word)rIoPipe;
-        CloseHandle(wTracePipe);
+	CloseHandle(wTracePipe);
+	/ *removed for output redirection
+        //ioLink = (Word)rIoPipe;
         CloseHandle(wIoPipe);
+        */
         //initSymbols((HANDLE)procHandle, file, dir);
 #else
         traceLink = -1;
+	/* removed for output redirection
         ioLink = -1;
+	*/
 #endif
 	return true;
     }
@@ -1483,8 +1498,10 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
 #ifdef notdef_Pipes
     CloseHandle(rTracePipe);
     CloseHandle(wTracePipe);
+    / *removed for output redirection
     CloseHandle(rIoPipe);
     CloseHandle(wIoPipe);
+    */
 #endif
 #endif /* BPATCH_LIBRARY */
 

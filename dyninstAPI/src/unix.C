@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.54 2001/02/26 21:34:44 bernat Exp $
+// $Id: unix.C,v 1.55 2001/04/25 20:31:37 wxd Exp $
 
 #if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -113,6 +113,7 @@ int seeIfRTLinked(string filename)
  *   inputFile: where to redirect standard input
  *   outputFile: where to redirect standard output
  *   traceLink: handle or file descriptor of trace link (read only)
+//removed all ioLink related code for output redirection
  *   ioLink: handle or file descriptor of io link (read only)
  *   pid: process id of new process
  *   tid: thread id for main thread (needed by WindowsNT)
@@ -123,14 +124,14 @@ int seeIfRTLinked(string filename)
 bool forkNewProcess(string &file, string /*dir*/, vector<string> argv, 
                     vector<string> /*envp*/, 
                     string /*inputFile*/, string /*outputFile*/,
-                    int & /*traceLink*/, int & /*ioLink*/, 
+                    int & /*traceLink*/, 
                     int &pid, int & /*tid*/, 
                     int & /*procHandle*/, int & /*thrHandle*/, 
 		    int stdin_fd, int stdout_fd, int stderr_fd)
 #else
 bool forkNewProcess(string &file, string dir, vector<string> argv, 
 		    vector<string>envp, string inputFile, string outputFile,
-		    int &traceLink, int &ioLink, 
+		    int &traceLink,
 		    int &pid, int & /*tid*/, 
 		    int & /*procHandle*/, int & /*thrHandle*/,
 		    int stdin_fd, int stdout_fd, int stderr_fd)
@@ -151,6 +152,7 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
 	return false;
     }
 
+    /* removed for output redirection
     // ioPipe is used to redirect the child's stdout & stderr to a pipe which is in
     // turn read by the parent via the process->ioLink socket.
     int ioPipe[2];
@@ -164,6 +166,7 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
 	showErrorCallback(68, msg);
 	return false;
     }
+    */
 #endif
 
     //
@@ -208,6 +211,7 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
 	close(tracePipe[1]);
 	   // parent never writes trace records; it only receives them.
 
+        /* removed for output redirection
 	close(ioPipe[1]);
            // parent closes write end of io pipe; child closes its read end.
            // pipe output goes to the parent's read fd (ret->ioLink); pipe input
@@ -215,8 +219,10 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
            // its stdout/stderr, it gets sent to the pipe which in turn sends it to
            // the parent's ret->ioLink fd for reading.
 
+	//ioLink = ioPipe[0];
+	*/
+
 	traceLink = tracePipe[0];
-	ioLink = ioPipe[0];
 #endif
 	return true;
 
@@ -231,11 +237,15 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
 #ifndef BPATCH_LIBRARY
 	// handle stdio.
 
+	/* removed for output redirection
         // We only write to ioPipe.  Hence we close ioPipe[0], the read end.  Then we
         // call dup2() twice to assign our stdout and stderr to the write end of the
 	// pipe.
 	close(ioPipe[0]);
-	dup2(ioPipe[1], 1);
+
+	//dup2(ioPipe[1], 1);
+
+	
            // assigns fd 1 (stdout) to be a copy of ioPipe[1].  (Since stdout is already
            // in use, dup2 will first close it then reopen it with the characteristics
 	   // of ioPipe[1].)
@@ -246,6 +256,11 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
 
         // We're not using ioPipe[1] anymore; close it.
 	if (ioPipe[1] > 2) close (ioPipe[1]);
+	*/
+
+	//setup output redirection to termWin
+	dup2(stdout_fd,1);
+	dup2(stdout_fd,2);
 
 	// Now that stdout is going to a pipe, it'll (unfortunately) be block buffered
         // instead of the usual line buffered (when it goes to a tty).  In effect the
@@ -307,8 +322,9 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
 
         /* see if we should use alternate file decriptors */
 	if (stdin_fd != 0) dup2(stdin_fd, 0);
-	if (stdout_fd != 1) dup2(stdout_fd, 1);
-	if (stderr_fd != 2) dup2(stderr_fd, 2);
+	//removed for output redirection
+	//if (stdout_fd != 1) dup2(stdout_fd, 1);
+	//if (stderr_fd != 2) dup2(stderr_fd, 2);
 
 #ifdef BPATCH_LIBRARY
 	// define our own session id so we don't get the mutators signals

@@ -1,6 +1,6 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
- * $Id: dataManager.I,v 1.101 2001/04/25 18:40:43 wxd Exp $
+ * $Id: dataManager.I,v 1.102 2001/04/25 20:31:41 wxd Exp $
  */
 
 #ifndef MMTHREAD_H
@@ -736,6 +736,8 @@ $remote dataManager {
     static dataManager *dm;  // need this so can call setTid which is
 			     // not a static function, otherwise could
 			     // just define all DM functions as static
+    static int termWin_port;
+    static PDSOCKET termWin_sock;
     $signore
 };
 
