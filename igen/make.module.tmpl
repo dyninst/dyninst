@@ -3,25 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Log: make.module.tmpl,v $
-# Revision 1.6  1996/11/26 16:02:29  naim
-# Implementation of cross-compiler (sparc-solaris,x86-solaris)->rs6000 - naim
-#
-# Revision 1.5  1995/12/26  22:58:59  zhichen
-# Moved -lfl to syslibs
-#
-# Revision 1.4  1995/05/18  11:13:50  markc
-# added support for derived classes
-#
-# Revision 1.3  1995/03/13  18:14:15  jcargill
-# Changed libutil to libpdutil
-#
-# Revision 1.2  1995/02/16  07:54:26  markc
-# Port
-#
-# Revision 1.1  1995/01/30  18:09:33  jcargill
-# Major build system reorganization
-#
+# $Id: make.module.tmpl,v 1.7 1998/04/01 02:51:50 wylie Exp $
 #
 
 USES_FLEX = true
@@ -35,7 +17,7 @@ SRCS 	     += ../src/main.C \
 	        ../src/templates.C 
 
 LIBS 	     += -lpdutil
-SYSLIBS	     += -lfl
+SYSLIBS	     += $(FLEX_LIB)
 
 ifdef CROSSCOMPILER
 SYSLIBS      += -lstdc++
