@@ -31,7 +31,17 @@ struct metfocusType {
 };
 typedef struct metfocusType metric_focus_pair;
 
+struct metRLType {
+    metricHandle met;
+    resourceHandle res;
+
+    metRLType(metricHandle mh,resourceHandle rh): met(mh), res(rh) {} 
+    metRLType(){}
+};
+typedef struct metRLType metricRLType;
+
 struct miInfoType{
+    bool successfully_enabled;  // true if this metric/focus pair was enabled
     metricInstanceHandle mi_id;
     metricHandle m_id;
     resourceListHandle r_id;
@@ -39,6 +49,10 @@ struct miInfoType{
     string metric_units;
     string focus_name;
     dm_MetUnitsType units_type;
+    miInfoType(){
+        successfully_enabled = 0; mi_id = 0; m_id=0; r_id=0; 
+	units_type=Normalized;
+    }
 };
 typedef struct miInfoType metricInstInfo;
 

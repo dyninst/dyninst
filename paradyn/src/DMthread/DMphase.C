@@ -70,12 +70,59 @@ void phaseInfo::startPhase(timeStamp,
     // invoke newPhaseCallback for all perf. streams
     dictionary_hash_iter<perfStreamHandle,performanceStream*>
 			allS(performanceStream::allStreams);
-     perfStreamHandle h;
-     performanceStream *ps;
-     while(allS.next(h,ps)){
+    
+    // for any outstanding enables for the old current phase
+    // remove from outstandingenables list and respond to all clients of
+    // outstanding enable events with a failed enable response 
+    if(paradynDaemon::outstanding_enables.size()){
+        u_int i=0;
+        bool done=false;
+        while(!done){
+	    DM_enableType *next_entry = paradynDaemon::outstanding_enables[i]; 
+	    // this is an old curr phase enable request
+	    if((next_entry->ph_type == CurrentPhase) 
+	       && (next_entry->ph_handle == lastId)){
+		// send enable failed response to calling thread
+                vector<bool> successful(next_entry->request->size());
+		for(u_int j=0; j< successful.size(); j++){
+		    successful[j] = false;
+		}
+		DMenableResponse(*next_entry,successful);
+
+		// make disable requests for any MI that is partly enabled
+                for(u_int k=0; k < next_entry->request->size(); k++){
+		    // if this entry may be partially enabled make disable
+		    // call to daemons 
+		    metricInstance *mi = (*next_entry->request)[k];
+		    if((!(*next_entry->enabled)[k]) && mi){
+		      for(u_int i2=0;i2<paradynDaemon::allDaemons.size();i2++){
+			  paradynDaemon *pd = paradynDaemon::allDaemons[i2];
+			  pd->disableDataCollection(mi->getHandle());
+		      }
+		    }
+		}
+		// remove entry from outstanding_enables
+		u_int newsize= paradynDaemon::outstanding_enables.size()-1;
+		paradynDaemon::outstanding_enables[i] = 
+		     paradynDaemon::outstanding_enables[newsize];
+                paradynDaemon::outstanding_enables.resize(newsize);
+                delete next_entry;
+            }
+	    else{
+	        i++;
+	    }
+	    if(i >= paradynDaemon::outstanding_enables.size()){
+	        done = true;
+	    }
+        }
+    }
+
+    perfStreamHandle h;
+    performanceStream *ps;
+    while(allS.next(h,ps)){
          ps->callPhaseFunc(*p,with_new_pc,with_visis);
-     }
-     p = 0;
+    }
+    p = 0;
 }	
 
 // caller is responsible for freeing space assoc. with return list

@@ -55,6 +55,46 @@ static void fixArg(char *&argToFix)
 static appState applicationState = appPaused; // status of the application.
 
 
+metricInstance *DM_enableType::findMI(metricInstanceHandle mh){
+    for(u_int i=0; i < request->size(); i++){
+         if(mh == ((*request)[i])->getHandle()){
+             return ((*request)[i]);
+    } }
+    return 0;
+}
+
+void DM_enableType::setDone(metricInstanceHandle mh){
+    for(u_int i=0; i < request->size(); i++){
+        if(mh == ((*request)[i])->getHandle()){
+	    (*done)[i] = true;
+            return;
+        } 
+    }
+}
+
+// find any matching completed mids and update the done values 
+// if a matching value is successfully enabled done=true, else done= false
+void DM_enableType::updateAny(vector<metricInstance *> &completed_mis,
+			      vector<bool> successful){
+
+   for(u_int i=0; i < done->size(); i++){
+       if(!(*done)[i]){  // try to update element
+           assert(not_all_done);
+           metricInstanceHandle mh = ((*request)[i])->getHandle();
+           for(u_int j=0; j < completed_mis.size(); j++){
+	       if(completed_mis[j]){
+                   if(completed_mis[j]->getHandle() == mh){
+                       if(successful[j]) (*done)[i] = true;
+                       not_all_done--;
+                   } 
+	       }
+           }
+       } 
+   }
+}
+
+
+
 // Called whenever a program is ready to run (both programs started by paradyn
 // and programs forked by other programs).
 // The new program inherits all enabled metrics, and if the application is 
@@ -600,217 +640,49 @@ void paradynDaemon::getPredictedDataCostCall(perfStreamHandle ps_handle,
 }
 
 //
-// Start collecting data about the passed resource list (focus) and metric.
-//    The returned metricInstance is used to provide a unique handle for this
-//    metric/focus pair.
+// make data enable request to paradynds, and add request entry to
+// list of outstanding enable requests
 //
-bool paradynDaemon::enableData(resourceListHandle r_handle, 
-			       metricHandle m_handle,
-			       metricInstance *mi) {
+void paradynDaemon::enableData(vector<metricInstance *> *miVec,
+ 			       vector<bool> *done,
+			       vector<bool> *enabled,
+			       DM_enableType *new_entry,
+	                       bool need_to_enable){
 
-    resourceList *rl = resourceList::getFocus(r_handle);
-    metric *m = metric::getMetric(m_handle);
-    if(!rl || !m) 
-	return false;
-
-    vector<u_int> vs;
-    if(!(rl->convertToIDList(vs)))
-	return false;
-
-    // 
-    // for each daemon request the data to be enabled.
-    //
-    bool foundOne = false;
-    // get a fresh copy of the TC "printChangeCollection"
-    tunableBooleanConstant printChangeCollection = 
-			tunableConstantRegistry::findBoolTunableConstant(
-			"printChangeCollection");
-        
-    int id;
-    paradynDaemon *pd;
-
-    for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
-        pd = paradynDaemon::allDaemons[i];
-        pd->enableDataCollection(vs, (const char*) m->getName(), mi->id, i);
-    }
-
-    for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
-	T_dyninstRPC::message_tags tag1 = T_dyninstRPC::enableDataCallback_REQ;
-	unsigned tag2 = MSG_TAG_FILE;
-        int ready_fd;
-        T_dyninstRPC::T_enableDataCallback buffer;
-
-        //
-        // Since enableDataCollection is now async, we have to wait until
-        // every daemon is finished with its enable request
-        //
-        bool foundDaemon;
-        do {
-          foundDaemon=false;
-          ready_fd = msg_poll(&tag2, true);
-          for(unsigned j = 0; j < paradynDaemon::allDaemons.size(); j++) {
-            pd = paradynDaemon::allDaemons[j];
-            if (pd->get_fd() == ready_fd) {
-              foundDaemon=true;
-              break;
+    // make enable request, pass only pairs that need to be enabled to daemons
+    if(need_to_enable){  
+        vector<T_dyninstRPC::focusStruct> foci; 
+	vector<string> metrics; 
+	vector<u_int> mi_ids;  
+        for(u_int i=0; i < miVec->size(); i++){
+	    if(!(*enabled)[i] && !(*done)[i]){
+		// create foci, metrics, and mi_ids entries for this mi
+		T_dyninstRPC::focusStruct focus;
+		string met_name;
+		assert((*miVec)[i]->convertToIDList(focus.focus));
+		met_name = (*miVec)[i]->getMetricName();
+		foci += focus;
+		metrics += met_name;
+		mi_ids += (*miVec)[i]->getHandle();
+	        // set curretly enabling flag on mi 
+		(*miVec)[i]->setCurrentlyEnabling();
 	    }
-	  }
-        } while (!foundDaemon || !pd->wait_for_and_read(tag1,&buffer));
-
-        id = buffer.return_id;
-
-        if (printChangeCollection.getValue()) {
-            cout << "EDC:  " << m->getName()
- 	         << rl->getName() << " " << id <<"\n";
-        }
-	if (id > 0 && !pd->did_error_occur()) {
-	    component *comp = new component(pd, id, mi);
-	    if(mi->addComponent(comp)){
-	      //mi->addPart(&comp->sample);
-            }
-	    else {
-               cout << "internal error in paradynDaemon::enableData" << endl;
-	       abort();
-	    } 
-	    foundOne = true;
+	}
+	assert(foci.size() == metrics.size());
+	assert(metrics.size() == mi_ids.size());
+	// make enable requests to all daemons
+	for(u_int j=0; j < paradynDaemon::allDaemons.size(); j++){
+	   paradynDaemon *pd = paradynDaemon::allDaemons[j]; 
+	   pd->enableDataCollection(foci,metrics,mi_ids,j,
+				     new_entry->request_id);
 	}
     }
-
-    if (foundOne) {
-        mi->setEnabled();	
-    }
-    return foundOne;
-}
-
-bool paradynDaemon::enableDataBatch(vector<resourceListHandle> *r_handle, 
-			            vector<metricHandle> *m_handle,
-			            vector<metricInstance *> *&mi,
-                                    vector<bool> miEnabled) 
-{
-  vector<T_dyninstRPC::focusStruct> vs;
-  vector<string> m;
-  vector<int> miId;
-  metric *mt;
-
-  vs.resize((*m_handle).size());
-  m.resize((*m_handle).size());
-  miId.resize((*m_handle).size());
-  assert((*r_handle).size() == (*m_handle).size());
-  assert(mi && ((*mi).size() == (*m_handle).size()));
-  assert(miId.size() == (*m_handle).size());
-  assert(vs.size() == (*m_handle).size());
-  assert(m.size() == (*m_handle).size());
-  
-  for (unsigned int k=0;k<(*m_handle).size();k++) {
-    if ((*mi)[k]) {
-      if (!miEnabled[k]) {
-        resourceList *rl = resourceList::getFocus((*r_handle)[k]);
-        mt = metric::getMetric((*m_handle)[k]);
-        if(!rl || !mt) 
-          miId[k] = -1;
-        m[k] = mt->getName();
-        miId[k] = (*mi)[k]->id;
-        if(!(rl->convertToIDList(vs[k].focus)))
-	  miId[k] = -1;
-      }
-      else miId[k] = -2; // don't enable metric (metric already enabled)
-    }
-    else {
-#ifdef DMDEBUG
-      printf("TEST: enableDataBatch, mi[%d] is NULL from the begining\n",k);
-#endif
-      miId[k] = -1; 
-    }
-  }
-
-    // 
-    // for each daemon request the data to be enabled.
-    //
-    vector<int> returnIds;
-    vector<bool> foundOne;
-    foundOne.resize((*m_handle).size());
-    returnIds.resize((*m_handle).size());
-
-    for (unsigned int i=0;i<(*m_handle).size();i++) {
-      foundOne[i]=false;
-      returnIds[i]=0;
-    }
-
-    // get a fresh copy of the TC "printChangeCollection"
-    tunableBooleanConstant printChangeCollection = 
-			tunableConstantRegistry::findBoolTunableConstant(
-			"printChangeCollection");
-        
-    int id;
-    paradynDaemon *pd;
-
-    for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
-        pd = paradynDaemon::allDaemons[i];
-        pd->enableDataCollectionBatch(vs, m, miId, i);
-    }
-
-    for(unsigned int i = 0; i < paradynDaemon::allDaemons.size(); i++){
-	T_dyninstRPC::message_tags tag1 = T_dyninstRPC::enableDataCallbackBatch_REQ;
-	unsigned tag2 = MSG_TAG_FILE;
-        int ready_fd;
-        T_dyninstRPC::T_enableDataCallbackBatch buffer;
-        buffer.return_id.resize((*m_handle).size());
-
-        //
-        // Since enableDataCollection is now async, we have to wait until
-        // every daemon is finished with its enable request
-        //
-        bool foundDaemon;
-        do {
-          foundDaemon=false;
-          ready_fd = msg_poll(&tag2, true);
-          for(unsigned j = 0; j < paradynDaemon::allDaemons.size(); j++) {
-            pd = paradynDaemon::allDaemons[j];
-            if (pd->get_fd() == ready_fd) {
-              foundDaemon=true;
-              break;
-	    }
-	  }
-        } while (!foundDaemon || !pd->wait_for_and_read(tag1,&buffer));
-
-        for (unsigned int k=0;k<(*m_handle).size();k++) {        
-          id = buffer.return_id[k];
-#ifdef DMDEBUG
-          printf("TEST: enableDataBatch, id=%d\n",id);
-          if (!(*mi)[k]) printf("TEST: enableDataBatch, mi[%d] is NULL\n",k);
-#endif
-          if (printChangeCollection.getValue()) {
-            if (id > 0) {
-              resourceList *rl = resourceList::getFocus((*r_handle)[k]);
-              cout << "EDC:  " << m[k]
-   	           << rl->getName() << " " << id <<"\n";
-	    }
-          }
-	  if (id > 0 && !pd->did_error_occur()) {
-	    component *comp = new component(pd, id, (*mi)[k]);
-	    if(!(*mi)[k]->addComponent(comp)){
-              cout << "internal error in paradynDaemon::enableData" << endl;
-	      abort();
-            } 
-            foundOne[k] = true;
-          }
-          if (id == -1) returnIds[k] += -1;
-        }
-    }
-
-    bool foundTrue=false;
-    for (unsigned int i=0;i<(*m_handle).size();i++) {
-      if (foundOne[i]) {
-        foundTrue=true;
-        (*mi)[i]->setEnabled();	
-      }
-      if (returnIds[i] == (-paradynDaemon::allDaemons.size()))
-        (*mi)[i] = NULL;
-    }
-#ifdef DMDEBUG
-    printf("TEST: enableDataBatch, returning found=%d\n",foundTrue);
-#endif
-    return foundTrue;
+    // add entry to outstanding_enables list
+    paradynDaemon::outstanding_enables += new_entry;
+    new_entry = 0; 
+    miVec = 0;
+    done = 0; 
+    enabled = 0;
 }
 
 
@@ -953,8 +825,7 @@ int paradynDaemon::read(const void* handle, char *buf, const int len) {
     return ret;
 }
 
-void paradynDaemon::firstSampleCallback(int program,
-					double firstTime) {
+void paradynDaemon::firstSampleCallback(int, double firstTime) {
   static bool done = false;
   if (!done) {
     setEarliestFirstTime(getAdjustedTime(firstTime));
@@ -1053,8 +924,11 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	      return;
 	   } else {
 	      cout << "ERROR: data for unknown mid: " << mid << endl;
-	      uiMgr->showError (2, "");
-	      exit(-1);
+	      // this can occur now do to a phase starting before
+	      // an enable response has been sent     
+	      // uiMgr->showError (2, "");
+	      // exit(-1);
+	      return;
 	   }
         }
 
@@ -1126,11 +1000,6 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	   assert(ret.start >= 0.0);
 	   assert(ret.end >= ret.start);
 	   mi->enabledTime += ret.end - ret.start;
-	   //if (our_print_sample_arrival) {
-	   //    cout << "bucket value: mid " << mid << " start " << ret.start
-	   //         << " end " << ret.end << " value " << ret.value << endl;
-           //}
-	   // bucket the value
 	   mi->addInterval(ret.start, ret.end, ret.value, false);
 	}
     } // the main for loop

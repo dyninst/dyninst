@@ -160,6 +160,16 @@ void performanceStream::callPredictedCostFuc(metricHandle m_handle,
     }
 }
 
+void performanceStream::callDataEnableFunc(vector<metricInstInfo> *response,
+					   u_int request_id)
+{
+    if (controlFunc.eFunc) {
+	dataManager::dm->setTid(threadId);
+	dataManager::dm->enableDataCallback(controlFunc.eFunc, response,
+					    request_id);
+    }
+}
+
 void performanceStream::notifyAllChange(appState state){
 
    dictionary_hash_iter<perfStreamHandle,performanceStream*> allS(allStreams);

@@ -7,7 +7,10 @@
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
- * Revision 1.34  1996/03/01 22:47:04  mjrg
+ * Revision 1.35  1996/04/30 18:53:59  newhall
+ * changes to make enabling and disabling data asynchronous
+ *
+ * Revision 1.34  1996/03/01  22:47:04  mjrg
  * Added type to resources.
  *
  * Revision 1.33  1996/02/02 02:14:51  karavan
@@ -429,11 +432,21 @@ bool resourceList::convertToStringList(vector< vector<string> > &fs) {
     return true;
 }
 
-bool resourceList::convertToIDList(vector<u_int> &fs) {
+bool resourceList::convertToIDList(vector<resourceHandle> &fs) {
     for (unsigned i=0; i < elements.size(); i++){
         fs += elements[i]->getHandle();
     }
     return true;
+}
+
+bool resourceList::convertToIDList(resourceListHandle rh,
+				   vector<resourceHandle> &rl){
+
+    for(u_int i=0; i < foci.size(); i++){
+        if(rh == foci[i]->getHandle()){
+	    return(foci[i]->convertToIDList(rl));
+    }}
+    return false;
 }
 
 // This routine returns a list of foci which are the result of combining

@@ -136,7 +136,10 @@ metricInstance::metricInstance(resourceListHandle rl,
     global_data = 0;
     persistent_data = 0;
     persistent_collection = 0;
+    currEnablesWaiting = 0;
+    globalEnablesWaiting = 0;
     enabled = false;
+    currently_enabling = false;
     metricInstance::curr_phase_id = ph;
     id = next_id++;
     allMetricInstances[id] = this;
@@ -384,6 +387,7 @@ void metricInstance::stopAllCurrentDataCollection(phaseHandle last_phase_id) {
     assert(remove_list.size() == allMetricInstances.size());
     for(unsigned i=0; i < remove_list.size(); i++){
 	mi = remove_list[i];
+	mi->currEnablesWaiting = 0;
         // remove all users from user list
 	mi->users.resize(0);
 	assert(!(mi->users.size()));

@@ -25,7 +25,7 @@ vector<string> paradynDaemon::args = 0;
 extern bool our_print_sample_arrival;
 
 void histDataCallBack(sampleValue *buckets,
-                      timeStamp start_time,
+                      timeStamp,
 		      int count,
 		      int first,
 		      void *arg,
@@ -268,348 +268,192 @@ resourceHandle *dataManager::getRootResource()
 }
 
 //
-// called by DM enable routines
+// make batched enable request to paradyn daemons
 //
-metricInstance *DMenableData(perfStreamHandle ps_handle,
-			     metricHandle m, 
-			     resourceListHandle rl,
-			     phaseType type,
-			     unsigned persistent_data, 
-			     unsigned persistent_collection)
-{
-    // does this this metric/focus combination already exist? 
-     metricInstance *mi = metricInstance::find(m,rl);
+void DMdoEnableData(perfStreamHandle ps_handle,
+		    vector<metricRLType> *request,
+		    u_int request_Id,
+	            phaseType type,
+		    phaseHandle phaseId,
+	            u_int persistent_data,
+                    u_int persistent_collection){
 
-    if (!mi) {  // create new metricInstance
-	if(!(mi = new metricInstance(rl,m,phaseInfo::CurrentPhaseHandle()))) {
-            return 0;
-    }}
-    
-    bool newly_enabled = false;
-    if ( !(mi->isEnabled()) ){  // enable data collection for this MI
-        if (!(paradynDaemon::enableData(rl,m,mi))) { 
-	    return 0;
-        }
-	newly_enabled = true;
-    }
+    vector<metricInstance *> *miVec = new vector<metricInstance *>;
+    vector<bool> *enabled = new vector<bool>;  // passed to daemons on enable
+    vector<bool> *done = new vector<bool>;  // used for waiting list
 
-    metric *metricptr = metric::getMetric(m);
+   // for each element in list determine if this metric/focus pair is
+   // already enabled, or is currently being enabled: "enabled" is used to 
+   // indicate whether an enable call needs to be made to the daemon, "done"
+   // indicates if the request needs to wait for a reply from the daemon
+   // "mi" indicates if the metric/focus pair exists
+   //
+   //		not enabled	curr. enabling	error	enabled    
+   //           -----------------------------------------------
+   // done      |  false	   false	true	true
+   // enabled   |  false           true         true    true
+   // mi*	|  &mi		   &mi		  0	&mi
+   //
+   bool need_to_enable = false;
+   bool need_to_wait = false;
+   for(u_int i=0; i < request->size(); i++){
+       // does this metric/focus pair already exist?
+       metricInstance *mi = metricInstance::find((*request)[i].met,
+						 (*request)[i].res);
+       if(!mi){ // create new metricInstance 
+           mi = new metricInstance((*request)[i].res,(*request)[i].met,phaseId);
+       }
+       *miVec += mi;
+       if(!mi){  // error case, don't try to enable this mi
+	   *enabled += true;
+	   *done += true;
+       }
+       else if(!mi->isEnabled()){  // mi not enabled
+	   if(mi->isCurrentlyEnabling()){
+	       *enabled += true;  // don't try to enable from daemons
+	       *done += false;   // need to wait for result
+	       need_to_wait = true;
+	   }
+	   else{
+	       *enabled += false;
+	       *done += false;  
+	       need_to_enable = true;
+	   }
+       }
+       else{ // mi already is enabled
+	   *enabled += true;
+	   *done += true;
+       }
+   }
 
-    // update appropriate MI info. 
-    if (type == CurrentPhase) {
-	 u_int old_current = mi->currUsersCount();
-	 bool current_data = mi->isCurrHistogram();
-	 mi->newCurrDataCollection(metricptr->getStyle(),
-				   histDataCallBack,
-				   histFoldCallBack);
-	 mi->newGlobalDataCollection(metricptr->getStyle(),
-				   histDataCallBack,
-				   histFoldCallBack);
-         mi->addCurrentUser(ps_handle);
+   assert(enabled->size() == done->size());
+   assert(enabled->size() == miVec->size());
+   assert(enabled->size() == request->size());
 
-	 // set sample rate to match current phase hist. bucket width
-	 if(!metricInstance::numCurrHists()){
-	        float rate = phaseInfo::GetLastBucketWidth();
-	        newSampleRate(rate);
-	 }
+   DM_enableType *new_entry = new DM_enableType(ps_handle,type,phaseId,
+			    paradynDaemon::next_enable_id++,request_Id,
+			    miVec,done,enabled,paradynDaemon::allDaemons.size(),
+			    persistent_data,persistent_collection);
 
-	 // new active curr. histogram added if there are no previous
-	 // curr. subscribers and either persistent_collection is clear
-	 // or there was no curr. histogram prior to this
-	 if((!old_current) 
-	    && (mi->currUsersCount() == 1)
-	    && ((!mi->isCollectionPersistent()) || (!current_data))){ 
-	     metricInstance::incrNumCurrHists();
-	 }
-	 // new global histogram added if this metricInstance was just enabled
-	 if(newly_enabled){ 
-	     metricInstance::incrNumGlobalHists();
-	 }
-    }
-    else {
-	 mi->newGlobalDataCollection(metricptr->getStyle(),
-				   histDataCallBack,
-				   histFoldCallBack);
-         mi->addGlobalUser(ps_handle);
-
-	 // if this is first global histogram enabled and there are no
-	 // curr hists, then set sample rate to match global hist. bucket width
-	 if(!metricInstance::numCurrHists()){
-	    if(!metricInstance::numGlobalHists()){ 
-	        float rate = Histogram::getGlobalBucketWidth();
-	        newSampleRate(rate);
-	 }}
-
-	 // new global hist added: update count
-	 if(newly_enabled){  // new active global histogram added
-	     metricInstance::incrNumGlobalHists();
-	 }
-    }
-
-    // update persistence flags:  the OR of new and previous values
-    if(persistent_data) {
-	mi->setPersistentData();
-    }
-    if(persistent_collection) {
-	mi->setPersistentCollection();
-    }
-
-    // cout << "num global hists " << metricInstance::numGlobalHists() << endl;
-    // cout << "num curr hists " << metricInstance::numCurrHists() << endl;
-    return mi;
+   // if there is an MI that has not been enabled yet make enable 
+   // request to daemons or if there is an MI that is currently being
+   // enabled then put request on the outstanding requests list
+   if(need_to_enable || need_to_wait){
+       // for each MI on the request list set increment the EnablesWaiting
+       // flag for the correct phase.  These flags are decremented before
+       // the response is sent to the client
+       if(type == CurrentPhase){
+           for(u_int k=0; k < miVec->size(); k++){
+	       if((*miVec)[k]) (*miVec)[k]->incrCurrWaiting(); 
+           }
+       } else{
+           for(u_int k=0; k < miVec->size(); k++){
+	       if((*miVec)[k]) (*miVec)[k]->incrGlobalWaiting(); 
+           }
+       }
+       paradynDaemon::enableData(miVec,done,enabled,new_entry,need_to_enable);
+       miVec = 0; enabled = 0;
+       done = 0; new_entry = 0;
+   }
+   else {  // else every MI is enabled update state and return result to caller
+       vector<bool> successful(miVec->size());
+       for(u_int j=0; j < successful.size(); j++){
+	   if((*miVec)[j]) successful[j] = true;
+	   else successful[j] = false;
+       }
+       DMenableResponse(*new_entry,successful);
+   }
+   delete request;
 }
-
-vector<metricInstance *> *DMenableDataBatch(perfStreamHandle ps_handle,
-			     vector<metricHandle> *m, 
-			     vector<resourceListHandle> *rl,
-			     phaseType type,
-			     unsigned persistent_data, 
-			     unsigned persistent_collection)
-{
-  assert((*m).size() == (*rl).size());
-  vector<metricInstance *> *miVec;
-  vector<bool> miVecEnabled;
-  miVec = new vector<metricInstance *>((*m).size());
-  miVecEnabled.resize((*m).size());
-  assert((*miVec).size() == miVecEnabled.size());
- 
-  bool newly_enabled = false;
-  for (unsigned int i=0;i<(*m).size();i++) {
-    miVecEnabled[i] = false;
-  
-    // does this this metric/focus combination already exist? 
-    metricInstance *mi = metricInstance::find((*m)[i],(*rl)[i]);
-
-    if (!mi) {  // create new metricInstance
-      if(!(mi = new metricInstance((*rl)[i],(*m)[i],
-                                   phaseInfo::CurrentPhaseHandle()))) {
-        (*miVec)[i] = NULL;
-#ifdef DMDEBUG
-        printf("TEST: DMenableDataBatch, miVec[%d] is NULL\n",i);
-#endif
-      }
-      else {
-        (*miVec)[i] = mi;
-      }
-    }
-    else {
-      (*miVec)[i] = mi;
-    }
-    if ((*miVec)[i]) {
-      if ( !((*miVec)[i]->isEnabled()) ) {
-        newly_enabled = true;
-      }
-      else {
-        miVecEnabled[i] = true;
-      }
-    }
-#ifdef DMDEBUG
-    else printf("TEST: DMenableDataBatch, mi is NULL\n");
-#endif
-  }
-    
-  if (newly_enabled) {
-    if (!(paradynDaemon::enableDataBatch(rl,m,miVec,miVecEnabled))) {
-      return miVec;
-    }
-  }
-
-  for (unsigned int i=0;i<(*m).size();i++) {
-    if ((*miVec)[i]) {
-#ifdef DMDEBUG
-      printf("TEST: DMenableDataBatch, miVecEnable[%d] is %d\n",i,miVecEnabled[i]);
-#endif
-      metric *metricptr = metric::getMetric((*m)[i]);
-
-      // update appropriate MI info. 
-      if (type == CurrentPhase) {
-	 u_int old_current = (*miVec)[i]->currUsersCount();
-	 bool current_data = (*miVec)[i]->isCurrHistogram();
-	 (*miVec)[i]->newCurrDataCollection(metricptr->getStyle(),
-				   histDataCallBack,
-				   histFoldCallBack);
-	 (*miVec)[i]->newGlobalDataCollection(metricptr->getStyle(),
-				   histDataCallBack,
-				   histFoldCallBack);
-         (*miVec)[i]->addCurrentUser(ps_handle);
-
-	 // set sample rate to match current phase hist. bucket width
-	 if(!metricInstance::numCurrHists()){
-	   float rate = phaseInfo::GetLastBucketWidth();
-	   newSampleRate(rate);
-	 }
-
-	 // new active curr. histogram added if there are no previous
-	 // curr. subscribers and either persistent_collection is clear
-	 // or there was no curr. histogram prior to this
-	 if((!old_current) 
-	    && ((*miVec)[i]->currUsersCount() == 1)
-	    && ((!(*miVec)[i]->isCollectionPersistent()) || (!current_data))){ 
-	     metricInstance::incrNumCurrHists();
-	 }
-	 // new global histogram added if this metricInstance was just enabled
-	 if(!miVecEnabled[i]){ 
-	     metricInstance::incrNumGlobalHists();
-	 }
-      }
-      else {
-	 (*miVec)[i]->newGlobalDataCollection(metricptr->getStyle(),
-				   histDataCallBack,
-				   histFoldCallBack);
-         (*miVec)[i]->addGlobalUser(ps_handle);
-
-	 // if this is first global histogram enabled and there are no
-	 // curr hists, then set sample rate to match global hist. bucket width
-	 if(!metricInstance::numCurrHists()){
-	    if(!metricInstance::numGlobalHists()){ 
-	      float rate = Histogram::getGlobalBucketWidth();
-	      newSampleRate(rate);
-	 }}
-
-	 // new global hist added: update count
-	 if(!miVecEnabled[i]){  // new active global histogram added
-	     metricInstance::incrNumGlobalHists();
-	 }
-      }
-
-      // update persistence flags:  the OR of new and previous values
-      if(persistent_data) {
-	(*miVec)[i]->setPersistentData();
-      }
-      if(persistent_collection) {
-	(*miVec)[i]->setPersistentCollection();
-      }
-    }
-#ifdef DMDEBUG
-    else printf("TEST: DMenableDataBatch, miVec[%d] is NULL 2\n",i);
-#endif
-  }
-  return miVec;
-}
-
-metricInstInfo *dataManager::enableDataCollection(perfStreamHandle ps_handle,
-					const vector<resourceHandle> *focus, 
-					metricHandle m,
-					phaseType type,
-					unsigned persistent_data,
-					unsigned persistent_collection)
-{
-    if(!focus || !focus->size()){
-        if(focus) 
-	    printf("error in enableDataCollection size = %d\n",focus->size());
-        else
-	    printf("error in enableDataCollection focus is NULL\n");
-        return 0;
-    } 
-    resourceListHandle rl = resourceList::getResourceList(*focus);
-
-    metricInstance *mi = DMenableData(ps_handle,m,rl,type,persistent_data,
-    				      persistent_collection);
-    if(!mi) return 0;
-    metricInstInfo *temp = new metricInstInfo;
-    assert(temp);
-    metric *metricptr = metric::getMetric(m);
-    assert(metricptr);
-    temp->mi_id = mi->getHandle();
-    temp->m_id = m;
-    temp->r_id = rl;
-    resourceList *rl_temp = resourceList::getFocus(rl);
-    temp->metric_name = metricptr->getName();
-    temp->metric_units = metricptr->getUnits();
-    temp->focus_name = rl_temp->getName();
-    temp->units_type = metricptr->getUnitsType();
-    return(temp);
-    temp = 0;
-}
-
-vector<metricInstInfo *> 
-*dataManager::enableDataCollectionBatch(perfStreamHandle ps_handle,
-                                        vector<metric_focus_pair> *metResPair,
-					phaseType type,
-					unsigned persistent_data,
-					unsigned persistent_collection)
-{
-    assert(metResPair);
-    vector<resourceListHandle> rl;
-    vector<metricHandle> met;
-    rl.resize((*metResPair).size());
-    met.resize((*metResPair).size());
-    assert(rl.size());
-    assert(met.size());
-    for (unsigned int i=0;i<(*metResPair).size();i++) {
-      if( !((*metResPair)[i].res).size() ) {
-	printf("error in enableDataCollection size = %d\n",
-               ((*metResPair)[i].res).size());
-        return NULL;
-      } 
-      rl[i] = resourceList::getResourceList((*metResPair)[i].res);
-      met[i] = (*metResPair)[i].met;
-    }
-
-    vector<metricInstance *> *mi = DMenableDataBatch(ps_handle,
-                                              &met,
-                                              &rl,type,persistent_data,
-      			                      persistent_collection);
-    if(!mi) return NULL;
-    vector<metricInstInfo *> *temp;
-    temp = new vector<metricInstInfo *> ((*metResPair).size());
-    assert(temp);
-    assert((*mi).size() == (*metResPair).size());
-    for (unsigned int i=0;i<(*metResPair).size();i++) {
-      if ((*mi)[i]) {
-        metric *metricptr = metric::getMetric((*metResPair)[i].met);
-        assert(metricptr);
-        (*temp)[i] = new metricInstInfo;
-        assert((*temp)[i]);
-        (*temp)[i]->mi_id = (*mi)[i]->getHandle();
-        (*temp)[i]->m_id = (*metResPair)[i].met;
-        (*temp)[i]->r_id = rl[i];
-        resourceList *rl_temp = resourceList::getFocus(rl[i]);
-        (*temp)[i]->metric_name = metricptr->getName();
-        (*temp)[i]->metric_units = metricptr->getUnits();
-        (*temp)[i]->focus_name = rl_temp->getName();
-        (*temp)[i]->units_type = metricptr->getUnitsType();
-      }
-      else {
-#ifdef DMDEBUG
-        printf("TEST: enableDataCollectionBatch, mi[%d] is NULL\n",i);
-#endif
-        // metric wasn't enabled
-        (*temp)[i] = NULL;
-      }
-    }  
-    return(temp);
-}
-
 
 //
-// same as other enableDataCollection routine, except takes focus handle
-// argument and returns metricInstanceHandle on successful enable 
+// Request to enable a set of metric/focus pairs
+// ps_handle - the perfStreamHandle of the calling thread
+// request   - vector of metic/focus pairs to enable
+// request_Id - identifier passed by calling thread
+// type - which phase type to enable data for
+// phaseId - the identifier of the phase for which data is requested
+// persistent_data, persistent_collection - flags for data collection
 //
-metricInstanceHandle 
-*dataManager::enableDataCollection2(perfStreamHandle ps,
-				    resourceListHandle rlh,
-				    metricHandle mh,
-				    phaseType pType,
-				    unsigned pID,
-				    unsigned persistent_data,
-				    unsigned persistent_collection)
-{
-  // it is possible for enable requests and new phase callbacks to cross,
-  // so if this is a current phase request, we need to make sure its still
-  // the current phase
-  if ((pType == CurrentPhase) && (pID != phaseInfo::CurrentPhaseHandle()))
-    return NULL;
+void dataManager::enableDataRequest(perfStreamHandle ps_handle,
+				    vector<metric_focus_pair> *request,
+				    u_int request_Id,
+			            phaseType type,
+				    phaseHandle phaseId,
+			            u_int persistent_data,
+		                    u_int persistent_collection){
 
-    metricInstance *mi = DMenableData(ps,mh,rlh,pType,persistent_data,
-				      persistent_collection);
-    if(mi){
-        metricInstanceHandle *mi_h = new metricInstanceHandle;
-	*mi_h = mi->getHandle();
-	return(mi_h);
+    if((type == CurrentPhase) && (phaseId != phaseInfo::CurrentPhaseHandle())){
+	// send enable failed response to calling thread
+	vector<metricInstInfo> *response = 
+				   new vector<metricInstInfo>(request->size());
+        for(u_int i=0; i < response->size();i++){
+            (*response)[i].successfully_enabled = false;	    
+	}
+	// make response call
+	dictionary_hash_iter<perfStreamHandle,performanceStream*>
+		allS(performanceStream::allStreams);
+	perfStreamHandle h; performanceStream *ps;
+	while(allS.next(h,ps)){
+	    if(h == (perfStreamHandle)(ps_handle)){
+	        ps->callDataEnableFunc(response,request_Id);
+		return;
+	} }
+	response = 0;
     }
-    return 0;
+
+    // convert request to vector of metricRLType
+    vector<metricRLType> *pairList = new vector<metricRLType>;
+    for(u_int i=0; i < request->size(); i++){
+	metricRLType newPair((*request)[i].met,
+			    resourceList::getResourceList((*request)[i].res)); 
+	*pairList += newPair; 
+    }
+    assert(request->size() == pairList->size());
+
+    DMdoEnableData(ps_handle,pairList,request_Id,type,phaseId,
+		   persistent_data,persistent_collection);    
+    delete request;
+    pairList = 0;
 }
+
+//
+// same as enableDataRequest but with diff type for request 
+//
+void dataManager::enableDataRequest2(perfStreamHandle ps,
+				     vector<metricRLType> *request,
+				     u_int request_Id,
+			             phaseType type,
+				     phaseHandle phaseId,
+			             u_int persistent_data,
+		                     u_int persistent_collection){
+
+    // TODO: if currphase and phaseId != currentPhaseId then make approp.
+    //       response call to client
+    if((type == CurrentPhase) && (phaseId != phaseInfo::CurrentPhaseHandle())){
+	// send enable failed response to calling thread
+	vector<metricInstInfo> *response = 
+				   new vector<metricInstInfo>(request->size());
+        for(u_int i=0; i < response->size();i++){
+            (*response)[i].successfully_enabled = false;	    
+	}
+	// make response call
+	dictionary_hash_iter<perfStreamHandle,performanceStream*>
+		allS(performanceStream::allStreams);
+	perfStreamHandle h; performanceStream *ps;
+	while(allS.next(h,ps)){
+	    if(h == (perfStreamHandle)(ps)){
+	        ps->callDataEnableFunc(response,request_Id);
+		return;
+	} }
+	response = 0;
+    }
+
+    DMdoEnableData(ps,request,request_Id,type,phaseId, persistent_data,
+		   persistent_collection);    
+
+}
+
 
 // data is really disabled when there are no current or global users and
 // when the persistent_collection flag is clear
@@ -626,8 +470,11 @@ void dataManager::disableDataCollection(perfStreamHandle handle,
     metricInstance *mi = metricInstance::getMI(mh);
     if (!mi) return;
 
-    // if this mi is not enabled then return
-    if(!mi->isEnabled()) return;
+    // if this mi is not enabled and there are no outstanding enable
+    // requests then ignore this disable  
+    if(!mi->isEnabled() && 
+       !mi->isGlobalEnableOutstanding() && 
+       !mi->isCurrEnableOutstanding()) return;
 
     u_int num_curr_users = mi->currUsersCount();
 
@@ -645,7 +492,9 @@ void dataManager::disableDataCollection(perfStreamHandle handle,
     }
 
     // really disable MI data collection?  
-    if (!(mi->currUsersCount())) {
+    // really disable data when there are no subscribers and
+    // there are no outstanding global or curr enables for this MI      
+    if (!(mi->currUsersCount()) && !mi->isCurrEnableOutstanding()) {
 	u_int num_curr_hists = metricInstance::numCurrHists();
 	if (!(mi->isDataPersistent())){
 	    // remove histogram
@@ -664,7 +513,7 @@ void dataManager::disableDataCollection(perfStreamHandle handle,
                 }
 	}}
 
-	if (!(mi->globalUsersCount())) {
+	if (!(mi->globalUsersCount())&& !mi->isGlobalEnableOutstanding()) {
 	    mi->dataDisable();  // makes disable call to daemons
 	    if (!(mi->isDataPersistent())){
 	        delete mi;	
@@ -1070,6 +919,20 @@ void dataManagerUser::changeResourceBatchMode(resourceBatchModeCallback cb,
 {
     (cb)(handle, mode);
 }
+
+//
+// response to enableDataRequest call
+// func - callback function registered by client thread on createPerfStream
+// response - vector of enable reponses to enable
+// request_id - identifier passed by client to enableDataRequest
+//
+void dataManagerUser::enableDataCallback(enableDataCallbackFunc func,
+				         vector<metricInstInfo> *response,
+			                 u_int request_id)
+{
+    (func)(response, request_id);
+}
+
 
 void dataManagerUser::histFold(histFoldCallback cb,
 			       perfStreamHandle handle,

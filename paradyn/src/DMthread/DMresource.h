@@ -2,7 +2,10 @@
  * DMresource.h - define the resource data abstraction.
  *
  * $Log: DMresource.h,v $
- * Revision 1.27  1996/03/01 22:47:05  mjrg
+ * Revision 1.28  1996/04/30 18:54:00  newhall
+ * changes to make enabling and disabling data asynchronous
+ *
+ * Revision 1.27  1996/03/01  22:47:05  mjrg
  * Added type to resources.
  *
  * Revision 1.26  1996/02/02 02:14:53  karavan
@@ -217,7 +220,7 @@ class resourceList {
       const char *getName(){return(fullName.string_of());}
 
       bool convertToStringList(vector< vector<string> >& fs);
-      bool convertToIDList(vector<u_int>& flist);
+      bool convertToIDList(vector<resourceHandle>& flist);
       bool isSuppressed(){return(suppressed);}
 
       vector<rlNameId> *magnify(resourceHandle rh);
@@ -225,6 +228,8 @@ class resourceList {
       resourceListHandle *constrain(resourceHandle);
 
       static const char *getName(resourceListHandle rh);
+      static bool convertToIDList(resourceListHandle rh,
+				  vector<resourceHandle> &rl);
       static vector<resourceHandle> *getResourceHandles(resourceListHandle);
       static const resourceListHandle *find(const string &name);
       // creates new resourceList if one doesn't already exist 

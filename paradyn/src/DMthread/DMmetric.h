@@ -72,18 +72,9 @@ class metric {
     friend class metricInstance;
     friend class paradynDaemon;
     friend void addMetric(T_dyninstRPC::metricInfo &info);
-    friend metricInstance *DMenableData(perfStreamHandle, metricHandle,
-	 			        resourceListHandle, phaseType,
-					unsigned, unsigned);
-    friend vector<metricInstance *> *DMenableDataBatch(
-                             perfStreamHandle ps_handle,
-			     vector<metricHandle> *m, 
-			     vector<resourceListHandle> *rl,
-			     phaseType type,
-			     unsigned persistent_data, 
-			     unsigned persistent_collection);
     friend void histDataCallBack(sampleValue *, timeStamp , 
 				 int , int , void *, bool);
+    friend void DMenableResponse(DM_enableType&,vector<bool>&);
     public:
 	metric(T_dyninstRPC::metricInfo i); 
 	const T_dyninstRPC::metricInfo  *getInfo() { return(&info); }
@@ -126,16 +117,14 @@ class metricInstance {
     friend class paradynDaemon;
     friend void histDataCallBack(sampleValue *buckets, timeStamp, int count, 
 				 int first, void *arg, bool globalFlag);
-    friend metricInstance *DMenableData(perfStreamHandle,metricHandle,
-					resourceListHandle,phaseType,
-					unsigned, unsigned);
-    friend vector<metricInstance *> *DMenableDataBatch(
-                             perfStreamHandle ps_handle,
-			     vector<metricHandle> *m, 
-			     vector<resourceListHandle> *rl,
-			     phaseType type,
-			     unsigned persistent_data, 
-			     unsigned persistent_collection);
+    friend void DMdoEnableData(perfStreamHandle ps_handle,
+			       vector<metricRLType> *request,
+			       u_int request_Id,
+			       phaseType type,
+			       phaseHandle phaseId,
+			       u_int persistent_data,
+			       u_int persistent_collection);
+    friend void DMenableResponse(DM_enableType&,vector<bool>&);
     public:
 	metricInstance(resourceListHandle rl, metricHandle m,phaseHandle ph);
 	~metricInstance(); 
@@ -166,18 +155,38 @@ class metricInstance {
 	resourceListHandle getFocusHandle(){ return(focus); }
 	const char *getMetricName(){ return(metric::getName(met));}
 	const char *getFocusName(){return(resourceList::getName(focus));}
+	bool convertToIDList(vector<u_int> &rl){
+	    return resourceList::convertToIDList(focus,rl);
+        }
 	void addInterval(timeStamp s,timeStamp e,sampleValue v,bool b){
 	     if(data) 
                  data->addInterval(s,e,v,b);
              if(global_data)
 		 global_data->addInterval(s,e,v,b);
 	}
-        // void disableDataCollection(perfStreamHandle ps);
 
         bool isCurrHistogram(){if (data) return(true); else return(false);}
+	bool isGlobalHistogram(){ 
+		if(global_data) return(true); else return(false);
+	}
 	bool isEnabled(){return(enabled);}
 	void setEnabled(){ enabled = true;}
 	void clearEnabled(){ enabled = false;}
+	bool isCurrentlyEnabling(){return(currently_enabling);}
+	void setCurrentlyEnabling(){ currently_enabling = true;}
+	void clearCurrentlyEnabling(){ currently_enabling = false;}
+
+	bool isCurrEnableOutstanding(){ return(currEnablesWaiting != 0);}
+	bool isGlobalEnableOutstanding(){return(globalEnablesWaiting != 0);}
+	void incrCurrWaiting(){ currEnablesWaiting++; }
+	void incrGlobalWaiting(){ globalEnablesWaiting++; }
+	void decrGlobalWaiting(){
+	  if(globalEnablesWaiting) globalEnablesWaiting--;
+        }
+	void decrCurrWaiting(){
+	  if(currEnablesWaiting) currEnablesWaiting--;
+	}
+
 	void setPersistentData(){ persistent_data = true; } 
 	void setPersistentCollection(){ persistent_collection = true; } 
 	// returns true if the metric instance can be deleted 
@@ -209,6 +218,10 @@ class metricInstance {
 	resourceListHandle focus;
 	float enabledTime;
 	bool enabled;    // set if data for mi is currently enabled
+	bool currently_enabling; // set if MI is curr. being enabled 
+	// to keep track of outstanding enable requests for this MI 
+	u_int currEnablesWaiting; 
+	u_int globalEnablesWaiting;
 
 	// one component for each daemon contributing to the metric value 
 	// each new component must be added to aggSample, and when

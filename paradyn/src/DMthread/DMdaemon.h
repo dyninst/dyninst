@@ -34,6 +34,56 @@
 class metricInstance;
 class metric;
 
+//
+// used to store info. about an enable request that has not received
+// a response from the daemons yet
+//
+class DM_enableType{
+    friend class paradynDaemon;
+    friend class dynRPCUser;
+    friend class phaseInfo;
+    friend void DMenableResponse(DM_enableType&,vector<bool>&);
+ public: 
+    DM_enableType(perfStreamHandle ph,phaseType t,phaseHandle ph_h,
+		  u_int rI,u_int cI,vector <metricInstance *> *r,
+		  vector <bool> *d,vector <bool> *e,u_int h,u_int pd,u_int pc):
+		  ps_handle(ph),ph_type(t), ph_handle(ph_h),request_id(rI), 
+		  client_id(cI), request(r),done(d),enabled(e),how_many(h),
+		  persistent_data(pd), persistent_collection(pc), 
+		  not_all_done(0) { 
+			   for(u_int i=0; i < done->size(); i++){
+			       if(!(*done)[i]) not_all_done++;
+			   }
+    }
+    DM_enableType(){ ps_handle = 0; ph_type = GlobalPhase; ph_handle= 0; 
+		request_id = 0; client_id = 0; request = 0; done = 0; 
+		enabled = 0; how_many =0; persistent_data = 0; 
+		persistent_collection = 0; 
+    }
+    ~DM_enableType(){ }
+
+    metricInstance *findMI(metricInstanceHandle mh);
+    void setDone(metricInstanceHandle mh);
+
+    void updateAny(vector<metricInstance *> &completed_mis,
+		   vector<bool> successful);
+
+ private:
+    perfStreamHandle ps_handle;  // client thread
+    phaseType ph_type;           // phase type assoc. with enable request
+    phaseHandle ph_handle;       // phase id, used if request is for curr phase
+    u_int request_id;            // DM assigned enable request identifier
+    u_int client_id;             // enable request id sent by calling thread
+    vector <metricInstance *> *request;  // MI's assoc. w/ enable request
+    vector <bool> *done;         // which elements are waiting for replies
+    vector <bool> *enabled;      // which elements were already enabled
+    u_int how_many;              // number of daemons 
+    u_int persistent_data;
+    u_int persistent_collection;
+    u_int not_all_done;
+};
+
+
 // hash functions for dictionary members
 inline unsigned uiHash(const unsigned &ptr) {
   return (ptr >> 2);
@@ -106,10 +156,13 @@ class executable {
 class paradynDaemon: public dynRPCUser {
 	friend class dynRPCUser;
 	friend class component;
+	friend class phaseInfo;
 	friend void *DMmain(void* varg);
 	friend void newSampleRate(float rate);
 	friend bool metDoDaemon();
 	friend int dataManager::DM_post_thread_create_init(int tid);
+	friend void DMdoEnableData(perfStreamHandle,vector<metricRLType>*,
+				   u_int,phaseType,phaseHandle,u_int,u_int);
     public:
 	paradynDaemon(const string &m, const string &u, const string &c,
 		      const string &n, const string &flav);
@@ -170,12 +223,11 @@ class paradynDaemon: public dynRPCUser {
   	static bool pauseAll();	
 	static bool continueAll();
 	static bool setInstSuppress(resource *, bool);
-	static bool enableData(resourceListHandle,metricHandle,
-                               metricInstance*);
-        static bool enableDataBatch(vector<resourceListHandle> *r_handle, 
-			           vector<metricHandle> *m_handle,
-			           vector<metricInstance *> *&mi,
-                                   vector<bool> miEnabled);
+        static void enableData(vector<metricInstance *> *miVec, 
+			       vector<bool> *done,
+                               vector<bool> *enabled,
+			       DM_enableType *new_entry,
+			       bool need_to_enable);
 
 	static void tellDaemonsOfResource(u_int parent,
 					  u_int res,const char *name, u_int type);
@@ -224,6 +276,8 @@ class paradynDaemon: public dynRPCUser {
 	// list of all active daemons: one for each unique name/machine pair 
         static vector<paradynDaemon*>  allDaemons;
         static unsigned procRunning; // how many processes are running or ready to run.
+	static vector<DM_enableType*> outstanding_enables;
+	static u_int next_enable_id;
 
         // these args are passed to the paradynd when started
         // for paradyndPVM these args contain the info to connect to the

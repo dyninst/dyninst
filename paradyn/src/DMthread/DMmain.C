@@ -51,6 +51,8 @@ vector<resourceList *> resourceList::foci;
 vector<phaseInfo *> phaseInfo::dm_phases;
 u_int metricInstance::next_id = 1;
 u_int performanceStream::next_id = 0;
+vector<DM_enableType*> paradynDaemon::outstanding_enables;  
+u_int paradynDaemon::next_enable_id = 0;  
 
 resource *resource::rootResource = new resource();
 timeStamp metricInstance::curr_bucket_width;
@@ -64,6 +66,9 @@ double paradynDaemon::earliestFirstTime = 0;
 // TODO: remove
 // void DMchangeSampleRate(float rate); 
 void newSampleRate(float rate);
+
+extern void histDataCallBack(sampleValue*, timeStamp, int, int, void*, bool);
+extern void histFoldCallBack(timeStamp, void*, bool);
 
 //
 // IO from application processes.
@@ -161,15 +166,240 @@ class uniqueName {
 };
 
 //
-// Upcall to tell paradyn that all daemons are ready after a metric
-// enable request
+// handles a completed enable response: updates metricInstance state
+// and send the calling thread the response 
 //
-void dynRPCUser::enableDataCallback(int, int)
-{
+void DMenableResponse(DM_enableType &enable,vector<bool> &successful){
+    
+
+    vector<metricInstance *> &mis = (*enable.request);
+    assert(successful.size() == mis.size());
+    vector<metricInstInfo> *response = new vector<metricInstInfo>(mis.size()); 
+
+
+    // update MI state and response vector
+    for(u_int i=0; i < mis.size(); i++){
+        if(mis[i] && successful[i]){  // this MI could be enabled
+	    mis[i]->setEnabled();
+	    metric *metricptr = metric::getMetric(mis[i]->getMetricHandle());
+            if(enable.ph_type == CurrentPhase){
+		u_int old_current = mis[i]->currUsersCount();
+		bool  current_data = mis[i]->isCurrHistogram();
+		mis[i]->newCurrDataCollection(metricptr->getStyle(),
+					      histDataCallBack,
+				              histFoldCallBack);
+	        mis[i]->newGlobalDataCollection(metricptr->getStyle(),
+					        histDataCallBack,
+					        histFoldCallBack);
+	        mis[i]->addCurrentUser(enable.ps_handle);
+		// set sample rate to match current phase hist. bucket width
+	        if(!metricInstance::numCurrHists()){
+	            float rate = phaseInfo::GetLastBucketWidth();
+	            newSampleRate(rate);
+		}
+		// new active curr. histogram added if there are no previous
+		// curr. subscribers and either persistent_collection is clear
+		// or there was no curr. histogram prior to this
+		if((!old_current)
+		    && (mis[i]->currUsersCount() == 1) && 
+		    (!(mis[i]->isCollectionPersistent()) || (!current_data))){
+                    metricInstance::incrNumCurrHists();
+		}
+		// new global histogram if this metricInstance was just enabled
+		if(!((*enable.enabled)[i])){
+		    metricInstance::incrNumGlobalHists();
+		}
+	    }
+	    else {  // this is a global phase enable
+	        mis[i]->newGlobalDataCollection(metricptr->getStyle(),
+					        histDataCallBack,
+					        histFoldCallBack);
+	        mis[i]->addGlobalUser(enable.ps_handle);
+
+		// if this is first global histogram enabled and there are no
+	        // curr hists, then set sample rate to global bucket width
+	        if(!metricInstance::numCurrHists()){
+	            if(!metricInstance::numGlobalHists()){
+	                float rate = Histogram::getGlobalBucketWidth();
+	                newSampleRate(rate);
+	        }}
+		// new global hist added: update count
+		if(!((*enable.enabled)[i])){
+		    metricInstance::incrNumGlobalHists();
+		}
+	    }
+	    // update response vector
+	    (*response)[i].successfully_enabled = true;
+	    (*response)[i].mi_id = mis[i]->getHandle(); 
+	    (*response)[i].m_id = mis[i]->getMetricHandle();
+	    (*response)[i].r_id = mis[i]->getFocusHandle();
+	    (*response)[i].metric_name = mis[i]->getMetricName();
+	    (*response)[i].metric_units = metricptr->getUnits();
+	    (*response)[i].focus_name = mis[i]->getFocusName();
+	    (*response)[i].units_type = metricptr->getUnitsType();
+
+	    // update the persistence flags: the OR of new & previous values
+	    if(enable.persistent_data){
+		mis[i]->setPersistentData();
+	    }
+	    if(enable.persistent_collection){
+		mis[i]->setPersistentCollection();
+	    }
+	}
+	else {  // was not successfully enabled
+	    (*response)[i].successfully_enabled = false;
+	}
+    }
+
+    // make response call
+    dictionary_hash_iter<perfStreamHandle,performanceStream*>
+	    allS(performanceStream::allStreams);
+    perfStreamHandle h; performanceStream *ps;
+    while(allS.next(h,ps)){
+	if(h == (perfStreamHandle)(enable.ps_handle)){
+	    ps->callDataEnableFunc(response,enable.client_id);
+            return;
+    } }
+    response = 0;
 }
 
-void dynRPCUser::enableDataCallbackBatch(int daemon_id, vector<int> return_id)
+//
+// handle an enable response from a daemon. If all daemons have responded
+// then make response callback to calling thread, and check the outstanding
+// enables list to see if this enable response satisfies any waiting requests.
+// and enable for an MI is successful if its done entry is true and if its
+// MI* is not 0
+//
+void dynRPCUser::enableDataCallback(u_int daemon_id, 
+				    vector<int> return_id,
+				    vector<u_int> mi_ids,
+				    u_int request_id)
 {
+    // find element in outstanding_enables corr. to request_id
+    u_int which =0;
+    DM_enableType *request_entry = 0;
+    for(u_int i=0; i < paradynDaemon::outstanding_enables.size(); i++){
+        if((paradynDaemon::outstanding_enables[i])->request_id == request_id){
+	    which = i;
+	    request_entry = paradynDaemon::outstanding_enables[i];
+	    break;
+    } }
+
+    if(!request_entry){
+	// a request entry can be removed if a new phase event occurs
+	// between the enable request and response, so ignore the response
+        return;
+    }
+    assert(daemon_id < paradynDaemon::allDaemons.size());
+    paradynDaemon *pd = paradynDaemon::allDaemons[daemon_id];
+
+    // for each mi in request update mi's components with new daemon if
+    // it was successfully enabled
+    assert(mi_ids.size() == return_id.size());
+    for(u_int j=0; j< return_id.size(); j++){
+	if(return_id[j] != -1){
+            metricInstanceHandle mh =  mi_ids[j];     
+	    metricInstance *mi = request_entry->findMI(mh);
+	    assert(mi);
+	    component *comp = new component(pd,return_id[j], mi);  
+	    assert(mi->addComponent(comp));
+	    // if at least one daemon could enable, update done and enabled
+            request_entry->setDone(mh);
+    } }
+
+    // update count of outstanding daemon responses
+    assert(request_entry->how_many);
+    request_entry->how_many--;
+
+    // all daemons have responded to enable request, send result to caller 
+    if(!request_entry->how_many) { 
+	vector<bool> successful( request_entry->request->size());
+	for(u_int k=0; k < request_entry->request->size(); k++){
+	    // if MI is 0 or if done is false
+	    if(!((*(request_entry->done))[k]) 
+		|| !((*(request_entry->request))[k])){
+                successful[k] = false;
+	    }
+	    else {
+		successful[k] = true;
+            }
+	}
+        // if all daemons have responded update state for request and send
+        // result to caller
+	// a successful enable has both the enabled flag set and an mi*
+
+	// clear currentlyEnabling flag and decrement the count of 
+	// waiting enables for all MI's
+	for(u_int i1=0; i1 < request_entry->done->size(); i1++){
+            if((*request_entry->request)[i1]){
+	        ((*request_entry->request)[i1])->clearCurrentlyEnabling();
+	        if(request_entry->ph_type == CurrentPhase){
+		    ((*request_entry->request)[i1])->decrCurrWaiting();
+	        }
+	        else{
+		    ((*request_entry->request)[i1])->decrGlobalWaiting();
+	        }
+        } }
+
+	// update MI state for this entry and send response to caller
+	DMenableResponse(*request_entry,successful);
+        
+
+	// remove this entry from the outstanding enables list 
+	u_int size = paradynDaemon::outstanding_enables.size();
+	paradynDaemon::outstanding_enables[which] =
+			 paradynDaemon::outstanding_enables[size-1];
+                paradynDaemon::outstanding_enables.resize(size-1);
+
+        // for each element on outstanding_enables, check to see if there are
+        // any outstatnding_enables that can be satisfied by this request
+        // if so, update state, and for any outstanding_enables that are 
+        // complete, send the result to the client thread  
+        // update not_all_done 
+	for(u_int i2=0; i2 < paradynDaemon::outstanding_enables.size(); i2++){
+            DM_enableType *next_entry = paradynDaemon::outstanding_enables[i2];
+	    next_entry->updateAny(*(request_entry->request),successful);
+	}
+        if(paradynDaemon::outstanding_enables.size()){
+	  bool done = false;
+	  u_int i3 = 0;
+	  while(!done){
+	      if((paradynDaemon::outstanding_enables[i3])->not_all_done){
+                  i3++;
+	      }
+	      else {  // this entry's request is complete
+		   // update MI state for this entry and send response to caller
+ 	   	   DM_enableType *temp = paradynDaemon::outstanding_enables[i3];
+		   successful.resize(temp->request->size());
+	           for(u_int k2=0; k2 < successful.size(); k2++){
+	               if(!((*(temp->done))[k2])) successful[k2] = false;
+                       else successful[k2] = true;
+	           }
+		   // decrement the number of waiting for enables for 
+		   // each MI in this response
+		   for(u_int k3=0; k3 < temp->request->size(); k3++){
+                       if((*temp->request)[k3]){
+	                   if(temp->ph_type == CurrentPhase){
+		               ((*temp->request)[k3])->decrCurrWaiting();
+	                   }
+	                   else{
+		              ((*temp->request)[k3])->decrGlobalWaiting();
+	                   }
+		   } }
+
+	           DMenableResponse(*temp,successful);
+
+		   // remove entry from outstanding_enables list
+		   u_int newsize=paradynDaemon::outstanding_enables.size()-1;
+		   paradynDaemon::outstanding_enables[i3] =
+			 paradynDaemon::outstanding_enables[newsize];
+                   paradynDaemon::outstanding_enables.resize(newsize);
+                   delete temp;
+	      }
+	      if(i3 >= paradynDaemon::outstanding_enables.size()) done = true;
+	  }
+	}
+    }
 }
 
 //

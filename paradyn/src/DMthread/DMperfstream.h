@@ -33,6 +33,7 @@
 class metricInstance;
 class metric;
 class resourceList;
+class DM_enableType; 
 
 struct pred_Cost_Type {
     metricHandle m_handle;
@@ -53,6 +54,11 @@ class performanceStream {
       friend void addMetric(T_dyninstRPC::metricInfo &info);
       friend resourceHandle createResource(vector<string>&, string&, unsigned);
       friend class dynRPCUser;
+      friend void DMenableResponse(DM_enableType&,vector<bool>&);
+      friend void dataManager::enableDataRequest(perfStreamHandle,
+	    vector<metric_focus_pair>*,u_int,phaseType,phaseHandle,u_int,u_int);
+      friend void dataManager::enableDataRequest2(perfStreamHandle,
+	    vector<metricRLType>*,u_int,phaseType,phaseHandle,u_int,u_int);
     public:
 	performanceStream(dataType t, dataCallback dc,
 			  controlCallback cc, int tid); 
@@ -66,6 +72,8 @@ class performanceStream {
 	void callStateFunc(appState state);
 	void callPhaseFunc(phaseInfo& phase,bool with_new_pc,bool with_visis);
 	void callPredictedCostFuc(metricHandle,resourceListHandle,float);
+	void callDataEnableFunc(vector<metricInstInfo> *response,
+				u_int request_Id);
 	perfStreamHandle Handle(){return(handle);}
 	void flushBuffer();   // send data to client thread
 	void predictedDataCostCallback(u_int,float);
