@@ -1,4 +1,4 @@
-// $Id: test7.C,v 1.3 2003/01/02 19:52:09 schendel Exp $
+// $Id: test7.C,v 1.4 2003/03/08 01:23:50 bernat Exp $
 //
 
 #include <stdio.h>
@@ -21,7 +21,7 @@
 #include "test_util.h"
 
 
-const char *mutateeNameRoot = "test4a.mutatee";
+const char *mutateeNameRoot = "test7.mutatee";
 
 int inTest;		// current test #
 int expectError;
@@ -1217,12 +1217,12 @@ main(unsigned int argc, char *argv[])
 	    N32ABI=true;
 #endif
 	} else {
-	    fprintf(stderr, "Usage: test4 "
+	    fprintf(stderr, "Usage: test7 "
 		    "[-V] [-verbose] "
 #if defined(mips_sgi_irix6_4)
 		    "[-n32] "
 #endif
-                    "[-mutatee <test4a.mutatee>] "
+                    "[-mutatee <test7.mutatee>] "
 		    "[-run <test#> <test#> ...] "
 		    "[-skip <test#> <test#> ...]\n");
             fprintf(stderr, "%d subtests\n", MAX_TEST);
