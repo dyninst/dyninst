@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.37 2003/07/15 22:44:45 schendel Exp $
+// $Id: templates0.C,v 1.38 2003/07/29 00:32:45 eli Exp $
 // Generate all the templates in one file.
 
 /*
@@ -81,6 +81,10 @@
 #if !defined(BPATCH_LIBRARY)
 #include "paradynd/src/instReqNode.h"
 #include "paradynd/src/processMetFocusNode.h"
+#endif
+
+#if defined(rs6000_ibm_aix4_1)
+#include "LineInformation.h"
 #endif
 
 template class  pdvector<dyn_thread *>;
@@ -155,4 +159,8 @@ template class pdvector<dataUpdate*> ;//ccw 26 nov 2001
 
 #ifndef BPATCH_LIBRARY
 template class pdvector<pdvector<pdstring> *>;
+#endif
+
+#if defined(rs6000_ibm_aix4_1)
+template class pdvector<IncludeFileInfo>;
 #endif
