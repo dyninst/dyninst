@@ -2,7 +2,10 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.30  1994/07/07 03:28:59  markc
+ * Revision 1.31  1994/07/08 21:56:25  jcargill
+ * Changed XDR connection to paradynd to a buffered bind
+ *
+ * Revision 1.30  1994/07/07  03:28:59  markc
  * Added routine to start a paradyn daemon.
  * Changed int returns to type Boolean to agree with expected return values from
  * interface functions.
@@ -116,6 +119,7 @@ extern "C" {
 double   quiet_nan(int unused);
 #include <malloc.h>
 #include "thread/h/thread.h"
+#include <rpc/xdr.h>
 }
 
 #include "dataManager.h"
@@ -163,7 +167,7 @@ Boolean applicationContext::addDaemon (int new_fd)
   new_daemon = new paradynDaemon (new_fd, NULL, NULL);
   // TODO - setup machine, program, login?
 
-  msg_bind (new_daemon->fd, TRUE);
+  msg_bind_buffered (new_daemon->fd, TRUE, xdrrec_eof, new_daemon->__xdrs__);
 
   // TODO - do I need the pid for this ?
   // The pid is reported later in an upcall
@@ -244,7 +248,7 @@ paradynDaemon *applicationContext::getDaemonHelper (char *machine,
 	  return((paradynDaemon*) NULL);
 	}
       daemons.add(daemon);
-      msg_bind(daemon->fd, TRUE);
+      msg_bind_buffered (daemon->fd, TRUE, xdrrec_eof, daemon->__xdrs__);
 
       // if this looks like a kludge, it is
       // libutil defines a pid member that is set when a new process is
