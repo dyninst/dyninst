@@ -1,6 +1,7 @@
 #ifndef _BPatch_sourceBlock_h_
 #define _BPatch_sourceBlock_h_
 
+#include <iostream.h>
 #include "BPatch_Vector.h"
 #include "BPatch_Set.h"
 
