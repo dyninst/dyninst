@@ -1,7 +1,10 @@
 /* $Log: main.C,v $
-/* Revision 1.24  1995/08/18 22:00:16  mjrg
-/* Added calls to metDoProcess, metDoDaemon, metDoTunable.
+/* Revision 1.25  1995/08/20 03:42:02  newhall
+/* changed arguments to DM_sequential_init
 /*
+ * Revision 1.24  1995/08/18  22:00:16  mjrg
+ * Added calls to metDoProcess, metDoDaemon, metDoTunable.
+ *
  * Revision 1.23  1995/08/16  15:17:40  krisna
  * double-bug fix.
  *   * do not pass addresses of stack variables into thread functions
@@ -156,6 +159,7 @@ void eFunction(int errno, char *message)
 }
 
 extern bool metDoTunable();
+extern bool metDoProcess();
 extern bool metMain(string&);
 extern bool metDoProcess();
 extern bool metDoDaemon();
@@ -253,11 +257,11 @@ main (int argc, char **argv)
   MAINtid = thr_self();
 
 // Structure used to pass initial arguments to data manager
-  init_struct init; init.tid = MAINtid; init.met_file = fname;
+//  init_struct init; init.tid = MAINtid; init.met_file = fname;
 
 // call sequential initialization routines
-  dataManager::DM_sequential_init(&init);
-  VM::VM_sequential_init();
+  dataManager::DM_sequential_init(fname);
+  VM::VM_sequential_init(); 
 
 
      /* initialize the 4 main threads of paradyn: data manager, visi manager,
