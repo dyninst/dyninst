@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.133 2002/05/28 02:19:12 bernat Exp $
+ * $Id: inst-power.C,v 1.134 2002/05/29 19:19:23 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -961,7 +961,8 @@ unsigned generateMTTrampCode(instruction *insn, Address &base, process *proc)
 				true); // root node
   instruction *tmp_insn = (instruction *) ((void*)&insn[scratchBase/4]);
   if ((src) != REG_MT_POS) {
-    cerr << "Source reg " << src << " neq " << REG_MT_POS << endl;
+    // This is always going to happen... we reserve REG_MT_POS, so the
+    // code generator will never use it as a destination
     genImmInsn(tmp_insn, ORILop, src, REG_MT_POS, 0);
     tmp_insn++; scratchBase+=sizeof(instruction);
   }

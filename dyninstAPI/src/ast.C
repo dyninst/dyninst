@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.101 2002/05/29 00:16:54 bernat Exp $
+// $Id: ast.C,v 1.102 2002/05/29 19:19:23 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1167,12 +1167,14 @@ Address AstNode::generateCode_phase2(process *proc,
 	      addr = (Address) loperand->oValue;
 	      assert(addr != 0); // check for NULL
 	      emitVstore(storeOp, src1, src2, addr, insn, base, noCost, size);
+	      loperand->useCount--;
 	      break;
 	    case FrameAddr:
 	      addr = (Address) loperand->oValue;
 	      assert(addr != 0); // check for NULL
 	      emitVstore(storeFrameRelativeOp, src1, src2, addr, insn, 
 			 base, noCost, size);
+	      loperand->useCount--;
 	      break;
 	    case DataIndir:
 	      // store to a an expression (e.g. an array or field use)
@@ -1181,6 +1183,7 @@ Address AstNode::generateCode_phase2(process *proc,
 								       rs, insn, base, noCost, location);
 	      // dest now contains address to store into
 	      emitV(storeIndirOp, src1, 0, dest, insn, base, noCost, size);
+	      loperand->useCount--;
 	      break;
 #if defined(MT_THREAD)
 	    case OffsetConstant:
@@ -1192,15 +1195,23 @@ Address AstNode::generateCode_phase2(process *proc,
 	      break;
 #endif
 	    default:
-	      fprintf(stderr, "Invalid oType passed to store: %d (0x%x)\n",
-		      (int)loperand->oType, (unsigned)loperand->oType);
-	      cerr << "dataValue " << DataValue << " dataPtr " << DataPtr << " dataId " << DataId << endl;
-	      abort();
+	      // Could be an error, could be an attempt to load based on an arithmetic expression
+	      if (type == opCodeNode) {
+		// Generate the left hand side, store the right to that address
+		dest = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, location);
+		emitV(storeIndirOp, src1, 0, dest, insn, base, noCost, size);
+	      }
+	      else {
+		fprintf(stderr, "Invalid oType passed to store: %d (0x%x). Op is %d (0x%x)\n",
+			(int)loperand->oType, (unsigned)loperand->oType,
+			(int)loperand->op, (unsigned) loperand->op);
+		cerr << "dataValue " << DataValue << " dataPtr " << DataPtr << " dataId " << DataId << endl;
+		abort();
+	      }
 	      break;
 	    }
             // We are not calling generateCode for the left branch,
 	    // so need to decrement the refcount by hand
-            loperand->useCount--;
             if (loperand->kept_register != Null_Register) {
 		// We are keeping a stale value in the register
                 rs->unkeep_register(loperand->kept_register);
@@ -1823,24 +1834,18 @@ AstNode *getCounterAddress(void *base, unsigned struct_size)
 #else
   AstNode *pos        = new AstNode(AstNode::DataReg, (void *)REG_MT_POS);
   AstNode *increment  = new AstNode(AstNode::Constant, (void *)struct_size);
-  AstNode *var_base   = new AstNode(AstNode::DataAddr, base);
+  AstNode *var_base   = new AstNode(AstNode::DataPtr, base);
 
   AstNode *offset     = new AstNode(timesOp, pos, increment);
-  AstNode *intermediate = new AstNode(plusOp, var_base, offset);
-  AstNode *var        = new AstNode(AstNode::OffsetConstant, intermediate);
+  AstNode *var        = new AstNode(plusOp, var_base, offset);
 
-  cerr << "Debug: " << endl;
-  cerr << "  pos: " << pos->getoType() << endl;
-  cerr << "  inc: " << increment->getoType() << endl;
-  cerr << "  var_base: " << var_base->getoType() << endl;
-  cerr << "  offset: " << offset->getoType() << endl;
-  cerr << "  var: " << var->getoType() << endl;
+  // Hrm... this gives us the base address just fine, but we need a "load"
+  // to actually make it work. 
 
   removeAst(pos);
   removeAst(increment);
   removeAst(var_base);
   removeAst(offset);
-  removeAst(intermediate);
   return var;
 
 #endif
@@ -1850,21 +1855,33 @@ AstNode *getCounterAddress(void *base, unsigned struct_size)
 AstNode *createCounter(const string &func, void *dataPtr, 
                        AstNode *ast) 
 {
-   AstNode *calc=NULL, *store=NULL;
+   AstNode *load=NULL, *calc=NULL, *store=NULL;
+
+   // We keep the different MT_THREAD code, because otherwise we really
+   // de-optimize the singlethread case
 
    AstNode *counter_base = getCounterAddress(dataPtr, sizeof(intCounter));
    if (func=="addCounter") {
-     calc = new AstNode(plusOp,counter_base,ast);
+#if defined(MT_THREAD)
+     load = new AstNode(AstNode::DataIndir,counter_base);
+     calc = new AstNode(plusOp,load,ast);
+#else
+     calc = new AstNode(plusOp,counter_base, ast);
+#endif
      store = new AstNode(storeOp,counter_base,calc);
-     removeAst(calc);
    } else if (func=="subCounter") {
+#if defined(MT_THREAD)
+     load = new AstNode(AstNode::DataIndir,counter_base);
+     calc = new AstNode(minusOp,load,ast);
+#else
      calc = new AstNode(minusOp,counter_base,ast);
+#endif
      store = new AstNode(storeOp,counter_base,calc);
-     removeAst(calc);
    } else if (func=="setCounter") {
      store = new AstNode(storeOp,counter_base,ast);
    } else abort();
-   removeAst(counter_base);
+   if (calc) removeAst(calc);
+   if (load) removeAst(load);
    return(store);
 }
 #endif
