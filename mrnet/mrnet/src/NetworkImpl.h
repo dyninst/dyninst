@@ -23,6 +23,7 @@ namespace MRN
 
 class NetworkImpl: public Error {
     friend class Network;
+    friend class Stream;
  public:
     class LeafInfoImpl : public Network::LeafInfo {
     private:
@@ -62,12 +63,21 @@ class NetworkImpl: public Error {
     int parse_configfile( const char* _configBuf = NULL );
 
     /* "Registered" streams */
-    static std::map < unsigned int, Stream * >streams;
-    static unsigned int cur_stream_idx;
+    std::map < unsigned int, Stream * >allStreamsById;
+    std::map < unsigned int, Stream * >::iterator cur_stream_iter;
+    XPlat::Mutex all_streams_mutex;
 
-    void InitFE( Network * _network, const char * _config = NULL );
+    void InitFE( Network * _network, const char **argv, const char * _config = NULL );
 
  public:
+    void set_StreamById( unsigned int, Stream * );
+    Stream * get_StreamById( unsigned int );
+    void delete_StreamById( unsigned int );
+    bool is_StreamsEmpty( );
+    unsigned int size_StreamsById( );
+    std::map < unsigned int, Stream * >::iterator begin_StreamsById();
+    std::map < unsigned int, Stream * >::iterator end_StreamsById();
+
     NetworkGraph * graph;  /* hierarchical DAG of tree nodes */
     static NetworkGraph* parsed_graph;
 
@@ -78,16 +88,18 @@ class NetworkImpl: public Error {
     // FE constructors
     // The first takes a configuration from a file named by '_filename',
     // the second takes its configuration from a buffer in memory.
-    NetworkImpl(Network *, const char * _filename, const char * _application);
-    NetworkImpl(Network *, const char * _config, 
-                    bool unused, const char * _application);
+    NetworkImpl(Network *, const char * _filename, const char * _application,
+                const char **argv);
+    NetworkImpl(Network *, const char * _config, bool unused,
+                const char * _application, const char ** argv);
 
     // BE constructor
     NetworkImpl(Network *, const char *phostname, Port pport, Rank myrank );
     ~NetworkImpl();
 
     Communicator * get_BroadcastCommunicator(void);
-    int recv(int *tag, void **ptr, Stream **stream, bool blocking=true);
+    int recv(int *otag, Packet **opacket, Stream **ostream,
+             bool iblocking=true);
     int send(Packet &);
     int recv( bool blocking=true );
     EndPoint * get_EndPoint(const char * _hostname, Port _port);
@@ -96,6 +108,9 @@ class NetworkImpl: public Error {
     int connect_Backends( void );
 
     int getConnections( int** conns, unsigned int* nConns );
+
+    int get_SocketFd();
+    int get_SocketFd(int **array, unsigned int * array_size);
 };
 
 

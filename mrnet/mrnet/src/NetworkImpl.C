@@ -14,7 +14,7 @@
 #include "mrnet/src/CommunicatorImpl.h"
 #include "mrnet/src/StreamImpl.h"
 #include "mrnet/src/utils.h"
-#include "src/config.h"
+#include "mrnet/src/config.h"
 
 #include "xplat/NetUtils.h"
 
@@ -32,26 +32,25 @@ extern unsigned int mrnBufRemaining;
 NetworkGraph *NetworkImpl::parsed_graph = NULL;
 bool NetworkImpl::is_backend=false;
 bool NetworkImpl::is_frontend=false;
-unsigned int NetworkImpl::cur_stream_idx=0;
-std::map <unsigned int, Stream *> NetworkImpl::streams;
 
 NetworkImpl::NetworkImpl( Network * _network, const char *_filename,
-                          const char *_application )
+                          const char *_application, const char **argv )
     : filename( _filename ),
       application( ( _application == NULL ) ? "" : _application ),
       front_end( NULL ), back_end( NULL )
 {
-    InitFE( _network );
+    InitFE( _network, argv );
 }
 
 
 //TODO: use unused? //quiet compiler for now
 NetworkImpl::NetworkImpl( Network * _network, const char *_config,
-                          bool /* unused */, const char *_application )
+                          bool /* unused */, const char *_application,
+                          const char **argv )
     : application( ( _application == NULL ) ? "" : _application ),
       front_end( NULL ), back_end( NULL )
 {
-    InitFE( _network, _config );
+    InitFE( _network, argv, _config );
 }
 
 
@@ -87,10 +86,9 @@ NetworkImpl::NetworkImpl( Network *_network,
     if( ( status = tsd_key.Set( local_data ) ) != 0 ) {
         //TODO: add event to notify upstream
         error(MRN_ESYSTEM, "XPlat::TLSKey::Set(): %s\n", strerror( status ) );
-        mrn_printf( 1, MCFL, stderr, "XPlat::TLSKey::Set(): %s\n",
-                    strerror( status ) );
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "XPlat::TLSKey::Set(): %s\n",
+                    strerror( status ) ));
     }
-    tsd_initialized = true;
 
     back_end = new BackEndNode( _network, host, port, myrank, phost, pport );
 
@@ -100,7 +98,8 @@ NetworkImpl::NetworkImpl( Network *_network,
     is_backend = true;
 }
 
-void NetworkImpl::InitFE( Network * _network, const char* _config )
+void NetworkImpl::InitFE( Network * _network, const char **argv,
+                          const char* _config )
 {
     // ensure our variables are set for parsing
     parsed_graph = new NetworkGraph;
@@ -135,7 +134,6 @@ void NetworkImpl::InitFE( Network * _network, const char* _config )
         error( MRN_ESYSTEM, "XPlat::TLSKey::Set(): %s\n", strerror( status ) );
         return;
     }
-    tsd_initialized = true;
 
     endpoints = graph->get_EndPoints( );
     comm_Broadcast = _network->new_Communicator( endpoints );
@@ -153,8 +151,13 @@ void NetworkImpl::InitFE( Network * _network, const char* _config )
     if( mrn_commnode_path == NULL ) {
         mrn_commnode_path = COMMNODE_EXE;
     }
-    Packet packet( 0, PROT_NEW_SUBTREE, "%s%s%s", sg_str.c_str( ),
-                   mrn_commnode_path, application.c_str( ) );
+    unsigned int argc=0;
+    for(unsigned int i=0; argv[i] != NULL; i++){
+        argc++;
+    }
+
+    Packet packet( 0, PROT_NEW_SUBTREE, "%s%s%s%as", sg_str.c_str( ),
+                   mrn_commnode_path, application.c_str( ), argv, argc );
     if( front_end->proc_newSubTree( packet ) == -1 ) {
         error( MRN_EINTERNAL, "");
         return;
@@ -180,8 +183,8 @@ int NetworkImpl::parse_configfile( const char* cfg )
         // 'filename' member variable
         mrnin = fopen( filename.c_str(  ), "r" );
         if( mrnin == NULL ) {
-            mrn_printf( 1, MCFL, stderr, "fopen() failed: %s: %s",
-                        filename.c_str(), strerror( errno ) );
+            mrn_dbg( 1, mrn_printf(FLF, stderr, "fopen() failed: %s: %s",
+                        filename.c_str(), strerror( errno ) ));
             error( MRN_EBADCONFIG_IO, "fopen() failed: %s: %s", filename.c_str(),
                    strerror( errno ) );
             return -1;
@@ -191,8 +194,8 @@ int NetworkImpl::parse_configfile( const char* cfg )
     status = mrnparse( );
 
     if( status != 0 ) {
-        mrn_printf( 1, MCFL, stderr, "mrnparse() failed: %s: Parse Error\n",
-                    filename.c_str() );
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "mrnparse() failed: %s: Parse Error\n",
+                    filename.c_str() ));
         error( MRN_EBADCONFIG_FMT, "mrnparse() failed: %s: Parse Error",
                filename.c_str() );
         return -1;
@@ -226,17 +229,21 @@ Communicator * NetworkImpl::get_BroadcastCommunicator(void)
     return comm_Broadcast;
 }
 
-int NetworkImpl::recv( bool blocking )
+int NetworkImpl::recv( bool iblocking )
 {
     if( is_FrontEnd() ) {
-        mrn_printf( 3, MCFL, stderr, "In NetImpl::recv(). "
-                    "Calling FrontEnd::recv()\n" );
-        return front_end->recv( blocking );
+        mrn_dbg( 3, mrn_printf(FLF, stderr, "In NetImpl::recv(%s). "
+                               "Calling FrontEnd::recv(%s)\n", 
+                               (iblocking? "blocking" : "non-blocking"),
+                               (iblocking? "blocking" : "non-blocking") ));
+        return front_end->recv( iblocking );
     }
     else if( is_BackEnd() ){
-        mrn_printf( 3, MCFL, stderr, "In NetImpl::recv(). "
-                    "Calling BackEnd::recv()\n" );
-        return back_end->recv( blocking );
+        mrn_dbg( 3, mrn_printf(FLF, stderr, "In NetImpl::recv(%s). "
+                               "Calling BackEnd::recv(%s)\n",
+                               (iblocking? "blocking" : "non-blocking"),
+                               (iblocking? "blocking" : "non-blocking") ));
+        return back_end->recv( iblocking );
     }
     assert(0); // shouldn't call recv when backend/front not init'd
     return 0;
@@ -302,8 +309,8 @@ int NetworkImpl::get_LeafInfo( Network::LeafInfo *** linfo,
         Packet resp = front_end->get_leafInfoPacket(  );
         while( resp == *Packet::NullPacket ) {
             if( front_end->recv(  ) == -1 ) {
-                mrn_printf( 1, MCFL, stderr,
-                            "failed to receive leaf info from front end node\n" );
+                mrn_dbg( 1, mrn_printf(FLF, stderr,
+                            "failed to receive leaf info from front end node\n" ));
             }
 
             // now - sleep?  how do we block while still processing
@@ -366,19 +373,19 @@ int NetworkImpl::get_LeafInfo( Network::LeafInfo *** linfo,
                     ret = 0;
                 }
                 else {
-                    mrn_printf( 1, MCFL, stderr,
-                                "leaf info packet corrupt: array size mismatch\n" );
+                    mrn_dbg( 1, mrn_printf(FLF, stderr,
+                                "leaf info packet corrupt: array size mismatch\n" ));
                 }
             }
             else {
-                mrn_printf( 1, MCFL, stderr,
-                            "failed to extract arrays from leaf info packet\n" );
+                mrn_dbg( 1, mrn_printf(FLF, stderr,
+                            "failed to extract arrays from leaf info packet\n" ));
             }
         }
     }
     else {
         // we failed to deliver the request 
-        mrn_printf( 1, MCFL, stderr, "failed to deliver request\n" );
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "failed to deliver request\n" ));
     }
 
     return ret;
@@ -415,102 +422,99 @@ int NetworkImpl::connect_Backends( void )
             int nret = resp.ExtractArgList( "%ud", &nBackends );
             if( nret == 0 ) {
                 if( nBackends != nBackendsExpected ) {
-                    mrn_printf( 1, MCFL, stderr,
+                    mrn_dbg( 1, mrn_printf(FLF, stderr,
                                 "unexpected backend count %u (expecting %u)\n",
-                                nBackends, nBackendsExpected );
+                                nBackends, nBackendsExpected ));
                 }
             }
             else {
-                mrn_printf( 1, MCFL, stderr,
-                            "format mismatch in leaf connection packet\n" );
+                mrn_dbg( 1, mrn_printf(FLF, stderr,
+                            "format mismatch in leaf connection packet\n" ));
             }
         }
         else {
-            mrn_printf( 1, MCFL, stderr,
-                        "failed to receive leaf connection packet\n" );
+            mrn_dbg( 1, mrn_printf(FLF, stderr,
+                        "failed to receive leaf connection packet\n" ));
             ret = -1;
         }
 #endif // READY
     }
     else {
         // we failed to deliver the request
-        mrn_printf( 1, MCFL, stderr, "failed to deliver request\n" );
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "failed to deliver request\n" ));
         ret = -1;
     }
 
     return ret;
 }
 
-int NetworkImpl::recv(int *tag, void **ptr, Stream **stream, bool blocking)
+int NetworkImpl::recv(int *otag, Packet **opacket, Stream **ostream,
+                      bool iblocking)
 {
     bool checked_network = false;   // have we checked sockets for input?
-    Packet cur_packet;
+    Packet cur_packet=*Packet::NullPacket;
 
-    mrn_printf(3, MCFL, stderr, "In StreamImpl::recv().\n");
+    mrn_dbg(3, mrn_printf(FLF, stderr, "In StreamImpl::recv().\n"));
 
-    if( streams.empty() && is_FrontEnd() ){
+    if( is_StreamsEmpty() && is_FrontEnd() ){
       //No streams exist -- bad for FE
-      mrn_printf(1, MCFL, stderr, "%s recv in FE when no streams "
-         "exist\n", (blocking? "Blocking" : "Non-blocking") );
+      mrn_dbg(1, mrn_printf(FLF, stderr, "%s recv in FE when no streams "
+         "exist\n", (iblocking? "Blocking" : "Non-blocking") ));
       return -1;
     }
 
     // check streams for input
 get_packet_from_stream_label:
-    if( !streams.empty() ) {
-        unsigned int start_idx = cur_stream_idx;
+    if( !is_StreamsEmpty() ) {
+        bool packet_found=false;
+        std::map <unsigned int, Stream *>::iterator start_iter;
+
+        start_iter = cur_stream_iter;
         do{
-            Stream* cur_stream = streams[cur_stream_idx];
-            if(!cur_stream){
-                //TODO: on failure, doesn't map allocate a new entry?
-                cur_stream_idx++;
-                cur_stream_idx %= streams.size();
-                continue;
-            }
+            Stream* cur_stream = cur_stream_iter->second;
 
-            cur_packet = cur_stream->stream->get_IncomingPacket();
+            cur_packet = cur_stream->get_StreamImpl()->get_IncomingPacket();
             if( cur_packet != *Packet::NullPacket ){
-                mrn_printf( 3, MCFL, stderr,
-                            "Found a packet on stream[%d] %p ...\n",
-                            cur_stream_idx, cur_stream );
-                cur_stream_idx++;
-                cur_stream_idx %= streams.size();
-                break;
+                mrn_dbg( 3, mrn_printf(FLF, stderr, "Packet on stream[%d] %p.\n",
+                            cur_stream->get_Id(), cur_stream ));
+                packet_found = true;
             }
 
-            
-
-            cur_stream_idx++;
-            cur_stream_idx %= streams.size();
-        } while(start_idx != cur_stream_idx);
+            cur_stream_iter++;
+            if( cur_stream_iter == end_StreamsById() ){
+                //wrap around to start of map entries
+                cur_stream_iter = begin_StreamsById();
+            }
+        } while( (start_iter != cur_stream_iter) && !packet_found );
     }
 
     if( cur_packet != *Packet::NullPacket ) {
-        *tag = cur_packet.get_Tag();
-        *stream = streams[cur_packet.get_StreamId()];
-        mrn_printf( 3, MCFL, stderr, "DCA: Setting returned stream[%d] to %p. Packet = %p\n",
-                    cur_packet.get_StreamId(), *stream, &cur_packet );
-        *ptr = (void *) new Packet(cur_packet);
-        mrn_printf(4, MCFL, stderr, "cur_packet tag: %d, fmt: %s\n",
-                   cur_packet.get_Tag(), cur_packet.get_FormatString() );
+        *otag = cur_packet.get_Tag();
+        *ostream = get_StreamById( cur_packet.get_StreamId() );
+        *opacket = new Packet(cur_packet);
+        mrn_dbg(4, mrn_printf(FLF, stderr, "cur_packet tag: %d, fmt: %s\n",
+                   cur_packet.get_Tag(), cur_packet.get_FormatString() ));
         return 1;
     }
-    else if( blocking || !checked_network ) {
+    else if( iblocking || !checked_network ) {
 
         // No packets are already in the stream
         // check whether there is data waiting to be read on our sockets
-        if( recv( blocking ) == -1 ){
-            mrn_printf( 1, MCFL, stderr, "Network::recv() failed.\n" );
-            return -1;
-        }
+        int retval = recv( iblocking );
         checked_network = true;
 
-        // go back to check whether we found enough to make a complete packet
-        goto get_packet_from_stream_label;
+        if( retval == -1 ){
+            mrn_dbg( 1, mrn_printf(FLF, stderr, "Network::recv() failed.\n" ));
+            return -1;
+        }
+        else if ( retval == 1 ){
+            // go back if we found a packet
+            mrn_dbg( 3, mrn_printf(FLF, stderr, "Network::recv() found a packet!\n" ));
+            goto get_packet_from_stream_label;
+        }
     }
 
-    assert( !blocking );
-    assert( checked_network );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "Network::recv() No packets found.\n" ));
     return 0;
 }
 
@@ -554,4 +558,112 @@ int NetworkImpl::getConnections( int** conns, unsigned int* nConns )
     return ret;
 }
 
+int NetworkImpl::get_SocketFd(  )
+{
+    assert( is_BackEnd() );
+    return back_end->get_SocketFd( );
+}
+
+int NetworkImpl::get_SocketFd( int **array, unsigned int * array_size )
+{
+    assert( is_FrontEnd() );
+    return front_end->get_SocketFd( array, array_size );
+}
+
+void NetworkImpl::set_StreamById( unsigned int iid, Stream * istream )
+{
+    all_streams_mutex.Lock();
+    allStreamsById[iid] = istream;
+    if(allStreamsById.size() == 1 ){
+        cur_stream_iter = allStreamsById.begin();
+    }
+    all_streams_mutex.Unlock();
+}
+
+Stream * NetworkImpl::get_StreamById( unsigned int iid )
+{
+    Stream * ret;
+    std::map<unsigned int, Stream*>::iterator iter; 
+
+    all_streams_mutex.Lock();
+
+    iter = allStreamsById.find( iid );
+    if(  iter != allStreamsById.end() ){
+        ret = iter->second;
+    }
+    else{
+        ret = NULL;
+    }
+    all_streams_mutex.Unlock();
+
+    return ret;
+}
+
+void NetworkImpl::delete_StreamById( unsigned int iid )
+{
+    std::map<unsigned int, Stream*>::iterator iter; 
+
+    all_streams_mutex.Lock();
+
+    iter = allStreamsById.find( iid );
+    if(  iter != allStreamsById.end() ){
+
+        //if we are about to delete start_iter, set it to next elem. (w/wrap)
+        if( iter == cur_stream_iter ){
+            cur_stream_iter++;
+            if( cur_stream_iter == NetworkImpl::allStreamsById.end() ){
+                cur_stream_iter = NetworkImpl::allStreamsById.begin();
+            }
+        }
+
+        //case where streams is now empty handled by setting cur_stream_iter to
+        //streams.begin() when 1st stream is created.
+
+        allStreamsById.erase( iter );
+    }
+
+    all_streams_mutex.Unlock();
+}
+
+bool NetworkImpl::is_StreamsEmpty( )
+{
+    bool ret;
+    all_streams_mutex.Lock();
+    ret = allStreamsById.empty();
+    all_streams_mutex.Unlock();
+    return ret;
+}
+
+std::map < unsigned int, Stream * >::iterator NetworkImpl::begin_StreamsById()
+{
+    std::map < unsigned int, Stream * >::iterator ret;
+
+    all_streams_mutex.Lock();
+    ret = allStreamsById.begin();
+    all_streams_mutex.Unlock();
+
+    return ret;
+}
+
+std::map < unsigned int, Stream * >::iterator NetworkImpl::end_StreamsById()
+{
+    std::map < unsigned int, Stream * >::iterator ret;
+
+    all_streams_mutex.Lock();
+    ret = allStreamsById.end();
+    all_streams_mutex.Unlock();
+
+    return ret;
+}
+
+unsigned int NetworkImpl::size_StreamsById( )
+{
+    unsigned int ret;
+
+    all_streams_mutex.Lock();
+    ret = allStreamsById.size();
+    all_streams_mutex.Unlock();
+
+    return ret;
+}
 }                               // namespace MRN
