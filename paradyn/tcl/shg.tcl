@@ -3,6 +3,11 @@
 
 #
 # $Log: shg.tcl,v $
+# Revision 1.8  1996/02/02 18:57:22  tamches
+# added key & tips areas
+# cleaner search/resume button code
+# no more "paradyn shg start global" in window startup
+#
 # Revision 1.7  1996/01/23 07:14:30  tamches
 # now 7 eval states, divided among 4 eval states & an active flag
 #
@@ -35,6 +40,185 @@ proc shgChangeCurrLabelHeight {numlines} {
       pack .shg.nontop.labelarea.current -side left -fill both -expand true
    }
 }
+
+proc redrawKeyAndTipsAreas {drawkeychange drawtipschange} {
+   set keyArea .shg.nontop.keyarea
+   set tipArea .shg.nontop.tiparea
+
+   set keyIsUp [winfo exists $keyArea.left]
+   set tipsAreUp [winfo exists $tipArea.tip0]
+
+   # erase em both
+   shgEraseTips
+   shgEraseKey
+
+   set drawKey false
+   if {$drawkeychange=="on"} {
+      set drawKey true
+   }
+   if {$drawkeychange=="nc" && $keyIsUp} {
+      set drawKey true
+   }
+ 
+   set drawTips false
+   if {$drawtipschange=="on"} {
+      set drawTips true
+   }
+   if {$drawtipschange=="nc" && $tipsAreUp} {
+      set drawTips true
+   }
+   
+   # and redraw, as appropriate
+   if {$drawKey} {
+      shgDrawKey
+   }
+   if {$drawTips} {
+      shgDrawTips
+   }
+}
+
+proc shgDrawKeyBase {} {
+   set keyArea .shg.nontop.keyarea
+   frame $keyArea
+   pack  $keyArea -side top -fill both
+}
+
+proc shgDrawKey {} {
+   set leftLabels ".shg.nontop.keyarea.left"
+   set rightLabels ".shg.nontop.keyarea.right"
+
+   frame $leftLabels 
+   pack  $leftLabels -side left -fill both -expand true
+
+   frame $rightLabels 
+   pack  $rightLabels -side right -fill both -expand true
+
+   label $leftLabels.tip0 -relief groove \
+	   -text "Never Evaluated" -anchor c \
+	   -font "*-Helvetica-*-r-*-12-*" \
+	   -background grey
+   pack   $leftLabels.tip0 -side top -fill x -expand false
+
+   label $leftLabels.tip1 -relief groove \
+	   -text "Unknown" -anchor c \
+	   -font "*-Helvetica-*-r-*-12-*" \
+	   -background #60c0a0
+           # a nice green...
+   pack   $leftLabels.tip1 -side top -fill x -expand false
+#	   -background "#e9fbb57aa3c9"
+
+   label $leftLabels.tip2 -relief groove \
+	   -text "True" -anchor c \
+	   -font "*-Helvetica-*-r-*-12-*" \
+	   -background cornflowerblue
+#	   -background "#acbff48ff6c8"
+                # yuck --ari
+   pack   $leftLabels.tip2 -side top -fill x -expand false
+
+   label $leftLabels.tip3 -relief groove \
+	   -text "False" -anchor c \
+	   -font "*-Helvetica-*-r-*-12-*" \
+	   -background pink
+#	   -background "#cc85d5c2777d" 
+                # yuck --ari
+   pack   $leftLabels.tip3 -side top -fill x -expand false
+
+   label $rightLabels.tip0 -relief groove \
+	   -font "*-Helvetica-*-r-*-12-*" \
+	   -text "instrumented" \
+	   -foreground ivory \
+	   -background gray
+   pack  $rightLabels.tip0 -side top -fill x
+
+   label $rightLabels.tip1 -relief groove \
+	   -font "*-Helvetica-*-r-*-12-*" \
+	   -text "uninstrumented" \
+	   -foreground black \
+	   -background gray
+   pack  $rightLabels.tip1 -side top -fill x
+
+   label $rightLabels.tip2 -relief groove \
+	   -font "*-Helvetica-*-o-*-12-*" \
+	   -text "instrumented; shadow node" \
+	   -foreground ivory \
+	   -background gray
+   pack  $rightLabels.tip2 -side top -fill x
+
+   label $rightLabels.tip3 -relief groove \
+	   -font "*-Helvetica-*-o-*-12-*" \
+	   -text "uninstrumented; shadow node" \
+	   -foreground black \
+	   -background gray
+   pack  $rightLabels.tip3 -side top -fill x
+}
+
+proc shgEraseKey {} {
+   set keyArea .shg.nontop.keyarea
+   if { ![winfo exists $keyArea.left] } {
+      return
+   }
+
+   destroy $keyArea
+
+   shgDrawKeyBase
+}
+
+
+# ####################################################################
+
+proc shgDrawTipsBase {} {
+   set tipArea .shg.nontop.tiparea
+   frame $tipArea
+   pack  $tipArea -side top -fill x
+}
+
+proc shgDrawTips {} {
+   set tipArea .shg.nontop.tiparea
+   if { [winfo exists $tipArea.tip0 ] } {
+      return
+   }
+
+   label $tipArea.tip0 -relief groove \
+	   -text "Hold down Alt and move the mouse to scroll freely" \
+	   -font "*-Helvetica-*-r-*-12-*"
+   pack $tipArea.tip0 -side top -fill both
+      # fill both prevents shrinking when window is made shorter
+
+   label $tipArea.tip1 -relief groove \
+	   -text "Click middle button on a node to obtain more info on it" \
+	   -font "*-Helvetica-*-r-*-12-*"
+   pack $tipArea.tip1 -side top -fill both
+      # fill both prevents shrinking when window is made shorter
+
+}
+
+proc shgEraseTips {} {
+   set tipArea .shg.nontop.tiparea
+   if { ![winfo exists $tipArea.tip0] } {
+      return
+   }
+
+   destroy $tipArea
+   shgDrawTipsBase
+}
+
+# ####################################################################
+
+proc shgClickOnSearch {} {
+   if {[shgSearchCommand]} {
+      .shg.nontop.buttonarea.left.search config -state disabled -text "Resume"
+      .shg.nontop.buttonarea.middle.pause config -state normal
+   }
+}
+
+proc shgClickOnPause {} {
+   if {[shgPauseCommand]} {
+      .shg.nontop.buttonarea.left.search config -state normal
+      .shg.nontop.buttonarea.middle.pause config -state disabled
+   }
+}
+
+# ####################################################################
 
 proc shgInitialize {iDeveloperMode} {
    global shgHack
@@ -160,102 +344,41 @@ proc shgInitialize {iDeveloperMode} {
    frame .shg.nontop.buttonarea.left
    pack  .shg.nontop.buttonarea.left -side left -fill y -expand true
 
+   # Note: the search button doubles as a "Resume" button when appropriate
    button .shg.nontop.buttonarea.left.search -text "Search" -anchor c \
-	   -command {.shg.nontop.buttonarea.left.search config -state normal; \
-	             .shg.nontop.buttonarea.middle.pause config -state normal; \
-		     shgSearchCommand}
+	   -command shgClickOnSearch
    pack   .shg.nontop.buttonarea.left.search -side left -ipadx 10 -fill y -expand false
 
    frame .shg.nontop.buttonarea.middle
    pack  .shg.nontop.buttonarea.middle -side left -fill y -expand true
 
    button .shg.nontop.buttonarea.middle.pause -text "Pause" -state disabled -anchor c \
-	   -command {.shg.nontop.buttonarea.left.search config -state normal; \
-	             .shg.nontop.buttonarea.middle.pause config -state disabled; \
-		     shgPauseCommand}
+	   -command shgClickOnPause
    pack   .shg.nontop.buttonarea.middle.pause -side left -fill y -expand false
-
-#   frame .shg.nontop.buttonarea.right
-#   pack  .shg.nontop.buttonarea.right -side left -fill y -expand true
-#
-#   button .shg.nontop.buttonarea.right.resume -text "Resume" -state disabled -anchor c \
-#	   -command {.shg.nontop.buttonarea.left.search config -state normal; \
-#	             .shg.nontop.buttonarea.middle.pause config -state normal; \
-#	             .shg.nontop.buttonarea.right.resume config -state disabled; \
-#		     shgResumeCommand}
-#   pack   .shg.nontop.buttonarea.right.resume -side right -fill y -expand false
 
    # -----------------------------------------------------------
 
-   label .shg.nontop.tip0 -relief groove \
-	   -text "Never Evaluated" -anchor c \
-	   -font "*-Helvetica-*-r-*-12-*" \
-	   -background grey
-   pack   .shg.nontop.tip0 -side top -fill both -expand false
+   shgDrawKeyBase
+   shgDrawKey
 
-   label .shg.nontop.tip1 -relief groove \
-	   -text "Unknown" -anchor c \
-	   -font "*-Helvetica-*-r-*-12-*" \
-	   -background "#e9fbb57aa3c9"
-              # yuck --ari
-   pack   .shg.nontop.tip1 -side top -fill both -expand false
-
-#   label .shg.nontop.tip2 -relief groove \
-#	   -text "Instrumented; no decision yet" -anchor c \
-#	   -font "*-Helvetica-*-r-*-12-*" \
-#	   -background "#ffffbba5bba5"
-#                # yuck --ari
-##	   -background Tan
-#   pack   .shg.nontop.tip2 -side top -fill both -expand false
-
-   label .shg.nontop.tip2 -relief groove \
-	   -text "True" -anchor c \
-	   -font "*-Helvetica-*-r-*-12-*" \
-	   -background cornflowerblue
-#	   -background "#acbff48ff6c8"
-                # yuck --ari
-   pack   .shg.nontop.tip2 -side top -fill both -expand false
-
-   label .shg.nontop.tip3 -relief groove \
-	   -text "False" -anchor c \
-	   -font "*-Helvetica-*-r-*-12-*" \
-	   -background pink
-#	   -background "#cc85d5c2777d" 
-                # yuck --ari
-   pack   .shg.nontop.tip3 -side top -fill both -expand false
-
-#   label .shg.nontop.tip4 -relief groove \
-#	   -text "Uninstrumented; believed true" -anchor c \
-#	   -font "*-Helvetica-*-r-*-12-*" \
-#	   -background "green"
-#   pack  .shg.nontop.tip4 -side top -fill both -expand false
-#
-#   label .shg.nontop.tip5 -relief groove \
-#	   -text "Instrumented; believed false" -anchor c \
-#	   -font "*-Helvetica-*-r-*-12-*" \
-#	   -background "plum"
-#   pack  .shg.nontop.tip5 -side top -fill both -expand false
-#
-#
-#   label .shg.nontop.tip6 -relief sunken \
-#           -text "Hold down Alt and move the mouse to scroll freely" -anchor c \
-#           -font "*-Helvetica-*-r-*-12-*"
-#   pack  .shg.nontop.tip6 -side top -fill both -expand false
+   shgDrawTipsBase
+   shgDrawTips
 
    # -----------------------------------------------------------
 
    bind .shg.nontop.main.all <Configure> {shgConfigureHook}
    bind .shg.nontop.main.all <Expose>    {shgExposeHook %c}
    bind .shg.nontop.main.all <Button-1>  {shgSingleClickHook %x %y}
-   bind .shg.nontop.main.all <Button-2>  {shgSingleClickHook %x %y}
+   bind .shg.nontop.main.all <Button-2>  {shgMiddleClickHook %x %y}
    bind .shg.nontop.main.all <Double-Button-1> {shgDoubleClickHook %x %y}
 #   bind .shg.nontop.main.all <Shift-Double-Button-1> {shgShiftDoubleClickHook %x %y}
 #   bind .shg.nontop.main.all <Control-Double-Button-1> {shgCtrlDoubleClickHook %x %y}
    bind .shg.nontop.main.all <Alt-Motion> {shgAltPressHook %x %y}
-   bind .shg.nontop.main.all <Motion> {shgAltReleaseHook %x %y}
+   bind .shg.nontop.main.all <Motion> {shgAltReleaseHook}
 
    if {$shgHack} {
 #      puts stderr "shgHack"
-      paradyn shg start global
+      #paradyn shg start global
+      #shgDefineGlobalPhaseCommand
    }
 }
