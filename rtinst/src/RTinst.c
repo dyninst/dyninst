@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.74 2003/04/21 19:04:47 willb Exp $
+ * $Id: RTinst.c,v 1.75 2003/05/09 17:35:03 mirg Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -1665,11 +1665,11 @@ int DYNINSTCalleeSearch(unsigned int callSiteAddr,
 #define KNOWN_MPI_TYPES 34
 
 /*
-  This is an approximation to the real PMPI_Pack_size routine,
+  This is an approximation to the real MPI_Pack_size routine,
   which may not be present in an MPI application
   Constants are given for MPICH-1.2.0 on x86/Linux
 */
-int PMPI_Pack_size (int incount, int datatype, int comm, int *size)
+int MPI_Pack_size (int incount, int datatype, int comm, int *size)
 {
 	const int type_size[KNOWN_MPI_TYPES+1] = {
 		0, 1, 1, 1, 2, 2, 4, 4, 4, 4, 
@@ -1679,8 +1679,8 @@ int PMPI_Pack_size (int incount, int datatype, int comm, int *size)
 	static int warned = 0;
 
 	if (!warned) {
-		fprintf(stderr, "WARNING: Bogus PMPI_Pack_size: relink "
-			"the application with \"-u PMPI_Pack_size\" "
+		fprintf(stderr, "WARNING: Bogus MPI_Pack_size: relink "
+			"the application with \"-u MPI_Pack_size\" "
 			"for accurate results\n");
 		warned = 1;
 	}
