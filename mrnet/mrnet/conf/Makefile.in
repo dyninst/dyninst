@@ -31,6 +31,7 @@ AR      = @AR@
 ARFLAGS = @ARFLAGS@
 RANLIB  = @RANLIB@
 INSTALL = @INSTALL@
+PURIFY = @PURIFY@
 
 #####################
 # General Definitions
@@ -82,11 +83,11 @@ endif #Forte (Sun) compiler warnings
 # System Specific Definitions
 #############################
 LIBMRNET    = $(LIBDIR)/libmrnet.a
-#LIBXPLAT    = $(SRCDIR)/xplat/libxplat.a
-LIBXPLAT    = xplat/libxplat.a
+LIBXPLAT    = $(SRCDIR)/xplat/libxplat.a
+#LIBXPLAT    = xplat/libxplat.a
 COMMNODE    = $(BINDIR)/mrnet_commnode 
 TARGETS     = $(LIBMRNET) $(COMMNODE)
-INCDIR      = -I$(SRCDIR) -I$(SRCDIR)/.. -I$(SRCDIR)/xplat/include -I. -I$(SRCDIR)/h
+INCDIR      = -I$(SRCDIR)/h -I$(SRCDIR) -I$(SRCDIR)/.. -I$(SRCDIR)/xplat/include
 
 TESTS   = $(BINDIR)/microbench_FE \
 	      $(BINDIR)/microbench_BE \
@@ -150,6 +151,7 @@ DEPS	= $(addprefix $(DEPENDDIR)/, $(patsubst %.C,%.d,$(patsubst %.c,%.d,$(notdir
 all: xplat-all $(TARGETS)
 
 xplat-all:
+	echo Building libxplat.a ...
 	cd ./xplat ; $(MAKE) all
 
 install: install-local xplat-install
@@ -179,7 +181,8 @@ xplat-install:
 	@echo Installing xplat library
 	cd ./xplat ; $(MAKE) install
 
-test: all $(TESTS) $(BINDIR)/mrnet_topgen
+mrnet_tests: all $(TESTS) $(BINDIR)/mrnet_topgen
+	/bin/cp -f $(SRCDIR)/conf/mrnet_tests.sh $(BINDIR)/
 
 rebuild:
 	make "FRC=force_rebuild"
@@ -216,15 +219,15 @@ $(LIBXPLAT): xplat-all
 
 $(BINDIR)/mrnet_commnode: $(COMMNODE_OBJS) $(LIBMRNET) $(LIBXPLAT)
 	@echo Linking `basename $@` ...
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@  $(COMMNODE_OBJS) $(LIBMRNET) $(LIBS)
+	$(PURIFY) $(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@  $(COMMNODE_OBJS) $(LIBMRNET) $(LIBS)
 
-$(BINDIR)/mrnet_topgen: $(SRCDIR)/tests/config_generator.C
+$(BINDIR)/mrnet_topgen: $(OBJDIR)/config_generator.o $(OBJDIR)/Topology.o $(OBJDIR)/Tree.o
 	@echo "Linking `basename $@` ..."
-	$(CXX) $(CXXFLAGS) -o $@ $(SRCDIR)/tests/config_generator.C
+	$(PURIFY) $(CXX) $(CXXFLAGS) -o $@ $(OBJDIR)/config_generator.o $(OBJDIR)/Topology.o $(OBJDIR)/Tree.o
 
 $(TESTS): $(BINDIR)/%: $(LIBMRNET) $(OBJDIR)/test_common.o $(OBJDIR)/%.o $(OBJDIR)/test_DynamicFilters.so $(SRCDIR)/tests/test_common.h
 	@echo "Linking `basename $*` ..."
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $(OBJDIR)/$*.o $(OBJDIR)/test_common.o $(LIBMRNET) $(LIBS)
+	$(PURIFY) $(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $(OBJDIR)/$*.o $(OBJDIR)/test_common.o $(LIBMRNET) $(LIBS)
 
 $(OBJDIR)/test_DynamicFilters.so: $(SRCDIR)/tests/test_DynamicFilters.C
 	@echo "Building `basename $@` ..."
@@ -232,11 +235,11 @@ $(OBJDIR)/test_DynamicFilters.so: $(SRCDIR)/tests/test_DynamicFilters.C
 
 $(BINDIR)/pdr_test: $(PDR_OBJS) tests/xdr_test.c
 	@echo "Linking `basename $@` ..."
-	$(CXX) $(CXXFLAGS) -Itests -o $@ $(PDR_OBJS) tests/pdr_test.c $(LIBS)
+	$(PURIFY) $(CXX) $(CXXFLAGS) -Itests -o $@ $(PDR_OBJS) tests/pdr_test.c $(LIBS)
 
 $(BINDIR)/xdr_test: tests/xdr_test.c
 	@echo "Linking `basename $@` ..."
-	$(CXX) $(CXXFLAGS) -Itests -o $@ -DUSE_XDR tests/xdr_test.c $(LIBS)
+	$(PURIFY) $(CXX) $(CXXFLAGS) -Itests -o $@ -DUSE_XDR tests/xdr_test.c $(LIBS)
 
 
 #################################
