@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sampleAggregator.C,v 1.1 2001/08/23 14:44:43 schendel Exp $
+// $Id: sampleAggregator.C,v 1.2 2001/08/28 02:50:46 schendel Exp $
 
 #include <assert.h>
 #include <math.h>
@@ -383,7 +383,8 @@ void sampleAggregator::actuallyAggregate(struct sampleInterval *ret) {
     }
   }
   aggu_cerr << "  calculated aggActualVal: " << aggActualVal 
-	    << "lastActualVal: " << lastActualVal << "\n";
+	    << "lastActualVal: " << lastActualVal << ", initActVal: "
+	    << initActualVal << "\n";
 
   pdSample aggIntvlVal = aggActualVal - lastActualVal;
 
@@ -405,6 +406,7 @@ void sampleAggregator::removeComponentsRequestedToRemove() {
   for(unsigned i=0; i<componentBuf.size(); i++) {
     aggComponent *curComp = componentBuf[i];
     if(curComp->isRemoveRequested() && curComp->numQueuedSamples()==0) {
+      aggu_cerr << "removing aggComp: " << curComp << "\n";
       componentBuf.erase(i);
       delete curComp;
     }
