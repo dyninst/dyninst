@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.17 2003/04/25 22:52:30 mjbrim Exp $
+// $Id: Object-nt.C,v 1.18 2003/04/26 04:09:07 igor Exp $
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -527,7 +527,8 @@ Object::ParseDebugInfo( void )
 			// ensure we load line number information when we load
 			// modules
 			DWORD dwOpts = SymGetOptions();
-			SymSetOptions( dwOpts | SYMOPT_LOAD_LINES );
+			dwOpts &= ~(SYMOPT_UNDNAME); //want mangled names
+			SymSetOptions(dwOpts | SYMOPT_LOAD_LINES);
 		}
     }
 	assert( baseAddr != 0 );
