@@ -1,6 +1,3 @@
-// instPoint.h
-// Defines class instPoint
-
 /*
  * Copyright (c) 1996 Barton P. Miller
  * 
@@ -41,6 +38,9 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
+
+// $Id: instPoint.h,v 1.5 1999/05/25 16:38:13 wylie Exp $
+// Defines class instPoint
 
 #ifndef _INST_POINT_H_
 #define _INST_POINT_H_

@@ -39,15 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: inst.C,v 1.66 1999/05/24 21:42:47 cain Exp $
- * inst.C - Code to install and remove inst funcs from a running process.
- */
+// $Id: inst.C,v 1.67 1999/05/25 16:38:11 wylie Exp $
+// Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
 //#include <sys/signal.h>
 //#include <sys/param.h>
 
-#include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
@@ -56,6 +54,9 @@
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/stats.h"
 #include "dyninstAPI/src/showerror.h"
+#ifndef BPATCH_LIBRARY
+#include "dyninstAPI/src/instPoint.h" // needed for callgraph
+#endif
 
 dictionary_hash <string, unsigned> primitiveCosts(string::hash);
 

@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: inst-mips.h,v 1.2 1999/05/25 16:38:11 wylie Exp $
+
 #ifndef INST_MIPS_H
 #define INST_MIPS_H
 

@@ -1,5 +1,3 @@
-// instPoint-power.h
-
 /*
  * Copyright (c) 1996 Barton P. Miller
  * 
@@ -41,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: instPoint-power.h,v 1.3 1999/05/25 16:38:13 wylie Exp $
+
 #ifndef _INST_POINT_POWER_H_
 #define _INST_POINT_POWER_H_
 
@@ -53,8 +53,8 @@ public:
 
   ~instPoint() {  /* TODO */ }
 
-  // can't set this in the constructor because call points can't be classified until
-  // all functions have been seen -- this might be cleaned up
+  // can't set this in the constructor because call points can't be classified
+  // until all functions have been seen -- this might be cleaned up
   void set_callee(pd_Function *to) { callee = to; }
 
 

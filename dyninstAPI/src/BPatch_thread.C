@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: BPatch_thread.C,v 1.19 1999/05/25 16:38:10 wylie Exp $
+
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
 #endif

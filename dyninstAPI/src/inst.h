@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.44 1998/12/25 23:18:43 wylie Exp $
+// $Id: inst.h,v 1.45 1999/05/25 16:38:12 wylie Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -67,7 +67,7 @@ class AstNode;
 class returnInstance;
 
 /*
- * Insert instrumentation a the specificed codeLocation.
+ * Insert instrumentation at the specified codeLocation.
  * TODO: make these methods of class process
  */
 instInstance *addInstFunc(process *proc,

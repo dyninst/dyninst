@@ -1,6 +1,3 @@
-// instPoint-mips.h
-// MIPS-specific definition of class instPoint
-
 /*
  * Copyright (c) 1998 Barton P. Miller
  * 
@@ -42,7 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-mips.h,v 1.2 1999/05/24 21:42:49 cain Exp $
+// $Id: instPoint-mips.h,v 1.3 1999/05/25 16:38:12 wylie Exp $
+// MIPS-specific definition of class instPoint
 
 #ifndef _INST_POINT_MIPS_H_
 #define _INST_POINT_MIPS_H_
