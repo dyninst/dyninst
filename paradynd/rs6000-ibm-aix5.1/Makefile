@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.7 2003/09/05 16:28:14 schendel Exp $
+# $Id: Makefile,v 1.8 2004/02/11 16:52:53 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -16,6 +16,8 @@ NO_IMPLICIT_TEMPLATES = true
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
 
+AIX_PROC = true
+
 include ../../make.config 
 
 TEMP_INLINE_DEFINES =
@@ -25,7 +27,7 @@ LDFLAGS += -Xlinker -bbigtoc
 # Now make any necessary architecture specific changes to variables:
 
 SRCS =		../../dyninstAPI/src/aix.C \
-		../../dyninstAPI/src/aix-ptrace.C \
+		../../dyninstAPI/src/sol_proc.C \
 		../../dyninstAPI/src/aixMT.C \
 		../../dyninstAPI/src/aixDL.C \
 		../../paradynd/src/init-aix.C \
