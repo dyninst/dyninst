@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.46 1994/11/11 10:17:47 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.47 1995/01/30 17:32:10 jcargill Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.46  1994/11/11 10:17:47  jcargill
+ * Revision 1.47  1995/01/30 17:32:10  jcargill
+ * changes for gcc-2.6.3; intCounter was both a typedef and an enum constant
+ *
+ * Revision 1.46  1994/11/11  10:17:47  jcargill
  * "Fixed" pause_time definition for CM5
  *
  * Revision 1.45  1994/11/11  05:11:06  markc
@@ -1079,9 +1082,9 @@ float dataReqNode::getMetricValue()
 {
     float ret;
 
-    if (type == intCounter) {
+    if (type == INTCOUNTER) {
 	ret = getIntCounterValue((intCounterHandle*) instance);
-    } else if (type == timer) {
+    } else if (type == TIMER) {
 	ret = getTimerValue((timerHandle*) instance);
     } else {
 	// unknown type.
@@ -1097,14 +1100,14 @@ unsigned dataReqNode::getInferiorPtr()
     timerHandle *timerInst;
     intCounterHandle *counterInst;
 
-    if (type == intCounter) {
+    if (type == INTCOUNTER) {
 	counterInst = (intCounterHandle *) instance;
 	if (counterInst) {
 	    param = (unsigned) counterInst->counterPtr;
 	} else {
 	    param = 0;
 	}
-    } else if (type == timer) {
+    } else if (type == TIMER) {
 	timerInst = (timerHandle *) instance;
 	if (timerInst) {
 	    param = (unsigned) timerInst->timerPtr;
@@ -1137,7 +1140,7 @@ intCounterHandle *dataReqNode::createCounterInstance()
 // this will not report any values
 // it is used internally by generated code -- see metricDefs-pvm.C
 void dataReqNode::insertGlobal() {
-  if (type == intCounter) {
+  if (type == INTCOUNTER) {
     intCounterHandle *ret;
     ret = createCounterInstance();
     instance = (void *) ret;
@@ -1148,7 +1151,7 @@ void dataReqNode::insertGlobal() {
 
 void dataReqNode::insertInstrumentation(metricDefinitionNode *mi) 
 {
-    if (type == intCounter) {
+    if (type == INTCOUNTER) {
 	intCounterHandle *ret;
 	ret = createCounterInstance();
 	instance = (void *) ret;
@@ -1171,9 +1174,9 @@ void dataReqNode::disable()
       abort();
     midToMiMap.undef(id.id);
 
-    if (type == timer) {
+    if (type == TIMER) {
 	freeTimer((timerHandle *) instance);
-    } else if (type == intCounter) {
+    } else if (type == INTCOUNTER) {
 	freeIntCounter((intCounterHandle *) instance);
     } else {
 	abort();

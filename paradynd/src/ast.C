@@ -1,7 +1,10 @@
 
 /* 
  * $Log: ast.C,v $
- * Revision 1.9  1994/11/02 19:01:22  hollings
+ * Revision 1.10  1995/01/30 17:32:07  jcargill
+ * changes for gcc-2.6.3; intCounter was both a typedef and an enum constant
+ *
+ * Revision 1.9  1994/11/02  19:01:22  hollings
  * Made the observed cost model use a normal variable rather than a reserved
  * register.
  *
@@ -165,7 +168,7 @@ reg AstNode::generateCode(process *proc,
 	    (void) emit(loadConstOp, (reg) addr, dest, dest, insn, base);
 	} else if (oType == DataValue) {
 	    addr = dValue->getInferiorPtr();
-	    if (dValue->getType() == timer) {
+	    if (dValue->getType() == TIMER) {
 		(void) emit(loadConstOp, (reg) addr, dest, dest, insn, base);
 	    } else {
 		(void) emit(loadOp, (reg) addr, dest, dest, insn, base);
@@ -269,7 +272,7 @@ int AstNode::cost()
 	} else if (oType == DataPtr) {
 	    total = getInsnCost(loadConstOp);
 	} else if (oType == DataValue) {
-	    if (dValue->getType() == timer) {
+	    if (dValue->getType() == TIMER) {
 		total = getInsnCost(loadConstOp);
 	    } else {
 		total = getInsnCost(loadOp);

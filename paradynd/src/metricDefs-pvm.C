@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-pvm.C,v 1.17 1994/11/10 18:58:13 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-pvm.C,v 1.18 1995/01/30 17:32:15 jcargill Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricDefs-pvm.C,v $
- * Revision 1.17  1994/11/10 18:58:13  jcargill
+ * Revision 1.18  1995/01/30 17:32:15  jcargill
+ * changes for gcc-2.6.3; intCounter was both a typedef and an enum constant
+ *
+ * Revision 1.17  1994/11/10  18:58:13  jcargill
  * The "Don't Blame Me Either" commit
  *
  * Revision 1.16  1994/11/09  18:40:27  rbi
@@ -157,7 +160,7 @@ void osDependentInst(process *proc) {
   return;
   assert(!msgFlags.defines(proc->getPid()));
 
-  dataReqNode *msgFlag = new dataReqNode(intCounter, proc, 0, false, processTime);
+  dataReqNode *msgFlag = new dataReqNode(INTCOUNTER, proc, 0, false, processTime);
   msgFlag->insertGlobal();
   msgFlags[proc->getPid()] = msgFlag;
 

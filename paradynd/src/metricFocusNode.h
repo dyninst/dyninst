@@ -7,7 +7,10 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
- * Revision 1.15  1994/11/10 18:58:08  jcargill
+ * Revision 1.16  1995/01/30 17:32:13  jcargill
+ * changes for gcc-2.6.3; intCounter was both a typedef and an enum constant
+ *
+ * Revision 1.15  1994/11/10  18:58:08  jcargill
  * The "Don't Blame Me Either" commit
  *
  * Revision 1.14  1994/11/09  18:40:17  rbi
@@ -105,7 +108,7 @@
  * internal representation of an inst. request.
  *
  */
-typedef enum { intCounter, timer } dataObjectType;
+typedef enum { INTCOUNTER, TIMER } dataObjectType;
 
 class AstNode;
 class metricDefinitionNode;
@@ -307,7 +310,7 @@ class metricDefinitionNode {
 	dataReqNode *addIntCounter(int inititalValue, bool report) {
 	    dataReqNode *tp;
 
-	    tp = new dataReqNode(intCounter, proc, inititalValue,
+	    tp = new dataReqNode(INTCOUNTER, proc, inititalValue,
 		report,processTime);
 	    assert(tp);
 	    data.add(tp);
@@ -315,7 +318,7 @@ class metricDefinitionNode {
 	};
 	dataReqNode *addTimer(timerType type) {
 	    dataReqNode *tp;
-	    tp = new dataReqNode(timer,proc,0,true,type);
+	    tp = new dataReqNode(TIMER,proc,0,true,type);
 	    assert(tp);
 	    data.add(tp);
 	    return(tp);
