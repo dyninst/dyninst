@@ -4,16 +4,19 @@
 // Implementations of new commands and tk bindings related to the search history graph.
 
 /* $Log: shgTcl.C,v $
-/* Revision 1.2  1995/11/06 19:28:15  tamches
-/* removed some warnings
+/* Revision 1.3  1996/01/09 01:07:43  tamches
+/* added shgDevelModeChangeCallback
 /*
+ * Revision 1.2  1995/11/06 19:28:15  tamches
+ * removed some warnings
+ *
  * Revision 1.1  1995/10/17 22:09:07  tamches
  * initial version, for the new search history graph.
  *
  */
 
-#include "tclclean.h"
-#include "tkclean.h"
+#include "tcl.h"
+#include "tk.h"
 #include "tkTools.h"
 
 #ifndef PARADYN
@@ -324,7 +327,8 @@ int shgAltPressCommand(ClientData, Tcl_Interp *interp, int argc, char **argv) {
 int shgAltReleaseCommand(ClientData, Tcl_Interp *, int argc, char **argv) {
    // This routine now serves two purposes:
    // (1) the alt-release, turning off alt-scrolling (obvious)
-   // (2) moving the mouse over a shg item will display its contents in a label widget
+   // (2) moving the mouse over a shg item will display its contents & some related
+   //     information in a label widget
 
    if (!haveSeenFirstGoodShgWid)
       return TCL_OK;
@@ -339,8 +343,6 @@ int shgAltReleaseCommand(ClientData, Tcl_Interp *, int argc, char **argv) {
    if (currInstalledShgAltMoveHandler)
       currInstalledShgAltMoveHandler = false;
    else {
-      // cout << "no need to release alt-move event handler (not installed?)" << endl;
-
       // Here is where we handle case (2)
       shg &currShg = theShgPhases->getCurrent();
 
@@ -507,4 +509,14 @@ void unInstallShgCommands(Tcl_Interp *interp) {
    Tcl_DeleteCommand(interp, "shgSearchCommand");
    Tcl_DeleteCommand(interp, "shgPauseCommand");
 //   Tcl_DeleteCommand(interp, "shgResumeCommand");
+}
+
+void shgDevelModeChange(Tcl_Interp *interp, bool inDevelMode) {
+   // the developer-mode tunable constant has changed.
+   // If the PC shg window is up, then we need to change the height of
+   // the status line window, ".shg.nontop.labelarea.current"
+
+   unsigned height = inDevelMode ? 4 : 1;
+   string commandStr = string("shgChangeCurrLabelHeight ") + string(height);
+   myTclEval(interp, commandStr);
 }
