@@ -2,9 +2,12 @@
 // Ariel Tamches
 
 /* $Log: where4treeConstants.C,v $
-/* Revision 1.1  1995/07/17 04:59:06  tamches
-/* First version of the new where axis
+/* Revision 1.2  1995/09/20 01:24:55  tamches
+/* fixed tclpanic to properly print msg
 /*
+ * Revision 1.1  1995/07/17  04:59:06  tamches
+ * First version of the new where axis
+ *
  */
 
 #include <assert.h>
@@ -13,7 +16,7 @@
 #include "where4treeConstants.h"
 
 void tclpanic(Tcl_Interp *interp, const char *msg) {
-   cout << "msg: " << interp->result << endl;
+   cout << msg << " " << interp->result << endl;
    cout.flush();
    exit(5);
 }
