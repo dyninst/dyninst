@@ -1,8 +1,12 @@
 /* $Log: UImain.C,v $
-/* Revision 1.59  1995/10/19 22:41:05  mjrg
-/* Added callback function for paradynd's to report change in status of application.
-/* Added Exited status for applications.
+/* Revision 1.60  1995/10/30 23:06:32  naim
+/* Minor fix: eliminating error message "Error not handle, exiting" at the end
+/* of paradyn by destroying all visi processes before exiting - naim
 /*
+ * Revision 1.59  1995/10/19  22:41:05  mjrg
+ * Added callback function for paradynd's to report change in status of application.
+ * Added Exited status for applications.
+ *
  * Revision 1.58  1995/10/17  20:46:39  tamches
  * Changes for new search history graph.
  * Remove some obsolete variables such as uim_rootRes
@@ -287,7 +291,8 @@ Tcl_HashTable UIMwhereDagTbl;
 int UIMMsgTokenID;
 appState PDapplicState = appPaused;     // used to update run/pause buttons  
 
-status_line *ui_status;
+status_line *ui_status=NULL;
+status_line *app_status=NULL;
 
 /*
  * Declarations for various library procedures and variables 
@@ -359,25 +364,27 @@ void resourceBatchChanged(perfStreamHandle handle, batchMode mode)
 void
 applicStateChanged (perfStreamHandle handle, appState state) 
 {
-	static status_line app_status("Application status");
-
+  if (! app_status) {
+    app_status = new status_line("Application status");
+  }
+ 
   if ((state == appRunning) && (PDapplicState == appPaused)) { 
     if (Tcl_VarEval (interp, "changeApplicState 1", 0) == TCL_ERROR) {
       printf ("changeApplicStateERROR: %s\n", interp->result);
     }
-	app_status.state(status_line::NORMAL);
-	app_status.message("RUNNING");
+    app_status->state(status_line::NORMAL);
+    app_status->message("RUNNING");
   } else if ((state == appPaused) && (PDapplicState == appRunning)) {
     if (Tcl_VarEval (interp, "changeApplicState 0", 0) == TCL_ERROR) {
       printf ("changeApplicStateERROR: %s\n", interp->result);
     }
-	app_status.state(status_line::URGENT);
-	app_status.message("PAUSED");
+    app_status->state(status_line::URGENT);
+    app_status->message("PAUSED");
   } else if ((state == appExited)) {
-        app_status.state(status_line::URGENT);
-        app_status.message("EXITED");
+    app_status->state(status_line::URGENT);
+    app_status->message("EXITED");
   }
-    PDapplicState = state;
+  PDapplicState = state;
 }
 
 
@@ -616,6 +623,16 @@ UImain(void* vargs)
 
    unInstallShgCommands(interp);
    unInstallWhereAxisCommands(interp);
+
+   //
+   // Destroy visi processes before exit to avoid error messages
+   //
+   vector<VM_activeVisiInfo> *visi_info;
+   visi_info = vmMgr->VMActiveVisis();
+   for(int i=0; i < visi_info->size(); i++){
+     vmMgr->VMDestroyVisi((*visi_info)[i].visiNum);
+     vmMgr->VMVisiDied((*visi_info)[i].visiNum);
+   }
 
    /*
     * Exiting this thread will signal the main/parent to exit.  No other
