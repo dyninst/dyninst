@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.86 2005/02/15 17:44:10 legendre Exp $
+ * $Id: RTinst.c,v 1.87 2005/03/16 20:53:33 bernat Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -794,15 +794,10 @@ int PARADYN_init_child_after_fork() {
 
    /* don't want to call alloc_pos with fork, but want to reuse existing
       positions.  This is setup through DYNINSTregister_running_thread() */
-#if defined(MT_THREAD)
-   /* setting this to 0 here and to 1 at the end of this function
-      fixes a bug we had where a threadCreate occurred in the rtinst
-      library when this function was called for MT.  For MT, we don't
-      want to create a new thread and pos, but want to reuse the position
-      variables, using the same tid<->pos mapping as in the parent app.
-   */
-   DYNINST_initialize_done = 0;  
-#endif
+
+   /* Used to unset DYNINST_initialize_done; this is now taken care of
+      by only using ST-style RPCs */
+   
    pid = getpid();
    ppid = getppid();
    ptr_size = sizeof(DYNINST_shmSegAttachedPtr);
