@@ -201,11 +201,26 @@ bool dataManager::addExecutable(const char *machine,
 				const char *dir,
 				const vector<string> *argv)
 {
+    // This is the implementation of an igen call...usually from the UI thread when
+    // a new process is defined in the dialog box.
     string m = machine;
     string l = login;
     string n = name;
     string d = dir;
     return(paradynDaemon::newExecutable(m, l, n, d, *argv));
+}
+
+bool dataManager::attach(const char *machine,
+			 const char *user,
+			 const char *daemonName,
+			 const char *pidStr) {
+   if (strlen(pidStr) == 0)
+      return false;
+
+   int pid = atoi(pidStr);
+   return (paradynDaemon::attachStub(machine, user, daemonName, pid));
+      // "Stub" appended to name to avoid name clash with the actual remote igen call
+      // attach()
 }
 
 bool dataManager::applicationDefined()

@@ -396,7 +396,9 @@ public:
     return os;
   }
 #endif
-  metricDefinitionNode *apply(vector< vector<string> >&focus, string& flat_name, vector<process *> procs);
+  metricDefinitionNode *apply(vector< vector<string> >&focus, string& flat_name,
+	                      vector<process *> procs,
+	                      bool replace_components_if_present);
 $ignore
 };
 
@@ -427,7 +429,7 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 47;
+    $version 48;
 
     //
     // Define a program to run. 
@@ -438,7 +440,7 @@ $remote dynRPC {
     //
     // Connect up with a running program (not possible on all platforms).
     //
-    bool attachProgram(int pid);
+    bool attach(int pid);
 
     //
     // Start an application running (This starts the actual execution).
@@ -474,11 +476,14 @@ $remote dynRPC {
 
     //
     // Gets called when a new application is started that is not visible to
-    //   paradyn (e.g. pvm_spawn).
+    //   paradyn (e.g. pvm_spawn, or when a process forks, or when a process execs.
+    //   In the latter case, pass calledFromExec=true to let paradyn know that
+    //   in starting this new process, another one was stomped on).
     //
     $upcall $async void newProgramCallbackFunc( int pid, 
 						vector<string> argv, 
-						string machine);
+						string machine,
+	                                        bool calledFromExec);
     //
     // Message display with "error" visual characteristics
     // and lookup in error database for explanation. This function
