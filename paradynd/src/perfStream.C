@@ -7,7 +7,11 @@
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.50  1995/12/18 14:59:20  naim
+ * Revision 1.51  1995/12/28 23:43:56  zhichen
+ * processTraceStream() sets BURST_HAS_COMPLETED to true at the end of
+ * a batch of data.
+ *
+ * Revision 1.50  1995/12/18  14:59:20  naim
  * Minor change to status line messages - naim
  *
  * Revision 1.49  1995/12/15  22:26:56  mjrg
@@ -341,6 +345,11 @@ void statusLine(const char *line)
   tp->reportStatus(line);
 }
 
+// New with paradynd-->paradyn buffering.  When true, it tells the
+// buffering routine to flush (to paradyn); otherwise, it would flush
+// only when the buffer was full, hurting response time.
+extern bool BURST_HAS_COMPLETED;
+
 void processTraceStream(process *curr)
 {
     int ret;
@@ -480,6 +489,7 @@ void processTraceStream(process *curr)
 		showErrorCallback(37,(const char *) errorLine);
 	}
     }
+    BURST_HAS_COMPLETED = true; // will force a batch-flush very soon
 
     /* copy those bits we have to the base */
     memcpy(curr->buffer, &(curr->buffer[curr->bufStart]), 
