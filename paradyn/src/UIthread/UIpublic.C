@@ -21,9 +21,12 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.50  1996/04/09 19:25:07  karavan
-/* added batch mode to cut down on shg redraw time.
+/* Revision 1.51  1996/04/13 04:39:39  karavan
+/* better implementation of batching for edge requests
 /*
+ * Revision 1.50  1996/04/09 19:25:07  karavan
+ * added batch mode to cut down on shg redraw time.
+ *
  * Revision 1.49  1996/04/07 21:17:12  karavan
  * changed new phase notification handling; instead of being notified by the
  * data manager, the UI is notified by the performance consultant.  This prevents
@@ -398,20 +401,6 @@ shgRootNode::refinement int2refinement(int styleid) {
    exit(5);
 }
 
-void
-UIM::setBatchMode(int phaseID)
-{
-  theShgPhases->setBatchMode(phaseID);
-}
-
-void
-UIM::clearBatchMode(int phaseID)
-{
-  theShgPhases->clearBatchMode(phaseID);
-  if (theShgPhases->clearBatchMode(phaseID))
-    initiateShgRedraw(interp, true); 
-}
-
 /*  flags: 1 = root
  *         0 = non-root
  */
@@ -432,6 +421,22 @@ UIM::DAGaddNode(int dagID, unsigned nodeID, int styleID,
          initiateShgRedraw(interp, true);
 
    return 1;
+}
+
+void
+UIM::DAGaddBatchOfEdges (int dagID, vector<uiSHGrequest> *requests,
+			 unsigned numRequests)
+{
+  uiSHGrequest *curr;
+  bool redraw = false;
+  for (unsigned i = 0; i < numRequests; i++) {
+    curr = &((*requests)[i]);
+    shgRootNode::refinement theRefinementStyle = int2refinement(curr->styleID);
+    if (theShgPhases->addEdge(dagID, curr->srcNodeID, curr->dstNodeID, theRefinementStyle,
+			      curr->label)) redraw = true;
+  }
+  if (redraw) initiateShgRedraw(interp, true); // true --> double buffer
+  delete requests;
 }
 
 int 

@@ -4,9 +4,12 @@
 // Ariel Tamches
 
 /* $Log: shg.C,v $
-/* Revision 1.17  1996/04/09 19:25:10  karavan
-/* added batch mode to cut down on shg redraw time.
+/* Revision 1.18  1996/04/13 04:39:46  karavan
+/* better implementation of batching for edge requests
 /*
+ * Revision 1.17  1996/04/09 19:25:10  karavan
+ * added batch mode to cut down on shg redraw time.
+ *
  * Revision 1.16  1996/04/01 21:19:22  tamches
  * changeHiddenNodes now checks for a NULL rootPtr
  *
@@ -138,8 +141,7 @@ shg::shg(int iPhaseId, Tcl_Interp *iInterp, Tk_Window theTkWindow,
 	    horizSBName(iHorizSBName),
 	    vertSBName(iVertSBName),
 	    currItemLabelName(iCurrItemLabelName),
-	    lastItemUnderMousePath(0, 0, consts, NULL, 0, 0), // yuck
-	    batchMode(0)
+	    lastItemUnderMousePath(0, 0, consts, NULL, 0, 0) // yuck
 {
    initializeStaticsIfNeeded();
 
