@@ -143,12 +143,15 @@ void DYNINSTthreadDelete(void) {
   int tid = P_thread_self();
 
   /* Order: set the POS to "awaiting deletion",
-     report deletion, then destroy the timer */
+     report deletion, then stop the virtual timer. The VT will be
+     deleted when it needs to be reused as part of allocating
+     a new thread.
+  */
   DYNINST_free_pos(pos, tid);
 
   DYNINST_reportThreadDeletion(pos, tid);
 
-  DYNINST_VirtualTimerDestroy(&(RTsharedData.virtualTimers[pos]));
+  _VirtualTimerStop(&(RTsharedData.virtualTimers[pos]));
 
 }
 
@@ -175,7 +178,8 @@ unsigned DYNINSTthreadCreate(int tid)
   P_thread_setspecific(DYNINST_thread_key, (void *)(pos)) ;
   /* Set up virtual timers */
   if (&(RTsharedData.virtualTimers[pos])) {
-    _VirtualTimerStart(&(RTsharedData.virtualTimers[pos]), THREAD_CREATE) ;
+      _VirtualTimerDestroy(&(RTsharedData.virtualTimers[pos]));
+      _VirtualTimerStart(&(RTsharedData.virtualTimers[pos]), THREAD_CREATE) ;
   }
   return pos;
 }
@@ -210,6 +214,7 @@ void DYNINSTthreadStop() {
   pos = DYNINSTthreadPosFAST() ; /* in mini */
   if (pos >=0) {
     _VirtualTimerStop(&(RTsharedData.virtualTimers[pos])) ;
+    _VirtualTimerFinalize(&(RTsharedData.virtualTimers[pos])) ;
   }
 }
 
