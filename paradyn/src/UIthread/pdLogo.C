@@ -41,9 +41,13 @@
 
 // pdLogo.C
 
-/* $Id: pdLogo.C,v 1.9 2002/05/13 19:53:24 mjbrim Exp $ */
+/* $Id: pdLogo.C,v 1.10 2002/07/03 23:13:47 schendel Exp $ */
 
 #include "pdLogo.h"
+// needed since NT is doing some form of implicit template instantiation
+#if defined(i386_unknown_nt4_0)
+#include "common/src/Dictionary.C"
+#endif
 
 dictionary_hash<string, pdLogo::logoStruct> pdLogo::all_installed_logos(string::hash,
                                                                        9);

@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: templates-nt.C,v 1.3 2002/04/09 18:05:33 mjbrim Exp $
+ * $Id: templates-nt.C,v 1.4 2002/07/03 23:13:46 schendel Exp $
  */
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
@@ -52,6 +52,7 @@
 #pragma warning (disable: 4660)
 
 #include "common/h/Dictionary.h"
+#include "common/src/Dictionary.C"
 
 #include "arg.h"
 #include "type_defn.h"
