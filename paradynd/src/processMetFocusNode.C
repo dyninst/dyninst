@@ -45,17 +45,17 @@
 #include "paradynd/src/instrCodeNode.h"
 #include "paradynd/src/instrDataNode.h"
 #include "paradynd/src/dynrpc.h"
-#include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "pdutil/h/pdDebugOstream.h"
-#include "dyninstAPI/src/pdThread.h"
 #include "paradynd/src/init.h"
+#include "paradynd/src/pd_process.h"
+#include "paradynd/src/pd_thread.h"
 
 extern pdDebug_ostream sampleVal_cerr;
 
 vector<processMetFocusNode*> processMetFocusNode::allProcNodes;
 
-processMetFocusNode::processMetFocusNode(process *p,
+processMetFocusNode::processMetFocusNode(pd_process *p,
                        const string &metname, const Focus &focus_,
 		       aggregateOp agg_op, bool arg_dontInsertData)
   : aggregator(agg_op, getCurrSamplingRate()),
@@ -69,47 +69,50 @@ processMetFocusNode::processMetFocusNode(process *p,
 }
 
 processMetFocusNode::processMetFocusNode(const processMetFocusNode &par, 
-					 process *childProc) :
-  aggregator(par.aggOp, getCurrSamplingRate()), // start with fresh aggregator
-  // set by recordAsParent(), in propagateToForkedProcess
-  parentNode(NULL), aggInfo(NULL), proc_(childProc),
-  metric_name(par.metric_name), 
-  focus(adjustFocusForPid(par.focus, childProc->getPid()))
+					 pd_process *childProc) :
+   aggregator(par.aggOp, getCurrSamplingRate()), // start with fresh aggregator
+   // set by recordAsParent(), in propagateToForkedProcess
+   parentNode(NULL), aggInfo(NULL), proc_(childProc),
+   metric_name(par.metric_name), 
+   focus(adjustFocusForPid(par.focus, childProc->getPid()))
 {
-  metricVarCodeNode = instrCodeNode::copyInstrCodeNode(*par.metricVarCodeNode,
-						       childProc);
-  for(unsigned i=0; i<par.constraintCodeNodes.size(); i++) {
-    constraintCodeNodes.push_back(
-     instrCodeNode::copyInstrCodeNode(*par.constraintCodeNodes[i], childProc));
-  }
+   metricVarCodeNode = instrCodeNode::copyInstrCodeNode(*par.metricVarCodeNode,
+							childProc);
+   for(unsigned i=0; i<par.constraintCodeNodes.size(); i++) {
+      constraintCodeNodes.push_back(
+              instrCodeNode::copyInstrCodeNode(*par.constraintCodeNodes[i], 
+					       childProc));
+   }
 
-  // I need to determine which threads are being duplicated in the child
-  // process.  Under pthreads, my understanding is that only the thread
-  // for which the fork call occurs is duplicated in the child.  Under
-  // Solaris threads, my understanding is that all threads are duplicated.
-  for(unsigned j=0; j<par.thrNodes.size(); j++) {
-    assert(par.thrNodes.size() <= childProc->threads.size());
-    pdThread *childThr = childProc->getThread(par.thrNodes[j]->getThreadID());
-    threadMetFocusNode *newThrNode = 
-      threadMetFocusNode::copyThreadMetFocusNode(*par.thrNodes[j], childProc,
-						 childThr);
-    addPart(newThrNode);
-  }
-
-  procStartTime = par.procStartTime;
-
-  aggOp = par.aggOp;
-  procStartTime = par.procStartTime;
-  
-  dontInsertData_ = par.dontInsertData_;
-  catchupNotDoneYet_ = par.catchupNotDoneYet_;
-  currentlyPaused = par.currentlyPaused;
-  
-  catchupASTList = par.catchupASTList;
-  sideEffectFrameList = par.sideEffectFrameList;
-  
-  insertionAttempts = par.insertionAttempts;
-  function_not_inserted = par.function_not_inserted;
+   // I need to determine which threads are being duplicated in the child
+   // process.  Under pthreads, my understanding is that only the thread
+   // for which the fork call occurs is duplicated in the child.  Under
+   // Solaris threads, my understanding is that all threads are duplicated.
+   for(unsigned j=0; j<par.thrNodes.size(); j++) {
+      assert(par.thrNodes.size() <= childProc->numThr());
+      threadMetFocusNode *parThrNode = par.thrNodes[j];
+      pd_thread *childThr = 
+	 childProc->thrMgr().find_pd_thread(parThrNode->getThreadID());
+      threadMetFocusNode *newThrNode = 
+	 threadMetFocusNode::copyThreadMetFocusNode(*parThrNode, childProc,
+						    childThr);
+      addPart(newThrNode);
+   }
+   
+   procStartTime = par.procStartTime;
+   
+   aggOp = par.aggOp;
+   procStartTime = par.procStartTime;
+   
+   dontInsertData_ = par.dontInsertData_;
+   catchupNotDoneYet_ = par.catchupNotDoneYet_;
+   currentlyPaused = par.currentlyPaused;
+   
+   catchupASTList = par.catchupASTList;
+   sideEffectFrameList = par.sideEffectFrameList;
+   
+   insertionAttempts = par.insertionAttempts;
+   function_not_inserted = par.function_not_inserted;
 }
 
 void processMetFocusNode::getProcNodes(vector<processMetFocusNode*> *procnodes)
@@ -128,18 +131,6 @@ void processMetFocusNode::getProcNodes(vector<processMetFocusNode*> *procnodes,
     if(curNode->proc()->getPid() == pid)
       (*procnodes).push_back(curNode);
   }
-}
-
-// optimize this if helpful
-void processMetFocusNode::getMT_ProcNodes(
-				    vector<processMetFocusNode*> *MT_procnodes)
-{
-   for(unsigned i=0; i<allProcNodes.size(); i++) {
-      processMetFocusNode *curNode = allProcNodes[i];
-      if(curNode->proc()->multithread_capable()) {
-	 (*MT_procnodes).push_back(curNode);
-      }
-   }
 }
 
 bool processMetFocusNode::instrLoaded() {
@@ -264,7 +255,7 @@ void processMetFocusNode::updateWithDeltaValue(timeStamp startTime,
 }
 
 processMetFocusNode *processMetFocusNode::newProcessMetFocusNode(
-		       process *p, const string &metname,
+		       pd_process *p, const string &metname,
 		       const Focus &component_foc,
 		       aggregateOp agg_op, bool arg_dontInsertData)
 {
@@ -342,9 +333,9 @@ processMetFocusNode* processMetFocusNode::handleExec() {
    mdl_env::set(machnode->getMetricID(), vname);
    
    vector<process*> vp(1, this->proc());
-   vector< vector<pdThread *> > threadsVec;
+   vector< vector<dyn_thread *> > t_hreadsVec;
 #if defined(MT_THREAD)
-   threadsVec += this->proc()->threads;
+   t_hreadsVec += this->proc()->t_hreads;
 #endif
    cerr << "mdl_do - C\n";
    machineMetFocusNode *tempMachNode = mdl_do(//mid
@@ -925,7 +916,7 @@ void processMetFocusNode::addConstraintCodeNode(instrCodeNode* part) {
   constraintCodeNodes.push_back(part);
 }
 
-void processMetFocusNode::propagateToNewThread(pdThread *thr)
+void processMetFocusNode::propagateToNewThread(pd_thread *thr)
 {
    // we only want to sample this new thread if the selected focus for this
    // processMetFocusNode was for the whole process.  If it's not a thread
@@ -944,7 +935,7 @@ void processMetFocusNode::propagateToNewThread(pdThread *thr)
    thrNode->initializeForSampling(getWallTime(), pdSample::Zero());
 }
 
-void processMetFocusNode::deleteThread(pdThread * /*thr*/)
+void processMetFocusNode::deleteThread(dyn_thread * /*thr*/)
 {
    // need to implement
 }

@@ -54,13 +54,13 @@ class threadMetFocusNode_Val;
 class instrDataNode;
 class catchupReq;
 class AstNode;
-class pdThread;
+class dyn_thread;
 class instReqNode;
 class dyn_lwp;
 
 struct catchup_t {
   AstNode *ast;
-  pdThread *thread;
+  dyn_thread *thread;
   dyn_lwp *lwp;
 };
 
@@ -76,7 +76,7 @@ class processMetFocusNode : public metricFocusNode {
   sampleAggregator aggregator;
   machineMetFocusNode *parentNode;
   aggComponent *aggInfo;  // for machNode <-> procNode link
-  process *proc_;
+  pd_process *proc_;
 
   aggregateOp aggOp;
   timeStamp procStartTime;    // the time that this metric started
@@ -93,7 +93,7 @@ class processMetFocusNode : public metricFocusNode {
   int insertionAttempts;
   pd_Function *function_not_inserted;
 
-  processMetFocusNode(process *p, const string &metname,
+  processMetFocusNode(pd_process *p, const string &metname,
 		      const Focus &component_foc, aggregateOp agg_op, 
 		      bool arg_dontInsertData);
 
@@ -111,15 +111,14 @@ class processMetFocusNode : public metricFocusNode {
   bool isBeingDeleted() {return isBeingDeleted_; };
   static void getProcNodes(vector<processMetFocusNode*> *procNodes);
   static void getProcNodes(vector<processMetFocusNode*> *procNodes, int pid);
-  static void getMT_ProcNodes(vector<processMetFocusNode*> *MT_procNodes);
 
   // use this function to create a new processMetFocusNode in the general case
-  static processMetFocusNode *newProcessMetFocusNode(process *p, 
+  static processMetFocusNode *newProcessMetFocusNode(pd_process *p, 
 				 const string &metname, const Focus &focus_,
 				 aggregateOp agg_op, bool arg_dontInsertData);
 
   // a copy constructor variant, used when handling fork
-  processMetFocusNode(const processMetFocusNode &par, process *childProc);
+  processMetFocusNode(const processMetFocusNode &par, pd_process *childProc);
 
   ~processMetFocusNode();
 
@@ -131,8 +130,8 @@ class processMetFocusNode : public metricFocusNode {
   }
   void setMetricVarCodeNode(instrCodeNode* part);
   void addConstraintCodeNode(instrCodeNode* part);
-  void propagateToNewThread(pdThread *thr);
-  void deleteThread(pdThread *thr);
+  void propagateToNewThread(pd_thread *thr);
+  void deleteThread(dyn_thread *thr);
   processMetFocusNode* handleExec();
   timeLength cost() const;
   instrCodeNode *getMetricVarCodeNode() {
@@ -162,7 +161,7 @@ class processMetFocusNode : public metricFocusNode {
   void updateWithDeltaValue(timeStamp startTime, timeStamp sampleTime, 
 			    pdSample value);
   void tryAggregation();
-  process *proc() { return proc_; }
+  pd_process *proc() { return proc_; }
   bool dontInsertData() { return dontInsertData_; }
   void print();
   void initializeForSampling(timeStamp timeOfCont, pdSample initValue);
