@@ -492,7 +492,7 @@ bool type_defn::gen_bundler_ptr_class(const pdstring class_prefix,
       }
     }
     out_c << "  } else {\n";
-    for (int j=0; j<arglist_.size(); j++) {
+    for (unsigned int j=0; j<arglist_.size(); j++) {
       out_c << "    if (!";
       arglist_[j]->gen_bundler(false, out_c, "obj", "");
       out_c << ")\n";
