@@ -368,29 +368,31 @@ void instrCodeNode::prepareCatchupInstr(pdvector<catchupReq *> &stackWalk)
       for(unsigned frameIter=0; frameIter < stackWalk.size(); frameIter++)
       {
          Frame &cur_frame = stackWalk[frameIter]->frame;
-         if(pd_debug_catchup)
-            cerr << "  looking at frame " << frameIter+1 << " "
-                 << (void*)&cur_frame << endl;
-
-          bool triggered = 
-             curInstReq->triggeredInStackFrame(cur_frame,
-                                               proc());
-          if(triggered) {
-             if(pd_debug_catchup)
-                cerr << "   TRIGGERED by frame " << frameIter+1 << endl;
-              // Push this instRequest onto the list of ones to execute
-              stackWalk[frameIter]->reqNodes.push_back(curInstReq);
-          }
+	 // If this is an entry instru, and we've already triggered once,
+	 // don't trigger again
+	 if ((curInstReq->Point()->getPointType() == BPatch_locEntry &&
+	      stackWalk[frameIter]->handledFunctionEntry) ||
+	     (curInstReq->Point()->getPointType() == BPatch_locLoopEntry &&
+	      stackWalk[frameIter]->handledLoopEntry))
+	   continue;
+	 
+	 bool triggered = 
+	   curInstReq->triggeredInStackFrame(cur_frame,
+					     proc());
+	 if(triggered) {
+	   // Push this instRequest onto the list of ones to execute
+	   stackWalk[frameIter]->reqNodes.push_back(curInstReq);
+	   if (curInstReq->Point()->getPointType() == BPatch_locEntry)
+	     stackWalk[frameIter]->handledFunctionEntry = true;
+	   else if (curInstReq->Point()->getPointType() == BPatch_locLoopEntry)
+	     stackWalk[frameIter]->handledLoopEntry = true;
+	 }
       }
    }
    
    // don't mark catchup as having completed because we don't want to mark
    // this until the processMetFocusNode has completed initiating catchup for
    // all of the threads
-
-   // if MTHREAD
-   // Not sure what the following did: figure it out and set it up.
-   //oldCatchUp(tid);
 }
 
 inst_insert_result_t instrCodeNode::loadInstrIntoApp() {
