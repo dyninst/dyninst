@@ -4,12 +4,15 @@
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
 /* $Log: whereAxis.C,v $
-/* Revision 1.8  1995/11/20 03:27:50  tamches
-/* overallWindowBorderPix is no longer a global variable.
-/* double-click does a toggle_highlight of the parent node; same
-/* for ctrl-double-click.
-/* changed vector<whereAxisRootNode *> to vector<const whereAxisRootNode *>
+/* Revision 1.9  1995/12/09 04:08:39  tamches
+/* shift-dbl-click now togggles highlight, like ctrl-dbl-click
 /*
+ * Revision 1.8  1995/11/20 03:27:50  tamches
+ * overallWindowBorderPix is no longer a global variable.
+ * double-click does a toggle_highlight of the parent node; same
+ * for ctrl-double-click.
+ * changed vector<whereAxisRootNode *> to vector<const whereAxisRootNode *>
+ *
  * Revision 1.7  1995/10/17 22:20:15  tamches
  * where axis is no longer a templated type; it uses where4tree with
  * a template of whereAxisRootNode.
@@ -97,7 +100,7 @@ whereAxis::whereAxis(Tcl_Interp *in_interp, Tk_Window theTkWindow,
 		     const string &iVertSBName,
 		     const string &iNavigateMenuName) :
 	     consts(in_interp, theTkWindow),
-	     hash(hashFunc, 32),
+	     hash(&whereAxis::hashFunc, 32),
 	     horizSBName(iHorizSBName),
 	     vertSBName(iVertSBName),
 	     navigateMenuName(iNavigateMenuName) {
@@ -616,6 +619,7 @@ bool whereAxis::processShiftDoubleClick(int x, int y) {
 
    bool anyChanges = false; // so far...
    where4tree<whereAxisRootNode> *ptr = thePath.getLastPathNode(rootPtr);
+   ptr->toggle_highlight(); // doesn't redraw
 
    if (ptr->getListboxPixWidth() > 0) {
       bool noExplicitlyExpandedChildren = true; // so far...
