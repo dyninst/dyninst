@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -98,9 +98,11 @@ template class vector<pdLogo::logoStruct>;
  */
 
 #include "paradyn/src/UIthread/minmax.C"
-template int min(int,int);
-template int max(int,int);
-template void ipmin(int &, int);
-template void ipmax(int &, int);
-template float min(float,float);
-template float max(float,float);
+template int min(const int, const int);
+template int max(const int, const int);
+template unsigned min(const unsigned, const unsigned);
+template unsigned max(const unsigned, const unsigned);
+template float min(const float, const float);
+template float max(const float, const float);
+template void ipmin(int &, const int);
+template void ipmax(int &, const int);
