@@ -1,6 +1,10 @@
 # main tool bar
 
+#
 # $Log: mainMenu.tcl,v $
+# Revision 1.55  1996/09/04 21:22:17  tamches
+# added version # on screen
+#
 # Revision 1.54  1996/05/06 16:41:44  naim
 # Adding window to confirm whether the user wants to exit paradyn - naim
 #
@@ -18,61 +22,6 @@
 #
 # Revision 1.49  1996/02/07 19:16:14  tamches
 # added new phase menu
-#
-# Revision 1.48  1996/01/11 23:43:27  tamches
-# shgInitialize now takes a parameter
-#
-# Revision 1.47  1995/12/08 16:08:07  naim
-# Disabling SAVE button because it is not implemented yet - naim
-#
-# Revision 1.46  1995/11/29  00:21:30  tamches
-# removed refs to pdBitmapDir; we now call makeLogo (pdLogo.C)
-#
-# Revision 1.45  1995/11/16 00:46:40  tamches
-# removed obsolete menu item "options control"
-#
-# Revision 1.44  1995/11/09 02:13:27  tamches
-# some general cleanup, such as removing references to tk_menuBar
-# (obsolete in tk4.0), and removing old code that had until now been
-# commented out.
-#
-# Revision 1.43  1995/11/06 02:56:07  tamches
-# removed ugly borderwidth for .parent.menub, .parent.status, and
-# .parent.buttons
-# removed .parent.where, which no longer exists
-#
-# Revision 1.42  1995/11/03 21:19:22  naim
-# Changing exit option - naim
-#
-# Revision 1.41  1995/10/17  22:25:00  tamches
-# "performance consultant" now calls shgInitialize instead of
-# "paradyn shg start global".
-# Added a "Where Axis" item to de-iconify the where axis.
-#
-# Revision 1.40  1995/10/06 19:50:57  naim
-# Minor change to "changeApplicState". Now there are 3 states for the RUN and
-# PAUSE keys: either RUN or PAUSE is enabled and the other one disabled, and
-# both keys disabled. There is also a minor change to drawToolBar. Now, the
-# first state for buttons PAUSE and RUN is disabled (when paradyn starts)-naim
-#
-# Revision 1.39  1995/10/05  04:19:23  karavan
-# Added search phase to title bar of Perf Consultant window.
-# Changed arguments to agree with new igen interfaces for UI and PC.
-#
-
-#
-# Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
-#     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
-#     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
-# 
-#  This software is furnished under the condition that it may not be
-#  provided or otherwise made available to, or used by, any other
-#  person, except as provided for by the terms of applicable license
-#  agreements.  No title to or ownership of the software is hereby
-#  transferred.  The name of the principals may not be used in any
-#  advertising or publicity related to this software without specific,
-#  written prior authorization.  Any use of this software must include
-#  the above copyright notice.
 #
 
 ## changeApplicState
@@ -165,9 +114,31 @@ proc drawToolBar {} {
     .parent.buttons.3 configure -state disabled
 
     frame .parent.menub.left
-    label .parent.menub.left.title -text "Paradyn Main Control" \
+    pack .parent.menub.left -side left -fill both -expand 1
+
+    frame .parent.menub.left.top -borderwidth 2 -relief raised \
+	  -background #b3331e1b53c7
+    pack  .parent.menub.left.top -side top -fill both -expand 1
+
+    label .parent.menub.left.top.title -text "Paradyn Main Control" \
           -font *-New*Century*Schoolbook-Bold-R-*-14-* \
-          -relief raised -background #b3331e1b53c7 -foreground white -anchor c
+          -relief flat \
+	  -background #b3331e1b53c7 \
+	  -foreground white -anchor c
+    pack .parent.menub.left.top.title -side left -fill both -expand true
+
+    frame .parent.menub.left.top.title.versionFrame -background #b3331e1b53c7
+    pack  .parent.menub.left.top.title.versionFrame -side right -fill y -expand false
+	    
+    label .parent.menub.left.top.title.versionFrame.version -text "v1.1" \
+	    -font "*-Helvetica-*-r-*-12-*" \
+	    -background #b3331e1b53c7 \
+	    -foreground white \
+	    -relief flat \
+	    -borderwidth 0
+    pack .parent.menub.left.top.title.versionFrame.version -side bottom \
+	    -expand false
+
 
     frame .parent.menub.left.men -class TopMenu -borderwidth 2 -relief raised
     menubutton .parent.menub.left.men.b0 -text "File" -menu .parent.menub.left.men.b0.m 
@@ -235,12 +206,10 @@ proc drawToolBar {} {
     pack .parent.menub.left.men.b0 .parent.menub.left.men.b1 \
 	    .parent.menub.left.men.b5 .parent.menub.left.men.b6 \
 	    -side left -padx 10
-    pack .parent.menub.left -side left -fill both -expand 1
 
     makeLogo .parent.menub.logobox paradynLogo raised 2 #b3331e1b53c7
     pack  .parent.menub.logobox -side right
 
-    pack .parent.menub.left.title -side top -fill both -expand true
     pack .parent.menub.left.men -side top -fill x -expand false
 
     pack .parent.menub -side top -fill x -expand 0
