@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-ia64.h,v 1.10 2003/07/15 22:44:05 schendel Exp $
+// $Id: inst-ia64.h,v 1.11 2003/09/23 17:28:53 tlmiller Exp $
 
 #ifndef INST_IA64_H
 #define INST_IA64_H
@@ -121,5 +121,9 @@ class IA64_iterator {
 		Address encodedAddress;
 		IA64_bundle currentBundle;
 }; /* end class IA64_iterator */
+
+/* Necessary for get and restore registers to Do The Right Thing
+   for inferior RPCs. */
+bool needToHandleSyscall( process * proc );
 
 #endif
