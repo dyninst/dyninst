@@ -119,6 +119,9 @@ class FunctionExpansionRecord {
 
 // dump state info....
     friend ostream& operator<<(ostream &os, const FunctionExpansionRecord &rc);
+
+
+    FunctionExpansionRecord& FunctionExpansionRecord::operator=(const FunctionExpansionRecord& f);
 };
 
 ostream& operator<<(ostream &os, const FunctionExpansionRecord &rc);
