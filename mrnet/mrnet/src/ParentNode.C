@@ -4,8 +4,6 @@
  **********************************************************************/
 
 #include <stdio.h>
-#include <poll.h>
-#include <arpa/inet.h>
 
 #include "mrnet/src/ParentNode.h"
 #include "mrnet/src/NetworkGraph.h"
@@ -31,7 +29,7 @@ ParentNode::ParentNode( bool _threaded, std::string _hostname,
         error( ESYSTEM, "bindPort(%d): %s\n", port, strerror(errno) );
         return;
     }
-    subtreereport_sync.register_cond( ALLNODESREPORTED );
+    subtreereport_sync.RegisterCondition( ALLNODESREPORTED );
 
     mrn_printf( 3, MCFL, stderr, "Leaving ParentNode()\n" );
 }
@@ -55,39 +53,53 @@ int ParentNode::recv_PacketsFromDownStream( std::list< Packet >&pkt_list,
     }
 
     // add the passed set of remote nodes to the poll set
-    pollfd *pfds = new pollfd[rmt_nodes->size( )];
-    unsigned int npfds = rmt_nodes->size( );
-    unsigned int i = 0;
+    fd_set rfds;
+    int max_fd = 0;
+    FD_ZERO( &rfds );
     for( std::list < RemoteNode * >::iterator iter = rmt_nodes->begin( );
-         iter != rmt_nodes->end( ); iter++, i++ ) {
+         iter != rmt_nodes->end( ); iter++ ) {
+
         RemoteNode *currRemNode = *iter;
         assert( currRemNode != NULL );
-        pfds[i].fd = currRemNode->get_sockfd( );
-        pfds[i].events = POLLIN;
-        pfds[i].revents = 0;
+        int curr_fd = currRemNode->get_sockfd();
+        FD_SET( curr_fd, &rfds );
+
+        if( curr_fd > max_fd )
+        {
+            max_fd = curr_fd;
+        }
     }
 
     // check for input on our downstream connections
     int pollret = 0;
+    struct timeval timeout;
     if( blocking ) {
-        mrn_printf( 3, MCFL, stderr, "Calling \"blocking\" poll"
+        mrn_printf( 3, MCFL, stderr, "Calling \"blocking\" select"
                     "( timeout=%d )\n", RemoteNode::poll_timeout );
-        pollret = poll( pfds, npfds, RemoteNode::poll_timeout );
+
+        timeout.tv_sec = (RemoteNode::poll_timeout / 1000);
+        timeout.tv_usec = (RemoteNode::poll_timeout % 1000) * 1000;
+
     }
     else {
-        pollret = poll( pfds, npfds, 0 );
+        timeout.tv_sec = 0;
+        timeout.tv_usec = 0;
     }
+    pollret = select( max_fd + 1, &rfds, NULL, NULL, &timeout );
 
-    mrn_printf( 3, MCFL, stderr, "poll() returned %d\n", pollret );
+    mrn_printf( 3, MCFL, stderr, "select() returned %d\n", pollret );
 
     if( pollret > 0 ) {
         // there is input on some connection
         // determine the connection on which input exists
         RemoteNode *readyNode = NULL;
         std::list < RemoteNode * >::iterator iter;
+		unsigned int i;
         for( i=0, iter = rmt_nodes->begin( ); iter != rmt_nodes->end( );
              iter++, i++ ) {
-            if( pfds[i].revents & POLLIN ) {
+
+            int curr_fd = (*iter)->get_sockfd();
+            if( FD_ISSET( curr_fd, &rfds ) ) {
                 readyNode = ( *iter );
                 assert( readyNode != NULL );
                 
@@ -105,7 +117,6 @@ int ParentNode::recv_PacketsFromDownStream( std::list< Packet >&pkt_list,
         mrn_printf( 1, MCFL, stderr,
                     "PN::recv_PacketsFromDownStream() poll failed\n" );
     }
-    delete[]pfds;
 
     mrn_printf( 3, MCFL, stderr, "PN::recv_PacketsFromDownStream() %s\n",
                 ( ret == 0 ? "succeeded" : "failed" ) );
@@ -122,7 +133,7 @@ int ParentNode::send_PacketDownStream( Packet& packet, bool internal_only )
 
     mrn_printf( 3, MCFL, stderr, "In send_PacketDownStream()\n" );
     if( threaded ) {
-        streammanagerbyid_sync.lock( );
+        streammanagerbyid_sync.Lock( );
     }
     mrn_printf( 3, MCFL, stderr, "StreamManager = %p\n",
                 &StreamManagerById );
@@ -130,7 +141,7 @@ int ParentNode::send_PacketDownStream( Packet& packet, bool internal_only )
                 packet.get_StreamId( ),
                 StreamManagerById[packet.get_StreamId( )] );
     if( threaded ) {
-        streammanagerbyid_sync.unlock( );
+        streammanagerbyid_sync.Unlock( );
     }
 
     std::list < RemoteNode * >::iterator iter;
@@ -195,11 +206,11 @@ int ParentNode::flush_PacketsDownStream( unsigned int stream_id )
     mrn_printf( 3, MCFL, stderr, "In flush_PacketsDownStream(%d)\n",
                 stream_id );
     if( threaded ) {
-        streammanagerbyid_sync.lock( );
+        streammanagerbyid_sync.Lock( );
     }
     stream_mgr = StreamManagerById[stream_id];
     if( threaded ) {
-        streammanagerbyid_sync.unlock( );
+        streammanagerbyid_sync.Unlock( );
     }
 
     std::list < RemoteNode * >::iterator iter;
@@ -242,11 +253,11 @@ int ParentNode::proc_newSubTree( Packet& packet )
 
         if( cur_sg->has_children( ) ) {
             if( threaded ) {
-                subtreereport_sync.lock( );
+                subtreereport_sync.Lock( );
             }
             num_descendants++;
             if( threaded ) {
-                subtreereport_sync.unlock( );
+                subtreereport_sync.Unlock( );
             }
 
             std::string rootname = cur_sg->get_RootName( );
@@ -305,7 +316,7 @@ int ParentNode::proc_newSubTree( Packet& packet )
             }
 
             if( threaded ) {
-                childnodebybackendid_sync.lock( );
+                childnodebybackendid_sync.Lock( );
             }
             ChildNodeByBackendId[rootid] = cur_node;
             mrn_printf( 3, MCFL, stderr,
@@ -313,7 +324,7 @@ int ParentNode::proc_newSubTree( Packet& packet )
                         cur_node );
             backend_descendant_nodes.push_back( rootid );
             if( threaded ) {
-                childnodebybackendid_sync.unlock( );
+                childnodebybackendid_sync.Unlock( );
             }
             
             children_nodes.push_back( cur_node );
@@ -340,16 +351,16 @@ int ParentNode::wait_for_SubTreeReports( void )
 {
     std::list < Packet >packet_list;
     if( threaded ) {
-        subtreereport_sync.lock( );
+        subtreereport_sync.Lock( );
         while( num_descendants > num_descendants_reported ) {
             mrn_printf( 1, MCFL, stderr,
                         "Waiting for downstream nodes_reported signal ...\n" );
-            subtreereport_sync.wait( ALLNODESREPORTED );
+            subtreereport_sync.WaitOnCondition( ALLNODESREPORTED );
             mrn_printf( 3, MCFL, stderr,
                         "%d of %d Descendants have checked in.\n",
                         num_descendants_reported, num_descendants );
         }
-        subtreereport_sync.unlock(	);
+        subtreereport_sync.Unlock( );
     }
     else {
         while( num_descendants > num_descendants_reported ) {
@@ -416,13 +427,13 @@ int ParentNode::proc_newSubTreeReport( Packet& packet )
     }
 
     if( threaded ) {
-        subtreereport_sync.lock( );
+        subtreereport_sync.Lock( );
     }
     num_descendants_reported++;
     mrn_printf( 3, MCFL, stderr, "%d of %d descendants_reported\n",
                 num_descendants_reported, num_descendants );
     mrn_printf( 3, MCFL, stderr, "Adding %d backends [ ", no_backends );
-    childnodebybackendid_sync.lock( );
+    childnodebybackendid_sync.Lock( );
     for( i = 0; i < no_backends; i++ ) {
         mrn_printf( 3, 0, 0, stderr, "%d(%p), ", backends[i],
                     ChildNodeByBackendId[backends[i]] );
@@ -432,13 +443,13 @@ int ParentNode::proc_newSubTreeReport( Packet& packet )
     mrn_printf( 3, 0, 0, stderr, "]\n" );
     mrn_printf( 3, MCFL, stderr, "map[%d] at %p = %p\n", 0,
                 &ChildNodeByBackendId, ChildNodeByBackendId[0] );
-    childnodebybackendid_sync.unlock( );
+    childnodebybackendid_sync.Unlock( );
     if( threaded ) {
         // TODO always send the signal?
         if( num_descendants == num_descendants ) {
-            subtreereport_sync.signal( ALLNODESREPORTED );
+            subtreereport_sync.SignalCondition( ALLNODESREPORTED );
         }
-        subtreereport_sync.unlock( );
+        subtreereport_sync.Unlock( );
     }
 
     mrn_printf( 3, MCFL, stderr,
@@ -489,7 +500,7 @@ StreamManager *ParentNode::proc_newStream( Packet& packet )
         return NULL;
     }
 
-    childnodebybackendid_sync.lock( );
+    childnodebybackendid_sync.Lock( );
     mrn_printf( 3, MCFL, stderr, "map size: %d\n",
                 ChildNodeByBackendId.size( ) );
     for( i = 0; i < num_backends; i++ ) {
@@ -501,7 +512,7 @@ StreamManager *ParentNode::proc_newStream( Packet& packet )
                     ChildNodeByBackendId[backends[i]], stream_id );
         node_set.push_back( ChildNodeByBackendId[backends[i]] );
     }
-    childnodebybackendid_sync.unlock( );
+    childnodebybackendid_sync.Unlock( );
 
     //printf(3, MCFL, stderr, "nodeset_size:%d\n", node_set.size());
     //  node_set.sort(lt_RemoteNodePtr);      //sort the set of nodes (by ptr value)
@@ -532,11 +543,11 @@ StreamManager *ParentNode::proc_newStream( Packet& packet )
         new StreamManager( stream_id, node_set, sync_id,
                            ds_filter_id, us_filter_id );
     if( threaded ) {
-        streammanagerbyid_sync.lock( );
+        streammanagerbyid_sync.Lock( );
     }
     StreamManagerById[stream_id] = stream_mgr;
     if( threaded ) {
-        streammanagerbyid_sync.unlock( );
+        streammanagerbyid_sync.Unlock( );
     }
 
     mrn_printf( 3, MCFL, stderr, "internal.procNewStream() succeeded\n" );
@@ -575,9 +586,9 @@ int ParentNode::proc_delStream( Packet& packet )
 
     mrn_printf( 3, MCFL, stderr, "In proc_delStream()\n" );
 
-    streammanagerbyid_sync.lock( );
+    streammanagerbyid_sync.Lock( );
     StreamManager *stream_mgr = StreamManagerById[packet.get_StreamId( )];
-    streammanagerbyid_sync.unlock( );
+    streammanagerbyid_sync.Unlock( );
 
     if( packet.ExtractArgList( "%d", &stream_id ) == -1 ) {
         mrn_printf( 1, MCFL, stderr, "ExtractArgList() failed\n" );
@@ -598,9 +609,9 @@ int ParentNode::proc_delStream( Packet& packet )
         mrn_printf( 3, MCFL, stderr, "node_set.send() succeeded\n" );
     }
 
-    streammanagerbyid_sync.lock( );
+    streammanagerbyid_sync.Lock( );
     StreamManagerById.erase( stream_id );
-    streammanagerbyid_sync.unlock( );
+    streammanagerbyid_sync.Unlock( );
     mrn_printf( 3, MCFL, stderr, "internal.procDelStream() succeeded\n" );
     return 0;
 }
@@ -833,7 +844,7 @@ int ParentNode::proc_getLeafInfoResponse( Packet& pkt )
     int ret = 0;
 
     if( threaded ) {
-        childLeafInfoResponsesLock.lock( );
+        childLeafInfoResponsesLock.Lock( );
     }
 
     // add the response to our set of child responses
@@ -972,7 +983,7 @@ int ParentNode::proc_getLeafInfoResponse( Packet& pkt )
         childLeafInfoResponses.clear( );
     }
     if( threaded ) {
-        childLeafInfoResponsesLock.unlock( );
+        childLeafInfoResponsesLock.Unlock( );
     }
 
     return ret;
@@ -1021,7 +1032,7 @@ int ParentNode::proc_connectLeaves( Packet& pkt )
             // We expect the back-end to send us its id in four bytes,
             // in network byte order
             uint32_t idBuf = 0;
-            int rret =::recv( sock_fd, &idBuf, 4, 0 );
+            int rret =::recv( sock_fd, (char*)&idBuf, 4, 0 );
             if( rret != 4 ) {
                 mrn_printf( 1, MCFL, stderr,
                             "failed to receive id from backend\n" );
@@ -1032,11 +1043,11 @@ int ParentNode::proc_connectLeaves( Packet& pkt )
 
             // set this connection as the one for backend id
             if( threaded ) {
-                childnodebybackendid_sync.lock( );
+                childnodebybackendid_sync.Lock( );
             }
             RemoteNode *child = ChildNodeByBackendId[backendId];
             if( threaded ) {
-                childnodebybackendid_sync.unlock( );
+                childnodebybackendid_sync.Unlock( );
             }
             assert( child != NULL );
 
@@ -1087,7 +1098,7 @@ int ParentNode::proc_connectLeavesResponse( Packet& pkt )
     int ret = 0;
 
     if( threaded ) {
-        childConnectedLeafResponsesLock.lock( );
+        childConnectedLeafResponsesLock.Lock( );
     }
     // add the response to our set of child responses
     childConnectedLeafResponses.push_back( pkt );
@@ -1125,7 +1136,7 @@ int ParentNode::proc_connectLeavesResponse( Packet& pkt )
         childConnectedLeafResponses.clear( );
     }
     if( threaded ) {
-        childConnectedLeafResponsesLock.unlock( );
+        childConnectedLeafResponsesLock.Unlock( );
     }
 
     return ret;

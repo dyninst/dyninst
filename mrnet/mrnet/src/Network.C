@@ -99,19 +99,19 @@ void Network::error_str( const char *s )
 int Network::send(Packet & packet )
 {
     assert( network );
-    network->send( packet );
+    return network->send( packet );
 }
 
 int Network::recv(bool blocking)
 {
     assert( network );
-    network->recv( blocking );
+    return network->recv( blocking );
 }
 
 int Network::recv(int *tag, void **buf, Stream ** stream, bool blocking)
 {
     assert( network );
-    network->recv( tag, buf, stream, blocking );
+    return network->recv( tag, buf, stream, blocking );
 }
 
 EndPoint * Network::get_EndPoint(const char* hostname,
@@ -271,7 +271,7 @@ Stream::Stream( Network *network, int stream_id, int *backends,
 void Stream::add_IncomingPacket( Packet& packet )
 {
     assert(stream);
-    return stream->add_IncomingPacket( packet );
+    stream->add_IncomingPacket( packet );
 }
 
 Packet Stream::get_IncomingPacket()
@@ -464,14 +464,12 @@ void Event::add_Event( Event & event ){
 
 Event * Event::get_NextEvent()
 {
-    Event * event = new EventImpl( EventImpl::get_NextEvent() );
-    return event;
+    return EventImpl::get_NextEvent();
 }
 
 Event * Event::get_NextRemoteEvent()
 {
-    Event * event = new EventImpl( EventImpl::get_NextRemoteEvent() );
-    return event;
+    return EventImpl::get_NextRemoteEvent();
 }
 
 unsigned int Event::get_NumEvents()

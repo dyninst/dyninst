@@ -39,25 +39,25 @@ InternalNode::InternalNode( std::string _hostname, unsigned short _port,
     }
 
     mrn_printf( 3, MCFL, stderr, "Creating Upstream recv thread ...\n" );
-    retval = pthread_create( &( upstream_node->recv_thread_id ), NULL,
-                             RemoteNode::recv_thread_main,
-                             ( void * )upstream_node );
+    retval = XPlat::Thread::Create( RemoteNode::recv_thread_main,
+                                    ( void * )upstream_node,
+                                    &( upstream_node->recv_thread_id ) );
     if( retval != 0 ) {
         //Call childnode's error here, because we want to record event
         //locally as well as send upstream
-        ChildNode::error( ESYSTEM, "pthread_create() failed: %s\n",
+        ChildNode::error( ESYSTEM, "XPlat::Thread::Create() failed: %s\n",
                           strerror(errno) );
         mrn_printf( 1, MCFL, stderr, "Upstream recv thread creation failed\n" );
     }
 
     mrn_printf( 3, MCFL, stderr, "Creating Upstream send thread ...\n" );
-    retval = pthread_create( &( upstream_node->send_thread_id ), NULL,
-                             RemoteNode::send_thread_main,
-                             ( void * )upstream_node );
+    retval = XPlat::Thread::Create( RemoteNode::send_thread_main,
+                                    ( void * )upstream_node,
+                                    &( upstream_node->send_thread_id ) );
     if( retval != 0 ) {
         //Call childnode's error here, because we want to record event
         //locally as well as send upstream
-        ChildNode::error( ESYSTEM, "pthread_create() failed: %s\n",
+        ChildNode::error( ESYSTEM, "XPlat::Thread::Create() failed: %s\n",
                           strerror(errno) );
         mrn_printf( 1, MCFL, stderr, "Upstream send thread creation failed\n" );
     }
@@ -85,7 +85,7 @@ void InternalNode::waitLoop( )
     //
 
     // for now, we base our termination on when we lose our upstream connection
-    int iret = pthread_join( upstream_node->recv_thread_id, NULL );
+    int iret = XPlat::Thread::Join( upstream_node->recv_thread_id, NULL );
     if( iret != 0 ) {
         mrn_printf( 1, MCFL, stderr,
                     "comm_node failed to join with upstream internal receive thread: %d\n",
@@ -135,9 +135,9 @@ int InternalNode::proc_DataFromUpStream( Packet& packet )
 
     mrn_printf( 3, MCFL, stderr, "In proc_DataFromUpStream()\n" );
 
-    streammanagerbyid_sync.lock(  );
+    streammanagerbyid_sync.Lock(  );
     StreamManager *stream_mgr = StreamManagerById[packet.get_StreamId(  )];
-    streammanagerbyid_sync.unlock(  );
+    streammanagerbyid_sync.Unlock(  );
 
     std::vector < Packet >packets;
     stream_mgr->push_packet( packet, packets, false );  // packet going downstream
@@ -177,9 +177,9 @@ int InternalNode::proc_DataFromDownStream( Packet& packet )
 {
     mrn_printf( 3, MCFL, stderr, "In internal.proc_DataFromUpStream()\n" );
 
-    streammanagerbyid_sync.lock(  );
+    streammanagerbyid_sync.Lock(  );
     StreamManager *stream_mgr = StreamManagerById[packet.get_StreamId(  )];
-    streammanagerbyid_sync.unlock(  );
+    streammanagerbyid_sync.Unlock(  );
 
     std::vector < Packet >packets;
 

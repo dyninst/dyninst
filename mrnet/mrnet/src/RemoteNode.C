@@ -4,8 +4,6 @@
  **********************************************************************/
 
 #include <stdio.h>
-#include <poll.h>
-#include <arpa/inet.h>
 
 
 #include "mrnet/src/RemoteNode.h"
@@ -13,6 +11,8 @@
 #include "mrnet/src/ParentNode.h"
 #include "mrnet/src/utils.h"
 #include "src/config.h"
+#include "xplat/Process.h"
+#include "xplat/Error.h"
 
 namespace MRN
 {
@@ -72,12 +72,12 @@ void * RemoteNode::recv_thread_main(void * args)
 
     int status;
     tsd_t * local_data = new tsd_t;
-    local_data->thread_id = pthread_self();
+    local_data->thread_id = XPlat::Thread::GetId();
     local_data->thread_name = strdup(name.c_str());
-    if( (status = pthread_setspecific(tsd_key, local_data)) != 0){
-        mrn_printf(1, MCFL, stderr, "pthread_setspecific(): %s\n",
+    if( (status = tsd_key.Set( local_data)) != 0){
+        mrn_printf(1, MCFL, stderr, "XPlat::TLSKey::Set(): %s\n",
                    strerror(status)); 
-        pthread_exit(args);
+        XPlat::Thread::Exit(args);
     }
 
     mrn_printf(3, MCFL, stderr, "In recv_thread_main()\n");
@@ -90,7 +90,7 @@ void * RemoteNode::recv_thread_main(void * args)
                 mrn_printf(1, MCFL, stderr, 
                            "RemoteNode recv failed - recv thread exiting\n");
             }
-            pthread_exit(args);
+            XPlat::Thread::Exit(args);
         }
 
         if( remote_node->is_upstream() ){
@@ -156,31 +156,31 @@ void * RemoteNode::send_thread_main(void * args)
 
     int status;
     tsd_t * local_data = new tsd_t;
-    local_data->thread_id = pthread_self();
+    local_data->thread_id = XPlat::Thread::GetId();
     local_data->thread_name = strdup(name.c_str());
-    if( (status = pthread_setspecific(tsd_key, local_data)) != 0){
-        mrn_printf(1, 0, 0, stderr, "pthread_setspecific(): %s\n",
+    if( (status = tsd_key.Set( local_data)) != 0){
+        mrn_printf(1, 0, 0, stderr, "XPlat::TLSKey::Set(): %s\n",
                    strerror(status)); 
-        pthread_exit(args);
+        XPlat::Thread::Exit(args);
     }
 
     while(1){
-        remote_node->msg_out_sync.lock();
+        remote_node->msg_out_sync.Lock();
 
         while(remote_node->msg_out.size_Packets() == 0){
             mrn_printf(3, MCFL, stderr, "send_thread_main() waiting on nonempty ..\n");
-            remote_node->msg_out_sync.wait(MRN_MESSAGEOUT_NONEMPTY);
+            remote_node->msg_out_sync.WaitOnCondition(MRN_MESSAGEOUT_NONEMPTY);
         }
 
         mrn_printf(3, MCFL, stderr, "send_thread_main() sending packets ...\n");
         if( remote_node->msg_out.send(remote_node->sock_fd) == -1 ){
             mrn_printf(1, MCFL, stderr, "RN: send_thread_main: send failed\n" );
             mrn_printf(1, MCFL, stderr, "msg.send() failed. Thread Exiting\n");
-            remote_node->msg_out_sync.unlock();
-            pthread_exit(args);
+            remote_node->msg_out_sync.Unlock();
+            XPlat::Thread::Exit(args);
         }
 
-        remote_node->msg_out_sync.unlock();
+        remote_node->msg_out_sync.Unlock();
     }
 
     return NULL;
@@ -191,7 +191,7 @@ RemoteNode::RemoteNode(bool _threaded, std::string &_hostname,
     :CommunicationNode(_hostname, _port), threaded(_threaded), sock_fd(0),
      _is_internal_node(false), _is_upstream(false)
 {
-    msg_out_sync.register_cond(MRN_MESSAGEOUT_NONEMPTY);
+    msg_out_sync.RegisterCondition(MRN_MESSAGEOUT_NONEMPTY);
 }
 
 RemoteNode::RemoteNode(bool _threaded, std::string &_hostname,
@@ -199,7 +199,7 @@ RemoteNode::RemoteNode(bool _threaded, std::string &_hostname,
     :CommunicationNode(_hostname, _port, _id), threaded(_threaded), sock_fd(0),
      _is_internal_node(false), _is_upstream(false)
 {
-    msg_out_sync.register_cond(MRN_MESSAGEOUT_NONEMPTY);
+    msg_out_sync.RegisterCondition(MRN_MESSAGEOUT_NONEMPTY);
 }
 
 int RemoteNode::connect()
@@ -237,17 +237,21 @@ int RemoteNode::accept_Connection( int lsock_fd, bool do_connect )
 
     if(threaded){
         mrn_printf(3, MCFL, stderr, "Creating Downstream recv thread ...\n");
-        retval = pthread_create(&recv_thread_id, NULL,
-                                RemoteNode::recv_thread_main, (void *) this);
+        retval = XPlat::Thread::Create( RemoteNode::recv_thread_main,
+                                        (void *) this,
+                                        &recv_thread_id );
         if(retval != 0){
-            error( ESYSTEM, "pthread_create() failed: %s\n", strerror(errno) );
+            error( ESYSTEM, "XPlat::Thread::Create() failed: %s\n",
+                    strerror(errno) );
             mrn_printf(1, MCFL, stderr, "Downstream recv thread creation failed...\n");
         }
         mrn_printf(3, MCFL, stderr, "Creating Downstream send thread ...\n");
-        retval = pthread_create(&send_thread_id, NULL,
-                                RemoteNode::send_thread_main, (void *) this);
+        retval = XPlat::Thread::Create( RemoteNode::send_thread_main,
+                                        (void *) this,
+                                        &send_thread_id );
         if(retval != 0){
-            error( ESYSTEM, "pthread_create() failed: %s\n", strerror(errno) );
+            error( ESYSTEM, "XPlat::Thread::Create() failed: %s\n",
+                    strerror(errno) );
             mrn_printf(1, MCFL, stderr, "Downstream send thread creation failed...\n");
         }
     }
@@ -263,30 +267,31 @@ int RemoteNode::new_InternalNode(int listening_sock_fd,
                                  std::string commnode_cmd)
 {
     char parent_port_str[128];
+    sprintf(parent_port_str, "%d", parent_port);
     char parent_id_str[128];
+    sprintf(parent_id_str, "%d", parent_id);
     char port_str[128];
-    std::string rsh("");
-    std::string username("");
-    std::vector <std::string> args;
+    sprintf(port_str, "%d", port );
 
     mrn_printf(3, MCFL, stderr, "In new_InternalNode(%s:%d) ...\n",
                hostname.c_str(), port );
 
     _is_internal_node = true;
 
-    args.push_back(hostname);
-    sprintf(port_str, "%d", port );
+    // set up arguments for the new process
+    std::vector <std::string> args;
+    args.push_back(commnode_cmd);
     args.push_back(port_str);
     args.push_back(parent_host);
-    sprintf(parent_port_str, "%d", parent_port);
     args.push_back(std::string(parent_port_str));
-    sprintf(parent_id_str, "%d", parent_id);
     args.push_back(std::string(parent_id_str));
 
-    if(createProcess(rsh, hostname, username, commnode_cmd, args) == -1){
-        error( ESYSTEM, "createProcess(%s %s %s): %s\n",
-               rsh.c_str(), hostname.c_str(), commnode_cmd.c_str(),
-               strerror(errno) );
+    if( XPlat::Process::Create( hostname, commnode_cmd, args ) != 0 ){
+        int err = XPlat::Process::GetLastError();
+
+        error( ESYSTEM, "XPlat::Process::Create(%s %s): %s\n",
+               hostname.c_str(), commnode_cmd.c_str(),
+               XPlat::Error::GetErrorString( err ).c_str() );
         return -1;
     }
 
@@ -303,8 +308,6 @@ int RemoteNode::new_Application(int listening_sock_fd,
                                 unsigned short parent_port,
                                 unsigned short parent_id, std::string &cmd,
                                 std::vector <std::string> &args){
-    std::string rsh("");
-    std::string username("");
 
     mrn_printf(3, MCFL, stderr, "In new_Application(%s:%d,\n"
                "                   cmd: %s)\n",
@@ -317,18 +320,19 @@ int RemoteNode::new_Application(int listening_sock_fd,
     char parent_id_str[128];
     sprintf(parent_id_str, "%d", parent_id);
 
-    //append args: hostname, port, parent_hostname, parent_port, parent_id
-    args.push_back(hostname);
+    // set up arguments for new process
+    args.push_back(cmd);
     args.push_back(std::string(port_str));
     args.push_back(parent_host);
     args.push_back(std::string(parent_port_str));
     args.push_back(std::string(parent_id_str));
 
-    if(createProcess(rsh, hostname, username, cmd, args) == -1){
-        mrn_printf(1, MCFL, stderr, "createProcess() failed\n"); 
-        error( ESYSTEM, "createProcess(%s %s %s): %s\n",
-               rsh.c_str(), hostname.c_str(), cmd.c_str(),
-               strerror(errno) );
+    if( XPlat::Process::Create( hostname, cmd, args ) != 0 ){
+        mrn_printf(1, MCFL, stderr, "XPlat::Process::Create() failed\n"); 
+        int err = XPlat::Process::GetLastError();
+        error( ESYSTEM, "XPlat::Process::Create(%s %s): %s\n",
+               hostname.c_str(), cmd.c_str(),
+               XPlat::Error::GetErrorString( err ).c_str() );
         return -1;
     }
 
@@ -342,7 +346,7 @@ int RemoteNode::new_Application(int listening_sock_fd,
 
     // consume the backend id sent from the backend
     uint32_t idBuf = 0;
-    int rret = ::recv( sock_fd, &idBuf, 4, 0 );
+    int rret = ::recv( sock_fd, (char*)&idBuf, 4, 0 );
     if( rret != 4 ) {
         mrn_printf(1, MCFL, stderr, "failed to receive id from backend\n" );
         error( ESYSTEM, "recv(): %s\n", strerror(errno) );
@@ -363,7 +367,7 @@ int RemoteNode::send(Packet& packet)
     mrn_printf(3, MCFL, stderr, "In remotenode.send(). Calling msg.add_packet()\n");
 
     if(threaded){
-        msg_out_sync.lock();
+        msg_out_sync.Lock();
     }
 
     msg_out.add_Packet(packet);
@@ -378,8 +382,8 @@ int RemoteNode::send(Packet& packet)
     }
 
     if(threaded){
-        msg_out_sync.signal(MRN_MESSAGEOUT_NONEMPTY);
-        msg_out_sync.unlock();
+        msg_out_sync.SignalCondition(MRN_MESSAGEOUT_NONEMPTY);
+        msg_out_sync.Unlock();
     }
 
     mrn_printf(3, MCFL, stderr, "Leaving remotenode.send()\n");
@@ -388,41 +392,33 @@ int RemoteNode::send(Packet& packet)
 
 bool RemoteNode::has_data() const
 {
-    pollfd poll_struct;
-    poll_struct.fd = sock_fd;
-    poll_struct.events = POLLIN;
-    poll_struct.revents = 0;
+    struct timeval zeroTimeout;
+    zeroTimeout.tv_sec = 0;
+    zeroTimeout.tv_usec = 0;
 
-    mrn_printf(3, MCFL, stderr, "In remotenode.has_data(%d)\n", poll_struct.fd);
+    // set up file descriptor set for the poll
+    fd_set rfds;
+    FD_ZERO( &rfds );
+    FD_SET( sock_fd, &rfds );
 
-    if(poll(&poll_struct, 1, 0) == -1){
-        mrn_printf(1, MCFL, stderr, "poll() failed\n");
+    // check if data is available
+    int sret = select( sock_fd + 1, &rfds, NULL, NULL, &zeroTimeout );
+    if( sret == -1 ){
+        mrn_printf(1, MCFL, stderr, "select() failed\n");
         return false;
     }
 
-    if(poll_struct.revents & POLLNVAL){
-        mrn_printf(1, MCFL, stderr, "poll() says invalid request occured\n");
-        perror("poll()");
-        return false;
-    }
-    if(poll_struct.revents & POLLERR){
-        mrn_printf(1, MCFL, stderr, "poll() says error occured:");
-        perror("poll()");
-        return false;
-    }
-    if(poll_struct.revents & POLLHUP){
-        mrn_printf(1, MCFL, stderr, "poll() says hangup occured:");
-        perror("poll()");
-        return false;
-    }
-    if(poll_struct.revents & POLLIN){
-        mrn_printf(1, MCFL, stderr, "poll() says data to be read.\n");
+    // We only put one descriptor in the read set.  Therefore, if the return 
+    // value from select() is 1, that descriptor has data available.
+    if( sret == 1 ){
+        mrn_printf(1, MCFL, stderr, "select() says data to be read.\n");
         return true;
     }
 
     mrn_printf(3, MCFL, stderr, "Leaving remotenode.has_data(). No data available\n");
     return false;
 }
+
 
 int RemoteNode::flush()
 {

@@ -9,12 +9,21 @@
 #include <vector>
 #include <string>
 
-#include <libgen.h>
-#include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+
+#if defined(WIN32)
+#include <winsock2.h>
+#include <windows.h>
+#else
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#endif // defined(WIN32)
+
+#include "xplat/TLSKey.h"
+#include "xplat/Thread.h"
 
 namespace MRN
 {
@@ -22,34 +31,16 @@ namespace MRN
 extern std::string LocalHostName;
 extern unsigned short LocalPort;
 
-int createProcess( const std::string & remote_shell,
-                   const std::string & hostName,
-                   const std::string & userName,
-                   const std::string & command,
-                   const std::vector < std::string > &arg_list );
-
-int execCmd( const std::string command,
-             const std::vector < std::string > &args );
-
-int remoteCommand( const std::string remoteExecCmd,
-                   const std::string hostName,
-                   const std::string userName,
-                   const std::string command,
-                   const std::vector < std::string > &arg_list );
-
-int rshCommand( const std::string & hostName,
-                const std::string & userName,
-                const std::string & command,
-                const std::vector < std::string > &arg_list );
-
 int connectHost( int *sock_in,
                  const std::string & hostname, unsigned short port );
 
 int bindPort( int *sock_in, unsigned short *port_in );
 int getSocketConnection( int bound_socket );
 
+#if READY
 int getSocketPeer( int connected_socket,
                    std::string & hostname, unsigned short *port );
+#endif // READY
 
 int getPortFromSocket( int sock, unsigned short *port );
 
@@ -57,9 +48,6 @@ int getHostName( std::string & out_hostname, const std::string & in_hostname = "
 int getDomainName( std::string & out_hostname, const std::string & in_hostname = "" );  // e.g. "bar.net"
 int getNetworkName( std::string & out_hostname, const std::string & in_hostname = "" ); // e.g. "foo.bar.net"
 int getNetworkAddr( std::string & ipaddr_str, const std::string hostname = "" );    // "127.0.0.1"
-
-void *getSharedObjectHandle( const char * );
-void *getSymbolFromSharedObjectHandle( const char *, void * );
 
 struct ltstr
 {
@@ -69,10 +57,11 @@ struct ltstr
     }
 };
 
-extern pthread_key_t tsd_key;
+extern XPlat::TLSKey tsd_key;
+
 class tsd_t {
  public:
-    pthread_t thread_id;
+    XPlat::Thread::Id thread_id;
     const char *thread_name;
 };
 

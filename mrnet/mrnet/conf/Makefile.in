@@ -9,12 +9,18 @@ SHELL = @SHELL@
 #### INSTALL DIRECTORIES ####
 #############################
 
-BINDIR  = ./bin/$(MRNET_PLATFORM)
-LIBDIR  = ./lib/$(MRNET_PLATFORM)
-OBJDIR  = ./obj/$(MRNET_PLATFORM)
+BINDIR  = ./bin/${MRNET_PLATFORM}
+LIBDIR  = ./lib/${MRNET_PLATFORM}
+OBJDIR  = ./obj/${MRNET_PLATFORM}
+DEPENDDIR = ./depends
 SRCDIR  = @srcdir@
 PREFIX  = @prefix@
 
+prefix  = @prefix@
+exec_prefix=@exec_prefix@
+IBINDIR = @bindir@
+ILIBDIR = @libdir@
+IINCDIR = @includedir@
 
 ##########################
 ### AUXILIARY PROGRAMS ###
@@ -24,6 +30,7 @@ BISON   = @BISON@
 AR      = @AR@
 ARFLAGS = @ARFLAGS@
 RANLIB  = @RANLIB@
+INSTALL = @INSTALL@
 
 #####################
 # General Definitions
@@ -33,13 +40,12 @@ VPATH   = $(SRCDIR)/src:$(SRCDIR)/tests
 
 CXX = @CXX@
 CXXFLAGS = @CXXFLAGS@ $(INCDIR) $(WARNFLAGS)
-LDFLAGS = @LDFLAGS@
+LDFLAGS = @LDFLAGS@ -L./xplat
 SOFLAGS = @SOFLAGS@
 C_AS_CPLUSPLUS = @C_AS_CPLUSPLUS@
-LIBS = @LIBS@
+LIBS = -lxplat @LIBS@
 
 MAKEDEPENDS = $(SRCDIR)/conf/makedepends.sh
-DEPENDDIR = ./depends
 
 GCC_VER := $(shell $(CXX) --version 2> /dev/null )
 ifeq (GCC,$(findstring GCC,$(GCC_VER)))
@@ -54,7 +60,6 @@ WARNFLAGS = -Wall \
 	        -Wstrict-prototypes    \
 	        -Wmissing-prototypes   \
 	        -Woverloaded-virtual   \
-	        -Winline               \
 	        -Wno-deprecated        \
 	        -Wwrite-strings        \
 	        -Wconversion           \
@@ -81,28 +86,27 @@ endif  #GNU_COMPILER
 #############################
 # System Specific Definitions
 #############################
-TARGETS = $(LIBMRNET) $(COMMNODE)
-INCDIR = -I$(SRCDIR)/.. -I. -I$(OBJDIR)
-LIBMRNET    =$(LIBDIR)/libmrnet.a
-COMMNODE=$(BINDIR)/mrnet_commnode 
+LIBMRNET    = $(LIBDIR)/libmrnet.a
+COMMNODE    = $(BINDIR)/mrnet_commnode 
+TARGETS     = $(LIBMRNET) $(COMMNODE)
+INCDIR      = -I$(SRCDIR) -I$(SRCDIR)/.. -I$(SRCDIR)/xplat/include -I.
 
 TESTS   = $(BINDIR)/microbench_FE \
-          $(BINDIR)/microbench_BE \
-          $(BINDIR)/test_basic_FE \
-          $(BINDIR)/test_basic_BE \
-          $(BINDIR)/test_arrays_FE \
-          $(BINDIR)/test_arrays_BE \
-          $(BINDIR)/test_NativeFilters_FE \
-          $(BINDIR)/test_NativeFilters_BE \
-          $(BINDIR)/test_DynamicFilters_FE \
-          $(BINDIR)/test_DynamicFilters_BE
+	      $(BINDIR)/microbench_BE \
+	      $(BINDIR)/test_basic_FE \
+	      $(BINDIR)/test_basic_BE \
+	      $(BINDIR)/test_arrays_FE \
+	      $(BINDIR)/test_arrays_BE \
+	      $(BINDIR)/test_NativeFilters_FE \
+	      $(BINDIR)/test_NativeFilters_BE \
+	      $(BINDIR)/test_DynamicFilters_FE \
+	      $(BINDIR)/test_DynamicFilters_BE
 
 ###################################
 # Object and Executable Definitions
 ###################################
 LIBMRNET_SRCS = \
 	         $(SRCDIR)/src/utils.C \
-	         $(SRCDIR)/src/pthread_sync.C \
 	         $(SRCDIR)/src/EventImpl.C \
 	         $(SRCDIR)/src/Errors.C \
 	         $(SRCDIR)/src/pdr.c \
@@ -145,7 +149,38 @@ PDR_OBJS = $(addprefix $(OBJDIR)/, $(patsubst %.C,%.o,$(patsubst %.c,%.o,$(notdi
 ALL_SRCS = $(LIBMRNET_SRCS) $(COMMNODE_SRCS) $(TEST_SRCS)
 DEPS	= $(addprefix $(DEPENDDIR)/, $(patsubst %.C,%.d,$(patsubst %.c,%.d,$(notdir $(ALL_SRCS)))))
 
-all: DIRS $(TARGETS)
+
+all: xplat-all $(TARGETS)
+
+xplat-all:
+	cd ./xplat ; $(MAKE) all
+
+install: install-local xplat-install
+
+install-local: all
+	@echo Creating install directories
+	for dir in $(IBINDIR) $(ILIBDIR) $(IINCDIR) $(IINCDIR)/mrnet ; do \
+	    if [ ! -d $$dir ] ; then \
+	        mkdir -p $$dir ; \
+	        chmod 755 $$dir ; \
+	    fi \
+	done
+	if [ ! -x `echo $(INSTALL) | sed 's/ .*$$//'` ] ; then \
+	    chmod +x `echo $(INSTALL) | sed 's/ .*$$//'` ; \
+	fi
+	@echo Installing binaries
+	$(INSTALL) -m 555 $(COMMNODE) $(IBINDIR)/
+	@echo Installing libraries
+	$(INSTALL) -m 555 $(LIBMRNET) $(ILIBDIR)/
+	@echo Installing headers
+	for hdr in @srcdir@/h/*.h ; do \
+	    $(INSTALL) -m 444 $$hdr $(IINCDIR)/mrnet/ ; \
+	done
+
+
+xplat-install:
+	@echo Installing xplat library
+	cd ./xplat ; $(MAKE) install
 
 test: all $(TESTS) $(BINDIR)/mrnet_topgen
 
@@ -154,93 +189,109 @@ rebuild:
 
 force_rebuild:
 
-DIRS: $(OBJDIR) $(LIBDIR) $(BINDIR)
-
-$(OBJDIR) $(LIBDIR) $(BINDIR):
-	if [ ! -d $@ ] ; then \
-	    echo Making directory $@ ... ; \
-	    { mkdir -p $@ && [ -w $@ ]; } || \
-	    { echo "$@ not a writable directory" >&2; exit 1;} \
-	fi 
+#$(OBJDIR) $(LIBDIR) $(BINDIR):
+#	if [ ! -d $@ ] ; then \
+#	    echo Making directory $@ ... ; \
+#	    { mkdir -p $@ && [ -w $@ ]; } || \
+#	    { echo "$@ not a writable directory" >&2; exit 1;} \
+#	fi 
 
 $(OBJDIR)/scanner.C: $(SRCDIR)/src/scanner.l $(OBJDIR)/parser.tab.C $(FRC)
-	echo Building `basename $@` ...
+	@echo Building `basename $@` ...
 	$(RM)  $@; $(FLEX) -Pmrn -t $< > $@ 
 
 $(OBJDIR)/parser.tab.C $(OBJDIR)/parser.tab.h: $(SRCDIR)/src/parser.y $(FRC)
-	echo Building `basename $@` ...
+	@echo Building `basename $@` ...
 	$(BISON) -p mrn -d -y $<
 	mv y.tab.c $(OBJDIR)/parser.tab.C
 	mv y.tab.h $(OBJDIR)/parser.tab.h
 
+#$(LIBMRNET_OBJS): $(OBJDIR)
+
 $(LIBMRNET): $(LIBMRNET_OBJS)
-	echo Archiving `basename $@` ...
+	@echo Archiving `basename $@` ...
 	$(AR) $(ARFLAGS) $@ $?
 	$(RANLIB) $@
 
+#$(COMMNODE_OBJS): $(OBJDIR)
+
 $(BINDIR)/mrnet_commnode: $(COMMNODE_OBJS) $(LIBMRNET)
-	echo Linking `basename $@` ...
+	@echo Linking `basename $@` ...
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@  $(COMMNODE_OBJS) $(LIBMRNET) $(LIBS)
 
 $(BINDIR)/mrnet_topgen: $(SRCDIR)/tests/config_generator.C
-	echo "Linking `basename $@` ..."
+	@echo "Linking `basename $@` ..."
 	$(CXX) $(CXXFLAGS) -o $@ $(SRCDIR)/tests/config_generator.C
 
 $(TESTS): $(BINDIR)/%: $(LIBMRNET) $(OBJDIR)/test_common.o $(OBJDIR)/%.o $(OBJDIR)/test_DynamicFilters.so
-	echo "Linking `basename $*` ..."
+	@echo "Linking `basename $*` ..."
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $(OBJDIR)/$*.o $(OBJDIR)/test_common.o $(LIBMRNET) $(LIBS)
 
 $(OBJDIR)/test_DynamicFilters.so: $(SRCDIR)/tests/test_DynamicFilters.C
-	echo "Building `basename $@` ..."
+	@echo "Building `basename $@` ..."
 	$(CXX) $(CXXFLAGS) $(SOFLAGS) -o $@ $(SRCDIR)/tests/test_DynamicFilters.C
 
 $(BINDIR)/pdr_test: $(PDR_OBJS) tests/xdr_test.c
-	echo "Linking `basename $@` ..."
+	@echo "Linking `basename $@` ..."
 	$(CXX) $(CXXFLAGS) -Itests -o $@ $(PDR_OBJS) tests/pdr_test.c $(LIBS)
 
 $(BINDIR)/xdr_test: tests/xdr_test.c
-	echo "Linking `basename $@` ..."
+	@echo "Linking `basename $@` ..."
 	$(CXX) $(CXXFLAGS) -Itests -o $@ -DUSE_XDR tests/xdr_test.c $(LIBS)
 
 
 #################################
 # Defining Cleaning rules
 #################################
-clean:
-	echo Cleaning $(MRNET_PLATFORM) platform ...
-	$(RM) -r $(OBJDIR) $(BINDIR) $(LIBDIR)
+clean: local-clean xplat-clean
+
+local-clean:
+	@echo Cleaning $(MRNET_PLATFORM) platform ...
+	$(RM) $(BINDIR)/* $(LIBDIR)/* $(OBJDIR)/*
 	$(RM)  `find $(MRNET_ROOT)/.. -name "*~" -print`
 
-CLEAN:
-	echo Cleaning all platforms ...
-	$(RM) -r $(DEPENDDIR) bin lib obj
+xplat-clean:
+	@echo Cleaning xplat library
+	cd ./xplat ; $(MAKE) clean
+
+CLEAN: local-CLEAN xplat-clean
+
+local-CLEAN:
+	@echo Cleaning all platforms ...
+	$(RM) -r $(DEPENDDIR)/* bin/* lib/* obj/*
 	$(RM)  `find $(MRNET_ROOT)/.. -name "*~" -print`
 
-distclean: CLEAN
+distclean: local-distclean xplat-distclean
+
+local-distclean: local-CLEAN
 	$(RM)  config.* conf/Makefile*.inc src/config.h ; $(RM) Makefile
+
+xplat-distclean:
+	@echo "Cleaning xplat library (distclean)"
+	cd ./xplat ; $(MAKE) distclean
 
 #################################
 # Defining Default Build rules
 #################################
-.SILENT:
+@VERBOSEMAKE@
 .SUFFIXES:
 .SUFFIXES: .c .C .o .d
 
 $(OBJDIR)/%.o: %.c $(FRC)
-	echo Compiling `basename $@` ...
+	@echo Compiling `basename $@` ...
 	$(CXX) $(CXXFLAGS) $(C_AS_CPLUSPLUS) -o $@ -c $<
 
 $(OBJDIR)/%.o: %.C $(FRC)
-	echo Compiling `basename $@` ...
+	@echo Compiling `basename $@` ...
 	$(CXX) $(CXXFLAGS) -o $@ -c $<
 
 $(DEPENDDIR)/%.d: %.c $(FRC)
-	echo Building Depends File `basename $@` ...
+	@echo Building Depends File `basename $@` ...
 	$(MAKEDEPENDS)  $< $(OBJDIR)/$*.o $@ $(INCDIR) 
 
 
 $(DEPENDDIR)/%.d: %.C $(FRC)
-	echo Building Depends File `basename $@` ...
+	@echo Building Depends File `basename $@` ...
 	$(MAKEDEPENDS)  $< $(OBJDIR)/$*.o $@ $(INCDIR) 
 
 -include $(DEPS)

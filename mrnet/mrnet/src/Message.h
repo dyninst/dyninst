@@ -9,8 +9,6 @@
 #include <list>
 #include <vector>
 
-#include <sys/socket.h>
-
 #include "mrnet/src/Packet.h"
 #include "mrnet/src/Errors.h"
 
@@ -28,9 +26,10 @@ class Message: public Error{
     int size_Bytes(  );
 };
 
+#if READY
 int read( int fd, void *buf, int size );
-int readmsg( int fd, struct msghdr *msg );
 int write( int fd, const void *buf, int size );
+#endif // READY
 
 inline void Message::add_Packet( Packet& packet )
 {

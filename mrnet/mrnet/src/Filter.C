@@ -3,7 +3,6 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-#include <dlfcn.h>
 #include <vector>
 
 #include "mrnet/src/Filter.h"
@@ -11,6 +10,8 @@
 #include "mrnet/src/ParentNode.h"
 #include "mrnet/src/utils.h"
 #include "mrnet/h/MRNet.h"
+#include "xplat/SharedObject.h"
+
 
 namespace MRN
 {
@@ -37,49 +38,49 @@ int Filter::load_FilterFunc( const char *so_file, const char *func,
                              bool transformation_filter,
                              unsigned short in_fid )
 {
-    void *so_handle;
+    XPlat::SharedObject* so_handle = NULL;
     void *func_ptr;
     const char *fmt_str;
     std::string func_fmt_str = func;
     func_fmt_str += "_format_string";
 
-    so_handle = getSharedObjectHandle( so_file );
+    so_handle = XPlat::SharedObject::Load( so_file );
     if( so_handle == NULL ) {
-        mrn_printf( 1, MCFL, stderr, "getSharedObjectHandle() failed.\n" );
+        mrn_printf( 1, MCFL, stderr, "XPlat::SharedObject::Load() failed.\n" );
         char buf[1024];
-        sprintf( buf, "getSharedObjectHandle(\"%s\"): %s\n",
-                 so_file, dlerror() );
+        sprintf( buf, "XPlat::SharedObject::Load(\"%s\"): %s\n",
+                 so_file, XPlat::SharedObject::GetErrorString() );
         Event * event = Event::new_Event( ESYSTEM, buf );
         Event::add_Event( *event );
         delete event;
         return -1;
     }
 
-    func_ptr = getSymbolFromSharedObjectHandle( func, so_handle );
+    func_ptr = so_handle->GetSymbol( func );
     if( func_ptr == NULL ) {
         mrn_printf( 1, MCFL, stderr,
-                    "getSymbolFromSharedObjectHandle() failed.\n" );
+                    "XPlat::SharedObject::GetSymbol() failed.\n" );
         char buf[1024];
-        sprintf( buf, "getSharedObjectHandle(\"%s\"): %s\n",
-                 so_file, dlerror() );
+        sprintf( buf, "XPlat::SharedObject::GetSymbol(\"%s\"): %s\n",
+                 so_file, XPlat::SharedObject::GetErrorString() );
         Event *event = Event::new_Event( ESYSTEM, buf );
         Event::add_Event( *event );
         delete event;
+        delete so_handle;
         return -1;
     }
 
-    fmt_str = ( const char * )
-        getSymbolFromSharedObjectHandle( func_fmt_str.c_str(  ),
-                                             so_handle );
+    fmt_str = ( const char * )so_handle->GetSymbol( func_fmt_str.c_str() );
     if( fmt_str == NULL ) {
         mrn_printf( 1, MCFL, stderr,
-                    "getSymbolFromSharedObjectHandle() failed.\n" );
+                    "XPlat::SharedObject::GetSymbol() failed.\n" );
         char buf[1024];
-        sprintf( buf, "getSharedObjectHandle(\"%s\"): %s\n",
-                 so_file, dlerror() );
+        sprintf( buf, "XPlat::SharedObject::GetSymbol(\"%s\"): %s\n",
+                 so_file, XPlat::SharedObject::GetErrorString() );
         Event * event = Event::new_Event( ESYSTEM, buf );
         Event::add_Event( *event );
         delete event;
+        delete so_handle;
         return -1;
     }
 
@@ -160,10 +161,10 @@ int SyncFilter::push_packets( std::vector < Packet >&packets_in,
         return 0;
     }
 
-    fsync.lock(  );
+    fsync.Lock(  );
     //TODO: put exception block to catch user error
     sync_filter( packets_in, packets_out, downstream_nodes, &local_storage );
-    fsync.unlock(  );
+    fsync.Unlock(  );
     mrn_printf( 3, MCFL, stderr,
                     "Leaving sync.push_packets(). Returning %d packets\n",
                 packets_out.size(  ) );

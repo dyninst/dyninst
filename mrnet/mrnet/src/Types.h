@@ -20,6 +20,8 @@
 #include <stdint.h>
 #elif defined(solaris)
 #include <inttypes.h>
+#elif defined(WIN32)
+#include "xplat/Types.h"
 #endif
 
 #if !defined (bool_t)

@@ -9,7 +9,7 @@
 
 namespace MRN {
 
-std::list<EventImpl> EventImpl::events;
-std::list<EventImpl> EventImpl::remote_events;
+std::list<EventImpl *> EventImpl::events;
+std::list<EventImpl *> EventImpl::remote_events;
 
 }

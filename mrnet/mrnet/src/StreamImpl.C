@@ -79,6 +79,7 @@ int StreamImpl::send_aux(int tag, char const * fmt, va_list arg_list ) const
 }
 
 
+#if READY
 int StreamImpl::send(int tag, char const * fmt, ...) const
 {
     int status;
@@ -95,7 +96,7 @@ int StreamImpl::send(int tag, char const * fmt, ...) const
 
     return status;
 }
-
+#endif // READY
 int StreamImpl::recv(int *tag, void ** ptr, bool blocking)
 {
     Packet cur_packet;

@@ -4,45 +4,33 @@
  **********************************************************************/
 
 #include "mrnet/src/utils.h"
+#include "mrnet/src/Types.h"
 #include "src/config.h"
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <sys/utsname.h>
-#include <netdb.h>
 #include <stdio.h>
 #include <stdarg.h>
-#include <libgen.h>
 #include <assert.h>
 #include <errno.h>
 #include <string.h>
-#include <pthread.h>
-
-#include <netinet/in.h>
-#include <netinet/tcp.h>
 
 #include <string>
 #include <map>
-#include <dlfcn.h>
 
-#define SA struct sockaddr
-
-#if !defined(i386_unknown_nt4_0)
-#include <sys/ioctl.h>
+#if !defined(WIN32)
 #include <net/if.h>
-#else
-#include <Iphlpapi.h>
-#include <Iptypes.h>
-#endif // defined(i386_unknown_nt4_0)
+#include <netdb.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#endif // defined(WIN32)
 
-//LOOPBACK_IP used for hack to detect loopback interface
-//            must pay attention to endian-ness
 #if defined(solaris)
 #include <sys/sockio.h>         //only for solaris
-#define LOOPBACK_IP 2130706433
-#else
-#define LOOPBACK_IP 16777343
-#endif
+#endif // defined(solaris)
+
+#include "xplat/NetUtils.h"
+#include "xplat/PathUtils.h"
+#include "xplat/Error.h"
+
 
 namespace MRN
 {
@@ -50,154 +38,7 @@ namespace MRN
 std::string LocalHostName="";
 unsigned short LocalPort=0;
 
-static int get_local_ip_address( std::string & ip_address );
-
-pthread_key_t tsd_key;
-
-int createProcess( const std::string & remote_shell,
-                   const std::string & hostName,
-                   const std::string & userName,
-                   const std::string & command,
-                   const std::vector < std::string > &arg_list )
-{
-    std::string in_nname, local_nname, in_naddr, local_naddr;
-    getNetworkName( local_nname );
-    getNetworkName( in_nname, hostName );
-    getNetworkAddr( local_naddr );
-    getNetworkAddr( in_naddr, hostName );
-
-    if( ( hostName == "" ) ||
-        ( hostName == "localhost" ) ||
-        ( in_nname == local_nname ) || ( in_naddr == local_naddr ) ) {
-      return execCmd( command, arg_list );
-    }
-    else if( remote_shell.length(  ) > 0 ) {
-      return remoteCommand( remote_shell, hostName, userName,
-			    command, arg_list );
-    }
-    else {
-        return rshCommand( hostName, userName, command, arg_list );
-    }
-}
-
-// directly exec the command (local).
-int execCmd( const std::string command,
-             const std::vector < std::string > &args )
-{
-    int ret, i;
-    int arglist_len = args.size(  );
-    char **arglist = new char *[arglist_len + 2];
-    char *cmd = strdup( command.c_str(  ) );
-
-    mrn_printf( 3, MCFL, stderr, "In execCmd(%s) with %d args\n",
-                cmd, arglist_len );
-
-    arglist[0] = strdup( basename( cmd ) );
-    free( cmd );            //basename may modify!
-    arglist[arglist_len + 1] = NULL;
-    for( i = 0; i < arglist_len; ++i ) {
-        arglist[i + 1] = strdup( args[i].c_str(  ) );
-    }
-
-    ret = fork(  );
-    if( ret == 0 ) {
-        mrn_printf( 3, MCFL, stderr, "Forked child calling execvp:" );
-        for( i = 0; arglist[i] != NULL; i++ ) {
-            mrn_printf( 3, 0, 0, stderr, "%s ", arglist[i] );
-        }
-        mrn_printf( 3, 0, 0, stderr, "\n" );
-
-        execvp( command.c_str(  ), arglist );
-        perror( "exec()" );
-        delete [] arglist;
-        exit( -1 );
-    }
-
-    for( i = 0; i < arglist_len+1; ++i ) {
-        free(arglist[i]);
-    }
-    delete [] arglist;
-    return ( ret == -1 ? -1 : 0 );
-}
-
-// Execute 'command' on a remote machine using 'remote_shell' (which can 
-// include arguments) passing an argument list of 'arg_list'
-
-int remoteCommand( const std::string remoteExecCmd,
-                   const std::string hostName,
-                   const std::string userName,
-                   const std::string command,
-                   const std::vector < std::string > &arg_list )
-{
-    unsigned int i;
-    std::vector < std::string > remoteExecArgList;
-    std::vector < std::string > tmp;
-    std::string cmd;
-
-    mrn_printf( 3, MCFL, stderr, "In remoteCommand()\n" );
-
-    //might be necessary to call runauth to pass credentials
-    const char *runauth = getenv( RUNAUTH_COMMAND_ENV );
-    if( runauth == NULL ) {
-        cmd = remoteExecCmd;
-    }
-    else {
-        cmd = runauth;
-        remoteExecArgList.push_back( remoteExecCmd );
-    }
-
-    // add the hostname and username to arglist
-    remoteExecArgList.push_back( hostName );
-    if( userName.length(  ) > 0 ) {
-        remoteExecArgList.push_back( std::string( "-l" ) );
-        remoteExecArgList.push_back( userName );
-    }
-
-    // add remote command and its arguments
-    remoteExecArgList.push_back( command );
-    for( i = 0; i < arg_list.size(  ); i++ ) {
-        remoteExecArgList.push_back( arg_list[i] );
-    }
-    //remoteExecArgList.push_back("-l0");
-
-    // execute the command
-    mrn_printf( 3, MCFL, stderr, "Calling execCmd: %s ", cmd.c_str(  ) );
-    for( i = 0; i < remoteExecArgList.size(  ); i++ ) {
-        mrn_printf( 3, 0, 0, stderr, "%s ",
-                    remoteExecArgList[i].c_str(  ) );
-    }
-    mrn_printf( 3, 0, 0, stderr, "\n" );
-
-    if( execCmd( cmd, remoteExecArgList ) == -1 ) {
-        mrn_printf( 1, MCFL, stderr, "execCmd() failed\n" );
-        return -1;
-    }
-
-    mrn_printf( 3, MCFL, stderr, "Leaving remoteCommand()\n" );
-    return 0;
-}
-
-// use rsh to get a remote process started.
-int rshCommand( const std::string & hostName,
-                const std::string & userName,
-                const std::string & command,
-                const std::vector < std::string > &arg_list )
-{
-    // ensure we know the user's desired rsh command
-    std::string rshCmd;
-    const char *rsh = getenv( RSH_COMMAND_ENV );
-    if( rsh == NULL ) {
-        rshCmd = DEFAULT_RSH_COMMAND;
-    }
-    else {
-        rshCmd = rsh;
-    }
-
-    mrn_printf( 3, MCFL, stderr,
-                "In rshCmd(). Calling remoteCmd(%s, %s, %s)\n",
-                rshCmd.c_str(  ), hostName.c_str(  ), command.c_str(  ) );
-    return remoteCommand( rshCmd, hostName, userName, command, arg_list );
-}
+XPlat::TLSKey tsd_key;
 
 
 int connectHost( int *sock_in, const std::string & hostname,
@@ -237,10 +78,12 @@ int connectHost( int *sock_in, const std::string & hostname,
     int cret = -1;
     while( ( cret == -1 ) && ( nConnectTries < 5 ) ) {
         cret =
-            connect( sock, ( SA * ) & server_addr, sizeof( server_addr ) );
+            connect( sock, (sockaddr *) & server_addr, sizeof( server_addr ) );
         if( cret == -1 ) {
-            if( errno != ETIMEDOUT ) {
-                perror( "connect()" );
+            int err = XPlat::NetUtils::GetLastError();
+            if( !XPlat::Error::ETimedOut( err ) ) {
+                mrn_printf( 1, MCFL, stderr, "connect() failed: %s\n",
+                            XPlat::Error::GetErrorString( err ).c_str() );
                 return -1;
             }
             nConnectTries++;
@@ -255,7 +98,7 @@ int connectHost( int *sock_in, const std::string & hostname,
     int ssoret = setsockopt( sock,
                              IPPROTO_TCP,
                              TCP_NODELAY,
-                             &optVal,
+                             (const char*)&optVal,
                              sizeof( optVal ) );
     if( ssoret == -1 ) {
         mrn_printf( 1, MCFL, stderr, "failed to set TCP_NODELAY\n" );
@@ -289,7 +132,7 @@ int bindPort( int *sock_in, unsigned short *port_in )
 
     if( port != 0 ) {
         local_addr.sin_port = htons( port );
-        if( bind( sock, ( SA * ) & local_addr, sizeof( local_addr ) ) ==
+        if( bind( sock, (sockaddr*) & local_addr, sizeof( local_addr ) ) ==
             -1 ) {
             perror( "bind()" );
             return -1;
@@ -298,14 +141,17 @@ int bindPort( int *sock_in, unsigned short *port_in )
     else {
         port = 7000;
         local_addr.sin_port = htons( port );
-        while( bind( sock, ( SA * ) & local_addr, sizeof( local_addr ) ) ==
+        while( bind( sock, (sockaddr*) & local_addr, sizeof( local_addr ) ) ==
                -1 ) {
-            if( errno == EADDRINUSE ) {
+
+            int err = XPlat::NetUtils::GetLastError();
+            if( XPlat::Error::EAddrInUse( err ) ) {
                 local_addr.sin_port = htons( ++port );
                 continue;
             }
             else {
-                perror( "bind()" );
+                mrn_printf( 1, MCFL, stderr, "bind failed: %s\n",
+                    XPlat::Error::GetErrorString( err ).c_str() );
                 return -1;
             }
         }
@@ -323,7 +169,7 @@ int bindPort( int *sock_in, unsigned short *port_in )
     int ssoret = setsockopt( sock,
                              IPPROTO_TCP,
                              TCP_NODELAY,
-                             &optVal,
+                             (const char*)&optVal,
                              sizeof( optVal ) );
     if( ssoret == -1 ) {
         mrn_printf( 1, MCFL, stderr, "failed to set TCP_NODELAY\n" );
@@ -358,7 +204,7 @@ int getSocketConnection( int bound_socket )
     int ssoret = setsockopt( connected_socket,
                              IPPROTO_TCP,
                              TCP_NODELAY,
-                             &optVal,
+                             (const char*)&optVal,
                              sizeof( optVal ) );
     if( ssoret == -1 ) {
         mrn_printf( 1, MCFL, stderr, "failed to set TCP_NODELAY\n" );
@@ -371,36 +217,6 @@ int getSocketConnection( int bound_socket )
     return connected_socket;
 }
 
-int getSocketPeer( int connected_socket, std::string & hostname,
-                   unsigned short *port )
-{
-    struct sockaddr_in peer_addr;
-    socklen_t peer_addrlen = sizeof( peer_addr );
-    char buf[256];
-
-    mrn_printf( 3, MCFL, stderr, "In get_socket_peer()\n" );
-
-    if( getpeername( connected_socket, ( struct sockaddr * )( &peer_addr ),
-                     &peer_addrlen ) == -1 ) {
-        mrn_printf( 1, MCFL, stderr, "%s", "" );
-        perror( "getpeername()" );
-        return -1;
-    }
-
-    if( inet_ntop( AF_INET, &peer_addr.sin_addr, buf, sizeof( buf ) ) ==
-        NULL ) {
-        mrn_printf( 1, MCFL, stderr, "%s", "" );
-        perror( "inet_ntop()" );
-        return -1;
-    }
-
-    *port = ntohs( peer_addr.sin_port );
-    hostname = buf;
-    mrn_printf( 3, MCFL, stderr,
-                "Leaving get_socket_peer(). Returning %s:%d\n",
-                hostname.c_str(  ), *port );
-    return 0;
-}
 
 int getPortFromSocket( int sock, unsigned short *port )
 {
@@ -408,7 +224,7 @@ int getPortFromSocket( int sock, unsigned short *port )
     socklen_t sockaddr_len = sizeof( local_addr );
 
 
-    if( getsockname( sock, ( SA * ) & local_addr, &sockaddr_len ) == -1 ) {
+    if( getsockname( sock, (sockaddr*) & local_addr, &sockaddr_len ) == -1 ) {
         perror( "getsockname" );
         return -1;
     }
@@ -522,7 +338,7 @@ int getNetworkName( std::string & network_name, const std::string & in_hostname 
     memcpy( ( void * )( &in.s_addr ), ( void * )( hp->h_addr_list[0] ),
             hp->h_length );
 
-#if defined(solaris) || defined(i386_unknown_nt4_0)
+#if defined(solaris) || defined(WIN32)
     hp = gethostbyaddr( ( const char * )&in, sizeof( in ), AF_INET );
 #else
     hp = gethostbyaddr( ( void * )&in, sizeof( in ), AF_INET );
@@ -567,12 +383,13 @@ int getNetworkAddr( std::string & ipaddr, const std::string hostname )
     if( hostname == "" ) {
         // find this machine's hostname
         if( first_time ) {
-            if( get_local_ip_address( local_ipaddr ) == -1 ) {
+            local_ipaddr = XPlat::NetUtils::GetNetworkAddress();
+            if( local_ipaddr.length() == 0 ) {
                 mrn_printf( 1, MCFL, stderr, "get_local_ip_address() failed\n" );
                 return -1;
             }
         }
-	first_time = false;
+        first_time = false;
         ipaddr = local_ipaddr;
         return 0;
     }
@@ -591,281 +408,7 @@ int getNetworkAddr( std::string & ipaddr, const std::string hostname )
     return 0;
 }
 
-static int get_local_ip_address( std::string & ip_address )
-{
-    static std::string local_ip_address( "" );
-    static bool first_call = true;
-    char ip_address_buf[256];
 
-    if( !first_call ) {
-        ip_address = local_ip_address;
-        return 0;
-    }
-    first_call = false;
-
-#if !defined(i386_unknown_nt4_0)
-    int sockfd, lastlen, len, firsttime, flags;
-    char *buf, *cptr, *ptr, lastname[IFNAMSIZ];
-    struct ifreq *ifr, ifrcopy;
-    struct ifconf ifc;
-
-    sockfd = socket( AF_INET, SOCK_STREAM, 0 );
-    if( sockfd < 0 ) {
-        perror( "Failed socket()" );
-        return -1;
-    }
-
-    lastlen = 0;
-    firsttime = 1;
-    len = 3 * sizeof( struct ifreq );   // initial size guess
-    while( 1 ) {
-        buf = ( char * )malloc( len );
-        assert( buf );
-        ifc.ifc_len = len;
-        ifc.ifc_buf = buf;
-        //printf("\tCalling ioctl w/ len: %d ...\n", len);
-#if !defined(aix)
-        if( ioctl( sockfd, SIOCGIFCONF, &ifc ) < 0 )
-#else
-            if( ioctl( sockfd, CSIOCGIFCONF, &ifc ) < 0 )   //use on aix
-#endif /* aix */
-            {
-                perror( "Failed ioctl()" );
-                free( buf );
-                return -1;
-            }
-            else {
-                //printf("\tComparing %d and lastlen:%d ... \n", ifc.ifc_len, lastlen);
-                if( ifc.ifc_len == lastlen ) {
-                    //printf("ioctl success\n");
-                    break;      //success, len has not changed
-                }
-                lastlen = ifc.ifc_len;
-            }
-        if( !firsttime ) {
-            firsttime = 0;
-            len += 5 * sizeof( struct ifreq );  /* increment size guess */
-        }
-        free( buf );
-    }
-
-    lastname[0] = 0;
-    int i;
-    for( ptr = buf, i = 0; ptr < buf + ifc.ifc_len;
-         i++, ptr += sizeof( ifr->ifr_name ) + len ) {
-        //printf("Processing interface %d\n", i);
-        ifr = ( struct ifreq * )ptr;
-
-        len = sizeof( struct sockaddr );
-
-        if( ifr->ifr_addr.sa_family != AF_INET ) {
-            //printf("\tIgnoring %s (wrong family)!\n", ifr->ifr_name );
-            continue;       //ignore other address families
-        }
-
-        if( ( cptr = strchr( ifr->ifr_name, ':' ) ) != NULL ) {
-            *cptr = 0;      // replace colon with null 
-        }
-        if( strncmp( lastname, ifr->ifr_name, IFNAMSIZ ) == 0 ) {
-            //printf("\tIgnoring %s (alias)!\n", ifr->ifr_name );
-            continue;
-        }
-
-        ifrcopy = *ifr;
-        if( ioctl( sockfd, SIOCGIFFLAGS, &ifrcopy ) < 0 ) {
-            perror( "Failed ioctl()" );
-            free( buf );
-            return -1;
-        }
-        flags = ifrcopy.ifr_flags;
-        if( ( flags & IFF_UP ) == 0 ) {
-            //printf("\tIgnoring %s (Not Up!)\n", ifr->ifr_name);
-            continue;
-        }
-
-        struct in_addr in;
-        struct sockaddr_in *sinptr = ( struct sockaddr_in * )&ifr->ifr_addr;
-        memcpy( &in.s_addr, ( void * )&( sinptr->sin_addr ),
-                sizeof( in.s_addr ) );
-        if( in.s_addr == LOOPBACK_IP ) {
-            //printf("\tIgnoring %s (loopback!)\n", ifr->ifr_name);
-            continue;
-        }
-
-        if( inet_ntop( AF_INET, ( const void * )&in, ip_address_buf,
-                       sizeof( ip_address_buf ) ) == NULL ) {
-            perror( "Failed inet_ntop()" );
-            free( buf );
-            return -1;
-        }
-        ip_address = ip_address_buf;
-        free( buf );
-        return 0;
-    }
-#else /* i386_unknown_nt4_0 */
-    unsigned long num_adapters;
-
-    if( GetNumberOfInterfaces( &num_adapters ) != NO_ERROR ) {
-        cerr << "Failed GetNumberOfInterfaces()" << endl;
-    }
-    num_adapters--;         //exclude loopback interface
-
-    PIP_ADAPTER_INFO pAdapterInfo = new IP_ADAPTER_INFO[num_adapters];
-    unsigned long OutBufLen = sizeof( IP_ADAPTER_INFO ) * num_adapters;
-
-    if( GetAdaptersInfo( pAdapterInfo, &OutBufLen ) != ERROR_SUCCESS ) {
-        cerr << "Failed GetAdaptersInfo()" << endl;
-    }
-
-    PIP_ADAPTER_INFO tmp_adapter_info;
-    for( tmp_adapter_info = pAdapterInfo; tmp_adapter_info;
-         tmp_adapter_info = tmp_adapter_info->Next ) {
-        if( tmp_adapter_info->Type == MIB_IF_TYPE_ETHERNET ) {
-            ip_address = tmp_adapter_info->IpAddressList.IpAddress.String;
-            return 0;
-        }
-    }
-#endif
-
-    fprintf( stderr, "No network interface seems to be enabled. IP unknown!\n" );
-    free( buf );
-    return -1;
-}
-
-int get_IP_from_socket( int sock )
-{
-    struct sockaddr_in local_addr;
-    socklen_t sockaddr_len = sizeof( local_addr );
-
-
-    if( getsockname( sock, ( SA * ) & local_addr, &sockaddr_len ) == -1 ) {
-        perror( "getsockname" );
-        return -1;
-    }
-
-    return local_addr.sin_addr.s_addr;
-}
-
-int get_IP_from_name( char *name )
-{
-    struct hostent *_hostent;
-
-    _hostent = gethostbyname( name );
-
-    if( _hostent == NULL ) {
-        perror( "gethostbyname()" );
-        return -1;
-    }
-
-    return ( ( struct in_addr * )( _hostent->h_addr_list[0] ) )->s_addr;
-}
-
-int get_local_IP(  )
-{
-    struct hostent *hptr;
-    struct utsname myname;
-
-    if( uname( &myname ) < 0 ) {
-        perror( "uname()" );
-        return -1;
-    }
-
-    if( ( hptr = gethostbyname( myname.nodename ) ) == NULL ) {
-        perror( "gethostbyname()" );
-        return -1;
-    }
-
-    return ( ( struct in_addr * )( hptr->h_addr_list[0] ) )->s_addr;
-}
-
-int connect_socket_by_IP( int IP, short port )
-{
-    struct sockaddr_in server_addr;
-    int sock;
-
-    sock = socket( AF_INET, SOCK_STREAM, 0 );
-
-    if( sock == -1 ) {
-        perror( "socket()" );
-        return -1;
-    }
-
-    memset( &server_addr, 0, sizeof( server_addr ) );
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons( port );
-    server_addr.sin_addr.s_addr = IP;
-
-    unsigned int nConnectTries = 0;
-    int cret = -1;
-    while( ( cret == -1 ) && ( nConnectTries < 5 ) ) {
-        cret =
-            connect( sock, ( SA * ) & server_addr, sizeof( server_addr ) );
-        if( cret == -1 ) {
-            if( errno != ETIMEDOUT ) {
-                perror( "connect()" );
-                return -1;
-            }
-            nConnectTries++;
-            mrn_printf( 3, MCFL, stderr, "connection timed out %d times\n",
-                        nConnectTries );
-        }
-    }
-
-#if defined(TCP_NODELAY)
-    // turn off Nagle algorithm for coalescing packets
-    int optVal = 1;
-    int ssoret = setsockopt( sock,
-                             IPPROTO_TCP,
-                             TCP_NODELAY,
-                             &optVal,
-                             sizeof( optVal ) );
-    if( ssoret == -1 ) {
-        mrn_printf( 1, MCFL, stderr, "failed to set TCP_NODELAY\n" );
-    }
-#endif // defined(TCP_NODELAY)
-
-    return sock;
-}
-
-void *getSharedObjectHandle( const char *so_file )
-{
-    static std::map < std::string, void *>SoHandleByFileName;
-    void *so_handle;
-    std::string so_key = so_file;
-    std::map < std::string, void *>::iterator iter
-        = SoHandleByFileName.find( so_key );
-
-    if( iter == SoHandleByFileName.end(  ) ) {
-        //shared object not yet loaded ...
-        mrn_printf( 3, MCFL, stderr, "Loading so:%s\n", so_file );
-        so_handle = dlopen( so_file, RTLD_LAZY | RTLD_GLOBAL );
-        if( so_handle == NULL ) {
-            mrn_printf( 1, MCFL, stderr, "%s\n", dlerror( ) );
-            return NULL;
-        }
-        else {
-            SoHandleByFileName[so_key] = so_handle;
-        }
-    }
-    else {
-        //shared object previously loaded, get stored handle from map ...
-        so_handle = ( *iter ).second;
-    }
-
-    return so_handle;
-}
-
-void *getSymbolFromSharedObjectHandle( const char *sym, void *so_handle )
-{
-    char *error;
-    void *sym_ptr = dlsym( so_handle, sym );
-
-    if( ( error = dlerror(  ) ) != NULL ) {
-        mrn_printf( 1, MCFL, stderr, "%s\n", error );
-        return NULL;
-    }
-    return sym_ptr;
-}
 
 int mrn_printf( int level, const char *file, int line, FILE * fp,
                 const char *format, ... )
@@ -878,13 +421,9 @@ int mrn_printf( int level, const char *file, int line, FILE * fp,
     }
 
     if( file ) {
-        // basename modifies 1st arg, so copy
-        char tmp_filename[256];
-        strncpy( tmp_filename, file, sizeof( tmp_filename ) );
-
         // get thread name
         const char *thread_name = NULL;
-        tsd_t *tsd = ( tsd_t * ) pthread_getspecific( tsd_key );
+        tsd_t *tsd = ( tsd_t * )tsd_key.Get();
         if( tsd != NULL ) {
             thread_name = tsd->thread_name;
         }
@@ -892,7 +431,8 @@ int mrn_printf( int level, const char *file, int line, FILE * fp,
         fprintf( fp, "%s:%s:%d: ",
                  ( thread_name !=
                    NULL ) ? thread_name : "<noname (tsd NULL)>",
-                 basename( tmp_filename ), line );
+                 XPlat::PathUtils::GetFilename( file ).c_str(),
+                 line );
     }
 
     va_start( arglist, format );

@@ -10,6 +10,7 @@
 #include "mrnet/src/CommunicationNode.h"
 #include "mrnet/src/utils.h"
 #include "src/config.h"
+#include "xplat/Tokenizer.h"
 
 namespace MRN
 {
@@ -275,14 +276,27 @@ int SerialGraph::get_Id(){
 
 void SerialGraph::find_NumNodes()
 {
-    char *cur, *tmp_str, *array_str = strdup(byte_array.c_str());
-    num_nodes=0;
+    num_nodes = 0;
+    XPlat::Tokenizer tokenizer( byte_array );
 
-    for(cur = strtok_r(array_str, " \t\n%", &tmp_str);
-        cur; cur = strtok_r(NULL, " \t\n%", &tmp_str)){
-        if(cur[0] != '[' || cur[0] != ']'){
+    std::string::size_type pos;
+    std::string::size_type len;
+    const char* delim = " \t\n%";
+
+    pos = tokenizer.GetNextToken( len, delim );
+    while( pos != std::string::npos ) {
+
+        // check the first char of the token
+        char c = byte_array[pos];
+
+#if READY
+        // shouldn't this be testing if ((c != '[') && (c != ']'))?
+#endif // READY
+        if( (c != '[') || (c != ']') ){
             num_nodes++;
         }
+
+        pos = tokenizer.GetNextToken( len, delim );
     }
 }
 

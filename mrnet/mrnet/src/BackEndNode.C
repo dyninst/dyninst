@@ -4,7 +4,6 @@
  **********************************************************************/
 
 #include <stdio.h>
-#include <arpa/inet.h>
 
 #include "mrnet/src/BackEndNode.h"
 #include "mrnet/src/RemoteNode.h"
@@ -46,7 +45,7 @@ BackEndNode::BackEndNode(Network * _network, std::string _hostname,
   
     // do low-level handshake with our id in the backend id namespace
     uint32_t idBuf = htonl(id);
-    int sret = ::send( upstream_node->get_sockfd(), &idBuf, 4, 0 );
+    int sret = ::send( upstream_node->get_sockfd(), (const char*)&idBuf, 4, 0 );
     if( sret == -1 ) {
         mrn_printf(1, MCFL, stderr, "send of backend id failed\n");
     }

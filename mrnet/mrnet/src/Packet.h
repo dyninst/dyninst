@@ -9,7 +9,6 @@
 #include <stdarg.h>
 #include <vector>
 
-#include "mrnet/src/DataElement.h"
 #include "mrnet/src/Errors.h"
 #include "mrnet/src/pdr.h"
 #include "mrnet/src/refCounter.h"
@@ -17,6 +16,7 @@
 namespace MRN
 {
 class RemoteNode;
+class DataElement;
 
 /************************************************************************
   Packet Buffer Format:
@@ -27,8 +27,8 @@ class RemoteNode;
 class PacketData: public Error{
  private:
     std::vector < DataElement * >data_elements;
-    unsigned short stream_id;
-    int tag;                /* Application/Protocol Level ID */
+    uint16_t stream_id;
+    int32_t tag;            /* Application/Protocol Level ID */
     char *src;              /* Null Terminated String */
     char *fmt_str;          /* Null Terminated String */
     char *buf;              /* The entire packed buffer (header+payload)! */
@@ -207,7 +207,7 @@ class Packet:public Error
         return data.getData().get_InletNode();
     }
     void set_InletNode( RemoteNode *rn  ){
-        return data.getData().set_InletNode( rn );
+        data.getData().set_InletNode( rn );
     }
     unsigned int get_NumDataElements(  ) const {
         return data.getData().get_NumDataElements();

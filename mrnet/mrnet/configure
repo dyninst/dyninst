@@ -272,6 +272,7 @@ PACKAGE_BUGREPORT=
 
 ac_unique_file="src/Network.C"
 ac_unique_file="src/Network.C"
+ac_subdirs_all="$ac_subdirs_all xplat"
 # Factoring default headers for most tests.
 ac_includes_default="\
 #include <stdio.h>
@@ -309,7 +310,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CXX CXXFLAGS ac_ct_CXX build build_cpu build_vendor build_os host host_cpu host_vendor host_os MRNET_ARCH MRNET_OS MRNET_ROOT MRNET_VERSION SOFLAGS C_AS_CPLUSPLUS ARFLAGS SET_MAKE RANLIB ac_ct_RANLIB AR FLEX BISON CXXCPP EGREP LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS subdirs CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CXX CXXFLAGS ac_ct_CXX VERBOSEMAKE build build_cpu build_vendor build_os host host_cpu host_vendor host_os MRNET_ARCH MRNET_OS MRNET_ROOT MRNET_VERSION SOFLAGS C_AS_CPLUSPLUS ARFLAGS SET_MAKE RANLIB ac_ct_RANLIB AR FLEX BISON INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CXXCPP EGREP LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -849,6 +850,11 @@ if test -n "$ac_init_help"; then
 
   cat <<\_ACEOF
 
+Optional Features:
+  --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
+  --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
+  --enable-verbosebuild                Display commands during build
+
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
@@ -1300,6 +1306,10 @@ fi
 ac_config_guess="$SHELL $ac_aux_dir/config.guess"
 ac_config_sub="$SHELL $ac_aux_dir/config.sub"
 ac_configure="$SHELL $ac_aux_dir/configure" # This should be Cygnus configure.
+
+
+
+subdirs="$subdirs xplat"
 
 
 
@@ -2791,6 +2801,20 @@ presetting ac_cv_c_bigendian=no (or yes) will help" >&2;}
 esac
 
 
+# Check whether --enable-verbosebuild or --disable-verbosebuild was given.
+if test "${enable_verbosebuild+set}" = set; then
+  enableval="$enable_verbosebuild"
+  if test x"$enableval" = x"no"
+     then VERBOSEMAKE=".SILENT:"
+     else VERBOSEMAKE=""
+     fi
+else
+  VERBOSEMAKE=".SILENT:"
+fi;
+
+
+
+
 
 # Make sure we can run config.sub.
 $ac_config_sub sun4 >/dev/null 2>&1 ||
@@ -2853,7 +2877,7 @@ MRNET_ROOT=`pwd`
 MRNET_VERSION='`cat "$(srcdir)"/VERSION`'
 
 cat >>confdefs.h <<_ACEOF
-#define COMMNODE_EXE "$MRNET_ROOT/bin/$host/mrnet_commnode"
+#define COMMNODE_EXE "$MRNET_ROOT/$host/bin/mrnet_commnode"
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
@@ -2906,7 +2930,6 @@ case "$host_os" in
     ;;
 esac
 LIBS="$LIBS $FLEX_LIB"
-
 
 
 if test "$CXX" = "g++" ; then
@@ -3244,6 +3267,83 @@ else
 echo "${ECHO_T}no" >&6
 fi
 
+
+# Find a good install program.  We prefer a C program (faster),
+# so one script is as good as another.  But avoid the broken or
+# incompatible versions:
+# SysV /etc/install, /usr/sbin/install
+# SunOS /usr/etc/install
+# IRIX /sbin/install
+# AIX /bin/install
+# AmigaOS /C/install, which installs bootblocks on floppy discs
+# AIX 4 /usr/bin/installbsd, which doesn't work without a -g flag
+# AFS /usr/afsws/bin/install, which mishandles nonexistent args
+# SVR4 /usr/ucb/install, which tries to use the nonexistent group "staff"
+# ./install, which can be erroneously created by make from ./install.sh.
+echo "$as_me:$LINENO: checking for a BSD-compatible install" >&5
+echo $ECHO_N "checking for a BSD-compatible install... $ECHO_C" >&6
+if test -z "$INSTALL"; then
+if test "${ac_cv_path_install+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  # Account for people who put trailing slashes in PATH elements.
+case $as_dir/ in
+  ./ | .// | /cC/* | \
+  /etc/* | /usr/sbin/* | /usr/etc/* | /sbin/* | /usr/afsws/bin/* | \
+  /usr/ucb/* ) ;;
+  *)
+    # OSF1 and SCO ODT 3.0 have their own names for install.
+    # Don't use installbsd from OSF since it installs stuff as root
+    # by default.
+    for ac_prog in ginstall scoinst install; do
+      for ac_exec_ext in '' $ac_executable_extensions; do
+        if $as_executable_p "$as_dir/$ac_prog$ac_exec_ext"; then
+          if test $ac_prog = install &&
+            grep dspmsg "$as_dir/$ac_prog$ac_exec_ext" >/dev/null 2>&1; then
+            # AIX install.  It has an incompatible calling convention.
+            :
+          elif test $ac_prog = install &&
+            grep pwplus "$as_dir/$ac_prog$ac_exec_ext" >/dev/null 2>&1; then
+            # program-specific install script used by HP pwplus--don't use.
+            :
+          else
+            ac_cv_path_install="$as_dir/$ac_prog$ac_exec_ext -c"
+            break 3
+          fi
+        fi
+      done
+    done
+    ;;
+esac
+done
+
+
+fi
+  if test "${ac_cv_path_install+set}" = set; then
+    INSTALL=$ac_cv_path_install
+  else
+    # As a last resort, use the slow shell script.  We don't cache a
+    # path for INSTALL within a source directory, because that will
+    # break other packages using the cache if that directory is
+    # removed, or if the path is relative.
+    INSTALL=$ac_install_sh
+  fi
+fi
+echo "$as_me:$LINENO: result: $INSTALL" >&5
+echo "${ECHO_T}$INSTALL" >&6
+
+# Use test -z because SunOS4 sh mishandles braces in ${var-val}.
+# It thinks the first close brace ends the variable substitution.
+test -z "$INSTALL_PROGRAM" && INSTALL_PROGRAM='${INSTALL}'
+
+test -z "$INSTALL_SCRIPT" && INSTALL_SCRIPT='${INSTALL}'
+
+test -z "$INSTALL_DATA" && INSTALL_DATA='${INSTALL} -m 644'
 
 
 ac_ext=cc
@@ -5883,9 +5983,9 @@ _ACEOF
 
 
 { if $as_mkdir_p; then
-    mkdir -p obj
+    mkdir -p obj/${host}
   else
-    as_dir=obj
+    as_dir=obj/${host}
     as_dirs=
     while test ! -d "$as_dir"; do
       as_dirs="$as_dir $as_dirs"
@@ -5903,14 +6003,14 @@ echo X"$as_dir" |
   	  s/.*/./; q'`
     done
     test ! -n "$as_dirs" || mkdir $as_dirs
-  fi || { { echo "$as_me:$LINENO: error: cannot create directory obj" >&5
-echo "$as_me: error: cannot create directory obj" >&2;}
+  fi || { { echo "$as_me:$LINENO: error: cannot create directory obj/${host}" >&5
+echo "$as_me: error: cannot create directory obj/${host}" >&2;}
    { (exit 1); exit 1; }; }; }
 
 { if $as_mkdir_p; then
-    mkdir -p lib
+    mkdir -p lib/${host}
   else
-    as_dir=lib
+    as_dir=lib/${host}
     as_dirs=
     while test ! -d "$as_dir"; do
       as_dirs="$as_dir $as_dirs"
@@ -5928,14 +6028,14 @@ echo X"$as_dir" |
   	  s/.*/./; q'`
     done
     test ! -n "$as_dirs" || mkdir $as_dirs
-  fi || { { echo "$as_me:$LINENO: error: cannot create directory lib" >&5
-echo "$as_me: error: cannot create directory lib" >&2;}
+  fi || { { echo "$as_me:$LINENO: error: cannot create directory lib/${host}" >&5
+echo "$as_me: error: cannot create directory lib/${host}" >&2;}
    { (exit 1); exit 1; }; }; }
 
 { if $as_mkdir_p; then
-    mkdir -p bin
+    mkdir -p bin/${host}
   else
-    as_dir=bin
+    as_dir=bin/${host}
     as_dirs=
     while test ! -d "$as_dir"; do
       as_dirs="$as_dir $as_dirs"
@@ -5953,8 +6053,8 @@ echo X"$as_dir" |
   	  s/.*/./; q'`
     done
     test ! -n "$as_dirs" || mkdir $as_dirs
-  fi || { { echo "$as_me:$LINENO: error: cannot create directory bin" >&5
-echo "$as_me: error: cannot create directory bin" >&2;}
+  fi || { { echo "$as_me:$LINENO: error: cannot create directory bin/${host}" >&5
+echo "$as_me: error: cannot create directory bin/${host}" >&2;}
    { (exit 1); exit 1; }; }; }
 
 { if $as_mkdir_p; then
@@ -6413,6 +6513,7 @@ Free Software Foundation, Inc.
 This config.status script is free software; the Free Software Foundation
 gives unlimited permission to copy, distribute and modify it."
 srcdir=$srcdir
+INSTALL="$INSTALL"
 _ACEOF
 
 cat >>$CONFIG_STATUS <<\_ACEOF
@@ -6593,6 +6694,7 @@ s,@ECHO_C@,$ECHO_C,;t t
 s,@ECHO_N@,$ECHO_N,;t t
 s,@ECHO_T@,$ECHO_T,;t t
 s,@LIBS@,$LIBS,;t t
+s,@subdirs@,$subdirs,;t t
 s,@CC@,$CC,;t t
 s,@CFLAGS@,$CFLAGS,;t t
 s,@LDFLAGS@,$LDFLAGS,;t t
@@ -6603,6 +6705,7 @@ s,@OBJEXT@,$OBJEXT,;t t
 s,@CXX@,$CXX,;t t
 s,@CXXFLAGS@,$CXXFLAGS,;t t
 s,@ac_ct_CXX@,$ac_ct_CXX,;t t
+s,@VERBOSEMAKE@,$VERBOSEMAKE,;t t
 s,@build@,$build,;t t
 s,@build_cpu@,$build_cpu,;t t
 s,@build_vendor@,$build_vendor,;t t
@@ -6624,6 +6727,9 @@ s,@ac_ct_RANLIB@,$ac_ct_RANLIB,;t t
 s,@AR@,$AR,;t t
 s,@FLEX@,$FLEX,;t t
 s,@BISON@,$BISON,;t t
+s,@INSTALL_PROGRAM@,$INSTALL_PROGRAM,;t t
+s,@INSTALL_SCRIPT@,$INSTALL_SCRIPT,;t t
+s,@INSTALL_DATA@,$INSTALL_DATA,;t t
 s,@CXXCPP@,$CXXCPP,;t t
 s,@EGREP@,$EGREP,;t t
 s,@LIBOBJS@,$LIBOBJS,;t t
@@ -6756,6 +6862,10 @@ ac_abs_srcdir=`cd "$ac_dir" && cd $ac_srcdir && pwd`
 ac_abs_top_srcdir=`cd "$ac_dir" && cd $ac_top_srcdir && pwd`
 
 
+  case $INSTALL in
+  [\\/$]* | ?:[\\/]* ) ac_INSTALL=$INSTALL ;;
+  *) ac_INSTALL=$ac_top_builddir$INSTALL ;;
+  esac
 
   if test x"$ac_file" != x-; then
     { echo "$as_me:$LINENO: creating $ac_file" >&5
@@ -6817,6 +6927,7 @@ s,@builddir@,$ac_builddir,;t t
 s,@abs_builddir@,$ac_abs_builddir,;t t
 s,@top_builddir@,$ac_top_builddir,;t t
 s,@abs_top_builddir@,$ac_abs_top_builddir,;t t
+s,@INSTALL@,$ac_INSTALL,;t t
 " $ac_file_inputs | (eval "$ac_sed_cmds") >$tmp/out
   rm -f $tmp/stdin
   if test x"$ac_file" != x-; then
@@ -7078,5 +7189,149 @@ if test "$no_create" != yes; then
   # Use ||, not &&, to avoid exiting from the if with $? = 1, which
   # would make configure fail if this is the last instruction.
   $ac_cs_success || { (exit 1); exit 1; }
+fi
+
+#
+# CONFIG_SUBDIRS section.
+#
+if test "$no_recursion" != yes; then
+
+  # Remove --cache-file and --srcdir arguments so they do not pile up.
+  ac_sub_configure_args=
+  ac_prev=
+  for ac_arg in $ac_configure_args; do
+    if test -n "$ac_prev"; then
+      ac_prev=
+      continue
+    fi
+    case $ac_arg in
+    -cache-file | --cache-file | --cache-fil | --cache-fi \
+    | --cache-f | --cache- | --cache | --cach | --cac | --ca | --c)
+      ac_prev=cache_file ;;
+    -cache-file=* | --cache-file=* | --cache-fil=* | --cache-fi=* \
+    | --cache-f=* | --cache-=* | --cache=* | --cach=* | --cac=* | --ca=* \
+    | --c=*)
+      ;;
+    --config-cache | -C)
+      ;;
+    -srcdir | --srcdir | --srcdi | --srcd | --src | --sr)
+      ac_prev=srcdir ;;
+    -srcdir=* | --srcdir=* | --srcdi=* | --srcd=* | --src=* | --sr=*)
+      ;;
+    -prefix | --prefix | --prefi | --pref | --pre | --pr | --p)
+      ac_prev=prefix ;;
+    -prefix=* | --prefix=* | --prefi=* | --pref=* | --pre=* | --pr=* | --p=*)
+      ;;
+    *) ac_sub_configure_args="$ac_sub_configure_args $ac_arg" ;;
+    esac
+  done
+
+  # Always prepend --prefix to ensure using the same prefix
+  # in subdir configurations.
+  ac_sub_configure_args="--prefix=$prefix $ac_sub_configure_args"
+
+  ac_popdir=`pwd`
+  for ac_dir in : $subdirs; do test "x$ac_dir" = x: && continue
+
+    # Do not complain, so a configure script can configure whichever
+    # parts of a large source tree are present.
+    test -d $srcdir/$ac_dir || continue
+
+    { echo "$as_me:$LINENO: configuring in $ac_dir" >&5
+echo "$as_me: configuring in $ac_dir" >&6;}
+    { if $as_mkdir_p; then
+    mkdir -p "$ac_dir"
+  else
+    as_dir="$ac_dir"
+    as_dirs=
+    while test ! -d "$as_dir"; do
+      as_dirs="$as_dir $as_dirs"
+      as_dir=`(dirname "$as_dir") 2>/dev/null ||
+$as_expr X"$as_dir" : 'X\(.*[^/]\)//*[^/][^/]*/*$' \| \
+         X"$as_dir" : 'X\(//\)[^/]' \| \
+         X"$as_dir" : 'X\(//\)$' \| \
+         X"$as_dir" : 'X\(/\)' \| \
+         .     : '\(.\)' 2>/dev/null ||
+echo X"$as_dir" |
+    sed '/^X\(.*[^/]\)\/\/*[^/][^/]*\/*$/{ s//\1/; q; }
+  	  /^X\(\/\/\)[^/].*/{ s//\1/; q; }
+  	  /^X\(\/\/\)$/{ s//\1/; q; }
+  	  /^X\(\/\).*/{ s//\1/; q; }
+  	  s/.*/./; q'`
+    done
+    test ! -n "$as_dirs" || mkdir $as_dirs
+  fi || { { echo "$as_me:$LINENO: error: cannot create directory \"$ac_dir\"" >&5
+echo "$as_me: error: cannot create directory \"$ac_dir\"" >&2;}
+   { (exit 1); exit 1; }; }; }
+
+    ac_builddir=.
+
+if test "$ac_dir" != .; then
+  ac_dir_suffix=/`echo "$ac_dir" | sed 's,^\.[\\/],,'`
+  # A "../" for each directory in $ac_dir_suffix.
+  ac_top_builddir=`echo "$ac_dir_suffix" | sed 's,/[^\\/]*,../,g'`
+else
+  ac_dir_suffix= ac_top_builddir=
+fi
+
+case $srcdir in
+  .)  # No --srcdir option.  We are building in place.
+    ac_srcdir=.
+    if test -z "$ac_top_builddir"; then
+       ac_top_srcdir=.
+    else
+       ac_top_srcdir=`echo $ac_top_builddir | sed 's,/$,,'`
+    fi ;;
+  [\\/]* | ?:[\\/]* )  # Absolute path.
+    ac_srcdir=$srcdir$ac_dir_suffix;
+    ac_top_srcdir=$srcdir ;;
+  *) # Relative path.
+    ac_srcdir=$ac_top_builddir$srcdir$ac_dir_suffix
+    ac_top_srcdir=$ac_top_builddir$srcdir ;;
+esac
+# Don't blindly perform a `cd "$ac_dir"/$ac_foo && pwd` since $ac_foo can be
+# absolute.
+ac_abs_builddir=`cd "$ac_dir" && cd $ac_builddir && pwd`
+ac_abs_top_builddir=`cd "$ac_dir" && cd ${ac_top_builddir}. && pwd`
+ac_abs_srcdir=`cd "$ac_dir" && cd $ac_srcdir && pwd`
+ac_abs_top_srcdir=`cd "$ac_dir" && cd $ac_top_srcdir && pwd`
+
+
+    cd $ac_dir
+
+    # Check for guested configure; otherwise get Cygnus style configure.
+    if test -f $ac_srcdir/configure.gnu; then
+      ac_sub_configure="$SHELL '$ac_srcdir/configure.gnu'"
+    elif test -f $ac_srcdir/configure; then
+      ac_sub_configure="$SHELL '$ac_srcdir/configure'"
+    elif test -f $ac_srcdir/configure.in; then
+      ac_sub_configure=$ac_configure
+    else
+      { echo "$as_me:$LINENO: WARNING: no configuration information is in $ac_dir" >&5
+echo "$as_me: WARNING: no configuration information is in $ac_dir" >&2;}
+      ac_sub_configure=
+    fi
+
+    # The recursion is here.
+    if test -n "$ac_sub_configure"; then
+      # Make the cache file name correct relative to the subdirectory.
+      case $cache_file in
+      [\\/]* | ?:[\\/]* ) ac_sub_cache_file=$cache_file ;;
+      *) # Relative path.
+        ac_sub_cache_file=$ac_top_builddir$cache_file ;;
+      esac
+
+      { echo "$as_me:$LINENO: running $ac_sub_configure $ac_sub_configure_args --cache-file=$ac_sub_cache_file --srcdir=$ac_srcdir" >&5
+echo "$as_me: running $ac_sub_configure $ac_sub_configure_args --cache-file=$ac_sub_cache_file --srcdir=$ac_srcdir" >&6;}
+      # The eval makes quoting arguments work.
+      eval $ac_sub_configure $ac_sub_configure_args \
+           --cache-file=$ac_sub_cache_file --srcdir=$ac_srcdir ||
+        { { echo "$as_me:$LINENO: error: $ac_sub_configure failed for $ac_dir" >&5
+echo "$as_me: error: $ac_sub_configure failed for $ac_dir" >&2;}
+   { (exit 1); exit 1; }; }
+    fi
+
+    cd $ac_popdir
+  done
 fi
 

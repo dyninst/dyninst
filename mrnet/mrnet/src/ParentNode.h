@@ -14,7 +14,8 @@
 #include "mrnet/src/StreamManager.h"
 #include "mrnet/src/Filter.h"
 #include "mrnet/src/RemoteNode.h"
-#include "mrnet/src/pthread_sync.h"
+#include "xplat/Monitor.h"
+#include "xplat/Mutex.h"
 
 namespace MRN
 {
@@ -34,9 +35,9 @@ class ParentNode: public Error {
 
     bool isLeaf_;           // am I a leaf in the MRNet tree?
     std::vector < Packet >childLeafInfoResponses;
-    pthread_sync childLeafInfoResponsesLock;
+    XPlat::Mutex childLeafInfoResponsesLock;
     std::vector < Packet >childConnectedLeafResponses;
-    pthread_sync childConnectedLeafResponsesLock;
+    XPlat::Mutex childConnectedLeafResponsesLock;
 
     int wait_for_SubTreeReports(  );
 
@@ -45,14 +46,14 @@ class ParentNode: public Error {
         { ALLNODESREPORTED };
     std::list < RemoteNode * >children_nodes;
     std::list < int >backend_descendant_nodes;
-    pthread_sync subtreereport_sync;
+    XPlat::Monitor subtreereport_sync;
     unsigned int num_descendants, num_descendants_reported;
 
     std::map < unsigned int, RemoteNode * >ChildNodeByBackendId;
-    pthread_sync childnodebybackendid_sync;
+    XPlat::Mutex childnodebybackendid_sync;
 
     std::map < unsigned int, StreamManager * >StreamManagerById;
-    pthread_sync streammanagerbyid_sync;
+    XPlat::Mutex streammanagerbyid_sync;
 
 
     virtual int deliverLeafInfoResponse( Packet& pkt ) = NULL;

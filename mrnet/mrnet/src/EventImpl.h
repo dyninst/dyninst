@@ -19,8 +19,8 @@ class EventImpl: public Event{
     std::string hostname;
     unsigned short port;
     std::string description;
-    static std::list<EventImpl> events;
-    static std::list<EventImpl> remote_events;
+    static std::list<EventImpl *> events;
+    static std::list<EventImpl *> remote_events;
 
  public:
     static bool have_Event(){
@@ -31,18 +31,18 @@ class EventImpl: public Event{
     }
 
     static void add_Event(EventImpl &event){
-        events.push_back( event );
-        remote_events.push_back( event );
+        events.push_back( new EventImpl( event ) );
+        remote_events.push_back( new EventImpl( event ) );
     }
 
-    static EventImpl get_NextEvent() {
-        EventImpl ret = *( events.begin() );
+    static EventImpl * get_NextEvent() {
+        EventImpl * ret = *( events.begin() );
         events.pop_front();
         return ret;
     }
 
-    static EventImpl get_NextRemoteEvent() {
-        EventImpl ret = *( remote_events.begin() );
+    static EventImpl * get_NextRemoteEvent() {
+        EventImpl * ret = *( remote_events.begin() );
         remote_events.pop_front();
         return ret;
     }

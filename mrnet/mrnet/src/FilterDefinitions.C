@@ -376,8 +376,9 @@ void tfilter_ArrayConcat( const std::vector < Packet >&packets_in,
     char * result_array=NULL;
     int data_size=0;
     std::string format_string;
+    unsigned int i;
  
-    for( unsigned int i = 0; i < packets_in.size( ); i++ ) {
+    for( i = 0; i < packets_in.size( ); i++ ) {
         Packet cur_packet = packets_in[i];
         assert( strcmp(cur_packet.get_FormatString(),
                        packets_in[0].get_FormatString()) == 0 );
@@ -446,7 +447,7 @@ void tfilter_ArrayConcat( const std::vector < Packet >&packets_in,
     result_array = (char *) malloc( result_array_size * data_size );
 
     int pos = 0;
-    for( unsigned int i = 0; i < packets_in.size(); i++ ) {
+    for( i = 0; i < packets_in.size(); i++ ) {
         Packet cur_packet = packets_in[i];
         memcpy( result_array + pos,
 		cur_packet[0]->val.p,
@@ -465,11 +466,12 @@ void tfilter_IntEqClass( const std::vector < Packet >&packets_in,
 		      void ** /* client data */ )
 {
     DataType type;
-    unsigned int array_len0, array_len1, array_len2;
+    uint32_t array_len0, array_len1, array_len2;
     std::map < unsigned int, std::vector < unsigned int > >classes;
+	unsigned int i;
 
     // find equivalence classes across our input 
-    for( unsigned int i = 0; i < packets_in.size(); i++ ) {
+    for( i = 0; i < packets_in.size(); i++ ) {
         Packet cur_packet = packets_in[i];
         unsigned int *vals = ( unsigned int * )
 	  ( cur_packet[0]->get_array(&type, &array_len0) );
@@ -513,10 +515,10 @@ void tfilter_IntEqClass( const std::vector < Packet >&packets_in,
     unsigned int curMemIdx = 0;
     unsigned int curClassIdx = 0;
     for( std::map < unsigned int,
-	   std::vector < unsigned int > >::iterator iter = classes.begin(  );
-	 iter != classes.end(  ); iter++ ) {
+	   std::vector < unsigned int > >::iterator citer = classes.begin(  );
+            citer != classes.end(  ); citer++ ) {
         for( unsigned int j = 0; j < memcnts[curClassIdx]; j++ ) {
-	  mems[curMemIdx] = ( iter->second )[j];
+	  mems[curMemIdx] = ( citer->second )[j];
 	  curMemIdx++;
 	}
 	curClassIdx++;
@@ -532,7 +534,7 @@ void tfilter_IntEqClass( const std::vector < Packet >&packets_in,
 
     mrn_printf( 3, MCFL, stderr, "tfilter_IntEqClass: returning\n" );
     unsigned int curMem = 0;
-    for( unsigned int i = 0; i < classes.size(  ); i++ ) {
+    for( i = 0; i < classes.size(  ); i++ ) {
         mrn_printf( 3, MCFL, stderr,
 		    "\tclass %d: val = %u, nMems = %u, mems = ", i,
 		    ( ( unsigned int * )( packets_out[0][0]->val.p) )[i],

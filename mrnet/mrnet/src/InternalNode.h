@@ -13,7 +13,6 @@
 #include "mrnet/src/ParentNode.h"
 #include "mrnet/src/ChildNode.h"
 #include "mrnet/src/Message.h"
-#include "mrnet/src/pthread_sync.h"
 
 namespace MRN
 {

@@ -8,21 +8,23 @@
 #include <errno.h>
 #include <limits.h>
 #include <fcntl.h>
-#include <poll.h>
 
-#include "mrnet/src/Message.h"
 #include "mrnet/src/utils.h"
+#include "mrnet/src/Message.h"
+#include "xplat/NCIO.h"
 
 namespace MRN
 {
 
+int read( int fd, void *buf, int size );
+int write( int fd, const void *buf, int size );
+
 int Message::recv( int sock_fd, std::list < Packet >&packets_in,
                    RemoteNode * remote_node )
 {
-    int i;
+    unsigned int i;
     int32_t buf_len;
     uint32_t no_packets = 0, *packet_sizes;
-    struct msghdr msg;
     char *buf = NULL;
     PDR pdrs;
     enum pdr_op op = PDR_DECODE;
@@ -44,10 +46,10 @@ int Message::recv( int sock_fd, std::list < Packet >&packets_in,
     mrn_printf( 3, MCFL, stderr, "Calling read(%d, %p, %d)\n", sock_fd, buf,
                 buf_len );
     int retval;
-    if( ( retval = read( sock_fd, buf, buf_len ) ) != buf_len ) {
+    if( ( retval = MRN::read( sock_fd, buf, buf_len ) ) != buf_len ) {
         mrn_printf( 3, MCFL, stderr, "read returned %d\n", retval );
-        _perror( "read()" );
-        error( ESYSTEM, "read() %d of %d bytes received: %s",
+        _perror( "MRN::read()" );
+        error( ESYSTEM, "MRN::read() %d of %d bytes received: %s",
                retval, buf_len, strerror(errno) );
         free( buf );
         return -1;
@@ -97,10 +99,10 @@ int Message::recv( int sock_fd, std::list < Packet >&packets_in,
     mrn_printf( 3, MCFL, stderr,
                 "Calling read(%d, %p, %d) for %d buffer lengths.\n",
                 sock_fd, buf, buf_len, no_packets );
-    int readRet = read( sock_fd, buf, buf_len );
+    int readRet = MRN::read( sock_fd, buf, buf_len );
     if( readRet != buf_len ) {
-        mrn_printf( 1, MCFL, stderr, "read() failed\n" );
-        error( ESYSTEM, "read() %d of %d bytes received: %s",
+        mrn_printf( 1, MCFL, stderr, "MRN::read() failed\n" );
+        error( ESYSTEM, "MRN::read() %d of %d bytes received: %s",
                readRet, buf_len, strerror(errno) );
         free( buf );
         free( packet_sizes );
@@ -123,33 +125,33 @@ int Message::recv( int sock_fd, std::list < Packet >&packets_in,
     free( buf );
 
     /* recv packet buffers */
-    msg.msg_name = NULL;
-    msg.msg_iov =
-        ( struct iovec * )malloc( sizeof( struct iovec ) * no_packets );
-    assert( msg.msg_iov );
-    msg.msg_iovlen = no_packets;
-    msg.msg_control = NULL; /* ancillary data, see below */
-    msg.msg_controllen = 0;
+    XPlat::NCBuf* ncbufs = new XPlat::NCBuf[no_packets];
 
     mrn_printf( 3, MCFL, stderr, "Reading %d packets of size: [",
                 no_packets );
+
     int total_bytes = 0;
-    for( i = 0; i < msg.msg_iovlen; i++ ) {
-        msg.msg_iov[i].iov_base = malloc( packet_sizes[i] );
-        assert( msg.msg_iov[i].iov_base );
-        msg.msg_iov[i].iov_len = packet_sizes[i];
+    for( i = 0; i < no_packets; i++ ) {
+        ncbufs[i].buf = (char*)malloc( packet_sizes[i] );
+        ncbufs[i].len = packet_sizes[i];
         total_bytes += packet_sizes[i];
         mrn_printf( 3, 0, 0, stderr, "%d, ", packet_sizes[i] );
     }
     mrn_printf( 3, 0, 0, stderr, "]\n" );
 
-    retval = readmsg( sock_fd, &msg );
+    retval = XPlat::NCRecv( sock_fd, ncbufs, no_packets );
     if( retval != total_bytes ) {
         mrn_printf( 1, MCFL, stderr, "%s", "" );
-        _perror( "readmsg()" );
-        error( ESYSTEM, "readmsg() %d of %d bytes received: %s",
+        _perror( "XPlat::NCRecv()" );
+        error( ESYSTEM, "XPlat::NCRecv() %d of %d bytes received: %s",
                retval, buf_len, strerror(errno) );
-        free(msg.msg_iov);
+
+        for( i = 0; i < no_packets; i++ )
+        {
+            free( (void*)(ncbufs[i].buf) );
+        }
+        delete[] ncbufs;
+
         free( packet_sizes );
         return -1;
     }
@@ -158,13 +160,15 @@ int Message::recv( int sock_fd, std::list < Packet >&packets_in,
     // post-processing
     //
 
-    for( i = 0; i < msg.msg_iovlen; i++ ) {
-        Packet new_packet ( msg.msg_iov[i].iov_len,
-                            ( char * )msg.msg_iov[i].
-                            iov_base );
+    for( i = 0; i < no_packets; i++ ) {
+        Packet new_packet ( ncbufs[i].len, ncbufs[i].buf );
         if( new_packet.fail(  ) ) {
             mrn_printf( 1, MCFL, stderr, "packet creation failed\n" );
-            free(msg.msg_iov);
+            for( i = 0; i < no_packets; i++ )
+            {
+                free( (void*)(ncbufs[i].buf) );
+            }
+            delete[] ncbufs;
             free( packet_sizes );
             return -1;
         }
@@ -172,7 +176,10 @@ int Message::recv( int sock_fd, std::list < Packet >&packets_in,
         packets_in.push_back( new_packet );
     }
 
-    free(msg.msg_iov);
+    // release dynamically allocated memory
+    // Note: don't release the NC buffers; that memory was passed
+    // off to the Packet object(s).
+    delete[] ncbufs;
     free( packet_sizes );
     mrn_printf( 3, MCFL, stderr, "Msg(%p)::recv() succeeded\n", this );
     return 0;
@@ -183,7 +190,6 @@ int Message::send( int sock_fd )
     /* send an array of packet_sizes */
     unsigned int i;
     uint32_t *packet_sizes=NULL, no_packets;
-    struct iovec *iov;
     char *buf=NULL;
     int buf_len;
     PDR pdrs;
@@ -199,8 +205,7 @@ int Message::send( int sock_fd )
     no_packets = packets.size( );
 
     /* send packet buffers */
-    iov = ( struct iovec * )malloc( sizeof( struct iovec ) * no_packets );
-    assert( iov );
+    XPlat::NCBuf* ncbufs = new XPlat::NCBuf[no_packets];
 
     //Process packets in list to prepare for send()
     packet_sizes = ( uint32_t * ) malloc( sizeof( uint32_t ) * no_packets );
@@ -213,12 +218,12 @@ int Message::send( int sock_fd )
 
         Packet curPacket = *iter;
 
-        iov[i].iov_base = curPacket.get_Buffer( );
-        iov[i].iov_len = curPacket.get_BufferLen( );
+        ncbufs[i].buf = curPacket.get_Buffer( );
+        ncbufs[i].len = curPacket.get_BufferLen( );
         packet_sizes[i] = curPacket.get_BufferLen( );
 
-        total_bytes += iov[i].iov_len;
-        mrn_printf( 3, 0, 0, stderr, "%d, ", ( int )iov[i].iov_len );
+        total_bytes += ncbufs[i].len;
+        mrn_printf( 3, 0, 0, stderr, "%d, ", ( int )ncbufs[i].len );
     }
     mrn_printf( 3, 0, 0, stderr, "]\n" );
 
@@ -234,7 +239,7 @@ int Message::send( int sock_fd )
     if( !pdr_uint32( &pdrs, &no_packets ) ) {
         error( EPACKING, "pdr_uint32() failed\n" );
         free( buf );
-        free( iov );
+        delete[] ncbufs;
         free( packet_sizes );
         return -1;
     }
@@ -245,7 +250,7 @@ int Message::send( int sock_fd )
         mrn_printf( 1, MCFL, stderr, "write() failed" );
         _perror( "write()" );
         free( buf );
-        free( iov );
+        delete[] ncbufs;
         free( packet_sizes );
         return -1;
     }
@@ -264,7 +269,7 @@ int Message::send( int sock_fd )
         mrn_printf( 1, MCFL, stderr, "pdr_vector() failed\n" );
         error( EPACKING, "pdr_vector() failed\n" );
         free( buf );
-        free( iov );
+        delete[] ncbufs;
         free( packet_sizes );
         return -1;
     }
@@ -276,7 +281,7 @@ int Message::send( int sock_fd )
         mrn_printf( 1, MCFL, stderr, "write failed" );
         _perror( "write()" );
         free( buf );
-        free( iov );
+        delete[] ncbufs;
         free( packet_sizes );
         return -1;
     }
@@ -284,51 +289,30 @@ int Message::send( int sock_fd )
     free( buf );
 
 
-    if( no_packets > IOV_MAX ) {
-        mrn_printf( 3, MCFL, stderr, "splitting writev\n" );
-    }
+    // send the packets
+    mrn_printf( 3, MCFL, stderr,
+                "Calling XPlat::NCSend(%d buffers, %d total bytes)\n",
+                no_packets, total_bytes );
 
-    uint32_t nPacketsLeftToSend = no_packets;
-    struct iovec *currIov = iov;
-    while( nPacketsLeftToSend > 0 ) {
-        uint32_t iovlen =
-            ( nPacketsLeftToSend > IOV_MAX ) ? IOV_MAX : nPacketsLeftToSend;
-
-        // count the bytes in the packets to be sent
-        int nBytesToSend = 0;
-        for( i = 0; i < iovlen; i++ ) {
-            nBytesToSend += currIov[i].iov_len;
-        }
-
+    int sret = XPlat::NCSend( sock_fd, ncbufs, no_packets );
+    if( sret != total_bytes ) {
         mrn_printf( 3, MCFL, stderr,
-                    "Calling writev(%d vectors, %d total bytes)\n", iovlen,
-                    nBytesToSend );
-
-        int ret = writev( sock_fd, currIov, iovlen );
-        if( ret != nBytesToSend ) {
-            mrn_printf( 3, MCFL, stderr,
-                        "writev() returned %d of %d bytes, errno = %d, iovlen = %d\n",
-                        ret, nBytesToSend, errno, iovlen );
-            for( i = 0; i < iovlen; i++ ) {
-                mrn_printf( 3, MCFL, stderr, "vector[%d].size = %d\n",
-                            i, currIov[i].iov_len );
-            }
-            _perror( "writev()" );
-            error( ESYSTEM, "writev() returned %d of %d bytes: %s\n",
-                        ret, nBytesToSend, strerror(errno) );
-            free(iov);
-            return -1;
+                    "XPlat::NCSend() returned %d of %d bytes, errno = %d, nbuffers = %d\n",
+                    sret, total_bytes, errno, no_packets );
+        for( i = 0; i < no_packets; i++ ) {
+            mrn_printf( 3, MCFL, stderr, "buffer[%d].size = %d\n",
+                        i, ncbufs[i].len );
         }
-
-        // advance
-        nPacketsLeftToSend -= iovlen;
-        currIov += iovlen;
+        _perror( "XPlat::NCSend()" );
+        error( ESYSTEM, "XPlat::NCSend() returned %d of %d bytes: %s\n",
+                    sret, total_bytes, strerror(errno) );
+        delete[] ncbufs;
+        return -1;
     }
 
     packets.clear(  );
 
-
-    free(iov);
+    delete[] ncbufs;
     mrn_printf( 3, MCFL, stderr, "msg(%p)::send() succeeded\n", this );
     return 0;
 }
@@ -341,7 +325,7 @@ int Message::send( int sock_fd )
 
 int write( int fd, const void *buf, int count )
 {
-    int ret = send( fd, buf, count, 0 );
+    int ret = ::send( fd, (const char*)buf, count, 0 );
 
     //TODO: recursive call checking for syscall interuption
     return ret;
@@ -351,8 +335,9 @@ int read( int fd, void *buf, int count )
 {
     int bytes_recvd = 0, retval;
     while( bytes_recvd != count ) {
-        retval = recv( fd, ( ( char * )buf ) + bytes_recvd,
-                       count - bytes_recvd, MSG_WAITALL );
+        retval = ::recv( fd, ( ( char * )buf ) + bytes_recvd,
+                       count - bytes_recvd,
+                       XPlat::NCBlockingRecvFlag );
 
         if( retval == -1 ) {
             if( errno == EINTR ) {
@@ -390,12 +375,6 @@ int read( int fd, void *buf, int count )
     }
     assert( 0 );
     return -1;
-}
-
-int readmsg( int fd, struct msghdr *msg )
-{
-    //TODO: recursive call checking for syscall interuption
-    return recvmsg( fd, msg, MSG_WAITALL );
 }
 
 }                               // namespace MRN

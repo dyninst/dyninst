@@ -1,10 +1,12 @@
 dnl Process this file with autoconf to produce a configure script.
 
+AC_PREREQ(2.57)
 AC_INIT(src/Network.C)
 AC_CONFIG_SRCDIR(src/Network.C)
 AC_CONFIG_HEADER([src/config.h])
 
 AC_CONFIG_AUX_DIR(conf)
+AC_CONFIG_SUBDIRS(xplat)
 
 dnl === COMPILERS AND FLAGS ===
 dnl hacks to allow user to define CXX, CXXFLAGS, etc without using env vars
@@ -40,6 +42,17 @@ dnl non-GNU compilers
 AC_PROG_CXX(xlC CC g++)
 
 AC_C_BIGENDIAN
+
+AC_ARG_ENABLE(verbosebuild,
+    [  --enable-verbosebuild                Display commands during build],
+    [if test x"$enableval" = x"no"
+     then VERBOSEMAKE=".SILENT:"
+     else VERBOSEMAKE=""
+     fi],
+    [VERBOSEMAKE=".SILENT:"])
+AC_SUBST(VERBOSEMAKE)
+
+
 dnl === SETTING MRNET CONFIGURATION DEFAULTS ===
 
 dnl MRNET_ARCH is host returned by config.guess with
@@ -56,7 +69,7 @@ MRNET_ROOT=`pwd`
 MRNET_VERSION='`cat "$(srcdir)"/VERSION`'
 changequote([, ])dnl
 
-AC_DEFINE_UNQUOTED(COMMNODE_EXE, "$MRNET_ROOT/bin/$host/mrnet_commnode")
+AC_DEFINE_UNQUOTED(COMMNODE_EXE, "$MRNET_ROOT/$host/bin/mrnet_commnode")
 AC_DEFINE_UNQUOTED(OUTPUT_LEVEL, $OUTPUT_LEVEL)
 AC_SUBST(MRNET_ARCH)
 AC_SUBST(MRNET_OS)
@@ -106,7 +119,6 @@ esac
 LIBS="$LIBS $FLEX_LIB"
 AC_SUBST(LIBS)
 
-
 if test "$CXX" = "g++" ; then
     GXX=yes
     C_AS_CPLUSPLUS="-x c++"
@@ -144,6 +156,7 @@ AC_PATH_PROG(BISON, bison)
 AC_SUBST(BISON)
 AC_PATH_PROG(SHELL, sh)
 AC_SUBST(SHELL)
+AC_PROG_INSTALL
 
 AC_CHECK_SIZEOF(char)
 AC_CHECK_SIZEOF(short)
@@ -152,9 +165,9 @@ AC_CHECK_SIZEOF(long)
 AC_CHECK_SIZEOF(float)
 AC_CHECK_SIZEOF(double)
 
-AS_MKDIR_P([obj])
-AS_MKDIR_P([lib])
-AS_MKDIR_P([bin])
+AS_MKDIR_P([obj/${host}])
+AS_MKDIR_P([lib/${host}])
+AS_MKDIR_P([bin/${host}])
 AS_MKDIR_P([depends])
 
 AC_OUTPUT( Makefile:conf/Makefile.in )

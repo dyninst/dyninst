@@ -11,8 +11,8 @@
 #include <map>
 #include <vector>
 #include "mrnet/src/Message.h"
-#include "mrnet/src/pthread_sync.h"
 #include "mrnet/src/FilterDefinitions.h"
+#include "xplat/Mutex.h"
 
 namespace MRN
 {
@@ -60,7 +60,7 @@ class SyncFilter:public Filter {
                             std::vector < Packet >&,
                             const std::list < RemoteNode * >&, void ** );
     const std::list < RemoteNode * >downstream_nodes;
-    pthread_sync fsync;
+    XPlat::Mutex fsync;
     
  public:
     SyncFilter( unsigned short _filter_id,

@@ -4,7 +4,9 @@
  **********************************************************************/
 
 #include "mrnet/src/Packet.h"
+#include "mrnet/src/DataElement.h"
 #include "mrnet/src/utils.h"
+#include "xplat/Tokenizer.h"
 
 namespace MRN
 {
@@ -185,7 +187,6 @@ int PacketData::ExtractVaList( const char *fmt, va_list arg_list )
 
 bool_t PacketData::pdr_packet( PDR * pdrs, PacketData * pkt )
 {
-    char *cur_fmt, *fmt, *buf_ptr;
     unsigned int i;
     bool_t retval = 0;
     DataElement * cur_elem=NULL;
@@ -222,25 +223,29 @@ bool_t PacketData::pdr_packet( PDR * pdrs, PacketData * pkt )
         return TRUE;
     }
 
-    fmt = strdup( pkt->get_FormatString(  ) );
-    cur_fmt = strtok_r( fmt, " \t\n%", &buf_ptr );
+    std::string fmt = pkt->get_FormatString();
+    XPlat::Tokenizer tok( fmt );
+    std::string::size_type curLen;
+    const char* delim = " \t\n%";
+
+    std::string::size_type curPos = tok.GetNextToken( curLen, delim );
     i = 0;
 
-    do {
-        if( cur_fmt == NULL ) {
-            break;
-        }
+    while( curPos != std::string::npos ) {
+
+        assert( curLen != 0 );
+        std::string cur_fmt = fmt.substr( curPos, curLen );
 
         if( pdrs->p_op == PDR_ENCODE ) {
             cur_elem = pkt->data_elements[i];
         }
         else if( pdrs->p_op == PDR_DECODE ) {
             cur_elem = new DataElement;
-            cur_elem->type = Fmt2Type( cur_fmt );
+            cur_elem->type = Fmt2Type( cur_fmt.c_str() );
         }
         mrn_printf( 3, MCFL, stderr,
                     "Handling packet[%d], cur_fmt: \"%s\", type: %d\n", i,
-                    cur_fmt, cur_elem->type );
+                    cur_fmt.c_str(), cur_elem->type );
 
         switch ( cur_elem->type ) {
         case UNKNOWN_T:
@@ -357,40 +362,44 @@ bool_t PacketData::pdr_packet( PDR * pdrs, PacketData * pkt )
             mrn_printf( 1, MCFL, stderr,
                         "pdr_xxx() failed for elem[%d] of type %d\n", i,
                         cur_elem->type );
-            free(fmt);
             return retval;
         }
         if( pdrs->p_op == PDR_DECODE ) {
             pkt->data_elements.push_back( cur_elem );
         }
-        cur_fmt = strtok_r( NULL, " \t\n%", &buf_ptr );
+
+        curPos = tok.GetNextToken( curLen, delim );
         i++;
-    } while( cur_fmt != NULL );
+    }
 
     mrn_printf( 3, MCFL, stderr, "pdr_packet() succeeded\n" );
-    free(fmt);
     return TRUE;
 }
 
 void PacketData::ArgList2DataElementArray( va_list arg_list )
 {
-    char *cur_fmt, *fmt = strdup( fmt_str ), *buf_ptr;
     DataElement * cur_elem=NULL;
 
     mrn_printf( 3, MCFL, stderr,
                 "In ArgList2DataElementArray, packet(%p)\n", this );
 
-    cur_fmt = strtok_r( fmt, " \t\n%", &buf_ptr );
-    do {
-        if( cur_fmt == NULL ) {
-            break;
-        }
+
+    std::string fmt = fmt_str;
+    XPlat::Tokenizer tok( fmt );
+    std::string::size_type curLen;
+    const char* delim = " \t\n%";
+
+    std::string::size_type curPos = tok.GetNextToken( curLen, delim );
+    while( curPos != std::string::npos ) {
+
+        assert( curLen != 0 );
+        std::string cur_fmt = fmt.substr( curPos, curLen );
 
         cur_elem = new DataElement;
-        cur_elem->type = Fmt2Type( cur_fmt );
+        cur_elem->type = Fmt2Type( cur_fmt.c_str() );
         mrn_printf( 3, MCFL, stderr,
                     "Handling new packet, cur_fmt: \"%s\", type: %d\n",
-                    cur_fmt, cur_elem->type );
+                    cur_fmt.c_str(), cur_elem->type );
         switch ( cur_elem->type ) {
         case UNKNOWN_T:
             assert( 0 );
@@ -455,31 +464,36 @@ void PacketData::ArgList2DataElementArray( va_list arg_list )
             break;
         }
         data_elements.push_back( cur_elem );
-        cur_fmt = strtok_r( NULL, " \t\n%", &buf_ptr );
-    } while( cur_fmt != NULL );
+
+        curPos = tok.GetNextToken( curLen, delim );
+    }
 
     mrn_printf( 3, MCFL, stderr,
                 "ArgList2DataElementArray succeeded, packet(%p)\n", this );
-    free(fmt);
 }
 
 void PacketData::DataElementArray2ArgList( va_list arg_list )
 {
-    char *cur_fmt, *fmt = strdup( fmt_str ), *buf_ptr;
     int i = 0;
     DataElement * cur_elem=NULL;
     void *tmp_ptr;
 
     mrn_printf( 3, MCFL, stderr,
                 "In DataElementArray2ArgList, packet(%p)\n", this );
-    cur_fmt = strtok_r( fmt, " \t\n%", &buf_ptr );
-    do {
-        if( cur_fmt == NULL ) {
-            break;
-        }
+
+    std::string fmt = fmt_str;
+    XPlat::Tokenizer tok( fmt );
+    std::string::size_type curLen;
+    const char* delim = " \t\n%";
+
+    std::string::size_type curPos = tok.GetNextToken( curLen, delim );
+    while( curPos != std::string::npos ) {
+
+        assert( curLen != 0 );
+        std::string cur_fmt = fmt.substr( curPos, curLen );
 
         cur_elem = data_elements[i];
-        assert( cur_elem->type == Fmt2Type( cur_fmt ) );
+        assert( cur_elem->type == Fmt2Type( cur_fmt.c_str() ) );
         switch ( cur_elem->type ) {
         case UNKNOWN_T:
             assert( 0 );
@@ -554,12 +568,12 @@ void PacketData::DataElementArray2ArgList( va_list arg_list )
             assert( 0 );
         }
         i++;
-        cur_fmt = strtok_r( NULL, " \t\n%", &buf_ptr );
-    } while( cur_fmt != NULL );
+
+        curPos = tok.GetNextToken( curLen, delim );
+    }
 
     mrn_printf( 3, MCFL, stderr,
                 "DataElementArray2ArgList succeeded, packet(%p)\n", this );
-    free(fmt);
     return;
 }
 

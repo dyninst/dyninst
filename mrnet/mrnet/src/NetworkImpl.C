@@ -58,19 +58,13 @@ NetworkImpl::NetworkImpl( Network * _network, const char *_filename,
     name += ")";
 
     int status;
-    if( ( status = pthread_key_create( &tsd_key, NULL ) ) != 0 ) {
-        mrn_printf( 1, MCFL, stderr, "pthread_key_create(): %s\n",
-                    strerror( status ) );
-        error( ESYSTEM, "pthread_setspecific(): %s\n", strerror( status ) );
-        return;
-    }
     tsd_t *local_data = new tsd_t;
-    local_data->thread_id = pthread_self( );
+    local_data->thread_id = XPlat::Thread::GetId( );
     local_data->thread_name = strdup( name.c_str( ) );
-    status = pthread_setspecific( tsd_key, ( const void * )local_data );
+    status = tsd_key.Set( local_data );
 
     if( status != 0 ) {
-        error( ESYSTEM, "pthread_setspecific(): %s\n", strerror( status ) );
+        error( ESYSTEM, "XPlat::TLSKey::Set(): %s\n", strerror( status ) );
         return;
     }
 
@@ -122,19 +116,13 @@ NetworkImpl::NetworkImpl( Network *_network,
     name += ")";
     int status;
 
-    if( ( status = pthread_key_create( &tsd_key, NULL ) ) != 0 ) {
-        //TODO: add event to notify upstream
-        error(ESYSTEM, "pthread_key_create(): %s\n", strerror( status ) );
-        mrn_printf( 1, MCFL, stderr, "pthread_key_create(): %s\n",
-                    strerror( status ) );
-    }
     tsd_t *local_data = new tsd_t;
-    local_data->thread_id = pthread_self(  );
+    local_data->thread_id = XPlat::Thread::GetId(  );
     local_data->thread_name = strdup( name.c_str(  ) );
-    if( ( status = pthread_setspecific( tsd_key, local_data ) ) != 0 ) {
+    if( ( status = tsd_key.Set( local_data ) ) != 0 ) {
         //TODO: add event to notify upstream
-        error(ESYSTEM, "pthread_setspecific(): %s\n", strerror( status ) );
-        mrn_printf( 1, MCFL, stderr, "pthread_setspecific(): %s\n",
+        error(ESYSTEM, "XPlat::TLSKey::Set(): %s\n", strerror( status ) );
+        mrn_printf( 1, MCFL, stderr, "XPlat::TLSKey::Set(): %s\n",
                     strerror( status ) );
     }
 
@@ -207,9 +195,8 @@ int NetworkImpl::recv( bool blocking )
                     "Calling BackEnd::recv()\n" );
         return back_end->recv( blocking );
     }
-    else{
-        assert(0); // shouldn't call recv when backend/front not init'd
-    }
+    assert(0); // shouldn't call recv when backend/front not init'd
+    return 0;
 }
 
 
@@ -221,9 +208,8 @@ int NetworkImpl::send( Packet& packet )
     else if ( is_BackEnd() ) {
         return back_end->send( packet );
     }
-    else{
-        assert(0); // shouldn't call send when backend/front not init'd
-    }
+    assert(0); // shouldn't call send when backend/front not init'd
+    return 0;
 }
 
 bool NetworkImpl::is_FrontEnd( )
@@ -328,8 +314,8 @@ int NetworkImpl::get_LeafInfo( Network::LeafInfo *** linfo,
 
                     // copy sorted vector to output array
                     *linfo = new Network::LeafInfo *[nHosts];
-                    for( unsigned int i = 0; i < nHosts; i++ ) {
-                        ( *linfo )[i] = linfov[i];
+                    for( unsigned int h = 0; h < nHosts; h++ ) {
+                        ( *linfo )[h] = linfov[h];
                     }
                     *nLeaves = linfov.size(  );
 

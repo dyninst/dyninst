@@ -8,7 +8,9 @@
 
 #include "mrnet/src/CommunicationNode.h"
 #include "mrnet/src/Message.h"
-#include "mrnet/src/pthread_sync.h"
+#include "xplat/Thread.h"
+#include "xplat/Monitor.h"
+
 
 namespace MRN
 {
@@ -31,9 +33,9 @@ class RemoteNode:public CommunicationNode, public Error {
     static ChildNode * local_child_node;
     static void * recv_thread_main(void * arg);
     static void * send_thread_main(void * arg);
-    pthread_t recv_thread_id, send_thread_id;
+    XPlat::Thread::Id recv_thread_id, send_thread_id;
     bool _is_upstream;
-    pthread_sync msg_out_sync;
+    XPlat::Monitor msg_out_sync;
 
     RemoteNode(bool threaded, std::string &_hostname, unsigned short _port);
     RemoteNode(bool threaded, std::string &_hostname, unsigned short _port,

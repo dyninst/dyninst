@@ -103,7 +103,7 @@ static void _destroy(PDR *pdrs)
 }
 
 
-static int32_t * _inline (PDR *pdrs, int len)
+static int32_t * _makeinline (PDR *pdrs, int32_t len)
 {
     if (len == 0 || pdrs->p_op != XDR_ENCODE){
         return NULL;
@@ -145,7 +145,7 @@ static struct pdr_ops _ops = {
     _getbytes,
     _setpos,
     _getpos,
-    _inline,
+    _makeinline,
     _destroy
 };
 

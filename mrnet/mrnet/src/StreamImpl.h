@@ -59,7 +59,7 @@ class StreamImpl{
     int send_aux( int tag, const char *format_str, va_list arg_list ) const;
     static int unpack( void *buf, const char *fmt, va_list arg_list );
 
-    int send( int tag, const char *format_str, ... ) const;
+//    int send( int tag, const char *format_str, ... ) const;
     int flush(  ) const;
     int recv( int *tag, void **buf, bool blocking = true );
     unsigned int get_NumEndPoints(  ) const;
@@ -80,6 +80,7 @@ inline int StreamImpl::flush() const
     else{
         assert( 0 && "Cannot call flush without front/backend init'd");
     }
+    return 0;
 }
 
 

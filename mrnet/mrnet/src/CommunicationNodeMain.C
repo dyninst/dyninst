@@ -3,11 +3,13 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
+#include <unistd.h>
 #include <stdio.h>
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/time.h>
 
+#if !defined(WIN32)
+#include <sys/time.h>
+#endif // !defined(WIN32)
 
 #include <list>
 
@@ -57,15 +59,12 @@ int main(int argc, char **argv)
     name += argv[2];
     name += ")";
 
-    if( (status = pthread_key_create(&tsd_key, NULL)) != 0){
-        fprintf(stderr, "pthread_key_create(): %s\n", strerror(status)); 
-        exit(-1);
-    }
     tsd_t * local_data = new tsd_t;
-    local_data->thread_id = pthread_self();
+    local_data->thread_id = XPlat::Thread::GetId();
     local_data->thread_name = strdup(name.c_str());
-    if( (status = pthread_setspecific(tsd_key, local_data)) != 0){
-        fprintf(stderr, "pthread_key_create(): %s\n", strerror(status)); 
+
+    if( (status = tsd_key.Set( local_data )) != 0){
+        fprintf(stderr, "XPlat::TLSKey::Set(): %s\n", strerror(status)); 
         exit(-1);
     }
 
