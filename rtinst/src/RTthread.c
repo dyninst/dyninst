@@ -210,6 +210,7 @@ void DYNINSTreportNewMutex(dyninst_mutex_t* m){
  *-----------------*/
 
 #define MAX_RWLOCK_RES 20
+#if !defined(i386_unknown_linux2_0)
 SyncObj*    DYNINSTrwlockRes[MAX_RWLOCK_RES] ;
 tc_lock_t DYNINSTrwlockResLock[MAX_RWLOCK_RES] ;
 
@@ -226,6 +227,7 @@ void DYNINSTreportNewRwLock(dyninst_rwlock_t* p){
                         0,0);
   }
 }
+#endif
 
 /*-----------------*
  *  Semaphore      *
@@ -234,7 +236,7 @@ void DYNINSTreportNewRwLock(dyninst_rwlock_t* p){
 SyncObj*    DYNINSTsemaRes[MAX_SEMA_RES] ;
 tc_lock_t DYNINSTsemaResLock[MAX_SEMA_RES] ;
 
-#if !defined(rs6000_ibm_aix4_1)
+#if !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0)
 void DYNINSTreportNewSema(dyninst_sema_t* p){
 
   if (lookup_syncobject(DYNINSTsemaRes, DYNINSTsemaResLock, MAX_SEMA_RES, (unsigned)p)){
@@ -253,7 +255,9 @@ void DYNINSTreportNewSema(dyninst_sema_t* p){
 void DYNINST_initialize_SyncObj(void) {
   initialize_SyncObj_of_1_kind(DYNINSTcvRes, DYNINSTcvResLock, MAX_CV_RES);
   initialize_SyncObj_of_1_kind(DYNINSTmutexRes, DYNINSTmutexResLock, MAX_MUTEX_RES);
+#if !defined(i386_unknown_linux2_0)
   initialize_SyncObj_of_1_kind(DYNINSTrwlockRes, DYNINSTrwlockResLock, MAX_RWLOCK_RES);
+#endif
   initialize_SyncObj_of_1_kind(DYNINSTsemaRes, DYNINSTsemaResLock, MAX_SEMA_RES);
 }
 

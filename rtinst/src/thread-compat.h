@@ -5,13 +5,15 @@
 #ifndef _THREAD_COMPAT_
 #define _THREAD_COMPAT
 
-#if defined(rs6000_ibm_aix4_1)
+#if defined(rs6000_ibm_aix4_1) | defined(i386_unknown_linux2_0)
 #include <pthread.h>
 typedef pthread_key_t                     dyninst_key_t;
 typedef pthread_cond_t                    dyninst_cond_t;
 typedef pthread_mutex_t                   dyninst_mutex_t;
 typedef pthread_t                         dyninst_t;
+#if !defined(i386_unknown_linux2_0)
 typedef pthread_rwlock_t                  dyninst_rwlock_t;
+#endif
 
 #define P_thread_getspecific(key)         pthread_getspecific(key)
 #define P_thread_setspecific(key, val)    pthread_setspecific(key,val)

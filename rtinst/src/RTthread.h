@@ -43,7 +43,7 @@
 #define _RT_THREAD_H_
 
 /* Compatibility layer between pthreads and solaris threads */
-#if defined(rs6000_ibm_aix4_1)
+#if defined(rs6000_ibm_aix4_1) | defined(i386_unknown_linux2_0)
 #include <pthread.h>
 #else /* solaris threads */
 #include <thread.h>
