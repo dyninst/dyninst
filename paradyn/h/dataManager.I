@@ -2,6 +2,9 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
+ * Revision 1.42  1995/08/05 17:07:40  krisna
+ * `res' is used as a variable name in igen-generated code, YUCK
+ *
  * Revision 1.41  1995/08/01 02:17:02  newhall
  * *** empty log message ***
  *
@@ -504,17 +507,17 @@ $remote dataManager {
     //
     // don't search the SHG for this node.
     //
-    void setResourceSearchSuppress(resourceHandle res, bool newValue);
+    void setResourceSearchSuppress(resourceHandle res_handle, bool newValue);
 
     //
     // don't search the SHG for children of this node.
     //
-    void setResourceSearchChildrenSuppress(resourceHandle res, bool newValue);
+    void setResourceSearchChildrenSuppress(resourceHandle res_handle, bool newValue);
 
     //
     // consider this resource a black box (applies to modules/procedures now).
     //
-    void setResourceInstSuppress(resourceHandle res, bool newValue);
+    void setResourceInstSuppress(resourceHandle res_handle, bool newValue);
 
     // 
     // returns a vector of metric names 
