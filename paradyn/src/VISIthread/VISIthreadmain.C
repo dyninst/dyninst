@@ -25,10 +25,13 @@
 // * VISIthread server routines:  VISIKillVisi
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.15  1994/07/12 17:03:09  newhall
-/* added error handling, changed msg binding for the visualization
-/* file discriptor
+/* Revision 1.16  1994/07/28 22:32:59  krisna
+/* proper starting sequence for VISIthreadmain thread
 /*
+ * Revision 1.15  1994/07/12  17:03:09  newhall
+ * added error handling, changed msg binding for the visualization
+ * file discriptor
+ *
  * Revision 1.14  1994/07/07  17:27:14  newhall
  * fixed compile warnings
  *
@@ -692,8 +695,9 @@ void visualizationUser::PhaseName(double begin,
 //  initializes thread local variables, starts visualization process
 //  and enters main loop
 ///////////////////////////////////////////////////////////////////
-void *VISIthreadmain(visi_thread_args *args){ 
+void *VISIthreadmain(void *vargs){ 
  
+  visi_thread_args* args = (visi_thread_args *) vargs;
   int from;
   thread_t tag;
   VISIthreadGlobals *globals;
