@@ -41,7 +41,7 @@
 
 /************************************************************************
  * String.h: a simple character string class.
- * $Id: String.h,v 1.21 2002/04/09 18:04:33 mjbrim Exp $
+ * $Id: String.h,v 1.22 2002/04/15 21:03:58 schendel Exp $
 ************************************************************************/
 
 #if !defined(_String_h_)
@@ -86,6 +86,7 @@ public:
     string_ll  operator+ (const string_ll &) const;
     string_ll  operator+ (const char *) const;
     string_ll  operator+ (const char) const;
+    string_ll  operator+ (int) const;
 
 	char operator[] (unsigned pos) const {return str_[pos];}
 
@@ -272,6 +273,10 @@ class string {
    string operator+(const char c) const {
       string result = *this;
       return (result += c);
+   }
+   string operator+ (int i) const {
+      string result = *this;
+      return (result += string(i));
    }
 
    friend string operator+(const char *src, const string &str);

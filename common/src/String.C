@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: String.C,v 1.16 2002/04/09 18:04:34 mjbrim Exp $
+// $Id: String.C,v 1.17 2002/04/15 21:03:59 schendel Exp $
 
 #include <assert.h>
 #include "common/h/headers.h"
@@ -286,6 +286,12 @@ string_ll
 string_ll::operator+(const char c) const {
    string_ll ret = *this;
    return (ret += c);
+}
+
+string_ll
+string_ll::operator+(int i) const {
+   string_ll ret = *this;
+   return (ret += string_ll(i));
 }
 
 bool
