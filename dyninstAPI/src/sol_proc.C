@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.9 2003/02/21 20:06:04 bernat Exp $
+// $Id: sol_proc.C,v 1.10 2003/02/28 22:13:38 bernat Exp $
 
 #ifdef rs6000_ibm_aix4_1
 #include <sys/procfs.h>
@@ -78,7 +78,7 @@ bool get_ps_info(int pid, string &argv0, string &cwdenv, string &pathenv);
 #define premptysysset(x)      premptyset(x)
 #define praddsysset(x,y)      praddset(x,y)
 #define prdelsysset(x,y)      prdelset(x,y)
-#define prissyssetmember(x,y) prissetmember(x,y)
+#define prissyssetmember(x,y) prismember(x,y)
 #define proc_sigset_t         sigset_t
 #define SYSSET_MAP(x, pid)  (x)
 #define SYSSET_ALLOC(x)     ((sysset_t *)malloc(sizeof(sysset_t)))
@@ -297,7 +297,9 @@ bool dyn_lwp::abortSyscall()
 
     // MT: aborting syscalls does not work. Maybe someone with better knowledge
     // of Solaris can get it working. 
-    
+#if defined(MT_THREAD)
+    return false;
+#endif
     // We do not expect to recursively interrupt system calls.  We could
     // probably handle it by keeping a stack of system call state.  But
     // we haven't yet seen any reason to have this functionality.
@@ -1042,7 +1044,7 @@ bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) 
 #if defined(BPATCH_LIBRARY)
 #if defined (sparc_sun_solaris2_4)
 	if(collectSaveWorldData &&  ((Address) inTraced) > getDyn()->getlowestSObaseaddr() ){
-		shared_object *sh_obj;
+		shared_object *sh_obj = NULL;
 		bool result = false;
 		for(unsigned i = 0; shared_objects && !result && i<shared_objects->size();i++){
 			sh_obj = (*shared_objects)[i];
@@ -1115,57 +1117,155 @@ bool process::set_syscalls(sysset_t *entry, sysset_t *exit) const
     return true;    
 }
 
-bool process::set_breakpoint_for_syscall_completion() {
-   /* Can assume: (1) process is paused and (2) in a system call.
-      We want to set a TRAP for the syscall exit, and do the
-      inferiorRPC at that time.  We'll use /proc PIOCSEXIT.
-      Returns true iff breakpoint was successfully set. */
-#if defined(MT_THREAD)
-    // MT: disabling this until we can do it per-LWP
-    return false;
-#endif
-    // Only one breakpoint at a time
-    fprintf(stderr, "Setting breakpoint for all system call completions\n");
+syscallTrap *process::trapSyscallExitInternal(Address syscall)
+{
+    syscallTrap *trappedSyscall = NULL;
+
+    // First, the cross-platform bit. If we're already trapping
+    // on this syscall, then increment the reference counter
+    // and return
+
+    for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
+        if (syscallTraps_[iter]->syscall_id == (int) syscall) {
+            trappedSyscall = syscallTraps_[iter];
+            cerr << "Found previously trapped syscall at slot " << iter << endl;
+            break;
+        }
+    }
+    if (trappedSyscall) {
+        // That was easy...
+        trappedSyscall->refcount++;
+        cerr << "Syscall refcount = " << trappedSyscall->refcount;
+        return trappedSyscall;
+    }
+    else {
+        // Okay, we haven't trapped this system call yet.
+        // Things to do:
+        // 1) Get the original value
+        // 2) Place a trap
+        // 3) Create a new syscallTrap object and return it
+
+        trappedSyscall = new syscallTrap;
+        trappedSyscall->refcount = 1;
+        trappedSyscall->syscall_id = (int) syscall;
+
+        sysset_t *cur_syscalls = SYSSET_ALLOC(getPid());
+        pstatus_t proc_status;
+        if (!get_status(&proc_status)) return NULL;
+        if (!get_exit_syscalls(&proc_status, cur_syscalls)) return NULL;
+        if (prissyssetmember(cur_syscalls, trappedSyscall->syscall_id))
+            // Surprising case... but it's possible as we trap fork and exec
+            trappedSyscall->orig_setting = 1;
+        else
+            trappedSyscall->orig_setting = 0;
+        
+        // 2) Place a trap
+        praddsysset(cur_syscalls, trappedSyscall->syscall_id);
+        int bufsize = sizeof(long) + SYSSET_SIZE(cur_syscalls);
+        char buf[bufsize]; long *bufptr = (long *)buf;
+        *bufptr = PCSEXIT; bufptr++;
+        memcpy(bufptr, cur_syscalls, SYSSET_SIZE(cur_syscalls));
+        if (write(getDefaultLWP()->ctl_fd(), buf, bufsize) != bufsize) {
+            perror("Syscall trap set");
+            return NULL;
+        }
+
+        // Insert into the list of trapped syscalls
+        syscallTraps_ += (trappedSyscall);
+
+        return trappedSyscall;
+    }
+    // Should never reach here.
+    return NULL;
+}
+
+bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
+    // Decrement the reference count, and if it's 0 remove the trapped
+    // system call
+    assert(trappedSyscall->refcount > 0);
     
-    assert(save_exitset_ptr == NULL);
-    save_exitset_ptr = SYSSET_ALLOC(getPid());
-    
+    trappedSyscall->refcount--;
+    if (trappedSyscall->refcount > 0) {
+        return true;
+    }
+    // Erk... it hit 0. Remove the trap at the system call
+    sysset_t *cur_syscalls = SYSSET_ALLOC(getPid());
     pstatus_t proc_status;
-    if (get_status(&proc_status)) return false;
-    
-    if (!get_exit_syscalls(&proc_status, save_exitset_ptr)) return false;
-    
-    sysset_t *new_exit_set = SYSSET_ALLOC(getPid());
-    prfillset(new_exit_set);
-    int bufsize = sizeof(long) + SYSSET_SIZE(save_exitset_ptr);
+    if (!get_status(&proc_status)) return false;
+    if (!get_exit_syscalls(&proc_status, cur_syscalls)) return false;
+    if (!trappedSyscall->orig_setting) 
+        prdelsysset(cur_syscalls, trappedSyscall->syscall_id);
+    int bufsize = sizeof(long) + SYSSET_SIZE(cur_syscalls);
     char buf[bufsize]; long *bufptr = (long *)buf;
     *bufptr = PCSEXIT; bufptr++;
-    memcpy(bufptr, new_exit_set, SYSSET_SIZE(save_exitset_ptr));
-    
+    memcpy(bufptr, cur_syscalls, SYSSET_SIZE(cur_syscalls));
     if (write(getDefaultLWP()->ctl_fd(), buf, bufsize) != bufsize) {
-        perror("set_breakpoint write");
+        perror("Syscall trap clear");
         return false;
     }
+    
+    // Now that we've reset the original behavior, remove this
+    // entry from the vector
+    for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
+        if (trappedSyscall == syscallTraps_[iter]) {
+            syscallTraps_.removeByIndex(iter);
+            break;
+        }
+    }
+    delete trappedSyscall;
+    
     return true;
 }
 
-bool process::clear_breakpoint_for_syscall_completion() 
+Address dyn_lwp::getCurrentSyscall() {
+    // Return the system call we're currently in
+    lwpstatus_t status;
+    if (!get_status(&status)) {
+        fprintf(stderr, "Failed to get status\n");
+        return 0;
+    }
+
+    return status.pr_syscall;
+}
+
+
+
+bool dyn_lwp::stepPastSyscallTrap()
 {
-#if defined(MT_THREAD)
-    return false;
-#endif
-    int bufsize = sizeof(long) + SYSSET_SIZE(save_exitset_ptr);
-    char buf[bufsize]; long *bufptr = (long *)buf;
-    *bufptr = PCSEXIT; bufptr++;
-    memcpy(bufptr, save_exitset_ptr, SYSSET_SIZE(save_exitset_ptr));
-    
-    if (write(getDefaultLWP()->ctl_fd(), buf, bufsize) != bufsize) {
-        perror("clear_breakpoint write");
+    // Nice... on /proc systems we don't need to do anything here
+    return true;
+}
+
+// Check if a LWP has hit a trap we inserted to catch the exit of a
+// system call trap.
+// Return values:
+// 0: did not trap at the exit of a syscall
+// 1: Trapped, but did not have a syscall trap placed for this LWP
+// 2: Trapped with a syscall trap desired.
+int dyn_lwp::hasReachedSyscallTrap() {
+    // Get the status of the LWP
+    lwpstatus_t status;
+    if (!get_status(&status)) {
+        fprintf(stderr, "Failed to get thread status\n");
         return false;
     }
-    delete save_exitset_ptr;
-    save_exitset_ptr = NULL;
-    return true;
+    
+    if (status.pr_why != PR_SYSEXIT) {
+        return false;
+    }
+    Address syscall = status.pr_what;
+
+    if (trappedSyscall_ && syscall == trappedSyscall_->syscall_id) {
+        return 2;
+    }
+    
+    // Unfortunately we can't check a recorded system call trap,
+    // since we don't have one saved. So do a scan through all traps the
+    // process placed
+    if (proc()->checkTrappedSyscallsInternal(syscall))
+        return 1;
+    
+    return 0;
 }
 
 // returns 0 if waitProc needs to return right away
@@ -1202,16 +1302,17 @@ int handleStopStatus(process *currProc, lwpstatus_t procstatus,
         
 #ifdef BPATCH_LIBRARY
         if (proc_forked) {
-           extern pdvector<process*> processVec;
-           int childPid = result;
-
-           if (childPid == getpid()) {
-              // this is a special case where the normal createProcess code
-              // has created this process, but the attach routine runs soon
-              // enough that the child (of the mutator) gets a fork exit
-              // event.  We don't care about this event, so we just continue
-              // the process - jkh 1/31/00
-              currProc->continueProc();  // changed from continueProc_ 2/1/03
+            cerr << "PROCESS FORK-ED" << endl;
+            extern pdvector<process*> processVec;
+            int childPid = result;
+            
+            if (childPid == getpid()) {
+                // this is a special case where the normal createProcess code
+                // has created this process, but the attach routine runs soon
+                // enough that the child (of the mutator) gets a fork exit
+                // event.  We don't care about this event, so we just continue
+                // the process - jkh 1/31/00
+                currProc->continueProc();  // changed from continueProc_ 2/1/03
               process *theParent = currProc;
               theParent->status_ = running;
               return (0);
@@ -1222,28 +1323,30 @@ int handleStopStatus(process *currProc, lwpstatus_t procstatus,
               }
               if (i== processVec.size()) {
                  // this is a new child, register it with dyninst
-                 int parentPid = currProc->getPid();
-                 process *theParent = currProc;
-                 process *theChild = new process(*theParent, (int)childPid, -1);
-                 processVec.push_back(theChild);
-                 activeProcesses++;
-                 // it's really stopped, but we need to mark it running so
-                 //   it can report to us that it is stopped - jkh 1/5/00
-                 // or should this be exited???
-                 theChild->status_ = neonatal;
+                  cerr << "New process detected " << childPid << endl;
+                  int parentPid = currProc->getPid();
+                  process *theParent = currProc;
+                  process *theChild = new process(*theParent, (int)childPid, -1);
+                  processVec.push_back(theChild);
+                  activeProcesses++;
+                  // it's really stopped, but we need to mark it running so
+                  //   it can report to us that it is stopped - jkh 1/5/00
+                  // or should this be exited???
+                  theChild->status_ = neonatal;
                  
-                 // parent is stopped too (on exit fork event)
-                 theParent->status_ = stopped;
-                 theChild->execFilePath = 
-                    theChild->tryToFindExecutable("", childPid);
-                 //cerr << "Child exec file path: " << theChild->execFilePath 
-                 //     << endl;
-                 theChild->inExec = false;
-                 BPatch::bpatch->registerForkedThread(parentPid,
+                  // parent is stopped too (on exit fork event)
+                  theParent->status_ = stopped;
+                  theChild->execFilePath = 
+                  theChild->tryToFindExecutable("", childPid);
+                  //cerr << "Child exec file path: " << theChild->execFilePath 
+                  //     << endl;
+                  theChild->inExec = false;
+                  BPatch::bpatch->registerForkedThread(parentPid,
                                                       childPid, theChild);
-              } 
+              }
+              
            } else {
-              fprintf(stderr, "fork errno %d\n", childPid);
+               fprintf(stderr, "fork errno %d\n", childPid);
            }
         } else if (proc_execed && (result != -1)) {
            // If the above test looks familiar, it is. We test for failed
@@ -1286,6 +1389,7 @@ int handleStopStatus(process *currProc, lwpstatus_t procstatus,
               proc->status_ = stopped;
               pdvector<heapItem *> emptyHeap;
               proc->heap.bufferPool = emptyHeap;
+              cerr << "Set inExec for unix.C" << endl;
            }
         } else {
            printf("got unexpected PIOCSEXIT\n");

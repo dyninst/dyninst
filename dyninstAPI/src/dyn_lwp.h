@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.10 2003/02/26 16:50:21 mikem Exp $
+ * $Id: dyn_lwp.h,v 1.11 2003/02/28 22:13:31 bernat Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -51,6 +51,7 @@
 #include "frame.h"
 #include "common/h/vectorSet.h"
 #include "rtinst/h/rtinst.h"
+#include "syscalltrap.h"
 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
 #include <procfs.h>
@@ -107,7 +108,20 @@ class dyn_lwp
 
   // True iff lwp is executing in the kernel
   bool executingSystemCall();
-
+  // And what syscall are we in (or return address)
+  Address getCurrentSyscall();
+  // Set a breakpoint at the system call exit
+  // Actually sets up some state and calls the process version,
+  // but hey...
+  bool setSyscallExitTrap();
+  // Clear the above, and perform any necessary emulation work
+  bool clearSyscallExitTrap();
+  // What if the wrong lwp hits the trap?
+  bool stepPastSyscallTrap();
+  // Query functions for syscall exits
+  bool isWaitingForSyscall() const;
+  int hasReachedSyscallTrap();
+  
 #if !defined(BPATCH_LIBRARY)
   // Timing functions
   rawTime64 getRawCpuTime_hw();
@@ -195,6 +209,10 @@ class dyn_lwp
                           // (note we do not save FP registers)
   sigset_t sighold_;       // Blocked signals during sleeping syscall
 #endif
+
+  // Pointer to the syscall trap data structure
+  syscallTrap *trappedSyscall_;
+  
   
 };
 

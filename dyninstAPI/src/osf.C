@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.40 2003/02/04 15:18:57 bernat Exp $
+// $Id: osf.C,v 1.41 2003/02/28 22:13:35 bernat Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -329,7 +329,7 @@ int process::waitProcs(int *status)
 
 		     // need to check for this since is doesn't generate a poll event
 		     int retWait;
-		     if (retWait = waitpid(processVec[u]->getPid(), status, WNOHANG|WNOWAIT)) {
+		     if ((retWait = waitpid(processVec[u]->getPid(), status, WNOHANG|WNOWAIT))) {
 			 if (retWait == -1) {
 			    // skip over stopped proceses
 			    if ((processVec[u]->status_ == stopped)) continue;
@@ -408,175 +408,150 @@ int process::waitProcs(int *status)
                   process *p = processVec[curr];
                   // return the signal number
                   *status = stat.pr_what << 8 | 0177;
-                  fprintf(stderr, "Process received signal %d\n");
-                  
                   ret = processVec[curr]->getPid();
                   break;
 		      }
 		      case PR_SYSEXIT: {
                   // exit of a system call.
-		         process *p = processVec[curr];
-
-			 if (p->isAnyIRPCwaitingForSyscall()) {
-			    // reset PIOCSEXIT mask
-			    assert(p->save_exitset_ptr != NULL);
-			    if (-1 == ioctl(p->getDefaultLWP()->get_fd(), PIOCSEXIT, p->save_exitset_ptr))
-			       assert(false);
-			    delete [] p->save_exitset_ptr;
-			    p->save_exitset_ptr = NULL;
-
-			    // fall through on purpose (so status, ret get set)
-			 } else if (((stat.pr_what == SYS_execv) ||
-				     (stat.pr_what == SYS_execve)) && !execResult(stat)) {
-			   // a failed exec. continue the process
-			   processVec[curr]->continueProc_();
-			   break;
-			 }
-#ifdef BPATCH_LIBRARY
-			 if (stat.pr_what == SYS_fork) {
-			     int childPid = stat.pr_reg.regs[V0_REGNUM];
-			     if (childPid > 0) {
-				 unsigned int i;
-
-				 for (i=0; i < processVec.size(); i++) {
-				     if (processVec[i]->getPid() == childPid) break;
-				 }
-				 if (i== processVec.size()) {
-
-				     // this is a new child, register it with dyninst
-				     int parentPid = processVec[curr]->getPid();
-
-
-				     process *theParent = processVec[curr];
-				     process *theChild = new process(*theParent, (int)childPid, -1);
-				     processVec.push_back(theChild);
-				     activeProcesses++;
-
-
-				     // it's really stopped, but we need to mark it running so
-				     //   it can report to us that it is stopped - jkh 1/5/00
-				     // or should this be exited???
-				     theChild->status_ = neonatal;
-
-				     // parent is stopped too (on exit fork event)
-				     theParent->status_ = stopped;
-
-				     theChild->execFilePath = 
-					 theChild->tryToFindExecutable("", childPid);
-				     theChild->inExec = false;
-				     BPatch::bpatch->registerForkedThread(parentPid,
-					 childPid, theChild);
-				     selected_fds = 0;
-				 }
-			     } else {
-				 printf("fork errno %lx\n", stat.pr_reg.regs[V0_REGNUM]);
-			     }
-			 } else if (((stat.pr_what == SYS_execv) || 
-				     (stat.pr_what == SYS_execve)) && execResult(stat)) {
-			     process *proc = processVec[curr];
-			     proc->execFilePath = proc->tryToFindExecutable("", proc->getPid());
-
-			     // only handle if this is in the child - is this right??? jkh
-			     if (proc->reachedBootstrapState(initialized)) {
-				 // mark this for the sig TRAP that will occur soon
-				 proc->inExec = true;
-
-				 // leave process stopped until signal handler runs
-				 // mark it running so we get the stop signal
-				 proc->status_ = stopped;
-
-				 // reset buffer pool to empty (exec clears old mappings)
-				 pdvector<heapItem *> emptyHeap;
-				 proc->heap.bufferPool = emptyHeap;
-			     }
-			 } else {
-			     process *p = processVec[curr];
-			     p->status_ = stopped;
-			     if (p->handleTrapIfDueToRPC()) {
-				 continue;
-			     } else {
-				 sprintf(errorLine, "got unexpected PIOCSEXIT: ret syscall #%d\n", 
-				     (int) stat.pr_what);
-				 logLine(errorLine);
-				 p->continueProc();
-			     }
-			 }
-#endif
-			 // ---------------------------------------------
-			 // I think the following two lines are part of
-			 // the earlier SIGTRAP hack that I removed.
-			 //
-			 // Ray Chen 03/22/02
-			 // ---------------------------------------------
-			 // *status = SIGTRAP << 8 | 0177;
-			 // ret = processVec[curr]->getPid();
-			 break;
-		     }
-
-#ifdef BPATCH_LIBRARY
-		     case PR_SYSENTRY: {
-			 bool alreadyCont = false;
-			 process *p = processVec[curr];
-
-			 if ((stat.pr_what == SYS_fork) || (stat.pr_what == SYS_vfork)) {
-			     if (BPatch::bpatch->preForkCallback) {
-				 assert(p->thread);
-				 p->setProcfsFlags();
-				 BPatch::bpatch->preForkCallback(p->thread, NULL);
-			     }
-
-			     if (stat.pr_what == SYS_vfork)  {
-				 unsigned int i;
-				 int childPid = 0;
-				 alreadyCont = true;
-				 struct DYNINST_bootstrapStruct bootRec;
-
-				 (void) processVec[curr]->continueProc_();
-				 processVec[curr]->status_ = stopped;
-				 do {
-				     processVec[curr]->extractBootstrapStruct(&bootRec);
-
-				     childPid = bootRec.pid;
-				 } while (bootRec.event != 3);
-
-				 for (i=0; i < processVec.size(); i++) {
-				     if (processVec[i]->getPid() == childPid) break;
-				 }
-				 if (i== processVec.size()) {
-				     // this is a new child, register it with dyninst
-				     int parentPid = processVec[curr]->getPid();
-				     process *theParent = processVec[curr];
-				     process *theChild = new process(*theParent, (int)childPid, -1);
-				     processVec.push_back(theChild);
-				     activeProcesses++;
-
-				     // it's really stopped, but we need to mark it running so
-				     //   it can report to us that it is stopped - jkh 1/5/00
-				     // or should this be exited???
-				     theChild->status_ = running;
-
-				     theChild->execFilePath = 
-					 theChild->tryToFindExecutable("", childPid);
-				     BPatch::bpatch->registerForkedThread(parentPid,
-					 childPid, theChild);
-				     selected_fds = 0;
-				 }
-			     }
-			 } else if (stat.pr_what == SYS_exit) {
-			     int code;
-			     bool readRet;
-			     unsigned long sp;
-			     
-			     code = stat.pr_reg.regs[A0_REGNUM];
-			     BPatch::bpatch->registerExit(processVec[curr]->thread, code);
-			 } else {
-			     printf("got PR_SYSENTRY\n");
-			     printf("    unhandeled sys call #%d\n", (int) stat.pr_what);
-			 }
-			 if (!alreadyCont) (void) processVec[curr]->continueProc_();
-			 break;
-		       }
-#endif
+                  process *p = processVec[curr];
+                  // fall through on purpose (so status, ret get set)
+                  if (((stat.pr_what == SYS_execv) ||
+                       (stat.pr_what == SYS_execve)) && !execResult(stat)) {
+                      // a failed exec. continue the process
+                      processVec[curr]->continueProc_();
+                      break;
+                  }
+                  if (stat.pr_what == SYS_fork) {
+                      int childPid = stat.pr_reg.regs[V0_REGNUM];
+                      if (childPid > 0) {
+                          unsigned int i;
+                          
+                          for (i=0; i < processVec.size(); i++) {
+                              if (processVec[i]->getPid() == childPid) break;
+                          }
+                          if (i== processVec.size()) {
+                              
+                              // this is a new child, register it with dyninst
+                              int parentPid = processVec[curr]->getPid();
+                              
+                              
+                              process *theParent = processVec[curr];
+                              process *theChild = new process(*theParent, (int)childPid, -1);
+                              processVec.push_back(theChild);
+                              activeProcesses++;
+                              
+                              
+                              // it's really stopped, but we need to mark it running so
+                              //   it can report to us that it is stopped - jkh 1/5/00
+                              // or should this be exited???
+                              theChild->status_ = neonatal;
+                              
+                              // parent is stopped too (on exit fork event)
+                              theParent->status_ = stopped;
+                              
+                              theChild->execFilePath = 
+                              theChild->tryToFindExecutable("", childPid);
+                              theChild->inExec = false;
+                              BPatch::bpatch->registerForkedThread(parentPid,
+                                                                   childPid, theChild);
+                              selected_fds = 0;
+                          }
+                      } else { // childPid ! >0
+                         printf("fork errno %lx\n", stat.pr_reg.regs[V0_REGNUM]);
+                      }
+                  } // stat.pr_what == SYS_FORK
+                  else if (((stat.pr_what == SYS_execv) || 
+                            (stat.pr_what == SYS_execve)) && execResult(stat)) {
+                      process *proc = processVec[curr];
+                      proc->execFilePath = proc->tryToFindExecutable("", proc->getPid());
+                      
+                      // only handle if this is in the child - is this right??? jkh
+                      if (proc->reachedBootstrapState(initialized)) {
+                          // mark this for the sig TRAP that will occur soon
+                          proc->inExec = true;
+                          
+                          // leave process stopped until signal handler runs
+                          // mark it running so we get the stop signal
+                          proc->status_ = stopped;
+                          
+                          // reset buffer pool to empty (exec clears old mappings)
+                          pdvector<heapItem *> emptyHeap;
+                          proc->heap.bufferPool = emptyHeap;
+                      }
+                  } // stat.pr_what == SYS_exec
+                  else {
+                      process *p = processVec[curr];
+                      p->status_ = stopped;
+                      sprintf(errorLine, "got unexpected PIOCSEXIT: ret syscall #%d\n", 
+                              (int) stat.pr_what);
+                      logLine(errorLine);
+                      p->continueProc();
+                  }
+                  break;
+              } // PR_SYSEXIT
+              
+              case PR_SYSENTRY: {
+                  bool alreadyCont = false;
+                  process *p = processVec[curr];
+                  
+                  if ((stat.pr_what == SYS_fork) || (stat.pr_what == SYS_vfork)) {
+                      if (BPatch::bpatch->preForkCallback) {
+                          assert(p->thread);
+                          p->setProcfsFlags();
+                          BPatch::bpatch->preForkCallback(p->thread, NULL);
+                      }
+                      
+                      if (stat.pr_what == SYS_vfork)  {
+                          unsigned int i;
+                          int childPid = 0;
+                          alreadyCont = true;
+                          struct DYNINST_bootstrapStruct bootRec;
+                          
+                          (void) processVec[curr]->continueProc_();
+                          processVec[curr]->status_ = stopped;
+                          do {
+                              processVec[curr]->extractBootstrapStruct(&bootRec);
+                              
+                              childPid = bootRec.pid;
+                          } while (bootRec.event != 3);
+                          
+                          for (i=0; i < processVec.size(); i++) {
+                              if (processVec[i]->getPid() == childPid) break;
+                          }
+                          if (i== processVec.size()) {
+                              // this is a new child, register it with dyninst
+                              int parentPid = processVec[curr]->getPid();
+                              process *theParent = processVec[curr];
+                              process *theChild = new process(*theParent, (int)childPid, -1);
+                              processVec.push_back(theChild);
+                              activeProcesses++;
+                              
+                              // it's really stopped, but we need to mark it running so
+                              //   it can report to us that it is stopped - jkh 1/5/00
+                              // or should this be exited???
+                              theChild->status_ = running;
+                              
+                              theChild->execFilePath = 
+                              theChild->tryToFindExecutable("", childPid);
+                              BPatch::bpatch->registerForkedThread(parentPid,
+                                                                   childPid, theChild);
+                              selected_fds = 0;
+                          }
+                      }
+                  } else if (stat.pr_what == SYS_exit) {
+                      int code;
+                      bool readRet;
+                      unsigned long sp;
+                      
+                      code = stat.pr_reg.regs[A0_REGNUM];
+                      BPatch::bpatch->registerExit(processVec[curr]->thread, code);
+                  } else {
+                      printf("got PR_SYSENTRY\n");
+                      printf("    unhandeled sys call #%d\n", (int) stat.pr_what);
+                  }
+                  if (!alreadyCont) (void) processVec[curr]->continueProc_();
+                  break;
+              } // PR_SYSENTRY
 		      case PR_REQUESTED:
 			    stat.pr_flags = PRCSIG;
 			    if (ioctl(fds[curr].fd, PIOCRUN, &stat) == -1) {

@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.4 2002/12/20 07:49:56 jaw Exp $
+ * $Id: dyn_lwp.C,v 1.5 2003/02/28 22:13:30 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -68,8 +68,8 @@ dyn_lwp::dyn_lwp(unsigned lwp, process *proc) :
   hw_previous_(0),
   sw_previous_(0),
   stoppedInSyscall_(false),
-  postsyscallpc_(0)
-
+  postsyscallpc_(0),
+  trappedSyscall_(NULL)
 {
 }
 
@@ -81,8 +81,8 @@ dyn_lwp::dyn_lwp(unsigned lwp, handleT fd, process *proc) :
   hw_previous_(0),
   sw_previous_(0),
   stoppedInSyscall_(false),
-  postsyscallpc_(0)
-
+  postsyscallpc_(0),
+  trappedSyscall_(NULL)
 {
 }
 
@@ -94,8 +94,8 @@ dyn_lwp::dyn_lwp(const dyn_lwp &l) :
   hw_previous_(0),
   sw_previous_(0),
   stoppedInSyscall_(false),
-  postsyscallpc_(0)
-
+  postsyscallpc_(0),
+  trappedSyscall_(0)
 {
 }
 
@@ -120,6 +120,34 @@ bool dyn_lwp::walkStack(pdvector<Frame> &stackWalk)
   return proc_->walkStackFromFrame(active, stackWalk);
 }
 
+// Find out some info about the system call we're waiting on,
+// and ask the process class to set a breakpoint there. 
+
+bool dyn_lwp::setSyscallExitTrap()
+{
+    assert(executingSystemCall());
+    assert(!trappedSyscall_);
+    
+    Address syscallInfo = getCurrentSyscall();
+    
+    trappedSyscall_ = proc()->trapSyscallExitInternal(syscallInfo);
+    return (trappedSyscall_ != NULL);
+}
 
 
+// Clear the trap set
 
+bool dyn_lwp::clearSyscallExitTrap()
+{
+    assert(trappedSyscall_);
+    
+    if (!proc()->clearSyscallTrapInternal(trappedSyscall_))
+        return false;
+    
+    trappedSyscall_ = NULL;
+}
+
+bool dyn_lwp::isWaitingForSyscall() const {
+    if (trappedSyscall_) return true;
+    else return false;
+}

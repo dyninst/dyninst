@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.75 2003/02/21 20:06:01 bernat Exp $
+// $Id: pdwinnt.C,v 1.76 2003/02/28 22:13:36 bernat Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -1432,13 +1432,28 @@ string process::tryToFindExecutable(const string& iprogpath, int pid) {
   return iprogpath;
 }
 
-bool process::set_breakpoint_for_syscall_completion() {
-    // Unimplemented
-    assert(false);
+
+syscallTrap *process::trapSyscallExitInternal(Address syscall) {
+    // Don't support trapping syscalls here yet, sorry
+    return NULL;
+}
+
+bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
+    assert(0 && "Unimplemented");
+    return true;
+}
+
+Address dyn_lwp::getCurrentSyscall() {
+    return 0;
+}
+
+bool dyn_lwp::stepPastSyscallTrap() {
     return false;
 }
 
-bool process::clear_breakpoint_for_syscall_completion() { return true; }
+int dyn_lwp::hasReachedSyscallTrap() {
+    return 0;
+}
 
 Address dyn_lwp::readRegister(Register reg)
 {

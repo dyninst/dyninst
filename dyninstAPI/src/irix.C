@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.46 2003/02/04 15:18:58 bernat Exp $
+// $Id: irix.C,v 1.47 2003/02/28 22:13:32 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -636,20 +636,12 @@ int process::waitProcs(int *status)
 	  case PR_SYSEXIT: {
 	    //fprintf(stderr, ">>> process::waitProcs(fd %i): PR_SYSEXIT\n", curr);
 	    // exit of a system call
-	    if (p->isAnyIRPCwaitingForSyscall()) {
-	      // reset PIOCSEXIT mask
-	      //inferiorrpc_cerr << "solaris got PR_SYSEXIT!" << endl;
-	      assert(p->save_exitset_ptr != NULL);
-	      assert(ioctl(p->getDefaultLWP()->get_fd(), PIOCSEXIT, p->save_exitset_ptr) != -1);
-	      delete [] p->save_exitset_ptr;
-	      p->save_exitset_ptr = NULL;
-	      // fall through on purpose (so status, ret get set)
-	    } else if ((stat.pr_what == SYS_execve) && !execResult(stat)) {
-	      // a failed exec; continue the process
-	      p->continueProc_();
-	      break;
-	    }          
-
+          if ((stat.pr_what == SYS_execve) && !execResult(stat)) {
+              // a failed exec; continue the process
+              p->continueProc_();
+              break;
+          }          
+          
 #ifdef BPATCH_LIBRARY
 	    if (stat.pr_what == SYS_fork) { 
 		int i;
@@ -925,33 +917,123 @@ int getNumberOfCPUs()
   return ret;
 }
 
-bool process::set_breakpoint_for_syscall_completion()
-{
-  /* Can assume: (1) process is paused and (2) in a system call.  We
-     want to set a TRAP for the syscall exit, and do the inferiorRPC
-     at that time.  We'll use /proc PIOCSEXIT.  Returns true iff
-     breakpoint was successfully set. */
-  //fprintf(stderr, ">>> process::set_breakpoint_for_syscall_completion()\n");
-  
-  sysset_t save_exitset;
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCGEXIT, &save_exitset) == -1) {
-    return false;
-  }
-  
-  sysset_t new_exitset;
-  prfillset(&new_exitset);
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCSEXIT, &new_exitset) == -1) {
-    return false;
-  }
-  
-  assert(save_exitset_ptr == NULL);
-  save_exitset_ptr = new sysset_t;
-  memcpy(save_exitset_ptr, &save_exitset, sizeof(sysset_t));
-  
-  return true;
+
+syscallTrap *process::trapSyscallExitInternal(Address syscall) {
+    syscallTrap *trappedSyscall = NULL;
+    
+    // First, the cross-platform bit. If we're already trapping
+    // on this syscall, then increment the reference counter
+    // and return
+    
+    for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
+        if (syscallTraps_[iter]->syscall_id == (int) syscall) {
+            trappedSyscall = syscallTraps_[iter];
+            cerr << "Found previously trapped syscall at slot " << iter << endl;
+            break;
+        }
+    }
+    if (trappedSyscall) {
+        // That was easy...
+        trappedSyscall->refcount++;
+        cerr << "Syscall refcount = " << trappedSyscall->refcount;
+        return trappedSyscall;
+    }
+    else {
+        trappedSyscall = new syscallTrap;
+        trappedSyscall->refcount = 1;
+        trappedSyscall->syscall_id = (int) syscall;
+        sysset_t save_exitset;
+        if (-1 == ioctl(getDefaultLWP()->get_fd(), PIOCGEXIT, &save_exitset))
+            return NULL;
+
+        if (prismember(&save_exitset, trappedSyscall->syscall_id))
+            trappedSyscall->orig_setting = 1;
+        else
+            trappedSyscall->orig_setting = 0;
+    
+        praddset(&save_exitset, trappedSyscall->syscall_id);
+        
+        if (-1 == ioctl(getDefaultLWP()->get_fd(), PIOCSEXIT, &save_exitset))
+            return NULL;
+        
+        syscallTraps_ += trappedSyscall;
+        return trappedSyscall;
+    }
+    return NULL;
 }
 
-bool process::clear_breakpoint_for_syscall_completion() { return true; }
+bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
+    // Decrement the reference count, and if it's 0 remove the trapped
+    // system call
+    assert(trappedSyscall->refcount > 0);
+    
+    trappedSyscall->refcount--;
+    if (trappedSyscall->refcount > 0) {
+        return true;
+    }
+    // Erk... it hit 0. Remove the trap at the system call
+    sysset_t save_exitset;
+    if (-1 == ioctl(getDefaultLWP()->get_fd(), PIOCGEXIT, &save_exitset))
+        return false;
+    
+    if (trappedSyscall->orig_setting == 0)
+        prdelset(&save_exitset, trappedSyscall->syscall_id);
+    
+    if (-1 == ioctl(getDefaultLWP()->get_fd(), PIOCSEXIT, &save_exitset))
+        return false;
+    
+    // Now that we've reset the original behavior, remove this
+    // entry from the vector
+    for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
+        if (trappedSyscall == syscallTraps_[iter]) {
+            syscallTraps_.removeByIndex(iter);
+            break;
+        }
+    }
+    delete trappedSyscall;
+    
+    return true;
+}
+
+Address dyn_lwp::getCurrentSyscall() {
+    prstatus theStatus;
+    if (ioctl(fd_, PIOCSTATUS, &theStatus) == -1) {
+        return 0;
+    }
+    return theStatus.pr_syscall;
+    
+}
+
+bool dyn_lwp::stepPastSyscallTrap() {
+    // Don't believe we have to do this
+    return true;
+}
+
+// 0: not reached syscall trap
+// 1: lwp that isn't blocking reached syscall trap
+// 2: lwp that is blocking reached syscall trap
+int dyn_lwp::hasReachedSyscallTrap() {
+    prstatus theStatus;
+    if (ioctl(fd_, PIOCSTATUS, &theStatus) == -1) {
+        return 0;
+    }
+    if (theStatus.pr_why != PR_SYSEXIT) {
+        return 0;
+    }
+    Address syscall = theStatus.pr_what;
+    
+    if (trappedSyscall_ && syscall == trappedSyscall_->syscall_id) {
+        return 2;
+    }
+    
+    // Unfortunately we can't check a recorded system call trap,
+    // since we don't have one saved. So do a scan through all traps the
+    // process placed
+    if (proc()->checkTrappedSyscallsInternal(syscall))
+        return 1;
+    
+    return 0;
+}
 
 // TODO: this ignores the "sig" argument
 bool process::continueWithForwardSignal(int /*sig*/)

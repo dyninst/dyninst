@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.20 2003/02/04 15:19:01 bernat Exp $
+// $Id: procfs.C,v 1.21 2003/02/28 22:13:37 bernat Exp $
 
 #include "symtab.h"
 #include "common/h/headers.h"
@@ -326,30 +326,111 @@ bool dyn_lwp::executingSystemCall()
   return(false);
 }
 
-bool process::set_breakpoint_for_syscall_completion() {
-   /* Can assume: (1) process is paused and (2) in a system call.
-      We want to set a TRAP for the syscall exit, and do the
-      inferiorRPC at that time.  We'll use /proc PIOCSEXIT.
-      Returns true iff breakpoint was successfully set. */
 
-   sysset_t save_exitset;
-   if (-1 == ioctl(getDefaultLWP()->get_fd(), PIOCGEXIT, &save_exitset))
-      return false;
+// The syscall parameter is ignored here. We can't tell the current
+// syscall on OSF (as far as I can tell), and so we need to use
+// the previous behavior: trap all of them. 
+syscallTrap *process::trapSyscallExitInternal(Address syscall) {
+    syscallTrap *trappedSyscall = NULL;
+    
+    // First, the cross-platform bit. If we're already trapping
+    // on this syscall, then increment the reference counter
+    // and return
+    
+    for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
+        if (syscallTraps_[iter]->syscall_id == (int) syscall) {
+            trappedSyscall = syscallTraps_[iter];
+            cerr << "Found previously trapped syscall at slot " << iter << endl;
+            break;
+        }
+    }
+    if (trappedSyscall) {
+        // That was easy...
+        trappedSyscall->refcount++;
+        cerr << "Syscall refcount = " << trappedSyscall->refcount;
+        return trappedSyscall;
+    }
+    else {
+        trappedSyscall = new syscallTrap;
+        trappedSyscall->refcount = 1;
+        trappedSyscall->syscall_id = (int) syscall;
+        sysset_t *save_exitset = new sysset_t;
+        
+        if (-1 == ioctl(getDefaultLWP()->get_fd(), PIOCGEXIT, save_exitset))
+            return NULL;
+        trappedSyscall->saved_data = (void *)save_exitset;
 
-   sysset_t new_exit_set;
-   prfillset(&new_exit_set);
-   if (-1 == ioctl(getDefaultLWP()->get_fd(), PIOCSEXIT, &new_exit_set))
-      return false;
-
-   assert(save_exitset_ptr == NULL);
-   save_exitset_ptr = new sysset_t;
-   memcpy(save_exitset_ptr, &save_exitset, sizeof(save_exitset));
-
-   return true;
+        sysset_t new_exitset;
+        prfillset(&new_exitset);
+        
+        if (-1 == ioctl(getDefaultLWP()->get_fd(), PIOCSEXIT, &new_exitset))
+            return NULL;
+        
+        syscallTraps_ += trappedSyscall;
+        return trappedSyscall;
+    }
+    return NULL;
 }
 
-bool process::clear_breakpoint_for_syscall_completion() { return true; }
+bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
+    // Decrement the reference count, and if it's 0 remove the trapped
+    // system call
+    assert(trappedSyscall->refcount > 0);
+    
+    trappedSyscall->refcount--;
+    if (trappedSyscall->refcount > 0) {
+        return true;
+    }
+    // Erk... it hit 0. Remove the trap at the system call
+    sysset_t *save_exitset = (sysset_t *) trappedSyscall->saved_data;
 
+    if (-1 == ioctl(getDefaultLWP()->get_fd(), PIOCSEXIT, save_exitset))
+        return false;
+    
+    // Now that we've reset the original behavior, remove this
+    // entry from the vector
+    for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
+        if (trappedSyscall == syscallTraps_[iter]) {
+            syscallTraps_.removeByIndex(iter);
+            break;
+        }
+    }
+    delete trappedSyscall;
+    
+    return true;
+}
+
+Address dyn_lwp::getCurrentSyscall() {
+    prstatus theStatus;
+    if (ioctl(fd_, PIOCSTATUS, &theStatus) != -1) {
+        if ((theStatus.pr_flags & PR_ISSYS) == PR_ISSYS) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+bool dyn_lwp::stepPastSyscallTrap() {
+    // Don't believe we have to do this
+    return true;
+}
+
+// 0: not reached syscall trap
+// 1: lwp that isn't blocking reached syscall trap
+// 2: lwp that is blocking reached syscall trap
+int dyn_lwp::hasReachedSyscallTrap() {
+    prstatus theStatus;
+    if (ioctl(fd_, PIOCSTATUS, &theStatus) == -1) {
+        return 0;
+    }
+    if (theStatus.pr_why != PR_SYSEXIT) {
+        return 0;
+    }
+
+    // Due to lack of information, we assume this was the 
+    // correct syscall.
+    return 2;
+}
 
 #ifdef BPATCH_LIBRARY
 /*

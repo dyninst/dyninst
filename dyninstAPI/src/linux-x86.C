@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.16 2003/02/21 20:05:59 bernat Exp $
+// $Id: linux-x86.C,v 1.17 2003/02/28 22:13:34 bernat Exp $
 
 #include <fstream.h>
 
@@ -565,24 +565,75 @@ Address dyn_lwp::readRegister(Register /*reg*/) {
    return (Address)ret;
 }
 
-bool process::set_breakpoint_for_syscall_completion() {
-	Address codeBase;
-	codeBase = getPC( getPid() );
-	readDataSpace( (void*)codeBase, 2, savedCodeBuffer, true);
+syscallTrap *process::trapSyscallExitInternal(Address syscall) {
+    syscallTrap *trappedSyscall = NULL;
+    
+    for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
+        if (syscallTraps_[iter]->syscall_id == syscall) {
+            trappedSyscall = syscallTraps_[iter];
+            break;
+        }
+    }
+    if (trappedSyscall) {
+        trappedSyscall->refcount++;
+        return trappedSyscall;
+    }
+    else {
+        // Add a trap at this address, please
+        trappedSyscall = new syscallTrap;
+        trappedSyscall->refcount = 1;
+        trappedSyscall->syscall_id = syscall;
+        readDataSpace( (void*)syscall, 2, trappedSyscall->saved_insn, true);
 
-	instruction insnTrap;
-	generateBreakPoint(insnTrap);
-	writeDataSpace((void *)codeBase, 2, insnTrap.ptr());
+        instruction insnTrap;
+        generateBreakPoint(insnTrap);
+        writeDataSpace((void *)syscall, 2, insnTrap.ptr());
 
-	inferiorrpc_cerr << "Set breakpoint at " << (void*)codeBase << endl;
-
-	return true;
+        return trappedSyscall;
+    }
+    // Should never be reached
+    return NULL;
 }
 
-bool process::clear_breakpoint_for_syscall_completion() {
-	Address codeBase;
-	codeBase = getPC( getPid() );
-	return writeDataSpace( (void*)codeBase, 2, savedCodeBuffer );
+bool dyn_lwp::stepPastSyscallTrap() {
+    assert(0 && "Unimplemented");
+    return false;
+}
+
+bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
+    // Decrement the reference count, and if it's 0 remove the trapped
+    // system call
+    assert(trappedSyscall->refcount > 0);
+    
+    trappedSyscall->refcount--;
+    if (trappedSyscall->refcount > 0)
+        return true;
+    
+    // Erk... we hit 0. Undo the trap
+    if (!writeDataSpace((void *)trappedSyscall->syscall_id, 2,
+                        trappedSyscall->saved_insn))
+        return false;
+    // Now that we've reset the original behavior, remove this
+    // entry from the vector
+    for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
+        if (trappedSyscall == syscallTraps_[iter]) {
+            syscallTraps_.removeByIndex(iter);
+            break;
+        }
+    }
+    delete trappedSyscall;
+    return true;
+}
+
+int dyn_lwp::hasReachedSyscallTrap() {
+    if (!trappedSyscall_) return false;
+    Frame active = getActiveFrame();
+    return active.getPC() == trappedSyscall_->syscall_id;
+}
+
+Address dyn_lwp::getCurrentSyscall() {
+    Frame active = getActiveFrame();
+    return active.getPC();
 }
 
 void print_read_error_info(const relocationEntry entry, 

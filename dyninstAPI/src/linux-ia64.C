@@ -428,46 +428,113 @@ Frame Frame::getCallerFrame( process * /* p */ ) const {
 	assert( 0 );
 	
 	return Frame(); // zero frame
-	} /* end getCallerFrame() */
+} /* end getCallerFrame() */
 
-/* Required by process.C */
-bool process::set_breakpoint_for_syscall_completion() {
-    uint64_t codeBase, savedBundle[2];
-    int64_t ipsr_ri;
-    IA64_bundle trapBundle;
-    IA64_instruction newInst;
+syscallTrap *process::trapSyscallExitInternal(Address syscall) {
+    syscallTrap *trappedSyscall = NULL;
 
-    // Determine exact interruption point (IIP and IPSR.ri)
-    codeBase = getPC(pid);
-    ipsr_ri = P_ptrace(PTRACE_PEEKUSER, pid, PT_CR_IPSR, 0);
-    if (errno && (ipsr_ri == -1)) return false;
-    ipsr_ri = (ipsr_ri & 0x0000060000000000) >> 41;
+    // First, the cross-platform bit. If we're already trapping
+    // on this syscall, then increment the reference counter
+    // and return
 
-    // Save current bundle
-    if (!readDataSpace((void *)codeBase, 16, (void *)savedBundle, true))
-	return false;
-    memcpy(savedCodeBuffer, savedBundle, 16);
+    for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
+        if (syscallTraps_[iter]->syscall_id == (int) syscall) {
+            trappedSyscall = syscallTraps_[iter];
+            cerr << "Found previously trapped syscall at slot " << iter << endl;
+            break;
+        }
+    }
+    if (trappedSyscall) {
+        // That was easy...
+        trappedSyscall->refcount++;
+        cerr << "Syscall refcount = " << trappedSyscall->refcount;
+        return trappedSyscall;
+    }
+    else {
+        // Okay, we haven't trapped this system call yet.
+        // Things to do:
+        // 1) Get the original value
+        // 2) Place a trap
+        // 3) Create a new syscallTrap object and return it
 
-    // Modify current bundle
-    trapBundle = IA64_bundle(savedBundle[0], savedBundle[1]);
-    newInst = IA64_instruction(0x0, 0, NULL, ipsr_ri);
-    trapBundle.setInstruction(newInst);
+        trappedSyscall = new syscallTrap;
+        trappedSyscall->refcount = 1;
+        trappedSyscall->syscall_id = (int) syscall;
 
-    // Write modified bundle
-    if (!writeDataSpace((void *)codeBase, 16, trapBundle.getMachineCodePtr()))
-	return false;
+        uint64_t codeBase;
+        uint64_t *savedBundle = (uint64_t *)trappedSyscall->saved_insn;
+        int64_t ipsr_ri;
+        IA64_bundle trapBundle;
+        IA64_instruction newInst;
+        
+        // Determine exact interruption point (IIP and IPSR.ri)
+        codeBase = getPC(pid);
+        ipsr_ri = P_ptrace(PTRACE_PEEKUSER, pid, PT_CR_IPSR, 0);
+        if (errno && (ipsr_ri == -1)) return NULL;
+        ipsr_ri = (ipsr_ri & 0x0000060000000000) >> 41;
+        
+        // Save current bundle
+        if (!readDataSpace((void *)codeBase, 16, (void *)trappedSyscall->saved_insn, true))
+            return NULL;
 
-    inferiorrpc_cerr << "Set breakpoint at " << (void*)codeBase
-		     << "[" << ipsr_ri << "]" << endl;
+        // Modify current bundle
+        trapBundle = IA64_bundle(savedBundle[0], savedBundle[1]);
+        newInst = IA64_instruction(0x0, 0, NULL, ipsr_ri);
+        trapBundle.setInstruction(newInst);
+        
+        // Write modified bundle
+        if (!writeDataSpace((void *)codeBase, 16, trapBundle.getMachineCodePtr()))
+            return NULL;
+        return trappedSyscall;
+    }
+    return NULL;
+}
+
+bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
+    // Decrement the reference count, and if it's 0 remove the trapped
+    // system call
+    assert(trappedSyscall->refcount > 0);
+    
+    trappedSyscall->refcount--;
+    if (trappedSyscall->refcount > 0) {
+        fprintf(stderr, "Syscall still has refcount %d\n", 
+                trappedSyscall->refcount);
+        return true;
+    }
+    fprintf(stderr, "Removing trapped syscall at %d\n",
+            trappedSyscall->syscall_id);
+    if (!writeDataSpace((void *)getPC(pid), 16, trappedSyscall->saved_insn))
+        return false;
+        
+    // Now that we've reset the original behavior, remove this
+    // entry from the vector
+    for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
+        if (trappedSyscall == syscallTraps_[iter]) {
+            syscallTraps_.removeByIndex(iter);
+            break;
+        }
+    }
+    delete trappedSyscall;
+    
     return true;
-} /* end set_breakpoint_for_syscall_completion() */
+}
 
-/* Required by process.C */
-bool process::clear_breakpoint_for_syscall_completion() {
-    uint64_t codeBase = getPC(pid);
+Address dyn_lwp::getCurrentSyscall() {
+    Frame active = getActiveFrame();
+    return active.getPC();
+}
 
-   return writeDataSpace((void *)codeBase, 16, savedCodeBuffer);
-} /* end clear_breakpoint_for_syscall_completion() */
+bool dyn_lwp::stepPastSyscallTrap() {
+    // Shouldn't be necessary yet
+    assert(0 && "Unimplemented");
+    return false;
+}
+
+int dyn_lwp::hasReachedSyscallTrap() {
+    if (!trappedSyscall_) return false;
+    Frame active = getActiveFrame();
+    return active.getPC() == trappedSyscall_->syscall_id;
+}
 
 /* Required by linux.C */
 bool process::hasBeenBound( const relocationEntry /* entry */, pd_Function * & /* target_pdf */, Address /* base_addr */ ) {
