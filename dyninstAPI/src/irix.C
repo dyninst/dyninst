@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.37 2002/07/25 22:46:40 bernat Exp $
+// $Id: irix.C,v 1.38 2002/08/07 20:46:37 rchen Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -721,7 +721,7 @@ int process::waitProcs(int *status)
 	  case PR_SYSEXIT: {
 	    //fprintf(stderr, ">>> process::waitProcs(fd %i): PR_SYSEXIT\n", curr);
 	    // exit of a system call
-	    if (p->RPCs_waiting_for_syscall_to_complete) {
+	    if (p->isInSyscall()) {
 	      // reset PIOCSEXIT mask
 	      //inferiorrpc_cerr << "solaris got PR_SYSEXIT!" << endl;
 	      assert(p->save_exitset_ptr != NULL);

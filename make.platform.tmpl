@@ -1,5 +1,5 @@
 #
-# $Id: make.platform.tmpl,v 1.5 2002/07/31 22:06:34 bernat Exp $
+# $Id: make.platform.tmpl,v 1.6 2002/08/07 20:46:36 rchen Exp $
 # make.platform.tmpl: toplevel, platform-specific make configuration
 #
 
@@ -50,13 +50,13 @@ LDFLAGS      += -Wl,-woff,131 -Wl,-woff,85
 else # USES_NATIVE_CC
 
 ### native "-64" binaries (default)
-CC	= $(NATIVE_CC)
-CXX           = CC -64
-MODCC         = CC -64
+CC            = $(NATIVE_CC) -64
+CXX           = $(NATIVE_CXX) -64
+MODCC         = $(NATIVE_CXX) -64
 ### native "-n32" binaries
-CC2           = cc -n32
-MODCC2        = CC -n32
-LD2           = CC -n32
+CC2           = $(NATIVE_CC) -n32
+MODCC2        = $(NATIVE_CXX) -n32
+LD2           = $(NATIVE_CXX) -n32
 ### native flags
 NATIVE_FLAGS    += -DUSES_NATIVE_CC
 NATIVE_FLAGS    += -D__LONGLONG

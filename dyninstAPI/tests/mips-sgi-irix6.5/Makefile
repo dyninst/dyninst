@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.15 2002/07/31 22:06:42 bernat Exp $
+# $Id: Makefile,v 1.16 2002/08/07 20:46:37 rchen Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -44,12 +44,12 @@ MABI = -
 MUTATEE_CFLAGS = $(MODCFLAGS) -g
 endif
 
-ifeq ($(MUTATEE_CC), $(GNU_CXX))
+ifeq ($(MUTATEE_CC), $(M_GXX))
 MABI = -mabi=
 MUTATEE_CFLAGS = $(ARCH_DEF) -g
 endif
 
-ifeq ($(MUTATEE_CC), gcc)
+ifeq ($(MUTATEE_CC), $(M_GCC))
 MABI = -mabi=
 MUTATEE_CFLAGS = $(ARCH_DEF) -g
 endif
@@ -82,7 +82,8 @@ TARGET3   = $(TARGET2)_n32
 
 # VG(11/08/01): Hack to make a _n32 assembler file.
 # All this 32/64 bit thing should be moved to the template...
-ifeq (test6.mutatee_gcc, $(findstring test6.mutatee_gcc,$(TARGET2)))
+# ifeq (test6.mutatee_gcc, $(findstring test6.mutatee_gcc,$(TARGET2)))
+ifeq (test6, $(findstring test6,$(TARGET2)))
 
 TEST6_AS_OBJ_32	:= $(TEST6_AS_OBJ:%.o=%_n32.o)
 MUTATEE_SRC_32	:= $(MUTATEE_SRC:$(TEST6_AS_OBJ)=$(TEST6_AS_OBJ_32))
@@ -93,6 +94,7 @@ $(TEST6_AS_OBJ_32):	../src/$(TEST6_AS_SRC)
 	as -n32 $(TEST6_ASFLAGS) -o $@ $<
 else
 MUTATEE_SRC_32 := $(MUTATEE_SRC)
+# $(warning mutatee_src_32 is $(MUTATEE_SRC_32))
 endif
 
 $(TARGET3): $(MUTATEE_SRC_32)
