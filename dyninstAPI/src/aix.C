@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.115 2002/11/21 23:41:51 bernat Exp $
+// $Id: aix.C,v 1.116 2002/11/25 23:51:36 schendel Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -101,7 +101,7 @@ extern int getprocs(struct procsinfo *ProcessBuffer,
 		    int FileSize,
 		    pid_t *IndexPointer,
 		    int Count);
-extern int getthrds(pid_t, struct thrdsinfo *, int, tid_t, int);
+extern int getthrds(pid_t, struct thrdsinfo *, int, tid_t *, int);
 }
 
 #include "dyninstAPI/src/showerror.h"
@@ -564,17 +564,10 @@ bool dyn_lwp::executingSystemCall()
      retCode = P_ptrace(PT_READ_GPR, proc_->getPid(), (int *) IAR, 0, 0); 
   }
   
-  if(retCode == -1) {
-     if (errno == EPERM) {
-        return true;
-     } else {
-        if(lwp_)  perror("dyn_lwp::executingSystemCall() failed on call to "
-                         "P_ptrace(PTT_READ_SPRS");
-        else      perror("dyn_lwp::executingSystemCall() failed on call to "
-                         "PT_READ_GPR");
-        assert(false);
-     }
+  if (errno == EPERM) {
+     return true;
   }
+
   return false;
 }
 
@@ -1033,8 +1026,10 @@ bool process::pause_() {
     return false;
   ptraceOps++; ptraceOtherOps++;
   bool wasStopped = (status() == stopped);
-  if (status() != neonatal && !wasStopped)
-    return (loopUntilStopped());
+  if (status() != neonatal && !wasStopped) {
+     bool res = loopUntilStopped();
+     return res;
+  }
   else
     return true;
 }
@@ -1160,6 +1155,7 @@ bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
 bool process::loopUntilStopped() {
   /* make sure the process is stopped in the eyes of ptrace */
   stop_();     //Send the process a SIGSTOP
+
   bool isStopped = false;
   int waitStatus;
   while (!isStopped) {
@@ -1180,27 +1176,34 @@ bool process::loopUntilStopped() {
       printf("problem stopping process\n");
       return false;
     }
-    int sig = WSTOPSIG(waitStatus);
-    if ((sig == SIGTRAP) || (sig == SIGSTOP) || (sig == SIGINT)) {
-      if (sig != SIGSTOP) { //Process already stopped, but not by our SIGSTOP
-        extern int handleSigChild(int, int);
-        if (handleSigChild(pid, waitStatus) < 0) 
-	  cerr << "handleSigChild failed for pid " << pid << endl; 
-	// The process might be stopped after the handleSigChild is
-	// done (e.g. by an inferior RPC which completed in a paused state).
-	// In this case, we want to return immediately
-	// Idea: restart the process and let it get the pause signal? Hrm.
-	//if (status_ == stopped) isStopped = true;
-	if (status_ == stopped) continueProc();
-      } else {              //Process stopped by our SIGSTOP
-	isStopped = true;
-      }
-    } else {
-      if (ptrace(PT_CONTINUE, pid, (int*)1, sig, 0) == -1) {
-	perror("Ptrace error in PT_CONTINUE");
-	logLine("Ptrace error in PT_CONTINUE, loopUntilStopped\n");
-        return false;
-      }
+    if(WIFSTOPPED(waitStatus)) {
+       int sig = WSTOPSIG(waitStatus);
+       if ((sig == SIGTRAP) || (sig == SIGSTOP) || (sig == SIGINT)) {
+          if (sig != SIGSTOP) { //Process already stopped, but not by our SIGSTOP
+             extern int handleSigChild(int, int);
+             if (handleSigChild(pid, waitStatus) < 0) 
+                cerr << "handleSigChild failed for pid " << pid << endl; 
+             // The process might be stopped after the handleSigChild is done
+             // (e.g. by an inferior RPC which completed in a paused state).
+             // In this case, we want to return immediately Idea: restart the
+             // process and let it get the pause signal? Hrm.  //if (status_
+             // == stopped) isStopped = true;
+             if (status_ == stopped) continueProc();
+          } else {              //Process stopped by our SIGSTOP
+             isStopped = true;
+          }
+       } else {
+          if (ptrace(PT_CONTINUE, pid, (int*)1, sig, 0) == -1) {
+             perror("Ptrace error in PT_CONTINUE");
+             logLine("Ptrace error in PT_CONTINUE, loopUntilStopped\n");
+             return false;
+          }
+       }
+    } else if(WIFSIGNALED(waitStatus)) {
+       extern int handleSigChild(int, int);
+       if (handleSigChild(pid, waitStatus) < 0) 
+          cerr << "handleSigChild failed for pid " << pid << endl; 
+       return false;
     }
   }
 
@@ -1766,7 +1769,7 @@ rawTime64 dyn_lwp::getRawCpuTime_hw()
 #ifdef USES_PMAPI
    // Hardware method, using the PMAPI
    int ret;
-
+   
    static bool need_init = true;
    if(need_init) {
       pm_info_t pinfo;
@@ -1782,34 +1785,57 @@ rawTime64 dyn_lwp::getRawCpuTime_hw()
       need_init = false;
    }
    int lwp_to_use;
+   tid_t indexPtr = 0;   
+   struct thrdsinfo thrd_buf;
+
    if (lwp_ > 0) 
       lwp_to_use = lwp_;
    else {
-      /* If we need to get the data for the entire process (ie. lwp_ == 0)
-         then we need to the pm_get_data_group function requires any
-         lwp in the group, so we'll grab the lwp of any active thread in the
-         process */
-      struct thrdsinfo thrd_buf[10]; // max 10 threads
-      getthrds(proc_->getPid(), thrd_buf, sizeof(struct thrdsinfo), 0, 1);
-      lwp_to_use = thrd_buf[0].ti_tid;
+      /* If we need to get the data for the entire process (ie. lwp_ == 0) then
+         we need to the pm_get_data_group function requires any lwp in the
+         group, so we'll grab the lwp of any active thread in the process */
+      if(getthrds(proc_->getPid(), &thrd_buf, sizeof(struct thrdsinfo), 
+                  &indexPtr, 1) == 0) {
+         // perhaps the process ended
+         return -1;
+      }
+      lwp_to_use = thrd_buf.ti_tid;
    }
-  
+
    // PM counters are only valid when the process is paused. 
    bool needToCont = (proc_->status() == running);
    if(proc_->status() == running) {
-      proc_->pause();
+      if(! proc_->pause()) {
+         return -1;  // pause failed, so returning failure
+      }
    }
 
    pm_data_t data;
    if(lwp_ > 0) 
       ret = pm_get_data_thread(proc_->getPid(), lwp_to_use, &data);
-   else   // lwp == 0, means get data for the entire process (ie. all lwps)
+   else {  // lwp == 0, means get data for the entire process (ie. all lwps)
       ret = pm_get_data_group(proc_->getPid(), lwp_to_use, &data);
-   if (ret) {    
+      while(ret) {
+         // if failed, could have been because the lwp (retrieved via
+         // getthrds) was in process of being deleted.
+         //cerr << "  prev lwp_to_use " << lwp_to_use << " failed\n";
+         if(getthrds(proc_->getPid(), &thrd_buf, sizeof(struct thrdsinfo), 
+                     &indexPtr, 1) == 0) {
+            // couldn't get a valid lwp, go to standard error handling
+            ret = 1;
+            break;
+         }
+         lwp_to_use = thrd_buf.ti_tid;
+         //cerr << "  next lwp_to_use is " << lwp_to_use << "\n";
+         ret = pm_get_data_group(proc_->getPid(), lwp_to_use, &data);
+      }
+   }
+
+   if (ret) {
        pm_error("dyn_lwp::getRawCpuTime_hw: pm_get_data_thread", ret);
        fprintf(stderr, "Attempted pm_get_data(%d, %d, %d)\n",
                proc_->getPid(), lwp_, lwp_to_use);
-       
+       return -1;
    }
    rawTime64 result = data.accu[get_hwctr_binding(PM_CYC_EVENT)];
 
@@ -1829,7 +1855,7 @@ rawTime64 dyn_lwp::getRawCpuTime_hw()
    }
    else 
       hw_previous_ = result;
-
+   
    return result;
 #else
    return 0;
