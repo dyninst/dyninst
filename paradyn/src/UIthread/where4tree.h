@@ -4,11 +4,15 @@
 // Header file for subtree based on where4.fig [and where5.fig]
 
 /* $Log: where4tree.h,v $
-/* Revision 1.4  1995/07/27 23:27:45  tamches
-/* Crash upon sorting huge CMF application mysteriously
-/* goes away when quicksort is altered slightly to remove
-/* tail recursion.
+/* Revision 1.5  1995/08/04 19:18:00  tamches
+/* Added numChildrenAddedSinceLastSort field to every node.
+/* Changes needed for using Vector::sort()
 /*
+ * Revision 1.4  1995/07/27  23:27:45  tamches
+ * Crash upon sorting huge CMF application mysteriously
+ * goes away when quicksort is altered slightly to remove
+ * tail recursion.
+ *
  * Revision 1.3  1995/07/24  21:34:58  tamches
  * Added sorting.
  * Removed member function addChildren()
@@ -109,6 +113,9 @@ class where4tree {
  private:
    rootNode theRootNode;
    USERNODEDATA theUserNodeData;
+   unsigned numChildrenAddedSinceLastSort;
+      // if << children.size(), then we resort using an insertion sort;
+      // else, we resort using a quicksort.  If 0, no sorting is needed.
 
    struct childstruct {
       where4tree *theTree;
@@ -116,24 +123,23 @@ class where4tree {
       int  nameTextWidthIfInListbox; // caches away an XTextWidth() call [lb width],
          // easing the pain of rethink_listbox_dimensions()
 
-//      childstruct() {} // default constructors are required by Vector
-//      childstruct(const childstruct &src) {
-//         theTree = src.theTree;
-//         isExplicitlyExpanded = src.isExplicitlyExpanded;
-//         nameTextWidthIfInListbox = src.nameTextWidthIfInListbox;
-//      }
-//      childstruct &operator=(const childstruct &src) {
-//         theTree = src.theTree;
-//         isExplicitlyExpanded = src.isExplicitlyExpanded;
-//         nameTextWidthIfInListbox = src.nameTextWidthIfInListbox;
-//
-//         return *this;
-//      }
+      static int cmpfunc(const void *ptr1, const void *ptr2) {
+         // for qsort()
+         const childstruct &child1 = *(const childstruct *)ptr1;
+         const childstruct &child2 = *(const childstruct *)ptr2;
 
-      bool operator<(const childstruct &other) {
+         if (child1 < child2)
+            return -1;
+         else if (child1 > child2)
+            return 1;
+         else
+            return 0;
+      }
+
+      bool operator<(const childstruct &other) const {
          return theTree->getRootName() < other.theTree->getRootName();
       }
-      bool operator>(const childstruct &other) {
+      bool operator>(const childstruct &other) const {
          return theTree->getRootName() > other.theTree->getRootName();
       }
    };
@@ -341,7 +347,8 @@ class where4tree {
       // had passed false as the last parameter...(Of course, calling addChildren()
       // just once would have been even better, but it's not always convenient to use.)
 
-   void sortChildren(int left, int right);
+//   void InsertionsortChildren(int left, int right);
+//   void QuicksortChildren(int left, int right);
    void sortChildren();
       // does no redrawing.
 
