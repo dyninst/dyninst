@@ -43,7 +43,7 @@
  * RTaix.c: mutatee-side library function specific to AIX
 ************************************************************************/
 
-#include <dlfcn.h> // dlopen constants
+#include <dlfcn.h> /* dlopen constants */
 #include <stdio.h>
 
 /************************************************************************
@@ -65,7 +65,7 @@ int DYNINSTloadLibrary(char *libname)
 
     if( res == NULL ) {
 	perror( "DYNINSTloadLibrary -- dlopen" );
-	return 0;  // An error has occurred
+	return 0;  /* An error has occurred */
     } else
 	return 1;
 
