@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.448 2003/09/05 16:28:02 schendel Exp $
+// $Id: process.C,v 1.449 2003/09/11 18:20:16 chadd Exp $
 
 #include <ctype.h>
 
@@ -1034,13 +1034,17 @@ void process::saveWorldCreateDataSections(void* ptr){
 }
 #endif
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) 
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
 
 void process::saveWorldAddSharedLibs(void *ptr){ // ccw 14 may 2002 
 
 	int dataSize=0;
 	char *data, *dataptr;
-	writeBackElf *newElf = (writeBackElf*)ptr;
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
+	writeBackElf *newFile = (writeBackElf*) ptr;
+#elif defined(rs6000_ibm_aix4_1)
+	writeBackXCOFF *newFile = (writeBackXCOFF*) ptr;
+#endif
 
 	for(unsigned i=0;i<loadLibraryUpdates.size();i++){
 		dataSize += loadLibraryUpdates[i].length() + 1;
@@ -1048,16 +1052,23 @@ void process::saveWorldAddSharedLibs(void *ptr){ // ccw 14 may 2002
 	dataSize++;
 	data = new char[dataSize];
 	dataptr = data;
+	/*fprintf(stderr," dataSize: %d\n", dataSize);*/
 
 	for(unsigned j=0;j<loadLibraryUpdates.size();j++){
 		memcpy( dataptr, loadLibraryUpdates[j].c_str(), loadLibraryUpdates[j].length()); 
+
+		/*fprintf(stderr,"SAVING: %s %d\n", dataptr,dataSize);*/
 		dataptr += loadLibraryUpdates[j].length();
 		*dataptr = '\0';
 		dataptr++; 
 	}
-	dataptr = '\0'; //mark the end
+	*dataptr = '\0'; //mark the end
 	if(dataSize > 1){
-		newElf->addSection(0, data, dataSize, "dyninstAPI_loadLib", false);
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
+		newFile->addSection(0, data, dataSize, "dyninstAPI_loadLib", false);
+#elif  defined(rs6000_ibm_aix4_1)
+		newFile->addSection("dyn_lib",0,0, dataSize, data);
+#endif
 	}
 	delete [] data;
 }
