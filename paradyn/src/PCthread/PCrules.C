@@ -1,7 +1,12 @@
 /*
  * 
  * $Log: PCrules.C,v $
- * Revision 1.7  1994/05/02 20:38:14  hollings
+ * Revision 1.8  1994/05/31 18:40:43  markc
+ * Cleaned up debugging messages.  Commented out the code that divided by
+ * metric values by the number of active processes in the test for
+ * highSynctoCPU ratio until this is clarified by Jeff.
+ *
+ * Revision 1.7  1994/05/02  20:38:14  hollings
  * added pause search mode, and cleanedup global variable naming.
  *
  * Revision 1.6  1994/04/13  01:37:07  markc
@@ -55,7 +60,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.7 1994/05/02 20:38:14 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.8 1994/05/31 18:40:43 markc Exp $";
 #endif
 
 #include <stdio.h>
@@ -149,18 +154,19 @@ Boolean highFuncInst_ENABLE(collectMode newMode)
 /* ARGSUSED */
 void highFuncInst_TEST(testValue *result, float normalize)
 {
+  sampleValue pc, ap;
+
     result->status = FALSE;
-#ifdef PC_PRINT
-    cout << "highFuncInst >? V=" << (procedureCalls.value() /
-                                  activeProcesses.value(whereAxis) /
-				  maxIPSprocedureCallRate) << " A="
-				  << (highInstOverheadThreshold*hysteresis)
-				    << "\n";
-#endif
-    if (procedureCalls.value()/activeProcesses.value(whereAxis)/
+    if ((pc =procedureCalls.value())/(ap = activeProcesses.value(whereAxis))/
 	maxIPSprocedureCallRate > highInstOverheadThreshold*normalize) {
 	result->status = TRUE;
     }
+#ifdef PC_PRINT
+    cout << "highFuncInst >? V=" << (pc / ap /
+				  maxIPSprocedureCallRate) << " A="
+				  << (highInstOverheadThreshold*normalize)
+				    << "\n";
+#endif
     return;
 }
 
@@ -177,11 +183,15 @@ Boolean highSyncToCPURatio_ENABLE(collectMode newMode)
 void highSyncToCPURatio_TEST(testValue *result, float normalize)
 {
     float active;
+    sampleValue st;
 
     result->status = FALSE;
+    /*
     active = activeProcesses.value(whereAxis);
+    */
+    active = 1.0;
     if (active > 0.0) {
-	if (SyncTime.value()/active > highSyncThreshold * normalize) {
+	if ((st=SyncTime.value())/active > highSyncThreshold * normalize) {
 	    result->status = TRUE;
 	}
     }
@@ -189,8 +199,12 @@ void highSyncToCPURatio_TEST(testValue *result, float normalize)
     if (active <= 0.0)
       cout << "highSyncToCPURatio Not active\n";
     else
-      cout << "highSyncToCPURatio >? V=" << (SyncTime.value() / active) <<
-	" A=" << (highSyncThreshold * hysteresis) << "\n";
+      cout << "\nhighSyncToCPURatio >? V=" << (st / active) <<
+	" A=" << (highSyncThreshold * normalize) << "\n"
+	  << "SyncTime.value()=" << st << "\n" 
+	    << "/active = " << active << "\n"
+	      << "normalize =" << normalize << "\n";
+    assert(normalize >= 0.0);
 #endif
     return;
 }
@@ -226,7 +240,7 @@ void highCPUtoSyncRatio_TEST(testValue *result, float normalize)
     }
 #ifdef PC_PRINT
     cout << "highCPUtoSyncRatio >? V=" << (CPUtime.value() / processes) <<
-      " A=" << (highCPUtoSyncRatioThreshold * hysteresis) << "\n";
+      " A=" << (highCPUtoSyncRatioThreshold * normalize) << "\n";
 #endif
     return;
 }
@@ -255,7 +269,7 @@ void criticalSectionTooLarge_TEST(testValue *result, float normalize)
     }
 #ifdef PC_PRINT
     cout << "critSectooLarge >? V=" << pctHeld << " A=" <<
-      (largeCriticalSectionThreshold * hysteresis) << "\n";
+      (largeCriticalSectionThreshold * normalize) << "\n";
 #endif   
     return;
 }
@@ -389,7 +403,7 @@ void highIOwait_TEST(testValue *result, float normalize)
       }
 #ifdef PC_PRINT
     cout << "highIOwait >? V=" << IOwait.value() << " A=" <<
-      (highIOthreshold * hysteresis) << "\n";
+      (highIOthreshold * normalize) << "\n";
 #endif
     return;
 }
@@ -417,7 +431,7 @@ void smallIO_TEST(testValue *result, float normalize)
 	result->status = TRUE;
     }
 #ifdef PC_PRINT    
-    cout << "smallIO >? V=" << avgRead << " A=" << (diskBlockSize * hysteresis)
+    cout << "smallIO >? V=" << avgRead << " A=" << (diskBlockSize * normalize)
       << "\n";
 #endif
     return;
@@ -577,6 +591,8 @@ void cpuProfileExplanation(searchHistoryNode *explainee)
 //
 hypothesis whyAxis(NULL, NULL, "topLevelHypothesis");
 
+hypothesis syncBottleneck(&whyAxis, NULL, "syncBottleneck");
+
 hypothesis ioBottleneck(&whyAxis, NULL, "ioBottleneck");
 
 hypothesis cpuBottleneck(&whyAxis, NULL, "cpuBottleneck");
@@ -608,7 +624,6 @@ hypothesis cpuBound(&cpuBottleneck, &highCPUtoSyncRatio, "cpuBound",
 //
 // Sync bottlenecks
 //
-hypothesis syncBottleneck(&whyAxis, NULL, "syncBottleneck");
 
 hypothesis excesiveBlockingTime(&syncBottleneck, 
 	&highSyncToCPURatio, "excesiveBlockingTime");
@@ -619,7 +634,9 @@ hypothesis excesiveBlockingTime(&syncBottleneck,
 // hypothesis lockTooLarge(&excesiveBlockingTime, &lockTooLarge);
 //
 
+/* 
 hypothesis hotSyncObject(&excesiveBlockingTime, &highVariationLock, "hotSync");
+*/
 
 hypothesis excesiveSyncRates(&syncBottleneck, &highSyncRate, 
 	"excesiveSyncRates");
