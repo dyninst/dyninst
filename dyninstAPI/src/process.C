@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.516 2005/01/19 17:41:07 bernat Exp $
+// $Id: process.C,v 1.517 2005/01/19 19:24:13 legendre Exp $
 
 #include <ctype.h>
 
@@ -683,7 +683,6 @@ bool process::isInSignalHandler(Address addr)
  * been written by the mutator //ccw 26 nov 2001
  */
  
-#if defined( BPATCH_LIBRARY )
 #if defined( sparc_sun_solaris2_4 ) || defined( i386_unknown_linux2_0 ) || defined( rs6000_ibm_aix4_1 )
 
 void process::saveWorldData( Address address, int size, const void * src ) {
@@ -701,7 +700,6 @@ void process::saveWorldData( Address address, int size, const void * src ) {
 
 void process::saveWorldData( Address, int, const void* ) { ; }	  
 
-#endif
 #endif
 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)  || defined(rs6000_ibm_aix4_1)
