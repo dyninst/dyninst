@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: init-sunos.C,v 1.27 1999/12/01 14:41:45 zhichen Exp $ */
+/* $Id: init-sunos.C,v 1.28 2000/03/03 22:09:09 mirg Exp $ */
 
 #include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
@@ -61,25 +61,17 @@ bool initOS() {
   initialRequests += new instMapping("main", "DYNINSTexit", FUNC_EXIT);
 
   initialRequests += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);
-#if defined(i386_unknown_solaris2_5) || defined(sparc_sun_sunos4_1_3)
-	retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
-  	initialRequests += new instMapping("_fork", "DYNINSTfork", 
+
+  retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
+  initialRequests += new instMapping("fork", "DYNINSTfork", 
 				     FUNC_EXIT|FUNC_ARG, retVal);
-#else
-	retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
-  	initialRequests += new instMapping("fork", "DYNINSTfork", 
-				     FUNC_EXIT|FUNC_ARG, retVal);
-/*
-	retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
-      	initialRequests += new instMapping("_libc_fork", "DYNINSTfork", 
-		FUNC_EXIT|FUNC_ARG, retVal);*/
-#endif
-#if defined(MT_THREAD)
+
   //libthread _fork
   retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
   initialRequests += new instMapping("_fork", "DYNINSTfork", 
 				     FUNC_EXIT|FUNC_ARG, retVal);
   
+#if defined(MT_THREAD)
   initialRequests += new instMapping("_thread_start",
 				     "DYNINST_VirtualTimerCREATE",
 				     FUNC_ENTRY, callPreInsn,
