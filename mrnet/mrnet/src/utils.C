@@ -1,7 +1,7 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
 #include "mrnet/src/utils.h"
 #include "mrnet/src/Types.h"
@@ -113,13 +113,13 @@ inline void delete_hostent( struct hostent *in )
     unsigned int count=0;
     while( in->h_aliases[count] != NULL )
         free( in->h_aliases[count++] );
-    delete in->h_aliases;
+    delete [] in->h_aliases;
 
     count=0;
     while( in->h_addr_list[count] != 0 )
-        delete in->h_addr_list[count++];
+        delete [] in->h_addr_list[count++];
 
-    delete in->h_addr_list;
+    delete [] in->h_addr_list;
     delete in;
 }
 
@@ -315,12 +315,17 @@ int getSocketConnection( int bound_socket )
     mrn_dbg( 3, mrn_printf(FLF, stderr, "In get_connection(sock:%d).\n",
                 bound_socket ) );
 
-    connected_socket = accept( bound_socket, NULL, NULL );
-    if( connected_socket == -1 ) {
-        mrn_dbg( 1, mrn_printf(FLF, stderr, "%s", "" ) );
-        perror( "accept()" );
-        return -1;
-    }
+    do{
+        connected_socket = accept( bound_socket, NULL, NULL );
+        if( connected_socket == -1 ) {
+            mrn_dbg( 1, mrn_printf(FLF, stderr, "%s", "" ) );
+            perror( "accept()" );
+
+            if ( errno != EINTR ) {
+                return -1;
+            }
+        }
+    } while ( ( connected_socket == -1 ) && ( errno == EINTR ) );
 
 #if defined(TCP_NODELAY)
     // turn off Nagle algorithm for coalescing packets
