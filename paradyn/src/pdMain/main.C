@@ -1,7 +1,10 @@
 /* $Log: main.C,v $
-/* Revision 1.3  1994/04/10 19:08:48  newhall
-/* added visualization manager thread create
+/* Revision 1.4  1994/04/21 23:25:19  hollings
+/* changed to no initial paradynd being defined.
 /*
+ * Revision 1.3  1994/04/10  19:08:48  newhall
+ * added visualization manager thread create
+ *
  * Revision 1.2  1994/04/05  04:36:48  karavan
  * Changed order of thread initialization to avoid deadlock.  Added global
  * user variables for data manager, uim, and performance consultant.
@@ -60,8 +63,8 @@ main (int argc, char *argv[])
   tag_t mtag;
 
 
-  if (argc < 3) {
-    printf("usage: %s <paradynd> <program executable>\n", argv[0]);
+  if (argc != 1) {
+    printf("usage: %s\n", argv[0]);
     exit(-1);
   }
 
