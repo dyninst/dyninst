@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2001 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.57 2000/10/17 17:27:58 schendel Exp $
+// $Id: main.C,v 1.58 2001/02/02 15:58:59 pcroth Exp $
 
 /*
  * main.C - main routine for paradyn.  
@@ -373,7 +373,9 @@ main (int argc, char **argv)
 
   thr_join (UIMtid, NULL, NULL);
 
+#if !defined(i386_unknown_nt4_0)
   mpichUnlinkWrappers();
+#endif // !defined(i386_unknown_nt4_0)
 
   Tcl_DeleteInterp(interp);
 
