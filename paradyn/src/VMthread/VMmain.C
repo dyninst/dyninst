@@ -14,10 +14,14 @@
  *
  */
 /* $Log: VMmain.C,v $
-/* Revision 1.27  1995/01/26 17:59:17  jcargill
-/* Changed igen-generated include files to new naming convention; fixed
-/* some bugs compiling with gcc-2.6.3.
+/* Revision 1.28  1995/02/07 21:55:11  newhall
+/* modified VMCreateVisi to get value for forceProcessStart from either
+/* the caller or the visi table
 /*
+ * Revision 1.27  1995/01/26  17:59:17  jcargill
+ * Changed igen-generated include files to new naming convention; fixed
+ * some bugs compiling with gcc-2.6.3.
+ *
  * Revision 1.26  1994/11/04  06:41:31  newhall
  * removed printfs
  *
@@ -235,6 +239,8 @@ List<VMvisis *> walk;
       return(VMERROR);
     }
     visiList.add(temp,(void *)id);
+    PARADYN_DEBUG(("new visi added %s force start %d",name,forceProcessStart));
+
   } else {
     // redefine an existing entry
     if (temp->argv) {
@@ -325,8 +331,10 @@ update_active_visis(VM* thisptr) {
 //
 // remenuFlag: if set, remenuing request made by visithread when
 //             a set of metrics and resource choices can't be enabled
-// forceProcessStart: if set, the first menuing request is skiped
+// forceProcessStart: if 1, the first menuing request is skiped
 //                     (visi process is started w/o menuing first)
+//		      if 0, menuing is done before starting the visi
+//		      if -1, the force value is obtained from the visi table
 // visiTypeId: identifier indicating wch visi to start
 // matrix: a string representation of an initail set 
 //         of metrics and/or resources for the visi 
@@ -371,9 +379,13 @@ VMvisis *visitemp;
       temp->numMatrices = 0;
   }
   temp->remenuFlag = remenuFlag;
-  temp->forceProcessStart = forceProcessStart;
+  if(forceProcessStart == -1)
+      temp->forceProcessStart = visitemp->forceProcessStart;
+  else
+      temp->forceProcessStart = forceProcessStart;
 
 
+  PARADYN_DEBUG(("forceProcessStart = %d\n",temp->forceProcessStart));
   // create a visi thread  
   thr_create(0,0,&VISIthreadmain,temp,0,&tid);
 
@@ -515,7 +527,6 @@ void *VMmain(void* varg) {
   ump = uiMgr;
   pcp = perfConsult;
 
-  PARADYN_DEBUG(("before loop in VMmain"));
   while(1){
       found = 0;
       tag = MSG_TAG_ANY;
