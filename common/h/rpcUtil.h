@@ -2,7 +2,9 @@
 #ifndef RPC_UTIL
 #define RPC_UTIL
 
+extern "C" {
 #include <rpc/xdr.h>
+}
 
 #define xdr_Boolean 	xdr_bool
 typedef XDR *XDRptr;

@@ -12,7 +12,6 @@
 
 extern "C" {
 #include <rpc/types.h>
-#include <rpc/xdr.h>
 }
 #include "util/h/rpcUtil.h"
 
