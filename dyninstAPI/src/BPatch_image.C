@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.11 1999/06/30 16:11:28 davisj Exp $
+// $Id: BPatch_image.C,v 1.12 1999/06/30 21:51:26 hollings Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -126,8 +126,8 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_image::getGlobalVariables()
 	    if (!proc->getSymbolInfo(name, syminfo, baseAddr)) {
 		printf("unable to find variable %s\n", name.string_of());
 	    }
-	    var = new BPatch_variableExpr(name.string_of(), proc, 
-		(void *)syminfo.addr(), type);
+	    var = new BPatch_variableExpr((char *) name.string_of(), proc, 
+		(void *)syminfo.addr(), (const BPatch_type *) type);
 	    varlist->push_back(var);
 	}
     }
@@ -352,7 +352,8 @@ BPatch_variableExpr *BPatch_image::findVariable(const char *name)
         type = BPatch::bpatch->type_Untyped;
     }
 
-    return new BPatch_variableExpr(name, proc, (void *)syminfo.addr(), type);
+    return new BPatch_variableExpr((char *) name, proc, (void *)syminfo.addr(), 
+	 (const BPatch_type *) type);
 }
 
 /*

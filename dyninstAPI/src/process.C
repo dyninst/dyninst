@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.177 1999/06/30 16:11:29 davisj Exp $
+// $Id: process.C,v 1.178 1999/06/30 21:51:27 hollings Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2296,7 +2296,9 @@ bool process::addASharedObject(shared_object &new_obj){
 	string name = curr->fileName();
 
 	BPatch_thread *thread = BPatch::bpatch->getThreadByPid(pid);
-	assert(thread);
+	if(!thread)
+	  continue;  //There is no BPatch_thread yet, so nothing else to do
+	// this occurs in the attach case - jdd 6/30/99
 	
 	BPatch_image *image = thread->getImage();
 	assert(image);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.18 1999/06/30 16:11:28 davisj Exp $
+// $Id: BPatch_snippet.C,v 1.19 1999/06/30 21:51:27 hollings Exp $
 
 #include <string.h>
 #include "ast.h"
@@ -629,8 +629,8 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponents()
 	BPatch_variableExpr *newVar;
 
 	newAddr = ((Address) address) + (field->offset / 8);
-	newVar = new BPatch_variableExpr(field->getName(), proc, 
-	    (void *) newAddr, field->type);
+	newVar = new BPatch_variableExpr((char *) field->getName(), proc, 
+	    (void *) newAddr, (const BPatch_type *) field->type);
 	retList->push_back(newVar);
     }
 

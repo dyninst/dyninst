@@ -42,7 +42,6 @@
 #ifndef _BPatch_collections_h_
 #define _BPatch_collections_h_
 
-#include  <libelf.h>
 #include "BPatch_type.h"     //type and localVar
 #include "../../util/h/String.h"
 #include "../../util/h/Dictionary.h"
