@@ -158,9 +158,6 @@ class aggComponent {
   bool isInitialStartTimeSet() const {
     return lastProcessedSampleTime.isInitialized();
   }
-  bool isReadyToReceiveSamples() const {
-    return isInitialStartTimeSet() && (!curActualVal.isNaN());
-  }
   bool isInitialActualValueSet() const {
     return !initActualVal.isNaN();
   }
@@ -170,6 +167,12 @@ class aggComponent {
     curActualVal = v;
   }
   pdSample getInitialActualValue() const { return initActualVal; }
+  bool isReadyToReceiveSamples() const {
+    return isInitialStartTimeSet() && (!curActualVal.isNaN());
+  }
+  bool isInitialized() const {
+    return (isInitialStartTimeSet() && isInitialActualValueSet());
+  }
 
   // note the value here is a change in sample value that got added at the
   // specified timeOfSample
