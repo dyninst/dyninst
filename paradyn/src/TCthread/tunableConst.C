@@ -3,6 +3,9 @@
  *    execution of the system.
  *
  * $Log: tunableConst.C,v $
+ * Revision 1.3  1995/08/05 17:09:36  krisna
+ * no `virtual' outside a class declaration
+ *
  * Revision 1.2  1995/06/24 20:49:47  tamches
  * Removed setValue() and print() for individual tc's.
  *
@@ -299,7 +302,7 @@ tunableConstantBase::tunableConstantBase(const string theName,
    this->use = theUse;
 }
 
-virtual tunableConstantBase::~tunableConstantBase() {
+tunableConstantBase::~tunableConstantBase() {
    // name and desc are deallocated automatically
 }
 
