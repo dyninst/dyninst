@@ -3,7 +3,11 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.11  1994/07/22 19:16:36  hollings
+ * Revision 1.12  1994/08/17 18:11:59  markc
+ * Changed the execv to execvp.
+ * Changed arglist in forkProcess.
+ *
+ * Revision 1.11  1994/07/22  19:16:36  hollings
  * moved computePauseTimeMetric here, and added lib func calls for cmmd routines.
  *
  * Revision 1.10  1994/07/15  20:22:03  hollings
@@ -48,7 +52,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sunos.C,v 1.11 1994/07/22 19:16:36 hollings Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/inst-sunos.C,v 1.12 1994/08/17 18:11:59 markc Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -266,27 +270,26 @@ void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr)
 
     /*
      * It would be nice if this weren't sensitive to the size of
-     * arg_list.  For the moment, only 6 are written by
-     * make_arg_list; this could be cleaner.
+     * arg_list.  For the moment, only arg_list[0] --> arg_list[4]
+     * are written by RPC_make_arg_list (arg_list[5] is NULL).
+     * This is a small-time hack.
      */
     argv[0] = command;
     argv[1] = application;
     argv[2] = app_pid;
     argv[3] = num_nodes;
-    argv[4] = arg_list[1];
-    argv[5] = arg_list[2];
-    argv[6] = arg_list[3];
-    argv[7] = arg_list[4];
-    argv[8] = arg_list[5];
-    argv[9] = arg_list[6];
-    argv[10] = arg_list[7];
-    argv[11] = 0;
+    argv[4] = arg_list[0];
+    argv[5] = arg_list[1];
+    argv[6] = arg_list[2];
+    argv[7] = arg_list[3];
+    argv[8] = arg_list[4];
+    argv[9] = 0;
 
     if ((childPid=fork()) == 0) {		/* child */
 
 /* 	ptrace (0, 0, 0, 0, 0); */
 
-	execv (command, argv);
+	execvp (command, argv);
 	abort();
     }
     else {			/* parent */
