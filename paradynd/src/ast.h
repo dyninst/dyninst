@@ -1,7 +1,13 @@
 
+#ifndef AST_HDR
+#define AST_HDR
+
 /*
  * $Log: ast.h,v $
- * Revision 1.4  1994/09/22 01:44:51  markc
+ * Revision 1.5  1994/11/02 11:00:57  markc
+ * Replaced string-handles.
+ *
+ * Revision 1.4  1994/09/22  01:44:51  markc
  * Made first arg to AstNode constructor const
  * strdup'd callee in AstNode::AstNode, this is temporary
  * Made first arg to createPrimitiveCall const
@@ -14,9 +20,10 @@
 //
 
 extern "C" {
-#include <string.h>
 #include <stdio.h>
 }
+
+#include <strstream.h>
 
 class dataReqNode;
 
@@ -30,7 +37,7 @@ typedef int reg;
 class registerSlot {
  public:
     int number;         // what register is it
-    Boolean inUse;      // free or in use.
+    bool inUse;      // free or in use.
 };
 
 class registerSpace {
@@ -47,52 +54,55 @@ class registerSpace {
 
 class AstNode {
     public:
-	AstNode(const char *func, AstNode *l, AstNode *r) {
+	AstNode(const string func, AstNode *l, AstNode *r) {
 	    loperand = l;
 	    roperand = r;
-	    if (!strcmp(func, "setCounter")) {
+	    if (func == "setCounter") {
 		type = opCodeNode;
 		type = opCodeNode;
 		op = storeOp;
-            } else if (!strcmp(func, "addCounter")) {
+            } else if (func == "addCounter") {
 		type = opCodeNode;
 		roperand = new AstNode(plusOp, l, r);
 		op = storeOp;
-	    } else if (!strcmp(func, "subCounter")) {
+	    } else if (func == "subCounter") {
 		type = opCodeNode;
 		roperand = new AstNode(minusOp, l, r);
 		op = storeOp;
-	    } else if (!strcmp(func, "startTimer")) {
+	    } else if (func == "startTimer") {
 		type = callNode;
 		roperand = NULL;
 		if ((r->type != operandNode) || (r->oType !=  Constant)) {
-		    printf("invalid second operand to %s\n", func);
+		    ostrstream os(errorLine, 1024, ios::out);
+		    os << "invalid second operand to " << func << endl;
+		    logLine(errorLine);
 		    loperand = NULL;
 		} else {
 		    if (r->oValue == 0) {
-			callee = strdup("DYNINSTstartWallTimer");
+			callee = "DYNINSTstartWallTimer";
 		    } else {
-			callee = strdup("DYNINSTstartProcessTimer");
+			callee = "DYNINSTstartProcessTimer";
 		    }
 		    loperand = l;
 		}
-	    } else if (!strcmp(func, "stopTimer")) {
+	    } else if (func == "stopTimer") {
 		type = callNode;
 		roperand = NULL;
 		if ((r->type != operandNode) || (r->oType !=  Constant)) {
-		    printf("invalid second operand to %s\n", func);
+		    ostrstream os(errorLine, 1024, ios::out);
+		    os << "invalid second operand to " << func << endl;
 		    loperand = NULL;
 		} else {
 		    loperand = l;
 		    if (r->oValue == 0) {
-			callee = strdup("DYNINSTstopWallTimer");
+			callee = "DYNINSTstopWallTimer";
 		    } else {
-			callee = strdup("DYNINSTstopProcessTimer");
+			callee = "DYNINSTstopProcessTimer";
 		    }
 		}
 	    } else {
 		type = callNode;
-		callee = strdup(func);
+		callee = func;
 	    }
 	};
 	AstNode(operandType ot, void *arg) {
@@ -118,15 +128,15 @@ class AstNode {
 	    loperand = l;
 	    roperand = r;
 	};
-	int generateTramp(process *proc, char *i, caddr_t *base);
+	int generateTramp(process *proc, char *i, unsigned &base);
 	reg generateCode(process *proc, registerSpace *rs, char *i, 
-			 caddr_t *base);
+			 unsigned &base);
 	int cost();	// return the # of instruction times in the ast.
 	void print();
     private:
 	nodeType type;
 	opCode op;		// for opCode ndoes
-	char *callee;		// for call ndoes
+	string callee;		// for call ndoes
 	operandType oType;	// for operand nodes
 	void *oValue;		// for operand nodes
 	dataReqNode *dValue;	// for operand nodes
@@ -136,5 +146,7 @@ class AstNode {
 	int lastInsn;
 };
 
-AstNode *createPrimitiveCall(const char *func, dataReqNode*, int param2);
+AstNode *createPrimitiveCall(const string func, dataReqNode*, int param2);
 AstNode *createIf(AstNode *expression, AstNode *action);
+
+#endif
