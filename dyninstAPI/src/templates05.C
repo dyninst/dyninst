@@ -56,17 +56,17 @@
 #include "dyninstAPI/src/util.h"
 #include "util/h/Object.h"
 
-template class  dictionary<string, pdFunction *>;
+template class  dictionary<string, pd_Function *>;
 template class  dictionary<instPoint *, point *>;
 template class  dictionary<unsigned int, Symbol *>;
 template class  dictionary<unsigned int, metricDefinitionNode *>;
 template class  dictionary<string, unsigned int>;
 template class  dictionary<instPoint *, unsigned int>;
 template class  dictionary<unsigned int, heapItem *>;
-template class  dictionary<string, vector<pdFunction *> *>;
+template class  dictionary<string, vector<pd_Function *> *>;
 template class  dictionary<string, internalSym *>;
 template class  dictionary<string, pdmodule *>;
-template class  dictionary<unsigned int, pdFunction *>;
+template class  dictionary<unsigned int, pd_Function *>;
 template class  dictionary<unsigned int, unsigned int>;
 template class  dictionary<unsigned int, resource *>;
 template class  dictionary<string, resource *>;

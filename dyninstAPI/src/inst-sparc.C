@@ -61,7 +61,7 @@ int deadList[] = {16, 17, 18, 19, 20, 21, 22, 23 };
 // reach, the instructions to be moved are the one instruction at that
 // point plus others if necessary(i.e. instruction in the delayed
 // slot and maybe the aggregate instuction ).    
-instPoint::instPoint(pdFunction *f, const instruction &instr, 
+instPoint::instPoint(pd_Function *f, const instruction &instr, 
 		     const image *owner, Address &adr, bool delayOK, 
 		     instPointType pointType, Address &oldAddr)
 : addr(adr), originalInstruction(instr), inDelaySlot(false), isDelayed(false),
@@ -223,7 +223,7 @@ void initDefaultPointFrequencyTable()
 float getPointFrequency(instPoint *point)
 {
 
-    pdFunction *func;
+    pd_Function *func;
 
     if (point->callee)
         func = point->callee;
@@ -432,7 +432,7 @@ int callsTrackedFuncP(instPoint *point)
  *  
  *   This is done to return a better idea of which function we are using.
  */
-pdFunction *getFunction(instPoint *point)
+pd_Function *getFunction(instPoint *point)
 {
     return(point->callee ? point->callee : point->func);
 }
@@ -688,7 +688,7 @@ bool isReturnInsn(const image *owner, Address adr, bool &lastOne)
 // called to relocate a function: when a request is made to instrument
 // a system call we relocate the entire function into the heap
 //
-bool pdFunction::relocateFunction(process *proc, 
+bool pd_Function::relocateFunction(process *proc, 
 				 const instPoint *&location,
 				 vector<instruction> &extra_instrs) {
 
@@ -720,7 +720,7 @@ bool pdFunction::relocateFunction(process *proc,
 // address (this can occur because we are getting instPoints in mdl routines 
 // and passing these to routines that do the instrumentation, it would
 // be better to let the routines that do the instrumenting find the points)
-void pdFunction::modifyInstPoint(const instPoint *&location,process *proc)
+void pd_Function::modifyInstPoint(const instPoint *&location,process *proc)
 {
 
     if(relocatable_ && !(location->relocated_)){
@@ -734,6 +734,11 @@ void pdFunction::modifyInstPoint(const instPoint *&location,process *proc)
 		else if(location->ipType == functionExit){
 		    const vector<instPoint *> new_returns = 
 			(relocatedByProcess[i])->funcReturns(); 
+                    if(funcReturns.size() != new_returns.size()){
+			printf("funcReturns = %d new_returns = %d\n",
+				funcReturns.size(),new_returns.size());
+                        fflush(stdout);
+		    }
                     assert(funcReturns.size() == new_returns.size());
                     for(u_int j=0; j < new_returns.size(); j++){
 			if(funcReturns[j] == location){

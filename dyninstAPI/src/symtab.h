@@ -132,23 +132,52 @@ private:
 class pdmodule;
 class module;
 
-//Todo: move this class to machine dependent file?
-class pdFunction {
+class function_base {
+public:
+    function_base(const string symbol, const string &pretty,
+		Address adr, const unsigned size,const unsigned tg):
+		symTabName_(symbol),prettyName_(pretty),line_(0),
+		addr_(adr),size_(size),tag_(tg) { }
+    virtual ~function_base() { /* TODO */ }
+    string symTabName() const { return symTabName_;}
+    string prettyName() const { return prettyName_;}
+    unsigned size() const {return size_;}
+    unsigned addr() const {return addr_;}
+    unsigned tag() const { return tag_;}
+    void setTag(unsigned tg){ tag_ = tg; }
+
+    virtual Address getAddress(const process *p) = 0;
+    virtual const instPoint *funcEntry(process *p) const = 0;
+    virtual const vector<instPoint*> &funcExits(process *p) const = 0;
+    virtual const vector<instPoint*> &funcCalls(process *p) const = 0; 
+    virtual bool isLeafFunc() const = 0; 
+
+private:
+    string symTabName_;		/* name as it appears in the symbol table */
+    string prettyName_;		/* user's view of name (i.e. de-mangled) */
+    int line_;			/* first line of function */
+    Address addr_;		/* address of the start of the func */
+    unsigned size_;             /* the function size, in bytes, used to
+				   define the function boundaries. This may not
+				   be exact, and may not be used on all 
+				   platforms. */
+    
+    unsigned tag_;
+};
+
+class pd_Function : public function_base {
  public:
-    pdFunction(const string symbol, const string &pretty, pdmodule *f, 
+    pd_Function(const string symbol, const string &pretty, pdmodule *f, 
 		Address adr, const unsigned size, const unsigned tg, 
 		const image *owner, bool &err);
-    ~pdFunction() { /* TODO */ }
+    ~pd_Function() { /* TODO */ }
 
     bool findInstPoints(const image *owner);
     void checkCallPoints();
     bool defineInstPoint();
+    pdmodule *file() const { return file_;}
     Address newCallPoint(Address adr, const instruction code, 
 			 const image *owner, bool &err);
-    string symTabName() const { return symTabName_;}
-    string prettyName() const { return prettyName_;}
-    const pdmodule *file() const { return file_;}
-    unsigned size() const {return size_;}
     // passing in a value of 0 for p will return the original address
     // otherwise, if the process is relocated it will return the new address
     Address getAddress(const process *p){
@@ -157,7 +186,7 @@ class pdFunction {
 	    if((relocatedByProcess[i])->getProcess() == p) 
 		return (relocatedByProcess[i])->address();
 	} }
-	return addr_;
+	return addr();
     }
     const instPoint *funcEntry(process *p) const {
         if(relocatable_) { 
@@ -198,12 +227,18 @@ class pdFunction {
 	        (relocatedByProcess[i])->setInstalled();
 	} }
     }
-    inline void tagAsLib() { tag_ |= TAG_LIB_FUNC;}
-    inline void untagAsLib() { tag_ &= ~TAG_LIB_FUNC;}
-    inline bool isTagSimilar(const unsigned comp) const { return(tag_ & comp);}
-    bool isLibTag() const { return (tag_ & TAG_LIB_FUNC);}
-    unsigned tag() const { return tag_; }
-    bool isLeafFunc() {return leaf;}
+    inline void tagAsLib(){ unsigned tg=tag(); tg |= TAG_LIB_FUNC; setTag(tg);}
+    inline void untagAsLib() { 
+	unsigned t = tag(); 
+	t &= ~TAG_LIB_FUNC; 
+	setTag(t);
+    }
+    inline bool isTagSimilar(const unsigned comp) const { 
+	unsigned tg = tag();
+    	return(tg & comp);
+    }
+    bool isLibTag() const { return (tag() & TAG_LIB_FUNC);}
+    bool isLeafFunc() const {return leaf;}
     bool isTrapFunc() {return isTrap;}
 
 #if defined(hppa1_1_hp_hpux)
@@ -237,16 +272,7 @@ class pdFunction {
 #endif
 
   private:
-    unsigned tag_;
-    string symTabName_;		/* name as it appears in the symbol table */
-    string prettyName_;		/* user's view of name (i.e. de-mangled) */
-    int line_;			/* first line of function */
     pdmodule *file_;		/* pointer to file that defines func. */
-    Address addr_;		/* address of the start of the func */
-    unsigned size_;             /* the function size, in bytes, used to
-				   define the function boundaries. This may not
-				   be exact, and may not be used on all 
-				   platforms. */
     instPoint *funcEntry_;	/* place to instrument entry (often not addr) */
     vector<instPoint*> funcReturns;	/* return point(s). */
     vector<instPoint*> calls;		/* pointer to the calls */
@@ -257,7 +283,6 @@ class pdFunction {
     bool isTrap; 		// true if function contains a trap instruct
     vector<relocatedFuncInfo *> relocatedByProcess; // one element per process
 };
-
 
 /* Stores source code to address in text association for modules */
 class lineDict {
@@ -285,9 +310,9 @@ public:
     supportedLanguages language() const { return language_;}
     Address addr() const { return addr_; }
 
-    virtual pdFunction *findFunction (const string &name) = 0;
+    virtual function_base *findFunction (const string &name) = 0;
     virtual void define() = 0;    // defines module to paradyn
-    virtual vector<pdFunction *> *getFunctions() = 0;
+    virtual vector<function_base *> *getFunctions() = 0;
 
 private:
     string fileName_;                   // short file 
@@ -314,14 +339,14 @@ public:
   void checkAllCallPoints();
   inline void changeLibFlag(const bool setSuppress);
   void define();    // defines module to paradyn
-  vector<pdFunction *> *getFunctions() { return &funcs;} 
-  pdFunction *findFunction (const string &name);
+  vector<function_base *> *getFunctions() { return (vector<function_base *>*)&funcs;} 
+  pd_Function *findFunction (const string &name);
 
 
 private:
   image *exec_;                      // what executable it came from 
   lineDict lines_;
-  vector<pdFunction*> funcs;
+  vector<pd_Function*> funcs;
 };
 
 /*
@@ -363,12 +388,12 @@ public:
   pdmodule *findModule(const string &name);
 
   // find the function by name, address, or the first by name
-  bool findFunction(const string &name, vector<pdFunction*> &flist);
-  pdFunction *findFunction(const Address &addr);
-  pdFunction *findOneFunction(const string &name);
-  pdFunction *findOneFunctionFromAll(const string &name);
+  bool findFunction(const string &name, vector<pd_Function*> &flist);
+  pd_Function *findFunction(const Address &addr);
+  pd_Function *findOneFunction(const string &name);
+  pd_Function *findOneFunctionFromAll(const string &name);
 
-  pdFunction *findFunctionIn(const Address &addr,const process *p);
+  pd_Function *findFunctionIn(const Address &addr,const process *p);
 
   // report modules to paradyn
   void defineModules();
@@ -391,7 +416,7 @@ public:
   inline bool isData(const Address &where) const;
 
   // functions by address for all modules
-  dictionary_hash <Address, pdFunction*> funcsByAddr;
+  dictionary_hash <Address, pd_Function*> funcsByAddr;
 
   // TODO -- get rid of one of these
   dictionary_hash <string, pdmodule *> modsByFileName;
@@ -404,11 +429,13 @@ public:
 
   // Called from the mdl -- lists of functions to look for
   static void watch_functions(string& name, vector<string> *vs, bool is_lib,
-			      vector<pdFunction*> *updateDict);
+			      vector<pd_Function*> *updateDict);
 
-  vector<pdFunction*> mdlLib;
-  vector<pdFunction*> mdlNormal;
-  vector<module *> mods;
+  const vector<pd_Function*> &getNormalFuncs() const { return mdlNormal; }
+
+  vector<pd_Function*> mdlLib;
+  vector<pd_Function*> mdlNormal;
+  vector<pdmodule *> mods;
 
 #if defined(hppa1_1_hp_hpux)
   vector<unwind_table_entry> unwind;
@@ -430,15 +457,15 @@ private:
 
   static vector<image*> allImages;
 
-  dictionary_hash <string, vector<pdFunction*>*> funcsByPretty;
+  dictionary_hash <string, vector<pd_Function*>*> funcsByPretty;
   // note, a prettyName is not unique, it may map to a function appearing
   // in several modules
 
-  vector <pdFunction *> notInstruFunction;
+  vector <pd_Function *> notInstruFunction;
   // The functions that we are not going to instrument 
 
   bool newFunc(pdmodule *, const string name, const Address addr, 
-	       const unsigned size, const unsigned tags, pdFunction *&retFunc);
+	       const unsigned size, const unsigned tags, pd_Function *&retFunc);
 
   void checkAllCallPoints();
 
@@ -449,7 +476,7 @@ private:
   pdmodule *newModule(const string &name, const Address addr);
 
   bool addOneFunction(vector<Symbol> &mods, pdmodule *lib, pdmodule *dyn,
-		      const Symbol &lookUp, pdFunction *&retFunc);
+		      const Symbol &lookUp, pd_Function *&retFunc);
 
   bool addAllFunctions(vector<Symbol> &mods,
 		       pdmodule *lib, pdmodule *dyn,
@@ -463,10 +490,10 @@ private:
   // if useLib = true or the functions' tags signify a library function
   // the function is put in the library module
   bool defineFunction(pdmodule *use, const Symbol &sym, const unsigned tags,
-		      pdFunction *&retFunc);
+		      pd_Function *&retFunc);
   bool defineFunction(pdmodule *lib, const Symbol &sym,
 		      const string &modName, const Address modAdr,
-		      pdFunction *&retFunc);
+		      pd_Function *&retFunc);
 
   bool heapIsOk(const vector<sym_data>&);
 
@@ -531,7 +558,7 @@ inline void pdmodule::changeLibFlag(const bool setSuppress) {
   }
 }
 
-inline pdFunction *pdmodule::findFunction (const string &name) {
+inline pd_Function *pdmodule::findFunction (const string &name) {
   unsigned fsize = funcs.size();
   for (unsigned f=0; f<fsize; f++) {
     if (funcs[f]->prettyName() == name)

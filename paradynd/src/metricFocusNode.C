@@ -343,6 +343,7 @@ metricDefinitionNode *createMetricInstance(string& metric_name,
 
       if (procs.size() == 0) {
 	// there are no processes to instrument
+	printf("createMetricInstance failed, no processes to instrument\n");
 	return NULL;
       }
 
@@ -1854,7 +1855,8 @@ bool sampledIntCounterReqNode::insertInstrumentation(process *theProc,
 
    writeToInferiorHeap(theProc, temp);
 
-   pdFunction *sampleFunction = theProc->findOneFunction("DYNINSTsampleValues");
+   function_base *sampleFunction = 
+	theProc->findOneFunction("DYNINSTsampleValues");
    assert(sampleFunction);
 
    AstNode *ast, *tmp;
@@ -2296,7 +2298,8 @@ bool sampledTimerReqNode::insertInstrumentation(process *theProc,
    writeToInferiorHeap(theProc, temp);
 
    // Now instrument DYNINSTreportTimer:
-   pdFunction *sampleFunction = theProc->findOneFunction("DYNINSTsampleValues");
+   function_base *sampleFunction = 
+	theProc->findOneFunction("DYNINSTsampleValues");
    assert(sampleFunction);
 
    AstNode *ast, *tmp;

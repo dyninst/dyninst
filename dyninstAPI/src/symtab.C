@@ -122,8 +122,8 @@ bool buildDemangledName(const string &mangled, string &use)
 // err is true if the function can't be defined
 bool image::newFunc(pdmodule *mod, const string name, const Address addr, 
 		    const unsigned size, const unsigned tag, 
-		    pdFunction *&retFunc) {
-  pdFunction *func;
+		    pd_Function *&retFunc) {
+  pd_Function *func;
   retFunc = NULL;
   // KLUDGE
   if ((func = findFunction(addr))){
@@ -150,7 +150,7 @@ bool image::newFunc(pdmodule *mod, const string name, const Address addr,
 
   bool err;
 
-  func = new pdFunction(name, demangled, mod, addr, size, tag, this, err);
+  func = new pd_Function(name, demangled, mod, addr, size, tag, this, err);
   //cout << name << " pretty: " << demangled << " addr :" << addr <<endl;
   retFunc = func;
   if (err) {
@@ -164,13 +164,13 @@ bool image::newFunc(pdmodule *mod, const string name, const Address addr,
   mod->funcs += func;
 
   if (!funcsByPretty.defines(func->prettyName())) {
-    vector<pdFunction*> *a1 = new vector<pdFunction*>;
+    vector<pd_Function*> *a1 = new vector<pd_Function*>;
     funcsByPretty[func->prettyName()] = a1;      
   }
 
   // several functions may have the same demangled name, and each one
   // will appear in a different module
-  vector<pdFunction*> *ap = funcsByPretty[func->prettyName()];
+  vector<pd_Function*> *ap = funcsByPretty[func->prettyName()];
   assert(ap);
   (*ap) += func;
   return true;
@@ -372,12 +372,12 @@ pdmodule *image::findModule(const string &name)
 
 // TODO -- this is only being used in cases where only one function
 // should exist -- should I assert that the vector size <= 1 ?
-pdFunction *image::findOneFunction(const string &name)
+pd_Function *image::findOneFunction(const string &name)
 {
   string demangName;
 
   if (funcsByPretty.defines(name)) {
-    vector<pdFunction*> *a = funcsByPretty[name];
+    vector<pd_Function*> *a = funcsByPretty[name];
     assert(a);
     if (!a->size())
       return NULL;
@@ -385,7 +385,7 @@ pdFunction *image::findOneFunction(const string &name)
       return ((*a)[0]);
   } else if (buildDemangledName(name, demangName)) {
     if (funcsByPretty.defines(demangName)) {
-      vector<pdFunction*> *a = funcsByPretty[demangName];
+      vector<pd_Function*> *a = funcsByPretty[demangName];
       assert(a);
       if (!a->size())
 	return NULL;
@@ -400,9 +400,9 @@ pdFunction *image::findOneFunction(const string &name)
 // This function supposely is only used to find function that
 // is not instrumentable which may not be totally defined.
 // Use with caution.  
-pdFunction *image::findOneFunctionFromAll(const string &name) {
+pd_Function *image::findOneFunctionFromAll(const string &name) {
 
-    pdFunction *ret;
+    pd_Function *ret;
     if ((ret = findOneFunction(name))) 
 	return ret;
     else {
@@ -415,7 +415,7 @@ pdFunction *image::findOneFunctionFromAll(const string &name) {
     return NULL;
 }
 
-bool image::findFunction(const string &name, vector<pdFunction*> &retList) {
+bool image::findFunction(const string &name, vector<pd_Function*> &retList) {
 
   if (funcsByPretty.defines(name)) {
     retList = *funcsByPretty[name];
@@ -424,20 +424,20 @@ bool image::findFunction(const string &name, vector<pdFunction*> &retList) {
     return false;
 }
 
-pdFunction *image::findFunction(const Address &addr) 
+pd_Function *image::findFunction(const Address &addr) 
 {
-  pdFunction *result; // filled in by find()
+  pd_Function *result; // filled in by find()
   if (funcsByAddr.find(addr, result))
      return result;
   else
      return NULL;
 }
   
-pdFunction *image::findFunctionIn(const Address &addr,const process *p) 
+pd_Function *image::findFunctionIn(const Address &addr,const process *p) 
 {
-  pdFunction *pdf;
+  pd_Function *pdf;
 
-  dictionary_hash_iter<Address, pdFunction*> mi(funcsByAddr);
+  dictionary_hash_iter<Address, pd_Function*> mi(funcsByAddr);
   Address adr;
   while (mi.next(adr, pdf)) {
       if ((addr>=pdf->getAddress(p))&&(addr<=(pdf->getAddress(p)+pdf->size()))) 
@@ -471,7 +471,7 @@ void image::changeLibFlag(resource *res, const bool setSuppress)
       mod->changeLibFlag(setSuppress);
     } else {
       // more than one function may have this name --> templates, statics
-      vector<pdFunction*> pdfA;
+      vector<pd_Function*> pdfA;
       if (ret->findFunction(res->part_name(), pdfA)) {
 	for (unsigned i=0; i<pdfA.size(); ++i) {
 	  if (setSuppress) 
@@ -491,7 +491,7 @@ void image::changeLibFlag(resource *res, const bool setSuppress)
  */
 bool image::symbolExists(const string &symname)
 {
-  pdFunction *dummy = findOneFunction(symname);
+  pd_Function *dummy = findOneFunction(symname);
   return (dummy != NULL);
 }
 
@@ -601,7 +601,7 @@ void pdmodule::define() {
   unsigned f_size = funcs.size();
 
   for (unsigned f=0; f<f_size; f++) {
-    pdFunction *pdf = funcs[f];
+    pd_Function *pdf = funcs[f];
 #ifdef DEBUG_MODS
     of << fileName << ":  " << pdf->prettyName() <<  "  " <<
       pdf->isLibTag() << "  " << pdf->addr() << endl;
@@ -682,7 +682,7 @@ static void binSearch (const Symbol &lookUp, vector<Symbol> &mods,
 }
 
 bool image::addOneFunction(vector<Symbol> &mods, pdmodule *lib, pdmodule 
-			   *dyn, const Symbol &lookUp, pdFunction  *&retFunc) {
+			   *dyn, const Symbol &lookUp, pd_Function  *&retFunc) {
   // TODO mdc
   // find the module
   // this is a "user" symbol
@@ -777,7 +777,7 @@ bool image::addAllFunctions(vector<Symbol> &mods,
 	showErrorCallback(29, msg);
 	return false;
       }
-      pdFunction *pdf;
+      pd_Function *pdf;
       if (inLibrary(lookUp.addr(), boundary_start, boundary_end,
 		    startAddr, startB, endAddr, endB)) {
 	addInternalSymbol(lookUp.name(), lookUp.addr());
@@ -801,7 +801,7 @@ bool image::addAllFunctions(vector<Symbol> &mods,
       ;
     } else if ((lookUp.type() == Symbol::PDST_OBJECT) && lookUp.kludge()) {
       //logLine(P_strdup(symString.string_of()));
-      pdFunction *pdf;
+      pd_Function *pdf;
       if (inLibrary(lookUp.addr(), boundary_start, boundary_end,
 		    startAddr, startB, endAddr, endB)) {
 	addInternalSymbol(lookUp.name(), lookUp.addr());
@@ -842,7 +842,7 @@ bool image::addAllSharedObjFunctions(vector<Symbol> &mods,
 	showErrorCallback(29, msg);
 	return false;
       }
-      pdFunction *pdf;
+      pd_Function *pdf;
       if (addOneFunction(mods, lib, dyn, lookUp, pdf)) {
         assert(pdf); mdlNormal += pdf;
       }
@@ -858,7 +858,7 @@ bool image::addAllSharedObjFunctions(vector<Symbol> &mods,
       ;
     } else if ((lookUp.type() == Symbol::PDST_OBJECT) && lookUp.kludge()) {
       //logLine(P_strdup(symString.string_of()));
-      pdFunction *pdf;
+      pd_Function *pdf;
       addInternalSymbol(lookUp.name(), lookUp.addr());
       if (defineFunction(dyn, lookUp, TAG_LIB_FUNC, pdf)) {
           assert(pdf); mdlLib += pdf;
@@ -1021,7 +1021,7 @@ sharedobj_cerr << "image::image for non-sharedobj; file name=" << file_ << endl;
 
   // TODO -- remove duplicates -- see earlier note
   dictionary_hash<unsigned, unsigned> addr_dict(uiHash);
-  vector<pdFunction*> temp_vec;
+  vector<pd_Function*> temp_vec;
   unsigned f_size = mdlLib.size(), index;
   for (index=0; index<f_size; index++) {
     if (!addr_dict.defines((unsigned)mdlLib[index]->getAddress(0))) {
@@ -1157,7 +1157,7 @@ sharedobj_cerr << "welcome to image::image for shared obj; file name=" << file_ 
 
   // TODO -- remove duplicates -- see earlier note
   dictionary_hash<unsigned, unsigned> addr_dict(uiHash);
-  vector<pdFunction*> temp_vec;
+  vector<pd_Function*> temp_vec;
   unsigned f_size = mdlLib.size(), index;
   for (index=0; index<f_size; index++) {
     if (!addr_dict.defines((unsigned)mdlLib[index]->getAddress(0))) {
@@ -1196,7 +1196,7 @@ void image::checkAllCallPoints() {
 // passing in tags allows a function to be tagged as TAG_LIB_FUNC even
 // if its entry is not in the tag dictionary of known functions
 bool image::defineFunction(pdmodule *use, const Symbol &sym, const unsigned tags,
-			   pdFunction *&retFunc) {
+			   pd_Function *&retFunc) {
   const char *str = (sym.name()).string_of();
 
   // TODO - skip the underscore
@@ -1234,7 +1234,7 @@ pdmodule *image::getOrCreateModule(const string &modName,
 // but they won't have tags in the tag dict, so this happens...
 bool image::defineFunction(pdmodule *libModule, const Symbol &sym,
 			   const string &modName, const Address modAddr,
-			   pdFunction *&retFunc) {
+			   pd_Function *&retFunc) {
   const char *str = (sym.name()).string_of();
 
   // TODO - skip the underscore
@@ -1261,19 +1261,13 @@ bool image::defineFunction(pdmodule *libModule, const Symbol &sym,
 //
 // Note - this must define funcEntry and funcReturn
 // 
-pdFunction::pdFunction(const string symbol, const string &pretty, pdmodule *f,
-		       Address adr, const unsigned size, const unsigned tg,
-		       const image *owner, bool &err) :
-  tag_(tg),
-  symTabName_(symbol),
-  prettyName_(pretty),
-  line_(0),
+pd_Function::pd_Function(const string symbol, const string &pretty, 
+		       pdmodule *f, Address adr, const unsigned size, 
+		       const unsigned tg, const image *owner, bool &err) : 
+  function_base(symbol, pretty, adr, size,tg),
   file_(f),
-  addr_(adr),
-  size_(size),
   funcEntry_(0),
   relocatable_(false)
-
 {
   err = findInstPoints(owner) == false;
 }

@@ -108,17 +108,17 @@ extern instruction newInstr[1024];
 
 class instPoint {
 public:
-  instPoint(pdFunction *f, const instruction &instr, const image *owner,
+  instPoint(pd_Function *f, const instruction &instr, const image *owner,
 	    Address &adr, const bool delayOK, bool isLeaf,
 	    instPointType ipt);
-  instPoint(pdFunction *f, const instruction &instr, const image *owner,
+  instPoint(pd_Function *f, const instruction &instr, const image *owner,
             Address &adr, const bool delayOK, instPointType ipt,   
 	    Address &oldAddr);
   ~instPoint() {  /* TODO */ }
 
   // can't set this in the constructor because call points can't be classified
   // until all functions have been seen -- this might be cleaned up
-  void set_callee(pdFunction *to) { callee = to; }
+  void set_callee(pd_Function *to) { callee = to; }
 
 
   Address addr;                       // address of inst point
@@ -137,8 +137,8 @@ public:
   bool callIndirect;		// is it a call whose target is rt computed ?
   bool callAggregate;		// calling a func that returns an aggregate
 				// we need to reolcate three insns in this case
-  pdFunction *callee;		// what function is called
-  pdFunction *func;		// what function we are inst
+  pd_Function *callee;		// what function is called
+  pd_Function *func;		// what function we are inst
   bool isBranchOut;             // true if this point is a conditional branch, 
 				// that may branch out of the function
   int branchTarget;             // the original target of the branch
@@ -453,7 +453,7 @@ extern void generateCall(process *proc, unsigned fromAddr,unsigned newAddr);
 extern void genImm(process *proc, Address fromAddr,int op, reg rs1, 
 		   int immd, reg rd);
 extern int callsTrackedFuncP(instPoint *point);
-extern pdFunction *getFunction(instPoint *point);
+extern pd_Function *getFunction(instPoint *point);
 extern unsigned emitFuncCall(opCode op, registerSpace *rs, char *i, 
 			     unsigned &base, const vector<AstNode *> &operands,
 			     const string &callee, process *proc, bool noCost);

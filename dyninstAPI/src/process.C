@@ -61,7 +61,6 @@ int pvmendtask();
 #include "dyninstAPI/src/dynamiclinking.h"
 // #include "paradynd/src/mdld.h"
 
-
 #ifndef BPATCH_LIBRARY
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
@@ -1067,7 +1066,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 
     all_functions = 0;
     if (parentProc.all_functions) {
-      all_functions = new vector<pdFunction *>;
+      all_functions = new vector<function_base *>;
       for (unsigned u2 = 0; u2 < parentProc.all_functions->size(); u2++)
 	*all_functions += (*parentProc.all_functions)[u2];
     }
@@ -1088,7 +1087,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     
     some_functions = 0;
     if (parentProc.some_functions) {
-      some_functions = new vector<pdFunction *>;
+      some_functions = new vector<function_base *>;
       for (unsigned u5 = 0; u5 < parentProc.some_functions->size(); u5++)
 	*some_functions += (*parentProc.some_functions)[u5];
     }
@@ -1849,20 +1848,20 @@ bool process::handleIfDueToSharedObjectMapping(){
       // each element in the vector of changed_objects
       if((change_type == SHAREDOBJECT_ADDED) && changed_objects) {
 	  for(u_int i=0; i < changed_objects->size(); i++) {
-              // TODO: currently we aren't handling dlopen because  
-              // we don't have the code in place to modify existing metrics
+             // TODO: currently we aren't handling dlopen because  
+	     // we don't have the code in place to modify existing metrics
 #ifdef ndef
-	      // This is what we really want to do:
+	     // This is what we really want to do:
 	      if(!addASharedObject(*((*changed_objects)[i]))){
 	          logLine("Error after call to addASharedObject\n");
-		  delete (*changed_objects)[i];
+	          delete (*changed_objects)[i];
 	      }
 	      else {
                   *shared_objects += (*changed_objects)[i]; 
 	      }
 #endif
-	      // for now, just delete shared_objects to avoid memory leeks
-	      delete (*changed_objects)[i];
+              // for now, just delete shared_objects to avoid memory leeks
+              delete (*changed_objects)[i];
 	  }
 	  delete changed_objects;
       } 
@@ -1881,6 +1880,8 @@ bool process::handleIfDueToSharedObjectMapping(){
       // TODO: add support for adding or removing new code resource once the 
       // process has started running...this means that currently collected
       // metrics may have to have aggregate components added or deleted
+      // this should be added to process::addASharedObject and 
+      // process::removeASharedObject  
   }
   return ok;
 }
@@ -1925,10 +1926,13 @@ bool process::addASharedObject(shared_object &new_obj){
     // created for this process, then the functions and modules from this
     // shared object need to be added to those lists 
     if(all_modules){
-        *all_modules += *(new_obj.getModules()); 
+        *all_modules += *((vector<module *> *)(new_obj.getModules())); 
     }
     if(all_functions){
-        *all_functions += *(new_obj.getAllFunctions()); 
+	vector<function_base *> *normal_funcs = (vector<function_base *> *)
+			(new_obj.getAllFunctions());
+        *all_functions += *normal_funcs; 
+	normal_funcs = 0;
     }
 
     // if the signal handler function has not yet been found search for it
@@ -1951,10 +1955,11 @@ bool process::addASharedObject(shared_object &new_obj){
 
     if(new_obj.includeFunctions()){
         if(some_modules){
-            *some_modules += *(new_obj.getModules()); 
+            *some_modules += *((vector<module *> *)(new_obj.getModules())); 
         }
         if(some_functions){
-            *some_functions += *(new_obj.getAllFunctions()); 
+	    *some_functions += 
+		*((vector<function_base *> *)(new_obj.getAllFunctions()));
         }
     }
     return true;
@@ -2003,7 +2008,7 @@ bool process::getSharedObjects() {
 // this routine checks both the a.out image and any shared object
 // images for this resource
 #ifndef BPATCH_LIBRARY
-pdFunction *process::findOneFunction(resource *func,resource *mod){
+function_base *process::findOneFunction(resource *func,resource *mod){
     
     if((!func) || (!mod)) { return 0; }
     if(func->type() != MDL_T_PROCEDURE) { return 0; }
@@ -2035,10 +2040,10 @@ pdFunction *process::findOneFunction(resource *func,resource *mod){
 // findOneFunction: returns the function associated with func  
 // this routine checks both the a.out image and any shared object
 // images for this resource
-pdFunction *process::findOneFunction(const string &func_name){
+function_base *process::findOneFunction(const string &func_name){
     
     // first check a.out for function symbol
-    pdFunction *pdf = symbols->findOneFunction(func_name);
+    function_base *pdf = symbols->findOneFunction(func_name);
     if(pdf) return pdf;
 
     // search any shared libraries for the file name 
@@ -2055,10 +2060,10 @@ pdFunction *process::findOneFunction(const string &func_name){
 // findFunctionIn: returns the function containing the address "adr"
 // this routine checks both the a.out image and any shared object
 // images for this resource
-pdFunction *process::findFunctionIn(Address adr){
+function_base *process::findFunctionIn(Address adr){
 
     // first check a.out for function symbol
-    pdFunction *pdf = symbols->findFunctionIn(adr,this);
+    pd_Function *pdf = symbols->findFunctionIn(adr,this);
     if(pdf) return pdf;
     // search any shared libraries for the function 
     if(dynamiclinking && shared_objects){
@@ -2127,22 +2132,25 @@ bool process::getSymbolInfo(string &name, Symbol &info){
 // getAllFunctions: returns a vector of all functions defined in the
 // a.out and in the shared objects
 // TODO: what to do about duplicate function names?
-vector<pdFunction *> *process::getAllFunctions(){
+vector<function_base *> *process::getAllFunctions(){
 
     // if this list has already been created, return it
     if(all_functions) 
 	return all_functions;
 
     // else create the list of all functions
-    all_functions = new vector<pdFunction *>;
-    *all_functions += symbols->mdlNormal;
+    all_functions = new vector<function_base *>;
+    const vector<function_base *> &blah = 
+		    (vector<function_base *> &)(symbols->getNormalFuncs());
+    *all_functions += blah;
 
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
-	   vector<pdFunction *> *funcs = 
-			((*shared_objects)[j])->getAllFunctions();
-	   if(funcs)
+	   vector<function_base *> *funcs = (vector<function_base *> *) 
+			(((*shared_objects)[j])->getAllFunctions());
+	   if(funcs){
 	       *all_functions += *funcs; 
+	   }
 	}
     }
     return all_functions;
@@ -2157,11 +2165,12 @@ vector<module *> *process::getAllModules(){
 
     // else create the list of all modules
     all_modules = new vector<module *>;
-    *all_modules += symbols->mods;
+    *all_modules += *((vector<module *> *)(&(symbols->mods)));
 
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
-	   vector<module *> *mods = ((*shared_objects)[j])->getModules();
+	   vector<module *> *mods = 
+		(vector<module *> *)(((*shared_objects)[j])->getModules());
 	   if(mods) {
 	       *all_modules += *mods; 
            }
@@ -2172,24 +2181,28 @@ vector<module *> *process::getAllModules(){
 // getIncludedFunctions: returns a vector of all functions defined in the
 // a.out and in the shared objects
 // TODO: what to do about duplicate function names?
-vector<pdFunction *> *process::getIncludedFunctions(){
+vector<function_base *> *process::getIncludedFunctions(){
 
     // if this list has already been created, return it
     if(some_functions) 
 	return some_functions;
 
     // else create the list of all functions
-    some_functions = new vector<pdFunction *>;
-    *some_functions += symbols->mdlNormal;
+    some_functions = new vector<function_base *>;
+    const vector<function_base *> &normal_funcs = 
+	(vector<function_base *> &)(symbols->getNormalFuncs());
+        *some_functions += normal_funcs;
 
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
 	    if(((*shared_objects)[j])->includeFunctions()){
-	        vector<pdFunction *> *funcs = 
-			((*shared_objects)[j])->getAllFunctions();
+		// kludge: can't assign a vector<derived_class *> to 
+		// a vector<base_class *> so recast
+	        vector<function_base *> *funcs = (vector<function_base *> *)
+			(((*shared_objects)[j])->getAllFunctions());
 	        if(funcs) { 
-	            *some_functions += *funcs; 
-                }
+	            *some_functions += (*funcs); 
+		} 
             } 
     } } 
     return some_functions;
@@ -2205,12 +2218,13 @@ vector<module *> *process::getIncludedModules(){
 
     // else create the list of all modules
     some_modules = new vector<module *>;
-    *some_modules += symbols->mods;
+    *some_modules += *((vector<module *> *)(&(symbols->mods)));
 
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
 	    if(((*shared_objects)[j])->includeFunctions()){
-	       vector<module *> *mods = ((*shared_objects)[j])->getModules();
+	       vector<module *> *mods = (vector<module *> *) 
+			(((*shared_objects)[j])->getModules());
 	       if(mods) {
 	           *some_modules += *mods; 
                }
@@ -2589,8 +2603,7 @@ return false;
 	   return false;
        }
    } else {
-       pdFunction *f = symbols->findOneFunctionFromAll("DYNINSTdyncall");
-       // pdFunction *f = symbols->findOneFunctionFromAll("$$dyncall");
+       function_base *f = symbols->findOneFunctionFromAll("DYNINSTdyncall");
        if (!f) {
 	   cerr << "DYNINSTdyncall was not found, inferior RPC won't work!" << endl;   
 	
@@ -2894,7 +2907,7 @@ void process::installBootstrapInst() {
        removeAst(the_args[j]);
    }
 
-   pdFunction *func = findOneFunction("main");
+   function_base *func = findOneFunction("main");
    assert(func);
 
    instPoint *func_entry = (instPoint *)func->funcEntry(this);
@@ -2910,7 +2923,7 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
    for (unsigned lcv=0; lcv < requests.size(); lcv++) {
       instMapping *req = requests[lcv];
 
-      pdFunction *func = findOneFunction(req->func);
+      function_base *func = findOneFunction(req->func);
       if (!func)
 	 continue;  // probably should have a flag telling us whether errors should
 	            // be silently handled or not

@@ -41,6 +41,10 @@
 
 /* 
  * $Log: sunos.C,v $
+ * Revision 1.26  1997/04/14 00:22:26  newhall
+ * removed class pdFunction and replaced it with base class function_base and
+ * derived class pd_Function
+ *
  * Revision 1.25  1997/03/18 19:44:25  buck
  * first commit of dyninst library.  Also includes:
  * 	moving templates from paradynd to dyninstAPI
@@ -318,7 +322,7 @@ bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool uppermost
     int rtn;
   } addrs;
 
-  pdFunction *func;
+  pd_Function *func;
   int pc = *rtn;
   struct regs regs; 
 

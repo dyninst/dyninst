@@ -137,7 +137,7 @@ public:
   ~list_closure() { }
   bool next() {
     string s;
-    pdFunction *pdf; module *m;
+    function_base *pdf; module *m;
     float f; int i;
     instPoint *ip;
 
@@ -182,7 +182,7 @@ private:
   vector<float> *float_iter;
   vector<string> *string_iter;
   vector<bool> *bool_iter;
-  vector<pdFunction*> *func_iter;
+  vector<function_base*> *func_iter;
   vector<functionName*> *funcName_iter;
   vector<module*> *mod_iter;
   vector<instPoint*> *point_iter;
@@ -393,7 +393,7 @@ static bool update_environment(process *proc, bool get_all) {
   // for cases when libc is dynamically linked, the exit symbol is not
   // correct
   string vname = "$exit";
-  pdFunction *pdf = proc->findOneFunction(string(EXIT_NAME));
+  function_base *pdf = proc->findOneFunction(string(EXIT_NAME));
    if (pdf) { 
       mdl_env::add(vname, false, MDL_T_PROCEDURE);
       mdl_env::set(pdf, vname);
@@ -818,7 +818,7 @@ static bool do_trailing_resources(vector<string>& resource_,
       resource *m_resource = resource::findResource(m_vec);
       if(!m_resource) return(false);
       
-      pdFunction *pdf = proc->findOneFunction(r,m_resource);
+      function_base *pdf = proc->findOneFunction(r,m_resource);
       if (!pdf) return(false);
       mdl_env::add(caStr, false, MDL_T_PROCEDURE);
       mdl_env::set(pdf, caStr);
@@ -915,7 +915,7 @@ T_dyninstRPC::mdl_instr_rand::mdl_instr_rand(u_int type, string name, vector<mdl
 T_dyninstRPC::mdl_instr_rand::~mdl_instr_rand() { } 
 
 bool T_dyninstRPC::mdl_instr_rand::apply(AstNode *&ast) {
-  pdFunction *pdf;
+  function_base *pdf;
   mdl_var get_drn;
 
   switch (type_) {
@@ -1198,7 +1198,7 @@ bool T_dyninstRPC::mdl_for_stmt::apply(metricDefinitionNode *mn,
     return false;
 
   // TODO
-  //  vector<pdFunction*> *vp;
+  //  vector<function_base*> *vp;
   //  list_var.get(vp);
   list_closure closure(index_name_, list_var);
 
@@ -1369,7 +1369,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret) {
 	if (!arg0.get(func_name)) return false;
 	if (global_proc) {
 	  // TODO -- what if the function is not found ?
-	  pdFunction *pdf = global_proc->findOneFunction(func_name);
+	  function_base *pdf = global_proc->findOneFunction(func_name);
 	  return (ret.set(pdf));
 	} else {
 	  assert(0); return false;
@@ -1653,7 +1653,7 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
         aflag=mdl_env::get(theVar, varName);
 	assert(aflag);
 
-	pdFunction *theFunction;
+	function_base *theFunction;
 	aflag=theVar.get(theFunction);
 	assert(aflag);
 
@@ -1993,7 +1993,7 @@ static bool do_operation(mdl_var& ret, mdl_var& left_val,
 
 static bool walk_deref(mdl_var& ret, vector<unsigned>& types, string& var_name) {
 
-  pdFunction *pdf = 0;
+  function_base *pdf = 0;
   if (!mdl_env::get(ret, var_name)) return false;
   
   unsigned index=0;
@@ -2005,7 +2005,7 @@ static bool walk_deref(mdl_var& ret, vector<unsigned>& types, string& var_name) 
 
     switch (current_type) {
     case MDL_T_PROCEDURE:
-      // pdFunction *pdf = 0;
+      // function_base *pdf = 0;
       if (!ret.get(pdf)) return false;
       switch (next_field) {
       case 0: {

@@ -103,7 +103,7 @@ findUnwindEntry(image* symbols,int pc)
 bool 
 frameChainValid(process *proc, unsigned pc)
 {
-    pdFunction *funcStart = proc->findOneFunction("_start");
+    function_base *funcStart = proc->findOneFunction("_start");
 
     if (funcStart) {
 	if ((pc >= funcStart->getAddress(proc)) && 

@@ -45,6 +45,10 @@
 
 /*
  * $Log: inst-power.h,v $
+ * Revision 1.6  1997/04/14 00:21:53  newhall
+ * removed class pdFunction and replaced it with base class function_base and
+ * derived class pd_Function
+ *
  * Revision 1.5  1997/02/21 20:13:27  naim
  * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
  * out of the ast class. The is the first pre-dyninstAPI commit! - naim
@@ -105,14 +109,14 @@ enum ipFuncLoc { ipFuncEntry, ipFuncReturn, ipFuncCallPoint };
 
 class instPoint {
 public:
-  instPoint(pdFunction *f, const instruction &instr, const image *owner,
+  instPoint(pd_Function *f, const instruction &instr, const image *owner,
 	    const Address adr, const bool delayOK, const ipFuncLoc);
 
   ~instPoint() {  /* TODO */ }
 
   // can't set this in the constructor because call points can't be classified until
   // all functions have been seen -- this might be cleaned up
-  void set_callee(pdFunction *to) { callee = to; }
+  void set_callee(pd_Function *to) { callee = to; }
 
 
   Address addr;                   /* address of inst point */
@@ -129,8 +133,8 @@ public:
 //				   we need to reolcate three insns in this case
 //				   */
 
-  pdFunction *callee;		/* what function is called */
-  pdFunction *func;		/* what function we are inst */
+  pd_Function *callee;		/* what function is called */
+  pd_Function *func;		/* what function we are inst */
   
   ipFuncLoc ipLoc;
 };

@@ -48,7 +48,7 @@
 // tramp(so it doesn't have any code size restriction), things are
 // a little more complicated because instruction CALL changes the 
 // value in the link register.
-instPoint::instPoint(pdFunction *f, const instruction &instr, 
+instPoint::instPoint(pd_Function *f, const instruction &instr, 
 		     const image *owner, Address &adr,
 		     bool delayOK, bool isLeaf, instPointType pointType)
 : addr(adr), originalInstruction(instr), inDelaySlot(false), isDelayed(false),
@@ -183,7 +183,7 @@ void AstNode::sysFlag(instPoint *location)
 // This cannot be done until all of the functions have been seen, verified, and
 // classified
 //
-void pdFunction::checkCallPoints() {
+void pd_Function::checkCallPoints() {
   instPoint *p;
   Address loc_addr;
 
@@ -197,7 +197,7 @@ void pdFunction::checkCallPoints() {
     if (isInsnType(p->originalInstruction, CALLmask, CALLmatch)) {
       // Direct call
       loc_addr = p->addr + (p->originalInstruction.call.disp30 << 2);
-      pdFunction *pdf = (file_->exec())->findFunction(loc_addr);
+      pd_Function *pdf = (file_->exec())->findFunction(loc_addr);
       if (pdf && !pdf->isLibTag()) {
 	p->callee = pdf;
 	non_lib += p;
@@ -218,7 +218,7 @@ void pdFunction::checkCallPoints() {
 // TODO we cannot find the called function by address at this point in time
 // because the called function may not have been seen.
 // reloc_info is 0 if the function is not currently being relocated
-Address pdFunction::newCallPoint(Address &adr, const instruction instr,
+Address pd_Function::newCallPoint(Address &adr, const instruction instr,
 				 const image *owner, bool &err, 
 				 int &callId, Address &oldAddr,
 				 relocatedFuncInfo *reloc_info,
@@ -735,7 +735,7 @@ unsigned emitFuncCall(opCode op,
         addr = proc->findInternalAddress(callee, false, err);
 
         if (err) {
-	    pdFunction *func = proc->findOneFunction(callee);
+	    function_base *func = proc->findOneFunction(callee);
 	    if (!func) {
 		ostrstream os(errorLine, 1024, ios::out);
 		os << "Internal error: unable to find addr of " << callee << endl;
@@ -1046,7 +1046,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
 /*
  * Find the instPoints of this function.
  */
-bool pdFunction::findInstPoints(const image *owner) {
+bool pd_Function::findInstPoints(const image *owner) {
 
    if (size() == 0) {
      return false;
@@ -1220,10 +1220,10 @@ bool pdFunction::findInstPoints(const image *owner) {
  * Check all the instPoints within this function to see if there's 
  * any conficts happen.
  */
-bool pdFunction::checkInstPoints(const image *owner) {
+bool pd_Function::checkInstPoints(const image *owner) {
 
     // Our own library function, skip the test.
-    if (prettyName_.prefixed_by("DYNINST")) 
+    if (prettyName().prefixed_by("DYNINST")) 
 	return true;
 
     // The function is too small to be worthing instrumenting.
@@ -1253,7 +1253,6 @@ bool pdFunction::checkInstPoints(const image *owner) {
 	    if ((target > funcEntry_->addr)&&
 		(target < (funcEntry_->addr + funcEntry_->size))) {
 		if (adr > (funcEntry_->addr+funcEntry_->size))
-		    //cout << "Function " << prettyName_ <<" entry" << endl;
 		    return false;
 	    }
 
@@ -1273,7 +1272,7 @@ bool pdFunction::checkInstPoints(const image *owner) {
 
 // This function is to find the inst Points for a function
 // that will be relocated if it is instrumented. 
-bool pdFunction::findInstPoints(const image *owner, Address newAdr, 
+bool pd_Function::findInstPoints(const image *owner, Address newAdr, 
 				process *proc){
 
    int i;
@@ -1430,7 +1429,7 @@ bool pdFunction::findInstPoints(const image *owner, Address newAdr,
 
 // This function assigns new address to instrumentation points of  
 // a function that has been relocated
-bool pdFunction::findNewInstPoints(const image *owner, 
+bool pd_Function::findNewInstPoints(const image *owner, 
 				const instPoint *&location,
 				Address newAdr,
 				process *proc,

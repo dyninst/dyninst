@@ -43,6 +43,10 @@
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.40  1997/04/14 00:21:47  newhall
+ * removed class pdFunction and replaced it with base class function_base and
+ * derived class pd_Function
+ *
  * Revision 1.39  1997/03/18 19:44:10  buck
  * first commit of dyninst library.  Also includes:
  * 	moving templates from paradynd to dyninstAPI
@@ -187,7 +191,7 @@ extern bool isPowerOf2(int value, int &result);
 
 class instPoint {
 public:
-  instPoint(pdFunction *f, const instruction &instr, const image *owner,
+  instPoint(pd_Function *f, const instruction &instr, const image *owner,
 	    const Address adr, const bool delayOK, bool &err,
 	    instPointType pointType = noneType);
 
@@ -195,7 +199,7 @@ public:
 
   // can't set this in the constructor because call points can't be classified until
   // all functions have been seen -- this might be cleaned up
-  void set_callee(pdFunction *to) { callee = to; }
+  void set_callee(pd_Function *to) { callee = to; }
 
 
   Address addr;                   /* address of inst point */
@@ -211,8 +215,8 @@ public:
   bool callAggregate;		/* calling a func that returns an aggregate
 				   we need to reolcate three insns in this case
 				   */
-  pdFunction *callee;		/* what function is called */
-  pdFunction *func;		/* what function we are inst */
+  pd_Function *callee;		/* what function is called */
+  pd_Function *func;		/* what function we are inst */
 
 };
 
@@ -525,7 +529,7 @@ void generateToBranch(process *proc, instPoint *location, unsigned dest )
 }
 
 
-instPoint::instPoint(pdFunction *f, const instruction &instr,
+instPoint::instPoint(pd_Function *f, const instruction &instr,
 		     const image *owner, Address adr, bool delayOK, 
 		     bool &err, instPointType pointType )
 : addr(adr), originalInstruction(instr), ipType(pointType), inDelaySlot(false), isDelayed(false),
@@ -617,7 +621,7 @@ instPoint::instPoint(pdFunction *f, const instruction &instr,
 // This cannot be done until all of the functions have been seen, verified, and
 // classified
 //
-void pdFunction::checkCallPoints() {
+void pd_Function::checkCallPoints() {
   instPoint *p;
   Address loc_addr;
 
@@ -640,7 +644,7 @@ void pdFunction::checkCallPoints() {
       		p->originalInstruction.bi.r1_im5_w1_x,
       		p->originalInstruction.bi.w1_w2);
       loc_addr = p->addr + offset;
-      pdFunction *pdf = (file_->exec())->findFunction(loc_addr);
+      pd_Function *pdf = (file_->exec())->findFunction(loc_addr);
       if (pdf && !pdf->isLibTag()) {
 	p->callee = pdf;
 	non_lib += p;
@@ -661,7 +665,7 @@ void pdFunction::checkCallPoints() {
 // TODO we cannot find the called function by address at this point in time
 // because the called function may not have been seen.
 //
-Address pdFunction::newCallPoint(const Address adr, const instruction instr,
+Address pd_Function::newCallPoint(const Address adr, const instruction instr,
 				 const image *owner, bool &err)
 {
     Address ret=adr;
@@ -743,7 +747,7 @@ void initDefaultPointFrequencyTable()
 float getPointFrequency(instPoint *point)
 {
 
-    pdFunction *func;
+    pd_Function *func;
 
     if (point->callee)
         func = point->callee;
@@ -817,7 +821,9 @@ void relocateInstruction(process *proc, instruction *&insn, int origAddr,
 	insn++; 
         generateLoadConst(insn, dest, 28, 0);
 	insn += 2;
-        pdFunction *midfunc = proc->findOneFunction("baseCall");
+	// really, really, bad kludge
+        pd_Function *midfunc=(pd_Function*)(proc->findOneFunction("baseCall"));
+
 	if (!midfunc) {
 		ostrstream os(errorLine, 1024, ios::out);
 		os << "Internal error: unable to find addr of miniCall" << endl;
@@ -1244,7 +1250,7 @@ int callsTrackedFuncP(instPoint *point)
 /* 
  *function Kludge
  */
-unsigned functionKludge(pdFunction *func, process *proc)
+unsigned functionKludge(pd_Function *func, process *proc)
 {
     unsigned address; 
 
@@ -1303,7 +1309,7 @@ unsigned functionKludge(pdFunction *func, process *proc)
  *
  *   This is done to return a better idea of which function we are using.
  */
-pdFunction *getFunction(instPoint *point)
+pd_Function *getFunction(instPoint *point)
 {
     return(point->callee ? point->callee : point->func);
 }
@@ -1394,14 +1400,16 @@ unsigned emitFuncCall(opCode op,
 
         unsigned dest;
         bool err;
-        pdFunction *func;
+        pd_Function *func;
         dest = proc->findInternalAddress(callee, false, err);
         if (!err) {
-          func = proc->findOneFunction(callee);
+	  // really, really, bad kludge
+          func = (pd_Function *)proc->findOneFunction(callee);
           dest=functionKludge(func, proc); 
 	}  
         else {
-	    func = proc->findOneFunction(callee);
+	    // really, really, bad kludge
+	    func = (pd_Function *)proc->findOneFunction(callee);
             if (!func) {
              ostrstream os(errorLine, 1024, ios::out);
              os << "Internal error: unable to find addr of " << callee << endl;
@@ -1414,7 +1422,7 @@ unsigned emitFuncCall(opCode op,
         
 	    generateLoadConst(insn, dest, 28, base);
 	    insn = (instruction *) ((void*)&i[base]);
-	    pdFunction *midfunc = proc->findOneFunction("miniCall");
+	    function_base *midfunc = proc->findOneFunction("miniCall");
 	    if (!midfunc) {
 		ostrstream os(errorLine, 1024, ios::out);
 		os << "Internal error: unable to find addr of miniCall" << endl;
@@ -1779,7 +1787,7 @@ bool isReturnInsn(const image *owner, Address adr, bool &lastOne)
 
 
 
-bool pdFunction::findInstPoints(const image *owner) {
+bool pd_Function::findInstPoints(const image *owner) {
 
   Address adr = getAddress(0);
   instruction instr;

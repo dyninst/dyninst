@@ -586,13 +586,13 @@ bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool uppermost
   } addrs;
 
   prgregset_t regs;
-  pdFunction *func;
+  function_base *func;
   int pc = *rtn;
 
   if (uppermost) {
       func = this->findFunctionIn(pc);
       if (func) {
-	  if (func ->isLeafFunc()) {
+	  if (func->isLeafFunc()) {
 	      if (ioctl (proc_fd, PIOCGREG, &regs) != -1) {
 		  *rtn = regs[R_O7] + 8;
 		  return readOK;
@@ -868,7 +868,7 @@ bool process::needToAddALeafFrame(Frame current_frame, Address &leaf_pc){
           if (readDataSpace((caddr_t) (reg_i2+44), sizeof(int),
 			    (caddr_t) &leaf_pc,true)){
 	      // if the function is a leaf function return true
-	      pdFunction *func = findFunctionIn(leaf_pc);
+	      function_base *func = findFunctionIn(leaf_pc);
 	      if(func && func->isLeafFunc()) {
 		  return(true);
 	      }

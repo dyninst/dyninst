@@ -43,6 +43,10 @@
  * inst-x86.C - x86 dependent functions and code generator
  *
  * $Log: inst-x86.C,v $
+ * Revision 1.14  1997/04/14 00:22:07  newhall
+ * removed class pdFunction and replaced it with base class function_base and
+ * derived class pd_Function
+ *
  * Revision 1.13  1997/02/26 23:42:52  mjrg
  * First part on WindowsNT port: changes for compiling with Visual C++;
  * moved unix specific code to unix.C
@@ -165,7 +169,7 @@ extern bool isPowerOf2(int value, int &result);
 class instPoint {
 
  public:
-  instPoint(pdFunction *f, const image *im, Address adr, instruction inst) {
+  instPoint(pd_Function *f, const image *im, Address adr, instruction inst) {
     addr = adr;
     jumpAddr = adr;
     func = f;
@@ -208,7 +212,7 @@ class instPoint {
 
   // can't set this in the constructor because call points can't be classified until
   // all functions have been seen -- this might be cleaned up
-  void set_callee(pdFunction *to) { callee = to; }
+  void set_callee(pd_Function *to) { callee = to; }
 
 
 // private:
@@ -219,8 +223,8 @@ class instPoint {
   Address jumpAddr;      // this is the address where we insert the jump. It may
                          // be an instruction before the point
 
-  pdFunction *func;	 // the function where this instPoint belongs to
-  pdFunction *callee;	 // if this point is a call, the function being called
+  pd_Function *func;	 // the function where this instPoint belongs to
+  pd_Function *callee;	 // if this point is a call, the function being called
   image *owner;          // the image to which this point belongs to
 
   instruction insnAtPoint;       // the instruction at this point
@@ -307,7 +311,7 @@ void instPoint::checkInstructions() {
 // This cannot be done until all of the functions have been seen, verified, and
 // classified
 //
-void pdFunction::checkCallPoints() {
+void pd_Function::checkCallPoints() {
   unsigned int i;
   instPoint *p;
   Address loc_addr;
@@ -322,7 +326,7 @@ void pdFunction::checkCallPoints() {
     if (!p->insnAtPoint.isCallIndir()) {
       loc_addr = p->insnAtPoint.getTarget(p->addr);
       file()->exec()->addJumpTarget(loc_addr);
-      pdFunction *pdf = (file_->exec())->findFunction(loc_addr);
+      pd_Function *pdf = (file_->exec())->findFunction(loc_addr);
 
       if (pdf && !pdf->isLibTag()) {
         p->callee = pdf;
@@ -343,7 +347,7 @@ void pdFunction::checkCallPoints() {
 }
 
 // this function is not needed
-Address pdFunction::newCallPoint(Address, const instruction,
+Address pd_Function::newCallPoint(Address, const instruction,
 				 const image *, bool &)
 { assert(0); return 0; }
 
@@ -405,7 +409,7 @@ class point_ {
      unsigned type;
 };
 
-bool pdFunction::findInstPoints(const image *i_owner) {
+bool pd_Function::findInstPoints(const image *i_owner) {
    // sorry this this hack, but this routine can modify the image passed in,
    // which doesn't occur on other platforms --ari
    image *owner = (image *)i_owner; // const cast
@@ -1507,7 +1511,7 @@ unsigned emitFuncCall(opCode op,
 
   addr = proc->findInternalAddress(callee, false, err);
   if (err) {
-    pdFunction *func = proc->findOneFunction(callee);
+    function_base *func = proc->findOneFunction(callee);
     if (!func) {
       ostrstream os(errorLine, 1024, ios::out);
       os << "Internal error: unable to find addr of " << callee << endl;
@@ -2027,7 +2031,7 @@ void initDefaultPointFrequencyTable()
 float getPointFrequency(instPoint *point)
 {
 
-    pdFunction *func;
+    pd_Function *func;
 
     if (point->callee)
         func = point->callee;

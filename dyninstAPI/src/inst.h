@@ -49,7 +49,7 @@
 class instInstance;
 class process;
 class instPoint;
-class pdFunction;
+class pd_Function;
 class metricDefinitionNode;
 
 typedef enum { callNoArgs, callRecordType, callFullArgs } callOptions;
@@ -102,7 +102,7 @@ int getPointCost(process *proc, const instPoint *point);
 int callsTrackedFuncP(instPoint *);
 
 /* return the function asociated with a point. */
-pdFunction *getFunction(instPoint *point);
+pd_Function *getFunction(instPoint *point);
 
 /*
  * struct to define a list of inst requests 

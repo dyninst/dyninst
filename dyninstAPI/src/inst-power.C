@@ -233,7 +233,7 @@ inline void genRelOp(instruction *insn, int cond, int mode, reg rs1,
 }
 
 
-instPoint::instPoint(pdFunction *f, const instruction &instr, 
+instPoint::instPoint(pd_Function *f, const instruction &instr, 
 		     const image *, Address adr, bool, ipFuncLoc fLoc) 
 		      : addr(adr), originalInstruction(instr), 
 			callIndirect(false), callee(NULL), func(f), ipLoc(fLoc)
@@ -247,7 +247,7 @@ instPoint::instPoint(pdFunction *f, const instruction &instr,
 // This cannot be done until all of the functions have been seen, verified, and
 // classified
 //
-void pdFunction::checkCallPoints() {
+void pd_Function::checkCallPoints() {
   unsigned int i;
   instPoint *p;
   Address loc_addr;
@@ -261,7 +261,7 @@ void pdFunction::checkCallPoints() {
 
     if(isCallInsn(p->originalInstruction)) {
       loc_addr = p->addr + (p->originalInstruction.iform.li << 2);
-      pdFunction *pdf = (file_->exec())->findFunction(loc_addr);
+      pd_Function *pdf = (file_->exec())->findFunction(loc_addr);
       if (pdf && !pdf->isLibTag()) {
         p->callee = pdf;
         non_lib += p;
@@ -282,7 +282,7 @@ void pdFunction::checkCallPoints() {
 // TODO we cannot find the called function by address at this point in time
 // because the called function may not have been seen.
 //
-Address pdFunction::newCallPoint(const Address adr, const instruction instr,
+Address pd_Function::newCallPoint(const Address adr, const instruction instr,
 				 const image *owner, bool &err)
 {
     Address ret=adr;
@@ -351,7 +351,7 @@ void initDefaultPointFrequencyTable()
 float getPointFrequency(instPoint *point)
 {
 
-    pdFunction *func;
+    pd_Function *func;
 
     if (point->callee)
         func = point->callee;
@@ -895,7 +895,7 @@ int callsTrackedFuncP(instPoint *point)
  *  
  *   This is done to return a better idea of which function we are using.
  */
-pdFunction *getFunction(instPoint *point)
+pd_Function *getFunction(instPoint *point)
 {
     return(point->callee ? point->callee : point->func);
 }
@@ -1029,7 +1029,7 @@ unsigned emitFuncCall(opCode /* ocode */,
   
   dest = proc->findInternalAddress(callee, false, err);
   if (err) {
-    pdFunction *func = proc->findOneFunction(callee);
+    function_base *func = proc->findOneFunction(callee);
     if (!func) {
       ostrstream os(errorLine, 1024, ios::out);
       os << "Internal error: unable to find addr of " << callee << endl;
@@ -1833,7 +1833,7 @@ bool isReturnInsn(const image *owner, Address adr)
 }
  * ************************************************************************ */
 
-bool pdFunction::findInstPoints(const image *owner) 
+bool pd_Function::findInstPoints(const image *owner) 
 {  
   Address adr = getAddress(0);
   instruction instr;

@@ -49,14 +49,14 @@ public:
 	return false;
     }
 
-    vector<pdFunction *> *getAllFunctions(){
+    vector<pd_Function *> *getAllFunctions(){
         if(objs_image) {
 	    return (&(objs_image->mdlNormal));
 	}
 	return 0;
     }
 
-    vector<module *> *getModules() {
+    vector<pdmodule *> *getModules() {
         if(objs_image) {
 	    return (&(objs_image->mods));
 	}
@@ -75,20 +75,20 @@ public:
     }
     bool removeImage(){ return true;}
 
-    pdFunction *findOneFunction(string f_name){
+    pd_Function *findOneFunction(string f_name){
 	if (f_name.string_of() == 0) return 0;
         if(objs_image) {
             return (objs_image->findOneFunction(f_name));
 	}
 	return 0;
     }
-    module *findModule(string m_name){
+    pdmodule *findModule(string m_name){
         if(objs_image) {
             return (objs_image->findModule(m_name));
 	}
 	return 0;
     }
-    pdFunction *findFunctionIn(Address adr,const process *p){
+    pd_Function *findFunctionIn(Address adr,const process *p){
         if((adr >= base_addr) && objs_image){
             Address new_adr = adr - base_addr;
             return(objs_image->findFunctionIn(new_adr,p));

@@ -477,17 +477,17 @@ class process {
   // findOneFunction: returns the function associated with function "func"
   // and module "mod".  This routine checks both the a.out image and any
   // shared object images for this function
-  pdFunction *findOneFunction(resource *func,resource *mod);
+  function_base *findOneFunction(resource *func,resource *mod);
 
   // findOneFunction: returns the function associated with function "func_name"
   // This routine checks both the a.out image and any shared object images 
   // for this function
-  pdFunction *findOneFunction(const string &func_name);
+  function_base *findOneFunction(const string &func_name);
 
   // findFunctionIn: returns the function which contains this address
   // This routine checks both the a.out image and any shared object images 
   // for this function
-  pdFunction *findFunctionIn(Address adr);
+  function_base *findFunctionIn(Address adr);
 
   // findModule: returns the module associated with "mod_name" 
   // this routine checks both the a.out image and any shared object 
@@ -500,7 +500,7 @@ class process {
 
   // getAllFunctions: returns a vector of all functions defined in the
   // a.out and in the shared objects
-  vector<pdFunction *> *getAllFunctions();
+  vector<function_base *> *getAllFunctions();
 
   // getAllModules: returns a vector of all modules defined in the
   // a.out and in the shared objects
@@ -508,7 +508,7 @@ class process {
 
   // getIncludedFunctions: returns a vector of all functions defined in the
   // a.out and in shared objects that are not excluded by an mdl option 
-  vector<pdFunction *> *getIncludedFunctions();
+  vector<function_base *> *getIncludedFunctions();
 
   // getIncludedModules: returns a vector of all functions defined in the
   // a.out and in shared objects that are  not excluded by an mdl option
@@ -724,16 +724,16 @@ private:
   vector<shared_object *> *shared_objects;  // list of dynamically linked libs
 
   // The set of all functions and modules in the a.out and in the shared objects
-  vector<pdFunction *> *all_functions;
+  vector<function_base *> *all_functions;
   vector<module *> *all_modules;
   // these are a restricted set of functions and modules which are those  
   // from shared objects that are not excluded through an mdl "exclude_library"
   // option: these are used to satisfy foci that are not refined on the
   // Code heirarchy
   vector<module *> *some_modules;  
-  vector<pdFunction *> *some_functions; 
+  vector<function_base *> *some_functions; 
   bool waiting_for_resources;  // true if waiting for resourceInfoResponse
-  pdFunction *signal_handler;  // signal handler function (for stack walking)
+  pd_Function *signal_handler;  // signal handler function (for stack walking)
 
   // needToAddALeafFrame: returns true if the between the current frame 
   // and the next frame there is a leaf function (this occurs when the 
