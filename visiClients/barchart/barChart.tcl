@@ -2,10 +2,15 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
-#  Revision 1.17  1995/04/01 01:34:21  tamches
-#  Metric axis lines now 2 pix wide, not 1.  Metric key items now more
-#  color-coordinated (i.e., now, not just the axis lines are drawn in the
-#  bar's color).
+#  Revision 1.18  1995/05/10 22:28:24  tamches
+#  Removed warning message in getMetricHints when encountering an
+#  unknown metric...but we still default to min=0 max=1.  This information
+#  should really be kept in the data manger, imho.
+#
+# Revision 1.17  1995/04/01  01:34:21  tamches
+# Metric axis lines now 2 pix wide, not 1.  Metric key items now more
+# color-coordinated (i.e., now, not just the axis lines are drawn in the
+# bar's color).
 #
 # Revision 1.16  1995/02/26  02:01:45  newhall
 # added callback functions for new visiLib phase info.
@@ -1057,7 +1062,8 @@ proc delSelectedResources {} {
 proc getMetricHints {theMetric} {
    # #pragma HACK begin
    # return metric unit type, hinted min, hinted max, hinted step
-   # depending on the metric (a hardcoded temporary hack)
+   # depending on the metric (a hardcoded temporary hack.  This information
+   # should be [but isn't currently] present in the data manager)
    switch $theMetric {
       "exec_time"        {return {percentage 0.0 1.0 0.1}}
       "hybrid_cost"      {return {real 0.0 1.0 0.1}}
@@ -1076,7 +1082,7 @@ proc getMetricHints {theMetric} {
       "cpu"              {return {real 0.0 1.0 0.1}}
    }
 
-   puts stderr "getMetricHints--unexpected metric: $theMetric...continuing"
+#   puts stderr "getMetricHints--unexpected metric: $theMetric...continuing"
    return {real 0.0 1.0 0.1}
    # #pragma HACK done
 }
