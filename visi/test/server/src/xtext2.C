@@ -1,7 +1,10 @@
 /* $Log: xtext2.C,v $
-/* Revision 1.1  1995/09/18 18:27:13  newhall
-/* updated test subdirectory, added visilib routine GetMetRes()
-/* */
+/* Revision 1.2  1996/01/17 18:40:26  newhall
+/* *** empty log message ***
+/*
+ * Revision 1.1  1995/09/18  18:27:13  newhall
+ * updated test subdirectory, added visilib routine GetMetRes()
+ * */
 
 /*
  * $XConsortium: xtext.c,v 1.16 91/05/16 14:56:23 swick Exp $
@@ -53,6 +56,9 @@ Widget getMR, stopMR, phaseN;
 // extern int fprintf(), bcopy(), read(), perror(), printf();
 
 String fallback_resources[] = { 
+    "*background: Grey",
+    "*foreground: Black",
+    "*font: *-Helvetica-*-r-*-12-*",
     "*input:				True",
     "*showGrip:				off",
     "?.?.text.preferredPaneSize:	200", 
@@ -66,7 +72,7 @@ String fallback_resources[] = {
     "*quit*label:              Quit",
     NULL,
 };
- 
+
 // callback routine for FOLD and DATAVALUES 
 int fd_input(int dummy){
 
