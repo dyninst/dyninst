@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.175 2003/10/22 16:04:53 schendel Exp $
+// $Id: aix.C,v 1.176 2003/10/23 17:03:09 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -607,30 +607,6 @@ rawTime64 dyn_lwp::getRawCpuTime_sw()
 
 }
 
-
-unsigned get_childproc_lwp(process *proc) {
-   pdvector<unsigned> lwpid_buf;
-   tid_t indexPtr = 0;   
-   struct thrdsinfo thrd_info;
-   int found_lwp = -1;
-   int num_found = 0;
-   do {
-      num_found = getthrds(proc->getPid(), &thrd_info,
-                           sizeof(struct thrdsinfo), &indexPtr, 1);
-      //cerr << "called getthrds, ret: " << num_found << ", indexPtr: "
-      //     << indexPtr << ", tid; " << thrd_info.ti_tid << endl;
-      if(found_lwp == -1)
-         found_lwp = thrd_info.ti_tid;
-      else if(num_found > 0) {
-         // this warning shouldn't occur because on pthreads only the thread
-         // which initiated the fork should be duplicated in the child process
-         cerr << "warning, multiple threads found in child process when "
-              << "only one thread is expected\n";
-      }
-   } while(num_found > 0);
-
-   return static_cast<unsigned>(found_lwp);
-}
 
 #endif
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix-ptrace.C,v 1.11 2003/10/22 16:00:42 schendel Exp $
+// $Id: aix-ptrace.C,v 1.12 2003/10/23 17:03:10 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -445,12 +445,35 @@ unsigned recognize_thread(process *proc, unsigned lwp_id) {
                                          true, NULL, lwp);
 }
 
+unsigned get_childproc_lwp(process *proc) {
+   pdvector<unsigned> lwpid_buf;
+   tid_t indexPtr = 0;   
+   struct thrdsinfo thrd_info;
+   int found_lwp = -1;
+   int num_found = 0;
+   do {
+      num_found = getthrds(proc->getPid(), &thrd_info,
+                           sizeof(struct thrdsinfo), &indexPtr, 1);
+      //cerr << "called getthrds, ret: " << num_found << ", indexPtr: "
+      //     << indexPtr << ", tid; " << thrd_info.ti_tid << endl;
+      if(found_lwp == -1)
+         found_lwp = thrd_info.ti_tid;
+      else if(num_found > 0) {
+         // this warning shouldn't occur because on pthreads only the thread
+         // which initiated the fork should be duplicated in the child process
+         cerr << "warning, multiple threads found in child process when "
+              << "only one thread is expected\n";
+      }
+   } while(num_found > 0);
+
+   return static_cast<unsigned>(found_lwp);
+}
+
+
 // run rpcs on each lwp in the child process that will start the virtual
 // timer of each thread and cause the rtinst library to notify the daemon of
 // a new thread.  For pthreads though, which AIX uses, there should only be
 // one thread in the child process (ie. the thread which initiated the fork).
-
-extern unsigned get_childproc_lwp(process *);
 
 void process::recognize_threads(pdvector<unsigned> *completed_lwps) {
    unsigned found_lwp = get_childproc_lwp(this);
