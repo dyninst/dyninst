@@ -4,6 +4,9 @@
  * defaults.
  * 
  * $Log: comm.h,v $
+ * Revision 1.6  1996/05/31 23:54:05  tamches
+ * added alterSendSocketBufferSize
+ *
  * Revision 1.5  1995/02/16 08:53:02  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
@@ -39,14 +42,39 @@ class pdRPC : public dynRPC
 public:
   pdRPC(int family, int port, int type, const string host, xdr_rd_func rf,
 	xdr_wr_func wf, bool nblock=false)
-    : dynRPC(family, port, type, host, rf, wf, nblock) { }
+    : dynRPC(family, port, type, host, rf, wf, nblock) {
+
+     alterSendSocketBufferSize();
+
+  }
+
+
   pdRPC(int fdes, xdr_rd_func r, xdr_wr_func w, bool nblock=false)
-    : dynRPC(fdes, r, w, nblock) {}
+    : dynRPC(fdes, r, w, nblock) {
+
+     alterSendSocketBufferSize();
+  }
+
   /* pdRPC(char *m, char *l, char *p, xdrIOFunc r, xdrIOFunc w,
      char **args=0, int nblock=0) :
      dynRPC(m, l, p, r, w, wellKnownPort, args, nblock) {;} */
 
   void handle_error();
+
+   void alterSendSocketBufferSize() {
+     // Now let's alter the socket buffer size to avoid write-write deadlock
+     // between paradyn and paradynd
+#if defined(sparc_sun_sunos4_1_3) || defined(hppa1_1_hp_hpux)
+     int num_bytes = 32768;
+     int size = sizeof(num_bytes);
+
+     if (setsockopt(this->get_fd(), SOL_SOCKET, SO_SNDBUF,
+                    &num_bytes, size) < 0) {
+        cerr << "paradynd warning: could not set socket write buffer size" << endl;
+     }
+#endif     
+  }
+
 };
 
 #endif
