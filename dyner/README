@@ -1,0 +1,7 @@
+
+This is source code for the Dyner command-line tool.  Dyner allows a
+programmer to perform Dyninst functions using a simple command-line
+interface.  For information about Dyner, see the documentation
+available at:
+
+    http://www.cs.umd.edu/projects/dyninstAPI/
