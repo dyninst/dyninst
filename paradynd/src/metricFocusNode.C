@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.184 2001/01/17 17:32:21 schendel Exp $
+// $Id: metricFocusNode.C,v 1.185 2001/04/11 17:24:38 ning Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -1400,7 +1400,7 @@ void metricDefinitionNode::adjustManuallyTrigger()
     assert(mainFunc); // processes should always have mainFunction defined
                       // Instead of asserting we could call adjustManuallyTrigger0,
                       // which could handle a pseudo function.
-#ifndef OLD_CATCHUP
+//#ifndef OLD_CATCHUP
 //
 #if defined(MT_THREAD)
     vector<Address> stack_pcs;
@@ -1550,8 +1550,8 @@ void metricDefinitionNode::adjustManuallyTrigger()
       }
     } while (i!=0);
 
-#else // !OLD_CATCHUP
-
+//#else // !OLD_CATCHUP
+#if defined(MT_THREAD)
     // The following code is used in the case where the new catchup code is disabled.
     // It is replicated in the adjustManuallyTrigger0 function and at some point in the
     // future could be moved into a single separate function.  This code could also
@@ -1593,7 +1593,8 @@ void metricDefinitionNode::adjustManuallyTrigger()
 	    }
 	  }
 	}
-#endif  // OLD_CATCHUP
+//#endif  // OLD_CATCHUP
+#endif  // MT_THREAD
   }
 }
 
@@ -1617,7 +1618,7 @@ void metricDefinitionNode::adjustManuallyTrigger0()
     // << flat_name_.string_of() << endl;
     //cerr << " (metricDefinitionNode::adjustManuallyTrigger()) aggregate = true" << endl;
     for (i=0; i < components.size(); i++) {
-      components[i]->adjustManuallyTrigger();
+      components[i]->adjustManuallyTrigger0();
     }
   } 
   // non-aggregate:
