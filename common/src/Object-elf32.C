@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-elf32.C,v 1.5 1998/08/16 23:18:26 wylie Exp $
+// $Id: Object-elf32.C,v 1.6 1998/08/27 21:22:52 nash Exp $
 
 /**********************************************
  *
@@ -812,7 +812,9 @@ void Object::fix_global_symbol_modules_static(
     for (unsigned i = 0; i < stab_nsyms; i++) {
         switch(stabsyms[i].type) {
 	case N_UNDF: /* start of object file */
+#if !defined(i386_unknown_linux2_0)
 	    assert(stabsyms[i].name == 1);
+#endif
 	    stabstr_offset = stabstr_nextoffset;
 	    // stabsyms[i].val has the size of the string table of this module.
 	    // We use this value to compute the offset of the next string table.
