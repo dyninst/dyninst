@@ -5,6 +5,9 @@
 
 /* 
  * $Log: templates.C,v $
+ * Revision 1.24  1995/12/29 01:35:34  zhichen
+ * Added an instantiation related to the new paradynd-->paradyn buffering
+ *
  * Revision 1.23  1995/12/28 23:44:39  zhichen
  * added 2 new instantiations related to the new paradynd->>paradyn
  * batching code.
@@ -162,6 +165,7 @@ template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_metric
 // added for batchSampleDataCallbackFunc
 template bool T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::batch_buffer_entry> *, int (*)(XDR *, T_dyninstRPC::batch_buffer_entry *), T_dyninstRPC::batch_buffer_entry *);
 T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::batch_buffer_entry> *, int (*)(XDR *, T_dyninstRPC::batch_buffer_entry *), T_dyninstRPC::batch_buffer_entry *);
+template class vector<T_dyninstRPC::batch_buffer_entry>;
 
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
