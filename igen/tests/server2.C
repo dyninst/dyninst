@@ -83,3 +83,14 @@ void test::triggerAsyncUpcall(int val)
 {
     asyncUpcall(val);
 }
+
+
+s2 test::isS(s2 parm)
+{
+  return parm;
+}
+
+s2 *test::isSp(s2 *parm)
+{
+  return parm;
+}

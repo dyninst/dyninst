@@ -4,6 +4,11 @@ $remote typedef struct {
     int style;
 } intStruct;		
 
+typedef struct s1 {
+   int i1;
+   int i2;
+} s2;
+
 /*
  *
  */
@@ -12,6 +17,8 @@ $remote test {
     $version 1;
     void nullNull();
     int intNull();
+    s2 *isSp(s2*);
+    s2 isS(s2);
     void nullStruct(intStruct);
     int intString(String);
     int add(int, int);
