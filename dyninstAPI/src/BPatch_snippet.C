@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.49 2003/06/11 22:02:45 hollings Exp $
+// $Id: BPatch_snippet.C,v 1.50 2003/07/25 15:51:44 chadd Exp $
 
 #define BPATCH_FILE
 
@@ -477,6 +477,39 @@ BPatch_funcCallExpr::BPatch_funcCallExpr(
 
     assert(BPatch::bpatch != NULL);
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
+
+
+	/*** ccw 24 jul 2003 ***/
+	/* 	at this point, if saveworld is turned on, check
+		to see if func is in a shared lib. if it
+		is marked that shared lib as dirtyCalled()
+	*/
+#if defined(sparc_sun_solaris2_4) ||  defined(i386_unknown_linux2_0) 
+
+	process *proc = func.getProc();
+	if( proc->collectSaveWorldData && func.isSharedLib()){
+		//we are calling a function in a shared lib
+		//mark that shared lib as dirtyCalled()
+		char filename[4096];
+
+		BPatch_function &funcNC = const_cast<BPatch_function&> (func); 
+		funcNC.getModule()->getName(filename, 4096);
+
+		pdvector<shared_object *> *sharedObjects = proc->sharedObjects();
+
+		bool done = false;
+		for(int i=0;!done && i<sharedObjects->size();i++){
+			pdstring name = (*sharedObjects)[i]->getName();
+
+			if( strstr( name.c_str(), filename)){
+				(*sharedObjects)[i]->setDirtyCalled();
+				done = true;
+			}
+
+		}
+
+	}
+#endif
 }
 
 /*
