@@ -4,6 +4,9 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.21  1995/12/20 01:11:40  tamches
+# removed TCL2C, TCL2C_GEN_SRCS (now in make.config)
+#
 # Revision 1.20  1995/12/12 22:33:07  newhall
 # divided templates.C into 3 template files
 #
@@ -170,8 +173,6 @@ IGEN_ISRCS    = dataManager.I \
 		VM.I
 
 
-TCL2C		= tcl2c
-TCL2C_GEN_SRCS	= tcl2c.C
 TCL_SRCS	= $(wildcard ../tcl/*.tcl)
 #TCL_SRCS	=
 		
@@ -179,7 +180,7 @@ SRCS		+= $(TCL2C_GEN_SRCS)
 
 
 IFLAGS       += -DPARADYN
-LIBDIR	     += -L/usr/psup/lib -L/s/flex/lib
+#LIBDIR	     += -L/usr/psup/lib -L/s/flex/lib
 
 LIBS 	     += -lpdutil -lpdthread
 #SYSLIBS	     += -ltix -ltk -ltcl -lX11 -lm -lfl
