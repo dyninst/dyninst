@@ -1,4 +1,4 @@
-// $Id: test1.C,v 1.25 1999/06/10 19:16:29 hollings Exp $
+// $Id: test1.C,v 1.26 1999/06/17 14:59:45 wylie Exp $
 //
 // libdyninst validation suite test #1
 //    Author: Jeff Hollingsworth (1/7/97)
@@ -975,6 +975,13 @@ void mutatorTest16(BPatch_thread *appThread, BPatch_image *appImage)
 
 //
 // Start Test Case #17 - mutator side (return values from func calls)
+// Verify that instrumentation inserted at a subroutine's exit point
+// doesn't clobber its return value.
+// Method: the mutatee's func17_1 (first and only) exit is instrumented to
+// call call17_1 with parameter (constant) "1"; func17_2's (first and only)
+// exit is similarly instrumented to call call17_2(1); a subsequent test in
+// the mutatee compares the return values of func17_1 and func17_2.
+// (No examination is made of the return values of call17_1 or call17_2.)
 //
 void mutatorTest17(BPatch_thread *appThread, BPatch_image *appImage)
 {
@@ -982,7 +989,7 @@ void mutatorTest17(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_Vector<BPatch_point *> *point17_1 =
 	appImage->findProcedurePoint("func17_1", BPatch_exit);
     if (!point17_1 || (point17_1->size() < 1)) {
-	fprintf(stderr, "Unable to find point func17_1 - entry.\n");
+	fprintf(stderr, "Unable to find point func17_1 - exit.\n");
 	exit(-1);
     }
 
@@ -993,7 +1000,7 @@ void mutatorTest17(BPatch_thread *appThread, BPatch_image *appImage)
     }
 
     BPatch_Vector<BPatch_snippet *> funcArgs;
-    funcArgs.push_back(new BPatch_paramExpr(1));
+    funcArgs.push_back(new BPatch_constExpr(1));
     BPatch_funcCallExpr call17_1Expr(*call17_1_func, funcArgs);
     checkCost(call17_1Expr);
     appThread->insertSnippet(call17_1Expr, *point17_1);
@@ -1002,7 +1009,7 @@ void mutatorTest17(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_Vector<BPatch_point *> *point17_2 =
 	appImage->findProcedurePoint("func17_2", BPatch_exit);
     if (!point17_2 || (point17_2->size() < 1)) {
-	fprintf(stderr, "Unable to find point func17_2 - entry.\n");
+	fprintf(stderr, "Unable to find point func17_2 - exit.\n");
 	exit(-1);
     }
 
@@ -1612,6 +1619,7 @@ void mutatorMAIN(char *pathname, bool useAttach)
 //
 // main - decide our role and call the correct "main"
 //
+int
 main(int argc, char *argv[])
 {
     bool useAttach = false;
@@ -1640,6 +1648,7 @@ main(int argc, char *argv[])
 	} else if (!strcmp(argv[i], "-V")) {
             fprintf (stdout, "%s\n", V_libdyninstAPI);
             if (libname[0]) fprintf (stdout, "DYNINSTAPI_RT_LIB=%s\n", libname);
+            fflush(stdout);
 	} else if (!strcmp(argv[i], "-attach")) {
 	    useAttach = true;
 	} else {
