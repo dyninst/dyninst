@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.60 2000/09/21 20:14:43 zandy Exp $ */
+/* $Id: test1.mutatee.c,v 1.61 2000/10/25 17:34:55 willb Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -315,7 +315,11 @@ void stop_process()
     return;
 #endif
 
+#ifdef USE_IRIX_FIXES
     kill(getpid(), SIGSTOP);
+#else
+    kill(getpid(), SIGEMT);
+#endif
 
 #if defined(alpha_dec_osf4_0) && defined(__GNUC__)
     fp = beginFP;

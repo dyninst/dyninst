@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test2.mutatee.c,v 1.26 2000/08/22 20:45:43 wylie Exp $ */
+/* $Id: test2.mutatee.c,v 1.27 2000/10/25 17:34:55 willb Exp $ */
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -138,7 +138,12 @@ void stop_process()
     return;
 #endif
 
+#ifdef USE_IRIX_FIXES
     kill(getpid(), SIGSTOP);
+#else
+    kill(getpid(), SIGEMT);
+#endif
+
 #endif
 }
 

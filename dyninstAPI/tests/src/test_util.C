@@ -1,5 +1,5 @@
 //
-// $Id: test_util.C,v 1.12 2000/05/11 04:52:25 zandy Exp $
+// $Id: test_util.C,v 1.13 2000/10/25 17:34:55 willb Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -16,7 +16,6 @@
 #include "BPatch.h"
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
-
 
 //
 // Wait for the mutatee to stop.
@@ -47,6 +46,9 @@ void waitUntilStopped(BPatch *bpatch,
 	     (appThread->stopSignal() != SIGILL)) {
 #else
     else if ((appThread->stopSignal() != SIGSTOP) &&
+#ifdef USE_IRIX_FIXES
+	     (appThread->stopSignal() != SIGEMT) &&
+#endif
 	     (appThread->stopSignal() != SIGHUP)) {
 #endif /* DETACH_ON_THE_FLY */
 	printf("**Failed test #%d (%s)\n", testnum, testname);
