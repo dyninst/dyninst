@@ -16,7 +16,10 @@
 
 /*
  * $Log: dyninstRPC.I,v $
- * Revision 1.16  1994/07/14 23:44:29  hollings
+ * Revision 1.17  1994/07/20 16:30:40  hollings
+ * added resourceBatchMode
+ *
+ * Revision 1.16  1994/07/14  23:44:29  hollings
  * added getCurrentHybridCost
  *
  * Revision 1.15  1994/07/05  03:26:54  hollings
@@ -59,7 +62,7 @@ int createDaemon(String machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 12;
+    $version 14;
 
     //
     // Define a program to run. 
@@ -141,6 +144,7 @@ $remote dynRPC {
 					      String name,
 					      String abstraction);
 
+    $upcall $async void resourceBatchMode(Boolean);
 
     //
     // Handler that gets called when new mapping data is collected.
