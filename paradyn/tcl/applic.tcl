@@ -1,7 +1,11 @@
 #applic.tcl
 # window to get application choices from user
 # $Log: applic.tcl,v $
-# Revision 1.12  1994/11/11 23:00:49  rbi
+# Revision 1.13  1995/07/03 03:26:53  karavan
+# Changed default for user to blank, workaround for nonstandard rsh in use
+# in the CS department.
+#
+# Revision 1.12  1994/11/11  23:00:49  rbi
 # added documentation and allowed definition of default daemon
 #
 # Revision 1.11  1994/11/09  18:39:51  rbi
@@ -104,8 +108,6 @@ proc DefineProcess {} {
   frame $D.user -border 2
   label $D.user.lbl -text "User: " -anchor e -width 12
   entry $D.user.ent -width 50 -textvariable applicUser -relief sunken
-  $D.user.ent delete 0 end 
-  $D.user.ent insert end $env(USER)
   bind $D.user.ent <Tab> "focus $D.machine.ent"
   bind $D.user.ent <Return> "$B.1 invoke"
   pack $D.user -side top -expand yes -fill x
@@ -144,7 +146,7 @@ proc DefineProcess {} {
 	  $applicDaemon $applicCmd}} \
   {"CANCEL" {destroy .pDefn}}}
 
-  focus $D.user.ent
+  focus $D.machine.ent
 }
 
 #
