@@ -41,7 +41,7 @@
 
 //
 // This file defines a set of utility routines for RPC services.
-// $Id: rpcUtil.C,v 1.73 2000/04/07 21:20:37 mirg Exp $
+// $Id: rpcUtil.C,v 1.74 2000/04/10 17:37:53 bernat Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
@@ -1001,8 +1001,12 @@ PDSOCKET remoteCommand(const string hostName, const string userName,
     remoteExecArgList += hostName;
     if( userName.length() > 0 )
     {
-        // add username specification
-        remoteExecArgList += (string("-l ") + userName);
+      // add username specification
+      //remoteExecArgList += (string("-l ") + userName);
+      // That was bad, because (at least on i386-solaris-2.6 rsh "-l username"
+      // behaves badly -- it must patternmatch against "-l" exactly
+      remoteExecArgList += string("-l");
+      remoteExecArgList += userName;
     }
     // add remote command and its arguments
     remoteExecArgList += command;
