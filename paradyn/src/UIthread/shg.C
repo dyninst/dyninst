@@ -4,10 +4,14 @@
 // Ariel Tamches
 
 /* $Log: shg.C,v $
-/* Revision 1.20  1996/04/18 23:26:31  tamches
-/* fixed an assert failure that was happening when hideFalseNodes was on
-/* and when a node changed from true to false
+/* Revision 1.21  1996/04/29 21:29:58  tamches
+/* fixed a bug in configNode which could fail to properly hide the root node
+/* when set to false with hideFalseNodes.
 /*
+ * Revision 1.20  1996/04/18 23:26:31  tamches
+ * fixed an assert failure that was happening when hideFalseNodes was on
+ * and when a node changed from true to false
+ *
  * Revision 1.19  1996/04/16 18:37:31  karavan
  * fine-tunification of UI-PC batching code, plus addification of some
  * Ari-like verbification commentification.
@@ -1082,7 +1086,7 @@ bool shg::configNode(unsigned id, bool newActive,
    }
 
    if (newEvalState == shgRootNode::es_true) {
-      // if we have changed to true (whether active or not)
+      // we have changed to true (whether active or not).  Expand.
       where4tree<shgRootNode> *parentPtr = hash2[ptr];
       if (parentPtr == NULL)
          return false; // either root node or a node which hasn't been addEdge'd in yet
@@ -1102,22 +1106,25 @@ bool shg::configNode(unsigned id, bool newActive,
       assert(rethink_all);
    }
    else if (oldEvalState == shgRootNode::es_true) {
-      // It used to be true (active or not), but ain't anymore.
+      // It used to be true (active or not), but ain't anymore.  Unexpand.
       where4tree<shgRootNode> *parentPtr = hash2[ptr];
       if (parentPtr == NULL)
-         return false; // either root node or a node which hasn't been addEdge'd in yet
-
-      const unsigned numChildren = parentPtr->getNumChildren();
-      for (unsigned childlcv=0; childlcv < numChildren; childlcv++)
-         if (parentPtr->getChildTree(childlcv) == ptr) {
-            parentPtr->explicitlyUnexpandSubchild(consts, childlcv);
-
-            rethink_all = true;
-               // (all we really need to do is rethink all-expanded-children
-               //  dimensions for all ancestors of parentPtr.)
-	 }
-
-      assert(rethink_all);
+         ; // cannot unexpand root node or a node that hasn't been addEdge'd in yet
+           // So we skip the ceremonies (but we don't 'return' because there may be
+           // more to do below w.r.t. hidden-ness)
+      else {
+         const unsigned numChildren = parentPtr->getNumChildren();
+         for (unsigned childlcv=0; childlcv < numChildren; childlcv++)
+            if (parentPtr->getChildTree(childlcv) == ptr) {
+               parentPtr->explicitlyUnexpandSubchild(consts, childlcv);
+   
+               rethink_all = true;
+                  // (all we really need to do is rethink all-expanded-children
+                  //  dimensions for all ancestors of parentPtr.)
+   	 }
+   
+         assert(rethink_all);
+      }
    }
 
    if (oldHidden != new_hidden && new_hidden) {
