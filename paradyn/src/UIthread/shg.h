@@ -4,10 +4,14 @@
 // Ariel Tamches
 
 /* $Log: shg.h,v $
-/* Revision 1.14  1996/05/01 14:07:59  naim
-/* Multiples changes in UI to make call to requestNodeInfoCallback async.
-/* (UI<->PC) - naim
+/* Revision 1.15  1996/05/01 20:55:08  tamches
+/* added inactivateAll
+/* change interface to configNode a bit
 /*
+ * Revision 1.14  1996/05/01 14:07:59  naim
+ * Multiples changes in UI to make call to requestNodeInfoCallback async.
+ * (UI<->PC) - naim
+ *
  * Revision 1.13  1996/04/16 18:37:33  karavan
  * fine-tunification of UI-PC batching code, plus addification of some
  * Ari-like verbification commentification.
@@ -28,30 +32,6 @@
  * Revision 1.8  1996/02/15 23:10:01  tamches
  * added proper support for why vs. where axis refinement
  *
- * Revision 1.7  1996/02/11 18:23:57  tamches
- * removed addToStatusDisplay
- *
- * Revision 1.6  1996/02/07 19:07:46  tamches
- * rethink_entire_layout, addNode, configNode, and addEdge now
- * take in "isCurrShg" flag
- *
- * Revision 1.5  1996/02/02 18:43:33  tamches
- * Displaying extra information about a node has moved from a mousemove
- * to a middle-click
- *
- * Revision 1.4  1996/01/23 07:01:03  tamches
- * added shadow node features
- *
- * Revision 1.3  1996/01/09 01:04:01  tamches
- * added thePhaseId member variable
- *
- * Revision 1.2  1995/11/06 19:27:47  tamches
- * slider bug fixes
- * dictionary_hash --> dictionary_lite
- *
- * Revision 1.1  1995/10/17 22:07:07  tamches
- * First version of "new search history graph".
- *
  */
 
 #ifndef _SHG_H_
@@ -63,7 +43,10 @@
 #include "util/h/DictionaryLite.h"
 #endif
 
+#ifdef PARADYN
 #include "performanceConsultant.thread.h" // for struct shg_node_info
+   // shg test program doesn't touch this stuff
+#endif
 
 #include "where4tree.h"
 #include "graphicalPath.h"
@@ -179,6 +162,7 @@ class shg {
                      bool shadow) const;
 
    bool recursiveUpdateHiddenNodes(where4tree<shgRootNode> *ptr);
+   bool changeHiddenNodesBase(bool isCurrShg);
       // called by changeHiddenNodes.
 
  protected:
@@ -330,13 +314,21 @@ class shg {
       // require a redraw, because the new node won't (and shouldn't) show up
       // until a corresponding addEdge() call connects this new node to the rest
       // of the "graph".
-   bool configNode(unsigned id, bool active, shgRootNode::evaluationState,
-                   bool isCurrShg);
-      // returns true iff any changes.  Does not redraw.
+   enum configNodeResult {noChanges, benignChanges, changesInvolvingJustExpandedness,
+			  changesInvolvingHideness};
+   configNodeResult configNode(unsigned id, bool active, shgRootNode::evaluationState,
+			       bool isCurrShg, bool rethinkIfNecessary);
+      // Does not redraw, but may rethink layout and/or hide-ness.
       // Note: a change from "tentatively-true" to
       // (anything else) will un-expand the node, leading to a massive layout
       // rethinkification.  Other changes are more simple -- simply changing the color
       // of a node.
+   bool inactivateAll(bool isCurrShg);
+      // returns true iff any changes were made.  Note that in the "usual" case,
+      // the only thing that will happen is the fg color of nodes will change.
+      // _However_, if some tunable like "hideInactiveNodes" is set, then massive
+      // rethinkifications are a possibility.
+
    void addEdge(unsigned fromId, unsigned toId,
                 shgRootNode::refinement, // why vs. where refinement.
                 const char *label, // only used for shadow nodes; else NULL
@@ -344,9 +336,12 @@ class shg {
 		bool rethinkFlag); // if false, avoids rethinkification
       // The evaluationState param decides whether to explicitly expand
       // the "to" node.  Rethinks the entire layout of the shg
- 
+
+#ifdef PARADYN 
    void nodeInformation(unsigned nodeId, const shg_node_info &theNodeInfo);
       // In response to a middle-mouse-click...
+      // the shg test program doesn't implement this stuff
+#endif
 };
 
 #endif
