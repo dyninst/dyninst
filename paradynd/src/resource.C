@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.9 1994/08/08 20:13:46 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.10 1994/09/22 02:24:46 markc Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  *
  * $Log: resource.C,v $
- * Revision 1.9  1994/08/08 20:13:46  hollings
+ * Revision 1.10  1994/09/22 02:24:46  markc
+ * cast stringHandles
+ *
+ * Revision 1.9  1994/08/08  20:13:46  hollings
  * Added suppress instrumentation command.
  *
  * Revision 1.8  1994/07/28  22:40:45  krisna
@@ -56,9 +59,12 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *
  *
  */
+
+extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+}
 
 #include "symtab.h"
 #include "process.h"
@@ -67,43 +73,43 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "comm.h"
 
 extern pdRPC *tp;
-HTable <resource>	allResources;
+HTable <resource*> allResources;
 
 /*
  * handle the notification of resource creation and deletion.
  *
  */
 
-resourceRec rootNode(False);
+resource rootNode(False);
 
-resource rootResource = &rootNode;
+resource *rootResource = &rootNode;
 
-resourceList getRootResources()
+resourceListRec *getRootResources()
 {
     return(rootResource->children);
 }
 
-char *getResourceName(resource r)
+stringHandle getResourceName(resource *r)
 {
     return(r->info.name);
 }
 
-resource getResourceParent(resource r)
+resource *getResourceParent(resource *r)
 {
     return(r->parent);
 }
 
-resourceList getResourceChildren(resource r)
+resourceListRec *getResourceChildren(resource *r)
 {
     return(r->children);
 }
 
-int getResourceCount(resourceList rl)
+int getResourceCount(resourceListRec *rl)
 {
     return(rl ? rl->count: 0);
 }
 
-resource getNthResource(resourceList rl, int n)
+resource *getNthResource(resourceListRec *rl, int n)
 {
     if (n < rl->count) {
 	return(rl->elements[n]);
@@ -112,29 +118,33 @@ resource getNthResource(resourceList rl, int n)
     }
 }
 
-resourceInfo *getResourceInfo(resource r)
+resourceInfo *getResourceInfo(resource *r)
 {
     return(&r->info);
 }
 
-resourceList createResourceList()
+resourceListRec *createResourceList()
 {
-    resourceList ret;
-
-    ret = (resourceList) xcalloc(1, sizeof(struct _resourceListRec));
+    resourceListRec *ret;
+    ret = new resourceListRec;
     return(ret);
 }
 
-Boolean addResourceList(resourceList rl, resource r)
+Boolean addResourceList(resourceListRec *rl, resource *r)
 {
-
     if (rl->count == rl->maxItems) {
 	rl->maxItems += 10;
 	if (rl->elements) {
-	    rl->elements = (resource *) 
-		xrealloc(rl->elements, sizeof(resource) * rl->maxItems);
+            int i;
+	    resource **newEl;
+            newEl = new resource*[rl->maxItems];        
+	    for (i=0; i<(rl->maxItems - 10); ++i)
+	      newEl[i] = rl->elements[i];
+	    // don't want delete called on elements in this list
+	    delete (rl->elements);
+	    rl->elements = newEl;
 	} else {
-	    rl->elements = (resource *) xmalloc(sizeof(resource) * rl->maxItems);
+	    rl->elements = new resource*[rl->maxItems];
 	}
     }
     rl->elements[rl->count] = r;
@@ -144,61 +154,58 @@ Boolean addResourceList(resourceList rl, resource r)
 
 Boolean initResourceRoot;
 
-resource newResource(resource parent, 
-		     void *handle,
-		     char *abstraction, 
-		     char *name, 
-		     timeStamp creation,
-		     Boolean unique)
+resource *newResource(resource *parent, 
+		      void *handle,
+		      stringHandle abstraction, 
+		      const char *name, 
+		      timeStamp creation,
+		      Boolean unique)
 {
     int c;
-    char *iName, *iAbstraction;
-    resource ret;
-    resource *curr;
+    resource *ret;
+    resource **curr;
     char tempName[255];
+    stringHandle nameHandle;
+    char *uName=0;
 
     if (unique) {
-	// ask paradyn for unqiue name.
-	name = tp->getUniqueResource(0, parent->info.fullName, name);
-    }
+      // ask paradyn for unqiue name.
+      uName = tp->getUniqueResource(0, (char*)parent->info.fullName, (char*)name);
+      nameHandle = pool.findAndAdd(uName);
+      delete uName;
+    } else
+      nameHandle = pool.findAndAdd(name);
 
     if (!initResourceRoot) {
 	initResourceRoot = True;
-	rootNode.info.name = "";
-	rootNode.info.fullName = "";
+	rootNode.info.name = pool.findAndAdd("");
+	rootNode.info.fullName = pool.findAndAdd("");
 	rootNode.info.creation = 0.0;
 	rootNode.parent = NULL;
 	rootNode.handle = NULL;
 	rootNode.children = NULL;
     }
 
-    iName = pool.findAndAdd(name);
-    if (abstraction)
-      iAbstraction = pool.findAndAdd(abstraction);
-    else 
-      iAbstraction = NULL;
-
     /* first check to see if the resource has already been defined */
     if (parent->children) {
 	for (curr=parent->children->elements, c=0;
 	     c < parent->children->count; c++) {
-	     if (curr[c]->info.name == iName) {
+	     if (curr[c]->info.name == nameHandle) {
 		 return(curr[c]);
 	     }
 	}
     } else {
-	parent->children = (resourceList) 
-	    xcalloc(1, sizeof(struct _resourceListRec));
+	parent->children = new resourceListRec;
     }
 
-    ret = new(resourceRec);
+    ret = new resource;
     ret->parent = parent;
     ret->handle = handle;
 
-    sprintf(tempName, "%s/%s", parent->info.fullName, name);
+    sprintf(tempName, "%s/%s", (char*)parent->info.fullName, (char*)nameHandle);
     ret->info.fullName = pool.findAndAdd(tempName);
-    ret->info.name = iName;
-    ret->info.abstraction = iAbstraction;
+    ret->info.name = nameHandle;
+    ret->info.abstraction = abstraction;
 
     ret->info.creation = creation;
 
@@ -206,17 +213,17 @@ resource newResource(resource parent,
     allResources.add(ret, (void *) ret->info.fullName);
 
     /* call notification upcall */
-    tp->resourceInfoCallback(0, parent->info.fullName, ret->info.name, 
- 	 ret->info.name, ret->info.abstraction);
+    tp->resourceInfoCallback(0, (char*)parent->info.fullName, (char*)ret->info.name, 
+ 	 (char*)ret->info.name, (char*)ret->info.abstraction);
 
     return(ret);
 }
 
-resource findChildResource(resource parent, char *name)
+resource *findChildResource(resource *parent, char *name)
 {
     int c;
-    char *iName;
-    resource *curr;
+    stringHandle iName;
+    resource **curr;
 
     iName = pool.findAndAdd(name);
 
@@ -230,13 +237,13 @@ resource findChildResource(resource parent, char *name)
     return(NULL);
 }
 
-void printResources(resource r)
+void printResources(resource *r)
 {
     int c;
-    resource *curr;
+    resource **curr;
 
     if (r) {
-	sprintf(errorLine, "%s", r->info.fullName);
+	sprintf(errorLine, "%s", (char*)r->info.fullName);
 	logLine(errorLine);
 	if (r->children) {
 	    for (curr=r->children->elements, c=0;
@@ -247,13 +254,13 @@ void printResources(resource r)
     }
 }
 
-void printResourceList(resourceList rl)
+void printResourceList(resourceListRec *rl)
 {
     int i;
 
     logLine("<");
     for (i=0; i < rl->count; i++) {
-	logLine(rl->elements[i]->info.fullName);
+	logLine((char*)rl->elements[i]->info.fullName);
 	if (i!= rl->count-1) logLine(",");
     }
     logLine(">");
@@ -263,7 +270,7 @@ void printResourceList(resourceList rl)
  * Convinence function.
  *
  */
-Boolean isResourceDescendent(resource parent, resource child)
+Boolean isResourceDescendent(resource *parent, resource *child)
 {
     while (child) {
         if (child == parent) {
@@ -283,19 +290,22 @@ Boolean isResourceDescendent(resource parent, resource child)
 //    the focus is valid.  Any other resource that can't be found results in
 //    an invalid focus.  jkh 1/29/94.
 //
-resourceList findFocus(int count, char **data)
+resourceListRec *findFocus(int count, char **data)
 {
     int i;
-    char *iName;
-    resource res;
-    resourceList rl;
+    stringHandle iName;
+    resource *res;
+    resourceListRec *rl;
+    char *iChar;
 
     rl = createResourceList();
     for (i=0; i < count; i++) {
 	iName = pool.findAndAdd(data[i]);
 	res = allResources.find(iName);
-	if (!res && (strchr(iName, '/') == strrchr(iName, '/'))) {
-	    res = newResource(rootResource, NULL, NULL, ++iName, 0.0, FALSE);
+	if (!res && (strchr((char*)iName, '/') == strrchr((char*)iName, '/'))) {
+	    iChar = (char*) iName;
+	    iChar++;
+	    res = newResource(rootResource, NULL, NULL, iChar, 0.0, FALSE);
 	} else if (!res) {
 	    return(NULL);
 	}
@@ -304,10 +314,10 @@ resourceList findFocus(int count, char **data)
     return(rl);
 }
 
-resource findResource(char *name)
+resource *findResource(const char *name)
 {
-    char *iName;
-    resource res;
+    stringHandle iName;
+    resource *res;
 
     if (*name == '\0') {
 	return(rootResource);
