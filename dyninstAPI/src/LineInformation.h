@@ -164,15 +164,15 @@ public:
 	  * @param isFile flag that defines the scope of search
 	  * @param isExactMatch flag defining whether exact match is searched
 	  */
-	bool getLineFromAddr(pdstring name,unsigned short& lineNo,
-			     Address codeAddress,bool isFile=false,
-			     bool isExactMatch=true);
+	bool getLineFromAddr(pdstring name, unsigned short& lineNo,
+			     Address codeAddress, bool isFile=false,
+			     bool isExactMatch=true, Address * inexactitude = NULL );
 
 	/** as is in previous explanation except set of lines is returned
 	  * instead of a single line number */
-	bool getLineFromAddr(pdstring name,BPatch_Set<unsigned short>& lines,
-			     Address codeAddress,bool isFile=false,
-			     bool isExactMatch=true);
+	bool getLineFromAddr(pdstring name, BPatch_Set<unsigned short>& lines,
+			     Address codeAddress, bool isFile=false,
+			     bool isExactMatch=true, Address * inexactitude = NULL );
 
 	/** method that returns set of addresses for a given line number
 	  * the search can be done in file level or in function level 

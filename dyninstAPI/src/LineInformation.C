@@ -746,22 +746,27 @@ void FileLineInformation::insertLineAddress(FunctionInfo* fInfo,
 #endif
 }
  
-//returns true in case of success, false otherwise.
-//this method finds the line number corresponding to an address.
-//if name of the function is supplied and isFile is false
-//then function level search is being applied. Otherwise file level
-//search is applied. If there are more than 1 line found than
-//the maximum is being returned.
-bool FileLineInformation::getLineFromAddr(pdstring name,unsigned short& lineNo,
-					  Address codeAddress,bool isFile,
-					  bool isExactMatch)
+bool FileLineInformation::getLineFromAddr( pdstring name, unsigned short & lineNo,
+					  Address codeAddress, bool isFile, bool isExactMatch,
+					  Address * inexactitude )
 {
 	BPatch_Set<unsigned short> lines;
-	if(!getLineFromAddr(name,lines,codeAddress,isFile,isExactMatch))
-		return false;
-	lineNo = lines.maximum();
-	return true;
-}
+	
+	/* Prefer exact matches. */
+	if( getLineFromAddr( name, lines, codeAddress, isFile, true, inexactitude ) ) {
+		// /* DEBUG */ fprintf( stderr, "Located exact match for 0x%lx at %d\n", codeAddress, lines.maximum() );
+		lineNo = lines.maximum();
+		return true;
+		}
+		
+	if( ! isExactMatch && getLineFromAddr( name, lines, codeAddress, isFile, false, inexactitude ) ) {
+		// /* DEBUG */ fprintf( stderr, "Located sloppy match for 0x%lx at %d, off by 0x%lx\n", codeAddress, lines.maximum(), ((inexactitude != NULL) ? (* inexactitude) : -1) );
+		lineNo = lines.maximum();
+		return true;
+		}
+
+	return false;
+	} /* end getLineFromAddr() */
 
 //returns true in case of success, false otherwise.
 //this method finds the line numbers corresponding to an address.
@@ -771,8 +776,9 @@ bool FileLineInformation::getLineFromAddr(pdstring name,unsigned short& lineNo,
 //is returned in a set of addresses.
 bool FileLineInformation::getLineFromAddr(pdstring name,
 				 	  BPatch_Set<unsigned short>& lines,
-					  Address codeAddress,bool isFile,
-					  bool isExactMatch)
+					  Address codeAddress, 
+					  bool isFile, bool isExactMatch,
+					  Address * inexactitude )
 {
 #ifdef OLD_LINE_INFO
   tuple** beginPtr;
@@ -790,7 +796,7 @@ bool FileLineInformation::getLineFromAddr(pdstring name,
     FunctionInfo* fInfo = findFunctionInfo(name);
     if(!fInfo)
       return false;
-    if(!fInfo->validInfo)
+   if(!fInfo->validInfo)
       return false;
     beginPtr = (tuple**)(addrToLine+fInfo->startAddrPtr->addrPtr);
     endPtr = (tuple**)(addrToLine+fInfo->endAddrPtr->addrPtr);
@@ -810,8 +816,9 @@ bool FileLineInformation::getLineFromAddr(pdstring name,
     if(!next)
       return false;
     ret = next;
+    if( inexactitude != NULL ) { * inexactitude = codeAddress - (*ret)->codeAddress; }
     codeAddress = (*ret)->codeAddress;
-  }
+  } else { if( inexactitude != NULL ) { * inexactitude = 0; } }
   do{
     lines += (*ret)->lineNo;
     ret++;
