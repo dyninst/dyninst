@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.94 2001/11/02 22:34:19 gurari Exp $
+ * $Id: inst-x86.C,v 1.95 2001/11/05 01:59:34 buck Exp $
  */
 
 #include <iomanip.h>
@@ -1383,8 +1383,6 @@ trampTemplate *installBaseTramp( const instPoint *location,
   unsigned trampSize = 73;
 #endif
 
-  if (noCost) trampSize -= 10;
-
   if (location->isConservative()) trampSize += 13*2;
 
   if( ! trampRecursiveDesired ) {
@@ -1578,6 +1576,14 @@ trampTemplate *installBaseTramp( const instPoint *location,
      emitAddMemImm32(costAddr, 88, insn);  // add (costAddr), cost
      if (location->isConservative())
        emitSimpleInsn(POPFD, insn);     // popfd
+  }
+  else {
+     // minor hack: we still need to fill up the rest of the 10 bytes, since
+     // assumptions are made about the positioning of instructions that follow.
+     // (This could in theory be fixed)
+     // So, 10 NOP instructions (each 1 byte)
+     for (unsigned foo=0; foo < 10; foo++)
+        emitSimpleInsn(0x90, insn); // NOP
   }
    
   if (!(location->insnAtPoint().type() & IS_JCC)) {
