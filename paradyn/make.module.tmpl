@@ -4,7 +4,11 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.6  1995/03/11 06:02:54  krisna
+# Revision 1.7  1995/03/15 19:16:15  jcargill
+# Removed -lresolv for all architectures, and added it back for Sunos
+# and Solaris; libresolv.a causes trouble for hppa.
+#
+# Revision 1.6  1995/03/11  06:02:54  krisna
 # libthread, libutil name change
 #
 # Revision 1.5  1995/02/27  18:32:30  tamches
@@ -99,7 +103,7 @@ IGEN_ISRCS    = dataManager.I \
 LIBDIR	     += -L/usr/psup/lib
 
 LIBS 	     += -lpdutil -lpdthread
-SYSLIBS	     += -ltk -ltcl -lX11 -lm -lresolv -lfl
+SYSLIBS	     += -ltk -ltcl -lX11 -lm -lfl
 
 all:	$(TARGET) metTester
 
