@@ -99,7 +99,7 @@ int PDYN_get_pvmd_tid();
 
 void PDYN_goodbye(const char *msg)
 {
-  pvm_perror((char *)msg);
+  pvm_perror(const_cast<char*>(msg));
   pvm_exit();
 }
 
@@ -123,7 +123,7 @@ void PDYN_goodbye(const char *msg)
 //
 // in either case this process must register as the tasker process and hoster
 bool
-PDYN_initForPVM (char **argv, const string machine, int sock,
+PDYN_initForPVM (char **argv, const string machine, int /*sock*/,
 		 int flag)
 {
   pvmid = pvm_mytid();
