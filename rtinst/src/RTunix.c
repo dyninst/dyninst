@@ -3,7 +3,11 @@
  *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
- * Revision 1.7  1994/03/25 16:03:11  markc
+ * Revision 1.8  1994/04/07 01:21:30  markc
+ * Cleaned up writes.  Writes interrupted by system calls get retried, others
+ * do not.
+ *
+ * Revision 1.7  1994/03/25  16:03:11  markc
  * Added retry to write which could be interrupted by a signal.
  *
  * Revision 1.6  1994/02/16  00:07:24  hollings
@@ -311,9 +315,14 @@ void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
     bufptr = buffer;
     while (count) {
         ret = write(CONTROLLER_FD, bufptr, count);
-	/* if ((ret == -1) && (errno != EINTR)) break; */
-	if (ret == -1) break; 
-        /* ret = 0; */
+
+	if (ret >= 0)
+            ;     /* check most common case first */
+	else if (errno != EINTR)
+	    break; 
+	else
+	    ret = 0;
+
 	count -= ret;
 	bufptr += ret;
     }
