@@ -1,4 +1,4 @@
-// $Id: test3.C,v 1.18 2000/08/07 00:53:18 wylie Exp $
+// $Id: test3.C,v 1.19 2000/08/22 20:49:17 wylie Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -41,7 +41,7 @@ const unsigned int MAX_MUTATEES = 32;
 unsigned int Mutatees=3;
 
 bool runAllTests = true;
-const unsigned int MAX_TEST = 4;
+const unsigned int MAX_TEST = 5;
 bool passedTest[MAX_TEST+1];
 
 template class BPatch_Vector<BPatch_variableExpr*>;
@@ -213,7 +213,7 @@ void MopUpMutatees(const unsigned int mutatees, BPatch_thread *appThread[])
 
 //
 // Start Test Case #1 - create processes and process events from each
-//     Just let them run to finish, no instrumentation added.
+//     Just let them run a while, then kill them, no instrumentation added.
 //
 void mutatorTest1(char *pathname, BPatch *bpatch)
 {
@@ -235,7 +235,63 @@ void mutatorTest1(char *pathname, BPatch *bpatch)
         appThread[n] = bpatch->createProcess(pathname, child_argv, NULL);
         if (!appThread[n]) {
             printf("*ERROR*: unable to create handle%d for executable\n", n);
-            printf("**Failed** test #1 (simultaneous multiple-process management)\n");
+            printf("**Failed** test #1 (simultaneous multiple-process management - terminate)\n");
+            MopUpMutatees(n-1,appThread);
+            return;
+        }
+        dprintf("Mutatee %d started, pid=%d\n", n, appThread[n]->getPid());
+    }
+
+    dprintf("Letting mutatee processes run a short while (10s).\n");
+    for (n=0; n<Mutatees; n++) appThread[n]->continueExecution();
+
+    P_sleep(10);
+    dprintf("Terminating mutatee processes.\n");
+
+    unsigned int numTerminated=0;
+    for (n=0; n<Mutatees; n++) {
+        bool dead = appThread[n]->terminateExecution();
+        if (!dead || !(appThread[n]->isTerminated())) {
+            printf("**Failed** test #1 (simultaneous multiple-process management - terminate)\n");
+            printf("    mutatee process [%d] was not terminated\n", n);
+            //return;
+        }
+        numTerminated++;
+        int statusCode = appThread[n]->terminationStatus();
+        dprintf("Terminated mutatee [%d] returned status code 0x%x\n", n, statusCode);
+    }
+
+    if (numTerminated == Mutatees) {
+	printf("Passed Test #1 (simultaneous multiple-process management - terminate)\n");
+	passedTest[1] = true;
+    }
+}
+
+//
+// Start Test Case #2 - create processes and process events from each
+//     Just let them run to finish, no instrumentation added.
+//
+void mutatorTest2(char *pathname, BPatch *bpatch)
+{
+    unsigned int n=0;
+    char *child_argv[5];
+    child_argv[n++] = pathname;
+    if (debugPrint) child_argv[n++] = "-verbose";
+    child_argv[n++] = "-run";
+    child_argv[n++] = "2";		// run test2 in mutatee
+    child_argv[n++] = NULL;
+
+    BPatch_thread *appThread[MAX_MUTATEES];
+
+    for (n=0; n<MAX_MUTATEES; n++) appThread[n]=NULL;
+
+    // Start the mutatees
+    for (n=0; n<Mutatees; n++) {
+        dprintf("Starting \"%s\" %d/%d\n", pathname, n, Mutatees);
+        appThread[n] = bpatch->createProcess(pathname, child_argv, NULL);
+        if (!appThread[n]) {
+            printf("*ERROR*: unable to create handle%d for executable\n", n);
+            printf("**Failed** test #2 (simultaneous multiple-process management - exit)\n");
             MopUpMutatees(n-1,appThread);
             return;
         }
@@ -261,8 +317,8 @@ void mutatorTest1(char *pathname, BPatch *bpatch)
     }
 
     if (numTerminated == Mutatees) {
-	printf("Passed Test #1 (simultaneous multiple-process management)\n");
-	passedTest[1] = true;
+	printf("Passed Test #2 (simultaneous multiple-process management - exit)\n");
+	passedTest[2] = true;
     }
 }
 
@@ -290,21 +346,21 @@ int readResult(int pid)
 }
 
 //
-// Start Test Case #2 - create processes and insert different code into
+// Start Test Case #3 - create processes and insert different code into
 //     each one.  The code sets a global variable which the mutatee then
 //     writes to a file.  After all mutatees exit, the mutator reads the
 //     files to verify that the correct code ran in each mutatee.
 //     The first mutator should write a 1 to the file, the second a 2, etc.
 //     If no code is patched into the mutatees, the value is 0xdeadbeef.
 //
-void mutatorTest2(char *pathname, BPatch *bpatch)
+void mutatorTest3(char *pathname, BPatch *bpatch)
 {
     unsigned int n=0;
     char *child_argv[5];
     child_argv[n++] = pathname;
     if (debugPrint) child_argv[n++] = "-verbose";
     child_argv[n++] = "-run";
-    child_argv[n++] = "2";		// run test2 in mutatee
+    child_argv[n++] = "3";		// run test3 in mutatee
     child_argv[n++] = NULL;
 
     int pid[MAX_MUTATEES];
@@ -318,7 +374,7 @@ void mutatorTest2(char *pathname, BPatch *bpatch)
         appThread[n] = bpatch->createProcess(pathname, child_argv, NULL);
         if (!appThread[n]) {
             printf("*ERROR*: unable to create handle%d for executable\n", n);
-            printf("**Failed** test #2 (instrument multiple processes)\n");
+            printf("**Failed** test #3 (instrument multiple processes)\n");
             MopUpMutatees(n-1,appThread);
             return;
         }
@@ -330,32 +386,41 @@ void mutatorTest2(char *pathname, BPatch *bpatch)
     for (n=0; n<Mutatees; n++) {
         dprintf("Instrumenting %d/%d\n", n, Mutatees);
 
-        const char *Func="func2_1";
-        const char *Var="test2ret";
-        const char *Call="call2_1";
+        const char *Func="func3_1";
+        const char *Var="test3ret";
+        const char *Call="call3_1";
         BPatch_image *img = appThread[n]->getImage();
         BPatch_Vector<BPatch_point *> *point =
             img->findProcedurePoint(Func, BPatch_entry);
         if (!point || (*point).size() == 0) {
-            fprintf(stderr,"  Unable to find entry point to \"%s\".\n", Func);
+            printf("  Unable to find entry point to \"%s\".\n", Func);
+            printf("**Failed** test #3 (instrument multiple processes)\n");
+            MopUpMutatees(Mutatees,appThread);
+            return;
         }
         BPatch_variableExpr *var = img->findVariable(Var);
         if (var == NULL) {
-            fprintf(stderr,"  Unable to find variable \"%s\".\n", Var);
+            printf("  Unable to find variable \"%s\".\n", Var);
+            printf("**Failed** test #3 (instrument multiple processes)\n");
+            MopUpMutatees(Mutatees,appThread);
+            return;
         }
         BPatch_function *callFunc = img->findFunction(Call);
         if (callFunc == NULL) {
-            fprintf(stderr,"  Unable to find target function \"%s\n.\n", Call);
+            printf("  Unable to find target function \"%s\".\n", Call);
+            printf("**Failed** test #3 (instrument multiple processes)\n");
+            MopUpMutatees(Mutatees,appThread);
+            return;
         }
         // start with a simple snippet
         BPatch_arithExpr snip(BPatch_assign, *var, BPatch_constExpr(n));
         BPatchSnippetHandle *inst = appThread[n]->insertSnippet(snip, *point);
         if (inst == NULL) {
-            fprintf(stderr, "  Failed to insert simple snippet.\n");
+            printf("  Failed to insert simple snippet.\n");
+            printf("**Failed** test #3 (instrument multiple processes)\n");
+            MopUpMutatees(Mutatees,appThread);
+            return;
         }
-
-      //BPatchSnippetHandle *inst = insertSnippetAt(appThread[n], img, 
-      //    "func2_1", BPatch_entry, snip, 2, "different inst. active");
 
         // now add a call snippet
         BPatch_Vector<BPatch_snippet *> callArgs;
@@ -365,12 +430,11 @@ void mutatorTest2(char *pathname, BPatch *bpatch)
         BPatchSnippetHandle *call = 
                 appThread[n]->insertSnippet(callExpr, *point);
         if (call == NULL) {
-            fprintf(stderr,"  Failed to insert call snippet.\n");
+            printf("  Failed to insert call snippet.\n");
+            printf("**Failed** test #3 (instrument multiple processes)\n");
+            MopUpMutatees(Mutatees,appThread);
+            return;
         }
-
-      //BPatchSnippetHandle *call = insertCallSnippetAt(appThread[n], img,
-      //      "func2_1", BPatch_entry,
-      //      "call2_1", 2, "different inst. active (call)");
     }
 
     dprintf("Letting %d mutatee processes run.\n", Mutatees);
@@ -408,59 +472,16 @@ void mutatorTest2(char *pathname, BPatch *bpatch)
     }
 
     if (allCorrect) {
-        printf("Passed Test #2 (instrument multiple processes)\n");
-        passedTest[2] = true;
+        printf("Passed Test #3 (instrument multiple processes)\n");
+        passedTest[3] = true;
     } else {
-        printf("**Failed** test #2 (instrument multiple processes)\n");
+        printf("**Failed** test #3 (instrument multiple processes)\n");
     }
 }
-
-//
-// Start Test Case #3 - create one process, wait for it to exit.  Then 
-//     create a second one and wait for it to exit.  Repeat as required.
-//
-void mutatorTest3(char *pathname, BPatch *bpatch)
-{
-    unsigned int n=0;
-    char *child_argv[5];
-    child_argv[n++] = pathname;
-    if (debugPrint) child_argv[n++] = "-verbose";
-    child_argv[n++] = "-run";
-    child_argv[n++] = "1";		// run test1 in mutatee
-    child_argv[n++] = NULL;
-
-    BPatch_thread *appThread;
-
-    for (n=0; n<Mutatees; n++) {
-        // Start the mutatee
-        dprintf("Starting \"%s\" %d/%d\n", pathname, n, Mutatees);
-        appThread = bpatch->createProcess(pathname, child_argv, NULL);
-        if (!appThread) {
-            printf("*ERROR*: unable to create handle%d for executable\n", n);
-            printf("**Failed** Test #3 (sequential multiple-process management - exit)\n");
-            return;
-        }
-        dprintf("Mutatee %d started, pid=%d\n", n, appThread->getPid());
-
-        appThread->continueExecution();
-
-        while (!appThread->isTerminated())
-            bpatch->waitForStatusChange();
-
-        dprintf("Mutatee %d termination received (code=0x%x).\n",
-            n, appThread->terminationStatus());
-    }
-
-    printf("Passed Test #3 (sequential multiple-process management - exit)\n");
-    passedTest[3] = true;
-}
-
 
 //
 // Start Test Case #4 - create one process, wait for it to exit.  Then 
 //     create a second one and wait for it to exit.  Repeat as required.
-//     Differs from test 3 in that the mutatee processes terminate with
-//     abort rather than exit.
 //
 void mutatorTest4(char *pathname, BPatch *bpatch)
 {
@@ -469,7 +490,7 @@ void mutatorTest4(char *pathname, BPatch *bpatch)
     child_argv[n++] = pathname;
     if (debugPrint) child_argv[n++] = "-verbose";
     child_argv[n++] = "-run";
-    child_argv[n++] = "4";		// run test4 in mutatee
+    child_argv[n++] = "2";		// run test2 in mutatee
     child_argv[n++] = NULL;
 
     BPatch_thread *appThread;
@@ -480,7 +501,7 @@ void mutatorTest4(char *pathname, BPatch *bpatch)
         appThread = bpatch->createProcess(pathname, child_argv, NULL);
         if (!appThread) {
             printf("*ERROR*: unable to create handle%d for executable\n", n);
-            printf("**Failed** Test #4 (sequential multiple-process management - abort)\n");
+            printf("**Failed** Test #4 (sequential multiple-process management - exit)\n");
             return;
         }
         dprintf("Mutatee %d started, pid=%d\n", n, appThread->getPid());
@@ -494,8 +515,51 @@ void mutatorTest4(char *pathname, BPatch *bpatch)
             n, appThread->terminationStatus());
     }
 
-    printf("Passed Test #4 (sequential multiple-process management - abort)\n");
+    printf("Passed Test #4 (sequential multiple-process management - exit)\n");
     passedTest[4] = true;
+}
+
+
+//
+// Start Test Case #5 - create one process, wait for it to exit.  Then 
+//     create a second one and wait for it to exit.  Repeat as required.
+//     Differs from test 3 in that the mutatee processes terminate with
+//     abort rather than exit.
+//
+void mutatorTest5(char *pathname, BPatch *bpatch)
+{
+    unsigned int n=0;
+    char *child_argv[5];
+    child_argv[n++] = pathname;
+    if (debugPrint) child_argv[n++] = "-verbose";
+    child_argv[n++] = "-run";
+    child_argv[n++] = "5";		// run test5 in mutatee
+    child_argv[n++] = NULL;
+
+    BPatch_thread *appThread;
+
+    for (n=0; n<Mutatees; n++) {
+        // Start the mutatee
+        dprintf("Starting \"%s\" %d/%d\n", pathname, n, Mutatees);
+        appThread = bpatch->createProcess(pathname, child_argv, NULL);
+        if (!appThread) {
+            printf("*ERROR*: unable to create handle%d for executable\n", n);
+            printf("**Failed** Test #5 (sequential multiple-process management - abort)\n");
+            return;
+        }
+        dprintf("Mutatee %d started, pid=%d\n", n, appThread->getPid());
+
+        appThread->continueExecution();
+
+        while (!appThread->isTerminated())
+            bpatch->waitForStatusChange();
+
+        dprintf("Mutatee %d termination received (code=0x%x).\n",
+            n, appThread->terminationStatus());
+    }
+
+    printf("Passed Test #5 (sequential multiple-process management - abort)\n");
+    passedTest[5] = true;
 }
 
 int main(unsigned int argc, char *argv[])
@@ -652,6 +716,7 @@ int main(unsigned int argc, char *argv[])
     if (runTest[2]) mutatorTest2(mutateeName, bpatch);
     if (runTest[3]) mutatorTest3(mutateeName, bpatch);
     if (runTest[4]) mutatorTest4(mutateeName, bpatch);
+    if (runTest[5]) mutatorTest5(mutateeName, bpatch);
 
     unsigned int testsFailed = 0;
     for (i=1; i <= MAX_TEST; i++) {
