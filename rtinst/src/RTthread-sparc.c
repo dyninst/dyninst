@@ -27,6 +27,15 @@ int DYNINSTthreadPos ()
       if (RTsharedData.posToThread[curr_pos] == tid)
           return curr_pos;
   }
+
+  /*
+    Check to see if thread local storage is in a consistent state. Otherwise,
+    we must not call DYNINSTthreadPosSLOW, which calls thr_getspecific
+  */
+  if (DYNINSTthreadSaneLocalStorage() == 0) {
+      return 0;
+  }
+
   /* Slow method */
   curr_pos = DYNINSTthreadPosSLOW(tid);
   if (curr_pos == MAX_NUMBER_OF_THREADS) {
