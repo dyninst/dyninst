@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.38 2003/04/15 18:44:30 bernat Exp $
+// $Id: aixDL.C,v 1.39 2003/04/16 21:07:06 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -77,7 +77,6 @@ pdvector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
   int ret;
   struct ld_info *ld_info_array, *ptr;
   struct stat ld_stat;
-  static bool did_ptrace_multi = false;
   // We hope that we don't get more than 1024 libraries loaded.
   ld_info_array = (struct ld_info *) malloc (1024*sizeof(*ptr));
   ptr = ld_info_array;
