@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: inst-aix.C,v 1.15 2001/02/23 08:03:44 schendel Exp $
+/* $Id: inst-aix.C,v 1.16 2002/01/07 23:03:07 schendel Exp $
  * inst-aix.C - AIX-specific code for paradynd.
  *
  * XXX - The following functions seem to be less than OS dependent, but I
@@ -118,10 +118,15 @@ void initPrimitiveCost()
     logLine("IBM platform\n");
     // Updated calculation of the cost for the following procedures.
 
+    // Values (in cycles) benchmarked on a PowerPC 604e 375MHz
+    // Level 1 - Hardware Level (on by default)
+    primitiveCosts["DYNINSTstartWallTimer"] = 201;
+    primitiveCosts["DYNINSTstopWallTimer"]  = 199;
+
     // Values (in cycles) benchmarked on a PowerPC 604e 332MHz
     // Level 2 - Software Level
-    primitiveCosts["DYNINSTstartWallTimer"] = 1643;
-    primitiveCosts["DYNINSTstopWallTimer"] = 1672;
+    //primitiveCosts["DYNINSTstartWallTimer"] = 1643;
+    //primitiveCosts["DYNINSTstopWallTimer"] = 1672;
     primitiveCosts["DYNINSTstartProcessTimer"] = 1206;
     primitiveCosts["DYNINSTstopProcessTimer"] = 1220;
 
