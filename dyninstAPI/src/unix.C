@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.128 2004/08/13 19:33:24 legendre Exp $
+// $Id: unix.C,v 1.129 2004/09/13 21:48:09 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -601,21 +601,29 @@ int handleSigStopNInt(const procevent &event) {
        retval = 1;
    }
    else {
-#if defined(os_linux)
-       // Linux uses SIGSTOPs for process control.  If the SIGSTOP
-       // came during a process::pause (which we would know because
-       // suppressEventConts() is set) then we'll handle the signal.
-       // If it comes at another time we'll assume it came from something
-       // like a Dyninst Breakpoint and not handle it.
-       retval = proc->suppressEventConts();
-#else
+#if defined( os_linux )
+     /**
+      * Extra sig stops are possible on Linux.  numStopsPending()
+      * represents the number of stops we sent to the lwp that
+      * we haven't gotten back.  If this stop does seem to be an
+      * extra, we'll simply continue the lwp.  
+      * See waitUntilStoppedGeneral() for the reason we may get extra stops.
+      **/
+     if (event.lwp->numStopsPending() > 0 || proc->multithread_capable())
+     {
+       proc->continueProc();
+       retval = 1;
+     }
+     else
+#endif
        signal_cerr << "unhandled SIGSTOP for pid " << proc->getPid() 
                    << " so just leaving process in paused state.\n" 
                    << std::flush;
-#endif
-
    }
 
+#if defined( os_linux )
+   event.lwp->deqStop();
+#endif
    // Unlike other signals, don't forward this to the process. It's stopped
    // already, and forwarding a "stop" does odd things on platforms
    // which use ptrace. PT_CONTINUE and SIGSTOP don't mix
@@ -721,10 +729,7 @@ int handleSignal(const procevent &event) {
           // Unhandled 
          break;
       case SIGCONT:
-#if defined(os_linux)
-	ret = 1;
-	break;
-#endif
+         // Should inform the mutator/daemon that the process is running
       case SIGALRM:
       case SIGUSR1:
       case SIGUSR2:
@@ -1034,6 +1039,10 @@ int signalHandler::handleProcessEvent(const procevent &event) {
 
    return ret;
 }
+
+
+
+
 
 bool  OS::osKill(int pid) {
   return (P_kill(pid,9)==0);

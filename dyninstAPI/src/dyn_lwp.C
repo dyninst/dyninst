@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.27 2004/08/13 19:33:19 legendre Exp $
+ * $Id: dyn_lwp.C,v 1.28 2004/09/13 21:48:02 legendre Exp $
  */
 
 #include "common/h/headers.h"
@@ -62,6 +62,9 @@ dyn_lwp::dyn_lwp() :
 #endif
   stoppedInSyscall_(false),
   postsyscallpc_(0),
+#if defined( os_linux )
+  sigStopsQueued(0),
+#endif
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
   cached_regs(NULL),
@@ -82,6 +85,9 @@ dyn_lwp::dyn_lwp(unsigned lwp, process *proc) :
 #endif
   stoppedInSyscall_(false),
   postsyscallpc_(0),
+#if defined( os_linux )
+  sigStopsQueued(0),
+#endif
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
   cached_regs(NULL),
@@ -102,6 +108,9 @@ dyn_lwp::dyn_lwp(const dyn_lwp &l) :
 #endif
   stoppedInSyscall_(false),
   postsyscallpc_(0),
+#if defined( os_linux )
+  sigStopsQueued(0),
+#endif
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
   cached_regs(NULL),
@@ -139,7 +148,7 @@ bool dyn_lwp::continueLWP(int signalToContinueWith) {
 
    bool ret = continueLWP_(signalToContinueWith);
    if(ret == false) {
-     perror("continueProc_()");
+      perror("continueProc_()");
    }
 
 #if !defined(mips_unknown_ce2_11) && !defined(i386_unknown_nt4_0)
@@ -150,6 +159,7 @@ bool dyn_lwp::continueLWP(int signalToContinueWith) {
 
    return true;
 }
+
 
 bool dyn_lwp::pauseLWP(bool shouldWaitUntilStopped) {
    // Not checking lwp status_ for neonatal because it breaks attach with the
