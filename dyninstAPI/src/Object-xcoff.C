@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.9 2001/07/17 22:33:21 bernat Exp $
+// $Id: Object-xcoff.C,v 1.10 2001/07/18 20:39:12 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -269,9 +269,6 @@ int Archive_64::read_mbrhdr()
       goto cleanup; \
       }
 
-void DYNINST_lib_text_space_start();
-void DYNINST_lib_text_space_end();
-
 void Object::parse_aout(int fd, int offset, bool is_aout)
 {
    // all these vrble declarations need to be up here due to the gotos,
@@ -448,14 +445,12 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
      // the lower bound for the allocation constants in aix.C.
      extern Address data_low_addr;
      if (is_aout) {
-       if (data_org_ > 0x30000000)
+       if (data_org_ >= 0x30000000)
 	 {
-	   cerr << "Shifting lower address bound for malloc: " << endl;
 	   data_low_addr = 0x30000000;
 	 }
        else
 	 {
-	   cerr << "Not shifting lower address bound for malloc: " << endl;
 	   data_low_addr = 0x20000000;
 	 }
      }
