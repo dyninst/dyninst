@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.33  1994/11/01 22:39:27  karavan
-/* changed debugging printf to call to PARADYN_DEBUG
+/* Revision 1.34  1994/11/02 04:42:55  karavan
+/* cleanup for new handling of commandline arguments
 /*
+ * Revision 1.33  1994/11/01  22:39:27  karavan
+ * changed debugging printf to call to PARADYN_DEBUG
+ *
  * Revision 1.32  1994/11/01  05:42:32  karavan
  * some minor performance and warning fixes
  *
@@ -127,35 +130,6 @@
  *
  */
 
-/* 
- * main.c --
- *
- *	This file contains the main program for "wish", a windowing
- *	shell based on Tk and Tcl.  It also provides a template that
- *	can be used as the basis for main programs for other Tk
- *	applications.
- *
- * Copyright (c) 1990-1993 The Regents of the University of California.
- * All rights reserved.
- *
- * Permission is hereby granted, without written agreement and without
- * license or royalty fees, to use, copy, modify, and distribute this
- * software and its documentation for any purpose, provided that the
- * above copyright notice and the following two paragraphs appear in
- * all copies of this software.
- * 
- * IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR
- * DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES ARISING OUT
- * OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF THE UNIVERSITY OF
- * CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
- * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE PROVIDED HEREUNDER IS
- * ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATION TO
- * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
- */
-
 
 
 #include <stdio.h>
@@ -214,21 +188,6 @@ static char *fileName = NULL;
 static char *name = NULL;
 static char *display = NULL;
 static char *geometry = NULL;
-
-static Tk_ArgvInfo argTable[] = {
-    {"-file", TK_ARGV_STRING, (char *) NULL, (char *) &fileName,
-	"File from which to read commands"},
-    {"-geometry", TK_ARGV_STRING, (char *) NULL, (char *) &geometry,
-	"Initial geometry for window"},
-    {"-display", TK_ARGV_STRING, (char *) NULL, (char *) &display,
-	"Display to use"},
-    {"-name", TK_ARGV_STRING, (char *) NULL, (char *) &name,
-	"Name to use for application"},
-    {"-sync", TK_ARGV_CONSTANT, (char *) 1, (char *) &synchronize,
-	"Use synchronous mode for display server"},
-    {(char *) NULL, TK_ARGV_END, (char *) NULL, (char *) NULL,
-	(char *) NULL}
-};
 
 /*
  * Declarations for various library procedures and variables 
@@ -347,25 +306,16 @@ UImain(void* vargs)
     char *temp;
     controlCallback controlFuncs;
     dataCallback dataFunc;
-  
+    char *tclscript = NULL;
+
     interp = Tcl_CreateInterp();
 #ifdef TCL_MEM_DEBUG
     Tcl_InitMemory(interp);
 #endif
 
-    /*
-     * Parse command-line arguments.
-     */
-
+    // Parse commandline arguments 
     uiargc = clargs->clargc;
     uiargv = clargs->clargv;
-
-    if (Tk_ParseArgv(interp, (Tk_Window) NULL, &uiargc, uiargv, 
-		     argTable, 0)
-	    != TCL_OK) {
-	fprintf(stderr, "%s\n", interp->result);
-	exit(1);
-    }
 
     /*
      * If a display was specified, put it into the DISPLAY
@@ -377,9 +327,7 @@ UImain(void* vargs)
 	Tcl_SetVar2(interp, "env", "DISPLAY", display, TCL_GLOBAL_ONLY);
     }
 
-    /*
-     * Initialize the Tk application.
-     */
+    // Tk main window initialization
 
     mainWindow = Tk_CreateMainWindow(interp, display, "paradyn", "Tk");
     if (mainWindow == NULL) {
@@ -392,30 +340,24 @@ UImain(void* vargs)
     Tk_GeometryRequest(mainWindow, 200, 200);
 
     Tk_SetClass(mainWindow, "Paradyn");
-
-    /*
-     * Make command-line arguments available in the Tcl variables "argc"
-     * and "argv".  Also set the "geometry" variable from the geometry
-     * specified on the command line.
-     */
-
+    
+    // Copy commandline arguments into the Tcl variables "argc" and "argv"  
     args = Tcl_Merge(uiargc-1, uiargv+1);
     Tcl_SetVar(interp, "argv", args, TCL_GLOBAL_ONLY);
     ckfree(args);
-
+    
     sprintf(buf, "%d", uiargc-1);
     Tcl_SetVar(interp, "argc", buf, TCL_GLOBAL_ONLY);
     Tcl_SetVar(interp, "argv0", (fileName != NULL) ? fileName : uiargv[0],
 	    TCL_GLOBAL_ONLY);
+    // set tcl geometry variable
     if (geometry != NULL) {
 	Tcl_SetVar(interp, "geometry", geometry, TCL_GLOBAL_ONLY);
     }
 
-     // initialize tcl and tk 
-
+     // initialize tcl and tk
     tty = isatty(0);
     Tcl_SetVar(interp, "tcl_interactive", "0", TCL_GLOBAL_ONLY);
-
     if (Tcl_Init(interp) == TCL_ERROR) {
       fprintf(stderr, "%s\n", interp->result);
     }
@@ -431,10 +373,8 @@ UImain(void* vargs)
     // add Paradyn tcl command to active interpreter
     Tcl_CreateCommand(interp, "paradyn", ParadynCmd, (ClientData) NULL,
 		      (Tcl_CmdDeleteProc *) NULL);
-    /*
-     * Set the geometry of the main window, if requested.
-     */
 
+    // Set the geometry of the main window, if requested.
     if (geometry != NULL) {
 	code = Tcl_VarEval(interp, "wm geometry . ", geometry, (char *) NULL);
 	if (code != TCL_OK) {
@@ -578,6 +518,31 @@ UImain(void* vargs)
   }
     
 
+
+/* The two procedures below are taken from the tcl/tk distribution and
+ * the following copyright notice applies.
+ */
+/* 
+ * Copyright (c) 1990-1993 The Regents of the University of California.
+ * All rights reserved.
+ *
+ * Permission is hereby granted, without written agreement and without
+ * license or royalty fees, to use, copy, modify, and distribute this
+ * software and its documentation for any purpose, provided that the
+ * above copyright notice and the following two paragraphs appear in
+ * all copies of this software.
+ * 
+ * IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR
+ * DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES ARISING OUT
+ * OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF THE UNIVERSITY OF
+ * CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+ * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE PROVIDED HEREUNDER IS
+ * ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATION TO
+ * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
+ */
 
 /*
  *----------------------------------------------------------------------
