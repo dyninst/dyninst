@@ -1,7 +1,11 @@
 # tclTunable.tcl
 
 # $Log: tclTunable.tcl,v $
-# Revision 1.10  1994/11/11 07:00:16  tamches
+# Revision 1.11  1995/02/27 18:38:28  tamches
+# Changes to reflect the new TCthread and, as a result, the extensively
+# revised tclTunable.C
+#
+# Revision 1.10  1994/11/11  07:00:16  tamches
 # fixed a bug that would change the background of all future windows
 # to grey.  In other words, the "option add ..." in tcl was affecting
 # more than just tunable windows, which was not nice.
@@ -300,15 +304,14 @@ proc buttonBind {theButton lcv} {
    bind $theButton <ButtonPress-1> "tunableBoolLabelPress $lcv"
    bind $theButton <ButtonRelease-1> "tunableBoolLabelRelease $lcv"
 }
-proc drawBoolTunable {lcv} {
+proc drawBoolTunable {theName} {
    global nextStartY
    global namesWidth
-
    global numTunablesDrawn
-   global newTunableValues
 
-   set tunableName        [uimpd tclTunable getname $lcv]
-   set tunableDescription [uimpd tclTunable getdescription $lcv]
+   # the following important vrbles are (associative) arrays (indexed by name) of
+   # boolean tunable constant descriptions and newvalues.
+   global boolTunableDescriptionU boolTunableNewValues
 
    set namesWin  .tune.middle.canvas.names.tunable$numTunablesDrawn
    set valuesWin .tune.middle.canvas.values.tunable$numTunablesDrawn
@@ -334,16 +337,15 @@ proc drawBoolTunable {lcv} {
    # one (to the right) has a square but no text.  A third is used for padding
    # in the middle
    # why not a label plus a square?  Because labels cannot be highlighted
-   # as checkbuttons can
+   # as checkbuttons can be.
 
-   checkbutton $buttonLabelWin -text $tunableName -anchor w -relief flat -selector "" -font $labelFont
+   checkbutton $buttonLabelWin -text $theName -anchor w -relief flat -selector "" -font $labelFont
    pack  $buttonLabelWin -side left -fill x -expand true
 
-   checkbutton $valuesLabelWin -variable newTunableValues($lcv) -anchor w -relief flat -font $labelFont
+   checkbutton $valuesLabelWin -variable boolTunableNewValues($theName) -anchor w -relief flat -font $labelFont
    pack $valuesLabelWin -side left -fill both -expand true
 
-   # now make the label and the checkbutton appear as 1
-   # need to play some binding tricks
+   # now make the label and the checkbutton appear as 1; we play some bind tricks
 
    set leftButton $buttonLabelWin
    set dummyButton $valuesWin.dummy
@@ -362,7 +364,7 @@ proc drawBoolTunable {lcv} {
    incr numTunablesDrawn
 }
 
-proc everyChangeCommand {lcv newValue} {
+proc everyChangeCommand {name newValue} {
    # A scale widget's value has changed.
    # We are passed the tunable index # and the new integer value.
  
@@ -374,14 +376,17 @@ proc everyChangeCommand {lcv newValue} {
    # want them to be.  We choose to multiply the min and max by
    # $integerScaleFactor and then divide it back here...
 
-   global newTunableValues
+   # the following important vrbles are (associative) arrays (indexed by name) of
+   # float tunable constant descriptions and newvalues.
+   global floatTunableDescriptionUMM floatTunableNewValues
+
    global integerScaleFactor
 
    set newValue [expr 1.0 * $newValue / $integerScaleFactor]
 
-   set newTunableValues($lcv) $newValue
+   set floatTunableNewValues($name) $newValue
    # This command automagically updates the entry widget because the
-   # entry widget had its -textvariable set to this vrble
+   # entry widget had its -textvariable set to newTunableValues($name)
 }
 
 proc bindFloatEnter {lcv} {
@@ -439,21 +444,22 @@ proc valueBind {theWindow lcv} {
    bind $theWindow <Enter> "bindFloatEnter $lcv"
    bind $theWindow <Leave> "bindFloatLeave $lcv"
 }
-proc drawFloatTunable {lcv leftTickWidth rightTickWidth} {
+proc drawFloatTunable {theName leftTickWidth rightTickWidth} {
    global nextStartY
    global namesWidth
 
    global numTunablesDrawn
-   global newTunableValues
    global integerScaleFactor
 
-   set tunableName        [uimpd tclTunable getname $lcv]
-   set tunableDescription [uimpd tclTunable getdescription $lcv]
-   set tunableBounds      [uimpd tclTunable getfloatrangebyindex $lcv]
+   # the following important vrbles are (associative) arrays (indexed by name) of
+   # float tunable constant description/use/min/max and newvalues.
+   global floatTunableDescriptionUMM floatTunableNewValues
+
+   set tunableDescription [lindex $floatTunableDescriptionUMM($theName) 0]
 
    # if both 0.0, then as far as we're concerned, there are no min/max values.
-   set tunableMin [lindex $tunableBounds 0]
-   set tunableMax [lindex $tunableBounds 1]
+   set tunableMin [lindex $floatTunableDescriptionUMM($theName) 2]
+   set tunableMax [lindex $floatTunableDescriptionUMM($theName) 3]
 
    set namesWin  .tune.middle.canvas.names.tunable$numTunablesDrawn
    set valuesWin .tune.middle.canvas.values.tunable$numTunablesDrawn
@@ -483,7 +489,7 @@ proc drawFloatTunable {lcv leftTickWidth rightTickWidth} {
    
    # entry widget
    set entryWin $valuesWin.right.top.entry
-   entry $entryWin -relief sunken -textvariable newTunableValues($lcv) -width 8 -font $labelFont
+   entry $entryWin -relief sunken -textvariable floatTunableNewValues($theName) -width 8 -font $labelFont
 
    # turn off some useless characters (such as "return" key)
 #   bind $entryWin <Key> {puts stderr "hello %K"}
@@ -519,7 +525,7 @@ proc drawFloatTunable {lcv leftTickWidth rightTickWidth} {
 
       scale $scaleWin -orient horizontal \
 	      -relief flat \
-	      -command "everyChangeCommand $lcv" \
+	      -command "everyChangeCommand $theName" \
 	      -from [expr $integerScaleFactor * $tunableMin] \
 	      -to   [expr $integerScaleFactor * $tunableMax] \
 	      -showvalue false
@@ -529,7 +535,7 @@ proc drawFloatTunable {lcv leftTickWidth rightTickWidth} {
       valueBind $scaleWin $numTunablesDrawn
 
       # initialize the scale setting
-      $scaleWin set [expr round($integerScaleFactor * $newTunableValues($lcv))]
+      $scaleWin set [expr round($integerScaleFactor * $floatTunableNewValues($theName))]
       pack $scaleWin -side top -fill x -expand true
    }
 
@@ -545,7 +551,7 @@ proc drawFloatTunable {lcv leftTickWidth rightTickWidth} {
    frame $namesWin -height $valuesWinHeight
    pack  $namesWin -side top -fill x -expand true
 
-   label $namesWin.label -text $tunableName -anchor w -font $labelFont -height 1
+   label $namesWin.label -text $theName -anchor w -font $labelFont -height 1
    pack  $namesWin.label -side top -fill x
    valueBind $namesWin.label $numTunablesDrawn
 
@@ -582,6 +588,9 @@ proc drawTunables {newWidth newHeight} {
    global DeveloperModeFlag
    global tunableMinWidth tunableMinHeight
 
+   global boolTunableDescriptionU boolTunableNewValues
+   global floatTunableDescriptionUMM floatTunableNewValues
+
    # First, erase old stuff on the screen
    .tune.middle.canvas delete tunableTag
 
@@ -594,25 +603,30 @@ proc drawTunables {newWidth newHeight} {
    frame .tune.middle.canvas.values
    pack  .tune.middle.canvas.values -side left -fill x -expand true
 
-   set numTunables [uimpd tclTunable getnumtunables]
    set numTunablesDrawn 0
 
    set nextStartY 0
    set namesWidth 0
 
-   # Determine the max # chars needed for the ticks
+   # Determine the max # chars needed for the ticks (min/max float strings)
+   # We simply loop through all float tc's (those with min/max defined), doing
+   # a "string length".
    set leftTickWidth 0
    set rightTickWidth 0
-   for {set lcv 0} {$lcv < $numTunables} {incr lcv} {
-      set tunableType [uimpd tclTunable gettypebyindex $lcv]
-      set tunableUse  [uimpd tclTunable getusebyindex  $lcv]
+   
+   set mySearchId [array startsearch floatTunableDescriptionUMM]
+   set theSize [array size floatTunableDescriptionUMM]
 
-      if {($tunableUse=="developer" && $DeveloperModeFlag==0) || $tunableType!="float"} continue
-      set tunableBounds      [uimpd tclTunable getfloatrangebyindex $lcv]
+   while {[array anymore floatTunableDescriptionUMM $mySearchId]} {
+      set theUMM [array nextelement floatTunableDescriptionUMM $mySearchId]
+      
+      set tunableUse [lindex $theUMM 0]
 
+      if {$tunableUse=="developer" && $DeveloperModeFlag==0} continue
+
+      set tunableMin [lindex $theUMM 1]
+      set tunableMax [lindex $theUMM 2]
       # if both 0.0, then as far as we're concerned, there are no min/max values.
-      set tunableMin [lindex $tunableBounds 0]
-      set tunableMax [lindex $tunableBounds 1]
 
       if {$tunableMin!=0 || $tunableMax!=0} {
          set leftTickWidth [max $leftTickWidth [string length $tunableMin]]
@@ -620,26 +634,40 @@ proc drawTunables {newWidth newHeight} {
       }
    }
 
+   array donesearch floatTunableDescriptionUMM $mySearchId
+
    # make two passes---draw all boolean tunables, then all float tunables.
    # (looks nicer on screen that way...)
-   for {set lcv 0} {$lcv < $numTunables} {incr lcv} {
-      set tunableType [uimpd tclTunable gettypebyindex $lcv]
-      set tunableUse  [uimpd tclTunable getusebyindex  $lcv]
+
+   set allBoolNames [array names boolTunableDescriptionU]
+   set numBoolNames [llength $allBoolNames]
+
+   for {set lcv 0} {$lcv < $numBoolNames} {incr lcv} {
+      set theName [lindex $allBoolNames $lcv]
+
+      set theDU $boolTunableDescriptionU($theName)
+      set tunableUse [lindex $theDU 1]
 
       # If this tunable constant is a "developer" one, and if we
       # are not in developer mode, then skip it.
-      if {($tunableUse=="developer" && $DeveloperModeFlag==0) || $tunableType!="bool"} continue
-      drawBoolTunable $lcv
-   }
-   for {set lcv 0} {$lcv < $numTunables} {incr lcv} {
-      set tunableType [uimpd tclTunable gettypebyindex $lcv]
-      set tunableUse  [uimpd tclTunable getusebyindex  $lcv]
-
-      if {($tunableUse=="developer" && $DeveloperModeFlag==0) || $tunableType!="float"} continue
-      drawFloatTunable $lcv $leftTickWidth $rightTickWidth
+      if {$tunableUse=="developer" && $DeveloperModeFlag==0} continue
+      drawBoolTunable $theName
    }
 
-   # the above calls will have updated:
+   set allFloatNames [array names floatTunableDescriptionUMM]
+   set numFloatNames [llength $allFloatNames]
+
+   for {set lcv 0} {$lcv < $numFloatNames} {incr lcv} {
+      set theName [lindex $allFloatNames $lcv]
+
+      set theDUMM $floatTunableDescriptionUMM($theName)
+      set tunableUse [lindex $theDUMM 1]
+
+      if {$tunableUse=="developer" && $DeveloperModeFlag==0} continue
+      drawFloatTunable $theName $leftTickWidth $rightTickWidth
+   }
+
+   # the above calls will have updated variables:
    # namesWidth
    # nextStartY (will now be total height, in pixels, of the canvas)
 
@@ -706,29 +734,79 @@ proc rethinkScrollBarRegions {newWidth newHeight} {
 }
 
 proc gatherInitialTunableValues {} {
-   global origTunableValues newTunableValues
+   # associative array (by name) of description/use
+   global boolTunableDescriptionU
+   # associative array (by name) of bool value
+   global boolTunableOldValues boolTunableNewValues
 
-   set numTunables [uimpd tclTunable getnumtunables]
+   # associative array (by name) of description/use/min/max
+   global floatTunableDescriptionUMM
+   # associative array (by name) of float value
+   global floatTunableOldValues floatTunableNewValues
 
-   for {set lcv 0} {$lcv<$numTunables} {incr lcv} {
-      set tunableType [uimpd tclTunable gettypebyindex $lcv]
+   # First, we initialize all the boolean tunable constants:
+   set allBoolNames [uimpd tclTunable getboolallnames]
+   set numBoolNames [llength $allBoolNames]
 
-      set origTunableValues($lcv) [uimpd tclTunable getvaluebyindex $lcv]
-      set newTunableValues($lcv) $origTunableValues($lcv)
+   for {set lcv 0} {$lcv < $numBoolNames} {incr lcv} {
+      set theName [lindex $allBoolNames $lcv]
+
+      set theDescription [uimpd tclTunable getdescription $theName]
+      set theUse         [uimpd tclTunable getusebyname $theName] 
+      set theList [list $theDescription $theUse]
+
+      set boolTunableDescriptionU($theName) $theList
+      set boolTunableOldValues($theName) [uimpd tclTunable getvaluebyname $theName]
+      set boolTunableNewValues($theName) $boolTunableOldValues($theName)
+   }
+
+#   puts stderr "gatherInitialTunableValues -- bool tunable constants have been initialized"
+
+   # Next, we initialize all the float tunable constants:
+   set allFloatNames [uimpd tclTunable getfloatallnames]
+   set numFloatNames [llength $allFloatNames]
+   for {set lcv 0} {$lcv < $numFloatNames} {incr lcv} {
+      set theName [lindex $allFloatNames $lcv]
+
+      set theDescription [uimpd tclTunable getdescription $theName]
+      set theUse [uimpd tclTunable getusebyname $theName]
+
+      set theMinMax [uimpd tclTunable getfloatrangebyname $theName]
+      set theMin [lindex $theMinMax 0]
+      set theMax [lindex $theMinMax 1]
+
+      set theList [list $theDescription $theUse $theMin $theMax]
+
+      set floatTunableDescriptionUMM($theName) $theList
+      set floatTunableOldValues($theName) [uimpd tclTunable getvaluebyname $theName]
+      set floatTunableNewValues($theName) $floatTunableOldValues($theName)
    }
 }
 
 proc processCommitFinalTunableValues {} {
-   global origTunableValues newTunableValues
+   global boolTunableOldValues boolTunableNewValues
+   global floatTunableOldValues floatTunableNewValues
 
-   set numTunables [uimpd tclTunable getnumtunables]
+   set allBoolNames [uimpd tclTunable getboolallnames]
+   set numBoolNames [llength $allBoolNames]
+   for {set lcv 0} {$lcv < $numBoolNames} {incr lcv} {
+      set theName [lindex $allBoolNames $lcv]
+      if {$boolTunableNewValues($theName) != $boolTunableOldValues($theName)} {
+#         puts stderr "processFinalTunableValues: tunable $theName has changed from $boolTunableOldValues($theName) to $boolTunableNewValues($theName)!"
 
-   for {set lcv 0} {$lcv < $numTunables} {incr lcv} {
-      if {$newTunableValues($lcv) != $origTunableValues($lcv)} {
-         set tunableName [uimpd tclTunable getname $lcv]
-#         puts stderr "processFinalTunableValues: tunable #$lcv ($tunableName) has changed from $origTunableValues($lcv) to $newTunableValues($lcv)!"
+         uimpd tclTunable setvaluebyname $theName $boolTunableNewValues($theName)
+      }
+   }
 
-         uimpd tclTunable setvaluebyindex $lcv $newTunableValues($lcv)
+   # Now the same for float tunables:
+   set allFloatNames [uimpd tclTunable getfloatallnames]
+   set numFloatNames [llength $allFloatNames]
+   for {set lcv 0} {$lcv < $numFloatNames} {incr lcv} {
+      set theName [lindex $allFloatNames $lcv]
+      if {$floatTunableNewValues($theName) != $floatTunableOldValues($theName)} {
+#         puts stderr "processFinalTunableValues: tunable $theName has changed from $floatTunableOldValues($theName) to $floatTunableNewValues($theName)!"
+
+         uimpd tclTunable setvaluebyname $theName $floatTunableNewValues($theName)
       }
    }
   
@@ -800,14 +878,13 @@ proc processShowTunableDescriptions {} {
    drawTunableDescriptions
 }
 
-proc draw1TunableDescription {lcv} {
+proc draw1TunableDescription {theName theDescription} {
    global numTunableDescriptionsDrawn
    global tunableDescriptionsTotalHeight
    global tunableTitleFont
    global tunableDescriptionFont
 
-   set tunableName [uimpd tclTunable getname $lcv]
-   set tunableDescription [uimpd tclTunable getdescription $lcv]
+   global boolTunableDescriptionU floatTunableDescriptionUMM
 
    frame .tunableDescriptions.top.canvas.frame$numTunableDescriptionsDrawn
    pack  .tunableDescriptions.top.canvas.frame$numTunableDescriptionsDrawn \
@@ -839,7 +916,7 @@ proc draw1TunableDescription {lcv} {
 	   -side right -fill x -expand false
 
    message .tunableDescriptions.top.canvas.frame$numTunableDescriptionsDrawn.top.left.label \
-      -text $tunableName -foreground "blue" -justify left -width 3i \
+      -text $theName -foreground "blue" -justify left -width 3i \
       -font $tunableTitleFont
    pack  .tunableDescriptions.top.canvas.frame$numTunableDescriptionsDrawn.top.left.label \
       -side top -fill x -expand false
@@ -848,7 +925,7 @@ proc draw1TunableDescription {lcv} {
    set tunableDescriptionsTotalHeight [expr $tunableDescriptionsTotalHeight + [getWindowHeight .tunableDescriptions.top.canvas.frame$numTunableDescriptionsDrawn.top.left.label]]
 
    message .tunableDescriptions.top.canvas.frame$numTunableDescriptionsDrawn.bottom.right.msg \
-	 -width 3i -justify left -text $tunableDescription \
+	 -width 3i -justify left -text $theDescription \
 	 -font $tunableDescriptionFont
    pack .tunableDescriptions.top.canvas.frame$numTunableDescriptionsDrawn.bottom.right.msg \
 	 -side top -fill x -expand false
@@ -870,6 +947,8 @@ proc drawTunableDescriptions {} {
    global numTunableDescriptionsDrawn
    global tunableDescriptionsTotalHeight
    global tunableDescriptionFont
+
+   global boolTunableDescriptionU floatTunableDescriptionUMM
    
    # delete old stuff...
    .tunableDescriptions.top.canvas delete description
@@ -880,23 +959,31 @@ proc drawTunableDescriptions {} {
    set numTunableDescriptionsDrawn 0
    set tunableDescriptionsTotalHeight 0
 
-   set numTunables [uimpd tclTunable getnumtunables]
+   # First, draw boolean descriptions
+   set allBoolNames [uimpd tclTunable getboolallnames]
+   set numBoolNames [llength $allBoolNames]
+   for {set lcv 0} {$lcv < $numBoolNames} {incr lcv} {
+      set theName [lindex $allBoolNames $lcv]
+      set theDescription [lindex $boolTunableDescriptionU($theName) 0]
+      set theUse [lindex $boolTunableDescriptionU($theName) 1]
+      
+      if {$theUse=="developer" && $DeveloperModeFlag==0} continue
 
-   # to keep in sync with .tune, we draw boolean ones first
-   for {set lcv 0} {$lcv < $numTunables} {incr lcv} {
-      set tunableUse  [uimpd tclTunable getusebyindex  $lcv]
-      set tunableType [uimpd tclTunable gettypebyindex $lcv]
-      if {($tunableUse=="developer" && $DeveloperModeFlag==0) || $tunableType!="bool"} continue
+      draw1TunableDescription $theName $theDescription
+   }      
 
-      draw1TunableDescription $lcv
-   }
-   for {set lcv 0} {$lcv < $numTunables} {incr lcv} {
-      set tunableUse  [uimpd tclTunable getusebyindex  $lcv]
-      set tunableType [uimpd tclTunable gettypebyindex $lcv]
-      if {($tunableUse=="developer" && $DeveloperModeFlag==0) || $tunableType!="float"} continue
+   # Next, draw float descriptions
+   set allFloatNames [uimpd tclTunable getfloatallnames]
+   set numFloatNames [llength $allFloatNames]
+   for {set lcv 0} {$lcv < $numFloatNames} {incr lcv} {
+      set theName [lindex $allFloatNames $lcv]
+      set theDescription [lindex $floatTunableDescriptionUMM($theName) 0]
+      set theUse [lindex $floatTunableDescriptionUMM($theName) 1]
+      
+      if {$theUse=="developer" && $DeveloperModeFlag==0} continue
 
-      draw1TunableDescription $lcv
-   }
+      draw1TunableDescription $theName $theDescription
+   }      
 
    rethinkTunableDescriptionsScrollbarRegion
 }
@@ -1004,6 +1091,7 @@ proc tunableEntryPoint {} {
    tunableInitialize
 
    gatherInitialTunableValues
+
    set numTunablesDrawn 0
    set nextStartY 0
    set integerScaleFactor 20
@@ -1016,7 +1104,8 @@ proc tunableExitPoint {} {
    global nextStartY
    global integerScaleFactor
    global DeveloperModeFlag
-   global origTunableValues newTunableValues
+   global boolTunableDescriptionU boolTunableOldValues boolTunableNewValues
+   global floatTunableDescriptionUMM floatTunableOldValues floatTunableNewValues
    global tunableMinHeight
    global lastVisibleWidth lastVisibleHeight
 
@@ -1027,7 +1116,9 @@ proc tunableExitPoint {} {
       destroy .tunableDescriptions
    }
 
-   unset numTunablesDrawn nextStartY integerScaleFactor origTunableValues
-   unset newTunableValues DeveloperModeFlag tunableMinHeight
+   unset boolTunableDescriptionU boolTunableOldValues boolTunableNewValues
+   unset floatTunableDescriptionUMM floatTunableOldValues floatTunableNewValues
+   unset numTunablesDrawn nextStartY integerScaleFactor
+   unset DeveloperModeFlag tunableMinHeight
    unset lastVisibleWidth lastVisibleHeight
 }
