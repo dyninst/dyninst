@@ -58,7 +58,7 @@ typedef enum BPatch_language {
     BPatch_hpf, 
     BPatch_java, 
     BPatch_unknownLanguage 
-};
+} BPatch_language;
 
 typedef enum BPatch_sourceType {
     BPatch_sourceUnknown_type,
@@ -69,7 +69,7 @@ typedef enum BPatch_sourceType {
     BPatch_sourceLoop,
     BPatch_sourceBlock,
     BPatch_sourceStatement
-};
+} BPatch_sourceType;
 
 class BPatch_sourceObj {
   public:
