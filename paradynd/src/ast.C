@@ -41,6 +41,9 @@
 
 /* 
  * $Log: ast.C,v $
+ * Revision 1.35  1996/11/14 14:42:52  naim
+ * Minor fix to my previous commit - naim
+ *
  * Revision 1.34  1996/11/14 14:26:57  naim
  * Changing AstNodes back to pointers to improve performance - naim
  *
@@ -935,17 +938,8 @@ reg AstNode::generateCode_phase2(process *proc,
             rs->freeRegister(dest);
             dest = (reg)oValue;
 	} else if (oType == DataId) {
-            unsigned position;
             assert(dValue);
-            Thread *thr = proc->threads[0];
-            position = thr->CTvector->getCTmapId(dValue->getSampleId());
-            assert(position < thr->CTvector->size());
-            assert(thr->CTvector->getCTusagePos(position)==1);
-#if defined(MT_DEBUG)
-            sprintf(errorLine,"position in CT vector = %d\n",position);
-            logLine(errorLine);
-#endif
-            (void) emit(loadConstOp, (reg) position, dest, dest, insn, base, noCost);
+            (void) emit(loadConstOp, (reg) dValue->getSampleId(), dest, dest, insn, base, noCost);
 	} else if (oType == DataValue) {
 	    addr = dValue->getInferiorPtr();
 
