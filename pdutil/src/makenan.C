@@ -39,44 +39,60 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: makenan.C,v 1.12 1999/06/16 21:06:44 csserra Exp $
-
-// This isn't needed in Linux, see makenan.h -- DAN
-#if !defined(i386_unknown_linux2_0)
+// $Id: makenan.C,v 1.13 1999/10/19 05:14:58 nick Exp $
 
 #include "util/h/makenan.h"
-#include "util/h/headers.h"
+#include <cmath>
+#include <cassert>
 
-float f_paradyn_nan = 0.0;
-bool nan_created = false;
-bool matherr_flag = false;
+static float f_paradyn_nan = 0.0;
+static bool nan_created = false;
 
-float make_Nan() {
-    if(!nan_created){
-        matherr_flag = true;
-        double temp = -3.0;
-        f_paradyn_nan = (float)sqrt(temp);
-        matherr_flag = false;
+float
+make_Nan()
+{
+    if(!nan_created)
+    {
+        /* Are we little or big endian?  From Harbison&Steele.  */
+        union
+        {
+            unsigned char c[sizeof(long)];
+            long l;
+        } u;
+
+        u.l = 1;
+
+        union
+        {
+            unsigned char nan_bytes[4];
+            float nan_float;
+        } nan_u;
+
+        //
+        // Bit pattern for IEEE 754 NaN 32-bit value is 0x7fc00000
+        //
+        if (u.c[sizeof (long) - 1] == 1)
+        {
+            // big endian
+            nan_u.nan_bytes[0] = 0x7f;
+            nan_u.nan_bytes[1] = 0xc0;
+            nan_u.nan_bytes[2] = 0x00;
+            nan_u.nan_bytes[3] = 0x00;
+        }
+        else
+        {
+            // little endian
+            nan_u.nan_bytes[0] = 0x00;
+            nan_u.nan_bytes[1] = 0x00;
+            nan_u.nan_bytes[2] = 0xc0;
+            nan_u.nan_bytes[3] = 0x7f;
+        }
+
+        f_paradyn_nan = nan_u.nan_float;
+        bool aflag=(isnan(f_paradyn_nan)!=0);
+        assert(aflag);
         nan_created = true;
     }
-    bool aflag=(isnan(f_paradyn_nan)!=0);
-    assert(aflag);
     return f_paradyn_nan;
 }
-
-// The following kludge is required while we work with multiple GCC compilers.
-#if (__GNUC__ == 2 && __GNUC_MINOR__ < 8)
-#undef MATH_EXCEPTION_STRUCT
-#define MATH_EXCEPTION_STRUCT exception
-#endif
-
-int matherr(struct MATH_EXCEPTION_STRUCT *x) {
-  if ((x->type == DOMAIN) && !P_strcmp(x->name, "sqrt")) {
-      if (matherr_flag)
-	    return(1);
-  }
-  return(0);
-}
-
-#endif // !i386_unknown_linux2_0
 

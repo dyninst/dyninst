@@ -1,0 +1,31 @@
+# 
+# Common makefile template for dyninst Tests.  This file is not intended to
+# be a useful Makefile in isolation; instead, it should be included
+# from within an architecture-specific Makefile.
+#
+# $Id: make.module.tmpl,v 1.1 1999/10/19 05:15:00 nick Exp $
+#
+
+SUITE_NAME  = Util
+RELEASE_NUM = 2.0beta
+
+DEST        = $(TO_CORE)/$(PROGRAM_DEST)/testprogs
+
+SRCS	   += ../src/test1.C \
+
+TARGET      = test1
+
+CXXFLAGS   += -I../../h $(BASICWARNINGS)
+CFLAGS     += -I../../h $(BASICWARNINGS)
+
+LIBS       += -lpdutil
+
+all: $(TARGET)
+
+
+UNCOMMON_INSTALL=true
+
+install: all
+	-@$(MKDIR) $(DEST)
+	-$(CP) $(TARGETS) $(DEST)
+

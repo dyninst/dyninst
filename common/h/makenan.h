@@ -39,31 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: makenan.h,v 1.11 1999/02/08 14:05:27 nash Exp $
+// $Id: makenan.h,v 1.12 1999/10/19 05:14:56 nick Exp $
 
 #ifndef makenan_H
 #define makenan_H
 
-#include <math.h>
-#include <assert.h>
-
-#if defined(i386_unknown_linux2_0)
-
-// Under Linux, nan.h has a NAN macro.  This should do.
-
-#include <nan.h>
-#define PARADYN_NaN NAN
-
-#else // defined(some PLATFORM)
-
-extern float f_paradyn_nan;
-extern bool nan_created;
-extern bool matherr_flag;
-
-// There is no standard macro to create a NaN valued float
-extern float make_Nan();
+// There is no standard macro to create a NaN valued float, so
+// we construct one according to IEEE 754 
+float make_Nan();
 #define PARADYN_NaN make_Nan()
-
-#endif // defined(some PLATFORM)
 
 #endif

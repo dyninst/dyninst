@@ -1,0 +1,17 @@
+#include "makenan.h"
+#include <iostream>
+#include <cmath>
+
+int
+main(int /*argc*/, char */*argv*/[])
+{
+    float test_nan = PARADYN_NaN;
+    if (!isnan(test_nan))
+    {
+        cerr << "NaN generation failed" << endl;
+        return -1;
+    }
+
+    cout << "NaN generation works" << endl;
+    return 0;
+}
