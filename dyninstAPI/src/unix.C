@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.66 2002/07/25 22:46:52 bernat Exp $
+// $Id: unix.C,v 1.67 2002/08/12 04:21:30 schendel Exp $
 
 #if defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -402,6 +402,7 @@ void handleSigTrap(process *curr, int pid, int linux_orig_sig) {
    // original use was to detect when a ptraced process had started up.
    // Several have been added.  We must be careful to make sure that uses of
    // SIGTRAPs do not conflict.
+
 #ifndef rs6000_ibm_aix4_1
    signal_cerr << "welcome to SIGTRAP for pid " << curr->getPid()
 	       << " status =" << curr->getStatusAsString()
@@ -490,7 +491,6 @@ void handleSigTrap(process *curr, int pid, int linux_orig_sig) {
 	 //lets pretend like we are attaching....
 	 // Now force DYNINSTinit() to be invoked, via inferiorRPC.
 	 curr->callpDYNINSTinit();
-	 
 	 return;
       }
       
@@ -682,6 +682,34 @@ void handleSigTrap(process *curr, int pid, int linux_orig_sig) {
    return;
 }
 
+int paradynForkOccurring(process *proc) {
+  bool err = false;
+  const char *fork_occurring_var = "paradyn_fork_occurring";
+  Address forkOccurVarAddr = proc->findInternalAddress(fork_occurring_var,
+						       false, err);
+  if(err == true) {
+    // ie. the symbol can't be found, eg. if the paradyn rtinst library
+    // hasn't been loaded yet
+    return false;
+  }
+
+  int appAddrWidth = proc->getImage()->getObject().getAddressWidth();
+  //cerr << "address of var " << fork_occurring_var << " = " << hex 
+  //     << forkOccurVarAddr << ", width is " << appAddrWidth << " bytes\n"
+  //     << dec;
+
+  int forkOccurringVal = 0;
+  if (!proc->readDataSpace((caddr_t)forkOccurVarAddr, appAddrWidth, 
+			   &forkOccurringVal, true)) {
+    cerr << "can't read var " << fork_occurring_var <<"\n";
+    return false;
+  }
+  //cerr << "read " << fork_occurring_var << " and has value of "
+  //     << forkOccurringVal << "\n";
+
+  return forkOccurringVal;
+}
+
 void handleSig_StopAndInt(process *curr, int pid, int dof_fix_ill) {
    signal_cerr << "welcome to SIGSTOP/SIGINT for proc pid " << curr->getPid() 
 	       << endl;
@@ -716,12 +744,17 @@ void handleSig_StopAndInt(process *curr, int pid, int dof_fix_ill) {
    }
    dof_fix_ill = 0;
 #endif
-   //if(paradynForkOccurring()) {
-   //   setupDYNINSTinitCallForFork();
-   //}
-   int result = curr->procStopFromDYNINSTinit();
+   int forkCode = paradynForkOccurring(curr);
+   bool atChildStop = (forkCode == 1);
+   bool atParentStop = (forkCode == 2);
+   bool doingFork = (atChildStop || atParentStop);
+   int result = 0;
    int stopfromPARADYNinit = 0;
-   assert(result >=0 && result <= 2);
+
+   if(! doingFork) {
+     result = curr->procStopFromDYNINSTinit();
+     assert(result >=0 && result <= 2);
+   }
    
    if (result != 0) {		
 #if !defined(BPATCH_LIBRARY) //ccw 28 apr 2002 
@@ -745,6 +778,13 @@ void handleSig_StopAndInt(process *curr, int pid, int dof_fix_ill) {
 	 return;
       }
    }
+#if !defined(BPATCH_LIBRARY)
+   // needed for fork
+   if(!curr->paradynLibAlreadyLoaded()) {
+      finishedDYNINSTinit = true;
+   }
+#endif
+
 #if !defined(BPATCH_LIBRARY) // ccw 22 apr 2002 : SPLIT we have just finished pDYNINSTinit
    // ccw 29 apr 2002 : SPLIT3 added paradynLibAlreadyLoaded() to 
    // protect linux
@@ -1009,7 +1049,6 @@ void handleStopStatus(int pid, int status, process *curr) {
 // TODO -- make this a process method
 int handleSigChild(int pid, int status)
 {
-
 #ifdef rs6000_ibm_aix4_1
    // On AIX, we get sigtraps on fork and load, and must handle
    // these cases specially
@@ -1031,17 +1070,40 @@ int handleSigChild(int pid, int status)
 	 forkexec_cerr << "WSTOPSIG=" << WSTOPSIG(status);
       }
       forkexec_cerr << endl << flush;
+      /*
+	This was causing problems with fork handling on AIX.
+	Here's the situation which would cause the assert:
+	Daemon                               RTinst
+                                             DYNINSTfork in child
+                                             send trace record
+					     kill(self, SIGSTOP)
+        busy with handling other process
+	handleSigChild, the stop
+        this code, ptrace(PT_DETACH, pid)
+	                                     goes past breakpoint (bad)
+					     (this messes up the order)
+        processNewTSConn., copy proc obj
+        (tries to continue proc, but it's
+	 not at the breakpoint we expect)
+
+	 * May be able to remove this soon
+	 Drew said it was added because of some daemon which was launched
+	 for mpi applications.  This may not actually occur anymore.
+
 #ifdef rs6000_ibm_aix4_1
       cerr << "handleSigChild:  Detaching process " << pid 
 	   << " and continuing." << endl;
       return ptrace(PT_DETACH, pid, (int *)0, SIGCONT, 0);   //Set process free
 #endif
+
+      */
       return -1;
    }
-    
-   // Normal case, actually.
-   if (curr->status_ == exited) return 0;
    
+   // Normal case, actually.
+   if (curr->status_ == exited) {
+     return 0;
+   }
    if (WIFSTOPPED(status))
    {
       handleStopStatus(pid, status, curr);
