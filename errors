@@ -1,7 +1,10 @@
 
 #
 # $Log: errors,v $
-# Revision 1.26  1994/07/12 16:58:43  newhall
+# Revision 1.27  1994/09/13 20:44:06  karavan
+# created error #21
+#
+# Revision 1.26  1994/07/12  16:58:43  newhall
 # created error #20
 #
 # Revision 1.25  1994/07/12  16:52:14  newhall
@@ -267,4 +270,13 @@ Call to strdup failed within a visi manager function.
 %S fatal
 %X
 An unrecoverable error occurred within a visi manager function.
+%Y
+
+%N 21
+%E Tcl Command Failure
+%A ui
+%S fatal
+%X
+The tcl interpreter has failed unexpectedly.  This is a fatal error; 
+this error needs to be diagnosed.
 %Y
