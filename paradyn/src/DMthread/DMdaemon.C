@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.98 2000/11/03 01:22:30 zandy Exp $
+ * $Id: DMdaemon.C,v 1.99 2001/01/04 22:26:25 pcroth Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 
@@ -82,6 +82,10 @@ extern debug_ostream sampleVal_cerr;
 
 // This is from met/metMain.C
 void metCheckDaemonProcess( const string & );
+
+
+vector<paradynDaemon::MPICHWrapperInfo> paradynDaemon::wrappers;
+
 
 // change a char* that points to "" to point to NULL
 // NULL is used to signify "NO ARGUMENT"
@@ -180,7 +184,7 @@ bool paradynDaemon::addRunningProgram (int pid,
     }
 
     if (applicationState == appRunning || attached_runMe) {
-      //cerr << "paradyn: calling daemon->continueProcess off of addRunningProgram (machine " << daemon->getDaemonMachineName() << "; pid=" << pid << ") !" << endl;
+      //cerr << "paradyn: calling daemon->continueProcess off of addRunningProgram (machine " << daemon->getMachineName() << "; pid=" << pid << ") !" << endl;
       daemon->continueProcess(pid);
     }
 
@@ -241,7 +245,7 @@ void paradynDaemon::removeDaemon(paradynDaemon *d, bool informUser)
 
     if (informUser) {
       string msg;
-      msg = string("paradynd has died on host <") + d->getDaemonMachineName()
+      msg = string("paradynd has died on host <") + d->getMachineName()
 	    + string(">");
       uiMgr->showError(5, P_strdup(msg.string_of()));
     }
@@ -517,7 +521,7 @@ vector<paradynDaemon*> paradynDaemon::machineName2Daemon(const string &mach) {
    vector<paradynDaemon*> v;
    for (unsigned i=0; i < allDaemons.size(); i++) {
       paradynDaemon *theDaemon = allDaemons[i];
-      if (theDaemon->getDaemonMachineName() == mach)
+      if (theDaemon->getMachineName() == mach)
         v += theDaemon;
    }
    return v;
@@ -1151,39 +1155,145 @@ static bool startIrixMPI(const string     &machine, const string         &login,
 /*
   Pick a unique name for the wrapper
 */
-const char *mpichNameWrapper(const char *dir)
+string mpichNameWrapper( bool localMachine, const string& dir )
 {
-	char *rv;
-
-	if ((rv = tempnam(dir, "pdd.")) == 0) {
-		uiMgr->showError(113, "Failed to create a unique file name");
-		return 0;
-	}
+	string rv;
 	
+
+	if( localMachine )
+	{
+		// the mpirun process is to be run on our machine - 
+		// we can use a local temp file
+		rv = tmpnam( NULL );
+	}
+	else
+	{
+		// the mpirun process is to be run on a remote machine -
+		// we need to generate a name that is likely to be unique on
+		// the remote system
+		//
+		// our format for this name is
+		//
+		//   pdd-<name>-<pid>-<usec>
+		//
+		// where:
+		//   <name> is the network name of this machine (the one running the
+		//     front end process
+		//   <pid> is the process ID of the front-end process on that machine
+		//   <usec> is the result of gettimeofday() expressed in microseconds
+		// 
+		rv += dir;
+		rv += "/";
+		rv += "pdd-";
+		rv += getNetworkName();
+		rv += "-";
+		rv += getpid();
+		rv += "-";
+
+		struct timeval tv;
+		gettimeofday( &tv, NULL );
+		rv += tv.tv_sec * 1000000 + tv.tv_usec;
+	}
+
 	return rv;
 }
 
 
-static vector<string> wrappers;
+#if !defined(i386_unknown_nt4_0)
+
 /*
   Perform a cleanup when the frontend exits
 */
-bool mpichUnlinkWrappers()
+bool
+mpichUnlinkWrappers()
 {
-	bool rv = true;
+	bool rv=true;
+	for (unsigned int i=0; i< paradynDaemon::wrappers.size(); i++)
+	{
+		paradynDaemon::MPICHWrapperInfo& wrapper = paradynDaemon::wrappers[i];
+		
+		if( wrapper.isLocal )
+		{
+			// remove the local wrapper file
+			if (remove(wrapper.filename.string_of()) < 0) { // Best effort
+				cerr << "mpichUnlinkWrappers: Failed to remove " 
+					 << wrapper.filename << ": " << strerror(errno) << endl;
+				rv=false;
+			}
 
-	for (unsigned int i=0; i<wrappers.size(); i++) {
-		if (remove(wrappers[i].string_of()) < 0) { // Best effort
-			cerr << "mpichUnlinkWrappers: Failed to remove " 
-			     << wrappers[i] << ": " << strerror(errno) << endl;
-			rv = false;
+		}
+		else
+		{
+			// remove the remote wrapper file
+			bool removeFailed = false;
+			int pid = fork();
+			if( pid > 0 )
+			{
+				// we're the parent - 
+				// wait for our child's remove command to finish
+				int rmStatus;
+				if( (waitpid( pid, &rmStatus, 0 ) != pid) ||
+					(rmStatus != 0) )
+				{
+					removeFailed = true;
+					rv=false;
+				}
+			}
+			else if( pid == 0 )
+			{
+				// we're the child -
+				// exec the remote command to remove the wrapper file
+				string cmd;
+				
+				cmd += wrapper.remoteShell;
+				cmd += " ";
+				cmd += wrapper.remoteMachine;
+				cmd += " rm ";
+				cmd += wrapper.filename;
+				execl( "/bin/sh",
+					"sh",
+					"-c",
+					cmd.string_of(),
+					NULL );
+
+				// if we reached here, our exec failed
+				removeFailed = true;
+			}
+			else
+			{
+				// our fork failed
+				removeFailed = true;
+				rv=false;
+			}
+
+			if( removeFailed )
+			{
+				cerr << "mpichUnlinkWrappers: Failed to remove " 
+					 << wrapper.filename << ": " << strerror(errno) << endl;
+			}
 		}
 	}
-
 	return rv;
 }
 				
-#if !defined(i386_unknown_nt4_0)
+
+
+bool
+writeMPICHWrapper( const string& fileName, const string& buffer )
+{
+	FILE *f;
+
+	if ((f = fopen (fileName.string_of(), "wt")) == 0 ||
+		fputs (buffer.string_of(), f) < 0 ||
+		fclose (f) < 0 ||
+		chmod (fileName.string_of(), S_IRWXU) < 0) {
+		uiMgr->showError(113, "mpichCreateWrapper: I/O error");
+		return false;
+	}
+	return true;
+}
+
+
 
 /*
   Create a script file which will start paradynd with appropriate
@@ -1191,7 +1301,9 @@ bool mpichUnlinkWrappers()
   slave processes until the MPI_Init() moment, so we pass these parameters
   in a script
 */
-bool mpichCreateWrapper(const char           *script,
+bool mpichCreateWrapper(const string& machine,
+			bool                 localMachine,
+			const string&        script,
 			const char           *dir,
 			const string&        app_name,
 			const vector<string> args,
@@ -1199,7 +1311,6 @@ bool mpichCreateWrapper(const char           *script,
 {
 	const char *preamble = "#!/bin/sh\ncd ";
 	string buffer;
-	FILE *f;
 	unsigned int j;
 
 	buffer = string(preamble) + string(dir) + 
@@ -1219,14 +1330,115 @@ bool mpichCreateWrapper(const char           *script,
 		  string(" -runme ") + app_name +
 		  string(" $*\n");
 	
-	if ((f = fopen (script, "wt")) == 0 ||
-	    fputs (buffer.string_of(), f) < 0 ||
-	    fclose (f) < 0 ||
-	    chmod (script, S_IRWXU) < 0) {
-		uiMgr->showError(113, "mpichCreateWrapper: I/O error");
-		return false;
+
+
+	if( localMachine )
+	{
+		// the file named by script is our wrapper -
+		// write the script to the wrapper file
+		//
+		if( !writeMPICHWrapper( script, buffer ) )
+		{
+			return false;
+		}
+
+		paradynDaemon::wrappers += paradynDaemon::MPICHWrapperInfo( script );
 	}
-	wrappers += string(script);  // remember the name for later cleanup
+	else
+	{
+		// the file named by script is the wrapper's remote name -
+		// we write the script to a local temporary file so as to 
+		// copy it to the remote system
+		//
+		string localWrapper = tmpnam( NULL );
+		if( !writeMPICHWrapper( localWrapper, buffer ) )
+		{
+			return false;
+		}
+
+		// try to copy the file to the desired location on the remote system
+		// ideally, we'd use execCmd() to execute this copy command on the local
+		// system, but execCmd has some side effects we'd rather not try
+		// to work around
+		//
+		bool copySucceeded = true;
+		int pid = fork();
+		if( pid > 0 )
+		{
+			// we are the parent - 
+			// wait for our child process (which will do the copy) to complete
+			int copyStatus;
+			if( waitpid( pid, &copyStatus, 0 ) != pid )
+			{
+				cerr << "mpichCreateWrapper: Failed to copy temporary local wrapper " 
+			     << localWrapper
+				 << " to remote system: " 
+				 << strerror(errno) 
+				 << endl;
+				copySucceeded = false;
+			}
+			else
+			{
+				if( copyStatus != 0 )
+				{
+					copySucceeded = false;
+				}
+			}
+		}
+		else if( pid == 0 )
+		{
+			// we are the child - 
+			// we exec our copy command...
+
+			// ...build the command string...
+			string cmd;
+			
+			cmd += de->getRemoteShell();
+			cmd += " ";
+			cmd += machine;			// name of the remote system
+			cmd += " cat - \">\" ";
+			cmd += script;			// name of wrapper on remote system
+			cmd += " \";\" chmod 755 ";
+			cmd += script;
+			cmd += " < ";
+			cmd += localWrapper;	// name of wrapper on local system
+
+
+			// ...exec a shell to execute it
+			execl( "/bin/sh",
+				"sh",
+				"-c",
+				cmd.string_of(),
+				NULL );
+			copySucceeded = false;	// if we got here, the exec failed
+		}
+		else
+		{
+			cerr << "mpichCreateWrapper: fork failed." << strerror(errno) << endl;
+			copySucceeded = false;
+		}
+
+		// release the local temporary wrapper file
+		if( remove(localWrapper.string_of()) < 0 )
+		{
+			cerr << "mpichCreateWrapper: Failed to remove temporary local wrapper " 
+			     << localWrapper
+				 << ": " 
+				 << strerror(errno) 
+				 << endl;
+		}
+
+		if( copySucceeded )
+		{
+			// keep info around till later about script that needs to be removed
+			paradynDaemon::wrappers += paradynDaemon::MPICHWrapperInfo( script, machine, de->getRemoteShell() );
+		}
+		
+		if( !copySucceeded )
+		{
+			return false;
+		}
+	}
 
 	return true;
 }
@@ -1268,7 +1480,7 @@ struct known_arguments {
   (mpirun arguments, the application name, application parameters)
   Insert the script name instead of the application name
 */
-bool mpichParseCmdline(const char *script, const vector<string> &argv,
+bool mpichParseCmdline(const string& script, const vector<string> &argv,
 		       string& app_name, vector<string> &params)
 {
 	const unsigned int NKEYS = 34;
@@ -1377,10 +1589,10 @@ static bool startMPICH(const string &machine, const string &login,
 {
 	string app_name;
 	vector<string> params;
-	const char *script;
 	unsigned int i;
 	char cwd[PATH_MAX];
 	char **s;
+	bool localMachine = hostIsLocal(machine);
 
 	if (DMstatus)   uiMgr->updateStatus(DMstatus,   "ready");
 	if (PROCstatus) uiMgr->updateStatus(PROCstatus, "MPICH");
@@ -1390,17 +1602,15 @@ static bool startMPICH(const string &machine, const string &login,
 	} else {
 		getcwd(cwd, PATH_MAX);
 	}
-	if (!hostIsLocal(machine)) {
+	if (!localMachine) {
 		// Prepend "rsh ..." to params
 		mpichRemote(machine, login, cwd, de, params);
 	}
-	if ((script = mpichNameWrapper(cwd)) == 0) {
-		return false;
-	}
+	string script = mpichNameWrapper( localMachine, cwd );
 	if (!mpichParseCmdline(script, argv, app_name, params)) {
 		return false;
 	}
-	if (!mpichCreateWrapper(script, cwd, app_name, args, de)) {
+	if (!mpichCreateWrapper(machine, localMachine, script, cwd, app_name, args, de)) {
 		return false;
 	}
 	if ((s = (char **)malloc((params.size() + 1) * sizeof(char *))) == 0) {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.43 2000/11/03 01:22:30 zandy Exp $
+// $Id: DMdaemon.h,v 1.44 2001/01/04 22:26:25 pcroth Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -202,6 +202,55 @@ class paradynDaemon: public dynRPCUser {
 	friend void DMdoEnableData(perfStreamHandle,perfStreamHandle,vector<metricRLType>*,
 				 u_int,phaseType,phaseHandle,u_int,u_int,u_int);
     public:
+
+	struct MPICHWrapperInfo
+	{
+		string	filename;
+		bool	isLocal;
+		string	remoteMachine;
+		string	remoteShell;
+
+
+		MPICHWrapperInfo( void )
+		  : isLocal( true )
+		{}
+
+		MPICHWrapperInfo( const string& fname )
+		  : filename( fname ), 
+			isLocal( true )
+		{}
+
+		MPICHWrapperInfo( const string& fname,
+						const string& machine,
+						const string& rsh )
+		  : filename( fname ),
+			isLocal( false ),
+			remoteMachine( machine ),
+			remoteShell( rsh )
+		{}
+
+		MPICHWrapperInfo( const MPICHWrapperInfo& w )
+		  : filename( w.filename ),
+			isLocal( w.isLocal ),
+			remoteMachine( w.remoteMachine ),
+			remoteShell( w.remoteShell )
+		{}
+
+
+		MPICHWrapperInfo& operator=( const MPICHWrapperInfo& w )
+			{
+				if( &w != this )
+				{
+					filename = w.filename;
+					isLocal = w.isLocal;
+					remoteMachine = w.remoteMachine;
+					remoteShell = w.remoteShell;
+				}
+				return *this;
+			}
+	};
+	static vector<MPICHWrapperInfo> wrappers;
+
 	paradynDaemon(const string &m, const string &u, const string &c,
 		      const string &r, const string &n, const string &flav);
 	paradynDaemon(PDSOCKET use_sock); // remaining values are set via a callback
@@ -238,7 +287,7 @@ class paradynDaemon: public dynRPCUser {
         timeStamp getTimeFactor() { return time_factor; }
         timeStamp getAdjustedTime(timeStamp time) { return time + time_factor; }
 
-		thread_t	getSocketTid( void ) const	{ return stid; }
+	thread_t	getSocketTid( void ) const	{ return stid; }
 
 #ifdef notdef
 	// Not working -- would provide a read that didn't block other threads
@@ -318,7 +367,10 @@ class paradynDaemon: public dynRPCUser {
 				      resourceListHandle,resourceList*,metric*,
 				      u_int);
 	static float currentSmoothObsCost();
-        const string &getDaemonMachineName() const {return machine;}
+	const string &getMachineName() const {return machine;}
+
+	// list of all active daemons: one for each unique name/machine pair 
+        static vector<paradynDaemon*>  allDaemons;
 
     private:
         bool   dead;	// has there been an error on the link.
@@ -350,8 +402,6 @@ class paradynDaemon: public dynRPCUser {
         static vector<daemonEntry*> allEntries; 
 	// list of all active programs
         static vector<executable*>  programs;
-	// list of all active daemons: one for each unique name/machine pair 
-        static vector<paradynDaemon*>  allDaemons;
         static unsigned procRunning; // how many processes are running or ready to run.
 	static vector<DM_enableType*> outstanding_enables;
 	static u_int next_enable_id;
