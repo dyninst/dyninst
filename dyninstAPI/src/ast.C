@@ -1,7 +1,11 @@
 
 /* 
  * $Log: ast.C,v $
- * Revision 1.13  1995/03/10 19:29:12  hollings
+ * Revision 1.14  1995/05/18 10:29:19  markc
+ * Prevent read-only registers from being deallocated.
+ * Return register for procedure calls to allow values to be returned
+ *
+ * Revision 1.13  1995/03/10  19:29:12  hollings
  * Added code to include base tramp cost in first mini-tramp.
  *
  * Revision 1.12  1995/02/16  08:52:49  markc
@@ -57,6 +61,17 @@ registerSpace::registerSpace(int count, int *possibles) {
 	registers[i].inUse = false;
     }
 }
+
+// Certain registers (i0-i7 on a SPARC) may be available to be read
+// as an operand, but cannot be written.  
+// THIS IS SPARC SPECIFIC
+bool registerSpace::readOnlyRegister(reg reg_number) {
+  if ((reg_number < 16) || (reg_number > 23)) 
+    return true;
+  else
+    return false;
+}
+
 
 reg registerSpace::allocateRegister() {
     int i;
@@ -138,6 +153,7 @@ reg AstNode::generateCode(process *proc,
     reg src1, src2;
     reg src = -1;
     reg dest = -1;
+    reg right_dest = -1;
 
     if (type == opCodeNode) {
         if (op == ifOp) {
@@ -176,10 +192,18 @@ reg AstNode::generateCode(process *proc,
 	} else {
 	    if (loperand) 
 		src = loperand->generateCode(proc, rs, insn, base);
-	    if (roperand) 
-		dest = roperand->generateCode(proc, rs, insn, base);
-	    (void) emit(op, src, dest, dest, insn, base);
+	    if (roperand)
+	        right_dest = roperand->generateCode(proc, rs, insn, base);
+
+	    // the left operand source register can be reused here
 	    rs->freeRegister(src);
+
+	    if ((right_dest != -1) && rs->readOnlyRegister(right_dest))
+	      dest = rs->allocateRegister();
+	    else
+	      dest = right_dest;
+
+	    (void) emit(op, src, right_dest, dest, insn, base);
 	}
     } else if (type == operandNode) {
 	dest = rs->allocateRegister();
@@ -193,17 +217,21 @@ reg AstNode::generateCode(process *proc,
 	    (void) emit(loadConstOp, (reg) addr, dest, dest, insn, base);
 	} else if (oType == DataValue) {
 	    addr = dValue->getInferiorPtr();
+	    // Why a special case for TIMER?, shouldn't this be using DataPtr
 	    if (dValue->getType() == TIMER) {
 		(void) emit(loadConstOp, (reg) addr, dest, dest, insn, base);
 	    } else {
 		(void) emit(loadOp, (reg) addr, dest, dest, insn, base);
 	    }
 	} else if (oType == Param) {
-	    src = rs->allocateRegister();
+	    // src = rs->allocateRegister();
 	    dest = getParameter(src, (int) oValue);
-	    if (src != dest) {
-		rs->freeRegister(src);
-	    }
+	    // if (src != dest) {
+	    // rs->freeRegister(src);
+	    // }
+	} else if (oType == DataAddr) {
+	  addr = (unsigned) oValue;
+	  emit(loadOp, (reg) addr, dest, dest, insn, base);
 	}
     } else if (type == callNode) {
 	unsigned addr;
@@ -233,6 +261,9 @@ reg AstNode::generateCode(process *proc,
 	    src2 = -1;
 	}
 	(void) emit(callOp, src1, src2, (int) addr, insn, base);
+
+	// TODO -- this is a test, caller out[0]/ callee in[0] has result
+	dest = 8;
     } else if (type == sequenceNode) {
 	loperand->generateCode(proc, rs, insn, base);
 	return(roperand->generateCode(proc, rs, insn, base));
@@ -364,3 +395,6 @@ AstNode *createIf(AstNode *expression, AstNode *action)
     return(new AstNode(ifOp, expression, action));
 }
 
+AstNode *createCall(const string func, dataReqNode *dataPtr, AstNode *ast) {
+  return (new AstNode(func, new AstNode(DataValue, (void*) dataPtr), ast));
+}
