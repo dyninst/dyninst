@@ -1,7 +1,11 @@
 /* $Log: UImain.C,v $
-/* Revision 1.77  1996/03/08 00:20:40  tamches
-/* added 7 tunable constants for hiding desired shg nodes
+/* Revision 1.78  1996/03/08 03:00:34  tamches
+/* fixed hide-node bug whereby a tc change before PC window was open would
+/* give an assertion failure
 /*
+ * Revision 1.77  1996/03/08 00:20:40  tamches
+ * added 7 tunable constants for hiding desired shg nodes
+ *
  * Revision 1.76  1996/02/21 18:15:50  tamches
  * cleanup of applicStateChanged related to commit of paradyn.tcl.C
  *
@@ -356,47 +360,39 @@ void tclPromptCallback(bool newValue) {
 }
 
 extern shgPhases *theShgPhases;
-void tcShgHideTrueCallback(bool hide) {
+void tcShgHideGeneric(shg::changeType ct, bool hide) {
+   if (theShgPhases == NULL)
+      // the shg window hasn't been opened yet...
+      // do nothing.  When "theShgPhases" is first created, it'll
+      // grab fresh values from the tunables
+      return;
+
    assert(theShgPhases);
-   bool anyChanges = theShgPhases->changeHiddenNodes(shg::ct_true, hide);
+   bool anyChanges = theShgPhases->changeHiddenNodes(ct, hide);
    if (anyChanges)
       initiateShgRedraw(interp, true); // true --> double buffer
+}
+
+void tcShgHideTrueCallback(bool hide) {
+   tcShgHideGeneric(shg::ct_true, hide);
 }
 void tcShgHideFalseCallback(bool hide) {
-   assert(theShgPhases);
-   bool anyChanges = theShgPhases->changeHiddenNodes(shg::ct_false, hide);
-   if (anyChanges)
-      initiateShgRedraw(interp, true); // true --> double buffer
+   tcShgHideGeneric(shg::ct_false, hide);
 }
 void tcShgHideUnknownCallback(bool hide) {
-   assert(theShgPhases);
-   bool anyChanges = theShgPhases->changeHiddenNodes(shg::ct_unknown, hide);
-   if (anyChanges)
-      initiateShgRedraw(interp, true); // true --> double buffer
+   tcShgHideGeneric(shg::ct_unknown, hide);
 }
 void tcShgHideNeverCallback(bool hide) {
-   assert(theShgPhases);
-   bool anyChanges = theShgPhases->changeHiddenNodes(shg::ct_never, hide);
-   if (anyChanges)
-      initiateShgRedraw(interp, true); // true --> double buffer
+   tcShgHideGeneric(shg::ct_never, hide);
 }
 void tcShgHideActiveCallback(bool hide) {
-   assert(theShgPhases);
-   bool anyChanges = theShgPhases->changeHiddenNodes(shg::ct_active, hide);
-   if (anyChanges)
-      initiateShgRedraw(interp, true); // true --> double buffer
+   tcShgHideGeneric(shg::ct_active, hide);
 }
 void tcShgHideInactiveCallback(bool hide) {
-   assert(theShgPhases);
-   bool anyChanges = theShgPhases->changeHiddenNodes(shg::ct_inactive, hide);
-   if (anyChanges)
-      initiateShgRedraw(interp, true); // true --> double buffer
+   tcShgHideGeneric(shg::ct_inactive, hide);
 }
 void tcShgHideShadowCallback(bool hide) {
-   assert(theShgPhases);
-   bool anyChanges = theShgPhases->changeHiddenNodes(shg::ct_shadow, hide);
-   if (anyChanges)
-      initiateShgRedraw(interp, true); // true --> double buffer
+   tcShgHideGeneric(shg::ct_shadow, hide);
 }
 
 void *UImain(void*) {
