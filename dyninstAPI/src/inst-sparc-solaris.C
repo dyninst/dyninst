@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.85 2001/07/05 16:53:22 tikir Exp $
+// $Id: inst-sparc-solaris.C,v 1.86 2001/07/10 20:37:07 gurari Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -2342,216 +2342,332 @@ static enum fuzzyBoolean is_call_outside_function(const instruction instr,
  * Find the instPoints of this function.
  */
 bool pd_Function::findInstPoints(const image *owner) {
-    bool call_restore_tc;
-    int jmp_nop_tc;
-    const instPoint *blah = 0;
-    bool err;
-    unsigned dummyId;
 
-    enum fuzzyBoolean is_inst_point;
+  Address firstAddress = getAddress(0);
+  Address lastAddress = getAddress(0) + size();
+  Address adr;
+  Address target;
+  Address disp;
 
-    //cerr << "pd_Function::findInstPoints called " << *this;
-   if (size() == 0) {
-     //cerr << " size = 0, returning FALSE" << endl;
-     return false;
-   } 
+  instruction instr; 
+  instruction nexti;
 
-   noStackFrame = true;
+  // For determining if function needs relocation to be instrumented
+  isTrap = false;
+  relocatable_ = false;
+  bool canBeRelocated = true;
 
-   Address adr;
-   Address adr1 = getAddress(0);
-   instruction instr, nexti;
-   instr.raw = owner->get_instruction(adr1);
-   if (!IS_VALID_INSN(instr)) {
-     //cerr << " IS_VALID_ISIN(adr1) == 0, returning FALSE" << endl;
-     return false;
-   }
+  // Initially assume function has no stack frame 
+  noStackFrame = true;
 
-   // If it contains an instruction, I assume it would be s system call
-   // which will be treat differently. 
-   isTrap = false;
-   bool func_entry_found = false;
+  // variables for function parameters
+  const instPoint *blah = 0;
+  bool err;
+  bool dummyParam;
 
-   for ( ; adr1 < getAddress(0) + size(); adr1 += 4) { 
-       instr.raw = owner->get_instruction(adr1);
-       nexti.raw = owner->get_instruction(adr1+4);
+  // Ids for instPoints
+  unsigned retId = 0;
+  unsigned callsId = 0; 
+
+  if (size() == 0) {
+    return false;
+  } 
+
+  instr.raw = owner->get_instruction(firstAddress);
+  if (!IS_VALID_INSN(instr)) {
+    return false;
+  }
+
+  // Determine if function needs to be relocated when instrumented
+  for ( adr = firstAddress; adr < lastAddress; adr += 4) { 
+    instr.raw = owner->get_instruction(adr);
+    nexti.raw = owner->get_instruction(adr+4);
+
+    // If there's an TRAP instruction in the function, we assume
+    // that it is an system call and will relocate it to the heap
+    if (isInsnType(instr, TRAPmask, TRAPmatch)) {
+      isTrap = true;
+      relocatable_ = true;
+    } 
+
+    // TODO: This is a hacking for the solaris(solaris2.5 actually)
+    // We will relocate that function if the function has been 
+    // tail-call optimazed.
+    // (Actully, the reason of this is that the system calls like 
+    //  read, write, etc have the tail-call optimazation to call
+    //  the _read, _write etc. which contain the TRAP instruction 
+    //  This is only done if libc is statically linked...if the
+    //  libTag is set, otherwise we instrument read and _read
+    //  both for the dynamically linked case
+    // New for Solaris 2.6 support - new form of tail-call opt-
+    //  imization found:
+    //   jmp %register
+    //   nop
+    //  as last 2 instructions in function which does not have
+    //  own register frame.
+    if (CallRestoreTC(instr, nexti) || JmpNopTC(instr, nexti, adr, this)) {
+      isTrap = true;
+      relocatable_ = true;
+    }
 
 
-       // If there's an TRAP instruction in the function, we 
-       // assume that it is an system call and will relocate it 
-       // to the heap
-       if (isInsnType(instr, TRAPmask, TRAPmatch)) {
-	   isTrap = true;
-	   //cerr << " TRAP instrcution detected, returning findInstPoints" << endl;
-	   return findInstPoints(owner, getAddress(0), 0);
-       } 
+    // if call is directly to a retl, this is not a real call, but
+    // is instead used to set the o7 register. Set the function to be
+    // relocated when instrumented.
+    if (isCallInsn(instr)) {
 
-       // TODO: This is a hacking for the solaris(solaris2.5 actually)
-       // We will relocate that function if the function has been 
-       // tail-call optimazed.
-       // (Actully, the reason of this is that the system calls like 
-       //  read, write, etc have the tail-call optimazation to call
-       //  the _read, _write etc. which contain the TRAP instruction 
-       //  This is only done if libc is statically linked...if the
-       //  libTag is set, otherwise we instrument read and _read
-       //  both for the dynamically linked case
-       // New for Solaris 2.6 support - new form of tail-call opt-
-       //  imization found:
-       //   jmp %register
-       //   nop
-       //  as last 2 instructions in function which does not have
-       //  own register frame.
-       call_restore_tc = CallRestoreTC(instr, nexti);
-       jmp_nop_tc = JmpNopTC(instr, nexti, adr1, this);
-       if (call_restore_tc || jmp_nop_tc) {
-           isTrap = true;
-	   return findInstPoints(owner, getAddress(0), 0);
-       }
+      disp = instr.call.disp30 << 2;
 
-       if (isCallInsn(instr)) {
+      // find target address of call
+      target = adr + disp;
 
-         int disp = instr.call.disp30 << 2;
+      // get target instruction of the call   
+      instruction tmpInsn;
+      tmpInsn.raw = owner->get_instruction( target );
 
-         // find target address of call
-         Address call_target = adr1 + disp;
+      if((tmpInsn.raw & 0xfffff000) == 0x81c3e000) {
+        isTrap = true;
+        relocatable_ = true;
+      }
+    }
+  }
 
-         // get target instruction of the call   
-         instruction tmpInsn;
-         tmpInsn.raw = owner->get_instruction( call_target );
 
-         // if call is directly to a retl, this is not a real call, but
-         // is instead used to set the o7 register. Set the function to be
-         // relocated when instrumented.
-         if((tmpInsn.raw & 0xfffff000) == 0x81c3e000) {
+  // FIND FUNCTION ENTRY
+  for ( adr = firstAddress; adr < lastAddress; adr += 4) { 
 
-           isTrap = true;
-           return findInstPoints(owner, getAddress(0), 0);
-         }
-       }
+    instr.raw = owner->get_instruction(adr);
 
-       Address tmpAdr = adr1;
+    // The function Entry is defined as the first SAVE instruction plus
+    // the instructions after this.
+    // ( The first instruction for the nonleaf function is not 
+    //   necessarily a SAVE instruction. ) 
+    if (isInsnType(instr, SAVEmask, SAVEmatch)) {
+      noStackFrame = false;
 
-       // The function Entry is defined as the first SAVE instruction plus
-       // the instructions after this.
-       // ( The first instruction for the nonleaf function is not 
-       //   necessarily a SAVE instruction. ) 
-       if (isInsnType(instr, SAVEmask, SAVEmatch) && !func_entry_found) {
-	   //cerr << " save instruction found" << endl;
-	   noStackFrame = false;
+      if (relocatable_ == true) {
+        funcEntry_ = new instPoint(this, instr, owner, adr, true, 
+                                              functionEntry, adr);
+      } else {
+          funcEntry_ = new instPoint(this, instr, owner, adr, true, 
+                                                     functionEntry);
+      }
 
-	   func_entry_found = true;
-	   funcEntry_ = new instPoint(this, instr, owner, adr1, true,
-				      functionEntry);
-	   adr = adr1;
-	   assert(funcEntry_);
-       }
+      continue;
+    }
+  }
 
-       adr1 = tmpAdr;
-   }
+  // If there's no SAVE instruction found, this is a leaf function
+  // and function Entry will be defined from the first instruction
+  if (noStackFrame) {
 
-   // If there's no SAVE instruction found, this is a leaf function and
-   // and function Entry will be defined from the first instruction
-   if (noStackFrame) {
-       //cerr << " noStackFrame, apparently leaf function" << endl;
-       adr = getAddress(0);
-       instr.raw = owner->get_instruction(adr);
-       funcEntry_ = new instPoint(this, instr, owner, adr, true,
-				  functionEntry);
-       assert(funcEntry_);
-   }
+    // noStackFrame, apparently leaf function
+    adr = firstAddress;
+    instr.raw = owner->get_instruction(adr);
+    if (relocatable_ == true) {
+      funcEntry_ = new instPoint(this, instr, owner, adr, true, 
+                                            functionEntry, adr);
+    } else {
+        funcEntry_ = new instPoint(this, instr, owner, adr, true, 
+                                                   functionEntry);
+    }
+  }
 
-   for ( ; adr < getAddress(0) + size(); adr += sizeof(instruction)) {
+  assert(funcEntry_);
 
-     instr.raw = owner->get_instruction(adr);
 
-     bool done;
 
-     // check for return insn and as a side affect decide if we are at the
-     //   end of the function.
-     if (isReturnInsn(owner, adr, done, prettyName())) {
-       // define the return point
-       funcReturns.push_back(new instPoint(this, instr, owner, adr, false,
-				    functionExit));
 
-     } else if (instr.branch.op == 0 
-		&& (instr.branch.op2 == 2 || instr.branch.op2 == 6) 
-		&& (instr.branch.cond == 0 ||instr.branch.cond == 8)) {
-       // find if this branch is going out of the function
-       int disp = instr.branch.disp22;
-       Address target = adr +  (disp << 2);
-       if ((target < (getAddress(0)))  
-	   || (target >= (getAddress(0) + size()))) {
-	 instPoint *point = new instPoint(this, instr, owner, adr, false,
-					  functionExit);
-	 funcReturns.push_back(point);
-       }
+  // CHECK IF FUNCTION SHOULD NOT BE RELOCATED WHEN INSTRUMENTED
 
-     } else if (isCallInsn(instr)) {
+  if (size() <= 3*sizeof(instruction)) {
+    canBeRelocated = false;
+  }
 
-       // if the call target is the address of the call instruction
-       // then this is not something that we can instrument...
-       // this occurs in functions with code that is modifined when 
-       // they are loaded by the run-time linker, or when the .init
-       // section is executed.  In this case the instructions in the
-       // parsed image file are different from the ones in the executable
-       // process.
+  // if the second instruction in a function that needs relocation is a call
+  // instruction or a branch instruction, then we can't deal with this.
+  // New: only a problem if the call is to a location outside the function, 
+  // or is a jump to itself....
 
-       Address call_target = adr + (instr.call.disp30 << 2);
+  // Grab second instruction
+  Address addrSecondInstr = firstAddress + sizeof(instruction);
+  instr.raw = owner->get_instruction(addrSecondInstr); 
 
-       if(instr.call.op == CALLop) { 
-           if(call_target == adr){ 
-	        cerr << "WARN : function " << prettyName().string_of()
-		  << " has call to same location as call, NOT instrumenting"
-		  << endl;
-	        return false;
-	   }
-       }
+  if ( isCallInsn(instr) ) {
 
-       // first, check for tail-call optimization: a call where the instruction
-       // in the delay slot write to register %o7(15), usually just moving
-       // the caller's return address, or doing a restore
-       // Tail calls are instrumented as return points, not call points.
+    // target of call
+    target = addrSecondInstr + (instr.call.disp30 << 2);
 
-       instruction nexti; 
-       nexti.raw = owner->get_instruction(adr+4);
+    // if call dest. is outside of function, assume real
+    // call site.  Assuming cant deal with this case!!!!
+    if ( !(target >= firstAddress && target <= lastAddress) ||
+                                    (target == addrSecondInstr) ) {
+      canBeRelocated = false;
+    }
 
-       if (CallRestoreTC(instr, nexti)) {
-	 // Alert!!!!
-	 adr = newCallPoint(adr, instr, owner, err, dummyId, adr,0,blah);
-	 funcReturns.push_back(new instPoint(this, instr, owner, adr, false,
-				      functionExit));
+    // Branch instruction  
+    if ( instr.branch.op == 0 && 
+        (instr.branch.op2 == 2 || instr.branch.op2 == 6) ) {
+      canBeRelocated = false;
+    }
+  }
 
-       } else {
-	   // check if the call is to inside the function - if definately
-	   // inside function (meaning that thew destination can be determined
-	   // statically because its a call to an address, not to a register 
-	   // or register + offset) then don't instrument as call site, 
-	   // otherwise (meaning that the call destination is known statically 
-	   // to be outside the function, or is not known statically), then 
-	   // instrument as a call site....
-	   is_inst_point = is_call_outside_function(instr, getAddress(0), adr, size());
-	   if (is_inst_point == eFalse) {
-	       // if this is a call instr to a location within the function, 
-	       // and if the offest is not 8 then do not define this function 
-	       if (!is_set_O7_call(instr, size(), adr - getAddress(0))) {
-		   return false;
-	       }
-	   } 
+  // Can't handle function
+  if (canBeRelocated == false && isTrap == true) {
+    return false;
+  }
 
-	   // define a call point
-	   // this may update address - sparc - aggregate return value
-	   // want to skip instructions
-	   adr = newCallPoint(adr, instr, owner, err, dummyId, adr, 0, blah);
-       }
-     }
-     else if (JmpNopTC(instr, nexti, adr, this)) {
-         // Alert!!!! 
-         adr = newCallPoint(adr, instr, owner, err, dummyId, adr,0,blah);
+  adr = firstAddress;
 
-	 funcReturns.push_back(new instPoint(this, instr, owner, adr, false,
-				      functionExit));
-     }
-     else if (isInsnType(instr, JMPLmask, JMPLmatch)) {
+  // ITERATE OVER INSTRUCTIONS, locating instPoints
+  for (int i=0; adr < lastAddress; adr += sizeof(instruction), i++) {
+
+    instr.raw = owner->get_instruction(adr);
+    newInstr[i] = instr;
+    nexti.raw = owner->get_instruction(adr+4);
+
+    // check for return insn and as a side affect decide if we are at the
+    //   end of the function.
+    if (isReturnInsn(owner, adr, dummyParam, prettyName())) {
+      // define the return point
+
+      instPoint *point;
+      if (relocatable_ == true) {
+        point = new instPoint(this, instr, owner, adr, false, 
+                                           functionExit, adr);
+      } else {
+          point = new instPoint(this, instr, owner, adr, false, 
+					          functionExit);
+      }
+
+      funcReturns.push_back(point);
+      funcReturns[retId] -> instId = retId; retId++;
+    } 
+    
+    else if (instr.branch.op == 0      
+              &&  (instr.branch.op2 == 2 || instr.branch.op2 == 6) 
+	      && (instr.branch.cond == 0 || instr.branch.cond == 8)) {
+
+      // find if this branch is going out of the function
+      disp = instr.branch.disp22;
+      Address target = adr +  (disp << 2);
+         
+      if (target < firstAddress || target >= lastAddress) {
+
+        instPoint *point;
+        if (relocatable_ == true) {
+          point = new instPoint(this, newInstr[i], owner, adr, 
+                                     false, functionExit, adr);
+	} else {
+            point = new instPoint(this, newInstr[i], owner, adr, 
+                                            false, functionExit);
+	}
+
+        if ((instr.branch.cond != 0) && (instr.branch.cond != 8)) {  
+
+          point->isBranchOut = true;
+	  point->branchTarget = target;
+	}
+
+	funcReturns.push_back(point);
+	funcReturns[retId] -> instId = retId; retId++;
+
+      }
+    } 
+    
+    else if (isCallInsn(instr)) {
+
+      // if the call target is the address of the call instruction
+      // then this is not something that we can instrument...
+      // this occurs in functions with code that is modifined when 
+      // they are loaded by the run-time linker, or when the .init
+      // section is executed.  In this case the instructions in the
+      // parsed image file are different from the ones in the executable
+      // process.
+      Address call_target = adr + (instr.call.disp30 << 2);
+      if(instr.call.op == CALLop) { 
+        if(call_target == adr){ 
+          cerr << "WARN : function " << prettyName().string_of()
+               << " has call to same location as call, NOT instrumenting"
+               << endl;
+	  return false;
+	}
+      }
+
+      // first, check for tail-call optimization: a call where the 
+      // instruction in the delay slot write to register %o7(15), usually 
+      // just moving the caller's return address, or doing a restore
+      // Tail calls are instrumented as return points, not call points.
+
+      if (CallRestoreTC(instr, nexti)) {
+
+        adr = newCallPoint(adr, instr, owner, err, callsId, adr, 0, blah);
+        if (err) {
+          return false;
+	}
+
+	disp = adr + sizeof(instruction);
+        instPoint *point = new instPoint(this, instr, owner, disp, 
+                                         false, functionExit, adr);
+        funcReturns.push_back(point);
+        funcReturns[retId] -> instId = retId; retId++;
+
+      } else {
+
+	  // check if the call is to inside the function - if definately
+	  // inside function (meaning that thew destination can be determined
+	  // statically because its a call to an address, not to a register 
+          // or register + offset) then don't instrument as call site, 
+          // otherwise (meaning that the call destination is known statically 
+          // to be outside the function, or is not known statically), then 
+          // instrument as a call site....
+          enum fuzzyBoolean is_inst_point;
+          is_inst_point = is_call_outside_function(instr, firstAddress, 
+                                                           adr, size());
+          if (is_inst_point == eFalse) {
+
+            // if this is a call instr to a location within the function, 
+            // and if the offest is not 8 then do not define this function 
+	    if (!is_set_O7_call(instr, size(), adr - firstAddress)) {
+	      return false;
+	    }
+            adr = newCallPoint(adr, instr, owner, err, callsId, adr, 0, blah);
+
+  	  } else {
+ 
+              // get call target instruction   
+              Address call_target = adr + (instr.call.disp30 << 2);
+              instruction tmpInsn;
+              tmpInsn.raw = owner->get_instruction( call_target );
+
+              // check that call is not directly to a retl instruction,
+              // and thus a real call
+              if((tmpInsn.raw & 0xfffff000) != 0x81c3e000) {
+                  adr = newCallPoint(adr, instr, owner, err, callsId, 
+                                                        adr, 0, blah);
+  	        if (err) {
+                  return false;
+		}
+	      } 
+	  }         
+      }
+    }
+
+    else if (JmpNopTC(instr, nexti, adr, this)) {
+
+      adr = newCallPoint(adr, instr, owner, err, callsId, adr, 0, blah);
+      if (err) {
+        return false;
+      }
+
+      disp = adr + sizeof(instruction);
+      instPoint *point = new instPoint(this, instr, owner, disp, false, 
+                                                     functionExit, adr);
+      funcReturns.push_back(point);
+      funcReturns[retId] -> instId = retId; retId++;
+    }
+
+    else if (isInsnType(instr, JMPLmask, JMPLmatch)) {
        /* A register indirect jump. Some jumps may exit the function 
           (e.g. read/write on SunOS). In general, the only way to 
 	  know if a jump is exiting the function is to instrument
@@ -2569,35 +2685,50 @@ bool pd_Function::findInstPoints(const image *owner) {
 	     jump r
 	*/
 
-       Register jumpreg = instr.rest.rs1;
-       instruction prev1;
-       instruction prev2;
+      Register jumpreg = instr.rest.rs1;
+      instruction prev1;
+      instruction prev2;
 
-       prev1.raw = owner->get_instruction(adr-4);
-       prev2.raw = owner->get_instruction(adr-8);
+      prev1.raw = owner->get_instruction(adr-4);
+      prev2.raw = owner->get_instruction(adr-8);
 
-       Address targetAddr;
+      Address targetAddr;
 
-       if (instr.rest.rd == 0 && (instr.rest.i == 1 || instr.rest.rs2 == 0)
-	   && prev2.sethi.op == FMT2op && prev2.sethi.op2 == SETHIop2 
-	   && prev2.sethi.rd == (unsigned)jumpreg
-	   && prev1.rest.op == RESTop 
-	   && prev1.rest.rd == (unsigned)jumpreg && prev1.rest.i == 1
-	   && prev1.rest.op3 == ORop3 && prev1.rest.rs1 == (unsigned)jumpreg) {
+      if (instr.rest.rd == 0 && (instr.rest.i == 1 || instr.rest.rs2 == 0)
+	  && prev2.sethi.op == FMT2op && prev2.sethi.op2 == SETHIop2 
+	  && prev2.sethi.rd == (unsigned)jumpreg
+	  && prev1.rest.op == RESTop 
+          && prev1.rest.rd == (unsigned)jumpreg && prev1.rest.i == 1
+          && prev1.rest.op3 == ORop3 && prev1.rest.rs1 == (unsigned)jumpreg) {
 
-	 targetAddr = (prev2.sethi.imm22 << 10) & 0xfffffc00;
-	 targetAddr |= prev1.resti.simm13;
-	 if ((targetAddr<getAddress(0))||(targetAddr>=(getAddress(0)+size()))){
-	   instPoint *point = new instPoint(this, instr, owner, adr, false, 
-					    functionExit);
-	   funcReturns.push_back(point);
-	 }
-       }
+        targetAddr = (prev2.sethi.imm22 << 10) & 0xfffffc00;
+        targetAddr |= prev1.resti.simm13;
 
-     }
- }
-   
- return (checkInstPoints(owner)); 
+        if ( (targetAddr < firstAddress) || (targetAddr >= lastAddress) ){
+
+          instPoint *point;
+          if (relocatable_ == true) {
+            point = new instPoint(this, instr, owner, adr, false, 
+          	  			       functionExit, adr);
+	  } else {
+              point = new instPoint(this, instr, owner, adr, false, 
+               			                      functionExit);
+	  }
+
+	  funcReturns.push_back(point);
+	  funcReturns[retId] -> instId = retId; retId++;
+	}
+      }
+    }
+  }
+     
+  bool checkPoints = checkInstPoints(owner);
+
+  if ( (checkPoints == false) || (!canBeRelocated && isTrap) ){
+    return false;
+  }
+
+  return true;
 }
 
 /****************************************************************************/
@@ -2707,7 +2838,6 @@ bool pd_Function::checkInstPoints(const image *owner) {
 	        //     << " overlapping instrumentation points, can't instrument"
 	        //     << endl;
 	      //return false;
-
               // function can be instrumented if we relocate it 
               isTrap = true; 
               relocatable_ = true;
@@ -2716,226 +2846,6 @@ bool pd_Function::checkInstPoints(const image *owner) {
     }
 
     return true;	
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-/* The maximum length of relocatable function is 1k instructions */  
-// This function is to find the inst Points for a function
-// that will be relocated if it is instrumented. 
-bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
-   int i, jmp_nop_tc;
-   instruction second_instr;
-   instruction nexti; 
-
-   enum fuzzyBoolean is_inst_point;
-
-   bool err;
-   const instPoint *blah = 0;
-
-   if (size() == 0) {
-     return false;
-   }
-   relocatable_ = true;
-
-   Address adr = getAddress(0);
-   instruction instr;
-   instr.raw = owner->get_instruction(adr);
-   if (!IS_VALID_INSN(instr))
-     return false;
-   
-   if (size() <= 3*sizeof(instruction)) 
-       return false;
-
-   instPoint *point = new instPoint(this, instr, owner, newAdr, true, 
-				    functionEntry, adr);
-
-   funcEntry_ = point;
-
-   // if the second instruction in a relocated function is a call instruction
-   // or a branch instruction, then we can't deal with this.
-   // New: only problem if call is to location outside of function, or
-   //  a jump to itself....
-   if(size() > sizeof(instruction)){
-       Address second_adr = adr + sizeof(instruction);
-       second_instr.raw =  owner->get_instruction(second_adr); 
-
-       if (isCallInsn(second_instr)) {
-           Address call_target = second_adr + (second_instr.call.disp30 << 2);
-	   // if call dest. is outside of function, assume real
-	   //  call site.  Assuming cant deal with this case!!!!
-           if (!(call_target >= adr && call_target <= adr + size()) ||
-	       (call_target == second_adr)) {
-	       return false;
-	   }
-       }
-
-       if (second_instr.branch.op == 0 && 
-   		      (second_instr.branch.op2 == 2 || 
-   		      second_instr.branch.op2 == 6)) {
-   	   return false;
-       }
-   }    
-
-   assert(funcEntry_);
-   unsigned retId = 0;
-   unsigned callsId = 0; 
-
-   for (i = 0; adr < getAddress(0) + size(); adr += sizeof(instruction),  
-	newAdr += sizeof(instruction), i++) {
-
-     instr.raw = owner->get_instruction(adr);
-     newInstr[i] = instr;
-     nexti.raw = owner->get_instruction(adr+4);
-
-     bool done;
-
-     // check for return insn and as a side affect decide if we are at the
-     //   end of the function.
-     if (isReturnInsn(owner, adr, done, prettyName())) {
-       // define the return point
-       instPoint *point	= new instPoint(this, instr, owner, newAdr, false, 
-					functionExit, adr);
-       funcReturns.push_back(point);
-       funcReturns[retId] -> instId = retId; retId++;
-     } else if (instr.branch.op == 0 
-		&& (instr.branch.op2 == 2 || instr.branch.op2 == 6)) {
-       // find if this branch is going out of the function
-       int disp = instr.branch.disp22;
-       Address target = adr + (disp << 2);
-       if (target < getAddress(0) || target >= getAddress(0) + size()) {
-	   instPoint *point = new instPoint(this, newInstr[i], owner, 
-					    newAdr, false, 
-					    functionExit, adr);
-	   if ((instr.branch.cond != 0) && (instr.branch.cond != 8)) {  
-	       point->isBranchOut = true;
-	       point->branchTarget = target;
-	   }
-	   funcReturns.push_back(point);
-	   funcReturns[retId] -> instId = retId; retId++;
-       }
-
-     } else if (isCallInsn(instr)) {
-
-       // SNIP - incorrect comment removed)
-       //  check for 2 types of tail-call optimization.  The first
-       //  (seen on Solaris 2.4, 2.5 and 2.6) is a CALL, RESTORE
-       //  anywhere inside function.  The second (seen to date on
-       //  Solaris 2.6 only) is a JMP, NOP in the last 2 instructions 
-       //  of a function w/o a stack frame.
-       // In both cases, the 1st instruction in the tail-call sequences
-       //  (call or jmp....) is marked as a call site, and the second is
-       //  marked as a return point.
-       // Sependencies in the Tail Call Opt. Peephole Alteration code -
-       //  make sure that BOTH the call site and return point are marked
-       //  as inst points, AND that the call site points to the 1st instruction
-       //  in the tail-call sequence and the retuirn point points to the 
-       //  second....
-       if (CallRestoreTC(instr, nexti)) {
-	   // Alert!!!!
-	   adr = newCallPoint(newAdr, instr, owner, err, callsId, adr,0,blah);
-	   if (err) return false;
-	   Address newAdrdisp = newAdr + sizeof(instruction);
-           instPoint *point = new instPoint(this, instr, owner, 
-				      newAdrdisp, false,
-				      functionExit, adr);
-           funcReturns.push_back(point);
-           funcReturns[retId] -> instId = retId; retId++;
-
-       } else {
-	   // check if the call is to inside the function - if definately
-	   //  inside function (meaning that thew destination can be determined
-	   //  statically because its a call to an address, not to a register or
-	   //  register + offset) then don't instrument as call site, otherwise
-	   //  (meaning that the call destination is known statically to be outside
-	   //  the function, or is not known statically), then instrument as a
-	   //  call site....
-	   is_inst_point = is_call_outside_function(instr, getAddress(0), adr, size());
-	   if (is_inst_point == eFalse) {
-	       // if this is a call instr to a location within the function, and if 
-               // the offset is not 8 then do not define this function 
-	       if (!is_set_O7_call(instr, size(), adr - getAddress(0))) {
-		   return false;
-	       }
-	   } else {
- 
-               // get call target instruction   
-               Address call_target = adr + (instr.call.disp30 << 2);
-               instruction tmpInsn;
-               tmpInsn.raw = owner->get_instruction( call_target );
-
-               // verify that call is not directly to a retl instruction,
-               // and thus a real call
-               if((tmpInsn.raw & 0xfffff000) != 0x81c3e000) {
-
-                 adr = newCallPoint(newAdr, instr, owner, err,
-                                        callsId, adr, 0, blah);
-  	         if (err)  return false;
-	       }
-	   }
-       }
-     }
-     else if ((jmp_nop_tc = JmpNopTC(instr, nexti, adr, this)) == 1) {
-           // Alert!!!!
-           adr = newCallPoint(newAdr, instr, owner, err, callsId, adr,0,blah);
-	   if (err) return false;
-	   Address newAdrdisp = newAdr + sizeof(instruction);
-           instPoint *point = new instPoint(this, instr, owner, 
-                                        newAdrdisp, false,
-				        functionExit, adr);
-           funcReturns.push_back(point);
-           funcReturns[retId] -> instId = retId; retId++;
-     } 
-     else if (isInsnType(instr, JMPLmask, JMPLmatch)) {
-       /* A register indirect jump. Some jumps may exit the function 
-          (e.g. read/write on SunOS). In general, the only way to 
-	  know if a jump is exiting the function is to instrument
-	  the jump to test if the target is outside the current 
-	  function. Instead of doing this, we just check the 
-	  previous two instructions, to see if they are loading
-	  an address that is out of the current function.
-	  This should catch the most common cases (e.g. read/write).
-	  For other cases, we would miss a return point.
-
-	  This is the case considered:
-
-	     sethi addr_hi, r
-	     or addr_lo, r, r
-	     jump r
-	*/
-
-	 Register jumpreg = instr.rest.rs1;
-	 instruction prev1;
-	 instruction prev2;
-	 
-	 prev1.raw = owner->get_instruction(adr-4);
-	 prev2.raw = owner->get_instruction(adr-8);
-
-	 Address targetAddr;
-
-	 if (instr.rest.rd == 0 && (instr.rest.i == 1 || instr.rest.rs2 == 0)
-	     && prev2.sethi.op == FMT2op && prev2.sethi.op2 == SETHIop2 
-	     && prev2.sethi.rd == (unsigned)jumpreg
-	     && prev1.rest.op == RESTop 
-	     && prev1.rest.rd == (unsigned)jumpreg && prev1.rest.i == 1
-	     && prev1.rest.op3 == ORop3 && prev1.rest.rs1 == (unsigned)jumpreg){
-	     
-	     targetAddr = (prev2.sethi.imm22 << 10) & 0xfffffc00;
-	     targetAddr |= prev1.resti.simm13;
-	     if ((targetAddr < getAddress(0)) 
-		 || (targetAddr >= (getAddress(0)+size()))) {
-		 instPoint *point = new instPoint(this, instr, owner, 
-						  newAdr, false,
-						  functionExit, adr);
-		 funcReturns.push_back(point);
-		 funcReturns[retId] -> instId = retId; retId++;
-	     }
-	 }
-     }
- }
- return true;
 }
 
 /****************************************************************************/
