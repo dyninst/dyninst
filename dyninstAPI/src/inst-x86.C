@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.167 2004/04/06 15:41:53 lharris Exp $
+ * $Id: inst-x86.C,v 1.168 2004/04/06 21:47:22 legendre Exp $
  */
 
 #include <iomanip>
@@ -1841,6 +1841,14 @@ void generateMTpreamble(char *insn, Address &base, process *proc) {
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
+
+/**
+ * tramp_pre_frame_size is the amount of space the base trampoline allocates
+ * on the stack before setting up a stack frame.  It's needed to stack
+ * walk out of base tramps.  Should be treated as a constant, but the
+ * C++ scoping rules for const are stupid.
+ **/
+int tramp_pre_frame_size = 36; //Stack space allocated by 'pushf; pusha'
 
 /*
  * Install a base tramp, relocating the instructions at location
