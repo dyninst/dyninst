@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.17 2003/03/21 21:19:01 bernat Exp $
+// $Id: sol_proc.C,v 1.18 2003/03/31 21:59:06 jodom Exp $
 
 #ifdef rs6000_ibm_aix4_1
 #include <sys/procfs.h>
@@ -914,7 +914,6 @@ bool process::detach_() {
     // But we can't do that here -- all FDs associated with the process
     // are closed.
 
-   close(procHandle_);
    close(as_fd_);
    close(ps_fd_);
    close(status_fd_);
