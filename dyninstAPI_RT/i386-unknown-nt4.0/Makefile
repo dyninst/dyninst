@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.7 1998/07/23 16:14:21 wylie Exp $
+# $Id: Makefile,v 1.8 1999/03/03 23:12:29 pcroth Exp $
 #
 #
 # Define any symbols needed to invoke configuration changes in make.config
@@ -37,7 +37,7 @@ include ../../nmake.library.tmpl
 # Override target to force ld to happen
 #
 #$(TARGET): $(OBJS)
-#	$(LD) $(LDFLAGS) -EXPORT:DYNINSTinit -ENTRY:_DllMainCRTStartup@12 -out:$(TARGET) $(OBJS) $(LIBS) wsock32.lib winmm.lib
+#	$(LD) $(LDFLAGS) -EXPORT:DYNINSTinit -ENTRY:_DllMainCRTStartup@12 -out:$(TARGET) $(OBJS) $(LIBS) ws2_32.lib winmm.lib
 
 
 $(TARGET): $(OBJS)
