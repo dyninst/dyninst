@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: dyninstAPI_RT.h,v 1.7 2000/10/17 17:42:27 schendel Exp $
+ * $Id: dyninstAPI_RT.h,v 1.8 2001/02/01 01:10:02 schendel Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the run-time instrumentation layer.
  */
@@ -80,19 +80,6 @@ struct DYNINST_bootstrapStruct {
    int ppid; /* parent of forked process */
 
    char path[512]; /* only used in exec */
-};
-
-struct endStatsRec {
-    int alarms;
-    int numReported;
-    int64_t instCycles;
-    rawTime64 handlerCost;
-    rawTime64 totalCpuTime;
-    int samplesReported;
-    rawTime64 totalWallTime;
-    int userTicks;
-    int instTicks;
-    int totalTraps;
 };
 
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) \

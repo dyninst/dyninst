@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: timing.C,v 1.16 2000/10/17 17:42:08 schendel Exp $
+// $Id: timing.C,v 1.17 2001/02/01 01:10:01 schendel Exp $
 
 #include <iostream.h>
 #include "common/h/Timer.h"
@@ -159,13 +159,13 @@ timeStamp getCurrentTime() {
 
 #ifndef i386_unknown_nt4_0
 // returns us since 1970
-rawTime64 getRawTime1970() {
+int64_t getRawTime1970() {
   struct timeval tv;
   if (-1 == gettimeofday(&tv, NULL)) {
     perror("getCurrentTime gettimeofday()");
     return 0;
   }
-  rawTime64 result = tv.tv_sec;
+  int64_t result = tv.tv_sec;
   result *= 1000000;
   result += tv.tv_usec;
   return result;

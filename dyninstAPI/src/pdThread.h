@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdThread.h,v 1.8 2000/10/17 17:42:20 schendel Exp $
+// $Id: pdThread.h,v 1.9 2001/02/01 01:10:02 schendel Exp $
 
 #ifndef _PDTHREAD_H_
 #define _PDTHREAD_H_
@@ -62,8 +62,10 @@ class pdThread {
       stack_addr(0),
       start_pc(0),
       start_func(NULL),
-      rid(NULL),
-      previous(0)
+      rid(NULL)
+#ifndef BPATCH_LIBRARY
+      ,previous(0)
+#endif
     { 
       proc = pproc; 
       ppid = pproc->getPid();
@@ -76,8 +78,10 @@ class pdThread {
       stack_addr(0),
       start_pc(0),
       start_func(NULL),
-      rid(NULL),
-      previous(0)
+      rid(NULL)
+#ifndef BPATCH_LIBRARY
+      ,previous(0)
+#endif
     {
       proc = proc_;
       ppid = proc_->getPid();
@@ -90,8 +94,10 @@ class pdThread {
       stack_addr(0),
       start_pc(0),
       start_func(NULL),
-      rid(NULL),
-      previous(0)
+      rid(NULL)
+#ifndef BPATCH_LIBRARY
+      ,previous(0)
+#endif
     {
       assert(pproc);
       proc = pproc;
@@ -109,7 +115,9 @@ class pdThread {
       start_func = src->start_func;
       rid = src->rid;
       proc = parent;
+#ifndef BPATCH_LIBRARY
       previous = 0;
+#endif
     }
     ~pdThread() {
 #if defined(MT_THREAD)
@@ -156,7 +164,9 @@ class pdThread {
     resource *rid;
     process *proc;
     handleT handle; // the thread handle (/proc file descriptor or NT handle)
+#ifndef BPATCH_LIBRARY
     rawTime64 previous;
+#endif
 };
 
 #endif

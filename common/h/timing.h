@@ -53,7 +53,7 @@ timeStamp getCurrentTime();
 
 /* returns primitive wall time in microsecond units since 1970, 
    (eg. gettimeofday) used by getCurrentTime() */
-rawTime64 getRawTime1970();
+int64_t getRawTime1970();
 
 /* Calculates the cpu cycle rate value.  Needs to be called once,
    before any getCyclesPerSecond() call */
