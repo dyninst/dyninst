@@ -65,6 +65,9 @@ internalMetric *infHeapMemAvailable = NULL;
 internalMetric *numOfActCounters = NULL;
 internalMetric *numOfActProcTimers = NULL;
 internalMetric *numOfActWallTimers = NULL;
+internalMetric *numOfCurrentLevels = NULL;
+internalMetric *numOfCurrentThreads = NULL;
+internalMetric *active_threads = NULL;
 
 int numberOfCPUs;
 
@@ -122,11 +125,20 @@ bool init() {
 			false);
   resource::newResource(syncRoot, NULL, nullString, "Semaphore", 0.0, "", MDL_T_STRING,
 			false);
+#if defined(MT_THREAD)
+  resource::newResource(syncRoot, NULL, nullString, "Mutex", 0.0, "", MDL_T_STRING,
+			false);
+  resource::newResource(syncRoot, NULL, nullString, "RwLock", 0.0, "", MDL_T_STRING,
+			false);
+  resource::newResource(syncRoot, NULL, nullString, "CondVar", 0.0, "", MDL_T_STRING,
+			false);
 
+#endif
+  /*
   memoryRoot = resource::newResource(rootResource, NULL, nullString, 
 				     "Memory", 0.0, "", MDL_T_STRING,
 				     true);
-
+  */
 
   im_pred_struct default_im_preds, obs_cost_preds;
   default_im_preds.machine = pred_null;
@@ -164,8 +176,38 @@ bool init() {
 						   default_im_preds,
 						   false,
 						   Sampled);
+#if defined(MT_THREAD)
+  numOfCurrentLevels = internalMetric::newInternalMetric(
+                                                "numOfCurrentLevels", 
+						EventCounter,
+						aggMax,
+						"ops",
+						NULL,
+						default_im_preds,
+						true,
+						Sampled);
 
-#ifdef ndef
+  numOfCurrentThreads = internalMetric::newInternalMetric(
+                                                "numOfCurrentThreads", 
+						EventCounter,
+						aggMax,
+						"ops",
+						NULL,
+						default_im_preds,
+						true,
+						Sampled);
+
+  active_threads = internalMetric::newInternalMetric(
+                                                "active_threads", 
+						EventCounter,
+						aggMax,
+						"THREADs",
+						NULL,
+						default_im_preds,
+						false,
+						Sampled);
+#endif
+
   numOfActCounters = internalMetric::newInternalMetric(
                                                 "numOfActCounters", 
 						EventCounter,
@@ -195,7 +237,7 @@ bool init() {
 						default_im_preds,
 						true,
 						Sampled);
-
+#ifdef ndef
   infHeapMemAvailable = internalMetric::newInternalMetric(
                                                 "infHeapMemAvailable", 
 						EventCounter,
@@ -247,7 +289,7 @@ bool init() {
   activeProcs = internalMetric::newInternalMetric("active_processes",
 						  EventCounter,
 						  aggSum,
-						  "operations",
+						  "ops",
 						  activeProcessesProc,
 						  active_procs_preds,
 						  false,

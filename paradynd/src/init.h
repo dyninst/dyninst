@@ -44,6 +44,9 @@
 
 /*
  * $Log: init.h,v $
+ * Revision 1.24  1999/07/07 16:18:28  zhichen
+ *    Mutex, RwLock, CondVar ....
+ *
  * Revision 1.23  1997/08/29 16:31:12  naim
  * Minor changes to fix problem on x86 + changed version 2.0 beta 1 to just
  * 2.0 for the release - naim
@@ -106,6 +109,10 @@ extern internalMetric *infHeapMemAvailable;
 extern internalMetric *numOfActCounters;
 extern internalMetric *numOfActProcTimers;
 extern internalMetric *numOfActWallTimers;
+#if defined(MT_THREAD)
+extern internalMetric *numOfCurrentLevels;
+extern internalMetric *numOfCurrentThreads;
+#endif
 
 extern internalMetric *pauseTime;
 extern costMetric *totalPredictedCost;
