@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.C,v 1.23 2002/10/08 22:50:11 bernat Exp $
+// $Id: solarisDL.C,v 1.24 2002/10/14 21:02:09 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/solarisDL.h"
@@ -583,13 +583,14 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
 
   // MT_THREAD: possible one of many threads hit the breakpoint
 
-  vector<vector<Frame> > stackWalks;
-  proc->walkAllStack(stackWalks);
+  vector<Frame> activeFrames;
+  if (!proc->getAllActiveFrames(activeFrames)) return false;
+
   dyn_lwp *brk_lwp = NULL;
 
-  for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++)
-    if (stackWalks[walk_iter][0].getPC() == r_brk_addr) {
-      brk_lwp = stackWalks[walk_iter][0].getLWP();
+  for (unsigned frame_iter = 0; frame_iter < activeFrames.size(); frame_iter++)
+    if (activeFrames[frame_iter].getPC() == r_brk_addr) {
+      brk_lwp = activeFrames[frame_iter].getLWP();
       break;
     }
   

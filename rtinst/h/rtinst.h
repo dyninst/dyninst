@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: rtinst.h,v 1.56 2002/10/08 22:50:32 bernat Exp $
+ * $Id: rtinst.h,v 1.57 2002/10/14 21:02:31 bernat Exp $
  * This file contains the extended instrumentation functions that are provided
  *   by the Paradyn run-time instrumentation layer.
  */
@@ -134,19 +134,14 @@ struct tHwCounterRec {
 typedef struct tHwCounterRec tHwCounter;
 
 struct tHwTimerRec {
-   volatile rawTime64 total;
-   volatile rawTime64 start;
-   volatile int counter;
-#if defined(MT_THREAD)
-   volatile int lwp_id;  /* we need to save the lwp id so paradynd can sync */
-   volatile int in_inferiorRPC; /* flag to avoid time going backwards - naim */
-   volatile struct tHwTimerRec  *vtimer; /* position in the threadTable */
-#endif
-
-   volatile int hwevent;
-
-   volatile int protector1;
-   volatile int protector2;
+    volatile rawTime64 total;
+    volatile rawTime64 start;
+    volatile int counter;
+    unsigned pos; /* Unused for ST */
+    volatile int hwevent;
+    
+    volatile int protector1;
+    volatile int protector2;
 };
 typedef struct tHwTimerRec tHwTimer;
 

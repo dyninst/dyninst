@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.23 2002/10/08 22:49:52 bernat Exp $
+// $Id: aixDL.C,v 1.24 2002/10/14 21:02:07 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -326,10 +326,10 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
 
 bool checkAllThreadsForBreakpoint(process *proc, Address break_addr)
 {
-  vector<vector<Frame> > stackWalks;
-  proc->walkAllStack(stackWalks);
-  for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++)
-    if (stackWalks[walk_iter][0].getPC() == break_addr) {
+  vector<Frame> activeFrames;
+  if (!proc->getAllActiveFrames(activeFrames)) return false;
+  for (unsigned frame_iter = 0; frame_iter < activeFrames.size(); frame_iter++)
+    if (activeFrames[frame_iter].getPC() == break_addr) {
       return true;
     }
   return false;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.221 2002/10/09 22:07:28 bernat Exp $
+/* $Id: process.h,v 1.222 2002/10/14 21:02:26 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -352,6 +352,8 @@ fileDescriptor *getExecFileDescriptor(string filename,
 
 class process {
  friend class ptraceKludge;
+ friend class pdThread;
+ friend class dyn_lwp;
 #ifdef BPATCH_LIBRARY
  friend class BPatch_image;
 #endif
@@ -394,12 +396,17 @@ class process {
      // routine fills it in (tells paradynd where, in the inferior proc's addr
      // space, the shm seg was attached.  The attaching was done in DYNINSTinit)
 #endif
+  protected:  
+  bool walkStackFromFrame(Frame currentFrame, // Where to start walking from
+			  vector<Frame> &stackWalk); // return parameter
+  public:
+  // Preferred function: returns a stack walk (vector of frames)
+  // for each thread in the program
+  bool walkStacks(vector<vector<Frame> > &stackWalks);
 
-  bool walkStack(Frame currentFrame, vector<Frame> &stackWalk, bool paused = false);
-  bool hasRunSincePreviousWalk;
-  vector<vector<Frame> > previousStackWalk;
-  Frame previousFrame;
-  
+  // Get a vector of the active frames of all threads in the process
+  bool getAllActiveFrames(vector<Frame> &activeFrames);
+
   bool collectSaveWorldData;//this is set to collect data for
 				//save the world
 
@@ -411,12 +418,6 @@ class process {
   pthdb_session_t pthdb_session_;
   bool init_pthdb_library();
 #endif
-
-  // Walk threads stacks
-  // Note: there are ST and MT versions of this function. This is to be preferred
-  // over using walkStack (above) since it will make the eventual job of MT-enabling
-  // Dyninst and merging the Paradyn daemons substantially easier.
-  bool walkAllStack(vector<vector<Frame> >&allStackWalks, bool paused = false);
 
   // Notify daemon of threads
 #if defined(MT_THREAD)
@@ -1079,7 +1080,7 @@ void saveWorldData(Address address, int size, const void* src);
     if (!multithread_capable())
       return false;
 #if !defined(BPATCH_LIBRARY)
-    if (hasLoadedParadynLib)
+    if (PARADYNhasBootstrapped)
       return true;
 #endif
     return false;

@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: func-reloc.C,v 1.35 2002/10/08 22:49:54 bernat Exp $
+ * $Id: func-reloc.C,v 1.36 2002/10/14 21:02:14 bernat Exp $
  */
 
 #include "dyninstAPI/src/func-reloc.h"
@@ -1107,45 +1107,45 @@ bool pd_Function::relocateFunction(process *proc,
     unsigned i;
     pd_Function *stack_func;
 
-    vector<Frame> stackWalk;
-    proc->walkStack(proc->getDefaultLWP()->getActiveFrame(), stackWalk);
+    vector<vector<Frame> > stackWalks;
+    if (!proc->walkStacks(stackWalks)) return false;
 
-    if( stackWalk.size() == 0 )
-      cerr << "WARNING -- process::walkStack returned an empty stack" << endl;
-    vector<pd_Function *> stack_funcs = proc->pcsToFuncs(stackWalk);
-    for(i=0;i<stack_funcs.size();i++) {
-      stack_func = stack_funcs[i];
-
-      if (i == 0 && stackWalk[i].getPC() == this->getEffectiveAddress(proc)) {
+    for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++) {
+      vector<pd_Function *> stack_funcs = proc->pcsToFuncs(stackWalks[walk_iter]);
+      for(i=0;i<stack_funcs.size();i++) {
+	stack_func = stack_funcs[i];
+	
+	if (i == 0 && (stackWalks[walk_iter][i].getPC() == this->getEffectiveAddress(proc))) {
           /* okay if we haven't really entered the function yet */
           continue;
-      }
-
-      if( stack_func == this ) {
-
-#ifdef DEBUG_FUNC_RELOC
-        cerr << "pd_Function::relocateFunction" << endl;
-        cerr << "currently in Function " << prettyName() << endl;
-#endif
-
-        // Defer relocation and instrumentation for Paradyn only
-        deferred = true;
-        return false;
+	}
+	
+	if( stack_func == this ) {
+	  
+	  //#ifdef DEBUG_FUNC_RELOC
+	  cerr << "pd_Function::relocateFunction" << endl;
+	  cerr << "currently in Function " << prettyName() << endl;
+	  //#endif
+	  
+	  // Defer relocation and instrumentation for Paradyn only
+	  deferred = true;
+	  return false;
+	}
       }
     }
 #endif
 
     /* We are not currently executing in this function, 
        so proceed with the relocation */
-
+    
     Address baseAddress = 0;
     if(!(proc->getBaseAddress(location->iPgetOwner(),baseAddress))){
       baseAddress = 0;
     }
-
+    
     // original address of function (before relocation)
     u_int origAddress = baseAddress + getAddress(0);    
-
+    
  
     // address to which function will be relocated.
     // memory is not allocated until total size change of function is known

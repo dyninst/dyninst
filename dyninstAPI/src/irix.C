@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.39 2002/10/08 22:49:57 bernat Exp $
+// $Id: irix.C,v 1.40 2002/10/14 21:02:21 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -2071,7 +2071,6 @@ bool dyn_lwp::openFD()
 {
   char procName[128];    
   sprintf(procName, "/proc/%05d", (int)proc_->getPid());
-  cerr << "Opening " << procName << endl;
   fd_ = P_open(procName, O_RDWR, 0);
   if (fd_ == (unsigned) -1) {
     perror("Error opening process file descriptor");
@@ -2084,5 +2083,4 @@ void dyn_lwp::closeFD()
 {
   if (fd_) close(fd_);
 }
-
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.23 2002/10/08 22:50:04 bernat Exp $
+// $Id: osfDL.C,v 1.24 2002/10/14 21:02:08 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/osfDL.h"
@@ -637,7 +637,7 @@ oc" << endl;
 
 bool process::dlopenDYNINSTlib()
 {
-  fprintf(stderr, ">>> process::dlopenDYNINSTlib()\n");
+    //fprintf(stderr, ">>> process::dlopenDYNINSTlib()\n");
 
   // use "_start" as scratch buffer to invoke dlopen() on DYNINST
   bool err;

@@ -41,11 +41,12 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.1 2002/10/09 13:00:51 bernat Exp $
+ * $Id: dyn_lwp.C,v 1.2 2002/10/14 21:02:10 bernat Exp $
  */
 
 #include "common/h/headers.h"
 #include "dyn_lwp.h"
+#include "process.h"
 #include <assert.h>
 
 dyn_lwp::dyn_lwp() :
@@ -92,4 +93,23 @@ dyn_lwp::~dyn_lwp()
 {
   if (fd_) closeFD();
 }
+
+// Not sure this is a good idea... when would we be walking the stack
+// (conceptually) of an LWP rather than the thread running on it?
+// For now: non-MT will walk getDefaultLWP() since it doesn't understand
+// multithreaded programs
+
+// stackWalk: return parameter.
+bool dyn_lwp::walkStack(vector<Frame> &stackWalk)
+{
+  // We cheat (a bit): this method is here for transparency, 
+  // but the process class does the work in the walkStackFromFrame
+  // method. We get the active frame and hand off.
+  Frame active = getActiveFrame();
+  
+  return proc_->walkStackFromFrame(active, stackWalk);
+}
+
+
+
 

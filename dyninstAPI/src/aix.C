@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.109 2002/10/08 22:49:51 bernat Exp $
+// $Id: aix.C,v 1.110 2002/10/14 21:02:05 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -969,11 +969,6 @@ bool process::attach_() {
    int ret = ptrace(PT_ATTACH, getPid(), (int *)0, 0, 0);
    if (ret == -1)
       ret = ptrace(PT_REATT, getPid(), (int *)0, 0, 0);
-
-   fprintf(stderr, "Creating new dyn_lwp object\n");
-
-   lwps[0] = new dyn_lwp(0, this);
-
    return (ret != -1);
 }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.99 2002/08/12 04:21:22 schendel Exp $
+// $Id: inst.C,v 1.100 2002/10/14 21:02:32 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -723,10 +723,8 @@ void deleteInst(process *proc, const miniTrampHandle &mtHandle)
 				  instInstance *lastMT);
       instPoint *loc = mtHandle.location;
       if(deleteBaseTramp(proc, loc, baseInstance, thisMT)) {
-	 proc->removeMiniTrampList(loc, when);
-	 proc->baseMap.undef((const instPoint*)(loc));
-	 //delete[] mtHandle.baseInstance->trampTemp;
-	 delete baseInstance;
+          proc->removeMiniTrampList(loc, when);
+          proc->baseMap.undef((const instPoint*)(loc));
       }
    }   
 #endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.53 2002/10/08 22:50:13 bernat Exp $
+// $Id: inst-alpha.C,v 1.54 2002/10/14 21:02:15 bernat Exp $
 
 #include "common/h/headers.h"
 
@@ -2060,9 +2060,10 @@ emitFuncCall(opCode /* op */,
   return dest;
 }
 
-bool returnInstance::checkReturnInstance(const vector<Frame/*Address*/> & /* adr */, 
-					 u_int & /* index */) {
-    return true;
+bool returnInstance::checkReturnInstance(const vector< vector<Frame> > &stackWalks)
+{
+  // Single instruction jumps == we don't have to implement
+  return true;
 }
  
 void returnInstance::installReturnInstance(process *proc) {

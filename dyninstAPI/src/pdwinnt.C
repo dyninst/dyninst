@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.63 2002/10/08 22:50:05 bernat Exp $
+// $Id: pdwinnt.C,v 1.64 2002/10/14 21:02:24 bernat Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -235,7 +235,7 @@ findFunctionFromAddress( process* proc, Address addr )
 
 #ifdef i386_unknown_nt4_0 //ccw 27 july 2000 : 29 mar 2001
 //
-// process::walkStack
+// process::walkStackFromFrame
 //
 // 8OCT02: this should now pay proper attention to threads,
 //         though a better method than handing in a thread to
@@ -250,10 +250,8 @@ findFunctionFromAddress( process* proc, Address addr )
 // for the VC++ compiler to turn this optimization off.)
 //
 
-bool process::walkStack(Frame currentFrame, vector<Frame> &stackWalk, bool paused)
+bool process::walkStackFromFrame(Frame currentFrame, vector<Frame> &stackWalk)
 {
-    bool needToCont = paused ? false : (status() == running);
-    
 #ifndef BPATCH_LIBRARY
     startTimingStackwalk();
 #endif
@@ -262,11 +260,8 @@ bool process::walkStack(Frame currentFrame, vector<Frame> &stackWalk, bool pause
     cout << "\n<stack>" << endl;
 #endif // DEBUG_STACKWALK
     
-    // pause the application if necessary
-    if( !paused && !pause() ) {
-      // pause failed...give up
-      cerr << "walkStack: pause failed" << endl;
-      
+    if (status_ == running) {
+        cerr << "Error: stackwalk attempted on running process" << endl;
 #ifndef BPATCH_LIBRARY
       stopTimingStackwalk();
 #endif
@@ -445,14 +440,6 @@ bool process::walkStack(Frame currentFrame, vector<Frame> &stackWalk, bool pause
 
     // Terminate stack walk with an empty frame
     stackWalk.push_back(Frame());
-
-    // resume the application if needed
-    if( !paused && needToCont ) {
-        if( !continueProc() ) {
-            cerr << "walkStack: continueProc failed" << endl;
-        }
-    }
-    
 #ifndef BPATCH_LIBRARY
     stopTimingStackwalk();
 #endif
@@ -465,54 +452,36 @@ bool process::walkStack(Frame currentFrame, vector<Frame> &stackWalk, bool pause
 //ccw 6 feb 2001 : windows CE does not have the NT walkStack function
 //so we use this one.
 
-void process::walkStack(Frame currentFrame, vector<Frame> &stackWalk, 
-			bool paused)
+bool process::walkStackFromFrame(Frame currentFrame, vector<Frame> &stackWalk)
 {
-  bool needToCont = paused ? false : (status() == running);
-  
-  if (pause()) {
+    if (status_ == running) {
+        cerr << "Error: stackwalk attempeded on running process" << endl;
+        return false;
+    }  
     Address spOld = 0xffffffff;
-
-    while (!currentFrame.isLastFrame()) {
-      Address spNew = currentFrame.getSP(); // ccw 6 feb 2001 : should get SP?
-      
-      // successive frame pointers might be the same (e.g. leaf functions)
-      if (spOld < spNew) {
-	
-        // not moving up stack
-        if (!paused && needToCont && !continueProc()) {
-          cerr << "walkStack: continueProc failed" << endl;
-        }
-	
-        vector<Address> ev; // empty vector
-        pcs = ev;
-	
-        return;
-      }
-      
-      spOld = spNew;
-      
-      Address next_pc = currentFrame.getPC();
-      stackWalk.push_back(currentFrame);
-
-      //ccw 6 feb 2001 : at this point, i need to use the 
-      //list of functions parsed from the debug symbols to
-      //determine the frame size for each function and find the 
-      //return value for each (which is the previous fir value)
-      currentFrame = currentFrame.getCallerFrame(this); 
-      
-    }
     
+    while (!currentFrame.isLastFrame()) {
+        Address spNew = currentFrame.getSP(); // ccw 6 feb 2001 : should get SP?
+        
+        // successive frame pointers might be the same (e.g. leaf functions)
+        if (spOld < spNew) {
+            return false;            
+        }
+        
+        spOld = spNew;
+        
+        Address next_pc = currentFrame.getPC();
+        stackWalk.push_back(currentFrame);
+        
+        //ccw 6 feb 2001 : at this point, i need to use the 
+        //list of functions parsed from the debug symbols to
+        //determine the frame size for each function and find the 
+        //return value for each (which is the previous fir value)
+        currentFrame = currentFrame.getCallerFrame(this); 
+        
+    }    
     stackWalk.push_back(currentFrame);
-  }
-
-  if (!paused && needToCont) {
-     if (!continueProc()){
-        cerr << "walkStack: continueProc failed" << endl;
-     }
-  }  
-
-  return;
+    return true;    
 }
 #endif
 
@@ -1418,20 +1387,19 @@ int process::waitProcs(int *status) {
 	  
         {
 
-            // Parameters for walkStack.
 #ifndef mips_unknown_ce2_11 //ccw 6 feb 2001 : 29 mar 2001
 	  // Should walk stacks for other threads as well
-	  vector<Frame> stackWalk;
-	  p->walkStack(p->getDefaultLWP()->getActiveFrame(), stackWalk, false);
-
-            for( unsigned i = 0; i < stackWalk.size(); i++ )
-            {
-                function_base* f = p->findFuncByAddr( stackWalk[i].getPC() );
-                const char* szFuncName = (f != NULL) ? f->prettyName().c_str() : "<unknown>";
-                fprintf( stderr, "%08x: %s\n", stackWalk[i].getPC(), szFuncName );
-            }
+	  vector<vector<Frame> > stackWalks;
+      p->walkStacks(stackWalks);
+      for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++)
+          for( unsigned i = 0; i < stackWalks[walk_iter].size(); i++ )
+          {
+              function_base* f = p->findFuncByAddr( stackWalks[walk_iter][i].getPC() );
+              const char* szFuncName = (f != NULL) ? f->prettyName().c_str() : "<unknown>";
+              fprintf( stderr, "%08x: %s\n", stackWalks[walk_iter][i].getPC(), szFuncName );
+          }
 #endif
-
+      
         }
 	    //	ContinueDebugEvent(debugEv.dwProcessId, debugEv.dwThreadId, 
 	    //			   DBG_EXCEPTION_NOT_HANDLED);

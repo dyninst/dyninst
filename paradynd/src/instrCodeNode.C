@@ -447,7 +447,7 @@ bool instrCodeNode::needToWalkStack() {
    return false;
 }
 
-bool instrCodeNode::insertJumpsToTramps(vector<Frame> stackWalk) {
+bool instrCodeNode::insertJumpsToTramps(vector<vector<Frame> > &stackWalks) {
    if(trampsHookedUp()) return true;
 
    for(unsigned k=0; k<V.instRequests.size(); k++) {
@@ -456,7 +456,6 @@ bool instrCodeNode::insertJumpsToTramps(vector<Frame> stackWalk) {
    
    vector<returnInstance *> &baseTrampInstances = V.getBaseTrampInstances();
    unsigned rsize = baseTrampInstances.size();
-   u_int max_index = 0;  // first frame where it is safe to install instr
    bool delay_install = false; // true if some instr. needs to be delayed 
    vector<bool> delay_elm(rsize); // wch instr. to delay
    // for each inst point walk the stack to determine if it can be
@@ -465,22 +464,9 @@ bool instrCodeNode::insertJumpsToTramps(vector<Frame> stackWalk) {
    // the stack where all can be inserted, and set a break point  
 
    for (unsigned u=0; u<rsize; u++) {
-      u_int index = 0;
-#if defined(MT_THREAD) 
-      bool installSafe = true; 
-#else
-      // only overwrite 1 instruction on power arch (2 on mips arch)
-      // always safe to instrument without stack walk
-      // pc is empty for those didn't do a stack walk, will return safe.
-      bool installSafe = baseTrampInstances[u]->checkReturnInstance(stackWalk,
-								    index);
-#endif
-      // if unsafe, index will be set to the first unsafe stack walk ndx
-      // (0 being top of stack; i.e. the current pc)
-      
-      if (!installSafe && index > max_index)
-	 max_index = index;
-      
+      // checkReturnInstance lives in the inst-<arch>.C files
+      bool installSafe = baseTrampInstances[u]->checkReturnInstance(stackWalks);
+
       if (installSafe) {
 	 baseTrampInstances[u]->installReturnInstance(proc());
 	 delay_elm[u] = false;

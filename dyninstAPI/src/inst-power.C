@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.152 2002/10/08 22:50:15 bernat Exp $
+ * $Id: inst-power.C,v 1.153 2002/10/14 21:02:17 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -3369,17 +3369,13 @@ bool registerSpace::readOnlyRegister(Register reg_number)
 }
 
 
-bool returnInstance::checkReturnInstance(const vector<Frame> &/*stackWalk*/,
-					 u_int &/*index*/)
+bool returnInstance::checkReturnInstance(const vector<vector<Frame> > &stackWalks)
 {
 #ifdef ndef  
-// TODO: implement this.  This stuff is not implemented for this platform 
-    for(u_int i=0; i < adr.size(); i++){
-        index = i;
-        if ((adr[i] > addr_) && ( adr[i] <= addr_+size_)){
-	     return false;
-        }
-    }
+  // TODO: implement this.  This stuff is not implemented for this platform 
+  // That's okay -- single instruction jumps mean that we can overwrite anywhere,
+  // anytime. If we ever went to multi-instruction fallbacks, then we'd need this
+  // -- bernat, 10OCT02
 #endif
     return true;
 }

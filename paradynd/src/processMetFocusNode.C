@@ -526,7 +526,7 @@ void processMetFocusNode::doCatchupInstrumentation() {
   
   // Get them all cleared out
   do {
-    bool result = proc_->launchRPCifAppropriate(false, false);
+    proc_->launchRPCifAppropriate(false, false);
     checkProcStatus();
   } while (proc_->existsRPCreadyToLaunch() ||
 	   proc_->existsRPCinProgress());
@@ -563,7 +563,7 @@ void processMetFocusNode::prepareCatchupInstr() {
 
   vector< vector<Frame> > allStackWalks;
 
-  proc()->walkAllStack(allStackWalks);
+  proc()->walkStacks(allStackWalks);
 
   assert(catchupASTList.size() == 0); // Make sure there's no catchup sitting around
 
@@ -786,40 +786,24 @@ bool processMetFocusNode::insertJumpsToTramps() {
 
    vector<instrCodeNode *> codeNodes;
    getAllCodeNodes(&codeNodes);
+   
+   // Vector of stack walks, one per thread
+   vector<vector<Frame> > stackWalks; 
 
-   if (!needToWalkStack()) {
-      // NO stack walk necessary
-     vector<Frame> stackWalk;
-     for (unsigned u=0; u<codeNodes.size(); u++) {
-       instrCodeNode *codeNode = codeNodes[u];
-       bool result = codeNode->insertJumpsToTramps(stackWalk);
-       if(result == false)
-	 allInserted = false;
-     }
+   if (needToWalkStack()) {
+     proc()->walkStacks(stackWalks);
+     // ndx 0 is where the pc is now; ndx 1 is the call site;
+     // ndx 2 is the call site's call site, etc...
    }
-   else {
-      // stack walk necessary, do stack walk only ONCE for all primitives
-      // NOTE: walkStack should walk all the threads' staks! It doesn't do
-      // that right now... naim 1/28/98
+   // Some platforms overwrite a single instruction, so no need
+   // for a stack walk since writing is always safe.
 
-     // FIXME!!!
-
-      // The curr_lwp parameter is IGNORED on non-AIX platforms.
-      Frame currentFrame = proc()->getDefaultLWP()->getActiveFrame();
-      vector<Frame> stackWalk;
-      proc()->walkStack(currentFrame, stackWalk);
-
-      // ndx 0 is where the pc is now; ndx 1 is the call site;
-      // ndx 2 is the call site's call site, etc...
-	 
-      for (unsigned u2=0; u2<codeNodes.size(); u2++) {
-	 instrCodeNode *codeNode = codeNodes[u2];
-	 bool result = codeNode->insertJumpsToTramps(stackWalk);
-	 if(result == false)
-	    allInserted = false;
-      }
-   } // else of needToWalkStack();
-
+   for (unsigned u2=0; u2<codeNodes.size(); u2++) {
+     instrCodeNode *codeNode = codeNodes[u2];
+     bool result = codeNode->insertJumpsToTramps(stackWalks);
+     if(result == false)
+       allInserted = false;
+   }
    return allInserted;
 }
 

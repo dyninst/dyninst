@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.78 2002/10/08 22:50:01 bernat Exp $
+// $Id: linux.C,v 1.79 2002/10/14 21:02:23 bernat Exp $
 
 #include <fstream.h>
 
@@ -513,7 +513,6 @@ int process::detachAndContinue()
 
      ret = true;
      status_ = running;
-     hasRunSincePreviousWalk = true;
 out:
      return ret;
 }

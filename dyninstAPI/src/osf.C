@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.35 2002/10/08 22:50:03 bernat Exp $
+// $Id: osf.C,v 1.36 2002/10/14 21:02:22 bernat Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -1079,7 +1079,6 @@ bool dyn_lwp::openFD()
 {
   char procName[128];    
   sprintf(procName, "/proc/%d", (int)proc_->getPid());
-  cerr << "Opening " << procName << endl;
   fd_ = P_open(procName, O_RDWR, 0);
   if (fd_ == (unsigned) -1) {
     perror("Error opening process file descriptor");

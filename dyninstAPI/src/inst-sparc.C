@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.129 2002/09/17 20:08:04 bernat Exp $
+// $Id: inst-sparc.C,v 1.130 2002/10/14 21:02:18 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1553,17 +1553,20 @@ bool registerSpace::readOnlyRegister(Register /*reg_number*/) {
 /****************************************************************************/
 /****************************************************************************/
 
-bool returnInstance::checkReturnInstance(const vector<Frame> &stackWalk, u_int &index) {
-    // If false (unsafe) is returned, then 'index' is set to the first unsafe call stack
-    // index.
-  for (u_int i=0; i < stackWalk.size(); i++) {
-    index = i;
-    
-    // Is the following check correct?  Shouldn't the ">" be changed to ">=",
-    // and the "<=" be changed to "<" ??? --ari 6/11/97
-    if (stackWalk[i].getPC() > addr_ && stackWalk[i].getPC() <= addr_+size_)
-      return false;
-  }
+bool returnInstance::checkReturnInstance(const vector<vector<Frame> > &stackWalks)
+{
+  // If false (unsafe) is returned, then 'index' is set to the first unsafe call stack
+  // index.
+  for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++)
+    for (u_int i=0; i < stackWalks[walk_iter].size(); i++) {
+      // Is the following check correct?  Shouldn't the ">" be changed to ">=",
+      // and the "<=" be changed to "<" ??? --ari 6/11/97
+      // No, because we want to return false if the PC is in the stackwalk
+      // footprint (from addr_ to addr_+size_) -- bernat 10OCT02
+      if ((stackWalks[walk_iter][i].getPC() > addr_) && 
+	  (stackWalks[walk_iter][i].getPC() <= addr_+size_))
+	return false;
+    }
   
   return true;
 }

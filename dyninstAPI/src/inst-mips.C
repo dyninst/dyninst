@@ -4758,23 +4758,20 @@ string process::getProcessStatus() const
 /****************************************************************************/
 /****************************************************************************/
 
-bool returnInstance::checkReturnInstance(const vector<Frame> &stackWalk, u_int &index) 
+bool returnInstance::checkReturnInstance(const vector<vector<Frame> > &stackWalks)
 {
   TRACE_B( "returnInstance::checkReturnInstance" );
 
-  // if unsafe (ret=false), set "index" to first unsafe call stack index
-  for (u_int i=0; i < stackWalk.size(); i++) {
-    index = i;
-    if (stackWalk[i].getPC() >= addr_ && stackWalk[i].getPC() < addr_+size_) 
-      {
-	TRACE_E( "returnInstance::checkReturnInstance" );
-
-	return false;
-      }
-  }  
-
+  for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++)
+    for (u_int i=0; i < stackWalks[walk_iter].size(); i++) {
+      if ((stackWalks[walk_iter][i].getPC() >= addr_) && 
+	  (stackWalks[walk_iter][i].getPC() < addr_+size_)) 
+	{
+	  TRACE_E( "returnInstance::checkReturnInstance" );
+	  return false;
+	}
+    }  
   TRACE_E( "returnInstance::checkReturnInstance" );
-
   return true;
 }
 

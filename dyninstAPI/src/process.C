@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.363 2002/10/10 15:23:23 bernat Exp $
+// $Id: process.C,v 1.364 2002/10/14 21:02:25 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -104,6 +104,8 @@ extern void generateRPCpreamble(char *insn, Address &base, process *proc,
 #endif
 
 #include "common/h/debugOstream.h"
+
+#include "common/h/Timer.h"
 
 #ifdef ATTACH_DETACH_DEBUG
 debug_ostream attach_cerr(cerr, true);
@@ -279,38 +281,33 @@ Address process::getTOCoffsetInfo(Address dest)
 
 // Windows NT has its own version of the walkStack function in pdwinnt.C
 
-// Note: stack walks may terminate early. Previous behavior was to return
-// an empty stack in this case. However, no error handling was being done.
-// Current behavior is to return what we have. 
+// Note: stack walks may terminate early. In this case, return what we can.
+// Relies on the getCallerFrame method in the various <os>.C files
 
 #if !defined(mips_unknown_ce2_11) && !defined(i386_unknown_nt4_0)
-bool process::walkStack(Frame currentFrame, vector<Frame> &stackWalk, bool paused)
+bool process::walkStackFromFrame(Frame startFrame,
+				 vector<Frame> &stackWalk)
 {
   u_int sig_size   = 0;
   Address sig_addr = 0;
-  
-  stackWalk.resize(0);
-
-  previousFrame = currentFrame;
 
   Address next_pc = 0;
   Address leaf_pc = 0;
   Address fpOld   = 0;
   Address fpNew   = 0;
 
-  bool needToCont = paused ? false : (status() == running);
+  Frame currentFrame = startFrame;
 
 #ifndef BPATCH_LIBRARY
   startTimingStackwalk();
 #endif
 
-  if (!paused && !pause()) {
-      cerr << "walkStack: pause failed" << endl;
-
+  if (status_ == running) {
+    cerr << "Error: stackwalk attempted on running process" << endl;
 #ifndef BPATCH_LIBRARY
-      stopTimingStackwalk();
+    stopTimingStackwalk();
 #endif
-      return false;
+    return false;
   }
 
   if(signal_handler){
@@ -324,72 +321,55 @@ bool process::walkStack(Frame currentFrame, vector<Frame> &stackWalk, bool pause
     sig_size = signal_handler->size();
   }
 
-  // Make sure application is paused
-  if ( pause() ) {
+  // Step through the stack frames
+  while (!currentFrame.isLastFrame()) {
+    
+    // grab the frame pointer
+    fpNew = currentFrame.getFP();
 
-    // Step through the stack frames
-    while (!currentFrame.isLastFrame()) {
-
-      // grab the frame pointer
-      fpNew = currentFrame.getFP();
-
-      // Check that we are not moving up the stack
-      // successive frame pointers might be the same (e.g. leaf functions)
-      if (fpOld > fpNew) {
-
-        if (!paused && needToCont && !continueProc()) {
-            cerr << "walkStack: continueProc failed" << endl;
-	    return false;
-        }
-	// AIX:
-	// There's a signal function in the MPI library that we're not
-	// handling properly. Instead of returning an empty stack,
-	// return what we have.
-	// One thing that makes me feel better: gdb is getting royally
-	// confused as well. This sucks for catchup.
-
-	// We should check to see if this early exit is warranted.
-        return false;
-      }
-      fpOld = fpNew;
-
-      next_pc = currentFrame.getPC();
-      stackWalk.push_back(currentFrame);
-      if (pd_debug_catchup)
-	cerr << "Debug: " << currentFrame;
-
-      // is this pc in the signal_handler function?
-      if(signal_handler && (next_pc >= sig_addr)
-          && (next_pc < (sig_addr+sig_size))){
-
-          // check to see if a leaf function was executing when the signal
-          // handler was called.  If so, then an extra frame should be added
-          // for the leaf function...the call to getCallerFrame
-          // will get the function that called the leaf function
-	leaf_pc = 0;
-	
-	if(this->needToAddALeafFrame(currentFrame,leaf_pc)){
-	  stackWalk.push_back(Frame(leaf_pc, fpOld,
-				    currentFrame.getPID(),
-				    currentFrame.getThread(),
-				    currentFrame.getLWP(),
-				    false));
-	}
-      }
-      currentFrame = currentFrame.getCallerFrame(this); 
+    // Check that we are not moving up the stack
+    // successive frame pointers might be the same (e.g. leaf functions)
+    if (fpOld > fpNew) {
+      
+      // AIX:
+      // There's a signal function in the MPI library that we're not
+      // handling properly. Instead of returning an empty stack,
+      // return what we have.
+      // One thing that makes me feel better: gdb is getting royally
+      // confused as well. This sucks for catchup.
+      
+      // We should check to see if this early exit is warranted.
+      return false;
     }
+    fpOld = fpNew;
+    
+    next_pc = currentFrame.getPC();
     stackWalk.push_back(currentFrame);
+    if (pd_debug_catchup)
+      cerr << "Stack debug: " << currentFrame << endl;
+    
+    // is this pc in the signal_handler function?
+    if(signal_handler && (next_pc >= sig_addr)
+       && (next_pc < (sig_addr+sig_size))){
+      
+      // check to see if a leaf function was executing when the signal
+      // handler was called.  If so, then an extra frame should be added
+      // for the leaf function...the call to getCallerFrame
+      // will get the function that called the leaf function
+      leaf_pc = 0;
+      
+      if(this->needToAddALeafFrame(currentFrame,leaf_pc)){
+	stackWalk.push_back(Frame(leaf_pc, fpOld,
+				  currentFrame.getPID(),
+				  currentFrame.getThread(),
+				  currentFrame.getLWP(),
+				  false));
+      }
+    }
+    currentFrame = currentFrame.getCallerFrame(this); 
   }
-  else {
-    cerr << "paused failed in walkStack" << endl;
-    return false;
-  }
-  if (!paused && needToCont) {
-     if (!continueProc()){
-        cerr << "walkStack: continueProc failed" << endl;
-	return false;
-     }
-  }  
+  // Clean up after while loop (push end frame)
+  stackWalk.push_back(currentFrame);
 
 #ifndef BPATCH_LIBRARY
   stopTimingStackwalk();
@@ -397,6 +377,53 @@ bool process::walkStack(Frame currentFrame, vector<Frame> &stackWalk, bool pause
   return true;
 }
 #endif
+
+// Return a vector (possibly with one object) of active frames
+// in the process
+
+bool process::getAllActiveFrames(vector<Frame> &activeFrames)
+{
+  Frame active;
+  bool success = true;
+  if (!threads.size()) { // Nothing defined in the thread data structures
+    // So use the default LWP instead (Dyninst)
+    active = getDefaultLWP()->getActiveFrame();
+    if (active == Frame()) { // Hrm.. should getActive return a bool?
+      return false;
+    }
+    activeFrames.push_back(active);
+  }
+  else { // Iterate through threads
+    for (unsigned i = 0; i < threads.size(); i++) {
+      active = threads[i]->getActiveFrame();
+      if (active == Frame())
+	success = true;
+      else
+	activeFrames.push_back(active);
+    }
+  }
+  return success;
+}
+
+bool process::walkStacks(vector<vector<Frame> >&stackWalks)
+{
+  vector<Frame> stackWalk;
+  if (!threads.size()) { // Nothing defined in thread data structures
+    if (!getDefaultLWP()->walkStack(stackWalk))
+      return false;
+    // Use the walk from the default LWP
+    stackWalks.push_back(stackWalk);
+  }
+  else { // Have threads defined
+    for (unsigned i = 0; i < threads.size(); i++) {
+      if (!threads[i]->walkStack(stackWalk))
+	return false;
+      stackWalks.push_back(stackWalk);
+      stackWalk.resize(0);
+    }
+  }
+  return true;
+}
 
 // triggeredInStackFrame is used to determine whether instrumentation
 //   added at the specified instPoint/callWhen/callOrder would have been
@@ -968,12 +995,6 @@ void process::saveWorldData(Address address, int size, const void* src){
 	newData->value = new char[size];
 	memcpy(newData->value, src, size);
 	dataUpdates.push_back(newData);
-#else /* Get rid of annoying warnings */
-#if !defined(rs6000_ibm_aix4_1)
-	Address tempaddr = address;
-	int tempsize = size;
-	const void *bob = src;
-#endif
 #endif
 #endif
 }
@@ -1616,6 +1637,10 @@ const Address ADDRESS_LO = ((Address)0);
 const Address ADDRESS_HI = ((Address)~((Address)0));
 //unsigned int totalSizeAlloc = 0;
 
+int infMallocCalls = 0;
+timer rpcTrap;
+timer wp;
+
 Address process::inferiorMalloc(unsigned size, inferiorHeapType type, 
 				Address near_, bool *err)
 {
@@ -1757,6 +1782,20 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
    }
 #endif
 #endif
+
+	if(infMallocCalls == 0) {
+		wp.start();
+	}
+
+	infMallocCalls++;
+	if(infMallocCalls % 2000 == 0) {
+		wp.stop();
+		cerr << "whole prog: " << wp.usecs() << "\n";
+		cerr << "handleTrap - cpu time: " << rpcTrap.usecs();
+		cerr << ", %wp: " << rpcTrap.usecs() / wp.usecs() << "\n";
+		wp.start();
+	}
+
    return(h->addr);
 }
 
@@ -1939,7 +1978,6 @@ process::process(int iPid, image *iImage, int iTraceLink
                  , key_t theShmKey
 #endif
 ) :
-  hasRunSincePreviousWalk(true),
   collectSaveWorldData(true),
 #ifndef BPATCH_LIBRARY
   cpuTimeMgr(NULL),
@@ -2135,7 +2173,6 @@ process::process(int iPid, image *iSymbols,
                  , key_t theShmKey
 #endif
                  ) :
-  hasRunSincePreviousWalk(true),
   collectSaveWorldData(true),
 #if !defined(BPATCH_LIBRARY)
   cpuTimeMgr(NULL),
@@ -2421,7 +2458,6 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
                  void *applShmSegPtr
 #endif
                  ) :
-  hasRunSincePreviousWalk(true),
   collectSaveWorldData(true),
 #ifndef BPATCH_LIBRARY
   cpuTimeMgr(NULL),
@@ -5270,7 +5306,6 @@ bool process::continueProc() {
     return false;
   }
   status_ = running;
-  hasRunSincePreviousWalk = true;
   return true;
 }
 
@@ -5556,25 +5591,6 @@ pdThread *process::STpdThread() {
   assert(threads.size()>0);
   return threads[0];
 }
-
-#if !defined(MT_THREAD)
-
-bool process::walkAllStack(vector<vector<Frame> >&allStackWalks, bool paused)
-{
-  if (!hasRunSincePreviousWalk) {
-    allStackWalks = previousStackWalk;
-    return true;
-  }
-  if (multithread_capable()) assert(0); 
-  vector<Frame> stackWalk;
-  if (!walkStack(getDefaultLWP()->getActiveFrame(), stackWalk)) return false;
-  allStackWalks.push_back(stackWalk);
-  hasRunSincePreviousWalk = false;
-  previousStackWalk = allStackWalks;
-  return true;
-}
-
-#endif
 
 bool process::thrInSyscall()
 {
@@ -6058,6 +6074,7 @@ bool process::handleDoneinferiorRPC(void) {
 }
 
 bool process::handleTrapIfDueToRPC() {
+  rpcTrap.start();
   assert(status_ == stopped); // a TRAP should always stop a process (duh)
   bool isRunningRPC = false;
   
@@ -6066,11 +6083,16 @@ bool process::handleTrapIfDueToRPC() {
       isRunningRPC = true;
   if (isRunningIRPC())
     isRunningRPC = true;
-  if (!isRunningRPC)
+  if (!isRunningRPC) {
+	  rpcTrap.stop();
     return false;
+  }
 
-  vector <vector <Frame> > stackWalks;
-  walkAllStack(stackWalks);
+  vector<Frame> activeFrames;
+  if (!getAllActiveFrames(activeFrames)) {
+	  rpcTrap.stop();
+	  return false;
+  }
 
   // One trap per RPC.. so we process only one RPC at a time.
   // If multiple IRPCs finish simultaneously, we will get multiple traps
@@ -6080,16 +6102,12 @@ bool process::handleTrapIfDueToRPC() {
   bool haveResultIRPC = false;   // Waiting for result to be grabbed
 
   bool wasRunning = false;
-  for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++) {
+  for (unsigned frame_iter = 0; frame_iter < activeFrames.size(); frame_iter++) {
     // Get the thread for this stack walk. 
     if (haveFoundIRPC) break;
-    pdThread *thr = NULL;
-    dyn_lwp *lwp = NULL;
-    if (stackWalks[walk_iter].size()) {
-      thr = stackWalks[walk_iter][0].getThread();
-      lwp = stackWalks[walk_iter][0].getLWP();
-    }
-    else cerr << "Stackwalk size is 0: possible problem?" << endl;
+    pdThread *thr = activeFrames[frame_iter].getThread();
+    dyn_lwp *lwp = activeFrames[frame_iter].getLWP();
+
     inferiorRPCinProgress runningIRPC;
     if (thr) {
       if (!thr->isRunningIRPC()) {
@@ -6108,7 +6126,7 @@ bool process::handleTrapIfDueToRPC() {
     if (runningIRPC.lwp != lwp) {
       // Very odd case... same thread, different LWP? Eh? 
       // Could be a context switch in the middle of an RPC... BAD MOJO
-      fprintf(stderr, "Possible error: RPC started on different LWP than current: 0x%x (started) vs 0x%x (current)",
+      fprintf(stderr, "Possible error: RPC started on different LWP than current: %p (started) vs %p (current)",
 	      runningIRPC.lwp, lwp);
       if (runningIRPC.lwp)
 	fprintf(stderr, "Started LWP ID is %d\n", runningIRPC.lwp->get_lwp());
@@ -6119,27 +6137,26 @@ bool process::handleTrapIfDueToRPC() {
     
     // Okay, let's assume we're actually running an IRPC on this bad boy...
     // check to see if it's done yet. 
-
+    
     pd_Function *pdf;
-
-    for (unsigned stack_iter = 0; stack_iter < stackWalks[walk_iter].size(); stack_iter++) {
-      if (stackWalks[walk_iter][stack_iter].getPC() == runningIRPC.breakAddr) {
-	foundIRPC = runningIRPC;
-	haveFoundIRPC = true;
-	haveFinishedIRPC = true;
-	break;
-      } 
-      if (runningIRPC.callbackFunc &&
-	  (stackWalks[walk_iter][stack_iter].getPC() == runningIRPC.stopForResultAddr)) {
-	foundIRPC = runningIRPC;
-	haveFoundIRPC = true;
-	haveResultIRPC = true;
-	break;
-      }
+    
+    if (activeFrames[frame_iter].getPC() == runningIRPC.breakAddr) {
+      foundIRPC = runningIRPC;
+      haveFoundIRPC = true;
+      haveFinishedIRPC = true;
+      break;
+    }
+    if (runningIRPC.callbackFunc &&
+	(activeFrames[frame_iter].getPC() == runningIRPC.stopForResultAddr)) {
+      foundIRPC = runningIRPC;
+      haveFoundIRPC = true;
+      haveResultIRPC = true;
+      break;
     }
   }
 
   if (!haveFoundIRPC) {
+	  rpcTrap.stop();
     return false;
   }
   
@@ -6242,6 +6259,7 @@ bool process::handleTrapIfDueToRPC() {
   if (wasRunning || outstandingIRPC) {
     continueProc();
   }
+  rpcTrap.stop();
   return true;
 }
     
@@ -6949,7 +6967,6 @@ void process::pDYNINSTinitCompletionCallback(process* theProc,
 void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
    // 'event' values: (1) DYNINSTinit was started normally via paradynd
    // or via exec, (2) called from fork, (3) called from attach.
-  fprintf(stderr, "pDYNINSTinit completing...\n");
    inferiorrpc_cerr << "handleCompletionOfpDYNINSTinit..." << endl ;
 	// now PARADYN_bootstrapStruct contains all the
 	// DYNINST_bootstrapStruct info
@@ -7008,9 +7025,7 @@ void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
       statusLine(str.c_str());
 
       extern vector<instMapping*> initialRequestsPARADYN; // init.C //ccw 18 apr 2002 : SPLIT
-      fprintf(stderr, "Going to paradyn install requests\n");
       installInstrRequests(initialRequestsPARADYN); 
-      fprintf(stderr, "Back from paradyn install\n");
       str=string("PID=") + string(bs_struct.pid) + ", propagating mi's...";
       statusLine(str.c_str());
 
@@ -7024,7 +7039,6 @@ void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
          // aggregate mi having the parent as a component, except for
          // aggregate mi's whose focus is specifically refined to the
          // parent).
-	fprintf(stderr, "MFN: handleNewProcess\n");
 	metricFocusNode::handleNewProcess(this);
       }
       else {
@@ -7051,7 +7065,6 @@ void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
       if (!isInitFirstRecordTime())
 	setFirstRecordTime(currWallTime);
    }
-   fprintf(stderr, "Checking status == stopped\n");
    assert(status_ == stopped);
 
    tp->newProgramCallbackFunc(bs_struct.pid, this->arg_list, 
@@ -7061,17 +7074,14 @@ void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
       // in paradyn, this will call paradynDaemon::addRunningProgram().
       // If the state of the application as a whole is 'running' paradyn will
       // soon issue an igen call to us that'll continue this process.
-   fprintf(stderr, "callbackFunc done\n");
    if (!calledFromExec) {
       tp->setDaemonStartTime(getPid(), currWallTime.getD(timeUnit::sec(), 
 							 timeBase::bStd()));
    }
    // verify that the wall and cpu timer levels chosen by the daemon
    // are available in the rt library
-   fprintf(stderr, "verifying timer levels...\n");
    verifyTimerLevels();
 
-   fprintf(stderr, "Writing timer levels...\n");
    writeTimerLevels();
 
    if (calledFromFork) {
@@ -7105,7 +7115,6 @@ void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
 
    assert(status_ == stopped);
       // though not for long, if 'wasRunning' is true (paradyn will soon continue us)
-   fprintf(stderr, "Done\n");
    inferiorrpc_cerr << "handleCompletionOfDYNINSTinit...done" << endl;
 }
 
@@ -7118,7 +7127,6 @@ bool process::specialDetachOnFlyContinue() {
     assert(false);
   }
   status_ = running;
-  hasRunSincePreviousWalk = true;
   return true;
 }
 #endif
@@ -7788,7 +7796,7 @@ void process::gcInstrumentation()
   }
 
   vector< vector<Frame> > stackWalks;
-  if (!walkAllStack(stackWalks)) return;
+  if (!walkStacks(stackWalks)) return;
 
   gcInstrumentation(stackWalks);
   if(!wasPaused) {
@@ -7864,8 +7872,36 @@ void process::gcInstrumentation(vector<vector<Frame> > &stackWalks)
   }
 }
 
-#if defined(MT_THREAD)
 
+// Question: if we don't find, do we create?
+// For now, yes.
+
+dyn_lwp *process::getLWP(unsigned lwp)
+{
+  dyn_lwp *foundLWP;
+  if (lwps.find(lwp, foundLWP)) {
+    return foundLWP;
+  }
+  fprintf(stderr, "Didn't find lwp %d, creating\n", lwp);
+  foundLWP = new dyn_lwp(lwp, this);
+  if (!foundLWP->openFD()) {
+    delete foundLWP;
+    return NULL;
+  }
+  lwps[lwp] = foundLWP;
+  return foundLWP;
+}
+
+dyn_lwp *process::getDefaultLWP() const
+{
+  dyn_lwp *lwp;
+  if (lwps.find(0, lwp))
+    return lwp;
+  return NULL;
+}
+
+// MT section (move to processMT.C?)
+#if defined(MT_THREAD)
 // Called for new threads
 
 pdThread *process::createThread(
@@ -8081,100 +8117,7 @@ bool process::init_pthdb_library()
   return true;
 }
     
-#endif
+#endif /* AIX */
+#endif /* MT*/
 
-// Two versions: one for pre-MT, and one for post
-
-bool process::walkAllStack(vector<vector<Frame> >&allStackWalks, bool paused)
-{
-  vector<Frame> stackWalk;
-  if (!hasRunSincePreviousWalk) {
-    allStackWalks = previousStackWalk;
-    return true;
-  }
-
-  if (!multithread_ready()) {
-    // Single-thread behavior
-    walkStack(getDefaultLWP()->getActiveFrame(), stackWalk);
-    allStackWalks.push_back(stackWalk);
-    return true;
-  }
-
-  bool needToCont = paused ? false : (status() == running);
-  allStackWalks.resize(0);
-
-  if (!paused && !pause()) {
-     cerr << "walkAllStack: pause failed" << endl;
-     return false;
-  }
- 
-#ifndef BPATCH_LIBRARY
-  startTimingStackwalk();
-#endif
-
-
-#ifdef rs6000_ibm_aix4_1
-  // AIX: initialize the pthread debug library
-  // Should do this in a one-time-initialization place
-  init_pthdb_library();
-#endif
-  bool retval = true;
-  if (pause()) {
-    //Walk thread stacks
-    // Assume that the frame constructor will tell if the
-    // thread is currently scheduled, and if so walk via LWP
-    // id if necessary
-    for (unsigned i=0; i<threads.size(); i++) {
-      Frame currentFrame = threads[i]->getActiveFrame();
-      if (!walkStack(currentFrame, stackWalk, paused))
-	retval = false;
-      allStackWalks.push_back(stackWalk);
-      stackWalk.resize(0);
-    }
-  }
-
-  if (!paused && needToCont) {
-     if (!continueProc()){
-        cerr << "walkAllStack: continueProc failed" << endl;
-     }
-  }
     
-#ifndef BPATCH_LIBRARY
-  stopTimingStackwalk();
-#endif
-  hasRunSincePreviousWalk = false;
-  previousStackWalk = allStackWalks;
-  return true;
-}
-
-
-
-#endif
-
-// Question: if we don't find, do we create?
-// For now, yes.
-
-dyn_lwp *process::getLWP(unsigned lwp)
-{
-  dyn_lwp *foundLWP;
-  if (lwps.find(lwp, foundLWP)) {
-    return foundLWP;
-  }
-
-  foundLWP = new dyn_lwp(lwp, this);
-  if (!foundLWP->openFD()) {
-    delete foundLWP;
-    return NULL;
-  }
-  lwps[lwp] = foundLWP;
-  return foundLWP;
-}
-
-dyn_lwp *process::getDefaultLWP() const
-{
-  dyn_lwp *lwp;
-  if (lwps.find(0, lwp))
-    return lwp;
-  fprintf(stderr, "Warning: getDefaultLWP returning NULL\n");
-  return NULL;
-}

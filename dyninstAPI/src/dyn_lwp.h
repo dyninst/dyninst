@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.1 2002/10/09 13:00:52 bernat Exp $
+ * $Id: dyn_lwp.h,v 1.2 2002/10/14 21:02:11 bernat Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -49,6 +49,7 @@
 
 #include "os.h"
 #include "frame.h"
+#include "common/h/vectorSet.h"
 #include "rtinst/h/rtinst.h"
 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
@@ -110,6 +111,9 @@ class dyn_lwp
 
   // Returns the active frame of the LWP
   Frame getActiveFrame();
+
+  // Walk the stack of the given LWP
+  bool walkStack(vector<Frame> &stackWalk);
 
   // Implemented where aborting system calls is possible
   int abortSyscall();

@@ -190,7 +190,7 @@ class instrCodeNode {
   bool trampsHookedUp() { return V._trampsHookedUp; }
 
   bool needToWalkStack(); // const;
-  bool insertJumpsToTramps(vector<Frame> stackWalk);
+  bool insertJumpsToTramps(vector<vector<Frame> > &stackWalks);
   void addInst(instPoint *point, AstNode *, callWhen when, callOrder o);
   timeLength cost() const;
   void oldCatchUp(int tid);
