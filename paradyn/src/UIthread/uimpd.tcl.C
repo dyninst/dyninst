@@ -3,10 +3,13 @@
    is used internally by the UIM.
 */
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.10  1994/10/25 17:57:37  karavan
-/* added Resource Display Objects, which support display of multiple resource
-/* abstractions.
+/* Revision 1.11  1994/10/26 23:14:09  tamches
+/* Added tclTunable sub-command to command uimpd (see tclTunable.h and .C)
 /*
+ * Revision 1.10  1994/10/25  17:57:37  karavan
+ * added Resource Display Objects, which support display of multiple resource
+ * abstractions.
+ *
  * Revision 1.9  1994/10/09  02:28:07  karavan
  * Many updates related to the switch to the new UIM/visiThread resource/metric
  * selection interface, and to resource selection directly on the nodes.
@@ -48,6 +51,8 @@ extern "C" {
 #include "UIglobals.h"
 #include "../VMthread/metrespair.h"
 #include "dag.h"
+
+#include "tclTunable.h"
 
 extern resourceList *build_resource_list (Tcl_Interp *interp, char *list);
 extern int getDagToken ();
@@ -578,6 +583,7 @@ struct cmdTabEntry uimpd_Cmds[] = {
   {"clearResourceSelection", clearResourceSelectionCmd},
   {"processResourceSelection", processResourceSelectionCmd},
   {"switchRDOdag", switchRDOdagCmd},
+  {"tclTunable", TclTunableCommand},
  {NULL, NULL}
 };
 
