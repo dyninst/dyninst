@@ -75,7 +75,7 @@ class metric {
     friend void PCmain(void* varg);
     friend class PCmetric;
     friend void PCnewData(perfStreamHandle,metricInstanceHandle,
-			  sampleValue*,int,int);
+			  int,sampleValue);
     // ********************************************************
     public:
 	metric(T_dyninstRPC::metricInfo i); 
@@ -116,10 +116,9 @@ class metricInstance {
 				 int first, void *arg);
     // TODO: remove these when PC is re-written ***************
     friend void PCnewData(perfStreamHandle,metricInstanceHandle,
-			  sampleValue *,int,int);
+			  int,sampleValue);
     friend class datum;
     friend class PCmetric;
-    // friend void phaseInfo::startPhase(timeStamp start_Time, const string &name);
     // ********************************************************
     public:
 	metricInstance(resourceListHandle rl, metricHandle m,phaseHandle ph);

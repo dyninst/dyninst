@@ -7,7 +7,11 @@
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
- * Revision 1.25  1995/08/01 02:11:20  newhall
+ * Revision 1.26  1995/08/08 03:10:08  newhall
+ * bug fix to DMresourceListNameCompare
+ * changed newPerfData and sampleDataCallbackFunc definitions
+ *
+ * Revision 1.25  1995/08/01  02:11:20  newhall
  * complete implementation of phase interface:
  *   - additions and changes to DM interface functions
  *   - changes to DM classes to support data collection at current or
@@ -298,7 +302,12 @@ resource *resource::string_to_resource(string res){
 int DMresourceListNameCompare(const void *n1, const void *n2){
     
     const string *s1 = (const string*)n1, *s2 = (const string*)n2;
-    return( *s1 >= *s2);
+    if(*s1 > *s2)
+       return(1);
+    if(*s1 == *s2)
+       return(0);
+    else
+       return(-1);
 
 }
 
@@ -322,14 +331,12 @@ string DMcreateRLname(const vector<resourceHandle> &res){
     if(res.size() > 0){
 	temp += sorted_names[i].string_of();
     }
-
     return(temp);
 }
 
 resourceList::resourceList(const vector<resourceHandle> &res){
     // create a unique name
     string temp = DMcreateRLname(res);
-
     // see if this resourceList has been created already, if not add it
     if(!allFoci.defines(temp)){
         id = foci.size();

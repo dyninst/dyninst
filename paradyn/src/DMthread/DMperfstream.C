@@ -58,10 +58,22 @@ void performanceStream::callSampleFunc(metricInstanceHandle mi,
 				       int count,
 				       int first)
 {
+#ifdef n_def
+    for(unsigned j=first; j < (first+count); j++){
+        if((j%50) == 0){
+	    cout << "performanceStream::callSampleFunc: " << endl;
+	    cout << "    first: " << first << " last: " << (first+count) << endl;
+    } }
+#endif
+
     if (dataFunc.sample) {
 	dataManager::dm->setTid(threadId);
-	dataManager::dm->newPerfData(dataFunc.sample, handle, mi, 
-				     buckets, count, first);
+	// dataManager::dm->newPerfData(dataFunc.sample, handle, mi, 
+        // 			     buckets, count, first);
+	for(unsigned i = first; i < (first+count); i++) {
+	    dataManager::dm->newPerfData(dataFunc.sample, handle, mi,
+				i, buckets[i-first]);
+	}
     }
 }
 

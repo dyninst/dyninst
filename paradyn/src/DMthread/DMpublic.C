@@ -4,7 +4,11 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.42  1995/08/01 02:11:18  newhall
+ * Revision 1.43  1995/08/08 03:10:06  newhall
+ * bug fix to DMresourceListNameCompare
+ * changed newPerfData and sampleDataCallbackFunc definitions
+ *
+ * Revision 1.42  1995/08/01  02:11:18  newhall
  * complete implementation of phase interface:
  *   - additions and changes to DM interface functions
  *   - changes to DM classes to support data collection at current or
@@ -612,10 +616,10 @@ void dataManager::disableDataCollection(perfStreamHandle handle,
 // TODO: implement these: setting and clearing persistentCollection may have
 // enable/disable side effects, clearing persistentData may cause MI to be 
 // deleted
-void dataManager::setPersistentCollection(metricInstanceHandle){}
-void dataManager::clearPersistentCollection(metricInstanceHandle){}
-void dataManager::setPersistentData(metricInstanceHandle){}
-void dataManager::clearPersistentData(metricInstanceHandle){}
+// void dataManager::setPersistentCollection(metricInstanceHandle){}
+// void dataManager::clearPersistentCollection(metricInstanceHandle){}
+// void dataManager::setPersistentData(metricInstanceHandle){}
+// void dataManager::clearPersistentData(metricInstanceHandle){}
 
 metricHandle *dataManager::getMetric(metricInstanceHandle mh)
 {
@@ -855,11 +859,10 @@ void dataManagerUser::changeState(appStateChangeCallback cb,
 void dataManagerUser::newPerfData(sampleDataCallbackFunc func,
                              perfStreamHandle handle,
                              metricInstanceHandle mi,
-			     sampleValue *buckets,
-			     int count,
-			     int first)
+			     int bucketNum,
+			     sampleValue value)
 {
-    (func)(handle, mi, buckets, count, first);
+    (func)(handle, mi, bucketNum, value);
 }
 
 void dataManagerUser::newPhaseInfo(newPhaseCallback cb,
