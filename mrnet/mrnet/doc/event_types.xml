@@ -1,0 +1,29 @@
+<appendix id="event_types"><title>MRNET Event Types</title>
+
+<informaltable frame="top">
+<tgroup cols="2">
+<colspec colname="col2" colnum="2" rowsep="1"/>
+<tbody>
+<row>
+<entry>EBADCONFIG</entry><entry>Configuration/Initialization Error</entry>
+</row>
+<row>
+<entry>ESYSTEM</entry><entry>Failed System/Library Call</entry>
+</row>
+<row>
+<entry>EPACKING</entry><entry>Failure while packing/unpacking Packet data</entry>
+</row>
+<row>
+<entry>EFMTSTR</entry><entry>Format string mismatch Error</entry>
+</row>
+<row>
+<entry>EPROTOCOL</entry><entry>Internal Protocol Error</entry>
+</row>
+<row>
+<entry>UNKNOWN_EVENT</entry><entry>Unknown Event</entry>
+</row>
+</tbody>
+</tgroup>
+</informaltable>
+
+</appendix>

@@ -15,7 +15,7 @@ The full set of conversions are:
 <entry>c</entry><entry>Matches a signed 8-bit character</entry>
 </row>
 <row>
-<entry>uc</entry><entry>Matches a signed 8-bit character</entry>
+<entry>uc</entry><entry>Matches an unsigned 8-bit character</entry>
 </row>
 <row>
 <entry>ac</entry><entry>Matches an array of signed 8-bit characters</entry>
@@ -73,9 +73,6 @@ The full set of conversions are:
 </row>
 <row>
 <entry>s</entry><entry>Matches a null-terminated character string.</entry>
-</row>
-<row>
-<entry>as</entry><entry>Matches an array of null-terminated character strings</entry>
 </row>
 </tbody>
 </tgroup>

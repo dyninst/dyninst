@@ -9,6 +9,8 @@
 <!ENTITY adding_filters SYSTEM "adding_filters.xml">
 <!ENTITY api SYSTEM "api.xml">
 <!ENTITY format_strings SYSTEM "format_strings.xml">
+<!ENTITY data_elements SYSTEM "data_elements.xml">
+<!ENTITY event_types SYSTEM "event_types.xml">
 <!ENTITY full_example SYSTEM "full_example.xml">
 ]>
 
@@ -23,6 +25,8 @@
 &topologies;
 &adding_filters;
 &format_strings;
+&data_elements;
+&event_types;
 &full_example;
 
 </book>

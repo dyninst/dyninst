@@ -1,2 +1,125 @@
-<chapter id="adding_filters"><title>Adding New Aggregation Filters</title>
+<chapter id="adding_filters"><title>Adding New Filters</title>
+<sect1><title>Loading Filters from a Shared Object File</title>
+The facility for loading new filter operations into the MRNet
+system is conveniently similar to the conventional <function>dlopen()
+</function> facilities for opening a shared object and dynamically
+loading symbols defined within. The function's signature is:
+
+<para>
+<funcsynopsis>
+<funcprototype>
+  <funcdef>static int <function>Stream::load_FilterFunc</function></funcdef>
+    <paramdef>const char *<parameter>so_file</parameter></paramdef>
+    <paramdef>const char * <parameter>func</parameter></paramdef>
+    <paramdef>bool <parameter>is_transformation_filter=true</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+</para>
+<para>
+<varname>so_file</varname> is the path to a shared object file that contains
+the filter function to be loaded and <varname>func</varname> is the name of the
+function to be loaded. The last parameter <varname>is_transformation_filter
+</varname> defaults to true and can usually be omitted since the common case
+is to load transformation, not synchronization, filters. Additionally,
+the shared object file must contain a <type>const char *</type> symbol named
+by the string formed by the concatenation of the filter function name and
+the suffix "_format_string". For instance, if the filter function is named
+<varname>my_filter_func</varname>, the shared object must define a symbol
+<type>const char *</type><varname>my_filter_func_format_string</varname>.
+The value of this string will be the MRNet format string describing the
+format of data that the filter can operate on. A value of <literal>""</literal>
+ denotes that the filter can operate on data of arbitrary value.
+</para>
+
+<para>
+On success, <function>Stream::load_FilterFunc</function> returns the id
+of the newly loaded filter which may be used in subsequent calls to
+<function>Stream::new_Stream()</function>. A value of -1 is returned
+on failure.
+</para>
+</sect1>
+
+<sect1><title>Defining an MRNet Filter</title>
+<para>
+To properly demonstrate MRNet filters, we must discuss MRNet's packet
+abstraction in more detail. A packet encapsulates a chunk of formatted
+data, usually created as the result of a <function>Stream::send()</function>
+call. Let's say a packet was created using the format string
+<literal>"%s %d"</literal> describing a null-terminated string, followed
+by a 32-bit integer, the packet is said to contain 2 data elements, of
+those types respectively. In the packet class, the <varname>operator[]</varname> is overloaded so that <varname>packet[i]</varname> conveniently returns the
+i<superscript>th</superscript> data element in the packet. Furthermore,
+the data element abstraction contains accessor functions to return proper
+data values. In the above example, packet[0].get_string() returns the value
+of the string in the packet and packet[1].get_int32_t() returns the value of
+the integer that represents the second data element. It is the filter
+developers responsibility to properly define the format of the data
+expected by and determine how to access respective elements.
+
+<xref linkend="data_elements"></xref> contains the full listings of data types
+and accessor functions available to MRNet filter functions.
+</para>
+
+<para>
+A filter function has the following signature
+<funcsynopsis>
+<funcprototype>
+  <funcdef>void <function>filter_name</function></funcdef>
+    <paramdef>std::vector&lt;Packet&gt; &amp; <parameter>packets_in</parameter></paramdef>
+    <paramdef>std::vector&lt;Packet&gt; &amp; <parameter>packets_out</parameter></paramdef>
+    <paramdef>void **<parameter>local_storage</parameter></paramdef>
+</funcprototype>
+</funcsynopsis>
+<varname>packets_in</varname> is the reference to a vector of packets serving
+as input to the filter function. <varname>packets_out</varname> is the
+reference to a vector into which output packets should be placed.
+<varname>local_storage</varname> may be used to define and maintain
+filter-instance specific state.
+</para>
+
+<para>
+For each filter function defined in a shared object file, there must be a
+<type>const char *</type> symbol named
+by the string formed by the concatenation of the filter function name and
+the suffix "_format_string". For instance, if the filter function is named
+<varname>my_filter_func</varname>, the shared object must define a symbol
+<type>const char *</type><varname>my_filter_func_format_string</varname>.
+The value of this string will be the MRNet format string describing the
+format of data that the filter can operate on. A value of <literal>""</literal>
+ denotes that the filter can operate on data of arbitrary value.
+</para>
+</sect1>
+
+<sect1><title>Creating and Using MRNet Filter Shared Object Files</title>
+<para>
+This topic currently pertains to usage with the GNU C++ compiler
+only. We will update the topic to discuss using other compilers
+as well.
+</para>
+
+<para>
+Since we use the C facility <function>dlopen()</function> to dynamically
+load new filter functions, all symbols to be exported this way must be
+"extern C'd". That is, the symbol definitions must fall with the statements
+
+<programlisting>
+extern "C"{
+</programlisting>
+and 
+<programlisting>
+}
+</programlisting>
+
+The file that contains the filter functions and format strings may be
+compiled with the GNU compiler options <literal>"-fPIC -shared -rdynamic"
+</literal> to produce a valid shared object.
+</para>
+
+<para>
+A front-end that will dynamically load filters must be built
+with the GNU compiler options <literal>"-Wl,-E"</literal> to notify the linker
+export global symbols externally.
+</para>
+
+</sect1>
 </chapter>

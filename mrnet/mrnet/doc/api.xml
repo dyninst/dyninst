@@ -296,6 +296,81 @@ an error, 0 indicates no packets were available, and 1 indicates success.
 </funcsynopsis>
 </sect1>
 
+<sect1><title>Class Event</title>
+<para>
+Currently, MRNet has a primitive asynchronous error notification based
+on events. Whenever errors, failures, or other significant events take
+place at internal or back-end nodes, an event is propagated toward the
+front-end. This event is placed in a queue which the user can access
+to determine the systems state. Eventually, MRNet will migrate to
+error semantics this will give the user more immediate and responsive
+error notification, including the use of callbacks into the user's space.
+For now, we describe the portion of the event infrastructure relevant
+to the user.
+</para>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>static bool <function>Event::have_Event</function></funcdef>
+</funcprototype>
+<blockquote>
+<function>Event::have_Event</function> checks the MRNet event queue returning
+true if new events exist and false, otherwise.
+</blockquote>
+</funcsynopsis>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>static Event * <function>Event::get_NextEvent</function></funcdef>
+</funcprototype>
+<blockquote>
+<function>Event::get_NextEvent</function> returns the next event in the
+MRNet event queue. A pointer to the event is returned if the queue is
+non-empty, otherwise, NULL is returned. This function removes the event
+it returns from the MRNet event queue.
+</blockquote>
+</funcsynopsis>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>EventType <function>Event::get_Type</function></funcdef>
+</funcprototype>
+<blockquote>
+<function>Event::get_Type</function> returns the type of the event.
+<xref linkend="event_types"></xref> defines all the valid event types.
+</blockquote>
+</funcsynopsis>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>const std::string &amp;<function>Event::get_HostName</function></funcdef>
+</funcprototype>
+<blockquote>
+<function>Event::get_HostName</function> returns the name of the host
+on which the event occured.
+</blockquote>
+</funcsynopsis>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>unsigned short <function>Event::get_Port</function></funcdef>
+</funcprototype>
+<blockquote>
+<function>Event::get_Port</function> returns the MRNet process identifier
+of the process in which the event occured.
+</blockquote>
+</funcsynopsis>
+
+<funcsynopsis>
+<funcprototype>
+  <funcdef>const std::string &amp; <function>Event::get_Description</function></funcdef>
+</funcprototype>
+<blockquote>
+<function>Event::get_Description</function> returns a string containing
+a human-readable description of the event.
+</blockquote>
+</funcsynopsis>
+</sect1>
 <!--
 <sect1><title>Class EndPoint</title>
 <para>

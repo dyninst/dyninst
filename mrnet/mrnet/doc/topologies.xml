@@ -1,5 +1,58 @@
 <chapter id="mrnet_topology_configuration"><title>MRNET Process-tree
 Topologies</title>
-MRNet allows a tool to specify a node allocation and process connectivity tailored to its computation and communication requirements and to the system running the tool. Choosing an appropriate MRNet configuration can be difficult due to the complexity of the tool's own activity and its interaction with the system. We briefly discuss the issues related to process layout, but because our current work focuses on tool scalability a full treatment of optimal MRNet configurations is beyond the scope of this paper. The configurations we used for our experiments in Section 4 were chosen for their ability to show MRNet's effect on tool scalability. We anticipate future research will examine the issue of MRNet configurations in more detail.
-When choosing the process configuration for an MRNet-based tool, there are two key issues to consider: whether the MRNet internal processes are co-located with the application processes under study, and how the internal processes are connected. Our primary measures of a configuration's quality are its: (1) latency for a single broadcast operation, measured from initiation by the front-end to the last receipt by a back-end; (2) latency for a single data aggregation operation, measured from initiation by the back-ends to receipt by the front-end; (3) throughput for streams of broadcasts and data aggregations; and (4) CPU utilization of the MRNet internal processes.
+<para>
+MRNet allows a tool to specify a node allocation and process connectivity
+tailored to its computation and communication requirements and to the system
+where the tool will run. Choosing an appropriate MRNet configuration can be
+difficult due to the complexity of the tool's own activity and its
+interaction with the system. This section describes how users may define
+their own process topologies, and the <command>mrnet_topgen</command> tool
+provided by MRNet to facilitate the process.
+</para>
+
+<sect1><title>Topology File Format</title>
+<para>
+The first parameter to the <function>Network::new_Network()</function>
+function is the name of an MRNet topology file. This file defines the
+topological layout of the front-end, internal nodes, and back-end MRNet and
+tool processes. In the syntax of the topology file, the
+<varname>hostname:id</varname> tuple represents a process with MRNet id
+<varname>id</varname> running on <varname>hostname</varname>. It is important
+to note that the <varname>id</varname> is of symbolic value only and does not
+reflect a port or process number associated with the system. A line in the
+topology file is always of the form:
+<synopsis>
+hostname1:0 => hostname1:1 hostname1:2 ;
+</synopsis>
+meaning process on <varname>hostname1</varname> with MRNet id, 0,
+has two children, with MRNet ids, 1 and 2, respectively, running on the
+same host. MRNet will parse the topology file without error if the file
+properly defines a tree, in the mathematical sense (i.e. a tree must have
+a single root, no cycles, full connection, and no node can be its own
+descendant). 
+</para>
+</sect1>
+
+<sect1><title>Topology File Generator</title>
+<para>
+When the MRNet test programs are built, a topology generator program,
+<filename>$MRNET_ROOT/bin/$MRNET_ARCH/mrnet_topgen</filename>, will also
+be created. The usage of this program is:
+<synopsis>
+mrnet_topgen &lt;infile&gt; &lt;outfile&gt; &lt;befile&gt; &lt;num_backends&gt; &lt;fan-out&gt;
+</synopsis>
+<varname>infile</varname> is a machine file containing a set of
+MRNet host/process identifiers in the format, <varname>hostname:id</varname>,
+described above. <varname>outfile</varname> is the name of the MRNet topology
+file to be created by the generator. <varname>befile</varname> must be
+specified, but can be ignored. Finally, <varname>num_backends</varname> and
+<varname>fan-out</varname> define the number of backends and the fan-out to
+be used at the front-end and all internal nodes, respectively.
+The specified input machine file must contain enough unique host/process
+tuples to support the entire process tree. Currently, this program 
+can only build completely balanced trees with the same fan-out at each
+parent node.
+</para>
+</sect1>
+
 </chapter>

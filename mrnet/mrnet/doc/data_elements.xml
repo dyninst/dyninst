@@ -1,0 +1,77 @@
+<appendix id="data_elements"><title>MRNET Data Elements</title>
+
+<informaltable frame="top">
+<tgroup cols="2">
+<colspec colname="col2" colnum="2" rowsep="1"/>
+<tbody>
+<row>
+<entry><emphasis>Data Type</emphasis></entry>
+<entry><emphasis>Read Accessor Function</emphasis></entry>
+<entry><emphasis>Write Accessor Function</emphasis></entry>
+</row>
+<row>
+<entry><type>CHAR_T</type></entry>
+<entry>char <function>get_char( )</function></entry>
+<entry>void <function>set_char( char )</function></entry>
+</row>
+<row>
+<entry><type>UCHAR_T</type></entry>
+<entry>unsigned char <function>get_char( )</function></entry>
+<entry>void <function>set_char( unsigned char )</function></entry>
+</row>
+<row>
+<entry><type>INT16_T</type></entry>
+<entry>int16_t <function>get_int16_t( )</function></entry>
+<entry>void <function>set_int16_t( int16_t )</function></entry>
+</row>
+<row>
+<entry><type>UINT16_T</type></entry>
+<entry>uint16_t <function>get_uint16_t( )</function></entry>
+<entry>void <function>set_uint16_t( uint16_t ) </function></entry>
+</row>
+<row>
+<entry><type>INT32_T</type></entry>
+<entry>int32_t <function>get_int32_t( )</function></entry>
+<entry>void <function>set_int32_t( int32_t )</function></entry>
+</row>
+<row>
+<entry><type>UINT32_T</type></entry>
+<entry>uint32_t <function>get_uint32_t( )</function></entry>
+<entry>void <function>set_uint32_t( uint32_t ) </function></entry>
+</row>
+<row>
+<entry><type>INT64_T</type></entry>
+<entry>int64_t <function>get_int64_t( )</function></entry>
+<entry>void <function>set_int64_t( int64_t )</function></entry>
+</row>
+<row>
+<entry><type>UINT64_T</type></entry>
+<entry>uint64_t <function>get_uint64_t( )</function></entry>
+<entry>void <function>set_uint64_t( uint64_t ) </function></entry>
+</row>
+<row>
+<entry><type>FLOAT_T</type></entry>
+<entry>float <function>get_float( )</function></entry>
+<entry>void <function>set_float( float )</function></entry>
+</row>
+<row>
+<entry><type>DOUBLE_T</type></entry>
+<entry>double <function>get_double( )</function></entry>
+<entry>void <function>set_double( double ) </function></entry>
+</row>
+<row>
+<entry><type>STRING_T</type></entry>
+<entry>char * <function>get_string( )</function></entry>
+<entry>void <function>set_string( char * )</function></entry>
+</row>
+<row>
+<entry><type>*_ARRAY_T</type></entry>
+<entry>void * <function>get_array( DataType *, uint32_t * )</function></entry>
+<entry>void <function>set_array( void *, DataType, uint32_t ) </function></entry>
+</row>
+
+</tbody>
+</tgroup>
+</informaltable>
+
+</appendix>

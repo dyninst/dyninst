@@ -54,26 +54,20 @@ MRNet-specific ones:
 
 <screen>
 <computeroutput>
-===Begin MRNET Compile Options:
-  --with-cc                   Specify C compiler
-  --with-cflags               Set C compiler flags
-                                  - (ONLY USE WITH --with-cc)
-  --with-cxx                  Specify C++ compiler
-  --with-cxxflags             Set C++ compiler flags
-                                  - (ONLY USE WITH --with-cxx)
-  --with-ldflags              Set loader flags
   --with-libfl                Link line for flex library
+  --with-outputlevel          output level (0=>off, *1=>error*, 2=>info, 3=>lo-debug, 4=>mid-debug, 5=>hi-debug)
 </computeroutput>
 </screen>
 
-For example,
+<command>./configure</command> without any options should give reasonable
+results, but the user may specify certain options. For example,
 <screen>
-<prompt>UNIX></prompt> <command>./configure --with-cc=cc --with-cxx=c++ --with-libfl=/usr/local/lib/libfl.a</command>
+<prompt>UNIX></prompt> <command>./configure CXX=g++ CXXFLAGS=-O3 -with-outputlevel=5 --with-libfl=/usr/local/lib/libfl.a</command>
 </screen>
 
-instructs the configure script to use <command>cc</command> for the C
-compiler, <command>c++</command> for the C++ compiler and
-<filename>/usr/local/lib/libfl.a</filename> as the location of the flex library.
+instructs the configure script to use <command>g++</command> for the C++
+compiler with level 3 optimization, <emphasis>very</emphasis> verbose output
+and <filename>/usr/local/lib/libfl.a</filename> as the location of the flex library.
 </para>
 </sect1>
 
@@ -89,7 +83,7 @@ After a successful build, the following files will be present:
 API library</listitem>
 <listitem><filename>$MRNET_ROOT/bin/$MRNET_ARCH/mrnet_commnode</filename>: MRNet
 internal communcation node (used internally)</listitem>
-<listitem><filename>$MRNET_ROOT/bin/$MRNET_ARCH/mrnet_confgen</filename>: MRNet
+<listitem><filename>$MRNET_ROOT/bin/$MRNET_ARCH/mrnet_topgen</filename>: MRNet
 topology file generator</listitem>
 <listitem><filename>$MRNET_ROOT/bin/$MRNET_ARCH/*_[FE,BE]</filename>: MRNet test
 front-end and back-end programs</listitem>
@@ -99,7 +93,7 @@ front-end and back-end programs</listitem>
 
 <sect1><title>Bugs, Questions and Comments</title>
 <para>
-MRNet is maintained by Dorian Arnold at the University of Wisconsin.
+MRNet is maintained primarily by Dorian Arnold, Paradyn Project, University of Wisconsin-Madison.
 Comments and other feedback whether positive or negative are welcome.
 </para>
 
