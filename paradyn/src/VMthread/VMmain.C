@@ -1,7 +1,10 @@
 /* $Log: VMmain.C,v $
-/* Revision 1.1  1994/04/09 21:23:47  newhall
-/* test version
-/* */
+/* Revision 1.2  1994/04/10 19:07:22  newhall
+/* *** empty log message ***
+/*
+ * Revision 1.1  1994/04/09  21:23:47  newhall
+ * test version
+ * */
 #include "thread/h/thread.h"
 #include "VM.SRVR.h"
 #include "UI.CLNT.h"
@@ -214,13 +217,11 @@ void *VMmain(int arg){
   thr_name("Visualization Manager");
   VMtid = thr_self();
 
-printf("1111111111111\n");
   // create key for VISIthread local storage
   if (thr_keycreate(&visiThrd_key, myfree) != THR_OKAY) {
      thr_perror("visiThrd_key");
      return (void *)0;
   }
-printf("2222222222222\n");
 
   // initialize VM data structures
 
@@ -248,10 +249,12 @@ printf("2222222222222\n");
 	  }
           tempvals->argv[j++] = 0;
 
+/*
 	  printf("\nvisi %d:\n",i);
 	  for(j=0;j<num2;j++){
            printf("arg %d: %s\n",j,tempvals->argv[j]); 
 	  }
+*/
 
           visiList.add(tempvals,(void *)i);
 	}
@@ -259,16 +262,12 @@ printf("2222222222222\n");
     } // for
   }
 
-printf("3333333333333\n");
   vmp = new VM(MAINtid);
-printf("444444444444444444\n");
 
   // global synchronization
   retVal = msg_send (MAINtid, MSG_TAG_VM_READY,(char *)NULL,0);
-printf("55555555555555555\n");
   mtag   = MSG_TAG_ALL_CHILDREN_READY;
   retVal = msg_recv (&mtag, VMbuff, &msgSize);
-printf("666666666666666666\n");
 
 /*  TESTING
   ump = new UIMUser(UIMtid);
