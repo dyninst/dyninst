@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 1996 Barton P. Miller
  * 
@@ -40,10 +39,6 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-
-
-
-
 /************************************************************************
  * RTposix.c: runtime instrumentation functions for generic posix.
  *
@@ -59,15 +54,6 @@
  *
  *
  ************************************************************************/
-
-
-
-
-
-
-/************************************************************************
- * header files.
-************************************************************************/
 
 #ifdef SHM_SAMPLING
 #include <sys/types.h>
@@ -135,13 +121,6 @@ int DYNINSTtoAddr;
 short *DYNINSTprofBuffer;
 #endif
 
-
-
-
-/************************************************************************
- * external functions.
-************************************************************************/
-
 extern void   DYNINSTos_init(void);
 extern time64 DYNINSTgetCPUtime(void);
 extern time64 DYNINSTgetWalltime(void);
@@ -162,7 +141,6 @@ DYNINSTbreakPoint(void) {
 }
 
 
-
 /************************************************************************
  * void DYNINSTstartProcessTimer(tTimer* timer)
 ************************************************************************/
@@ -172,17 +150,11 @@ time64 DYNINSTtest[10]={0,0,0,0,0,0,0,0,0,0};
 int DYNINSTtestN[10]={0,0,0,0,0,0,0,0,0,0};
 #endif
 
-#if defined(i386_unknown_solaris2_5)
-#define VOLATILE_PROC_TIMER volatile
-#else
-#define VOLATILE_PROC_TIMER
-#endif
-
 void
-DYNINSTstartProcessTimer(VOLATILE_PROC_TIMER tTimer* timer) {
+DYNINSTstartProcessTimer(tTimer* timer) {
     /* WARNING: write() could be instrumented to call this routine, so to avoid
-       some serious infinite recursion, avoid calling anything that might
-       call write() in this routine; e.g. printf()!!!!! */
+       some serious infinite recursion, avoid calling anything that might directly
+       or indirectly call write() in this routine; e.g. printf()!!!!! */
 
 #ifdef COSTTEST
     time64 startT,endT;
@@ -208,10 +180,10 @@ DYNINSTstartProcessTimer(VOLATILE_PROC_TIMER tTimer* timer) {
        is using some kind of relaxed multiprocessor consistency? */
 #endif
 
-    /* Note that among the data vrbles, counter is incremented last; in particular, after
-       start has been written.  This avoids a nasty little race condition in sampling where
-       count is 1 yet start is undefined (or using an old value) when read, which usually
-       leads to a rollback.  --ari */
+    /* Note that among the data vrbles, counter is incremented last; in particular,
+       after start has been written.  This avoids a nasty little race condition in
+       sampling where count is 1 yet start is undefined (or using an old value) when
+       read, which usually leads to a rollback.  --ari */
     if (timer->counter == 0) {
         timer->start     = DYNINSTgetCPUtime();
     }
@@ -241,10 +213,10 @@ DYNINSTstartProcessTimer(VOLATILE_PROC_TIMER tTimer* timer) {
 ************************************************************************/
 
 void
-DYNINSTstopProcessTimer(VOLATILE_PROC_TIMER tTimer* timer) {
+DYNINSTstopProcessTimer(tTimer* timer) {
     /* WARNING: write() could be instrumented to call this routine, so to avoid
-       some serious infinite recursion, avoid calling anything that might
-       call write() in this routine; e.g. printf()!!!!! */
+       some serious infinite recursion, avoid calling anything that might directly
+       or indirectly call write() in this routine; e.g. printf()!!!!! */
 
 #ifdef COSTTEST
     time64 startT,endT;
@@ -299,7 +271,6 @@ DYNINSTstopProcessTimer(VOLATILE_PROC_TIMER tTimer* timer) {
          * the next time a sample is take (if the {wall,process} timer has not
          * been restarted).
 	 *
-	 * TODO: can all this be simplified when SHM_SAMPLING?
          */
 
         timer->total = DYNINSTgetCPUtime() - timer->start + timer->total; 
@@ -339,8 +310,8 @@ DYNINSTstopProcessTimer(VOLATILE_PROC_TIMER tTimer* timer) {
 void
 DYNINSTstartWallTimer(tTimer* timer) {
     /* WARNING: write() could be instrumented to call this routine, so to avoid
-       some serious infinite recursion, avoid calling anything that might
-       call write() in this routine; e.g. printf()!!!!! */
+       some serious infinite recursion, avoid calling anything that might directly
+       or indirectly call write() in this routine; e.g. printf()!!!!! */
 
 #ifdef COSTTEST
     time64 startT, endT;
@@ -395,15 +366,8 @@ DYNINSTstartWallTimer(tTimer* timer) {
  * void DYNINSTstopWallTimer(tTimer* timer)
 ************************************************************************/
 
-
-#if defined(i386_unknown_solaris2_5)
-#define VOLATILE_WALL_TIMER volatile
-#else
-#define VOLATILE_WALL_TIMER
-#endif
-
 void
-DYNINSTstopWallTimer(VOLATILE_WALL_TIMER tTimer* timer) {
+DYNINSTstopWallTimer(tTimer* timer) {
 #ifdef COSTTEST
     time64 startT, endT;
 #endif
@@ -515,19 +479,21 @@ DYNINST_install_ualarm(unsigned value, unsigned interval) {
 ************************************************************************/
 
 double DYNINSTdata[SYN_INST_BUF_SIZE/sizeof(double)];
-double DYNINSTglobalData[SYN_INST_BUF_SIZE/sizeof(double)];
+double DYNINSTglobalData[SYN_INST_BUF_SIZE/sizeof(double)]; // NOT NEEDED ANY MORE!!!
 
 /* As DYNINSTinit() completes, it has information to pass back
    to paradynd.  The data can differ; more stuff is needed
    when SHM_SAMPLING is defined, for example.  But in any event,
    the following gives us a general framework.  When DYNINSTinit()
-   is about to complete, we could send a trace record back and then
+   is about to complete, we used to send a TR_START trace record back and then
    DYNINSTbreakPoint().  But we've seen strange behavior; sometimes
    the breakPoint is received by paradynd first.  The following should
    work all the time:  DYNINSTinit() writes to the following vrble
    and does a DYNINSTbreakPoint() or TRAP, instead of sending a trace
    record.  Paradynd reads this vrble using ptrace(), and thus has
-   the info that it needs. */
+   the info that it needs.
+   Note: we use this framework for DYNINSTfork(), too -- so the TR_FORK
+   record is now obsolete, along with the TR_START record */
 
 struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
 
@@ -659,7 +625,7 @@ int64 DYNINSTgetObservedCycles(RT_Boolean in_signal)
  * void DYNINSTsampleValues(void)
  *
  * dummy function for sampling timers and counters.  the actual code
- * is added by dynamic instrumentation from the paradyn daemons.
+ * is added by dynamic instrumentation from the paradyn daemon.
 ************************************************************************/
 
 static int DYNINSTnumReported = 0;
@@ -677,7 +643,7 @@ DYNINSTsampleValues(void) {
 /************************************************************************
  * void DYNINSTflushTrace(void)
  *
- * flush any accumalated traces.
+ * flush any accumulated traces.
 ************************************************************************/
 
 static FILE* DYNINSTtraceFp = 0;
@@ -686,10 +652,6 @@ static void
 DYNINSTflushTrace(void) {
     if (DYNINSTtraceFp) fflush(DYNINSTtraceFp);
 }
-
-
-
-
 
 /************************************************************************
  * void DYNINSTgenerateTraceRecord(traceStream sid, short type,
@@ -759,7 +721,7 @@ DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
         if (errno==EINTR) {
           printf("(pid=%d) fwrite interrupted, trying again...\n",(int) getpid());
         } else {
-          printf("unable to write trace record, errno=%d\n", errno);
+	  perror("unable to write trace record");
           printf("disabling further data logging, pid=%d\n", (int) getpid());
           fflush(stdout);
           pipe_gone = 1;
@@ -789,6 +751,8 @@ static time64 DYNINSTtotalSampleTime = 0;
 #ifndef SHM_SAMPLING
 void
 DYNINSTreportBaseTramps() {
+    // NOTE: this routine has a misleading name; how about DYNINSTsampleObsCost().
+
     costUpdate sample;
 
     //
@@ -831,8 +795,6 @@ DYNINSTreportBaseTramps() {
 }
 #endif
 
-#define N_FP_REGS 33
-
 /************************************************************************
  * static void DYNINSTreportSamples(void)
  *
@@ -840,7 +802,10 @@ DYNINSTreportBaseTramps() {
  * and DYNINSTalarmExpires.
 ************************************************************************/
 
+#define N_FP_REGS 33
+
 #ifndef SHM_SAMPLING
+
 static void 
 DYNINSTreportSamples(void) {
     time64     start_cpu;
@@ -874,8 +839,6 @@ DYNINSTreportSamples(void) {
  * to the paradyn daemons.  when the program exits, DYNINSTsampleValues
  * should be called directly.
 ************************************************************************/
-
-/* #define N_FP_REGS 33 */
 
 
 /************************************************************************
@@ -950,10 +913,8 @@ DYNINSTalarmExpire(int signo, int code, struct sigcontext *scp) {
  * void DYNINSTinit()
  *
  * initialize the DYNINST library.  this function is called at the start
- * of the application program.
+ * of the application program, as well as after a fork.
  *
- * the first this to do is to call the os specific initialization
- * function.
 ************************************************************************/
 
 static float  DYNINSTsamplingRate   = 0;
@@ -965,10 +926,11 @@ static int DYNINSTtagLimit = 100;
 static int DYNINSTtags[1000];
 
 #ifdef SHM_SAMPLING
-int shm_create(key_t theKey, unsigned theSize) {
-   /* create segment but don't attach; returns seg id */
+int shm_create_existing(key_t theKey, unsigned theSize) {
+   /* "create" segment (it already exists; paradynd did the real creating) but don't
+      attach; returns seg id */
 
-   int segid = shmget(theKey, theSize, 0666);
+   int segid = shmget(theKey, theSize, 0666); // note no IPC_CREAT or IPC_EXCL flags
    if (segid == -1) {
        perror("shmget");
        fprintf(stderr, "DYNINSTinit cannot shmget for key %d, size %u\n",
@@ -980,9 +942,7 @@ int shm_create(key_t theKey, unsigned theSize) {
 }
 
 void *shm_attach(int shmid) {
-   void *result = NULL;
-
-   result = shmat(shmid, NULL, 0);
+   void *result = shmat(shmid, NULL, 0);
    if (result == (void *)-1) {
        perror("DYNINSTinit: cannot shmat");
        return NULL;
@@ -994,10 +954,46 @@ void *shm_attach(int shmid) {
 void shm_detach(void *shmSegPtr) {
    (void)shmdt(shmSegPtr);
 }
+
+void *shm_detach_reattach_overlap(int newshmid, void *shmSegPtr) {
+   /* returns NULL on success (attached at same location),
+      (void*)-1 on total failure, and
+      a new address on partial failure (attached, but not at same location)
+    */
+
+   int success = 1; /* success, so far */
+   void *newAttachedAtPtr = NULL;
+
+   int detach_result = shmdt(shmSegPtr);
+   if (detach_result == -1) {
+      perror("shm_detach_reattach_overlap shmdt");
+      success = 0; /* failure; don't try to attach at same loc */
+   }
+
+   if (success) {
+      newAttachedAtPtr = shmat(newshmid, shmSegPtr, 0);
+      if (newAttachedAtPtr == (void*)-1) {
+         perror("shm_detach_reattach_overlap: cannot shmat");
+	 success = 0; /* couldn't attach at same loc */
+      }
+   }
+
+   if (success)
+      return NULL; /* attached, and at the same location */
+   else {
+      /* couldn't attach at same location, so attach at a different location */
+      newAttachedAtPtr = shmat(newshmid, NULL, 0);
+      if (newAttachedAtPtr == (void*)-1)
+	 /* this is unexpected...would have though that at least this would work */
+	 perror("shm_detach_reattach_overlap: cannot shmat2");
+
+      return newAttachedAtPtr; /* -1 on total failure; an address on partial */
+   }
+}
 #endif
 
 #ifdef SHM_SAMPLING
-/* these vrbles exist in this scope so that fork() knows the attributes of the
+/* these vrbles are global so that fork() knows the attributes of the
    shm segs we've been using */
 static int the_shmSegKey;
 static int the_shmSegNumBytes;
@@ -1005,29 +1001,31 @@ static int the_shmSegShmId; /* needed? */
 static void *the_shmSegAttachedPtr;
 #endif
 
+void shmsampling_printf(const char *fmt, ...) {
+#ifdef SHM_SAMPLING_DEBUG
+   va_list args;
+   va_start(args, fmt);
+
+   vfprintf(stderr, fmt, args);
+
+   va_end(args);
+
+   fflush(stderr);
+#endif
+}
+
 void
 DYNINSTinit(int theKey, int shmSegNumBytes) {
    /* If all params are -1 then we're being called by DYNINSTfork(), so don't
       do any of the shm seg attach stuff... */
 
    int calledFromFork = (theKey == -1);
-
 #ifndef SHM_SAMPLING
     struct sigaction act;
     unsigned         val;
 #endif
 
     char *temp;
-
-    // In accordance with usual stdio rules, stdout is line-buffered and
-    // stderr is non-buffered.  Unfortunately, stdio is a little clever and
-    // when it detects stdout/stderr redirected to a pipe/file/whatever, it
-    // changes to fully-buffered.  This indeed occurs with us (see paradynd/src/process.C
-    // to see how a program's stdout/stderr are redirected to a pipe).
-    // So, we reset back to the desired "bufferedness" here.  See stdio.h for these calls.
-#ifdef n_def
-    const char*      interval;
-#endif
 
 #ifdef SHM_SAMPLING_DEBUG
    char thehostname[80];
@@ -1036,9 +1034,8 @@ DYNINSTinit(int theKey, int shmSegNumBytes) {
    (void)gethostname(thehostname, 80);
    thehostname[79] = '\0';
 
-   fprintf(stderr, "WELCOME to DYNINSTinit (%s, pid=%d), args are %d and %d\n",
-           thehostname, (int)getpid(), theKey, shmSegNumBytes);
-   fflush(stderr);
+   shmsampling_printf("WELCOME to DYNINSTinit (%s, pid=%d), args are %d and %d\n",
+		      thehostname, (int)getpid(), theKey, shmSegNumBytes);
 #endif
 
 #ifdef SHM_SAMPLING
@@ -1048,12 +1045,12 @@ DYNINSTinit(int theKey, int shmSegNumBytes) {
    
        /* note: error checking needs to be beefed up here: */
    
-       the_shmSegShmId = shm_create(theKey, shmSegNumBytes); /* -1 on error */
+       the_shmSegShmId = shm_create_existing(theKey, shmSegNumBytes); /* -1 on error */
        if (the_shmSegShmId == -1) {
           /* note: in theory, when we get a shm error on startup, it would be nice
                    to automatically "downshift" into the SIGALRM non-shm-sampling
                    code.  Not yet implemented. */
-          fprintf(stderr, "DYNINSTinit failed because shm_create failed.\n");
+          fprintf(stderr, "DYNINSTinit failed because shm_create_existing failed.\n");
           fprintf(stderr, "DYNINST program startup failed...exiting program now.\n");
           exit(5);
        }
@@ -1068,14 +1065,12 @@ DYNINSTinit(int theKey, int shmSegNumBytes) {
    }
 #endif
 
-    /*
-       By default, the stdio library makes stdout line-buffered and stderr unbuffered.
-    Unfortunately, stdio is a little too clever; any stream redirected to a file or
-    pipe is changed to fully-buffered.  Since we've redirected stdout/stderr of the
-    applic to a pipe (see paradynd/src/process.C), they're now fully buffered, which
-    we don't want.  So, we manually change them back (stdout to line-buffered;
-    stderr to un-buffered).  See stdio.h for the calls.
-    */
+    // In accordance with usual stdio rules, stdout is line-buffered and stderr is
+    // non-buffered.  Unfortunately, stdio is a little clever and when it detects
+    // stdout/stderr redirected to a pipe/file/whatever, it changes to fully-buffered.
+    // This indeed occurs with us (see paradynd/src/process.C to see how a program's
+    // stdout/stderr are redirected to a pipe). So we reset back to the desired
+    // "bufferedness" here.  See stdio.h for these calls.
 
     /* Note! Since we are messing with stdio stuff here, it should go without
        saying that DYNINSTinit() (or at least this part of it) shouldn't be
@@ -1087,12 +1082,14 @@ DYNINSTinit(int theKey, int shmSegNumBytes) {
     setvbuf(stderr, NULL, _IONBF, 0);
        /* make stderr non-buffered */
 
-    DYNINSTos_init(); /* is this needed when calledFromFork? */
+    DYNINSTos_init();
+      /* is this needed when calledFromFork?  Depends on what it does, which is in turn
+         os-dependent...so, calledFromFork should probably be passed to this routine. */
 
     startWall = 0;
 
-    DYNINSTcyclesToUsec = MILLION/DYNINSTcyclesPerSecond();
-       /* almost surely not needed when calledFromFork is true */
+    if (!calledFromFork)
+       DYNINSTcyclesToUsec = MILLION/DYNINSTcyclesPerSecond();
 
    /* Do we need to re-create the alarm signal stuff when calledFromFork is true? */
 #ifndef SHM_SAMPLING
@@ -1150,41 +1147,48 @@ DYNINSTinit(int theKey, int shmSegNumBytes) {
 
     /* Fill in info for paradynd to receive: */
 
+    DYNINST_bootstrap_info.ppid = -1; /* not needed really */
+				   
     if (!calledFromFork) {
-
 #ifdef SHM_SAMPLING
-       DYNINST_bootstrap_info.applicAttachedAt = the_shmSegAttachedPtr;
+       shmsampling_printf("DYNINSTinit setting appl_attachedAtPtr in bs_record to %x\n",
+			  (unsigned)the_shmSegAttachedPtr);
+       DYNINST_bootstrap_info.appl_attachedAtPtr = the_shmSegAttachedPtr;
 #endif
-
-       /* We do this field last as a way to synchronize; paradynd will
-	  ignore what it sees in this structure until the pid field is
-	  nonzero. */
-       DYNINST_bootstrap_info.pid = getpid();
     }
+    else {
+       shmsampling_printf("DYNINSTinit NOT setting appl_attachedAtPtr in bs_record since called-by-fork\n");
+    }				   
+
+    DYNINST_bootstrap_info.pid = getpid();
+    if (calledFromFork)
+       DYNINST_bootstrap_info.ppid = getppid();
+
+    /* We do this field last as a way to synchronize; paradynd will ignore what it
+       sees in this structure until the event field is nonzero */
+   if (calledFromFork)
+      DYNINST_bootstrap_info.event = 2; /* 2 --> end of DYNINSTinit (forked process) */
+   else
+      DYNINST_bootstrap_info.event = 1; /* 1 --> end of DYNINSTinit (normal or when called by exec'd proc) */
 
 #ifndef SHM_SAMPLING
     /* what good does this do here? */
-    DYNINSTreportSamples();
+//    DYNINSTreportSamples();
 #endif
 
    /* Now, we stop ourselves.  When paradynd receives the forwarded signal,
-      it will read from DYNINST_bootstrap_info (and then probably clear
-      that structure). */
+      it will read from DYNINST_bootstrap_info */
 
-#ifdef SHM_SAMPLING_DEBUG
-    fprintf(stderr, "DYNINSTinit (%s, pid=%d) --> about to DYNINSTbreakPoint()\n",
-	    thehostname, (int)getpid());
-    fflush(stderr);
-#endif
+   shmsampling_printf("DYNINSTinit (pid=%d) --> about to DYNINSTbreakPoint()\n",
+		      (int)getpid());
 
-   if (!calledFromFork)
-      DYNINSTbreakPoint();
+   DYNINSTbreakPoint();
 
-#ifdef SHM_SAMPLING_DEBUG
-    fprintf(stderr, "leaving DYNINSTinit (%s, pid=%d) --> the process is running freely now\n",
-	    thehostname, (int)getpid());
-    fflush(stderr);
-#endif
+   /* After the break, we should clear DYNINST_bootstrap_info */
+   DYNINST_bootstrap_info.event = 0; /* 0 --> nothing */
+   DYNINST_bootstrap_info.pid = 0; /* prob not needed */
+
+   shmsampling_printf("leaving DYNINSTinit (pid=%d) --> the process is running freely now\n", (int)getpid());
 }
 
 
@@ -1221,105 +1225,12 @@ DYNINSTexit(void) {
 
 
 
-
-/************************************************************************
- * void DYNINSTreportTimer(tTimer* timer)
- *
- * report the timer `timer' to the paradyn daemon.
-************************************************************************/
-
-#ifndef SHM_SAMPLING
-void
-DYNINSTreportTimer(tTimer *timer) {
-    time64 total;
-    traceSample sample;
-
-#ifdef COSTTEST
-    time64 endT;
-    time64 startT = DYNINSTgetCPUtime();
-#endif
-
-    time64 process_time = DYNINSTgetCPUtime();
-    time64 wall_time = DYNINSTgetWalltime();
-    if (timer->mutex) {
-        total = timer->snapShot;
-	//printf("id %d using snapshot value of %f\n", timer->id.id, (double)total);
-    }
-    else if (timer->counter) {
-        /* timer is running */
-        time64 now;
-        if (timer->type == processTime) {
-            now = process_time;
-        } else {
-            now = wall_time;
-        }
-        total = now - timer->start + timer->total;
-	//printf("id %d using added-to-total value of %f\n", timer->id.id, (double)total);
-    }
-    else {
-        total = timer->total;
-	//printf("using %d total value of %f\n", timer->id.id, (double)total);
-    }
-
-    if (total < timer->lastValue) {
-        if (timer->type == processTime) {
-            printf("process ");
-        }
-        else {
-            printf("wall ");
-        }
-        printf("time regressed timer %d, total = %f, last = %f\n",
-            timer->id.id, (float) total, (float) timer->lastValue);
-        if (timer->counter) {
-            printf("timer was active\n");
-        } else {
-            printf("timer was inactive\n");
-        }
-        printf("mutex=%d, counter=%d, snapShot=%f\n",
-            (int) timer->mutex, (int) timer->counter,
-            (double) timer->snapShot);
-        printf("start = %f, total = %f\n",
-	       (double) timer->start, (double) timer->total);
-        fflush(stdout);
-        abort();
-    }
-
-    timer->lastValue = total;
-
-    sample.id = timer->id;
-    if (timer->normalize == 0) {
-       fprintf(stderr, "DYNINSTreportTimer WARNING: timer->normalize is 0!!\n");
-    }
-
-    sample.value = ((double) total) / (double) timer->normalize;
-    // check for nan now?
-       // NOTE: The type of sample.value is float, not double, so some precision
-       //       is lost here.  Besides, wouldn't it be better to send the raw
-       //       "total", with no loss in precision; especially since timer->normalize
-       //       always seems to be 1 million? (Well, it differs for cm5)
-    DYNINSTtotalSamples++;
-
-#ifdef ndef
-    printf("raw sample %d = %f time = %f\n", sample.id.id, sample.value,
-				(double)(now/1000000.0));  
-#endif
-
-    DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, 0,
-				wall_time,process_time);
-
-#ifdef COSTTEST
-    endT=DYNINSTgetCPUtime();
-    DYNINSTtest[5]+=endT-startT;
-    DYNINSTtestN[5]++;
-#endif 
-}
-#endif
-
-
 /************************************************************************
  * static int connectToDaemon(int port)
  *
  * get a connection to a paradyn daemon for the trace stream
+ *
+ * does: socket(), connect()
 ************************************************************************/
 
 #include <sys/types.h>
@@ -1361,34 +1272,32 @@ static int connectToDaemon(int daemonPort, unsigned long hostAddr) {
  *
  * track a fork() system call, and report to the paradyn daemon.
  *
- * Instrumented by paradynd to be called at the exit point of fork().
- * So, the address space (including the instrumentation heap) has
- * already been duplicated, though some meta-data still needs to be
- * manually duplicated by paradynd.  Note that for shm_sampling,
- * a fork() just increases the reference count for the shm segments.
- * This is not what we want, so we need to (1) create new shm segments,
- * (2) manually copy the contents of the old to the new segments,
- * (3) detach from the old segments, and let paradynd know what segment
- * key numbers we have chosen for the new segments, so that it may attach
- * to them (and paradynd may also reset some values w/in the segments).
+ * Instrumented by paradynd to be called at the exit point of fork().  So, the address
+ * space (including the instrumentation heap) has already been duplicated, though some
+ * meta-data still needs to be manually duplicated by paradynd.  Note that for
+ * shm_sampling, a fork() just increases the reference count for the shm segment.
+ * This is not what we want, so we need to (1) detach from the old segment, (2) create
+ * a new shm segment and attach to it in the *same* virtual addr spot as the old
+ * one (otherwise, references to the shm segment will be out of date!), and (3) let
+ * let paradynd know what segment key numbers we have chosen for the new segments, so
+ * that it may attach to them (paradynd may also set some values w/in the segments such
+ * as mid's).
  * 
- * Who sends the initial trace record to paradynd?  Right now, it's the parent,
- * but we probably need to switch it to the child, since it's the child who'll
- * create new shm segments and thus only the child can inform paradynd of the
- * chosen keys.  One might argue that the chlid does't have a traceRecord
- * connection yet, but fork() should dup() all fd's and take care of that
- * limitation...
+ * Who sends the initial trace record to paradynd?  The child creates the new shm seg
+ * and thus only the child can inform paradynd of the chosen keys.  One might argue that
+ * the child does't have a traceRecord connection yet, but fork() should dup() all fd's
+ * and take care of that limitation...
 ************************************************************************/
 
 #ifdef SHM_SAMPLING
 void pickNewShmSegBaseKey(key_t *resultKey,
 			  int *resultSegId) {
-   /* doesn't create anything; just picks an available trio of shm segs */
+   /* picks an avail shm seg and creates it.  Doesn't attach to it, though */
 
    *resultKey = the_shmSegKey; /* as good a place to start as any... */
 
    while (1) {
-      /* permissions should be chosen s.t. the request will fail if already exists */
+      /* permissions chosen s.t. the request will fail if already exists */
       int permissions = 0666 | IPC_CREAT | IPC_EXCL;
          /* using IPC_EXCL ensure failure if already-exists */
       int failure;
@@ -1402,191 +1311,228 @@ void pickNewShmSegBaseKey(key_t *resultKey,
       if (!failure)
          return;
 
-      /* On failure, fry the newly created segment. */
-      if (*resultSegId != -1)
-	 (void)shmctl(*resultSegId, IPC_RMID, 0);
-
-      /* ...and bump the key */
+      /* On failure, we assume the shmget() didn't create anything. */
+      /* So, all we need to do is bump the key and retry... */
       (*resultKey)++;
    }
 }
 
-static void makeNewShmSegsCopy(void) {
-   void *new_shmSegAttachedPtr = NULL;
+static void makeNewShmSegCopy(void) {
+   /* detach from old shm segment, create new segment (IN THE SAME LOCATION AS THE OLD
+      ONE(*)) */
+   /* (*) the new shm segment MUST be in the same location as the old one, or else
+          any and all mini-tramps will be pointing to invalid addresses in the child
+          process! (the shm seg will appear to have moved) */
+
+   /* question: we detach from the old seg; should we also destroy it?  No, certainly
+      not, since paradynd still cares about measuring the old process. */
+   /* note: we used to memcpy all data from the old seg to the new one.  Now, since
+      we must detach from the old one before creating the new one, we can't do that.
+      Instead. we let paradynd do that. */
 
    key_t new_shmSegKey;
    int new_shmSegShmId;
+   void *new_attachedAtPtr;
 
-   fprintf(stderr, "dyninst-fork makeNewShmSegsCopy: welcome\n");
-   fflush(stderr);
-
-   /* create new shm segments, copy data from the existing ones,
-      detach from the old ones, and return the key of the new one(s) */
-   
-   /* 2. Pick a new, unused, key: */
+   /* 1. Pick a new, unused, key: */
    pickNewShmSegBaseKey(&new_shmSegKey, &new_shmSegShmId);
-      /* picks, creates, and attaches (must do all 3 to avoid a race condition
-         with competing forking processes, if any). */
+      /* picks & creates new segment; doesn't attach to it though */
 
-   fprintf(stderr, "d-f makeNewShmSegsCopy: did pickNewShmSegBaseKey; chose key %d\n",
-	   (int)new_shmSegKey);
-   fflush(stderr);
+   shmsampling_printf("d-f makeNewShmSegsCopy: did pickNewShmSegBaseKey; chose key %d\n",
+		      (int)new_shmSegKey);
 
-   /* 3. Attach to the segs, accounting for the 16 bytes of meta-data reserved
-         at the start of each seg by paradynd: */
+   /* 2. Attach to the seg, IN THE SAME LOCATION AS THE OLD ONE.  In order to
+         achieve this sleight of hand, we must detach from the old one first, and pass
+         an address param to shm_attach.  Luckily, this doesn't require destroying the
+	 old segment --- a good thing, since we mustn't do that (paradynd still cares
+	 about measuring the parent!) */
 
-   new_shmSegAttachedPtr = shm_attach(new_shmSegShmId);
+   new_attachedAtPtr = shm_detach_reattach_overlap(new_shmSegShmId,
+						   the_shmSegAttachedPtr);
+   if (new_attachedAtPtr == (void*)-1) {
+      /* total failure; could not attach */
+      fprintf(stderr, "makeNewShmSegCopy: failed to attach to new segment at all.\n");
+      abort();
+   }
+   else if (new_attachedAtPtr != NULL) {
+      /* partial failure; could not attach in the same location; could only attach at a
+	 different location.  For now at least, this is as bad as a total failure */
+      fprintf(stderr, "makeNewShmSegCopy: could not attach to new segment in the same location as the old one.\n");
+      abort();
+   }
 
-   fprintf(stderr, "d-f makeNewShmSegsCopy: attached to new segs\n");
-   fflush(stderr);
+   shmsampling_printf("d-f makeNewShmSegsCopy pid=%d: attached to new seg key=%d IN SAME LOC!\n", (int)getpid(), new_shmSegKey);
+   shmsampling_printf("d-f makeNewShmSegsCopy: also, detached from old seg.\n");
 
-   /* 4. Copy data from the old shm segs the new ones */
-   /* Actually, we could let paradynd do this -- should we?  fork() semantics
-      argues that we should (fork() shouldn't return until a true copy is made);
-      do-more-work-in-paradynd argues that paradynd should. */
-   memcpy(new_shmSegAttachedPtr, the_shmSegAttachedPtr, the_shmSegNumBytes);
+   /* 3. Copy data from the old shm seg the new one */
+   /* (We don't [and can't] do this here any more, since we've already detached from the
+      old segment.  It was always a toss-up whether to let paradynd do the memcpy.
+      Now it must; and it does.) */
 
-   fprintf(stderr, "d-f makeNewShmSegsCopy: memcopied data from old to new segs\n");
-   fflush(stderr);
-
-   /* 5. Detach from the old shm seg */
-   shm_detach(the_shmSegAttachedPtr);
-
-   fprintf(stderr, "d-f makeNewShmSegsCopy: detached from old segs.\n");
-   fflush(stderr);
-
-   /* 6. update important global variables; only the sizes don't change */
+   /* 4. update important global variables; the key and shmid change; the sizes and the
+         attached location doesn't change */
    the_shmSegKey = new_shmSegKey;
    the_shmSegShmId = new_shmSegShmId;
-   the_shmSegAttachedPtr = new_shmSegAttachedPtr;
+   /* the_shmSegAttachedPtr = new_shmSegAttachedPtr; MUSTN'T CHANGE */
 
-   fprintf(stderr, "d-f makeNewShmSegsCopy: done. New vrbles are:\n");
-   fprintf(stderr, "key: %d, attachedPtr=%x\n",
-	   (int)new_shmSegKey, (unsigned)new_shmSegAttachedPtr);
-   fprintf(stderr, "and segid is %d.\n",
-	   new_shmSegShmId);
-   fflush(stderr);
-
-   /* all done, successfully */
+   shmsampling_printf("d-f makeNewShmSegsCopy: done.\n");
 }
 #endif
 
+
+
+/* debug code should call forkexec_printf as a way of avoiding
+   putting #ifdef FORK_EXEC_DEBUG around their fprintf(stderr, ...) statements,
+   which can lead to horribly ugly code --ari */
+/* similar for SHM_SAMPLING_DEBUG */
+void forkexec_printf(const char *fmt, ...) {
+#ifdef FORK_EXEC_DEBUG
+   va_list args;
+   va_start(args, fmt);
+
+   vfprintf(stderr, fmt, args);
+
+   va_end(args);
+
+   fflush(stderr);
+#endif
+}
+
+
 void
 DYNINSTfork(int pid) {
-    printf("fork called with pid = %d\n", pid);
+    //forkexec_printf("DYNINSTfork called with pid = %d\n", pid);
+    printf("DYNINSTfork -- WELCOME -- called with pid = %d\n", pid);
     fflush(stdout);
 
     if (pid > 0) {
-       /* We used to send TR_FORK trace record here, in the parent.
-	  But shm sampling requires the child to do this, so we moved
-	  the code there... */
+       /* We used to send TR_FORK trace record here, in the parent.  But shm sampling
+          requires the child to do this, so we moved the code there... */
+       /* See metric.C for an explanation why it's important for the parent to
+          be paused (not just the child) while propagating metric instances.
+          Here's the short explanation: to initialize some of the timers and counters,
+	  the child will copy some fields from the parent, and for the child to get
+          values from the parent after the fork would be a bad thing.  --ari */
 
-       /* This is new (though probably not really needed, I feel more comfortable
-	  knowing that the parent process is stopped while we might be copying stuff
-	  from it) */
-//       fprintf(stderr, "DYNINSTfork parent stopping at DYNINSTbreakPoint()...\n");
-//       DYNINSTbreakPoint();
+       forkexec_printf("DYNINSTfork parent; about to DYNINSTbreakPoint\n");
+       fflush(stderr);
+
+       DYNINSTbreakPoint();
     } else if (pid == 0) {
        /* we are the child process */
 	int pid = getpid();
-	int sid = 0;
-	const time64 process_time = DYNINSTgetCPUtime();
-	const time64 wall_time = DYNINSTgetWalltime();
-
-	traceFork forkRec;
+	int ppid = getppid();
 
         char *traceEnv;
 	unsigned long tracePort;
 	unsigned long hostAddr;
 
-	fprintf(stderr, "DYNINSTfork child; welcome.\n");
-	fflush(stderr);
+       forkexec_printf("DYNINSTfork CHILD -- welcome\n");
+       fflush(stderr);
 
 #ifdef SHM_SAMPLING
-	/* Here, we need to create new shm segments, copy data from
-	   the existing ones, detach from the old ones, and make a note
-	   of the keys of the new ones */
-	makeNewShmSegsCopy();
-#endif
-	
-	forkRec.ppid  = getppid(); /* not getpid() */
-        forkRec.pid   = pid;
-        forkRec.npids = 1;
-        forkRec.stride = 0;
-
-#ifdef SHM_SAMPLING
-	forkRec.the_shmSegKey = the_shmSegKey;
-        forkRec.appl_attachedAtPtr = the_shmSegAttachedPtr;
+	/* Here, we need to detach from the old shm segment, create a new one
+	   (in the same virtual memory location as the old one), and attach to it */
+	makeNewShmSegCopy();
 #endif
 
-	fprintf(stderr, "dyninst-fork sending TR_FORK record...\n");
-	fflush(stderr);
+	/* Here is where we used to send a TR_FORK trace record.  But we've found
+	   that sending a trace record followed by a DYNINSTbreakPoint had unpredictable
+	   results -- sometimes the breakPoint would get delivered to paradynd first.
+	   So idea #2 was to fill in DYNINST_bootstrapStruct and then do a breakpoint.
+	   But the breakPoint won't get forwarded to paradynd because paradynd hasn't
+	   yet attached to the child process.
+	   So idea #3 (the current one) is to just send all that information along the
+	   new connection (whereas we used to just send the pid).
+	 */
 
-        DYNINSTgenerateTraceRecord(sid,TR_FORK,sizeof(forkRec), &forkRec,
-				   1, /* 1 --> flush now */
-				   wall_time,process_time);
-	
 	/* get the socket port number for traces from the environment */
 	{ 
+	  extern long strtol(const char *, char **, int);
+
 	  char *s1 = 0, *s2 = 0;
 	  traceEnv = getenv("PARADYND_TRACE_SOCKET");
 	  assert(traceEnv);
+
 	  tracePort = (unsigned long)strtol(traceEnv, &s1, 10);
 	  assert(traceEnv != s1);
+
 	  hostAddr = (unsigned long)strtol(s1, &s2, 10);
 	  assert(s1 != s2);
 	}
 
-#ifndef rs6000_ibm_aix4_1
-	/* this is not needed on AIX since we will get a SIGTRAP on a fork */
-	/* stop here and wait for paradynd to insert the initial instrumentation */
-	fprintf(stderr, "dyninst-fork about to DYNINSTbreakPoint() to wait for daemon to insert initial instrumentation.\n");
-	fflush(stderr);
-	DYNINSTbreakPoint();
-#endif
-
 	/* set up a connection to the daemon for the trace stream */
-	fprintf(stderr, "dyninst-fork closing old connections.\n");
-	fflush(stderr);
+	forkexec_printf("dyninst-fork child closing old connections...\n");
         fclose(DYNINSTtraceFp);
 	close(CONTROLLER_FD);
 
-	fprintf(stderr, "dyninst-fork about to open new connection.\n");
-	fflush(stderr);
+	forkexec_printf("dyninst-fork child opening new connection.\n");
 	DYNINSTtraceFp = fdopen(connectToDaemon(tracePort, hostAddr), "w");
 
-	fprintf(stderr, "dyninst-fork opened new connection...now sending pid along it\n");
-	fflush(stderr);
-	fwrite(&pid, sizeof(pid), 1, DYNINSTtraceFp);
+	forkexec_printf("dyninst-fork child pid %d opened new connection...now sending pid etc. along it\n", (int)getpid());
 
-	fprintf(stderr, "dyninst-fork finally calling DYNINSTinit(-1,-1)\n");
-	fflush(stderr);
+	fwrite(&pid, sizeof(pid), 1, DYNINSTtraceFp);
+	fwrite(&ppid, sizeof(ppid), 1, DYNINSTtraceFp);
+#ifdef SHM_SAMPLING
+	fwrite(&the_shmSegKey, sizeof(the_shmSegKey), 1, DYNINSTtraceFp);
+	fwrite(&the_shmSegAttachedPtr, sizeof(the_shmSegAttachedPtr),
+	       1, DYNINSTtraceFp);
+#endif
+
+	fflush(DYNINSTtraceFp);
+
+	forkexec_printf("dyninst-fork child pid %d sent pid; now doing DYNINSTbreakPoint() to wait for paradynd to initialize me.\n", (int)getpid());
+
+	DYNINSTbreakPoint();
+
+	forkexec_printf("dyninst-fork child past DYNINSTbreakPoint()...calling DYNINSTinit(-1,-1)\n");
+
 	DYNINSTinit(-1,-1); /* -1 params indicate called from DYNINSTfork */
 
-	fprintf(stderr, "dyninst-fork done...running freely.\n");
-	fflush(stderr);
+	forkexec_printf("dyninst-fork child done...running freely.\n");
     }
 }
 
 void
 DYNINSTexec(char *path) {
-    traceExec execRec;
-    time64 process_time = DYNINSTgetCPUtime();
-    time64 wall_time = DYNINSTgetWalltime();
+    /* paradynd instruments programs to call this routine on ENTRY to exec
+       (so the exec hasn't yet taken place).  All that we do here is inform paradynd
+       of the (pending) exec, and pause ourselves.  Paradynd will continue us after
+       digesting the info...then, presumably, a TRAP will be generated, as the exec
+       syscall completes. */
 
-    printf("execve called, path = %s\n", path);
-    if (strlen(path) + 1 > sizeof(execRec.path)) {
-      fprintf(stderr, "DYNINSTexec failed\n");
+    forkexec_printf("execve called, path = %s\n", path);
+
+    if (strlen(path) + 1 > sizeof(DYNINST_bootstrap_info.path)) {
+      fprintf(stderr, "DYNINSTexec failed...path name too long\n");
       abort();
     }
-    execRec.pid = getpid();
-    strcpy(execRec.path, path);
-    DYNINSTgenerateTraceRecord(0, TR_EXEC, sizeof(execRec), &execRec, 1,
-			      wall_time, process_time);
 
+    /* We used to send a TR_EXEC record here and then DYNINSTbreakPoint().
+       But we've seen a race condition -- sometimes the break-point is delivered
+       to paradynd before the trace record.  So instead, we fill in
+       DYNINST_bootstrap_info and then do a breakpoint.  This approach is the same
+       as the end of DYNINSTinit. */
+    DYNINST_bootstrap_info.event = 3;
+    DYNINST_bootstrap_info.pid = getpid();
+    strcpy(DYNINST_bootstrap_info.path, path);
+
+    /* The following turns OFF the alarm signal (the 0,0 parameters); when
+       DYNINSTinit() runs again for the exec'd process, it'll be turned back on.  This
+       stuff is necessary to avoid the process dying on an uncaught sigalarm while
+       processing the exec */
 #ifndef SHM_SAMPLING
-    DYNINST_install_ualarm(0,0); 
+    DYNINST_install_ualarm(0,0);
 #endif
+
+    forkexec_printf("DYNINSTexec before breakpoint\n");
+
+    DYNINSTbreakPoint();
+
+    /* after the breakpoint, clear DYNINST_bootstrap_info */
+    DYNINST_bootstrap_info.event = 0; /* 0 --> nothing */
+
+    forkexec_printf("DYNINSTexec after breakpoint...allowing the exec to happen now\n");
 }
 
 void
@@ -1594,6 +1540,9 @@ DYNINSTexecFailed() {
     time64 process_time = DYNINSTgetCPUtime();
     time64 wall_time = DYNINSTgetWalltime();
     int pid = getpid();
+
+    forkexec_printf("DYNINSTexecFAILED\n");
+
     DYNINSTgenerateTraceRecord(0, TR_EXEC_FAILED, sizeof(int), &pid, 1,
 			       process_time, wall_time);
 
@@ -1625,7 +1574,7 @@ DYNINSTprintCost(void) {
 #ifndef SHM_SAMPLING
     value = DYNINSTgetObservedCycles(0);
 #else
-    value = 100; /* foo */
+    value = *(unsigned*)((char*)DYNINST_bootstrap_info.appl_attachedAtPtr + 12);
 #endif
     stats.instCycles = value;
 
@@ -1634,7 +1583,7 @@ DYNINSTprintCost(void) {
 #ifndef SHM_SAMPLING
     stats.alarms      = DYNINSTtotalAlarmExpires;
 #else
-    stats.alarms      = 100; /* foo */
+    stats.alarms      = 0;
 #endif
     stats.numReported = DYNINSTnumReported;
     stats.instTime    = (double)value/(double)MILLION;
@@ -1733,7 +1682,8 @@ DYNINSTreportNewTags(void) {
           a dummy value to save a little time. */
 
     time64 wall_time = DYNINSTgetWalltime();
-       /* this _is_ needed; paradynd keeps the 'creation' time of each resource (resource.h) */
+       /* this _is_ needed; paradynd keeps the 'creation' time of each resource
+          (resource.h) */
 
 #ifdef COSTTEST
     time64 startT,endT;
@@ -1845,7 +1795,7 @@ DYNINSTreportCounter(intCounter* counter) {
     DYNINSTtotalSamples++;
 
     DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, 0,
-			wall_time,process_time);
+			       wall_time,process_time);
 
 #ifdef COSTTEST
     endT=DYNINSTgetCPUtime();
@@ -1856,11 +1806,107 @@ DYNINSTreportCounter(intCounter* counter) {
 }
 #endif
 
+/************************************************************************
+ * void DYNINSTreportTimer(tTimer* timer)
+ *
+ * report the timer `timer' to the paradyn daemon.
+************************************************************************/
+
+#ifndef SHM_SAMPLING
+void
+DYNINSTreportTimer(tTimer *timer) {
+    time64 total;
+    traceSample sample;
+
+#ifdef COSTTEST
+    time64 endT;
+    time64 startT = DYNINSTgetCPUtime();
+#endif
+
+    time64 process_time = DYNINSTgetCPUtime();
+    time64 wall_time = DYNINSTgetWalltime();
+    if (timer->mutex) {
+        total = timer->snapShot;
+	//printf("id %d using snapshot value of %f\n", timer->id.id, (double)total);
+    }
+    else if (timer->counter) {
+        /* timer is running */
+        time64 now;
+        if (timer->type == processTime) {
+            now = process_time;
+        } else {
+            now = wall_time;
+        }
+        total = now - timer->start + timer->total;
+	//printf("id %d using added-to-total value of %f\n", timer->id.id, (double)total);
+    }
+    else {
+        total = timer->total;
+	//printf("using %d total value of %f\n", timer->id.id, (double)total);
+    }
+
+    if (total < timer->lastValue) {
+        if (timer->type == processTime) {
+            printf("process ");
+        }
+        else {
+            printf("wall ");
+        }
+        printf("time regressed timer %d, total = %f, last = %f\n",
+            timer->id.id, (float) total, (float) timer->lastValue);
+        if (timer->counter) {
+            printf("timer was active\n");
+        } else {
+            printf("timer was inactive\n");
+        }
+        printf("mutex=%d, counter=%d, snapShot=%f\n",
+            (int) timer->mutex, (int) timer->counter,
+            (double) timer->snapShot);
+        printf("start = %f, total = %f\n",
+	       (double) timer->start, (double) timer->total);
+        fflush(stdout);
+        abort();
+    }
+
+    timer->lastValue = total;
+
+    sample.id = timer->id;
+    if (timer->normalize == 0) {
+       fprintf(stderr, "DYNINSTreportTimer WARNING: timer->normalize is 0!!\n");
+    }
+
+    sample.value = ((double) total) / (double) timer->normalize;
+    // check for nan now?
+       // NOTE: The type of sample.value is float, not double, so some precision
+       //       is lost here.  Besides, wouldn't it be better to send the raw
+       //       "total", with no loss in precision; especially since timer->normalize
+       //       always seems to be 1 million? (Well, it differs for cm5)
+    DYNINSTtotalSamples++;
+
+#ifdef ndef
+    printf("raw sample %d = %f time = %f\n", sample.id.id, sample.value,
+				(double)(now/1000000.0));  
+#endif
+
+    DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, 0,
+				wall_time,process_time);
+
+#ifdef COSTTEST
+    endT=DYNINSTgetCPUtime();
+    DYNINSTtest[5]+=endT-startT;
+    DYNINSTtestN[5]++;
+#endif 
+}
+#endif
+
 
 
 
 /************************************************************************
  * DYNINST test functions.
+ *
+ * Since these routines aren't used regularly, shouldn't they be surrounded
+ * with an ifdef? --ari
 ************************************************************************/
 
 void DYNINSTsimplePrint(void) {
@@ -1902,4 +1948,3 @@ DYNINSTgetMsgVectBytes(struct msghdr *msg)
     }
     return count;
 }
-
