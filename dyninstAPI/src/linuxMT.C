@@ -47,5 +47,21 @@
 
 /* FIXME: placeholder.  Also, this should be platform-specific. */
 Frame dyn_thread::getActiveFrameMT() {
-	return Frame();
-	}
+   Frame newFrame;
+
+   updateLWP();
+
+   if (lwp) {
+	  // We have a kernel thread
+	  Frame lwpFrame = lwp->getActiveFrame();
+	  newFrame = Frame(lwpFrame.getPC(), lwpFrame.getFP(),
+					   lwpFrame.getPID(), this, lwp, true);
+   }
+   else {
+	  fprintf(stderr,
+			  "Error: attempt to get frame info for non-scheduled thread\n");
+   }
+   return newFrame;
+}
+
+
