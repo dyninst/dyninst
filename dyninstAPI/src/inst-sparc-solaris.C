@@ -43,6 +43,11 @@
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc-solaris.C,v $
+ * Revision 1.3  1996/10/03 22:12:12  mjrg
+ * Removed multiple stop/continues when inserting instrumentation
+ * Fixed bug on process termination
+ * Removed machine dependent code from metric.C and process.C
+ *
  * Revision 1.2  1996/10/01 18:25:30  newhall
  * bug fix to instPoint::instPoint when relocating a function
  *
@@ -2632,7 +2637,12 @@ void returnInstance::installReturnInstance(process *proc) {
 			 (caddr_t) instructionSeq); 
 }
 
-void returnInstance::addToReturnWaitingList(instruction insn, Address pc) {
+void returnInstance::addToReturnWaitingList(Address pc, process *proc) {
+    instruction insn;
+    instruction insnTrap;
+    generateBreakPoint(insnTrap);
+    proc->readDataSpace((caddr_t)pc, sizeof(insn), (char *)&insn, true);
+    proc->writeTextSpace((caddr_t)pc, sizeof(insnTrap), (caddr_t)&insnTrap);
 
     instWaitingList *instW = new instWaitingList; 
     
@@ -2650,3 +2660,9 @@ void generateBreakPoint(instruction &insn) {
     insn.raw = BREAK_POINT_INSN;
 }
 
+
+void instWaitingList::cleanUp(process *proc, Address pc) {
+    proc->writeTextSpace((caddr_t)pc, sizeof(relocatedInstruction),
+		    (caddr_t)&relocatedInstruction);
+    proc->writeTextSpace((caddr_t)addr_, instSeqSize, (caddr_t)instructionSeq);
+}

@@ -1421,7 +1421,7 @@ void returnInstance::installReturnInstance(process *proc) {
     proc->writeTextSpace((caddr_t)addr_, instSeqSize, (caddr_t) instructionSeq); 
 }
 
-void returnInstance::addToReturnWaitingList(instruction insn, Address pc) {
+void returnInstance::addToReturnWaitingList(Address , process * ) {
     P_abort();
 }
 
@@ -1430,5 +1430,6 @@ void generateBreakPoint(instruction &insn) {
 }
 
 
-
-
+void instWaitingList::cleanUp(process * , Address ) {
+    P_abort();
+}

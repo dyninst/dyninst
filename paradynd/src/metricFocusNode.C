@@ -43,6 +43,11 @@
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
+ * Revision 1.107  1996/10/03 22:12:01  mjrg
+ * Removed multiple stop/continues when inserting instrumentation
+ * Fixed bug on process termination
+ * Removed machine dependent code from metric.C and process.C
+ *
  * Revision 1.106  1996/09/26 18:58:51  newhall
  * added support for instrumenting dynamic executables on sparc-solaris
  * platform
@@ -371,9 +376,18 @@ void metricDefinitionNode::propagateMetricInstance(process *p) {
     components += mi->components[0];
     mi->components[0]->aggregators[0] = this;
     mi->components[0]->samples[0] = aggSample.newComponent();
-    if (!internal)
-      mi->components[0]->insertInstrumentation();
 
+    if (!internal) {
+      bool needToCont = false;
+      if (p->status() == running && p->pause()) {
+	needToCont = true;
+      }
+
+      mi->components[0]->insertInstrumentation();
+      mi->components[0]->checkAndInstallInstrumentation();
+
+      if (needToCont) p->continueProc();
+    }
     // update cost
     float cost = mi->cost();
     if (cost > originalCost_) {
@@ -433,6 +447,9 @@ void metricDefinitionNode::removeThisInstance() {
     aggregators[u]->aggSample.removeComponent(samples[u]);
     aggregators[u]->removeFromAggregate(this); 
   }
+  allMIComponents.undef(flat_name_);
+  for (unsigned w = 0; w < data.size(); w++)
+    midToMiMap.undef(data[w]->getSampleId());
 }
 
 
@@ -442,8 +459,11 @@ void metricDefinitionNode::removeThisInstance() {
 void removeFromMetricInstances(process *proc) {
     vector<metricDefinitionNode *> MIs = allMIComponents.values();
     for (unsigned j = 0; j < MIs.size(); j++) {
-      if (MIs[j]->proc() == proc)
-	MIs[j]->removeThisInstance();
+      metricDefinitionNode *mi = MIs[j];
+      if (mi->proc() == proc) {
+	mi->removeThisInstance();
+	delete mi;
+      }
     }
     costMetric::removeProcessFromAll(proc);
 }
@@ -452,7 +472,21 @@ void removeFromMetricInstances(process *proc) {
 // called when a process forks. this is a metricDefinitionNode of the parent.
 // Duplicate it for the child
 metricDefinitionNode *metricDefinitionNode::forkProcess(process *child) {
-    metricDefinitionNode *mi = new metricDefinitionNode(child, met_, focus_, flat_name_, aggOp);
+    // compute the flat_name for the new component: the machine and process
+    // are always defined for the component, even if they are not defined
+    // for the aggregate metric.
+    string flatName(met_);
+    for (unsigned u1 = 0; u1 < focus_.size(); u1++) {
+      if (focus_[u1][0] == "Process")
+	flatName += focus_[u1][0] + child->rid->part_name();
+      else if (focus_[u1][0] == "Machine")
+	flatName += focus_[u1][0] + machineResource->part_name();
+      else
+	for (unsigned u2 = 0; u2 < focus_[u1].size(); u2++)
+	  flatName += focus_[u1][u2];
+    }
+
+    metricDefinitionNode *mi = new metricDefinitionNode(child, met_, focus_, flatName, aggOp);
 
     for (unsigned u = 0; u < data.size(); u++) {
       mi->data += dataReqNode::forkProcess(mi, data[u]);
@@ -466,16 +500,18 @@ metricDefinitionNode *metricDefinitionNode::forkProcess(process *child) {
 }
 
 void metricDefinitionNode::handleFork(process *parent, process *child) {
-    vector<metricDefinitionNode *> MIs = allMIs.values();
+    vector<metricDefinitionNode *> MIs = allMIComponents.values();
     for (unsigned u = 0; u < MIs.size(); u++) {
       metricDefinitionNode *mi = MIs[u];
-      for (unsigned v = 0; v < mi->components.size(); v++) {
-	if (mi->components[v]->proc() == parent) {
-	  metricDefinitionNode *childMI = mi->components[v]->forkProcess(child);
-	  if (mi->focus_[resource::process].size()== 1) {
-	    mi->components += childMI;
-	    childMI->aggregators += mi;
-	    childMI->samples += mi->aggSample.newComponent();
+      if (mi->proc() == parent) {
+	metricDefinitionNode *childMI = mi->forkProcess(child);
+	for (unsigned v = 0; v < mi->aggregators.size(); v++) {
+	  metricDefinitionNode *rootMI = mi->aggregators[v];
+	  if (rootMI->focus_[resource::process].size() == 1) {
+	    rootMI->components += childMI;
+	    childMI->aggregators += rootMI;
+	    childMI->samples += rootMI->aggSample.newComponent();
+	    allMIComponents[childMI->flat_name_] = childMI;
 	  }
 	  else {
 	    // this metric is only being computed for selected processes.
@@ -496,7 +532,8 @@ static u_int test_heapsize = 0;
 // made a member function of metricDefinitionNode instead?
 // Especially since it clearly is an integral part of the class;
 // in particular, it sets the crucial vrble "id_"
-int startCollecting(string& metric_name, vector<u_int>& focus, int id) 
+int startCollecting(string& metric_name, vector<u_int>& focus, int id, 
+		    vector<process *> &procsToCont) 
 {
     bool internal = false;
 
@@ -530,8 +567,21 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id)
 #endif
 
     if (!internal) {
+
+        // pause processes that are running and add them to procsToCont.
+        // We don't rerun the processes after we insert instrumentation,
+        // this will be done by our caller, after all instrumentation 
+        // has been inserted.
+	for (unsigned u = 0; u < mi->components.size(); u++) {
+	  process *p = mi->components[u]->proc();
+	  if (p->status() == running && p->pause()) {
+	    procsToCont += p;
+	  }
+	}
+
 	mi->insertInstrumentation();
 	mi->checkAndInstallInstrumentation();
+
     }
 
 #ifdef ndef
@@ -584,8 +634,8 @@ bool metricDefinitionNode::insertInstrumentation()
       bool res = proc_->pause();
       if (!res)
 	return false;
-      //if (proc_->status() == exited)
-      //  return false;
+      if (proc_->status() == exited)
+        return false;
       unsigned size = data.size();
       for (unsigned u=0; u<size; u++)
         if (!(data[u]->insertInstrumentation(this))) return(false);
@@ -604,11 +654,7 @@ bool metricDefinitionNode::checkAndInstallInstrumentation() {
 
     int pc;
     Frame frame;
-    instruction insn;
-    instruction insnTrap;
 
-    generateBreakPoint(insnTrap);
-    //insnTrap.raw = BREAK_POINT_INSN;
     bool needToCont = false;
 
     if (installed_) return(true);
@@ -639,10 +685,7 @@ bool metricDefinitionNode::checkAndInstallInstrumentation() {
                 frame = frame.getPreviousStackFrameInfo(proc_);// more work here
                 pc = frame.getPC();                            // for funcEntry.
 
-                proc_->readDataSpace((caddr_t)pc, sizeof(insn), (char *)&insn, true);
-                proc_->writeTextSpace((caddr_t)pc, sizeof(insnTrap), (caddr_t)&insnTrap);
-
-                returnInsts[u] -> addToReturnWaitingList(insn, pc);
+                returnInsts[u] -> addToReturnWaitingList(pc, proc_);
             }
         }
 

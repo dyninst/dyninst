@@ -43,6 +43,11 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
+ * Revision 1.38  1996/10/03 22:12:03  mjrg
+ * Removed multiple stop/continues when inserting instrumentation
+ * Fixed bug on process termination
+ * Removed machine dependent code from metric.C and process.C
+ *
  * Revision 1.37  1996/08/20 19:03:17  lzheng
  * Implementation of moving multiple instructions sequence and
  * Splitting the instrumentation into two phases
@@ -197,7 +202,8 @@ private:
    instance shared between two aggregate metricDefinitionNodes.
 */
 class metricDefinitionNode {
-friend int startCollecting(string&, vector<u_int>&, int id);
+friend int startCollecting(string&, vector<u_int>&, int id, 
+			   vector<process *> &procsToContinue);
 
 public:
   // styles are enumerated in util/h/aggregation.h
@@ -330,8 +336,12 @@ extern void reportInternalMetrics();
  *
  * focus		- a list of resources
  * metricName		- what metric to collect data for
+ * id                   - metric id
+ * procsToContinue      - a list of processes that had to be stopped to insert
+ *                        instrumentation. The caller must continue these processes.
  */
-int startCollecting(string& metricName, vector<u_int>& focus); 
+int startCollecting(string& metricName, vector<u_int>& focus, int id,
+		    vector<process *> &procsToContinue); 
 
 /*
  * Return the expected cost of collecting performance data for a single

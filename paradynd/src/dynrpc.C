@@ -43,6 +43,11 @@
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
+ * Revision 1.53  1996/10/03 22:12:04  mjrg
+ * Removed multiple stop/continues when inserting instrumentation
+ * Fixed bug on process termination
+ * Removed machine dependent code from metric.C and process.C
+ *
  * Revision 1.52  1996/09/26 18:58:29  newhall
  * added support for instrumenting dynamic executables on sparc-solaris
  * platform
@@ -270,9 +275,18 @@ void dynRPC::enableDataCollection(vector<T_dyninstRPC::focusStruct> focus,
     assert(focus.size() == metric.size());
     return_id.resize(metric.size());
     totalInstTime.start();
+
+    vector<process *>procsToContinue;
+
     for (u_int i=0;i<metric.size();i++) {
-        return_id[i] = startCollecting(metric[i], focus[i].focus, mi_ids[i]);
+        return_id[i] = startCollecting(metric[i], focus[i].focus, mi_ids[i],
+				       procsToContinue);
     }
+
+    // continue the processes that were stopped in start collecting
+    for (unsigned u = 0; u < procsToContinue.size(); u++)
+      procsToContinue[u]->continueProc();
+
     totalInstTime.stop();
     enableDataCallback(daemon_id,return_id,mi_ids,request_id);
 }
@@ -282,7 +296,10 @@ int dynRPC::enableDataCollection2(vector<u_int> focus, string met, int gid)
   int id;
 
   totalInstTime.start();
-  id = startCollecting(met, focus, gid);
+  vector<process *>procsToContinue;
+  id = startCollecting(met, focus, gid, procsToContinue);
+  for (unsigned u = 0; u < procsToContinue.size(); u++)
+    procsToContinue[u]->continueProc();
   totalInstTime.stop();
   // cout << "Enabled " << met << " = " << id << endl;
   return(id);

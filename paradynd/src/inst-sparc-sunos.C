@@ -2267,7 +2267,12 @@ void returnInstance::installReturnInstance(process *proc) {
     proc->writeTextSpace((caddr_t)addr_, instSeqSize, (caddr_t) instructionSeq); 
 }
 
-void returnInstance::addToReturnWaitingList(instruction insn, Address pc) {
+void returnInstance::addToReturnWaitingList(Address pc, process *proc) {
+    instruction insn;
+    instruction insnTrap;
+    generateBreakPoint(insnTrap);
+    proc->readDataSpace((caddr_t)pc, sizeof(insn), (char *)&insn, true);
+    proc->writeTextSpace((caddr_t)pc, sizeof(insnTrap), (caddr_t)&insnTrap);
 
     instWaitingList *instW = new instWaitingList; 
     
@@ -2285,3 +2290,9 @@ void generateBreakPoint(instruction &insn) {
     insn.raw = BREAK_POINT_INSN;
 }
 
+
+void instWaitingList::cleanUp(process *proc, Address pc) {
+    proc->writeTextSpace((caddr_t)pc, sizeof(relocatedInstruction),
+		    (caddr_t)&relocatedInstruction);
+    proc->writeTextSpace((caddr_t)addr_, instSeqSize, (caddr_t)instructionSeq);
+}

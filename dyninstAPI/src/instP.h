@@ -43,6 +43,11 @@
  * instP.h - interface between inst and the arch specific inst functions.
  *
  * $Log: instP.h,v $
+ * Revision 1.18  1996/10/03 22:12:14  mjrg
+ * Removed multiple stop/continues when inserting instrumentation
+ * Fixed bug on process termination
+ * Removed machine dependent code from metric.C and process.C
+ *
  * Revision 1.17  1996/09/26 18:58:43  newhall
  * added support for instrumenting dynamic executables on sparc-solaris
  * platform
@@ -171,7 +176,7 @@ class returnInstance {
 
     bool checkReturnInstance(const Address adr);
     void installReturnInstance(process *proc);
-    void addToReturnWaitingList(instruction insn, Address pc);
+    void addToReturnWaitingList(Address pc, process *proc);
 
   private: 
     instruction *instructionSeq;     /* instructions to be installed */
@@ -191,6 +196,8 @@ class instWaitingList {
     Address relocatedInsnAddr;
 
     instWaitingList *next;
+
+    void cleanUp(process *proc, Address pc);
 };
 
 extern List<instWaitingList *> instWList;

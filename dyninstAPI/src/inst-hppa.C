@@ -43,6 +43,11 @@
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.21  1996/10/03 22:12:09  mjrg
+ * Removed multiple stop/continues when inserting instrumentation
+ * Fixed bug on process termination
+ * Removed machine dependent code from metric.C and process.C
+ *
  * Revision 1.20  1996/09/13 21:41:53  mjrg
  * Implemented opcode ReturnVal for ast's to get the return value of functions.
  * Added missing calls to free registers in Ast.generateCode and emitFuncCall.
@@ -1562,7 +1567,12 @@ void returnInstance::installReturnInstance(process *proc) {
     proc->writeTextSpace((caddr_t)addr_, instSeqSize, (caddr_t) instructionSeq); 
 }
 
-void returnInstance::addToReturnWaitingList(instruction insn, Address pc) {
+void returnInstance::addToReturnWaitingList(Address pc, process * proc) {
+    instruction insn;
+    instruction insnTrap;
+    generateBreakPoint(insnTrap);
+    proc->readDataSpace((caddr_t)pc, sizeof(insn), (char *)&insn, true);
+    proc->writeTextSpace((caddr_t)pc, sizeof(insnTrap), (caddr_t)&insnTrap);
 
     instWaitingList *instW = new instWaitingList; 
     
@@ -1582,5 +1592,8 @@ void generateBreakPoint(instruction &insn) {
 }
 
 
-
-
+void instWaitingList::cleanUp(process *proc, Address pc) {
+    proc->writeTextSpace((caddr_t)pc, sizeof(relocatedInstruction),
+		    (caddr_t)&relocatedInstruction);
+    proc->writeTextSpace((caddr_t)addr_, instSeqSize, (caddr_t)instructionSeq);
+}

@@ -43,6 +43,11 @@
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
+ * Revision 1.63  1996/10/03 22:12:06  mjrg
+ * Removed multiple stop/continues when inserting instrumentation
+ * Fixed bug on process termination
+ * Removed machine dependent code from metric.C and process.C
+ *
  * Revision 1.62  1996/09/26 18:59:08  newhall
  * added support for instrumenting dynamic executables on sparc-solaris
  * platform
@@ -976,7 +981,6 @@ void handleProcessExit(process *proc, int exitStatus) {
     return;
 
   proc->Exited();
-  removeFromMetricInstances(proc);
   if (proc->traceLink >= 0) {
     processTraceStream(proc);
     P_close(proc->traceLink);
@@ -987,6 +991,7 @@ void handleProcessExit(process *proc, int exitStatus) {
     P_close(proc->ioLink);
     proc->ioLink = -1;
   }
+  removeFromMetricInstances(proc);
   --activeProcesses;
   if (activeProcesses == 0)
     disableAllInternalMetrics();
@@ -1414,11 +1419,7 @@ void process::cleanUpInstrumentation() {
     // Go thru the instWList to find out the ones to be deleted 
     instWaitingList *instW;
     if ((instW = instWList.find((void *)pc)) != NULL) {
-	writeTextSpace((caddr_t)pc, sizeof(instW->relocatedInstruction),
-		       (caddr_t)&instW->relocatedInstruction);
-	writeTextSpace((caddr_t)instW->addr_, instW->instSeqSize, 
-			     (caddr_t)instW->instructionSeq);
-	
+        instW->cleanUp(this, pc);
 	instWList.remove(instW);
     }
 
