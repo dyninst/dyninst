@@ -41,7 +41,7 @@
 
 /************************************************************************
  * clock access functions for solaris-2.
- * $Id: RTetc-solaris.c,v 1.40 2002/10/08 22:50:34 bernat Exp $
+ * $Id: RTetc-solaris.c,v 1.41 2002/12/14 16:38:00 schendel Exp $
  ************************************************************************/
 
 #include <signal.h>
@@ -105,6 +105,8 @@ void PARADYNos_init(int calledByFork, int calledByAttach) {
    wallPrevious_sw = 0;
 }
 
+void PARADYN_forkEarlyInit() {
+}
 
 
 

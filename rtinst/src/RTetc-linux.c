@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTetc-linux.c,v 1.24 2002/09/16 15:48:16 mikem Exp $ */
+/* $Id: RTetc-linux.c,v 1.25 2002/12/14 16:37:59 schendel Exp $ */
 
 /************************************************************************
  * RTetc-linux.c: clock access functions, etc.
@@ -137,6 +137,9 @@ void PARADYNos_init(int calledByFork, int calledByAttach) {
       abort();
     }
 #endif
+}
+
+void PARADYN_forkEarlyInit() {
 }
 
 static unsigned long long mulMillion(unsigned long long in) {

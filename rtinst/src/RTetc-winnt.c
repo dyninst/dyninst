@@ -42,7 +42,7 @@
 /************************************************************************
  * RTwinnt.c: runtime instrumentation functions for Windows NT
  *
- * $Id: RTetc-winnt.c,v 1.12 2002/11/13 16:27:03 bernat Exp $
+ * $Id: RTetc-winnt.c,v 1.13 2002/12/14 16:38:01 schendel Exp $
  *
  ************************************************************************/
 
@@ -86,6 +86,9 @@ void PARADYNos_init(int calledByFork, int calledByAttach) {
     else {
       hintBestWallTimerLevel = SOFTWARE_TIMER_LEVEL;
     }
+}
+
+void PARADYN_forkEarlyInit() {
 }
 
 void
