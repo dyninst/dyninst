@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.112 2004/01/19 21:53:56 schendel Exp $
+// $Id: unix.C,v 1.113 2004/01/23 22:01:30 tlmiller Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -563,7 +563,7 @@ int handleSigTrap(const procevent &event) {
     // On Linux we see a trap when the process execs. However,
     // there is no way to distinguish this trap from any other,
     // and so it is special-cased here.
-#if defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
     if (proc->nextTrapIsExec) {
         return handleExecExit(event);
     }
