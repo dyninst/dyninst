@@ -2,10 +2,13 @@
 // Ariel Tamches
 
 /* $Log: where4tree.C,v $
-/* Revision 1.12  1996/02/15 23:14:12  tamches
-/* added a level of indirection to obtain type-specific GCs for the various
-/* kind of arcs drawn in the tree.
+/* Revision 1.13  1996/03/08 00:23:49  tamches
+/* major update -- added support for hidden nodes
 /*
+ * Revision 1.12  1996/02/15 23:14:12  tamches
+ * added a level of indirection to obtain type-specific GCs for the various
+ * kind of arcs drawn in the tree.
+ *
  * Revision 1.11  1995/11/20 03:25:27  tamches
  * removed obstacles to compiling on g++ 2.7.1: fixed drawTriangle()
  * declaration and changed vector<NODEDATA *> to vector<const NODEDATA *>.
@@ -296,7 +299,7 @@ void where4tree<NODEDATA>::rethink_listbox_dimensions(const where4TreeConstants 
    // Doesn't assume that a listbox _should_ be up; we'll cheerfully set the
    // dimensions to indicate no-listbox-is-up if appropriate.
 
-   // Uses values of nameTextWidthIfInListbox to cache away terribly expensive
+   // Uses values of getWidthAsListboxItem() to cache away terribly expensive
    // calls to XTextWidth() [can you imagine calling it 1,000 times?  With rbi's
    // CM-Fortran programs, listboxes can easily get that big.]
 
@@ -307,9 +310,13 @@ void where4tree<NODEDATA>::rethink_listbox_dimensions(const where4TreeConstants 
       if (theChildren[childlcv].isExplicitlyExpanded)
          continue;
 
+      where4tree<NODEDATA> *childPtr = getChildTree(childlcv);
+      if (!childPtr->anything2Draw)
+         continue;
+
       numItemsInlistbox++;
 
-      ipmax(maxItemWidth, theChildren[childlcv].theTree->theNodeData.getWidthAsListboxItem());
+      ipmax(maxItemWidth, childPtr->theNodeData.getWidthAsListboxItem());
    }
 
    if (maxItemWidth == 0) {
@@ -485,6 +492,10 @@ void where4tree<NODEDATA>::draw_listbox(Tk_Window theTkWindow,
       if (theChildren[childlcv].isExplicitlyExpanded)
          continue;
 
+      const where4tree<NODEDATA> *childPtr = getChildTree(childlcv);
+      if (!childPtr->anything2Draw)
+         continue;
+
       if (currItemBoxTop > datapart_finishy)
          break; // this item is too far down; hence, remaining items will be too.
 
@@ -602,12 +613,19 @@ int where4tree<NODEDATA>::entire_width(const where4TreeConstants &tc) const {
 template <class NODEDATA>
 int where4tree<NODEDATA>::entire_height(const where4TreeConstants &tc) const {
    int result = theNodeData.getHeightAsRoot();
+
    if (theChildren.size() == 0)
       return result;
 
-   result += tc.vertPixParent2ChildTop;
+   int stuff_below_root = vert_pix_everything_below_root();
+      // may be 0 if all children have anything2Draw == false
 
-   return result + vert_pix_everything_below_root();
+   if (stuff_below_root > 0) {
+      result += tc.vertPixParent2ChildTop;
+      result += stuff_below_root;
+   }
+
+   return result;
 }
 
 
@@ -629,16 +647,20 @@ int where4tree<NODEDATA>::horiz_offset_to_expanded_child(const where4TreeConstan
    const bool allChildrenExpanded = (listboxPixWidth == 0);
    assert(allChildrenExpanded || theChildren[childIndex].isExplicitlyExpanded);
 
+   // Similarly, assert that the child isn't hidden:
+   assert(getChildTree(childIndex)->anything2Draw);
+
    int result = listboxPixWidth;
    if (listboxPixWidth > 0)
       result += tc.horizPixlistbox2FirstExpandedChild;
 
    for (unsigned childlcv=0; childlcv < childIndex; childlcv++)
-      if (allChildrenExpanded || theChildren[childlcv].isExplicitlyExpanded) {
-         result += theChildren[childlcv].theTree->entire_width(tc);
-            // a quick routine
-         result += tc.horizPixBetweenChildren;
-      }
+      if (allChildrenExpanded || theChildren[childlcv].isExplicitlyExpanded)
+	 if (getChildTree(childlcv)->anything2Draw) {
+            result += theChildren[childlcv].theTree->entire_width(tc);
+               // a quick routine
+            result += tc.horizPixBetweenChildren;
+         }
 
    return result;      
 }
@@ -655,13 +677,14 @@ wouldbe_all_expanded_children_width(const where4TreeConstants &tc) const {
 
    // Don't have to assume "allExpandedChildrenWidthAsDrawn" for this node being
    // up-to-date (but that vrble _must_ be up-to-date for all descendants of this node).
-   // Additionally, each descent (and this node) must have updated "listboxPixWidth"
+   // Additionally, each descendant (and this node) must have updated "listboxPixWidth"
 
    if (theChildren.size() == 0)
       return 0; // what children?
 
    const bool allChildrenAreExpanded = (listboxPixWidth == 0);
       // no listbox --> everyone's either implicitly or explicitly expanded!
+      // (But this doesn't include hidden nodes)
 
    int result = 0;
    int numExpandedChildren = 0;
@@ -669,10 +692,11 @@ wouldbe_all_expanded_children_width(const where4TreeConstants &tc) const {
 
    for (unsigned childlcv = 0; childlcv < numChildren; childlcv++) {
       const where4tree *theChild = getChildTree(childlcv);
-      if (allChildrenAreExpanded || theChildren[childlcv].isExplicitlyExpanded) {
-         result += theChild->entire_width(tc); // cheap
-         numExpandedChildren++;
-      }
+      if (allChildrenAreExpanded || theChildren[childlcv].isExplicitlyExpanded)
+         if (theChild->anything2Draw) {
+            result += theChild->entire_width(tc); // cheap
+            numExpandedChildren++;
+         }
    }
 
    if (numExpandedChildren > 0)
@@ -703,7 +727,8 @@ wouldbe_all_expanded_children_height(const where4TreeConstants &tc) const {
    const unsigned numChildren = theChildren.size();
    for (unsigned childlcv = 0; childlcv < numChildren; childlcv++)
       if (allChildrenAreExpanded || theChildren[childlcv].isExplicitlyExpanded)
-         ipmax(result, theChildren[childlcv].theTree->entire_height(tc));
+         if (getChildTree(childlcv)->anything2Draw)
+            ipmax(result, theChildren[childlcv].theTree->entire_height(tc));
 
    return result;
 }
@@ -716,6 +741,9 @@ void where4tree<NODEDATA>::draw(Tk_Window theTkWindow,
 				int middlex, int topy,
 				   // describes position of root node
 				bool rootOnly, bool listboxOnly) const {
+   if (!anything2Draw)
+      return;
+
    const int maxWindowY = Tk_Height(theTkWindow) - 1;
    if (topy > maxWindowY)
       return; // everything is too far down
@@ -738,11 +766,6 @@ void where4tree<NODEDATA>::draw(Tk_Window theTkWindow,
    int childtopypix = rayOriginY + tc.vertPixParent2ChildTop;
 
    int currentXpix = middlex - horizPixEverythingBelowRoot / 2;
-
-//   const unsigned borderPix = 0; // used to be 3
-
-//   const int windowMinX = borderPix;
-//   const int windowMaxX = Tk_Width(theTkWindow) - 1 - borderPix;
 
    // Draw listbox:
    if (listboxPixWidth > 0) {
@@ -775,66 +798,71 @@ void where4tree<NODEDATA>::draw(Tk_Window theTkWindow,
    // Now draw expanded children, if any
    const bool allChildrenAreExpanded = (listboxPixWidth == 0);
    const unsigned numChildren = theChildren.size();
-   for (unsigned childlcv=0; childlcv < numChildren; childlcv++)
-      if (allChildrenAreExpanded || theChildren[childlcv].isExplicitlyExpanded) {
-         const where4tree *theChild = theChildren[childlcv].theTree;
-         const int childEntireWidthAsDrawn = theChild->entire_width(tc);
-            // not expensive
+   for (unsigned childlcv=0; childlcv < numChildren; childlcv++) {
+      if (!allChildrenAreExpanded && !theChildren[childlcv].isExplicitlyExpanded)
+         continue; // don't draw this child since it's in the listbox
 
-         const int subtree_centerx = currentXpix + childEntireWidthAsDrawn / 2;
+      if (!getChildTree(childlcv)->anything2Draw)
+         continue;
 
-         // Ray from (rayOriginX, rayOriginY) to (centerx,topy) of subchild:
-         // Beware: X has only a 16-bit notion of x and y fields; we must pin if
-         //         any value is too far right.  At first I thought the way to go was to
-         //         skip the XDrawLine() if the recursive child's draw() won't draw
-         //         anything due to clipping.  But this is too harsh; just because a
-         //         child subtree is not visible does NOT mean the connecting line
-         //         would be completely invisible!
-         //         So how to draw just the necessary portion of the connecting line;
-         //         and, how to give it the right "downward angle"?
-         // This is our solution:  We draw the connecting line only to the right edge
-         // of the screen.  In other words, we draw the connecting line only to
-         // x=windowMaxX (a known value) and y=(unknown value; need to determine).
-         // Let (x1,y1) be the (known) would-be destination (which we
-         // can't draw directly to because of this 16-bit problem).  Then, the
-         // line's slope is known: (y1-y0)/(x1-x0).  Using the slope value, we can
-         // calculate the unknown y.  The equation is m=(y-y0)/(rightEdge-x0).
-         // y is the only unknown; isolate to get y=y0 + m(rightEdge-x0).
-         // Draw ray from (rayOriginX, rayOriginY) to (windowMaxX, y); done.
+      const where4tree *theChild = theChildren[childlcv].theTree;
+      const int childEntireWidthAsDrawn = theChild->entire_width(tc);
+         // not expensive
+
+      const int subtree_centerx = currentXpix + childEntireWidthAsDrawn / 2;
+
+      // Ray from (rayOriginX, rayOriginY) to (centerx,topy) of subchild:
+      // Beware: X has only a 16-bit notion of x and y fields; we must pin if
+      //         any value is too far right.  At first I thought the way to go was to
+      //         skip the XDrawLine() if the recursive child's draw() won't draw
+      //         anything due to clipping.  But this is too harsh; just because a
+      //         child subtree is not visible does NOT mean the connecting line
+      //         would be completely invisible!
+      //         So how to draw just the necessary portion of the connecting line;
+      //         and, how to give it the right "downward angle"?
+      // This is our solution:  We draw the connecting line only to the right edge
+      // of the screen.  In other words, we draw the connecting line only to
+      // x=windowMaxX (a known value) and y=(unknown value; need to determine).
+      // Let (x1,y1) be the (known) would-be destination (which we
+      // can't draw directly to because of this 16-bit problem).  Then, the
+      // line's slope is known: (y1-y0)/(x1-x0).  Using the slope value, we can
+      // calculate the unknown y.  The equation is m=(y-y0)/(rightEdge-x0).
+      // y is the only unknown; isolate to get y=y0 + m(rightEdge-x0).
+      // Draw ray from (rayOriginX, rayOriginY) to (windowMaxX, y); done.
 
 const int maximus = 32768;
 
-         GC lineGC = NODEDATA::getGCforNonListboxRay(getNodeData(),
-						     theChild->getNodeData());
+      GC lineGC = NODEDATA::getGCforNonListboxRay(getNodeData(),
+						  theChild->getNodeData());
 
-         if (subtree_centerx < maximus)
-            XDrawLine(tc.display, theDrawable, lineGC,
-                      rayOriginX, rayOriginY,
-                      subtree_centerx, childtopypix-1);
-         else {
-            // Here's the hairy case, discussed above.
-            double slope = (childtopypix-1) - rayOriginY;
-            slope /= (subtree_centerx - rayOriginX); // any divide by zero possibility?
+      if (subtree_centerx < maximus)
+         XDrawLine(tc.display, theDrawable, lineGC,
+		   rayOriginX, rayOriginY,
+		   subtree_centerx, childtopypix-1);
+      else {
+	 // Here's the hairy case, discussed above.
+	 double slope = (childtopypix-1) - rayOriginY;
+	 slope /= (subtree_centerx - rayOriginX); // any divide by zero possibility?
 
 //            const int rayDestinationX = windowMaxX;
-            const int rayDestinationX = maximus-1;
+	 const int rayDestinationX = maximus-1;
 
-            const int rayDestinationY = (int)((double)rayOriginY + slope*(rayDestinationX - rayOriginX));
+	 const int rayDestinationY = (int)((double)rayOriginY + slope*(rayDestinationX - rayOriginX));
 
-            XDrawLine(tc.display, theDrawable, lineGC,
-		      rayOriginX, rayOriginY,
-		      rayDestinationX, rayDestinationY);
-	 }
-                              
-         // Recursively draw the subtree
-         theChild->draw(tc.theTkWindow, tc, theDrawable,
-                        subtree_centerx, childtopypix,
-                        false, // not root only
-                        false // not listbox only
-                        );
- 
-         currentXpix += childEntireWidthAsDrawn + tc.horizPixBetweenChildren;
+	 XDrawLine(tc.display, theDrawable, lineGC,
+		   rayOriginX, rayOriginY,
+		   rayDestinationX, rayDestinationY);
       }
+                              
+      // Recursively draw the subtree
+      theChild->draw(tc.theTkWindow, tc, theDrawable,
+		     subtree_centerx, childtopypix,
+		     false, // not root only
+		     false // not listbox only
+		     );
+ 
+      currentXpix += childEntireWidthAsDrawn + tc.horizPixBetweenChildren;
+   }
 }
 
 
@@ -864,7 +892,10 @@ bool where4tree<NODEDATA>::expandUnexpand1(const where4TreeConstants &tc,
    if (theChildren[childindex].isExplicitlyExpanded == expandFlag)
       return false; // nothing would change
 
-   // do not expand a leaf node
+   // We don't want to hear about a child that is hidden:
+   assert(getChildTree(childindex)->anything2Draw);
+
+   // do not expand a leaf node unless "force" is true
    if (expandFlag)
       if (!force && getChildTree(childindex)->theChildren.size() == 0)
          return false;
@@ -922,12 +953,15 @@ bool where4tree<NODEDATA>::explicitlyUnexpandSubchild(const where4TreeConstants 
 
 template <class NODEDATA>
 bool where4tree<NODEDATA>::expandAllChildren(const where4TreeConstants &tc) {
-   // expand _all_ non-leaf children.  Returns true iff any changes...
+   // expand _all_ non-leaf non-hidden children.  Returns true iff any changes...
 
    bool result = false;
    bool anythingLeftInListbox = false;
 
    for (unsigned childlcv=0; childlcv < theChildren.size(); childlcv++) {
+      if (!getChildTree(childlcv)->anything2Draw)
+         continue;
+
       if (expandUnexpand1(tc, childlcv, true, // expand
 			  false, // we'll rethink lb dimensions manually, below
 			  false // don't force expansion of leaf items
@@ -957,7 +991,7 @@ bool where4tree<NODEDATA>::unExpandAllChildren(const where4TreeConstants &tc) {
    for (unsigned childlcv=0; childlcv < theChildren.size(); childlcv++)
       theChildren[childlcv].isExplicitlyExpanded = false;
 
-   // We _definitely_ need a listbox now...
+   // We _definitely_ need a listbox now... (unless all children are hidden I guess)
    rethink_listbox_dimensions(tc);
 
    // There are no more expanded children:
@@ -987,13 +1021,18 @@ void where4tree<NODEDATA>::rethinkAfterResize(const where4TreeConstants &tc,
    }
    
    int childrenWidthIfAllExpanded = 0;
-   for (unsigned childlcv=0; childlcv < numChildren; childlcv++)
-      childrenWidthIfAllExpanded += getChildTree(childlcv)->entire_width(tc) + 
-                                    tc.horizPixBetweenChildren;
+   for (unsigned childlcv=0; childlcv < numChildren; childlcv++) {
+      where4tree<NODEDATA> *childPtr = getChildTree(childlcv);
+      if (!childPtr->anything2Draw) continue;
+
+      childrenWidthIfAllExpanded += childPtr->entire_width(tc) +
+	                            tc.horizPixBetweenChildren;
+   }
 
    assert(numChildren > 0);
-   childrenWidthIfAllExpanded -= tc.horizPixBetweenChildren;
-   // last child has no space after it (note that numChildren>0, so this is safe)
+   if (childrenWidthIfAllExpanded > 0) // it's possible that all nodes were hidden
+      childrenWidthIfAllExpanded -= tc.horizPixBetweenChildren;
+      // last child has no space after it
 
    if (existslistbox && childrenWidthIfAllExpanded <= horizSpaceToWorkWithThisSubtree) {
       // All the children fit; no need for a listbox anymore.
@@ -1068,9 +1107,10 @@ int where4tree<NODEDATA>::point2ItemOneStep(const where4TreeConstants &tc,
    // -7 for point in listbox scrollbar slider.
 
    assert(ypix >= 0 && xpix >= 0);
+   assert(anything2Draw);
 
    const int posRelativeToRoot = theNodeData.pointWithinAsRoot(xpix, ypix,
-                                                         root_centerx, root_topy);
+							       root_centerx, root_topy);
    if (posRelativeToRoot == 2)
       return -2; // too high
    if (posRelativeToRoot == 4 || posRelativeToRoot == 5)
@@ -1150,13 +1190,17 @@ int where4tree<NODEDATA>::point2ItemOneStep(const where4TreeConstants &tc,
       currentX += listboxPixWidth + tc.horizPixlistbox2FirstExpandedChild;
    }
 
-   // Check expanded children (both implicitly- and explicitly- expanded ones)
+   // Check expanded, non-hidden children (both implicitly and explicitly expanded ones)
    const bool allChildrenAreExpanded = (listboxPixWidth == 0);
    const unsigned numChildren = theChildren.size();
-   for (unsigned childlcv = 0; childlcv < numChildren; childlcv++)
+   for (unsigned childlcv = 0; childlcv < numChildren; childlcv++) {
+      const where4tree<NODEDATA> *childPtr = getChildTree(childlcv);
+
+      if (!childPtr->anything2Draw)
+         continue;
+
       if (allChildrenAreExpanded || theChildren[childlcv].isExplicitlyExpanded) {
-         const where4tree *theChild = getChildTree(childlcv);
-         const int thisChildEntireWidth = theChild->entire_width(tc);
+         const int thisChildEntireWidth = childPtr->entire_width(tc);
 
          if (xpix >= currentX && xpix <= currentX + thisChildEntireWidth - 1)
             // Judging by x-coords, point can only fall w/in this subtree
@@ -1166,6 +1210,7 @@ int where4tree<NODEDATA>::point2ItemOneStep(const where4TreeConstants &tc,
          if (xpix < currentX)
             return -2;
       }
+   }
 
    return -2;
 }
@@ -1199,11 +1244,13 @@ int where4tree<NODEDATA>::point2ItemWithinListbox(const where4TreeConstants &tc,
    int theRelativeItem = localy / itemHeight;
    assert(theRelativeItem >= 0);
 
-   // If we could find expanded child #i in constant time, then this operation
-   // could be made much faster.
+   // If we could find expanded, non-hidden child #i in constant time, then this
+   // operation could be made much faster.
 
    const unsigned numChildren = theChildren.size();
    for (unsigned childlcv=0; childlcv < numChildren; childlcv++) {
+      if (!getChildTree(childlcv)->anything2Draw) continue;
+
       // listbox exists --> _all_ non-explicitly-expanded children are in the listbox.
       if (!theChildren[childlcv].isExplicitlyExpanded)
          if (theRelativeItem == 0)
@@ -1230,7 +1277,7 @@ int where4tree<NODEDATA>::string2Path(whereNodePosRawPath &thePath,
 
    // NOTE: "thePath" must start out initialized as usual...
 
-   bool match = testRootNode && str.prefix_of(getRootName());
+   bool match = anything2Draw && testRootNode && str.prefix_of(getRootName());
    if (match) {
       // If beginSearchFrom==NULL, then we truly have a match.
       // Else, if beginSearchFrom==this, then set beginSearchFrom to NULL
@@ -1249,8 +1296,11 @@ int where4tree<NODEDATA>::string2Path(whereNodePosRawPath &thePath,
    // to distinguish listbox from non-listbox items.
    const bool allChildrenExpanded = (listboxPixWidth == 0);
 
+   // First, the listbox children:
    unsigned numChildren = theChildren.size();
    for (unsigned i=0; i < numChildren; i++) {
+      if (!getChildTree(i)->anything2Draw) continue;
+
       const bool childIsInListbox = !allChildrenExpanded &&
                                     !theChildren[i].isExplicitlyExpanded;
       if (childIsInListbox) {
@@ -1278,8 +1328,11 @@ int where4tree<NODEDATA>::string2Path(whereNodePosRawPath &thePath,
             thePath.rigSize(thePath.getSize()-1);
       }
    }
-
+ 
+   // Next, the non-listbox children
    for (unsigned j=0; j < numChildren; j++) {
+      if (!getChildTree(j)->anything2Draw) continue;
+
       const bool childIsExpanded = allChildrenExpanded ||
                                    theChildren[j].isExplicitlyExpanded;
       if (childIsExpanded) {
@@ -1316,6 +1369,8 @@ bool where4tree<NODEDATA>::path2lbItemExpand(const where4TreeConstants &tc,
    // new feature: whenever a node A is explicitly expanded, so are all of its
    //              ancestors.
 
+   assert(anything2Draw);
+
    const unsigned pathSize = thePath.getSize();
    assert(pathIndex < pathSize);
 
@@ -1323,6 +1378,7 @@ bool where4tree<NODEDATA>::path2lbItemExpand(const where4TreeConstants &tc,
       // recurse...then, if changes were made to a descendant, rethink our
       // child params...
       unsigned childnum = thePath[pathIndex];
+
       bool anyChanges = getChildTree(childnum)->
 	                path2lbItemExpand(tc, thePath, pathIndex+1);
 
@@ -1349,6 +1405,8 @@ bool where4tree<NODEDATA>::expandEntirePath(const where4TreeConstants &tc,
    // end of the path -- we just want to "make the entire path visible".
    // Returns true iff any changes were made
 
+   assert(anything2Draw);
+
    if (thePath.getSize() == 0)
       return false; // we never need to expand the root node
    if (index == thePath.getSize()-1)
@@ -1364,6 +1422,8 @@ bool where4tree<NODEDATA>::expandEntirePath(const where4TreeConstants &tc,
    if (!allChildrenExpanded && !theChildren[childindex].isExplicitlyExpanded) {
       // Aha! the next link is in a listbox.  Let's expand him.  BUT, we wait until
       // we finish the recursion first (necessary for correct rethinking of layout).
+
+      assert(getChildTree(childindex)->anything2Draw);
 
       (void)getChildTree(childindex)->expandEntirePath(tc, thePath, index+1);
          // recurse
@@ -1389,6 +1449,8 @@ bool where4tree<NODEDATA>::path2lbItemUnexpand(const where4TreeConstants &tc,
 					       const whereNodePosRawPath &thePath,
 					       unsigned pathIndex) {
    // returns true iff any changes were made
+   assert(anything2Draw);
+
    const unsigned pathSize = thePath.getSize();
    if (pathIndex == pathSize-1) {
       // We (i.e., "this") are the _parent_ of the node to un-expand.
@@ -1396,6 +1458,7 @@ bool where4tree<NODEDATA>::path2lbItemUnexpand(const where4TreeConstants &tc,
       const unsigned childIndex = thePath.getLastItem();
 
       // Unhighlight the child (doesn't redraw):
+      assert(getChildTree(childIndex)->anything2Draw);
       getChildTree(childIndex)->unhighlight();
 
       // and un-expand (rethinks listbox size and other layout vrbles)
@@ -1405,7 +1468,8 @@ bool where4tree<NODEDATA>::path2lbItemUnexpand(const where4TreeConstants &tc,
       // recurse...then, if changes were made to a descendant, rethink our
       // child params...
       unsigned thisItem = thePath[pathIndex];
-      const bool result = theChildren[thisItem].theTree->path2lbItemUnexpand
+      assert(getChildTree(thisItem)->anything2Draw);
+      const bool result = getChildTree(thisItem)->path2lbItemUnexpand
                             (tc, thePath, pathIndex + 1);
       if (result)
          // Changes were made to a descendant of child #theItem.  We
@@ -1428,10 +1492,12 @@ bool where4tree<NODEDATA>::path2ExpandAllChildren(const where4TreeConstants &tc,
    //              were not visible to begin with?)  The key is that the ancestors
    //              may have been implicitly expanded.
 
+   assert(anything2Draw);
    if (pathIndex < thePath.getSize()) {
       // recurse...then, if changes were made to a descendant [of course there were;
       // we're expanding all of its children!], then rethink our child size params...
       unsigned childnum = thePath[pathIndex];
+      assert(getChildTree(childnum)->anything2Draw);
       bool result = getChildTree(childnum)->path2ExpandAllChildren
                                                 (tc, thePath, pathIndex+1);
 
@@ -1456,12 +1522,14 @@ bool where4tree<NODEDATA>::path2UnExpandAllChildren(const where4TreeConstants &t
 						    unsigned pathIndex) {
    // returns true iff any changes were made.  Doesn't redraw
 
+   assert(anything2Draw);
    if (pathIndex < thePath.getSize()) {
       // recurse...then, if changes were made to a descendant [of course there were;
       // we're un-expanding all of its children!], then rethink our child size params...
       unsigned thisItem = thePath[pathIndex];
+      assert(getChildTree(thisItem)->anything2Draw);
 
-      const bool result = theChildren[thisItem].theTree->
+      const bool result = getChildTree(thisItem)->
                           path2UnExpandAllChildren(tc, thePath, pathIndex+1);
 
       if (result)
@@ -1484,6 +1552,11 @@ template <class NODEDATA>
 where4tree<NODEDATA>::where4tree(const NODEDATA &iNodeData) :
                                      theNodeData(iNodeData) {
    // theChildren [] is initialized to empty vector
+
+   // We'll assume that the new node is a leaf node; hence, the right way to
+   // initialize anything2Draw is to simply extract the value from the node-data.
+   // Things can change when we actually add this child!
+   anything2Draw = theNodeData.anything2draw();
    
    removeListbox();
    
@@ -1492,6 +1565,56 @@ where4tree<NODEDATA>::where4tree(const NODEDATA &iNodeData) :
       // since all that exists of this subtree is the root, so far.
  
    numChildrenAddedSinceLastSort = 0;
+}
+
+template <class NODEDATA>
+bool where4tree<NODEDATA>::updateAnything2Draw1(const where4TreeConstants &tc) {
+   // called by updateAnything2Draw(), below.  Simply a non-recursive version
+   // of that routine.
+   bool old_anything2Draw = anything2Draw;
+
+   anything2Draw = false; // so far...
+   
+   // loop thru children; if any of them have anything to draw, then we have
+   // something to draw (by definition)
+   for (unsigned childlcv=0; childlcv < theChildren.size() && !anything2Draw;
+	childlcv++)
+      if (getChildTree(childlcv)->anything2Draw)
+         anything2Draw = true;
+
+   if (!anything2Draw)
+      // Our children have nothing to draw, but we the root node have one last chance:
+      anything2Draw = getNodeData().anything2draw();
+
+   if (anything2Draw == old_anything2Draw)
+      return false; // nothing changed
+
+   // Stuff changed.  Update spatial variables now!  We assume that our children have
+   // already done that; so we just update our (the root node's) vrbles:
+   rethink_all_expanded_children_dimensions(tc);
+   rethink_listbox_dimensions(tc);
+   
+   return true;
+}
+
+template <class NODEDATA>
+bool where4tree<NODEDATA>::updateAnything2Draw(const where4TreeConstants &tc) {
+   // Outside code should call this when it has changed the NODEDATA anything2draw()
+   // component of one or more nodes.  We will update "anything2Draw" for each node
+   // recursively (bottom-up)
+
+   bool anyChanges = false; // so far...
+
+   // First, do the children recursively:
+   for (unsigned childlcv=0; childlcv < theChildren.size(); childlcv++)
+      if (getChildTree(childlcv)->updateAnything2Draw(tc))
+         anyChanges = true;
+
+   // Now, do the root node:
+   if (updateAnything2Draw1(tc))
+      anyChanges = true;
+
+   return anyChanges;
 }
 
 template <class NODEDATA>
@@ -1535,7 +1658,7 @@ void where4tree<NODEDATA>::addChild(where4tree *theNewChild,
    this->theChildren += cs;
    this->numChildrenAddedSinceLastSort++;
 
-   if (rethinkLayoutNow)
+   if (rethinkLayoutNow && theNewChild->anything2Draw)
       if (explicitlyExpanded)
          // no need to rethink listbox dimensions, but a need to
          // rethink expanded children dimensions
@@ -1552,9 +1675,12 @@ void where4tree<NODEDATA>::doneAddingChildren(const where4TreeConstants &tc,
 					      bool sortNow) {
    // Needed only if you call ::addChild() one or more times with
    // rethinkGraphicsNow==false
-   rethink_listbox_dimensions(tc); // expensive; cost is O(numchildren)
-
-   rethink_all_expanded_children_dimensions(tc);
+   if (!updateAnything2Draw1(tc)) { // non-recursive; just affects root node
+      // well, nothing changed w.r.t. anything2Draw, so the call didn't
+      // update listbox/children dimensions.  Hence, we do the update manually:
+      rethink_listbox_dimensions(tc); // this one must come first...
+      rethink_all_expanded_children_dimensions(tc);
+   }
 
    if (sortNow)
       sortChildren();
@@ -1598,6 +1724,9 @@ selectUnSelectFromFullPathName(const char *name, bool selectFlag) {
    // returns true iff found
 
    if (name == NULL)
+      return false;
+
+   if (!anything2Draw)
       return false;
 
    if (name[0] != '/') {
