@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.179 2004/06/10 19:08:31 lharris Exp $
+ * $Id: inst-x86.C,v 1.180 2004/08/05 23:29:50 lharris Exp $
  */
 #include <iomanip>
 
@@ -517,28 +517,6 @@ bool checkEntry( instruction insn, Address adr, image* owner )
     return true;
 }
 
-//used to compare instpoints for vector sort
-int instPointCompare( instPoint*& ip1, instPoint*& ip2 )
-{
-    if( ip1->pointAddr() > ip2->pointAddr() )
-        return 1;
-    
-    if( ip1->pointAddr() < ip2->pointAddr() )
-        return -1;
- 
-    return 0;
-} 
-
-//used to compare basicBlocks by starting address for vector sort
-int basicBlockCompare( BPatch_basicBlock*& bb1, BPatch_basicBlock*& bb2 )
-{
-    if( bb1->getRelStart() > bb2->getRelStart() )
-        return 1;
-    if( bb1->getRelStart() < bb2->getRelStart() )
-        return -1;
-    return 0;
-}
-
 //correct parsing errors that overestimate the function's size by
 // 1. updating all the vectors of instPoints
 // 2. updating the vector of basicBlocks
@@ -619,16 +597,28 @@ void pd_Function::updateFunctionEnd( Address newEnd, image* owner )
     }
 }    
 
-
+ 
 /*****************************************************************************
 findInstpoints: uses recursive disassembly to parse a function. instPoints and
                 basicBlock information is collected here. findInstpoints
                 does not rely on function size information. This helps us
                 to parse stripped x86 binaries.  
 ******************************************************************************/
+extern bool pltMain;
+
 bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
                                   const image *i_owner ) 
 { 
+
+    //temporary convenience hack.. we don't want to parse the PLT as a function
+    //but we need pltMain to show up as a function
+    //so we set size to zero and make sure it has no instPoints.
+    if( pltMain && prettyName() == "DYNINST_pltMain" )
+    {
+        size_ = 0; 
+        return true;
+    }
+    
     // sorry this this hack, but this routine can modify the image passed in,
     // which doesn't occur on other platforms --ari
     image *owner = const_cast<image *>(i_owner); // const cast
@@ -701,7 +691,7 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
         window = 0;
         
         BPatch_basicBlock* currBlk = leadersToBlock[ jmpTargets[ i ] ];
-        
+
         while( true  )
         {    
             currAddr = *ah;
@@ -773,7 +763,7 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
             }	    
             
             else if( ah.isAIndirectJumpInstruction() ) 
-            {
+            { 
                 //if this instructions goes to a jumpTable, 
                 //we retrieve the addresses from the table
                 checkIfRelocatable( ah.getInstruction(), canBeRelocated );
@@ -3716,34 +3706,41 @@ int getInsnCost(opCode op)
 
 
 bool process::heapIsOk(const pdvector<sym_data> &find_us) {
+    
    Symbol sym;
    pdstring str;
    Address baseAddr;
    pdvector<pd_Function *> *pdfv=NULL;
- 
+
    // find the main function
    // first look for main or _main
 #if !defined(i386_unknown_nt4_0)
    pdfv = symbols->findFuncVectorByPretty("main");
-   if(pdfv == NULL || !pdfv->size()) {
-      pdfv = symbols->findFuncVectorByPretty("_main");
-      if(pdfv == NULL || !pdfv->size()) {
-         cerr << __FILE__ << __LINE__
-              << ":  findFuncVectorByPretty(main) failed!" << endl;
-         pdstring msg = "Cannot find main. Exiting.";
-         statusLine(msg.c_str());
-         showErrorCallback(50, msg);
-         return false;
-      }
+   if(pdfv == NULL || !pdfv->size()) 
+   {
+       pdfv = symbols->findFuncVectorByPretty("_main");
+       if(pdfv == NULL || !pdfv->size()) 
+       {
+           pdfv = symbols->findFuncVectorByPretty("DYNINST_pltMain");
+           if(pdfv == NULL || !pdfv->size()) 
+           {
+               cerr << __FILE__ << __LINE__
+                    << ":  findFuncVectorByPretty(main) failed!" << endl;
+               pdstring msg = "Cannot find main. Exiting.";
+               statusLine(msg.c_str());
+               showErrorCallback(50, msg);
+               return false;
+           }
+       }
    }
-
+   
    if (pdfv->size() > 1)
       cerr << __FILE__ << __LINE__
            << ":  Found more than one main!  using the first" << endl;
-
+   
    mainFunction = (function_base *) (*pdfv)[0];
 #else
-
+   
    if (!((mainFunction = findOnlyOneFunction("main")) 
          || (mainFunction = findOnlyOneFunction("_main"))
          || (mainFunction = findOnlyOneFunction("WinMain"))
@@ -3756,7 +3753,7 @@ bool process::heapIsOk(const pdvector<sym_data> &find_us) {
       return false;
    }
 #endif
-
+   
    for (unsigned i=0; i<find_us.size(); i++) {
       str = find_us[i].name;
       if (!getSymbolInfo(str, sym, baseAddr)) {
