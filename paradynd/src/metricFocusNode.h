@@ -43,6 +43,9 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
+ * Revision 1.49  1997/05/08 00:12:16  mjrg
+ * changes for Visual C++ compiler: added return to functions
+ *
  * Revision 1.48  1997/05/07 19:01:27  naim
  * Getting rid of old support for threads and turning it off until the new
  * version is finished. Additionally, new superTable, baseTable and superVector
@@ -252,8 +255,8 @@ class sampledIntCounterReqNode : public dataReqNode {
       return (unsigned)counterPtr;
    }
 
-   unsigned getAllocatedIndex() const {assert(0);}
-   unsigned getAllocatedLevel() const {assert(0);}
+   unsigned getAllocatedIndex() const {assert(0); return 0;}
+   unsigned getAllocatedLevel() const {assert(0); return 0;}
 
    int getSampleId() const {return theSampleId;}
 
@@ -363,8 +366,8 @@ class nonSampledIntCounterReqNode : public dataReqNode {
       return (unsigned)counterPtr;
    }
 
-   unsigned getAllocatedIndex() const {assert(0);}
-   unsigned getAllocatedLevel() const {assert(0);}
+   unsigned getAllocatedIndex() const {assert(0); return 0;}
+   unsigned getAllocatedLevel() const {assert(0); return 0;}
 
    int getSampleId() const {return theSampleId;}
 
@@ -417,8 +420,8 @@ class sampledTimerReqNode : public dataReqNode {
       return (unsigned)timerPtr;
    }
 
-   unsigned getAllocatedIndex() const {assert(0);}
-   unsigned getAllocatedLevel() const {assert(0);}
+   unsigned getAllocatedIndex() const {assert(0); return 0;}
+   unsigned getAllocatedLevel() const {assert(0); return 0;}
 
    int getSampleId() const {return theSampleId;}
 
