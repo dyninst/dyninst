@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.63 2002/07/25 19:22:46 willb Exp $
+// $Id: main.C,v 1.64 2003/01/15 17:16:54 willb Exp $
 
 /*
  * main.C - main routine for paradyn.  
@@ -305,10 +305,24 @@ main (int argc, char **argv)
   if (xname)
     dataMgr->printDaemonStartInfo (xname);
 
-// wait for UIM thread to exit 
+// wait for UIM thread to exit
 
   thr_join (UIMtid, NULL, NULL);
 
+// tell the other threads to exit
+
+  msg_send (DMtid, MSG_TAG_DO_EXIT_CLEANLY, (char *) NULL, 0);
+  msg_send (VMtid, MSG_TAG_DO_EXIT_CLEANLY, (char *) NULL, 0);
+  msg_send (PCtid, MSG_TAG_DO_EXIT_CLEANLY, (char *) NULL, 0);
+
+// and wait for them to do so
+
+  thr_join (DMtid, NULL, NULL);
+  thr_join (VMtid, NULL, NULL);
+  thr_join (PCtid, NULL, NULL);
+
+  thr_library_cleanup();
+  
 #if !defined(i386_unknown_nt4_0)
   mpichUnlinkWrappers();
 #endif // !defined(i386_unknown_nt4_0)

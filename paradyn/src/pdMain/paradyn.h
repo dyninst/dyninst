@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: paradyn.h,v 1.20 2002/07/25 19:22:47 willb Exp $ */
+/* $Id: paradyn.h,v 1.21 2003/01/15 17:16:54 willb Exp $ */
 
 /* some global definitions for main.C */
 
@@ -70,6 +70,8 @@ typedef struct CLargStruct CLargStruct;
 #define MSG_TAG_PC_READY MSG_TAG_USER+4
 #define MSG_TAG_ALL_CHILDREN_READY MSG_TAG_USER+5
 #define MSG_TAG_TC_READY MSG_TAG_USER+6
+
+#define MSG_TAG_DO_EXIT_CLEANLY MSG_TAG_USER+7
 
 extern thread_t UIMtid;
 extern thread_t MAINtid;
