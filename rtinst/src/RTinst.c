@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.39 2000/08/18 21:08:53 zandy Exp $
+ * $Id: RTinst.c,v 1.40 2000/09/20 19:10:21 zhichen Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -76,7 +76,11 @@
 extern void makeNewShmSegCopy();
 #endif
 
+#if defined(MT_THREAD)
+extern const char V_libdyninstRT_MT[];
+#else
 extern const char V_libdyninstRT[];
+#endif
 
 #ifdef DEBUG_PRINT_RT
 int DYNINSTdebugPrintRT = 1;
@@ -887,7 +891,11 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
     /* make stderr non-buffered */
   }
   
+#if defined(MT_THREAD)
+  RTprintf("%s\n", V_libdyninstRT_MT);
+#else
   RTprintf("%s\n", V_libdyninstRT);
+#endif
 
   DYNINSTos_init(calledFromFork, calledFromAttach);
   PARADYNos_init(calledFromFork, calledFromAttach);
