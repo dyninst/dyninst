@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.18 2000/03/18 21:53:59 tikir Exp $
+// $Id: templates0.C,v 1.19 2000/07/27 17:42:36 pcroth Exp $
 // Generate all the templates in one file.
 
 /*
@@ -60,15 +60,15 @@
 
 
 #pragma implementation "Pair.h"
-#include "util/h/Pair.h"
+#include "common/h/Pair.h"
 
 #pragma implementation "Vector.h"
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 
 #pragma implementation "Symbol.h"
-#include "util/h/Symbol.h"
+#include "common/h/Symbol.h"
 
-#include "util/h/String.h"
+#include "common/h/String.h"
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"

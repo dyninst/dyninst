@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2000 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -59,7 +59,7 @@
 //   PDGraph::DataW       PDGData.C
 //
 //---------------------------------------------------------------------------
-// $Id: PDGraph.C,v 1.11 2000/07/05 21:37:46 pcroth Exp $
+// $Id: PDGraph.C,v 1.12 2000/07/27 17:42:41 pcroth Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include <iostream.h>
@@ -70,13 +70,13 @@
 #endif
 #include <math.h>
 
-#include "util/h/String.h"
+#include "common/h/String.h"
 #include <assert.h>
 #include <string.h>
 #include "tcl.h"
 #include "tk.h"
 
-#include "util/h/Dictionary.h"
+#include "common/h/Dictionary.h"
 #include "PDGraph.h"
 #include "paradyn/src/UIthread/minmax.h"
 
@@ -2721,7 +2721,7 @@ PDGraph::ValueAxis::ComputeIntervals( unsigned int nTicksMax )
 // explicit template instantiations needed by this class
 //---------------------------------------------------------------------------
 #include "paradyn/src/UIthread/minmax.C"
-#include "util/src/Dictionary.C"
+#include "common/src/Dictionary.C"
 
 template class dictionary_hash<Tk_Window, ClientData>;
 template class vector<dictionary_hash<Tk_Window, ClientData>::entry>;

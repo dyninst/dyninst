@@ -41,6 +41,9 @@
 
 /*
  * $Log: templates.C,v $
+ * Revision 1.9  2000/07/27 17:42:43  pcroth
+ * Updated #includes to reflect new locations of util headers
+ *
  * Revision 1.8  1999/03/13 15:23:59  pcroth
  * Added support for building under Windows NT
  *
@@ -68,7 +71,7 @@
  */
 
 #pragma implementation "Vector.h"
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 #include "visi/h/visiTypes.h"
 
 class PhaseInfo;
@@ -79,8 +82,8 @@ template class vector<PhaseInfo *>;
 #include "paradyn/src/UIthread/minmax.C"
 template float max(const float, const float);
 
-#include "util/h/String.h"
-#include "util/src/Dictionary.C"
+#include "common/h/String.h"
+#include "common/src/Dictionary.C"
 #include "pdLogo.h"
 template class dictionary_hash<string, pdLogo *>;
 template class vector<dictionary_hash<string, pdLogo *>::entry>;

@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: templatesDM.C,v 1.18 2000/07/26 23:02:41 hollings Exp $
+// $Id: templatesDM.C,v 1.19 2000/07/27 17:42:38 pcroth Exp $
 // templates for DMthread, excluding igen templates
 //
 
@@ -206,7 +206,7 @@ template class dictionary_hash<resource *, int>;
 template class vector<dictionary_hash<resource *, int>::entry>;
 
 #if defined(rs6000_ibm_aix4_1)
-#include "pdutil/h/Symbol.h"
+#include "common/h/Symbol.h"
 template class vector<Symbol>;
 template class dictionary_hash<string, Symbol>;
 template class vector<dictionary_hash<string, Symbol>::entry>;

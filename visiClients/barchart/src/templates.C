@@ -44,7 +44,7 @@
 #include "pdLogo.h"
 #include "util/h/Vector.h"
 #include "util/h/String.h"
-#include "util/src/Dictionary.C"
+#include "common/src/Dictionary.C"
 #include <X11/Xlib.h> // XColor
 
 #include "minmax.C"

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2000 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -45,10 +45,10 @@
 // Explicit instantiation for templates needed by the runtime histogram visi.
 //
 //----------------------------------------------------------------------------
-// $Id: templates.C,v 1.1 1999/10/05 22:09:05 pcroth Exp $
+// $Id: templates.C,v 1.2 2000/07/27 17:42:42 pcroth Exp $
 //----------------------------------------------------------------------------
-#include "util/h/Vector.h"
-#include "util/h/String.h"
+#include "common/h/Vector.h"
+#include "common/h/String.h"
 template class  refCounter<string_ll>;
 template class vector<string>;
 
@@ -56,8 +56,8 @@ template class vector<string>;
 template float max(const float, const float);
 
 #include "pdLogo.h"
-#include "util/h/Dictionary.h"
-#include "util/src/Dictionary.C"
+#include "common/h/Dictionary.h"
+#include "common/src/Dictionary.C"
 
 template class dictionary_hash<string, pdLogo*>;
 template class vector<dictionary_hash<string, pdLogo*>::entry>;

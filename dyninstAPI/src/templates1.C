@@ -39,12 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates1.C,v 1.36 2000/07/27 15:23:23 hollings Exp $
+// $Id: templates1.C,v 1.37 2000/07/27 17:42:36 pcroth Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
 
-#include "util/h/String.h"
+#include "common/h/String.h"
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"

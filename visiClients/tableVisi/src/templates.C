@@ -39,10 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates.C,v 1.10 2000/06/29 14:45:45 paradyn Exp $
+// $Id: templates.C,v 1.11 2000/07/27 17:42:45 pcroth Exp $
 // for table visi
 
-#include "util/h/Vector.h"
+#include "common/h/Vector.h"
 
 template class vector<unsigned>;
 
@@ -64,7 +64,7 @@ template void ipmin(int&, const int);
 template int min(const int, const int);
 template int max(const int, const int);
 
-#include "util/src/Dictionary.C"
+#include "common/src/Dictionary.C"
 #include "paradyn/src/UIthread/pdLogo.h"
 
 template class dictionary_hash<string, pdLogo *>;
