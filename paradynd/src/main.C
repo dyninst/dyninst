@@ -39,10 +39,17 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.70 1998/04/01 21:23:25 ssuen Exp $
+// $Id: main.C,v 1.71 1998/04/06 04:27:05 wylie Exp $
 
 #include "util/h/headers.h"
 #include "util/h/makenan.h"
+#include "util/h/Ident.h"
+
+extern "C" const char V_paradynd[];
+extern "C" const char V_libpdutil[];
+
+Ident V_id(V_paradynd,"Paradyn");
+Ident V_Uid(V_libpdutil,"Paradyn");
 
 #include "rtinst/h/rtinst.h"
 
@@ -144,7 +151,7 @@ void cleanUpAndExit(int status) {
 // TODO
 // mdc - I need to clean this up
 bool
-RPC_undo_arg_list (string &flavor, unsigned argc, char **arg_list,
+RPC_undo_arg_list (string &flavor, unsigned argc, char **arg_list, 
 		   string &machine, int &well_known_socket, int &flag)
 {
   char *ptr;
@@ -402,6 +409,8 @@ int main(unsigned argc, char *argv[]) {
     }
 #endif
 
+    statusLine(V_paradynd);
+
     cyclesPerSecond = timing_loop() * 1000000;
 
     // Note -- it is important that this daemon receives all mdl info
@@ -424,4 +433,5 @@ int main(unsigned argc, char *argv[]) {
     }
 
     controllerMainLoop(true);
+    return(0);
 }

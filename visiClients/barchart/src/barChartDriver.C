@@ -39,37 +39,19 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// barChartDriver.C
-
-/* $Log: barChartDriver.C,v $
-/* Revision 1.16  1996/08/16 21:35:23  tamches
-/* updated copyright for release 1.1
-/*
- * Revision 1.15  1996/08/05 07:09:14  tamches
- * update for tcl7.5
- *
- * Revision 1.14  1996/05/15 18:03:15  tamches
- * added newMetricMaxValCallbackCommand
- *
- * Revision 1.13  1996/01/11 01:52:53  tamches
- * added command long2shortFocusName
- *
- * Revision 1.12  1996/01/10 02:25:34  tamches
- * added --xsynch and --debug command-line options
- * installed getMetricColorNameCommand
- *
- * Revision 1.11  1995/12/20 18:37:59  newhall
- * matherr.h does not need to be included by visis
- *
- * Revision 1.10  1995/11/29 00:39:48  tamches
- * now include tkTools.h, pdLogo.h
- * Now hardcode the pdLogo
- *
- */
+// $Id: barChartDriver.C,v 1.17 1998/04/06 04:27:10 wylie Exp $
 
 #include <assert.h>
 #include <stdlib.h>
 #include <iostream.h>
+
+#include "util/h/Ident.h"
+extern "C" const char V_barChart[];
+Ident V_id(V_barChart,"Paradyn");
+extern "C" const char V_libpdutil[];
+Ident V_Uid(V_libpdutil,"Paradyn");
+extern "C" const char V_libvisi[];
+Ident V_Vid(V_libvisi,"Paradyn");
 
 #include "tcl.h"
 #include "tk.h"

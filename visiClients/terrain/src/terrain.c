@@ -20,7 +20,7 @@
  *
  * terrain.c - main entry point and x driver.
  *
- * $Id: terrain.c,v 1.11 1998/03/30 01:22:38 wylie Exp $
+ * $Id: terrain.c,v 1.12 1998/04/06 04:27:18 wylie Exp $
  */
 
 #include <stdio.h>
@@ -30,6 +30,9 @@
 #include <assert.h>
 #include <string.h>
 
+extern /*"C"*/ const char V_terrain[];
+extern /*"C"*/ const char V_libpdutil[];
+extern /*"C"*/ const char V_libvisi[];
 
 #define Ncolors 11		/* Number of colors for GNUPlot part */
 
@@ -639,6 +642,13 @@ int main(int argc, char *argv[])
  ******************* modified section starts *********************************/
  
    int fd;
+
+   int i;
+   for (i=1; i<argc; i++)
+     {
+       if (strcmp(argv[i],"-V")==0)
+          fprintf(stderr,"%s\n",V_terrain);
+     }
 
    fd = visi_Init();
    if (fd < 0)

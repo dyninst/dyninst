@@ -40,31 +40,10 @@
  */
 
 /*
- *  tclVisi.C -- This file handles the bare essentials of tcl 
- *        application initialization.  Essentially, it implements the
- *        Tcl_AppInit() function.
+ *  tclVisi.C -- This file handles the bare essentials of tcl application
+ *     initialization.  Essentially, it implements the Tcl_AppInit() function.
  *
- *  $Log: tclVisi.C,v $
- *  Revision 1.8  1996/08/16 21:37:40  tamches
- *  updated copyright for release 1.1
- *
- *  Revision 1.7  1996/08/05 07:14:01  tamches
- *  update for tcl 7.5
- *
- *  Revision 1.6  1995/12/20 18:37:00  newhall
- *  matherr.h does not need to be included by visis
- *
- *  Revision 1.5  1995/12/01 06:42:56  tamches
- *  removed warnings (tclclean.h; tkclean.h)
- *  included new logo code (pdLogo.h)
- *
- *  Revision 1.4  1995/11/08 21:16:56  naim
- *  Adding matherr exception handler function to avoid error message when
- *  computing the "not a number" (NaN) value - naim
- *
- * Revision 1.3  1995/07/06  01:55:46  newhall
- * update for Tcl-7.4, Tk-4.0
- *
+ *  $Id: tclVisi.C,v 1.9 1998/04/06 04:27:17 wylie Exp $
  */
 
 #include <stdio.h>
@@ -75,6 +54,14 @@
 
 #include "pdLogo.h"
 #include "paradyn/xbm/logo.xbm"
+
+#include "util/h/Ident.h"
+extern "C" const char V_tclVisi[];
+Ident V_id(V_tclVisi,"Paradyn");
+extern "C" const char V_libpdutil[];
+Ident V_Uid(V_libpdutil,"Paradyn");
+extern "C" const char V_libvisi[];
+Ident V_Vid(V_libvisi,"Paradyn");
 
 extern Dg_Init(Tcl_Interp *interp);
 

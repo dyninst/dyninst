@@ -39,21 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * $Log: main.C,v $
- * Revision 1.4  1996/08/16 21:35:48  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.3  1996/08/05 07:10:55  tamches
- * update for tcl 7.5
- *
- * Revision 1.2  1995/12/20 18:38:25  newhall
- * matherr.h does not need to be included by visis
- *
- * Revision 1.1  1995/12/15 22:01:54  tamches
- * first version of phaseTable
- *
- */
+// $Id: main.C,v 1.5 1998/04/06 04:27:12 wylie Exp $
 
 #include <stdio.h>
 #include <signal.h>
@@ -64,6 +50,14 @@
 
 #include "pdLogo.h"
 #include "paradyn/xbm/logo.xbm"
+
+#include "util/h/Ident.h"
+extern "C" const char V_phaseTable[];
+Ident V_id(V_phaseTable,"Paradyn");
+extern "C" const char V_libpdutil[];
+Ident V_Uid(V_libpdutil,"Paradyn");
+extern "C" const char V_libvisi[];
+Ident V_Vid(V_libvisi,"Paradyn");
 
 extern Dg_Init(Tcl_Interp *interp);
 

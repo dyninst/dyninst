@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: DMmain.C,v 1.119 1998/04/06 04:27:21 wylie Exp $
+
 #include <assert.h>
 extern "C" {
 double   quiet_nan();
@@ -63,6 +65,10 @@ double   quiet_nan();
 // trace data streams
 #include "util/h/ByteArray.h"
 #include "DMphase.h"
+
+#include "util/h/Ident.h"
+extern "C" const char V_paradyn[];
+extern const Ident V_id;
 
 typedef vector<string> blahType;
 
@@ -650,9 +656,9 @@ void dynRPCUser::newProgramCallbackFunc(int pid,
 
     for (unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++) {
         paradynDaemon *pd = paradynDaemon::allDaemons[i];
-	if (pd->machine.length() && (pd->machine == machine_name)){
-	    if (!paradynDaemon::addRunningProgram(pid, argvString, pd, calledFromExec,
-						  runMe))
+	if (pd->machine.length() && (pd->machine == machine_name)) {
+	    if (!paradynDaemon::addRunningProgram(pid, 
+                  argvString, pd, calledFromExec, runMe))
 	       assert(false);
 
 	    uiMgr->enablePauseOrRun();
@@ -763,6 +769,7 @@ void dataManager::displayParadynReleaseInfo()
 void dataManager::displayParadynVersionInfo()
 {
   string msg = string("Paradyn Version Identifier:\n")
+    + string(V_paradyn) + string("\n")
     + string("\n");
   static char buf[1000];
   sprintf(buf, "%s", msg.string_of());

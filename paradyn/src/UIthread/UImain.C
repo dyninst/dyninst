@@ -39,51 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Log: UImain.C,v $
-/* Revision 1.86  1997/05/02 04:43:47  karavan
-/* added new functionality to support "SAVE" feature.
-/*
-/* added support to use standard tcl autoload feature for development use.
-/*
- * Revision 1.85  1997/04/14 19:59:51  zhichen
- * added memoryAddedCB.
- *
- * Revision 1.84  1997/01/15 00:11:43  tamches
- * added calls to abstraction::start and end batch mode
- *
- * Revision 1.83  1996/10/16 16:12:32  tamches
- * changes to accomodate new abstractions::resizeEverything fixes a
- * sorting bug
- *
- * Revision 1.82  1996/08/16 21:06:46  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.81  1996/08/05 07:30:10  tamches
- * update for tcl 7.5
- *
- * Revision 1.80  1996/04/30 18:56:29  newhall
- * changes to support the asynchrounous enable data calls to the DM
- * this code contains a kludge to make the UI wait for the DM's async response
- *
- * Revision 1.79  1996/04/07  21:17:07  karavan
- * changed new phase notification handling; instead of being notified by the
- * data manager, the UI is notified by the performance consultant.  This prevents
- * a race condition.
- *
- * Revision 1.78  1996/03/08 03:00:34  tamches
- * fixed hide-node bug whereby a tc change before PC window was open would
- * give an assertion failure
- *
- * Revision 1.77  1996/03/08 00:20:40  tamches
- * added 7 tunable constants for hiding desired shg nodes
- *
- * Revision 1.76  1996/02/21 18:15:50  tamches
- * cleanup of applicStateChanged related to commit of paradyn.tcl.C
- *
- * Revision 1.75  1996/02/15 23:06:27  tamches
- * added support for phase 0, the initial current phase
- *
- */
+// $Id: UImain.C,v 1.87 1998/04/06 04:27:24 wylie Exp $
 
 /* UImain.C
  *    This is the main routine for the User Interface Manager thread, 
@@ -114,6 +70,14 @@
 #include "pdLogo.h"
 #include "paradyn/xbm/logo.xbm" // defines logo_bits[], logo_width, logo_height
 #include "paradyn/xbm/dont.xbm" // defines error_bits[], error_width, error_height
+
+#include "util/h/Ident.h"
+extern const char V_paradyn[];
+const Ident V_id(V_paradyn,"Paradyn");
+extern const char V_libpdutil[];
+const Ident V_Uid(V_libpdutil,"Paradyn");
+extern const char V_libpdthread[];
+const Ident V_Tid(V_libpdthread,"Paradyn");
 
 bool haveSeenFirstGoodWhereAxisWid = false;
 bool tryFirstGoodWhereAxisWid(Tcl_Interp *interp, Tk_Window topLevelTkWindow) {
@@ -165,6 +129,7 @@ Tcl_HashTable UIMwhereDagTbl;
 int UIMMsgTokenID;
 appState PDapplicState = appPaused;     // used to update run/pause buttons  
 
+status_line *version=NULL;
 status_line *ui_status=NULL;
 status_line *app_status=NULL;
 
@@ -364,6 +329,8 @@ void *UImain(void*) {
     controlCallback controlFuncs;
     dataCallback dataFunc;
 
+    PARADYN_DEBUG(("%s\n",V_paradyn));
+
     tunableBooleanConstantDeclarator tcWaShowTips("showWhereAxisTips",
 						  "If true, the where axis window will be drawn with helpful reminders on shortcuts for expanding, unexpanding, selecting, and scrolling.  A setting of false saves screen real estate.",
 						  true, // initial value
@@ -465,6 +432,13 @@ void *UImain(void*) {
     /* display the paradyn main menu tool bar */
     myTclEval(interp, "drawToolBar");
     
+    char buf[32];
+    if (V_id.OK())
+        sprintf (buf, "setTitleVersion %s", V_id.release());
+    else
+        sprintf (buf, "setTitleVersion v2");    // set a reasonable? default
+    myTclEval(interp, buf);
+
     // initialize number of errors read in from error database 
     Tcl_VarEval (interp, "getNumPdErrors", (char *)NULL);
     uim_maxError = atoi(interp->result);

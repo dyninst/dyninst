@@ -39,33 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// main.C
-// Ariel Tamches
-
-/*
- * $Log: main.C,v $
- * Revision 1.11  1997/09/24 19:32:04  tamches
- * Tcl_GetFile() no longer used in tcl 8.0
- *
- * Revision 1.10  1996/08/16 21:36:55  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.9  1996/08/05 07:11:55  tamches
- * update for tcl 7.5
- *
- * Revision 1.8  1996/01/17 18:31:38  newhall
- * changes due to new visiLib
- *
- * Revision 1.7  1995/12/22 22:37:25  tamches
- * highlight background color is new
- *
- * Revision 1.6  1995/12/20 18:37:16  newhall
- * matherr.h does not need to be included by visis
- *
- * Revision 1.5  1995/11/29 00:43:33  tamches
- * paradyn logo is now hard-coded
- *
- */
+// $Id: main.C,v 1.12 1998/04/06 04:27:14 wylie Exp $
 
 #include <assert.h>
 #include <stdlib.h>
@@ -82,6 +56,14 @@
 
 #include "tableVisi.h"
 #include "tableVisiTcl.h"
+
+#include "util/h/Ident.h"
+extern "C" const char V_tableVisi[];
+Ident V_id(V_tableVisi,"Paradyn");
+extern "C" const char V_libpdutil[];
+Ident V_Uid(V_libpdutil,"Paradyn");
+extern "C" const char V_libvisi[];
+Ident V_Vid(V_libvisi,"Paradyn");
 
 Tcl_Interp *mainInterp;
 
@@ -101,6 +83,7 @@ void visiFdReadableHandler(ClientData, int) {
 }
 
 int main(int argc, char **argv) {
+
    if (argc==2 && 0==strcmp(argv[1], "--debug")) {
       xsynch_flag = true;
       cout << "tableVisi at sigpause...pid=" << getpid() << endl;
