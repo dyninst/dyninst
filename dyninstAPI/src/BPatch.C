@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.26 2000/05/12 20:54:21 zandy Exp $
+// $Id: BPatch.C,v 1.27 2000/06/22 23:27:24 wylie Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -719,7 +719,9 @@ BPatch_thread *BPatch::attachProcess(char *path, int pid)
 
     BPatch_thread *ret = new BPatch_thread(path, pid);
 
-    if (getLastError()) {
+    if (!ret->proc ||
+       (ret->proc->status() != stopped) ||
+       !ret->proc->isBootstrappedYet()) {
 	delete ret;
 	return NULL;
     }
