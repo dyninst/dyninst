@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 1996 Barton P. Miller
- * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
@@ -49,7 +48,7 @@
 
 #include "rtinst/h/rtinst.h"
 #include "util/h/sys.h"
-#include <sys/types.h> /* key_t */
+
 
 #ifndef False
 #define False 0
@@ -60,7 +59,17 @@
  * Need to make this double word since we send long longs now and then
  *
  */
-#define WORDSIZE sizeof(long)
+#include <sys/types.h> /* key_t */
+/* These are platforms that don't specify these in sys/types.h, so
+   we'll do it here.  This is temporary, since this will be done in
+   util/h/Types.h for all of paradyn.
+*/
+#if defined(i386_unknown_nt4_0)
+typedef __int64 int64_t;
+typedef __int32 int32_t;
+#endif
+
+#define WORDSIZE sizeof(int64_t)
 
 #define ALIGN_TO_WORDSIZE(x)    (((x) + (WORDSIZE-1)) & ~(WORDSIZE-1))
 
@@ -99,6 +108,7 @@ typedef struct _traceHeader traceHeader;
 #define TR_COST_UPDATE		9
 #define TR_CP_SAMPLE		10 /* critical path */
 #define TR_EXEC_FAILED          12
+#define TR_ERROR                13
 
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
 #define TR_THR_CREATE        100
@@ -200,6 +210,15 @@ struct _costUpdate {
     float 	obsCostHigh;	/* combined */
 };
 typedef struct _costUpdate costUpdate;
+
+enum _rtMsgType { rtWarning, rtError };
+typedef enum _rtMsgType rtMsgType; 
+struct _rtUIMsg {
+  rtMsgType msgType;
+  int errorNum;
+  char msgString[200];
+};
+typedef struct _rtUIMsg rtUIMsg;
 
 /* XXX - should this be a general vector?? (jkh 1/19/95) */
 struct _cpSample {
