@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.21  1994/07/02 01:43:12  markc
+ * Revision 1.22  1994/07/07 03:29:35  markc
+ * Added interface function to start a paradyn daemon
+ *
+ * Revision 1.21  1994/07/02  01:43:12  markc
  * Removed all uses of type aggregation from enableDataCollection.
  * The metricInfo structure now contains the aggregation operator.
  *
@@ -98,6 +101,14 @@ applicationContext *dataManager::createApplicationContext(errorHandler foo)
 {
   appContext = new applicationContext(foo);
   return appContext;
+}
+
+Boolean dataManager::addDaemon (applicationContext *app,
+				char *machine,
+				char *login,
+				char *name)
+{
+  return (app->getDaemon(machine, login, name));
 }
 
 Boolean dataManager::addExecutable(applicationContext *app,
