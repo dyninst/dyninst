@@ -46,6 +46,7 @@ SRCS	     += ../src/association.C \
 		../src/perfStream-def.C \
 		../src/perfStream.C \
 		../../dyninstAPI/src/process.C \
+		../../dyninstAPI/src/pdThread.C \
 		../src/resource.C \
 		../../dyninstAPI/src/stats.C \
 		../../dyninstAPI/src/symtab.C \
@@ -57,8 +58,8 @@ SRCS	     += ../src/association.C \
 		../../dyninstAPI/src/templates05.C \
 		../../dyninstAPI/src/templates1.C \
 		../src/templatesPD.C \
-		../src/templatesIGEN.C
-
+		../src/templatesIGEN.C \
+		../src/hashTable.C
 
 ifdef USES_PVM
 SRCS	     +=	../src/pvm_support.C \
@@ -74,7 +75,7 @@ endif
 ifdef USES_SHM_SAMPLING
 SRCS 		+= ../src/fastInferiorHeap.C ../src/fastInferiorHeapHKs.C \
 		   ../src/fastInferiorHeapMgr.C ../src/baseTable.C \
-		   ../src/superTable.C ../src/superVector.C ../src/hashTable.C
+		   ../src/superTable.C ../src/superVector.C
 CXXFLAGS	+= -DSHM_SAMPLING
 TFLAGS		+= -DSHM_SAMPLING
 CFLAGS		+= -DSHM_SAMPLING

@@ -48,6 +48,10 @@
 #pragma interface
 #endif
 
+#if defined(sparc_sun_sunos4_1_3)
+#include <string.h>
+#endif
+
 #include "util/h/Vector.h"
 
 /************************************************************************
