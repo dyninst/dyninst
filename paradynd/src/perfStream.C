@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.24 1994/07/26 20:01:14 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.25 1994/08/02 18:24:16 hollings Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.24  1994/07/26 20:01:14  hollings
+ * Revision 1.25  1994/08/02 18:24:16  hollings
+ * added clock speed argument to printAppStats
+ *
+ * Revision 1.24  1994/07/26  20:01:14  hollings
  * added CMMDhostless variable.
  *
  * Revision 1.23  1994/07/15  04:19:12  hollings
@@ -254,7 +257,7 @@ void logLine(char *line)
 }
 
 extern void processCost(process *p, traceHeader *h, costUpdate *c);
-extern void printAppStats(struct endStatsRec *stats);
+extern void printAppStats(struct endStatsRec *stats, float clock);
 
 void processTraceStream(process *curr)
 {
@@ -360,7 +363,7 @@ void processTraceStream(process *curr)
 
 		sprintf(errorLine, "process %d exited\n", curr->pid);
 		logLine(errorLine);
-		printAppStats((struct endStatsRec *) recordData);
+		printAppStats((struct endStatsRec *) recordData, 60.0);
 		printDyninstStats();
 
 		curr->status = exited;
