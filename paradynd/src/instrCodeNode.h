@@ -67,9 +67,8 @@ class instrCodeNode_Val {
   vector<instReqNode> instRequests;
   vector<returnInstance *> baseTrampInstances;
   vector<instInstance *> miniTrampInstances;
-  vector<processMetFocusNode *> parentNodes;
   vector<catchupReq *> manuallyTriggerNodes;
-  bool _baseTrampsHookedUp;
+  bool _trampsHookedUp;
   bool instrDeferred_;
   bool instrLoaded_;
   bool hasBeenCatchuped_;
@@ -89,7 +88,7 @@ class instrCodeNode_Val {
 
   instrCodeNode_Val(const string &name_, const Focus &f, process *p) : 
     sampledDataNode(NULL), constraintDataNode(NULL), name(name_), focus(f), 
-    _baseTrampsHookedUp(false), instrDeferred_(false), instrLoaded_(false), 
+    _trampsHookedUp(false), instrDeferred_(false), instrLoaded_(false), 
     hasBeenCatchuped_(false), proc_(p), referenceCount(0)
   { }
   ~instrCodeNode_Val();
@@ -144,8 +143,6 @@ class instrCodeNode {
 	    ((V.constraintDataNode != NULL) ? 1 : 0) +
 	    (V.tempCtrDataNodes.size()));
   }
-  void recordAsParent(processMetFocusNode *procobj);
-  unsigned numParents() { return V.parentNodes.size(); }
   void setSampledDataNode(instrDataNode *dataNode) { 
     assert(V.sampledDataNode == NULL);
     V.sampledDataNode = dataNode;
@@ -158,11 +155,6 @@ class instrCodeNode {
     V.tempCtrDataNodes.push_back(dataNode);
   }
     
-  // --- JUNK, REMOVE THIS SOMETIME SOON ---
-  processMetFocusNode *getFirstParent() { 
-    assert(V.parentNodes.size() > 0);
-    return V.parentNodes[0];
-  }
   // ---------------------------------------
   vector<instrDataNode *> getDataNodes() { return V.getDataNodes(); }
   void manuallyTrigger(int mid);
@@ -179,12 +171,12 @@ class instrCodeNode {
 
   static string collectThreadName;
   const instrDataNode* getFlagDataNode() const;
-  void markBaseTrampsAsHookedUp() { V._baseTrampsHookedUp = true; }
+  void markTrampsAsHookedUp() { V._trampsHookedUp = true; }
   void unmarkAsDeferred() {
     V.instrDeferred_ = false;
   }
   bool instrLoaded() { return V.instrLoaded_; }
-  bool baseTrampsHookedUp() { return V._baseTrampsHookedUp; }
+  bool trampsHookedUp() { return V._trampsHookedUp; }
 
   bool needToWalkStack(); // const;
   bool insertJumpsToTramps(vector<Frame> stackWalk);
