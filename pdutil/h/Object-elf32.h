@@ -210,8 +210,6 @@ Object::loaded_elf(int fd, char *ptr, bool& did_elf, Elf*& elfp, Elf32_Ehdr*& eh
         return false;
     }
 
-fprintf(stderr, "#### elf machine = %d\n", ehdrp->e_machine);
-
     if ((phdrp = elf32_getphdr(elfp)) == 0) {
         log_elferror(err_func_, "loading pheader");
         return false;
@@ -432,7 +430,7 @@ Object::load_object() {
             if(!code_ptr_ && !code_off_ && !code_len_)
             {//NON EEL
 	     //This can be tested differently, by testing if EEL is false
-               printf("This is a regular executable\n") ;
+             //  printf("This is a regular executable\n") ;
 
             	if ((phdrp[i0].p_vaddr <= txtaddr)
                 	&& ((phdrp[i0].p_vaddr+phdrp[i0].p_memsz) >= txtaddr)) {
