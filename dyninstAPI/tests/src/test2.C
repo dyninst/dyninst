@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.14 1999/05/25 16:35:43 wylie Exp $
+// $Id: test2.C,v 1.15 1999/05/29 22:31:48 wylie Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -43,6 +43,8 @@
 #else
 #define MUTATEE_NAME	"./test2.mutatee"
 #endif
+
+extern "C" const char V_libdyninstAPI[];
 
 int debugPrint = 0;
 bool expectErrors = false;
@@ -213,6 +215,24 @@ main(int argc, char *argv[])
     bool useAttach = false;
     bool failed = false;
 
+    char libname[256];
+    libname[0]='\0';
+
+#if !defined(USES_LIBDYNINSTRT_SO)
+    fprintf(stderr,"(Expecting application to be statically linked"
+                        " with libdyninstAPI_RT.)\n");
+#else
+#if !defined(i386_unknown_nt4_0)
+    if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
+        strcpy((char*) libname, (char*) getenv("DYNINSTAPI_RT_LIB"));
+    } else {
+        fprintf(stderr,"Environment variable DYNINSTAPI_RT_LIB undefined:\n"
+                "    set it to the full pathname of libdyninstAPI_RT\n");   
+        exit(-1);
+    }
+#endif
+#endif
+
     // Create an instance of the bpatch library
     bpatch = new BPatch;
 
@@ -222,10 +242,13 @@ main(int argc, char *argv[])
     for (i=1; i < argc; i++) {
 	if (!strcmp(argv[i], "-verbose")) {
 	    debugPrint = 1;
+	} else if (!strcmp(argv[i], "-V")) {
+            fprintf (stdout, "%s\n", V_libdyninstAPI);
+            if (libname[0]) fprintf (stdout, "DYNINSTAPI_RT_LIB=%s\n", libname);
 	} else if (!strcmp(argv[i], "-attach")) {
 	    useAttach = true;
 	} else {
-	    fprintf(stderr, "Usage: test2 [-attach] [-verbose]\n");
+	    fprintf(stderr, "Usage: test2 [-V] [-attach] [-verbose]\n");
 	    exit(-1);
 	}
     }

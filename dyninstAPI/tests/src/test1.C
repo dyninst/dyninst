@@ -1,4 +1,4 @@
-// $Id: test1.C,v 1.23 1999/05/25 20:27:01 hollings Exp $
+// $Id: test1.C,v 1.24 1999/05/29 22:31:48 wylie Exp $
 //
 // libdyninst validation suite test #1
 //    Author: Jeff Hollingsworth (1/7/97)
@@ -29,6 +29,8 @@
 #include "BPatch_thread.h"
 #include "BPatch_snippet.h"
 #include "test_util.h"
+
+extern "C" const char V_libdyninstAPI[];
 
 int debugPrint = 0;
 
@@ -1614,13 +1616,34 @@ main(int argc, char *argv[])
 {
     bool useAttach = false;
 
+    char libname[256];
+    libname[0]='\0';
+
+#if !defined(USES_LIBDYNINSTRT_SO)
+    fprintf(stderr,"(Expecting subject application to be statically linked"
+                        " with libdyninstAPI_RT.)\n");
+#else
+#if !defined(i386_unknown_nt4_0)
+    if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
+        strcpy((char*) libname, (char*) getenv("DYNINSTAPI_RT_LIB"));
+    } else {
+        fprintf(stderr,"Environment variable DYNINSTAPI_RT_LIB undefined:\n"
+                "    set it to the full pathname of libdyninstAPI_RT\n");   
+        exit(-1);
+    }
+#endif
+#endif
+
     for (int i=1; i < argc; i++) {
 	if (!strcmp(argv[i], "-verbose")) {
 	    debugPrint = 1;
+	} else if (!strcmp(argv[i], "-V")) {
+            fprintf (stdout, "%s\n", V_libdyninstAPI);
+            if (libname[0]) fprintf (stdout, "DYNINSTAPI_RT_LIB=%s\n", libname);
 	} else if (!strcmp(argv[i], "-attach")) {
 	    useAttach = true;
 	} else {
-	    fprintf(stderr, "Usage: test1 [-attach] [-verbose]\n");
+	    fprintf(stderr, "Usage: test1 [-V] [-attach] [-verbose]\n");
 	    exit(-1);
 	}
     }
