@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <tcl.h>
 #include <tk.h>
+#include <time.h>
 
 #include <CCcommon.h>
 #include <FCAllBlocks.h>
@@ -111,22 +112,37 @@ int CCOnDemandInstrument::run(){
 
 	globalObject = this;
 
-	/** if activated assign deleteion interval call back to the alarm dignal */
-	if(deletionInterval > 0)
-		signal(SIGALRM,intervalCallback);
-
 	appThread->continueExecution();
-
-	/** if activated start the alarm */
-	if(deletionInterval > 0)
-		alarm(deletionInterval);
 
 	bool isExpected = true;
 
-	while(true){
-		/** wait untill a function is called for the first time */
-		if(!(isExpected = bPatch.waitUntilStopped(appThread)))
-			break;
+	struct timespec timeBuffer;
+	clock_gettime(CLOCK_REALTIME,&timeBuffer);
+	unsigned beginTime = 
+		(unsigned)(timeBuffer.tv_sec + 0.5 + (timeBuffer.tv_nsec / 1.0e9));
+
+	while(true && isExpected){
+
+		while (!appThread->isStopped() && !appThread->isTerminated()){
+			bPatch.pollForStatusChange(); 
+			if(deletionInterval > 0)
+			{
+				clock_gettime(CLOCK_REALTIME,&timeBuffer);
+				unsigned endTime = 
+				(unsigned)(timeBuffer.tv_sec + 0.5 + (timeBuffer.tv_nsec / 1.0e9));
+				if((endTime - beginTime) >= deletionInterval){
+					deletionIntervalCallback();
+					beginTime = endTime;
+				}
+			}
+		}
+
+		if (!appThread->isStopped() || 
+		    (appThread->stopSignal() != SIGSTOP))
+		{
+			isExpected = false;
+			continue;
+		}
 
 		/** read the identifier of the function that is called */
 		int whichFunctionBreak;
@@ -192,14 +208,7 @@ int CCOnDemandInstrument::run(){
 				pthread_mutex_unlock(&statusUpdateLock);
 			}
 
-			/** assign the handler to the alarm signal and continue
-			  * execution
-			  */
-			signal(SIGALRM,intervalCallback);
 			appThread->continueExecution();
-
-			/** start another interval */
-			alarm(deletionInterval);
 		}
 
 	}
@@ -258,8 +267,6 @@ int CCOnDemandInstrument::deletionIntervalCallback(){
 	  * otherwise stopp the execution of
 	  * mutatee
 	  */
-
-
 	if(appThread->isStopped()){
 		alreadyStopped = true;
 		return Error_OK;
@@ -295,12 +302,7 @@ int CCOnDemandInstrument::deletionIntervalCallback(){
 		pthread_mutex_unlock(&statusUpdateLock);
 	}
 
-	/** assign the alarm interval call back and continue exec */
-	signal(SIGALRM,intervalCallback);
 	appThread->continueExecution();
-
-	/** start a new interval */
-	alarm(deletionInterval);
 
 	return Error_OK;
 }

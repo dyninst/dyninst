@@ -97,7 +97,6 @@ void exitCodeCoverage(ClientData clientData){
 }
 
 void startButtonHandler(ClientData clientData,XEvent* eventPtr){
-	sigset_t sigs_to_block;
 	if(!eventPtr)
 		return;
 
@@ -114,9 +113,6 @@ void startButtonHandler(ClientData clientData,XEvent* eventPtr){
 			exit(-1);
 		}
 		executionStarted = true;
-		sigemptyset(&sigs_to_block);
-		sigaddset(&sigs_to_block,SIGALRM);
-		pthread_sigmask(SIG_BLOCK,&sigs_to_block,NULL);
 	}
 }
 

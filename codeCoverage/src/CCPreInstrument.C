@@ -96,7 +96,7 @@ int CCPreInstrument::run(){
 			sleep(deletionInterval);
 
 			/** call the deletion interval callback */
-			intervalCallback(SIGALRM);
+			deletionIntervalCallback();
 
 		}
 

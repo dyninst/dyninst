@@ -555,17 +555,6 @@ CodeCoverage::registerErrorCallback(BPatchErrorCallback f){
 	return bPatch.registerErrorCallback(f);
 }
 
-/** function that is used as interval call back. It is needed
-  * as signal handler can not be a member function
-  */
-void intervalCallback(int signalNo){
-	if(signalNo != SIGALRM)
-		return;
-	
-	/** wait untill the breakpoint at exithandle is reached */
-	CodeCoverage::globalObject->deletionIntervalCallback();
-
-}
 void CodeCoverage::addTclTkFrequency(){
 	if(deletionInterval && globalInterp && statusBarName){
 		pthread_mutex_lock(&updateLock);
