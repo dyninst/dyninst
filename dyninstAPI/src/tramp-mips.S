@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: tramp-mips.S,v 1.7 2000/07/12 17:56:06 buck Exp $ */
+/* $Id: tramp-mips.S,v 1.8 2000/07/24 19:55:09 buck Exp $ */
 
 /*  base trampoline template layout: 
  *
@@ -1053,7 +1053,7 @@ _conservativeTramp:
 /* save registers */
 conservativeTramp_savePreInsn:	
 _conservativeTramp_savePreInsn:
-	daddiu	$sp,$sp,-536
+	daddiu	$sp,$sp,-544
 	sd	  $0,248($sp)
 	sd	  $1,240($sp)
 	sd	  $2,232($sp)
@@ -1247,7 +1247,7 @@ _conservativeTramp_updateCostInsn:
 	ld	 $31,  0($sp)
 conservativeTramp_restorePreInsn:	
 _conservativeTramp_restorePreInsn:
-	daddiu	$sp,$sp,536
+	daddiu	$sp,$sp,544
 	
 conservativeTramp_emulateInsn:	
 _conservativeTramp_emulateInsn:	
@@ -1264,7 +1264,7 @@ _conservativeTramp_skipPostInsn:
 /* save registers */
 conservativeTramp_savePostInsn:	
 _conservativeTramp_savePostInsn:
-	daddiu	 $sp,$sp,-536
+	daddiu	 $sp,$sp,-544
 	sd	  $0,248($sp)
 	sd	  $1,240($sp)
 	sd	  $2,232($sp)
@@ -1432,7 +1432,7 @@ _conservativeTramp_localPostReturn:
 	ld	 $31,  0($sp)
 conservativeTramp_restorePostInsn:	
 _conservativeTramp_restorePostInsn:
-	daddiu	$sp,$sp,536
+	daddiu	$sp,$sp,544
 	
 conservativeTramp_returnInsn:	
 _conservativeTramp_returnInsn:	
