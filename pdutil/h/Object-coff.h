@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-coff.h,v 1.3 1999/01/20 22:21:11 hollings Exp $
+ * $Id: Object-coff.h,v 1.4 1999/05/13 23:02:50 hollings Exp $
  * COFF object files.
  * Note - this is DEC OSF/1 coff which probably isn't the real thing
  *
@@ -107,30 +107,12 @@ public:
                 void (*)(const char *) = log_msg);
     virtual ~Object ();
     Object&   operator= (const Object &);
+    bool isDynamic()	{ return dynamicallyLinked; }
 
 private:
-    void    load_object ();
+    void    load_object (bool sharedLib);
+    bool	dynamicallyLinked;
 };
-
-inline
-Object::Object(const string file, void (*err_func)(const char *))
-    : AObject(file, err_func) {
-    load_object();
-}
-
-inline Object::Object (const string file, const Address /*BaseAddr*/,
-        void (*err_func)(const char *) = log_msg)
-  :AObject(file,err_func)
-{
-
-
-}
-
-inline
-Object::Object(const Object& obj)
-    : AObject(obj) {
-    load_object();
-}
 
 inline
 Object::~Object() {

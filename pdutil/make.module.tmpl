@@ -3,10 +3,15 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.25 1998/12/25 21:31:37 wylie Exp $
+# $Id: make.module.tmpl,v 1.26 1999/05/13 23:02:46 hollings Exp $
 #
 
 TARGET	      = libpdutil.a
+
+ifdef USES_LIBDYNINST_SO
+CXXFLAGS      += -fPIC
+KFLAGS        += -fPIC
+endif
 
 SRCS	     += ../src/String.C \
 		../src/ByteArray.C \

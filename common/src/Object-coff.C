@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-coff.C,v 1.1 1999/01/20 22:21:53 hollings Exp $
+// $Id: Object-coff.C,v 1.2 1999/05/13 23:02:51 hollings Exp $
 
 #include "util/h/Object.h"
 #include "util/h/Object-coff.h"
@@ -141,7 +141,7 @@ static inline bool read_data_region(vector<Address>& all_addr,
   return true;
 }
 
-void Object::load_object() {
+void Object::load_object(bool sharedLibrary) {
     char* file = strdup(file_.string_of());
     bool        did_open = false, success=true, text_read=false;
     LDFILE      *ldptr = NULL;
@@ -163,6 +163,7 @@ void Object::load_object() {
         if (!(ldptr = ldopen(file, ldptr))) {
             log_perror(err_func_, file);
 	    success = false;
+	    printf("failed open\n");
             /* throw exception */ goto cleanup;
         }
         did_open = true;
@@ -170,12 +171,15 @@ void Object::load_object() {
 	if (TYPE(ldptr) != ALPHAMAGIC) {
 	    log_printf(err_func_, "%s is not an alpha executable\n", file);
 	    success = false;
+	    printf("failed magic region\n");
 	    /* throw exception */ goto cleanup;
         }
 
 	// Read the text and data sections
 	fhdr = HEADER(ldptr);
 	unsigned short fmax = fhdr.f_nscns;
+
+	dynamicallyLinked = false;
 
 	// Life would be so much easier if there were a guaranteed order for
 	// these sections.  But the man page makes no mention of it.
@@ -190,6 +194,7 @@ void Object::load_object() {
 	      code_off_ = (Address) secthead.s_vaddr;
 	      if (!obj_read_section(secthead, ldptr, buffer)) {
 		success = false;
+		printf("failed text region\n");
 		/* throw exception */ goto cleanup;
 	      }
 	      text_read = true;
@@ -200,6 +205,7 @@ void Object::load_object() {
 		all_dex[K_D_INDEX] = true;
 		all_disk[K_D_INDEX] = secthead.s_scnptr;
 	      } else {
+		printf("failed data region\n");
 		success = false;
 		/* throw exception */ goto cleanup;
 	      }
@@ -252,25 +258,34 @@ void Object::load_object() {
 		all_dex[K_L8_INDEX] = true;
 		all_disk[K_L8_INDEX] = secthead.s_scnptr;
 	      }
+	    } else if (!P_strcmp(secthead.s_name, ".dynamic")) {
+	      // a section .dynamic implies the program is dynamically linked
+	      dynamicallyLinked = true; 
 	    }
 	  } else {
 	    success = false;
+	    printf("failed header region\n");
 	    /* throw exception */ goto cleanup;
 	  }
 	  sectindex++;
 	}
 
-	if (!text_read || !all_disk[K_D_INDEX]) {
+	// if (!text_read || !all_disk[K_D_INDEX]) {
+	if (!text_read) { 
 	  success = false;
+	  printf("failed text region\n");
 	  /* throw exception */ goto cleanup;
 	}
 
 	// I am assuming that .data comes before all other data sections
 	// I will include all other contiguous data sections
 	// Determine the size of the data section(s)
-	if (!find_data_region(all_addr, all_size, all_disk,data_len_,data_off_)) {
-	  success = false;
-	  /* throw exception */ goto cleanup;
+	if (all_disk[K_D_INDEX]) {
+	    if (!find_data_region(all_addr, all_size, all_disk,data_len_,data_off_)) {
+	      success = false;
+	      printf("failed find data region\n");
+	      /* throw exception */ goto cleanup;
+	    }
 	}
 
 	// Now read in the data from the assorted data regions
@@ -298,7 +313,15 @@ void Object::load_object() {
 	  assert(0);
 	}
 
-        string        module = "DEFAULT_MODULE";
+	string module = "DEFAULT_MODULE";
+        if (sharedLibrary) {
+	    module = file_;
+	    allSymbols += Symbol(module, module, Symbol::PDST_MODULE, 
+		Symbol::SL_GLOBAL, (Address) 0, false);
+	} else {
+	    module = "DEFAULT_MODULE";
+	}
+
         string        name   = "DEFAULT_SYMBOL";
 
 	while (ldtbread(ldptr, index, &symbol) == SUCCESS) {
@@ -313,8 +336,6 @@ void Object::load_object() {
 
 	    switch (symbol.st) {
 	    case stProc:
-	      // cout << "Procedure: " << sym_name << "\tValue: "
-	      // << symbol.value << endl;
 	      type = Symbol::PDST_FUNCTION;
 	      break;
 	    case stGlobal:
@@ -322,6 +343,12 @@ void Object::load_object() {
 	    case stLocal:
 	    case stConstant:
 	      type = Symbol::PDST_OBJECT;
+	      break;
+	    case stFile:
+	      if (!sharedLibrary) {
+		  module = ldgetname(ldptr, &symbol); assert(module.length());
+		  type   = Symbol::PDST_MODULE;
+	      }
 	      break;
 	    default:
 	      sym_use = false;
@@ -350,13 +377,12 @@ void Object::load_object() {
 	  default:
 	    switch (symbol.st) {
 	    case stFile:
-	      // cout << "File: " << sym_name << "\tValue:" << symbol.value << endl;
-	      module = ldgetname(ldptr, &symbol); assert(module.length());
-	      type   = Symbol::PDST_MODULE;
+	      if (!sharedLibrary) {
+		  module = ldgetname(ldptr, &symbol); assert(module.length());
+		  type   = Symbol::PDST_MODULE;
+	      }
 	      break;
 	    default:
-	      // cout << "Other: " << sym_name <<  "\tType:" << symbol.st 
-	      // << "\tValue: " << symbol.value << endl;
 	      sym_use = false;
 	    }
 	    break;
@@ -365,13 +391,9 @@ void Object::load_object() {
 
 	  if (sym_use) {
 	    char *name = ldgetname(ldptr, &symbol);
-	    // cout << "Define: " << name << "\tat: " << symbol.value;
-	    // if (!allSymbols.defines(name)) {
-	      // cout << "ok\n";
-	      allSymbols += Symbol(name, module, type, linkage,
+	    // cout << "Define: " << name << "\tat: " << symbol.value << "\n";
+	    allSymbols += Symbol(name, module, type, linkage,
 				      (Address) symbol.value, st_kludge);
-	    // } else
-	      ; // cout << "Not ok\n";
 	  }
 
 	}
@@ -416,3 +438,27 @@ cleanup: {
     }
     free(file);
 }
+
+Object::Object(const string file, void (*err_func)(const char *))
+    : AObject(file, err_func) {
+    load_object(false);
+}
+
+/* 
+ * Called to init a shared library.
+ */
+Object::Object (const string fileName, const Address /*BaseAddr*/,
+        void (*err_func)(const char *) = log_msg)
+  :AObject(fileName,err_func)
+{
+
+  load_object(true);
+
+}
+
+inline
+Object::Object(const Object& obj)
+    : AObject(obj) {
+    load_object(false);
+}
+
