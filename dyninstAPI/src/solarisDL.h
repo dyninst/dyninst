@@ -55,8 +55,8 @@ class dynamic_linking {
 
 public:
 
-    dynamic_linking(): dynlinked(false),r_debug_addr(0),r_brk_addr(0),
-		       r_state(0), brkpoint_set(false) {} 
+    dynamic_linking(): dynlinked(false),r_debug_addr(0),dlopen_addr(0),
+		       r_brk_addr(0),r_state(0), brkpoint_set(false) {} 
     ~dynamic_linking(){}
     
     // getProcessSharedObjects: This routine is called after attaching to
@@ -81,11 +81,12 @@ public:
 			vector<shared_object *> **changed_objects,
 			u_int &change_type,
 			bool &error_occured=false);
-
-
+    unsigned get_dlopen_addr() const { return dlopen_addr; }
+    
 private:
    bool  dynlinked;
    u_int r_debug_addr;
+   u_int dlopen_addr;
    Address r_brk_addr;   // this routine consists of retl and nop instrs, used
 		         // in handleSigChild to determine what trap occured 
    u_int r_state;  // either 0 (RT_CONSISTENT), 1 (RT_ADD), or 2 (RT_DELETE)
@@ -96,10 +97,23 @@ private:
    // it returns true on success, and false on error
    bool dynamic_linking::get_ld_base_addr(u_int &addr, int proc_fd);
 
+   // find_function: this routine finds the symbol table for ld.so.1, and
+   // parses it to find the address of f_name
+   // fills in f_name_addr with the address of f_name
+   // it returns false on error
+   // f_name_addr can't be passed in by reference since it makes calling it
+   // with a NULL parameter unpleasant.
+   bool findFunctionIn_ld_so_1(string f_name,u_int ld_fd,u_int ld_base_addr, u_int *f_name_addr, int st_type);
+
    // find_r_debug: this routine finds the symbol table for ld.so.1, and
    // parses it to find the address of symbol r_debug
    // it returns false on error
    bool find_r_debug(u_int ld_fd,u_int ld_base_addr);
+
+   // find_dlopen: this routine finds the symbol table for ld.so.1, and
+   // parses it to find the address of symbol r_debug
+   // it returns false on error
+   bool find_dlopen(u_int ld_fd,u_int ld_base_addr);   
 
    // set_r_brk_point: this routine instruments the code pointed to by
    // the r_debug.r_brk (the linkmap update routine).  Currently this code

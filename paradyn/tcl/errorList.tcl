@@ -1,5 +1,9 @@
 #
 # $Log: errorList.tcl,v $
+# Revision 1.33  1997/08/19 19:51:02  naim
+# Adding support to dynamically link libdyninstRT by using dlopen on sparc-
+# solaris - naim
+#
 # Revision 1.32  1997/08/18 01:34:51  buck
 # Ported the Dyninst API to Windows NT.
 #
@@ -800,6 +804,13 @@ is not available on the remote machine.}
 }
 
 set pdError(100) {
+{Internal error: unable to load paradyn run-time library.}
+{paradynd}
+{serious error}
+{One possible explanation is that the call to dlopen made in order to load the paradyn run-time library has failed. Please, check the content of the environment variable PARADYN_LIB, which should have the whole path name of the library, and make sure that the library is located in a directory that is readable by any user. This is a known problem if you are running a pvm application on more than one host and you have the library located in a directory that has reading restrictions to all users.}
+}
+
+set pdError(101) {
 {Attempt to look up nonexistent symbol}
 {paradynd}
 {serious}
@@ -811,7 +822,7 @@ requested name was found in the application.}
 # be sure to change this value if you add/delete an entry to the database
 #
 proc getNumPdErrors {} {
-    return 100
+    return 101
 }
 
 

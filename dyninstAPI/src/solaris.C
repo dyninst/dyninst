@@ -66,6 +66,9 @@
 #include <poll.h>
 #include <limits.h>
 #include <link.h>
+#include <dlfcn.h>
+
+#define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
 
 extern "C" {
 extern int ioctl(int, int, ...);
@@ -101,6 +104,7 @@ extern debug_ostream signal_cerr;
 
 
 extern bool isValidAddress(process *proc, Address where);
+extern void generateBreakPoint(instruction &insn);
 
 /*
    osTraceMe is called after we fork a child process to set
@@ -219,6 +223,24 @@ int process::waitProcs(int *status) {
 	 // return the signal number
 	 *status = stat.pr_what << 8 | 0177;
 	 ret = processVec[curr]->getPid();
+#if defined(USES_LIBDYNINSTRT_SO)
+	 if (!processVec[curr]->dyninstLibAlreadyLoaded() && 
+	     processVec[curr]->wasCreatedViaAttach()) {
+	   // make sure we are stopped in the eyes of paradynd - naim
+	   bool wasRunning = (processVec[curr]->status() == running);
+	   if (processVec[curr]->status() != stopped)
+	     processVec[curr]->Stopped();   
+	   if(processVec[curr]->isDynamicallyLinked()) {
+	     processVec[curr]->handleIfDueToSharedObjectMapping();
+	   }
+	   if (processVec[curr]->trapDueToDyninstLib()) {
+	     // we need to load libdyninstRT.so.1 - naim
+	     processVec[curr]->handleIfDueToDyninstLib();
+	   }
+	   if (wasRunning) 
+	     if (!processVec[curr]->continueProc()) assert(0);
+	 }
+#endif
 	 break;
        case PR_SYSEXIT: {
 	 // exit of a system call.
@@ -414,6 +436,204 @@ bool process::attach() {
 
   return true;
 }
+
+#if defined(USES_LIBDYNINSTRT_SO)
+bool process::trapAtEntryPointOfMain()
+{
+  prgregset_t regs;
+  if (ioctl (proc_fd, PIOCGREG, &regs) != -1) {
+    // is the trap instr at main_brk_addr?
+    if(regs[R_PC] == (int)main_brk_addr){ 
+      return(true);
+    }
+  }
+  return(false);
+}
+
+bool process::trapDueToDyninstLib()
+{
+  prgregset_t regs;
+  if (ioctl (proc_fd, PIOCGREG, &regs) != -1) {
+    // is the trap instr at dyninstlib_brk_addr?
+    if(regs[R_PC] == (int)dyninstlib_brk_addr){ 
+      return(true);
+    }
+  }
+  return(false);
+}
+
+void process::handleIfDueToDyninstLib() 
+{
+  // rewrite original instructions in the text segment we use for 
+  // the inferiorRPC - naim
+  unsigned count = BYTES_TO_SAVE; //sizeof(savedCodeBuffer);
+  //Address codeBase = getImage()->codeOffset();
+
+  Address codeBase = (this->findOneFunction("_start"))->addr();
+  writeDataSpace((void *)codeBase, count, (char *)savedCodeBuffer);
+  restoreRegisters(savedRegs); 
+  // this should put the PC at the right position, that is, at the entry point
+  // of main - naim
+}
+
+void process::handleTrapAtEntryPointOfMain()
+{
+  function_base *f_main = findOneFunction("main");
+  unsigned addr = f_main->addr();
+  // restore original instruction 
+  writeDataSpace((void *)addr, sizeof(instruction), (char *)savedCodeBuffer);
+}
+
+void process::insertTrapAtEntryPointOfMain()
+{
+  function_base *f_main = findOneFunction("main");
+  unsigned addr = f_main->addr();
+  // save original instruction first
+  readDataSpace((void *)addr, sizeof(instruction), savedCodeBuffer, true);
+  // and now, insert trap
+  instruction insnTrap;
+  generateBreakPoint(insnTrap);
+  //insnTrap.raw = BREAK_POINT_INSN;
+  writeDataSpace((void *)addr, sizeof(instruction), (char *)&insnTrap);  
+  main_brk_addr = addr;
+}
+
+bool process::dlopenDYNINSTlib() {
+  // we will write the following into a buffer and copy it into the
+  // application process's address space
+  // [....LIBRARY's NAME...|code for DLOPEN]
+
+  // write to the application at codeOffset. This won't work if we
+  // attach to a running process.
+  //Address codeBase = this->getImage()->codeOffset();
+  // ...let's try "_start" instead
+  Address codeBase = (this->findOneFunction("_start"))->addr();
+
+  // Or should this be readText... it seems like they are identical
+  // the remaining stuff is thanks to Marcelo's ideas - this is what 
+  // he does in NT. The major change here is that we use AST's to 
+  // generate code for dlopen.
+
+  // savedCodeBuffer[BYTES_TO_SAVE] is declared in process.h
+  //readDataSpace((void *)codeBase, sizeof(savedCodeBuffer), savedCodeBuffer, true);
+  readDataSpace((void *)codeBase, BYTES_TO_SAVE, savedCodeBuffer, true);
+
+  unsigned char scratchCodeBuffer[BYTES_TO_SAVE];
+  vector<AstNode*> dlopenAstArgs(2);
+
+  dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void*)0); 
+  // library name. We use a scratch value first. We will update this parameter
+  // later, once we determine the offset to find the string - naim
+  dlopenAstArgs[1] = new AstNode(AstNode::Constant, (void*)DLOPEN_MODE); // mode
+  AstNode *dlopenAst = new AstNode("dlopen",dlopenAstArgs);
+  removeAst(dlopenAstArgs[0]);
+  removeAst(dlopenAstArgs[1]);
+
+  unsigned count = 0;
+
+  // deadList and deadListSize are defined in inst-sparc.C - naim
+  extern int deadList[];
+  extern int deadListSize;
+  registerSpace *dlopenRegSpace = new registerSpace(deadListSize/sizeof(int), deadList, 0, NULL);
+  dlopenRegSpace->resetSpace();
+
+  dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
+			  count, true);
+  writeDataSpace((void *)codeBase, count, (char *)scratchCodeBuffer);
+  count += sizeof(instruction);
+
+#ifdef ndef
+  // NOTE: this is an example of the code that could go here to check for
+  // the return value of dlopen. If dlopen returns NULL, which means failure,
+  // we won't be able to load libdyninstRT.so.1. If this happens, paradynd
+  // will notice it anyway and it will print a message to the user saying that
+  // dlopen failed for some reason. It might be better to be able to call
+  // dlerror at this point and print the corresponding error message, but we
+  // will need to add a "printOp" or something similar to the AstNode class
+  // to do this, plus we will need to find the address of dlerror first in the
+  // same way we do it for dlopen - naim 8/13/97
+
+  // we now check the return value of dlopen. If it is NULL, which means that
+  // dlopen has failed, we then go ahead and retry calling it again until it
+  // succeeds - naim
+  AstNode *check_dlopen_result;
+  AstNode *expression;
+  AstNode *action;
+  AstNode *part1, *part2;
+  part1 = new AstNode(AstNode::DataReg,(void *)RETVAL_REG);
+  part2 = new AstNode(AstNode::Constant,(void *)0);
+  expression = new AstNode(eqOp, part1, part2);
+  removeAst(part1);
+  removeAst(part2);
+  AstNode *offset;
+  // offset if the number of instructions from this point to the beginning
+  // of codeBase. If the number of instructions generated change, we also
+  // have to change this value (15 for now) - naim
+  offset = new AstNode(AstNode::Constant, (void *)(-15*sizeof(instruction))); 
+  action = new AstNode(branchOp, offset);
+  removeAst(offset);
+  check_dlopen_result = new AstNode(ifOp, expression, action); 
+  removeAst(expression);
+  removeAst(action);
+  unsigned astcount=0;
+  check_dlopen_result->generateCode(this, dlopenRegSpace, 
+				    (char *)scratchCodeBuffer, astcount, true);
+  writeDataSpace((void *)(codeBase+count), astcount, 
+		 (char *)scratchCodeBuffer);
+  count += astcount;
+  removeAst(check_dlopen_result);
+#endif
+
+  instruction insnTrap;
+  generateBreakPoint(insnTrap);
+  //insnTrap.raw = BREAK_POINT_INSN;
+  writeDataSpace((void *)(codeBase + count), sizeof(instruction), 
+		 (char *)&insnTrap);
+  dyninstlib_brk_addr = codeBase + count;
+  count += sizeof(instruction);
+
+  char libname[256];
+  strcpy((char*)libname,(char*)getenv("PARADYN_LIB"));
+  writeDataSpace((void *)(codeBase + count), strlen(libname)+1,
+		 (caddr_t)libname);
+  // we have now written the name of the library after the trap - naim
+
+  assert(count<=BYTES_TO_SAVE);
+
+  // at this time, we know the offset for the library name, so we fix the
+  // call to dlopen and we just write the code again! This is probably not
+  // very elegant, but it is easy and it works - naim
+  removeAst(dlopenAst); // to avoid leaking memory
+  dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void *)(codeBase+count));
+  dlopenAstArgs[1] = new AstNode(AstNode::Constant, (void*)DLOPEN_MODE);
+  dlopenAst = new AstNode("dlopen",dlopenAstArgs);
+  removeAst(dlopenAstArgs[0]);
+  removeAst(dlopenAstArgs[1]);
+  count = 0; // reset count
+  dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
+			  count, true);
+  writeDataSpace((void *)codeBase, count, (char *)scratchCodeBuffer);
+  removeAst(dlopenAst);
+
+  savedRegs = getRegisters();
+  assert((savedRegs!=NULL) && (savedRegs!=(void *)-1));
+  isLoadingDyninstLib = true;
+  if (!changePC(codeBase,savedRegs)) // this uses the info in "savedRegs"
+  {
+    logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
+    assert(0);
+  }
+
+  return true;
+}
+
+unsigned process::get_dlopen_addr() const {
+  if (dyn != NULL)
+    return(dyn->get_dlopen_addr());
+  else 
+    return(0);
+}
+#endif
 
 bool process::isRunning_() const {
    // determine if a process is running by doing low-level system checks, as
@@ -1264,7 +1484,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
     // see if there is a function in this image at this target address
     // if so return it
     pd_Function *pdf = 0;
-    if( (pdf = owner->findFunctionIn(target_addr,this)) ) {
+    if( (pdf = owner->findFunctionInInstAndUnInst(target_addr,this)) ) {
         target = pdf;
         instr.set_callee(pdf);
 	return true; // target found...target is in this image
@@ -1272,27 +1492,27 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 
     // else, get the relocation information for this image
     const Object &obj = owner->getObject();
-    vector<relocationEntry> fbt;
-    if(!obj.get_func_binding_table(fbt)) {
+    const vector<relocationEntry> *fbt;
+    if(!obj.get_func_binding_table_ptr(fbt)) {
 	target = 0;
 	return false; // target cannot be found...it is an indirect call.
     }
 
     // find the target address in the list of relocationEntries
-    for(u_int i=0; i < fbt.size(); i++) {
-	if(fbt[i].target_addr() == target_addr) {
+    for(u_int i=0; i < fbt->size(); i++) {
+	if((*fbt)[i].target_addr() == target_addr) {
 	    // check to see if this function has been bound yet...if the
 	    // PLT entry for this function has been modified by the runtime
 	    // linker
 	    pd_Function *target_pdf = 0;
-	    if(hasBeenBound(fbt[i], target_pdf, base_addr)) {
+	    if(hasBeenBound((*fbt)[i], target_pdf, base_addr)) {
                 target = target_pdf;
                 instr.set_callee(target_pdf);
 	        return true;  // target has been bound
 	    } 
 	    else {
 		// just try to find a function with the same name as entry 
-		target = findOneFunctionFromAll(fbt[i].name());
+		target = findOneFunctionFromAll((*fbt)[i].name());
 		if(target){
 	            return true;
 		}
@@ -1312,13 +1532,13 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 		    // names for pd_Functions
 
 		    string s = string("_");
-		    s += fbt[i].name();
+		    s += (*fbt)[i].name();
 		    target = findOneFunctionFromAll(s);
 		    if(target){
 	                return true;
 		    }
 		    s = string("__");
-		    s += fbt[i].name();
+		    s += (*fbt)[i].name();
 		    target = findOneFunctionFromAll(s);
 		    if(target){
 	                return true;

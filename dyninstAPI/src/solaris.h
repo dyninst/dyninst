@@ -50,6 +50,10 @@
 
 #define EXIT_NAME "_exithandle"
 
+#if defined(USES_LIBDYNINSTRT_SO)
+#define BYTES_TO_SAVE 112
+#endif
+
 #define START_WALL_TIMER "DYNINSTstartWallTimer"
 #define STOP_WALL_TIMER  "DYNINSTstopWallTimer"
 #define START_PROC_TIMER "DYNINSTstartProcessTimer"

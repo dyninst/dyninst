@@ -143,7 +143,7 @@ struct _traceSample {
 typedef struct _traceSample traceSample;
 #endif
 
-//Shared-memory resource for Blizzard
+/* Shared-memory resource for Blizzard */
 struct _traceMemory {
     char        name[32];               /* name of the variable*/
     int         va ;                    /* va                  */

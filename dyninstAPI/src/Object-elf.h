@@ -138,6 +138,7 @@ public:
 
     bool     needs_function_binding() const {return (plt_addr_  > 0);} 
     bool     get_func_binding_table(vector<relocationEntry> &fbt) const;
+    bool     get_func_binding_table_ptr(const vector<relocationEntry> *&fbt) const;
 
 private:
     static
@@ -1117,6 +1118,12 @@ Object::Object(const Object& obj)
 inline bool Object::get_func_binding_table(vector<relocationEntry> &fbt) const {
     if(!plt_addr_ || (!relocation_table_.size())) return false;
     fbt = relocation_table_;
+    return true;
+}
+
+inline bool Object::get_func_binding_table_ptr(const vector<relocationEntry> *&fbt) const {
+    if(!plt_addr_ || (!relocation_table_.size())) return false;
+    fbt = &relocation_table_;
     return true;
 }
 

@@ -400,6 +400,7 @@ public:
   pd_Function *findOneFunctionFromAll(const string &name);
 
   pd_Function *findFunctionIn(const Address &addr,const process *p) const;
+  pd_Function *findFunctionInInstAndUnInst(const Address &addr, const process *p) const;
 
   // report modules to paradyn
   void defineModules();

@@ -56,6 +56,8 @@ int deadList[] = {16, 17, 18, 19, 20, 21, 22 };
 int deadList[] = {16, 17, 18, 19, 20, 21, 22, 23 };
 #endif
 
+int deadListSize = sizeof(deadList);
+
 // Constructor for the class instPoint. This one defines the 
 // instPoints for the relocated function. Since the function reloated
 // to the heap don't need to worry about that jump could be out of
@@ -836,6 +838,7 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
   }
   Address curr = sym.addr()+baseAddr;
 
+#ifdef ndef
   // Check that we can patch up user code to jump to our base trampolines
   // (Perhaps this code is no longer needed for sparc platforms, since we use full
   // 32-bit jumps)
@@ -849,6 +852,7 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
     logLine(errorLine);
     return false;
   }
+#endif
 
   return true;
 }

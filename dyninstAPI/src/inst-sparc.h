@@ -167,10 +167,10 @@ inline void generateBranchInsn(instruction *insn, int offset)
 {
     if (!offsetWithinRangeOfBranchInsn(offset)) {
         char buffer[100];
-	sprintf(buffer, "a Ranch too far; offset=%d\n", offset);
+	sprintf(buffer, "a Branch too far; offset=%d\n", offset);
 	logLine(buffer);
 	//showErrorCallback(52, "");
-	assert(false && "a Ranch too far");
+	assert(false && "a Branch too far");
 	return;
     }
 
@@ -274,7 +274,8 @@ inline void genImmRelOp(instruction *insn, int cond, reg rs1,
     insn++;
 
     // clr rd
-    genSimpleInsn(insn, ORop3, 0, 0, rd); insn++;
+    genImmInsn(insn, ORop3, 0, 0, rd); insn++; 
+    //genSimpleInsn(insn, ORop3, 0, 0, rd); insn++;
     base += 4 * sizeof(instruction);
 }
 
@@ -295,7 +296,8 @@ inline void genRelOp(instruction *insn, int cond, reg rs1,
     insn++;
 
     // clr rd
-    genSimpleInsn(insn, ORop3, 0, 0, rd); insn++;
+    genImmInsn(insn, ORop3, 0, 0, rd); insn++;
+    //genSimpleInsn(insn, ORop3, 0, 0, rd); insn++;
     base += 4 * sizeof(instruction);
 }
 

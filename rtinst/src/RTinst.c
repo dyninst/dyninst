@@ -73,7 +73,7 @@
 
 #ifdef PARADYN_MPI
 #include "/usr/lpp/ppe.poe/include/mpi.h"
-//#include <mpi.h>
+/* #include <mpi.h> */
 #endif
 
 #if defined(SHM_SAMPLING)
@@ -134,7 +134,7 @@ static time64 DYNINSTtotalSampleTime = 0;
 
 #define DYNINSTTagsLimit      1000
 #define DYNINSTTagGroupsLimit 100
-#define DYNINSTNewTagsLimit   50 // don't want to overload the system
+#define DYNINSTNewTagsLimit   50 /* don't want to overload the system */
 
 typedef struct DynInstTag_st {
   int   TagGroupId;
@@ -650,16 +650,17 @@ DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
 #ifndef SHM_SAMPLING
 void
 DYNINSTreportBaseTramps() {
-    // NOTE: this routine has a misleading name; how about DYNINSTsampleObsCost().
+  /* NOTE: this routine has a misleading name; how about 
+     DYNINSTsampleObsCost(). */
 
     costUpdate sample;
 
-    //
+    /*
     // Adding the cost corresponding to the alarm when it goes off.
     // This value includes the time spent inside the routine (DYNINSTtotal-
     // sampleTime) plus the time spent during the context switch (121 usecs
     // for SS-10, sunos)
-    //
+    */
 
     sample.obsCostIdeal  = ((((double) DYNINSTgetObservedCycles(1) *
                               (double)DYNINSTcyclesToUsec) + 
@@ -1096,7 +1097,7 @@ void forkexec_printf(const char *fmt, ...) {
 #if !defined(i386_unknown_nt4_0)
 void
 DYNINSTfork(int pid) {
-    //forkexec_printf("DYNINSTfork called with pid = %d\n", pid);
+  /*forkexec_printf("DYNINSTfork called with pid = %d\n", pid); */
     printf("DYNINSTfork -- WELCOME -- called with pid = %d\n", pid);
     fflush(stdout);
 
@@ -1118,7 +1119,7 @@ DYNINSTfork(int pid) {
 	int pid = getpid();
 	int ppid = getppid();
 
-        //char *traceEnv;
+        /* char *traceEnv; */
 
 	forkexec_printf("DYNINSTfork CHILD -- welcome\n");
 	fflush(stderr);
@@ -1569,7 +1570,7 @@ DYNINSTreportTimer(tTimer *timer) {
     time64 wall_time = DYNINSTgetWalltime();
     if (timer->mutex) {
         total = timer->snapShot;
-	//printf("id %d using snapshot value of %f\n", timer->id.id, (double)total);
+	/* printf("id %d using snapshot value of %f\n", timer->id.id, (double)total); */
     }
     else if (timer->counter) {
         /* timer is running */
@@ -1580,11 +1581,11 @@ DYNINSTreportTimer(tTimer *timer) {
             now = wall_time;
         }
         total = now - timer->start + timer->total;
-	//printf("id %d using added-to-total value of %f\n", timer->id.id, (double)total);
+	/* printf("id %d using added-to-total value of %f\n", timer->id.id, (double)total); */
     }
     else {
         total = timer->total;
-	//printf("using %d total value of %f\n", timer->id.id, (double)total);
+	/* printf("using %d total value of %f\n", timer->id.id, (double)total); */
     }
 
     if (total < timer->lastValue) {
@@ -1618,11 +1619,12 @@ DYNINSTreportTimer(tTimer *timer) {
     }
 
     sample.value = ((double) total) / (double) timer->normalize;
-    // check for nan now?
+    /* check for nan now?
        // NOTE: The type of sample.value is float, not double, so some precision
        //       is lost here.  Besides, wouldn't it be better to send the raw
        //       "total", with no loss in precision; especially since timer->normalize
        //       always seems to be 1 million? (Well, it differs for cm5)
+       */
     DYNINSTtotalSamples++;
 
 #ifdef ndef
@@ -1831,7 +1833,7 @@ int DYNINSTTGroup_CreateUniqueId(int commId)
   int       ranks2[1];
   int       rc;
 
-  // assert(commId < (1<<16));
+  /* assert(commId < (1<<16)); */
   assert(commId < 100000);
   
   rc = MPI_Comm_group(commId, &commGroup);
@@ -1844,8 +1846,9 @@ int DYNINSTTGroup_CreateUniqueId(int commId)
   assert(rc == 0);
 
   assert(ranks2[0] != MPI_UNDEFINED);
-  // assert(ranks2[0] < (1 << 16));
-  // return(commId + (ranks2[0] * (1<<16)));
+  /* assert(ranks2[0] < (1 << 16));
+     return(commId + (ranks2[0] * (1<<16)));
+  */
   assert(ranks2[0] < 20000);
   return(commId + (ranks2[0] * 100000));
 #else
@@ -1861,7 +1864,7 @@ int DYNINSTTGroup_CreateUniqueId(int commId)
 int DYNINSTTGroup_CreateLocalId(int tgUniqueId)
 {
 #ifdef PARADYN_MPI
-  // return(tgUniqueId | ((1<<16)-1));
+  /* return(tgUniqueId | ((1<<16)-1)); */
   return(tgUniqueId % 100000);
 #else
   return(tgUniqueId);

@@ -115,6 +115,7 @@ public:
 
     virtual  bool   needs_function_binding()  const;
     virtual  bool   get_func_binding_table(vector<relocationEntry> &) const;
+    virtual  bool   get_func_binding_table_ptr(const vector<relocationEntry> *&) const;
     
 protected:
     // explicitly protected

@@ -79,10 +79,10 @@ bool dynamic_linking::get_ld_base_addr(u_int &addr, int proc_fd){
     return false;
 }
 
-// find_r_debug: this routine finds the symbol table for ld.so.1, and 
+// findFunctionIn_ld_so_1: this routine finds the symbol table for ld.so.1 and 
 // parses it to find the address of symbol r_debug
 // it returns false on error
-bool dynamic_linking::find_r_debug(u_int ld_fd,u_int ld_base_addr){
+bool dynamic_linking::findFunctionIn_ld_so_1(string f_name, u_int ld_fd, u_int ld_base_addr, u_int *f_addr, int st_type){
 
     Elf *elfp = 0;
     if ((elfp = elf_begin(ld_fd, ELF_C_READ, 0)) == 0) {return false;}
@@ -120,23 +120,38 @@ bool dynamic_linking::find_r_debug(u_int ld_fd,u_int ld_base_addr){
     Elf_Data* strdatap = elf_getdata(strscnp, 0);
     if (!symdatap || !strdatap) { elf_end(elfp); return false;}
     u_int nsyms = symdatap->d_size / sizeof(Elf32_Sym);
-    string r_debug_name = string("r_debug");
     Elf32_Sym*  syms   = (Elf32_Sym *) symdatap->d_buf;
     const char* strs   = (const char *) strdatap->d_buf;
 
-    r_debug_addr = 0;
+    if (f_addr != NULL) *f_addr = 0;
     for(u_int i=0; i < nsyms; i++){
 	if (syms[i].st_shndx != SHN_UNDEF) {
-	    if(ELF32_ST_TYPE(syms[i].st_info) == STT_OBJECT){
+	    if(ELF32_ST_TYPE(syms[i].st_info) == st_type){
 		string name = string(&strs[syms[i].st_name]);
-		if(name == r_debug_name){
-		    r_debug_addr = syms[i].st_value + ld_base_addr; 
-		    break;
+		if(name == f_name){
+		  if (f_addr != NULL) {
+		    *f_addr = syms[i].st_value + ld_base_addr; 
+		  }
+		  break;
 		} 
     } } }
     elf_end(elfp);
-    if(!r_debug_addr){ return false; }
+    if((f_addr != NULL) && ((*f_addr)==0)) { return false; }
     return true;
+}
+
+// find_r_debug: this routine finds the symbol table for ld.so.1, and 
+// parses it to find the address of symbol r_debug
+// it returns false on error
+bool dynamic_linking::find_r_debug(u_int ld_fd,u_int ld_base_addr){
+  return findFunctionIn_ld_so_1("r_debug", ld_fd, ld_base_addr, &r_debug_addr, STT_OBJECT);
+}
+
+// find_dlopen: this routine finds the symbol table for ld.so.1, and 
+// parses it to find the address of symbol dlopen
+// it returns false on error
+bool dynamic_linking::find_dlopen(u_int ld_fd,u_int ld_base_addr){
+  return findFunctionIn_ld_so_1("_dlopen", ld_fd, ld_base_addr, &dlopen_addr, STT_FUNC);
 }
 
 // set_r_brk_point: this routine instruments the code pointed to by
@@ -411,6 +426,17 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
     if(!(this->set_r_brk_point(p))){ 
 	// printf("error after step5 in getSharedObjects\n");
     }
+
+    // additional step: find dlopen - naim
+    if(!(this->get_ld_base_addr(ld_base,proc_fd))) { return 0;}
+    if((ld_fd = ioctl(proc_fd, PIOCOPENM, (caddr_t *)&ld_base)) == -1) { 
+	return 0;
+    }
+    if (!(this->find_dlopen(ld_fd,ld_base))) {
+      logLine("WARNING: we didn't find dlopen in ld.so.1\n");
+    }
+    close(ld_fd);
+
     fflush(stdout);
     return (result);
     result = 0;
@@ -500,7 +526,6 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
   if (ioctl (proc_fd, PIOCGREG, &regs) != -1) {
     // is the trap instr at r_brk_addr?
     if(regs[R_PC] == (int)r_brk_addr){ 
-
 	// find out what has changed in the link map
 	// and process it
 	r_debug debug_elm;
@@ -549,3 +574,6 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
 
   return false; 
 }
+
+
+

@@ -409,11 +409,21 @@ int handleSigChild(int pid, int status)
                 // check to see if trap is due to dlopen or dlcose event
 		if(curr->isDynamicallyLinked()){
 		    if(curr->handleIfDueToSharedObjectMapping()){
-			// continue proc?
-			if(wasRunning) curr->continueProc();
-			break;
+		      if (wasRunning && !curr->continueProc()) {
+			assert(0);
+		      }
+		      break;
 		    }
 		}
+
+#if defined(USES_LIBDYNINSTRT_SO)
+		// this code has to go after we have handle the trap
+		// due to the call to dlopen - naim
+		if (curr->trapDueToDyninstLib()) {
+		  curr->handleIfDueToDyninstLib();
+		  // fall through...
+		}
+#endif
 
 		//If the list is not empty, it means some previous
 		//instrumentation has yet need to be finished.
@@ -467,8 +477,56 @@ int handleSigChild(int pid, int status)
                 // But we must query 'reachedFirstBreak' because on machines where we
 		// attach/detach on pause/continue, a TRAP is generated on each pause!
 
+#if defined(USES_LIBDYNINSTRT_SO)
+                if (!curr->reachedVeryFirstTrap) {
+		  // we haven't executed main yet, so we can insert a trap
+		  // at the entry point of main - naim
+		  curr->reachedVeryFirstTrap = true;
+		  curr->insertTrapAtEntryPointOfMain();
+		  if (!curr->continueProc()) {
+		    assert(0);
+		  }
+		  break;
+		} else {
+                  if (curr->trapAtEntryPointOfMain() &&
+		      !curr->dyninstLibAlreadyLoaded() &&
+		      !curr->dyninstLibIsBeingLoaded()) {
+		     curr->handleTrapAtEntryPointOfMain();
+		     if (curr->handleStartProcess()) {
+		       curr->dlopenDYNINSTlib();
+		       // this will set isLoadingDyninstLib to true - naim
+		     } else {
+		       logLine("WARNING: handleStartProcess failed\n");
+		       assert(0);
+		     }
+		     if (!curr->continueProc()) {
+		       assert(0);
+		     }
+		     break;
+		  }
+		  // fall through...
+		}
+		if (curr->dyninstLibAlreadyLoaded() &&
+		    !curr->dyninstLibIsBeingLoaded()) {
+		  // we are ready to handle reachedFirstBreak. The first
+		  // condition means that dyninstRT.so.1 has been loaded
+		  // already. The second condition makes sure that we have
+		  // handle the trap after loading dyninstRT.so.1 and we
+		  // have restored the original instructions in the place
+		  // we use to call dlopen - naim
+		  // process the code below yet - naim
+		} else {
+		  // if this is not the case, then we are not ready to
+		  // process the code below yet - naim
+		  string msg = string("Process") + string(curr->getPid()) +
+		               string(" was unable to load file ") + 
+		               string(getenv("PARADYN_LIB"));
+		  showErrorCallback(100, msg);
+		  break;
+		}
+#endif
+
 		if (!curr->reachedFirstBreak) { // vrble should be renamed 'reachedFirstTrap'
-	           // cerr << "!reachedFirstBreak" << endl;
 		   string buffer = string("PID=") + string(pid);
 		   buffer += string(", passed trap at start of program");
 		   statusLine(buffer.string_of());
@@ -484,7 +542,7 @@ int handleSigChild(int pid, int status)
 		   statusLine(buffer.string_of());
 
 		   curr->installBootstrapInst();
-			
+
 		   // now, let main() and then DYNINSTinit() get invoked.  As it
 		   // completes, DYNINSTinit() does a DYNINSTbreakPoint, at which time
 		   // we read bootstrap information "sent back" (in a global vrble),

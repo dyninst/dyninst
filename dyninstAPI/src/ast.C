@@ -41,6 +41,10 @@
 
 /* 
  * $Log: ast.C,v $
+ * Revision 1.47  1997/08/19 19:50:29  naim
+ * Adding support to dynamically link libdyninstRT by using dlopen on sparc-
+ * solaris - naim
+ *
  * Revision 1.46  1997/08/18 01:34:21  buck
  * Ported the Dyninst API to Windows NT.
  *
@@ -970,7 +974,11 @@ reg AstNode::generateCode_phase2(process *proc,
     }
 
     if (type == opCodeNode) {
-        if (op == ifOp) {
+        if (op == branchOp) {
+	    assert(loperand->oType == Constant);
+	    unsigned offset = (unsigned)loperand->oValue;
+            emit(branchOp, (reg) 0, (reg) 0, (int)offset, insn, base, noCost);
+        } else if (op == ifOp) {
             // This ast cannot be shared because it doesn't return a register
 	    src = loperand->generateCode_phase2(proc, rs, insn, base, noCost);
 	    startInsn = base;

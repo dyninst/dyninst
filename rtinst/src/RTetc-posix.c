@@ -237,7 +237,7 @@ static int connectToDaemon(int paradyndPid) {
   struct sockaddr_un sadr;
 
   char path[100];
-  sprintf(path, "%sparadynd.%d", P_tmpdir, paradyndPid); // P_tmpdir in <stdio.h>
+  sprintf(path, "%sparadynd.%d", P_tmpdir, paradyndPid); /* P_tmpdir in <stdio.h> */
 
   sock_fd = socket(PF_UNIX, SOCK_STREAM, 0);
   if (sock_fd < 0) {
@@ -313,7 +313,7 @@ int shm_create_existing(key_t theKey, unsigned theSize) {
    /* "create" segment (it already exists; paradynd did the real creating) but don't
       attach; returns seg id */
 
-   int segid = shmget(theKey, theSize, 0666); // note no IPC_CREAT or IPC_EXCL flags
+   int segid = shmget(theKey, theSize, 0666); /* note no IPC_CREAT or IPC_EXCL flags */
    if (segid == -1) {
        perror("shmget");
        fprintf(stderr, "DYNINSTinit cannot shmget for key %d, size %u\n",
@@ -537,7 +537,7 @@ DYNINSTgetMsgVectBytes(struct msghdr *msg)
 #define stache_blk_align(va)    ((void *)((unsigned)va & ~(STACHE_BLK_SIZE-1)))
 #define STACHE_BLK_SIZE          stache_blk_size
 
-//Blizzard
+/* Blizzard */
 int stache_blk_size ;
 void
 DYNINSTreportNewMem(char *data_structure, void *va, int memory_size, int blk_size)

@@ -76,6 +76,26 @@ static const double MILLION       = 1.0e6;
 
 
 
+static int procfd = -1;
+
+void DYNINSTgetCPUtimeInitialize(void) {
+   /* This stuff is done just once */
+   char str[20];
+
+   sprintf(str, "/proc/%d", (int)getpid());
+   /* have to use syscall here for applications that have their own
+      versions of open, poll...In these cases there is no guarentee that
+      things have been initialized so that the application's version of
+      open can be used when this open call occurs (in DYNINSTinit)
+   */
+   procfd = syscall(SYS_open,str, O_RDONLY);
+   if (procfd < 0) {
+      fprintf(stderr, "open of /proc failed in DYNINSTgetCPUtimeInitialize\n");
+      perror("open");
+      abort();
+   }
+}
+
 
 /************************************************************************
  * void DYNINSTos_init(void)
@@ -147,19 +167,20 @@ static unsigned long long div1000(unsigned long long in) {
     *
     */
 
-   unsigned long long temp = in << 20; // multiply by 1,048,576
-      // beware of overflow; left shift by 20 is quite a lot.
-      // If you know that the input fits in 32 bits (4 billion) then
-      // no problem.  But if it's much bigger then start worrying...
+   unsigned long long temp = in << 20; /* multiply by 1,048,576 */
+   /* beware of overflow; left shift by 20 is quite a lot.
+      If you know that the input fits in 32 bits (4 billion) then
+      no problem.  But if it's much bigger then start worrying...
+   */
 
-   temp += in << 14; // 16384
-   temp += in << 13; // 8192
-   temp += in << 9;  // 512
-   temp += in << 6;  // 64
-   temp += in << 4;  // 16
-   temp -= in >> 2;  // 2
+   temp += in << 14; /* 16384 */
+   temp += in << 13; /* 8192  */
+   temp += in << 9;  /* 512   */
+   temp += in << 6;  /* 64    */
+   temp += in << 4;  /* 16    */
+   temp -= in >> 2;  /* 2     */
 
-   return (temp >> 30); // divide by 2^30
+   return (temp >> 30); /* divide by 2^30 */
 }
 
 static unsigned long long divMillion(unsigned long long in) {
@@ -182,16 +203,17 @@ static unsigned long long divMillion(unsigned long long in) {
     *
     */
 
-   unsigned long long temp = in << 10; // multiply by 1024
-      // beware of overflow...if the input arg uses more than 52 bits
-      // than start worrying about whether (in << 10) plus the smaller additions
-      // we're gonna do next will fit in 64...
+   unsigned long long temp = in << 10; /* multiply by 1024 */
+   /* beware of overflow...if the input arg uses more than 52 bits
+      than start worrying about whether (in << 10) plus the smaller additions
+      we're gonna do next will fit in 64...
+   */
 
-   temp += in << 5; // 32
-   temp += in << 4; // 16
-   temp += in << 1; // 2
+   temp += in << 5; /* 32 */
+   temp += in << 4; /* 16 */
+   temp += in << 1; /* 2  */
 
-   return (temp >> 30); // divide by 2^30
+   return (temp >> 30); /* divide by 2^30 */
 }
 
 static unsigned long long mulMillion(unsigned long long in) {
@@ -219,26 +241,6 @@ static unsigned long long mulMillion(unsigned long long in) {
     */
 
    return result;
-}
-
-/* static int firstTime = 1; */ /* boolean */
-static int procfd = -1;
-
-void DYNINSTgetCPUtimeInitialize(void) {
-   /* This stuff is done just once */
-   char str[20];
-
-   sprintf(str, "/proc/%d", (int)getpid());
-   // have to use syscall here for applications that have their own
-   // versions of open, poll...In these cases there is no guarentee that
-   // things have been initialized so that the application's version of
-   // open can be used when this open call occurs (in DYNINSTinit)
-   procfd = syscall(SYS_open,str, O_RDONLY);
-   if (procfd < 0) {
-      fprintf(stderr, "open of /proc failed in DYNINSTgetCPUtimeInitialize\n");
-      perror("open");
-      abort();
-   }
 }
 
 time64
@@ -314,7 +316,7 @@ DYNINSTgetWalltime(void) {
     }
 
     now = mulMillion(tv.tv_sec) + tv.tv_usec;
-//    now = (time64)tv.tv_sec*(time64)1000000 + (time64)tv.tv_usec;
+    /*    now = (time64)tv.tv_sec*(time64)1000000 + (time64)tv.tv_usec; */
 
     if (now < previous) continue;
     previous = now;

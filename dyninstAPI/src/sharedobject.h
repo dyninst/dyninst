@@ -152,6 +152,13 @@ public:
 	}
 	return (0);
     }
+    pd_Function *findFunctionInInstAndUnInst(Address adr,const process *p){
+        if((adr >= base_addr) && objs_image){
+            Address new_adr = adr - base_addr;
+            return(objs_image->findFunctionInInstAndUnInst(new_adr,p));
+	}
+	return (0);
+    }
 
 				
 private:

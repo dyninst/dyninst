@@ -43,6 +43,10 @@
  * util.C - support functions.
  *
  * $Log: util.C,v $
+ * Revision 1.18  1997/08/19 19:50:55  naim
+ * Adding support to dynamically link libdyninstRT by using dlopen on sparc-
+ * solaris - naim
+ *
  * Revision 1.17  1997/06/23 17:13:52  tamches
  * some additional hash functions
  *
@@ -115,7 +119,7 @@
 
 #include <values.h>
 #define EVERY 1
-#define TIMINGunit 1.0e+03 // 1.0e+09 ns -> secs
+#define TIMINGunit 1.0e+09 // 1.0e+09 ns -> secs
                            // 1.0e+06 ns -> mils
                            // 1.0e+03 ns -> us 
                            // 1.0e+00 ns
@@ -312,6 +316,12 @@ void begin_timing(int id)
 
 void end_timing(int id, char *func)
 {
+  static bool first_time=true;
+  static FILE *fp=NULL;
+  if (first_time) {
+    first_time=false;
+    fp = fopen("timing.out","w");
+  }
   TIMINGtime2[id]=gethrtime();
   TIMINGcur[id]=TIMINGtime2[id]-TIMINGtime1[id];
   if (TIMINGcur[id] > TIMINGmax[id]) TIMINGmax[id]=TIMINGcur[id];
@@ -320,10 +330,17 @@ void end_timing(int id, char *func)
   TIMINGcounter[id]++;
   if (!(TIMINGcounter[id]%EVERY)) {
     sprintf(errorLine,"<%s> cur=%5.2f, avg=%5.2f, max=%5.2f, min=%5.2f, tot=%5.2f\n",func,TIMINGcur[id]/TIMINGunit,(TIMINGtot[id]/TIMINGcounter[id])/TIMINGunit,TIMINGmax[id]/TIMINGunit,TIMINGmin[id]/TIMINGunit,TIMINGtot[id]/TIMINGunit);
-    logLine(errorLine);
+    if (fp) {
+      fprintf(fp,"%s",P_strdup(errorLine));
+      fflush(fp);
+    } else {
+      logLine(errorLine);
+    }
   }
 }
 
 #endif
 
 // TIMING code
+
+

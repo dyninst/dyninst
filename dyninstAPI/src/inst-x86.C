@@ -43,6 +43,10 @@
  * inst-x86.C - x86 dependent functions and code generator
  *
  * $Log: inst-x86.C,v $
+ * Revision 1.26  1997/08/19 19:50:38  naim
+ * Adding support to dynamically link libdyninstRT by using dlopen on sparc-
+ * solaris - naim
+ *
  * Revision 1.25  1997/08/18 01:34:23  buck
  * Ported the Dyninst API to Windows NT.
  *
@@ -859,6 +863,7 @@ bool registerSpace::readOnlyRegister(reg) {
 
 */
 int deadList[NUM_VIRTUAL_REGISTERS];
+int deadListSize = sizeof(deadList);
 
 void initTramps()
 {
@@ -2321,7 +2326,7 @@ void returnInstance::addToReturnWaitingList(Address , process *) {
     P_abort();
 }
 
-void generateBreakPoint(unsigned char &) {
+void generateBreakPoint(instruction &insn) {
   P_abort();
 }
 

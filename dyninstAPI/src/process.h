@@ -310,6 +310,9 @@ class process {
   vector<int> getTOCoffsetInfo() const;
 
  private:
+#if defined(USES_LIBDYNINSTRT_SO)
+  unsigned char savedCodeBuffer[BYTES_TO_SAVE];
+#endif
   struct inferiorRPCtoDo {
      // This structure keeps track of an inferiorRPC that we will start sometime
      // in the (presumably near) future.  There is a different structure for RPCs
@@ -362,6 +365,8 @@ class process {
       // see para above for reason why this 'vector' can have at most 1 elem!
 
  public:
+  bool dyninstLibAlreadyLoaded() { return hasLoadedDyninstLib; }
+  bool dyninstLibIsBeingLoaded() { return isLoadingDyninstLib; }
   unsigned numOfActCounters_is;
   unsigned numOfActProcTimers_is;
   unsigned numOfActWallTimers_is; 
@@ -455,6 +460,7 @@ class process {
   time64 timeLastTrampSample;
 
   bool reachedFirstBreak; // should be renamed 'reachedInitialTRAP'
+  bool reachedVeryFirstTrap; 
 
   int getPid() const { return pid;}
 
@@ -499,6 +505,19 @@ class process {
   bool detach(const bool paused); // why the param?
   bool API_detach(const bool cont); // XXX Should eventually replace detach()
   bool attach();
+
+#if defined(USES_LIBDYNINSTRT_SO)
+  unsigned dyninstlib_brk_addr;
+  unsigned main_brk_addr;
+  bool dlopenDYNINSTlib();
+  bool trapDueToDyninstLib();
+  bool trapAtEntryPointOfMain();
+  bool wasCreatedViaAttach() { return createdViaAttach; }
+  void handleIfDueToDyninstLib();  
+  void insertTrapAtEntryPointOfMain();
+  void handleTrapAtEntryPointOfMain();
+#endif
+
   string getProcessStatus() const;
 
   static string tryToFindExecutable(const string &progpath, int pid);
@@ -534,9 +553,13 @@ class process {
   // handleStartProcess: this function is called when an appplication 
   // starts executing.  It is used to insert instrumentation necessary
   // to handle dynamic linking
-  static bool handleStartProcess(process *pid);
+  bool handleStartProcess();
 
   bool handleStopDueToExecEntry();
+
+#if defined(USES_LIBDYNINSTRT_SO)
+  unsigned get_dlopen_addr() const;
+#endif
 
   // getSharedObjects: This routine is called before main() to get and
   // process all shared objects that have been mapped into the process's

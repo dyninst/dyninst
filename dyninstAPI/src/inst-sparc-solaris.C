@@ -454,7 +454,7 @@ trampTemplate *installBaseTramp(instPoint *&location, process *proc)
 		    assert(location -> ipType == functionEntry); 
 		    location -> isLongJump = true;
  		    
-		    // In this situcation, save instruction is discarded
+		    // In this situation, save instruction is discarded
 		    // Rollback!! 
 		    assert(location->hasNoStackFrame() == false);
 		    temp--;
@@ -750,14 +750,18 @@ trampTemplate *installBaseTrampSpecial(const instPoint *&location,
 	    if (location->isBranchOut) {
                 // the original instruction is a branch that goes out of a 
 		// function.  We don't relocate the original instruction. We 
-		// only get to the tramp is the branch is taken, so we generate
-		// a unconditional branch to the target of the original 
+		// only get to the tramp if the branch is taken, so we generate
+		// an unconditional branch to the target of the original 
 		// instruction here 
                 assert(location->branchTarget);
                 int disp = location->branchTarget - currAddr;
 
-                generateBranchInsn(temp, disp);
-                disp = temp->branch.disp22;
+                if (in1BranchInsnRange(currAddr,location->branchTarget)) {
+		  generateBranchInsn(temp, disp);
+		  disp = temp->branch.disp22;
+		} else {
+		  generateCallInsn(temp, currAddr, disp);
+		}
                 continue;
             }
 	    else {
@@ -942,7 +946,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 
 	  if (location -> isLongJump == false) {
 	     instruction *insn = new instruction;
-	     generateBranchInsn(insn, (int)(ret->baseAddr-location->addr));
+	     generateBranchInsn(insn, (int)(ret->baseAddr-adr));
 	     retInstance = new returnInstance((instructUnion *)insn,
 					      sizeof(instruction), adr, 
 					      sizeof(instruction));
@@ -954,7 +958,6 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 	     retInstance = new returnInstance((instructUnion *)insn,
 				 2*sizeof(instruction), adr+4,
 			         2*sizeof(instruction));
-
 	  } else {
 	    bool already_done = false; 
 	    // check to see if the otherInstruction is a call instruction
@@ -1002,24 +1005,34 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 	  // base trampoline and no SAVE instruction is needed
 		
 	  if (in1BranchInsnRange(adr, ret->baseAddr)) {
-	     // make sure that the isLongJump won't be true
-	     // which only is possible for shlib entry point 
-	     assert(location->isLongJump == false);
-	     instruction *insn = new instruction;
-	     if (location -> ipType == functionEntry) {
-	        generateBranchInsn(insn, (int)(ret->baseAddr -
-					       location->addr+sizeof(instruction))); 
-		retInstance = new returnInstance((instructUnion *)insn,
-						 sizeof(instruction), 
-						 adr - sizeof(instruction), 
-						 sizeof(instruction));
-	     } else {
-	        generateBranchInsn(insn, (int)(ret->baseAddr-location->addr));
-		retInstance = new returnInstance((instructUnion *)insn,
-						 sizeof(instruction), 
-						 adr, 
-						 sizeof(instruction));
-	     }
+	    // make sure that the isLongJump won't be true
+	    // which only is possible for shlib entry point 
+	    //assert(location->isLongJump == false);
+	    if (location->isLongJump) {
+	      instruction *insn = new instruction[2];	
+	      generateCallInsn(insn, adr, (int) ret->baseAddr);
+	      assert(location->ipType == functionEntry);
+	      generateNOOP(insn+1);
+	      retInstance = new returnInstance((instructUnion *)insn, 
+					      2*sizeof(instruction), adr, 
+					      2*sizeof(instruction));
+	      assert(retInstance);
+	    } else {
+	      instruction *insn = new instruction;
+	      if (location -> ipType == functionEntry) {
+	          generateBranchInsn(insn, (int)(ret->baseAddr-adr+sizeof(instruction))); 
+		  retInstance = new returnInstance((instructUnion *)insn,
+						   sizeof(instruction), 
+						   adr - sizeof(instruction), 
+						   sizeof(instruction));
+	      } else {
+	          generateBranchInsn(insn,(int)(ret->baseAddr-adr));
+		  retInstance = new returnInstance((instructUnion *)insn,
+						   sizeof(instruction), 
+						   adr, 
+						   sizeof(instruction));
+	      }
+	    }
 	  } else if(need_to_add) {
 	     // the delay slot instruction is is a call to a location
 	     // within the same function, then need to generate 3 instrs
@@ -1108,11 +1121,10 @@ unsigned emitFuncCall(opCode op,
         if (err) {
 	    function_base *func = proc->findOneFunction(callee);
 	    if (!func) {
-		ostrstream os(errorLine, 1024, ios::out);
-		os << "Internal error: unable to find addr of " << callee << endl;
-		logLine(errorLine);
-		showErrorCallback(80, (const char *) errorLine);
-		P_abort();
+		  ostrstream os(errorLine, 1024, ios::out);
+		  os << "Internal error: unable to find addr of " << callee << endl;
+		  showErrorCallback(80, (const char *) errorLine);
+		  P_abort();
 	    }
 	    // TODO: is this correct or should we get relocated address?
 	    addr = func->getAddress(0);
@@ -1209,7 +1221,8 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
 	base += sizeof(instruction);
     } else if (op ==  ifOp) {
 	// cmp src1,0
-	genSimpleInsn(insn, SUBop3cc, src1, 0, 0); insn++;
+        genImmInsn(insn, SUBop3cc, src1, 0, 0); insn++;
+	//genSimpleInsn(insn, SUBop3cc, src1, 0, 0); insn++;
 
 	insn->branch.op = 0;
 	insn->branch.cond = BEcond;

@@ -447,7 +447,27 @@ pd_Function *image::findFunction(const Address &addr)
   else
      return NULL;
 }
+ 
+pd_Function *image::findFunctionInInstAndUnInst(const Address &addr,const process *p) const 
+{
+  pd_Function *pdf;
+
+  if (funcsByAddr.find(addr, pdf))
+     return pdf;
+  else
+     return NULL;
   
+  // If not found, we are going to search them in the 
+  // uninstrumentable function
+  for (unsigned i = 0; i < notInstruFunction.size(); i++) {
+      pdf = notInstruFunction[i];
+      if ((addr>=pdf->getAddress(p))&&(addr<=(pdf->getAddress(p)+pdf->size()))) 
+	  return pdf;
+  }
+
+  return NULL; 
+}
+ 
 pd_Function *image::findFunctionIn(const Address &addr,const process *p) const 
 {
   pd_Function *pdf;
@@ -1013,7 +1033,7 @@ sharedobj_cerr << "image::image for non-sharedobj; file name=" << file_ << endl;
     return;
   }
 
-#if !defined(i386_unknown_nt4_0)
+#if !defined(i386_unknown_nt4_0) && !defined(USES_LIBDYNINSTRT_SO)
   Symbol version;
   if (!linkedFile.get_symbol("DYNINSTversion", version) &&
       !linkedFile.get_symbol("_DYNINSTversion", version)) {

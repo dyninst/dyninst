@@ -5,6 +5,10 @@
 # architecture-specific Makefile.
 # 
 # $Log: make.library.tmpl,v $
+# Revision 1.9  1997/08/19 19:50:21  naim
+# Adding support to dynamically link libdyninstRT by using dlopen on sparc-
+# solaris - naim
+#
 # Revision 1.8  1996/11/26 16:02:19  naim
 # Implementation of cross-compiler (sparc-solaris,x86-solaris)->rs6000 - naim
 #
@@ -71,8 +75,14 @@ echo:
 	echo $(OBJS)
 
 clean:
-	rm -f *.o *.[hC] *.a $(TARGET)
+	rm -f *.o *.[hC] *.a $(TARGET) *.so*
 
+ifdef USES_LIBDYNINSTRT_SO
+install: $(DEST)/$(TARGET3)
+
+$(DEST)/$(TARGET3):  $(TARGET3)
+	cp $(TARGET3) $(DEST)
+else
 ifndef UNCOMMON_INSTALL
 install: $(DEST)/$(TARGET)
 
@@ -91,6 +101,7 @@ $(DEST)/$(TARGET2):  $(TARGET2)
 	$(RANLIB) $(DEST)/$(TARGET2)
 endif
 endif      # ifndef UNCOMMON_INSTALL
+endif	   # ifdef USES_LIBDYNINSTRT_SO
 
 #
 # dependency generation definitions
@@ -126,7 +137,11 @@ DEPENDS: $(SRCS)
 endif
 	touch DEPENDS
 	$(MAKE) $(SRCS)
+ifdef USES_LIBDYNINSTRT_SO
+	$(MODCC) $(MODCFLAGS) $(SRCS) > DEPENDS
+else
 	$(MODCC) -MM $(MODCFLAGS) $(SRCS) > DEPENDS
+endif
 #	makedepend -fDEPENDS -- $(CFLAGS) $(SRCS)
 endif
 

@@ -845,6 +845,7 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
     isLoadingDyninstLib = false;
 
     reachedFirstBreak = false; // haven't yet seen first trap
+    reachedVeryFirstTrap = false;
     createdViaAttach = false;
 
     symbols = iImage;
@@ -954,6 +955,7 @@ process::process(int iPid, image *iSymbols,
 
    hasBootstrapped = false;
    reachedFirstBreak = true; // the initial trap of program entry was passed long ago...
+   reachedVeryFirstTrap = true;
    createdViaAttach = true;
 
    // the next two variables are used only if libdyninstRT is dynamically linked
@@ -1135,6 +1137,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     bufEnd = 0;
 
     reachedFirstBreak = true; // initial TRAP has (long since) been reached
+    reachedVeryFirstTrap = true;
 
     splitHeaps = parentProc.splitHeaps;
 
@@ -1496,6 +1499,27 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
    activeProcesses++;
 
    theProc->threads += new pdThread(theProc);
+
+#if defined(USES_LIBDYNINSTRT_SO)
+   // we now need to dynamically load libdyninstRT.so.1 - naim
+   if (theProc->handleStartProcess()) {
+     if (!theProc->pause()) {
+       logLine("WARNING: pause failed\n");
+       assert(0);
+     }
+     theProc->dlopenDYNINSTlib();
+     // this will set isLoadingDyninstLib to true - naim
+     if (!theProc->continueProc()) {
+       logLine("WARNING: continueProc failed\n");
+       assert(0);
+     }
+     int status;
+     while (!theProc->dyninstLibAlreadyLoaded()) {
+       theProc->waitProcs(&status);
+     }
+   }
+#endif
+
    theProc->initDyninstLib();
 
 #ifndef BPATCH_LIBRARY
@@ -2045,18 +2069,20 @@ bool process::handleIfDueToSharedObjectMapping(){
 	  for(u_int i=0; i < changed_objects->size(); i++) {
              // TODO: currently we aren't handling dlopen because  
 	     // we don't have the code in place to modify existing metrics
-#ifdef ndef
 	     // This is what we really want to do:
-	      if(!addASharedObject(*((*changed_objects)[i]))){
-	          logLine("Error after call to addASharedObject\n");
-	          delete (*changed_objects)[i];
-	      }
-	      else {
-                  *shared_objects += (*changed_objects)[i]; 
-	      }
-#endif
-              // for now, just delete shared_objects to avoid memory leeks
-              delete (*changed_objects)[i];
+	     if(addASharedObject(*((*changed_objects)[i]))){
+	       *shared_objects += (*changed_objects)[i];
+	       if (((*changed_objects)[i])->getName() == string(getenv("PARADYN_LIB"))) {
+		 hasLoadedDyninstLib = true;
+		 isLoadingDyninstLib = false;
+	       }
+	     }
+	     else {
+	       logLine("Error after call to addASharedObject\n");
+	       delete (*changed_objects)[i];
+	     }
+             // for now, just delete shared_objects to avoid memory leeks
+             //delete (*changed_objects)[i];
 	  }
 	  delete changed_objects;
       } 
@@ -2089,22 +2115,18 @@ bool process::handleIfDueToSharedObjectMapping(){
 //  If this process is a dynamic executable, then get all its 
 //  shared objects, parse them, and define new instpoints and resources 
 //
-bool process::handleStartProcess(process *p){
-
-    if(!p){
-        return false;
-    }
+bool process::handleStartProcess(){
 
     // get shared objects, parse them, and define new resources 
     // For WindowsNT we don't call getSharedObjects here, instead
     // addASharedObject will be called directly by pdwinnt.C
 #if !defined(i386_unknown_nt4_0)
-    p->getSharedObjects();
+    this->getSharedObjects();
 #endif
 
 #ifndef BPATCH_LIBRARY
     if(resource::num_outstanding_creates)
-       p->setWaitingForResources();
+       this->setWaitingForResources();
 #endif
 
     return true;
@@ -2330,16 +2352,21 @@ function_base *process::findOneFunctionFromAll(const string &func_name){
 pd_Function *process::findpdFunctionIn(Address adr) {
 
     // first check a.out for function symbol
-    pd_Function *pdf = symbols->findFunctionIn(adr,this);
+    // findFunctionInInstAndUnInst will search the instrumentable and
+    // uninstrumentable functions. We are assuming that "adr" is the
+    // entry point of the function, so we will use as the key to search
+    // in the dictionary - naim
+    pd_Function *pdf = symbols->findFunctionInInstAndUnInst(adr,this);
     if(pdf) return pdf;
     // search any shared libraries for the function 
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
-	    pdf = ((*shared_objects)[j])->findFunctionIn(adr,this);
-	    if(pdf){
-	        return(pdf);
-	    }
-    } }
+	  pdf = ((*shared_objects)[j])->findFunctionInInstAndUnInst(adr,this);
+	  if(pdf){
+	    return(pdf);	  
+	  }
+	}
+    }
 
     if(!all_functions) getAllFunctions();
 
@@ -2377,7 +2404,6 @@ function_base *process::findFunctionIn(Address adr){
     } }
 
     if(!all_functions) getAllFunctions();
-
 
     // if the function was not found, then see if this addr corresponds
     // to  a function that was relocated in the heap
@@ -2429,10 +2455,12 @@ bool process::getSymbolInfo(const string &name, Symbol &info, Address &baseAddr)
       return getBaseAddress(symbols, baseAddr);
 
     // next check shared objects
-    if(dynamiclinking && shared_objects)
-        for(u_int j=0; j < shared_objects->size(); j++)
+    if(dynamiclinking && shared_objects) {
+      for(u_int j=0; j < shared_objects->size(); j++) {
 	    if(((*shared_objects)[j])->getSymbolInfo(name,info))
 	        return getBaseAddress(((*shared_objects)[j])->getImage(), baseAddr); 
+      }
+    }
 
     return false;
 }
@@ -2612,6 +2640,20 @@ Address process::findInternalAddress(const string &name, bool warn, bool &err) c
      Symbol sym;
      Address baseAddr;
      static const string underscore = "_";
+#if defined(USES_LIBDYNINSTRT_SO)
+     // we use "dlopen" because we took out the leading "_"'s from the name
+     if (name==string("dlopen")) {
+       // if the function is dlopen, we use the address in ld.so.1 directly
+       baseAddr = get_dlopen_addr();
+       if (baseAddr != NULL) {
+         err = false;
+         return baseAddr;
+       } else {
+	 err = true;
+	 return 0;
+       }
+     }
+#endif
      if (getSymbolInfo(name, sym, baseAddr)
          || getSymbolInfo(underscore+name, sym, baseAddr)) {
         err = false;
@@ -2762,14 +2804,17 @@ void process::handleExec() {
     this->findSignalHandler();
 
     // initInferiorHeap can only be called after symbols is set!
+#if !defined(USES_LIBDYNINSTRT_SO)
     initInferiorHeap(false);
     if (splitHeaps) {
       initInferiorHeap(true);  // create separate text heap
     }
+#endif
 
     /* update process status */
     reachedFirstBreak = false;
        // we haven't yet seen initial SIGTRAP for this proc (is this right?)
+    reachedVeryFirstTrap = false;
 
     status_ = stopped; // was 'exited'
 
@@ -3519,7 +3564,11 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
    // Note: the process isn't necessarily paused at this moment.  In particular,
    // if we had attached to the process, then it will be running even as we speak.
    // While we're parsing the shared libraries, we should pause.  So do that now.
-   bool wasRunning = status_ == running;
+   bool wasRunning;
+   if (needToContinueAfterDYNINSTinit) 
+     wasRunning = true;
+   else 
+     wasRunning = status_ == running;
    (void)pause();
 
    const bool calledFromFork   = (bs_record.event == 2);
@@ -3542,8 +3591,10 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
       string str=string("PID=") + string(bs_record.pid) + ", calling handleStartProcess...";
       statusLine(str.string_of());
 
-      if (!handleStartProcess(this)) // reads in shared libraries...can take a while
+#ifdef ndef
+      if (!handleStartProcess()) // reads in shared libraries...can take a while
          logLine("warning: handleStartProcess failed\n");
+#endif
 
 #ifndef BPATCH_LIBRARY
       // we decrement the batch mode here; it matches the bump-up in createProcess()
@@ -3632,6 +3683,10 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
    if (!calledFromAttach) {
       str=string("PID=") + string(bs_record.pid) + ", ready.";
       statusLine(str.string_of());
+   }
+
+   if (calledFromAttach && !wasRunning) {
+      statusLine("application paused");
    }
 
    assert(status_ == stopped);
