@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.117 2003/01/23 17:55:50 tlmiller Exp $
+ * $Id: inst-x86.C,v 1.118 2003/02/26 21:27:39 schendel Exp $
  */
 
 #include <iomanip.h>
@@ -123,7 +123,8 @@ void BaseTrampTrapHandler(int); //siginfo_t*, ucontext_t*);
    TODO: what about far calls?
  */
 
-#define PARAM_OFFSET (8+(9*4))
+#define FUNC_PARAM_OFFSET (8+(9*4))
+#define CALLSITE_PARAM_OFFSET (4+(9*4))
 
 
 // number of virtual registers
@@ -501,8 +502,8 @@ bool pd_Function::findInstPoints(const image *i_owner) {
    image *owner = const_cast<image *>(i_owner); // const cast
 
    if (size() == 0) {
-     //fprintf(stderr,"Function %s, size = %d\n", prettyName().c_str(), size());
-     return false;
+      //fprintf(stderr,"Function %s, size = %d\n", prettyName().c_str(), size());
+      return false;
    }
 
 #if defined(i386_unknown_solaris2_5)
@@ -510,14 +511,14 @@ bool pd_Function::findInstPoints(const image *i_owner) {
       returns.  If it requires trap-based instrumentation, it can foul
       the handler return mechanism.  So, better exclude it.  */
    if (prettyName() == "_setcontext" || prettyName() == "setcontext")
-	return false;
+      return false;
 #endif /* i386_unknown_solaris2_5 */
 
-// XXXXX kludge: these functions are called by DYNINSTgetCPUtime, 
-// they can't be instrumented or we would have an infinite loop
-if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
-    || prettyName() == "GetProcessTimes")
-   return false;
+   // XXXXX kludge: these functions are called by DYNINSTgetCPUtime, 
+   // they can't be instrumented or we would have an infinite loop
+   if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
+       || prettyName() == "GetProcessTimes")
+      return false;
 
    point_ *points = new point_[size()];
    //point_ *points = (point_ *)alloca(size()*sizeof(point));
@@ -536,37 +537,37 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
 
    // define the entry point
    insnSize = insn.getNextInstruction(instr);
-   instPoint *p = new instPoint(this, owner, adr, insn);
+   instPoint *p = new instPoint(this, owner, adr, functionEntry, insn);
    funcEntry_ = p;
    points[npoints++] = point_(p, numInsns, EntryPt);
 
    // check if the entry point contains another point
    if (insn.isJumpDir()) {
-     Address target = insn.getTarget(adr);
-     owner->addJumpTarget(target);
-     if (target < getAddress(0) || target >= getAddress(0) + size()) {
-       // jump out of function
-       // this is an empty function
-       delete [] points;
-       delete [] allInstr;
-       return false;
-     }
+      Address target = insn.getTarget(adr);
+      owner->addJumpTarget(target);
+      if (target < getAddress(0) || target >= getAddress(0) + size()) {
+         // jump out of function
+         // this is an empty function
+         delete [] points;
+         delete [] allInstr;
+         return false;
+      }
    } else if (insn.isReturn()) {
-     // this is an empty function
-     delete [] points;
-     delete [] allInstr;
-     return false;
+      // this is an empty function
+      delete [] points;
+      delete [] allInstr;
+      return false;
    } else if (insn.isCall()) {
-     // TODO: handle calls at entry point
-     // call at entry point
-     //instPoint *p = new instPoint(this, owner, adr, insn);
-     //calls += p;
-     //points[npoints++] = point_(p, numInsns, CallPt);
-     //fprintf(stderr,"Function %s, call at entry point\n", prettyName().c_str());
+      // TODO: handle calls at entry point
+      // call at entry point
+      //instPoint *p = new instPoint(this, owner, adr, functionEntr, insn);
+      //calls += p;
+      //points[npoints++] = point_(p, numInsns, CallPt);
+      //fprintf(stderr,"Function %s, call at entry point\n", prettyName().c_str());
 
-     delete [] points;
-     delete [] allInstr;
-     return false;
+      delete [] points;
+      delete [] allInstr;
+      return false;
    }
 
    allInstr[numInsns] = insn;
@@ -574,13 +575,14 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
    instr += insnSize;
    adr += insnSize;
 
-   // get all the instructions for this function, and define the instrumentation
-   // points. For now, we only add one instruction to each point.
-   // Additional instructions, for the points that need them, will be added later.
+   // get all the instructions for this function, and define the
+   // instrumentation points. For now, we only add one instruction to each
+   // point.  Additional instructions, for the points that need them, will be
+   // added later.
 
 #ifdef BPATCH_LIBRARY
    if (BPatch::bpatch->hasForcedRelocation_NP()) {
-     relocatable_ = true;
+      relocatable_ = true;
    }
 #endif
 
@@ -589,91 +591,91 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
    bool canBeRelocated = true;
 
    if (prettyName() == "__libc_fork" || prettyName() == "__libc_start_main") {
-     canBeRelocated = false;
+      canBeRelocated = false;
    }
 
    Address funcEnd = getAddress(0) + size();
    for ( ; adr < funcEnd; instr += insnSize, adr += insnSize) {
 
-     insnSize = insn.getNextInstruction(instr);
+      insnSize = insn.getNextInstruction(instr);
 
-     assert(insnSize > 0);
+      assert(insnSize > 0);
 
-     if (adr + insnSize > funcEnd) {
-       break;
-     }
+      if (adr + insnSize > funcEnd) {
+         break;
+      }
 
-     if (insn.isJumpIndir()) {
-       unsigned jumpTableSz;
+      if (insn.isJumpIndir()) {
+         unsigned jumpTableSz;
 
-       // check if function should be allowed to be relocated
-       checkIfRelocatable(insn, canBeRelocated);
+         // check if function should be allowed to be relocated
+         checkIfRelocatable(insn, canBeRelocated);
 
-       // check for jump table. This may update funcEnd
-       if (!checkJumpTable(owner, insn, adr, getAddress(0), funcEnd, jumpTableSz)) {
-	 delete points;
-	 delete allInstr;
-         //fprintf(stderr,"Function %s, size = %d, bad jump table\n", 
-	 //          prettyName().c_str(), size());
-	 return false;
-       }
+         // check for jump table. This may update funcEnd
+         if (!checkJumpTable(owner, insn, adr, getAddress(0), funcEnd, jumpTableSz)) {
+            delete points;
+            delete allInstr;
+            //fprintf(stderr,"Function %s, size = %d, bad jump table\n", 
+            //          prettyName().c_str(), size());
+            return false;
+         }
 
-       // process the jump instruction
-       allInstr[numInsns] = insn;
-       numInsns++;
-
-       if (jumpTableSz > 0) {
-	 // skip the jump table
-	 // insert an illegal instruction with the size of the jump table
-	 insn = instruction(instr, ILLEGAL, jumpTableSz);
-	 allInstr[numInsns] = insn;
+         // process the jump instruction
+         allInstr[numInsns] = insn;
          numInsns++;
-	 insnSize += jumpTableSz;
-       }
-     } else if (insn.isJumpDir()) {
-       // check for jumps out of this function
-       Address target = insn.getTarget(adr);
-       owner->addJumpTarget(target);
-       if (target < getAddress(0) || target >= getAddress(0) + size()) {
-	 // jump out of function
-	 instPoint *p = new instPoint(this, owner, adr, insn);
-	 funcReturns.push_back(p);
-	 points[npoints++] = point_(p, numInsns, ReturnPt);
-       } 
-     } else if (insn.isReturn()) {
 
-       instPoint *p = new instPoint(this, owner, adr, insn);
-       funcReturns.push_back(p);
-       points[npoints++] = point_(p, numInsns, ReturnPt);
+         if (jumpTableSz > 0) {
+            // skip the jump table
+            // insert an illegal instruction with the size of the jump table
+            insn = instruction(instr, ILLEGAL, jumpTableSz);
+            allInstr[numInsns] = insn;
+            numInsns++;
+            insnSize += jumpTableSz;
+         }
+      } else if (insn.isJumpDir()) {
+         // check for jumps out of this function
+         Address target = insn.getTarget(adr);
+         owner->addJumpTarget(target);
+         if (target < getAddress(0) || target >= getAddress(0) + size()) {
+            // jump out of function
+            instPoint *p = new instPoint(this, owner, adr, functionExit, insn);
+            funcReturns.push_back(p);
+            points[npoints++] = point_(p, numInsns, ReturnPt);
+         } 
+      } else if (insn.isReturn()) {
 
-     } else if (insn.isCall()) {
+         instPoint *p = new instPoint(this, owner, adr, functionExit, insn);
+         funcReturns.push_back(p);
+         points[npoints++] = point_(p, numInsns, ReturnPt);
+
+      } else if (insn.isCall()) {
 
          // validTarget is set to false if the call target is not a valid 
          // address in the applications process space 
          bool validTarget = true;
 
          if ( isRealCall(insn, adr, owner, validTarget, this) ) {
-	   instPoint *p = new instPoint(this, owner, adr, insn);
-	   calls.push_back(p);
-	   points[npoints++] = point_(p, numInsns, CallPt);
-	 } else {
+            instPoint *p = new instPoint(this, owner, adr, callSite, insn);
+            calls.push_back(p);
+            points[npoints++] = point_(p, numInsns, CallPt);
+         } else {
 
-	     // Call was to an invalid address, do not instrument function 
-	     if (validTarget == false) {
+            // Call was to an invalid address, do not instrument function 
+            if (validTarget == false) {
                delete [] points;
                delete [] allInstr;
                return false;
-	     }
+            }
 
-             // Force relocation when instrumenting function
-             relocatable_ = true;
-	 }
-     }
+            // Force relocation when instrumenting function
+            relocatable_ = true;
+         }
+      }
 
-     allInstr[numInsns] = insn;
-     numInsns++;
-     assert(npoints < size());
-     assert(numInsns <= size());
+      allInstr[numInsns] = insn;
+      numInsns++;
+      assert(npoints < size());
+      assert(numInsns <= size());
    }
 
 
@@ -682,104 +684,104 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
    // since they may be usefull to instrument the return point
    for (u = 0; u < 4; u++) {
      
-     if (owner->isValidAddress(adr)) {
-       insnSize = insn.getNextInstruction(instr);
-       if (insn.isNop()) {
-	 allInstr[numInsns] = insn;
-	 numInsns++;
-	 assert(numInsns < size()+5);
-	 instr += insnSize;
-	 adr += insnSize;
-       }
-       else
-	 break;
-     }
+      if (owner->isValidAddress(adr)) {
+         insnSize = insn.getNextInstruction(instr);
+         if (insn.isNop()) {
+            allInstr[numInsns] = insn;
+            numInsns++;
+            assert(numInsns < size()+5);
+            instr += insnSize;
+            adr += insnSize;
+         }
+         else
+            break;
+      }
    }
 
    // add extra instructions to the points that need it.
    unsigned lastPointEnd = 0;
    unsigned thisPointEnd = 0;
    for (u = 0; u < npoints; u++) {
-     instPoint *p = points[u].point;
-     unsigned index = points[u].index;
-     unsigned type = points[u].type;
-     lastPointEnd = thisPointEnd;
-     thisPointEnd = index;
+      instPoint *p = points[u].point;
+      unsigned index = points[u].index;
+      unsigned type = points[u].type;
+      lastPointEnd = thisPointEnd;
+      thisPointEnd = index;
 
-     // add instructions before the point
-     unsigned size = p->size();
-     for (int u1 = index-1; size < JUMP_SZ && u1 >= 0 && u1 > (int)lastPointEnd; u1--) {
-       if (!allInstr[u1].isCall()) {
-	 p->addInstrBeforePt(allInstr[u1]);
-	 size += allInstr[u1].size();
-       } else
-	 break;
-     }
+      // add instructions before the point
+      unsigned size = p->size();
+      for (int u1 = index-1; size < JUMP_SZ && u1 >= 0 && u1 > (int)lastPointEnd; u1--) {
+         if (!allInstr[u1].isCall()) {
+            p->addInstrBeforePt(allInstr[u1]);
+            size += allInstr[u1].size();
+         } else
+            break;
+      }
 
-     lastPointEnd = index;
+      lastPointEnd = index;
 
-     // add instructions after the point
-     if (type == ReturnPt && p->address() == funcEnd-1) {
+      // add instructions after the point
+      if (type == ReturnPt && p->address() == funcEnd-1) {
 
-       /* If an instrumentation point at the end of the function does
-          not end on a 4-byte boundary, we claim the bytes up to the
-          next 4-byte boundary as "bonus bytes" for the point, since
-          the next function will (should) begin at or past the
-          boundary.  We tried 8 byte boundaries and found some
-          functions did not begin on 8-byte aligned addresses, so 8 is
-          unsafe. */
-       unsigned bonus;
+         /* If an instrumentation point at the end of the function does
+            not end on a 4-byte boundary, we claim the bytes up to the
+            next 4-byte boundary as "bonus bytes" for the point, since
+            the next function will (should) begin at or past the
+            boundary.  We tried 8 byte boundaries and found some
+            functions did not begin on 8-byte aligned addresses, so 8 is
+            unsafe. */
+         unsigned bonus;
 #ifndef i386_unknown_nt4_0
-       bonus = (funcEnd % 4) ? (4 - (funcEnd % 4)) : 0;
+         bonus = (funcEnd % 4) ? (4 - (funcEnd % 4)) : 0;
 #else
-       /* Unfortunately, the Visual C++ compiler generates functions
-	  that begin at unaligned boundaries, so forget this scheme on
-	  NT. */
-       bonus = 0;
+         /* Unfortunately, the Visual C++ compiler generates functions
+            that begin at unaligned boundaries, so forget this scheme on
+            NT. */
+         bonus = 0;
 #endif /* i386_unknown_nt4_0 */
        //p->setBonusBytes(bonus);
-       unsigned u1;
-       for (u1 = index+1 + bonus; u1 < index+JUMP_SZ-1 && u1 < numInsns; u1++) {
-	 if (allInstr[u1].isNop() || *(allInstr[u1].ptr()) == 0xCC) {
-	   //p->addInstrAfterPt(allInstr[u1]);
-           bonus++;
-	   thisPointEnd = u1;
-	 }
-	 else 
-	   break;
-       }
-       p->setBonusBytes(bonus);
-     } else if (type == ReturnPt) {
-       // normally, we would not add instructions after the return, but the 
-       // compilers often add nops after the return, and we can use them if necessary
-       for (unsigned u1 = index+1; u1 < index+JUMP_SZ-1 && u1 < numInsns; u1++) {
-	 if (allInstr[u1].isNop() || *(allInstr[u1].ptr()) == 0xCC) {
-	   p->addInstrAfterPt(allInstr[u1]);
-	   thisPointEnd = u1;
-	 }
-	 else 
-	   break;
-       }
-     } else {
-       size = p->size();
-       unsigned maxSize = JUMP_SZ;
-       if (type == EntryPt) maxSize = 2*JUMP_SZ;
-       for (unsigned u1 = index+1; size < maxSize && u1 <= numInsns; u1++) {
-	 if (((u+1 == npoints) || (u+1 < npoints && points[u+1].index > u1))
-	     && !allInstr[u1].isCall()) {
-	   p->addInstrAfterPt(allInstr[u1]);
-	   size += allInstr[u1].size();
-	   thisPointEnd = u1;
-	 }
-	 else 
-	   break;
-       }
-     }
+         unsigned u1;
+         for (u1 = index+1 + bonus; u1 < index+JUMP_SZ-1 && u1 < numInsns; u1++) {
+            if (allInstr[u1].isNop() || *(allInstr[u1].ptr()) == 0xCC) {
+               //p->addInstrAfterPt(allInstr[u1]);
+               bonus++;
+               thisPointEnd = u1;
+            }
+            else 
+               break;
+         }
+         p->setBonusBytes(bonus);
+      } else if (type == ReturnPt) {
+         // normally, we would not add instructions after the return, but the 
+         // compilers often add nops after the return, and we can use them if necessary
+         for (unsigned u1 = index+1; u1 < index+JUMP_SZ-1 && u1 < numInsns; u1++) {
+            if (allInstr[u1].isNop() || *(allInstr[u1].ptr()) == 0xCC) {
+               p->addInstrAfterPt(allInstr[u1]);
+               thisPointEnd = u1;
+            }
+            else 
+               break;
+         }
+      } else {
+         size = p->size();
+         unsigned maxSize = JUMP_SZ;
+         if (type == EntryPt) maxSize = 2*JUMP_SZ;
+         for (unsigned u1 = index+1; size < maxSize && u1 <= numInsns; u1++) {
+            if (((u+1 == npoints) || (u+1 < npoints && points[u+1].index > u1))
+                && !allInstr[u1].isCall()) {
+               p->addInstrAfterPt(allInstr[u1]);
+               size += allInstr[u1].size();
+               thisPointEnd = u1;
+            }
+            else 
+               break;
+         }
+      }
    }
 
 
    for (u = 0; u < npoints; u++)
-	points[u].point->checkInstructions();
+      points[u].point->checkInstructions();
 
    // create and sort vector of instPoints
    pdvector<instPoint*> foo;
@@ -787,26 +789,26 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
 
    for (unsigned i=0;i<foo.size();i++) {
 
-     if (_usesTrap(foo[i], funcEntry_, funcReturns) && size() >= 5) {
-       relocatable_ = true;
-     }
+      if (_usesTrap(foo[i], funcEntry_, funcReturns) && size() >= 5) {
+         relocatable_ = true;
+      }
    }
 
    // if the function contains a jump to a jump table, we can't relocate
    // the function 
    if ( !canBeRelocated ) {
 
-     // Function would have needed relocation 
-     if (relocatable_ == true) {
+      // Function would have needed relocation 
+      if (relocatable_ == true) {
 
 #ifdef DEBUG_FUNC_RELOC      
-       cerr << prettyName() << endl;
-       cerr << "Jump Table: Can't relocate function" << endl;
+         cerr << prettyName() << endl;
+         cerr << "Jump Table: Can't relocate function" << endl;
 #endif
 
-       relocatable_ = false;
+         relocatable_ = false;
 
-     }
+      }
    }
 
    delete [] points;
@@ -2366,7 +2368,8 @@ Address emitA(opCode op, Register src1, Register /*src2*/, Register dest,
 }
 
 Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
-             char *ibuf, Address &base, bool /*noCost*/)
+               char *ibuf, Address &base, bool /*noCost*/,
+               const instPoint *location)
 {
     //fprintf(stderr,"emitR(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
 
@@ -2374,30 +2377,38 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
     unsigned char *first = insn;
 
     switch (op) {
-    case getRetValOp: {
-      // dest is a register where we can store the value
-      // the return value is in the saved EAX
-      emitMovRMToReg(EAX, EBP, SAVED_EAX_OFFSET, insn);
-      emitMovRegToRM(EBP, -(dest*4), EAX, insn);
-      base += insn - first;
-      return dest;
+      case getRetValOp: {
+         // dest is a register where we can store the value
+         // the return value is in the saved EAX
+         emitMovRMToReg(EAX, EBP, SAVED_EAX_OFFSET, insn);
+         emitMovRegToRM(EBP, -(dest*4), EAX, insn);
+         base += insn - first;
+         return dest;
       }
-    case getParamOp: {
-      // src1 is the number of the argument
-      // dest is a register where we can store the value
-      // Parameters are addressed by a positive offset from ebp,
-      // the first is PARAM_OFFSET[ebp]
-      emitMovRMToReg(EAX, EBP, PARAM_OFFSET + src1*4, insn);
-      emitMovRegToRM(EBP, -(dest*4), EAX, insn);
-      base += insn - first;
-      return dest;
+      case getParamOp: {
+         // src1 is the number of the argument
+         // dest is a register where we can store the value
+         // Parameters are addressed by a positive offset from ebp,
+         // the first is PARAM_OFFSET[ebp]
+         instPointType ptType = location->getPointType();
+         if(ptType == callSite) {
+            emitMovRMToReg(EAX, EBP, CALLSITE_PARAM_OFFSET + src1*4, insn);
+            emitMovRegToRM(EBP, -(dest*4), EAX, insn);
+            base += insn - first;
+            return dest;
+         } else {
+            // assert(ptType == functionEntry)
+            emitMovRMToReg(EAX, EBP, FUNC_PARAM_OFFSET + src1*4, insn);
+            emitMovRegToRM(EBP, -(dest*4), EAX, insn);
+            base += insn - first;
+            return dest;
+         }
       }
-    default:
-      abort();                  // unexpected op for this emit!
+      default:
+         abort();                  // unexpected op for this emit!
     }
-  return(Null_Register);        // should never be reached!
+    return(Null_Register);        // should never be reached!
 }
-
 
 #ifdef BPATCH_LIBRARY
 static inline void emitSHL(Register dest, unsigned char pos, unsigned char *&insn)
@@ -3663,7 +3674,8 @@ BPatch_point *createInstructionInstPoint(process* proc, void *address,
     ptr = (const unsigned char *)image->getPtrToInstruction(relAddr);
     insnSize = insn.getNextInstruction(ptr);
 
-    instPoint *newpt = new instPoint(func, image, relAddr, insn, true);
+    instPoint *newpt = new instPoint(func, image, relAddr, otherPoint, 
+                                     insn, true);
 
     newpt->checkInstructions();
 
@@ -4133,7 +4145,8 @@ bool pd_Function::fillInRelocInstPoints(
     //  figure out how far entry inst point is from beginning of function..
     CALC_OFFSETS(funcEntry_)
 
-    point = new instPoint(this, owner, adr-imageBaseAddr, newCode[newArrayOffset]);
+    point = new instPoint(this, owner, adr-imageBaseAddr, functionEntry,
+                          newCode[newArrayOffset]);
 
 #ifdef DEBUG_FUNC_RELOC    
     cerr << dec << " added entry point at originalOffset = " 
@@ -4164,7 +4177,8 @@ bool pd_Function::fillInRelocInstPoints(
 
     CALC_OFFSETS(funcReturns[retId])
 
-    point = new instPoint(this, owner, adr-imageBaseAddr, newCode[newArrayOffset]);
+    point = new instPoint(this, owner, adr-imageBaseAddr, functionExit, 
+                          newCode[newArrayOffset]);
 
 #ifdef DEBUG_FUNC_RELOC
     cerr << dec << " added return point at originalOffset = " 
@@ -4193,7 +4207,8 @@ bool pd_Function::fillInRelocInstPoints(
 
     CALC_OFFSETS(calls[callId])
 
-    point = new instPoint(this, owner, adr-imageBaseAddr, newCode[newArrayOffset]);
+    point = new instPoint(this, owner, adr-imageBaseAddr, callSite,
+                          newCode[newArrayOffset]);
 
 #ifdef DEBUG_FUNC_RELOC
     cerr << dec << " added call site at originalOffset = " << originalOffset
@@ -4221,8 +4236,8 @@ bool pd_Function::fillInRelocInstPoints(
 
     CALC_OFFSETS(arbitraryPoints[arbitraryId]);
 
-    point = new instPoint(this, owner, adr-imageBaseAddr,
-			  newCode[newArrayOffset], true);
+    point = new instPoint(this, owner, adr-imageBaseAddr, otherPoint,
+                          newCode[newArrayOffset], true);
 
     assert(point != NULL);
 
@@ -4977,11 +4992,8 @@ void pd_Function::addArbitraryPoint(instPoint* location,
 
     newCode  = reinterpret_cast<instruction *> (relocatedCode);
  
-    point = new instPoint(this,
-			  owner,
-			  newAdr-imageBaseAddr,
-			  newCode[newArrayOffset],
-			  true);
+    point = new instPoint(this, owner, newAdr-imageBaseAddr, otherPoint,
+                          newCode[newArrayOffset], true);
 
     point->setRelocated();
 
