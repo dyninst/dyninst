@@ -151,8 +151,8 @@ class metricInstance {
     friend void DMdoEnableData(perfStreamHandle,perfStreamHandle,vector<metricRLType> *,
 			       u_int,phaseType,phaseHandle,u_int,u_int,u_int);
     friend void DMenableResponse(DM_enableType&,vector<bool>&);
-    friend void DMdisableRoutine(perfStreamHandle,metricInstanceHandle,
-				 phaseType);
+    friend void DMdisableRoutine(perfStreamHandle,perfStreamHandle,
+				metricInstanceHandle, phaseType);
     // trace data streams
     friend void traceDataCallBack(void *data, int length, void *arg);
     public:

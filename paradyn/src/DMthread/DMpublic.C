@@ -767,6 +767,7 @@ void dataManager::enableDataRequest2(perfStreamHandle ps,
 // global histogram is destroyed whern there are no curr or gloabl users
 // clear active flag on archived histograms rather than deleting them
 void DMdisableRoutine(perfStreamHandle handle, 
+		      perfStreamHandle pt_handle,
 		      metricInstanceHandle mh, 
 		      phaseType type)
 {
@@ -791,7 +792,7 @@ void DMdisableRoutine(perfStreamHandle handle,
     }
 
     // trace data streams
-    mi->removeTraceUser(handle);
+    mi->removeTraceUser(pt_handle);
 
     if (mi->isCollectionPersistent()) {
         // just remove handle from appropriate client list and return
@@ -859,10 +860,11 @@ void DMdisableRoutine(perfStreamHandle handle,
 // global histogram is destroyed whern there are no curr or gloabl users
 // clear active flag on archived histograms rather than deleting them
 void dataManager::disableDataCollection(perfStreamHandle handle, 
+					perfStreamHandle pt_handle,
 					metricInstanceHandle mh,
 					phaseType type) {
 
-    DMdisableRoutine(handle,mh,type);
+    DMdisableRoutine(handle,pt_handle, mh,type);
 }
 
 //
@@ -875,6 +877,7 @@ void dataManager::disableDataCollection(perfStreamHandle handle,
 // clear_phase_persistent_data - if true, clear phase_persistent_data flag
 //
 void dataManager::disableDataAndClearPersistentData(perfStreamHandle ps_handle,
+					perfStreamHandle pt_handle,
 					metricInstanceHandle mi_handle,
 				       	phaseType p_type,
 				       	bool clear_persistent_data,
@@ -884,7 +887,7 @@ void dataManager::disableDataAndClearPersistentData(perfStreamHandle ps_handle,
     if (!mi) return;
     if(clear_phase_persistent_data) mi->clearPhasePersistentData();
     if(clear_persistent_data) mi->clearPersistentData();
-    DMdisableRoutine(ps_handle,mi_handle,p_type);
+    DMdisableRoutine(ps_handle,pt_handle, mi_handle,p_type);
 }
 
 //

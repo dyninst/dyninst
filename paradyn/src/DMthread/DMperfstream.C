@@ -500,7 +500,7 @@ void performanceStream::removeTraceUser(perfStreamHandle p){
         }
     }
     if(ps->num_trace_mis){
-        assert(ps->my_traceBuffer_size);
+      assert(ps->my_traceBuffer_size);
     }
     else
         ps->my_traceBuffer_size = 0;
