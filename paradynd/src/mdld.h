@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdld.h,v 1.16 2002/05/10 18:37:38 schendel Exp $
+// $Id: mdld.h,v 1.17 2002/05/14 19:00:29 schendel Exp $
 
 #if !defined(mdl_daemon_hdr)
 #define mdl_daemon_hdr
@@ -55,12 +55,17 @@ typedef struct {
 extern void mdl_get_info(vector<T_dyninstRPC::metricInfo>&);
 extern bool mdl_metric_data(const string&, mdl_inst_data&);
 
-extern machineMetFocusNode *mdl_do(int mid, 
-				   const Focus &focus,
-				   string& metric_name,
-				   vector<process *> procs,
-				   bool, bool);
-extern bool mdl_can_do(string& metric_name);
+extern machineMetFocusNode *makeMachineMetFocusNode(int mid, 
+                                    const Focus& focus, const string &met_name,
+				    vector<process *> procs,
+				    bool replace_components_if_present,
+				    bool enable);
+extern processMetFocusNode *makeProcessMetFocusNode(const Focus& focus, 
+				    const string &met_name, process * procs,
+				    bool replace_components_if_present,
+				    bool enable);
+
+extern bool mdl_can_do(const string &metric_name);
 
 //extern metricFocusNode *mdl_observed_cost(vector< vector<string> >& canon_focus,
 //					       string& met_name,
