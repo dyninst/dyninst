@@ -160,11 +160,19 @@ bool dynamic_linking::find_dlopen(u_int ld_fd,u_int ld_base_addr){
 // 2 instructions on sparc-solaris (retl nop).  Also, the library that 
 // contains these instrs is the runtime linker which is not parsed like
 // other shared objects, so adding instrumentation here is ugly. 
-// TODO: add support for this on x86
 bool dynamic_linking::set_r_brk_point(process *proc) {
 
     if(brkpoint_set) return true;
     if(!r_brk_addr) return false;
+
+#if defined(BPATCH_LIBRARY)
+    // Before putting in the breakpoint, save what is currently at the
+    // location that will be overwritten.
+    if (!proc->readDataSpace((void *)r_brk_addr, R_BRK_SAVE_BYTES,
+			     (void *)r_brk_save, true)) {
+	return false;
+    }
+#endif
 
 #if defined(sparc_sun_solaris2_4)
     // because there is no pdFunction, instPoint, or image associated with
@@ -191,6 +199,19 @@ bool dynamic_linking::set_r_brk_point(process *proc) {
     return true;
 }
 
+#if defined(BPATCH_LIBRARY)
+// set_r_brk_point: this routine instruments the code pointed to by
+// the r_debug.r_brk (the linkmap update routine).  Currently this code  
+// corresponds to no function in the symbol table and consists of only
+// 2 instructions on sparc-solaris (retl nop).  Also, the library that 
+// contains these instrs is the runtime linker which is not parsed like
+// other shared objects, so adding instrumentation here is ugly. 
+// TODO: add support for this on x86
+bool dynamic_linking::unset_r_brk_point(process *proc) {
+    return proc->writeDataSpace((caddr_t)r_brk_addr, R_BRK_SAVE_BYTES,
+				(caddr_t)r_brk_save);
+}
+#endif
 
 // processLinkMaps: This routine is called by getSharedObjects to  
 // process all shared objects that have been mapped into the process's

@@ -157,7 +157,30 @@ BPatch_arithExpr::BPatch_arithExpr(BPatch_binOp op,
 	assert(0);
     };
 
+#ifdef alpha_dec_osf4_0
+    /* XXX
+     * A special kludge for the Alpha: there's no hardware divide on the
+     * Alpha, and our code in inst-alpha.C to call a software divide doesn't
+     * work right (yet?).  So, we never generate a divOp AstNode; instead we
+     * generate a callNode AST that calls a divide function.
+     */
+    if (astOp == divOp) {
+	vector<AstNode *> args;
+
+	args += assignAst(lOperand.ast);
+	args += assignAst(rOperand.ast);
+
+	ast = new AstNode("divide", args);
+
+	removeAst(args[0]);
+	removeAst(args[1]);
+    } else {
+    	ast = new AstNode(astOp, lOperand.ast, rOperand.ast);
+    }
+#else
     ast = new AstNode(astOp, lOperand.ast, rOperand.ast);
+#endif
+
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
 
@@ -544,6 +567,28 @@ char *BPatch_function::getName(char *s, int len)
     strncpy(s, name.string_of(), len);
 
     return s;
+}
+
+
+/*
+ * BPatch_function::getBaseAddr
+ *
+ * Returns the starting address of the function.
+ */
+void *BPatch_function::getBaseAddr()
+{
+  return func->addr();
+}
+
+
+/*
+ * BPatch_function::getSize
+ *
+ * Returns the size of the function in bytes.
+ */
+unsigned int BPatch_function::getSize()
+{
+  return func->size();
 }
 
 

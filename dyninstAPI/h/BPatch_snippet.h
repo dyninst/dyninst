@@ -76,8 +76,8 @@ typedef enum {
 } BPatch_binOp;
 
 typedef enum {
-    BPatch_negate,
-    BPatch_address
+    BPatch_negate
+    /* , BPatch_address */
 } BPatch_unOp;
 
 
@@ -90,7 +90,9 @@ public:
 	proc(_proc), func(_func) {};
 
 // For users of the library:
-    char	*getName(char *s, int len);
+    char	 *getName(char *s, int len);
+    void	 *getBaseAddr();
+    unsigned int getSize();
 
     BPatch_Vector<BPatch_point *>
 	*findPoint(const BPatch_procedureLocation loc);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.57 1998/09/08 21:35:27 buck Exp $
+// $Id: ast.C,v 1.58 1998/09/15 04:15:56 buck Exp $
 
 #include "dyninstAPI/src/pdThread.h"
 
@@ -179,7 +179,9 @@ void registerSpace::unkeep_register(reg k) {
       keep_list[i]=keep_list[ksize-1];
       ksize--;
       keep_list.resize(ksize);
+#if !defined(BPATCH_LIBRARY_F)
       freeRegister(k);
+#endif
 #if defined(ASTDEBUG)
       sprintf(errorLine,"==> un-keeping register %d, size is %d <==\n",k,keep_list.size());
       logLine(errorLine);
@@ -873,6 +875,9 @@ reg AstNode::generateCode_phase2(process *proc,
           rs->unkeep_register(kept_register);
           reg tmp=kept_register;
           kept_register=-1;
+#ifdef BPATCH_LIBRARY_F
+	  assert(!rs->isFreeRegister(tmp));
+#endif
           return(tmp);
       }
       return(kept_register);
@@ -945,6 +950,9 @@ reg AstNode::generateCode_phase2(process *proc,
             loperand->useCount--;
             if (loperand->useCount==0 && loperand->kept_register>=0) {
                 rs->unkeep_register(loperand->kept_register);
+#if defined(BPATCH_LIBRARY_F)
+		rs->freeRegister(loperand->kept_register);
+#endif
                 loperand->kept_register=-1;
 	    }
 	    src1 = roperand->generateCode_phase2(proc, rs, insn, base, noCost);
@@ -1040,10 +1048,18 @@ reg AstNode::generateCode_phase2(process *proc,
 #ifdef alpha_dec_osf4_0
 	      if (op == divOp)
 		{
+		  assert(false);
+		  /* XXX
+		   * The following doesn't work right, because we don't save
+		   * and restore the scratch registers before and after the
+		   * call!
+		   */
+		  /*
 		  bool err;
 		  Address divlAddr = proc->findInternalAddress("divide", true, err);  
 		  assert(divlAddr);
 		  software_divide(src,(reg)right->oValue,dest,insn,base,noCost,divlAddr,true);
+		  */
 		}
 	      else emitImm(op, src, (reg)right->oValue, dest, insn, base, noCost);
 #else
@@ -1053,6 +1069,9 @@ reg AstNode::generateCode_phase2(process *proc,
               right->useCount--;
               if (right->useCount==0 && right->kept_register>=0) {
                 rs->unkeep_register(right->kept_register);
+#if defined(BPATCH_LIBRARY_F)
+		rs->freeRegister(right->kept_register);
+#endif
                 right->kept_register=-1;
 	      }
 	    }
@@ -1063,10 +1082,18 @@ reg AstNode::generateCode_phase2(process *proc,
 #ifdef alpha_dec_osf4_0
 	      if (op == divOp)
 		{
+		  assert(false);
+		  /* XXX
+		   * The following doesn't work right, because we don't save
+		   * and restore the scratch registers before and after the
+		   * call!
+		   */
+		  /*
 		  bool err;
 		  Address divlAddr = proc->findInternalAddress("divide", true, err);  
 		  assert(divlAddr);
 		  software_divide(src,right_dest,dest,insn,base,noCost,divlAddr);
+		  */
 		}
 	      else
 		(void) emit(op, src, right_dest, dest, insn, base, noCost);
@@ -1156,7 +1183,12 @@ reg AstNode::generateCode_phase2(process *proc,
           rs->keep_register(dest);
         }
     } else if (type == sequenceNode) {
+#if defined(BPATCH_LIBRARY_F)
 	(void) loperand->generateCode_phase2(proc, rs, insn, base, noCost);
+#else
+	reg tmp = loperand->generateCode_phase2(proc, rs, insn, base, noCost);
+	rs->freeRegister(tmp);
+#endif
  	return(roperand->generateCode_phase2(proc, rs, insn, base, noCost));
     }
 

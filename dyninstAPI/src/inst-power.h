@@ -45,6 +45,14 @@
 
 /*
  * $Log: inst-power.h,v $
+ * Revision 1.10  1998/09/15 04:16:00  buck
+ * Commit of changes for Dyninst API version 1.2.  Includes support for
+ * instrumentation at arbitrary points on AIX, and the addition of various
+ * minor API calls.
+ *
+ * Revision 1.1.1.3  1997/07/08 20:02:29  buck
+ * Bring latest changes from Wisconsin over to Maryland repository.
+ *
  * Revision 1.9  1997/06/23 17:06:48  tamches
  * class instPoint moved to another file
  *
@@ -110,6 +118,9 @@
 extern registerSpace *regSpace;
 
 extern trampTemplate baseTemplate;
+#ifdef BPATCH_LIBRARY
+extern trampTemplate conservativeTemplate;
+#endif
 extern trampTemplate noArgsTemplate;
 extern trampTemplate withArgsTemplate;
 
@@ -119,7 +130,11 @@ extern trampTemplate withArgsTemplate;
 #define NUM_INSN_MT_PREAMBLE 21   /* number of instructions required for   */
                                   /* the MT preamble.                      */ 
 
+#ifdef BPATCH_LIBRARY
+enum ipFuncLoc { ipFuncEntry, ipFuncReturn, ipFuncCallPoint, ipOther };
+#else
 enum ipFuncLoc { ipFuncEntry, ipFuncReturn, ipFuncCallPoint };
+#endif
 
 
 bool isCallInsn(const instruction);

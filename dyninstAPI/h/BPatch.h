@@ -49,6 +49,7 @@
 class BPatch_typeCollection;
 class BPatch_type;
 class BPatch_libInfo;
+class BPatch_module;
 
 typedef enum BPatchErrorLevel {
     BPatchFatal, BPatchSerious, BPatchWarning, BPatchInfo
@@ -60,23 +61,39 @@ typedef void (*BPatchErrorCallback)(BPatchErrorLevel severity,
 
 class BPatch {
     friend class BPatch_thread;
-    friend bool pollForStatusChange();
-    friend bool waitForStatusChange();
+    friend class process;
 
     BPatch_libInfo	*info;
 
-    BPatchErrorCallback	errorHandler;
-    bool		typeCheckOn;
-    int			lastError;
+    BPatchErrorCallback      errorHandler;
+
+    bool	typeCheckOn;
+    int		lastError;
 
     bool	getThreadEvent(bool block);
     bool	havePendingEvent();
+
 public:
     static BPatch		*bpatch;
 
     BPatch_typeCollection	*stdTypes;
     BPatch_type			*type_Error;
     BPatch_type			*type_Untyped;
+
+    // The following are only to be called by the library:
+    bool isTypeChecked() { return typeCheckOn; }
+
+    void registerProvisionalThread(int pid);
+    void registerThread(BPatch_thread *thread);
+    void unRegisterThread(int pid);
+
+    BPatch_thread *getThreadByPid(int pid, bool *exists = NULL);
+
+    void reportError(BPatchErrorLevel severity, int number, const char *str);
+
+    void clearError() { lastError = 0; }
+    int	getLastError() { return lastError; }
+    // End of functions that are for internal use only
 
     BPatch();
     ~BPatch();
@@ -92,22 +109,8 @@ public:
     BPatch_thread *createProcess(char *path, char *argv[], char *envp[] = NULL);
     BPatch_thread *attachProcess(char *path, int pid);
 
-    // The following are only to be called by the library:
-    bool isTypeChecked() { return typeCheckOn; }
-
-    void registerProvisionalThread(int pid);
-    void registerThread(BPatch_thread *thread);
-    void unRegisterThread(int pid);
-
-    BPatch_thread *getThreadByPid(int pid, bool *exists = NULL);
-
-    void reportError(BPatchErrorLevel severity, int number, const char *str);
-
-    void clearError() { lastError = 0; }
-    int	getLastError() { return lastError; }
+    bool 	pollForStatusChange();
+    bool 	waitForStatusChange();
 };
-
-extern bool pollForStatusChange();
-extern bool waitForStatusChange();
 
 #endif /* _BPatch_h_ */

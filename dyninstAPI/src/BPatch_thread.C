@@ -101,6 +101,8 @@ BPatch_thread::BPatch_thread(char *path, char *argv[], char *envp[])
     // XXX Should do something more sensible.
     if (proc == NULL) return;
 
+    proc->thread = this;
+
     // Add this object to the list of threads
     // XXX Should be conditional on success of creating process
     assert(BPatch::bpatch != NULL);
@@ -133,6 +135,8 @@ BPatch_thread::BPatch_thread(char *path, int pid)
 	proc = NULL;
 	return;
     }
+
+    proc->thread = this;
 
     // Add this object to the list of threads
     assert(BPatch::bpatch != NULL);
@@ -169,6 +173,20 @@ BPatch_thread::~BPatch_thread()
 
     assert(BPatch::bpatch != NULL);
     BPatch::bpatch->unRegisterThread(getPid());
+
+    // Remove the process from our list of processes
+    unsigned i;
+    for (i = 0; i < processVec.size(); i++) {
+	if (processVec[i] == proc) {
+	    break;
+	}
+    }
+    assert(i < processVec.size());
+    while (i < processVec.size()-1) {
+	processVec[i] = processVec[i+1];
+	i++;
+    }
+    processVec.resize(processVec.size()-1);
 
     // XXX I think there are some other things we need to deallocate -- check
     // on that.
@@ -410,17 +428,18 @@ bool BPatch_thread::dumpImage(const char *file)
  * Returns:
  * 	A pointer to a BPatch_variableExpr representing the memory.
  *
- * XXX Should return NULL on failure, but the function which it calls,
- *     inferiorMalloc, calls exit rather than returning an error, so this
- *     is not currently possible.
  */
 BPatch_variableExpr *BPatch_thread::malloc(int n)
 {
     // XXX What to do about the type?
     assert(BPatch::bpatch != NULL);
-    return new BPatch_variableExpr(proc,
-	    (void *)inferiorMalloc(proc, n, dataHeap),
-	    BPatch::bpatch->type_Untyped);
+
+    void *ptr = (void *) inferiorMalloc(proc, n, dataHeap);
+    if (!ptr) {
+	return NULL;
+    }
+
+    return new BPatch_variableExpr(proc, ptr, BPatch::bpatch->type_Untyped);
 }
 
 
@@ -714,7 +733,7 @@ void BPatch_thread::oneTimeCodeCallbackDispatch(process *theProc,
  *		and which will be returned to us in this callback.
  * returnValue	The value returned by the RPC.
  */
-void BPatch_thread::oneTimeCodeCallback(void */*userData*/, unsigned returnValue)
+void BPatch_thread::oneTimeCodeCallback(void * /*userData*/, unsigned returnValue)
 {
     assert(waitingForOneTimeCode);
 
@@ -763,17 +782,17 @@ int BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr)
  */
 bool BPatch_thread::loadLibrary(char *libname)
 {
-#ifdef sparc_sun_solaris2_4
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
     if (!statusIsStopped())
 	return false;
 
     BPatch_Vector<BPatch_snippet *> args;
 
     BPatch_constExpr nameArg(libname);
-    BPatch_constExpr modeArg(RTLD_NOW | RTLD_GLOBAL);
+    // BPatch_constExpr modeArg(RTLD_NOW | RTLD_GLOBAL);
 
     args.push_back(&nameArg);
-    args.push_back(&modeArg);
+    // args.push_back(&modeArg);
 
     BPatch_function *dlopen_func = image->findFunction("DYNINSTloadLibrary");
     if (dlopen_func == NULL) return false;

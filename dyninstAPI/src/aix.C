@@ -787,10 +787,15 @@ bool process::terminateProc_()
   if (!checkStatus())
     return false;
 
-  if (P_ptrace(PT_KILL, pid, NULL, NULL, NULL) != 0)
-    return false;
-  else
-    return true;
+  if (P_ptrace(PT_KILL, pid, NULL, NULL, NULL) != 0) {
+    // For some unknown reason, the above ptrace sometimes fails with a "no
+    // such process" error, even when there is such a process and the process
+    // is runnable.  So, if the above fails, we try killing it another way.
+    if (kill(pid, SIGKILL) != 0)
+    	return false;
+  }
+
+  return true;
 }
 #endif
 
@@ -858,36 +863,51 @@ bool process::writeTextWord_(caddr_t inTraced, int data) {
 }
 
 bool process::writeTextSpace_(void *inTraced, int amount, const void *inSelf) {
-  if (!checkStatus()) 
-    return false;
-  ptraceBytes += amount; ptraceOps++;
-  return (ptraceKludge::deliverPtrace(this, PT_WRITE_BLOCK, inTraced, 
-				      amount, inSelf));
+  return writeDataSpace_(inTraced, amount, inSelf);
 }
 
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
 bool process::readTextSpace_(void *inTraced, int amount, const void *inSelf) {
-  if (!checkStatus())
-    return false;
-  ptraceOps++; ptraceBytes += amount;
-  return (ptraceKludge::deliverPtrace(this, PT_READ_BLOCK, inTraced, amount,
-				      inSelf));
+  return readDataSpace_(inTraced, amount, (void *)inSelf);
 }
 #endif
 
 bool process::writeDataSpace_(void *inTraced, int amount, const void *inSelf) {
-  if (!checkStatus())
+  if (!checkStatus()) 
     return false;
 
-  ptraceOps++; ptraceBytes += amount;
+  ptraceBytes += amount;
 
-  return (ptraceKludge::deliverPtrace(this, PT_WRITE_BLOCK, inTraced, amount, inSelf));
+  while (amount > 1024) {
+    ptraceOps++;
+    if (!ptraceKludge::deliverPtrace(this, PT_WRITE_BLOCK, inTraced,
+				     1024, inSelf)) return false;
+    amount -= 1024;
+    inTraced = (char *)inTraced + 1024;
+    inSelf = (char *)inSelf + 1024;
+  }
+
+  ptraceOps++;
+  return ptraceKludge::deliverPtrace(this, PT_WRITE_BLOCK, inTraced,
+				     amount, inSelf);
 }
 
 bool process::readDataSpace_(const void *inTraced, int amount, void *inSelf) {
   if (!checkStatus())
     return false;
-  ptraceOps++; ptraceBytes += amount;
+
+  ptraceBytes += amount;
+
+  while (amount > 1024) {
+    ptraceOps++;
+    if (!ptraceKludge::deliverPtrace(this, PT_READ_BLOCK, inTraced,
+				     1024, inSelf)) return false;
+    amount -= 1024;
+    inTraced = (char *)inTraced + 1024;
+    inSelf = (char *)inSelf + 1024;
+  }
+
+  ptraceOps++;
   return (ptraceKludge::deliverPtrace(this, PT_READ_BLOCK, inTraced, amount, inSelf));
 }
 
@@ -1331,7 +1351,20 @@ void Object::load_object()
             
          //fprintf(stderr, "Found symbol %s in (%s) at %x\n", 
          //   name.string_of(), modName.string_of(), value);
+
+#ifdef BPATCH_LIBRARY
+	 unsigned int size = 0;
+         if (type == Symbol::PDST_FUNCTION) {
+	    Word *inst = (Word *)((char *)code_ptr_ + value - code_off_);
+	    while (inst[size] != 0) size++;
+	    size *= sizeof(Word);
+         }
+
+         Symbol sym(name, modName, type, linkage, value, false, size);
+#else
          Symbol sym(name, modName, type, linkage, value, false);
+#endif /* BPATCH_LIBRARY */
+
          symbols_[name] = sym;
 
          if (symbols_.defines(modName)) {

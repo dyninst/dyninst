@@ -36,6 +36,8 @@ int debugPrint = 0;
 
 int isAttached = 0;
 
+void doFork();
+
 /*
  * Check to see if the mutator has attached to us.
  */
@@ -68,6 +70,11 @@ void func11_1()
     /* Does nothing. */
 }
 
+void func12_1()
+{
+    /* Does nothing. */
+}
+
 #ifdef i386_unknown_nt4_0
 #define USAGE "Usage: test2.mutatee [-attach] [-verbose]"
 #else
@@ -93,6 +100,8 @@ void main(int argc, char *argv[])
 	    }
 	    pfd = atoi(argv[i]);
 #endif
+        } else if (!strcmp(argv[i], "-fork")) {
+	    doFork();
         } else {
             fprintf(stderr, "%s\n", USAGE);
             exit(-1);
@@ -114,9 +123,9 @@ void main(int argc, char *argv[])
 	printf("Mutator attached.  Mutatee continuing.\n");
     }
 
-#ifdef sparc_sun_solaris2_4
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
     /* now use the dlopen interface to force an object to load. */
-    ref = dlopen(TEST_DYNAMIC_LIB, RTLD_NOW);
+    ref = dlopen(TEST_DYNAMIC_LIB, RTLD_NOW | RTLD_GLOBAL);
     if (!ref) {
 	fprintf(stderr, "%s\n", dlerror());
 	fflush(stderr);
@@ -131,4 +140,10 @@ void main(int argc, char *argv[])
     while(1);
 
     exit(0);
+}
+
+
+void doFork() { 
+    // XXX To be completed...
+    while(1);
 }

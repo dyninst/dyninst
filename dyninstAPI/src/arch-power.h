@@ -44,6 +44,11 @@
 
 /*
  * $Log: arch-power.h,v $
+ * Revision 1.11  1998/09/15 04:15:56  buck
+ * Commit of changes for Dyninst API version 1.2.  Includes support for
+ * instrumentation at arbitrary points on AIX, and the addition of various
+ * minor API calls.
+ *
  * Revision 1.10  1997/03/29 01:56:12  sec
  * Added some defines for floating point register ops
  *
@@ -143,6 +148,24 @@ struct xlform {
   unsigned lk : 1;
 };
 
+struct xfxform {
+  unsigned op : 6;
+  unsigned rt : 5;   // rs
+  unsigned spr: 10;  // spr, tbr, fxm
+  unsigned xo : 10;
+  unsigned rc : 1;
+};
+
+struct xflform {
+  unsigned op : 6;
+  unsigned u1 : 1;
+  unsigned flm: 8;
+  unsigned u2 : 1;
+  unsigned frb: 5;
+  unsigned xo : 10;
+  unsigned rc : 1;
+};
+
 struct xoform {
     unsigned op : 6;
     unsigned rt : 5;
@@ -170,6 +193,8 @@ union instructUnion {
     struct xform  xform;
     struct xoform xoform;
     struct xlform xlform;
+    struct xfxform xfxform;
+    struct xflform xflform;
     struct mform  mform;
     unsigned int  raw;
 };
@@ -243,8 +268,18 @@ typedef union instructUnion instruction;
 
 // -------------------------- Branch fields ------------------------------
 // BO field of branch conditional
+#define Bcondmask		0x1e
+#define BALWAYSmask		0x14
+
+#define BPREDICTbit		1	// Set means reverse branch prediction
+#define BifCTRzerobit		2	// Set means branch if CTR = 0
+#define BnoDecCTRbit		4	// Set means decrement CTR and branch
+#define BifTRUEbit		8	// Set means branch if condition true
+#define BnoCondbit		16	// Set means ignore condition (use CTR)
+
 #define BFALSEcond              4
 #define BTRUEcond               12
+#define BALWAYScond		20
 
 /* BI field for branch conditional (really bits of the CR Field to use) */
 #define LTcond			0		/* negative */

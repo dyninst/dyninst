@@ -58,12 +58,14 @@ typedef enum {
     BPatch_exit,
     BPatch_subroutine,
     BPatch_longJump,
-    BPatch_allLocations
+    BPatch_allLocations,
+    BPatch_address
 } BPatch_procedureLocation;
 
 
 class BPatch_point {
     friend class BPatch_thread;
+    friend class BPatch_image;
     friend class BPatch_function;
 
     process	*proc;

@@ -140,6 +140,29 @@ BPatchErrorCallback BPatch::registerErrorCallback(BPatchErrorCallback function)
 }
 
 
+#ifdef BPATCH_NOT_YET
+/*
+ * BPatch::registerDynLibraryCallback
+ *
+ * Registers a function that is to be called by the library when a dynamically
+ * loaded library is loaded or unloaded by a process under the API's control.
+ * Returns the address of the previously registered callback function.
+ *
+ * function	The function to be called.
+ */
+BPatchDynLibraryCallback
+BPatch::registerDynLibraryCallback(BPatchDynLibraryCallback function)
+{
+    BPatchDynLibraryCallback ret;
+
+    ret = dynLibraryCallback;
+    dynLibraryCallback = function;
+
+    return ret;
+}
+#endif
+
+
 /*
  * BPatch::getEnglishErrorString
  *
@@ -471,16 +494,13 @@ bool BPatch::havePendingEvent()
  * This function is declared as a friend of BPatch_thread so that it can use
  * the BPatch_thread::getThreadEvent call to check for status changes.
  */
-bool pollForStatusChange()
+bool BPatch::pollForStatusChange()
 {
-    // First, check if there are any unreported changes that have already been
-    // detected.
-    assert(BPatch::bpatch);
-    if (BPatch::bpatch->havePendingEvent())
+    if (havePendingEvent())
 	return true;
   
     // No changes were previously detected, so check for new changes
-    return BPatch::bpatch->getThreadEvent(false);
+    return getThreadEvent(false);
 }
 
 
@@ -493,14 +513,11 @@ bool pollForStatusChange()
  * This function is declared as a friend of BPatch_thread so that it can use
  * the BPatch_thread::getThreadEvent call to check for status changes.
  */
-bool waitForStatusChange()
+bool BPatch::waitForStatusChange()
 {
-    // First, check if there are any unreported changes that have already been
-    // detected.
-    assert(BPatch::bpatch);
-    if (BPatch::bpatch->havePendingEvent())
+    if (havePendingEvent())
 	return true;
 
     // No changes were previously detected, so wait for a new change
-    return BPatch::bpatch->getThreadEvent(true);
+    return getThreadEvent(true);
 }

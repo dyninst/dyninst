@@ -631,6 +631,13 @@ int handleSigChild(int pid, int status)
 		   break; // don't want to execute ->Stopped() which changes status line
 		}
 #ifndef BPATCH_LIBRARY
+		/* XXX We have to leave this out of the Dyninst API library
+		 * for now -- the ptrace calls that handleStopDueExecEntry
+		 * uses cause wait() to re-report the signal that we're
+		 * currently stopped on, causing an infinite loop.
+		 * Exec doesn't work with the Dyninst API yet anyway.
+		 * - brb 7/4/98
+		 */
 		else if (curr->handleStopDueToExecEntry()) {
 		   // grabs data from DYNINST_bootstrap_info
 		   forkexec_cerr << "fork/exec -- handled stop before exec" << endl;

@@ -67,6 +67,8 @@ public:
     BPatch_Vector<BPatch_point *> *findProcedurePoint(const char *name,
 	    const BPatch_procedureLocation loc);
 
+    BPatch_point *createInstPointAtAddr(void *address);
+
     BPatch_function	*findFunction(const char *name);
 
     BPatch_variableExpr	*findVariable(const char *name);

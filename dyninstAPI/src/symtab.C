@@ -407,6 +407,8 @@ bool image::addInternalSymbol(const string &str, const Address symValue) {
   return false;
 }
 
+
+#ifndef BPATCH_LIBRARY
 /*
  * will search for symbol NAME or _NAME
  * returns false on failure 
@@ -454,6 +456,8 @@ Address image::findInternalAddress(const string &name, const bool warn, bool &er
   else
     return (theSym->getAddr());
 }
+
+#endif
 
 pdmodule *image::findModule(const string &name, bool find_if_excluded)
 {
@@ -710,15 +714,14 @@ bool image::symbolExists(const string &symname)
   return (dummy != NULL);
 }
 
+#ifndef BPATCH_LIBRARY
 void image::postProcess(const string pifname)
 {
   FILE *Fil;
   string fname, errorstr;
   char key[5000];
   char tmp1[5000], abstraction[500];
-#ifndef BPATCH_LIBRARY
   resource *parent;
-#endif
 
   return;
 
@@ -778,6 +781,7 @@ void image::postProcess(const string pifname)
   }
   return;
 }
+#endif
 
 void image::defineModules() {
   unsigned i;
@@ -857,6 +861,7 @@ void pdmodule::define() {
 #endif
 }
 
+#ifndef BPATCH_LIBRARY
 // get all functions in module which are not "excluded" (e.g.
 //  with mdl "exclude" command.  
 // Assed to provide support for mdl "exclude" on functions in
@@ -871,22 +876,19 @@ vector<function_base *> *pdmodule::getIncludedFunctions() {
         //print_func_vector_by_pretty_name(string("  "), (vector<function_base *>*)&some_funcs);
         return (vector<function_base *>*)&some_funcs;
     }
-#ifdef BPATCH_LIBRARY /* BPatch Library doesn't know about excluded funcs */
-    some_funcs = funcs;
-#else
     some_funcs.resize(0);
     
     if (filter_excluded_functions(funcs, some_funcs, fileName()) == FALSE) {
         //cerr << "  about to return NULL";
 	return NULL;
     }
-#endif
     some_funcs_inited = TRUE;
     
     //cerr << "  about to return : " << endl;
     //print_func_vector_by_pretty_name(string("  "),(vector<function_base *>*) &some_funcs);
     return (vector<function_base *>*)&some_funcs;
 }
+#endif
 
 const vector<pd_Function*> &image::getAllFunctions() {
     //cerr << "pdmodule::getAllFunctions() called, about to return instrumentableFunctions = " << endl;
@@ -913,6 +915,8 @@ const vector <pdmodule*> &image::getAllModules() {
     return allMods;
 }
 
+
+#ifndef BPATCH_LIBRARY
 const vector <pdmodule*> &image::getIncludedModules() {
     //cerr << "image::getIncludedModules called" << endl;
     //cerr << " about to return includedMods = " << endl;
@@ -920,6 +924,7 @@ const vector <pdmodule*> &image::getIncludedModules() {
 
     return includedMods;
 }
+#endif
 
 void print_module_vector_by_short_name(string prefix ,
 				       vector<pdmodule*> *mods) {
@@ -1173,6 +1178,7 @@ bool inLibrary(Address addr, Address boundary_start, Address boundary_end,
     return false;
 }
 
+#ifndef BPATCH_LIBRARY
 // as per getAllFunctions, but filters out those excluded with 
 // e.g. mdl "exclude" command....
 // to clarify a function should NOT be returned from here if its 
@@ -1200,6 +1206,7 @@ const vector<pd_Function*> &image::getIncludedFunctions() {
     // what about shared objects????
     return includedFunctions;
 }
+#endif
 
 //  COMMENTS??  HELLO?
 //  Here's a guess what this function tries to do:

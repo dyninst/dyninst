@@ -55,7 +55,8 @@ char errorLine[1024];
 
 void logLine(char const *line)
 {
-    fprintf(stderr, line);
+    // error should be displayed by error callback.
+    // fprintf(stderr, line);
 }
 
 void statusLine(char const *)

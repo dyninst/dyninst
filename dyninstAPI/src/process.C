@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.157 1998/08/28 02:40:34 zhichen Exp $
+// $Id: process.C,v 1.158 1998/09/15 04:16:04 buck Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -47,6 +47,7 @@ int pvmputenv (const char *);
 int pvmendtask();
 #endif
 }
+#define FREEDEBUG 1
 
 #if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -669,8 +670,11 @@ Address inferiorMalloc(process *proc, int size, inferiorHeapType type)
       sprintf(errorLine, "***** Inferior heap overflow: %d bytes freed, %d bytes requested\n", hp->freed, size);
       logLine(errorLine);
       showErrorCallback(66, (const char *) errorLine);
+#if defined(BPATCH_LIBRARY)
+      return(0);
+#else
       P__exit(-1);
-      //return(0);
+#endif
     }
 
     //
@@ -843,6 +847,9 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
 ) :
 		savedRegs(NULL),
              baseMap(ipHash), 
+#ifdef BPATCH_LIBRARY
+	     instPointMap(hash_address),
+#endif
 	     pid(iPid) // needed in fastInferiorHeap ctors below
 #ifdef SHM_SAMPLING
              ,previous(0),
@@ -960,6 +967,9 @@ process::process(int iPid, image *iSymbols,
 		 ) :
 		savedRegs(NULL),
 		 baseMap(ipHash),
+#ifdef BPATCH_LIBRARY
+		 instPointMap(hash_address),
+#endif
 		 pid(iPid)
 #ifdef SHM_SAMPLING
              ,previous(0),
@@ -1097,6 +1107,7 @@ process::process(int iPid, image *iSymbols,
    success = true;
 }
 
+#if !defined(BPATCH_LIBRARY)
 //
 // Process "fork" ctor, for when a process which is already being monitored by
 // paradynd executes the fork syscall.
@@ -1111,6 +1122,9 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 		 ) :
 		savedRegs(NULL),
                      baseMap(ipHash) // could change to baseMap(parentProc.baseMap)
+#ifdef BPATCH_LIBRARY
+	    	     ,instPointMap(hash_address)
+#endif
 #ifdef SHM_SAMPLING
                      ,previous(0),
 		     inferiorHeapMgr(parentProc.inferiorHeapMgr, 
@@ -1254,6 +1268,8 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
    status_ = stopped;
       // would neonatal be more appropriate?  Nah, we've reached the first trap
 }
+
+#endif
 
 #ifdef SHM_SAMPLING
 void process::registerInferiorAttachedSegs(void *inferiorAttachedAtPtr) {
@@ -1702,6 +1718,7 @@ void handleProcessExit(process *proc, int exitStatus) {
 }
 
 
+#ifndef BPATCH_LIBRARY
 /*
    process::forkProcess: called when a process forks, to initialize a new
    process object for the child.
@@ -1763,6 +1780,11 @@ process *process::forkProcess(const process *theParent, pid_t childPid,
     /* TODO: what about instrumentation inserted near the fork time??? */
     ret->baseMap = theParent->baseMap; // WHY IS THIS HERE?
 
+#ifdef BPATCH_LIBRARY
+    /* XXX Not sure if this is the right thing to do. */
+    ret->instPointMap = theParent->instPointMap;
+#endif
+
     // the following writes to "map", s.t. for each instInstance in the parent
     // process, we have a map to the corresponding one in the child process.
     // that's all this routine does -- it doesn't actually touch
@@ -1774,6 +1796,7 @@ process *process::forkProcess(const process *theParent, pid_t childPid,
 
     return ret;
 }
+#endif
 
 #ifdef SHM_SAMPLING
 void process::processCost(unsigned obsCostLow,
@@ -2226,6 +2249,24 @@ bool process::addASharedObject(shared_object &new_obj){
         }
     }
 #endif /* BPATCH_LIBRARY */
+
+#ifdef BPATCH_NOT_YET
+    assert(BPatch::bpatch);
+    if (BPatch::bpatch->dynLibraryCallback) {
+	vector<module *>*modlist = ((vector<module *> *)(new_obj.getModules())); 
+	if (modlist != NULL) {
+	    for (int i = 0; i < modlist->size(); i++) {
+		string &name = (*modlist)[i]->fileName();
+		if (name != "DYN_MODULE" && name != "LIBRARY_MODULE") {
+		    BPatch_module *bpmod =
+			new BPatch_module(this, (*modlist)[i]);
+		    BPatch::bpatch->dynLibraryCallback(thread, bpmod);
+		}
+	    }
+	}
+    }
+#endif /* BPATCH_NOT_YET */
+
     return true;
 }
 
@@ -2610,7 +2651,6 @@ vector<function_base *> *process::getIncludedFunctions(){
 
     return some_functions;
 }
-#endif /* BPATCH_LIBRARY */
 
 // getIncludedModules: returns a vector of all modules defined in the
 // a.out and in the shared objects that are included as specified in
@@ -2646,6 +2686,7 @@ vector<module *> *process::getIncludedModules(){
     //    (vector<pdmodule*>*)some_modules);
     return some_modules;
 }
+#endif /* BPATCH_LIBRARY */
       
 // getBaseAddress: sets baseAddress to the base address of the 
 // image corresponding to which.  It returns true  if image is mapped
@@ -2843,6 +2884,9 @@ void process::handleExec() {
     trampTableItems = 0;
     memset(trampTable, 0, sizeof(trampTable));
     baseMap.clear();
+#ifdef BPATCH_LIBRARY
+    instPointMap.clear(); /* XXX Should delete instPoints first? */
+#endif
     cleanInstFromActivePoints(this);
 
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
@@ -3881,6 +3925,7 @@ void process::Exited() {
   (void)doMajorShmSample(getCurrWallTime());
 #endif
 
+#ifndef BPATCH_LIBRARY
   // close down the trace stream:
   if (traceLink >= 0) {
      //processTraceStream(proc); // can't do this since it's a blocking read (deadlock)
@@ -3895,7 +3940,6 @@ void process::Exited() {
      ioLink = -1;
   }
   
-#ifndef BPATCH_LIBRARY
   // for each component mi of this process, remove it from all aggregate mi's it
   // belongs to.  (And if the agg mi now has no components, fry it too.)
   // Also removes this proc from all cost metrics (but what about internal metrics?)

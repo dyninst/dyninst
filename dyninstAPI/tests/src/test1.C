@@ -29,10 +29,37 @@
 
 int debugPrint = 0;
 
+template class BPatch_Vector<BPatch_variableExpr*>;
+
 BPatch *bpatch;
 
 // control debug printf statements
 #define dprintf	if (debugPrint) printf
+
+/**************************************************************************
+ * Error callback
+ **************************************************************************/
+
+#define NO_ERROR -1
+
+int expectError = NO_ERROR;
+
+void errorFunc(BPatchErrorLevel level, int num, const char **params)
+{
+    char line[256];
+
+    const char *msg = bpatch->getEnglishErrorString(num);
+    bpatch->formatErrorString(line, sizeof(line), msg, params);
+
+    if (num != expectError) {
+    	printf("Error #%d (level %d): %s\n", num, level, line);
+
+	// We consider some errors fatal.
+	if (num == 101) {
+	    exit(-1);
+	}
+    }
+}
 
 /**************************************************************************
  * Utility functions
@@ -242,10 +269,35 @@ void mutatorTest6(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_variableExpr *expr6_4 = appImage->findVariable("globalVariable6_4");
     BPatch_variableExpr *expr6_5 = appImage->findVariable("globalVariable6_5");
     BPatch_variableExpr *expr6_6 = appImage->findVariable("globalVariable6_6");
+    BPatch_variableExpr *expr6_1a =appImage->findVariable("globalVariable6_1a");
+    BPatch_variableExpr *expr6_2a =appImage->findVariable("globalVariable6_2a");
+    BPatch_variableExpr *expr6_3a =appImage->findVariable("globalVariable6_3a");
+    BPatch_variableExpr *expr6_4a =appImage->findVariable("globalVariable6_4a");
+    BPatch_variableExpr *expr6_5a =appImage->findVariable("globalVariable6_5a");
+    BPatch_variableExpr *expr6_6a =appImage->findVariable("globalVariable6_6a");
     if (!expr6_1 || !expr6_2 || !expr6_3 || !expr6_4 || 
-	!expr6_5 || !expr6_6) {
+	!expr6_5 || !expr6_6 || !expr6_1a || !expr6_2a || !expr6_3a || 
+	!expr6_4a || !expr6_5a || !expr6_6a) {
 	fprintf(stderr, "**Failed** test #6 (arithmetic operators)\n");
 	fprintf(stderr, "    Unable to locate one of globalVariable6_?\n");
+	exit(1);
+    }
+
+    BPatch_variableExpr *constVar1 = appImage->findVariable("constVar1");
+    BPatch_variableExpr *constVar2 = appImage->findVariable("constVar2");
+    BPatch_variableExpr *constVar3 = appImage->findVariable("constVar3");
+    BPatch_variableExpr *constVar5 = appImage->findVariable("constVar5");
+    BPatch_variableExpr *constVar6 = appImage->findVariable("constVar6");
+    BPatch_variableExpr *constVar10 = appImage->findVariable("constVar10");
+    BPatch_variableExpr *constVar60 = appImage->findVariable("constVar60");
+    BPatch_variableExpr *constVar64 = appImage->findVariable("constVar64");
+    BPatch_variableExpr *constVar66 = appImage->findVariable("constVar66");
+    BPatch_variableExpr *constVar67 = appImage->findVariable("constVar67");
+    if (!constVar1 || !constVar2 || !constVar3 || !constVar5 || 
+	!constVar6 || !constVar10 || !constVar60 || !constVar64 || 
+	!constVar66 || !constVar67) {
+	fprintf(stderr, "**Failed** test #6 (arithmetic operators)\n");
+	fprintf(stderr, "    Unable to locate one of constVar?\n");
 	exit(1);
     }
 
@@ -260,9 +312,12 @@ void mutatorTest6(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_arithExpr arith6_2 (BPatch_assign, *expr6_2, 
       BPatch_arithExpr(BPatch_minus,BPatch_constExpr(64),BPatch_constExpr(1)));
     vect6_1.push_back(&arith6_2);
-    // globalVariable6_3 = 66 / 3
+
+    // globalVariable6_3 = 553648128 / 25165824 = 22
+    //    - make these big constants to test loading constants larger than
+    //      small immediate - jkh 6/22/98
     BPatch_arithExpr arith6_3 (BPatch_assign, *expr6_3, BPatch_arithExpr(
-      BPatch_divide,BPatch_constExpr(66),BPatch_constExpr(3)));
+      BPatch_divide,BPatch_constExpr(553648128),BPatch_constExpr(25165824)));
     vect6_1.push_back(&arith6_3);
 
     // globalVariable6_4 = 67 / 3
@@ -278,6 +333,38 @@ void mutatorTest6(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_arithExpr arith6_6 (BPatch_assign, *expr6_6, 
 	BPatch_arithExpr(BPatch_seq,BPatch_constExpr(10),BPatch_constExpr(3)));
     vect6_1.push_back(&arith6_6);
+
+    // globalVariable6_1a = 60 + 2
+    BPatch_arithExpr arith6_1a (BPatch_assign, *expr6_1a, 
+      BPatch_arithExpr(BPatch_plus, *constVar60, *constVar2));
+    vect6_1.push_back(&arith6_1a);
+
+    // globalVariable6_2a = 64 - 1
+    BPatch_arithExpr arith6_2a (BPatch_assign, *expr6_2a, 
+      BPatch_arithExpr(BPatch_minus, *constVar64, *constVar1));
+    vect6_1.push_back(&arith6_2a);
+
+    // globalVariable6_3 = 66 / 3
+    BPatch_arithExpr arith6_3a (BPatch_assign, *expr6_3a, BPatch_arithExpr(
+      BPatch_divide, *constVar66, *constVar3));
+    vect6_1.push_back(&arith6_3a);
+
+    // globalVariable6_4 = 67 / 3
+    BPatch_arithExpr arith6_4a (BPatch_assign, *expr6_4a, BPatch_arithExpr(
+      BPatch_divide, *constVar67, *constVar3));
+    vect6_1.push_back(&arith6_4a);
+
+    // globalVariable6_5 = 6 * 5
+    BPatch_arithExpr arith6_5a (BPatch_assign, *expr6_5a, BPatch_arithExpr(
+      BPatch_times, *constVar6, *constVar5));
+    vect6_1.push_back(&arith6_5a);
+
+    // globalVariable6_6 = 10,3
+    // BPatch_arithExpr arith6_6a (BPatch_assign, *expr6_6a, *constVar3);
+    //	BPatch_arithExpr(BPatch_seq, *constVar10, BPatch_constExpr(3)));
+    BPatch_arithExpr arith6_6a (BPatch_assign, *expr6_6a,
+	BPatch_arithExpr(BPatch_seq, *constVar10, *constVar3));
+    vect6_1.push_back(&arith6_6a);
 
     checkCost(BPatch_sequence(vect6_1));
     appThread->insertSnippet( BPatch_sequence(vect6_1), *point6_1);
@@ -295,6 +382,24 @@ void genRelTest(BPatch_image *appImage,BPatch_Vector<BPatch_snippet*> &vect7_1,
     BPatch_ifExpr *tempExpr1 = new BPatch_ifExpr(
 	BPatch_boolExpr(op, BPatch_constExpr(r1), BPatch_constExpr(r2)), 
 	BPatch_arithExpr(BPatch_assign, *varExpr1, BPatch_constExpr(72)));
+    vect7_1.push_back(tempExpr1);
+
+}
+
+void genVRelTest(BPatch_image *appImage,
+		 BPatch_Vector<BPatch_snippet*> &vect7_1, 
+		 BPatch_relOp op, BPatch_variableExpr *r1, 
+		 BPatch_variableExpr *r2, char *var1)
+{
+    BPatch_variableExpr *varExpr1 = appImage->findVariable(var1);
+    if (!varExpr1) {
+	fprintf(stderr, "**Failed** test #7 (relational operators)\n");
+	fprintf(stderr, "    Unable to locate variable %s\n", var1);
+	exit(1);
+    }
+    BPatch_ifExpr *tempExpr1 = new BPatch_ifExpr(
+	BPatch_boolExpr(op, *r1, *r2), 
+	BPatch_arithExpr(BPatch_assign, *varExpr1, BPatch_constExpr(74)));
     vect7_1.push_back(tempExpr1);
 
 }
@@ -325,6 +430,57 @@ void mutatorTest7(BPatch_thread *appThread, BPatch_image *appImage)
     genRelTest(appImage, vect7_1, BPatch_and, 1, 0, "globalVariable7_14");
     genRelTest(appImage, vect7_1, BPatch_or, 1, 0, "globalVariable7_15");
     genRelTest(appImage, vect7_1, BPatch_or, 0, 0, "globalVariable7_16");
+
+    BPatch_variableExpr *constVar0 = appImage->findVariable("constVar0");
+    BPatch_variableExpr *constVar1 = appImage->findVariable("constVar1");
+    BPatch_variableExpr *constVar2 = appImage->findVariable("constVar2");
+    BPatch_variableExpr *constVar3 = appImage->findVariable("constVar3");
+    BPatch_variableExpr *constVar4 = appImage->findVariable("constVar4");
+    BPatch_variableExpr *constVar5 = appImage->findVariable("constVar5");
+    BPatch_variableExpr *constVar6 = appImage->findVariable("constVar6");
+    BPatch_variableExpr *constVar7 = appImage->findVariable("constVar7");
+    BPatch_variableExpr *constVar9 = appImage->findVariable("constVar9");
+    if (!constVar0 || !constVar1 || !constVar2 || !constVar3 || !constVar4 ||
+        !constVar5 || !constVar6 || !constVar7 || !constVar9 ) {
+	fprintf(stderr, "**Failed** test #7 (relational operators)\n");
+	fprintf(stderr, "    Unable to locate one of constVar?\n");
+	exit(1);
+    }
+
+    genVRelTest(appImage, vect7_1, BPatch_lt, constVar0, constVar1,
+	"globalVariable7_1a");
+    genVRelTest(appImage, vect7_1, BPatch_lt, constVar1, constVar0, 
+	"globalVariable7_2a");
+
+    genVRelTest(appImage, vect7_1, BPatch_eq, constVar2, constVar2, 
+	"globalVariable7_3a");
+    genVRelTest(appImage, vect7_1, BPatch_eq, constVar2, constVar3, 
+	"globalVariable7_4a");
+    genVRelTest(appImage, vect7_1, BPatch_gt, constVar4, constVar3, 
+	"globalVariable7_5a");
+    genVRelTest(appImage, vect7_1, BPatch_gt, constVar3, constVar4, 
+	"globalVariable7_6a");
+    genVRelTest(appImage, vect7_1, BPatch_le, constVar3, constVar4, 
+	"globalVariable7_7a");
+    genVRelTest(appImage, vect7_1, BPatch_le, constVar4, constVar3, 
+	"globalVariable7_8a");
+    genVRelTest(appImage, vect7_1, BPatch_ne, constVar5, constVar6, 
+	"globalVariable7_9a");
+    genVRelTest(appImage, vect7_1, BPatch_ne, constVar5, constVar5, 
+	"globalVariable7_10a");
+    genVRelTest(appImage, vect7_1, BPatch_ge, constVar9, constVar7, 
+	"globalVariable7_11a");
+    genVRelTest(appImage, vect7_1, BPatch_ge, constVar7, constVar9, 
+	"globalVariable7_12a");
+    genVRelTest(appImage, vect7_1, BPatch_and, constVar1, constVar1, 
+	"globalVariable7_13a");
+    genVRelTest(appImage, vect7_1, BPatch_and, constVar1, constVar0, 
+	"globalVariable7_14a");
+    genVRelTest(appImage, vect7_1, BPatch_or, constVar1, constVar0, 
+	"globalVariable7_15a");
+    genVRelTest(appImage, vect7_1, BPatch_or, constVar0, constVar0, 
+	"globalVariable7_16a");
+
     dprintf("relops test vector length is %d\n", vect7_1.size());
 
     checkCost(BPatch_sequence(vect7_1));
@@ -525,6 +681,8 @@ void mutatorTest11(BPatch_thread *appThread, BPatch_image *appImage)
 BPatchSnippetHandle *snippetHandle12_1;
 BPatch_variableExpr *varExpr12_1;
 
+const int HEAP_TEST_UNIT_SIZE = 5000;
+
 //
 // Start Test Case #12 - mutator side (insert/remove and malloc/free)
 //
@@ -542,6 +700,31 @@ void mutatorTest12a(BPatch_thread *appThread, BPatch_image *appImage)
     if (!varExpr12_1) {
 	fprintf(stderr, "Unable to allocate 100 bytes in mutatee\n");
 	exit(-1);
+    }
+
+    // Heap stress test - allocate memory until we run out, free it all
+    //   and then allocate a small amount of memory.
+    expectError = 66; // We're expecting a heap overflow error
+    BPatch_variableExpr* memStuff[30000];
+    BPatch_variableExpr *temp;
+    temp = appThread->malloc(HEAP_TEST_UNIT_SIZE); 
+    int count = 0;
+    while (temp) {
+	memStuff[count++] = temp;
+	temp = appThread->malloc(HEAP_TEST_UNIT_SIZE);
+	assert(count < 30000);
+    }
+    expectError = NO_ERROR;
+
+    int freeCount = 0;
+    for (int i =0; i < count; i++) {
+	appThread->free(*memStuff[i]);
+	freeCount++;
+    }
+
+    temp = appThread->malloc(500); 
+    if (!temp) {
+	printf("*** Unable to allocate memory after using then freeing heap\n");
     }
 
     BPatch_function *call12_1_func = appImage->findFunction("call12_1");
@@ -564,7 +747,7 @@ void mutatorTest12a(BPatch_thread *appThread, BPatch_image *appImage)
 
 void mutatorTest12b(BPatch_thread *appThread, BPatch_image * /*appImage*/)
 {
-    waitUntilStopped(appThread, 12, "insert/remove and malloc/free");
+    waitUntilStopped(bpatch, appThread, 12, "insert/remove and malloc/free");
 
     // remove instrumentation and free memory
     if (!appThread->deleteSnippet(snippetHandle12_1)) {
@@ -677,13 +860,13 @@ void mutatorTest15a(BPatch_thread *appThread, BPatch_image *appImage)
 
 void mutatorTest15b(BPatch_thread *appThread, BPatch_image * /*appImage*/)
 {
-    waitUntilStopped(appThread, 15, "setMutationsActive");
+    waitUntilStopped(bpatch, appThread, 15, "setMutationsActive");
 
     // disable mutations and continue process
     appThread->setMutationsActive(false);
     appThread->continueExecution();
     
-    waitUntilStopped(appThread, 15, "setMutationsActive");
+    waitUntilStopped(bpatch, appThread, 15, "setMutationsActive");
 
     // re-enable mutations and continue process
     appThread->setMutationsActive(true);
@@ -809,7 +992,7 @@ void mutatorTest18(BPatch_thread *appThread, BPatch_image *appImage)
 void mutatorTest19(BPatch_thread *appThread, BPatch_image *appImage)
 {
 #ifndef alpha_dec_osf4_0
-    waitUntilStopped(appThread, 19, "oneTimeCode");
+    waitUntilStopped(bpatch, appThread, 19, "oneTimeCode");
 
     BPatch_function *call19_1func = appImage->findFunction("call19_1");
     if (call19_1func == NULL) {
@@ -827,12 +1010,72 @@ void mutatorTest19(BPatch_thread *appThread, BPatch_image *appImage)
 #endif
 }
 
+//
+// Start Test Case #20 - mutator side (instrumentation at arbitrary points)
+//
+void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
+{
+#if defined(rs6000_ibm_aix4_1)
+    BPatch_function *call20_1func = appImage->findFunction("call20_1");
+    if (call20_1func == NULL) {
+	fprintf(stderr, "Unable to find function \"call20_1.\"\n");
+	exit(1);
+    }
+
+    BPatch_Vector<BPatch_snippet *> nullArgs;
+    BPatch_funcCallExpr call20_1Expr(*call20_1func, nullArgs);
+    checkCost(call20_1Expr);
+
+
+    BPatch_function *f = appImage->findFunction("func20_2");
+    if (f == NULL) {
+	fprintf(stderr, "Unable to find function \"func20_2.\"\n");
+	exit(1);
+    }
+
+    BPatch_point *p = NULL;
+    bool found_one = false;
+
+    if (f->getSize() == 0) {
+	fprintf(stderr, "**Failed** test #20 (instrumentation at arbitrary points)\n");
+	fprintf(stderr, "    getSize returned a size of 0 for the function \"func20_2\"\n");
+	exit(1);
+    }
+
+    for (int i = 0; i < f->getSize(); i++) {
+	void *addr = (char *)f->getBaseAddr() + i;
+
+	p = appImage->createInstPointAtAddr((char *)f->getBaseAddr() + i);
+
+	if (p) {
+	    if (p->getPointType() == BPatch_address) {
+		found_one = true;
+		if (appThread->insertSnippet(call20_1Expr, *p) == NULL) {
+		    fprintf(stderr,
+		      "Unable to insert snippet into function \"func20_2.\"\n");
+		    exit(1);
+		}
+	    }
+    	    delete p;
+	}
+    }
+
+    if (!found_one) {
+	fprintf(stderr, "Unable to find a point to instrument in function \"func20_2.\"\n");
+	exit(1);
+    }
+#endif
+}
+
 void mutatorMAIN(char *pathname, bool useAttach)
 {
     BPatch_thread *appThread;
 
     // Create an instance of the bpatch library
     bpatch = new BPatch;
+
+    // Register a callback function that prints any error messages
+    bpatch->registerErrorCallback(errorFunc);
 
     // Start the mutatee
     printf("Starting \"%s\"\n", pathname);
@@ -1073,15 +1316,23 @@ void mutatorMAIN(char *pathname, bool useAttach)
     mutatorTest17(appThread, appImage);
 
     mutatorTest18(appThread, appImage);
+
+    mutatorTest20(appThread, appImage);
+
     // Start of code to continue the process.
     dprintf("starting program execution.\n");
     appThread->continueExecution();
+
+    // Test poll for status change
+    bool changed = bpatch->pollForStatusChange();
+
     mutatorTest12b(appThread, appImage);
     mutatorTest15b(appThread, appImage);
     mutatorTest19(appThread, appImage);
 
     while (!appThread->isTerminated())
-	waitForStatusChange();
+	bpatch->waitForStatusChange();
+
     dprintf("Done.\n");
 }
 

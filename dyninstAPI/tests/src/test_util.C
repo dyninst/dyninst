@@ -21,10 +21,11 @@
 //
 // Wait for the mutatee to stop.
 //
-void waitUntilStopped(BPatch_thread *appThread, int testnum, char *testname)
+void waitUntilStopped(BPatch *bpatch,
+	BPatch_thread *appThread, int testnum, char *testname)
 {
     while (!appThread->isStopped() && !appThread->isTerminated())
-	waitForStatusChange();
+	bpatch->waitForStatusChange();
 
     if (!appThread->isStopped()) {
 	printf("**Failed test #%d (%s)\n", testnum, testname);

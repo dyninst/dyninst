@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.70 1998/08/26 20:58:03 zhichen Exp $
+ * $Id: inst-power.C,v 1.71 1998/09/15 04:15:59 buck Exp $
  */
 
 #include "util/h/headers.h"
@@ -80,6 +80,10 @@ extern bool isPowerOf2(int value, int &result);
 #define MAX_CBRANCH	0x1<<13
 
 #define MAX_IMM		0x1<<15		/* 15 plus sign == 16 bits */
+
+#define SPR_XER	1
+#define SPR_LR	8
+#define SPR_CTR	9
 
 unsigned getMaxBranch() {
   return MAX_BRANCH;
@@ -363,6 +367,66 @@ int getPointCost(process *proc, const instPoint *point)
  *   any relative addressing that is present.
  *
  */
+#ifdef BPATCH_LIBRARY
+void relocateInstruction(instruction *insn, int origAddr, int targetAddr)
+{
+    int newOffset;
+
+    if (isInsnType(*insn, Bmask, Bmatch)) {
+      // unconditional pc relative branch.
+      newOffset = origAddr  - targetAddr + (insn->iform.li << 2);
+      if (ABS(newOffset) >= MAX_BRANCH) {
+	logLine("a branch too far\n");
+	abort();
+      } else {
+	insn->iform.li = newOffset >> 2;
+      }
+    } else if (isInsnType(*insn, Bmask, BCmatch)) {
+      // conditional pc relative branch.
+      newOffset = origAddr - targetAddr + (insn->bform.bd << 2);
+      if (ABS(newOffset) >= MAX_CBRANCH) {
+	unsigned lk = insn->bform.lk;
+	insn->bform.lk = 0;
+
+	if ((insn->bform.bo & BALWAYSmask) == BALWAYScond) {
+	    assert(insn->bform.bo == BALWAYScond);
+	    generateBranchInsn(insn, newOffset);
+	    if (lk) insn->iform.lk = 1;
+	} else {
+	    // Figure out if the original branch was predicted as taken or not
+	    // taken.  We'll set up our new branch to be predicted the same way
+	    // the old one was.
+	    bool predict_taken;
+	    if (insn->bform.bd < 0)
+		predict_taken = true;
+	    else
+		predict_taken = false;
+	    if (insn->bform.bo & BPREDICTbit)
+		predict_taken = !predict_taken;
+	    insn->bform.bo &= ~BPREDICTbit;
+
+	    // Change the branch to move one instruction ahead
+	    insn->bform.bd = 2;
+	    if (predict_taken) insn->bform.bo |= BPREDICTbit;
+	    insn++;
+	    assert(insn->raw == NOOPraw);
+	    generateBranchInsn(insn, (origAddr + sizeof(instruction)) -
+				     (targetAddr + sizeof(instruction)));
+	    insn++;
+	    assert(insn->raw == NOOPraw);
+	    generateBranchInsn(insn, newOffset - 2*sizeof(instruction));
+	    if (lk) insn->iform.lk = 1;
+	}
+      } else {
+	insn->bform.bd = newOffset >> 2;
+      }
+    } else if (insn->iform.op == SVCop) {
+      logLine("attempt to relocate a system call\n");
+      abort();
+    } 
+    /* The rest of the instructions should be fine as is */
+}
+#else
 void relocateInstruction(instruction *insn, int origAddr, int targetAddr)
 {
     int newOffset;
@@ -391,10 +455,17 @@ void relocateInstruction(instruction *insn, int origAddr, int targetAddr)
     } 
     /* The rest of the instructions should be fine as is */
 }
+#endif
 
 trampTemplate baseTemplate;
+#ifdef BPATCH_LIBRARY
+trampTemplate conservativeTemplate;
+#endif
 
 extern "C" void baseTramp();
+#ifdef BPATCH_LIBRARY
+extern "C" void conservativeTramp();
+#endif
 
 void initATramp(trampTemplate *thisTemp, instruction *tramp)
 {
@@ -445,6 +516,12 @@ void initATramp(trampTemplate *thisTemp, instruction *tramp)
 }
 
 registerSpace *regSpace;
+#ifdef BPATCH_LIBRARY
+// This register space should be used with the conservative base trampoline.
+// Right now it's only used for purposes of determining which registers must
+// be saved and restored in the base trampoline.
+registerSpace *conservativeRegSpace;
+#endif
 
 // 11-12 are defined not to have live values at procedure call points.
 // reg 3-10 are used to pass arguments to functions.
@@ -458,6 +535,13 @@ int deadRegList[] = { 11, 12 };
 // allocate in reverse order since we use them to build arguments.
 int liveRegList[] = { 10, 9, 8, 7, 6, 5, 4, 3 };
 
+#ifdef BPATCH_LIBRARY
+// If we're being conservative, we don't assume that any registers are dead.
+int conservativeDeadRegList[] = { };
+// The registers that aren't preserved by called functions are considered live.
+int conservativeLiveRegList[] = { 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 0 };
+#endif
+
 void initTramps()
 {
     static bool inited=false;
@@ -466,9 +550,22 @@ void initTramps()
     inited = true;
 
     initATramp(&baseTemplate, (instruction *) baseTramp);
+#ifdef BPATCH_LIBRARY
+    initATramp(&conservativeTemplate, (instruction *) conservativeTramp);
+#endif
 
     regSpace = new registerSpace(sizeof(deadRegList)/sizeof(int), deadRegList, 
 				 sizeof(liveRegList)/sizeof(int), liveRegList);
+
+#ifdef BPATCH_LIBRARY
+    // Note that we don't always use this with the conservative base tramp --
+    // see the message where we declare conservativeRegSpace.
+    conservativeRegSpace =
+      new registerSpace(sizeof(conservativeDeadRegList)/sizeof(int),
+		        conservativeDeadRegList, 
+		        sizeof(conservativeLiveRegList)/sizeof(int),
+			conservativeLiveRegList);
+#endif
 }
 
 
@@ -490,8 +587,85 @@ void initTramps()
 	//  STKPAD values of 0.5KB, 1KB, 2KB, 4KB, 8KB were too small.
 	//
 #define STKPAD ( 24 * 1024 )
-#define STKLR  ( -(8 + (11+1)*4) )
 
+#ifdef BPATCH_LIBRARY
+#define STKLR    ( -(8 + (13+1)*4) )
+#define STKCR    (STKLR - 4)
+#define STKXER	 (STKLR - 8)
+#define STKCTR	 (STKLR - 12)
+#define STKSPR0  (STKLR - 16)
+#define STKFPSCR (STKLR - 24)
+#define STKFP    (- STKFPSCR)
+#define STKFCALLREGS (STKFP+(14*8))
+#define STKKEEP (STKFCALLREGS+((13+1)*4)+STKPAD)
+#else
+#define STKLR  ( -(8 + (11+1)*4) )
+#define STKFP  (8+(32*4))
+#define STKFCALLREGS (8+(32*4)+(14*8))
+#define STKKEEP 0
+#endif
+
+    ////////////////////////////////////////////////////////////////////
+    //Generates instructions to save a special purpose register onto
+    //the stack.
+    //  Returns the number of bytes needed to store the generated
+    //    instructions.
+    //  The instruction storage pointer is advanced the number of 
+    //    instructions generated.
+    //
+static int saveSPR(instruction *&insn,     //Instruction storage pointer
+		   reg         scratchReg, //Scratch register
+		   int         sprnum,     //SPR number
+		   int         stkOffset)  //Offset from stack pointer
+{
+  insn->raw = 0;                    //mfspr:  mflr scratchReg
+  insn->xform.op = 31;
+  insn->xform.rt = scratchReg;
+  insn->xform.ra = sprnum & 0x1f;
+  insn->xform.rb = (sprnum >> 5) & 0x1f;
+  insn->xform.xo = 339;
+  insn++;
+
+  insn->raw = 0;                    //st:     st scratchReg, stkOffset(r1)
+  insn->dform.op      = 36;
+  insn->dform.rt      = scratchReg;
+  insn->dform.ra      = 1;
+  insn->dform.d_or_si = stkOffset - STKPAD;
+  insn++;
+
+  return 2 * sizeof(instruction);
+}
+
+    ////////////////////////////////////////////////////////////////////
+    //Generates instructions to restore a special purpose register from
+    //the stack.
+    //  Returns the number of bytes needed to store the generated
+    //    instructions.
+    //  The instruction storage pointer is advanced the number of 
+    //    instructions generated.
+    //
+static int restoreSPR(instruction *&insn,       //Instruction storage pointer
+		      reg           scratchReg, //Scratch register
+		      int           sprnum,     //SPR number
+		      int           stkOffset)  //Offset from stack pointer
+{
+  insn->raw = 0;                    //l:      l scratchReg, stkOffset(r1)
+  insn->dform.op      = 32;
+  insn->dform.rt      = scratchReg;
+  insn->dform.ra      = 1;
+  insn->dform.d_or_si = stkOffset - STKPAD;
+  insn++;
+
+  insn->raw = 0;                    //mtspr:  mtlr scratchReg
+  insn->xform.op = 31;
+  insn->xform.rt = scratchReg;
+  insn->xform.ra = sprnum & 0x1f;
+  insn->xform.rb = (sprnum >> 5) & 0x1f;
+  insn->xform.xo = 467;
+  insn++;
+
+  return 2 * sizeof(instruction);
+}
 
            ////////////////////////////////////////////////////////////////////
 	   //Generates instructions to save link register onto stack.
@@ -499,7 +673,6 @@ void initTramps()
 	   //    instructions.
 	   //  The instruction storage pointer is advanced the number of 
 	   //    instructions generated.
-	   //
 static int saveLR(instruction *&insn,       //Instruction storage pointer
 		  reg           scratchReg, //Scratch register
 		  int           stkOffset)  //Offset from stack pointer
@@ -607,6 +780,114 @@ void resetBRL(process  *p,   //Process to write instructions into
                               : setBRL(t, 10, val, NOOPraw);
 
   p->writeTextSpace((void *)loc, numBytes, i);
+}
+
+    /////////////////////////////////////////////////////////////////////////
+    //Generates instructions to save the condition codes register onto stack.
+    //  Returns the number of bytes needed to store the generated
+    //    instructions.
+    //  The instruction storage pointer is advanced the number of 
+    //    instructions generated.
+    //
+static int saveCR(instruction *&insn,       //Instruction storage pointer
+		  reg           scratchReg, //Scratch register
+		  int           stkOffset)  //Offset from stack pointer
+{
+  insn->raw = 0;                    //mfcr:  mflr scratchReg
+  insn->xform.op = 31;
+  insn->xform.rt = scratchReg;
+  insn->xform.xo = 19;
+  insn++;
+
+  insn->raw = 0;                    //st:     st scratchReg, stkOffset(r1)
+  insn->dform.op      = 36;
+  insn->dform.rt      = scratchReg;
+  insn->dform.ra      = 1;
+  insn->dform.d_or_si = stkOffset - STKPAD;
+  insn++;
+
+  return 2 * sizeof(instruction);
+}
+
+
+    ///////////////////////////////////////////////////////////////////////////
+    //Generates instructions to restore the condition codes register from stack.
+    //  Returns the number of bytes needed to store the generated
+    //    instructions.
+    //  The instruction storage pointer is advanced the number of 
+    //    instructions generated.
+    //
+static int restoreCR(instruction *&insn,       //Instruction storage pointer
+		     reg           scratchReg, //Scratch register
+		     int           stkOffset)  //Offset from stack pointer
+{
+  insn->raw = 0;                    //l:      l scratchReg, stkOffset(r1)
+  insn->dform.op      = 32;
+  insn->dform.rt      = scratchReg;
+  insn->dform.ra      = 1;
+  insn->dform.d_or_si = stkOffset - STKPAD;
+  insn++;
+
+  insn->raw = 0;                    //mtcrf:  scratchReg
+  insn->xfxform.op  = 31;
+  insn->xfxform.rt  = scratchReg;
+  insn->xfxform.spr = 0xff << 1;
+  insn->xfxform.xo  = 144;
+  insn++;
+
+  return 2 * sizeof(instruction);
+}
+
+
+    /////////////////////////////////////////////////////////////////////////
+    //Generates instructions to save the floating point status and control
+    //register on the stack.
+    //  Returns the number of bytes needed to store the generated
+    //    instructions.
+    //  The instruction storage pointer is advanced the number of 
+    //    instructions generated.
+    //
+static int saveFPSCR(instruction *&insn,       //Instruction storage pointer
+		     int           scratchReg, //Scratch fp register
+		     int           stkOffset)  //Offset from stack pointer
+{
+  insn->raw = 0;                    //mffs scratchReg
+  insn->xform.op = 63;
+  insn->xform.rt = scratchReg;
+  insn->xform.xo = 583;
+  insn++;
+
+  //st:     st scratchReg, stkOffset(r1)
+  genImmInsn(insn, STFDop, scratchReg, 1, stkOffset - STKPAD);
+  insn++;
+
+  return 2 * sizeof(instruction);
+}
+
+
+    ///////////////////////////////////////////////////////////////////////////
+    //Generates instructions to restore the floating point status and control
+    //register from the stack.
+    //  Returns the number of bytes needed to store the generated
+    //    instructions.
+    //  The instruction storage pointer is advanced the number of 
+    //    instructions generated.
+    //
+static int restoreFPSCR(instruction *&insn,       //Instruction storage pointer
+		        int           scratchReg, //Scratch fp register
+		        int           stkOffset)  //Offset from stack pointer
+{
+  genImmInsn(insn, LFDop, scratchReg, 1, stkOffset - STKPAD);
+  insn++;
+
+  insn->raw = 0;                    //mtfsf:  scratchReg
+  insn->xflform.op  = 63;
+  insn->xflform.flm = 0xff;
+  insn->xflform.frb = scratchReg;
+  insn->xflform.xo  = 711;
+  insn++;
+
+  return 2 * sizeof(instruction);
 }
 
      //////////////////////////////////////////////////////////////////////////
@@ -741,14 +1022,29 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc,
     instruction *temp;
     unsigned     isReinstall = baseAddr; //Reinstalling base trampoline
 
+#ifdef BPATCH_LIBRARY
+    trampTemplate *theTemplate;
+    registerSpace *theRegSpace;
+
+    if (location->ipLoc == ipOther) {
+	theTemplate = &conservativeTemplate;
+	theRegSpace = conservativeRegSpace;
+    } else {
+	theTemplate = &baseTemplate;
+	theRegSpace = regSpace;
+    }
+#else
+    const trampTemplate *theTemplate = &baseTemplate;
+#endif
+
     if (! isReinstall) 
-      baseAddr = inferiorMalloc(proc, baseTemplate.size, textHeap);
-    code = new instruction[baseTemplate.size / sizeof(instruction)];
-    memcpy((char *) code, (char*) baseTemplate.trampTemp, baseTemplate.size);
-    // bcopy(baseTemplate.trampTemp, code, baseTemplate.size);
+      baseAddr = inferiorMalloc(proc, theTemplate->size, textHeap);
+    code = new instruction[theTemplate->size / sizeof(instruction)];
+    memcpy((char *) code, (char*) theTemplate->trampTemp, theTemplate->size);
+    // bcopy(theTemplate->trampTemp, code, theTemplate->size);
 
     for (temp = code, currAddr = baseAddr; 
-	(int) (currAddr - baseAddr) < baseTemplate.size;
+	(int) (currAddr - baseAddr) < theTemplate->size;
 	temp++, currAddr += sizeof(instruction)) {
         if(temp->raw == UPDATE_LR) {
           if(location->ipLoc == ipFuncReturn) {
@@ -785,24 +1081,29 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc,
 	  }
         } else if (temp->raw == SKIP_PRE_INSN) {
           unsigned offset;
-          //offset = baseAddr+baseTemplate.updateCostOffset-currAddr;
-          offset = baseAddr+baseTemplate.emulateInsOffset-currAddr;
+          //offset = baseAddr+theTemplate->updateCostOffset-currAddr;
+          offset = baseAddr+theTemplate->emulateInsOffset-currAddr;
           generateBranchInsn(temp,offset);
 
         } else if (temp->raw == SKIP_POST_INSN) {
 	    unsigned offset;
-	    offset = baseAddr+baseTemplate.returnInsOffset-currAddr;
+	    offset = baseAddr+theTemplate->returnInsOffset-currAddr;
 	    generateBranchInsn(temp,offset);
 
 	} else if (temp->raw == UPDATE_COST_INSN) {
-	    baseTemplate.costAddr = currAddr;
+	    theTemplate->costAddr = currAddr;
 	    generateNOOP(temp);
 
 	} else if ((temp->raw == SAVE_PRE_INSN) || 
                    (temp->raw == SAVE_POST_INSN)) {
             unsigned numInsn=0;
+#ifdef BPATCH_LIBRARY
+            for(int i = 0; i < theRegSpace->getRegisterCount(); i++) {
+	      registerSlot *reg = theRegSpace->getRegSlot(i);
+#else
             for(int i = 0; i < regSpace->getRegisterCount(); i++) {
 	      registerSlot *reg = regSpace->getRegSlot(i);
+#endif
               if (reg->startsLive) {
                 numInsn = 0;
                 saveRegister(temp,numInsn,reg->number,8);
@@ -813,13 +1114,33 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc,
 
 	    currAddr += saveLR(temp, 10, STKLR);   //Save link register on stack
 
+#ifdef BPATCH_LIBRARY
+	    // If this is a point where we're using a conservative base tramp,
+	    // we need to save some more registers.
+	    if (location->ipLoc == ipOther) {
+	      currAddr += saveCR(temp, 10, STKCR); // Save the condition codes
+	      currAddr += saveSPR(temp, 10, SPR_XER, STKXER); // & XER
+	      currAddr += saveSPR(temp, 10, SPR_CTR, STKCTR); // & count reg
+	      currAddr += saveSPR(temp, 10, 0, STKSPR0);      // & SPR0
+	    }
+#endif
+
 	    // Also save the floating point registers which could
 	    // be modified, f0-r13
 	    for(int i=0; i <= 13; i++) {
 	      numInsn = 0;
-	      saveFPRegister(temp,numInsn,i,8+(32*4));
+	      saveFPRegister(temp,numInsn,i,STKFP);
 	      currAddr += numInsn;
 	    }
+
+#ifdef BPATCH_LIBRARY
+	    if (location->ipLoc == ipOther) {
+	      // Save the floating point status and control register
+	      // (we have to do it after saving the floating point registers,
+	      // because we need to use one as a temporary)
+	      currAddr += saveFPSCR(temp, 13, STKFPSCR);
+	    }
+#endif
 	    
             // if there is more than one instruction, we need this
             if (numInsn>0) {
@@ -829,11 +1150,28 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc,
 	} else if ((temp->raw == RESTORE_PRE_INSN) || 
                    (temp->raw == RESTORE_POST_INSN)) {
 
-            currAddr += restoreLR(temp, 10, STKLR); //Restore link register from
-						    //  stack
+          currAddr += restoreLR(temp, 10, STKLR); //Restore link register from
+
+#ifdef BPATCH_LIBRARY
+	    // If this is a point where we're using a conservative base tramp,
+	    // we need to restore some more registers.
+	    if (location->ipLoc == ipOther) {
+	      currAddr += restoreCR(temp, 10, STKCR); // Restore condition codes
+	      currAddr += restoreSPR(temp, 10, SPR_XER, STKXER); // & XER
+	      currAddr += restoreSPR(temp, 10, SPR_CTR, STKCTR); // & count reg
+	      currAddr += restoreSPR(temp, 10, 0, STKSPR0); // & SPR0
+	      currAddr += restoreFPSCR(temp, 13, STKFPSCR); // & FPSCR
+	    }
+#endif
+
             unsigned numInsn=0;
+#ifdef BPATCH_LIBRARY
+            for (int i = 0; i < theRegSpace->getRegisterCount(); i++) {
+	      registerSlot *reg = theRegSpace->getRegSlot(i);
+#else
             for (int i = 0; i < regSpace->getRegisterCount(); i++) {
 	      registerSlot *reg = regSpace->getRegSlot(i);
+#endif
               if (reg->startsLive) {
                 numInsn = 0;
                 restoreRegister(temp,numInsn,reg->number,8);
@@ -841,11 +1179,12 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc,
                 currAddr += numInsn;
 	      }
 	    }
+
 	    // Also load the floating point registers which were save
 	    // since they could have been modified, f0-r13
 	    for(int i=0; i <= 13; i++) {
 	      numInsn = 0;
-	      restoreFPRegister(temp,numInsn,i,8+(32*4));
+	      restoreFPRegister(temp,numInsn,i,STKFP);
 	      currAddr += numInsn;
 	    }
 
@@ -882,14 +1221,14 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc,
 	}
     }
     // TODO cast
-    proc->writeDataSpace((caddr_t)baseAddr, baseTemplate.size, (caddr_t) code);
+    proc->writeDataSpace((caddr_t)baseAddr, theTemplate->size, (caddr_t) code);
 
     free(code);
 
     if (isReinstall) return NULL;
 
     trampTemplate *baseInst = new trampTemplate;
-    *baseInst = baseTemplate;
+    *baseInst = *theTemplate;
     baseInst->baseAddr = baseAddr;
     return baseInst;
 }
@@ -1052,10 +1391,21 @@ void installTramp(instInstance *inst, char *code, int codeSize)
     // TODO cast
     (inst->proc)->writeDataSpace((caddr_t)inst->trampBase, codeSize, code);
 
+#ifdef BPATCH_LIBRARY
+    trampTemplate *theTemplate;
+
+    if (inst->location->ipLoc == ipOther)
+	theTemplate = &conservativeTemplate;
+    else
+	theTemplate = &baseTemplate;
+#else
+    const trampTemplate *theTemplate = &baseTemplate;
+#endif
+
     unsigned atAddr;
     if (inst->when == callPreInsn) {
 	if (inst->baseInstance->prevInstru == false) {
-	    atAddr = inst->baseInstance->baseAddr+baseTemplate.skipPreInsOffset;
+	    atAddr = inst->baseInstance->baseAddr+theTemplate->skipPreInsOffset;
 	    inst->baseInstance->cost += inst->baseInstance->prevBaseCost;
 	    inst->baseInstance->prevInstru = true;
 	    generateNoOp(inst->proc, atAddr);
@@ -1063,7 +1413,7 @@ void installTramp(instInstance *inst, char *code, int codeSize)
     }
     else {
 	if (inst->baseInstance->postInstru == false) {
-	    atAddr = inst->baseInstance->baseAddr+baseTemplate.skipPostInsOffset; 
+	    atAddr = inst->baseInstance->baseAddr+theTemplate->skipPostInsOffset; 
 	    inst->baseInstance->cost += inst->baseInstance->postBaseCost;
 	    inst->baseInstance->postInstru = true;
 	    generateNoOp(inst->proc, atAddr);
@@ -1280,12 +1630,12 @@ unsigned emitFuncCall(opCode /* ocode */,
   base += sizeof(instruction);
   
   // st r0, (r1)
-  saveRegister(insn,base,0,8+(32*4)+(14*8));
+  saveRegister(insn,base,0,STKFCALLREGS);
   savedRegs += 0;
   
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
   // save REG_MT
-  saveRegister(insn,base,REG_MT,8+(32*4)+(14*8));
+  saveRegister(insn,base,REG_MT,STKFCALLREGS);
   savedRegs += REG_MT;
 #endif
   
@@ -1319,7 +1669,7 @@ unsigned emitFuncCall(opCode /* ocode */,
       // since the register should be free
       // assert((u == srcs.size()) || (srcs[u] != (int) (u+3)));
       if(u == srcs.size()) {
-	saveRegister(insn,base,reg->number,8+(32*4)+(14*8));
+	saveRegister(insn,base,reg->number,STKFCALLREGS);
 	savedRegs += reg->number;
       }
     } else if (reg->inUse) {
@@ -1395,7 +1745,7 @@ unsigned emitFuncCall(opCode /* ocode */,
   //   szdsa    =  4*(argarea+linkarea+nfuncrs+nfprs+ngprs) = 368 + 8 = 376
 
   //  Decrement stack ptr
-  genImmInsn(insn, STUop, 1, 1, -376);
+  genImmInsn(insn, STUop, 1, 1, -376 - STKKEEP);
   insn++;
   base += sizeof(instruction);
     
@@ -1437,7 +1787,7 @@ unsigned emitFuncCall(opCode /* ocode */,
   // base += sizeof(instruction);
   
   // now cleanup.
-  genImmInsn(insn, CALop, 1, 1, 376);
+  genImmInsn(insn, CALop, 1, 1, 376 + STKKEEP);
   insn++;
   base += sizeof(instruction);
   
@@ -1460,7 +1810,7 @@ unsigned emitFuncCall(opCode /* ocode */,
   
   // restore saved registers.
   for (ui = 0; ui < savedRegs.size(); ui++) {
-    restoreRegister(insn,base,savedRegs[ui],8+(32*4)+(14*8));
+    restoreRegister(insn,base,savedRegs[ui],STKFCALLREGS);
   }
   
   // mtlr	0 (aka mtspr 8, rs) = 0x7c0803a6

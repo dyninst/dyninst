@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.h,v 1.8 1998/08/16 23:39:04 wylie Exp $
+// $Id: solarisDL.h,v 1.9 1998/09/15 04:16:08 buck Exp $
 
 #if !defined(solaris_dl_hdr)
 #define solaris_dl_hdr
@@ -86,6 +86,15 @@ public:
     unsigned get_dlopen_addr() const { return dlopen_addr; }
     unsigned get_r_brk_addr() const { return r_brk_addr; }
     
+#if defined(BPATCH_LIBRARY) 
+   // unset_r_brk_point: this routine removes the breakpoint in the code
+   // pointed to by r_debug.r_brk, which was previously set by
+   // set_r_brk_point.
+   // XXX We may want to make this private and call it from some general
+   //     cleanup routine instead letting it be called directly.
+   bool unset_r_brk_point(process *proc);
+#endif
+
 private:
    bool  dynlinked;
    u_int r_debug_addr;
@@ -95,6 +104,15 @@ private:
    u_int r_state;  // either 0 (RT_CONSISTENT), 1 (RT_ADD), or 2 (RT_DELETE)
    bool brkpoint_set; // true if brkpoint set in r_brk
    instPoint *r_brk_instPoint; // used to instrument r_brk
+#if defined(BPATCH_LIBRARY)
+#if defined(i386_unknown_solaris2_5)
+   const int R_BRK_SAVE_BYTES = 4;
+#else /* Sparc */
+   const int R_BRK_SAVE_BYTES = sizeof(instruction);
+#endif
+
+   char r_brk_save[R_BRK_SAVE_BYTES];
+#endif /* BPATCH_LIBRARY */
 
    // get_ld_base_addr: This routine returns the base address of ld.so.1
    // it returns true on success, and false on error

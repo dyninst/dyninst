@@ -1169,14 +1169,20 @@ Address emit(opCode op, reg src1, reg src2, reg dest,
     }
   else if (op == getRetValOp)
     {
-      // Return value register v0 is the 9th register saved in the mini tramp
-      restoreRegister(insn,base,9,dest);
+      // Return value register v0 is the 12th register saved in the base tramp
+      restoreRegister(insn,base,12,dest);
       return(dest);
     }
   else if (op == getParamOp)
     {
       if (src1 >5) assert(0);
-      restoreRegister(insn,base,src1,dest);
+      /*
+       * We don't save the parameter registers unless we make a function call,
+       * so we can read the values directly out of the registers.
+       */
+      unsigned long words =
+	  generate_operate(insn,REG_A0+src1,REG_A0+src1,dest,OP_BIS, FC_BIS);
+      base += words * sizeof(instruction);
       return(dest);
     }
   else if (op == branchOp) {
@@ -1390,7 +1396,7 @@ bool pd_Function::findInstPoints(const image *owner)
       funcReturns += new instPoint(this, instr, owner, adr, false,functionExit);
 
       // see if this return is the last one 
-      if (done) return;
+      if (done) return true;
     } else if (isCallInsn(instr)) {
       // define a call point
       // this may update address - sparc - aggregate return value
@@ -1503,13 +1509,18 @@ emitFuncCall(opCode op,
 	     const vector<AstNode *> &operands,
 	     const string &func, process *proc,bool noCost)
 {
+  vector <reg> srcs;
+
+  // First, generate the parameters
+  for (unsigned u = 0; u < operands.size(); u++)
+    srcs += operands[u]->generateCode(proc, rs, i , base, false, false);
+
   // put parameters in argument registers
   // register move is "bis src, src, dest"  (bis is logical or)
   // save and restore the values currently in the argument registers
   //  unsigned long words = 0;
   unsigned long addr;
   bool err;
-  vector <reg> srcs;
   void cleanUpAndExit(int status);
   addr = proc->findInternalAddress(func, false, err);
   if (err) {
@@ -1542,11 +1553,6 @@ emitFuncCall(opCode op,
     }
   insn = (instruction *) ((void*)&i[base]);
   base += (4 * generate_jump(insn, REG_T10, MD_JSR, REG_RA, remainder));
-
-    //    srcs += operands[u].generateCode(proc, rs, (char *)(insn + words), base);
-
-  for (unsigned u = 0; u < operands.size(); u++)
-    srcs += operands[u]->generateCode(proc, rs, i , base, false, false);
 
   //  words += (base - temp_base) / sizeof(insn);
   //  base = temp_base;
@@ -1592,7 +1598,20 @@ emitFuncCall(opCode op,
     }
   insn = (instruction *) ((void*)&i[base]);
   base += ( 4 * generate_jump(insn, REG_T10, MD_JSR, REG_RA, remainder));
-  return 0;
+
+  reg dest = rs->allocateRegister(i, base, noCost);
+
+  insn = (instruction *) ((void*)&i[base]);
+
+  // or v0,v0,dest
+  generate_operate(insn,REG_V0,REG_V0,dest,OP_BIS,FC_BIS);
+  base+= sizeof(instruction);
+
+  for (unsigned u=0; u<srcs.size(); u++){
+    rs->freeRegister(srcs[u]);
+  }
+
+  return dest;
 }
 
 bool returnInstance::checkReturnInstance(const vector<Address> &adr, u_int &index) {

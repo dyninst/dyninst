@@ -76,7 +76,7 @@ void test10a(BPatch_thread *appThread, BPatch_image *appImage)
     }
 }
 
-void test11(BPatch_thread */*appThread*/, BPatch_image *appImage)
+void test11(BPatch_thread * /*appThread*/, BPatch_image *appImage)
 {
 #if !defined(rs6000_ibm_aix4_1)
     // Test getDisplacedInstructions
@@ -108,6 +108,25 @@ void test11(BPatch_thread */*appThread*/, BPatch_image *appImage)
     }
     printf("Passed test #11 (getDisplacedInstructions)\n");
 #endif
+}
+
+void test12(BPatch_thread *appThread, BPatch_image *appImage)
+{
+
+    BPatch_Vector<BPatch_point*> *points =
+	appImage->findProcedurePoint("func12_1", BPatch_entry);
+    
+    if (!points) {
+	printf("**Failed** test #12 (BPatch_point query funcs)\n");
+	printf("    unable to locate function \"func12_1\".\n");
+	exit(1);
+    }
+
+    void *addr = (*points)[0]->getAddress();
+
+    bool trapFlag = (*points)[0]->usesTrap_NP();
+
+    printf("Passed test #12 (BPatch_point query funcs)\n");
 }
 
 BPatch_thread *mutatorMAIN(char *pathname, bool useAttach)
@@ -154,6 +173,37 @@ void errorFunc(BPatchErrorLevel level, int num, const char **params)
     }
 }
 
+bool processMgmntTests()
+{
+    BPatch_thread *ret;
+
+    // Now test forking.
+    char *child_argv[4];
+
+    child_argv[0] = MUTATEE_NAME;
+    child_argv[1] = "-fork";
+    child_argv[2] = NULL;
+    ret = bpatch->createProcess(MUTATEE_NAME, child_argv);
+
+    if (!ret) {
+	printf("**Failed** test #14 (process mgmnt. tests)\n"); // LAST TEST
+	printf("    unable to create the new process\n");
+	return(true);
+    }
+
+    if (ret->isStopped()) ret->continueExecution();
+
+    bool dead = ret->terminateExecution();
+    if (!dead) {
+	printf("**Failed** test #14 (process mgmnt. tests)\n"); // LAST TEST
+	printf("    unable to terminate the new process\n");
+	return(true);
+    }
+
+    printf("Passed test #14 (process mgmnt. tests)\n");
+    return false;
+}
+
 //
 // main - decide our role and call the correct "main"
 //
@@ -175,7 +225,7 @@ main(int argc, char *argv[])
 	} else if (!strcmp(argv[i], "-attach")) {
 	    useAttach = true;
 	} else {
-	    fprintf(stderr, "Usage: test1 [-attach] [-verbose]\n");
+	    fprintf(stderr, "Usage: test2 [-attach] [-verbose]\n");
 	    exit(-1);
 	}
     }
@@ -291,14 +341,14 @@ main(int argc, char *argv[])
 
     ret->continueExecution();
 
-#if !defined(sparc_sun_solaris2_4)
+#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5)
     printf("Skipping test #6 (load a dynamically linked library from the mutatee)\n");
     printf("    feature not implemented on this platform\n");
 
     printf("Skipping test #7 (load a dynamically linked library from the mutator)\n");
     printf("    feature not implemented on this platform\n");
 #else
-    waitUntilStopped(ret, 6, "load a dynamically linked library");
+    waitUntilStopped(bpatch, ret, 6, "load a dynamically linked library");
 
     // see if the dlopen happended.
     bool found = false;
@@ -348,10 +398,13 @@ main(int argc, char *argv[])
     ret->continueExecution();
 #endif
 
-    ret->stopExecution();
+    // Wait for process to hit breakpoint
+    waitUntilStopped(bpatch, ret, 8, "BPatch_breakPointExpr");
+    // waitUntilStopped would not return is we didn't stop
+    printf("Passed test #8 (BPatch_breakPointExpr)\n");
 
-#ifndef sparc_sun_sunos4_1_3
-    printf("Skipping test #8 (dump core but do not terminate)\n");
+#if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
+    printf("Skipping test #9 (dump core but do not terminate)\n");
     printf("    BPatch_thread::dumpCore not implemented on this platform\n");
 #else
     // dump core, but do not terminate.
@@ -368,19 +421,19 @@ main(int argc, char *argv[])
     ret->dumpCore("mycore", true);
     bool coreExists = (access("mycore", F_OK) == 0);
     if (gotError || !coreExists) {
-	printf("**Failed** test #8 (dump core but do not terminate)\n");
+	printf("**Failed** test #9 (dump core but do not terminate)\n");
 	failed = true;
 	if (gotError)
 	    printf("    error reported by dumpCore\n");
 	if (!coreExists)
 	    printf("    the core file wasn't written\n");
     } else {
-    	printf("Passed test #8 (dump core but do not terminate)\n");
+    	printf("Passed test #9 (dump core but do not terminate)\n");
     }
 #endif
 
-#if !defined(rs6000_ibm_aix4_1) && !defined(sparc_sun_sunos4_1_3)
-    printf("Skipping test #9 (dump image)\n");
+#if !defined(rs6000_ibm_aix4_1) && !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
+    printf("Skipping test #10 (dump image)\n");
     printf("    BPatch_thread::dumpImage not implemented on this platform\n");
 #else
     // dump image
@@ -396,24 +449,22 @@ main(int argc, char *argv[])
     ret->dumpImage("myimage");
     bool imageExists = (access("myimage", F_OK) == 0);
     if (gotError || !imageExists) {
-	printf("**Failed** test #9 (dump image)\n");
+	printf("**Failed** test #10 (dump image)\n");
 	failed = true;
 	if (gotError)
 	    printf("    error reported by dumpImage\n");
 	if (!imageExists)
 	    printf("    the image file wasn't written\n");
     } else {
-    	printf("Passed test #9 (dump image)\n");
+    	printf("Passed test #10 (dump image)\n");
     }
 #endif
 
-    // Wait for process to hit breakpoint
-    waitUntilStopped(ret, 10, "BPatch_breakPointExpr");
-    // waitUntilStopped would not return is we didn't stop
-    printf("Passed test #10 (BPatch_breakPointExpr)\n");
-
     // Test getDisplacedInstructions
     test11(ret, img);
+
+    // BPatch_point information functions
+    test12(ret, img);
 
     /**********************************************************************
      * Kill process and make sure it goes away
@@ -442,7 +493,7 @@ main(int argc, char *argv[])
     BPatch_Vector<BPatch_thread *> *threads = bpatch->getThreads();
     for (i=0; i < threads->size(); i++) {
 	if ((*threads)[i] == ret) {
-	    printf("**Failed** test #12 (delete thread)\n"); // LAST TEST
+	    printf("**Failed** test #13 (delete thread)\n"); 
 	    printf("    thread %d was deleted, but getThreads found it\n",
 		ret->getPid());
 	    failed = true;
@@ -451,8 +502,10 @@ main(int argc, char *argv[])
     }
 
     if (!failed_this) {
-	printf("Passed test #12 (delete thread)\n"); // LAST TEST
+	printf("Passed test #13 (delete thread)\n");
     }
+
+    failed |= processMgmntTests();
 
     delete (bpatch);
 
@@ -461,7 +514,6 @@ main(int argc, char *argv[])
     } else {
 	printf("Passed all tests\n");
     }
-
 
     return 0;
 }

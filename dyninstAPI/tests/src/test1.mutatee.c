@@ -34,6 +34,7 @@ int debugPrint = 0;
 
 #define MAGIC19_1 1900100
 
+
 #define TRUE	1
 #define FALSE	0
 
@@ -45,12 +46,33 @@ int globalVariable4_1 = 41;
 int globalVariable5_1 = 51;
 int globalVariable5_2 = 51;
 
+int constVar0 = 0;
+int constVar1 = 1;
+int constVar2 = 2;
+int constVar3 = 3;
+int constVar4 = 4;
+int constVar5 = 5;
+int constVar6 = 6;
+int constVar7 = 7;
+int constVar9 = 9;
+int constVar10 = 10;
+int constVar60 = 60;
+int constVar64 = 64;
+int constVar66 = 66;
+int constVar67 = 67;
+
 int globalVariable6_1 = 0xdeadbeef;
 int globalVariable6_2 = 0xdeadbeef;
 int globalVariable6_3 = 0xdeadbeef;
 int globalVariable6_4 = 0xdeadbeef;
 int globalVariable6_5 = 0xdeadbeef;
 int globalVariable6_6 = 0xdeadbeef;
+int globalVariable6_1a = 0xdeadbeef;
+int globalVariable6_2a = 0xdeadbeef;
+int globalVariable6_3a = 0xdeadbeef;
+int globalVariable6_4a = 0xdeadbeef;
+int globalVariable6_5a = 0xdeadbeef;
+int globalVariable6_6a = 0xdeadbeef;
 
 int globalVariable7_1 = 71, globalVariable7_2 = 71,
     globalVariable7_3 = 71, globalVariable7_4 = 71,
@@ -61,6 +83,15 @@ int globalVariable7_1 = 71, globalVariable7_2 = 71,
     globalVariable7_13 = 71, globalVariable7_14 = 71,
     globalVariable7_15 = 71, globalVariable7_16 = 71;
 
+
+int globalVariable7_1a = 73, globalVariable7_2a = 73,
+    globalVariable7_3a = 73, globalVariable7_4a = 73,
+    globalVariable7_5a = 73, globalVariable7_6a = 73,
+    globalVariable7_7a = 73, globalVariable7_8a = 73,
+    globalVariable7_9a = 73, globalVariable7_10a = 73,
+    globalVariable7_11a = 73, globalVariable7_12a = 73,
+    globalVariable7_13a = 73, globalVariable7_14a = 73,
+    globalVariable7_15a = 73, globalVariable7_16a = 73;
 
 int globalVariable8_1 = 1;
 
@@ -93,6 +124,15 @@ int globalVariable18_1 = 42;
 
 int globalVariable19_1 = 0xdeadbeef;
 
+int globalVariable20_1 = 0xdeadbeef;
+double globalVariable20_2 = 0.0;
+
+#define TEST20_A 3
+#define TEST20_B 4.3
+#define TEST20_C 7
+#define TEST20_D 6.4
+#define TEST20_TIMES 41
+
 /*
  * Check to see if the mutator has attached to us.
  */
@@ -112,6 +152,20 @@ void stop_process()
 #else
     kill(getpid(), SIGSTOP);
 #endif
+}
+
+/*
+ * Determine if two doubles are close to being equal (for our purposes, that
+ * means to ten decimal places).
+ */
+int eq_doubles(double a, double b)
+{
+    double diff = a - b;
+
+    if (diff < 0) diff = -diff;
+
+    if (diff < 0.00000000001) return 1;
+    else return 0;
 }
 
 void call1_1()
@@ -305,6 +359,23 @@ void call19_1()
     globalVariable19_1 = MAGIC19_1;
 }
 
+volatile int ta = TEST20_A;
+volatile double tb = TEST20_B;
+
+void call20_1()
+{
+    globalVariable20_1 = ta+(ta+(ta+(ta+(ta+(ta+(ta+(ta+(ta+(ta+
+			 (ta+(ta+(ta+(ta+(ta+(ta+(ta+(ta+(ta+(ta+
+			 (ta+(ta+(ta+(ta+(ta+(ta+(ta+(ta+(ta+(ta+
+			 (ta+(ta+(ta+(ta+(ta+(ta+(ta+(ta+(ta+(ta+(ta
+			 ))))))))))))))))))))))))))))))))))))))));
+
+    globalVariable20_2 = tb+(tb+(tb+(tb+(tb+(tb+(tb+(tb+(tb+(tb+
+			 (tb+(tb+(tb+(tb+(tb+(tb+(tb+(tb+(tb+(tb+
+			 (tb+(tb+(tb+(tb+(tb+(tb+(tb+(tb+(tb+(tb+
+			 (tb+(tb+(tb+(tb+(tb+(tb+(tb+(tb+(tb+(tb+(tb
+			 ))))))))))))))))))))))))))))))))))))))));
+}
 
 /*
  * This is a series of nearly empty functions to attach code to 
@@ -634,12 +705,107 @@ void func19_1()
 #endif
 }
 
+
+int func20_3()
+{
+    static int n = 1;
+
+    return n++;
+}
+
+
+volatile int tc = TEST20_C;
+volatile double td = TEST20_D;
+int test20_iter = 50;
+
+int func20_2(int *int_val, double *double_val)
+{
+    int i, ret = 1;
+
+    *int_val = tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+
+	       (tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+
+	       (tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+
+	       (tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc
+	       ))))))))))))))))))))))))))))))))))))))));
+
+    *double_val = td+(td+(td+(td+(td+(td+(td+(td+(td+(td+
+		  (td+(td+(td+(td+(td+(td+(td+(td+(td+(td+
+		  (td+(td+(td+(td+(td+(td+(td+(td+(td+(td+
+		  (td+(td+(td+(td+(td+(td+(td+(td+(td+(td+(td
+		  ))))))))))))))))))))))))))))))))))))))));
+
+    for (i = 0; i < test20_iter; i++) {
+	ret *= 3;
+	if (i % 2 == 1) {
+	    ret *= 5;
+	} else if (i < 10) {
+	    ret *= 7;
+	} else if (i > 20) {
+	    ret *= 11;
+	}
+    }
+
+// The answer we expect from the above is:
+#define TEST20_ANSWER 1088896211
+
+    return ret;
+}
+
+void func20_1()
+{
+#ifndef rs6000_ibm_aix4_1
+    printf("Skipped test #20 (instrument arbitrary points)\n");
+    printf("\t- not implemented on this platform\n");
+#else
+    int ret;
+    int int_val;
+    double double_val;
+
+    ret = func20_2(&int_val, &double_val);
+
+    if (globalVariable20_1 == (TEST20_A * TEST20_TIMES) &&
+	eq_doubles(globalVariable20_2, (TEST20_B * (double)TEST20_TIMES)) &&
+	int_val == (TEST20_C * TEST20_TIMES) &&
+	eq_doubles(double_val, (TEST20_D * (double)TEST20_TIMES)) &&
+	ret == TEST20_ANSWER) {
+	printf("Passed test #20 (instrument arbitrary points)\n");
+    } else {
+	printf("**Failed test #20 (instrument arbitrary points)\n");
+	if (globalVariable20_1 != (TEST20_A * TEST20_TIMES))
+    	    printf("    globalVariable20_1 contained %d, not %d as expected\n",
+		   globalVariable20_1, TEST20_A * TEST20_TIMES);
+	if (!eq_doubles(globalVariable20_2, (TEST20_B * (double)TEST20_TIMES)))
+    	    printf("    globalVariable20_2 contained %g, not %g as expected\n",
+		   globalVariable20_2, TEST20_B * (double)TEST20_TIMES);
+	if (int_val != (TEST20_C * TEST20_TIMES))
+    	    printf("    int_val contained %d, not %d as expected\n",
+		   int_val, TEST20_C * TEST20_TIMES);
+	if (!eq_doubles(double_val, (TEST20_D * (double)TEST20_TIMES)))
+    	    printf("    double_val contained %g, not %g as expected\n",
+		   double_val, TEST20_D * (double)TEST20_TIMES);
+	if (ret != TEST20_ANSWER)
+    	    printf("    ret contained %d, not %d as expected\n",
+		   ret, TEST20_ANSWER);
+    }
+#endif
+}
+
 void fail7Print(int tCase, int fCase, char *op)
 {
     if (tCase != 72) 
-	printf(" operator %s was not true when it should be\n", op); 
+	printf(" operator %s was not true when it should be - const expr\n",
+	    op); 
     if (fCase != 71) 
-	printf(" operator %s was not false when it should be\n", op); 
+       printf(" operator %s was not false when it should be - const expr\n",
+	    op); 
+}
+
+void fail7aPrint(int tCase, int fCase, char *op)
+{
+    if (tCase != 74) 
+	printf(" operator %s was not true when it should be - var expr\n", op); 
+    if (fCase != 73) 
+	printf(" operator %s was not false when it should be - var expr\n",op); 
 }
 
 #ifdef i386_unknown_nt4_0
@@ -730,7 +896,10 @@ void main(int argc, char *argv[])
     func6_1();
     if ((globalVariable6_1 == 60+2) && (globalVariable6_2 == 64-1) &&
 	(globalVariable6_3 == 66/3) && (globalVariable6_4 == 67/3) &&
-	(globalVariable6_5 == 6 * 5) && (globalVariable6_6 == 3)) {
+	(globalVariable6_5 == 6 * 5) && (globalVariable6_6 == 3) &&
+    	(globalVariable6_1a == 60+2) && (globalVariable6_2a == 64-1) &&
+	(globalVariable6_3a == 66/3) && (globalVariable6_4a == 67/3) &&
+	(globalVariable6_5a == 6 * 5) && (globalVariable6_6a == 3)) {
 	printf("Passed test #6 (arithmetic operators)\n");
     } else {
 	printf("**Failed** test #6 (arithmetic operators)\n");
@@ -745,7 +914,19 @@ void main(int argc, char *argv[])
 	if (globalVariable6_5 != 6 * 5)
 	    printf("    mult error 6*5 got %d\n", globalVariable6_5);
 	if (globalVariable6_6 != 3)
-	    printf("    mod error 10,3 got %d\n", globalVariable6_6);
+	    printf("    comma error 10,3 got %d\n", globalVariable6_6);
+	if (globalVariable6_1a != 60+2) 
+	    printf("    addition error 60+2 got %d\n", globalVariable6_1a);
+	if (globalVariable6_2a != 64-1) 
+	    printf("    subtraction error 64-1 got %d\n", globalVariable6_2a);
+	if (globalVariable6_3a != 66/3)
+	    printf("    division error 66/3 got %d\n", globalVariable6_3a);
+	if (globalVariable6_4a != 67/3)
+	    printf("    division error 67/3 got %d\n", globalVariable6_4a);
+	if (globalVariable6_5a != 6 * 5)
+	    printf("    mult error 6*5 got %d\n", globalVariable6_5a);
+	if (globalVariable6_6a != 3)
+	    printf("    comma error 10,3 got %d\n", globalVariable6_6a);
     }
 
     func7_1();
@@ -756,7 +937,15 @@ void main(int argc, char *argv[])
 	(globalVariable7_9 == 72) && (globalVariable7_10 == 71) &&
 	(globalVariable7_11 == 72) && (globalVariable7_12 == 71) &&
 	(globalVariable7_13 == 72) && (globalVariable7_14 == 71) &&
-	(globalVariable7_15 == 72) && (globalVariable7_16 == 71)) { 
+	(globalVariable7_15 == 72) && (globalVariable7_16 == 71) &&
+        (globalVariable7_1a == 74) && (globalVariable7_2a == 73) &&
+	(globalVariable7_3a == 74) && (globalVariable7_4a == 73) &&
+	(globalVariable7_5a == 74) && (globalVariable7_6a == 73) &&
+	(globalVariable7_7a == 74) && (globalVariable7_8a == 73) &&
+	(globalVariable7_9a == 74) && (globalVariable7_10a == 73) &&
+	(globalVariable7_11a == 74) && (globalVariable7_12a == 73) &&
+	(globalVariable7_13a == 74) && (globalVariable7_14a == 73) &&
+	(globalVariable7_15a == 74) && (globalVariable7_16a == 73)) { 
 	printf("Passed test #7 (relational operators)\n");
     } else {
 	printf("**Failed** test #7 (relational operators)\n");
@@ -768,6 +957,15 @@ void main(int argc, char *argv[])
 	fail7Print(globalVariable7_11, globalVariable7_12, "BPatch_ge");
 	fail7Print(globalVariable7_13, globalVariable7_14, "BPatch_and");
 	fail7Print(globalVariable7_15, globalVariable7_16, "BPatch_or");
+
+	fail7aPrint(globalVariable7_1a, globalVariable7_2a, "BPatch_lt");
+	fail7aPrint(globalVariable7_3a, globalVariable7_4a, "BPatch_eq");
+	fail7aPrint(globalVariable7_5a, globalVariable7_6a, "BPatch_gt");
+	fail7aPrint(globalVariable7_7a, globalVariable7_8a, "BPatch_le");
+	fail7aPrint(globalVariable7_9a, globalVariable7_10a, "BPatch_ne");
+	fail7aPrint(globalVariable7_11a, globalVariable7_12a, "BPatch_ge");
+	fail7aPrint(globalVariable7_13a, globalVariable7_14a, "BPatch_and");
+	fail7aPrint(globalVariable7_15a, globalVariable7_16a, "BPatch_or");
     }
 
     func8_1(1,2,3,4,5,6,7,8,9,10);
@@ -808,5 +1006,7 @@ void main(int argc, char *argv[])
 
     func18_1();
     func19_1();
+    func20_1();
+
     exit(0);
 }

@@ -160,10 +160,78 @@ bool process::continueWithForwardSignal(int) {
    return true;
 }
 
-#ifdef BPATCH_LIBRARY
-bool process::dumpImage(string /* imageFileName */) {return false;}
-#else
+#ifndef BPATCH_LIBRARY
 bool process::dumpImage() {return false;}
+#else
+bool process::dumpImage(string imageFileName) 
+{
+    int newFd;
+    image *im;
+    int length;
+    string command;
+
+    im = getImage();
+    string origFile = im->file();
+
+
+    // first copy the entire image file
+    command = "cp ";
+    command += origFile;
+    command += " ";
+    command += imageFileName;
+    system(command.string_of());
+
+    // now open the copy
+    newFd = open(imageFileName.string_of(), O_RDWR, 0);
+    if (newFd < 0) {
+	// log error
+	return false;
+    }
+
+    Elf *elfp = elf_begin(newFd, ELF_C_READ, 0);
+    Elf_Scn *scn = 0;
+    u_int baseAddr;
+    int offset;
+
+    Elf32_Ehdr*	ehdrp;
+    Elf_Scn* shstrscnp  = 0;
+    Elf_Data* shstrdatap = 0;
+    Elf32_Shdr* shdrp;
+
+    assert(ehdrp = elf32_getehdr(elfp));
+    assert(((shstrscnp = elf_getscn(elfp, ehdrp->e_shstrndx)) != 0) &&
+           ((shstrdatap = elf_getdata(shstrscnp, 0)) != 0));
+    const char* shnames = (const char *) shstrdatap->d_buf;
+
+    while ((scn = elf_nextscn(elfp, scn)) != 0) {
+	const char* name;
+
+	shdrp = elf32_getshdr(scn);
+	name = (const char *) &shnames[shdrp->sh_name];
+	if (!strcmp(name, ".text")) {
+	    offset = shdrp->sh_offset;
+	    length = shdrp->sh_size;
+	    baseAddr = shdrp->sh_addr;
+	    break;
+	}
+    }
+
+
+    char tempCode[length];
+
+
+    bool ret = readTextSpace_((void *) baseAddr, length, tempCode);
+    if (!ret) {
+       // log error
+       return false;
+    }
+
+    lseek(newFd, offset, SEEK_SET);
+    write(newFd, tempCode, length);
+    close(newFd);
+
+    return true;
+}
 #endif
 
 
@@ -674,7 +742,7 @@ bool process::dlopenDYNINSTlib() {
   if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
     strcpy((char*)libname,(char*)getenv("DYNINSTAPI_RT_LIB"));
   } else {
-    string msg = string("DYNINSTAPI_RT_LIB is not defined");
+    string msg = string("Environment variable DYNINSTAPI_RT_LIB is not defined, should be set to the pathname of DynintAPI runtime library");
     showErrorCallback(101, msg);
     return false;
   }
@@ -855,6 +923,8 @@ bool process::terminateProc_()
 	return false;
 
     Exited();
+
+    return true;
 }
 #endif
 
@@ -890,6 +960,14 @@ bool process::detach_() {
  */
 bool process::API_detach_(const bool cont)
 {
+  // Remove the breakpoint that we put in to detect loading and unloading of
+  // shared libraries.
+  // XXX We might want to move this into some general cleanup routine for the
+  //     dynamic_linking object.
+  if (dyn) {
+      dyn->unset_r_brk_point(this);
+  }
+
   // Reset the kill-on-close flag, and the run-on-last-close flag if necessary
   long flags = PR_KLC;
   if (!cont) flags |= PR_RLC;
@@ -947,7 +1025,17 @@ bool process::API_detach_(const bool cont)
 }
 #endif
 
-bool process::dumpCore_(const string) {
+bool process::dumpCore_(const string coreName) 
+{
+  char command[100];
+
+  sprintf(command, "gcore %d 2> /dev/null; mv core.%d %s", getPid(), getPid(), 
+	coreName.string_of());
+
+  detach_();
+  system(command);
+  attach();
+
   return false;
 }
 
@@ -997,6 +1085,8 @@ static struct rusage *get_usage_data() {
 }
 #endif
 
+#ifndef BPATCH_LIBRARY
+
 float OS::compute_rusage_cpu() {
   return 0;
 }
@@ -1036,6 +1126,8 @@ float OS::compute_rusage_vol_cs() {
 float OS::compute_rusage_inv_cs() {
   return 0;
 }
+
+#endif
 
 int getNumberOfCPUs()
 {

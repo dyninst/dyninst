@@ -3,16 +3,16 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.4 1998/04/01 02:23:20 wylie Exp $
+# $Id: nmake.module.tmpl,v 1.5 1998/09/15 04:15:35 buck Exp $
 #
 
 SUITE_NAME	= DynInst
-RELEASE_NUM	= 1.1
+RELEASE_NUM	= 1.2
 #BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
 
 TARGET = libdyninstAPI.lib
 
-DEFINES      = -DBPATCH_LIBRARY -DBPATCH_SET_MUTATIONS_ACTIVE
+DEFINES      = -DBPATCH_LIBRARY -DBPATCH_SET_MUTATIONS_ACTIVE -DBPATCH_LIBRARY_F
 CFLAGS       = $(CFLAGS) $(DEFINES)
 CXXFLAGS     = $(CXXFLAGS) $(DEFINES)
 

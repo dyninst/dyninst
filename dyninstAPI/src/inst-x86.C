@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.37 1998/08/26 21:00:36 zhichen Exp $
+ * $Id: inst-x86.C,v 1.38 1998/09/15 04:16:01 buck Exp $
  */
 
 #include <limits.h>
@@ -1492,7 +1492,12 @@ void emitOpRegReg(unsigned opcode, reg dest, reg src, unsigned char *&insn) {
 
 // emit OP reg, r/m
 void emitOpRegRM(unsigned opcode, reg dest, reg base, int disp, unsigned char *&insn) {
-  *insn++ = opcode;
+  if (opcode <= 0xff) {
+    *insn++ = opcode;
+  } else {
+    *insn++ = opcode >> 8;
+    *insn++ = opcode & 0xff;
+  }
   emitAddressingMode(base, disp, dest, insn);
 }
 

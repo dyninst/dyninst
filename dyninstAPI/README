@@ -1,11 +1,11 @@
 
-This is the version 1.1 release of the Dyninst API.  Currently, the API
+This is the version 1.2 release of the Dyninst API.  Currently, the API
 library is available for the SPARC/Solaris, IBM Power/AIX, Intel/Solaris,
-and Intel/Windows NT platforms.
+Intel/Windows NT, and Alpha/Digital UNIX platforms.
 
 Documentation for the API can be found at:
 
-    http://www.cs.umd.edu/~hollings/dyninstAPI/dyninstAPI.html
+    http://www.cs.umd.edu/projects/dyninstAPI/
 
 The core/dyninstAPI/tests directory contains the source code for programs
 that test the API functions.  These programs are useful as examples of how
@@ -24,6 +24,7 @@ running on:
     i386-unknown-solaris2.5	Solaris 2.5 on an Intel x86 processor
     i386-unknown-nt4.0		Windows NT on an Intel x86 processor
     sparc-sun-solaris2.4	Solaris 2.4 or 2.5 on a SPARC processor
+    alpha-dec-osf4.0		Digital UNIX on an Alpha processor
 
 DYNINST_ROOT should be set to the pathname of the top of the library source
 tree (the "core" directory, one level up from where this README file is
@@ -83,7 +84,7 @@ Some known issues relating to this distribution are:
 
 	Jeff Hollingsworth
 	Bryan Buck
-	5/6/98
+	9/15/98
 
 ----------------------- Start of Paradyn Copyright --------------------------
 Copyright (c) 1996 Barton P. Miller

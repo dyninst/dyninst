@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.6 1998/06/05 23:47:42 wylie Exp $
+// $Id: pdwinnt.C,v 1.7 1998/09/15 04:16:03 buck Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -190,8 +190,17 @@ vector<Address> process::walkStack(bool noPause) {
       break;
     }
     else {
-      if (findFunctionIn(sf.AddrPC.Offset)==getMainFunction())
+      function_base *f = findFunctionIn(sf.AddrPC.Offset);
+#ifdef BPATCH_LIBRARY
+      // With the API, we might conceivably free memory before getting to the
+      // main() function, so we need to check for a function higher up in the
+      // calling sequence -- mainCRTStartup
+      if (f && (f ==  getMainFunction() || f->prettyName() == "mainCRTStartup"))
 	reachedMain = true;
+#else
+      if (f ==  getMainFunction())
+	reachedMain = true;
+#endif
 
       pcs += sf.AddrPC.Offset;
     }

@@ -41,7 +41,7 @@
 
 /*
  * Report statistics about dyninst and data collection.
- * $Id: stats.C,v 1.19 1998/07/24 18:53:03 wylie Exp $
+ * $Id: stats.C,v 1.20 1998/09/15 04:16:09 buck Exp $
  */
 
 #include "dyninstAPI/src/symtab.h"
@@ -114,6 +114,7 @@ void printDyninstStats()
     logLine(errorLine);
 }
 
+#ifndef BPATCH_LIBRARY
 void printAppStats(struct endStatsRec *stats, float clockSpeed)
 {
     sprintf(errorLine, "    DYNINSTtotalAlarmExpires %d\n", stats->alarms);
@@ -143,4 +144,5 @@ void printAppStats(struct endStatsRec *stats, float clockSpeed)
     sprintf(errorLine, "    sampling rate %f\n", stats->samplingRate);
     logLine(errorLine);
 }
+#endif
 

@@ -45,6 +45,7 @@
 
 #include "process.h"
 #include "symtab.h"
+#include "instPoint.h"
 
 #include "BPatch.h"
 #include "BPatch_image.h"
@@ -144,6 +145,82 @@ BPatch_Vector<BPatch_point*> *BPatch_image::findProcedurePoint(
     if (func == NULL) return NULL;
 
     return func->findPoint(loc);
+}
+
+
+/*
+ * BPatch_image::createInstPointAtAddr
+ *
+ * Returns a pointer to a BPatch_point object representing an
+ * instrumentation point at the given address.
+ *
+ * Returns the pointer to the BPatch_point on success, or NULL upon
+ * failure.
+ *
+ * address	The address that the instrumenation point should refer to.
+ */
+BPatch_point *BPatch_image::createInstPointAtAddr(void *address)
+{
+    unsigned i;
+
+    /* First look in the list of non-standard instPoints. */
+    if (proc->instPointMap.defines((Address)address)) {
+	instPoint *ip = proc->instPointMap[(Address)address];
+	return new BPatch_point(proc, ip, BPatch_allLocations);
+    }
+
+    /* Look in the regular instPoints of the enclosing function. */
+    function_base *func = proc->findFunctionIn((Address)address);
+
+    if (func != NULL) {
+	instPoint *entry = (instPoint *)func->funcEntry(proc); //Cast away const
+	assert(entry);
+	if (entry->iPgetAddress() == (Address)address) {
+	    return new BPatch_point(proc, entry, BPatch_entry);
+	}
+
+	const vector<instPoint*> &exits = func->funcExits(proc);
+	for (i = 0; i < exits.size(); i++) {
+	    assert(exits[i]);
+	    if (exits[i]->iPgetAddress() == (Address)address) {
+		return new BPatch_point(proc, exits[i], BPatch_exit);
+	    }
+	}
+
+	const vector<instPoint*> &calls = func->funcCalls(proc);
+	for (i = 0; i < calls.size(); i++) {
+	    assert(calls[i]);
+	    if (calls[i]->iPgetAddress() == (Address)address) {
+		return new BPatch_point(proc, calls[i], BPatch_subroutine);
+	    }
+	}
+    }
+
+    /* We don't have an instPoint for this address, so make one. */
+#ifdef rs6000_ibm_aix4_1
+    /*
+     * XXX This is machine dependent and should be moved to somewhere else.
+     */
+    if (!isAligned((Address)address))
+	return NULL;
+
+    instruction instr;
+    proc->readTextSpace(address, sizeof(instruction), &instr.raw);
+
+    instPoint *newpt = new instPoint((pd_Function *)func,
+				     instr,
+				     NULL, // image *owner - this is ignored
+				     (Address)address,
+				     false, // bool delayOk - this is ignored
+				     ipOther);
+
+    proc->instPointMap[(Address)address] = newpt; // Save this instPoint
+
+    return new BPatch_point(proc, newpt, BPatch_address);
+#else
+    /* Not implemented on this platform (yet). */
+    assert(false);
+#endif
 }
 
 

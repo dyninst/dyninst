@@ -95,6 +95,10 @@ class pdThread;
 // TODO a kludge - to prevent recursive includes
 class image;
 
+#ifdef BPATCH_LIBRARY
+class BPatch_thread;
+#endif
+
 typedef enum { neonatal, running, stopped, exited } processState;
 typedef enum { HEAPfree, HEAPallocated } heapStatus;
 typedef enum { textHeap=0, dataHeap=1 } inferiorHeapType;
@@ -401,6 +405,10 @@ class process {
   //  PUBLIC DATA MEMBERS
   //  
 
+#if defined(BPATCH_LIBRARY)
+  BPatch_thread *thread; // The BPatch_thread associated with this process
+#endif
+
   // the following 2 vrbles probably belong in a different class:
   static string programName; // the name of paradynd (more specifically, its argv[0])
   static vector<string> arg_list; // the arguments of paradynd
@@ -424,6 +432,11 @@ class process {
 
   /* map an inst point to its base tramp */
   dictionary_hash<const instPoint*, trampTemplate *> baseMap;	
+
+#ifdef BPATCH_LIBRARY
+  /* map an address to an instPoint (that's not at entry, call or exit) */
+  dictionary_hash<Address, instPoint *> instPointMap;
+#endif
 
   // the following 3 are used in perfStream.C
   char buffer[2048];

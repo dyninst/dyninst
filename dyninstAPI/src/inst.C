@@ -609,7 +609,8 @@ unsigned findTags(const string ) {
 
 void
 trampTemplate::updateTrampCost(process *proc, int trampCost) {
-    
+
+#ifndef alpha_dec_osf4_0 /* XXX We don't calculate cost yet on Alpha */
     int caddr;
     cost = cost + trampCost;
     if (cost < 0) cost = 0;
@@ -624,6 +625,7 @@ trampTemplate::updateTrampCost(process *proc, int trampCost) {
 
     emit(updateCostOp, cost, 0, caddr, costInsn, csize, false);
     proc->writeDataSpace((caddr_t)costAddr, csize, costInsn);
+#endif
 }
 
 void cleanInstFromActivePoints(process *proc)

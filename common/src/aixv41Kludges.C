@@ -45,7 +45,6 @@ extern "C" {
 //extern int accept(int, struct sockaddr *addr, int *);
 //extern int accept(int, struct sockaddr *addr, size_t *);
 extern void bzero(char *b, int length);
-extern int gethostname(char*, int);
 extern int getrusage(int, struct rusage*);
 //extern int getsockname(int, struct sockaddr*, int *);
 //extern int getsockname(int, struct sockaddr*, size_t *);

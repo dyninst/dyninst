@@ -332,7 +332,10 @@ public:
     virtual function_base *findFunction (const string &name) = 0;
     virtual void define() = 0;    // defines module to paradyn
     virtual vector<function_base *> *getFunctions() = 0;
+
+#ifndef BPATCH_LIBRARY
     virtual vector<function_base *> *getIncludedFunctions() = 0;
+#endif
 
 private:
     string fileName_;                   // short file 
@@ -527,11 +530,13 @@ public:
   // necessary instrumentation info could be found)!!!!
   const vector<pd_Function*> &getAllFunctions();
 
-  const vector<pd_Function*> &getIncludedFunctions();
-
   // get all modules, including excluded ones....
   const vector<pdmodule *> &getAllModules();
+
+#ifndef BPATCH_LIBRARY
+  const vector<pd_Function*> &getIncludedFunctions();
   const vector<pdmodule *> &getIncludedModules();
+#endif 
 
   //
   //  ****  PUBLIC DATA MEMBERS  ****
