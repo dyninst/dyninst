@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.93 2001/08/20 20:01:19 bernat Exp $
+// $Id: mdl.C,v 1.94 2001/08/23 14:44:15 schendel Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -745,7 +745,7 @@ metricDefinitionNode *
 apply_to_process(process *proc, 
 		 string& id, string& name,
 		 vector< vector<string> >& focus,
-		 unsigned& agg_op, metricStyle metric_style,
+		 unsigned& agg_op, metricStyle /* metric_style */,
 		 unsigned& type,
 		 vector<T_dyninstRPC::mdl_constraint*>& flag_cons,
 		 vector<T_dyninstRPC::mdl_constraint*>& base_use,
@@ -805,9 +805,9 @@ apply_to_process(process *proc,
 
 
     // TODO -- Using aggOp value for this metric -- what about folds
-    mn = new metricDefinitionNode(proc, name, focus,
-				  component_focus, component_flat_name, 
-				  metric_style, agg_op, COMP_MDN);
+    mn = new metricDefinitionNode(proc, name, focus, component_focus, 
+				  component_flat_name, aggregateOp(agg_op), 
+				  COMP_MDN);
     assert(mn);
 
     // If the component exists, then we've either already returned, or fried it.
@@ -830,13 +830,10 @@ apply_to_process(process *proc,
 	metric_cerr << "  base_use not already there " << endl;
 
 	// primitive metricDefinitionNode constructor
-	metric_prim = new metricDefinitionNode(proc,
-					       name,
-					       focus,
-					       component_focus,
-					       metric_flat_name,
-					       metric_style, agg_op,
-					       PRIM_MDN);
+	metric_prim = 
+	  new metricDefinitionNode(proc, name, focus, component_focus,
+				   metric_flat_name, aggregateOp(agg_op), 
+				   PRIM_MDN);
 
 	initDataRequests(metric_prim, id, type, temp_ctr, computingCost); // to create the metric data sample
 
@@ -881,13 +878,11 @@ apply_to_process(process *proc,
 	    metric_cerr << "  flag not already there " << endl;
 
 	    // primitive metricDefinitionNode constructor
-	    cons_prim = new metricDefinitionNode(proc, 
-						 flag_cons[fs]->id(), 
-						 focus, 
-						 component_focus,  // the primitive_focus is same as this
-						 primitive_flat_name,
-						 metric_style, agg_op,
-						 PRIM_MDN);
+	    // the primitive_focus is same as the component_focus
+	    cons_prim = 
+	      new metricDefinitionNode(proc, flag_cons[fs]->id(), focus, 
+				       component_focus, primitive_flat_name,
+				       aggregateOp(agg_op), PRIM_MDN);
 
 	    dataReqNode *flag = NULL;
 	    // The following calls mdl_constraint::apply()
@@ -922,13 +917,10 @@ apply_to_process(process *proc,
 	metric_cerr << "  metric not already there, create:   " << endl;
 
 	// primitive metricDefinitionNode constructor
-	metric_prim = new metricDefinitionNode(proc,
-					       name,
-					       focus,
-					       component_focus,
-					       metric_flat_name,
-					       metric_style, agg_op,
-					       PRIM_MDN);
+	metric_prim = 
+	  new metricDefinitionNode(proc, name, focus, component_focus, 
+				   metric_flat_name, aggregateOp(agg_op),
+				   PRIM_MDN);
 
 	// do data requests for metric primitive
 	initDataRequests(metric_prim, id, type, temp_ctr, computingCost);
@@ -1239,7 +1231,6 @@ bool allDataGenCode_for_threads(
 		 int processIdx,
 		 unsigned agg_op,
 		 metricStyle metric_style,
-
 		 metricDefinitionNode* mn,
                  process *proc,
                  string& id,
@@ -1288,13 +1279,10 @@ bool allDataGenCode_for_threads(
 
 	// if (!allMIComponents.find(thr_component_flat_name,thr_mn)) 
 	// thread level mn no longer added to allMIComponents
-	thr_mn=new metricDefinitionNode(proc,
-					name,
-					focus,
-					component_focus,
-					thr_component_flat_name,
-					metric_style,agg_op,
-					THR_LEV);
+	thr_mn = 
+	  new metricDefinitionNode(proc, name, focus, component_focus,
+				   thr_component_flat_name, 
+				   aggregateOp(agg_op), THR_LEV);
 	assert(thr_mn);
 
 	metric_cerr << "+++++++ construct thr_mn <" 
@@ -1536,13 +1524,9 @@ apply_to_process(process *proc,
     // otherwise if a process is selected, component_flat_name is flat_name for thread,
     // and proc_component_flat_name will generate the same name for process
     
-    proc_mn=new metricDefinitionNode(proc, 
-				     name, 
-				     focus, 
-				     component_focus,
-				     proc_component_flat_name,
-				     metric_style, agg_op, 
-				     PROC_COMP);
+    proc_mn = new metricDefinitionNode(proc, name, focus, component_focus,
+				       proc_component_flat_name, 
+				       aggregateOp(agg_op), PROC_COMP);
     assert(proc_mn);
     
     // memorizing stuff
@@ -1568,13 +1552,10 @@ apply_to_process(process *proc,
 	metric_cerr << "  base_use not already there " << endl;
 	
 	// primitive metricDefinitionNode constructor
-	metric_prim = new metricDefinitionNode(proc,
-					       name, // base_use[0]->id()
-					       focus,
-					       component_focus,
-					       metric_flat_name,
-					       metric_style, agg_op, 
-					       PROC_PRIM);
+	metric_prim =
+	  new metricDefinitionNode(proc, name, // base_use[0]->id()
+				   focus, component_focus, metric_flat_name,
+				   aggregateOp(agg_op), PROC_PRIM);
 	
 	vector<dataReqNode*> empty_flags;
 	unsigned int empty;
@@ -1621,13 +1602,11 @@ apply_to_process(process *proc,
 	    
 	    string cons_name(flag_cons[fs]->id());
 	    // primitive metricDefinitionNode constructor
-	    cons_prim = new metricDefinitionNode(proc, 
-						 cons_name,
-						 focus, 
-						 component_focus,  // the primitive_focus is same as this
-						 primitive_flat_name,
-						 metric_style, agg_op,
-						 PROC_PRIM);
+	    // the primitive_focus is same as the component_focus
+	    cons_prim = 
+	      new metricDefinitionNode(proc, cons_name, focus, component_focus,
+				       primitive_flat_name, 
+				       aggregateOp(agg_op), PROC_PRIM);
 	    
 	    // add allocate data for each thread (into thr prims), 
 	    // generate instrument code (into proc prim)
@@ -1673,14 +1652,11 @@ apply_to_process(process *proc,
 	metric_cerr << "  metric not already there " << endl;
 	
 	// primitive metricDefinitionNode constructor
-	metric_prim = new metricDefinitionNode(proc, 
-					       name, 
-					       focus, 
-					       component_focus, 
-					       metric_flat_name,
-					       // should be NO metric_style and NO agg_style
-					       metric_style, agg_op, 
-					       PROC_PRIM);
+	metric_prim = 
+	  new metricDefinitionNode(proc, name, focus, component_focus, 
+				   metric_flat_name,
+				  // should be NO metric_style and NO agg_style
+				   aggregateOp(agg_op), PROC_PRIM);
 	
 	// add allocate data for each thread (into thr prims), 
 	// generate instrument code (into proc prim)
@@ -1889,7 +1865,11 @@ vector<string>global_excluded_funcs;
 metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &focus,
 					              string& flat_name,
 					              vector<process *> procs,
-						      vector< vector<pdThread *> >& threadsVec,
+						      vector< vector<pdThread *> >& 
+#if defined(MT_THREAD)
+                                                      threadsVec
+#endif
+                                                      ,
 					              bool replace_components_if_present,
 					              bool computingCost) {
   // TODO -- check to see if this is active ?
@@ -1990,8 +1970,8 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &
 
   if (parts.size()) {
     // create aggregate mi, containing the process components "parts"
-    ret = new metricDefinitionNode(name_, focus, flat_name, parts,  // instProcess
-				   styleV, agg_op_);
+    ret = new metricDefinitionNode(name_, focus, flat_name, parts,  
+				   /* instProcess */ aggregateOp(agg_op_));
   }
 
   metric_cerr << " apply of " << name_ << " ok" << endl;
@@ -2100,7 +2080,11 @@ static bool do_trailing_resources(vector<string>& resource_,
 bool T_dyninstRPC::mdl_constraint::apply(metricDefinitionNode *mn,
 					 dataReqNode *&flag,
 					 vector<string>& resource,
-					 process *proc, pdThread* thr, bool computingCost) {
+					 process *proc, pdThread* 
+#if defined(MT_THREAD)
+                                         thr
+#endif
+                                         , bool computingCost) {
   assert(mn);
   switch (data_type_) {
   case MDL_T_COUNTER:
