@@ -7,7 +7,10 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
- * Revision 1.11  1994/09/05 20:33:43  jcargill
+ * Revision 1.12  1994/09/22 02:14:13  markc
+ * Changed structs to classes
+ *
+ * Revision 1.11  1994/09/05  20:33:43  jcargill
  * Bug fix:  enabling certain metrics could cause no instrumentation to be
  * inserted, but still return a mid; this hosed the PC
  *
@@ -84,6 +87,8 @@
 
 #include "comm.h"
 #include "util/h/aggregateSample.h"
+#include "process.h"
+#include "dyninstP.h"
 
 /*
  * internal representation of an inst. request.
@@ -93,6 +98,14 @@ typedef enum { intCounter, timer } dataObjectType;
 
 class AstNode;
 class metricDefinitionNode;
+class metric;
+
+class metricListRec {
+    public:
+	metric *elements;	/* actual data in list */
+	int count;		/* number of items in the list */
+	int maxItems;	/* limit of current array */
+};
 
 class dataReqNode {
     public:
@@ -147,13 +160,13 @@ class metricDefinitionNode {
     public:
         // styles are enumerated in util/h/aggregation.h
 	metricDefinitionNode(process *p, int agg_style = aggSum);
-	metricDefinitionNode(metric m, List<metricDefinitionNode*> parts); 
+	metricDefinitionNode(metric *m, List<metricDefinitionNode*> parts); 
 	~metricDefinitionNode();
 	void disable();
 	void updateValue(time64, sampleValue);
 	void forwardSimpleValue(timeStamp, timeStamp, sampleValue);
 
-	Boolean match(resourceList l, metric m) {
+	Boolean match(resourceListRec *l, metric *m) {
 	    return(resList == l && met == m);
 	}
 	Boolean nonNull() {
@@ -186,8 +199,8 @@ class metricDefinitionNode {
         };
 
 	int id;				// unique id for this one 
-	metric met;			// what type of metric
-	resourceList resList;		// what resource list is this for.
+	metric *met;			// what type of metric
+	resourceListRec *resList;	// what resource list is this for.
 	float originalCost;
 
 	// is this a final value or a component of a larger metric.
@@ -230,19 +243,66 @@ typedef enum { invalidPredicate,
 	       simplePredicate, 
 	       replaceBase } predicateType;
 
-typedef struct {
-    char *namePrefix;			/* leading part of resource path */
+class resourcePredicate {
+ public:
+    const char *namePrefix;		/* leading part of resource path */
     predicateType	type;		
     createPredicateFunc creator;	/* create a metric */
-} resourcePredicate;
+}; 
 
-typedef struct {
+class metricDefinition {
+ public:
+    metricDefinition(createMetricFunc c, resourcePredicate *r) {
+      baseFunc = c; predicates = r;
+    }
+    metricDefinition() {
+      baseFunc = NULL; predicates=NULL;
+    }
     createMetricFunc baseFunc;		/* base definition */
     resourcePredicate *predicates;	/* how to handle where refinements */
-} metricDefinition;
+};
 
-struct _metricRec {
-    metricInfo info;
+class dynMetricInfo {
+ public:
+  dynMetricInfo(const char *mName, int s, int ag, const char *uName)
+    : style(s), aggregate(ag) {
+    name = pool.findAndAdd(mName);
+    units = pool.findAndAdd(uName);
+  }
+  dynMetricInfo() {
+    name = NULL; units = NULL; style = 0; aggregate=0;
+  }
+  metricInfo getMetInfo() {
+    metricInfo ret;
+    ret.style = style;
+    ret.aggregate = aggregate;
+    ret.units = (char*) units;
+    ret.name = (char*) name;
+    return ret;
+  }
+  stringHandle name;
+  int style;
+  int aggregate;
+  stringHandle units;
+};
+
+class metric {
+ public:
+    metric(const char *n, int s, int a, const char *u,
+	   createMetricFunc f, resourcePredicate *r)
+      : info(n, s, a, u), definition(f, r) {
+      ;
+    }
+    metric(dynMetricInfo d, metricDefinition m) {
+      info = d; definition = m;
+    }
+    metric() : info() {
+      ;
+    }
+    metricInfo getMetInfo() {
+      return info.getMetInfo();
+    }
+    dynMetricInfo info;
     metricDefinition definition;
 };
 
