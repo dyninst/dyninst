@@ -73,7 +73,7 @@ String fallback_resources[] = {
 };
  
 // callback routine for FOLD and DATAVALUES 
-int fd_input(){
+int fd_input(int dummy){
 
   Arg args[1];
   XawTextPosition pos;
@@ -88,6 +88,7 @@ int fd_input(){
   XtGetValues(text, args, ONE);
 
 
+  fprintf(stderr,"@@@@ in callback for datavalues and fold\n");
   noMetrics = dataGrid.NumMetrics();
   noResources = dataGrid.NumResources();
   noBins = dataGrid.NumBins();
@@ -128,11 +129,12 @@ int fd_input(){
     XtSetArg(args[0], XtNinsertPosition, pos);
     XtSetValues(text, args, ONE);
   }
+  fprintf(stderr,"@@@@ leaving callback for datavalues and fold\n");
 
 }
 
 // callback routine for ADDMETRICSRESOURCES
-int fd_input2(){
+int fd_input2(int dummy){
   Arg args[1];
   XawTextPosition pos;
   XawTextBlock tb;
@@ -169,7 +171,7 @@ int fd_input2(){
 }
 
 // callback routine for NEWMETRICSRESOURCES, PHASENAME
-int fd_input3(){
+int fd_input3(int dummy){
   Arg args[1];
   XawTextPosition pos;
   XawTextBlock tb;

@@ -105,7 +105,7 @@ String fallback_resources[] = {
 //}
 
 // callback routine for FOLD and DATAVALUES 
-int fd_input(){
+int fd_input(int dummy){
 
   Arg args[1];
   XawTextPosition pos;
@@ -164,7 +164,7 @@ int fd_input(){
 }
 
 // callback routine for ADDMETRICSRESOURCES
-int fd_input2(){
+int fd_input2(int dummy){
   Arg args[1];
   XawTextPosition pos;
   XawTextBlock tb;
