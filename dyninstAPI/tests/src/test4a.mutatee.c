@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test4a.mutatee.c,v 1.8 2004/03/23 19:11:30 eli Exp $ */
+/* $Id: test4a.mutatee.c,v 1.9 2004/04/19 20:12:59 chadd Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -132,6 +132,22 @@ void func2_1()
         func2_2();
         dprintf("at exit of %d, globalVariable2_1 = %d\n", (int) getpid(),
                 globalVariable2_1);
+
+#if defined(rs6000_ibm_aix4_1)
+	if( pid == 0){
+	        /* On AIX the child dies when the parent exits, so wait */
+		/* apparently the parent needs to wake up occasionally to keep Dyninst happy */
+		dprintf("%d SLEEPING\n",getpid());
+        	sleep(5);
+		dprintf("%d SLEEP MORE\n",getpid());
+		sleep(1);
+		dprintf("%d SLEEP MORE\n",getpid());
+		sleep(5);
+		dprintf("%d DONE SLEEPING\n",getpid());
+	}
+#endif
+
+
         exit(getpid());
     } else if (pid < 0) {
         /* error case */
@@ -204,7 +220,15 @@ void func4_1(int argc, char *argv[])
         func4_2();
 #if defined(rs6000_ibm_aix4_1)
         /* On AIX the child dies when the parent exits, so wait */
-        sleep(3);
+	/* and the parent needs to wake up occasionally to keep dyninst happy*/
+	dprintf("%d SLEEPING\n",getpid());
+        sleep(10);
+	dprintf("%d SLEEP MORE\n",getpid());
+	sleep(2);
+	dprintf("%d SLEEP MORE\n",getpid());
+	sleep(5);
+	dprintf("%d DONE SLEEPING\n",getpid());
+
 #endif
         exit(getpid());
     }
