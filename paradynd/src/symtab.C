@@ -45,6 +45,9 @@
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
+ * Revision 1.49  1996/11/05 20:36:19  tamches
+ * removed 2 calls to statusLine("ready") that were premature.
+ *
  * Revision 1.48  1996/10/31 09:01:42  tamches
  * removed some warnings
  *
@@ -276,7 +279,8 @@ image *image::parseImage(const string file)
 
   statusLine("defining modules");
   ret->defineModules();
-  statusLine("ready");
+
+//  statusLine("ready"); // this shouldn't be here, right? (cuz we're not done, right?)
 
   tp->resourceBatchMode(false);
   return(ret);
@@ -1019,7 +1023,8 @@ image::image(const string &fileName, bool &err)
   }
   statusLine("checking call points");
   checkAllCallPoints();
-  statusLine("ready");
+
+//  statusLine("ready"); // this shouldn't be here, right? (cuz we're not really ready)
 
   // TODO -- remove duplicates -- see earlier note
   dictionary_hash<unsigned, unsigned> addr_dict(uiHash);
