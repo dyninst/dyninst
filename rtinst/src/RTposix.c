@@ -41,6 +41,8 @@
 #include <sys/time.h>
 #include <unistd.h>
 
+#include <math.h>
+
 #include "kludges.h"
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
@@ -138,6 +140,9 @@ DYNINSTstopProcessTimer(tTimer* timer) {
         timer->mutex    = 0;
 
         if (now < timer->start) {
+            printf("id=%d, snapShot=%f total=%f, \n start=%f  now=%f\n",
+                   timer->id.id, (double)timer->snapShot, (double)timer->total, 
+                   (double)timer->start, (double)now);
             printf("process timer rollback\n"); fflush(stdout);
             abort();
         }
