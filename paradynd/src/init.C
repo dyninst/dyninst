@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.84 2005/01/28 18:12:05 legendre Exp $
+// $Id: init.C,v 1.85 2005/03/04 23:45:59 bernat Exp $
 
 
 #include "paradynd/src/internalMetrics.h"
@@ -100,8 +100,18 @@ pdvector<sym_data> syms_to_findPARADYN; //ccw 19 apr 2002 : SPLIT
 BPatch *__bpatch = NULL;
 
 void initBPatch() {
-   if(__bpatch == NULL)
-      __bpatch = new BPatch;
+  if(__bpatch == NULL) {
+    __bpatch = new BPatch;
+    // Don't trust defaults
+    __bpatch->setDebugParsing(false);
+    __bpatch->setBaseTrampDeletion(false); // Untested
+    __bpatch->setTypeChecking(false);
+    __bpatch->setTrampRecursive(false);
+    __bpatch->setForcedRelocation_NP(false);
+    __bpatch->setAutoRelocation_NP(true);
+    __bpatch->setDelayedParsing(false);
+  }
+
 }
 
 pdSample computeSamplingRate(const machineMetFocusNode *) {
