@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.26 2003/09/05 16:28:48 schendel Exp $
+# $Id: Makefile,v 1.27 2003/09/19 19:07:51 jodom Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -66,24 +66,30 @@ export NATIVE_FC = f90
 # skip the builds with native (WorkShop) compilers if they're not available
 ifeq (,$(findstring Forte,$(shell $(NATIVE_CC) -V 2>&1)))
 ifeq (,$(findstring WorkShop,$(shell $(NATIVE_CC) -V 2>&1)))
+ifeq (,$(findstring Sun C ,$(shell $(NATIVE_CC) -V 2>&1)))
 NATIVE_CC =
 #$(warning No cc)
+endif
 endif
 endif
 
 # One may have cc without CC...
 ifeq (,$(findstring Forte,$(shell $(NATIVE_CXX) -V 2>&1)))
 ifeq (,$(findstring WorkShop,$(shell $(NATIVE_CXX) -V 2>&1)))
+ifeq (,$(findstring Sun C++,$(shell $(NATIVE_CXX) -V 2>&1)))
 NATIVE_CXX =
 #$(warning No CC)
+endif
 endif
 endif
 
 # One may have cc without f90...
 ifeq (,$(findstring Forte,$(shell $(NATIVE_FC) -V 2>&1)))
 ifeq (,$(findstring WorkShop,$(shell $(NATIVE_FC) -V 2>&1)))
+ifeq (,$(findstring Sun Fortran,$(shell $(NATIVE_FC) -V 2>&1)))
 NATIVE_FC =
 #$(warning No F)
+endif
 endif
 endif
 endif
