@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.50 1999/03/19 20:29:35 pcroth Exp $
+// $Id: main.C,v 1.51 2000/07/05 16:28:17 wylie Exp $
 
 #include "parse.h"
 #include <iostream.h>
@@ -786,10 +786,9 @@ void type_defn::add_kid(const string kid_name) { kids_ += kid_name; }
 string unqual_type(const string &type) {
   string ret;
   const char *t = type.string_of();
-  char *p;
 
   while (1) {
-    p = strstr(t, Options::type_prefix().string_of());
+    const char *p = strstr(t, Options::type_prefix().string_of());
     if (!p) {
       ret += t;
       return ret;
