@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2003/09/30 14:20:45 jodom Exp $
+# $Id: Makefile,v 1.2 2004/03/03 17:04:55 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -36,7 +36,8 @@ SRCS =		../src/solaris.C \
 		../../common/src/timing-solaris.C \
 		../src/writeBackElf.C \
 		../src/addLibrary.C \
-		../src/saveSharedLibrary.C 
+		../src/saveSharedLibrary.C \
+		../src/syscall-solproc.C
 
 # VG(12/02/01) Using -g here seems a bad idea since it is passed from
 # make.confing any way and it is actually configurable there via
