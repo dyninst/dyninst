@@ -20,6 +20,10 @@
  * The experiment class methods.
  * 
  * $Log: PCexperiment.C,v $
+ * Revision 1.14  1996/07/24 20:10:39  karavan
+ * Fixed error in numActiveExperiments calculation; numActiveCurrentExperiments
+ * now zero'd at phase boundary.
+ *
  * Revision 1.13  1996/07/23 20:27:59  karavan
  * second part of two-part commit.
  *
@@ -350,7 +354,7 @@ void
 experiment::halt ()
 {
   if (status) {
-    PCsearch::decrNumActiveExperiments();
+    mamaSearch->decrNumActiveExperiments();
     // to stop experiment, just turn off flow of data at the source
     pcmih->endSubscription ((PCmetSubscriber)this);
     status = false;

@@ -20,6 +20,10 @@
  * State information required throughout a search.
  *
  * $Log: PCsearch.h,v $
+ * Revision 1.12  1996/07/24 20:10:38  karavan
+ * Fixed error in numActiveExperiments calculation; numActiveCurrentExperiments
+ * now zero'd at phase boundary.
+ *
  * Revision 1.11  1996/07/22 18:55:45  karavan
  * part one of two-part commit for new PC functionality of restarting searches.
  *
@@ -114,6 +118,13 @@ public:
   void updateDisplayedStatus (string *msg) {
     shg->updateDisplayedStatus (msg);
   }
+  void decrNumActiveExperiments() {
+    if (isGlobal())
+      PCsearch::numActiveGlobalExperiments -= 1;
+    else
+      PCsearch::numActiveCurrentExperiments -= 1;
+  }
+
   static void updateCurrentPhase (unsigned phaseID, timeStamp endTime);
   static PCsearch *findSearch (phaseType pt);
   static bool addSearch (unsigned phaseID);
@@ -146,8 +157,6 @@ public:
     PCsearch::numActiveGlobalExperiments += 1;}
   static void addCurrentActiveExperiment() {
     PCsearch::numActiveCurrentExperiments += 1;}
-  static void decrNumActiveExperiments() 
-    {PCsearch::numActiveGlobalExperiments -= 1;}
   static void decrNumPendingGlobalSearches() 
     {PCsearch::PendingGlobalSearches -= 1;}
   static void decrNumPendingCurrentSearches() 
@@ -163,6 +172,7 @@ private:
   phaseType phType;     // global or current; need for DM interface
   PCmetricInstServer *database;
   searchHistoryGraph *shg;
+  bool isGlobal() {return (phType == GlobalPhase);}
   static dictionary_hash<unsigned, PCsearch*>AllPCSearches;
   static unsigned PCactiveCurrentPhase;
   static costModule *costTracker;

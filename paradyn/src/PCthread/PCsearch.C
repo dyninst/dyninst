@@ -20,6 +20,10 @@
  * class PCsearch
  *
  * $Log: PCsearch.C,v $
+ * Revision 1.20  1996/07/24 20:10:37  karavan
+ * Fixed error in numActiveExperiments calculation; numActiveCurrentExperiments
+ * now zero'd at phase boundary.
+ *
  * Revision 1.19  1996/07/23 20:28:05  karavan
  * second part of two-part commit.
  *
@@ -430,6 +434,7 @@ PCsearch::updateCurrentPhase (unsigned newPhaseID, timeStamp phaseEndTime)
   }
   // 0 indicates no current phase search in progress
   performanceConsultant::currentPhase = 0;
+  PCsearch::numActiveCurrentExperiments = 0;
 }
 
 bool 
