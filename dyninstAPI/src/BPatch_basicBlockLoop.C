@@ -11,21 +11,10 @@
 
 
 BPatch_basicBlockLoop::BPatch_basicBlockLoop()
-    : hierarchicalName(NULL), parent(NULL) {}
+    : parent(NULL) {}
 
 BPatch_basicBlockLoop::BPatch_basicBlockLoop(BPatch_basicBlock* lh) 
-    : loopHead(lh), hierarchicalName(NULL), parent(NULL) {}
-
-
-void 
-BPatch_basicBlockLoop::setName(const char* name) { 
-    hierarchicalName = new char[strlen(name)+1]; 
-    strcpy(hierarchicalName, name);
-}
-
-const char* BPatch_basicBlockLoop::name() {
-    return (const char *)hierarchicalName; 
-}
+    : loopHead(lh), parent(NULL) {}
 
 bool BPatch_basicBlockLoop::containsAddress(unsigned long addr)
 {
