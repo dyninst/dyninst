@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.127 2002/11/14 20:26:24 bernat Exp $
+// $Id: solaris.C,v 1.128 2002/12/05 01:38:39 buck Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -2369,8 +2369,32 @@ Frame Frame::getCallerFrame(process *p) const
     Frame ret;
     ret.fp_ = addrs.fp;
     ret.pc_ = addrs.rtn + 8;
+
+    if (p->isInSignalHandler(pc_)) {
+      // get the value of the saved PC: this value is stored in the address
+      // specified by the value in register i2 + 44. Register i2 must contain
+      // the address of some struct that contains, among other things, the 
+      // saved PC value.  
+      u_int reg_i2;
+      if (p->readDataSpace((caddr_t)(fp_+40), sizeof(u_int),
+			   (caddr_t)&reg_i2,true)) {
+	Address saved_pc;
+	if (p->readDataSpace((caddr_t) (reg_i2+44), sizeof(int),
+			     (caddr_t) &saved_pc,true)) {
+
+	  function_base *func = p->findFuncByAddr(saved_pc);
+
+	  ret.pc_ = saved_pc;
+	  if (func && func->hasNoStackFrame())
+	    ret.fp_ = fp_;
+
+	  return ret;
+	}
+      }
+      return Frame();
+    }
     return ret;
-  }
+   }
   
   return Frame(); // zero frame
 }
@@ -2592,44 +2616,6 @@ bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs)
   }
   
   return true;
-}
-
-
-// needToAddALeafFrame: returns true if the between the current frame 
-// and the next frame there is a leaf function (this occurs when the 
-// current frame is the signal handler and the function that was executing
-// when the sighandler was called is a leaf function)
-bool process::needToAddALeafFrame(Frame current_frame, Address &leaf_pc){
-
-   // check to see if the current frame is the signal handler 
-   Address frame_pc = current_frame.getPC();
-   Address sig_addr = 0;
-   const image *sig_image = (signal_handler->file())->exec();
-   if(getBaseAddress(sig_image, sig_addr)){
-       sig_addr += signal_handler->getAddress(0);
-   } else {
-       sig_addr = signal_handler->getAddress(0);
-   }
-   u_int sig_size = signal_handler->size();
-   if(signal_handler&&(frame_pc >= sig_addr)&&(frame_pc < (sig_addr+sig_size))){
-       // get the value of the saved PC: this value is stored in the address
-       // specified by the value in register i2 + 44. Register i2 must contain
-       // the address of some struct that contains, among other things, the 
-       // saved PC value.  
-       u_int reg_i2;
-       int fp = current_frame.getFP();
-       if (readDataSpace((caddr_t)(fp+40),sizeof(u_int),(caddr_t)&reg_i2,true)){
-          if (readDataSpace((caddr_t) (reg_i2+44), sizeof(int),
-			    (caddr_t) &leaf_pc,true)){
-	      // if the function is a leaf function return true
-	      function_base *func = findFuncByAddr(leaf_pc);
-	      if(func && func->hasNoStackFrame()) { // formerly "isLeafFunc()"
-		  return(true);
-	      }
-          }
-      }
-   }
-   return false;
 }
 
 string process::tryToFindExecutable(const string &iprogpath, int pid) {

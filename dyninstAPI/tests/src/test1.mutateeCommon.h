@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutateeCommon.h,v 1.1 2001/10/26 22:46:47 hollings Exp $ */
+/* $Id: test1.mutateeCommon.h,v 1.2 2002/12/05 01:38:40 buck Exp $ */
 
 /* Empty functions are sometimes compiled too tight for entry and exit
    points.  The following macro is used to flesh out these
@@ -23,7 +23,6 @@ extern int debugPrint;
 extern int runTest[MAX_TEST+1];
 extern int passedTest[MAX_TEST+1];
 
-extern void stop_process_();
 extern void verifyScalarValue(char *name, int a, int value, int testNum, char *testName);
 extern void verifyValue(char *name, int *a, int index, int value, int tst, char *tn);
 

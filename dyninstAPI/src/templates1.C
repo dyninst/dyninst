@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-//$Id: templates1.C,v 1.46 2002/10/08 22:50:22 bernat Exp $
+//$Id: templates1.C,v 1.47 2002/12/05 01:38:39 buck Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -69,6 +69,8 @@ template class vector<heapDescriptor>;
 #if defined(BPATCH_LIBRARY)
 #include "dyninstAPI/h/BPatch_Set.h"
 #include "dyninstAPI/h/BPatch_type.h"
+#include "dyninstAPI/h/BPatch_Vector.h"
+#include "dyninstAPI/h/BPatch_thread.h"
 
 class BPatch_thread;
 class BPatch_field;
@@ -136,6 +138,8 @@ template class  dictionary_hash <function_base*, BPatch_function*>;
 template class  vector<dictionary_hash<function_base*, BPatch_function*>::entry>;
 template class  dictionary_hash <Address, BPatch_variableExpr*>;
 template class  vector<dictionary_hash <Address, BPatch_variableExpr*>::entry>;
+
+template class BPatch_Vector<BPatch_frame>;
 #endif
 
 #ifdef alpha_dec_osf4_0

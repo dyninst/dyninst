@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.116 2002/11/25 23:51:36 schendel Exp $
+// $Id: aix.C,v 1.117 2002/12/05 01:38:39 buck Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -190,11 +190,6 @@ Frame dyn_lwp::getActiveFrame()
 
   }
   return Frame(pc, fp, proc_->getPid(), NULL, this, true);
-}
-
-// We don't have leaf frames yet (should we?)
-bool process::needToAddALeafFrame(Frame, Address &){
-  return false;
 }
 
 

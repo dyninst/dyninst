@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.80 2002/11/06 22:44:20 tlmiller Exp $
+// $Id: linux.C,v 1.81 2002/12/05 01:38:39 buck Exp $
 
 #include <fstream.h>
 
@@ -192,11 +192,6 @@ void printStackWalk( process *p ) {
   }
 }
  
-// TODO: implement this
-bool process::needToAddALeafFrame( Frame, Address & ) {
-    return false;
-}
-
 // already setup on this FD.
 // disconnect from controlling terminal 
 void OS::osDisconnect(void) {

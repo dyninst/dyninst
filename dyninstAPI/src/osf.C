@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.37 2002/10/31 00:01:07 bernat Exp $
+// $Id: osf.C,v 1.38 2002/12/05 01:38:39 buck Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -146,11 +146,6 @@ Address dyn_lwp::readRegister(Register /*reg*/)
 
 //void OS::osTraceMe(void) { P_ptrace(PT_TRACE_ME, 0, 0, 0); }
 
-
-bool process::needToAddALeafFrame(Frame, Address &)
-{
-    return false;
-}
 
 // getActiveFrame(): populate Frame object using toplevel frame
 Frame dyn_lwp::getActiveFrame()

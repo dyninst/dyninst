@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.80 2002/08/09 23:32:38 jaw Exp $ */
+/* $Id: test1.mutatee.c,v 1.81 2002/12/05 01:38:40 buck Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -8,6 +8,7 @@
 #include <signal.h>
 #include <string.h>
 #include <stdlib.h>
+#include "mutatee_util.h"
 
 #ifdef i386_unknown_nt4_0
 #define WIN32_LEAN_AND_MEAN

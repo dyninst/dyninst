@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.64 2002/10/29 22:56:09 bernat Exp $
+// $Id: BPatch_thread.C,v 1.65 2002/12/05 01:38:38 buck Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -1323,12 +1323,58 @@ bool BPatch_thread::getLineAndFile(unsigned long addr,unsigned short& lineNo,
 	}
 	return false;
 }
+
+
+/*
+ * BPatch_thread::findFunctionByAddr
+ *
+ * Returns the function that contains the specified address, or NULL if the
+ * address is not within a function.
+ *
+ * addr		The address to use for the lookup.
+ */
+BPatch_function *BPatch_thread::findFunctionByAddr(void *addr)
+{
+    pd_Function *func;
+    
+    if ((func = proc->findFuncByAddr((Address)addr)) == NULL)
+	return NULL;
+
+    return proc->findOrCreateBPFunc(func);
+}
+
+
 /* 
 	this function sets a flag in process that 
 	forces the collection of data for saveworld. //ccw 23 jan 2002
 */
 void BPatch_thread::startSaveWorld(){
 	proc->collectSaveWorldData=true;
+}
+
+
+/*
+ * BPatch_thread::getCallStack
+ *
+ * Returns information about the frames currently on the thread's stack.
+ *
+ * stack	The vector to fill with the stack trace information.
+ */
+void BPatch_thread::getCallStack(BPatch_Vector<BPatch_frame>& stack)
+{
+    vector<vector<Frame> > stackWalks;
+
+    proc->walkStacks(stackWalks);
+
+    // We can only handle one thread right now; change when we begin to handle
+    // multiple threads.
+    assert(stackWalks.size() == 1);
+
+    for (int i = 0; i < stackWalks[0].size(); i++) {
+	stack.push_back(BPatch_frame(this,
+				     (void*)stackWalks[0][i].getPC(),
+				     (void*)stackWalks[0][i].getFP()));
+    }
 }
 
 /***************************************************************************
@@ -1374,3 +1420,33 @@ bool BPatch_thread::addSharedObject(const char *name, const unsigned long loadad
 }
 
 #endif
+
+/***************************************************************************
+ * BPatch_frame
+ ***************************************************************************/
+
+/*
+ * BPatch_frame::getFrameType()
+ *
+ * Returns the type of frame: BPatch_frameNormal for the stack frame for a
+ * function, BPatch_frameSignal for the stack frame created when a signal is
+ * delivered, or BPatch_frameTrampoline for a stack frame for a trampoline.
+ */
+BPatch_frameType BPatch_frame::getFrameType()
+{
+    if (thread->proc->isInSignalHandler((Address)getPC()))
+	return BPatch_frameSignal;
+    else
+	return BPatch_frameNormal;
+}
+
+/*
+ * BPatch_frame::findFunction()
+ *
+ * Returns the function associated with the stack frame, or NULL if there is
+ * none.
+ */
+BPatch_function *BPatch_frame::findFunction()
+{
+    return thread->findFunctionByAddr(getPC());
+}

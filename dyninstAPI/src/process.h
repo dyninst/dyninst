@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.227 2002/11/25 23:51:40 schendel Exp $
+/* $Id: process.h,v 1.228 2002/12/05 01:38:39 buck Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -412,6 +412,9 @@ class process {
 
   bool triggeredInStackFrame(instPoint* point, Frame frame,
 			     callWhen when, callOrder order);
+
+  bool isInSignalHandler(Address addr);
+
 #if defined(rs6000_ibm_aix4_1) && defined(MT_THREAD)
   // We have the pthread debug library to deal with
   pthdb_session_t *get_pthdb_session() { return &pthdb_session_; }
@@ -1461,16 +1464,16 @@ private:
   vector<module *> *some_modules;  
   vector<function_base *> *some_functions; 
   bool waiting_for_resources;  // true if waiting for resourceInfoResponse
+#if defined(i386_unknown_linux2_0)
+  Address signal_restore;	// address of signal context restore function
+				// (for stack walking)
+#else
   pd_Function *signal_handler;  // signal handler function (for stack walking)
+#endif
 
   function_base *mainFunction;  // the main function for this process,
                               // this is usually, but not always, "main"
                                  
-
-  // needToAddALeafFrame: returns true if the between the current frame 
-  // and the next frame there is a leaf function (this occurs when the 
-  // current frame is the signal handler)
-  bool needToAddALeafFrame(Frame current_frame, Address &leaf_pc);
 
   // hasBeenBound: returns true if the runtime linker has bound the
   // function symbol corresponding to the relocation entry in at the address 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.42 2002/11/14 20:26:20 bernat Exp $
+// $Id: irix.C,v 1.43 2002/12/05 01:38:39 buck Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -1822,12 +1822,6 @@ Frame Frame::getCallerFrame(process *p) const
   */
 
   return ret;
-}
-
-// TODO: implement
-// do leaf functions exist on Irix (other than syscalls)?
-bool process::needToAddALeafFrame(Frame f, Address &leaf_pc) {
-  return false;
 }
 
 

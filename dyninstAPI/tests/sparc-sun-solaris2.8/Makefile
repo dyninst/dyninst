@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.18 2002/08/09 20:56:20 gaburici Exp $
+# $Id: Makefile,v 1.19 2002/12/05 01:38:40 buck Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -145,7 +145,8 @@ FORTRAN_BASE = $(TARGET2:_$(NATIVE_FC)=Fort)
 # produced by another compiler (CC) is fed to the linker (which doesn't take it).
 $(TARGET2): $(FORTRAN_BASE)_$(NATIVE_FC).o $(FORTRAN_BASE)C_$(NATIVE_FC).o
 	$(MUTATEE_CC) $(MUTATEE_CFLAGS) -W -Wall -c -o test1.mutateeCommon.o ../src/test1.mutateeCommon.c
-	$(NATIVE_FC) $(MUTATEE_FFLAGS) ../src/$(FORTRAN_BASE).F $(FORTRAN_BASE)C_$(NATIVE_FC).o test1.mutateeCommon.o $(MUTATEE_FLINKFLAGS) -o $(TARGET2)
+	$(MUTATEE_CC) $(MUTATEE_CFLAGS) -W -Wall -c -o mutatee_util.o ../src/mutatee_util.c
+	$(NATIVE_FC) $(MUTATEE_FFLAGS) ../src/$(FORTRAN_BASE).F $(FORTRAN_BASE)C_$(NATIVE_FC).o test1.mutateeCommon.o mutatee_util.o $(MUTATEE_FLINKFLAGS) -o $(TARGET2)
 
 $(FORTRAN_BASE)_$(NATIVE_FC).o:
 	$(NATIVE_FC) $(MUTATEE_FFLAGS) -c -o $(FORTRAN_BASE)_$(NATIVE_FC).o ../src/$(FORTRAN_BASE).F

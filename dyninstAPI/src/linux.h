@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.h,v 1.10 2002/07/02 21:07:17 tlmiller Exp $
+// $Id: linux.h,v 1.11 2002/12/05 01:38:39 buck Exp $
 
 #if !(defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4))
 #error "invalid architecture-os inclusion"
@@ -59,7 +59,7 @@
 #define STOP_WALL_TIMER  "DYNINSTstopWallTimer"
 #define START_PROC_TIMER "DYNINSTstartProcessTimer"
 #define STOP_PROC_TIMER  "DYNINSTstopProcessTimer" 
-#define SIGNAL_HANDLER	 "sigacthandler"
+#define SIGNAL_HANDLER	 "__restore"
 
 typedef int handleT; // a /proc file descriptor
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.8 2002/11/14 20:26:21 bernat Exp $
+// $Id: linux-x86.C,v 1.9 2002/12/05 01:38:39 buck Exp $
 
 #include <fstream.h>
 
@@ -540,13 +540,34 @@ Frame Frame::getCallerFrame(process *p) const
     int rtn;
   } addrs;
 
-  if (p->readDataSpace((caddr_t)(fp_), 2*sizeof(int),
-		       (caddr_t) &addrs, true))
-  {
+  //
+  // If the current frame is for the signal handler function, then we need to
+  // read the information about the next frame from the data saved by the
+  // signal handling mechanism.  Otherwise, read it from the stack.
+  //
+  if (p->isInSignalHandler(pc_)) {
+    if (p->readDataSpace((caddr_t)(sp_+28), sizeof(int),
+			  (caddr_t)&addrs.fp, true) &&
+	p->readDataSpace((caddr_t)(sp_+60), sizeof(int),
+			  (caddr_t)&addrs.rtn, true)) {
+      Frame ret(*this);
+      ret.fp_ = addrs.fp;
+      ret.pc_ = addrs.rtn;
+      ret.uppermost_ = false;
+      return ret;
+    }
+  } else if (p->readDataSpace((caddr_t)(fp_), 2*sizeof(int),
+		       (caddr_t) &addrs, true)) {
     Frame ret(*this);
     ret.fp_ = addrs.fp;
     ret.pc_ = addrs.rtn;
     ret.uppermost_ = false;
+
+    // If the next frame is for the signal handler, we'll need the sp to
+    // find the data for restoring the context after a signal.
+    if (p->isInSignalHandler(ret.pc_))
+      ret.sp_ = fp_ + 8;
+
     return ret;
   }
 

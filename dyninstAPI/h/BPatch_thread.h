@@ -42,6 +42,7 @@
 #ifndef _BPatch_thread_h_
 #define _BPatch_thread_h_
 
+#include <stdio.h>
 
 /*
  * The following is a kludge so that the functions that refer to signals (such
@@ -97,12 +98,47 @@ public:
 };
 
 /*
+ * The following types are used by BPatch_thread::getCallStack()
+ */
+
+// Stack frame types
+typedef enum {
+    BPatch_frameNormal,
+    BPatch_frameSignal,
+    BPatch_frameTrampoline
+} BPatch_frameType;
+
+// Contains information about a stack frame (used by
+class BPATCH_DLL_EXPORT BPatch_frame {
+    BPatch_thread *thread;
+
+    void *pc;
+    void *fp;
+public:
+    BPatch_frame() : thread(NULL), pc(NULL), fp(NULL) {};
+    BPatch_frame(BPatch_thread *_thread, void *_pc, void *_fp) :
+	thread(_thread), pc(_pc), fp(_fp) {};
+
+    BPatch_frameType getFrameType();
+
+    void *getPC() { return pc; };
+    void *getFP() { return fp; };
+
+    BPatch_function *findFunction();
+   
+    // The following are planned but no yet implemented:
+    // int getSignalNumber();
+    // BPatch_point *findPoint();
+};
+
+/*
  * Represents a thread of execution.
  */
 class BPATCH_DLL_EXPORT BPatch_thread {
     friend class BPatch;
     friend class BPatch_image;
     friend class BPatch_function;
+    friend class BPatch_frame;
     friend class process;
     friend bool pollForStatusChange();
 
@@ -230,6 +266,10 @@ public:
     //to an address
     bool getLineAndFile(unsigned long addr,unsigned short& lineNo,
 			char* fileName,int length);
+    //returns the function containing an address
+    BPatch_function *findFunctionByAddr(void *addr);
+
+    void getCallStack(BPatch_Vector<BPatch_frame>& stack);
 
 	void startSaveWorld();//ccw 23 jan 2002
 #ifdef IBM_BPATCH_COMPAT

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.372 2002/11/25 23:51:39 schendel Exp $
+// $Id: process.C,v 1.373 2002/12/05 01:38:39 buck Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -288,11 +288,7 @@ Address process::getTOCoffsetInfo(Address dest)
 bool process::walkStackFromFrame(Frame startFrame,
 				 vector<Frame> &stackWalk)
 {
-  u_int sig_size   = 0;
-  Address sig_addr = 0;
-
   Address next_pc = 0;
-  Address leaf_pc = 0;
   Address fpOld   = 0;
   Address fpNew   = 0;
 
@@ -308,17 +304,6 @@ bool process::walkStackFromFrame(Frame startFrame,
     stopTimingStackwalk();
 #endif
     return false;
-  }
-
-  if(signal_handler){
-    const image *sig_image = (signal_handler->file())->exec();
-    
-    if(getBaseAddress(sig_image, sig_addr)){
-      sig_addr += signal_handler->getAddress(this);
-    } else {
-      sig_addr = signal_handler->getAddress(this);
-    }
-    sig_size = signal_handler->size();
   }
 
   // Step through the stack frames
@@ -348,24 +333,6 @@ bool process::walkStackFromFrame(Frame startFrame,
     if (pd_debug_catchup)
       cerr << "Stack debug: " << currentFrame << endl;
     
-    // is this pc in the signal_handler function?
-    if(signal_handler && (next_pc >= sig_addr)
-       && (next_pc < (sig_addr+sig_size))){
-      
-      // check to see if a leaf function was executing when the signal
-      // handler was called.  If so, then an extra frame should be added
-      // for the leaf function...the call to getCallerFrame
-      // will get the function that called the leaf function
-      leaf_pc = 0;
-      
-      if(this->needToAddALeafFrame(currentFrame,leaf_pc)){
-	stackWalk.push_back(Frame(leaf_pc, fpOld,
-				  currentFrame.getPID(),
-				  currentFrame.getThread(),
-				  currentFrame.getLWP(),
-				  false));
-      }
-    }
     currentFrame = currentFrame.getCallerFrame(this); 
   }
   // Clean up after while loop (push end frame)
@@ -978,6 +945,37 @@ bool process::getInfHeapList(const image *theImage, // okay, boring name
         free(temp_str);
     }
   return foundHeap;
+}
+
+/*
+ * Returns true if the address given is within the signal handler function,
+ * otherwise returns false.
+ */
+bool process::isInSignalHandler(Address addr)
+{
+#if defined(i386_unknown_linux2_0)
+  if (addr == signal_restore)
+    return true;
+  else
+    return false;
+#else
+  if (!signal_handler)
+      return false;
+
+  const image *sig_image = (signal_handler->file())->exec();
+
+  Address sig_addr;
+  if(getBaseAddress(sig_image, sig_addr)){
+    sig_addr += signal_handler->getAddress(this);
+  } else {
+    sig_addr = signal_handler->getAddress(this);
+  }
+
+  if (addr >= sig_addr && addr < sig_addr + signal_handler->size())
+    return true;
+  else
+    return false;
+#endif
 }
 
 /*
@@ -2078,7 +2076,11 @@ process::process(int iPid, image *iImage, int iTraceLink
     some_modules = 0;
     some_functions = 0;
     waiting_for_resources = false;
+#if defined(i386_unknown_linux2_0)
+    signal_restore = 0;
+#else
     signal_handler = 0;
+#endif
     execed_ = false;
 
 #ifdef SHM_SAMPLING
@@ -2281,7 +2283,11 @@ process::process(int iPid, image *iSymbols,
     some_modules = 0;
     some_functions = 0;
     waiting_for_resources = false;
+#if defined(i386_unknown_linux2_0)
+    signal_restore = 0;
+#else
     signal_handler = 0;
+#endif
     execed_ = false;
 
     splitHeaps = false;
@@ -2612,7 +2618,11 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     }
 
     waiting_for_resources = false;
+#if defined(i386_unknown_linux2_0)
+    signal_restore = parentProc.signal_restore;
+#else
     signal_handler = parentProc.signal_handler;
+#endif
     execed_ = false;
 
 #if !defined(BPATCH_LIBRARY)
@@ -4094,9 +4104,19 @@ bool process::addASharedObject(shared_object &new_obj, Address newBaseAddr){
     }
 
     // if the signal handler function has not yet been found search for it
+#if defined(i386_unknown_linux2_0)
+    if(!signal_restore){
+      Symbol s;
+      if (img->symbol_info(SIGNAL_HANDLER, s)) {
+	  // Add base address of shared library
+	  signal_restore = s.addr() + new_obj.getBaseAddress();
+      }
+    }
+#else
     if(!signal_handler){
         signal_handler = img->findFuncByName(SIGNAL_HANDLER);
     }
+#endif
 
     // clear the include_funcs flag if this shared object should not be
     // included in the some_functions and some_modules lists
@@ -5075,6 +5095,22 @@ bool process::getBaseAddress(const image *which, Address &baseAddress) const {
   return false;
 }
 
+#if defined(i386_unknown_linux2_0)
+// findSignalHandler: if signal_restore is 0, then it checks all images
+// associated with this process for the signal restore function.
+// Otherwise, the signal restore function has already been found
+void process::findSignalHandler(){
+  if (!signal_restore) {
+    Symbol s;
+    if (getSymbolInfo(SIGNAL_HANDLER, s))
+	signal_restore = s.addr();
+
+    signal_cerr << "process::findSignalHandler <" << SIGNAL_HANDLER << ">";
+    if (!signal_restore) signal_cerr << " NOT";
+    signal_cerr << " found." << endl;
+  }
+}
+#else
 // findSignalHandler: if signal_handler is 0, then it checks all images
 // associated with this process for the signal handler function.
 // Otherwise, the signal handler function has already been found
@@ -5096,6 +5132,7 @@ void process::findSignalHandler(){
         signal_cerr << " found." << endl;
     }
 }
+#endif
 
 
 bool process::findInternalSymbol(const string &name, bool warn,
@@ -5273,7 +5310,11 @@ void process::handleExec() {
    some_functions = 0;
    all_functions = 0;
    all_modules = 0;
+#if defined(i386_unknown_linux2_0)
+   signal_restore = 0;
+#else
    signal_handler = 0;
+#endif
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) \
  || defined(i386_unknown_nt4_0) || defined(ia64_unknown_linux2_4)
    trampTableItems = 0;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.69 2002/11/19 20:04:45 bernat Exp $
+// $Id: pdwinnt.C,v 1.70 2002/12/05 01:38:39 buck Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -2135,11 +2135,6 @@ Address dyn_lwp::readRegister(Register reg)
 bool dyn_lwp::executingSystemCall() {
    // TODO
    return false;
-}
-
-// TODO
-bool process::needToAddALeafFrame(Frame , Address &) {
-  return false;
 }
 
 
