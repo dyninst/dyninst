@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.485 2004/03/16 18:15:39 schendel Exp $
+// $Id: process.C,v 1.486 2004/03/19 21:26:54 bernat Exp $
 
 #include <ctype.h>
 
@@ -1615,6 +1615,7 @@ void process::deleteProcess() {
         instPointMap.clear();
         // pdFunctions to bpatch 'parents'
         PDFuncToBPFuncMap.clear();
+        trampTrapMapping.clear();
     }
     
 #if defined(SHM_SAMPLING)
@@ -1655,12 +1656,6 @@ void process::deleteProcess() {
    signal_handler = 0;
 #endif
 
-   // Huh?
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) \
- || defined(i386_unknown_nt4_0) || defined(ia64_unknown_linux2_4)
-   trampTableItems = 0;
-   memset(trampTable, 0, sizeof(trampTable));
-#endif
    
    // pdFunctions should be deleted as part of the image class... when the reference count
    // hits 0... this is TODO
@@ -1744,9 +1739,10 @@ process::process(int iPid, image *iImage, int iTraceLink
 #if defined(BPATCH_LIBRARY) && defined(rs6000_ibm_aix4_1)
  requestTextMiniTramp(0), //ccw 30 jul 2002
 #endif
-  baseMap(ipHash), 
+  baseMap(ipHash),
   PDFuncToBPFuncMap(hash_bp),
   instPointMap(hash_address),
+  trampTrapMapping(addrHash4),
   loadLibraryCallbacks_(pdstring::hash),
   cached_result(not_cached),
 #ifndef BPATCH_LIBRARY
@@ -1831,11 +1827,6 @@ process::process(int iPid, image *iImage, int iTraceLink
    cumObsCost = 0;
    lastObsCostLow = 0;
 
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) \
- || defined(i386_unknown_nt4_0) || defined(ia64_unknown_linux2_4)
-   trampTableItems = 0;
-   memset(trampTable, 0, sizeof(trampTable));
-#endif
     
    dynamiclinking = false;
    dyn = new dynamic_linking(this);
@@ -1929,6 +1920,7 @@ process::process(int iPid, image *iSymbols,
   baseMap(ipHash),
   PDFuncToBPFuncMap(hash_bp),
   instPointMap(hash_address),
+  trampTrapMapping(addrHash4),
   loadLibraryCallbacks_(pdstring::hash),
   cached_result(not_cached),
 #ifndef BPATCH_LIBRARY
@@ -2001,12 +1993,6 @@ process::process(int iPid, image *iSymbols,
     cumObsCost = 0;
     lastObsCostLow = 0;
 
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) \
- || defined(i386_unknown_nt4_0) || defined(ia64_unknown_linux2_4)
-    trampTableItems = 0;
-    memset(trampTable, 0, sizeof(trampTable));
-#endif
-    
     dynamiclinking = false;
     dyn = new dynamic_linking(this);
     shared_objects = 0;
@@ -2133,6 +2119,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
   baseMap(ipHash), // could change to baseMap(parentProc.baseMap)
   PDFuncToBPFuncMap(hash_bp),
   instPointMap(hash_address),
+  trampTrapMapping(parentProc.trampTrapMapping),
   loadLibraryCallbacks_(pdstring::hash),
   cached_result(parentProc.cached_result),
 #ifndef BPATCH_LIBRARY
@@ -2227,12 +2214,6 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
 #endif
 
    inInferiorMallocDynamic = false;
-
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) \
- || defined(i386_unknown_nt4_0) || defined(ia64_unknown_linux2_4)
-   trampTableItems = 0;
-   memset(trampTable, 0, sizeof(trampTable));
-#endif
 
    dynamiclinking = parentProc.dynamiclinking;
    dyn = new dynamic_linking(this, parentProc.dyn);

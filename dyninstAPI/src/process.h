@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.290 2004/03/16 18:15:40 schendel Exp $
+/* $Id: process.h,v 1.291 2004/03/19 21:26:54 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -668,7 +668,11 @@ class process {
 
   /* map an address to an instPoint (that's not at entry, call or exit) */
   dictionary_hash<Address, BPatch_point *> instPointMap;
-  
+
+  // More #if defined(uses_traps_and_can't_mask_signals
+  // Trap address to base tramp address (for trap instrumentation)
+  dictionary_hash<Address, Address> trampTrapMapping;
+
  #if defined(i386_unknown_linux2_0)
   public:
   Address getVsyscallStart() { return vsyscall_start_; }
@@ -1189,11 +1193,6 @@ private:
 #endif
 
 public:
-
-#if defined(arch_x86) || defined(arch_ia64)
-  trampTableEntry trampTable[TRAMPTABLESZ];
-  unsigned trampTableItems;
-#endif // arch_x86
 
   dynamic_linking *getDyn() { return dyn; }
 

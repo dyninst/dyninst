@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.119 2004/03/12 19:44:25 bernat Exp $
+// $Id: unix.C,v 1.120 2004/03/19 21:26:54 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -521,11 +521,29 @@ int handleSigTrap(const procevent &event) {
             return 1;
         }
     }
+
     
+#if defined(arch_x86)
+    // Trap-based instrumentation
+    Frame frame = event.lwp->getActiveFrame();
+    if (proc->trampTrapMapping.defines(frame.getPC())) {
+        event.lwp->changePC(proc->trampTrapMapping[frame.getPC()], NULL);
+        proc->continueProc();
+        return 1;
+    }
+    // Apparently we can be off by 1... joy
+    if (proc->trampTrapMapping.defines(frame.getPC()-1)) {
+        event.lwp->changePC(proc->trampTrapMapping[frame.getPC()-1], NULL);
+        proc->continueProc();
+        return 1;
+    }
+
+#endif
+
 ///////////////////////////////////
 // Inferior RPC section
 ///////////////////////////////////
-    
+
     // New and improved RPC handling, takes care of both
     // an RPC which has reached a breakpoint and whether
     // we're waiting for a syscall to complete
@@ -579,6 +597,7 @@ int handleSigTrap(const procevent &event) {
         proc->continueProc();
         return 1;
     }
+
     return 0;
 }
 

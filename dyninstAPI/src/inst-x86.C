@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.158 2004/03/18 19:04:27 lharris Exp $
+ * $Id: inst-x86.C,v 1.159 2004/03/19 21:26:53 bernat Exp $
  */
 
 #include <iomanip>
@@ -1438,33 +1438,6 @@ void generateBranch(process *proc, Address fromAddr, Address newAddr)
    proc->writeTextSpace((caddr_t)fromAddr, JUMP_REL32_SZ, (caddr_t)inst);
 }
 
-
-bool insertInTrampTable(process *proc, unsigned key, unsigned val) {
-   unsigned u;
-
-   // check for overflow of the tramp table. 
-   // stop at 95% capacicty to ensure good performance
-   if (proc->trampTableItems == (TRAMPTABLESZ - TRAMPTABLESZ/20))
-      return false;
-   proc->trampTableItems++;
-   for (u = HASH1(key); proc->trampTable[u].key != 0; 
-        u = (u + HASH2(key)) % TRAMPTABLESZ)
-      ;
-   proc->trampTable[u].key = key;
-   proc->trampTable[u].val = val;
-
-#if !defined(i386_unknown_nt4_0)
-   bool err = false;
-   Address addr = proc->findInternalAddress("DYNINSTtrampTable",true, err);
-   assert(err==false);
-   return proc->writeDataSpace((caddr_t)addr+u*sizeof(trampTableEntry),
-                               sizeof(trampTableEntry),
-                               (caddr_t)&(proc->trampTable[u]));
-#else
-   return true;
-#endif
-}
-
 /* Generate a jump to a base tramp. Return the size of the instruction
    generated at the instrumentation point. */
 unsigned generateBranchToTramp(process *proc, const instPoint *point, 
@@ -1524,8 +1497,8 @@ unsigned generateBranchToTramp(process *proc, const instPoint *point,
            << point->pointFunc()->prettyName() << " @"
            << (void*)point->pointAddr() << ". Using trap!" << endl;
 #endif
-      if (!insertInTrampTable(proc, point->jumpAddr()+imageBaseAddr, baseAddr))
-         return 0;
+
+      proc->trampTrapMapping[point->jumpAddr()+imageBaseAddr] = baseAddr;
       *insn++ = 0xCC;
       wrote = 1;
    }
@@ -3566,18 +3539,6 @@ bool process::heapIsOk(const pdvector<sym_data> &find_us) {
    //  }
    //  Address instHeapEnd = sym.addr()+baseAddr;
    //  addInternalSymbol(ghb, instHeapEnd);
-
-#if !defined(i386_unknown_nt4_0)
-   pdstring tt = "DYNINSTtrampTable";
-   if (!getSymbolInfo(tt, sym, baseAddr)) {
-      pdstring msg;
-      msg = pdstring("Cannot find ") + tt +
-            pdstring(". Cannot use this application");
-      statusLine(msg.c_str());
-      showErrorCallback(50, msg);
-      return false;
-   }
-#endif
 
    return true;
 }

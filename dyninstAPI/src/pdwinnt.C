@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.122 2004/03/16 18:20:48 schendel Exp $
+// $Id: pdwinnt.C,v 1.123 2004/03/19 21:26:54 bernat Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -529,19 +529,11 @@ DWORD handleBreakpoint(process *proc, const procevent &event) {
 
     // Hitting a base tramp?
     
-#if !defined( mips_unknown_ce2_11 )//ccw 26 july 2000 : 29 mar 2001
+#if defined(arch_x86)
     Address trampAddr = 0;
-    unsigned u; unsigned k;
-    unsigned key = addr;
-    for (u = HASH1(key); 1; u = (u + HASH2(key)) % TRAMPTABLESZ) {
-        k = proc->trampTable[u].key;
-        if (k == 0)
-            break;
-        else if (k == key) {
-            trampAddr = proc->trampTable[u].val;
-            break;
-        }
-    }
+    if (proc->trampTrapMapping.defines(addr))
+        trampAddr = proc->trampTrapMapping[addr];
+
     if (trampAddr) {
         // this is a trap from an instrumentation point
         
