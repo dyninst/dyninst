@@ -1,7 +1,11 @@
 /*
  * 
  * $Log: PCwhere.h,v $
- * Revision 1.5  1994/07/25 04:47:13  hollings
+ * Revision 1.6  1994/09/22 01:09:45  markc
+ * Commented out operator = declaration, it wasn't being used, and doesn't
+ * look correct.
+ *
+ * Revision 1.5  1994/07/25  04:47:13  hollings
  * Added histogram to PCmetric so we only use data for minimum interval
  * that all metrics for a current batch of requests has been enabled.
  *
@@ -83,7 +87,7 @@ class focus {
 
 	Boolean operator ==(focus*);	// comparison
 	focus *moreSpecific(resource *parm, Boolean &conflicts);
-	operator =(focus);
+	/* int operator = (focus); */
 	void print(char*);
 	void print();
 	void updateName();
