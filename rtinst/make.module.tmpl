@@ -5,7 +5,11 @@
 # included from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.3  1995/02/21 16:27:55  jcargill
+# Revision 1.4  1995/05/30 05:16:03  krisna
+# moved declaration of LIBS to SunOs Makefile.  we do not use libkvm.a
+# on Solaris, and it is non-existent on HPUX.
+#
+# Revision 1.3  1995/02/21  16:27:55  jcargill
 # Changes to new build system so rtinst builds for all archs
 #
 # Revision 1.2  1995/02/16  09:11:29  markc
@@ -30,8 +34,6 @@ SRCS2	     += ../src/RTend.c
 
 DYNSRCS	      = ../src/DYNINSTstartCode.c \
 		../src/DYNINSTendCode.c
-
-LIBS	     += /usr/lib/libkvm.a
 
 all: $(TARGET) $(TARGET2) $(ALT_TARGET)
 
