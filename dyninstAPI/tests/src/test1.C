@@ -1,4 +1,4 @@
-// $Id: test1.C,v 1.52 2000/03/22 19:08:48 tikir Exp $
+// $Id: test1.C,v 1.52 2000/03/22 19:08:48 tikir Exp 
 //
 // libdyninst validation suite test #1
 //    Author: Jeff Hollingsworth (1/7/97)
@@ -39,7 +39,8 @@ int debugPrint = 0; // internal "mutator" tracing
 int errorPrint = 0; // external "dyninst" tracing (via errorFunc)
 
 bool runAllTests = true;
-const unsigned int MAX_TEST = 32;
+bool runCpp = false;
+const unsigned int MAX_TEST = 41;
 bool runTest[MAX_TEST+1];
 bool passedTest[MAX_TEST+1];
 
@@ -2583,6 +2584,645 @@ void mutatorTest32( BPatch_thread * appThread, BPatch_image * appImage )
   BPatch::bpatch->setTrampRecursive( old_value );
 }
 
+//  
+// Start Test Case #33 - (C++ argument pass)
+//       
+void mutatorTest33(BPatch_thread *appThread, BPatch_image *appImage)
+{
+   BPatch_Vector<BPatch_point *> *point33_1 =
+      appImage->findProcedurePoint("arg_test::call_cpp", BPatch_subroutine);
+
+   assert(point33_1);
+
+   // check the paramter passing modes
+   BPatch_variableExpr *arg0 = appImage->findVariable(*(*point33_1)[0],
+       "reference");
+   BPatch_variableExpr *arg1 = appImage->findVariable(*(*point33_1)[0],
+       "arg1");
+   BPatch_variableExpr *arg2 = appImage->findVariable(*(*point33_1)[0],
+       "arg2");
+   BPatch_variableExpr *arg3 = appImage->findVariable(*(*point33_1)[0],
+       "arg3");
+   BPatch_variableExpr *arg4 = appImage->findVariable(*(*point33_1)[0],
+       "m");
+
+   if (!arg0 || !arg1 || !arg2 || !arg3 || !arg4) {
+      fprintf(stderr, "**Failed** test #33 (argument passing)\n");
+      if ( !arg0 )
+         fprintf(stderr, "  can't find local variable arg0\n");
+      if ( !arg1 )
+         fprintf(stderr, "  can't find local variable arg1\n");
+      if ( !arg2 )
+         fprintf(stderr, "  can't find local variable arg2\n");
+      if ( !arg3 )
+         fprintf(stderr, "  can't find local variable arg3\n");
+      if ( !arg4 )
+         fprintf(stderr, "  can't find local variable arg4\n");
+      return;
+   }
+
+   BPatch_type *type33_0 = const_cast<BPatch_type *> (arg0->getType());
+   BPatch_type *type33_1 = const_cast<BPatch_type *> (arg1->getType());
+   BPatch_type *type33_2 = const_cast<BPatch_type *> (arg2->getType());
+   BPatch_type *type33_3 = const_cast<BPatch_type *> (arg4->getType());
+   assert(type33_0 && type33_1 && type33_2 && type33_3);
+
+   if (!type33_1->isCompatible(type33_3)) {
+       fprintf(stderr, "**Failed** test #33 (C++ argument pass)\n");
+       fprintf(stderr,"    type33_1 reported as incompatibile with type33_3\n");
+       return;
+   }
+
+   if (!type33_2->isCompatible(type33_0)) {
+        fprintf(stderr, "**Failed** test #33 (C++ argument pass)\n");
+        fprintf(stderr,"    type33_2 reported as incompatibile with type33_0\n")
+;
+        return;
+   }
+
+   BPatch_arithExpr expr33_1(BPatch_assign, *arg3, BPatch_constExpr(33));
+   checkCost(expr33_1);
+   appThread->insertSnippet(expr33_1, *point33_1);
+
+   // pass a paramter to a class member function
+   BPatch_Vector<BPatch_point *> *point33_2 =
+     appImage->findProcedurePoint("arg_test::func_cpp", BPatch_exit);
+   if (!point33_2 || (point33_2->size() < 1)) {
+      fprintf(stderr, "Unable to find point arg_test::func_cpp - exit.\n");
+      exit(-1);
+   }
+
+   BPatch_function *call33_func = appImage->findFunction("arg_test::arg_pass");
+   if (call33_func == NULL) {
+       fprintf(stderr, "Unable to find function \"cpp_test_util::call_cpp.\"\n");
+       exit(1);
+   }
+
+   BPatch_Vector<BPatch_snippet *> call33_args;
+   BPatch_constExpr expr33_2(33);
+   call33_args.push_back(&expr33_2);
+   BPatch_funcCallExpr call33Expr(*call33_func, call33_args);
+
+   checkCost(call33Expr);
+   appThread->insertSnippet(call33Expr, *point33_2);
+}
+
+//
+// Start Test Case #34 - (overload function)
+// 
+void mutatorTest34(BPatch_thread *appThread, BPatch_image *appImage)
+{
+    BPatch_Vector<BPatch_point *> *point34_1 =
+       appImage->findProcedurePoint("overload_func_test::func_cpp", BPatch_subroutine);
+    if (!point34_1 || (point34_1->size() < 2)) {
+         fprintf(stderr, "Unable to find point overload_func_test::func_cpp - calls. \n");
+         exit(-1);
+    }
+
+    for (int n=0; n<point34_1->size(); n++) {
+       BPatch_function *func;
+
+       if ((func = (*point34_1)[n]->getCalledFunction()) == NULL) continue;
+
+       char fn[256];
+       if (func->getName(fn, 256) == NULL) {
+            fprintf(stderr, "**Failed** test #34 (overloaded functions)\n");
+            fprintf(stderr, "    Can't get name of called function in overload_func_test::func_cpp\n");
+            exit(1);
+       }
+       if (strcmp(fn, "overload_func_test::call_cpp")) {
+           fprintf(stderr, "**Failed** test #34 (overloaded functions)\n");
+           fprintf(stderr, "    The called function has a wrong name\n");
+           exit(1);
+       }
+       BPatch_Vector<BPatch_point *> *point34_2 = func->findPoint(BPatch_entry);
+       BPatch_Vector<BPatch_localVar *> *param = func->getParams();
+       assert(point34_2 && param);
+
+       switch (n) {
+          case 0 : {
+
+              if ( param->size() != 1 ) {
+                 fprintf(stderr, "**Failed** test #34 (overloaded functions)\n");
+                 fprintf(stderr, "    The overloaded function has wrong number of parameters\n");
+                 return;
+              }
+              BPatch_variableExpr *var1 = appImage->findVariable(*(*point34_2)[0],
+                  "arg1");
+              break;
+          }
+          case 1 : {
+              if ( param->size() != 1 ) {
+                 fprintf(stderr, "**Failed** test #34 (overloaded functions)\n");
+                 fprintf(stderr, "    The overloaded function has wrong number of parameters\n");
+                 return;
+              }
+              BPatch_variableExpr *var1 = appImage->findVariable(*(*point34_2)[0],
+                "arg1");
+              break;
+          }
+          case 2 : {
+              if ( param->size() != 2 ) {
+                 fprintf(stderr, "**Failed** test #34 (overloaded functions)\n");
+                 fprintf(stderr, "    The overloaded function has wrong number of parameters\n");
+                 return;
+              }
+
+              BPatch_variableExpr *var1 = appImage->findVariable(*(*point34_2)[0],
+                "arg1");
+              BPatch_variableExpr *var2 = appImage->findVariable(*(*point34_2)[0],
+                "arg2");
+              break;
+          }
+          default : {
+              fprintf(stderr, "**Failed** test #34 (overloaded functions)\n");
+              fprintf(stderr, "    Incorrect number of subroutine calls from overload_func_test::func_cpp\n");
+              return;
+          }
+       };
+    }
+
+    BPatch_Vector<BPatch_point *> *point34_3 =
+    appImage->findProcedurePoint("overload_func_test::func_cpp", BPatch_exit);
+    if (!point34_3 || point34_3->size() <1) {
+         fprintf(stderr, "Unable to find point overload_func_test::func_cpp - exit.\n");
+         exit(-1);
+    }
+
+    BPatch_function *call34_func = appImage->findFunction("cpp_test_util::call_cpp");
+    if (call34_func == NULL) {
+        fprintf(stderr, "Unable to find function \"cpp_test_util::call_cpp.\"\n");
+        exit(1);
+    }
+
+    BPatch_Vector<BPatch_snippet *> call34_args;
+    BPatch_constExpr expr34_0(34);
+    call34_args.push_back(&expr34_0);
+    BPatch_funcCallExpr call34Expr(*call34_func, call34_args);
+
+    checkCost(call34Expr);
+    appThread->insertSnippet(call34Expr, *point34_3);
+}
+
+//
+// Start Test Case #35 - (overload operator)
+//      
+void mutatorTest35(BPatch_thread *appThread, BPatch_image *appImage)
+{
+
+   BPatch_Vector<BPatch_point *> *point35_1 =
+     appImage->findProcedurePoint("overload_op_test::func_cpp", BPatch_subroutine);
+   assert(point35_1);
+
+  int index = 0;
+  BPatch_function *func;
+  while (index < point35_1->size()) {
+     if ((func = (*point35_1)[index]->getCalledFunction()) == NULL) {
+        fprintf(stderr, "**Failed** test #35 (overload operation)\n");
+        fprintf(stderr, "    Can't find the overload operator\n");
+        exit(1);
+     }
+     char fn[256];
+     if (!strcmp("overload_op_test::operator++", func->getName(fn, 256)))
+        break;
+     index ++;
+  }
+
+   BPatch_Vector<BPatch_point *> *point35_2 = func->findPoint(BPatch_exit);
+   assert(point35_2);
+
+   BPatch_function *call35_1 = appImage->findFunction("overload_op_test_call_cpp");
+   if (call35_1 == NULL) {
+       fprintf(stderr, "Unable to find function \"overload_op_test_call_cpp\"\n");
+       exit(1);
+   }
+
+   BPatch_Vector<BPatch_snippet *> opArgs;
+   opArgs.push_back(new BPatch_retExpr());
+   BPatch_funcCallExpr call35_1Expr(*call35_1, opArgs);
+
+   checkCost(call35_1Expr);
+   appThread->insertSnippet(call35_1Expr, *point35_2);
+}
+
+//  
+// Start Test Case #36 - (static member)
+// 
+void mutatorTest36(BPatch_thread *appThread, BPatch_image *appImage)
+{
+   BPatch_Vector<BPatch_point *> *point36_1 =
+     appImage->findProcedurePoint("static_test::func_cpp", BPatch_subroutine);
+   assert(point36_1);
+
+   int index = 0;
+   BPatch_function *func;
+   int bound = point36_1->size();
+   BPatch_Vector<BPatch_variableExpr *> vect36_1;
+  
+   while ((index < bound) && (vect36_1.size() < 2)) {
+     if ((func = (*point36_1)[index]->getCalledFunction()) == NULL) {
+        fprintf(stderr, "**Failed** test #36 (static member)\n");
+        fprintf(stderr, "    Can't find the invoked function\n");
+        exit(1);
+     }
+
+     char fn[256];
+     if (!strcmp("static_test::call_cpp", func->getName(fn, 256))) {
+        BPatch_Vector<BPatch_point *> *point36_2 = func->findPoint(BPatch_exit);
+        assert(point36_2);
+
+        // use getComponent to access this "count". However, getComponent is
+        // causing core dump at this point
+        BPatch_variableExpr *var36_1 = appImage->findVariable(*(*point36_2)[0],
+             "count");
+        if (!var36_1) {
+           fprintf(stderr, "**Failed** test #36 (static member)\n");
+           fprintf(stderr, "  Can't find static variable count\n");
+           return;
+        }
+        vect36_1.push_back(var36_1);
+     }
+     index ++;
+   }
+
+   if (2 != vect36_1.size()) {
+       fprintf(stderr, "**Failed** test #36 (static member)\n");
+       fprintf(stderr, "  Incorrect size of an vector\n");
+       exit(1);
+   }
+   if (vect36_1[0]->getBaseAddr() != vect36_1[1]->getBaseAddr()) {
+       fprintf(stderr, "**Failed** test #36 (static member)\n");
+       fprintf(stderr, "  Static member does not have a same address\n");
+       exit(1);
+   };
+
+   BPatch_Vector<BPatch_point *> *point36_3 =
+   appImage->findProcedurePoint("static_test::func_cpp", BPatch_exit);
+   assert(point36_3);
+
+   BPatch_function *call36_func = appImage->findFunction("static_test_call_cpp");
+   if (call36_func == NULL) {
+       fprintf(stderr, "Unable to find function \"cpp_test_util::call_cpp.\"\n");
+       exit(1);
+   }
+
+   BPatch_Vector<BPatch_snippet *> call36_args;
+   BPatch_constExpr expr36_0(36);
+   call36_args.push_back(&expr36_0);
+   BPatch_funcCallExpr call36Expr(*call36_func, call36_args);
+
+   checkCost(call36Expr);
+   appThread->insertSnippet(call36Expr, *point36_3);
+}
+
+
+//  
+// Start Test Case #37 - (namespace)
+// 
+void mutatorTest37(BPatch_thread *appThread, BPatch_image *appImage)
+{
+    BPatch_Vector<BPatch_point *> *point37_1 =
+      appImage->findProcedurePoint("namespace_test::func_cpp", BPatch_exit);
+
+    assert(point37_1);
+    BPatch_variableExpr *var1 = appImage->findVariable(*(*point37_1)[0],
+            "local_fn_var");
+    BPatch_variableExpr *var2 = appImage->findVariable(*(*point37_1)[0],
+            "local_file_var");
+    BPatch_variableExpr *var3 = appImage->findVariable(*(*point37_1)[0],
+            "CPP_DEFLT_ARG");
+
+    if (!var1 || !var2 || !var3) {
+        fprintf(stderr, "**Failed** test #37 (namespace)\n");
+        if (!var1)
+           fprintf(stderr, "  can't find local variable local_fn_var\n");
+        if (!var2)
+           fprintf(stderr, "  can't find local variable file local_file_var\n");
+        if (!var3)
+           fprintf(stderr, "  can't find global variable CPP_DEFLT_ARG\n");
+        return;
+    }
+/***********************************************
+    BPatch_Vector<BPatch_point *> *point37_2 =
+      appImage->findProcedurePoint("main", BPatch_allLocations);
+
+    if (!point37_2 || (point37_2->size() < 1)) {
+      fprintf(stderr, "Unable to find point in main.\n");
+      exit(-1);
+    }
+    BPatch_variableExpr *expr37_1=appImage->findVariable(*(*point37_2)[0], "test37");
+    if (!expr37_1) {
+         fprintf(stderr, "**Failed** test #37 (namespace)\n");
+         fprintf(stderr, "    Unable to locate test37 in main\n");
+    }
+
+    BPatch_Vector<BPatch_variableExpr *> *fields = expr37_1->getComponents();
+    if (!fields || fields->size() == 0 ) {
+       fprintf(stderr, "**Failed** test #37 (namespace)\n");
+       fprintf(stderr, "  struct lacked correct number of elements\n");
+       exit(-1);
+    }
+
+    int index = 0;
+    while ( index < fields->size() ) {
+     if (!strcmp("class_variable", (*fields)[index]->getName()) ) {
+         BPatch_function *call37_func = appImage->findFunction("cpp_test_util::call_cpp");
+         if (call37_func == NULL) {
+             fprintf(stderr, "**Failed** test #37 (namespace)\n");
+             fprintf(stderr, "Unable to find function \"cpp_test_util::call_cpp.\"\n");
+             exit(1);
+         }
+
+         BPatch_Vector<BPatch_snippet *> call37_args;
+
+         BPatch_constExpr expr37_0(37);
+         call37_args.push_back(&expr37_0);
+         BPatch_funcCallExpr call37Expr(*call37_func, call37_args);
+         checkCost(call37Expr);
+         appThread->insertSnippet(call37Expr, *point37_1);
+         return;
+     }
+     index ++;
+    }
+**********************************/
+    fprintf(stderr, "**Failed** test #37 (namespace)\n");
+    fprintf(stderr, "    Can't find class member variables\n");
+}
+
+
+//  
+// Start Test Case #38 - (exception)
+// 
+void mutatorTest38(BPatch_thread *appThread, BPatch_image *appImage)
+{
+   BPatch_Vector<BPatch_point *> *point38_1 =
+     appImage->findProcedurePoint("exception_test::func_cpp", BPatch_subroutine);
+   assert(point38_1);
+
+   int index = 0;
+   BPatch_function *func;
+   int bound = point38_1->size();
+
+   BPatch_variableExpr *testno = appImage->findVariable(*(*point38_1)[0],
+            "testno");
+   if (!testno) {
+      fprintf(stderr, "**Failed** test #38 (exception)\n");
+      fprintf(stderr, "    Can't find the variable in try branch of exception statement\n");
+      exit(1);
+   }
+
+   while (index < bound) {
+     if ((func = (*point38_1)[index]->getCalledFunction()) == NULL) {
+        fprintf(stderr, "**Failed** test #38 (exception)\n");
+        fprintf(stderr, "    Can't find the invoked function\n");
+        exit(1);
+     }
+     char fn[256];
+     if (!strcmp("sample_exception::response", func->getName(fn, 256))) {
+         BPatch_Vector<BPatch_point *> *point38_2 = func->findPoint(BPatch_exit);
+         assert(point38_2);
+
+         BPatch_function *call38_func =
+           appImage->findFunction("exception_test_call_cpp");
+         if (call38_func == NULL) {
+             fprintf(stderr, "Unable to find function \"exception_test_call_cpp.\"\n");
+             exit(1);
+         }
+
+         BPatch_Vector<BPatch_snippet *> call38_args;
+         BPatch_constExpr expr38_0(38);
+         call38_args.push_back(&expr38_0);
+         BPatch_funcCallExpr call38Expr(*call38_func, call38_args);
+
+         checkCost(call38Expr);
+         appThread->insertSnippet(call38Expr, *point38_2);
+         return;
+     }
+     index++;
+   }
+}
+
+//
+// Start Test Case #39 - (template)
+//
+void mutatorTest39(BPatch_thread *appThread, BPatch_image *appImage)
+{
+   BPatch_Vector<BPatch_point *> *point39_1 =
+     appImage->findProcedurePoint("template_test::func_cpp", BPatch_subroutine);
+   assert(point39_1);
+
+   int index = 0;
+   int flag = 0;
+   BPatch_function *func;
+   int bound = point39_1->size();
+   BPatch_variableExpr *content39_1;
+   BPatch_variableExpr *content39_2;
+
+   while (index < bound) {
+     if ((func = (*point39_1)[index]->getCalledFunction()) == NULL) {
+        fprintf(stderr, "**Failed** test #39 (template)\n");
+        fprintf(stderr, "    Can't find the invoked function\n");
+        exit(1);
+     }
+
+     char fn[256];
+     if (!strcmp("sample_template<int>::content", func->getName(fn, 256))) {
+         BPatch_Vector<BPatch_point *> *point39_2 = func->findPoint(BPatch_entry);
+         assert(point39_2);
+
+         content39_1 = appImage->findVariable(*(*point39_2)[0], "ret");
+         if (!content39_1) {
+            fprintf(stderr, "**Failed** test #39 (template)\n");
+            fprintf(stderr, "  Can't find local variable ret\n");
+            return;
+         }
+         flag++;
+     } else if (!strcmp("sample_template<char>::content", func->getName(fn, 256))) {
+
+            BPatch_Vector<BPatch_point *> *point39_3 = func->findPoint(BPatch_entry);
+            assert(point39_3);
+
+            content39_2 = appImage->findVariable(*(*point39_3)[0], "ret");
+            if (!content39_2) {
+               fprintf(stderr, "**Failed** test #39 (template)\n");
+               fprintf(stderr, "  Can't find local variable ret\n");
+               return;
+            }
+            flag++;
+     }
+     index ++;
+  }
+
+  if (flag != 2) {
+     fprintf(stderr, "**Failed** test #39 (template)\n");
+     exit(1);
+  }
+
+   BPatch_type *type39_0 = const_cast<BPatch_type *> (new BPatch_type("int"));
+   BPatch_type *type39_1 = const_cast<BPatch_type *> (content39_1->getType());
+   BPatch_type *type39_2 = const_cast<BPatch_type *> (new BPatch_type("char"));
+   BPatch_type *type39_3 = const_cast<BPatch_type *> (content39_2->getType());
+
+   if (!type39_0->isCompatible(type39_1)) {
+      fprintf(stderr, "**Failed** test #39 (template)\n");
+      fprintf(stderr,"    type39_0 reported as incompatibile with type39_1\n");
+      return;
+   }
+
+   if (!type39_2->isCompatible(type39_3)) {
+      fprintf(stderr, "**Failed** test #39 (template)\n");
+      fprintf(stderr,"    type39_2 reported as incompatibile with type39_3\n");
+      return;
+   }
+   
+   BPatch_Vector<BPatch_point *> *point39_4 =
+   appImage->findProcedurePoint("template_test::func_cpp", BPatch_exit);
+   assert(point39_4);
+
+   BPatch_function *call39_func = appImage->findFunction("template_test_call_cpp");
+   if (call39_func == NULL) {
+       fprintf(stderr, "Unable to find function \"cpp_test_util::call_cpp.\"\n");
+       exit(1);
+   }
+
+   BPatch_Vector<BPatch_snippet *> call39_args;
+   BPatch_constExpr expr39_0(39);
+   call39_args.push_back(&expr39_0);
+   BPatch_funcCallExpr call39Expr(*call39_func, call39_args);
+
+   checkCost(call39Expr);
+   appThread->insertSnippet(call39Expr, *point39_4);
+}
+
+//
+// Start Test Case #40 - (declaration)
+//   
+void mutatorTest40(BPatch_thread *appThread, BPatch_image *appImage)
+{
+     // Find the exit point to the procedure "func_cpp"
+     BPatch_Vector<BPatch_point *> *point40_1 =
+         appImage->findProcedurePoint("decl_test::func_cpp", BPatch_exit);
+     if (!point40_1 || (point40_1->size() < 1)) {
+           fprintf(stderr, "Unable to find point decl_test::func_cpp - exit.\n");
+           exit(-1);
+     }
+
+     BPatch_Vector<BPatch_point *> *point40_2 =
+       appImage->findProcedurePoint("main", BPatch_allLocations);
+
+     if (!point40_2 || (point40_2->size() < 1)) {
+            fprintf(stderr, "Unable to find point in main.\n");
+            exit(-1);
+     }
+
+     BPatch_function *call40_func  = appImage->findFunction("decl_test::call_cpp");
+     if (call40_func == NULL ) {
+        fprintf(stderr, "**Failed** test #40 (declaration)\n");
+        fprintf(stderr, "Unable to find function \"decl_test::call_cpp\"\n");
+        exit(1);
+     }
+
+     BPatch_Vector<BPatch_snippet *> call40_args;
+     BPatch_constExpr expr40_0(40);
+     call40_args.push_back(&expr40_0);
+     BPatch_funcCallExpr call40Expr(*call40_func, call40_args);
+
+     // find the variables of different scopes
+     BPatch_variableExpr *expr40_1=appImage->findVariable("CPP_DEFLT_ARG");
+     BPatch_variableExpr *expr40_2=appImage->findVariable(*(*point40_2)[0], "test40");
+     BPatch_variableExpr *expr40_3=appImage->findVariable(*(*point40_1)[0], "CPP_DEFLT_ARG");
+     if (!expr40_1 || !expr40_2 || !expr40_3) {
+           fprintf(stderr, "**Failed** test #40 (delcaration)\n");
+           fprintf(stderr, "    Unable to locate one of variables\n");
+           exit(1);
+     }
+
+#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5) \
+ && !defined(i386_unknown_linux2_0)
+    // XXX getComponents causes seg. fault
+    BPatch_Vector<BPatch_variableExpr *> *fields = expr40_2->getComponents();
+    if (!fields || fields->size() == 0 ) {
+          fprintf(stderr, "**Failed** test #40 (declaration)\n");
+          fprintf(stderr, "  struct lacked correct number of elements\n");
+          exit(-1);
+     }
+
+    int index = 0;
+    while ( index < fields->size() ) {
+       if ( !strcmp("CPP_TEST_UTIL_VAR", (*fields)[index]->getName()) ) {
+           dprintf("Inserted snippet2\n");
+           checkCost(call40Expr);
+           appThread->insertSnippet(call40Expr, *point40_1);
+           return;
+       }
+       index ++;
+    }
+    fprintf(stderr, "**Failed** test #40 (declaration)\n");
+    fprintf(stderr, "    Can't find inherited class member variables\n");
+#endif
+}
+
+//
+// Start Test Case #41 - (derivation)
+//
+void mutatorTest41(BPatch_thread *appThread, BPatch_image *appImage)
+{
+   bool found = false;
+   
+   // Find the exit point to the procedure "func_cpp"
+   BPatch_Vector<BPatch_point *> *point41_1 =
+      appImage->findProcedurePoint("derivation_test::func_cpp", BPatch_exit);
+   if (!point41_1 || (point41_1->size() < 1)) {
+         fprintf(stderr, "Unable to find point derivation_test::func_cpp - exit.\n");
+         exit(-1);
+   }
+
+   // access inherited class member variables has been examined in the test 40
+   // now let's try to access the inherited class member function.
+
+#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5) \
+ && !defined(i386_unknown_linux2_0)
+   // XXX really should use getComponent. 
+   // However, it causes segmentation fault at this point 
+
+   BPatch_Vector<BPatch_point *> *point41_2 =
+      appImage->findProcedurePoint("main", BPatch_allLocations);
+
+   if (!point41_2 || (point41_2->size() < 1)) {
+          fprintf(stderr, "Unable to find point in main.\n");
+          exit(-1);
+   }
+
+   BPatch_variableExpr *expr41_0=appImage->findVariable(*(*point41_2)[0], "test41");
+   if (!expr41_0) {
+      fprintf(stderr, "**Failed** test #41 (derivation)\n");
+      fprintf(stderr, "    Unable to locate one of variables\n");
+      exit(1);
+   }
+
+   BPatch_Vector<BPatch_variableExpr *> *fields = expr41_0->getComponents();
+   if (!fields || fields->size() == 0 ) {
+         fprintf(stderr, "**Failed** test #41 (derivation)\n");
+         fprintf(stderr, "  struct lacked correct number of elements\n");
+         exit(-1);
+   }
+
+   int index = 0;
+   while ( index < fields->size() ) {
+       if ( !strcmp("cpp_test_util::call_cpp", (*fields)[index]->getName()) ) {
+	   found = true;
+           break;
+       }
+       index ++;
+   }
+   
+   if ( !found ) {
+     fprintf(stderr, "**Failed** test #41 (derivation)\n");
+     fprintf(stderr, "    Can't find inherited class member functions\n");
+  }
+#endif
+}
+
 /*******************************************************************************/
 /*******************************************************************************/
 /*******************************************************************************/
@@ -2698,6 +3338,20 @@ int mutatorMAIN(char *pathname, bool useAttach)
     if( runTest[ 31 ] ) mutatorTest31( appThread, appImage );
     if( runTest[ 32 ] ) mutatorTest32( appThread, appImage );
 
+    // C++ tests
+    if ( runCpp ) {
+
+       if (runTest[33]) mutatorTest33(appThread, appImage); //31->33
+       if (runTest[34]) mutatorTest34(appThread, appImage); 
+       if (runTest[35]) mutatorTest35(appThread, appImage);
+       if (runTest[36]) mutatorTest36(appThread, appImage); 
+       if (runTest[37]) mutatorTest37(appThread, appImage); 
+       if (runTest[38]) mutatorTest38(appThread, appImage); 
+       if (runTest[39]) mutatorTest39(appThread, appImage);
+       if (runTest[40]) mutatorTest40(appThread, appImage);
+       if (runTest[41]) mutatorTest41(appThread, appImage);
+    }
+
     // Start of code to continue the process.  All mutations made
     // above will be in place before the mutatee begins its tests.
 
@@ -2805,6 +3459,7 @@ main(unsigned int argc, char *argv[])
             i=j-1;
 	} else if (!strcmp(argv[i], "-mutatee")) {
 	    mutateeName = argv[i+1];
+	    if ( strstr(mutateeName, "_g++") )  runCpp = true;
 	    i++;
 #if defined(mips_sgi_irix6_4)
 	} else if (!strcmp(argv[i], "-n32")) {

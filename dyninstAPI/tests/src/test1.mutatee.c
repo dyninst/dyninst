@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.38 2000/03/22 19:09:27 tikir Exp $ */
+/* $Id: test1.mutatee.c,v 1.39 2000/04/20 20:16:52 jasonxie Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -15,6 +15,10 @@
 #include <windows.h>
 #else
 #include <unistd.h>
+#endif
+
+#ifdef __cplusplus
+#include "cpp_test.h"
 #endif
 
 #if defined(sparc_sun_solaris2_4) || \
@@ -49,7 +53,13 @@ int debugPrint = 0;
 #define FALSE	0
 
 int runAllTests = TRUE;
+
+#ifdef __cplusplus
+#define MAX_TEST 41
+#else 
 #define MAX_TEST 32
+#endif 
+
 int runTest[MAX_TEST+1];
 int passedTest[MAX_TEST+1];
 
@@ -545,10 +555,16 @@ void call22_7(int x)
      globalVariable22_4 += MAGIC22_7;
 }
 
+#if defined(sparc_sun_solaris2_4) || \
+    defined(i386_unknown_solaris2_5) || \
+    defined(i386_unknown_linux2_0)
+
 /* this function has to be only 1 line for test30 to pass */
 /* these two lines has to be together otherwise test30 will fail */
 unsigned globalVariable30_7 = __LINE__;
 void call30_1(){ globalVariable30_1 = __LINE__; globalVariable30_2 = (unsigned)call30_1;}
+
+#endif
 
 /*
  * This is a series of nearly empty functions to attach code to 
@@ -2093,6 +2109,297 @@ int func32_1()
   return 1;
 }
 
+
+#ifdef __cplusplus
+
+void cpp_test_util::call_cpp(int test)
+{
+   passedTest[test] = TRUE;
+
+   switch (test) {
+
+    case 33 : {
+                 cout << "Passed test #33 (C++ argument pass)" << endl;
+		 break;
+    }
+
+    case 34 : {
+		 cout << "Passed test #34 (overload function)" << endl;
+		 break;
+    }
+    
+    case 35 : {
+		 cout << "Passed test #35 (overload operator)" << endl;
+		 break;
+    }
+
+    case 36 : {
+		 cout << "Passed test #36 (static member)" << endl;
+		 break;
+    }
+    
+    case 37 : {
+		 cout << "Passed test #37 (namespace)" << endl;
+		 break;
+    }
+
+    case 39 : {
+		 cout << "Passed test #39 (template)" << endl;
+		 break;
+    }
+
+    case 40 : {
+		 cout << "Passed test #40 (declaration)" << endl;
+		 break;
+    }
+
+    case 41 : {
+		 cout << "Passed test #41 (derivation)" << endl;
+		 break;
+    }
+
+    default : {
+                 cerr << "Invalid test "<< test <<" requested" << endl;
+		 break;
+    }
+
+  }
+}
+
+
+void arg_test::func_cpp()
+{
+  int test = 33;
+  int arg2 = 33;
+
+  call_cpp(test, arg2);
+}
+
+void arg_test::arg_pass(int test)
+{
+   if (test != 33) {
+    cerr << "**Failed** test #33 (C++ argument pass)" << endl;
+    cerr << "    Pass in an incorrect parameter value" << endl;
+    return;
+   }
+   cpp_test_util::call_cpp(test);
+}
+
+void arg_test::dummy()
+{
+  DUMMY_FN_BODY;
+}
+
+void arg_test::call_cpp(const int arg1, int & arg2, int arg3)
+{
+   const int m = 8;
+   int n = 6;
+   int & reference = n;
+
+   dummy(); // place to change the value of arg3 from CPP_DEFLT_ARG to 33
+
+   if ( 33 != arg3 ) {
+     cerr << "**Failed** test #33 (C++ argument pass)" << endl;
+     cerr << "    Default argument value is not changed " << endl;
+   }
+
+   if ( arg1 == arg2 )  arg2 = CPP_DEFLT_ARG;
+}
+
+void overload_func_test::func_cpp()
+{
+   call_cpp("test overload function");
+
+   call_cpp(34);
+
+   call_cpp(34, 34.0);
+}
+
+
+void overload_func_test::call_cpp(char * arg1)
+{
+  DUMMY_FN_BODY;
+}
+
+
+void overload_func_test::call_cpp(int arg1)
+{
+  DUMMY_FN_BODY;
+}
+
+
+void overload_func_test::call_cpp(int arg1, float arg2)
+{
+  DUMMY_FN_BODY;
+}
+
+void overload_op_test::func_cpp()
+{
+   overload_op_test test;
+   ++test;
+}
+
+void overload_op_test_call_cpp(int arg)
+{
+   if ( arg == 35 ) {
+     passedTest[arg] = TRUE;
+     cout << "Passed test #35 (overload operator)" << endl;
+   } else {
+     cerr << "**Failed** test #35 (overload operator)" << endl;
+     cerr << "    Overload operator++ return wrong value " << endl;
+   }
+}
+
+int overload_op_test::operator++()
+{
+  return (cpp_test_util::CPP_TEST_UTIL_VAR);
+}
+void static_test_call_cpp(int test)
+{
+   passedTest[test] = TRUE;
+   cout << "Passed test #36 (static member)" << endl;
+}
+
+int static_test::count = 0;
+
+void static_test::func_cpp()
+{
+   static_test obj1, obj2;
+
+   if ((obj1.call_cpp()+1) != obj2.call_cpp()) {
+      cerr << "**Failed** test #36 (static member)" << endl;
+      cerr << "    C++ objects of the same class have different static members " << endl;
+   }
+}
+
+static int local_file_var = 35;
+
+void namespace_test::func_cpp()
+{
+  int local_fn_var = local_file_var;
+
+  class_variable = local_fn_var;
+
+  if ( 1024 != ::CPP_DEFLT_ARG)
+    cout << "::CPP_DEFLT_ARG init value wrong" <<endl;
+  if ( 0 != cpp_test_util::CPP_TEST_UTIL_VAR )
+    cout <<"cpp_test_util::CPP_TEST_UTIL_VAR int value wrong"<<endl;
+}
+
+
+void sample_exception::response()
+{
+   DUMMY_FN_BODY;
+}
+
+
+void exception_test_call_cpp(int arg)
+{
+   if ( arg == 38 ) {
+      passedTest[arg] = TRUE;
+      cout << "Passed test #38 (exception)" << endl;
+   } else {
+      cerr << "**Failed** test #38 (exception)" << endl;
+   }
+}
+
+
+void exception_test::call_cpp()
+{
+    throw sample_exception();
+}
+
+
+void exception_test::func_cpp()
+{
+   try {
+          int testno = 38;
+          call_cpp();
+   }
+   catch ( sample_exception & ex) {
+     ex.response();
+   }
+   catch ( ... ) {
+     cerr << "**Failed** test #38 (exception)" << endl;
+     cerr << "    Does not catch appropriate exception" << endl;
+     throw;
+   }
+}
+
+template class sample_template <int>;
+template class sample_template <double>;
+
+template <class T> T sample_template <T>::content()
+{
+   T  ret = item;
+   return (ret);
+}
+
+void template_test::func_cpp()
+{
+  int int39 = 39;
+  char char39 = 'c';
+  sample_template <int> item39_1(int39);
+  sample_template <char> item39_2(char39);
+ 
+  item39_1.content();
+  item39_2.content();
+}
+
+void template_test_call_cpp(int test)
+{
+   passedTest[test] = TRUE;
+   cout << "Passed test #39 (template)" << endl;
+}
+
+void decl_test::func_cpp()
+{
+#if defined(sparc_sun_solaris2_4) || \
+    defined(i386_unknown_solaris2_5) || \
+    defined(i386_unknown_linux2_0)
+  passedTest[40] = TRUE;
+  cout << "Skipped test #40 (declaration)" << endl;
+  cout << "        - not tested until fixing getComponents core dump problem"
+       << endl;
+#else
+   int CPP_DEFLT_ARG = 40;
+
+   if ( 40 != CPP_DEFLT_ARG )
+     cout <<"CPP_DEFLT_ARG init value wrong"<<endl;
+   if ( 1024 != ::CPP_DEFLT_ARG )
+     cout <<"::CPP_DEFLT_ARG init value wrong"<<endl;
+   if ( 0 != cpp_test_util::CPP_TEST_UTIL_VAR )
+     cout <<"cpp_test_util::CPP_TEST_UTIL_VAR int value wrong"<<endl;
+#endif
+}
+
+void decl_test::call_cpp(int test)
+{
+   if (test != 40) {
+       cerr << "**Failed** test #40 (C++ argument pass)" << endl;
+       cerr << "    Pass in an incorrect parameter value" << endl;
+       return;
+   }
+   cpp_test_util::CPP_TEST_UTIL_VAR = ::CPP_DEFLT_ARG;
+   cpp_test_util::call_cpp(test);
+}
+
+void derivation_test::func_cpp()
+{
+#if defined(sparc_sun_solaris2_4) || \
+    defined(i386_unknown_solaris2_5) || \
+    defined(i386_unknown_linux2_0)
+  passedTest[41] = TRUE;
+  cout << "Skipped test #41 (derivation)" << endl;
+  cout << "        - not tested until fixing getComponents core dump problem"
+       << endl;
+#endif 
+  DUMMY_FN_BODY;
+}
+
+#endif
+
+
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
@@ -2125,8 +2432,18 @@ int main(int iargc, char *argv[])
 #endif
  
     for (j=0; j <= MAX_TEST; j++) {
-	passedTest[j] = FALSE;
-	if (!useAttach) runTest[j] = TRUE;
+	if (j <= 32) {
+	   passedTest[j] = FALSE;
+           if (!useAttach) runTest[j] = TRUE;
+	} else {
+#ifndef __cplusplus
+	         passedTest[j] = TRUE;
+		 runTest[j] = FALSE;
+#else
+	         passedTest[j] = FALSE;
+		 if (!useAttach) runTest[j] = TRUE;
+#endif
+        }
     }
 
     for (i=1; i < argc; i++) {
@@ -2212,6 +2529,54 @@ int main(int iargc, char *argv[])
 
     if( runTest[ 31 ] ) func31_1();
     if( runTest[ 32 ] ) func32_1();
+
+#ifdef __cplusplus
+   
+    if (runTest[33]) {
+       arg_test test33;
+       test33.func_cpp();
+    }
+
+    if (runTest[34]) {
+       overload_func_test test34;
+       test34.func_cpp();
+    }
+
+    if (runTest[35]) {
+         overload_op_test test35;
+         test35.func_cpp();
+    }
+
+    if (runTest[36]) {
+         static_test test36;
+         test36.func_cpp();
+    }
+
+    if (runTest[37]) {
+         namespace_test test37;
+         test37.func_cpp();
+    }
+
+    if (runTest[38]) {
+	 exception_test test38;
+         test38.func_cpp();
+    }
+
+    if (runTest[39]) {
+         template_test test39;
+         test39.func_cpp();
+    }
+
+    if (runTest[40]) {
+         decl_test test40;
+         test40.func_cpp();
+    }
+
+    if (runTest[41]) {
+         derivation_test test41;
+         test41.func_cpp();
+    }
+#endif
 
     /* See how we did running the tests. */
     for (i=1; i <= MAX_TEST; i++) {
