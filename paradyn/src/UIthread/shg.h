@@ -45,9 +45,12 @@
 // Ariel Tamches
 
 /* $Log: shg.h,v $
-/* Revision 1.16  1996/08/16 21:07:11  tamches
-/* updated copyright for release 1.1
+/* Revision 1.17  1997/01/15 00:13:41  tamches
+/* removed some warnings
 /*
+ * Revision 1.16  1996/08/16 21:07:11  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.15  1996/05/01 20:55:08  tamches
  * added inactivateAll
  * change interface to configNode a bit
@@ -271,9 +274,8 @@ class shg {
          return whyRefinementRayGC;
       else if (theRefinement == shgRootNode::ref_where)
          return whereRefinementRayGC;
-      else {
-         assert("unknown refinement" && false);
-      }
+
+      assert("unknown refinement" && false); abort();
    }
    static GC getGCforNonListboxRay(shgRootNode::refinement theRefinement) {
       if (theRefinement == shgRootNode::ref_undefined) {
@@ -282,9 +284,8 @@ class shg {
          return whyRefinementRayGC;
       else if (theRefinement == shgRootNode::ref_where)
          return whereRefinementRayGC;
-      else {
-         assert("unknown refinement" && false);
-      }
+
+      assert("unknown refinement" && false); abort();
    }
 
    shg(int phaseId,
