@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.29 2000/04/25 21:34:44 schendel Exp $
+// $Id: linux.C,v 1.30 2000/04/28 22:37:45 mirg Exp $
 
 #include <fstream.h>
 
@@ -222,12 +222,12 @@ bool ptraceKludge::deliverPtrace(process *p, int req, int addr,
 				 int data ) {
   bool halted = true;
 
-  if (req != PTRACE_DETACH)
+//  if (req != PTRACE_DETACH)
      halted = haltProcess(p);
 
   bool ret = (P_ptrace(req, p->getPid(), addr, data) != -1);
 
-  if (req != PTRACE_DETACH)
+//  if (req != PTRACE_DETACH)
      continueProcess(p, halted);
 
   return ret;
@@ -1096,216 +1096,135 @@ bool process::readTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
 }
 #endif
 
-bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) {
-  ptraceOps++; ptraceBytes += amount;
+bool process::writeDataSpace_(void *inTraced, u_int nbytes, const void *inSelf)
+{
+     unsigned char *ap = (unsigned char*) inTraced;
+     const unsigned char *dp = (const unsigned char*) inSelf;
+     int pid = getPid();
+     int w;               /* ptrace I/O buffer */
+     unsigned len = sizeof(w); /* address alignment of ptrace I/O requests */
+     unsigned cnt;
 
-#if defined(PTRACEDEBUG_EXCESSIVE)
-  int check;
-#if !defined(PTRACEDEBUG_ALWAYS)
-  if( debug_ptrace )
-#endif
-    fprintf( stderr, "(linux)writeDataSpace_  amount=%d  %#.8x -> %#.8x data=0x", amount, (int)inSelf, (int)inTraced );
-#elif defined(PTRACEDEBUG)
-#if !defined(PTRACEDEBUG_ALWAYS)
-  if( debug_ptrace )
-#endif
-    fprintf( stderr, "(linux)writeDataSpace_  amount=%d  %#.8x -> %#.8x\n", amount, (int)inSelf, (int)inTraced );
-#endif
-  unsigned char buf[sizeof(int)];
-  Address count, off, addr = (int)inTraced, dat = (int)inSelf;
+     ptraceOps++; ptraceBytes += nbytes;
 
-  off = addr % sizeof(int);
-  if( off != 0 || amount < sizeof(int) ) {
-    addr -= off;
-    *((int*)buf) = P_ptrace( PTRACE_PEEKTEXT, getPid(), addr, 0 );
-	if( errno )
-	{
-      char errb[150];
-      sprintf( errb, "process::writeDataSpace_, ptrace( PEEKTXT, %d, %#.8lx, &tmp )", getPid(), addr );
-      perror( errb );
-      return false;
-	}
-#ifdef PTRACEDEBUG_EXCESSIVE
-#if !defined(PTRACEDEBUG_ALWAYS)
-    if( debug_ptrace )
-#endif
-      fprintf( stderr, "%.8x:0x", *((int*)buf) );
-#endif
-  }
+     if (0 == nbytes)
+	  return true;
 
-  for( count = 0; count < amount; count++ ) {
-    //int le_off;
-    //le_off = sizeof(int) - off - 1;
-    /*    switch (off) {
-    case 0: le_off = 0; break;
-    case 1: le_off = 1; break;
-    case 2: le_off = 3; break;
-    case 3: le_off = 2; break;
-    default: assert( false );
-    } */
-    buf[off] = *((unsigned char*)(dat+count));
-#ifdef PTRACEDEBUG_EXCESSIVE
-#if !defined(PTRACEDEBUG_ALWAYS)
-    if( debug_ptrace )
-#endif
-      fprintf( stderr, "%.2x", 0x0000 | *((unsigned char*)(dat+count)) );
-#endif
-    off++; off %= sizeof(int);
-    if( !off || (count == amount-1) ) {
-      if( -1 == P_ptrace( PTRACE_POKETEXT, getPid(), addr, *((int*)buf) ) ) {
-	perror( "process::writeDataSpace, ptrace PTRACE_POKETXT" );
-	return false;
-      }
-      off = amount - count - 1;
-#ifdef PTRACEDEBUG_EXCESSIVE
-#if !defined(PTRACEDEBUG_ALWAYS)
-      if( debug_ptrace ) {
-#endif
-	check = P_ptrace( PTRACE_PEEKTEXT, getPid(), addr, 0 );
-	fprintf( stderr, ":%#.8x", check );
-	if( off > 0 )
-	  fprintf( stderr, " | 0x" );
-#if !defined(PTRACEDEBUG_ALWAYS)
-      }
-#endif
-#endif
-      addr += sizeof(int);
-      if( off < sizeof(int) && off > 0 ) {
-	/*if( -1 == P_ptrace( PTRACE_PEEKTEXT, getPid(), addr, (int)buf ) ) {
-	  perror( "process::writeDataSpace, ptrace PTRACE_PEEKTXT" );
-	  return false;
-	  }*/
-	assert( proc_fd != -1 );
-	if( ((lseek(proc_fd, (off_t)addr, SEEK_SET)) != (off_t)addr) ||
-	    read(proc_fd, (char*)buf, sizeof(int)) != sizeof(int) ) {
-		//printf("writeDataSpace_: error in read word addr = 0x%x\n",addr);
-	  return false;
-	}
+     if ((cnt = (unsigned)ap % len)) {
+	  /* Start of request is not aligned. */
+	  unsigned char *p = (unsigned char*) &w;
+	  
+	  /* Read the segment containing the unaligned portion, edit
+	     in the data from DP, and write the segment back. */
+	  errno = 0;
+	  w = P_ptrace(PTRACE_PEEKTEXT, pid, (int) (ap-cnt), 0);
+	  if (errno)
+	       return false;
+	  for (unsigned i = 0; i < len-cnt && i < nbytes; i++)
+	       p[cnt+i] = dp[i];
+	  if (0 > P_ptrace(PTRACE_POKETEXT, pid, (int) (ap-cnt), w))
+	       return false;
 
-#ifdef PTRACEDEBUG_EXCESSIVE
-#if !defined(PTRACEDEBUG_ALWAYS)
-	if( debug_ptrace ) {
-#endif
-	  check = P_ptrace( PTRACE_PEEKTEXT, getPid(), addr, 0 );
-	  fprintf( stderr, "%.8x:0x", check );
-#if !defined(PTRACEDEBUG_ALWAYS)
-	}
-#endif
-#endif
-      }
-      off = 0;
-    }
-  }
+	  if (len-cnt >= nbytes) 
+	       return true; /* done */
+	  
+	  dp += len-cnt;
+	  ap += len-cnt;
+	  nbytes -= len-cnt;
+     }	  
+	  
+     /* Copy aligned portion */
+     while (nbytes >= len) {
+	  assert(0 == (unsigned)ap % len);
+	  memcpy(&w, dp, len);
+	  if (0 > P_ptrace(PTRACE_POKETEXT, pid, (int) ap, w))
+	       return false;
+	  dp += len;
+	  ap += len;
+	  nbytes -= len;
+     }
 
-#if defined(PTRACEDEBUG_EXCESSIVE)
-#if !defined(PTRACEDEBUG_ALWAYS)
-  if( debug_ptrace )
-#endif
-  fprintf( stderr, "\n" );
-#endif
+     if (nbytes > 0) {
+	  /* Some unaligned data remains */
+	  unsigned char *p = (unsigned char *) &w;
+	  
+	  /* Read the segment containing the unaligned portion, edit
+             in the data from DP, and write it back. */
+	  errno = 0;
+	  w = P_ptrace(PTRACE_PEEKTEXT, pid, (int) ap, 0);
+	  if (errno)
+	       return false;
+	  for (unsigned i = 0; i < nbytes; i++)
+	       p[i] = dp[i];
+	  if (0 > P_ptrace(PTRACE_POKETEXT, pid, (int) ap, w))
+	       return false;
+     }
 
-  return true;
+     return true;
 }
 
-bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
-        ptraceOps++; ptraceBytes += amount;
+bool process::readDataSpace_(const void *inTraced, u_int nbytes, void *inSelf) {
+     const unsigned char *ap = (const unsigned char*) inTraced;
+     unsigned char *dp = (unsigned char*) inSelf;
+     int pid = getPid();
+     int w;               /* ptrace I/O buffer */
+     unsigned len = sizeof(w); /* address alignment of ptrace I/O requests */
+     unsigned cnt;
 
-#ifdef PTRACEDEBUG
-#if !defined(PTRACEDEBUG_ALWAYS)
-        if( debug_ptrace )
-#endif
-                fprintf( stderr, 
-                         "(linux)readDataSpace_  amount=%d  %#.8x <- %#.8x\n",
-                         amount, (int)inSelf, (int)inTraced );
-#endif
+     ptraceOps++; ptraceBytes += nbytes;
 
-        if (proc_fd != -1) {
-                int tries = 5;
-                int res = 0, amt = amount;
-                char *dest = (char *)inSelf;
-                const char *src = (const char *)inTraced;
-
-                if((lseek(proc_fd, (off_t)inTraced, 
-                          SEEK_SET)) != (off_t)inTraced) {
-                        fprintf (stderr, 
-                                 "(linux)readDataSpace_: error in lseek "
-                                 "addr = 0x%x amount = %d\n",
-                                 (u_int)inTraced,amount);
-                        return false;
-                }
-                while (amt > 0 && tries > 0) {
-                        if ((res = read(proc_fd, dest, amt)) < 0) {
-                                fprintf (stderr, "(linux)readDataSpace_"
-                                         "amount=%d  %#.8x <- %#.8x\n", 
-                                         amt, (int)dest, (int)src);
-                                return false;
-                        } 
-                        assert (res <= amt);
-                        src += res;
-                        dest += res;
-                        amt -= res;
-                        tries--;
-                }
-                if (amt == 0) {
-                        return true;
-                }
-#if defined(PDYN_DEBUG) || defined(PTRACEDEBUG)
-                fprintf( stderr, "process::readDataSpace_ -- Failed to "
-                         "read( /proc/*/mem ), trying ptrace\n" );
-#endif
-        }
-  // For some reason we couldn't or didn't open /proc/*/mem, so use ptrace
-  // Should I remove this part? - nash
-
-  // Well, since you sometimes don't seem to be able to read from the fd
-  // maybe we do need to keep this - nash
-
-  if( amount % sizeof(int) != 0 ||
-      (int)inTraced % sizeof(int) != 0 ||
-      (int)inSelf % sizeof(int) != 0 )
-  {
-	  unsigned char buf[sizeof(int)];
-	  Address count, off, addr = (int)inTraced, dat = (int)inSelf;
-	  bool begin = true;
-
-	  off = addr % sizeof(int);
-	  addr -= off;
-
-	  for( count = 0; count < amount; count++ ) {
-		  if( !off || begin ) {
-			  begin = false;
-			  *((int*)buf) = P_ptrace( PTRACE_PEEKTEXT, getPid(), addr, 0 );
-			  if( errno )
-			  {
-				  perror( "process::readDataSpace, ptrace PTRACE_PEEKTXT" );
-				  return false;
-			  }
-			  addr += sizeof(int);
-		  }
-		  *((unsigned char*)(dat+count)) = buf[off];
-		  off++; off %= sizeof(int);
-	  }
+     if (0 == nbytes)
 	  return true;
-  }
 
-  {
-	  u_int count, result;
-	  int *dst = (int*)inSelf;
-	  const int *addr = (const int*)inTraced;
+     if ((cnt = (unsigned)ap % len)) {
+	  /* Start of request is not aligned. */
+	  unsigned char *p = (unsigned char*) &w;
 
-	  for( count = 0; count < amount; count += sizeof(int), addr++, dst++ ) {
-		  result = P_ptrace( PTRACE_PEEKTEXT, getPid(), (int)addr, 0 );
-		  if( errno ) {
-			  perror( "process::readDataSpace, ptrace PTRACE_PEEKTXT" );
-			  return false;
-		  }
-		  *dst = result;
-	  }
-  
-	  return true;
-  }
+	  /* Read the segment containing the unaligned portion, and
+             copy what was requested to DP. */
+	  errno = 0;
+	  w = P_ptrace(PTRACE_PEEKTEXT, pid, (int) (ap-cnt), w);
+	  if (errno)
+	       return false;
+	  for (unsigned i = 0; i < len-cnt && i < nbytes; i++)
+	       dp[i] = p[cnt+i];
+
+	  if (len-cnt >= nbytes)
+	       return true; /* done */
+
+	  dp += len-cnt;
+	  ap += len-cnt;
+	  nbytes -= len-cnt;
+     }
+
+     /* Copy aligned portion */
+     while (nbytes >= len) {
+	  errno = 0;
+	  w = P_ptrace(PTRACE_PEEKTEXT, pid, (int) ap, 0);
+	  if (errno)
+	       return false;
+	  memcpy(dp, &w, len);
+	  dp += len;
+	  ap += len;
+	  nbytes -= len;
+     }
+
+     if (nbytes > 0) {
+	  /* Some unaligned data remains */
+	  unsigned char *p = (unsigned char *) &w;
+	  
+	  /* Read the segment containing the unaligned portion, and
+             copy what was requested to DP. */
+	  errno = 0;
+	  w = P_ptrace(PTRACE_PEEKTEXT, pid, (int) ap, 0);
+	  if (errno)
+	       return false;
+	  for (unsigned i = 0; i < nbytes; i++)
+	       dp[i] = p[i];
+     }
+
+     return true;
 }
-
 
 /*
 bool process::findCallee(instPoint &instr, function_base *&target){
@@ -1503,7 +1422,10 @@ time64 process::getInferiorProcessCPUtime(int /*lwp_id*/) /* const */ {
 
     buf2 = new char[ bufsize ];
 
-    /*size_t rsize = */P_read( fd, buf2, bufsize-1 );
+    if ((int)P_read( fd, buf2, bufsize-1 ) < 0) {
+      perror("getInferiorProcessCPUtime");
+      return false;
+    }
 
     if( 2 == sscanf( buf2, "%*d %*s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %d %d ", &utime, &stime ) ) {
       // These numbers are in 'jiffies' or timeslices.  For now, we
