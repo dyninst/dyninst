@@ -44,15 +44,8 @@
 ************************************************************************/
 
 
-
-
-
 #if !defined(_Object_h_)
 #define _Object_h_
-
-
-
-
 
 /************************************************************************
  * header files.
@@ -65,12 +58,35 @@
 #include <util/h/Symbol.h>
 #include <util/h/Types.h>
 #include <util/h/Vector.h>
-
 #include "util/h/lprintf.h"
 
+// relocation information for calls to functions not in this image
+// on sparc-solaris: target_addr_ = rel_addr_ = PLT entry addr
+// on x86-solaris: target_addr_ = PLT entry addr
+//		   rel_addr_ =  GOT entry addr  corr. to PLT_entry
+class relocationEntry {
+public:
+    relocationEntry():target_addr_(0),rel_addr_(0),name_(0){}   
+    relocationEntry(Address ta,Address ra, string n):target_addr_(ta),
+	rel_addr_(ra),name_(n){}   
+    relocationEntry(const relocationEntry& ra): target_addr_(ra.target_addr_), 
+    	rel_addr_(ra.rel_addr_), name_(ra.name_) { }
+    ~relocationEntry(){}
 
-
+    const relocationEntry& operator= (const relocationEntry &ra) {
+	target_addr_ = ra.target_addr_; rel_addr_ = ra.rel_addr_; 
+	name_ = ra.name_; 
+	return *this;
+    }
+    Address target_addr() const { return target_addr_; }
+    Address rel_addr() const { return rel_addr_; }
+    const string &name() const { return name_; }
 
+private:
+   Address target_addr_;	// target address of call instruction 
+   Address rel_addr_;		// address of corresponding relocation entry 
+   string  name_;
+};
 
 /************************************************************************
  * class AObject
@@ -79,22 +95,49 @@
 class AObject {
 public:
 
-    unsigned          nsymbols ()                         const;
+    unsigned  nsymbols () const { return symbols_.size(); }
 
-    bool            get_symbol (const string &, Symbol &);
+    bool      get_symbol (const string &name, Symbol &symbol) {
+    	if (!symbols_.defines(name)) {
+       	    return false;
+    	}
+    	symbol = symbols_[name];
+    	return true;
+    }
 
-    const Word*       code_ptr ()                         const;
-    unsigned          code_off ()                         const;
-    unsigned          code_len ()                         const;
+    const Word*       code_ptr () const { return code_ptr_; } 
+    unsigned          code_off () const { return code_off_; }
+    unsigned          code_len () const { return code_len_; }
 
-    const Word*       data_ptr ()                         const;
-    unsigned          data_off ()                         const;
-    unsigned          data_len ()                         const;
+    const Word*       data_ptr () const { return data_ptr_; }
+    unsigned          data_off () const { return data_off_; }
+    unsigned          data_len () const { return data_len_; }
 
+    virtual  bool   needs_function_binding()  const;
+    virtual  bool   get_func_binding_table(vector<relocationEntry> &) const;
+    
 protected:
-    AObject (const string, void (*)(const char *)); // explicitly protected
-    AObject                    (const AObject &);   // explicitly protected
-    AObject&         operator= (const AObject &);   // explicitly protected
+    // explicitly protected
+    AObject(const string file , void (*err_func)(const char *)): file_(file), 
+	symbols_(string::hash), code_ptr_(0), code_off_(0), code_len_(0), 
+	data_ptr_(0), data_off_(0), data_len_(0),err_func_(err_func){} 
+
+    AObject(const AObject &obj): file_(obj.file_), symbols_(obj.symbols_), 
+        code_ptr_(obj.code_ptr_), code_off_(obj.code_off_), 
+	code_len_(obj.code_len_), data_ptr_(obj.data_ptr_), 
+	data_off_(obj.data_off_), data_len_(obj.data_len_), 
+	err_func_(obj.err_func_) {}   
+
+    AObject&  operator= (const AObject &obj) {   
+
+	 if (this == &obj) { return *this; }
+	 file_      = obj.file_; 	symbols_   = obj.symbols_;
+	 code_ptr_  = obj.code_ptr_; 	code_off_  = obj.code_off_;
+	 code_len_  = obj.code_len_; 	data_ptr_  = obj.data_ptr_;
+	 data_off_  = obj.data_off_; 	data_len_  = obj.data_len_;
+	 err_func_  = obj.err_func_;
+	 return *this;
+    }
 
     string                          file_;
     dictionary_hash<string, Symbol> symbols_;
@@ -112,100 +155,6 @@ protected:
 private:
     friend class SymbolIter;
 };
-
-inline
-AObject::AObject(const string file, void (*err_func)(const char*))
-     : file_(file), symbols_(string::hash),
-    code_ptr_(0), code_off_(0), code_len_(0),
-    data_ptr_(0), data_off_(0), data_len_(0),
-    err_func_(err_func) {
-}
-
-inline
-AObject::AObject(const AObject& obj)
-    : file_(obj.file_), symbols_(obj.symbols_), 
-    code_ptr_(obj.code_ptr_), code_off_(obj.code_off_),
-    code_len_(obj.code_len_),
-    data_ptr_(obj.data_ptr_), data_off_(obj.data_off_),
-    data_len_(obj.data_len_),
-    err_func_(obj.err_func_) {
-}
-
-inline
-AObject&
-AObject::operator=(const AObject& obj) {
-    if (this == &obj) {
-        return *this;
-    }
-
-    file_      = obj.file_;
-    symbols_   = obj.symbols_;
-    code_ptr_  = obj.code_ptr_;
-    code_off_  = obj.code_off_;
-    code_len_  = obj.code_len_;
-    data_ptr_  = obj.data_ptr_;
-    data_off_  = obj.data_off_;
-    data_len_  = obj.data_len_;
-    err_func_  = obj.err_func_;
-
-    return *this;
-}
-
-inline
-unsigned
-AObject::nsymbols() const {
-    return symbols_.size();
-}
-
-inline
-bool
-AObject::get_symbol(const string& name, Symbol& symbol) {
-    if (!symbols_.defines(name)) {
-        return false;
-    }
-    symbol = symbols_[name];
-    return true;
-}
-
-inline
-const Word*
-AObject::code_ptr() const {
-    return code_ptr_;
-}
-
-inline
-unsigned
-AObject::code_off() const {
-    return code_off_;
-}
-
-inline
-unsigned
-AObject::code_len() const {
-    return code_len_;
-}
-
-inline
-const Word*
-AObject::data_ptr() const {
-    return data_ptr_;
-}
-
-inline
-unsigned
-AObject::data_off() const {
-    return data_off_;
-}
-
-inline
-unsigned
-AObject::data_len() const {
-    return data_len_;
-}
-
-
-
-
 
 /************************************************************************
  * include the architecture-operating system specific object files.
@@ -247,21 +196,17 @@ AObject::data_len() const {
 #error "unable to locate system-specific object files"
 #endif /* !defined(HAVE_SPECIFIC_OBJECT) */
 
-
-
-
-
 /************************************************************************
  * class SymbolIter
 ************************************************************************/
 
 class SymbolIter {
 public:
-     SymbolIter (const Object &);
-    ~SymbolIter ();
+     SymbolIter (const Object &obj):  si_(obj.symbols_) {}
+    ~SymbolIter () {}
 
-    bool  next (string &, Symbol &);
-    void reset ();
+    bool  next (string &name, Symbol &sym) { return si_.next(name, sym); } 
+    void  reset () { si_.reset(); }
 
 private:
     dictionary_hash_iter<string, Symbol> si_;
@@ -269,33 +214,5 @@ private:
     SymbolIter            (const SymbolIter &); // explicitly disallowed
     SymbolIter& operator= (const SymbolIter &); // explicitly disallowed
 };
-
-inline
-SymbolIter::SymbolIter(const Object& obj)
-    : si_(obj.symbols_) {
-}
-
-inline
-SymbolIter::~SymbolIter() {
-}
-
-inline
-bool
-SymbolIter::next(string& name, Symbol& sym) {
-    return si_.next(name, sym);
-}
-
-inline
-void
-SymbolIter::reset() {
-    si_.reset();
-}
-
-
-
-
-
-
-
 
 #endif /* !defined(_Object_h_) */

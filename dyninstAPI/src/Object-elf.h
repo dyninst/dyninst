@@ -44,14 +44,9 @@
 ************************************************************************/
 
 
-
-
-
 #if !defined(_Object_elf32_h_)
 #define _Object_elf32_h_
 
-
-
 
 
 /************************************************************************
@@ -63,6 +58,7 @@
 #include <util/h/Symbol.h>
 #include <util/h/Types.h>
 #include <util/h/Vector.h>
+#include <libelf.h>
 
 extern "C" {
 #include <libelf.h>
@@ -140,6 +136,9 @@ public:
 
     const Object& operator= (const Object &);
 
+    bool     needs_function_binding() const {return (plt_addr_  > 0);} 
+    bool     get_func_binding_table(vector<relocationEntry> &fbt) const;
+
 private:
     static
     void    log_elferror (void (*)(const char *), const char *);
@@ -147,13 +146,43 @@ private:
     bool    EEL ; //set to true if EEL rewritten
     //added char *ptr, to deal with EEL rewritten software
     //
-    bool      loaded_elf (int, char *, bool &, Elf* &, Elf32_Ehdr* &, Elf32_Phdr* &,
-                          unsigned &, unsigned &, Elf_Scn* &, Elf_Scn* &,
-                          Elf_Scn* &, Elf_Scn* &);
+    bool      loaded_elf (int, char *, bool &, Elf* &, Elf32_Ehdr* &, 
+			  Elf32_Phdr* &, unsigned &, unsigned &, Elf_Scn* &, 
+			  Elf_Scn* &, Elf_Scn* &, Elf_Scn* &,
+    			  Elf_Scn*& rel_plt_scnp, Elf_Scn*& plt_scnp, 
+			  Elf_Scn*& got_scnp,  Elf_Scn*& dynsym_scnp,
+			  Elf_Scn*& dynstr_scnp);
     bool      loaded_elf_obj (int, bool &, Elf* &, Elf32_Ehdr* &,Elf32_Phdr* &,
-			      unsigned &, unsigned &, Elf_Scn* &, Elf_Scn*&);
+			      unsigned &, unsigned &, Elf_Scn* &, Elf_Scn*&,
+    			      Elf_Scn*& rel_plt_scnp, Elf_Scn*& plt_scnp, 
+			      Elf_Scn*& got_scnp,  Elf_Scn*& dynsym_scnp,
+			      Elf_Scn*& dynstr_scnp);
     void     load_object ();
     void     load_shared_object ();
+
+    // initialize relocation_table_ from .rel.plt or .rela.plt section entryies 
+    bool     get_relocation_entries(Elf_Scn*& rel_plt_scnp,
+			Elf_Scn*& dynsymscnp, Elf_Scn*& dynstrcnp);
+
+    // elf-specific stuff from dynamic executables and shared objects
+    Address 	plt_addr_;	// address of _PROCEDURE_LINKAGE_TABLE_ 
+    u_int 	plt_size_;
+    u_int 	plt_entry_size_;
+    Address 	got_addr_;	// address of _GLOBAL_OFFSET_TABLE_
+    Address 	rel_plt_addr_;	// address of .rela.plt or .rel.plt section 
+    u_int 	rel_plt_size_;
+    u_int 	rel_plt_entry_size_;
+    Address 	dyn_sym_addr_;	// address of .dynsym section
+    Address 	dyn_str_addr_;	// address of .dynstr section
+
+    // for sparc-solaris this is a table of PLT entry addr, function_name
+    // for x86-solaris this is a table of GOT entry addr, function_name
+    // on sparc-solaris the runtime linker modifies the PLT entry when it
+    // binds a function, on X86 the PLT entry is not modified, but it uses
+    // an indirect jump to a GOT entry that is modified when the function 
+    // is bound....is this correct???? or should it be <PLTentry_addr, name> 
+    // for both?
+    vector<relocationEntry> relocation_table_;
 };
 
 inline
@@ -163,21 +192,34 @@ Object::~Object() {
 inline
 const Object&
 Object::operator=(const Object& obj) {
+
     (void) AObject::operator=(obj);
+
+    plt_addr_ = obj.plt_addr_;
+    plt_size_ = obj.plt_size_;
+    plt_entry_size_ = obj.plt_entry_size_;
+    got_addr_ = obj.got_addr_;
+    rel_plt_addr_ = obj.rel_plt_addr_;
+    rel_plt_size_ = obj.rel_plt_size_;
+    rel_plt_entry_size_ = obj.rel_plt_entry_size_;
+    dyn_sym_addr_ = obj.dyn_sym_addr_;
+    dyn_str_addr_ = obj.dyn_str_addr_;
+    relocation_table_  = obj.relocation_table_;
     return *this;
 }
 
-inline
-void
-Object::log_elferror(void (*pfunc)(const char *), const char* msg) {
+inline void Object::log_elferror(void (*pfunc)(const char *), const char* msg) {
     const char* err = elf_errmsg(elf_errno());
     log_printf(pfunc, "%s: %s\n", msg, err ? err : "(bad elf error)");
 }
+
+
 
 //EEL
 //
 #define EXTRA_SPACE 8     //added some EXTRA_SPACE space, such that,
                        // we won't look for functions in the data space
+
 
 // Added one extra parameter 'char *ptr', for EEL rewritten software
 // code_ptr_, code_offset_, code_len_ is calculated in this function
@@ -185,9 +227,12 @@ Object::log_elferror(void (*pfunc)(const char *), const char* msg) {
 //
 inline
 bool
-Object::loaded_elf(int fd, char *ptr, bool& did_elf, Elf*& elfp, Elf32_Ehdr*& ehdrp,
+Object::loaded_elf(int fd, char *ptr, bool& did_elf, Elf*& elfp, 
+    Elf32_Ehdr*& ehdrp,
     Elf32_Phdr*& phdrp, unsigned& txtaddr, unsigned& bssaddr,
-    Elf_Scn*& symscnp, Elf_Scn*& strscnp, Elf_Scn*& stabscnp, Elf_Scn*& stabstrscnp) {
+    Elf_Scn*& symscnp, Elf_Scn*& strscnp, Elf_Scn*& stabscnp, 
+    Elf_Scn*& stabstrscnp, Elf_Scn*& rel_plt_scnp, Elf_Scn*& plt_scnp, 
+    Elf_Scn*& got_scnp,  Elf_Scn*& dynsym_scnp, Elf_Scn*& dynstr_scnp) {
 
     elf_version(EV_CURRENT);
     elf_errno();
@@ -206,7 +251,7 @@ Object::loaded_elf(int fd, char *ptr, bool& did_elf, Elf*& elfp, Elf32_Ehdr*& eh
         || (ehdrp->e_shoff == 0)
         || (ehdrp->e_phnum == 0)
         || (ehdrp->e_shnum == 0)) {
-        log_elferror(err_func_, "loading eheader");
+        log_elferror(err_func_, "2: loading eheader");
         return false;
     }
 
@@ -241,6 +286,15 @@ Object::loaded_elf(int fd, char *ptr, bool& did_elf, Elf*& elfp, Elf32_Ehdr*& eh
         const char* STRTAB_NAME = ".strtab";
         const char* STAB_NAME   = ".stab";
         const char* STABSTR_NAME= ".stabstr";
+
+	// sections from dynamic executables and shared objects
+        const char* PLT_NAME = ".plt";
+        const char* REL_PLT_NAME = ".rela.plt";	   // sparc-solaris
+        const char* REL_PLT_NAME2 = ".rel.plt";	   // x86-solaris
+        const char* GOT_NAME = ".got";	   
+        const char* DYNSYM_NAME = ".dynsym";	   
+        const char* DYNSTR_NAME = ".dynstr";	   
+
         const char* name        = (const char *) &shnames[shdrp->sh_name];
 
 	if (strcmp(name, EDITED_TEXT_NAME) == 0) {
@@ -270,6 +324,32 @@ Object::loaded_elf(int fd, char *ptr, bool& did_elf, Elf*& elfp, Elf32_Ehdr*& eh
         else if (strcmp(name, STABSTR_NAME) == 0) {
             stabstrscnp = scnp;
         }
+        else if ((strcmp(name, REL_PLT_NAME) == 0) 
+		|| (strcmp(name, REL_PLT_NAME2) == 0)) {
+             rel_plt_scnp = scnp;
+	     rel_plt_addr_ = shdrp->sh_addr;
+	     rel_plt_size_ = shdrp->sh_size;
+	     rel_plt_entry_size_ = shdrp->sh_entsize;
+        }
+        else if (strcmp(name, PLT_NAME) == 0) {
+            plt_scnp = scnp;
+	    plt_addr_ = shdrp->sh_addr;
+	    plt_size_ = shdrp->sh_size;
+	    plt_entry_size_ = shdrp->sh_entsize;
+        }
+        else if (strcmp(name, GOT_NAME) == 0) {
+	    got_scnp = scnp;
+	    got_addr_ = shdrp->sh_addr;
+	}
+	else if (strcmp(name, DYNSYM_NAME) == 0) {
+            dynsym_scnp = scnp;
+	    dyn_sym_addr_ = shdrp->sh_addr;
+	}
+        else if (strcmp(name, DYNSTR_NAME) == 0) {
+	    dynstr_scnp = scnp;
+	    dyn_str_addr_ = shdrp->sh_addr;
+	}
+
     }
     if (!txtaddr || !bssaddr || !symscnp || !strscnp) {
         log_elferror(err_func_, "no text/bss/symbol/string section");
@@ -284,7 +364,9 @@ inline
 bool
 Object::loaded_elf_obj(int fd, bool& did_elf, Elf*& elfp, Elf32_Ehdr*& ehdrp,
     Elf32_Phdr*& phdrp, unsigned& txtaddr, unsigned& bssaddr,
-    Elf_Scn*& symscnp, Elf_Scn*& strscnp) {
+    Elf_Scn*& symscnp, Elf_Scn*& strscnp, Elf_Scn*& rel_plt_scnp, 
+    Elf_Scn*& plt_scnp, Elf_Scn*& got_scnp, Elf_Scn*& dynsym_scnp,
+    Elf_Scn*& dynstr_scnp) {
 
     elf_version(EV_CURRENT);
     elf_errno();
@@ -335,6 +417,15 @@ Object::loaded_elf_obj(int fd, bool& did_elf, Elf*& elfp, Elf32_Ehdr*& ehdrp,
         const char* BSS_NAME    = ".bss";
         const char* SYMTAB_NAME = ".symtab";
         const char* STRTAB_NAME = ".strtab";
+
+	// sections from dynamic executables and shared objects
+        const char* PLT_NAME = ".plt";
+        const char* REL_PLT_NAME = ".rela.plt";	   // sparc-solaris
+        const char* REL_PLT_NAME2 = ".rel.plt";	   // x86-solaris
+        const char* GOT_NAME = ".got";	   
+        const char* DYNSYM_NAME = ".dynsym";	   
+        const char* DYNSTR_NAME = ".dynstr";	   
+
         const char* name        = (const char *) &shnames[shdrp->sh_name];
 
         if (strcmp(name, TEXT_NAME) == 0) {
@@ -349,6 +440,31 @@ Object::loaded_elf_obj(int fd, bool& did_elf, Elf*& elfp, Elf32_Ehdr*& ehdrp,
         else if (strcmp(name, STRTAB_NAME) == 0) {
             strscnp = scnp;
         }
+        else if ((strcmp(name, REL_PLT_NAME) == 0) 
+		|| (strcmp(name, REL_PLT_NAME2) == 0)) {
+             rel_plt_scnp = scnp;
+	     rel_plt_addr_ = shdrp->sh_addr;
+	     rel_plt_size_ = shdrp->sh_size;
+	     rel_plt_entry_size_ = shdrp->sh_entsize;
+        }
+        else if (strcmp(name, PLT_NAME) == 0) {
+            plt_scnp = scnp;
+	    plt_addr_ = shdrp->sh_addr;
+	    plt_size_ = shdrp->sh_size;
+	    plt_entry_size_ = shdrp->sh_entsize;
+        }
+        else if (strcmp(name, GOT_NAME) == 0) {
+	    got_scnp = scnp;
+	    got_addr_ = shdrp->sh_addr;
+	}
+        else if (strcmp(name, DYNSYM_NAME) == 0) {
+	    dynsym_scnp = scnp;
+	    dyn_sym_addr_ = shdrp->sh_addr;
+	}
+        else if (strcmp(name, DYNSTR_NAME) == 0) {
+	    dynstr_scnp = scnp;
+	    dyn_str_addr_ = shdrp->sh_addr;
+	}
     }
     string temp = string(" text: ");
     temp += string((u_int)txtaddr);
@@ -378,6 +494,49 @@ static int symbol_compare(const void *x, const void *y) {
     const Symbol *s1 = (const Symbol *)x;
     const Symbol *s2 = (const Symbol *)y;
     return (s1->addr() - s2->addr());
+}
+
+inline bool Object::get_relocation_entries(Elf_Scn*& rel_plt_scnp,
+			Elf_Scn*& dynsymscnp, Elf_Scn*& dynstrscnp) {
+
+#if defined (i386_unknown_solaris2_5)
+        Elf32_Rel *next_entry = 0;
+        Elf32_Rel *entries = 0;
+#else
+        Elf32_Rela *next_entry = 0;
+        Elf32_Rela *entries = 0;
+#endif
+
+    if(rel_plt_size_ && rel_plt_addr_) {
+	Elf_Data *reldatap = elf_getdata(rel_plt_scnp, 0);
+	Elf_Data* symdatap = elf_getdata(dynsymscnp, 0);
+	Elf_Data* strdatap = elf_getdata(dynstrscnp, 0);
+	if(!reldatap || !symdatap || !strdatap) return false;
+
+	Elf32_Sym*  syms   = (Elf32_Sym *) symdatap->d_buf;
+	const char* strs   = (const char *) strdatap->d_buf;
+	Address next_plt_entry_addr = plt_addr_;
+
+#if defined (i386_unknown_solaris2_5)
+	entries  = (Elf32_Rel *) reldatap->d_buf;
+	next_plt_entry_addr += plt_entry_size_;  // 1st PLT entry is special
+#else
+	entries  = (Elf32_Rela *) reldatap->d_buf;
+	next_plt_entry_addr += 4*(plt_entry_size_); //1st 4 entries are special
+#endif
+	if(!entries) return false;
+
+	next_entry = entries;
+	for(u_int i=0; i < (rel_plt_size_/rel_plt_entry_size_); i++) {
+	    Elf32_Word sym_index = ELF32_R_SYM(next_entry->r_info); 
+	    relocationEntry re(next_plt_entry_addr, next_entry->r_offset,
+				string(&strs[syms[sym_index].st_name]));
+            relocation_table_ += re; 
+	    next_entry++;
+	    next_plt_entry_addr += plt_entry_size_;
+	}
+    }
+    return true;
 }
 
 
@@ -414,6 +573,11 @@ Object::load_object() {
         Elf_Scn*    stabstrscnp = 0;
         unsigned    txtaddr = 0;
         unsigned    bssaddr = 0;
+    	Elf_Scn* rel_plt_scnp = 0;
+	Elf_Scn* plt_scnp = 0; 
+	Elf_Scn* got_scnp = 0;
+	Elf_Scn* dynsym_scnp = 0;
+	Elf_Scn* dynstr_scnp = 0;
 
 	// EEL, initialize the stuff to zero, so that we know, it is not 
 	// EEL rewritten, if they have not been changed by loaded_elf
@@ -422,7 +586,8 @@ Object::load_object() {
 
 	// EEL, added one more parameter
         if (!loaded_elf(fd, ptr, did_elf, elfp, ehdrp, phdrp, txtaddr,
-                bssaddr, symscnp, strscnp, stabscnp, stabstrscnp)) {
+                bssaddr, symscnp, strscnp, stabscnp, stabstrscnp,
+		rel_plt_scnp,plt_scnp,got_scnp,dynsym_scnp,dynstr_scnp)) {
                 /* throw exception */ goto cleanup;
 	}
 
@@ -655,6 +820,13 @@ Object::load_object() {
 	  if (!(symbols_.defines(sym.name())))
              symbols_[sym.name()] = sym;
 	}
+
+	if(rel_plt_scnp && dynsym_scnp && dynstr_scnp) {
+	    if(!get_relocation_entries(rel_plt_scnp,dynsym_scnp,dynstr_scnp)) {
+		goto cleanup;
+            }
+	}
+
     }  /* try */
 
     /* catch */
@@ -700,9 +872,15 @@ Object::load_shared_object() {
         Elf_Scn*    strscnp = 0;
         unsigned    txtaddr = 0;
         unsigned    bssaddr = 0;
+    	Elf_Scn* rel_plt_scnp = 0;
+	Elf_Scn* plt_scnp = 0; 
+	Elf_Scn* got_scnp = 0;
+	Elf_Scn* dynsym_scnp = 0;
+	Elf_Scn* dynstr_scnp = 0;
 
         if (!loaded_elf_obj(fd, did_elf, elfp, ehdrp, phdrp, txtaddr,
-			    bssaddr, symscnp, strscnp)) {
+			    bssaddr, symscnp, strscnp, rel_plt_scnp,
+			    plt_scnp,got_scnp,dynsym_scnp, dynstr_scnp)) {
                 /* throw exception */ goto cleanup2;
 	}
 
@@ -897,6 +1075,12 @@ Object::load_shared_object() {
 	    allsymbols[last_sym].addr(), allsymbols[last_sym].kludge(),
 	    allsymbols[last_sym].size());
 
+	if(rel_plt_scnp && dynsym_scnp && dynstr_scnp) {
+	    if(!get_relocation_entries(rel_plt_scnp,dynsym_scnp,dynstr_scnp)) { 
+		goto cleanup2;
+            }
+	}
+
     }  /* try */
 
     /* catch */
@@ -930,8 +1114,10 @@ Object::Object(const Object& obj)
     load_object();
 }
 
-
-
-
+inline bool Object::get_func_binding_table(vector<relocationEntry> &fbt) const {
+    if(!plt_addr_ || (!relocation_table_.size())) return false;
+    fbt = relocation_table_;
+    return true;
+}
 
 #endif /* !defined(_Object_elf32_h_) */

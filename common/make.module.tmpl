@@ -4,6 +4,11 @@
 # included from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.19  1997/06/15 18:37:54  newhall
+# added support for parsing relocation entries and procedure_linkage_table
+# entries from elf file format dynamic executables and shared objects
+# added Object.C
+#
 # Revision 1.18  1997/04/21 16:57:12  hseom
 # added support for trace data (in a byte array)
 #
@@ -56,6 +61,7 @@ SRCS	     += ../src/String.C \
 		../src/Timer.C \
 		../src/makenan.C \
 		../src/pathName.C \
+		../src/Object.C \
 		../src/PriorityQueue.C \
 		../src/odometer.C \
 		../src/CircularBuffer.C \
