@@ -201,14 +201,51 @@ bool dataManager::addExecutable(const char *machine,
 				const char *dir,
 				const vector<string> *argv)
 {
-    // This is the implementation of an igen call...usually from the UI thread when
-    // a new process is defined in the dialog box.
-    string m = machine;
-    string l = login;
-    string n = name;
-    string d = dir;
+  // This is the implementation of an igen call...usually from the UI thread
+  // when a new process is defined in the dialog box.
+  string m = machine;
+  string l = login;
+  string n = name;
+  string d = dir;
+
+  if(n == "poed") {
+    int    pid;
+    
+    pid = fork();
+    if(pid == 0) {         // Child process
+      char** str;
+      int    dx;
+
+      str = (char **) malloc(sizeof(char*) * (paradynDaemon::args.size() 
+					      + argv->size() + 5));
+      assert(str != NULL);
+
+      str[0] = strdup("poe");
+      str[1] = strdup("paradynd");
+      for(dx=0; dx < paradynDaemon::args.size(); dx++) {
+	if(strcmp(paradynDaemon::args[dx].string_of(), "-l1") == 0) {
+	  str[dx+2] = strdup("-l0");
+	} else {
+	  str[dx+2] = strdup(paradynDaemon::args[dx].string_of());
+	}
+      }
+      str[paradynDaemon::args.size()+2] = strdup("-zpoe");
+      str[paradynDaemon::args.size()+3] = strdup("-runme");
+      
+      for(dx=0; dx < argv->size(); dx++) {
+	str[paradynDaemon::args.size()+dx+4] = strdup((*argv)[dx].string_of());
+      }
+      str[paradynDaemon::args.size()+argv->size()+4] = NULL;
+
+      execvp(str[0], str);
+    } else {
+      return(true);
+    }
+  } else {
     return(paradynDaemon::newExecutable(m, l, n, d, *argv));
+  }
 }
+
 
 bool dataManager::attach(const char *machine,
 			 const char *user,
