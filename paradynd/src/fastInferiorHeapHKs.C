@@ -39,11 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeapHKs.C,v 1.10 1999/03/19 18:10:49 csserra Exp $
+// $Id: fastInferiorHeapHKs.C,v 1.11 1999/07/07 16:15:03 zhichen Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
 #include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/pdThread.h"
 #include "metric.h"
 #include "fastInferiorHeapHKs.h"
 
@@ -162,7 +163,7 @@ bool intCounterHK::perform(const intCounter &dataValue, process *inferiorProc) {
 
    // To avoid race condition, don't use 'dataValue' after this point!
 
-#ifdef SHM_SAMPLING_DEBUG
+//#ifdef SHM_SAMPLING_DEBUG
    const unsigned id    = dataValue.id.id;
       // okay to read dataValue.id since there's no race condition with it.
    assert(id == this->lowLevelId); // verify our new code is working right
@@ -182,7 +183,7 @@ bool intCounterHK::perform(const intCounter &dataValue, process *inferiorProc) {
 
    // note: we do _not_ assert that id==mi->getMId(), since mi->getMId() returns
    // an entirely different identifier that has no relation to our 'id'
-#endif
+//#endif
 
    assert(mi);
    assert(mi->proc() == inferiorProc);
@@ -226,7 +227,7 @@ static time64 calcTimeValueToUse(int count, time64 start,
    // happening?)
    if (currentTime < start)
       return total;
-   else
+   else 
       return total + (currentTime - start);
 }
 
@@ -267,7 +268,7 @@ bool wallTimerHK::perform(const tTimer &theTimer, process *) {
    /* don't use 'theTimer' after this point! (avoid race condition).  To ensure
       this, we call calcTimeValueToUse(), which doesn't use 'theTimer' */
    time64 timeValueToUse = calcTimeValueToUse(count, start,
-							  total, currWallTime);
+					      total, currWallTime);
 
    // Check for rollback; update lastTimeValueUsed (the two go hand in hand)
    if (timeValueToUse < lastTimeValueUsed) {
@@ -315,6 +316,9 @@ processTimerHK &processTimerHK::operator=(const processTimerHK &src) {
    lowLevelId        = src.lowLevelId;
    lastTimeValueUsed = src.lastTimeValueUsed;
 
+#if defined(MT_THREAD)
+   vTimer = NULL ;
+#endif
    genericHK::operator=(src);
 
    return *this;
@@ -350,36 +354,65 @@ bool processTimerHK::perform(const tTimer &theTimer, process *inferiorProc) {
    const time64 total = theTimer.total;
    const time64 start = (count > 0) ? theTimer.start : 0; // not needed if count==0
 
-   const unsigned long long inferiorCPUtime =
-                  (count > 0) ? inferiorProc->getInferiorProcessCPUtime() : 0;
-      // Also cheating; see below.
-      // the fudge factor is needed only if count > 0.
-   const time64 theWallTime = getCurrWallTime();
-      // This is cheating a little; officially, this call should be inside
-      // of the two protector vrbles.  But, it was taking too long...
-
    volatile const int protector1 = theTimer.protector1;
-
    if (protector1 != protector2)
       return false;
+
+#if defined(MT_THREAD)
+   const tTimer* vt   = (tTimer*) theTimer.vtimer ;
+   unsigned long long inferiorCPUtime ;
+   if (vt == (tTimer*) -1) {
+     inferiorCPUtime = (count>0)?inferiorProc->getInferiorProcessCPUtime():0;
+   } else {
+     if (vt) {
+       RTINSTsharedData *RTsharedDataInParadynd 
+	   =((RTINSTsharedData*) inferiorProc->getRTsharedDataInParadyndSpace()) ; 
+       RTINSTsharedData *RTsharedDataInApplic 
+	   =((RTINSTsharedData*) inferiorProc->getRTsharedDataInApplicSpace()) ; 
+       vTimer = RTsharedDataInParadynd->virtualTimers + 
+	   (int)(vt- RTsharedDataInApplic->virtualTimers);
+     }
+     bool success = true ; // count <=0 should return true
+     inferiorCPUtime =(count>0)?pdThread::getInferiorVtime(vTimer,inferiorProc, success):0 ; 
+     if (!success)
+       return false ;
+   }
+#else   
+   const unsigned long long inferiorCPUtime
+     = (count>0)?inferiorProc->getInferiorProcessCPUtime(/*theTimer.lwp_id*/):0;
+#endif 
+
+   // Also cheating; see below.
+   // the fudge factor is needed only if count > 0.
+   const time64 theWallTime = getCurrWallTime();
+   // This is cheating a little; officially, this call should be inside
+   // of the two protector vrbles.  But, it was taking too long...
+
 
    /* don't use 'theTimer' after this point! (avoid race condition).  To ensure
       this, we call calcTimeValueToUse() without passing 'theTimer' */
    time64 timeValueToUse = calcTimeValueToUse(count, start,
-							  total, inferiorCPUtime);
-
+					      total, inferiorCPUtime);
    // Check for rollback; update lastTimeValueUsed (the two go hand in hand)
+   // cerr <<"lastTimeValueUsed="<< lastTimeValueUsed << endl ;
    if (timeValueToUse < lastTimeValueUsed) {
-      // Timer rollback!  An assert failure.
-      // (Unfortunately, since it's happening so often, we must "gracefully"
-      // handle it instead of bombing)
+#if  !defined(MT_THREAD)
+   // Timer could roll back in the case that the per-thread
+   // virtual timer is reused by another thread, to avoid this to happen, we should
+   // reuse them with a least recently used strategy.
+   // See DYNINST_hash_delete in RTinst.c
+      const char bell = ' '; //07;
+      cerr << "processTimerHK::perform(): process timer rollback (" 
+	   << timeValueToUse << "," << lastTimeValueUsed << ")" 
+	   << bell << endl;
+      cerr << "timer was " << (count > 0 ? "active" : "inactive") 
+	   << ", id=" << theTimer.id.id 
+	   << ", start=" << start
+	   << ", total=" << total
+	   << ", inferiorCPUtime=" << inferiorCPUtime
+	   << endl;
 
-//      const char bell = 07;
-      const char bell = ' ';
-
-      cerr << "processTimerHK::perform(): process timer rollback (" << timeValueToUse << "," << lastTimeValueUsed << ")" << bell << endl;
-      cerr << "timer was " << (count > 0 ? "active" : "inactive") << endl;
-
+#endif
       timeValueToUse = lastTimeValueUsed;
 
 //      assert(false);
@@ -387,7 +420,7 @@ bool processTimerHK::perform(const tTimer &theTimer, process *inferiorProc) {
    else
       lastTimeValueUsed = timeValueToUse;
 
-#ifdef SHM_SAMPLING_DEBUG
+//#ifdef SHM_SAMPLING_DEBUG
    const unsigned id    = theTimer.id.id;
 
    assert(id == this->lowLevelId); // verify our new code is working right
@@ -396,14 +429,17 @@ bool processTimerHK::perform(const tTimer &theTimer, process *inferiorProc) {
    metricDefinitionNode *theMi;
    if (!midToMiMap.find(id, theMi)) { // fills in "theMi" if found
       // sample not for valid metric instance; no big deal; just drop sample.
-      cerr << "procTimer id " << id << " not found in midToMiMap so dropping sample of val " << (double)timeValueToUse / normalize << " for mi " << (void*)mi << " proc pid " << inferiorProc->getPid() << endl;
+      cerr << "procTimer id " << id 
+	   << " not found in midToMiMap so dropping sample of val " 
+	   << (double)timeValueToUse / normalize << " for mi " 
+	   << (void*)mi << " proc pid " << inferiorProc->getPid() << endl;
       return true; // is this right?
    }
    assert(theMi == this->mi); // verify our new code is working right
 
    // note: we do _not_ assert that id==mi->getMId(), since mi->getMId() returns
    // an entirely different identifier that has no relation to our 'id'
-#endif
+//#endif
 
    const double valueToReport = (double)timeValueToUse / normalize;
 
