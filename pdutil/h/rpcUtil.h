@@ -47,6 +47,8 @@ class RPCUser {
 // server side routines that are transport independent.
 //
 class RPCServer {
+  public:
+	int __versionVerifyDone__;
 };
 
 extern int xdr_String(XDR*, String*);
