@@ -38,7 +38,7 @@ class TransFilter:public Filter {
  private:
     std::string fmt_str;
     void ( *trans_filter ) ( std::vector < Packet >&packets_in,
-                             std::vector < Packet >&packets_in,
+                             std::vector < Packet >&packets_out,
                              void ** );
  public:
     TransFilter( unsigned short _fid );

@@ -54,18 +54,18 @@ class Error{
     enum ErrorCodes MRN_errno;
 
  public:
-    Error::Error() :MRN_errno(MRN_ENONE) { }
-    virtual Error::~Error() { }
+    Error() :MRN_errno(MRN_ENONE) { }
+    virtual ~Error() { }
 
-    inline bool Error::good() {
+    inline bool good() {
         return (MRN_errno == MRN_ENONE);
     }
 
-    inline bool Error::fail() {
+    inline bool fail() {
         return (MRN_errno != MRN_ENONE);
     }
 
-    inline void Error::perror(const char *str) {
+    inline void perror(const char *str) {
         fprintf(stderr, "%s: %s\n", str, errors[MRN_errno].msg);
         return;
     }

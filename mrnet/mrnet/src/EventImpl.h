@@ -18,35 +18,35 @@ class EventImpl: public Event{
     static std::list<EventImpl> remote_events;
 
  public:
-    static bool EventImpl::have_Event(){
+    static bool have_Event(){
         return !( events.empty() );
     }
-    static bool EventImpl::have_RemoteEvent(){
+    static bool have_RemoteEvent(){
         return !( remote_events.empty() );
     }
 
-    static void EventImpl::add_Event(EventImpl &event){
+    static void add_Event(EventImpl &event){
         events.push_back( event );
         remote_events.push_back( event );
     }
 
-    static EventImpl EventImpl::get_NextEvent() {
+    static EventImpl get_NextEvent() {
         EventImpl ret = *( events.begin() );
         events.pop_front();
         return ret;
     }
 
-    static EventImpl EventImpl::get_NextRemoteEvent() {
+    static EventImpl get_NextRemoteEvent() {
         EventImpl ret = *( remote_events.begin() );
         remote_events.pop_front();
         return ret;
     }
 
-    static unsigned int EventImpl::get_NumRemoteEvents() {
+    static unsigned int get_NumRemoteEvents() {
         return remote_events.size();
     }
 
-    static unsigned int EventImpl::get_NumEvents() {
+    static unsigned int get_NumEvents() {
         return events.size();
     }
 
@@ -54,7 +54,7 @@ class EventImpl: public Event{
            unsigned short p=LocalPort )
         :type(t), hostname(h), port(p), description(desc) {}
 
-    virtual EventImpl::~EventImpl(){}
+    virtual ~EventImpl(){}
 
     virtual EventType get_Type( ){
         return type;

@@ -48,43 +48,43 @@ class PacketData: public Error{
 
     static bool_t pdr_packet( PDR *, PacketData * );
 
-    int PacketData::get_Tag(  ) {
+    int get_Tag(  ) {
         return tag;
     }
 
-    unsigned short PacketData::get_StreamId(  ) {
+    unsigned short get_StreamId(  ) {
         return stream_id;
     }
 
-    char *PacketData::get_Buffer(  ) {
+    char *get_Buffer(  ) {
         return buf;
     }
 
-    unsigned int PacketData::get_BufferLen(  ) {
+    unsigned int get_BufferLen(  ) {
         return buf_len;
     }
 
-    const char *PacketData::get_FormatString(  ) {
+    const char *get_FormatString(  ) {
         return fmt_str;
     }
 
-    RemoteNode * PacketData::get_InletNode(  ) {
+    RemoteNode * get_InletNode(  ) {
         return inlet_node;
     }
 
-    void PacketData::set_InletNode( RemoteNode * rn ) {
+    void set_InletNode( RemoteNode * rn ) {
         inlet_node = rn;
     }
 
-    unsigned int PacketData::get_NumDataElements(  ) {
+    unsigned int get_NumDataElements(  ) {
         return data_elements.size(  );
     }
 
-    DataElement & PacketData::get_DataElement( unsigned int i ) {
+    DataElement & get_DataElement( unsigned int i ) {
         return data_elements[i];
     }
 
-    DataElement & PacketData::operator[] ( unsigned int i ) {
+    DataElement & operator[] ( unsigned int i ) {
         return data_elements[i];
     }
 };
