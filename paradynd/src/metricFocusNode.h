@@ -7,7 +7,10 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
- * Revision 1.26  1996/02/09 22:13:51  mjrg
+ * Revision 1.27  1996/02/22 23:41:45  newhall
+ * removed getCurrentSmoothObsCost, and fix to costMetric::updateSmoothValue
+ *
+ * Revision 1.26  1996/02/09  22:13:51  mjrg
  * metric inheritance now works in all cases
  * paradynd now always reports to paradyn when a process is ready to run
  * fixed aggregation to handle first samples and addition of new components
@@ -322,7 +325,6 @@ extern dictionary_hash<unsigned, metricDefinitionNode*> allMIs;
 //
 timeStamp getCurrentTime(bool firstRecordRelative);
 
-extern double currentSmoothObsValue;
 extern double currentPredictedCost;
 extern void processCost(process *proc, traceHeader *h, costUpdate *s);
 extern void reportInternalMetrics();

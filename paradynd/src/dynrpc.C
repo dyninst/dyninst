@@ -27,7 +27,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.34  1996/02/13 22:18:04  newhall
+ * Revision 1.35  1996/02/22 23:41:40  newhall
+ * removed getCurrentSmoothObsCost, and fix to costMetric::updateSmoothValue
+ *
+ * Revision 1.34  1996/02/13  22:18:04  newhall
  * added test to make sure that currentPredictedCost is never negative
  *
  * Revision 1.33  1996/02/13  06:17:27  newhall
@@ -233,12 +236,6 @@ double dynRPC::getPredictedDataCost(vector<u_int> focus, string metName)
     return (guessCost(metName, focus));
 }
 
-double dynRPC::getCurrentSmoothObsCost(void)
-{
-    statusLine("returning cost measurements");
-    return(currentSmoothObsValue);
-}
-
 void dynRPC::disableDataCollection(int mid)
 {
     float cost;
@@ -261,10 +258,6 @@ void dynRPC::disableDataCollection(int mid)
     else 
         currentPredictedCost -= cost;
 
-    // char buffer[200];
-    // sprintf(buffer, "disableDataCollection: currentPredictedCost = %f\n",
-    // 	    currentPredictedCost);
-    // logLine(buffer);
     mi->disable();
     allMIs.undef(mid);
     delete(mi);

@@ -275,6 +275,7 @@ void costMetric::updateSmoothValue(process *proc,
 	    if(past_head >= PAST_LIMIT) past_head = 0;
 	    // compute value for the appropriate time interval
 	    smooth_sample *= length;
+	    sample.value = smooth_sample;
 	}
 	if(node){  // actually send the value
 	    // kludge to fix negative time from CM5 

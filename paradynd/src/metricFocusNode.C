@@ -14,7 +14,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.79  1996/02/21 19:30:38  naim
+ * Revision 1.80  1996/02/22 23:41:43  newhall
+ * removed getCurrentSmoothObsCost, and fix to costMetric::updateSmoothValue
+ *
+ * Revision 1.79  1996/02/21  19:30:38  naim
  * Minor changes to getNumberOfCPUs (CM-5): using CMMD_partition_size() - naim
  *
  * Revision 1.78  1996/02/21  15:46:19  naim
@@ -396,7 +399,6 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
 #include "costmetrics.h"
 
 double currentPredictedCost = 0.0;
-double currentSmoothObsValue= 0.0;
 
 dictionary_hash <unsigned, metricDefinitionNode*> midToMiMap(uiHash);
 
@@ -658,7 +660,6 @@ float guessCost(string& metric_name, vector<u_int>& focus)
     bool internal;
     mi = createMetricInstance(metric_name, focus, false, internal);
     if (!mi) return(0.0);
-
     cost = mi->cost();
     return(cost);
 }
@@ -1045,7 +1046,8 @@ void metricDefinitionNode::updateAggregateComponent(metricDefinitionNode *curr,
 // calling reportInternalMetrics to deliver cost values, instead we wait
 // until we have received a new interval of cost data from each process)
 // note: this only works for the CM5 because all cost metrics are sumed
-// at the daemons and at paradyn 
+// at the daemons and at paradyn, otherwise the CM5 needs its own version
+// of this routine that uses the same aggregate method as the one for paradyn 
 //
 void processCost(process *proc, traceHeader *h, costUpdate *s)
 {
@@ -1061,7 +1063,6 @@ void processCost(process *proc, traceHeader *h, costUpdate *s)
     // find the portion of uninstrumented time for this interval
     double unInstTime = ((newProcessTime - lastProcessTime) 
 			 / (1+currentPredictedCost));
-
     // update predicted cost
     // note: currentPredictedCost is the same for all processes 
     //       this should be changed to be computed on a per process basis
@@ -1083,9 +1084,11 @@ void processSample(traceHeader *h, traceSample *s)
 {
     unsigned mid = s->id.id;
     if (!midToMiMap.defines(mid)) {
+#ifdef ndef
       sprintf(errorLine, "Sample %d not for a valid metric instance\n", 
               s->id.id);
       logLine(errorLine);
+#endif
       return;
     }
     metricDefinitionNode *mi = midToMiMap[mid];
@@ -1101,9 +1104,12 @@ void processCM5Sample(traceHeader *h, traceSample *s,int num_processes)
 {
     unsigned mid = s->id.id;
     if (!midToMiMap.defines(mid)) {
+      // this is an okay thang, it can happen when an MI hase been disabled 
+#ifdef ndef
       sprintf(errorLine, "Sample %d not for a valid metric instance\n", 
               s->id.id);
       logLine(errorLine);
+#endif
       return;
     }
     metricDefinitionNode *mi = midToMiMap[mid];
@@ -1169,7 +1175,6 @@ float instReqNode::cost()
     unitCost = unitCostInCycles/ cyclesPerSecond;
     frequency = getPointFrequency(point);
     value = unitCost * frequency;
-
     return(value);
 }
 
