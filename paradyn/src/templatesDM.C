@@ -46,10 +46,10 @@
 #pragma implementation "list.h"
 #include "util/h/list.h"
 #include "util/h/String.h"
+
 #pragma implementation "Vector.h"
 #include "util/h/Vector.h"
-#pragma implementation "Queue.h"
-#include "util/h/Queue.h"
+
 #pragma implementation "BufferPool.h"
 #include "paradyn/src/DMthread/BufferPool.h"
 #pragma implementation "Dictionary.h"
@@ -194,3 +194,7 @@ template class ListItem<sampleInfo*>;
 template class vector<T_dyninstRPC::batch_buffer_entry>;
 template bool_t T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::batch_buffer_entry> *, int (*)(XDR *, T_dyninstRPC::batch_buffer_entry *), T_dyninstRPC::batch_buffer_entry *) ;
 
+///* ******************************************* */
+//
+//#include "util/h/hist.h"
+//template class vector<Histogram *>;
