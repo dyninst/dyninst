@@ -40,41 +40,8 @@
  */
 
 /*
- * PCconstants.C
- *
  * All tunable Constants used by hypotheses.
- *
- * $Log: PCconstants.C,v $
- * Revision 1.7  1997/03/16 23:18:14  lzheng
- * Changes made for the value of observed cost
- *
- * Revision 1.6  1996/08/16 21:03:15  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.5  1996/07/22 18:56:20  karavan
- * part one of two-part commit
- *
- * Revision 1.4  1996/04/18 02:27:13  tamches
- * tunable "predictedCostLimit" renamed to "costLimit"; also, its initial
- * value now 0.2
- *
- * Revision 1.3  1996/03/18 07:10:28  karavan
- * added new tunable constant, PCcollectInstrTimings.
- *
- * Revision 1.2  1996/02/08 19:52:34  karavan
- * changed performance consultant's use of tunable constants:  added 3 new
- * user-level TC's, PC_CPUThreshold, PC_IOThreshold, PC_SyncThreshold, which
- * are used for all hypotheses for the respective categories.  Also added
- * PC_useIndividualThresholds, which switches thresholds back to use hypothesis-
- * specific, rather than categorical, thresholds.
- *
- * Moved all TC initialization to PCconstants.C.
- *
- * Switched over to callbacks for TC value updates.
- *
- * Revision 1.1  1996/02/02 02:06:28  karavan
- * A baby Performance Consultant is born!
- *
+ * $Id: PCconstants.C,v 1.8 1998/04/28 22:13:59 wylie Exp $
  */
 
 #include "PCintern.h"
@@ -135,7 +102,7 @@ void initPCconstants ()
   floatInitializer = 1.5;
   tunableConstantRegistry::createFloatTunableConstant
     ("costLimit",
-     "Max allowable perturbation of the application, as a fraction of the program's CPU time",
+     "Maximum allowable perturbation of the application, as a fraction of the program's CPU time.",
      TCpredictedCostLimitCB, // callback routine
      userConstant,
      floatInitializer, // initial value
@@ -157,7 +124,7 @@ void initPCconstants ()
   floatInitializer = 1.0;
   tunableConstantRegistry::createFloatTunableConstant
     ("minObservationTime",
-     "min. time (in seconds) to wait after changing inst to start try hypotheses.",
+     "Minimum time (in seconds) to wait after changing instrumentation to start try hypotheses.",
      TCminObservationTimeCB, // callback
      userConstant,
      floatInitializer, // initial
@@ -183,7 +150,7 @@ void initPCconstants ()
   boolInitializer = false;
   tunableConstantRegistry::createBoolTunableConstant 
     ("PCprintDataTrace", 
-     "Trace Data Movement from Arrival at PC thread to arrival at Experiment.",
+     "Trace data movement from arrival at PC thread to arrival at experiment.",
      TCprintDataTraceCB,
      developerConstant, 
      boolInitializer);
@@ -210,7 +177,7 @@ void initPCconstants ()
   boolInitializer = false;
   tunableConstantRegistry::createBoolTunableConstant 
     ("PCprintDataCollection", 
-     "Trace DM Data enables, disables, plus receipt of DM data.",
+     "Trace DM data enables and disables, plus receipt of DM data.",
      TCprintDataCollectionCB, 
      developerConstant, 
      boolInitializer);
@@ -235,7 +202,7 @@ void initPCconstants ()
   boolInitializer = false;
   tunableConstantRegistry::createBoolTunableConstant 
     ("PCuseIndividualThresholds", 
-     "Use individually defined thresholds for all PC hypotheses.",
+     "Use individually defined thresholds for all Performance Consultant hypotheses.",
      TCuseIndividualThresholdsCB, 
      developerConstant, 
      boolInitializer);
@@ -244,7 +211,7 @@ void initPCconstants ()
   floatInitializer = 0.20;
   tunableConstantRegistry::createFloatTunableConstant 
     ("PC_SyncThreshold", 
-     "Threshold to use while testing Synchronization Hypotheses", 
+     "Threshold to use while testing Synchronization hypothesis (%).", 
      (void *)NULL,
      userConstant,  
      floatInitializer, 0.0, 1.0);
@@ -252,7 +219,7 @@ void initPCconstants ()
   floatInitializer = 0.30;
   tunableConstantRegistry::createFloatTunableConstant
     ("PC_CPUThreshold", 
-     "Threshold to use while testing CPUBound Hypothesis", 
+     "Threshold to use while testing CPUBound hypothesis (%).", 
      (void *)NULL, 
      userConstant, 
      floatInitializer, 0, 1.00);
@@ -260,10 +227,18 @@ void initPCconstants ()
   floatInitializer = 0.20;
   tunableConstantRegistry::createFloatTunableConstant
     ("PC_IOThreshold", 
-     "Threshold to use while testing IO Hypotheses", 
+     "Threshold to use while testing I/O Blocking hypothesis (%).", 
      (void *)NULL, 
      userConstant, 
      floatInitializer, 0.0, 1.0);
+
+  // based on developerConstant:diskBlockSize
+  tunableConstantRegistry::createFloatTunableConstant
+    ("PC_IOOpThreshold", 
+     "Threshold to use while testing Small I/O Operation hypothesis (bytes).", 
+     (void *)NULL, 
+     userConstant, 
+     4096, 0, 8192);
 
   //
   // individual thresholds (will be defined in PCL eventually)
@@ -287,7 +262,7 @@ void initPCconstants ()
      developerConstant, 
      0.25, 0, 1.00);
 
-  // time to aquire an free lock (in usec).
+  // time to acquire a free lock (in usec).
   //const lockOverhead = 10;
   tunableConstantRegistry::createFloatTunableConstant
     ("lockOverhead", 
@@ -314,7 +289,7 @@ void initPCconstants ()
      developerConstant, 
      0.10, 0.05, 0.15);
 
-  // physical disk blcoks
+  // physical disk blocks
   //const int diskBlockSize = 4096;
   tunableConstantRegistry::createFloatTunableConstant
     ("diskBlockSize", 
@@ -323,7 +298,7 @@ void initPCconstants ()
      developerConstant, 
      4096, 0, 8192);
 
-  // 50% of io delay is seek we call it seek bound.
+  // 50% of I/O delay being seek we call seek bound
   //const float seekBoundThreshold = 0.50;
   tunableConstantRegistry::createFloatTunableConstant
     ("seekBoundThreshold", 
