@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.32 2000/05/14 18:36:22 mirg Exp $
+ * $Id: RTinst.c,v 1.33 2000/07/13 18:01:24 zandy Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -831,8 +831,6 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
   (void)gethostname(thehostname, 80);
   thehostname[79] = '\0';
   
-fprintf(stderr, "ZANDY: DYNINSTinit called\n");
-
   shmsampling_printf("WELCOME to DYNINSTinit (%s, pid=%d), args are %d, %d, %d\n",
 		     thehostname, (int)getpid(), theKey, shmSegNumBytes,
 		     paradyndPid);
