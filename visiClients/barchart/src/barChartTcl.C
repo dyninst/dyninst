@@ -1,9 +1,13 @@
 // barChartTcl.C
 
 /* $Log: barChartTcl.C,v $
-/* Revision 1.12  1996/01/17 19:44:07  tamches
-/* shuffled colors a bit
+/* Revision 1.13  1996/04/30 20:45:24  tamches
+/* moved some Dg2 cmds here
+/* added functionality for phase label displayed in the tk window
 /*
+ * Revision 1.12  1996/01/17 19:44:07  tamches
+ * shuffled colors a bit
+ *
  * Revision 1.11  1996/01/11 01:53:42  tamches
  * added long2shortFocusNameCommand to compute short focus names
  *
@@ -49,8 +53,8 @@
 #include "Vector.h"
 #include "String.h"
 
-#include <tcl.h>
-#include <tk.h>
+#include "tcl.h"
+#include "tk.h"
 #include "dg2.h" // for dataGrid[][]
 #include "visi/h/visualization.h"
 #include "barChart.h"
@@ -59,8 +63,65 @@ bool barChartIsValid = false;
    // set to true ** after ** barChart::barChart
    // until then, callbacks check this flag and do nothing
 
+/* ************************************************************* */
+
+void updatePhaseLabelIfFirstTime() {
+   static bool firstTime = true;
+
+   if (!firstTime)
+      return;
+
+   int phaseHandle = visi_GetMyPhaseHandle();
+   if (phaseHandle < -1)
+      return; // sorry, not yet defined
+
+   extern Tcl_Interp *MainInterp;
+   const char *phaseName = visi_GetMyPhaseName();
+   if (phaseName == NULL) {
+      // ugh; we have a current phase, but the name isn't yet known
+      myTclEval(MainInterp, string(".bargrph.phaseName config -text \"Phase: Current Phase\""));
+      return; // return w/o setting firstTime to false
+   }
+
+   // success
+   string commandStr = string(".bargrph.phaseName config -text \"Phase: ") + phaseName + "\"";
+   myTclEval(MainInterp, commandStr);
+
+   firstTime = false;
+}
+
+/* ************************************************************* */
+
+int Dg2AddMetricsCallback(int) {
+   updatePhaseLabelIfFirstTime();
+   
+   myTclEval(MainInterp, "DgConfigCallback");
+
+   // if necessary, the tcl program will call xAxisHasChanged and/or
+   // yAxisHasChanged, which are commands we implement in barChart.C.
+   // We take action then.
+
+   return TCL_OK;
+}
+
+int Dg2Fold(int) {
+   myTclEval(MainInterp, "DgFoldCallback");
+   return TCL_OK;
+}
+
+int Dg2InvalidMetricsOrResources(int) {
+   myTclEval(MainInterp, "DgInvalidCallback");
+   return TCL_OK;
+}
+
+int Dg2PhaseNameCallback(int) {
+   myTclEval(MainInterp, "DgPhaseCallback");
+   return TCL_OK;
+}
+
 int Dg2NewDataCallback(int lastBucket) {
    if (barChartIsValid) {
+      updatePhaseLabelIfFirstTime();
       theBarChart->processNewData(lastBucket);
       return TCL_OK;
    }
