@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTable.h,v 1.3 1999/07/07 16:12:54 zhichen Exp $
+// $Id: baseTable.h,v 1.4 2000/02/22 23:05:14 pcroth Exp $
 // The baseTable class consists of an array of superVectors. The baseTable class is
 // a template class. It has a levelMap vector that keeps track of the levels (rows)
 // that has been allocated (remember that we need not only an index but also a level
@@ -48,7 +48,9 @@
 #ifndef _BASE_TABLE_H_
 #define _BASE_TABLE_H_
 
+#if !defined(i386_unknown_nt4_0)    // interface is a keyword
 #pragma interface
+#endif // !defined(i386_unknown_nt4_0)
 
 #include "util/h/Vector.h"
 #include "paradynd/src/superVector.h"
@@ -67,8 +69,9 @@ class baseTable {
     process *inferiorProcess;
 
     // since we don't define them, make sure they're not used:
-    baseTable(const baseTable &);
-    baseTable &operator=(const baseTable &);
+    // (VC++ requires template members to be defined if they are declared)
+    baseTable(const baseTable &)                {}
+    baseTable &operator=(const baseTable &)     { return *this; }
 
   public:
     baseTable() : inferiorProcess(NULL) {};

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: superVector.h,v 1.3 1999/07/07 16:22:22 zhichen Exp $
+// $Id: superVector.h,v 1.4 2000/02/22 23:05:14 pcroth Exp $
 // The superVector is an array of vectors of counters and timers, or
 // fastInferiorHeap objects. Part of the functionality of the fastInferiorHeap
 // class has been moved to this new class - naim 3/26/97
@@ -47,7 +47,9 @@
 #ifndef _SUPER_VECTOR__H_
 #define _SUPER_VECTOR__H_
 
+#if !defined(i386_unknown_nt4_0) // interface is a VC++ keyword
 #pragma interface
+#endif // !defined(i386_unknown_nt4_0)
 
 #include "util/h/Vector.h"
 #include "rtinst/h/rtinst.h"
@@ -76,8 +78,9 @@ class superVector {
       // the index here is the thread id (after it's been mapped)
 
    // since we don't define them, make sure they're not used:
-   superVector(const superVector &);
-   superVector &operator=(const superVector &);
+   // (VC++ requires template members to be defined if they are declared)
+   superVector(const superVector &)				{}
+   superVector &operator=(const superVector &)	{ return *this; }
 
   public: 
 

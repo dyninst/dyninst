@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeap.h,v 1.9 1999/07/07 16:14:01 zhichen Exp $
+// $Id: fastInferiorHeap.h,v 1.10 2000/02/22 23:05:14 pcroth Exp $
 // Ari Tamches
 // This class is intended to be used only in paradynd.
 // This templated class manages a heap of objects in a UNIX shared-memory segment
@@ -60,7 +60,9 @@
 #ifndef _FAST_INFERIOR_HEAP_H_
 #define _FAST_INFERIOR_HEAP_H_
 
+#if !defined(i386_unknown_nt4_0)    // interface is a keyword to VC++
 #pragma interface
+#endif // !defined(i386_unknown_nt4_0)
 
 #include "heapStates.h" // enum states
 #include "util/h/Vector.h"
@@ -99,7 +101,8 @@ class fastInferiorHeap {
    vector<unsigned> permanentSamplingSet; // all allocated indexes
    vector<unsigned> currentSamplingSet; // a subset of permanentSamplingSet
    // since we don't define them, make sure they're not used:
-   fastInferiorHeap(const fastInferiorHeap &);
+   // (VC++ requires template members to be defined if they are declared)
+   fastInferiorHeap(const fastInferiorHeap &)   {}
 #if defined(MT_THREAD)
    vector<sampling_states> activemap;
    vector<HK> houseKeeping; // one entry per value (allocated or not) in the appl.
@@ -137,9 +140,13 @@ class fastInferiorHeap {
 
   ~fastInferiorHeap();
 
-   void initialize_activemap(unsigned mapsize);
+#if defined(MT_THREAD)
+   void set_houseKeeping(unsigned idx, const HK &iHKValue);
    void initialize_houseKeeping(unsigned mapsize);
+   void initialize_activemap(unsigned mapsize);
    void set_activemap(unsigned idx, sampling_states value);
+#endif // defined(MT_THREAD)
+
    void setBaseAddrInApplic(RAW *addr) {
       // should call _very_ soon after the ctor, right after the applic has
       // attached to the shm segment.
@@ -185,17 +192,16 @@ class fastInferiorHeap {
       return baseAddrInParadynd + allocatedIndex;
    }
 
+#if defined(MT_THREAD)
    void handleExec();
    void forkHasCompleted(vector<states> &statemap);
-   void set_houseKeeping(unsigned idx, const HK &iHKValue);
 
-#if defined(MT_THREAD)
    void makePendingFree(unsigned ndx, const vector<Address> &trampsUsing);
    bool checkIfInactive(unsigned ndx);
    bool tryGarbageCollect(const vector<Address> &PCs, unsigned ndx);
    void initializeHKAfterFork(unsigned allocatedIndex, 
                               const HK &iHouseKeepingValue);
-#endif
+#endif // defined(MT_THREAD)
    void addToPermanentSamplingSet(unsigned lcv);
 
    // Reads data values (in the shared memory heap) and processes allocated
