@@ -46,6 +46,9 @@
 
 /* 
  * $Log: templates0.C,v $
+ * Revision 1.8  1996/10/09 14:03:17  mjrg
+ * added template for class functionName
+ *
  * Revision 1.7  1996/09/26 18:59:24  newhall
  * added support for instrumenting dynamic executables on sparc-solaris
  * platform
@@ -125,6 +128,7 @@
 #include "internalMetrics.h"
 #include "util/h/Object.h"
 
+template class vector<functionName*>;
 template class vector<sampleInfo*>;
 template class vector<bool>;
 template class  vector<AstNode>;
