@@ -15,7 +15,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/perfStream.C,v
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.43  1995/10/19 22:36:43  mjrg
+ * Revision 1.44  1995/10/30 23:09:01  naim
+ * Updating error message - naim
+ *
+ * Revision 1.43  1995/10/19  22:36:43  mjrg
  * Added callback function for paradynd's to report change in status of application.
  * Added Exited status for applications.
  * Removed breakpoints from CM5 applications.
@@ -338,7 +341,7 @@ void processTraceStream(process *curr)
 	exit(-2);
     } else if (ret == 0) {
 	/* end of file */
-	sprintf(buffer, "got EOF on link %d", curr->traceLink);
+	sprintf(buffer, "Process %d has exited", curr->pid);
 	statusLine(buffer);
 	showErrorCallback(11, buffer);
 	curr->traceLink = -1;
