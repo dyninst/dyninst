@@ -16,7 +16,9 @@ std::map<unsigned int, void(*)(std::list <MC_Packet*>&, std::list <MC_Packet*>&,
 MC_ParentNode::MC_ParentNode(bool _threaded, std::string _hostname,
                              unsigned short _port)
   :hostname(_hostname), port(0), config_port(_port), listening_sock_fd(0),
-   threaded(_threaded), num_descendants(0), num_descendants_reported(0)
+   threaded(_threaded),
+   isLeaf_(false),
+   num_descendants(0), num_descendants_reported(0)
 {
   mc_printf(MCFL, stderr, "In MC_ParentNode(): Calling bind_to_port(%d)\n", 
              port);
@@ -167,6 +169,7 @@ int MC_ParentNode::flush_PacketsDownStream(unsigned int stream_id)
   return retval;
 }
 
+
 int MC_ParentNode::proc_newSubTree(MC_Packet * packet)
 {
   char *byte_array=NULL;
@@ -180,7 +183,7 @@ int MC_ParentNode::proc_newSubTree(MC_Packet * packet)
   }
 
   MC_SerialGraph sg(byte_array);
-  std::string application(appl);
+  std::string application((appl == NULL) ? "" : appl);
 
   //mc_printf(MCFL, stderr, "sg.root:%s:%d, local:%s:%d\n", sg.get_RootName().c_str(),
 	     //sg.get_RootPort(), hostname.c_str(), port);
@@ -223,15 +226,23 @@ int MC_ParentNode::proc_newSubTree(MC_Packet * packet)
       unsigned short rootport = cur_sg->get_RootPort();
       unsigned short rootid = cur_sg->get_Id();
 
-      std::vector <std::string> dummy_args;
       mc_printf(MCFL, stderr, "cur_child(%s:%d) is backend[%d]\n",
                  rootname.c_str(), rootport, rootid);
+
+      // since this child is a backend, I'm a leaf
+      isLeaf_ = true;
+
       MC_RemoteNode *cur_node = new MC_RemoteNode(threaded, rootname, rootport);
 
-      if( cur_node->new_Application(listening_sock_fd, hostname, port,
-                                   config_port, application, dummy_args)== -1){
-	mc_printf(MCFL, stderr, "child_node.new_application() failed\n");
-	return -1;
+      if( application.length() > 0 )
+      {
+          std::vector <std::string> dummy_args;
+          if( cur_node->new_Application(listening_sock_fd, hostname,
+                                        port, config_port,
+                                        application, dummy_args)== -1){
+            mc_printf(MCFL, stderr, "child_node.new_application() failed\n");
+            return -1;
+          }
       }
 
       if(threaded){ childnodebybackendid_sync.lock(); }
@@ -579,3 +590,310 @@ unsigned short MC_ParentNode::get_Port()
 {
   return port;
 }
+
+
+
+
+int
+MC_ParentNode::proc_getLeafInfo( MC_Packet* pkt )
+{
+    int ret = 0;
+
+    // request packet is empty -
+    // no need to extract anything
+
+    // determine if I am a leaf in the MRNet tree.
+    //
+    // NOTE: though the terminology is counter-intuitive, a ParentNode 
+    // can be a leaf in the MRNet tree.  A ParentNode is a leaf in the 
+    // tree if all of its children are backends.
+    //
+    // handle the request
+    if( isLeaf() )
+    {
+        mc_printf(MCFL, stderr, "leaf at %s:%u\n", hostname.c_str(), port);
+
+        // build a response packet with our address
+        // we need to build it as the degenerate case of
+        // the packet seen higher up in the tree.  This means,
+        // we need to format it as an array with one element,
+        // rather than just the one element.
+        const char* myHost = hostname.c_str();
+        unsigned int myPort = port;
+        MC_Packet* resp = new MC_Packet( MC_GET_LEAF_INFO_PROT, "%as %aud",
+                                            &myHost, 1,
+                                            &myPort, 1 );
+
+        // deliver the response 
+        // (how it is delivered depends on what type of 
+        // ParentNode we actually are)
+        if( deliverLeafInfoResponse( resp ) == -1 )
+        {
+            mc_printf( MCFL, stderr, "failed to deliver getLeafInfo response\n" );
+            ret = -1;
+        }
+    }
+    else
+    {
+        // forward the request packet to each of my children
+        // TODO am I safe to reuse the same packet here
+        for( std::list<MC_RemoteNode*>::iterator childIter = 
+                    children_nodes.begin();
+                childIter != children_nodes.end();
+                childIter++ )
+        {
+            MC_RemoteNode* child = *childIter;
+            assert( child != NULL );
+
+            if( (child->send( pkt ) == -1) ||
+                (child->flush() == -1) )
+            {
+                mc_printf( MCFL, stderr, "failed to deliver getLeafInfo request to all children\n" );
+                ret = -1;
+                break;
+            }
+        }
+    }
+    return ret;
+}
+
+
+
+int
+MC_ParentNode::proc_getLeafInfoResponse( MC_Packet* pkt )
+{
+    int ret = 0;
+
+    // add the response to our set of child responses
+    childLeafInfoResponses.push_back( pkt );
+
+    // check if we've received responses from all of our children
+    if( childLeafInfoResponses.size() == children_nodes.size() )
+    {
+        // we have received responses from all of our children -
+        // aggregate the responses
+        //
+        // TODO use some sort of encoding to store leaf info?  is any possible?
+        //
+        // We just concatenate the responses
+        // TODO can we just build a response packet by referring to
+        // the data elements of all these other packets?  Doesn't look 
+        // like it.
+        //
+        std::vector<char*> allHosts;
+        std::vector<unsigned int> allPorts;
+        for( std::vector<MC_Packet*>::iterator piter = 
+                            childLeafInfoResponses.begin();
+                piter != childLeafInfoResponses.end();
+                piter++ )
+        {
+            MC_Packet* currPkt = *piter;
+            assert( currPkt != NULL );
+
+            // get the data out of the current packet
+            char** currHosts = NULL;
+            unsigned int* currPorts = NULL;
+            unsigned int currNumHosts = 0;
+            unsigned int currNumPorts = 0;
+            int eret = currPkt->ExtractArgList( "%as %aud", 
+                                        &currHosts, &currNumHosts,
+                                        &currPorts, &currNumPorts );
+            if( eret == -1 )
+            {
+                mc_printf( MCFL, stderr,
+                    "failed to extract data from leaf info packet\n" );
+                ret = -1;
+                break;
+            }
+            assert( currNumHosts == currNumPorts );
+
+            // add the new set of hosts and ports to our cumulative set
+            for( unsigned int i = 0; i < currNumHosts; i++ )
+            {
+                allHosts.push_back( currHosts[i] );
+                allPorts.push_back( currPorts[i] );
+            }
+        }
+
+        // build our aggregate response packet
+        // (sadly, we have to convert from STL vectors to parallel arrays
+        // to build our packet - yet another copy operation)
+        // TODO looks to me like there's no way to get at the underlying array
+        //
+        unsigned int nHosts = allHosts.size();
+        unsigned int nPorts = allPorts.size();
+        assert( nHosts == nPorts );
+        char** hostsArray = new char*[nHosts];
+        unsigned int* portsArray = new unsigned int[nPorts];
+        for( unsigned int i = 0; i < nHosts; i++ )
+        {
+            hostsArray[i] = allHosts[i];
+            portsArray[i] = allPorts[i];
+        }
+        MC_Packet* resp = new MC_Packet( MC_GET_LEAF_INFO_PROT,
+                                            "%as %aud",
+                                            hostsArray, nHosts,
+                                            portsArray, nPorts );
+
+        // handle the aggregated response
+        if( deliverLeafInfoResponse( resp ) == -1 )
+        {
+            ret = -1;
+        }
+
+#if READY
+        // release our children's responses
+        for( std::vector<MC_Packet*>::iterator iter = childLeafInfoResponses.begin();
+            iter != childLeafInfoResponses.end();
+            iter++ )
+        {
+            delete *iter;
+        }
+#endif // READY
+        childLeafInfoResponses.clear();
+    }
+
+    return ret;
+}
+
+
+
+int
+MC_ParentNode::proc_connectLeaves( MC_Packet* pkt )
+{
+    int ret = 0;
+
+    // request packet is empty -
+    // no need to extract anything
+
+    // determine if I am a leaf in the MRNet tree.
+    //
+    // NOTE: though the terminology is counter-intuitive, a ParentNode 
+    // can be a leaf in the MRNet tree.  A ParentNode is a leaf in the 
+    // tree if all of its children are backends.
+    //
+    // handle the request
+    if( isLeaf() )
+    {
+        mc_printf(MCFL, stderr, "leaf waiting for connections at %s:%u\n", hostname.c_str(), port);
+
+        // accept backend connections for all of our children nodes
+        for( std::list<MC_RemoteNode*>::iterator childIter = children_nodes.begin();
+                    childIter != children_nodes.end();
+                    childIter++ )
+        {
+            MC_RemoteNode* child = *childIter;
+            assert( child != NULL );
+
+            if( child->accept_Application( listening_sock_fd ) != 0 )
+            {
+                mc_printf( MCFL, stderr, "failed to accept backend connection\n" );
+                ret = -1;
+                break;
+            }
+        }
+
+        if( ret == 0 )
+        {
+            // build a response packet 
+            MC_Packet* resp = new MC_Packet( MC_CONNECT_LEAVES_PROT,
+                                                "%ud",
+                                                children_nodes.size() );
+
+            // deliver the response 
+            // (how it is delivered depends on what type of 
+            // ParentNode we actually are)
+            if( deliverConnectLeavesResponse( resp ) == -1 )
+            {
+                mc_printf( MCFL, stderr, "failed to deliver connected leaves response\n" );
+                ret = -1;
+            }
+        }
+    }
+    else
+    {
+        // forward the request packet to each of my children
+        // TODO am I safe to reuse the same packet here
+        for( std::list<MC_RemoteNode*>::iterator childIter = 
+                    children_nodes.begin();
+                childIter != children_nodes.end();
+                childIter++ )
+        {
+            MC_RemoteNode* child = *childIter;
+            assert( child != NULL );
+
+            if( (child->send( pkt ) == -1) ||
+                (child->flush() == -1) )
+            {
+                mc_printf( MCFL, stderr, "failed to deliver connectLeaves request to all children\n" );
+                ret = -1;
+                break;
+            }
+        }
+    }
+    return ret;
+}
+
+
+
+int
+MC_ParentNode::proc_connectLeavesResponse( MC_Packet* pkt )
+{
+    int ret = 0;
+
+    // add the response to our set of child responses
+    childConnectedLeafResponses.push_back( pkt );
+
+    // check if we've received responses from all of our children
+    if( childConnectedLeafResponses.size() == children_nodes.size() )
+    {
+        // we have received responses from all of our children -
+        // aggregate the responses
+        unsigned int nLeavesConnected = 0;
+        for( std::vector<MC_Packet*>::iterator iter = 
+                    childConnectedLeafResponses.begin();
+                iter != childConnectedLeafResponses.end();
+                iter++ )
+        {
+            MC_Packet* currPkt = *iter;
+
+            unsigned int currNumLeaves = 0;
+            int eret = currPkt->ExtractArgList( "%ud", &currNumLeaves );
+            if( eret == -1 )
+            {
+                mc_printf( MCFL, stderr,
+                    "failed to extract data from connected leaves response packet\n" );
+                ret = -1;
+                break;
+            }
+            nLeavesConnected += currNumLeaves;
+        }
+
+        // build the response packet
+        MC_Packet* resp = new MC_Packet( MC_CONNECT_LEAVES_PROT, "%ud",
+                                            nLeavesConnected );
+
+
+        // handle the aggregated response
+        if( deliverConnectLeavesResponse( resp ) == -1 )
+        {
+            ret = -1;
+        }
+
+#if READY
+        // release our children's responses
+        for( std::vector<MC_Packet*>::iterator iter = childConnectedLeafResponses.begin();
+            iter != childConnectedLeafResponses.end();
+            iter++ )
+        {
+            delete *iter;
+        }
+#endif // READY
+        childConnectedLeafResponses.clear();
+    }
+
+    return ret;
+}
+
+
+

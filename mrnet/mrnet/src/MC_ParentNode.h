@@ -28,6 +28,10 @@ class MC_ParentNode{
 
   bool threaded;
 
+  bool isLeaf_;             // am I a leaf in the MRNet tree?
+  std::vector<MC_Packet*> childLeafInfoResponses;
+  std::vector<MC_Packet*> childConnectedLeafResponses;
+
   int wait_for_SubTreeReports();
 
  protected:
@@ -42,6 +46,12 @@ class MC_ParentNode{
 
   std::map<unsigned int, MC_StreamManager *> StreamManagerById;
   pthread_sync streammanagerbyid_sync;
+
+
+  virtual int deliverLeafInfoResponse( MC_Packet* pkt ) = NULL;
+  virtual int deliverConnectLeavesResponse( MC_Packet* pkt ) = NULL;
+
+  bool isLeaf( void ) const         { return isLeaf_; }
 
  public:
   MC_ParentNode(bool _threaded, std::string, unsigned short);
@@ -63,6 +73,12 @@ class MC_ParentNode{
   int proc_delStream(MC_Packet *);
   int proc_newApplication(MC_Packet *);
   int proc_delApplication(MC_Packet *);
+
+  int proc_getLeafInfo( MC_Packet* );
+  int proc_getLeafInfoResponse( MC_Packet* );
+
+  int proc_connectLeaves( MC_Packet* );
+  int proc_connectLeavesResponse( MC_Packet* );
 
   std::string get_HostName();
   unsigned short get_Port();

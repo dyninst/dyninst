@@ -2,6 +2,7 @@
 
 
 #include <fstream>
+#include <vector>
 #include <sys/types.h>
 #include <ctype.h>
 #include <limits.h>
@@ -35,6 +36,71 @@ int MC_Network::new_Network(const char * _filename,
     return 0;
   }
 }
+
+int MC_Network::new_Network( const char* cfgFileName,
+                                const char* commNodeExe,
+                                MC_Network::LeafInfo*** leafInfo,
+                                unsigned int* numLeaves )
+{
+    int ret = 0;
+
+    // build the network
+    MC_Network::network = new MC_NetworkImpl( cfgFileName, commNodeExe, NULL );
+
+    if( !MC_Network::network->fail() )
+    {
+        // collect leaf information
+        std::vector<MC_Network::LeafInfo*> linfo = 
+            MC_Network::network->get_LeafInfo();
+
+        // deliver the requested information
+        unsigned int nLeaves = linfo.size();
+        mc_printf( MCFL, stderr, "MRN: reporting %d leaves\n", nLeaves );
+        for( unsigned int i = 0; i < nLeaves; i++ )
+        {
+            mc_printf( MCFL, stderr, "MRN: leaf[%d] at %s:%d\n",
+                i, linfo[i]->get_Host(), linfo[i]->get_Port() );
+        }
+
+        if( leafInfo != NULL )
+        {
+            *leafInfo = new MC_Network::LeafInfo*[nLeaves];
+            for( unsigned int i = 0; i < nLeaves; i++ )
+            {
+                (*leafInfo)[i] = linfo[i];
+            }
+        }
+        if( numLeaves != NULL )
+        {
+            *numLeaves = nLeaves;
+        }
+    }
+    else
+    {
+        ret = -1;
+    }
+
+    return ret;
+}
+
+
+
+int
+MC_Network::connect_Backends( void )
+{
+    // TODO is this the right error?
+    int ret = MC_ENETWORK_FAILURE;
+
+    if( MC_Network::network != NULL )
+    {
+        ret = MC_Network::network->connect_Backends();
+    }
+    return ret;
+}
+
+
+
+
 
 void MC_Network::delete_Network()
 {

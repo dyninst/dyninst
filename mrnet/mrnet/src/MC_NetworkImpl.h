@@ -19,6 +19,30 @@ class MC_NetworkImpl: public MC_Error {
   friend class MC_StreamImpl;
 
  private:
+
+    class LeafInfoImpl : public MC_Network::LeafInfo
+    {
+    private:
+        char* host;
+        unsigned short port;
+
+    public:
+        LeafInfoImpl( const char* h, unsigned short p )
+          : host( new char[strlen(h)+1] ),
+            port( p )
+        {
+            strcpy( host, h );
+        }
+
+        virtual ~LeafInfoImpl( void )
+        {
+            delete[] host;
+        }
+
+        virtual const char* get_Host( void ) const      { return host; }
+        virtual unsigned short get_Port( void ) const   { return port; }
+    };
+
   std::string filename;          /* Name of topology configuration file */
   std::string commnode;          // path to comm_node executable
   std::string application;       /* Name of application to launch */
@@ -39,6 +63,9 @@ class MC_NetworkImpl: public MC_Error {
                     const char * _commnode,
                     const char * _application);
   ~MC_NetworkImpl();
+
+    std::vector<MC_Network::LeafInfo*> get_LeafInfo( void );
+    int connect_Backends( void );
 };
 
 #endif /* mrnet_H */

@@ -12,7 +12,11 @@ extern MC_NetworkGraph * parsed_graph;
 MC_NetworkImpl::MC_NetworkImpl(const char * _filename,
                                 const char * _commnode,
                                 const char * _application)
-  :filename(_filename), commnode(_commnode), application(_application)
+  :filename(_filename),
+   commnode(_commnode),
+   application( (_application == NULL) ? "" : _application ),
+   endpoints( NULL ),
+   front_end( NULL )
 {
   if( parse_configfile() == -1){
     return;
@@ -53,8 +57,7 @@ MC_NetworkImpl::MC_NetworkImpl(const char * _filename,
   MC_CommunicatorImpl::create_BroadcastCommunicator(MC_NetworkImpl::endpoints);
 
   //Frontend is root of the tree
-  MC_NetworkImpl::front_end = 
-    new MC_FrontEndNode(graph->get_Root()->get_HostName(),
+  front_end = new MC_FrontEndNode(graph->get_Root()->get_HostName(),
                         graph->get_Root()->get_Port());
 
   MC_SerialGraph sg = graph->get_SerialGraph();
@@ -67,38 +70,31 @@ MC_NetworkImpl::MC_NetworkImpl(const char * _filename,
                                     sg_str.c_str(),
                                     application.c_str(),
                                     commnode.c_str() );
-  if( MC_NetworkImpl::front_end->proc_newSubTree( packet )
+  if( front_end->proc_newSubTree( packet )
       == -1){
     mc_errno = MC_ENETWORK_FAILURE;
     _fail=true;
     return;
   }
 
-  //packet = new MC_Packet(MC_NEW_APPLICATION_PROT, "%s", application.c_str());
-  //if( MC_NetworkImpl::front_end->proc_newApplication(packet) == -1){
-    //mc_errno = MC_ENETWORK_FAILURE;
-    //_fail=true;
-    //return;
-  //}
-
   return;
 }
 
-extern FILE * yyin;
-int yyparse();
-extern int yydebug;
+extern FILE * mrn_yyin;
+int mrn_yyparse();
+extern int mrn_yydebug;
 
 int MC_NetworkImpl::parse_configfile()
 {
-  //yydebug=1;
-  yyin = fopen(filename.c_str(), "r");
-  if( yyin == NULL){
+  // mrn_yydebug=1;
+  mrn_yyin = fopen(filename.c_str(), "r");
+  if( mrn_yyin == NULL){
     mc_errno = MC_EBADCONFIG_IO;
     _fail = true;
     return -1;
   }
 
-  if( yyparse() != 0 ){
+  if( mrn_yyparse() != 0 ){
     mc_errno = MC_EBADCONFIG_FMT;
     _fail = true;
     return -1;
@@ -149,5 +145,142 @@ int MC_NetworkImpl::send(MC_Packet *packet)
   else{
     return MC_Network::back_end->send(packet);
   }
+}
+
+
+std::vector<MC_Network::LeafInfo*>
+MC_NetworkImpl::get_LeafInfo( void )
+{
+    std::vector<MC_Network::LeafInfo*> ret;
+
+
+    // request that our leaves give us their leaf info
+    MC_Packet* pkt = new MC_Packet( MC_GET_LEAF_INFO_PROT, "" );
+    if( front_end->proc_getLeafInfo( pkt ) != -1 )
+    {
+        // Gather the response from the tree
+        //
+        // This is a little problematic because we must force the
+        // front end node to handle packets, and we are in the 
+        // same process as the front end node.
+        //
+        // The saving grace here is that we haven't returned yet to
+        // our caller, so the tool hasn't yet had the opportunity to start
+        // using the network.  The only packets flowing should be our own.
+        // 
+        MC_Packet* resp = front_end->get_leafInfoPacket();
+        while( resp == NULL )
+        {
+            if( front_end->recv() == -1 )
+            {
+                mc_printf( MCFL, stderr, "failed to receive leaf info from front end node\n" );
+            }
+
+            // now - sleep?  how do we block while still processing
+            // packets?  calling receive on frontend node?
+            resp = front_end->get_leafInfoPacket();
+        }
+
+        if( resp != NULL )
+        {
+            // we got the response successfully -
+            // build the return value from the response packet
+            char** hosts = NULL;
+            unsigned int nHosts = 0;
+            unsigned int* ports = NULL;
+            unsigned int nPorts = 0;
+
+            int nret = resp->ExtractArgList( "%as %aud", &hosts, &nHosts,
+                                                            &ports, &nPorts );
+            if( nret == 0 )
+            {
+                if( nHosts == nPorts )
+                {
+                    for( unsigned int i = 0; i < nHosts; i++ )
+                    {
+                        ret.push_back( new MC_NetworkImpl::LeafInfoImpl( hosts[i],
+                                                                    ports[i] ) );
+                    }
+                }
+                else
+                {
+                    mc_printf( MCFL, stderr, "leaf info packet corrupt: array size mismatch\n" );
+                }
+            }
+            else
+            {
+                mc_printf( MCFL, stderr, "failed to extract arrays from leaf info packet\n" );
+            }
+        }
+    }
+    else
+    {
+        // we failed to deliver the request 
+        mc_printf( MCFL, stderr, "failed to deliver request\n" );
+    }
+
+    return ret;
+}
+
+
+int
+MC_NetworkImpl::connect_Backends( void )
+{
+    int ret = 0;
+
+    // broadcast message to all leaves that they 
+    // should accept their connections
+    MC_Packet* pkt = new MC_Packet( MC_CONNECT_LEAVES_PROT, "" );
+    if( front_end->proc_connectLeaves( pkt ) != -1 )
+    {
+#if READY
+        // in an ideal world, we don't have to get a response to this
+#else
+        // wait for response (?)
+        MC_Packet* resp = front_end->get_leavesConnectedPacket();
+        while( resp == NULL )
+        {
+            // allow the front end node to handle packets
+            front_end->recv();
+
+            // see if we got our response packet
+            resp = front_end->get_leavesConnectedPacket();
+        }
+
+        if( resp != NULL )
+        {
+            // verify response based on our notion of the 
+            // number of leaves we have
+            unsigned int nBackendsExpected = endpoints->size(); 
+            unsigned int nBackends;
+            int nret = resp->ExtractArgList( "%ud", &nBackends );
+            if( nret == 0 )
+            {
+                if( nBackends != nBackendsExpected )
+                {
+                    mc_printf( MCFL, stderr, "unexpected backend count %u (expecting %u)\n",
+                                    nBackends, nBackendsExpected );
+                }
+            }
+            else
+            {
+                mc_printf( MCFL, stderr, "format mismatch in leaf connection packet\n" );
+            }
+        }
+        else
+        {
+            mc_printf( MCFL, stderr, "failed to receive leaf connection packet\n" );
+            ret = -1;
+        } 
+#endif // READY
+    }
+    else
+    {
+        // we failed to deliver the request
+        mc_printf( MCFL, stderr, "failed to deliver request\n" );
+        ret = -1;
+    }
+
+    return ret;
 }
 
