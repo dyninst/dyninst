@@ -3,10 +3,10 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.10 1999/05/25 16:36:39 wylie Exp $
+# $Id: make.module.tmpl,v 1.11 1999/05/29 23:50:49 wylie Exp $
 #
 
-SUITE_NAME	= DynInst
+SUITE_NAME	= Dyninst
 RELEASE_NUM	= 1.2
 #BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
 
@@ -18,20 +18,21 @@ CFLAGS		     += $(TCLFRIENDLYWARNINGS) $(DEFINES)
 CXXFLAGS	     += $(TCLFRIENDLYWARNINGS) $(DEFINES)
 TFLAGS		     += $(TCLFRIENDLYWARNINGS) $(DEFINES)
 
+
+TARGET		= libdyninstAPI.a
+
 ifdef USES_LIBDYNINST_SO
-UNCOMMON_INSTALL = 1
-TARGET3		= libdyninstAPI.so
+TARGET3_SO	= libdyninstAPI.so
 LD		= g++
-LDFLAGS         = $(LIBDIR)
+LDFLAGS		= -shared
+LDFLAGS		+= -dy -G -z text 
+LDFLAGS         += $(LIBDIR)
 CFLAGS		+= -fPIC
 CXXFLAGS	+= -fPIC
 TFLAGS		+= -fPIC
 endif
 
-
-TARGET	      = libdyninstAPI.a
-
-VPATH	     += .././.dyninstAPI/src:../dyninstAPI/h:\
+VPATH	     += ../../dyninstAPI/src:../dyninstAPI/h:\
 		../../paradynd/src:../../paradyn/h
 
 SRCS	     +=	../src/BPatch.C \
@@ -80,15 +81,9 @@ endif
 IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../paradynd/src
 
 ifdef USES_LIBDYNINST_SO
-all: $(TARGET3)
-
-install: all 
-	-$(CP) $(TARGET3) $(DEST)/$(TARGET3) 
+all: $(TARGET3_SO)
 else
-all: $(TARGET) $(TARGET3)
-
-install: all 
-	-$(CP) $(TARGET) $(DEST)/$(TARGET)
+all: $(TARGET)
 endif
 
 templates0.o: ../src/templates0.C
@@ -99,6 +94,3 @@ templates05.o: ../src/templates05.C
 
 templates1.o: ../src/templates1.C
 	$(CXX) $(TFLAGS) -c ../src/templates1.C
-
-DEST  = $(TO_CORE)/$(LIBRARY_DEST)
-
