@@ -14,9 +14,12 @@
  *
  */
 /* $Log: VISIthreadpublic.C,v $
-/* Revision 1.16  1996/02/19 18:19:13  newhall
-/* fix to avoid error #16 when a visi exits
+/* Revision 1.17  1996/02/23 17:45:28  tamches
+/* added 2 bool params to visualizationUser::StartPhase
 /*
+ * Revision 1.16  1996/02/19 18:19:13  newhall
+ * fix to avoid error #16 when a visi exits
+ *
  * Revision 1.15  1996/02/05  18:51:57  newhall
  * Change to DM interface: StartPhase and newPhaseCallback
  *
@@ -241,8 +244,9 @@ void visualizationUser::showError(int code, string msg)
 //
 //  not currently implemented
 ///////////////////////////////////////////////////////////////////
-//void visualizationUser::StartPhase(double begin, string name){
-void visualizationUser::StartPhase(double, string){
+void visualizationUser::StartPhase(double, string,
+				   bool withPerfConsult,
+				   bool withVisis) {
 
  VISIthreadGlobals *ptr;
 
@@ -253,7 +257,5 @@ void visualizationUser::StartPhase(double, string){
   }
 
   // call datamanager start phase routine
-  ptr->dmp->StartPhase((timeStamp)-1.0, NULL,false,false);
-
+  ptr->dmp->StartPhase((timeStamp)-1.0, NULL, withPerfConsult, withVisis);
 }
-
