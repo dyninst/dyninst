@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.60 2005/03/16 20:53:21 bernat Exp $
+// $Id: sol_proc.C,v 1.61 2005/03/17 23:26:42 bernat Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -1320,7 +1320,9 @@ procSyscall_t decodeSyscall(process *p, procSignalWhat_t syscall)
         return procSysExec;
     if (syscall == SYSSET_MAP(SYS_exit, pid))
         return procSysExit;
-
+    // Don't map -- we make this up
+    if (syscall == SYS_load)
+      return procSysLoad;
 
     return procSysOther;
 }
@@ -1551,8 +1553,8 @@ int decodeRTSignal(process *proc,
    // These should be made constants
    if (!proc) return 0;
 
-   pdstring status_str = pdstring("DYNINST_instSyscallState");
-   pdstring arg_str = pdstring("DYNINST_instSyscallArg1");
+   pdstring status_str = pdstring("DYNINST_synch_event_id");
+   pdstring arg_str = pdstring("DYNINST_synch_event_arg1");
 
    int status;
    Address arg;
@@ -1569,7 +1571,7 @@ int decodeRTSignal(process *proc,
       return 0;
    }
 
-   if (status == 0) {
+   if (status == DSE_undefined) {
       return 0; // Nothing to see here
    }
 
@@ -1583,30 +1585,36 @@ int decodeRTSignal(process *proc,
       assert(0);
    info = (procSignalInfo_t)arg;
    switch(status) {
-     case 1:
+     case DSE_forkEntry:
         /* Entry to fork */
         why = procSyscallEntry;
         what = SYS_fork;
         break;
-     case 2:
+     case DSE_forkExit:
         why = procSyscallExit;
         what = SYSSET_MAP(SYS_fork, proc->getPid());
         break;
-     case 3:
+     case DSE_execEntry:
         /* Entry to exec */
         why = procSyscallEntry;
         what = SYS_exec;
         break;
-     case 4:
+     case DSE_execExit:
         /* Exit of exec, unused */
         break;
-     case 5:
+     case DSE_exitEntry:
         /* Entry of exit, used for the callback. We need to trap before
            the process has actually exited as the callback may want to
            read from the process */
         why = procSyscallEntry;
         what = SYS_exit;
         break;
+   case DSE_loadLibrary:
+     /* We need to hook this into the shared library handling code... */
+     why = procSyscallExit;
+     what = SYS_load;
+     break;
+
      default:
         assert(0);
         break;
