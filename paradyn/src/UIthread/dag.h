@@ -1,9 +1,13 @@
 #ifndef _dag_h
 #define _dag_h
 
+#define UIM_DAG_DEBUG 0
+
 #include <stdio.h>
 #include "util/h/list.h"
 #include "dagCompute.h"
+
+class resourceList;
 
 #define MAXSELECTTAGLEN 20
 typedef enum {
@@ -113,10 +117,11 @@ class dag {
     Tk_Window tkwin;
 
     friend void RePaintDag (dag *dagInst);
-    friend int processResourceSelectionCmd (ClientData clientData, 
+    friend int processVisiSelectionCmd (ClientData clientData, 
 					Tcl_Interp *interp, 
 					int argc, 
 					char *argv[]);
+    friend void getSubtreeSelections (rNode curr, resourceList *selection);
     int centeringOffset (); 
     void PaintEdges(rNode me, int offset); 
     int PaintNode(nStyle *styleRec, 
@@ -126,7 +131,7 @@ class dag {
     void AdjustSize(int width, int height); 
     void calcLabelSize (rNode node);
     void scheduleRedraw();
-    int tagExceptSubgraph (rNode root);
+    void tagExceptSubgraph (rNode root);
     void PaintDag();
     rNode getNodePtr (int nodeID);
 
@@ -137,10 +142,10 @@ class dag {
     void destroyDisplay ();
     void PrintGraph(FILE *f);
     int AddEStyle (int styleID, int arrow, int ashape1, int ashape2, 
-		   int ashape3, char *stipple, char *fill, char capstyle, 
-		   float width);
-    int AddNStyle (int styleID, char *bg, char *outline, char *stipple,
-		   char *font, char *text, char shape, float width);
+		   int ashape3, const char *stipple, const char *fill, 
+		   char capstyle, float width);
+    int AddNStyle (int styleID, const char *bg, const char *outline, char *stipple,
+		   const char *font, const char *text, char shape, float width);
     int CreateNode (int nodeID, int root, char *nodeLabel, int style,
 		    void *appRecPtr);
     int AddEdge (int src, int dst, int edge_style);

@@ -51,7 +51,9 @@ dag::dag (Tcl_Interp *nterp)
     
   retval = AddEStyle (0, 0, 0, 0, 0, NULL, "black", 'b', 2.0);
   if (retval != AOK)
+#if UIM_DAG_DEBUG
     printf ("Error with default EStyle\n");
+#endif
   retval = AddNStyle (0, "red", "black", NULL, "*-times-medium-r-normal--*-100-*", 
 		      "black", 'r', 1.0);
   if (retval != AOK)
@@ -61,9 +63,6 @@ dag::dag (Tcl_Interp *nterp)
 
   /* initialize hash table for node lookup by Tk item ID */
   Tcl_InitHashTable (&TkItemTbl, TCL_ONE_WORD_KEYS);
-
-//    Tk_MakeWindowExist (dagPtr->tkwin);
-//    XFlush (dagPtr->display);
 
 }
 
@@ -133,9 +132,10 @@ dag::createDisplay (char *parentWindow)
     strcpy (dframe+nameLength, ".dag");
     strcpy (dcanvas+nameLength, ".dag._c_");
   }
+#if UIM_DAG_DEBUG 
   printf ("canvas name: %s\n", dcanvas);
   printf ("frame name: %s\n", dframe);
-
+#endif
   if (Tcl_VarEval (interp, "setupDAG ", dframe, 0) == TCL_ERROR)
     printf ("UIMcreateDisplay: %s\n", interp->result);
 
@@ -161,9 +161,10 @@ dag::createDisplay (char *parentWindow)
   } else {
     strcpy (dcanvas+nameLength, "._c_");
   }
+#if UIM_DAG_DEBUG
   printf ("canvas name: %s\n", dcanvas);
   printf ("frame name: %s\n", dframe);
-
+#endif
   if (Tcl_VarEval (interp, "setupDAG ", dframe, 0) == TCL_ERROR)
     printf ("UIMcreateDisplay: %s\n", interp->result);
 
@@ -381,7 +382,7 @@ tagSubgraph (rNode root)
   }
 }
 
-int
+void
 dag::tagExceptSubgraph (rNode root)
 {
   int i;
@@ -615,7 +616,7 @@ dag::AddEdge(int src, int dst, int styleID)
  */
 int 
 dag::AddEStyle (int styleID, int arrow, int ashape1, int ashape2, int ashape3,
-		char *stipple, char *fill, char capstyle, float width)
+		const char *stipple, const char *fill, char capstyle, float width)
 {
   eStyle *eStylePtr;
   pRec *newEntry;
@@ -697,8 +698,8 @@ dag::AddEStyle (int styleID, int arrow, int ashape1, int ashape2, int ashape3,
  *         AOK - style added
  */
 int 
-dag::AddNStyle (int styleID, char *bg, char *outline, char *stipple,
-		char *font, char *text, char shape, float width)
+dag::AddNStyle (int styleID, const char *bg, const char *outline, char *stipple,
+		const char *font, const char *text, char shape, float width)
 {
   nStyle *nStylePtr, *hnStylePtr;
   pRec *newEntry;
@@ -791,15 +792,15 @@ dag::AddNStyle (int styleID, char *bg, char *outline, char *stipple,
 #endif
     // create style for highlighted nodes
     hnStylePtr = new nStyle;
-    hnStylePtr->bg = nStylePtr->text;
-    hnStylePtr->outline = nStylePtr->outline;
-    hnStylePtr->stipple = nStylePtr->stipple;
-    hnStylePtr->width = nStylePtr->width;
-    hnStylePtr->font = nStylePtr->font;
-    hnStylePtr->text = nStylePtr->bg;
+    strcpy (hnStylePtr->bg, nStylePtr->text);
+    strcpy (hnStylePtr->outline, nStylePtr->outline);
+    strcpy(hnStylePtr->stipple, nStylePtr->stipple);
+    strcpy(hnStylePtr->width, nStylePtr->width);
+    strcpy(hnStylePtr->font, nStylePtr->font);
+    strcpy(hnStylePtr->text, nStylePtr->bg);
     hnStylePtr->styleID = nStylePtr->styleID + 1000;
     hnStylePtr->fontstruct = nStylePtr->fontstruct;
-    hnStylePtr->shape = nStylePtr->shape;
+    strcpy(hnStylePtr->shape, nStylePtr->shape);
     
     newEntry = new pRec;
     newEntry->id = styleID + 1000;
@@ -902,6 +903,7 @@ dag::configureNode (int nodeID, char *label, int styleID)
 
 /* 
  * NOTE: this version with existing node pointer and NO REDRAW SCHEDULED
+ * label recalculated only if new label string provided
  */
 int
 dag::configureNode (rNode me, char *label, int styleID)
@@ -914,8 +916,8 @@ dag::configureNode (rNode me, char *label, int styleID)
   me->nodeStyle = newStyle;
   if (label != NULL) {
     strncpy (me->string, label, DAGNODEMAXSTR);
+    calcLabelSize (me);         // record new label size
   }    
-  calcLabelSize (me);         // record new label size
   return AOK;
 }
 
@@ -1151,7 +1153,7 @@ else
 	   x1, y1, x2, y2, 
 	   styleRec->fill,
 	   styleRec->width);
-#ifdef DEBUG
+#if UIM_DAG_DEBUG
 	   fprintf (stderr, tcommand);
 #endif
 if (Tcl_VarEval (interp, tcommand, 0) != TCL_OK) 
@@ -1191,7 +1193,7 @@ dag::PaintNode(nStyle *styleRec,
 	      int x, int y, 
 	      int width, int height) 
 {
-#ifdef DEBUG
+#if UIM_DAG_DEBUG
   fprintf (stderr, "%s: bg: %s outline: %s stipple: %s width: %s\n",
 	   dcanvas, styleRec->bg, styleRec->outline, styleRec->stipple,
 	   styleRec->width);
@@ -1204,14 +1206,14 @@ dag::PaintNode(nStyle *styleRec,
 	   styleRec->outline,
 	   styleRec->width,
 	   node->aNode);
-#ifdef DEBUG
+#if UIM_DAG_DEBUG
   fprintf (stderr, tcommand);
 #endif
 
   if (Tcl_VarEval (interp, tcommand, 0) != TCL_OK)
     return 0;
 
-#ifdef DEBUG
+#if UIM_DAG_DEBUG
   fprintf (stderr, "%s: x:%d y:%d text: %s\n", 
                     dcanvas, x, y, styleRec->text);
   fprintf (stderr, "    font: %s nodeID: %d\n", styleRec->font, node->aNode);
@@ -1295,7 +1297,7 @@ dag::centeringOffset ()
   }
   if (firstnode == NULL)     /* no nodes or no visible nodes */
     return 0;
-#ifdef DEBUG
+#if UIM_DAG_DEBUG
 	fprintf (stderr, "window width = %d; x coord = %d.\n", 
 	   Tk_ReqWidth (Tk_NameToWindow (interp, dcanvas, tkwin)), 
 		     firstnode->x);
