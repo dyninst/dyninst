@@ -150,6 +150,14 @@ template class vector< pair<string, resource*> >;
 template class vector< dictionary_hash<string, resource*> :: hash_pair >;
 template class vector< vector< dictionary_hash<string, resource*> :: hash_pair > >;
 
+template class dictionary<unsigned, resource*>;
+template class dictionary_hash<unsigned, resource*>;
+template class pair<unsigned, resource*>;
+template class vector< pair<unsigned, resource*> >;
+template class vector< dictionary_hash<unsigned, resource*> :: hash_pair >;
+template class vector< vector< dictionary_hash<unsigned, resource*> :: hash_pair > >;
+
+
 template class dictionary<unsigned int, cpContext*>;
 template class dictionary_hash<unsigned int, cpContext*>;
 template class pair<unsigned int, cpContext*>;
