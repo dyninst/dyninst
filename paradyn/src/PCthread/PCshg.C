@@ -17,7 +17,16 @@
 
 /*
  * $Log: PCshg.C,v $
- * Revision 1.14  1994/07/28 22:34:04  krisna
+ * Revision 1.15  1994/08/03 19:09:54  hollings
+ * split tunable constant into float and boolean types
+ *
+ * added tunable constant for printing tests as they avaluate.
+ *
+ * added code to compute the min interval data has been enabled for a single
+ * test rather than using a global min.  This prevents short changes from
+ * altering long term trends among high level hypotheses.
+ *
+ * Revision 1.14  1994/07/28  22:34:04  krisna
  * proper starting code for PCmain thread
  * stringCompare matches qsort prototype
  * changed infinity() to HUGE_VAL
@@ -112,7 +121,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.14 1994/07/28 22:34:04 krisna Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.15 1994/08/03 19:09:54 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -250,7 +259,7 @@ inline void searchHistoryNode::changeColor()
   }
 }
 
-tunableConstant supressSHG(0.0, 0.0, 1.0, NULL, "supressSHG",
+tunableBooleanConstant supressSHG(False, NULL, userConstant, "supressSHG",
     "Don't print the SHG");
 
 void searchHistoryNode::changeActive(Boolean newact)

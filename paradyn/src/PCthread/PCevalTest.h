@@ -1,6 +1,15 @@
 /*
  * $Log: PCevalTest.h,v $
- * Revision 1.3  1994/03/01 21:25:10  hollings
+ * Revision 1.4  1994/08/03 19:09:48  hollings
+ * split tunable constant into float and boolean types
+ *
+ * added tunable constant for printing tests as they avaluate.
+ *
+ * added code to compute the min interval data has been enabled for a single
+ * test rather than using a global min.  This prevents short changes from
+ * altering long term trends among high level hypotheses.
+ *
+ * Revision 1.3  1994/03/01  21:25:10  hollings
  * added tunable constants.
  *
  * Revision 1.2  1994/02/03  23:27:01  hollings
@@ -69,6 +78,7 @@ class testResult {
 	Histogram *hist;
 	timeStamp time;		// time it last changed
 	Boolean ableToEnable;	// could we turn it on?
+	List <datum*> *metFociUsed;	// what does this test need to run.
 };
 
 class testResultList: public List<testResult*> {
@@ -114,7 +124,7 @@ class testResultList: public List<testResult*> {
 
 extern Boolean doScan();
 extern void configureTests();
-extern tunableConstant hysteresisRange;
+extern tunableFloatConstant hysteresisRange;
 
 extern testResultList *currentTestResults;
 extern Boolean printTestResults;

@@ -1,7 +1,16 @@
 /*
  *
  * $Log: PCshg.h,v $
- * Revision 1.7  1994/07/25 04:47:11  hollings
+ * Revision 1.8  1994/08/03 19:09:56  hollings
+ * split tunable constant into float and boolean types
+ *
+ * added tunable constant for printing tests as they avaluate.
+ *
+ * added code to compute the min interval data has been enabled for a single
+ * test rather than using a global min.  This prevents short changes from
+ * altering long term trends among high level hypotheses.
+ *
+ * Revision 1.7  1994/07/25  04:47:11  hollings
  * Added histogram to PCmetric so we only use data for minimum interval
  * that all metrics for a current batch of requests has been enabled.
  *
@@ -92,6 +101,7 @@ class searchHistoryNode {
 	char *shortName;		// name of this node.
 	hintList *hints;
 	static stringPool shgNames;
+	List<datum *>	*metricFoci;
 	void changeStatus(Boolean newstat);
 	void changeActive(Boolean newact);
 	void changeTested(Boolean newtested);

@@ -19,7 +19,16 @@
  * Do automated refinement
  *
  * $Log: PCauto.C,v $
- * Revision 1.12  1994/07/25 04:47:02  hollings
+ * Revision 1.13  1994/08/03 19:09:45  hollings
+ * split tunable constant into float and boolean types
+ *
+ * added tunable constant for printing tests as they avaluate.
+ *
+ * added code to compute the min interval data has been enabled for a single
+ * test rather than using a global min.  This prevents short changes from
+ * altering long term trends among high level hypotheses.
+ *
+ * Revision 1.12  1994/07/25  04:47:02  hollings
  * Added histogram to PCmetric so we only use data for minimum interval
  * that all metrics for a current batch of requests has been enabled.
  *
@@ -100,7 +109,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCauto.C,v 1.12 1994/07/25 04:47:02 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCauto.C,v 1.13 1994/08/03 19:09:45 hollings Exp $";
 #endif
 
 #include <stdlib.h>
@@ -116,8 +125,8 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 
 
 // 25% to start
-tunableConstant predictedCostLimit(0.25, 0.0, 1.0, NULL, "predictedCostLimit",
-  "Max. allowable perturbation of the application.");
+tunableFloatConstant predictedCostLimit(0.25, 0.0, 1.0, NULL, userConstant,
+  "predictedCostLimit", "Max. allowable perturbation of the application.");
 
 searchHistoryNode *PCbaseSHGNode;
 extern int PCautoRefinementLimit;
@@ -191,7 +200,7 @@ int CompareOptions(const void *left, const void *right)
     }
 }
 
-tunableConstant maxEval(25.0, 0.0, 250.0, NULL, "maxEval",
+tunableFloatConstant maxEval(25.0, 0.0, 250.0, NULL, userConstant, "maxEval",
     "Max. number of hypotheses to consider at once.");
 
 static int refineCount;
@@ -241,7 +250,7 @@ void autoChangeRefineList()
     searchHistoryNode *curr;
     static float batchCost = 0.0;
     extern Boolean PCsearchPaused;
-    extern tunableConstant sufficientTime;
+    extern tunableFloatConstant sufficientTime;
 
     if (printNodes) printf("TRYING: ");
 

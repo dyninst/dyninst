@@ -17,7 +17,16 @@
 
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.25  1994/07/26 20:03:31  hollings
+ * Revision 1.26  1994/08/03 19:09:47  hollings
+ * split tunable constant into float and boolean types
+ *
+ * added tunable constant for printing tests as they avaluate.
+ *
+ * added code to compute the min interval data has been enabled for a single
+ * test rather than using a global min.  This prevents short changes from
+ * altering long term trends among high level hypotheses.
+ *
+ * Revision 1.25  1994/07/26  20:03:31  hollings
  * added resetActiveFlag
  *
  * Revision 1.24  1994/07/25  04:47:04  hollings
@@ -159,13 +168,14 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.25 1994/07/26 20:03:31 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.26 1994/08/03 19:09:47 hollings Exp $";
 #endif
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 
+#include "util/h/tunableConst.h"
 #include "../pdMain/paradyn.h"
 #include "../DMthread/DMresource.h"
 #include "PCwhy.h"
@@ -178,22 +188,27 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "performanceConsultant.SRVR.h"
 #include "../src/UIthread/UIstatDisp.h"
 
-tunableConstant hysteresisRange(0.15, 0.0, 1.0, NULL, "hysteresisRange",
+tunableFloatConstant hysteresisRange(0.15, 0.0, 1.0, NULL, userConstant,
+  "hysteresisRange",
   "Fraction above and below threshold that a test should use.");
 
 //
 // Fix this soon... This should be based on some real information.
 //
-tunableConstant minObservationTime(1.0, 0.0, 60.0, NULL, "minObservationTime",
+tunableFloatConstant minObservationTime(1.0, 0.0, 60.0, NULL, userConstant,
+ "minObservationTime",
  "min. time (in seconds) to wait after changing inst to start try hypotheses.");
 
-tunableConstant sufficientTime(6.0, 0.0, 1000.0, NULL, "sufficientTime",
+tunableFloatConstant sufficientTime(6.0, 0.0, 1000.0, NULL, userConstant,
+  "sufficientTime",
   "How long to wait (in seconds) before we can conclude a hypothesis is false.");
 
 int PCsearchPaused;
 extern Boolean textMode;
-extern int samplesSinceLastChange;
+List<datum *> *enabledGroup;
+extern timeStamp PCendTransTime;
 extern timeStamp PCstartTransTime;
+extern int samplesSinceLastChange;
 extern timeStamp PClastTestChangeTime;
 extern timeStamp PCshortestEnableTime;
 Boolean printTestResults = FALSE;
@@ -353,6 +368,7 @@ Boolean buildTestResultForHypothesis(testResultList *currResults,
 	r->at = when;
 	r->f = where;
 	r->state.status = FALSE;
+	r->metFociUsed = enabledGroup;
 
 	ret = currResults->find(r);
 	if (ret) {
@@ -411,7 +427,11 @@ void configureTests()
     dataMgr->pauseApplication(context);
 
     // make sure we know who to compensate for data.
+    enabledGroup = new(List<datum*>);
     compensationFactor.changeCollection(whereAxis, enableCollection);
+
+    delete(enabledGroup);
+    enabledGroup = NULL;
 
     if (currentTestResults) {
 	prevTestResults = *currentTestResults;
@@ -423,9 +443,12 @@ void configureTests()
 	    // Setting beenTested here assumes that a test that is configured 
 	    //   get run. We really should not assume this.
 	    curr->changeTested(TRUE);
+	    curr->metricFoci = new (List<datum*>);
+	    enabledGroup = curr->metricFoci;
 	    curr->ableToEnable = 
 	       buildTestResultForHypothesis(currentTestResults,&prevTestResults,
 		curr->why, curr->where, curr->when);
+	    enabledGroup = NULL;
 	}
     }
 
@@ -443,6 +466,32 @@ void configureTests()
 }
 
 //
+// Compute the lowest common demoninator of the valid time interval for the
+//   passed datum items.
+//
+void getTimes(timeStamp *start, timeStamp *end, List<datum*> *items)
+{
+    datum *d;
+    List<datum*> curr;
+
+    curr = *items;
+
+    *start = (*curr)->firstSampleTime;
+    *end = (*curr)->lastSampleTime;
+
+    for (; d = *curr; curr++) {
+        if ((d->firstSampleTime) && (d->firstSampleTime > *start)) {
+            *start = d->firstSampleTime;
+        }
+
+        // earliest last sample
+        if ((d->enabled) && (d->lastSampleTime < *end)) {
+            *end = d->lastSampleTime;
+        }
+    }
+}
+
+//
 // try the currently enabled tests on all of the data.
 //
 Boolean evalTests()
@@ -454,6 +503,7 @@ Boolean evalTests()
     float hysteresis;
     testResultList curr;
     Boolean previousStatus;
+    extern tunableBooleanConstant pcEvalPrint;
     float fctr;
 
     factor = (1.0-(fctr=compensationFactor.value(whereAxis)));
@@ -493,6 +543,15 @@ Boolean evalTests()
 
 	    // allow for "compensated" time.
 	    normalize = hysteresis * factor;
+
+	    // define the correct time interval.
+	    assert(r->metFociUsed);
+	    getTimes(&PCstartTransTime, &PCendTransTime, r->metFociUsed);
+
+	    if (pcEvalPrint.getValue()) {
+		cout << PCstartTransTime << " to " << PCendTransTime << " ";
+	    }
+
 	    (r->t->evaluate(&(r->state), normalize));
 	}
 	// always return for now
@@ -797,6 +856,7 @@ void performanceConsultant::search(Boolean stopOnChange, int limit)
 
     PClastTestChangeTime = PCcurrentTime;
     PCstartTransTime = PCcurrentTime;
+    samplesSinceLastChange = 0;
     cout << "Setting PCstartTransTime = " << PCstartTransTime << "\n";
     if (!dataMgr->applicationDefined(context)) {
 	printf("must specify application to run first\n");

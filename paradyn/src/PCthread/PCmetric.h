@@ -1,7 +1,16 @@
 /*
  * 
  * $Log: PCmetric.h,v $
- * Revision 1.8  1994/07/25 04:47:08  hollings
+ * Revision 1.9  1994/08/03 19:09:52  hollings
+ * split tunable constant into float and boolean types
+ *
+ * added tunable constant for printing tests as they avaluate.
+ *
+ * added code to compute the min interval data has been enabled for a single
+ * test rather than using a global min.  This prevents short changes from
+ * altering long term trends among high level hypotheses.
+ *
+ * Revision 1.8  1994/07/25  04:47:08  hollings
  * Added histogram to PCmetric so we only use data for minimum interval
  * that all metrics for a current batch of requests has been enabled.
  *
@@ -110,7 +119,7 @@ class datum {
 	sampleValue   	sample;			// total of previous enables.
 	timeStamp	totalUsed;		// total time enable previous.
 
-	timeStamp	enableTime;		// this time enabled.
+	timeStamp	firstSampleTime;	// time the first sample arrived.
 	timeStamp	lastSampleTime;		// this time enabled.
 	timeStamp	lastUsed;		// this time enabled.
 	int		samplesSinceEnable;	// this time enabled.

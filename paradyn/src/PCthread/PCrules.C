@@ -18,7 +18,16 @@
 /*
  * 
  * $Log: PCrules.C,v $
- * Revision 1.16  1994/07/25 04:47:09  hollings
+ * Revision 1.17  1994/08/03 19:09:53  hollings
+ * split tunable constant into float and boolean types
+ *
+ * added tunable constant for printing tests as they avaluate.
+ *
+ * added code to compute the min interval data has been enabled for a single
+ * test rather than using a global min.  This prevents short changes from
+ * altering long term trends among high level hypotheses.
+ *
+ * Revision 1.16  1994/07/25  04:47:09  hollings
  * Added histogram to PCmetric so we only use data for minimum interval
  * that all metrics for a current batch of requests has been enabled.
  *
@@ -111,7 +120,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.16 1994/07/25 04:47:09 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.17 1994/08/03 19:09:53 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -127,7 +136,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "../src/UIthread/UIstatDisp.h"
 
 // enable printing for eval tests
-// #define PC_PRINT 
+#define PC_PRINT 
 
 //
 // list of all known tests.
@@ -138,6 +147,9 @@ testList allTests;
 // currently running tests.
 //
 testList activeTests;
+
+tunableBooleanConstant pcEvalPrint(False, NULL, developerConstant,
+    "pcEvalPrint", "Print out the values of tests each time they are evaluated");
 
 //
 // corresponding lists for hypotheses
@@ -216,10 +228,10 @@ void highFuncInst_TEST(testValue *result, float normalize)
     if (oc > highInstOverheadThreshold*normalize) {
 	result->status = TRUE;
     }
-#ifdef PC_PRINT
-    cout << "highFuncInst >? V=" << oc << " A="
-         << (highInstOverheadThreshold*normalize) << "\n";
-#endif
+    if (pcEvalPrint.getValue()) {
+	cout << "highFuncInst >? V=" << oc << " A="
+	     << (highInstOverheadThreshold*normalize) << "\n";
+    }
     return;
 }
 
@@ -246,17 +258,18 @@ void highSyncToCPURatio_TEST(testValue *result, float normalize)
 	    result->status = TRUE;
 	}
     }
-#ifdef PC_PRINT
-    if (active <= 0.0)
-      cout << "highSyncToCPURatio Not active\n";
-    else
-      cout << "\nhighSyncToCPURatio >? V=" << (st / active) <<
-	" A=" << (highSyncThreshold * normalize) << "\n"
-	  << "SyncTime.value()=" << st << "\n" 
-	    << "/active = " << active << "\n"
-	      << "normalize =" << normalize << "\n";
-    assert(normalize >= 0.0);
-#endif
+    if (pcEvalPrint.getValue()) {
+	if (active <= 0.0) {
+	  cout << "highSyncToCPURatio Not active\n";
+	} else {
+	  cout << "highSyncToCPURatio" << currentFocus->getName() << " >? V=";
+	  cout << (st / active) <<
+	    " A=" << (highSyncThreshold * normalize) << "\n"
+	      << "SyncTime.value()=" << st << "\n" 
+		<< "/active = " << active << "\n"
+		  << "normalize =" << normalize << "\n";
+	}
+    }
     return;
 }
 
@@ -290,15 +303,12 @@ void highCPUtoSyncRatio_TEST(testValue *result, float normalize)
     result->status = FALSE;
     if (!currentFocus->moreSpecific(Procedures, conflict)) {
 	newFoci = whereAxis->magnify(Procedures);
-	// 40% above average.
-	factor = 1.4/newFoci.count();
+	// 10% above average.
+	factor = 1.1/newFoci.count();
 
 	// guard for very simple programs.
 	if (factor > highCPUtoSyncRatioThreshold) 
 	    factor = highCPUtoSyncRatioThreshold;
-#ifdef PC_PRINT
-	cout << "setting factor to " << factor << "\n";
-#endif
     } else {
 	factor = highCPUtoSyncRatioThreshold;
     }
@@ -309,10 +319,13 @@ void highCPUtoSyncRatio_TEST(testValue *result, float normalize)
 	result->status = TRUE;
 	result->addHint(Procedures, "Lots of cpu time");
     }
-#ifdef PC_PRINT
-    cout << "highCPUtoSyncRatio >? V=" << (cpu / processes) <<
-      " A=" << (factor * normalize) << "\n";
-#endif
+
+    if (pcEvalPrint.getValue()) {
+	cout << "highCPUtoSyncRatio " << currentFocus->getName() << " >? V=";
+	cout << (cpu / processes) << " A=" << (factor * normalize) << "\n";
+	if (factor < highCPUtoSyncRatioThreshold)
+	    cout << "    factor was " << factor << "\n";
+    }
     return;
 }
 
@@ -338,10 +351,10 @@ void criticalSectionTooLarge_TEST(testValue *result, float normalize)
     if (pctHeld > largeCriticalSectionThreshold * normalize) {
 	result->status = TRUE;
     }
-#ifdef PC_PRINT
-    cout << "critSectooLarge >? V=" << pctHeld << " A=" <<
-      (largeCriticalSectionThreshold * normalize) << "\n";
-#endif   
+    if (pcEvalPrint.getValue()) {
+	cout << "critSectooLarge >? V=" << pctHeld << " A=" <<
+	  (largeCriticalSectionThreshold * normalize) << "\n";
+    }
     return;
 }
 
@@ -481,11 +494,12 @@ void highIOwait_TEST(testValue *result, float normalize)
     result->status = FALSE;
     if (IOwait.value() > highIOthreshold * normalize) {
 	result->status = TRUE;
-      }
-#ifdef PC_PRINT
-    cout << "highIOwait >? V=" << IOwait.value() << " A=" <<
-      (highIOthreshold * normalize) << "\n";
-#endif
+    }
+
+    if (pcEvalPrint.getValue()) {
+	cout << "highIOwait >? V=" << IOwait.value() << " A=" <<
+	  (highIOthreshold * normalize) << "\n";
+    }
     return;
 }
 
@@ -511,10 +525,11 @@ void smallIO_TEST(testValue *result, float normalize)
     if (avgRead < diskBlockSize * normalize) {
 	result->status = TRUE;
     }
-#ifdef PC_PRINT    
-    cout << "smallIO >? V=" << avgRead << " A=" << (diskBlockSize * normalize)
-      << "\n";
-#endif
+
+    if (pcEvalPrint.getValue()) {
+	cout << "smallIO >? V=" << avgRead << " A=";
+	cout << (diskBlockSize * normalize) << "\n";
+    }
     return;
 }
 

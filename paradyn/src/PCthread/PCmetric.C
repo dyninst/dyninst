@@ -18,7 +18,16 @@
 /*
  * 
  * $Log: PCmetric.C,v $
- * Revision 1.18  1994/07/28 22:34:01  krisna
+ * Revision 1.19  1994/08/03 19:09:51  hollings
+ * split tunable constant into float and boolean types
+ *
+ * added tunable constant for printing tests as they avaluate.
+ *
+ * added code to compute the min interval data has been enabled for a single
+ * test rather than using a global min.  This prevents short changes from
+ * altering long term trends among high level hypotheses.
+ *
+ * Revision 1.18  1994/07/28  22:34:01  krisna
  * proper starting code for PCmain thread
  * stringCompare matches qsort prototype
  * changed infinity() to HUGE_VAL
@@ -129,7 +138,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.18 1994/07/28 22:34:01 krisna Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.19 1994/08/03 19:09:51 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -154,6 +163,7 @@ int samplesSinceLastChange;
 timeStamp PCshortestEnableTime;
 timeStamp PClastTestChangeTime;
 Boolean explainationFlag = FALSE;
+extern List<datum *> *enabledGroup;
 
 // for debugging
 // #define PC_PRINT
@@ -243,8 +253,8 @@ sampleValue PCmetric::value(focus *f, timeStamp start, timeStamp end)
     }
 
     // ask for time only from when it was enabled.
-    //start = val->enableTime;
-    assert(start >= val->enableTime);
+    //start = val->firstSampleTime;
+    assert(start >= val->firstSampleTime);
 
     val->lastUsed = end;
 
@@ -319,7 +329,7 @@ Boolean PCmetric::changeCollection(focus *f, collectMode newMode)
 	if (!val->enabled) {
 	    val->samplesSinceEnable = 0;
 	    val->lastSampleTime = 0.0;
-	    val->enableTime = 0.0;
+	    val->firstSampleTime = 0.0;
 	    val->used = TRUE;
 	    val->mi = dataMgr->enableDataCollection(pcStream,val->resList,
 						    met);
@@ -329,10 +339,15 @@ Boolean PCmetric::changeCollection(focus *f, collectMode newMode)
 		val->enabled = TRUE;
 	    }
 	}
-	if (val->mi) 
+	if (val->mi) {
+	    // global variable to record enables for this request
+	    assert(enabledGroup);
+	    enabledGroup->add(val);
+
 	    return(TRUE);
-	else 
+	} else {
 	    return(FALSE);
+	}
     } else if (newMode == disableCollection) {
 	assert(val);
 	val->refCount--;
@@ -341,7 +356,7 @@ Boolean PCmetric::changeCollection(focus *f, collectMode newMode)
 
 	    if (val->mi) {
 		dataMgr->disableDataCollection(pcStream, val->mi);
-		val->totalUsed += val->lastUsed - val->enableTime;
+		val->totalUsed += val->lastUsed - val->firstSampleTime;
 	    }
 	}
 	return(TRUE);
@@ -439,7 +454,7 @@ datum::datum()
     sample = 0.0;
     totalUsed = 0.0;
 
-    enableTime = 0.0;
+    firstSampleTime = 0.0;
     lastUsed = 0.0;
 
     time = -1.0;
@@ -484,12 +499,12 @@ timeStamp globalMinEnabledTime()
     PCendTransTime = HUGE_VAL;
     PCstartTransTime = 0.0;
     for (curr = miToDatumMap; d = *curr; curr++) {
-	elapsed = d->lastSampleTime - d->enableTime;
+	elapsed = d->lastSampleTime - d->firstSampleTime;
 	if ((d->enabled) && (elapsed < min)) {
 	    min = elapsed;
 	}
-	if ((d->enabled) && (d->enableTime > PCstartTransTime)) {
-	    PCstartTransTime = d->enableTime;
+	if ((d->enabled) && (d->firstSampleTime > PCstartTransTime)) {
+	    PCstartTransTime = d->firstSampleTime;
 	}
 
 	// earliest last sample 
@@ -511,7 +526,7 @@ void datum::newSample(timeStamp start, timeStamp end, sampleValue value)
 	// consider the sample enabled only from the time we get the first
 	//   sample.  This removes inst latency, and the fact currentTime is
 	//   trailing edge of the time wavefront.
-	enableTime = start;
+	firstSampleTime = start;
     }
 
     samplesSinceLastChange = globalMinSampleCount();

@@ -16,11 +16,20 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.19  1994/07/28 22:33:59  krisna
-/* proper starting code for PCmain thread
-/* stringCompare matches qsort prototype
-/* changed infinity() to HUGE_VAL
+/* Revision 1.20  1994/08/03 19:09:49  hollings
+/* split tunable constant into float and boolean types
 /*
+/* added tunable constant for printing tests as they avaluate.
+/*
+/* added code to compute the min interval data has been enabled for a single
+/* test rather than using a global min.  This prevents short changes from
+/* altering long term trends among high level hypotheses.
+/*
+ * Revision 1.19  1994/07/28  22:33:59  krisna
+ * proper starting code for PCmain thread
+ * stringCompare matches qsort prototype
+ * changed infinity() to HUGE_VAL
+ *
  * Revision 1.18  1994/07/25  04:47:05  hollings
  * Added histogram to PCmetric so we only use data for minimum interval
  * that all metrics for a current batch of requests has been enabled.
@@ -75,7 +84,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmain.C,v 1.19 1994/07/28 22:33:59 krisna Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmain.C,v 1.20 1994/08/03 19:09:49 hollings Exp $";
 #endif
 
 #include <assert.h>
@@ -84,6 +93,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 
 
 #include "thread/h/thread.h"
+#include "util/h/tunableConst.h"
 #include "dataManager.CLNT.h"
 #include "performanceConsultant.SRVR.h"
 #include "UI.CLNT.h"
@@ -121,6 +131,7 @@ void PCnewData(performanceStream *ps,
     datum *dp;
     sampleValue total;
     timeStamp start, end;
+    extern tunableBooleanConstant pcEvalPrint;
 
     for (i=0, total = 0.0; i < count; i++) {
 	// printf("mi %x = bin %d == %f\n", mi, i+first, buckets[i]);
@@ -133,9 +144,11 @@ void PCnewData(performanceStream *ps,
     start = PCbucketWidth * first;
     end = PCbucketWidth * (first + count);
 
-    // cout << "AR: " << dp->metName << dp->resList->getCanonicalName();
-    // cout << " = " << total;
-    // cout << " from " << start << " to " << end << "\n";
+    if (pcEvalPrint.getValue()) {
+	cout << "AR: " << dp->metName << dp->resList->getCanonicalName();
+	cout << " = " << total;
+	cout << " from " << start << " to " << end << "\n";
+    }
 
     dp->newSample(start, end, total);
 
