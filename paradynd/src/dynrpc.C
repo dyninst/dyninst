@@ -27,6 +27,9 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
+ * Revision 1.30  1996/01/23 23:42:53  zhichen
+ * Added stuff to adjust SAMPLEnodes, see also paradyndCM5/src/main.C
+ *
  * Revision 1.29  1996/01/15 16:54:39  zhichen
  * Adjust the value of SAMPLEnodes with the formula "max(t, 1)"
  * A better formula SAMPLEnodes = max(f(t), 1) is underconstruction
@@ -285,7 +288,12 @@ int dynRPC::enableDataCollection(vector<u_int> focus, string met, int gid)
 //
 #ifdef sparc_tmc_cmost7_3
 extern float SAMPLEnodes ;
+extern int getNumberOfJobs(void) ;
 #endif
+
+//// I took this outside, to be used by paradyndCM5/main.C
+int *sample_multiple = new int; 
+////---------------------
 
 void dynRPC::setSampleRate(double sampleInterval)
 {
@@ -298,15 +306,20 @@ void dynRPC::setSampleRate(double sampleInterval)
 
     bucket_width->value = sampleInterval;
     if(sampleInterval != currSamplingRate){
-        int *sample_multiple = new int; 
+        // int *sample_multiple = new int; 
 	*sample_multiple = 
 	    (int)(((sampleInterval)*ONEMILLION)/BASESAMPLEINTERVAL);
          
 #ifdef sparc_tmc_cmost7_3 
-// adjust the snarf rate accordingly
-SAMPLEnodes = ((float) BASEBUCKETWIDTH)* ((float)(*sample_multiple)) ;
-if(SAMPLEnodes < 1.0) 
-	SAMPLEnodes =  1.0 ;
+	int number_of_jobs = getNumberOfJobs() ;
+
+	// adjust the snarf rate accordingly
+	SAMPLEnodes = ((float) BASEBUCKETWIDTH)* 
+		      ((float)(*sample_multiple))*
+		      number_of_jobs ;
+
+	if(SAMPLEnodes < 1.0) 
+		SAMPLEnodes =  1.0 ;
 #endif
 	// setSampleMultiple(sample_multiple);
 	// set the sample multiple in all processes
