@@ -2,7 +2,11 @@
 # plain vanilla script to setup frames and scrollbars for the dag widget
 
 # $Log: dagSetup.tcl,v $
-# Revision 1.4  1994/08/01 20:26:28  karavan
+# Revision 1.5  1994/10/25 17:55:08  karavan
+# Implemented Resource Display Objects, which manage display of multiple
+# resource Abstractions.
+#
+# Revision 1.4  1994/08/01  20:26:28  karavan
 # changes to accommodate new dag design.
 #
 # Revision 1.3  1994/06/29  21:47:34  hollings
@@ -16,15 +20,23 @@
 # Initial version.
 #
 
-### handle error case -- not n*
 proc updateCurrentSelection {whoCan dagID} {
     set gvarname currentSelection$dagID
     global $gvarname
     set nodeID [lindex [$whoCan gettags current] 0]
-    if [string match n* $nodeID] { 
+    if [string match {[nt]*} $nodeID] { 
 	set newID [string range $nodeID 1 end]
 	uimpd unhighlightNode [expr $$gvarname] $dagID
 	set currentSelection$dagID $newID
+	uimpd highlightNode $newID $dagID
+	return $newID
+    }
+}
+
+proc addSelection {whoCan dagID} {
+    set nodeID [lindex [$whoCan gettags current] 0]
+    if [string match {[nt]*} $nodeID] { 
+	set newID [string range $nodeID 1 end]
 	uimpd highlightNode $newID $dagID
 	return $newID
     }

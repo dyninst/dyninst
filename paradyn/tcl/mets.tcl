@@ -5,7 +5,11 @@
 # choices directly.
 
 # $Log: mets.tcl,v $
-# Revision 1.6  1994/10/09 01:15:28  karavan
+# Revision 1.7  1994/10/25 17:55:11  karavan
+# Implemented Resource Display Objects, which manage display of multiple
+# resource Abstractions.
+#
+# Revision 1.6  1994/10/09  01:15:28  karavan
 # Implemented new UIM/visithread interface with metrespair data structure
 # and selection of resources directly on the where axis.
 #
@@ -48,11 +52,14 @@ proc acceptMetChoices {} {
     }
 }
 
-proc sendAllSelections {visiToken cancelFlag} {
+proc sendAllSelections {visiToken pdoToken cancelFlag} {
+#    acceptMetChoices
+#    puts "sendAllSelections $pdoToken"
+#    uimpd processResourceSelection $pdoToken
     uimpd sendVisiSelections $visiToken $cancelFlag
 }
 	
-proc getMetsAndRes {metsAndResID} {
+proc getMetsAndRes {metsAndResID rdo} {
     global metCount metList w metMenuCtr tclSelectionState selectionPrompt
     set tclSelectionState 0
     incr metMenuCtr
@@ -62,7 +69,7 @@ proc getMetsAndRes {metsAndResID} {
     set msg2 "Select Visualization Metric(s) and press ACCEPT"
     set msg3 "No Metrics Currently Defined"
     set msg4 "\"Now Accept a Focus on the Where Axis Display\""
-
+    puts "getMetsAndRes $rdo"
     # toplevel window
     toplevel $w  -bd 0
     wm title $w "Paradyn Metrics Menu"
@@ -113,7 +120,8 @@ proc getMetsAndRes {metsAndResID} {
 
     button $w.bot.b2 -text "DONE" -bg white \
 	    -command \
-	    "sendAllSelections $metsAndResID 0; unset metList; destroy $w " 
+	    "sendAllSelections $metsAndResID $rdo 0; \
+	    unset metList; destroy $w " 
 
     button $w.bot.b3 -text "ACCEPT" \
 	    -command "acceptMetChoices; set selectionPrompt $msg4"

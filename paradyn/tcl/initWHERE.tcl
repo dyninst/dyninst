@@ -3,7 +3,11 @@
 # some default styles for nodes and edges
 
 # $Log: initWHERE.tcl,v $
-# Revision 1.7  1994/10/09 01:15:24  karavan
+# Revision 1.8  1994/10/25 17:55:10  karavan
+# Implemented Resource Display Objects, which manage display of multiple
+# resource Abstractions.
+#
+# Revision 1.7  1994/10/09  01:15:24  karavan
 # Implemented new UIM/visithread interface with metrespair data structure
 # and selection of resources directly on the where axis.
 #
@@ -98,41 +102,68 @@ proc addDefaultWhereSettings {cname token} {
 
 }
 
-proc initWHERE {dagID wwindow wtitle topLevelFlag } {
-    global currentSelection$dagID
-    set mprompt "Select Visualization Metric(s) and press ACCEPT"
-    set currentSelection$dagID -1      
+# map a particular dag display into the parent resource display window
+# this is done by packing/unpacking to save time; of course with lots 
+# of dags this may get to be too much of a memory hog.
 
-    if {$topLevelFlag == 1} {
-	toplevel $wwindow
-	#allow interactive sizing
-	wm minsize $wwindow 200 200      
-	frame $wwindow.buttons -geometry 200x20
-	button $wwindow.buttons.b1 -text "CLOSE" -width 10 -height 1 \
-		-command "uimpd closeDAG $dagID; destroy $wwindow"
-	pack $wwindow.buttons -side top -expand 1 -fill both
-	pack $wwindow.buttons.b1 -side left  -padx 20 -pady 1
-    }
-    label $wwindow.title -text $wtitle -fg black \
+# need to redo prompt stuff now that this is split from initRDO
+#	              set selectionPrompt \"$mprompt\"" \
+
+proc mapRDOdag {rdoID dagID wwindow abs} {
+    global currentSelection$dagID
+    set currentSelection$dagID -1    
+    puts "mapRDOdag $wwindow.dag.dag$abs"
+    $wwindow.sbutts.b1 configure \
+	    -command "acceptFocusChoice $rdoID" \
+	    -state normal
+    $wwindow.sbutts.b2 configure  \
+	    -command "uimpd clearResourceSelection $dagID" \
+	    -state normal
+    $wwindow.sbutts.b4 configure \
+	    -command "uimpd switchRDOdag $rdoID $abs" \
+	    -state normal
+    $wwindow.dag.title configure -text "Paradyn $abs Where Axis"
+    pack $wwindow.dag.dag$abs -side top -fill both -expand 1
+}
+
+proc initRDOdag {wwindow abs} {
+    puts "initRDOdag $wwindow.dag.dag$abs"
+    frame $wwindow.dag.dag$abs
+}
+
+proc unmapRDOdag {wwindow abs} {
+    puts "unmap $wwindow.dag.dag$abs"
+    pack forget $wwindow.dag.dag$abs
+}
+
+proc initRDO {rdoID wwindow wtitle} {
+    set mprompt "Select Visualization Metric(s) and press ACCEPT"
+    set dtitle " "
+    toplevel $wwindow
+    #allow interactive sizing
+    wm minsize $wwindow 200 200      
+    wm title $wwindow " $wtitle Where Axis"
+    frame $wwindow.dag -class Dag -geometry 200x100
+    label $wwindow.dag.title -text "  " -fg black \
 	-font *-New*Century*Schoolbook-Bold-R-*-14-* \
 	-relief raised
-    frame $wwindow.dag -class Dag -geometry 200x100
 
     # selection button window allocated but packed only at time of 
     #  metric/resource selection
     frame $wwindow.sbutts 
     button $wwindow.sbutts.b1 -text "ACCEPT" \
-	    -command "acceptFocusChoice $dagID; \
-	    set selectionPrompt \"$mprompt\""
+	    -state disabled  
     button $wwindow.sbutts.b2 -text "CLEAR" \
-	    -command "uimpd clearResourceSelection $dagID"
-    pack $wwindow.sbutts.b1 $wwindow.sbutts.b2 -side left
-    pack $wwindow.title -side top -fill x -expand 1 
+	    -state disabled
+    button $wwindow.sbutts.b3 -text "CLOSE" -width 10 -height 1 \
+	    -command "uimpd closeRDO $rdoID; destroy $wwindow"
+    button $wwindow.sbutts.b4 -text "SWITCH" \
+	    -state disabled
+    pack $wwindow.sbutts.b1 $wwindow.sbutts.b2 $wwindow.sbutts.b3 \
+	    $wwindow.sbutts.b4 -side left
+    pack $wwindow.dag.title -side top -fill x -expand 1 
     pack $wwindow.dag -side top -fill both -expand 1
     pack $wwindow.sbutts -side top -fill x -expand 1
 
 }
-
-
-
 
