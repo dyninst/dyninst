@@ -70,6 +70,11 @@ DYNINSTos_init(void) {
  * required.  time for a specific LWP can be obtained via the "/proc"
  * filesystem.
  * return value is in usec units.
+ *
+ * XXXX - This should really return time in native units and use normalize
+ *	conversion to float abd division are way to expensive to
+ *	do everytime we want to read a clock (slows this down 2x) -
+ *	jkh 3/9/95
 ************************************************************************/
 
 time64
