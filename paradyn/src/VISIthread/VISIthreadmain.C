@@ -22,9 +22,12 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.71  1996/05/01 18:56:03  newhall
-/* bug fix: check size of partPair after call to VISIthreadWaitForEnableResponse
+/* Revision 1.72  1996/05/06 17:13:11  newhall
+/* changed arguments to enableDataRequest
 /*
+ * Revision 1.71  1996/05/01  18:56:03  newhall
+ * bug fix: check size of partPair after call to VISIthreadWaitForEnableResponse
+ *
  * Revision 1.70  1996/05/01  18:08:03  newhall
  * purify fixes
  *
@@ -803,33 +806,34 @@ bool TryToEnableAll(vector<metric_focus_pair> *newMetRes,  // list of choces
 
         ptr->dmp->enableDataRequest(ptr->ps_handle, metResParts,requestId,
 				ptr->args->phase_type,
-			 	ptr->args->my_phaseId,0,0);
+			 	ptr->args->my_phaseId,0,0,0);
 
-/****************** Code to test persistence flags ********** 
+// Code to test persistence flags: also uncomment VISIenablenum above this func
+/************************************************************************* 
         switch (VISIenablenum % 4){ 
             case 0:
 		cout << "ENABLING 0 0" << endl;
 		ptr->dmp->enableDataRequest(ptr->ps_handle,metResParts,
 					requestId,ptr->args->phase_type,
-		    			ptr->args->my_phaseId,0,0);
+		    			ptr->args->my_phaseId,0,0,0);
                 break;
             case 1:
 		cout << "ENABLING 1 0" << endl;
 		ptr->dmp->enableDataRequest(ptr->ps_handle,metResParts,
 					requestId,ptr->args->phase_type,
-		    			ptr->args->my_phaseId,1,0);
+		    			ptr->args->my_phaseId,1,0,0);
                 break;
             case 2:
 		cout << "ENABLING 0 1" << endl;
 		ptr->dmp->enableDataRequest(ptr->ps_handle,metResParts,
 					requestId,ptr->args->phase_type,
-		    			ptr->args->my_phaseId,0,1);
+		    			ptr->args->my_phaseId,0,1,0);
                 break;
             case 3:
-		cout << "ENABLING 1 1" << endl;
+		cout << "ENABLING 0 0 1" << endl;
 		ptr->dmp->enableDataRequest(ptr->ps_handle,metResParts,
 					requestId,ptr->args->phase_type,
-		    			ptr->args->my_phaseId,1,1);
+		    			ptr->args->my_phaseId,0,0,1);
                 break;
         }
 	VISIenablenum++;
@@ -910,7 +914,7 @@ bool TryToEnableSome(int num_to_enable,		// max num to enable
   // get the packet size for data enable requests
   u_int nTimes=0,lPacket=0,pSize=0;
   GetPacketSize(newMetRes->size(),pSize,lPacket,nTimes);
-  
+
   u_int total_num = (*newMetRes).size();
   newPair = new vector<metricInstInfo> (total_num);
   u_int current = 0;
@@ -930,7 +934,7 @@ bool TryToEnableSome(int num_to_enable,		// max num to enable
       u_int requestId = 0;
       ptr->dmp->enableDataRequest(ptr->ps_handle, metResParts, requestId,
 				  ptr->args->phase_type,ptr->args->my_phaseId,
-				  0,0);
+				  0,0,0);
 
        // wait for DM response
        VISIthreadWaitForEnableResponse(partPair,requestId);
