@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test5.mutatee.C,v 1.3 2000/08/21 01:22:34 buck Exp $ */
+/* $Id: test5.mutatee.C,v 1.4 2001/10/12 17:55:17 buck Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -332,6 +332,7 @@ int SOMClassClassData;
 int SOMObjectClassData;
 #else
 /* xlC also doesn't like these, so just skip them ... */
+template class sample_template <char>;
 template class sample_template <int>;
 template class sample_template <double>;
 #endif
