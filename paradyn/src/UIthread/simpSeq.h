@@ -5,9 +5,12 @@
 // Very lightweight all-around; no free store operations _ever_
 
 /* $Log: simpSeq.h,v $
-/* Revision 1.2  1995/09/20 01:19:15  tamches
-/* int --> unsigned in a lot of places
+/* Revision 1.3  1995/10/17 22:09:48  tamches
+/* added operator==
 /*
+ * Revision 1.2  1995/09/20 01:19:15  tamches
+ * int --> unsigned in a lot of places
+ *
  * Revision 1.1  1995/07/17  04:59:00  tamches
  * First version of the new where axis
  *
@@ -38,7 +41,15 @@ class simpSeq {
    }
   ~simpSeq() {}
 
-   unsigned getSize() const;
+   simpSeq<T> &operator=(const simpSeq<T> &src) {
+      numitems = src.numitems;
+      for (unsigned item=0; item < numitems; item++)
+         data[item] = src.data[item]; // T::operator=(const T &)
+   }
+
+   bool operator==(const simpSeq<T> &other) const;
+
+   unsigned getSize() const {return numitems;}
    void rigSize(unsigned newsize) {numitems = newsize;}
 
    T &operator[](unsigned index){return getItem(index);}
