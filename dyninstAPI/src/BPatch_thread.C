@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.111 2004/10/07 00:45:56 jaw Exp $
+// $Id: BPatch_thread.C,v 1.112 2004/12/02 00:57:05 tlmiller Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -84,6 +84,46 @@ public:
     void setReturnValue(void *_returnValue) { returnValue = _returnValue; }
     void *getReturnValue() { return returnValue; }
 };
+
+#if defined( arch_ia64 ) && defined( os_linux )
+/* We need to make sure that libunwind is loaded in the remote
+   process so that we can insert dynamic unwind information. */
+bool loadUnwindLibrary( BPatch_thread * applicationThread, process * proc ) {
+	/* Try to find the dynamic unwind information list header.
+	   If it's already present, we don't need to do anything. */
+	bool couldNotFind = false;
+	proc->findInternalAddress( "_U_dyn_info_list", false, couldNotFind );
+	if( ! couldNotFind ) { return true; }
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: loading unwind library.\n", __FILE__, __LINE__ );
+
+	/* This should have been set by loadDYNINSTlib(). */
+	assert( proc->dyninstRT_name != NULL );
+
+	/* We assume that libunwind.so is in the directory as the runtime library. */
+	const char * runtimeLibraryPath = proc->dyninstRT_name.c_str();
+	assert( runtimeLibraryPath != NULL );
+
+	char * fullPath = strdup( runtimeLibraryPath );
+	assert( fullPath != NULL );
+
+	char * rightmostSlash = strchr( fullPath, '/' );
+	assert( rightmostSlash != NULL );
+
+	/* Because 'libunwind.so' is smaller than 'libdyninstAPI_RT.so.1', we know there's space. */
+	strcpy( rightmostSlash, "libunwind.so" );
+
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: trying to load unwind library as '%s'\n", __FUNCTION__, __LINE__, fullPath );
+	bool success = applicationThread->loadLibrary( fullPath );
+	free( fullPath );
+	return success;
+	} /* end loadUnwindLibrary() */
+
+void printLoadUnwindLibraryError() {
+	fprintf( stderr, "We were unable to load the unwind library.  " );
+	fprintf( stderr, "Please insure that libunwind.so is present in the same directory as libdyninstAPI_RT.so.1," );
+	fprintf( stderr, "and that its dependencies ('ldd libunwind.so') are present in LD_LIBRARY_PATH.\n" );
+	} /* end printLoadUnwindLibraryError() */
+#endif
 
 
 /*
@@ -216,11 +256,20 @@ BPatch_thread::BPatch_thread(const char *path, char *argv[], char *envp[],
     // XXX Should be conditional on success of creating process
     assert(BPatch::bpatch != NULL);
     BPatch::bpatch->registerThread(this);
-
+    
     image = new BPatch_image(this);
 
     while (!proc->isBootstrappedYet() && !statusIsTerminated())
         BPatch::bpatch->getThreadEvent(false);
+
+	#if defined( arch_ia64 ) && defined( os_linux )        
+	/* We need to make sure that libunwind is loaded in the remote
+	   process so that we can insert dynamic unwind information. */
+    if( ! loadUnwindLibrary( this, proc ) ) {
+    	printLoadUnwindLibraryError();
+    	assert( 0 );
+    	}
+	#endif /* ia64 linux */
 
     if (BPatch::bpatch->postForkCallback) {
       insertVForkInst(this);
@@ -270,7 +319,17 @@ BPatch_thread::BPatch_thread(const char *path, int pid)
 	BPatch::bpatch->getThreadEventOnly(false);
 	proc->getRpcMgr()->launchRPCs(false);
     }
-
+    
+	#if defined( arch_ia64 ) && defined( os_linux )        
+	/* We need to make sure that libunwind is loaded in the remote
+	   process so that we can insert dynamic unwind information. */
+    if( ! loadUnwindLibrary( this, proc ) ) {
+    	printLoadUnwindLibraryError();
+    	assert( 0 );
+    	}
+	#endif /* ia64 linux */
+    
+	/* Why is this unconditional?  (The insertVForkInst() above is not.) */
     insertVForkInst(this);
 }
 
@@ -1131,7 +1190,7 @@ bool BPatch_thread::removeFunctionCall(BPatch_point &point)
 bool BPatch_thread::replaceFunction(BPatch_function &oldFunc,
 				    BPatch_function &newFunc)
 {
-#if defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0) || defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
+#if defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0) || defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0) || defined(ia64_unknown_linux2_4)
     // Can't make changes to code when mutations are not active.
     if (!mutationsActive)
 	return false;
