@@ -16,10 +16,19 @@
  *
  */
 /* $Log: VISIthreadTypes.h,v $
-/* Revision 1.8  1994/08/13 20:52:36  newhall
-/* changed when a visualization process is started
-/* added new file VISIthreadpublic.C
+/* Revision 1.10  1995/01/05 19:23:07  newhall
+/* changed the size of the data buffer to be proportional
+/* to the number of enabled metric/focus pairs.
 /*
+ * Revision 1.9  1994/09/25  01:52:06  newhall
+ * updated to support the changes to the  visi, UI and VM interfaces having
+ * to do with a new representation of metric/focus lists as a list of
+ * metric/focus pairs.
+ *
+ * Revision 1.8  1994/08/13  20:52:36  newhall
+ * changed when a visualization process is started
+ * added new file VISIthreadpublic.C
+ *
  * Revision 1.7  1994/08/11  02:19:22  newhall
  * added call to dataManager routine destroyPerformanceStream
  *
@@ -50,12 +59,15 @@
 #include "dataManager.CLNT.h"
 #include "visi.CLNT.h"
 #include "../pdMain/paradyn.h"
+#include "../VMthread/metrespair.h"
+
 
 
 #define BUFFERSIZE 64 
 #define SUM     0
 #define AVE     1
 #define  VISI_DEFAULT_FOCUS "Whole Program"
+#define MIN(a,b) (((a)<(b))?(a):(b))
 
 ////////////////////////////////////////
 //  for VISIthread local data  
@@ -69,6 +81,7 @@ struct VISIGlobalsStruct {
   performanceStream *perStream;
   dataValue buffer[BUFFERSIZE];
   int bufferSize;
+  int maxBufferSize;
   int fd;
   int pid;
   int quit;
@@ -88,8 +101,8 @@ class visiUser : public visualizationUser
     virtual void handle_error();
 };
 
-extern void VISIthreadchooseMetRes(char **metricNames, 
-				   int numMetrics, 
-				   resourceList* focusChoice);
+extern void VISIthreadchooseMetRes(metrespair *newMetRes,
+			           int numElements);
+
 
 #endif

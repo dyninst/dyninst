@@ -22,9 +22,13 @@
 //   		VISIthreadnewResourceCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.33  1994/11/04 06:41:03  newhall
-/* removed printfs
+/* Revision 1.34  1995/01/05 19:23:10  newhall
+/* changed the size of the data buffer to be proportional
+/* to the number of enabled metric/focus pairs.
 /*
+ * Revision 1.33  1994/11/04  06:41:03  newhall
+ * removed printfs
+ *
  * Revision 1.32  1994/11/03  05:17:43  newhall
  * removed trailing comma in AbbreviatedFocus
  *
@@ -231,9 +235,9 @@ if((bucketNum % 100) == 0){
   ptr->bufferSize++;
 
   // if buffer is full, send buffer to visualization
-  // if(ptr->bufferSize == BUFFERSIZE)
-  if(ptr->bufferSize) {
+  if(ptr->bufferSize >= ptr->maxBufferSize) {
 
+    PARADYN_DEBUG(("sending %d dataBuckets",ptr->bufferSize));
     temp.count = ptr->bufferSize;
     temp.data = ptr->buffer;
     ptr->visip->Data(temp);
@@ -514,6 +518,11 @@ void VISIthreadchooseMetRes(metrespair *newMetRes,
 
   if(numEnabled > 0){
 
+    // increase the buffer size
+    ptr->maxBufferSize += numEnabled;
+    ptr->maxBufferSize = MIN(ptr->maxBufferSize, BUFFERSIZE);
+    assert(ptr->maxBufferSize <= BUFFERSIZE);
+
     // if this is the first set of enabled values, start visi process
     if(ptr->start_up){
         if(!VISIthreadStartProcess()){
@@ -727,6 +736,7 @@ void *VISIthreadmain(void *vargs){
 
   globals->start_up = 1;
   globals->bufferSize = 0;
+  globals->maxBufferSize = 0;
   globals->fd = -1;
   globals->pid = -1;
   globals->quit = 0;

@@ -14,9 +14,13 @@
  *
  */
 /* $Log: VISIthreadpublic.C,v $
-/* Revision 1.4  1994/11/04 06:41:05  newhall
-/* removed printfs
+/* Revision 1.5  1995/01/05 19:23:14  newhall
+/* changed the size of the data buffer to be proportional
+/* to the number of enabled metric/focus pairs.
 /*
+ * Revision 1.4  1994/11/04  06:41:05  newhall
+ * removed printfs
+ *
  * Revision 1.3  1994/09/25  01:52:10  newhall
  * updated to support the changes to the  visi, UI and VM interfaces having
  * to do with a new representation of metric/focus lists as a list of
@@ -161,6 +165,8 @@ void visualizationUser::StopMetricResource(int metricId,
 	ptr->quit = 1;
         return;
       }
+      ptr->maxBufferSize--;
+      assert(ptr->maxBufferSize >= 0);
     }
 }
 
