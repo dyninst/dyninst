@@ -41,6 +41,9 @@ public:
   
   /** returns the vector of loops in CFG */
   void getLoops(BPatch_Vector<BPatch_basicBlockLoop*>&);
+
+  /** returns a vector of outer loops in the CFG */
+  void getOuterLoops(BPatch_Vector<BPatch_basicBlockLoop*>&);
   
   /** creates the source line blocks of all blocks in CFG.
    * without calling this method line info is not available
@@ -51,9 +54,11 @@ public:
    * without calling this method dominator info is not available
    */
   void fillDominatorInfo();
-
-// Print the min and max source line numbers for each loop
-  void printLoopSourceRanges(BPatch_Vector<BPatch_basicBlockLoop *> loops);
+  
+  /**
+   * Print the loops in this FG with hierarchical names to stderr
+   */
+  void printLoops(BPatch_Vector<BPatch_basicBlockLoop *>);
 
  private:
 
@@ -99,6 +104,10 @@ public:
   
   static void findBBForBackEdge(BPatch_basicBlock*,BPatch_basicBlock*,
 				BPatch_Set<BPatch_basicBlock*>&);
+
+
+  void getLoopsByNestingLevel(BPatch_Vector<BPatch_basicBlockLoop*>&, 
+			      bool outerMostOnly);
 
 };
 
