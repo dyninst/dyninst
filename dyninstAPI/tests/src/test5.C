@@ -118,7 +118,7 @@ void checkCost(BPatch_snippet snippet)
 //       
 void mutatorTest1(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn = "arg_test::call_cpp";
   if (NULL == appImage->findFunction(fn, &bpfv) || !bpfv.size()
@@ -235,7 +235,7 @@ void mutatorTest1(BPatch_thread *appThread, BPatch_image *appImage)
 void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
 {
 
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
 
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn = "overload_func_test::func_cpp";
@@ -413,7 +413,7 @@ void mutatorTest3(BPatch_thread *appThread, BPatch_image *appImage)
 // 
 void mutatorTest4(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn = "static_test::func_cpp";
   if (NULL == appImage->findFunction(fn, &bpfv) || !bpfv.size()
@@ -497,7 +497,7 @@ void mutatorTest4(BPatch_thread *appThread, BPatch_image *appImage)
 // 
 void mutatorTest5(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn = "namespace_test::func_cpp";
   if (NULL == appImage->findFunction(fn, &bpfv) || !bpfv.size()
@@ -601,7 +601,7 @@ void mutatorTest5(BPatch_thread *appThread, BPatch_image *appImage)
 // 
 void mutatorTest6(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn2 = "exception_test::func_cpp";
   if (NULL == appImage->findFunction(fn2, &bpfv) || !bpfv.size()
@@ -667,7 +667,7 @@ void mutatorTest6(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest7(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn2 = "template_test::func_cpp";
   if (NULL == appImage->findFunction(fn2, &bpfv) || !bpfv.size()
@@ -775,7 +775,7 @@ void mutatorTest7(BPatch_thread *appThread, BPatch_image *appImage)
 //   
 void mutatorTest8(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
    // Find the exit point to the procedure "func_cpp"
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn = "decl_test::func_cpp";
@@ -870,7 +870,7 @@ void mutatorTest8(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest9(BPatch_thread *, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
    bool found = false;
    
   BPatch_Vector<BPatch_function *> bpfv;
@@ -991,7 +991,8 @@ void mutatorTest11(BPatch_thread *appThread, BPatch_image *appImage)
 // bad input to replaceFunction is a non-existent BPatch_function.
 
 #if defined(sparc_sun_solaris2_4) \
- || defined(alpha_dec_osf4_0)
+ || defined(alpha_dec_osf4_0) \
+ || defined(i386_unknown_linux2_0)
 
    char libStdC[64];
    BPatch_module *modStdC = NULL;

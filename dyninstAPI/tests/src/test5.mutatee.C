@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test5.mutatee.C,v 1.7 2003/04/02 07:12:27 jaw Exp $ */
+/* $Id: test5.mutatee.C,v 1.8 2003/04/18 23:05:40 tlmiller Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -125,7 +125,7 @@ void cpp_test_util::call_cpp(int test)
 
 void arg_test::func_cpp()
 {
-#if !defined(sparc_sun_solaris2_4)
+#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_linux2_0)
     printf("Skipped test #1 (argument)\n");
     printf("\t- not implemented on this platform\n");
     passedTest[1] = TRUE;
@@ -173,7 +173,7 @@ void arg_test::call_cpp(const int arg1, int & arg2, int arg3)
 
 void overload_func_test::func_cpp()
 {
-#if !defined(sparc_sun_solaris2_4)
+#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_linux2_0)
     printf("Skipped test #2 (function overload)\n");
     printf("\t- not implemented on this platform\n");
     passedTest[2] = TRUE;
@@ -241,7 +241,7 @@ int static_test::count = 0;
 
 void static_test::func_cpp()
 {
-#if !defined(sparc_sun_solaris2_4)
+#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_linux2_0)
     printf("Skipped test #4 (static member)\n");
     printf("\t- not implemented on this platform\n");
     passedTest[4] = TRUE;
@@ -261,7 +261,7 @@ static int local_file_var = 3;
 
 void namespace_test::func_cpp()
 {
-#if !defined(sparc_sun_solaris2_4) 
+#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_linux2_0)
     printf("Skipped test #5 (namespace)\n");
     printf("\t- not implemented on this platform\n");
     passedTest[5] = TRUE;
@@ -304,7 +304,7 @@ void exception_test::call_cpp()
 
 void exception_test::func_cpp()
 {
-#if !defined(sparc_sun_solaris2_4) 
+#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_linux2_0)
     printf("Skipped test #6 (exception)\n");
     printf("\t- not implemented on this platform\n");
     passedTest[6] = TRUE;
@@ -345,7 +345,7 @@ template <class T> T sample_template <T>::content()
 
 void template_test::func_cpp()
 {
-#if !defined(sparc_sun_solaris2_4)
+#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_linux2_0)
     printf("Skipped test #7 (template)\n");
     printf("\t- not implemented on this platform\n");
     passedTest[7] = TRUE;
@@ -370,7 +370,7 @@ void template_test_call_cpp(int test)
 
 void decl_test::func_cpp()
 {
-#if !defined(sparc_sun_solaris2_4)
+#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_linux2_0)
     printf("Skipped test #8 (declaration)\n");
     printf("\t- not implemented on this platform\n");
     passedTest[8] = TRUE;
