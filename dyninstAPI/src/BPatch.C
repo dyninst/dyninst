@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.27 2000/06/22 23:27:24 wylie Exp $
+// $Id: BPatch.C,v 1.28 2000/06/26 17:02:34 wylie Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -707,7 +707,7 @@ BPatch_thread *BPatch::createProcess(char *path, char *argv[],
 /*
  * BPatch::attachProcess
  *
- * Attach to a running pprocess and return a BPatch_thread representing it.
+ * Attach to a running process and return a BPatch_thread representing it.
  * Returns NULL upon failure.
  *
  * path		The pathname of the executable for the process.
@@ -722,6 +722,12 @@ BPatch_thread *BPatch::attachProcess(char *path, int pid)
     if (!ret->proc ||
        (ret->proc->status() != stopped) ||
        !ret->proc->isBootstrappedYet()) {
+        // It would be considerate to (attempt to) leave the process running
+        // at this point (*before* deleting the BPatch_thread handle for it!),
+        // even though it might be in bad shape after the attempted attach.
+        char msg[256];
+        sprintf(msg,"attachProcess failed: process %d may now be killed!",pid);
+        reportError(BPatchWarning, 26, msg);
 	delete ret;
 	return NULL;
     }
