@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.79 2001/05/21 23:25:13 gurari Exp $
+// $Id: inst-sparc-solaris.C,v 1.80 2001/05/23 18:01:05 gurari Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1220,7 +1220,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
     retInstance = NULL;
 
     const instPoint *&cLocation = const_cast<const instPoint *&>(location);
-
+ 
     trampTemplate *ret;
     if (proc->baseMap.find(cLocation, ret)) // writes to ret if found
        // This base tramp already exists; nothing to do.
@@ -2365,9 +2365,10 @@ bool pd_Function::findInstPoints(const image *owner) {
    isTrap = false;
    bool func_entry_found = false;
 
-   for ( ; adr1 < getAddress(0) + size(); adr1 += 4) {
+   for ( ; adr1 < getAddress(0) + size(); adr1 += 4) { 
        instr.raw = owner->get_instruction(adr1);
        nexti.raw = owner->get_instruction(adr1+4);
+
 
        // If there's an TRAP instruction in the function, we 
        // assume that it is an system call and will relocate it 
@@ -2400,6 +2401,28 @@ bool pd_Function::findInstPoints(const image *owner) {
 	   return findInstPoints(owner, getAddress(0), 0);
        }
 
+       if (isCallInsn(instr)) {
+
+         int disp = instr.call.disp30 << 2;
+
+         // find target address of call
+         Address call_target = adr1 + disp;
+
+         // get target instruction of the call   
+         instruction tmpInsn;
+         tmpInsn.raw = owner->get_instruction( call_target );
+
+         // if call is directly to a retl, this is not a real call, but
+         // is instead used to set the o7 register. Set the function to be
+         // relocated when instrumented.
+         if((tmpInsn.raw & 0xfffff000) == 0x81c3e000) {
+
+           isTrap = true;
+           return findInstPoints(owner, getAddress(0), 0);
+         }
+       }
+
+       Address tmpAdr = adr1;
 
        // The function Entry is defined as the first SAVE instruction plus
        // the instructions after this.
@@ -2415,7 +2438,9 @@ bool pd_Function::findInstPoints(const image *owner) {
 	   adr = adr1;
 	   assert(funcEntry_);
        }
-  }
+
+       adr1 = tmpAdr;
+   }
 
    // If there's no SAVE instruction found, this is a leaf function and
    // and function Entry will be defined from the first instruction
@@ -2504,23 +2529,12 @@ bool pd_Function::findInstPoints(const image *owner) {
 	       if (!is_set_O7_call(instr, size(), adr - getAddress(0))) {
 		   return false;
 	       }
-	   } else {
-           
-	       // get call target instruction   
-               instruction tmpInsn;
-               tmpInsn.raw = owner->get_instruction( call_target );
+	   } 
 
-              // verify that call is not directly to a retl instruction,
-              // and thus a real call
-              if((tmpInsn.raw & 0xfffff000) != 0x81c3e000) {
-
-	         // define a call point
-	         // this may update address - sparc - aggregate return value
-	         // want to skip instructions
-	         adr = newCallPoint(adr, instr, owner, err, 
-                                      dummyId, adr, 0, blah);
-	       }
-	   }
+	   // define a call point
+	   // this may update address - sparc - aggregate return value
+	   // want to skip instructions
+	   adr = newCallPoint(adr, instr, owner, err, dummyId, adr, 0, blah);
        }
      }
      else if (JmpNopTC(instr, nexti, adr, this)) {
@@ -2845,7 +2859,6 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
                instruction tmpInsn;
                tmpInsn.raw = owner->get_instruction( call_target );
 
-
                // verify that call is not directly to a retl instruction,
                // and thus a real call
                if((tmpInsn.raw & 0xfffff000) != 0x81c3e000) {
@@ -3056,7 +3069,7 @@ bool pd_Function::PA_attachGeneralRewrites( const image *owner,
                     // Retrieve the instruction in the delay slot of the retl,
                     // so that it can be copied into the relocated function
                     tmpInsn.raw = 
-                    owner->get_instruction( callTarget + sizeof(instruction) );
+                    owner->get_instruction( (callTarget - baseAddress) + sizeof(instruction) );
 
                     RetlSetO7 *retlSetO7 = 
                         new RetlSetO7(this, i * sizeof(instruction), tmpInsn);

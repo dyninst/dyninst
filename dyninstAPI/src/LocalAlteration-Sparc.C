@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-Sparc.C,v 1.9 2001/05/21 23:25:13 gurari Exp $
+// $Id: LocalAlteration-Sparc.C,v 1.10 2001/05/23 18:01:02 gurari Exp $
 
 #include "dyninstAPI/src/LocalAlteration-Sparc.h"
 #include "dyninstAPI/src/LocalAlteration.h"
@@ -641,7 +641,7 @@ int SetO7::numInstrAddedAfter() {
 RetlSetO7::RetlSetO7(pd_Function *f, int offset, instruction &insn) :
     LocalAlteration(f, offset)
 {
-    retlSlotInsn = insn;
+    retlSlotInsn.raw = insn.raw;
 }
 
 //
@@ -722,7 +722,8 @@ bool RetlSetO7::RewriteFootprint(Address /* oldBaseAdr */,
     generateSetHi(&newInstr[newOffset], oldAdr, REG_O(7));
     // write 
     //  or, %07, low order 10 bits of adr, %07
-    genImmInsn(&newInstr[newOffset+1], ORop3, REG_O(7), LOW10(oldAdr), REG_O(7));
+    genImmInsn(&newInstr[newOffset+1], ORop3, REG_O(7), 
+               LOW10(oldAdr + 2*sizeof(instruction)), REG_O(7));
 
     // write branch to skip over first rewritten delay slot instruction
     generateBranchInsn(&newInstr[newOffset+2], 3*sizeof(instruction));
@@ -736,7 +737,7 @@ bool RetlSetO7::RewriteFootprint(Address /* oldBaseAdr */,
 
     // copy delay slot instruction
     newInstr[newOffset+5].raw = oldInstr[oldOffset+1].raw;
-   
+
     // write instruction in the delay slot of the retl instruction
     newInstr[newOffset+6].raw = retlSlotInsn.raw;
 
