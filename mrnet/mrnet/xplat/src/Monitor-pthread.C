@@ -3,10 +3,9 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: Monitor-pthread.C,v 1.3 2004/08/12 19:25:27 darnold Exp $
+// $Id: Monitor-pthread.C,v 1.4 2005/02/15 20:00:07 tlmiller Exp $
 #include <assert.h>
 #include "xplat/src/Monitor-pthread.h"
-
 
 namespace XPlat
 {
@@ -19,14 +18,19 @@ Monitor::Monitor( void )
 
 
 PthreadMonitorData::PthreadMonitorData( void )
-  : initialized( false ),
-    locked( false )
+  : initialized( false )
 {
-    int ret = pthread_mutex_init( &mutex, NULL );
-    if( ret == 0 )
-    {
-        initialized = true;
-    }
+	int ret;
+    pthread_mutexattr_t recursive;
+    
+    ret = pthread_mutexattr_init( & recursive );
+    assert( ret == 0 );
+    ret = pthread_mutexattr_settype( & recursive, PTHREAD_MUTEX_RECURSIVE );
+    assert( ret == 0 );
+
+    ret = pthread_mutex_init( & mutex, & recursive );
+    assert( ret == 0 );
+    initialized = true;
 }
 
 
@@ -50,26 +54,14 @@ PthreadMonitorData::~PthreadMonitorData( void )
 int
 PthreadMonitorData::Lock( void )
 {
-    int ret = pthread_mutex_lock( &mutex );
-    if( ret == 0 )
-    {
-        locked = true;
-    }
-    return ret;
+    return pthread_mutex_lock( &mutex );
 }
 
 
 int
 PthreadMonitorData::Unlock( void )
 {
-    assert( locked );
-    locked = false;
-    int ret = pthread_mutex_unlock( &mutex );
-    if( ret != 0 )
-    {
-        locked = true;
-    }
-    return ret;
+    return pthread_mutex_unlock( &mutex );
 }
 
 
@@ -97,20 +89,18 @@ PthreadMonitorData::WaitOnCondition( unsigned int cvid )
 {
     int ret = -1;
 
-    assert( locked );
     ConditionVariableMap::iterator iter = cvmap.find( cvid );
     if( iter != cvmap.end() )
     {
         pthread_cond_t* cv = cvmap[cvid]; 
         assert( cv != NULL );
         ret = pthread_cond_wait( cv, &mutex );
-        locked=true; //ensuring we know lock is set, a 2nd threads unlock allows
-                   //us to proceed so the bool is set to false
     }
     else
     {
         // bad condition variable id
         // TODO how to indicate the error
+    	assert( 0 );
     }
     return ret;
 }
@@ -121,7 +111,6 @@ PthreadMonitorData::SignalCondition( unsigned int cvid )
 {
     int ret = -1;
 
-    assert( locked );
     ConditionVariableMap::iterator iter = cvmap.find( cvid );
     if( iter != cvmap.end() )
     {
@@ -143,7 +132,6 @@ PthreadMonitorData::BroadcastCondition( unsigned int cvid )
 {
     int ret = -1;
 
-    assert( locked );
     ConditionVariableMap::iterator iter = cvmap.find( cvid );
     if( iter != cvmap.end() )
     {

@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: Monitor-pthread.h,v 1.3 2004/07/28 07:24:47 jaw Exp $
+// $Id: Monitor-pthread.h,v 1.4 2005/02/15 20:00:08 tlmiller Exp $
 #ifndef XPLAT_PTHREADMONITOR_H
 #define XPLAT_PTHREADMONITOR_H
 #include <pthread.h>
@@ -22,7 +22,6 @@ private:
     pthread_mutex_t mutex;
     ConditionVariableMap cvmap;
     bool initialized;
-    bool locked;
 
 public:
     PthreadMonitorData( void );
