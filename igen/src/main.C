@@ -2,7 +2,10 @@
  * main.C - main function of the interface compiler igen.
  *
  * $Log: main.C,v $
- * Revision 1.15  1994/03/07 02:50:56  markc
+ * Revision 1.16  1994/03/07 23:28:46  markc
+ * Added support to free arrays of classes.
+ *
+ * Revision 1.15  1994/03/07  02:50:56  markc
  * Set callErr to 0 in constructors.
  *
  * Revision 1.14  1994/03/07  02:35:17  markc
@@ -802,13 +805,13 @@ void remoteFunc::genSwitch(Boolean forUpcalls, char *ret_str)
 	printf("	    __xdrs__->x_op = XDR_ENCODE;\n");
 	printf("            __tag__ = %s_%s_RESP;\n", spec->getName(), name);
 	printf("            if (xdr_int(__xdrs__, &__tag__) == FALSE)\n");
-	printf("               {callErr = -1; return %s;}", ret_str);
+	printf("               {callErr = -1; return %s;}\n", ret_str);
 	if (strcmp(retType, "void")) {
 	    printf("            if (xdr_%s(__xdrs__,&__ret__) == FALSE)\n", retType);
-	    printf("               {callErr = -1; return %s;}", ret_str);
+	    printf("               {callErr = -1; return %s;}\n", ret_str);
 	}
 	printf("	    if (xdrrec_endofrecord(__xdrs__, TRUE) == FALSE)\n");
-	printf("               {callErr = -1; return %s;}", ret_str);
+	printf("               {callErr = -1; return %s;}\n", ret_str);
     } else if (generatePVM && (upcall != asyncUpcall) && (upcall != notUpcallAsync)) {
 	printf("            __tag__ = %s_%s_RESP;\n", spec->getName(), name);
 	if (strcmp(retType, "void")) {
@@ -1098,8 +1101,20 @@ void typeDefn::genBundler()
       printf("bool_t xdr_%s(XDR *__xdrs__, %s *__ptr__) {\n", name, name);
       printf("    if (__xdrs__->x_op == XDR_FREE) {\n");
       if (arrayType)
-	printf("      free((char*) __ptr__->data);\n");
-      for (fp = fields; *fp; fp++) {
+	{
+	  // 
+	  assert (foundType = types.find(type));
+	  if (foundType->userDefined == TRUE)
+	    {
+	      printf("        int i;\n");
+	      printf("        for (i=0; i<__ptr__->count; ++i)\n");
+	      printf("            xdr_%s(__xdrs__, &(__ptr__->data[i]));\n", type);
+	    }
+	  printf("        free ((char*) __ptr__->data);\n");
+	  printf("        __ptr__->data = 0;\n");
+	  printf("        __ptr__->count = 0;\n");
+	}
+      else for (fp = fields; *fp; fp++) {
 	foundType = types.find((*fp)->getType());
 	assert (foundType);
 	if (foundType->userDefined ||
