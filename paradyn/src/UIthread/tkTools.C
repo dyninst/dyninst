@@ -2,9 +2,12 @@
 // Ariel Tamches
 
 /* $Log: tkTools.C,v $
-/* Revision 1.4  1996/02/02 18:54:46  tamches
-/* added setResultBool
+/* Revision 1.5  1996/02/15 22:47:34  tamches
+/* changed setResultBool a bit
 /*
+ * Revision 1.4  1996/02/02 18:54:46  tamches
+ * added setResultBool
+ *
  * Revision 1.3  1995/11/28 15:50:04  naim
  * Minor fix. Changing char[number] by string - naim
  *
@@ -218,8 +221,12 @@ void resizeScrollbar(Tcl_Interp *interp, const string &sbName,
 }
 
 void setResultBool(Tcl_Interp *interp, bool val) {
+   // Apparantly, tcl scripts cannot use the ! operator on "true"
+   // or "false; only on "1" or "0".  Hence, the latter style is preferred.
    if (val)
-      strcpy(interp->result, "true");
+      //strcpy(interp->result, "true");
+      strcpy(interp->result, "1");
    else
-      strcpy(interp->result, "false");
+      //strcpy(interp->result, "false");
+      strcpy(interp->result, "0");
 }
