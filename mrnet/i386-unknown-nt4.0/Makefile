@@ -38,7 +38,7 @@
 # software licensed hereunder) for any and all liability it may
 # incur to third parties resulting from your use of Paradyn.
 #
-# $Id: Makefile,v 1.6 2004/03/23 01:12:17 eli Exp $
+# $Id: Makefile,v 1.7 2004/06/01 18:22:21 pcroth Exp $
 #
 
 !include ..\\..\\nmake.config
@@ -56,7 +56,7 @@ BUILDFLAGS  = /USEENV
 XPLAT_LIB       = xplat\\libxplat.lib
 XPLAT_INCDIR    = ..\\mrnet\\xplat\\include\\xplat
 MRNET_LIB       = libmrnet\\libmrnet.lib
-MRNET_INCDIR    = ..\\mrnet\\h
+MRNET_INCDIR    = ..\\mrnet\\h\\mrnet
 TOPGEN_EXE      = topgen\\topgen.exe
 
 INSTDIR = ..\\..\\..\\$(PLATFORM)
