@@ -14,7 +14,10 @@
  * This file will be empty during the restructuring of the paradyn daemon
  *
  * $Log: dyninstP.h,v $
- * Revision 1.8  1995/02/26 22:45:09  markc
+ * Revision 1.9  1995/05/18 10:31:57  markc
+ * Cleaned up declarations of metric functions
+ *
+ * Revision 1.8  1995/02/26  22:45:09  markc
  * Changed addProcess interface to use reference to string vectors.
  *
  * Revision 1.7  1995/02/16  08:53:06  markc
@@ -66,55 +69,13 @@
  *
  */
 
-#include "dyninst.h"
-#include "process.h"
-
-#include <stdio.h>
-
-class metric;
-class metricDefinitionNode;
-class metricListRec;
+#include "util/h/Vector.h"
+#include "util/h/String.h"
 
 typedef enum { selfTermination, controlTermination } executableType;
+typedef enum { Trace, Sample } dataType;
 
 bool isApplicationPaused();
-
-/* descriptive information about a resource */
-class resourceInfo {
- public:
-    string name;			/* name of actual resource */
-    string fullName;		/* full path name of resource */
-    string abstraction;          /* abstraction name */
-    timeStamp creation;		/* when did it get created */
-};		
-
-class resourceListRec {
-    public:
-        resourceListRec() {
-	  elements = NULL; count=0; maxItems=0;
-	}
-	resource **elements;		/* actual data in list */
-	int count;			/* number of items in the list */
-	int maxItems;		/* limit of current array */
-};
-
-/* something that data can be collected for */
-class resource {
-    public:
-	string getName() const { return(info.name); }
-	resource(bool suppress=false)
-	  : suppressed(suppress), parent(NULL), handle(NULL), children(NULL) {
-	    info.creation = 0.0;
-	  }
-
-	bool suppressed;		/* don't collect data about this */
-	resource *parent;		/* parent of this resource */
-	void *handle;		/* handle to resource specific data */
-	resourceListRec *children;	/* children of this resource */
-	resourceInfo info;
-};
-
-typedef enum { Trace, Sample } dataType;
 
 /*
  * error handler call back.
@@ -166,102 +127,8 @@ bool continueAllProcesses();
  */
 bool detachProcess(int pid, bool pause);
 
-/*
- * Routines to control data collection.
- *
- * resourceList		- a list of resources
- * metric		- what metric to collect data for
- *
- */
-int startCollecting(resourceListRec*, metric*);
 
-
-/*
- * Return the expected cost of collecting performance data for a single
- *    metric at a given focus.  The value returned is the fraction of
- *    perturbation expected (i.e. 0.10 == 10% slow down expected).
- */
-float guessCost(resourceListRec*, metric*);
-
-/*
- * Control information arriving about a resource Classes
- *
- * resource		- enable notification of children of this resource
- */
-bool enableResourceCreationNotification(resource*);
-
-/*
- * Resource utility functions.
- *
- */
-resourceListRec *getRootResources();
-
-extern resource *rootResource;
-
-string getResourceName(resource*);
-
-resource *getResourceParent(resource*);
-
-resourceListRec *getResourceChildren(resource*);
-
-bool isResourceDescendent(resource *parent, resource *child);
-
-resource *findChildResource(resource *parent, const string name);
-
-int getResourceCount(resourceListRec*);
-
-resource *getNthResource(resourceListRec*, int n);
-
-resourceInfo *getResourceInfo(resource*);
-
-resourceListRec *createResourceList();
-
-bool addResourceList(resourceListRec*, resource*);
-
-resource *newResource(resource *parent,
-		      void *handle,
-		      const string abstraction,
-		      const string name,
-		      timeStamp creation,
-		      const string unique);
-
-/*
- * manipulate user handle (a single void * to permit mapping between low level
- *   resource's and the resource consumer.
- *
- */
-void *getResourceHandle(resource*);
-
-void setResourceHandle(resource*, void*);
-
-resourceListRec *findFocus(const vector<string> &focusString);
-
-/*
- * Get the static configuration information.
- *
- */
-metricListRec *getMetricList();
-
-/*
- * looks for a specifc metric instance in an application context.
- *
- */
-metric *findMetric(const string name);
-
-/*
- * Metric utility functions.
- *
- */
-string getMetricName(metric*);
-
-/*
- * Get metric out of a metric instance.
- *
- */
-metric *getMetric(metricDefinitionNode*);
-
-extern resource *findResource(const string &name);
-
+// TODO -- is this needed
 const string nullString((char*) NULL);
 
 #endif
