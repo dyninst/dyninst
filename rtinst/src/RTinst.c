@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.76 2003/05/12 21:29:15 bernat Exp $
+ * $Id: RTinst.c,v 1.77 2003/05/19 03:02:55 schendel Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -232,18 +232,18 @@ timeQueryFuncPtr_t PARADYNgetWalltime = &DYNINSTgetWalltime_sw;
 ************************************************************************/
 void
 DYNINSTstartProcessTimer(tTimer* timer) {
-/* For shared-mem sampling only: bump protector1, do work, then bump
-   protector2 */
-    assert(timer->protector1 == timer->protector2);
-  timer->protector1++;
-  MEMORY_BARRIER;
-  if (timer->counter == 0) {
-    timer->start     =  DYNINSTgetCPUtime();
-  }
-  timer->counter++;
-  MEMORY_BARRIER;
-  timer->protector2++; /* ie. timer->protector2 == timer->protector1 */
-  assert(timer->protector1 == timer->protector2);
+   /* For shared-mem sampling only: bump protector1, do work, then bump
+      protector2 */
+   assert(timer->protector1 == timer->protector2);
+   timer->protector1++;
+   MEMORY_BARRIER;
+   if (timer->counter == 0) {
+      timer->start     =  DYNINSTgetCPUtime();
+   }
+   timer->counter++;
+   MEMORY_BARRIER;
+   timer->protector2++; /* ie. timer->protector2 == timer->protector1 */
+   assert(timer->protector1 == timer->protector2);
 }
 
 
@@ -453,6 +453,8 @@ void PARADYNinit(int paradyndPid,
     int calledFromAttachToCreated = (creationMethod == 3);
     int calledFromFork = (creationMethod == 2);
     int calledFromAttach = (creationMethod == 1);
+    int calledFromExec = (creationMethod == 4);
+
     MAX_NUMBER_OF_THREADS = numThreads;
     
 #ifdef SHM_SAMPLING_DEBUG
@@ -494,7 +496,7 @@ void PARADYNinit(int paradyndPid,
       DYNINST_shmSegAttachedPtr = DYNINST_shm_init(theKey, shmSegSize,
                                                    &DYNINST_shmSegShmId);      
       shmBase = (Address) DYNINST_shmSegAttachedPtr;
-      
+
       /* Yay, pointer arithmetic */
       RTsharedInShm = (RTsharedData_t *)
          (shmBase + offsetToSharedData);
@@ -602,6 +604,8 @@ void PARADYNinit(int paradyndPid,
       PARADYN_bootstrap_info.event = 2; /* 2 --> end of DYNINSTinit (forked process) */
    else if (calledFromAttach)
       PARADYN_bootstrap_info.event = 3; /* 3 --> end of DYNINSTinit (attached proc) */
+   else if (calledFromExec)
+      PARADYN_bootstrap_info.event = 4;
    else				   
       PARADYN_bootstrap_info.event = 1; /* 1 --> end of DYNINSTinit (normal or when
                                            called by exec'd proc or attachedTocreated case) */
@@ -776,33 +780,6 @@ static struct PARADYN_bootstrapStruct _bs_dummy;
 int32_t PARADYN_attachPtrSize = sizeof(_bs_dummy.appl_attachedAtPtr.ptr);
 
 
-/************************************************************************
- * void DYNINSTexit(void)
- *
- * handle `exit' in the application. 
- * report samples and print cost.
-************************************************************************/
-void
-DYNINSTexit(void) {
-    static int done = 0;
-    if (done) return;
-    done = 1;
-
-#ifdef PROFILE_CONTEXT_SWITCH
-    report_context_prof() ;
-#endif
-
-    /* NOTE: For shm sampling, we should do more here.  For example, we should
-       probably disconnect from the shm segments.
-       Note that we don't have to inform paradynd of the exit; it will find out
-       soon enough on its own, due to the waitpid() it does and/or finding an
-       end-of-file on one of our piped file descriptors. */
-#ifdef PROFILE_BASETRAMP
-    report_btramp_stat();
-#endif
-    DYNINSTprintCost();
-}
-
 /* debug code should call forkexec_printf as a way of avoiding
    putting #ifdef FORK_EXEC_DEBUG around their fprintf(stderr, ...) statements,
    which can lead to horribly ugly code --ari */
@@ -910,6 +887,7 @@ DYNINSTexecFailed() {
  * void DYNINSTprintCost(void)
  *
  * print a detailed summary of the cost of the application's run.
+ * Note:  Used to be called by DYNINSTexit, since 
 ************************************************************************/
 void
 DYNINSTprintCost(void) {
@@ -941,9 +919,9 @@ DYNINSTprintCost(void) {
 #endif
 
 
+#ifdef USE_PROF
     fp = fopen("stats.out", "w");
 
-#ifdef USE_PROF
     if (DYNINSTprofile) {
 	int i;
 	int limit;
@@ -1435,6 +1413,7 @@ void DYNINSTrecordGroup(int groupId)
  * Since these routines aren't used regularly, shouldn't they be surrounded
  * with an ifdef? --ari
 ************************************************************************/
+#ifdef notused
 void DYNINSTsimplePrint(void) {
     printf("inside dynamic inst function\n");
 }
@@ -1454,7 +1433,7 @@ void DYNINSTcallReturn(int arg) {
 void DYNINSTexitPrint(int arg) {
     printf("exit %d\n", arg);
 }
-
+#endif
 
 /************************************************************************
  *
