@@ -132,34 +132,56 @@ bool rpcMgr::handleSignalIfDueToIRPC() {
    // or a thread was waiting for a system call to complete (and it has).
    // We check the first case first.
    
+   dyn_lwp *lwp_to_cont = NULL;
+
    for (unsigned i = 0; i < allRunningRPCs_.size(); i++) {
        Frame activeFrame;
        inferiorRPCinProgress *currRPC = allRunningRPCs_[i];
-       if (currRPC->rpcthr) 
-           activeFrame = currRPC->rpcthr->get_thr()->getActiveFrame();
-       else
-           activeFrame = currRPC->rpclwp->get_lwp()->getActiveFrame();
+
+       rpcThr *rpcThr = currRPC->rpcthr;
+       rpcLWP *rpcLwp = currRPC->rpclwp;
+
+       if(rpcThr) 
+          activeFrame = rpcThr->get_thr()->getActiveFrame();
+       else {
+          assert(rpcLwp != NULL);
+          activeFrame = rpcLwp->get_lwp()->getActiveFrame();
+       }
+
        if (activeFrame.getPC() == currRPC->rpcResultAddr) {
-           if (currRPC->rpcthr)
-               currRPC->rpcthr->getReturnValueIRPC();
-           else
-               currRPC->rpclwp->getReturnValueIRPC();
-           handledTrap = true;
-           runProcess = true;
+          if(rpcThr)
+             rpcThr->getReturnValueIRPC();
+          else
+             rpcLwp->getReturnValueIRPC();
+          handledTrap = true;
+          runProcess = true;
        }
        else if (activeFrame.getPC() == currRPC->rpcCompletionAddr) {
-           if (currRPC->rpcthr)
-               runProcess = currRPC->rpcthr->handleCompletedIRPC();
-           else
-               runProcess = currRPC->rpclwp->handleCompletedIRPC();
-           handledTrap = true;
+          if(rpcThr)
+             runProcess = rpcThr->handleCompletedIRPC();
+          else
+             runProcess = rpcLwp->handleCompletedIRPC();
+          handledTrap = true;
        }
+
+       if(process::IndependentLwpControl()) {
+          if(rpcThr) {
+             dyn_thread *dthr = rpcThr->get_thr();
+             lwp_to_cont = dthr->get_lwp();
+          }  else {
+             lwp_to_cont = rpcLwp->get_lwp();
+          }
+       }
+
        if (handledTrap) break;
    }
    if (handledTrap) {
-       if (runProcess ||
-           allRunningRPCs_.size() > 0)
-           proc_->continueProc();
+      if (runProcess || allRunningRPCs_.size() > 0) {
+         if(process::IndependentLwpControl())
+            lwp_to_cont->continueLWP();
+         else
+            proc_->continueProc();
+      }
    }
    
    return handledTrap;
