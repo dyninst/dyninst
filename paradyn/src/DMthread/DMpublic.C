@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.31  1994/11/02 11:46:21  markc
+ * Revision 1.32  1994/11/04 16:30:41  rbi
+ * added getAvailableDaemons()
+ *
+ * Revision 1.31  1994/11/02  11:46:21  markc
  * Changed shadowing nam.
  *
  * Revision 1.30  1994/09/30  19:17:47  rbi
@@ -434,4 +437,9 @@ int dataManager::getMaxBins()
 void dataManager::printDaemons(applicationContext *app)
 {
   app->printDaemons();
+}
+
+String_Array dataManager::getAvailableDaemons(applicationContext *ap)
+{
+    return(ap->getAvailableDaemons());
 }

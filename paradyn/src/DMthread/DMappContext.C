@@ -2,7 +2,10 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.43  1994/11/03 20:54:01  karavan
+ * Revision 1.44  1994/11/04 16:30:38  rbi
+ * added getAvailableDaemons()
+ *
+ * Revision 1.43  1994/11/03  20:54:01  karavan
  * Changed error printfs to calls to UIM::showError
  *
  * Revision 1.42  1994/11/03  16:10:11  rbi
@@ -404,6 +407,26 @@ void applicationContext::printDaemons()
   for (walk=allEntries; *walk; walk++) {
     (*walk)->print();
   }
+}
+
+//
+// Return list of names of defined daemons.  
+//
+String_Array applicationContext::getAvailableDaemons()
+{
+    int i;
+    String_Array names;
+    List<daemonEntry*> walk;
+
+    walk=allEntries;
+    names.count = walk.count();
+    names.data = (char **) malloc(sizeof(char*) * names.count);
+    for (i=0; *walk; walk++,i++) {
+       names.data[i] = (*walk)->getName();
+       assert(names.data[i]);
+    }
+    assert(i==names.count);
+    return(names);
 }
 
 //

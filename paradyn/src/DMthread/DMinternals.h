@@ -3,7 +3,10 @@
  * Define the classes used in the implementation of the data manager.
  *
  * $Log: DMinternals.h,v $
- * Revision 1.30  1994/09/30 19:17:43  rbi
+ * Revision 1.31  1994/11/04 16:30:39  rbi
+ * added getAvailableDaemons()
+ *
+ * Revision 1.30  1994/09/30  19:17:43  rbi
  * Abstraction interface change.
  *
  * Revision 1.29  1994/09/25  01:56:25  newhall
@@ -265,6 +268,8 @@ class applicationContext {
 
         // print the daemon dictionary
         void printDaemons();
+        // return the daemon dictionary (names only)
+	String_Array getAvailableDaemons();
 
         // search the daemon dictionary
         daemonEntry *findEntry (const char *machine, const char *name);

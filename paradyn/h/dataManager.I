@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.31  1994/09/30 19:16:49  rbi
+ * Revision 1.32  1994/11/04 16:28:24  rbi
+ * added getAvailableDaemons()
+ *
+ * Revision 1.31  1994/09/30  19:16:49  rbi
  * Abstraction interface change.
  *
  * Revision 1.30  1994/09/22  00:43:30  markc
@@ -508,6 +511,11 @@ $remote dataManager {
     // probably temporary call, show defined daemons
     //
     void printDaemons(applicationContext *app);
+
+    //
+    // return a list of daemon names
+    //
+    String_Array getAvailableDaemons(applicationContext*);
 
     //
     // upcalls for indications of events.
