@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.156 2004/04/12 18:37:41 pcroth Exp $
+// $Id: DMmain.C,v 1.157 2004/04/12 19:38:32 igor Exp $
 
 #include <assert.h>
 extern "C" {
@@ -835,10 +835,13 @@ void *DMmain(void* varg)
                 }
             }
 #endif // defined(i386_unknown_nt4_0)
-            if(pd->waitLoop() == T_dyninstRPC::error) {
-              cout << "error on paradyn daemon\n";
-              paradynDaemon::removeDaemon(pd, true);
-            }
+	    //loop until we receive all (possibly buffered) records
+	    do {
+	      if(pd->waitLoop() == T_dyninstRPC::error) {
+		cout << "error on paradyn daemon\n";
+		paradynDaemon::removeDaemon(pd, true);
+	      }
+	    } while(!xdrrec_eof(pd->net_obj()));
 	      }
 	      
 	      // handle async requests that may have been buffered
