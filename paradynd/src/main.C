@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.93 2001/02/26 21:37:15 bernat Exp $
+// $Id: main.C,v 1.94 2001/04/25 20:34:16 wxd Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -107,10 +107,13 @@ extern void initDetachOnTheFly();
  * machine/socket/etc we're connected to paradyn on; we may need to
  * start up other paradynds (such as on the CM5), and need this later.
  */
-static string pd_machine;
+string pd_machine;
 static int pd_known_socket_portnum=0;
 static int pd_flag=0;
 static string pd_flavor;
+#if !defined(i386_unknown_nt4_0)
+int termWin_port = -1;
+#endif
 
 void configStdIO(bool closeStdIn)
 {
@@ -181,12 +184,20 @@ void cleanUpAndExit(int status) {
 
 // TODO
 // mdc - I need to clean this up
+#if !defined(i386_unknown_nt4_0)
 bool
 RPC_undo_arg_list (string &flavor, unsigned argc, char **arg_list, 
+		   string &machine, int &well_known_socket,int &termWin_port, int &flag)
+#else
+RPC_undo_arg_list (string &flavor, unsigned argc, char **arg_list, 
 		   string &machine, int &well_known_socket, int &flag)
+#endif
 {
   char *ptr;
   bool b_well_known=false; // found well-known socket port num
+#if !defined(i386_unknown_nt4_0)
+  bool b_termWin=false; // found termWin socket port num
+#endif
   bool b_machine = false, b_flag = false, b_flavor=false;
 
   for (unsigned loop=0; loop < argc; ++loop) {
@@ -198,8 +209,14 @@ RPC_undo_arg_list (string &flavor, unsigned argc, char **arg_list,
 	  if (ptr == (arg_list[loop] + 2))
 	    return(false);
 	  b_well_known = true;
-      }
-      else if (!P_strncmp(arg_list[loop], "-V", 2)) { // optional
+#if !defined(i386_unknown_nt4_0)
+      }else if (!P_strncmp(arg_list[loop], "-P", 2)) {
+	  termWin_port = P_strtol (arg_list[loop] + 2, &ptr, 10);
+	  if (ptr == (arg_list[loop] + 2))
+	    return(false);
+	  b_termWin= true;
+#endif
+      }else if (!P_strncmp(arg_list[loop], "-V", 2)) { // optional
           cout << V_id << endl;
       }
       else if (!P_strncmp(arg_list[loop], "-v", 2)) {
@@ -231,7 +248,11 @@ RPC_undo_arg_list (string &flavor, unsigned argc, char **arg_list,
   }
 
   // verify required parameters
+#if !defined(i386_unknown_nt4_0)
+  return (b_flag && b_machine && b_well_known && b_termWin && b_flavor);
+#else
   return (b_flag && b_machine && b_well_known && b_flavor);
+#endif
 }
 
 // PARADYND_DEBUG_XXX
@@ -498,8 +519,13 @@ main( int argc, char* argv[] )
 	//
     process::programName = argv[0];
     bool aflag;
+#if !defined(i386_unknown_nt4_0)
     aflag = RPC_undo_arg_list (pd_flavor, argc, argv, pd_machine,
-			       pd_known_socket_portnum, pd_flag);
+			       pd_known_socket_portnum,termWin_port, pd_flag);
+#else 
+    aflag = RPC_undo_arg_list (pd_flavor, argc, argv, pd_machine,
+			       pd_known_socket_portnum,pd_flag);
+#endif
     if (!aflag || pd_debug)
 	{
 		if (!aflag)
@@ -537,9 +563,15 @@ main( int argc, char* argv[] )
 		}
     }
 
+#if !defined(i386_unknown_nt4_0)
+    aflag = RPC_make_arg_list(process::arg_list,
+			      pd_known_socket_portnum, termWin_port,pd_flag, 0,
+			      pd_machine, true);
+#else
     aflag = RPC_make_arg_list(process::arg_list,
 			      pd_known_socket_portnum, pd_flag, 0,
 			      pd_machine, true);
+#endif 
     assert(aflag);
     string flav_arg(string("-z")+ pd_flavor);
     process::arg_list += flav_arg;

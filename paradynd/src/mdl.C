@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.86 2000/10/26 17:03:14 schendel Exp $
+// $Id: mdl.C,v 1.87 2001/04/25 20:34:17 wxd Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -1092,7 +1092,9 @@ static bool apply_to_process_list(vector<process*>& instProcess,
     loadTimer.stop();
     char timeMsg[500];
     sprintf(timeMsg, "%f::%f  ", (float) loadTimer.usecs(), (float) loadTimer.wsecs());
-    // tp->applicationIO(10, strlen(timeMsg), timeMsg);
+    /*should be removed for output redirection
+    tp->applicationIO(10, strlen(timeMsg), timeMsg);
+    */
     (*of) << name << ":" << timeMsg << endl;
 #endif
 
@@ -1102,7 +1104,9 @@ static bool apply_to_process_list(vector<process*>& instProcess,
   char timeMsg[500];
   sprintf(timeMsg, "\nTotal:  %f:user\t%f:wall\n", (float) totalTimer.usecs(),
 	  (float) totalTimer.wsecs());
-  // tp->applicationIO(10, strlen(timeMsg), timeMsg);
+  /*should be removed for output redirection
+  tp->applicationIO(10, strlen(timeMsg), timeMsg);
+  */
   (*of) << name << ":" << timeMsg << endl;
 #endif
 

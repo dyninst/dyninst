@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.132 2000/10/17 17:27:48 schendel Exp $
+// $Id: DMmain.C,v 1.133 2001/04/25 20:34:12 wxd Exp $
 
 #include <assert.h>
 extern "C" {
@@ -86,6 +86,8 @@ bool metMain(string &userFile);
 // this has to be declared before baseAbstr, cmfAbstr, and rootResource 
 PDSOCKET dataManager::sock_desc;  
 int dataManager::sock_port;  
+int dataManager::termWin_port = -1;
+PDSOCKET dataManager::termWin_sock= INVALID_PDSOCKET;
 dataManager *dataManager::dm = NULL;  
 
 dictionary_hash<string,abstraction*> abstraction::allAbstractions(string::hash);
@@ -244,7 +246,9 @@ void dynRPCUser::AddCallGraphDynamicChildCallback(string exe_name,
 
 
 
-
+/*should be removed for output redirection
+left untouched for paradynd log mesg use
+*/
 //
 // IO from application processes.
 //
@@ -829,8 +833,13 @@ void dataManager::displayDaemonStartInfo()
 {
     const string machine = getNetworkName();
     const string port    = string(dataManager::dm->sock_port);
-    const string command = string("paradynd -z<flavor> -l2")
+    string command = string("paradynd -z<flavor> -l2")
                          + string(" -m") + machine + string(" -p") + port;
+#if !defined(i386_unknown_nt4_0)
+    string term_port = string(dataManager::termWin_port);
+    command += string(" -P");
+    command += term_port;
+#endif
     static char buf[1000];
 
     string msg = string("To start a paradyn daemon on a remote machine,")
@@ -922,6 +931,10 @@ bool dataManager::DM_sequential_init(const char* met_file){
    return(metMain(mfile)); 
 }
 
+#if !defined(i386_unknown_nt4_0)
+void prepare_TermWin();
+#endif
+
 int dataManager::DM_post_thread_create_init(thread_t tid) {
 
     thr_name("Data Manager");
@@ -931,9 +944,18 @@ int dataManager::DM_post_thread_create_init(thread_t tid) {
     // new paradynd's may try to connect to well known port
     DMsetupSocket (dataManager::dm->sock_desc);
 
+#if !defined(i386_unknown_nt4_0)
+    prepare_TermWin();
+#endif
+
     bool aflag;
+#if !defined(i386_unknown_nt4_0)
+    aflag=(RPC_make_arg_list(paradynDaemon::args,
+  	 	             dataManager::dm->sock_port,dataManager::termWin_port, 1, 1, "", false));
+#else
     aflag=(RPC_make_arg_list(paradynDaemon::args,
   	 	             dataManager::dm->sock_port, 1, 1, "", false));
+#endif
     assert(aflag);
 
     // start initial phase
@@ -1311,4 +1333,11 @@ bool parse_metrics(string metric_file) {
 }
 #endif
 
-
+#if !defined(i386_unknown_nt4_0)
+void prepare_TermWin()
+{
+    int serv_port = RPC_setup_socket(dataManager::termWin_sock,AF_INET,SOCK_STREAM);
+    assert(dataManager::termWin_sock != INVALID_PDSOCKET);
+    dataManager::termWin_port = serv_port;
+}
+#endif

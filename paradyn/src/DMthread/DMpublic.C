@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.120 2001/04/25 18:41:35 wxd Exp $
+// $Id: DMpublic.C,v 1.121 2001/04/25 20:34:12 wxd Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -221,13 +221,33 @@ bool dataManager::defineDaemon(const char *command,
   return (paradynDaemon::defineDaemon(command, dir, login, name, machine, remote_shell, flavor));
 }
 
+#if !defined(i386_unknown_nt4_0)
+void startTermWin()
+{
+    if (dataManager::termWin_sock == INVALID_PDSOCKET)
+    //termWin process has already started
+    	return ;
+
+    char buffer[256];
+    sprintf(buffer,"%d",dataManager::termWin_sock);
+    vector<string> *av = new vector<string>;
+    *av += buffer;
+    PDSOCKET termWin_sock = RPCprocessCreate("localhost","","termWin","",*av);
+    delete av;
+    P_close(dataManager::termWin_sock);
+    dataManager::termWin_sock = INVALID_PDSOCKET;
+}
+#endif
+
 bool dataManager::addExecutable(const char *machine,
 				const char *login,
 				const char *name,
 				const char *dir,
 				const vector<string> *argv)
 {
-
+#if !defined(i386_unknown_nt4_0)
+    startTermWin();
+#endif
   // This is the implementation of an igen call...usually from the UI thread
   // when a new process is defined in the dialog box.
   string m = machine;

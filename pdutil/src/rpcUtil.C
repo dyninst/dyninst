@@ -41,7 +41,7 @@
 
 //
 // This file defines a set of utility routines for RPC services.
-// $Id: rpcUtil.C,v 1.78 2000/10/27 23:04:38 zandy Exp $
+// $Id: rpcUtil.C,v 1.79 2001/04/25 20:35:45 wxd Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
@@ -532,7 +532,11 @@ RPC_readReady (PDSOCKET sock, int timeout)
  * But, a NULL space will NOT be left at the head of the list
  */
 bool RPC_make_arg_list(vector<string> &list,
-               const int well_known_socket, const int flag,
+               const int well_known_socket,
+#if !defined(i386_unknown_nt4_0)
+	       const int termWin_port,
+#endif
+               const int flag,
                const int /* firstPVM */,
                const string machine_name, const bool use_machine)
 {
@@ -542,6 +546,10 @@ bool RPC_make_arg_list(vector<string> &list,
 
   sprintf(arg_str, "%s%d", "-p", well_known_socket);  
   list += arg_str;
+#if !defined(i386_unknown_nt4_0)
+  sprintf(arg_str, "%s%d", "-P", termWin_port);
+  list += arg_str;
+#endif
   // arg_list[arg_count++] = strdup (arg_str);  // 0
 
   if (!use_machine) {

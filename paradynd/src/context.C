@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.67 2000/10/17 17:42:32 schendel Exp $ */
+/* $Id: context.C,v 1.68 2001/04/25 20:34:16 wxd Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/pdThread.h"
@@ -68,6 +68,11 @@ extern debug_ostream forkexec_cerr;
 extern debug_ostream signal_cerr;
 
 extern vector<process*> processVec;
+
+#if !defined(i386_unknown_nt4_0)
+extern int termWin_port; //defined in main.C
+extern string pd_machine;
+#endif
 
 /*
  * find out if we have an application defined
@@ -233,7 +238,61 @@ void forkProcess(int pid, int ppid, int trace_fd
 }
 
 int addProcess(vector<string> &argv, vector<string> &envp, string dir) {
-    process *proc = createProcess(argv[0], argv, envp, dir, 0, 1, 2);
+#if !defined(i386_unknown_nt4_0)
+  if (termWin_port == -1)
+  	return -1;
+  
+  PDSOCKET stdout_fd = INVALID_PDSOCKET;
+  
+  struct sockaddr_in serv_addr;
+  struct hostent *hostptr = 0;
+  struct in_addr *inadr = 0;
+  if (!(hostptr = P_gethostbyname(pd_machine.string_of())))
+    {
+      cerr << "CRITICAL: Failed to find information for host " << pd_machine.string_of() << "." << endl;
+      assert(0);
+    }
+
+  inadr = (struct in_addr *) ((void*) hostptr->h_addr_list[0]);
+  P_memset ((void*) &serv_addr, 0, sizeof(serv_addr));
+  serv_addr.sin_family = AF_INET;
+  serv_addr.sin_addr = *inadr;
+  serv_addr.sin_port = htons(termWin_port);
+
+  if ( (stdout_fd = P_socket(AF_INET,SOCK_STREAM , 0)) == PDSOCKET_ERROR)
+  {
+    stdout_fd = INVALID_PDSOCKET;
+    return -1;
+  }
+
+  //connect() may timeout if lots of Paradynd's are trying to connect to
+  //  Paradyn at the same time, so we keep retrying the connect().
+  errno = 0;
+  while (P_connect(stdout_fd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) == PDSOCKET_ERROR) {
+/*#if defined(i386_unknown_nt4_0)
+    if (PDSOCKET_ERRNO != WSAETIMEDOUT)
+#else */
+    if (errno != ETIMEDOUT)
+//#endif
+    {
+      stdout_fd = INVALID_PDSOCKET;
+      return -1;
+    } 
+    CLOSEPDSOCKET(stdout_fd);
+    if ((stdout_fd = P_socket(AF_INET,SOCK_STREAM, 0)) == PDSOCKET_ERROR)
+    {
+      stdout_fd = INVALID_PDSOCKET;
+      return -1;
+    }
+    errno = 0;
+  }
+#endif
+
+#if !defined(i386_unknown_nt4_0)
+  process *proc = createProcess(argv[0], argv, envp, dir, 0, stdout_fd, 2);
+#else 
+  process *proc = createProcess(argv[0], argv, envp, dir, 0, 1, 2);
+#endif
 
     if (proc) {
       return(proc->getPid());

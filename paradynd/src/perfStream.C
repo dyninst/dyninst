@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.115 2001/03/09 20:01:44 shergali Exp $
+// $Id: perfStream.C,v 1.116 2001/04/25 20:34:17 wxd Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -95,6 +95,7 @@ int traceSocketPort;
 static void createResource(int pid, traceHeader *header, struct _newresource *r);
 bool firstSampleReceived = false;
 
+/*removed for output redirection
 // Read output data from process curr. 
 void processAppIO(process *curr)
 {
@@ -115,7 +116,7 @@ void processAppIO(process *curr)
 	curr->ioLink = -1;
 	return;
     } else if (ret == 0) {
-	/* end of file -- process exited */
+	// end of file -- process exited 
         P_close(curr->ioLink);
 	curr->ioLink = -1;
 	string msg = string("Process ") + string(curr->getPid()) + string(" exited");
@@ -130,6 +131,7 @@ void processAppIO(process *curr)
     tp->applicationIO(curr->getPid(), ret, lineBuf);
        // note: this is an async igen call, so the results may not appear right away.
 }
+*/
 
 char errorLine[1024];
 
@@ -756,10 +758,11 @@ void controllerMainLoop(bool check_buffer_first)
 	    if (processVec[u]->traceLink > width)
 	      width = processVec[u]->traceLink;
 
-	    if (processVec[u]->ioLink >= 0)
-	      FD_SET(processVec[u]->ioLink, &readSet);
-	    if (processVec[u]->ioLink > width)
-	      width = processVec[u]->ioLink;
+	    //removed for output redirection
+	    //if (processVec[u]->ioLink >= 0)
+	    //  FD_SET(processVec[u]->ioLink, &readSet);
+	    //if (processVec[u]->ioLink > width)
+	    //  width = processVec[u]->ioLink;
 	}
 
 	// add traceSocket_fd, which accept()'s new connections (from processes
@@ -892,6 +895,7 @@ void controllerMainLoop(bool check_buffer_first)
 		       FD_CLR(processVec[u]->traceLink, &readSet);
 		}
 
+		/* removed for output redirection
 		if (processVec[u] && processVec[u]->ioLink >= 0 && 
     		       FD_ISSET(processVec[u]->ioLink, &readSet)) {
 		    processAppIO(processVec[u]);
@@ -899,11 +903,12 @@ void controllerMainLoop(bool check_buffer_first)
 		    // app can (conceivably) die in processAppIO(), resulting
 		    // in a processVec[u] to NULL.
 
-		    /* clear it in case another process is sharing it */
+		    // clear it in case another process is sharing it 
 		    if (processVec[u] && processVec[u]->ioLink >= 0)
 		       // may have been set to -1
 		       FD_CLR(processVec[u]->ioLink, &readSet);
 		}
+		*/
 	    }
 
 #if !defined(i386_unknown_nt4_0)

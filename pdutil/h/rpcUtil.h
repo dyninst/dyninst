@@ -42,7 +42,7 @@
 #ifndef RPC_UTIL
 #define RPC_UTIL
 
-// $Id: rpcUtil.h,v 1.46 2000/07/26 23:02:45 hollings Exp $
+// $Id: rpcUtil.h,v 1.47 2001/04/25 20:34:17 wxd Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/pdsocket.h"
@@ -149,9 +149,13 @@ extern PDSOCKET RPCprocessCreate(const string hostName, const string userName,
 			    const vector<string> &arg_list,
 			    int wellKnownPort = 0);
 
-extern bool RPC_make_arg_list (vector<string> &list, const int port, 
-			       const int flag, const int firstPVM,
+#if !defined(i386_unknown_nt4_0)
+extern bool RPC_make_arg_list (vector<string> &list, const int port, const int termWin_port, const int flag, const int firstPVM,
 			       const string machineName, const bool useMachine);
+#else 
+extern bool RPC_make_arg_list (vector<string> &list, const int port, const int flag, const int firstPVM,
+			       const string machineName, const bool useMachine);
+#endif
 
 extern PDSOCKET RPC_getConnect (PDSOCKET fd);
 
