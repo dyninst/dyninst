@@ -4,7 +4,10 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.3  1995/03/11 06:03:52  krisna
+# Revision 1.4  1995/05/18 10:46:08  markc
+# Added new source files
+#
+# Revision 1.3  1995/03/11  06:03:52  krisna
 # libutil name change
 #
 # Revision 1.2  1995/02/16  08:26:31  markc
@@ -31,8 +34,6 @@ SRCS	     += ../src/association.C \
 		../src/inst.C \
 		../src/main.C \
 		../src/metric.C \
-		../src/metricDefs-cm5.C \
-		../src/metricDefs-common.C \
 		../src/perfStream-def.C \
 		../src/perfStream.C \
 		../src/primitives.C \
@@ -41,7 +42,8 @@ SRCS	     += ../src/association.C \
 		../src/stats.C \
 		../src/symtab.C \
 		../src/templates.C \
-		../src/util.C
+		../src/util.C \
+ 		../src/mdl.C
 
 
 IGEN_GEN_SRCS = dyninstRPC.xdr.SRVR.C \
