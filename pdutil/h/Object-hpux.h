@@ -38,6 +38,120 @@ extern "C" {
 };
 #include <sys/stat.h>
 
+// Information of symbol debug table for the gcc compiled program
+
+struct internal_nlist {
+  unsigned long  n_strx;		/* index into string table of name */
+  unsigned char  n_type;		/* type of symbol */
+  unsigned char  n_other;		/* misc info (not used here) */
+  unsigned short n_desc;		/* description field      */
+  unsigned long  n_value;		/* value of symbol        */
+};
+
+// The n_type field is the symbol type, containing: 
+// the following are the ones that I am using   /
+
+#define N_UNDF	0	 /* Undefined symbol */
+#define N_FUN   0x24     /* function   */
+#define N_ENDM  0x62     /* end module */
+#define N_ENTRY 0xa4     /* other entry point */
+#define N_NBTEXT 0xf0
+#define N_LBRAC 0xc0
+#define N_RBRAC 0xe0
+
+// Information of symbol debug table for the NATIVE cc compiled program
+
+
+#define K_SRCFILE        0
+#define K_FUNCTION       2
+
+typedef unsigned int BITS;
+typedef int KINDTYPE;
+typedef unsigned int LANGTYPE;
+typedef long  VTPOINTER;
+typedef long  SLTPOINTER;
+typedef long  ADDRESS;
+typedef long  DNTTPOINTER;
+
+struct  DNTT_SRCFILE {
+/*0*/   BITS          extension: 1;   /* Always zero                  */
+        KINDTYPE      kind:     10;   /* always K_SRCFILE             */
+        LANGTYPE      language:  4;   /* Language type                */
+        BITS          unused:   17;   /* 17 bits filler to the end... */ 
+/*1*/   VTPOINTER     name;           /* Source/listing file name     */
+/*2*/   SLTPOINTER    address;        /* code and text locations      */
+};
+
+
+struct  DNTT_FUNC {
+/*0*/   BITS           extension: 1;   /* always zero                  */
+        KINDTYPE       kind:     10;   /* K_FUNCTION, K_ENTRY,         */
+                                       /* K_BLOCKDATA, or K_MEMFUNC    */
+        BITS           public1:   1;   /* 1 => globally visible  (name */
+	                               /* was public, but who cares? L.*/ 
+        LANGTYPE       language:  4;   /* type of language             */
+        BITS           level:     5;   /* nesting level (top level = 0)*/
+        BITS           optimize:  2;   /* level of optimization        */
+        BITS           varargs:   1;   /* ellipses.  Pascal/800 later  */
+        BITS           info:      4;   /* lang-specific stuff; F_xxxx  */
+#ifdef CPLUSPLUS
+        BITS           inlined:   1;
+        BITS           localloc:  1;   /* 0 at top, 1 at end of block  */
+#ifdef TEMPLATES
+        BITS           expansion: 1;   /* 1 = function expansion       */
+        BITS           unused:    1;
+#else /* TEMPLATES */
+        BITS           unused:    2;
+#endif /* TEMPLATES */
+#else
+        BITS           unused:    4;
+#endif
+/*1*/   VTPOINTER      name;           /* name of function             */
+/*2*/   VTPOINTER      alias;          /* alternate name, if any       */
+/*3*/   DNTTPOINTER    firstparam;     /* first FPARAM, if any         */
+/*4*/   SLTPOINTER     address;        /* code and text locations      */
+/*5*/   ADDRESS        entryaddr;      /* address of entry point       */
+/*6*/   DNTTPOINTER    retval;         /* return type, if any          */
+/*7*/   ADDRESS        lowaddr;        /* lowest address of function   */
+/*8*/   ADDRESS        hiaddr;         /* highest address of function  */
+};                                     /* nine words                   */
+
+
+
+// Information of unwind table which is used to assist the stack walking
+ 
+struct unwind_table_entry {
+  unsigned int region_start;               
+  unsigned int region_end;
+  unsigned int Cannot_unwind               :  1;
+  unsigned int Millicode                   :  1;
+  unsigned int Millicode_save_sr0          :  1;
+  unsigned int Region_description          :  2;
+  unsigned int reserved1                   :  1;
+  unsigned int Entry_SR                    :  1;
+  unsigned int Entry_FR                    :  4; 
+  unsigned int Entry_GR                    :  5; 
+  unsigned int Args_stored                 :  1;
+  unsigned int Variable_Frame              :  1;
+  unsigned int Separate_Package_Body       :  1;
+  unsigned int Frame_Extension_Millicode   :  1;
+  unsigned int Stack_Overflow_Check        :  1;
+  unsigned int Two_Instruction_SP_Increment:  1;
+  unsigned int Ada_Region                  :  1;
+  unsigned int reserved2                   :  4;
+  unsigned int Save_SP                     :  1;
+  unsigned int Save_RP                     :  1;
+  unsigned int Save_MRP_in_frame           :  1;
+  unsigned int extn_ptr_defined            :  1;
+  unsigned int Cleanup_defined             :  1;
+  unsigned int MPE_XL_interrupt_marker     :  1;
+  unsigned int HP_UX_interrupt_marker      :  1;
+  unsigned int Large_frame                 :  1;
+  unsigned int reserved4                   :  2;
+  unsigned int Total_frame_size            : 27;
+};
+
+
 
 
 
@@ -53,6 +167,8 @@ public:
     virtual ~Object ();
 
     Object&   operator= (const Object &);
+
+    vector<unwind_table_entry> unwind;     
 
 private:
     void    load_object ();
@@ -103,6 +219,15 @@ Object::get_som_exec_auxhdr(const struct header* hdrp) {
     return 0;
 }
 
+
+static int symbol_compare(const void *x, const void *y) {
+    Symbol *s1 = (Symbol *)x;
+    Symbol *s2 = (Symbol *)y;
+    return (s1->addr() - s2->addr());
+}
+
+
+
 inline
 void
 Object::load_object() {
@@ -147,6 +272,9 @@ Object::load_object() {
         data_off_ = (unsigned) som_hdrp->exec_dmem;
         data_len_ = unsigned(som_hdrp->exec_dsize / sizeof(Word));
 
+	
+	string        tempName;
+
         const struct symbol_dictionary_record* syms =
             (const struct symbol_dictionary_record *)
             ((const void*) &ptr[hdrp->symbol_location]);
@@ -157,7 +285,13 @@ Object::load_object() {
 	bool          underScore = false;
 	bool          priProg = false;
 
+	string        lastName = name;
+
+	vector<Symbol> allsymbols;
+
         for (unsigned i = 0; i < nsyms; i++) {
+
+
             Symbol::SymbolType type = Symbol::PDST_UNKNOWN;
             Symbol::SymbolLinkage linkage =
                 ((syms[i].symbol_scope == SS_UNIVERSAL)
@@ -171,8 +305,9 @@ Object::load_object() {
                 break;
 
             case ST_CODE:
-		if (syms[i].symbol_scope != SS_UNIVERSAL)
+		if ((syms[i].symbol_scope != SS_UNIVERSAL)) {
 		    continue;
+	        }
             case ST_ENTRY:
                 type   = Symbol::PDST_FUNCTION;
 		underScore = true;
@@ -189,8 +324,8 @@ Object::load_object() {
 	    	if (syms[i].arg_reloc) {
 	    	    priProg = true;
 		    //underScore = true;    
-	    	} else
-		    continue;
+	    	} else        /*   XXX: is this necessay? */
+ 		    continue;
 		value  = (value >> 2) << 2;
 	    	break;
 		
@@ -198,12 +333,11 @@ Object::load_object() {
                 continue;
             }
 
-	    string name;  
+	    string name = string(&strs[syms[i].name.n_strx]);;  
+
 	    if (priProg==true) { 
 		priProg = false;
 		name = "main";
-	    }else { 
-		name = string(&strs[syms[i].name.n_strx]);
 	    }
 	    // XXXX - Hack to make names match assumptions of symtab.C
 	    if (underScore) {
@@ -212,14 +346,208 @@ Object::load_object() {
                 name = string(temp);
 		underScore = false;
 	    }
+
             if (!symbols_.defines(name)
                 || (symbols_[name].linkage() == Symbol::SL_LOCAL)) {
-                symbols_[name] = Symbol(name, module, type, linkage,
-                    value, false);
+                allsymbols  += Symbol(name, module, type, linkage,
+                                 value, false);
             }
           }
-      }
 
+
+	  // Sort the symbols on address to find the function boundaries
+          allsymbols.sort(symbol_compare);
+
+          unsigned nsymbols = allsymbols.size();
+          for (unsigned u = 0; u < nsymbols; u++) {
+	    unsigned v = u+1;
+	    while (v < nsymbols && allsymbols[v].addr() == allsymbols[u].addr())
+              v++;
+            unsigned size = 0;
+            if (v < nsymbols)
+              size = (unsigned)allsymbols[v].addr() - (unsigned)allsymbols[u].addr();
+
+            symbols_[allsymbols[u].name()] =
+               Symbol(allsymbols[u].name(), allsymbols[u].module(),
+                      allsymbols[u].type(), allsymbols[u].linkage(),
+                      allsymbols[u].addr(), allsymbols[u].kludge(),
+                      size);
+	    //cout << allsymbols[u] << " size: " <<size<< endl;
+	   }      
+
+
+
+	const struct space_dictionary_record *sdr;
+	const struct subspace_dictionary_record *subdr;
+ 
+	char *ssdr;                             /* space        */
+	char *gdb_string;                       /* GCC: subspace $GDB_STRING */
+	struct internal_nlist *gdb_symbol;      /* GCC: subspace $GDB_SYMBOL */  
+	char *vt;                               /* CC:  subspace $GNTT$, $VT$*/
+	struct DNTT_SRCFILE *lntt;              /* CC:  subspace $LNTT$      */
+	struct unwind_table_entry *unwind_start;/* unwind table  */  
+	struct unwind_table_entry *unwind_end;  /* unwind table  */
+
+	char sub[100];
+	int index = 1;
+	int j;
+	int symbol_len, string_len;              
+	int lntt_len, vt_len;
+	int unwind_start_len, unwind_end_len;
+	int cc_compiled = 0;
+
+        sdr = (const struct space_dictionary_record *)
+        ((const void *) ((const char *) hdrp + (hdrp->space_location)));
+
+        ssdr = (char *)((const char *) hdrp + (hdrp->space_strings_location));
+
+
+	/* Get the subspace infomation of the $GDB_STRINGS$, $GDB_SYMBOLS$,
+	   $LNTT$, $VT$ for module names;
+	   Get the subspace infomation of the $UNWIND_START$, $UNWIND_END$,
+	   for unwind table infomation used for stack walking. */   
+
+	for (j=0; j<hdrp->subspace_total; j++) {
+	    subdr = (const struct subspace_dictionary_record *) 
+	        ((const void *) ((const char *) hdrp + 
+				 (hdrp->subspace_location)));
+		
+	    sprintf((char *)&sub, "%s", &((void *)ssdr)[subdr[j].name.n_strx]);
+
+	    if (strncmp((char *)&sub, "$GDB_STRINGS$", 13) == 0) {
+		gdb_string = &ptr[subdr[j].file_loc_init_value];
+		string_len = subdr[j].subspace_length;
+	    } else if (strncmp((char *)&sub, "$GDB_SYMBOLS$", 13) == 0)  { 
+		gdb_symbol = (struct internal_nlist *)&ptr[subdr[j].file_loc_init_value];
+		symbol_len = subdr[j].subspace_length;
+	    } else if (strncmp((char *)&sub, "$LNTT$", 6) == 0) {
+		lntt = (struct DNTT_SRCFILE *)&ptr[subdr[j].file_loc_init_value];
+		lntt_len = subdr[j].subspace_length;
+		cc_compiled = 1;
+	    } else if (strncmp((char *)&sub, "$VT$", 4) == 0)  { 
+		vt = &ptr[subdr[j].file_loc_init_value];
+		vt_len = subdr[j].subspace_length;
+	    } else if (strncmp((char *)&sub, "$UNWIND_START$", 14) == 0) {
+		unwind_start = (struct unwind_table_entry *)
+		    &ptr[subdr[j].file_loc_init_value];
+		unwind_start_len = subdr[j].subspace_length;
+	    }
+	    else if (strncmp((char *)&sub, "$UNWIND_END$", 11) == 0)  { 
+		unwind_end = (struct unwind_table_entry *)
+		    &ptr[subdr[j].file_loc_init_value];
+		unwind_end_len = subdr[j].subspace_length;
+	    } 
+	}	
+
+
+	// For gcc compiled modules, get the module infomation
+	// from the stab sections:    
+
+	    module = "";
+	    index = 1;
+	    for (j=0; j < (symbol_len/(sizeof(struct internal_nlist))); j++)
+	    {
+	      Symbol::SymbolLinkage linkage = 0;
+	      Symbol::SymbolType type = Symbol::PDST_MODULE;
+
+	      if (gdb_symbol[j].n_type == 0)
+	      {
+		  module = gdb_string+index;
+		  index += gdb_symbol[j].n_value;
+		  
+		  while ((gdb_symbol[j].n_type != N_FUN)&&
+			 ++j < (symbol_len/(sizeof(struct internal_nlist))))
+		  {
+		      if (gdb_symbol[j].n_type == 0) {
+			  module = gdb_string+index;
+			  index += gdb_symbol[j].n_value;
+		      }
+		      else if (j >= (symbol_len/(sizeof(struct internal_nlist))))
+			  break;
+		  }
+		  
+		  unsigned valu = gdb_symbol[j].n_value;
+		  symbols_[module] = Symbol(module, module, type, linkage,
+					  valu, false);
+		  //cout << "Module:" << module.string_of() << valu <<endl; 
+	      }
+	    }
+
+	// For cc compiled modules, get the module infomation in the 
+	// following way:
+ 
+	    if (cc_compiled) {
+
+	    char *srcFile;
+	    char *ptr;
+	    bool nextModule = false;
+
+	    module = "";
+	    for (j=0; j< (lntt_len/(3*sizeof(int))) ; j++) 
+	    {
+
+	      Symbol::SymbolLinkage linkage = 0;
+	      Symbol::SymbolType type = Symbol::PDST_MODULE;
+
+		if ((lntt[j].extension==0)&&((lntt[j].kind==K_SRCFILE)||
+					     (lntt[j].kind==K_FUNCTION))) {
+		    if ((lntt[j].name <= vt_len)&& (lntt[j].name >= 0))
+		    {
+			/* A source file of some kind       */
+			if (lntt[j].kind==K_SRCFILE) 
+			{
+			    srcFile = lntt[j].name + vt;
+			
+			    ptr = strrchr (srcFile, '.');
+
+			    /* but it could be simply an included file  */
+			    if ((!ptr)||(strcmp (ptr, ".h")==0)||(strcmp (ptr, ".incl")==0))
+				continue;
+			    
+			    /* or could be the same one repeated       */
+			    if (module == srcFile)
+				continue;
+
+			    module = srcFile;
+			    nextModule = true;
+			    //printf("Module: %s", srcFile);
+			}
+			else 
+			{
+			    /* find the address of this module by looking at 
+			       the address of the first function in this
+			       module; if no function defined in this module,
+			       ignore this module                            */
+
+			    if (nextModule) {
+				unsigned valu =
+				    ((struct DNTT_FUNC *)(&lntt[j]))->lowaddr;
+				symbols_[module] = Symbol(module, module, type, 
+							  linkage, valu, false);
+				//printf(" %d\n", valu);
+				nextModule = false;
+				}
+			    }
+			}
+		    }
+		}
+	    }
+    
+
+
+	/* retrieve the entries in the unwind table  */ 
+    
+	for (j=0; j< (unwind_start_len/(sizeof(struct unwind_table_entry))) ; j++) 
+	{
+	    unwind += unwind_start[j]; 
+	    //printf("{Start: 0x%x(%d); End: 0x%x(%d); Size: %d, Interrupt: %d}\n", 
+	    //	   unwind_start[j].region_start, unwind_start[j].region_start,
+	    //	   unwind_start[j].region_end, unwind_start[j].region_end,
+	    //	   unwind_start[j].Total_frame_size,
+	    //	   unwind_start[j].HP_UX_interrupt_marker);
+	}
+
+    }
     /* catch */
 cleanup: {
         if (did_open && (close(fd) == -1)) {
