@@ -1,6 +1,9 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
+# Revision 1.48  1996/01/11 23:43:27  tamches
+# shgInitialize now takes a parameter
+#
 # Revision 1.47  1995/12/08 16:08:07  naim
 # Disabling SAVE button because it is not implemented yet - naim
 #
@@ -302,7 +305,7 @@ proc drawToolBar {} {
     .parent.menub.left.men.b1.m add command -label "Define A Process" \
 	    -command DefineProcess
     .parent.menub.left.men.b1.m add command -label "Performance Consultant" \
-	    -command {set shgHack 1; shgInitialize}
+	    -command {set shgHack 1; shgInitialize [uimpd tclTunable getvaluebyname developerMode]}
 #	    -command {paradyn shg start global}
     .parent.menub.left.men.b1.m add command -label "Tunable Constants" \
             -command {tunableEntryPoint}
