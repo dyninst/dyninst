@@ -3,7 +3,10 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.34  1995/12/13 23:57:31  mjrg
+ * Revision 1.35  1996/02/09 23:54:10  naim
+ * Changes to the cost model - naim
+ *
+ * Revision 1.34  1995/12/13  23:57:31  mjrg
  * Commented out logLine message.
  *
  * Revision 1.33  1995/12/08 16:07:27  naim
@@ -198,50 +201,117 @@ void initPrimitiveCost()
 {
     /* Need to add code here to collect values for other machines */
 
-    // these happen async of the rest of the system.
-    primitiveCosts["DYNINSTalarmExpire"] = 1;
-    primitiveCosts["DYNINSTsampleValues"] = 1;
-    primitiveCosts["DYNINSTreportTimer"] = 1;
-    primitiveCosts["DYNINSTreportCounter"] = 1;
-    primitiveCosts["DYNINSTreportCost"] = 1;
-    primitiveCosts["DYNINSTreportNewTags"] = 1;
-    primitiveCosts["DYNINSTprintCost"] = 1;
-
     // this doesn't really take any time
     primitiveCosts["DYNINSTbreakPoint"] = 1;
 
     // this happens before we start keeping time.
     primitiveCosts["DYNINSTinit"] = 1;
 
+    primitiveCosts["DYNINSTprintCost"] = 1;
+
+    //
+    // I can't find DYNINSTincrementCounter or DYNINSTdecrementCounter
+    // I think they are not being used anywhere - naim
+    //
     // isthmus acutal numbers from 7/3/94 -- jkh
     // 240 ns
     primitiveCosts["DYNINSTincrementCounter"] = 16;
     // 240 ns
     primitiveCosts["DYNINSTdecrementCounter"] = 16;
-#ifdef sparc_sun_solaris2_4
-    // Solaris measured 
-    // clock == 39.173MHz
-    // cost per call DYNINSTstartWallTimer 11.700000 usec 
-    // cost per call DYNINSTstopWallTimer 22.550000 usec 
-    // cost per call DYNINSTstartProcessTimer 14.650000 usec 
-    // cost per call DYNINSTstopProcessTimer 24.550000 usec 
-    //logLine("Solaris dyninst costs being used\n");
 
-    primitiveCosts["DYNINSTstartWallTimer"] = 468;
-    primitiveCosts["DYNINSTstopWallTimer"] = 900;
-    primitiveCosts["DYNINSTstartProcessTimer"] = 574;
-    primitiveCosts["DYNINSTstopProcessTimer"] = 961;
+#ifdef sparc_sun_solaris2_4
+    logLine("Solaris platform\n");
+    // Updated calculation of the cost for the following procedures.
+    // Clock rate = 37.04 Mhz (shemesh) - naim
+    // 24.11 usecs * 37.04 Mhz  
+    primitiveCosts["DYNINSTstartWallTimer"] = 893;
+    // 29.08 usecs * 37.04 Mhz
+    primitiveCosts["DYNINSTstopWallTimer"] = 1077;
+    // 34.08 usecs * 37.04 Mhz
+    primitiveCosts["DYNINSTstartProcessTimer"] = 1262;
+    // 56.61 usecs * 37.04 Mhz
+    primitiveCosts["DYNINSTstopProcessTimer"] = 2096;    
+
+    // These happen async of the rest of the system.
+    // 148 usecs * 37.04 Mhz
+    primitiveCosts["DYNINSTalarmExpire"] = 5513;
+    // 0.81 usecs * 37.04 Mhz
+    primitiveCosts["DYNINSTsampleValues"] = 30;
+    // 23.08 usecs * 37.04 Mhz
+    primitiveCosts["DYNINSTreportTimer"] = 855;
+    // 7.85 usecs * 37.04 Mhz
+    primitiveCosts["DYNINSTreportCounter"] = 290;
+    // 4.22 usecs * 37.04 Mhz
+    primitiveCosts["DYNINSTreportCost"] = 156;
+    // 1.03 usecs * 37.04 Mhz
+    primitiveCosts["DYNINSTreportNewTags"] = 38;
+#elif hppa1_1_hp_hpux
+    logLine("HP platform - costs not implemented yet\n");
+#elif rs6000_ibm_aix3_2
+    logLine("IBM platform\n");
+    // Updated calculation of the cost for the following procedures.
+    // Clock rate = 64 Mhz (rs6000) - naim
+    // NOTE: These measurements may need some tune up (02-09-96) - naim
+    // 1.5 usecs * 64 Mhz  
+    primitiveCosts["DYNINSTstartWallTimer"] = 96;
+    // 3.01 usecs * 64 Mhz
+    primitiveCosts["DYNINSTstopWallTimer"] = 192;
+    // 10.09 usecs * 64 Mhz
+    primitiveCosts["DYNINSTstartProcessTimer"] = 645;
+    // 20.28 usecs * 64 Mhz
+    primitiveCosts["DYNINSTstopProcessTimer"] = 1297;    
+
+    // These happen async of the rest of the system.
+    // 33.74 usecs * 64 Mhz
+    primitiveCosts["DYNINSTalarmExpire"] = 2159;
+    // 0.38 usecs * 64 Mhz
+    primitiveCosts["DYNINSTsampleValues"] = 24;
+    // 11.52 usecs * 64 Mhz
+    primitiveCosts["DYNINSTreportTimer"] = 737;
+    // 1.14 usecs * 64 Mhz
+    primitiveCosts["DYNINSTreportCounter"] = 72;
+    // 2.07 usecs * 64 Mhz
+    primitiveCosts["DYNINSTreportCost"] = 131;
+    // 0.66 usecs * 64 Mhz
+    primitiveCosts["DYNINSTreportNewTags"] = 42;
+#elif sparc_tmc_cmost7_2
+#elif sparc_wwt_cm5tempest1_2_3
 #else
-    // 23.39 usec * 85 mhz (SS-5)
-    primitiveCosts["DYNINSTstartWallTimer"] = 1988;
-    // 48.05 usec * 85 mhz (SS-5)
-    primitiveCosts["DYNINSTstopWallTimer"] = 4084;
-    // 1.61 usec * 85 Mhz (measured on a SS-5)
-    // 25 cycles (read clock) +  26 (startProcessTimer)
-    primitiveCosts["DYNINSTstartProcessTimer"] = 51;
-     // 3.38 usec * 85 mhz (measured on a SS-5)
-    // 61 cycles + 2*25 cycles to read clock
-    primitiveCosts["DYNINSTstopProcessTimer"] = 111;
+    logLine("SunOS platform\n");   
+    // sparc_sun_sunos4_1_3 - default
+    // Updated calculation of the cost for the following procedures.
+    // Clock rate = 67Mhz (SS-10) - naim
+    if (getenv("DYNINSTuseGetrusage")) {
+      // 22.08 usecs * 67Mhz
+      primitiveCosts["DYNINSTstartWallTimer"] = 1479;
+      // 52.76 * 67Mhz
+      primitiveCosts["DYNINSTstopWallTimer"] = 3534;
+      // 49.88 usecs * 67Mhz
+      primitiveCosts["DYNINSTstartProcessTimer"] = 3341;
+      // 69.26 usecs * 67Mhz
+      primitiveCosts["DYNINSTstopProcessTimer"] = 4640;
+    }
+    else {
+      //22.08 usecs * 67Mhz
+      primitiveCosts["DYNINSTstartWallTimer"] = 1479;
+      //52.76 usecs * 67Mhz
+      primitiveCosts["DYNINSTstopWallTimer"] = 3534;
+      //3.78 usecs * 67Mhz
+      primitiveCosts["DYNINSTstartProcessTimer"] = 253;
+      //6.21 usecs * 67Mhz
+      primitiveCosts["DYNINSTstopProcessTimer"] = 416;
+    }
+
+    // These happen async of the rest of the system.
+    // 133.86 usecs * 67Mhz
+    primitiveCosts["DYNINSTalarmExpire"] = 8968;
+    primitiveCosts["DYNINSTsampleValues"] = 29;
+    // 6.41 usecs * 67Mhz
+    primitiveCosts["DYNINSTreportTimer"] = 429;
+    // 89.85 usecs * 67Mhz
+    primitiveCosts["DYNINSTreportCounter"] = 6019;
+    primitiveCosts["DYNINSTreportCost"] = 167;
+    primitiveCosts["DYNINSTreportNewTags"] = 40; 
 #endif
 }
 
