@@ -1026,6 +1026,10 @@ bool pd_Function::relocateFunction(process *proc,
 
     relocatedFuncInfo *reloc_info = 0;
 
+    cerr << "splinning" << endl;
+    int tag = 0;
+    while (tag != 1) {}
+
     // silence compiler warnings
     assert(deferred || true);
 
