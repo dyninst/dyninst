@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.73 2004/09/21 05:33:44 jaw Exp $
+// $Id: ast.h,v 1.74 2005/01/17 20:08:11 rutar Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -108,9 +108,10 @@ class registerSlot {
  public:
     Register number;    // what register is it
     int refCount;      	// == 0 if free
-    bool needsSaving;	// been used since last rest
+    bool needsSaving;	// been used since last restore
     bool mustRestore;   // need to restore it before we are done.		
     bool startsLive;	// starts life as a live register.
+    bool beenClobbered; // registers clobbered
 };
 
 #if defined(ia64_unknown_linux2_4)
@@ -131,6 +132,14 @@ class registerSpace {
 
 	// Check to see if the register is free
 	bool isFreeRegister(Register k);
+
+	//Makes register unClobbered
+	void unClobberRegister(Register reg);
+	
+	// Checks to see if register has been clobbered
+	bool clobberRegister(Register reg);
+	
+	bool beenSaved(Register reg);
 
 	// Manually set the reference count of the specified register
 	// we need to do so when reusing an already-allocated register

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instP.h,v 1.44 2004/05/21 14:14:49 legendre Exp $
+// $Id: instP.h,v 1.45 2005/01/17 20:08:11 rutar Exp $
 
 #if !defined(instP_h)
 #define instP_h
@@ -146,4 +146,7 @@ extern void generateBranch(process *proc, Address fromAddr, Address newAddr);
 extern void removeTramp(process *proc, instPoint *location);
 extern int flushPtrace();
 extern bool deleteBaseTramp(process *, trampTemplate *);
+
+extern unsigned saveGPRegister(char *baseInsn, Address &base, Register reg);
+
 #endif

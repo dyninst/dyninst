@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.205 2005/01/11 22:47:08 legendre Exp $
+ * $Id: inst-power.C,v 1.206 2005/01/17 20:08:11 rutar Exp $
  */
 
 #include "common/h/headers.h"
@@ -1061,13 +1061,26 @@ unsigned saveGPRegisters(instruction *&insn, Address &base, Address offset, regi
   unsigned numRegs = 0;
   for(u_int i = 0; i < theRegSpace->getRegisterCount(); i++) {
     registerSlot *reg = theRegSpace->getRegSlot(i);
-    if (reg->startsLive) {
+    if ((reg->number >= 10 && reg->number <= 12) || 
+	reg->number == REG_GUARD_ADDR || reg->number == REG_GUARD_VALUE
+	|| reg->number == 0) {
       saveRegister(insn, base, reg->number, offset);
       numRegs++;
     }
   }
   return numRegs;
 }
+
+/*Saves a single general register, wrapper function 
+  for saveRegister */
+
+unsigned saveGPRegister(char *baseInsn, Address &base, Register reg)
+{
+  Address offset = TRAMP_GPR_OFFSET;
+  instruction *insn = (instruction *) ((void*)&baseInsn[base]);
+  saveRegister(insn, base, reg, offset);
+}
+
 
 /*
  * Restore necessary registers from the stack
@@ -1082,7 +1095,9 @@ unsigned restoreGPRegisters(instruction *&insn, Address &base, Address offset, r
   unsigned numRegs = 0;
   for(u_int i = 0; i < theRegSpace->getRegisterCount(); i++) {
     registerSlot *reg = theRegSpace->getRegSlot(i);
-    if (reg->startsLive) {
+    if ((reg->number >= 10 && reg->number <= 12) || 
+	reg->number == REG_GUARD_ADDR || reg->number == REG_GUARD_VALUE
+	|| reg->number == 0) {
       restoreRegister(insn, base, reg->number, offset);
       numRegs++;
     }
@@ -1099,7 +1114,11 @@ unsigned restoreGPRegisters(instruction *&insn, Address &base, Address offset, r
 unsigned saveFPRegisters(instruction *&insn, Address &base, Address offset)
 {
   unsigned numRegs = 0;
-  for (unsigned i = 0; i <= 13; i++) {
+  for (unsigned i = 0; i <= 9; i++) {
+    numRegs++;
+    saveFPRegister(insn, base, i, offset);
+  }
+  for (unsigned i = 11; i <= 13; i++) {
     numRegs++;
     saveFPRegister(insn, base, i, offset);
   }
@@ -1115,7 +1134,11 @@ unsigned saveFPRegisters(instruction *&insn, Address &base, Address offset)
 unsigned restoreFPRegisters(instruction *&insn, Address &base, Address offset)
 {
   unsigned numRegs = 0;
-  for (unsigned i = 0; i <= 13; i++) {
+  for (unsigned i = 0; i <= 9; i++) {
+    numRegs++;
+    restoreFPRegister(insn, base, i, offset);
+  }
+  for (unsigned i = 11; i <= 13; i++) {
     numRegs++;
     restoreFPRegister(insn, base, i, offset);
   }
@@ -1358,8 +1381,16 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
       genImmInsn(insn, STop, 10, 1, 16);
       insn++; currAddr += sizeof(instruction);
   }
+  
+  /*
+  if (location->getPointType() == otherPoint ||
+      location->getPointType() == callSite)  {
+    saveFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
+  }
+  */
 
-  saveFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
+  saveFPRegister(insn, currAddr, 10, TRAMP_SPR_OFFSET);
+
   if (location->getPointType() == otherPoint) {
     // Save special purpose registers
     saveSPRegisters(insn, currAddr, TRAMP_SPR_OFFSET);
@@ -1470,8 +1501,11 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
 
   if (location->getPointType() == otherPoint)
       restoreSPRegisters(insn, currAddr, TRAMP_SPR_OFFSET);
-      
+  
+  /*
   restoreFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
+  */
+
 
   // Not in a base tramp any more
   if (location->getPointType() == otherPoint ||
@@ -1542,10 +1576,18 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
       genImmInsn(insn, STop, 10, 1, 16);
       insn++; currAddr += sizeof(instruction);
   }
+  
+  /*
+  if (location->getPointType() == otherPoint ||
+      location->getPointType() == callSite)  {
+    saveFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
+  }
+  */
 
-  saveFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
+  saveFPRegister(insn, currAddr, 10, TRAMP_SPR_OFFSET);
+  
   if (location->getPointType() == otherPoint) {
-    // Save special purpose registers
+    // Save special purpose registers    
     saveSPRegisters(insn, currAddr, TRAMP_SPR_OFFSET);
     // Save GPR0 here also? 
   }
@@ -1646,8 +1688,12 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
 
   if (location->getPointType() == otherPoint)
     restoreSPRegisters(insn, currAddr, TRAMP_SPR_OFFSET);
-      
-  restoreFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
+  
+  /*
+    restoreFPRegisters(insn, currAddr, TRAMP_FPR_OFFSET);
+  */
+
+  restoreFPRegister(insn, currAddr, 10, TRAMP_FPR_OFFSET);
 
   // Not in a base tramp any more
   if (location->getPointType() == otherPoint ||
@@ -2341,6 +2387,9 @@ Register emitFuncCall(opCode /* ocode */,
       // internal error we expect this register to be free here
       // if (!rs->isFreeRegister(u+3)) abort();
     
+      if(rs->clobberRegister(u+3))
+	saveRegister(insn,base,u+3, TRAMP_GPR_OFFSET);
+
       genImmInsn(insn, ORILop, srcs[u], u+3, 0);
       insn++;
       base += sizeof(instruction);
@@ -2374,7 +2423,20 @@ Register emitFuncCall(opCode /* ocode */,
    insn->raw = MTLR0raw;
    insn++;
    base += sizeof(instruction);
-  
+   
+   // Saves remaining registers that haven't been clobbered already
+   if (location->getPointType() == otherPoint ||
+       location->getPointType() == callSite)  {
+     for(u_int i = 0; i < rs->getRegisterCount(); i++){
+       registerSlot * reg = rs->getRegSlot(i);
+       if(rs->clobberRegister(reg->number))
+	 saveRegister(insn, base, reg->number, TRAMP_GPR_OFFSET);
+     }
+   }
+   
+   // Save floating point registers
+   saveFPRegisters(insn, base, TRAMP_FPR_OFFSET);
+
    // brl - branch and link through the link reg.
 
    insn->raw = BRLraw;
@@ -2391,7 +2453,19 @@ Register emitFuncCall(opCode /* ocode */,
    genImmInsn(insn, ORILop, 3, retReg, 0);
    insn++;
    base += sizeof(instruction);
+
+   // Save floating point registers
+   restoreFPRegisters(insn, base, TRAMP_FPR_OFFSET);
   
+   //Restore the registers used to save parameters
+   for(u_int i = 0; i < rs->getRegisterCount(); i++) {
+     registerSlot *reg = rs->getRegSlot(i);
+     if (reg->beenClobbered) {
+       restoreRegister(insn, base, reg->number, TRAMP_GPR_OFFSET);
+       regSpace->unClobberRegister(reg->number);
+     }
+   }
+   
    // restore saved registers.
    for (u_int ui = 0; ui < savedRegs.size(); ui++) {
       restoreRegister(insn,base,savedRegs[ui],FUNC_CALL_SAVE);
@@ -2455,6 +2529,14 @@ Address emitA(opCode op, Register src1, Register /*src2*/, Register dest,
         return(0);              // let's hope this is expected!
         }        
       case trampTrailer: {
+	for(u_int i = 0; i < regSpace->getRegisterCount(); i++) {
+	  registerSlot *reg = regSpace->getRegSlot(i);
+	  if (reg->beenClobbered) {
+	    restoreRegister(insn, base, reg->number, TRAMP_GPR_OFFSET);
+	    regSpace->unClobberRegister(reg->number);
+	  }
+	}
+	
 /*
 	// restore the registers we have saved
 	for (unsigned i = 0; i < regSpace->getRegisterCount(); i++) {
@@ -2527,7 +2609,24 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
       // src1 is the argument number 0..X, the first 8 are stored in registers
       // r3 and 
       if(src1 < 8) {
-	restoreRegister(insn, base, src1+3, dest, TRAMP_GPR_OFFSET);
+	registerSlot * regSlot = NULL;
+	// find the registerSlot for this register.
+	for (unsigned i = 0; i < regSpace->getRegisterCount(); i++) {
+	  regSlot = regSpace->getRegSlot(i);
+	  if (regSlot->number == src1+3) 
+	    {
+	      if (regSpace->beenSaved(regSlot->number))
+		{
+		  restoreRegister(insn, base, src1+3, dest, TRAMP_GPR_OFFSET);
+		}
+	      else
+		{
+		  genImmInsn(insn, ORILop, src1+3, dest, 0);
+		  insn++;
+		  base += sizeof(instruction);
+		}
+	    }
+	}    
 	return(dest);
       } else {
 	// Registers from 11 (src = 8) and beyond are saved starting at stack+56
@@ -3593,6 +3692,46 @@ bool registerSpace::readOnlyRegister(Register reg_number)
         return true;
     }
 }
+
+
+
+//Checks to see if register has been clobbered
+//If return true, it hasn't and we need to save register
+//If return false, it's been clobbered and we do nothing
+bool registerSpace::clobberRegister(Register reg) 
+{
+  if (reg == 0 || reg == 2 || reg == 10 || reg == REG_GUARD_ADDR || 
+      reg == REG_GUARD_VALUE || reg == 11 || reg == 12)
+    return false;
+  for (u_int i=0; i < numRegisters; i++) {
+    if (registers[i].number == reg) {
+      if(registers[i].beenClobbered == true)
+	return false;
+      else{
+	registers[i].beenClobbered = true;
+	return true;
+      }	
+    }
+  }
+}
+
+
+bool registerSpace::beenSaved(Register reg)
+{
+  if (reg == 10 || reg == REG_GUARD_ADDR || reg == REG_GUARD_VALUE || reg == 11 || reg == 12)
+    return true;
+  for (u_int i = 0; i < numRegisters; i++){
+    if (registers[i].number == reg){
+      if (registers[i].beenClobbered == true)
+	return true;
+      else
+	return false;
+    }
+  }
+}
+
+
+
 
 
 bool returnInstance::checkReturnInstance(const pdvector<pdvector<Frame> > &/*stackWalks*/)
