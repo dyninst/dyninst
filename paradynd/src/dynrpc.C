@@ -19,7 +19,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, \
   Karen Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/dynrpc.C,v 1.8 1994/09/22 16:02:25 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/dynrpc.C,v 1.10 1994/11/02 11:04:44 markc Exp $";
 #endif
 
 
@@ -27,13 +27,19 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.8  1994/09/22 16:02:25  markc
+ * Revision 1.10  1994/11/02 11:04:44  markc
+ * Replaced iterators.
+ *
+ * Revision 1.9  1994/10/13  07:24:38  krisna
+ * solaris porting and updates
+ *
+ * Revision 1.8  1994/09/22  16:02:25  markc
  * Removed #include "resource.h"
  *
  * Revision 1.7  1994/09/22  01:53:48  markc
  * Made system includes extern "C"
  * added const to char* args to stop compiler warnings
- * changed String to char*
+ * changed string to char*
  * declare classes as classes, not structs
  * use igen methods to access igen member vars
  *
@@ -58,10 +64,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *
  */
 
-extern "C" {
-#include <sys/time.h>
-#include <sys/resource.h>
-}
+#include "util/h/kludges.h"
 
 #include "symtab.h"
 #include "process.h"
@@ -75,16 +78,14 @@ extern "C" {
 #include "dyninstRPC.SRVR.h"
 #include "dyninst.h"
 #include "kludges.h"
+#include "stats.h"
+#include "resource.h"
 
 // default to once a second.
 float samplingRate = 1.0;
 
-
-
 void dynRPC::printStats(void)
 {
-  extern void printDyninstStats();
-
   printDyninstStats();
 }
 
@@ -93,31 +94,25 @@ void dynRPC::addResource(const char *parent, const char *name)
     resource *pr;
 
     pr = findResource(parent);
-    if (pr) (void) newResource(pr, NULL, NULL, name, 0.0, FALSE);
+    if (pr) (void) newResource(pr, NULL, nullString, name, 0.0, false);
 }
 
 void dynRPC::coreProcess(int id)
 {
-    process *proc;
-
-    proc = processList.find((void *) id);
-    dumpCore(proc);
+    if (processMap.defines(id))
+      dumpCore(processMap[id]);
 }
 
 char *dynRPC::getStatus(int id)
 {
-    process *proc;
-    extern char *getProcessStatus(process *proc);
     char ret[50];
 
-    proc = processList.find((void *) id);
-
-    if (!proc) {
-	sprintf (ret, "PID:%d not found for getStatus\n", id);
-	return (ret);
+    if (!processMap.defines(id)) {
+      sprintf (ret, "PID:%d not found for getStatus\n", id);
+      return (ret);
     }
     else
-	return(getProcessStatus(proc));
+      return (getProcessStatus(processMap[id]));
 }
 
 //
@@ -126,9 +121,9 @@ char *dynRPC::getStatus(int id)
 //
 metricInfo_Array dynRPC::getAvailableMetrics(void)
 {
-    int i;
-    static int inited;
+    static int inited=false;
     static metricInfo_Array metInfo;
+    int i;
 
     if (!inited) {
 	metricListRec *stuff;
@@ -161,8 +156,6 @@ double dynRPC::getPredictedDataCost(String_Array focusString, char *metName)
 
 double dynRPC::getCurrentHybridCost(void)
 {
-    extern double currentHybridValue;
-
     return(currentHybridValue);
 }
 
@@ -170,15 +163,14 @@ void dynRPC::disableDataCollection(int mid)
 {
     float cost;
     metricDefinitionNode *mi;
-    extern double currentPredictedCost;
-    extern void printResourceList(resourceListRec*);
 
-    if (!(mi = allMIs.find((void *) mid))) {
+    if (!allMIs.defines(mid)) {
       sprintf(errorLine, "disableDataCollection mid %d not found\n", mid);
       logLine(errorLine);
       return;
     }
 
+    mi = allMIs[mid];
     // sprintf(errorLine, "disable of %s for RL =", getMetricName(mi->met));
     // logLine(errorLine);
     // printResourceList(mi->resList);
@@ -189,31 +181,26 @@ void dynRPC::disableDataCollection(int mid)
     currentPredictedCost -= cost;
 
     mi->disable();
-    if (!allMIs.remove((void*)mi->id)) {
-      sprintf(errorLine, "remove of metric id %d from allMIs failed\n", mi->id);
-      logLine(errorLine);
-    }
+    allMIs.undef(mi->id);
     delete(mi);
 }
 
 Boolean dynRPC::setTracking(char *target, Boolean mode)
 {
     resource *res;
-    extern resource *moduleRoot;
-    extern void changeLibFlag(resource*, Boolean);
 
     res = findResource(target);
     if (res) {
 	if (isResourceDescendent(moduleRoot, res)) {
-	    changeLibFlag(res, mode);
-	    res->suppressed = True;
+	    changeLibFlag(res, (bool) mode);
+	    res->suppressed = true;
 	    return(True);
 	} else {
 	    // un-supported resource hierarchy.
-	    return(False);
+	    return(FALSE);
 	}
     } else {
-	return(False);
+	return(FALSE);
     }
 }
 
@@ -224,11 +211,20 @@ int dynRPC::enableDataCollection(String_Array focusString, char *met)
     resourceListRec *l;
     long long start;
     long long end;
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_tmc_cmost7_3)
     struct rusage ru;
-    extern time64 totalInstTime;
+#elif defined(sparc_sun_solaris2_3)
+    struct timeval tv;
+#endif
 
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_tmc_cmost7_3)
     getrusage(RUSAGE_SELF, &ru);
     start = ru.ru_utime.tv_sec * 1000000 + ru.ru_utime.tv_usec;
+#elif defined(sparc_sun_solaris2_3)
+    // TODO - use a standard timer - this isn't the way to do it for solaris
+    gettimeofday(&tv, NULL);
+    start = tv.tv_sec * 1000000 + tv.tv_usec;
+#endif
 
     m = findMetric(met);
     l = findFocus(focusString.count, focusString.data);
@@ -237,10 +233,16 @@ int dynRPC::enableDataCollection(String_Array focusString, char *met)
 
     id = startCollecting(l, m);
 
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_tmc_cmost7_3)
     getrusage(RUSAGE_SELF, &ru);
     end = ru.ru_utime.tv_sec * 1000000 + ru.ru_utime.tv_usec;
-    totalInstTime += (end - start);
+#elif defined(sparc_sun_solaris2_3)
+    // TODO - this needs to be cleaned up
+    gettimeofday(&tv, NULL);
+    end = tv.tv_sec * 1000000 + tv.tv_usec;
+#endif
 
+    totalInstTime += (end - start);
     return(id);
 }
 
@@ -255,7 +257,7 @@ void dynRPC::setSampleRate(double sampleInterval)
 
 Boolean dynRPC::detachProgram(int program,Boolean pause)
 {
-    return(detachProcess(program, pause));
+    return(detachProcess(program, (bool) pause));
 }
 
 //
@@ -271,17 +273,11 @@ void dynRPC::continueApplication(void)
 //
 void dynRPC::continueProgram(int program)
 {
-    List<process *> curr;
-
-    for (curr = processList; *curr; curr++) {
-	if ((*curr)->pid == getPid()) break;
+    if (!processMap.defines(program)) {
+      sprintf(errorLine, "Can't continue PID %d\n", program);
+      logLine(errorLine);
     }
-    if (*curr) {
-        continueProcess(*curr);
-    } else {
-	sprintf(errorLine, "Can't continue PID %d\n", program);
-	logLine(errorLine);
-    }
+    continueProcess(processMap[program]);
 }
 
 //
@@ -298,17 +294,12 @@ Boolean dynRPC::pauseApplication(void)
 //
 Boolean dynRPC::pauseProgram(int program)
 {
-    List<process *> curr;
-
-    for (curr = processList; *curr; curr++) {
-        if ((*curr)->pid == program) break;
+    if (!processMap.defines(program)) {
+      sprintf(errorLine, "Can't pause PID %d\n", program);
+      logLine(errorLine);
+      return FALSE;
     }
-    if (!(*curr)) {
-	sprintf(errorLine, "Can't pause PID %d\n", program);
-	logLine(errorLine);
-	return FALSE;
-    }
-    pauseProcess(*curr);
+    pauseProcess(processMap[program]);
     return TRUE;
 }
 
@@ -331,5 +322,5 @@ Boolean dynRPC::attachProgram(int id)
 //
 int dynRPC::addExecutable(int argc,String_Array argv)
 {
-    return(addProcess(argc, argv.data));
+    return(addProcess(argv.count, argv.data));
 }
