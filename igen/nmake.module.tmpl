@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.9 2002/02/11 22:45:43 pcroth Exp $
+# $Id: nmake.module.tmpl,v 1.10 2002/04/09 18:05:07 mjbrim Exp $
 #
 
 USES_FLEX = TRUE
@@ -16,8 +16,9 @@ TARGET	      = igen.exe
 #		../src/interface_spec.C \
 #	        ../src/templates-nt.C 
 
-OBJS 		= main.obj parser.obj scanner.obj interface_spec.obj \
-                        templates-nt.obj
+OBJS 		= main.obj parser.obj scanner.obj arg.obj interface_spec.obj \
+                  message_layer.obj Options.obj remote_func.obj signature.obj \
+		  type_defn.obj templates-nt.obj
 
 LIBS 	     = $(LIBS) $(TO_CORE)\$(LIBRARY_DEST)\libpdutil.lib
 
