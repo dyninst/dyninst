@@ -57,7 +57,7 @@
 bool dynamic_linking::findDynamicLinkingInfo(process *p){
 
     string dyn_str = string("DYNAMIC");
-    internalSym *dyn_sym = p->symbols->findInternalSymbol(dyn_str,true);
+    internalSym *dyn_sym = p->findInternalSymbol(dyn_str,true);
 
     // find and set the value of _DYNAMIC[DT_DEBUG].d_un.dptr to 1 
     if(dyn_sym){
@@ -87,7 +87,7 @@ bool dynamic_linking::findDynamicLinkingInfo(process *p){
 	// compute address of DYNAMIC[DT_DEBUG].d_un.d_ptr
 	// and set its value
 	link_map_addr = dyn_debug_addr + sizeof(Elf32_Sword);
-	if(!(p->symbols->isValidAddress(link_map_addr))){
+	if(!(p->getImage()->isValidAddress(link_map_addr))){
 	   return false;
 	}
 	int new_value = 1;
@@ -185,8 +185,8 @@ vector<shared_object *> *dynamic_linking::getSharedObjects(process *p) {
 		string obj_name = string(f_name);
 		// create a shared_object and add it to the list
 		//
-		if((obj_name != p->symbols->file()) && 
-		   (obj_name != p->symbols->name())){
+		if((obj_name != p->getImage()->file()) && 
+		   (obj_name != p->getImage()->name())){
 		    //string blah = string("adding so: ");
 		    //blah += f_name;
 		    //blah += string("\n");
