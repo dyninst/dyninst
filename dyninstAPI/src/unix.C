@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.45 2000/08/31 21:18:03 bernat Exp $
+// $Id: unix.C,v 1.46 2000/09/01 17:04:36 bernat Exp $
 
 #if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -184,7 +184,6 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
       cerr << "Found" << endl;
     else
       {
-	int temp;
 	// Check to see if we've already relinked once
 	int status = 0;
 	cerr << "Checking for relinked program..." << endl;
@@ -213,7 +212,7 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
 		{
 		  cerr << "Using relinked program " << relinked_progname << endl;
 		  status = 4;
-
+		}
 	switch (status)
 	  {
 	  case 1:     // Couldn't open original program
