@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.148 2003/04/11 22:46:40 schendel Exp $
+// $Id: perfStream.C,v 1.149 2003/04/16 21:07:34 bernat Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -541,29 +541,6 @@ void doDeferredInstrumentation() {
    }  
 }
 
-void doDeferredRPCs() {
-   // Any RPCs waiting to be performed?  If so, and if it's safe to
-    // perform one, then launch one.
-    processMgr::procIter itr = getProcMgr().begin();
-    while(itr != getProcMgr().end()) {
-        pd_process *proc = *itr++;
-        if (proc == NULL) continue; // proc must've died and has itself cleaned up
-        if (proc->status() == exited) continue;
-        if (proc->status() == neonatal) continue; // not sure if this is appropriate
-
-        if (!proc->existsRPCPending()) continue;
-
-        bool wasLaunched = proc->launchRPCs(proc->status() == running);
-#if defined(TEST_DEL_DEBUG)
-        if (wasLaunched) logLine("***** inferiorRPC launched, perfStream.C\n");
-#endif
-        
-        // do we need to do anything with 'wasLaunched'?
-        if (wasLaunched)
-            inferiorrpc_cerr << "fyi: launched an inferior RPC" << endl;
-    }
-}
-
 void ioFunc()
 {
      printf("in SIG child func\n");
@@ -607,55 +584,67 @@ static void checkAndDoShmSampling(timeLength *pollTime) {
 
    processMgr::procIter itr = getProcMgr().begin();
    while(itr != getProcMgr().end()) {
-      pd_process *theProc = *itr;
-      itr++;
+       pd_process *theProc = *itr;
+       itr++;
+       
+       if (theProc == NULL)
+           continue; // proc died & had its structures cleaned up
+       
+       // Don't sample paused/exited/neonatal processes, or even running processes
+       // that haven't been bootstrapped yet (i.e. haven't called DYNINSTinit yet),
+       // or processes that are in the middle of an inferiorRPC (we like for
+       // inferiorRPCs to finish up quickly).
+       if (theProc->status() != running) {
+           //shmsample_cerr << "(-" << theProc->getStatusAsString() << "-)";
+           continue;
+       }
+       else if (!theProc->isBootstrappedYet() || !theProc->isPARADYNBootstrappedYet()) { //ccw 1 may 2002 : SPLIT
+           //shmsample_cerr << "(-*-)" << endl;
+           continue;
+       }
 
-      if (theProc == NULL)
-         continue; // proc died & had its structures cleaned up
-
-      // Don't sample paused/exited/neonatal processes, or even running
-      // processes that haven't been bootstrapped yet (i.e. haven't called
-      // DYNINSTinit yet), or processes that are in the middle of an
-      // inferiorRPC (we like for inferiorRPCs to finish up quickly).
-      if (theProc->status() != running) {
-         //shmsample_cerr << "(-" << theProc->getStatusAsString() << "-)";
-         continue;
-      }
-      else if (!theProc->isBootstrappedYet() || !theProc->isPARADYNBootstrappedYet()) { //ccw 1 may 2002 : SPLIT
-         //shmsample_cerr << "(-*-)" << endl;
-         continue;
-      }
-      else if (theProc->existsRPCinProgress()) {
-         //shmsample_cerr << "(-~-)" << endl;
-         continue;
-      }
-
-      if (doMajorSample) {
-         //shmsample_cerr << "(-Y-)" << endl;
-         if (!theProc->doMajorShmSample()) {
-            // The major sample didn't complete all of its work, so we
-            // schedule a minor sample for sometime in the near future
-            // (before the next major sample)
-            shmsample_cerr << "a minor sample will be needed" << endl;
-
-            forNextTimeDoMinorSample = true;
-         }
-      }
-      else if (doMinorSample) {
-         shmsample_cerr << "trying needed minor sample..."; cerr.flush();
-
-         if (!theProc->doMinorShmSample()) {
-            // The minor sample didn't complete all of its work, so
-            // schedule another one.
-            forNextTimeDoMinorSample = true;
-            shmsample_cerr << "it failed" << endl; cerr.flush();
-         }
-         else {
-            shmsample_cerr << "it succeeded" << endl; cerr.flush();
-         }
-      }
+       if (theProc == NULL)
+           continue; // proc died & had its structures cleaned up
+       
+       // Don't sample paused/exited/neonatal processes, or even running
+       // processes that haven't been bootstrapped yet (i.e. haven't called
+       // DYNINSTinit yet), or processes that are in the middle of an
+       // inferiorRPC (we like for inferiorRPCs to finish up quickly).
+       if (theProc->status() != running) {
+           //shmsample_cerr << "(-" << theProc->getStatusAsString() << "-)";
+           continue;
+       }
+       else if (!theProc->isBootstrappedYet() || !theProc->isPARADYNBootstrappedYet()) { //ccw 1 may 2002 : SPLIT
+           //shmsample_cerr << "(-*-)" << endl;
+           continue;
+       }
+       
+       if (doMajorSample) {
+           //shmsample_cerr << "(-Y-)" << endl;
+           if (!theProc->doMajorShmSample()) {
+               // The major sample didn't complete all of its work, so we
+               // schedule a minor sample for sometime in the near future
+               // (before the next major sample)
+               shmsample_cerr << "a minor sample will be needed" << endl;
+               
+               forNextTimeDoMinorSample = true;
+           }
+       }
+       else if (doMinorSample) {
+           shmsample_cerr << "trying needed minor sample..."; cerr.flush();
+           
+           if (!theProc->doMinorShmSample()) {
+               // The minor sample didn't complete all of its work, so
+               // schedule another one.
+               forNextTimeDoMinorSample = true;
+               shmsample_cerr << "it failed" << endl; cerr.flush();
+           }
+           else {
+               shmsample_cerr << "it succeeded" << endl; cerr.flush();
+           }
+       }
    } // loop thru the processes
-
+   
    // And now, do the internal metrics
    if (doMajorSample)
       reportInternalMetrics(true);
@@ -812,7 +801,6 @@ void controllerMainLoop(bool check_buffer_first)
       // "width" is computed but ignored on Windows NT, where sockets 
       // are not represented by nice little file descriptors.
       if (tp->get_sock() > width) width = tp->get_sock();
-      doDeferredRPCs();
 
 #if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
       doDeferredInstrumentation();

@@ -463,9 +463,12 @@ bool pd_process::loadParadynLib() {
     removeAst(loadLibAstArgs[0]);
 
     // We've built a call to loadLibrary, now run it via inferior RPC
+    cerr << "Loading PARADYN library" << endl;
     postRPCtoDo(loadLib, true, // Don't update cost
                 pd_process::paradynLibLoadCallback,
-                (void *)this); // User data
+                (void *)this, // User data
+                -1, false,
+                NULL, NULL); // Not metric definition
 
     setLibState(paradynRTState, libLoading);
     // .. run RPC
@@ -473,7 +476,9 @@ bool pd_process::loadParadynLib() {
     // We block on paradynRTState, which is set to libLoaded
     // via the inferior RPC callback
     while (!reachedLibState(paradynRTState, libLoaded)) {
+        cerr << "Launching RPC" << endl;
         launchRPCs(false);
+        
         decodeAndHandleProcessEvent(true);
     }
     removeAst(loadLib);
@@ -503,6 +508,7 @@ void pd_process::paradynLibLoadCallback(process * /*p*/, unsigned /* rpc_id */,
                                         void *data, void * /*ret*/)
 {
     // Paradyn library has been loaded (via inferior RPC).
+    cerr << "Callback made for paradyn lib" << endl;
     pd_process *pd_p = (pd_process *)data;
     pd_p->setParadynLibLoaded();
 }
@@ -750,7 +756,9 @@ bool pd_process::iRPCParadynInit() {
     AstNode *paradyn_init = new AstNode("libparadynRT_init", the_args);
     postRPCtoDo(paradyn_init, false, // noCost
                 pd_process::paradynInitCompletionCallback,
-                (void *)this); // User data
+                (void *)this, // User data
+                -1, false,
+                NULL, NULL); // Not metric definition
 
     // And force a flush...
     
@@ -876,7 +884,9 @@ bool pd_process::loadAuxiliaryLibrary(string libname) {
     // We've built a call to loadLibrary, now run it via inferior RPC
     postRPCtoDo(loadLib, true, // Don't update cost
                 pd_process::loadAuxiliaryLibraryCallback,
-                (void *)this); // User data
+                (void *)this, // User data
+                -1, false,
+                NULL, NULL);
 
     setLibState(auxLibState, libLoading);
     // .. run RPC

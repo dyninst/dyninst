@@ -125,13 +125,9 @@ class pd_process {
    int getPid() const { return dyninst_process->getPid();  }
 
    bool cancelRPC(unsigned rpc_id) {
-      return dyninst_process->cancelRPC(rpc_id);
+      return dyninst_process->getRpcMgr()->cancelRPC(rpc_id);
    }
 
-   bool existsRPCPending() const {
-       return dyninst_process->existsRPCPending();
-   }
-   
    shmMgr *getSharedMemMgr() {  return dyninst_process->getSharedMemMgr();  }
 
    bool findInternalSymbol(const string &name, bool warn, internalSym &ret_sym)
@@ -159,16 +155,16 @@ class pd_process {
    }
 
    bool launchRPCs(bool wasRunning) {
-       return dyninst_process->launchRPCs(wasRunning);
+       return dyninst_process->getRpcMgr()->launchRPCs(wasRunning);
    }
 
+   void deleteRPCbyMID(int mid) {
+       dyninst_process->getRpcMgr()->deleteRPCbyMID(mid);
+   }
+   
    bool isPARADYNBootstrappedYet() const {
        // Good enough approximation (should use a flag here)
        return reachedLibState(paradynRTState, libReady);       
-   }
-
-   bool existsRPCinProgress() {
-      return dyninst_process->existsRPCinProgress();
    }
 
    bool catchupSideEffect(Frame &frame, instReqNode *inst) {
@@ -183,16 +179,12 @@ class pd_process {
 
    unsigned postRPCtoDo(AstNode *action, bool noCost,
                         inferiorRPCcallbackFunc callbackFunc,
-                        void *userData, bool lowmem = false) {
-      return dyninst_process->postRPCtoDo(action, noCost, callbackFunc,
-                                          userData, lowmem);      
-   }
-
-   unsigned postRPCtoDo(AstNode *action, bool noCost,
-                        inferiorRPCcallbackFunc callbackFunc,
-                        void *userData, dyn_lwp *lwp, bool lowmem = false) {
-      return dyninst_process->postRPCtoDo(action, noCost, callbackFunc,
-                                          userData, lwp, lowmem);
+                        void *userData, int mid, bool lowmem,
+                        dyn_thread *thr, dyn_lwp *lwp) {
+       return dyninst_process->getRpcMgr()->postRPCtoDo(action, noCost,
+                                                        callbackFunc, userData,
+                                                        mid, lowmem,
+                                                        thr, lwp);
    }
    
    bool triggeredInStackFrame(instPoint* point, Frame frame,
