@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.36 1999/08/09 05:55:11 csserra Exp $
+# $Id: Makefile,v 1.37 1999/09/08 16:03:20 wylie Exp $
 #
 
 # Include the make configuration specification (site configuration options)
@@ -29,8 +29,11 @@ ParadynVC	= rthist \
 subSystems	= $(ParadynD) $(ParadynFE) $(ParadynVC)
 DyninstAPI	= util dyninstAPI_RT dyninstAPI dyninstAPI/tests 
 
+# threadComps are temporary SPARC/Solaris-only thread-aware components
+threadComps	= rtinst/multi-thread-aware paradynd/multi-thread-aware
+
 # "Paradyn" itself is just the list of all Paradyn components
-Paradyn		= $(basicComps) $(subSystems)
+Paradyn		= $(basicComps) $(subSystems) $(threadComps)
 
 # "fullSystem" is the list of all Paradyn & DyninstAPI components to build:
 # set DONT_BUILD_PARADYN or DONT_BUILD_DYNINST in make.config.local if desired
@@ -107,7 +110,7 @@ world: intro
 
 # "make Paradyn" and "make DyninstAPI" are also useful and valid build targets!
 
-Paradyn ParadynD ParadynFE ParadynVC DyninstAPI basicComps subSystems:
+Paradyn ParadynD ParadynFE ParadynVC DyninstAPI basicComps subSystems threadComps:
 	@echo "Building $@ ..."
 	@date
 	+for subsystem in $($@); do				\
