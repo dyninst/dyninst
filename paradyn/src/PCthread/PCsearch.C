@@ -20,7 +20,11 @@
  * class PCsearch
  *
  * $Log: PCsearch.C,v $
- * Revision 1.3  1996/02/09 05:30:57  karavan
+ * Revision 1.4  1996/02/22 14:42:58  naim
+ * Fixing number of searches that can be done simultaneously (change made by
+ * Karen and commited by Oscar) - naim
+ *
+ * Revision 1.3  1996/02/09  05:30:57  karavan
  * changes to support multiple per phase searching.
  *
  * Revision 1.2  1996/02/08 19:52:48  karavan
@@ -162,7 +166,7 @@ PCsearch::newData(metricInstanceHandle m_handle, sampleValue value,
 //    float currentSearchCost = (100 * dataMgr->getCurrentSmoothObsCost());
 //    cout << "TOTAL CURRENT SEARCH COST = " << currentSearchCost << endl;
     // tunable constant predictedCostLimit
-    float searchCostThreshold = 100 * performanceConsultant::predictedCostLimit; 
+    float searchCostThreshold = performanceConsultant::predictedCostLimit; 
     // we're using number of experiments only until observed cost is 
     // straightened out
     float currentSearchCost = PCnumActiveExperiments;
