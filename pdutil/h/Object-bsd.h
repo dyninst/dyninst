@@ -55,30 +55,13 @@ public:
 private:
     void    load_object ();
 };
-#ifdef notdef
-inline
-Object::Object(const string file, void (*err_func)(const char *))
-    : AObject(file, err_func) {
-    load_object();
+
+static int symbol_compare(const void *x, const void *y) {
+    Symbol *s1 = (Symbol *)x;
+    Symbol *s2 = (Symbol *)y;
+    return (s1->addr() - s2->addr());
 }
 
-inline
-Object::Object(const Object& obj)
-    : AObject(obj) {
-    load_object();
-}
-
-inline
-Object::~Object() {
-}
-
-inline
-Object&
-Object::operator=(const Object& obj) {
-    (void) AObject::operator=(obj);
-    return *this;
-}
-#endif
 inline
 void
 Object::load_object() {
@@ -121,6 +104,9 @@ Object::load_object() {
         char*         strs   = &ptr[(unsigned)(N_STROFF(*execp))];
         string        module = "DEFAULT_MODULE";
         string        name   = "DEFAULT_SYMBOL";
+
+	vector<Symbol> allsymbols;
+
         for (unsigned i = 0; i < nsyms; i++) {
             unsigned char sstab = syms[i].n_type & (N_TYPE | N_STAB);
 
@@ -184,10 +170,30 @@ Object::load_object() {
             }
 
 	    name = string(&strs[syms[i].n_un.n_strx]);
-	    symbols_[name] = Symbol(name, module, type, linkage,
-				    syms[i].n_value, st_kludge);
+            allsymbols += Symbol(name, module, type, linkage,
+                                 syms[i].n_value, st_kludge);
+
 	  }
-      }
+
+          // Sort the symbols on address to find the function boundaries
+          allsymbols.sort(symbol_compare);
+
+          unsigned nsymbols = allsymbols.size();
+          for (unsigned u = 0; u < nsymbols; u++) {
+	    unsigned v = u+1;
+	    while (v < nsymbols && allsymbols[v].addr() == allsymbols[u].addr())
+              v++;
+            unsigned size = 0;
+            if (v < nsymbols)
+              size = (unsigned)allsymbols[v].addr() - (unsigned)allsymbols[u].addr();
+
+            symbols_[allsymbols[u].name()] =
+               Symbol(allsymbols[u].name(), allsymbols[u].module(),
+                      allsymbols[u].type(), allsymbols[u].linkage(),
+                      allsymbols[u].addr(), allsymbols[u].kludge(),
+                      size);
+	   }      
+	 }
 
     /* catch */
 cleanup: {

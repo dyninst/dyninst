@@ -53,7 +53,7 @@ public:
      Symbol ();
      Symbol (unsigned);
      Symbol (const string &, const string &, SymbolType, SymbolLinkage,
-             Address, const bool);
+             Address, const bool, unsigned size = 0);
      Symbol (const Symbol &);
     ~Symbol ();
 
@@ -65,6 +65,7 @@ public:
     SymbolType          type ()               const;
     SymbolLinkage    linkage ()               const;
     Address             addr ()               const;
+    unsigned            size ()               const;
     bool              kludge ()               const;
     SymbolTag&           tag ()               const;
 
@@ -89,6 +90,8 @@ private:
     SymbolType    type_;
     SymbolLinkage linkage_;
     Address       addr_;
+    unsigned      size_;  // size of this symbol. This is NOT available on
+                          // all platforms.
     SymbolTag     tag_;
     bool          kludge_;
 };
@@ -96,29 +99,30 @@ private:
 inline
 Symbol::Symbol()
     : name_("*bad-symbol*"), module_("*bad-module*"),
-    type_(PDST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0),
+    type_(PDST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), size_(0),
     tag_(TAG_UNKNOWN), kludge_(false) {
 }
 
 inline
 Symbol::Symbol(unsigned)
     : name_("*bad-symbol*"), module_("*bad-module*"),
-    type_(PDST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0),
+    type_(PDST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), size_(0),
     tag_(TAG_UNKNOWN), kludge_(false) {
 }
 
 inline
 Symbol::Symbol(const string& iname, const string& imodule,
-    SymbolType itype, SymbolLinkage ilinkage, Address iaddr, const bool ikl)
+    SymbolType itype, SymbolLinkage ilinkage, Address iaddr, const bool ikl,
+    unsigned size)
     : name_(iname), module_(imodule),
-    type_(itype), linkage_(ilinkage), addr_(iaddr),
+    type_(itype), linkage_(ilinkage), addr_(iaddr), size_(size),
     tag_(TAG_UNKNOWN), kludge_(ikl) {
 }
 
 inline
 Symbol::Symbol(const Symbol& s)
     : name_(s.name_), module_(s.module_),
-    type_(s.type_), linkage_(s.linkage_), addr_(s.addr_),
+    type_(s.type_), linkage_(s.linkage_), addr_(s.addr_), size_(s.size_),
     tag_(s.tag_), kludge_(s.kludge_) {
 }
 
@@ -134,6 +138,7 @@ Symbol::operator=(const Symbol& s) {
     type_    = s.type_;
     linkage_ = s.linkage_;
     addr_    = s.addr_;
+    size_    = s.size_;
     tag_     = s.tag_;
     kludge_  = s.kludge_;
 
@@ -149,6 +154,7 @@ Symbol::operator==(const Symbol& s) const {
         && (type_    == s.type_)
         && (linkage_ == s.linkage_)
         && (addr_    == s.addr_)
+	&& (size_    == s.size_)
         && (kludge_  == s.kludge_));
 }
 
@@ -180,6 +186,12 @@ inline
 Address
 Symbol::addr() const {
     return addr_;
+}
+
+inline
+unsigned
+Symbol::size() const {
+    return size_;
 }
 
 inline

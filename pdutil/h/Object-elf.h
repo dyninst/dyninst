@@ -321,12 +321,14 @@ Object::load_object() {
             // we can get their module from the .stab section.
             if (ELF32_ST_BIND(syms[i1].st_info) == STB_LOCAL) {
 	       symbols_[name] = Symbol(name, module, type, Symbol::SL_LOCAL,
-                                    syms[i1].st_value, st_kludge);
+                                    syms[i1].st_value, st_kludge, 
+                                    syms[i1].st_size);
 	    }
             else {
                assert(!(global_symbols.defines(name))); // globals should be unique
 	       global_symbols[name] = Symbol(name, string(""), type, Symbol::SL_GLOBAL,
-                                    syms[i1].st_value, st_kludge);
+                                    syms[i1].st_value, st_kludge,
+                                    syms[i1].st_size);
 	    }
 	  }
         }
@@ -411,7 +413,7 @@ Object::load_object() {
               assert(res); // All globals in .stab should be defined in .symtab
 	      Symbol sym = global_symbols[SymName];
 	      symbols_[SymName] = Symbol(sym.name(), module, sym.type(), sym.linkage(), 
-				  sym.addr(), sym.kludge());
+				  sym.addr(), sym.kludge(), sym.size());
 	    }
           }
 	    break;
