@@ -4,7 +4,10 @@
 
 /*
  * $Log: rpcUtil.h,v $
- * Revision 1.18  1994/06/02 23:35:15  markc
+ * Revision 1.19  1994/07/18 19:09:10  hollings
+ * added extra arg to RPC_make_arg_list.
+ *
+ * Revision 1.18  1994/06/02  23:35:15  markc
  * Modified RPCUser class to support improved error checking for igen.
  *
  * Revision 1.17  1994/04/21  23:23:44  hollings
@@ -117,7 +120,12 @@ extern int xdr_String(XDR*, String*);
 extern int RPCprocessCreate(int *pid, char *hostName, char *userName,
 			    char *commandLine, char **arg_list = 0,
 			    int wellKnownPort = 0);
-extern char **RPC_make_arg_list (int family, int type, int port, int flag);
+
+extern char **RPC_make_arg_list (int family, int type, 
+				 int port, 
+				 int flag,
+				 char *machienName);
+
 extern int 
 RPC_undo_arg_list (int argc, char **arg_list, char **machine, int &family,
 		   int &type, int &well_known_socket, int &flag);

@@ -1,6 +1,9 @@
 /*
  * $Log: rpcUtil.C,v $
- * Revision 1.24  1994/06/22 00:37:13  markc
+ * Revision 1.25  1994/07/18 19:08:25  hollings
+ * added extra arg to RPC_make_arg_list.
+ *
+ * Revision 1.24  1994/06/22  00:37:13  markc
  * Fixed code to remove warnings.
  *
  * Revision 1.23  1994/06/02  23:36:58  markc
@@ -268,13 +271,12 @@ RPC_undo_arg_list (int argc, char **arg_list, char **machine, int &family,
 	return -1;
 }
 
-char **RPC_make_arg_list (int family, int type, int well_known_socket,
-		   int flag)
+char **RPC_make_arg_list(int family, int type, int well_known_socket,
+		   int flag, char *machine_name)
 {
   char arg_str[100];
   int arg_count = 1;
   char **arg_list;
-  char machine_name[50];
 
   arg_list = new char*[8];
   arg_list[0] = NULL;
@@ -284,7 +286,10 @@ char **RPC_make_arg_list (int family, int type, int well_known_socket,
   arg_list[arg_count++] = strdup (arg_str);
   sprintf(arg_str, "%s%d", "-t", type);
   arg_list[arg_count++] = strdup (arg_str);
-  gethostname (machine_name, 49);
+  if (!machine_name) {
+      machine_name = malloc(50);
+      gethostname (machine_name, 49);
+  }
   sprintf(arg_str, "%s%s", "-m", machine_name);
   arg_list[arg_count++] = strdup (arg_str);
   sprintf(arg_str, "%s%d", "-l", flag);
