@@ -3,6 +3,9 @@
 
 #
 # $Log: shg.tcl,v $
+# Revision 1.7  1996/01/23 07:14:30  tamches
+# now 7 eval states, divided among 4 eval states & an active flag
+#
 # Revision 1.6  1996/01/11 23:43:49  tamches
 # there are now 6 node styles instead of 4
 #
@@ -185,58 +188,59 @@ proc shgInitialize {iDeveloperMode} {
    # -----------------------------------------------------------
 
    label .shg.nontop.tip0 -relief groove \
-	   -text "Uninstrumented" -anchor c \
+	   -text "Never Evaluated" -anchor c \
 	   -font "*-Helvetica-*-r-*-12-*" \
-	   -background "#e9fbb57aa3c9"
-              # yuck --ari
-#	   -background Gray
+	   -background grey
    pack   .shg.nontop.tip0 -side top -fill both -expand false
 
    label .shg.nontop.tip1 -relief groove \
-	   -text "Instrumented; no decision yet" -anchor c \
+	   -text "Unknown" -anchor c \
 	   -font "*-Helvetica-*-r-*-12-*" \
-	   -background "#ffffbba5bba5"
-                # yuck --ari
-#	   -background Tan
+	   -background "#e9fbb57aa3c9"
+              # yuck --ari
    pack   .shg.nontop.tip1 -side top -fill both -expand false
 
-   label .shg.nontop.tip2 -relief groove \
-	   -text "Instrumented; believed true" -anchor c \
-	   -font "*-Helvetica-*-r-*-12-*" \
-	   -background "#acbff48ff6c8"
-                # yuck --ari
-#-text "True (tentatively)"
+#   label .shg.nontop.tip2 -relief groove \
+#	   -text "Instrumented; no decision yet" -anchor c \
+#	   -font "*-Helvetica-*-r-*-12-*" \
+#	   -background "#ffffbba5bba5"
+#                # yuck --ari
+##	   -background Tan
+#   pack   .shg.nontop.tip2 -side top -fill both -expand false
 
-#	   -background LightBlue
+   label .shg.nontop.tip2 -relief groove \
+	   -text "True" -anchor c \
+	   -font "*-Helvetica-*-r-*-12-*" \
+	   -background cornflowerblue
+#	   -background "#acbff48ff6c8"
+                # yuck --ari
    pack   .shg.nontop.tip2 -side top -fill both -expand false
 
    label .shg.nontop.tip3 -relief groove \
-	   -text "Uninstrumented; believed false" -anchor c \
+	   -text "False" -anchor c \
 	   -font "*-Helvetica-*-r-*-12-*" \
-	   -background "#cc85d5c2777d" 
+	   -background pink
+#	   -background "#cc85d5c2777d" 
                 # yuck --ari
-#	   -background pink
-#False (instrumentation removed)
-
    pack   .shg.nontop.tip3 -side top -fill both -expand false
 
-   label .shg.nontop.tip4 -relief groove \
-	   -text "Uninstrumented; believed true" -anchor c \
-	   -font "*-Helvetica-*-r-*-12-*" \
-	   -background "green"
-   pack  .shg.nontop.tip4 -side top -fill both -expand false
-
-   label .shg.nontop.tip5 -relief groove \
-	   -text "Instrumented; believed false" -anchor c \
-	   -font "*-Helvetica-*-r-*-12-*" \
-	   -background "plum"
-   pack  .shg.nontop.tip5 -side top -fill both -expand false
-
-
-   label .shg.nontop.tip6 -relief sunken \
-           -text "Hold down Alt and move the mouse to scroll freely" -anchor c \
-           -font "*-Helvetica-*-r-*-12-*"
-   pack  .shg.nontop.tip6 -side top -fill both -expand false
+#   label .shg.nontop.tip4 -relief groove \
+#	   -text "Uninstrumented; believed true" -anchor c \
+#	   -font "*-Helvetica-*-r-*-12-*" \
+#	   -background "green"
+#   pack  .shg.nontop.tip4 -side top -fill both -expand false
+#
+#   label .shg.nontop.tip5 -relief groove \
+#	   -text "Instrumented; believed false" -anchor c \
+#	   -font "*-Helvetica-*-r-*-12-*" \
+#	   -background "plum"
+#   pack  .shg.nontop.tip5 -side top -fill both -expand false
+#
+#
+#   label .shg.nontop.tip6 -relief sunken \
+#           -text "Hold down Alt and move the mouse to scroll freely" -anchor c \
+#           -font "*-Helvetica-*-r-*-12-*"
+#   pack  .shg.nontop.tip6 -side top -fill both -expand false
 
    # -----------------------------------------------------------
 
