@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.159 2004/07/03 17:32:31 pcroth Exp $
+// $Id: DMmain.C,v 1.160 2004/07/03 23:06:58 eli Exp $
 
 #include <assert.h>
 extern "C" {
@@ -162,7 +162,6 @@ void dynRPCUser::CallGraphFillDone(pdstring exe_name){
 
 void dynRPCUser::CallGraphAddDynamicCallSiteCallback(pdstring exe_name, pdstring parent){
   CallGraph *cg;
-  resource *r;
   cg = CallGraph::FindCallGraph(exe_name);
   resource* r = resource::string_to_resource(parent);
   assert(r != NULL);
