@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templatesPD.C,v 1.39 2004/03/23 01:12:37 eli Exp $
+// $Id: templatesPD.C,v 1.40 2004/05/11 19:02:01 bernat Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -71,6 +71,8 @@
 #include "pdutil/h/mdl.h"
 #include "paradynd/src/pd_image.h"
 #include "paradynd/src/pd_module.h"
+#include "paradynd/src/shmMgr.h"
+#include "paradynd/src/shmSegment.h"
 
 template class dictionary_hash <unsigned, pdvector<mdl_type_desc> >;
 template class pdvector<dictionary_hash <unsigned, pdvector<mdl_type_desc> >::entry>;
@@ -138,6 +140,7 @@ template class parentDataRec<processMetFocusNode>;
 template class pdvector< parentDataRec<processMetFocusNode> >;
 
 template class pdvector<shmMgrPreallocInternal *>;
+template class pdvector<ShmSegment *>;
 
 template class dictionary_hash<pdstring, int>;
 template class pdvector<dictionary_hash<pdstring, int>::entry>;
@@ -155,3 +158,35 @@ template class pdvector<pd_process*>;
 #include "paradynd/src/pd_thread.h"
 template class pdvector<pd_thread*>;
 
+#include "varInstanceHKs.h"
+template class pdvector<intCounterHK*>;
+template class pdvector<wallTimerHK*>;
+template class pdvector<processTimerHK*>;
+#ifdef PAPI
+template class pdvector<hwTimerHK*>;
+template class pdvector<hwCounterHK*>;
+#endif
+
+#ifndef USES_NATIVE_CC
+#include "varInstance.C"
+#endif
+template class varInstance<intCounterHK>;
+template class varInstance<wallTimerHK>;
+template class varInstance<processTimerHK>;
+#ifdef PAPI
+template class varInstance<hwTimerHK>;
+template class varInstance<hwCounterHK>;
+#endif
+template class pdvector<baseVarInstance *>;
+
+#ifndef USES_NATIVE_CC
+#include "varTable.C"
+#endif
+template class varTable<intCounterHK>;
+template class varTable<wallTimerHK>;
+template class varTable<processTimerHK>;
+#ifdef PAPI
+template class varTable<hwTimerHK>;
+template class varTable<hwCounterHK>;
+#endif
+template class pdvector<baseVarTable *>;
