@@ -194,6 +194,11 @@ public:
 			int in_size);
     BPatch_variableExpr(char *in_name, process *in_process, AstNode *_ast,
 			const BPatch_type *type);
+    BPatch_variableExpr(char *in_name,
+                        process *in_process,
+                        AstNode *_ast,
+                        const BPatch_type *type,
+                        void* in_address);
 
 // Public functions for use by users of the library:
     bool readValue(void *dst);

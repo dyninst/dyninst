@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.35 2002/03/12 18:40:02 jaw Exp $
+// $Id: BPatch_snippet.C,v 1.36 2002/03/21 23:33:23 gaburici Exp $
 
 #define BPATCH_FILE
 
@@ -652,6 +652,23 @@ BPatch_variableExpr::BPatch_variableExpr(char *in_name,
 BPatch_variableExpr::BPatch_variableExpr(char *in_name,
                                          process *in_process,
                                          AstNode *_ast,
+                                         const BPatch_type *type,
+                                         void* in_address) :
+  name(in_name), proc(in_process), address(in_address), scope(NULL)
+{
+    ast = _ast;
+
+    assert(BPatch::bpatch != NULL);
+    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
+
+    ast->setType(type);
+
+    size = type->getSize();
+}
+
+BPatch_variableExpr::BPatch_variableExpr(char *in_name,
+                                         process *in_process,
+                                         AstNode *_ast,
                                          const BPatch_type *type) :
     name(in_name), proc(in_process), address(NULL), scope(NULL)
 {
@@ -859,8 +876,11 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponents()
 		new AstNode(getAddrOp, ast), offsetExpr);
 	AstNode *fieldExpr = new AstNode(AstNode::DataIndir, addrExpr);
 
+        // VG(03/02/02): What about setting the base address??? Here we go:
 	newVar = new BPatch_variableExpr(const_cast<char *> (field->getName()),
-	    proc, fieldExpr, const_cast<BPatch_type *>(field->_type));
+	    proc, fieldExpr, const_cast<BPatch_type *>(field->_type),
+                                         (char*)address + offset);
+
 	retList->push_back(newVar);
     }
 
