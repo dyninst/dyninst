@@ -15,7 +15,7 @@ using namespace MRN;
 using namespace MRN_test;
 Test * test;
 
-int test_Sum( DataType type );
+int test_Sum( Network * network, DataType type );
 
 int main(int argc, char **argv)
 {
@@ -36,25 +36,26 @@ int main(int argc, char **argv)
     scanf("%c",&dummy);
 
     test = new Test("MRNet Native Filter Test");
-    if( Network::new_Network( topology_file, backend_exe ) == -1){
+    Network * network = new Network( topology_file, backend_exe );
+    if( network->fail() ){
         fprintf(stderr, "Network Initialization failure\n");
-        Network::error_str(argv[0]);
+        network->error_str(argv[0]);
         exit(-1);
     }
 
-    test_Sum( CHAR_T );
-    test_Sum( UCHAR_T );
-    test_Sum( INT16_T );
-    test_Sum( UINT16_T );
-    test_Sum( INT32_T );
-    test_Sum( UINT32_T );
-    test_Sum( INT64_T );
-    test_Sum( UINT64_T );
-    test_Sum( FLOAT_T );
-    test_Sum( DOUBLE_T );
+    test_Sum( network, CHAR_T );
+    test_Sum( network, UCHAR_T );
+    test_Sum( network, INT16_T );
+    test_Sum( network, UINT16_T );
+    test_Sum( network, INT32_T );
+    test_Sum( network, UINT32_T );
+    test_Sum( network, INT64_T );
+    test_Sum( network, UINT64_T );
+    test_Sum( network, FLOAT_T );
+    test_Sum( network, DOUBLE_T );
   
-    Communicator * comm_BC = Communicator::get_BroadcastCommunicator( );
-    Stream * stream = Stream::new_Stream( comm_BC );
+    Communicator * comm_BC = network->get_BroadcastCommunicator( );
+    Stream * stream = network->new_Stream( comm_BC );
     if(stream->send(PROT_EXIT, "") == -1){
         test->print("stream::send(exit) failure\n");
         return -1;
@@ -65,7 +66,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    Network::delete_Network();
+    delete network;
 
     test->end_Test();
     delete test;
@@ -73,7 +74,7 @@ int main(int argc, char **argv)
     return 0;
 }
 
-int test_Sum( DataType type )
+int test_Sum( Network * network, DataType type )
 {
     void * buf;
     char recv_val[8];
@@ -140,9 +141,9 @@ int test_Sum( DataType type )
 
     test->start_SubTest(testname);
 
-    Communicator * comm_BC = Communicator::get_BroadcastCommunicator( );
-    Stream * stream = Stream::new_Stream(comm_BC, TFILTER_SUM,
-                                         SFILTER_WAITFORALL);
+    Communicator * comm_BC = network->get_BroadcastCommunicator( );
+    Stream * stream = network->new_Stream(comm_BC, TFILTER_SUM,
+                                          SFILTER_WAITFORALL);
     int num_backends = stream->get_NumEndPoints();
 
     if( stream->send(tag, "") == -1 ){

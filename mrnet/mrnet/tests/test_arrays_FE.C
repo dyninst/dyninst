@@ -16,7 +16,7 @@ using namespace MRN;
 using namespace MRN_test;
 Test * test;
 
-int test_array(Stream *stream, bool anonymous, bool block, DataType type);
+int test_array(Network *, Stream *, bool anonymous, bool block, DataType type);
 
 int main(int argc, char **argv)
 {
@@ -42,109 +42,111 @@ int main(int argc, char **argv)
 
     test = new Test( "MRNet Basic Test", stdout );
 
-    if( Network::new_Network(argv[1], argv[2]) == -1){
+    Network * network = new Network(argv[1], argv[2]);
+    if( network->fail() ){
         fprintf(stderr, "Network Initialization failure\n");
-        Network::error_str(argv[0]);
+        network->error_str(argv[0]);
+        delete network;
         exit(-1);
     }
 
-    Communicator * comm_BC = Communicator::get_BroadcastCommunicator();
+    Communicator * comm_BC = network->get_BroadcastCommunicator();
 
-    stream_BC = Stream::new_Stream(comm_BC, TFILTER_NULL, SFILTER_DONTWAIT);
+    stream_BC = network->new_Stream(comm_BC, TFILTER_NULL, SFILTER_DONTWAIT);
 
     /* For all the following tests, the 1st bool param indicates *
      * whether the recv() call should be stream-anonymous or not *
      * and the 2nd bool param indicates whether the recv should block *
      * or not */
 
-    if( test_array(stream_BC, false, true, CHAR_ARRAY_T) == -1 ){
+    if( test_array(network, stream_BC, false, true, CHAR_ARRAY_T) == -1 ){
     }
-    if( test_array(stream_BC, false, false, CHAR_ARRAY_T) == -1 ){
+    if( test_array(network, stream_BC, false, false, CHAR_ARRAY_T) == -1 ){
     }
-    if( test_array(stream_BC, true, false, CHAR_ARRAY_T) == -1 ){
+    if( test_array(network, stream_BC, true, false, CHAR_ARRAY_T) == -1 ){
     }
-    if( test_array(stream_BC, true, true, CHAR_ARRAY_T) == -1 ){
-    }
-
-    if( test_array(stream_BC, false, true, UCHAR_ARRAY_T) == -1 ){
-    }
-    if( test_array(stream_BC, false, false, UCHAR_ARRAY_T) == -1 ){
-    }
-    if( test_array(stream_BC, true, false, UCHAR_ARRAY_T) == -1 ){
-    }
-    if( test_array(stream_BC, true, true, UCHAR_ARRAY_T) == -1 ){
+    if( test_array(network, stream_BC, true, true, CHAR_ARRAY_T) == -1 ){
     }
 
-    if( test_array(stream_BC, false, true, INT16_ARRAY_T) == -1 ){
+    if( test_array(network, stream_BC, false, true, UCHAR_ARRAY_T) == -1 ){
     }
-    if( test_array(stream_BC, false, false, INT16_ARRAY_T) == -1 ){
+    if( test_array(network, stream_BC, false, false, UCHAR_ARRAY_T) == -1 ){
     }
-    if( test_array(stream_BC, true, false, INT16_ARRAY_T) == -1 ){
+    if( test_array(network, stream_BC, true, false, UCHAR_ARRAY_T) == -1 ){
     }
-    if( test_array(stream_BC, true, true, INT16_ARRAY_T) == -1 ){
-    }
-
-    if( test_array(stream_BC, false, true, UINT16_ARRAY_T) == -1 ){
-    }
-    if( test_array(stream_BC, false, false, UINT16_ARRAY_T) == -1 ){
-    }
-    if( test_array(stream_BC, true, false, UINT16_ARRAY_T) == -1 ){
-    }
-    if( test_array(stream_BC, true, true, UINT16_ARRAY_T) == -1 ){
+    if( test_array(network, stream_BC, true, true, UCHAR_ARRAY_T) == -1 ){
     }
 
-    if( test_array(stream_BC, false, true, INT32_ARRAY_T) == -1 ){
+    if( test_array(network, stream_BC, false, true, INT16_ARRAY_T) == -1 ){
     }
-    if( test_array(stream_BC, false, false, INT32_ARRAY_T) == -1 ){
+    if( test_array(network, stream_BC, false, false, INT16_ARRAY_T) == -1 ){
     }
-    if( test_array(stream_BC, true, false, INT32_ARRAY_T) == -1 ){
+    if( test_array(network, stream_BC, true, false, INT16_ARRAY_T) == -1 ){
     }
-    if( test_array(stream_BC, true, true, INT32_ARRAY_T) == -1 ){
-    }
-
-    if( test_array(stream_BC, false, true, UINT32_ARRAY_T) == -1 ){
-    }
-    if( test_array(stream_BC, false, false, UINT32_ARRAY_T) == -1 ){
-    }
-    if( test_array(stream_BC, true, false, UINT32_ARRAY_T) == -1 ){
-    }
-    if( test_array(stream_BC, true, true, UINT32_ARRAY_T) == -1 ){
+    if( test_array(network, stream_BC, true, true, INT16_ARRAY_T) == -1 ){
     }
 
-    if( test_array(stream_BC, false, true, INT64_ARRAY_T) == -1 ){
+    if( test_array(network, stream_BC, false, true, UINT16_ARRAY_T) == -1 ){
     }
-    if( test_array(stream_BC, false, false, INT64_ARRAY_T) == -1 ){
+    if( test_array(network, stream_BC, false, false, UINT16_ARRAY_T) == -1 ){
     }
-    if( test_array(stream_BC, true, false, INT64_ARRAY_T) == -1 ){
+    if( test_array(network, stream_BC, true, false, UINT16_ARRAY_T) == -1 ){
     }
-    if( test_array(stream_BC, true, true, INT64_ARRAY_T) == -1 ){
-    }
-
-    if( test_array(stream_BC, false, true, UINT64_ARRAY_T) == -1 ){
-    }
-    if( test_array(stream_BC, false, false, UINT64_ARRAY_T) == -1 ){
-    }
-    if( test_array(stream_BC, true, false, UINT64_ARRAY_T) == -1 ){
-    }
-    if( test_array(stream_BC, true, true, UINT64_ARRAY_T) == -1 ){
+    if( test_array(network, stream_BC, true, true, UINT16_ARRAY_T) == -1 ){
     }
 
-    if( test_array(stream_BC, false, true, FLOAT_ARRAY_T) == -1 ){
+    if( test_array(network, stream_BC, false, true, INT32_ARRAY_T) == -1 ){
     }
-    if( test_array(stream_BC, false, false, FLOAT_ARRAY_T) == -1 ){
+    if( test_array(network, stream_BC, false, false, INT32_ARRAY_T) == -1 ){
     }
-    if( test_array(stream_BC, true, false, FLOAT_ARRAY_T) == -1 ){
+    if( test_array(network, stream_BC, true, false, INT32_ARRAY_T) == -1 ){
     }
-    if( test_array(stream_BC, true, true, FLOAT_ARRAY_T) == -1 ){
+    if( test_array(network, stream_BC, true, true, INT32_ARRAY_T) == -1 ){
     }
 
-    if( test_array(stream_BC, false, true, DOUBLE_ARRAY_T) == -1 ){
+    if( test_array(network, stream_BC, false, true, UINT32_ARRAY_T) == -1 ){
     }
-    if( test_array(stream_BC, false, false, DOUBLE_ARRAY_T) == -1 ){
+    if( test_array(network, stream_BC, false, false, UINT32_ARRAY_T) == -1 ){
     }
-    if( test_array(stream_BC, true, false, DOUBLE_ARRAY_T) == -1 ){
+    if( test_array(network, stream_BC, true, false, UINT32_ARRAY_T) == -1 ){
     }
-    if( test_array(stream_BC, true, true, DOUBLE_ARRAY_T) == -1 ){
+    if( test_array(network, stream_BC, true, true, UINT32_ARRAY_T) == -1 ){
+    }
+
+    if( test_array(network, stream_BC, false, true, INT64_ARRAY_T) == -1 ){
+    }
+    if( test_array(network, stream_BC, false, false, INT64_ARRAY_T) == -1 ){
+    }
+    if( test_array(network, stream_BC, true, false, INT64_ARRAY_T) == -1 ){
+    }
+    if( test_array(network, stream_BC, true, true, INT64_ARRAY_T) == -1 ){
+    }
+
+    if( test_array(network, stream_BC, false, true, UINT64_ARRAY_T) == -1 ){
+    }
+    if( test_array(network, stream_BC, false, false, UINT64_ARRAY_T) == -1 ){
+    }
+    if( test_array(network, stream_BC, true, false, UINT64_ARRAY_T) == -1 ){
+    }
+    if( test_array(network, stream_BC, true, true, UINT64_ARRAY_T) == -1 ){
+    }
+
+    if( test_array(network, stream_BC, false, true, FLOAT_ARRAY_T) == -1 ){
+    }
+    if( test_array(network, stream_BC, false, false, FLOAT_ARRAY_T) == -1 ){
+    }
+    if( test_array(network, stream_BC, true, false, FLOAT_ARRAY_T) == -1 ){
+    }
+    if( test_array(network, stream_BC, true, true, FLOAT_ARRAY_T) == -1 ){
+    }
+
+    if( test_array(network, stream_BC, false, true, DOUBLE_ARRAY_T) == -1 ){
+    }
+    if( test_array(network, stream_BC, false, false, DOUBLE_ARRAY_T) == -1 ){
+    }
+    if( test_array(network, stream_BC, true, false, DOUBLE_ARRAY_T) == -1 ){
+    }
+    if( test_array(network, stream_BC, true, true, DOUBLE_ARRAY_T) == -1 ){
     }
 
     if(stream_BC->send(PROT_EXIT, "") == -1){
@@ -157,7 +159,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    Network::delete_Network();
+    delete network;
 
     test->end_Test();
     delete test;
@@ -165,7 +167,8 @@ int main(int argc, char **argv)
     return 0;
 }
 
-int test_array(Stream *stream, bool anonymous, bool block, DataType type)
+int test_array( Network * network, Stream *stream, bool anonymous, bool block,
+                DataType type )
 {
     Stream *recv_stream;
     void *send_array=NULL, *recv_array=NULL;
@@ -338,7 +341,7 @@ int test_array(Stream *stream, bool anonymous, bool block, DataType type)
             retval = stream->recv(&tag, (void**)&buf, block);
         }
         else{
-            retval = Stream::recv(&tag, (void**)&buf, &recv_stream, block);
+            retval = network->recv(&tag, (void**)&buf, &recv_stream, block);
         }
 
         if( retval == -1){

@@ -33,7 +33,7 @@ TimevalDiff( struct timeval& begin, struct timeval& end )
 #endif // READY
 
 
-int BuildNetwork( std::string cfgfile, std::string backend_exe );
+Network * BuildNetwork( std::string cfgfile, std::string backend_exe );
 int DoRoundtripLatencyExp( Stream* stream,
                             unsigned int nIters,
                             unsigned int nBackends );
@@ -64,11 +64,11 @@ main( int argc, char* argv[] )
     std::string backend_exe = argv[4];
     
     // instantiate the network
-    BuildNetwork( topology_file, backend_exe );
+    Network * network = BuildNetwork( topology_file, backend_exe );
 
     // get a broadcast communicator
-    Communicator * bcComm = Communicator::get_BroadcastCommunicator();
-    Stream* stream = Stream::new_Stream( bcComm, TFILTER_SUM );
+    Communicator * bcComm = network->get_BroadcastCommunicator();
+    Stream* stream = network->new_Stream( bcComm, TFILTER_SUM );
     assert( bcComm != NULL );
     assert( stream != NULL );
     unsigned int nBackends = bcComm->size();
@@ -91,13 +91,13 @@ main( int argc, char* argv[] )
 
     // delete the network
     std::cout << "FE: deleting network" << std::endl;
-    Network::delete_Network();
+    delete network;
 
     return ret;
 }
 
 
-int
+Network *
 BuildNetwork( std::string cfgfile, std::string backend_exe )
 {
     mb_time startTime;
@@ -105,21 +105,21 @@ BuildNetwork( std::string cfgfile, std::string backend_exe )
 
     std::cout << "FE: network instantiation: ";
     startTime.set_time();
-    if( Network::new_Network( cfgfile.c_str(),
-                              backend_exe.c_str() ) == -1 )
+    Network * network = new Network( cfgfile.c_str(), backend_exe.c_str() );
+    if( network->fail() )
     {
         std::cerr << "FE: network initialization failed" << std::endl;
-        Network::error_str("FE:");
+        network->error_str("FE:");
+        delete network;
         exit(-1);
     }
     endTime.set_time();
 
     // dump network instantiation latency
     double latency = (endTime - startTime).get_double_time();
-    std::cout << " latency(sec): " << latency
-                << std::endl;
+    std::cout << " latency(sec): " << latency << std::endl;
 
-    return 0;
+    return network;
 }
 
 

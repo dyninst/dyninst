@@ -26,16 +26,19 @@ int main(int argc, char **argv){
     char * recv_string;
     bool success=true;
 
-    if( Network::init_Backend(argv[argc-5], argv[argc-4], argv[argc-3],
-                              argv[argc-2], argv[argc-1]) == -1){
+    Network * network = new Network(argv[argc-5], argv[argc-4], argv[argc-3],
+                                    argv[argc-2], argv[argc-1]);
+
+    if( network->fail() ){
         fprintf(stderr, "backend_init() failed\n");
         return -1;
     }
 
     do{
-        if ( Stream::recv(&tag, (void **)&buf, &stream) != 1){
+        if ( network->recv(&tag, (void **)&buf, &stream) != 1){
             fprintf(stderr, "stream::recv() failure\n");
         }
+        fprintf(stderr, "DCA: recv returned stream %p\n", stream);
 
         switch(tag){
         case PROT_CHAR:
@@ -185,7 +188,7 @@ int main(int argc, char **argv){
             fprintf(stdout, "Unknown Protocol: %d\n", tag);
             exit(-1);
         }
-        if(stream->flush() == -1){
+        if( stream->flush() == -1){
             fprintf(stdout, "stream::flush() failure\n");
             return -1;
         }

@@ -28,26 +28,24 @@ main( int argc, char* argv[] )
     BeDaemon();
 
     // join the MRNet network
-    int ibret = Network::init_Backend( argv[argc-5],
-                                            argv[argc-4],
-                                            argv[argc-3],
-                                            argv[argc-2],
-                                            argv[argc-1] );
-    if( ibret == -1 )
+    Network * network = new Network( argv[argc-5],
+                                     argv[argc-4],
+                                     argv[argc-3],
+                                     argv[argc-2],
+                                     argv[argc-1] );
+    if( network->fail() )
     {
         std::cerr << argv[0] << "init_Backend() failed" << std::endl;
         return -1;
     }
 
-    //
     // participate in the broadcast/reduction roundtrip latency experiment
-    //
     bool done = false;
     while( !done )
     {
         // receive the broadcast message
         tag = 0;
-        int rret = Stream::recv( &tag, (void**)&buf, &stream );
+        int rret = network->recv( &tag, (void**)&buf, &stream );
         if( rret == -1 )
         {
             std::cerr << "BE: Stream::recv() failed" << std::endl;
@@ -122,7 +120,7 @@ main( int argc, char* argv[] )
     // cleanup
     // receive a go-away message
     tag = 0;
-    int rret = Stream::recv( &tag, (void**)&buf, &stream );
+    int rret = network->recv( &tag, (void**)&buf, &stream );
     if( (rret != -1) && (tag != MB_EXIT) )
     {
         std::cerr << "BE: received unexpected go-away tag " << tag << std::endl;

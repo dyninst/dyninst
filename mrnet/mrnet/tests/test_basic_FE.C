@@ -14,36 +14,36 @@ using namespace MRN;
 using namespace MRN_test;
 Test * test;
 
-int test_char(Stream *stream, bool anonymous=false, bool block=true);
-int test_char_array(Stream *stream, bool anonymous=false, bool block=true);
-int test_uchar(Stream *stream, bool anonymous=false, bool block=true);
-int test_uchar_array(Stream *stream, bool anonymous=false, bool block=true);
+int test_char( Network *, Stream *, bool anonymous=false, bool block=true);
+int test_char_array( Network *, Stream *, bool anonymous=false, bool block=true);
+int test_uchar( Network *, Stream *, bool anonymous=false, bool block=true);
+int test_uchar_array( Network *, Stream *, bool anonymous=false, bool block=true);
 
-int test_short(Stream *stream, bool anonymous=false, bool block=true);
-int test_short_array(Stream *stream, bool anonymous=false, bool block=true);
-int test_ushort(Stream *stream, bool anonymous=false, bool block=true);
-int test_ushort_array(Stream *stream, bool anonymous=false, bool block=true);
+int test_short( Network *, Stream *, bool anonymous=false, bool block=true);
+int test_short_array( Network *, Stream *, bool anonymous=false, bool block=true);
+int test_ushort( Network *, Stream *, bool anonymous=false, bool block=true);
+int test_ushort_array( Network *, Stream *, bool anonymous=false, bool block=true);
 
-int test_int(Stream *stream, bool anonymous=false, bool block=true);
-int test_int_array(Stream *stream, bool anonymous=false, bool block=true);
-int test_uint(Stream *stream, bool anonymous=false, bool block=true);
-int test_uint_array(Stream *stream, bool anonymous=false, bool block=true);
+int test_int( Network *, Stream *, bool anonymous=false, bool block=true);
+int test_int_array( Network *, Stream *, bool anonymous=false, bool block=true);
+int test_uint( Network *, Stream *, bool anonymous=false, bool block=true);
+int test_uint_array( Network *, Stream *, bool anonymous=false, bool block=true);
 
-int test_long(Stream *stream, bool anonymous=false, bool block=true);
-int test_long_array(Stream *stream, bool anonymous=false, bool block=true);
-int test_ulong(Stream *stream, bool anonymous=false, bool block=true);
-int test_ulong_array(Stream *stream, bool anonymous=false, bool block=true);
+int test_long( Network *, Stream *, bool anonymous=false, bool block=true);
+int test_long_array( Network *, Stream *, bool anonymous=false, bool block=true);
+int test_ulong( Network *, Stream *, bool anonymous=false, bool block=true);
+int test_ulong_array( Network *, Stream *, bool anonymous=false, bool block=true);
 
-int test_float(Stream *stream, bool anonymous=false, bool block=true);
-int test_float_array(Stream *stream, bool anonymous=false, bool block=true);
+int test_float( Network *, Stream *, bool anonymous=false, bool block=true);
+int test_float_array( Network *, Stream *, bool anonymous=false, bool block=true);
 
-int test_double(Stream *stream, bool anonymous=false, bool block=true);
-int test_double_array(Stream *stream, bool anonymous=false, bool block=true);
+int test_double( Network *, Stream *, bool anonymous=false, bool block=true);
+int test_double_array( Network *, Stream *, bool anonymous=false, bool block=true);
 
-int test_string(Stream *stream, bool anonymous=false, bool block=true);
-int test_string_array(Stream *stream, bool anonymous=false, bool block=true);
+int test_string( Network *, Stream *, bool anonymous=false, bool block=true);
+int test_string_array( Network *, Stream *, bool anonymous=false, bool block=true);
 
-int test_alltypes(Stream *stream, bool anonymous=false, bool block=true);
+int test_alltypes( Network *, Stream *, bool anonymous=false, bool block=true);
 
 
 int main(int argc, char **argv)
@@ -65,145 +65,147 @@ int main(int argc, char **argv)
             " MRNet's basic functionality. These tests use all MRNet\n"
             " data types, and the popular functions in the interface.\n\n"
             " Press <enter> to start the testing ...\n");
+    fflush( stdout );
 
     scanf("%c",&dummy);
 
     test = new Test( "MRNet Basic Test", stdout );
 
-    if( Network::new_Network(argv[1], argv[2]) == -1){
+    Network * network = new Network( argv[1], argv[2] );
+    if( network->fail() ){
         fprintf(stderr, "Network Initialization failure\n");
-        Network::error_str(argv[0]);
+        network->error_str(argv[0]);
         exit(-1);
     }
 
-    Communicator * comm_BC = Communicator::get_BroadcastCommunicator( );
+    Communicator * comm_BC = network->get_BroadcastCommunicator( );
 
-    stream_BC = Stream::new_Stream(comm_BC, TFILTER_NULL, SFILTER_DONTWAIT);
+    stream_BC = network->new_Stream(comm_BC, TFILTER_NULL, SFILTER_DONTWAIT);
 
     /* For all the following tests, the 1st bool param indicates *
      * whether the recv() call should be stream-anonymous or not *
      * and the 2nd bool param indicates whether the recv should block *
      * or not */
 
-    if( test_char(stream_BC, false, true) == -1 ){
+    if( test_char( network, stream_BC, false, true) == -1 ){
     }
-    if( test_char(stream_BC, false, false) == -1 ){
+    if( test_char( network, stream_BC, false, false) == -1 ){
     }
-    if( test_char(stream_BC, true, false) == -1 ){
+    if( test_char( network, stream_BC, true, false) == -1 ){
     }
-    if( test_char(stream_BC, true, true) == -1 ){
-    }
-            
-    if( test_uchar(stream_BC, false, true) == -1 ){
-    }
-    if( test_uchar(stream_BC, false, false) == -1 ){
-    }
-    if( test_uchar(stream_BC, true, false) == -1 ){
-    }
-    if( test_uchar(stream_BC, true, true) == -1 ){
+    if( test_char( network, stream_BC, true, true) == -1 ){
     }
             
-    if( test_short(stream_BC, false, true) == -1 ){
+    if( test_uchar( network, stream_BC, false, true) == -1 ){
     }
-    if( test_short(stream_BC, false, false) == -1 ){
+    if( test_uchar( network, stream_BC, false, false) == -1 ){
     }
-    if( test_short(stream_BC, true, false) == -1 ){
+    if( test_uchar( network, stream_BC, true, false) == -1 ){
     }
-    if( test_short(stream_BC, true, true) == -1 ){
-    }
-            
-    if( test_ushort(stream_BC, false, true) == -1 ){
-    }
-    if( test_ushort(stream_BC, false, false) == -1 ){
-    }
-    if( test_ushort(stream_BC, true, false) == -1 ){
-    }
-    if( test_ushort(stream_BC, true, true) == -1 ){
+    if( test_uchar( network, stream_BC, true, true) == -1 ){
     }
             
-    if( test_int(stream_BC, false, true) == -1 ){
+    if( test_short( network, stream_BC, false, true) == -1 ){
     }
-    if( test_int(stream_BC, false, false) == -1 ){
+    if( test_short( network, stream_BC, false, false) == -1 ){
     }
-    if( test_int(stream_BC, true, false) == -1 ){
+    if( test_short( network, stream_BC, true, false) == -1 ){
     }
-    if( test_int(stream_BC, true, true) == -1 ){
+    if( test_short( network, stream_BC, true, true) == -1 ){
     }
             
-    if( test_uint(stream_BC, false, true) == -1 ){
+    if( test_ushort( network, stream_BC, false, true) == -1 ){
     }
-    if( test_uint(stream_BC, false, false) == -1 ){
+    if( test_ushort( network, stream_BC, false, false) == -1 ){
     }
-    if( test_uint(stream_BC, true, false) == -1 ){
+    if( test_ushort( network, stream_BC, true, false) == -1 ){
     }
-    if( test_uint(stream_BC, true, true) == -1 ){
+    if( test_ushort( network, stream_BC, true, true) == -1 ){
+    }
+            
+    if( test_int( network, stream_BC, false, true) == -1 ){
+    }
+    if( test_int( network, stream_BC, false, false) == -1 ){
+    }
+    if( test_int( network, stream_BC, true, false) == -1 ){
+    }
+    if( test_int( network, stream_BC, true, true) == -1 ){
+    }
+            
+    if( test_uint( network, stream_BC, false, true) == -1 ){
+    }
+    if( test_uint( network, stream_BC, false, false) == -1 ){
+    }
+    if( test_uint( network, stream_BC, true, false) == -1 ){
+    }
+    if( test_uint( network, stream_BC, true, true) == -1 ){
     }
                
-    if( test_long(stream_BC, false, true) == -1 ){
+    if( test_long( network, stream_BC, false, true) == -1 ){
     }
-    if( test_long(stream_BC, false, false) == -1 ){
+    if( test_long( network, stream_BC, false, false) == -1 ){
     }
-    if( test_long(stream_BC, true, false) == -1 ){
+    if( test_long( network, stream_BC, true, false) == -1 ){
     }
-    if( test_long(stream_BC, true, true) == -1 ){
-    }
-            
-    if( test_ulong(stream_BC, false, true) == -1 ){
-    }
-    if( test_ulong(stream_BC, false, false) == -1 ){
-    }
-    if( test_ulong(stream_BC, true, false) == -1 ){
-    }
-    if( test_ulong(stream_BC, true, true) == -1 ){
-    }
-
-    if( test_float(stream_BC, false, true) == -1 ){
-    }
-    if( test_float(stream_BC, false, false) == -1 ){
-    }
-    if( test_float(stream_BC, true, false) == -1 ){
-    }
-    if( test_float(stream_BC, true, true) == -1 ){
+    if( test_long( network, stream_BC, true, true) == -1 ){
     }
             
-    if( test_double(stream_BC, false, true) == -1 ){
+    if( test_ulong( network, stream_BC, false, true) == -1 ){
     }
-    if( test_double(stream_BC, false, false) == -1 ){
+    if( test_ulong( network, stream_BC, false, false) == -1 ){
     }
-    if( test_double(stream_BC, true, false) == -1 ){
+    if( test_ulong( network, stream_BC, true, false) == -1 ){
     }
-    if( test_double(stream_BC, true, true) == -1 ){
+    if( test_ulong( network, stream_BC, true, true) == -1 ){
     }
 
-    if( test_string(stream_BC, false, true) == -1 ){
+    if( test_float( network, stream_BC, false, true) == -1 ){
     }
-    if( test_string(stream_BC, false, false) == -1 ){
+    if( test_float( network, stream_BC, false, false) == -1 ){
     }
-    if( test_string(stream_BC, true, false) == -1 ){
+    if( test_float( network, stream_BC, true, false) == -1 ){
     }
-    if( test_string(stream_BC, true, true) == -1 ){
+    if( test_float( network, stream_BC, true, true) == -1 ){
     }
             
-    if( test_alltypes(stream_BC, false, true) == -1 ){
+    if( test_double( network, stream_BC, false, true) == -1 ){
     }
-    if( test_alltypes(stream_BC, false, false) == -1 ){
+    if( test_double( network, stream_BC, false, false) == -1 ){
     }
-    if( test_alltypes(stream_BC, true, false) == -1 ){
+    if( test_double( network, stream_BC, true, false) == -1 ){
     }
-    if( test_alltypes(stream_BC, true, true) == -1 ){
+    if( test_double( network, stream_BC, true, true) == -1 ){
     }
 
-    if(stream_BC->send(PROT_EXIT, "") == -1){
+    if( test_string( network, stream_BC, false, true) == -1 ){
+    }
+    if( test_string( network, stream_BC, false, false) == -1 ){
+    }
+    if( test_string( network, stream_BC, true, false) == -1 ){
+    }
+    if( test_string( network, stream_BC, true, true) == -1 ){
+    }
+            
+    if( test_alltypes( network, stream_BC, false, true) == -1 ){
+    }
+    if( test_alltypes( network, stream_BC, false, false) == -1 ){
+    }
+    if( test_alltypes( network, stream_BC, true, false) == -1 ){
+    }
+    if( test_alltypes( network, stream_BC, true, true) == -1 ){
+    }
+
+    if( stream_BC->send(PROT_EXIT, "") == -1){
         test->print("stream::send(exit) failure\n");
         return -1;
     }
 
-    if(stream_BC->flush() == -1){
+    if( stream_BC->flush() == -1){
         test->print("stream::flush() failure\n");
         return -1;
     }
 
-    Network::delete_Network();
+    delete network;
 
     test->end_Test();
     delete test;
@@ -215,7 +217,7 @@ int main(int argc, char **argv)
  *  test_char(): bcast a char to all endpoints in stream.
  *  recv a char from every endpoint
  */
-int test_char(Stream *stream, bool anonymous, bool block)
+int test_char( Network * network, Stream *stream, bool anonymous, bool block)
 {
     Stream *recv_stream;
     char send_val=-17, recv_val=0;
@@ -268,7 +270,7 @@ int test_char(Stream *stream, bool anonymous, bool block)
             retval = stream->recv(&tag, (void**)&buf, block);
         }
         else{
-            retval = Stream::recv(&tag, (void**)&buf, &recv_stream, block);
+            retval = network->recv(&tag, (void**)&buf, &recv_stream, block);
         }
 
         if( retval == -1){
@@ -318,7 +320,7 @@ int test_char(Stream *stream, bool anonymous, bool block)
  *  test_uchar(): bcast an unsigned char to all endpoints in stream.
  *  recv a char from every endpoint
  */
-int test_uchar(Stream *stream, bool anonymous, bool block)
+int test_uchar( Network * network, Stream *stream, bool anonymous, bool block)
 {
     Stream *recv_stream;
     unsigned char send_val=17, recv_val=0;
@@ -371,7 +373,7 @@ int test_uchar(Stream *stream, bool anonymous, bool block)
             retval = stream->recv(&tag, (void**)&buf, block);
         }
         else{
-            retval = Stream::recv(&tag, (void**)&buf, &recv_stream, block);
+            retval = network->recv(&tag, (void**)&buf, &recv_stream, block);
         }
 
         if( retval == -1){
@@ -421,7 +423,7 @@ int test_uchar(Stream *stream, bool anonymous, bool block)
  *  test_short(): bcast a 16-bit signed int to all endpoints in stream.
  *  recv a 16-bit signed int from every endpoint
  */
-int test_short(Stream *stream, bool anonymous, bool block)
+int test_short( Network * network, Stream *stream, bool anonymous, bool block)
 {
     Stream *recv_stream;
     int16_t send_val=-17, recv_val=0;
@@ -474,7 +476,7 @@ int test_short(Stream *stream, bool anonymous, bool block)
             retval = stream->recv(&tag, (void**)&buf, block);
         }
         else{
-            retval = Stream::recv(&tag, (void**)&buf, &recv_stream, block);
+            retval = network->recv(&tag, (void**)&buf, &recv_stream, block);
         }
 
         if( retval == -1){
@@ -525,7 +527,7 @@ int test_short(Stream *stream, bool anonymous, bool block)
  *    bcast a 16-bit unsigned int to all endpoints in stream.
  *    recv  a 16-bit unsigned int from every endpoint
  */
-int test_ushort(Stream *stream, bool anonymous, bool block)
+int test_ushort( Network * network, Stream *stream, bool anonymous, bool block)
 {
     Stream *recv_stream;
     uint16_t send_val=17, recv_val=0;
@@ -578,7 +580,7 @@ int test_ushort(Stream *stream, bool anonymous, bool block)
             retval = stream->recv(&tag, (void**)&buf, block);
         }
         else{
-            retval = Stream::recv(&tag, (void**)&buf, &recv_stream, block);
+            retval = network->recv(&tag, (void**)&buf, &recv_stream, block);
         }
 
         if( retval == -1){
@@ -629,7 +631,7 @@ int test_ushort(Stream *stream, bool anonymous, bool block)
  *    bcast a 32-bit signed int to all endpoints in stream.
  *    recv  a 32-bit signed int from every endpoint
  */
-int test_int(Stream *stream, bool anonymous, bool block)
+int test_int( Network * network, Stream *stream, bool anonymous, bool block)
 {
     Stream *recv_stream;
     int32_t send_val = -17, recv_val=0;
@@ -682,7 +684,7 @@ int test_int(Stream *stream, bool anonymous, bool block)
             retval = stream->recv(&tag, (void**)&buf, block);
         }
         else{
-            retval = Stream::recv(&tag, (void**)&buf, &recv_stream, block);
+            retval = network->recv(&tag, (void**)&buf, &recv_stream, block);
         }
 
         if( retval == -1){
@@ -733,7 +735,7 @@ int test_int(Stream *stream, bool anonymous, bool block)
  *    bcast a 32-bit unsigned int to all endpoints in stream.
  *    recv  a 32-bit unsigned int from every endpoint
  */
-int test_uint(Stream *stream, bool anonymous, bool block)
+int test_uint( Network * network, Stream *stream, bool anonymous, bool block)
 {
     Stream *recv_stream;
     uint32_t send_val = 17, recv_val=0;
@@ -786,7 +788,7 @@ int test_uint(Stream *stream, bool anonymous, bool block)
             retval = stream->recv(&tag, (void**)&buf, block);
         }
         else{
-            retval = Stream::recv(&tag, (void**)&buf, &recv_stream, block);
+            retval = network->recv(&tag, (void**)&buf, &recv_stream, block);
         }
 
         if( retval == -1){
@@ -837,7 +839,7 @@ int test_uint(Stream *stream, bool anonymous, bool block)
  *    bcast a 64-bit signed int to all endpoints in stream.
  *    recv  a 64-bit signed int from every endpoint
  */
-int test_long(Stream *stream, bool anonymous, bool block)
+int test_long( Network * network, Stream *stream, bool anonymous, bool block)
 {
     Stream *recv_stream;
     int64_t send_val = -17, recv_val=0;
@@ -890,7 +892,7 @@ int test_long(Stream *stream, bool anonymous, bool block)
             retval = stream->recv(&tag, (void**)&buf, block);
         }
         else{
-            retval = Stream::recv(&tag, (void**)&buf, &recv_stream, block);
+            retval = network->recv(&tag, (void**)&buf, &recv_stream, block);
         }
 
         if( retval == -1){
@@ -941,7 +943,7 @@ int test_long(Stream *stream, bool anonymous, bool block)
  *    bcast a 64-bit unsigned int to all endpoints in stream.
  *    recv  a 64-bit unsigned int from every endpoint
  */
-int test_ulong(Stream *stream, bool anonymous, bool block)
+int test_ulong( Network * network, Stream *stream, bool anonymous, bool block)
 {
     Stream *recv_stream;
     uint64_t send_val = 17, recv_val=0;
@@ -994,7 +996,7 @@ int test_ulong(Stream *stream, bool anonymous, bool block)
             retval = stream->recv(&tag, (void**)&buf, block);
         }
         else{
-            retval = Stream::recv(&tag, (void**)&buf, &recv_stream, block);
+            retval = network->recv(&tag, (void**)&buf, &recv_stream, block);
         }
 
         if( retval == -1){
@@ -1045,7 +1047,7 @@ int test_ulong(Stream *stream, bool anonymous, bool block)
  *    bcast a 32-bit floating point number to all endpoints in stream.
  *    recv  a 32-bit floating point number from every endpoint
  */
-int test_float(Stream *stream, bool anonymous, bool block)
+int test_float( Network * network, Stream *stream, bool anonymous, bool block)
 {
     Stream *recv_stream;
     float send_val = -17.234, recv_val=0;
@@ -1098,7 +1100,7 @@ int test_float(Stream *stream, bool anonymous, bool block)
             retval = stream->recv(&tag, (void**)&buf, block);
         }
         else{
-            retval = Stream::recv(&tag, (void**)&buf, &recv_stream, block);
+            retval = network->recv(&tag, (void**)&buf, &recv_stream, block);
         }
 
         if( retval == -1){
@@ -1149,7 +1151,7 @@ int test_float(Stream *stream, bool anonymous, bool block)
  *    bcast a 64-bit floating point number to all endpoints in stream.
  *    recv  a 64-bit floating point number from every endpoint
  */
-int test_double(Stream *stream, bool anonymous, bool block)
+int test_double( Network * network, Stream *stream, bool anonymous, bool block)
 {
     Stream *recv_stream;
     double send_val = 17.3421, recv_val=0;
@@ -1202,7 +1204,7 @@ int test_double(Stream *stream, bool anonymous, bool block)
             retval = stream->recv(&tag, (void**)&buf, block);
         }
         else{
-            retval = Stream::recv(&tag, (void**)&buf, &recv_stream, block);
+            retval = network->recv(&tag, (void**)&buf, &recv_stream, block);
         }
 
         if( retval == -1){
@@ -1253,7 +1255,7 @@ int test_double(Stream *stream, bool anonymous, bool block)
  *    bcast a null-terminated string to all endpoints in stream.
  *    recv  a null-terminated string from every endpoint
  */
-int test_string(Stream *stream, bool anonymous, bool block)
+int test_string( Network * network, Stream *stream, bool anonymous, bool block)
 {
     Stream *recv_stream;
     char *send_val=strdup("Test String"), *recv_val=0;
@@ -1306,7 +1308,7 @@ int test_string(Stream *stream, bool anonymous, bool block)
             retval = stream->recv(&tag, (void**)&buf, block);
         }
         else{
-            retval = Stream::recv(&tag, (void**)&buf, &recv_stream, block);
+            retval = network->recv(&tag, (void**)&buf, &recv_stream, block);
         }
 
         if( retval == -1){
@@ -1358,7 +1360,7 @@ int test_string(Stream *stream, bool anonymous, bool block)
  *    bcast a packet containing data of all types to all endpoints in stream.
  *    recv  a packet containing data of all types from every endpoint
  */
-int test_alltypes(Stream *stream, bool anonymous, bool block)
+int test_alltypes( Network * network, Stream *stream, bool anonymous, bool block)
 {
     Stream *recv_stream;
     int num_received=0, num_to_receive=0;
@@ -1428,7 +1430,7 @@ int test_alltypes(Stream *stream, bool anonymous, bool block)
             retval = stream->recv(&tag, (void**)&buf, block);
         }
         else{
-            retval = Stream::recv(&tag, (void**)&buf, &recv_stream, block);
+            retval = network->recv(&tag, (void**)&buf, &recv_stream, block);
         }
 
         if( retval == -1){

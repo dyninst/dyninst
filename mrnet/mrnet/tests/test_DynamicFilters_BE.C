@@ -20,14 +20,15 @@ int main(int argc, char **argv)
 
     srandom( time(NULL) ); //arbitrary seed to random()
 
-    if( Network::init_Backend(argv[argc-5], argv[argc-4], argv[argc-3],
-                              argv[argc-2], argv[argc-1]) == -1){
+    Network * network = new Network(argv[argc-5], argv[argc-4], argv[argc-3],
+                                    argv[argc-2], argv[argc-1]);
+    if( network->fail() ){
         fprintf(stderr, "backend_init() failed\n");
         return -1;
     }
 
     do{
-        if ( Stream::recv(&tag, (void **)&buf, &stream) != 1){
+        if ( network->recv(&tag, (void **)&buf, &stream) != 1){
             fprintf(stderr, "stream::recv() failure\n");
         }
 
