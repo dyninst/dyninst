@@ -41,7 +41,7 @@
 
 /*
  * All tunable Constants used by hypotheses.
- * $Id: PCconstants.C,v 1.10 1999/06/04 16:07:01 cain Exp $
+ * $Id: PCconstants.C,v 1.11 1999/07/26 21:51:49 cain Exp $
  */
 
 #include "PCintern.h"
@@ -152,6 +152,14 @@ void initPCconstants ()
      1000.0); // max
   TCsufficientTimeCB(floatInitializer);
 
+  boolInitializer = false;
+  tunableConstantRegistry::createBoolTunableConstant
+    ("PCuseCallGraphSearch", 
+     "Changes functionality of performance consultant to use call graph based searches", 
+     TCEnableCGSearchesCB, 
+     developerConstant,
+     boolInitializer);
+
   //
   // debug printing
   //
@@ -217,14 +225,6 @@ void initPCconstants ()
      boolInitializer);
   TCuseIndividualThresholdsCB (boolInitializer);
   
-  boolInitializer = false;
-  tunableConstantRegistry::createBoolTunableConstant
-    ("PCuseCallGraphSearch", 
-     "Changes functionality of performance consultant to use call graph based searches", 
-     TCEnableCGSearchesCB, 
-     developerConstant,
-     boolInitializer);
-
   floatInitializer = 0.20;
   tunableConstantRegistry::createFloatTunableConstant 
     ("PC_SyncThreshold", 
