@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.165 2003/04/17 20:55:53 jaw Exp $
+ * $Id: inst-power.C,v 1.166 2003/04/20 01:00:23 schendel Exp $
  */
 
 #include "common/h/headers.h"
@@ -3458,7 +3458,8 @@ bool copyInstrumentationToChild(process *parentProc, process *childProc) {
     for (unsigned lcv=0; lcv < srcAllocatedBlocks.size(); lcv++) {
         const heapItem &srcItem = *srcAllocatedBlocks[lcv];
         
-        assert(srcItem.status == HEAPallocated);
+        if(srcItem.status != HEAPallocated)
+           continue;
         unsigned addr = srcItem.addr;
         int      len  = srcItem.length;
         char buffer[len];
