@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.29 1999/10/14 22:30:13 zandy Exp $
+// $Id: test2.C,v 1.30 1999/10/18 17:32:19 hollings Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -57,7 +57,7 @@ BPatch *bpatch;
 #if defined(i386_unknown_nt4_0)
 static char *mutateeName = "test2.mutatee.exe";
 #else
-static char *mutateeName = "test2.mutatee";
+static char *mutateeName = "test2.mutatee_gcc";
 #endif
 
 // control debug printf statements
@@ -713,6 +713,9 @@ main(unsigned int argc, char *argv[])
                 }
             }
             i = j-1;
+	} else if (!strcmp(argv[i], "-mutatee")) {
+	    mutateeName = argv[i+1];
+	    i++;
 #if defined(mips_sgi_irix6_4)
 	} else if (!strcmp(argv[i], "-n32")) {
 	    mutateeName = "test2.mutatee_n32";

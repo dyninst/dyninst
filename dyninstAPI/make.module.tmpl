@@ -3,19 +3,19 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.17 1999/09/10 14:25:33 nash Exp $
+# $Id: make.module.tmpl,v 1.18 1999/10/18 17:32:06 hollings Exp $
 #
 
 SUITE_NAME	= Dyninst
-RELEASE_NUM	= 1.2
+RELEASE_NUM	= 2.0beta
 #BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
 
 DEFINES		     += -UMT_THREAD \
 			-DBPATCH_LIBRARY -DBPATCH_SET_MUTATIONS_ACTIVE \
 			-DBPATCH_LIBRARY_F
 
-CFLAGS		     += $(TCLFRIENDLYWARNINGS) $(DEFINES)
-CXXFLAGS	     += $(TCLFRIENDLYWARNINGS) $(DEFINES)
+CFLAGS		     += $(USEFULWARNINGS) $(DEFINES)
+CXXFLAGS	     += $(USEFULWARNINGS) $(DEFINES)
 TFLAGS		     += $(TCLFRIENDLYWARNINGS) $(DEFINES)
 
 

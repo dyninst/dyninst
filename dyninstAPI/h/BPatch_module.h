@@ -75,10 +75,9 @@ public:
     // parse stab stuff when needed
     void parseTypes();
 
-private:
 
     char *parseStabStringSymbol(int line, char *stabstr, void *stabptr);
-    char *parseStabStringType(char *stabstr, char *name, int ID);
+private:
 
 };
 

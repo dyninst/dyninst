@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test3.mutatee.c,v 1.5 1999/06/30 23:01:38 wylie Exp $ */
+/* $Id: test3.mutatee.c,v 1.6 1999/10/18 17:32:20 hollings Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -20,15 +20,15 @@
 #endif
 
 #if defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0)
-#include <dlfcn.h> // For replaceFunction test
+#include <dlfcn.h> /* For replaceFunction test */
 #endif
 
-// Mutatee for multi-process tests.
-//
+/* Mutatee for multi-process tests.
+ */
 
-// 
-// Test #1 - just run in a busy wait loop and then exit.
-//
+/* 
+ * Test #1 - just run in a busy wait loop and then exit.
+ */
 void test1()
 {
      int i;
@@ -46,10 +46,10 @@ int func2_1()
      return (dummy * 2);
 }
 
-//
-// Test #2 - call a function which should be instrumented to set the 
-//     global variable test2ret to a value (by the mutator).
-//
+/*
+ * Test #2 - call a function which should be instrumented to set the 
+ *     global variable test2ret to a value (by the mutator).
+ */
 void test2()
 {
      FILE *fp;
@@ -64,17 +64,17 @@ void test2()
      fclose(fp);
 }
 
-// 
-// Test #4 - terminate with an abort
-//
+/* 
+ * Test #4 - terminate with an abort
+ */
 void test4()
 {
      abort();
 }
 
 int main(int iargc, char *argv[])
-{                                       // despite different conventions
-    unsigned argc=(unsigned)iargc;      // make argc consistently unsigned
+{                                       /* despite different conventions */
+    unsigned argc=(unsigned)iargc;      /* make argc consistently unsigned */
     unsigned int i;
     unsigned int testNum;
 

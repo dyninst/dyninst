@@ -1,4 +1,4 @@
-// $Id: test1.C,v 1.37 1999/10/14 22:30:13 zandy Exp $
+// $Id: test1.C,v 1.38 1999/10/18 17:32:18 hollings Exp $
 //
 // libdyninst validation suite test #1
 //    Author: Jeff Hollingsworth (1/7/97)
@@ -46,11 +46,11 @@ template class BPatch_Vector<BPatch_variableExpr*>;
 BPatch *bpatch;
 
 #if defined(i386_unknown_nt4_0)
-static char *mutateeName = "test1.mutatee.exe";
+char *mutateeName = "test1.mutatee.exe";
 static char *libNameA = "libtestA.dll";
 static char *libNameB = "libtestB.dll";
 #else
-static char *mutateeName = "test1.mutatee";
+char *mutateeName = "test1.mutatee_gcc";
 static char *libNameA = "libtestA.so";
 static char *libNameB = "libtestB.so";
 #endif
@@ -1577,7 +1577,7 @@ void mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest23(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) || defined(rs6000_ibm_aix4_1)
     //     First verify that we can find a local variable in call23_1
     BPatch_Vector<BPatch_point *> *point23_1 =
 	appImage->findProcedurePoint("call23_1", BPatch_subroutine);
@@ -1631,7 +1631,7 @@ void mutatorTest23(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest24(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) || defined(rs6000_ibm_aix4_1)
     //     First verify that we can find a local variable in call24_1
     BPatch_Vector<BPatch_point *> *temp =
 	appImage->findProcedurePoint("call24_1", BPatch_subroutine);
@@ -1703,15 +1703,14 @@ void mutatorTest24(BPatch_thread *appThread, BPatch_image *appImage)
     //     globalVariable24_6 = localVariable24_1[79]
     BPatch_arithExpr assignment7(BPatch_assign, *gvar[6],
 	BPatch_arithExpr(BPatch_ref, *lvar, BPatch_constExpr(79)));
-    appThread->insertSnippet(assignment7, *point24_2);
+    appThread->insertSnippet(assignment7, *point24_1);
 
     //     localVariable24_7 = localVariable24_1[globalVariable24_4]
     BPatch_arithExpr assignment8(BPatch_assign, *gvar[7],
 	BPatch_arithExpr(BPatch_ref, *lvar, *gvar[4]));
-    appThread->insertSnippet(assignment8, *point24_2);
+    appThread->insertSnippet(assignment8, *point24_1);
 
     // now test multi-dimensional arrays
-
     //	   globalVariable24_8[2][3] = 2400011
     BPatch_arithExpr assignment9(BPatch_assign, 
 	BPatch_arithExpr(BPatch_ref, BPatch_arithExpr(BPatch_ref, *gvar[8], 
@@ -1755,7 +1754,7 @@ void mutatorTest25(BPatch_thread *appThread, BPatch_image *appImage)
     }
 
     //     globalVariable25_2 = &globalVariable25_1
-#ifndef sparc_sun_solaris2_4
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1)
     // without type info need to inform
     BPatch_type *type = appImage->findType("void *");
     assert(type);
@@ -1792,10 +1791,10 @@ void mutatorTest25(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest26(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) || defined(rs6000_ibm_aix4_1)
     //     First verify that we can find a local variable in call26_1
     BPatch_Vector<BPatch_point *> *point26_1 =
-	appImage->findProcedurePoint("call26_1", BPatch_exit);
+	appImage->findProcedurePoint("call26_1", BPatch_subroutine);
 
     assert(point26_1 && (point26_1->size() == 1));
 
@@ -1816,7 +1815,11 @@ void mutatorTest26(BPatch_thread *appThread, BPatch_image *appImage)
 
     // start of code for globalVariable26_1
     BPatch_Vector<BPatch_variableExpr *> *fields = gvar[1]->getComponents();
-    assert(fields && (fields->size() == 4));
+    if (!fields || (fields->size() != 4)) {
+	fprintf(stderr, "**Failed** test #26 (struct elements)\n");
+	fprintf(stderr, "  struct lacked correct number of elements\n");
+	exit(-1);
+    }
 
     for (int i=0; i < 4; i++) {
 	 char fieldName[80];
@@ -1911,7 +1914,7 @@ void mutatorTest26(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest27(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) || defined(rs6000_ibm_aix4_1)
     BPatch_type *type27_1 = appImage->findType("type27_1");
     BPatch_type *type27_2 = appImage->findType("type27_2");
     BPatch_type *type27_3 = appImage->findType("type27_3");
@@ -1975,7 +1978,7 @@ void mutatorTest27(BPatch_thread *appThread, BPatch_image *appImage)
 
     if (!type27_5->isCompatible(*type27_6)) {
 	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
-	fprintf(stderr,"    type27_5 reported as incompatibile with typ27_6\n");
+	fprintf(stderr,"    type27_5 reported as incompatibile with type27_6\n");
 	return;
     }
 
@@ -2315,6 +2318,9 @@ main(unsigned int argc, char *argv[])
                 }
             }
             i=j-1;
+	} else if (!strcmp(argv[i], "-mutatee")) {
+	    mutateeName = argv[i+1];
+	    i++;
 #if defined(mips_sgi_irix6_4)
 	} else if (!strcmp(argv[i], "-n32")) {
 	    mutateeName = "test1.mutatee_n32";

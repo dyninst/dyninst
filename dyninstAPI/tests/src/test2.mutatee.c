@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test2.mutatee.c,v 1.16 1999/08/09 05:51:40 csserra Exp $ */
+/* $Id: test2.mutatee.c,v 1.17 1999/10/18 17:32:20 hollings Exp $ */
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -26,15 +26,11 @@
 
 /* Empty functions are sometimes compiled too tight for entry and exit
    points.  The following macro is used to flesh out these
-   functions. */
-#if defined(mips_sgi_irix6_4)
+   functions. (expanded to use on all platforms for non-gcc compilers jkh 10/99) */
 #define DUMMY_FN_BODY \
   int dummy1__ = 1; \
   int dummy2__ = 2; \
   int dummy3__ = dummy1__ + dummy2__
-#else
-#define DUMMY_FN_BODY
-#endif
 
 /* XXX Currently, there's a bug in the library that prevents a subroutine call
  * instrumentation point from being recognized if it is the first instruction
@@ -128,8 +124,8 @@ void func12_1()
 #endif
 
 int main(int iargc, char *argv[])
-{                                       // despite different conventions
-    unsigned argc=(unsigned)iargc;      // make argc consistently unsigned
+{                                       /* despite different conventions */
+    unsigned argc=(unsigned)iargc;      /* make argc consistently unsigned */
     unsigned int i, j;
 #if !defined(i386_unknown_nt4_0)
     int pfd;
@@ -167,7 +163,7 @@ int main(int iargc, char *argv[])
                         exit(-1);
                     }
                 } else {
-                    // end of test list
+                    /* end of test list */
                     break;
                 }
             }
@@ -211,6 +207,6 @@ int main(int iargc, char *argv[])
 
 
 void doFork() { 
-    // XXX To be completed...
+    /* XXX To be completed... */
     while(1);
 }

@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.24 1999/08/26 20:02:35 hollings Exp $ */
+/* $Id: test1.mutatee.c,v 1.25 1999/10/18 17:32:19 hollings Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -18,20 +18,18 @@
 #endif
 
 #if defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0)
-#include <dlfcn.h> // For replaceFunction test
+#include <dlfcn.h> /* For replaceFunction test */
 #endif
 
 /* Empty functions are sometimes compiled too tight for entry and exit
    points.  The following macro is used to flesh out these
-   functions. */
-#if defined(mips_sgi_irix6_4)
+   functions. (expanded to use on all platforms for non-gcc compilers jkh 10/99) */
+volatile int dummy3__;
+
 #define DUMMY_FN_BODY \
   int dummy1__ = 1; \
   int dummy2__ = 2; \
-  int dummy3__ = dummy1__ + dummy2__
-#else
-#define DUMMY_FN_BODY
-#endif
+  dummy3__ = dummy1__ + dummy2__
 
 /* XXX Currently, there's a bug in the library that prevents a subroutine call
  * instrumentation point from being recognized if it is the first instruction
@@ -68,7 +66,7 @@ static char *libNameA = "libtestA.so";
 #define MAGIC19_1 1900100
 #define MAGIC19_2 1900200
 
-// These are copied in libtestA.c and libtestB.c
+/* These are copied in libtestA.c and libtestB.c */
 #define MAGIC22_1   2200100
 #define MAGIC22_2   2200200
 #define MAGIC22_3   2200300
@@ -426,8 +424,8 @@ int call17_1(int p1)
      int a1, a2, a3, a4, a5, a6, a7;
 
      dprintf("call17_1 (p1=%d)\n", p1);
-     assert(p1!=0); // shouldn't try to divide by zero!
-     assert(p1==1); // actually only expect calls with p1==1
+     assert(p1!=0); /* shouldn't try to divide by zero! */
+     assert(p1==1); /* actually only expect calls with p1==1 */
 
      a1 = p1;
      a2 = a1 + p1;
@@ -449,8 +447,8 @@ int call17_2(int p1)
      int a1, a2, a3, a4, a5, a6, a7;
 
      dprintf("call17_2 (p1=%d)\n", p1);
-     assert(p1!=0); // shouldn't try to divide by zero!
-     assert(p1==1); // actually only expect calls with p1==1
+     assert(p1!=0); /* shouldn't try to divide by zero! */
+     assert(p1==1); /* actually only expect calls with p1==1 */
 
      a1 = p1;
      a2 = a1 + p1;
@@ -523,9 +521,9 @@ void call22_7(int x)
  * This is a series of nearly empty functions to attach code to 
  */
 
-//
-// Start of Test #1
-//
+/*
+ * Start of Test #1
+ */
 void func1_1()
 {
     void func1_2();
@@ -547,20 +545,20 @@ void func1_1()
 void func1_2() { dprintf("func1_2 () called\n"); }
 
 
-//
-// Start of Test #2
-//
+/*
+ * Start of Test #2
+ */
 void func2_1() { dprintf("func2_1 () called\n"); }
 
-//
-// Start of Test #3
-//
+/*
+ * Start of Test #3
+ */
 void func3_1() { dprintf("func3_1 () called\n"); }
 
-//
-// Start of Test #4 - sequence
-//	Run two expressions and verify correct ordering.
-//
+/*
+ * Start of Test #4 - sequence
+ *	Run two expressions and verify correct ordering.
+ */
 void func4_1()
 {
     void func4_2();
@@ -580,10 +578,10 @@ void func4_1()
 void func4_2() { dprintf("func4_1 () called\n"); }
 
 
-// 
-// Start of Test #5 - if w.o. else
-//	Execute two if statements, one true and one false.
-//
+/* 
+ * Start of Test #5 - if w.o. else
+ *	Execute two if statements, one true and one false.
+ */
 void func5_1()
 {
     void func5_2();
@@ -606,26 +604,26 @@ void func5_1()
 void func5_2() { dprintf("func5_1 () called\n"); }
 
 
-//
-// Start of Test #6 - arithmetic operators
-//	Verify arithmetic operators:
-//		constant integer addition
-//		constant integer subtraction
-//		constant integer divide (using large constants)
-//		constant integer divide (small consts)
-//		constant integer multiply 
-//		constant comma operator
-//		variable integer addition
-//		variable integer subtraction
-//		variable integer divide (using large constants)
-//		variable integer divide (small consts)
-//		variable integer multiply 
-//		variable comma operator
-//
-//	constant - use constant expressions
-//	variable - use variables in the expressions
-//
-//
+/*
+ * Start of Test #6 - arithmetic operators
+ *	Verify arithmetic operators:
+ *		constant integer addition
+ *		constant integer subtraction
+ *		constant integer divide (using large constants)
+ *		constant integer divide (small consts)
+ *		constant integer multiply 
+ *		constant comma operator
+ *		variable integer addition
+ *		variable integer subtraction
+ *		variable integer divide (using large constants)
+ *		variable integer divide (small consts)
+ *		variable integer multiply 
+ *		variable comma operator
+ *
+ *	constant - use constant expressions
+ *	variable - use variables in the expressions
+ *
+ */
 void func6_1()
 {
     void func6_2();
@@ -670,11 +668,11 @@ void func6_1()
 void func6_2() { dprintf("func6_2 () called\n"); }
 
 
-//
-// Start Test Case #7 - relational operators
-//	Generate all relational operators (eq, gt, le, ne, ge, and, or) 
-//	in both the true and false forms.
-//
+/*
+ * Start Test Case #7 - relational operators
+ *	Generate all relational operators (eq, gt, le, ne, ge, and, or) 
+ *	in both the true and false forms.
+ */
 
 void fail7Print(int tCase, int fCase, char *op)
 {
@@ -741,11 +739,11 @@ void func7_1()
 
 void func7_2() { dprintf("func7_2 () called\n"); }
 
-//
-// Test #8 - preserve registers - expr
-//	Verify the complex AST expressions do not clobber application
-//	paramter registers.
-//
+/*
+ * Test #8 - preserve registers - expr
+ *	Verify the complex AST expressions do not clobber application
+ *	paramter registers.
+ */
 void func8_1(int p1, int p2, int p3, int p4, int p5, int p6, int p7,
 	     int p8, int p9, int p10)
 {
@@ -769,11 +767,11 @@ void func8_1(int p1, int p2, int p3, int p4, int p5, int p6, int p7,
     }
 }
 
-//
-// Test #9 - reserve registers - funcCall
-//	Verify the a snippet that calls a function does not clobber the
-//	the parameter registers.
-//
+/*
+ * Test #9 - reserve registers - funcCall
+ *	Verify the a snippet that calls a function does not clobber the
+ *	the parameter registers.
+ */
 void func9_1(int p1, int p2, int p3, int p4, int p5, int p6, int p7,
 	     int p8, int p9, int p10)
 {
@@ -797,12 +795,12 @@ void func9_1(int p1, int p2, int p3, int p4, int p5, int p6, int p7,
     }
 }
 
-//
-// Test #10 - insert snippet order
-//	Verify that a snippet are inserted in the requested order.  We insert
-//	one snippet and then request two more to be inserted.  One before
-//	the first snippet and one after it.
-//
+/*
+ * Test #10 - insert snippet order
+ *	Verify that a snippet are inserted in the requested order.  We insert
+ *	one snippet and then request two more to be inserted.  One before
+ *	the first snippet and one after it.
+ */
 void func10_1()
 {
     if ((globalVariable10_1 == 1) && (globalVariable10_2 == 1) && 
@@ -820,9 +818,9 @@ void func10_1()
     }
 }
 
-//
-// Test #11 - snippets at entry,exit,call
-// 	
+/*
+ * Test #11 - snippets at entry,exit,call
+ */ 	
 void func11_2() {
     globalVariable11_1 = 2;
 }
@@ -835,9 +833,9 @@ void func11_1()
 
 }
 
-//
-// Test #12 - insert/remove and malloc/free
-//	
+/*
+ * Test #12 - insert/remove and malloc/free
+ */	
 void func12_2()
 {
     DUMMY_FN_BODY;
@@ -856,10 +854,10 @@ void func12_1()
     }
 }
 
-//
-// Test #13 - paramExpr,retExpr,nullExpr
-//	Test various expressions
-//
+/*
+ * Test #13 - paramExpr,retExpr,nullExpr
+ *	Test various expressions
+ */
 int func13_2()
 {
     return(RET13_1);
@@ -890,9 +888,9 @@ void func13_1(int p1, int p2, int p3, int p4, int p5)
 }
 
 
-//
-// Test #14 - replace function call
-//
+/*
+ * Test #14 - replace function call
+ */
 void func14_2()
 {
     globalVariable14_1 = 2;
@@ -924,9 +922,9 @@ void func14_1()
 }
 
 
-//
-// Test #15 - setMutationsActive
-//
+/*
+ * Test #15 - setMutationsActive
+ */
 void check15result(char *varname, int value, int expected,
 		   char *errstr, int *failed)
 {
@@ -1021,10 +1019,10 @@ void func15_1()
 }
 
 
-// 
-// Test #16 - if-else
-//	Test if-then-else clauses
-//
+/*  
+ * Test #16 - if-else
+ *	Test if-then-else clauses
+ */
 
 void func16_2() { dprintf("func16_2 () called\n"); }
 void func16_3() { dprintf("func16_3 () called\n"); }
@@ -1068,10 +1066,10 @@ void func16_1()
 }
 
 
-//
-// Test #17 - return values from func calls
-//	See test1.C for a detailed comment
-//
+/*
+ * Test #17 - return values from func calls
+ *	See test1.C for a detailed comment
+ */
 void func17_1()
 {
     int ret17_1;
@@ -1117,9 +1115,9 @@ void func17_3()
     return;
 }
 
-//
-// Test #18 - read/write a variable in the mutatee
-//
+/*
+ * Test #18 - read/write a variable in the mutatee
+ */
 void func18_1()
 {
     if (globalVariable18_1 == 17) {
@@ -1135,9 +1133,9 @@ void func18_1()
     }
 }
 
-//
-// Test #19 - oneTimeCode
-//
+/*
+ * Test #19 - oneTimeCode
+ */
 void func19_1()
 {
     stop_process();
@@ -1153,9 +1151,9 @@ void func19_1()
 }
 
 
-//
-// Test #20 - instrumentation at arbitrary points
-//
+/*
+ * Test #20 - instrumentation at arbitrary points
+ */
 
 int func20_3()
 {
@@ -1196,7 +1194,7 @@ int func20_2(int *int_val, double *double_val)
 	}
     }
 
-// The answer we expect from the above is:
+/* The answer we expect from the above is: */
 #define TEST20_ANSWER 1088896211
 
     return ret;
@@ -1243,12 +1241,12 @@ void func20_1()
 #endif
 }
 
-//
-// Test #21 - findFunction in module
-//
+/*
+ * Test #21 - findFunction in module
+ */
 void func21_1()
 {
-     // Nothing for the mutatee to do in this test (findFunction in module)
+     /* Nothing for the mutatee to do in this test (findFunction in module) */
 #if defined(sparc_sun_solaris2_4) \
  || defined(mips_sgi_irix6_4) \
  || defined(i386_unknown_solaris2_5) \
@@ -1263,12 +1261,15 @@ void func21_1()
 #endif
 }
 
-//
-// Test #22 - replace function
-//
-// These are defined in libtestA.so
+/*
+ * Test #22 - replace function
+ *
+ * These are defined in libtestA.so
+ */
 extern void call22_5A(int);  
 extern void call22_6(int);
+
+volatile int _unused;	/* move decl here to dump compiler warning - jkh */
 
 void func22_1()
 {
@@ -1277,20 +1278,21 @@ void func22_1()
     printf("\t- not implemented on this platform\n");
     passedTest[22] = TRUE;
 #else
-    // libtestA.so should already be loaded (by the mutator), but we
-    // need to use the dl interface to get pointers to the functions
-    // it defines.
+    /* libtestA.so should already be loaded (by the mutator), but we
+       need to use the dl interface to get pointers to the functions
+       it defines. */
     void (*call22_5)(int);
     void (*call22_6)(int);
 
+    void *handleA;
     char dlopenName[128];
-    int _unused = sprintf(dlopenName, "./%s", libNameA);
 #if defined(sparc_sun_solaris2_4)
     int dlopenMode = RTLD_NOW | RTLD_GLOBAL;
 #else
     int dlopenMode = RTLD_NOW;
 #endif
-    void *handleA = dlopen(dlopenName, dlopenMode);
+    _unused = sprintf(dlopenName, "./%s", libNameA);
+    handleA = dlopen(dlopenName, dlopenMode);
     if (! handleA) {
 	 printf("**Failed test #22 (replaceFunction)\n");
 	 printf("  Mutatee couldn't get handle for %s\n", libNameA);
@@ -1307,27 +1309,27 @@ void func22_1()
 	 printf("  Mutatee couldn't get handle for call22_6 in %s\n", libNameA);
     }
 
-    // Call functions that have been replaced by the mutator.  The
-    // side effects of these calls (replaced, not replaced, or
-    // otherwise) are independent of each other.
-    call22_1(10);  // replaced by call22_2
+    /* Call functions that have been replaced by the mutator.  The
+       side effects of these calls (replaced, not replaced, or
+       otherwise) are independent of each other. */
+    call22_1(10);  /* replaced by call22_2 */
     if (globalVariable22_1 != 10 + MAGIC22_2) {
 	 printf("**Failed test #22 (replace function) (a.out -> a.out)\n");
 	 return;
     }
-    call22_3(20);  // replaced by call22_4
+    call22_3(20);  /* replaced by call22_4 */
     if (globalVariable22_2 != 20 + MAGIC22_4) {
 	 printf("**Failed test #22 (replace function) (a.out -> shlib)\n");
 	 return;
     } 
-    call22_5(30);  // replaced by call22_5 (in libtestB)
+    call22_5(30);  /* replaced by call22_5 (in libtestB) */
     if (globalVariable22_3 != 30 + MAGIC22_5B) {
 	 printf("globalVariable22_3 = %d\n", globalVariable22_3);
 	 printf("30 + MAGIC22_5B = %d\n", 30 + MAGIC22_5B);
 	 printf("**Failed test #22 (replace function) (shlib -> shlib)\n");
 	 return;
     } 
-    call22_6(40);  // replaced by call22_6
+    call22_6(40);  /* replaced by call22_6 */
     if (globalVariable22_4 != 40 + MAGIC22_7) {
 	 printf("**Failed test #22 (replace function) (shlib -> a.out)\n");
 	 return;
@@ -1338,9 +1340,9 @@ void func22_1()
 }
 
 
-//
-// Test #23 - local variables
-//
+/*
+ * Test #23 - local variables
+ */
 int shadowVariable23_1 = 2300010;
 int shadowVariable23_2 = 2300020;
 int globalShadowVariable23_1 = 0xdeadbeef;
@@ -1354,8 +1356,9 @@ void verifyScalarValue23(char *name, int a, int value)
 
 void call23_2()
 {
-    // copy shadowed global variables to visible global variables to permit
-    //    checking their values
+    /* copy shadowed global variables to visible global variables to permit 
+     *    checking their values
+     */
     globalShadowVariable23_1 = shadowVariable23_1;
     globalShadowVariable23_2 = shadowVariable23_2;
 }
@@ -1366,34 +1369,36 @@ void call23_1()
     int shadowVariable23_1 = 2300011;
     int shadowVariable23_2 = 2300021;
 
-    call23_2();			// place to manipulate local variables
+    call23_2();			/* place to manipulate local variables */
 
     passedTest[23] = TRUE;
 
-    // snippet didn't update local variable
+    /* snippet didn't update local variable */
     verifyScalarValue23("localVariable23_1", localVariable23_1, 2300001);
 
-    // did snippet update shadow variable (in the global scope)
+    /* did snippet update shadow variable (in the global scope) */
     verifyScalarValue23("globalShadowVariable23_1", globalShadowVariable23_1,
 	2300010);
 
-    // did snippet correctly update shadow variable call23_2
+    /* did snippet correctly update shadow variable call23_2 */
     verifyScalarValue23("shadowVariable23_1", shadowVariable23_1, 2300012);
 
-    // did snippet correctly update shadow variable via global scope in call23_2
+    /* did snippet correctly update shadow variable via global 
+       scope in call23_2 */
     verifyScalarValue23("shadowVariable23_2", shadowVariable23_2, 2300021);
 
-    // did snippet correctly update shadow variable via global scope in call23_2
+    /* did snippet correctly update shadow variable via global 
+       scope in call23_2 */
     verifyScalarValue23("globalShadowVariable23_2", globalShadowVariable23_2, 
 	2300023);
 
-    // did snippet correctly read local variable in call23_2
+    /* did snippet correctly read local variable in call23_2 */
     verifyScalarValue23("globalVariable23_1", globalVariable23_1, 2300001);
 }
 
 void func23_1()
 {
-#if !defined(sparc_sun_solaris2_4)
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1)
     printf("Skipped test #23 (local variables)\n");
     printf("\t- not implemented on this platform\n");
     passedTest[23] = TRUE;
@@ -1404,9 +1409,9 @@ void func23_1()
 #endif
 }
 
-//
-// Test #24 - arrary variables
-//
+/*
+ * Test #24 - arrary variables
+ */
 int dummy;
 int foo;
 
@@ -1416,12 +1421,13 @@ int globalVariable24_3;
 int globalVariable24_4 = 83;
 int globalVariable24_5;
 
-// to hold values from local array
+/* to hold values from local array */
 int globalVariable24_6;
 int globalVariable24_7;
 
-// for 2-d arrays - array is not square and we avoid using diagonal elements
-//    to make sure we test address computation
+/* for 2-d arrays - array is not square and we avoid using diagonal elements
+ *    to make sure we test address computation
+ */
 int globalVariable24_8[10][15];
 int globalVariable24_9;
 
@@ -1444,22 +1450,20 @@ void call24_1()
     int i;
     int localVariable24_1[100];
 
-    call24_2();
-
-    verifyValue24("localVariable24_1", localVariable24_1, 1, 2400005);
-    verifyValue24("localVariable24_1", localVariable24_1, 53, 2400006);
-
-    // do this after checks above since the entry snipets set the values
-    //   we are testing
     for (i=0; i < 100; i++) localVariable24_1[i] = 2400000;
 
     localVariable24_1[79] = 2400007;
     localVariable24_1[83] = 2400008;
+
+    call24_2();
+
+    verifyValue24("localVariable24_1", localVariable24_1, 1, 2400005);
+    verifyValue24("localVariable24_1", localVariable24_1, 53, 2400006);
 }
 
 void func24_1()
 {
-#if !defined(sparc_sun_solaris2_4)
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1)
     printf("Skipped test #24 (arrary variables)\n");
     printf("\t- not implemented on this platform\n");
     passedTest[24] = TRUE;
@@ -1480,35 +1484,35 @@ void func24_1()
     }
     globalVariable24_8[7][9] = 2400012;
 
-    // inst code we put into this function:
-    //  At Entry:
-    //     globalVariable24_1[1] = 2400001
-    //     globalVariable24_1[globalVariable24_2] = 2400002
-    //	   globalVariable24_3 = globalVariable24_1[79]
-    //	   globalVariable24_5 = globalVariable24_1[globalVariable24_4]
-    //     localVariable24_1[1] = 2400001
-    //     localVariable24_1[globalVariable24_2] = 2400002
-    //	   globalVariable24_8[2][3] = 2400011
-    //  At Exit:
-    //	   globalVariable24_6 = localVariable24_1[79]
-    //	   globalVariable24_7 = localVariable24_1[globalVariable24_4]
+    /* inst code we put into this function:
+     *  At Call:
+     *     globalVariable24_1[1] = 2400001
+     *     globalVariable24_1[globalVariable24_2] = 2400002
+     *	   globalVariable24_3 = globalVariable24_1[79]
+     *	   globalVariable24_5 = globalVariable24_1[globalVariable24_4]
+     *     localVariable24_1[1] = 2400001
+     *     localVariable24_1[globalVariable24_2] = 2400002
+     *	   globalVariable24_8[2][3] = 2400011
+     *	   globalVariable24_6 = localVariable24_1[79]
+     *	   globalVariable24_7 = localVariable24_1[globalVariable24_4]
+     */
     call24_1();
 
     for (i=0; i < 100; i++) {
 	if (i == 1) {
-	    // 1st element should be modified by the snippet (constant index)
+	    /* 1st element should be modified by the snippet (constant index) */
 	    verifyValue24("globalVariable24_1", globalVariable24_1, 1, 2400001);
 	} else if (i == 53) {
-	    // 53rd element should be modified by the snippet (variable index)
+	    /* 53rd element should be modified by the snippet (variable index) */
 	    verifyValue24("globalVariable24_1", globalVariable24_1, 53, 2400002);
 	} else if (i == 79) {
-	    // 79th element was modified by us 
+	    /* 79th element was modified by us  */
 	    verifyValue24("globalVariable24_1", globalVariable24_1, 79, 2400003);
 	} else if (i == 83) {
-	    // 83rd element was modified by us 
+	    /* 83rd element was modified by us  */
 	    verifyValue24("globalVariable24_1", globalVariable24_1, 83, 2400004);
 	} else if (globalVariable24_1[i] != 2400000) {
-	    // rest should still be the original value
+	    /* rest should still be the original value */
 	    verifyValue24("globalVariable24_1", globalVariable24_1, i, 2400000);
 	}
     }
@@ -1516,11 +1520,11 @@ void func24_1()
     verifyScalarValue24("globalVariable24_3", globalVariable24_3, 2400003);
     verifyScalarValue24("globalVariable24_5", globalVariable24_5, 2400004);
 
-    // now for the two elements read from the local variable
+    /* now for the two elements read from the local variable */
     verifyScalarValue24("globalVariable24_6", globalVariable24_6, 2400007);
     verifyScalarValue24("globalVariable24_7", globalVariable24_7, 2400008);
 
-    // verify 2-d element use
+    /* verify 2-d element use */
     verifyScalarValue24("globalVariable24_8[2][3]", globalVariable24_8[2][3], 
 	 2400011);
     verifyScalarValue24("globalVariable24_9", globalVariable24_9, 2400012);
@@ -1529,11 +1533,11 @@ void func24_1()
 #endif
 }
 
-//
-// Test #25 - unary operators
-//
+/*
+ * Test #25 - unary operators
+ */
 int globalVariable25_1;
-int *globalVariable25_2;	// used to hold addres of globalVariable25_1
+int *globalVariable25_2;	/* used to hold addres of globalVariable25_1 */
 int globalVariable25_3;
 int globalVariable25_4;
 int globalVariable25_5;
@@ -1563,12 +1567,13 @@ void func25_1()
     globalVariable25_6 = -25000006;
     globalVariable25_7 = 25000007;
 
-    // inst code we put into this function:
-    //  At Entry:
-    //     globalVariable25_2 = &globalVariable25_1
-    //     globalVariable25_3 = *globalVariable25_2
-    //     globalVariable25_5 = -globalVariable25_4
-    //     globalVariable25_7 = -globalVariable25_6
+    /* inst code we put into this function:
+     *  At Entry:
+     *     globalVariable25_2 = &globalVariable25_1
+     *     globalVariable25_3 = *globalVariable25_2
+     *     globalVariable25_5 = -globalVariable25_4
+     *     globalVariable25_7 = -globalVariable25_6
+     */
 
     call25_1();
 
@@ -1604,9 +1609,9 @@ void func25_1()
 #endif
 }
 
-//
-// Test #26 - field operators
-//
+/*
+ * Test #26 - field operators
+ */
 
 struct struct26_1 {
     int field1;
@@ -1640,6 +1645,10 @@ void verifyScalarValue26(char *name, int a, int value)
     verifyScalarValue(name, a, value, 26, "field operators");
 }
 
+void call26_2()
+{
+}
+
 void call26_1()
 {
     int i;
@@ -1650,11 +1659,16 @@ void call26_1()
     for (i=0; i < 10; i++) localVariable26_1.field3[i] = 26002003 + i;
     localVariable26_1.field4.field1 = 26002013;
     localVariable26_1.field4.field2 = 26002014;
+
+    /* check local variables at this point (since we known locals are still
+       on the stack here. */
+    call26_2();
+
 }
 
 void func26_1()
 {
-#if !defined(sparc_sun_solaris2_4)
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1)
     printf("Skipped test #26 (struct elements)\n");
     printf("\t- not implemented on this platform\n");
     passedTest[26] = TRUE;
@@ -1678,7 +1692,7 @@ void func26_1()
     verifyScalarValue26("globalVariable26_6", globalVariable26_6, 26000013);
     verifyScalarValue26("globalVariable26_7", globalVariable26_7, 26000014);
 
-    // local variables
+    /* local variables */
     verifyScalarValue26("globalVariable26_8", globalVariable26_8, 26002001);
     verifyScalarValue26("globalVariable26_9", globalVariable26_9, 26002002);
     verifyScalarValue26("globalVariable26_10", globalVariable26_10, 26002003);
@@ -1690,9 +1704,9 @@ void func26_1()
 #endif
 }
 
-//
-// Test #27 - type compatibility
-//
+/*
+ * Test #27 - type compatibility
+ */
 
 typedef struct {
     void *field1;
@@ -1716,6 +1730,13 @@ typedef struct {
 
 int globalVariable27_1;
 
+/* need this variables or some compilers (AIX xlc) will removed unused
+   typedefs - jkh 10/13/99 */
+type27_1 dummy1;
+type27_2 dummy2;
+type27_3 dummy3;
+type27_4 dummy4;
+
 int globalVariable27_5[10];
 int globalVariable27_6[10];
 float globalVariable27_7[10];
@@ -1723,7 +1744,7 @@ float globalVariable27_8[12];
 
 void func27_1()
 {
-#if !defined(sparc_sun_solaris2_4)
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1)
     printf("Skipped test #27 (type compatibility)\n");
     printf("\t- not implemented on this platform\n");
     passedTest[27] = TRUE;
@@ -1734,9 +1755,9 @@ void func27_1()
 #endif
 }
 
-//
-// Test #28 - field operators
-//
+/*
+ * Test #28 - field operators
+ */
 
 struct struct28_1 {
     int field1;
@@ -1768,7 +1789,7 @@ void call28_1()
 {
     int i = 42;
 
-    int j;
+    int j = i;
 
     for (j=0; j < 400; j++);
 }
@@ -1818,8 +1839,8 @@ void dummy_force_got_entries()
 #endif
 
 int main(int iargc, char *argv[])
-{                                       // despite different conventions
-    unsigned argc=(unsigned)iargc;      // make argc consistently unsigned
+{                                       /* despite different conventions */
+    unsigned argc=(unsigned)iargc;      /* make argc consistently unsigned */
     unsigned int i, j;
     int allPassed;
     int useAttach = FALSE;
@@ -1857,7 +1878,7 @@ int main(int iargc, char *argv[])
                         exit(-1);
                     }
                 } else {
-                    // end of test list
+                    /* end of test list */
 		    break;
                 }
             }
@@ -1911,7 +1932,7 @@ int main(int iargc, char *argv[])
     if (runTest[27]) func27_1();
     if (runTest[28]) func28_1();
 
-    // See how we did running the tests.
+    /* See how we did running the tests. */
     allPassed = TRUE;
     for (i=1; i <= MAX_TEST; i++) {
         if (runTest[i] && !passedTest[i]) allPassed = FALSE;

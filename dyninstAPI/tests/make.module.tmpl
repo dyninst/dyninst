@@ -3,11 +3,11 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.13 1999/06/30 23:16:54 wylie Exp $
+# $Id: make.module.tmpl,v 1.14 1999/10/18 17:32:46 hollings Exp $
 #
 
 SUITE_NAME	= Dyninst
-RELEASE_NUM	= 1.2
+RELEASE_NUM	= 2.0beta
 #BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
 
 DEST		= $(TO_CORE)/$(PROGRAM_DEST)/testprogs
@@ -15,7 +15,14 @@ DEST		= $(TO_CORE)/$(PROGRAM_DEST)/testprogs
 ifdef TARGET
 SRCS	     += ../src/$(TARGET).C ../src/test_util.C
 else
-TARGETS        = test1 test2 test3 test1.mutatee test2.mutatee test3.mutatee
+TARGETS        = test1 test2 test3 \
+		 test1.mutatee_gcc \
+		 test1.mutatee_cc \
+		 test2.mutatee_gcc \
+		 test2.mutatee_cc \
+		 test3.mutatee_gcc \
+		 test3.mutatee_cc
+
 ifdef USES_LIBDYNINSTRT_SO
 TARGETS      += libtestA.so libtestB.so
 endif
@@ -37,10 +44,15 @@ endif
 SYSLIBS      += -liberty
 
 all:
-	$(MAKE) aTest TARGET=test1 TARGET2=test1.mutatee
-	$(MAKE) aTest TARGET=test2 TARGET2=test2.mutatee
-	$(MAKE) aTest TARGET=test3 TARGET2=test3.mutatee
+	$(MAKE) aTest MUTATEE_CC=$(CC) TARGET=test1 TARGET2=test1.mutatee_gcc
+	$(MAKE) aTest MUTATEE_CC=gcc TARGET=test2 TARGET2=test2.mutatee_gcc
+	$(MAKE) aTest MUTATEE_CC=gcc TARGET=test3 TARGET2=test3.mutatee_gcc
 	$(MAKE) testlibs
+ifdef NATIVE_CC
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test1.mutatee_cc
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test2.mutatee_cc
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test3.mutatee_cc
+endif
 
 pc:
 	$(MAKE) purecov TARGET=test1 TARGET2=test1.mutatee
