@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTable.C,v 1.4 1999/07/13 17:07:07 zhichen Exp $
+// $Id: baseTable.C,v 1.5 2000/01/10 17:03:27 zhichen Exp $
 // The superTable class consists of an array of superVectors
 
 #include <sys/types.h>
@@ -130,9 +130,9 @@ bool baseTable<HK, RAW>::alloc(const RAW &iRawValue,
 {
   assert(theBaseTable.size() > 0);
   assert(theBaseTable.size() == levelMap.size());
-
+  
   // we try to find a superVector where to place the new data element.
-  bool foundFreeLevel;
+  bool foundFreeLevel=false;
   for (unsigned i=0; i<theBaseTable.size(); i++) {
     assert(theBaseTable[i] != NULL);
 #if defined(MT_THREAD)
