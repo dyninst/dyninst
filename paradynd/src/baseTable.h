@@ -39,11 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTable.h,v 1.8 2002/04/09 18:06:16 mjbrim Exp $
-// The baseTable class consists of an array of superVectors. The baseTable class is
-// a template class. It has a levelMap vector that keeps track of the levels (rows)
-// that has been allocated (remember that we need not only an index but also a level
-// in order to determine the position of a counter or timer) - naim 3/28/97
+// $Id: baseTable.h,v 1.9 2002/04/17 21:18:04 schendel Exp $
+
+// The baseTable class consists of an array of superVectors. The baseTable
+// class is a template class. It has a levelMap vector that keeps track of
+// the levels (rows) that has been allocated (remember that we need not only
+// an index but also a level in order to determine the position of a counter
+// or timer) - naim 3/28/97
 
 #ifndef _BASE_TABLE_H_
 #define _BASE_TABLE_H_
@@ -64,7 +66,7 @@ class baseTable {
     unsigned numberOfRows;
     unsigned heapNumElems;
     unsigned subHeapIndex;
-    vector < superVector<HK, RAW> * > theBaseTable;
+    vector < superVector<HK, RAW> * > superVectorBuf;
     vector < unsigned > levelMap;
     process *inferiorProcess;
 
@@ -82,30 +84,16 @@ class baseTable {
 
     ~baseTable();
 
-#if defined(MT_THREAD)
     void addRows(unsigned level, unsigned nRows,
 		 bool calledFromBaseTableConst=false);
-#else
-    void addRows(unsigned level, unsigned nRows);
-#endif
 
-    bool alloc(
-#if defined(MT_THREAD)
-               unsigned thr_pos, const RAW &iRawValue,
-#else
-               const RAW &iRawValue,
-#endif
+    bool alloc(unsigned thr_pos, const RAW &iRawValue,
 	       const HK &iHouseKeepingValue,
-	       unsigned &allocatedIndex,
-	       unsigned &allocatedLevel,
+	       unsigned *allocatedIndex,
+	       unsigned *allocatedLevel,
 	       bool doNotSample=false);
 
-    void makePendingFree(
-#if defined(MT_THREAD)
-                         unsigned pd_pos, unsigned allocatedIndex,
-#else
-                         unsigned allocatedIndex,
-#endif
+    void makePendingFree(unsigned pd_pos, unsigned allocatedIndex,
 			 unsigned allocatedLevel, 
 			 const vector<Address> &trampsUsing);
 
@@ -131,11 +119,11 @@ class baseTable {
     
     void handleExec();
     void forkHasCompleted();
-#if defined(MT_THREAD)
+
+    // only used by a MT process
     void addColumns(unsigned from, unsigned to);
     void addThread(unsigned pos, unsigned pd_pos);
     void deleteThread(unsigned pos, unsigned pd_pos);
-#endif
 };
 
 #endif
