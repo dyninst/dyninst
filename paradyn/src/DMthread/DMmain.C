@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.135 2001/08/23 14:43:40 schendel Exp $
+// $Id: DMmain.C,v 1.136 2001/10/10 21:33:06 schendel Exp $
 
 #include <assert.h>
 extern "C" {
@@ -866,8 +866,13 @@ void dataManager::printDaemonStartInfo(const char *filename)
 {
     const string machine = getNetworkName();
     const string port  = string(dataManager::dm->sock_port);
-    const string command = string("paradynd -z<flavor> -l2")
-                         + string(" -m") + machine + string(" -p") + port;
+    string command = string("paradynd -z<flavor> -l2")
+                     + string(" -m") + machine + string(" -p") + port;
+#if !defined(i386_unknown_nt4_0)
+    string term_port = string(dataManager::termWin_port);
+    command += string(" -P");
+    command += term_port;
+#endif
     static char buf[1000];
 
     assert (filename && (filename[0]!='\0'));
