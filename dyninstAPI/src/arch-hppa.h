@@ -159,7 +159,12 @@ union instruction {
 #define COMCLR_EQ_F     0
 #define COMCLR_NE_C     1
 #define COMCLR_NE_F     1
-
+#define COMCLR_LT_C     2
+#define COMCLR_LT_F     0
+#define COMCLR_LT_T     1
+#define COMCLR_LE_C     3
+#define COMCLR_LE_F     0
+#define COMCLR_LE_T     1
 
 /* mask bits for various parts of the instruction format */
 

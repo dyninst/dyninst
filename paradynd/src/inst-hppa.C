@@ -19,14 +19,17 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-hppa.C,v 1.3 1995/12/19 01:04:46 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-hppa.C,v 1.4 1995/12/21 16:43:09 naim Exp $";
 #endif
 
 /*
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
- * Revision 1.3  1995/12/19 01:04:46  hollings
+ * Revision 1.4  1995/12/21 16:43:09  naim
+ * Implementing rel operators <,<=,>,>= for the hp - naim
+ *
+ * Revision 1.3  1995/12/19  01:04:46  hollings
  * Moved the implementation of registerSpace::readOnlyRegister to processor
  *   specific files (since it is).
  * Fixed a bug in Power relOps cases.
@@ -782,14 +785,34 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
                 return(0);
                 break;
 
+	    case lessOp:
+		genCmpOp(insn, COMCLR_LT_C, COMCLR_LT_F, src1, src2, dest);
+		base += sizeof(instruction);
+		return(0);
+		break;
+
+	    case greaterOp:
+		genCmpOp(insn, COMCLR_LE_C, COMCLR_LE_T, src1, src2, dest);
+		base += sizeof(instruction);
+		return(0);
+		break;
+
+	    case leOp:
+		genCmpOp(insn, COMCLR_LE_C, COMCLR_LE_F, src1, src2, dest);
+		base += sizeof(instruction);
+		return(0);
+		break;
+
+	    case geOp:
+		genCmpOp(insn, COMCLR_LT_C, COMCLR_LT_T, src1, src2, dest);
+		base += sizeof(instruction);
+		return(0);
+		break;
+
 	    case timesOp:
 		// emulated via "floating point!" multiply
 	    case divOp:
 		// emulated via millicode
-	    case lessOp:
-	    case greaterOp:
-	    case leOp:
-	    case geOp:
 		abort();
 		break;
 
