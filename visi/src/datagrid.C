@@ -1,7 +1,10 @@
 /* $Log: datagrid.C,v $
-/* Revision 1.2  1994/03/14 20:28:44  newhall
-/* changed visi subdirectory structure
-/*  */ 
+/* Revision 1.3  1994/03/17 05:19:59  newhall
+/* changed bucket width and time value's type to double
+/*
+ * Revision 1.2  1994/03/14  20:28:44  newhall
+ * changed visi subdirectory structure
+ *  */ 
 #include "visi/h/datagrid.h" 
 
 Metric::Metric(char *metricUnits,char *metricName,int id,int foldMethod){
@@ -46,7 +49,9 @@ visi_GridCellHisto::visi_GridCellHisto(int numElements){
      value[i] = ERROR;
    valid      = 1;
  }
+ userdata = NULL;
  size       = numElements;
+ lastBucketFilled = -1;
 }
 
 ///////////////////////////////////////////
@@ -105,7 +110,7 @@ int visi_GridHistoArray::Invalidate(int i){
  * DataGrid constructor
  */
 visi_DataGrid::visi_DataGrid(int noMetrics,int noResources,Metric *metricList,
-	     Resource *resourceList,int noBins,float width){
+	     Resource *resourceList,int noBins,double width){
 int i;
 
   numMetrics   = noMetrics;
@@ -133,7 +138,7 @@ int i;
 /*
  * DataGrid constructor
  */
-visi_DataGrid::visi_DataGrid(int noMetrics,int noResources,metricType *metricList,resourceType *resourceList,int noBins,float width){
+visi_DataGrid::visi_DataGrid(int noMetrics,int noResources,metricType *metricList,resourceType *resourceList,int noBins,double width){
 int i;
 
   numMetrics   = noMetrics;
