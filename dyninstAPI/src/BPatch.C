@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: BPatch.C,v 1.14 1999/06/08 21:05:51 csserra Exp $
+
 #include <stdio.h>
 #include <assert.h>
 #include <signal.h>
@@ -69,7 +71,7 @@ BPatch::BPatch() : errorHandler(NULL), typeCheckOn(true)
 {
     extern bool init();
     extern double cyclesPerSecond;
-    extern unsigned long long getCyclesPerSecond();
+    extern unsigned getCyclesPerSecond();
 
     // Save a pointer to the one-and-only bpatch object.
     if (bpatch == NULL)
@@ -80,7 +82,6 @@ BPatch::BPatch() : errorHandler(NULL), typeCheckOn(true)
 
     // XXX dyninstAPI_init returns success/failure -- should pass on somehow
     dyninstAPI_init();
-    extern unsigned long long getCyclesPerSecond();
     cyclesPerSecond = (double)getCyclesPerSecond();
 
     /*

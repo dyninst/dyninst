@@ -39,22 +39,24 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: timing-irix.C,v 1.3 1999/06/08 21:06:31 csserra Exp $
+
 #include <invent.h>
 #include <stdio.h>
 #include <assert.h>
 
 
 // "cyclesPerSecond" function prototype
-typedef int (*cpsFunc_t)(unsigned long long &);
+typedef int (*cpsFunc_t)(unsigned &);
 
 
-int cyclesPerSecond_invent(unsigned long long &cps)
+int cyclesPerSecond_invent(unsigned &cps)
 {
   if (setinvent() == -1) {
     return -1;
   }
 
-  unsigned long long raw = 0;
+  unsigned raw = 0;
   for (inventory_t *inv = getinvent(); inv != NULL; inv = getinvent()) {
     /* only need PROCESSOR/CPUBOARD inventory entries */
     if (inv->inv_class != INV_PROCESSOR) continue;
@@ -73,7 +75,7 @@ int cyclesPerSecond_invent(unsigned long long &cps)
   return 0;
 }
 
-extern int cyclesPerSecond_default(unsigned long long &);
+extern int cyclesPerSecond_default(unsigned &);
 
 cpsFunc_t cpsFuncs[] = 
 {
@@ -81,9 +83,9 @@ cpsFunc_t cpsFuncs[] =
   cyclesPerSecond_default  // "default" should be last
 };
 
-unsigned long long getCyclesPerSecond()
+unsigned getCyclesPerSecond()
 {
-  unsigned long long cps = 0;
+  unsigned cps = 0;
   int nfuncs = sizeof(cpsFuncs) / sizeof(cpsFunc_t);
   int ret = -1;
   for (int i = 0; i < nfuncs; i++) {

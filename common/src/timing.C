@@ -39,6 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// $Id: timing.C,v 1.11 1999/06/08 21:06:33 csserra Exp $
+
 #include "util/h/Timer.h"
 
 #if defined(rs6000_ibm_aix4_1)
@@ -133,10 +135,10 @@ double timing_loop(const unsigned TRIES, const unsigned LOOP_LIMIT) {
   return max_speed;
 }
 
-int cyclesPerSecond_default(unsigned long long &cps)
+int cyclesPerSecond_default(unsigned &cps)
 {
   double raw = timing_loop(1, 100000) * 1000000.0;
-  cps = (unsigned long long)raw;
+  cps = (unsigned)raw;
   return 0; // never fails
 }
 

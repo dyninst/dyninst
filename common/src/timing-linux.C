@@ -39,12 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-extern int cyclesPerSecond_default(unsigned long long &);
+// $Id: timing-linux.C,v 1.2 1999/06/08 21:06:31 csserra Exp $
+
+extern int cyclesPerSecond_default(unsigned &);
 
 // TODO: replace body with (better) platform-specific code
-unsigned long long getCyclesPerSecond()
+unsigned getCyclesPerSecond()
 {
-  unsigned long long cps = 0;
+  unsigned cps = 0;
   cyclesPerSecond_default(cps);
   return cps;
 }

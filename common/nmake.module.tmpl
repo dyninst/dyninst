@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.7 1999/03/03 17:43:09 pcroth Exp $
+# $Id: nmake.module.tmpl,v 1.8 1999/06/08 21:06:17 csserra Exp $
 #
 
 TARGET	      = libpdutil.lib
@@ -27,6 +27,7 @@ SRCS	     = $(SRCS) \
 		../src/stringPool.C \
 		../src/Timer.C \
 		../src/timing.C \
+		../src/timing-nt.C \
 		../src/vectorSet.C
 
 OBJS         = $(OBJS) \
@@ -48,6 +49,7 @@ OBJS         = $(OBJS) \
 		stringPool.obj \
 		Timer.obj \
 		timing.obj \
+		timing-nt.obj \
 		vectorSet.obj
 
 all: $(TARGET)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.74 1999/06/08 06:03:37 csserra Exp $
+// $Id: main.C,v 1.75 1999/06/08 21:05:55 csserra Exp $
 
 #include "util/h/headers.h"
 #include "util/h/makenan.h"
@@ -418,7 +418,7 @@ int main(unsigned argc, char *argv[]) {
 
     statusLine(V_paradynd);
 
-    extern unsigned long long getCyclesPerSecond();
+    extern unsigned getCyclesPerSecond();
     cyclesPerSecond = (double)getCyclesPerSecond();
 
     // Note -- it is important that this daemon receives all mdl info
