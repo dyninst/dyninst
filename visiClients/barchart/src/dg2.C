@@ -2,9 +2,12 @@
 // customized (for barchart) version of DGclient.C in tclVisi directory
 
 /* $Log: dg2.C,v $
-/* Revision 1.16  1996/02/23 17:48:06  tamches
-/* removed DEFINEPHASE
+/* Revision 1.17  1996/04/30 20:45:42  tamches
+/* moved some Dg2 stuff to barChartTcl.C (makes more sense there)
 /*
+ * Revision 1.16  1996/02/23 17:48:06  tamches
+ * removed DEFINEPHASE
+ *
  * Revision 1.15  1996/01/19 20:56:06  newhall
  * changes due to visiLib interface changes
  *
@@ -74,31 +77,6 @@
 void my_visi_callback(void*, int*, long unsigned int*) {
    if (visi_callback() == -1)
       exit(0);
-}
-
-int Dg2AddMetricsCallback(int) {
-   myTclEval(MainInterp, "DgConfigCallback");
-
-   // if necessary, the tcl program will call xAxisHasChanged and/or
-   // yAxisHasChanged, which are commands we implement in barChart.C.
-   // We take action then.
-
-   return TCL_OK;
-}
-
-int Dg2Fold(int) {
-   myTclEval(MainInterp, "DgFoldCallback");
-   return TCL_OK;
-}
-
-int Dg2InvalidMetricsOrResources(int) {
-   myTclEval(MainInterp, "DgInvalidCallback");
-   return TCL_OK;
-}
-
-int Dg2PhaseNameCallback(int) {
-   myTclEval(MainInterp, "DgPhaseCallback");
-   return TCL_OK;
 }
 
 #define   AGGREGATE        0
