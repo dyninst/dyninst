@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.120 2001/08/20 20:01:30 bernat Exp $
+// $Id: perfStream.C,v 1.121 2001/08/23 14:44:22 schendel Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -273,27 +273,6 @@ void processTraceStream(process *curr)
 
 	recordData = &(curr->buffer[curr->bufStart]);
 	curr->bufStart +=  header.length;
-
-	if(! isInitFirstRecordTime()) {
-	  setFirstRecordTime(getWallTimeMgr().units2timeStamp(header.wall));
-	}
-            // firstRecordTime is used by getCurrentTime() in util.C when arg passed
-            // is 'true', but noone seems to do that...so firstRecordTime is not a
-            // terribly important vrble (but, for now at least, it's used in metric.C)
-
-	// callback to paradyn (okay if this callback is done more than once; paradyn
-        // detects this.  This is important since right now, we're also gonna do this
-        // callback when starting a new process; needed since SHM_SAMPLING might well
-        // start sending samples to paradyn before any trace records were received
-        // here.)
-	static bool done_yet = false;
-	if (!done_yet) {
-	  timeStamp trWall(timeStamp::ts1970());
-	  trWall = getWallTimeMgr().units2timeStamp(header.wall);
-	  tp->firstSampleCallback(curr->getPid(), trWall.getD(timeUnit::sec(), 
-							      timeBase::bStd()));
-	  done_yet = true;
-	}
 
 	switch (header.type) {
 #if defined(MT_THREAD)
