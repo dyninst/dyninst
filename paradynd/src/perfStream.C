@@ -7,15 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/perfStream.C,v
-1.39 1995/05/18 10:40:37 markc Exp";
+static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/perfStream.C,v 1.39 1995/05/18 10:40:37 markc Exp";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.44  1995/10/30 23:09:01  naim
+ * Revision 1.45  1995/10/30 23:27:52  naim
+ * Fixing minor warning message - naim
+ *
+ * Revision 1.44  1995/10/30  23:09:01  naim
  * Updating error message - naim
  *
  * Revision 1.43  1995/10/19  22:36:43  mjrg
