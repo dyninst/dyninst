@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.C,v 1.5 2005/03/01 23:07:52 bernat Exp $
+// $Id: frame.C,v 1.6 2005/03/02 19:44:42 bernat Exp $
 
 #include <stdio.h>
 #include <iostream>
@@ -106,7 +106,8 @@ codeRange *Frame::getRange() {
 }
 
 void Frame::setRange(codeRange *range) {
-  assert(!range_);
+  assert(!range_ ||
+	 (range == range_));
   range_ = range;
 }
 
