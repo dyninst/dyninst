@@ -7,7 +7,12 @@
  * list.h - list ADT
  *
  * $Log: list.h,v $
- * Revision 1.5  1993/12/13 20:11:14  hollings
+ * Revision 1.6  1993/12/15 21:06:54  hollings
+ * removed destructors.  Our current list semantics don't support auto
+ * destruction of list comonents since list elements can be shared between
+ * lists.
+ *
+ * Revision 1.5  1993/12/13  20:11:14  hollings
  * added destructor for List class.
  *
  * Revision 1.4  1993/10/19  15:31:52  hollings
@@ -55,7 +60,6 @@ template <class Type> class ListItem {
 
 template <class Type> class List {
     public:
-	~List();
 	List() { head = NULL; }
 	void add(Type data, void *key);
 	void add(Type data) { add(data, (void *) data); }
@@ -104,17 +108,6 @@ template <class Type> class List {
     protected:
 	ListItem<Type>	*head;
 };
-
-template <class Type> List<Type>::~List()
-{
-    ListItem<Type> *temp;
-    ListItem<Type> *curr;
-
-    for (curr=head; curr; curr = temp) {
-        temp = curr->next;
-        delete(curr);
-    }
-}
 
 template <class Type> void List<Type>::add(Type data, void *key)
 {
