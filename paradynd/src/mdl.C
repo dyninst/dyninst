@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.136 2003/05/08 23:49:37 bernat Exp $
+// $Id: mdl.C,v 1.137 2003/05/13 19:55:13 igor Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -1130,22 +1130,20 @@ static bool do_trailing_resources(const pdvector<string>& resource_,
               return(false);
            }
            
-           function_base *pdf = proc->findOnlyOneFunction(r, m_resource);
-           if (NULL == pdf) {
+           pdvector<function_base *> *func_buf = new pdvector<function_base*>;
+           if ( !proc->findAllFuncsByName(r, m_resource, *func_buf) ) {
               const pdvector<string> &f_names = r->names();
               const pdvector<string> &m_names = m_resource->names();
               string func_name = f_names[f_names.size() -1]; 
               string mod_name = m_names[m_names.size() -1]; 
               
               string msg = string("For requested metric-focus, ") +
-                           string("unable to find only one function ") +
+                           string("unable to find  function ") +
                            func_name;
               showErrorCallback(95, msg);
               return false;
            }
-           pdvector<function_base *> *func_buf = new pdvector<function_base*>;
-           (*func_buf).push_back(pdf);
-           
+
            mdl_env::add(caStr, false, MDL_T_PROCEDURE);
            mdl_env::set(func_buf, caStr);
            break;
