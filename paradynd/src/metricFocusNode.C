@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.154 1999/03/19 18:10:51 csserra Exp $
+// $Id: metricFocusNode.C,v 1.155 1999/04/27 16:04:34 nash Exp $
 
 #include "util/h/headers.h"
 #include <limits.h>
@@ -894,10 +894,13 @@ metricDefinitionNode *metricDefinitionNode::forkProcess(process *child,
 	  assert(component_focus[hier].size() == 2);
 	     // since a component focus is by definition specific to some process
 
-	  assert(component_focus[hier][1] == parentPartName);
+	  //assert(component_focus[hier][1] == parentPartName); -- DAN
+	  if( component_focus[hier][1] != parentPartName )
+		  return NULL;
 
 	  // change the process:
 	  newComponentFocus[hier][1] = childPartName;
+
 	  break;
        }
     }
@@ -1052,6 +1055,9 @@ void metricDefinitionNode::handleFork(const process *parent, process *child,
       // point, then there _is_ at least one such aggregate.
       assert(shouldBePropagated);
       metricDefinitionNode *newComp = comp->forkProcess(child, map);
+
+	  if( !newComp )
+		  continue;
          // copies instr (well, fork() does this for us), allocs ctr/timer space,
          // initializes.  Basically, copies dataReqNode's and instReqNode's.
 

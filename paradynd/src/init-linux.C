@@ -144,45 +144,32 @@ static AstNode *THRidArg = new AstNode(AstNode::Param, (void *) 5);
 
 bool initOS() {
 
-//  initialRequests += new instMapping("main", "DYNINSTinit", FUNC_ENTRY);
-// (obsoleted by installBootstrapInst() --ari)
-
-
   initialRequests += new instMapping("main", "DYNINSTexit", FUNC_EXIT);
 
   initialRequests += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);
-  if(process::pdFlavor != string("cow"))
-  {
-  	initialRequests += new instMapping("_fork", "DYNINSTfork", 
+
+  initialRequests += new instMapping("fork", "DYNINSTfork", 
 				     FUNC_EXIT|FUNC_ARG, retVal);
-  }
+
+  initialRequests += new instMapping("__fork", "DYNINSTfork", 
+				     FUNC_EXIT|FUNC_ARG, retVal);
+
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
   initialRequests += new instMapping("MY_thr_create", "DYNINSTthreadCreate", 
                                      FUNC_EXIT|FUNC_ARG, THRidArg);
 #endif
 
-  if(process::pdFlavor != string("cow"))
-  {
-    //initialRequests += new instMapping("execve", "DYNINSTexec",
-    //			     FUNC_ENTRY|FUNC_ARG, tidArg);
-    //initialRequests += new instMapping("execve", "DYNINSTexecFailed", FUNC_EXIT);
-    initialRequests += new instMapping("_execve", "DYNINSTexec",
-				     FUNC_ENTRY|FUNC_ARG, tidArg);
-    initialRequests += new instMapping("_execve", "DYNINSTexecFailed", FUNC_EXIT);
-  }
+  initialRequests += new instMapping("__execve", "DYNINSTexec",
+									 FUNC_ENTRY|FUNC_ARG, tidArg);
+  initialRequests += new instMapping("__execve", "DYNINSTexecFailed", FUNC_EXIT);
 
 #ifndef SHM_SAMPLING
   initialRequests += new instMapping("DYNINSTsampleValues", "DYNINSTreportNewTags",
 				 FUNC_ENTRY);
 #endif
 
-  if(process::pdFlavor != string("cow"))
-  {
-  	initialRequests += new instMapping("rexec", "DYNINSTrexec",
+  initialRequests += new instMapping("rexec", "DYNINSTrexec",
 				 FUNC_ENTRY|FUNC_ARG, cmdArg);
-  }
-//   initialRequests += new instMapping("PROCEDURE_LINKAGE_TABLE","DYNINSTdynlinker",FUNC_ENTRY);
-
 
 #ifdef PARADYND_PVM
   char *doPiggy;

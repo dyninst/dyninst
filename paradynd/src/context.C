@@ -39,62 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * context.c - manage a performance context.
- *
- * $Log: context.C,v $
- * Revision 1.56  1998/04/22 02:37:25  buck
- * Moved showerror.h from paradynd directory to dyninstAPI directory.
- *
- * Revision 1.55  1997/08/28 16:01:50  naim
- * Fixing some problems and bringing the NT version up to date - naim
- *
- * Revision 1.54  1997/05/07 19:01:45  naim
- * Getting rid of old support for threads and turning it off until the new
- * version is finished. Additionally, new superTable, baseTable and superVector
- * classes for future support of multiple threads. The fastInferiorHeap class has
- * also changed - naim
- *
- * Revision 1.53  1997/03/29 02:07:35  sec
- * Debugging stuff
- *
- * Revision 1.52  1997/02/26 23:46:27  mjrg
- * First part of WindowsNT port: changes for compiling with Visual C++;
- * moved unix specific code to unix.C file
- *
- * Revision 1.51  1997/02/21 20:15:37  naim
- * Moving files from paradynd to dyninstAPI + eliminating references to
- * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
- *
- * Revision 1.50  1997/01/30 18:17:58  tamches
- * continueAllProcesses() won't try to continue an already-running process;
- * pauseAllProcesses won't try to pause an already-paused process
- *
- * Revision 1.49  1997/01/27 19:40:38  naim
- * Part of the base instrumentation for supporting multithreaded applications
- * (vectors of counter/timers) implemented for all current platforms +
- * different bug fixes - naim
- *
- * Revision 1.48  1997/01/16 22:00:29  tamches
- * added processNewTSConnection().
- *
- * Revision 1.47  1997/01/15 00:19:36  tamches
- * improvided handling of fork and exec
- *
- * Revision 1.46  1996/12/06 09:30:10  tamches
- * check for null processVec entry
- *
- * Revision 1.45  1996/11/08 23:41:02  tamches
- * change from 3-->1 shm segment per process
- *
- * Revision 1.44  1996/10/31 08:37:54  tamches
- * the shm-sampling commit
- *
- * Revision 1.43  1996/09/26 18:58:25  newhall
- * added support for instrumenting dynamic executables on sparc-solaris
- * platform
- *
- */
+/* $Id: context.C,v 1.57 1999/04/27 16:04:32 nash Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/pdThread.h"
@@ -113,6 +58,14 @@
 #include "dyninstAPI/src/showerror.h"
 #include "paradynd/src/costmetrics.h"
 #include "paradynd/src/hashTable.h"
+
+// The following were defined in process.C
+extern debug_ostream attach_cerr;
+extern debug_ostream inferiorrpc_cerr;
+extern debug_ostream shmsample_cerr;
+extern debug_ostream forkexec_cerr;
+extern debug_ostream metric_cerr;
+extern debug_ostream signal_cerr;
 
 extern vector<process*> processVec;
 
@@ -407,12 +360,19 @@ void processNewTSConnection(int tracesocket_fd) {
       // continue process...the next thing the process will do is call
       // DYNINSTinit(-1, -1, -1)
       string str = string("running DYNINSTinit() for fork child pid ") + string(pid);
+	  forkexec_cerr << str << endl;
       statusLine(str.string_of());
 
-      if (!curr->continueProc())
-	 assert(false);
+	  if( curr->status() == running )
+	  {
+//#if defined(i386_unknown_linux2_0)
+		  curr->continueAfterNextStop();
+//#endif
+	  }
+	  else if (!curr->continueProc())
+		  assert(false);
 
-#ifdef rs6000_ibm_aix4_1
+#if defined(rs6000_ibm_aix4_1)
       // HACK to compensate for AIX goofiness: as soon as we call continueProc() above
       // (and not before!), a SIGTRAP appears to materialize out of thin air, stopping
       // the child process.  Thus, DYNINSTinit() won't run unless we issue an explicit
@@ -437,6 +397,20 @@ void processNewTSConnection(int tracesocket_fd) {
 	    }
 	 }
       }
+#elif defined(i386_unknown_linux2_0)
+	  int wait_status;
+	  int wait_result = waitpid( curr->getPid(), &wait_status, WUNTRACED );
+	  if( wait_result > 0 && WIFSTOPPED(wait_status) )
+	  {
+		  int sig = WSTOPSIG(wait_status);
+		  forkexec_cerr << "Extra check: stopped on sig " << sig << endl;
+		  if (sig == SIGTRAP || sig == SIGSTOP)
+		  {
+			  curr->status_ = stopped;
+			  if (!curr->continueProc())
+				  assert(false);
+		  }
+	  }
 #endif      
    }
 

@@ -39,84 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * File containing lots of dynRPC function definitions for the paradynd..
- *
- * $Log: dynrpc.C,v $
- * Revision 1.70  1998/04/22 02:37:27  buck
- * Moved showerror.h from paradynd directory to dyninstAPI directory.
- *
- * Revision 1.69  1998/03/19 19:02:46  wylie
- * Workaround for VC++'s inability to correctly scope iterator variable
- * definitions.
- *
- * Revision 1.68  1998/03/12 22:35:57  naim
- * Changes to reduce the number of unnecessary calls to continueProc, improving
- * performance both when enabling and disabling metrics - naim
- *
- * Revision 1.67  1997/07/29 14:35:55  naim
- * Fixing problem with inferiorRPC, non-shared memory sampling and sigalrm - naim
- *
- * Revision 1.66  1997/04/29 23:17:24  mjrg
- * Changes for WindowsNT port
- * Delayed check for DYNINST symbols to allow linking libdyninst dynamically
- * Changed way paradyn and paradynd generate resource ids
- * Changes to instPoint class in inst-x86.C to reduce size of objects
- * Added initialization for process->threads to fork and attach constructors
- *
- * Revision 1.65  1997/04/14 20:04:43  zhichen
- * Added dynRPC::memoryRangeSelected, dynRPC::memoryInfoResponse
- *
- * Revision 1.64  1997/03/18 19:45:56  buck
- * first commit of dyninst library.  Also includes:
- * 	moving templates from paradynd to dyninstAPI
- * 	converting showError into a function (in showerror.C)
- * 	many ifdefs for BPATCH_LIBRARY in dyinstAPI/src.
- *
- * Revision 1.63  1997/02/26 23:46:29  mjrg
- * First part of WindowsNT port: changes for compiling with Visual C++;
- * moved unix specific code to unix.C file
- *
- * Revision 1.62  1997/02/21 20:15:42  naim
- * Moving files from paradynd to dyninstAPI + eliminating references to
- * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
- *
- * Revision 1.61  1997/01/31 15:59:24  naim
- * Fixing race condition between continueProc and inferiorRPC in progress - naim
- *
- * Revision 1.60  1997/01/30 18:18:22  tamches
- * attach no longer takes in a dir; takes in afterAttach
- *
- * Revision 1.59  1997/01/27 19:40:40  naim
- * Part of the base instrumentation for supporting multithreaded applications
- * (vectors of counter/timers) implemented for all current platforms +
- * different bug fixes - naim
- *
- * Revision 1.58  1997/01/16 22:03:46  tamches
- * extra params to attach() for dir and cmd name
- *
- * Revision 1.57  1997/01/15 00:21:08  tamches
- * added attach()
- *
- * Revision 1.56  1996/11/14 14:26:59  naim
- * Changing AstNodes back to pointers to improve performance - naim
- *
- * Revision 1.55  1996/11/05 20:31:18  tamches
- * no more call to process::continueProcessIfWaiting
- *
- * Revision 1.54  1996/10/31 08:40:07  tamches
- * changed sampleMultiple from a ptr; removed some warnings
- *
- * Revision 1.53  1996/10/03 22:12:04  mjrg
- * Removed multiple stop/continues when inserting instrumentation
- * Fixed bug on process termination
- * Removed machine dependent code from metric.C and process.C
- *
- * Revision 1.52  1996/09/26 18:58:29  newhall
- * added support for instrumenting dynamic executables on sparc-solaris
- * platform
- *
- */
+/* $Id: dynrpc.C,v 1.71 1999/04/27 16:04:32 nash Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -517,7 +440,8 @@ void dynRPC::continueProgram(int program)
       // finishes - naim
       proc->deferredContinueProc=true;
     } else {
-      proc->continueProc();
+	  if( proc->status() != running )
+		proc->continueProc();
       statusLine("application running");
     }
 }

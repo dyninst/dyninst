@@ -39,43 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Log: pvm_support.h,v $
-/* Revision 1.3  1997/12/01 02:23:40  tung
-/* eliminate warnings
-/*
- * Revision 1.2  1996/08/16 21:19:45  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.1  1995/12/15 22:27:01  mjrg
- * Merged paradynd and paradyndPVM
- * Get module name for functions from symbol table in solaris
- * Fixed code generation for multiple instrumentation statements
- * Changed syntax of MDL resource lists
- *
- * Revision 1.8  1995/11/22 00:13:58  mjrg
- * Updates for paradyndPVM on solaris
- * Fixed problem with wrong daemon getting connection to paradyn
- * Removed -f and -t arguments to paradyn
- * Added cleanUpAndExit to clean up and exit from pvm before we exit paradynd
- * Fixed bug in my previous commit
- *
- * Revision 1.7  1995/05/18  11:04:55  markc
- * added mdl source
- *
- * cleaned up pvm exports
- *
- * Revision 1.6  1995/02/26  22:41:19  markc
- * Updated to compile under new system.
- *
- * Revision 1.5  1994/11/01  16:28:54  markc
- * Stronger prototypes
- *
- * Revision 1.4  1994/05/11  15:53:30  markc
- * Added sys/time.h.
- *
- * Revision 1.3  1994/05/03  05:25:32  markc
- * Added Log.
- * */
+/* $Id: pvm_support.h,v 1.4 1999/04/27 16:04:35 nash Exp $ */
 
 #ifndef _pvm_support_h
 #define _pvm_support_h
