@@ -41,6 +41,9 @@
 
 /* 
  * $Log: ast.C,v $
+ * Revision 1.48  1997/08/31 01:20:22  ssuen
+ * Commented out one debugging message
+ *
  * Revision 1.47  1997/08/19 19:50:29  naim
  * Adding support to dynamically link libdyninstRT by using dlopen on sparc-
  * solaris - naim
@@ -338,8 +341,8 @@ void registerSpace::resetSpace() {
     int i;
     for (i=0; i < numRegisters; i++) {
         if (registers[i].inUse && (registers[i].number != REG_MT)) {
-          sprintf(errorLine,"WARNING: register %d is still in use\n",registers[i].number);
-          logLine(errorLine);
+          //sprintf(errorLine,"WARNING: register %d is still in use\n",registers[i].number);
+          //logLine(errorLine);
         }
 	registers[i].inUse = false;
 	registers[i].mustRestore = false;
