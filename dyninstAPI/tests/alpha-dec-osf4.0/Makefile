@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.4 1999/10/18 17:32:46 hollings Exp $
+# $Id: Makefile,v 1.5 1999/11/11 01:50:18 paradyn Exp $
 #
 # Makefile for dyninstAPI test programs on Compaq Alpha
 #
@@ -18,6 +18,7 @@ CXXFLAGS += -mcpu=ev56
 CFLAGS += -g
 
 SYSLIBS   += -g -lmld -liberty
+NATIVE_CC = cc
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
@@ -26,12 +27,19 @@ include ../make.module.tmpl
 
 MUTATEE_SRC = ../src/$(TARGET2:_$(MUTATEE_CC)=.c)
 
+ifeq ($(MUTATEE_CC),$(NATIVE_CC))
+MUTATEE_CFLAGS = $(ARCH_DEF) -g
+else
+MUTATEE_CFLAGS = $(MODCFLAGS) -g
+endif
+
 ifdef USES_LIBDYNINSTRT_SO
 $(TARGET2): $(MUTATEE_SRC)
-	$(MUTATEE_CC) $(MODCFLAGS) -g $(MUTATEE_SRC) -o $(TARGET2) 
+	$(MUTATEE_CC) $(MUTATEE_CFLAGS) $(MUTATEE_SRC) -o $(TARGET2) 
 else
 $(TARGET2): $(MUTATEE_SRC)
-	$(MUTATEE_CC) $(DYNINSTAPI_RT_LIB) -g $(MUTATEE_SRC) -o $(TARGET2)
+	$(MUTATEE_CC) $(MUTATEE_CFLAGS) $(MUTATEE_SRC) -o $(TARGET2) \
+		$(DYNINSTAPI_RT_LIB)
 endif
 
 libtestA.o:
