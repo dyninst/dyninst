@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test4a.mutatee.c,v 1.2 2000/04/20 20:17:28 jasonxie Exp $ */
+/* $Id: test4a.mutatee.c,v 1.3 2000/04/24 00:37:41 wylie Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -9,20 +9,14 @@
 #include <signal.h>
 #include <string.h>
 #include <stdlib.h>
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4) || defined(mips_sgi_irix6_4) \
- || defined (i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
-#include <unistd.h>
-#endif
 
-#ifdef i386_unknown_nt4_0
+#if defined(i386_unknown_nt4_0) && !defined(__GNUC__)
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#ifdef i386_unknown_nt4_0
 #include <process.h>
 #define getpid _getpid
-#endif
-
-
+#else
+#include <unistd.h>
 #endif
 
 /* control debug printf statements */
@@ -42,7 +36,7 @@ unsigned int globalVariable2_1 = 0xdeadbeef;
 void func1_1()
 {
     globalVariable1_1 = 1000001;
-    exit(getpid());
+    exit((int) getpid());
 }
 
 /* should be called by parent */
@@ -101,6 +95,7 @@ void func3_1(int argc, char *argv[])
     }
 
     globalVariable3_1 = 3000001;
+    dprintf("Starting \"%s\"\n", newArgv[0]);
     execvp(newArgv[0], newArgv);
     perror("execvp");
 }
@@ -139,6 +134,7 @@ void func4_1(int argc, char *argv[])
 	}
 
 	globalVariable3_1 = 3000001;
+        dprintf("Starting \"%s\"\n", newArgv[0]);
 	execvp(newArgv[0], newArgv);
 	perror("execvp");
     } else {
@@ -185,5 +181,5 @@ int main(int argc, char *argv[])
     if (runTest[4]) func4_1(argc, argv);
 
     dprintf("at exit of test4a\n");
-    exit(0);
+    return 0;
 }
