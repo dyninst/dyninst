@@ -10,7 +10,11 @@
 
 /*
  * $Log: metMain.C,v $
- * Revision 1.21  1995/09/18 22:35:22  mjrg
+ * Revision 1.22  1995/10/13 19:37:35  naim
+ * Minor change for handling PAUSE and RUN buttons when a process is created
+ * from a MDL file - naim
+ *
+ * Revision 1.21  1995/09/18  22:35:22  mjrg
  * Added directory command.
  * Removed host and user from daemon declaration.
  * Changed host and directory fields to string.
@@ -95,6 +99,7 @@
 
 extern int yyparse();
 extern int yyrestart(FILE *);
+extern appState PDapplicState;
 
 static int open_N_parse(string& file);
 
@@ -250,9 +255,13 @@ static void start_process(processMet *the_ps)
   vector<string> argv;
   assert(RPCgetArg(argv, the_ps->command().string_of()));
 
-  dataMgr->addExecutable(the_ps->host().string_of(), the_ps->user().string_of(),
-			the_ps->daemon().string_of(), the_ps->execDir().string_of(),
-			&argv);
+  if(dataMgr->addExecutable(the_ps->host().string_of(), 
+			    the_ps->user().string_of(),
+			    the_ps->daemon().string_of(), 
+			    the_ps->execDir().string_of(),&argv) == true) {
+    PDapplicState=appRunning;
+    dataMgr->pauseApplication();
+  }
 }
 
 bool metDoProcess()

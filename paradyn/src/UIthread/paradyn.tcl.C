@@ -5,10 +5,14 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.47  1995/10/06 19:53:32  naim
-/* Fixing bug: pressing RUN while defining a process produces a core dump. Now,
-/* the RUN and PAUSE keys are disabled while a process is being defined - naim
+/* Revision 1.48  1995/10/13 19:37:26  naim
+/* Minor change for handling PAUSE and RUN buttons when a process is created
+/* from a MDL file - naim
 /*
+ * Revision 1.47  1995/10/06  19:53:32  naim
+ * Fixing bug: pressing RUN while defining a process produces a core dump. Now,
+ * the RUN and PAUSE keys are disabled while a process is being defined - naim
+ *
  * Revision 1.46  1995/10/05  04:33:07  karavan
  * changes to paradyn search and paradyn shg commands to support new igen
  * interface.
@@ -521,8 +525,15 @@ int ParadynProcessCmd(ClientData clientData,
     // need a previous state of appRunning if we want to pause the application
     if (firstProcess) {
       firstProcess=false;
-      PDapplicState=appRunning;
-      dataMgr->pauseApplication();
+      if (PDapplicState==appRunning) { 
+	// A previous process has been started from a mdl file
+	PDapplicState=appPaused;
+	dataMgr->continueApplication();
+      }
+      else {
+        PDapplicState=appRunning;
+        dataMgr->pauseApplication();
+      }
     }
     else {
       if (PDapplicState==appRunning) {
