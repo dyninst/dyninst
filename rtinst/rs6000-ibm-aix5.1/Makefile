@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2003/03/31 17:45:58 buck Exp $
+# $Id: Makefile,v 1.2 2003/04/11 16:18:33 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -28,15 +28,6 @@ SRCS	= ../src/RTfirst.c \
 	   ../src/RTetc-posix.c \
 	   ../src/RTetc-aix.c \
 	   ../src/RTrexec.c
-
-# Build and link the (optional) library text heap
-ifdef USES_LIB_TEXT_HEAP
-USES_LIB_TEXT_HEAP_INTERNAL = true # Second level define
-# Change this path to your library install location
-LIB_TEXT_HEAP_OBJ = libDyninstText.a
-CFLAGS	+= -DUSES_LIB_TEXT_HEAP
-LDFLAGS += -L$(DEST) -lDyninstText
-endif
 
 LD              = $(LINKER)
 LDFLAGS		+= -bnoentry -bnoobjreorder -bexpall -lc 
@@ -71,17 +62,6 @@ OBJS	=  RTfirst.o \
 #
 RTrexec.o:
 	$(CC) -c $(ARCH_DEF) -g ../src/RTrexec.c 
-
-libDyninstText.a:
-	$(CC) -c -o libSpace.o ../src/libSpace.s
-	ld -o space.o -bexpall -bnoentry -bM:SRE libSpace.o
-	rm -f libSpace.o
-	rm -f libDyninstText.a
-	ar crv libDyninstText.a space.o
-	-$(CP) libDyninstText.a $(DEST)
-	-chmod 755 $(DEST)/libDyninstText.a
-	rm -f space.o
-
 
 install: $(TARGET3_SO)
 	-$(CP) $(TARGET3_SO) $(DEST)

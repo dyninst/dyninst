@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2003/03/31 17:45:56 buck Exp $
+# $Id: Makefile,v 1.2 2003/04/11 16:17:38 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -28,6 +28,16 @@ SRCS         += ../src/RTposix.c \
 
 LD		= $(LINKER)
 
+# Build and link the library text heap
+ifdef USES_LIB_TEXT_HEAP
+USES_LIB_TEXT_HEAP_INTERNAL = true # Second level define
+# Change this path to your library install location
+LIB_TEXT_HEAP_OBJ = libDyninstText.a
+CFLAGS	+= -DUSES_LIB_TEXT_HEAP
+LDFLAGS += -L$(DEST) -lDyninstText
+endif
+
+
 LDFLAGS		+= -bnoobjreorder -bexpall -bnoentry  -lc
 # Initialization method
 LDFLAGS		+= -binitfini:libdyninstAPI_RT_init
@@ -51,6 +61,16 @@ include ../make.module.tmpl
 # common targets like "clean", "install", etc.
 
 include ../../make.library.tmpl
+
+libDyninstText.a:
+	$(CC) -c -o libSpace.o ../src/libSpace.s
+	ld -o space.o -bexpall -bnoentry -bM:SRE libSpace.o
+	rm -f libSpace.o
+	rm -f libDyninstText.a
+	ar crv libDyninstText.a space.o
+	-$(CP) libDyninstText.a $(DEST)
+	-chmod 755 $(DEST)/libDyninstText.a
+	rm -f space.o
 
 install: $(TARGET3_SO)
 	-$(CP) $(TARGET3_SO) $(DEST)
