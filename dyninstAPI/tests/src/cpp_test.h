@@ -1,9 +1,8 @@
 // C++ mutatee tests header file
-// $Id: cpp_test.h,v 1.1 2000/04/20 20:16:52 jasonxie Exp $
+// $Id: cpp_test.h,v 1.2 2000/05/04 18:19:39 jasonxie Exp $
 
 #ifndef CPP_TEST
 #define CPP_TEST
-#include <iostream.h>
 
 const int CPP_DEFLT_ARG  = 1024;
 
@@ -14,6 +13,7 @@ class cpp_test
 
      cpp_test() {};
      virtual void func_cpp() = 0;
+     virtual int func2_cpp(){ return 0;};
 
 };
 
@@ -164,7 +164,40 @@ class derivation_test : public cpp_test_util
       void func_cpp();
 };
 
+class stdlib_test1 : public cpp_test_util
+{
+   public :
 
+      stdlib_test1():cpp_test_util(42){};
+      void func_cpp();
+
+};
+
+class stdlib_test2 : public cpp_test_util
+{
+   public :
+
+      stdlib_test2():cpp_test_util(43){};
+      void func_cpp();
+
+   private :
+
+      void call_cpp();
+};
+
+class func_test : public cpp_test_util
+{
+   public :
+      func_test():cpp_test_util(44) {};
+      void func_cpp();
+      int func2_cpp() const;
+
+   private :
+      inline void call_cpp(int test) {
+        int tmp = test;
+        cpp_test_util::call_cpp(tmp);
+      }
+};
 
 #endif
 

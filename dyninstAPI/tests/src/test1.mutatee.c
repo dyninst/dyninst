@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.43 2000/05/02 19:54:39 paradyn Exp $ */
+/* $Id: test1.mutatee.c,v 1.44 2000/05/04 18:19:39 jasonxie Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -19,6 +19,7 @@
 
 #ifdef __cplusplus
 #include "cpp_test.h"
+#include <iostream.h>
 #endif
 
 #if defined(sparc_sun_solaris2_4) || \
@@ -55,7 +56,7 @@ int debugPrint = 0;
 int runAllTests = TRUE;
 
 #ifdef __cplusplus
-#define MAX_TEST 41
+#define MAX_TEST 44
 #else 
 #define MAX_TEST 32
 #endif 
@@ -2159,8 +2160,14 @@ void cpp_test_util::call_cpp(int test)
 		 break;
     }
 
+    case 44 : {
+		 cout << "Passed test #44 (C++ Member function)" << endl;
+		 break;
+    }
+
     default : {
-                 cerr << "Invalid test "<< test <<" requested" << endl;
+                 cerr << "\tInvalid test "<< test <<" requested" << endl;
+                 cerr << "\tThis invalid test# is most likely caused by the C++ class member function argument passing" << endl;
 		 break;
     }
 
@@ -2388,6 +2395,55 @@ void derivation_test::func_cpp()
   DUMMY_FN_BODY;
 }
 
+void stdlib_test1::func_cpp()
+{
+#if defined(sparc_sun_solaris2_4) \
+ || defined(mips_sgi_irix6_4) \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(alpha_dec_osf4_0)
+     cout << "Passed test #42 (find standard C++ library)" << endl;
+     passedTest[42] = TRUE;
+#else
+    cout << "Skipped test #42 (find standard C++ library)" << endl;
+    cout << "\t- not implemented on this platform" << endl;
+    passedTest[42] = TRUE;
+#endif
+
+}
+
+void stdlib_test2::call_cpp()
+{
+   DUMMY_FN_BODY;
+}
+
+void stdlib_test2::func_cpp()
+{
+#if defined(sparc_sun_solaris2_4) \
+ || defined(alpha_dec_osf4_0)
+    cout<<"Passed test #43 (replace function in standard C++ library)"<<endl;
+    passedTest[43] = TRUE;
+#else
+    cout<<"Skipped test #43 (replace function in standard C++ library)"<<endl;
+    cout<<"\t- not implemented on this platform"<<endl;
+    passedTest[43] = TRUE;
+#endif
+
+}
+
+
+int func_test::func2_cpp() const
+{
+    return CPP_TEST_UTIL_VAR;
+}
+
+
+void func_test::func_cpp()
+{
+   int int44 = func2_cpp();
+   call_cpp(int44);
+}
+
 #endif
 
 
@@ -2566,6 +2622,18 @@ int main(int iargc, char *argv[])
     if (runTest[41]) {
          derivation_test test41;
          test41.func_cpp();
+    }
+    if (runTest[42]) {
+         stdlib_test1 test42;
+         test42.func_cpp();
+    }
+    if (runTest[43]) {
+         stdlib_test2 test43;
+         test43.func_cpp();
+    }
+    if (runTest[44]) {
+         func_test test44;
+         test44.func_cpp();
     }
 #endif
 

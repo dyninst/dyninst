@@ -40,7 +40,7 @@ int errorPrint = 0; // external "dyninst" tracing (via errorFunc)
 
 bool runAllTests = true;
 bool runCpp = false;
-const unsigned int MAX_TEST = 41;
+const unsigned int MAX_TEST = 44;
 bool runTest[MAX_TEST+1];
 bool passedTest[MAX_TEST+1];
 
@@ -2711,8 +2711,6 @@ void mutatorTest33(BPatch_thread *appThread, BPatch_image *appImage)
    BPatch_Vector<BPatch_snippet *> call33_args;
    BPatch_constExpr expr33_2(33);
    call33_args.push_back(&expr33_2);
-   BPatch_constExpr expr33_3(33);
-   call33_args.push_back(&expr33_3);
    BPatch_funcCallExpr call33Expr(*call33_func, call33_args);
 
    checkCost(call33Expr);
@@ -2810,8 +2808,6 @@ void mutatorTest34(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_Vector<BPatch_snippet *> call34_args;
     BPatch_constExpr expr34_0(34);
     call34_args.push_back(&expr34_0);
-    BPatch_constExpr expr34_1(34);
-    call34_args.push_back(&expr34_1);
     BPatch_funcCallExpr call34Expr(*call34_func, call34_args);
 
     checkCost(call34Expr);
@@ -2956,7 +2952,6 @@ void mutatorTest37(BPatch_thread *appThread, BPatch_image *appImage)
            fprintf(stderr, "  can't find global variable CPP_DEFLT_ARG\n");
         return;
     }
-/***********************************************
     BPatch_Vector<BPatch_point *> *point37_2 =
       appImage->findProcedurePoint("main", BPatch_allLocations);
 
@@ -2998,7 +2993,6 @@ void mutatorTest37(BPatch_thread *appThread, BPatch_image *appImage)
      }
      index ++;
     }
-**********************************/
     fprintf(stderr, "**Failed** test #37 (namespace)\n");
     fprintf(stderr, "    Can't find class member variables\n");
 }
@@ -3267,6 +3261,212 @@ void mutatorTest41(BPatch_thread *appThread, BPatch_image *appImage)
   }
 }
 
+//
+// Start Test Case #42 - (find standard C++ library)
+//
+void mutatorTest42(BPatch_thread *appThread, BPatch_image *appImage)
+{
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(mips_sgi_irix6_4) \
+ || defined(alpha_dec_osf4_0)
+
+   char libStdC[64];
+   BPatch_module *modStdC = NULL;
+   BPatch_Vector<BPatch_module *> *mods = appImage->getModules();
+
+   strcpy(libStdC, "libstdc++");
+
+   // Lookup the libstdc++.so standard library
+   if (!mods || mods->size() == 0) {
+     fprintf(stderr, "**Failed test #42 (find standard C++ library)\n");
+     fprintf(stderr, "  Mutator couldn't search modules of standard library\n");
+     exit(1);
+   }
+   for (int i = 0; i < mods->size() && !(modStdC); i++) {
+       char buf[1024];
+       BPatch_module *m = (*mods)[i];
+       m->getName(buf, 1024);
+       if (!strncmp(libStdC, buf, strlen(libStdC)))
+          modStdC = m;
+   }
+   if (! modStdC ) {
+      fprintf(stderr, "**Failed test #42 (find standard C++ library)\n");
+      fprintf(stderr, "  Mutator couldn't find shlib in standard library\n");
+      fflush(stdout);
+      exit(1);
+   }
+
+   // find ostream::operator<< function in the standard library
+   BPatch_function *func = modStdC->findFunction("ostream::operator<<");
+   if (! func) {
+       fprintf(stderr, "**Failed test #42 (find standard C++ library)\n");
+       fprintf(stderr, "  Mutator couldn't find a function in %s\n", libStdC);
+       exit(1);
+   }
+
+#endif
+}
+
+//
+// Start Test Case #43 - (replace function in standard C++ library)
+//
+void mutatorTest43(BPatch_thread *appThread, BPatch_image *appImage)
+{
+// There is no corresponding failure (test2) testing because the only
+// bad input to replaceFunction is a non-existent BPatch_function.
+
+#if defined(sparc_sun_solaris2_4) \
+ || defined(alpha_dec_osf4_0)
+
+   char libStdC[64];
+   BPatch_module *modStdC = NULL;
+   BPatch_Vector<BPatch_module *> *mods = appImage->getModules();
+
+   strcpy(libStdC, "libstdc++");
+
+   // Lookup the libstdc++.so standard library
+   if (!mods || mods->size() == 0) {
+     fprintf(stderr, "**Failed test #43 (replace function in standard C++ library)\n");
+     fprintf(stderr, "  Mutator couldn't search modules of standard library\n");
+     exit(1);
+   }
+   for (int i = 0; i < mods->size() && !(modStdC); i++) {
+       char buf[1024];
+       BPatch_module *m = (*mods)[i];
+       m->getName(buf, 1024);
+       if (!strncmp(libStdC, buf, strlen(libStdC)))
+          modStdC = m;
+   }
+   if (! modStdC ) {
+      fprintf(stderr, "**Failed test #43 (replace function in standard C++ library)\n");
+      fprintf(stderr, "  Mutator couldn't find shlib in standard library\n");
+      fflush(stdout);
+      exit(1);
+   }
+
+   // Replace a shlib function with a shlib function
+   char buf1[64], buf2[64], buf3[64];
+
+   BPatch_function *func1 = modStdC->findFunction("ostream::operator<<");
+   BPatch_function *func2 = modStdC->findFunction("istream::operator>>");
+   func1->getName(buf1, 64);
+   func2->getName(buf2, 64);
+
+   if (! func1 || ! func2) {
+       fprintf(stderr, "**Failed test #43 (replace function in standard C++ library)\n");
+       fprintf(stderr, "  Mutator couldn't find a function in %s\n", libStdC);
+       exit(1);
+   }
+   if (! appThread->replaceFunction(*func1, *func2)) {
+        fprintf(stderr, "**Failed test #43 (replace function in standard C++ library)\n");
+        fprintf(stderr, "  Mutator couldn't replaceFunction (shlib -> shlib)\n");
+   }
+
+   // Replace a shlib function with an a.out function
+   BPatch_function *func3 = appImage->findFunction("stdlib_test2::call_cpp");
+   if (! func3 ) {
+      fprintf(stderr, "**Failed test #43 (replace function in standard C++ library)\n");
+      fprintf(stderr, "Unable to find function \"stdlib_test2::call_cpp\"\n");
+      exit(1);
+   }
+   if (! appThread->replaceFunction(*func1, *func3)) {
+      fprintf(stderr, "**Failed test #43 (replace function in standard C++ library)\n");
+      fprintf(stderr, "  Mutator couldn't replaceFunction (shlib -> a.out)\n");
+      exit(1);
+   }
+
+   // Replace an a.out function with a shlib function
+    if (! appThread->replaceFunction(*func3, *func2) ) {
+      fprintf(stderr, "**Failed test #43 (replace function in standard C++ library)\n");
+      fprintf(stderr, "  Mutator couldn't replaceFunction (a.out -> shlib)\n");
+      exit(1);
+    }
+
+#endif
+}
+
+//
+// Start Test Case #44 - (C++ member function - virtual, const and inline)
+//
+void mutatorTest44(BPatch_thread *appThread, BPatch_image *appImage)
+{
+  BPatch_Vector<BPatch_point *> *point44_0 =
+    appImage->findProcedurePoint("cpp_test::func2_cpp", BPatch_allLocations);
+
+  BPatch_Vector<BPatch_point *> *point44_1 =
+    appImage->findProcedurePoint("cpp_test::func_cpp", BPatch_allLocations);
+
+  BPatch_Vector<BPatch_point *> *point44_2 =
+    appImage->findProcedurePoint("func_test::func_cpp", BPatch_allLocations);
+
+  BPatch_Vector<BPatch_point *> *point44_3 =
+    appImage->findProcedurePoint("func_test::call_cpp", BPatch_allLocations);
+
+  if ( !point44_0 || (point44_0->size() < 1) ||
+       !point44_1 || (point44_1->size() < 1) ||
+       !point44_2 || (point44_2->size() < 1) ||
+       !point44_3 || (point44_3->size() < 1)  ) {
+
+       if ( !point44_0 || (point44_0->size() < 1) ) {
+         fprintf(stderr, "**Failed** test #44 (C++ Member functions)\n");
+         fprintf(stderr, "     Unable to find point in an virtual function \"cpp_test::func2_cpp.\"\n");
+       }
+       if ( !point44_1 || (point44_1->size() < 1) ) {
+         fprintf(stderr, "**Warning** test #44 (C++ Member functions)\n");
+         fprintf(stderr, "    Unable to find point in a pure virtual function \"cpp_test::func_cpp.\"\n");
+       }
+       if ( !point44_2 || (point44_2->size() < 1) ) {
+         fprintf(stderr, "**Failed** test #44 (C++ Member functions)\n");
+         fprintf(stderr, "     Unable to find point in a const function \"func_test::func_cpp.\"\n");
+       }
+       if ( !point44_3 || (point44_3->size() < 1) ) {
+         fprintf(stderr, "**Failed** test #44 (C++ Member functions)\n");
+         fprintf(stderr, "     Unable to find point in an inline function \"func_test::call_cpp.\"\n");
+       }
+  }
+
+  for (int n=0; n<point44_2->size(); n++) {
+     BPatch_function *func;
+
+      if ((func = (*point44_2)[n]->getCalledFunction()) == NULL) continue;
+
+      char fn[256];
+      if (func->getName(fn, 256) == NULL) {
+           fprintf(stderr, "**Failed** test #44 (C++ member function)\n");
+           fprintf(stderr, "    Can't get name of called function in func_test::func_cpp\n");
+           exit(1);
+      }
+
+      if (! strcmp(fn, "func_test::call_cpp") ) {
+        BPatch_Vector<BPatch_localVar *> *param = func->getParams();
+        assert(param);
+
+        if ( param->size() != 0 ) {
+          fprintf(stderr, "**Failed** test #44 (C++ member function)\n");
+          fprintf(stderr, "    The inline function is not inlined\n");
+          exit(1);
+        }
+
+        BPatch_variableExpr *var1 = appImage->findVariable(*(*point44_2)[0],
+                       "tmp");
+
+        if (var1 == NULL) {
+          fprintf(stderr, "**Failed** test #44 (C++ member function)\n");
+          fprintf(stderr, "    The inline function is not inlined\n");
+          exit(1);
+        }
+       return;
+      }
+  }
+
+  fprintf(stderr, "**Failed** test #44 (C++ member function)\n");
+  fprintf(stderr, "  Mutator couldn't find inline function in the caller\n");
+  exit(1);
+}
+
+
 /*******************************************************************************/
 /*******************************************************************************/
 /*******************************************************************************/
@@ -3394,6 +3594,9 @@ int mutatorMAIN(char *pathname, bool useAttach)
        if (runTest[39]) mutatorTest39(appThread, appImage);
        if (runTest[40]) mutatorTest40(appThread, appImage);
        if (runTest[41]) mutatorTest41(appThread, appImage);
+       if (runTest[42]) mutatorTest42(appThread, appImage);
+       if (runTest[43]) mutatorTest43(appThread, appImage);
+       if (runTest[44]) mutatorTest44(appThread, appImage);
     }
 
     // Start of code to continue the process.  All mutations made
@@ -3514,7 +3717,9 @@ main(unsigned int argc, char *argv[])
                 strcat(mutateeName,argv[i]);
             else
                 strcpy(mutateeName,argv[i]);
-	    if ( strstr(mutateeName, "_g++") )  runCpp = true;
+	    if ( strstr(mutateeName, "_g++") || strstr(mutateeName, "_CC")
+	         || strstr(mutateeName, "_xlC") )
+	       runCpp = true;
 #if defined(mips_sgi_irix6_4)
 	} else if (!strcmp(argv[i], "-n32")) {
             N32ABI = true;
