@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.36 2003/09/29 20:48:01 bernat Exp $
+// $Id: sol_proc.C,v 1.37 2003/10/07 19:06:03 schendel Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -61,7 +61,9 @@
 #include "common/h/pathName.h" // for path name manipulation routines
 
 // Function prototypes
-bool get_ps_info(int pid, pdstring &argv0, pdstring &cwdenv, pdstring &pathenv);
+bool get_ps_info(int ps_fd, int as_fd, pdstring *argv0, pdstring *cwdenv,
+                 pdstring *pathenv);
+
 
 /*
  * COMPATIBILITY SECTION
@@ -193,7 +195,7 @@ bool dyn_lwp::continueWithSignal() {
 
 bool process::continueWithForwardSignal(int)
 {
-    return getDefaultLWP()->continueWithSignal();
+    return getProcessLWP()->continueWithSignal();
 }
 // determine if a process is running by doing low-level system checks, as
 // opposed to checking the 'status_' member vrble.  May assume that attach()
@@ -761,7 +763,7 @@ bool process::changeIntReg(int reg, Address val) {
    assert(status_ == stopped); // /proc will require this
 
    prgregset_t theIntRegs;
-   if (ioctl(getDefaultLWP()->get_fd(), PIOCGREG, &theIntRegs) == -1) {
+   if (ioctl(getProcessLWP()->get_fd(), PIOCGREG, &theIntRegs) == -1) {
      perror("dyn_lwp::changeIntReg");
       if (errno == EBUSY) {
 	 cerr << "It appears that the process wasn't stopped in the eyes of /proc" << endl;
@@ -772,7 +774,7 @@ bool process::changeIntReg(int reg, Address val) {
 
    theIntRegs[reg] = val;
 
-   if (ioctl(getDefaultLWP()->get_fd(), PIOCSREG, &theIntRegs) == -1) {
+   if (ioctl(getProcessLWP()->get_fd(), PIOCSREG, &theIntRegs) == -1) {
       perror("process::changeIntReg PIOCSREG");
       if (errno == EBUSY) {
 	 cerr << "It appears that the process wasn't stopped in the eyes of /proc" << endl;
@@ -822,53 +824,129 @@ Address dyn_lwp::readRegister(Register reg)
     return result;
 }
 
-// Open all file descriptors corresponding to an LWP
-bool dyn_lwp::openFD_()
-{
-  if (lwp_id_) {
-      char temp[128];
-      sprintf(temp, "/proc/%d/lwp/%d/lwpctl", (int)proc_->getPid(), lwp_id_);
-      ctl_fd_ = P_open(temp, O_WRONLY, 0);
-      if (ctl_fd_ < 0) perror("Opening lwpctl");
-      sprintf(temp, "/proc/%d/lwp/%d/lwpstatus", (int)proc_->getPid(),lwp_id_);
-      status_fd_ = P_open(temp, O_RDONLY, 0);    
-      if (status_fd_ < 0) perror("Opening lwpstatus");
+bool dyn_lwp::threadLWP_attach_() {
+   char temp[128];
+   sprintf(temp, "/proc/%d/lwp/%d/lwpctl", (int)proc_->getPid(), lwp_id_);
+   ctl_fd_ = P_open(temp, O_WRONLY, 0);
+   if (ctl_fd_ < 0) perror("Opening lwpctl");
+   sprintf(temp, "/proc/%d/lwp/%d/lwpstatus", (int)proc_->getPid(),lwp_id_);
+   status_fd_ = P_open(temp, O_RDONLY, 0);    
+   if (status_fd_ < 0) perror("Opening lwpstatus");
 #if !defined(AIX_PROC)
-      sprintf(temp, "/proc/%d/lwp/%d/lwpusage", (int)proc_->getPid(), lwp_id_);
-      usage_fd_ = P_open(temp, O_RDONLY, 0);
+   sprintf(temp, "/proc/%d/lwp/%d/lwpusage", (int)proc_->getPid(), lwp_id_);
+   usage_fd_ = P_open(temp, O_RDONLY, 0);
 #else
-      usage_fd_ = 0;
+   usage_fd_ = 0;
 #endif
-  }
-  else {
-      // No LWP = representative LWP
-      fprintf(stderr, "Opening /proc FD for process %d\n", proc_->getPid());
-      
-    char temp[128];
-    sprintf(temp, "/proc/%d/ctl", (int)proc_->getPid());
-    ctl_fd_ = P_open(temp, O_WRONLY | O_EXCL, 0);
-    if (ctl_fd_ < 0) perror("Opening (LWP) ctl");
-    //fprintf(stderr, "Opened %d for ctl\n", ctl_fd_);
-    sprintf(temp, "/proc/%d/status", (int)proc_->getPid());
-    status_fd_ = P_open(temp, O_RDONLY, 0);    
-    if (status_fd_ < 0) perror("Opening (LWP) status");
+   return true;
+}
+
+bool dyn_lwp::processLWP_attach_() {
+   /*
+     Open the /proc file correspoding to process pid, 
+     set the signals to be caught,
+     and set the kill-on-last-close and inherit-on-fork flags.
+   */
+
+   char temp[128];
+   // Open the process-wise handles
+   sprintf(temp, "/proc/%d/ctl", getPid());
+   ctl_fd_ = P_open(temp, O_WRONLY | O_EXCL, 0);
+   if (ctl_fd_ < 0) perror("Opening (LWP) ctl");
+
+   sprintf(temp, "/proc/%d/status", getPid());
+   status_fd_ = P_open(temp, O_RDONLY, 0);    
+   if (status_fd_ < 0) perror("Opening (LWP) status");
+
 #if !defined(AIX_PROC)
-    sprintf(temp, "/proc/%d/usage", (int)proc_->getPid());
-    usage_fd_ = P_open(temp, O_RDONLY, 0);    
-    if (usage_fd_ < 0) perror("Opening (LWP) usage");
+   sprintf(temp, "/proc/%d/usage", getPid());
+   usage_fd_ = P_open(temp, O_RDONLY, 0);    
+   if (usage_fd_ < 0) perror("Opening (LWP) usage");
 #else
-    usage_fd_ = 0;
+   usage_fd_ = 0;
 #endif
-  }
-  return true;
+
+   as_fd_ = -1;
+   sprintf(temp, "/proc/%d/as", getPid());
+   as_fd_ = P_open(temp, O_RDWR, 0);
+   if (as_fd_ < 0) perror("Opening as fd");
+
+#if !defined(AIX_PROC)
+   sprintf(temp, "/proc/%d/auxv", getPid());
+   auxv_fd_ = P_open(temp, O_RDONLY, 0);
+   if (auxv_fd_ < 0) perror("Opening auxv fd");
+#else
+   // AIX doesn't have the auxv file
+   auxv_fd_ = 0;
+#endif
+
+   sprintf(temp, "/proc/%d/map", getPid());
+   map_fd_ = P_open(temp, O_RDONLY, 0);
+   if (map_fd_ < 0) perror("map fd");
+   
+   sprintf(temp, "/proc/%d/psinfo", getPid());
+   ps_fd_ = P_open(temp, O_RDONLY, 0);
+   if (ps_fd_ < 0) perror("Opening ps fd");
+
+   sprintf(temp, "/proc/%d/status", getPid());
+   status_fd_ = P_open(temp, O_RDONLY, 0);
+   if (status_fd_ < 0) perror("Opening status fd");
+    
+   // step 2) /proc PIOCSTRACE: define which signals should be
+   // forwarded to daemon These are (1) SIGSTOP and (2) either
+   // SIGTRAP (sparc) or SIGILL (x86), to implement inferiorRPC
+   // completion detection.
+   // Also detect SIGCONT so that we know if a user has restarted
+   // an application.
+  
+   proc_sigset_t sigs;
+    
+   premptyset(&sigs);
+   praddset(&sigs, SIGSTOP);
+    
+   praddset(&sigs, SIGTRAP);
+    
+   praddset(&sigs, SIGCONT);
+   praddset(&sigs, SIGBUS);
+   praddset(&sigs, SIGSEGV);
+   praddset(&sigs, SIGILL);
+    
+   int bufsize = sizeof(long) + sizeof(proc_sigset_t);
+   char buf[bufsize]; 
+   long *bufptr = (long *) buf;
+   *bufptr = PCSTRACE;
+   bufptr++;
+   memcpy(bufptr, &sigs, sizeof(proc_sigset_t));
+
+   if(write(ctl_fd_, buf, bufsize) != bufsize) {
+      perror("attach: PCSTRACE");
+      return false;
+   }
+
+   if (!get_ps_info(ps_fd_, as_fd_, &(proc_->argv0), &(proc_->cwdenv),
+                    &(proc_->pathenv))) {
+      fprintf(stderr, "Failed to get PS info\n");
+   }
+
+   return true;
 }
 
 // Close FDs opened above
-void dyn_lwp::closeFD_()
+void dyn_lwp::detach_()
 {
-    if (ctl_fd_) close(ctl_fd_);
-    if (status_fd_) close(status_fd_);
-    if (usage_fd_) close(usage_fd_);    
+   assert(is_attached());  // dyn_lwp::detach() shouldn't call us otherwise
+      
+   // First we want to clear any signal which might be pending
+   // for the process. Otherwise, when we detach the process has
+   // a signal sent that it may have no clue about
+   // But we can't do that here -- all FDs associated with the process
+   // are closed.
+   close(ctl_fd_);
+   close(status_fd_);
+   close(usage_fd_);
+   close(as_fd_);
+   close(ps_fd_);
+   close(status_fd_);
 }
 
 /*
@@ -891,7 +969,7 @@ bool process::installSyscallTracing()
     command[0] = PCUNSET;
     command[1] = PR_BPTADJ | PR_MSACCT | PR_RLC | PR_KLC | PR_FORK;
 
-    if (write(getDefaultLWP()->ctl_fd(), command, 2*sizeof(long)) !=
+    if (write(getProcessLWP()->ctl_fd(), command, 2*sizeof(long)) !=
         2*sizeof(long)) {
         perror("installSyscallTracing: PRRESET");
         return false;
@@ -910,7 +988,7 @@ bool process::installSyscallTracing()
     }
     command[1] = flags;
 
-    if (write(getDefaultLWP()->ctl_fd(), command, 2*sizeof(long)) != 2*sizeof(long)) {
+    if (write(getProcessLWP()->ctl_fd(), command, 2*sizeof(long)) != 2*sizeof(long)) {
         perror("installSyscallTracing: PCSET");
         return false;
     }
@@ -924,8 +1002,9 @@ bool process::installSyscallTracing()
     pstatus_t status;
 
     // Get traced system calls (entry and exit)
-    if (pread(status_fd(), &status, sizeof(status), 0) != sizeof(status))
-        return false;
+    if (pread(getProcessLWP()->status_fd(), &status, sizeof(status), 0) !=
+        sizeof(status))
+       return false;
     //if (!get_entry_syscalls(&status, entryset)) return false;
     //if (!get_exit_syscalls(&status, exitset)) return false;
 
@@ -962,93 +1041,11 @@ bool process::installSyscallTracing()
     return set_syscalls(entryset, exitset);    
 }
 
-/*
-   Open the /proc file correspoding to process pid, 
-   set the signals to be caught,
-   and set the kill-on-last-close and inherit-on-fork flags.
-*/
-extern pdstring pd_flavor ;
-bool process::attach_() {
-    // step 1) /proc open: attach to the inferior process
-
-    //cerr << "Attaching... " << endl;
-    dyn_lwp *default_lwp = getDefaultLWP();
-    if(default_lwp == NULL) {
-        fprintf(stderr, "Failed to get default LWP\n");
-        return false;
-    }
-    
-    // Open the process-wise handles
-    char temp[128];
-    as_fd_ = -1;
-    sprintf(temp, "/proc/%d/as", getPid());
-    as_fd_ = P_open(temp, O_RDWR, 0);
-    if (as_fd_ < 0) perror("Opening as fd");
-#if !defined(AIX_PROC)
-    sprintf(temp, "/proc/%d/auxv", getPid());
-    auxv_fd_ = P_open(temp, O_RDONLY, 0);
-    if (auxv_fd_ < 0) perror("Opening auxv fd");
-#else
-    // AIX doesn't have the auxv file
-    auxv_fd_ = 0;
-#endif
-
-    sprintf(temp, "/proc/%d/map", getPid());
-    map_fd_ = P_open(temp, O_RDONLY, 0);
-    if (map_fd_ < 0) perror("map fd");
-
-    sprintf(temp, "/proc/%d/psinfo", getPid());
-    ps_fd_ = P_open(temp, O_RDONLY, 0);
-    if (ps_fd_ < 0) perror("Opening ps fd");
-
-    sprintf(temp, "/proc/%d/status", getPid());
-    status_fd_ = P_open(temp, O_RDONLY, 0);
-    if (status_fd_ < 0) perror("Opening status fd");
-    
-    // step 2) /proc PIOCSTRACE: define which signals should be
-    // forwarded to daemon These are (1) SIGSTOP and (2) either
-    // SIGTRAP (sparc) or SIGILL (x86), to implement inferiorRPC
-    // completion detection.
-    // Also detect SIGCONT so that we know if a user has restarted
-    // an application.
-  
-    proc_sigset_t sigs;
-    
-    premptyset(&sigs);
-    praddset(&sigs, SIGSTOP);
-    
-//#ifndef i386_unknown_solaris2_5
-    praddset(&sigs, SIGTRAP);
-//#else
-    praddset(&sigs, SIGILL);
-//#endif    
-    
-    praddset(&sigs, SIGCONT);
-    praddset(&sigs, SIGBUS);
-    praddset(&sigs, SIGSEGV);
-    
-    int bufsize = sizeof(long) + sizeof(proc_sigset_t); char buf[bufsize]; 
-    long *bufptr = (long *) buf;
-    *bufptr = PCSTRACE; bufptr++;
-    memcpy(bufptr, &sigs, sizeof(proc_sigset_t));
-
-    if(write(getDefaultLWP()->ctl_fd(), buf, bufsize) != bufsize) {
-        perror("attach: PCSTRACE");
-        return false;
-    }
-    
-    if (!get_ps_info(getPid(), this->argv0, this->cwdenv, this->pathenv)) {
-        fprintf(stderr, "Failed to get PS info\n");
-    }
-    
-    return true;
-}
-
 // AIX requires us to re-open the process-wide handles after
 // an exec call
 
 #if defined(AIX_PROC)
-void process::reopen_fds() {
+void dyn_lwp::reopen_fds() {
         // Reopen the process-wide handles
     char temp[128];
 
@@ -1085,18 +1082,18 @@ void process::reopen_fds() {
 
 bool process::isRunning_() const {
     // We can key off the representative LWP
-    return getDefaultLWP()->isRunning();
+    return getProcessLWP()->isRunning();
 }
 
 bool process::continueProc_() {
     
   ptraceOps++; ptraceOtherOps++;
-  return getDefaultLWP()->continueLWP();
+  return getProcessLWP()->continueLWP();
 #if 0
   // This doesn't work -- dyninst/ST paradyn are okay,
   // since they are equivalent. But MT breaks.
   if (threads.size() == 0) {
-      return getDefaultLWP()->continueLWP();
+      return getProcessLWP()->continueLWP();
   }
   else {
       bool success = true;
@@ -1123,7 +1120,7 @@ bool process::terminateProc_()
     long command[2];
     command[0] = PCKILL;
     command[1] = SIGKILL;
-    dyn_lwp *cntl_lwp = getDefaultLWP();
+    dyn_lwp *cntl_lwp = getProcessLWP();
     if (cntl_lwp) 
         if (write(cntl_lwp->ctl_fd(), 
                   command, 2*sizeof(long)) != 2*sizeof(long)) {
@@ -1159,12 +1156,12 @@ bool process::pause_() {
        } else
           handledEvent = false;
     } while(handledEvent == true);  // keep checking if we handled an event
-    return getDefaultLWP()->pauseLWP();
+    return getProcessLWP()->pauseLWP();
 
     /*
     // This code doesn't work. I'm leaving it here as an example -- bernat
     if (threads.size() == 0) {
-        return getDefaultLWP()->pauseLWP();
+        return getProcessLWP()->pauseLWP();
     }
     else {
         bool success = true;
@@ -1179,23 +1176,6 @@ bool process::pause_() {
     }
     return true;
     */
-}
-
-/*
-   close the file descriptor for the file associated with a process
-*/
-bool process::detach_() {
-    // First we want to clear any signal which might be pending
-    // for the process. Otherwise, when we detach the process has
-    // a signal sent that it may have no clue about
-    // But we can't do that here -- all FDs associated with the process
-    // are closed.
-
-   close(as_fd_);
-   close(ps_fd_);
-   close(status_fd_);
-
-   return true;
 }
 
 
@@ -1222,7 +1202,7 @@ bool process::API_detach_(const bool cont)
   command[1] = PR_KLC; // Get rid of kill-on-close
   if (!cont) command[1] |= PR_RLC; // Don't want run on last close
 
-  if (write(getDefaultLWP()->ctl_fd(), 
+  if (write(getProcessLWP()->ctl_fd(), 
             command, 2*sizeof(long)) != 2*sizeof(long)) {
       perror("apiDetach: PCUNSET");
       return false;
@@ -1230,7 +1210,7 @@ bool process::API_detach_(const bool cont)
   if (cont) {
       command[0] = PCSET;
       command[1] = PR_RLC;
-      if (write(getDefaultLWP()->ctl_fd(), command, 2*sizeof(long)) != 2*sizeof(long)) {
+      if (write(getProcessLWP()->ctl_fd(), command, 2*sizeof(long)) != 2*sizeof(long)) {
           perror("apiDetach: PCSET");
           return false;
       }
@@ -1243,7 +1223,7 @@ bool process::API_detach_(const bool cont)
   *sigbufptr = PCSHOLD; sigbufptr++;
   memcpy(sigbufptr, &sigs, sizeof(proc_sigset_t));
   
-  if (write(getDefaultLWP()->ctl_fd(), sigbuf, sigbufsize) != sigbufsize) {
+  if (write(getProcessLWP()->ctl_fd(), sigbuf, sigbufsize) != sigbufsize) {
       perror("apiDetach: PCSHOLD");
       return false;
   }
@@ -1251,7 +1231,7 @@ bool process::API_detach_(const bool cont)
   // Same set gets PCSTRACEd
   sigbufptr = (long *)sigbuf;
   *sigbufptr = PCSTRACE;
-  if (write(getDefaultLWP()->ctl_fd(), sigbuf, sigbufsize) != sigbufsize) {
+  if (write(getProcessLWP()->ctl_fd(), sigbuf, sigbufsize) != sigbufsize) {
       perror("apiDetach: PCSTRACE");
       return false;
   }
@@ -1264,7 +1244,7 @@ bool process::API_detach_(const bool cont)
   *fltbufptr = PCSFAULT; fltbufptr++;
   memcpy(fltbufptr, &faults, sizeof(fltset_t));
   
-  if (write(getDefaultLWP()->ctl_fd(), fltbuf, fltbufsize) != fltbufsize) {
+  if (write(getProcessLWP()->ctl_fd(), fltbuf, fltbufsize) != fltbufsize) {
       perror("apiDetach: PCSFAULT");
       return false;
   }
@@ -1276,14 +1256,14 @@ bool process::API_detach_(const bool cont)
   *sysbufptr = PCSENTRY; sysbufptr++;
   memcpy(sysbufptr, syscalls, SYSSET_SIZE(syscalls));
   
-  if (write(getDefaultLWP()->ctl_fd(), sysbuf, sysbufsize) != sysbufsize) {
+  if (write(getProcessLWP()->ctl_fd(), sysbuf, sysbufsize) != sysbufsize) {
       perror("apiDetach: PCSENTRY");
       return false;
   }
   
   sysbufptr = (long *)sysbuf;
   *sysbufptr = PCSEXIT;
-  if (write(getDefaultLWP()->ctl_fd(), sysbuf, sysbufsize) != sysbufsize) {
+  if (write(getProcessLWP()->ctl_fd(), sysbuf, sysbufsize) != sysbufsize) {
       perror("apiDetach: PCSEXIT");
       return false;
   }
@@ -1339,10 +1319,11 @@ bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) 
 
 
     int written = 0;
-    if ((written = pwrite64(as_fd(), inSelf, amount, loc)) != (int)amount) {
-        perror("writeDataSpace");
-
-        return false;
+    if ((written = pwrite64(getProcessLWP()->as_fd(), inSelf, amount, loc)) != 
+        (int)amount) {
+       perror("writeDataSpace");
+       
+       return false;
     }
     
     return true;
@@ -1354,7 +1335,7 @@ bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
     off64_t loc;
     loc = (off64_t) ((unsigned) inTraced);
     
-    if (pread64(as_fd(), inSelf, amount, loc) != (int)amount) {
+    if(pread64(getProcessLWP()->as_fd(), inSelf, amount, loc) != (int)amount) {
         perror("readDataSpace");
         return false;
     }
@@ -1364,13 +1345,13 @@ bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
 
 bool process::get_status(pstatus_t *status) const
 {
-    if (pread(status_fd(), (void *)status,
-              sizeof(pstatus_t), 0) != sizeof(pstatus_t)) {
-        perror("process::get_status");
-        return false;
-    }
-
-    return true;
+   if(pread(getProcessLWP()->status_fd(), (void *)status,
+            sizeof(pstatus_t), 0) != sizeof(pstatus_t)) {
+      perror("process::get_status");
+      return false;
+   }
+   
+   return true;
 }
 
 bool process::set_syscalls(sysset_t *entry, sysset_t *exit) const
@@ -1381,14 +1362,14 @@ bool process::set_syscalls(sysset_t *entry, sysset_t *exit) const
     // Write entry syscalls
     *bufptr = PCSENTRY; bufptr++;
     memcpy(bufptr, entry, SYSSET_SIZE(entry));
-    if (write(getDefaultLWP()->ctl_fd(), 
+    if (write(getProcessLWP()->ctl_fd(), 
               bufentry, bufentrysize) != bufentrysize) return false;
 
     int bufexitsize = sizeof(long) + SYSSET_SIZE(exit);
     char bufexit[bufexitsize]; bufptr = (long *)bufexit;
     *bufptr = PCSEXIT; bufptr++;
     memcpy(bufptr, exit, SYSSET_SIZE(exit));
-    if (write(getDefaultLWP()->ctl_fd(), 
+    if (write(getProcessLWP()->ctl_fd(), 
               bufexit, bufexitsize) != bufexitsize) return false;
     return true;    
 }
@@ -1471,7 +1452,7 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall)
         char buf[bufsize]; long *bufptr = (long *)buf;
         *bufptr = PCSEXIT; bufptr++;
         memcpy(bufptr, cur_syscalls, SYSSET_SIZE(cur_syscalls));
-        if (write(getDefaultLWP()->ctl_fd(), buf, bufsize) != bufsize) {
+        if (write(getProcessLWP()->ctl_fd(), buf, bufsize) != bufsize) {
             perror("Syscall trap set");
             return NULL;
         }
@@ -1517,7 +1498,7 @@ bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
     char buf[bufsize]; long *bufptr = (long *)buf;
     *bufptr = PCSEXIT; bufptr++;
     memcpy(bufptr, cur_syscalls, SYSSET_SIZE(cur_syscalls));
-    if (write(getDefaultLWP()->ctl_fd(), buf, bufsize) != bufsize) {
+    if (write(getProcessLWP()->ctl_fd(), buf, bufsize) != bufsize) {
         perror("Syscall trap clear");
         return false;
     }
@@ -1760,7 +1741,7 @@ process *decodeProcessEvent(int pid,
                 (processVec[u]->status() == running || 
                  processVec[u]->status() == neonatal)) {
                 if (pid == -1 || processVec[u]->getPid() == pid) {
-                    fds[u].fd = processVec[u]->getDefaultLWP()->status_fd();
+                    fds[u].fd = processVec[u]->getProcessLWP()->status_fd();
                     any_active_procs = true;
                 } else {
                     fds[u].fd = -1;
@@ -1825,7 +1806,7 @@ process *decodeProcessEvent(int pid,
 
     } else {
        // Real return from poll
-       if (currProcess->getDefaultLWP()->get_status(&procstatus)) {
+       if (currProcess->getProcessLWP()->get_status(&procstatus)) {
           // Check if the process is stopped waiting for us
           if (procstatus.pr_flags & PR_STOPPED ||
               procstatus.pr_flags & PR_ISTOP) {
@@ -1840,7 +1821,7 @@ process *decodeProcessEvent(int pid,
                  // On AIX we can't manipulate a process stopped on a
                  // SIGSTOP... in any case, we clear it.
                  // No other signal exhibits this behavior.
-                 currProcess->getDefaultLWP()->clearSignal();
+                 currProcess->getProcessLWP()->clearSignal();
              }
 #endif             
           }
@@ -1883,52 +1864,35 @@ pdstring extract_string(int fd, Address addr)
     return "";
 }
 
-bool get_ps_info(int pid, pdstring &argv0, pdstring &cwdenv, pdstring &pathenv)
+bool get_ps_info(int ps_fd, int as_fd, pdstring *argv0, pdstring *cwdenv,
+                 pdstring *pathenv)
 {
-    char psPath[256];
-    sprintf(psPath, "/proc/%d/psinfo", pid);
-    int ps_fd = P_open(psPath, O_RDONLY, 0);
-    if (ps_fd < 0) {
-        perror("opening ps");
-        return false;
-    }
-    
     psinfo_t procinfo;
     if (pread(ps_fd, &procinfo, sizeof(procinfo), 0) != sizeof(procinfo)) {
         perror("pread procinfo");
-        close(ps_fd);
         return false;
     }
     
     if (procinfo.pr_nlwp == 0) {
-        close(ps_fd);
         return false;
     }
     
     assert(procinfo.pr_argv);
     // We can get the argv vector, which will give us the process name
-    // Problem is, everything is in that process' address space. So we need
-    // the as file descriptor
-    char asPath[256];
-    sprintf(asPath, "/proc/%d/as", pid);
-    int as_fd;
-    as_fd = P_open(asPath, O_RDONLY, 0);
-    if (as_fd < 0) {
-        close(ps_fd);
-        return false;
-    }   
+    // Problem is, everything is in that process' address space.
+
     char *ptr_to_argv0;
-    if (pread(as_fd, &ptr_to_argv0, sizeof(char *), procinfo.pr_argv) != sizeof(char *)) {
-        close(ps_fd);
-        close(as_fd);
+    if (pread(as_fd, &ptr_to_argv0, sizeof(char *), procinfo.pr_argv) != 
+        sizeof(char *))
+    {
         perror("reading from as fd");
         return false;
     }
     
-    // Now the fun begins... we need to read the process name. Problem is, we don't know how
-    // big a string to read. So we use the "incremental read and glue" approach.
-    // argv0: process member
-    argv0 = extract_string(as_fd, (Address) ptr_to_argv0);
+    // Now the fun begins... we need to read the process name. Problem is, we
+    // don't know how big a string to read. So we use the "incremental read
+    // and glue" approach.  argv0: process member
+    (*argv0) = extract_string(as_fd, (Address) ptr_to_argv0);
 
     // Now that we have the process, get PWD and PATH
     char **envptr = (char **)procinfo.pr_envp;
@@ -1936,30 +1900,28 @@ bool get_ps_info(int pid, pdstring &argv0, pdstring &cwdenv, pdstring &pathenv)
     bool need_pwd = true;
 
     while(need_path || need_pwd) { //ccw 30 jan 2003
-        char *env;
-        if (pread(as_fd, &env, sizeof(char *), (Address) envptr) != sizeof(char *)) {
-            close(ps_fd);
-            close(as_fd);
-            perror("reading for path/pwd");
-            return false;
-        }
-        if (env == NULL)
-            break;
-        pdstring env_value = extract_string(as_fd, (Address) env);
-        //cerr << "Environment string: " << env_value << endl;
-        if (env_value.prefixed_by("PWD=") || env_value.prefixed_by("CWD=")) {
-            cwdenv = env_value.c_str() + 4; // Skip CWD= or PWD=
-            need_pwd = false;
-        }
-        if (env_value.prefixed_by("PATH=")) {
-            pathenv = env_value.c_str() + 5; // Skip PATH=
-            need_path = false;
-        }
-        envptr++;
+       char *env;
+       if (pread(as_fd, &env, sizeof(char *), (Address) envptr) !=
+           sizeof(char *))
+       {
+          perror("reading for path/pwd");
+          return false;
+       }
+       if (env == NULL)
+          break;
+       pdstring env_value = extract_string(as_fd, (Address) env);
+       //cerr << "Environment string: " << env_value << endl;
+       if (env_value.prefixed_by("PWD=") || env_value.prefixed_by("CWD=")) {
+          (*cwdenv) = env_value.c_str() + 4; // Skip CWD= or PWD=
+          need_pwd = false;
+       }
+       if (env_value.prefixed_by("PATH=")) {
+          (*pathenv) = env_value.c_str() + 5; // Skip PATH=
+          need_path = false;
+       }
+       envptr++;
     }
     
-    close(as_fd);
-    close(ps_fd);
     return true;
 }
 
