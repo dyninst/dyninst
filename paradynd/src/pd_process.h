@@ -316,11 +316,10 @@ class pd_process {
                                             thr, lwp, aixHACK);
    }
    
-   bool triggeredInStackFrame(instPoint* point, Frame frame,
-                              pd_Function *&func,
+   bool triggeredInStackFrame(Frame frame, instPoint *point,
                               callWhen when, callOrder order) {
       process *llproc = dyninst_process->lowlevel_process();
-      return llproc->triggeredInStackFrame(point, frame, func, when, order);
+      return llproc->triggeredInStackFrame(frame, point, when, order);
    }
    
    bool walkStacks(pdvector<pdvector<Frame> > &stackWalks) {

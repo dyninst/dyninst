@@ -1407,7 +1407,175 @@ bool reachedLibState(libraryState_t lib, libraryState_t state) {
    return (lib >= state);
 }
 
+bool process::triggeredInStackFrame(Frame &frame,
+                                    instPoint *point,
+                                    callWhen when,
+                                    callOrder order) {
 
+    // Use a previous lookup if it's there.
+    codeRange *range = frame.getRange();
+    // Step 1: where's this frame?
+    if (!range) {
+        range = findCodeRangeByAddress(frame.getPC());
+        frame.setRange(range);
+    }
+    
+/*
+    fprintf(stderr, "Catchup for PC 0x%x (%d), instpoint at 0x%x (%s)\n", 
+            frame.getPC(), 
+            frame.getThread()->get_tid(),
+            point->iPgetAddress(this),
+            point->iPgetFunction()->prettyName().c_str());
+*/
+    Address collapsedFrameAddr;
+    
+    // Test 1: if the function associated with the frame
+    // is not the instPoint function, return false immediately.
+    if (range->function_ptr) {
+        if (range->function_ptr != (const pd_Function *) point->iPgetFunction()) {
+/*
+            fprintf(stderr, "Current function %s not instPoint function\n",
+                    range->function_ptr->prettyName().c_str());
+*/
+            return false;
+        }
+        collapsedFrameAddr = frame.getPC();
+/*
+        fprintf(stderr, "PC in function %s\n",
+                range->function_ptr->prettyName().c_str());
+*/
+    }
+    else if (range->minitramp_ptr) {
+        // Again, quick check for function matching
+        trampTemplate *baseT = range->minitramp_ptr->baseTramp;
+        const instPoint *instP = baseT->location;
+        if (instP->iPgetFunction() != point->iPgetFunction()) 
+            return false;
+        collapsedFrameAddr = instP->iPgetAddress(this);
+/*
+        fprintf(stderr, "PC in minitramp at 0x%x (%s)\n", collapsedFrameAddr,
+                instP->iPgetFunction()->prettyName().c_str());
+*/
+    }
+    else if (range->basetramp_ptr) {
+        const instPoint *instP = range->basetramp_ptr->location;
+        if (instP->iPgetFunction() != point->iPgetFunction())
+            return false;
+        collapsedFrameAddr = instP->iPgetAddress(this);
+/*
+        fprintf(stderr, "PC in base tramp at 0x%x (%s)\n", collapsedFrameAddr,
+                instP->iPgetFunction()->prettyName().c_str());
+*/
+    }
+    else if (range->reloc_ptr) {
+        // The inst point given should be within the relocated function,
+        // so everything should work normally
+        collapsedFrameAddr = frame.getPC();
+    }
+    else {
+        // Uhh... no function, no point... murph?
+        // Could be top of the stack -- often address 0x0 or -1
+        if (frame.getPC()) 
+            fprintf(stderr, "Couldn't find match for address 0x%x!\n",
+                    frame.getPC());
+        return false;
+    }
+
+    // We have a "collapsed" (i.e. within the function area) version
+    // of the current PC. Do the same to the minitramp (instPoint/when/order)
+    // passed in, and compare. 
+
+    Address pointAddr = point->iPgetAddress(this);
+
+    if (collapsedFrameAddr < pointAddr) {
+        // Haven't reached the point yet
+        //fprintf(stderr, "PC hasn't reached instrumentation, returning false\n");
+        return false;
+    }
+    else if (collapsedFrameAddr > pointAddr) {
+        // Have reached the point
+        //fprintf(stderr, "PC past instrumentation, returning true\n");
+        return true;
+    }
+    else {
+        // They're both in the same point... break down further
+
+        // First, define a numeric mapping on top of instrumentation
+        // points:
+
+        // 0: In the jump to base tramp
+        // 1: base tramp between entry and the call to preInsn
+        //    minitramps 
+        // 2: preInsn minitramps 
+        // 3: base tramp between preInsn minitramps and postInsn
+        //    minitramps
+        // 4: postInsn minitramps 
+        // 5: base tramp between postInsn minitramps and the end of
+        //    the base tramp
+
+        // This simplification works because we only allow adding
+        // minitramps to the beginning or end of the current tramp
+        // chain (between 1 and 2 or 2 and 3... but not within 2)
+
+        unsigned locationInPoint;
+        
+        if (range->function_ptr) {
+            // Not in the inst point... 
+            locationInPoint = 0;
+        }
+        else if (range->basetramp_ptr) {
+            if (frame.getPC() <= (range->basetramp_ptr->baseAddr +
+                                  range->basetramp_ptr->localPreOffset))
+                locationInPoint = 1;
+            else if (frame.getPC() >= (range->basetramp_ptr->baseAddr +
+                                       range->basetramp_ptr->localPreReturnOffset) &&
+                     frame.getPC() <= (range->basetramp_ptr->baseAddr +
+                                       range->basetramp_ptr->localPostOffset))
+                locationInPoint = 3;
+            else if (frame.getPC() >= (range->basetramp_ptr->baseAddr +
+                                       range->basetramp_ptr->localPostReturnOffset))
+                locationInPoint = 5;
+            else
+                assert(0 && "Unknown address in base tramp");
+        }
+        else if (range->minitramp_ptr) {
+            if (range->minitramp_ptr->when == callPreInsn)
+                locationInPoint = 2;
+            else if (range->minitramp_ptr->when == callPostInsn)
+                locationInPoint = 4;
+            else
+                assert(0 && "Unknown minitramp callWhen");
+        }
+        //fprintf(stderr, "Logical location: %d\n", locationInPoint);
+        
+        // And now determine if we're before or after the point
+        if (when == callPreInsn) {
+            if (order == orderFirstAtPoint) {
+                return locationInPoint >= 2;
+            }
+            else {
+                // Last at point
+                return locationInPoint >= 3;
+            }
+        }
+        else {
+            // callPostInsn
+            if (order == orderFirstAtPoint) {
+                return locationInPoint >= 4;
+            }
+            else {
+                // last at point
+                return locationInPoint >= 5;
+            }
+        }
+    }
+    // Should never be hit
+    assert(0);
+    return false;
+}
+
+
+#if 0
 // triggeredInStackFrame is used to determine whether instrumentation
 //   added at the specified instPoint/callWhen/callOrder would have been
 //   executed based on the supplied pc.
@@ -1470,14 +1638,13 @@ bool process::triggeredInStackFrame(instPoint* point,  Frame &frame,
   if ( pd_debug_catchup )
      cerr << "  Stack function matches function containing instPoint" << endl;
 
-  if (pc == point->iPgetAddress()) {
+  if (pc == point->iPgetAddress(this)) {
       if (pd_debug_catchup) {
           fprintf(stderr, "Found pc at start of instpoint, returning false\n");
       }
       return false;
   }
-  
-  
+    
   //  Is the pc within the instPoint instrumentation?
   instPoint* currentIp = findInstPointFromAddress(pc);
 
@@ -1738,4 +1905,4 @@ bool process::triggeredInStackFrame(instPoint* point,  Frame &frame,
 
   return retVal;
 }
-
+#endif
