@@ -151,7 +151,8 @@ template <class DataType, class KeyType> class ListBase {
    ~ListBase() {
       clear();
    }
-   friend ostream &operator<<(ostream &os, ListBase<DataType, KeyType> &data);
+   friend ostream &operator<<(ostream &os, 
+			      const ListBase<DataType, KeyType> &data);
 
    // returns the first element
    DataType &front() { return *(begin()); }  
@@ -229,7 +230,8 @@ template <class DataType, class KeyType> class ListBase {
 };
 
 template <class DataType, class KeyType>
-inline ostream &operator<<(ostream &os, ListBase<DataType, KeyType> &data) {
+inline ostream &operator<<(ostream &os, 
+			   const ListBase<DataType, KeyType> &data) {
    ListBase<DataType, KeyType>::iterator curr = data.begin();
    ListBase<DataType, KeyType>::iterator endMarker = data.end();
    
@@ -245,7 +247,8 @@ template <class DataType> class List : public ListBase<DataType, void*> {
    List() : ListBase<DataType, KeyType>() { };
    List(const List &fromList) : ListBase<DataType, KeyType>(fromList) { }
    ~List() { }  // ~ListBase will be called
-   friend ostream &operator<<(ostream &os, List<DataType> &data) {
+   friend ostream &operator<<(ostream &os, 
+			      const List<DataType> &data) {
       return operator<<(os, static_cast<ListBase<DataType, KeyType> >(data));
    }
 
@@ -274,7 +277,8 @@ public ListBase<DataType, KeyType> {
    ListWithKey(const ListWithKey &fromList) : 
       ListBase<DataType, KeyType>(fromList) {}
    ~ListWithKey() { }  // ~ListBase will be called
-   friend ostream &operator<<(ostream &os,ListWithKey<DataType, KeyType> &data)
+   friend ostream &operator<<(ostream &os,
+			      const ListWithKey<DataType, KeyType> &data)
    {
       return operator<<(os, static_cast<ListBase<DataType, KeyType> >(data));
    }
