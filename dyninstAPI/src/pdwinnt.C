@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.104 2003/07/18 15:44:02 schendel Exp $
+// $Id: pdwinnt.C,v 1.105 2003/07/29 00:32:40 eli Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -1233,11 +1233,11 @@ bool process::flushInstructionCache_(void *baseAddr, size_t size){ //ccw 25 june
 	return FlushInstructionCache((HANDLE)procHandle_, baseAddr, size);
 }
 
-#ifdef BPATCH_SET_MUTATIONS_ACTIVE
+//#ifdef BPATCH_SET_MUTATIONS_ACTIVE
 bool process::readTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
   return readDataSpace_(inTraced, amount, (void *)inSelf);
 }
-#endif
+//#endif
 
 bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) {
     DWORD nbytes;
@@ -2606,10 +2606,8 @@ bool process::loadDYNINSTlibCleanup()
 
 void loadNativeDemangler() {}
 
-#ifndef BPATCH_LIBRARY
 
 Frame dyn_thread::getActiveFrameMT() {
    return Frame();
 }  // not used until MT supported
 
-#endif

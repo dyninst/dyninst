@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.265 2003/07/18 20:06:49 schendel Exp $
+/* $Id: process.h,v 1.266 2003/07/29 00:32:42 eli Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -559,10 +559,9 @@ void saveWorldData(Address address, int size, const void* src);
   bool writeTextSpace(void *inTracedProcess, u_int amount, const void *inSelf);
   bool writeTextWord(caddr_t inTracedProcess, int data);
 
-#ifdef BPATCH_SET_MUTATIONS_ACTIVE
   bool readTextSpace(const void *inTracedProcess, u_int amount,
                      const void *inSelf);
-#endif
+
   bool continueProc();
   
 #ifdef BPATCH_LIBRARY
@@ -1236,7 +1235,9 @@ private:
 
   bool writeTextWord_(caddr_t inTracedProcess, int data);
   bool writeTextSpace_(void *inTracedProcess, u_int amount, const void *inSelf);
+  //#ifdef BPATCH_SET_MUTATIONS_ACTIVE
   bool readTextSpace_(void *inTracedProcess, u_int amount, const void *inSelf);
+  //#endif
 
 #if defined(i386_unknown_nt4_0)
   public:

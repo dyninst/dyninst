@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.441 2003/07/25 20:40:45 schendel Exp $
+// $Id: process.C,v 1.442 2003/07/29 00:32:41 eli Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2958,6 +2958,7 @@ process *attachProcess(const pdstring &progpath, int pid)
   // than its "competitor", createProcess() (above).
   
   pdstring fullPathToExecutable = process::tryToFindExecutable(progpath, pid);
+
   if (!fullPathToExecutable.length())
       return NULL;
 
@@ -2966,11 +2967,14 @@ process *attachProcess(const pdstring &progpath, int pid)
 #else
   int status = pid;
 #endif // defined(i386_unknown_nt4_0)
+
   fileDescriptor *desc = getExecFileDescriptor(fullPathToExecutable,
 					       status, false);
   if (!desc)
       return NULL;
+
   image *theImage = image::parseImage(desc);
+
   if (theImage == NULL) {
     // two failure return values would be useful here, to differentiate
     // file-not-found vs. catastrophic-parse-error.
@@ -2978,7 +2982,7 @@ process *attachProcess(const pdstring &progpath, int pid)
     showErrorCallback(68, msg.c_str());
     return NULL;
   }
-  
+
   // NOTE: the actual attach happens in the process "attach" constructor:
   bool success=false;
   process *theProc = new process(pid, theImage, success
@@ -3017,6 +3021,7 @@ process *attachProcess(const pdstring &progpath, int pid)
       delete theProc;
       return NULL;
   }
+
     // The process is paused at this point. Run if appropriate.
 
 #if defined(alpha_dec_osf4_0)
@@ -3027,7 +3032,7 @@ process *attachProcess(const pdstring &progpath, int pid)
     // moved to BPatch_thread.C.   RSC 08-26-2002
   //theProc->getDyn()->setMappingHooks(theProc);
 #endif
-  
+
   return theProc; // successful
 }
 
@@ -3085,8 +3090,10 @@ bool process::loadDyninstLib() {
     pdstring buffer = pdstring("PID=") + pdstring(pid);
     buffer += pdstring(", initializing shared objects");       
     statusLine(buffer.c_str());
+
     if (!initSharedObjects())
-        assert(0 && "Failed to init shared objects!");
+        assert(0);// && "Failed to init shared objects!");
+
     if (dyninstLibAlreadyLoaded()) {
         logLine("ERROR: dyninst library already loaded, we missed initialization!");
         assert(0);
@@ -3116,12 +3123,14 @@ bool process::loadDyninstLib() {
     buffer = pdstring("PID=") + pdstring(pid);
     buffer += pdstring(", loading dyninst library");       
     statusLine(buffer.c_str());
+
     loadDYNINSTlib();
     setBootstrapState(loadingRT);
     
     if (!continueProc()) {
         assert(0);
     }
+
     // Loop until the dyninst lib is loaded
     while (!reachedBootstrapState(loadedRT)) {
        if(hasExited())
@@ -3139,6 +3148,7 @@ bool process::loadDyninstLib() {
     buffer = pdstring("PID=") + pdstring(pid);
     buffer += pdstring(", initializing mutator-side structures");
     statusLine(buffer.c_str());    
+
     // The following calls depend on the RT library being parsed,
     // but not on dyninstInit being run
     initInferiorHeap();
@@ -3845,7 +3855,8 @@ bool process::writeTextSpace(void *inTracedProcess, u_int amount,
   return true;
 }
 
-#ifdef BPATCH_SET_MUTATIONS_ACTIVE
+// InsrucIter uses readTextSpace
+//#ifdef BPATCH_SET_MUTATIONS_ACTIVE
 bool process::readTextSpace(const void *inTracedProcess, u_int amount,
                             const void *inSelf)
 {
@@ -3886,7 +3897,7 @@ bool process::readTextSpace(const void *inTracedProcess, u_int amount,
   return true;
 
 }
-#endif /* BPATCH_SET_MUTATIONS_ACTIVE */
+//#endif /* BPATCH_SET_MUTATIONS_ACTIVE */
 
 bool process::pause() {
     
@@ -4107,6 +4118,7 @@ bool process::addASharedObject(shared_object &new_obj, Address newBaseAddr){
         return false;
     }
     new_obj.addImage(img);
+
     // TODO: check for "is_elf64" consistency (Object)
 
     // If the static inferior heap has been initialized, then 
@@ -4291,11 +4303,13 @@ bool process::getSharedObjects() {
     shared_objects = dyn->getSharedObjects(this); 
 
     if(shared_objects){
+
         statusLine("parsing shared object files");
 
 #ifndef BPATCH_LIBRARY
         tp->resourceBatchMode(true);
 #endif
+
 	// for each element in shared_objects list process the 
 	// image file to find new instrumentaiton points
  	for(u_int j=0; j < shared_objects->size(); j++){
@@ -4308,7 +4322,7 @@ bool process::getSharedObjects() {
 // 	    temp2 += pdstring("\n");
 // 	    logLine(P_strdup(temp2.c_str()));
  	    if(!addASharedObject(*((*shared_objects)[j]))){
- 	      logLine("Error after call to addASharedObject\n");
+		logLine("Error after call to addASharedObject\n");
  	    }
 	}
 
@@ -4317,8 +4331,10 @@ bool process::getSharedObjects() {
 #endif
         return true;
     }
+
     // else this a.out does not have a .dynamic section
     dynamiclinking = false;
+
     return false;
 }
 
@@ -5369,6 +5385,7 @@ Address process::findInternalAddress(const pdstring &name, bool warn, bool &err)
      err = true;
      return 0;
 }
+
 
 bool process::continueProc() {
   if (status_ == exited) return false;
