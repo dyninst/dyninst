@@ -7,7 +7,10 @@
  * list.h - list ADT
  *
  * $Log: list.h,v $
- * Revision 1.8  1994/01/25 20:49:40  hollings
+ * Revision 1.9  1994/02/03 23:30:43  hollings
+ * changed listHash to a macro to work with g++ 2.5.2.
+ *
+ * Revision 1.8  1994/01/25  20:49:40  hollings
  * First real version of utility library.
  *
  * Revision 1.7  1994/01/19  20:46:17  hollings
@@ -50,10 +53,7 @@ typedef int Boolean;
 #define TRUE  1
 #endif
 
-inline static int ListHash(void *ptr, int size)
-{
-    return(((int)(ptr) % (int)(size)));
-}
+#define ListHash(ptr, size) (((int)(ptr) % (int)(size)))
 
 template <class Type> class List;
 
