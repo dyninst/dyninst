@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.2 2002/06/17 21:31:14 chadd Exp $
+// $Id: linux-x86.C,v 1.3 2002/06/18 19:19:21 tlmiller Exp $
 
 #include <fstream.h>
 
@@ -375,7 +375,7 @@ parse_procstat(char *p, char *status, unsigned long *sigpend)
 
 
 /* The purpose of this is to synchronize with the sigill handler in
-   the inferior.  In this handler, the inferior signals us (SIG33),
+   the inferior.  In this handler, the inferior signals us (SIG_REATTACH),
    and then it stops itself.  This routine does not return until the
    inferior stop has occurred.  In some contexts, the inferior may be
    acquire a pending SIGSTOP as or after it stops.  We clear the
@@ -428,7 +428,7 @@ waitForInferiorSigillStop(int pid)
 
 /* When a detached mutatee needs us to reattach and handle an event,
    it sends itself a SIGILL.  Its SIGILL handler in turn sends us
-   SIG33, which brings us here.  Here we reattach to the process and
+   SIG_REATTACH, which brings us here.  Here we reattach to the process and
    then help it re-execute the code that caused its SIGILL.  Having
    reattached, we receive the new SIGILL event and dispatch it as
    usual (in handleSigChild). */
@@ -438,7 +438,7 @@ static void sigill_handler(int sig, siginfo_t *si, void *unused)
 
      unused = 0; /* Suppress compiler warning of unused parameter */
 
-     assert(sig == 33);
+     assert(sig == SIG_REATTACH);
      /* Determine the process that sent the signal.  On Linux (at
 	least upto 2.2), we can only obtain this with the real-time
 	signals, those numbered 33 or higher. */
