@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.111 2002/06/26 21:14:54 schendel Exp $
+// $Id: symtab.h,v 1.112 2002/06/27 19:01:42 schendel Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -150,6 +150,7 @@ class module;
 
 class function_base {
 public:
+  static string emptyString;
     function_base(const string &symbol, const string &pretty,
 		Address adr, const unsigned size):
 		line_(0), addr_(adr),size_(size) { 
@@ -166,10 +167,12 @@ public:
      */
     const string &symTabName() const { 
  	if (symTabName_.size() > 0) return symTabName_[0];
-	else return string();}
+	else return emptyString;
+    }
     const string &prettyName() const {
  	if (prettyName_.size() > 0) return prettyName_[0];
-	else return string(); }
+	else return emptyString;
+    }
     vector<string> symTabNameVector() { return symTabName_; }
     vector<string> prettyNameVector() { return prettyName_; }
     void addSymTabName(string name) { symTabName_.push_back(name); }

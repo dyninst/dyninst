@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.141 2002/06/26 21:14:52 schendel Exp $
+// $Id: symtab.C,v 1.142 2002/06/27 19:01:43 schendel Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -80,6 +80,8 @@ extern char *cplus_demangle(char *, int);
 #else
 extern "C" char *cplus_demangle(char *, int);
 #endif
+
+string function_base::emptyString("");
 
 // coming to dyninstAPI/src/symtab.hC
 // needed in metric.C
