@@ -3,14 +3,13 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.8 2001/05/31 18:05:57 schendel Exp $
+# $Id: make.module.tmpl,v 1.9 2001/06/12 19:55:32 schendel Exp $
 #
 
 TARGET	      = terrain
 
-IFLAGS	     += -I. -I/usr/openwin/include \
-		-I/usr/openwin/include/X11 -I/usr/openwin/include/X11/Xaw \
-		-I/usr/include/X11 -I/usr/include/X11/Xaw \
+IFLAGS	     += -I.  -I$(X11DIR)/include \
+		-I$(X11DIR)/include/X11 -I$(X11DIR)/include/X11/Xaw \
 		-I$(BACKUP_CORE)
 
 # if $(TO_CORE)/visi doesn't exist, then the -I$(TO_CORE) automatically
