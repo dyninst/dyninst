@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.129 2003/05/23 07:27:42 pcroth Exp $
+ * $Id: DMdaemon.C,v 1.130 2003/05/23 22:48:46 igor Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -73,9 +73,7 @@ extern "C" {
 
 // TEMP this should be part of a class def.
 string DMstatus="Data Manager";
-string PROCstatus="Processes";
 bool DMstatus_initialized = false;
-bool PROCstatus_initialized = false;
 
 extern unsigned enable_pd_samplevalue_debug;
 
@@ -804,7 +802,6 @@ static bool startPOE(const string         &machine, const string         &login,
 {
 #if !defined(i386_unknown_nt4_0)
     uiMgr->updateStatusLine(DMstatus.c_str(),   "ready");
-    uiMgr->updateStatusLine(PROCstatus.c_str(), "IBM POE");
 
   if (fork()) return(true);
 
@@ -1246,7 +1243,6 @@ static bool startIrixMPI(const string     &machine, const string         &login,
 {
 #if !defined(i386_unknown_nt4_0)
     uiMgr->updateStatusLine(DMstatus.c_str(),   "ready");
-    uiMgr->updateStatusLine(PROCstatus.c_str(), "IRIX MPI");
 
    string programNames;
    pdvector<string> cmdLineVec;
@@ -1711,7 +1707,6 @@ static bool startMPICH(const string &machine, const string &login,
 	bool localMachine = hostIsLocal(machine);
 
     uiMgr->updateStatusLine(DMstatus.c_str(),   "ready");
-    uiMgr->updateStatusLine(PROCstatus.c_str(), "MPICH");
    
 	if (dir.length()) {
 	   strcpy(cwd, dir.c_str());
@@ -1798,11 +1793,6 @@ bool paradynDaemon::newExecutable(const string &machineArg,
    if (! DMstatus_initialized) {
        uiMgr->createStatusLine(DMstatus.c_str());
        DMstatus_initialized = true;
-   }
-
-   if (! PROCstatus_initialized) {
-       uiMgr->createStatusLine(PROCstatus.c_str());
-       PROCstatus_initialized = true;
    }
 
    daemonEntry *def = findEntry(machine, name) ;
@@ -1920,10 +1910,6 @@ bool paradynDaemon::newExecutable(const string &machineArg,
 
    // did the application get started ok?
    if (pid > 0 && !daemon->did_error_occur()) {
-      // TODO
-      char tmp_buf[80];
-      sprintf (tmp_buf, "PID=%d", pid);
-      uiMgr->updateStatusLine(PROCstatus.c_str(), P_strdup(tmp_buf));
 #ifdef notdef
       executable *exec = new executable(pid, argv, daemon);
       paradynDaemon::programs += exec;
@@ -1950,21 +1936,11 @@ bool paradynDaemon::attachStub(const string &machine,
        DMstatus_initialized = true;
    }
 
-   if (! PROCstatus_initialized) {
-       uiMgr->createStatusLine(PROCstatus.c_str());
-       PROCstatus_initialized = true;
-   }
-
   paradynDaemon *daemon = getDaemonHelper(machine, userName, daemonName);
   if (daemon == NULL)
       return false;
 
   daemon->afterAttach_ = afterAttach;
-
-
-  char tmp_buf[128];
-  sprintf (tmp_buf, "attaching to PID=%d...", the_pid);
-  uiMgr->updateStatusLine(PROCstatus.c_str(), P_strdup(tmp_buf));
 
   performanceStream::ResourceBatchMode(batchStart);
   bool success = daemon->attach(cmd, the_pid, afterAttach);
@@ -1976,8 +1952,6 @@ bool paradynDaemon::attachStub(const string &machine,
   if (!success)
      return false;
 
-  sprintf (tmp_buf, "PID=%d", the_pid);
-  uiMgr->updateStatusLine(PROCstatus.c_str(), P_strdup(tmp_buf));
   return true; // success
 }
 
