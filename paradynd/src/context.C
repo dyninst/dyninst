@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.77 2002/07/03 22:18:41 bernat Exp $ */
+/* $Id: context.C,v 1.78 2002/08/12 04:21:38 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/pdThread.h"
@@ -183,25 +183,19 @@ void forkProcess(int pid, int ppid, int trace_fd, key_t theKey,
 #ifdef FORK_EXEC_DEBUG
     timeStamp forkTime = getWallTime();
 #endif
-
-   dictionary_hash<instInstance*, instInstance*> map(instInstancePtrHash);
-      // filled in by process::forkProcess() call.  The map is as follows: for each
-      // instInstance in the parent process, it gives us the instInstance in the child
-      // child process.
-
-    process *childProc = process::forkProcess(parentProc, (pid_t)pid, map, trace_fd,
+    process *childProc = process::forkProcess(parentProc, (pid_t)pid, trace_fd,
 					      theKey, applAttachedAtPtr);
 
-   // For each mi with a component in parentProc, copy it to the child process --- if
-   // the mi isn't refined to a specific process (i.e. is for 'any process')
-   // NOTE: It's easy to not copy data items (timers, ctrs) that don't belong in the
-   //       child.  But for trampolines, it's tricky, since the fork() syscall will
-   //       copy all code whether we like it or not (except on AIX).  Since the
-   //       meta-data for the conventional inferior heap has already been copied by the
-   //       fork-ctor, when we detect code that shouldn't have been copied, we manually
-   //       delete it with deleteInst().  "map" is helpful in this context.
-   metricFocusNode::handleFork(parentProc, childProc, map);
-
+   // For each mi with a component in parentProc, copy it to the child
+   // process --- if the mi isn't refined to a specific process (i.e. is for
+   // 'any process') NOTE: It's easy to not copy data items (timers, ctrs)
+   // that don't belong in the child.  But for trampolines, it's tricky,
+   // since the fork() syscall will copy all code whether we like it or not
+   // (except on AIX).  Since the meta-data for the conventional inferior
+   // heap has already been copied by the fork-ctor, when we detect code that
+   // shouldn't have been copied, we manually delete it with deleteInst().
+   // "map" is helpful in this context.
+   metricFocusNode::handleFork(parentProc, childProc);
    // The following routines perform some assertion checks.
    //   childProc->getTable().forkHasCompleted();
 
@@ -209,16 +203,17 @@ void forkProcess(int pid, int ppid, int trace_fd, key_t theKey,
    cerr << "Fork process took " << (getWallTime()-forkTime) << endl;
 #endif
 
-   // Here is where we (used to) continue the parent process...who has been waiting
-   // patiently at a DYNINSTbreakPoint() since the beginning of DYNINSTfork() while all
-   // this hubbub was going on.  But we can't issue the continueProc().  Why not?
-   // Because it's quite possible that the signal delivered to paradynd by the
-   // DYNINSTbreakPoint() hasn't yet been processed (yes, this happens in practice), so
-   // paradynd still thinks that parentProc's status is running.  What's the
-   // solution?  We create a stupid new field in the process structure that, when true,
-   // tells paradynd that when the next SIGSTOP is delivered, to continue the process.
-   // On the other hand, if parentProc's status is stopped, then we go ahead and issue
-   // the continueProc now.  --ari
+   // Here is where we (used to) continue the parent process...who has been
+   // waiting patiently at a DYNINSTbreakPoint() since the beginning of
+   // DYNINSTfork() while all this hubbub was going on.  But we can't issue
+   // the continueProc().  Why not?  Because it's quite possible that the
+   // signal delivered to paradynd by the DYNINSTbreakPoint() hasn't yet been
+   // processed (yes, this happens in practice), so paradynd still thinks
+   // that parentProc's status is running.  What's the solution?  We create a
+   // stupid new field in the process structure that, when true, tells
+   // paradynd that when the next SIGSTOP is delivered, to continue the
+   // process.  On the other hand, if parentProc's status is stopped, then we
+   // go ahead and issue the continueProc now.  --ari
 
 //   if (parentProc->status() == running)
 //      parentProc->continueAfterNextStop();
@@ -379,10 +374,11 @@ bool continueAllProcesses()
        process *p = processVec[u];
        if (p != NULL && p->status() != running) {
 #ifdef DETACH_ON_THE_FLY
-         if (!processVec[u]->detachAndContinue()) {
+         if (!processVec[u]->detachAndContinue())
 #else
-	 if (!processVec[u]->continueProc()) {
+	 if (!processVec[u]->continueProc())
 #endif
+	 {
 	   sprintf(errorLine,"WARNING: cannot continue process %d\n",processVec[u]->getPid());
 	   cerr << errorLine << endl;
 	 }
@@ -423,10 +419,10 @@ bool pauseAllProcesses()
 }
 
 void processNewTSConnection(int tracesocket_fd) {
-   // either a forked process or one created via attach is trying to get a new
-   // tracestream connection.  accept() the new connection, then do some processing.
-   // There is no need to restrict this for forked and attached processes --mjrg
-
+   // either a forked process or one created via attach is trying to get a
+   // new tracestream connection.  accept() the new connection, then do some
+   // processing.  There is no need to restrict this for forked and attached
+   // processes --mjrg
    int fd = RPC_getConnect(tracesocket_fd); // accept()
       // will become traceLink of new process
    assert(fd >= 0);
@@ -478,19 +474,18 @@ void processNewTSConnection(int tracesocket_fd) {
    process *curr = NULL;
 
    if (calledFromFork) {
-      // the following will (1) call fork ctor (2) call metricFocusNode::handleFork
-      // (3) continue the parent process, who has been waiting to avoid race conditions.
+      // the following will (1) call fork ctor (2) call
+      // metricFocusNode::handleFork (3) continue the parent process, who has
+      // been waiting to avoid race conditions.
       forkProcess(pid, ppid, fd, theKey, applAttachedAtPtr);
 
       curr = findProcess(pid);
       assert(curr);
-
       // continue process...the next thing the process will do is call
       // DYNINSTinit(-1, -1, -1)
       string str = string("running DYNINSTinit() for fork child pid ") + string(pid);
 	  forkexec_cerr << str << endl;
       statusLine(str.c_str());
-
 	  if( curr->status() == running )
 	  {
 //#if defined(i386_unknown_linux2_0)
@@ -502,18 +497,18 @@ void processNewTSConnection(int tracesocket_fd) {
 		    assert(false);
 		  }
 	  }
-
 #if defined(rs6000_ibm_aix4_1)
-      // HACK to compensate for AIX goofiness: as soon as we call continueProc() above
-      // (and not before!), a SIGTRAP appears to materialize out of thin air, stopping
-      // the child process.  Thus, DYNINSTinit() won't run unless we issue an explicit
-      // continue.  (Actually, there may be a semi-legit explanation.  It seems that on
-      // non-solaris platforms, including sunos and aix, if a sigstop is sent and not
-      // handled -- i.e. if we just leave the application in a paused state, without
-      // continuing -- then the sigstop will be sent over and over again, nonstop, until
-      // the application is continued.  So perhaps the sigtrap we see now was present all
-      // along, but we never knew it because waitpid in the main loop kept returning
-      // sigstops.  --ari)
+      // HACK to compensate for AIX goofiness: as soon as we call
+      // continueProc() above (and not before!), a SIGTRAP appears to
+      // materialize out of thin air, stopping the child process.  Thus,
+      // DYNINSTinit() won't run unless we issue an explicit continue.
+      // (Actually, there may be a semi-legit explanation.  It seems that on
+      // non-solaris platforms, including sunos and aix, if a sigstop is sent
+      // and not handled -- i.e. if we just leave the application in a paused
+      // state, without continuing -- then the sigstop will be sent over and
+      // over again, nonstop, until the application is continued.  So perhaps
+      // the sigtrap we see now was present all along, but we never knew it
+      // because waitpid in the main loop kept returning sigstops.  --ari)
 
       int wait_status;
       int wait_result = waitpid(curr->getPid(), &wait_status, WNOHANG);
@@ -523,15 +518,12 @@ void processNewTSConnection(int tracesocket_fd) {
 	    int sig = WSTOPSIG(wait_status);
 	    if (sig == 5)  { // sigtrap
 	       curr->status_ = stopped;
-#ifdef DETACH_ON_THE_FLY
-	       if (!curr->detachAndContinue())
-#else
 	       if (!curr->continueProc())
-#endif
 		  assert(false);
-	    }
-	 }
+ 	    }
+        }
       }
+
 #elif defined(i386_unknown_linux2_0)
 	  int wait_status;
 	  int wait_result = waitpid( curr->getPid(), &wait_status, WUNTRACED );
@@ -557,5 +549,5 @@ void processNewTSConnection(int tracesocket_fd) {
       curr->traceLink = fd;
       statusLine("ready");
    }
-
 }
+
