@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: shmMgr.C,v 1.7 2002/06/25 20:26:22 bernat Exp $
+/* $Id: shmMgr.C,v 1.8 2002/07/03 22:18:42 bernat Exp $
  * shmMgr: an interface to allocating/freeing memory in the 
  * shared segment. Will eventually support allocating a new
  * shared segment and attaching to it.
@@ -55,7 +55,7 @@ shmMgr::shmMgr()
 {
 }
 
-shmMgr::shmMgr(process *proc, key_t shmSegKey, unsigned shmSize_) :
+shmMgr::shmMgr(process *proc, key_t shmSegKey, unsigned shmSize_, unsigned reservedSize_) :
   shmSize(shmSize_), baseAddrInDaemon(0), baseAddrInApplic(0),
   num_allocated(0)
 {
@@ -73,18 +73,8 @@ shmMgr::shmMgr(process *proc, key_t shmSegKey, unsigned shmSize_) :
   // Now, let's initialize some meta-data: cookie, process pid, paradynd pid,
   // cost.
   baseAddrInDaemon = reinterpret_cast<Address>(theShm->GetMappedAddress());
-  unsigned *ptr = reinterpret_cast<unsigned *>(baseAddrInDaemon);
-  *ptr++ = cookie;
-  *ptr++ = (unsigned)proc;
-  *ptr++ = (unsigned)getpid();     // paradynd pid
-  *ptr++ = 0;            // initialize observed cost
-#if defined(MT_THREAD)
-  // HACK, FIX!
-  ptr += 4096;
-#endif
-  Address endAddr = reinterpret_cast<Address>(ptr);
-  freespace = shmSize - (endAddr - baseAddrInDaemon);  
-  highWaterMark = endAddr;
+  freespace = shmSize - reservedSize_;
+  highWaterMark = baseAddrInDaemon + reservedSize_;
 }
 
 shmMgr::~shmMgr()
@@ -104,8 +94,6 @@ static unsigned align(unsigned num, unsigned alignmentFactor) {
 }
 
 Address shmMgr::malloc(unsigned size) {
-  cerr << "Allocating size " << size << endl;
-  cerr << "Remaining free space: " << freespace << endl;
   if (freespace < size)
     return 0;
   num_allocated++;
@@ -120,7 +108,6 @@ Address shmMgr::malloc(unsigned size) {
   // Cheesed, again
   Address retAddr = highWaterMark;
   highWaterMark += size;
-  cerr << "Returning new " << (void *)retAddr << endl;
   freespace -= size;
   return retAddr;
 }
@@ -148,7 +135,6 @@ void shmMgr::free(Address addr)
 void shmMgr::preMalloc(unsigned size, unsigned num)
 {
   Address baseAddr = this->malloc(size*num);
-  cerr << "Preallocating " << size << " with amount " << num << " base address " << (void *)baseAddr << endl;
   if (!baseAddr) return;
   shmMgrPreallocInternal *new_prealloc = new shmMgrPreallocInternal(size, num, baseAddr);
   prealloc.push_back(new_prealloc);
@@ -197,7 +183,6 @@ bool shmMgrPreallocInternal::oneAvailable()
 
 Address shmMgrPreallocInternal::malloc()
 {
-  cerr << "in internal malloc" << endl;
   if (!oneAvailable()) return 0;
   // Well, there's one here... let's try and find it. Scan the bitmaps
   // for one that is less than 0xff
@@ -220,7 +205,6 @@ Address shmMgrPreallocInternal::malloc()
   bitmap_[next_free_block] += 0x1 << next_free_slot;
   currAlloc_++;
   Address retAddr = baseAddr_ + (((next_free_block * 8) + next_free_slot) * size_);
-  cerr << "Returning addr " << (void *)retAddr << " block " << next_free_block << " slot " << next_free_slot << endl;
   return retAddr;
 }
 

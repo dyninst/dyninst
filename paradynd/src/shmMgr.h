@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: shmMgr.h,v 1.3 2002/06/10 19:25:13 bernat Exp $
+/* $Id: shmMgr.h,v 1.4 2002/07/03 22:18:43 bernat Exp $
  * shmMgr: an interface to allocating/freeing memory in the 
  * shared segment. Will eventually support allocating a new
  * shared segment and attaching to it.
@@ -75,11 +75,6 @@ class shmMgrPreallocInternal
   bool oneAvailable();
 };
 
-#define SHM_COOKIE 0
-#define SHM_PROC (SHM_COOKIE + sizeof(unsigned))
-#define SHM_PID  (SHM_PROC + sizeof(unsigned))
-#define SHM_COST (SHM_PID + sizeof(unsigned))
-
 
 class shmMgr {
 
@@ -97,7 +92,7 @@ class shmMgr {
   static const unsigned cookie;
 
   shmMgr();
-  shmMgr(process *proc, key_t shmSegKey, unsigned shmSize_);
+  shmMgr(process *proc, key_t shmSegKey, unsigned shmSize_, unsigned reservedSize_);
   ~shmMgr();
 
   // Tell the manager to preallocate a chunk of space
@@ -117,18 +112,11 @@ class shmMgr {
     Address retAddr = baseAddrInApplic + offset;
     return reinterpret_cast<void*>(retAddr);
   }
-  void *getObsCostAddrInApplicSpace() { 
-    if(baseAddrInApplic == 0)
-      return NULL;
-    
-    return reinterpret_cast<void*>(baseAddrInApplic + SHM_COST);
+
+  void *getBaseAddrInDaemon() {
+    return (void *)baseAddrInDaemon;
   }
-  void *getObsCostAddrInParadyndSpace() { 
-    if(baseAddrInApplic == 0)
-      return NULL;
-    
-    return reinterpret_cast<void*>(baseAddrInDaemon + SHM_COST);			  
-  }
+
   void registerInferiorAttachedAt(void *applicAttachedAt) { 
     baseAddrInApplic = reinterpret_cast<Address>(applicAttachedAt);
   }
