@@ -2,6 +2,9 @@
 
 #
 # $Log: mainMenu.tcl,v $
+# Revision 1.56  1996/10/31 08:23:33  tamches
+# v1.1 --> v1.2 internal
+#
 # Revision 1.55  1996/09/04 21:22:17  tamches
 # added version # on screen
 #
@@ -130,7 +133,7 @@ proc drawToolBar {} {
     frame .parent.menub.left.top.title.versionFrame -background #b3331e1b53c7
     pack  .parent.menub.left.top.title.versionFrame -side right -fill y -expand false
 	    
-    label .parent.menub.left.top.title.versionFrame.version -text "v1.1" \
+    label .parent.menub.left.top.title.versionFrame.version -text "v1.2 internal" \
 	    -font "*-Helvetica-*-r-*-12-*" \
 	    -background #b3331e1b53c7 \
 	    -foreground white \
