@@ -4,7 +4,10 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.7  1995/03/15 19:16:15  jcargill
+# Revision 1.8  1995/05/18 10:50:05  markc
+# Added mdl.C and define for mdl code
+#
+# Revision 1.7  1995/03/15  19:16:15  jcargill
 # Removed -lresolv for all architectures, and added it back for Sunos
 # and Solaris; libresolv.a causes trouble for hppa.
 #
@@ -68,7 +71,8 @@ SRCS	     += ../src/DMthread/DMpublic.C \
 		metParser.C \
 		metScanner.C \
 		../src/met/metClass.C \
-		../src/templates.C 
+		../src/templates.C  \
+                ../src/met/mdl.C
 
 IGEN_GEN_SRCS =	dataManager.thread.C \
 		dataManager.thread.CLNT.C \
@@ -100,6 +104,7 @@ IGEN_ISRCS    = dataManager.I \
 		UI.I \
 		VM.I
 
+IFLAGS       += -DPARADYN
 LIBDIR	     += -L/usr/psup/lib
 
 LIBS 	     += -lpdutil -lpdthread
