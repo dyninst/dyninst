@@ -63,14 +63,24 @@ typedef void (*BPatchDynLibraryCallback)(BPatch_thread *thr,
 					 BPatch_module *mod,
 					 bool load);
 
+typedef void (*BPatchForkCallback)(BPatch_thread *parent, BPatch_thread *child);
+
+typedef void (*BPatchExecCallback)(BPatch_thread *proc);
+
+typedef void (*BPatchExitCallback)(BPatch_thread *proc, int code);
+
 class BPatch {
     friend class BPatch_thread;
     friend class process;
 
     BPatch_libInfo	*info;
 
-    BPatchErrorCallback      errorHandler;
-    BPatchDynLibraryCallback dynLibraryCallback;
+    BPatchErrorCallback      	errorHandler;
+    BPatchDynLibraryCallback 	dynLibraryCallback;
+    BPatchForkCallback   	postForkCallback;
+    BPatchForkCallback    	preForkCallback;
+    BPatchExecCallback		execCallback;
+    BPatchExitCallback		exitCallback;
     bool	typeCheckOn;
     int		lastError;
     bool	debugParseOn;
@@ -91,12 +101,15 @@ public:
     BPatch_type			 *type_Error;
     BPatch_type			 *type_Untyped;
     
-    // The following are only to be called by the library:
     bool isTypeChecked() { return typeCheckOn; }
     bool parseDebugInfo() { return debugParseOn; }
     bool isTrampRecursive() { return trampRecursiveOn; }
 
+    // The following are only to be called by the library:
     void registerProvisionalThread(int pid);
+    void registerForkedThread(int parentPid, int childPid, process *proc);
+    void registerExec(BPatch_thread *thread);
+    void registerExit(BPatch_thread *thread, int code);
     void registerThread(BPatch_thread *thread);
     void unRegisterThread(int pid);
 
@@ -116,13 +129,19 @@ public:
 				  const char *fmt, const char **params);
     BPatchErrorCallback registerErrorCallback(BPatchErrorCallback function);
     BPatchDynLibraryCallback registerDynLibraryCallback(BPatchDynLibraryCallback function);
+    BPatchForkCallback registerPostForkCallback(BPatchForkCallback func);
+    BPatchForkCallback registerPreForkCallback(BPatchForkCallback func);
+    BPatchExecCallback registerExecCallback(BPatchExecCallback func);
+    BPatchExitCallback registerExitCallback(BPatchExitCallback func);
+
     BPatch_Vector<BPatch_thread*> *getThreads();
 
     void setDebugParsing(bool x) { debugParseOn = x; }
     void setTypeChecking(bool x) { typeCheckOn = x; }
     void setTrampRecursive(bool x) { trampRecursiveOn = x; }
 
-    BPatch_thread *createProcess(char *path, char *argv[], char *envp[] = NULL);
+    BPatch_thread *createProcess(char *path, char *argv[], 
+	char *envp[] = NULL, int stdin_fd=0, int stdout_fd=1, int stderr_fd=2);
     BPatch_thread *attachProcess(char *path, int pid);
 
     // Create Enum types. 

@@ -39,51 +39,55 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#ifndef _BPatch_point_h_
-#define _BPatch_point_h_
+#ifndef _BPatch_sourceObj_h_
+#define _BPatch_sourceObj_h_
 
-class process;
-class instPoint;
-class BPatch_thread;
-class BPatch_image;
-class BPatch_function;
+#include <BPatch_Vector.h>
 
+class BPatch_type;
+class BPatch_variableExpr;
 
-/*
- * Used with BPatch_function::findPoint to specify which of the possible
- * instrumentation points within a procedure should be returned.
- */
-typedef enum {
-    BPatch_entry,
-    BPatch_exit,
-    BPatch_subroutine,
-    BPatch_longJump,
-    BPatch_allLocations,
-    BPatch_instruction
-} BPatch_procedureLocation;
-
-
-class BPatch_point {
-    friend class BPatch_thread;
-    friend class BPatch_image;
-    friend class BPatch_function;
-
-    process	*proc;
-    const BPatch_function	*func;
-    instPoint	*point;
-    BPatch_procedureLocation pointType;
-
-    BPatch_point(process *_proc, BPatch_function *_func, instPoint *_point,
-		 BPatch_procedureLocation _pointType) :
-	proc(_proc), func(_func), point(_point), pointType(_pointType) {};
-public:
-    const BPatch_procedureLocation getPointType() { return pointType; }
-    const BPatch_function *getFunction() { return func; }
-    BPatch_function *getCalledFunction();
-    void            *getAddress();
-    int             getDisplacedInstructions(int maxSize, void *insns);
-
-    bool	usesTrap_NP();
+typedef enum BPatch_language {
+    BPatch_c, 
+    BPatch_cPlusPlus, 
+    BPatch_fortran, 
+    BPatch_fortran77, 
+    BPatch_fortran90, 
+    BPatch_assembly, 
+    BPatch_mixed, 
+    BPatch_hpf, 
+    BPatch_java, 
+    BPatch_unknownLanguage 
 };
 
-#endif /* _BPatch_point_h_ */
+typedef enum BPatch_sourceType {
+    BPatch_sourceUnknown_type,
+    BPatch_sourceProgram,
+    BPatch_sourceModule,
+    BPatch_sourceFunction,
+    BPatch_sourceOuterLoop,
+    BPatch_sourceLoop,
+    BPatch_sourceBlock,
+    BPatch_sourceStatement
+};
+
+class BPatch_sourceObj {
+  public:
+      BPatch_sourceType getSrcType() { return _srcType; }
+      virtual BPatch_Vector<BPatch_sourceObj *> *getSourceObj() = 0;
+      virtual BPatch_sourceObj *getObjParent() = 0;
+
+      BPatch_Vector<BPatch_variableExpr *> *findVariable(const char *name);
+      BPatch_language getLanguage();
+      BPatch_type *getType(char *name);
+      BPatch_Vector<BPatch_variableExpr *> *getVariables();
+      bool getLineNumbers(int &start, int &end);
+      BPatch_Vector<char *> *getLoadedFileNames();
+      char *programName(char *buf, unsigned int len);
+      int programNameLen();
+
+  protected:
+      enum BPatch_sourceType _srcType;
+};
+
+#endif

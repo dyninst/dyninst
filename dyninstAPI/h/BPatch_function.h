@@ -54,19 +54,26 @@ class BPatch_localVarCollection;
 class BPatch_function;
 class BPatch_point;
 
-class BPatch_function {
+class BPatch_function: public BPatch_sourceObj {
     process *proc;
     BPatch_type * retType;
     BPatch_Vector<BPatch_localVar *> params;
     BPatch_module *mod;
-    
+
 public:
+    virtual	~BPatch_function();
+
 // The following are for  internal use by the library only:
     function_base *func;
+    process *getProc() { return proc; }
+
 // No longer inline but defined in .C file
     BPatch_function(process *_proc, function_base *_func, BPatch_module *);
     BPatch_function(process *_proc, function_base *_func,
 		    BPatch_type * _retType, BPatch_module *);
+
+    BPatch_Vector<BPatch_sourceObj *> *getSourceObj();
+    BPatch_sourceObj *getObjParent();
     BPatch_localVarCollection * localVariables;
     BPatch_localVarCollection * funcParameters;
     void setReturnType( BPatch_type * _retType){
@@ -88,6 +95,7 @@ public:
     BPatch_localVar * findLocalVar( const char * name);
     BPatch_localVar * findLocalParam(const char * name);
 };
+
 
 
 #endif /* _BPatch_function_h_ */

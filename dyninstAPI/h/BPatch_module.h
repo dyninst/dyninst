@@ -43,8 +43,10 @@
 #define _BPatch_module_h_
 
 #include <BPatch_Vector.h>
+#include <BPatch_sourceObj.h>
 
 class pdmodule;
+class BPatch_image;
 class BPatch_function;
 class BPatch_typeCollection;
 class BPatch_builtInTypeCollection;
@@ -52,15 +54,23 @@ class BPatch_builtInTypeCollection;
 extern BPatch_builtInTypeCollection * builtInTypes;
 
 
-class BPatch_module {
-    process	*proc;
-    pdmodule	*mod;
+class BPatch_module: public BPatch_sourceObj {
+    process		*proc;
+    pdmodule		*mod;
+    BPatch_image	*img;
     BPatch_Vector<BPatch_function *> * BPfuncs;
      
 public:
 // The following functions are for internal use by  the library only:
-    BPatch_module(process *_proc, pdmodule *_mod);
-    BPatch_module() : mod(NULL), BPfuncs(NULL) {};
+    BPatch_module(process *_proc, pdmodule *_mod, BPatch_image *img);
+    BPatch_module() : mod(NULL), img(NULL), BPfuncs(NULL) {
+	_srcType = BPatch_sourceModule;
+    };
+
+    virtual ~BPatch_module();
+
+    BPatch_Vector<BPatch_sourceObj *> *getSourceObj();
+    BPatch_sourceObj *getObjParent();
 
     BPatch_typeCollection *moduleTypes;
 

@@ -42,6 +42,7 @@
 #ifndef _BPatch_image_h_
 #define _BPatch_image_h_
 
+#include "BPatch_sourceObj.h"
 #include "BPatch_Vector.h"
 #include "BPatch_point.h"
 #include "BPatch_snippet.h"
@@ -53,13 +54,17 @@ class image;
 
 class AddrToVarExprHash;
 
-class BPatch_image {
+class BPatch_image: public BPatch_sourceObj {
     process	*proc;
 
 public:
 // The following functions are for internal use by  the library only:
     BPatch_image(process *_proc);
     BPatch_image();
+    virtual ~BPatch_image();
+
+    BPatch_Vector<BPatch_sourceObj *> *getSourceObj();
+    BPatch_sourceObj *getObjParent();
 
     bool                 ModuleListExist();
     void                 addModuleIfExist(BPatch_module *bpmod);

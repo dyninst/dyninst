@@ -103,6 +103,9 @@ public:
  */
 class BPatch_thread {
     friend class BPatch;
+    friend class BPatch_image;
+    friend class BPatch_function;
+    friend class process;
     friend bool pollForStatusChange();
 
     process		*proc;
@@ -141,8 +144,14 @@ class BPatch_thread {
 
     void		*oneTimeCodeInternal(const BPatch_snippet &expr);
 protected:
-    BPatch_thread(char *path, char *argv[], char *envp[] = NULL);
-    BPatch_thread(char *path, int pid);
+    // for creating a process
+    BPatch_thread(char *path, char *argv[], char *envp[] = NULL, int stdin_fd = 0,
+	int stdout_fd = 1, int stderr_fd = 2);
+    // for attaching
+    BPatch_thread(char *path, int pid);	
+
+    // for forking
+    BPatch_thread(int childPid, process *proc);
 
 public:
     ~BPatch_thread();

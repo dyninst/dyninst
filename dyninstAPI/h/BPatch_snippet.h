@@ -43,6 +43,7 @@
 #define _BPatch_snippet_h_
 
 #include "BPatch_Vector.h"
+#include "BPatch_sourceObj.h"
 #include "BPatch_point.h"
 #include "BPatch_type.h"
 #include "BPatch_module.h"
