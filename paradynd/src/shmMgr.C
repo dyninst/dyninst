@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: shmMgr.C,v 1.20 2004/05/11 19:01:57 bernat Exp $
+/* $Id: shmMgr.C,v 1.21 2004/07/15 16:52:32 gquinn Exp $
  * shmMgr: an interface to allocating/freeing memory in the 
  * shared segment. Will eventually support allocating a new
  * shared segment and attaching to it.
@@ -62,8 +62,14 @@ shmMgr::shmMgr(BPatch_thread *thr, key_t shmSegKey, unsigned shmSize_, bool free
 }
 
 bool shmMgr::initialize() {
+
+    // Get the name of the shared memory library (if specified in environment)
+    const char *shm_lib_name = getenv("PARADYN_LIB_SHARED");
+    if (!shm_lib_name)
+	shm_lib_name = SHARED_MUTATEE_LIB;
+
     // Load the shared memory library via Dyninst's loadLibrary
-    if (!app_thread->loadLibrary(SHARED_MUTATEE_LIB, true)) {
+    if (!app_thread->loadLibrary(shm_lib_name, true)) {
         fprintf(stderr, "Failed to load shared memory library\n");
         return false;
     }
