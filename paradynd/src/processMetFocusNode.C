@@ -48,17 +48,18 @@
 #include "dyninstAPI/src/process.h"
 #include "pdutil/h/pdDebugOstream.h"
 #include "dyninstAPI/src/pdThread.h"
+#include "paradynd/src/init.h"
 
 extern pdDebug_ostream sampleVal_cerr;
 
 vector<processMetFocusNode*> processMetFocusNode::allProcNodes;
 
 processMetFocusNode::processMetFocusNode(process *p,
-                       const Focus &component_foc,
+                       const string &metname, const Focus &focus_,
 		       aggregateOp agg_op, bool arg_dontInsertData)
   : aggregator(agg_op, getCurrSamplingRate()),
     parentNode(NULL), aggInfo(NULL), proc_(p), aggOp(agg_op), 
-    aggInfoInitialized(false), component_focus(component_foc), 
+    aggInfoInitialized(false), metric_name(metname), focus(focus_), 
     dontInsertData_(arg_dontInsertData), catchupNotDoneYet_(false)
 {
   allProcNodes.push_back(this);
@@ -71,6 +72,7 @@ void processMetFocusNode::getProcNodes(vector<processMetFocusNode*> *procnodes)
   }
 }
 
+// optimize this if helpful
 void processMetFocusNode::getProcNodes(vector<processMetFocusNode*> *procnodes,
 				       int pid)
 {
@@ -79,6 +81,18 @@ void processMetFocusNode::getProcNodes(vector<processMetFocusNode*> *procnodes,
     if(curNode->proc()->getPid() == pid)
       (*procnodes).push_back(curNode);
   }
+}
+
+// optimize this if helpful
+void processMetFocusNode::getMT_ProcNodes(
+				    vector<processMetFocusNode*> *MT_procnodes)
+{
+   for(unsigned i=0; i<allProcNodes.size(); i++) {
+      processMetFocusNode *curNode = allProcNodes[i];
+      if(curNode->proc()->is_multithreaded()) {
+	 (*MT_procnodes).push_back(curNode);
+      }
+   }
 }
 
 bool processMetFocusNode::instrLoaded() {
@@ -200,12 +214,12 @@ void processMetFocusNode::updateWithDeltaValue(timeStamp startTime,
 }
 
 processMetFocusNode *processMetFocusNode::newProcessMetFocusNode(
-                       process *p, 
+		       process *p, const string &metname,
 		       const Focus &component_foc,
 		       aggregateOp agg_op, bool arg_dontInsertData)
 {
-  processMetFocusNode *procNode = 
-    new processMetFocusNode(p, component_foc, agg_op, arg_dontInsertData);
+  processMetFocusNode *procNode = new processMetFocusNode(p, metname, 
+				    component_foc, agg_op, arg_dontInsertData);
   return procNode;
 }
 
@@ -299,7 +313,7 @@ processMetFocusNode* processMetFocusNode::handleExec() {
    // Of course, we're just interested in the (single) component mi contained
    // within it; it'll replace "this".
    
-   vector<metricDefinitionNode *> comp = tempMachNode->getComponents();
+   vector<metricFocusNode *> comp = tempMachNode->getComponents();
    assert(comp.size() == 1);
    processMetFocusNode *procNode = 
       dynamic_cast<processMetFocusNode*>(comp[0]);
@@ -319,7 +333,7 @@ processMetFocusNode* processMetFocusNode::handleExec() {
    unsigned num_aggregators = aggregators.size();
    assert(num_aggregators > 0);
    for (unsigned agglcv=0; agglcv < num_aggregators; agglcv++) {
-      metricDefinitionNode *aggMI = aggregators[agglcv];
+      metricFocusNode *aggMI = aggregators[agglcv];
       
 #if defined(MT_THREAD)
       if (THR_LEV == aggregators[agglcv]->getMdnType())
@@ -327,11 +341,11 @@ processMetFocusNode* processMetFocusNode::handleExec() {
 #endif
       
       bool found=false;
-      vector<metricDefinitionNode *> aggComp = aggMI->getComponents();
+      vector<metricFocusNode *> aggComp = aggMI->getComponents();
       for (unsigned complcv=0; complcv < aggComp.size(); complcv++) {
 	 if (aggComp[complcv] == this) {
 	    aggComp[complcv] = 
-	       static_cast<metricDefinitionNode*>(procNode);
+	       static_cast<metricFocusNode*>(procNode);
 	    
 	    procNode->aggregators += aggMI;
 	    procNode->samples     += aggMI->getAggregator().newComponent();
@@ -408,7 +422,7 @@ bool processMetFocusNode::catchupInstrNeeded() const {
 //  in this case, the manuallyTrigger flag is set based on the 
 //  program stack (the call sequence implied by the sequence of PCs
 //  in the program stack), and the types of the set of inst points 
-//  which the metricDefinitionNode corresponds to, as opposed to
+//  which the metricFocusNode corresponds to, as opposed to
 //  a hacked interpretation of the original MDL statement syntax.
 // The basic algorithm is as follows:
 //  1. Construct function call sequence leading to the current 
@@ -483,8 +497,13 @@ bool processMetFocusNode::loadInstrIntoApp(pd_Function **func) {
    return true;
 }
 
-void processMetFocusNode::mapSampledDRNs2ThrNodes() {
-  metricVarCodeNode->mapSampledDRNs2ThrNodes(thrNodes);
+void processMetFocusNode::prepareForSampling() {
+  metricVarCodeNode->prepareForSampling(thrNodes);
+}
+
+void processMetFocusNode::prepareForSampling(threadMetFocusNode *thrNode)
+{
+  metricVarCodeNode->prepareForSampling(thrNode);
 }
 
 void processMetFocusNode::stopSamplingThr(threadMetFocusNode_Val *thrNodeVal) {
@@ -604,18 +623,6 @@ processMetFocusNode::~processMetFocusNode() {
   for(int k=(int)allProcNodes.size()-1; k>=0; k--) {
     if(allProcNodes[k] == this)  allProcNodes.erase(k);
   }
-  
-#if defined(MT_THREAD)
-  if (proc()) {
-    unsigned tSize = proc()->allMIComponentsWithThreads.size();
-    for (unsigned u=0; u<tSize; u++) 
-      if (proc()->allMIComponentsWithThreads[u] == this) {
-	proc()->allMIComponentsWithThreads[u] = proc()->allMIComponentsWithThreads[tSize-1];
-	proc()->allMIComponentsWithThreads.resize(tSize-1);
-	break ;
-      }
-  }
-#endif
 }
 
 bool processMetFocusNode::hasDeferredInstr() {
@@ -658,46 +665,27 @@ void processMetFocusNode::addConstraintCodeNode(instrCodeNode* part) {
   part->recordAsParent(this);
 }
 
-#if defined(MT_THREAD)
 void processMetFocusNode::addThread(pdThread *thr)
 {
-  cerr << "addThread not implemented\n";
+   // we only want to sample this new thread if the selected focus for this
+   // processMetFocusNode was for the whole process.  If it's not a thread
+   // specific focus, then the focus includes the whole process (ie. all of
+   // the threads)
+   if(getFocus().thread_defined()) return;
+
+   string thrName = string("thr_") + thr->get_tid() + "{" + 
+                      thr->get_start_func()->prettyName() + "}";
+   Focus focus_with_thr = getFocus();
+   focus_with_thr.set_thread(thrName);
+   threadMetFocusNode *thrNode = threadMetFocusNode::
+      newThreadMetFocusNode(metric_name, focus_with_thr, thr);
+   addPart(thrNode);
+   
+   thrNode->initializeForSampling(getWallTime(), pdSample::Zero());
 }
 
-void processMetFocusNode::deleteThread(pdThread *thr)
+void processMetFocusNode::deleteThread(pdThread * /*thr*/)
 {
-  /*  This needs a rewrite
-  assert(mdn_type_ == COMP_MDN);
-  int tid;
-  assert(thr);
-  tid = thr->get_tid();
-
-  for (unsigned u=0; u<components.size(); u++) {
-    metricDefinitionNode * prim = components[u];
-    assert(prim->getMdnType() == PRIM_MDN);
-
-    unsigned tsize = prim->getComponents().size();
-    assert(tsize == prim->getThrNames().size());
-
-    string pretty_name = string(thr->get_start_func()->prettyName().string_of()) ;
-    string thrName = string("thr_") + tid + string("{") + pretty_name + string("}");
-    instrCodeNode *prim_alt = dynamic_cast<instrCodeNode*>(prim);
-    instrDataNode *thr_mi = prim_alt->getDataNode(thrName);
-
-    if (thr_mi) {
-      assert(thr_mi->getMdnType() == THR_LEV);
-
-      thr_mi->removeThisInstance();  // removeThisInstance
-      // delete thr_mi
-    }
-  }
-  */  
-#if defined(TEST_DEL_DEBUG)
-  sprintf(errorLine,"----- deleting thread %d to pid %d\n",tid,
-	  proc()->getPid());
-  logLine(errorLine);
-#endif
-
+   // need to implement
 }
 
-#endif //MT_THREAD
