@@ -25,9 +25,12 @@
 // * VISIthread server routines:  VISIKillVisi
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.10  1994/06/17 18:15:25  newhall
-/* removed debug stmts
+/* Revision 1.11  1994/06/27 21:25:54  rbi
+/* New abstraction parameter for performance streams
 /*
+ * Revision 1.10  1994/06/17  18:15:25  newhall
+ * removed debug stmts
+ *
  * Revision 1.9  1994/06/17  00:13:35  hollings
  * Fixed error in malloc of the string longName.
  *
@@ -781,7 +784,7 @@ void *VISIthreadmain(visi_thread_args *args){
   // create performance stream
   dataHandlers.sample = (sampleDataCallbackFunc)VISIthreadDataCallback;
   if((globals->perStream = globals->dmp->createPerformanceStream(context,
-		   Sample,dataHandlers,callbacks)) == NULL){
+		   Sample,BASE,dataHandlers,callbacks)) == NULL){
     PARADYN_DEBUG(("Error in createPerformanceStream"));
     uiMgr->showError("error in createPerformanceStream in VISImain");
     printf("error # : serious");

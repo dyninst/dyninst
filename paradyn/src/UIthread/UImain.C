@@ -1,8 +1,11 @@
 /* $Log: UImain.C,v $
-/* Revision 1.18  1994/06/17 22:08:07  hollings
-/* Added code to provide upcall for resource batch mode when a large number
-/* of resources is about to be added.
+/* Revision 1.19  1994/06/27 21:25:17  rbi
+/* New abstraction parameter for performance streams
 /*
+ * Revision 1.18  1994/06/17  22:08:07  hollings
+ * Added code to provide upcall for resource batch mode when a large number
+ * of resources is about to be added.
+ *
  * Revision 1.17  1994/06/12  22:37:11  karavan
  * implemented status change for run/pause buttons.
  * bug fix:  node labels may now contain tcl special characters, eg [].
@@ -493,7 +496,7 @@ UImain(CLargStruct *clargs)
     controlFuncs.sFunc = applicStateChanged;
     controlFuncs.bFunc = resourceBatchChanged;
     dataFunc.sample = NULL;
-    uim_defaultStream = dataMgr->createPerformanceStream(context, Sample, 
+    uim_defaultStream = dataMgr->createPerformanceStream(context, Sample, BASE,
         dataFunc, controlFuncs);
     dataMgr->enableResourceCreationNotification(uim_defaultStream, uim_rootRes);
    /* display the where axis */

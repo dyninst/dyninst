@@ -16,9 +16,12 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.16  1994/06/27 18:55:08  hollings
-/* Added compiler flag to add SHG nodes to dag only on first evaluation.
+/* Revision 1.17  1994/06/27 21:24:39  rbi
+/* New abstraction parameter for performance streams
 /*
+ * Revision 1.16  1994/06/27  18:55:08  hollings
+ * Added compiler flag to add SHG nodes to dag only on first evaluation.
+ *
  * Revision 1.15  1994/06/22  22:58:19  hollings
  * Compiler warnings and copyrights.
  *
@@ -57,7 +60,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmain.C,v 1.16 1994/06/27 18:55:08 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmain.C,v 1.17 1994/06/27 21:24:39 rbi Exp $";
 #endif
 
 #include <assert.h>
@@ -175,7 +178,7 @@ void PCmain(int arg)
     controlHandlers.fFunc = PCfold;
 
     dataHandlers.sample = PCnewData;
-    pcStream = dataMgr->createPerformanceStream(context, Sample, 
+    pcStream = dataMgr->createPerformanceStream(context, Sample, BASE,
 	dataHandlers, controlHandlers);
     PCbucketWidth = dataMgr->getCurrentBucketWidth();
 
