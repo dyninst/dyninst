@@ -56,8 +56,8 @@
 #pragma implementation "Dictionary.h"
 #include "util/src/Dictionary.C"
 
-#pragma implementation "DictionaryLite.h"
-#include "util/src/DictionaryLite.C"
+//#pragma implementation "DictionaryLite.h"
+//#include "util/src/DictionaryLite.C"
 
 #pragma implementation "dyninstRPC.xdr.h"
 #include "dyninstRPC.xdr.h"
@@ -133,7 +133,7 @@ template class vector<rlNameIdType>;
 template class dictionary_hash<string,metric*>;
 template class vector<dictionary_hash<string,metric*>::entry>;
 
-template class pair<string, metric*>;
+//template class pair<string, metric*>;
 
 template class vector<dataValueType>;
 template class BufferPool<dataValueType>;
