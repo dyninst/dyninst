@@ -2,10 +2,14 @@
 // non-member functions otherwise related to whereAxis.C & where4tree.C
 
 #include <ctype.h>
-#include "tclclean.h"
-#include "tkclean.h"
+#include "tcl.h"
+#include "tk.h"
 
+#ifndef PARADYN
 #include "String.h"
+#else
+#include "util/h/String.h"
+#endif
 
 #include "minmax.h"
 
