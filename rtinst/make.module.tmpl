@@ -1,0 +1,36 @@
+#
+# Common makefile template for rtinst library.  This file is not
+# intended to be a useful Makefile in isolation; instead, it should be
+# included from within an architecture-specific Makefile.
+#
+# $Log: make.module.tmpl,v $
+# Revision 1.1  1995/01/30 18:30:31  jcargill
+# Major build system reorganization
+#
+#
+
+TARGET	      = libdyninstRT.a
+ALT_TARGET    = DYNINSTstartCode.o DYNINSTendCode.o
+
+SRCS	     += ../src/RTposix.c
+
+DYNSRCS	      = ../src/DYNINSTstartCode.c \
+		../src/DYNINSTendCode.c
+
+LIBS	     += /usr/lib/libkvm.a
+
+all: $(TARGET) $(ALT_TARGET)
+
+# override standard install rule; provide a default DEST if not already set
+UNCOMMON_INSTALL= true
+ifndef DEST
+DEST		= ../../../lib/$(PLATFORM)
+endif
+
+install: $(DEST)/$(TARGET) $(DEST)/DYNINSTstartCode.o $(DEST)/DYNINSTendCode.o
+
+$(DEST)/DYNINSTstartCode.o: DYNINSTstartCode.o
+	cp DYNINSTstartCode.o ../../../lib/$(PLATFORM)
+
+$(DEST)/DYNINSTendCode.o: DYNINSTendCode.o
+	cp DYNINSTendCode.o ../../../lib/$(PLATFORM)
