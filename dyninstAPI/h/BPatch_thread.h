@@ -108,6 +108,12 @@ typedef enum {
     BPatch_frameTrampoline
 } BPatch_frameType;
 
+typedef enum {
+   NoExit,
+   ExitedNormally,
+   ExitedViaSignal
+} BPatch_exitType;
+
 // Contains information about a stack frame (used by
 class BPATCH_DLL_EXPORT BPatch_frame {
     BPatch_thread *thread;
@@ -144,8 +150,11 @@ class BPATCH_DLL_EXPORT BPatch_thread {
 
     process		*proc;
     BPatch_image	*image;
-    int			lastSignal;
-    int                 exitCode;
+    int		lastSignal;
+    int     exitCode;
+    int     exitSignal;
+    bool    exitedNormally;
+    bool    exitedViaSignal;
     bool		mutationsActive;
     bool		createdViaAttach;
     bool		detached;
@@ -157,6 +166,17 @@ class BPATCH_DLL_EXPORT BPatch_thread {
 				{ unreportedStop = new_value; }
     void		setUnreportedTermination(bool new_value)
 				{ unreportedTermination = new_value; }
+
+    void    setExitedNormally() {
+                   exitedNormally = true;
+    }
+    void    setExitedViaSignal(int signalnumber) {
+                   exitedViaSignal = true;
+                   lastSignal = signalnumber;
+    }
+
+    void setExitCode(int exitcode) { exitCode = exitcode; }
+    void setExitSignal(int exitsignal) { exitSignal = exitsignal; }
 
     bool		pendingUnreportedStop()
 				{ return unreportedStop; }
@@ -202,7 +222,9 @@ public:
     bool	isStopped();
     int		stopSignal();
     bool	isTerminated();
-    int         terminationStatus();
+    BPatch_exitType terminationStatus();
+    int getExitCode()   { return exitCode; }
+    int getExitSignal() { return lastSignal; }
 
     void	detach(bool cont);
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.94 2003/10/21 17:21:47 bernat Exp $
+// $Id: BPatch_thread.C,v 1.95 2004/01/19 21:54:10 schendel Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -167,7 +167,8 @@ static void insertVForkInst(BPatch_thread *thread)
  */
 BPatch_thread::BPatch_thread(const char *path, char *argv[], char *envp[],
                              int stdin_fd, int stdout_fd, int stderr_fd)
-  : proc(NULL), image(NULL), lastSignal(-1), exitCode(-1), mutationsActive(true), 
+  : proc(NULL), image(NULL), lastSignal(-1), exitCode(-1),
+    exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
     createdViaAttach(false), detached(false),
     unreportedStop(false), unreportedTermination(false)
 {
@@ -234,7 +235,8 @@ BPatch_thread::BPatch_thread(const char *path, char *argv[], char *envp[],
  * pid		Process ID of the target process.
  */
 BPatch_thread::BPatch_thread(const char *path, int pid)
-  : proc(NULL), image(NULL), lastSignal(-1), exitCode(-1), mutationsActive(true), 
+  : proc(NULL), image(NULL), lastSignal(-1), exitCode(-1),
+    exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
     createdViaAttach(true), detached(false),
     unreportedStop(false), unreportedTermination(false)
 {
@@ -278,7 +280,8 @@ BPatch_thread::BPatch_thread(const char *path, int pid)
  * childPid           Process ID of the target process.
  */
 BPatch_thread::BPatch_thread(int /*pid*/, process *nProc)
-  : proc(nProc), image(NULL), lastSignal(-1), exitCode(-1), mutationsActive(true), 
+  : proc(nProc), image(NULL), lastSignal(-1), exitCode(-1),
+    exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
     createdViaAttach(true), detached(false),
     unreportedStop(false), unreportedTermination(false)
 {
@@ -376,7 +379,6 @@ bool BPatch_thread::continueExecution()
 {
     assert(BPatch::bpatch);
     BPatch::bpatch->getThreadEvent(false);
-
     if (proc->continueProc()) {
         setUnreportedStop(false);
         return true;
@@ -451,21 +453,6 @@ int BPatch_thread::stopSignal()
 
 
 /*
- * BPatch_thread::terminationStatus
- *
- * Returns the exit status code of the terminated thread.
- */
-int BPatch_thread::terminationStatus()
-{
-    if (proc->status() != exited){
-	//cerr<<" terminationStatus HAS NOT EXITED YET"<<endl;
-	return -1;
-    }else
-	return exitCode;
-}
-
-
-/*
  * BPatch_thread::isTerminated
  *
  * Returns true if the thread has terminated, and false if it has not.  This
@@ -510,6 +497,23 @@ bool BPatch_thread::statusIsTerminated()
     return proc->status() == exited;
 }
 
+/*
+ * BPatch_thread::terminationStatus
+ *
+ * Indicates how the program exited.  Returns one of NoExit, ExitedNormally,
+ * or ExitedViaSignal.
+ *
+ */
+BPatch_exitType BPatch_thread::terminationStatus() {
+   if(exitedNormally)
+      return ExitedNormally;
+   else if(exitedViaSignal)
+      return ExitedViaSignal;   
+   else
+      return NoExit;
+
+   assert(false);
+}
 
 /*
  * BPatch_thread::detach
@@ -578,7 +582,6 @@ char* BPatch_thread::dumpPatchedImage(const char* file){ //ccw 28 oct 2001
     else was_stopped = false;
 
     stopExecution();
-
     char* ret = proc->dumpPatchedImage(file);
     if (was_stopped) {
         unreportedStop = had_unreportedStop;
@@ -613,9 +616,9 @@ bool BPatch_thread::dumpImage(const char *file)
 
     bool ret = proc->dumpImage(file);
     if (was_stopped) {
-    	unreportedStop = had_unreportedStop;
+       unreportedStop = had_unreportedStop;
     } else {
-	continueExecution();
+       continueExecution();
     }
 
     return ret;
@@ -1281,8 +1284,9 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr,
         void *ret = info->getReturnValue();
         delete info;
         
-        if (needToResume)
+        if (needToResume) {
             continueExecution();
+        }
         
         return ret;
     } else {
