@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.C,v 1.35 2001/06/20 20:35:23 schendel Exp $
+// $Id: DMmetric.C,v 1.36 2001/08/23 14:43:41 schendel Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -48,9 +48,10 @@ extern "C" {
 #include "DMmetric.h"
 #include <iostream.h>
 #include "pdutil/h/pdDebugOstream.h"
+#include "common/h/timing.h"
 
-extern void histDataCallBack(pdSample*, relTimeStamp, int, int, void*, bool);
-extern void histFoldCallBack(const timeLength*, void*, bool);
+extern void histDataCallBack(pdSample*, relTimeStamp, int, int, void*);
+extern void histFoldCallBack(const timeLength*, void*);
 
 // trace data streams
 extern void traceDataCallBack(const void*, int, void*);
@@ -162,8 +163,8 @@ metricInstance::metricInstance(resourceListHandle rl,
 			       metricHandle m,
 			       phaseHandle ph): 
   enabledTime(timeLength::Zero()), 
-  aggSample(metric::getMetric(m)->getAggregate(), 
-	    metAggInfo.get_proportionCalc(metric::getMetric(m)->getStyle())) 
+  aggregator(aggregateOp(metric::getMetric(m)->getAggregate()), 
+	     determineAggInterval())
 {
     met = m;
     focus = rl;
@@ -218,7 +219,6 @@ int metricInstance::getArchiveValues(pdSample *buckets,int numOfBuckets,
 
 int metricInstance::getSampleValues(pdSample *buckets,int numOfBuckets,
 				    int first,phaseType phase){
-
     if(phase == CurrentPhase){
         if (!data) return (-1);
         return(data->getBuckets(buckets, numOfBuckets, first));
@@ -359,24 +359,107 @@ timeLength metricInstance::getBucketWidth(phaseType phase) {
     }
 }
 
+void metricInstance::globalPhaseDataCallback(pdSample *buckets, int count, 
+					     int first) {
+  performanceStream *ps = 0;
+  for(unsigned i=0; i < global_users.size(); i++) {
+    perfStreamEntry *entry = &global_users[i];
+    ps = performanceStream::find(entry->psHandle); 
+    if(ps) {
+      if(entry->sentInitActualVal == false) {
+	pdSample initActualVal = getInitialActualValue();
+	ps->callInitialActualValueFunc(getHandle(), initActualVal,GlobalPhase);
+	entry->sentInitActualVal = true;
+      }
+      ps->callSampleFunc(getHandle(), buckets, count, first, GlobalPhase);
+    }
+  }
+}
+
+void metricInstance::currPhaseDataCallback(pdSample *buckets, int count, 
+					   int first) {
+  performanceStream *ps = 0;
+  for(unsigned i=0; i < users.size(); i++) {
+    perfStreamEntry *entry = &users[i];
+    ps = performanceStream::find(entry->psHandle); 
+    if(ps) {
+      if(entry->sentInitActualVal == false) {
+	metric *met = metric::getMetric(getMetricHandle());
+	pdSample initActualVal;
+	// I hope to replace the metric style or type variable in the
+	// future with a per metric variable (set when a metric is
+	// defined in the pcl file) named resetSampleValOnPhaseStart
+
+	if(met->getStyle() == SampledFunction) {
+	  initActualVal = global_data->getCurrentActualValue();
+	} else if(met->getStyle() == EventCounter) {
+	  // this should typically be zero
+	  initActualVal = getInitialActualValue();
+	}
+	ps->callInitialActualValueFunc(getHandle(), initActualVal, 
+				       CurrentPhase);
+	entry->sentInitActualVal = true;
+      }
+      ps->callSampleFunc(getHandle(), buckets, count, first, CurrentPhase);
+    }
+  }
+}
+ 
+void metricInstance::updateAllAggIntervals() {
+  vector<metricInstanceHandle> allMIHs;
+  allMIHs = metricInstance::allMetricInstances.keys();
+
+  // if a fold has occurred, then update the sampleAggregate object's
+  // interval widths
+  timeLength globalAggIntvl = determineAggInterval();
+  for (unsigned i = 0; i < allMIHs.size(); i++) {
+    metricInstance *mi = metricInstance::getMI(allMIHs[i]);
+    mi->updateAggInterval(globalAggIntvl);
+  }
+}
+
+timeLength metricInstance::determineAggInterval() {
+  // This method will return the aggregation interval width to be used in the
+  // sampleAggregator for the metricInstances.  We want to use the bucket
+  // width for the current phase if one is running.  If not we'll use the
+  // bucket width for the global phase.  If neither of these have been
+  // initialized yet, then we'll use the global bucket width of the
+  // histogram.
+
+  // The current phase bucket width is guaranteed to be less than or equal to
+  // the bucket width of the global phase.  We want to use the smaller bucket
+  // width (ie. the current phase).  The sampleAggregator object for the
+  // metricInstance handles aggregating the samples coming in and passes the
+  // results to both the current phase and the global phase histograms.  If
+  // we used the (possible) larger bucket width of the global phase this
+  // would cause us to feed low precision samples (ie. large intervals) to
+  // the current phase histogram.  Using the (possibly) smaller current phase
+  // bucket width will cause us to pass more aggregated samples to the global
+  // bucket width (because smaller intervals), but this won't cause any
+  // problems and will not loose any precision.
+
+  timeLength chosenWidth;
+  if(numCurrHists() > 0) {
+    chosenWidth = GetCurrWidth();
+  }
+  else {
+    chosenWidth = GetGlobalWidth();
+  }
+
+  return chosenWidth;
+}
+
 // TODO: remove asserts
-void metricInstance::dataDisable(){
-    
+void metricInstance::dataDisable() {
     assert(!users.size());
     assert(!global_users.size());
-    for(unsigned i=0; i < components.size(); i++){
-	aggSample.removeComponent(components[i]->sample);
-        delete (components[i]);  // this disables data collection  
+    int numComponents = static_cast<int>(components.size());
+    for(int i=numComponents-1; i>=0; i--){
+	removeComponent(components[i]);
+	components.erase(i);
     }
-    components.resize(0);
-    // deleteing components deletes parts as well
-    //    parts.resize(0);
-    //    num_procs_per_part.resize(0);
     enabled = false;
-    // if data is persistent this must be cleared 
-    //    sample.firstSampleReceived = false;  
-    assert(!components.size());
-    //    assert(!parts.size());
+    assert(components.size()==0);
 }
 
 void metricInstance::removeCurrUser(perfStreamHandle ps){
@@ -384,7 +467,7 @@ void metricInstance::removeCurrUser(perfStreamHandle ps){
     // remove ps from vector of users
     unsigned size = users.size();
     for(unsigned i=0; i < size; i++){
-	if(users[i] == ps){
+	if(users[i].psHandle == ps){
 	    users[i] = users[size-1];
 	    users.resize(size-1);
 	    assert(users.size() < size);
@@ -399,7 +482,7 @@ void metricInstance::removeGlobalUser(perfStreamHandle ps){
     // remove ps from vector of users
     unsigned size = global_users.size();
     for(unsigned i=0; i < size; i++){
-	if(global_users[i] == ps){
+	if(global_users[i].psHandle == ps){
 	    global_users[i] = global_users[size-1];
 	    global_users.resize(size-1);
 	    assert(global_users.size() < size);
@@ -561,68 +644,144 @@ bool metricInstance::clearPersistentData(){
     return false;
 }
 
-bool metricInstance::addComponent(component *new_comp){
+bool metricInstance::allComponentStartTimesReceived() {
+  static bool cacheVal = false;
+  if(cacheVal == false) {
+    bool assignVal = true;
+    for (unsigned i=0; i < components.size(); i++) {
+      timeStamp compStartTime = components[i]->getDaemon()->getStartTime();
+      if(! compStartTime.isInitialized()) assignVal = false;
+    }
+    cacheVal = assignVal;
+  }
+  return cacheVal;
+}
 
+
+bool metricInstance::addComponent(component *new_comp) {
     paradynDaemon *new_daemon =  new_comp->getDaemon();
+    sampleVal_cerr << "for metricInstance (" << this << " adding aggComponent "
+		   << new_comp << "\n";
     for (unsigned i=0; i < components.size(); i++){
          if((components[i])->getDaemon() == new_daemon) return false;
     }
-    components += new_comp;
-    metricStyle st = metric::getMetric(met)->getStyle();
-    new_comp->sample = aggSample.newComponent(metAggInfo.get_updateStyle(st));
+    components.push_back(new_comp);
+    new_comp->sample = aggregator.newComponent();
+
     return true;
 }
 
 // remove the component correspondent to daemon
-// If there are no more componets, flush aggregate samples, 
+// If there are no more components, flush aggregate samples, 
 // and notify clients.
-bool metricInstance::removeComponent(paradynDaemon *daemon) {
-    unsigned size = components.size();
-    sampleVal_cerr << "metricInstance::removeComponent-  daemon: " 
-		   << daemon << "  num of components: " << size << "\n";
-    for (unsigned u = 0; u < size; u++) {
-      if (components[u]->getDaemon() == daemon) {
-	aggSample.removeComponent(components[u]->sample);
-	delete (components[u]);
-	if (u < size-1) {
-	  components[u] = components[size-1];
-	}
-	components.resize(size-1);
-	if (size == 1) {
-	  sampleVal_cerr << "Last component removed- ";
-	  // the last component was removed
-	  // flush aggregate samples
-	  struct sampleInterval ret = aggSample.aggregateValues();
-	  while (ret.valid) {
-	    relTimeStamp relStartTime = relTimeStamp(ret.start - 
-						     getEarliestFirstTime());
-	    relTimeStamp relEndTime = relTimeStamp(ret.end - 
-						   getEarliestFirstTime());
-	    assert(relStartTime >= relTimeStamp::Zero());
-	    assert(relEndTime   >= relTimeStamp::Zero());
-	    assert(relEndTime   >= relStartTime);
-	    enabledTime += relStartTime - relEndTime;
-	    sampleVal_cerr << " flush aggregation, valid: " << ret.valid 
-			   << "  start: " << relStartTime << "  end: " 
-			   << relEndTime << "  value: " << ret.value << "\n";
-	    addInterval(relStartTime, relEndTime, ret.value);
-	    ret = aggSample.aggregateValues();
-	  }
-	  if(data) data->flushUnsentBuckets();
-	  if(global_data) global_data->flushUnsentBuckets();
-	  flushPerfStreams();
-	}
-	return true;
-      }
-    }
-    return false;
+void metricInstance::removeComponent(paradynDaemon *daemon) {
+   int lastIndex = static_cast<int>(components.size())-1;
+
+   sampleVal_cerr << "metricInstance::removeComponent(dmn)-  daemon: " 
+		  << daemon << "  num of components: " << lastIndex+1 << "\n";
+   
+   for (int i = lastIndex; i >= 0; i--) {
+     if (components[i]->getDaemon() == daemon) {
+       removeComponent(components[i]);
+       components.erase(i);
+     }
+   }
 }
+
+void metricInstance::removeComponent(component *comp) {
+  comp->sample->requestRemove();
+  delete (comp);
+  
+  if (components.size() == 1) {
+    sampleVal_cerr << "Last component removed- ";
+    // the last component was removed
+    // flush aggregate samples
+    struct sampleInterval aggSample;
+    while(aggregator.aggregate(&aggSample)) {
+
+      relTimeStamp relStartTime = relTimeStamp(aggSample.start - 
+					       getEarliestFirstTime());
+      relTimeStamp relEndTime = relTimeStamp(aggSample.end - 
+					     getEarliestFirstTime());
+      assert(relStartTime >= relTimeStamp::Zero());
+      assert(relEndTime   >= relStartTime);
+      enabledTime += relStartTime - relEndTime;
+
+      sampleVal_cerr << " flush aggregation, start: " << relStartTime 
+		     << "  end: " << relEndTime << "  value: " 
+		     << aggSample.value << "\n";
+      addInterval(relStartTime, relEndTime, aggSample.value);
+    }
+    if(data) data->flushUnsentBuckets();
+    if(global_data) global_data->flushUnsentBuckets();
+    flushPerfStreams();
+  }
+}
+
+void metricInstance::updateComponent(paradynDaemon *dmn,timeStamp newStartTime,
+				    timeStamp newEndTime, pdSample value) {
+  if(components.size() == 0) return;
+
+  // find the right component.
+  component *part = NULL;
+  for(unsigned i=0; i < components.size(); i++) {
+    if(components[i]->daemon == dmn) {
+      part = components[i];
+      break;
+      }
+  }
+  assert(part != NULL);
+
+  // update the aggComponent value associated with the daemon that sent the
+  // value, note: using a timeStamp (timeline in sync with real dates) for
+  // aggregation, converting to a relTimeStamp when values get bucketed
+  aggComponent *aggComp = part->sample;  
+  assert(aggComp);
+  if(! aggComp->isInitialStartTimeSet()) {
+    aggComp->setInitialStartTime(newStartTime);
+  }
+  aggComp->addSamplePt(newEndTime, value);
+}
+
+void metricInstance::doAggregation() {
+  // don't aggregate if this metric is still being enabled (we may 
+  // not have received replies for the enable requests from all the daemons)
+  if (isCurrentlyEnabling())  return;
+  
+  // if we haven't received all of the component start times yet, return
+  if(! allComponentStartTimesReceived()) return;
+
+  // update the metric instance sample value if there is a new interval with
+  // data for all parts, otherwise this routine returns false
+  // and the data cannot be bucketed by the histograms yet (not all
+  // components have sent data for this interval)
+
+  struct sampleInterval aggSample;
+  while(aggregator.aggregate(&aggSample, getCurrentTime())) {
+    if(getInitialActualValue().isNaN()) {
+      setInitialActualValue(aggregator.getInitialActualValue());
+    }
+    relTimeStamp relStartTime = 
+      relTimeStamp(aggSample.start - paradynDaemon::getEarliestStartTime());
+    relTimeStamp relEndTime = 
+      relTimeStamp(aggSample.end - paradynDaemon::getEarliestStartTime());
+    assert(relStartTime >= relTimeStamp::Zero());
+    assert(relEndTime   >= relTimeStamp::Zero());
+    enabledTime += relEndTime - relStartTime;
+
+    sampleVal_cerr << "calling addInterval- st:" << aggSample.start 
+		   << "  end: " << aggSample.end << "  val: " 
+		   << aggSample.value << "\n";
+    addInterval(relStartTime, relEndTime, aggSample.value);
+  }
+}
+
 
 void metricInstance::flushPerfStreams() {
     sampleVal_cerr << "flushPerfStreams - \n";
     unsigned i;
     for(i=0; i < users.size(); i++){
-        performanceStream *pstr = performanceStream::find(users[i]);
+        performanceStream *pstr = performanceStream::find(users[i].psHandle);
         if(pstr != NULL) {
 	  sampleVal_cerr << "  flushing (Curr) perfStream  index: " << i 
 			 << "  totalPS: " << users.size() << "  addr: " 
@@ -633,7 +792,8 @@ void metricInstance::flushPerfStreams() {
 	}
     }
     for(i=0; i < global_users.size(); i++){
-        performanceStream *pstr = performanceStream::find(global_users[i]);
+        performanceStream *pstr = 
+	  performanceStream::find(global_users[i].psHandle);
         if(pstr != NULL) {
 	  sampleVal_cerr << "  flushing (Glob) perfStream  index: " << i 
 			 << "  totalPS: " << global_users.size() << "  addr: " 
@@ -647,7 +807,7 @@ void metricInstance::flushPerfStreams() {
 }
 
 #ifdef notdef
-bool metricInstance::addPart(sampleInfo *new_part){
+bool metricInstance::addPart(aggComponent *new_part){
     parts += new_part;
     u_int new_size = num_procs_per_part.size() + 1;
     num_procs_per_part.resize(new_size);
@@ -715,9 +875,7 @@ void metricInstance::stopAllCurrentDataCollection(phaseHandle last_phase_id) {
 	        metricInstance::decrNumCurrHists();
 	}
 	else { // else, create new curr histogram with empty curr users list
-	    metric *m = metric::getMetric(mi->met);
-	    mi->newCurrDataCollection(m->getStyle(),
-				      histDataCallBack,
+	    mi->newCurrDataCollection(histDataCallBack,
 				      histFoldCallBack);
 	}
     }
@@ -730,7 +888,7 @@ timeStamp metricInstance::getEarliestFirstTime() {
   unsigned size = components.size();
   timeStamp earliestTime = timeStamp::ts2200();
   for(unsigned i=0; i<size; i++) {
-    timeStamp pdETime = components[i]->getDaemon()->getEarliestFirstTime();
+    timeStamp pdETime = components[i]->getDaemon()->getEarliestStartTime();
     if(pdETime < earliestTime) earliestTime = pdETime;
   }
   return earliestTime;
@@ -739,9 +897,12 @@ timeStamp metricInstance::getEarliestFirstTime() {
 void metricInstance::addCurrentUser(perfStreamHandle p) {
 
     for(unsigned i=0; i < users.size(); i++){
-        if(users[i] == p) return;
+        if(users[i].psHandle == p) return;
     }
-    users += p;
+    perfStreamEntry curEntry;
+    curEntry.sentInitActualVal = false;
+    curEntry.psHandle = p;
+    users.push_back(curEntry);
     assert(users.size());
     // update buffersize for perfStream
     performanceStream::addCurrentUser(p);
@@ -750,9 +911,12 @@ void metricInstance::addCurrentUser(perfStreamHandle p) {
 void metricInstance::addGlobalUser(perfStreamHandle p) {
 
     for(unsigned i=0; i < global_users.size(); i++){
-        if(global_users[i] == p) return;
+        if(global_users[i].psHandle == p) return;
     }
-    global_users += p;
+    perfStreamEntry curEntry;
+    curEntry.sentInitActualVal = false;
+    curEntry.psHandle = p;
+    global_users.push_back(curEntry);
     assert(global_users.size());
     // update buffersize for perfStream
     performanceStream::addGlobalUser(p);
@@ -776,8 +940,7 @@ void metricInstance::newTraceDataCollection(dataCallBack2 dcb) {
     assignTraceFunc(dcb);
 }
 
-void metricInstance::newGlobalDataCollection(metricStyle style, 
-					     dataCallBack dcb, 
+void metricInstance::newGlobalDataCollection(dataCallBack dcb, 
 					     foldCallBack fcb) 
 {
     // histogram has already been created
@@ -786,12 +949,14 @@ void metricInstance::newGlobalDataCollection(metricStyle style,
 	global_data->clearFoldOnInactive();
 	return;  
     }
-    global_data = new Histogram(relTimeStamp::Zero(), style, dcb, fcb, 
-				this, 1);
+    struct histCallbackData *callbackData = new struct histCallbackData;
+    callbackData->miPtr = this;
+    callbackData->globalFlag = true;
+ 
+    global_data = new Histogram(relTimeStamp::Zero(), dcb, fcb, callbackData);
 }
 
-void metricInstance::newCurrDataCollection(metricStyle style, 
-					   dataCallBack dcb, 
+void metricInstance::newCurrDataCollection(dataCallBack dcb, 
 					   foldCallBack fcb) 
 {
     // histogram has already been created
@@ -802,7 +967,12 @@ void metricInstance::newCurrDataCollection(metricStyle style,
     }
     // create new histogram
     relTimeStamp start_time = phaseInfo::GetLastPhaseStart();
-    data = new Histogram(start_time, style, dcb, fcb, this, 0);
+
+    struct histCallbackData *callbackData = new struct histCallbackData;
+    callbackData->miPtr = this;
+    callbackData->globalFlag = false;
+
+    data = new Histogram(start_time, dcb, fcb, callbackData);
     assert(data);
     phaseInfo::setCurrentBucketWidth(data->getBucketWidth());
 }
