@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.38 2005/01/21 23:44:12 bernat Exp $
+// $Id: arch-ia64.C,v 1.39 2005/03/22 05:56:31 rchen Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -457,7 +457,7 @@ IA64_instruction generateAllocInstructionFor( registerSpace * rs, int locals, in
 
 	alloc.M34.opcode	= 0x1;
 	alloc.M34.x3		= 0x6;
-	alloc.M34.r1		= rs->getRegSlot( 0 )->number - NUM_PRESERVED;
+	alloc.M34.r1		= rs->originalLocals + rs->originalOutputs + 32;
 	SET_M34_FIELDS(&alloc, sizeOfLocals, outputs, rotates);
 
 	return IA64_instruction( alloc.raw );
