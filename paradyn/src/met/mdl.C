@@ -443,6 +443,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret) {
     }
   case MDL_RVAL_FUNC:
     if (!args_) return false;
+    else {  // DO NOT DEFINE VARIABLES ACROSS LABEL JUMPS
     unsigned size = args_->size();
 
     if (var_ == "lookupFunction") {
@@ -472,7 +473,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret) {
     } else
       return false;
     return ok_;
-
+    }
   case MDL_RVAL_DEREF:
     if (!fields_.size()) {
       do_type_walk_ = false;
