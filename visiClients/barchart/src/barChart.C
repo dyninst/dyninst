@@ -47,7 +47,7 @@
 // for maximum speed.  Can be done from makefile, e.g. a "make optimized"
 // option which does -O and -DNDEBUG
 
-/* $Id: barChart.C,v 1.24 1999/04/27 16:05:06 nash Exp $ */
+/* $Id: barChart.C,v 1.25 1999/11/09 15:54:26 pcroth Exp $ */
 
 // tk/tcl has a very nice interface for mixing C++ and tk/tcl
 // scripts.  From within tcl, C++ code can be called via
@@ -150,7 +150,7 @@ BarChart::BarChart(char *tkWindowName,
 BarChart::~BarChart() {
    Tk_CancelIdleCall(lowestLevelDrawBars, NULL);
 
-   XFreeGC(display, myGC);   
+   Tk_FreeGC(display, myGC);   
 
    Tk_FreeColor(greyColor);
    for (unsigned metriclcv=0; metriclcv<metricColors.size(); metriclcv++)
@@ -194,11 +194,11 @@ bool BarChart::TryFirstGoodWid() {
    values.background = greyColor->pixel;
    // values.graphics_exposures = False;
 
-   myGC = XCreateGC(display, Tk_WindowId(theWindow),
+   myGC = Tk_GetGC(theWindow,
 		    GCForeground | GCBackground,
 		    &values);
    if (NULL==myGC)
-      panic("BarChart constructor: XCreateGC() failed!");
+      panic("BarChart constructor: Tk_GetGC() failed!");
 
    // initialize offscreen pixmap
    doubleBufferPixmap = Tk_GetPixmap(display, Tk_WindowId(theWindow),
