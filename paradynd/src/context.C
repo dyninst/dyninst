@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.17 1994/07/28 22:40:34 krisna Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.18 1994/08/17 18:05:50 markc Exp $";
 #endif
 
 /*
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
- * Revision 1.17  1994/07/28 22:40:34  krisna
+ * Revision 1.18  1994/08/17 18:05:50  markc
+ * Moved call to install default instrumentation to SIGTRAP handler to
+ * ensure no code is installed until the child process is stopped.
+ *
+ * Revision 1.17  1994/07/28  22:40:34  krisna
  * changed definitions/declarations of xalloc functions to conform to alloc.
  *
  * Revision 1.16  1994/07/22  19:15:19  hollings
@@ -263,7 +267,6 @@ int addProcess(int argc, char *argv[], int nenv, char *envp[])
     
     newExec->proc = createProcess(newExec->argv[0], newExec->argv, nenv, envp);
     if (newExec->proc) {
-	installDefaultInst(newExec->proc, initialRequests);
 	return(newExec->proc->pid);
     } else {
 	free(newExec);
