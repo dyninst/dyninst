@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.33 1998/05/18 17:32:45 wylie Exp $
+ * $Id: inst-x86.C,v 1.34 1998/05/18 18:49:41 wylie Exp $
  */
 
 #include <limits.h>
@@ -627,7 +627,7 @@ unsigned relocateInstruction(instruction insn,
       newInsn += sizeof(int);
     }
     else {
-      unsigned newSz;
+      unsigned newSz=UINT_MAX;
       if (insnType & IS_JCC) {
 	/* Change a Jcc rel8 to Jcc rel32. 
 	   Must generate a new opcode: a 0x0F followed by (old opcode + 16) */
@@ -642,6 +642,7 @@ unsigned relocateInstruction(instruction insn,
 	*newInsn++ = 0xE9;
 	newSz = 5;
       }
+      assert(newSz!=UINT_MAX);
       oldDisp = (int)*(const char *)origInsn;
       newDisp = (origAddr + 2) + oldDisp - (newAddr + newSz);
       *((int *)newInsn) = newDisp;
@@ -706,7 +707,7 @@ unsigned changeConditionalJump(instruction insn,
   unsigned insnType = insn.type();
   unsigned insnSz = insn.size();
 
-  int oldDisp;
+  int oldDisp=-1;
   int newDisp;
 
   if (insnType & REL_B) {
@@ -751,6 +752,7 @@ unsigned changeConditionalJump(instruction insn,
     newInsn += sizeof(int);
   }
 
+  assert (oldDisp!=-1);
   return (origAddr+insnSz+oldDisp);
 }
 
@@ -2166,7 +2168,9 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
       return false;
     }
   }
+#if !defined(USES_LIBDYNINSTRT_SO)
   Address curr = sym.addr()+baseAddr;
+#endif
 
 #if !defined(i386_unknown_nt4_0)
   string tt = "DYNINSTtrampTable";
@@ -2427,7 +2431,7 @@ bool process::replaceFunctionCall(const instPoint *point,
 
 #if (defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0))
 #include <sys/signal.h>
-#include <sys/ucontext.h>
+//#include <sys/ucontext.h>
 
 void
 BaseTrampTrapHandler (int)//, siginfo_t*, ucontext_t*)
