@@ -44,9 +44,8 @@
 #include <memory.h>
 #endif
 
-#if defined(os_windows)
-#include "common/h/ntHeaders.h"
-#endif
+#include "common/h/headers.h"
+
 #define BPATCH_FILE
 
 #include "BPatch_point.h"
