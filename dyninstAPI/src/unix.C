@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.74 2003/02/04 14:59:32 bernat Exp $
+// $Id: unix.C,v 1.75 2003/02/19 23:30:40 schendel Exp $
 
 #if defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -427,7 +427,6 @@ void checkAndDoExecHandling(process *curr) {
 #endif
       
    // Since exec will 'remove' our library, we must redo the whole process
-   curr->setBootstrapState(begun);
    forkexec_cerr <<"About to start exec reconstruction of shared library\n";
    // fall through...
 }
@@ -440,6 +439,7 @@ void handleSigTrap(process *curr, int pid, int linux_orig_sig) {
 
   signal_cerr << "welcome to SIGTRAP for pid " << curr->getPid()
 	       << " status =" << curr->getStatusAsString() << endl;
+
 #ifdef DETACH_ON_THE_FLY
    const bool wasRunning = (curr->status() == running) || curr->juststopped;
 #else
@@ -529,7 +529,6 @@ void handleSigTrap(process *curr, int pid, int linux_orig_sig) {
        // This would be a perfect place to load the dyninst library,
        // but all the other shared libs aren't initialized yet. 
        // So we wait for main to be entered before working on the process.
-
        curr->setBootstrapState(begun);
        curr->insertTrapAtEntryPointOfMain();
        string buffer = string("PID=") + string(pid);
@@ -540,11 +539,12 @@ void handleSigTrap(process *curr, int pid, int linux_orig_sig) {
        }
        // Now we wait for the entry point trap to be reached
        return;
-   }
-   else if (curr->trapAtEntryPointOfMain()) {
-       curr->handleTrapAtEntryPointOfMain();
-       curr->setBootstrapState(initialized);
-       return;
+   } else if (curr->trapAtEntryPointOfMain()) {
+      curr->handleTrapAtEntryPointOfMain();
+      curr->setBootstrapState(initialized);
+      if(curr->wasExeced())
+         curr->loadDyninstLib();
+      return;
    }
 
 #if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
@@ -763,7 +763,7 @@ int handleSigAlarm(process *curr) {
       
 void handleStopStatus(int pid, int status, process *curr) {
    int sig = WSTOPSIG(status);
-   
+
    int linux_orig_sig = -1;
 #if defined( i386_unknown_linux2_0 ) || defined( ia64_unknown_linux2_4 )
    linux_orig_sig = sig;
