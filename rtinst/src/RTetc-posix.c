@@ -199,14 +199,18 @@ DYNINSTflushTrace(void) {
 
 int
 DYNINSTwriteTrace(void *buffer, unsigned count) {
-    int ret;
+    int   ret;
+    char *b = (char *)buffer;
     assert(DYNINSTtraceFp);
     while (1) {
       errno=0;
-      ret = fwrite(buffer, count, 1, DYNINSTtraceFp);
-      if (errno || ret!=1) {
+      ret = fwrite((const void *)b, 1, count, DYNINSTtraceFp);
+      if (errno || ret!=count) {
         if (errno==EINTR) {
           printf("(pid=%d) fwrite interrupted, trying again...\n",(int) getpid());
+        } else if (errno==ERESTART) {  /* fwrite partially completed */
+          b     += ret;
+          count -= ret;
         } else {
 	  perror("unable to write trace record");
           printf("disabling further data logging, pid=%d\n", (int) getpid());
