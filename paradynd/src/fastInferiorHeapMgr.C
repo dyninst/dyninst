@@ -39,10 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeapMgr.C,v 1.9 2000/07/28 17:22:11 pcroth Exp $
+// $Id: fastInferiorHeapMgr.C,v 1.10 2002/04/17 21:18:11 schendel Exp $
+
 // A class that manages several fastInferiorHeaps (fastInferiorHeap.h/.C)
-// Formerly, each fastInferiorHeap would create its own shm-segment.
-// But this created too many segments.  This class creates a single shm segment,
+// Formerly, each fastInferiorHeap would create its own shm-segment.  But
+// this created too many segments.  This class creates a single shm segment,
 // containing several fastInferiorHeaps.
 
 #include <iostream.h>
@@ -83,10 +84,8 @@ unsigned fastInferiorHeapMgr::getSubHeapOffset(unsigned subHeapIndex) const {
    for (unsigned lcv = 0; lcv < subHeapIndex; lcv++) {
       assert(result % 8 == 0);
       result += (theHeapStats[lcv].elemNumBytes * theHeapStats[lcv].maxNumElems);
-
       align(result, 8); // make sure the next one starts off on a nice, aligned addr.
    }
-
    assert(result % 8 == 0);
 
    return result;
@@ -133,21 +132,20 @@ fastInferiorHeapMgr::~fastInferiorHeapMgr( void )
 void fastInferiorHeapMgr::handleExec() {
    // detach and delete old shm segment; create new seg & attach to it; leave
    // applic-attached-at undefined.  Much like (non-fork) ctor, really.
-   // There's a cute twist: although the exec syscall has caused the appl to detach
-   //    from the shm seg, we (paradynd) are still attached to it.  So there's no
-   //    need to re-create a brand new shm seg; it still exists, and we reuse it!
-   //    Therefore, the shm seg key doesn't change.
+   // There's a cute twist: although the exec syscall has caused the appl to
+   // detach from the shm seg, we (paradynd) are still attached to it.  So
+   // there's no need to re-create a brand new shm seg; it still exists, and
+   // we reuse it!  Therefore, the shm seg key doesn't change.
    assert( theShm != NULL );
 
-   // theHeapStats doesn't change
-   // since we re-use the segment, theShmKey, theShmId, and paradyndAttachedAt
-   //    don't change.
+   // theHeapStats doesn't change since we re-use the segment, theShmKey,
+   // theShmId, and paradyndAttachedAt don't change.
    applicAttachedAt = NULL;
 
    // do we need to change any meta-data in the 1st 16 bytes of the shm seg?
-   // Well, the cookie doesn't change.  The inferior-pid doesn't change after an exec.
-   // the pid of paradynd doesn't change.  But we should reset the observed cost to
-   // zero.
+   // Well, the cookie doesn't change.  The inferior-pid doesn't change after
+   // an exec.  the pid of paradynd doesn't change.  But we should reset the
+   // observed cost to zero.
 
    unsigned *ptr = (unsigned *)theShm->GetMappedAddress();
    ptr++; // skip past cookie
@@ -159,39 +157,42 @@ void fastInferiorHeapMgr::handleExec() {
 fastInferiorHeapMgr::fastInferiorHeapMgr(const fastInferiorHeapMgr &parent,
 					 void *applicShmSegPtr,
 					 key_t theKey,
-					 const vector<oneHeapStats> &iHeapStats,
+					const vector<oneHeapStats> &iHeapStats,
 					 pid_t inferiorPid) :
                            theHeapStats(iHeapStats) {
    // This is the fork-constructor; the application (DYNINSTfork()) has already
    // created a new shared-mem segment, attached to it, copied data from the
    // old segment, and detached from the old segment.
    //
-   // It is tempting to think that we (paradynd) should detach from the old segment
-   // and then destroy it.  In fact, we should do neither.  Remember that in a fork,
-   // one should trace both the parent and the child.  If we detached and/or destroyed
-   // the old segment, the parent would no longer work!  The fork itself incremented the
-   // reference count in the application, but not for paradynd (since paradynd didn't
-   // fork).
+   // It is tempting to think that we (paradynd) should detach from the old
+   // segment and then destroy it.  In fact, we should do neither.  Remember
+   // that in a fork, one should trace both the parent and the child.  If we
+   // detached and/or destroyed the old segment, the parent would no longer
+   // work!  The fork itself incremented the reference count in the
+   // application, but not for paradynd (since paradynd didn't fork).
    //
-   // We need to (1) shmget to the new already-existing shm segment (it was already
-   // created by the child process), (2) attach to it, (3) make a note where the child
-   // attached to the new segment [this info is passed in as 'applicShmSegPtr'],
-   // (4) check cookie and update pids embedded into 1st 12 bytes.
+   // We need to (1) shmget to the new already-existing shm segment (it was
+   // already created by the child process), (2) attach to it, (3) make a
+   // note where the child attached to the new segment [this info is passed
+   // in as 'applicShmSegPtr'], (4) check cookie and update pids embedded
+   // into 1st 12 bytes.
    //
-   // QUESTION: the observed cost is present near the beginning of the shm segment.
-   //           On a fork, should we reset it to zero?  If so, do it here!
+   // QUESTION: the observed cost is present near the beginning of the shm
+   // segment.  On a fork, should we reset it to zero?  If so, do it here!
    //
 
-   // IMPORTANT: We certainly hope that the application has managed to attach to the new
-   //            shm segment at the same virtual address as the old segment; for if not,
-   //            then all mini-trampolines will refer to data in the wrong location in
-   //            the child process!!!  Hence the following check right off the bat:
+   // IMPORTANT: We certainly hope that the application has managed to attach
+   // to the new shm segment at the same virtual address as the old segment;
+   // for if not, then all mini-trampolines will refer to data in the wrong
+   // location in the child process!!!  Hence the following check right off
+   // the bat:
    if (applicShmSegPtr != parent.applicAttachedAt) {
-      cerr << "Serious error in fastInferiorHeapMgr fork-constructor" << endl;
-      cerr << "It appears that the child process hasn't attached the shm seg" << endl;
-      cerr << "in the same location as in the parent process.  This leaves all" << endl;
-      cerr << "mini-tramps data references pointing to invalid memory locs!" << endl;
-      abort();
+     cerr << "Serious error in fastInferiorHeapMgr fork-constructor\n";
+     cerr << "It appears that the child process hasn't attached the shm seg\n";
+     cerr << "in the same location as in the parent process.  This leaves all"
+	  << "\n";
+     cerr << "mini-tramps data references pointing to invalid memory locs!\n";
+     abort();
    }
 
    const unsigned heapNumBytes = getHeapTotalNumBytes();
@@ -213,7 +214,8 @@ fastInferiorHeapMgr::fastInferiorHeapMgr(const fastInferiorHeapMgr &parent,
    cerr << "src  addr is " << (void*)parent.theShm->GetMappedAddress() << endl;
    cerr << "num bytes is " << heapNumBytes << endl;
 #endif
-   memcpy(theShm->GetMappedAddress(), parent.theShm->GetMappedAddress(), heapNumBytes);
+   memcpy(theShm->GetMappedAddress(), parent.theShm->GetMappedAddress(), 
+	  heapNumBytes);
 
 
    // Now let's play some games with the meta-data at the start of the segment
@@ -223,8 +225,8 @@ fastInferiorHeapMgr::fastInferiorHeapMgr(const fastInferiorHeapMgr &parent,
    assert(*ptr == cookie);
    ptr++;
    
-   // The memcpy should have left the pid as the pid of the child proc, which needs to
-   // be updated to the pid of the parent proc.
+   // The memcpy should have left the pid as the pid of the child proc, which
+   // needs to be updated to the pid of the parent proc.
    assert((pid_t)(*ptr) != inferiorPid);
    *ptr++ = inferiorPid;
 
@@ -252,6 +254,7 @@ void *fastInferiorHeapMgr::getSubHeapInSpace(unsigned subHeapIndex,
 
    void *basePtr = (theSpace == 
                     paradynd ? theShm->GetMappedAddress() : applicAttachedAt);
+
    if (basePtr == NULL) {
       // we're not ready to perform this operation yet!
       assert(false);
