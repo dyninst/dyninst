@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.4 2001/06/20 20:29:16 schendel Exp $
+# $Id: nmake.module.tmpl,v 1.5 2002/02/11 22:45:45 pcroth Exp $
 #
 
 CFLAGS		= $(CFLAGS) $(TCLFRIENDLYWARNINGS)
@@ -282,9 +282,12 @@ VM.thread.C \
 #
 metParser.C:	../src/met/metParser.y
 	$(YACC) $(YFLAGS) ../src/met/metParser.y
-	$(RM) $@
-	$(MV) y.tab.c $@
+	$(PERL) $(TO_CORE)\..\scripts\vcStripStd.pl < y.tab.c > $@
+	-$(RM) y.tab.c
 
 metScanner.C:	../src/met/metScanner.l
-	$(LEX) -t $(LFLAGS) ../src/met/metScanner.l > $@
+	$(LEX) $(LFLAGS) ../src/met/metScanner.l
+	$(PERL) $(TO_CORE)\..\scripts\vcStripUnistd.pl < lex.yy.c > $@
+	-$(RM) lex.yy.c
+
 

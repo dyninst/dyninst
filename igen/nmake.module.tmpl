@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.8 1998/04/01 02:51:51 wylie Exp $
+# $Id: nmake.module.tmpl,v 1.9 2002/02/11 22:45:43 pcroth Exp $
 #
 
 USES_FLEX = TRUE
@@ -28,11 +28,13 @@ all:	$(TARGET)
 
 parser.obj:
 	$(YACC) $(YFLAGS) ../src/$*.y
-	$(RM) $*.C
-	$(MV) y.tab.c $*.C
+	$(PERL) $(TO_CORE)\..\scripts\vcStripStd.pl < y.tab.c > $*.C
+	-$(RM) y.tab.c
 	$(CXX) $(CXXFLAGS) -I../src -c $*.C
 
 scanner.obj:
-	$(LEX) -t $(LFLAGS) ../src/$*.l >scanner.C
+	$(LEX) $(LFLAGS) ../src/$*.l
+	$(PERL) $(TO_CORE)\..\scripts\vcStripUnistd.pl < lex.yy.c > $*.C
+	-$(RM) lex.yy.c
 	$(CXX) $(CXXFLAGS) -I../src -c $*.C
 

@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.11 2001/12/20 21:33:36 buck Exp $
+# $Id: nmake.module.tmpl,v 1.12 2002/02/11 22:45:36 pcroth Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -33,11 +33,18 @@ $(TEST_TARGET): $(TEST_TARGET:.exe=.obj)
 	$(LINK) -out:$(TEST_TARGET) $(LDFLAGS) -debug -pdb:none \
 		$(TEST_TARGET:.exe=.obj)
 
-LEXFLAGS = -P$(TARGET:.exe=)
-YACCFLAGS = -d -b $(TARGET:.exe=) -p $(TARGET:.exe=)
+LFLAGS = $(LFLAGS) -P$(TARGET:.exe=)
+YFLAGS = $(YFLAGS) -p $(TARGET:.exe=)
 
 lex.$(TARGET:.exe=.c): ../src/cmdline.l
-	$(LEX) $(LEXFLAGS) ../src/cmdline.l
+	$(LEX) $(LFLAGS) ../src/cmdline.l
+	$(PERL) $(TO_CORE)\..\scripts\vcStripUnistd.pl < $@ > $@.tmp
+	$(MV) $@.tmp $@
+
 
 $(TARGET:.exe=.tab).c $(TARGET:.exe=.tab).h: ../src/cmdline.y
-	$(YACC) $(YACCFLAGS) ../src/cmdline.y
+	$(YACC) $(YFLAGS) ../src/cmdline.y
+	$(PERL) $(TO_CORE)\..\scripts\vcStripStd.pl < y.tab.c > $(TARGET:.exe=.tab).c
+	$(MV) y.tab.h $(TARGET:.exe=.tab).h
+	-$(RM) y.tab.c
+
