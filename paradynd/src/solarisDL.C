@@ -44,7 +44,7 @@
 #include "paradynd/src/process.h"
 #include "paradynd/src/symtab.h"
 
-#include <sys/link.h>
+#include <link.h>
     
 // findDynamicLinkingInfo: This routine is called on exit point of 
 // of the exec system call. It checks if the a.out is dynamically linked,

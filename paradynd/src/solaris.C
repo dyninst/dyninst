@@ -55,7 +55,7 @@
 #include <sys/procfs.h>
 #include <poll.h>
 #include <limits.h>
-#include <sys/link.h>
+#include <link.h>
 
 extern "C" {
 extern int ioctl(int, int, ...);
