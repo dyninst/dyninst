@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.358 2002/09/17 21:57:32 bernat Exp $
+// $Id: process.C,v 1.359 2002/10/02 16:20:23 chadd Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2002,7 +2002,11 @@ process::process(int iPid, image *iImage, int iTraceLink
 
   main_brk_addr = 0;
 #endif
-  
+
+#if defined(i386_unknown_nt4_0) || defined (mips_unknown_ce2_11)   //ccw 2 oct 2002 
+	mainAddr = 0;
+#endif
+
     reachedFirstBreak = false; // haven't yet seen first trap
     wasRunningWhenAttached = false;
     reachedVeryFirstTrap = false;
@@ -2193,7 +2197,9 @@ process::process(int iPid, image *iSymbols,
     dyninstlib_brk_addr = 0;
     main_brk_addr = 0;
 #endif
-
+#if defined(i386_unknown_nt4_0) || defined (mips_unknown_ce2_11)   //ccw 2 oct 2002 
+	mainAddr = 0;
+#endif
 #if !defined(BPATCH_LIBRARY)
    //  When running an IRIX MPI program, the IRIX MPI job launcher
    //  "mpirun" creates all the processes.  When we create process
@@ -2557,6 +2563,9 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     dyninstlib_brk_addr = 0;
 
     main_brk_addr = 0;
+#endif
+#if defined(i386_unknown_nt4_0) || defined (mips_unknown_ce2_11)   //ccw 2 oct 2002 
+	mainAddr = 0;
 #endif
 #if defined(alpha_dec_osf4_0)
    changedPCvalue = 0;
