@@ -2,6 +2,9 @@
 
 #
 # $Log: mainMenu.tcl,v $
+# Revision 1.57  1997/01/15 00:15:48  tamches
+# added an attach menu item
+#
 # Revision 1.56  1996/10/31 08:23:33  tamches
 # v1.1 --> v1.2 internal
 #
@@ -161,8 +164,11 @@ proc drawToolBar {} {
        # then by all means change it.
  
     menu .parent.menub.left.men.b1.m 
-    .parent.menub.left.men.b1.m add command -label "Define A Process" \
+    .parent.menub.left.men.b1.m add command -label "Define a New Process" \
 	    -command DefineProcess
+    .parent.menub.left.men.b1.m add command -label "Attach to a Process" \
+	    -command AttachProcess
+    .parent.menub.left.men.b1.m add separator
     .parent.menub.left.men.b1.m add command -label "Performance Consultant" \
 	    -command {shgInitialize [uimpd tclTunable getvaluebyname developerMode] [uimpd tclTunable getvaluebyname showShgKey] [uimpd tclTunable getvaluebyname showShgTips]}
     .parent.menub.left.men.b1.m add command -label "Tunable Constants" \
