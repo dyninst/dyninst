@@ -22,9 +22,12 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.49  1995/11/08 06:26:56  tamches
-/* removed some warnings
+/* Revision 1.50  1995/11/17 17:21:04  newhall
+/* added normalized field to metrics
 /*
+ * Revision 1.49  1995/11/08  06:26:56  tamches
+ * removed some warnings
+ *
  * Revision 1.48  1995/11/03 00:07:27  newhall
  * removed sending SIGKILL signal to visi process before thread exits
  *
@@ -330,7 +333,8 @@ void VISIthreadnewMetricCallback(perfStreamHandle handle,
 				 int style,
 				 int aggregate,
 				 const char *units,
-				 metricHandle m_handle){
+				 metricHandle m_handle,
+				 bool normalized){
  VISIthreadGlobals *ptr;
 
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
@@ -675,6 +679,7 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
           matrix.met.Id = newEnabled[l]->m_id;
 	  matrix.met.name = newEnabled[l]->metric_name; 
 	  matrix.met.units = newEnabled[l]->metric_units;
+	  matrix.met.normalized = newEnabled[l]->normalized;
 	  matrix.met.aggregate = AVE;
 	  matrix.res.Id = newEnabled[l]->r_id;
 	  if((matrix.res.name = 
