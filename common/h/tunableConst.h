@@ -2,7 +2,12 @@
  * tunableConstant - a constant that might be changed during execution.
  *
  * $Log: tunableConst.h,v $
- * Revision 1.9  1994/12/21 00:31:44  tamches
+ * Revision 1.10  1994/12/21 07:10:06  tamches
+ * Made the "allConstants" variable protected and added a few member
+ * functions to let outside code access it (safely) in a manner useful
+ * for doing iterations through all tunable-constants.
+ *
+ * Revision 1.9  1994/12/21  00:31:44  tamches
  * Greatly cleaned up the interface; no data members are public any more.
  * Also some minor changes, such as using g++'s built-in "bool" instead
  * of "Boolean".
@@ -60,14 +65,16 @@ class tunableConstant {
 
    static stringPool *pool; // made protected
 
+   static List<tunableConstant*> *allConstants; // NEEDS TO BE MADE PROTECTED
+
  public:
    tunableConstant() {}
    virtual ~tunableConstant() {}
 
-   const char *getDesc() const { // added const
+   const char *getDesc() const {
       return desc;
    }
-   const char *getName() const { // result type used to be stringhandle
+   const char *getName() const {
       return name;
    }
    tunableUse getUse() const {
@@ -77,10 +84,24 @@ class tunableConstant {
       return typeName;
    }
 
-   static List<tunableConstant*> *allConstants; // NEEDS TO BE MADE PROTECTED
-
    static tunableConstant *findTunableConstant(const char *name);
       // returns NULL if not found
+
+   static List<tunableConstant *> beginIteration() {
+      assert(allConstants);
+
+      List <tunableConstant *> iterList = *allConstants;
+         // make a copy of the list for iteration purposes
+         // (actually, it just copies the head element, which itself
+         // is merely a pointer)
+
+      return iterList;
+   }
+
+   static int numTunables() {
+      assert(allConstants);
+      return allConstants->count();
+   }
 
    virtual void print() = NULL;
 };
@@ -88,72 +109,79 @@ class tunableConstant {
 
 // Shouldn't the string pools be made part of the base class?
 
-// typedef Boolean (*isValidFunc)(float newVale);
 typedef bool (*isValidFunc)(float newVal);
 typedef void (*booleanChangeValCallBackFunc)(bool value);
 typedef void (*floatChangeValCallBackFunc)(float value);
 
-class tunableBooleanConstant: public tunableConstant {
-    private:
-	bool value;
-	booleanChangeValCallBackFunc newValueCallBack;
+class tunableBooleanConstant : public tunableConstant {
+ private:
+   bool value;
+   booleanChangeValCallBackFunc newValueCallBack;
 
-    public:
-	tunableBooleanConstant(bool initialValue, 
-			       booleanChangeValCallBackFunc cb,
-			       tunableUse type,
-			       const char *name,
-			       const char *desc);
-	bool getValue() { return value; }
-	bool setValue(bool newVal) {
-           value = newVal;
-           if (newValueCallBack)
-              newValueCallBack(newVal);
-           return true;
-        }
-	virtual void print();
+ public:
+
+   tunableBooleanConstant(bool initialValue, 
+			  booleanChangeValCallBackFunc cb,
+			  tunableUse type,
+			  const char *name,
+			  const char *desc);
+   bool getValue() { return value; }
+   bool setValue(bool newVal) {
+      value = newVal;
+      if (newValueCallBack)
+         newValueCallBack(newVal);
+      return true;
+   }
+
+   virtual void print();
 };
 
-class tunableFloatConstant: public tunableConstant {
-    private:
-	float value;
-	float min, max;
-	isValidFunc isValidValue;
-	bool simpleRangeCheck(float val);
-	floatChangeValCallBackFunc newValueCallBack;
+class tunableFloatConstant : public tunableConstant {
+ private:
+   float value;
+   float min, max;
+   isValidFunc isValidValue;
 
-    public:
-	tunableFloatConstant(float initialValue, 
+   floatChangeValCallBackFunc newValueCallBack;
+   bool simpleRangeCheck(float val);
+
+ public:
+
+   tunableFloatConstant(float initialValue, 
 			float min, 
 			float max, 
 			floatChangeValCallBackFunc cb,
 		        tunableUse type,
 			const char *name,
 			const char *desc);
-	tunableFloatConstant(float initialValue, 
+   tunableFloatConstant(float initialValue, 
 			isValidFunc, 
 			floatChangeValCallBackFunc cb,
 		        tunableUse type,
 			const char *name,
 			const char *desc);
-	float getValue() { return value; }
-	bool setValue(float newVal) {
-	    if ((isValidValue) && isValidValue(newVal)) {
-                // If isValidValue is NULL, we'll always return false!
-		value = newVal;
-		if (newValueCallBack) newValueCallBack(newVal);
-		return true;
-	    } else if (simpleRangeCheck(newVal)) {
-		value = newVal;
-		if (newValueCallBack) newValueCallBack(newVal);
-		return true;
-	    } else {
-		return false;
-	    }
-	}
-	virtual void print();
-        float getMin() {return min;} // added 10/21/94 AT
-        float getMax() {return max;} // added 10/21/94 AT
+   float getValue() { return value; }
+   bool setValue(float newVal) {
+      if (isValidValue && isValidValue(newVal)) {
+	 value = newVal;
+	 if (newValueCallBack)
+            newValueCallBack(newVal);
+	 return true;
+      }
+      else if (simpleRangeCheck(newVal)) {
+         value = newVal;
+	 if (newValueCallBack)
+            newValueCallBack(newVal);
+	 return true;
+      }
+      else
+         return false;
+   }
+
+   float getMin() {return min;}
+   float getMax() {return max;}
+
+   virtual void print();
 };
 
 #endif
