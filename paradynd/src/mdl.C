@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.106 2002/04/23 18:58:51 schendel Exp $
+// $Id: mdl.C,v 1.107 2002/05/02 21:29:02 schendel Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -545,31 +545,36 @@ static bool update_environment(process *proc) {
 
 // returns the instrumentation variable index in the superTable
 inst_var_index allocateInstVarForAllThreads(unsigned mdl_data_type,
-					 process *proc, bool bDontInsertData) {
+			       instrCodeNode *codeNode, bool bDontInsertData) {
   inst_var_index allocatedIndex;
-  switch (mdl_data_type) {
-    case MDL_T_COUNTER:
-       allocatedIndex = instrThrDataNode::allocateForCounter(proc,
-							     bDontInsertData);
-      break;
-    case MDL_T_WALL_TIMER:
-      allocatedIndex = instrThrDataNode::allocateForWallTimer(proc,
-							      bDontInsertData);
-      break;
-    case MDL_T_PROC_TIMER:
-      allocatedIndex = instrThrDataNode::allocateForProcTimer(proc,
-							      bDontInsertData);
-      break;
-    case MDL_T_NONE:
-      // just to keep mdl apply allocate a dummy un-sampled counter.
-      allocatedIndex = instrThrDataNode::allocateForCounter(proc,
-							    bDontInsertData);
-      break;
-    default:
-      assert(0);  break;
+
+  if(bDontInsertData) {
+    allocatedIndex = 0;
+  } else {
+    inst_var_type varType;
+    switch (mdl_data_type) {
+      case MDL_T_COUNTER:
+	varType = Counter;
+	break;
+      case MDL_T_WALL_TIMER:
+	varType = WallTimer;
+	break;
+      case MDL_T_PROC_TIMER:
+	varType = ProcTimer;
+	break;
+      case MDL_T_NONE:
+	// just to keep mdl apply allocate a dummy un-sampled counter.
+	varType = Counter;
+	break;
+      default:
+	assert(0);  break;
+    }
+    allocatedIndex = codeNode->allocateInstVarForThreads(varType);
   }
+
   return allocatedIndex;
 }
+
 
 // actually create the thread instrumentation variable
 dataReqNode *createThrInstVar(instrThrDataNode *dataNode, 
@@ -710,7 +715,7 @@ bool allocateMetricData_and_generateCode(const processMetFocusNode* procNode,
      thr = iThrDataNode->getThreadObj();
   }
 
-  (*metricVarIndex) = allocateInstVarForAllThreads(type, proc,
+  (*metricVarIndex) = allocateInstVarForAllThreads(type, codeNode,
 						thrDataNode->dontInsertData());
   dataReqNode *the_node = 
      createThrInstVar(thrDataNode, type, (*metricVarIndex), thr);
@@ -720,7 +725,7 @@ bool allocateMetricData_and_generateCode(const processMetFocusNode* procNode,
   // Create the temporary counters 
   for (unsigned tc=0; tc < temp_ctr.size(); tc++) {
      inst_var_index tempVarIndex;
-     tempVarIndex = allocateInstVarForAllThreads(MDL_T_COUNTER, proc, 
+     tempVarIndex = allocateInstVarForAllThreads(MDL_T_COUNTER, codeNode, 
 						thrDataNode->dontInsertData());
      dataReqNode *temp_node = 
 	thrDataNode->createTemporaryCounter(tempVarIndex, thr, 0);
@@ -1496,7 +1501,7 @@ bool T_dyninstRPC::mdl_constraint::apply(instrCodeNode *codeNode,
     // By default, the last parameter is false - naim 4/23/97
 
     (*consVarIndex) = allocateInstVarForAllThreads(MDL_T_COUNTER,
-				 dataNode->proc(), dataNode->dontInsertData());
+					 codeNode, dataNode->dontInsertData());
     dataReqNode *drn = 
        dataNode->createConstraintCounter(*consVarIndex, thr, 0);
 
