@@ -216,6 +216,11 @@ public:
 		    };
 
     bool	loadLibrary(char *libname);
+
+    //method that retrieves the line number and file name corresponding 
+    //to an address
+    bool getLineAndFile(unsigned long addr,unsigned short& lineNo,
+			char* fileName,int length);
 };
 
 #endif /* BPatch_thread_h_ */

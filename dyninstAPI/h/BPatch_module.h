@@ -50,15 +50,22 @@ class BPatch_image;
 class BPatch_function;
 class BPatch_typeCollection;
 class BPatch_builtInTypeCollection;
+class LineInformation;
 
 extern BPatch_builtInTypeCollection * builtInTypes;
 
 
 class BPatch_module: public BPatch_sourceObj {
+
+    friend class BPatch_function;
+    friend class BPatch_image;
+    friend class BPatch_thread;
+
     process		*proc;
     pdmodule		*mod;
     BPatch_image	*img;
     BPatch_Vector<BPatch_function *> * BPfuncs;
+    LineInformation* lineInformation;
      
 public:
 // The following functions are for internal use by  the library only:
@@ -87,6 +94,12 @@ public:
 
 
     char *parseStabStringSymbol(int line, char *stabstr, void *stabptr);
+
+    //function to get addresses for a line of the module
+    bool getLineToAddr(unsigned short lineNo,
+		       BPatch_Vector<unsigned long>& buffer,
+		       bool exactMatch = true);
+
 private:
 
 };

@@ -87,6 +87,11 @@ public:
     BPatch_variableExpr *findVariable(BPatch_point &scp, const char *nm); 
 
     BPatch_type		*findType(const char *name);
+
+    //method to retrieve addresses corresponding to a line in a file
+    bool getLineToAddr(const char* fileName,unsigned short lineNo,
+		       BPatch_Vector<unsigned long>& buffer,
+		       bool exactMatch = true);
 private:
     BPatch_Vector<BPatch_module *> *modlist;
     AddrToVarExprHash *AddrToVarExpr;
