@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.70 2004/01/19 21:53:39 schendel Exp $
+// $Id: BPatch.C,v 1.71 2004/02/07 18:33:55 schendel Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -854,8 +854,6 @@ bool BPatch::getThreadEventOnly(bool block)
        return false;
    }
 
-   getSH()->beginEventHandling(foundEvents.size());
-
    for(unsigned i=0; i<foundEvents.size(); i++)
    {
       procevent *cur_event = foundEvents[i];
@@ -896,11 +894,10 @@ bool BPatch::getThreadEventOnly(bool block)
       }
        
       // Do standard handling
-      getSH()->handleProcessEventKeepLocked(*cur_event);
+      getSH()->handleProcessEvent(*cur_event);
       delete cur_event;
    }
 
-   getSH()->continueLockedProcesses();
    return result;
 }
 

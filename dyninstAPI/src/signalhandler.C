@@ -62,47 +62,12 @@ void signalHandler::checkForAndHandleProcessEvents(bool block) {
 }
 
 void signalHandler::handleProcessEvents(pdvector<procevent *> &foundEvents) {
-   getSH()->beginEventHandling(foundEvents.size());
-
    for(unsigned i=0; i<foundEvents.size(); i++) {
       procevent *ev = foundEvents[i];
-      if(!handleProcessEventKeepLocked(*ev))
+      if(!handleProcessEvent(*ev))
          fprintf(stderr, "handleProcessEvent failed!\n");
       delete ev;
    }
-
-   continueLockedProcesses();
-}
-
-int signalHandler::handleProcessEventWithUnlock(const procevent &event) {
-   int result = handleProcessEventKeepLocked(event);
-   continueLockedProcesses();
-   return result;
-}
-
-int signalHandler::handleProcessEventKeepLocked(const procevent &event) {
-   process *proc = event.proc;
-   if(numEventsToProcess > 1)
-      proc->lock_continues();
-   procs_with_locked_statuses.push_back(proc);
-   numEventsProcessed++;
-   return handleProcessEventInternal(event);
-}
-
-void signalHandler::continueLockedProcesses() {
-   if(numEventsProcessed < numEventsToProcess) {
-      cerr << "   error in continueLockedProcesses, there are "
-           << numEventsToProcess << " events to process\n    at this point, "
-           << " but have only processed " << numEventsToProcess << " events.";
-      cerr << "  Can't continue process until all events have been handled.";
-      assert(false);
-   }
-
-   for(unsigned j=0; j<procs_with_locked_statuses.size(); j++) {
-      process *cur_proc = procs_with_locked_statuses[j];
-      cur_proc->unlock_continues();
-   }
-   procs_with_locked_statuses.clear();
 }
 
 

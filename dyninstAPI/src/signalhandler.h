@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler.h,v 1.8 2004/01/19 21:53:54 schendel Exp $
+/* $Id: signalhandler.h,v 1.9 2004/02/07 18:33:58 schendel Exp $
  */
 
 /*
@@ -74,13 +74,10 @@ class dyn_lwp;
 // waitProcs replacement
 
 class signalHandler {
-   pdvector<process *> procs_with_locked_statuses;
-   int numEventsToProcess;
-   int numEventsProcessed;
    int handleProcessEventInternal(const procevent &event);
 
  public:
-   signalHandler() : numEventsToProcess(0), numEventsProcessed(0) { }
+   signalHandler() { }
 
    // checks for process events and handles any events that were found
    void checkForAndHandleProcessEvents(bool block);
@@ -93,20 +90,7 @@ class signalHandler {
 
    // handles process events, unlocks locked processes, deletes proc events
    void handleProcessEvents(pdvector<procevent *> &foundEvents);
-
-   // if handelProecssEventWithUnlock or handleProcessEventNoUnlock
-   // is used, then need to call beginEventHandling before start handling
-   // events
-   void beginEventHandling(int numEvents) {
-      numEventsToProcess = numEvents;
-   }
-   
-   int handleProcessEventWithUnlock(const procevent &event);
-
-   // if use this nounlock function, need to call continueLockedProcesses
-   // after done handling all of the signals
-   int handleProcessEventKeepLocked(const procevent &event);
-   void continueLockedProcesses();
+   int handleProcessEvent(const procevent &event);
 };
 
 extern signalHandler *global_sh;
