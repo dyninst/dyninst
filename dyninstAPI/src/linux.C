@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.27 2000/03/22 22:37:32 nick Exp $
+// $Id: linux.C,v 1.28 2000/03/24 19:15:40 nick Exp $
 
 #include <fstream.h>
 
@@ -1473,6 +1473,15 @@ time64 process::getInferiorProcessCPUtime(int /*lwp_id*/) /* const */ {
     tmp = P_fopen( "/proc/stat", "r" );
     assert( tmp );
     assert( 1 == fscanf( tmp, "%*s %*d %*d %*d %d", &uptimeJiffies ) );
+
+    if (sysconf(_SC_NPROCESSORS_CONF) > 1)
+    {
+      // on SMP boxes, the first line is cumulative jiffies, the second line
+      // is jiffies for cpu0 - on uniprocessors, this fscanf will fail as
+      // there is only a single cpu line
+      assert (1 == fscanf(tmp, "\ncpu0 %*d %*d %*d %d", &uptimeJiffies));
+    }
+
     fclose( tmp );
     realHZ = (int)floor( (double)uptimeJiffies / uptimeReal + 0.5 );
     //fprintf( stderr, "Determined jiffies/sec as %d\n", realHZ );
