@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.52 2004/04/02 06:34:11 jaw Exp $
+// $Id: aixDL.C,v 1.53 2004/04/15 20:53:32 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -74,7 +74,7 @@ bool dynamic_linking::installTracing() {
     fileDescriptor *libc_desc = NULL;
     for (unsigned i = 0; i < objs->size(); i++) {
         fileDescriptor_AIX *desc = (fileDescriptor_AIX *)(*objs)[i]->getFileDesc();
-        if (((*objs)[i]->getName() == "/usr/lib/libc.a") &&
+        if (((*objs)[i]->getName().suffixed_by("libc.a")) &&
             (desc->member() == "shr.o")) {
             libc_desc = (fileDescriptor *)desc;
             libc = ((*objs)[i]);
