@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.463 2003/12/04 19:15:12 schendel Exp $
+// $Id: process.C,v 1.464 2003/12/08 19:03:39 schendel Exp $
 
 #include <ctype.h>
 
@@ -221,8 +221,18 @@ void setLibState(libraryState_t &lib, libraryState_t state) {
 }
 
 ostream& operator<<(ostream&s, const Frame &f) {
-    fprintf(stderr, "PC: 0x%lx, FP: 0x%lx, PID: %d",
-            f.pc_, f.fp_, f.pid_);
+   pd_Function *pcfunc = NULL;
+   const char *funcname = "";
+   if(f.thread_) {
+      process *proc = f.thread_->get_proc();
+      if(proc)
+         pcfunc = proc->findFuncByAddr(f.pc_);
+      if(pcfunc)
+         funcname = pcfunc->prettyName().c_str();
+   }
+
+    fprintf(stderr, "PC: 0x%lx (%s), FP: 0x%lx, PID: %d",
+            f.pc_, funcname, f.fp_, f.pid_);
     if (f.thread_)
         fprintf(stderr, ", TID: %d",
                 f.thread_->get_tid());
@@ -3456,7 +3466,7 @@ void process::clearProcessEvents() {
       procSignalInfo_t info;
       dyn_lwp *lwp = NULL;
       process *proc = decodeProcessEvent(&lwp, getPid(), why, what, info,
-                                         false, 0);
+                                         false);
 
       if(proc) {
          handleProcessEvent(proc, why, what, info);
@@ -3473,25 +3483,50 @@ void process::set_status(processState st) {
    pdvector<dyn_thread *>::iterator iter = threads.begin();
    
    dyn_lwp *proclwp = getRepresentativeLWP();
-   if(proclwp) proclwp->set_status(st);
+   if(proclwp) proclwp->internal_lwp_set_status___(st);
    
    while(iter != threads.end()) {
       dyn_thread *thr = *(iter);
       dyn_lwp *lwp = thr->get_lwp();
       assert(lwp);
-      lwp->set_status(st);
+      lwp->internal_lwp_set_status___(st);
       iter++;
    }
 }
 
-void process::set_status(processState st, dyn_lwp *whichLWP) {
-   // update the process status
-   status_ = st;
+void process::set_lwp_status(dyn_lwp *whichLWP, processState lwp_st) {
+   // any lwp status = stopped, means proc status = stopped
 
    assert(whichLWP != NULL);
 
-   if(whichLWP->status() != st)
-      whichLWP->set_status(st);
+   // update the process status
+   if(lwp_st == stopped)
+      status_ = stopped;
+
+   whichLWP->internal_lwp_set_status___(lwp_st);
+
+   if(IndependentLwpControl()) {
+      // all lwp status = running, means proc status = running
+      bool stopped_lwp_exists = false;
+      pdvector<dyn_thread *>::iterator iter = threads.begin();
+      if(lwp_st == running) {
+         while(iter != threads.end()) {
+            dyn_thread *thr = *(iter);
+            dyn_lwp *lwp = thr->get_lwp();
+            assert(lwp);
+            if(lwp->status() == stopped)
+               stopped_lwp_exists = true;
+            iter++;
+         }
+      }
+      if(!stopped_lwp_exists && lwp_st==running)
+         status_ = running;
+   } else {
+      // if can't do independent lwp control, should only be able to set
+      // lwp status for representative lwp
+      assert(whichLWP == getRepresentativeLWP());
+      set_status(lwp_st);  // sets process status and all lwp statuses
+   }
 }
 
 bool process::pause() {
