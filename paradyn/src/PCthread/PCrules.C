@@ -46,6 +46,9 @@
  *  be parsed from a configuration file.
  *
  * $Log: PCrules.C,v $
+ * Revision 1.42  1996/12/12 20:04:47  karavan
+ * removed test hypothesis I accidentally committed
+ *
  * Revision 1.41  1996/12/08 17:36:19  karavan
  * part 1 of 2 part commit to add new searching functionality
  *
@@ -331,7 +334,7 @@ void initPChypos()
 		   "highSyncThreshold", 
 		   "PC_SyncThreshold",
 		   defaultGetThresholdFunc, 
-		   gt, whyOnly, (void *)NULL, &plumList, NULL);
+		   gt, whyAndWhere, (void *)NULL, &plumList, NULL);
 
   if (!flag)
     cout << "hypothesis constructor failed for ExcessiveSyncWaitingTime" 
@@ -356,7 +359,7 @@ void initPChypos()
 		   "", "highIOthreshold", 
 		   "PC_IOThreshold",
 		   defaultGetThresholdFunc, 
-		   gt, whyOnly, (void *)NULL, &plumList2, NULL);
+		   gt, whyAndWhere, (void *)NULL, &plumList2, NULL);
 
   if (!flag)
     cout << "hypothesis constructor failed for ExcessiveIOBlockingTime" << endl;
@@ -367,7 +370,7 @@ void initPChypos()
 		   "diskBlockSize", 
 		   "PC_IOThreshold",
 		   defaultGetThresholdFunc, 
-		   gt, whyOnly, (void *)NULL, &plumList2, NULL);
+		   gt, whyAndWhere, (void *)NULL, &plumList2, NULL);
 
   if (!flag)
     cout << "hypothesis constructor failed for TooManySmallIOOps" << endl;
@@ -392,6 +395,7 @@ void initPChypos()
   if (!flag)
     cout << "hypothesis constructor failed for normCPUtimeTester" << endl;
 
+/*
     //**** the test hypotheses  *****
   flag = PCWhyAxis->
     addHypothesis("tooMuchPauseTime", (const char *)NULL, 
@@ -418,6 +422,7 @@ void initPChypos()
   //** how to handle this case?
   if (!flag)
     cout << "hypothesis constructor failed for PauseTime" << endl;
+
   flag = PCWhyAxis->
     addHypothesis("TeenytooMuchPauseTime", "tooMuchPauseTime", 
 		  "PauseTime",
@@ -430,5 +435,5 @@ void initPChypos()
   //** how to handle this case?
   if (!flag)
     cout << "hypothesis constructor failed for PauseTime" << endl;
-
+*/
 }
