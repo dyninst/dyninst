@@ -5,7 +5,10 @@
 # choices directly.
 
 # $Log: mets.tcl,v $
-# Revision 1.8  1994/11/01 05:46:20  karavan
+# Revision 1.9  1994/11/07 00:32:06  karavan
+# eliminated default clearing of the where axis.
+#
+# Revision 1.8  1994/11/01  05:46:20  karavan
 # changed resource selection to allow multiple focus selection on a
 # single display.
 #
@@ -116,6 +119,7 @@ proc endSelection {visiToken rdoToken cancelflag win} {
 
 proc getMetsAndRes {metsAndResID rdo} {
     global metCount metList metMenuCtr tclSelectionState 
+
     set tclSelectionState 1
     incr metMenuCtr
     set w .metmenunew$metMenuCtr
@@ -174,8 +178,8 @@ proc getMetsAndRes {metsAndResID rdo} {
 
     pack $w.bot.b1 -side left -expand yes
     pack $w.bot.b2 -side right -expand yes
-    # initialize focus choice to whole program
-    uimpd clearResourceSelection rdo $rdo
+# initialize focus choice to whole program
+#    uimpd clearResourceSelection rdo $rdo
 }
 
 
