@@ -1430,9 +1430,8 @@ bool image::addAllVariables()
 #ifdef i386_unknown_nt4_0
   string mangledName; 
   Symbol symInfo;
-  SymbolIter symIter(linkedFile);
 
-  while (symIter.next(mangledName, symInfo)) {
+  for(SymbolIter symIter = linkedFile; symIter; symIter++) {
      const string &mangledName = symIter.currkey();
      const Symbol &symInfo = symIter.currval();
 
@@ -1830,7 +1829,7 @@ pd_Function::pd_Function(const string &symbol, const string &pretty,
 // As part of an effort to clean up the code a bit, I merged the
 // duplicates into this 1 function.  
 void image::insert_function_internal_static(vector<Symbol> &mods, \
-	Symbol &lookUp, \
+	const Symbol &lookUp, \
         const Address boundary_start,  const Address boundary_end, \
 	const Address startAddr, bool startB, const Address endAddr, \
         bool endB, pdmodule *dyn, pdmodule *lib) {
@@ -1851,7 +1850,7 @@ void image::insert_function_internal_static(vector<Symbol> &mods, \
 // version of insert_function_internal_static (above) for 
 // shared objects....
 void image::insert_function_internal_dynamic(vector<Symbol> &mods,\
-	Symbol &lookUp, \
+	const Symbol &lookUp, \
         pdmodule *dyn, pdmodule *lib, bool is_libdyninstRT) {
     pd_Function *pdf;
     if (is_libdyninstRT) {
