@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.53 2003/04/25 22:31:14 jaw Exp $
+// $Id: test2.C,v 1.54 2003/09/23 17:28:59 tlmiller Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -271,7 +271,7 @@ void test7(BPatch_thread *thread, BPatch_image *img)
  && !defined(i386_unknown_linux2_0) \
  && !defined(mips_sgi_irix6_4) \
  && !defined(rs6000_ibm_aix4_1) \
- && !defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
+ && !defined(ia64_unknown_linux2_4)
     printf("Skipping test #7 (load a dynamically linked library from the mutator)\n");
     printf("    feature not implemented on this platform\n");
     passedTest[7] = true;
