@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: MagnifyManager.C,v 1.5 2000/01/06 20:21:15 cain Exp $
+// $Id: MagnifyManager.C,v 1.6 2002/10/28 04:55:01 schendel Exp $
 
 #include "DMinclude.h"
 #include "MagnifyManager.h"
 #include "CallGraph.h"
 
-vector <resourceHandle>* MagnifyManager::getChildren
-    (resource *rh, magnifyType type) {
+vector <resourceHandle>* MagnifyManager::getChildren(resource *rh, 
+						     magnifyType type) {
     CallGraph *cg;
 
     if(type == OriginalSearch)

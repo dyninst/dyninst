@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.89 2002/10/15 17:11:40 schendel Exp $ */
+/* $Id: dynrpc.C,v 1.90 2002/10/28 04:54:57 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/inst.h"
@@ -139,22 +139,19 @@ vector<T_dyninstRPC::metricInfo> dynRPC::getAvailableMetrics(void) {
   return(metInfo);
 }
 
-void dynRPC::getPredictedDataCost(u_int id,
-				  u_int req_id,
-				  vector<u_int> focus, 
-				  string metName,
-				  u_int clientID)
+void dynRPC::getPredictedDataCost(u_int id, u_int req_id, vector<u_int> focus, 
+				  string metName, u_int clientID)
 {
-    if (!metName.length()) 
+   if (!metName.length()) 
       getPredictedDataCostCallback(id, req_id, 0.0,clientID);
-    else{
+   else {
       timeLength cost = guessCost(metName, focus);
-         // note: returns 0.0 in a variety of situations (if metric cannot be
-         //       enabled, etc.)  Would we rather have a more explicit error
-         //       return value?
+      // note: returns 0.0 in a variety of situations (if metric cannot be
+      //       enabled, etc.)  Would we rather have a more explicit error
+      //       return value?
       getPredictedDataCostCallback(id, req_id, 
-       	             static_cast<float>(cost.getD(timeUnit::sec())), clientID);
-    }
+                     static_cast<float>(cost.getD(timeUnit::sec())), clientID);
+   }
 }
 
 void dynRPC::disableDataCollection(int mid)

@@ -42,9 +42,79 @@
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/dyn_lwp.h"
 
+/*
+// Useful for debugging.  Keeps a history of last VT_MAXRECS of virtual
+// timers.
+#define VT_MAXRECS 20
+#define VT_NUMPOS 4
+
+typedef struct {
+   rawTime64 daemon_now;
+   virtualTimer timerVal;
+   unsigned daemon_lwp;
+} rec_t;
+
+rec_t lastVT[VT_NUMPOS][VT_MAXRECS];
+int vt_index[VT_NUMPOS] = { -1, -1, -1, -1 };
+
+void vt_record(unsigned pos, virtualTimer *vt, rawTime64 now, unsigned dlwp) {
+   assert(pos < VT_NUMPOS);
+   int index, circ_index;
+   index = ++vt_index[pos];
+   circ_index = index % VT_MAXRECS;
+
+   rec_t *rec = &lastVT[pos][circ_index];
+   rec->timerVal = *vt;
+   rec->daemon_now = now;
+   rec->daemon_lwp = dlwp;
+}
+
+void vt_showTraceB(int pos) {
+   int index = vt_index[pos];   
+   int rctr = 1;
+   fprintf(stderr,"  ----- showTrace, pos = %d  ---------------------\n", pos);
+   int rnum;
+   for(rnum = index % VT_MAXRECS; rnum >= 0; rnum--, rctr++) {
+      rec_t *rec = &lastVT[pos][rnum];
+      virtualTimer *tm = &rec->timerVal;
+      fprintf(stderr, ", tot: %lld, start: %lld, ctr: %d, rt_prev: %lld, "
+              "rt_lwp: %d, now: %lld, dmn_lwp: %d\n", tm->total, tm->start, 
+              tm->counter, tm->rt_previous, tm->lwp, rec->daemon_now,
+              rec->daemon_lwp);
+   }
+
+   if(index > VT_MAXRECS) {
+      int circ_index = index % VT_MAXRECS;
+      for(rnum = VT_MAXRECS-1; rnum>circ_index; rnum--, rctr++) {
+         rec_t *rec = &lastVT[pos][rnum];
+         virtualTimer *tm = &rec->timerVal;
+         fprintf(stderr, ", tot: %lld, start: %lld, ctr: %d, rt_prev: %lld, "
+                 "rt_lwp: %d, now: %lld, dmn_lwp: %d\n", tm->total, tm->start, 
+                 tm->counter, tm->rt_previous, tm->lwp, rec->daemon_now,
+                 rec->daemon_lwp);
+      }
+   }
+}
+
+void vt_showTrace(char *msg) {
+   fprintf(stderr, "======================================================\n");
+   fprintf(stderr, "   %s\n", msg);
+   int curPos;
+   for(curPos=0; curPos<VT_NUMPOS; curPos++) {
+      int index = vt_index[curPos];
+      if(index == -1)  continue;
+      vt_showTraceB(curPos);
+   }
+   fprintf(stderr,"=======================================================\n");
+   fflush(stderr);
+}
+
+unsigned pos_junk = 101;
+*/
+
 #if defined(MT_THREAD)
 rawTime64 dyn_thread::getInferiorVtime(virtualTimer *vTimer,
-													bool& success) {
+                                       bool& success) {
   rawTime64 ret ;
   success = true ;
 
@@ -67,11 +137,16 @@ rawTime64 dyn_thread::getInferiorVtime(virtualTimer *vTimer,
     success = false ;
     return 0;
   }
+  rawTime64 now = 0;
   if (count > 0) {
-    ret = total + proc->getRawCpuTime(vTimer->lwp) - start ;    
+     // pos_junk = get_pos();
+     now = proc->getRawCpuTime(vTimer->lwp);
+     // pos_junk = 101;
+     ret = total + (now - start);    
   } else {
     ret = total ;
   }
+  // vt_record(get_pos(), vTimer, now, vTimer->lwp);
   return ret ;
 }
 #endif //MT_THREAD 
@@ -94,6 +169,7 @@ bool dyn_thread::updateLWP()
   if (lwp) lwp_id = lwp->get_lwp();
   else lwp_id = 0;
   int vt_lwp = proc->shmMetaData->getVirtualTimer(pos).lwp;
+
   if (vt_lwp < 0) {
     lwp = NULL; // Not currently scheduled
     return false;

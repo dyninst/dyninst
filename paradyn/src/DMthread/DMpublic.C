@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.130 2002/07/25 19:22:29 willb Exp $
+// $Id: DMpublic.C,v 1.131 2002/10/28 04:54:59 schendel Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -840,18 +840,17 @@ void dataManager::disableDataAndClearPersistentData(perfStreamHandle ps_handle,
 vector<rlNameId> *dataManager::magnify(resourceHandle rh, 
 				       resourceListHandle rlh, 
 				       magnifyType m,
-				       resourceHandle currentSearchPath){
-  
+				       resourceHandle currentSearchPath) {
 #ifdef PCDEBUG
-  printf("Call made to datamanager:magnify, which is calling resourceList::magnify(rh, CallGraphSearch)\n");
+   printf("Call made to datamanager:magnify, which is calling resourceList::magnify(rh, CallGraphSearch)\n");
 #endif
-
-    resourceList *rl = resourceList::getFocus(rlh);
-    resource *res = resource::handle_to_resource(currentSearchPath);
-    if(rl){
-      return(rl->magnify(rh, m, res));
-    }
-    return 0;
+   
+   resourceList *rl = resourceList::getFocus(rlh);
+   resource *res = resource::handle_to_resource(currentSearchPath);
+   if(rl) {
+      return rl->magnify(rh, m, res);
+   }
+   return 0;
 }
 
 
