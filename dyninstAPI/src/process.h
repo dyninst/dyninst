@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.220 2002/10/09 22:03:59 bernat Exp $
+/* $Id: process.h,v 1.221 2002/10/09 22:07:28 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -1242,7 +1242,6 @@ void saveWorldData(Address address, int size, const void* src);
   
 
   Address initSharedMetaData();
-  bool hasInitializedMetaData;
   sharedMetaData *shmMetaData;
   sharedMetaOffsetData *shMetaOffsetData;   // used to communicate offsets of 
                                             // shmMetaData memory to rtinst

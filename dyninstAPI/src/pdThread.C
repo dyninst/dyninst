@@ -83,12 +83,8 @@ rawTime64 pdThread::getInferiorVtime(virtualTimer *vTimer,
 
 bool pdThread::updateLWP()
 {
-  if (pos == -1) {
-    lwp = proc->getDefaultLWP();
-    return true;
-  }
-
-  if (!proc->hasInitializedMetaData) {
+  if ((!proc->multithread_ready()) || 
+      (pos == (unsigned) -1)) {
     lwp = proc->getDefaultLWP();
     return true;
   }
