@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.146 2003/03/04 19:16:18 willb Exp $
+// $Id: perfStream.C,v 1.147 2003/03/08 01:23:37 bernat Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -76,6 +76,7 @@ extern "C" {
 #include "pdutil/h/airtStreambuf.h"
 #include "paradynd/src/processMgr.h"
 #include "paradynd/src/pd_process.h"
+#include "dyninstAPI/src/signalhandler.h"
 
 // trace data streams
 #include "common/h/Dictionary.h"
@@ -781,8 +782,7 @@ void controllerMainLoop(bool check_buffer_first)
       // requests arrives at that moment - naim
       if( isInfProcAttached )
       {
-            extern void checkProcStatus(); // check status of inferior processes
-            checkProcStatus();
+          decodeAndHandleProcessEvent(false);
       }
       
       FD_ZERO(&readSet);

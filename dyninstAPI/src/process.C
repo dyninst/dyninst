@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.391 2003/03/06 20:16:16 jodom Exp $
+// $Id: process.C,v 1.392 2003/03/08 01:23:33 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -57,6 +57,7 @@ int pvmendtask();
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/dyn_lwp.h"
+#include "dyninstAPI/src/signalhandler.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/inst.h"
@@ -208,8 +209,6 @@ extern string osName;
 int pd_debug_infrpc=0;
 int pd_debug_catchup=0;
 //
-
-extern void checkProcStatus();
 
 bool reachedLibState(libraryState_t lib, libraryState_t state) { return (lib >= state); }
 
@@ -1657,7 +1656,7 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
   bool wasRunning = (status() == running);
   do {
       bool result = launchRPCs(wasRunning);
-      checkProcStatus();
+      decodeAndHandleProcessEvent(false);
   } while (!ret.ready); // Loop until callback has fired.
   switch ((int)(Address)ret.result) {
   case 0:
@@ -2721,6 +2720,12 @@ process *createProcess(const string File, pdvector<string> argv,
         cerr << "Failed to find exec descriptor" << endl;
         return NULL;
     }
+    // What a hack... getExecFileDescriptor waits for a trap
+    // signal on AIX and returns the code in status. So we basically
+    // have a pending TRAP that we need to handle, but not right
+    // now.
+    int fileDescSignal = WSTOPSIG(status);
+
     
     image *img = image::parseImage(desc);
     if (!img) {
@@ -2784,14 +2789,14 @@ process *createProcess(const string File, pdvector<string> argv,
     //    know the base addresses until we get the load info via ptrace.
     //    In general it is even harder, since dynamic libs can be loaded
     //    at any time.
-    extern int handleSigChild(int pid, int status);
+    handleProcessEvent(theProc, procSignalled, fileDescSignal, 0);
     
-    (void) handleSigChild(pid, status);
 #endif
     theProc->loadDyninstLib();
     while (!theProc->reachedBootstrapState(bootstrapped)) {
         // We're waiting for something... so wait
-        checkProcStatus();
+        // true: block until a signal is received (efficiency)
+        decodeAndHandleProcessEvent(true);
     }
     
     return theProc;    
@@ -2934,13 +2939,11 @@ process *attachProcess(const string &progpath, int pid)
 // Return val: false=error condition
 
 bool process::loadDyninstLib() {
-    
     // Wait for the process to get to an initialized (dlopen exists)
     // state
     while (!reachedBootstrapState(initialized)) {
-        checkProcStatus();
+        decodeAndHandleProcessEvent(true);
     }
-
     assert(status_ == stopped);
     
 
@@ -2960,8 +2963,6 @@ bool process::loadDyninstLib() {
     // This installs a trap at dlopen/dlclose. Should be wrapped
     // into initSharedObjects
     // need to perform this after dyninst Heap is present and happy
-    cerr << "Setting mapping hooks for alpha" << endl;
-    
     dyn->setMappingHooks(this);
 #endif
 
@@ -3014,8 +3015,7 @@ bool process::loadDyninstLib() {
 
     // Loop until the dyninst lib is loaded
     while (!reachedBootstrapState(loadedRT)) {
-        // Should also check for process termination here
-        checkProcStatus();
+        decodeAndHandleProcessEvent(true);
     }
 
     // Get rid of the callback
@@ -3137,7 +3137,7 @@ bool process::iRPCDyninstInit() {
     // We loop until dyninst init has run (check via the callback)
     while (!reachedBootstrapState(bootstrapped)) {
         launchRPCs(false); // false: not running
-        checkProcStatus();
+        decodeAndHandleProcessEvent(true);
     }
     return true;
 }
@@ -3154,7 +3154,8 @@ void process::DYNINSTinitCompletionCallback(process* theProc,
 // Callback: finish mutator-side processing for dyninst lib
 
 bool process::finalizeDyninstLib() {
-   assert(status_ == stopped);
+
+    assert(status_ == stopped);
 
    if (reachedBootstrapState(bootstrapped)) {
        return true;
@@ -3186,7 +3187,11 @@ bool process::finalizeDyninstLib() {
    }
    
 #if defined(BPATCH_LIBRARY)
-   if (wasExeced()) BPatch::bpatch->registerExec(thread);
+   // It is now safe to call the exec callback
+   if (wasExeced()) {
+       BPatch::bpatch->registerExec(thread);
+   }
+   
 #endif
    
    if (calledFromFork) {
@@ -3256,6 +3261,12 @@ bool AttachToCreatedProcess(int pid,const string &progpath)
     // it's ignored on other platforms
     fileDescriptor *desc = 
         getExecFileDescriptor(fullPathToExecutable, status, true);
+    // What a hack... getExecFileDescriptor waits for a trap
+    // signal on AIX and returns the code in status. So we basically
+    // have a pending TRAP that we need to handle, but not right
+    // now.
+    int fileDescSignal = WSTOPSIG(status);
+    
 
     if (!desc) {
       return false;
@@ -3351,8 +3362,7 @@ bool AttachToCreatedProcess(int pid,const string &progpath)
     // know the base addresses until we get the load info via ptrace.
     // In general it is even harder, since dynamic libs can be loaded
     // at any time.
-    extern int handleSigChild(int pid, int status);
-    (void) handleSigChild(pid, status);
+    handleProcessEvent(ret, procSignalled, fileDescSignal, 0);    
 #endif
     
     return(true);
@@ -5172,7 +5182,6 @@ void process::handleExec() {
 #if !defined(BPATCH_LIBRARY) //ccw 22 apr 2002 : SPLIT
 	PARADYNhasBootstrapped = false;
 #endif
-    cerr << "handleExec" << endl;
    // all instrumentation that was inserted in this process is gone.
    // set exited here so that the disables won't try to write to process
    status_ = exited; 
@@ -5275,8 +5284,6 @@ void process::handleExec() {
     initInferiorHeap();
 #endif
 
-    cerr << "Set bootstrapState to unstarted" << endl;
-    
     bootstrapState = unstarted;
     /* update process status */
        // we haven't yet seen initial SIGTRAP for this proc (is this right?)
@@ -6533,7 +6540,6 @@ void process::updateThread(
 
 void process::deleteThread(int tid)
 {
-    cerr << "process::deleteThread" << endl;
    pdvector<dyn_thread *>::iterator iter = threads.end();
    while(iter != threads.begin()) {
       dyn_thread *thr = *(--iter);

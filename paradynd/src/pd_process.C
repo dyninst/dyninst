@@ -41,6 +41,7 @@
 
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/pd_thread.h"
+#include "dyninstAPI/src/signalhandler.h"
 #include "paradynd/src/init.h"
 #include "paradynd/src/metricFocusNode.h"
 #include "paradynd/src/processMgr.h"
@@ -52,9 +53,6 @@ extern int termWin_port;
 extern string pd_machine;
 extern PDSOCKET connect_Svr(string machine,int port);
 extern pdRPC *tp;
-
-// Catch and process signals
-extern void checkProcStatus();
 
 // Exec callback
 extern void pd_execCallback(process *proc);
@@ -388,7 +386,7 @@ bool pd_process::loadParadynLib() {
     // via the inferior RPC callback
     while (!reachedLibState(paradynRTState, libLoaded)) {
         launchRPCs(false);
-        checkProcStatus();
+        decodeAndHandleProcessEvent(true);
     }
 
     removeAst(loadLib);
@@ -664,7 +662,7 @@ bool pd_process::iRPCParadynInit() {
     
     while(!reachedLibState(paradynRTState, libReady)) {
         launchRPCs(false);
-        checkProcStatus();
+        decodeAndHandleProcessEvent(true);
     }
     return true;
 }
@@ -795,7 +793,7 @@ bool pd_process::loadAuxiliaryLibrary(string libname) {
     // via the inferior RPC callback
     while (!reachedLibState(auxLibState, libLoaded)) {
         launchRPCs(false);
-        checkProcStatus();
+        decodeAndHandleProcessEvent(true);
     }
     removeAst(loadLib);
     return true;

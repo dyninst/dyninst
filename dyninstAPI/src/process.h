@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.240 2003/03/02 22:03:30 schendel Exp $
+/* $Id: process.h,v 1.241 2003/03/08 01:23:34 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -73,6 +73,7 @@
 #include "dyninstAPI/src/inferiorRPC.h"
 #include "dyninstAPI/src/syscalltrap.h"
 #include "dyninstAPI/src/libState.h"
+#include "dyninstAPI/src/signalhandler.h"
 
 #include "dyninstAPI/src/symtab.h" // internalSym
 
@@ -341,7 +342,11 @@ class process {
  friend class BPatch_image;
 #endif
  friend Address loadDyninstDll(process *, char Buffer[]);
-
+ // NT
+#if defined(i386_unknown_nt4_0)
+ friend int handleDllLoad(process *proc, procSignalWhat_t debugEv);
+#endif
+ 
   //  
   //  PUBLIC MEMBERS FUNCTIONS
   //  
@@ -415,6 +420,8 @@ class process {
 #endif
 
   processState status() const { return status_;}
+  void savePreSignalStatus() { status_before_signal_ = status_; }
+  processState preSignalStatus() const { return status_before_signal_; }
   int exitCode() const { return exitCode_; }
   string getStatusAsString() const; // useful for debug printing etc.
 
@@ -438,18 +445,15 @@ class process {
 
 #ifdef BPATCH_LIBRARY
   bool setProcfsFlags();
-  bool dumpImage(string outFile);
-
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
   char* dumpPatchedImage(string outFile);//ccw 28 oct 2001
 #else
   char* dumpPatchedImage(string outFile) { return NULL; } 
 #endif
-  string execPathArg;	// path exec is trying - used when process calls exec
-#else
-  bool dumpImage();
 #endif
 
+  bool dumpImage(string outFile);
+  
   bool symbol_info(const string &name, Symbol &ret) {
      assert(symbols);
      return symbols->symbol_info(name, ret);
@@ -468,14 +472,6 @@ class process {
   Address getTOCoffsetInfo(Address);
 
   bool dyninstLibAlreadyLoaded() { return runtime_lib != 0; }
-
-#if defined(BPATCH_LIBRARY)
-  // a kludge so sol_proc.C/handleStopProcess can get at this without
-  // adding another friend class in BPatch.h
-  static BPatchForkCallback getPreForkCallback() {
-     return BPatch::bpatch->preForkCallback;
-  }
-#endif
 
   bool deferredContinueProc;
   void updateActiveCT(bool flag, CTelementType type);
@@ -810,7 +806,8 @@ void saveWorldData(Address address, int size, const void* src);
   //int ioLink;                   /* pipe to transfer stdout/stderr over */
   int exitCode_;                /* termination status code */
   processState status_;         /* running, stopped, etc. */
-
+  processState status_before_signal_; /* Store the previous proc state */
+  
   bool continueAfterNextStop_;
 
   resource *rid;                /* handle to resource for this process */
@@ -1206,17 +1203,12 @@ void saveWorldData(Address address, int size, const void* src);
   void handleExec();
   bool cleanUpInstrumentation(bool wasRunning); // called on exit (also exec?)
   bool inExec;
+  string execPathArg;	// path exec is trying - used when process calls exec
 
   string execFilePath;		// full path of process
 
   dyn_lwp *getLWP(unsigned lwp);
   dyn_lwp *getDefaultLWP() const;
-
-#ifdef BPATCH_LIBRARY
-  static int waitProcs(int *status, bool block = false);
-#else
-  static int waitProcs(int *status);
-#endif
 
 #if defined(alpha_dec_osf4_0)
   int waitforRPC(int *status,bool block = false);
@@ -1375,9 +1367,8 @@ private:
 
   bool writeTextWord_(caddr_t inTracedProcess, int data);
   bool writeTextSpace_(void *inTracedProcess, u_int amount, const void *inSelf);
-#ifdef BPATCH_SET_MUTATIONS_ACTIVE
   bool readTextSpace_(void *inTracedProcess, u_int amount, const void *inSelf);
-#endif
+
   bool pause_();
   bool continueProc_();
 

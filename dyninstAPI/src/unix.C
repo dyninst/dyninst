@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.78 2003/03/04 19:16:05 willb Exp $
+// $Id: unix.C,v 1.79 2003/03/08 01:23:35 bernat Exp $
 
 #if defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -58,6 +58,7 @@
 #endif
 
 // the following are needed for handleSigChild
+#include "dyninstAPI/src/signalhandler.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/instP.h"
@@ -434,158 +435,154 @@ bool forkNewProcess(string &file, string dir, pdvector<string> argv,
 
 }
 
-/* 
-   TODO: cleanup handleSigChild. This function has a lot of code that
-   should be moved to a machine independent place (a lot of what is
-   going on here will probably have to be moved anyway once we move to
-   the dyninstAPI).
 
-   There is a different version of this function for WindowsNT. If any changes
-   are made here, they will probably also be needed in the NT version.
+/////////////////////////////////////////////////////////////////////////////
+/// Massive amounts of signal handling code
+/////////////////////////////////////////////////////////////////////////////
 
-   --mjrg
-*/
 
-void checkAndDoExecHandling(process *curr) {
-   if(curr->inExec == false) return;
-   
-   // the process has executed a succesful exec, and is now
-   // stopped at the exit of the exec call.
-   
-   forkexec_cerr << "SIGTRAP: inExec is true, so doing "
-                 << "process::handleExec()!\n";
-   
-   string buffer = string("process ") + string(curr->getPid()) +
-      " has performed exec() syscall";
-   statusLine(buffer.c_str());
-   
-   // call handleExec to clean our internal data structures, reparse
-   // symbol table.  handleExec does not insert instrumentation or do any
-   // propagation.  Why not?  Because it wouldn't be safe -- the process
-   // hasn't yet been bootstrapped (run DYNINST, etc.)  Only when we get
-   // the breakpoint at the end of DYNINSTinit() is it safe to insert
-   // instrumentation and allocate timers & counters...
-   curr->handleExec();
-   
-#ifndef BPATCH_LIBRARY
-   // need to start resourceBatchMode here because we will call
-   //  tryToReadAndProcessBootstrapInfo which
-   // calls tp->resourceBatchMode(false)
-   tp->resourceBatchMode(true);
-#else
-   // BPatch::bpatch->registerExec(curr->thread);
-#endif
-      
-   // Since exec will 'remove' our library, we must redo the whole process
-   forkexec_cerr <<"About to start exec reconstruction of shared library\n";
-   // fall through...
+// Turn the return result of waitpid into something we can use
+int decodeWaitPidStatus(process * /*p*/,
+                        waitPidStatus_t status,
+                        procSignalWhy_t &why,
+                        procSignalWhat_t &what) {
+    // Big if-then-else tree
+    if (WIFEXITED(status)) {
+        why = procExitedNormally;
+        what = WEXITSTATUS(status);
+        return 1;
+    } 
+    else if (WIFSIGNALED(status)) {
+        why = procExitedViaSignal;
+        what = WTERMSIG(status);
+        return 1;
+    }
+    else if (WIFSTOPPED(status)) {
+        why = procSignalled;
+        what = WSTOPSIG(status);
+        return 1;
+    }
+    else {
+        why = procUndefined;
+        what = 0;
+        return 0;
+    }
+    return 0;
 }
 
-void handleSigTrap(process *curr, int pid, int linux_orig_sig) {
-   // Note that there are now several uses for SIGTRAPs in paradynd.  The
-   // original use was to detect when a ptraced process had started up.
-   // Several have been added.  We must be careful to make sure that uses of
-   // SIGTRAPs do not conflict.
+int forwardSigToProcess(process *curr, procSignalWhat_t what) {
+#if (defined(POWER_DEBUG) || defined(HP_DEBUG)) && \
+    (defined(rs6000_ibm_aix4_1) || defined(hppa1_1_hp_hpux))
+    // In this way, we will detach from the application and we
+    // will be able to attach again using gdb - naim
+    if (what==SIGSEGV) {
+#if defined(rs6000_ibm_aix4_1)
+        if (ptrace(PT_DETACH,curr->getPid(),(int *) 1, SIGSTOP, NULL) == -1)
+#else
+        if (ptrace(PT_DETACH,curr->getPid(), 1, SIGSTOP, NULL) == -1)
+#endif
+        {
+            
+            logLine("ptrace error\n");
+            return 0;
+        }
+    }
+#endif
+    // Pass the signal along to the child
+    if (!curr->continueWithForwardSignal(what)) {
+        logLine("error  in forwarding  signal\n");
+        showErrorCallback(38, "Error  in forwarding  signal");
+        return 0;
+        //P_abort();
+    } 
+    return 1;
+}
 
-  signal_cerr << "welcome to SIGTRAP for pid " << curr->getPid()
-	       << " status =" << curr->getStatusAsString() << endl;
 
-   const bool wasRunning = (curr->status() == running);
-   curr->status_ = stopped;
-
-   checkAndDoExecHandling(curr);
-
+int handleSigTrap(process *curr) {
+    // SIGTRAP is our workhorse. It's used to stop the process at a specific
+    // address, notify the mutator/daemon of an event, and a few other things
+    // as well.
+    
+    signal_cerr << "welcome to SIGTRAP for pid " << curr->getPid()
+                << " status =" << curr->getStatusAsString() << endl;
+    
 /////////////////////////////////////////
 // Init section
 /////////////////////////////////////////
-   
-   if (!curr->reachedBootstrapState(bootstrapped)) {
-       
-       if (!curr->reachedBootstrapState(begun)) {
-           // We've created the process, but haven't reached main. 
-           // This would be a perfect place to load the dyninst library,
-           // but all the other shared libs aren't initialized yet. 
-           // So we wait for main to be entered before working on the process.
-           
-           curr->setBootstrapState(begun);
-           curr->insertTrapAtEntryPointOfMain();
-           string buffer = string("PID=") + string(pid);
-           buffer += string(", attached to process, stepping to main");       
-           statusLine(buffer.c_str());
-           if (!curr->continueProc()) {
-               assert(0);
-           }
-           // Now we wait for the entry point trap to be reached
-           
-           return;
-       }
-       else if (curr->trapAtEntryPointOfMain()) {
-           
-           curr->handleTrapAtEntryPointOfMain();
-           curr->setBootstrapState(initialized);
-           if(curr->wasExeced())
-               curr->loadDyninstLib();
-
-           return;
-       }
-       else if (curr->trapDueToDyninstLib()) {
-           
-           string buffer = string("PID=") + string(pid);
-           buffer += string(", loaded dyninst library");
-           statusLine(buffer.c_str());
-           //signal_cerr << "trapDueToDyninstLib returned true, trying to handle\n";
-           
-           curr->loadDYNINSTlibCleanup();
-           curr->setBootstrapState(loadedRT);
-           return;
-       }
-   }
-
+    
+    if (!curr->reachedBootstrapState(bootstrapped)) {
+        
+        if (!curr->reachedBootstrapState(begun)) {
+            // We've created the process, but haven't reached main. 
+            // This would be a perfect place to load the dyninst library,
+            // but all the other shared libs aren't initialized yet. 
+            // So we wait for main to be entered before working on the process.
+            curr->setBootstrapState(begun);
+            curr->insertTrapAtEntryPointOfMain();
+            string buffer = string("PID=") + string(curr->getPid());
+            buffer += string(", attached to process, stepping to main");       
+            statusLine(buffer.c_str());
+            if (!curr->continueProc()) {
+                assert(0);
+            }
+            // Now we wait for the entry point trap to be reached
+            
+            return 1;
+        }
+        else if (curr->trapAtEntryPointOfMain()) {
+            curr->handleTrapAtEntryPointOfMain();
+            curr->setBootstrapState(initialized);
+            if(curr->wasExeced())
+                curr->loadDyninstLib();
+            return 1;
+        }
+        else if (curr->trapDueToDyninstLib()) {
+            string buffer = string("PID=") + string(curr->getPid());
+            buffer += string(", loaded dyninst library");
+            statusLine(buffer.c_str());
+            //signal_cerr << "trapDueToDyninstLib returned true, trying to handle\n";
+            
+            curr->loadDYNINSTlibCleanup();
+            curr->setBootstrapState(loadedRT);
+            return 1;
+        }
+    }
+    
 ///////////////////////////////////
 // Inferior RPC section
 ///////////////////////////////////
-
-   // New and improved RPC handling, takes care of both
-   // an RPC which has reached a breakpoint and whether
-   // we're waiting for a syscall to complete
-
-   if (curr->handleTrapIfDueToRPC()) {
-       signal_cerr << "processed RPC response in SIGTRAP" << endl;
-       return;
-   }
-   
-
+    
+    // New and improved RPC handling, takes care of both
+    // an RPC which has reached a breakpoint and whether
+    // we're waiting for a syscall to complete
+    
+    if (curr->handleTrapIfDueToRPC()) {
+        signal_cerr << "processed RPC response in SIGTRAP" << endl;
+        return 1;
+    }
+    
+    
 /////////////////////////////////////////
 // dlopen/close section
 /////////////////////////////////////////
-
-   // check to see if trap is due to dlopen or dlcose event
-   if(curr->isDynamicallyLinked()){
-       if(curr->handleIfDueToSharedObjectMapping()){
-           signal_cerr << "handle TRAP due to dlopen or dlclose event\n";
-           if (!curr->continueProc()) {
-               assert(0);
-           }
-           return;
-       }
-   }
-   
-#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
-   Address pc = getPC( pid );
-   if( linux_orig_sig == SIGTRAP ) {
-       //signal_cerr << "SIGTRAP not handled for pid " << pid << " at " 
-       //       << (void*)pc << ", so forwarding back to process\n" << flush;
-       if( P_ptrace(PTRACE_CONT, pid, 1, SIGTRAP) == -1 )
-           cerr << "ERROR -- process::handleSigChild forwarding SIGTRAP -- " 
-                << sys_errlist;
-   } else {
-       signal_cerr << "Signal " << linux_orig_sig << " not handled for pid " 
-                   << pid << " at " << (void*)pc 
-                   << ", so leaving process in current state\n" << flush;
-   }
-#endif
-   cerr << "NO response to SIGTRAP" << endl;
-   return;
+    
+    // check to see if trap is due to dlopen or dlcose event
+    if(curr->isDynamicallyLinked()){
+        if(curr->handleIfDueToSharedObjectMapping()){
+            signal_cerr << "handle TRAP due to dlopen or dlclose event\n";
+            if (!curr->continueProc()) {
+                assert(0);
+            }
+            return 1;
+        }
+    }
+/////////////////////////////////////////////
+// Trap based instrumentation
+/////////////////////////////////////////////
+    // We may use traps to instrument points
+    // and so we forward the signal to the process
+    return 0;
 }
 
 int paradynForkOccurring(process *proc) {
@@ -616,65 +613,33 @@ int paradynForkOccurring(process *proc) {
   return forkOccurringVal;
 }
 
-void handleSig_StopAndInt(process *curr, int pid) {
+// Needs to be fleshed out
+int handleSigStopNInt(process *curr) {
    signal_cerr << "welcome to SIGSTOP/SIGINT for proc pid " << curr->getPid() 
-	       << endl;
-   
-   const processState prevStatus = curr->status_;
-   // assert(prevStatus != stopped); (bombs on sunos and AIX, when
-   // lots of spurious sigstops are delivered)
-   
-   curr->status_ = stopped;
-   // the following routines expect (and assert) this status.
-
-   int forkCode = paradynForkOccurring(curr);
-   bool atChildStop = (forkCode == 1);
-   bool atParentStop = (forkCode == 2);
-   bool doingFork = (atChildStop || atParentStop);
-   int result = 0;
-   int stopfromPARADYNinit = 0;
+               << endl;
 
    if (curr->handleTrapIfDueToRPC()) {
        inferiorrpc_cerr << "processed RPC response in SIGSTOP\n";
        // don't want to execute ->Stopped() which changes status line
-       return;
+       return 1;
    }
-#if 0
-   /* XXX We have to leave this out of the Dyninst API library for now -- the
-    * ptrace calls that handleStopDueExecEntry uses cause wait() to re-report
-    * the signal that we're currently stopped on, causing an infinite loop.
-    * Exec doesn't work with the Dyninst API yet anyway.  - brb 7/4/98 */
-   else if (curr->handleStopDueToExecEntry()) {
-       // grabs data from DYNINST_bootstrap_info
-       forkexec_cerr << "fork/exec -- handled stop before exec\n";
-       string buffer = string("process ") + string(curr->getPid())
-       + " performing exec() syscall...";
-       statusLine(buffer.c_str());
-       
-       // note: status will now be 'running', since handleStopDueToExec() did
-       // a continueProc() to let the exec() syscall go forward.
-       assert(curr->status_ == running);
-       // would neonatal be better? or exited?
-       
-       return; // don't want to change status line in conventional way
-   }
-#endif /* BPATCH_LIBRARY */
    else {
        signal_cerr << "unhandled SIGSTOP for pid " << curr->getPid() 
                    << " so just leaving process in paused state.\n" 
                    << flush;
    }
-   curr->status_ = prevStatus; // so Stopped() below won't be a nop
-   curr->Stopped();
-   return;
+   // Unlike other signals, don't forward this to the process. It's stopped
+   // already, and forwarding a "stop" does odd things on platforms
+   // which use ptrace. PT_CONTINUE and SIGSTOP don't mix
+   return 1;
 }
 
-void handleSigBus(process *curr, int status) {
+int handleSigCritical(process *curr, procSignalWhat_t what) {
 #if (defined(POWER_DEBUG) || defined(HP_DEBUG)) && (defined(rs6000_ibm_aix4_1) || defined(hppa1_1_hp_hpux))
-   // In this way, we will detach from the application and we
-   // will be able to attach again using gdb. We need to send
-   // a kill -ILL pid signal to the application in order to
-   // get here - naim
+    // In this way, we will detach from the application and we
+    // will be able to attach again using gdb. We need to send
+    // a kill -ILL pid signal to the application in order to
+    // get here - naim
 #if defined(rs6000_ibm_aix4_1)
    {
       sprintf(errorLine, "***** Detaching from process %d "
@@ -682,269 +647,333 @@ void handleSigBus(process *curr, int status) {
 	      pid);
       logLine(errorLine);
    }
-   if (ptrace(PT_DETACH,pid,(int *) 1, SIGSTOP, NULL) == -1)
+   if (ptrace(PT_DETACH, curr->getPid(),(int *) 1, SIGSTOP, NULL) == -1)
 #else
-      if (ptrace(PT_DETACH, pid, 1, SIGSTOP, NULL) == -1)
+   if (ptrace(PT_DETACH, curr->getPid(), 1, SIGSTOP, NULL) == -1)
 #endif
-      {
-	 logLine("ptrace error\n");
-      }
-#else
-
+   {
+       logLine("ptrace error\n");
+       return 0;
+   }
+#endif
    signal_cerr << "caught signal, dying...  (sig="
-	       << WSTOPSIG(status) << ")" << endl << flush;
+               << (int) what << ")" << endl << flush;
    
-   curr->status_ = stopped;
-#ifdef BPATCH_LIBRARY
    curr->dumpImage("imagefile");
-#else
-   curr->dumpImage();
-#endif
-   curr->continueWithForwardSignal(WSTOPSIG(status));
-#endif
-   return;
+   forwardSigToProcess(curr, what);
+   
+   return 1;
 }
 
-void handleSigSegv(process *curr, int status) {
-#if (defined(POWER_DEBUG) || defined(HP_DEBUG)) && \
-    (defined(rs6000_ibm_aix4_1) || defined(hppa1_1_hp_hpux))
-   // In this way, we will detach from the application and we
-   // will be able to attach again using gdb - naim
-   if (sig==SIGSEGV)
-   {
-#if defined(rs6000_ibm_aix4_1)
-      if (ptrace(PT_DETACH,pid,(int *) 1, SIGSTOP, NULL) == -1)
-#else
-	 if (ptrace(PT_DETACH,pid, 1, SIGSTOP, NULL) == -1)
-#endif
-	    logLine("ptrace error\n");
+
+int handleSignal(process *proc, procSignalWhat_t what) {
+    int ret;
+
+    switch(what) {
+  case SIGTRAP:
+      // Big one's up top. We use traps for most of our process control
+      ret = handleSigTrap(proc); 
       break;
-   }
+#if defined(USE_IRIX_FIXES)
+  case SIGEMT:
 #endif
-   if (!curr->continueWithForwardSignal(WSTOPSIG(status))) {
-      logLine("error  in forwarding  signal\n");
-      showErrorCallback(38, "Error  in forwarding  signal");
-      //P_abort();
-   } 
-#ifdef notdef
-   // XXXX for debugging
-  case SIGSEGV:	// treadmarks needs this signal
-     sprintf(errorLine, "DEBUG: forwarding signal (sig=%d, pid=%d)\n"
-	     , WSTOPSIG(status), pid);
-     logLine(errorLine);
-#endif
-   return;
-}
-
-// returns 1 if should do break, 0 otherwise
-int handleSigAlarm(process *curr) {
-   // Due to the DYNINSTin_sample variable, it's safest to launch
-   // inferior-RPCs only when we know that the inferior is not in the
-   // middle of processing an alarm-expire.  Otherwise, code that
-   // does stuff like call DYNINSTstartWallTimer will appear to do
-   // nothing (DYNINSTstartWallTimer will be invoked but will see
-   // that DYNINSTin_sample is set and so bails out!!!)  Ick.
-    if (curr->existsRPCPending()) {
-        curr->status_ = stopped;
-        (void)curr->launchRPCs(true);
-        return 1; // sure, we lose the SIGALARM, but so what.
+  case SIGSTOP:
+  case SIGINT:
+      ret = handleSigStopNInt(proc);
+      break;
+  case SIGILL:
+      ret = proc->handleTrapIfDueToRPC();
+      break;
+      // Else fall through
+  case SIGIOT:
+  case SIGBUS:
+  case SIGSEGV:
+      ret = handleSigCritical(proc, what);
+      break;
+  case SIGALRM:
+  case SIGCHLD:
+  case SIGUSR1:
+  case SIGUSR2:
+  case SIGVTALRM:
+  case SIGCONT:
+  default:
+      ret = 0;
+      break;
     }
-    else { }  // no break, on purpose
-    return 0;
-}
-      
-void handleStopStatus(int pid, int status, process *curr) {
-   int sig = WSTOPSIG(status);
-
-   int linux_orig_sig = -1;
-#if defined( i386_unknown_linux2_0 ) || defined( ia64_unknown_linux2_4 )
-   linux_orig_sig = sig;
-#endif
-   
-#if defined(i386_unknown_solaris2_5)
-   // we put an illegal instead of a trap at the following places, but 
-   // the illegal instructions are really for trapping purpose, so the
-   // handling should be the same as for trap
-   {
-      prgregset_t regs;
-      int proc_fd = curr->getProcFileDescriptor();
-      if ((ioctl (proc_fd, PIOCGREG, &regs) != -1) && (sig == SIGILL)
-	  && (regs[R_PC]==(int)curr->rbrkAddr()
-	      ||regs[R_PC]==(int)curr->main_brk_addr
-	      ||regs[R_PC]==(int)curr->dyninstlib_brk_addr)) {
-	 sig = SIGTRAP;
-      }
-   }
-#elif defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
-   // we put an illegal instead of a trap at the following places, but 
-   // the illegal instructions are really for trapping purpose, so the
-   // handling should be the same as for trap
-   {
-       Address pc = getPC( pid );
-       if (sig == SIGILL)
-           if (pc==(Address)curr->rbrkAddr()
-               || pc==(Address)curr->main_brk_addr
-               || pc==(Address)curr->dyninstlib_brk_addr
-               || curr->existsRPCWaitingForSyscall()) { //ccw 30 apr 2002 
-               signal_cerr << "Changing SIGILL to SIGTRAP" << endl;
-               sig = SIGTRAP;
-           }
-   }
-#endif
-   
-   switch (sig) {
-     case SIGTSTP:
-	sprintf(errorLine, "process %d got SIGTSTP", pid);
-	statusLine(errorLine);
-	curr->Stopped();
-	break;   
-     case SIGTRAP: 
-	handleSigTrap(curr, pid, linux_orig_sig);
-	break;
-#ifdef USE_IRIX_FIXES
-     case SIGEMT:
-#endif
-     case SIGSTOP:
-     case SIGINT: 
-	handleSig_StopAndInt(curr, pid);
-	break;
-     case SIGILL:
-	signal_cerr << "welcome to SIGILL" << endl << flush;
-	curr->status_ = stopped;
-	
-	if (curr->handleTrapIfDueToRPC()) {
-	   inferiorrpc_cerr << "processed RPC response in SIGILL\n";
-	   cerr.flush();
-	   break; // we don't forward the signal -- on purpose
-	}
-	else { }  // fall through, on purpose
-	
-     case SIGIOT:
-     case SIGBUS:
-	handleSigBus(curr, status);
-	break;
-     case SIGALRM:
-#ifndef SHM_SAMPLING
-	if(handleSigAlarm(curr))  break;
-	// else fall through, don't call break
-#endif
-	
-     case SIGCHLD:
-     case SIGUSR1:
-     case SIGUSR2:
-     case SIGVTALRM:
-     case SIGCONT:
-     case SIGSEGV:	// treadmarks needs this signal
-	handleSigSegv(curr, status);
-	break;
-     default:
-	if (!curr->continueWithForwardSignal(WSTOPSIG(status))) {
-	   logLine("error  in forwarding  signal\n");
-	   P_abort();
-	}
-	break;
-   }
-   return;
+    if (!ret) {
+        // Signal was not handled
+        ret = forwardSigToProcess(proc, what);
+    }
+    
+    return ret;
 }
 
-// TODO -- make this a process method
-int handleSigChild(int pid, int status)
-{
-#ifdef rs6000_ibm_aix4_1
-   // On AIX, we get sigtraps on fork and load, and must handle
-   // these cases specially
-   extern bool handleAIXsigTraps(int, int);
-   if (handleAIXsigTraps(pid, status)) {
-      return 0;
-   }
-   
-   /* else check for regular traps and signals */
+//////////////////////////////////////////////////////////////////
+// Syscall handling
+//////////////////////////////////////////////////////////////////
+
+// Most of our syscall handling code is shared on all platforms.
+// Unfortunately, there's that 5% difference...
+
+int handleForkEntry(process *proc, int retval) {
+#if defined(BPATCH_LIBRARY)
+    BPatch::bpatch->registerForkingThread(proc->getPid(), NULL);
 #endif
+    return 1;
+}
 
-   // ignore signals from unknown processes
-   process *curr = findProcess(pid);
-   if (!curr) {
-      forkexec_cerr << "handleSigChild pid " << pid << " is an unknown "
-		    << " process.\nWIFSTOPPED=" 
-		    << (WIFSTOPPED(status) ? "true" : "false");
-      if (WIFSTOPPED(status)) {
-	 forkexec_cerr << "WSTOPSIG=" << WSTOPSIG(status);
-      }
-      forkexec_cerr << endl << flush;
-      /*
-	This was causing problems with fork handling on AIX.
-	Here's the situation which would cause the assert:
-	Daemon                               RTinst
-                                             DYNINSTfork in child
-                                             send trace record
-					     kill(self, SIGSTOP)
-        busy with handling other process
-	handleSigChild, the stop
-        this code, ptrace(PT_DETACH, pid)
-	                                     goes past breakpoint (bad)
-					     (this messes up the order)
-        processNewTSConn., copy proc obj
-        (tries to continue proc, but it's
-	 not at the breakpoint we expect)
-
-	 * May be able to remove this soon
-	 Drew said it was added because of some daemon which was launched
-	 for mpi applications.  This may not actually occur anymore.
-
-#ifdef rs6000_ibm_aix4_1
-      cerr << "handleSigChild:  Detaching process " << pid 
-	   << " and continuing." << endl;
-      return ptrace(PT_DETACH, pid, (int *)0, SIGCONT, 0);   //Set process free
+int handleExecEntry(process *proc, int retval) {
+    proc->execPathArg = "";
+#if defined(mips_sgi_irix6_4)
+    // On SGI we get the pointer to the exec string
+    // Can do on other platforms as well, actually
+    Address pathStr = retval;
+    char name[512];
+    if (!(proc->readDataSpace((void *)pathStr, sizeof(name), name, false))) {
+        logLine("execve entry: unable to read path argument\n");
+    } else {
+        proc->execPathArg = name;
+    }
 #endif
+    return 1;
+}
 
-      */
-      return -1;
-   }
+int handleExitEntry(process *proc, int retval) {
+    // Should probably call handlProcessExit here,
+    // but it gets called later as well.
+#if defined(BPATCH_LIBRARY)
+    BPatch::bpatch->registerExit(proc->thread, retval);
+#endif
+    return 1;
+}
 
-   // Normal case, actually.
-   if (curr->status_ == exited) {
-     return 0;
-   }
-   if (WIFSTOPPED(status))
-   {
-       handleStopStatus(pid, status, curr);
-   } 
-   else if (WIFEXITED(status)) {
+
+int handleSyscallEntry(process *proc, procSignalWhat_t what, int retval) {
+    procSyscall_t syscall = decodeSyscall(proc, what);
+    int ret = 0;
+
+    switch (syscall) {
+  case procSysFork:
+      ret = handleForkEntry(proc, retval);
+      break;
+  case procSysExec:
+      ret = handleExecEntry(proc, retval);
+      break;
+  case procSysExit:
+      ret = handleExitEntry(proc, retval);
+      break;
+  default:
+      // Check process for any other syscall
+      // we may have trapped on entry to?
+      ret = 0;
+      break;
+    }
+    // Continue the process post-handling
+    proc->continueProc();
+    return ret;
+}
+
+/* Only dyninst for now... paradyn should use this soon */
+int handleForkExit(process *proc, int retval) {
+#if defined(BPATCH_LIBRARY)
+    // Fork handler time
+    extern pdvector<process*> processVec;
+    int childPid = retval;
+    
+    if (childPid == getpid()) {
+        // this is a special case where the normal createProcess code
+        // has created this process, but the attach routine runs soon
+        // enough that the child (of the mutator) gets a fork exit
+        // event.  We don't care about this event, so we just continue
+        // the process - jkh 1/31/00
+        return 1;
+    } else if (childPid > 0) {
+        unsigned int i;
+        for (i=0; i < processVec.size(); i++) {
+            if (processVec[i]->getPid() == childPid) break;
+        }
+        if (i== processVec.size()) {
+            // this is a new child, register it with dyninst
+            int parentPid = proc->getPid();
+            process *theChild = new process(*proc, (int)childPid, -1);
+            processVec.push_back(theChild);
+            activeProcesses++;
+
+            theChild->status_ = stopped;
+            
+            theChild->execFilePath = theChild->tryToFindExecutable("", childPid);
+
+            theChild->inExec = false;
+#if defined(BPATCH_LIBRARY)
+            BPatch::bpatch->registerForkedThread(parentPid,
+                                                 childPid, theChild);
+#endif
+        }
+    }
+#endif
+    return 1;
+}
+
+int handleExecExit(process *proc, int retval) {
+    if (retval == -1) {
+        // Failed exec, do nothing
+        return 1;
+    }
+    else {
+        proc->execFilePath = proc->tryToFindExecutable(proc->execPathArg, proc->getPid());
+        // As of Solaris 2.8, we get multiple exec signals per exec.
+        // My best guess is that the daemon reads the trap into the
+        // kernel as an exec call, since the process is paused
+        // and PR_SYSEXIT is set. We want to ignore all traps 
+        // but the last one.
+        bool isThisAnExecInTheRunningProgram = 
+        proc->reachedBootstrapState(initialized);
+        bool areWeInTheProcessOfHandlingAnExec = proc->wasExeced();
+        if(isThisAnExecInTheRunningProgram || 
+           areWeInTheProcessOfHandlingAnExec)
+        {
+            // since Solaris causes multiple traps associated with trapping
+            // on exit of exec syscall, we do proper exec handling
+            // (eg. cause process::handleExec to be called) for each trap
+            // so when "real" exec trap occurs, will handle correctly.  I'm
+            // considering the "real" exec trap as the one that occurs when
+            // the execed process has been created and we're paused at the
+            // end of "exec".  The other execs seem to occur at some other
+            // point in the exec process syscall an the "execed" process
+            // hasn't been created yet.
+            
+            // because of these multiple exec exit notices, the sequence
+            // of the process status goes something like this
+            // false exec notice:  boostrapped    =>  unstarted (handleExec)
+            // handleSigChild:     unstarted      =>  begun (trap at main)
+            // false exec notice:  begun          =>  unstarted (handleExec)
+            // handleSigChild:     unstarted      =>  begun (trap at main)
+            // real exec notice:   begun          =>  unstarted (handleExec)
+            // handleSigChild:     unstarted      =>  begun (trap at main)
+            // trap at main:       begun          =>  initialized
+            
+            proc->inExec = true; 
+            proc->status_ = stopped;
+            pdvector<heapItem *> emptyHeap;
+            proc->heap.bufferPool = emptyHeap;
+            // Clean out internal data structures for the process
+            // We should have an exec "constructor"
+            proc->handleExec();
+#ifndef BPATCH_LIBRARY
+            // Mimic bump-up in process constructor
+            tp->resourceBatchMode(true);
+#endif
+            
+        }
+        // We caught the signal from a process newly created
+        // (via createProcess). Put in bootstrap code
+        if (!proc->reachedBootstrapState(begun)) {
+            proc->insertTrapAtEntryPointOfMain();
+            proc->setBootstrapState(begun);
+            // Process continued below
+            }
+    }
+    return 1;
+}
+
+int handleLoadExit(process *proc, int retval) {
+    // AIX: for 4.3.2 and later, load no longer causes the 
+    // reinitialization of the process text space, and as
+    // such we don't need to fix base tramps.
+    proc->handleIfDueToSharedObjectMapping();
+    return 1;
+}
+
+
+int handleSyscallExit(process *proc,
+                      procSignalWhat_t what,
+                      int retval) {
+    procSyscall_t syscall = decodeSyscall(proc, what);
+    int ret = 0;
+
+    switch(syscall) {
+  case procSysFork:
+      ret = handleForkExit(proc, retval);
+      break;
+  case procSysExec:
+      ret = handleExecExit(proc, retval);
+      break;
+  case procSysLoad:
+      ret = handleLoadExit(proc, retval);
+      break;
+  default:
+      break;
+    }
+    proc->continueProc();
+    
+    return ret;
+    
+}
+
+int handleProcessEvent(process *proc,
+                       procSignalWhy_t why,
+                       procSignalWhat_t what,
+                       int retval) {
+    // Processes' state is saved in preSignalStatus()
+    proc->savePreSignalStatus();
+    // Got a signal, process is stopped.
+    proc->status_ = stopped;
+    
+    int ret = 0;
+    // One big switch statement
+    switch(why) {
+        // First the platform-independent stuff
+        // (/proc and waitpid)
+  case procExitedNormally:
       sprintf(errorLine, "Process %d has terminated with code 0x%x\n", 
-	      curr->getPid(), WEXITSTATUS(status));
+              proc->getPid(), what);
       statusLine(errorLine);
       logLine(errorLine);
-      handleProcessExit(curr, WEXITSTATUS(status));
-   }
-   else if (WIFSIGNALED(status)) {
+      handleProcessExit(proc, what);
+      ret = 1;
+      break;
+  case procExitedViaSignal:
       sprintf(errorLine, "process %d has terminated on signal %d\n", 
-	      curr->getPid(), WTERMSIG(status));
+              proc->getPid(), what);
       logLine(errorLine);
       statusLine(errorLine);
       printDyninstStats();
-      handleProcessExit(curr, WTERMSIG(status));
-   } 
-   else {
-      sprintf(errorLine, "Unknown state %d from process %d\n", status, 
-	      curr->getPid());
-      logLine(errorLine);
-      showErrorCallback(39,(const char *) errorLine);
-   }
-   return(0);
+      handleProcessExit(proc, what);
+      ret = 1;
+      break;
+  case procSignalled:
+      ret = handleSignal(proc, what);
+      break;
+      // Now the /proc only
+      // AIX clones some of these (because of the fork/exec/load notification)
+  case procSyscallEntry:
+      ret = handleSyscallEntry(proc, what, retval);
+      break;
+  case procSyscallExit:
+      ret = handleSyscallExit(proc, what, retval);
+      break;
+  case procUndefined:
+      // Do nothing
+      break;
+      
+  default:
+      assert(0 && "Undefined");
+    }
+    return ret;
 }
 
+void decodeAndHandleProcessEvent (bool block) {
+    procSignalWhy_t why;
+    procSignalWhat_t what;
+    int retval;
+    process *proc;
 
-void checkProcStatus() {
-   /* check for status change on inferior processes, or the arrival of
-      a signal. */
-
-   int wait_status;
-   int wait_pid = process::waitProcs(&wait_status);
-    if (wait_pid > 0) {
-        if (handleSigChild(wait_pid, wait_status) < 0) {
-            cerr << "handleSigChild failed for pid " << wait_pid << endl;
-      }
-   }
+    proc = decodeProcessEvent(-1, why, what, retval, block);
+    if (!proc) return;
+    
+    if (!handleProcessEvent(proc, why, what, retval)) 
+        fprintf(stderr, "handleProcessEvent failed!\n");
+    
 }
 
 

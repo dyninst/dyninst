@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.53 2003/02/21 20:05:52 bernat Exp $
+// $Id: BPatch.C,v 1.54 2003/03/08 01:23:32 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -51,14 +51,13 @@
 #include "process.h"
 #include "BPatch_collections.h"
 #include "common/h/timing.h"
+#include "signalhandler.h"
 
 #if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
 #include "nt_signal_emul.h"
 #endif
 
 extern bool dyninstAPI_init();
-extern int handleSigChild(int pid, int status);
-
 
 BPatch *BPatch::bpatch = NULL;
 
@@ -421,7 +420,7 @@ BPatchExitCallback BPatch::registerExitCallback(BPatchExitCallback func)
 
     ret = exitCallback;
     exitCallback = func;
-
+    
     return ret;
 #endif
 }
@@ -657,7 +656,28 @@ void BPatch::registerForkedThread(int parentPid, int childPid, process *proc)
     info->threadsByPid[childPid] = new BPatch_thread(childPid, proc);
 
     if (postForkCallback) {
-	postForkCallback(parent, info->threadsByPid[childPid]);
+        postForkCallback(parent, info->threadsByPid[childPid]);
+    }
+}
+
+/*
+ * BPatch::registerForkingThread
+ *
+ * Perform whatever processing is necessary when a thread enters
+ * a fork system call. Previously the preForkCallback was made directly.
+ *
+ * forkingPid   pid of the forking process
+ * proc			lower lever handle to process specific stuff
+ *
+ */
+void BPatch::registerForkingThread(int forkingPid, process *proc)
+{
+    BPatch_thread *forking = info->threadsByPid[forkingPid];
+    // Wouldn't this be the same as proc->thread?
+    assert(forking);
+    
+    if (preForkCallback) {
+        preForkCallback(forking, NULL);
     }
 }
 
@@ -693,7 +713,7 @@ void BPatch::registerExec(BPatch_thread *thread)
 void BPatch::registerExit(BPatch_thread *thread, int code)
 {
     if (exitCallback) {
-	exitCallback(thread, code);
+        exitCallback(thread, code);
     }
 }
 
@@ -843,61 +863,52 @@ bool BPatch::getThreadEvent(bool block)
 bool BPatch::getThreadEventOnly(bool block)
 {
    bool	result = false;
-   int		pid, status;
+   procSignalWhy_t why;
+   procSignalWhat_t what;
+   int retval;
+   process *proc;
    
-   // while ((pid = process::waitProcs(&status, block)) > 0) {
-   if ((pid = process::waitProcs(&status, block)) > 0) {
-      // There's been a change in a child process
-      result = true;
-      // Since we found something, we don't want to block anymore
-      block = false;
-      
-      bool exists;
-      BPatch_thread *thread = getThreadByPid(pid, &exists);
-      if (thread == NULL) {
-         if (exists) {
-            if (WIFSIGNALED(status) || WIFEXITED(status))
-               unRegisterThread(pid);
-         } else {
-            fprintf(stderr, "Warning - wait returned status of an unknown process (%d)\n", pid);
-         }
-      }
-      if (thread != NULL) {
-         if (WIFSTOPPED(status)) {
-            thread->lastSignal = WSTOPSIG(status);
-            thread->setUnreportedStop(true);
-         } else if (WIFSIGNALED(status)) {
-            thread->lastSignal = WTERMSIG(status);
-            thread->setUnreportedTermination(true);
-         } else if (WIFEXITED(status)) {
-#if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
-            thread->proc->exitCode_ = WEXITSTATUS(status);
-#endif
-            thread->exitCode = thread->proc->exitCode();
-            thread->lastSignal = 0; /* XXX Make into some constant */
-            thread->setUnreportedTermination(true);
-         }
-      }
-#if !(defined i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
-      
-      handleSigChild(pid, status);
-#ifdef notdef
-      if (thread->lastSignal == SIGSTOP) {
-         // need to continue process after initial sigstop
-         // thread->continueExecution();
-         printf("BPatch past handleSigChild for SIGSTOP\n");
-         if (thread->proc->wasCreatedViaFork()) {
-            printf("marking forked process stopped\n");
-            thread->proc->status_ = stopped;
-            // thread->lastSignal = SIGSTOP;
-            // thread->setUnreportedStop(true);
-            // thread->proc->continueProc();
-         }
-      }
-#endif
-#endif
+   if ( (proc = decodeProcessEvent(-1, why, what, retval, block)) != NULL) {
+       // There's been a change in a child process
+       result = true;
+       // Since we found something, we don't want to block anymore
+       block = false;
+       
+       bool exists;
+       BPatch_thread *thread = getThreadByPid(proc->getPid(), &exists);
+       if (thread == NULL) {
+           if (exists) {
+               if (why == procExitedNormally || why == procExitedViaSignal)
+                   unRegisterThread(proc->getPid());
+           } else {
+               fprintf(stderr, "Warning - wait returned status of an unknown process (%d)\n",
+                       proc->getPid());
+           }
+       }
+       if (thread != NULL) {
+           switch(why) {
+         case procSignalled:
+             thread->lastSignal = what;
+             thread->setUnreportedStop(true);
+             break;
+         case procExitedViaSignal:
+             thread->lastSignal = why;
+             thread->setUnreportedTermination(true);
+             break;
+         case procExitedNormally:
+             thread->proc->exitCode_ = what;
+             thread->exitCode = thread->proc->exitCode();
+             thread->lastSignal = 0; /* XXX Make into some constant */
+             thread->setUnreportedTermination(true);
+             break;
+         default:
+             break;
+           }
+       }
+       
+       // Do standard handling
+       handleProcessEvent(proc, why, what, retval);
    }
-
    return result;
 }
 
@@ -967,8 +978,8 @@ bool BPatch::pollForStatusChange()
 bool BPatch::waitForStatusChange()
 {
     if (havePendingEvent())
-	return true;
-
+        return true;
+    
     // No changes were previously detected, so wait for a new change
     return getThreadEvent(true);
 }
