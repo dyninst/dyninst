@@ -63,8 +63,6 @@
 #include "paradynd/src/costmetrics.h"
 #include "paradynd/src/internalMetrics.h"
 
-#include "dyninstAPI/src/FunctionExpansionRecord.h"
-
 template class  dictionary_hash <unsigned, vector<mdl_type_desc> >;
 template class  vector<dictionary_hash <unsigned, vector<mdl_type_desc> >::entry>;
 
@@ -100,8 +98,6 @@ template class  refCounter<string_ll>;
 
 template class dictionary_hash<string, Symbol>;
 template class vector<dictionary_hash<string, Symbol>::entry>;
-
-template class vector<FERNode>;
 
 template class dictionary_hash<string, string>;
 template class vector<dictionary_hash<string, string>::entry>;
