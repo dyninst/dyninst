@@ -68,7 +68,8 @@ LIBS	     +=	-lpvm3
 endif
 
 ifdef USES_SHM_SAMPLING
-SRCS 		+= ../src/fastInferiorHeap.C ../src/fastInferiorHeapHKs.C
+SRCS 		+= ../src/fastInferiorHeap.C ../src/fastInferiorHeapHKs.C \
+		   ../src/fastInferiorHeapMgr.C
 CXXFLAGS	+= -DSHM_SAMPLING
 TFLAGS		+= -DSHM_SAMPLING
 CFLAGS		+= -DSHM_SAMPLING
