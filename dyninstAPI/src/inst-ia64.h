@@ -1,4 +1,4 @@
-/* -*- Mode: C; indent-tabs-mode: true -*- */
+/* -*- Mode: C; indent-tabs-mode: true -*-; tab-width: 4 */
 
 /*
  * Copyright (c) 1996 Barton P. Miller
@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-ia64.h,v 1.8 2003/02/25 21:11:08 tlmiller Exp $
+// $Id: inst-ia64.h,v 1.9 2003/06/27 20:57:54 tlmiller Exp $
 
 #ifndef INST_IA64_H
 #define INST_IA64_H
@@ -50,6 +50,9 @@
 class process;
 class IA64_bundle;
 class IA64_instruction;
+
+/* Required for ast.C */
+#define REG_MT_POS	13
 
 class InsnAddr {
 	public:
