@@ -542,6 +542,24 @@ bool process::dlopenDYNINSTlib() {
   writeDataSpace((void *)codeBase, count, (char *)scratchCodeBuffer);
   count += sizeof(instruction);
 
+  // we need to make 2 calls to dlopen: one to load libsocket.so.1 and another
+  // one to load libdyninst.so.1 - naim
+  removeAst(dlopenAst); // to avoid memory leaks - naim
+  dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void*)0);
+  // library name. We use a scratch value first. We will update this parameter
+  // later, once we determine the offset to find the string - naim
+  dlopenAstArgs[1] = new AstNode(AstNode::Constant, (void*)DLOPEN_MODE); // mode
+  dlopenAst = new AstNode("dlopen",dlopenAstArgs);
+  removeAst(dlopenAstArgs[0]);
+  removeAst(dlopenAstArgs[1]);
+
+  unsigned dyninst_count = 0;
+  dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
+			  dyninst_count, true);
+  writeDataSpace((void *)codeBase, dyninst_count, (char *)scratchCodeBuffer);
+  dyninst_count += sizeof(instruction);
+  count += dyninst_count;
+
 #ifdef ndef
   // NOTE: this is an example of the code that could go here to check for
   // the return value of dlopen. If dlopen returns NULL, which means failure,
@@ -601,9 +619,21 @@ bool process::dlopenDYNINSTlib() {
     showErrorCallback(101, msg);
     return false;
   }
+  unsigned dyninstlib_addr = (unsigned) (codeBase + count);
   writeDataSpace((void *)(codeBase + count), strlen(libname)+1,
 		 (caddr_t)libname);
   // we have now written the name of the library after the trap - naim
+
+  char socketname[256];
+  if (getenv("PARADYN_SOCKET_LIB") != NULL) {
+    strcpy((char*)socketname,(char*)getenv("PARADYN_SOCKET_LIB"));
+  } else {
+    strcpy((char*)socketname,(char *)"/usr/lib/libsocket.so.1");
+  }
+  unsigned socketlib_addr = (unsigned) (codeBase + count + strlen(libname) + 1);
+  writeDataSpace((void *)(codeBase + count + strlen(libname) + 1), 
+		 strlen(socketname)+1, (caddr_t)socketname);
+  // we have now written the name of the socket library after the trap - naim
 
   assert(count<=BYTES_TO_SAVE);
 
@@ -611,7 +641,8 @@ bool process::dlopenDYNINSTlib() {
   // call to dlopen and we just write the code again! This is probably not
   // very elegant, but it is easy and it works - naim
   removeAst(dlopenAst); // to avoid leaking memory
-  dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void *)(codeBase+count));
+  //dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void *)(codeBase+count+strlen(libname)+1));
+  dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void *)(socketlib_addr));
   dlopenAstArgs[1] = new AstNode(AstNode::Constant, (void*)DLOPEN_MODE);
   dlopenAst = new AstNode("dlopen",dlopenAstArgs);
   removeAst(dlopenAstArgs[0]);
@@ -620,6 +651,21 @@ bool process::dlopenDYNINSTlib() {
   dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
 			  count, true);
   writeDataSpace((void *)codeBase, count, (char *)scratchCodeBuffer);
+  removeAst(dlopenAst);
+
+  // at this time, we know the offset for the library name, so we fix the
+  // call to dlopen and we just write the code again! This is probably not
+  // very elegant, but it is easy and it works - naim
+  removeAst(dlopenAst); // to avoid leaking memory
+  dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void *)(dyninstlib_addr));
+  dlopenAstArgs[1] = new AstNode(AstNode::Constant, (void*)DLOPEN_MODE);
+  dlopenAst = new AstNode("dlopen",dlopenAstArgs);
+  removeAst(dlopenAstArgs[0]);
+  removeAst(dlopenAstArgs[1]);
+  dyninst_count = 0; // reset count
+  dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
+			  dyninst_count, true);
+  writeDataSpace((void *)(codeBase+count), dyninst_count, (char *)scratchCodeBuffer);
   removeAst(dlopenAst);
 
   savedRegs = getRegisters();
