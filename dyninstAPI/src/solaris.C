@@ -593,7 +593,14 @@ bool process::dlopenDYNINSTlib() {
   count += sizeof(instruction);
 
   char libname[256];
-  strcpy((char*)libname,(char*)getenv("PARADYN_LIB"));
+  if (getenv("PARADYN_LIB") != NULL) {
+    strcpy((char*)libname,(char*)getenv("PARADYN_LIB"));
+  } else {
+    string msg = string("PARADYN_LIB has not been defined for ") +
+                 string("process") + string(pid);
+    showErrorCallback(101, msg);
+    return false;
+  }
   writeDataSpace((void *)(codeBase + count), strlen(libname)+1,
 		 (caddr_t)libname);
   // we have now written the name of the library after the trap - naim

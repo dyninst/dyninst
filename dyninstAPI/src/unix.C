@@ -521,7 +521,7 @@ int handleSigChild(int pid, int status)
 		  string msg = string("Process") + string(curr->getPid()) +
 		               string(" was unable to load file ") + 
 		               string(getenv("PARADYN_LIB"));
-		  showErrorCallback(100, msg);
+		  showErrorCallback(101, msg);
 		  break;
 		}
 #endif
