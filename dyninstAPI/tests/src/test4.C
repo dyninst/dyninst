@@ -1,4 +1,4 @@
-// $Id: test4.C,v 1.9 2001/02/01 16:24:45 pcroth Exp $
+// $Id: test4.C,v 1.10 2001/06/04 18:42:31 bernat Exp $
 //
 
 #include <stdio.h>
@@ -509,10 +509,6 @@ main(unsigned int argc, char *argv[])
     strcpy(mutateeName,mutateeNameRoot);
     libRTname[0]='\0';
 
-#if !defined(USES_LIBDYNINSTRT_SO)
-    fprintf(stderr,"(Expecting subject application to be statically linked"
-                        " with libdyninstAPI_RT.)\n");
-#else
     if (!getenv("DYNINSTAPI_RT_LIB")) {
 	 fprintf(stderr,"Environment variable DYNINSTAPI_RT_LIB undefined:\n"
 #if defined(i386_unknown_nt4_0)
@@ -523,7 +519,6 @@ main(unsigned int argc, char *argv[])
 #endif
     } else
          strcpy((char *)libRTname, (char *)getenv("DYNINSTAPI_RT_LIB"));
-#endif
 
     // by default run all tests
     for (i=1; i <= MAX_TEST; i++) {

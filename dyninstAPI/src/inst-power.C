@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.106 2001/05/23 21:58:59 ning Exp $
+ * $Id: inst-power.C,v 1.107 2001/06/04 18:42:16 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -691,6 +691,8 @@ void initTramps()
  *            -104 |      FPR             |
  *             ... |                      |
  */
+
+/* PROBLEM WITH MT_THREAD -- stacks are only 8K!!! */
 #define STKPAD ( 24 * 1024 )
 #define STKLR    ( -(8 + (13+1)*4) )
 #define STKCR    (STKLR - 4)
@@ -1087,12 +1089,14 @@ void generateMTpreamble(char *insn, Address &base, process *proc)
   regSpace->resetSpace();
 
   /* t3=DYNINSTthreadTable[thr_self()] */
+  /* threadPos returns -2 if the thread_id reported by the OS is 0,
+     and  */
   t1 = new AstNode("DYNINSTthreadPos", dummy);
   value = sizeof(unsigned);
   t4 = new AstNode(AstNode::Constant,(void *)value);
   t2 = new AstNode(timesOp, t1, t4);
   removeAst(t1);
-  removeAst(t4);
+   removeAst(t4);
 
   tableAddr = proc->findInternalAddress("DYNINSTthreadTable",true,err);
   assert(!err);
@@ -3585,3 +3589,30 @@ bool instPoint::match(instPoint *p)
   
   return false;
 }
+
+#ifdef notdef
+/* Scratch C code from the thread library. IGNORE */
+int DYNINST_ThreadTids[];
+int stored_tid;
+int DYNINSTthreadPos()
+{
+  DYNINST_initialize_once(); /* Used once and only once */
+  int curr_thread = DYNINSTthreadSelf();
+  if (curr_thread == 0) return -2;
+  // %l2 = DYNINST_ThreadTids;
+  if ((stored_tid >= 0) && (stored_tid <= MAX_NUMBER_OF_THREADS))
+    {
+      if (curr_thread == DYNINST_ThreadTids[stored_tid])
+	return stored_tid;
+    }
+  else
+    {
+      stored_tid = _threadPos(curr_thread, stored_tid);
+      DYNINST_ThreadCreate(stored_tid, curr_thread);
+      DYNINST_ThreadTids[stored_tid] = curr_thread;
+      /* Save stored_tid on the stack */
+      return stored_tid;
+    }
+}
+
+#endif

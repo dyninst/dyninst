@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.78 2001/03/09 19:52:18 bernat Exp $
+// $Id: aix.C,v 1.79 2001/06/04 18:42:15 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -798,7 +798,6 @@ int process::waitProcs(int *status) {
   // This is really a hack. Shouldn't whoever is calling
   // waitProcs handle the dyninst trap/new shared object?
   if( result > 0 ) {
-#if defined(USES_LIBDYNINSTRT_SO)
     if( WIFSTOPPED(*status) ) {
       process *curr = findProcess( result );
       if (!curr->dyninstLibAlreadyLoaded() && curr->wasCreatedViaAttach())
@@ -819,7 +818,6 @@ int process::waitProcs(int *status) {
 	    if (!curr->continueProc()) assert(0);
 	}
     }
-#endif
   }// else if( errno )
   //perror( "process::waitProcs - waitpid" );
   return result;
@@ -1816,8 +1814,6 @@ void process::initCpuTimeMgrPlt() {
 /***                                  of main                          ***/
 /*************************************************************************/
 
-#ifdef USES_LIBDYNINSTRT_SO
-
 /*
  * return true if current PC is equal to the dyninstlib_brk_addr
  * variable
@@ -2145,5 +2141,3 @@ Address process::get_dlopen_addr() const {
   return 0;
 
 }
-
-#endif /* USES_LIBDYNINSTRT_SO */

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.97 2000/11/15 22:56:10 bernat Exp $
+// $Id: solaris.C,v 1.98 2001/06/04 18:42:20 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -432,7 +432,6 @@ int process::waitProcs(int *status) {
 	 // return the signal number
 	 *status = stat.pr_what << 8 | 0177;
 	 ret = processVec[curr]->getPid();
-#if defined(USES_LIBDYNINSTRT_SO)
 	 if (!processVec[curr]->dyninstLibAlreadyLoaded() && 
 	     processVec[curr]->wasCreatedViaAttach()) {
 	   // make sure we are stopped in the eyes of paradynd - naim
@@ -449,7 +448,6 @@ int process::waitProcs(int *status) {
 	   if (wasRunning) 
 	     if (!processVec[curr]->continueProc()) assert(0);
 	 }
-#endif
 	 break;
        case PR_SYSEXIT: {
 	 // exit of a system call.
@@ -837,7 +835,6 @@ bool process::attach() {
   return true;
 }
 
-#if defined(USES_LIBDYNINSTRT_SO)
 bool process::trapAtEntryPointOfMain()
 {
   prgregset_t regs;
@@ -1151,7 +1148,6 @@ Address process::get_dlopen_addr() const {
   else 
     return(0);
 }
-#endif
 
 bool process::isRunning_() const {
    // determine if a process is running by doing low-level system checks, as

@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.80 2001/05/23 21:58:59 ning Exp $
+ * $Id: inst-x86.C,v 1.81 2001/06/04 18:42:17 bernat Exp $
  */
 
 #include <iomanip.h>
@@ -2612,26 +2612,6 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
 //  Address instHeapEnd = sym.addr()+baseAddr;
 //  addInternalSymbol(ghb, instHeapEnd);
 
-#if 0
-  /* Not needed anymore (handled by initInferiorHeap, process.C) */
-  string ghb = INFERIOR_HEAP_BASE;
-  if (!getSymbolInfo(ghb, sym, baseAddr)) {
-    ghb = UINFERIOR_HEAP_BASE;
-    if (!getSymbolInfo(ghb, sym, baseAddr)) {
-      string msg;
-      msg = string("Cannot find ") + ghb + string(". Cannot use this application");
-      statusLine(msg.string_of());
-      showErrorCallback(50, msg);
-      return false;
-    }
-  }
-#if !defined(USES_LIBDYNINSTRT_SO) || defined(i386_unknown_nt4_0)
-  /*
-  Address currAddr = sym.addr()+baseAddr;
-  */
-#endif
-#endif /* #if 0 */
-
 #if !defined(i386_unknown_nt4_0)
   string tt = "DYNINSTtrampTable";
   if (!getSymbolInfo(tt, sym, baseAddr)) {
@@ -2643,22 +2623,6 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
   }
 #endif
 
-#if 0
-  //#if !defined(USES_LIBDYNINSTRT_SO) || defined(i386_unknown_nt4_0)
-  /* Don't get this anymore, unfortunately */
-  // Check that we can patch up user code to jump to our base trampolines:
-  const Address instHeapStart = currAddr;
-  const Address instHeapEnd = instHeapStart + SYN_INST_BUF_SIZE - 1;
-
-  if (instHeapEnd > getMaxBranch()) {
-    logLine("*** FATAL ERROR: Program text + data too big for dyninst\n");
-    sprintf(errorLine, "    heap starts at 0x%lx and ends at 0x%lx\n",
-	    instHeapStart, instHeapEnd);
-    logLine(errorLine);
-    return false;
-  }
-  
-#endif
   return true;
 }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.118 2001/05/12 21:29:39 ning Exp $
+// $Id: symtab.C,v 1.119 2001/06/04 18:42:20 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -92,8 +92,7 @@ bool function_base::match(function_base *fb)
 	    (prettyName_ == fb->prettyName_) &&
 	    (line_       == fb->line_) &&
 	    (addr_       == fb->addr_) &&
-	    (size_       == fb->size_) &&
-	    (tag_        == fb->tag_));
+	    (size_       == fb->size_));
 }
 
 /*
@@ -103,7 +102,7 @@ ostream & function_base::operator<<(ostream &s) const {
     s << "symTabName_ = " << symTabName_ << " prettyName_ = "
       << prettyName_
       << " line_ = " << line_ << " addr_ = "<< addr_ << " size_ = " << size_
-      << " tag_ = " << tag_ << endl;
+      << endl;
     return s;
 }
 
@@ -191,12 +190,11 @@ bool buildDemangledName(const string &mangled, string &use)
 //  5) Insert into (data members) funcsByAdd && mods->funcs.
 //  n) insert into (data member) funcsByPretty (indexed under 
 //    demangled name).
-bool image::newFunc(pdmodule *mod, const string &name, const Address addr, 
-		    const unsigned size, const unsigned tag, 
-		    pd_Function *&retFunc) {
+bool image::newFunc(pdmodule *mod, const string &name, 
+		    const Address addr, 
+		    const unsigned size) {
   pd_Function *func;
 
-  retFunc = NULL;
   // KLUDGE
   if ((func = findFunction(addr, TRUE))){
     //string temp = name;
@@ -217,22 +215,20 @@ bool image::newFunc(pdmodule *mod, const string &name, const Address addr,
      unsigned nchars = p - name.string_of();
      mangled_name = string(name.string_of(), nchars);
   }
-     
+  
   string demangled;
   if (!buildDemangledName(mangled_name, demangled)) 
     demangled = mangled_name;
 
   bool err=false;
 
-  func = new pd_Function(name, demangled, mod, addr, size, tag, this, err);
+  func = new pd_Function(name, demangled, mod, addr, size, this, err);
   assert(func);
   //cout << name << " pretty: " << demangled << " addr :" << addr <<endl;
-  retFunc = func;
   // if there was an error in determining the instrumentation info for
   //  function, add it to notInstruFunction.
   if (err) {
     //delete func;
-    retFunc = NULL;
     addNotInstruFunc(func);
     return false;
   }
@@ -290,91 +286,9 @@ static timer loadTimer;
 static FILE *timeOut=0;
 #endif /* DEBUG_TIME */
 
-/*
- * load an executable:
- *   1.) parse symbol table and identify rotuines.
- *   2.) scan executable to identify inst points.
- *
- *  offset is normally zero except on CM-5 where we have two images in one
- *    file.  The offset passed to parseImage is the logical offset (0/1), not
- *    the physical point in the file.  This makes it faster to "parse" multiple
- *    copies of the same image since we don't have to stat and read to find the
- *    physical offset. 
- */
-
-image *image::parseImage(fileDescriptor *desc)
-{
-  /*
-   * Check to see if we have parsed this image at this offset before.
-   * We only match if the entire file descriptor matches, which can
-   * can be filename matching or filename/offset matching.
-   */
-  unsigned numImages = allImages.size();
-
-  // AIX: it's possible that we're reparsing a file with better information
-  // about it. If so, yank the old one out of the images vector -- replace
-  // it, basically.
-  for (unsigned u=0; u<numImages; u++)
-    if ((*desc) == *(allImages[u]->desc()))
-      return allImages[u];
-  /*
-   * load the symbol table. (This is the a.out format specific routine).
-   */
-
-  if(desc->isSharedObject()) 
-    statusLine("Processing a shared object file");
-  else  
-    statusLine("Processing an executable file");
-  bool err=false;
-  
-  // TODO -- kill process here
-  image *ret = new image(desc, err);
-  if (err || !ret) {
-    if (ret)
-      delete ret;
-    return NULL;
-  }
-
-  bool beenReplaced = false;
-#ifdef rs6000_ibm_aix4_1 
-  // On AIX, we might have a "stub" image instead of the
-  // actual image we want. So we check to see if we do,
-  // and if so copy over the list. In normal practice,
-  // the stub will be the first and only entry.
-  for (unsigned i=0; i<numImages; i++)
-    if (allImages[i]->desc()->addr() == (unsigned) -1) {
-      image *imageTemp = allImages[i];
-      allImages[i]=ret;
-      beenReplaced = true;
-      delete imageTemp;
-  }
-  // Add to master image list.
-#endif
-  if (beenReplaced == false) // short-circuit on non-AIX
-    image::allImages += ret;
-
-  // define all modules.
-#ifndef BPATCH_LIBRARY
-  tp->resourceBatchMode(true);
-#endif
-
-  statusLine("defining modules");
-  ret->defineModules();
-
-//  statusLine("ready"); // this shouldn't be here, right? (cuz we're not done, right?)
-
-#ifndef BPATCH_LIBRARY
-  tp->resourceBatchMode(false);
-#endif
-
-  return(ret);
-}
-
-// COMMENTS??  COMMENTS??
-// check symbol whose name is in <str>.  If it is prefixed by
-// "_DYNINST" or "_TRACELIB", then assume that that it is an
-// "internal" symbol, and add it to (private data member) 
-// iSymsMap.
+// Add a symbol to the "internal" symbol list iSymsMap.
+// If the symbol is prefixed by _DYNINST or _TRACELIB, remove
+// the leading underscore
 bool image::addInternalSymbol(const string &str, const Address symValue) {
   // Internal symbols are prefixed by { DYNINST, TRACELIB }
   // don't ignore the underscore
@@ -402,7 +316,150 @@ bool image::addInternalSymbol(const string &str, const Address symValue) {
   return false;
 }
 
-#ifndef BPATCH_LIBRARY
+
+
+// addOneFunction(): find name of enclosing module and define function symbol
+//
+// module information comes from one of three sources:
+//   #1 - debug format (stabs, DWARF, etc.)
+//   #2 - file format (ELF, COFF)
+//   #3 - file name (a.out, libXXX.so)
+// (in order of decreasing reliability)
+bool image::addOneFunction(vector<Symbol> &mods,
+			   const Symbol &lookUp) 
+{
+  // find module name
+  Address modAddr = 0;
+  string modName = lookUp.module();
+
+  if (modName == "") {
+    modName = name_ + "_module";
+  } else if (modName == "DEFAULT_MODULE") {
+    string modName_3 = modName;
+    findModByAddr(lookUp, mods, modName, modAddr, modName_3);
+  }
+  
+  pdmodule *use = getOrCreateModule(modName, modAddr);
+  assert(use);
+  return newFunc(use, lookUp.name(), lookUp.addr(), lookUp.size());
+}
+
+/*
+ * Add all the functions (*) in the list of symbols to our data
+ * structures. (*) -- currently we only keep one name per address.
+ * This should be fixed.
+ *
+ * We do some case analysis. If the symbol DYNINSTinit is found, we 
+ * assume we're dealing with the runtime library, and thus add all 
+ * functions to an "internal" list which is handled differently.
+ * We also do a search for a "main" symbol (a couple of variants), and
+ * if found we flag this image as the executable (a.out). 
+ */
+
+bool image::addAllFunctions(vector<Symbol> &mods)
+{
+  Symbol lookUp;
+  string symString;
+
+  // is_libdyninstRT is a member variable
+  // is_a_out is a member variable
+  Symbol mainFuncSymbol;  //Keeps track of info on "main" function
+
+  //Checking "main" function names in same order as in the inst-*.C files
+  if (linkedFile.get_symbol(symString="main",     lookUp) ||
+      linkedFile.get_symbol(symString="_main",    lookUp) ||
+      linkedFile.get_symbol(symString="WinMain",  lookUp) ||
+      linkedFile.get_symbol(symString="_WinMain", lookUp)) {
+    mainFuncSymbol = lookUp;
+    is_a_out = true;
+  }
+  else
+    is_a_out = false;
+
+  // Checking for libdyninstRT (DYNINSTinit())
+  if (linkedFile.get_symbol(symString="DYNINSTinit",  lookUp) ||
+      linkedFile.get_symbol(symString="_DYNINSTinit", lookUp))
+    is_libdyninstRT = true;
+  else
+    is_libdyninstRT = false;
+  
+  // find the real functions -- those with the correct type in the symbol table
+  for(SymbolIter symIter(linkedFile); symIter;symIter++) {
+    const Symbol &lookUp = symIter.currval();
+    if (funcsByAddr.defines(lookUp.addr()))
+      // We have already seen a function at this addr. Skip it.
+      continue;
+    if (is_a_out && 
+	(lookUp.addr() == mainFuncSymbol.addr()) &&
+	(lookUp.name() != mainFuncSymbol.name()))
+      // Wait for main to appear. Couldn't we just add main to start with?
+      continue;
+    if (lookUp.type() == Symbol::PDST_FUNCTION) {
+      if (!isValidAddress(lookUp.addr())) {
+	string msg;
+	char tempBuffer[40];
+	sprintf(tempBuffer,"0x%lx",lookUp.addr());
+	msg = string("Function ") + lookUp.name() + string(" has bad address ")
+	  + string(tempBuffer);
+	statusLine(msg.string_of());
+	showErrorCallback(29, msg);
+	return false;
+      }
+      // is_libdyninstRT flags an "internal" symbol.
+      addOneFunction(mods, lookUp);
+    }
+  }
+
+  // now find the pseudo functions -- this gets ugly
+  // kludge has been set if the symbol could be a function
+  // WHERE DO WE USE THESE KLUDGES? WHAT PLATFORM???
+  for(SymbolIter symIter2(linkedFile);symIter2;symIter2++) {
+    lookUp = symIter2.currval();
+    if (funcsByAddr.defines(lookUp.addr()))
+      // Already defined a symbol at this addr
+      continue;
+    if ((lookUp.type() == Symbol::PDST_OBJECT) && lookUp.kludge()) {
+      //logLine(P_strdup(symString.string_of()));
+      // Figure out where this happens
+      cerr << "Found <KLUDGE> function " << lookUp.name().string_of() << endl;
+      addOneFunction(mods, lookUp);
+    }
+  }
+  return true;
+}
+
+bool image::addAllVariables()
+{
+/* Eventually we'll have to do this on all platforms (because we'll retrieve
+ * the type information here).
+ */
+#ifdef i386_unknown_nt4_0
+  string mangledName; 
+  Symbol symInfo;
+
+  for(SymbolIter symIter(linkedFile); symIter; symIter++) {
+     const string &mangledName = symIter.currkey();
+     const Symbol &symInfo = symIter.currval();
+
+    if (symInfo.type() == Symbol::PDST_OBJECT) {
+      char *name = cplus_demangle((char *)mangledName.string_of(), 0);
+      const char *unmangledName;
+      if (name) unmangledName = name;
+      else unmangledName = mangledName.string_of();
+      if (varsByPretty.defines(unmangledName)) {
+	  *(varsByPretty[unmangledName]) += string(mangledName);
+      } else {
+	  vector<string> *varEntry = new vector<string>;
+	  *varEntry += string(mangledName);
+	  varsByPretty[unmangledName] = varEntry;
+      }
+      if (name) free(name);
+    }
+  }
+#endif
+  return true;
+}
+
 /*
  * will search for symbol NAME or _NAME
  * returns false on failure 
@@ -434,6 +491,26 @@ bool image::findInternalSymbol(const string &name,
    return false;
 }
 
+bool image::findInternalByPrefix(const string &prefix, 
+				 vector<Symbol> &found) const
+{
+  bool flag = false;
+  /*
+    Go through all defined symbols and return those which
+    match the prefix given 
+  */
+  for(SymbolIter symIter(linkedFile); symIter;symIter++) {
+    const Symbol &lookUp = symIter.currval();
+    if (!strncmp(prefix.string_of(), lookUp.name().string_of(),
+		 strlen(prefix.string_of())))
+      {
+	found += lookUp;
+	flag = true;
+      }
+  }
+  return flag;
+}
+
 Address image::findInternalAddress(const string &name, 
 				   const bool warn, 
 				   bool &err)
@@ -454,8 +531,6 @@ Address image::findInternalAddress(const string &name,
   else
     return (theSym->getAddr());
 }
-
-#endif
 
 pdmodule *image::findModule(const string &name, bool find_if_excluded)
 {
@@ -701,38 +776,6 @@ pd_Function *image::findFunctionIn(const Address &addr,const process *p) const
   return NULL; 
 }
 
-
-#ifndef BPATCH_LIBRARY
-void image::changeLibFlag(resource *res, const bool setSuppress)
-{
-  image *ret;
-  pdmodule *mod;
-
-  unsigned numImages = image::allImages.size();
-  for (unsigned u=0; u<numImages; u++) {
-    ret = image::allImages[u];
-    // assume should work even if module excluded....
-    mod = ret->findModule(res->part_name(), TRUE);
-    if (mod) {
-      // suppress all procedures.
-      mod->changeLibFlag(setSuppress);
-    } else {
-      // more than one function may have this name --> templates, statics
-      vector<pd_Function*> pdfA;
-      if (ret->findFunction(res->part_name(), pdfA)) {
-	for (unsigned i=0; i<pdfA.size(); ++i) {
-	  if (setSuppress) 
-	    pdfA[i]->tagAsLib();
-	  else
-	    pdfA[i]->untagAsLib();
-	}
-      }
-    }
-  }
-}
-#endif
-
-
 /* 
  * return 0 if symbol <symname> exists in image, non-zero if it does not
  */
@@ -934,6 +977,7 @@ void pdmodule::define() {
 #endif
 }
 
+// Why is this in symtab.C?
 #ifndef BPATCH_LIBRARY
 // send message to data manager to specify the entry function for the
 //  call graph corresponding to a given image.  r should hold the 
@@ -1047,6 +1091,37 @@ void pdmodule::FillInCallGraphStatic(process *proc) {
   }
 }
 #endif // ndef BPATCH_LIBRARY
+
+#ifndef BPATCH_LIBRARY
+// as per getAllFunctions, but filters out those excluded with 
+// e.g. mdl "exclude" command....
+// to clarify a function should NOT be returned from here if its 
+//  module is excluded (with exclude "/Code/module") or if it
+//  is excluded (with exclude "/Code/module/function"). 
+const vector<pd_Function*> &image::getIncludedFunctions() {
+    unsigned int i;    
+    includedFunctions.resize(0);
+    vector<function_base *> *temp;
+    vector<pd_Function *> *temp2;
+
+    //cerr << "image::getIncludedFunctions called, name = " << name () << endl;
+    //cerr << " includedMods = " << endl;
+    //print_module_vector_by_short_name(string("  "), &includedMods);
+    for (i=0;i<includedMods.size();i++) {
+         temp = includedMods[i]->getIncludedFunctions();
+         temp2 = (vector<pd_Function *> *) temp;
+         includedFunctions += *temp2;
+    }
+
+    //cerr << " (image::getIncludedFunctions) returning : " << endl;
+    //print_func_vector_by_pretty_name(string("  "),
+    //		 (vector<function_base*>*)&includedFunctions);
+
+    // what about shared objects????
+    return includedFunctions;
+}
+#endif
+
 
 // get all functions in module which are not "excluded" (e.g.
 //  with mdl "exclude" command.  
@@ -1283,7 +1358,7 @@ bool filter_excluded_functions(vector<pd_Function*> all_funcs,
 
 // identify module name from symbol address (binary search)
 // based on module tags found in file format (ELF/COFF)
-static void findModByAddr (const Symbol &lookUp, vector<Symbol> &mods,
+void image::findModByAddr (const Symbol &lookUp, vector<Symbol> &mods,
 			   string &modName, Address &modAddr, 
 			   const string &defName)
 {
@@ -1322,592 +1397,252 @@ static void findModByAddr (const Symbol &lookUp, vector<Symbol> &mods,
   }
 }
 
-// addOneFunction(): find name of enclosing module and define function symbol
-//
-// module information comes from one of three sources:
-//   #1 - debug format (stabs, DWARF, etc.)
-//   #2 - file format (ELF, COFF)
-//   #3 - file name (a.out, libXXX.so)
-// (in order of decreasing reliability)
-bool image::addOneFunction(vector<Symbol> &mods,
-			   pdmodule *lib,
-			   pdmodule * /*dyn*/,
-			   const Symbol &lookUp, pd_Function *&retFunc) 
-{
-  // find module name
-  Address modAddr = 0;
-  string modName = lookUp.module();
-
-  if (modName == "") {
-    modName = name_ + "_module";
-  } else if (modName == "DEFAULT_MODULE") {
-      string modName_3 = modName;
-      findModByAddr(lookUp, mods, modName, modAddr, modName_3);
-  }
-
-  // add symbol definition
-  return (defineFunction(lib, lookUp, modName, modAddr, retFunc));
-}
-
-bool inLibrary(Address addr, Address boundary_start, Address boundary_end,
-		      Address startAddr, bool startB,
-		      Address endAddr, bool endB) {
-  if ((addr >= boundary_start) && (addr <= boundary_end))
-    return true;
-  else if (startB) {
-    if (addr <= startAddr)
-      return true;
-    else if (endB) {
-      if (addr >= endAddr)
-	return true;
-      else 
-	return false;
-    } else 
-      return false;
-  } else if (endB) {
-    if (addr >= endAddr)
-      return true;
-    else
-      return false;
-  } else
-    return false;
-}
-
-#ifndef BPATCH_LIBRARY
-// as per getAllFunctions, but filters out those excluded with 
-// e.g. mdl "exclude" command....
-// to clarify a function should NOT be returned from here if its 
-//  module is excluded (with exclude "/Code/module") or if it
-//  is excluded (with exclude "/Code/module/function"). 
-const vector<pd_Function*> &image::getIncludedFunctions() {
-    unsigned int i;    
-    includedFunctions.resize(0);
-    vector<function_base *> *temp;
-    vector<pd_Function *> *temp2;
-
-    //cerr << "image::getIncludedFunctions called, name = " << name () << endl;
-    //cerr << " includedMods = " << endl;
-    //print_module_vector_by_short_name(string("  "), &includedMods);
-    for (i=0;i<includedMods.size();i++) {
-         temp = includedMods[i]->getIncludedFunctions();
-         temp2 = (vector<pd_Function *> *) temp;
-         includedFunctions += *temp2;
-    }
-
-    //cerr << " (image::getIncludedFunctions) returning : " << endl;
-    //print_func_vector_by_pretty_name(string("  "),
-    //		 (vector<function_base*>*)&includedFunctions);
-
-    // what about shared objects????
-    return includedFunctions;
-}
-#endif
-
-//  COMMENTS??  HELLO?
-//  Here's a guess what this function tries to do:
-//  a. look through (data member of type Object) linkedFile,
-//   trying to file DYNINSTstart and DYNINSTend sections (
-//   beginning + ending of instrumentation code).
-//  b. ditto for main function (note variant names under which
-//   these functions are searched for)....
-//  c. iterate over all functions in linkedFile:
-//    if the function has already been defined, OR shadows the
-//     main function (has same address) - ignore it.
-//    else - 
-//     use (member function) inLibrary() to check
-//     whether function is in range of instrumented code (between
-//     DYNINSTstart and DYNINSTend)
-//     if in range - addInternalSymbol().
-//     else addOneFunction().
-//
-//  Questions : what do params mean????
-bool image::addAllFunctions(vector<Symbol> &mods,
-			    pdmodule *lib, pdmodule *dyn, 
-			    const bool startB, const Address startAddr,
-			    const bool endB, const Address endAddr) {
-
-  Address boundary_start, boundary_end;
-  Symbol lookUp;
-  string symString;
-
-#ifdef BPATCH_LIBRARY
-  boundary_start = boundary_end = 0;
-#else
-  if (!linkedFile.get_symbol(symString="DYNINSTfirst", lookUp) &&
-      !linkedFile.get_symbol(symString="_DYNINSTfirst", lookUp)) {
-    //statusLine("Internal symbol DYNINSTfirst not found");
-    //showErrorCallback(31, "Internal symbol DYNINSTfirst not found");
-    //return false;
-    boundary_start = 0;
-  } else
-    boundary_start = lookUp.addr();
-
-  if (!linkedFile.get_symbol(symString="DYNINSTend", lookUp) &&
-      !linkedFile.get_symbol(symString="_DYNINSTend", lookUp)) {
-    //statusLine("Internal symbol DYNINSTend not found");
-    //showErrorCallback(32, "Internal symbol DYNINSTend not found");
-    //return false;
-    boundary_end = 0;
-  } else
-    boundary_end = lookUp.addr();
-#endif
-
-  Symbol mainFuncSymbol;  //Keeps track of info on "main" function
-
-  //Checking "main" function names in same order as in the inst-*.C files
-  if (linkedFile.get_symbol(symString="main",     lookUp) ||
-      linkedFile.get_symbol(symString="_main",    lookUp) ||
-      linkedFile.get_symbol(symString="WinMain",  lookUp) ||
-      linkedFile.get_symbol(symString="_WinMain", lookUp)) 
-    mainFuncSymbol = lookUp;
-
-  // find the real functions -- those with the correct type in the symbol table
-  for(SymbolIter symIter(linkedFile); symIter;symIter++) {
-    const Symbol &lookUp = symIter.currval();
-    if (funcsByAddr.defines(lookUp.addr()) ||
-        ((lookUp.addr() == mainFuncSymbol.addr()) &&
-         (lookUp.name() != mainFuncSymbol.name()))) {
-      // This function has been defined 
-      // *or*
-      // This function has the same address as the "main" function but does 
-      //   not have the same name as the "main" function.  Therefore, skip
-      //   it and let the "main" function be eventually associated with this
-      //   function address.  If we don't do this, paradynd will not have a
-      //   "main" function to start work with.
-      ;
-    } else if (lookUp.type() == Symbol::PDST_FUNCTION) {
-      if (!isValidAddress(lookUp.addr())) {
-	string msg;
-	char tempBuffer[40];
-	sprintf(tempBuffer,"0x%lx",lookUp.addr());
-	msg = string("Function ") + lookUp.name() + string(" has bad address ")
-	    + string(tempBuffer);
-	statusLine(msg.string_of());
-	showErrorCallback(29, msg);
-	return false;
-      }
-
-      insert_function_internal_static(mods, lookUp, boundary_start,
-              boundary_end, startAddr, startB, endAddr, endB, dyn, lib);
-    }
-  }
-
-  // now find the pseudo functions -- this gets ugly
-  // kludge has been set if the symbol could be a function
-  for(SymbolIter symIter2(linkedFile);symIter2;symIter2++) {
-    lookUp = symIter2.currval();
-    if (funcsByAddr.defines(lookUp.addr())) {
-        // This function has been defined
-        ;
-    } else if ((lookUp.type() == Symbol::PDST_OBJECT) && lookUp.kludge()) {
-        //logLine(P_strdup(symString.string_of()));
-        // see comment under image::insert_function_internal_static,
-        // below....
-        insert_function_internal_static(mods, lookUp, boundary_start,
-              boundary_end, startAddr, startB, endAddr, endB, dyn, lib);
-    }
-  }
-  return true;
-}
-
-bool image::addAllSharedObjFunctions(vector<Symbol> &mods,
-			    pdmodule *lib, pdmodule *dyn) {
-
-  Symbol lookUp;
-  string symString;
-
-  bool is_libdyninstRT = false; // true if this image is libdyninstRT
-#if defined(i386_unknown_nt4_0)
-  if (linkedFile.get_symbol(symString="DYNINSTfirst", lookUp) ||
-      linkedFile.get_symbol(symString="_DYNINSTfirst", lookUp))
-    is_libdyninstRT = true;
-#endif
-
-  // find the real functions -- those with the correct type in the symbol table
-  for(SymbolIter symIter3(linkedFile);symIter3;symIter3++) { 
-    const Symbol &lookUp = symIter3.currval();
-    
-    if (funcsByAddr.defines(lookUp.addr())) {
-      // This function has been defined
-      ;
-    } else if (lookUp.type() == Symbol::PDST_FUNCTION) {
-      if (!isValidAddress(lookUp.addr())) {
-	string msg;
-	char tempBuffer[40];
-	sprintf(tempBuffer,"0x%lx",lookUp.addr());
-	msg = string("Function ") + lookUp.name() + string(" has bad address ")
-	  + string(tempBuffer);
-	statusLine(msg.string_of());
-	showErrorCallback(29, msg);
-	return false;
-      }
-      // see comment under image::insert_functions_internal_dynamic,
-      //  below....
-      insert_function_internal_dynamic(mods, lookUp, dyn, lib, is_libdyninstRT);
-    }
-  }
-
-  // now find the pseudo functions -- this gets ugly
-  // kludge has been set if the symbol could be a function
-  for(SymbolIter symIter4(linkedFile);symIter4;symIter4++) {
-    const Symbol &lookUp = symIter4.currval();
-    if (funcsByAddr.defines(lookUp.addr())) {
-      // This function has been defined
-      ;
-    } else if ((lookUp.type() == Symbol::PDST_OBJECT) && lookUp.kludge()) {
-      pd_Function *pdf;
-      addInternalSymbol(lookUp.name(), lookUp.addr());
-      defineFunction(dyn, lookUp, TAG_LIB_FUNC, pdf);
-    }
-  }
-  return true;
-} 
-
-
-bool image::addAllVariables()
-{
-/* Eventually we'll have to do this on all platforms (because we'll retrieve
- * the type information here).
- */
-#ifdef i386_unknown_nt4_0
-  string mangledName; 
-  Symbol symInfo;
-
-  for(SymbolIter symIter(linkedFile); symIter; symIter++) {
-     const string &mangledName = symIter.currkey();
-     const Symbol &symInfo = symIter.currval();
-
-    if (symInfo.type() == Symbol::PDST_OBJECT) {
-      char *name = cplus_demangle((char *)mangledName.string_of(), 0);
-      const char *unmangledName;
-      if (name) unmangledName = name;
-      else unmangledName = mangledName.string_of();
-      if (varsByPretty.defines(unmangledName)) {
-	  *(varsByPretty[unmangledName]) += string(mangledName);
-      } else {
-	  vector<string> *varEntry = new vector<string>;
-	  *varEntry += string(mangledName);
-	  varsByPretty[unmangledName] = varEntry;
-      }
-      if (name) free(name);
-    }
-  }
-#endif
-  return true;
-}
-
 unsigned int int_addrHash(const Address& addr) {
   return (unsigned int)addr;
 }
 
-// Please note that this is now machine independent-almost.  Let us keep it that way
-// COMMENTS????
-//  Guesses as to what this cod does....
-//  image constructor:
-//   construct an image corresponding to the executable file on path
-//   fileName.  Fill in err based on success or failure....
-image::image(const string &fileName, bool &err)
-  : main_call_addr_(0),  
-    modsByFileName(string::hash),
-    modsByFullName(string::hash),
-    includedFunctions(0),
-    excludedFunctions(string::hash),
-    instrumentableFunctions(0),
-    notInstruFunctions(string::hash),
-    funcsByAddr(addrHash4),
-    funcsByPretty(string::hash),
-    funcsByMangled(string::hash),
-    linkedFile(fileName, pd_log_perror),
-    iSymsMap(string::hash),
-    varsByPretty(string::hash),
-    knownJumpTargets(int_addrHash, 8192)
-{
-  cerr << "Deprecated non-shared image constructor called!" << endl;
-  desc_ = new fileDescriptor(fileName);
-  sharedobj_cerr << "image::image for non-sharedobj; file name="
-		 << desc_->file()<< endl;
-  
-  // shared_object and static object (a.out) constructors merged into
-  //  common initialize routine.... 
-  initialize(fileName, err, 0);
-}
-
-// 
-// load a shared object
-//
-image::image(const string &fileName, Address baseAddr, bool &err)
-  : main_call_addr_(0),
-    modsByFileName(string::hash),
-    modsByFullName(string::hash),
-    includedFunctions(0),
-    excludedFunctions(string::hash),
-    instrumentableFunctions(0),
-    notInstruFunctions(string::hash),
-    funcsByAddr(addrHash4),
-    funcsByPretty(string::hash),
-    funcsByMangled(string::hash),
-    linkedFile(fileName, baseAddr, pd_log_perror),
-    iSymsMap(string::hash),
-    varsByPretty(string::hash),
-    knownJumpTargets(int_addrHash, 8192)
-{
-  cerr << "Deprecated shared image constructor called!" << endl;
-  desc_ = new fileDescriptor(fileName, baseAddr);
-  sharedobj_cerr << "welcome to image::image for shared obj; file name="
-		 << desc_->file() << endl;
-  
-  // shared_object and static object (a.out) constructors merged into
-  //  common initialize routine.... 
-  initialize(fileName, err, 1, baseAddr);
-}
-
-// Interface for AIX (and possibly others)
-
-image::image(fileDescriptor *desc, bool &err)
-  : main_call_addr_(0),
-    modsByFileName(string::hash),
-    modsByFullName(string::hash),
-    includedFunctions(0),
-    excludedFunctions(string::hash),
-    instrumentableFunctions(0),
-    notInstruFunctions(string::hash),
-    funcsByAddr(addrHash4),
-    funcsByPretty(string::hash),
-    funcsByMangled(string::hash),
-    desc_(desc),
-    linkedFile(desc, pd_log_perror),
-    iSymsMap(string::hash),
-    varsByPretty(string::hash),
-    knownJumpTargets(int_addrHash, 8192)
-{
-  if (desc->isSharedObject())
-    {
-      sharedobj_cerr << "image::image for shared obj; file name="
-		     << desc->file() << endl;
-    }
-  else
-    {
-      sharedobj_cerr << "image::image for non-sharedobj; file name="
-		     << desc->file() << endl;
-    }
-    // shared_object and static object (a.out) constructors merged into
-    //  common initialize routine.... 
-    initialize(desc->file(), err, desc->isSharedObject());
-}
-
-static bool findStartSymbol(Object &lf, Address &adr) {
-  Symbol lookUp;
-
-  if (lf.get_symbol("DYNINSTstartUserCode", lookUp) ||
-      lf.get_symbol("_DYNINSTstartUserCode", lookUp)) {
-    adr = lookUp.addr();
-    return true;
-  } else
-    return false;
-}
-
-static bool findEndSymbol(Object &lf, Address &adr) {
-  Symbol lookUp;
-
-  if (lf.get_symbol("DYNINSTendUserCode", lookUp) ||
-      lf.get_symbol("_DYNINSTendUserCode", lookUp)) {
-    adr = lookUp.addr();
-    return true;
-  } else
-    return false;
-}
-
 /*
-    image::initialize - called by image a.out and shared_object 
-    constructor to do common initialization....
-
-    paramaters - 
-
-      shared_object - pass 0 to denote initializing from statically
-	linked executable (a.out file), pass 1 to denote initializing
-   	from shared library.
-      base_addr - curr. used IFF shared_library == 1.
+ * load an executable:
+ *   1.) parse symbol table and identify rotuines.
+ *   2.) scan executable to identify inst points.
+ *
+ *  offset is normally zero except on CM-5 where we have two images in one
+ *    file.  The offset passed to parseImage is the logical offset (0/1), not
+ *    the physical point in the file.  This makes it faster to "parse" multiple
+ *    copies of the same image since we don't have to stat and read to find the
+ *    physical offset. 
  */
 
-void image::initialize(const string &fileName, bool &err,
-		       bool shared_object, Address /*base_addr*/) {
-    // initialize (data members) codeOffset_, dataOffset_,
-    //  codeLen_, dataLen_.
-    codeOffset_ = linkedFile.code_off();
-    dataOffset_ = linkedFile.data_off();
-    codeLen_ = linkedFile.code_len();
-    dataLen_ = linkedFile.data_len();
-    
-    // if unable to parse object file (somehow??), try to
-    //  notify luser/calling process + return....    
-    if (!codeLen_ || !linkedFile.code_ptr()) {
-        string msg = string("Parsing problem with executable file: ") + fileName;
-        statusLine(msg.string_of());
-        msg += "\n";
-        logLine(msg.string_of());
-        err = true;
-#if defined(BPATCH_LIBRARY)
-        BPatch_reportError(BPatchWarning, 27, msg.string_of()); 
-#else
-        showErrorCallback(27, msg); 
+image *image::parseImage(fileDescriptor *desc)
+{
+  /*
+   * Check to see if we have parsed this image at this offset before.
+   * We only match if the entire file descriptor matches, which can
+   * can be filename matching or filename/offset matching.
+   */
+  unsigned numImages = allImages.size();
+
+  // AIX: it's possible that we're reparsing a file with better information
+  // about it. If so, yank the old one out of the images vector -- replace
+  // it, basically.
+  for (unsigned u=0; u<numImages; u++)
+    if ((*desc) == *(allImages[u]->desc()))
+      return allImages[u];
+  /*
+   * load the symbol table. (This is the a.out format specific routine).
+   */
+
+  if(desc->isSharedObject()) 
+    statusLine("Processing a shared object file");
+  else  
+    statusLine("Processing an executable file");
+  bool err=false;
+  
+  // TODO -- kill process here
+  image *ret = new image(desc, err);
+  if (err || !ret) {
+    if (ret)
+      delete ret;
+    return NULL;
+  }
+
+  bool beenReplaced = false;
+#ifdef rs6000_ibm_aix4_1 
+  // On AIX, we might have a "stub" image instead of the
+  // actual image we want. So we check to see if we do,
+  // and if so copy over the list. In normal practice,
+  // the stub will be the first and only entry.
+  for (unsigned i=0; i<numImages; i++)
+    if (allImages[i]->desc()->addr() == (unsigned) -1) {
+      image *imageTemp = allImages[i];
+      allImages[i]=ret;
+      beenReplaced = true;
+      delete imageTemp;
+  }
+  // Add to master image list.
 #endif
-        return;
-    }
+  if (beenReplaced == false) // short-circuit on non-AIX
+    image::allImages += ret;
 
-#if !defined(USES_LIBDYNINSTRT_SO)
-    // on architectures where statically linked programs to be run 
-    //  w/ paradyn need to link with the DYNINST library, try to find
-    //  the paradyn lib version # (DYNINSTversion or _DYNINSTversion
-    //  symbol).
-
-    if (!shared_object) {
-        Symbol version;
-        if (!linkedFile.get_symbol("DYNINSTversion", version) &&
-                !linkedFile.get_symbol("_DYNINSTversion", version)) {
-            statusLine("Could not find version number in instrumentation\n");
-            showErrorCallback(33, "Could not find version number in instrumentation");
-            err = true;
-            return;
-        }
-
-        Word version_number = get_instruction(version.addr());
-        if (version_number != 1) {
-            string msg;
-            msg = string("Incorrect version number, expected ") + string(1) + 
-	         string("found ") + string(version_number);
-            statusLine(msg.string_of());
-            showErrorCallback(30, msg);
-            err = true;
-            return;
-        }
-    }
+  // define all modules.
+#ifndef BPATCH_LIBRARY
+  tp->resourceBatchMode(true);
 #endif
 
-    string msg;
-    // give luser some feedback....
-    if (shared_object) {
-	msg = string("Parsing shared object file : ") + fileName;
-    } else {
-	msg = string("Parsing static object file : ") + fileName;
-    }
-    statusLine(msg.string_of());
+  statusLine("defining modules");
+  ret->defineModules();
 
-    // short file name
-    name_ = extract_pathname_tail(fileName);
-    err = false;
+//  statusLine("ready"); // this shouldn't be here, right? (cuz we're not done, right?)
 
-    // use the *DUMMY_MODULE* until a module is defined
-    pdmodule *dynModule = newModule(DYN_MODULE, 0);
-    pdmodule *libModule = newModule(LIBRARY_MODULE, 0);
-    // TODO -- define inst points in define function ?
+#ifndef BPATCH_LIBRARY
+  tp->resourceBatchMode(false);
+#endif
 
-    // The functions cannot be verified until all of them have been seen
-    // because calls out of each function must be tagged as calls to user
-    // functions or call to "library" functions
-
-    //
-    // sort the modules by address into a vector to allow a binary search to 
-    // determine the module that a symbol will map to -- this 
-    // may be bsd specific....
-    //
-    vector <Symbol> tmods;
-
-    for (SymbolIter symIter(linkedFile); symIter; symIter++) {
-        const Symbol &lookUp = symIter.currval();
-        if (lookUp.type() == Symbol::PDST_MODULE) {
-
-            const string &lookUpName = lookUp.name();
-            const char *str = lookUpName.string_of();
-            assert(str);
-            int ln = lookUpName.length();
-
-            // directory definition -- ignored for now
-            if (str[ln-1] != '/') {
-	        tmods += lookUp;
-	    }
-        }
-    }
-
-    // sort the modules by address
-    statusLine("sorting modules");
-    tmods.sort(symbol_compare);
-
-    // remove duplicate entries -- some .o files may have the same 
-    // address as .C files.  kludge is true for module symbols that 
-    // I am guessing are modules
-    vector<Symbol> uniq;
-
-    unsigned int num_zeros = 0;
-    // must use loop+1 not mods.size()-1 since it is an unsigned compare
-    //  which could go negative - jkh 5/29/95
-    for (unsigned loop=0; loop < tmods.size(); loop++) {
-        if (tmods[loop].addr() == 0) num_zeros++;
-        if ((loop+1 < tmods.size()) && 
-	        (tmods[loop].addr() == tmods[loop+1].addr())) {
-	  if (!tmods[loop].kludge())
-	        tmods[loop+1] = tmods[loop];
-	} 
-	else
-          uniq += tmods[loop];
-    }
-    // avoid case where all (ELF) module symbols have address zero
-    if (num_zeros == tmods.size()) uniq.resize(0);
-
-    // define all of the functions
-    statusLine("winnowing functions");
-
-    // register functions differently depending on whether parsing 
-    //  shared object or static executable.  
-    // THIS MAY CHANGE WHEN REMOVE DYNINSTstart && DYNINSTend hacks....
-    if (!shared_object) {
-        // find the "user" code boundaries
-        statusLine("finding user code boundaries");
-        Address startUserAddr=0, endUserAddr=0;
-        bool startBound = findStartSymbol(linkedFile, startUserAddr);
-        bool endBound = findEndSymbol(linkedFile, endUserAddr);
-
-	if (!addAllFunctions(uniq, libModule, dynModule, startBound,
-		startUserAddr, endBound, endUserAddr)) {
-            err = true;
-            return;
-        }
-    } else {
-	// define all of the functions
-        if (!addAllSharedObjFunctions(uniq, libModule, dynModule)) {
-            err = true;
-            return;
-        }
-    }
-
-    // ALERT ALERT - Calling on both shared_object && !shared_object path.
-    //  In origional code, only called in !shared_object case.  Was this 
-    //  a bug????
-    // XXX should have a statusLine("retrieving variable information") here,
-    //     but it's left out for now since addAllVariables only does something
-    //     when BPATCH_LIBRARY is defined
-    addAllVariables();
-
-    statusLine("checking call points");
-    checkAllCallPoints();
-
-    // TODO -- remove duplicates -- see earlier note
-    dictionary_hash<Address, unsigned> addr_dict(addrHash4);
-    vector<pd_Function*> temp_vec;
-
-    // question??  Necessary to do same crap to includedFunctions &&
-    //  excludedFunctions??
-    unsigned f_size = instrumentableFunctions.size(), index;
-    for (index=0; index<f_size; index++) {
-        const Address the_address = 
-            instrumentableFunctions[index]->getAddress(0);
-        if (!addr_dict.defines(the_address)) {
-            addr_dict[the_address] = 1;
-            temp_vec += instrumentableFunctions[index];
-        }
-    }
-    instrumentableFunctions = temp_vec;
+  return(ret);
 }
 
+
+// Constructor for the image object. The fileDescriptor simply
+// wraps (in the normal case) the object name and a relocation
+// address (0 for a.out file). On the following platforms, we
+// are handling a special case:
+//   AIX: objects can possibly have a name like /lib/libc.so:shr.o
+//          since libraries are archives
+//        Both text and data sections have a relocation address
+
+image::image(fileDescriptor *desc, bool &err)
+  : 
+    desc_(desc),
+    is_libdyninstRT(false),
+    is_a_out(false),
+    main_call_addr_(0),
+    linkedFile(desc, pd_log_perror),
+    iSymsMap(string::hash),
+    knownJumpTargets(int_addrHash, 8192),
+    includedMods(0),
+    excludedMods(0),
+    allMods(0),
+    includedFunctions(0),
+    instrumentableFunctions(0),
+    funcsByAddr(addrHash4),
+    funcsByPretty(string::hash),
+    funcsByMangled(string::hash),
+    notInstruFunctions(string::hash),
+    excludedFunctions(string::hash),
+    modsByFileName(string::hash),
+    modsByFullName(string::hash),
+    varsByPretty(string::hash)
+{
+  sharedobj_cerr << "image::image for file name="
+		 << desc->file() << endl;
+
+  // initialize (data members) codeOffset_, dataOffset_,
+  //  codeLen_, dataLen_.
+  codeOffset_ = linkedFile.code_off();
+  dataOffset_ = linkedFile.data_off();
+  codeLen_ = linkedFile.code_len();
+  dataLen_ = linkedFile.data_len();
+    
+  // if unable to parse object file (somehow??), try to
+  //  notify luser/calling process + return....    
+  if (!codeLen_ || !linkedFile.code_ptr()) {
+    string msg = string("Parsing problem with executable file: ") + desc->file();
+    statusLine(msg.string_of());
+    msg += "\n";
+    logLine(msg.string_of());
+    err = true;
+#if defined(BPATCH_LIBRARY)
+    BPatch_reportError(BPatchWarning, 27, msg.string_of()); 
+#else
+    showErrorCallback(27, msg); 
+#endif
+    return;
+  }
+  
+  string msg;
+  // give luser some feedback....
+  msg = string("Parsing object file: ") + desc->file();
+  statusLine(msg.string_of());
+  
+  // short file name
+  name_ = extract_pathname_tail(desc->file());
+  err = false;
+  
+  // use the *DUMMY_MODULE* until a module is defined
+  //pdmodule *dynModule = newModule(DYN_MODULE, 0);
+  //pdmodule *libModule = newModule(LIBRARY_MODULE, 0);
+  // TODO -- define inst points in define function ?
+  
+  // The functions cannot be verified until all of them have been seen
+  // because calls out of each function must be tagged as calls to user
+  // functions or call to "library" functions
+  
+  //
+  // sort the modules by address into a vector to allow a binary search to 
+  // determine the module that a symbol will map to -- this 
+  // may be bsd specific....
+  //
+  vector <Symbol> tmods;
+  
+  for (SymbolIter symIter(linkedFile); symIter; symIter++) {
+    const Symbol &lookUp = symIter.currval();
+    if (lookUp.type() == Symbol::PDST_MODULE) {
+      
+      const string &lookUpName = lookUp.name();
+      const char *str = lookUpName.string_of();
+      assert(str);
+      int ln = lookUpName.length();
+      
+      // directory definition -- ignored for now
+      if (str[ln-1] != '/') {
+	tmods += lookUp;
+      }
+    }
+  }
+  
+  // sort the modules by address
+  statusLine("sorting modules");
+  tmods.sort(symbol_compare);
+  
+  // remove duplicate entries -- some .o files may have the same 
+  // address as .C files.  kludge is true for module symbols that 
+  // I am guessing are modules
+  vector<Symbol> uniq;
+  
+  unsigned int num_zeros = 0;
+  // must use loop+1 not mods.size()-1 since it is an unsigned compare
+  //  which could go negative - jkh 5/29/95
+  for (unsigned loop=0; loop < tmods.size(); loop++) {
+    if (tmods[loop].addr() == 0) num_zeros++;
+    if ((loop+1 < tmods.size()) && 
+	(tmods[loop].addr() == tmods[loop+1].addr())) {
+      if (!tmods[loop].kludge())
+	tmods[loop+1] = tmods[loop];
+    } 
+    else
+      uniq += tmods[loop];
+  }
+  // avoid case where all (ELF) module symbols have address zero
+  if (num_zeros == tmods.size()) uniq.resize(0);
+  
+  // define all of the functions
+  statusLine("winnowing functions");
+  
+  // define all of the functions
+  if (!addAllFunctions(uniq)) {
+    err = true;
+    return;
+  }
+  
+  // ALERT ALERT - Calling on both shared_object && !shared_object path.
+  //  In origional code, only called in !shared_object case.  Was this 
+  //  a bug????
+  // XXX should have a statusLine("retrieving variable information") here,
+  //     but it's left out for now since addAllVariables only does something
+  //     when BPATCH_LIBRARY is defined
+  addAllVariables();
+  
+  statusLine("checking call points");
+  checkAllCallPoints();
+  
+  // TODO -- remove duplicates -- see earlier note
+  dictionary_hash<Address, unsigned> addr_dict(addrHash4);
+  vector<pd_Function*> temp_vec;
+  
+  // question??  Necessary to do same crap to includedFunctions &&
+  //  excludedFunctions??
+  unsigned f_size = instrumentableFunctions.size(), index;
+  for (index=0; index<f_size; index++) {
+    const Address the_address = 
+      instrumentableFunctions[index]->getAddress(0);
+    if (!addr_dict.defines(the_address)) {
+      addr_dict[the_address] = 1;
+      temp_vec += instrumentableFunctions[index];
+    }
+  }
+  // Memory leak, eh?
+  instrumentableFunctions = temp_vec;
+}
 
 void pdmodule::checkAllCallPoints() {
   unsigned fsize = funcs.size();
@@ -1921,17 +1656,6 @@ void image::checkAllCallPoints() {
   string s; pdmodule *mod;
   while (di.next(s, mod))
     mod->checkAllCallPoints();
-}
-
-// passing in tags allows a function to be tagged as TAG_LIB_FUNC even
-// if its entry is not in the tag dictionary of known functions
-bool image::defineFunction(pdmodule *use, const Symbol &sym, const unsigned tags,
-			   pd_Function *&retFunc) {
-  // We used to skip a leading underscore, but not anymore.
-  // (I forgot why we ever did in the first place)
-
-  unsigned dictTags = findTags(sym.name());
-  return (newFunc(use, sym.name(), sym.addr(), sym.size(), tags | dictTags, retFunc));
 }
 
 pdmodule *image::getOrCreateModule(const string &modName, 
@@ -1953,30 +1677,6 @@ pdmodule *image::getOrCreateModule(const string &modName,
   }
 }
 
-// COMMENTS????
-// looks like wrapper function for (member function) newFunc.
-//  appears to do some fiddling with tags paramater to that
-//  function.
-// Kludge TODO - internal functions are tagged with TAG_LIB_FUNC
-// but they won't have tags in the tag dict, so this happens...
-bool image::defineFunction(pdmodule *libModule, const Symbol &sym,
-			   const string &modName, const Address modAddr,
-			   pd_Function *&retFunc) {
-
-  // We used to skip a leading underscore, but not any more.
-
-  unsigned tags = findTags(sym.name());
-  
-  if (TAG_LIB_FUNC & tags)
-    return (newFunc(libModule, sym.name(), sym.addr(), sym.size(),
-		    tags | TAG_LIB_FUNC, retFunc));
-  else {
-    pdmodule *use = getOrCreateModule(modName, modAddr);
-    assert(use);
-    return (newFunc(use, sym.name(), sym.addr(), sym.size(), tags, retFunc));
-  }
-}
-
 // Verify that this is code
 // Find the call points
 // Find the return address
@@ -1987,8 +1687,8 @@ bool image::defineFunction(pdmodule *libModule, const Symbol &sym,
 // 
 pd_Function::pd_Function(const string &symbol, const string &pretty, 
 		       pdmodule *f, Address adr, const unsigned size, 
-		       const unsigned tg, const image *owner, bool &err) : 
-  function_base(symbol, pretty, adr, size,tg),
+		       const image *owner, bool &err) : 
+  function_base(symbol, pretty, adr, size),
   file_(f),
   funcEntry_(0),
 #ifndef BPATCH_LIBRARY
@@ -2018,58 +1718,3 @@ Address pd_Function::getEffectiveAddress(const process *p) const {
      return base + addr();
 }
 
-// image::addAllFunctions duplicates this section of code.
-// As part of an effort to clean up the code a bit, I merged the
-// duplicates into this 1 function.
-void image::insert_function_internal_static(vector<Symbol> &mods,
-	const Symbol &lookUp,
-        const Address boundary_start,  const Address boundary_end,
-	const Address startAddr, bool startB, const Address endAddr,
-        bool endB, pdmodule *dyn, pdmodule *lib) {
-    pd_Function *pdf;
-    //  COMMENTS??
-    //  If CONDITION??
-    if (inLibrary(lookUp.addr(), boundary_start, boundary_end,
-		    startAddr, startB, endAddr, endB)) {
-        // look at symbol name.  If it looks like "_DYNINST*" or 
-	// "_TRACELIN*", add it to iSymsMap data member....
-	addInternalSymbol(lookUp.name(), lookUp.addr());
-	defineFunction(dyn, lookUp, TAG_LIB_FUNC, pdf);
-    } else {
-	addOneFunction(mods, lib, dyn, lookUp, pdf);
-    } 
-}
-
-// version of insert_function_internal_static (above) for 
-// shared objects....
-void image::insert_function_internal_dynamic(vector<Symbol> &mods,
-	const Symbol &lookUp,
-        pdmodule *dyn, pdmodule *lib, bool is_libdyninstRT) {
-    pd_Function *pdf;
-    if (is_libdyninstRT) {
-        addInternalSymbol(lookUp.name(), lookUp.addr());
-	defineFunction(dyn, lookUp, TAG_LIB_FUNC, pdf);
-    } else {
-        addOneFunction(mods, lib, dyn, lookUp, pdf);
-    }
-}
-
-bool image::findInternalByPrefix(const string &prefix, 
-				 vector<Symbol> &found) const
-{
-  bool flag = false;
-  /*
-    Go through all defined symbols and return those which
-    match the prefix given 
-  */
-  for(SymbolIter symIter(linkedFile); symIter;symIter++) {
-    const Symbol &lookUp = symIter.currval();
-    if (!strncmp(prefix.string_of(), lookUp.name().string_of(),
-		 strlen(prefix.string_of())))
-      {
-	found += lookUp;
-	flag = true;
-      }
-  }
-  return flag;
-}

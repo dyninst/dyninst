@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.h,v 1.11 2001/02/26 21:34:38 bernat Exp $
+// $Id: aix.h,v 1.12 2001/06/04 18:42:16 bernat Exp $
 
 #if !defined(rs6000_ibm_aix3_2) && !defined(rs6000_ibm_aix4_1)
 #error "invalid architecture-os inclusion"
@@ -62,9 +62,11 @@ extern unsigned AIX_TEXT_OFFSET_HACK;
 extern unsigned AIX_DATA_OFFSET_HACK;
 */
 
-#ifdef USES_LIBDYNINSTRT_SO
+/* How many bytes our insertion of "dlopen <libname>" needs */
+/* Should be set dynamically */
+/* Nice thing about AIX is that we don't have to overwrite main with
+   the call, we just use the empty space after the program */
 #define BYTES_TO_SAVE 256 // should be a multiple of sizeof(instruction)
-#endif
 
 typedef int handleT; // defined for compatibility with other platforms
                      // not currently used on the AIX platform

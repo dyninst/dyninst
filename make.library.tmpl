@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: make.library.tmpl,v 1.16 1999/08/09 05:36:14 csserra Exp $
+# $Id: make.library.tmpl,v 1.17 2001/06/04 18:42:04 bernat Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -96,7 +96,7 @@ $(DEST)/$(TARGET2):  $(TARGET2)
 endif
 
 #
-#  definition for USES_LIBDYNINSTRT_SO
+#  definition for dlopen()able runtime library
 #
 ifdef TARGET3
 install: $(DEST)/$(TARGET3)

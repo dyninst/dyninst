@@ -49,9 +49,7 @@
 #include <sys/param.h>
 #define EXIT_NAME "exit"
 
-#ifdef USES_LIBDYNINSTRT_SO
 #define BYTES_TO_SAVE 512 // should be a multiple of sizeof(instruction)
-#endif
 
 #define START_WALL_TIMER "DYNINSTstartWallTimer"
 #define STOP_WALL_TIMER  "DYNINSTstopWallTimer"

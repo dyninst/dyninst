@@ -16,6 +16,15 @@ x:
 #undef SET_SIZE
 #define SET_SIZE(x) \
         .size   x, (.-x)
+/* DYNINSTthreadPos
+ *	-- returns -2 if the current running thread is 0
+ * 	-- returns a column ID otherwise
+ * Welcome to my nightmare. Here is the disassembly of DYNINSTthreadPos:
+ *     int DYNINST_ThreadTids[];
+ *
+ * int DYNINSTthreadPos()
+ * {
+ *   
 
 /*
 // DYNINSTthreadPos
@@ -35,18 +44,18 @@ x:
 	  cmp     %l3, 0                       /* if %l3 <= 0? */
           bg      .LDYNINSTthreadPos_TEST1     /* DYNINSTthreadSelf>=0 */
 	  ld      [%i1+DYNINST_ThreadTids],%l2 /* l2 = DYNINST_ThreadTids */
-          ret                                      
-          restore %g0,-2,%o0                       
-
+          ret                                    
+          restore %g0,-2,%o0                   /* if thread id == 0, return -2 */
+/* If thread id is non-zero:	 */
   .LDYNINSTthreadPos_TEST1:                                     
-          cmp     %g6,0                            
+          cmp     %g6,0                     /* branch if g6 < 0 */       
           bl,a    .LDYNINSTthreadPos_SLOW   /* used to be LDYNINSTthreadPos_TEST2 */
           nop                                
           cmp     %g6,MAX_NUMBER_OF_THREADS                     
           bge     .LDYNINSTthreadPos_SLOW                   
           nop                                   
-          sll     %g6,2,%o0                      
-          ld      [%o0+%l2],%o0 
+          sll     %g6,2,%o0                /* o0 = g6*4 == sizeof(int) */      
+          ld      [%o0+%l2],%o0            /* array index the hard way */
           cmp     %l3,%o0                 /* tid <> DYNINST_ThreadTids[pos]*/  
           be,a    .LDYNINSTthreadPos_DONE                    
           mov     %g6, %i0                /* verified, return */
@@ -64,9 +73,9 @@ x:
           mov     -2, %i0                                   
 */
   .LDYNINSTthreadPos_SLOW:                                   
-	  mov     %g6, %o1
+	  mov     %g6, %o1             /* g6 is argument 2 */
           call    _threadPos           
-          or      %g0,%l3,%o0          /* tid                                         */
+          or      %g0,%l3,%o0          /* tid is argument 1                           */
           mov     %o0, %g6             /* %g6 = _threadPos(tid, pos)                  */
 	  call    DYNINST_ThreadCreate /* %o0 is pos, %o1 is tid                      */
 				       /* DYNINST_ThreadCreate defined in RTsolaris.c */
@@ -75,7 +84,7 @@ x:
           st      %l3,[%l2+%l0] ! volatile         
 	  std     %g6, [%sp +184]  ! make sure baseTramp will not mess it up
 	                           ! 120+96-32
-          mov     %g6,%i0 ! volatile              
+          mov     %g6,%i0 ! volatile  /* g6 is return value of function */             
   .LDYNINSTthreadPos_DONE:                                      
 	  ret                      
 	  restore

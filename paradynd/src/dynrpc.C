@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.80 2001/05/12 21:29:53 ning Exp $ */
+/* $Id: dynrpc.C,v 1.81 2001/06/04 18:42:39 bernat Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -202,7 +202,6 @@ bool dynRPC::setTracking(unsigned target, bool mode)
     resource *res = resource::findResource(target);
     if (res) {
 	if (res->isResourceDescendent(moduleRoot)) {
-	    image::changeLibFlag(res, (bool) mode);
 	    res->suppress(true);
 	    return(true);
 	} else {

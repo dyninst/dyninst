@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.22 2001/02/23 23:24:57 shergali Exp $
+// $Id: irix.C,v 1.23 2001/06/04 18:42:17 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -676,7 +676,6 @@ int process::waitProcs(int *status)
 	    // return the signal number
 	    *status = stat.pr_what << 8 | 0177;
 	    ret = p->getPid();
-#if defined(USES_LIBDYNINSTRT_SO)
 	    if (!p->dyninstLibAlreadyLoaded() && 
 		p->wasCreatedViaAttach()) 
 	      {
@@ -697,7 +696,6 @@ int process::waitProcs(int *status)
 		  assert(p->continueProc());
 		}
 	      }
-#endif
 	  } break;
 	  case PR_SYSEXIT: {
 	    //fprintf(stderr, ">>> process::waitProcs(fd %i): PR_SYSEXIT\n", curr);

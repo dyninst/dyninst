@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.9 2001/02/23 00:00:56 schendel Exp $
+# $Id: Makefile,v 1.10 2001/06/04 18:42:43 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -28,7 +28,6 @@ CFLAGS		+= -O2
 # CFLAGS		+= -D_SVID_SOURCE
 
 # if we want to produce a shared object...
-ifdef USES_LIBDYNINSTRT_SO
 LD              = gcc
 CFLAGS          = -Di386_unknown_linux2_0 -g -O2
 # CFLAGS		+= -D_SVID_SOURCE
@@ -38,9 +37,6 @@ ifdef INCLUDE_CP_PROFILING
 CFLAGS          += -I$(PVM_INCDIR)
 endif
 LDFLAGS         = -shared -ldl
-else
-TARGET2 = libdyninstRT.a
-endif
 
 VPATH        = ../src:../../dyninstAPI_RT/src
 

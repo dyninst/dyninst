@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.32 2001/03/28 22:57:11 bernat Exp $
+# $Id: make.module.tmpl,v 1.33 2001/06/04 18:42:24 bernat Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -56,9 +56,6 @@ TARGETS      +=  test1.mutatee_$(NATIVE_CXX) \
 endif
 
 
-ifdef USES_LIBDYNINSTRT_SO
-TARGETS      += libtestA.so libtestB.so
-endif
 SRCS	     += ../src/test1.C ../src/test1.mutatee.c ../src/test_util.C \
 		../src/test2.C ../src/test2.mutatee.c \
 		../src/test3.C ../src/test3.mutatee.c \
@@ -67,6 +64,9 @@ SRCS	     += ../src/test1.C ../src/test1.mutatee.c ../src/test_util.C \
                 ../src/libtestA.c ../src/libtestB.c
 
 endif
+
+# Libraries for dlopen tests
+#TARGETS      += libtestA.so libtestB.so
 
 ifndef MUTATEE_SUFFIX
 MUTATEE_SUFFIX=.c
@@ -121,11 +121,7 @@ pc:
 
 aTest:	$(TARGET) $(TARGET2)
 
-ifdef USES_LIBDYNINSTRT_SO
 testlibs: libtestA.so libtestB.so
-else
-testlibs:
-endif
 
 # test1.mutatee uses dlopen for replaceFunction tests
 # (currently only implemented on SPARC/Solaris and Alpha/Tru64)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.89 2001/05/23 21:59:06 ning Exp $
+// $Id: mdl.C,v 1.90 2001/06/04 18:42:39 bernat Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -3324,7 +3324,6 @@ bool mdl_init(string& flavor) {
   desc.name = "calls"; desc.type = MDL_T_LIST_POINT; field_list += desc;
   desc.name = "entry"; desc.type = MDL_T_POINT; field_list += desc;
   desc.name = "return"; desc.type = MDL_T_POINT; field_list += desc;
-  desc.name = "tag"; desc.type = MDL_T_INT; field_list += desc;
   mdl_data::fields[MDL_T_PROCEDURE] = field_list;
   field_list.resize(0);
 
@@ -3776,12 +3775,6 @@ static bool walk_deref(mdl_var& ret, vector<unsigned>& types)
           case 3:
           {
             if (!ret.set(const_cast<vector<instPoint *>*>(&pdf->funcExits(global_proc))))
-              return false;
-            break;
-          }
-          case 4:
-          {
-            if (!ret.set((int)pdf->tag()))
               return false;
             break;
           }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.18 2000/12/15 21:38:27 pcroth Exp $
+// $Id: osf.C,v 1.19 2001/06/04 18:42:18 bernat Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -379,7 +379,6 @@ int process::waitProcs(int *status)
         int ret = 0;
 
 // Re added code here
-#if defined(USES_LIBDYNINSTRT_SO)
         if (!processVec[curr]->dyninstLibAlreadyLoaded() &&
              processVec[curr]->wasCreatedViaAttach()) {
            bool wasRunning = (processVec[curr]->status() == running);
@@ -394,7 +393,6 @@ int process::waitProcs(int *status)
              if (wasRunning) processVec[curr]->continueProc();
            }
         }
-#endif
 
 	if (fds[curr].revents & POLLHUP) {
 	    do {

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.13 2001/02/26 21:35:35 bernat Exp $
+# $Id: Makefile,v 1.14 2001/06/04 18:42:28 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -31,8 +31,6 @@ GNU_CXX = g++
 
 include ../make.module.tmpl
 
-#DYNINSTAPI_RT_LIB=$(TO_CORE)/$(LIBRARY_DEST)/libdyninstAPI_RT.o
-
 # replace testN.mutatee_compiler with ../src/testN.mutatatee.c
 MUTATEE_OBJ = $(TARGET2:_$(MUTATEE_CC)=.o)
 
@@ -58,8 +56,6 @@ $(TARGET2): $(MUTATEE_SRC)
 	-$(MUTATEE_CC) -g $(MUTATEE_CFLAGS) -Wl,-bnoobjreorder \
 	$(MUTATEE_SRC) -o $(TARGET2)
 
-#	$(DYNINSTAPI_RT_LIB)
-#	-Wl,-bE:$(TO_CORE)/$(LIBRARY_DEST)/DYNINSTAPI_RT_EXPORTS \
 # Include the "standard program template".  This defines all the
 # common targets like "clean", "install", etc.
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.46 2001/02/01 01:08:42 schendel Exp $
+// $Id: linux.C,v 1.47 2001/06/04 18:42:18 bernat Exp $
 
 #include <fstream.h>
 
@@ -809,7 +809,6 @@ int process::waitProcs(int *status) {
 
 
   if( result > 0 ) {
-#if defined(USES_LIBDYNINSTRT_SO)
 	  if( WIFSTOPPED(*status) ) {
 		  process *curr = findProcess( result );
 		  if (!curr->dyninstLibAlreadyLoaded() && curr->wasCreatedViaAttach())
@@ -830,7 +829,6 @@ int process::waitProcs(int *status) {
 				  if (!curr->continueProc()) assert(0);
 		  }
 	  }
-#endif
 #ifdef SIGNAL_DEBUG
 	  if( WIFSIGNALED(*status) )
 	  {
@@ -918,7 +916,6 @@ bool process::attach_() {
   return false; // (P_ptrace(PTRACE_ATTACH, getPid(), 0, 0) != -1);
 }
 
-#if defined(USES_LIBDYNINSTRT_SO)
 bool process::trapAtEntryPointOfMain()
 {
   // is the trap instr at main_brk_addr?
@@ -1275,7 +1272,6 @@ Address process::get_dlopen_addr() const {
   else 
     return(0);
 }
-#endif
 
 bool process::isRunning_() const {
    // determine if a process is running by doing low-level system checks, as

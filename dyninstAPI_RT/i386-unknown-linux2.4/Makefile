@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.5 2000/08/08 15:04:51 wylie Exp $
+# $Id: Makefile,v 1.6 2001/06/04 18:42:36 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -18,18 +18,16 @@ LDFLAGS         += -static -nostdlib -Xlinker -r
 CFLAGS		+= -O2 
 
 # if we want to produce a shared object...
-ifdef USES_LIBDYNINSTRT_SO
 CC              = gcc
 LD              = gcc
 CFLAGS          = -I. -I../.. -Di386_unknown_linux2_0 -g -fpic
 LDFLAGS         = -shared -ldl
-endif
 
 ASFLAGS         = 
 
 SRCS		+= ../src/RTposix.c \
 		   ../src/RTlinux.c \
-        	   ../src/RTsig.c \
+		   ../src/RTsig.c \
 		   ../src/RTheap.c \
                    ../src/RTheap-linux.c
 

@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.14 2000/08/19 02:41:43 buck Exp $
+# $Id: Makefile,v 1.15 2001/06/04 18:42:25 bernat Exp $
 #
 # Makefile for dyninstAPI test programs on Tru64 Alpha
 #
@@ -45,14 +45,8 @@ ifdef GCC_2_95
 MUTATEE_CFLAGS += -gcoff
 endif
 
-ifdef USES_LIBDYNINSTRT_SO
 $(TARGET2): $(MUTATEE_SRC)
 	-$(MUTATEE_CC) $(MUTATEE_CFLAGS) $(MUTATEE_SRC) -o $(TARGET2) $(MUTLIBS)
-else
-$(TARGET2): $(MUTATEE_SRC)
-	-$(MUTATEE_CC) $(MUTATEE_CFLAGS) $(MUTATEE_SRC) -o $(TARGET2) \
-		$(MUTLIBS) $(DYNINSTAPI_RT_LIB)
-endif
 
 libtestA.o:
 	$(CC) -g -fpic -c ../src/libtestA.c

@@ -41,7 +41,7 @@
 
 /************************************************************************
  * RTaix.c: clock access functions for AIX.
- * $Id: RTetc-aix.c,v 1.24 2001/03/12 17:42:13 bernat Exp $
+ * $Id: RTetc-aix.c,v 1.25 2001/06/04 18:42:48 bernat Exp $
  ************************************************************************/
 
 #include <malloc.h>
@@ -67,6 +67,8 @@
 /* For read_real_time */
 #include <sys/systemcfg.h>
 
+/* For the hardware counters */
+#include <pmapi.h>
 
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
 #include <sys/thread.h>
@@ -86,12 +88,107 @@
  * OS initialization function---currently null.
  ************************************************************************/
 
-void
-PARADYNos_init(int calledByFork, int calledByAttach) {
- hintBestCpuTimerLevel  = SOFTWARE_TIMER_LEVEL;
- hintBestWallTimerLevel = SOFTWARE_TIMER_LEVEL;
+#if USES_PMAPI
+
+#define MAX_EVENTS	2
+#define CMPL_INDEX	0
+#define CYC_INDEX	1
+
+/*
+char 	*pdyn_search_evs[MAX_EVENTS] = {"PM_CMPLU_WT_ST",
+					"PM_CMPLU_WT_LD"};
+*/
+char *pdyn_search_evs[MAX_EVENTS] = {"PM_INST_CMPL", "PM_CYC"};
+
+int
+pdyn_search_cpi(pm_info_t *myinfo, int evs[], 
+		int *counter1, int *counter2)
+{
+  int		s_index, pmc, ev, found = 0;
+  pm_events_t	*wevp;
+  
+  for (pmc = 0; pmc < myinfo->maxpmcs; pmc++)
+    evs[pmc] = -1;
+  
+  /* very rudimentary search. Event i must be in counter i. */
+  for (s_index = 0; s_index < MAX_EVENTS; s_index++) {
+    found = 0;
+    for (pmc = 0; pmc < myinfo->maxpmcs; pmc++) {
+      wevp = myinfo->list_events[pmc];
+      for (ev = 0; ev < myinfo->maxevents[pmc]; ev++, wevp++) {			  
+	if (strcmp(pdyn_search_evs[s_index], wevp->short_name) == 0) {
+	  if (s_index == CMPL_INDEX)
+	    *counter1 = pmc;
+	  else if (s_index == CYC_INDEX)
+	    *counter2 = pmc;
+	  if (evs[pmc] == -1) {
+	    evs[pmc] = wevp->event_id;
+	    found++;
+	  break;
+	  }
+	}
+      }
+      if (found)
+	break;
+    }
+  }
+  return(0);
 }
 
+/* Event set. Global for ease of use */
+
+int pdyn_ld_stall_counter;
+int pdyn_st_stall_counter;
+
+void
+PARADYNos_init(int calledByFork, int calledByAttach) {
+  
+  pm_info_t pinfo;
+  int ret;
+  pm_prog_t pdyn_pm_prog;
+  
+  /*
+  */
+
+  hintBestCpuTimerLevel = HARDWARE_TIMER_LEVEL;
+  hintBestWallTimerLevel = SOFTWARE_TIMER_LEVEL;
+ /* Well, since we've got the hook, let's put in some
+    initialization. Shall we? */
+ /* For now, let's count read and write cycle stalls. Look
+    up the event number, and prep an event set */
+
+  ret = pm_init(PM_VERIFIED | PM_CAVEAT | PM_UNVERIFIED, &pinfo);
+  if (ret) pm_error("PARADYNos_init: pm_init", ret);
+  
+  pdyn_search_cpi(&pinfo, pdyn_pm_prog.events, &pdyn_ld_stall_counter,
+		  &pdyn_st_stall_counter);
+  pdyn_pm_prog.events[0] = 0; /* PM_INST_CMPL */
+  pdyn_pm_prog.events[1] = 0; /* PM_CYC */
+  pdyn_pm_prog.events[7] = 8; /* WT_ST */
+  pdyn_pm_prog.events[3] = 19; /* WT_LD */
+  /* Count user, not kernel */
+  pdyn_pm_prog.mode.w = 0;
+  pdyn_pm_prog.mode.b.user = 1;
+  pdyn_pm_prog.mode.b.kernel = 1;
+
+
+  /* Prep the sucker for launch */
+  ret = pm_set_program_mythread(&pdyn_pm_prog);
+  if (ret) pm_error("PARADYNos_init: pm_set_program_mythread", ret); 
+
+  /* Start it up, and let 'er rip */
+  ret = pm_start_mythread();
+  if (ret) pm_error("PARADYNos_init: pm_start_mythread", ret);
+
+}
+
+#else
+PARADYNos_init(int calledByFork, int calledByAttach) {
+    hintBestCpuTimerLevel  = SOFTWARE_TIMER_LEVEL;
+    hintBestWallTimerLevel = SOFTWARE_TIMER_LEVEL;
+}
+
+#endif USES_PMAPI
 /*static int MaxRollbackReport = 0;*/ /* don't report any rollbacks! */
 /*static int MaxRollbackReport = 1;*/ /* only report 1st rollback */
 static int MaxRollbackReport = INT_MAX; /* report all rollbacks */

@@ -1119,10 +1119,6 @@ main(unsigned int argc, char *argv[])
     strcpy(mutateeName,mutateeNameRoot);
     libRTname[0]='\0';
 
-#if !defined(USES_LIBDYNINSTRT_SO)
-    fprintf(stderr,"(Expecting subject application to be statically linked"
-                        " with libdyninstAPI_RT.)\n");
-#else
     if (!getenv("DYNINSTAPI_RT_LIB")) {
 	 fprintf(stderr,"Environment variable DYNINSTAPI_RT_LIB undefined:\n"
 #if defined(i386_unknown_nt4_0)
@@ -1133,7 +1129,6 @@ main(unsigned int argc, char *argv[])
 #endif
     } else
          strcpy((char *)libRTname, (char *)getenv("DYNINSTAPI_RT_LIB"));
-#endif
 
     unsigned int i;
     // by default run all tests

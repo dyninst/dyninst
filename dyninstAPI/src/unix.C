@@ -39,9 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.56 2001/05/24 18:37:13 wxd Exp $
+// $Id: unix.C,v 1.57 2001/06/04 18:42:21 bernat Exp $
 
-#if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
+#if defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
 #endif
 #include "common/h/headers.h"
@@ -462,7 +462,7 @@ int handleSigChild(int pid, int status)
         int fix_ill = 0;
 #endif
 
-#if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
+#if defined(i386_unknown_solaris2_5)
         // we put an illegal instead of a trap at the following places, but 
         // the illegal instructions are really for trapping purpose, so the
         // handling should be the same as for trap
@@ -476,7 +476,7 @@ int handleSigChild(int pid, int status)
             sig = SIGTRAP;
           }
         }
-#elif defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_linux2_0)
+#elif defined(i386_unknown_linux2_0)
         // we put an illegal instead of a trap at the following places, but 
         // the illegal instructions are really for trapping purpose, so the
         // handling should be the same as for trap
@@ -573,7 +573,6 @@ int handleSigChild(int pid, int status)
 		    }
 		}
 
-#if defined(USES_LIBDYNINSTRT_SO)
 		// this code has to go after we have handle the trap
 		// due to the call to dlopen - naim
 		if (curr->trapDueToDyninstLib()) {
@@ -581,7 +580,6 @@ int handleSigChild(int pid, int status)
 		  curr->handleIfDueToDyninstLib();
 		  // fall through...
 		}
-#endif
 
 		//If the list is not empty, it means some previous
 		//instrumentation has yet need to be finished.
@@ -629,12 +627,10 @@ int handleSigChild(int pid, int status)
 		   // in the new image. (Actually, this is already done by handleExec())
 		   curr->reachedFirstBreak = false;
 
-#if defined(USES_LIBDYNINSTRT_SO)
 		   // Since exec will 'remove' our library, we must redo the whole process
 		   curr->reachedVeryFirstTrap = false;
 		   curr->clearDyninstLibLoadFlags();
 		   forkexec_cerr << "About to start exec reconstruction of shared library" << endl;
-#endif
 
 		   // fall through...
 		}
@@ -645,7 +641,6 @@ int handleSigChild(int pid, int status)
 		// But we must query 'reachedFirstBreak' because on machines where we
 		// attach/detach on pause/continue, a TRAP is generated on each pause!
 
-#if defined(USES_LIBDYNINSTRT_SO)
 		if (!curr->reachedVeryFirstTrap) {
 		  // we haven't executed main yet, so we can insert a trap
 		  // at the entry point of main - naim
@@ -698,7 +693,6 @@ int handleSigChild(int pid, int status)
 		  showErrorCallback(101, msg);
 		  break;
 		}
-#endif
 
 		if (!curr->reachedFirstBreak) { // vrble should be renamed 'reachedFirstTrap'
 		   string buffer = string("PID=") + string(pid);

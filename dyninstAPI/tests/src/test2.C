@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.44 2001/02/26 21:35:55 bernat Exp $
+// $Id: test2.C,v 1.45 2001/06/04 18:42:31 bernat Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -603,10 +603,6 @@ main(unsigned int argc, char *argv[])
 
     unsigned int i;
 
-#if !defined(USES_LIBDYNINSTRT_SO)
-    fprintf(stderr,"(Expecting subject application to be statically linked"
-                        " with libdyninstAPI_RT.)\n");
-#else
     if (!getenv("DYNINSTAPI_RT_LIB")) {
 	 fprintf(stderr,"Environment variable DYNINSTAPI_RT_LIB undefined:\n"
 #if defined(i386_unknown_nt4_0)
@@ -617,7 +613,6 @@ main(unsigned int argc, char *argv[])
 #endif
     } else
          strcpy((char *)libRTname, (char *)getenv("DYNINSTAPI_RT_LIB"));
-#endif
 
     // by default run all tests
     for (i=1; i <= MAX_TEST; i++) {

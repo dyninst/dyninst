@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.14 2001/03/09 22:06:05 schendel Exp $
+# $Id: Makefile,v 1.15 2001/06/04 18:42:27 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -61,16 +61,8 @@ ifeq (test1,$(findstring test1,$(TARGET2)))
 MUTATEE_CFLAGS += -Wl,-export-dynamic
 endif
 
-ifdef USES_LIBDYNINSTRT_SO
 $(TARGET2): $(MUTATEE_SRC)
 	$(MUTATEE_CC) $(MUTATEE_CFLAGS) $(MUTATEE_SRC) -o $@ $(MUTLIBS)
-else
-DYNINSTAPI_RT_LIB=$(TO_CORE)/$(LIBRARY_DEST)/libdyninstAPI_RT.o
-
-$(TARGET2): $(MUTATEE_SRC)
-	$(MUTATEE_CC) $(MUTATEE_CFLAGS) $(DYNINSTAPI_RT_LIB) $(MUTATEE_SRC) \
-                -o $@ $(MUTLIBS)
-endif
 
 ifeq (test1,$(findstring test1,$(TARGET2)))
 MUTATEE_SRC	+=	../src/call35_1_x86_linux.s

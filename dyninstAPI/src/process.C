@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.250 2001/05/21 23:25:24 gurari Exp $
+// $Id: process.C,v 1.251 2001/06/04 18:42:18 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -48,7 +48,7 @@ int pvmendtask();
 #endif
 }
 
-#if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
+#if defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
 #endif
 #include "common/h/headers.h"
@@ -1659,7 +1659,7 @@ process::process(int iPid, image *iImage, int iTraceLink
     hasLoadedDyninstLib = false;
     isLoadingDyninstLib = false;
 
-#if defined(USES_LIBDYNINSTRT_SO) && !defined(i386_unknown_nt4_0)
+#if !defined(i386_unknown_nt4_0)
     dyninstlib_brk_addr = 0;
     main_brk_addr = 0;
 #endif
@@ -1833,7 +1833,7 @@ process::process(int iPid, image *iSymbols,
    save_exitset_ptr = NULL;
    stoppedInSyscall = false;
 
-#if defined(USES_LIBDYNINSTRT_SO) && !defined(i386_unknown_nt4_0)
+#if !defined(i386_unknown_nt4_0)
     dyninstlib_brk_addr = 0;
     main_brk_addr = 0;
 #endif
@@ -2131,7 +2131,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     bufStart = 0;
     bufEnd = 0;
 
-#if defined(USES_LIBDYNINSTRT_SO) && !defined(i386_unknown_nt4_0)
+#if !defined(i386_unknown_nt4_0)
     dyninstlib_brk_addr = 0;
     main_brk_addr = 0;
 #endif
@@ -2537,7 +2537,7 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
    theProc->threads += new pdThread(theProc);
 #endif
 
-#if defined(USES_LIBDYNINSTRT_SO) && !defined(i386_unknown_nt4_0)
+#if !defined(i386_unknown_nt4_0)
    // we now need to dynamically load libdyninstRT.so.1 - naim
    if (!theProc->pause()) {
      logLine("WARNING: pause failed\n");
@@ -3297,12 +3297,12 @@ bool process::handleIfDueToSharedObjectMapping(){
 	    // Paradyn -- don't add new symbols unless it's the runtime
 	    // library
 #if !defined(BPATCH_LIBRARY) && !defined(rs6000_ibm_aix4_1)
-	    if (((*changed_objects)[i])->getName() == dyninstName)
+	    if (((*changed_objects)[i])->getImage()->isDyninstRTLib())
 	    {
 #endif
                if(addASharedObject(*((*changed_objects)[i]))){
                  *shared_objects += (*changed_objects)[i];
-		 if (((*changed_objects)[i])->getName() == dyninstName) {
+		 if (((*changed_objects)[i])->getImage()->isDyninstRTLib()) {
 		   hasLoadedDyninstLib = true;
 		   isLoadingDyninstLib = false;
 		 }
@@ -3461,7 +3461,7 @@ bool process::addASharedObject(shared_object &new_obj){
       // initInferiorHeap.
       addInferiorHeap(img);
 
-#if defined(USES_LIBDYNINSTRT_SO) && !defined(i386_unknown_nt4_0)
+#if !defined(i386_unknown_nt4_0)
     /* If we're not currently trying to load the runtime library,
        check whether this shared object is the runtime lib. */
     if (!isLoadingDyninstLib
@@ -4107,10 +4107,9 @@ Address process::findInternalAddress(const string &name, bool warn, bool &err) c
      Symbol sym;
      Address baseAddr;
      static const string underscore = "_";
-#if defined(USES_LIBDYNINSTRT_SO) \
-&& !defined(i386_unknown_linux2_0) \
-&& !defined(alpha_dec_osf4_0) \
-&& !defined(i386_unknown_nt4_0)
+#if !defined(i386_unknown_linux2_0) \
+ && !defined(alpha_dec_osf4_0) \
+ && !defined(i386_unknown_nt4_0)
      // we use "dlopen" because we took out the leading "_"'s from the name
      if (name==string("dlopen")) {
        // if the function is dlopen, we use the address in ld.so.1 directly
@@ -4297,7 +4296,7 @@ void process::handleExec() {
 	heap.bufferPool.resize(0);
 
     // initInferiorHeap can only be called after symbols is set!
-#if !defined(USES_LIBDYNINSTRT_SO) || defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0)
     initInferiorHeap();
 #endif
 
@@ -5802,7 +5801,7 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
       string str=string("PID=") + string(bs_record.pid) + ", calling handleStartProcess...";
       statusLine(str.string_of());
 
-#if !defined(USES_LIBDYNINSTRT_SO) || defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0)
       if (!handleStartProcess()) {
         // reads in shared libraries...can take a while
         logLine("WARNING: handleStartProcess failed\n");

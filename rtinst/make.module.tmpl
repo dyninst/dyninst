@@ -3,16 +3,14 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.18 2000/03/31 22:07:18 wylie Exp $
+# $Id: make.module.tmpl,v 1.19 2001/06/04 18:42:41 bernat Exp $
 #
 
 ifndef TARGET
 TARGET		= libdyninstRT.o
 endif
 
-ifdef USES_LIBDYNINSTRT_SO
 TARGET3_SO	= libdyninstRT.so.1
-endif
 
 ifdef INCLUDE_CP_PROFILING
 TARGET2		= libdyninstCP.o
@@ -32,12 +30,8 @@ ifdef USES_SHM_SAMPLING
 CFLAGS	+= -DSHM_SAMPLING
 endif
 
-ifdef USES_LIBDYNINSTRT_SO
 #all: $(TARGET) $(TARGET2) 
-all: $(TARGET3_SO) $(TARGET2) 
-else
-all: $(TARGET) $(TARGET2) $(ALT_TARGET)
-endif
+all: $(TARGET3_SO) $(TARGET2)
 
 OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 		$(patsubst %.c, %.o, $(filter %.c,$(notdir $(SRCS)))) \
@@ -50,45 +44,5 @@ OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 #
 ifndef DEST
 DEST		= $(TO_CORE)/$(LIBRARY_DEST)
-endif
-
-ifndef USES_LIBDYNINSTRT_SO
-
-INSTOBJS	= $(DEST)/$(TARGET)
-
-ifdef BUILD_CODE_BLOCKS
-INSTOBJS	+= $(DEST)/DYNINSTstartCode.o $(DEST)/DYNINSTendCode.o
-endif
-ifdef INCLUDE_CP_PROFILING
-INSTOBJS	+= $(DEST)/RTpvmPiggy.o $(DEST)/$(TARGET2)
-endif
-
-#
-# override standard link rule; libdyninst is not really a library or a program.
-#
-UNCOMMON_LINK = true
-$(TARGET): $(OBJS)
-	@$(RM) $(TARGET)
-	@$(MAKE) $(VOUCHER)
-	$(LD) $(LDFLAGS) -o $(TARGET) $(VOUCHER).o $(OBJS) $(LIBS) -lgcc
-
-UNCOMMON_INSTALL = true
-
-install: $(INSTOBJS) $(SYSEXTRAS)
-
-$(DEST)/$(TARGET):       $(TARGET)
-	-$(CP) $(TARGET) $(DEST)
-
-$(DEST)/$(TARGET2):       $(TARGET2)
-	-$(CP) $(TARGET2) $(DEST)
-
-$(DEST)/RTpvmPiggy.o: RTpvmPiggy.o
-	-$(CP) RTpvmPiggy.o $(DEST)
-
-$(DEST)/DYNINSTstartCode.o: DYNINSTstartCode.o
-	-$(CP) DYNINSTstartCode.o $(DEST)
-
-$(DEST)/DYNINSTendCode.o: DYNINSTendCode.o
-	-$(CP) DYNINSTendCode.o $(DEST)
 endif
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.h,v 1.4 2000/07/28 17:21:15 pcroth Exp $
+// $Id: linux.h,v 1.5 2001/06/04 18:42:18 bernat Exp $
 
 #if !defined(i386_unknown_linux2_0)
 #error "invalid architecture-os inclusion"
@@ -53,9 +53,7 @@
 
 #define EXIT_NAME "_exit"
 
-#if defined(USES_LIBDYNINSTRT_SO)
 #define BYTES_TO_SAVE 256 // it should be a multiple of sizeof(instruction)
-#endif
 
 #define START_WALL_TIMER "DYNINSTstartWallTimer"
 #define STOP_WALL_TIMER  "DYNINSTstopWallTimer"
