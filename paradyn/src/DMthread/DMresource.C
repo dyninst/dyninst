@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.C,v 1.76 2005/03/13 23:44:14 legendre Exp $
+// $Id: DMresource.C,v 1.77 2005/03/14 17:33:08 mjbrim Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -727,7 +727,7 @@ bool resource::isThreadType(unsigned *tid) const {
       pdstring thr_str = fullName[3];
       if(thr_str.prefixed_by("thr_")) {
 	 pdstring thrId_str = thr_str.substr(4, thr_str.length() - 4);
-	 int thread_id = atoi(thrId_str.c_str());
+	 unsigned thread_id = strtoul(thrId_str.c_str(), NULL, 10);
 	 *tid = thread_id;
 	 return true;
       }
