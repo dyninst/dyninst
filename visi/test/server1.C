@@ -1,6 +1,6 @@
 #include "../h/visualization.h"
 
-int dv(){
+int dv(int dummy){
 
 int i,j,k,noBins,noMetrics,noResources;
 float value;
@@ -28,17 +28,17 @@ float value;
 }
 
 
-int imr(){
+int imr(int dummy){
   fprintf(stderr,"@@@@call back routine for INVALIDMETRICSRESOURCES\n");
   return(OK);
 }
 
-int amr(){
+int amr(int dummy){
   fprintf(stderr,"@@@@call back routine for ADDMETRICSRESOURCES\n");
   return(OK);
 }
 
-int nmr(){
+int nmr(int dummy){
   fprintf(stderr,"@@@@call back routine for NEWMETRICSRESOURCES\n");
   fprintf(stderr,"@@@@before upcall: GetMetricResource\n");
   vp->GetMetricResource("metrics test string","r test string",0);
@@ -52,7 +52,7 @@ int nmr(){
   return(OK);
 }
 
-int pn(){
+int pn(int dummy){
 int i,j,k,noBins,noMetrics,noResources;
 
   fprintf(stderr,"@@@@call back routine for PHASENAME\n");
@@ -76,10 +76,12 @@ int i,j,k,noBins,noMetrics,noResources;
        fprintf(stderr,"@@@@dataGrid[%d,%d,%d] = %f\n",i,j,k,dataGrid[i][j][k]);
       printf("\n");
     }
+    (char *)dataGrid[0][0].userdata =  strdup("blah");
+    fprintf(stderr,"(char *)dataGrid[0][0].userdata = %s\n",(char *)dataGrid[0][0].userdata);
   return(OK);
 }
 
-int f(){
+int f(int dummy){
   fprintf(stderr,"@@@@call back routine for FOLD\n");
   return(OK);
 }

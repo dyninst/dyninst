@@ -20,9 +20,10 @@ resourceType *resources;
 resourceType_Array res;
 dataValue   *data;
 dataValue_Array blah;
-int mId,rId,bNum,bWidth,nval;
+int mId,rId,bNum,nval;
 float num,num2;
 int nMets,nRes;
+float bWidth;
 
 
   if(argc < 2){
@@ -134,7 +135,7 @@ int nMets,nRes;
 	    fprintf(stdout,"enter numBuckets (int)\n");
             scanf("%d",&bNum);
 	    fprintf(stdout,"enter bucket width (float)\n");
-            scanf("%d",&bWidth);
+            scanf("%f",&bWidth);
 	    vup->AddMetricsResources(mets,res,bWidth,bNum);
 	    for(i=0;i<nMets;i++){
 	      free(metrics[i].name);

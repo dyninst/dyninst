@@ -12,13 +12,15 @@ SRVROBJ       = server1.o
 
 CLNTOBJS      = client1.o
 
-OBJS	      = client1.o server1.o xtext.o xtext2.o
+CLNT2OBJS      = client2.o
 
-SRCS	      = client1.C server1.C xtext.C xtext.C
+OBJS	      = client1.o server1.o xtext.o xtext2.o client2.o
+
+SRCS	      = client1.C server1.C xtext.C xtext.C client2.C
 
 PRINT	      = pr
 
-all: 	client1 server1 xtext xtext2 
+all: 	client1 server1 xtext xtext2 client2 
 
 
 
@@ -28,6 +30,9 @@ server1:	$(SRVROBJ)
 client1:	$(CLNTOBJS)
 	/usr/sup/purify/purify -g++ -collector=/usr/sup/purify/collect2 $(CC) -static $(CFLAGS) $(LIBDIR) -o client1 $(CLNTOBJS) -lm $(LIBDIR) -lutil -lvisi
 
+client2:	$(CLNT2OBJS)
+	/usr/sup/purify/purify -g++ -collector=/usr/sup/purify/collect2 $(CC) -static $(CFLAGS) $(LIBDIR) -o client2 $(CLNT2OBJS) -lm $(LIBDIR) -lutil -lvisi
+
 xtext: xtext.o
 	$(CC) xtext.o -o xtext -lXaw -lXmu -lXt -lX11 -lm $(LIBDIR) -lutil -lvisi
 
@@ -36,7 +41,7 @@ xtext2: xtext2.o
 
 
 clean:	
-	rm -f $(OBJS) server1 client1 xtext xtext2 *pure*
+	rm -f $(OBJS) server1 client1 client2 xtext xtext2 *pure*
 
 depend: $(SRCS)
 	@echo "Building dependancies"
@@ -138,3 +143,17 @@ xtext.o: /usr/include/unistd.h /usr/include/sys/file.h
 xtext.o: /usr/include/rpc/types.h /usr/include/malloc.h
 xtext.o: /usr/include/rpc/xdr.h ../h/mrlist.h
 xtext.o: ../sparc-sun-sunos4.1.3/visi.SRVR.h
+client2.o: ../h/visithread.h ../sparc-sun-sunos4.1.3/visi.CLNT.h
+client2.o: ../sparc-sun-sunos4.1.3/visi.h ../../util/h/rpcUtil.h
+client2.o: /usr/include/stdio.h /usr/include/strings.h /usr/include/string.h
+client2.o: /usr/include/sys/stdtypes.h /usr/include/stdlib.h
+client2.o: /usr/include/errno.h /usr/include/sys/errno.h
+client2.o: /usr/include/assert.h /usr/include/fcntl.h
+client2.o: /usr/include/sys/fcntlcom.h /usr/include/sys/stat.h
+client2.o: /usr/include/sys/types.h /usr/include/sys/sysmacros.h
+client2.o: /usr/include/memory.h /usr/include/sys/socket.h
+client2.o: /usr/include/netinet/in.h /usr/include/netdb.h
+client2.o: /usr/include/sys/time.h /usr/include/sys/time.h
+client2.o: /usr/include/unistd.h /usr/include/sys/file.h
+client2.o: /usr/include/rpc/types.h /usr/include/malloc.h
+client2.o: /usr/include/rpc/xdr.h
