@@ -42,61 +42,8 @@
 #ifndef INTERNAL_MET_HDR
 #define INTERNAL_MET_HDR
 
-/*
- * $Log: internalMetrics.h,v $
- * Revision 1.18  2000/10/17 17:42:35  schendel
- * Update of the sample value pipeline with changes in pdutil, paradynd, rtinst,
- * dyninstAPI_RT, and dyninstAPI.  The sample value and general time types have
- * been reimplemented with 64 bit integer types.  A framework has also been
- * added that allows either a hardware (HW) level time retrieval function or a
- * software (SW) level time retrieval function to be selected at run time.  This
- * commit supplies SW level timers for all of the platforms and also a HW level
- * timer on irix.  Changed so time samples in the rtinst library are in native
- * time units and time unit conversion is done in the daemon.  Restructured the
- * use of wall time, cpu time, cycle rate, instrumentation cost, and other uses
- * of time to use new general time classes.
- *
- * Revision 1.17  1997/01/15 00:27:33  tamches
- * added isInternalMetric()
- *
- * Revision 1.16  1996/10/31 08:57:50  tamches
- * moved a routine's code from .h to .C file
- *
- * Revision 1.15  1996/08/16 21:19:11  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.14  1996/04/29 03:38:03  tamches
- * complete overhaul & cleanification of internalMetrics class
- *
- * Revision 1.13  1996/01/29 20:16:30  newhall
- * added enum type "daemon_MetUnitsType" for internal metric definition
- * changed bucketWidth internal metric to EventCounter
- *
- * Revision 1.12  1995/12/18  23:26:59  newhall
- * changed metric's units type to have one of three values (normalized,
- * unnormalized, or sampled)
- *
- * Revision 1.11  1995/11/29 18:45:22  krisna
- * added inlines for compiler. added templates
- *
- * Revision 1.10  1995/11/17 17:24:23  newhall
- * support for MDL "unitsType" option, added normalized member to metric class
- *
- * Revision 1.9  1995/11/13  14:52:21  naim
- * Adding "mode" option to the Metric Description Language to allow specificacion
- * of developer mode for metrics (default mode is "normal") - naim
- *
- * Revision 1.8  1995/08/24  15:04:11  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
- *
- *
- */
+// $Id: internalMetrics.h,v 1.19 2001/08/23 14:44:13 schendel Exp $
+
 #include "metric.h"
 #include "im_preds.h"
 #include "dyninstRPC.xdr.h" // T_dyninstRPC
@@ -110,61 +57,60 @@ typedef enum {UnNormalized, Normalized, Sampled} daemon_MetUnitsType;
 //
 
 class internalMetric {
+ public:
+  // the costMetrics and the normal metrics don't need this choice in
+  // policy since they have it hardcoded right now to use zero as the
+  // initial actual value
+  enum initActualValuePolicy_t { zero_ForInitActualValue, 
+				 firstSample_ForInitActualValue };
  private:
   string name_;
-  int agg_;
-  metricStyle style_;
+  aggregateOp agg_;
   string units_;
   im_pred_struct pred;
   bool developermode_;
   daemon_MetUnitsType unitstype_;
-
+  metricStyle style_;
   sampleValueFunc func; // a func taking in no params and returning float
+  initActualValuePolicy_t initActualValuePolicy;
 
  public:
   class eachInstance {
    private:
      // If func!=NULL, then it is used to indirectly obtain the value of
      // the internal metric (getValue()).  Otherwise, the vrble "value" is used.
+     internalMetric *parent;
      sampleValueFunc func; // a func taking in no params and returning float
-     pdSample value;
+     timeStamp lastSampleTime;
      pdSample cumulativeValue;
      metricDefinitionNode *node;
 
    public:
      eachInstance() {} // needed by Vector class.
-     eachInstance(sampleValueFunc f, metricDefinitionNode *n);
-     eachInstance(const eachInstance &src);
+     eachInstance(internalMetric *_parent,
+		  sampleValueFunc f, metricDefinitionNode *n);
     ~eachInstance() {}
-
-     eachInstance &operator=(const eachInstance &src);
      
-     bool matchMetricDefinitionNode(const metricDefinitionNode *match_me) const {
+     bool matchMetricDefinitionNode(const metricDefinitionNode *match_me) const
+     {
         return (node == match_me);
      }
 
-     pdSample getValue() const {
-        if (func != NULL) return func(node);
-	return value;
+     pdSample calcValue() const {
+       assert(func);
+       return func(node);
      }
-     void setValue(pdSample newValue) {
-        assert(func == NULL);
-	value = newValue;
+     initActualValuePolicy_t getInitActualValuePolicy() {
+       return parent->getInitActualValuePolicy();
      }
-
-     pdSample getCumulativeValue() const {
-        return cumulativeValue;
-     }
-     void bumpCumulativeValueBy(pdSample addme) {
-        cumulativeValue += addme;
-     }
-
      int getMId() const {
         assert(node);
         return node->getMId();
      }
-
-     void report(timeStamp start, timeStamp end, pdSample valueToForward);
+     void setStartTime(timeStamp t) {
+       lastSampleTime = t;
+     }
+     void updateValue(timeStamp timeOfSample, pdSample valueToForward);
   };
 
  private:
@@ -172,9 +118,10 @@ class internalMetric {
   vector<eachInstance> instances;
 
  public:
-  internalMetric(const string &n, metricStyle style, int a, const string &units,
+  internalMetric(const string &n, aggregateOp a, const string &units,
 		 sampleValueFunc f, im_pred_struct& im_preds,
-		 bool developermode, daemon_MetUnitsType unitstype);
+		 bool developermode, daemon_MetUnitsType unitstype,
+		 initActualValuePolicy_t initActualValuePolicy);
 
   static bool isInternalMetric(const string &metName) {
      for (unsigned lcv=0; lcv < allInternalMetrics.size(); lcv++)
@@ -192,10 +139,17 @@ class internalMetric {
   const eachInstance &getEnabledInstance(unsigned index) const {
      return instances[index];
   }
-
-  void enableNewInstance(metricDefinitionNode *n) {
-     eachInstance newGuy(func, n);
+  void setStyle(metricStyle st) {
+    style_ = st;
+  }
+  initActualValuePolicy_t getInitActualValuePolicy() {
+    return initActualValuePolicy;
+  }
+  // returns the index of the newly enabled instance
+  unsigned enableNewInstance(metricDefinitionNode *n) {
+     eachInstance newGuy(this, func, n);
      instances += newGuy;
+     return instances.size()-1;
   }
   void disableInstance(unsigned index);
   bool disableByMetricDefinitionNode(metricDefinitionNode *diss_me);
@@ -207,7 +161,7 @@ class internalMetric {
 
   metricStyle style() const;
   const string &name() const;
-  int aggregate() const;
+  aggregateOp aggregate() const;
   bool isDeveloperMode() const;
 
   T_dyninstRPC::metricInfo getInfo();
@@ -215,13 +169,10 @@ class internalMetric {
   bool legalToInst(const vector< vector<string> >& focus) const;
 
   static vector<internalMetric*> allInternalMetrics; // should be private!
-  static internalMetric *newInternalMetric(const string &n, metricStyle style, 
-					   int a,
-					   const string &units,
-					   sampleValueFunc f, 
-					   im_pred_struct& preds,
-					   bool developerMode,
-					   daemon_MetUnitsType unitstype);
+  static internalMetric *newInternalMetric(const string &n, aggregateOp a,
+	     const string &units, sampleValueFunc f, im_pred_struct& preds,
+	     bool developerMode, daemon_MetUnitsType unitstype,
+	     initActualValuePolicy_t iavPolicy);
 };
 
 #endif
