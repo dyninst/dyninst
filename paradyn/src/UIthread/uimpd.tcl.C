@@ -3,12 +3,15 @@
    is used internally by the UIM.
 */
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.25  1996/01/11 04:43:04  tamches
-/* replaced parseSelections - memory leaks gone, runs more efficiently,
-/* and doesn't add spurious metric/focus pairs when Whole Program is chosen
-/* Changed processVisiSelection to use the new parseSelections and to reduce
-/* memory leaks
+/* Revision 1.26  1996/01/23 07:11:25  tamches
+/* uim_VisiSelections no longer a ptr
 /*
+ * Revision 1.25  1996/01/11 04:43:04  tamches
+ * replaced parseSelections - memory leaks gone, runs more efficiently,
+ * and doesn't add spurious metric/focus pairs when Whole Program is chosen
+ * Changed processVisiSelection to use the new parseSelections and to reduce
+ * memory leaks
+ *
  * Revision 1.24  1995/11/08 06:26:11  tamches
  * removed some warnings
  *
@@ -144,16 +147,6 @@ int sendVisiSelectionsCmd(ClientData,
   int msgID;
 
 #if UIM_DEBUG
-  printf ("sendVisiSelectionsCmd: %s %s\n", argv[1], argv[2]);
-#endif
-
-#ifdef n_def
-  cancelFlag = atoi(argv[2]);
-  if (cancelFlag == 1) {
-    uim_VisiSelections->resize(0);
-  }    
-#endif
-#if UIM_DEBUG
   cout << "processing " << uim_VisiSelections.size() << " visiselections...\n";
   if (uim_VisiSelections->size() > 0) {
     printMFPlist (uim_VisiSelections);
@@ -189,7 +182,7 @@ int sendVisiSelectionsCmd(ClientData,
           }
       }
 #endif
-      uim_server->chosenMetricsandResources(mcb, uim_VisiSelections);
+      uim_server->chosenMetricsandResources(mcb, &uim_VisiSelections);
   }
 
   // cleanup data structures
@@ -287,7 +280,9 @@ int processVisiSelectionCmd(ClientData,
   if (Tcl_SplitList (interp, argv[2], &metcnt, &metlst) == TCL_OK) {
     metricHandle currmet;
     
-    uim_VisiSelections = new vector<metric_focus_pair>;
+    //uim_VisiSelections = new vector<metric_focus_pair>;
+    uim_VisiSelections.resize(0);
+    
     for (unsigned i = 0; i < metcnt; i++) {
       int metindx = atoi(metlst[i]);
       currmet = uim_AvailMetHandles[metindx];
@@ -295,12 +290,10 @@ int processVisiSelectionCmd(ClientData,
 	metric_focus_pair currpair;
 	currpair.met = currmet;
 	currpair.res = retList[j];
-	*uim_VisiSelections += currpair;
+	uim_VisiSelections += currpair;
       }
     }
     free (metlst);   // cleanup after Tcl_SplitList
-//    delete allsels;
-//    delete retList;
   }
 
   sprintf (interp->result, "%d", 1);
