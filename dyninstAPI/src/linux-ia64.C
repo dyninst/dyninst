@@ -1,4 +1,4 @@
-/* -*- Mode: C; indent-tabs-mode: true -*- */
+/* -*- Mode: C; indent-tabs-mode: true; tab-width: 4 -*- */
 
 #include <stdio.h>
 
@@ -219,7 +219,7 @@ bool process::handleTrapAtEntryPointOfMain() {
 	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( addr, this );
 	iAddr.writeMyBundleFrom( savedCodeBuffer );
 
-	fprintf( stderr, "*** Handled trap at entry point of main().\n" );
+	fprintf( stderr, "* Handled trap at entry point of main().\n" );
 	return true;
 } /* end handleTrapAtEntryPointOfMain() */
 
@@ -246,7 +246,7 @@ bool process::insertTrapAtEntryPointOfMain() {
 	iAddr.replaceBundleWith( generateTrapBundle() );
 	
 	main_brk_addr = addr;
-	fprintf( stderr, "*** Inserted trap at entry point of main() : 0x%lx.\n", main_brk_addr );
+	fprintf( stderr, "* Inserted trap at entry point of main() : 0x%lx.\n", main_brk_addr );
 	return true;
 } /* end insertTrapAtEntryPointOfMain() */
 
@@ -493,7 +493,7 @@ bool process::loadDYNINSTlib() {
 	setBootstrapState( loadingRT );
 
 	/* We finished successfully. */
-	fprintf( stderr, "*** Hijacked function at 0x%lx to force DYNINSTLIB loading, installed SIGILL at 0x%lx\n", entry, dyninstlib_brk_addr );
+	fprintf( stderr, "* Hijacked function at 0x%lx to force DYNINSTLIB loading, installed SIGILL at 0x%lx\n", entry, dyninstlib_brk_addr );
 	return true;
 	} /* end dlopenDYNINSTlib() */
 
@@ -519,7 +519,7 @@ bool process::loadDYNINSTlibCleanup() {
 	/* Continue execution at the entry point. */
 	changePC( pid, entry );
 
-	fprintf( stderr, "*** Handled trap due to dyninstLib.\n" );
+	fprintf( stderr, "* Handled trap due to dyninstLib.\n" );
 	return true;
 	} /* end loadDYNINSTlibCleanup() */
 
@@ -560,7 +560,8 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall) {
         trappedSyscall->syscall_id = (int) syscall;
 
         uint64_t codeBase;
-        uint64_t * savedBundle = (uint64_t *)trappedSyscall->saved_insn;
+        assert( (Address)&(trappedSyscall->saved_insn) % 8 == 0 );
+        uint64_t * savedBundle = (uint64_t *)(Address)&(trappedSyscall->saved_insn);
         int64_t ipsr_ri;
         IA64_bundle trapBundle;
         IA64_instruction newInst;
