@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.157 2003/04/02 07:12:26 jaw Exp $
+// $Id: symtab.C,v 1.158 2003/04/04 18:19:47 pcroth Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1473,8 +1473,12 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
   modsByFullName(string::hash),
   varsByPretty(string::hash)
 {
+  err = false;
   sharedobj_cerr << "image::image for file name="
 		 << desc->file() << endl;
+
+  name_ = extract_pathname_tail(desc->file());
+  pathname_ = desc->file();
 
   // on some platforms (e.g. Windows) we try to parse
   // the image too soon, before we have a process we can
@@ -1517,9 +1521,6 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
   msg = string("Parsing object file: ") + desc->file();
   statusLine(msg.c_str());
   
-  name_ = extract_pathname_tail(desc->file());
-  pathname_ = desc->file();
-  err = false;
   
   // use the *DUMMY_MODULE* until a module is defined
   //pdmodule *dynModule = newModule(DYN_MODULE, 0);
