@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.5 2001/08/28 19:39:40 schendel Exp $
+# $Id: Makefile,v 1.6 2001/08/30 18:17:15 beyerj Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -25,9 +25,15 @@ CXXFLAGS += -DUSES_DYNAMIC_INF_HEAP
 CFLAGS += -g -DUSES_DYNAMIC_INF_HEAP
 SYSLIBS += -lelf -g -lstdc++ 
 
+MUTATEE_FFLAGS += -g -Dsparc_sun_solaris2_4 -xs
+MUTATEE_FLINKFLAGS += -g -ldl -lgcc -L/usr/imports/gcc-2.95.2/lib/gcc-lib/sparc-sun-solaris2.6/2.95.2
+
+GNU_CC = gcc
+
 GNU_CXX = g++
 NATIVE_CC = cc
 NATIVE_CXX = CC
+NATIVE_FC = f90
 
 # skip the builds with native (WorkShop) compilers if they're not available
 ifeq (,$(findstring WorkShop,$(shell $(NATIVE_CC) -V 2>&1)))
@@ -69,8 +75,27 @@ COMPILER2 = $(subst $(LPAREN),_,$(COMPILER1))
 COMPILER = $(subst $(RPAREN),_,$(COMPILER2))
 MUTATEE_CFLAGS += -DCOMPILER='"$(COMPILER)"'
 
+ifeq ($(NATIVE_FC), $(MUTATEE_FC))
+COMPILER = f90
+endif
+
+ifeq ($(NATIVE_FC), $(MUTATEE_FC))
+
+# FORTRAN_BASE = test1.mutateeFort, etc.
+FORTRAN_BASE = $(TARGET2:_$(NATIVE_FC)=Fort)
+
+$(TARGET2): $(FORTRAN_BASE)_$(NATIVE_FC).o $(FORTRAN_BASE)C_$(NATIVE_FC).o
+	-$(NATIVE_FC) $(FORTRAN_BASE)_$(NATIVE_FC).o $(FORTRAN_BASE)C_$(NATIVE_FC).o $(MUTATEE_FLINKFLAGS) -o $(TARGET2)
+
+$(FORTRAN_BASE)_$(NATIVE_FC).o:
+	-$(NATIVE_FC) $(MUTATEE_FFLAGS) -c -o $(FORTRAN_BASE)_$(NATIVE_FC).o ../src/$(FORTRAN_BASE).F
+
+$(FORTRAN_BASE)C_$(NATIVE_FC).o:
+	$(MUTATEE_CC) $(MUTATEE_CFLAGS) -fno-implicit-templates -W -Wall -fno-squangle -DFortran -c -o $(FORTRAN_BASE)C_$(NATIVE_FC).o ../src/$(TARGET2:_$(NATIVE_FC)=).c
+else
 $(TARGET2):  $(MUTATEE_SRC)
 	$(MUTATEE_CC) $(MUTATEE_CFLAGS) $(MUTATEE_SRC) -o $@ $(MUTLIBS)
+endif
 
 ifeq (test1,$(findstring test1,$(TARGET2)))
 MUTATEE_SRC     +=      ../src/call35_1_sparc_solaris.s

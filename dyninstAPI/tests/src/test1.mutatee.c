@@ -1,7 +1,125 @@
-
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.72 2001/07/11 21:21:09 gurari Exp $ */
+/* $Id: test1.mutatee.c,v 1.73 2001/08/30 18:17:16 beyerj Exp $ */
+
+#ifdef Fortran
+struct struct26_1_ {
+    int field1_;
+    int field2_;
+};
+
+struct struct26_2_ {
+    int field1_;
+    int field2_;
+    int field3_[10];
+    struct struct26_1_ field4_;
+};
+
+struct block_ {
+	double globalVariable20_2_;
+
+	int globalVariable1_1_, globalVariable3_1_, globalVariable4_1_, globalVariable5_1_, globalVariable5_2_;
+
+	int globalVariable6_1_, globalVariable6_2_, globalVariable6_3_, globalVariable6_4_, globalVariable6_5_,
+		globalVariable6_6_, globalVariable6_1a_, globalVariable6_2a_, globalVariable6_3a_, globalVariable6_4a_,
+		globalVariable6_5a_, globalVariable6_6a_;
+
+	int constVar0_, constVar1_, constVar2_, constVar3_, constVar4_, constVar5_, constVar6_, constVar7_,
+		constVar9_, constVar10_, constVar60_, constVar64_, constVar66_, constVar67_;
+	int globalVariable7_1_, globalVariable7_2_, globalVariable7_3_, globalVariable7_4_, globalVariable7_5_,
+		globalVariable7_6_, globalVariable7_7_, globalVariable7_8_, globalVariable7_9_, globalVariable7_10_,
+		globalVariable7_11_, globalVariable7_12_, globalVariable7_13_, globalVariable7_14_, globalVariable7_15_,
+		globalVariable7_16_;
+
+	int globalVariable7_1a_, globalVariable7_2a_, globalVariable7_3a_, globalVariable7_4a_, globalVariable7_5a_,
+		globalVariable7_6a_, globalVariable7_7a_, globalVariable7_8a_, globalVariable7_9a_, globalVariable7_10a_,
+	    globalVariable7_11a_, globalVariable7_12a_, globalVariable7_13a_, globalVariable7_14a_, globalVariable7_15a_,
+		globalVariable7_16a__;
+
+	int globalVariable8_1_;
+
+	int globalVariable10_1_, globalVariable10_2_, globalVariable10_3_, globalVariable10_4_;
+
+	int globalVariable11_1_, globalVariable11_2_, globalVariable11_3_, globalVariable11_4_, globalVariable11_5_;
+
+	int globalVariable12_1_;
+
+	int globalVariable13_1_;
+
+	int globalVariable14_1_, globalVariable14_2_;
+
+	int globalVariable15_1_, globalVariable15_2_, globalVariable15_3_, globalVariable15_4_;
+
+	int globalVariable16_1_, globalVariable16_2_, globalVariable16_3_, globalVariable16_4_, globalVariable16_5_,
+		globalVariable16_6_, globalVariable16_7_, globalVariable16_8_, globalVariable16_9_, globalVariable16_10_;
+
+	int globalVariable17_1_, globalVariable17_2_;
+
+	int globalVariable18_1_;
+
+	int globalVariable19_1_, globalVariable19_2_;
+
+	int globalVariable20_1_;
+
+	int globalVariable25_1_, globalVariable25_2_, globalVariable25_3_, globalVariable25_4_, globalVariable25_5_,
+		globalVariable25_6_, globalVariable25_7_;
+
+//	struct struct26_2_ globalVariable26_1_;
+	int globalVariable26_2_, globalVariable26_3_, globalVariable26_4_, globalVariable26_5_, globalVariable26_6_,
+		globalVariable26_7_, globalVariable26_8_, globalVariable26_9_, globalVariable26_10_, globalVariable26_11_,
+		globalVariable26_12_, globalVariable26_13_;
+
+	int globalVariable27_1_; int globalVariable27_5_[10]; int globalVariable27_6_[10];
+	float globalVariable27_7_[10]; float globalVariable27_8_[12];
+
+	int globalVariable29_1_;
+
+	int globalVariable31_1_, globalVariable31_2_, globalVariable31_3_, globalVariable31_4_;
+
+	int globalVariable32_1_, globalVariable32_2_, globalVariable32_3_, globalVariable32_4_;
+
+    int passedTest_ [36];
+};
+
+extern struct block_ globals_;
+
+extern void init_globals_ ();
+extern void func1_1_ ();
+extern void func2_1_ ();
+extern void func3_1_ ();
+extern void func4_1_ ();
+extern void func5_1_ ();
+extern void func6_1_ ();
+extern void func7_1_ ();
+extern void func8_1_ ();
+extern void func9_1_ ();
+extern void func10_1_ ();
+extern void func11_1_ ();
+extern void func12_1_ ();
+extern void func13_1_ ();
+extern void func14_1_ ();
+extern void func15_1_ ();
+extern void func16_1_ ();
+extern void func17_1_ ();
+extern void func18_1_ ();
+extern void func19_1_ ();
+extern void func20_1_ ();
+extern void func21_1_ ();
+extern void func22_1_ ();
+extern void func23_1_ ();
+extern void func24_1_ ();
+extern void func25_1_ ();
+extern void func26_1_ ();
+extern void func27_1_ ();
+extern void func28_1_ ();
+extern void func29_1_ ();
+extern void func30_1_ ();
+extern void func31_1_ ();
+extern void func32_1_ ();
+extern void func33_1_ ();
+extern void func34_1_ ();
+extern void func35_1_ ();
+#endif
 
 #include <stdio.h>
 #include <assert.h>
@@ -27,6 +145,18 @@
 int mutateeCplusplus = 1;
 #else
 int mutateeCplusplus = 0;
+#endif
+
+#ifdef Fortran
+int mutateeFortran = 1;
+#else
+int mutateeFortran = 0;
+#endif
+
+#ifdef F77
+int mutateeF77 = 1;
+#else
+int mutateeF77 = 0;
 #endif
 
 #ifndef COMPILER
@@ -147,7 +277,6 @@ int globalVariable7_1 = 71, globalVariable7_2 = 71,
     globalVariable7_13 = 71, globalVariable7_14 = 71,
     globalVariable7_15 = 71, globalVariable7_16 = 71;
 
-
 int globalVariable7_1a = 73, globalVariable7_2a = 73,
     globalVariable7_3a = 73, globalVariable7_4a = 73,
     globalVariable7_5a = 73, globalVariable7_6a = 73,
@@ -159,10 +288,10 @@ int globalVariable7_1a = 73, globalVariable7_2a = 73,
 
 int globalVariable8_1 = 1;
 
-int globalVariable10_1 = 0, globalVariable10_2 = 0, 
+int globalVariable10_1 = 0, globalVariable10_2 = 0,
     globalVariable10_3 = 0, globalVariable10_4 = 0;
 
-int globalVariable11_1 = 0, globalVariable11_2 = 0, 
+int globalVariable11_1 = 0, globalVariable11_2 = 0,
     globalVariable11_3 = 0, globalVariable11_4 = 0, globalVariable11_5 = 0;
 
 int globalVariable12_1 = 0;
@@ -293,7 +422,7 @@ dotf_stop_process()
 }
 #endif /* DETACH_ON_THE_FLY */
 
-void stop_process()
+void stop_process_()
 {
 #ifdef i386_unknown_nt4_0
     DebugBreak();
@@ -349,7 +478,7 @@ int eq_doubles(double a, double b)
 void verifyScalarValue(char *name, int a, int value, int testNum, char *testName)
 {
     if (a != value) {
-	if (passedTest[testNum]) 
+	if (passedTest[testNum])
 	    printf("**Failed** test %d (%s)\n", testNum, testName);
 	printf("  %s = %d, not %d\n", name, a, value);
 	passedTest[testNum] = FALSE;
@@ -386,13 +515,13 @@ void call2_1(int arg1, int arg2, char *arg3, void *arg4)
 	passedTest[2] = TRUE;
     } else {
 	printf("**Failed** test #2 (four parameter function)\n");
-	if (arg1 != 1) 
+	if (arg1 != 1)
 	    printf("    arg1 = %d, should be 1\n", arg1);
-	if (arg2 != 2) 
+	if (arg2 != 2)
 	    printf("    arg2 = %d, should be 2\n", arg2);
-	if (strcmp(arg3, "testString2_1")) 
+	if (strcmp(arg3, "testString2_1"))
 	    printf("    arg3 = %s, should be \"testString2_1\"\n", arg3);
-	if (arg4 != TEST_PTR) 
+	if (arg4 != TEST_PTR)
 	    printf("    arg4 = 0x%p, should be 0x%p\n", arg4, TEST_PTR);
     }
 }
@@ -411,13 +540,13 @@ void call3_1(int arg1, int arg2)
 
 int call9_1(int p1, int p2, int p3, int p4, int p5)
 {
-    int x; 
+    int x;
     x = (((p1 + p2) + (p3 + p4) + (p5)));
     if (x != (91 + 92 + 93 + 94 + 95 )) {
       printf("**Failed** test case #9 (preserve registers - funcCall)\n");
       if (p1 != 91) printf("    call9_1 parameter 1 is %d not 91\n", p1);
       if (p2 != 92) printf("    call9_1 parameter 2 is %d not 92\n", p2);
-      if (p3 != 93) printf("    call9_1 parameter 2 is %d not 93\n", p3);
+      if (p3 != 93) printf("    call9_1 parameter 3 is %d not 93\n", p3);
       if (p4 != 94) printf("    call9_1 parameter 4 is %d not 94\n", p4);
       if (p5 != 95) printf("    call9_1 parameter 5 is %d not 95\n", p5);
       exit(-1);
@@ -429,8 +558,8 @@ int call9_1(int p1, int p2, int p3, int p4, int p5)
 void call10_1()
 {
     if (globalVariable10_4 == 0) {
-	globalVariable10_4 = 1;	/* update marker of call order */
-	globalVariable10_1 = 1;	/* flag that this was called first */
+	globalVariable10_4 = 1;
+	globalVariable10_1 = 1;
     }
 }
 
@@ -438,51 +567,51 @@ void call10_1()
 void call10_2()
 {
     if (globalVariable10_4 == 1) {
-	globalVariable10_4 = 2;	/* update marker of call order */
-	globalVariable10_2 = 1;	/* flag that this was called first */
+	globalVariable10_4 = 2;
+	globalVariable10_2 = 1;
     }
 }
 
 void call10_3()
 {
     if (globalVariable10_4 == 2) {
-	globalVariable10_4 = 3;	/* update marker of call order */
-	globalVariable10_3 = 1;	/* flag that this was called first */
+	globalVariable10_4 = 3;
+	globalVariable10_3 = 1;
     }
 }
 
 void call11_1()
-{ 
+{
     if (globalVariable11_1 == 0) globalVariable11_2 = 1;
 }
 
 void call11_2()
-{ 
+{
     if (globalVariable11_1 == 1) globalVariable11_3 = 1;
 }
 
 void call11_3()
-{ 
+{
     if (globalVariable11_1 == 2) globalVariable11_4 = 1;
 }
 
 void call11_4()
-{ 
+{
     if (globalVariable11_1 == 3) globalVariable11_5 = 1;
 
-    if (globalVariable11_2 && globalVariable11_3 && 
+    if (globalVariable11_2 && globalVariable11_3 &&
 	globalVariable11_4 && globalVariable11_5) {
         printf("Passed test #11 (snippets at entry,exit,call)\n");
 	passedTest[11] = TRUE;
     } else {
         printf("**Failed test #11 (snippets at entry,exit,call)\n");
-	if (!globalVariable11_2) 
+	if (!globalVariable11_2)
 	    printf("    entry snippet not called at the correct time\n");
-	if (!globalVariable11_3) 
+	if (!globalVariable11_3)
 	    printf("    pre call snippet not called at the correct time\n");
-	if (!globalVariable11_4) 
+	if (!globalVariable11_4)
 	    printf("    post call snippet not called at the correct time\n");
-	if (!globalVariable11_5) 
+	if (!globalVariable11_5)
 	    printf("    exit snippet not called at the correct time\n");
     }
 }
@@ -531,8 +660,8 @@ void call15_3()
     globalVariable15_3++;
 }
 
-int call17_1(int p1) 
-{ 
+int call17_1(int p1)
+{
      /* make sure the function uses lots of registers */
 
      int a1, a2, a3, a4, a5, a6, a7;
@@ -551,10 +680,10 @@ int call17_1(int p1)
 
      dprintf("call17_1 (ret=%d)\n", a7);
 
-     return a7; 
+     return a7;
 }
 
-int call17_2(int p1) 
+int call17_2(int p1)
 {
      /* make sure the function uses lots of registers */
 
@@ -575,7 +704,7 @@ int call17_2(int p1)
 
      dprintf("call17_2 (ret=%d)\n", a7);
 
-     return a7; 
+     return a7;
 }
 
 void call19_1()
@@ -610,22 +739,22 @@ void call22_1(int x)
 {
      globalVariable22_1 += x;
      globalVariable22_1 += MAGIC22_1;
-}		    
-		    
+}
+
 void call22_2(int x)
-{		    
+{
      globalVariable22_1 += x;
      globalVariable22_1 += MAGIC22_2;
-}		    
-		    
+}
+
 void call22_3(int x)
-{		    
+{
      globalVariable22_2 += x;
      globalVariable22_2 += MAGIC22_3;
-}		    
-		    
+}
+
 void call22_7(int x)
-{		    
+{
      globalVariable22_4 += x;
      globalVariable22_4 += MAGIC22_7;
 }
@@ -645,7 +774,7 @@ void call30_1(){ globalVariable30_1 = __LINE__; globalVariable30_2 = (unsigned)c
 #endif
 
 /*
- * This is a series of nearly empty functions to attach code to 
+ * This is a series of nearly empty functions to attach code to
  */
 
 /*
@@ -663,14 +792,13 @@ void func1_1()
 
     if (globalVariable1_1 == 11) {
         printf("\nPassed test #1 (zero arg function call)\n");
-	passedTest[1] = TRUE;
+		passedTest[1] = TRUE;
     } else {
         printf("\n**Failed** test #1 (zero arg function call)\n");
     }
 }
 
 void func1_2() { dprintf("func1_2 () called\n"); }
-
 
 /*
  * Start of Test #2
@@ -707,8 +835,7 @@ void func4_1()
 
 void func4_2() { dprintf("func4_1 () called\n"); }
 
-
-/* 
+/*
  * Start of Test #5 - if w.o. else
  *	Execute two if statements, one true and one false.
  */
@@ -719,7 +846,7 @@ void func5_1()
 
     if ((globalVariable5_1 == 51) && (globalVariable5_2 == 53)) {
         printf("Passed test #5 (if w.o. else)\n");
-	passedTest[5] = TRUE;
+		passedTest[5] = TRUE;
     } else {
 	printf("**Failed** test #5 (if w.o. else)\n");
 	if (globalVariable5_1 != 51) {
@@ -733,7 +860,6 @@ void func5_1()
 
 void func5_2() { dprintf("func5_1 () called\n"); }
 
-
 /*
  * Start of Test #6 - arithmetic operators
  *	Verify arithmetic operators:
@@ -741,13 +867,13 @@ void func5_2() { dprintf("func5_1 () called\n"); }
  *		constant integer subtraction
  *		constant integer divide (using large constants)
  *		constant integer divide (small consts)
- *		constant integer multiply 
+ *		constant integer multiply
  *		constant comma operator
  *		variable integer addition
  *		variable integer subtraction
  *		variable integer divide (using large constants)
  *		variable integer divide (small consts)
- *		variable integer multiply 
+ *		variable integer multiply
  *		variable comma operator
  *
  *	constant - use constant expressions
@@ -768,9 +894,9 @@ void func6_1()
 	passedTest[6] = TRUE;
     } else {
 	printf("**Failed** test #6 (arithmetic operators)\n");
-	if (globalVariable6_1 != 60+2) 
+	if (globalVariable6_1 != 60+2)
 	    printf("    addition error 60+2 got %d\n", globalVariable6_1);
-	if (globalVariable6_2 != 64-1) 
+	if (globalVariable6_2 != 64-1)
 	    printf("    subtraction error 64-1 got %d\n", globalVariable6_2);
 	if (globalVariable6_3 != 66/3)
 	    printf("    division error 66/3 got %d\n", globalVariable6_3);
@@ -780,9 +906,9 @@ void func6_1()
 	    printf("    mult error 6*5 got %d\n", globalVariable6_5);
 	if (globalVariable6_6 != 3)
 	    printf("    comma error 10,3 got %d\n", globalVariable6_6);
-	if (globalVariable6_1a != 60+2) 
+	if (globalVariable6_1a != 60+2)
 	    printf("    addition error 60+2 got %d\n", globalVariable6_1a);
-	if (globalVariable6_2a != 64-1) 
+	if (globalVariable6_2a != 64-1)
 	    printf("    subtraction error 64-1 got %d\n", globalVariable6_2a);
 	if (globalVariable6_3a != 66/3)
 	    printf("    division error 66/3 got %d\n", globalVariable6_3a);
@@ -797,29 +923,28 @@ void func6_1()
 
 void func6_2() { dprintf("func6_2 () called\n"); }
 
-
 /*
  * Start Test Case #7 - relational operators
- *	Generate all relational operators (eq, gt, le, ne, ge, and, or) 
+ *	Generate all relational operators (eq, gt, le, ne, ge, and, or)
  *	in both the true and false forms.
  */
 
 void fail7Print(int tCase, int fCase, char *op)
 {
-    if (tCase != 72) 
+    if (tCase != 72)
 	printf(" operator %s was not true when it should be - const expr\n",
-	    op); 
-    if (fCase != 71) 
+	    op);
+    if (fCase != 71)
        printf(" operator %s was not false when it should be - const expr\n",
-	    op); 
+	    op);
 }
 
 void fail7aPrint(int tCase, int fCase, char *op)
 {
-    if (tCase != 74) 
-	printf(" operator %s was not true when it should be - var expr\n", op); 
-    if (fCase != 73) 
-	printf(" operator %s was not false when it should be - var expr\n",op); 
+    if (tCase != 74)
+	printf(" operator %s was not true when it should be - var expr\n", op);
+    if (fCase != 73)
+	printf(" operator %s was not false when it should be - var expr\n",op);
 }
 
 void func7_1()
@@ -842,7 +967,7 @@ void func7_1()
 	(globalVariable7_9a == 74) && (globalVariable7_10a == 73) &&
 	(globalVariable7_11a == 74) && (globalVariable7_12a == 73) &&
 	(globalVariable7_13a == 74) && (globalVariable7_14a == 73) &&
-	(globalVariable7_15a == 74) && (globalVariable7_16a == 73)) { 
+	(globalVariable7_15a == 74) && (globalVariable7_16a == 73)) {
 	printf("Passed test #7 (relational operators)\n");
 	passedTest[7] = TRUE;
     } else {
@@ -878,7 +1003,7 @@ void func8_1(int p1, int p2, int p3, int p4, int p5, int p6, int p7,
 	     int p8, int p9, int p10)
 {
     dprintf("func8_1 (...) called\n");
-    if ((p1 == 1) && (p2 == 2) && (p3 == 3) && (p4 == 4) && (p5 == 5) && 
+    if ((p1 == 1) && (p2 == 2) && (p3 == 3) && (p4 == 4) && (p5 == 5) &&
 	(p6 == 6) && (p7 == 7) && (p8 == 8) && (p9 == 9) && (p10 == 10))  {
         printf("Passed test #8 (preserve registers - expr)\n");
 	passedTest[8] = TRUE;
@@ -906,7 +1031,7 @@ void func9_1(int p1, int p2, int p3, int p4, int p5, int p6, int p7,
 	     int p8, int p9, int p10)
 {
     dprintf("func9_1 (...) called\n");
-    if ((p1 == 1) && (p2 == 2) && (p3 == 3) && (p4 == 4) && (p5 == 5) && 
+    if ((p1 == 1) && (p2 == 2) && (p3 == 3) && (p4 == 4) && (p5 == 5) &&
 	(p6 == 6) && (p7 == 7) && (p8 == 8) && (p9 == 9) && (p10 == 10))  {
         printf("Passed test #9 (preserve registers - funcCall)\n");
 	passedTest[9] = TRUE;
@@ -933,17 +1058,17 @@ void func9_1(int p1, int p2, int p3, int p4, int p5, int p6, int p7,
  */
 void func10_1()
 {
-    if ((globalVariable10_1 == 1) && (globalVariable10_2 == 1) && 
+    if ((globalVariable10_1 == 1) && (globalVariable10_2 == 1) &&
 	(globalVariable10_3 == 1) && (globalVariable10_4 == 3)) {
 	printf("Passed test #10 (insert snippet order)\n");
 	passedTest[10] = TRUE;
     } else {
 	printf("** Failed test #10 (insert snippet order)\n");
-	if (!globalVariable10_1) 
+	if (!globalVariable10_1)
 	    printf("    call10_1 was not called first\n");
-	if (!globalVariable10_2) 
+	if (!globalVariable10_2)
 	    printf("    call10_2 was not called second\n");
-	if (!globalVariable10_3) 
+	if (!globalVariable10_3)
 	    printf("    call10_3 was not called third\n");
     }
 }
@@ -976,7 +1101,7 @@ void func12_1()
     kludge = 1;	/* Here so that the following function call isn't the first
 		   instruction */
     func12_2();
-    stop_process();
+    stop_process_();
     func12_2();
     if (globalVariable12_1 == 1) {
         printf("Passed test #12 (insert/remove and malloc/free)\n");
@@ -1000,7 +1125,7 @@ void func13_1(int p1, int p2, int p3, int p4, int p5)
 {
     func13_2();
 
-    if ((p1 == 131) && (p2 == 132) && (p3 == 133) && 
+    if ((p1 == 131) && (p2 == 132) && (p3 == 133) &&
 	(p4 == 134) && (p5 == 135) && (globalVariable13_1 == 63)) {
 	printf("Passed test #13 (paramExpr,retExpr,nullExpr)\n");
 	passedTest[13] = TRUE;
@@ -1019,7 +1144,6 @@ void func13_1(int p1, int p2, int p3, int p4, int p5)
 	if (!(globalVariable13_1 & 32)) printf("    return value wrong\n");
     }
 }
-
 
 /*
  * Test #14 - replace function call
@@ -1053,7 +1177,6 @@ void func14_1()
 	    printf("    call to func14_3() was not removed\n");
     }
 }
-
 
 /*
  * Test #15 - setMutationsActive
@@ -1092,7 +1215,6 @@ void func15_4()
     func15_3();
 }
 
-
 void func15_1()
 {
     int failed = FALSE;
@@ -1114,7 +1236,7 @@ void func15_1()
 
     /***********************************************************/
 
-    stop_process();
+    stop_process_();
 
     func15_2();
     check15result("globalVariable15_1", globalVariable15_1, 1,
@@ -1132,7 +1254,7 @@ void func15_1()
 
     /***********************************************************/
 
-    stop_process();
+    stop_process_();
 
     func15_2();
     check15result("globalVariable15_1", globalVariable15_1, 2,
@@ -1154,12 +1276,10 @@ void func15_1()
     }
 }
 
-
-/*  
+/*
  * Test #16 - if-else
  *	Test if-then-else clauses
  */
-
 void func16_2() { dprintf("func16_2 () called\n"); }
 void func16_3() { dprintf("func16_3 () called\n"); }
 void func16_4() { dprintf("func16_4 () called\n"); }
@@ -1201,7 +1321,6 @@ void func16_1()
 	passedTest[16] = TRUE;
 }
 
-
 /*
  * Test #17 - return values from func calls
  *	See test1.C for a detailed comment
@@ -1218,7 +1337,7 @@ void func17_1()
     ret17_1 = func17_2();
     func17_3();
 
-    if ((ret17_1 != RET17_1) || 
+    if ((ret17_1 != RET17_1) ||
 	(globalVariable17_1 != RET17_2) ||
 	(globalVariable17_2 != RAN17_1)) {
         printf("**Failed** test case #17 (return values from func calls)\n");
@@ -1277,7 +1396,7 @@ void func18_1()
  */
 void func19_1()
 {
-    stop_process();
+    stop_process_();
 
     if (globalVariable19_1 != MAGIC19_1) {
 	printf("**Failed test #19 (oneTimeCode)\n");
@@ -1285,7 +1404,7 @@ void func19_1()
 		globalVariable19_1, MAGIC19_1);
     }
 
-    stop_process();
+    stop_process_();
 
     if (globalVariable19_2 == MAGIC19_2) {
 	printf("Passed test #19 (oneTimeCode)\n");
@@ -1297,18 +1416,15 @@ void func19_1()
     }
 }
 
-
 /*
  * Test #20 - instrumentation at arbitrary points
  */
-
 int func20_3()
 {
     static int n = 1;
 
     return n++;
 }
-
 
 volatile int tc = TEST20_C;
 volatile double td = TEST20_D;
@@ -1419,7 +1535,7 @@ void func21_1()
  *
  * These are defined in libtestA.so
  */
-extern void call22_5A(int);  
+extern void call22_5A(int);
 extern void call22_6(int);
 
 volatile int _unused;	/* move decl here to dump compiler warning - jkh */
@@ -1441,7 +1557,7 @@ void func22_1()
 
     void *handleA;
     char dlopenName[128];
-#if defined(sparc_sun_solaris2_4) 
+#if defined(sparc_sun_solaris2_4)
     int dlopenMode = RTLD_NOW | RTLD_GLOBAL;
 #else
     int dlopenMode = RTLD_NOW;
@@ -1476,14 +1592,14 @@ void func22_1()
     if (globalVariable22_2 != 20 + MAGIC22_4) {
 	 printf("**Failed test #22 (replace function) (a.out -> shlib)\n");
 	 return;
-    } 
+    }
     call22_5(30);  /* replaced by call22_5 (in libtestB) */
     if (globalVariable22_3 != 30 + MAGIC22_5B) {
 	 printf("globalVariable22_3 = %d\n", globalVariable22_3);
 	 printf("30 + MAGIC22_5B = %d\n", 30 + MAGIC22_5B);
 	 printf("**Failed test #22 (replace function) (shlib -> shlib)\n");
 	 return;
-    } 
+    }
     call22_6(40);  /* replaced by call22_6 */
     if (globalVariable22_4 != 40 + MAGIC22_7) {
 	 printf("**Failed test #22 (replace function) (shlib -> a.out)\n");
@@ -1493,7 +1609,6 @@ void func22_1()
     passedTest[22] = TRUE;
 #endif
 }
-
 
 /*
  * Test #23 - local variables
@@ -1511,7 +1626,7 @@ void verifyScalarValue23(char *name, int a, int value)
 
 void call23_2()
 {
-    /* copy shadowed global variables to visible global variables to permit 
+    /* copy shadowed global variables to visible global variables to permit
      *    checking their values
      */
     globalShadowVariable23_1 = shadowVariable23_1;
@@ -1538,13 +1653,13 @@ void call23_1()
     /* did snippet correctly update shadow variable call23_2 */
     verifyScalarValue23("shadowVariable23_1", shadowVariable23_1, 2300012);
 
-    /* did snippet correctly update shadow variable via global 
+    /* did snippet correctly update shadow variable via global
        scope in call23_2 */
     verifyScalarValue23("shadowVariable23_2", shadowVariable23_2, 2300021);
 
-    /* did snippet correctly update shadow variable via global 
+    /* did snippet correctly update shadow variable via global
        scope in call23_2 */
-    verifyScalarValue23("globalShadowVariable23_2", globalShadowVariable23_2, 
+    verifyScalarValue23("globalShadowVariable23_2", globalShadowVariable23_2,
 	2300023);
 
     /* did snippet correctly read local variable in call23_2 */
@@ -1606,8 +1721,8 @@ void call24_2()
 {
 }
 
-void call24_1() 
-{ 
+void call24_1()
+{
 #ifdef sparc_sun_solaris2_4
     unsigned i=0; /* hack to prevent g++'s optimizer making func uninstr'uble */
 #else
@@ -1696,7 +1811,7 @@ void func24_1()
     verifyScalarValue24("globalVariable24_7", globalVariable24_7, 2400008);
 
     /* verify 2-d element use */
-    verifyScalarValue24("globalVariable24_8[2][3]", globalVariable24_8[2][3], 
+    verifyScalarValue24("globalVariable24_8[2][3]", globalVariable24_8[2][3],
 	 2400011);
     verifyScalarValue24("globalVariable24_9", globalVariable24_9, 2400012);
 
@@ -1715,8 +1830,8 @@ int globalVariable25_5;
 int globalVariable25_6;
 int globalVariable25_7;
 
-void call25_1() 
-{ 
+void call25_1()
+{
   DUMMY_FN_BODY;
 }
 
@@ -1751,28 +1866,28 @@ void func25_1()
     if ((int *) globalVariable25_2 != &globalVariable25_1) {
 	if (passedTest[25]) printf("**Failed** test #25 (unary operators)\n");
 	passedTest[25] = FALSE;
-	printf("    globalVariable25_2 = %p, not %p\n", 
+	printf("    globalVariable25_2 = %p, not %p\n",
 	    globalVariable25_2, (void *) &globalVariable25_1);
     }
 
     if (globalVariable25_3 != globalVariable25_1) {
 	if (passedTest[25]) printf("**Failed** test #25 (unary operators)\n");
 	passedTest[25] = FALSE;
-	printf("    globalVariable25_3 = %d, not %d\n", 
+	printf("    globalVariable25_3 = %d, not %d\n",
 	    globalVariable25_3, globalVariable25_1);
     }
 
     if (globalVariable25_5 != -globalVariable25_4) {
 	if (passedTest[25]) printf("**Failed** test #25 (unary operators)\n");
 	passedTest[25] = FALSE;
-	printf("    globalVariable25_5 = %d, not %d\n", 
+	printf("    globalVariable25_5 = %d, not %d\n",
 	    globalVariable25_5, -globalVariable25_4);
     }
 
     if (globalVariable25_7 != -globalVariable25_6) {
 	if (passedTest[25]) printf("**Failed** test #25 (unary operators)\n");
 	passedTest[25] = FALSE;
-	printf("    globalVariable25_7 = %d, not %d\n", 
+	printf("    globalVariable25_7 = %d, not %d\n",
 	    globalVariable25_7, -globalVariable25_6);
     }
 
@@ -1783,7 +1898,6 @@ void func25_1()
 /*
  * Test #26 - field operators
  */
-
 struct struct26_1 {
     int field1;
     int field2;
@@ -1884,7 +1998,6 @@ void func26_1()
 /*
  * Test #27 - type compatibility
  */
-
 typedef struct {
     /* void *field27_11; */
     int field27_11;
@@ -1923,7 +2036,6 @@ type27_2 dummy2;
 type27_3 dummy3;
 type27_4 dummy4;
 
-
 void func27_1()
 {
 #if !defined(sparc_sun_solaris2_4) && \
@@ -1946,7 +2058,6 @@ void func27_1()
 /*
  * Test #28 - field operators
  */
-
 struct struct28_1 {
     int field1;
     int field2;
@@ -1982,15 +2093,13 @@ void call28_1()
     for (j=0; j < 400; j++);
 }
 
-int globalVariable29_1;
-
 void func28_1()
 {
     int i;
 
     passedTest[28] = TRUE;
 
-    
+
     temp = (struct struct28_2 *) globalVariable28_1;
 
     temp->field1 = 28001001;
@@ -2010,6 +2119,8 @@ void func28_1()
 
     if (passedTest[28]) printf("Passed test #28 (user defined fields)\n");
 }
+
+int globalVariable29_1;
 
 int func29_1()
 {
@@ -2049,7 +2160,7 @@ int func30_1()
 		     ((globalVariable30_2 <= globalVariable30_3) &&
 #endif
 		      (globalVariable30_3 <= globalVariable30_9));
-    if (!passedTest[30]){ 
+    if (!passedTest[30]){
     	printf("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
 	return 0;
     }
@@ -2073,14 +2184,14 @@ int func30_1()
 		     ((globalVariable30_2 <= globalVariable30_5) &&
 #endif
 		      (globalVariable30_5 <= globalVariable30_9));
-    if (!passedTest[30]){ 
+    if (!passedTest[30]){
     	printf("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
 	return 0;
     }
-   
+
     passedTest[30] = !globalVariable30_6 ||
 		     (globalVariable30_1 == globalVariable30_6);
-    if (!passedTest[30]){ 
+    if (!passedTest[30]){
     	printf("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
 	return 0;
     }
@@ -2094,10 +2205,6 @@ int func30_1()
 #endif
     return 1;
 }
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
 
 void func31_2()
 {
@@ -2167,10 +2274,6 @@ int func31_1()
   return 1;
 #endif
 }
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
 
 void func32_2()
 {
@@ -2310,10 +2413,6 @@ void func33_1()
     printf( "Passed test #33 (control flow graphs)\n" );
 }
 
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
 /*
  * Nested loops.
  */
@@ -2352,16 +2451,19 @@ void func34_1()
 }
 
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
+#ifndef Fortran
 #ifdef __cplusplus
 extern "C" int call35_1();
 #else
 extern int call35_1();
 #endif
 #endif
+#endif
 
-void func35_1() 
+void func35_1()
 {
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
+#if !defined Fortran
 
     int value;
     value = call35_1();
@@ -2384,11 +2486,12 @@ void func35_1()
 
     passedTest[ 35 ] = TRUE;
     printf( "Passed test #35 (function relocation)\n" );
+#endif
 #else
     passedTest[ 35 ] = TRUE;
     printf( "Skipped test #35 (function relocation)\n" );
 #if defined(i386_unknown_nt4_0)
-    printf( "\t- test not implemented for this platform\n" ); 
+    printf( "\t- test not implemented for this platform\n" );
 #else
     printf( "\t- not implemented on this platform\n" );
 #endif
@@ -2426,9 +2529,33 @@ int main(int iargc, char *argv[])
     int pfd;
 #endif
 
+#ifdef Fortran
+	int *pp1, *pp2, *pp3, *pp4, *pp5, *pp6, *pp7, *pp8, *pp9, *pp10;
+
+	pp1 = (int*) malloc (sizeof (int));
+	pp2 = (int*) malloc (sizeof (int));
+	pp3 = (int*) malloc (sizeof (int));
+	pp4 = (int*) malloc (sizeof (int));
+	pp5 = (int*) malloc (sizeof (int));
+	pp6 = (int*) malloc (sizeof (int));
+	pp7 = (int*) malloc (sizeof (int));
+	pp8 = (int*) malloc (sizeof (int));
+	pp9 = (int*) malloc (sizeof (int));
+	pp10 = (int*) malloc (sizeof (int));
+
+	*pp1 = 1; *pp2 = 2; *pp3 = 3; *pp4 = 4; *pp5 = 5;
+	*pp6 = 6; *pp7 = 7; *pp8 = 8; *pp9 = 9; *pp10 = 10;
+
+    init_globals_();
+#endif
+
     for (j=0; j <= MAX_TEST; j++) {
-        runTest[j] = FALSE;
-	passedTest[j] = FALSE;
+#ifdef Fortran
+		globals_.passedTest_[j] = FALSE;
+#else
+		passedTest [j] = FALSE;
+#endif
+		runTest [j] = FALSE;
     }
 
     for (i=1; i < argc; i++) {
@@ -2463,14 +2590,14 @@ int main(int iargc, char *argv[])
                 }
             }
             i=j-1;
-        } else {
+		} else {
             fprintf(stderr, "%s\n", USAGE);
             exit(-1);
         }
     }
 
     if ((argc==1) || debugPrint)
-        printf("Mutatee %s [%s]:\"%s\"\n", argv[0], 
+        printf("Mutatee %s [%s]:\"%s\"\n", argv[0],
                 mutateeCplusplus ? "C++" : "C", Builder_id);
     if (argc==1) exit(0);
 
@@ -2488,6 +2615,48 @@ int main(int iargc, char *argv[])
 	printf("Mutator attached.  Mutatee continuing.\n");
     }
 
+#ifdef Fortran
+    if (runTest[1]) func1_1_();
+    if (runTest[2]) func2_1_();
+    if (runTest[3]) func3_1_();
+    if (runTest[4]) func4_1_();
+    if (runTest[5]) func5_1_();
+    if (runTest[6]) func6_1_();
+    if (runTest[7]) func7_1_();
+    if (runTest[8]) func8_1_(pp1, pp2, pp3, pp4, pp5, pp6, pp7, pp8, pp9, pp10);
+    if (runTest[9]) func9_1_(pp1, pp2, pp3, pp4, pp5, pp6, pp7, pp8, pp9, pp10);
+    if (runTest[10]) func10_1_();
+    if (runTest[11]) func11_1_();
+    if (runTest[12]) func12_1_();
+
+    *pp1 = 131; *pp2 = 132; *pp3 = 133; *pp4 = 134; *pp5 = 135;
+
+    if (runTest[13]) func13_1_(pp1, pp2, pp3, pp4, pp5);
+    if (runTest[14]) func14_1_();
+    if (runTest[15]) func15_1_();
+    if (runTest[16]) func16_1_();
+    if (runTest[17]) func17_1_();
+    if (runTest[18]) func18_1_();
+    if (runTest[19]) func19_1_();
+    if (runTest[20]) func20_1_();
+    if (runTest[21]) func21_1_();
+    if (runTest[22]) func22_1_();
+    if (runTest[23]) func23_1_();
+    if (runTest[24]) func24_1_();
+    if (runTest[25]) func25_1_();
+    if (runTest[26]) func26_1_();
+    if (runTest[27]) func27_1_();
+    if (runTest[28]) func28_1_();
+    if (runTest[29]) func29_1_();
+    if (runTest[30]) func30_1_();
+
+    if (runTest[31]) func31_1_();
+    if (runTest[32]) func32_1_();
+
+    if (runTest[33]) func33_1_();
+    if (runTest[33]) func34_1_();
+    if (runTest[35]) func35_1_();
+#else
     if (runTest[1]) func1_1();
     if (runTest[2]) func2_1();
     if (runTest[3]) func3_1();
@@ -2495,12 +2664,13 @@ int main(int iargc, char *argv[])
     if (runTest[5]) func5_1();
     if (runTest[6]) func6_1();
     if (runTest[7]) func7_1();
-    if (runTest[8]) func8_1(1,2,3,4,5,6,7,8,9,10);
-    if (runTest[9]) func9_1(1,2,3,4,5,6,7,8,9,10);
+    if (runTest[8]) func8_1(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+    if (runTest[9]) func9_1(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
     if (runTest[10]) func10_1();
     if (runTest[11]) func11_1();
     if (runTest[12]) func12_1();
-    if (runTest[13]) func13_1(131,132,133,134,135);
+
+    if (runTest[13]) func13_1(131, 132, 133, 134, 135);
     if (runTest[14]) func14_1();
     if (runTest[15]) func15_1();
     if (runTest[16]) func16_1();
@@ -2525,6 +2695,14 @@ int main(int iargc, char *argv[])
     if (runTest[33]) func33_1();
     if (runTest[33]) func34_1();
     if (runTest[35]) func35_1();
+#endif
+
+	/* Combine fortran passedTest with C passedTest */
+#ifdef Fortran
+	for (i=1; i <= MAX_TEST; i++)
+		if (globals_.passedTest_ [i])
+			passedTest [i] = TRUE;
+#endif
 
     /* See how we did running the tests. */
     for (i=1; i <= MAX_TEST; i++) {

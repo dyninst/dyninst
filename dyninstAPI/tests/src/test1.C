@@ -17,6 +17,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include <assert.h>
 #ifdef i386_unknown_nt4_0
 #include <windows.h>
@@ -40,6 +41,8 @@ int errorPrint = 0; // external "dyninst" tracing (via errorFunc)
 bool forceRelocation = false; // force relocation of functions
 
 int mutateeCplusplus = 0;
+int mutateeFortran = 0;
+int mutateeF77 = 0;
 bool runAllTests = true;
 const unsigned int MAX_TEST = 35;
 bool runTest[MAX_TEST+1];
@@ -285,10 +288,39 @@ BPatchSnippetHandle *insertCallSnippetAt(BPatch_thread *appThread,
     }
 
     delete call_expr;
-    
+
     return ret;
 }
 
+// Wrapper function to find variables
+// For Fortran, will look for lowercase variable, if mixed case not found
+BPatch_variableExpr *findVariable (BPatch_image *appImage,
+     char* var, BPatch_Vector <BPatch_point *> *point = NULL)
+{
+    BPatch_variableExpr *FortVar = NULL;
+    BPatch_variableExpr *ret = NULL;
+    int i, numchars = strlen (var);
+    char *lowercase = new char [numchars];
+    int temp = expectError;
+
+    if (mutateeFortran && point) {
+            strcpy (lowercase, var);
+            expectError = 100;
+            for (i = 0; i < numchars; i++)
+                lowercase [i] = tolower (lowercase [i]);
+            ret = appImage->findVariable (*(*point) [0], lowercase);
+        if (!ret) {
+            expectError = temp;
+            ret = appImage->findVariable (*(*point) [0], var);
+        }
+    } else {
+        ret = appImage->findVariable (var);
+    }
+
+    expectError = temp;
+    delete [] lowercase;
+    return ret;
+}
 
 /**************************************************************************
  * Tests
@@ -300,8 +332,13 @@ BPatchSnippetHandle *insertCallSnippetAt(BPatch_thread *appThread,
 void mutatorTest1(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func1_1"
-    BPatch_Vector<BPatch_point *> *point1_1 =
-	appImage->findProcedurePoint("func1_1", BPatch_entry);
+
+    BPatch_Vector<BPatch_point *> *point1_1;
+
+    if (mutateeFortran)
+        point1_1 = appImage->findProcedurePoint("func1_1_", BPatch_entry);
+    else
+        point1_1 = appImage->findProcedurePoint("func1_1", BPatch_entry);
 
     if (!point1_1 || ((*point1_1).size() == 0)) {
         fprintf(stderr, "**Failed** test #1 (zero arg function call)\n");
@@ -309,7 +346,13 @@ void mutatorTest1(BPatch_thread *appThread, BPatch_image *appImage)
 	exit(1);
     }
 
-    BPatch_function *call1_func = appImage->findFunction("call1_1");
+    BPatch_function *call1_func;
+
+    if (mutateeFortran)
+        call1_func = appImage->findFunction("call1_1_");
+    else
+        call1_func = appImage->findFunction("call1_1");
+
     if (call1_func == NULL) {
         fprintf(stderr, "**Failed** test #1 (zero arg function call)\n");
 	fprintf(stderr, "Unable to find function \"call1_1\"\n");
@@ -329,10 +372,14 @@ void mutatorTest1(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
 {
-
     // Find the entry point to the procedure "func2_1"
-    BPatch_Vector<BPatch_point *> *point2_1 =
-	appImage->findProcedurePoint("func2_1", BPatch_entry);
+
+    BPatch_Vector<BPatch_point *> *point2_1;
+
+    if (mutateeFortran)
+        point2_1 = appImage->findProcedurePoint("func2_1_", BPatch_entry);
+    else
+        point2_1 = appImage->findProcedurePoint("func2_1", BPatch_entry);
 
     if (!point2_1 || ((*point2_1).size() == 0)) {
 	fprintf(stderr, "**Failed** test #2 (four parameter function)\n");
@@ -340,7 +387,12 @@ void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
 	exit(1);
     }
 
-    BPatch_function *call2_func = appImage->findFunction("call2_1");
+    BPatch_function *call2_func;
+    if (mutateeFortran)
+        call2_func = appImage->findFunction("call2_1_");
+    else
+        call2_func = appImage->findFunction("call2_1");
+
     if (call2_func == NULL) {
 	fprintf(stderr, "**Failed** test #2 (four parameter function)\n");
 	fprintf(stderr, "    Unable to find function \"call2_1.\"\n");
@@ -356,6 +408,7 @@ void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
 	fprintf(stderr, "    Unable to locate variable pointerSize\n");
 	exit(1);
     }
+
     int pointerSize;
     if (!pointerSizeVar->readValue(&pointerSize)) {
 	fprintf(stderr, "**Failed** test #2 (four parameter function)\n");
@@ -382,10 +435,31 @@ void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
 #endif
 
     BPatch_Vector<BPatch_snippet *> call2_args;
-    BPatch_constExpr expr2_1(1);
-    BPatch_constExpr expr2_2(2);
-    BPatch_constExpr expr2_3("testString2_1");
-    BPatch_constExpr expr2_4(ptr);
+
+    BPatch_constExpr expr2_1 (0), expr2_2 (0), expr2_3 (0), expr2_4 (0);
+
+    if (mutateeFortran) {
+        BPatch_variableExpr *expr2_5 = appThread->malloc (*appImage->findType ("int"));
+        BPatch_variableExpr *expr2_6 = appThread->malloc (*appImage->findType ("int"));
+
+        expr2_1 = expr2_5->getBaseAddr ();
+        expr2_2 = expr2_6->getBaseAddr ();
+
+        BPatch_arithExpr expr2_7 (BPatch_assign, *expr2_5, BPatch_constExpr(1));
+        appThread->insertSnippet (expr2_7, *point2_1);
+
+        BPatch_arithExpr expr2_8 (BPatch_assign, *expr2_6, BPatch_constExpr(2));
+        appThread->insertSnippet (expr2_8, *point2_1);
+
+        expr2_3 = "testString2_1";
+        expr2_4 = 13;
+    } else {
+        expr2_1 = 1;
+        expr2_2 = 2;
+        expr2_3 = "testString2_1";
+        expr2_4 = ptr;
+    }
+
     call2_args.push_back(&expr2_1);
     call2_args.push_back(&expr2_2);
     call2_args.push_back(&expr2_3);
@@ -395,7 +469,7 @@ void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
 
     dprintf("Inserted snippet2\n");
     checkCost(call2Expr);
-    appThread->insertSnippet(call2Expr, *point2_1);
+    appThread->insertSnippet(call2Expr, *point2_1, BPatch_callBefore, BPatch_lastSnippet);
 }
 
 //
@@ -403,17 +477,25 @@ void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest3(BPatch_thread *appThread, BPatch_image *appImage)
 {
-
     // Find the entry point to the procedure "func3_1"
-    BPatch_Vector<BPatch_point *> *point3_1 =
-	appImage->findProcedurePoint("func3_1", BPatch_entry);
+
+    BPatch_Vector<BPatch_point *> *point3_1;
+    if (mutateeFortran)
+        point3_1 = appImage->findProcedurePoint("func3_1_", BPatch_entry);
+    else
+        point3_1 = appImage->findProcedurePoint("func3_1", BPatch_entry);
 
     if (!point3_1 || ((*point3_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func3_1.\"\n");
 	exit(1);
     }
 
-    BPatch_function *call3_func = appImage->findFunction("call3_1");
+    BPatch_function *call3_func;
+    if (mutateeFortran)
+        call3_func = appImage->findFunction("call3_1_");
+    else
+        call3_func = appImage->findFunction("call3_1");
+
     if (call3_func == NULL) {
 	fprintf(stderr, "Unable to find function \"call3_1.\"\n");
 	exit(1);
@@ -421,16 +503,29 @@ void mutatorTest3(BPatch_thread *appThread, BPatch_image *appImage)
 
     BPatch_Vector<BPatch_snippet *> call3_args;
 
-    BPatch_variableExpr *expr3_1 = appImage->findVariable("globalVariable3_1");
-    if (!expr3_1) {
-	fprintf(stderr, "**Failed** test #3 (passing variables)\n");
-	fprintf(stderr, "    Unable to locate variable globalVariable3_1\n");
-	exit(1);
+    BPatch_Vector<BPatch_point *> *call3_1;
+    if (mutateeFortran)
+        call3_1 = appImage->findProcedurePoint ("call3_1_", BPatch_subroutine);
+    else
+        call3_1 = appImage->findProcedurePoint ("call3_1", BPatch_subroutine);
+
+    if (!call3_1 || ((*call3_1).size() == 0)) {
+        fprintf(stderr, "    Unable to find entry point to \"call3_1.\"\n");
+        exit(1);
     }
+
+    BPatch_variableExpr *expr3_1 = findVariable (appImage, "globalVariable3_1", call3_1);
+
+    if (!expr3_1) {
+        fprintf(stderr, "**Failed** test #3 (passing variables)\n");
+        fprintf(stderr, "    Unable to locate variable globalVariable3_1\n");
+        exit(1);
+    }
+
     // see if we can find the address
     if (expr3_1->getBaseAddr() <= 0) {
-	printf("*Error*: address %p for globalVariable3_1 is not valid\n",
-	       expr3_1->getBaseAddr());
+        printf("*Error*: address %p for globalVariable3_1 is not valid\n",
+            expr3_1->getBaseAddr());
     }
 
     BPatch_variableExpr *expr3_2 = appThread->malloc(*appImage->findType("int"));
@@ -440,16 +535,24 @@ void mutatorTest3(BPatch_thread *appThread, BPatch_image *appImage)
 	exit(1);
     }
 
-    call3_args.push_back(expr3_1);
-    call3_args.push_back(expr3_2);
+	BPatch_constExpr expr3_3 (expr3_1->getBaseAddr ());
+	BPatch_constExpr expr3_4 (expr3_2->getBaseAddr ());
+
+	if (mutateeFortran) {
+		call3_args.push_back (&expr3_3);
+		call3_args.push_back (&expr3_4);
+	} else {
+	    call3_args.push_back(expr3_1);
+	    call3_args.push_back(expr3_2);
+	}
 
     BPatch_funcCallExpr call3Expr(*call3_func, call3_args);
     checkCost(call3Expr);
     appThread->insertSnippet(call3Expr, *point3_1);
 
-    BPatch_arithExpr expr3_3(BPatch_assign, *expr3_2, BPatch_constExpr(32));
-    checkCost(expr3_3);
-    appThread->insertSnippet(expr3_3, *point3_1);
+    BPatch_arithExpr expr3_5(BPatch_assign, *expr3_2, BPatch_constExpr(32));
+    checkCost(expr3_5);
+    appThread->insertSnippet(expr3_5, *point3_1);
 
     dprintf("Inserted snippet3\n");
 }
@@ -457,20 +560,24 @@ void mutatorTest3(BPatch_thread *appThread, BPatch_image *appImage)
 //
 // Start Test Case #4 - mutator side (sequence)
 //	Use the BPatch sequence operation to glue to expressions togehter.
-//	The test is constructed to verify the correct exectuion order.
+//	The test is constructed to verify the correct execution order.
 //
 void mutatorTest4(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func4_1"
-    BPatch_Vector<BPatch_point *> *point4_1 =
-	appImage->findProcedurePoint("func4_1", BPatch_entry);
+    BPatch_Vector<BPatch_point *> *point4_1;
+    if (mutateeFortran)
+        point4_1 = appImage->findProcedurePoint("func4_1_", BPatch_entry);
+    else
+        point4_1 = appImage->findProcedurePoint("func4_1", BPatch_entry);
 
     if (!point4_1 || ((*point4_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func4_1\".\n");
 	exit(1);
     }
 
-    BPatch_variableExpr *expr4_1 = appImage->findVariable("globalVariable4_1");
+    BPatch_variableExpr *expr4_1 = findVariable (appImage, "globalVariable4_1", point4_1);
+
     if (!expr4_1) {
 	fprintf(stderr, "**Failed** test #4 (sequence)\n");
 	fprintf(stderr, "    Unable to locate variable globalVariable4_1\n");
@@ -496,16 +603,31 @@ void mutatorTest5(BPatch_thread *appThread, BPatch_image *appImage)
 {
 
     // Find the entry point to the procedure "func5_2"
-    BPatch_Vector<BPatch_point *> *point5_1 =
-	appImage->findProcedurePoint("func5_2", BPatch_entry);
+    BPatch_Vector<BPatch_point *> *point5_1;
+    if (mutateeFortran)
+        point5_1 = appImage->findProcedurePoint("func5_2_", BPatch_entry);
+    else
+        point5_1 = appImage->findProcedurePoint("func5_2", BPatch_entry);
 
     if (!point5_1 || ((*point5_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func5_2\".\n");
 	exit(1);
     }
 
-    BPatch_variableExpr *expr5_1 = appImage->findVariable("globalVariable5_1");
-    BPatch_variableExpr *expr5_2 = appImage->findVariable("globalVariable5_2");
+    BPatch_Vector<BPatch_point *> *point5_2;
+    if (mutateeFortran)
+        point5_2 = appImage->findProcedurePoint ("func5_1_", BPatch_subroutine);
+    else
+        point5_2 = appImage->findProcedurePoint ("func5_1", BPatch_subroutine);
+
+    if (!point5_2 || ((*point5_2).size() == 0)) {
+	fprintf(stderr, "Unable to find entry point to \"func5_1\".\n");
+	exit(1);
+    }
+
+    BPatch_variableExpr *expr5_1 = findVariable (appImage, "globalVariable5_1", point5_2);
+    BPatch_variableExpr *expr5_2 = findVariable (appImage, "globalVariable5_2", point5_2);
+
     if (!expr5_1 || !expr5_2) {
 	fprintf(stderr, "**Failed** test #5 (1f w.o. else)\n");
 	fprintf(stderr, "    Unable to locate variable globalVariable5_1 or ");
@@ -539,45 +661,66 @@ void mutatorTest5(BPatch_thread *appThread, BPatch_image *appImage)
 void mutatorTest6(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func6_2"
-    BPatch_Vector<BPatch_point *> *point6_1 =
-	appImage->findProcedurePoint("func6_2", BPatch_entry);
+    BPatch_Vector<BPatch_point *> *point6_1;
+    if (mutateeFortran)
+        point6_1 = appImage->findProcedurePoint("func6_2_", BPatch_entry);
+    else
+        point6_1 = appImage->findProcedurePoint("func6_2", BPatch_entry);
 
     if (!point6_1 || ((*point6_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func6_2\".\n");
 	exit(1);
     }
 
-    BPatch_variableExpr *expr6_1 = appImage->findVariable("globalVariable6_1");
-    BPatch_variableExpr *expr6_2 = appImage->findVariable("globalVariable6_2");
-    BPatch_variableExpr *expr6_3 = appImage->findVariable("globalVariable6_3");
-    BPatch_variableExpr *expr6_4 = appImage->findVariable("globalVariable6_4");
-    BPatch_variableExpr *expr6_5 = appImage->findVariable("globalVariable6_5");
-    BPatch_variableExpr *expr6_6 = appImage->findVariable("globalVariable6_6");
-    BPatch_variableExpr *expr6_1a =appImage->findVariable("globalVariable6_1a");
-    BPatch_variableExpr *expr6_2a =appImage->findVariable("globalVariable6_2a");
-    BPatch_variableExpr *expr6_3a =appImage->findVariable("globalVariable6_3a");
-    BPatch_variableExpr *expr6_4a =appImage->findVariable("globalVariable6_4a");
-    BPatch_variableExpr *expr6_5a =appImage->findVariable("globalVariable6_5a");
-    BPatch_variableExpr *expr6_6a =appImage->findVariable("globalVariable6_6a");
-    if (!expr6_1 || !expr6_2 || !expr6_3 || !expr6_4 || 
-	!expr6_5 || !expr6_6 || !expr6_1a || !expr6_2a || !expr6_3a || 
+    BPatch_Vector<BPatch_point *> *point6_2;
+    if (mutateeFortran)
+        point6_2 = appImage->findProcedurePoint("func6_1_", BPatch_subroutine);
+    else
+        point6_2 = appImage->findProcedurePoint("func6_1", BPatch_subroutine);
+
+    if (!point6_2 || ((*point6_2).size() == 0)) {
+	fprintf(stderr, "Unable to find entry point to \"func6_1\".\n");
+	exit(1);
+    }
+
+    BPatch_variableExpr *expr6_1, *expr6_2, *expr6_3, *expr6_4, *expr6_5, *expr6_6,
+        *expr6_1a, *expr6_2a, *expr6_3a, *expr6_4a, *expr6_5a, *expr6_6a,
+        *constVar1, *constVar2, *constVar3, *constVar5, *constVar6,
+        *constVar10, *constVar60, *constVar64, *constVar66, *constVar67;
+
+    expr6_1 = findVariable(appImage, "globalVariable6_1", point6_2);
+    expr6_2 = findVariable(appImage, "globalVariable6_2", point6_2);
+    expr6_3 = findVariable(appImage, "globalVariable6_3", point6_2);
+    expr6_4 = findVariable(appImage, "globalVariable6_4", point6_2);
+    expr6_5 = findVariable(appImage, "globalVariable6_5", point6_2);
+    expr6_6 = findVariable(appImage, "globalVariable6_6", point6_2);
+    expr6_1a = findVariable(appImage, "globalVariable6_1a", point6_2);
+    expr6_2a = findVariable(appImage, "globalVariable6_2a", point6_2);
+    expr6_3a = findVariable(appImage, "globalVariable6_3a", point6_2);
+    expr6_4a = findVariable(appImage, "globalVariable6_4a", point6_2);
+    expr6_5a = findVariable(appImage, "globalVariable6_5a", point6_2);
+    expr6_6a = findVariable(appImage, "globalVariable6_6a", point6_2);
+
+    constVar1 = findVariable(appImage, "constVar1", point6_2);
+    constVar2 = findVariable(appImage, "constVar2", point6_2);
+    constVar3 = findVariable(appImage, "constVar3", point6_2);
+    constVar5 = findVariable(appImage, "constVar5", point6_2);
+    constVar6 = findVariable(appImage, "constVar6", point6_2);
+    constVar10 = findVariable(appImage, "constVar10", point6_2);
+    constVar60 = findVariable(appImage, "constVar60", point6_2);
+    constVar64 = findVariable(appImage, "constVar64", point6_2);
+    constVar66 = findVariable(appImage, "constVar66", point6_2);
+    constVar67 = findVariable(appImage, "constVar67", point6_2);
+
+    if (!expr6_1 || !expr6_2 || !expr6_3 || !expr6_4 ||
+	!expr6_5 || !expr6_6 || !expr6_1a || !expr6_2a || !expr6_3a ||
 	!expr6_4a || !expr6_5a || !expr6_6a) {
 	fprintf(stderr, "**Failed** test #6 (arithmetic operators)\n");
 	fprintf(stderr, "    Unable to locate one of globalVariable6_?\n");
 	exit(1);
     }
 
-    BPatch_variableExpr *constVar1 = appImage->findVariable("constVar1");
-    BPatch_variableExpr *constVar2 = appImage->findVariable("constVar2");
-    BPatch_variableExpr *constVar3 = appImage->findVariable("constVar3");
-    BPatch_variableExpr *constVar5 = appImage->findVariable("constVar5");
-    BPatch_variableExpr *constVar6 = appImage->findVariable("constVar6");
-    BPatch_variableExpr *constVar10 = appImage->findVariable("constVar10");
-    BPatch_variableExpr *constVar60 = appImage->findVariable("constVar60");
-    BPatch_variableExpr *constVar64 = appImage->findVariable("constVar64");
-    BPatch_variableExpr *constVar66 = appImage->findVariable("constVar66");
-    BPatch_variableExpr *constVar67 = appImage->findVariable("constVar67");
-    if (!constVar1 || !constVar2 || !constVar3 || !constVar5 || 
+    if (!constVar1 || !constVar2 || !constVar3 || !constVar5 ||
 	!constVar6 || !constVar10 || !constVar60 || !constVar64 || 
 	!constVar66 || !constVar67) {
 	fprintf(stderr, "**Failed** test #6 (arithmetic operators)\n");
@@ -588,7 +731,7 @@ void mutatorTest6(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_Vector<BPatch_snippet*> vect6_1;
 
     // globalVariable6_1 = 60 + 2
-    BPatch_arithExpr arith6_1 (BPatch_assign, *expr6_1, 
+    BPatch_arithExpr arith6_1 (BPatch_assign, *expr6_1,
       BPatch_arithExpr(BPatch_plus,BPatch_constExpr(60), BPatch_constExpr(2)));
     vect6_1.push_back(&arith6_1);
 
@@ -628,22 +771,22 @@ void mutatorTest6(BPatch_thread *appThread, BPatch_image *appImage)
       BPatch_arithExpr(BPatch_minus, *constVar64, *constVar1));
     vect6_1.push_back(&arith6_2a);
 
-    // globalVariable6_3 = 66 / 3
+    // globalVariable6_3a = 66 / 3
     BPatch_arithExpr arith6_3a (BPatch_assign, *expr6_3a, BPatch_arithExpr(
       BPatch_divide, *constVar66, *constVar3));
     vect6_1.push_back(&arith6_3a);
 
-    // globalVariable6_4 = 67 / 3
+    // globalVariable6_4a = 67 / 3
     BPatch_arithExpr arith6_4a (BPatch_assign, *expr6_4a, BPatch_arithExpr(
       BPatch_divide, *constVar67, *constVar3));
     vect6_1.push_back(&arith6_4a);
 
-    // globalVariable6_5 = 6 * 5
+    // globalVariable6_5a = 6 * 5
     BPatch_arithExpr arith6_5a (BPatch_assign, *expr6_5a, BPatch_arithExpr(
       BPatch_times, *constVar6, *constVar5));
     vect6_1.push_back(&arith6_5a);
 
-    // globalVariable6_6 = 10,3
+    // globalVariable6_6a = 10,3
     // BPatch_arithExpr arith6_6a (BPatch_assign, *expr6_6a, *constVar3);
     //	BPatch_arithExpr(BPatch_seq, *constVar10, BPatch_constExpr(3)));
     BPatch_arithExpr arith6_6a (BPatch_assign, *expr6_6a,
@@ -657,17 +800,28 @@ void mutatorTest6(BPatch_thread *appThread, BPatch_image *appImage)
 void genRelTest(BPatch_image *appImage,BPatch_Vector<BPatch_snippet*> &vect7_1, 
 		BPatch_relOp op, int r1, int r2, char *var1)
 {
-    BPatch_variableExpr *varExpr1 = appImage->findVariable(var1);
-    if (!varExpr1) {
+    BPatch_Vector <BPatch_point *> *point7_1;
+    if (mutateeFortran)
+        point7_1 = appImage->findProcedurePoint ("func7_1_", BPatch_entry);
+    else
+        point7_1 = appImage->findProcedurePoint ("func7_1", BPatch_entry);
+
+    if (!point7_1 || ((*point7_1).size() == 0)) {
+	fprintf(stderr, "Unable to find entry point to \"func7_1\".\n");
+	exit(1);
+    }
+
+    BPatch_variableExpr *expr1_1 = findVariable (appImage, var1, point7_1);
+
+    if (!expr1_1) {
 	fprintf(stderr, "**Failed** test #7 (relational operators)\n");
 	fprintf(stderr, "    Unable to locate variable %s\n", var1);
 	exit(1);
     }
     BPatch_ifExpr *tempExpr1 = new BPatch_ifExpr(
 	BPatch_boolExpr(op, BPatch_constExpr(r1), BPatch_constExpr(r2)), 
-	BPatch_arithExpr(BPatch_assign, *varExpr1, BPatch_constExpr(72)));
+	BPatch_arithExpr(BPatch_assign, *expr1_1, BPatch_constExpr(72)));
     vect7_1.push_back(tempExpr1);
-
 }
 
 void genVRelTest(BPatch_image *appImage,
@@ -675,17 +829,28 @@ void genVRelTest(BPatch_image *appImage,
 		 BPatch_relOp op, BPatch_variableExpr *r1, 
 		 BPatch_variableExpr *r2, char *var1)
 {
-    BPatch_variableExpr *varExpr1 = appImage->findVariable(var1);
-    if (!varExpr1) {
+    BPatch_Vector <BPatch_point *> *point7_1;
+    if (mutateeFortran)
+        point7_1 = appImage->findProcedurePoint ("func7_1_", BPatch_entry);
+    else
+        point7_1 = appImage->findProcedurePoint ("func7_1", BPatch_entry);
+
+    if (!point7_1 || ((*point7_1).size() == 0)) {
+	fprintf(stderr, "Unable to find entry point to \"func7_1\".\n");
+	exit(1);
+    }
+
+    BPatch_variableExpr *expr1_1 = findVariable(appImage, var1, point7_1);
+
+    if (!expr1_1) {
 	fprintf(stderr, "**Failed** test #7 (relational operators)\n");
 	fprintf(stderr, "    Unable to locate variable %s\n", var1);
 	exit(1);
     }
     BPatch_ifExpr *tempExpr1 = new BPatch_ifExpr(
 	BPatch_boolExpr(op, *r1, *r2), 
-	BPatch_arithExpr(BPatch_assign, *varExpr1, BPatch_constExpr(74)));
+	BPatch_arithExpr(BPatch_assign, *expr1_1, BPatch_constExpr(74)));
     vect7_1.push_back(tempExpr1);
-
 }
 
 //
@@ -694,8 +859,11 @@ void genVRelTest(BPatch_image *appImage,
 void mutatorTest7(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func7_2"
-    BPatch_Vector<BPatch_point *> *point7_1 =
-	appImage->findProcedurePoint("func7_2", BPatch_entry);
+    BPatch_Vector<BPatch_point *> *point7_1;
+    if (mutateeFortran)
+        point7_1 = appImage->findProcedurePoint("func7_2_", BPatch_entry);
+    else
+        point7_1 = appImage->findProcedurePoint("func7_2", BPatch_entry);
 
     if (!point7_1 || ((*point7_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func7_2\".\n");
@@ -721,15 +889,28 @@ void mutatorTest7(BPatch_thread *appThread, BPatch_image *appImage)
     genRelTest(appImage, vect7_1, BPatch_or, 1, 0, "globalVariable7_15");
     genRelTest(appImage, vect7_1, BPatch_or, 0, 0, "globalVariable7_16");
 
-    BPatch_variableExpr *constVar0 = appImage->findVariable("constVar0");
-    BPatch_variableExpr *constVar1 = appImage->findVariable("constVar1");
-    BPatch_variableExpr *constVar2 = appImage->findVariable("constVar2");
-    BPatch_variableExpr *constVar3 = appImage->findVariable("constVar3");
-    BPatch_variableExpr *constVar4 = appImage->findVariable("constVar4");
-    BPatch_variableExpr *constVar5 = appImage->findVariable("constVar5");
-    BPatch_variableExpr *constVar6 = appImage->findVariable("constVar6");
-    BPatch_variableExpr *constVar7 = appImage->findVariable("constVar7");
-    BPatch_variableExpr *constVar9 = appImage->findVariable("constVar9");
+    BPatch_Vector <BPatch_point *> *func7_1;
+    if (mutateeFortran)
+        func7_1 = appImage->findProcedurePoint ("func7_1_", BPatch_subroutine);
+    else
+        func7_1 = appImage->findProcedurePoint ("func7_1", BPatch_subroutine);
+
+    if (!func7_1 || ((*func7_1).size() == 0)) {
+	fprintf(stderr, "Unable to find entry point to \"func7_1\".\n");
+	exit(1);
+    }
+
+    BPatch_variableExpr *constVar0, *constVar1, *constVar2, *constVar3, *constVar4, *constVar5, *constVar6, *constVar7, *constVar9;
+    constVar0 = findVariable(appImage, "constVar0", func7_1);
+    constVar1 = findVariable(appImage, "constVar1", func7_1);
+    constVar2 = findVariable(appImage, "constVar2", func7_1);
+    constVar3 = findVariable(appImage, "constVar3", func7_1);
+    constVar4 = findVariable(appImage, "constVar4", func7_1);
+    constVar5 = findVariable(appImage, "constVar5", func7_1);
+    constVar6 = findVariable(appImage, "constVar6", func7_1);
+    constVar7 = findVariable(appImage, "constVar7", func7_1);
+    constVar9 = findVariable(appImage, "constVar9", func7_1);
+
     if (!constVar0 || !constVar1 || !constVar2 || !constVar3 || !constVar4 ||
         !constVar5 || !constVar6 || !constVar7 || !constVar9 ) {
 	fprintf(stderr, "**Failed** test #7 (relational operators)\n");
@@ -738,38 +919,37 @@ void mutatorTest7(BPatch_thread *appThread, BPatch_image *appImage)
     }
 
     genVRelTest(appImage, vect7_1, BPatch_lt, constVar0, constVar1,
-	"globalVariable7_1a");
+        "globalVariable7_1a");
     genVRelTest(appImage, vect7_1, BPatch_lt, constVar1, constVar0, 
-	"globalVariable7_2a");
-
+        "globalVariable7_2a");
     genVRelTest(appImage, vect7_1, BPatch_eq, constVar2, constVar2, 
-	"globalVariable7_3a");
+        "globalVariable7_3a");
     genVRelTest(appImage, vect7_1, BPatch_eq, constVar2, constVar3, 
-	"globalVariable7_4a");
+        "globalVariable7_4a");
     genVRelTest(appImage, vect7_1, BPatch_gt, constVar4, constVar3, 
-	"globalVariable7_5a");
+        "globalVariable7_5a");
     genVRelTest(appImage, vect7_1, BPatch_gt, constVar3, constVar4, 
-	"globalVariable7_6a");
+        "globalVariable7_6a");
     genVRelTest(appImage, vect7_1, BPatch_le, constVar3, constVar4, 
-	"globalVariable7_7a");
+        "globalVariable7_7a");
     genVRelTest(appImage, vect7_1, BPatch_le, constVar4, constVar3, 
-	"globalVariable7_8a");
+        "globalVariable7_8a");
     genVRelTest(appImage, vect7_1, BPatch_ne, constVar5, constVar6, 
-	"globalVariable7_9a");
+        "globalVariable7_9a");
     genVRelTest(appImage, vect7_1, BPatch_ne, constVar5, constVar5, 
-	"globalVariable7_10a");
+        "globalVariable7_10a");
     genVRelTest(appImage, vect7_1, BPatch_ge, constVar9, constVar7, 
-	"globalVariable7_11a");
+        "globalVariable7_11a");
     genVRelTest(appImage, vect7_1, BPatch_ge, constVar7, constVar9, 
-	"globalVariable7_12a");
+        "globalVariable7_12a");
     genVRelTest(appImage, vect7_1, BPatch_and, constVar1, constVar1, 
-	"globalVariable7_13a");
+        "globalVariable7_13a");
     genVRelTest(appImage, vect7_1, BPatch_and, constVar1, constVar0, 
-	"globalVariable7_14a");
+        "globalVariable7_14a");
     genVRelTest(appImage, vect7_1, BPatch_or, constVar1, constVar0, 
-	"globalVariable7_15a");
+        "globalVariable7_15a");
     genVRelTest(appImage, vect7_1, BPatch_or, constVar0, constVar0, 
-	"globalVariable7_16a");
+        "globalVariable7_16a");
 
     dprintf("relops test vector length is %d\n", vect7_1.size());
 
@@ -783,8 +963,11 @@ void mutatorTest7(BPatch_thread *appThread, BPatch_image *appImage)
 void mutatorTest8(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func8_1"
-    BPatch_Vector<BPatch_point *> *point8_1 =
-	appImage->findProcedurePoint("func8_1", BPatch_entry);
+    BPatch_Vector<BPatch_point *> *point8_1;
+    if (mutateeFortran)
+        point8_1 = appImage->findProcedurePoint("func8_1_", BPatch_entry);
+    else
+        point8_1 = appImage->findProcedurePoint("func8_1", BPatch_entry);
 
     if (!point8_1 || ((*point8_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func8_1\".\n");
@@ -793,7 +976,8 @@ void mutatorTest8(BPatch_thread *appThread, BPatch_image *appImage)
 
     BPatch_Vector<BPatch_snippet*> vect8_1;
 
-    BPatch_variableExpr *expr8_1 = appImage->findVariable("globalVariable8_1");
+    BPatch_variableExpr *expr8_1 = findVariable(appImage, "globalVariable8_1", point8_1);
+
     if (!expr8_1) {
 	fprintf(stderr, "**Failed** test #3 (passing variables)\n");
 	fprintf(stderr, "    Unable to locate variable globalVariable8_1\n");
@@ -824,15 +1008,23 @@ void mutatorTest8(BPatch_thread *appThread, BPatch_image *appImage)
 void mutatorTest9(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func9_1"
-    BPatch_Vector<BPatch_point *> *point9_1 =
-	appImage->findProcedurePoint("func9_1", BPatch_entry);
+    BPatch_Vector<BPatch_point *> *point9_1;
+    if (mutateeFortran)
+        point9_1 = appImage->findProcedurePoint("func9_1_", BPatch_entry);
+    else
+        point9_1 = appImage->findProcedurePoint("func9_1", BPatch_entry);
 
     if (!point9_1 || ((*point9_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func9_1\".\n");
 	exit(1);
     }
 
-    BPatch_function *call9_func = appImage->findFunction("call9_1");
+    BPatch_function *call9_func;
+    if (mutateeFortran)
+        call9_func = appImage->findFunction("call9_1_");
+    else
+        call9_func = appImage->findFunction("call9_1");
+
     if (call9_func == NULL) {
 	fprintf(stderr, "Unable to find function \"call9_1.\"\n");
 	exit(1);
@@ -840,27 +1032,76 @@ void mutatorTest9(BPatch_thread *appThread, BPatch_image *appImage)
 
     BPatch_Vector<BPatch_snippet *> call9_args;
 
-    BPatch_constExpr constExpr91(91);
-    call9_args.push_back(&constExpr91);
+    BPatch_variableExpr *expr9_1 = appThread->malloc (*appImage->findType ("int"));
+    BPatch_constExpr constExpr9_1 (0);
+    BPatch_arithExpr arithexpr9_1 (BPatch_assign, *expr9_1, BPatch_constExpr (91));
+    appThread->insertSnippet (arithexpr9_1, *point9_1);
 
-    BPatch_constExpr constExpr92(92);
-    call9_args.push_back(&constExpr92);
+    if (mutateeFortran) {
+        constExpr9_1 = expr9_1->getBaseAddr ();
+    } else {
+        constExpr9_1 = 91;
+    }
 
-    BPatch_constExpr constExpr93(93);
-    call9_args.push_back(&constExpr93);
+    call9_args.push_back(&constExpr9_1);
 
-    BPatch_constExpr constExpr94(94);
-    call9_args.push_back(&constExpr94);
+    BPatch_variableExpr *expr9_2 = appThread->malloc (*appImage->findType ("int"));
+    BPatch_constExpr constExpr9_2 (0);
+    BPatch_arithExpr arithexpr9_2 (BPatch_assign, *expr9_2, BPatch_constExpr (92));
+    appThread->insertSnippet (arithexpr9_2, *point9_1);
 
-    BPatch_constExpr constExpr95(95);
-    call9_args.push_back(&constExpr95);
+    if (mutateeFortran) {
+        constExpr9_2 = expr9_2->getBaseAddr ();
+    } else {
+        constExpr9_2 = 92;
+    }
+
+    call9_args.push_back(&constExpr9_2);
+
+    BPatch_variableExpr *expr9_3 = appThread->malloc (*appImage->findType ("int"));
+    BPatch_constExpr constExpr9_3 (0);
+    BPatch_arithExpr arithexpr9_3 (BPatch_assign, *expr9_3, BPatch_constExpr (93));
+    appThread->insertSnippet (arithexpr9_3, *point9_1);
+
+    if (mutateeFortran) {
+        constExpr9_3 = expr9_3->getBaseAddr ();
+    } else {
+        constExpr9_3 = 93;
+    }
+
+    call9_args.push_back(&constExpr9_3);
+
+    BPatch_variableExpr *expr9_4 = appThread->malloc (*appImage->findType ("int"));
+    BPatch_constExpr constExpr9_4 (0);
+    BPatch_arithExpr arithexpr9_4 (BPatch_assign, *expr9_4, BPatch_constExpr (94));
+    appThread->insertSnippet (arithexpr9_4, *point9_1);
+
+    if (mutateeFortran) {
+        constExpr9_4 = expr9_4->getBaseAddr ();
+    } else {
+        constExpr9_4 = 94;
+    }
+
+    call9_args.push_back(&constExpr9_4);
+
+    BPatch_variableExpr *expr9_5 = appThread->malloc (*appImage->findType ("int"));
+    BPatch_constExpr constExpr9_5 (0);
+    BPatch_arithExpr arithexpr9_5 (BPatch_assign, *expr9_5, BPatch_constExpr (95));
+    appThread->insertSnippet (arithexpr9_5, *point9_1);
+
+    if (mutateeFortran) {
+        constExpr9_5 = expr9_5->getBaseAddr ();
+    } else {
+        constExpr9_5 = 95;
+    }
+
+    call9_args.push_back(&constExpr9_5);
 
     BPatch_funcCallExpr call9Expr(*call9_func, call9_args);
 
     checkCost(call9Expr);
-    appThread->insertSnippet( call9Expr, *point9_1);
+    appThread->insertSnippet(call9Expr, *point9_1, BPatch_callBefore, BPatch_lastSnippet);
 }
-
 
 //
 // Start Test Case #10 - mutator side (insert snippet order)
@@ -868,27 +1109,45 @@ void mutatorTest9(BPatch_thread *appThread, BPatch_image *appImage)
 void mutatorTest10(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func10_1"
-    BPatch_Vector<BPatch_point *> *point10_1 =
-	appImage->findProcedurePoint("func10_1", BPatch_entry);
+    BPatch_Vector<BPatch_point *> *point10_1;
+    if (mutateeFortran)
+        point10_1 = appImage->findProcedurePoint("func10_1_", BPatch_entry);
+    else
+        point10_1 = appImage->findProcedurePoint("func10_1", BPatch_entry);
 
     if (!point10_1 || ((*point10_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func10_1\".\n");
 	exit(1);
     }
 
-    BPatch_function *call10_1_func = appImage->findFunction("call10_1");
+    BPatch_function *call10_1_func;
+    if (mutateeFortran)
+        call10_1_func = appImage->findFunction("call10_1_");
+    else
+        call10_1_func = appImage->findFunction("call10_1");
+
     if (call10_1_func == NULL) {
 	fprintf(stderr, "Unable to find function \"call10_1.\"\n");
 	exit(1);
     }
 
-    BPatch_function *call10_2_func = appImage->findFunction("call10_2");
+    BPatch_function *call10_2_func;
+    if (mutateeFortran)
+        call10_2_func = appImage->findFunction("call10_2_");
+    else
+        call10_2_func = appImage->findFunction("call10_2");
+
     if (call10_2_func == NULL) {
 	fprintf(stderr, "Unable to find function \"call10_2.\"\n");
 	exit(1);
     }
 
-    BPatch_function *call10_3_func = appImage->findFunction("call10_3");
+    BPatch_function *call10_3_func;
+    if (mutateeFortran)
+        call10_3_func = appImage->findFunction("call10_3_");
+    else
+        call10_3_func = appImage->findFunction("call10_3");
+
     if (call10_3_func == NULL) {
 	fprintf(stderr, "Unable to find function \"call10_3.\"\n");
 	exit(1);
@@ -911,55 +1170,86 @@ void mutatorTest10(BPatch_thread *appThread, BPatch_image *appImage)
 							BPatch_lastSnippet);
 }
 
-
 //
 // Start Test Case #11 - mutator side (snippets at entry,exit,call)
 //
 void mutatorTest11(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func11_1"
-    BPatch_Vector<BPatch_point *> *point11_1 =
-	appImage->findProcedurePoint("func11_1", BPatch_entry);
+    BPatch_Vector<BPatch_point *> *point11_1;
+    if (mutateeFortran)
+        point11_1 = appImage->findProcedurePoint("func11_1_", BPatch_entry);
+    else
+        point11_1 = appImage->findProcedurePoint("func11_1", BPatch_entry);
+
     if (!point11_1 || (point11_1->size() < 1)) {
 	fprintf(stderr, "Unable to find point func11_1 - entry.\n");
 	exit(-1);
     }
 
     // Find the subroutine points for the procedure "func11_1"
-    BPatch_Vector<BPatch_point *> *point11_2 =
-	appImage->findProcedurePoint("func11_1", BPatch_subroutine);
+    BPatch_Vector<BPatch_point *> *point11_2;
+    if (mutateeFortran)
+        point11_2 = appImage->findProcedurePoint("func11_1_", BPatch_subroutine);
+    else
+        point11_2 = appImage->findProcedurePoint("func11_1", BPatch_subroutine);
+
     if (!point11_2 || (point11_2->size() < 1)) {
 	fprintf(stderr, "Unable to find point func11_1 - calls.\n");
 	exit(-1);
     }
 
     // Find the exit point to the procedure "func11_1"
-    BPatch_Vector<BPatch_point *> *point11_3 =
-	appImage->findProcedurePoint("func11_1", BPatch_exit);
+    BPatch_Vector<BPatch_point *> *point11_3;
+    if (mutateeFortran)
+        point11_3 = appImage->findProcedurePoint("func11_1_", BPatch_exit);
+    else
+        point11_3 = appImage->findProcedurePoint("func11_1", BPatch_exit);
+
     if (!point11_3 || (point11_3->size() < 1)) {
 	fprintf(stderr, "Unable to find point func11_1 - exit.\n");
 	exit(-1);
     }
 
-    BPatch_function *call11_1_func = appImage->findFunction("call11_1");
+    BPatch_function *call11_1_func;
+    if (mutateeFortran)
+        call11_1_func = appImage->findFunction("call11_1_");
+    else
+        call11_1_func = appImage->findFunction("call11_1");
+
     if (call11_1_func == NULL) {
 	fprintf(stderr, "Unable to find function \"call11_1.\"\n");
 	exit(1);
     }
 
-    BPatch_function *call11_2_func = appImage->findFunction("call11_2");
+    BPatch_function *call11_2_func;
+    if (mutateeFortran)
+        call11_2_func = appImage->findFunction("call11_2_");
+    else
+        call11_2_func = appImage->findFunction("call11_2");
+
     if (call11_2_func == NULL) {
 	fprintf(stderr, "Unable to find function \"call11_2.\"\n");
 	exit(1);
     }
 
-    BPatch_function *call11_3_func = appImage->findFunction("call11_3");
+    BPatch_function *call11_3_func;
+    if (mutateeFortran)
+        call11_3_func = appImage->findFunction("call11_3_");
+    else
+        call11_3_func = appImage->findFunction("call11_3");
+
     if (call11_3_func == NULL) {
 	fprintf(stderr, "Unable to find function \"call11_3.\"\n");
 	exit(1);
     }
 
-    BPatch_function *call11_4_func = appImage->findFunction("call11_4");
+    BPatch_function *call11_4_func;
+    if (mutateeFortran)
+        call11_4_func = appImage->findFunction("call11_4_");
+    else
+        call11_4_func = appImage->findFunction("call11_4");
+
     if (call11_4_func == NULL) {
 	fprintf(stderr, "Unable to find function \"call11_4.\"\n");
 	exit(1);
@@ -995,8 +1285,12 @@ const int HEAP_TEST_UNIT_SIZE = 5000;
 void mutatorTest12a(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func12_2"
-    BPatch_Vector<BPatch_point *> *point12_2 =
-	appImage->findProcedurePoint("func12_2", BPatch_entry);
+    BPatch_Vector<BPatch_point *> *point12_2;
+    if (mutateeFortran)
+        point12_2 = appImage->findProcedurePoint("func12_2_", BPatch_entry);
+    else
+        point12_2 = appImage->findProcedurePoint("func12_2", BPatch_entry);
+
     if (!point12_2 || (point12_2->size() < 1)) {
 	fprintf(stderr, "Unable to find point func12_2 - entry.\n");
 	exit(-1);
@@ -1045,7 +1339,12 @@ void mutatorTest12a(BPatch_thread *appThread, BPatch_image *appImage)
 	printf("*** Unable to allocate memory after using then freeing heap\n");
     }
 
-    BPatch_function *call12_1_func = appImage->findFunction("call12_1");
+    BPatch_function *call12_1_func;
+    if (mutateeFortran)
+        call12_1_func = appImage->findFunction("call12_1_");
+    else
+        call12_1_func = appImage->findFunction("call12_1");
+
     if (call12_1_func == NULL) {
 	fprintf(stderr, "Unable to find function \"call12_1.\"\n");
 	exit(1);
@@ -1079,27 +1378,36 @@ void mutatorTest12b(BPatch_thread *appThread, BPatch_image * /*appImage*/)
     appThread->continueExecution();
 }
 
-
 //
 // Start Test Case #13 - mutator side (paramExpr,retExpr,nullExpr)
 //
 void mutatorTest13(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func13_1"
-    BPatch_Vector<BPatch_point *> *point13_1 =
-	appImage->findProcedurePoint("func13_1", BPatch_entry);
+    BPatch_Vector<BPatch_point *> *point13_1;
+    if (mutateeFortran)
+        point13_1 = appImage->findProcedurePoint("func13_1_", BPatch_entry);
+    else
+        point13_1 = appImage->findProcedurePoint("func13_1", BPatch_entry);
+
     if (!point13_1 || (point13_1->size() < 1)) {
 	fprintf(stderr, "Unable to find point func13_1 - entry.\n");
 	exit(-1);
     }
 
-    BPatch_function *call13_1_func = appImage->findFunction("call13_1");
+    BPatch_function *call13_1_func;
+    if (mutateeFortran)
+        call13_1_func = appImage->findFunction("call13_1_");
+    else
+        call13_1_func = appImage->findFunction("call13_1");
+
     if (call13_1_func == NULL) {
 	fprintf(stderr, "Unable to find function \"call13_1.\"\n");
 	exit(1);
     }
 
     BPatch_Vector<BPatch_snippet *> funcArgs;
+
     funcArgs.push_back(new BPatch_paramExpr(0));
     funcArgs.push_back(new BPatch_paramExpr(1));
     funcArgs.push_back(new BPatch_paramExpr(2));
@@ -1115,66 +1423,114 @@ void mutatorTest13(BPatch_thread *appThread, BPatch_image *appImage)
     appThread->insertSnippet(call13_2Expr, *point13_1);
 
     // now test that a return value can be read.
-    BPatch_Vector<BPatch_point *> *point13_2 =
-	appImage->findProcedurePoint("func13_2", BPatch_exit);
+    BPatch_Vector<BPatch_point *> *point13_2;
+    if (mutateeFortran)
+        point13_2 = appImage->findProcedurePoint("func13_2_", BPatch_exit);
+    else
+        point13_2 = appImage->findProcedurePoint("func13_2", BPatch_exit);
+
     if (!point13_2 || (point13_2->size() < 1)) {
 	fprintf(stderr, "Unable to find point func13_2 - exit.\n");
 	exit(-1);
     }
 
-    BPatch_function *call13_2_func = appImage->findFunction("call13_2");
+    BPatch_function *call13_2_func;
+    if (mutateeFortran)
+        call13_2_func = appImage->findFunction("call13_2_");
+    else
+        call13_2_func = appImage->findFunction("call13_2");
+
     if (call13_2_func == NULL) {
 	fprintf(stderr, "Unable to find function \"call13_2.\"\n");
 	exit(1);
     }
 
     BPatch_Vector<BPatch_snippet *> funcArgs2;
-    funcArgs2.push_back(new BPatch_retExpr());
+
+    BPatch_variableExpr *expr13_1;
+    BPatch_retExpr *ret_var;
+    BPatch_constExpr expr13_2 (0);
+
+    if (mutateeFortran) {
+        expr13_1 = appThread->malloc (*appImage->findType ("int"));
+        ret_var = new BPatch_retExpr();
+        BPatch_arithExpr test_arith (BPatch_assign, *expr13_1, *ret_var);
+        appThread->insertSnippet (test_arith, *point13_2);
+        expr13_2 = expr13_1->getBaseAddr ();
+        funcArgs2.push_back (&expr13_2);
+    } else {
+        funcArgs2.push_back(new BPatch_retExpr());
+    }
+
     BPatch_funcCallExpr call13_3Expr(*call13_2_func, funcArgs2);
 
     checkCost(call13_1Expr);
-    appThread->insertSnippet(call13_3Expr, *point13_2);
+    appThread->insertSnippet(call13_3Expr, *point13_2, BPatch_callAfter, BPatch_lastSnippet);
 }
-
 
 //
 // Start Test Case #14 - mutator side (replace function call)
 //
 void mutatorTest14(BPatch_thread *appThread, BPatch_image *appImage)
 {
-    replaceFunctionCalls(appThread, appImage,
-		         "func14_1", "func14_2", "call14_1",
-			 14, "replace/remove function call", 1);
-    replaceFunctionCalls(appThread, appImage,
-			 "func14_1", "func14_3", NULL,
-			 14, "replace/remove function call", 1);
+    if (mutateeFortran)
+    {
+        replaceFunctionCalls(appThread, appImage,
+            "func14_1_", "func14_2_", "call14_1_",
+            14, "replace/remove function call", 1);
+        replaceFunctionCalls(appThread, appImage,
+            "func14_1_", "func14_3_", NULL,
+            14, "replace/remove function call", 1);
+    } else {
+        replaceFunctionCalls(appThread, appImage,
+            "func14_1", "func14_2", "call14_1",
+            14, "replace/remove function call", 1);
+        replaceFunctionCalls(appThread, appImage,
+            "func14_1", "func14_3", NULL,
+            14, "replace/remove function call", 1);
+    }
 }
-
 
 //
 // Start Test Case #15 - mutator side (setMutationsActive)
 //
 void mutatorTest15a(BPatch_thread *appThread, BPatch_image *appImage)
 {
-    insertCallSnippetAt(appThread, appImage, "func15_2", BPatch_entry,
-			"call15_1", 15, "setMutationsActive");
+    if (mutateeFortran)
+        insertCallSnippetAt(appThread, appImage, "func15_2_", BPatch_entry,
+            "call15_1_", 15, "setMutationsActive");
+    else
+        insertCallSnippetAt(appThread, appImage, "func15_2", BPatch_entry,
+            "call15_1", 15, "setMutationsActive");
 
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
     // On the Sparc, functions containing system calls are relocated into the
     // heap when instrumented, making a special case we should check.
 
     // "access" makes the "access" system call, so we'll instrument it
-    insertCallSnippetAt(appThread, appImage, "access", BPatch_entry,
-			"call15_2", 15, "setMutationsActive");
-    // We want to instrument more than one point, so do exit as well
-    insertCallSnippetAt(appThread, appImage, "access", BPatch_exit,
-			"call15_2", 15, "setMutationsActive");
+    if (mutateeFortran)
+        insertCallSnippetAt(appThread, appImage, "access", BPatch_entry,
+		"call15_2_", 15, "setMutationsActive");
+    else
+        insertCallSnippetAt(appThread, appImage, "access", BPatch_entry,
+		"call15_2", 15, "setMutationsActive");
+
+    if (mutateeFortran)
+        // We want to instrument more than one point, so do exit as well
+        insertCallSnippetAt(appThread, appImage, "access", BPatch_exit,
+		"call15_2_", 15, "setMutationsActive");
+    else
+        insertCallSnippetAt(appThread, appImage, "access", BPatch_exit,
+		"call15_2", 15, "setMutationsActive");
 #endif
 
-    replaceFunctionCalls(appThread, appImage, "func15_4", "func15_3",
-			 "call15_3", 15, "setMutationsActive", 1);
+    if (mutateeFortran)
+        replaceFunctionCalls(appThread, appImage, "func15_4_", "func15_3_",
+            "call15_3_", 15, "setMutationsActive", 1);
+    else
+        replaceFunctionCalls(appThread, appImage, "func15_4", "func15_3",
+            "call15_3", 15, "setMutationsActive", 1);
 }
-
 
 void mutatorTest15b(BPatch_thread *appThread, BPatch_image * /*appImage*/)
 {
@@ -1207,16 +1563,31 @@ BPatch_Vector<BPatch_snippet *> genLongExpr(BPatch_arithExpr *tail)
 //
 void mutatorTest16(BPatch_thread *appThread, BPatch_image *appImage)
 {
-    BPatch_variableExpr *expr16_1=appImage->findVariable("globalVariable16_1");
-    BPatch_variableExpr *expr16_2=appImage->findVariable("globalVariable16_2");
-    BPatch_variableExpr *expr16_3=appImage->findVariable("globalVariable16_3");
-    BPatch_variableExpr *expr16_4=appImage->findVariable("globalVariable16_4");
-    BPatch_variableExpr *expr16_5=appImage->findVariable("globalVariable16_5");
-    BPatch_variableExpr *expr16_6=appImage->findVariable("globalVariable16_6");
-    BPatch_variableExpr *expr16_7=appImage->findVariable("globalVariable16_7");
-    BPatch_variableExpr *expr16_8=appImage->findVariable("globalVariable16_8");
-    BPatch_variableExpr *expr16_9=appImage->findVariable("globalVariable16_9");
-    BPatch_variableExpr *expr16_10=appImage->findVariable("globalVariable16_10");
+    BPatch_Vector <BPatch_point *> *func16_1;
+    if (mutateeFortran)
+        func16_1 = appImage->findProcedurePoint ("func16_1_", BPatch_subroutine);
+    else
+        func16_1 = appImage->findProcedurePoint ("func16_1", BPatch_subroutine);
+
+    if (!func16_1 || ((*func16_1).size() == 0)) {
+	fprintf(stderr, "Unable to find entry point to \"func16_1\".\n");
+	exit(1);
+    }
+
+    BPatch_variableExpr *expr16_1, *expr16_2, *expr16_3, *expr16_4, *expr16_5,
+        *expr16_6, *expr16_7, *expr16_8, *expr16_9, *expr16_10;
+
+    expr16_1 = findVariable(appImage, "globalVariable16_1", func16_1);
+    expr16_2 = findVariable(appImage, "globalVariable16_2", func16_1);
+    expr16_3 = findVariable(appImage, "globalVariable16_3", func16_1);
+    expr16_4 = findVariable(appImage, "globalVariable16_4", func16_1);
+    expr16_5 = findVariable(appImage, "globalVariable16_5", func16_1);
+    expr16_6 = findVariable(appImage, "globalVariable16_6", func16_1);
+    expr16_7 = findVariable(appImage, "globalVariable16_7", func16_1);
+    expr16_8 = findVariable(appImage, "globalVariable16_8", func16_1);
+    expr16_9 = findVariable(appImage, "globalVariable16_9", func16_1);
+    expr16_10 = findVariable(appImage, "globalVariable16_10", func16_1);
+
     if (!expr16_1 || !expr16_2 || !expr16_3 || !expr16_4 || !expr16_5 ||
         !expr16_6 || !expr16_7 || !expr16_8 || !expr16_9 || !expr16_10) {
 	fprintf(stderr, "**Failed** test #16 (if-else)\n");
@@ -1227,59 +1598,61 @@ void mutatorTest16(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_arithExpr assign16_1(BPatch_assign, *expr16_1, BPatch_constExpr(1));
     BPatch_arithExpr assign16_2(BPatch_assign, *expr16_2, BPatch_constExpr(1));
 
-    BPatch_ifExpr if16_2(BPatch_boolExpr(BPatch_eq,
-	                                 BPatch_constExpr(1),
-					 BPatch_constExpr(1)),
-			 assign16_1, assign16_2);
+    BPatch_ifExpr if16_2(BPatch_boolExpr(BPatch_eq, BPatch_constExpr(1),
+        BPatch_constExpr(1)), assign16_1, assign16_2);
 
     BPatch_arithExpr assign16_3(BPatch_assign, *expr16_3, BPatch_constExpr(1));
     BPatch_arithExpr assign16_4(BPatch_assign, *expr16_4, BPatch_constExpr(1));
 
-    BPatch_ifExpr if16_3(BPatch_boolExpr(BPatch_eq,
-	                                 BPatch_constExpr(0),
-					 BPatch_constExpr(1)),
-			 assign16_3, assign16_4);
+    BPatch_ifExpr if16_3(BPatch_boolExpr(BPatch_eq, BPatch_constExpr(0),
+        BPatch_constExpr(1)), assign16_3, assign16_4);
 
     BPatch_arithExpr assign16_5(BPatch_assign, *expr16_5, BPatch_constExpr(1));
     BPatch_arithExpr assign16_6(BPatch_assign, *expr16_6, BPatch_constExpr(1));
     BPatch_sequence longExpr16_1(genLongExpr(&assign16_5));
 
 
-    BPatch_ifExpr if16_4(BPatch_boolExpr(BPatch_eq,
-	                                 BPatch_constExpr(0),
-					 BPatch_constExpr(1)),
-			 longExpr16_1, assign16_6);
+    BPatch_ifExpr if16_4(BPatch_boolExpr(BPatch_eq, BPatch_constExpr(0),
+        BPatch_constExpr(1)), longExpr16_1, assign16_6);
 
     BPatch_arithExpr assign16_7(BPatch_assign, *expr16_7, BPatch_constExpr(1));
     BPatch_arithExpr assign16_8(BPatch_assign, *expr16_8, BPatch_constExpr(1));
     BPatch_sequence longExpr16_2(genLongExpr(&assign16_8));
 
-    BPatch_ifExpr if16_5(BPatch_boolExpr(BPatch_eq,
-	                                 BPatch_constExpr(0),
-					 BPatch_constExpr(1)),
-			 assign16_7, longExpr16_2);
+    BPatch_ifExpr if16_5(BPatch_boolExpr(BPatch_eq, BPatch_constExpr(0),
+        BPatch_constExpr(1)), assign16_7, longExpr16_2);
 
     BPatch_arithExpr assign16_9(BPatch_assign, *expr16_9, BPatch_constExpr(1));
     BPatch_arithExpr assign16_10(BPatch_assign, *expr16_10,BPatch_constExpr(1));
     BPatch_sequence longExpr16_3(genLongExpr(&assign16_9));
     BPatch_sequence longExpr16_4(genLongExpr(&assign16_10));
 
-    BPatch_ifExpr if16_6(BPatch_boolExpr(BPatch_eq,
-	                                 BPatch_constExpr(0),
-					 BPatch_constExpr(1)),
-			 longExpr16_3, longExpr16_4);
+    BPatch_ifExpr if16_6(BPatch_boolExpr(BPatch_eq, BPatch_constExpr(0),
+        BPatch_constExpr(1)), longExpr16_3, longExpr16_4);
 
-    insertSnippetAt(appThread, appImage, "func16_2", BPatch_entry, if16_2,
-		    16, "if-else");
-    insertSnippetAt(appThread, appImage, "func16_3", BPatch_entry, if16_3,
-		    16, "if-else");
-
-    insertSnippetAt(appThread, appImage, "func16_4", BPatch_entry, if16_4,
-		    16, "if-else");
-    insertSnippetAt(appThread, appImage, "func16_4", BPatch_entry, if16_5,
-		    16, "if-else");
-    insertSnippetAt(appThread, appImage, "func16_4", BPatch_entry, if16_6,
-		    16, "if-else");
+    if (mutateeFortran) {
+        insertSnippetAt(appThread, appImage, "func16_2_", BPatch_entry, if16_2,
+            16, "if-else");
+        insertSnippetAt(appThread, appImage, "func16_3_", BPatch_entry, if16_3,
+            16, "if-else");
+        insertSnippetAt(appThread, appImage, "func16_4_", BPatch_entry, if16_4,
+            16, "if-else");
+        insertSnippetAt(appThread, appImage, "func16_4_", BPatch_entry, if16_5,
+            16, "if-else");
+        insertSnippetAt(appThread, appImage, "func16_4_", BPatch_entry, if16_6,
+            16, "if-else");
+    } else {
+        insertSnippetAt(appThread, appImage, "func16_2", BPatch_entry, if16_2,
+            16, "if-else");
+        insertSnippetAt(appThread, appImage, "func16_3", BPatch_entry, if16_3,
+            16, "if-else");
+        insertSnippetAt(appThread, appImage, "func16_4", BPatch_entry, if16_4,
+            16, "if-else");
+        insertSnippetAt(appThread, appImage, "func16_4", BPatch_entry, if16_5,
+            16, "if-else");
+        insertSnippetAt(appThread, appImage, "func16_4", BPatch_entry, if16_6,
+            16, "if-else");
+    }
 }
 
 //
@@ -1295,56 +1668,117 @@ void mutatorTest16(BPatch_thread *appThread, BPatch_image *appImage)
 void mutatorTest17(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func17_1"
-    BPatch_Vector<BPatch_point *> *point17_1 =
-	appImage->findProcedurePoint("func17_1", BPatch_exit);
+    BPatch_Vector<BPatch_point *> *point17_1;
+    if (mutateeFortran)
+        point17_1 = appImage->findProcedurePoint("func17_1_", BPatch_exit);
+    else
+        point17_1 = appImage->findProcedurePoint("func17_1", BPatch_exit);
+
     if (!point17_1 || (point17_1->size() < 1)) {
 	fprintf(stderr, "Unable to find point func17_1 - exit.\n");
 	exit(-1);
     }
 
-    BPatch_function *call17_1_func = appImage->findFunction("call17_1");
+    BPatch_function *call17_1_func;
+    if (mutateeFortran)
+        call17_1_func = appImage->findFunction("call17_1_");
+    else
+        call17_1_func = appImage->findFunction("call17_1");
+
     if (call17_1_func == NULL) {
 	fprintf(stderr, "Unable to find function \"call17_1.\"\n");
 	exit(1);
     }
 
     BPatch_Vector<BPatch_snippet *> funcArgs;
-    funcArgs.push_back(new BPatch_constExpr(1));
+
+    BPatch_variableExpr *var17_1 = appThread->malloc (*appImage->findType ("int"));
+    BPatch_constExpr constExpr17_1 (0);
+    BPatch_arithExpr arithExpr17_1 (BPatch_assign, *var17_1, BPatch_constExpr (1));
+    appThread->insertSnippet (arithExpr17_1, *point17_1);
+
+    if (mutateeFortran) {
+        constExpr17_1 = var17_1->getBaseAddr ();
+    } else {
+        constExpr17_1 = 1;
+    }
+
+    funcArgs.push_back (&constExpr17_1);
+
     BPatch_funcCallExpr call17_1Expr(*call17_1_func, funcArgs);
     checkCost(call17_1Expr);
-    appThread->insertSnippet(call17_1Expr, *point17_1);
+    appThread->insertSnippet(call17_1Expr, *point17_1, BPatch_callAfter, BPatch_lastSnippet);
 
     // Find the exit point to the procedure "func17_2"
-    BPatch_Vector<BPatch_point *> *point17_2 =
-	appImage->findProcedurePoint("func17_2", BPatch_exit);
+    BPatch_Vector<BPatch_point *> *point17_2;
+    if (mutateeFortran)
+        point17_2 = appImage->findProcedurePoint("func17_2_", BPatch_exit);
+    else
+        point17_2 = appImage->findProcedurePoint("func17_2", BPatch_exit);
+
     if (!point17_2 || (point17_2->size() < 1)) {
 	fprintf(stderr, "Unable to find point func17_2 - exit.\n");
 	exit(-1);
     }
 
-    BPatch_function *call17_2_func = appImage->findFunction("call17_2");
+    BPatch_function *call17_2_func;
+    if (mutateeFortran)
+        call17_2_func = appImage->findFunction("call17_2_");
+    else
+        call17_2_func = appImage->findFunction("call17_2");
+
     if (call17_2_func == NULL) {
 	fprintf(stderr, "Unable to find function \"call17_2.\"\n");
 	exit(1);
     }
 
     BPatch_Vector<BPatch_snippet *> funcArgs2;
-    funcArgs2.push_back(new BPatch_constExpr(1));
+
+    BPatch_variableExpr *var17_2 = appThread->malloc (*appImage->findType ("int"));
+    BPatch_constExpr constExpr17_2 (0);
+    BPatch_arithExpr arith17_2 (BPatch_assign, *var17_2, BPatch_constExpr (1));
+    appThread->insertSnippet (arith17_2, *point17_2);
+
+    if (mutateeFortran) {
+        constExpr17_2 = var17_2->getBaseAddr ();
+    } else {
+        constExpr17_2 = 1;
+    }
+
+    funcArgs2.push_back (&constExpr17_2);
+
     BPatch_funcCallExpr call17_2Expr(*call17_2_func, funcArgs2);
     checkCost(call17_2Expr);
 
     // test interface to call into insertSnippet with only one parameter
     BPatch_point aPoint = *(*point17_2)[0];
-    appThread->insertSnippet(call17_2Expr, aPoint, 
-	BPatch_callAfter, BPatch_lastSnippet);
+    appThread->insertSnippet(call17_2Expr, aPoint, BPatch_callAfter, BPatch_lastSnippet);
 }
 
 //
 // Start Test Case #18 - mutator side (read/write a variable in the mutatee)
 //
-void mutatorTest18(BPatch_thread *, BPatch_image *appImage)
+void mutatorTest18(BPatch_thread *appThread, BPatch_image *appImage)
 {
-    BPatch_variableExpr *expr18_1 =appImage->findVariable("globalVariable18_1");
+    BPatch_Vector <BPatch_point *> *func18_1;
+    if (mutateeFortran)
+        func18_1 = appImage->findProcedurePoint ("func18_1_", BPatch_subroutine);
+    else
+        func18_1 = appImage->findProcedurePoint ("func18_1", BPatch_subroutine);
+
+    if (!func18_1 || ((*func18_1).size() == 0)) {
+	fprintf(stderr, "Unable to find entry point to \"func18_1\".\n");
+	exit(1);
+    }
+
+    BPatch_variableExpr *expr18_1 = findVariable(appImage, "globalVariable18_1", func18_1);
+
+/* Initialization must be done, because C would have done initialization at declaration */
+    if (mutateeFortran) {
+        BPatch_arithExpr arith18_1 (BPatch_assign, *expr18_1, BPatch_constExpr (42));
+        appThread->oneTimeCode (arith18_1);
+    }
+
     if (expr18_1 == NULL) {
 	fprintf(stderr, "**Failed** test #18 (read/write a variable in the mutatee)\n");
 	fprintf(stderr, "    Unable to locate globalVariable18_1\n");
@@ -1371,14 +1805,19 @@ void mutatorTest19(BPatch_thread *appThread, BPatch_image *appImage)
 {
     waitUntilStopped(bpatch, appThread, 19, "oneTimeCode");
 
-    BPatch_function *call19_1func = appImage->findFunction("call19_1");
-    if (call19_1func == NULL) {
+    BPatch_function *call19_1_func;
+    if (mutateeFortran)
+        call19_1_func = appImage->findFunction("call19_1_");
+    else
+        call19_1_func = appImage->findFunction("call19_1");
+
+    if (call19_1_func == NULL) {
 	fprintf(stderr, "Unable to find function \"call19_1.\"\n");
 	exit(1);
     }
 
     BPatch_Vector<BPatch_snippet *> nullArgs;
-    BPatch_funcCallExpr call19_1Expr(*call19_1func, nullArgs);
+    BPatch_funcCallExpr call19_1Expr(*call19_1_func, nullArgs);
     checkCost(call19_1Expr);
 
     appThread->oneTimeCode(call19_1Expr);
@@ -1386,13 +1825,18 @@ void mutatorTest19(BPatch_thread *appThread, BPatch_image *appImage)
     appThread->continueExecution();
     P_sleep(1);           /* wait for child to continue */
 
-    BPatch_function *call19_2func = appImage->findFunction("call19_2");
-    if (call19_2func == NULL) {
+    BPatch_function *call19_2_func;
+    if (mutateeFortran)
+        call19_2_func = appImage->findFunction("call19_2_");
+    else
+        call19_2_func = appImage->findFunction("call19_2");
+
+    if (call19_2_func == NULL) {
         fprintf(stderr, "Unable to find function \"call19_2.\"\n");
         exit(1);
     }
 
-    BPatch_funcCallExpr call19_2Expr(*call19_2func, nullArgs);
+    BPatch_funcCallExpr call19_2Expr(*call19_2_func, nullArgs);
     checkCost(call19_2Expr);
 
     appThread->oneTimeCode(call19_2Expr);
@@ -1408,18 +1852,27 @@ void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
     defined(mips_sgi_irix6_4) || \
     defined(sparc_sun_solaris2_4)
 
-    BPatch_function *call20_1func = appImage->findFunction("call20_1");
-    if (call20_1func == NULL) {
+    BPatch_function *call20_1_func;
+    if (mutateeFortran)
+        call20_1_func = appImage->findFunction("call20_1_");
+    else
+        call20_1_func = appImage->findFunction("call20_1");
+
+    if (call20_1_func == NULL) {
 	fprintf(stderr, "Unable to find function \"call20_1.\"\n");
 	exit(1);
     }
 
     BPatch_Vector<BPatch_snippet *> nullArgs;
-    BPatch_funcCallExpr call20_1Expr(*call20_1func, nullArgs);
+    BPatch_funcCallExpr call20_1Expr(*call20_1_func, nullArgs);
     checkCost(call20_1Expr);
 
+    BPatch_function *f;
+    if (mutateeFortran)
+        f = appImage->findFunction("func20_2_");
+    else
+        f = appImage->findFunction("func20_2");
 
-    BPatch_function *f = appImage->findFunction("func20_2");
     if (f == NULL) {
 	fprintf(stderr, "Unable to find function \"func20_2.\"\n");
 	exit(1);
@@ -1501,7 +1954,7 @@ void mutatorTest21(BPatch_thread *, BPatch_image *appImage)
  || defined(rs6000_ibm_aix4_1)
 
     // Lookup the libtestA.so and libtestB.so modules that we've just loaded
-     
+
     BPatch_module *modA = NULL;
     BPatch_module *modB = NULL;
     BPatch_Vector<BPatch_module *> *mods = appImage->getModules();
@@ -1510,6 +1963,7 @@ void mutatorTest21(BPatch_thread *, BPatch_image *appImage)
 	 fprintf(stderr, "  Mutator couldn't search modules of mutatee\n");
 	 exit(1);
     }
+
     for (int i = 0; i < mods->size() && !(modA && modB); i++) {
 	 char buf[1024];
 	 BPatch_module *m = (*mods)[i];
@@ -1674,54 +2128,56 @@ void mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
 void mutatorTest23(BPatch_thread *appThread, BPatch_image *appImage)
 {
 #if !defined(mips_sgi_irix6_4)
+    if (!mutateeFortran) {
+        //     First verify that we can find a local variable in call23_1
+        BPatch_Vector<BPatch_point *> *point23_1 =
+            appImage->findProcedurePoint("call23_1", BPatch_subroutine);
 
-    //     First verify that we can find a local variable in call23_1
-    BPatch_Vector<BPatch_point *> *point23_1 =
-	appImage->findProcedurePoint("call23_1", BPatch_subroutine);
-    
-    assert(point23_1);
-    BPatch_variableExpr *var1 = appImage->findVariable(*(*point23_1)[0], 
-	"localVariable23_1");
-    BPatch_variableExpr *var2 = appImage->findVariable(*(*point23_1)[0], 
-	"shadowVariable23_1");
-    BPatch_variableExpr *var3 = appImage->findVariable("shadowVariable23_2");
-    BPatch_variableExpr *var4 = appImage->findVariable("globalVariable23_1");
-    if (!var1 || !var2 || !var3 || !var4) {
-	fprintf(stderr, "**Failed** test #23 (local variables)\n");
-	if (!var1) 
-	    fprintf(stderr, "  can't find local variable localVariable23_1\n");
-	if (!var2) 
-	    fprintf(stderr, "  can't find local variable shadowVariable23_1\n");
-	if (!var3) 
-	    fprintf(stderr,"  can't find global variable shadowVariable23_2\n");
-	return;
+        assert(point23_1);
+
+        BPatch_variableExpr *var1 = appImage->findVariable(*(*point23_1)[0],
+            "localVariable23_1");
+        BPatch_variableExpr *var2 = appImage->findVariable(*(*point23_1)[0],
+            "shadowVariable23_1");
+        BPatch_variableExpr *var3 = appImage->findVariable("shadowVariable23_2");
+        BPatch_variableExpr *var4 = appImage->findVariable("globalVariable23_1");
+
+        if (!var1 || !var2 || !var3 || !var4) {
+            fprintf(stderr, "**Failed** test #23 (local variables)\n");
+            if (!var1)
+                fprintf(stderr, "  can't find local variable localVariable23_1\n");
+            if (!var2)
+                fprintf(stderr, "  can't find local variable shadowVariable23_1\n");
+            if (!var3)
+                fprintf(stderr,"  can't find global variable shadowVariable23_2\n");
+            return;
+        }
+
+        BPatch_arithExpr expr23_1(BPatch_assign, *var1, BPatch_constExpr(2300001));
+        BPatch_arithExpr expr23_2(BPatch_assign, *var2, BPatch_constExpr(2300012));
+        BPatch_arithExpr expr23_3(BPatch_assign, *var3, BPatch_constExpr(2300023));
+        BPatch_arithExpr expr23_4(BPatch_assign, *var4, *var1);
+
+        BPatch_Vector<BPatch_snippet *> exprs;
+
+        exprs.push_back(&expr23_4); // put this one first so it isn't clobbered
+        exprs.push_back(&expr23_1);
+        exprs.push_back(&expr23_2);
+        exprs.push_back(&expr23_3);
+
+        BPatch_sequence allParts(exprs);
+
+        BPatch_Vector<BPatch_point *> *points =
+        appImage->findProcedurePoint("call23_1", BPatch_subroutine);
+        if (!points || (points->size() < 1)) {
+            fprintf(stderr, "**Failed** test #23 (local variables)\n");
+            fprintf(stderr, "  Unable to find point call23_1 - subroutine calls\n");
+            exit(1);
+        }
+        appThread->insertSnippet(allParts, *points);
     }
-
-    BPatch_arithExpr expr23_1(BPatch_assign, *var1, BPatch_constExpr(2300001));
-    BPatch_arithExpr expr23_2(BPatch_assign, *var2, BPatch_constExpr(2300012));
-    BPatch_arithExpr expr23_3(BPatch_assign, *var3, BPatch_constExpr(2300023));
-    BPatch_arithExpr expr23_4(BPatch_assign, *var4, *var1);
-
-    BPatch_Vector<BPatch_snippet *> exprs;
-
-    exprs.push_back(&expr23_4); // put this one first so it isn't clobbered
-    exprs.push_back(&expr23_1);
-    exprs.push_back(&expr23_2);
-    exprs.push_back(&expr23_3);
-
-    BPatch_sequence allParts(exprs);
-
-    BPatch_Vector<BPatch_point *> *points =
-	appImage->findProcedurePoint("call23_1", BPatch_subroutine);
-    if (!points || (points->size() < 1)) {
-	fprintf(stderr, "**Failed** test #23 (local variables)\n");
-	fprintf(stderr, "  Unable to find point call23_1 - subroutine calls\n");
-	exit(1);
-    }
-    appThread->insertSnippet(allParts, *points);
 #endif
 }
-
 
 //
 // Start Test Case #24 - array variables
@@ -1729,115 +2185,117 @@ void mutatorTest23(BPatch_thread *appThread, BPatch_image *appImage)
 void mutatorTest24(BPatch_thread *appThread, BPatch_image *appImage)
 {
 #if !defined(mips_sgi_irix6_4)
+    if (!mutateeFortran) {
+        //     First verify that we can find function call24_1
+        BPatch_function *call24_1func = appImage->findFunction("call24_1");
+        if (call24_1func == NULL) {
+            fprintf(stderr, "Unable to find function \"call24_1\".\n");
+           return;
+        }
 
-    //     First verify that we can find function call24_1
-    BPatch_function *call24_1func = appImage->findFunction("call24_1");
-    if (call24_1func == NULL) {
-    	fprintf(stderr, "Unable to find function \"call24_1\".\n");
-        return;
+        //     Then verify that we can find a local variable in call24_1
+        BPatch_Vector<BPatch_point *> *temp =
+        appImage->findProcedurePoint("call24_1", BPatch_subroutine);
+        if (!temp) {
+            fprintf(stderr, "**Failed** test #24 (array variables)\n");
+            fprintf(stderr, "  can't find function call24_1\n");
+            return;
+        } else {
+            dprintf("Found %d callsites in function call24_1\n", temp->size());
+        }
+
+        BPatch_Vector<BPatch_point *> *point24_1  =
+	    new(BPatch_Vector<BPatch_point *>);
+        point24_1->push_back((*temp)[0]);
+
+        BPatch_Vector<BPatch_point *> *point24_2 =
+            appImage->findProcedurePoint("call24_1", BPatch_exit);
+
+        BPatch_Vector<BPatch_point *> *point24_3 =
+        appImage->findProcedurePoint("func24_1", BPatch_entry);
+
+        assert(point24_1 && point24_2 && point24_3);
+
+        BPatch_variableExpr *lvar;
+        BPatch_variableExpr *gvar[10];
+
+        for (int i=1; i <= 9; i++) {
+            char name[80];
+
+            sprintf(name, "globalVariable24_%d", i);
+            gvar[i] = appImage->findVariable(name);
+            if (!gvar[i]) {
+                fprintf(stderr, "**Failed** test #24 (array variables)\n");
+                fprintf(stderr, "  can't find variable globalVariable24_%d\n", i);
+                return;
+            }
+        }
+
+        lvar = appImage->findVariable(*(*point24_1)[0], "localVariable24_1");
+        if (!lvar) {
+            fprintf(stderr, "**Failed** test #24 (array variables)\n");
+            fprintf(stderr, "  can't find variable localVariable24_1\n");
+            return;
+        }
+
+        //     globalVariable24_1[1] = 2400001
+        BPatch_arithExpr assignment1(BPatch_assign,
+            BPatch_arithExpr(BPatch_ref, *gvar[1], BPatch_constExpr(1)),
+        BPatch_constExpr(2400001));
+        appThread->insertSnippet(assignment1, *point24_1);
+
+        //     globalVariable24_1[globalVariable24_2] = 2400002
+        BPatch_arithExpr assignment2(BPatch_assign,
+            BPatch_arithExpr(BPatch_ref, *gvar[1], *gvar[2]),
+        BPatch_constExpr(2400002));
+        appThread->insertSnippet(assignment2, *point24_1);
+
+        //     globalVariable24_3 = globalVariable24_1[79]
+        BPatch_arithExpr assignment3(BPatch_assign, *gvar[3],
+            BPatch_arithExpr(BPatch_ref, *gvar[1], BPatch_constExpr(79)));
+        appThread->insertSnippet(assignment3, *point24_1);
+
+        //     globalVariable24_5 = globalVariable24_1[globalVariable24_4]
+        BPatch_arithExpr assignment4(BPatch_assign, *gvar[5],
+            BPatch_arithExpr(BPatch_ref, *gvar[1], *gvar[4]));
+        appThread->insertSnippet(assignment4, *point24_1);
+
+        // now the local variables
+        //     localVariable24_1[1] = 2400005
+        BPatch_arithExpr assignment5(BPatch_assign,
+            BPatch_arithExpr(BPatch_ref, *lvar, BPatch_constExpr(1)),
+            BPatch_constExpr(2400005));
+        appThread->insertSnippet(assignment5, *point24_1);
+
+        //     localVariable24_1[globalVariable24_2] = 2400006
+        BPatch_arithExpr assignment6(BPatch_assign,
+            BPatch_arithExpr(BPatch_ref, *lvar, *gvar[2]),
+            BPatch_constExpr(2400006));
+        appThread->insertSnippet(assignment6, *point24_1);
+
+        //     globalVariable24_6 = localVariable24_1[79]
+        BPatch_arithExpr assignment7(BPatch_assign, *gvar[6],
+            BPatch_arithExpr(BPatch_ref, *lvar, BPatch_constExpr(79)));
+        appThread->insertSnippet(assignment7, *point24_1);
+
+        //     globalVariable24_7 = localVariable24_1[globalVariable24_4]
+        BPatch_arithExpr assignment8(BPatch_assign, *gvar[7],
+            BPatch_arithExpr(BPatch_ref, *lvar, *gvar[4]));
+        appThread->insertSnippet(assignment8, *point24_1);
+
+        // now test multi-dimensional arrays
+        //	   globalVariable24_8[2][3] = 2400011
+        BPatch_arithExpr assignment9(BPatch_assign,
+            BPatch_arithExpr(BPatch_ref, BPatch_arithExpr(BPatch_ref, *gvar[8],
+	    BPatch_constExpr(2)), BPatch_constExpr(3)), BPatch_constExpr(2400011));
+        appThread->insertSnippet(assignment9, *point24_1);
+
+        // globalVariable24_9 = globalVariable24_8[7][9]
+        BPatch_arithExpr assignment10(BPatch_assign, *gvar[9],
+            BPatch_arithExpr(BPatch_ref, BPatch_arithExpr(BPatch_ref, *gvar[8],
+            BPatch_constExpr(7)), BPatch_constExpr(9)));
+      appThread->insertSnippet(assignment10, *point24_1);
     }
-
-    //     Then verify that we can find a local variable in call24_1
-    BPatch_Vector<BPatch_point *> *temp =
-	appImage->findProcedurePoint("call24_1", BPatch_subroutine);
-    if (!temp) {
-	fprintf(stderr, "**Failed** test #24 (array variables)\n");
-	fprintf(stderr, "  can't find function call24_1\n");
-	return;
-    } else {
-        dprintf("Found %d callsites in function call24_1\n", temp->size());
-    }
-
-    BPatch_Vector<BPatch_point *> *point24_1  = 
-	new(BPatch_Vector<BPatch_point *>);
-    point24_1->push_back((*temp)[0]);
-
-    BPatch_Vector<BPatch_point *> *point24_2 =
-	appImage->findProcedurePoint("call24_1", BPatch_exit);
-    
-    assert(point24_1 && point24_2);
-
-    BPatch_variableExpr *lvar;
-    BPatch_variableExpr *gvar[10];
-
-    for (int i=1; i <= 9; i++) {
-	char name[80];
-
-	sprintf(name, "globalVariable24_%d", i);
-	gvar[i] = appImage->findVariable(name);
-	if (!gvar[i]) {
-	    fprintf(stderr, "**Failed** test #24 (array variables)\n");
-	    fprintf(stderr, "  can't find variable globalVariable24_%d\n", i);
-	    return;
-	}
-    }
-
-    lvar = appImage->findVariable(*(*point24_1)[0], "localVariable24_1");
-    if (!lvar) {
-	fprintf(stderr, "**Failed** test #24 (array variables)\n");
-	fprintf(stderr, "  can't find variable localVariable24_1\n");
-	return;
-    }
-
-    //     globalVariable24_1[1] = 2400001
-    BPatch_arithExpr assignment1(BPatch_assign, 
-	BPatch_arithExpr(BPatch_ref, *gvar[1], BPatch_constExpr(1)),
-	BPatch_constExpr(2400001));
-    appThread->insertSnippet(assignment1, *point24_1);
-
-    //     globalVariable24_1[globalVariable24_2] = 2400002
-    BPatch_arithExpr assignment2(BPatch_assign, 
-	BPatch_arithExpr(BPatch_ref, *gvar[1], *gvar[2]),
-	BPatch_constExpr(2400002));
-    appThread->insertSnippet(assignment2, *point24_1);
-
-    //     globalVariable24_3 = globalVariable24_1[79]
-    BPatch_arithExpr assignment3(BPatch_assign, *gvar[3],
-	BPatch_arithExpr(BPatch_ref, *gvar[1], BPatch_constExpr(79)));
-    appThread->insertSnippet(assignment3, *point24_1);
-
-    //     globalVariable24_5 = globalVariable24_1[globalVariable24_4]
-    BPatch_arithExpr assignment4(BPatch_assign, *gvar[5],
-	BPatch_arithExpr(BPatch_ref, *gvar[1], *gvar[4]));
-    appThread->insertSnippet(assignment4, *point24_1);
-
-    // now the local variables
-    //     localVariable24_1[1] = 2400005
-    BPatch_arithExpr assignment5(BPatch_assign, 
-	BPatch_arithExpr(BPatch_ref, *lvar, BPatch_constExpr(1)),
-	BPatch_constExpr(2400005));
-    appThread->insertSnippet(assignment5, *point24_1);
-
-    //     localVariable24_1[globalVariable24_2] = 2400006
-    BPatch_arithExpr assignment6(BPatch_assign, 
-	BPatch_arithExpr(BPatch_ref, *lvar, *gvar[2]),
-	BPatch_constExpr(2400006));
-    appThread->insertSnippet(assignment6, *point24_1);
-
-    //     globalVariable24_6 = localVariable24_1[79]
-    BPatch_arithExpr assignment7(BPatch_assign, *gvar[6],
-	BPatch_arithExpr(BPatch_ref, *lvar, BPatch_constExpr(79)));
-    appThread->insertSnippet(assignment7, *point24_1);
-
-    //     globalVariable24_7 = localVariable24_1[globalVariable24_4]
-    BPatch_arithExpr assignment8(BPatch_assign, *gvar[7],
-	BPatch_arithExpr(BPatch_ref, *lvar, *gvar[4]));
-    appThread->insertSnippet(assignment8, *point24_1);
-
-    // now test multi-dimensional arrays
-    //	   globalVariable24_8[2][3] = 2400011
-    BPatch_arithExpr assignment9(BPatch_assign, 
-	BPatch_arithExpr(BPatch_ref, BPatch_arithExpr(BPatch_ref, *gvar[8], 
-						      BPatch_constExpr(2)), 
-	     BPatch_constExpr(3)), BPatch_constExpr(2400011));
-    appThread->insertSnippet(assignment9, *point24_1);
-
-    // globalVariable24_9 = globalVariable24_8[7][9]
-    BPatch_arithExpr assignment10(BPatch_assign, *gvar[9],
-	BPatch_arithExpr(BPatch_ref, BPatch_arithExpr(BPatch_ref, *gvar[8], 
-						      BPatch_constExpr(7)), 
-				     BPatch_constExpr(9)));
-    appThread->insertSnippet(assignment10, *point24_1);
 #endif
 }
 
@@ -1846,20 +2304,27 @@ void mutatorTest24(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest25(BPatch_thread *appThread, BPatch_image *appImage)
 {
+	// Used as hack for Fortran to allow assignment of a pointer to an int
+	bpatch->setTypeChecking (false);
 #ifndef mips_sgi_irix6_4
     //     First verify that we can find a local variable in call25_1
-    BPatch_Vector<BPatch_point *> *point25_1 =
-	appImage->findProcedurePoint("call25_1", BPatch_entry);
+    BPatch_Vector<BPatch_point *> *point25_1;
+    if (mutateeFortran)
+        point25_1 = appImage->findProcedurePoint("call25_1_", BPatch_entry);
+    else
+        point25_1 = appImage->findProcedurePoint("call25_1", BPatch_entry);
 
-    assert(point25_1 && (point25_1->size() == 1));
+    assert(point25_1);
+//    assert(point25_1 && (point25_1->size() == 1));
 
     BPatch_variableExpr *gvar[8];
 
     for (int i=1; i <= 7; i++) {
-	char name[80];
+        char name[80];
 
-	sprintf(name, "globalVariable25_%d", i);
-	gvar[i] = appImage->findVariable(name);
+        sprintf (name, "globalVariable25_%d", i);
+        gvar [i] = findVariable (appImage, name, point25_1);
+
 	if (!gvar[i]) {
 	    fprintf(stderr, "**Failed** test #25 (unary operaors)\n");
 	    fprintf(stderr, "  can't find variable globalVariable25_%d\n", i);
@@ -1903,6 +2368,7 @@ void mutatorTest25(BPatch_thread *appThread, BPatch_image *appImage)
 	BPatch_arithExpr(BPatch_negate, *gvar[6]));
     appThread->insertSnippet(assignment4, *point25_1);
 #endif
+	bpatch->setTypeChecking (true);
 }
 
 
@@ -1913,125 +2379,140 @@ void mutatorTest26(BPatch_thread *appThread, BPatch_image *appImage)
 {
 #if !defined(mips_sgi_irix6_4)
 
-    //     First verify that we can find a local variable in call26_1
-    BPatch_Vector<BPatch_point *> *point26_1 =
-	appImage->findProcedurePoint("call26_1", BPatch_subroutine);
+    if (!mutateeF77) {
+        //     First verify that we can find a local variable in call26_1
+        BPatch_Vector<BPatch_point *> *point26_1;
+        if (mutateeFortran)
+            point26_1 = appImage->findProcedurePoint("call26_1_", BPatch_subroutine);
+        else
+            point26_1 = appImage->findProcedurePoint("call26_1", BPatch_subroutine);
 
-    assert(point26_1 && (point26_1->size() == 1));
+        BPatch_Vector<BPatch_point *> *point26_2;
+        if (mutateeFortran)
+            point26_2 = appImage->findProcedurePoint("func26_1_", BPatch_subroutine);
+        else
+            point26_2 = appImage->findProcedurePoint("func26_1", BPatch_subroutine);
 
-    BPatch_variableExpr *lvar;
-    BPatch_variableExpr *gvar[14];
+        assert(point26_1 && (point26_1->size() == 1));
+        assert(point26_2);
 
-    int i;
-    for (i=1; i <= 13; i++) {
-	char name[80];
+        BPatch_variableExpr *lvar;
+        BPatch_variableExpr *gvar[14];
 
-	sprintf(name, "globalVariable26_%d", i);
-	gvar[i] = appImage->findVariable(name);
-	if (!gvar[i]) {
-	    fprintf(stderr, "**Failed** test #26 (struct elements)\n");
-	    fprintf(stderr, "  can't find variable globalVariable26_%d\n", i);
-	    exit(-1);
-	}
+        int i;
+        for (i=1; i <= 13; i++) {
+            char name[80];
+
+            sprintf (name, "globalVariable26_%d", i);
+            gvar [i] = findVariable(appImage, name, point26_2);
+
+            if (!gvar[i]) {
+                fprintf(stderr, "**Failed** test #26 (struct elements)\n");
+                fprintf(stderr, "  can't find variable globalVariable26_%d\n", i);
+                exit(-1);
+            }
+        }
+
+        // start of code for globalVariable26_1
+        BPatch_Vector<BPatch_variableExpr *> *fields = gvar[1]->getComponents();
+    	if (!fields) {
+		fprintf(stderr, "**Failed** test #26 (struct elements)\n");
+		fprintf(stderr, "  struct lacked correct number of elements\n");
+		exit(-1);
+    	}
+
+        for (i=0; i < 4; i++) {
+            char fieldName[80];
+            sprintf(fieldName, "field%d", i+1);
+            if (!(*fields)[i]->getName())
+                printf("NULL NAME!\n");
+            if (strcmp(fieldName, (*fields)[i]->getName())) {
+                printf("field %d of the struct is %s, not %s\n",
+                    i+1, fieldName, (*fields)[i]->getName());
+                return;
+            }
+        }
+
+	    // 	   globalVariable26_2 = globalVariable26_1.field1
+    	BPatch_arithExpr assignment1(BPatch_assign, *gvar[2], *((*fields)[0]));
+	    appThread->insertSnippet(assignment1, *point26_2);
+
+    	// 	   globalVariable26_3 = globalVariable26_1.field2
+	    BPatch_arithExpr assignment2(BPatch_assign, *gvar[3], *((*fields)[1]));
+    	appThread->insertSnippet(assignment2, *point26_2);
+
+	    // 	   globalVariable26_4 = globalVariable26_1.field3[0]
+    	BPatch_arithExpr assignment3(BPatch_assign, *gvar[4],
+		BPatch_arithExpr(BPatch_ref, *((*fields)[2]), BPatch_constExpr(0)));
+    	appThread->insertSnippet(assignment3, *point26_2);
+
+	    // 	   globalVariable26_5 = globalVariable26_1.field3[5]
+    	BPatch_arithExpr assignment4(BPatch_assign, *gvar[5],
+		BPatch_arithExpr(BPatch_ref, *((*fields)[2]), BPatch_constExpr(5)));
+    	appThread->insertSnippet(assignment4, *point26_2);
+
+	    BPatch_Vector<BPatch_variableExpr *> *subfields =
+		(*fields)[3]->getComponents();
+	    assert(subfields != NULL);
+
+    	// 	   globalVariable26_6 = globalVariable26_1.field4.field1
+	    BPatch_arithExpr assignment5(BPatch_assign, *gvar[6], *((*subfields)[0]));
+    	appThread->insertSnippet(assignment5, *point26_2);
+
+	    // 	   globalVariable26_7 = globalVariable26_1.field4.field2
+    	BPatch_arithExpr assignment6(BPatch_assign, *gvar[7], *((*subfields)[1]));
+	    appThread->insertSnippet(assignment6, *point26_2);
+
+    	// start of code for localVariable26_1
+        expectError = 100;
+        lvar = appImage->findVariable(*(*point26_1) [0], "localVariable26_1");
+        if (!lvar)
+            lvar = appImage->findVariable(*(*point26_1) [0], "localvariable26_1");
+	expectError = DYNINST_NO_ERROR;
+
+    	fields = lvar->getComponents();
+	    //assert(fields && (fields->size() == 4));
+    	assert(fields);
+
+	    for (i=0; i < 4; i++) {
+		 char fieldName[80];
+		 sprintf(fieldName, "field%d", i+1);
+		 if (strcmp(fieldName, (*fields)[i]->getName())) {
+	    	  printf("field %d of the local struct is %s, not %s\n",
+			  i+1, fieldName, (*fields)[i]->getName());
+		      return;
+		 }
+    	}
+
+	    // 	   globalVariable26_8 = localVariable26_1.field1
+    	BPatch_arithExpr assignment7(BPatch_assign, *gvar[8], *((*fields)[0]));
+	    appThread->insertSnippet(assignment7, *point26_1);
+
+    	// 	   globalVariable26_9 = localVariable26_1.field2
+	    BPatch_arithExpr assignment8(BPatch_assign, *gvar[9], *((*fields)[1]));
+    	appThread->insertSnippet(assignment8, *point26_1);
+
+	    // 	   globalVariable26_10 = localVariable26_1.field3[0]
+    	BPatch_arithExpr assignment9(BPatch_assign, *gvar[10],
+		BPatch_arithExpr(BPatch_ref, *((*fields)[2]), BPatch_constExpr(0)));
+    	appThread->insertSnippet(assignment9, *point26_1);
+
+	    // 	   globalVariable26_11 = localVariable26_1.field3[5]
+    	BPatch_arithExpr assignment10(BPatch_assign, *gvar[11],
+		BPatch_arithExpr(BPatch_ref, *((*fields)[2]), BPatch_constExpr(5)));
+    	appThread->insertSnippet(assignment10, *point26_1);
+
+	    subfields = (*fields)[3]->getComponents();
+    	assert(subfields != NULL);
+
+	    // 	   globalVariable26_12 = localVariable26_1.field4.field1
+    	BPatch_arithExpr assignment11(BPatch_assign, *gvar[12], *((*subfields)[0]));
+	    appThread->insertSnippet(assignment11, *point26_1);
+
+	    // 	   globalVariable26_13 = localVariable26_1.field4.field2
+    	BPatch_arithExpr assignment12(BPatch_assign, *gvar[13], *((*subfields)[1]));
+	    appThread->insertSnippet(assignment12, *point26_1);
     }
-
-    // start of code for globalVariable26_1
-    BPatch_Vector<BPatch_variableExpr *> *fields = gvar[1]->getComponents();
-    //if (!fields || (fields->size() != 4)) {
-    if (!fields) {
-	fprintf(stderr, "**Failed** test #26 (struct elements)\n");
-	fprintf(stderr, "  struct lacked correct number of elements\n");
-	exit(-1);
-    }
-
-    for (i=0; i < 4; i++) {
-	 char fieldName[80];
-	 sprintf(fieldName, "field%d", i+1);
-	 if (!(*fields)[i]->getName())
-		printf("NULL NAME!\n");
-	 if (strcmp(fieldName, (*fields)[i]->getName())) {
-	      printf("field %d of the struct is %s, not %s\n",
-		  i+1, fieldName, (*fields)[i]->getName());
-	      return;
-	 }
-    }
-
-    // 	   globalVariable26_2 = globalVariable26_1.field1
-    BPatch_arithExpr assignment1(BPatch_assign, *gvar[2], *((*fields)[0]));
-    appThread->insertSnippet(assignment1, *point26_1);
-
-    // 	   globalVariable26_3 = globalVariable26_1.field2
-    BPatch_arithExpr assignment2(BPatch_assign, *gvar[3], *((*fields)[1]));
-    appThread->insertSnippet(assignment2, *point26_1);
-
-    // 	   globalVariable26_4 = globalVariable26_1.field3[0]
-    BPatch_arithExpr assignment3(BPatch_assign, *gvar[4], 
-	BPatch_arithExpr(BPatch_ref, *((*fields)[2]), BPatch_constExpr(0)));
-    appThread->insertSnippet(assignment3, *point26_1);
-
-    // 	   globalVariable26_5 = globalVariable26_1.field3[5]
-    BPatch_arithExpr assignment4(BPatch_assign, *gvar[5], 
-	BPatch_arithExpr(BPatch_ref, *((*fields)[2]), BPatch_constExpr(5)));
-    appThread->insertSnippet(assignment4, *point26_1);
-
-    BPatch_Vector<BPatch_variableExpr *> *subfields = 
-	(*fields)[3]->getComponents();
-    assert(subfields != NULL);
-
-    // 	   globalVariable26_6 = globalVariable26_1.field4.field1
-    BPatch_arithExpr assignment5(BPatch_assign, *gvar[6], *((*subfields)[0]));
-    appThread->insertSnippet(assignment5, *point26_1);
-
-    // 	   globalVariable26_7 = globalVariable26_1.field4.field2
-    BPatch_arithExpr assignment6(BPatch_assign, *gvar[7], *((*subfields)[1]));
-    appThread->insertSnippet(assignment6, *point26_1);
-
-    // start of code for localVariable26_1
-    lvar = appImage->findVariable(*(*point26_1)[0], "localVariable26_1");
-
-    fields = lvar->getComponents();
-    //assert(fields && (fields->size() == 4));
-    assert(fields);
-
-    for (i=0; i < 4; i++) {
-	 char fieldName[80];
-	 sprintf(fieldName, "field%d", i+1);
-	 if (strcmp(fieldName, (*fields)[i]->getName())) {
-	      printf("field %d of the local struct is %s, not %s\n",
-		  i+1, fieldName, (*fields)[i]->getName());
-	      return;
-	 }
-    }
-
-    // 	   globalVariable26_8 = localVariable26_1.field1
-    BPatch_arithExpr assignment7(BPatch_assign, *gvar[8], *((*fields)[0]));
-    appThread->insertSnippet(assignment7, *point26_1);
-
-    // 	   globalVariable26_9 = localVariable26_1.field2
-    BPatch_arithExpr assignment8(BPatch_assign, *gvar[9], *((*fields)[1]));
-    appThread->insertSnippet(assignment8, *point26_1);
-
-    // 	   globalVariable26_10 = localVariable26_1.field3[0]
-    BPatch_arithExpr assignment9(BPatch_assign, *gvar[10], 
-	BPatch_arithExpr(BPatch_ref, *((*fields)[2]), BPatch_constExpr(0)));
-    appThread->insertSnippet(assignment9, *point26_1);
-
-    // 	   globalVariable26_11 = localVariable26_1.field3[5]
-    BPatch_arithExpr assignment10(BPatch_assign, *gvar[11], 
-	BPatch_arithExpr(BPatch_ref, *((*fields)[2]), BPatch_constExpr(5)));
-    appThread->insertSnippet(assignment10, *point26_1);
-
-    subfields = (*fields)[3]->getComponents();
-    assert(subfields != NULL);
-
-    // 	   globalVariable26_12 = localVariable26_1.field4.field1
-    BPatch_arithExpr assignment11(BPatch_assign, *gvar[12], *((*subfields)[0]));
-    appThread->insertSnippet(assignment11, *point26_1);
-
-    // 	   globalVariable26_13 = localVariable26_1.field4.field2
-    BPatch_arithExpr assignment12(BPatch_assign, *gvar[13], *((*subfields)[1]));
-    appThread->insertSnippet(assignment12, *point26_1);
-
 #endif
 }
 
@@ -2091,16 +2572,28 @@ void mutatorTest27(BPatch_thread *, BPatch_image *appImage)
     }
     expectError = DYNINST_NO_ERROR;
 
-    BPatch_variableExpr *expr27_5 =appImage->findVariable("globalVariable27_5");
-    BPatch_variableExpr *expr27_6 =appImage->findVariable("globalVariable27_6");
-    BPatch_variableExpr *expr27_7 =appImage->findVariable("globalVariable27_7");
-    BPatch_variableExpr *expr27_8 =appImage->findVariable("globalVariable27_8");
+    BPatch_Vector<BPatch_point *> *point27_1;
+    if (mutateeFortran)
+        point27_1 = appImage->findProcedurePoint("func27_1_", BPatch_entry);
+    else
+        point27_1 = appImage->findProcedurePoint("func27_1", BPatch_entry);
+
+    assert (point27_1);
+
+    BPatch_variableExpr *expr27_5, *expr27_6, *expr27_7, *expr27_8;
+
+    expr27_5 = findVariable(appImage, "globalVariable27_5", point27_1);
+    expr27_6 = findVariable(appImage, "globalVariable27_6", point27_1);
+    expr27_7 = findVariable(appImage, "globalVariable27_7", point27_1);
+    expr27_8 = findVariable(appImage, "globalVariable27_8", point27_1);
+
     assert(expr27_5 && expr27_6 && expr27_7 && expr27_8);
 
     BPatch_type *type27_5 = const_cast<BPatch_type *> (expr27_5->getType());
     BPatch_type *type27_6 = const_cast<BPatch_type *> (expr27_6->getType());
     BPatch_type *type27_7 = const_cast<BPatch_type *> (expr27_7->getType());
     BPatch_type *type27_8 = const_cast<BPatch_type *> (expr27_8->getType());
+
     assert(type27_5 && type27_6 && type27_7 && type27_8);
 
     if (!type27_5->isCompatible(type27_6)) {
@@ -2125,7 +2618,8 @@ void mutatorTest27(BPatch_thread *, BPatch_image *appImage)
     }
 
     // all ok, set the global variable, depends on test 18 working
-    BPatch_variableExpr *expr27_1 =appImage->findVariable("globalVariable27_1");
+    BPatch_variableExpr *expr27_1 = findVariable(appImage, "globalVariable27_1", point27_1);
+
     if (expr27_1 == NULL) {
 	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
 	fprintf(stderr, "    Unable to locate globalVariable27_1\n");
@@ -2293,7 +2787,16 @@ void mutatorTest29(BPatch_thread *, BPatch_image *appImage)
 	return;
     }
 
-    BPatch_variableExpr *expr29_1 =appImage->findVariable("globalVariable29_1");
+    BPatch_Vector<BPatch_point *> *point29_1;
+    if (mutateeFortran)
+        point29_1 = appImage->findProcedurePoint("func29_1_", BPatch_entry);
+    else
+        point29_1 = appImage->findProcedurePoint("func29_1", BPatch_entry);
+
+    assert (point29_1);
+
+    BPatch_variableExpr *expr29_1 = findVariable(appImage, "globalVariable29_1", point29_1);
+
     if (expr29_1 == NULL) {
 	fprintf(stderr, "**Failed** test #29 (class BPatch_srcObj)\n");
 	fprintf(stderr, "    Unable to locate globalVariable27_1\n");
@@ -2556,28 +3059,48 @@ void instrument_exit_points( BPatch_thread * app_thread,
 //
 void mutatorTest31( BPatch_thread * appThread, BPatch_image * appImage )
 {
-  char * foo_name = "func31_2";
-  char * bar_name = "func31_3";
-  char * baz_name = "func31_4";
+    char * Fortfoo_name = "func31_2_";
+    char * Fortbar_name = "func31_3_";
+    char * Fortbaz_name = "func31_4_";
+    char * foo_name = "func31_2";
+    char * bar_name = "func31_3";
+    char * baz_name = "func31_4";
 
   BPatch_image * app_image = appImage;
   BPatch_thread * app_thread = appThread;
 
-  BPatch_function * foo_function = app_image->findFunction( foo_name );
+  BPatch_function *foo_function;
+  if (mutateeFortran)
+    foo_function = app_image->findFunction(Fortfoo_name);
+  else
+    foo_function = app_image->findFunction(foo_name);
+
   if( foo_function == 0 )
     {
       fprintf( stderr, "Cannot find \"%s\" function.",
 	       foo_name );
       exit( -1 );
     }
-  BPatch_function * bar_function = app_image->findFunction( bar_name );
+
+  BPatch_function *bar_function;
+  if (mutateeFortran)
+    bar_function = app_image->findFunction(Fortbar_name);
+  else
+    bar_function = app_image->findFunction(bar_name);
+
   if( bar_function == 0 )
     {
       fprintf( stderr, "Cannot find \"%s\" function.",
 	       bar_name );
       exit( -1 );
     }
-  BPatch_function * baz_function = app_image->findFunction( baz_name );
+
+  BPatch_function *baz_function;
+  if (mutateeFortran)
+    baz_function = app_image->findFunction(Fortbaz_name);
+  else
+    baz_function = app_image->findFunction(baz_name);
+
   if( baz_function == 0 )
     {
       fprintf( stderr, "Cannot find \"%s\" function.",
@@ -2620,6 +3143,9 @@ void mutatorTest31( BPatch_thread * appThread, BPatch_image * appImage )
 //
 void mutatorTest32( BPatch_thread * appThread, BPatch_image * appImage )
 {
+  char * Fortfoo_name = "func32_2_";
+  char * Fortbar_name = "func32_3_";
+  char * Fortbaz_name = "func32_4_";
   char * foo_name = "func32_2";
   char * bar_name = "func32_3";
   char * baz_name = "func32_4";
@@ -2627,21 +3153,37 @@ void mutatorTest32( BPatch_thread * appThread, BPatch_image * appImage )
   BPatch_image * app_image = appImage;
   BPatch_thread * app_thread = appThread;
 
-  BPatch_function * foo_function = app_image->findFunction( foo_name );
+  BPatch_function * foo_function;
+  if (mutateeFortran)
+    foo_function = app_image->findFunction(Fortfoo_name);
+  else
+    foo_function = app_image->findFunction(foo_name);
+
   if( foo_function == 0 )
-    {
-      fprintf( stderr, "Cannot find \"%s\" function.",
-	       foo_name );
-      exit( -1 );
-    }
-  BPatch_function * bar_function = app_image->findFunction( bar_name );
+  {
+    fprintf( stderr, "Cannot find \"%s\" function.",
+       foo_name );
+    exit( -1 );
+  }
+
+  BPatch_function * bar_function;
+  if (mutateeFortran)
+    bar_function = app_image->findFunction(Fortbar_name);
+  else
+    bar_function = app_image->findFunction(bar_name);
+
   if( bar_function == 0 )
     {
       fprintf( stderr, "Cannot find \"%s\" function.",
 	       bar_name );
       exit( -1 );
     }
-  BPatch_function * baz_function = app_image->findFunction( baz_name );
+  BPatch_function * baz_function;
+  if (mutateeFortran)
+    baz_function = app_image->findFunction(Fortbaz_name);
+  else
+    baz_function = app_image->findFunction(baz_name);
+
   if( baz_function == 0 )
     {
       fprintf( stderr, "Cannot find \"%s\" function.",
@@ -2659,14 +3201,38 @@ void mutatorTest32( BPatch_thread * appThread, BPatch_image * appImage )
   instrument_entry_points( app_thread, app_image, foo_function, foo_snippet );
 
   BPatch_Vector<BPatch_snippet *> bar_args_1;
-  bar_args_1.push_back( new BPatch_constExpr( 1 ) );
+
+  if (mutateeFortran) {
+    BPatch_variableExpr *expr32_1 = appThread->malloc (*appImage->findType ("int"));
+    BPatch_constExpr expr32_2 = expr32_1->getBaseAddr ();
+
+    BPatch_arithExpr expr32_3 (BPatch_assign, *expr32_1, BPatch_constExpr(1));
+
+    appThread->oneTimeCode (expr32_3);
+    bar_args_1.push_back (&expr32_2);
+  } else {
+    bar_args_1.push_back (new BPatch_constExpr (1));
+  }
+
+  bar_args_1.push_back (new BPatch_constExpr (1));
   BPatch_snippet * bar_snippet_1 =
     new BPatch_funcCallExpr( * baz_function,
 			     bar_args_1 );
   instrument_entry_points( app_thread, app_image, bar_function, bar_snippet_1 );
 
   BPatch_Vector<BPatch_snippet *> bar_args_2;
-  bar_args_2.push_back( new BPatch_constExpr( 2 ) );
+
+  if (mutateeFortran) {
+    BPatch_variableExpr *expr32_4 = appThread->malloc (*appImage->findType ("int"));
+    BPatch_constExpr expr32_5 = expr32_4->getBaseAddr ();
+
+    BPatch_arithExpr expr32_6 (BPatch_assign, *expr32_4, BPatch_constExpr (2));
+    appThread->oneTimeCode (expr32_6);
+    bar_args_2.push_back (&expr32_5);
+  } else {
+    bar_args_2.push_back (new BPatch_constExpr (2));
+  }
+
   BPatch_snippet * bar_snippet_2 =
     new BPatch_funcCallExpr( * baz_function,
 			     bar_args_2 );
@@ -2678,7 +3244,6 @@ void mutatorTest32( BPatch_thread * appThread, BPatch_image * appImage )
 /*******************************************************************************/
 /*******************************************************************************/
 /*******************************************************************************/
-
 
 //
 // Start Test Case #33 - (control flow graphs)
@@ -2707,7 +3272,12 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 {
     int i;
 
-    BPatch_function *func2 = appImage->findFunction("func33_2");
+    BPatch_function *func2;
+    if (mutateeFortran)
+        func2 = appImage->findFunction("func33_2_");
+    else
+        func2 = appImage->findFunction("func33_2");
+
     if (func2 == NULL) {
 	fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
 	fprintf(stderr, "  Unable to find function func33_2\n");
@@ -3002,7 +3572,12 @@ void mutatorTest34( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 {
     int i;
 
-    BPatch_function *func2 = appImage->findFunction("func34_2");
+    BPatch_function *func2;
+    if (mutateeFortran)
+        func2 = appImage->findFunction("func34_2_");
+    else
+        func2 = appImage->findFunction("func34_2");
+
     if (func2 == NULL) {
 	fprintf(stderr, "**Failed** test #34 (loop information)\n");
 	fprintf(stderr, "  Unable to find function func34_2\n");
@@ -3125,7 +3700,7 @@ void mutatorTest35( BPatch_thread * appThread, BPatch_image * appImage )
 
     char * foo_name = "call35_1";
 
-    BPatch_function * foo_function = appImage->findFunction( foo_name );
+    BPatch_function * foo_function = appImage->findFunction(foo_name);
     if( foo_function == 0 )
     {
       fprintf( stderr, "Cannot find \"%s\" function.",
@@ -3134,7 +3709,7 @@ void mutatorTest35( BPatch_thread * appThread, BPatch_image * appImage )
     }
 
     BPatch_Vector<BPatch_point *> *point35_1 =  
-	foo_function->findPoint( BPatch_subroutine );
+	foo_function->findPoint(BPatch_subroutine);
 
     assert(point35_1);
 
@@ -3205,7 +3780,7 @@ int mutatorMAIN(char *pathname, bool useAttach)
     printf("Starting \"%s\"\n", pathname);
 
     char *child_argv[MAX_TEST+5];
-   
+
     int n = 0;
     child_argv[n++] = pathname;
     if (debugPrint) child_argv[n++] = "-verbose";
@@ -3262,6 +3837,26 @@ int mutatorMAIN(char *pathname, bool useAttach)
         dprintf("Mutatee is %s.\n", mutateeCplusplus ? "C++" : "C");
     }
 
+    // determine whether mutatee is Fortran
+    BPatch_variableExpr *isF = appImage->findVariable("mutateeFortran");
+    if (isF == NULL) {
+	fprintf(stderr, "  Unable to locate variable \"mutateeFortran\""
+                 " -- assuming 0!\n");
+    } else {
+        isF->readValue(&mutateeFortran);
+        dprintf("Mutatee is %s.\n", mutateeFortran ? "Fortran" : "C/C++");
+    }
+
+    // determine whether mutatee is F77
+    BPatch_variableExpr *isF77 = appImage->findVariable("mutateeF77");
+    if (isF77 == NULL) {
+	fprintf(stderr, "  Unable to locate variable \"mutateeF77\""
+                 " -- assuming 0!\n");
+    } else {
+        isF77->readValue(&mutateeF77);
+        dprintf("Mutatee is %s.\n", mutateeF77 ? "F77" : "not F77");
+    }
+
     int i;
     BPatch_Vector<BPatch_module *> *m = appImage->getModules();
     for (i=0; i < m->size(); i++) {
@@ -3298,7 +3893,7 @@ int mutatorMAIN(char *pathname, bool useAttach)
     if (runTest[20]) mutatorTest20(appThread, appImage);
 
     if (runTest[21] || runTest[22]) readyTest21or22(appThread);
-    if (runTest[21]) mutatorTest21(appThread, appImage); 
+    if (runTest[21]) mutatorTest21(appThread, appImage);
     if (runTest[22]) mutatorTest22(appThread, appImage);
     if (runTest[23]) mutatorTest23(appThread, appImage);
     if (runTest[24]) mutatorTest24(appThread, appImage);
@@ -3360,7 +3955,7 @@ main(unsigned int argc, char *argv[])
 #if defined(i386_unknown_nt4_0)
 		 "    using standard search strategy for libdyninstAPI_RT.dll\n");
 #else
-	         "    set it to the full pathname of libdyninstAPI_RT\n");   
+	         "    set it to the full pathname of libdyninstAPI_RT\n");
          exit(-1);
 #endif
     } else
@@ -3380,7 +3975,7 @@ main(unsigned int argc, char *argv[])
 	    debugPrint = 1;
 	} else if (!strcmp(argv[i], "-V")) {
             fprintf (stdout, "%s\n", V_libdyninstAPI);
-            if (libRTname[0]) 
+            if (libRTname[0])
                 fprintf (stdout, "DYNINSTAPI_RT_LIB=%s\n", libRTname);
             fflush(stdout);
 	} else if (!strcmp(argv[i], "-attach")) {
@@ -3471,6 +4066,7 @@ main(unsigned int argc, char *argv[])
         strcat(libNameA,"_n32");
         strcat(libNameB,"_n32");
     }
+		
     // patch up the platform-specific filename extensions
 #if defined(i386_unknown_nt4_0)
     if (!strstr(mutateeName, ".exe")) strcat(mutateeName,".exe");
@@ -3480,9 +4076,18 @@ main(unsigned int argc, char *argv[])
     strcat(libNameA,".so");
     strcat(libNameB,".so");
 #endif
-    
+
     int exitCode = mutatorMAIN(mutateeName, useAttach);
 
     return exitCode;
 }
+
+
+
+
+
+
+
+
+
 

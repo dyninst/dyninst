@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.33 2001/06/04 18:42:24 bernat Exp $
+# $Id: make.module.tmpl,v 1.34 2001/08/30 18:17:13 beyerj Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -55,6 +55,9 @@ TARGETS      +=  test1.mutatee_$(NATIVE_CXX) \
 		 test5.mutatee_$(NATIVE_CXX)
 endif
 
+ifdef NATIVE_FC
+TARGETS      +=  test1.mutatee_$(NATIVE_FC)
+endif
 
 SRCS	     += ../src/test1.C ../src/test1.mutatee.c ../src/test_util.C \
 		../src/test2.C ../src/test2.mutatee.c \
@@ -63,6 +66,10 @@ SRCS	     += ../src/test1.C ../src/test1.mutatee.c ../src/test_util.C \
 		../src/test5.C ../src/test5.mutatee.C \
                 ../src/libtestA.c ../src/libtestB.c
 
+endif
+
+ifdef NATIVE_FC
+SRCS         += ../src/test1.mutateeFort.F
 endif
 
 # Libraries for dlopen tests
@@ -113,6 +120,10 @@ ifdef NATIVE_CXX
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test4a.mutatee_$(NATIVE_CXX)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test4b.mutatee_$(NATIVE_CXX)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test5.mutatee_$(NATIVE_CXX) MUTATEE_SUFFIX=.C
+endif
+
+ifdef NATIVE_FC
+	$(MAKE) aTest MUTATEE_CC=$(GNU_CC) MUTATEE_FC=$(NATIVE_FC) TARGET2=test1.mutatee_$(NATIVE_FC)
 endif
 
 pc:

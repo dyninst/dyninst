@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.17 2001/08/28 19:39:38 schendel Exp $
+# $Id: Makefile,v 1.18 2001/08/30 18:17:15 beyerj Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -19,8 +19,12 @@ include $(TO_CORE)/make.config
 CXXFLAGS += 
 CFLAGS +=
 
+MUTATEE_FFLAGS += -Di386_unknown_linux2_0 -DF77 -fno-second-underscore -g
+MUTATEE_FLINKFLAGS += -g -ldl
+
 SYSLIBS += -lelf -lnsl
 GNU_CXX = g++
+GNU_CC = gcc
 # there is no "native" or OS-provided compiler for Linux!
 # we use the Portland Group compilers, as that's what we've currently got
 # (in future we probably also want to test with the KAI/Intel compilers)
@@ -28,6 +32,9 @@ ifdef PGI
 NATIVE_CC = pgcc
 NATIVE_CXX = pgCC
 endif
+
+NATIVE_FC = g77
+COMMA=,
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
@@ -54,6 +61,11 @@ RPAREN:=)
 COMPILER1 = $(subst $(BLANK),_,$(COMPILERT))
 COMPILER2 = $(subst $(LPAREN),_,$(COMPILER1))
 COMPILER = $(subst $(RPAREN),_,$(COMPILER2))
+
+ifeq ($(NATIVE_FC), $(MUTATEE_FC))
+COMPILER = g77
+endif
+
 MUTATEE_CFLAGS += -DCOMPILER='"$(COMPILER)"'
 
 ifdef DETACH_ON_THE_FLY
@@ -67,8 +79,23 @@ ifeq (test1,$(findstring test1,$(TARGET2)))
 MUTATEE_CFLAGS += -Wl,-export-dynamic
 endif
 
+ifeq ($(NATIVE_FC), $(MUTATEE_FC))
+
+# FORTRAN_BASE = test1.mutateeFort, etc.
+FORTRAN_BASE = $(TARGET2:_$(NATIVE_FC)=Fort)
+
+$(TARGET2): $(FORTRAN_BASE)_$(NATIVE_FC).o $(FORTRAN_BASE)C_$(NATIVE_FC).o
+	-$(NATIVE_FC) $(FORTRAN_BASE)_$(NATIVE_FC).o $(FORTRAN_BASE)C_$(NATIVE_FC).o $(MUTATEE_FLINKFLAGS) -o $(TARGET2)
+
+$(FORTRAN_BASE)_$(NATIVE_FC).o: ../src/$(FORTRAN_BASE).F
+	-$(NATIVE_FC) $(MUTATEE_FFLAGS) -c -o $(FORTRAN_BASE)_$(NATIVE_FC).o ../src/$(FORTRAN_BASE).F
+
+$(FORTRAN_BASE)C_$(NATIVE_FC).o: ../src/$(TARGET2:_$(NATIVE_FC)=).c
+	-$(MUTATEE_CC) $(filter-out -Wl$(COMMA)-export-dynamic, $(MUTATEE_CFLAGS)) -fno-implicit-templates -W -Wall -fno-squangle -DFortran -c -o $(FORTRAN_BASE)C_$(NATIVE_FC).o ../src/$(TARGET2:_$(NATIVE_FC)=).c
+else
 $(TARGET2): $(MUTATEE_SRC)
 	$(MUTATEE_CC) $(MUTATEE_CFLAGS) $(MUTATEE_SRC) -o $@ $(MUTLIBS)
+endif
 
 ifeq (test1,$(findstring test1,$(TARGET2)))
 MUTATEE_SRC	+=	../src/call35_1_x86_linux.s
