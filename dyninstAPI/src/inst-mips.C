@@ -2186,7 +2186,7 @@ Address emitA(opCode op, Register src1, Register /*src2*/, Register dst,
 // [getParamOp, getSysParamOp, getRetValOp, getSysRetValOp]
 Register emitR(opCode op, Register src1, Register /*src2*/, Register dst, 
                char *code, Address &base, bool /*noCost*/,
-               const instPoint * /* location */ )
+               const instPoint * /* location */, bool for_multithreaded)
 {
   TRACE_B( "emitR" );
 
@@ -3089,7 +3089,7 @@ extern "C" void conservativeTramp_endTramp();
 /****************************************************************************/
 /****************************************************************************/
 
-void initTramps()
+void initTramps(bool is_multithreaded)
 {
   TRACE_B( "initTramps" );
 
@@ -3103,7 +3103,7 @@ void initTramps()
   inited = true;
 
   // register space
-  regSpace = new registerSpace(nDead, Dead, 0, NULL);
+  regSpace = new registerSpace(nDead, Dead, 0, NULL, is_multithreaded);
   assert(regSpace);
 #ifdef mips_unknown_ce2_11 //ccw 3 aug 2000 : 28 mar 2001
 	baseTemplate.savePreInsOffset = baseTemplate_savePreInsOffset;

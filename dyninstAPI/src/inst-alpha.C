@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.62 2003/04/17 20:55:53 jaw Exp $
+// $Id: inst-alpha.C,v 1.63 2003/06/20 22:07:38 schendel Exp $
 
 #include "common/h/headers.h"
 
@@ -583,14 +583,14 @@ registerSpace *createRegisterSpace()
 //
 // We now generate tramps on demand, so all we do is init the reg space.
 //
-void initTramps() {
+void initTramps(bool is_multithreaded) {
   static bool init_done=false;
 
   if (init_done) return;
   init_done = true;
 
   regSpace = new registerSpace(sizeof(regList)/sizeof(Register), regList,
-                                0, NULL);
+                               0, NULL, is_multithreaded);
 }
 
 // Emit a func 64bit address for the call
@@ -1231,7 +1231,7 @@ Address emitA(opCode op, Register src1, Register /*src2*/, Register dest,
 
 Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
                char *i, Address &base, bool /*noCost*/,
-               const instPoint * /* location */ ) {
+               const instPoint * /* location */, bool for_multithreaded) {
 
   //fprintf(stderr,"emitR(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
 

@@ -82,10 +82,6 @@ class instrCodeNode_Val {
   pd_process *proc_;
   bool dontInsertData_;
   int referenceCount;
-#if defined(MT_THREAD)
-  // remember names of each of its threads (tid + start_func_name)
-  pdvector<string> thr_names;  
-#endif
   HwEvent* hwEvent;
 
  public:
@@ -207,10 +203,6 @@ class instrCodeNode {
 
   void cleanup_drn();
   bool nonNull() const { return (V.instRequests.size() > 0);  }
-#if defined(MT_THREAD)
-  void addThrName(string thr_name) {  V.thr_names += thr_name;  }
-  pdvector<string> getThrNames() {  return V.thr_names;  }
-#endif
   HwEvent* getHwEvent() { return V.hwEvent; }
 
 };

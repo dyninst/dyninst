@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.131 2003/06/07 12:27:20 pcroth Exp $
+// $Id: inst-sparc-solaris.C,v 1.132 2003/06/20 22:07:42 schendel Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1525,99 +1525,99 @@ Address emitA(opCode op, Register src1, Register /*src2*/, Register dest,
 
 Register emitR(opCode op, Register src1, Register /*src2*/, Register dest, 
                char *i, Address &base, bool /*noCost*/,
-               const instPoint * /* location */ )
+               const instPoint * /* location */, bool for_multithreaded)
 {
-    //fprintf(stderr,"emitR(op=%d,src1=%d,src2=XX,dest=XX)\n",op,src1);
+   //fprintf(stderr,"emitR(op=%d,src1=%d,src2=XX,dest=XX)\n",op,src1);
 
-    instruction *insn = (instruction *) ((void*)&i[base]);
+   instruction *insn = (instruction *) ((void*)&i[base]);
 
-    switch(op) {
-      case getParamOp: {
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
-        // saving CT/vector address on the stack
-	generateStore(insn, REG_MT_POS, REG_FPTR, -40);
+   switch(op) {
+     case getParamOp: {
+        if(for_multithreaded) {
+           // saving CT/vector address on the stack
+           generateStore(insn, REG_MT_POS, REG_FPTR, -40);
+           insn++; base += sizeof(instruction);
+        }
+        // We have managed to emit two saves since the entry point of
+        // the function, so the first 6 parameters are in the previous
+        // frame's I registers, and we need to pick them off the stack
+        
+        // generate the FLUSHW instruction to make sure that previous
+        // windows are written to the register save area on the stack
+        if (isUltraSparc()) {
+           generateFlushw(insn);
+        }
+        else {
+           generateTrapRegisterSpill(insn);
+        }
         insn++; base += sizeof(instruction);
-#endif
-	// We have managed to emit two saves since the entry point of
-	// the function, so the first 6 parameters are in the previous
-	// frame's I registers, and we need to pick them off the stack
-
-	// generate the FLUSHW instruction to make sure that previous
-	// windows are written to the register save area on the stack
-	if (isUltraSparc()) {
-	    generateFlushw(insn);
-	}
-	else {
-	    generateTrapRegisterSpill(insn);
-	}
-	insn++; base += sizeof(instruction);
+        
+        if (src1 < 6) {
+           // The arg is in a previous frame's I register. Get it from
+           // the register save area
+           generateLoad(insn, REG_FPTR, 4*8 + 4*src1, dest);
+           insn++; base += sizeof(instruction);
+        }
+        else {
+           // The arg is on the stack, two frames above us. Get the previous
+           // FP (i6) from the register save area
+           generateLoad(insn, REG_FPTR, 4*8 + 4*6, dest);
+           // old fp is in dest now
+           insn++; base += sizeof(instruction);
+           
+           // Finally, load the arg from the stack
+           generateLoad(insn, dest, 92 + 4 * (src1 - 6), dest);
+           insn++; base += sizeof(instruction);
+        }
+        
+        if(for_multithreaded) {
+           // restoring CT/vector address back in REG_MT_POS
+           generateLoad(insn, REG_FPTR, -40, REG_MT_POS);
+           insn++; base += sizeof(instruction);
+        }
 	
-	if (src1 < 6) {
-	    // The arg is in a previous frame's I register. Get it from
-	    // the register save area
-	    generateLoad(insn, REG_FPTR, 4*8 + 4*src1, dest);
-	    insn++; base += sizeof(instruction);
-	}
-	else {
-	    // The arg is on the stack, two frames above us. Get the previous
-	    // FP (i6) from the register save area
-	    generateLoad(insn, REG_FPTR, 4*8 + 4*6, dest);
-            // old fp is in dest now
-	    insn++; base += sizeof(instruction);
-
-	    // Finally, load the arg from the stack
-	    generateLoad(insn, dest, 92 + 4 * (src1 - 6), dest);
-	    insn++; base += sizeof(instruction);
-	}
-
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
-        // restoring CT/vector address back in REG_MT_POS
-        generateLoad(insn, REG_FPTR, -40, REG_MT_POS);
+        return dest;
+     }
+     case getSysParamOp: {
+        // We have emitted one save since the entry point of
+        // the function, so the first 6 parameters are in this
+        // frame's I registers
+        if (src1 < 6) {
+           // Param is in an I register
+           return(REG_I(src1));
+        }	
+        else {
+           // Param is on the stack
+           generateLoad(insn, REG_FPTR, 92 + 4 * (src1 - 6), dest);
+           insn++; base += sizeof(instruction);
+           return dest;
+        }
+     }
+     case getRetValOp: {
+        // We have emitted one save since the exit point of
+        // the function, so the return value is in the previous frame's
+        // I0, and we need to pick it from the stack
+        
+        // generate the FLUSHW instruction to make sure that previous
+        // windows are written to the register save area on the stack
+        if (isUltraSparc()) {
+           generateFlushw(insn);
+        }
+        else {
+           generateTrapRegisterSpill(insn);
+        }
         insn++; base += sizeof(instruction);
-#endif
-	
-	return dest;
-      }
-    case getSysParamOp: {
-	// We have emitted one save since the entry point of
-	// the function, so the first 6 parameters are in this
-	// frame's I registers
-	if (src1 < 6) {
-	    // Param is in an I register
-	    return(REG_I(src1));
-	}	
-	else {
-	    // Param is on the stack
-	    generateLoad(insn, REG_FPTR, 92 + 4 * (src1 - 6), dest);
-	    insn++; base += sizeof(instruction);
-	    return dest;
-	}
-    }
-    case getRetValOp: {
-	// We have emitted one save since the exit point of
-	// the function, so the return value is in the previous frame's
-	// I0, and we need to pick it from the stack
-
-	// generate the FLUSHW instruction to make sure that previous
-	// windows are written to the register save area on the stack
-	if (isUltraSparc()) {
-	    generateFlushw(insn);
-	}
-	else {
-	    generateTrapRegisterSpill(insn);
-	}
-	insn++; base += sizeof(instruction);
-
-	generateLoad(insn, REG_FPTR, 4*8, dest); 
-	insn++; base += sizeof(instruction);
-
-	return dest;
-    }
-    case getSysRetValOp:
-	return(REG_I(0));
-    default:
+        
+        generateLoad(insn, REG_FPTR, 4*8, dest); 
+        insn++; base += sizeof(instruction);
+        
+        return dest;
+     }
+     case getSysRetValOp:
+        return(REG_I(0));
+     default:
         abort();        // unexpected op for this emit!
-    }
+   }
 }
 
 #ifdef BPATCH_LIBRARY

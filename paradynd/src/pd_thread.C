@@ -114,7 +114,6 @@ void vt_showTrace(char *msg) {
 unsigned pos_junk = 101;
 */
 
-#if defined(MT_THREAD)
 rawTime64 pd_thread::getInferiorVtime(virtualTimer *vTimer, bool& success) {
    rawTime64 ret ;
    success = true ;
@@ -154,4 +153,4 @@ rawTime64 pd_thread::getInferiorVtime(virtualTimer *vTimer, bool& success) {
    // vt_record(get_pos(), vTimer, now, vTimer->lwp);
    return ret ;
 }
-#endif //MT_THREAD 
+

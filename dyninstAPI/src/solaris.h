@@ -58,13 +58,14 @@
 #if defined(MT_THREAD)
 #define START_PROC_TIMER           "DYNINSTstartThreadTimer"
 #define STOP_PROC_TIMER            "DYNINSTstopThreadTimer" 
-#define DESTROY_PROC_TIMER         "DYNINSTdestroyThreadTimer"
-#define START_PROC_TIMER_LWP       "DYNINSTstartThreadTimer"
-#define START_PROC_TIMER_LWP_IRPC  "DYNINSTstartThreadTimer_inferiorRPC"
 #else
 #define START_PROC_TIMER "DYNINSTstartProcessTimer"
 #define STOP_PROC_TIMER  "DYNINSTstopProcessTimer" 
 #endif
+
+#define START_PROC_TIMER_LWP       "DYNINSTstartThreadTimer"
+#define START_PROC_TIMER_LWP_IRPC  "DYNINSTstartThreadTimer_inferiorRPC"
+#define DESTROY_PROC_TIMER         "DYNINSTdestroyThreadTimer"
 
 #define SIGNAL_HANDLER	 "sigacthandler"
 

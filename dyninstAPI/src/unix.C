@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.100 2003/06/11 20:05:51 bernat Exp $
+// $Id: unix.C,v 1.101 2003/06/20 22:07:58 schendel Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -617,19 +617,17 @@ int handleSigTrap(process *proc, procSignalInfo_t info) {
         return 1;
     }
 #endif
-    
-#if defined(MT_THREAD)
-    // Check to see if this is a syscall exit
-    proc->handleSyscallExit(0);
-    
-    proc->continueProc();
-    return 1;
-#else
-    
-    // Forward the trap to the process
-    
-    return 0;
-#endif
+
+    if(proc->multithread_capable()) {
+       // Check to see if this is a syscall exit
+       proc->handleSyscallExit(0);
+       
+       proc->continueProc();
+       return 1;
+    } else {
+       // Forward the trap to the process
+       return 0;
+    }
 }
 
 // Needs to be fleshed out
@@ -652,12 +650,14 @@ int handleSigStopNInt(process *proc, procSignalWhat_t what, procSignalInfo_t inf
    // which use ptrace. PT_CONTINUE and SIGSTOP don't mix
 
 // AIX MT fix: we get extra SIGTRAPS. Remove with proc, etc. etc.
-#if defined(rs6000_ibm_aix4_1) && defined(MT_THREAD)
-    if( what == SIGSTOP )
-    {
-        // we saw an unexpected SIGSTOP, continue the process
-        proc->continueProc();
-    }
+#if defined(rs6000_ibm_aix4_1)
+   if(proc->multithread_capable()) {
+      if( what == SIGSTOP )
+      {
+         // we saw an unexpected SIGSTOP, continue the process
+         proc->continueProc();
+      }
+   }
 #endif
 
    return 1;

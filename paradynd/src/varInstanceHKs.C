@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.C,v 1.17 2003/06/17 20:27:50 schendel Exp $
+// $Id: varInstanceHKs.C,v 1.18 2003/06/20 22:08:14 schendel Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -312,9 +312,7 @@ processTimerHK &processTimerHK::operator=(const processTimerHK &src) {
 
    lastTimeValueUsed = src.lastTimeValueUsed;
 
-#if defined(MT_THREAD)
    vTimer = NULL ;
-#endif
    genericHK::operator=(src);
 
    return *this;
@@ -341,7 +339,7 @@ void processTimerHK::initializeAfterFork(rawType *curElem,
 }
 
 bool processTimerHK::perform(const tTimer *theTimer, 
-			     pd_process *inferiorProc) {
+                             pd_process *inferiorProc) {
    // returns true iff the process succeeded; i.e., if we were able to grab
    // the mutex for this tTimer and process without any waiting.  Otherwise,
    // we return false and don't process and don't wait.
@@ -378,31 +376,30 @@ bool processTimerHK::perform(const tTimer *theTimer,
    const rawTime64 total = theTimer->total;
    const rawTime64 start = (count > 0) ? theTimer->start : 0; // not needed if count==0
 
-#if defined(MT_THREAD)
-   virtualTimer *vt = inferiorProc->getVirtualTimer(theTimer->index);
-   assert(vt != NULL);
-   assert(thrNval->getThread() != NULL);
-   pd_thread *thr = thrNval->getThread();
-   assert(thr != NULL);
-   rawTime64 inferiorCPUtime ;
-   if (vt == (virtualTimer*) -1) {
-      inferiorCPUtime = (count>0) ? inferiorProc->getRawCpuTime(0) : 0;
-   } else {
-      bool success = true ; // count <=0 should return true
-      inferiorCPUtime =(count>0)?thr->getInferiorVtime(vt, success) : 0;
-      if (!success) {
-         return false ;
-      }
-   }
-   if(inferiorCPUtime == -1)  // getRawCpuTime failed (perhaps process ended)
-      return false;
+   rawTime64 inferiorCPUtime;
+   if(inferiorProc->multithread_capable()) {
+      virtualTimer *vt = inferiorProc->getVirtualTimer(theTimer->index);
+      assert(vt != NULL);
+      assert(thrNval->getThread() != NULL);
+      pd_thread *thr = thrNval->getThread();
+      assert(thr != NULL);
 
-#else   
-   const rawTime64 inferiorCPUtime = (count>0) ? 
-                         inferiorProc->getRawCpuTime(0) : 0;
-   if(inferiorCPUtime == -1)  // getRawCpuTime failed (perhaps process ended)
-      return false;
-#endif 
+      if (vt == (virtualTimer*) -1) {
+         inferiorCPUtime = (count>0) ? inferiorProc->getRawCpuTime(0) : 0;
+      } else {
+         bool success = true ; // count <=0 should return true
+         inferiorCPUtime =(count>0)?thr->getInferiorVtime(vt, success) : 0;
+         if (!success) {
+            return false ;
+         }
+      }
+      if(inferiorCPUtime == -1)  //getRawCpuTime failed (perhaps process ended)
+         return false;
+   } else {
+      inferiorCPUtime = (count>0) ? inferiorProc->getRawCpuTime(0) : 0;
+      if(inferiorCPUtime == -1)  //getRawCpuTime failed (perhaps process ended)
+         return false;
+   }
    // This protector read and comparison must happen *after* we obtain the
    // inferior CPU time or thread virtual time, or we have a race condition
    // resulting in lots of annoying timer rollback warnings.  In the long
@@ -423,7 +420,7 @@ bool processTimerHK::perform(const tTimer *theTimer,
    /* don't use 'theTimer' after this point! (avoid race condition).  To ensure
       this, we call calcTimeValueToUse() without passing 'theTimer' */
    rawTime64 rawTimeValueToUse = calcTimeValueToUse(count, start, total, 
-						    inferiorCPUtime);
+                                                    inferiorCPUtime);
    // this is where conversion from native units to real time units is done
    timeLength timeValueToUse=inferiorProc->units2timeLength(rawTimeValueToUse);
    sampleVal_cerr << "raw-total: " << total << ", timeValToUse: " 
@@ -554,9 +551,7 @@ hwTimerHK &hwTimerHK::operator=(const hwTimerHK &src) {
 
    lastTimeValueUsed = src.lastTimeValueUsed;
 
-#if defined(MT_THREAD)
-   vTimer = NULL ;
-#endif
+   vTimer = NULL;
    genericHK::operator=(src);
 
    return *this;

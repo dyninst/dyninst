@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: context.h,v 1.16 2002/02/21 21:48:31 bernat Exp $
+// $Id: context.h,v 1.17 2003/06/20 22:08:00 schendel Exp $
 
 #ifndef CONTEXT_HDR
 #define CONTEXT_HDR
@@ -50,13 +50,11 @@
 extern timeStamp startPause;
 extern timeLength elapsedPauseTime;
 
-#if defined(MT_THREAD)
 extern void createThread(traceThread *fr);
 extern void setThreadStackAddr(traceThread *fr);
 extern void updateThreadId(traceThrSelf *fr);
 extern void updateThreadId(traceThread *fr);
 extern void deleteThread(traceThread *fr);
-#endif
 
 extern void forkProcess(int pid, int ppid, key_t theKey, void *applAttachedAtPtr);
 

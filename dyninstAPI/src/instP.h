@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instP.h,v 1.40 2002/12/20 07:49:57 jaw Exp $
+// $Id: instP.h,v 1.41 2003/06/20 22:07:48 schendel Exp $
 
 #if !defined(instP_h)
 #define instP_h
@@ -222,7 +222,7 @@ extern void modifyTrampReturn(process*, Address returnAddr, Address newReturnTo)
 extern void generateReturn(process *proc, Address currAddr, instPoint *location);
 extern void generateEmulationInsn(process *proc, Address addr, instPoint *location);
 extern void generateNoOp(process *proc, Address addr);
-extern void initTramps();
+extern void initTramps(bool is_multithreaded);
 extern void generateBranch(process *proc, Address fromAddr, Address newAddr);
 extern void removeTramp(process *proc, instPoint *location);
 

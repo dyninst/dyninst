@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.141 2003/04/16 21:07:16 bernat Exp $
+// $Id: inst-sparc.C,v 1.142 2003/06/20 22:07:43 schendel Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -662,7 +662,8 @@ processOptimaRet(instPoint *location, AstNode *&ast) {
 
 Register
 emitOptReturn(instruction i, Register src, char *insn, Address &base, 
-              bool noCost, const instPoint *location) {
+              bool noCost, const instPoint *location,
+              bool for_multithreaded) {
     
     unsigned instr = i.raw;
 
@@ -677,7 +678,8 @@ emitOptReturn(instruction i, Register src, char *insn, Address &base,
         (void) emitV(plusOp, (instr&0x07c000)>>14, instr&0x01fff,
              ((instr&0x3e000000)>>25)+16, insn, base, noCost);
     
-    return emitR(getSysRetValOp, 0, 0, src, insn, base, noCost, location);
+    return emitR(getSysRetValOp, 0, 0, src, insn, base, noCost, location,
+                 for_multithreaded);
 }
 
 /****************************************************************************/
@@ -910,7 +912,7 @@ void initATramp(NonRecursiveTrampTemplate *thisTemp, Address tramp,
 /****************************************************************************/
 /****************************************************************************/
 
-void initTramps()
+void initTramps(bool is_multithreaded)
 {
     static bool inited=false;
 
@@ -927,7 +929,7 @@ void initTramps()
 	       (Address)conservativeBaseTramp,true);
 
     regSpace = new registerSpace(sizeof(deadList)/sizeof(Register), deadList,
-                                         0, NULL);
+                                 0, NULL, is_multithreaded);
     assert(regSpace);
 }
 

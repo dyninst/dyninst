@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.156 2003/06/19 18:46:10 pcroth Exp $
+// $Id: perfStream.C,v 1.157 2003/06/20 22:08:11 schendel Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -330,7 +330,6 @@ void processTraceStream(process *dproc)
        dproc->bufStart +=  header.length;
 
        switch (header.type) {
-#if defined(MT_THREAD)
          case TR_THR_CREATE:
             // cerr << "paradynd received TR_THR_CREATE, dproc: " << dproc
             //      << endl;
@@ -344,7 +343,6 @@ void processTraceStream(process *dproc)
          case TR_THR_DELETE:
             deleteThread((traceThread *) ((void*)recordData));
             break;
-#endif
          case TR_NEW_RESOURCE:
             //cerr << "paradynd: received a new resource from pid " 
             //     << dproc->getPid() << "; dprocessing now" << endl;

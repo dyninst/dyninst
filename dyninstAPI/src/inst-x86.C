@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.136 2003/06/16 18:51:34 jaw Exp $
+ * $Id: inst-x86.C,v 1.137 2003/06/20 22:07:45 schendel Exp $
  */
 
 #include <iomanip.h>
@@ -1114,23 +1114,25 @@ bool registerSpace::readOnlyRegister(Register) {
 Register deadList[NUM_VIRTUAL_REGISTERS];
 int deadListSize = sizeof(deadList);
 
-void initTramps()
+void initTramps(bool is_multithreaded)
 {
-    static bool inited=false;
+   static bool inited = false;
 
-    if (inited) return;
-    inited = true;
+   if (inited) return;
+   inited = true;
+   
+   unsigned regs_to_loop_over;
+   if(is_multithreaded)
+      regs_to_loop_over = NUM_VIRTUAL_REGISTERS - 1;
+   else
+      regs_to_loop_over = NUM_VIRTUAL_REGISTERS;
 
-#if defined(MT_THREAD)
-    for (unsigned u = 0; u < NUM_VIRTUAL_REGISTERS-1; u++) {
-#else
-    for (unsigned u = 0; u < NUM_VIRTUAL_REGISTERS; u++) {
-#endif
+   for (unsigned u = 0; u < regs_to_loop_over; u++) {
       deadList[u] = u+1;
-    }
+   }
 
-    regSpace = new registerSpace(deadListSize/sizeof(Register), deadList,
-                                0, NULL);
+   regSpace = new registerSpace(deadListSize/sizeof(Register), deadList,
+                                0, NULL, is_multithreaded);
 }
 
 
@@ -1483,11 +1485,11 @@ trampTemplate *installBaseTramp( const instPoint *location,
 
   // compute the tramp size
   // if there are any changes to the tramp, the size must be updated.
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
-  unsigned trampSize = 12+73+2*27 + 66;
-#else
-  unsigned trampSize = 12+73;
-#endif
+  unsigned trampSize;
+  if(proc->multithread_capable())
+     trampSize = 12+73+2*27 + 66;
+  else
+     trampSize = 12+73;
 
   if (location->isConservative()) trampSize += 13*2;
 
@@ -1632,12 +1634,12 @@ trampTemplate *installBaseTramp( const instPoint *location,
     emitOpRegImm(5, ESP, 128, insn); // sub esp, 128
   }
 
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
-  // generate preamble for MT version
   Address base=0;
-  generateMTpreamble((char *)insn, base, proc);
-  insn += base;
-#endif
+  if(proc->multithread_capable()) {
+     // generate preamble for MT version
+     generateMTpreamble((char *)insn, base, proc);
+     insn += base;
+  }
 
   if( ! trampRecursiveDesired )
     {
@@ -1747,12 +1749,13 @@ trampTemplate *installBaseTramp( const instPoint *location,
     emitOpRegImm(5, ESP, 128, insn); // sub esp, 128
   }
 
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
-  // generate preamble for MT version
-  base=0;
-  generateMTpreamble((char *)insn, base, proc);
-  insn += base;
-#endif
+
+  if(proc->multithread_capable()) {
+     // generate preamble for MT version
+     base=0;
+     generateMTpreamble((char *)insn, base, proc);
+     insn += base;
+  }
 
   if( ! trampRecursiveDesired )
     {
@@ -2440,7 +2443,7 @@ Address emitA(opCode op, Register src1, Register /*src2*/, Register dest,
 
 Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
                char *ibuf, Address &base, bool /*noCost*/,
-               const instPoint *location)
+               const instPoint *location, bool for_multithreaded)
 {
     //fprintf(stderr,"emitR(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
 

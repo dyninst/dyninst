@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.29 2003/06/10 17:45:38 tlmiller Exp $
+ * $Id: inst-ia64.C,v 1.30 2003/06/20 22:07:39 schendel Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -527,14 +527,14 @@ bool process::replaceFunctionCall( const instPoint * point,
 
 /* Required by ast.C */
 Register deadRegisterList[] = { 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF };
-void initTramps() { 
-	/* Initialize the registerSpace pointer regSpace to the state of the registers
-	   that will exist at the end of the first part of the base tramp's code.  (That
-	   is, for the minitramps.
+void initTramps(bool is_multithreaded) { 
+	/* Initialize the registerSpace pointer regSpace to the state of the
+	   registers that will exist at the end of the first part of the base
+	   tramp's code.  (That is, for the minitramps.
 
-	   The difficulty here is that the register numbers are expected to be physical
-	   registers, but we can't determine those until we know which function we're
-	   instrumenting...
+	   The difficulty here is that the register numbers are expected to be
+	   physical registers, but we can't determine those until we know which
+	   function we're instrumenting...
 
 	   For now, we'll just say 0x1 - 0xF. */
 
@@ -1575,7 +1575,7 @@ void generateMTpreamble(char *, Address &, process *) {
 /* Required by ast.C */
 Register emitR( opCode op, Register src1, Register src2, Register dest,
 					 char * ibuf, Address & base, bool noCost,
-					 const instPoint * /* location */ ) {
+					 const instPoint * /* location */, bool for_multithreaded) {
 	/* FIXME: handle noCost */
 	switch( op ) {
 		case getParamOp: {

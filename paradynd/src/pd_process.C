@@ -1236,11 +1236,12 @@ void pd_process::FillInCallGraphStatic()
      pd_thread *begThr = *(begThrIter);
      thr = begThr->get_tid();
   }
-#if defined(MT_THREAD)
-  // Temporary hack -- ordering problem
-  thr = 1;
-  
-#endif
+
+  if(multithread_capable()) {
+     // Temporary hack -- ordering problem
+     thr = 1;
+  }
+
   CallGraphSetEntryFuncCallback(img->get_file(), 
                                 entry_pdf->ResourceFullName(), thr);
     

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.149 2003/06/17 20:27:35 schendel Exp $
+// $Id: solaris.C,v 1.150 2003/06/20 22:07:55 schendel Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -575,8 +575,9 @@ bool process::loadDYNINSTlib() {
   // deadList and deadListSize are defined in inst-sparc.C - naim
   extern Register deadList[];
   extern unsigned int deadListSize;
-  registerSpace *dlopenRegSpace = new registerSpace(deadListSize/sizeof(Register),
-                                deadList, (unsigned)0, NULL);
+  registerSpace *dlopenRegSpace =
+     new registerSpace(deadListSize/sizeof(Register),
+                       deadList, (unsigned)0, NULL, multithread_capable());
   dlopenRegSpace->resetSpace();
 
   // we need to make 2 calls to dlopen: one to load libsocket.so.1 and another
@@ -845,93 +846,93 @@ int getNumberOfCPUs()
 
 Frame Frame::getCallerFrame(process *p) const
 {
-  Frame ret;
-  ret.lwp_ = lwp_;
-  ret.thread_ = thread_;
-  dyn_saved_regs *regs;
-
-  ret.pid_ = pid_;
-  ret.thread_ = thread_;
-  ret.lwp_ = lwp_;
-
-  if (uppermost_) {
-    function_base *func = p->findFuncByAddr(pc_);
-    if (func) {
-        if (func->hasNoStackFrame()) { // formerly "isLeafFunc()"
+   Frame ret;
+   ret.lwp_ = lwp_;
+   ret.thread_ = thread_;
+   dyn_saved_regs *regs;
+   
+   ret.pid_ = pid_;
+   ret.thread_ = thread_;
+   ret.lwp_ = lwp_;
+   
+   if (uppermost_) {
+      function_base *func = p->findFuncByAddr(pc_);
+      if (func) {
+         if (func->hasNoStackFrame()) { // formerly "isLeafFunc()"
             if (lwp_) { // We have a LWP and are prepared to use it
-                regs = lwp_->getRegisters();
-                ret.pc_ = regs->theIntRegs[R_O7] + 8;
-                ret.fp_ = fp_; // frame pointer unchanged
-                delete regs;
-                return ret;
-        
+               regs = lwp_->getRegisters();
+               ret.pc_ = regs->theIntRegs[R_O7] + 8;
+               ret.fp_ = fp_; // frame pointer unchanged
+               delete regs;
+               return ret;
+               
             }
             else if (thread_)
-                cerr << "Not implemented yet" << endl;
+               cerr << "Not implemented yet" << endl;
             else {
-                regs = p->getDefaultLWP()->getRegisters();
-                ret.pc_ = regs->theIntRegs[R_O7] + 8;
-                ret.fp_ = fp_;
-                delete regs;
-                return ret;
+               regs = p->getDefaultLWP()->getRegisters();
+               ret.pc_ = regs->theIntRegs[R_O7] + 8;
+               ret.fp_ = fp_;
+               delete regs;
+               return ret;
             }
-        }
-    }
-  }
-  
-  //
-  // For the sparc, register %i7 is the return address - 8 and the fp is
-  // register %i6. These registers can be located in %fp+14*5 and
-  // %fp+14*4 respectively, but to avoid two calls to readDataSpace,
-  // we bring both together (i.e. 8 bytes of memory starting at %fp+14*4
-  // or %fp+56).
-  // These values are copied to the stack when the application is paused,
-  // so we are assuming that the application is paused at this point
-
-  struct {
-    Address fp;
-    Address rtn;
-  } addrs;
-  
-  if (p->readDataSpace((caddr_t)(fp_ + 56), 2*sizeof(int),
-		       (caddr_t)&addrs, true))
-  {
-    ret.fp_ = addrs.fp;
-    ret.pc_ = addrs.rtn + 8;
-
-    if (p->isInSignalHandler(pc_)) {
-      // get the value of the saved PC: this value is stored in the address
-      // specified by the value in register i2 + 44. Register i2 must contain
-      // the address of some struct that contains, among other things, the 
-      // saved PC value.  
-      u_int reg_i2;
-      if (p->readDataSpace((caddr_t)(fp_+40), sizeof(u_int),
-			   (caddr_t)&reg_i2,true)) {
-	Address saved_pc;
-	if (p->readDataSpace((caddr_t) (reg_i2+44), sizeof(int),
-			     (caddr_t) &saved_pc,true)) {
-
-	  function_base *func = p->findFuncByAddr(saved_pc);
-
-	  ret.pc_ = saved_pc;
-	  if (func && func->hasNoStackFrame())
-	    ret.fp_ = fp_;
-
-	  return ret;
-	}
+         }
       }
-      return Frame();
-    }
-#if defined(MT_THREAD)
-    // MT thread adds another copy of the start function
-    // to the top of the stack... this breaks instrumentation
-    // since we think we're at a function entry.
-    if (ret.fp_ == 0) ret.pc_ = 0;
-#endif
-    return ret;
+   }
+   
+   //
+   // For the sparc, register %i7 is the return address - 8 and the fp is
+   // register %i6. These registers can be located in %fp+14*5 and
+   // %fp+14*4 respectively, but to avoid two calls to readDataSpace,
+   // we bring both together (i.e. 8 bytes of memory starting at %fp+14*4
+   // or %fp+56).
+   // These values are copied to the stack when the application is paused,
+   // so we are assuming that the application is paused at this point
+   
+   struct {
+      Address fp;
+      Address rtn;
+   } addrs;
+   
+   if (p->readDataSpace((caddr_t)(fp_ + 56), 2*sizeof(int),
+                        (caddr_t)&addrs, true))
+   {
+      ret.fp_ = addrs.fp;
+      ret.pc_ = addrs.rtn + 8;
+      
+      if (p->isInSignalHandler(pc_)) {
+         // get the value of the saved PC: this value is stored in the
+         // address specified by the value in register i2 + 44. Register i2
+         // must contain the address of some struct that contains, among
+         // other things, the saved PC value.
+         u_int reg_i2;
+         if (p->readDataSpace((caddr_t)(fp_+40), sizeof(u_int),
+                              (caddr_t)&reg_i2,true)) {
+            Address saved_pc;
+            if (p->readDataSpace((caddr_t) (reg_i2+44), sizeof(int),
+                                 (caddr_t) &saved_pc,true)) {
+               
+               function_base *func = p->findFuncByAddr(saved_pc);
+               
+               ret.pc_ = saved_pc;
+               if (func && func->hasNoStackFrame())
+                  ret.fp_ = fp_;
+               
+               return ret;
+            }
+         }
+         return Frame();
+      }
+      if(p->multithread_capable()) {
+         // MT thread adds another copy of the start function
+         // to the top of the stack... this breaks instrumentation
+         // since we think we're at a function entry.
+         if (ret.fp_ == 0) ret.pc_ = 0;
+      }
+      return ret;
    }
   
-  return Frame(); // zero frame
+   return Frame(); // zero frame
 }
 
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.100 2003/06/18 20:32:01 schendel Exp $ */
+/* $Id: context.C,v 1.101 2003/06/20 22:07:59 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -125,8 +125,6 @@ bool applicationDefined()
 }
 
 //timeStamp getCurrentTime(bool);
-
-#if defined(MT_THREAD)
 
 extern void CallGraphSetEntryFuncCallback(string exe_name, string r, int tid);
 
@@ -258,8 +256,6 @@ void deleteThread(traceThread *fr)
     // deleting resource id
     // how do we delete a resource id? - naim
 }
-
-#endif
 
 unsigned instInstancePtrHash(instInstance * const &ptr) {
    // would be a static fn but for now aix.C needs it.

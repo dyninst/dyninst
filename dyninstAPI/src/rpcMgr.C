@@ -219,10 +219,12 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
         }
         rpc_iter++;
     }
-#if defined(MT_THREAD) && defined(sparc_sun_solaris2_4)
-    if (!readyLWPRPC && !processingLWPRPC) {
-        if (postedProcessRPCs_.size())
-            readyProcessRPC = true;
+#if defined(sparc_sun_solaris2_4)
+    if(proc_->multithread_capable()) {
+       if (!readyLWPRPC && !processingLWPRPC) {
+          if (postedProcessRPCs_.size())
+             readyProcessRPC = true;
+       }
     }
 #endif
     
@@ -357,7 +359,8 @@ Address rpcMgr::createRPCImage(AstNode *action,
    // already done a GETREGS and we'll restore with a SETREGS, right?
    unsigned char insnBuffer[4096];
   
-   initTramps(); // initializes "regSpace", but only the 1st time called
+   // initializes "regSpace", but only the 1st time called
+   initTramps(proc_->multithread_capable()); 
    extern registerSpace *regSpace;
    regSpace->resetSpace();
   

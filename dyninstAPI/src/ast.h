@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.62 2003/03/06 20:58:58 zandy Exp $
+// $Id: ast.h,v 1.63 2003/06/20 22:07:37 schendel Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -114,9 +114,10 @@ class registerSlot {
 };
 
 class registerSpace {
-    public:
+ public:
 	registerSpace(const unsigned int dCount, Register *deads,
-                      const unsigned int lCount, Register *lives);
+                 const unsigned int lCount, Register *lives,
+                 bool multithreaded = false);
 	Register allocateRegister(char *insn, Address &base, bool noCost);
 	// Free the specified register (decrement its refCount)
 	void freeRegister(Register k);
@@ -145,11 +146,12 @@ class registerSpace {
 	// Make sure that no registers remain allocated, except "to_exclude"
 	// Used for assertion checking.
 	void checkLeaks(Register to_exclude);
-    private:
+   bool for_multithreaded() { return is_multithreaded; }
+ private:
 	u_int numRegisters;
 	Register highWaterRegister;
 	registerSlot *registers;
-
+   bool is_multithreaded;
 #if defined(ia64_unknown_linux2_4)
 
 public:
@@ -165,12 +167,10 @@ class AstNode {
     public:
         enum nodeType { sequenceNode, opCodeNode, operandNode, callNode };
         enum operandType { Constant, ConstantPtr, ConstantString,
-#if defined(MT_THREAD)
 			   OffsetConstant,      // add a OffsetConstant type for offset
 			                        // generated for level or index:
 			                        //   it is  MAX#THREADS * level * tSize  for level
 			                        //     or                 index * tSize  for index
-#endif
 			   DataValue, DataPtr,  // restore AstNode::DataValue and AstNode::DataPtr
                            DataId, DataIndir, DataReg,
 			   Param, ReturnVal, DataAddr, FrameAddr,
@@ -316,13 +316,6 @@ class AstNode {
 	operandType oType;	    // for operand nodes
 	void *oValue;	            // operand value for operand nodes
         unsigned int whichMA;       // only for memory access nodes
-#if defined(MT_THREAD)              // for OffsetConstant type for offset
-	bool isLevel;               // true  if lvlOrIdx is level
-	                            // false if lvlOrIdex is idex
-	unsigned lvl;               // if level:  MAX#THREADS * level * tSize
-	unsigned idx;               // if index:                index * tSize
-	                            // lvl AND idx together identify a variable
-#endif
 #ifdef BPATCH_LIBRARY
 	const BPatch_type *bptype;  // type of corresponding BPatch_snippet
 	bool doTypeCheck;	    // should operands be type checked

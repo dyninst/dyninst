@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.C,v 1.28 2003/03/04 19:16:05 willb Exp $
+// $Id: solarisDL.C,v 1.29 2003/06/20 22:07:57 schendel Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/solarisDL.h"
@@ -581,7 +581,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
 
    error_occured = false;
 
-   // MT_THREAD: possible one of many threads hit the breakpoint
+   // multi-threaded: possible one of many threads hit the breakpoint
 
    pdvector<Frame> activeFrames;
    if (!proc->getAllActiveFrames(activeFrames)) {

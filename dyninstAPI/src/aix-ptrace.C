@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix-ptrace.C,v 1.2 2003/06/17 20:31:26 schendel Exp $
+// $Id: aix-ptrace.C,v 1.3 2003/06/20 22:07:33 schendel Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -855,29 +855,29 @@ bool process::loopUntilStopped() {
         if(hasExited()) return false;
         if (loops == 2000) {
             // Resend sigstop...
-#if defined(MT_THREAD)
-            // We see the process stopped, but we think it is running
-            // Check to see if the process is stopped, and if so set status
-            struct procsinfo procInfoBuf;
-            const int procsinfoSize = sizeof(struct procsinfo);
-            struct fdsinfo fdsInfoBuf;
-            const int fdsinfoSize = sizeof(struct fdsinfo);
-            int pidVar = getPid();
-            int numProcs = getprocs(&procInfoBuf,
-                                    procsinfoSize,
-                                    &fdsInfoBuf,
-                                    fdsinfoSize,
-                                    &pidVar,
-                                    1);
-            if (numProcs == 1) {
-                if (procInfoBuf.pi_state == SSTOP) {
+           if(multithread_capable()) {
+              // We see the process stopped, but we think it is running
+              // Check to see if the process is stopped, and if so set status
+              struct procsinfo procInfoBuf;
+              const int procsinfoSize = sizeof(struct procsinfo);
+              struct fdsinfo fdsInfoBuf;
+              const int fdsinfoSize = sizeof(struct fdsinfo);
+              int pidVar = getPid();
+              int numProcs = getprocs(&procInfoBuf,
+                                      procsinfoSize,
+                                      &fdsInfoBuf,
+                                      fdsinfoSize,
+                                      &pidVar,
+                                      1);
+              if (numProcs == 1) {
+                 if (procInfoBuf.pi_state == SSTOP) {
                     status_ = stopped;
                     return true;
-                }
-            }
-#endif
-            stop_();
-            loops = 0;
+                 }
+              }
+           }
+           stop_();
+           loops = 0;
         }
 
         procSignalWhy_t why;

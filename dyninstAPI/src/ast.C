@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.126 2003/03/07 20:14:58 mirg Exp $
+// $Id: ast.C,v 1.127 2003/06/20 22:07:36 schendel Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -83,40 +83,41 @@ extern registerSpace *regSpace;
 extern bool doNotOverflow(int value);
 
 registerSpace::registerSpace(const unsigned int deadCount, Register *dead, 
-                             const unsigned int liveCount, Register *live)
+                             const unsigned int liveCount, Register *live,
+                             bool multithreaded) :
+   is_multithreaded(multithreaded)
 {
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
-  initTramps();
+   initTramps(is_multithreaded);
 #endif
 
-    unsigned i;
-    numRegisters = deadCount + liveCount;
-    registers = new registerSlot[numRegisters];
-
-    // load dead ones
-    for (i=0; i < deadCount; i++) {
-	registers[i].number = dead[i];
-	registers[i].refCount = 0;
-	registers[i].mustRestore = false;
-	registers[i].needsSaving = false;
-	registers[i].startsLive = false;
-    }
-
-    // load live ones;
-    for (i=0; i < liveCount; i++) {
-	registers[i+deadCount].number = live[i];
-	registers[i+deadCount].refCount = 0;
-	registers[i+deadCount].mustRestore = false;
-	registers[i+deadCount].needsSaving = true;
-	registers[i+deadCount].startsLive = true;
-#if defined(MT_THREAD)
-        if (registers[i+deadCount].number == REG_MT_POS) {
-          registers[i+deadCount].refCount = 1;
-          registers[i+deadCount].needsSaving = true;
-        }
-#endif
-    }
-
+   unsigned i;
+   numRegisters = deadCount + liveCount;
+   registers = new registerSlot[numRegisters];
+   
+   // load dead ones
+   for (i=0; i < deadCount; i++) {
+      registers[i].number = dead[i];
+      registers[i].refCount = 0;
+      registers[i].mustRestore = false;
+      registers[i].needsSaving = false;
+      registers[i].startsLive = false;
+   }
+   
+   // load live ones;
+   for (i=0; i < liveCount; i++) {
+      registers[i+deadCount].number = live[i];
+      registers[i+deadCount].refCount = 0;
+      registers[i+deadCount].mustRestore = false;
+      registers[i+deadCount].needsSaving = true;
+      registers[i+deadCount].startsLive = true;
+      if(is_multithreaded) {
+         if (registers[i+deadCount].number == REG_MT_POS) {
+            registers[i+deadCount].refCount = 1;
+            registers[i+deadCount].needsSaving = true;
+         }
+      }
+   }
 }
 
 Register registerSpace::allocateRegister(char *insn, Address &base, bool noCost) 
@@ -236,26 +237,26 @@ void registerSpace::incRefCount(Register reg)
 }
 
 void registerSpace::resetSpace() {
-    for (u_int i=0; i < numRegisters; i++) {
+   for (u_int i=0; i < numRegisters; i++) {
 
-// Drew, do you still want this for anything?  -- TLM ( 03/18/2002 )
-// (Should be #if defined(MT_THREAD) - protected, if you do.)
-//        if (registers[i].inUse && (registers[i].number != REG_MT_POS)) {
-          //sprintf(errorLine,"WARNING: register %d is still in use\n",registers[i].number);
-          //logLine(errorLine);
-//        }
-
-	registers[i].refCount = 0;
-	registers[i].mustRestore = false;
-	registers[i].needsSaving = registers[i].startsLive;
-#if defined(MT_THREAD)
-        if (registers[i].number == REG_MT_POS) {
-          registers[i].refCount = 1;
-          registers[i].needsSaving = true;
-        }
-#endif
-    }
-    highWaterRegister = 0;
+      // Drew, do you still want this for anything?  -- TLM ( 03/18/2002 )
+      // (Should be #if defined(MT__THREAD) - protected, if you do.)
+      //        if (registers[i].inUse && (registers[i].number != REG_MT_POS)) {
+      //sprintf(errorLine,"WARNING: register %d is still in use\n",registers[i].number);
+      //logLine(errorLine);
+      //        }
+      
+      registers[i].refCount = 0;
+      registers[i].mustRestore = false;
+      registers[i].needsSaving = registers[i].startsLive;
+      if(is_multithreaded) {
+         if (registers[i].number == REG_MT_POS) {
+            registers[i].refCount = 1;
+            registers[i].needsSaving = true;
+         }
+      }
+   }
+   highWaterRegister = 0;
 }
 
 // Make sure that no registers remain allocated, except "to_exclude"
@@ -910,9 +911,10 @@ Address AstNode::generateTramp(process *proc, const instPoint *location,
     removeAst(tmp2);
     // private constructor; assumes NULL for right child
 
-    initTramps(); // needed to initialize regSpace below
-                  // shouldn't we do a "delete regSpace" first to avoid
-                  // leaking memory?
+    // needed to initialize regSpace below
+    // shouldn't we do a "delete regSpace" first to avoid
+    // leaking memory?
+    initTramps(proc->multithread_capable()); 
 
     regSpace->resetSpace();
 
@@ -1036,35 +1038,51 @@ Register AstNode::shareOrAllocate(Register left, Register right,
 				  const pdvector<AstNode*> &ifForks,
 				  char *insn, Address &base, bool noCost)
 {
-    Register dest;
+   Register dest;
 
-    if (left != Null_Register &&
-#if defined(MT_THREAD)
-	left != REG_MT_POS && // MT code uses this reg, but marks it as free
-#endif
-	!rs->isSharedRegister(left)) {
-	dest = left;
-    }
-    else if (right != Null_Register &&
-#if defined(MT_THREAD)
-	     right != REG_MT_POS && // MT code uses this reg
-#endif
-	     !rs->isSharedRegister(right)) {
-	dest = right;
-    }
-    else {
-	dest = rs->allocateRegister(insn, base, noCost);
-    }
-    // dest should get its proper reference count, not inherit it
-    // from left or right
-    rs->fixRefCount(dest, useCount+1);
-
-    // Finally, make this register available for sharing
-    if (useCount > 0) {
-	keepRegister(dest, ifForks);
-    }
-
-    return dest;
+   enum assign_todo { assign_left, assign_right, assign_alloc, unalloc };
+   enum assign_todo todo = unalloc;
+   if(rs->for_multithreaded()) {
+      if(left != Null_Register &&
+         left != REG_MT_POS && // MT code uses this reg, but marks it as free
+         !rs->isSharedRegister(left)) {
+         todo = assign_left;
+      } else if(right != Null_Register &&
+                right != REG_MT_POS && // MT code uses this reg
+                !rs->isSharedRegister(right)) {
+         todo = assign_right;
+      } else
+         todo = assign_alloc;
+   }
+   else {
+      if(left != Null_Register && !rs->isSharedRegister(left)) {
+         todo = assign_left;
+      } else if (right != Null_Register && !rs->isSharedRegister(right)) {
+         todo = assign_right;
+      } else {
+         todo = assign_alloc;
+      }
+   }
+   
+   if(todo == assign_left)
+      dest = left;
+   else if(todo == assign_right)
+      dest = right;
+   else if(todo == assign_alloc)
+      dest = rs->allocateRegister(insn, base, noCost);
+   else
+      assert(false);
+   
+   // dest should get its proper reference count, not inherit it
+   // from left or right
+   rs->fixRefCount(dest, useCount+1);
+   
+   // Finally, make this register available for sharing
+   if (useCount > 0) {
+      keepRegister(dest, ifForks);
+   }
+   
+   return dest;
 }
 
 //
@@ -1130,106 +1148,106 @@ Address AstNode::generateCode_phase2(process *proc,
 				     Address &base, bool noCost,
 				     const pdvector<AstNode*> &ifForks,
 				     const instPoint *location) {
-  // Note: MIPSPro compiler complains about redefinition of default argument
-    Address addr;
-    Address fromAddr;
-    Address startInsn;
-    Register src1, src2;
-    Register src = Null_Register;
-    Register dest = Null_Register;
-    Register right_dest = Null_Register;
+   // Note: MIPSPro compiler complains about redefinition of default argument
+   Address addr;
+   Address fromAddr;
+   Address startInsn;
+   Register src1, src2;
+   Register src = Null_Register;
+   Register dest = Null_Register;
+   Register right_dest = Null_Register;
 
-    useCount--;
+   useCount--;
 #if defined(ASTDEBUG)
-    sprintf(errorLine,"### location: %p ###\n", location);
-    logLine(errorLine);
+   sprintf(errorLine,"### location: %p ###\n", location);
+   logLine(errorLine);
 #endif
-    if (hasKeptRegister()) {
-	// Before using kept_register we need to make sure it was computed
-	// on the same path as we are right now
-	if (subpath(kept_path, ifForks)) { 
+   if (hasKeptRegister()) {
+      // Before using kept_register we need to make sure it was computed
+      // on the same path as we are right now
+      if (subpath(kept_path, ifForks)) { 
 #if defined(ASTDEBUG)
-	    sprintf(errorLine,"==> Returning register %d <==\n",kept_register);
-	    logLine(errorLine);
+         sprintf(errorLine,"==> Returning register %d <==\n",kept_register);
+         logLine(errorLine);
 #endif
-	    if (useCount == 0) { 
-		Register tmp=kept_register;
-		unkeepRegister();
+         if (useCount == 0) { 
+            Register tmp=kept_register;
+            unkeepRegister();
 #ifdef BPATCH_LIBRARY_F
-		assert(!rs->isFreeRegister(tmp));
+            assert(!rs->isFreeRegister(tmp));
 #endif
-		return (Address)tmp;
-	    }
-	    return (Address)kept_register;
-	}
-	else {
-	    // Can't keep the register anymore
-	    forceUnkeepAndFree(rs);
-	    fixChildrenCounts(rs);
-	}
-    }
-    if (type == opCodeNode) {
-        if (op == branchOp) {
-	    assert(loperand->oType == Constant);
-	    unsigned offset = (RegValue)loperand->oValue;
-	    // We are not calling loperand->generateCode_phase2,
-	    // so we decrement its useCount by hand.
-	    loperand->decUseCount(rs);
-            (void)emitA(branchOp, 0, 0, (RegValue)offset, insn, base, noCost);
-        } else if (op == ifOp) {
-            // This ast cannot be shared because it doesn't return a register
-	    src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
-	    startInsn = base;
-	    fromAddr = emitA(op, src, 0, 0, insn, base, noCost);
-            rs->freeRegister(src);
+            return (Address)tmp;
+         }
+         return (Address)kept_register;
+      }
+      else {
+         // Can't keep the register anymore
+         forceUnkeepAndFree(rs);
+         fixChildrenCounts(rs);
+      }
+   }
+   if (type == opCodeNode) {
+      if (op == branchOp) {
+         assert(loperand->oType == Constant);
+         unsigned offset = (RegValue)loperand->oValue;
+         // We are not calling loperand->generateCode_phase2,
+         // so we decrement its useCount by hand.
+         loperand->decUseCount(rs);
+         (void)emitA(branchOp, 0, 0, (RegValue)offset, insn, base, noCost);
+      } else if (op == ifOp) {
+         // This ast cannot be shared because it doesn't return a register
+         src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
+         startInsn = base;
+         fromAddr = emitA(op, src, 0, 0, insn, base, noCost);
+         rs->freeRegister(src);
 
-	    // The flow of control forks. We need to add the forked node to 
-	    // the path
-	    pdvector<AstNode*> thenFork = ifForks;
-	    thenFork.push_back(roperand);
-            Register tmp = (Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost, thenFork, location);
+         // The flow of control forks. We need to add the forked node to 
+         // the path
+         pdvector<AstNode*> thenFork = ifForks;
+         thenFork.push_back(roperand);
+         Register tmp = (Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost, thenFork, location);
+         rs->freeRegister(tmp);
+
+         // Is there an else clause?  If yes, generate branch over it
+         Address else_fromAddr = 0;
+         Address else_startInsn = base;
+         if (eoperand) 
+            else_fromAddr = emitA(branchOp, 0, 0, 0,
+                                  insn, base, noCost);
+
+         // call emit again now with correct offset.
+         (void) emitA(op, src, 0, (Register) (base-fromAddr), 
+                      insn, startInsn, noCost);
+	   
+         if (eoperand) {
+            // If there's an else clause, we need to generate code for it.
+            pdvector<AstNode*> elseFork = ifForks;
+            elseFork.push_back(eoperand);// Add the forked node to the path
+            tmp = (Register)eoperand->generateCode_phase2(proc, rs, insn,
+                                                          base, noCost, 
+                                                          elseFork,
+                                                          location);
             rs->freeRegister(tmp);
 
-	    // Is there an else clause?  If yes, generate branch over it
-	    Address else_fromAddr = 0;
-	    Address else_startInsn = base;
-	    if (eoperand) 
-	      else_fromAddr = emitA(branchOp, 0, 0, 0,
-				   insn, base, noCost);
-
-	    // call emit again now with correct offset.
-	    (void) emitA(op, src, 0, (Register) (base-fromAddr), 
-			insn, startInsn, noCost);
-	   
-	    if (eoperand) {
-		// If there's an else clause, we need to generate code for it.
-		pdvector<AstNode*> elseFork = ifForks;
-		elseFork.push_back(eoperand);// Add the forked node to the path
-		tmp = (Register)eoperand->generateCode_phase2(proc, rs, insn,
-							      base, noCost, 
-							      elseFork,
-							      location);
-		rs->freeRegister(tmp);
-
-		// We also need to fix up the branch at the end of the "true"
-		// clause to jump around the "else" clause.
-		emitA(branchOp, 0, 0, (Register) (base-else_fromAddr),
-		     insn, else_startInsn, noCost);
-	    }
-        }
+            // We also need to fix up the branch at the end of the "true"
+            // clause to jump around the "else" clause.
+            emitA(branchOp, 0, 0, (Register) (base-else_fromAddr),
+                  insn, else_startInsn, noCost);
+         }
+      }
 #ifdef BPATCH_LIBRARY
-        else if (op == ifMCOp) {
-          startInsn = base;
-	  assert(location);
+      else if (op == ifMCOp) {
+         startInsn = base;
+         assert(location);
 
-          // TODO: Right now we get the condition from the memory access info,
-          // because scanning for memory accesses is the only way to detect these
-          // conditional instructions. The right way(TM) would be to attach that
-          // info directly to the point...
-          const BPatch_memoryAccess* ma = location->getBPatch_point()->getMemoryAccess();
-          assert(ma);
-          int cond = ma->conditionCode_NP();
-          if(cond > -1) {
+         // TODO: Right now we get the condition from the memory access info,
+         // because scanning for memory accesses is the only way to detect these
+         // conditional instructions. The right way(TM) would be to attach that
+         // info directly to the point...
+         const BPatch_memoryAccess* ma = location->getBPatch_point()->getMemoryAccess();
+         assert(ma);
+         int cond = ma->conditionCode_NP();
+         if(cond > -1) {
             emitJmpMC(cond, 0 /* target, changed later */, insn, base);
             fromAddr = base;  // here base points after the jcc
             // Add the snippet to the ifForks, as AM has indicated...
@@ -1237,511 +1255,516 @@ Address AstNode::generateCode_phase2(process *proc,
             thenFork.push_back(loperand);
             // generate code with the right path
             Register tmp = (Register)loperand->generateCode_phase2(proc, rs, insn, base,
-                                                                 noCost, thenFork, location);
+                                                                   noCost, thenFork, location);
             rs->freeRegister(tmp);
             // call emit again now with correct offset.
             emitJmpMC(cond, base-fromAddr, insn, startInsn);
-          }
-          else {
+         }
+         else {
             Register tmp = (Register)loperand->generateCode_phase2(proc, rs, insn, base,
-                                                                 noCost, ifForks, location);
+                                                                   noCost, ifForks, location);
             rs->freeRegister(tmp);
-          }
-        }
+         }
+      }
 #endif          
-        else if (op == whileOp) {
-	    Address top = base ;
-	    src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
-	    startInsn = base;
-	    fromAddr = emitA(ifOp, src, 0, 0, insn, base, noCost);
-            rs->freeRegister(src);
-	    if (roperand) {
-		pdvector<AstNode*> whileFork = ifForks;
-		whileFork.push_back(eoperand);//Add the forked node to the path
-                Register tmp = 
-		    (Register)roperand->generateCode_phase2(proc, rs, insn, 
-							    base, noCost, 
-							    whileFork, 
-							    location);
-                rs->freeRegister(tmp);
-	    }
-	    //jump back
-	    (void) emitA(branchOp, 0, 0, (Register)(top-base),
-			insn, base, noCost) ;
+      else if (op == whileOp) {
+         Address top = base ;
+         src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
+         startInsn = base;
+         fromAddr = emitA(ifOp, src, 0, 0, insn, base, noCost);
+         rs->freeRegister(src);
+         if (roperand) {
+            pdvector<AstNode*> whileFork = ifForks;
+            whileFork.push_back(eoperand);//Add the forked node to the path
+            Register tmp = 
+               (Register)roperand->generateCode_phase2(proc, rs, insn, 
+                                                       base, noCost, 
+                                                       whileFork, 
+                                                       location);
+            rs->freeRegister(tmp);
+         }
+         //jump back
+         (void) emitA(branchOp, 0, 0, (Register)(top-base),
+                      insn, base, noCost) ;
 
-	    // call emit again now with correct offset.
-	    (void) emitA(ifOp, src, 0, (Register) (base-fromAddr), 
-			insn, startInsn, noCost);
-            // sprintf(errorLine,"branch forward %d\n", base - fromAddr);
-	} else if (op == doOp) {
-	    assert(0) ;
-	} else if (op == getAddrOp) {
-	    if (loperand->oType == DataAddr) {
-		addr = (Address) loperand->oValue;
-		assert(addr != 0); // check for NULL
-		dest = allocateAndKeep(rs, ifForks, insn, base, noCost);
-		emitVload(loadConstOp, addr, dest, dest, insn, base, noCost);
-	    } else if (loperand->oType == FrameAddr) {
-		// load the address fp + addr into dest
-		dest = allocateAndKeep(rs, ifForks, insn, base, noCost);
-		Register temp = rs->allocateRegister(insn, base, noCost);
-		addr = (Address) loperand->oValue;
-		emitVload(loadFrameAddr, addr, temp, dest, insn, 
-		     base, noCost);
-		rs->freeRegister(temp);
-	    } else if (loperand->oType == DataIndir) {	
-		// taking address of pointer de-ref returns the original
-		//    expression, so we simple generate the left child's 
-		//    code to get the address 
-		dest = (Register)loperand->loperand->generateCode_phase2(proc, 
-		     rs, insn, base, noCost, ifForks, location);
-		// Broken refCounts?
-	    } else {
-		// error condition
-		assert(0);
-	    }
-	} else if (op == storeOp) {
-            // This ast cannot be shared because it doesn't return a register
-	    src1 = (Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
-	    // loperand's value will be invalidated. Discard the cached reg
-	    if (loperand->hasKeptRegister()) {
-		loperand->forceUnkeepAndFree(rs);
-	    }
-	    // We will access loperand's children directly. They do not expect
-	    // it, so we need to bump up their useCounts
-	    loperand->fixChildrenCounts(rs);
+         // call emit again now with correct offset.
+         (void) emitA(ifOp, src, 0, (Register) (base-fromAddr), 
+                      insn, startInsn, noCost);
+         // sprintf(errorLine,"branch forward %d\n", base - fromAddr);
+      } else if (op == doOp) {
+         assert(0) ;
+      } else if (op == getAddrOp) {
+         if (loperand->oType == DataAddr) {
+            addr = (Address) loperand->oValue;
+            assert(addr != 0); // check for NULL
+            dest = allocateAndKeep(rs, ifForks, insn, base, noCost);
+            emitVload(loadConstOp, addr, dest, dest, insn, base, noCost);
+         } else if (loperand->oType == FrameAddr) {
+            // load the address fp + addr into dest
+            dest = allocateAndKeep(rs, ifForks, insn, base, noCost);
+            Register temp = rs->allocateRegister(insn, base, noCost);
+            addr = (Address) loperand->oValue;
+            emitVload(loadFrameAddr, addr, temp, dest, insn, 
+                      base, noCost);
+            rs->freeRegister(temp);
+         } else if (loperand->oType == DataIndir) {	
+            // taking address of pointer de-ref returns the original
+            //    expression, so we simple generate the left child's 
+            //    code to get the address 
+            dest = (Register)loperand->loperand->generateCode_phase2(proc, 
+                                                                     rs, insn, base, noCost, ifForks, location);
+            // Broken refCounts?
+         } else {
+            // error condition
+            assert(0);
+         }
+      } else if (op == storeOp) {
+         // This ast cannot be shared because it doesn't return a register
+         src1 = (Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
+         // loperand's value will be invalidated. Discard the cached reg
+         if (loperand->hasKeptRegister()) {
+            loperand->forceUnkeepAndFree(rs);
+         }
+         // We will access loperand's children directly. They do not expect
+         // it, so we need to bump up their useCounts
+         loperand->fixChildrenCounts(rs);
 
-	    src2 = rs->allocateRegister(insn, base, noCost);
-	    switch (loperand->oType) {
-	    case DataAddr:
-	      addr = (Address) loperand->oValue;
-	      assert(addr != 0); // check for NULL
-	      emitVstore(storeOp, src1, src2, addr, insn, base, noCost, size);
-	      // We are not calling generateCode for the left branch,
-	      // so need to decrement the refcount by hand
-	      loperand->decUseCount(rs);
-	      break;
-	    case FrameAddr:
-	      addr = (Address) loperand->oValue;
-	      assert(addr != 0); // check for NULL
-	      emitVstore(storeFrameRelativeOp, src1, src2, addr, insn, 
-			 base, noCost, size);
-	      loperand->decUseCount(rs);
-	      break;
-	    case DataIndir: {
-	      // store to a an expression (e.g. an array or field use)
-	      // *(+ base offset) = src1
-	      Register tmp = 
-		  (Register)loperand->loperand->generateCode_phase2(proc, rs, 
-								    insn, base,
-								    noCost,
-								    ifForks,
-								    location);
-	      // tmp now contains address to store into
-	      emitV(storeIndirOp, src1, 0, tmp, insn, base, noCost, size, location, proc, rs);
-	      rs->freeRegister(tmp);
-	      loperand->decUseCount(rs);
-	      break;
-	    }
-	    default:
-	      // Could be an error, could be an attempt to load based on an arithmetic expression
-	      if (type == opCodeNode) {
-		// Generate the left hand side, store the right to that address
-		Register tmp = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
-		emitV(storeIndirOp, src1, 0, tmp, insn, base, noCost, size, location, proc, rs);
-		rs->freeRegister(tmp);
-	      }
-	      else {
-		fprintf(stderr, "Invalid oType passed to store: %d (0x%x). Op is %d (0x%x)\n",
-			(int)loperand->oType, (unsigned)loperand->oType,
-			(int)loperand->op, (unsigned) loperand->op);
-		cerr << "dataValue " << DataValue << " dataPtr " << DataPtr << " dataId " << DataId << endl;
-		abort();
-	      }
-	      break;
-	    }
+         src2 = rs->allocateRegister(insn, base, noCost);
+         switch (loperand->oType) {
+           case DataAddr:
+              addr = (Address) loperand->oValue;
+              assert(addr != 0); // check for NULL
+              emitVstore(storeOp, src1, src2, addr, insn, base, noCost, size);
+              // We are not calling generateCode for the left branch,
+              // so need to decrement the refcount by hand
+              loperand->decUseCount(rs);
+              break;
+           case FrameAddr:
+              addr = (Address) loperand->oValue;
+              assert(addr != 0); // check for NULL
+              emitVstore(storeFrameRelativeOp, src1, src2, addr, insn, 
+                         base, noCost, size);
+              loperand->decUseCount(rs);
+              break;
+           case DataIndir: {
+              // store to a an expression (e.g. an array or field use)
+              // *(+ base offset) = src1
+              Register tmp = 
+                 (Register)loperand->loperand->generateCode_phase2(proc, rs, 
+                                                                   insn, base,
+                                                                   noCost,
+                                                                   ifForks,
+                                                                   location);
+              // tmp now contains address to store into
+              emitV(storeIndirOp, src1, 0, tmp, insn, base, noCost, size, location, proc, rs);
+              rs->freeRegister(tmp);
+              loperand->decUseCount(rs);
+              break;
+           }
+           default:
+              // Could be an error, could be an attempt to load based on an arithmetic expression
+              if (type == opCodeNode) {
+                 // Generate the left hand side, store the right to that address
+                 Register tmp = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
+                 emitV(storeIndirOp, src1, 0, tmp, insn, base, noCost, size, location, proc, rs);
+                 rs->freeRegister(tmp);
+              }
+              else {
+                 fprintf(stderr, "Invalid oType passed to store: %d (0x%x). Op is %d (0x%x)\n",
+                         (int)loperand->oType, (unsigned)loperand->oType,
+                         (int)loperand->op, (unsigned) loperand->op);
+                 cerr << "dataValue " << DataValue << " dataPtr " << DataPtr << " dataId " << DataId << endl;
+                 abort();
+              }
+              break;
+         }
 
-	    rs->freeRegister(src1);
-	    rs->freeRegister(src2);
-	} else if (op == storeIndirOp) {
-	    src1 = (Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
-            src2 = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
-            emitV(op, src1, 0, src2, insn, base, noCost);          
-	    rs->freeRegister(src1);
-            rs->freeRegister(src2);
-	} else if (op == trampTrailer) {
-            // This ast cannot be shared because it doesn't return a register
-	    return emitA(op, 0, 0, 0, insn, base, noCost);
-	} else if (op == trampPreamble) {
-            // This ast cannot be shared because it doesn't return a register
+         rs->freeRegister(src1);
+         rs->freeRegister(src2);
+      } else if (op == storeIndirOp) {
+         src1 = (Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
+         src2 = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
+         emitV(op, src1, 0, src2, insn, base, noCost);          
+         rs->freeRegister(src1);
+         rs->freeRegister(src2);
+      } else if (op == trampTrailer) {
+         // This ast cannot be shared because it doesn't return a register
+         return emitA(op, 0, 0, 0, insn, base, noCost);
+      } else if (op == trampPreamble) {
+         // This ast cannot be shared because it doesn't return a register
 #if defined (i386_unknown_solaris2_5) || (sparc_sun_solaris2_4)
-	    // loperand is a constant AST node with the cost, in cycles.
-	    //int cost = noCost ? 0 : (int) loperand->oValue;
-            Address costAddr = 0; // for now... (won't change if noCost is set)
-            loperand->decUseCount(rs);
+         // loperand is a constant AST node with the cost, in cycles.
+         //int cost = noCost ? 0 : (int) loperand->oValue;
+         Address costAddr = 0; // for now... (won't change if noCost is set)
+         loperand->decUseCount(rs);
 #ifdef BPATCH_LIBRARY
-	    bool err;
-	    costAddr = proc->findInternalAddress("DYNINSTobsCostLow", true, err);
-	    if (err) {
-                string msg = string("Internal error: "
-                        "unable to find addr of DYNINSTobsCostLow\n");
-		showErrorCallback(79, msg.c_str());
-		P_abort();
-	    }
+         bool err;
+         costAddr = proc->findInternalAddress("DYNINSTobsCostLow", true, err);
+         if (err) {
+            string msg = string("Internal error: "
+                                "unable to find addr of DYNINSTobsCostLow\n");
+            showErrorCallback(79, msg.c_str());
+            P_abort();
+         }
 #else
-	// if we have not yet loaded PARADYN do this the old DYNINST way
-	if( !proc->isParadynBootstrapped()  ){ //ccw 19 apr 2002 : SPLIT 
-	    bool err;
-	    costAddr = proc->findInternalAddress("DYNINSTobsCostLow", true, err);
-	    if (err) {
-                string msg = string("Internal error: "
-                        "unable to find addr of DYNINSTobsCostLow\n");
-		showErrorCallback(79, msg.c_str());
-		P_abort();
-	    }
-	}else{ //ccw 19 apr 2002 : SPLIT 
+         // if we have not yet loaded PARADYN do this the old DYNINST way
+         if( !proc->isParadynBootstrapped()  ){ //ccw 19 apr 2002 : SPLIT 
+            bool err;
+            costAddr = proc->findInternalAddress("DYNINSTobsCostLow", true, err);
+            if (err) {
+               string msg = string("Internal error: "
+                                   "unable to find addr of DYNINSTobsCostLow\n");
+               showErrorCallback(79, msg.c_str());
+               P_abort();
+            }
+         }else{ //ccw 19 apr 2002 : SPLIT 
 	
-	    if (!noCost)
-	       costAddr = (Address)proc->getObsCostLowAddrInApplicSpace();
-	}
+            if (!noCost)
+               costAddr = (Address)proc->getObsCostLowAddrInApplicSpace();
+         }
 #endif
-	    return emitA(op, 0, 0, 0, insn, base, noCost);
+         return emitA(op, 0, 0, 0, insn, base, noCost);
 #endif
-	} else if (op == funcJumpOp) {
-	     emitFuncJump(funcJumpOp, insn, base, calleefunc, proc,
-			  location, noCost);
-	} else {
-	    AstNode *left = assignAst(loperand);
-	    AstNode *right = assignAst(roperand);
+      } else if (op == funcJumpOp) {
+         emitFuncJump(funcJumpOp, insn, base, calleefunc, proc,
+                      location, noCost);
+      } else {
+         AstNode *left = assignAst(loperand);
+         AstNode *right = assignAst(roperand);
 
-	    if (left && right) {
-              if (left->type == operandNode && left->oType == Constant) {
-                if (type == opCodeNode) {
+         if (left && right) {
+            if (left->type == operandNode && left->oType == Constant) {
+               if (type == opCodeNode) {
                   if (op == plusOp) {
-  	            AstNode *temp = assignAst(right);
-	            right = assignAst(left);
-	            left = assignAst(temp);
-                    removeAst(temp);
-	          } else if (op == timesOp) {
-                    if (right->type == operandNode) {
-                      if (right->oType != Constant) {
-                        AstNode *temp = assignAst(right);
-	                right = assignAst(left);
-	                left = assignAst(temp);
-                        removeAst(temp);
-		      }
-                      else {
-                        int result;
-                        if (!isPowerOf2((Address)right->oValue,result) &&
-                             isPowerOf2((Address)left->oValue,result))
-                        {
-                          AstNode *temp = assignAst(right);
-	                  right = assignAst(left);
-	                  left = assignAst(temp);
-                          removeAst(temp);
-		        }
-		      }
-		    }
-		  }
-	        }
-	      }
-	    }
+                     AstNode *temp = assignAst(right);
+                     right = assignAst(left);
+                     left = assignAst(temp);
+                     removeAst(temp);
+                  } else if (op == timesOp) {
+                     if (right->type == operandNode) {
+                        if (right->oType != Constant) {
+                           AstNode *temp = assignAst(right);
+                           right = assignAst(left);
+                           left = assignAst(temp);
+                           removeAst(temp);
+                        }
+                        else {
+                           int result;
+                           if (!isPowerOf2((Address)right->oValue,result) &&
+                               isPowerOf2((Address)left->oValue,result))
+                           {
+                              AstNode *temp = assignAst(right);
+                              right = assignAst(left);
+                              left = assignAst(temp);
+                              removeAst(temp);
+                           }
+                        }
+                     }
+                  }
+               }
+            }
+         }
 
-	    src = Null_Register;
-	    right_dest = Null_Register;
-	    if (left) {
-		src = (Register)left->generateCode_phase2(proc, rs, insn, base,
-							  noCost, ifForks,
-							  location);
-	    }
+         src = Null_Register;
+         right_dest = Null_Register;
+         if (left) {
+            src = (Register)left->generateCode_phase2(proc, rs, insn, base,
+                                                      noCost, ifForks,
+                                                      location);
+         }
 
-            if (right && (right->type == operandNode) &&
-                (right->oType == Constant) &&
-                doNotOverflow((RegValue)right->oValue) &&
-                (type == opCodeNode))
-	    {
-		dest = shareOrAllocate(src, Null_Register, rs, ifForks,
-				       insn, base, noCost);
+         if (right && (right->type == operandNode) &&
+             (right->oType == Constant) &&
+             doNotOverflow((RegValue)right->oValue) &&
+             (type == opCodeNode))
+         {
+            dest = shareOrAllocate(src, Null_Register, rs, ifForks,
+                                   insn, base, noCost);
 #ifdef alpha_dec_osf4_0
-	      if (op == divOp)
-		{
-		  assert(false);
-		  /* XXX
-		   * The following doesn't work right, because we don't save
-		   * and restore the scratch registers before and after the
-		   * call!
-		   */
-		  /*
-		  bool err;
-		  Address divlAddr = proc->findInternalAddress("divide", true, err);  
-		  assert(divlAddr);
-		  software_divide(src,(RegValue)right->oValue,dest,insn,base,noCost,divlAddr,true);
-		  */
-		}
-	      else
+            if (op == divOp)
+            {
+               assert(false);
+               /* XXX
+                * The following doesn't work right, because we don't save
+                * and restore the scratch registers before and after the
+                * call!
+                */
+               /*
+                 bool err;
+                 Address divlAddr = proc->findInternalAddress("divide", true, err);  
+                 assert(divlAddr);
+                 software_divide(src,(RegValue)right->oValue,dest,insn,base,noCost,divlAddr,true);
+               */
+            }
+            else
 #endif
-	      emitImm(op, src, (RegValue)right->oValue, dest, insn, base, noCost);
-	      // We do not .generateCode for right, so need to update its
-	      // refcounts manually
-              right->decUseCount(rs);
-	    }
-	    else {
-	      if (right)
-		right_dest = (Register)right->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
-	      dest = shareOrAllocate(src, right_dest, rs, ifForks,
-				     insn, base, noCost);
+               emitImm(op, src, (RegValue)right->oValue, dest, insn, base, noCost);
+            // We do not .generateCode for right, so need to update its
+            // refcounts manually
+            right->decUseCount(rs);
+         }
+         else {
+            if (right)
+               right_dest = (Register)right->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
+            dest = shareOrAllocate(src, right_dest, rs, ifForks,
+                                   insn, base, noCost);
 	      
 #ifdef alpha_dec_osf4_0
-	      if (op == divOp)
-		{
-		  assert(false);
-		  /* XXX
-		   * The following doesn't work right, because we don't save
-		   * and restore the scratch registers before and after the
-		   * call!
-		   */
-		  /*
-		  bool err;
-		  Address divlAddr = proc->findInternalAddress("divide", true, err);  
-		  assert(divlAddr);
-		  software_divide(src,right_dest,dest,insn,base,noCost,divlAddr);
-		  */
-		}
-	      else
+            if (op == divOp)
+            {
+               assert(false);
+               /* XXX
+                * The following doesn't work right, because we don't save
+                * and restore the scratch registers before and after the
+                * call!
+                */
+               /*
+                 bool err;
+                 Address divlAddr = proc->findInternalAddress("divide", true, err);  
+                 assert(divlAddr);
+                 software_divide(src,right_dest,dest,insn,base,noCost,divlAddr);
+               */
+            }
+            else
 #endif
-	      emitV(op, src, right_dest, dest, insn, base, noCost, size, location, proc, rs);
-	      if (right_dest != Null_Register && right_dest != dest) {
-		  rs->freeRegister(right_dest);
-	      }
-	    }
-	    if (src != Null_Register && src != dest) {
-		rs->freeRegister(src);
-	    }
-            removeAst(left);
-            removeAst(right);
-	}
-      } else if (type == operandNode) {
-	// Allocate a register to return
-	if (oType != DataReg) {
-	    dest = allocateAndKeep(rs, ifForks, insn, base, noCost);
-	}
-	Register temp;
-	int tSize;
-	int len;
+               emitV(op, src, right_dest, dest, insn, base, noCost, size, location, proc, rs);
+            if (right_dest != Null_Register && right_dest != dest) {
+               rs->freeRegister(right_dest);
+            }
+         }
+         if (src != Null_Register && src != dest) {
+            rs->freeRegister(src);
+         }
+         removeAst(left);
+         removeAst(right);
+      }
+   } else if (type == operandNode) {
+      // Allocate a register to return
+      if (oType != DataReg) {
+         dest = allocateAndKeep(rs, ifForks, insn, base, noCost);
+      }
+      Register temp;
+      int tSize;
+      int len;
 #if defined(BPATCH_LIBRARY)
-	BPatch_type *Type;
-	const BPatch_memoryAccess* ma;
-	BPatch_addrSpec_NP start;
-	BPatch_countSpec_NP count;
+      BPatch_type *Type;
+      const BPatch_memoryAccess* ma;
+      BPatch_addrSpec_NP start;
+      BPatch_countSpec_NP count;
 #endif
-	switch (oType) {
-	case Constant:
-	  emitVload(loadConstOp, (Address)oValue, dest, dest, 
-		    insn, base, noCost);
-	  break;
-	case ConstantPtr:
-	  emitVload(loadConstOp, (*(Address *) oValue), dest, dest, 
-		    insn, base, noCost);
-	  break;
-	case DataPtr:
-	  addr = (Address) oValue;
-	  assert(addr != 0); // check for NULL
-	  emitVload(loadConstOp, addr, dest, dest, insn, base, noCost);
-	  break;
-	case DataIndir:
-	  src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
+      switch (oType) {
+        case Constant:
+           emitVload(loadConstOp, (Address)oValue, dest, dest, 
+                     insn, base, noCost);
+           break;
+        case ConstantPtr:
+           emitVload(loadConstOp, (*(Address *) oValue), dest, dest, 
+                     insn, base, noCost);
+           break;
+        case DataPtr:
+           addr = (Address) oValue;
+           assert(addr != 0); // check for NULL
+           emitVload(loadConstOp, addr, dest, dest, insn, base, noCost);
+           break;
+        case DataIndir:
+           src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
 #ifdef BPATCH_LIBRARY
-	  Type = const_cast<BPatch_type *> (getType());
-	  assert(Type);
-	  tSize = Type->getSize();
+           Type = const_cast<BPatch_type *> (getType());
+           assert(Type);
+           tSize = Type->getSize();
 #else
-	  tSize = sizeof(int);
+           tSize = sizeof(int);
 #endif
-	  emitV(loadIndirOp, src, 0, dest, insn, base, noCost, tSize, location, proc, rs); 
-	  rs->freeRegister(src);
-	  break;
-	case DataReg:
-	  dest = (Address)oValue;
-	  break;
-	case PreviousStackFrameDataReg:
-	  emitLoadPreviousStackFrameRegister((Address) oValue, dest,insn,base,
-					     size, noCost);
-	  break;
-	case DataId:
-	  emitVload(loadConstOp, (Address)oValue, dest, dest, 
-		    insn, base, noCost);
-	  break;
-	case DataValue:
-	  addr = (Address) oValue;
-	  assert(addr != 0); // check for NULL
-	  emitVload(loadOp, addr, dest, dest, insn, base, noCost);
-	  break;
-	case ReturnVal:
+           emitV(loadIndirOp, src, 0, dest, insn, base, noCost, tSize, location, proc, rs); 
+           rs->freeRegister(src);
+           break;
+        case DataReg:
+           dest = (Address)oValue;
+           break;
+        case PreviousStackFrameDataReg:
+           emitLoadPreviousStackFrameRegister((Address) oValue, dest,insn,base,
+                                              size, noCost);
+           break;
+        case DataId:
+           emitVload(loadConstOp, (Address)oValue, dest, dest, 
+                     insn, base, noCost);
+           break;
+        case DataValue:
+           addr = (Address) oValue;
+           assert(addr != 0); // check for NULL
+           emitVload(loadOp, addr, dest, dest, insn, base, noCost);
+           break;
+        case ReturnVal:
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
-	    if (loperand) {
-		instruction instr;
-		instr.raw = (unsigned)(loperand->oValue);
-		src = emitOptReturn(instr, dest, insn, base, noCost, location);
-	    }
-	    else if (astFlag)
-		src = emitR(getSysRetValOp, 0, 0, dest, insn, base, noCost, location);
-	    else 
+           if (loperand) {
+              instruction instr;
+              instr.raw = (unsigned)(loperand->oValue);
+              src = emitOptReturn(instr, dest, insn, base, noCost, location,
+                                  proc->multithread_capable());
+           }
+           else if (astFlag)
+              src = emitR(getSysRetValOp, 0, 0, dest, insn, base, noCost, location,
+                          proc->multithread_capable());
+           else 
 #endif
-		src = emitR(getRetValOp, 0, 0, dest, insn, base, noCost, location);
-	    if (src != dest) {
-		// Move src to dest. Can't simply return src, since it was not
-		// allocated properly
-		emitImm(orOp, src, 0, dest, insn, base, noCost);
-	    }
-	    break;
-	case Param:
+              src = emitR(getRetValOp, 0, 0, dest, insn, base, noCost, location,
+                          proc->multithread_capable());
+           if (src != dest) {
+              // Move src to dest. Can't simply return src, since it was not
+              // allocated properly
+              emitImm(orOp, src, 0, dest, insn, base, noCost);
+           }
+           break;
+        case Param:
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
-	    // Here is what a "well-named" astFlag seems to mean.
-	    // astFlag is true iff the function does not begin with a save
-	    // or our instumentation is placed before the save instruction.
-	    // Notice that we do emit a save in the basetramp in any case,
-	    // so if (astFlag) then arguments are in the previous frame's
-	    // O registers (this frame's I registers). If (!astFlag) then
-	    // arguments are two frames above us.
-	    // For callsite instrumentation, callee's arguments are always
-	    // in I registers (remember, we did a save)
-	    if (astFlag || location->getPointType() == callSite)
-		src = emitR(getSysParamOp, (Register)oValue, Null_Register, 
-			    dest, insn, base, noCost, location);
-	    else 
+           // Here is what a "well-named" astFlag seems to mean.
+           // astFlag is true iff the function does not begin with a save
+           // or our instumentation is placed before the save instruction.
+           // Notice that we do emit a save in the basetramp in any case,
+           // so if (astFlag) then arguments are in the previous frame's
+           // O registers (this frame's I registers). If (!astFlag) then
+           // arguments are two frames above us.
+           // For callsite instrumentation, callee's arguments are always
+           // in I registers (remember, we did a save)
+           if (astFlag || location->getPointType() == callSite)
+              src = emitR(getSysParamOp, (Register)oValue, Null_Register, 
+                          dest, insn, base, noCost, location,
+                          proc->multithread_capable());
+           else 
 #endif
-		src = emitR(getParamOp, (Address)oValue, Null_Register,
-			    dest, insn, base, noCost, location);
-	    if (src != dest) {
-		// Move src to dest. Can't simply return src, since it was not
-		// allocated properly
-		emitImm(orOp, src, 0, dest, insn, base, noCost);
-	    }
-	    break;
-	case DataAddr:
-	  addr = (Address) oValue;
-	  emitVload(loadOp, addr, dest, dest, insn, base, noCost, size);
-	  break;
-	case FrameAddr:
-	  addr = (Address) oValue;
-	  temp = rs->allocateRegister(insn, base, noCost);
-	  emitVload(loadFrameRelativeOp, addr, temp, dest, insn, base, noCost);
-	  rs->freeRegister(temp);
-	  break;
-	case EffectiveAddr:
-	  // VG(11/05/01): get effective address
-          // VG(07/31/02): take care which one
+              src = emitR(getParamOp, (Address)oValue, Null_Register,
+                          dest, insn, base, noCost, location,
+                          proc->multithread_capable());
+           if (src != dest) {
+              // Move src to dest. Can't simply return src, since it was not
+              // allocated properly
+              emitImm(orOp, src, 0, dest, insn, base, noCost);
+           }
+           break;
+        case DataAddr:
+           addr = (Address) oValue;
+           emitVload(loadOp, addr, dest, dest, insn, base, noCost, size);
+           break;
+        case FrameAddr:
+           addr = (Address) oValue;
+           temp = rs->allocateRegister(insn, base, noCost);
+           emitVload(loadFrameRelativeOp, addr, temp, dest, insn, base, noCost);
+           rs->freeRegister(temp);
+           break;
+        case EffectiveAddr:
+           // VG(11/05/01): get effective address
+           // VG(07/31/02): take care which one
 #ifdef BPATCH_LIBRARY
-	  // 1. get the point being instrumented & memory access info
-	  assert(location);
-	  ma = location->getBPatch_point()->getMemoryAccess();
-	  if(!ma) {
-	    fprintf(stderr, "Memory access information not available at this point.\n");
-	    fprintf(stderr, "Make sure you create the point in a way that generates it.\n");
-	    fprintf(stderr, "E.g.: find*Point(const BPatch_Set<BPatch_opCode>& ops).\n");
-	    assert(0);
-	  }
-          if(whichMA >= ma->getNumberOfAccesses()) {
-            fprintf(stderr, "Attempt to instrument non-existent memory access number.\n");
-            fprintf(stderr, "Consider using filterPoints()...\n");
-            assert(0);
-          }
-	  start = ma->getStartAddr(whichMA);
-	  emitASload(start, dest, insn, base, noCost);
+           // 1. get the point being instrumented & memory access info
+           assert(location);
+           ma = location->getBPatch_point()->getMemoryAccess();
+           if(!ma) {
+              fprintf(stderr, "Memory access information not available at this point.\n");
+              fprintf(stderr, "Make sure you create the point in a way that generates it.\n");
+              fprintf(stderr, "E.g.: find*Point(const BPatch_Set<BPatch_opCode>& ops).\n");
+              assert(0);
+           }
+           if(whichMA >= ma->getNumberOfAccesses()) {
+              fprintf(stderr, "Attempt to instrument non-existent memory access number.\n");
+              fprintf(stderr, "Consider using filterPoints()...\n");
+              assert(0);
+           }
+           start = ma->getStartAddr(whichMA);
+           emitASload(start, dest, insn, base, noCost);
 #else
-	  fprintf(stderr, "Effective address feature not supported w/o BPatch!\n");
-	  assert(0);
+           fprintf(stderr, "Effective address feature not supported w/o BPatch!\n");
+           assert(0);
 #endif
-	  break;
-	case BytesAccessed:
+           break;
+        case BytesAccessed:
 #ifdef BPATCH_LIBRARY
-	  // 1. get the point being instrumented & memory access info
-	  assert(location);
-	  ma = location->getBPatch_point()->getMemoryAccess();
-	  if(!ma) {
-	    fprintf(stderr, "Memory access information not available at this point.\n");
-	    fprintf(stderr, "Make sure you create the point in a way that generates it.\n");
-	    fprintf(stderr, "E.g.: find*Point(const BPatch_Set<BPatch_opCode>& ops).\n");
-	    assert(0);
-	  }
-          if(whichMA >= ma->getNumberOfAccesses()) {
-            fprintf(stderr, "Attempt to instrument non-existent memory access number.\n");
-            fprintf(stderr, "Consider using filterPoints()...\n");
-            assert(0);
-          }
-	  count = ma->getByteCount(whichMA);
-	  emitCSload(count, dest, insn, base, noCost);
+           // 1. get the point being instrumented & memory access info
+           assert(location);
+           ma = location->getBPatch_point()->getMemoryAccess();
+           if(!ma) {
+              fprintf(stderr, "Memory access information not available at this point.\n");
+              fprintf(stderr, "Make sure you create the point in a way that generates it.\n");
+              fprintf(stderr, "E.g.: find*Point(const BPatch_Set<BPatch_opCode>& ops).\n");
+              assert(0);
+           }
+           if(whichMA >= ma->getNumberOfAccesses()) {
+              fprintf(stderr, "Attempt to instrument non-existent memory access number.\n");
+              fprintf(stderr, "Consider using filterPoints()...\n");
+              assert(0);
+           }
+           count = ma->getByteCount(whichMA);
+           emitCSload(count, dest, insn, base, noCost);
 #else
-	  fprintf(stderr, "Byte count feature not supported w/o BPatch!\n");
-	  assert(0);
+           fprintf(stderr, "Byte count feature not supported w/o BPatch!\n");
+           assert(0);
 #endif
-	  break;
-	case ConstantString:
-	  // XXX This is for the string type.  If/when we fix the string type
-	  // to make it less of a hack, we'll need to change this.
-	  len = strlen((char *)oValue) + 1;
+           break;
+        case ConstantString:
+           // XXX This is for the string type.  If/when we fix the string type
+           // to make it less of a hack, we'll need to change this.
+           len = strlen((char *)oValue) + 1;
 
 #if defined(BPATCH_LIBRARY) && defined(rs6000_ibm_aix4_1) //ccw 30 jul 2002
-		if(proc->requestTextMiniTramp){
-			bool mallocFlag;
-			addr = (Address) proc->inferiorMalloc(len, textHeap, 0x10000000, &mallocFlag); //textheap
-		}else{	
-			addr = (Address) proc->inferiorMalloc(len, dataHeap); //dataheap
-		}
+           if(proc->requestTextMiniTramp){
+              bool mallocFlag;
+              addr = (Address) proc->inferiorMalloc(len, textHeap, 0x10000000, &mallocFlag); //textheap
+           }else{	
+              addr = (Address) proc->inferiorMalloc(len, dataHeap); //dataheap
+           }
 #else
-	  addr = (Address) proc->inferiorMalloc(len, dataHeap); //dataheap
+           addr = (Address) proc->inferiorMalloc(len, dataHeap); //dataheap
 #endif
 
-	  if (!proc->writeDataSpace((char *)addr, len, (char *)oValue))
-	    perror("ast.C(1351): writing string value");
-	  emitVload(loadConstOp, addr, dest, dest, insn, base, noCost);
-	  break;
-	default:
-	  cerr << "Unknown oType " << oType << endl;
-	  assert(0 && "Unknown oType in operandNode");
-	  break;
-	}
-    } else if (type == callNode) {
-	// VG(11/06/01): This platform independent fn calls a platfrom
-	// dependent fn which calls it back for each operand... Have to
-	// fix those as well to pass location...
-	Register tmp = emitFuncCall(callOp, rs, insn, base, operands, callee, 
-				    proc, noCost, calleefunc, ifForks, 
-				    location);
-	if (!rs->isFreeRegister(tmp)) {
-	    // On some platforms, emitFuncCall properly reserves a register
-	    // that we can return. But its refCount is always equal to 1,
-	    // which is incorrect if useCount > 0 so we need to bump it up.
-	    if (useCount > 0) {
-		rs->fixRefCount(tmp, useCount+1);
-		keepRegister(tmp, ifForks);
-	    }
-	    dest = tmp;
-	}
-	else {
-	    // On SPARC emitFuncCall always returns O0, which we decided
-	    // not to use (I guess because Oregs are not preserved across
-	    // calls), so we need to move it to a register we can return
-	    dest = allocateAndKeep(rs, ifForks, insn, base, noCost);
-	    // Move tmp to dest
-	    emitImm(orOp, tmp, 0, dest, insn, base, noCost);
-	}
-    } else if (type == sequenceNode) {
+           if (!proc->writeDataSpace((char *)addr, len, (char *)oValue))
+              perror("ast.C(1351): writing string value");
+           emitVload(loadConstOp, addr, dest, dest, insn, base, noCost);
+           break;
+        default:
+           cerr << "Unknown oType " << oType << endl;
+           assert(0 && "Unknown oType in operandNode");
+           break;
+      }
+   } else if (type == callNode) {
+      // VG(11/06/01): This platform independent fn calls a platfrom
+      // dependent fn which calls it back for each operand... Have to
+      // fix those as well to pass location...
+      Register tmp = emitFuncCall(callOp, rs, insn, base, operands, callee, 
+                                  proc, noCost, calleefunc, ifForks, 
+                                  location);
+      if (!rs->isFreeRegister(tmp)) {
+         // On some platforms, emitFuncCall properly reserves a register
+         // that we can return. But its refCount is always equal to 1,
+         // which is incorrect if useCount > 0 so we need to bump it up.
+         if (useCount > 0) {
+            rs->fixRefCount(tmp, useCount+1);
+            keepRegister(tmp, ifForks);
+         }
+         dest = tmp;
+      }
+      else {
+         // On SPARC emitFuncCall always returns O0, which we decided
+         // not to use (I guess because Oregs are not preserved across
+         // calls), so we need to move it to a register we can return
+         dest = allocateAndKeep(rs, ifForks, insn, base, noCost);
+         // Move tmp to dest
+         emitImm(orOp, tmp, 0, dest, insn, base, noCost);
+      }
+   } else if (type == sequenceNode) {
 #if 0 && defined(BPATCH_LIBRARY_F) // mirg: Aren't we losing a reg here?
-	(void) loperand->generateCode_phase2(proc, rs, insn, base, noCost, 
-					     ifForks, location);
+      (void) loperand->generateCode_phase2(proc, rs, insn, base, noCost, 
+                                           ifForks, location);
 #else
-	Register tmp = loperand->generateCode_phase2(proc, rs, insn, base, 
-						     noCost, ifForks,location);
-	rs->freeRegister(tmp);
+      Register tmp = loperand->generateCode_phase2(proc, rs, insn, base, 
+                                                   noCost, ifForks,location);
+      rs->freeRegister(tmp);
 #endif
- 	dest = roperand->generateCode_phase2(proc, rs, insn, base, 
-					     noCost, ifForks, location);
-    }
+      dest = roperand->generateCode_phase2(proc, rs, insn, base, 
+                                           noCost, ifForks, location);
+   }
 
-    // assert (dest != Null_Register); // oh dear, it seems this happens!
+   // assert (dest != Null_Register); // oh dear, it seems this happens!
 
-    return (Address)dest;
+   return (Address)dest;
 }
 
 
@@ -1838,10 +1861,8 @@ int AstNode::costHelper(enum CostStyleType costStyle) const {
     } else if (type == operandNode) {
 	if (oType == Constant) {
 	    total = getInsnCost(loadConstOp);
-#if defined(MT_THREAD)
 	} else if (oType == OffsetConstant) {  // a newly added type for recognizing offset for locating variables
 	    total = getInsnCost(loadConstOp);
-#endif
 	} else if (oType == DataPtr) {  // restore AstNode::DataPtr type
 	  total = getInsnCost(loadConstOp);
 	} else if (oType == DataValue) {  // restore AstNode::DataValue type
@@ -1880,10 +1901,8 @@ void AstNode::print() const {
 	fprintf(stderr," %d", (int)(Address) oValue);
       } else if (oType == ConstantString) {
         fprintf(stderr," %s", (char *)oValue);
-#if defined(MT_THREAD)
       } else if (oType == OffsetConstant) {  // a newly added type for recognizing offset for locating variables
 	fprintf(stderr," %d", (int)(Address) oValue);
-#endif
       } else if (oType == DataPtr) {  // restore AstNode::DataPtr type
 	fprintf(stderr," %d", (int)(Address) oValue);
       } else if (oType == DataValue) {  // restore AstNode::DataValue type
@@ -1976,128 +1995,6 @@ AstNode *createIf(AstNode *expression, AstNode *action, process *proc)
   return(t);
 }
 
-#ifndef BPATCH_LIBRARY
-
-/*
- * Simple: return base + (POS * size). ST: POS==0, so return base
- */
- 
-AstNode *getTimerAddress(void *base, unsigned struct_size)
-{
-#if !defined(MT_THREAD)
-  return new AstNode(AstNode::DataPtr, base);
-#else
-  // Return base + struct_size*POS. Problem is, POS is unknown
-  // until we are running the instrumentation
-
-  AstNode *pos        = new AstNode(AstNode::DataReg, (void *)REG_MT_POS);
-  AstNode *increment  = new AstNode(AstNode::Constant, (void *)struct_size);
-  AstNode *var_base   = new AstNode(AstNode::DataPtr, base);
-
-  AstNode *offset     = new AstNode(timesOp, pos, increment);
-  AstNode *var        = new AstNode(plusOp, var_base, offset);
-
-  removeAst(pos);
-  removeAst(increment);
-  removeAst(var_base);
-  removeAst(offset);
-  return var;
-#endif
-}
-
-AstNode *createTimer(const string &func, void *dataPtr, 
-                     pdvector<AstNode *> &ast_args)
-{
-  AstNode *var_base=NULL,*timer=NULL;
-
-  // t0 = new AstNode(AstNode::Constant, (void *) dataPtr);  // This was AstNode::DataPtr
-  var_base = getTimerAddress(dataPtr, sizeof(tTimer));
-  ast_args += assignAst(var_base);
-  removeAst(var_base);
-  timer = new AstNode(func, ast_args);
-  for (unsigned i=0;i<ast_args.size();i++) removeAst(ast_args[i]);  
-  return(timer);
-}
-
-
-AstNode *createHwTimer(const string &func, void *dataPtr, 
-                     pdvector<AstNode *> &ast_args, int hwCntrIndex)
-{
-  AstNode *var_base=NULL,*timer=NULL;
-  AstNode *hw_var=NULL;
-
-  var_base = new AstNode(AstNode::DataPtr, dataPtr);
-  hw_var = new AstNode(AstNode::Constant, (void*)hwCntrIndex);
-
-  ast_args += assignAst(var_base);
-  ast_args += assignAst(hw_var);
-   
-  removeAst(var_base);
-  removeAst(hw_var);
-
-  timer = new AstNode(func, ast_args);
-  for (unsigned i=0;i<ast_args.size();i++) removeAst(ast_args[i]);  
-  return(timer);
-}
-
-
-AstNode *getCounterAddress(void *base, unsigned struct_size)
-{
-#if !defined(MT_THREAD)
-  return new AstNode(AstNode::DataAddr, base);
-#else
-  AstNode *pos        = new AstNode(AstNode::DataReg, (void *)REG_MT_POS);
-  AstNode *increment  = new AstNode(AstNode::Constant, (void *)struct_size);
-  AstNode *var_base   = new AstNode(AstNode::DataPtr, base);
-
-  AstNode *offset     = new AstNode(timesOp, pos, increment);
-  AstNode *var        = new AstNode(plusOp, var_base, offset);
-
-  // Hrm... this gives us the base address just fine, but we need a "load"
-  // to actually make it work. 
-
-  removeAst(pos);
-  removeAst(increment);
-  removeAst(var_base);
-  removeAst(offset);
-  return var;
-
-#endif
-}
-
-
-AstNode *createCounter(const string &func, void *dataPtr, 
-                       AstNode *ast) 
-{
-   AstNode *load=NULL, *calc=NULL, *store=NULL;
-
-   // We keep the different MT_THREAD code, because otherwise we really
-   // de-optimize the singlethread case
-   AstNode *counter_base = getCounterAddress(dataPtr, sizeof(intCounter));
-   if (func=="addCounter") {
-#if defined(MT_THREAD)
-     load = new AstNode(AstNode::DataIndir,counter_base);
-     calc = new AstNode(plusOp,load,ast);
-#else
-     calc = new AstNode(plusOp,counter_base, ast);
-#endif
-     store = new AstNode(storeOp,counter_base,calc);
-   } else if (func=="subCounter") {
-#if defined(MT_THREAD)
-     load = new AstNode(AstNode::DataIndir,counter_base);
-     calc = new AstNode(minusOp,load,ast);
-#else
-     calc = new AstNode(minusOp,counter_base,ast);
-#endif
-     store = new AstNode(storeOp,counter_base,calc);
-   } else if (func=="setCounter") {
-     store = new AstNode(storeOp,counter_base,ast);
-   } else abort();
-   if (calc) removeAst(calc);
-   if (load) removeAst(load);
-   return(store);
-}
-#endif
 
 #ifdef BPATCH_LIBRARY
 BPatch_type *AstNode::checkType()

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.106 2003/06/10 17:45:40 tlmiller Exp $
+// $Id: inst.C,v 1.107 2003/06/20 22:07:46 schendel Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -288,7 +288,7 @@ loadMiniTramp_result loadMiniTramp(instInstance *mtInfo, process *proc,
    // retInstance gets filled in with info on how to jmp to the base tramp
    // (the call to findAndInstallBaseTramp doesn't do that)
    assert(proc && location);
-   initTramps();
+   initTramps(proc->multithread_capable());
 
    if(mtInfo->ID == instInstance::uninitialized_id) 
      mtInfo->ID = instInstance::get_new_id();

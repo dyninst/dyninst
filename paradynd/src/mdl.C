@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.146 2003/06/19 18:46:10 pcroth Exp $
+// $Id: mdl.C,v 1.147 2003/06/20 22:08:05 schendel Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -67,6 +67,15 @@
 #include "paradynd/src/papiMgr.h"
 #include "paradynd/src/init.h"
 #include "paradynd/src/mdld_data.h"
+
+// for REG_MT_POS
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
+#include "dyninstAPI/src/inst-sparc.h"
+#elif defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
+#include "dyninstAPI/src/inst-power.h"
+#elif defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
+#include "dyninstAPI/src/inst-x86.h"
+#endif
 
 #include <ctype.h>
 
@@ -306,6 +315,133 @@ private:
 };
 
 
+/*
+ * Simple: return base + (POS * size). ST: POS==0, so return base
+ */
+ 
+AstNode *getTimerAddress(void *base, unsigned struct_size,
+                         bool for_multithreaded)
+{
+   if(! for_multithreaded)
+      return new AstNode(AstNode::DataPtr, base);
+
+   // Return base + struct_size*POS. Problem is, POS is unknown
+   // until we are running the instrumentation
+   
+   AstNode *pos        = new AstNode(AstNode::DataReg, (void *)REG_MT_POS);
+   AstNode *increment  = new AstNode(AstNode::Constant, (void *)struct_size);
+   AstNode *var_base   = new AstNode(AstNode::DataPtr, base);
+   
+   AstNode *offset     = new AstNode(timesOp, pos, increment);
+   AstNode *var        = new AstNode(plusOp, var_base, offset);
+
+   removeAst(pos);
+   removeAst(increment);
+   removeAst(var_base);
+   removeAst(offset);
+   return var;
+}
+
+AstNode *createTimer(const string &func, void *dataPtr, 
+                     pdvector<AstNode *> &ast_args, bool for_multithreaded)
+{
+   AstNode *var_base=NULL,*timer=NULL;
+
+   // t0 = new AstNode(AstNode::Constant, (void *) dataPtr);  // This was AstNode::DataPtr
+
+   var_base = getTimerAddress(dataPtr, sizeof(tTimer), for_multithreaded);
+   ast_args.push_back(assignAst(var_base));
+   removeAst(var_base);
+   timer = new AstNode(func, ast_args);
+
+   for(unsigned i=0; i<ast_args.size(); i++)
+      removeAst(ast_args[i]);  
+
+   return timer;
+}
+
+
+AstNode *createHwTimer(const string &func, void *dataPtr, 
+                     pdvector<AstNode *> &ast_args, int hwCntrIndex)
+{
+  AstNode *var_base=NULL,*timer=NULL;
+  AstNode *hw_var=NULL;
+
+  var_base = new AstNode(AstNode::DataPtr, dataPtr);
+  hw_var = new AstNode(AstNode::Constant, (void*)hwCntrIndex);
+
+  ast_args += assignAst(var_base);
+  ast_args += assignAst(hw_var);
+   
+  removeAst(var_base);
+  removeAst(hw_var);
+
+  timer = new AstNode(func, ast_args);
+  for (unsigned i=0;i<ast_args.size();i++) removeAst(ast_args[i]);  
+  return(timer);
+}
+
+
+AstNode *getCounterAddress(void *base, unsigned struct_size,
+                           bool for_multithreaded)
+{
+   if(! for_multithreaded)
+      return new AstNode(AstNode::DataAddr, base);
+   
+   AstNode *pos        = new AstNode(AstNode::DataReg, (void *)REG_MT_POS);
+   AstNode *increment  = new AstNode(AstNode::Constant, (void *)struct_size);
+   AstNode *var_base   = new AstNode(AstNode::DataPtr, base);
+   
+   AstNode *offset     = new AstNode(timesOp, pos, increment);
+   AstNode *var        = new AstNode(plusOp, var_base, offset);
+
+   // Hrm... this gives us the base address just fine, but we need a "load"
+   // to actually make it work. 
+
+   removeAst(pos);
+   removeAst(increment);
+   removeAst(var_base);
+   removeAst(offset);
+   return var;
+}
+
+
+AstNode *createCounter(const string &func, void *dataPtr, 
+                       AstNode *ast, bool for_multithreaded) 
+{
+   AstNode *load=NULL, *calc=NULL, *store=NULL;
+
+   // We keep the different MT__THREAD code, because otherwise we really
+   // de-optimize the singlethread case
+   AstNode *counter_base = getCounterAddress(dataPtr, sizeof(intCounter),
+                                             for_multithreaded);
+   if (func=="addCounter") {
+      if(for_multithreaded) {
+         load = new AstNode(AstNode::DataIndir,counter_base);
+         calc = new AstNode(plusOp,load,ast);
+      } else {
+         calc = new AstNode(plusOp,counter_base, ast);
+      }
+
+      store = new AstNode(storeOp,counter_base,calc);
+   } else if (func=="subCounter") {
+      if(for_multithreaded) {
+         load = new AstNode(AstNode::DataIndir,counter_base);
+         calc = new AstNode(minusOp,load,ast);
+      } else {
+         calc = new AstNode(minusOp,counter_base,ast);
+      }
+
+      store = new AstNode(storeOp,counter_base,calc);
+   } else if (func=="setCounter") {
+      store = new AstNode(storeOp,counter_base,ast);
+   } else abort();
+
+   if (calc) removeAst(calc);
+   if (load) removeAst(load);
+
+   return store;
+}
 
 //----------------------------------------------------------------------------
 // mdl_v_expr backend methods
@@ -445,12 +581,8 @@ mdld_v_expr::apply_be(AstNode*& ast)
      case MDL_EXPR_FUNC:
         {
            if (var_ == "startWallTimer" || var_ == "stopWallTimer"
-#if defined(MT_THREAD)
                || var_ == "startProcessTimer" || var_ == "stopProcessTimer"
                || var_ == "startProcessTimer_lwp" || var_ == "destroyProcessTimer")
-#else
-              || var_ == "startProcessTimer" || var_ == "stopProcessTimer")
-#endif
            {
               if (!args_) return false;
               unsigned size = args_->size();
@@ -470,15 +602,14 @@ mdld_v_expr::apply_be(AstNode*& ast)
                  timer_func = START_PROC_TIMER;
               else if (var_ == "stopProcessTimer")
                  timer_func = STOP_PROC_TIMER;
-#if defined(MT_THREAD)
               else if (var_ == "startProcessTimer_lwp")
                  timer_func = START_PROC_TIMER_LWP;
               else if (var_ == "destroyProcessTimer")
                  timer_func = DESTROY_PROC_TIMER;
-#endif
+
               pdvector<AstNode *> ast_args;
               ast = createTimer(timer_func, (void*)(dn->getInferiorPtr()),
-                                ast_args);
+                                ast_args, global_proc->multithread_capable());
            }
            else if (var_ == "sampleHwCounter" || var_ == "startHwTimer" || var_ == "stopHwTimer") {
 
@@ -639,8 +770,8 @@ mdld_v_expr::apply_be(AstNode*& ast)
           case MDL_MINUSASSIGN: func_str = "subCounter"; break;
           default: return false;
         }
-        ast = createCounter(func_str, 
-                            (void*)(dn->getInferiorPtr()), ast_arg);
+        ast = createCounter(func_str, (void*)(dn->getInferiorPtr()), ast_arg,
+                            global_proc->multithread_capable());
         removeAst (ast_arg);
         return true;
      }
@@ -677,17 +808,21 @@ mdld_v_expr::apply_be(AstNode*& ast)
                    fflush(stderr);
                    return false;
                 }
-#if defined(MT_THREAD)
-                AstNode *tmp_ast;
-                tmp_ast = getCounterAddress((void *)(dn->getInferiorPtr()), dn->getSize());
-                // First we get the address, and now we get the value...
-                ast = new AstNode(AstNode::DataIndir,tmp_ast);
-                removeAst(tmp_ast);
-#else
-                // ast = new AstNode(AstNode::DataValue,  // restore AstNode::DataValue
-                ast = new AstNode(AstNode::DataAddr,
-                                  (void*)(dn->getInferiorPtr()));
-#endif
+
+                if(global_proc->multithread_capable()) {
+                   AstNode *tmp_ast;
+                   tmp_ast = getCounterAddress((void *)(dn->getInferiorPtr()),
+                                               dn->getSize(),
+                                           global_proc->multithread_capable());
+                   // First we get the address, and now we get the value...
+                   ast = new AstNode(AstNode::DataIndir,tmp_ast);
+                   removeAst(tmp_ast);
+                } else {
+                   // ast = new AstNode(AstNode::DataValue,  // restore AstNode::DataValue
+                   ast = new AstNode(AstNode::DataAddr,
+                                     (void*)(dn->getInferiorPtr()));
+                }
+
                 return true;
              }
           default:
@@ -713,13 +848,17 @@ mdld_v_expr::apply_be(AstNode*& ast)
                 }
                 instrDataNode *dn;
                 assert (get_dn.get(dn));
-#if defined(MT_THREAD)
-                ast = getTimerAddress((void *)(dn->getInferiorPtr()), dn->getSize());
-#else
-                // ast = new AstNode(AstNode::Constant,  // was AstNode::DataPtr
-                ast = new AstNode(AstNode::DataPtr,  // restore AstNode::DataPtr
-                                  (void*)(dn->getInferiorPtr()));
-#endif
+                if(global_proc->multithread_capable()) {
+                   ast = getTimerAddress((void *)(dn->getInferiorPtr()),
+                                         dn->getSize(),
+                                         global_proc->multithread_capable());
+                } else {
+                   //ast =new AstNode(AstNode::Constant, //was AstNode::DataPtr
+                   // restore AstNode::DataPtr
+                   ast = new AstNode(AstNode::DataPtr,  
+                                     (void*)(dn->getInferiorPtr()));
+                }
+
                 break;
              }
           case MDL_MINUS:
@@ -750,8 +889,9 @@ mdld_v_expr::apply_be(AstNode*& ast)
                 int value = 1;
                 AstNode* ast_arg = new AstNode(AstNode::Constant, (void*)value);
 
-                ast = createCounter("addCounter", 
-                                    (void*)(dn->getInferiorPtr()), ast_arg);
+                ast = createCounter("addCounter",(void*)(dn->getInferiorPtr()),
+                                    ast_arg,
+                                    global_proc->multithread_capable());
                 removeAst(ast_arg);       
                 break;
              }
@@ -812,12 +952,8 @@ mdld_v_expr::apply_be(mdl_var& ret)
      case MDL_EXPR_FUNC:
         {
         if (var_ == "startWallTimer" || var_ == "stopWallTimer"
-#if defined(MT_THREAD)
             || var_ == "startProcessTimer" || var_ == "stopProcessTimer"
             || var_ == "startProcessTimer_lwp"
-#else
-            || var_ == "startProcessTimer" || var_ == "stopProcessTimer"
-#endif
             )
         {
            // this mdl_v_expr::apply_be() is for expressions outside
@@ -1261,7 +1397,7 @@ mdld_seq_stmt::mk_list(pdvector<string> &funcs) {
 
 bool
 mdld_instr_stmt::apply_be(instrCodeNode *mn,
-					 pdvector<const instrDataNode*>& inFlags) {
+                          pdvector<const instrDataNode*>& inFlags) {
    // An instr statement is like:
    //    append preInsn $constraint[0].entry constrained
    //       (* setCounter(procedureConstraint, 1); *)
@@ -1307,20 +1443,22 @@ mdld_instr_stmt::apply_be(instrCodeNode *mn,
   if (constrained_) {
      unsigned fsize = inFlags.size();
      for (int fi=fsize-1; fi>=0; fi--) { // any reason why we go backwards?
-#if defined(MT_THREAD)
-        AstNode *tmp_ast;
-        tmp_ast = getCounterAddress((void *)((inFlags[fi])->getInferiorPtr()), inFlags[fi]->getSize());
-        AstNode *temp1 = new AstNode(AstNode::DataIndir,tmp_ast);
-        removeAst(tmp_ast);
-#else
-        // Note: getInferiorPtr could return a NULL pointer here if we are
-        // just computing cost - naim 2/18/97
-
-	
-	// AstNode *temp1 = new AstNode(AstNode::DataValue,
-        AstNode *temp1 = new AstNode(AstNode::DataAddr, 
-		     (void*)((inFlags[fi])->getInferiorPtr()));
-#endif
+        AstNode *temp1;
+        if(global_proc->multithread_capable()) {
+           AstNode *tmp_ast = getCounterAddress(
+                                  (void *)((inFlags[fi])->getInferiorPtr()),
+                                  inFlags[fi]->getSize(),
+                                  global_proc->multithread_capable());
+           temp1 = new AstNode(AstNode::DataIndir, tmp_ast);
+           removeAst(tmp_ast);
+        } else {
+           // Note: getInferiorPtr could return a NULL pointer here if we are
+           // just computing cost - naim 2/18/97
+                      
+           // AstNode *temp1 = new AstNode(AstNode::DataValue,
+           temp1 = new AstNode(AstNode::DataAddr, 
+                               (void*)((inFlags[fi])->getInferiorPtr()));
+        }
         // Note: we don't use assignAst on purpose here
         AstNode *temp2 = code;
         code = createIf(temp1, temp2, mn->proc()->get_dyn_process());

@@ -194,10 +194,6 @@ instrCodeNode_Val::instrCodeNode_Val(const instrCodeNode_Val &par,
    
    dontInsertData_ = par.dontInsertData_;
    referenceCount = 0;  // this node when created, starts out unshared
-#if defined(MT_THREAD)
-   // remember names of each of its threads (tid + start_func_name)
-   thr_names = par.thr_names;
-#endif
 }
 
 instrCodeNode_Val::~instrCodeNode_Val() {

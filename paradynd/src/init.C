@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.74 2003/05/09 17:33:09 mirg Exp $
+// $Id: init.C,v 1.75 2003/06/20 22:08:01 schendel Exp $
 
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
@@ -210,7 +210,6 @@ pdSample computeStackwalkTimeMetric(const machineMetFocusNode *) {
     }
 }
 
-#if defined(MT_THREAD)
 pdSample computeNumOfCurrentThreads(const machineMetFocusNode *) {
    unsigned max = 0;
    processMgr::procIter itr = getProcMgr().begin();
@@ -233,7 +232,6 @@ pdSample computeNumOfActiveThreads(const machineMetFocusNode *) {
    }
    return pdSample(numOfActiveThreads);
 }
-#endif
 
 
 bool paradyn_init() {
@@ -341,7 +339,6 @@ bool paradyn_init() {
        internalMetric::zero_ForInitActualValue);
   stackwalkTime->setStyle(EventCounter);
 
-#if defined(MT_THREAD)
   numOfCurrentThreads = internalMetric::newInternalMetric(
        "numOfCurrentThreads", aggMax, "ops", // operations
        computeNumOfCurrentThreads, default_im_preds, true, Sampled,
@@ -353,7 +350,6 @@ bool paradyn_init() {
        default_im_preds, false, Sampled,
        internalMetric::firstSample_ForInitActualValue);
   active_threads->setStyle(SampledFunction);
-#endif
 
   numOfActCounters = internalMetric::newInternalMetric(
        "numOfActCounters", aggMax, "ops", // operations 

@@ -67,9 +67,7 @@ class pd_thread {
       return dyninst_thread->walkStack(stackWalk);
    }
 
-#if defined(MT_THREAD)
    rawTime64  getInferiorVtime(virtualTimer*, bool&);
-#endif
 
 };
 

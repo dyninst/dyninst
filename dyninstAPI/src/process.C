@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.432 2003/06/18 20:31:50 schendel Exp $
+// $Id: process.C,v 1.433 2003/06/20 22:07:51 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -6505,7 +6505,7 @@ void process::init_shared_memory(process *parentProc) {
 #endif
 
 // MT section (move to processMT.C?)
-#if defined(MT_THREAD)
+#if !defined(BPATCH_LIBRARY)
 // Called for new threads
 
 dyn_thread *process::createThread(

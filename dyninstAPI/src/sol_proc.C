@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.32 2003/06/11 20:05:50 bernat Exp $
+// $Id: sol_proc.C,v 1.33 2003/06/20 22:07:54 schendel Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -333,9 +333,9 @@ bool dyn_lwp::abortSyscall()
 
     // MT: aborting syscalls does not work. Maybe someone with better knowledge
     // of Solaris can get it working. 
-#if defined(MT_THREAD)
-    return false;
-#endif
+    if(proc_->multithread_capable())
+       return false;
+
     // We do not expect to recursively interrupt system calls.  We could
     // probably handle it by keeping a stack of system call state.  But
     // we haven't yet seen any reason to have this functionality.

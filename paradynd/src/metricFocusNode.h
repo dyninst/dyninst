@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.103 2003/05/30 07:28:24 schendel Exp $ 
+// $Id: metricFocusNode.h,v 1.104 2003/06/20 22:08:07 schendel Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -74,26 +74,8 @@ class instrCodeNode;
 class metricFocusNode {
 friend timeLength guessCost(string& metric_name, pdvector<u_int>& focus) ;
 
-#if defined(MT_THREAD)
-friend bool checkMetricMIPrimitives(string metric_flat_name, 
-				    instrCodeNode *& metric_prim,
-				    string name, 
-				    pdvector< pdvector<string> >& comp_focus, 
-				    int processIdx);
-#endif
-
 public:
-  // NON_MT_THREAD version:
-  // for primitive (real non-aggregate, per constraint var or metric var) mdn's
-  // flat name should include process id
-  //
-  // for component (per-process) (non-aggregate, now aggregate) mdn's
-  // difference: it now has parts too (become aggregate)
-
   metricFocusNode();
-
-  // NON_MT_THREAD version:
-  // for aggregate (not component) mdn's
 
   virtual ~metricFocusNode() { };
 
@@ -146,9 +128,6 @@ class metFocInstResponse : public T_dyninstRPC::instResponse
    void makeCallback( void );
 };
 
-#if defined(MT_THREAD)
-extern dictionary_hash<string, metricFocusNode*> allMIinstalled;
-#endif
 
 // don't access this directly, consider private
 extern timeLength currentPredictedCost;

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.175 2003/05/30 21:32:34 bernat Exp $
+ * $Id: inst-power.C,v 1.176 2003/06/20 22:07:41 schendel Exp $
  */
 
 #include "common/h/headers.h"
@@ -583,14 +583,16 @@ Register conservativeDeadRegList[] = { };
 // The registers that aren't preserved by called functions are considered live.
 Register conservativeLiveRegList[] = { 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 0 };
 
-void initTramps()
+void initTramps(bool is_multithreaded)
 {
     static bool inited=false;
     if (inited) return;
     inited = true;
 
-    regSpace = new registerSpace(sizeof(deadRegList)/sizeof(Register), deadRegList, 
-				 sizeof(liveRegList)/sizeof(Register), liveRegList);
+    regSpace = 
+       new registerSpace(sizeof(deadRegList)/sizeof(Register), deadRegList, 
+                         sizeof(liveRegList)/sizeof(Register), liveRegList,
+                         is_multithreaded);
 
     // Note that we don't always use this with the conservative base tramp --
     // see the message where we declare conservativeRegSpace.
@@ -2206,11 +2208,11 @@ Register emitFuncCall(opCode /* ocode */,
   saveRegister(insn, base, 2, FUNC_CALL_SAVE);
   savedRegs.push_back(2);
 
-#if defined(MT_THREAD)
-  // save REG_MT_POS
-  saveRegister(insn,base,REG_MT_POS, FUNC_CALL_SAVE);
-  savedRegs += REG_MT_POS;
-#endif
+  if(proc->multithread_capable()) {
+     // save REG_MT_POS
+     saveRegister(insn,base,REG_MT_POS, FUNC_CALL_SAVE);
+     savedRegs += REG_MT_POS;
+  }
 
   // see what others we need to save.
   for (u_int i = 0; i < rs->getRegisterCount(); i++) {
@@ -2433,7 +2435,7 @@ Address emitA(opCode op, Register src1, Register /*src2*/, Register dest,
 
 Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
                char *baseInsn, Address &base, bool /*noCost*/,
-               const instPoint * /* location */ )
+               const instPoint * /* location */, bool for_multithreaded)
 {
     //fprintf(stderr,"emitR(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
 
