@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.54  1995/11/28 15:46:18  naim
+ * Revision 1.55  1995/11/30 16:50:55  naim
+ * Adding bucket_width metric - naim
+ *
+ * Revision 1.54  1995/11/28  15:46:18  naim
  * Adding the boolean parameter "all" to getAvailableMetric. If this value is
  * true, then all metrics will be passed regardless the mode - naim
  *
@@ -1201,12 +1204,18 @@ resourceHandle dataManager::newResource(resourceHandle parent,
 
 timeStamp dataManager::getGlobalBucketWidth()
 {
-    return(Histogram::getGlobalBucketWidth());
+    timeStamp bucket;
+    bucket = Histogram::getGlobalBucketWidth();
+    paradynDaemon::setGlobalBucketWidth(bucket);
+    return(bucket);
 }
 
 timeStamp dataManager::getCurrentBucketWidth()
 {
-    return(phaseInfo::GetLastBucketWidth());
+    timeStamp bucket;
+    bucket = phaseInfo::GetLastBucketWidth();
+    paradynDaemon::setCurrentBucketWidth(bucket);
+    return(bucket);
 }
 
 timeStamp dataManager::getCurrentStartTime() 

@@ -542,8 +542,8 @@ float paradynDaemon::currentHybridCost()
     paradynDaemon *pd;
     for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
         pd = paradynDaemon::allDaemons[i];
-	val = pd->getCurrentHybridCost();
-	if (val > max) max = val;
+        val = pd->getCurrentHybridCost();
+        if (val > max) max = val;
     }
     return(max);
 }
@@ -769,11 +769,16 @@ void paradynDaemon::sampleDataCallbackFunc(int program,
       }
 
       if (found) {
-	//char msg[80];
-	// TODO -- data may be in transit when the disable request is made
-	//sprintf(msg, "ERROR?:data for disabled mid: %d", mid);
-	//cout << "ERROR?:data for disabled mid: " <<  mid << endl;
-	//DMstatus->message(msg);
+        tunableBooleanConstant developerMode =
+                           tunableConstantRegistry::findBoolTunableConstant(
+                           "developerMode");
+        bool developerModeActive = developerMode.getValue();
+	if (developerModeActive) {
+	  string msg;
+	  msg = string("ERROR?:data for disabled mid: ") + string(mid);
+	  cout << msg.string_of() << endl;
+	  DMstatus->message(P_strdup(msg.string_of()));
+        }
 	return;
       } else {
 	printf("ERROR: data for unknown mid: %d\n", mid);
@@ -935,4 +940,22 @@ paradynDaemon::nodeDaemonReadyCallback(void) {
 	pd->nodeDaemonReady();
       }
     }
+}
+
+void paradynDaemon::setCurrentBucketWidth(timeStamp bucket)
+{
+  paradynDaemon *pd;
+  for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
+    pd = paradynDaemon::allDaemons[i];
+    pd->computeCurrentBucketWidth(bucket);
+  }
+}
+
+void paradynDaemon::setGlobalBucketWidth(timeStamp bucket)
+{
+  paradynDaemon *pd;
+  for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
+    pd = paradynDaemon::allDaemons[i];
+    pd->computeGlobalBucketWidth(bucket);
+  }
 }

@@ -4,7 +4,10 @@
 
 /*
  * $Log: init.h,v $
- * Revision 1.7  1995/11/13 14:55:36  naim
+ * Revision 1.8  1995/11/30 16:53:51  naim
+ * Adding bucket_width metric - naim
+ *
+ * Revision 1.7  1995/11/13  14:55:36  naim
  * Metric active_slots is not going to be used any longer - naim
  *
  * Revision 1.6  1995/05/18  10:35:02  markc
@@ -44,7 +47,6 @@ extern internalMetric *pauseTime;
 extern internalMetric *totalPredictedCost;
 extern internalMetric *observed_cost;
 extern internalMetric *hybridPredictedCost;
-//extern internalMetric *activeSlots;
 
 extern internalMetric *cpu_daemon;
 extern internalMetric *sys_daemon;
@@ -59,6 +61,9 @@ extern internalMetric *msg_recv_daemon;
 extern internalMetric *sigs_daemon;
 extern internalMetric *vol_csw_daemon;
 extern internalMetric *inv_csw_daemon;
+
+extern internalMetric *c_bucket_width;
+extern internalMetric *g_bucket_width;
 
 extern bool init();
 extern bool initOS();

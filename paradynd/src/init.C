@@ -1,7 +1,10 @@
 
 /*
  * $Log: init.C,v $
- * Revision 1.14  1995/11/28 15:55:24  naim
+ * Revision 1.15  1995/11/30 16:53:50  naim
+ * Adding bucket_width metric - naim
+ *
+ * Revision 1.14  1995/11/28  15:55:24  naim
  * Changing metrics observed_cost, predicted_cost and pause_time back to
  * normal mode - naim
  *
@@ -68,7 +71,6 @@ internalMetric *pauseTime = NULL;
 internalMetric *totalPredictedCost= NULL;
 internalMetric *hybridPredictedCost = NULL;
 internalMetric *observed_cost = NULL;
-//internalMetric *activeSlots = NULL;
 
 internalMetric *cpu_daemon = NULL;
 internalMetric *sys_daemon = NULL;
@@ -83,6 +85,9 @@ internalMetric *msg_recv_daemon = NULL;
 internalMetric *sigs_daemon = NULL;
 internalMetric *vol_csw_daemon = NULL;
 internalMetric *inv_csw_daemon = NULL;
+
+internalMetric *c_bucket_width = NULL;
+internalMetric *g_bucket_width = NULL;
 
 vector<instMapping*> initialRequests;
 vector<sym_data> syms_to_find;
@@ -123,6 +128,24 @@ bool init() {
   obs_cost_preds.process = pred_null;
   obs_cost_preds.sync = pred_invalid;
 
+  c_bucket_width = internalMetric::newInternalMetric("c_bucket_width", 
+						   SampledFunction,
+						   aggMax,
+						   "operations",
+						   NULL,
+						   default_im_preds,
+						   true,
+						   false);
+
+  g_bucket_width = internalMetric::newInternalMetric("g_bucket_width", 
+						   SampledFunction,
+						   aggMax,
+						   "operations",
+						   NULL,
+						   default_im_preds,
+						   true,
+						   false);
+
   totalPredictedCost = internalMetric::newInternalMetric("predicted_cost",
 							 EventCounter,
 					                 aggMax,	
@@ -149,15 +172,6 @@ bool init() {
 						   default_im_preds,
 						   false,
 						   true);
-
-//  activeSlots = internalMetric::newInternalMetric("active_slots", 
-//						  SampledFunction,
-//						  aggSum,
-//						  "Number",
-//						  NULL,
-//						  default_im_preds,
-//						  true,
-//						  false);
 
   cpu_daemon = internalMetric::newInternalMetric("cpu_daemon",
 						 EventCounter,
@@ -282,7 +296,7 @@ bool init() {
 						  "operations",
 						  NULL,
 						  obs_cost_preds,
-						  true,
+						  false,
 						  false);
 
   sym_data sd;
