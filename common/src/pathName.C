@@ -255,8 +255,9 @@ bool executableFromArgv0AndPathAndCwd(pdstring &result,
 }
 
 
-#if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
+#if defined(os_windows) //ccw 20 july 2000 : 29 mar 2001
 #define PATH_SEP ('\\')
+#define SECOND_PATH_SEP ('/')
 #else
 #define PATH_SEP ('/')
 #endif
@@ -265,6 +266,13 @@ pdstring extract_pathname_tail(const pdstring &path)
 {
   const char *path_str = path.c_str();
   const char *path_sep = P_strrchr(path_str, PATH_SEP);
+
+#if defined(SECOND_PATH_SEP)
+  const char *sec_path_sep = P_strrchr(path_str, SECOND_PATH_SEP);
+  if (sec_path_sep && (!path_sep || sec_path_sep > path_sep))
+    path_sep = sec_path_sep;
+#endif
+
   pdstring ret = (path_sep) ? (path_sep + 1) : (path_str);
   return ret;
 }
