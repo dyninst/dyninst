@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.491 2004/04/06 21:47:24 legendre Exp $
+// $Id: process.C,v 1.492 2004/04/07 20:20:31 bernat Exp $
 
 #include <ctype.h>
 
@@ -183,6 +183,12 @@ unsigned enable_pd_aggregate_debug = 0;
 #endif /* ENABLE_DEBUG_CERR == 1 */
 
 #endif
+
+unsigned MAX_NUMBER_OF_THREADS = 32;
+#if defined(SHM_SAMPLING)
+unsigned SHARED_SEGMENT_SIZE = 2097152;
+#endif
+
 
 #define FREE_WATERMARK (hp->totalFreeMemAvailable/2)
 #define SIZE_WATERMARK 100
@@ -1835,7 +1841,7 @@ process::process(int iPid, image *iImage, int iTraceLink
    continueAfterNextStop_ = 0;
 
 #ifndef BPATCH_LIBRARY
-   theSharedMemMgr = new shmMgr(this, theShmKey, 2097152);
+   theSharedMemMgr = new shmMgr(this, theShmKey, SHARED_SEGMENT_SIZE);
    shmMetaData = 
       new sharedMetaData(*theSharedMemMgr, MAX_NUMBER_OF_THREADS); 
    // previously was using maxNumberOfThreads() instead of
@@ -2004,7 +2010,7 @@ process::process(int iPid, image *iSymbols,
     inInferiorMallocDynamic = false;
     theRpcMgr = new rpcMgr(this);
 #ifndef BPATCH_LIBRARY
-    theSharedMemMgr = new shmMgr(this, theShmKey, 2097152);
+    theSharedMemMgr = new shmMgr(this, theShmKey, SHARED_SEGMENT_SIZE);
     shmMetaData = new sharedMetaData(*theSharedMemMgr, MAX_NUMBER_OF_THREADS);
                // previously was using maxNumberOfThreads() instead of
                // MAX_NUMBER_OF_THREADS.  Unfortunately, maxNumberOfThreads
@@ -4166,7 +4172,6 @@ bool process::getSharedObjects() {
 #endif
             // for each element in shared_objects list process the 
             // image file to find new instrumentaiton points
-            fprintf(stderr, "Adding shared objs\n");
             for(u_int j=0; j < shared_objects->size(); j++){
 // 	    pdstring temp2 = pdstring(j);
 // 	    temp2 += pdstring(" ");
@@ -4187,7 +4192,6 @@ bool process::getSharedObjects() {
                     logLine("Error after call to addASharedObject\n");
                 
             }
-            fprintf(stderr, "Done adding\n");
 #ifndef BPATCH_LIBRARY
             tp->resourceBatchMode(false);
 #endif
