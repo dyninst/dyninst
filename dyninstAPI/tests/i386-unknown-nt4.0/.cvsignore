@@ -1,1 +1,1 @@
-DEPENDS test1.* test2.* V_*.c
+DEPENDS V_*.c test?.exe test?.mutatee.exe

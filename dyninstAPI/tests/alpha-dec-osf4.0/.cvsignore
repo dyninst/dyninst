@@ -1,1 +1,1 @@
-DEPENDS test1 test1.mutatee test2 test2.mutatee V_*.c
+DEPENDS V_*.c test? test?.mutatee
