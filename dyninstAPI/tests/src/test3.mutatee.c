@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test3.mutatee.c,v 1.3 1999/06/18 23:49:54 wylie Exp $ */
+/* $Id: test3.mutatee.c,v 1.4 1999/06/20 03:36:57 wylie Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -16,6 +16,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <process.h>
+#define getpid _getpid
 #endif
 
 #if defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0)
@@ -56,11 +57,7 @@ void test2()
 
      func2_1();
 
-#ifndef i386_unknown_nt4_0
      sprintf(filename, "test3.out.%d", getpid());
-#else
-     sprintf(filename, "test3.out.%d", _getpid());
-#endif
      fp = fopen(filename, "w");
      assert(fp);
      fprintf(fp, "%d\n", test2ret);
