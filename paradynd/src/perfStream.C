@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.153 2003/05/23 07:28:05 pcroth Exp $
+// $Id: perfStream.C,v 1.154 2003/05/28 20:46:28 bernat Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -525,11 +525,15 @@ void doDeferredInstrumentation() {
    while(itr != deferredMetricIDs.begin()) {
       itr--;
       int mid = *itr;
+
       machineMetFocusNode *machNode;
       machNode = machineMetFocusNode::lookupMachNode(mid);
 
       if(machNode == NULL) {
-         assert(false);
+          // Machine node went away without removing this
+          // ID from the deferred list.
+          deferredMetricIDs.erase(itr);
+          continue;
       }
 
       inst_insert_result_t insert_status = machNode->insertInstrumentation();
