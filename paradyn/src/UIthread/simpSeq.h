@@ -45,23 +45,7 @@
 // Fixed maximum sequence size (currently twenty) for maximum speed
 // Very lightweight all-around; no free store operations _ever_
 
-/* $Log: simpSeq.h,v $
-/* Revision 1.5  1996/08/16 21:07:24  tamches
-/* updated copyright for release 1.1
-/*
- * Revision 1.4  1995/11/06 02:33:37  tamches
- * fixed operator= to return *this
- *
- * Revision 1.3  1995/10/17 22:09:48  tamches
- * added operator==
- *
- * Revision 1.2  1995/09/20 01:19:15  tamches
- * int --> unsigned in a lot of places
- *
- * Revision 1.1  1995/07/17  04:59:00  tamches
- * First version of the new where axis
- *
- */
+/* $Id: simpSeq.h,v 1.6 1999/04/27 16:03:51 nash Exp $ */
 
 #ifndef _SIMPSEQ_H_
 #define _SIMPSEQ_H_

@@ -42,15 +42,7 @@
 // graphicalPath.h
 // Ariel Tamches
 
-/* $Log: graphicalPath.h,v $
-/* Revision 1.3  1996/08/16 21:06:54  tamches
-/* updated copyright for release 1.1
-/*
- * Revision 1.2  1995/10/17 20:53:56  tamches
- * class where4tree is templated in a different way.
- * Added operator=().
- *
- */
+/* $Id: graphicalPath.h,v 1.4 1999/04/27 16:03:45 nash Exp $ */
 
 #ifndef _GRAPHICAL_PATH_H_
 #define _GRAPHICAL_PATH_H_

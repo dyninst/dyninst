@@ -43,27 +43,7 @@
 // Ariel Tamches
 // analagous to rootNode.h (for the where axis)
 
-/* $Log: shgRootNode.h,v $
-/* Revision 1.6  1996/08/16 21:07:20  tamches
-/* updated copyright for release 1.1
-/*
- * Revision 1.5  1996/03/08 00:22:31  tamches
- * added support for hidden nodes
- *
- * Revision 1.4  1996/02/15 23:13:19  tamches
- * added code to properly support why vs. where axis refinement
- *
- * Revision 1.3  1996/01/23 07:09:04  tamches
- * style split up into evaluationState & active flag
- * added shadow node features
- *
- * Revision 1.2  1996/01/11 23:42:21  tamches
- * there are now 6 node styles instead of 4
- *
- * Revision 1.1  1995/10/17 22:08:52  tamches
- * initial version, for the new search history graph
- *
- */
+/* $Id: shgRootNode.h,v 1.7 1999/04/27 16:03:49 nash Exp $ */
 
 #ifndef _SHG_ROOT_NODE_H_
 #define _SHG_ROOT_NODE_H_

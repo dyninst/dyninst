@@ -44,50 +44,7 @@
    is used internally by the UIM.
 */
 
-/* $Log: uimpd.tcl.C,v $
-/* Revision 1.41  1999/03/12 22:59:33  pcroth
-/* Fixed poor handling of RCS logs by last CVS checkin
-/*
- * Revision 1.40  1999/03/03 18:16:13  pcroth
- * Updated to support Windows NT as a front-end platform
- * Changes made to X code, to use Tcl analogues when appropriate
- * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.39  1997/10/28 20:36:30  tamches
- * dictionary_lite --> dictionary_hash
- *
- * Revision 1.38  1997/10/10 00:22:07  tamches
- * removed a warning
- *
- * Revision 1.37  1997/06/02 19:43:53  karavan
- * changed visi from menu to button.
- * eliminated uimpd drawStartVisiMenu command
- *
- * Revision 1.36  1996/11/26 16:07:00  naim
- * Fixing asserts - naim
- *
- * Revision 1.35  1996/08/16 21:07:31  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.34  1996/05/07 18:06:00  newhall
- * added threadExiting routine
- *
- * Revision 1.33  1996/04/01  22:31:47  tamches
- * refs to uim_AvailMets etc. gone
- * added UI_all_metric_names, UI_all_metrics_set_yet
- *
- * Revision 1.32  1996/02/07 18:50:35  tamches
- * added uimpd_startPhaseCmd
- * made copy of uim_visiSelections before calling chosenMetricsAndResources
- *
- * Revision 1.31  1996/02/02 18:55:19  tamches
- * removed a lot of obsolete code that had been commented out
- *
- * Revision 1.30  1996/02/02 01:01:36  karavan
- * Changes to support the new PC/UI interface
- *
- *
- */
+/* $Id: uimpd.tcl.C,v 1.42 1999/04/27 16:03:52 nash Exp $ */
  
 #include <stdlib.h>
 #include "util/h/odometer.h"

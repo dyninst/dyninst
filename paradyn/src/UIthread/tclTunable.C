@@ -42,41 +42,7 @@
 // tclTunable.C
 // C++ code that provides access to tunable constants from tcl.
 
-/* $Log: tclTunable.C,v $
-/* Revision 1.14  1999/03/12 22:59:32  pcroth
-/* Fixed poor handling of RCS logs by last CVS checkin
-/*
- * Revision 1.13  1999/03/03 18:16:12  pcroth
- * Updated to support Windows NT as a front-end platform
- * Changes made to X code, to use Tcl analogues when appropriate
- * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.12  1996/11/26 16:06:58  naim
- * Fixing asserts - naim
- *
- * Revision 1.11  1996/08/16 21:07:25  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.10  1996/08/02 19:09:58  tamches
- * tclclean.h --> tcl.h
- *
- * Revision 1.9  1996/02/07 00:10:52  tamches
- * yet more proper usage of Tcl_SetResult
- *
- * Revision 1.8  1996/02/05 19:13:56  tamches
- * proper use of Tcl_SetResult fixes a purify problem
- *
- * Revision 1.7  1995/12/20 02:27:52  tamches
- * general cleanup and warning reduction
- *
- * Revision 1.6  1995/07/16 19:01:23  tamches
- * Changes to be compatible with the new string class
- *
- * Revision 1.5  1995/02/27  18:57:51  tamches
- * Extensive changes, to reflect equally extensive changes which
- * have been made to tunable constants.
- *
- */
+/* $Id: tclTunable.C,v 1.15 1999/04/27 16:03:51 nash Exp $ */
 
 #include <assert.h>
 #include <stdlib.h> // atoi()

@@ -42,49 +42,7 @@
 // where4tree.C
 // Ariel Tamches
 
-/* $Log: where4tree.C,v $
-/* Revision 1.19  1999/03/12 22:59:33  pcroth
-/* Fixed poor handling of RCS logs by last CVS checkin
-/*
- * Revision 1.18  1999/03/03 18:16:14  pcroth
- * Updated to support Windows NT as a front-end platform
- * Changes made to X code, to use Tcl analogues when appropriate
- * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.17  1997/09/24 19:25:16  tamches
- * use of Tk_GetFontMetrics; other changes for tcl 8.0
- *
- * Revision 1.16  1996/11/26 16:07:02  naim
- * Fixing asserts - naim
- *
- * Revision 1.15  1996/08/16 21:07:36  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.14  1996/04/01 22:32:46  tamches
- * use visibility X events to simulate GraphicsExpose, thus fixing bug
- * which appeared when scrolling a partially obscured listbox
- *
- * Revision 1.13  1996/03/08 00:23:49  tamches
- * major update -- added support for hidden nodes
- *
- * Revision 1.12  1996/02/15 23:14:12  tamches
- * added a level of indirection to obtain type-specific GCs for the various
- * kind of arcs drawn in the tree.
- *
- * Revision 1.11  1995/11/20 03:25:27  tamches
- * removed obstacles to compiling on g++ 2.7.1: fixed drawTriangle()
- * declaration and changed vector<NODEDATA *> to vector<const NODEDATA *>.
- * expansion no longer unhights the node.
- *
- * Revision 1.10  1995/10/17 22:15:12  tamches
- * The templated class has changed from a unique-id class to a
- * full root-node class.
- *
- * Revision 1.9  1995/09/20 01:24:13  tamches
- * Major cleanification; too many things to enumerate.  no path items
- * have negative values.  No more uses of graphical paths.
- *
- */
+/* $Id: where4tree.C,v 1.20 1999/04/27 16:03:52 nash Exp $ */
 
 /* ******************************************************************
  *

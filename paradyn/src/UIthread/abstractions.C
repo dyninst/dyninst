@@ -42,42 +42,7 @@
 // abstractions.C
 // Ariel Tamches
 
-/* $Log: abstractions.C,v $
-/* Revision 1.10  1997/01/15 00:12:55  tamches
-/* added batch mode support
-/*
- * Revision 1.9  1996/11/26 16:06:55  naim
- * Fixing asserts - naim
- *
- * Revision 1.8  1996/08/16 21:06:51  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.7  1996/05/30 21:54:26  tamches
- * removed uses of string::quote
- *
- * Revision 1.6  1995/10/17 20:50:19  tamches
- * class abstractions is no longer templated.
- * Added change().
- *
- * Revision 1.5  1995/09/20 01:15:48  tamches
- * minor change; some usages of int --> unsigned
- *
- * Revision 1.4  1995/08/07  00:00:34  tamches
- * Added name2index
- *
- * Revision 1.3  1995/07/24  21:32:48  tamches
- * Added getTkWindow(), get*SBName(), and change(string) member
- * functions.
- *
- * Revision 1.2  1995/07/18  03:41:17  tamches
- * Added ctrl-double-click feature for selecting/unselecting an entire
- * subtree (nonrecursive).  Added a "clear all selections" option.
- * Selecting the root node now selects the entire program.
- *
- * Revision 1.1  1995/07/17  04:58:54  tamches
- * First version of the new where axis
- *
- */
+/* $Id: abstractions.C,v 1.11 1999/04/27 16:03:44 nash Exp $ */
 
 #include "abstractions.h"
 

@@ -41,28 +41,7 @@
 
 // shgConsts.C
 
-/* $Log: shgConsts.C,v $
-/* Revision 1.6  1997/09/24 19:23:50  tamches
-/* Tk_GetFontStruct --> Tk_GetFont; XFontStruct --> Tk_Font
-/* for tcl 8.0
-/*
- * Revision 1.5  1996/08/16 21:07:13  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.4  1996/02/15 23:10:59  tamches
- * added code to support why vs. where axis refinement
- *
- * Revision 1.3  1996/02/02 18:44:57  tamches
- * shg color change: unknown is green more more readability than tan
- *
- * Revision 1.2  1996/01/23 07:04:09  tamches
- * added shadow node features.
- * moved code here from the .h file
- *
- * Revision 1.1  1995/10/17 22:07:39  tamches
- * initial version for the new search history graph
- *
- */
+/* $Id: shgConsts.C,v 1.7 1999/04/27 16:03:48 nash Exp $ */
 
 #include "shgConsts.h"
 

@@ -41,29 +41,7 @@
 
 // pdLogo.h
 
-/*
- * $Log: pdLogo.h,v $
- * Revision 1.6  1999/03/03 18:16:08  pcroth
- * Updated to support Windows NT as a front-end platform
- * Changes made to X code, to use Tcl analogues when appropriate
- * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.5  1997/10/28 20:35:55  tamches
- * dictionary_lite --> dictionary_hash
- *
- * Revision 1.4  1996/08/16 21:07:02  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.3  1996/08/05 07:30:31  tamches
- * removed a warning
- *
- * Revision 1.2  1995/12/26 19:58:17  tamches
- * tclclean/tkclean --> tcl/tk.h; cleaned up include of String.h w.r.t. directory
- *
- * Revision 1.1  1995/11/29 00:19:35  tamches
- * first version of pdLogo
- *
- */
+/* $Id: pdLogo.h,v 1.7 1999/04/27 16:03:45 nash Exp $ */
 
 #ifndef _PD_LOGO_H_
 #define _PD_LOGO_H_

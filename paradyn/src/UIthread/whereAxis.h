@@ -44,41 +44,7 @@
 
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
-/* $Log: whereAxis.h,v $
-/* Revision 1.14  1997/10/28 20:37:00  tamches
-/* dictionary_lite --> dictionary_hash
-/*
- * Revision 1.13  1997/09/24 19:27:55  tamches
- * XFontStruct --> Tk_Font for the tcl 8.0 release
- *
- * Revision 1.12  1996/08/16 21:07:46  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.11  1996/04/01 22:34:14  tamches
- * added makeVisibility* member functions
- *
- * Revision 1.10  1996/02/15 23:14:53  tamches
- * added code relating to the new line-GC indirection feature of where4tree
- *
- * Revision 1.9  1996/01/11 04:43:45  tamches
- * added necessary Whole Program kludge for getSelections
- *
- * Revision 1.8  1995/12/09 04:07:58  tamches
- * added const qualifier to hashFunc
- *
- * Revision 1.7  1995/11/06 19:28:44  tamches
- * dictionary_hash --> dictionary_lite
- *
- * Revision 1.6  1995/10/17 22:18:46  tamches
- * whereAxis is no longer a templated type; it used where4tree
- * with a template of whereAxisRootNode.
- * Added back static members which used to be in whereAxisMisc.
- *
- * Revision 1.5  1995/09/20 01:27:10  tamches
- * constness removed from many prototypes; other changes to correspond
- * with whereAxis.C
- *
- */
+/* $Id: whereAxis.h,v 1.15 1999/04/27 16:03:56 nash Exp $ */
 
 #ifndef _WHERE_AXIS_H_
 #define _WHERE_AXIS_H_

@@ -42,38 +42,7 @@
 // shgRootNode.C
 // Ariel Tamches
 
-/* $Log: shgRootNode.C,v $
-/* Revision 1.9  1999/03/12 22:59:31  pcroth
-/* Fixed poor handling of RCS logs by last CVS checkin
-/*
- * Revision 1.8  1999/03/03 18:16:11  pcroth
- * Updated to support Windows NT as a front-end platform
- * Changes made to X code, to use Tcl analogues when appropriate
- * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.7  1997/09/24 19:24:37  tamches
- * XFontStruct --> Tk_Font; other changes for tcl 8.0
- *
- * Revision 1.6  1996/08/16 21:07:18  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.5  1996/03/08 00:22:50  tamches
- * added support for hidden nodes
- * added operator=
- *
- * Revision 1.4  1996/02/15 23:13:20  tamches
- * added code to properly support why vs. where axis refinement
- *
- * Revision 1.3  1996/01/23 19:48:10  tamches
- * added shadow node features
- *
- * Revision 1.2  1996/01/11 23:42:40  tamches
- * there are now 6 node styles
- *
- * Revision 1.1  1995/10/17 22:08:53  tamches
- * initial version, for the new search history graph
- *
- */
+/* $Id: shgRootNode.C,v 1.10 1999/04/27 16:03:49 nash Exp $ */
 
 #include "shg.h"
 #include "shgRootNode.h"

@@ -42,24 +42,7 @@
 // graphicalPath.h
 // Ariel Tamches
 
-/* $Log: graphicalPath.C,v $
-/* Revision 1.5  1999/03/12 22:59:29  pcroth
-/* Fixed poor handling of RCS logs by last CVS checkin
-/*
- * Revision 1.4  1999/03/03 18:16:06  pcroth
- * Updated to support Windows NT as a front-end platform
- * Changes made to X code, to use Tcl analogues when appropriate
- * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.3  1996/08/16 21:06:53  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.2  1995/10/17 20:54:37  tamches
- * Added check for NULL rootPtr in constructors (needed by new shg).
- * class where4tree is templated in a different manner.
- * Added operator= and operator==
- *
- */
+/* $Id: graphicalPath.C,v 1.6 1999/04/27 16:03:44 nash Exp $ */
 
 #include "util/h/headers.h"
 #include "graphicalPath.h"

@@ -44,47 +44,7 @@
 // Analagous to "abstractions.h" for the where axis; this class
 // basically manages several "shg"'s, as defined in shgPhases.h
 
-/*
- * $Log: shgPhases.h,v $
- * Revision 1.19  1999/04/15 21:23:56  nash
- * Removed annoying '/* within comment' warnings from a couple files
- *
- * Revision 1.18  1999/03/12 22:59:31  pcroth
- * Fixed poor handling of RCS logs by last CVS checkin
- *
- * Revision 1.17  1999/03/03 18:16:10  pcroth
- * Updated to support Windows NT as a front-end platform
- * Changes made to X code, to use Tcl analogues when appropriate
- * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.16  1996/08/16 21:07:17  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.15  1996/05/01 20:56:07  tamches
- * added inactivateEntireSearch
- *
- * Revision 1.14  1996/05/01 14:08:03  naim
- * Multiples changes in UI to make call to requestNodeInfoCallback async.
- * (UI<->PC) - naim
- *
- * Revision 1.13  1996/04/16 18:37:38  karavan
- * fine-tunification of UI-PC batching code, plus addification of some
- * Ari-like verbification commentification.
- *
- * Revision 1.12  1996/04/13 04:39:44  karavan
- * better implementation of batching for edge requests
- *
- * Revision 1.11  1996/04/09 19:25:18  karavan
- * added batch mode to cut down on shg redraw time.
- *
- * Revision 1.10  1996/03/08 00:21:53  tamches
- * added support for hidden nodes
- *
- * Revision 1.9  1996/02/15 23:12:29  tamches
- * corrected parameters of addEdge to properly handle why vs. where
- * axis refinements
- *
- */
+/* $Id: shgPhases.h,v 1.20 1999/04/27 16:03:49 nash Exp $ */
 
 #ifndef _SHG_PHASES_H_
 #define _SHG_PHASES_H_

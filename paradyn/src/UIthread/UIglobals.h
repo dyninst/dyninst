@@ -39,38 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Log: UIglobals.h,v $
-/* Revision 1.24  1996/08/16 21:06:44  tamches
-/* updated copyright for release 1.1
-/*
- * Revision 1.23  1996/04/01 22:28:56  tamches
- * uim_availMets, uim_AvailMetsSize, uim_AvailMetHandles gone
- *
- * Revision 1.22  1996/01/23 06:53:56  tamches
- * uim_VisiSelections is no longer a ptr
- *
- * Revision 1.21  1995/11/09 02:10:00  tamches
- * removed some obsolete references (e.g. uim_eid, uim_rootRes)
- *
- * Revision 1.20  1995/11/06 02:44:43  tamches
- * removed nodeIdType and numlist (no longer used typedefs)
- *
- * Revision 1.19  1995/10/17 20:43:50  tamches
- * Commented out StrToNodeIdType, dag, and shgDisplay -- things obsoleted
- * by the new search history graph
- *
- * Revision 1.18  1995/10/05 04:30:13  karavan
- * added ActiveDags to dag class.
- * removed SHG_DAGID global (not used).
- * removed SHGwinName global (obsoleted).
- * removed tokenRec struc and tokenHandler class (obsoleted).
- * removed commented obsolete code.
- *
- * Revision 1.17  1995/07/24  21:29:43  tamches
- * removed or commented out resourceDisplayObj, baseWhere, and
- * uim_knownAbstractions, which are all things related to the old where axis.
- *
- */
+/* $Id: UIglobals.h,v 1.25 1999/04/27 16:03:43 nash Exp $ */
 
 /* UIglobals.h 
      definitions used by UI thread */

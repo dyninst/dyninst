@@ -44,20 +44,7 @@
 
 // Implementations of new commands and tk bindings related to the where axis.
 
-/* $Log: whereAxisTcl.h,v $
-/* Revision 1.4  1996/08/16 21:07:49  tamches
-/* updated copyright for release 1.1
-/*
- * Revision 1.3  1996/01/09 23:55:58  tamches
- * added whereAxisDrawTipsCallback
- *
- * Revision 1.2  1995/10/17 22:21:57  tamches
- * put initiateWhereAxisRedraw within #ifdef PARADYN
- *
- * Revision 1.1  1995/07/17 04:59:11  tamches
- * First version of the new where axis
- *
- */
+/* $Id: whereAxisTcl.h,v 1.5 1999/04/27 16:03:56 nash Exp $ */
 
 #ifndef _WHERE_AXIS_TCL_H_
 #define _WHERE_AXIS_TCL_H_

@@ -44,47 +44,7 @@
 // Analagous to "abstractions.h" for the where axis; this class
 // basically manages several "shg"'s, as defined in shgPhases.h
 
-/* $Log: shgPhases.C,v $
-/* Revision 1.25  1999/03/12 22:59:31  pcroth
-/* Fixed poor handling of RCS logs by last CVS checkin
-/*
- * Revision 1.24  1999/03/03 18:16:10  pcroth
- * Updated to support Windows NT as a front-end platform
- * Changes made to X code, to use Tcl analogues when appropriate
- * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.23  1996/11/26 16:06:57  naim
- * Fixing asserts - naim
- *
- * Revision 1.22  1996/08/16 21:07:15  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.21  1996/05/30 21:54:55  tamches
- * removed uses of string::quote
- *
- * Revision 1.20  1996/05/01 20:56:35  tamches
- * added inactivateEntireSearch
- * altered use of configNode to correspond w/ new shg syntax
- *
- * Revision 1.19  1996/05/01 14:08:01  naim
- * Multiples changes in UI to make call to requestNodeInfoCallback async.
- * (UI<->PC) - naim
- *
- * Revision 1.18  1996/04/24  21:58:07  tamches
- * We now do a yview -pickplace end on the "status window" area when changing
- * phases.
- *
- * Revision 1.17  1996/04/16 18:37:36  karavan
- * fine-tunification of UI-PC batching code, plus addification of some
- * Ari-like verbification commentification.
- *
- * Revision 1.16  1996/04/13 04:39:42  karavan
- * better implementation of batching for edge requests
- *
- * Revision 1.15  1996/04/09 19:25:15  karavan
- * added batch mode to cut down on shg redraw time.
- *
- */
+/* $Id: shgPhases.C,v 1.26 1999/04/27 16:03:49 nash Exp $ */
 
 #include <limits.h>
 #include "util/h/headers.h"

@@ -42,38 +42,7 @@
 // where4treeConstants.C
 // Ariel Tamches
 
-/* $Log: where4treeConstants.C,v $
-/* Revision 1.9  1999/03/12 22:59:35  pcroth
-/* Fixed poor handling of RCS logs by last CVS checkin
-/*
- * Revision 1.8  1999/03/03 18:16:16  pcroth
- * Updated to support Windows NT as a front-end platform
- * Changes made to X code, to use Tcl analogues when appropriate
- * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.7  1997/09/24 19:26:56  tamches
- * XLoadQueryFont --> Tk_GetFont;use of Tk_GetFontMetrics; other changes
- * for tcl 8.0
- *
- * Revision 1.6  1996/08/16 21:07:41  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.5  1996/04/01 22:33:53  tamches
- * added listboxCopyAreaGC
- *
- * Revision 1.4  1995/11/06 02:42:03  tamches
- * removed tclpanic(), used the one in tkTools.h
- *
- * Revision 1.3  1995/10/17 22:16:58  tamches
- * Removed masterwindow and several unused gc's.
- *
- * Revision 1.2  1995/09/20 01:24:55  tamches
- * fixed tclpanic to properly print msg
- *
- * Revision 1.1  1995/07/17  04:59:06  tamches
- * First version of the new where axis
- *
- */
+/* $Id: where4treeConstants.C,v 1.10 1999/04/27 16:03:53 nash Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>

@@ -41,13 +41,7 @@
 
 // tclTunable.h
 
-/* $Log: tclTunable.h,v $
-/* Revision 1.2  1996/08/16 21:07:26  tamches
-/* updated copyright for release 1.1
-/*
- * Revision 1.1  1994/10/26 23:13:04  tamches
- * first version
- * */
+/* $Id: tclTunable.h,v 1.3 1999/04/27 16:03:51 nash Exp $ */
 
 int TclTunableCommand(ClientData cd, Tcl_Interp *interp,
 		      int argc, char **argv);

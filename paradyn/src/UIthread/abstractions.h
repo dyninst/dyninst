@@ -46,57 +46,7 @@
 // is 1 abstraction; hence, this class maintains a set of
 // abstractions.
 
-/* $Log: abstractions.h,v $
-/* Revision 1.14  1999/03/12 22:59:29  pcroth
-/* Fixed poor handling of RCS logs by last CVS checkin
-/*
- * Revision 1.13  1999/03/03 18:16:05  pcroth
- * Updated to support Windows NT as a front-end platform
- * Changes made to X code, to use Tcl analogues when appropriate
- * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.12  1997/01/15 00:12:31  tamches
- * made getCurrent() private; added many public members to operate on the
- * current where axis.
- *
- * Revision 1.11  1996/10/16 16:11:13  tamches
- * resizeEverything() now takes a sort flag
- *
- * Revision 1.10  1996/08/16 21:06:52  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.9  1996/04/01 22:29:51  tamches
- * makeVisibility* functions added
- *
- * Revision 1.8  1996/01/23 06:59:04  tamches
- * corrected path to include of String.h
- *
- * Revision 1.7  1996/01/11 04:39:34  tamches
- * added whole program kludge for getCurrAbstractionSelections
- *
- * Revision 1.6  1995/10/17 20:51:06  tamches
- * class abstractions is no longer templated.
- * class whereAxis is no longer templated either.
- *
- * Revision 1.5  1995/09/20 01:15:47  tamches
- * minor change; some usages of int --> unsigned
- *
- * Revision 1.4  1995/08/07  00:00:51  tamches
- * Added name2index(), getAbsMenuName()
- *
- * Revision 1.3  1995/07/24  21:32:47  tamches
- * Added getTkWindow(), get*SBName(), and change(string) member
- * functions.
- *
- * Revision 1.2  1995/07/18  03:41:16  tamches
- * Added ctrl-double-click feature for selecting/unselecting an entire
- * subtree (nonrecursive).  Added a "clear all selections" option.
- * Selecting the root node now selects the entire program.
- *
- * Revision 1.1  1995/07/17  04:58:52  tamches
- * First version of the new where axis
- *
- */
+/* $Id: abstractions.h,v 1.15 1999/04/27 16:03:44 nash Exp $ */
 
 #ifndef _ABSTRACTIONS_H_
 #define _ABSTRACTIONS_H_

@@ -43,21 +43,7 @@
 // Ariel Tamches
 // The scrollbar class for where4tree.h/.C
 
-/* $Log: scrollbar.C,v $
-/* Revision 1.4  1996/08/16 21:07:06  tamches
-/* updated copyright for release 1.1
-/*
- * Revision 1.3  1995/10/17 22:06:09  tamches
- * Removed where4TreeConstants influences;
- * now passes a Tk_3DBorder directly to draw().
- *
- * Revision 1.2  1995/09/20 01:18:29  tamches
- * Some routines didn't need where4TreeConstants
- *
- * Revision 1.1  1995/07/17  04:58:59  tamches
- * First version of the new where axis
- *
- */
+/* $Id: scrollbar.C,v 1.5 1999/04/27 16:03:46 nash Exp $ */
 
 #include "minmax.h"
 #include "scrollbar.h"

@@ -44,47 +44,7 @@
 
 // Implementations of new commands and tk bindings related to the search history graph.
 
-/* $Log: shgTcl.C,v $
-/* Revision 1.13  1999/03/12 22:59:32  pcroth
-/* Fixed poor handling of RCS logs by last CVS checkin
-/*
- * Revision 1.12  1999/03/03 18:16:11  pcroth
- * Updated to support Windows NT as a front-end platform
- * Changes made to X code, to use Tcl analogues when appropriate
- * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.11  1996/08/16 21:07:21  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.10  1996/08/05 07:30:51  tamches
- * update for tcl 7.5
- *
- * Revision 1.9  1996/02/08 01:01:15  tamches
- * removed some old code
- *
- * Revision 1.8  1996/02/07 19:14:28  tamches
- * made use of new routines in shgPhases which operate on the current
- * search -- no more getCurrent() usage here.
- * Some global vars moved to shgPhases
- *
- * Revision 1.7  1996/02/02 18:54:13  tamches
- * added shgDrawKeyCallback, shgDrawTipsCallback,
- * shgMiddleClickCallbackCommand is new.
- * shgAltReleaseCommand shrunk accordingly.
- * added shgRefineGlobalPhase (temporarily)
- * fixed code in shgSearchCommand
- *
- * Revision 1.6  1996/02/02 02:03:12  karavan
- * oops!  corrected call to performanceconsultant::newSearch
- *
- * Revision 1.5  1996/02/02 01:01:34  karavan
- * Changes to support the new PC/UI interface
- *
- * Revision 1.4  1996/01/23 07:10:16  tamches
- * fixed a UI bug noticed by Marcelo that could lead to an assertion
- * failure when scrolling large amounts.
- *
- */
+/* $Id: shgTcl.C,v 1.14 1999/04/27 16:03:50 nash Exp $ */
 
 #include "util/h/headers.h"
 #include "tkTools.h"

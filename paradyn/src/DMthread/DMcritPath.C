@@ -42,31 +42,7 @@
 //
 // Process Critical Path data from the various paradyn daemons.
 //
-/* $Log: DMcritPath.C,v $
-/* Revision 1.9  1999/03/12 22:57:40  pcroth
-/* Fixed poor handling of RCS logs by last CVS checkin
-/*
- * Revision 1.8  1999/03/03 18:13:45  pcroth
- * Updated to support Windows NT as a front-end platform
- * Changes made to X code, to use Tcl analogues when appropriate
- * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.7  1996/11/26 16:06:47  naim
- * Fixing asserts - naim
- *
- * Revision 1.6  1996/08/16 21:01:31  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.5  1996/05/08 15:55:41  hollings
- * Commented out a debugging printf
- *
- * Revision 1.4  1996/02/02  18:27:06  newhall
- * fixed compile error
- *
- * Revision 1.3  1996/02/01  19:51:58  hollings
- * Fixing Critical Path to work.
- *
- */
+/* $Id: DMcritPath.C,v 1.10 1999/04/27 16:03:35 nash Exp $ */
 
 #include <assert.h>
 extern "C" {

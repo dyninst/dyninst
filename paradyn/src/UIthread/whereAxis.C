@@ -44,63 +44,7 @@
 
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
-/* $Log: whereAxis.C,v $
-/* Revision 1.20  1999/03/12 22:59:36  pcroth
-/* Fixed poor handling of RCS logs by last CVS checkin
-/*
- * Revision 1.19  1999/03/03 18:16:17  pcroth
- * Updated to support Windows NT as a front-end platform
- * Changes made to X code, to use Tcl analogues when appropriate
- * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.18  1997/12/04 18:28:59  tamches
- * bug fix to navigate menu
- *
- * Revision 1.17  1997/10/28 20:37:01  tamches
- * dictionary_lite --> dictionary_hash
- *
- * Revision 1.16  1997/09/24 19:29:05  tamches
- * XFontStruct --> Tk_Font; use of Tk_GetFontMetrics
- * for tcl 8.0
- *
- * Revision 1.15  1996/11/26 16:07:08  naim
- * Fixing asserts - naim
- *
- * Revision 1.14  1996/08/16 21:07:44  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.13  1996/02/15 23:14:56  tamches
- * added code relating to the new line-GC indirection feature of where4tree
- *
- * Revision 1.12  1996/02/11 18:27:47  tamches
- * Added a check for null rootPtr before drawing
- *
- * Revision 1.11  1996/02/07 19:15:06  tamches
- * removed include of whereAxisMisc.h, except for the test program
- *
- * Revision 1.10  1996/01/11 04:45:37  tamches
- * getSelections replaced - now returns Whole Program selection separately,
- * runs faster, and alone with the new parseSelections of uimpd.tcl.C,
- * avoids adding spurious metric/focus pairs when Whole Program is chosen
- *
- * Revision 1.9  1995/12/09 04:08:39  tamches
- * shift-dbl-click now togggles highlight, like ctrl-dbl-click
- *
- * Revision 1.8  1995/11/20 03:27:50  tamches
- * overallWindowBorderPix is no longer a global variable.
- * double-click does a toggle_highlight of the parent node; same
- * for ctrl-double-click.
- * changed vector<whereAxisRootNode *> to vector<const whereAxisRootNode *>
- *
- * Revision 1.7  1995/10/17 22:20:15  tamches
- * where axis is no longer a templated type; it uses where4tree with
- * a template of whereAxisRootNode.
- * Added many static vrbles and methods which had to be temporarily
- * moved to whereAxisMisc for compiler-bug reasons in the past.
- * Expanding a node now calls XWarpPointer more accurately.
- * Same for un-expansion, finding, and navigating to a node.
- *
- */
+/* $Id: whereAxis.C,v 1.21 1999/04/27 16:03:54 nash Exp $ */
 
 #include <stdlib.h> // exit()
 

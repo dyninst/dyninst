@@ -42,33 +42,7 @@
 // where4treeConstants.h
 // Ariel Tamches
 
-/* $Log: where4treeConstants.h,v $
-/* Revision 1.7  1999/03/12 22:59:35  pcroth
-/* Fixed poor handling of RCS logs by last CVS checkin
-/*
- * Revision 1.6  1999/03/03 18:16:17  pcroth
- * Updated to support Windows NT as a front-end platform
- * Changes made to X code, to use Tcl analogues when appropriate
- * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.5  1997/09/24 19:25:45  tamches
- * XFontStruct --> Tk_Font
- *
- * Revision 1.4  1996/08/16 21:07:42  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.3  1996/04/01 22:33:34  tamches
- * Added X visibility event features
- *
- * Revision 1.2  1995/10/17 22:16:26  tamches
- * Removed masterWindow.  Removed rootItemTextGC, rootItemRectGC,
- * and their highlighted variants.  Removed listboxScrollbarBorderDragging.
- * Removed several listbox gc's.
- *
- * Revision 1.1  1995/07/17 04:59:05  tamches
- * First version of the new where axis
- *
- */
+/* $Id: where4treeConstants.h,v 1.8 1999/04/27 16:03:53 nash Exp $ */
 
 #ifndef _WHERE4TREECONSTANTS_H_
 #define _WHERE4TREECONSTANTS_H_

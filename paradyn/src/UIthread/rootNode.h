@@ -44,35 +44,7 @@
 // C++ class for the root node of subtrees declared in where4tree.h
 // Basically, this file exists just to make where4tree.h that much shorter.
 
-/* $Log: rootNode.h,v $
-/* Revision 1.7  1996/08/16 21:07:05  tamches
-/* updated copyright for release 1.1
-/*
- * Revision 1.6  1996/03/08 00:21:05  tamches
- * added anything2draw()
- *
- * Revision 1.5  1996/02/15 23:09:03  tamches
- * added getGCforListboxRay and getGCforNonListboxRay (to better support
- * why vs. where refinement in shg)
- *
- * Revision 1.4  1995/10/17 20:56:44  tamches
- * Changed class name from "rootNode" to "whereAxisRootNode".
- * More versatile -- now holds pixWidthAsRoot and pixWidthAsListboxItem.
- * Added static members prepareForDrawingListboxItems and
- * doneDrawingListboxItems.  Added drawAsRoot() and drawAsListboxItem().
- *
- * Revision 1.3  1995/09/20 01:18:03  tamches
- * minor cleanifications hardly worth mentioning
- *
- * Revision 1.2  1995/07/18  03:41:18  tamches
- * Added ctrl-double-click feature for selecting/unselecting an entire
- * subtree (nonrecursive).  Added a "clear all selections" option.
- * Selecting the root node now selects the entire program.
- *
- * Revision 1.1  1995/07/17  04:58:56  tamches
- * First version of the new where axis
- *
- */
+/* $Id: rootNode.h,v 1.8 1999/04/27 16:03:46 nash Exp $ */
 
 #ifndef _ROOTNODE_H_
 #define _ROOTNODE_H_

@@ -44,41 +44,7 @@
 
 // Header file for subtree based on where4.fig [and where5.fig]
 
-/* $Log: where4tree.h,v $
-/* Revision 1.13  1999/03/12 22:59:34  pcroth
-/* Fixed poor handling of RCS logs by last CVS checkin
-/*
- * Revision 1.12  1999/03/03 18:16:15  pcroth
- * Updated to support Windows NT as a front-end platform
- * Changes made to X code, to use Tcl analogues when appropriate
- * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.11  1996/08/16 21:07:40  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.10  1996/03/08 00:23:13  tamches
- * added support for hidden nodes
- *
- * Revision 1.9  1995/11/20 03:25:54  tamches
- * changed vector<NODEDATA *> to vector<const NODEDATA *>, enabling compilation
- * under g++ 2.7.1
- *
- * Revision 1.8  1995/10/17 22:13:35  tamches
- * The templated class has changed from a unique-id class to
- * a full root-node class.
- *
- * Revision 1.7  1995/09/20 01:24:11  tamches
- * Major cleanification; too many things to enumerate.  no path items
- * have negative values.  No more uses of graphical paths.
- *
- * Revision 1.6  1995/08/07  00:02:16  tamches
- * added selectUnSelectFromFullPathName
- *
- * Revision 1.5  1995/08/04  19:18:00  tamches
- * Added numChildrenAddedSinceLastSort field to every node.
- * Changes needed for using Vector::sort()
- *
- */
+/* $Id: where4tree.h,v 1.14 1999/04/27 16:03:53 nash Exp $ */
 
 // This class is sort of a placeholder.  It has variables to find out who
 // is expanded and who isn't; it maintains the tree layout.

@@ -44,60 +44,7 @@
 // of the new where axis user interface
 // Ariel Tamches
 
-/*
- * $Log: shg.h,v $
- * Revision 1.22  1999/04/15 21:23:55  nash
- * Removed annoying '/* within comment' warnings from a couple files
- *
- * Revision 1.21  1999/03/12 22:59:30  pcroth
- * Fixed poor handling of RCS logs by last CVS checkin
- *
- * Revision 1.20  1999/03/03 18:16:09  pcroth
- * Updated to support Windows NT as a front-end platform
- * Changes made to X code, to use Tcl analogues when appropriate
- * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.19  1997/10/28 20:36:15  tamches
- * dictionary_lite --> dictionary_hash
- *
- * Revision 1.18  1997/09/24 19:21:16  tamches
- * XFontStruct --> Tk_Font
- *
- * Revision 1.17  1997/01/15 00:13:41  tamches
- * removed some warnings
- *
- * Revision 1.16  1996/08/16 21:07:11  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.15  1996/05/01 20:55:08  tamches
- * added inactivateAll
- * change interface to configNode a bit
- *
- * Revision 1.14  1996/05/01 14:07:59  naim
- * Multiples changes in UI to make call to requestNodeInfoCallback async.
- * (UI<->PC) - naim
- *
- * Revision 1.13  1996/04/16 18:37:33  karavan
- * fine-tunification of UI-PC batching code, plus addification of some
- * Ari-like verbification commentification.
- *
- * Revision 1.12  1996/04/13 04:39:49  karavan
- * better implementation of batching for edge requests
- *
- * Revision 1.11  1996/04/09 19:25:13  karavan
- * added batch mode to cut down on shg redraw time.
- *
- * Revision 1.10  1996/03/10 23:20:51  hollings
- * Mad sure all assert statements were in { } blocks.  odd compiler problem
- * for AIX or UMD.
- *
- * Revision 1.9  1996/03/08  00:21:20  tamches
- * added support for hidden nodes
- *
- * Revision 1.8  1996/02/15 23:10:01  tamches
- * added proper support for why vs. where axis refinement
- *
- */
+/* $Id: shg.h,v 1.23 1999/04/27 16:03:46 nash Exp $ */
 
 #ifndef _SHG_H_
 #define _SHG_H_

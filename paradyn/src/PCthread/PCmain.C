@@ -39,61 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Log: PCmain.C,v $
-/* Revision 1.66  1999/03/12 22:58:20  pcroth
-/*  Fixed poor handling of RCS logs by last CVS checkin
-/*
- * Revision 1.65  1999/03/03 18:15:15  pcroth
- * Updated to support Windows NT as a front-end platform
- * Changes made to X code, to use Tcl analogues when appropriate
- * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.64  1996/08/16 21:03:31  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.63  1996/07/26 07:25:07  karavan
- * added global performanceConsultant::numMetrics which is used to size
- * some filteredDataServer data structures.
- *
- * Revision 1.62  1996/05/08 13:37:06  naim
- * Minor changes to debugging information - naim
- *
- * Revision 1.61  1996/05/08  07:35:15  karavan
- * Changed enable data calls to be fully asynchronous within the performance consultant.
- *
- * some changes to cost handling, with additional limit on number of outstanding enable requests.
- *
- * Revision 1.60  1996/05/06 04:35:14  karavan
- * Bug fix for asynchronous predicted cost changes.
- *
- * added new function find() to template classes dictionary_hash and
- * dictionary_lite.
- *
- * changed filteredDataServer::DataFilters to dictionary_lite
- *
- * changed normalized hypotheses to use activeProcesses:cf rather than
- * activeProcesses:tlf
- *
- * code cleanup
- *
- * Revision 1.59  1996/05/02 19:46:39  karavan
- * changed predicted data cost to be fully asynchronous within the pc.
- *
- * added predicted cost server which caches predicted cost values, minimizing
- * the number of calls to the data manager.
- *
- * added new batch version of ui->DAGconfigNode
- *
- * added hysteresis factor to cost threshold
- *
- * eliminated calls to dm->enable wherever possible
- *
- * general cleanup
- *
- * Revision 1.58  1996/05/01 18:11:45  newhall
- * fixed some purify errors, added clientId parameter to predicted cost calls
- *
- */
+/* $Id: PCmain.C,v 1.67 1999/04/27 16:03:39 nash Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>

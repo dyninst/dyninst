@@ -41,23 +41,7 @@
 
 // pdLogo.C
 
-/*
- * $Log: pdLogo.C,v $
- * Revision 1.4  1999/03/03 18:16:07  pcroth
- * Updated to support Windows NT as a front-end platform
- * Changes made to X code, to use Tcl analogues when appropriate
- * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.3  1997/10/28 20:35:56  tamches
- * dictionary_lite --> dictionary_hash
- *
- * Revision 1.2  1996/08/16 21:07:01  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.1  1995/11/29 00:19:46  tamches
- * first version of pdLogo
- *
- */
+/* $Id: pdLogo.C,v 1.5 1999/04/27 16:03:45 nash Exp $ */
 
 #include "pdLogo.h"
 

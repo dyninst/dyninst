@@ -45,26 +45,7 @@
 // Some C++ stuff that I have found to be both useful and generic
 // across all the tk4.0 programs I've written...
 
-/*
- * $Log: tkTools.h,v $
- * Revision 1.6  1999/03/03 18:16:13  pcroth
- * Updated to support Windows NT as a front-end platform
- * Changes made to X code, to use Tcl analogues when appropriate
- * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.5  1996/08/16 21:07:30  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.4  1996/02/02 18:54:33  tamches
- * added setResultBool
- *
- * Revision 1.3  1995/11/29 00:20:37  tamches
- * added tcl_cmd_installer
- *
- * Revision 1.2  1995/11/06 02:28:02  tamches
- * added tclpanic and resizeScrollbar
- *
- */
+/* $Id: tkTools.h,v 1.7 1999/04/27 16:03:52 nash Exp $ */
 
 #ifndef _TK_TOOLS_H_
 #define _TK_TOOLS_H_

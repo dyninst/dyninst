@@ -44,64 +44,7 @@
  * code related to displaying the where axes lives here
  */
 
-/* $Log: UIwhere.C,v $
-/* Revision 1.22  1999/03/12 22:59:28  pcroth
-/* Fixed poor handling of RCS logs by last CVS checkin
-/*
- * Revision 1.21  1999/03/03 18:16:05  pcroth
- * Updated to support Windows NT as a front-end platform
- * Changes made to X code, to use Tcl analogues when appropriate
- * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.20  1997/10/10 00:21:27  tamches
- * removed a warning
- *
- * Revision 1.19  1997/04/14 20:00:29  zhichen
- * Added memoryAddedCB (...)
- *
- * Revision 1.18  1996/08/16 21:06:50  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.17  1996/08/02 19:08:40  tamches
- * tclclean.h --> tcl.h
- *
- * Revision 1.16  1995/12/01 06:39:03  tamches
- * removed some warnings (tclclean.h; tkclean.h)
- *
- * Revision 1.15  1995/11/06 19:26:41  tamches
- * removed some warnings
- *
- * Revision 1.14  1995/10/17 20:49:12  tamches
- * Where axis changes, e.g. abstractions* instead of
- * abstractions<resourceHandle>*.
- *
- * Revision 1.13  1995/08/04 19:13:56  tamches
- * Added a status line for 'rethinking' after receiving data (whethere batch
- * mode or not)
- *
- * Revision 1.12  1995/07/24  21:31:30  tamches
- * removed some obsolete code related to the old where axis
- *
- * Revision 1.11  1995/07/17  05:07:33  tamches
- * Drastic changes related to the new where axis...most of the good stuff
- * is now in different files.
- *
- * Revision 1.10  1995/06/02  20:50:38  newhall
- * made code compatable with new DM interface
- *
- * Revision 1.8  1995/02/16  08:20:50  markc
- * Changed Boolean to bool
- * Changed wait loop code for igen messages
- *
- * Revision 1.7  1995/01/26  17:59:03  jcargill
- * Changed igen-generated include files to new naming convention; fixed
- * some bugs compiling with gcc-2.6.3.
- *
- * Revision 1.6  1994/11/04  20:11:45  karavan
- * changed the name of some frames in the main window, affecting status
- * and resource Display frame parents.
- *
- */
+/* $Id: UIwhere.C,v 1.23 1999/04/27 16:03:44 nash Exp $ */
 
 #include "UIglobals.h" // UIM_BatchMode
 #include "dataManager.thread.h"

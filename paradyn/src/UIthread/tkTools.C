@@ -42,34 +42,7 @@
 // tkTools.C
 // Ariel Tamches
 
-/* $Log: tkTools.C,v $
-/* Revision 1.9  1999/03/12 22:59:32  pcroth
-/* Fixed poor handling of RCS logs by last CVS checkin
-/*
- * Revision 1.8  1999/03/03 18:16:12  pcroth
- * Updated to support Windows NT as a front-end platform
- * Changes made to X code, to use Tcl analogues when appropriate
- * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.7  1996/11/26 16:06:59  naim
- * Fixing asserts - naim
- *
- * Revision 1.6  1996/08/16 21:07:27  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.5  1996/02/15 22:47:34  tamches
- * changed setResultBool a bit
- *
- * Revision 1.4  1996/02/02 18:54:46  tamches
- * added setResultBool
- *
- * Revision 1.3  1995/11/28 15:50:04  naim
- * Minor fix. Changing char[number] by string - naim
- *
- * Revision 1.2  1995/11/06  02:29:18  tamches
- * added tclpanic and resizeScrollbar
- *
- */
+/* $Id: tkTools.C,v 1.10 1999/04/27 16:03:52 nash Exp $ */
 
 #include <assert.h>
 #include <stdlib.h> // exit()

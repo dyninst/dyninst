@@ -39,42 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Log: VMmain.C,v $
-/* Revision 1.45  1999/03/12 23:00:07  pcroth
-/* Fixed poor handling of RCS logs by last CVS checkin
-/*
- * Revision 1.44  1999/03/03 18:16:37  pcroth
- * Updated to support Windows NT as a front-end platform
- * Changes made to X code, to use Tcl analogues when appropriate
- * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.43  1997/06/02 19:41:54  karavan
- * added new call registerValidVisis.  This single call from Visi Manager to
- * UI thread at startup registers all valid visis as specified in a config
- * file, and replaces use of synchronous VM->VMAvailableVisis().
- *
- * Revision 1.42  1996/11/26 16:07:14  naim
- * Fixing asserts - naim
- *
- * Revision 1.41  1996/08/16 21:09:24  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.40  1996/04/04 21:50:13  newhall
- * added mi_limit to VMAddNewVisualization
- *
- * Revision 1.39  1996/01/05 20:01:12  newhall
- * removed warnings
- *
- * Revision 1.38  1995/10/30  23:07:36  naim
- * Eliminating warning message - naim
- *
- * Revision 1.37  1995/09/26  20:27:46  naim
- * Minor changes in error messages
- *
- * Revision 1.36  1995/09/18  18:22:41  newhall
- * changes to avoid for-scope problem
- *
- */
+/* $Id: VMmain.C,v 1.46 1999/04/27 16:04:01 nash Exp $ */
 
 #include "thread/h/thread.h"
 #include "VM.thread.SRVR.h"

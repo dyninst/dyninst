@@ -39,41 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * $Log: paradyn.h,v $
- * Revision 1.16  1999/04/15 21:24:00  nash
- * Removed annoying '/* within comment' warnings from a couple files
- *
- * Revision 1.15  1996/08/16 21:13:04  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.14  1996/01/29 22:13:01  mjrg
- * Added metric propagation when new processes start
- * Adjust time to account for clock differences between machines
- * Daemons don't enable internal metrics when they are not running any processes
- * Changed CM5 start (paradynd doesn't stop application at first breakpoint;
- * the application stops only after it starts the CM5 daemon)
- * Added -default_host option to paradyn
- *
- * Revision 1.13  1995/08/24  15:02:57  hollings
- * AIX/SP-2 port (including option for split instruction/data heaps)
- * Tracing of rexec (correctly spawns a paradynd if needed)
- * Added rtinst function to read getrusage stats (can now be used in metrics)
- * Critical Path
- * Improved Error reporting in MDL sematic checks
- * Fixed MDL Function call statement
- * Fixed bugs in TK usage (strings passed where UID expected)
- *
- * Revision 1.12  1995/08/12  22:27:37  newhall
- * moved def. of init_struct to dataManager.I
- *
- * Revision 1.11  1995/06/02  20:56:00  newhall
- * made code compatable with new DM interface
- *
- * Revision 1.10  1995/05/18  11:00:46  markc
- * added mdl hooks
- *
- */
+/* $Id: paradyn.h,v 1.17 1999/04/27 16:04:07 nash Exp $ */
 
 /* paradyn.h */
 

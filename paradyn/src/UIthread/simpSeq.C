@@ -42,20 +42,7 @@
 // simpSeq.C
 // Ariel Tamches
 
-/* $Log: simpSeq.C,v $
-/* Revision 1.4  1996/08/16 21:07:23  tamches
-/* updated copyright for release 1.1
-/*
- * Revision 1.3  1995/10/17 22:09:28  tamches
- * Added operator==
- *
- * Revision 1.2  1995/09/20 01:19:16  tamches
- * int --> unsigned in a lot of places
- *
- * Revision 1.1  1995/07/17  04:59:00  tamches
- * First version of the new where axis
- *
- */
+/* $Id: simpSeq.C,v 1.5 1999/04/27 16:03:51 nash Exp $ */
 
 #include <assert.h>
 #include "simpSeq.h"

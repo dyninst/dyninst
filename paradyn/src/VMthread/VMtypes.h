@@ -39,33 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Log: VMtypes.h,v $
-/* Revision 1.12  1996/08/16 21:09:25  tamches
-/* updated copyright for release 1.1
-/*
- * Revision 1.11  1996/04/04 21:50:15  newhall
- * added mi_limit to VMAddNewVisualization
- *
- * Revision 1.10  1995/08/01  02:18:52  newhall
- * changes to support phase interface
- *
- * Revision 1.9  1995/06/02  20:55:12  newhall
- * made code compatable with new DM interface
- * replaced List templates  with STL templates
- *
- * Revision 1.8  1995/01/26  17:59:19  jcargill
- * Changed igen-generated include files to new naming convention; fixed
- * some bugs compiling with gcc-2.6.3.
- *
- * Revision 1.7  1994/09/25  01:53:05  newhall
- * updated to support the changes to the  visi, UI and VM interfaces having
- * to do with a new representation of metric/focus lists as a list of
- * metric/focus pairs.
- *
- * Revision 1.6  1994/08/13  20:53:49  newhall
- * added fields to visi_thread_args type
- *
- */
+/* $Id: VMtypes.h,v 1.13 1999/04/27 16:04:04 nash Exp $ */
 
 #ifndef VMtypes_H
 #define VMtypes_H

@@ -41,17 +41,7 @@
 
 // minmax.C
 
-/* $Log: minmax.C,v $
-/* Revision 1.3  1996/08/16 21:06:55  tamches
-/* updated copyright for release 1.1
-/*
- * Revision 1.2  1995/09/20 01:16:36  tamches
- * added ipmin and ipmax
- *
- * Revision 1.1  1995/07/17  04:58:55  tamches
- * First version of the new where axis
- *
- */
+/* $Id: minmax.C,v 1.4 1999/04/27 16:03:45 nash Exp $ */
 
 #include "minmax.h"
 

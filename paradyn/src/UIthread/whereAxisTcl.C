@@ -44,53 +44,7 @@
 
 // Implementations of new commands and tk bindings related to the where axis.
 
-/* $Log: whereAxisTcl.C,v $
-/* Revision 1.13  1999/03/12 22:59:37  pcroth
-/* Fixed poor handling of RCS logs by last CVS checkin
-/*
- * Revision 1.12  1999/03/03 18:16:19  pcroth
- * Updated to support Windows NT as a front-end platform
- * Changes made to X code, to use Tcl analogues when appropriate
- * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.11  1997/01/15 00:14:10  tamches
- * removed references to getCurrent() method of class abstraction
- *
- * Revision 1.10  1996/08/16 21:07:48  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.9  1996/08/05 07:31:42  tamches
- * update for tcl 7.5
- *
- * Revision 1.8  1996/04/01 22:34:35  tamches
- * added whereAxisVisibilityCallbackCommand
- *
- * Revision 1.7  1996/01/09 23:56:19  tamches
- * added whereAxisDrawTipsCallback
- *
- * Revision 1.6  1995/10/17 22:22:44  tamches
- * abstractions is no longer a templated type.
- * Other minor changes corresponding to new where axis commits.
- *
- * Revision 1.5  1995/09/20 01:30:36  tamches
- * File size reduced by using some utilities in the new tkTools.C file
- *
- * Revision 1.4  1995/08/04  19:19:25  tamches
- * Commented out some cout statements that are for debugging only.
- *
- * Revision 1.3  1995/07/24  21:37:37  tamches
- * better existsCurrent() error checking.
- * Implemented alt-freescroll feature
- *
- * Revision 1.2  1995/07/18  03:41:27  tamches
- * Added ctrl-double-click feature for selecting/unselecting an entire
- * subtree (nonrecursive).  Added a "clear all selections" option.
- * Selecting the root node now selects the entire program.
- *
- * Revision 1.1  1995/07/17  04:59:12  tamches
- * First version of the new where axis
- *
- */
+/* $Id: whereAxisTcl.C,v 1.14 1999/04/27 16:03:56 nash Exp $ */
 
 #ifndef PARADYN
 // The test program has "correct" -I paths already set

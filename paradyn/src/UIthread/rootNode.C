@@ -42,42 +42,7 @@
 // whereAxisRootNode.C
 // Ariel Tamches
 
-/* $Log: rootNode.C,v $
-/* Revision 1.9  1999/03/12 22:59:30  pcroth
-/* Fixed poor handling of RCS logs by last CVS checkin
-/*
- * Revision 1.8  1999/03/03 18:16:08  pcroth
- * Updated to support Windows NT as a front-end platform
- * Changes made to X code, to use Tcl analogues when appropriate
- * Also changed in response to modifications in thread library and igen output.
- *
- * Revision 1.7  1997/09/24 19:19:56  tamches
- * XTextWidth --> Tk_TextWidth, and use of Tk_GetFontMetrics
- *
- * Revision 1.6  1996/08/16 21:07:03  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.5  1996/02/15 23:09:31  tamches
- * added getGCforListboxRay and getGCforNonListboxRay, to better support
- * why vs. where axis refinement in the shg
- *
- * Revision 1.4  1995/10/17 22:05:08  tamches
- * Changed name from rootNode to whereAxisRootNode
- * Added pixWidthAsListboxItem and drawAsListboxItem,
- * along the lines of shgRootNode.C
- *
- * Revision 1.3  1995/09/20 01:18:03  tamches
- * minor cleanifications hardly worth mentioning
- *
- * Revision 1.2  1995/07/18  03:41:19  tamches
- * Added ctrl-double-click feature for selecting/unselecting an entire
- * subtree (nonrecursive).  Added a "clear all selections" option.
- * Selecting the root node now selects the entire program.
- *
- * Revision 1.1  1995/07/17  04:58:57  tamches
- * First version of the new where axis
- *
- */
+/* $Id: rootNode.C,v 1.10 1999/04/27 16:03:45 nash Exp $ */
 
 #include <assert.h>
 
