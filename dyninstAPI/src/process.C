@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.371 2002/11/14 20:26:33 bernat Exp $
+// $Id: process.C,v 1.372 2002/11/25 23:51:39 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -447,29 +447,35 @@ bool process::triggeredInStackFrame(instPoint* point,  Frame frame,
   trampTemplate *tempTramp;
   bool retVal = false;
   pd_Function *instPoint_fn = dynamic_cast<pd_Function *>
-    (const_cast<function_base *>
-     (point->iPgetFunction()));
+                   (const_cast<function_base *>(point->iPgetFunction()));
   pd_Function *stack_fn;
   stack_fn = findAddressInFuncsAndTramps(frame.getPC());
-    if (pd_debug_catchup) {
-      cerr << "Stack function does not equal instPoint function" << endl;
-      if (stack_fn) {
+  if (pd_debug_catchup) {
+     char line[200];
+     bool didA = false;
+     if (stack_fn) {
 	vector<string> name = stack_fn->prettyNameVector();
-	if (name.size())
-	  cerr << "Stack function: " << name[0] << endl;
-      }
-      if (instPoint_fn) {
-	vector<string> name = instPoint_fn->prettyNameVector();
-	if (name.size())
-	  cerr << "instP function: " << name[0] << endl;
-      }
-    }
+	if (name.size()) {
+           sprintf(line, "stack_func: %-20.20s ", name[0].c_str());
+           didA = true;
+        }
+     }
+     if(!didA)  sprintf(line, "stack_func: %-20.20s ", "");
+
+     if (instPoint_fn) {
+        vector<string> name = instPoint_fn->prettyNameVector();
+        strcat(line, "instP_func: ");
+        if (name.size())
+           strcat(line, name[0].c_str());
+     }
+     cerr << "triggeredInStackFrame- " << line << endl;
+  }
   if (stack_fn != instPoint_fn) {
     return false;
   }
   Address pc = frame.getPC();
   if ( pd_debug_catchup )
-    cerr << "In triggeredInStackFrame : stack function matches function containing instPoint" << endl;
+     cerr << "  Stack function matches function containing instPoint" << endl;
   
   //  Is the pc within the instPoint instrumentation?
   instPoint* currentIp = findInstPointFromAddress(pc);
@@ -1630,10 +1636,6 @@ const Address ADDRESS_LO = ((Address)0);
 const Address ADDRESS_HI = ((Address)~((Address)0));
 //unsigned int totalSizeAlloc = 0;
 
-int infMallocCalls = 0;
-timer rpcTrap;
-timer wp;
-
 Address process::inferiorMalloc(unsigned size, inferiorHeapType type, 
 				Address near_, bool *err)
 {
@@ -1775,19 +1777,6 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
    }
 #endif
 #endif
-
-	if(infMallocCalls == 0) {
-		wp.start();
-	}
-
-	infMallocCalls++;
-	if(infMallocCalls % 2000 == 0) {
-		wp.stop();
-		cerr << "whole prog: " << wp.usecs() << "\n";
-		cerr << "handleTrap - cpu time: " << rpcTrap.usecs();
-		cerr << ", %wp: " << rpcTrap.usecs() / wp.usecs() << "\n";
-		wp.start();
-	}
 
    return(h->addr);
 }
@@ -3383,7 +3372,7 @@ bool attachToIrixMPIprocess(const string &progpath, int pid, int afterAttach) {
 
 #ifndef BPATCH_LIBRARY
 extern void disableAllInternalMetrics();
-void paradyn_handleProcessExit(process *proc);
+void paradyn_handleProcessExit(process *proc, int exitStatus);
 #endif
 
 void handleProcessExit(process *proc, int exitStatus) {
@@ -3398,7 +3387,7 @@ void handleProcessExit(process *proc, int exitStatus) {
   proc->Exited(); // updates status line
 
 #ifndef BPATCH_LIBRARY
-  paradyn_handleProcessExit(proc);
+  paradyn_handleProcessExit(proc, exitStatus);
 
   if (activeProcesses == 0)
     disableAllInternalMetrics();
@@ -5961,7 +5950,6 @@ bool process::handleDoneinferiorRPC(void) {
 }
 
 bool process::handleTrapIfDueToRPC() {
-  rpcTrap.start();
   assert(status_ == stopped); // a TRAP should always stop a process (duh)
   bool isRunningRPC = false;
   
@@ -5971,13 +5959,11 @@ bool process::handleTrapIfDueToRPC() {
   if (isRunningIRPC())
     isRunningRPC = true;
   if (!isRunningRPC) {
-	  rpcTrap.stop();
     return false;
   }
 
   vector<Frame> activeFrames;
   if (!getAllActiveFrames(activeFrames)) {
-	  rpcTrap.stop();
 	  return false;
   }
 
@@ -6043,7 +6029,6 @@ bool process::handleTrapIfDueToRPC() {
   }
 
   if (!haveFoundIRPC) {
-	  rpcTrap.stop();
     return false;
   }
   
@@ -6141,7 +6126,6 @@ bool process::handleTrapIfDueToRPC() {
   if (wasRunning || outstandingIRPC) {
     continueProc();
   }
-  rpcTrap.stop();
   return true;
 }
     
@@ -7465,7 +7449,11 @@ void process::initCpuTimeMgr() {
 }
 
 timeStamp process::getCpuTime(int lwp_id) {
-  return cpuTimeMgr->getTime(this, lwp_id, cpuTimeMgr_t::LEVEL_BEST);
+   if(status() == exited) {
+      return timeStamp::tsLongAgoTime();
+   }
+
+   return cpuTimeMgr->getTime(this, lwp_id, cpuTimeMgr_t::LEVEL_BEST);
   /* can nicely handle case when we allow exceptions
      } catch(LevelNotInstalled &) {
      cerr << "getCpuTime: timer level not installed\n";
@@ -7862,34 +7850,26 @@ void process::updateThread(
 
 void process::deleteThread(int tid)
 {
-  dyn_thread *thr=NULL;
-  unsigned i;
+   vector<dyn_thread *>::iterator iter = threads.end();
+   while(iter != threads.begin()) {
+      dyn_thread *thr = *(--iter);
+      if(thr->get_tid() != (unsigned) tid)  continue;
 
-  for (i=0;i<threads.size();i++) {
-    if (threads[i]->get_tid() == (unsigned) tid) {
-      thr = threads[i];
-      break;
-    }   
-  }
-  if (thr != NULL) {
-    unsigned theSize = threads.size();
-    threads[i] = threads[theSize-1];
-    threads.resize(theSize-1);
+      // ===  Found It  ==========================
+      // Set the POS to "reusable"
+      // Note: we don't acquire a lock. This is okay, because we're simply
+      //       clearing the bit, which was not usable before now anyway.
+      assert(shmMetaData->getPosToThread(thr->get_pos()) 
+             == THREAD_AWAITING_DELETION);
+      shmMetaData->setPosToThread(thr->get_pos(), 0);
 
-    /* Set the POS to "reusable" */
-    /* Note: we don't acquire a lock. This is okay, because we're simply clearing
-       the bit, which was not usable before now anyway. */
-    assert(shmMetaData->getPosToThread(thr->get_pos()) 
-	   == THREAD_AWAITING_DELETION);
-    shmMetaData->setPosToThread(thr->get_pos(), 0);
+      delete thr;    
+      sprintf(errorLine,"----- deleting thread, tid=%d, threads.size()=%d\n",
+              tid, threads.size());
+      logLine(errorLine);
 
-    delete thr;    
-    sprintf(errorLine,"----- deleting thread, tid=%d, threads.size()=%d\n",tid,threads.size());
-    logLine(errorLine);
-
-    // And we need to handle thread deletion in the MDNs
-
-  }
+      threads.erase(iter);
+   }
 }
 
 /*
