@@ -49,7 +49,7 @@ class machineMetFocusNode;
 class instrCodeNode;
 class threadMetFocusNode;
 class threadMetFocusNode_Val;
-class dataReqNode;
+class instrDataNode;
 
 class processMetFocusNode : public metricDefinitionNode {
  private:
@@ -138,7 +138,7 @@ class processMetFocusNode : public metricDefinitionNode {
   bool loadInstrIntoApp(pd_Function **func);
   void doCatchupInstrumentation();
 
-  vector<const dataReqNode*> getFlagDRNs(int thr_id) const;
+  vector<const instrDataNode *> getFlagDataNodes() const;
   void mapSampledDRNs2ThrNodes();
   void stopSamplingThr(threadMetFocusNode_Val *thrNodeVal);
   bool needToWalkStack() ;  // const;  , make this const in the future
