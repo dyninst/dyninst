@@ -11,7 +11,10 @@
  *   by the instrumentation layer.
  *
  * $Log: inst.h,v $
- * Revision 1.10  1995/02/16 08:53:35  markc
+ * Revision 1.11  1995/03/10 19:30:21  hollings
+ * Added getPointCost and getInsnCost.
+ *
+ * Revision 1.10  1995/02/16  08:53:35  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.9  1995/02/16  08:33:32  markc
@@ -123,6 +126,7 @@ instInstance *addInstFunc(process *proc,
 			  callOrder order);
 
 float getPointFrequency(instPoint *point);
+int getPointCost(process *proc, instPoint *point);
 
 void deleteInst(instInstance*);
 
@@ -249,6 +253,8 @@ typedef enum { plusOp,
  *
  */
 unsigned emit(opCode op, reg src1, reg src2, reg dest, char *insn, unsigned &base);
+
+int getInsnCost(opCode t);
 
 /*
  * get the requested parameter into a register.
