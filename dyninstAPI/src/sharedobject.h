@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.h,v 1.44 2005/01/18 18:34:17 bernat Exp $
+// $Id: sharedobject.h,v 1.45 2005/01/19 17:41:09 bernat Exp $
 
 #if !defined(_shared_object_h)
 #define _shared_object_h
@@ -96,6 +96,10 @@ public:
     const pdvector<pd_Function *> *getAllFunctions();
     void  unMapped(){ mapped = false; }
     void  setBaseAddress(Address new_ba){ base_addr = new_ba; }
+
+    void updateForFork(process *childProcess, const process *parentProcess) {
+      return objs_image->updateForFork(childProcess, parentProcess);
+    }
 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)
 	bool isinText(Address addr){ 
