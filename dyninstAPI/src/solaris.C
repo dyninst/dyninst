@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.63 1998/12/25 22:26:58 wylie Exp $
+// $Id: solaris.C,v 1.64 1999/01/21 20:52:34 wylie Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -265,15 +265,17 @@ int process::waitProcs(int *status) {
    do {
 #endif
 
-   /* Each call to poll may return many selected fds. Since we only report the status
-      of one process per each call to waitProcs, we keep the result of the last
-      poll buffered, and simply process an element from the buffer until all of
-      the selected fds in the last poll have been processed.
+   /* Each call to poll may return many selected fds. Since we only report the
+      status of one process per call to waitProcs, we keep the result of the
+      last poll buffered, and simply process an element from the buffer until
+      all of the selected fds in the last poll have been processed.
    */
 
    if (selected_fds == 0) {
      for (unsigned u = 0; u < processVec.size(); u++) {
-       if (processVec[u] && (processVec[u]->status() == running || processVec[u]->status() == neonatal))
+       if (processVec[u] && 
+                (processVec[u]->status() == running || 
+                 processVec[u]->status() == neonatal))
 	 fds[u].fd = processVec[u]->proc_fd;
        else
 	 fds[u].fd = -1;
@@ -900,8 +902,8 @@ bool process::isRunning_() const {
       return true;
 }
 
-bool process::attach_() {assert(false);}
-bool process::stop_() {assert(false);}
+bool process::attach_() {assert(false); return(false);}
+bool process::stop_() {assert(false); return(false);}
 
 /* 
    continue a process that is stopped 
@@ -1121,6 +1123,7 @@ bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
 
 bool process::loopUntilStopped() {
   assert(0);
+  return(false);
 }
 
 #ifdef notdef
