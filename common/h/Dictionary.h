@@ -39,585 +39,172 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/************************************************************************
- * Dictionary.h: implementation of template-based dictionaries.
-************************************************************************/
+// Dictionary.h
 
+#ifndef _DICTIONARY_H_
+#define _DICTIONARY_H_
 
-
-
-#if defined(external_templates)
+#ifdef external_templates
 #pragma interface
 #endif
 
-#if !defined(_Dictionary_h_)
-#define _Dictionary_h_
-
-
-
-
-/************************************************************************
- * header files.
-************************************************************************/
-
-#include "util/h/Pair.h"
 #include "util/h/Vector.h"
-
-
-
-#if !defined(DO_INLINE_P)
-#define DO_INLINE_P 
-#endif
-
-#if !defined(DO_INLINE_F)
-#define DO_INLINE_F
-#endif
-
-
-/************************************************************************
- * template<class K, class V> class dictionary
-************************************************************************/
-
-template<class K, class V>
-class dictionary {
-public:
-    DO_INLINE_F         dictionary ();
-    DO_INLINE_F virtual ~dictionary ();
-
-    virtual unsigned                  size ()                        const =0;
-    virtual V&                  operator[] (const K &)                     =0;
-    virtual bool                   defines (const K &)               const =0;
-    virtual void                     undef (const K &)                     =0;
-    virtual void                     clear ()                              =0;
-    virtual vector<K>                 keys ()                        const =0;
-    virtual vector<V>               values ()                        const =0;
-    virtual vector< pair<K,V> >      items ()                        const =0;
-    virtual void                       app (void (*)(const K &, V &))      =0;
-    virtual void                    revapp (void (*)(const K &, V &))      =0;
-    virtual V  fold (V (*)(const K &, const V &, const V &), const V &) const =0;
-    virtual V revfold (V (*)(const K &, const V &, const V &), const V &) const =0;
-
-private:
-    DO_INLINE_F dictionary                 (const dictionary<K,V> &); // not allowed
-    DO_INLINE_F dictionary<K,V>& operator= (const dictionary<K,V> &); // not allowed
-};
-
-template<class K, class V>
-DO_INLINE_F
-dictionary<K,V>::dictionary() {
-}
-
-template<class K, class V>
-DO_INLINE_F
-dictionary<K,V>::~dictionary() {
-}
-
-
-
-
 
 /************************************************************************
  * template<class K, class V> class dictionary_hash
-************************************************************************/
-
-static const unsigned DEFAULT_CHAIN_SIZE = 32;
-
-template<class K, class V> class dictionary_hash_iter;
-
-template<class K, class V>
-class dictionary_hash : public dictionary<K,V> {
-
-public:
-    DO_INLINE_F         dictionary_hash (unsigned (*)(const K &));
-    DO_INLINE_F         dictionary_hash (unsigned (*)(const K &), unsigned);
-    DO_INLINE_F         dictionary_hash (const dictionary_hash<K,V> &);
-    DO_INLINE_F virtual ~dictionary_hash ();
-
-    DO_INLINE_F dictionary_hash<K,V>&  operator= (const dictionary_hash<K,V> &);
-    DO_INLINE_F unsigned                    size ()                       const;
-    DO_INLINE_F V&                    operator[] (const K &);
-    DO_INLINE_F bool                        find (const K &, V &) const;
-    DO_INLINE_F bool                     defines (const K &)              const;
-    DO_INLINE_F void                       undef (const K &);
-    DO_INLINE_F void                       clear ();
-    DO_INLINE_F vector<K>                   keys ()                       const;
-    DO_INLINE_F vector<V>                 values ()                       const;
-    DO_INLINE_F vector< pair<K,V> >        items ()                       const;
-    DO_INLINE_F void                         app (void (*)(const K &, V &));
-    DO_INLINE_F void                      revapp (void (*)(const K &, V &));
-    DO_INLINE_F V                           fold (V (*)(const K &, const V &, const V &), const V &) const;
-    DO_INLINE_F V                        revfold (V (*)(const K &, const V &, const V &), const V &) const;
-
-    unsigned (*hashf () const) (const K &);
-
-private:
-    DO_INLINE_P unsigned chain_of (unsigned)                                      const;
-    DO_INLINE_P bool       locate (const K &, unsigned &, unsigned &, unsigned &) const;
-    DO_INLINE_P V&         insert (const K &, unsigned, unsigned);
-    DO_INLINE_P void       remove (unsigned, unsigned);
-    DO_INLINE_P void        split ();
-
-    struct hash_pair : public pair<K,V> {
-        unsigned hash_;
-
-        hash_pair()                                   : pair<K,V>(),    hash_(0) {}
-        hash_pair(const K& k, unsigned h)             : pair<K,V>(k),   hash_(h) {}
-        hash_pair(const K& k, unsigned h, const V& v) : pair<K,V>(k,v), hash_(h) {}
-
-	unsigned operator==(const hash_pair& p) const {
-	  return ((hash_ == p.hash_) && pair<K,V>::operator==(p));
-	  // ((*((pair<K,V> *) ((void*)this))) == p));
-	}
-        // unsigned operator==(const hash_pair& p) const {
-	// return ((hash_ == p.hash_) &&
-	// ((*((pair<K,V> *) ((void*)this))) == p));
-        // }
-    };
-    typedef vector<hash_pair> hash_chain;
-
-    unsigned           (*hashf_)(const K &);
-    vector<hash_chain> data_;
-    unsigned           chain_size_;
-    unsigned           nbuckets_;
-    vector<unsigned>   llevel_;
-    unsigned           glevel_;
-    unsigned           next_;
-
-    friend class dictionary_hash_iter<K,V>;
-
-}
-;
-
-template<class K, class V>
-DO_INLINE_F
-dictionary_hash<K,V>::dictionary_hash(unsigned (*hf)(const K &))
-    : hashf_(hf), data_(1), chain_size_(DEFAULT_CHAIN_SIZE),
-    nbuckets_(data_.size()), llevel_(data_.size(), 0),
-    glevel_(0), next_(0) {
-}
-
-template<class K, class V>
-DO_INLINE_F
-dictionary_hash<K,V>::dictionary_hash(unsigned (*hf)(const K &), unsigned s1)
-    : hashf_(hf), data_(s1), chain_size_(s1), nbuckets_(data_.size()),
-    llevel_(data_.size(), 0), glevel_(0), next_(0) {
-    assert(s1 != 0);
-}
-
-template<class K, class V>
-DO_INLINE_F
-dictionary_hash<K,V>::dictionary_hash(const dictionary_hash<K,V>& d)
-    : hashf_(d.hashf_), data_(d.data_), chain_size_(d.chain_size_),
-    nbuckets_(d.nbuckets_), llevel_(d.llevel_), glevel_(d.glevel_),
-    next_(d.next_) {
-}
-
-template<class K, class V>
-DO_INLINE_F
-dictionary_hash<K,V>::~dictionary_hash() {
-}
-
-template<class K, class V>
-DO_INLINE_F
-dictionary_hash<K,V>&
-dictionary_hash<K,V>::operator=(const dictionary_hash<K,V>& d) {
-    if (this == &d) {
-        return *this;
-    }
-
-    hashf_      = d.hashf_;
-    data_       = d.data_;
-    chain_size_ = d.chain_size_;
-    nbuckets_   = d.nbuckets_;
-    llevel_     = d.llevel_;
-    glevel_     = d.glevel_;
-    next_       = d.next_;
-
-    return *this;
-}
-
-template<class K, class V>
-DO_INLINE_F
-unsigned
-dictionary_hash<K,V>::size() const {
-    unsigned sz = 0;
-    for (unsigned chain = 0; chain < data_.size(); chain++) {
-        sz += data_[chain].size();
-    }
-    return sz;
-}
-
-template<class K, class V>
-DO_INLINE_F
-V&
-dictionary_hash<K,V>::operator[](const K& key) {
-    unsigned hash, chain, i;
-    if (locate(key, hash, chain, i)) {
-        return data_[chain][i].value;
-    }
-    return insert(key, hash, chain);
-}
-
-template<class K, class V>
-DO_INLINE_F
-bool                      
-dictionary_hash<K,V>::find (const K& key, V& el) const
-{
-  unsigned hash, chain, i;
-  if (locate(key, hash, chain, i)) {
-    el = data_[chain][i].value;
-    return true;
-  } else {
-    return false;
-  }
-}
-
-template<class K, class V>
-DO_INLINE_F
-bool
-dictionary_hash<K,V>::defines(const K& key) const {
-    unsigned hash, chain, i;
-    return locate(key, hash, chain, i);
-}
-
-template<class K, class V>
-DO_INLINE_F
-void
-dictionary_hash<K,V>::undef(const K& key) {
-    unsigned hash, chain, i;
-    if (locate(key, hash, chain, i)) {
-        remove(chain, i);
-    }
-}
-
-template<class K, class V>
-DO_INLINE_F
-void
-dictionary_hash<K,V>::clear() {
-    for (unsigned i = 0; i < data_.size(); i++) {
-        data_[i].resize(0);
-    }
-}
-
-template<class K, class V>
-DO_INLINE_F
-vector<K>
-dictionary_hash<K,V>::keys() const {
-    vector<K> k;
-    for (unsigned i = 0; i < data_.size(); i++) {
-        for (unsigned j = 0; j < data_[i].size(); j++) {
-            k += data_[i][j].key;
-        }
-    }
-    return k;
-}
-
-template<class K, class V>
-DO_INLINE_F
-vector<V>
-dictionary_hash<K,V>::values() const {
-    vector<V> v;
-    for (unsigned i = 0; i < data_.size(); i++) {
-        for (unsigned j = 0; j < data_[i].size(); j++) {
-            v += data_[i][j].value;
-        }
-    }
-    return v;
-}
-
-template<class K, class V>
-DO_INLINE_F
-vector< pair<K,V> >
-dictionary_hash<K,V>::items() const {
-    vector< pair<K,V> > p;
-    for (unsigned i = 0; i < data_.size(); i++) {
-        for (unsigned j = 0; j < data_[i].size(); j++) {
-            p += pair<K,V>(data_[i][j].key, data_[i][j].value);
-        }
-    }
-    return p;
-}
-
-template<class K, class V>
-DO_INLINE_F
-void
-dictionary_hash<K,V>::app(void (*f)(const K &, V &)) {
-    for (unsigned i = 0; i < data_.size(); i++) {
-        for (unsigned j = 0; j < data_[i].size(); j++) {
-            f(data_[i][j].key, data_[i][j].value);
-        }
-    }
-}
-
-template<class K, class V>
-DO_INLINE_F
-void
-dictionary_hash<K,V>::revapp(void (*f)(const K &, V &)) {
-    app(f);
-}
-
-template<class K, class V>
-DO_INLINE_F
-V
-dictionary_hash<K,V>::fold(V (*f)(const K &, const V &, const V &),
-    const V& arg0) const {
-    V ret = arg0;
-    for (unsigned i = 0; i < data_.size(); i++) {
-        for (unsigned j = 0; j < data_[i].size(); j++) {
-            ret = f(data_[i][j].key, data_[i][j].value, ret);
-        }
-    }
-    return ret;
-}
-
-template<class K, class V>
-DO_INLINE_F
-V
-dictionary_hash<K,V>::revfold(V (*f)(const K &, const V &, const V &),
-    const V& arg0) const {
-    return fold(f, arg0);
-}
-
-template<class K, class V>
-DO_INLINE_F
-unsigned
-(*dictionary_hash<K,V>::hashf() const)(const K &) {
-    return hashf_;
-}
-
-template<class K, class V>
-DO_INLINE_P
-unsigned
-dictionary_hash<K,V>::chain_of(unsigned hash) const {
-    unsigned chain = hash % nbuckets_;
-    if (llevel_[chain] > glevel_) {
-        chain = hash % (nbuckets_*2);
-        assert(chain < data_.size());
-    }
-    return chain;
-}
-
-template<class K, class V>
-DO_INLINE_P
-bool
-dictionary_hash<K,V>::locate(const K& key, unsigned& hash,
-    unsigned& chain, unsigned& i) const {
-    hash           = hashf_(key);
-    chain          = chain_of(hash);
-    hash_chain& ch = data_[chain];
-
-    for (i = 0; i < ch.size(); i++) {
-        if ((hash == ch[i].hash_) && (key == ch[i].key)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-template<class K, class V>
-DO_INLINE_P
-V&
-dictionary_hash<K,V>::insert(const K& key, unsigned hash, unsigned chain) {
-    ((dictionary_hash<K,V> *) this)->data_[chain] += hash_pair(key, hash);
-    unsigned i      = data_[chain].size()-1;
-    unsigned nchain = chain;
-
-    if (data_[chain].size() > chain_size_) {
-        unsigned onext = next_;
-        split();
-        if (chain == onext) {
-            unsigned nhash;
-            bool aflag;
-	    aflag=locate(key, nhash, nchain, i);
-            assert(aflag);
-            assert(hash == nhash);
-        }
-    }
-    return data_[nchain][i].value;
-}
-
-template<class K, class V>
-DO_INLINE_P
-void
-dictionary_hash<K,V>::remove(unsigned chain, unsigned i) {
-    hash_chain&   ch   = data_[chain];
-    unsigned last = ch.size()-1;
-    if (i != last) {
-        ch[i] = ch[last];
-    }
-    ch.resize(last);
-}
-
-template<class K, class V>
-DO_INLINE_P
-void
-dictionary_hash<K,V>::split() {
-    unsigned nch = data_.size();
-    unsigned nsz = nch+1;
-
-    data_.resize(nsz);
-    llevel_.resize(nsz); llevel_[nch] = ++llevel_[next_];
-
-    hash_chain& ch = data_[next_];
-    unsigned i = 0;
-    while (i < ch.size()) {
-        if (chain_of(ch[i].hash_) != next_) {
-            data_[nch] += ch[i];
-            remove(next_, i);
-        }
-        else {
-            i++;
-        }
-    }
-
-    next_++;
-    if (next_ == nbuckets_) {
-        next_ = 0;
-        nbuckets_ *= 2;
-        glevel_++;
-    }
-}
-
-
-
-
-
-/************************************************************************
- * template<class K, class V> class dictionary_iter
+ * Ari Tamches
+ *
+ * See Stroustrup, The C++ Programming Language, 3d edition, which
+ * provided inspiration for this hash table class via an extended
+ * example in section 17.6
+ *
+ * This class tries very hard to ensure that there are enough bins s.t.
+ * hash collisions are few (though if you provide a bad hash function,
+ * all bets are off, as usual).  Toward that end, the following invariant
+ * is maintained at all times:
+ *         #bins * max_bin_load >= total # items
+ * max_bin_load is a user-settable parameter (see ctor).
+ *
+ * When adding a new hash table item would break the invariant,
+ * #bins is multiplied by bin_grow_factor (another user-settable parameter in ctor),
+ * and everything is rehashed (expensive, but not needed often, since growth
+ * is exponential).
+ * 
 ************************************************************************/
 
 template<class K, class V>
-class dictionary_iter {
-public:
-    DO_INLINE_F          dictionary_iter ();
-    DO_INLINE_F virtual ~dictionary_iter ();
+class dictionary_hash {
+   friend class dictionary_hash_iter<K,V>;
+ public:
+   dictionary_hash (unsigned (*hashfunc)(const K &),
+                   unsigned nbins=101,
+                   float max_bin_load=0.7,
+                      // we keep #bins*max_bin_load >= total # items, to make
+                      // sure that there are enough bins s.t. (assuming a good
+                      // hash function) collisions are few.
+                   float bin_grow_factor = 1.6
+                      // when we need more bins, we grow by this factor
+                      // i.e., new #bins = old #bins * bin_grow_factor
+                  );
+  ~dictionary_hash () {}
 
-    virtual bool  next (K &, V &) =0;
-    virtual void reset ()         =0;
+   // I'd rather not have provided these methods, but apparantly some code
+   // in paradynd actually copies entire dictionaries (!)
+   dictionary_hash (const dictionary_hash<K,V> &);
+   dictionary_hash<K,V>&  operator= (const dictionary_hash<K,V> &);
 
-private:
-    DO_INLINE_P dictionary_iter                 (const dictionary_iter<K,V> &); // not allowed
-    DO_INLINE_P dictionary_iter<K,V>& operator= (const dictionary_iter<K,V> &); // not allowed
+   unsigned                    size ()                       const;
+   V&                    operator[] (const K &);
+   bool                        find (const K &, V &)         const;
+   bool                     defines (const K &)              const;
+   void                       undef (const K &);
+   vector<K>                 keys ()                         const;
+   vector<V>                 values ()                       const;
+   void                      clear ();
+
+ private:
+   unsigned locate_addIfNotFound(const K &);
+      // returns ndx within all_elems[]; never returns UINT_MAX
+
+   unsigned locate(const K &, bool even_if_removed) const;
+      // never adds a new entry if not found.  Okay to call from const member fns
+
+   void grow_numbins(unsigned new_numbins);
+
+   // We keep a ptr to the hash function:
+   unsigned (*hasher)(const K &);
+
+   // Important structure:
+   struct entry {
+      K key;
+      unsigned key_hashval; // we could always rehash, since we have 'key', but this
+                            // is faster.
+      V val;
+      bool removed; // since removal would require a lot of shifting w/in all_elems[],
+                    // we use this flag instead, and only do the actual removal on
+                    // resize.
+      unsigned next; // an index into 'all_elems', for hash collisions.  UINT_MAX
+                     // implies end of collision chain for this bin
+
+      entry() {} // needed by vector class
+      entry(const K &ikey, unsigned ikey_hashval, const V &ival, unsigned inext) :
+                        key(ikey), key_hashval(ikey_hashval), val(ival), next(inext) {
+         removed = false;
+      }
+      entry(const entry &src) : key(src.key), val(src.val) {
+         key_hashval = src.key_hashval;
+         removed = src.removed;
+         next = src.next;
+      }
+      entry& operator=(const entry &src) {
+         if (&src == this) return *this;
+         
+         key = src.key;
+         key_hashval = src.key_hashval;
+         val = src.val;
+         removed = src.removed;
+         next = src.next;
+         return *this;
+      }
+   };
+
+   // The actual elements, in one big vector (certain operations are more efficient
+   // this way, and it's a clean approach to storage).  Since we use
+   // vector<>::operator+= on this, we're glad that class vector<> preallocates some
+   // extra stuff when growing.
+   vector<entry> all_elems;
+
+   // The bins.  Note: since the number of bins doesn't change often (only when
+   // growing), we don't really want the extra-buffer storage that vector<>
+   // preallocates when using resize().
+   // Oh well.
+   vector<unsigned> bins;
+      // each entry in 'bins' gives the index (w/in 'all_elems') of the first element
+      // in the bin.  In other words, the first element in bin X is all_elems[bin[X]].
+      // If bin[X] is UINT_MAX, then the bin is empty.
+
+   unsigned num_removed_elems;
+   
+   // Notes:
+   // 1) At any given time, all_elems.size()-num_removed_items gives us the
+   //    total # of items
+   // 2) At any given time, bins.size() gives us the total # of bins
+   // 3) We keep the invariant #bins * max_bin_load >= total # items,
+   //    incrementing #bins (by a factor of bin_grow_factor) when needed.
+
+   float max_bin_load, bin_grow_factor;
 };
 
 template<class K, class V>
-DO_INLINE_F
-dictionary_iter<K,V>::dictionary_iter() {
-}
+class dictionary_hash_iter {
+ public:
+   dictionary_hash_iter(const dictionary_hash<K,V> &idict) : dict(idict) {
+      reset();
+   }
 
-template<class K, class V>
-DO_INLINE_F
-dictionary_iter<K,V>::~dictionary_iter() {
-}
+   bool next(K &k, V &v) {
+      for (; ndx < dict.all_elems.size(); ndx++) {
+         if (!dict.all_elems[ndx].removed) {
+            k = dict.all_elems[ndx].key;
+            v = dict.all_elems[ndx].val;
+            ndx++;
+            return true;
+         }
+      }
+      return false;
+   }
+         
+   void reset() {
+      ndx = 0;
+   }
 
+ private:
+   // private to make sure they're not used:
+   dictionary_hash_iter(const dictionary_hash_iter &);
+   dictionary_hash_iter &operator=(const dictionary_hash_iter &);
 
-
-
-
-/************************************************************************
- * template<class K, class V> class dictionary_hash_iter
-************************************************************************/
-
-template<class K, class V>
-class dictionary_hash_iter : public dictionary_iter<K,V> {
-public:
-    DO_INLINE_F          dictionary_hash_iter (const dictionary_hash<K,V> &);
-    DO_INLINE_F virtual ~dictionary_hash_iter ();
-
-    DO_INLINE_F bool  next (K &, V &);
-    DO_INLINE_F void reset ();
-
-private:
-    const dictionary_hash<K,V>& dict_;
-    unsigned                    chain_;
-    unsigned                    curr_;
-
-    DO_INLINE_P dictionary_hash_iter                 (const dictionary_hash_iter<K,V> &); // not allowed
-    DO_INLINE_P dictionary_hash_iter<K,V>& operator= (const dictionary_hash_iter<K,V> &); // not allowed
+   const dictionary_hash<K,V> &dict;
+   unsigned ndx;
 };
 
-template<class K, class V>
-DO_INLINE_F
-bool
-dictionary_hash_iter<K,V>::next(K& a, V& b) {
-    while (chain_ < dict_.data_.size()) {
-        if (curr_ < dict_.data_[chain_].size()) {
-            a = dict_.data_[chain_][curr_].key;
-            b = dict_.data_[chain_][curr_].value;
-            curr_++;
-            return true;
-        }
-
-        chain_++;
-        curr_ = 0;
-    }
-
-    return false;
-}
-
-template<class K, class V>
-DO_INLINE_F
-void
-dictionary_hash_iter<K,V>::reset() {
-    chain_ = curr_ = 0;
-}
-
-template<class K, class V>
-DO_INLINE_F
-dictionary_hash_iter<K,V>::dictionary_hash_iter(const dictionary_hash<K,V>& d)
-    : dict_(d), chain_(0), curr_(0) {
-}
-
-template<class K, class V>
-DO_INLINE_F
-dictionary_hash_iter<K,V>::~dictionary_hash_iter() {
-}
-
-
-
-
-
-/************************************************************************
- * Iteration functions.
-************************************************************************/
-
-template<class K, class V1, class V2>
-DO_INLINE_F
-dictionary_hash<K,V2>
-map(V2 (*f)(const V1 &), const dictionary_hash<K,V1>& d) {
-    dictionary_hash<K,V2>      nd(d.hashf());
-    dictionary_hash_iter<K,V1> di(d);
-    K  k;
-    V1 v1;
-    while (di.next(k, v1)) {
-        nd[k] = f(v1);
-    }
-    return nd;
-}
-
-template<class K, class V1, class V2>
-DO_INLINE_F
-V2
-fold(V2 (*f)(const K &, const V1 &, const V2 &), const dictionary_hash<K,V1>& d, const V2& arg0) {
-    dictionary_hash_iter<K,V1> di(d);
-    K  k;
-    V1 v1;
-    V2 v2 = arg0;
-    while (di.next(k, v1)) {
-        v2 = f(k, v1, v2);
-    }
-    return v2;
-}
-
-template<class K, class V1, class V2>
-DO_INLINE_F
-V2
-revfold(V2 (*f)(const K &, const V1 &, const V2 &), const dictionary_hash<K,V1>& d, const V2& arg0) {
-    return fold(f, d, arg0);
-}
-
-
-
-
-
-#endif /* !defined(_Dictionary_h_) */
+#endif
