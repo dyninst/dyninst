@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.26 1999/03/19 00:05:17 csserra Exp $
+ * $Id: Object.h,v 1.27 1999/05/15 20:24:42 wylie Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -191,10 +191,10 @@ private:
 #define HAVE_SPECIFIC_OBJECT
 #endif /* defined(i386_unknown_linux2_0) */
 
-#if defined(sparc_sun_sunos4_1_3)
-#include "util/h/Object-bsd.h"
+#if defined(mips_sgi_irix6_4)
+#include "util/h/Object-elf32.h"
 #define HAVE_SPECIFIC_OBJECT
-#endif /* defined(sparc_sun_sunos4_1_3) */
+#endif /* defined(mips_sgi_irix6_4) */
 
 #if defined(rs6000_ibm_aix4_1)
 #include "util/h/Object-aix.h"
@@ -210,11 +210,6 @@ private:
 #include "util/h/Object-coff.h"
 #define HAVE_SPECIFIC_OBJECT
 #endif /* defined(alpha_dec_osf4_0) */
-
-#if defined(mips_sgi_irix6_4)
-#include "util/h/Object-elf32.h"
-#define HAVE_SPECIFIC_OBJECT
-#endif /* defined(mips_sgi_irix6_4) */
 
 #if !defined(HAVE_SPECIFIC_OBJECT)
 #error "unable to locate system-specific object files"
