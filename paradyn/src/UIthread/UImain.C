@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: UImain.C,v 1.97 2001/08/23 14:43:51 schendel Exp $
+// $Id: UImain.C,v 1.98 2001/11/01 02:21:51 willb Exp $
 
 /* UImain.C
  *    This is the main routine for the User Interface Manager thread, 
@@ -119,7 +119,7 @@ bool tryFirstGoodWhereAxisWid(Tcl_Interp *interp, Tk_Window topLevelTkWindow) {
 
    haveSeenFirstGoodWhereAxisWid = true;
 
-   theAbstractions = new abstractions(".whereAxis.top.mbar.abs.m",
+   theAbstractions = new abstractions("",
                       ".whereAxis.top.mbar.nav.m",
                       ".whereAxis.nontop.main.bottsb",
                       ".whereAxis.nontop.main.leftsb",
