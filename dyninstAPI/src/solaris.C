@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.146 2003/05/08 23:48:19 bernat Exp $
+// $Id: solaris.C,v 1.147 2003/05/30 02:36:29 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -922,6 +922,12 @@ Frame Frame::getCallerFrame(process *p) const
       }
       return Frame();
     }
+#if defined(MT_THREAD)
+    // MT thread adds another copy of the start function
+    // to the top of the stack... this breaks instrumentation
+    // since we think we're at a function entry.
+    if (ret.fp_ == 0) ret.pc_ = 0;
+#endif
     return ret;
    }
   
