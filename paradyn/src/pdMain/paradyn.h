@@ -39,10 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Log: paradyn.h,v $
-/* Revision 1.15  1996/08/16 21:13:04  tamches
-/* updated copyright for release 1.1
 /*
+ * $Log: paradyn.h,v $
+ * Revision 1.16  1999/04/15 21:24:00  nash
+ * Removed annoying '/* within comment' warnings from a couple files
+ *
+ * Revision 1.15  1996/08/16 21:13:04  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.14  1996/01/29 22:13:01  mjrg
  * Added metric propagation when new processes start
  * Adjust time to account for clock differences between machines

@@ -44,10 +44,14 @@
 // Analagous to "abstractions.h" for the where axis; this class
 // basically manages several "shg"'s, as defined in shgPhases.h
 
-/* $Log: shgPhases.h,v $
-/* Revision 1.18  1999/03/12 22:59:31  pcroth
-/* Fixed poor handling of RCS logs by last CVS checkin
 /*
+ * $Log: shgPhases.h,v $
+ * Revision 1.19  1999/04/15 21:23:56  nash
+ * Removed annoying '/* within comment' warnings from a couple files
+ *
+ * Revision 1.18  1999/03/12 22:59:31  pcroth
+ * Fixed poor handling of RCS logs by last CVS checkin
+ *
  * Revision 1.17  1999/03/03 18:16:10  pcroth
  * Updated to support Windows NT as a front-end platform
  * Changes made to X code, to use Tcl analogues when appropriate

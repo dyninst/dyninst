@@ -42,10 +42,14 @@
 // shgConsts.h
 // Ariel Tamches
 
-/* $Log: shgConsts.h,v $
-/* Revision 1.6  1997/09/24 19:22:21  tamches
-/* XFontStruct --> Tk_Font
 /*
+ * $Log: shgConsts.h,v $
+ * Revision 1.7  1999/04/15 21:23:56  nash
+ * Removed annoying '/* within comment' warnings from a couple files
+ *
+ * Revision 1.6  1997/09/24 19:22:21  tamches
+ * XFontStruct --> Tk_Font
+ *
  * Revision 1.5  1996/08/16 21:07:13  tamches
  * updated copyright for release 1.1
  *

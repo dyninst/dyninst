@@ -44,10 +44,14 @@
 // of the new where axis user interface
 // Ariel Tamches
 
-/* $Log: shg.h,v $
-/* Revision 1.21  1999/03/12 22:59:30  pcroth
-/* Fixed poor handling of RCS logs by last CVS checkin
 /*
+ * $Log: shg.h,v $
+ * Revision 1.22  1999/04/15 21:23:55  nash
+ * Removed annoying '/* within comment' warnings from a couple files
+ *
+ * Revision 1.21  1999/03/12 22:59:30  pcroth
+ * Fixed poor handling of RCS logs by last CVS checkin
+ *
  * Revision 1.20  1999/03/03 18:16:09  pcroth
  * Updated to support Windows NT as a front-end platform
  * Changes made to X code, to use Tcl analogues when appropriate
