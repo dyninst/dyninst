@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.147 2005/01/28 18:12:03 legendre Exp $
+// $Id: DMpublic.C,v 1.148 2005/02/14 23:19:47 mjbrim Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -940,9 +940,8 @@ resourceHandle *dataManager::findResource(const char *name){
 // the user-defined name is returned instead of the real resource name
 const char *dataManager::getResourceLabelName(resourceHandle h){
 
-    //pdstring ret = resource::getName( h );
-    pdstring ret = resource::getDisplayName( h );
-    return ((ret.length() > 0) ? ret.c_str() : NULL);
+    const char *ret = resource::getDisplayName( h );
+    return ((strlen(ret) > 0) ? ret : NULL);
 }
 
 //

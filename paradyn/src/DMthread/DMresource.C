@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.C,v 1.72 2005/01/28 18:12:03 legendre Exp $
+// $Id: DMresource.C,v 1.73 2005/02/14 23:19:45 mjbrim Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -593,7 +593,7 @@ bool resource::sameRoot(const resource* other) const {
     return (myBase == otherBase);
 }
 
-pdstring resource::getName(resourceHandle h){
+const char* resource::getName(resourceHandle h){
     resource *res;
     if (resources.find(h, res))
       return res->getName();
@@ -601,7 +601,7 @@ pdstring resource::getName(resourceHandle h){
       return "";
 }
 
-pdstring resource::getDisplayName(resourceHandle h){
+const char* resource::getDisplayName(resourceHandle h){
     resource *res;
     if (resources.find(h, res))
       return res->getDisplayName();

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.h,v 1.56 2005/01/28 18:12:03 legendre Exp $
+// $Id: DMresource.h,v 1.57 2005/02/14 23:19:46 mjbrim Exp $
 
 #ifndef DMresource_H 
 #define DMresource_H
@@ -104,9 +104,9 @@ class resource {
     void AddChild(resource* r){ children.push_back( r ); }
     resourceHandle getHandle() const {return(res_handle);}
     static bool string_to_handle (const pdstring &res,resourceHandle *h);
-    static pdstring getName(resourceHandle);
+    static const char* getName(resourceHandle);
     static pdstring getFullName(resourceHandle);
-    static pdstring getDisplayName(resourceHandle);
+    static const char* getDisplayName(resourceHandle);
     const pdvector<pdstring>& getParts() const {return fullName;}
     static bool get_lib_constraints(pdvector<pdstring>&, pdvector<unsigned>&);
     static bool get_func_constraints(pdvector< pdvector<pdstring> >&, pdvector<unsigned>&);
