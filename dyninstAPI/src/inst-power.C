@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.172 2003/05/20 16:18:12 bernat Exp $
+ * $Id: inst-power.C,v 1.173 2003/05/20 21:53:48 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -1933,6 +1933,8 @@ void generateIllegalInsn(instruction &insn) { // instP.h
 
 bool rpcMgr::emitInferiorRPCheader(void *insnPtr, Address &baseBytes) 
 {
+/*
+  // We save daemon-side...
   instruction *tmp = (instruction *)insnPtr;
   // A miracle of casting...
   instruction *insn = (instruction *) (&tmp[baseBytes/sizeof(instruction)]);
@@ -1943,6 +1945,7 @@ bool rpcMgr::emitInferiorRPCheader(void *insnPtr, Address &baseBytes)
   
   // Save registers
   saveGPRegisters(insn, baseBytes, TRAMP_GPR_OFFSET, conservativeRegSpace);
+*/
   return true;
 }
 
@@ -1965,14 +1968,20 @@ bool rpcMgr::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
     baseBytes += sizeof(instruction); insn++;
     justAfter_stopForResultOffset = baseBytes;
   }
-  
+
+/*
+  // We save daemon-side...
   restoreGPRegisters(insn, baseBytes, TRAMP_GPR_OFFSET, conservativeRegSpace);
   
   // Pop the stack
   genImmInsn(insn, CALop, REG_SP, REG_SP, TRAMP_FRAME_SIZE);
   insn++; baseBytes += sizeof(instruction);
-  
-  
+*/
+  // but the code doesn't like justAfter == breakOffset. Insert
+  // a noop
+  generateNOOP(insn);
+  insn++; baseBytes += sizeof(instruction);
+
   generateBreakPoint(*insn);
   breakOffset = baseBytes;
   baseBytes += sizeof(instruction); insn++;
@@ -2421,6 +2430,7 @@ Address emitA(opCode op, Register src1, Register /*src2*/, Register dest,
     default:
         assert(0);        // unexpected op for this emit!
   }
+    return 0; // quiet the compiler
 }
 
 Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
@@ -3777,6 +3787,7 @@ bool process::MonitorCallSite(instPoint *callSite){
   instruction i = callSite->originalInstruction;
   pdvector<AstNode *> the_args(2);
   Register branch_target;
+
   // Is this a branch conditional link register (BCLR)
   // BCLR uses the xlform (6,5,5,5,10,1)
   if(i.xlform.op == BCLRop) // BLR/BCR, or bcctr/bcc. Same opcode.
@@ -3820,6 +3831,11 @@ bool process::MonitorCallSite(instPoint *callSite){
   }
   else if (i.xlform.op == Bop) {
       /// Why didn't we catch this earlier? In any case, don't print an error
+
+      // I have seen this legally -- branches to the FP register saves.
+      // Since we ignore the save macros, we have no idea where the branch
+      // goes. For now, return true -- means no error.
+
       return true;
   }
   else
