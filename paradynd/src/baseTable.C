@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTable.C,v 1.2 1998/12/25 23:33:35 wylie Exp $
+// $Id: baseTable.C,v 1.3 1999/07/07 16:12:54 zhichen Exp $
 // The superTable class consists of an array of superVectors
 
 #include <sys/types.h>
@@ -53,14 +53,16 @@ baseTable<HK, RAW>::baseTable(process *proc, unsigned nColumns, unsigned nRows,
 			      unsigned level, unsigned iheapNumElems,
 			      unsigned isubHeapIndex):
 		    numberOfColumns(nColumns),
-		    numberOfRows(nRows),
+		    numberOfRows(0),
 		    heapNumElems(iheapNumElems),
 		    subHeapIndex(isubHeapIndex),
 		    inferiorProcess(proc)
 {
-  for (unsigned i=level; i<level+nRows; i++) {
-    addRows(level,1);
-  }
+#if defined(MT_THREAD)
+  addRows(level,nRows,true);
+#else
+  addRows(level,nRows);
+#endif
 }
 
 template <class HK, class RAW>
@@ -81,13 +83,28 @@ baseTable<HK, RAW>::baseTable(const baseTable<HK,RAW> *parentSuperTable,
 }
 
 template <class HK, class RAW>
+#if defined(MT_THREAD)
+void baseTable<HK, RAW>::addRows(unsigned level, unsigned nRows,
+				 bool calledFromBaseTableConst)
+#else
 void baseTable<HK, RAW>::addRows(unsigned level, unsigned nRows)
+#endif
 {
   // we assume that it is valid to add nRows, i.e. maxNumberOfLevels in the superTable
   // class is greater than or equal to level+nRows.
   for (unsigned i=0; i<nRows; i++) {
+#if defined(MT_THREAD)
+    theBaseTable += new superVector<HK, RAW>(inferiorProcess,heapNumElems,
+					     level+i,
+					     subHeapIndex,
+					     numberOfColumns,
+					     calledFromBaseTableConst);
+    numberOfRows++;
+#else
     theBaseTable += new superVector<HK, RAW>(inferiorProcess,heapNumElems,subHeapIndex,
-		 			     numberOfColumns);
+					     numberOfColumns);
+
+#endif
     levelMap += level+i;
   } 
 }
@@ -101,7 +118,11 @@ baseTable<HK, RAW>::~baseTable()
 }
 
 template <class HK, class RAW>
+#if defined(MT_THREAD)
+bool baseTable<HK, RAW>::alloc(unsigned thr_pos, const RAW &iRawValue,
+#else
 bool baseTable<HK, RAW>::alloc(const RAW &iRawValue,
+#endif
 			       const HK &iHouseKeepingValue,
 			       unsigned &allocatedIndex,
 			       unsigned &allocatedLevel,
@@ -114,8 +135,16 @@ bool baseTable<HK, RAW>::alloc(const RAW &iRawValue,
   bool foundFreeLevel;
   for (unsigned i=0; i<theBaseTable.size(); i++) {
     assert(theBaseTable[i] != NULL);
+#if defined(MT_THREAD)
+    // if allocated!=UINT_MAX, we will re-use this position because we are
+    // trying to enable a counter/timer that has been already allocated - naim
+    if (allocatedLevel == UINT_MAX)
+      allocatedLevel=levelMap[i];    
+    foundFreeLevel=theBaseTable[i]->alloc(thr_pos,iRawValue,iHouseKeepingValue,allocatedIndex,doNotSample);
+#else
     allocatedLevel=levelMap[i];    
     foundFreeLevel=theBaseTable[i]->alloc(iRawValue,iHouseKeepingValue,allocatedIndex,doNotSample);
+#endif
     if (foundFreeLevel) return(true);
   }
   // At this point, we don't have any free spot in the current allocated levels, so
@@ -192,7 +221,12 @@ void baseTable<HK, RAW>::initializeHKAfterFork(unsigned allocatedIndex,
 }
 
 template <class HK, class RAW>
+#if defined(MT_THREAD)
+void baseTable<HK, RAW>::makePendingFree(unsigned pd_pos,
+					 unsigned allocatedIndex,
+#else
 void baseTable<HK, RAW>::makePendingFree(unsigned allocatedIndex,
+#endif
 					 unsigned allocatedLevel, 
 					 const vector<Address> &trampsUsing)
 {
@@ -201,7 +235,11 @@ void baseTable<HK, RAW>::makePendingFree(unsigned allocatedIndex,
     if (levelMap[i] == allocatedLevel) break;
   }
   assert(i<levelMap.size());
+#if defined(MT_THREAD) //are these superVector?
+  theBaseTable[i]->makePendingFree(pd_pos,allocatedIndex,trampsUsing);
+#else
   theBaseTable[i]->makePendingFree(allocatedIndex,trampsUsing);
+#endif
 }
 
 template <class HK, class RAW>
@@ -220,3 +258,30 @@ void baseTable<HK, RAW>::forkHasCompleted()
      theBaseTable[i]->forkHasCompleted();
    }
 }
+
+#if defined(MT_THREAD)
+template <class HK, class RAW>
+void baseTable<HK, RAW>::addColumns(unsigned from, unsigned to)
+{
+   numberOfColumns += to-from;
+   for (unsigned i=0; i<theBaseTable.size(); i++) {
+     theBaseTable[i]->addColumns(from,to,subHeapIndex,levelMap[i]);
+   }
+}
+
+template <class HK, class RAW>
+void baseTable<HK, RAW>::addThread(unsigned pos, unsigned pd_pos)
+{
+   for (unsigned i=0; i<theBaseTable.size(); i++) {
+     theBaseTable[i]->addThread(pos,pd_pos,subHeapIndex,levelMap[i]);
+   }
+}
+
+template <class HK, class RAW>
+void baseTable<HK, RAW>::deleteThread(unsigned pos, unsigned pd_pos)
+{
+   for (unsigned i=0; i<theBaseTable.size(); i++) {
+     theBaseTable[i]->deleteThread(pos,pd_pos,levelMap[i]);
+   }
+}
+#endif

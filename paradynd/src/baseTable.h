@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTable.h,v 1.2 1998/12/25 23:33:36 wylie Exp $
+// $Id: baseTable.h,v 1.3 1999/07/07 16:12:54 zhichen Exp $
 // The baseTable class consists of an array of superVectors. The baseTable class is
 // a template class. It has a levelMap vector that keeps track of the levels (rows)
 // that has been allocated (remember that we need not only an index but also a level
@@ -73,20 +73,34 @@ class baseTable {
   public:
     baseTable() : inferiorProcess(NULL) {};
     baseTable(process *proc, unsigned nColumns, unsigned nRows,
-	      unsigned level, unsigned size, unsigned subHeapIndex);
+	      unsigned level, unsigned iheapNumElems, 
+	      unsigned subHeapIndex);
     baseTable(const baseTable<HK,RAW> *parentSuperTable, process *proc);
 
     ~baseTable();
 
+#if defined(MT_THREAD)
+    void addRows(unsigned level, unsigned nRows,
+		 bool calledFromBaseTableConst=false);
+#else
     void addRows(unsigned level, unsigned nRows);
+#endif
 
+#if defined(MT_THREAD)
+    bool alloc(unsigned thr_pos, const RAW &iRawValue,
+#else
     bool alloc(const RAW &iRawValue,
+#endif
 	       const HK &iHouseKeepingValue,
 	       unsigned &allocatedIndex,
 	       unsigned &allocatedLevel,
 	       bool doNotSample=false);
 
+#if defined(MT_THREAD)
+    void makePendingFree(unsigned pd_pos, unsigned allocatedIndex,
+#else
     void makePendingFree(unsigned allocatedIndex,
+#endif
 			 unsigned allocatedLevel, 
 			 const vector<Address> &trampsUsing);
 
@@ -109,6 +123,11 @@ class baseTable {
     
     void handleExec();
     void forkHasCompleted();
+#if defined(MT_THREAD)
+    void addColumns(unsigned from, unsigned to);
+    void addThread(unsigned pos, unsigned pd_pos);
+    void deleteThread(unsigned pos, unsigned pd_pos);
+#endif
 };
 
 #endif
