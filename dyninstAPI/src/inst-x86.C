@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.52 1999/11/09 19:21:26 cain Exp $
+ * $Id: inst-x86.C,v 1.53 2000/01/11 21:55:35 altinel Exp $
  */
 
 #include <limits.h>
@@ -916,6 +916,7 @@ void emitJump(unsigned disp32, unsigned char *&insn);
 void emitSimpleInsn(unsigned opcode, unsigned char *&insn);
 void emitMovRegToReg(Register dest, Register src, unsigned char *&insn);
 void emitAddMemImm32(Address dest, int imm, unsigned char *&insn);
+void emitAddRegImm32(Register dest, int imm, unsigned char *&insn);
 void emitOpRegImm(int opcode, Register dest, int imm, unsigned char *&insn);
 void emitMovRegToRM(Register base, int disp, Register src, unsigned char *&insn);
 void emitMovRMToReg(Register dest, Register base, int disp, unsigned char *&insn);
@@ -1689,6 +1690,14 @@ void emitAddMemImm32(Address addr, int imm, unsigned char *&insn) {
   insn += sizeof(int);
 }
 
+// emit Add reg, imm32
+void emitAddRegImm32(Register reg, int imm, unsigned char *&insn) {
+  *insn++ = 0x81;
+  *insn++ = makeModRMbyte(3, 0, reg);
+  *((int *)insn) = imm;
+  insn += sizeof(int);
+}
+
 // emit JUMP rel32
 void emitJump(unsigned disp32, unsigned char *&insn) {
   if ((signed)disp32 >= 0)
@@ -1929,12 +1938,28 @@ void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
       emitMovRegToRM(EBP, -(dest*4), EAX, insn);    // mov -(dest*4)[ebp], eax
       base += insn - first;
       return;
+    } else if (op == loadFrameRelativeOp) {
+      // dest is a temporary
+      // src1 is the offset of the from the frame of the variable
+      // eax = [eax]	- saved sp
+      // dest = [eax](src1)
+      emitMovRMToReg(EAX, EBP, 0, insn);       // mov (%ebp), %eax 
+      emitMovRMToReg(EAX, EAX, src1, insn);    // mov <offset>(%eax), %eax 
+      emitMovRegToRM(EBP, -(dest*4), EAX, insn);    // mov -(dest*4)[ebp], eax
+      base += insn - first;
+      return;
+    } else if (op == loadFrameAddr) {
+      emitMovRMToReg(EAX, EBP, 0, insn);       // mov (%ebp), %eax 
+      emitAddRegImm32(EAX, src1, insn);        // add #<offset>, %eax
+      emitMovRegToRM(EBP, -(dest*4), EAX, insn);    // mov -(dest*4)[ebp], eax
+      base += insn - first;
+      return;
     } else {
         abort();                // unexpected op for this emit!
     }
 }
 
-void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
+void emitVstore(opCode op, Register src1, Register src2, Address dest,
              char *ibuf, Address &base, bool /*noCost*/, int /* size */)
 {
     unsigned char *insn = (unsigned char *) (&ibuf[base]);
@@ -1947,6 +1972,18 @@ void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
       // src2 is a "scratch" register, we don't need it in this architecture
       emitMovRMToReg(EAX, EBP, -(src1*4), insn);    // mov eax, -(src1*4)[ebp]
       emitMovRegToM(dest, EAX, insn);               // mov dest, eax
+      base += insn - first;
+      return;
+    } else if (op == storeFrameRelativeOp) {
+      // src1 is a temporary
+      // src2 is a "scratch" register, we don't need it in this architecture
+      // dest is the frame offset 
+      //
+      // src2 = [ebp]	- saved sp
+      // (dest)[src2] = src1
+      emitMovRMToReg(src2, EBP, 0, insn);    	    // mov src2, (ebp)
+      emitMovRMToReg(EAX, EBP, -(src1*4), insn);    // mov eax, -(src1*4)[ebp]
+      emitMovRegToRM(src2, dest, EAX, insn);        // mov (dest)[src2], eax
       base += insn - first;
       return;
     } else {

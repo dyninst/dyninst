@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.30 1999/11/11 17:38:39 wylie Exp $ */
+/* $Id: test1.mutatee.c,v 1.31 2000/01/11 21:55:38 altinel Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -17,7 +17,10 @@
 #include <unistd.h>
 #endif
 
-#if defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0)
+#if defined(sparc_sun_solaris2_4) || \
+    defined(alpha_dec_osf4_0) || \
+    defined(i386_unknown_linux2_0) || \
+    defined(i386_unknown_solaris2_5)
 #include <dlfcn.h> /* For replaceFunction test */
 #endif
 
@@ -1209,7 +1212,9 @@ int func20_2(int *int_val, double *double_val)
 
 void func20_1()
 {
-#if !defined(rs6000_ibm_aix4_1) && !defined(alpha_dec_osf4_0)
+#if !defined(rs6000_ibm_aix4_1) && \
+    !defined(alpha_dec_osf4_0)
+
     printf("Skipped test #20 (instrument arbitrary points)\n");
     printf("\t- not implemented on this platform\n");
     passedTest[20] = TRUE;
@@ -1280,7 +1285,9 @@ volatile int _unused;	/* move decl here to dump compiler warning - jkh */
 
 void func22_1()
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(alpha_dec_osf4_0)
+#if !defined(sparc_sun_solaris2_4) && \
+    !defined(alpha_dec_osf4_0)
+
     printf("Skipped test #22 (replace function)\n");
     printf("\t- not implemented on this platform\n");
     passedTest[22] = TRUE;
@@ -1293,7 +1300,7 @@ void func22_1()
 
     void *handleA;
     char dlopenName[128];
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) 
     int dlopenMode = RTLD_NOW | RTLD_GLOBAL;
 #else
     int dlopenMode = RTLD_NOW;
@@ -1405,7 +1412,12 @@ void call23_1()
 
 void func23_1()
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1)
+#if !defined(sparc_sun_solaris2_4) && \
+    !defined(rs6000_ibm_aix4_1) && \
+    !defined(alpha_dec_osf4_0) && \
+    !defined(i386_unknown_linux2_0) && \
+    !defined(i386_unknown_solaris2_5)
+
     printf("Skipped test #23 (local variables)\n");
     printf("\t- not implemented on this platform\n");
     passedTest[23] = TRUE;
@@ -1470,7 +1482,12 @@ void call24_1()
 
 void func24_1()
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1)
+#if !defined(sparc_sun_solaris2_4) && \
+    !defined(rs6000_ibm_aix4_1) && \
+    !defined(alpha_dec_osf4_0) && \
+    !defined(i386_unknown_linux2_0) && \
+    !defined(i386_unknown_solaris2_5)
+
     printf("Skipped test #24 (arrary variables)\n");
     printf("\t- not implemented on this platform\n");
     passedTest[24] = TRUE;
@@ -1675,7 +1692,12 @@ void call26_1()
 
 void func26_1()
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1)
+#if !defined(sparc_sun_solaris2_4) && \
+    !defined(rs6000_ibm_aix4_1) && \
+    !defined(alpha_dec_osf4_0) && \
+    !defined(i386_unknown_linux2_0) && \
+    !defined(i386_unknown_solaris2_5)
+
     printf("Skipped test #26 (struct elements)\n");
     printf("\t- not implemented on this platform\n");
     passedTest[26] = TRUE;
@@ -1753,7 +1775,12 @@ float globalVariable27_8[12];
 
 void func27_1()
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1)
+#if !defined(sparc_sun_solaris2_4) && \
+    !defined(rs6000_ibm_aix4_1) && \
+    !defined(alpha_dec_osf4_0) && \
+    !defined(i386_unknown_linux2_0) && \
+    !defined(i386_unknown_solaris2_5)
+
     printf("Skipped test #27 (type compatibility)\n");
     printf("\t- not implemented on this platform\n");
     passedTest[27] = TRUE;

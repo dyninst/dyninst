@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.19 1999/11/11 00:56:10 wylie Exp $
+// $Id: inst-alpha.C,v 1.20 2000/01/11 21:55:34 altinel Exp $
 
 #include "util/h/headers.h"
 
@@ -1352,12 +1352,11 @@ void emitVload(opCode op, Address src1, Register, Register dest,
 	base += words * 4; return;
     } else if (op ==  loadFrameRelativeOp) {
 	unsigned long words = 0;
-	// frame offset is signed.
+	// frame offset is negative of actual offset.
 	long offset = (long) src1;
 	assert(ABS(offset) < 32767);
 	words += generate_load(insn+words, (unsigned long) dest,  REG_SP,
 			       104, dw_quad);
-	printf("offset is %ld\n", offset);
 	assert(ABS(offset) < (1<<30));
 	if (ABS(offset) > 32767) {
 	    Offset low = offset & 0xffff;
@@ -1378,15 +1377,27 @@ void emitVload(opCode op, Address src1, Register, Register dest,
 	unsigned long words = 0;
 	// frame offset is signed.
 	long offset = (long) src1;
-	printf("offset is %ld\n", offset);
-	assert(ABS(offset) < 32767);
 
 	// load fp into dest
 	words += generate_load(insn+words, (unsigned long) dest,  REG_SP,
 			       104, dw_quad);
 
-	// now load the offset
-	words += generate_lda(insn+words, dest, dest, offset, false);
+	assert(ABS(offset) < (1<<30));
+	if (ABS(offset) > 32767) {
+	    Offset low = offset & 0xffff;
+	    offset -= SEXT_16(low);
+	    Offset high = (offset >> 16) & 0xffff;
+	    assert((Address)SEXT_16(low) +
+	     ((Address)SEXT_16(high)<<16) == src1);
+
+	    // add high bits of offset
+	    words += generate_lda(insn+words, dest, dest, high, false);
+	    // now addd the low bits of the offset
+	    words += generate_lda(insn+words, dest, dest, low, true);
+	} else {
+	    // addd the offset
+	    words += generate_lda(insn+words, dest, dest, offset, true);
+	}
 	base += words * 4; 
     } else {
 	abort();       // unexpected op for this emit!
@@ -1418,7 +1429,23 @@ void emitVstore(opCode op, Register src1, Register src2, Address dest,
 	abort();
     }
     base += words * 4; return;
-
+  } else if (op ==  storeFrameRelativeOp) {
+    // frame offset is signed.
+    long offset = (long) dest;
+    assert(ABS(offset) < 32767);
+    unsigned long words = 0;
+    words += generate_load(insn+words, (unsigned long) src2,  REG_SP,
+			       104, dw_quad);
+    if (size == 8) {
+	words += generate_store(insn+words, (unsigned long) src1, 
+	    (unsigned long) src2, offset, dw_quad);
+    } else if (size == 4) {
+	words += generate_store(insn+words, (unsigned long) src1, 
+	    (unsigned long) src2, offset, dw_long);
+    } else {
+	abort();
+    }
+    base += words * 4; return;
   } else {
       abort();       // unexpected op for this emit!
   }

@@ -1,4 +1,4 @@
-// $Id: test1.C,v 1.43 1999/11/09 17:07:30 hollings Exp $
+// $Id: test1.C,v 1.44 2000/01/11 21:55:37 altinel Exp $
 //
 // libdyninst validation suite test #1
 //    Author: Jeff Hollingsworth (1/7/97)
@@ -1314,7 +1314,9 @@ void mutatorTest19(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(rs6000_ibm_aix4_1) || defined(alpha_dec_osf4_0)
+#if defined(rs6000_ibm_aix4_1) || \
+    defined(alpha_dec_osf4_0) 
+
     BPatch_function *call20_1func = appImage->findFunction("call20_1");
     if (call20_1func == NULL) {
 	fprintf(stderr, "Unable to find function \"call20_1.\"\n");
@@ -1462,7 +1464,9 @@ void mutatorTest21(BPatch_thread *, BPatch_image *appImage)
 // test2.
 void mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0)
+#if defined(sparc_sun_solaris2_4) || \
+    defined(alpha_dec_osf4_0)
+
     char errbuf[1024]; errbuf[0] = '\0';
     BPatch_module *modA = NULL;
     BPatch_module *modB = NULL;
@@ -1573,7 +1577,12 @@ void mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest23(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4) || defined(rs6000_ibm_aix4_1)
+#if defined(sparc_sun_solaris2_4) || \
+    defined(rs6000_ibm_aix4_1) || \
+    defined(alpha_dec_osf4_0) || \
+    defined(i386_unknown_linux2_0) || \
+    defined(i386_unknown_solaris2_5)
+
     //     First verify that we can find a local variable in call23_1
     BPatch_Vector<BPatch_point *> *point23_1 =
 	appImage->findProcedurePoint("call23_1", BPatch_subroutine);
@@ -1627,7 +1636,12 @@ void mutatorTest23(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest24(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4) || defined(rs6000_ibm_aix4_1)
+#if defined(sparc_sun_solaris2_4) || \
+    defined(rs6000_ibm_aix4_1) || \
+    defined(alpha_dec_osf4_0) || \
+    defined(i386_unknown_linux2_0) || \
+    defined(i386_unknown_solaris2_5)
+
     //     First verify that we can find a local variable in call24_1
     BPatch_Vector<BPatch_point *> *temp =
 	appImage->findProcedurePoint("call24_1", BPatch_subroutine);
@@ -1702,7 +1716,7 @@ void mutatorTest24(BPatch_thread *appThread, BPatch_image *appImage)
 	BPatch_arithExpr(BPatch_ref, *lvar, BPatch_constExpr(79)));
     appThread->insertSnippet(assignment7, *point24_1);
 
-    //     localVariable24_7 = localVariable24_1[globalVariable24_4]
+    //     globalVariable24_7 = localVariable24_1[globalVariable24_4]
     BPatch_arithExpr assignment8(BPatch_assign, *gvar[7],
 	BPatch_arithExpr(BPatch_ref, *lvar, *gvar[4]));
     appThread->insertSnippet(assignment8, *point24_1);
@@ -1751,7 +1765,12 @@ void mutatorTest25(BPatch_thread *appThread, BPatch_image *appImage)
     }
 
     //     globalVariable25_2 = &globalVariable25_1
-#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1)
+#if !defined(sparc_sun_solaris2_4) && \
+    !defined(rs6000_ibm_aix4_1) && \
+    !defined(alpha_dec_osf4_0) && \
+    !defined(i386_unknown_linux2_0) && \
+    !defined(i386_unknown_solaris2_5)
+
     // without type info need to inform
     BPatch_type *type = appImage->findType("void *");
     assert(type);
@@ -1788,7 +1807,12 @@ void mutatorTest25(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest26(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4) || defined(rs6000_ibm_aix4_1)
+#if defined(sparc_sun_solaris2_4) || \
+    defined(rs6000_ibm_aix4_1) || \
+    defined(alpha_dec_osf4_0) || \
+    defined(i386_unknown_linux2_0) || \
+    defined(i386_unknown_solaris2_5)
+
     //     First verify that we can find a local variable in call26_1
     BPatch_Vector<BPatch_point *> *point26_1 =
 	appImage->findProcedurePoint("call26_1", BPatch_subroutine);
@@ -1911,7 +1935,12 @@ void mutatorTest26(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest27(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4) || defined(rs6000_ibm_aix4_1)
+#if defined(sparc_sun_solaris2_4) || \
+    defined(rs6000_ibm_aix4_1) || \
+    defined(alpha_dec_osf4_0) || \
+    defined(i386_unknown_linux2_0) || \
+    defined(i386_unknown_solaris2_5)
+
     BPatch_type *type27_1 = appImage->findType("type27_1");
     BPatch_type *type27_2 = appImage->findType("type27_2");
     BPatch_type *type27_3 = appImage->findType("type27_3");

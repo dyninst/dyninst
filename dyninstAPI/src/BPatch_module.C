@@ -73,7 +73,12 @@ BPatch_module::BPatch_module(process *_proc, pdmodule *_mod):
     moduleTypes = new BPatch_typeCollection;
 
     // load all of the type information
-#if defined(sparc_sun_solaris2_4) || defined(rs6000_ibm_aix4_1)
+#if defined(sparc_sun_solaris2_4) || \
+    defined(rs6000_ibm_aix4_1) || \
+    defined(alpha_dec_osf4_0) || \
+    defined(i386_unknown_linux2_0) || \
+    defined(i386_unknown_solaris2_5)
+
     if (BPatch::bpatch->parseDebugInfo()) 
 	parseTypes();
 #endif
@@ -122,6 +127,8 @@ BPatch_Vector<BPatch_function *> *BPatch_module::getProcedures()
  * name The name of function to look up.
  */
 
+extern bool buildDemangledName(const string &mangled, string &use);
+
 BPatch_function * BPatch_module::findFunction(const char * name)
 {
 
@@ -132,6 +139,14 @@ BPatch_function * BPatch_module::findFunction(const char * name)
     if (func == NULL) {
 	string fullname = string("_") + string(name);
 	func = mod->findFunction(fullname);
+    }
+
+    if (func == NULL) {
+	//Try with demangled name
+	string mangled_name = name;
+	string demangled;
+	if (buildDemangledName(mangled_name, demangled))
+		func = mod->findFunction(demangled);
     }
 
     if (func == NULL) {
@@ -147,7 +162,7 @@ BPatch_function * BPatch_module::findFunction(const char * name)
     // Found function in module and creating BPatch_function
     bpfunc = new BPatch_function(proc, func, this);
 
-#if defined(sparc_sun_solaris2_4) 
+#if defined(sparc_sun_solaris2_4)
     // Adding new BPatch_Function to BPatch_function vector
     if (this->BPfuncs) this->BPfuncs->push_back(bpfunc);
 #endif
@@ -157,111 +172,6 @@ BPatch_function * BPatch_module::findFunction(const char * name)
 
 
 extern char *parseStabString(BPatch_module *, int linenum, char *str, int fPtr);
-
-#if defined(sparc_sun_solaris2_4)
-
-// Gets the stab and stabstring section and parses it for types
-// and variables
-void BPatch_module::parseTypes()
-{
-  
-  char *modName;
-  image * imgPtr=NULL;
-  bool parseActive = false;
-  struct stab_entry *stabptr = NULL;
-  int stab_nsyms;
-  int i;
-  char *stabstr_nextoffset;
-  const char *stabstrs = 0;
-  char * temp=NULL;
-  
-  //Using pdmodule to get the image Object.
-  imgPtr = mod->exec();
-  
-  //Using the image to get the Object (class)
-  Object *objPtr = (Object *) &(imgPtr->getObject());
-
-  //Using the Object to get the pointers to the .stab and .stabstr
-  // XXX - Elf32 specific needs to be in seperate file -- jkh 3/18/99
-  objPtr->get_stab_info((void **) &stabptr, stab_nsyms, 
-	(void **) &stabstr_nextoffset);
-
-  // Building the BPatch_Vector<BPatch_function *> for use later when playing
-  // with BPatch_functions
-  //printf("GETTING PROCEDURES for BPatch_Function VECTOR %x!!!\n", &(this->BPfuncs));
-  this->BPfuncs = this->getProcedures();
-  
-
-  for(i=0;i<stab_nsyms;i++){
-    switch(stabptr[i].type){
-
-    case N_UNDF: /* start of object file */
-	    /* value contains offset of the next string table for next module */
-/*
-	    assert(stabptr[i].name == 1);
-*/
-	    stabstrs = stabstr_nextoffset;
-	    stabstr_nextoffset = (char*)stabstrs + stabptr[i].val;
-
-            modName = (char*)(&stabstrs[stabptr[i].name]);
-	    // printf("    module name %s\n", module);
-	    if (!strcmp(modName, mod->fileName().string_of())) {
-		parseActive = true;
-	    } else {
-		parseActive = false;
-	    }
-	    break;
-
-    case N_ENDM: /* end of object file */
-            break;
-
-    case N_SO: /* compilation source or file name */
-      /* printf("Resetting CURRENT FUNCTION NAME FOR NEXT OBJECT FILE\n");*/
-            current_func_name = NULL; // reset for next object file
-            modName = (char*)(&stabstrs[stabptr[i].name]);
-            break;
-
-    case 32:    // Global symbols -- N_GYSM 
-    case 36:    // functions and text segments -- N_FUN
-    case 128:   // typedefs and variables -- N_LSYM
-    case 160:   // parameter variable -- N_PSYM 
-      char *ptr, *ptr2, *ptr3;
-
-      if (!parseActive) break;
-
-      ptr = (char *) &stabstrs[stabptr[i].name];
-      while (ptr[strlen(ptr)-1] == '\\') {
-	//ptr[strlen(ptr)-1] = '\0';
-	  ptr2 =  (char *) &stabstrs[stabptr[i+1].name];
-	  ptr3 = (char *) malloc(strlen(ptr) + strlen(ptr2));
-	  strcpy(ptr3, ptr);
-	  ptr3[strlen(ptr)-1] = '\0';
-	  strcat(ptr3, ptr2);
-	  
-	  ptr = ptr3;
-	  i++;
-	  // XXX - memory leak on multiple cont. lines
-      }
-
-      // printf("stab #%d = %s\n", i, ptr);
-      // may be nothing to parse - XXX  jdd 5/13/99
-      temp = parseStabString(this, stabptr[i].desc, (char *)ptr, 
-	  stabptr[i].val);
-      if (*temp) {
-	  //Error parsing the stabstr, return should be \0
-	  fprintf(stderr, "Stab string parsing ERROR!! More to parse: %s\n",
-	      temp);
-      }
-      break;
-
-    default:
-      break;
-    }       		    
-  }
-}
-
-#endif //end of #if defined(sparc_sun_solaris2_4)
-
 
 #if defined(rs6000_ibm_aix4_1)
 
@@ -360,6 +270,137 @@ void BPatch_module::parseTypes()
 	  }
       }
     }
+}
+
+#endif
+
+#if defined(sparc_sun_solaris2_4) || \
+    defined(i386_unknown_solaris2_5) || \
+    defined(i386_unknown_linux2_0)
+
+// Gets the stab and stabstring section and parses it for types
+// and variables
+void BPatch_module::parseTypes()
+{
+  char *modName, *ptr;
+  image * imgPtr=NULL;
+  bool parseActive = false;
+  struct stab_entry *stabptr = NULL;
+  int stab_nsyms;
+  int i;
+  char *stabstr_nextoffset;
+  const char *stabstrs = 0;
+  char * temp=NULL;
+  
+  //Using pdmodule to get the image Object.
+  imgPtr = mod->exec();
+  
+  //Using the image to get the Object (class)
+  Object *objPtr = (Object *) &(imgPtr->getObject());
+
+  //Using the Object to get the pointers to the .stab and .stabstr
+  // XXX - Elf32 specific needs to be in seperate file -- jkh 3/18/99
+  objPtr->get_stab_info((void **) &stabptr, stab_nsyms, 
+	(void **) &stabstr_nextoffset);
+
+  // Building the BPatch_Vector<BPatch_function *> for use later when playing
+  // with BPatch_functions
+  //printf("GETTING PROCEDURES for BPatch_Function VECTOR %x!!!\n", &(this->BPfuncs));
+  this->BPfuncs = this->getProcedures();
+  
+
+  for(i=0;i<stab_nsyms;i++){
+    switch(stabptr[i].type){
+
+    case N_UNDF: /* start of object file */
+	    /* value contains offset of the next string table for next module */
+	    // assert(stabptr[i].name == 1);
+	    stabstrs = stabstr_nextoffset;
+	    stabstr_nextoffset = (char*)stabstrs + stabptr[i].val;
+	    break;
+
+    case N_ENDM: /* end of object file */
+            break;
+
+    case N_SO: /* compilation source or file name */
+      /* printf("Resetting CURRENT FUNCTION NAME FOR NEXT OBJECT FILE\n");*/
+            current_func_name = NULL; // reset for next object file
+            modName = (char*)(&stabstrs[stabptr[i].name]);
+            ptr = strrchr(modName, '/');
+            if (ptr) {
+                ptr++;
+		modName = ptr;
+	    }
+
+	    if (!strcmp(modName, mod->fileName().string_of())) {
+		parseActive = true;
+	    } else {
+		parseActive = false;
+	    }
+            break;
+
+    case 32:    // Global symbols -- N_GYSM 
+    case 36:    // functions and text segments -- N_FUN
+    case 128:   // typedefs and variables -- N_LSYM
+    case 160:   // parameter variable -- N_PSYM 
+      char *ptr, *ptr2, *ptr3;
+
+      if (!parseActive) break;
+
+      ptr = (char *) &stabstrs[stabptr[i].name];
+      while (ptr[strlen(ptr)-1] == '\\') {
+	//ptr[strlen(ptr)-1] = '\0';
+	  ptr2 =  (char *) &stabstrs[stabptr[i+1].name];
+	  ptr3 = (char *) malloc(strlen(ptr) + strlen(ptr2));
+	  strcpy(ptr3, ptr);
+	  ptr3[strlen(ptr)-1] = '\0';
+	  strcat(ptr3, ptr2);
+	  
+	  ptr = ptr3;
+	  i++;
+	  // XXX - memory leak on multiple cont. lines
+      }
+
+      // printf("stab #%d = %s\n", i, ptr);
+      // may be nothing to parse - XXX  jdd 5/13/99
+      temp = parseStabString(this, stabptr[i].desc, (char *)ptr, 
+	  stabptr[i].val);
+      if (*temp) {
+	  //Error parsing the stabstr, return should be \0
+	  fprintf(stderr, "Stab string parsing ERROR!! More to parse: %s\n",
+	      temp);
+      }
+      break;
+
+    default:
+      break;
+    }       		    
+  }
+}
+
+#endif //end of #if defined(i386_unknown_linux2_0)
+
+// Parsing symbol table for Alpha platform
+// Mehmet
+
+#if defined(alpha_dec_osf4_0)
+extern void parseCoff(BPatch_module *mod, char *exeName, const string& modName);
+
+//Main fcn to construct type information
+void BPatch_module::parseTypes()
+{
+  image * imgPtr=NULL;
+
+  //Using pdmodule to get the image Object.
+  imgPtr = mod->exec();
+
+  //Get the path name of the process
+  char *file = (char *)(imgPtr->file()).string_of();
+
+  // with BPatch_functions
+  this->BPfuncs = this->getProcedures();
+
+  parseCoff(this, file, mod->fileName());
 }
 
 #endif

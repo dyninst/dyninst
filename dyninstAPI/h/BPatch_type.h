@@ -65,30 +65,36 @@ typedef enum {BPatchSymLocalVar,  BPatchSymGlobalVar, BPatchSymRegisterVar,
 
 typedef enum {BPatch_scalar, 
 	      BPatch_enumerated,
+	      BPatch_class,
 	      BPatch_structure, 
 	      BPatch_union, 
 	      BPatch_array, 
 	      BPatch_pointer, 
+	      BPatch_referance, 
 	      BPatch_func,
 	      BPatch_typeAttrib,
 	      BPatch_built_inType,
 	      BPatch_reference,
 	      BPatch_unknownType,
-	      BPatchSymTypeRange} BPatch_dataClass;
+	      BPatchSymTypeRange,
+	      BPatch_method} BPatch_dataClass;
 
 /*
  * Type Descriptors:
  * BPatchSymTypeReference - type reference- gnu sun-(empty)
  * BPatch_array - array type- gnu sun-'a'
  * BPatch_enumerated - enumerated type- gnu sun-'e'
+ * BPatch_class - Class type
  * BPatch_func - function type- gnu sun-'f'
  * BPatchSymTypeRange - range type- gnu sun-'r'
  * BPatch_structure - structure type- gnu sun-'s'
  * BPatch_union - union specification- gnu sun-'u'
  * BPatch_pointer - pointer type- gnu sun-'*'
+ * BPatch_referance - referance type- gnu sun-'*'
  * BPatch_typeAttrib - type attribute (C++)- gnu sun- '@'
  * BPatch_built_inType - built-in type -- gdb doc ->negative type number
  * BPatch_reference - C++ reference to another type- gnu sun- '&'
+ * BPatch_method - C++ class method
  */
 
 typedef enum {BPatch_private, BPatch_protected, BPatch_public,
@@ -125,6 +131,8 @@ class BPatch_field {
   int         offset;
   int         size;
 
+  /* Method vars */
+  
 public:
   
   // Enum constructor
@@ -224,6 +232,7 @@ public:
 	      BPatch_type * _ptr);
 			    
   int  getID(){ return ID;}
+  void setID(int typeId) { ID = typeId; }
 
 #if defined (sparc_sun_solaris2_4)
   int getSize() const { return size; }; /*XXX may need more work -jdd 5/27/99*/
@@ -252,18 +261,20 @@ class BPatch_localVar{
   BPatch_type * type;
   int lineNum;
   int frameOffset;
+  int storageClass; //USed only in COFF format, can be scAbs, scRegister, scVarRegister, scVar
   // scope_t scope;
   
 public:
   
   BPatch_localVar(char * _name,  BPatch_type * _type, int _lineNum,
-		  int _frameOffset);
+		  int _frameOffset, int _sc = 5 /* scAbs */);
   ~BPatch_localVar();
 
   const char *  getName()        { return name; }
   BPatch_type * getType()        { return type; }
   int           getLineNum()     { return lineNum; }
   int           getFrameOffset() { return frameOffset; }
+  int 		getSc()		 { return storageClass; }
   
 };
 

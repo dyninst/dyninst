@@ -735,10 +735,9 @@ bool BPatch_type::isCompatible(BPatch_type *otype)
       }
 
       // verify that the number of elements is the same
-      if ((this->hi - this->low) != (otype->hi - otype->low)) {
+      if ((atoi(this->hi) - atoi(this->low)) != (atoi(otype->hi) - atoi(otype->low))) {
 	  char message[80];
-	  sprintf(message, 
-	      "Incompatible number of elements [%d..%d] vs. [%d..%d]",
+	  sprintf(message, "Incompatible number of elements [%s..%s] vs. [%s..%s]",
 	      this->low, this->hi, otype->low, otype->hi);
 	  BPatch_reportError(BPatchWarning, 112, message);
 	  return false;
@@ -762,7 +761,7 @@ bool BPatch_type::isCompatible(BPatch_type *otype)
 	return true;
       BPatch_Vector<BPatch_field *> * fields1 = this->getComponents();
       // BPatch_Vector<BPatch_field *> * fields2 = ((BPatch_type)otype).getComponents();
-      BPatch_Vector<BPatch_field *> * fields2 = otype->getComponents();
+      BPatch_Vector<BPatch_field *> * fields2 = (BPatch_Vector<BPatch_field *> *) &(otype->fieldList);
       
       if( fields1->size() != fields2->size()) {
 	BPatch_reportError(BPatchWarning, 112, "enumeriated type mismatch ");
@@ -787,10 +786,11 @@ bool BPatch_type::isCompatible(BPatch_type *otype)
   case BPatch_union:
     {
       if (!strcmp( name, otype->name) && (ID == otype->ID))
-	return true;
+	  return true;
       BPatch_Vector<BPatch_field *> * fields1 = this->getComponents();
+      // The line below does not work in linux.
       // BPatch_Vector<BPatch_field *> * fields2 = ((BPatch_type)otype).getComponents();
-      BPatch_Vector<BPatch_field *> * fields2 = otype->getComponents();
+      BPatch_Vector<BPatch_field *> * fields2 = (BPatch_Vector<BPatch_field *> *) &(otype->fieldList);
 
       if (fields1->size() != fields2->size()) {
 	  BPatch_reportError(BPatchWarning, 112, 
@@ -1010,7 +1010,7 @@ BPatch_field::BPatch_field(const char * fName, BPatch_dataClass _typeDes,
  *
  */
 BPatch_localVar::BPatch_localVar(char * _name,  BPatch_type * _type,
-				 int _lineNum,int _frameOffset)
+				 int _lineNum,int _frameOffset, int _sc)
 {
   if( _name)
     name = strdup(_name);
@@ -1019,7 +1019,7 @@ BPatch_localVar::BPatch_localVar(char * _name,  BPatch_type * _type,
   type = _type;
   lineNum = _lineNum;
   frameOffset = _frameOffset;
-
+  storageClass = _sc; //Only for COFF format. Default value is scAbs
 }
 
 

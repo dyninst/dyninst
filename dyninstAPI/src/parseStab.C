@@ -132,7 +132,9 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	    // Still need to add to local variable list if in a function
 	    fp = mod->findFunction( current_func_name );
 	    if (!fp) {
-		printf(" Can't find function %s in module\n", current_func_name);
+		char modName[100];
+		mod->getName(modName, 99);
+		printf(" Can't find function %s in module %s\n", current_func_name, modName);
 		printf("Unable to add %s to local variable list in %s\n",
 		       name,current_func_name);
 	    } else {
@@ -145,8 +147,10 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	  ptrType = mod->moduleTypes->findType( ID);
 	  fp = mod->findFunction(current_func_name);
 	  if (!fp) {
-	      printf(" Can't find function in BPatch_function vector: %s\n",
-		   current_func_name);
+	      char modName[100];
+	      mod->getName(modName, 99);
+	      printf(" Can't find function in BPatch_function vector: %s in module %s\n",
+		   current_func_name, modName);
 	  } else {
 	      locVar = new BPatch_localVar(name, ptrType, linenum, framePtr);
 	      fp->localVariables->addLocalVar( locVar);
@@ -159,7 +163,8 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	      char *lfuncName=NULL;
 	      cnt++;
 	      current_func_name = name;
-	      funcReturnID = parseSymDesc(stabstr, cnt);
+	      // funcReturnID = parseSymDesc(stabstr, cnt);
+	      funcReturnID = parseTypeUse(mod, stabstr, cnt, name);
       
 	      if (stabstr[cnt]==',') {
 		  cnt++; 	/*skip the comma*/
@@ -365,6 +370,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		  newType = new BPatch_type(name, symdescID);
 		  if (newType) mod->moduleTypes->addType(newType);
 	      }
+
 	      break;
 
 	  case 'V':/* Local Static Variable */
@@ -444,15 +450,43 @@ int parseSymDesc(char *stabstr, int &cnt)
 }
 
 //
-// parse an identifier up to a ":" or ","
+// parse an identifier up to a ":" or "," or ";"
 //
 char *getIdentifier(char *stabstr, int &cnt)
 {
     int i = 0;
     char *ret;
+    int brCnt = 0;
+    bool idChar = true;
 
-    while (stabstr[cnt+i] && 
-	   (stabstr[cnt+i] != ':') && (stabstr[cnt+i] != ',')) i++;
+    while(idChar) {
+	switch(stabstr[cnt+i]) {
+	case '<':
+	case '(':
+		brCnt++;
+		i++;
+		break;
+
+	case '>':
+	case ')':
+		brCnt--;
+		i++;
+		break;
+
+	case '\0':
+	case ':':
+	case ',':
+	case ';':
+		if (brCnt)
+			i++;
+		else
+			idChar = false;
+		break;
+	default:
+		i++;
+		break;
+	}
+    }
 
     ret = (char *) malloc(i+1);
     assert(ret);
@@ -564,8 +598,8 @@ static char *parseArrayDef(BPatch_module *mod, char *name,
 	    cnt = 0;
 	    if (stabstr[cnt] == ':') {
 		//C++ stuff
-	        //printf("Skipping C++ rest of structure:  %s\n",name );
-	        while (stabstr[cnt]) cnt++;
+	        //printf("Skipping C++ rest of array def:  %s\n",name );
+	        while (stabstr[cnt] != ';') cnt++;
 	    }
         }
     }
@@ -591,6 +625,89 @@ static char *parseArrayDef(BPatch_module *mod, char *name,
     return (&stabstr[cnt]);
 }
 
+#if defined(i386_unknown_linux2_0)
+//
+// parse range type of the form:	
+//
+//	<rangeType> = r<typeNum>;<low>;<high>;
+//
+static char *parseRangeType(BPatch_module *mod,char *name,int ID, char *stabstr)
+{
+    int cnt, i;
+    int sign = 1;
+
+    cnt = i = 0;
+
+    assert(stabstr[0] == 'r');
+    cnt++;
+
+    BPatch_dataClass typdescr = BPatchSymTypeRange;
+
+    // range index type - not used
+    (void) parseSymDesc(stabstr, cnt);
+
+    // printf("\tSymbol Descriptor: %c and Value: %d\n",tmpchar, symdescID);
+
+    cnt++; /* Discarding the ';' */
+    if (stabstr[cnt] == '-' ) cnt++;
+
+    /* Getting type range or size */
+    i=0;
+    while (isdigit(stabstr[cnt+i])) i++;
+
+    char *low = (char *)malloc(sizeof(char)*(i+1));
+    if(!strncpy(low, &(stabstr[cnt]), i))
+      /* Error copying size/range*/
+      exit(1);
+    low[i] = '\0';
+
+    cnt = cnt + i + 1; /* Discard other Semicolon */
+    i = 0;
+    if((stabstr[cnt]) == '-') {
+	i++; /* discard '-' for (long) unsigned int */
+    }
+    //Find high bound
+    while (isdigit(stabstr[cnt+i])) i++;
+    char *hi = (char *)malloc(sizeof(char)*(i+1));
+    if(!strncpy(hi, &(stabstr[cnt]), i))
+	/* Error copying upper range */
+	exit(1);
+    hi[i] = '\0';
+
+    int j = atol(hi);
+    
+    if (j == 0) {
+    //Size
+  	int size = atol(low);
+
+	//Create new type
+	BPatch_type *newType = new BPatch_type( name, ID, typdescr, size);
+	//Add to Collection
+	mod->moduleTypes->addType(newType);
+    }
+    else {
+	//Range
+        //Create new type
+        BPatch_type *newType = new BPatch_type( name, ID, typdescr, low, hi);
+        //Add to Collection
+        mod->moduleTypes->addType(newType);
+    }
+
+    free(low);
+    free(hi);
+    hi=low=NULL;
+
+    cnt = cnt + i;
+    if( stabstr[cnt] == ';')
+      cnt++;
+    if( stabstr[cnt] ) {
+      fprintf(stderr, "ERROR: More to parse in type-r- %s\n", &(stabstr[cnt]));
+    }
+    
+    return(&(stabstr[cnt]));
+}
+
+#else
 //
 // parse range type of the form:	
 //
@@ -691,6 +808,8 @@ static char *parseRangeType(BPatch_module *mod,char *name,int ID, char *stabstr)
     return(&(stabstr[cnt]));
 }
 
+#endif
+
 //
 //  <attrType> = @s<int>;<int>
 //
@@ -718,7 +837,7 @@ static void parseAttrType(BPatch_module *mod, char *name,
       
       if (!ptrType) ptrType = BPatch::bpatch->type_Untyped;
       
-      BPatch_type *newType = new BPatch_type(name, ID, typdescr, size, ptrType);
+      BPatch_type *newType = new BPatch_type(name, ID, typdescr, size/8, ptrType);
       
       // Add type to collection
       if(newType) mod->moduleTypes->addType(newType);
@@ -778,12 +897,47 @@ static char *parseFieldList(BPatch_module *mod, BPatch_type *newType,
     char *compname;
     int comptype= 0;
     BPatch_visibility _vis = BPatch_visUnknown;
+    BPatch_dataClass typedescr;
 
     while (stabstr[cnt] && (stabstr[cnt] != ';')) {
-	compname = getIdentifier(stabstr, cnt);
+	typedescr = BPatch_scalar;
 
+	if (stabstr[cnt] == '!') {
+		//Inheritance definition, simply skip it!
+		cnt++;
+		//Get # of base classes
+		int baseClNum = atoi(getIdentifier(stabstr, cnt));
+		//Skip information for each base class
+		for(int i=0; i<baseClNum; ++i) {
+			while(stabstr[cnt] != ';')
+				cnt++;
+			cnt++; //Skip ';'
+		}
+		continue;
+	}
+	else if (stabstr[cnt] == '~') {
+		//End of virtual class
+		while(stabstr[cnt] != ';') cnt++;
+		break; //End of class is reached
+	}
+
+	compname = getIdentifier(stabstr, cnt);
+/*
+	if (strlen(compname) == 0) {
+		//Something wrong! Most probably unhandled C++ type
+		//Skip the rest of the structure
+		while(stabstr[cnt]) cnt++;
+		return(&stabstr[cnt]);
+	}
+*/
 	cnt++;	// Skip ":"
-	 
+
+	if ((stabstr[cnt]) == ':') {
+	  //Method definition
+	  typedescr = BPatch_method;
+	  cnt++;
+	}
+
 	if ((stabstr[cnt]) == '/') { // visibility C++
 	  cnt++; /* get '/' */
 	  switch (stabstr[cnt]) {
@@ -805,23 +959,81 @@ static char *parseFieldList(BPatch_module *mod, BPatch_type *newType,
 	  cnt++; // get visibility value
 	}
 
-	if ((stabstr[cnt]) == ':') {
-	  // C++ data structure
-	  //printf("Skipping C++ rest of structure:  %s\n", name );
-	  while(stabstr[cnt]) cnt++;
-	  return(&(stabstr[cnt]));
-	}
-	
 	// should be a typeDescriptor
 	comptype = parseTypeUse(mod, stabstr, cnt, "");
 
-	assert(stabstr[cnt] == ',');
-	cnt++;	// skip ','
-	beg_offset = parseSymDesc(stabstr, cnt);
+	if (stabstr[cnt] == ':') {
+		cnt++; //Discard ':'
 
-	assert(stabstr[cnt] == ',');
-	cnt++;	// skip ','
-	size = parseSymDesc(stabstr, cnt);
+		beg_offset = 0;
+		size = 0;
+		if (typedescr == BPatch_method) {
+			while(1) {
+				//Mangling of arguments
+				while(stabstr[cnt] != ';') cnt++;
+
+				cnt++; //Skip ';'
+				cnt++; //Skip visibility
+				cnt++; //Skip method modifier
+				if (stabstr[cnt] == '*') {
+					//Virtual fcn definition
+					cnt++;
+					while(stabstr[cnt] != ';') cnt++; //Skip vtable index
+					cnt++; //Skip ';'
+					while(stabstr[cnt] != ';') cnt++; //Skip type number to 
+									  //the base class
+					while(stabstr[cnt] == ';') cnt++; //Skip all ';'
+				}
+				else if ( (stabstr[cnt] == '.') ||
+					  (stabstr[cnt] == '?') )
+					cnt++; //Skip '.' or '?'
+
+				if (isSymId(stabstr[cnt])) {
+					//Still more to process, but what is this?
+					//It seems, it is another fcn definition
+					parseTypeUse(mod, stabstr, cnt, "");
+					if (stabstr[cnt] == ':') 
+						cnt++; //Discard ':'
+				}
+				else {
+					if (stabstr[cnt] == '~')
+						cnt--; //Get back to ';'
+					else if (stabstr[cnt] == ';') {
+						//Skip all ';' except last one or two
+						while(stabstr[cnt] == ';') cnt++;
+						if (!stabstr[cnt] || (stabstr[cnt] == ',') )
+							cnt--; //There must be two ';'
+						cnt--;
+					}
+					else {
+						//Something wrong! Skip entire stab record and exit
+						while(stabstr[cnt]) cnt++;
+						return (&stabstr[cnt]);
+					}
+
+					break;
+				}
+			} //While 1
+		}
+		else {
+			//Static member var
+			char *varName = getIdentifier(stabstr, cnt);
+			free(varName);
+			//Don't know what to do!
+		}
+	}
+	else if (stabstr[cnt] == ',') {
+		assert(stabstr[cnt] == ',');
+		cnt++;	// skip ','
+		beg_offset = parseSymDesc(stabstr, cnt);
+
+		if (stabstr[cnt] == ',') {
+			cnt++;	// skip ','
+			size = parseSymDesc(stabstr, cnt);
+		}
+		else
+			size = 0;
+	}
 
 	assert(stabstr[cnt] == ';');
 	cnt++;	// skip ';' at end of field
@@ -830,10 +1042,10 @@ static char *parseFieldList(BPatch_module *mod, BPatch_type *newType,
 	// Add struct field to type
 	BPatch_type *fieldType = mod->moduleTypes->findType(comptype);
 	if (_vis == BPatch_visUnknown) {
-	    newType->addField(compname, BPatch_scalar, fieldType,
+	    newType->addField(compname, typedescr, fieldType,
 			    beg_offset, size);
 	} else {
-	    newType->addField(compname, BPatch_scalar, fieldType,
+	    newType->addField(compname, typedescr, fieldType,
 			    beg_offset, size, _vis);
 	    //printf("Adding Component with VISIBILITY STRUCT\n");
 	}
@@ -960,6 +1172,7 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr, char *name, int ID)
 
 		cnt++; /* skip the f */
 	        type = parseTypeUse(mod, stabstr, cnt, name);
+
 		break;
 
 	 case 'R': {
@@ -1075,10 +1288,34 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr, char *name, int ID)
 	    mod->moduleTypes->addType(newType);
 	      
 	    return parseFieldList(mod, newType, &stabstr[cnt]);
+
 	    break;
 
 	case 'Z':  // What is this ??? - jkh 10/14/99 (xlc compiler uses it)
 	    return (&stabstr[1]);
+	    break;
+
+	case '#':
+	    //Class method definition
+	    cnt++; //Skip '#'
+	    if (stabstr[cnt] == '#') {
+		//Get return type
+	    	cnt++; //Skip '#'
+		parseTypeUse(mod, stabstr, cnt, name);
+	    }
+	    else {
+	    	while(1) {
+			//Skip class type, return typ and arg types
+			parseTypeUse(mod, stabstr, cnt, name);
+			if (stabstr[cnt] == ',')
+				cnt++;
+			else if (stabstr[cnt] == ';')
+				break;
+		}
+	    }
+
+	    cnt++; //Skip ';'
+    	    return(&(stabstr[cnt]));
 	    break;
 
 	default:

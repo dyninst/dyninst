@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.104 1999/11/09 19:20:06 cain Exp $
+// $Id: symtab.C,v 1.105 2000/01/11 21:55:36 altinel Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1495,6 +1495,7 @@ bool image::addAllFunctions(vector<Symbol> &mods,
 	showErrorCallback(29, msg);
 	return false;
       }
+
       insert_function_internal_static(mods, lookUp, boundary_start,
               boundary_end, startAddr, startB, endAddr, endB, dyn, lib);
     }
