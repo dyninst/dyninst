@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.107 2002/05/02 21:29:02 schendel Exp $
+// $Id: mdl.C,v 1.108 2002/05/04 21:46:55 schendel Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -50,7 +50,7 @@
 #include "paradynd/src/processMetFocusNode.h"
 #include "paradynd/src/threadMetFocusNode.h"
 #include "paradynd/src/instrCodeNode.h"
-#include "paradynd/src/instrThrDataNode.h"
+#include "paradynd/src/instrDataNode.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/ast.h"
 #include "paradynd/src/main.h"
@@ -63,7 +63,6 @@
 #include "common/h/debugOstream.h"
 #include "pdutil/h/pdDebugOstream.h"
 #include "dyninstAPI/src/instPoint.h" // new...for class instPoint
-#include "paradynd/src/dataReqNode.h"
 
 #include <ctype.h>
 
@@ -95,6 +94,7 @@ vector<string> mdl_data::lib_constraints;
 vector<T_dyninstRPC::mdl_metric*> mdl_data::all_metrics;
 
 
+/*
 #if defined(MT_THREAD)
 int index_in_data(unsigned lev, unsigned ind, vector<dataReqNode*>& data) {
   int size = data.size();
@@ -121,6 +121,7 @@ int index_in_data(Address v, vector<dataReqNode*>& data) {
   return -1;
 }
 #endif
+*/
 
 
 //
@@ -576,326 +577,74 @@ inst_var_index allocateInstVarForAllThreads(unsigned mdl_data_type,
 }
 
 
-// actually create the thread instrumentation variable
-dataReqNode *createThrInstVar(instrThrDataNode *dataNode, 
-			      unsigned mdl_data_type,
-			      inst_var_index varIndex, pdThread *thr)
-{
-   assert(dataNode->proc() != NULL);
-   dataReqNode *drn = NULL;
-
-   switch (mdl_data_type) {
-   case MDL_T_COUNTER:
-      drn = dataNode->createSampledCounter(varIndex, thr, 0);
-      break;
-   case MDL_T_WALL_TIMER:
-      drn = dataNode->createWallTimer(varIndex, thr);
-      break;
-   case MDL_T_PROC_TIMER:
-      drn = dataNode->createProcessTimer(varIndex, thr);
-      break;
-   case MDL_T_NONE:
-      // just to keep mdl apply allocate a dummy un-sampled counter.
-      // "true" means that we are going to create a sampled int counter but
-      // we are *not* going to sample it, because it is just a temporary
-      // counter - naim 4/22/97
-      // By default, the last parameter is false - naim 4/23/97
-      drn = dataNode->createTemporaryCounter(varIndex, thr, 0);
-      break;
-   default:
-      assert(0);  break;
-   }
-   return drn;
-}
-
 extern string metricAndCanonFocus2FlatName(const string &met, const vector< vector<string> > &focus);
 
 //extern string metricAndCanonFocus2FlatName(const string &met, const vector< vector<string> > &focus);
 
-// no "replace constraint" considered yet
-bool allocateConstraintData(indivInstrThrDataNode* thrDataNode,
-			    T_dyninstRPC::mdl_constraint *flag_con,
-			    const inst_var_index consVarIndex) {
-  assert(thrDataNode);
-  // from constraint::apply()
-  switch (flag_con->data_type_) {
-    case MDL_T_COUNTER:
-    case MDL_T_WALL_TIMER:
-    case MDL_T_PROC_TIMER:
-      break;
-    default:
-      assert(0);
-  }
-  
-  pdThread *thr = thrDataNode->getThreadObj();
-  dataReqNode *drn = 
-     thrDataNode->createConstraintCounter(consVarIndex, thr, 0);
-
-  // this flag will construct a predicate for the metric -- have to return it
-  // flag = drn;
-  assert(drn);
-  
-  if (!thrDataNode->nonNull()) {
-    return false;
-  }
-  return true;
-}
-
-bool allocateMetricData(indivInstrThrDataNode* thrDataNode,
-			unsigned& type, const inst_var_index sampledVarIndex,
-			const vector<inst_var_index> tempsVarIndexes)
+// allocate data and generate code for all threads
+bool setup_sampledNodes(const processMetFocusNode* procNode,
+			instrCodeNode* codeNode, process *proc,
+			const string &id, unsigned type,
+			T_dyninstRPC::mdl_constraint *repl_cons,
+			vector<T_dyninstRPC::mdl_stmt*> *stmts,
+			const vector<string> &temp_ctr, 
+			const vector< vector<string> > &focus,
+			unsigned base_dex,
+			bool dontInsertData)
 {
-  // very similar to initDataRequests
-  // but did Not set var in mdl_env
-  // because we are not going to generate any code for this thread
-  
-  pdThread *thr = thrDataNode->getThreadObj();
-  dataReqNode *the_node = 
-     createThrInstVar(thrDataNode, type, sampledVarIndex, thr);
-  assert(the_node);
-  
-  // Create the temporary counters 
-  for(unsigned i=0; i<tempsVarIndexes.size(); i++) {
-     dataReqNode *temp_node = 
-	thrDataNode->createTemporaryCounter(tempsVarIndexes[i], thr, 0);
-     assert(temp_node);      
-  }
-  
-  if (!thrDataNode->nonNull()) {
-    return false;
-  }
-
-  return true;
-}
-
-bool allocateConstraintData_and_generateCode(instrCodeNode *codeNode,
-		                instrThrDataNode* thrDataNode, process *proc,
-			        const vector< vector<string> > &focus,
-			        T_dyninstRPC::mdl_constraint *flag_con,
-                                const unsigned flag_dex,
-				inst_var_index *consVarIndex) {
-  dataReqNode *flag = NULL;
-
-  pdThread *thr = NULL;
-  if(proc->is_multithreaded()) {
-     indivInstrThrDataNode *iThrDataNode = 
-	dynamic_cast<indivInstrThrDataNode*>(thrDataNode);
-     thr = iThrDataNode->getThreadObj();
-  }
-
-  // The following calls mdl_constraint::apply():
-  if (!flag_con->apply(codeNode, thrDataNode, &flag, focus[flag_dex], proc,
-		       thr, consVarIndex))
-  {
-    // flag not needed, already set in thrDataNode
-    return false;
-  }
-  assert(flag);
-  
-  if (!thrDataNode->nonNull()) {
-    return false;
-  }
-  return true;
-}
-
-bool allocateMetricData_and_generateCode(const processMetFocusNode* procNode,
-                        instrCodeNode *codeNode, instrThrDataNode* thrDataNode,
-                        process *proc, const string &id,
-                        const vector< vector<string> > &focus, unsigned& type,
-                        T_dyninstRPC::mdl_constraint *repl_cons,
-                        vector<T_dyninstRPC::mdl_stmt*> *stmts,
-                        unsigned base_dex, const vector<string> &temp_ctr,
-		        inst_var_index *metricVarIndex,
-		        vector<inst_var_index> *tempsVarIndexes) { 
-  // Create the timer/counter  
-  pdThread *thr = NULL;
-  if(proc->is_multithreaded()) {
-     indivInstrThrDataNode *iThrDataNode = 
-	dynamic_cast<indivInstrThrDataNode*>(thrDataNode);
-     thr = iThrDataNode->getThreadObj();
-  }
-
-  (*metricVarIndex) = allocateInstVarForAllThreads(type, codeNode,
-						thrDataNode->dontInsertData());
-  dataReqNode *the_node = 
-     createThrInstVar(thrDataNode, type, (*metricVarIndex), thr);
-  assert(the_node);
-  mdl_env::set(the_node, id);
-  
-  // Create the temporary counters 
-  for (unsigned tc=0; tc < temp_ctr.size(); tc++) {
-     inst_var_index tempVarIndex;
-     tempVarIndex = allocateInstVarForAllThreads(MDL_T_COUNTER, codeNode, 
-						thrDataNode->dontInsertData());
-     dataReqNode *temp_node = 
-	thrDataNode->createTemporaryCounter(tempVarIndex, thr, 0);
-     (*tempsVarIndexes).push_back(tempVarIndex);
-     assert(temp_node);
-     mdl_env::set(temp_node, temp_ctr[tc]);
-  }
-
-  if(repl_cons!=NULL) {
-    // mdl_constraint::apply()
-     dataReqNode *flag = NULL;
-     inst_var_index replConsDataIndex;  // not sure about this data
-     if (!repl_cons->apply(codeNode, thrDataNode, &flag, 
-			   focus[base_dex], proc, thr, 
-			   &replConsDataIndex)) {
-       return false;
-     }
-  } else {
-     int tid = thrDataNode->getThreadID();
-     vector<const dataReqNode*> flagDRNs = procNode->getFlagDRNs(tid);
-
+   inst_var_index sampledVarIndex = 
+      allocateInstVarForAllThreads(type, codeNode, dontInsertData);
+   instrDataNode *sampledDataNode = 
+      new instrDataNode(proc, type, sampledVarIndex, dontInsertData);
+   codeNode->setSampledDataNode(sampledDataNode);
+   mdl_env::set(sampledDataNode, id);
+   
+   // Create the temporary counters 
+   for (unsigned tc=0; tc < temp_ctr.size(); tc++) {
+      unsigned tempVarIndex = 
+	 allocateInstVarForAllThreads(MDL_T_COUNTER, codeNode, dontInsertData);
+      instrDataNode *tempCtrDataNode = 
+	 new instrDataNode(proc, MDL_T_COUNTER, tempVarIndex, dontInsertData);
+      codeNode->addTempCtrDataNode(tempCtrDataNode);
+      mdl_env::set(tempCtrDataNode, temp_ctr[tc]);
+   }
+   
+   // create the ASTs for the code
+   if(repl_cons!=NULL) {
+      // mdl_constraint::apply()
+      inst_var_index replConsDataIndex;  // not sure about this data
+      instrDataNode *notAssignedToDataNode;
+      if (!repl_cons->apply(codeNode, &notAssignedToDataNode, focus[base_dex], 
+			    proc, &replConsDataIndex)) {
+	 return false;
+      }
+   } else {
+      vector<const instrDataNode*> flagNodes = procNode->getFlagDataNodes();
       // metric_cerr << "!repl_cons" << endl ;
       unsigned size = stmts->size();
       for (unsigned u=0; u<size; u++) {
-        // virtual fn call depending on stmt type
-        if (!(*stmts)[u]->apply(codeNode, flagDRNs)) {
-	  return false;
-	}
-    }
-  }
-
-  if (!thrDataNode->nonNull()) {
-    return false;
-  }
-
-  return true;
-}
-
-// allocate data and generate code for all threads
-bool allDataGenMetricCode_for_threads(
-		 const processMetFocusNode* procNode,
-		 instrCodeNode* codeNode,
-                 process *proc,
-                 const string &id,
-                 const vector< vector<string> > &focus,
-                 unsigned type,
-                 T_dyninstRPC::mdl_constraint *repl_cons,
-                 vector<T_dyninstRPC::mdl_stmt*> *stmts,
-                 unsigned base_dex,
-                 const vector<string> &temp_ctr,
-                 bool dontInsertData) // flag: "for constraint" or "for metric"
-{
-   vector <instrThrDataNode *> dataNodes;
-
-   vector <pdThread *>& allThr = proc->threads ;
-   unsigned i;
-
-   bool bMT = proc->is_multithreaded();
-   if(bMT) {  // --- multi-threaded ---   
-      for (i=0;i<allThr.size();i++) {
-	 if (allThr[i] != NULL) {
-	    indivInstrThrDataNode *thrDataNode =
-	       new indivInstrThrDataNode(codeNode, dontInsertData, allThr[i]);
-	    assert(thrDataNode);
-	    dataNodes.push_back(thrDataNode);
-	 }
-      }
-   } else {  // --- single-threaded ---
-      collectInstrThrDataNode *collDataNode = 
-	 new collectInstrThrDataNode(codeNode, dontInsertData);
-      dataNodes.push_back(collDataNode);
-   }
-    
-   if (dataNodes.size() == 0) {
-      return false;
-   }
-
-   inst_var_index sampledVarIndex;
-   vector<inst_var_index> tempsVarIndexes;
-
-   for (unsigned j=0; j<dataNodes.size(); j++) {
-      instrThrDataNode* thrDataNode = dataNodes[j];
-      codeNode->addDataNode(thrDataNode);
-
-      if(j==0) {
-	 if (repl_cons==NULL) {
-	    if( !allocateMetricData_and_generateCode(procNode, codeNode, 
-			     thrDataNode, proc, id, focus, type,
-			     repl_cons /* size == 0 */, stmts, base_dex,
-			     temp_ctr, &sampledVarIndex,
-			     &tempsVarIndexes))
-	    {
-	       return false;
-	    }
-	 } else {
-	    if( !allocateMetricData_and_generateCode(procNode, codeNode, 
-			     thrDataNode, proc, id, focus, type, 
-			     repl_cons, NULL, base_dex, temp_ctr,
-			     &sampledVarIndex, &tempsVarIndexes))
-	    { 
-	       return false;
-	    }	    
-	 }
-   } else {
-	 assert(bMT);  // should only occur in the MT case
-	 indivInstrThrDataNode *iThrDataNode = 
-	    dynamic_cast<indivInstrThrDataNode*>(thrDataNode);
-
-	 if( !allocateMetricData(iThrDataNode, type, sampledVarIndex, 
-				 tempsVarIndexes)) {
-	    return false ;
+	 // virtual fn call depending on stmt type
+	 if (!(*stmts)[u]->apply(codeNode, flagNodes)) {
+	    return false;
 	 }
       }
    }
-
+   
    return true;
 }
 
-
-bool allDataGenCode_for_flagCons_threads(
-		 instrCodeNode* codeNode,
-                 process *proc,
-                 const vector< vector<string> > &focus,
-                 T_dyninstRPC::mdl_constraint *flag_con,
-		 const unsigned& flag_dex,
-                 bool dontInsertData) // flag: "for constraint" or "for metric"
+bool setup_constraints(instrCodeNode* codeNode, process *proc,
+		       const vector< vector<string> > &focus,
+		       T_dyninstRPC::mdl_constraint *flag_con,
+		       const unsigned& flag_dex,
+		       bool dontInsertData) 
 {
-   vector <instrThrDataNode *> dataNodes;
-
-   vector <pdThread *>& allThr = proc->threads ;
-
-   bool bMT = proc->is_multithreaded();
-   if(bMT) {  // --- multi-threaded ---
-      for(unsigned i=0; i<allThr.size(); i++) {
-	 if (allThr[i] != NULL) {
-	    indivInstrThrDataNode *thrDataNode =
-	       new indivInstrThrDataNode(codeNode, dontInsertData, allThr[i]);
-	    dataNodes.push_back(thrDataNode);
-	 }
-      }
-   } else {  // --- single-threaded ---
-      collectInstrThrDataNode *collDataNode = 
-	 new collectInstrThrDataNode(codeNode, dontInsertData);
-      dataNodes.push_back(collDataNode);
-   }
-
-   if(dataNodes.size() == 0) {
+   instrDataNode *consDataNode;
+   // The following calls mdl_constraint::apply():
+   if (!flag_con->apply(codeNode, &consDataNode, focus[flag_dex], proc,
+			dontInsertData)) {
       return false;
    }
-
-   inst_var_index consVarIndex;
-
-   for(unsigned j=0; j<dataNodes.size(); j++) {
-      instrThrDataNode* thrDataNode = dataNodes[j];
-      codeNode->addDataNode(thrDataNode);
-
-      if(j == 0) {
-	 if(!allocateConstraintData_and_generateCode(codeNode,
-			 thrDataNode, proc, focus, flag_con, flag_dex,
-						     &consVarIndex))
-	    return false;
-      } else {   // j != 0
-	 assert(bMT);  // should only occur in the MT case
-	 indivInstrThrDataNode *iThrDataNode = 
-	    dynamic_cast<indivInstrThrDataNode*>(thrDataNode);
-	 if(!allocateConstraintData(iThrDataNode, flag_con, consVarIndex))
-	    return false ;
-      }
-   }
-
    return true;
 }
 
@@ -1002,11 +751,12 @@ bool createDataNodes(processMetFocusNode **procNode_arg,
    processMetFocusNode *procNode = (*procNode_arg);
    process *proc = procNode->proc();
    bool dontInsertData = procNode->dontInsertData();
-   // create the instrCodeNodes and instrThrDataNodes for the flag constraints
+   // create the instrCodeNodes and instrDataNodes for the flag constraints
+
    if(repl_cons == NULL) {
       unsigned flag_size = flag_cons.size(); // could be zero
       metric_cerr << " there are " << flag_size << " flags (constraints)\n";
-      
+
       for (unsigned fs=0; fs < flag_size; fs++) {
 	 instrCodeNode *consCodeNode = NULL;
 	 string cons_name(flag_cons[fs]->id());
@@ -1021,8 +771,8 @@ bool createDataNodes(processMetFocusNode **procNode_arg,
 	 
 	 if (! consCodeNodeComplete) {
 	    metric_cerr << "  flag not already there " << endl;
-	    if (!allDataGenCode_for_flagCons_threads(consCodeNode, proc, focus,
-			         flag_cons[fs], flag_dex[fs], dontInsertData)) 
+	    if (! setup_constraints(consCodeNode, proc, focus, flag_cons[fs], 
+				    flag_dex[fs], dontInsertData)) 
 	    {
 	       delete consCodeNode;
 	       return false;
@@ -1034,9 +784,7 @@ bool createDataNodes(processMetFocusNode **procNode_arg,
 	 procNode->addConstraintCodeNode(consCodeNode);	    
       }
    }
-      
    string comp_flat_name = metricAndCanonFocus2FlatName(name, component_focus);
-   
    instrCodeNode *metCodeNode = 
       instrCodeNode::newInstrCodeNode(comp_flat_name, proc, dontInsertData);
 
@@ -1044,10 +792,9 @@ bool createDataNodes(processMetFocusNode **procNode_arg,
    if(! metCodeNodeComplete) {
       // Create the data objects (timers/counters) and create the
       // astNodes which will be used to generate the instrumentation
-      if ( !allDataGenMetricCode_for_threads(procNode, metCodeNode, proc, id, 
-					     focus, type, repl_cons,
-					     stmts, base_dex, 
-					     temp_ctr, dontInsertData)) {
+      if ( !setup_sampledNodes(procNode, metCodeNode, proc, id, type, 
+			       repl_cons, stmts, temp_ctr, focus, base_dex, 
+			       dontInsertData)) {
 	 delete metCodeNode;
 	 return false;
       }
@@ -1060,8 +807,8 @@ bool createDataNodes(processMetFocusNode **procNode_arg,
       delete metCodeNode;
       return false;
    }
-   procNode->setMetricVarCodeNode(metCodeNode);
 
+   procNode->setMetricVarCodeNode(metCodeNode);
    return true;
 }
 
@@ -1079,8 +826,9 @@ void createThreadNodes(processMetFocusNode **procNode_arg,
    if(! bMT) {   // --- single-threaded ---
       string comp_flat_name = metricAndCanonFocus2FlatName(metname, 
 							   component_focus);
-      threadMetFocusNode *thrNode = collectThreadMetFocusNode::
-                                newCollectThreadMetFocusNode(comp_flat_name);
+      threadMetFocusNode *thrNode = 
+	 threadMetFocusNode::newThreadMetFocusNode(comp_flat_name, 
+						   proc->STpdThread());
       threadNodeBuf.push_back(thrNode);
    } else {      // --- multi-threaded ---
       string thr_flat_name;
@@ -1092,16 +840,15 @@ void createThreadNodes(processMetFocusNode **procNode_arg,
 	       addThrInfo2Focus(component_focus, allThr[u]);
 	    thr_flat_name = metricAndCanonFocus2FlatName(metname, thr_focus);
 	    threadMetFocusNode *thrNode = 
-	       indivThreadMetFocusNode::newIndivThreadMetFocusNode(
-				  thr_flat_name, allThr[u]->get_tid());
+	       threadMetFocusNode::newThreadMetFocusNode(
+					     thr_flat_name, allThr[u]);
 	    threadNodeBuf.push_back(thrNode);
 	 }
       } else {
 	 thr_flat_name = metricAndCanonFocus2FlatName(metname, focus_with_thr);
-	 
-	 threadMetFocusNode *thrNode =       
-	    indivThreadMetFocusNode::newIndivThreadMetFocusNode(
-                                  thr_flat_name, thrSelected);
+	 pdThread *selThr = proc->getThread(thrSelected);
+	 threadMetFocusNode *thrNode = 
+	    threadMetFocusNode::newThreadMetFocusNode(thr_flat_name, selThr);
 	 threadNodeBuf.push_back(thrNode);
       }
 #if defined(MT_THREAD)
@@ -1272,12 +1019,12 @@ machineMetFocusNode *T_dyninstRPC::mdl_metric::apply(int mid,
   // TODO -- are lists updated here ?
 
   mdl_env::push();
-  mdl_env::add(id_, false, MDL_T_DRN);
+  mdl_env::add(id_, false, MDL_T_DATANODE);
   assert(stmts_);
 
   const unsigned tc_size = temp_ctr_->size();
   for (unsigned tc=0; tc<tc_size; tc++) {
-    mdl_env::add((*temp_ctr_)[tc], false, MDL_T_DRN);
+    mdl_env::add((*temp_ctr_)[tc], false, MDL_T_DATANODE);
   }
 
   static string machine;
@@ -1475,11 +1222,10 @@ static bool do_trailing_resources(const vector<string>& resource_,
 
 // Flag constraints need to return a handle to a data request node -- the flag
 bool T_dyninstRPC::mdl_constraint::apply(instrCodeNode *codeNode,
-					 instrThrDataNode *dataNode,
-					 dataReqNode **flag,
+					 instrDataNode **dataNode,
 					 const vector<string>& resource,
-					 process *proc, pdThread* thr,
-					 inst_var_index *consVarIndex)
+					 process *proc,
+					 bool dontInsertData)
 {
   assert(dataNode);
   switch (data_type_) {
@@ -1494,21 +1240,19 @@ bool T_dyninstRPC::mdl_constraint::apply(instrCodeNode *codeNode,
 
   if (!replace_) {
     // create the counter used as a flag
-    mdl_env::add(id_, false, MDL_T_DRN);
+    mdl_env::add(id_, false, MDL_T_DATANODE);
     // "true" means that we are going to create a sampled int counter but
     // we are *not* going to sample it, because it is just a temporary
     // counter - naim 4/22/97
     // By default, the last parameter is false - naim 4/23/97
 
-    (*consVarIndex) = allocateInstVarForAllThreads(MDL_T_COUNTER,
-					 codeNode, dataNode->dontInsertData());
-    dataReqNode *drn = 
-       dataNode->createConstraintCounter(*consVarIndex, thr, 0);
+    inst_var_index index = 
+       allocateInstVarForAllThreads(MDL_T_COUNTER, codeNode, dontInsertData);
+    (*dataNode) = new instrDataNode(proc, MDL_T_COUNTER, index,dontInsertData);
+    codeNode->setConstraintDataNode(*dataNode);
 
     // this flag will construct a predicate for the metric -- have to return it
-    *flag = drn;
-    assert(drn);
-    mdl_env::set(drn, id_);
+    mdl_env::set(*dataNode, id_);
   }
 
   // put $constraint[X] in the environment
@@ -1519,7 +1263,7 @@ bool T_dyninstRPC::mdl_constraint::apply(instrCodeNode *codeNode,
 
   // Now evaluate the constraint statements
   unsigned size = stmts_->size();
-  vector<const dataReqNode*> flags;
+  vector<const instrDataNode*> flags;
   bool wasRunning = global_proc->status()==running;
 #ifdef DETACH_ON_THE_FLY
   global_proc->reattachAndPause();
@@ -1585,7 +1329,7 @@ T_dyninstRPC::mdl_for_stmt::~mdl_for_stmt()
 }
 
 bool T_dyninstRPC::mdl_for_stmt::apply(instrCodeNode *mn,
-				       vector<const dataReqNode*>& flags) {
+				       vector<const instrDataNode*>& flags) {
   mdl_env::push();
   mdl_env::add(index_name_, false);
   mdl_var list_var(false);
@@ -1904,9 +1648,9 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
         if (size != 1) return false;
 
         mdl_var timer(false);
-        dataReqNode* drn;
+	instrDataNode* dn;
         if (!(*args_)[0]->apply(timer)) return false;
-        if (!timer.get(drn)) return false;
+        if (!timer.get(dn)) return false;
 
         string timer_func;
         if (var_ == "startWallTimer")
@@ -1923,16 +1667,9 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
 	else if (var_ == "destroyProcessTimer")
 	  timer_func = DESTROY_PROC_TIMER;
 #endif
-
         vector<AstNode *> ast_args;
-  #if defined(MT_THREAD)
-        ast = createTimer(timer_func, (void*)(drn->getLevel()),
-			  (void *)(drn->getVarIndex()),
+        ast = createTimer(timer_func, (void*)(dn->getInferiorPtr()),
 			  ast_args);
-  #else
-        ast = createTimer(timer_func, (void*)(drn->getInferiorPtr()),
-			  ast_args);
-  #endif
       }
       else if (var_ == "readSymbol")
       {
@@ -2024,10 +1761,10 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
     }
     case MDL_EXPR_ASSIGN:
     {
-      mdl_var get_drn;
-      dataReqNode* drn;
-      if (!mdl_env::get(get_drn, var_)) return false;
-      if (!get_drn.get(drn)) return false;
+      mdl_var get_dn;
+      instrDataNode* dn;
+      if (!mdl_env::get(get_dn, var_)) return false;
+      if (!get_dn.get(dn)) return false;
       AstNode* ast_arg;
       if (!left_->apply(ast_arg)) return false;
 
@@ -2039,14 +1776,8 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
         case MDL_MINUSASSIGN: func_str = "subCounter"; break;
         default: return false;
       }
-  #if defined(MT_THREAD)
-      ast = createCounter(func_str, (void*)(drn->getLevel()),
-			  (void *)(drn->getVarIndex()), 
-			  ast_arg);
-  #else
       ast = createCounter(func_str, 
-        (void*)(drn->getInferiorPtr()), ast_arg);
-  #endif
+        (void*)(dn->getInferiorPtr()), ast_arg);
       removeAst (ast_arg);
       return true;
     }
@@ -2056,14 +1787,14 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
         ast = new AstNode(AstNode::ReturnVal, (void*)0);
         return true;
       }
-      mdl_var get_drn;
-      assert (mdl_env::get(get_drn, var_));
-      switch (get_drn.type())
+      mdl_var get_dn;
+      assert (mdl_env::get(get_dn, var_));
+      switch (get_dn.type())
       {
         case MDL_T_INT:
         {
           int value;
-          if (!get_drn.get(value)) 
+          if (!get_dn.get(value)) 
           {
             fprintf(stderr, "Unable to get value for %s\n", var_.string_of());
             fflush(stderr);
@@ -2074,10 +1805,10 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
           return true;
         }
         //case MDL_T_COUNTER:
-        case MDL_T_DRN:
+        case MDL_T_DATANODE:
         {
-          dataReqNode* drn;
-          if (!get_drn.get(drn))
+          instrDataNode* dn;
+          if (!get_dn.get(dn))
           {
             fprintf(stderr, "Unable to get value for %s\n", var_.string_of());
             fflush(stderr);
@@ -2085,16 +1816,14 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
           }
   #if defined(MT_THREAD)
           AstNode *tmp_ast;
-          tmp_ast = computeTheAddress((void*)(drn->getLevel()),
-				      (void *)(drn->getVarIndex()),
-				      0); // 0 is for intCounter
+          tmp_ast = computeTheAddress((void *)(dn->getInferiorPtr()));
           // First we get the address, and now we get the value...
           ast = new AstNode(AstNode::DataIndir,tmp_ast);
           removeAst(tmp_ast);
   #else
        // ast = new AstNode(AstNode::DataValue,  // restore AstNode::DataValue
 	  ast = new AstNode(AstNode::DataAddr,
-                    (void*)(drn->getInferiorPtr()));
+                    (void*)(dn->getInferiorPtr()));
   #endif
           return true;
         }
@@ -2111,24 +1840,22 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
       {
         case MDL_ADDRESS:
         {
-          mdl_var get_drn;
-          if (!left_->apply(get_drn))
+          mdl_var get_dn;
+          if (!left_->apply(get_dn))
           {
             string msg = string("In metric '") + currentMetric 
               + string("' : ") + string("error in operand of address operator");
             showErrorCallback(92, msg);
             return false;
           }
-          dataReqNode *drn;
-          assert (get_drn.get(drn));
+          instrDataNode *dn;
+          assert (get_dn.get(dn));
   #if defined(MT_THREAD)
-          ast = computeTheAddress((void *)(drn->getLevel()),
-				  (void *)(drn->getVarIndex()),
-				  0); // 0 is for intCounter
+          ast = computeTheAddress((void *)(dn->getInferiorPtr()));
   #else
           // ast = new AstNode(AstNode::Constant,  // was AstNode::DataPtr
           ast = new AstNode(AstNode::DataPtr,  // restore AstNode::DataPtr
-			    (void*)(drn->getInferiorPtr()));
+			    (void*)(dn->getInferiorPtr()));
   #endif
           break;
         }
@@ -2152,22 +1879,16 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
       {
         case MDL_PLUSPLUS:
         {
-          dataReqNode* drn;
-          mdl_var drn_var;
-          if (!left_->apply(drn_var)) return false;
-          if (!drn_var.get(drn)) return false;
+          instrDataNode* dn;
+          mdl_var dn_var;
+          if (!left_->apply(dn_var)) return false;
+          if (!dn_var.get(dn)) return false;
 
           int value = 1;
           AstNode* ast_arg = new AstNode(AstNode::Constant, (void*)value);
 
-  #if defined(MT_THREAD)
-          ast = createCounter("addCounter", (void*)(drn->getLevel()),
-			      (void *)(drn->getVarIndex()),
-			      ast_arg);
-  #else
           ast = createCounter("addCounter", 
-            (void*)(drn->getInferiorPtr()), ast_arg);
-  #endif
+            (void*)(dn->getInferiorPtr()), ast_arg);
           removeAst(ast_arg);       
           break;
         }
@@ -2346,7 +2067,7 @@ T_dyninstRPC::mdl_if_stmt::~mdl_if_stmt() {
 }
 
 bool T_dyninstRPC::mdl_if_stmt::apply(instrCodeNode *mn,
-				      vector<const dataReqNode*>& flags) {
+				      vector<const instrDataNode*>& flags) {
   // An if stmt is comprised of (1) the 'if' expr and (2) the body to
   // execute if true.
   mdl_var res(false);
@@ -2385,7 +2106,7 @@ T_dyninstRPC::mdl_seq_stmt::~mdl_seq_stmt() {
 }
 
 bool T_dyninstRPC::mdl_seq_stmt::apply(instrCodeNode *mn,
-				       vector<const dataReqNode*>& flags) {
+				       vector<const instrDataNode*>& flags) {
   // a seq_stmt is simply a sequence of statements; apply them all.
   if (!stmts_)
     return true;
@@ -2412,7 +2133,7 @@ T_dyninstRPC::mdl_list_stmt::~mdl_list_stmt()
 { assert(0); delete elements_; }
 
 bool T_dyninstRPC::mdl_list_stmt::apply(instrCodeNode * /*mn*/,
-					vector<const dataReqNode*>& /*flags*/)
+				       vector<const instrDataNode*>& /*flags*/)
 {
   bool found = false;
   for (unsigned u0 = 0; u0 < flavor_->size(); u0++) {
@@ -2490,7 +2211,7 @@ T_dyninstRPC::mdl_instr_stmt::~mdl_instr_stmt() {
 }
 
 bool T_dyninstRPC::mdl_instr_stmt::apply(instrCodeNode *mn,
-					 vector<const dataReqNode*>& inFlags) {
+					 vector<const instrDataNode*>& inFlags) {
    // An instr statement is like:
    //    append preInsn $constraint[0].entry constrained
    //       (* setCounter(procedureConstraint, 1); *)
@@ -2538,9 +2259,7 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(instrCodeNode *mn,
      for (int fi=fsize-1; fi>=0; fi--) { // any reason why we go backwards?
 #if defined(MT_THREAD)
         AstNode *tmp_ast;
-        tmp_ast = computeTheAddress((void *)((inFlags[fi])->getLevel()),
-				    (void *)((inFlags[fi])->getVarIndex()), 
-				    0); // 0 is for intCounter
+        tmp_ast = computeTheAddress((void *)((inFlags[fi])->getInferiorPtr()));
         AstNode *temp1 = new AstNode(AstNode::DataIndir,tmp_ast);
         removeAst(tmp_ast);
 #else
@@ -2746,7 +2465,7 @@ void dynRPC::send_stmts(vector<T_dyninstRPC::mdl_stmt*> *vs) {
     // TODO -- handle errors here
     // TODO -- apply these statements without a metric definition node ?
     unsigned s_size = vs->size();
-    vector<const dataReqNode*> flags;
+    vector<const instrDataNode*> flags;
 
     // Application may fail if the list flavor is different than the flavor
     // of this daemon
