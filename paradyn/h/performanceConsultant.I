@@ -3,6 +3,10 @@
  * Interface between the Performance Consultant and the rest of paradyn.
  *
  * $Log: performanceConsultant.I,v $
+ * Revision 1.13  1995/10/17 03:11:54  tamches
+ * (really Karen)
+ * Added endSearch() igen call
+ *
  * Revision 1.12  1995/10/05 04:48:24  karavan
  * changes to support multiple searches, one per phase.
  *
@@ -100,6 +104,9 @@ $remote performanceConsultant {
 
     // stop the automated search process in its tracks.
     $async void pauseSearch(int phaseID);
+
+    // Completely terminate a search; remove all instrumentation.
+    void endSearch(int phaseID);
 
     // change the current refinement node.
     //  NOTE:  The node must be true and an ancestral path to the root must
