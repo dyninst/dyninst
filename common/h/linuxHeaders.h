@@ -175,7 +175,7 @@ inline unsigned long int P_strtoul(const char *STRING, char **TAILPTR, int BASE)
 
 /* BSD */
 inline int P_accept (int SOCK, struct sockaddr *ADDR, size_t *LENGTH_PTR) {
-  return (accept(SOCK, ADDR, (int*) LENGTH_PTR));}
+  return (accept(SOCK, ADDR, LENGTH_PTR));}
 inline int P_bind(int socket, struct sockaddr *addr, size_t len) {
   return (bind(socket, addr, len));}
 inline int P_connect(int socket, struct sockaddr *addr, size_t len) {
@@ -189,9 +189,9 @@ inline struct hostent * P_gethostbyname (const char *NAME) {
 inline struct servent * P_getservbyname (const char *NAME, const char *PROTO) {
   return (getservbyname(NAME, PROTO));}
 inline int P_getsockname (int SOCKET, struct sockaddr *ADDR, size_t *LENGTH_PTR) {
-  return (getsockname(SOCKET, ADDR, (int*) LENGTH_PTR));}
+  return (getsockname(SOCKET, ADDR, LENGTH_PTR));}
 inline int P_getsockopt(int s, int level, int optname, void *optval, int *optlen) {
-   return getsockopt(s, level, optname, (char*)optval, optlen);
+   return getsockopt(s, level, optname, (char*)optval, (unsigned int*)optlen);
 }
 inline int P_setsockopt(int s, int level, int optname, void *optval, int optlen) {
    return setsockopt(s, level, optname, (const char*)optval, optlen);
@@ -220,7 +220,7 @@ inline void P_endservent(void) { endservent(); }
 /* Ugly */
 
 inline int P_ptrace(int req, pid_t pid, int addr, int data) {
-  return (ptrace(req, pid, addr, data));}
+  return (ptrace((enum __ptrace_request)req, pid, addr, data));}
 
 inline int P_select(int wid, fd_set *rd, fd_set *wr, fd_set *ex,
 		    struct timeval *tm) {

@@ -44,6 +44,10 @@
 
 /*
  * $Log: rpcUtil.h,v $
+ * Revision 1.39  1998/08/27 21:22:02  nash
+ * Fixed type warnings in header files and removed Linux kludge from
+ * makenan.h, as it is not needed.
+ *
  * Revision 1.38  1997/10/15 19:36:54  tung
  * modified for Linux Platform
  *
@@ -118,7 +122,7 @@
 /* define following variables are needed for linux platform as they are
    missed in /usr/include/sys/file.h                                     */
 #if defined(i386_unknown_linux2_0)
-  #define FNONBLOCK 0x80
+//  #define FNONBLOCK 0x80
   #define FSYNC 0x10
 #endif
 
