@@ -42,7 +42,7 @@
 //
 // Process Critical Path data from the various paradyn daemons.
 //
-/* $Id: DMcritPath.C,v 1.11 2001/06/20 20:33:38 schendel Exp $ */
+/* $Id: DMcritPath.C,v 1.12 2001/08/23 14:43:35 schendel Exp $ */
 
 #include <assert.h>
 #include "../pdMain/paradyn.h"
@@ -85,7 +85,7 @@ void paradynDaemon::cpDataCallbackFunc(int,
     timeStamp curTime = timeStamp(tStamp, timeUnit::sec(), timeBase::bStd());
     pdSample inTotal(static_cast<int64_t>(total));
     pdSample inShare(static_cast<int64_t>(share));
-    timeStamp aval = getEarliestFirstTime();
+    timeStamp aval = getEarliestStartTime();
     assert(aval > timeStamp::ts1970());
 
     if (!allCPContexts.defines(context)) {
