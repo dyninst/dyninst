@@ -39,13 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeapHKs.C,v 1.24 2002/02/12 23:50:38 schendel Exp $
+// $Id: fastInferiorHeapHKs.C,v 1.25 2002/04/05 19:39:09 schendel Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/pdThread.h"
 #include "metric.h"
+#include "paradynd/src/threadMetFocusNode.h"
 #include "fastInferiorHeapHKs.h"
 #include "paradynd/src/init.h"
 #include "pdutil/h/pdDebugOstream.h"
@@ -57,13 +58,16 @@ genericHK &genericHK::operator=(const genericHK &src) {
    if (&src == this)
       return *this; // the usual check for x=x
 
-   thrmi            = src.thrmi;
+   thrNodeVal            = src.thrNodeVal;
    trampsUsingMe = src.trampsUsingMe;
 
    return *this;
 }
 
-void genericHK::makePendingFree(const vector<Address> &iTrampsUsing) {
+void genericHK::makePendingFree(const vector<Address> &iTrampsUsing,
+				process *inferiorProc) {
+  //cerr << "  in genericHK::makePendingFree - this: " << (void*)this
+  //   << ", iTrampsUsing: " << iTrampsUsing.size() << "\n";
    // now we initialize trampsUsingMe.  iTrampsUsing provides us with the starting
    // addr of each such tramp, but we need to look at the old-style inferiorHeap
    // (process.C) to find the tramp length and hence its endAddr.  Yuck.
@@ -76,17 +80,12 @@ void genericHK::makePendingFree(const vector<Address> &iTrampsUsing) {
    unsigned actualNumTramps=0;
 
    for (unsigned lcv=0; lcv < iTrampsUsing.size(); lcv++) {
-      assert(thrmi);
-
-      const class process &inferiorProc = *(thrmi->proc());
-         // don't ask why 'class' is needed here because I don't know myself.
-
       const dictionary_hash<Address, heapItem*> &heapActivePart =
-	inferiorProc.heap.heapActive;
-
+	(*inferiorProc).heap.heapActive;
       const Address trampBaseAddr = iTrampsUsing[lcv];
       heapItem *trampHeapItem;
       // fills in "trampHeapItem" if found:
+
       if (!heapActivePart.find(trampBaseAddr, trampHeapItem)) {
          // hmmm...the trampoline was deleted, so I guess we don't need to check it
          //        in the future.
@@ -96,7 +95,6 @@ void genericHK::makePendingFree(const vector<Address> &iTrampsUsing) {
       trampRange tempTrampRange;
       tempTrampRange.startAddr = trampBaseAddr;
       tempTrampRange.endAddr = trampBaseAddr + trampHeapItem->length - 1;
-
       trampsUsingMe[actualNumTramps++] = tempTrampRange;
    }
 
@@ -156,10 +154,17 @@ intCounterHK &intCounterHK::operator=(const intCounterHK &src) {
 #define MEMORY_BARRIER
 #endif
 
-bool intCounterHK::perform(const intCounter &dataValue, process *inferiorProc) {
+bool intCounterHK::perform(const intCounter &dataValue, process *inferiorProc)
+{
    // returns true iff the process succeeded; i.e., if we were able to grab a
    // consistent value for the intCounter and process without any waiting.
    // Otherwise, we return false and don't process and don't wait.
+
+   // If the thread node hasn't yet been assigned to this dataReqNode, skip
+   threadMetFocusNode_Val *thrNval = getThrNodeVal();
+   if(thrNval == NULL) {
+     return true;
+   }
 
    int64_t val;
 
@@ -192,18 +197,15 @@ bool intCounterHK::perform(const intCounter &dataValue, process *inferiorProc) {
 
    // To avoid race condition, don't use 'dataValue' after this point!
 
-   threadMetFocusNode *thrnode = getThrMi();
-   assert(thrnode);
-   assert(thrnode->proc() == inferiorProc);
-
-   if(! thrnode->isReadyForUpdates()) {
-     sampleVal_cerr << "mdn " << thrnode << " isn't ready for updates yet.\n";
+   assert(thrNval->proc() == inferiorProc);
+   if(! thrNval->isReadyForUpdates()) {
+     sampleVal_cerr << "mdn " << thrNval << " isn't ready for updates yet.\n";
      return false;
    }
 
    timeStamp currWallTime = getWallTime();
 
-   thrnode->updateValue(currWallTime, pdSample(val));
+   thrNval->updateValue(currWallTime, pdSample(val));
       // the integer version of updateValue() (no int-->float conversion -- good)
 
    return true;
@@ -259,6 +261,11 @@ bool wallTimerHK::perform(const tTimer &theTimer, process *) {
    // returns true iff the process succeeded; i.e., if we were able to read a
    // consistent value of the tTimer, and process it.  Otherwise, returns
    // false, doesn't process and doesn't wait.
+
+   // If the thread obj hasn't yet been assigned to this dataReqNode, skip
+   threadMetFocusNode_Val *thrNval = getThrNodeVal();
+   if(thrNval == NULL)
+     return true;
 
    // We sample like this: read protector2, read values, read protector1.  If
    // protector values are equal, then process using a copy of the read
@@ -328,13 +335,12 @@ bool wallTimerHK::perform(const tTimer &theTimer, process *) {
    else
       lastTimeValueUsed = timeValueToUse;
 
-   threadMetFocusNode *thrnode = getThrMi();
-   if(! thrnode->isReadyForUpdates()) {
-     sampleVal_cerr << "mdn " << thrnode << " isn't ready for updates yet.\n";
+   if(! thrNval->isReadyForUpdates()) {
+     sampleVal_cerr << "mdn " << thrNval << " isn't ready for updates yet.\n";
      return false;
    }
 
-   thrnode->updateValue(currWallTime, pdSample(timeValueToUse));
+   thrNval->updateValue(currWallTime, pdSample(timeValueToUse));
 
    return true;
 }
@@ -360,6 +366,12 @@ bool processTimerHK::perform(const tTimer &theTimer, process *inferiorProc) {
    // returns true iff the process succeeded; i.e., if we were able to grab
    // the mutex for this tTimer and process without any waiting.  Otherwise,
    // we return false and don't process and don't wait.
+
+   // If the thread obj hasn't yet been assigned to this dataReqNode, skip
+   threadMetFocusNode_Val *thrNval = getThrNodeVal();
+   if(thrNval == NULL) {
+     return true;
+   }
 
    // Timer sampling is trickier than counter sampling.  There are more race
    // conditions and other factors to carefully consider.
@@ -463,13 +475,12 @@ bool processTimerHK::perform(const tTimer &theTimer, process *inferiorProc) {
    else
       lastTimeValueUsed = timeValueToUse;
 
-   threadMetFocusNode *thrnode = getThrMi();
-   if(! thrnode->isReadyForUpdates()) {
-     sampleVal_cerr << "mdn " << thrnode << " isn't ready for updates yet.\n";
+   if(! thrNval->isReadyForUpdates()) {
+     sampleVal_cerr << "mdn " << thrNval << " isn't ready for updates yet.\n";
      return false;
    }
 
-   thrnode->updateValue(currWallTime, pdSample(timeValueToUse));
+   thrNval->updateValue(currWallTime, pdSample(timeValueToUse));
 
    return true;
 }
