@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates.C,v 1.13 2002/04/09 18:05:34 mjbrim Exp $
+// $Id: templates.C,v 1.14 2002/04/22 20:52:56 mjbrim Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -58,6 +58,7 @@ template class dictionary_hash<string, Symbol>;
 
 template class vector<arg *>;
 template class vector<unsigned>;
+template class vector<string>;
 template class vector<type_defn *>;
 template class vector<message_layer *>;
 template class vector<Options::stl_data>;
