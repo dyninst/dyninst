@@ -151,6 +151,31 @@ int msg_recv(thread_t* tid, tag_t* tag, void* buf, unsigned* bufsize) {
     return ret;
 }
 
+int msg_recv(thread_t* tid, tag_t* tag, void** buf) {
+    COLLECT_MEASUREMENT(THR_MSG_RECV);
+
+    thr_debug_msg(CURRENT_FUNCTION,
+        "tid = %d, tag = %d, buf = %p\n",
+        *tid, *tag,
+        buf);
+
+    mailbox* mbox = lwp::get_mailbox();
+    if(!mbox) {
+        fprintf(stderr, "panic:  can't get mailbox for lwp %d\n", thr_self());
+        assert(mbox);
+    }
+    
+    int ret = mbox->recv(tid,tag,buf);
+    
+
+    thr_debug_msg(CURRENT_FUNCTION,
+                    "returning %d; tid = %d, tag = %d\n",
+                    ret,
+                    *tid,
+                    *tag);
+    return ret;
+}
+
 int
 msg_bind_file(PDDESC fd,
                     unsigned special,

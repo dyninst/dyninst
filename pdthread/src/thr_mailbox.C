@@ -725,6 +725,35 @@ int thr_mailbox::recv(thread_t* sender, tag_t* tagp, void* buf, unsigned* countp
 }
 
 
+int thr_mailbox::recv(thread_t* sender, tag_t* tagp, void** buf) {
+    int retval = THR_OKAY;
+    COLLECT_MEASUREMENT(THR_MSG_TIMER_START);
+        
+//    qmutex.Lock();
+    thr_debug_msg(CURRENT_FUNCTION, "RECEIVING: size of messages = %d, size of sock_messages = %d\n", messages->get_size(), sock_messages->get_size());
+
+    message* to_recv = NULL;
+    bool did_recv = check_for(sender, tagp, true, true, &to_recv);
+
+    thr_debug_msg(CURRENT_FUNCTION, "DONE RECEIVING: size of messages = %d, size of sock_messages = %d\n", messages->get_size(), sock_messages->get_size());
+
+    if(!did_recv) {
+        retval = THR_ERR;
+        goto done;
+    }
+    
+    *sender = to_recv->deliver(tagp, buf);
+
+    delete to_recv;
+
+done:
+//    qmutex.Unlock();
+    COLLECT_MEASUREMENT(THR_MSG_TIMER_STOP);
+
+    return retval;
+}
+
+
 void
 thr_mailbox::raise_msg_avail( void )
 {

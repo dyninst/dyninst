@@ -28,6 +28,10 @@ class io_mailbox : public mailbox {
        meanings of the args */
     virtual int recv(thread_t* sender, tag_t* tagp, void* buf, unsigned* countp);
 
+    // same as the above recv, but transfers ownership of
+    // the buffer to the receiver
+    virtual int recv(thread_t* sender, tag_t* tagp, void** buf);
+
     /* poll() checks for suitable available messages */
     virtual int poll(thread_t* from, tag_t* tagp, unsigned block, unsigned fd_first=0);
 

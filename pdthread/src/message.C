@@ -22,6 +22,19 @@ thread_t message::deliver(tag_t* tagp, void* buf, unsigned* countp) {
     return this->sender;
 }
 
+thread_t message::deliver(tag_t* tagp, void** buf) {
+    assert(*tagp == MSG_TAG_ANY || *tagp == this->tag);
+
+    if(*tagp == MSG_TAG_ANY)
+        *tagp = this->tag;
+    
+    assert( buf != NULL );
+    *buf = this->buf;
+    this->buf = NULL;
+    
+    return this->sender;
+}
+
 unsigned message::deliver_to(io_entity* ie) {
     unsigned ret;
     ie->do_write(this->buf, this->size, &ret);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2003 Barton P. Miller
+ * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,15 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 /************************************************************************
- * $Id: thread.h,v 1.12 2003/10/28 17:49:46 pcroth Exp $
+ * $Id: thread.h,v 1.13 2004/03/01 17:27:20 pcroth Exp $
 ************************************************************************/
 #if !defined(_thread_h_thread_h_)
 #define _thread_h_thread_h_
-
-#if defined(__cplusplus)
-extern "C" {
-#endif /* defined(__cplusplus) */
-
 
 /************************************************************************
  * header files.
@@ -150,10 +145,11 @@ int			thr_setspecific(thread_key_t key, void* value);
 int			thr_getspecific(thread_key_t, void** value);
 
 /* message functions */
-int			msg_send(thread_t tid, tag_t tag, void* buf, unsigned size);
+int			msg_send(thread_t tid, tag_t tag, void* buf, unsigned size = 0);
 int			msg_poll(thread_t* tid, tag_t* tag, unsigned block);
 int			msg_poll_preference(thread_t* tid, tag_t* tag, unsigned block, unsigned fd_first);
 int			msg_recv(thread_t* tid, tag_t* tag, void* buf, unsigned* bufsize);
+int			msg_recv(thread_t* tid, tag_t* tag, void** buf);
 
 int			msg_bind_file(PDDESC fd, unsigned special, int (*will_block)(void*), void* arg, thread_t* tid);
 int			msg_bind_socket(PDSOCKET s, unsigned special, int (*will_block)(void*), void* arg, thread_t* tid);
@@ -243,10 +239,6 @@ int thr_rwlock_destroy(thread_rwlock_t rw);
 int thr_rwlock_acquire(thread_rwlock_t rw, action_t action);
 int thr_rwlock_release(thread_rwlock_t rw, action_t action);
 
-#if defined(__cplusplus)
-}
-#endif /* defined(__cplusplus) */
-
 
 /*
  * THREADrpc
@@ -254,7 +246,6 @@ int thr_rwlock_release(thread_rwlock_t rw, action_t action);
  * The THREADrpc class is a base class for igen-generated RPC classes
  * that communicate via RPC.
  */
-#if defined(__cplusplus)
 
 class THREADrpc {
 public:
@@ -274,7 +265,5 @@ public:
   //   the value is only valid during a thread RPC.
   thread_t requestingThread;
 };
-
-#endif /* defined(__cplusplus) */
 
 #endif /* !defined(_thread_h_thread_h_) */

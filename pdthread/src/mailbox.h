@@ -44,6 +44,10 @@ class mailbox {
        meanings of the args */
     virtual int recv(thread_t* sender, tag_t* tagp, void* buf, unsigned* countp) = 0;
 
+    // same as the above recv, but transfers ownership of
+    // the buffer to the receiver
+    virtual int recv(thread_t* sender, tag_t* tagp, void** buf) = 0;
+
     /* poll() checks for suitable available messages */
     virtual int poll(thread_t* from, tag_t* tagp, unsigned block, unsigned fd_first=0) = 0;
 };

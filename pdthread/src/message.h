@@ -20,7 +20,7 @@ class message {
     void* buf;
   public:
     
-    message(thread_t sender, tag_t tag, void* buf, unsigned count) {
+    message(thread_t sender, tag_t tag, void* buf, unsigned count = 0) {
         this->sender = sender;
         this->tag = tag;
         if(count != 0) {
@@ -28,12 +28,23 @@ class message {
             this->buf = (void*)new char[count];
             this->buf = memcpy(this->buf, buf, count);
         }
+        else if( buf != NULL )
+        {
+            // we take ownership of the buffer but we leave size 
+            // at 0 so that we don't try to deallocate it when we
+            // are destroyed
+            this->buf = buf;
+        }
         this->size = count;
     }
     
     virtual ~message() {
+        // only release the buffer if we allocated it
+        // (indicated by a non-zero size)
         if(size != 0)
+        {
             delete [] (char*)buf;
+        }
     }
     
     /**
@@ -56,6 +67,9 @@ class message {
          the return value is this->sender
     */
     virtual thread_t deliver(tag_t* tagp, void* buf, unsigned* countp);
+
+    // same as the above but transfers ownership of the buffer
+    virtual thread_t deliver(tag_t* tagp, void** buf);
 
     virtual unsigned deliver_to(io_entity* ie);
     
