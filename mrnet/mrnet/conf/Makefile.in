@@ -13,7 +13,7 @@ BINDIR  = ./bin/${MRNET_PLATFORM}
 LIBDIR  = ./lib/${MRNET_PLATFORM}
 OBJDIR  = ./obj/${MRNET_PLATFORM}
 DEPENDDIR = ./depends
-SRCDIR  = @srcdir@
+SRCDIR  = @abs_srcdir@
 PREFIX  = @prefix@
 
 prefix  = @prefix@
@@ -82,7 +82,8 @@ endif #Forte (Sun) compiler warnings
 # System Specific Definitions
 #############################
 LIBMRNET    = $(LIBDIR)/libmrnet.a
-LIBXPLAT    = $(SRCDIR)/xplat/libxplat.a
+#LIBXPLAT    = $(SRCDIR)/xplat/libxplat.a
+LIBXPLAT    = xplat/libxplat.a
 COMMNODE    = $(BINDIR)/mrnet_commnode 
 TARGETS     = $(LIBMRNET) $(COMMNODE)
 INCDIR      = -I$(SRCDIR) -I$(SRCDIR)/.. -I$(SRCDIR)/xplat/include -I. -I$(SRCDIR)/h
