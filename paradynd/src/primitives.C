@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/primitives.C,v 1.2 1994/06/29 02:52:46 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/primitives.C,v 1.3 1994/07/12 19:45:21 jcargill Exp $";
 #endif
 
 /*
  * primitives.C - instrumentation primitives.
  *
  * $Log: primitives.C,v $
- * Revision 1.2  1994/06/29 02:52:46  hollings
+ * Revision 1.3  1994/07/12 19:45:21  jcargill
+ * Hardware combine on the CM5 no longer requires a special sampling function.
+ *
+ * Revision 1.2  1994/06/29  02:52:46  hollings
  * Added metricDefs-common.{C,h}
  * Added module level performance data
  * cleanedup types of inferrior addresses instrumentation defintions
@@ -94,14 +97,8 @@ intCounterHandle *createIntCounter(process *proc, int value, Boolean report)
      */
     if (report) {
 	sampleFunction = findFunction(proc->symbols, "DYNINSTsampleValues");
-	if (proc == nodePseudoProcess)  {
-	    /* combine aggregation */
-	    ast = new AstNode("DYNINSTreportAggregateCounter", 
-			      new AstNode(Constant, ret->counterPtr), NULL);
-	} else {
-	    ast = new AstNode("DYNINSTreportCounter", 
-			      new AstNode(Constant, ret->counterPtr), NULL);
-	}
+	ast = new AstNode("DYNINSTreportCounter", 
+			  new AstNode(Constant, ret->counterPtr), NULL);
 	ret->sampler = addInstFunc(proc, sampleFunction->funcEntry, 
 	    ast, callPreInsn, orderLastAtPoint);
     }
@@ -150,14 +147,8 @@ timerHandle *createTimer(process *proc, timerType type, Boolean report)
      */
     if (report) {
 	sampleFunction = findFunction(proc->symbols, "DYNINSTsampleValues");
-	if (proc == nodePseudoProcess) { 
-	    /* combine aggregation */
-	    ast = new AstNode("DYNINSTreportAggregateTimer",
-		      new AstNode(Constant, ret->timerPtr), NULL);
-	} else {
-	    ast = new AstNode("DYNINSTreportTimer",
-		      new AstNode(Constant, ret->timerPtr), NULL);
-	}
+	ast = new AstNode("DYNINSTreportTimer",
+			  new AstNode(Constant, ret->timerPtr), NULL);
 	ret->sampler = addInstFunc(proc, sampleFunction->funcEntry, ast,
 	    callPreInsn, orderLastAtPoint);
     }
