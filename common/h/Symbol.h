@@ -82,7 +82,8 @@ public:
     enum SymbolLinkage {
         SL_UNKNOWN,
         SL_GLOBAL,
-        SL_LOCAL
+        SL_LOCAL,
+	SL_WEAK
     };
 
     enum SymbolTag {
@@ -110,6 +111,7 @@ public:
     unsigned            size ()               const;
     bool              kludge ()               const;
     SymbolTag&           tag ()               const;
+    void	change_size(unsigned ns){ size_ = ns;}
 
     friend
     ostream&      operator<< (ostream &os, const Symbol &s) {
