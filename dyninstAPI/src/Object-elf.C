@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.86 2005/03/22 20:52:06 tlmiller Exp $
+ * $Id: Object-elf.C,v 1.87 2005/04/04 19:20:46 tlmiller Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -1822,8 +1822,9 @@ void fixSymbolsInModule( Dwarf_Debug dbg, pdstring & moduleName, Dwarf_Die dieEn
 					} /* end if isDeclaredNotInlined */
 
 				unsigned int count = 0;
-				pdvector< Symbol > syms = symbols[ globalSymbol ];
+				pdvector< Symbol > & syms = symbols[ globalSymbol ];
 				
+				// /* DEBUG */ fprintf( stderr, "%s[%d]: symbol '%s' is in module '%s'.\n", __FILE__, __LINE__, globalSymbol.c_str(), useModuleName.c_str() );
 				/* If there's only one of symbol of that name, set it regardless. */
 				if( syms.size() == 1 ) { syms[0].setModule( useModuleName ); }
 				else {
@@ -1840,7 +1841,7 @@ void fixSymbolsInModule( Dwarf_Debug dbg, pdstring & moduleName, Dwarf_Die dieEn
 				} /* end if we found the name in the global symbols */
 			else if( ! isAbstractOrigin && symbols.defines( dieName ) ) {
 				unsigned int count = 0;
-				pdvector< Symbol > syms = symbols[ dieName ];
+				pdvector< Symbol > & syms = symbols[ dieName ];
 
 				/* If there's only one, apply regardless. */
 				if( syms.size() == 1 ) { symbols[ globalSymbol ][0].setModule( useModuleName ); }
@@ -1905,13 +1906,13 @@ void fixSymbolsInModule( Dwarf_Debug dbg, pdstring & moduleName, Dwarf_Die dieEn
 			if( dieName == NULL ) { break; }
 			
 			/* Update the module information. */
-			pdstring symName = find_symbol(dieName, symbols);
+			pdstring symName = find_symbol( dieName, symbols );
 			if (symName != "" ) {
 				assert(symbols.defines(symName));
 
 				/* We're assuming global variables. */
 				unsigned int count = 0;
-				pdvector< Symbol > syms = symbols[ symName ];
+				pdvector< Symbol > & syms = symbols[ symName ];
 
 				/* If there's only one of symbol of that name, set it regardless. */
 				if( syms.size() == 1 ) { symbols[ symName ][0].setModule( useModuleName ); }
@@ -2148,7 +2149,7 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_Scn* stabscnp, Elf_Scn* s
 
 	    if (res && (q == 0 || q[1] != SD_PROTOTYPE)) {
 	    	unsigned int count = 0;
-	    	pdvector< Symbol > syms = symbols_[SymName];
+	    	pdvector< Symbol > & syms = symbols_[SymName];
 	    	
 	    	/* If there's only one, apply regardless. */
 	    	if( syms.size() == 1 ) { symbols_[SymName][0].setModule(module); }
@@ -2203,7 +2204,7 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_Scn* stabscnp, Elf_Scn* s
 			delete[] sname;
 			
 			if (symbols_.defines(nameFromStab)) {
-				pdvector< Symbol > syms = symbols_[nameFromStab];
+				pdvector< Symbol > & syms = symbols_[nameFromStab];
 				if( syms.size() == 1 ) {
 				    symbols_[nameFromStab][0].setModule(module);
 				}
@@ -2220,7 +2221,7 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_Scn* stabscnp, Elf_Scn* s
 			}
 			pdstring symName = symbolNamesByAddr[entryAddr];
 			assert(symbols_.defines(symName));
-			pdvector< Symbol > syms = symbols_[symName];
+			pdvector< Symbol > & syms = symbols_[symName];
 			if( syms.size() == 1 ) {
 				symbols_[symName][0].setModule(module);
 			}
