@@ -16,7 +16,11 @@
  * hist.C - routines to manage hisograms.
  *
  * $Log: hist.C,v $
- * Revision 1.5  1994/03/08 17:12:29  hollings
+ * Revision 1.6  1994/04/12 22:11:22  hollings
+ * removed special case of bucket a zero value since it caused upcalls not to
+ * happen.
+ *
+ * Revision 1.5  1994/03/08  17:12:29  hollings
  * Added fold callback and changed from multiple data callbacks to one per
  * histogram instance.  Also made the data callbacks happen once per bucket.
  *
@@ -129,8 +133,6 @@ void Histogram::addInterval(timeStamp start,
 	    lastGlobalBin = h->lastBin;
 	}
     }
-
-    if (value == 0.0) return;
 
     if (storageType == HistInterval) {
 	/* convert to buckets */
