@@ -161,3 +161,18 @@ void FunctionExpansionRecord::Collapse() {
 }
 
 
+FunctionExpansionRecord& FunctionExpansionRecord::operator=(const FunctionExpansionRecord& f) {
+
+    if (this != &f) {
+        expansions = f.expansions;
+        total_expansions = f.total_expansions;
+        index = f.index;
+        collapsed = f.collapsed;
+        totalShift = f.totalShift;
+
+        for (int i = 0; i < expansions.size(); i++) {
+            expansions[i] = new FERNode();
+            *expansions[i] = *(f.expansions[i]);
+        }
+    }
+}
