@@ -48,13 +48,15 @@
 #include "os.h"
 
 // NOTE - the tagArg integer number starting with 0.  
-static AstNode tagArg(Param, (void *) 1);
-static AstNode cmdArg(Param, (void *) 4);
-static AstNode tidArg(Param, (void *) 0);
+static AstNode tagArg(AstNode::Param, (void *) 1);
+static AstNode cmdArg(AstNode::Param, (void *) 4);
+static AstNode tidArg(AstNode::Param, (void *) 0);
 
 bool initOS() {
+//  initialRequests += new instMapping("main", "DYNINSTinit", FUNC_ENTRY);
+// (obsoleted by installBootstrapInst() --ari)
 
-  initialRequests += new instMapping("main", "DYNINSTinit", FUNC_ENTRY);
+
   initialRequests += new instMapping("main", "DYNINSTexit", FUNC_EXIT);
   initialRequests += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);
 
