@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap.c,v 1.15 2001/11/06 19:20:35 bernat Exp $ */
+/* $Id: RTheap.c,v 1.16 2001/11/07 19:50:08 bernat Exp $ */
 /* RTheap.c: platform-generic heap management */
 
 #include <stdlib.h>
@@ -290,8 +290,9 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
     heap = malloc(size_heap);
     if (heap == NULL) {
       free(node);
-      fprintf(stderr, "Failed to MALLOC\n");
-      
+#ifdef DEBUG
+      fprintf(stderr, "Failed to MALLOC\n");      
+#endif 
       return NULL;
     }
     ret_heap = heap_alignUp((Address)heap, DYNINSTheap_align);
@@ -301,8 +302,9 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
 	ret_heap + size - 1 > (Address)hi_addr) {
       free(heap);
       free(node);
+#ifdef DEBUG
       fprintf(stderr, "MALLOC'd area fails range constraints\n");
-      
+#endif 
       return NULL;
     }
 
@@ -321,7 +323,9 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
 
     /* What if we need to allocate memory not in the area we can mmap? */
     if ((hi < DYNINSTheap_loAddr) || (lo > DYNINSTheap_hiAddr)) {
+#ifdef DEBUG
       fprintf(stderr, "CAN'T MMAP IN RANGE GIVEN\n");
+#endif 
       return NULL;
     }
     
@@ -330,8 +334,9 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
        that we must free. */
     if (0 > DYNINSTgetMemoryMap(&nmaps, &maps)) {
       free(node);
+#ifdef DEBUG
       fprintf(stderr, "failed MMAP\n");
-      
+#endif 
       return NULL;
     }
     qsort(maps, (size_t)nmaps, (size_t)sizeof(dyninstmm_t), &heap_memmapCompare);
@@ -351,8 +356,9 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
     DYNINSTheap_mmapFdClose(fd);
     if (!heap) {
 	 free(node);
+#ifdef DEBUG
 	 fprintf(stderr, "failed MMAP(2)\n");
-	 
+#endif 
 	 return NULL;
     }
 
