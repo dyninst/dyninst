@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.67 2000/08/04 19:49:50 hollings Exp $
+ * $Id: inst-x86.C,v 1.68 2000/08/19 21:59:59 zandy Exp $
  */
 
 #include <iomanip.h>
@@ -571,7 +571,24 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
 
      lastPointEnd = index;
      // add instructions after the point
-     if (type == ReturnPt) {
+     if (type == ReturnPt && p->address() == funcEnd-1) {
+       /* Consume extra space following unaligned rets */
+       unsigned i;
+       unsigned num_extra = (funcEnd % 4) ? (4 - (funcEnd % 4)) : 0;
+       for (i = index+1; i < num_extra + index+1; i++) {
+  	    instruction insn((const unsigned char*)"\x90", 0, 1); /* NOP */
+	    p->addInstrAfterPt(insn);
+	    thisPointEnd = i;
+       }
+       for (unsigned u1 = i; u1 < index+JUMP_SZ-1 && u1 < numInsns; u1++) {
+	 if (allInstr[u1].isNop() || *(allInstr[u1].ptr()) == 0xCC) {
+	   p->addInstrAfterPt(allInstr[u1]);
+	   thisPointEnd = u1;
+	 }
+	 else 
+	   break;
+       }
+     } else if (type == ReturnPt) {
        // normally, we would not add instructions after the return, but the 
        // compilers often add nops after the return, and we can use them if necessary
        for (unsigned u1 = index+1; u1 < index+JUMP_SZ-1 && u1 < numInsns; u1++) {
@@ -610,10 +627,6 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
 		needs a trap requires a proc handle (it probably
 		should not).  Does this test exclude points that may
 		not really need traps? */
-#if 0
-	     fprintf(stderr, "ZANDY: Rejecting function %s for 1-byte trap point\n",
-		     prettyName().string_of());
-#endif
 	     delete points;
 	     delete allInstr;
 	     return false;
