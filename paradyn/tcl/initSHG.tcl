@@ -3,7 +3,10 @@
 # some default styles for dag nodes and edges
 
 # $Log: initSHG.tcl,v $
-# Revision 1.6  1994/08/01 20:26:30  karavan
+# Revision 1.7  1994/09/05 20:09:18  karavan
+# small visual fixes
+#
+# Revision 1.6  1994/08/01  20:26:30  karavan
 # changes to accommodate new dag design.
 #
 # Revision 1.5  1994/06/29  21:47:35  hollings
@@ -78,7 +81,6 @@ proc initSHG {dagID} {
     set clrSHGAUTOBUTTbg "#fb63e620d36b"
     set clrSHGPAUSEBUTTbg "#fb63e620d36b"
     toplevel $SHGname -class "Paradyn.Shg"
-    
     option add *Shg*background #fb63e620d36b
     wm minsize $SHGname 400 200
     frame $SHGname.dag -class Dag 
@@ -102,8 +104,8 @@ proc initSHG {dagID} {
   ## Performance Consultant Menu
     frame $SHGname.topbar.r.menu -class TopMenu -relief raised \
 	    -borderwidth 2
-    menubutton $SHGname.topbar.r.menu.b1 -text "Search Display" \
-	    -menu $SHGname.topbar.r.menu.b1.m -underline 7
+    menubutton $SHGname.topbar.r.menu.b1 -text "Search_Display" \
+	    -menu $SHGname.topbar.r.menu.b1.m -underline 0
     menubutton $SHGname.topbar.r.menu.b2 -text "Help" -underline 0
     tk_menuBar $SHGname.topbar.r.menu $SHGname.topbar.r.menu.b1 \
 	    $SHGname.topbar.r.menu.b2
@@ -134,7 +136,7 @@ proc initSHG {dagID} {
     pack $SHGname.topbar.r.menu.b1 -side left -padx 10
     pack $SHGname.topbar.r.menu -side top -fill both -expand 1
 
-    pack $SHGname.topbar.r -side right -fill both
+    pack $SHGname.topbar.r -side right -fill both -expand 1
     pack $SHGname.status.vs -side right -fill y
     pack $SHGname.status.txt -side left -fill both -expand yes
     pack $SHGname.explain $SHGname.status -side top -fill both
