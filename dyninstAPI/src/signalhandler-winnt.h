@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler-winnt.h,v 1.2 2004/01/19 21:53:52 schendel Exp $
+/* $Id: signalhandler-winnt.h,v 1.3 2004/02/07 18:34:16 schendel Exp $
  */
 
 /*
@@ -110,9 +110,9 @@ typedef DEBUG_EVENT procSignalInfo_t;
 
 #include "dyninstAPI/src/signalhandler-event.h"
 
-DWORD handleBreakpoint(process *proc, procSignalInfo_t info);
-DWORD handleIllegal(process *proc, procSignalInfo_t info);
-DWORD handleViolation(process *proc, procSignalInfo_t info);
+DWORD handleBreakpoint(process *proc, const procevent &event);
+DWORD handleIllegal(process *proc, const procevent &event);
+DWORD handleViolation(process *proc, const procevent &event);
 
 // And the dispatcher
 DWORD handleException(process *proc, procSignalWhat_t what,

@@ -148,7 +148,7 @@ bool rpcMgr::existsRunningIRPC() const {
         return false;
 }
 
-bool rpcMgr::handleSignalIfDueToIRPC() {
+bool rpcMgr::handleSignalIfDueToIRPC(dyn_lwp *lwp_of_trap) {
     // For each IRPC we're running, check whether the thread
     // (or lwp) is at the PC equal to the trap address. 
     bool handledTrap = false;
@@ -164,9 +164,10 @@ bool rpcMgr::handleSignalIfDueToIRPC() {
    
    dyn_lwp *lwp_to_cont = NULL;
 
-   for (unsigned i = 0; i < allRunningRPCs_.size(); i++) {
+   pdvector<inferiorRPCinProgress *>::iterator iter = allRunningRPCs_.end();
+   while(iter != allRunningRPCs_.begin()) {
+       inferiorRPCinProgress *currRPC = *(--iter);
        Frame activeFrame;
-       inferiorRPCinProgress *currRPC = allRunningRPCs_[i];
 
        rpcThr *rpcThr = currRPC->rpcthr;
        rpcLWP *rpcLwp = currRPC->rpclwp;
@@ -178,6 +179,11 @@ bool rpcMgr::handleSignalIfDueToIRPC() {
           if(cur_dthr->get_lwp()->status() != stopped) {
              continue;
           }
+#if !defined(rs6000_ibm_aix4_1)  || defined(AIX_PROC)  // non AIX-PTRACE
+          if(cur_dthr->get_lwp()->get_lwp_id() != lwp_of_trap->get_lwp_id()) {
+             continue;
+          }
+#endif
           activeFrame = cur_dthr->getActiveFrame();
        } else {
           assert(rpcLwp != NULL);
@@ -185,6 +191,11 @@ bool rpcMgr::handleSignalIfDueToIRPC() {
           if(cur_dlwp->status() != stopped) {
              continue;
           }
+#if !defined(rs6000_ibm_aix4_1)  || defined(AIX_PROC)  // non AIX-PTRACE
+          if(cur_dlwp->get_lwp_id() != lwp_of_trap->get_lwp_id()) {
+             continue;
+          }
+#endif
           activeFrame = rpcLwp->get_lwp()->getActiveFrame();
        }
 

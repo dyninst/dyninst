@@ -302,7 +302,7 @@ class rpcMgr {
    bool launchRPCs(bool wasRunning);
 
    // Handle a signal from (possibly) a completed IRPC
-   bool handleSignalIfDueToIRPC();
+   bool handleSignalIfDueToIRPC(dyn_lwp *lwp_of_trap);
 
    // State query functions
    // Note: since we're multithreaded, there might be multiple
