@@ -1,7 +1,12 @@
 /* $Log: client1.C,v $
-/* Revision 1.4  1994/03/26 04:37:01  newhall
-/* change all floats to double
-/* */
+/* Revision 1.5  1994/04/13 21:21:40  newhall
+/* *** empty log message ***
+/*
+ * Revision 1.4  1994/03/26  04:37:01  newhall
+ * change all floats to double
+ * */
+#include <stdio.h>
+#include <stdlib.h>
 #include "visi.CLNT.h"
 
 #define TESTMETRIC	"blah,blah blah,metric 3,metric 4,last metric"

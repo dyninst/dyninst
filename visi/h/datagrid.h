@@ -1,7 +1,10 @@
 /* $Log: datagrid.h,v $
-/* Revision 1.4  1994/03/26 04:17:44  newhall
-/* change all floats to double
+/* Revision 1.5  1994/04/13 21:22:51  newhall
+/* *** empty log message ***
 /*
+ * Revision 1.4  1994/03/26  04:17:44  newhall
+ * change all floats to double
+ *
  * Revision 1.3  1994/03/17  05:17:25  newhall
  * added lastBucketFilled data member to class visi_GridCellHisto:  value of
  * the largest bucket number for which new data values have been added
@@ -19,7 +22,7 @@
 #include  <math.h>
 #include <values.h>
 #include "error.h" 
-#include "visi.h" 
+#include "visi.h"
 
 #define SUM	0
 #define AVE     1

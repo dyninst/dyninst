@@ -1,7 +1,10 @@
 /* $Log: xtext2.C,v $
-/* Revision 1.4  1994/03/26 04:37:11  newhall
-/* change all floats to double
-/* */
+/* Revision 1.5  1994/04/13 21:21:54  newhall
+/* *** empty log message ***
+/*
+ * Revision 1.4  1994/03/26  04:37:11  newhall
+ * change all floats to double
+ * */
 /*
  * xtext.c
  *
@@ -205,19 +208,19 @@ int fd_input3(int dummy){
 static void GetMetsRes(Widget w,XtAppContext app_con,XtPointer call_data){
 
  fprintf(stderr,"@@@@ in GetMetsRes upcall\n"); 
-  vp->GetMetricResource(" "," ",0);  
+  GetMetsRes(NULL,NULL,0);  
 }
 
 static void StopMetsRes(Widget w,XtAppContext app_con,XtPointer call_data){
 
  fprintf(stderr,"@@@@ in StopMetsRes upcall\n"); 
-  vp->StopMetricResource(0,0);  
+  StopMetRes(0,0);  
 }
 
 static void PName(Widget w,XtAppContext app_con,XtPointer call_data){
 
  fprintf(stderr,"@@@@ in PName upcall\n"); 
-  vp->PhaseName(0.0,1.0," ");  
+  NamePhase(0.0,1.0," ");  
 }
 /////////////////////////////////////
 
@@ -267,7 +270,7 @@ int main(int argc,char **argv)
 //////////////////////////////////////
 // start visi: get initial metric and resource choices: step (3) from README
 
-   ok = StartVisi(0,0);
+//   ok = StartVisi(0,0);
 //////////////////////////////////////
 
     paned = XtCreateManagedWidget("paned", panedWidgetClass, toplevel, 

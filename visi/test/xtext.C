@@ -1,7 +1,10 @@
 /* $Log: xtext.C,v $
-/* Revision 1.4  1994/03/26 04:37:08  newhall
-/* change all floats to double
-/* */
+/* Revision 1.5  1994/04/13 21:21:50  newhall
+/* *** empty log message ***
+/*
+ * Revision 1.4  1994/03/26  04:37:08  newhall
+ * change all floats to double
+ * */
 /*
  * xtext.c
  *
@@ -210,7 +213,7 @@ int fd_input2(int dummy){
 //
 static void GetMetsRes(Widget w,XtAppContext app_con,XtPointer call_data){
 
-  vp->GetMetricResource(" "," ",0);  
+  GetMetsRes(NULL,NULL,0);  
 }
 /////////////////////////////////////
 

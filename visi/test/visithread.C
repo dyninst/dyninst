@@ -1,8 +1,12 @@
 /* $Log: visithread.C,v $
-/* Revision 1.2  1994/03/29 02:55:58  newhall
+/* Revision 1.3  1994/04/13 21:21:46  newhall
 /* *** empty log message ***
-/*  */ 
+/*
+ * Revision 1.2  1994/03/29  02:55:58  newhall
+ * *** empty log message ***
+ *  */ 
 #include "visi.CLNT.h" 
+#include <stdio.h>
 
 
 
@@ -11,7 +15,10 @@
 void visualizationUser::GetMetricResource(String metric,String resource,int type){
 
   fprintf(stderr,"## in visualizationUser::GetMetricResource \n");
-  fprintf(stderr,"## metric = %s resource = %s type = %d\n",metric,resource,type);
+  if(metric == NULL)
+    fprintf(stderr,"metric NULL\n");
+  else
+    fprintf(stderr,"## metric = %s resource = %s type = %d\n",metric,resource,type);
 }
 
 

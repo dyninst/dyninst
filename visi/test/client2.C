@@ -1,7 +1,12 @@
 /* $Log: client2.C,v $
-/* Revision 1.2  1994/03/26 04:37:03  newhall
-/* change all floats to double
-/* */
+/* Revision 1.3  1994/04/13 21:21:43  newhall
+/* *** empty log message ***
+/*
+ * Revision 1.2  1994/03/26  04:37:03  newhall
+ * change all floats to double
+ * */
+#include <stdio.h>
+#include <stdlib.h>
 #include "visi.CLNT.h"
 
 #define TESTMETRIC	"blah,blah blah,metric 3,metric 4,last metric"
@@ -177,8 +182,8 @@ int numtimes;
     numMets = atoi(argv[2]);
     numRes  = atoi(argv[3]);
     numBuckets  = atoi(argv[4]);
-    bucketwidth  = (double)atof(argv[5]);
-    fprintf(stdout," numMets = %d numRes = %d numBuckets = %d bucketwidth = %lf\n",numMets,numRes,numBuckets,bucketwidth);
+    bucketwidth  = atof(argv[5]);
+    fprintf(stdout," numMets = %d numRes = %d numBuckets = %d bucketwidth = %f\n",numMets,numRes,numBuckets,bucketwidth);
   }
   else{
     numMets = 3;

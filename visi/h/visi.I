@@ -1,13 +1,17 @@
 /* $Log: visi.I,v $
-/* Revision 1.1  1994/03/29 02:42:13  newhall
-/* exported services of the visualization process
+/* Revision 1.2  1994/04/13 21:23:09  newhall
+/* *** empty log message ***
 /*
+# Revision 1.1  1994/03/29  02:42:13  newhall
+# exported services of the visualization process
+#
 # Revision 1.3  1994/03/17  05:20:35  newhall
 # changed bucket width and time value's type to double
 #
 # Revision 1.2  1994/03/14  20:28:52  newhall
 # changed visi subdirectory structure
 #  */ 
+
 $remote typedef struct {
      String  units;    // how units are measured  i.e. "ms" 
      String  name;     // for y-axis labeling  
@@ -27,6 +31,7 @@ $remote typedef struct{
   int 	bucketNum;
   double data;
 }dataValue;
+
 
 $remote visualization {
   $base  7000;
