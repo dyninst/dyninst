@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.155 2004/03/23 01:12:04 eli Exp $
+// $Id: inst-sparc.C,v 1.156 2004/03/30 21:01:20 tikir Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -960,6 +960,32 @@ void generateBranch(process *proc, Address fromAddr, Address newAddr)
 
     proc->writeTextWord((caddr_t)fromAddr, insn.raw);
 }
+/**
+	This function generates branch or call instruction from
+	fromAddr to the toAddr. If call inst is generated
+	no SAVE and RESTORE is used.
+**/
+
+void generateBranchOrCallNoSaveRestore(process *proc, 
+			Address fromAddr, Address toAddr)
+{
+
+    int disp;
+    instruction insn;
+
+    disp = toAddr-fromAddr;
+    if (offsetWithinRangeOfBranchInsn(disp)){
+    	generateBranchInsn(&insn, disp);
+        proc->writeTextWord((caddr_t)fromAddr, insn.raw);
+    }
+    else{
+		generateCallInsn(&insn,fromAddr,toAddr);
+		proc->writeTextWord((caddr_t)fromAddr, insn.raw);
+    }
+}
+
+/****************************************************************************/
+
 void generateBranchOrCall(process *proc, Address fromAddr, Address newAddr)
 {
     int disp;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.117 2004/03/23 01:12:04 eli Exp $
+// $Id: inst.C,v 1.118 2004/03/30 21:01:20 tikir Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -480,6 +480,11 @@ void hookupMiniTramp(process *proc, miniTrampHandle *&mtHandle,
         lastAtPoint = mtList->getLastMT();
     }
     mtList->addMiniTramp(order, mtHandle);
+
+#if defined(sparc_sun_solaris2_4)
+	extern void generateBranchOrCallNoSaveRestore(process *proc,Address fromAddr, Address toAddr);
+#endif
+
     if (mtList->numMiniTramps() == 1) {
         // jump from the minitramp back to the basetramp
         Address toAddr = mtHandle->getBaseReturnAddr();
@@ -488,7 +493,9 @@ void hookupMiniTramp(process *proc, miniTrampHandle *&mtHandle,
 #if defined(rs6000_ibm_aix4_1)
         // Jump to link register
         resetBR(proc, mtHandle->returnAddr);
-#else
+#elseif defined(sparc_sun_solaris2_4)
+		generateBranchOrCallNoSaveRestore(proc,mtHandle->returnAddr,toAddr);
+#else 
         generateBranch(proc, mtHandle->returnAddr, toAddr);
 #endif
         
@@ -498,6 +505,8 @@ void hookupMiniTramp(process *proc, miniTrampHandle *&mtHandle,
         //fromAddr, mtHandle->miniTrampBase);
 #if defined(rs6000_ibm_aix4_1)
         resetBRL(proc, fromAddr, mtHandle->miniTrampBase);
+#elif defined(sparc_sun_solaris2_4)
+		generateBranchOrCallNoSaveRestore(proc, fromAddr, mtHandle->miniTrampBase);
 #else
         generateBranch(proc, fromAddr, mtHandle->miniTrampBase);
 #endif
@@ -508,7 +517,11 @@ void hookupMiniTramp(process *proc, miniTrampHandle *&mtHandle,
         //fprintf(stderr, "2-  Branch from 0x%x to 0x%x\n",
         //lastAtPoint->returnAddr, mtHandle->miniTrampBase);
         
+#if defined(sparc_sun_solaris2_4)
+        generateBranchOrCallNoSaveRestore(proc, lastAtPoint->returnAddr, mtHandle->miniTrampBase);
+#else
         generateBranch(proc, lastAtPoint->returnAddr, mtHandle->miniTrampBase);
+#endif
         
         // jump from the minitramp to the basetramp
         Address toAddr = mtHandle->getBaseReturnAddr();
@@ -516,6 +529,8 @@ void hookupMiniTramp(process *proc, miniTrampHandle *&mtHandle,
         //mtHandle->returnAddr, toAddr);
 #if defined(rs6000_ibm_aix4_1)
         resetBR(proc, mtHandle->returnAddr);
+#elif defined(sparc_sun_solaris2_4)
+        generateBranchOrCallNoSaveRestore(proc, mtHandle->returnAddr, toAddr);
 #else
         generateBranch(proc, mtHandle->returnAddr, toAddr);
 #endif
@@ -524,7 +539,11 @@ void hookupMiniTramp(process *proc, miniTrampHandle *&mtHandle,
         //fprintf(stderr, "3- Branch from 0x%x to 0x%x\n",
         //      mtHandle->returnAddr, firstAtPoint->miniTrampBase);
         
+#if defined(sparc_sun_solaris2_4)
+        generateBranchOrCallNoSaveRestore(proc, mtHandle->returnAddr, firstAtPoint->miniTrampBase);
+#else
         generateBranch(proc, mtHandle->returnAddr, firstAtPoint->miniTrampBase);
+#endif
         
         /* base tramp branches to us */
         Address fromAddr = mtHandle->getBaseBranchAddr();
@@ -532,6 +551,8 @@ void hookupMiniTramp(process *proc, miniTrampHandle *&mtHandle,
         //fromAddr, mtHandle->miniTrampBase);
 #if defined(rs6000_ibm_aix4_1)
         resetBRL(proc, fromAddr, mtHandle->miniTrampBase);
+#elif defined(sparc_sun_solaris2_4)
+        generateBranchOrCallNoSaveRestore(proc, fromAddr, mtHandle->miniTrampBase);
 #else
         generateBranch(proc, fromAddr, mtHandle->miniTrampBase);      
 #endif
@@ -647,6 +668,9 @@ bool deleteInst(process *proc, miniTrampHandle *&mtHandle)
    if(thisMT == NULL)
       return false;   // must have already been deleted
 
+#if defined(sparc_sun_solaris2_4)
+	extern void generateBranchOrCallNoSaveRestore(process *proc,Address fromAddr, Address toAddr);
+#endif
 
    if(proc->status() != exited) {
       bool noOtherMTsAtPoint = (prevMT==NULL && nextMT==NULL);
@@ -657,14 +681,22 @@ bool deleteInst(process *proc, miniTrampHandle *&mtHandle)
           if(prevMT) {
               if (nextMT) {
                   /* set left's return insn to branch to tramp to the right */
+#if defined(sparc_sun_solaris2_4)
+                  generateBranchOrCallNoSaveRestore(proc, prevMT->returnAddr,nextMT->miniTrampBase);
+#else
                   generateBranch(proc, prevMT->returnAddr,nextMT->miniTrampBase);
+#endif
               } else {
                   /* branch back to the correct point in the base tramp */
 #if defined(rs6000_ibm_aix4_1)
                   resetBR(proc, prevMT->returnAddr);
 #else
                   Address toAddr = thisMT->getBaseReturnAddr();
+#if defined(sparc_sun_solaris2_4)
+                  generateBranchOrCallNoSaveRestore(proc, prevMT->returnAddr, toAddr);
+#else
                   generateBranch(proc, prevMT->returnAddr, toAddr);
+#endif
 #endif
               }
           } else {
@@ -674,7 +706,11 @@ bool deleteInst(process *proc, miniTrampHandle *&mtHandle)
 #if defined(rs6000_ibm_aix4_1)
               resetBRL(proc, fromAddr, nextMT->miniTrampBase);
 #else
+#if defined(sparc_sun_solaris2_4)
+              generateBranchOrCallNoSaveRestore(proc, fromAddr, nextMT->miniTrampBase);
+#else
               generateBranch(proc, fromAddr, nextMT->miniTrampBase);
+#endif
 #endif
           }
       }     

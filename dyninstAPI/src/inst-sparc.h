@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.h,v 1.60 2004/03/23 01:12:04 eli Exp $
+// $Id: inst-sparc.h,v 1.61 2004/03/30 21:01:20 tikir Exp $
 
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
@@ -440,6 +440,7 @@ extern void changeBranch(process *proc, Address fromAddr, Address newAddr,
 
 extern void generateBranch(process *proc, Address fromAddr, Address newAddr);
 extern void generateCall(process *proc, Address fromAddr, Address newAddr);
+extern void generateBranchOrCallNoSaveRestore(process *proc,Address fromAddr, Address toAddr);
 extern void genImm(process *proc, Address fromAddr, int op, Register rs1, 
 		   int immd, Register rd);
 extern int callsTrackedFuncP(instPoint *point);
