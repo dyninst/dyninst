@@ -14,9 +14,12 @@
  *
  */
 /* $Log: VMmain.C,v $
-/* Revision 1.24  1994/11/03 21:35:15  krisna
-/* status lines for active visis.
+/* Revision 1.25  1994/11/04 03:59:30  karavan
+/* Removed status line displays
 /*
+ * Revision 1.24  1994/11/03  21:35:15  krisna
+ * status lines for active visis.
+ *
  * Revision 1.23  1994/10/10  02:51:52  newhall
  * purify fixes
  *
@@ -100,7 +103,9 @@
 #include "VMtypes.h"
 #include "../pdMain/paradyn.h"
 
+/*
 #include "../UIthread/Status.h"
+*/
 
 #define ERROR_MSG(s1, s2) \
    uiMgr->showError(s1,s2); \
@@ -289,6 +294,7 @@ metrespair_Array temp;
    return(temp);
 }
 
+/*
 static
 void
 update_active_visis(VM* thisptr) {
@@ -305,12 +311,9 @@ update_active_visis(VM* thisptr) {
 		sprintf(buf, "(none)");
 	}
 
-	static status_line visi_status("Active Visis");
-	visi_status.message(buf);
-
 	free(active_visis.data);
 }
-
+*/
 /////////////////////////////////////////////////////////////
 // VMCreateVisi: VM server routine, starts a visualization process
 //
@@ -393,9 +396,9 @@ VMvisis *visitemp;
  
   PARADYN_DEBUG(("in VM::VMCreateVisi: tid = %d added to list",tid));
   currNumActiveVisis++;
-
+/*
 	update_active_visis(this);
-
+*/
   return(VMOK);
 }
 
@@ -428,7 +431,9 @@ VMactiveVisi *temp;
          PARADYN_DEBUG(("in VM::VMDestroyVisi: tid = %d removed",getTid()));
       }
   }
+/*
   update_active_visis(this);
+*/
   PARADYN_DEBUG(("VM::VMDestroyVisi: after temp->visip->VISIKillVisi"));
 }
 
@@ -453,8 +458,9 @@ VMactiveVisi *temp;
   delete(temp->visip);
   delete(temp);
   currNumActiveVisis--;
+/*
   update_active_visis(this);
-
+*/
 }
 
 void myfree(void* ptr) {
