@@ -250,16 +250,16 @@ DYNINST_idtot:
 	bne  .DYNINST_idtot48
 	mov %o1, %g1            /* %g1 = _allthreads */
 	b  .DYNINST_idtot52     
-	mov  -1, %o5            /* %o5  HASH_TID(%o0) */
+	mov  -1, %o5            /* %o5  HASH(%o0) */
 .DYNINST_idtot48:
-	and  %o0, 0x1ff, %o5    /* %o5 = HASH_TID(%o0) */
+	and  %o0, 0x1ff, %o5    /* %o5 = HASH(%o0) */
 .DYNINST_idtot52:
 	sll  %o5, 5, %o5
 	ld  [ %o5 + %g1 ], %g1  /* %g1 = _allthreads[%o5].first */
 	cmp  %g1, 0             /* %g1 == NULL? */
 	be,a  .DYNINST_idtot144
 	mov  -1, %o0
-	ld  [ %g1 + 0x30 ], %o5  /* %g1 != NULL, %o5=%g1->t_tid */
+	ld  [ %g1 + 0x30 ], %o5  /* %g1 != NULL, %o5=%g1->tid */
 	cmp  %o5, %o0            /* %o5 == %o0 ?*/
 	bne,a  .DYNINST_idtot96
 	ld  [ %g1 + 0x1c0 ], %o5  /* %o5 = %g1->next */
@@ -269,7 +269,7 @@ DYNINST_idtot:
 	cmp  %o5, %g1             /* %g1 == %g1->next ? */
 	be,a .DYNINST_idtot144
 	mov  -1, %o0
-	ld  [ %o5 + 0x30 ], %o4   /* %o4 = %o5->t_tid ? */
+	ld  [ %o5 + 0x30 ], %o4   /* %o4 = %o5->tid ? */
 .DYNINST_idtot112:
 	cmp  %o4, %o0             /* %o4 == %o0 ? */
 	be,a  .DYNINST_idtot144
@@ -277,7 +277,7 @@ DYNINST_idtot:
 	ld  [ %o5 + 0x1c0 ], %o5  /* %o5 = %o5->next */
 	cmp  %o5, %g1
 	bne,a  .DYNINST_idtot112
-	ld  [ %o5 + 0x30 ], %o4   /* %o4 = %o5->t_tid */
+	ld  [ %o5 + 0x30 ], %o4   /* %o4 = %o5->tid */
 	mov  -1, %o0
 .DYNINST_idtot144:
 	retl 

@@ -78,32 +78,12 @@
 typedef struct {
         long    sp;
         long    pc;
-        long    fsr;
-        long    fpu_en;
+        long    dontcare1;
+        long    dontcare2;
         long    g2;
         long    g3;
         long    g4;
 } resumestate_t;
-
-/*
- * thread stack layout.
- *
- *      -----------------       high address
- *      |               |
- *      | struct thread |
- *      |               |
- *      |               |
- *      |               |
- *      |       tls     |
- *      |               |
- *      -----------------
- *      |               | <-    thread stack bottom
- *      |               |
- *      |               |
- *      |               |
- *      |               |
- *      -----------------       low address
- */
 
 typedef struct uthread {
         struct uthread   *dontcare1;  
