@@ -3,15 +3,22 @@
  *   functions for a SUNOS SPARC processor.
  *
  * $Log: RTfuncs.c,v $
- * Revision 1.1  1993/07/02 21:49:35  hollings
+ * Revision 1.2  1993/08/26 19:43:58  hollings
+ * new include syntax.
+ *
+ * Revision 1.1  1993/07/02  21:49:35  hollings
  * Initial revision
  *
  *
  */
 #include <sys/signal.h>
 
-#include "trace.h"
-#include "rtinst.h"
+/*
+ * Now our include files.
+ *
+ */
+#include <h/trace.h>
+#include <h/rtinst.h>
 
 /* This marks the end of user code in the text file. */
 /* This is to prevent system libraries with symbols compiled into them
