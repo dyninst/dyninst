@@ -17,6 +17,9 @@
 
 /*
  * $Log: PCshg.C,v $
+ * Revision 1.27  1996/01/23 06:53:05  tamches
+ * added arg to DAGaddEdge
+ *
  * Revision 1.26  1995/10/05 04:41:42  karavan
  * changes to UI::PC interface calls.
  *
@@ -318,7 +321,7 @@ void searchHistoryNode::changeActive(bool newact)
 	    uiMgr->DAGaddNode (SHGid, this->nodeId, UNTESTEDNODESTYLE,
 			       this->shortName, (char *) this->name, 0);
 	    uiMgr->DAGaddEdge(SHGid, (*parent)->nodeId, this->nodeId, 
-				this->edgeStyle);
+				this->edgeStyle, NULL);
         }
       }
     }
