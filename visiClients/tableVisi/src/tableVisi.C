@@ -3,6 +3,11 @@
 
 /*
  * $Log: tableVisi.C,v $
+ * Revision 1.7  1995/12/22 22:43:10  tamches
+ * selection
+ * deletion
+ * sort foci by value
+ *
  * Revision 1.6  1995/12/19 00:46:19  tamches
  * calls to tvMetric constructor use new args
  * changeNumSigFigs now recognizes possibility of column pix width change
@@ -25,6 +30,8 @@
  *
  */
 
+#include <iostream.h>
+
 #include "minmax.h"
 #include "tkTools.h"
 #include "tableVisi.h"
@@ -32,6 +39,11 @@
 /* ************************************************************* */
 
 extern "C" {bool isnan(double);}
+
+void tableVisi::updateConversionString() {
+   sprintf(conversionString, "%%.%dg", numSigFigs);
+}
+
 void tableVisi::double2string(char *buffer, double val) const {
    // uses numSigFigs
    if (isnan(val)) {
@@ -39,8 +51,6 @@ void tableVisi::double2string(char *buffer, double val) const {
       return;
    }
 
-   char conversionString[100];
-   sprintf(conversionString, "%%.%dg", numSigFigs);
    sprintf(buffer, conversionString, val);
 
 //   cout << "from " << buffer << " to " << flush;
@@ -108,10 +118,9 @@ XFontStruct *tableVisi::myXLoadQueryFont(const string &fontName) const {
 
 XColor *tableVisi::myTkGetColor(Tcl_Interp *interp, const string &colorName) const {
    XColor *result = Tk_GetColor(interp, theTkWindow, Tk_GetUid(colorName.string_of()));
-   if (result == NULL) {
-      cerr << "could not allocate color " << colorName << endl;
-      exit(5);
-   }
+   if (result == NULL)
+      tclpanic(interp, "table visi: could not allocate color");
+
    return result;
 }
 
@@ -129,6 +138,7 @@ tableVisi::tableVisi(Tcl_Interp *interp,
 		     const string &iFocusColorName,
 		     const string &cellColorName,
 		     const string &backgroundColorName,
+		     const string &highlightedBackgroundColorName,
 		     unsigned iSigFigs
 		     ) {
    // metrics[], foci[], indirectMetrics[], indirectFoci[], and cells[][]
@@ -141,6 +151,7 @@ tableVisi::tableVisi(Tcl_Interp *interp,
       // sorry, can't XCreatePixmap() until the window becomes mapped.
 
    backgroundColor = myTkGetColor(interp, backgroundColorName);
+   highlightedBackgroundColor = myTkGetColor(interp, highlightedBackgroundColorName);
 
    offset_x = offset_y = 0;
    all_cells_width = all_cells_height = 0;
@@ -152,7 +163,10 @@ tableVisi::tableVisi(Tcl_Interp *interp,
 
    focusLongNameMode = true;
    numSigFigs = iSigFigs;
-//   dataFormat = Current;
+   updateConversionString();
+
+   theSelection = none;
+   // we leave selectedRow, selectedCol undefined
 
    maxFocusNamePixWidth = 0;
 
@@ -184,7 +198,9 @@ tableVisi::~tableVisi() {
    Tk_FreeColor(metricNameColor);
    Tk_FreeColor(lineColor);
    Tk_FreeColor(backgroundColor);
+   Tk_FreeColor(highlightedBackgroundColor);
 
+   XFreeFont(theDisplay, cellFont);
    XFreeFont(theDisplay, focusNameFont);
    XFreeFont(theDisplay, metricUnitsFont);
    XFreeFont(theDisplay, metricNameFont);
@@ -200,6 +216,7 @@ tableVisi::~tableVisi() {
    XFreeGC(theDisplay, metricNameGC);
    XFreeGC(theDisplay, lineColorGC);
    XFreeGC(theDisplay, backgroundGC);
+   XFreeGC(theDisplay, highlightedBackgroundGC);
 
    XFreePixmap(theDisplay, offscreenPixmap);
 }
@@ -226,6 +243,11 @@ bool tableVisi::tryFirst() {
    values.foreground = backgroundColor->pixel;
    backgroundGC = XCreateGC(Tk_Display(theTkWindow), Tk_WindowId(theTkWindow),
 			    GCForeground, &values);
+
+   values.foreground = highlightedBackgroundColor->pixel;
+   highlightedBackgroundGC = XCreateGC(Tk_Display(theTkWindow),
+				       Tk_WindowId(theTkWindow),
+				       GCForeground, &values);
 
    values.foreground = lineColor->pixel;
    lineColorGC = XCreateGC(Tk_Display(theTkWindow), Tk_WindowId(theTkWindow),
@@ -300,6 +322,48 @@ void tableVisi::resize(Tcl_Interp *interp) {
    adjustVertSBOffset(interp);
 }
 
+void tableVisi::drawHighlightBackground(Drawable theDrawable) const {
+   if (theSelection == none)
+      return;
+
+   int left, right;
+   if (theSelection == rowOnly) {
+      left = 0;
+      right = min(Tk_Width(theTkWindow)-1,
+		  (int)getFocusAreaPixWidth() + all_cells_width-1);
+   }
+   else {
+      // theSelection == colOnly || theSelection == cell
+      left = metric2xpix(selectedCol);
+      right = left + metrics[indirectMetrics[selectedCol]].getColPixWidth() - 1;
+
+      left = max(left, (int)getFocusAreaPixWidth()+1);
+      right = max(right, (int)getFocusAreaPixWidth()+1);
+   }
+
+   int top, bottom;
+   if (theSelection == rowOnly || theSelection == cell) {
+      top = focus2ypix(selectedRow);
+      bottom = top + getFocusLinePixHeight() - 1;
+
+      top = max(top, (int)getMetricAreaPixHeight()+1);
+      bottom = max(bottom, (int)getMetricAreaPixHeight()+1);
+   }
+   else {
+      // theSelection == colOnly
+      top = 0;
+      bottom = min((int)getMetricAreaPixHeight() + all_cells_height - 1,
+		   Tk_Height(theTkWindow)-1);
+   }
+
+   int width = right - left + 1;
+   int height = bottom - top + 1;
+
+   XFillRectangle(Tk_Display(theTkWindow), theDrawable,
+		  highlightedBackgroundGC,
+		  left, top, width, height);
+}
+
 void tableVisi::draw(bool xsynch) const {
    if (!offscreenPixmap)
       return; // we haven't done a tryFirst() yet
@@ -314,10 +378,14 @@ void tableVisi::draw(bool xsynch) const {
 		  0, 0, // x, y offset
 		  Tk_Width(theTkWindow), Tk_Height(theTkWindow));
 
+   // Is anything (a cell, an entire row, an entire column) highlighted?
+   // If so, let's do that now
+   drawHighlightBackground(theDrawable);
+
    drawFocusNames(theDrawable);
       // leftmost part of screen; unaffected by offset_x
    drawMetricNames(theDrawable);
-      // topmost part of screen; unaffected byy offset_y
+      // topmost part of screen; unaffected by offset_y
    drawCells(theDrawable);
 
    if (doubleBuffer)
@@ -423,6 +491,43 @@ unsigned tableVisi::getMetricUnitsBaseline() const {
               metricUnitsFont->ascent - 1;
 }
 
+bool tableVisi::xpix2col(int x, unsigned &theCol) const {
+   if (x < (int)getFocusAreaPixWidth())
+      return false; // too far left
+
+   x -= getFocusAreaPixWidth();
+
+   // Adjust for horiz scrollbar:
+   x -= offset_x;
+
+   if (x >= all_cells_width)
+      return false; // too far right
+
+   for (unsigned metriclcv = 0; metriclcv < indirectMetrics.size(); metriclcv++) {
+      const tvMetric &theMetric = metrics[indirectMetrics[metriclcv]];
+      if (x < (int)theMetric.getColPixWidth()) {
+         theCol = metriclcv;
+         return true;
+      }
+      x -= theMetric.getColPixWidth();
+   }
+
+   assert(false); // this case should have been caught in the "x >= all_cells_width"
+   return false; // placate compiler
+}
+
+int tableVisi::metric2xpix(unsigned theColumn) const {
+   int result = getFocusAreaPixWidth();
+
+   // Adjust for scrollbar:
+   result += offset_x; // subtracts from 'result' since offset_x <= 0
+
+   for (unsigned collcv=0; collcv < theColumn; collcv++)
+      result += metrics[indirectMetrics[collcv]].getColPixWidth();
+
+   return result;
+}
+
 /*
  * private focus helper functions
  *
@@ -441,7 +546,7 @@ void tableVisi::drawFocusNames(Drawable theDrawable) const {
 
    XSetClipRectangles(Tk_Display(theTkWindow), focusNameGC,
 		      0, 0, &clipRect, 1, YXBanded);
-   
+
    for (unsigned focuslcv = 0; focuslcv < indirectFoci.size(); focuslcv++) {
       if (curr_y > maxVisibleY)
          break;
@@ -496,6 +601,34 @@ unsigned tableVisi::getVertPixFocusTop2Baseline() const {
 unsigned tableVisi::getFocusAreaPixWidth() const {
    return getHorizPixBeforeFocusName() + maxFocusNamePixWidth +
           getHorizPixBeforeFocusName();
+}
+
+bool tableVisi::ypix2row(int y, unsigned &theRow) const {
+   if (y < (int)getMetricAreaPixHeight())
+      return false; // too far up
+
+   y -= getMetricAreaPixHeight();
+
+   // Adjust for scrollbar:
+   y -= offset_y; // adds since offset_y is <= 0
+
+   unsigned result = y / getFocusLinePixHeight();
+   if (result >= indirectFoci.size())
+      return false; // too far down
+
+   theRow = result;
+   return true;
+}
+
+int tableVisi::focus2ypix(unsigned theRow) const {
+   int result = getMetricAreaPixHeight();
+   
+   // Adjust for scrollbar:
+   result += offset_y; // subtracts since offset_y is <= 0
+
+   result += theRow * getFocusLinePixHeight();
+
+   return result;
 }
 
 /*
@@ -617,9 +750,11 @@ void tableVisi::clearFoci(Tcl_Interp *interp) {
       resize(interp);
 }
 
-void tableVisi::addMetric(const string &metricName, const string &metricUnits) {
-   tvMetric newTvMetric(metricName, metricUnits, metricNameFont, metricUnitsFont, cellFont,
-			numSigFigs);
+void tableVisi::addMetric(unsigned iVisiLibMetId,
+			  const string &metricName, const string &metricUnits) {
+   tvMetric newTvMetric(iVisiLibMetId,
+			metricName, metricUnits, metricNameFont, metricUnitsFont,
+			cellFont, numSigFigs);
    metrics += newTvMetric;
    indirectMetrics += (metrics.size()-1);
    cells += vector<tvCell>();
@@ -637,8 +772,8 @@ void tableVisi::changeUnitsLabel (unsigned which, const string &new_name) {
    }
 }
 
-void tableVisi::addFocus(const string &focusName) {
-   tvFocus newTvFocus(focusName, focusNameFont);
+void tableVisi::addFocus(unsigned iVisiLibFocusId, const string &focusName) {
+   tvFocus newTvFocus(iVisiLibFocusId, focusName, focusNameFont);
    foci += newTvFocus;
    indirectFoci += (foci.size()-1);
 
@@ -656,6 +791,110 @@ void tableVisi::addFocus(const string &focusName) {
    all_cells_height += getFocusLinePixHeight();
 
    assert(foci.size() == indirectFoci.size());
+}
+
+void tableVisi::deleteMetric(unsigned theColumn) {
+   // fry selection, if necessary
+   if (theSelection == cell || theSelection == colOnly)
+      if (selectedCol == theColumn)
+         theSelection = none;
+
+   unsigned actualMetricIndex = indirectMetrics[theColumn];
+
+   // Update some internal gfx vrbles:
+   all_cells_width -= metrics[actualMetricIndex].getColPixWidth();
+
+   unsigned newNumMetrics = indirectMetrics.size()-1;
+   for (unsigned metriclcv=theColumn; metriclcv < newNumMetrics; metriclcv++)
+      indirectMetrics[metriclcv] = indirectMetrics[metriclcv+1];
+   indirectMetrics.resize(newNumMetrics);
+
+   for (unsigned metriclcv=actualMetricIndex; metriclcv < newNumMetrics; metriclcv++)
+      metrics[metriclcv] = metrics[metriclcv+1];
+   metrics.resize(newNumMetrics);
+
+   for (unsigned metriclcv=actualMetricIndex; metriclcv < newNumMetrics; metriclcv++)
+      cells[metriclcv] = cells[metriclcv+1];
+   cells.resize(newNumMetrics);
+
+   // now look for items whose index need to be 1 lower
+   for (unsigned metriclcv=0; metriclcv < newNumMetrics; metriclcv++)
+      if (indirectMetrics[metriclcv] > actualMetricIndex)
+         indirectMetrics[metriclcv]--;
+      else if (indirectMetrics[metriclcv] == actualMetricIndex)
+         assert(false); // we should have deleted this guy
+
+   // now see if the selected column needs to made 1 lower
+   if (theSelection == cell || theSelection == colOnly)
+      if (selectedCol > theColumn)
+         selectedCol--;
+
+   // a little sanity checking
+   assert(indirectMetrics.size() == metrics.size());
+   assert(cells.size() == metrics.size());
+   for (unsigned metriclcv=0; metriclcv < newNumMetrics; metriclcv++)
+      assert(indirectMetrics[metriclcv] < newNumMetrics);
+   if (theSelection == cell || theSelection == colOnly)
+      assert(selectedCol < newNumMetrics);
+}
+
+void tableVisi::deleteFocus(unsigned theRow) {
+   // A shameless carbon copy of the routine "deleteMetric"
+
+   // fry selection, if necessary
+   if (theSelection == cell || theSelection == rowOnly)
+      if (selectedRow == theRow)
+         theSelection = none;
+
+   unsigned actualFocusIndex = indirectFoci[theRow];
+   
+   // update some internal gfx vrbles:
+   all_cells_height -= getFocusLinePixHeight();
+   
+   unsigned newNumFoci = indirectFoci.size()-1;
+   for (unsigned focuslcv=theRow; focuslcv < newNumFoci; focuslcv++)
+      indirectFoci[focuslcv] = indirectFoci[focuslcv+1];
+   indirectFoci.resize(newNumFoci);
+
+   for (unsigned focuslcv=actualFocusIndex; focuslcv < newNumFoci; focuslcv++)
+      foci[focuslcv] = foci[focuslcv+1];
+   foci.resize(newNumFoci);
+
+   for (unsigned metriclcv=0; metriclcv < metrics.size(); metriclcv++) {
+      vector<tvCell> &theColumn = cells[metriclcv];
+
+      for (unsigned focuslcv=actualFocusIndex; focuslcv < newNumFoci; focuslcv++)
+         theColumn[focuslcv] = theColumn[focuslcv+1];
+
+      theColumn.resize(newNumFoci);
+   }
+
+   // now look for items whose index need to be 1 lower
+   for (unsigned focuslcv=0; focuslcv < newNumFoci; focuslcv++)
+      if (indirectFoci[focuslcv] > actualFocusIndex)
+         indirectFoci[focuslcv]--;
+      else if (indirectFoci[focuslcv] == actualFocusIndex)
+         assert(false); // we should have deleted this guy
+
+   // now see if the selection needs to be made 1 lower
+   if (theSelection == cell || theSelection == rowOnly)
+      if (selectedRow > theRow)
+         selectedRow --;
+
+   // a little sanity checking
+   assert(indirectFoci.size() == foci.size());
+   for (unsigned focuslcv = 0; focuslcv < newNumFoci; focuslcv++)
+      assert(indirectFoci[focuslcv] < newNumFoci);
+   if (theSelection == cell || theSelection == rowOnly)
+      assert(selectedRow < newNumFoci);
+
+   // Finish updating some internal gfx vrbles:
+   maxFocusNamePixWidth = 0;
+   for (unsigned focuslcv=0; focuslcv < newNumFoci; focuslcv++)
+      if (focusLongNameMode)
+         ipmax(maxFocusNamePixWidth, foci[focuslcv].getLongNamePixWidth());
+      else
+         ipmax(maxFocusNamePixWidth, foci[focuslcv].getShortNamePixWidth());
 }
 
 int tableVisi::partitionMetrics(int left, int right) {
@@ -690,12 +929,35 @@ void tableVisi::sortMetrics(int left, int right) {
 }
 
 void tableVisi::sortMetrics() {
+   unsigned realSelectedMetric;
+   if (theSelection == cell || theSelection == colOnly)
+      realSelectedMetric = indirectMetrics[selectedCol];
+
    sortMetrics(0, metrics.size()-1);
+
+   if (theSelection == cell || theSelection == colOnly) {
+      for (unsigned metriclcv=0; metriclcv < indirectMetrics.size(); metriclcv++) {
+         if (indirectMetrics[metriclcv] == realSelectedMetric) {
+            selectedCol = metriclcv;
+            return;
+         }
+      }
+      assert(false);
+   }
 }
 
 void tableVisi::unsortMetrics() {
+   // After this call, the metric which used to be in sorted order X will now
+   // be in sorted order indirectMetrics[X] (this array lookup must be done first tho)
+   unsigned newSelectedMetric;
+   if (theSelection == cell || theSelection == colOnly)
+      newSelectedMetric = indirectMetrics[selectedCol];
+
    for (unsigned i=0; i < indirectMetrics.size(); i++)
       indirectMetrics[i] = i;
+
+   if (theSelection == cell || theSelection == colOnly)
+      selectedCol = newSelectedMetric;
 }
 
 int tableVisi::partitionFoci(int left, int right) {
@@ -723,6 +985,31 @@ int tableVisi::partitionFoci(int left, int right) {
    }
 }
 
+int tableVisi::partitionFociByValues(const vector<tvCell> &theMetricColumn,
+				     int left, int right) {
+   // note: theMetricColumn comes straight from "cells"; index it via focus numbers
+   //       (not by the sorted indexes but rather by the real indexes) to get the
+   //       cell value, needed for doing the comparisoin.
+
+   const tvCell &pivot = theMetricColumn[indirectFoci[left]];
+
+   int l = left-1;
+   int r = right+1;
+
+   while (true) {
+       do {r--;} while (theMetricColumn[indirectFoci[r]] > pivot);
+       do {l++;} while (theMetricColumn[indirectFoci[l]] < pivot);
+
+       if (l < r) {
+          unsigned temp = indirectFoci[l];
+	  indirectFoci[l] = indirectFoci[r];
+	  indirectFoci[r] = temp;
+       }
+       else
+          return r;
+   }
+}
+
 void tableVisi::sortFoci(int left, int right) {
    if (left < right) {
       int middle = partitionFoci(left, right);
@@ -732,10 +1019,74 @@ void tableVisi::sortFoci(int left, int right) {
 }
 
 void tableVisi::sortFoci() {
+   unsigned selectedRealFocus;
+   if (theSelection == rowOnly || theSelection == cell)
+      selectedRealFocus = indirectFoci[selectedRow];
+
    sortFoci(0, foci.size()-1);
+
+   if (theSelection == rowOnly || theSelection == cell) {
+      // we need to keep selectedRow consistent...
+      for (unsigned focuslcv=0; focuslcv < indirectFoci.size(); focuslcv++) {
+         if (indirectFoci[focuslcv] == selectedRealFocus) {
+            selectedRow = focuslcv;
+            return;
+	 }
+      }
+      assert(false);
+   }
+}
+
+void tableVisi::sortFociByValues(const vector<tvCell> &theMetricColumn,
+				 int left, int right) {
+   if (left < right) {
+      int middle = partitionFociByValues(theMetricColumn, left, right);
+      sortFociByValues(theMetricColumn, left, middle);
+      sortFociByValues(theMetricColumn, middle+1, right);
+   }
+}
+
+bool tableVisi::sortFociByValues() {
+   // returns true iff successful (if there was a selected col which to sort by)
+   if (theSelection != colOnly && theSelection != cell)
+      return false;
+
+   assert(theSelection == colOnly || theSelection == cell);
+   unsigned selectedRealFocus;
+   if (theSelection == cell) {
+      // in this case, we must keep "selectedRow" consistent.
+      // Let's say that before this call, selectedRow was 0 (the first row).
+      // Where is it after this call?  Unfortunately, it seems that we'll have to
+      // go looking through the new, sorted, indirectFoci[], looking for the
+      // original "real" focus.  (Actually, another solution is to intrude into the
+      // actual sort routine, updating "selectedRow" whenever it moves)
+      selectedRealFocus = indirectFoci[selectedRow];
+   }
+
+   sortFociByValues(cells[indirectMetrics[selectedCol]], 0, foci.size()-1);
+
+   if (theSelection == cell) {
+      // as described above...
+      for (unsigned focuslcv=0; focuslcv < indirectFoci.size(); focuslcv++) {
+         if (indirectFoci[focuslcv] == selectedRealFocus) {
+            selectedRow = focuslcv;
+            return true;
+         }
+      }
+      assert(false);
+   }
+
+   return true;
 }
 
 void tableVisi::unsortFoci() {
+   // keep theSelection consistent.  Let's say the first focus (in sorted order) was
+   // selected before calling this routine.  What sorted position will this focus be
+   // after this routine?  Simple.  It will be located at the "true" position before
+   // the sorting is done.
+   if (theSelection == rowOnly || theSelection == cell)
+      selectedRow = indirectFoci[selectedRow];
+
    for (unsigned i=0; i < indirectFoci.size(); i++)
       indirectFoci[i] = i;
 }
@@ -768,6 +1119,7 @@ bool tableVisi::setSigFigs(unsigned newNumSigFigs) {
       return false;
 
    numSigFigs = newNumSigFigs;
+   updateConversionString();
    all_cells_width = 0;
       // we'll be recalcing this from scratch, since col widths can change
 
@@ -813,4 +1165,94 @@ bool tableVisi::adjustVertSBOffset(Tcl_Interp *interp, float newFirst) {
    offset_y = -(int)(newFirst * total_cell_height); // yes, always <= 0
 
    return (offset_y != old_offset_y);
+}
+
+bool tableVisi::processClick(int x, int y) {
+   if (x < 0)
+      return false; // click was too far left
+   if (y < 0)
+      return false; // click was too far up
+
+   int focusAreaPixWidth = getFocusAreaPixWidth();
+   int metricAreaPixHeight = getMetricAreaPixHeight();
+   int focusLinePixHeight = getFocusLinePixHeight();
+
+   if (x < focusAreaPixWidth) {
+      // Judging by the x coords, it looks like a click on a focus name...
+      if (y < metricAreaPixHeight)
+         return false; // ...but it fell in that blank space, upper-left corner
+
+      // adjust for scrollbar setting & metric area:
+      y -= offset_y; // will _add_ to y
+      y -= metricAreaPixHeight;
+
+      assert(y >= 0);
+      unsigned rowClickedOn = y / focusLinePixHeight;
+      if (rowClickedOn >= getNumFoci()) {
+         // clicked below all rows.  This implies visible-y-pix  > total-y-pix, which
+         // implies that the vertical sb was turned off hence offset_y will be zero.
+         assert(offset_y == 0);
+         return false;
+      }
+
+      if (theSelection == rowOnly && selectedRow == rowClickedOn) {
+         // cout << "unselected focus row " << rowClickedOn << endl;
+         theSelection = none;
+         return true;
+      }
+      else {
+         // cout << "Selected focus row " << rowClickedOn << endl;
+         theSelection = rowOnly;
+         selectedRow = rowClickedOn;
+         return true;
+      }
+   }
+   else if (y < metricAreaPixHeight) {
+      // Judging by the y coords, it looks like a click on a metric name.
+      // We already know that the x coord excludes the possibility of it being a click
+      // on a focus name.
+
+      unsigned clickCol;
+      if (!xpix2col(x, clickCol))
+         return false; // too far right or left
+      
+      if (theSelection == colOnly && selectedCol == clickCol) {
+         // unselect the col
+         theSelection = none;
+         // cout << "Unselected metric col " << selectedCol << endl;
+      }
+      else {
+         theSelection = colOnly;
+         selectedCol = clickCol;
+         // cout << "selected metric col " << selectedCol << endl;
+      }
+
+      return true;
+   }
+   else {
+      // We did not click on a focus or on a metric.  The best guess now is for
+      // a click on some cell.
+
+      unsigned clickCol;
+      if (!xpix2col(x, clickCol))
+         return false; // too far right or left
+
+      unsigned clickRow;
+      if (!ypix2row(y, clickRow))
+         return false; // too far up or down
+ 
+      if (theSelection==cell && selectedRow == clickRow && selectedCol == clickCol) {
+         // unselect this cell
+         theSelection = none;
+         // cout << "unselected cell (" << selectedRow << "," << selectedCol << ")" << endl;
+      }
+      else {
+         theSelection = cell;
+         selectedRow = clickRow;
+         selectedCol = clickCol;
+         // cout << "selected cell (" << selectedRow << "," << selectedCol << ")" << endl;
+      }
+
+      return true;
+   }
 }

@@ -3,6 +3,11 @@
 
 /*
  * $Log: tableVisi.h,v $
+ * Revision 1.5  1995/12/22 22:43:08  tamches
+ * selection
+ * deletion
+ * sort foci by value
+ *
  * Revision 1.4  1995/12/19 00:44:39  tamches
  * changeUnitsLabel now takes in a string &, not char *
  *
@@ -24,8 +29,8 @@
 #include "Vector.h"
 #include "minmax.h"
 
-#include "tclclean.h"
-#include "tkclean.h"
+#include "tcl.h"
+#include "tk.h"
 #include "tkTools.h"
 
 #include "tvMetric.h"
@@ -37,18 +42,32 @@ class tableVisi {
    vector<tvMetric> metrics;
    vector<tvFocus> foci;
    vector<unsigned> indirectMetrics; // for sorting
-   vector<unsigned> indirectFoci; // for sorting
-   vector< vector<tvCell> > cells; // array[metrics] of array[foci]
+   vector<unsigned> indirectFoci;    // for sorting
+   vector< vector<tvCell> > cells;   // array[metrics] of array[foci]
    bool focusLongNameMode;
    unsigned numSigFigs;
+   char conversionString[100]; // e.g. "%.5g" if numSigFigs is currently 5
+
+ public:
+   enum selection {rowOnly, colOnly, cell, none};
+
+ private:
+   selection theSelection;
+   // The value of "theSelection" guides how to interpret the following 2 vrbles;
+   // in particular, one or both may be undefined.  Question: should these be
+   // in sorted or "real" order.  Currently, it's sorted.
+   unsigned selectedRow;
+   unsigned selectedCol;
 
    Tk_Window theTkWindow;
    Display *theDisplay; // needed only in the destructor
    Pixmap offscreenPixmap;
-   XColor *backgroundColor; // for erasing the offscreen pixmap
-   GC backgroundGC; // same...
+   XColor *backgroundColor; // for erasing the offscreen pixmap...
+   GC backgroundGC;         // ...same
+   XColor *highlightedBackgroundColor; // for drawing selected cells...
+   GC highlightedBackgroundGC;         // ...same
 
-   int offset_x, offset_y;
+   int offset_x, offset_y; // <= 0
    int all_cells_width, all_cells_height; // # pixels needed in horiz, vert sb's
 
    XFontStruct *metricNameFont, *metricUnitsFont, *focusNameFont, *cellFont;
@@ -62,6 +81,7 @@ class tableVisi {
 
  private:
 
+   void updateConversionString();
    void double2string(char *, double) const;
 
    XFontStruct *myXLoadQueryFont(const string &fontName) const;
@@ -76,6 +96,12 @@ class tableVisi {
    unsigned getMetricAreaPixHeight() const;
    unsigned getMetricNameBaseline() const; // assumes 0 is top y coord of metric area
    unsigned getMetricUnitsBaseline() const; // assumes 0 is top y coord of metric area
+   bool xpix2col(int x, unsigned &theColumn) const;
+      // sets theColumn and returns true iff the pixel is within some column.
+      // note that x should _not_ be adjusted for scrollbar; we take care of that
+   int metric2xpix(unsigned theColumn) const;
+      // returns the x coord where this column starts.  Do not adjust for the
+      // scrollbar; we do that for you.
 
    // private focus helper functions
    void drawFocusNames(Drawable) const;
@@ -84,6 +110,12 @@ class tableVisi {
    unsigned getVertPixFocusTop2Baseline() const;
    unsigned getHorizPixBeforeFocusName() const {return 3;}
    unsigned getFocusAreaPixWidth() const;
+   bool ypix2row(int y, unsigned &theRow) const;
+      // sets therow and returns true iff the y coord is w/in some row.
+      // note that y should _not_ be adjusted for scrollbar; we take care of that.
+   int focus2ypix(unsigned theRow) const;
+      // returns the y coord where this row starts.  Do not adjust for the scrollbar;
+      // we do that for you.
 
    // private cell helper functions
    void drawCells(Drawable) const;
@@ -91,12 +123,17 @@ class tableVisi {
                       const vector<tvCell> &thisMetricCells) const;
    unsigned getVertPixCellTop2Baseline() const;
 
+   // helper function for drawing
+   void drawHighlightBackground(Drawable) const;
+
    // helper functions for sorting
    void sortMetrics(int left, int right);
    int partitionMetrics(int left, int right);
 
    void sortFoci(int left, int right);
+   void sortFociByValues(const vector<tvCell> &theMetricColumn, int left, int right);
    int partitionFoci(int left, int right);
+   int partitionFociByValues(const vector<tvCell> &, int left, int right);
 
  public:
    tableVisi(Tcl_Interp *interp,
@@ -111,6 +148,7 @@ class tableVisi {
              const string &iFocusColorName,
              const string &cellColorName,
              const string &backgroundColorName,
+             const string &highlightedBackgroundColorName,
              unsigned iSigFigs
              );
   ~tableVisi();
@@ -126,15 +164,24 @@ class tableVisi {
    void clearMetrics(Tcl_Interp *interp);
    void clearFoci(Tcl_Interp *interp);
 
-   void addMetric(const string &metricName, const string &metricUnits);
-   void addFocus(const string &focusName);
+   void addMetric(unsigned iVisiLibMetId,
+		  const string &metricName, const string &metricUnits);
+   void addFocus(unsigned iVisiLibFocusId, const string &focusName);
    void changeUnitsLabel(unsigned which, const string &new_name);
 
-   void sortMetrics();
-   void unsortMetrics();
+   // The following routines should be followed by a call to resize(), in order
+   // to make the scrollbars, etc. coherent again:
+   void deleteMetric(unsigned theColumn); // theColumn is in sorted order
+   void deleteFocus(unsigned theRow); // theRow is in sorted order
 
-   void sortFoci();
-   void unsortFoci();
+   void sortMetrics(); // may change selectedCol, as appropriate.
+   void unsortMetrics(); // may change selectedCol, as appropriate.
+
+   void sortFoci(); // may change selectedRow, as appropriate
+   bool sortFociByValues(); // may change selectedRow, as appropriate
+      // If a column (metric) is selected, sort all foci according to that col.
+      // Returns true iff successful (if exactly 1 metric col was selected)
+   void unsortFoci(); // may change selectedRow, as appopriate
 
    bool setFocusNameMode(Tcl_Interp *interp, bool longNameMode);
       // returns true iff any changes
@@ -143,7 +190,9 @@ class tableVisi {
       // returns true iff any changes.  Can change column widths.
 
    void invalidateCell(unsigned theMetric, unsigned theFocus);
+      // theMetric and theFocus are _not_ in sorted order; they're the real thing
    void setCellValidData(unsigned theMetric, unsigned theFocus, double data);
+      // theMetric and theFocus are _not_ in sorted order; they're the real thing
 
    int get_offset_x() const {return offset_y;}
    int get_offset_y() const {return offset_y;}
@@ -156,6 +205,47 @@ class tableVisi {
 
    bool adjustHorizSBOffset(Tcl_Interp *, float newFirst);
    bool adjustVertSBOffset(Tcl_Interp *, float newFirst);
+
+   bool processClick(int x, int y);
+      // make a row, col, or cell selection or unselection, based on coords relative
+      // to the upper-left pixel of the table (i.e. _not_ adjusted for scrollbar
+      // settings; we do that for you)
+      // returns true iff any changes were made, in which case outside code should
+      // probably launch a redraw operation...
+   selection getSelection() const {return theSelection;}
+   unsigned getSelectedMetId() const {
+      assert(theSelection == cell || theSelection == colOnly);
+      return col2MetId(selectedCol);
+   }
+   unsigned getSelectedCol() const {
+      assert(theSelection == cell || theSelection == colOnly);
+      return selectedCol;
+   }
+
+   unsigned getSelectedResId() const {
+      assert(theSelection == cell || theSelection == rowOnly);
+      return row2ResId(selectedRow);
+   }
+   unsigned getSelectedRow() const {
+      assert(theSelection == cell || theSelection == rowOnly);
+      return selectedRow;
+   }
+
+   unsigned col2MetId(unsigned col) const {
+      return metrics[indirectMetrics[col]].getVisiLibId();
+   }
+   unsigned row2ResId(unsigned row) const {
+      return foci[indirectFoci[row]].getVisiLibId();
+   }
+
+   unsigned metric2MetId(unsigned theMetric) const {
+      return metrics[theMetric].getVisiLibId();
+   }
+   unsigned focus2ResId(unsigned theFocus) const {
+      return foci[theFocus].getVisiLibId();
+   }
+
+   void deleteSelection();
 };
 
 #endif
