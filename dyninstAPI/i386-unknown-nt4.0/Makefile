@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.6 2001/01/04 19:08:22 tikir Exp $
+# $Id: Makefile,v 1.7 2001/02/01 01:07:31 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -25,6 +25,9 @@ OBJS = 		pdwinnt.obj \
 
 
 CXXFLAGS 	= $(CXXFLAGS) -DNO_MDL_PRINT
+
+# Link in advapi32.lib when gets converted to a dll
+#SYSLIBS	= $(SYSLIBS) advapi32.lib
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
