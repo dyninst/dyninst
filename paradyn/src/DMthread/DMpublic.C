@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.124 2001/08/23 14:43:46 schendel Exp $
+// $Id: DMpublic.C,v 1.125 2001/10/11 23:58:12 schendel Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -464,6 +464,7 @@ void DMdoEnableData(perfStreamHandle ps_handle,
        if(!mi){ // create new metricInstance 
            mi = new metricInstance((*request)[i].res,(*request)[i].met,phaseId);
        }
+
        *miVec += mi;
        if(!mi){  // error case, don't try to enable this mi
 	   *enabled += true;

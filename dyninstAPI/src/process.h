@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.164 2001/10/04 20:04:44 buck Exp $
+/* $Id: process.h,v 1.165 2001/10/11 23:58:08 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -717,12 +717,23 @@ class process {
   // of the chosen function.
   void writeTimerLevels();
   // helper routines for writeTimerLevels
-  void writeTimerFuncAddr(const char *rtinstVar, const char *rtinstFunc);
-  bool writeTimerFuncAddr_(const char *rtinstVar, const char *rtinstFunc);
+  void writeTimerFuncAddr(const char *rtinstVar, const char *rtinstHelperFPtr);
+  bool writeTimerFuncAddr_(const char *rtinstVar,const char *rtinstHelperFPtr);
+
+  // returns the address to assign to a function pointer that will
+  // allow the time querying function to be called (in the rtinst library)
+  // on AIX, this address returned will be the address of a structure which 
+  //   has a field that points to the proper querying function (function 
+  //   pointers are handled differently on AIX)
+  // on other platforms, this address will be the address of the time
+  // querying function in the rtinst library
+  Address getTimerQueryFuncTransferAddress(const char *helperFPtr);
+
   // handles setting time retrieval functions for the case of a 64bit daemon
   // and 32bit application
-  bool writeTimerFuncAddr_Force32(const char *rtinstVar, 
-				  const char *rtinstFunc);
+  // see process.C definition for why being disabled
+  //bool writeTimerFuncAddr_Force32(const char *rtinstVar, 
+  //			  const char *rtinstFunc);
  public:
 #endif
 

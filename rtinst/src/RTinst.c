@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.46 2001/09/28 14:44:59 pcroth Exp $
+ * $Id: RTinst.c,v 1.47 2001/10/11 23:58:14 schendel Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -210,11 +210,24 @@ int trapNotHandled = 0;
 int hintBestCpuTimerLevel  = UNASSIGNED_TIMER_LEVEL;
 int hintBestWallTimerLevel = UNASSIGNED_TIMER_LEVEL;
 
+/* These are used to assign to pDYNINSTgetCPUtime.  On some systems like AIX,
+   a function pointer is actually a pointer to a structure which then points
+   to the function.  In the case of AIX, these variables will contain the
+   address of the structure (with a member that points to the function).  The
+   daemon can then read these variables to find the address of the structure.
+   On other systems, these variables just store the actual function address.
+   FPtrInfo = the address of the object which gives information as to how to
+              call a function pointer
+*/
+timeQueryFuncPtr_t swCpuTimeFPtrInfo  = &DYNINSTgetCPUtime_sw;
+timeQueryFuncPtr_t hwCpuTimeFPtrInfo  = &DYNINSTgetCPUtime_hw;
+timeQueryFuncPtr_t swWallTimeFPtrInfo = &DYNINSTgetWalltime_sw;
+timeQueryFuncPtr_t hwWallTimeFPtrInfo = &DYNINSTgetWalltime_hw;
+
 /* Set time retrieval functions to the software level.  The daemon
    will reset these to a "better" time querying function if available. */
-timeQueryFuncPtr_t pDYNINSTgetCPUtime = &DYNINSTgetCPUtime_sw;
+timeQueryFuncPtr_t pDYNINSTgetCPUtime  = &DYNINSTgetCPUtime_sw;
 timeQueryFuncPtr_t pDYNINSTgetWalltime = &DYNINSTgetWalltime_sw;
-
 
 /************************************************************************
  * void DYNINSTstartProcessTimer(tTimer* timer)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.267 2001/10/08 20:51:41 zandy Exp $
+// $Id: process.C,v 1.268 2001/10/11 23:58:06 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -5985,8 +5985,12 @@ void process::verifyTimerLevels() {
   }  
 }
 
+/*
+// being disabled since written for IRIX platform, now that don't support
+// this platform, don't have way to test changes needed in this feature
+// feel free to bring back to life if the need arises again
 bool process::writeTimerFuncAddr_Force32(const char *rtinstVar,
-				   const char *rtinstFunc)
+			   const char *rtinstFunc)
 {
    bool err = false;
    int rtfuncAddr = findInternalAddress(rtinstFunc, true, err);
@@ -5999,29 +6003,59 @@ bool process::writeTimerFuncAddr_Force32(const char *rtinstVar,
    return writeTextSpace((void *)(timeFuncVarAddr),
 			 sizeof(rtfuncAddr), (void *)(&rtfuncAddr));
 }
+*/
+
+/* That is, get the address of the thing to set the function pointer to.  In
+   most cases, this will be the address of the desired function, however, on
+   AIX it is the address of a structure which in turn points to the desired
+   function. 
+*/
+Address process::getTimerQueryFuncTransferAddress(const char *helperFPtr) {
+  bool err = false;
+  Address transferAddrVar = findInternalAddress(helperFPtr, true, err);
+
+  //logStream << "address of var " << helperFPtr << " = " << hex 
+  //    << transferAddrVar <<"\n";
+
+  int appAddrWidth = getImage()->getObject().getAddressWidth();
+
+  Address transferAddr = 0;
+  assert(err==false);
+  if (!readDataSpace((caddr_t)transferAddrVar, appAddrWidth, 
+		     &transferAddr, true)) {
+    cerr << "getTransferAddress: can't read var " << helperFPtr << "\n";
+    return 0;
+  }
+  return transferAddr;
+}
 
 bool process::writeTimerFuncAddr_(const char *rtinstVar,
-				   const char *rtinstFunc)
+				   const char *rtinstHelperFPtr)
 {
+   Address rtfuncAddr = getTimerQueryFuncTransferAddress(rtinstHelperFPtr);
+   //logStream << "transfer address at var " << rtinstHelperFPtr << " = " 
+   //     << hex << rtfuncAddr <<"\n";
    bool err = false;
-   Address rtfuncAddr = findInternalAddress(rtinstFunc, true, err);
-   assert(err==false);
-   err = false;
    Address timeFuncVarAddr = findInternalAddress(rtinstVar, true, err);
+   //logStream << "timeFuncVarAddr (" << rtinstVar << "): " << hex
+   //   << timeFuncVarAddr << "\n";
    assert(err==false);
    return writeTextSpace((void *)(timeFuncVarAddr),
    			 sizeof(rtfuncAddr), (void *)(&rtfuncAddr));
 }
 
-void process::writeTimerFuncAddr(const char *rtinstVar, const char *rtinstFunc)
-{
-   int appAddrWidth = getImage()->getObject().getAddressWidth();
-   bool result;
-
-   if(sizeof(Address)==8 && appAddrWidth==4)
-     result = writeTimerFuncAddr_Force32(rtinstVar, rtinstFunc);     
-   else
-     result = writeTimerFuncAddr_(rtinstVar, rtinstFunc);          
+void process::writeTimerFuncAddr(const char *rtinstVar, 
+				 const char *rtinstHelperFPtr)
+{   
+  bool result;
+   // being disabled since written for IRIX platform, now that don't support
+   // this platform, don't have way to test changes needed in this feature
+   // feel free to bring back to life if the need arises again
+   //int appAddrWidth = getImage()->getObject().getAddressWidth();
+   //if(sizeof(Address)==8 && appAddrWidth==4)
+   //result = writeTimerFuncAddr_Force32(rtinstVar, rtinstFunc);     
+   //else
+   result = writeTimerFuncAddr_(rtinstVar, rtinstHelperFPtr);          
 
    if(result == false) {
      cerr << "!!!  Couldn't write timer func address into rt library !!\n";
@@ -6036,7 +6070,7 @@ void process::writeTimerLevels() {
    writeTimerFuncAddr("pDYNINSTgetCPUtime", rtTimerStr);
    //logStream << "Setting cpu time retrieval function in rtinst to " 
    //     << rtTimerStr << "\n" << flush;
-
+   
    string wStr=wallTimeMgr->get_rtTimeQueryFuncName(wallTimeMgr_t::LEVEL_BEST);
    strncpy(rtTimerStr, wStr.string_of(), 59);
    writeTimerFuncAddr("pDYNINSTgetWalltime", rtTimerStr);
@@ -6199,9 +6233,9 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
    // rtinst library the desired function to use by means of setting a
    // numeric value and having the rtinst library setting the function
    // pointer itself.
-#ifndef rs6000_ibm_aix4_1
+   //#ifndef rs6000_ibm_aix4_1
    writeTimerLevels();
-#endif
+   //#endif
 #endif
 
    if (calledFromFork) {

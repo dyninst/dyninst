@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.101 2001/08/23 14:43:26 schendel Exp $
+// $Id: solaris.C,v 1.102 2001/10/11 23:58:10 schendel Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -2956,7 +2956,7 @@ void process::deleteThread(int tid)
 void process::initCpuTimeMgrPlt() {
   cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_TWO, &process::yesAvail, 
 			   timeUnit::ns(), timeBase::bNone(), 
-			   &process::getRawCpuTime_sw, "DYNINSTgetCPUtime_sw");
+			   &process::getRawCpuTime_sw, "swCpuTimeFPtrInfo");
 }
 #endif
 
