@@ -1,7 +1,10 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.21  1994/11/03 06:17:56  karavan
+# Revision 1.22  1994/11/03 16:10:44  rbi
+# New process definition interface.
+#
+# Revision 1.21  1994/11/03  06:17:56  karavan
 # Status display lines and where axis display pasted into the main window, and
 # the look cleaned up some.
 #
@@ -178,8 +181,8 @@ proc drawToolBar {} {
     menu .menub.left.men.b5.m -postcommand \
 	    {uimpd drawStartVisiMenu .menub.left.men.b5.m}
     menu .menub.left.men.b1.m 
-    .menub.left.men.b1.m add command -label "Application Control" \
-	    -command ApplicDefn
+    .menub.left.men.b1.m add command -label "Define A Process" \
+	    -command DefineProcess
     .menub.left.men.b1.m add command -label "Start Perf Consultant" \
 	    -command {paradyn shg start}
     .menub.left.men.b1.m add command -label "Tunable Constants Control" \
@@ -222,6 +225,4 @@ proc drawToolBar {} {
 
     uplevel #0 {source "$PdBitmapDir/errorList.tcl"}
     
-    InitApplicDefnScreen 
-
 }

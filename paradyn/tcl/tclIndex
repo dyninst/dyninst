@@ -6,7 +6,7 @@
 # element name is the name of a command and the value is
 # a script that loads the command.
 
-set auto_index(InitApplicDefnScreen) "source $dir/applic.tcl"
+set auto_index(DefineProcess) "source $dir/applic.tcl"
 set auto_index(ApplicDefn) "source $dir/applic.tcl"
 set auto_index(AddProcess) "source $dir/applic.tcl"
 set auto_index(AcceptNewApplicDefn) "source $dir/applic.tcl"
