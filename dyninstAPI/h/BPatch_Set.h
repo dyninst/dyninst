@@ -282,6 +282,9 @@ public:
     iterator begin()
     {
         entry* b = setData;
+	/* Check for an empty set */
+	if (b == nil)
+	  return iterator(nil, this);
 
         while( b->left != nil  )
             b = b->left;
@@ -301,6 +304,10 @@ public:
     iterator rbegin()
     {
         entry* b = setData;
+
+	/* Check for an empty set */
+	if (b == nil)
+	  return iterator(nil, this);
         
         while( b->right != nil )
             b = b->right;
