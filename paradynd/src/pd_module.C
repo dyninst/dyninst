@@ -47,6 +47,8 @@
 #include "paradynd/src/comm.h"
 #include "dyninstAPI/src/process.h"
 
+#include "dyninstAPI/h/BPatch_flowGraph.h"
+
 extern pdRPC *tp;
 
 pdstring pd_module::fileName() const {
@@ -85,11 +87,26 @@ void AddCallGraphStaticChildrenCallback(pdstring exe_name, pdstring r,
    tp->AddCallGraphStaticChildrenCallback(exe_name, r, children);
 }
 
+void printFunctionLoops(pd_Function * pdf, process * proc) {
+    fprintf( stderr, "Function %s contains", pdf->prettyName().c_str());
+    bool valid;
+    BPatch_flowGraph *fg = 
+	new BPatch_flowGraph(static_cast<function_base *>(pdf),
+			     proc, 
+			     pdf->file(), 
+			     valid);
+    if (valid) {
+	BPatch_Vector<BPatch_basicBlockLoop *> loops;
+	fg->getLoops(loops);
+	fg->printLoopSourceRanges(loops);
+    }
+}
+
 // Called across all modules (in a given image) to define the call
 //  graph relationship between functions.
 // Must be called AFTER all functions in all modules (in image) are
 //  registered as resource (e.g. w/ pdmodule::define())....
-void pd_module::FillInCallGraphStatic(process *proc) {
+void pd_module::FillInCallGraphStatic(process *proc, bool printLoops=false) {
    pdvector<pd_Function *> callees;
    pdvector<pdstring>        callees_as_strings;
    pdvector<pd_Function *> *mod_funcs = get_dyn_module()->getPD_Functions();
@@ -99,6 +116,8 @@ void pd_module::FillInCallGraphStatic(process *proc) {
   
    for(unsigned f=0; f<(*mod_funcs).size(); f++) {
       pd_Function *pdf = (*mod_funcs)[f];
+
+      if (printLoops) printFunctionLoops(pdf, proc);
     
       callees_as_strings.resize(0);
     
