@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.108 2003/07/15 22:46:46 schendel Exp $ */
+/* $Id: dynrpc.C,v 1.109 2003/07/29 20:12:49 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/inst.h"
@@ -381,15 +381,25 @@ void dynRPC::continueApplication(void)
 //
 // Continue a process
 //
-void dynRPC::continueProgram(int program)
+void dynRPC::continueProgram(int pid)
 {
-   pd_process *proc = getProcMgr().find_pd_process(program);
+   pd_process *proc = getProcMgr().find_pd_process(pid);
    if (!proc) {
-      sprintf(errorLine, "Internal error: cannot continue PID %d\n", program);
-      logLine(errorLine);
-      showErrorCallback(62,(const char *) errorLine,
-		        machineResource->part_name());
-      return;
+      if(getProcMgr().hasProcessExited(pid)) {
+         // do nothing, a possible and reasonable condition
+         // a process forks, the front-end registers the new forked process
+         // the forked process exits (eg. if the process was "ssh cmd &")
+         // the front-end signals the daemon to continue the forked process
+         // however, the forked process is now exited
+         return;
+      } else {
+         sprintf(errorLine,
+                 "Internal error: cannot continue PID %d\n", pid);
+         logLine(errorLine);
+         showErrorCallback(62,(const char *) errorLine,
+                           machineResource->part_name());
+         return;
+      }
    }
    if( proc->status() != running ) {
        proc->continueProc();
@@ -531,7 +541,7 @@ dynRPC::reportSelfDone( void )
 
 
 void 
-dynRPC::send_mdl( pdvector<T_dyninstRPC::rawMDL> mdlBufs )
+dynRPC::send_mdl( pdvector<T_dyninstRPC::rawMDL> /*mdlBufs*/ )
 {
     // should never be called; pdRPC::send_mdl should be called instead.
     assert( false );
