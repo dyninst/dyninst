@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: templatesDM.C,v 1.25 2002/06/27 19:01:47 schendel Exp $
+// $Id: templatesDM.C,v 1.26 2002/10/28 04:54:10 schendel Exp $
 // templates for DMthread, excluding igen templates
 //
 
@@ -146,6 +146,9 @@ template class vector<dictionary_hash<string, resource*>::entry>;
 template class dictionary_hash<unsigned, resource*>;
 template class vector<dictionary_hash<unsigned, resource*>::entry>;
 template class dictionary_hash_iter<unsigned, resource*>;
+
+template class dictionary_hash<unsigned, resourceHandle>;
+template class vector<dictionary_hash<unsigned, resourceHandle>::entry>;
 
 template class dictionary_hash<unsigned int, cpContext*>;
 template class vector<dictionary_hash<unsigned int, cpContext*>::entry>;
