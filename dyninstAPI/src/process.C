@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.348 2002/08/09 21:34:42 bernat Exp $
+// $Id: process.C,v 1.349 2002/08/12 04:21:24 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -323,7 +323,6 @@ bool process::walkStack(Frame currentFrame, vector<Frame> &stackWalk, bool pause
     sig_size = signal_handler->size();
   }
 
-
   // Make sure application is paused
   if ( pause() ) {
 
@@ -337,12 +336,10 @@ bool process::walkStack(Frame currentFrame, vector<Frame> &stackWalk, bool pause
       // successive frame pointers might be the same (e.g. leaf functions)
       if (fpOld > fpNew) {
 
-
         if (!paused && needToCont && !continueProc()) {
             cerr << "walkStack: continueProc failed" << endl;
 	    return false;
         }
-
 	// AIX:
 	// There's a signal function in the MPI library that we're not
 	// handling properly. Instead of returning an empty stack,
@@ -378,7 +375,6 @@ bool process::walkStack(Frame currentFrame, vector<Frame> &stackWalk, bool pause
 				    false));
 	}
       }
-      
       currentFrame = currentFrame.getCallerFrame(this); 
     }
     stackWalk.push_back(currentFrame);
@@ -387,7 +383,6 @@ bool process::walkStack(Frame currentFrame, vector<Frame> &stackWalk, bool pause
     cerr << "paused failed in walkStack" << endl;
     return false;
   }
-
   if (!paused && needToCont) {
      if (!continueProc()){
         cerr << "walkStack: continueProc failed" << endl;
@@ -2020,6 +2015,13 @@ process::~process()
       delete pt;
     }
 
+#ifndef BPATCH_LIBRARY
+    // the varMgr needs to be deleted before the shmMgr because the varMgr
+    // needs to free the memory it's allocated from the sharedMemoryMgr
+    delete theVariableMgr;
+    delete theSharedMemMgr;
+#endif
+
 #ifdef BPATCH_LIBRARY
     detach(false);
 
@@ -2072,6 +2074,9 @@ process::process(int iPid, image *iImage, int iTraceLink
 #ifdef BPATCH_LIBRARY
   PDFuncToBPFuncMap(hash_bp),
   instPointMap(hash_address),
+#endif
+#ifndef BPATCH_LIBRARY
+  shmMetaData(maxNumberOfThreads()),  // adjusts for new base addr below
 #endif
   savedRegs(NULL),
   installedMiniTramps_beforePt(ipHash),
@@ -2210,6 +2215,10 @@ process::process(int iPid, image *iImage, int iTraceLink
    //removed for output redirection
    //ioLink = iIoLink;
 
+#if defined(rs6000_ibm_aix4_1)
+   resetForkTrapData();
+#endif
+
    inSyscall_ = false;
    runningRPC_ = false;
    stoppedInSyscall = false;
@@ -2255,6 +2264,9 @@ process::process(int iPid, image *iSymbols,
 #if defined(BPATCH_LIBRARY)
   PDFuncToBPFuncMap(hash_bp),
   instPointMap(hash_address),
+#endif
+#ifndef BPATCH_LIBRARY
+  shmMetaData(maxNumberOfThreads()),  // adjusts for new base addr below
 #endif
   savedRegs(NULL),
   installedMiniTramps_beforePt(ipHash),
@@ -2462,6 +2474,10 @@ process::process(int iPid, image *iSymbols,
         assert(false);
 #endif
 
+#if defined(rs6000_ibm_aix4_1)
+   resetForkTrapData();
+#endif
+
    if (afterAttach == 0)
       needToContinueAfterDYNINSTinit = wasRunningWhenAttached;
    else if (afterAttach == 1)
@@ -2510,7 +2526,7 @@ void copyOverInstInstanceObjects(
 //
 
 process::process(const process &parentProc, int iPid, int iTrace_fd
-#ifdef SHM_SAMPLING
+#ifndef BPATCH_LIBRARY
                  ,key_t theShmKey,
                  void *applShmSegPtr
 #endif
@@ -2528,6 +2544,9 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 #ifdef BPATCH_LIBRARY
   PDFuncToBPFuncMap(hash_bp),
   instPointMap(hash_address),
+#endif
+#ifndef BPATCH_LIBRARY
+  shmMetaData(parentProc.shmMetaData),  // adjusts for new base addr below
 #endif
   savedRegs(NULL),
   installedMiniTramps_beforePt(parentProc.installedMiniTramps_beforePt),
@@ -2550,7 +2569,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     stoppedInSyscall = false;
 
 
-    hasBootstrapped = false;
+    hasBootstrapped = true;
 #if !defined(BPATCH_LIBRARY) //ccw 22 apr 2002 : SPLIT
 	PARADYNhasBootstrapped = false;
 #endif
@@ -2558,10 +2577,10 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
        // The child of fork ("this") has yet to run DYNINSTinit.
 
     // the next two variables are used only if libdyninstRT is dynamically linked
-    hasLoadedDyninstLib = false; // TODO: is this the right value?
+    hasLoadedDyninstLib = true; // TODO: is this the right value?
     isLoadingDyninstLib = false;
 #if !defined(BPATCH_LIBRARY) //ccw 19 apr 2002 : SPLIT
-	hasLoadedParadynLib = false;
+	hasLoadedParadynLib = true;
 	isLoadingParadynLib = false;
 #endif
 
@@ -2589,11 +2608,17 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     copyOverInstInstanceObjects(&installedMiniTramps_afterPt);
 
 #ifndef BPATCH_LIBRARY
-    theSharedMemMgr = new shmMgr(this, theShmKey, 2097152);
-    
-    theVariableMgr = new variableMgr(this, theSharedMemMgr, 
-				     maxNumberOfThreads());
+    // since the child process inherits the parents instrumentation we'll
+    // need to inherit the parent process's data also
+    theSharedMemMgr = new shmMgr(*parentProc.theSharedMemMgr, theShmKey,
+				 applShmSegPtr, pid);
+    theVariableMgr = new variableMgr(*parentProc.theVariableMgr, this,
+				     theSharedMemMgr);
     initCpuTimeMgr();
+
+    shmMetaData.adjustToNewBaseAddr(reinterpret_cast<Address>(
+                                   theSharedMemMgr->getBaseAddrInDaemon()));
+    shmMetaData.initializeForkedProc(theSharedMemMgr->cookie, getPid());
 
     string buff = string(pid); // + string("_") + getHostName();
     rid = resource::newResource(machineResource, // parent
@@ -2607,7 +2632,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 				);
 #endif
 
-    parent = &parentProc;
+    parent = const_cast<process*>(&parentProc);
     
     bufStart = 0;
     bufEnd = 0;
@@ -2707,6 +2732,10 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
    }
 #endif
 
+#if defined(rs6000_ibm_aix4_1)
+   resetForkTrapData();
+#endif
+
 #if defined(SHM_SAMPLING) && defined(sparc_sun_sunos4_1_3)
    childUareaPtr = NULL;
 #endif
@@ -2735,49 +2764,25 @@ void process::registerInferiorAttachedSegs(void *inferiorAttachedAtPtr) {
    theSharedMemMgr->registerInferiorAttachedAt(inferiorAttachedAtPtr);
 }
 
-Address process::initSharedData()
-{
-  /* Part 1: initialize our RTsharedData_t structure */
-  unsigned i;
-  RTsharedData.cookie = (unsigned *)theSharedMemMgr->malloc(sizeof(unsigned));
-  *(RTsharedData.cookie) = theSharedMemMgr->cookie;
-  RTsharedData.inferior_pid = (unsigned *)theSharedMemMgr->malloc(sizeof(unsigned));
-  *(RTsharedData.inferior_pid) = getPid();
-  RTsharedData.daemon_pid = (unsigned *)theSharedMemMgr->malloc(sizeof(unsigned));
-  *(RTsharedData.daemon_pid) = getpid();
-  RTsharedData.observed_cost = (unsigned *)theSharedMemMgr->malloc(sizeof(unsigned));
-  *(RTsharedData.observed_cost) = 0;
-  RTsharedData.trampGuards = (unsigned *)theSharedMemMgr->malloc(sizeof(unsigned) * maxNumberOfThreads());
-  for (i = 0; i < maxNumberOfThreads(); i++)
-    RTsharedData.trampGuards[i] = 1; /* initial value */
-  /* MT stuff. Harmless to do it for ST, though */
-  RTsharedData.virtualTimers = (tTimer *)theSharedMemMgr->malloc(sizeof(tTimer) * maxNumberOfThreads());
-  RTsharedData.posToThread = (unsigned *)theSharedMemMgr->malloc(sizeof(unsigned) * maxNumberOfThreads());
-  RTsharedData.pendingIRPCs = (rpcToDo **)malloc(sizeof(rpcToDo *)*maxNumberOfThreads());
-  for (i = 0; i < maxNumberOfThreads(); i++)
-    RTsharedData.pendingIRPCs[i] = (rpcToDo *)theSharedMemMgr->malloc(sizeof(rpcToDo)*maxNumberOfThreads());
+// returns a structure 
+Address process::initSharedMetaData() {
+   /* Part 1: initialize our RTsharedData_t structure */
+   shmMetaData.mallocInShm(*theSharedMemMgr);
+   shmMetaData.initialize(theSharedMemMgr->cookie, getpid(), getPid());
+
   /* Part 2: we need to communicate these offsets to the daemon. So we
      build another RTsharedData in the shared segment, and populate it 
      with offsets */
-  RTsharedData_t *RTargument = 
-    (RTsharedData_t *)theSharedMemMgr->malloc(sizeof(RTsharedData_t));
-  Address shmStart = (Address) theSharedMemMgr->getBaseAddrInDaemon();
-  RTargument->cookie = (unsigned *) ((Address)RTsharedData.cookie - shmStart);
-  RTargument->inferior_pid = (unsigned *) ((Address)RTsharedData.inferior_pid - shmStart);
-  RTargument->daemon_pid = (unsigned *)((Address)RTsharedData.daemon_pid - shmStart);
-  RTargument->observed_cost = (unsigned *)((Address)RTsharedData.observed_cost - shmStart);
-  RTargument->trampGuards = (unsigned *)((Address) RTsharedData.trampGuards - shmStart);
-  RTargument->virtualTimers = (tTimer *)((Address) RTsharedData.virtualTimers - shmStart);
-  RTargument->posToThread = (unsigned *)((Address) RTsharedData.posToThread - shmStart);
-  RTargument->pendingIRPCs = (rpcToDo **)theSharedMemMgr->malloc(sizeof(rpcToDo *)*maxNumberOfThreads());
-  for (i = 0; i < maxNumberOfThreads(); i++) {
-    RTargument->pendingIRPCs[i] = (rpcToDo *)((Address) RTsharedData.pendingIRPCs[i] - shmStart);
-  }
-  // We want this to be an offset from within the shared memory segment
-  RTargument->pendingIRPCs = (rpcToDo **)((unsigned) RTargument->pendingIRPCs - (unsigned)shmStart);
-
-  return (Address) RTargument;
-  
+   RTsharedData_t *RTargument = 
+      (RTsharedData_t *)theSharedMemMgr->malloc(sizeof(RTsharedData_t));
+   cerr << "dmn base address = " << theSharedMemMgr->getBaseAddrInDaemon() 
+	<< "\n";
+   cerr << "RTdata is at address = " << RTargument << "\n";
+   RTargument->pendingIRPCs = 
+      (rpcToDo **)theSharedMemMgr->malloc(sizeof(rpcToDo *) * 
+					  maxNumberOfThreads());
+   shmMetaData.saveOffsetsIntoRTstructure(RTargument);
+   return (Address) RTargument;
 }
 
 #endif
@@ -2910,24 +2915,25 @@ process *createProcess(const string File, vector<string> argv,
 tp->resourceBatchMode(true);
 #endif /* BPATCH_LIBRARY */
 
-     image *img = image::parseImage(desc);
-     if (!img) {
-       // For better error reporting, two failure return values would be
-       // useful.  One for simple error like because-file-not-because.
-       // Another for serious errors like found-but-parsing-failed 
-       //    (internal error; please report to paradyn@cs.wisc.edu)
-       
-       string msg = string("Unable to parse image: ") + file;
-       showErrorCallback(68, msg.c_str());
-       // destroy child process
-       OS::osKill(pid);
-       return(NULL);
-     }
-     
-     /* parent */
-     statusLine("initializing process data structures");
-     
-     process *ret = new process(pid, img, traceLink
+        image *img = image::parseImage(desc);
+        if (!img) {
+            // For better error reporting, two failure return values would be
+            // useful.  One for simple error like because-file-not-because.
+            // Another for serious errors like found-but-parsing-failed 
+            //    (internal error; please report to paradyn@cs.wisc.edu)
+
+            string msg = string("Unable to parse image: ") + file;
+            showErrorCallback(68, msg.c_str());
+            // destroy child process
+            OS::osKill(pid);
+            return(NULL);
+        }
+
+        /* parent */
+        statusLine("initializing process data structures");
+
+        process *ret = new process(pid, img, traceLink
+
 #ifdef SHM_SAMPLING
 				, 7000 // shm seg key to try first
 #endif
@@ -3587,45 +3593,38 @@ void handleProcessExit(process *proc, int exitStatus) {
    (actually, childHasInstr is obsoleted by aix's completeTheFork() routine)
 */
 process *process::forkProcess(const process *theParent, pid_t childPid,
-                      dictionary_hash<instInstance*,instInstance*> &map, // gets filled in
-                      int iTrace_fd
-#ifdef SHM_SAMPLING
-                              ,key_t theKey,
-                              void *applAttachedPtr
-#endif
-                              ) {
-    forkexec_cerr << "paradynd welcome to process::forkProcess; parent pid=" << theParent->getPid() << "; calling fork ctor now" << endl;
+			      int iTrace_fd, key_t theKey,
+			      void *applAttachedPtr) {
+   forkexec_cerr << "paradynd welcome to process::forkProcess\n; parent pid=" 
+		 << theParent->getPid() << "; calling fork ctor now\n";
+   
+   // Call the "fork" ctor:
+   process *ret = new process(*theParent, (int)childPid, iTrace_fd, theKey,
+			      applAttachedPtr);
+   assert(ret);
 
-    // Call the "fork" ctor:
-    process *ret = new process(*theParent, (int)childPid, iTrace_fd
-#ifdef SHM_SAMPLING
-                               , theKey,
-                               applAttachedPtr
-#endif
-                               );
-    assert(ret);
+   forkexec_cerr << "paradynd fork ctor has completed ok...child pid is " 
+		 << ret->getPid() << "\n";
 
-    forkexec_cerr << "paradynd fork ctor has completed ok...child pid is " << ret->getPid() << endl;
+   processVec += ret;
+   activeProcesses++;
 
-    processVec += ret;
-    activeProcesses++;
+   if (!costMetric::addProcessToAll(ret))
+      assert(false);
 
-    if (!costMetric::addProcessToAll(ret))
-       assert(false);
+   // We used to do a ret->attach() here...it was moved to the fork ctor, so
+   // it's been done already.
 
-    // We used to do a ret->attach() here...it was moved to the fork ctor, so it's
-    // been done already.
-
-    /* all instrumentation on the parent is active on the child */
-    /* TODO: what about instrumentation inserted near the fork time??? */
-    ret->baseMap = theParent->baseMap; // WHY IS THIS HERE?
+   /* all instrumentation on the parent is active on the child */
+   /* TODO: what about instrumentation inserted near the fork time??? */
+   ret->baseMap = theParent->baseMap; // WHY IS THIS HERE?
 
 #ifdef BPATCH_LIBRARY
-    /* XXX Not sure if this is the right thing to do. */
-    ret->instPointMap = theParent->instPointMap;
+   /* XXX Not sure if this is the right thing to do. */
+   ret->instPointMap = theParent->instPointMap;
 #endif
-
-    return ret;
+   
+   return ret;
 }
 #endif
 
@@ -3650,11 +3649,11 @@ void process::processCost(unsigned obsCostLow,
     cumObsCost += (obsCostLow - lastObsCostLow);
   
   lastObsCostLow = obsCostLow;
-  sampleVal_cerr << "processCost- cumObsCost: " << cumObsCost << "\n"; 
+  //  sampleVal_cerr << "processCost- cumObsCost: " << cumObsCost << "\n"; 
   timeLength observedCost(cumObsCost, getCyclesPerSecond());
   timeUnit tu = getCyclesPerSecond(); // just used to print out
-  sampleVal_cerr << "processCost: cyclesPerSecond=" << tu
-		 << "; cum obs cost=" << observedCost << "\n";
+  //  sampleVal_cerr << "processCost: cyclesPerSecond=" << tu
+  //		 << "; cum obs cost=" << observedCost << "\n";
   
   // Notice how most of the rest of this is copied from processCost() of
   // metric.C.  Be sure to keep the two "in sync"!
@@ -3664,21 +3663,21 @@ void process::processCost(unsigned obsCostLow,
   
   const timeStamp lastProcessTime = 
     totalPredictedCost->getLastSampleProcessTime(this);
-  sampleVal_cerr << "processCost- lastProcessTime: " <<lastProcessTime << "\n";
+  //  sampleVal_cerr << "processCost- lastProcessTime: " <<lastProcessTime << "\n";
   // find the portion of uninstrumented time for this interval
   timeLength userPredCost = timeLength::sec() + getCurrentPredictedCost();
-  sampleVal_cerr << "processCost- userPredCost: " << userPredCost << "\n";
+  //  sampleVal_cerr << "processCost- userPredCost: " << userPredCost << "\n";
   const double unInstTime = (processTime - lastProcessTime) / userPredCost; 
-  sampleVal_cerr << "processCost- unInstTime: " << unInstTime << "\n";
+  //  sampleVal_cerr << "processCost- unInstTime: " << unInstTime << "\n";
   // update predicted cost
   // note: currentPredictedCost is the same for all processes
   //       this should be changed to be computed on a per process basis
   pdSample newPredCost = totalPredictedCost->getCumulativeValue(this);
-  sampleVal_cerr << "processCost- newPredCost: " << newPredCost << "\n";
+  //  sampleVal_cerr << "processCost- newPredCost: " << newPredCost << "\n";
   timeLength tempPredCost = getCurrentPredictedCost() * unInstTime;
-  sampleVal_cerr << "processCost- tempPredCost: " << tempPredCost << "\n";
+  //  sampleVal_cerr << "processCost- tempPredCost: " << tempPredCost << "\n";
   newPredCost += pdSample(tempPredCost.getI(timeUnit::ns()));
-  sampleVal_cerr << "processCost- tempPredCost: " << newPredCost << "\n";
+  //  sampleVal_cerr << "processCost- tempPredCost: " << newPredCost << "\n";
   totalPredictedCost->updateValue(this, wallTime, newPredCost, processTime);
   // update observed cost
   pdSample sObsCost(observedCost);
@@ -5144,7 +5143,8 @@ void process::removeMiniTrampList(const instPoint *loc, callWhen when) {
   }
 }
 
-instPoint *process::findInstPointFromAddress(Address addr, trampTemplate **bt,
+instPoint *process::findInstPointFromAddress(Address addr,
+					     trampTemplate **bt,
 					     instInstance **mt)
 {
    unsigned u;
@@ -6502,7 +6502,8 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
 	    instPoint *func_ret = const_cast<instPoint *>(func_rets[j]);
 	    miniTrampHandle mtHandle;
             assert(addInstFunc(&mtHandle, this, func_ret, ast,
-			       req->when, req->order, false, false)
+			       req->when, req->order, false, 
+			       (!req->useTrampGuard))
 		   == success_res);
 	  }
 	  
@@ -6512,7 +6513,8 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
 	  instPoint *func_entry = const_cast<instPoint *>(func->funcEntry(this));
 	  miniTrampHandle mtHandle;
 	  assert(addInstFunc(&mtHandle, this, func_entry, ast,
-			     req->when, req->order, false, false)
+			     req->when, req->order, false,
+			     (!req->useTrampGuard))
 		 == success_res);
 	  
 	  
@@ -6526,7 +6528,8 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
 	  for (unsigned j=0; j < func_calls.size(); j++) {
 	    miniTrampHandle mtHandle;
             assert(addInstFunc(&mtHandle, this, func_calls[j], ast,
-			       req->when, req->order, false, false)
+			       req->when, req->order, false, 
+			       (!req->useTrampGuard))
 		   == success_res);
 	    
 	  }
@@ -6655,7 +6658,6 @@ int process::procStopFromDYNINSTinit() {
    // and decide now whether or not to carry them over to the new process.
 
    // if 0 is returned, there must be no side effects.
-
    assert(status_ == stopped);
    if (hasBootstrapped){
       return 0;
@@ -6696,8 +6698,6 @@ int process::procStopFromDYNINSTinit() {
       if (!continueProc())
          assert(false);
 #endif
-	   
-
       return 2;
    }
 }
@@ -6883,7 +6883,7 @@ void process::callpDYNINSTinit(){
    AstNode *arg4 = new AstNode(AstNode::Constant, (void *)getShmHeapTotalNumBytes());
 
    // Offset for other data 
-   Address addrInDaemon = initSharedData();
+   Address addrInDaemon = initSharedMetaData();
    AstNode *arg5 = new AstNode(AstNode::Constant, (void *) (addrInDaemon - (Address) theSharedMemMgr->getBaseAddrInDaemon()));
 
 #ifndef USE_STL_VECTOR   
@@ -6976,12 +6976,11 @@ int process::procStopFrompDYNINSTinit() {
    // and decide now whether or not to carry them over to the new process.
 
    // if 0 is returned, there must be no side effects.
-
    assert(status_ == stopped);
 
-   if (PARADYNhasBootstrapped)
+  if (PARADYNhasBootstrapped) {
       return 0;
-
+  }
    PARADYN_bootstrapStruct bs_record;
    if (!extractBootstrapStruct(&bs_record)){
       assert(false);
@@ -6992,13 +6991,18 @@ int process::procStopFrompDYNINSTinit() {
       return 0;
    }
 
-   forkexec_cerr << "procStopFromDYNINSTinit pid " << getPid() << "; got rec" << endl;
+   forkexec_cerr << "procStopFrompDYNINSTinit pid " << getPid() << "; got rec" << endl;
 
    assert(bs_record.event == 1 || bs_record.event == 2 || bs_record.event==3);
 #ifndef mips_unknown_ce2_11 //ccw 28 oct 2000 : 29 mar 2001
    assert(bs_record.pid == getPid());
 #endif
-   if (bs_record.event != 3 || (process::pdFlavor == "mpi" && osName.prefixed_by("IRIX")) )
+   const bool calledFromFork   = (bs_record.event == 2);
+
+   if(calledFromFork) {
+     handleCompletionOfpDYNINSTinit(false);
+     return 1;
+   } else if (bs_record.event != 3 || (process::pdFlavor == "mpi" && osName.prefixed_by("IRIX")) )
    {
       // we don't want to do this stuff (yet) when DYNINSTinit was run via attach...we
       // want to wait until the inferiorRPC (thru which DYNINSTinit is being run)
@@ -7058,7 +7062,6 @@ void process::pDYNINSTinitCompletionCallback(process* theProc,
 void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
    // 'event' values: (1) DYNINSTinit was started normally via paradynd
    // or via exec, (2) called from fork, (3) called from attach.
-
    inferiorrpc_cerr << "handleCompletionOfpDYNINSTinit..." << endl ;
 	// now PARADYN_bootstrapStruct contains all the
 	// DYNINST_bootstrapStruct info
@@ -7078,6 +7081,7 @@ void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
    // if we had attached to the process, then it will be running even as we speak.
    // While we're parsing the shared libraries, we should pause.  So do that now.
    bool wasRunning;
+
    if (needToContinueAfterDYNINSTinit) 
      wasRunning = true;
    else 
@@ -7094,7 +7098,9 @@ void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
 
    // Override the tramp guard address
    // Note: the pointers are all from the POV of the runtime library.
-   trampGuardAddr_ = (Address) theSharedMemMgr->getAddressInApplic((void *)RTsharedData.trampGuards);
+   trampGuardAddr_ = 
+      reinterpret_cast<Address>(theSharedMemMgr->getAddressInApplic(
+                    reinterpret_cast<void *>(shmMetaData.getTrampGuards())));
 
    // handleStartProcess gets shared objects, so no need to do it again after a fork.
    // (question: do we need to do this after an exec???)
@@ -7167,7 +7173,6 @@ void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
       // in paradyn, this will call paradynDaemon::addRunningProgram().
       // If the state of the application as a whole is 'running' paradyn will
       // soon issue an igen call to us that'll continue this process.
-
    if (!calledFromExec) {
       tp->setDaemonStartTime(getPid(), currWallTime.getD(timeUnit::sec(), 
 							 timeBase::bStd()));
@@ -7197,12 +7202,10 @@ void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
       // the parent proc has been waiting patiently at the start of DYNINSTfork
       // (i.e. the fork syscall executed but that's it).  We can continue it now.
       process *parentProcess = findProcess(bs_struct.ppid);
+
       if (parentProcess) {
 #ifdef DETACH_ON_THE_FLY
-         if (kill(parentProcess->getPid(), SIGCONT) < 0) {
-            perror("kill error");
-	    assert(false);
-	 }
+	 parentProcess->specialDetachOnFlyContinue();
 #else
          if (parentProcess->status() == stopped) {
             if (!parentProcess->continueProc())
@@ -7212,6 +7215,7 @@ void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
             parentProcess->continueAfterNextStop();
 #endif
       }
+      theVariableMgr->initializeVarsAfterFork();
    }
 
    if (!calledFromAttach || !createdViaAttach) {
@@ -7231,10 +7235,21 @@ void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
 
 #endif
 
+#ifdef DETACH_ON_THE_FLY
+bool process::specialDetachOnFlyContinue() {
+  if (kill(getPid(), SIGCONT) < 0) {
+    perror("kill error");
+    assert(false);
+  }
+  status_ = running;
+  hasRunSincePreviousWalk = true;
+  return true;
+}
+#endif
+
 void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
    // 'event' values: (1) DYNINSTinit was started normally via paradynd
    // or via exec, (2) called from fork, (3) called from attach.
-  cerr << "handleCompletionOfDyninstInit" << endl;
    inferiorrpc_cerr << "handleCompletionOfDYNINSTinit..." << endl ;
    DYNINST_bootstrapStruct bs_record;
    if (!extractBootstrapStruct(&bs_record))
@@ -7858,13 +7873,17 @@ void process::deleteBaseTramp(trampTemplate *baseTramp,
   gcInstrumentation();
 }
 
+// garbage collect instrumentation
 void process::gcInstrumentation()
 {
   // The without-a-passed-in-stackwalk version. Walk the stack
   // and pass it down.
   // First, idiot check...
-  if (status() == exited) return;
-  if (pendingGCInstrumentation.size() == 0) return;
+  if (status() == exited)
+    return; 
+
+  if (pendingGCInstrumentation.size() == 0)
+    return;
 
   // We need to pause the process. Otherwise we could have an incorrect
   // stack walk, etc. etc. etc. blahblahblah
@@ -7873,8 +7892,17 @@ void process::gcInstrumentation()
 
   if (status() == running) wasPaused = false;
 
-  if (!wasPaused && !pause())
+#ifdef DETACH_ON_THE_FLY
+  bool needToDetach = false;
+  if (haveDetached) {
+    needToDetach = true;
+    reattach();
+  }
+#endif /* DETACH_ON_THE_FLY */
+
+  if (!wasPaused && !pause()) {
     return;
+  }
 
   vector< vector<Frame> > stackWalks;
 #if defined(MT_THREAD)
@@ -7886,9 +7914,19 @@ void process::gcInstrumentation()
   stackWalks.push_back(stackWalk);
 #endif
   gcInstrumentation(stackWalks);
-  if (!wasPaused) continueProc();
+  if(!wasPaused) {
+#ifdef DETACH_ON_THE_FLY
+    if (needToDetach) 
+	 detachAndContinue();
+    else
+	 continueProc();
+#else
+    continueProc();
+#endif /* DETACH_ON_THE_FLY */
+  }
 }
 
+// garbage collect instrumentation
 void process::gcInstrumentation(vector<vector<Frame> > &stackWalks)
 {
   // Go through the list and try to clear out any
@@ -7935,7 +7973,8 @@ void process::gcInstrumentation(vector<vector<Frame> > &stackWalks)
     if (safeToDelete) {
       inferiorFree(old->baseAddr);
       // Delete from list of GCs
-      pendingGCInstrumentation[i] = pendingGCInstrumentation[pendingGCInstrumentation.size()-1];
+      pendingGCInstrumentation[i] = 
+	pendingGCInstrumentation[pendingGCInstrumentation.size()-1];
       pendingGCInstrumentation.resize(pendingGCInstrumentation.size()-1);
       // Back up iterator to cover the fresh one
       i--;
