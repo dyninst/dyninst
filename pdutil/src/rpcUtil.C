@@ -1,6 +1,9 @@
 /*
  * $Log: rpcUtil.C,v $
- * Revision 1.28  1994/08/17 18:25:25  markc
+ * Revision 1.29  1994/08/18 19:55:04  markc
+ * Added ifdef for solaris.
+ *
+ * Revision 1.28  1994/08/17  18:25:25  markc
  * Added RPCgetArg
  * Change RPC_make_arg_list to avoid leaving a hole at the head of the arg list
  * Changed RPCProcessCreate to use the new version of arg list
@@ -123,6 +126,7 @@ int connect(int s, struct sockaddr*, int);
 int socketpair(int, int, int, int sv[2]);
 int accept(int, struct sockaddr *addr, int *); 
 }
+#elif SOLARIS
 #endif
 
 
