@@ -619,6 +619,9 @@ void func18_1()
 
 void func19_1()
 {
+#ifdef alpha_dec_osf4_0
+	printf("Skipped test #19 (oneTimeCode) - not implemented on this platform\n");
+#else
     stop_process();
 
     if (globalVariable19_1 == MAGIC19_1) {
@@ -628,6 +631,7 @@ void func19_1()
 	printf("    globalVariable19_1 contained %d, not %d as expected\n",
 		globalVariable19_1, MAGIC19_1);
     }
+#endif
 }
 
 void fail7Print(int tCase, int fCase, char *op)

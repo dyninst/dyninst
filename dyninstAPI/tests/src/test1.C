@@ -808,6 +808,7 @@ void mutatorTest18(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest19(BPatch_thread *appThread, BPatch_image *appImage)
 {
+#ifndef alpha_dec_osf4_0
     waitUntilStopped(appThread, 19, "oneTimeCode");
 
     BPatch_function *call19_1func = appImage->findFunction("call19_1");
@@ -823,6 +824,7 @@ void mutatorTest19(BPatch_thread *appThread, BPatch_image *appImage)
     appThread->oneTimeCode(call19_1Expr);
 
     appThread->continueExecution();
+#endif
 }
 
 void mutatorMAIN(char *pathname, bool useAttach)
