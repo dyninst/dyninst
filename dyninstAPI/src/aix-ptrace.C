@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix-ptrace.C,v 1.6 2003/10/07 19:05:48 schendel Exp $
+// $Id: aix-ptrace.C,v 1.7 2003/10/21 17:21:53 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -53,7 +53,6 @@
 #include "common/h/Types.h"
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
-#include "dyninstAPI/src/instP.h" // class instInstance
 #include "common/h/pathName.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/inst-power.h" // Tramp constants
@@ -478,6 +477,49 @@ bool dyn_lwp::changePC(Address loc, struct dyn_saved_regs *)
       
    }
    return true;
+}
+
+
+unsigned recognize_thread(process *proc, unsigned lwp_id) {
+   dyn_lwp *lwp = proc->getLWP(lwp_id);
+
+   pdvector<AstNode *> ast_args;
+   AstNode *ast = new AstNode("DYNINSTregister_running_thread", ast_args);
+
+   return proc->getRpcMgr()->postRPCtoDo(ast, true, NULL, (void *)lwp_id,
+                                         true, NULL, lwp);
+}
+
+// run rpcs on each lwp in the child process that will start the virtual
+// timer of each thread and cause the rtinst library to notify the daemon of
+// a new thread.  For pthreads though, which AIX uses, there should only be
+// one thread in the child process (ie. the thread which initiated the fork).
+
+void process::recognize_threads(pdvector<unsigned> *completed_lwps) {
+   unsigned found_lwp = get_childproc_lwp(this);
+   //cerr << "chosen lwp = " << found_lwp << endl;
+
+   unsigned rpc_id = recognize_thread(this, found_lwp);
+   bool cancelled = false;
+
+   do {
+       getRpcMgr()->launchRPCs(false);
+       if(hasExited())
+           return;
+       decodeAndHandleProcessEvent(false);
+       
+       irpcState_t rpc_state = getRpcMgr()->getRPCState(rpc_id);
+       if(rpc_state == irpcWaitingForSignal) {
+           //cerr << "rpc_id: " << rpc_id << " is in syscall, cancelling rpc\n";
+           getRpcMgr()->cancelRPC(rpc_id);
+           cancelled = true;
+           break;
+       }
+   } while(getRpcMgr()->getRPCState(rpc_id) != irpcNotValid); // Loop rpc is done
+   
+   if(! cancelled) {
+      (*completed_lwps).push_back(found_lwp);
+   }
 }
 
 
@@ -960,28 +1002,6 @@ bool process::dumpImage(pdstring outFile) {
       decodeInstr(memory[i]);
     }
 
-    // Print the stack from register 1 to 0x30000000
-    int instr_temp;
-    for (i = gpr_contents[1]; i < 0x30000000; i += 4) {
-      if (ptrace(PT_READ_BLOCK, pid, (int *)i, 4, &instr_temp) == -1)
-	perror("Failed to read stack!");
-      fprintf(stderr, "0x%x: 0x%x", i, instr_temp);
-      if ((instr_temp > 0x10000000) && (instr_temp < 0x20000000)) {
-	pd_Function *func = symbols->findFuncByAddr((Address) instr_temp, this);
-	fprintf(stderr, ":  %s", (func->prettyName()).c_str());
-      }
-      if ((instr_temp > 0xd0000000) && (instr_temp < 0xe0000000)) {
-	pd_Function *func;
-	if (shared_objects)
-	  for(u_int j=0; j < shared_objects->size(); j++) {
-	    const image *img = ((*shared_objects)[j])->getImage();
-	    func = img->findFuncByAddr((Address) instr_temp, this);
-	    if (func)
-	      fprintf(stderr, ":   %s", (func->prettyName()).c_str());
-	  }
-      }
-      fprintf(stderr, "\n");
-    }
 #endif
 
     ifd = open(imageFileName.c_str(), O_RDONLY, 0);
