@@ -2,14 +2,18 @@
      input file for igen for User Interface Manager (UIM) interface to paradyn
 */
 /* $Log: UI.I,v $
-/* Revision 1.2  1994/04/21 05:03:28  karavan
-/* Added most DAG services and sync versions of message display services.
+/* Revision 1.3  1994/06/12 22:39:42  karavan
+/* implemented status display service.
 /*
+# Revision 1.2  1994/04/21  05:03:28  karavan
+# Added most DAG services and sync versions of message display services.
+#
 # Revision 1.1  1994/04/05  19:37:57  karavan
 # Initial version.
 # */
 
 #include "dataManager.CLNT.h"
+#include "../src/UIthread/UIstatDisp.h"
 
 /* 
  * Handler that gets called when user-selected metric and focus choices
@@ -36,6 +40,7 @@ typedef (*showErrorCBFunc) (int userChoice);
  *  item in original list.
  */
 typedef (*chooseMenuItemCBFunc) (int userChoice);
+
 
 /*
  * igen template for UIM server and client classes 
@@ -88,6 +93,9 @@ $remote UIM {
 	$upcall $async void chooseMenuItemREPLY (chooseMenuItemCBFunc cb, 
 			int userChoice);
 
+	// add string to end of status display window (PC only for now)
+	//	$async void updateStatusDisplay (int token, char *item);
+	statusDisplayObj *initStatusDisplay (int type);
 	// 
 	// in emergency, break glass; valid tcl command will go right to 
         //   tcl interpreter

@@ -12,10 +12,30 @@
  *            showMsg
  *            chooseMetricsandResources
  */
-/* $Log: UIpublic.C,v $
-/* Revision 1.6  1994/05/12 23:34:15  hollings
-/* made path to paradyn.h relative.
+
 /*
+ * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
+ *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
+ *     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
+ * 
+ * This software is furnished under the condition that it may not be
+ * provided or otherwise made available to, or used by, any other
+ * person, except as provided for by the terms of applicable license
+ * agreements.  No title to or ownership of the software is hereby
+ * transferred.  The name of the principals may not be used in any
+ * advertising or publicity related to this software without specific,
+ * written prior authorization.  Any use of this software must include
+ * the above copyright notice.
+ *
+ */
+
+/* $Log: UIpublic.C,v $
+/* Revision 1.7  1994/06/12 22:38:27  karavan
+/* implemented status display service.
+/*
+ * Revision 1.6  1994/05/12  23:34:15  hollings
+ * made path to paradyn.h relative.
+ *
  * Revision 1.5  1994/05/07  23:26:30  karavan
  * added short explanation feature to SHG.
  *
@@ -31,6 +51,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
 #include "UI.CLNT.h"
 #include "UI.SRVR.h"
 #include "UI.h"
@@ -40,6 +61,12 @@
 extern "C" {
   #include "tk.h"
 }
+
+#define PCSTATUSOBJECT 1
+#define GENSTATUSOBJECT 2
+
+class statusDisplayObject;
+
 #define SHG_DAGID 1
      /** note: right now there is a hard limit of 20 dags total; numbers 
               are never re-used.  This should be changed eventually.  
@@ -85,6 +112,69 @@ UIM::chooseMenuItem(chooseMenuItemCBFunc cb,
 {
   fprintf (stderr, "chooseMenuItem called\n");
 
+}
+
+statusDisplayObj::statusDisplayObj (int type)
+{
+  if (type == PCSTATUSOBJECT)
+    wname = ".shg.status.txt";
+  else {
+    wname = "notawindow";
+    printf ("only PC supported so far!\n");
+  }
+}
+
+void
+statusDisplayObj::updateStatusDisplay (int displayCode, 
+				       const char *fmt ...)
+{
+  char newItem[256];
+  va_list ap;
+  va_start(ap, fmt);
+  char c;
+  char *curr = newItem;
+  
+  while (c = *fmt++) {
+    if (c == '%') {
+      switch (c = *fmt++) {
+      case 'c': 
+	*curr = c;
+	curr++;
+	break;
+      case 'd':
+	sprintf (curr, "%d", va_arg(ap, int));
+	curr = curr + strlen(curr);
+	break;
+      case 'f':
+      case 'g':
+	sprintf (curr, "%g", va_arg(ap, double));
+	curr = curr + strlen(curr);
+	break;
+      case 's':
+	strcpy (curr, va_arg(ap, char *));
+	curr = curr + strlen(curr);
+	break;
+      }
+    } else {
+      *curr = c;
+      curr++;
+    }
+    va_end (ap);
+    *curr = '\0';
+  }
+
+  if (Tcl_VarEval (interp, "shgUpdateStatusLine .shg.status.txt {",
+		   newItem, "}", (char *) NULL) == TCL_ERROR)
+    fprintf (stderr, "status insert error: %s\n", interp->result);
+
+}
+
+statusDisplayObj *
+UIM::initStatusDisplay (int type)
+{
+  statusDisplayObj *token;
+  token = new statusDisplayObj (type);
+  return token;
 }
 
 void 
