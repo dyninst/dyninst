@@ -1,9 +1,13 @@
 // barChartTcl.C
 
 /* $Log: barChartTcl.C,v $
-/* Revision 1.4  1994/10/10 23:08:44  tamches
-/* preliminary changes on the way to swapping the x and y axes
+/* Revision 1.5  1994/10/13 00:52:38  tamches
+/* Minor additions to support a new command related to sorting
+/* of resources
 /*
+ * Revision 1.4  1994/10/10  23:08:44  tamches
+ * preliminary changes on the way to swapping the x and y axes
+ *
  * Revision 1.3  1994/10/10  14:36:17  tamches
  * fixed some resizing bugs
  *
@@ -110,6 +114,15 @@ int newScrollPositionCommand(ClientData cd, Tcl_Interp *interp, int argc, char *
 int dataFormatHasChangedCommand(ClientData cd, Tcl_Interp *interp, int argc, char **argv) {
    if (barChartIsValid) {
       theBarChart->rethinkDataFormat();
+      return TCL_OK;
+   }
+   else
+      return TCL_ERROR;
+}
+
+int rethinkIndirectResourcesCommand(ClientData, Tcl_Interp *, int argc, char **argv) {
+   if (barChartIsValid) {
+      theBarChart->rethinkIndirectResources();
       return TCL_OK;
    }
    else

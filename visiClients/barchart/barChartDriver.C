@@ -1,9 +1,13 @@
 // barChartDriver.C
 
 /* $Log: barChartDriver.C,v $
-/* Revision 1.3  1994/10/10 23:08:43  tamches
-/* preliminary changes on the way to swapping the x and y axes
+/* Revision 1.4  1994/10/13 00:52:36  tamches
+/* Minor additions to support a new command related to sorting
+/* of resources
 /*
+ * Revision 1.3  1994/10/10  23:08:43  tamches
+ * preliminary changes on the way to swapping the x and y axes
+ *
  * Revision 1.2  1994/09/29  20:05:36  tamches
  * minor cvs fixes
  *
@@ -78,6 +82,10 @@ int Tcl_AppInit(Tcl_Interp *interp) {
 		     deleteDummyProc);
 
    Tcl_CreateCommand(interp, "dataFormatHasChanged", dataFormatHasChangedCommand,
+		     NULL, // ClientData
+		     deleteDummyProc);
+
+   Tcl_CreateCommand(interp, "rethinkIndirectResourcesCallback", rethinkIndirectResourcesCommand,
 		     NULL, // ClientData
 		     deleteDummyProc);
 
