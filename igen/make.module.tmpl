@@ -4,7 +4,10 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.4  1995/05/18 11:13:50  markc
+# Revision 1.5  1995/12/26 22:58:59  zhichen
+# Moved -lfl to syslibs
+#
+# Revision 1.4  1995/05/18  11:13:50  markc
 # added support for derived classes
 #
 # Revision 1.3  1995/03/13  18:14:15  jcargill
@@ -28,7 +31,8 @@ SRCS 	     += ../src/main.C \
 		../src/interface_spec.C \
 	        ../src/templates.C 
 
-LIBS 	     += -lpdutil -lfl
+LIBS 	     += -lpdutil
+SYSLIBS	     += -lfl
 CXXFLAGS       += $(USEFULWARNINGS) 
 
 all:	$(TARGET)
