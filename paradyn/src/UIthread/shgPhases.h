@@ -4,9 +4,18 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.h,v $
-/* Revision 1.4  1996/01/23 07:04:44  tamches
-/* clarified interface to change()
+/* Revision 1.5  1996/02/02 18:50:26  tamches
+/* better multiple phase support
+/* currSearching, everSearched flags are new
+/* shgStruct constructor is new
+/* new cleaner pc->ui igen-corresponding routines: defineNewSearch,
+/* activateSearch, pauseSearch, resumeSearch, addNode, addEdge,
+/* configNode, addToStatusDisplay
+/* removed add()
 /*
+ * Revision 1.4  1996/01/23 07:04:44  tamches
+ * clarified interface to change()
+ *
  * Revision 1.3  1996/01/09 01:40:14  tamches
  * added existsById
  *
@@ -36,8 +45,9 @@
 class shgPhases {
  private:
    struct shgStruct {
-      shg *theShg;
-      // int  phaseID; (now present in shg.h)
+      shg *theShg; // note: destructor must not fry (since constructor
+                   //       does not copy)
+      // int  phaseID; (now present in shg.h) (is this right?)
       string phaseName; // what's used in the menu
       
       // Save shg UI-type state when changing phases, so we can restore
@@ -45,8 +55,56 @@ class shgPhases {
       float horizSBfirst, horizSBlast;
       float vertSBfirst, vertSBlast;
 
+      // Save the activeness/disabledness of the "Search(Resume)" and "Pause" buttons:
+      // Note that the "everSearched" button will distinguish "Search" from "Resume"
+      bool currSearching;
+
+      // needed to eliminate unused lame-duck phases when the time arrives...
+      bool everSearched;
+
       // convenience routine:
       int getPhaseId() const {return theShg->getPhaseId();}
+
+      shgStruct() {theShg=NULL;} // needed by Vector class
+      shgStruct(unsigned phaseId, const string &iPhaseName,
+		Tcl_Interp *interp, Tk_Window theTkWindow,
+		const string &horizSBName, const string &vertSBName,
+		const string &currItemLabelName) : phaseName(iPhaseName) {
+         shg *theNewShg = new shg(phaseId, interp, theTkWindow,
+				  horizSBName, vertSBName,
+				  currItemLabelName);
+         assert(theNewShg);
+
+         this->theShg = theNewShg;
+         this->horizSBfirst = this->horizSBlast = 0.0;
+         this->vertSBfirst = this->vertSBlast = 0.0;
+         this->currSearching = false;
+         this->everSearched = false;
+      }
+      shgStruct(const shgStruct &src) : phaseName(src.phaseName) {
+         theShg = src.theShg;
+         horizSBfirst = src.horizSBfirst;
+         horizSBlast = src.horizSBlast;
+         vertSBfirst = src.vertSBfirst;
+         vertSBlast = src.vertSBlast;
+	 currSearching = src.currSearching;
+	 everSearched = src.everSearched;
+      }
+      void fryDag() {delete theShg;}
+     ~shgStruct() {}
+
+      shgStruct &operator=(const shgStruct &src) {
+         theShg = src.theShg; // is this right?
+         phaseName = src.phaseName;
+         horizSBfirst = src.horizSBfirst;
+         horizSBlast = src.horizSBlast;
+         vertSBfirst = src.vertSBfirst;
+         vertSBlast = src.vertSBlast;
+         currSearching = src.currSearching;
+         everSearched = src.everSearched;
+
+         return *this;
+      }
    };
 
    vector<shgStruct> theShgPhases;
@@ -58,6 +116,8 @@ class shgPhases {
 
    string menuName, horizSBName, vertSBName, currItemLabelName;
 
+   shg &getByID(int phaseID);
+   shgStruct &getByIDLL(int phaseID);
    bool changeLL(unsigned newIndex);
       // returns true iff any changes
 
@@ -70,23 +130,19 @@ class shgPhases {
   ~shgPhases();
 
    Tk_Window getTkWindow() {return theTkWindow;} // needed for XWarpPointer
-   const string &getMenuName() const {return menuName;}
+//   const string &getMenuName() const {return menuName;}
    const string &getHorizSBName() const {return horizSBName;}
    const string &getVertSBName() const {return vertSBName;}
-   const string &getCurrItemLabelName() const {return currItemLabelName;}
-
-   void add(shg *theNewShg, const string &theNewShgPhaseName);
-   
-   shg &getByID(int phaseID);
+//   const string &getCurrItemLabelName() const {return currItemLabelName;}
 
    int name2id (const string &phaseName) const;
       // returns -1 if not found
    const string &id2name (int id) const;
 
-   bool changeByPhaseId(unsigned newIndex);
+   bool changeByPhaseId(int newIndex);
       // returns true iff any changes
    bool change(const string &phaseName);
-      // returns true iff successful
+      // returns true iff any changes
 
    bool existsCurrent() const {return currShgPhaseIndex < theShgPhases.size();}
    bool existsById(int phaseId) const;
@@ -98,6 +154,30 @@ class shgPhases {
    }
 
    void resizeEverything();
+
+   void defineNewSearch(int phaseId, const string &phaseName);
+   bool activateSearch(int phaseId);
+      // returns true iff search successfully started
+   bool pauseSearch(int phaseId);
+      // returns true iff search successfully paused
+   bool resumeSearch(int phaseId);
+      // returns true iff search successfully resumed
+
+   bool addNode(int phaseId, unsigned nodeId,
+                bool active,
+                shgRootNode::evaluationState,
+                const string &label, const string &fullInfo,
+                bool rootNodeFlag);
+   bool addEdge(int phaseId, unsigned fromId, unsigned toId,
+                shgRootNode::evaluationState,
+                const char *label // used only for shadow nodes, else NULL
+                );
+      // The evaluationState param decides whether to explicitly expand
+      // the "to" node.  Rethinks the entire layout of the shg
+   bool configNode(int phaseId, unsigned nodeId,
+                   bool active, shgRootNode::evaluationState);
+
+   void addToStatusDisplay(int phaseId, const char *msg);
 };
 
 #endif
