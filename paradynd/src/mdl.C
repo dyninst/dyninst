@@ -2235,7 +2235,7 @@ static bool walk_deref(mdl_var& ret, vector<unsigned>& types, string& var_name) 
 
 	  if (!anythingRemoved) {
 	     metric_cerr << "nothing was removed -- doing set() now" << endl;
-	     vector<instPoint*> *setMe = &pdf->funcCalls(global_proc);
+	     vector<instPoint*> *setMe = (vector<instPoint*> *) &pdf->funcCalls(global_proc);
 	     if (!ret.set(setMe))
 	        return false;
 	  }
