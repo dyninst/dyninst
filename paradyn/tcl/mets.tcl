@@ -3,8 +3,14 @@
 # choices for a visualization.  When the resource hierarchy display is 
 # complete, this will be changed and will only be used to get the metric
 # choices directly.
+# getMetsAndRes (bottom of this file) is the entry-point.
 
 # $Log: mets.tcl,v $
+# Revision 1.17  1996/04/01 22:43:39  tamches
+# lots of changes; should now avoid crashing when multiple requests are
+# made from the same visi; should now avail crashing when > 1 visi has
+# a metrics dialog box open at the same time.
+#
 # Revision 1.16  1995/11/21 15:16:45  naim
 # Fixing "CLEAR" option from the metrics selection dialog box - naim
 #
@@ -13,51 +19,6 @@
 # to properly initialize the dialog box (a change in "developerMode" had
 # previously confused the dialog box).  New assoc array "selectedMetricNames"
 # is the key.
-#
-# Revision 1.14  1995/11/07 23:13:57  newhall
-# ACCEPT CLEAR CANCEL, ACCEPT CANCEL
-#
-# Revision 1.13  1995/10/06  21:38:18  naim
-# Minor change to complete previous fix - naim.
-#
-# Revision 1.12  1995/10/06  19:52:25  naim
-# Minor change: DONE key is disabled if there are no metrics selected - naim
-#
-# Revision 1.11  1995/09/26  20:47:49  naim
-# Minor comment about error message displaying
-#
-# Revision 1.10  1994/11/07  05:41:27  karavan
-# Added clear button
-#
-# Revision 1.9  1994/11/07  00:32:06  karavan
-# eliminated default clearing of the where axis.
-#
-# Revision 1.8  1994/11/01  05:46:20  karavan
-# changed resource selection to allow multiple focus selection on a
-# single display.
-#
-# Revision 1.7  1994/10/25  17:55:11  karavan
-# Implemented Resource Display Objects, which manage display of multiple
-# resource Abstractions.
-#
-# Revision 1.6  1994/10/09  01:15:28  karavan
-# Implemented new UIM/visithread interface with metrespair data structure
-# and selection of resources directly on the where axis.
-#
-# Revision 1.5  1994/09/13  05:06:36  karavan
-# changes to accommodate multiple simultaneous menus.
-#
-# Revision 1.4  1994/07/21  01:53:33  rbi
-# YANS -- Yet another new style
-#
-# Revision 1.3  1994/07/15  04:16:25  hollings
-# Made the resource entry a useful size.
-#
-# Revision 1.2  1994/05/07  23:25:43  karavan
-# added msg if no metrics defined
-#
-# Revision 1.1  1994/05/07  18:11:43  karavan
-# initial version
 #
 
 #
@@ -75,35 +36,44 @@
 #  the above copyright notice.
 #
 
-# acceptMetChoices
-# parse metric selections from checkbuttons to a list of indices into 
-# the current Metrics array
+proc acceptMetChoices {threadid numMetrics metIndexes2Id} {
+    # Called by sendAllSelections, below.  Fills in tclSelectedMetrics($threadid).
+    # NOTE a new requirement: tclSelectedMetrics($threadid) MUST contain metric ids,
+    #      not metric indexes!
+    global tclSelectedMetrics metmenuCB
 
-proc acceptMetChoices {} {
-    global tclSelectedMetrics metCount metmenuCB
+    set tclSelectedMetrics($threadid) ""
+    #puts stderr "welcome to acceptMetChoices; threadid=$threadid; metIndexes2Id=$metIndexes2Id"
 
-    set tclSelectedMetrics ""
-    for {set i 0} {$i < $metCount} {incr i} {
-	if {[expr $metmenuCB($i)] > 0} {
-	    lappend tclSelectedMetrics $i
+    for {set i 0} {$i < $numMetrics} {incr i} {
+	if {$metmenuCB($threadid$i) > 0} {
+	    set theMetricId [lindex $metIndexes2Id $i]
+	    lappend tclSelectedMetrics($threadid) $theMetricId
 	} 	
     }
-#    puts "metric choices: $tclSelectedMetrics"
     
-    return [llength $tclSelectedMetrics]  
+    return [llength $tclSelectedMetrics($threadid)]  
 }
 
 # sendAllSelections
 # processes and returns to VISIthread metric and resource selections
 # returns 1 if no metrics selected, 2 if no focus selected, 0 if OK
 
-proc sendAllSelections {visiToken rdoToken} {
+proc sendAllSelections {visiToken threadid numMetrics metIndexes2Id} {
+    # Called by endSelection, below.
+
     global tclSelectedMetrics
-#    puts "sendAllSels vTok pTok: $visiToken $rdoToken"
-    if {[acceptMetChoices] == 0} {
+
+    # Fill in tclSelectedMetrics($threadid):
+    #puts stderr "Welcome to sendAllSelections; metIndexes2Id=$metIndexes2Id"
+    if {[acceptMetChoices $threadid $numMetrics "$metIndexes2Id"] == 0} {
 	return 1
     }
-    if [uimpd processVisiSelection $rdoToken $tclSelectedMetrics] {
+
+    #puts stderr "sendAllSelections: about to call uimpd processVisiSelection with tclSelectedMetrics for this threadid of:"
+    #puts stderr $tclSelectedMetrics($threadid)
+
+    if [uimpd processVisiSelection $tclSelectedMetrics($threadid)] {
 	uimpd sendVisiSelections $visiToken 0
 	return 0
     } else {
@@ -115,14 +85,20 @@ proc sendAllSelections {visiToken rdoToken} {
 # handles cancel and done buttons for resource/metric selection
 # note: must still call sendVisiSelections on cancel so reply msg is sent to 
 #       requesting VISI thread
-proc endSelection {visiToken rdoToken cancelflag win} {
-    global metList metCount
+proc endSelection {visiToken cancelflag threadid numMetrics metIndexes2Id} {
+    # If cancelflag is false, this routine calls sendAllSelections, above.
+    # If all's well, it then deletes the window.
+
+    #puts stderr "welcome to endSelection; metIndexes2Id=$metIndexes2Id"
+
     if $cancelflag {
 	uimpd sendVisiSelections $visiToken 1
 	set x 0
     } else {
-	set x [sendAllSelections $visiToken $rdoToken]
+	set x [sendAllSelections $visiToken $threadid $numMetrics "$metIndexes2Id"]
     }
+
+    set win .metmenunew$threadid
     if {$x == 1} {
 	$win.top.msg configure -text \
 		"Please select one or more metrics or press cancel"
@@ -135,47 +111,54 @@ proc endSelection {visiToken rdoToken cancelflag win} {
 	$win.top.msg configure -text \
 		"Please select a focus on the where axis or press cancel"
     } else {
-	unset metList
-	unset metCount
-	set tclSelectionState 0
 	destroy $win
     }
 } 
 
-proc clearMetSelects {} {
-    global metCount metmenuCB metSelected metMenuCtr selectedMetricNames
-    global metList
-    for {set i 0} {$i < $metCount} {incr i} {
-      set selectedMetricNames([lindex $metList $i]) 0
-      set metmenuCB([expr $i]) 0
+proc clearMetSelects {threadid numMetrics metIndexes2Id} {
+    global metmenuCB metSelected selectedMetricNames
+
+    #puts stderr "welcome to clearMetSelects; metIndexes2Id=$metIndexes2Id"
+
+    for {set i 0} {$i < $numMetrics} {incr i} {
+      set metricId [lindex $metIndexes2Id $i]
+      set selectedMetricNames($metricId) 0
+      set metmenuCB($threadid$i) 0
     }
-    set metSelected 0
-    .metmenunew$metMenuCtr.bot.b0 configure -state disabled
+    set metSelected($threadid) 0
+
+    set w .metmenunew$threadid
+    $w.bot.b0 configure -state disabled
 }
 
 #
 # metSelectedProc
 # Counts how many metrics have been selected
-# This value, stored in metSelected, is used ir
+# This value, stored in metSelected, is used in
 # order to enable and disable the DONE button
 # (i.e. DONE button is enabled iff metSelected>0)
 #
 
-proc metSelectedProc {i w} {
+proc metSelectedProc {i threadid numMetrics metIndexes2Id} {
+    # new: metSelected is an array indexed by window-name
+    #      (so things don't get messed up when >1 window is open
+    #      at a time)
     global metSelected metmenuCB
-    global selectedMetricNames metList
+    global selectedMetricNames
+    #puts stderr "welcome to metSelectedProc; metIndexes2Id=$metIndexes2Id"
 
-    set metricName [lindex $metList $i]
+    set metricId [lindex $metIndexes2Id $i]
 
-    if {$metmenuCB($i)>0} {
-      incr metSelected
-      set selectedMetricNames($metricName) 1
+    if {$metmenuCB($threadid$i)>0} {
+      incr metSelected($threadid)
+      set selectedMetricNames($metricId) 1
     } else {
-      incr metSelected -1
-      set selectedMetricNames($metricName) 0
+      incr metSelected($threadid) -1
+      set selectedMetricNames($metricId) 0
     }
 
-    if {$metSelected>0} {
+    set w .metmenunew$threadid
+    if {$metSelected($threadid)>0} {
       $w.bot.b0 configure -state normal 
     } else {
       $w.bot.b0 configure -state disabled
@@ -186,15 +169,23 @@ proc metSelectedProc {i w} {
 # called from  UIM::chooseMetricsandResources
 # Metric/Resource selection starts here!
 
-proc getMetsAndRes {metsAndResID rdo} {
-    global metCount metList metMenuCtr tclSelectionState 
+proc getMetsAndRes {metsAndResID requestingThread numMetrics metIndexes2Id} {
+    # requestingThread can help us identify specific visis
+    #puts stderr "welcome to getMetsAndRes; metIndexes2Id=$metIndexes2Id"
+
+    global metricNamesById
     global metSelected metmenuCB
 
-    set tclSelectionState 1
-    incr metMenuCtr
-    set w .metmenunew$metMenuCtr
-    set ret 0
-    set msg3 "No Metrics Currently Defined"
+    set w .metmenunew$requestingThread
+    if {[winfo exists $w]} {
+       puts stderr "Window $w already exists --> this visi already has a pending metric selection..."
+
+       # Simulate a cancel here.
+       uimpd sendVisiSelections $metsAndResID 1
+
+       return
+    }
+
     # toplevel window
     toplevel $w  -bd 0
     wm title $w "Paradyn Metrics Menu"
@@ -207,38 +198,41 @@ proc getMetsAndRes {metsAndResID rdo} {
 	    -aspect 1000 -text "Select Metrics and Focus(es) below" \
 	    -font -Adobe-times-bold-r-normal--*-120*
    
-    set metSelected 0
-    if {$metCount == 0} {
+    set metSelected($requestingThread) 0
+    if {$numMetrics == 0} {
+        set msg3 "No Metrics Currently Defined"
 	mkMessage $w.top.nometsmsg $msg3 {top expand} \
 		-font -Adobe-times-medium-r-normal--*-120*
     } else {
 	frame $w.top.1 
 	frame $w.top.2
 	frame $w.top.3
-	if { [expr $metCount % 3] > 0} {
-	    set colSize [expr (($metCount/3) + 1)]
+	if { [expr $numMetrics % 3] > 0} {
+	    set colSize [expr (($numMetrics/3) + 1)]
 	} else {
-	    set colSize [expr ($metCount/3)]
+	    set colSize [expr ($numMetrics/3)]
 	}
 	set colNum 1
 	set cCnt 1
 
-	for {set i 0} {$i < $metCount} {incr i} {
-            set metricName [lindex $metList $i]
+	for {set i 0} {$i < $numMetrics} {incr i} {
+	    set metricId [lindex $metIndexes2Id $i]
+            set metricName $metricNamesById($metricId)
+
             global selectedMetricNames
-            if {[array names selectedMetricNames $metricName] == ""} {
-               set selectedMetricNames($metricName) 0
+            if {[array names selectedMetricNames $metricId] == ""} {
+               set selectedMetricNames($metricId) 0
 	    }
-            set initiallySet $selectedMetricNames($metricName)
-            set metmenuCB($i) $initiallySet
+            set initiallySet $selectedMetricNames($metricId)
+            set metmenuCB($requestingThread$i) $initiallySet
 
 	    checkbutton $w.top.$colNum.cb$i  -width 20 -anchor w -padx 2 \
-		    -variable metmenuCB($i) \
+		    -variable metmenuCB($requestingThread$i) \
 		    -text $metricName \
-		    -command "metSelectedProc $i $w"
+		    -command "metSelectedProc $i $requestingThread $numMetrics {$metIndexes2Id}"
 
-            if {$metmenuCB($i) > 0} {
-	      incr metSelected
+            if {$metmenuCB($requestingThread$i) > 0} {
+	      incr metSelected($requestingThread)
 	    }
 
 	    pack $w.top.$colNum.cb$i -side top
@@ -256,20 +250,18 @@ proc getMetsAndRes {metsAndResID rdo} {
     mkFrame $w.bot {bottom fill expand} -relief raised -borderwidth 4
 
     button $w.bot.b0 -text "ACCEPT" -width 12 \
-	    -command "endSelection $metsAndResID $rdo 0 $w" 
+	    -command "endSelection $metsAndResID 0 $requestingThread $numMetrics {$metIndexes2Id}"
 
     button $w.bot.b1 -text "CLEAR" -width 12 \
-	    -command "clearMetSelects"
+	    -command "clearMetSelects $requestingThread $numMetrics {$metIndexes2Id}"
 
     button $w.bot.b2 -text "CANCEL" -width 12 \
-	    -command "endSelection $metsAndResID $rdo 1 $w" 
+	    -command "endSelection $metsAndResID 1 $requestingThread $numMetrics {$metIndexes2Id}"
 
-    if {$metSelected==0} {
+    if {$metSelected($requestingThread)==0} {
       $w.bot.b0 configure -state disabled
     } 
 
     pack $w.bot.b0 $w.bot.b1 $w.bot.b2 -side left -padx 20 -expand 1 \
 	    -pady 4
-
 }
-
