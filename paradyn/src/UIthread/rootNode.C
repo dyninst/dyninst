@@ -42,7 +42,7 @@
 // whereAxisRootNode.C
 // Ariel Tamches
 
-/* $Id: rootNode.C,v 1.13 2002/05/13 19:53:25 mjbrim Exp $ */
+/* $Id: rootNode.C,v 1.14 2002/11/25 23:52:33 schendel Exp $ */
 
 #include <assert.h>
 
@@ -55,9 +55,10 @@ int whereAxisRootNode::horizPad = 3;
 int whereAxisRootNode::vertPad = 2;
 
 whereAxisRootNode::whereAxisRootNode(resourceHandle iUniqueId, const string &initStr) :
-                                  name(initStr) {
+                                  name(initStr) {   
    uniqueId = iUniqueId;
    highlighted = false;
+   retired = false;
 
    pixWidthAsRoot = borderPix + horizPad +
       Tk_TextWidth(whereAxis::getRootItemFontStruct(),
@@ -99,11 +100,9 @@ void whereAxisRootNode::drawAsRoot(Tk_Window theTkWindow,
    const int normalRelief = TK_RELIEF_GROOVE;
    const int highlightedRelief = TK_RELIEF_SUNKEN;
 
-   Tk_Fill3DRectangle(theTkWindow, theDrawable,
-		      whereAxis::getRootItemTk3DBorder(),
-		      boxLeft, root_topy,
-		      pixWidthAsRoot, pixHeightAsRoot,
-		      borderPix,
+   Tk_Fill3DRectangle(theTkWindow, theDrawable, 
+                      whereAxis::getRootItemTk3DBorder(), boxLeft, root_topy,
+		      pixWidthAsRoot, pixHeightAsRoot, borderPix,
 		      highlighted ? highlightedRelief : normalRelief);
 
    // Third, draw the text
@@ -114,12 +113,14 @@ void whereAxisRootNode::drawAsRoot(Tk_Window theTkWindow,
    const int textBaseLine = root_topy + borderPix + vertPad +
                             rootItemFontMetrics.ascent - 1;
 
-	Tk_DrawChars(Tk_Display(theTkWindow),
-		theDrawable,
-		whereAxis::getRootItemTextGC(),
-		whereAxis::getRootItemFontStruct(),
-		name.c_str(), name.length(),
-		textLeft, textBaseLine );
+   GC textGC = whereAxis::getRootItemTextGC();
+   if(is_retired()) {
+      textGC = whereAxis::getRootRetiredItemTextGC();
+   }
+
+   Tk_DrawChars(Tk_Display(theTkWindow), theDrawable, textGC,
+		whereAxis::getRootItemFontStruct(), name.c_str(), 
+                name.length(), textLeft, textBaseLine);
 }
 
 GC whereAxisRootNode::getGCforListboxRay(const whereAxisRootNode &, // parent
@@ -178,21 +179,24 @@ void whereAxisRootNode::drawAsListboxItem(Tk_Window theTkWindow,
 					  int boxWidth, int boxHeight,
 					  int textLeft, int textBaseline) const {
    Tk_Fill3DRectangle(theTkWindow, theDrawable,
-		      whereAxis::getListboxItem3DBorder(),
-		         // for a shg-like class, this routine would take in a parameter
-		         // and return a varying border.  But the where axis doesn't need
-                         // such a feature.
+                      whereAxis::getListboxItem3DBorder(),
+                      // whereAxis::getListboxItem3DBorder(), for a shg-like
+                      // class, this routine would take in a parameter and
+                      // return a varying border.  But the where axis doesn't
+                      // need such a feature.
 		      boxLeft, boxTop,
 		      boxWidth, boxHeight,
 		      1, // 2 also looks pretty good; 3 doesn't
-		      highlighted ? TK_RELIEF_SUNKEN : TK_RELIEF_RAISED);
+                      highlighted ? TK_RELIEF_SUNKEN : TK_RELIEF_RAISED);
 
-	Tk_DrawChars(Tk_Display(theTkWindow),
-		theDrawable,
-		whereAxis::getListboxItemGC(),
-		whereAxis::getRootItemFontStruct(),	// is this correct?
-		name.c_str(), name.length(),
-		textLeft, textBaseline );
+   GC textGC = whereAxis::getListboxItemGC();
+   if(is_retired()) {
+      textGC = whereAxis::getListboxRetiredItemGC();
+   }
+
+   Tk_DrawChars(Tk_Display(theTkWindow), theDrawable, textGC,
+                whereAxis::getRootItemFontStruct(),	// is this correct?
+		name.c_str(), name.length(), textLeft, textBaseline);
 }
 
 
