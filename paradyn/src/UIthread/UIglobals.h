@@ -1,7 +1,10 @@
 /* $Log: UIglobals.h,v $
-/* Revision 1.20  1995/11/06 02:44:43  tamches
-/* removed nodeIdType and numlist (no longer used typedefs)
+/* Revision 1.21  1995/11/09 02:10:00  tamches
+/* removed some obsolete references (e.g. uim_eid, uim_rootRes)
 /*
+ * Revision 1.20  1995/11/06 02:44:43  tamches
+ * removed nodeIdType and numlist (no longer used typedefs)
+ *
  * Revision 1.19  1995/10/17 20:43:50  tamches
  * Commented out StrToNodeIdType, dag, and shgDisplay -- things obsoleted
  * by the new search history graph
@@ -70,7 +73,7 @@
  * Revision 1.2  1994/04/06  17:39:00  karavan
  * changed interp to global
  *
-/ * Revision 1.1  1994/04/05  04:42:34  karavan
+ * Revision 1.1  1994/04/05  04:42:34  karavan
  * initial version of UI thread code and tcl paradyn command
  * */
 
@@ -90,19 +93,6 @@
 
 #include "tkclean.h"
 
-#define UIMBUFFSIZE 256
-
-#define DISPLAYED 0
-#define ICONIFIED 1
-#define INACTIVE 2
-
-//typedef unsigned nodeIdType;
-//typedef vector<nodeIdType> numlist;
-//nodeIdType StrToNodeIdType (char *instring); 
-
-//class dag;
-//class shgDisplay;
-
 struct cmdTabEntry 
 {
   const char *cmdname;
@@ -113,9 +103,6 @@ typedef struct UIMReplyRec {
   void *cb;
   thread_t tid;
 } UIMReplyRec;
-
-// used by paradyn enable command
-extern int                       uim_eid;
 
 extern List<metricInstInfo *>    uim_enabled;
 extern perfStreamHandle          uim_ps_handle;
@@ -138,15 +125,12 @@ extern status_line *ui_status;
 // value of highest valid error index
 extern int uim_maxError;     
 
-// where axes display
-extern resourceHandle   uim_rootRes;
-
-// metric-resource selection 
-extern int uim_ResourceSelectionStatus;
+//// metric-resource selection 
 extern vector<metric_focus_pair> *uim_VisiSelections;
 extern char **uim_AvailMets;
 extern int uim_AvailMetsSize;
 extern metricHandle *uim_AvailMetHandles;
+
 int TclTunableCommand(ClientData cd, Tcl_Interp *interp,
                       int argc, char **argv);
 
