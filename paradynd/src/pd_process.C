@@ -289,10 +289,9 @@ pd_process::pd_process(const pdstring argv0, pdvector<pdstring> &argv,
 
     char *path = new char[  argv0.length() + 5];
     strcpy(path, argv0.c_str());
-    char *ignore[1] = { NULL };
     getBPatch().setTypeChecking(false);
     dyninst_process = getBPatch().createProcess(path, 
-        (const char **) argv_array, (const char **) ignore, 
+        (const char **) argv_array, NULL, 
         stdin_fd, stdout_fd, stderr_fd);
 
     delete []argv_array;
