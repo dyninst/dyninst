@@ -2,6 +2,9 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
+#  Revision 1.25  1995/12/15 22:34:30  tamches
+#  fixed bug where Wmbar wasn't being made a global vrble
+#
 #  Revision 1.24  1995/11/29 00:37:56  tamches
 #  grouped window initialization into routine init_barchart_window.
 #  We now use the makeLogo cmd
@@ -220,7 +223,8 @@ option add *MyMenu*font *-New*Century*Schoolbook-Bold-R-*-14-*
       # taller than the two of us, which it currently is)
    
    # ##################### Menu bar ###################
-   
+
+   global Wmbar   
    set Wmbar $W.top.left.mbar
    frame $Wmbar -class MyMenu -borderwidth 2 -relief raised
    pack  $Wmbar -side top -fill both -expand false
