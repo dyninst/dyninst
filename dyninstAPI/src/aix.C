@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.57 1999/08/09 05:50:21 csserra Exp $
+// $Id: aix.C,v 1.58 1999/08/12 21:31:25 pcroth Exp $
 
 #include "util/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -113,11 +113,11 @@ bool ptraceKludge::haltProcess(process *p) {
 void Frame::getActiveFrame(process *p)
 {
     errno = 0;
-    pc_ = P_ptrace(PT_READ_GPR, pid, (int *) IAR, 0, 0); // aix 4.1 likes int *
+    pc_ = P_ptrace(PT_READ_GPR, p->getPid(), (int *) IAR, 0, 0); // aix 4.1 likes int *
     if (errno != 0) return;
 
     errno = 0;
-    fp_ = P_ptrace(PT_READ_GPR, pid, (int *) STKP, 0, 0); // aix 4.1 likes int *
+    fp_ = P_ptrace(PT_READ_GPR, p->getPid(), (int *) STKP, 0, 0); // aix 4.1 likes int *
     if (errno != 0) return;
 
     /* Read the first frame from memory.  The first frame pointer is
