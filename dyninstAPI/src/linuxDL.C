@@ -713,18 +713,22 @@ bool dynamic_linking::initialize() {
 	/* Generate its Object and set r_debug_addr ("_r_debug"/STT_OBJECT) */
     // We haven't parsed libraries at this point, so do it by hand.
 	Object ldsoOne( ld_path, ld_base );
+	pdvector< Symbol > rDebugSyms;
 	Symbol rDebugSym;
-	if( ! ldsoOne.get_symbol( "_r_debug", rDebugSym ) ) { return 0; }
+	if( ! ldsoOne.get_symbols( "_r_debug", rDebugSyms ) ) { return 0; }
+	if( rDebugSyms.size() == 1 ) { rDebugSym = rDebugSyms[0]; } else { return 0; }
 	if( ! (rDebugSym.type() == Symbol::PDST_OBJECT) ) { return 0; }
 
     // Set r_debug_addr
-   r_debug_addr = rDebugSym.addr();
-   if (!ldsoOne.getLoadAddress())
+    r_debug_addr = rDebugSym.addr();
+    if (!ldsoOne.getLoadAddress())
        r_debug_addr += ld_base;
 	assert( r_debug_addr );
 
 	/* Set dlopen_addr ("_dl_map_object"/STT_FUNC); apparently it's OK if this fails. */
-	if( ! ldsoOne.get_symbol( "_dl_map_object", rDebugSym ) ) { ; }
+	if( ! ldsoOne.get_symbols( "_dl_map_object", rDebugSyms ) ) { ; }
+	/* It's also apparently OK if this uses a garbage symbol. */
+	if( rDebugSyms.size() == 1 ) { rDebugSym = rDebugSyms[0]; }
 	if( ! (rDebugSym.type() == Symbol::PDST_FUNCTION) ) { ; } 
 	dlopen_addr = rDebugSym.addr() + ld_base;
 	assert( dlopen_addr );
