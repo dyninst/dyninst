@@ -8,6 +8,7 @@
 #include <winbase.h>
 #else
 #include <unistd.h>
+#include <signal.h>
 #endif
 
 #include "BPatch.h"
@@ -93,6 +94,16 @@ static DynerList<BPListElem *> bplist;
 static DynerList<IPListElem *> iplist;
 static DynerList<runtimeVar *> varList;
 
+
+#if !defined(i386_unknown_nt4_0)
+
+//Ctrl-C signal handler
+void  INThandler(int sig)
+{
+     signal(sig, SIG_IGN);
+     signal(SIGINT, INThandler);
+}
+#endif
 
 bool name2loc(char *s, BPatch_procedureLocation &where,
 	      BPatch_callWhen &when)
@@ -238,6 +249,7 @@ int help(ClientData, Tcl_Interp *, int, char **)
     printf("     break point at specified points of <function>\n");
     printf("break <file name:line number> [<condition>] - set an arbitrary (conditional) break\n");
     printf("     point at <line number> of <file name>\n");
+    printf("debugparse [enable | disable] - Turn on/off debug parsing of the mutatee programs\n");
     printf("execute <statement> - Execute <statement> at the current point\n");
     printf("listbreak - list break points\n");
     printf("listinst - list intrumentation points\n");
@@ -257,10 +269,10 @@ int help(ClientData, Tcl_Interp *, int, char **)
     printf("     calls to <function2>\n");
     printf("replace call <function1>[:n] with <function2> - All the calls or the nth function call \n");
     printf("     in <function1> are/is changed to the function <function2>\n");
-    printf("trace <function> - Print a message at the entry and exit of <function>\n");
+    printf("trace function <function> - Print a message at the entry and exit of <function>\n");
     printf("trace functions in <module> - Print a message at the entry and exit of all functions\n");
     printf("     declared in <module>\n");
-    printf("untrace <function> - Undo the effects of trace command for <function>\n");
+    printf("untrace function <function> - Undo the effects of trace command for <function>\n");
     printf("untrace functions in <module> - Undo the effects of trace command for all functions\n");
     printf("     declared in <module>\n");
     printf("mutations [enable|disable] - Enable or disable the execution of snippets\n");
@@ -270,7 +282,7 @@ int help(ClientData, Tcl_Interp *, int, char **)
     printf("source <file name> - Execute dyner commands stored in the file <file name>\n");
     printf("kill - Terminate the execution of target program\n");
     printf("print <Variable> - Display the data type and value of dyner variable\n");
-    printf("whatis [-scope <function>] <variable> - Display detailed information about\n");
+    printf("whatis <variable> [in <function>] - Display detailed information about\n");
     printf("     variables in the target program. Local variables and parameters are\n");
     printf("     searched in the <function>.\n");
     return TCL_OK;
@@ -1157,7 +1169,7 @@ BPatch_variableExpr *findVariable(char *name)
 int whatisParam(ClientData, Tcl_Interp *, int, char *argv[])
 {
   if (!haveApp()) return TCL_ERROR;
-  BPatch_function * func = appImage->findBPFunction(argv[2]);
+  BPatch_function * func = appImage->findBPFunction(argv[3]);
   //printf("func is %x\n", func);
   if(!func){
     printf("%s is not defined\n", argv[3]);
@@ -1165,7 +1177,7 @@ int whatisParam(ClientData, Tcl_Interp *, int, char *argv[])
   }
   
   
-  BPatch_localVar * lvar = func->findLocalVar(argv[3]);
+  BPatch_localVar * lvar = func->findLocalVar(argv[1]);
   if(lvar){
     BPatch_type *type = lvar->getType();
     if( type ){
@@ -1176,25 +1188,25 @@ int whatisParam(ClientData, Tcl_Interp *, int, char *argv[])
 	
       case BPatch_pointer:
 	printPtr( type );
-	printf("\t %s\n", argv[3]);
+	printf("\t %s\n", argv[1]);
 	break;
 	
       default:
-	printf("    %s is of type %s \n", argv[3], type->getName());
+	printf("    %s is of type %s \n", argv[1], type->getName());
 	break;
       }
     }
     //print local variable info
     printf("        %s is a local variable in function %s\n", lvar->getName(),
-	   argv[2]);
+	   argv[3]);
     printf("        Declared on line %d and has a Frame offset of %d\n",
 	   lvar->getLineNum(), lvar->getFrameOffset());
   }
   else{
-    lvar = func->findLocalParam(argv[3]);
+    lvar = func->findLocalParam(argv[1]);
     
     if (!lvar) {
-      BPatch_variableExpr *var = findVariable(argv[3]);
+      BPatch_variableExpr *var = findVariable(argv[1]);
       if(!var){
 	// do something else ??
 	//int ret = whatisType(cd, interp, argc, argv);
@@ -1212,10 +1224,10 @@ int whatisParam(ClientData, Tcl_Interp *, int, char *argv[])
 	break;
 	
       default:
-	printf("    %s is of type %s \n", argv[3], type->getName());
+	printf("    %s is of type %s \n", argv[1], type->getName());
 	break;
       }
-     printf("      %s is a Global variable\n", argv[3]);
+     printf("      %s is a Global variable\n", argv[1]);
     }
     else{
       BPatch_type *lType = (BPatch_type *) lvar->getType();
@@ -1227,15 +1239,15 @@ int whatisParam(ClientData, Tcl_Interp *, int, char *argv[])
 	  
 	case BPatch_pointer:
 	  printPtr( lType );
-	  printf("\t %s\n", argv[3]);
+	  printf("\t %s\n", argv[1]);
 	  break;
 	  
 	default:
-	  printf("    %s is of type %s \n", argv[3], lType->getName());
+	  printf("    %s is of type %s \n", argv[1], lType->getName());
 	  break;
 	}
 	printf("       %s is a parameter of the function %s\n",lvar->getName(),
-	   argv[2]);
+	   argv[3]);
 	printf("       Declared on line %d and has a Frame offset of %d\n",
 	   lvar->getLineNum(), lvar->getFrameOffset());
       }
@@ -1468,7 +1480,7 @@ int whatisVar(ClientData cd, Tcl_Interp *interp, int argc, char *argv[])
     if (!haveApp()) return TCL_ERROR;
     
     if (argc == 4){ //looking for a local variable
-      if(!(strcmp(argv[1], "-scope"))){
+      if(!(strcmp(argv[2], "in"))){
 	int ret = whatisParam(cd, interp, argc, argv );
 	return ret;
       } else {
@@ -2069,7 +2081,7 @@ int untraceCommand(ClientData, Tcl_Interp *, int argc, char *argv[])
     if (!haveApp()) return TCL_ERROR;
 
     if (argc < 3) {
-	printf("Usage: untrace <function>\n");
+	printf("Usage: untrace function <function>\n");
 	printf("or     untrace functions in <module>\n");
 	return TCL_ERROR;
     }
@@ -2203,6 +2215,40 @@ int detachCommand(ClientData, Tcl_Interp *, int argc, char **)
     return TCL_OK;
 }
 
+/*
+ * enable or disable debug parse of the mutatee
+ */
+int debugParse(ClientData, Tcl_Interp *, int argc, char **argv)
+{
+    if (argc > 2) {
+	printf("Usage: debugparse [enable | disable]");
+	return TCL_ERROR;
+    }
+
+    if (!haveApp()) return TCL_ERROR;
+
+    if (argc == 1) {
+	printf("Debug parsing is %s\n", (bpatch->parseDebugInfo()?"on":"off") );
+        printf("Usage: debugparse [enable | disable]\n");
+	return TCL_OK;
+    }
+
+    bool flag;
+    if ( !strcmp(argv[1], "enable") ) 
+	flag = true;
+    else if ( !strcmp(argv[1], "disable") )
+	flag = false;
+    else {
+	printf("Invalid option for debugparse command.\n");
+	printf("Usage: debugparse [enable | disable]");
+	return TCL_ERROR;
+    }
+
+    bpatch->setDebugParsing(flag);
+
+    return TCL_OK;
+}
+	
 //
 //
 int Tcl_AppInit(Tcl_Interp *interp)
@@ -2240,6 +2286,9 @@ int Tcl_AppInit(Tcl_Interp *interp)
     Tcl_CreateCommand(interp, "execute", execStatement, NULL, NULL);
     Tcl_CreateCommand(interp, "listinst", listInstrument, NULL, NULL);
     Tcl_CreateCommand(interp, "deleteinst", deleteInstrument, NULL, NULL);
+    Tcl_CreateCommand(interp, "debugparse", debugParse, NULL, NULL);
+
+    Tcl_AllowExceptions(interp);
 
     bpatch->registerErrorCallback(errorFunc);
     bpatch->setTypeChecking(false);
@@ -2254,6 +2303,10 @@ int main(int argc, char *argv[])
 	printf("parser debug enabled\n");
 	dynerdebug = 1;
     }
+
+#if !defined(i386_unknown_nt4_0)
+    signal(SIGINT, INThandler);
+#endif
 
     Tcl_Main(argc, argv, Tcl_AppInit);
     return 0;
