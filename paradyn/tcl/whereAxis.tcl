@@ -1,4 +1,4 @@
-# $Id: whereAxis.tcl,v 1.12 2000/08/11 16:32:48 pcroth Exp $
+# $Id: whereAxis.tcl,v 1.13 2001/04/25 18:41:39 wxd Exp $
 
 # ##################################################################
 
@@ -85,6 +85,7 @@ proc whereAxisInitialize {} {
    bind .whereAxis.nontop.main.all <Button-1>  {whereAxisSingleClickHook %x %y}
    bind .whereAxis.nontop.main.all <Button-3>  {whereAxisSingleClickHook %x %y}
    bind .whereAxis.nontop.main.all <Double-Button-1> {whereAxisDoubleClickHook %x %y}
+   bind .whereAxis.nontop.main.all <Control-Button-3> {whereAxisCtrlClickHook %x %y}
    bind .whereAxis.nontop.main.all <Shift-Double-Button-1> {whereAxisShiftDoubleClickHook %x %y}
    bind .whereAxis.nontop.main.all <Control-Double-Button-1> {whereAxisCtrlDoubleClickHook %x %y}
    bind .whereAxis.nontop.main.all <Alt-Motion> {whereAxisAltPressHook %x %y}
@@ -128,6 +129,11 @@ proc whereAxisDrawTips {} {
 	   -text "Hold down Alt and move the mouse to scroll freely" \
 	   -font { Helvetica 12 }
    pack  .whereAxis.nontop.tips.tip4 -side top -fill both -expand false
+
+   label .whereAxis.nontop.tips.tip5 -relief groove \
+	   -text "Ctrl-Single-Click right button to show Visi table" \
+	   -font { Helvetica 12 }
+   pack  .whereAxis.nontop.tips.tip5 -side top -fill both -expand false
 }
 
 proc whereAxisEraseTips {} {

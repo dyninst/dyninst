@@ -1,4 +1,4 @@
-# $Id: errorList.tcl,v 1.48 2000/07/12 17:56:10 buck Exp $
+# $Id: errorList.tcl,v 1.49 2001/04/25 18:41:39 wxd Exp $
 
 #
 # Error message format:
@@ -1057,9 +1057,27 @@ code that cannot be instrumented, such as the delay slot of a branch \
 on some architectures.}
 }
 
+set pdError(119) {
+{Table visi undefined.}
+{ui}
+{warning}
+{There should be at least one table type visi defined in \
+configuration files in order to show performance data table \
+of matched metric/focus.}
+}
+
+set pdError(120) {
+{illegal metric/focus pair.}
+{vm}
+{warning}
+{metric/focus pair in visi definition should keep to format as below\
+name of legal metric, name of legal focus\
+example: metfocus "cpu,/Code/anneal.c,/Machine,/SyncObject";\
+.}
+}
 #
 # be sure to change this value if you add/delete an entry to the database
 #
 proc getNumPdErrors {} {
-    return 118
+    return 120
 }

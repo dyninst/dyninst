@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.119 2000/11/03 01:22:30 zandy Exp $
+// $Id: DMpublic.C,v 1.120 2001/04/25 18:41:35 wxd Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -162,7 +162,6 @@ void traceDataCallBack(const void *data,
     }
 }
 
-
 void dataManager::setResourceSearchSuppress(resourceHandle res, bool newValue)
 {
     resource *r = resource::handle_to_resource(res);
@@ -222,13 +221,13 @@ bool dataManager::defineDaemon(const char *command,
   return (paradynDaemon::defineDaemon(command, dir, login, name, machine, remote_shell, flavor));
 }
 
-
 bool dataManager::addExecutable(const char *machine,
 				const char *login,
 				const char *name,
 				const char *dir,
 				const vector<string> *argv)
 {
+
   // This is the implementation of an igen call...usually from the UI thread
   // when a new process is defined in the dialog box.
   string m = machine;
@@ -1006,6 +1005,27 @@ resourceListHandle *dataManager::findResourceList(const char *name){
     return 0;
 }
 
+//query for matched metric_focus_pair
+vector<metric_focus_pair> *dataManager::matchMetFocus(metric_focus_pair *metfocus)
+{
+	vector<metric_focus_pair> *result = new vector<metric_focus_pair>;
+	const vector<metricInstance*> *match_metInsts=metricInstance::query(*metfocus);
+	//change results to metric_focus_pair
+	for (unsigned i=0; i < match_metInsts->size(); i++)
+	{
+		metricInstance *mi=(*match_metInsts)[i];
+		metricHandle mi_h = mi->getMetricHandle();
+		vector<resourceHandle> *mi_focus=resourceList::getResourceHandles(mi->getFocusHandle());
+                assert(mi_focus != NULL);
+
+		*result += metric_focus_pair(mi_h,*mi_focus);
+		delete mi_focus;
+	}
+	delete match_metInsts;
+	if (result->size() == 0)
+		return NULL;
+	return result;
+}
 
 void dataManager::getPredictedDataCost(perfStreamHandle ps_handle,
        				       metricHandle m_handle,

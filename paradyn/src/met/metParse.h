@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metParse.h,v 1.19 2000/07/28 17:22:09 pcroth Exp $
+// $Id: metParse.h,v 1.20 2001/04/25 18:41:38 wxd Exp $
 
 #ifndef _MET_PARSE_H
 #define _MET_PARSE_H
@@ -59,8 +59,9 @@
 #define SET_DAEMON 7
 #define SET_FORCE 8
 #define SET_LIMIT 9
-#define SET_REMSH 10
-#define SET_AUTO_START 11
+#define SET_METFOCUS 10
+#define SET_REMSH 11
+#define SET_AUTO_START 12
 
 typedef enum {SET_MNAME, SET_UNITS, SET_AGG, SET_STYLE,
 	      SET_MFLAVOR, SET_MODE, SET_UNITTYPE, SET_CONSTRAINT, SET_TEMPS,
@@ -415,9 +416,9 @@ private:
 
 class visiMet {
 public:
-  visiMet() : force_(0), limit_(0) { }
+  visiMet() : force_(0), limit_(0) {metfocus_ = NULL; }
   visiMet(string& nm,string& u,string& h,string& e,string& c,int& f,int& l);
-  ~visiMet() { }
+  ~visiMet() {delete metfocus_; }
 
   bool set_field (field &f);
   static bool addVisi(visiMet *vs);
@@ -430,6 +431,7 @@ public:
   string command() const { return command_; }
   int force() const { return force_; }
   int limit() const { return limit_; }
+  vector<string> *metfocus() const { return metfocus_;}
 
   static vector<visiMet*> allVisis;
 
@@ -441,7 +443,7 @@ private:
   string command_;
   int force_;
   int limit_;
-
+  vector<string> *metfocus_;
 };
 
 #endif

@@ -48,7 +48,7 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 
-// $Id: VISIthreadmain.C,v 1.89 2001/04/05 18:36:25 wxd Exp $
+// $Id: VISIthreadmain.C,v 1.90 2001/04/25 18:41:36 wxd Exp $
 
 #include <signal.h>
 #include <math.h>
@@ -648,6 +648,34 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
         return 1;
     }
 
+    // parse globals->args->matrix, merge into newMetRes
+    if (ptr->args->matrix)
+    {
+    	if (newMetRes == NULL)
+		newMetRes = new vector<metric_focus_pair>;
+	//*newMetRes += *ptr->args->matrix;
+	for (unsigned i=0;i<ptr->args->matrix->size();i++)
+	{
+		metric_focus_pair metfocus=(*ptr->args->matrix)[i];
+		int	found=0;
+		for (unsigned j=0;j<newMetRes->size();j++)
+			if (metfocus.met == (*newMetRes)[j].met && metfocus.res.size() == (*newMetRes)[j].res.size())
+		{
+			unsigned k=0;
+			for (k=0;k<metfocus.res.size();k++)
+				if (metfocus.res[k] != (*newMetRes)[j].res[k])
+					break;
+			if (k == metfocus.res.size())
+			{
+				found = 1;
+				break;
+			}
+		}
+		if (found == 0)
+			*newMetRes += metfocus;
+	}
+    }
+
     // there is not an enable currently in progress
     if(!(ptr->request)){ 
         // check for invalid reply ==> user picked "Cancel" menu option
@@ -676,7 +704,7 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
         *(ptr->request) += *newMetRes;
         newMetRes = 0;
     }
-    return 1;
+    return 0;
 }
 
 ///////////////////////////////////////////////////////////////////
@@ -1021,12 +1049,14 @@ void *VISIthreadmain(void *vargs){
   // and parsing of initial set of metrics and resources
   if( globals->args->forceProcessStart){
 
+    if (globals->args->matrix){
+	if (VISIthreadchooseMetRes(NULL) == 1)
+          globals->quit = 1;
      // start visi process
-     if(!VISIthreadStartProcess()){
+     }else if(!VISIthreadStartProcess()){
           globals->quit = 1;
      }
   }
-  // parse globals->args->matrix
   // to determine if menuing needs to be done.  If so, call UIM rouitine
   // chooseMetricsandResources before entering main loop, if not, call
   // AddMetricsResources routine with metric and focus pointers (these
@@ -1034,8 +1064,6 @@ void *VISIthreadmain(void *vargs){
   // until parsing routine is in place call chooseMetricsandResources
   // with NULL metric and resource pointers
   else{
-
-    // TODO: add parsing code 
 
     // call get metrics and resources with first set
     globals->ump->chooseMetricsandResources(VISIthreadchooseMetRes, NULL);

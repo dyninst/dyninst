@@ -44,7 +44,7 @@
 
 // Implementations of new commands and tk bindings related to the where axis.
 
-/* $Id: whereAxisTcl.C,v 1.14 1999/04/27 16:03:56 nash Exp $ */
+/* $Id: whereAxisTcl.C,v 1.15 2001/04/25 18:41:36 wxd Exp $ */
 
 #ifndef PARADYN
 // The test program has "correct" -I paths already set
@@ -56,6 +56,9 @@
 #include "abstractions.h"
 #include "whereAxisTcl.h"
 #include "tkTools.h"
+#include "VM.thread.h"
+#include "../pdMain/paradyn.h"
+#include "../DMthread/DMmetric.h"
 
 // Here is the main where axis global variable:
 abstractions *theAbstractions;
@@ -145,6 +148,45 @@ int whereAxisSingleClickCallbackCommand(ClientData, Tcl_Interp *,
    if (theAbstractions->existsCurrent())
       theAbstractions->processSingleClick(x, y);
 
+   return TCL_OK;
+}
+
+int whereAxisCtrlClickCallbackCommand(ClientData, Tcl_Interp *,
+					int argc, char **argv) {
+   assert(haveSeenFirstGoodWhereAxisWid);
+
+   assert(argc == 3);
+   const int x = atoi(argv[1]);
+   const int y = atoi(argv[2]);
+
+   numlist select_focus;
+   bool result=false;
+   if (theAbstractions->existsCurrent())
+      result=theAbstractions->processCtrlClick(x, y,select_focus);
+
+   if (result == true)
+   {
+      vector<VM_visiInfo> *avail_Visis = vmMgr->VMAvailableVisis();
+      int  table_id=-1;
+      for (int i=0;i < avail_Visis->size(); i++)
+      {
+      	if ((*avail_Visis)[i].name == "Table")
+		table_id=i;
+      }
+      if (table_id == -1)
+      {
+         uiMgr->showError(119,"");
+      	 return TCL_OK;
+      }
+      
+      vector<metric_focus_pair> *matrix=new vector<metric_focus_pair>;
+      *matrix += metric_focus_pair(UNUSED_METRIC_HANDLE,select_focus);
+
+      //paradyn visi create #table GlobalPhase
+      int forceProcessStart = 1;
+      int create_result = vmMgr->VMCreateVisi(1,forceProcessStart,table_id,GlobalPhase,matrix);
+   }
+   
    return TCL_OK;
 }
 
@@ -461,6 +503,9 @@ void installWhereAxisCommands(Tcl_Interp *interp) {
 		     NULL, deleteDummyProc);
    Tcl_CreateCommand(interp, "whereAxisDoubleClickHook",
 		     whereAxisDoubleClickCallbackCommand,
+		     NULL, deleteDummyProc);
+   Tcl_CreateCommand(interp, "whereAxisCtrlClickHook",
+		     whereAxisCtrlClickCallbackCommand,
 		     NULL, deleteDummyProc);
    Tcl_CreateCommand(interp, "whereAxisShiftDoubleClickHook",
 		     whereAxisShiftDoubleClickCallbackCommand,

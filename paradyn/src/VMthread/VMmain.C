@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: VMmain.C,v 1.46 1999/04/27 16:04:01 nash Exp $ */
+/* $Id: VMmain.C,v 1.47 2001/04/25 18:41:37 wxd Exp $ */
 
 #include "thread/h/thread.h"
 #include "VM.thread.SRVR.h"
@@ -49,7 +49,7 @@
 #include "VMtypes.h"
 #include "paradyn/src/pdMain/paradyn.h"
 #include "paradyn/src/met/metParse.h"
-
+#include "../DMthread/DMmetric.h"
 /*
 #include "../UIthread/Status.h"
 */
@@ -63,7 +63,6 @@ vector<VMactiveVisi *> activeVisis;
 vector<VMvisis *> visiList;
 extern void* VISIthreadmain(void *args);
 VM *VM::vmp = NULL;
-
 
 /////////////////////////////////////////////////////////////
 //  VMActiveVisis: VM server routine, returns a list of all 
@@ -122,8 +121,8 @@ int VM_AddNewVisualization(const char *name,
 			      vector<string> *arg_str,
 			      int  forceProcessStart,
 			      int  mi_limit,
-			      char *matrix,
-			      int numMatrices){
+			      vector<string> *matrix
+			      ){
 
    if (!arg_str || !name) {
        // TODO -- is this error number correct
@@ -180,7 +179,7 @@ int VM_AddNewVisualization(const char *name,
   temp->name = name;
 
   if (matrix){
-      if((temp->matrix = strdup(matrix)) == NULL){
+      if((temp->matrix = new vector<string>(*matrix)) == NULL){
           ERROR_MSG(19,"strdup in VM::VMAddNewVisualization");
           return(VMERROR);
       }
@@ -188,7 +187,6 @@ int VM_AddNewVisualization(const char *name,
   else {
       temp->matrix = NULL;
   }
-  temp->numMatrices = numMatrices;
   delete matrix;
   temp->argc = size;
   temp->forceProcessStart = forceProcessStart;
@@ -196,6 +194,7 @@ int VM_AddNewVisualization(const char *name,
       temp->mi_limit = mi_limit;
   else 
       temp->mi_limit = 0;
+
   return(VMOK); 
 }
 
@@ -211,11 +210,11 @@ int VM::VMAddNewVisualization(const char *name,
 			      vector<string> *arg_str,
 			      int  forceProcessStart,
 			      int  mi_limit,
-			      char *matrix,
-			      int numMatrices){
+			      vector<string> *matrix
+			      ){
 
     return(VM_AddNewVisualization(name, arg_str, forceProcessStart,
-				 mi_limit, matrix, numMatrices));
+				 mi_limit, matrix));
 }
 
 /////////////////////////////////////////////////////////////
@@ -279,16 +278,138 @@ int  VM::VMCreateVisi(int remenuFlag,
       temp->bucketWidth = 0.1; 
   }
       
-
   if(matrix != NULL){
-      temp->matrix = matrix;
+      temp->matrix = new vector<metric_focus_pair>;
+      for (unsigned i=0; i < matrix->size(); i++)
+      {
+      	  metric_focus_pair &metfocus = (*matrix)[i];
+	  if (metfocus.met == UNUSED_METRIC_HANDLE)
+	  {
+		vector<metric_focus_pair> *match_matrix = dataMgr->matchMetFocus(&metfocus);
+		if (match_matrix)
+		{	*temp->matrix += *match_matrix;
+			delete match_matrix;
+		}
+	  }else *temp->matrix += metfocus;
+      }
+      delete matrix;
   }
   else {
-      // TODO: check active visi list to see if visi has
-      // pre-defined set of metric/focus pairs, if so
-      // parse the string representation into metrespair rep.
       temp->matrix = NULL;
   }
+  //wxd visitemp->vector<string> == > vector<metric_focus_pair>
+      // check active visi list to see if visi has
+      // pre-defined set of metric/focus pairs, if so
+      // parse the string representation into metrespair rep.
+
+  if (visitemp->matrix)
+  {
+  	if (temp->matrix == NULL)
+		temp->matrix = new vector<metric_focus_pair>;
+	for (unsigned i=0;i < visitemp->matrix->size();i++)
+	{
+		metricHandle metric_h;
+		
+		string metfocus_item((*visitemp->matrix)[i].string_of());
+		char	*metfocus_str=(char *)metfocus_item.string_of();
+
+		string *metric_name=NULL;
+		string *code_name=NULL;
+		string *machine_name=NULL;
+		string *sync_name=NULL;
+		for (char *pos=strtok(metfocus_str,", \t");pos;pos=strtok(NULL,", \t"))
+		{
+			if (!strcmp(pos,""))
+				continue;
+			if (metric_name == NULL)
+				metric_name = new string(pos);
+			else if (code_name== NULL)
+				code_name = new string(pos);
+			else if (machine_name == NULL)
+				machine_name= new string(pos);
+			else if (sync_name == NULL)
+				sync_name = new string(pos);
+		}
+		if (metric_name == NULL)
+			metric_name = new string("*");
+		if (code_name== NULL)
+			code_name = new string("/Code");
+		if (machine_name == NULL)
+			machine_name= new string("/Machine");
+		if (sync_name == NULL)
+			sync_name = new string("/SyncObject");
+	
+		int	legal_metfocus=1;
+
+		if (*metric_name == "*")
+			metric_h = UNUSED_METRIC_HANDLE;
+		else {
+			metricHandle *result = dataMgr->findMetric(metric_name->string_of());
+			if (result == NULL)
+				legal_metfocus = 0;
+			else metric_h = *result;
+		}
+
+		resourceHandle code_h,machine_h,sync_h;
+		resourceHandle *rl=NULL;
+		if (legal_metfocus)
+		{
+			rl=dataMgr->findResource(code_name->string_of());
+			if (rl == NULL)
+				legal_metfocus = 0;
+			else code_h=*rl;
+		}
+        
+		if (legal_metfocus)
+		{
+			rl=dataMgr->findResource(machine_name->string_of());
+			if (rl == NULL)
+				legal_metfocus = 0;
+			else machine_h=*rl;
+		}
+        
+		if (legal_metfocus)
+		{
+			rl=dataMgr->findResource(sync_name->string_of());
+			if (rl == NULL)
+				legal_metfocus = 0;
+			else sync_h=*rl;
+		}
+
+		delete code_name;
+		delete machine_name;
+		delete sync_name;
+
+		vector<resourceHandle> focus;
+		focus += code_h;
+		focus += machine_h;
+		focus += sync_h;
+		metric_focus_pair metfocus(metric_h,focus);
+		if (metric_h == UNUSED_METRIC_HANDLE)
+		{
+			vector<metric_focus_pair> *match_matrix = dataMgr->matchMetFocus(&metfocus);
+			if (match_matrix)
+			{	*temp->matrix += *match_matrix;
+				delete match_matrix;
+			}
+		}else {
+			if (legal_metfocus)
+				(*temp->matrix) += metfocus;
+			else {
+				string err_msg("invalid metric/focus ");
+				err_msg += (*visitemp->matrix)[i].string_of();
+				ERROR_MSG(120,P_strdup(err_msg.string_of()));
+      				return(VMERROR);
+			}
+		}
+	}
+  }
+  if (temp->matrix != NULL && temp->matrix->size() == 0)
+  {
+  	delete temp->matrix;
+	temp->matrix = NULL;
+  }
+
   temp->remenuFlag = remenuFlag;
   if(forceProcessStart == -1)
       temp->forceProcessStart = visitemp->forceProcessStart;
@@ -401,8 +522,9 @@ int VM::VM_post_thread_create_init(){
 	  bool aflag;
 	  aflag=(RPCgetArg(argv, next_visi->command().string_of()));
 	  assert(aflag);
+	  
 	  VM_AddNewVisualization(next_visi->name().string_of(), &argv, 
-				next_visi->force(),next_visi->limit(),NULL, 0);
+				next_visi->force(),next_visi->limit(),next_visi->metfocus());
       }
 
   }

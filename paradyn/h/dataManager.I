@@ -1,6 +1,6 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
- * $Id: dataManager.I,v 1.100 2000/11/03 01:21:25 zandy Exp $
+ * $Id: dataManager.I,v 1.101 2001/04/25 18:40:43 wxd Exp $
  */
 
 #ifndef MMTHREAD_H
@@ -315,7 +315,6 @@ $remote dataManager {
 				   u_int persistent_collection,
 				   u_int phase_persistent_data);
 
-
     //
     // stop collecting data for the named metricInstance.
     // perfStreamHandle	- a handle returned by createPerformanceStream
@@ -468,6 +467,13 @@ $remote dataManager {
     // client is responsible for deleting vector<resourceHandle>*
     // 
     vector<resourceHandle> *getResourceHandles(resourceListHandle);
+
+
+    //query for matched metric/focus.
+    //the current match implemetation is that the code hierarchy 
+    //resource name in reponse focus should be same as that included in 
+    //parameter. no wildcard expression is taken into consideration
+    vector<metric_focus_pair> *matchMetFocus(metric_focus_pair *);
 
     //
     // converts from a resource name to a resourceHandle 

@@ -40,7 +40,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 /*
- * $Id: metScanner.l,v 1.22 1999/09/10 14:29:03 nash Exp $
+ * $Id: metScanner.l,v 1.23 2001/04/25 18:41:38 wxd Exp $
  */
 
 #include <stdio.h>
@@ -141,7 +141,7 @@ COMMENT	{SLASH}{SLASH}
 "float"		{ return(tT_FLOAT); }
 "flavor"	{ return(tFLAVOR);}
 "foreach"	{ return(tFOREACH); }
-"metric"	{ return(tMETRIC); }
+"metfocus"	{ return(tMETFOCUS); }
 "avg"		{ return(tAVG);}
 "min"		{ return(tMIN);}
 "max"		{ return(tMAX);}
@@ -191,6 +191,7 @@ COMMENT	{SLASH}{SLASH}
 "autoStart"     { return(tAUTO_START); }
 "force"		{ return(tFORCE);}
 "limit"		{ return(tLIMIT);}
+"metric"	{ return(tMETRIC);}
 "default"	{ return(tDEFAULT); }
 "void"		{ return(tVOID); }
 "items"         { return(tITEMS); }

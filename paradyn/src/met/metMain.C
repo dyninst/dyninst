@@ -48,7 +48,7 @@
  *     metDoVisi(..) - declare a visi
  */
 
-// $Id: metMain.C,v 1.42 2000/10/17 17:27:56 schendel Exp $
+// $Id: metMain.C,v 1.43 2001/04/25 18:41:38 wxd Exp $
 
 #define GLOBAL_CONFIG_FILE "/paradyn.rc"
 #define LOCAL_CONFIG_FILE "/.paradynrc"
@@ -208,7 +208,7 @@ static void add_visi(visiMet *the_vm)
 
   // the strings created here are used, not copied in the VM
   vmMgr->VMAddNewVisualization(the_vm->name().string_of(), &argv, 
-			the_vm->force(),the_vm->limit(), NULL, 0);
+			the_vm->force(),the_vm->limit(),the_vm->metfocus());
 }
 
 

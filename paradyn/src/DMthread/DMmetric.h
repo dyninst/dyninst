@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.h,v 1.33 2000/10/17 17:27:48 schendel Exp $ 
+// $Id: DMmetric.h,v 1.34 2001/04/25 18:41:35 wxd Exp $ 
 
 #ifndef dmmetric_H
 #define dmmetric_H
@@ -62,6 +62,8 @@
 typedef void (*dataCallBack2)(const void *data,
                              int length,
                              void *userData);
+
+#define UNUSED_METRIC_HANDLE	(unsigned) -1
 
 class metricInstance;
 
@@ -312,6 +314,7 @@ class metricInstance {
 
         static metricInstance *getMI(metricInstanceHandle);
 	static metricInstance *find(metricHandle, resourceListHandle);
+        static vector<metricInstance*> *query(metric_focus_pair); 
 	void flushPerfStreams();
         void newCurrDataCollection(metricStyle,dataCallBack,foldCallBack);
         void newGlobalDataCollection(metricStyle,dataCallBack,foldCallBack);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.C,v 1.32 2000/10/26 17:03:00 schendel Exp $
+// $Id: DMmetric.C,v 1.33 2001/04/25 18:41:35 wxd Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -445,6 +445,68 @@ metricInstance *metricInstance::find(metricHandle mh, resourceListHandle rh){
     return 0;
 }
 
+vector<metricInstance*> *metricInstance::query(metric_focus_pair metfocus)
+{
+    resourceListHandle focus_handle=resourceList::getResourceList(metfocus.res);
+    vector<metricInstance*> *result=new vector<metricInstance*>;
+
+    dictionary_hash_iter<metricInstanceHandle,metricInstance *> 
+			allMI(allMetricInstances);
+    metricInstanceHandle handle;
+    metricInstance *mi;
+    while(allMI.next(handle,mi)){
+    	if (metfocus.met != UNUSED_METRIC_HANDLE) {
+   	    if((mi->getMetricHandle() == metfocus.met) && (mi->getFocusHandle() == focus_handle)){
+	       *result += mi;
+	       return result;
+	    }
+	}else {
+	       vector<resourceHandle> *mi_focus=resourceList::getResourceHandles(mi->getFocusHandle());
+	       assert(mi_focus != NULL);
+
+	       string mi_focus_name=DMcreateRLname(*mi_focus);
+	       delete mi_focus;
+	       string focus_name=DMcreateRLname(metfocus.res);
+
+	       string focus_code("/Code");
+	       string focus_machine("/Machine");
+	       string focus_sync("/SyncObject");
+	       int  index=0;
+	       char *pos=NULL;
+	       for (pos=strtok((char *)focus_name.string_of(),",");pos;pos=strtok(NULL,","))
+	       {
+	       	    index++;
+		    if (index == 1)
+		    	focus_code=pos;
+		    else if (index == 2)
+		    	focus_machine=pos;
+		    else if (index == 3)
+		    	focus_sync=pos;
+	       }
+
+	       string mi_code("/Code");
+	       string mi_machine("/Machine");
+	       string mi_sync("/SyncObject");
+	       index=0;
+	       pos=NULL;
+	       for (pos=strtok((char *)mi_focus_name.string_of(),",");pos;pos=strtok(NULL,","))
+	       {
+	       	    index++;
+		    if (index == 1)
+		    	mi_code=pos;
+		    else if (index == 2)
+		    	mi_machine=pos;
+		    else if (index == 3)
+		    	mi_sync=pos;
+	       }
+
+	       if (focus_code == mi_code && focus_machine.prefix_of(mi_machine) && focus_sync.prefix_of(mi_sync))
+	       		*result += mi;
+	}
+    }
+    return result;
+
+}
 //
 // clears the persistent_data flag and deletes any histograms without 
 // subscribers.  The values for num_global_hists and num_curr_hists are

@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metParser.y,v 1.35 2000/10/17 17:27:56 schendel Exp $
+// $Id: metParser.y,v 1.36 2001/04/25 18:42:26 wxd Exp $
 
 #include "paradyn/src/met/metParse.h"
 #include "pdutilOld/h/hist.h"
@@ -60,7 +60,7 @@ extern void handle_error();
 %token tCOMMAND tHOST tLITERAL tFLOAT tCOMMA
 %token tREMOTE_SHELL tAUTO_START
 %token tSEMI tFLAVOR tNAME
-%token tRES_LIST tVISI tUSER tDIR tFALSE tTRUE tFORCE tLIMIT
+%token tRES_LIST tVISI tUSER tDIR tFALSE tTRUE tFORCE tLIMIT tMETFOCUS
 %token tEXLIB tNOCASE tREGEX
 %token tT_PROCEDURE tT_MODULE tT_STRING tT_INT tT_FLOAT tTRUE tFALSE tDEFAULT
 %token tFOREACH tLPAREN tRPAREN tLBLOCK tRBLOCK tDOLLAR tAMPERSAND
@@ -207,6 +207,8 @@ vItem: tCOMMAND tLITERAL tSEMI
            { $$.fld.force = $2.u; $$.fld.spec = SET_FORCE;}
      | tLIMIT tUNS tSEMI
            { $$.fld.limit = $2.u; $$.fld.spec = SET_LIMIT;}
+     | tMETFOCUS tLITERAL tSEMI
+           { $$.fld.val = $2.sp; $$.fld.spec = SET_METFOCUS;}
 	;
 
 processDef: tPROCESS tIDENT processItem 

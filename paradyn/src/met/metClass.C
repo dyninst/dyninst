@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metClass.C,v 1.12 1999/08/03 20:35:12 nash Exp $
+// $Id: metClass.C,v 1.13 2001/04/25 18:41:38 wxd Exp $
 
 // Implements classes used for metric description language
 
@@ -218,6 +218,11 @@ bool visiMet::set_field(field &f)
   case SET_LIMIT:
     limit_ = f.limit;
     break;
+  case SET_METFOCUS:
+    if (metfocus_ == NULL)
+    	metfocus_ = new vector<string>;
+    (*metfocus_) += *f.val;
+    break;
   default:
     return false;
   }
@@ -315,7 +320,7 @@ bool processMet::addProcess(processMet *pm)
 
 visiMet::visiMet(string &nm, string &u, string &h, string &e, string &, // c
                  int &,int &) // f, l
-  : name_(nm), user_(u), host_(h), execDir_(e) { }
+  : name_(nm), user_(u), host_(h), execDir_(e) { metfocus_ = NULL; }
 
 void visiMet::dumpAll()
 {

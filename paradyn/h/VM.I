@@ -1,4 +1,4 @@
-/* $Id: VM.I,v 1.20 2000/07/28 17:21:41 pcroth Exp $ */
+/* $Id: VM.I,v 1.21 2001/04/25 18:40:41 wxd Exp $ */
 
 #include "paradyn/src/DMthread/DMinclude.h"
 #include "common/h/Vector.h"
@@ -34,8 +34,7 @@ $remote VM{
 		            vector<string> *argv,	
 			    int forceProcessStart,
 			    int mi_limit,
-			    char *matrix,
-			    int numMatrices);
+			    vector<string> *matrix);
 
 
   //  converts a string representation of a list of met/focus pairs  
