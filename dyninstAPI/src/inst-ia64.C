@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.46 2004/03/12 20:08:11 rchen Exp $
+ * $Id: inst-ia64.C,v 1.47 2004/03/13 00:32:44 rchen Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -2594,7 +2594,7 @@ void emitFuncJump(opCode op, char *buf, Address &base, const function_base *call
 										  : IA64_instruction( NOP_I )),
 						  (extraOuts >= 2 ? generateRegisterToRegisterMove( offset + 1, 33 )
 										  : IA64_instruction( NOP_I )),
-						  generateRegisterToBranchMove( offset - 1, BRANCH_SCRATCH ));
+						  generateRegisterToBranchMove( offset - 2, BRANCH_SCRATCH ));
 	insnPtr[base/16] = bundle.getMachineCode();
 	base += 16;
 
