@@ -46,6 +46,9 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
+ * Revision 1.42  1996/08/20 21:34:54  lzheng
+ * Minor fix for the procedure readDataFromFrame
+ *
  * Revision 1.41  1996/08/20 19:19:39  lzheng
  * Implementation of moving multiple instructions sequence and
  * splitting the instrumentation into two phases
@@ -214,7 +217,7 @@ friend class ptraceKludge;
   // getActiveFrame and readDataFromFrame are platform dependant
   //
   bool getActiveFrame(int *fp, int *pc);
-  bool readDataFromFrame(int currentFP, int *previousFP, int *rtn, bool uppermost);
+  bool readDataFromFrame(int currentFP, int *previousFP, int *rtn, bool uppermost=false);
 
   processState status() const { return status_;}
   inline void Exited();
