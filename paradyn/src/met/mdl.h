@@ -52,6 +52,7 @@
 #include <iostream.h>
 #include <fstream.h>
 #include "util/h/aggregation.h"
+#include "paradynd/src/blizzard_memory.h" //class memory and struct memory::bounds
 
 #define MDL_FOLD_SUM 0
 #define MDL_FOLD_AVG 1
@@ -151,6 +152,7 @@
 
 #define MDL_T_MEMORY       700
 #define MDL_T_VARIABLE     701
+#define MDL_T_RECORD       702 //for $constraint[x].XXX
 
 typedef struct {
   unsigned type;
@@ -282,6 +284,7 @@ public:
   mdl_var(const string& nm, dataReqNode *drn, bool is_remote);
   mdl_var(const string& nm, vector<instPoint*> *ipl, bool is_remote);
 
+  bool get(memory::bounds &b);
   bool get(int &i);
   bool get(float &f);
   bool get(instPoint *&p);
@@ -299,6 +302,7 @@ public:
   bool get(dataReqNode *&drn);
   bool get(vector<instPoint*> *&vip);
 
+  bool set(memory::bounds b) ;
   bool set(int i);
   bool set(float f);
   bool set(instPoint *p);
@@ -317,6 +321,7 @@ public:
   bool set(dataReqNode *drn);
   bool set(vector<instPoint*> *ipl);
 
+  unsigned get_type(void) ;
   void set_type(unsigned type);
   bool is_list() const;
   unsigned element_type() const;
@@ -349,6 +354,7 @@ private:
     vector<instPoint*>   *list_pts;
     dataReqNode          *drn;
     void *ptr;
+    memory::bounds b;
   };
 
   string name_;
@@ -369,6 +375,7 @@ public:
   static bool get(mdl_var& ret, const string& var_name);
   static bool set(mdl_var& value, const string& var_name);
 
+  static bool set(memory::bounds b, string&var_name) ;
   static bool set(int i, const string& var_name);
   static bool set(float f, const string& var_name);
   static bool set(instPoint *p, const string& var_name);
@@ -386,6 +393,7 @@ public:
   static bool set(vector<instPoint*> *vip, const string& var_name);
   static bool set(dataReqNode *drn, const string& var_name);
 
+  static unsigned get_type(string var_name) ;
   static bool set_type(unsigned type, const string& var_name);
   static bool type(unsigned &ret, const string& var_name);
   static bool is_remote(bool &is_rem, const string& var_name);
@@ -528,6 +536,12 @@ inline mdl_var::mdl_var(const string& nm, vector<instPoint*> *vip, bool is_remot
 inline mdl_var::mdl_var(const string& nm, dataReqNode *drn, bool is_remote) 
 : name_(nm), type_(MDL_T_DRN), remote_(is_remote) { vals.drn = drn; }
 
+inline bool mdl_var::get(memory::bounds &b) {
+  if (type_ != MDL_T_VARIABLE) return false;
+  b = vals.b ;
+  return true ;
+}
+
 inline bool mdl_var::get(int &i) {
   if (type_ != MDL_T_INT) return false;
   i = vals.i;
@@ -610,7 +624,12 @@ inline bool mdl_var::get(vector<instPoint*> *&vip) {
   vip = vals.list_pts;
   return true;
 }
-
+inline bool mdl_var::set(memory::bounds b) {
+        destroy() ;
+        type_ = MDL_T_VARIABLE ;
+        vals.b = b ;
+        return true ;
+}
 inline bool mdl_var::set(int i) {
   destroy();
   type_ = MDL_T_INT;
@@ -838,6 +857,10 @@ inline unsigned mdl_var::as_list() {
   }
 }
 
+inline unsigned mdl_var::get_type(void) {
+  return type_ ;
+}
+
 inline void mdl_var::set_type(unsigned type) {
   destroy();
   type_ = type;
@@ -921,6 +944,20 @@ inline bool mdl_env::is_remote(bool &is_rem, const string& var_name) {
     return false;
   is_rem = mdl_env::all_vars[index].remote();
   return true;
+}
+
+inline bool mdl_env::set(memory::bounds b, string& var_name) {
+  unsigned index;
+  if (!mdl_env::find(index, var_name))
+    return false;
+  mdl_env::all_vars[index].set(b);
+  return true;
+}
+inline unsigned mdl_env::get_type(string var_name) {
+  unsigned index;
+  if (!mdl_env::find(index, var_name))
+    return false; //TO DO
+  return mdl_env::all_vars[index].get_type();
 }
 
 inline bool mdl_env::set_type(unsigned type, const string& var_name) {
