@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.166 1999/05/07 15:22:17 nash Exp $
+// $Id: process.C,v 1.167 1999/05/12 15:34:38 nash Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -3049,7 +3049,9 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
    //    paused it in step 1, above.
 
    if (!finishingSysCall && RPCs_waiting_for_syscall_to_complete) {
+#ifndef i386_unknown_linux2_0
 	  assert(executingSystemCall());
+#endif
       return false;
    }
 

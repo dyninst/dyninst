@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.10 1999/05/07 15:22:16 nash Exp $
+// $Id: linux.C,v 1.11 1999/05/12 15:34:34 nash Exp $
 
 #include <fstream.h>
 
@@ -312,6 +312,28 @@ void printStackWalk( process *p ) {
 		theFrame = theFrame.getPreviousStackFrameInfo(p);
 	}
 }
+ 
+void printRegs( void *save ) {
+	user_regs_struct *regs = (user_regs_struct*)save;
+	inferiorrpc_cerr
+		<< " eax: " << (void*)regs->eax
+		<< " ebx: " << (void*)regs->ebx
+		<< " ecx: " << (void*)regs->ecx
+		<< " edx: " << (void*)regs->edx << endl
+		<< " edi: " << (void*)regs->edi
+		<< " esi: " << (void*)regs->esi << endl
+		<< " xcs: " << (void*)regs->xcs
+		<< " xds: " << (void*)regs->xds
+		<< " xes: " << (void*)regs->xes
+		<< " xfs: " << (void*)regs->xfs
+		<< " xgs: " << (void*)regs->xgs
+		<< " xss: " << (void*)regs->xss << endl
+		<< " eip: " << (void*)regs->eip
+		<< " esp: " << (void*)regs->esp
+		<< " ebp: " << (void*)regs->ebp << endl
+		<< " orig_eax: " << (void*)regs->orig_eax
+		<< " eflags: " << (void*)regs->eflags << endl;
+}
 
 bool process::executingSystemCall() {
 	// From the program strace, it appears that a non-negative number
@@ -422,18 +444,7 @@ void OS::osDisconnect(void) {
 }
 
 bool process::stop_() {
-   // formerly OS::osStop()
-
-/* Choose either one of the following methods for stopping a process, but not both. 
- * The choice must be consistent with that in process::continueProc_ 
- * and ptraceKludge::continueProcess
- */
-
-#ifndef PTRACE_ATTACH_DETACH
 	return (P_kill(getPid(), SIGSTOP) != -1); 
-#else
-	return attach_();
-#endif
 }
 
 bool process::continueWithForwardSignal(int sig) {
@@ -912,11 +923,7 @@ bool process::continueProc_() {
  * The choice must be consistent with that in stop_ and
  * ptraceKludge::continueProcess.
  */
-#ifndef PTRACE_ATTACH_DETACH
   ret = P_ptrace(PTRACE_CONT, getPid(), 1, 0);
-#else
-  ret = P_ptrace(PTRACE_DETACH, getPid(), 1, SIGCONT);
-#endif
 
   if (ret == -1)
   {
@@ -1427,13 +1434,17 @@ time64 process::getInferiorProcessCPUtime() /* const */ {
 #endif // SHM_SAMPLING
 
 bool process::loopUntilStopped() {
+  int flags = WUNTRACED | WNOHANG;
   /* make sure the process is stopped in the eyes of ptrace */
-  stop_(); // sends SIGSTOP signal to the process
+  stop_();
 
   while (true) {
     int waitStatus;
-    int ret = P_waitpid(getPid(), &waitStatus, WUNTRACED);
-    if ((ret == -1 && errno == ECHILD) || (WIFEXITED(waitStatus))) {
+    int ret = P_waitpid( getPid(), &waitStatus, flags );
+	if( ret == 0 ) {
+	  if( !isRunning_() )
+	    break;
+	} else if ((ret == -1 && errno == ECHILD) || (WIFEXITED(waitStatus))) {
       // the child is gone.
       handleProcessExit(this, WEXITSTATUS(waitStatus));
       return(false);
@@ -1442,7 +1453,7 @@ bool process::loopUntilStopped() {
       return false;
     } else if (WIFSTOPPED(waitStatus)) {
       int sig = WSTOPSIG(waitStatus);
-      if (sig == SIGSTOP) {
+      if ( sig == SIGSTOP ) {
         break; // success
       } else {
         extern int handleSigChild(int, int);
