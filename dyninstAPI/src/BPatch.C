@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.73 2004/03/03 04:18:36 bernat Exp $
+// $Id: BPatch.C,v 1.74 2004/03/08 23:45:38 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -641,6 +641,11 @@ void BPatch::registerForkedThread(int parentPid, int childPid, process *proc)
     if (postForkCallback) {
         postForkCallback(parent, info->threadsByPid[childPid]);
     }
+    // We will continue both processes, but the fork callback may
+    // have set the "unreported stop" bits (because of inferior RPCs,
+    // etc.). Unset them here, as the low-level continue won't.
+    parent->setUnreportedStop(false);
+    info->threadsByPid[childPid]->setUnreportedStop(false);
 }
 
 /*
@@ -853,7 +858,6 @@ bool BPatch::getThreadEventOnly(bool block)
    if(!res) {
        return false;
    }
-
    for(unsigned i=0; i<foundEvents.size(); i++)
    {
       procevent *cur_event = foundEvents[i];
@@ -878,19 +882,19 @@ bool BPatch::getThreadEventOnly(bool block)
          }
       }
       if (thread != NULL) {
-         if (didProcReceiveSignal(why)) {
-            thread->lastSignal = what;
-            thread->setUnreportedStop(true);
-         }
-         else if (didProcExitOnSignal(why)) {
-            thread->lastSignal = what;
-            thread->setUnreportedTermination(true);
-         }
-         else if (didProcExit(why)) {
-            thread->setExitedNormally();
-            thread->lastSignal = 0; /* XXX Make into some constant */
-            thread->setUnreportedTermination(true);
-         }
+          if (didProcReceiveSignal(why)) {
+              thread->lastSignal = what;
+              thread->setUnreportedStop(true);
+          }
+          else if (didProcExitOnSignal(why)) {
+              thread->lastSignal = what;
+              thread->setUnreportedTermination(true);
+          }
+          else if (didProcExit(why)) {
+              thread->setExitedNormally();
+              thread->lastSignal = 0; /* XXX Make into some constant */
+              thread->setUnreportedTermination(true);
+          }
       }
        
       // Do standard handling
@@ -914,24 +918,23 @@ bool BPatch::havePendingEvent()
     // On NT, we need to poll for events as often as possible, so that we can
     // handle traps.
     if (getThreadEvent(false))
-	return true;
+        return true;
 #endif
-
+    
     // For now, we'll do it by iterating over the threads and checking them,
     // and we'll change it to something more efficient later on.
     dictionary_hash_iter<int, BPatch_thread *> ti(info->threadsByPid);
-
+    
     int pid;
     BPatch_thread *thread;
-
+    
     while (ti.next(pid, thread)) {
-	if (thread != NULL &&
-	    (thread->pendingUnreportedStop() ||
-	     thread->pendingUnreportedTermination())) {
-	    return true;
-	}
+        if (thread != NULL &&
+            (thread->pendingUnreportedStop() ||
+             thread->pendingUnreportedTermination())) {
+            return true;
+        }
     }
-
     return false;
 }
 
@@ -966,8 +969,9 @@ bool BPatch::pollForStatusChange()
  */
 bool BPatch::waitForStatusChange()
 {
-    if (havePendingEvent())
+    if (havePendingEvent()) {
         return true;
+    }
     
     // No changes were previously detected, so wait for a new change
     return getThreadEvent(true);
