@@ -3,7 +3,10 @@
  * inst-pvm.C - sunos specifc code for paradynd.
  *
  * $Log: inst-pvm.C,v $
- * Revision 1.10  1994/07/12 20:11:06  jcargill
+ * Revision 1.11  1994/08/01 00:24:13  markc
+ * Added computePauseTimeMetric to allow paradyndPVM to compile.
+ *
+ * Revision 1.10  1994/07/12  20:11:06  jcargill
  * Removed some old/dead code
  *
  * Revision 1.9  1994/07/05  03:53:42  hollings
@@ -44,7 +47,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-pvm.C,v 1.10 1994/07/12 20:11:06 jcargill Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-pvm.C,v 1.11 1994/08/01 00:24:13 markc Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -276,5 +279,34 @@ void instCleanup()
     pvm_exit();
 }
 
+
+// 
+// this has been copied from inst-sunos.C
+//
+float computePauseTimeMetric()
+{
+    timeStamp now;
+    timeStamp elapsed;
+    extern timeStamp startPause;
+    extern time64 firstRecordTime;
+    extern Boolean firstSampleReceived;
+    extern Boolean applicationPaused;
+    extern timeStamp elapsedPauseTime;
+    static timeStamp reportedPauseTime = 0;
+    extern timeStamp getCurrentTime(Boolean firstRecordRelative);
+
+    now = getCurrentTime(FALSE);
+    if (firstRecordTime && firstSampleReceived) {
+	elapsed = elapsedPauseTime - reportedPauseTime;
+	if (applicationPaused) {
+	    elapsed += now - startPause;
+	}
+	assert(elapsed >= 0.0); 
+	reportedPauseTime += elapsed;
+	return(elapsed);
+    } else {
+	return(0.0);
+    }
+}
 
 
