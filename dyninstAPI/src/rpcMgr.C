@@ -48,7 +48,7 @@
 // post RPC toDo for process
 unsigned rpcMgr::postRPCtoDo(AstNode *action, bool noCost,
                          inferiorRPCcallbackFunc callbackFunc,
-                         void *userData, int mid, bool lowmem,
+                         void *userData, bool lowmem,
                          dyn_thread *thr, dyn_lwp *lwp) 
 {
     static int sequence_num = 0;
@@ -58,17 +58,23 @@ unsigned rpcMgr::postRPCtoDo(AstNode *action, bool noCost,
     theStruct->noCost = noCost;
     theStruct->callbackFunc = callbackFunc;
     theStruct->userData = userData;
-    theStruct->mid = mid;
     theStruct->lowmem = lowmem;
     theStruct->id = sequence_num++;
     theStruct->thr = thr;
     theStruct->lwp = lwp;
 
     if (thr) {
-        thrs_[thr->get_pos()]->postIRPC(theStruct);
+       int pos = thr->get_pos();
+       rpcThr *rpc_thr = thrs_[pos];
+       assert(rpc_thr != NULL);
+       rpc_thr->postIRPC(theStruct);
     }
     else if (lwp) {
-        lwps_[lwp->get_lwp_id()]->postIRPC(theStruct);
+       int index = lwp->get_lwp_id();
+       rpcLWP *rpc_lwp;
+       bool foundIt = lwps_.find(index, rpc_lwp);
+       assert(foundIt == true);
+       rpc_lwp->postIRPC(theStruct);
     }
     else {
         postedProcessRPCs_.push_back(theStruct);
@@ -189,6 +195,7 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
     // level operations. 
     dictionary_hash<unsigned, rpcLWP *>::iterator rpc_iter = 
     lwps_.begin();
+
     while(rpc_iter != lwps_.end()) {
         rpcLWP *cur_rpc_lwp = (*rpc_iter);
         if(cur_rpc_lwp->isReadyForIRPC()) {
@@ -205,7 +212,11 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
 
     if (!readyLWPRPC && !processingLWPRPC) {
         for (unsigned i = 0; i < thrs_.size(); i++) {
-            if (thrs_[i]->isReadyForIRPC()) {
+           rpcThr *curThr = thrs_[i];
+           if(curThr == NULL)
+              continue;
+
+            if (curThr->isReadyForIRPC()) {
                 readyThrRPC = true;
                 break;
             }
@@ -220,6 +231,7 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
         }
         return false;
     }   
+
     // We have work to do. Pause the process.
     if (!proc_->pause()) {
         cerr << "FAILURE TO PAUSE PROCESS in launchRPCs" << endl;
@@ -241,12 +253,16 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
                 runProcessWhenDone = true;
             }
             
-            rpc_iter++;
+            lwp_iter++;
         }
     }
     else if (readyThrRPC) {
         // Loop over all threads and try to run an inferior RPC
         for (unsigned iter = 0; iter < thrs_.size(); iter++) {
+           rpcThr *curThr = thrs_[iter];
+           if(curThr == NULL)
+              continue;
+
             irpcLaunchState_t thrState = thrs_[iter]->launchThrIRPC(wasRunning);
             // If an IRPC was launched we've got it in the allRunningRPCs
             // vector (For bookkeeping)
@@ -265,7 +281,7 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
     // the process (since it needs to get ready). And if we have an RPC
     // pending with no inserted breakpoint then run the process (but
     // poll for completion)
-    
+
     if (runProcessWhenDone || 
         allRunningRPCs_.size() > 0) {
         proc_->continueProc();
@@ -400,81 +416,52 @@ Address rpcMgr::createRPCImage(AstNode *action,
 bool rpcMgr::cancelRPC(unsigned id) {
     // We can cancel posted or pending RPCs
     for (unsigned i = 0; i < allPostedRPCs_.size(); i++) {
-        if (allPostedRPCs_[i]->id == id) {
-            inferiorRPCtoDo *rpc = allPostedRPCs_[i];
-            if (rpc->thr)
-                thrs_[rpc->thr->get_pos()]->deleteThrIRPC(id);
-            else if (rpc->lwp)
-                lwps_[rpc->lwp->get_lwp_id()]->deleteLWPIRPC(id);
-            else
-                deleteProcessRPC(id);
-            removePostedRPC(allPostedRPCs_[i]);
-            return true;
-        }
+       inferiorRPCtoDo *rpc = allPostedRPCs_[i];
+       if (rpc->id == id) {
+          if (rpc->thr)
+             thrs_[rpc->thr->get_pos()]->deleteThrIRPC(id);
+          else if (rpc->lwp)
+             lwps_[rpc->lwp->get_lwp_id()]->deleteLWPIRPC(id);
+          else
+             deleteProcessRPC(id);
+          removePostedRPC(rpc);
+          return true;
+       }
     }
     
     // Check pending
     for (unsigned j = 0; j < allPendingRPCs_.size(); j++) {
-        if (allPendingRPCs_[j]->rpc->id == id) {
-            if (allPendingRPCs_[j]->rpc->thr)
-                thrs_[allPendingRPCs_[j]->rpc->thr->get_pos()]->deleteThrIRPC(id);
-            else if (allPendingRPCs_[j]->rpc->lwp)
-                lwps_[allPendingRPCs_[j]->rpc->lwp->get_lwp_id()]->deleteLWPIRPC(id);
-            removePendingRPC(allPendingRPCs_[j]);
+       inferiorRPCinProgress *inprog = allPendingRPCs_[j];
+        if (inprog->rpc->id == id) {
+            if (inprog->rpc->thr)
+                thrs_[inprog->rpc->thr->get_pos()]->deleteThrIRPC(id);
+            else if (inprog->rpc->lwp)
+                lwps_[inprog->rpc->lwp->get_lwp_id()]->deleteLWPIRPC(id);
+            removePendingRPC(inprog);
             return true;
         }
     }
     return false;
 }
 
-        
-
-
-void rpcMgr::deleteRPCbyMID(int mid) {
-    // Go through all posted/pending RPCs (running is too late) and
-    // remove all with the given MID (may be more than one)
-
-    pdvector <inferiorRPCtoDo *> remainder;
-    pdvector <inferiorRPCtoDo *> found;
-    
-    for (unsigned i = 0; i < allPostedRPCs_.size(); i++) {
-        if (allPostedRPCs_[i]->mid == mid) 
-            found.push_back(allPostedRPCs_[i]);
-        else
-            remainder.push_back(allPostedRPCs_[i]);
-    }
-    for (unsigned j = 0; j < found.size(); j++) {
-        inferiorRPCtoDo *rpc = found[j];
-        if (rpc->thr) {
-            thrs_[rpc->thr->get_pos()]->deleteThrIRPC(rpc->id);
-        }
-        else if (rpc->lwp) {
-            lwps_[rpc->lwp->get_lwp_id()]->deleteLWPIRPC(rpc->id);
-        }
-        else
-            deleteProcessRPC(rpc->id);
-    }
-
-    allPostedRPCs_ = remainder;
-    
-    // Should do pending, but not yet        
-}
-
 void rpcMgr::addThread(dyn_thread *thr) {
     rpcThr *newThread = new rpcThr(this, thr);
-    thrs_.push_back(newThread);
+    int pos = newThread->get_thr()->get_pos();
+
+    // this code will fill in NULLs in any array entries that haven't yet
+    // been assigned a thread
+    int new_size = pos + 1;
+    if(new_size > thrs_.size()) {
+       for(int i=thrs_.size(); i<=new_size; i++)
+          thrs_.push_back(NULL);
+    }
+    thrs_[pos] = newThread;
 }
 
 void rpcMgr::deleteThread(dyn_thread *thr) {
-    pdvector<rpcThr *> newthreads;
-    rpcThr *oldthread = NULL;
-    for (unsigned i = 0; i < thrs_.size(); i++)
-        if (thrs_[i]->get_thr() != thr)
-            newthreads.push_back(thrs_[i]);
-        else
-            oldthread = thrs_[i];
-    if (oldthread) delete oldthread;
-    thrs_ = newthreads;
+   int pos = thr->get_pos();
+   delete thrs_[pos];
+   thrs_[pos] = NULL;
 }
 
 void rpcMgr::addLWP(dyn_lwp *lwp) {
