@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.58 2001/10/24 17:32:49 bernat Exp $
+// $Id: unix.C,v 1.59 2001/11/09 00:01:47 zandy Exp $
 
 #if defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -793,7 +793,6 @@ int handleSigChild(int pid, int status)
 
 		   // note: status will now be 'running', since handleStopDueToExec()
 		   // did a continueProc() to let the exec() syscall go forward.
-		   printf("at end of handleStopDueToExecEntry\n");
 		   assert(curr->status_ == running);
 		      // would neonatal be better? or exited?
 
