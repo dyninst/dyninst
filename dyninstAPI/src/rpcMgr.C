@@ -287,7 +287,7 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
             
             irpcLaunchState_t thrState = thrs_[iter]->launchProcIRPC(wasRunning);
             if (thrState == irpcStarted) {
-                proc_->overrideDefaultLWP(thrs_[iter]->get_thr()->get_lwp());
+                proc_->overrideProcessLWP(thrs_[iter]->get_thr()->get_lwp());
                 processingProcessRPC = true;
                 break;
             }

@@ -293,7 +293,7 @@ bool rpcThr::handleCompletedIRPC() {
 
 #if defined(sparc_sun_solaris2_4)    
     if(mgr_->proc()->multithread_capable() && runningRPC_->isProcessRPC) {
-        lwp->proc()->restoreDefaultLWP();
+        lwp->proc()->restoreProcessLWP();
         mgr_->processingProcessRPC = false;
     }
 #endif
