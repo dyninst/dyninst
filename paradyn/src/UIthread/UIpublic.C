@@ -21,10 +21,13 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.35  1996/01/09 00:46:52  tamches
-/* added phaseID argument in call to "new shg"; removed it from call to
-/* theShgPhases->add
+/* Revision 1.36  1996/01/11 23:40:41  tamches
+/* int2style now handles 6 styles instead of 4
 /*
+ * Revision 1.35  1996/01/09 00:46:52  tamches
+ * added phaseID argument in call to "new shg"; removed it from call to
+ * theShgPhases->add
+ *
  * Revision 1.34  1995/11/28 15:50:02  naim
  * Minor fix. Changing char[number] by string - naim
  *
@@ -353,14 +356,20 @@ UIM::initSHG(const char *phaseName, int phaseID)
 
 
 shgRootNode::style int2style(int styleid) {
+   // Admittedly, there is little rhyme or reason for the ordering
+   // of these six numbers...
    if (styleid == 1)
-      return shgRootNode::Uninstrumented;
+      return shgRootNode::InactiveUnknown;
    else if (styleid == 2)
-      return shgRootNode::TestedFalse;
+      return shgRootNode::InactiveFalse;
    else if (styleid == 3)
-      return shgRootNode::TestedTentativelyTrue;
+      return shgRootNode::ActiveTrue;
    else if (styleid == 4)
-      return shgRootNode::InstrumentedAndTesting;
+      return shgRootNode::ActiveUnknown;
+   else if (styleid == 5)
+      return shgRootNode::ActiveFalse;
+   else if (styleid == 6)
+      return shgRootNode::InactiveTrue;
 
    cerr << "unrecognized style id " << styleid << endl;
    exit(5);
