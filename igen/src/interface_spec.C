@@ -310,7 +310,7 @@ bool interface_spec::gen_scope(ofstream &out_h, ofstream &out_c) const {
   if (Options::ml->serial()) {
     out_h << "typedef struct buf_struct {\n";
     out_h << "void *data_ptr;\n";
-    out_h << Options::type_prefix() << "message_tags data_type;\n";
+    out_h << "message_tags data_type;\n";
     out_h << "} buf_struct;\n";
   }
 
@@ -768,6 +768,8 @@ bool interface_spec::gen_await_response(ofstream &out_stream, const bool srvr) c
   out_stream << "}\n";
 
   out_stream << "} while(wait);\n";
+  out_stream << "assert(0);\n";
+  out_stream << "return false;\n";
   out_stream << "}\n";
   return true;
 }

@@ -747,6 +747,29 @@ type_defn::type_defn(const string name, const bool is_cl, const bool is_abs,
 
 void type_defn::add_kid(const string kid_name) { kids_ += kid_name; }
 
+/* Convert a type name with qualified names to a names with unqualified names.
+   E.g. vector<T_dyninstRPC::mdl_expr*> to vector<mdl_expr*>
+   This is needed to compile the igen output with Visual C++, which
+   does not accept the qualified names (in the example above, it complains
+   that T_dyninstRPC is undefined).
+*/
+string unqual_type(const string &type) {
+  string ret;
+  const char *t = type.string_of();
+  char *p;
+
+  while (1) {
+    p = strstr(t, Options::type_prefix().string_of());
+    if (!p) {
+      ret += t;
+      return ret;
+    }
+    ret += string(t, p-t);
+    t = p + Options::type_prefix().length();
+  }
+}
+
+
 bool type_defn::gen_class(const string, ofstream &out_stream) {
 
   if (is_class())
@@ -755,7 +778,7 @@ bool type_defn::gen_class(const string, ofstream &out_stream) {
     out_stream << "struct ";
   out_stream << unqual_name();
   if (is_derived()) 
-    out_stream << " : public " << parent() << " ";
+    out_stream << " : public " << Options::qual_to_unqual(parent()) << " ";
   out_stream << "{ \n";
   if (is_class()) {
     out_stream << " public: \n ";
@@ -763,7 +786,7 @@ bool type_defn::gen_class(const string, ofstream &out_stream) {
   }
   
   for (unsigned i=0; i<arglist_.size(); i++) 
-    out_stream << arglist_[i]->type(true) << " " << arglist_[i]->name() << ";\n";
+    out_stream << unqual_type(arglist_[i]->type(true)) << " " << arglist_[i]->name() << ";\n";
 
   if (ignore_.length())
     out_stream << "\n" << ignore_ << endl;

@@ -46,6 +46,12 @@
  * Parse.h - define the classes that are used in parsing an interface.
  */
 
+#if defined(i386_unknown_nt4_0)
+// XXX kludge for bison.simple
+#include <malloc.h>
+#define alloca _alloca
+#endif
+
 #include "util/h/String.h"
 /* trace data streams */
 #include "util/h/ByteArray.h"

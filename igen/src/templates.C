@@ -41,6 +41,9 @@
 
 /*
  * $Log: templates.C,v $
+ * Revision 1.7  1997/04/29 22:58:06  mjrg
+ * Changed generated code so that it compiles with Visual C++
+ *
  * Revision 1.6  1996/08/16 19:10:32  tamches
  * updated copyright for release 1.1
  *
@@ -76,3 +79,4 @@ template class dictionary_hash<string, type_defn*>;
 template class dictionary_hash_iter<string, type_defn*>;
 template class dictionary_hash_iter<string, remote_func*>;
 
+template class refCounter<string_ll>;
