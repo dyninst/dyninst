@@ -43,6 +43,9 @@
 
 /*
  * $Log: metParser.y,v $
+ * Revision 1.24  1997/04/14 20:03:53  zhichen
+ * Added | tIDENT tLSQUARE tUNS tRSQUARE tDOT tIDENT for instr_rand.
+ *
  * Revision 1.23  1997/03/29 02:07:03  sec
  * Added parsing commands to understand the wildcard * path in the matchPath
  * In addition added parsing commands to understand the new constraint
@@ -461,6 +464,12 @@ instr_rand: tIDENT                       { $$.rand = new T_dyninstRPC::mdl_instr
 	                                   $$.rand = new T_dyninstRPC::mdl_instr_rand(MDL_CALL_FUNC, *$1.sp, *$3.pars); }
           | tIDENT tLPAREN tRPAREN {
                                            $$.rand = new T_dyninstRPC::mdl_instr_rand(MDL_CALL_FUNC, *$1.sp); }
+	  | tIDENT tLSQUARE tUNS tRSQUARE tDOT tIDENT {//Blizzard
+             if(*$1.sp == "$constraint") {
+                 $$.rand = new T_dyninstRPC::mdl_instr_rand(MDL_T_RECORD, *$6.sp) ;
+             } else
+                 yyerror("only $constraint is allowed\n");
+	  }
           | tIDENT tLSQUARE tUNS tRSQUARE {
 	      if (*$1.sp == "$constraint") {
                 $$.rand = new T_dyninstRPC::mdl_instr_rand(MDL_T_INT, string("$constraint") + string($3.u));
