@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.117 2002/02/28 22:06:41 gurari Exp $
+// $Id: inst-sparc.C,v 1.118 2002/03/01 22:22:09 gurari Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1058,7 +1058,13 @@ Address generateMTRPCCode(char *insn, Address &base,
 void generateMTSkipBranch(unsigned char *insn, Address addr, Address offset)
 {
   instruction *tmp_insn = (instruction *) ((void*)&(insn[addr]));
-  generateBranchInsn(tmp_insn, offset-addr);
+
+  // Conditional branch (on equal).
+  tmp_insn->branch.op = 0;
+  tmp_insn->branch.cond = BEcond;
+  tmp_insn->branch.op2 = BICCop2;
+  tmp_insn->branch.anneal = false;
+  tmp_insn->branch.disp22 = (offset - addr) >> 2;
 }
 
 /****************************************************************************/
