@@ -142,10 +142,6 @@ void refarray<REFOBJ,USE_RWLOCK>::set_elem_at(unsigned index, REFOBJ* value) {
         lock->acquire(rwlock::write);
     }
     
-    if(index <= _last) {
-        _last = index + 1;
-    }
-
     items[index] = value;
 
     if(USE_RWLOCK) {
