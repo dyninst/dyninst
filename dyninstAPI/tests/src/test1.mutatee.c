@@ -8,6 +8,11 @@
 #include <unistd.h>
 #endif
 
+#include "dyninstAPI_RT/h/rtinst.h"
+#include "dyninstAPI_RT/h/trace.h"
+
+extern struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
+
 /* XXX Currently, there's a bug in the library that prevents a subroutine call
  * instrumentation point from being recognized if it is the first instruction
  * in a function.  The following variable is used in this program in a number
@@ -18,6 +23,11 @@ int kludge;
 // control debug printf statements
 #define dprintf	if (debugPrint) printf
 int debugPrint = 0;
+
+#define RET13_1 1300100
+
+#define RET17_1 1700100
+#define RET17_2 1700200
 
 #define TRUE	1
 #define FALSE	0
@@ -69,6 +79,7 @@ int globalVariable16_2 = 0;
 int globalVariable16_3 = 0;
 int globalVariable16_4 = 0;
 
+int globalVariable17_1 = 0;
 
 void call1_1()
 {
@@ -198,6 +209,11 @@ void call13_1(int a1, int a2, int a3, int a4, int a5)
     dprintf("a5 = %d\n", a5);
 }
 
+void call13_2(int ret)
+{
+    if (ret == RET13_1) globalVariable13_1 |= 32;
+}
+
 void call14_1()
 {
     globalVariable14_1 = 1;
@@ -216,6 +232,38 @@ void call15_2()
 void call15_3()
 {
     globalVariable15_3++;
+}
+
+int call17_1(int p1) 
+{ 
+     /* make sure the function uses lots of registers */
+
+     int a1, a2, a3, a4, a5, a6, a7;
+
+     a1 = p1;
+     a2 = a1 + p1;
+     a3 = a1 * a2;
+     a4 = a3 / p1;
+     a5 = a4 + p1;
+     a6 = a5 + a1;
+     a7 = a6 + p1;
+     return a7; 
+}
+
+int call17_2(int p1) 
+{
+     /* make sure the function uses lots of registers */
+
+     int a1, a2, a3, a4, a5, a6, a7;
+
+     a1 = p1;
+     a2 = a1 + p1;
+     a3 = a1 * a2;
+     a4 = a3 / p1;
+     a5 = a4 + p1;
+     a6 = a5 + a1;
+     a7 = a6 + p1;
+     return a7; 
 }
 
 //
@@ -316,13 +364,20 @@ void func12_1()
     }
 }
 
+int func13_2()
+{
+    return(RET13_1);
+}
+
 void func13_1(int p1, int p2, int p3, int p4, int p5)
 {
+    func13_2();
+
     if ((p1 == 131) && (p2 == 132) && (p3 == 133) && 
-	(p4 == 134) && (p5 == 135) && (globalVariable13_1 == 31)) {
-	printf("Passed test #13 (paramExpr,nullExpr)\n");
+	(p4 == 134) && (p5 == 135) && (globalVariable13_1 == 63)) {
+	printf("Passed test #13 (paramExpr,retExpr,nullExpr)\n");
     } else {
-	printf("**Failed test #13 (paramExpr,nullExpr)\n");
+	printf("**Failed test #13 (paramExpr,retExpr,nullExpr)\n");
 	if (p1 != 131) printf("  parameter 1 is %d, not 131\n", p1);
 	if (p2 != 132) printf("  parameter 2 is %d, not 132\n", p2);
 	if (p3 != 133) printf("  parameter 3 is %d, not 133\n", p3);
@@ -333,6 +388,7 @@ void func13_1(int p1, int p2, int p3, int p4, int p5)
 	if (!(globalVariable13_1 & 4)) printf("    passed param a3 wrong\n");
 	if (!(globalVariable13_1 & 8)) printf("    passed param a4 wrong\n");
 	if (!(globalVariable13_1 & 16)) printf("    passed param a5 wrong\n");
+	if (!(globalVariable13_1 & 32)) printf("    return value wrong\n");
     }
 }
 
@@ -491,6 +547,22 @@ void func16_1()
 }
 
 
+int func17_1()
+{
+    return RET17_1;
+}
+
+int func17_3()
+{
+    return RET17_2;
+}
+
+void func17_2()
+{
+    globalVariable17_1 = func17_3();
+    return;
+}
+
 void fail7Print(int tCase, int fCase, char *op)
 {
     if (tCase != 72) 
@@ -501,8 +573,26 @@ void fail7Print(int tCase, int fCase, char *op)
 
 void main(int argc, char *argv[])
 {
-    if (argc == 2 && !strcmp(argv[1], "-verbose")) {
-	debugPrint = 1;
+    int i;
+    int ret17_1;
+    int useAttach = FALSE;
+ 
+    for (i=1; i < argc; i++) {
+        if (!strcmp(argv[i], "-verbose")) {
+            debugPrint = 1;
+        } else if (!strcmp(argv[i], "-attach")) {
+            useAttach = TRUE;
+        } else {
+            fprintf(stderr, "Usage: test1 [-attach] [-verbose]\n");
+            exit(-1);
+        }
+    }
+
+    // see if we should wait for the attach
+    if (useAttach) {
+	// hack to know when attach is done.
+	printf("testing via attach thread\n");
+	while(!DYNINST_bootstrap_info.pid);
     }
 
     // Test #1
@@ -607,6 +697,23 @@ void main(int argc, char *argv[])
     func15_1();
 
     func16_1();
+
+    ret17_1 = func17_1();
+    func17_2();
+
+    if ((ret17_1 != RET17_1) || (globalVariable17_1 != RET17_2)) {
+        printf("**Failed** test case #17 (return values from func calls)\n");
+        if (ret17_1 != RET17_1) {
+            printf("  return value was %d, not %d\n", ret17_1, RET17_1);
+        }
+        if (globalVariable17_1 != RET17_2) {
+            printf("  return value was %d, not %d\n",
+                globalVariable17_1, RET17_2);
+        }
+    } else {
+        printf("Passed test #17 (return values from func calls)\n");
+    }
+
 
     exit(0);
 }

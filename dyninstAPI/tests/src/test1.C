@@ -34,6 +34,28 @@ BPatch *bpatch;
  * Utility functions
  **************************************************************************/
 
+// check that the cost of a snippet is sane.  Due to differences between
+//   platforms, it is impossible to check this exactly in a machine independent
+//   manner.
+void checkCost(BPatch_snippet snippet)
+{
+    float cost;
+    BPatch_snippet copy;
+
+    // test copy constructor too.
+    copy = snippet;
+
+    cost = snippet.getCost();
+    if (cost < 0.0) {
+	printf("*Error*: negative snippet cost\n");
+    } else if (cost == 0.0) {
+	printf("*Warning*: zero snippet cost\n");
+    } else if (cost > 0.01) {
+	printf("*Error*: snippet cost of %f, exceeds max expected of 0.1",
+	    cost);
+    }
+}
+
 //
 // Replace all calls in "inFunction" to "callTo" with calls to "replacement."
 // If "replacement" is NULL, them use removeFunctionCall instead of
@@ -145,6 +167,7 @@ BPatchSnippetHandle *insertSnippetAt(BPatch_thread *appThread,
 	exit(-1);
     }
 
+    checkCost(snippet);
     return appThread->insertSnippet(snippet, *points);
 }
 
@@ -275,6 +298,7 @@ void mutatorTest6(BPatch_thread *appThread, BPatch_image *appImage)
 	BPatch_arithExpr(BPatch_seq,BPatch_constExpr(10),BPatch_constExpr(3)));
     vect6_1.push_back(&arith6_6);
 
+    checkCost(BPatch_sequence(vect6_1));
     appThread->insertSnippet( BPatch_sequence(vect6_1), *point6_1);
 }
 
@@ -323,6 +347,7 @@ void mutatorTest7(BPatch_thread *appThread, BPatch_image *appImage)
 
     dprintf("relops test vector length is %d\n", vect7_1.size());
 
+    checkCost(BPatch_sequence(vect7_1));
     appThread->insertSnippet( BPatch_sequence(vect7_1), *point7_1);
 }
 
@@ -357,6 +382,7 @@ void mutatorTest8(BPatch_thread *appThread, BPatch_image *appImage)
 					      BPatch_constExpr(88)))));
     vect8_1.push_back(&arith8_1);
 
+    checkCost(BPatch_sequence(vect8_1));
     appThread->insertSnippet( BPatch_sequence(vect8_1), *point8_1);
 }
 
@@ -394,6 +420,7 @@ void mutatorTest9(BPatch_thread *appThread, BPatch_image *appImage)
 
     BPatch_funcCallExpr call9Expr(*call9_func, call9_args);
 
+    checkCost(call9Expr);
     appThread->insertSnippet( call9Expr, *point9_1);
 }
 
@@ -430,9 +457,14 @@ void mutatorTest10(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_funcCallExpr call10_2Expr(*call10_2_func, nullArgs);
     BPatch_funcCallExpr call10_3Expr(*call10_3_func, nullArgs);
 
+    checkCost(call10_2Expr);
     appThread->insertSnippet( call10_2Expr, *point10_1);
+
+    checkCost(call10_1Expr);
     appThread->insertSnippet( call10_1Expr, *point10_1, BPatch_callBefore, 
 							BPatch_firstSnippet);
+
+    checkCost(call10_3Expr);
     appThread->insertSnippet( call10_3Expr, *point10_1, BPatch_callBefore, 
 							BPatch_lastSnippet);
 }
@@ -497,11 +529,17 @@ void mutatorTest11(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_funcCallExpr call11_3Expr(*call11_3_func, nullArgs);
     BPatch_funcCallExpr call11_4Expr(*call11_4_func, nullArgs);
 
+    checkCost(call11_1Expr);
     appThread->insertSnippet(call11_1Expr, *point11_1);
-    appThread->insertSnippet(call11_2Expr, *point11_2, BPatch_callBefore);
-    appThread->insertSnippet(call11_3Expr, *point11_2, BPatch_callAfter);
-    appThread->insertSnippet(call11_4Expr, *point11_3);
 
+    checkCost(call11_2Expr);
+    appThread->insertSnippet(call11_2Expr, *point11_2, BPatch_callBefore);
+
+    checkCost(call11_3Expr);
+    appThread->insertSnippet(call11_3Expr, *point11_2, BPatch_callAfter);
+
+    checkCost(call11_4Expr);
+    appThread->insertSnippet(call11_4Expr, *point11_3);
 }
 
 BPatchSnippetHandle *snippetHandle12_1;
@@ -534,6 +572,8 @@ void mutatorTest12a(BPatch_thread *appThread, BPatch_image *appImage)
 
     BPatch_Vector<BPatch_snippet *> nullArgs;
     BPatch_funcCallExpr call12_1Expr(*call12_1_func, nullArgs);
+
+    checkCost(call12_1Expr);
     snippetHandle12_1 = appThread->insertSnippet(call12_1Expr, *point12_2);
     if (!snippetHandle12_1) {
 	fprintf(stderr,
@@ -570,7 +610,7 @@ void mutatorTest12b(BPatch_thread *appThread, BPatch_image */*appImage*/)
 
 
 //
-// Start Test Case #13 - mutator side (paramExpr,nullExpr)
+// Start Test Case #13 - mutator side (paramExpr,retExpr,nullExpr)
 //
 void mutatorTest13(BPatch_thread *appThread, BPatch_image *appImage)
 {
@@ -595,11 +635,34 @@ void mutatorTest13(BPatch_thread *appThread, BPatch_image *appImage)
     funcArgs.push_back(new BPatch_paramExpr(3));
     funcArgs.push_back(new BPatch_paramExpr(4));
     BPatch_funcCallExpr call13_1Expr(*call13_1_func, funcArgs);
-    BPatch_nullExpr call13_2Expr;
 
+    checkCost(call13_1Expr);
     appThread->insertSnippet(call13_1Expr, *point13_1);
-    // This causes a crash right now jkh 3/7/97
-    // appThread->insertSnippet(call13_2Expr, *point13_1);
+
+    BPatch_nullExpr call13_2Expr;
+    checkCost(call13_1Expr);
+    appThread->insertSnippet(call13_2Expr, *point13_1);
+
+    // now test that a return value can be read.
+    BPatch_Vector<BPatch_point *> *point13_2 =
+	appImage->findProcedurePoint("func13_2", BPatch_exit);
+    if (!point13_2) {
+	fprintf(stderr, "Unable to find point func13_2 - exit.\n");
+	exit(-1);
+    }
+
+    BPatch_function *call13_2_func = appImage->findFunction("call13_2");
+    if (call13_2_func == NULL) {
+	fprintf(stderr, "Unable to find function \"call13_1.\"\n");
+	exit(1);
+    }
+
+    BPatch_Vector<BPatch_snippet *> funcArgs2;
+    funcArgs2.push_back(new BPatch_retExpr());
+    BPatch_funcCallExpr call13_3Expr(*call13_2_func, funcArgs2);
+
+    checkCost(call13_1Expr);
+    appThread->insertSnippet(call13_3Expr, *point13_2);
 }
 
 
@@ -695,9 +758,57 @@ void mutatorTest16(BPatch_thread *appThread, BPatch_image *appImage)
 		    16, "if-else");
 }
 
-
-void mutatorMAIN(char *pathname)
+//
+// Start Test Case #17 - mutator side (return values from func calls)
+//
+void mutatorTest17(BPatch_thread *appThread, BPatch_image *appImage)
 {
+    // Find the entry point to the procedure "func17_1"
+    BPatch_Vector<BPatch_point *> *point17_1 =
+	appImage->findProcedurePoint("func17_1", BPatch_exit);
+    if (!point17_1) {
+	fprintf(stderr, "Unable to find point func17_1 - entry.\n");
+	exit(-1);
+    }
+
+    BPatch_function *call17_1_func = appImage->findFunction("call17_1");
+    if (call17_1_func == NULL) {
+	fprintf(stderr, "Unable to find function \"call17_1.\"\n");
+	exit(1);
+    }
+
+    BPatch_Vector<BPatch_snippet *> funcArgs;
+    funcArgs.push_back(new BPatch_paramExpr(1));
+    BPatch_funcCallExpr call17_1Expr(*call17_1_func, funcArgs);
+    checkCost(call17_1Expr);
+    appThread->insertSnippet(call17_1Expr, *point17_1);
+
+    // Find the entry point to the procedure "func17_2"
+    BPatch_Vector<BPatch_point *> *point17_2 =
+	appImage->findProcedurePoint("func17_2", BPatch_subroutine);
+    if (!point17_2) {
+	fprintf(stderr, "Unable to find point func17_2 - entry.\n");
+	exit(-1);
+    }
+
+    BPatch_function *call17_2_func = appImage->findFunction("call17_2");
+    if (call17_2_func == NULL) {
+	fprintf(stderr, "Unable to find function \"call17_2.\"\n");
+	exit(1);
+    }
+
+    BPatch_Vector<BPatch_snippet *> funcArgs2;
+    // funcArgs2.push_back(new BPatch_paramExpr(0));
+    BPatch_funcCallExpr call17_2Expr(*call17_2_func, funcArgs2);
+    checkCost(call17_2Expr);
+    appThread->insertSnippet(call17_2Expr, *point17_2, 
+	BPatch_callAfter, BPatch_lastSnippet);
+}
+
+void mutatorMAIN(char *pathname, bool useAttach)
+{
+    BPatch_thread *appThread;
+
     // Create an instance of the bpatch library
     bpatch = new BPatch;
 
@@ -709,8 +820,23 @@ void mutatorMAIN(char *pathname)
 	// null out the verbose mode if not enabled.
 	child_argv[1] = NULL;
     }
-    BPatch_thread *appThread =
-	new BPatch_thread(pathname, child_argv, NULL);
+
+    if (useAttach) {
+	// fork and then attach
+	int pid = fork();
+	if (pid == 0) {
+	    // child - so exec 
+	    execl(pathname, child_argv[0], "-attach", child_argv[1], NULL);
+	    _exit(-1);
+	} else if (pid > 0) {
+	    // parrent so use attach
+	    appThread = new BPatch_thread(pathname, pid);
+	} else {
+	    printf("*ERROR*: unable to start tests due to fork failure\n");
+	}
+    } else {
+	appThread = new BPatch_thread(pathname, child_argv, NULL);
+    }
 
     if (appThread->isTerminated()) {
 	fprintf(stderr, "Unable to run test program.\n");
@@ -719,6 +845,11 @@ void mutatorMAIN(char *pathname)
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();
+
+    BPatch_Vector<BPatch_module *> *m = appImage->getModules();
+    for (int i=0; i < m->size(); i++) {
+        // dprintf("func %s\n", (*m)[i]->name());
+    }
 
     BPatch_Vector<BPatch_function *> *p = appImage->getProcedures();
     for (int i=0; i < p->size(); i++) {
@@ -748,6 +879,7 @@ void mutatorMAIN(char *pathname)
     BPatch_funcCallExpr call1Expr(*call1_func, call1_args);
 
     dprintf("Inserted snippet2\n");
+    checkCost(call1Expr);
     appThread->insertSnippet(call1Expr, *point1_1);
 
 
@@ -783,6 +915,7 @@ void mutatorMAIN(char *pathname)
     BPatch_funcCallExpr call2Expr(*call2_func, call2_args);
 
     dprintf("Inserted snippet2\n");
+    checkCost(call2Expr);
     appThread->insertSnippet(call2Expr, *point2_1);
 
     //
@@ -824,9 +957,11 @@ void mutatorMAIN(char *pathname)
     call3_args.push_back(expr3_2);
 
     BPatch_funcCallExpr call3Expr(*call3_func, call3_args);
+    checkCost(call3Expr);
     appThread->insertSnippet(call3Expr, *point3_1);
 
     BPatch_arithExpr expr3_3(BPatch_assign, *expr3_2, BPatch_constExpr(32));
+    checkCost(expr3_3);
     appThread->insertSnippet(expr3_3, *point3_1);
 
     dprintf("Inserted snippet3\n");
@@ -855,6 +990,7 @@ void mutatorMAIN(char *pathname)
     vect4_1.push_back(&expr4_3);
 
     BPatch_sequence expr4_4(vect4_1);
+    checkCost(expr4_4);
     appThread->insertSnippet(expr4_4, *point4_1);
 
     //
@@ -889,6 +1025,7 @@ void mutatorMAIN(char *pathname)
     vect5_1.push_back(&expr5_4);
 
     BPatch_sequence expr5_5(vect5_1);
+    checkCost(expr5_5);
     appThread->insertSnippet(expr5_5, *point5_1);
 
     mutatorTest6(appThread, appImage);
@@ -913,6 +1050,8 @@ void mutatorMAIN(char *pathname)
 
     mutatorTest16(appThread, appImage);
 
+    mutatorTest17(appThread, appImage);
+
     // Start of code to continue the process.
     dprintf("starting program execution.\n");
     appThread->continueExecution();
@@ -930,16 +1069,20 @@ void mutatorMAIN(char *pathname)
 //
 main(int argc, char *argv[])
 {
-    if (argc == 1) {
-	// become the mutator
-	mutatorMAIN("./test1.mutatee");
-    } else if (argc == 2 && !strcmp(argv[1], "-verbose")) {
-	debugPrint = 1;
-	mutatorMAIN("./test1.mutatee");
-    } else {
-	fprintf(stderr, "Usage: test1 [-verbose]\n");
-	exit(-1);
+    bool useAttach = false;
+
+    for (int i=1; i < argc; i++) {
+	if (!strcmp(argv[i], "-verbose")) {
+	    debugPrint = 1;
+	} else if (!strcmp(argv[i], "-attach")) {
+	    useAttach = true;
+	} else {
+	    fprintf(stderr, "Usage: test1 [-attach] [-verbose]\n");
+	    exit(-1);
+	}
     }
+	
+    mutatorMAIN("./test1.mutatee", useAttach);
 
     return 0;
 }
