@@ -187,8 +187,19 @@ WinWaitSet::Wait( void )
 
                 if( ndx < socks.size() )
                 {
-                    // it was an Event associated with a socket
-                    readySockIdx = (int)ndx;
+                    // It was an Event associated with a socket.
+                    // Find out what type of event caused us to un-block
+                    // (This has the side effect of clearing the state
+                    // in the socket that caused us to pop out of the wait.
+                    // If we don't do this, next time around we don't wait
+                    // even if there is no input available on the socket.)
+                    WSANETWORKEVENTS netEvents;
+                    if( WSAEnumNetworkEvents( socks[ndx].s,
+                                                NULL,
+                                                &netEvents ) != SOCKET_ERROR )
+                    {
+                        readySockIdx = (int)ndx;
+                    }
                 }
                 else
                 {
