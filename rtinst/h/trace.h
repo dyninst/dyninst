@@ -105,6 +105,8 @@ typedef struct _traceHeader traceHeader;
 #define TR_THRSELF              14
 #endif
 
+
+#define TR_NEW_MEMORY           15
 /* types for resources that may be reported */
 #define RES_TYPE_INT    0
 #define RES_TYPE_STRING 1
@@ -137,6 +139,17 @@ struct _traceSample {
 };
 typedef struct _traceSample traceSample;
 #endif
+
+//Shared-memory resource for Blizzard
+struct _traceMemory {
+    char        name[32];               /* name of the variable*/
+    int         va ;                    /* va                  */
+    unsigned    memSize ;               /* size of this piece  */
+    unsigned    blkSize ;               /* block size          */
+    /* type of leaf is integer */
+} ;
+typedef struct _traceMemory traceMemory ;
+
 
 /* a map from one name space to another.  
  *   For example 
