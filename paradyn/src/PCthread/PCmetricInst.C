@@ -20,6 +20,11 @@
  * The PCmetricInst class and the PCmetricInstServer methods.
  * 
  * $Log: PCmetricInst.C,v $
+ * Revision 1.12  1996/05/15 04:35:13  karavan
+ * bug fixes: changed pendingCost pendingSearches and numexperiments to
+ * break down by phase type, so starting a new current phase updates these
+ * totals correctly; fixed error in estimated cost propagation.
+ *
  * Revision 1.11  1996/05/08 07:35:17  karavan
  * Changed enable data calls to be fully asynchronous within the performance consultant.
  *
@@ -508,7 +513,6 @@ PCmetricInstServer::addSubscription(dataSubscriber *sub,
     AllData += tmpRec;
   }
   newsub->addConsumer(sub);
-  newsub->getEstimatedCost();
   return (PCmetInstHandle) newsub;
 }
 

@@ -20,6 +20,11 @@
  * experiment class
  *
  * $Log: PCexperiment.h,v $
+ * Revision 1.5  1996/05/15 04:35:09  karavan
+ * bug fixes: changed pendingCost pendingSearches and numexperiments to
+ * break down by phase type, so starting a new current phase updates these
+ * totals correctly; fixed error in estimated cost propagation.
+ *
  * Revision 1.4  1996/05/08 07:35:09  karavan
  * Changed enable data calls to be fully asynchronous within the performance consultant.
  *
@@ -100,6 +105,7 @@ class experiment : public dataSubscriber
   timeStamp getStartTime () {return startTime;}
   timeStamp getEndTime () {return endTime;}
   float getEstimatedCost() {return estimatedCost;}
+  void findOutCost();  // make async requests to get cost and store it
   //
   // this call invoked by PCmetricInst to notify experiment of new 
   // values  

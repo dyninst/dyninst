@@ -20,6 +20,11 @@
  * classes searchHistoryNode, GraphNode, searchHistoryGraph
  *
  * $Log: PCshg.h,v $
+ * Revision 1.27  1996/05/15 04:35:25  karavan
+ * bug fixes: changed pendingCost pendingSearches and numexperiments to
+ * break down by phase type, so starting a new current phase updates these
+ * totals correctly; fixed error in estimated cost propagation.
+ *
  * Revision 1.26  1996/05/08 07:35:34  karavan
  * Changed enable data calls to be fully asynchronous within the performance consultant.
  *
@@ -178,6 +183,7 @@ public:
   const char *getShortName() {return sname.string_of();}
   void estimatedCostNotification(); 
   void enableReply (bool);
+  void addActiveSearch();
 private:
   void percolateUp(testResult newTruth);
   void percolateDown(testResult newTruth);
@@ -238,6 +244,8 @@ class searchHistoryGraph {
   unsigned getPhase() {return (unsigned)guiToken;}
   void addUIrequest(unsigned srcID, unsigned dstID, int styleID, const char *label);
   void flushUIbuffer();
+  void clearPendingSearch(float pcost);
+  void addActiveSearch ();
  private:
   vector<searchHistoryNode*> Nodes;
   static unsigned uhash (unsigned& val) {return (unsigned) (val % 19);} 

@@ -20,6 +20,11 @@
  * The experiment class methods.
  * 
  * $Log: PCexperiment.C,v $
+ * Revision 1.11  1996/05/15 04:35:07  karavan
+ * bug fixes: changed pendingCost pendingSearches and numexperiments to
+ * break down by phase type, so starting a new current phase updates these
+ * totals correctly; fixed error in estimated cost propagation.
+ *
  * Revision 1.10  1996/05/11 01:57:58  karavan
  * fixed bug in PendingCost calculation.
  *
@@ -118,8 +123,7 @@
 
 ostream& operator <<(ostream &os, experiment& ex)
 {
-  os << "experiment: " << ex.pcmih << ":" << "\n" 
-    << "\tcost:\t" << ex.estimatedCost << endl;
+  os << "experiment: " << ex.pcmih <<  endl;
     
   return os;
 }
@@ -145,6 +149,9 @@ void
 experiment::updateEstimatedCost(float costDiff) 
 {
   estimatedCost += costDiff;
+#ifdef PCDEBUG
+  cout << "experiment cost: " << estimatedCost << endl;
+#endif
   papaNode->estimatedCostNotification();
 }
 
@@ -285,6 +292,12 @@ currentValue(0.0), startTime(-1), endTime(0), minObservationFlag(false)
 #endif
 }
 
+void
+experiment::findOutCost()
+{
+  pcmih->getEstimatedCost();
+}
+
 experiment::~experiment()
 {
   ;
@@ -300,7 +313,7 @@ experiment::start()
   if (status) return true;
   assert(pcmih);
   pcmih->activate();
-  PCsearch::incrNumActiveExperiments();
+  papaNode->addActiveSearch();
   status = true;
   //** need to distinguish here if PCmetricInst already running!!
   return false;

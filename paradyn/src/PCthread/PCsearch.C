@@ -20,6 +20,11 @@
  * class PCsearch
  *
  * $Log: PCsearch.C,v $
+ * Revision 1.16  1996/05/15 04:35:17  karavan
+ * bug fixes: changed pendingCost pendingSearches and numexperiments to
+ * break down by phase type, so starting a new current phase updates these
+ * totals correctly; fixed error in estimated cost propagation.
+ *
  * Revision 1.15  1996/05/11 01:58:03  karavan
  * fixed bug in PendingCost calculation.
  *
@@ -148,19 +153,20 @@ dictionary_hash<unsigned, PCsearch*> PCsearch::AllPCSearches(PCunhash);
 PriorityQueue<SearchQKey, searchHistoryNode*> PCsearch::GlobalSearchQueue;
 PriorityQueue<SearchQKey, searchHistoryNode*> PCsearch::CurrentSearchQueue;
 PriorityQueue<SearchQKey, searchHistoryNode*> *PCsearch::q = &PCsearch::GlobalSearchQueue;
-int PCsearch::numActiveExperiments = 0;
+int PCsearch::numActiveGlobalExperiments = 0;
+int PCsearch::numActiveCurrentExperiments = 0;
 bool PCsearch::GlobalSearchPaused = false;
 bool PCsearch::CurrentSearchPaused = false;
 costModule *PCsearch::costTracker = NULL;
-float PCsearch::PendingCost = 0.0;
-int PCsearch::PendingSearches = 0;
+float PCsearch::PendingCurrentCost = 0.0;
+float PCsearch::PendingGlobalCost = 0.0;
+int PCsearch::PendingGlobalSearches = 0;
+int PCsearch::PendingCurrentSearches = 0;
 
-//** this is currently being studied!!
-const float costFudge = 0.2;
-
-//** 
+//** this is currently being studied!! (klk)
+const float costFudge = 0.1;
 const int MaxPendingSearches = 30;
-const int MaxActiveExperiments = 50;
+const int MaxActiveExperiments = 100;
 //
 // remove from search queues and start up as many experiments as we can 
 // without exceeding our cost limit.  
@@ -170,21 +176,22 @@ PCsearch::expandSearch (sampleValue estimatedCost)
 {
   bool costLimitReached = false;
   searchHistoryNode *curr;
-  float newCost = 0.0;
   float candidateCost = 0.0;
 
 #ifdef PCDEBUG
+  cout << "START OF EXPAND" << endl;
   cout << "total observed cost: " << estimatedCost << endl;
   cout << "cost limit: " << performanceConsultant::predictedCostLimit << endl;
   cout << "numActiveExperiments: " << PCsearch::getNumActiveExperiments() << endl;
-  cout << "pendingEnables: " << PCsearch::PendingSearches << endl;
+  cout << "pendingEnables: " << PCsearch::getNumPendingSearches() << endl;
   cout << "limit: " << (1-costFudge)*performanceConsultant::predictedCostLimit << endl;
-  cout << "pendingCost = " << PCsearch::PendingCost << endl;
+  cout << "pendingCost = " << PCsearch::getPendingCost() << endl;
 #endif
 
   // alternate between two queues for fairness
-  while (!costLimitReached && (PCsearch::PendingSearches < MaxPendingSearches) &&
-	 (PCsearch::getNumActiveExperiments() < MaxActiveExperiments)) {
+  while (!costLimitReached 
+	 && (PCsearch::getNumPendingSearches() < MaxPendingSearches)
+	 && (PCsearch::getNumActiveExperiments() < MaxActiveExperiments)) {
     // switch queues for fairness, if possible; never use q if empty or that 
     // search is paused
     if (q == &CurrentSearchQueue) {
@@ -204,17 +211,31 @@ PCsearch::expandSearch (sampleValue estimatedCost)
     }
     curr = q->peek_first_data();
     candidateCost = curr->getEstimatedCost();
-    if ((estimatedCost + newCost + candidateCost + PCsearch::PendingCost) > 
+    //cout << "considering node with cost: " << candidateCost << endl;
+    if ((estimatedCost + candidateCost + PCsearch::getPendingCost()) > 
 	(1-costFudge)*performanceConsultant::predictedCostLimit) {
       costLimitReached = true;
     } else {
-      curr->startExperiment(); 
-      PCsearch::PendingSearches += 1;
-      newCost += candidateCost;
+      curr->startExperiment();
+      if (q == &GlobalSearchQueue) {
+	PCsearch::PendingGlobalSearches += 1;
+	PCsearch::PendingGlobalCost += candidateCost;
+      } else {
+	PCsearch::PendingCurrentSearches += 1;
+	PCsearch::PendingCurrentCost += candidateCost;
+      }
       q->delete_first();
     }
   }
-  PendingCost += newCost;
+#ifdef PCDEBUG
+  cout << "END OF EXPAND" << endl;
+  cout << "total observed cost: " << estimatedCost << endl;
+  cout << "cost limit: " << performanceConsultant::predictedCostLimit << endl;
+  cout << "numActiveExperiments: " << PCsearch::getNumActiveExperiments() << endl;
+  cout << "pendingEnables: " << PCsearch::getNumPendingSearches() << endl;
+  cout << "limit: " << (1-costFudge)*performanceConsultant::predictedCostLimit << endl;
+  cout << "pendingCost = " << PCsearch::getPendingCost() << endl;
+#endif
 }
 
 PCsearch::PCsearch(unsigned phaseID, phaseType phase_type)
@@ -345,10 +366,16 @@ PCsearch::terminate(timeStamp searchEndTime) {
     while (!PCsearch::CurrentSearchQueue.empty()) {
       CurrentSearchQueue.delete_first();
     }
+    PCsearch::PendingCurrentCost = 0;
+    PCsearch::PendingCurrentSearches = 0;
+    PCsearch::numActiveCurrentExperiments = 0;
   } else {
     while (!PCsearch::GlobalSearchQueue.empty()) {
       GlobalSearchQueue.delete_first();
     }
+    PCsearch::PendingGlobalCost = 0;
+    PCsearch::PendingGlobalSearches = 0;
+    PCsearch::numActiveGlobalExperiments = 0;
   }
   shg->finalizeSearch(searchEndTime);
 }

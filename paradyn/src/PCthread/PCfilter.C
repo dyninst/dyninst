@@ -21,6 +21,11 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.C,v $
+ * Revision 1.24  1996/05/15 04:35:11  karavan
+ * bug fixes: changed pendingCost pendingSearches and numexperiments to
+ * break down by phase type, so starting a new current phase updates these
+ * totals correctly; fixed error in estimated cost propagation.
+ *
  * Revision 1.23  1996/05/11 01:58:01  karavan
  * fixed bug in PendingCost calculation.
  *
@@ -486,6 +491,7 @@ filteredDataServer::unsubscribeAllData()
 #endif
       dataMgr->disableDataCollection(performanceConsultant::pstream, 
 				     AllDataFilters[i]->getMI(), phType);
+      //cout << "data disabled successfully. " << endl;
 #ifdef MYPCDEBUG
       // -------------------------- PCDEBUG ------------------
       t2=TESTgetTime();
@@ -556,6 +562,7 @@ filteredDataServer::newDataEnabled(vector<metricInstInfo> *newlyEnabled)
       }  // for j < Pendings.size()
     }
   }
+  printPendings();
 }
 	
 void 
@@ -569,8 +576,12 @@ filteredDataServer::makeEnableDataRequest (metricHandle met,
   
   // make async request to enable data
   unsigned myPhaseID = getPCphaseID();
-  dataMgr->enableDataRequest2(performanceConsultant::pstream, request, myPhaseID,
-			      phType, dmPhaseID, 1, 0, 0);
+  if (phType == GlobalPhase)
+    dataMgr->enableDataRequest2(performanceConsultant::pstream, request, 
+				myPhaseID, phType, dmPhaseID, 1, 0, 0);
+  else
+    dataMgr->enableDataRequest2(performanceConsultant::pstream, request, 
+				myPhaseID, phType, dmPhaseID, 0, 0, 1);
 }
 
 void
@@ -682,8 +693,14 @@ filteredDataServer::endSubscription(fdsSubscriber sub,
     double t1,t2;
     t1=TESTgetTime();
 #endif
-    dataMgr->clearPersistentData(subID);
-    dataMgr->disableDataCollection (performanceConsultant::pstream, subID, phType);
+    //dataMgr->clearPersistentData(subID);
+    if (phType == GlobalPhase)
+      dataMgr->disableDataAndClearPersistentData
+	(performanceConsultant::pstream, subID, phType, true, false);
+    else
+      dataMgr->disableDataAndClearPersistentData
+	(performanceConsultant::pstream, subID, phType, false, true);
+    //dataMgr->disableDataCollection ();
 #ifdef MYPCDEBUG
     t2=TESTgetTime();
     if (performanceConsultant::collectInstrTimings) {

@@ -20,6 +20,11 @@
  * The searchHistoryNode and searchHistoryGraph class methods.
  * 
  * $Log: PCshg.C,v $
+ * Revision 1.47  1996/05/15 04:35:22  karavan
+ * bug fixes: changed pendingCost pendingSearches and numexperiments to
+ * break down by phase type, so starting a new current phase updates these
+ * totals correctly; fixed error in estimated cost propagation.
+ *
  * Revision 1.46  1996/05/11 01:58:06  karavan
  * fixed bug in PendingCost calculation.
  *
@@ -226,7 +231,10 @@ searchHistoryNode::setupExperiment()
   }
   exp = new experiment (why, where, persistent, this, 
 			mamaGraph->srch, altMetricFlag, &errFlag);
-  return  (! ((exp == NULL) || errFlag));
+  if (!exp || errFlag)
+    return false;
+  exp->findOutCost();
+  return true;
 }
 
 void
@@ -253,8 +261,7 @@ searchHistoryNode::enableReply (bool successful)
 #endif
   }
   float mycost = getEstimatedCost();
-  PCsearch::clearPendingCost(mycost);
-  PCsearch::decrNumPendingSearches();
+  mamaGraph->clearPendingSearch(mycost);
 }
 
 void 
@@ -338,6 +345,33 @@ searchHistoryGraph::flushUIbuffer()
     uiMgr->DAGaddBatchOfEdges(guiToken, uiRequestBuff, bufSize);
     uiRequestBuff = 0;
   }
+}
+
+void 
+searchHistoryGraph::clearPendingSearch(float pcost) {
+  if (guiToken == 0) {
+    PCsearch::decrNumPendingGlobalSearches();
+    PCsearch::clearPendingGlobalCost(pcost);
+  }
+  else {
+    PCsearch::decrNumPendingCurrentSearches();
+    PCsearch::clearPendingCurrentCost(pcost);
+  }
+}
+
+void 
+searchHistoryNode::addActiveSearch() 
+{
+  mamaGraph->addActiveSearch();
+}
+
+void 
+searchHistoryGraph::addActiveSearch ()
+{
+  if (guiToken == 0)
+    PCsearch::addGlobalActiveExperiment();
+  else
+    PCsearch::addCurrentActiveExperiment();
 }
 
 void
@@ -598,7 +632,8 @@ searchHistoryNode::estimatedCostNotification()
 {
 #ifdef PCDEBUG
   cout << "Cost Received for Node " << name << endl;
-  cout << " in phase " << mamaGraph->guiToken << endl;
+  cout << " in phase " << mamaGraph->guiToken << " is " << 
+    exp->getEstimatedCost() << endl;
 #endif
   if (!active) {
     //** this will be replaced with more rational priority calculation

@@ -20,6 +20,11 @@
  * The PCmetricInst class and the PCmetricInstServer class.
  * 
  * $Log: PCmetricInst.h,v $
+ * Revision 1.9  1996/05/15 04:35:15  karavan
+ * bug fixes: changed pendingCost pendingSearches and numexperiments to
+ * break down by phase type, so starting a new current phase updates these
+ * totals correctly; fixed error in estimated cost propagation.
+ *
  * Revision 1.8  1996/05/08 07:35:19  karavan
  * Changed enable data calls to be fully asynchronous within the performance consultant.
  *
@@ -153,7 +158,7 @@ public:
       costEstimate += costDiff;
       numCostEstimates++;
       if (numCostEstimates == numInPorts)
-	sendUpdatedEstimatedCost(costDiff);
+	sendUpdatedEstimatedCost(costEstimate);
     }
   void enableReply (unsigned token1, unsigned token2, unsigned token3,
 		    bool successful);

@@ -20,6 +20,11 @@
  * State information required throughout a search.
  *
  * $Log: PCsearch.h,v $
+ * Revision 1.10  1996/05/15 04:35:19  karavan
+ * bug fixes: changed pendingCost pendingSearches and numexperiments to
+ * break down by phase type, so starting a new current phase updates these
+ * totals correctly; fixed error in estimated cost propagation.
+ *
  * Revision 1.9  1996/05/11 01:58:04  karavan
  * fixed bug in PendingCost calculation.
  *
@@ -125,12 +130,30 @@ public:
       cout << CurrentSearchQueue << endl;
     }
   }
-  static int getNumActiveExperiments() {return PCsearch::numActiveExperiments;}
-  static void incrNumActiveExperiments() {PCsearch::numActiveExperiments += 1;}
-  static void decrNumActiveExperiments() {PCsearch::numActiveExperiments -= 1;}
-  static void decrNumPendingSearches() {PCsearch::PendingSearches -= 1;}
+  static int getNumActiveExperiments() {
+    return PCsearch::numActiveGlobalExperiments + 
+      PCsearch::numActiveCurrentExperiments;
+  }
+  static int getNumPendingSearches() {
+    return PendingCurrentSearches + PendingGlobalSearches;
+  }
+  static float getPendingCost() {
+    return (PendingCurrentCost + PendingGlobalCost); }
+  static void addGlobalActiveExperiment() {
+    PCsearch::numActiveGlobalExperiments += 1;}
+  static void addCurrentActiveExperiment() {
+    PCsearch::numActiveCurrentExperiments += 1;}
+  static void decrNumActiveExperiments() 
+    {PCsearch::numActiveGlobalExperiments -= 1;}
+  static void decrNumPendingGlobalSearches() 
+    {PCsearch::PendingGlobalSearches -= 1;}
+  static void decrNumPendingCurrentSearches() 
+    {PCsearch::PendingCurrentSearches -= 1;}
   static void initCostTracker();
-  static void clearPendingCost(float val) { PCsearch::PendingCost -= val; }
+  static void clearPendingCurrentCost(float val) 
+    { PCsearch::PendingCurrentCost -= val; }
+  static void clearPendingGlobalCost(float val) 
+    { PCsearch::PendingGlobalCost -= val; }
 private:
   schState searchStatus;  // schNeverRun/schPaused/schRunning/schEnded
   unsigned phaseToken;          // identifier for phase of this search
@@ -139,10 +162,13 @@ private:
   searchHistoryGraph *shg;
   static dictionary_hash<unsigned, PCsearch*>AllPCSearches;
   static unsigned PCactiveCurrentPhase;
-  static int numActiveExperiments;
   static costModule *costTracker;
-  static float PendingCost;
-  static int PendingSearches;
+  static float PendingGlobalCost;
+  static float PendingCurrentCost;
+  static int PendingCurrentSearches;
+  static int PendingGlobalSearches;
+  static int numActiveGlobalExperiments;
+  static int numActiveCurrentExperiments;
   static PriorityQueue<SearchQKey, searchHistoryNode*> GlobalSearchQueue;
   static PriorityQueue<SearchQKey, searchHistoryNode*> CurrentSearchQueue;
   static bool CurrentSearchPaused;
