@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.152 2004/02/26 02:51:45 tikir Exp $
+// $Id: inst-sparc.C,v 1.153 2004/02/28 00:26:24 schendel Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1360,70 +1360,6 @@ bool isBranchInsn(instruction instr) {
 /****************************************************************************/
 /****************************************************************************/
 
-// modifyInstPoint: if the function associated with the process was 
-// recently relocated, then the instPoint may have the old pre-relocated
-// address (this can occur because we are getting instPoints in mdl routines 
-// and passing these to routines that do the instrumentation, it would
-// be better to let the routines that do the instrumenting find the points)
-void pd_Function::modifyInstPoint(const instPoint *&location,process *proc)
-{
-
-    if(relocatable_ && !(location->isRelocatedPointType())){
-        for(u_int i=0; i < relocatedByProcess.size(); i++){
-            if((relocatedByProcess[i])->getProcess() == proc){
-                if(location->getPointType() == functionEntry){
-                    const instPoint *new_entry = 
-                                (relocatedByProcess[i])->funcEntry();
-                    location = new_entry;
-                } 
-                else if(location->getPointType() == functionExit){
-                    const pdvector<instPoint *> new_returns = 
-                        (relocatedByProcess[i])->funcReturns(); 
-                    if(funcReturns.size() != new_returns.size()){
-                        printf("funcReturns = %d new_returns = %d\n",
-                                funcReturns.size(),new_returns.size());
-                        fflush(stdout);
-                    }
-                    assert(funcReturns.size() == new_returns.size());
-                    for(u_int j=0; j < new_returns.size(); j++){
-                        if(funcReturns[j] == location){
-                            location = (new_returns[j]);
-                            break;
-                        }
-                    }
-                }
-                else if(location->getPointType() == otherPoint) {
-                    const pdvector<instPoint *> new_arbitrary = 
-                        (relocatedByProcess[i])->funcArbitraryPoints(); 
-
-                    assert(arbitraryPoints.size() == new_arbitrary.size());
-                    for(u_int j=0; j < new_arbitrary.size(); j++){
-                        if(arbitraryPoints[j] == location){
-                            location = (new_arbitrary[j]);
-                            break;
-                        }
-                    }
-		}
-		else {
-                    const pdvector<instPoint *> new_calls = 
-                                (relocatedByProcess[i])->funcCallSites(); 
-                    assert(calls.size() == new_calls.size());
-                    for(u_int j=0; j < new_calls.size(); j++){
-                        if(calls[j] == location){
-                            location = (new_calls[j]);
-                            break;
-                        }
-                    }
-
-                }
-                break;
-    } } }
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
 // The exact semantics of the heap are processor specific.
 //
 // find all DYNINST symbols that are data symbols
@@ -1776,9 +1712,10 @@ bool deleteBaseTramp(process *proc,
     if(location->pointFunc()->hasBeenRelocated(proc) && 
        !location->isRelocatedPointType())
     {
-        location->pointFunc()->modifyInstPoint(location, proc );
+        instPoint *reloc_inst_pt = location->getMatchingRelocInstPoint(proc);
+        location = reloc_inst_pt;
     }
-    
+
     // Get the base address of the shared object
     Address baseAddress;
     proc->getBaseAddress(location->getOwner(), baseAddress);
@@ -2149,7 +2086,7 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
     }
 
     if (needsRelocate == true)
-      pointFunction->setRelocatable(true);
+      pointFunction->markAsNeedingRelocation(true);
 
     instruction instr;
     proc->readTextSpace(address, sizeof(instruction), &instr.raw);
