@@ -3,11 +3,14 @@
    is used internally by the UIM.
 */
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.20  1995/10/05 04:35:06  karavan
-/* changes to support search display changes including igen interfaces and
-/* paradyn search and paradyn shg commands.
-/* removed obsolete and commented code.
+/* Revision 1.21  1995/10/13 22:08:07  newhall
+/* added call to dataManager::getResourceLabelName
 /*
+ * Revision 1.20  1995/10/05  04:35:06  karavan
+ * changes to support search display changes including igen interfaces and
+ * paradyn search and paradyn shg commands.
+ * removed obsolete and commented code.
+ *
  * Revision 1.19  1995/09/08  19:51:16  krisna
  * stupid way to avoid the for-scope problem
  *
@@ -92,7 +95,7 @@ void printMFPlist (vector<metric_focus_pair> *list)
     cout << "   metric: " <<  
       dataMgr->getMetricName (((*list)[i]).met) << "||| focus: ";
     for (int j = 0; j < ((*list)[i]).res.size(); j++)
-      cout << dataMgr->getResourceName (((*list)[i]).res[j]);
+      cout << dataMgr->getResourceLabelName (((*list)[i]).res[j]);
     cout << endl;
   }
 }
