@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-x86.h,v 1.21 2003/10/21 17:22:14 bernat Exp $
+// $Id: instPoint-x86.h,v 1.22 2003/11/19 21:01:25 mirg Exp $
 
 #ifndef _INST_POINT_X86_H_
 #define _INST_POINT_X86_H_
@@ -205,7 +205,7 @@ class instPoint {
               return NULL;
           else {
               Address addr = insnAtPoint().getTarget(address());
-              pd_Function *pdf = owner()->findFuncByOffset(addr);
+              pd_Function *pdf = owner()->findFuncByEntry(addr);
               return pdf;
           }
       }
