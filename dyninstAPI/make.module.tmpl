@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.54 2004/04/28 20:20:18 rchen Exp $
+# $Id: make.module.tmpl,v 1.55 2005/01/11 22:45:11 legendre Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -52,6 +52,14 @@ endif
 VPATH	     += ../../dyninstAPI/src:../dyninstAPI/h:\
 		../../common/src:../../paradyn/h
 
+ifndef AUTO_TEMPLATES
+SRCS         += ../src/BPatch_templates.C \
+		../src/templates0.C \
+		../src/templates1.C \
+		../src/templates2.C \
+
+endif
+
 SRCS	     +=	../src/BPatch.C \
 		../src/BPatch_image.C \
 		../src/BPatch_function.C \
@@ -65,6 +73,8 @@ SRCS	     +=	../src/BPatch.C \
 		../src/BPatch_sourceBlock.C \
 		../src/BPatch_basicBlock.C \
 		../src/BPatch_basicBlockLoop.C \
+		../src/BPatch_edge.C \
+		../src/BPatch_loopTreeNode.C \
 		../src/BPatch_flowGraph.C \
 		../src/Object.C \
                 ../src/MemoryAccess.C \
@@ -102,13 +112,6 @@ SRCS	     +=	../src/BPatch.C \
 		../../common/src/fraction.C \
 		../../common/src/timing.C \
 
-ifndef AUTO_TEMPLATES
-SRCS         += ../src/BPatch_templates.C \
-		../src/templates0.C \
-		../src/templates1.C \
-		../src/templates2.C \
-
-endif
 
 #IGEN_GEN_SRCS = 
 
