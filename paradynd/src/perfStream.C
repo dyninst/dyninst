@@ -7,14 +7,21 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.29 1994/09/30 19:47:12 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.31 1994/11/02 11:14:21 markc Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.29  1994/09/30 19:47:12  rbi
+ * Revision 1.31  1994/11/02 11:14:21  markc
+ * Removed compiler warnings.
+ * Removed unused pvm code.
+ *
+ * Revision 1.30  1994/10/13  07:24:52  krisna
+ * solaris porting and updates
+ *
+ * Revision 1.29  1994/09/30  19:47:12  rbi
  * Basic instrumentation for CMFortran
  *
  * Revision 1.28  1994/09/22  02:20:56  markc
@@ -170,37 +177,15 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *
  */
 
+
+#include "util/h/kludges.h"
+
+#ifdef PARADYND_PVM
 extern "C" {
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/file.h>
-#include <sys/time.h>
-#include <sys/uio.h>
-#include <fcntl.h>
-#include <sys/signal.h>
-#include <sys/wait.h>
-#include <sys/ptrace.h>
-#include <sys/resource.h>
-#include <assert.h>
-#include <string.h>
+#include "pvm3.h"
 }
-
-#include "kludges.h"
-
-// this is missing from ptrace.h
-extern "C" {
-    int ptrace(enum ptracereq request,	
-	       int pid,
-	       char *addr, 
-	       int data,
-	       char *addr2);
-#ifdef PARADYN_CM5 
-     int wait3(int *statusp, int options, struct rusage *ru);
+#include "paradyndPVM/h/pvm_support.h"
 #endif
-}
-
 
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
@@ -212,33 +197,23 @@ extern "C" {
 #include "primitives.h"
 #include "util.h"
 #include "comm.h"
+#include "stats.h"
+#include "debugger.h"
+#include "main.h"
+#include "association.h"
+#include "init.h"
+#include "context.h"
+#include "perfStream.h"
+#include "os.h"
 
-#ifdef PARADYND_PVM
-extern "C" {
-#include "pvm3.h"
-}
-extern int PDYN_handle_pvmd_message();
-extern void PDYN_reportSIGCHLD (int pid, int exit_status);
-#endif
+void createResource(traceHeader *header, struct _newresource *r);
 
-extern instMaping initialRequests[];
+bool CMMDhostless = false;
+bool synchronousMode = false;
+bool firstSampleReceived = false;
 
-extern pdRPC *tp;
-extern void reportInternalMetrics();
-extern void forkNodeProcesses(process *curr, traceHeader *hr, traceFork *fr);
-extern void forkProcess(traceHeader *hr, traceFork *fr);
-extern void processArchDependentTraceStream();
-extern void createResource(traceHeader *header, struct _newresource *res);
-extern void newAssoc(process *proc, char *a, char *t, char *k, char *v);
-extern "C" Boolean synchronousMode;
-
-Boolean CMMDhostless;
-Boolean synchronousMode;
-Boolean firstSampleReceived;
-
-float cyclesPerSecond;
+float cyclesPerSecond = 0;
 time64 firstRecordTime = 0;
-
 
 void processAppIO(process *curr)
 {
@@ -247,7 +222,7 @@ void processAppIO(process *curr)
 
     ret = read(curr->ioLink, lineBuf, sizeof(lineBuf)-1);
     if (ret < 0) {
-	perror("read error");
+        logLine("read error\n");
 	exit(-2);
     } else if (ret == 0) {
 	/* end of file */
@@ -277,9 +252,6 @@ void logLine(const char *line)
     }
 }
 
-extern void processCost(process *p, traceHeader *h, costUpdate *c);
-extern void printAppStats(endStatsRec *stats, float clock);
-
 void processTraceStream(process *curr)
 {
     int ret;
@@ -296,7 +268,7 @@ void processTraceStream(process *curr)
 
     ret = read(curr->traceLink, &(curr->buffer[curr->bufEnd]), sizeof(curr->buffer)-curr->bufEnd);
     if (ret < 0) {
-	perror("read error");
+        logLine("read error, exiting");
 	exit(-2);
     } else if (ret == 0) {
 	/* end of file */
@@ -369,18 +341,18 @@ void processTraceStream(process *curr)
 
 	    case TR_MULTI_FORK:
 		logLine("got TR_MULTI_FORK record\n");
-		CMMDhostless = TRUE;
+		CMMDhostless = true;
 		forkNodeProcesses(curr, &header, (traceFork *) recordData);
 		break;
 
 	    case TR_SAMPLE:
+		// sprintf(errorLine, "Got data from process %d\n", curr->pid);
+		// logLine(errorLine);
 		processSample(&header, (traceSample *) recordData);
-		firstSampleReceived = True;
+		firstSampleReceived = true;
 		break;
 
 	    case TR_EXIT:
-		extern void printDyninstStats();
-
 		sprintf(errorLine, "process %d exited\n", curr->pid);
 		logLine(errorLine);
 		printAppStats((struct endStatsRec *) recordData, cyclesPerSecond);
@@ -406,21 +378,17 @@ void processTraceStream(process *curr)
     curr->bufEnd = curr->bufEnd - curr->bufStart;
 }
 
-extern void dumpProcessImage(process *, Boolean stopped);
-
 int handleSigChild(int pid, int status)
 {
     int sig;
     process *curr;
-    List<process*> pl;
 
-    for (pl=processList; curr=*pl; pl++) {
-	if (curr->pid == pid) break;
-    }
-    if (!curr) {
-	// ignore signals from unkown processes
-	return(-1);
-    }
+    // ignore signals from unknown processes
+    if (!processMap.defines(pid))
+      return -1;
+
+    curr = processMap[pid];
+
     if (WIFSTOPPED(status)) {
 	sig = WSTOPSIG(status);
 	switch (sig) {
@@ -444,7 +412,10 @@ int handleSigChild(int pid, int status)
 		// query default instrumentation here - not done yet
 		installDefaultInst(curr, initialRequests);
 
-		ptrace(PTRACE_CONT, pid, (char*)1, 0, 0);
+		if (!osForwardSignal(pid, 0)) {
+		  abort();
+		}
+
 		// If this is a CM-process, we don't want to label it as
 		// running until the nodes get init'ed.  We need to test
 		// based on magic number, I guess...   XXXXXX
@@ -453,13 +424,9 @@ int handleSigChild(int pid, int status)
 		break;
 
 	    case SIGSTOP:
-		// sprintf(errorLine, "CONTROLLER: Breakpoint reached %d\n", pid);
-		// logLine(errorLine);
-		
-#ifdef PARADYND_PVM
 		sprintf(errorLine, "PID=%d, CONTROLLER: Breakpoint reached\n",pid);
 		logLine(errorLine);
-#endif
+
 		curr->status = stopped;
 		curr->reachedFirstBreak = 1;
 
@@ -474,37 +441,37 @@ int handleSigChild(int pid, int status)
 	    case SIGSEGV:
 	    case SIGBUS:
 	    case SIGILL:
-		dumpProcessImage(curr, True);
-		ptrace(PTRACE_DUMPCORE, pid, "core.real", 0, 0);
+		dumpProcessImage(curr, true);
+		osDumpCore(pid, "core.real");
 		curr->status = exited;
 		// ???
 		// should really log this to the error reporting system.
 		// jkh - 6/25/96
 		logLine("caught fatal signal, dumping program image\n");
-
 		// now forward it to the process.
-		ptrace(PTRACE_CONT, pid, (char*)1, WSTOPSIG(status), 0);
+		osForwardSignal(pid, WSTOPSIG(status));
 		break;
 
 	    case SIGCHLD:
 	    case SIGUSR1:
 	    case SIGUSR2:
 	    case SIGALRM:
+	    case SIGVTALRM:
 	    case SIGCONT:
 		// printf("caught signal, forwarding...  (sig=%d)\n", 
 		//       WSTOPSIG(status));
-		ptrace(PTRACE_CONT, pid, (char*)1, WSTOPSIG(status), 0);
+		osForwardSignal(pid, WSTOPSIG(status));
 		break;
 
 	    default:
-		printf("ERROR: unhandled signal, not forwarding.  (sig=%d)\n", 
-		       WSTOPSIG(status));
-		ptrace(PTRACE_CONT, pid, (char*)1, 0, 0);
+		sprintf(errorLine, "ERROR: unhandled signal, not forwarding.  (sig=%d, pid=%d)\n", 
+			WSTOPSIG(status), pid);
+		logLine(errorLine);
+		osForwardSignal(pid, 0);
 		break;
 
 	}
     } else if (WIFEXITED(status)) {
-	extern void printDyninstStats();
 #ifdef PARADYND_PVM
 		PDYN_reportSIGCHLD (pid, WEXITSTATUS(status));
 #endif
@@ -524,34 +491,6 @@ int handleSigChild(int pid, int status)
     return(0);
 }
 
-#ifdef PARADYND_PVM
-int PDYN_cs()
-{
-  struct timeval pollTime;
-  int width;
-  fd_set readSet;
-  int *fd_ptr;
-  int res, ct, fdnum;
-
-  fdnum = pvm_getfds(&fd_ptr);
-
-  FD_ZERO(&readSet);
-  FD_SET(fd_ptr[0], &readSet);
-  width = 0;
-
-  width = fd_ptr[0];
-  pollTime.tv_sec = 0;
-  pollTime.tv_usec = 50000;
-  ct = select(width+1, &readSet, NULL, &readSet, &pollTime);
-  res = FD_ISSET(fd_ptr[0], &readSet);
-  printf("\nIN PDYN_cs() PID=%d sel=%d, res=%d fdnum=%d fd=%d\n", getpid(), ct, res, fdnum, fd_ptr[0]);
-  if (ct <= 0) return ct;
-  return res;
-}
-#endif
-
-
-
 /*
  * Wait for a data from one of the inferriors or a request to come in.
  *
@@ -566,9 +505,9 @@ void controllerMainLoop()
     process *curr;
     fd_set readSet;
     fd_set errorSet;
-    List<process*> pl;
     struct timeval pollTime;
 
+    // TODO - i am the guilty party - this will go soon - mdc
 #ifdef PARADYND_PVM
     int fd_num, *fd_ptr;
     if (pvm_mytid() < 0)
@@ -584,7 +523,9 @@ void controllerMainLoop()
 	FD_ZERO(&readSet);
 	FD_ZERO(&errorSet);
 	width = 0;
-	for (pl=processList; curr=*pl; pl++) {
+	int i;
+	dictionary_hash_iter<int, process*> pi(processMap);
+	while (pi.next(i, curr)) {
 	    if (curr->traceLink >= 0) FD_SET(curr->traceLink, &readSet);
 	    if (curr->traceLink > width) width = curr->traceLink;
 
@@ -608,7 +549,9 @@ void controllerMainLoop()
 	pollTime.tv_usec = 50000;
 	ct = select(width+1, &readSet, NULL, &errorSet, &pollTime);
 	if (ct > 0) {
-	    for (pl=processList; curr=*pl; pl++) {
+	    int i;
+	    dictionary_hash_iter <int, process*> pi(processMap);
+	    while (pi.next(i, curr)) {
 		if ((curr->traceLink >= 0) && 
 		    FD_ISSET(curr->traceLink, &readSet)) {
 		    processTraceStream(curr);
@@ -653,7 +596,11 @@ void controllerMainLoop()
 	reportInternalMetrics();
 
 	/* check for status change on inferrior processes */
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_tmc_cmost7_3)
 	pid = wait3(&status, WNOHANG, NULL);
+#elif defined(sparc_sun_solaris2_3)
+	pid = waitpid(0, &status, WNOHANG);
+#endif
 	if (pid > 0) {
 	    handleSigChild(pid, status);
 	}
@@ -677,7 +624,7 @@ void createResource(traceHeader *header, struct _newresource *r)
 	    tmp++;
 	}
 	res = newResource(parent, NULL, r->abstraction, name, 
-			  header->wall, FALSE);
+			  header->wall, false);
 	parent = res;
 	name = tmp;
     }
