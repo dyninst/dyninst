@@ -10,6 +10,9 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
+ * Revision 1.39  1996/08/12 16:32:43  mjrg
+ * Code cleanup: removed cm5 kludges and unused code
+ *
  * Revision 1.38  1996/07/09 04:10:32  lzheng
  * add variable freeNotOK for the stack walking on hpux
  *
@@ -299,9 +302,7 @@ friend class ptraceKludge;
     aggregate = false; rid = 0; parent = NULL;
     bufStart = 0; bufEnd = 0; pauseTime = 0.0;
     reachedFirstBreak = 0; 
-    stopAtFirstBreak = false;
     splitHeaps = false;
-    waitingForNodeDaemon = false;
     inExec = false;
     proc_fd = -1;
   }
@@ -342,11 +343,6 @@ friend class ptraceKludge;
   float pauseTime;		/* only used on the CM-5 version for now 
 				   jkh 7/21/94 */
   int reachedFirstBreak;
-  bool stopAtFirstBreak;      // true if the process must stop when it reaches the
-                              // ptrace trap at the start of the program.
-
-  bool waitingForNodeDaemon;  // CM5 process only: if true, this process is stopped,
-			      // waiting for a node daemon (paradyndCM5) to start.
 
   time64 getFirstRecordTime() const { return firstRecordTime;}
   void setFirstRecordTime(time64 to) { firstRecordTime = to;}
@@ -445,8 +441,6 @@ inline bool process::checkStatus() {
 }
 
 inline bool process::pause() {
-  if (waitingForNodeDaemon) return true; // CM5 kludge
-
   if (status_ == stopped || status_ == neonatal)
     return true;
   else if (status_ == running && reachedFirstBreak) {
@@ -461,8 +455,6 @@ inline bool process::pause() {
 }
 
 inline bool process::continueProc() {
-  if (waitingForNodeDaemon) return true; // CM5 kludge
-
   if (status_ == exited) return false;
 
   if (status_ != stopped && status_ != neonatal) {
