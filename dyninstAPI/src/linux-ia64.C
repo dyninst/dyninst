@@ -103,7 +103,6 @@ bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs)
 	regs->restorePredicateRegistersFromStack =
 	   needToHandleSyscall( proc_, &regs->pcMayHaveRewound );
 
-	// /* DEBUG */ bperr( "-*- dyn_lwp::getRegisters()\n" );
 	return true;
 }
 
@@ -181,7 +180,6 @@ bool dyn_lwp::restoreRegisters_( const struct dyn_saved_regs &regs )
 		assert( P_ptrace( PTRACE_POKEUSER, proc_->getPid(), PT_PR, (Address) & predicateRegisters ) != -1 );
 		} /* end predicate register restoration. */
 
-	// /* DEBUG */ bperr( "-*- dyn_lwp::restoreRegisters()\n" );
     return true;
 }
 
@@ -220,7 +218,6 @@ bool process::handleTrapAtEntryPointOfMain() {
 	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( addr, this );
 	iAddr.writeMyBundleFrom( savedCodeBuffer );
 
-	// /* DEBUG */ bperr( "* Handled trap at entry point of main().\n" );
 	return true;
 } /* end handleTrapAtEntryPointOfMain() */
 
@@ -247,7 +244,6 @@ bool process::insertTrapAtEntryPointOfMain() {
 	iAddr.replaceBundleWith( generateTrapBundle() );
 	
 	main_brk_addr = addr;
-	// /* DEBUG */ bperr( "* Inserted trap at entry point of main() : 0x%lx.\n", main_brk_addr );
 	return true;
 } /* end insertTrapAtEntryPointOfMain() */
 
@@ -297,6 +293,7 @@ Address dyn_lwp::readRegister( Register reg ) {
 	} /* end readRegister */
 
 #include <libunwind.h>
+#include <libunwind-ptrace.h>
 
 /* Refactored from getActiveFrame() and getCallerFrame(). */
 Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP, pid_t pid, bool /* isActiveFrame */ ) {
@@ -339,12 +336,12 @@ Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP
 	status = unw_step( unwindCursor );
   
 	if( status == -UNW_ENOINFO ) {
-	  	// /* DEBUG */ bperr( "createFrameFromUnwindCursor(pid = %d): no unwind information available for this frame (ip = 0x%lx, sp = 0x%lx, tp = 0x%lx), unable to acquire frame pointer.  (Probably an inferior RPC.)\n", pid, ip, sp, tp );
+	  	// /* DEBUG */ fprintf( stderr, "createFrameFromUnwindCursor(pid = %d): no unwind information available for this frame (ip = 0x%lx, sp = 0x%lx, tp = 0x%lx), unable to acquire frame pointer.  (Probably an inferior RPC.)\n", pid, ip, sp, tp );
 		isUppermost = true;
 		}
 	else if( status == 0 ) {
 	  	/* This is the uppermost frame. */
-	  	// /* DEBUG */ bperr( "createFrameFromUnwindCursor(): unwind information indicates that this is the uppermost frame.\n" );
+	  	// /* DEBUG */ fprintf( stderr, "createFrameFromUnwindCursor(pid = %d): unwind information indicates that this is the uppermost frame.\n", pid );
 	  	isUppermost = true;
 	  	}
 	else if( status > 0 ) {
@@ -380,16 +377,18 @@ Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP
 Frame dyn_lwp::getActiveFrame() {
 	int status = 0;
 	process * proc = proc_;
+	
+	// /* DEBUG */ fprintf( stderr, "getActiveFrame(): working on process %d\n", proc->getPid() );
 
 	/* Initialize the unwinder. */
 	if( proc->unwindAddressSpace == NULL ) {
-		// /* DEBUG */ fprintf( stderr, "Creating unwind address space for process pid %d\n", proc->getPid() );
+		// /* DEBUG */ fprintf( stderr, "getActiveFrame(): Creating unwind address space for process pid %d\n", proc->getPid() );
 		proc->unwindAddressSpace = unw_create_addr_space( & _UPT_accessors, 0 );
 		assert( proc->unwindAddressSpace != NULL );
 		}
 	
 	if( proc->unwindProcessArg == NULL ) {
-		// /* DEBUG */ fprintf( stderr, "Creating unwind context for process pid %d\n", proc->getPid() );
+		// /* DEBUG */ fprintf( stderr, "getActiveFrame(): Creating unwind context for process pid %d\n", proc->getPid() );
 		proc->unwindProcessArg = _UPT_create( proc->getPid() );
 		assert( proc->unwindProcessArg != NULL );
 		}
@@ -403,6 +402,7 @@ Frame dyn_lwp::getActiveFrame() {
 	assert( status == 0 );
 	
 	/* Generate a Frame from the unwinder. */
+	// /* DEBUG */ fprintf( stderr, "getActiveFrame(): creating active frame from unwind cursor.\n" );
 	Frame currentFrame = createFrameFromUnwindCursor( unwindCursor, this, proc->getPid(), true );
 	
 	/* Return the result. */
@@ -623,19 +623,19 @@ bool process::loadDYNINSTlibCleanup() {
 #include <trampTemplate.h>	
 #include <instPoint.h>
 Frame Frame::getCallerFrame( process * proc ) const {
-	// /* DEBUG */ bperr( "getCallerFrame(): getting caller's frame (ip = 0x%lx, fp = 0x%lx, sp = 0x%lx).\n", getPC(), getFP(), getSP() );
+	// /* DEBUG */ fprintf( stderr, "getCallerFrame(): getting caller's frame (ip = 0x%lx, fp = 0x%lx, sp = 0x%lx).\n", getPC(), getFP(), getSP() );
 
 	int status = 0;
 
 	/* Initialize the unwinder. */
 	if( proc->unwindAddressSpace == NULL ) {
-		/* DEBUG */ fprintf( stderr, "Creating unwind address space for process pid %d\n", proc->getPid() );
+		// /* DEBUG */ fprintf( stderr, "Creating unwind address space for process pid %d\n", proc->getPid() );
 		proc->unwindAddressSpace = unw_create_addr_space( & _UPT_accessors, 0 );
 		assert( proc->unwindAddressSpace != NULL );
 		}
 	
 	if( proc->unwindProcessArg == NULL ) {
-		/* DEBUG */ fprintf( stderr, "Creating unwind context for process pid %d\n", proc->getPid() );
+		// /* DEBUG */ fprintf( stderr, "Creating unwind context for process pid %d\n", proc->getPid() );
 		proc->unwindProcessArg = _UPT_create( proc->getPid() );
 		assert( proc->unwindProcessArg != NULL );
 		}
@@ -685,7 +685,7 @@ Frame Frame::getCallerFrame( process * proc ) const {
 		currentFrame.sp_ = (Address)NULL;
 		currentFrame.uppermost_ = true;
 
-		fprintf( stderr, "Detected duplicate stack frame, aborting stack with zeroed frame.\n" );
+		fprintf( stderr, "%s[%d]: detected duplicate stack frame, aborting stack with zeroed frame.\n", __FILE__, __LINE__ );
 		}
 		
 	/* If we're returning the uppermost frame, free the unwind cursor, so it doesn't hang around forever. */
