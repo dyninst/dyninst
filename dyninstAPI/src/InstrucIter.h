@@ -96,17 +96,17 @@ public:
 	      bool useRelativeAddr = true) :
       addressProc(proc),
       addressImage(mod->exec()),
-      baseAddress((Address) ( useRelativeAddr ? (void *)func->addr()
+      baseAddress((Address) ( useRelativeAddr ? (void *)func->get_address()
                               : (void *)func->getEffectiveAddress(proc) )),
-      range(func->size()),
+      range(func->get_size()),
       currentAddress((Address) (useRelativeAddr ?
-                                (void *)func->addr() :
+                                (void *)func->get_address() :
                                 (void *)func->getEffectiveAddress(proc)))
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) ||\
     defined(i386_unknown_nt4_0)
     {
-        instPtr = mod->exec()->getPtrToInstruction( func->addr() );
+        instPtr = mod->exec()->getPtrToInstruction( func->get_address() );
         insn.getNextInstruction( instPtr );
 #else
     {

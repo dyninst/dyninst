@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.h,v 1.39 2003/10/24 21:25:54 jaw Exp $
+// $Id: sharedobject.h,v 1.40 2004/03/16 18:15:41 schendel Exp $
 
 #if !defined(_shared_object_h)
 #define _shared_object_h
@@ -61,7 +61,7 @@
 #define 	SHAREDOBJECT_ADDED	1
 #define 	SHAREDOBJECT_REMOVED	2
 
-class shared_object {
+class shared_object : public codeRange {
 
 public:
     shared_object();
@@ -72,10 +72,16 @@ public:
     fileDescriptor *getFileDesc() { return desc; }
     const pdstring &getName(){ return name; }
     const pdstring &getShortName() { return short_name; }
-    Address getBaseAddress() { return base_addr; }
+    Address getBaseAddress() const { return base_addr; }
+    Address get_address() const {
+       return getBaseAddress() + getImage()->codeOffset();
+    }
+    unsigned get_size() const {
+       return getImage()->get_size();
+    }
     bool  isProcessed() { return(processed); }
     bool  isMapped() { return(mapped); }
-    const image  *getImage() { return(objs_image); }
+    const image  *getImage() const { return(objs_image); }
 
 #ifndef BPATCH_LIBRARY
     bool includeFunctions(){ return(include_funcs); }

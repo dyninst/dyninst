@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: codeRange.h,v 1.2 2003/10/21 22:40:55 bernat Exp $
+// $Id: codeRange.h,v 1.3 2004/03/16 18:15:31 schendel Exp $
 
 
 #ifndef _codeRangeTree_h_
@@ -71,13 +71,23 @@ class trampTemplate;
 class miniTrampHandle;
 class relocatedFuncInfo;
 
-struct codeRange {
-    pd_Function *function_ptr;
-    image *image_ptr;
-    shared_object *sharedobject_ptr;
-    trampTemplate *basetramp_ptr;
-    miniTrampHandle *minitramp_ptr;
-    relocatedFuncInfo *reloc_ptr;
+class codeRange {
+ public:
+   codeRange() { }
+   virtual ~codeRange() { }
+
+   virtual Address get_address() const = 0;
+   virtual unsigned get_size() const = 0;
+
+   // returns NULL if not of type
+   // so some people who don't like dynamic_cast don't have to be troubled
+   // by it's use
+   trampTemplate *is_basetramp();
+   miniTrampHandle *is_minitramp();
+   pd_Function *is_pd_Function();
+   image *is_image();
+   shared_object *is_shared_object();
+   relocatedFuncInfo *is_relocated_func();
 };
 
 
@@ -85,9 +95,9 @@ class codeRangeTree {
 
 	/** tree implementation structure. Used to implement the RB tree */
 	typedef struct entry {
-        Address key;
-        codeRange *value;
-        color_t color;	/* color of the node */
+      Address key;
+      codeRange *value;
+      color_t color;	/* color of the node */
 		struct entry* left; /* left child */
 		struct entry* right; /* right child */
 		struct entry* parent; /* parent of the node */
@@ -100,14 +110,15 @@ class codeRangeTree {
 		  * @param e nil entry
 		  */	  
 		entry(entry* e) //constructor with nil entry 
-			: color(TREE_RED),left(e),right(e),parent(NULL) {}
+			: color(TREE_RED), left(e), right(e), parent(NULL) {}
 
 		/** constructor
 		  * @param d data element
 		  * @param e nill entry 
 		  */
-		entry(const Address& key_, codeRange *& value_,entry* e) 
-		    	: key(key_), value(value_) ,color(TREE_RED),left(e),right(e),parent(NULL){}
+		entry(Address key_, codeRange *value_, entry* e) 
+         : key(key_), value(value_) ,color(TREE_RED), left(e),
+           right(e), parent(NULL) {}
 
 		/** constructor 
 		  * @param e the entry structure that will be copied 
@@ -142,7 +153,7 @@ class codeRangeTree {
 
 	// insertion to a binary search tree. It returns the new element pointer
 	// that is inserted. If element is already there it returns NULL
-	 entry* treeInsert(Address&, codeRange *&);
+	 entry* treeInsert(Address, codeRange *);
 
 	// finds the elemnts in the tree that will be replaced with the element
 	// being deleted in the  deletion. That is the element with the largest
@@ -151,7 +162,7 @@ class codeRangeTree {
 
 	// method that returns the entry pointer for the element that is searched
 	//for. If the entry is not found then it retuns NULL
-	 entry* find_internal(const Address&) const;
+	 entry* find_internal(Address) const;
 
 	// infix traverse of the RB tree. It traverses the tree in ascending order
 	 void traverse(codeRange **,entry*,int&) const;
@@ -191,27 +202,27 @@ public:
 	/** inserts the element in the tree 
 	  * @param 1 element that will be inserted
 	  */
-	 void insert(Address&, codeRange *&);
+	 void insert(Address, codeRange *);
 
 	/** removes the element in the tree 
 	  * @param 1 element that will be removed  
 	  */
-	 void remove(const Address&);
+	 void remove(Address);
 
 	/** returns true if the argument is member of the codeRangeTree
 	  * @param e the element that will be searched for
 	  */
-	 bool find(const Address&, codeRange *&) const;
+	 bool find(Address, codeRange *&) const;
 
     /** Returns the largest value less than or equal to the
       * key given
       */
-     bool precessor(const Address&, codeRange *&) const;
+     bool precessor(Address, codeRange *&) const;
 
     /** Returns the smallest value greater than or equal to the
       * key given
       */
-     bool successor(const Address&, codeRange *&) const;
+     bool successor(Address, codeRange *&) const;
 
 	/** fill an buffer array with the sorted
 	  * elements of the codeRangeTree in ascending order according to comparison function

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.149 2004/03/12 23:18:10 legendre Exp $
+// $Id: symtab.h,v 1.150 2004/03/16 18:15:44 schendel Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -139,14 +139,14 @@ class Frame;
 // to keep track of new instrumentation points for this function on a per
 // process basis (there is no guarentee that two processes are going to
 // relocated this function to the same location in the heap)
-class relocatedFuncInfo {
+class relocatedFuncInfo : public codeRange {
  public:
    relocatedFuncInfo(process *p, Address na, unsigned s, pd_Function *f):
       proc_(p), addr_(na), size_(s), funcEntry_(0), func_(f) { }
         
    ~relocatedFuncInfo(){proc_ = 0;}
-   Address address(){ return addr_;}
-   unsigned size() { return size_;}
+   Address get_address() const { return addr_;}
+   unsigned get_size() const { return size_;}
    pd_Function *func() { return func_;}
     
    const process *getProcess(){ return proc_;}
@@ -192,7 +192,7 @@ class relocatedFuncInfo {
 class pdmodule;
 class module;
 
-class function_base {
+class function_base : public codeRange {
  public:
    // needed to workaround gcc 3.0.2 problem (bug?)
    typedef const unsigned char* InstrucPos;
@@ -250,8 +250,9 @@ class function_base {
    pdvector<pdstring> prettyNameVector() { return prettyName_; }
    void addSymTabName(pdstring name) { symTabName_.push_back(name); }
    void addPrettyName(pdstring name) { prettyName_.push_back(name); }
-   unsigned size() const {return size_;}
-   Address addr() const {return addr_;}
+
+   unsigned get_size() const {return size_;}
+   Address get_address() const {return addr_;}
    pdvector< BPatch_basicBlock* >* blocks() const{ return blockList; }
    bool match(function_base *p);
 
@@ -359,9 +360,9 @@ class pd_Function : public function_base {
       if(p && needs_relocation_) { 
          for(u_int i=0; i < relocatedByProcess.size(); i++){
             if((relocatedByProcess[i])->getProcess() == p) 
-               return (relocatedByProcess[i])->address();
+               return (relocatedByProcess[i])->get_address();
          } }
-      return addr();
+      return get_address();
    }
    Address getEffectiveAddress(const process *p) const;
    instPoint *funcEntry(const process *p) const {
@@ -950,7 +951,7 @@ class internalSym {
 // COMMENTS????
 //  Image class contains information about statically and dynamically linked code 
 //  belonging to a process....
-class image {
+class image : public codeRange {
    friend class process;
    friend class pd_Function;
 
@@ -1079,9 +1080,11 @@ class image {
    pdstring pathname() const { return pathname_; }
    const fileDescriptor *desc() const { return desc_; }
    Address codeOffset() const { return codeOffset_;}
+   Address get_address() const { return codeOffset(); }
    Address dataOffset() const { return dataOffset_;}
    Address dataLength() const { return (dataLen_ << 2);} 
    Address codeLength() const { return (codeLen_ << 2);} 
+   unsigned get_size() const { return codeLength(); }
    Address codeValidStart() const { return codeValidStart_; }
    Address codeValidEnd() const { return codeValidEnd_; }
    Address dataValidStart() const { return dataValidStart_; }

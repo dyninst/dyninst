@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.203 2004/03/12 06:16:26 lharris Exp $
+// $Id: symtab.C,v 1.204 2004/03/16 18:15:43 schendel Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -299,10 +299,8 @@ void image::addInstruFunction(pd_Function *func, pdmodule *mod,
   includedFunctions.push_back(func);
 #endif
 
-  codeRange *range = new codeRange;
-  range->function_ptr = func;
   Address addrcopy = addr;
-  funcsByRange.insert(addrcopy, range);
+  funcsByRange.insert(addrcopy, func);
   funcsByEntryAddr[addr] = func;
   
   if (!funcsByPretty.find(func->prettyName(), funcsByPrettyEntry)) {
@@ -463,7 +461,7 @@ int image::removeFuncFromInstrumentable(pd_Function * /* func */)
 
 void image::addNotInstruFunc(pd_Function *func, pdmodule *mod) {
     /* FIXME: do we not care about prettyname collisions for uninstrumentable functions? */
-    funcsByEntryAddr[ func->addr() ] = func;
+    funcsByEntryAddr[ func->get_address() ] = func;
     notInstruFunctions[func->prettyName()] = func;
     mod->addUninstrumentableFunction( func );
 }
@@ -532,7 +530,7 @@ void image::addMultipleFunctionNames(pd_Function *dup)
 {
   // Obtain the original function at the same address:
   pd_Function *orig;
-  assert(funcsByEntryAddr.find(dup->addr(), orig));
+  assert(funcsByEntryAddr.find(dup->get_address(), orig));
 
   pdstring mangled_name = dup->symTabName();
   pdstring pretty_name = dup->prettyName();
@@ -1966,9 +1964,9 @@ void image::setModuleLanguages(dictionary_hash<pdstring, supportedLanguages> *mo
 
 int rawfuncscmp( pd_Function*& pdf1, pd_Function*& pdf2 )
 {
-    if( pdf1->addr() > pdf2->addr() )
+    if( pdf1->get_address() > pdf2->get_address() )
 	return 1;
-    if( pdf1->addr() < pdf2->addr() )
+    if( pdf1->get_address() < pdf2->get_address() )
 	return -1;
     return 0;
 }
@@ -1996,9 +1994,8 @@ bool image::buildFunctionMaps(pdvector<pd_Function *> *raw_funcs)
     for (unsigned int i = 0; i < num_raw_funcs; ++i) {
         assert(NULL != (pdf = (*raw_funcs)[i]));
         assert (NULL != (mod = pdf->file()));
-        Address addr = pdf->addr();
+        Address addr = pdf->get_address();
     
-
         pdstring name = pdf->symTabName();
         pdstring mangled_name = name;
 	
@@ -2092,7 +2089,7 @@ bool image::buildFunctionMaps(pdvector<pd_Function *> *raw_funcs)
 #endif
         raw_funcs->push_back( new_pdf );
         
-        Address addr2 = new_pdf->addr();
+        Address addr2 = new_pdf->get_address();
 #ifdef BPATCH_LIBRARY
         addInstruFunction(new_pdf, mod, addr2,false);
 #else
@@ -2116,17 +2113,17 @@ bool image::buildFunctionMaps(pdvector<pd_Function *> *raw_funcs)
         pd_Function* func1 = (*raw_funcs)[ k ];
         pd_Function* func2 = (*raw_funcs)[ k + 1 ];
         
-        if( func1->addr() == 0 ) 
+        if( func1->get_address() == 0 ) 
             continue;
         
-        assert( func1->addr() != func2->addr() );
+        assert( func1->get_address() != func2->get_address() );
         
         //look for overlapping functions
-        if( func2->addr() < func1->addr() + func1->size() )
+        if( func2->get_address() < func1->get_address() + func1->get_size() )
         {
             //reparse the first function using the starting address of the
             //second function as an upper bound on its end address
-            Address addr = func2->addr();
+            Address addr = func2->get_address();
             func1->findInstPoints( callTargets, this, true, addr ); 
         }
     }
@@ -2795,9 +2792,9 @@ bool loop_above_func(process *proc, pd_Function *instrumented_func,
                BPatch_basicBlockLoop *childloop = containedLoops[j];
                if(childloop->containsAddress(pc)) {
                   in_a_loop = true;
-                  //cerr << "     func " <<stack_func->prettyName().c_str()
-                  //     << " has child loop that CONTAINS pc\n";
-                  }
+                  // cerr << "     func " <<stack_func->prettyName().c_str()
+                  //      << " has child loop that CONTAINS pc\n";
+               }
             }
          }
       }
@@ -2815,8 +2812,30 @@ bool loop_above_func(process *proc, pd_Function *instrumented_func,
       return false;
 }                    
 
-// our current heuristic for calling a function long running is whether
-// there it's in a loop or one of it's parent functions is in a loop
+// Our current heuristic for calling a function long running is whether it's
+// in a loop or one of it's parent functions is in a loop.  If the function
+// call is in a loop at some level then it's likely short running.  If it's
+// not in a loop at any level, it's more likely to be a long running
+// function.
+
+// from 2/27/04 commit
+// There is one difficulty though of relocating and instrumenting functions
+// that are on the stack.  If the function is long-running or never exiting,
+// then the instrumentation will rarely, or never be executed, since the
+// instrumentation is in the relocated instance of the function.  This
+// problem manifests itself in Paradyn by catchup not starting timers for
+// functions that are relocated and instrumented.  This leads to the
+// performance consultant in certain cases deferring cpu_time metrics for
+// bottleneck functions, thereby preventing child experiments from occurring.
+// At this time, I have solved this problem by instrumenting the original
+// function if we think the function is long-running.  The current method I
+// have implemented for deciding whether a function is long-running is if
+// it's not in a loop and it has no parent function that's in a loop.  A
+// different heuristic can be easily swapped in if this one is found
+// undesirable.  A full solution to this problem might instrument both the
+// original function and the relocated function.  Perhaps this could be
+// looked into after the release sometime when the changes needed wouldn't
+// cause such a disruption.
 
 bool pd_Function::think_is_long_running(process *proc,
                            const pdvector<pdvector<Frame> > &stackWalks)
@@ -2826,12 +2845,13 @@ bool pd_Function::think_is_long_running(process *proc,
       bool loop_above = loop_above_func(proc, this, stackWalks[walk_itr]);
 
       // if this function is in a loop or has a parent func in a loop
-      // on any thread, then NO it's not running ... return false
-      if(loop_above)
+      // on any thread, then NO it's likely short running ... return false
+      if(loop_above) {
          return false;
+      }
    }
    
-   // not in a loop, so saying it's long running
+   // not in a loop, so it's likely long running
    return true;
 }
 
@@ -2855,7 +2875,7 @@ Address pd_Function::getEffectiveAddress(const process *p) const {
          cerr << "Error: couldn't find base address for func "
               << prettyName();
      }
-     return base + addr();
+     return base + get_address();
 }
 
 void pd_Function::updateForFork(process *childProcess, 
@@ -2885,12 +2905,12 @@ pd_Function *image::findFuncByOffset(const Address &offset) const {
     bool found = funcsByRange.precessor(offset, range);
     if (!found)
         return NULL;
-    pd_Function *func = range->function_ptr;
-    assert(func);
-    assert(func->addr() <= offset);
+    pd_Function *func = range->is_pd_Function();
+    assert(func != NULL);
+    assert(func->get_address() <= offset);
 
     // See if our offset is in the range of the function
-    if (func->addr() + func->size() >= offset) {
+    if (func->get_address() + func->get_size() >= offset) {
         return func;
     }
     else {

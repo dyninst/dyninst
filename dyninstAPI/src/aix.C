@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.182 2004/03/11 22:20:31 bernat Exp $
+// $Id: aix.C,v 1.183 2004/03/16 18:15:28 schendel Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -187,7 +187,7 @@ Frame Frame::getCallerFrame(process *p) const
 
   if (uppermost_) {
       codeRange *range = p->findCodeRangeByAddress(pc_);
-      pd_Function *func = range->function_ptr;
+      pd_Function *func = range->is_pd_Function();
       if (func) {
           isLeaf = func->makesNoCalls();
           noFrame = func->hasNoStackFrame();
@@ -702,7 +702,8 @@ bool process::catchupSideEffect(Frame &frame, instReqNode *inst)
   // is no need to fix anything, as we will jump into the base tramp normally
   // 10OCT03: fix up to include in-function call sites as well -- collapse
   // address before checking
-  if ((frame.getPC() <= instFunc->addr()) || (frame.getPC() > instFunc->addr() + instFunc->size()))
+  if ((frame.getPC() <= instFunc->get_address()) ||
+      (frame.getPC() > instFunc->get_address() + instFunc->get_size()))
     return true;
 
   const pdvector <instPoint *>exitPoints = instFunc->funcExits(this);

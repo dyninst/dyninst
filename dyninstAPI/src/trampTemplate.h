@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: trampTemplate.h,v 1.1 2003/10/21 17:22:53 bernat Exp $
+// $Id: trampTemplate.h,v 1.2 2004/03/16 18:15:45 schendel Exp $
 
 // trampTemplate class definition
 
@@ -48,12 +48,13 @@
 
 #include "common/h/Types.h"
 #include "inst.h" // callWhen
+#include "dyninstAPI/src/codeRange.h"
 
 class instPoint;
 
 // Todo: make things private/protected
 
-class trampTemplate {
+class trampTemplate : public codeRange {
  public:
     unsigned size;
     void *trampTemp;		/* template of code to execute,
@@ -128,7 +129,14 @@ class trampTemplate {
     trampTemplate &operator=(const trampTemplate &t);
     
     // destructor
-    ~trampTemplate();
+    virtual ~trampTemplate();
+
+    Address get_address() const {
+       return baseAddr;
+    }
+    unsigned get_size() const {
+       return size;
+    }
 };
 
 extern trampTemplate baseTemplate;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.164 2004/03/05 16:51:42 bernat Exp $
+// $Id: solaris.C,v 1.165 2004/03/16 18:15:42 schendel Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -515,7 +515,7 @@ bool process::insertTrapAtEntryPointOfMain()
         return false;
     }
     assert(f_main);
-    Address addr = f_main->addr(); 
+    Address addr = f_main->get_address(); 
     // save original instruction first
 #if defined(sparc_sun_solaris2_4)
     readDataSpace((void *)addr, sizeof(instruction), savedCodeBuffer, true);
@@ -1007,33 +1007,33 @@ bool process::needToAddALeafFrame(Frame current_frame, Address &leaf_pc){
 #endif
 
 void print_read_error_info(const relocationEntry entry, 
-      pd_Function *&target_pdf, Address base_addr) {
+                           pd_Function *&target_pdf, Address base_addr) {
 
-    sprintf(errorLine, "  entry      : target_addr 0x%lx\n",
-	    entry.target_addr());
-    logLine(errorLine);
-    sprintf(errorLine, "               rel_addr 0x%lx\n", entry.rel_addr());
-    logLine(errorLine);
-    sprintf(errorLine, "               name %s\n", (entry.name()).c_str());
-    logLine(errorLine);
-
-    if (target_pdf) {
+   sprintf(errorLine, "  entry      : target_addr 0x%lx\n",
+           entry.target_addr());
+   logLine(errorLine);
+   sprintf(errorLine, "               rel_addr 0x%lx\n", entry.rel_addr());
+   logLine(errorLine);
+   sprintf(errorLine, "               name %s\n", (entry.name()).c_str());
+   logLine(errorLine);
+   
+   if (target_pdf) {
       sprintf(errorLine, "  target_pdf : symTabName %s\n",
-	      (target_pdf->symTabName()).c_str());
+              (target_pdf->symTabName()).c_str());
       logLine(errorLine);    
       sprintf(errorLine , "              prettyName %s\n",
-	      (target_pdf->symTabName()).c_str());
+              (target_pdf->symTabName()).c_str());
       logLine(errorLine);
       sprintf(errorLine , "              size %i\n",
-	      target_pdf->size());
+              target_pdf->get_size());
       logLine(errorLine);
       sprintf(errorLine , "              addr 0x%lx\n",
-	      target_pdf->addr());
+              target_pdf->get_address());
       logLine(errorLine);
-    }
+   }
 
-    sprintf(errorLine, "  base_addr  0x%lx\n", base_addr);
-    logLine(errorLine);
+   sprintf(errorLine, "  base_addr  0x%lx\n", base_addr);
+   logLine(errorLine);
 }
 
 // hasBeenBound: returns true if the runtime linker has bound the

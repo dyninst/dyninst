@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.100 2004/03/15 18:45:58 tlmiller Exp $
+// $Id: BPatch_thread.C,v 1.101 2004/03/16 18:15:26 schendel Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -1444,7 +1444,8 @@ BPatch_function *BPatch_thread::findFunctionByAddr(void *addr)
     codeRange *range = proc->findCodeRangeByAddress((Address) addr);
     if (!range)
         return NULL;
-    func = range->function_ptr;
+
+    func = range->is_pd_Function();
     if (!func)
         return NULL;
 

@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: func-reloc.C,v 1.46 2004/02/28 00:26:23 schendel Exp $
+ * $Id: func-reloc.C,v 1.47 2004/03/16 18:15:32 schendel Exp $
  */
 
 #include "dyninstAPI/src/func-reloc.h"
@@ -122,7 +122,7 @@ int pd_Function::relocateInstructionWithFunction(bool setDisp,
   }
   // check if insn is a relative call with target inside function 
   if (trueCallInsideRange(*insn, origAddr, oldFunctionAddr, \
-			    oldFunctionAddr + size())) {
+			    oldFunctionAddr + get_size())) {
     return 0;
   }
 
@@ -314,11 +314,11 @@ bool expanded = true;
 #ifdef DEBUG_FUNC_RELOC
     cerr << "pd_Function::findAlterations called " << endl;
     cerr << " prettyName = " << prettyName().c_str() << endl;
-    cerr << " size() = " << size() << endl;
+    cerr << " size() = " << get_size() << endl;
     cerr << " this = " << this << endl;
 #endif
 
-  if (size() == 0) {
+  if (get_size() == 0) {
     cerr << "WARN : attempting to relocate function " \
        	 << prettyName().c_str() << " with size 0, unable to instrument" \
          <<  endl;
@@ -411,7 +411,7 @@ relocatedFuncInfo *pd_Function::findAndApplyAlterations(const image *owner,
 #ifdef DEBUG_FUNC_RELOC
    cerr << "pd_Function::findAndApplyAlterations called " << endl;
    cerr << " prettyName = " << prettyName().c_str() << endl;
-   cerr << " size() = " << size() << endl;
+   cerr << " size() = " << get_size() << endl;
    cerr << " this = " << this << endl;
 #endif
    
@@ -428,7 +428,7 @@ relocatedFuncInfo *pd_Function::findAndApplyAlterations(const image *owner,
 
 
 #ifdef DEBUG_FUNC_RELOC
-   cerr << " Allocate memory: " << size() + totalSizeChange << endl;
+   cerr << " Allocate memory: " << get_size() + totalSizeChange << endl;
 #endif
 
    // Allocate the memory on the heap to which the function will be relocated
@@ -436,17 +436,19 @@ relocatedFuncInfo *pd_Function::findAndApplyAlterations(const image *owner,
    Address ipAddr = 0;
    proc->getBaseAddress(owner,ipAddr);
    ipAddr += location->pointAddr();
-   u_int ret = proc->inferiorMalloc(size() + totalSizeChange, textHeap, ipAddr);
+   u_int ret = proc->inferiorMalloc(get_size() + totalSizeChange, textHeap,
+                                    ipAddr);
    newAdr = ret;
    if(!newAdr) {
       delete []oldInstructions; 
       delete reloc_info;
       return NULL;
    }
-   reloc_info = new relocatedFuncInfo(proc,newAdr,size()+totalSizeChange,this);
+   reloc_info = new relocatedFuncInfo(proc, newAdr,
+                                      get_size() + totalSizeChange, this);
    
    // Allocate the memory in paradyn to hold a copy of the rewritten function
-   relocatedCode = new unsigned char[size() + totalSizeChange];
+   relocatedCode = new unsigned char[get_size() + totalSizeChange];
    if(!relocatedCode) {
       cerr << "WARNING: Allocation of space for relocating function "
            << prettyName() << " failed." << endl;
@@ -469,7 +471,7 @@ relocatedFuncInfo *pd_Function::findAndApplyAlterations(const image *owner,
    // Apply the alterations needed for relocation. The expanded function 
    // will be written to relocatedCode.
    if (!(applyAlterations(normalized_alteration_set, mutator, mutatee, 
-                          newAdr, oldInstructions, size(), newInstructions) ))
+                       newAdr, oldInstructions, get_size(), newInstructions) ))
    {
       delete []oldInstructions;
       delete reloc_info;
@@ -529,11 +531,11 @@ bool pd_Function::expandInstPoints(const image *owner,
   // Perform three passes looking for instPoints that need expansion
 
   attach1 = PA_attachGeneralRewrites(owner, temp_alteration_set, baseAddress, 
-                           mutatee, oldInstructions, num_instructions, size());
+                       mutatee, oldInstructions, num_instructions, get_size());
   attach2 = PA_attachOverlappingInstPoints(&tmp_alt_set1, baseAddress, 
-                           mutatee, oldInstructions, size());
+                           mutatee, oldInstructions, get_size());
   attach3 = PA_attachBranchOverlaps(&tmp_alt_set2, baseAddress, mutator, 
-                           oldInstructions, num_instructions, size());
+                           oldInstructions, num_instructions, get_size());
 #if defined (sparc_sun_solaris2_4)
   attach4 = PA_attachBasicBlockEndRewrites(&tmp_alt_set3, baseAddress, mutatee,
                                            proc);
@@ -1035,7 +1037,7 @@ bool pd_Function::updateAlterations(LocalAlterationSet *temp_alteration_set,
     // find new alterations that have come about, due to the expansion 
     // of the function. e.g. ExpandInstruction LocalAlterations 
     relocate = discoverAlterations(temp_alteration_set, normalized_alteration_set, 
-                                     baseAddress, firstAddress, oldInstructions, size());
+                       baseAddress, firstAddress, oldInstructions, get_size());
  
     // Don't relocate the function
     if (!relocate) return false;
@@ -1071,7 +1073,7 @@ bool pd_Function::relocateFunction(process *proc, instPoint *&location) {
 #ifdef DEBUG_FUNC_RELOC 
    cerr << "pd_Function::relocateFunction " << endl;
    cerr << " prettyName = " << prettyName().c_str() << endl;
-   cerr << " size() = " << size() << endl;
+   cerr << " size() = " << get_size() << endl;
    cerr << " this = " << this << endl;
 #endif
 
@@ -1129,7 +1131,7 @@ bool pd_Function::relocateFunction(process *proc, instPoint *&location) {
 
    // Copy the expanded and updated function into the mutatee's 
    // address space
-   proc->writeDataSpace((caddr_t)ret, size() + size_change,
+   proc->writeDataSpace((caddr_t)ret, get_size() + size_change,
                         relocatedCode);
    proc->addCodeRange(ret, reloc_info);
 
@@ -1146,9 +1148,9 @@ bool pd_Function::relocateFunction(process *proc, instPoint *&location) {
    cerr << "pd_Function::relocateFunction " << endl;
    cerr << " prettyName = " << prettyName().c_str() << endl;      
    cerr << " relocated from 0x" << std::hex << origAddress
-        << " with size 0x" << size() << endl;
+        << " with size 0x" << get_size() << endl;
    cerr << " to 0x" << std::hex << ret 
-        << " with size 0x" << size()+size_change << endl;
+        << " with size 0x" << get_size() + size_change << endl;
    cerr << " copy original code at " << &originalCode << endl;
    cerr << " copy relocated code at " << &relocatedCode << endl;
 #endif

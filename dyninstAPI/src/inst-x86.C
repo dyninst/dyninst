@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.155 2004/03/16 17:50:15 lharris Exp $
+ * $Id: inst-x86.C,v 1.156 2004/03/16 18:15:36 schendel Exp $
  */
 
 #include <iomanip>
@@ -352,7 +352,8 @@ void pd_Function::checkCallPoints() {
             non_lib.push_back(p);
          } else {
             // if this is a call outside the fuction, keep it
-            if((loc_addr < getAddress(0))||(loc_addr > (getAddress(0)+size())))
+            if((loc_addr < get_address()) ||
+               (loc_addr > (get_address() + get_size())))
             {
                non_lib.push_back(p);
             }
@@ -569,7 +570,7 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
     Address funcEnd = funcBegin;
     Address currAddr = funcBegin;
     
-    if( !isInstrumentableByFunctionName() || size() == 0 )
+    if( !isInstrumentableByFunctionName() || get_size() == 0 )
     {
         isInstrumentable_ = false;
         return false;
@@ -1018,7 +1019,7 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
     
     for ( unsigned ii = 0; ii < foo.size() ; ii++ ) 
     {
-        if ( _usesTrap(foo[ii], funcEntry_, funcReturns) && size() >= 5 ) 
+        if ( _usesTrap(foo[ii], funcEntry_, funcReturns) && get_size() >= 5 ) 
         {
             needs_relocation_ = true;
         }
@@ -1032,8 +1033,8 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
         {
             
 #ifdef DEBUG_FUNC_RELOC      
-            cerr << prettyName() << endl;
-            cerr << "Jump Table: Can't relocate function" << endl;
+           cerr << "Jump Table: Can't relocate function"
+                << prettyName().c_str() << endl;
 #endif
             needs_relocation_ = false;
         }
@@ -1856,11 +1857,14 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
 
    for (u = location->insnsBefore(); u > 0; ) {
       --u;
+
+      // CONSIDER BELOW IN VIEW OF MT
       if (currentPC == origAddr) {
          //fprintf(stderr, "changed PC: 0x%lx to 0x%lx\n", currentPC,currAddr);
          lwp_to_use->changePC(currAddr, NULL);
       }
 
+      // CONSIDER BELOW IN VIEW OF MT
       unsigned newSize = relocateInstruction(location->insnBeforePt(u),
                                              origAddr, currAddr, insn);
       aflag=(newSize == getRelocatedInstructionSz(location->insnBeforePt(u)));
@@ -1891,6 +1895,7 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
        then later at the base tramp, at the point where we relocate the
        instruction at the point, we insert a jump to target
    ***/
+      // CONSIDER BELOW IN VIEW OF MT
    if (location->insnAtPoint().type() & IS_JCC) {
 
       currAddr = baseAddr + (insn - code);
@@ -2117,6 +2122,7 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
 
    // return to user code
    currAddr = baseAddr + (insn - code);
+
    emitJump(location->returnAddr()+imageBaseAddr - (currAddr+JUMP_SZ), insn);
 #ifdef INST_TRAP_DEBUG
    cerr << "installBaseTramp jump back to " <<
@@ -2289,11 +2295,13 @@ trampTemplate* findOrInstallBaseTramp(process *proc,
    if (!proc->getBaseAddress(location->getOwner(), imageBaseAddr))
       abort();
    unsigned char *insn = new unsigned char[JUMP_REL32_SZ];
+
    unsigned size = generateBranchToTramp(proc, location, ret->baseAddr, 
                                          imageBaseAddr, insn, deferred);
    if (size == 0) {
       return NULL;
    }
+
    retInstance = new returnInstance(location->insns(), 
                                     new instruction(insn, 0, size), size,
                                     location->jumpAddr() + imageBaseAddr, 
@@ -3804,7 +3812,8 @@ bool process::replaceFunctionCall(const instPoint *point,
       assert(point->insnAtPoint().size() == CALL_REL32_SZ);
       unsigned char *newInsn = new unsigned char[CALL_REL32_SZ];
       unsigned char *p = newInsn;
-      emitCallRel32(func->addr() - (point->pointAddr()+CALL_REL32_SZ), p);
+      emitCallRel32(func->get_address() - (point->pointAddr()+CALL_REL32_SZ),
+                    p);
       writeTextSpace((void *)point->pointAddr(), CALL_REL32_SZ, newInsn);
    }
 
@@ -4123,7 +4132,9 @@ BPatch_point *createInstructionInstPoint(process* proc, void *address,
    instruction insn;
    unsigned insnSize;
 
-   Address funcEnd = func->getAddress(proc) + func->size();
+   // the following line seems wrong, we're using possibly the begin address
+   // of a relocated function, but the size of the original function
+   Address funcEnd = func->getAddress(proc) + func->get_size();
    for (Address checkAddr = func->getAddress(proc);
         checkAddr < funcEnd; ptr += insnSize, checkAddr += insnSize) {
 
@@ -4306,16 +4317,16 @@ bool pd_Function::loadCode(const image* /* owner */, process *proc,
    cerr << "pd_Function::loadCode" << endl;
 #endif
 
-   originalCode = new unsigned char[size()];
+   originalCode = new unsigned char[get_size()];
 
    // copy function to be relocated from application into instructions
-   proc->readDataSpace((caddr_t)firstAddress, size(), originalCode, true);
+   proc->readDataSpace((caddr_t)firstAddress, get_size(), originalCode, true);
 
    // first address of function
    unsigned char *p = originalCode;
 
    // last address of function
-   unsigned end_of_function = (unsigned)(p + size());
+   unsigned end_of_function = (unsigned)(p + get_size());
 
    // iterate over all instructions in function
    while ( (unsigned) p < end_of_function ) {
@@ -4540,7 +4551,7 @@ int pd_Function::getArrayOffset(Address adr, instruction code[]) {
    unsigned i;
    Address insnAdr = addressOfMachineInsn(&code[0]);  
    
-   assert(adr >= insnAdr && adr <= insnAdr + size()); 
+   assert(adr >= insnAdr && adr <= insnAdr + get_size()); 
    
    // find the instruction that contains the byte at Address adr
    for (i = 0; insnAdr < adr; i++) {
@@ -5443,7 +5454,7 @@ void pd_Function::addArbitraryPoint(instPoint* location,
    if (!proc->getBaseAddress(owner,imageBaseAddr))
       abort();
 
-   newAdr = reloc_info->address();
+   newAdr = reloc_info->get_address();
 
    originalOffset = ((location->pointAddr() + imageBaseAddr) - mutatee);
    originalArrayOffset = getArrayOffset(originalOffset + mutator, oldCode);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.289 2004/03/12 23:18:09 legendre Exp $
+/* $Id: process.h,v 1.290 2004/03/16 18:15:40 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -938,16 +938,10 @@ class process {
   bool findFuncsByMangled(const pdstring &func_name, pdvector<function_base *> &res);
   // Find the code sequence containing an address
   // Note: fix the name....
-  codeRange *findCodeRangeByAddress(const Address &addr);
-  pd_Function *findFuncByAddr(const Address &addr);
+  codeRange *findCodeRangeByAddress(Address addr);
+  pd_Function *findFuncByAddr(Address addr);
   
-  // Add various things to the tree of address mappings
-  bool addCodeRange(Address addr, miniTrampHandle *mini);
-  bool addCodeRange(Address addr, trampTemplate *base);
-  bool addCodeRange(Address addr, image *img);
-  bool addCodeRange(Address addr, shared_object *shr);
-  // Relocated functions
-  bool addCodeRange(Address addr, relocatedFuncInfo *reloc);
+  bool addCodeRange(Address addr, codeRange *codeobj);
   bool deleteCodeRange(Address addr);
     
   // No function is pushed onto return vector if address can't be resolved

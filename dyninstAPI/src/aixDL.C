@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.49 2004/03/10 20:25:19 eli Exp $
+// $Id: aixDL.C,v 1.50 2004/03/16 18:15:29 schendel Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -106,7 +106,7 @@ bool dynamic_linking::installTracing() {
     
     // Note: the libc func addr we have via addr() (only one that
     // works) is an offset. Add the addr from the file descriptor
-    Address load_ret_addr = loadfunc->addr() + loadfunc->size() 
+    Address load_ret_addr = loadfunc->get_address() + loadfunc->get_size() 
                             + libc_desc->addr() - sizeof(instruction);
     
 

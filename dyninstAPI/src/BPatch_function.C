@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.41 2004/03/01 19:30:49 tikir Exp $
+// $Id: BPatch_function.C,v 1.42 2004/03/16 18:15:24 schendel Exp $
 
 #define BPATCH_FILE
 
@@ -204,7 +204,7 @@ void *BPatch_function::getBaseAddr() const
 */
 void *BPatch_function::getBaseAddrRelative() const
 {
-	return (void *)func->addr();
+	return (void *)func->get_address();
 }
 
 
@@ -215,7 +215,7 @@ void *BPatch_function::getBaseAddrRelative() const
  */
 unsigned int BPatch_function::getSize() const
 {
-  return func->size();
+  return func->get_size();
 }
 
 
@@ -324,7 +324,7 @@ BPatch_point* BPatch_function::createMemInstPoint(void *addr,
 
 #else
 
-BPatch_point* BPatch_function::createMemInstPoint(void *addr,
+BPatch_point* BPatch_function::createMemInstPoint(void * /*addr */,
                                                   BPatch_memoryAccess* ma)
 {
   return NULL;

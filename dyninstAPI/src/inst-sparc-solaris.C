@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.147 2004/03/16 14:48:48 bernat Exp $
+// $Id: inst-sparc-solaris.C,v 1.148 2004/03/16 18:15:34 schendel Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -113,8 +113,9 @@ void pd_Function::checkCallPoints() {
 
          } else if(!pdf){
 
-            if((loc_addr < getAddress(0))||(loc_addr > (getAddress(0)+size()))){
-
+            if((loc_addr < get_address()) || 
+               (loc_addr > (get_address()+get_size())))
+            {
                p->callIndirect = true;
                p->setCallee(NULL); 
                non_lib.push_back(p);
@@ -2118,7 +2119,7 @@ static inline bool JmpNopTC(instruction instr, instruction nexti,
     // if sequence is detected, but not at end of fn 
     //  (last 2 instructions....), return value indicating possible TC.
     //  This should (eventually) mark the fn as uninstrumenatble....
-    if (addr != (func->getAddress(0) + func->size() - 8)) {
+    if (addr != (func->getAddress(0) + func->get_size() - 8)) {
         return 0;
     }
 
@@ -2198,8 +2199,8 @@ static enum fuzzyBoolean is_call_outside_function(const instruction instr,
  */
 bool pd_Function::findInstPoints(const image *owner) {
 
-   Address firstAddress = getAddress(0);
-   Address lastAddress = getAddress(0) + size();
+   Address firstAddress = get_address();
+   Address lastAddress = get_address() + get_size();
    Address adr;
    Address target;
    Address entry;
@@ -2229,7 +2230,7 @@ bool pd_Function::findInstPoints(const image *owner) {
 
    bool checkPoints; 
 
-   if (size() == 0) 
+   if (get_size() == 0) 
       goto set_uninstrumentable;
    
 
@@ -2289,7 +2290,7 @@ bool pd_Function::findInstPoints(const image *owner) {
          // if this is a call instr to a location within the function, 
          // and if the offest is 8 then this is used to set the o7 register
          // with the pc and we may need to relocate the function 
-         if ( is_set_O7_call(instr, size(), adr - firstAddress)) {
+         if ( is_set_O7_call(instr, get_size(), adr - firstAddress)) {
             mayNeedRelocation_ = true;
          }
       }
@@ -2329,7 +2330,7 @@ bool pd_Function::findInstPoints(const image *owner) {
    /* CHECK IF FUNCTION SHOULD NOT BE RELOCATED WHEN INSTRUMENTED */
 
    // FUNCTION TOO SMALL
-   if (size() <= 3*sizeof(instruction)) {
+   if (get_size() <= 3*sizeof(instruction)) {
       canBeRelocated_ = false;
    }
 
@@ -2357,7 +2358,7 @@ bool pd_Function::findInstPoints(const image *owner) {
    // ITERATE OVER INSTRUCTIONS, locating instPoints
    adr = firstAddress;
 
-   instructions = new instruction[size()/sizeof(instruction)];
+   instructions = new instruction[ get_size() / sizeof(instruction) ];
  
    for (int i=0; adr < lastAddress; adr += sizeof(instruction), i++) {
 
@@ -2460,12 +2461,12 @@ bool pd_Function::findInstPoints(const image *owner) {
             // instrument as a call site....
             enum fuzzyBoolean is_inst_point;
             is_inst_point = is_call_outside_function(instr, firstAddress, 
-                                                     adr, size());
+                                                     adr, get_size());
             if (is_inst_point == eFalse) {
 
                // if this is a call instr to a location within the function, 
                // and if the offest is not 8 then do not define this function 
-               if (!is_set_O7_call(instr, size(), adr - firstAddress)) {
+               if (!is_set_O7_call(instr, get_size(), adr - firstAddress)) {
                   goto set_uninstrumentable;
                }
 
@@ -2590,7 +2591,7 @@ bool pd_Function::findInstPoints(const image *owner) {
       // we will need to relocate the function and add nops after exit point
       // instead of claiming prior instructions
       Address insnAddr    = firstAddress;
-      int num_instructions = size() / sizeof(instruction);
+      int num_instructions = get_size() / sizeof(instruction);
  
       // Iterate over all instructions
       for (int j=0; j < num_instructions; j++) {
@@ -2649,7 +2650,7 @@ bool pd_Function::checkInstPoints(const image *owner) {
 
 #ifndef BPATCH_LIBRARY /* XXX Users of libdyninstAPI might not agree. */
    // The function is too small to be worth instrumenting.
-   if (size() <= 12){
+   if (get_size() <= 12){
       return false;
    }
 #endif
@@ -2667,7 +2668,7 @@ bool pd_Function::checkInstPoints(const image *owner) {
    // Check if there's any branch instruction jump to the middle
    // of the instruction sequence in the function entry point
    // and function exit point.
-   for ( ; adr < getAddress(0) + size(); adr += sizeof(instruction)) {
+   for ( ; adr < getAddress(0) + get_size(); adr += sizeof(instruction)) {
 
       instr.raw = owner->get_instruction(adr);
       if(isInsnType(instr, RETLmask, RETLmatch)) retl_inst = true;
@@ -2837,7 +2838,7 @@ bool pd_Function::PA_attachGeneralRewrites( const image *owner,
 
                 // If call is to location outside of function              
                 if ( (callTarget < firstAddress) || 
-                     (callTarget > firstAddress + size()) ) { 
+                     (callTarget > firstAddress + get_size()) ) { 
 
                   // get target instruction
                   instruction tmpInsn;
@@ -3097,7 +3098,7 @@ bool pd_Function::PA_attachBranchOverlaps(
         if (!branchInsideRange(loadedCode[i], 
 			       firstAddress + (i * sizeof(instruction)),
 			       firstAddress, 
-			       firstAddress + size())) {
+			       firstAddress + get_size())) {
 	    continue;
 	}
 							      
@@ -3299,7 +3300,7 @@ void pd_Function::addArbitraryPoint(instPoint* location,
     if (!proc->getBaseAddress(owner,imageBaseAddr))
         abort();
 
-    newAdr = reloc_info->address();
+    newAdr = reloc_info->get_address();
     CALC_OFFSETS(location);
 
     newCode  = reinterpret_cast<instruction *> (relocatedCode);
@@ -3436,7 +3437,7 @@ bool pd_Function::readFunctionCode(const image *owner, instruction *into) {
     int i = 0;
 
     Address firstAddress = getAddress(0);
-    Address lastAddress = firstAddress + size();
+    Address lastAddress = firstAddress + get_size();
 
     while (firstAddress < lastAddress) {
         into[i++].raw = owner->get_instruction(firstAddress);
@@ -3517,7 +3518,7 @@ bool pd_Function::loadCode(const image *owner, process* /* proc */,
 
 
     // check that function has size > 0.... 
-    if (size() == 0) {
+    if (get_size() == 0) {
       cerr << "WARN : attempt to relocate function " <<  prettyName()  
            << " with size 0, unable to instrument"   <<  endl;
         return false;
@@ -3529,14 +3530,14 @@ bool pd_Function::loadCode(const image *owner, process* /* proc */,
     // allocate array of instructions to original code to be read from
     //  addr space
 
-    assert(size() % sizeof(instruction) == 0);
-    numberOfInstructions = size() / sizeof(instruction);
+    assert(get_size() % sizeof(instruction) == 0);
+    numberOfInstructions = get_size() / sizeof(instruction);
 
     oldCode = new instruction[numberOfInstructions];
 
     // if unable to allocate array, dump, warn and return false.... 
     if (oldCode == NULL) {
-      cerr << "WARN : unable to allocate array (" << size()
+      cerr << "WARN : unable to allocate array (" << get_size()
            << " bytes) to read in code for function" 
            << prettyName() << ": unable to instrument." << endl;
 

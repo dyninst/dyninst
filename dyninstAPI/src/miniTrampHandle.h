@@ -40,20 +40,21 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTrampHandle.h,v 1.1 2003/10/21 17:22:52 bernat Exp $
+// $Id: miniTrampHandle.h,v 1.2 2004/03/16 18:15:38 schendel Exp $
 
 #ifndef MINI_TRAMP_HANDLE_H
 #define MINI_TRAMP_HANDLE_H
 
 #include "common/h/Types.h"
 #include "dyninstAPI/src/inst.h"
+#include "dyninstAPI/src/codeRange.h"
 
 // Callback func for deletion of a minitramp
 class miniTrampHandle;
 typedef void (*miniTrampHandleFreeCallback)(void *, miniTrampHandle *);
 
 // The new miniTrampHandle class -- description of a particular minitramp.
-class miniTrampHandle {
+class miniTrampHandle : public codeRange {
     // Global numbering of minitramps
     static int _id;
   public:
@@ -79,10 +80,16 @@ class miniTrampHandle {
             (*callback)(callbackData, this);  
     }
 
-  // Get address of the branch in the base tramp to the current minitramp
-  // Defined in inst.C
-  Address getBaseBranchAddr() const;
-  Address getBaseReturnAddr() const;
+    // Get address of the branch in the base tramp to the current minitramp
+    // Defined in inst.C
+    Address getBaseBranchAddr() const;
+    Address getBaseReturnAddr() const;
+    Address get_address() const {
+       return miniTrampBase;
+    }
+    unsigned get_size() const {
+       return (returnAddr - miniTrampBase);
+    }
   
   void registerCallback(miniTrampHandleFreeCallback cb, void *data) {
     callback = cb;

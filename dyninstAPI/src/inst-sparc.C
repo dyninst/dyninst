@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.153 2004/02/28 00:26:24 schendel Exp $
+// $Id: inst-sparc.C,v 1.154 2004/03/16 18:15:35 schendel Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -2051,7 +2051,7 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
     }
 
     if (((Address)address + INSN_SIZE) < 
-			(func->getEffectiveAddress(proc) + func->size())) {
+			(func->getEffectiveAddress(proc) + func->get_size())) {
 		//fprintf(stderr, "Wierd2=true@%p\n", address); 
 
 		instruction nextInstr;

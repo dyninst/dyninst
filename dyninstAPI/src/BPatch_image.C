@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.51 2004/03/01 19:30:49 tikir Exp $
+// $Id: BPatch_image.C,v 1.52 2004/03/16 18:15:25 schendel Exp $
 
 #define BPATCH_FILE
 
@@ -321,10 +321,11 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address,
             return NULL;
         }
         
-        if (!range->function_ptr)
+        pd_Function *function_ptr = range->is_pd_Function();
+        if (!function_ptr)
             // Address doesn't correspond to a function
             return NULL;
-        func = range->function_ptr;
+        func = function_ptr;
     }
     
     // If it's in an uninstrumentable function, just return an error.

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.194 2004/03/11 22:20:33 bernat Exp $
+ * $Id: inst-power.C,v 1.195 2004/03/16 18:15:33 schendel Exp $
  */
 
 #include "common/h/headers.h"
@@ -3326,7 +3326,8 @@ bool pd_Function::findInstPoints(const image *owner)
   //     for the exit point so that we can still do address comparisons
   instruction retInsn;
   retInsn.raw = 0;
-  funcReturns.push_back(new instPoint(this, retInsn, owner, adr + size() + 1, false, functionExit));
+  funcReturns.push_back(new instPoint(this, retInsn, owner,
+                                   adr + get_size() + 1, false, functionExit));
 
   // Check whether we're a leaf function (makes no calls, LR never saved)
   // or don't create a stack frame.
@@ -3617,7 +3618,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
       // So look it up.
       pd_Function *pdf = 0;
       codeRange *range = findCodeRangeByAddress(callee_addr);
-      pdf = range->function_ptr;
+      pdf = range->is_pd_Function();
       
       if (pdf)
       {
@@ -3658,7 +3659,8 @@ bool process::replaceFunctionCall(const instPoint *point,
    if (newFunc == NULL) {	// Replace with a NOOP
       generateNOOP(&newInsn);
    } else {			// Replace with a new call instruction
-      generateBranchInsn(&newInsn, newFunc->addr()-point->absPointAddr(this));
+      generateBranchInsn(&newInsn,
+                         newFunc->get_address()-point->absPointAddr(this));
       newInsn.iform.lk = 1;
    }
    
@@ -3840,7 +3842,7 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
         func = (pd_Function *)bpf->func;
     else {
         codeRange *range = proc->findCodeRangeByAddress((Address) address);
-        func = range->function_ptr;
+        func = range->is_pd_Function();
     }
 
     instruction instr;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.484 2004/03/16 14:50:02 bernat Exp $
+// $Id: process.C,v 1.485 2004/03/16 18:15:39 schendel Exp $
 
 #include <ctype.h>
 
@@ -637,7 +637,7 @@ bool process::isInSignalHandler(Address addr)
     sig_addr = signal_handler->getAddress(this);
   }
 
-  if (addr >= sig_addr && addr < sig_addr + signal_handler->size())
+  if (addr >= sig_addr && addr < sig_addr + signal_handler->get_size())
     return true;
   else
     return false;
@@ -4641,179 +4641,96 @@ bool process::getSymbolInfo( const pdstring &name, Symbol &ret )
 // is within the a.out, we look up the function assuming the address given is
 // the offset. 
 
-codeRange *process::findCodeRangeByAddress(const Address &addr) {
-    codeRange *range;
-    if (!codeRangesByAddr_->precessor(addr, range))
-        return false;
+codeRange *process::findCodeRangeByAddress(Address addr) {
+   codeRange *range = NULL;
+   if (!codeRangesByAddr_->precessor(addr, range))
+      return NULL;
 
-    assert(range);
-    // Need to check whether the object we got back contains
-    // the given address....
-    if (range->basetramp_ptr) {
-        if (addr > (range->basetramp_ptr->baseAddr + range->basetramp_ptr->size)) {
-            /* DEBUG INFO 
-               fprintf(stderr, "Warning: addr 0x%x not in code range (closest: base from 0x%x to 0x%x)\n",
-               addr, range->basetramp_ptr->baseAddr,
-               range->basetramp_ptr->baseAddr +
-               range->basetramp_ptr->size);
-            */
-            range = NULL;
-        }
-    }
-    else if (range->minitramp_ptr) {
-        if (addr > range->minitramp_ptr->returnAddr) {
-/*
-  fprintf(stderr, "Warning: addr 0x%x not in code range (closest: mini from 0x%x to 0x%x)\n",
-  addr, range->minitramp_ptr->miniTrampBase,
-  range->minitramp_ptr->returnAddr);
-*/
-            range = NULL;
-        }
-    }
-    else if (range->image_ptr) {
-        if (addr > (range->image_ptr->codeOffset() + range->image_ptr->codeLength())) {
-/*
-  fprintf(stderr, "Warning: addr 0x%x not in code range (closest: img from 0x%x to 0x%x)\n",
-  addr,
-  range->image_ptr->codeOffset(),
-  range->image_ptr->codeOffset() +
-  range->image_ptr->codeLength());
-*/
-            range = NULL;
-        }
-    }
-    else if (range->sharedobject_ptr) {
-        if (!range->sharedobject_ptr->isProcessed()) {
-            // Very odd case....
-            return NULL;
-        }
-        Address inImage = (addr - range->sharedobject_ptr->getBaseAddress());        
-        const image *img = range->sharedobject_ptr->getImage();
+   assert(range);
+
+   bool in_range = (addr >= range->get_address() &&
+                    addr <= (range->get_address() + range->get_size()));
+   if(! in_range) {
+      range = NULL;
+   }
+
+   shared_object *sharedobject_ptr = range->is_shared_object();
+   if(sharedobject_ptr) {
+      if (!sharedobject_ptr->isProcessed()) {
+         // Very odd case....
+         return false;
+      }
+      Address inImage = (addr - sharedobject_ptr->getBaseAddress());        
+      const image *img = sharedobject_ptr->getImage();
         
-        if (!img) {
-           // Looks to be caused by a bug where not deregistering sharedobjs
-           // from the code range data when we call delete on the sharedobj
-           // (for example when an exec occurs).  General bug should be
-           // fixed.
-           return NULL;
-        }
-        if (inImage > (img->codeOffset() + img->codeLength())) {
-/*
-          fprintf(stderr, "Warning: addr 0x%x not in code range (closest: shobj from 0x%x to 0x%x\n",
-                  addr, img->codeOffset() +
-                  range->sharedobject_ptr->getBaseAddress(),
-                  img->codeOffset()+img->codeLength() +
-                  range->sharedobject_ptr->getBaseAddress());
-*/
-            range = NULL;
-        }
-    }
-    else if (range->reloc_ptr) {
-        if (addr > (range->reloc_ptr->address() + range->reloc_ptr->size()))
-            range = NULL;
-    }
+      if (!img) {
+         // Looks to be caused by a bug where not deregistering sharedobjs
+         // from the code range data when we call delete on the sharedobj
+         // (for example when an exec occurs).  General bug should be
+         // fixed.
+         return false;
+      }
+      if (inImage > (img->get_address() + img->get_size())) {
+         /*
+           fprintf(stderr, "Warning: addr 0x%x not in code range (closest: shobj from 0x%x to 0x%x\n",
+           addr, img->codeOffset() +
+           range->sharedobject_ptr->getBaseAddress(),
+           img->codeOffset()+img->codeLength() +
+           range->sharedobject_ptr->getBaseAddress());
+         */
+         range = NULL;
+      }
+   }
 
-    if (!range) return NULL;
+   if (!range) return false;
+   
+   image *image_ptr = range->is_image();
 
-    // If we're talking the a.out or a shared object, recurse....
-    if (range->image_ptr) {
-        // Assumes the base addr of the image is 0!
-        // Fill in the function part as well for complete info
-        range->function_ptr = range->image_ptr->findFuncByOffset(addr);
-    }
-    else if (range->sharedobject_ptr) {
-        range->function_ptr = range->sharedobject_ptr->findFuncByAddress(addr);
+   // If we're talking the a.out or a shared object, recurse....
+   if(image_ptr) {
+      // Assumes the base addr of the image is 0!
+      // Fill in the function part as well for complete info
+      pd_Function *function_ptr = image_ptr->findFuncByOffset(addr);
+      range = function_ptr;
+   }
+   else if (sharedobject_ptr) {
+       pd_Function *function_ptr = sharedobject_ptr->findFuncByAddress(addr);
+       range = function_ptr;
     }
     
-    return range;
+   return range;
 }
 
-pd_Function *process::findFuncByAddr(const Address &addr) {
+pd_Function *process::findFuncByAddr(Address addr) {
     codeRange *range = findCodeRangeByAddress(addr);
     if (!range) return NULL;
     
-    if (range->function_ptr) {
-        return range->function_ptr;
+    pd_Function *func_ptr = range->is_pd_Function();
+    trampTemplate *basetramp_ptr = range->is_basetramp();
+    miniTrampHandle *minitramp_ptr = range->is_minitramp();
+    relocatedFuncInfo *reloc_ptr = range->is_relocated_func();
+
+    if(func_ptr) {
+       return func_ptr;
     }
-    else if (range->basetramp_ptr) {
-        return range->basetramp_ptr->location->pointFunc();
+    else if(basetramp_ptr) {
+        return basetramp_ptr->location->pointFunc();
     }
-    else if (range->minitramp_ptr) {   
-        return range->minitramp_ptr->baseTramp->location->pointFunc();
+    else if(minitramp_ptr) {   
+        return minitramp_ptr->baseTramp->location->pointFunc();
     }
-    else if (range->reloc_ptr) {
-        return range->reloc_ptr->func();
+    else if (reloc_ptr) {
+        return reloc_ptr->func();
     }
     else {
         return NULL;
     }
 }
 
-
-// Stack of overloaded add functions
-    
-bool process::addCodeRange(Address addr, miniTrampHandle *mini) {
-    codeRange *range = new codeRange;
-    range->function_ptr = NULL;
-    range->image_ptr = NULL;
-    range->sharedobject_ptr = NULL;
-    range->basetramp_ptr = NULL;
-    range->minitramp_ptr = mini;
-    range->reloc_ptr = NULL;
-    //fprintf(stderr, "Added minitramp %p at 0x%x\n", mini, addr);
-    codeRangesByAddr_->insert(addr, range);
-    return true;
+bool process::addCodeRange(Address addr, codeRange *codeobj) {
+   codeRangesByAddr_->insert(addr, codeobj);
+   return true;
 }
-
-bool process::addCodeRange(Address addr, trampTemplate *base) {
-    codeRange *range = new codeRange;
-    range->function_ptr = NULL;
-    range->image_ptr = NULL;
-    range->sharedobject_ptr = NULL;
-    range->basetramp_ptr = base;
-    range->minitramp_ptr = NULL;
-    range->reloc_ptr = NULL;
-    //fprintf(stderr, "Added basetramp %p at 0x%x\n", base, addr);
-    codeRangesByAddr_->insert(addr, range);
-    return true;
-}
-
-bool process::addCodeRange(Address addr, image *img) {
-    //fprintf(stderr, "Adding img at 0x%x\n", addr);
-    codeRange *range = new codeRange;
-    range->function_ptr = NULL;
-    range->image_ptr = img;
-    range->sharedobject_ptr = NULL;
-    range->basetramp_ptr = NULL;
-    range->minitramp_ptr = NULL;
-    range->reloc_ptr = NULL;
-    codeRangesByAddr_->insert(addr, range);
-    return true;
-}
-
-bool process::addCodeRange(Address addr, shared_object *shr) {
-    codeRange *range = new codeRange;
-    range->function_ptr = NULL;
-    range->image_ptr = NULL;
-    range->sharedobject_ptr = shr;
-    range->basetramp_ptr = NULL;
-    range->minitramp_ptr = NULL;
-    range->reloc_ptr = NULL;
-    codeRangesByAddr_->insert(addr, range);
-    return true;
-}
-bool process::addCodeRange(Address addr, relocatedFuncInfo *reloc) {
-    codeRange *range = new codeRange;
-    range->function_ptr = NULL;
-    range->image_ptr = NULL;
-    range->sharedobject_ptr = NULL;
-    range->basetramp_ptr = NULL;
-    range->minitramp_ptr = NULL;
-    range->reloc_ptr = reloc;
-    codeRangesByAddr_->insert(addr, range);
-    return true;
-}
-
 
 bool process::deleteCodeRange(Address addr) {
     codeRangesByAddr_->remove(addr);
@@ -6090,6 +6007,9 @@ void process::gcInstrumentation(pdvector<pdvector<Frame> > &stackWalks)
              walkIter++) {
             Frame frame = stackWalk[walkIter];
             codeRange *range = findCodeRangeByAddress(frame.getPC());
+            trampTemplate *basetramp_ptr = range->is_basetramp();
+            miniTrampHandle *minitramp_ptr = range->is_minitramp();
+                
             if (!range) {
                 // Odd... couldn't find a match at this PC
                 // Do we want to skip GCing in this case? Problem
@@ -6098,16 +6018,16 @@ void process::gcInstrumentation(pdvector<pdvector<Frame> > &stackWalks)
             }
             if (deletedInst->oldBase) {
                 // If we're in the base tramp we can't delete
-                if (range->basetramp_ptr == deletedInst->oldBase)
+                if (basetramp_ptr == deletedInst->oldBase)
                     safeToDelete = false;
                 // If we're in a child minitramp, we also can't delete
-                if (range->minitramp_ptr &&
-                    (range->minitramp_ptr->baseTramp == deletedInst->oldBase))
+                miniTrampHandle *mt = range->is_minitramp();
+                if (mt && (mt->baseTramp == deletedInst->oldBase))
                     safeToDelete = false;
             }
             else {
                 assert(deletedInst->oldMini);
-                if (range->minitramp_ptr == deletedInst->oldMini)
+                if (minitramp_ptr == deletedInst->oldMini)
                     safeToDelete = false;
             }
             // If we can't delete, don't bother to continue checking
@@ -6330,7 +6250,7 @@ dyn_thread *process::createThread(
     thr->update_stack_addr(stackbase) ;
     thr->update_start_pc(startpc) ;
     codeRange *range = findCodeRangeByAddress(startpc);
-    pdf = range->function_ptr;
+    pdf = range->is_pd_Function();
     thr->update_start_func(pdf) ;
   } else {
     pdf = findOnlyOneFunction("main");
@@ -6397,7 +6317,7 @@ void process::updateThread(
   if(startpc) {
     thr->update_start_pc(startpc) ;
     codeRange *range = findCodeRangeByAddress(startpc);
-    pdf = range->function_ptr;
+    pdf = range->is_pd_Function();
     thr->update_start_func(pdf) ;
     thr->update_stack_addr(stackbase) ;
   } else {

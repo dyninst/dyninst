@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.167 2004/03/11 22:20:43 bernat Exp $
+// $Id: perfStream.C,v 1.168 2004/03/16 18:15:47 schendel Exp $
 
 #include "common/h/headers.h"
 #include "rtinst/h/rtinst.h"
@@ -414,10 +414,10 @@ void processTraceStream(process *dproc)
                // Have to look in main image and (possibly) in shared objects
                codeRange *range;
                range = dproc->findCodeRangeByAddress(c->caller);
-               caller = range->function_ptr;
+               caller = range->is_pd_Function();
                
                range = dproc->findCodeRangeByAddress(c->callee);
-               callee = range->function_ptr;
+               callee = range->is_pd_Function();
 
                if(!callee || !caller){
                   cerr << "callee for addr " << ostream::hex << c->callee 

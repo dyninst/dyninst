@@ -39,11 +39,39 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: codeRange.C,v 1.1 2003/10/21 17:22:50 bernat Exp $
+// $Id: codeRange.C,v 1.2 2004/03/16 18:15:30 schendel Exp $
 
 #include <stdio.h>
 #include "codeRange.h"
 
+#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/trampTemplate.h"
+#include "dyninstAPI/src/miniTrampHandle.h"
+#include "dyninstAPI/src/sharedobject.h"
+
+trampTemplate *codeRange::is_basetramp() {
+   return dynamic_cast<trampTemplate *>(this);
+}
+
+miniTrampHandle *codeRange::is_minitramp() {
+   return dynamic_cast<miniTrampHandle *>(this);
+}
+
+pd_Function *codeRange::is_pd_Function() {
+   return dynamic_cast<pd_Function *>(this);
+}
+
+image *codeRange::is_image() {
+   return dynamic_cast<image *>(this);
+}
+
+shared_object *codeRange::is_shared_object() {
+   return dynamic_cast<shared_object *>(this);
+}
+
+relocatedFuncInfo *codeRange::is_relocated_func() {
+   return dynamic_cast<relocatedFuncInfo *>(this);
+}
 
 void codeRangeTree::leftRotate(entry* pivot){
 	if(!pivot || (pivot == nil))
@@ -150,7 +178,8 @@ void codeRangeTree::deleteFixup(entry* x){
 }
 
 
-codeRangeTree::entry *codeRangeTree::treeInsert(Address& key, codeRange *& value) {
+codeRangeTree::entry *codeRangeTree::treeInsert(Address key, codeRange *value)
+{
 	entry* y = NULL;
 	entry* x = setData;
 	while(x != nil){
@@ -195,7 +224,7 @@ codeRangeTree::entry *codeRangeTree::treeSuccessor(entry* x) const{
 }
 
 
-codeRangeTree::entry *codeRangeTree::find_internal(const Address& element) const{
+codeRangeTree::entry *codeRangeTree::find_internal(Address element) const{
 	entry* x = setData;
 	while(x != nil){
         if (element < x->key)
@@ -209,7 +238,7 @@ codeRangeTree::entry *codeRangeTree::find_internal(const Address& element) const
 }
 
 
-void codeRangeTree::traverse(codeRange ** all,entry* node,int& n) const{
+void codeRangeTree::traverse(codeRange ** all, entry* node, int& n) const{
 	if(node == nil)
 		return;
 	if(node->left != nil)
@@ -222,7 +251,7 @@ void codeRangeTree::traverse(codeRange ** all,entry* node,int& n) const{
 
 //////////////////////////// PUBLIC FUNCTIONS ////////////////////////////////
 
- void codeRangeTree::insert(Address& key, codeRange *& value){
+ void codeRangeTree::insert(Address key, codeRange *value) {
 	entry* x = treeInsert(key, value);
 	if(!x) return;
 	x->color = TREE_RED;
@@ -267,7 +296,7 @@ void codeRangeTree::traverse(codeRange ** all,entry* node,int& n) const{
 	setData->color = TREE_BLACK;
 }
 
- void codeRangeTree::remove(const Address& key){
+ void codeRangeTree::remove(Address key){
 	entry* z = find_internal(key);
 	if(!z)
 		return;
@@ -303,14 +332,14 @@ void codeRangeTree::destroy(entry* node){
 	delete node;
 }
 
- bool codeRangeTree::find(const Address& key, codeRange *& value) const{
+bool codeRangeTree::find(Address key, codeRange *& value) const{
 	entry* x = find_internal(key);
-    if (!x) return false;
-    value = x->value;
-    return true;
+   if (!x) return false;
+   value = x->value;
+   return true;
 }
 
- bool codeRangeTree::precessor(const Address& key, codeRange * &value) const{
+bool codeRangeTree::precessor(Address key, codeRange * &value) const{
     entry *x = setData;
     entry *last = nil;
     while (x != nil) {
@@ -342,7 +371,7 @@ void codeRangeTree::destroy(entry* node){
     return false;
 }
 
- bool codeRangeTree::successor(const Address& key, codeRange * &value) const{
+bool codeRangeTree::successor(Address key, codeRange * &value) const{
     entry *x = setData;
     entry *last = nil;
     while (x != nil) {
@@ -371,7 +400,7 @@ void codeRangeTree::destroy(entry* node){
     return false;
 }
 
- codeRange ** codeRangeTree::elements(codeRange ** buffer) const{
+codeRange ** codeRangeTree::elements(codeRange ** buffer) const{
 	if(setData == nil) return NULL;
 	if(!buffer) return NULL;
 	int tmp = 0;
