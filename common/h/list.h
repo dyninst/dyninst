@@ -7,7 +7,11 @@
  * list.h - list ADT
  *
  * $Log: list.h,v $
- * Revision 1.16  1994/05/30 19:37:39  hollings
+ * Revision 1.17  1994/07/07 03:20:36  markc
+ * Added removeAll function to list class.
+ * Added machineType headers to specify pvm, cm5, ...
+ *
+ * Revision 1.16  1994/05/30  19:37:39  hollings
  * added pragma for external g++ functions.
  *
  * Revision 1.15  1994/03/11  21:01:23  hollings
@@ -118,6 +122,7 @@ template <class Type> class List {
 	}
 	Type find(void *key);
 	Boolean remove(void *key);
+	void removeAll(int deleteItem=1);
 	int count()	{
 	    int c;
 	    ListItem<Type> *curr;
@@ -211,6 +216,23 @@ template <class Type> void List<Type>::add(Type data)
 template <class Type> Boolean List<Type>::addUnique(Type data) 
 { 
     return(addUnique(data, (void *) data)); 
+}
+
+template <class Type> void List<Type>::removeAll(int deleteItem)
+{
+   ListItem<Type> *curr, *next;
+
+   if (deleteItem) {
+       curr = head;
+       while (curr) {
+           next = curr->next;
+           delete (curr);
+           curr = next;
+       }
+   }
+
+   head = 0;
+   current = 0;
 }
 
 template <class Type> Boolean List<Type>::remove(void *key)
