@@ -204,6 +204,7 @@ void metricInstance::dataDisable(){
     components.resize(0);
     // deleteing components deletes parts as well
     parts.resize(0);
+    num_procs_per_part.resize(0);
     enabled = false;
     // if data is persistent this must be cleared 
     sample.firstSampleReceived = false;  
@@ -320,6 +321,9 @@ bool metricInstance::addComponent(component *new_comp){
 bool metricInstance::addPart(sampleInfo *new_part){
     
     parts += new_part;
+    u_int new_size = num_procs_per_part.size() + 1;
+    num_procs_per_part.resize(new_size);
+    assert(parts.size() == num_procs_per_part.size());
     return true;
 }
 

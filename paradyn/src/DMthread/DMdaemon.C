@@ -825,21 +825,24 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	double startTimeStamp = entry.startTimeStamp ;
 	double endTimeStamp   = entry.endTimeStamp ;
 	double value          = entry.value ;
-
-//	startTimeStamp -= getEarliestFirstTime();
-//	endTimeStamp -= getEarliestFirstTime();
-	startTimeStamp = this->getAdjustedTime(startTimeStamp) - getEarliestFirstTime();
-	endTimeStamp = this->getAdjustedTime(endTimeStamp) - getEarliestFirstTime();
+	u_int  weight	      = entry.weight;
+	bool   internal_metric = entry.internal_met;
+	startTimeStamp = 
+	    this->getAdjustedTime(startTimeStamp) - getEarliestFirstTime();
+	endTimeStamp = 
+	    this->getAdjustedTime(endTimeStamp) - getEarliestFirstTime();
 
 	if (our_print_sample_arrival) {
 	    cout << "mid " << mid << " " << value << " from "
 	         << startTimeStamp << " to " << endTimeStamp 
+		 << " weight " << weight 
 		 << " machine " << machine.string_of() << "\n";
 	}
 
 	if (!activeMids.defines(mid)) {
-	   // we're either gonna print a "data for disabled mid" error (in status line),
-	   // or "data for unknown mid".  The latter is a fatal error.
+	   // we're either gonna print a "data for disabled mid" error 
+	   // (in status line), or "data for unknown mid".  The latter is 
+	   // a fatal error.
 	   bool found = false;
 	   for (unsigned ve=0; ve<disabledMids.size(); ve++) {
 	      if (disabledMids[ve] == mid) {
@@ -877,13 +880,23 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	   for(unsigned i=0; i < mi->components.size(); i++) {
 	      if((unsigned)mi->components[i]->daemon == (unsigned)this){
 		 part = mi->components[i];
+                 // update the weight associated with this component
+		 // this does not necessarily need to be updated with
+		 // each new value as long as we can distinguish between
+		 // internal and non-internal metric values in some way
+		 // (internal metrics weight is 1 and regular metrics 
+		 // weight is the number of processes for this daemon),
+		 // and the weight is changed when the number of processes 
+		 // changes (we are not currently doing this part)
+		 if(!internal_metric){
+	             mi->num_procs_per_part[i] = weight;
+		 }
               }
 	   }
 	   if (!part) {
 	      uiMgr->showError(3, "Unable to find component!!!");
 	      exit(-1);
 	   }
-           
 
 	   // update the sampleInfo value associated with 
 	   // the daemon that sent the value 
@@ -899,7 +912,14 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	// this interval)
 	// newValue will aggregate the parts according to mi's aggOp
 	//
-    	ret = mi->sample.newValue(mi->parts, endTimeStamp, value);
+	if(internal_metric){  // each part has same weight
+    	    ret = mi->sample.newValue(mi->parts, endTimeStamp, value);
+
+	}
+	else {  // each part is weighted by the num processes per daemon
+    	    ret = mi->sample.newValue(mi->parts, mi->num_procs_per_part,
+				  endTimeStamp, value);
+        }
 
 	if (ret.valid) {  // there is new data from all components 
 	   assert(ret.end >= 0.0);
@@ -907,6 +927,10 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	   assert(ret.end >= ret.start);
 	   mi->enabledTime += ret.end - ret.start;
 
+	   //if (our_print_sample_arrival) {
+	   //    cout << "bucket value: mid " << mid << " start " << ret.start
+	   //         << " end " << ret.end << " value " << ret.value << endl;
+           //}
 	   // bucket the value
 	   mi->addInterval(ret.start, ret.end, ret.value, false);
 	}

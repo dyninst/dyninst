@@ -211,6 +211,9 @@ class metricInstance {
 	// as data arrives from each daemon the appropriate part is updated
 	vector<sampleInfo *> parts;
 	vector<component *> components; 
+	// the number of processes per daemon contributing to the metric 
+	// used to correctly compute average for non-internal metrics  
+	vector<u_int> num_procs_per_part;
 
 	// when each part of the component has a value for a new interval
 	// (starting from the last time sample was updated) this value
