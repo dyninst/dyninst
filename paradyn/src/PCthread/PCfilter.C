@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCfilter.C,v 1.40 2002/12/20 07:50:02 jaw Exp $    
+ * $Id: PCfilter.C,v 1.41 2003/05/09 20:12:58 pcroth Exp $    
  */
 
 #include "PCfilter.h"
@@ -683,8 +683,17 @@ filteredDataServer::newData (metricInstanceHandle mih, pdSample deltaVal,
     // though they aren't rates, but actual values.  The PC was previously
     // written so that sample values (being rates or actual values) were just
     // doubles.  It would be nice if this inconsistency was fixed.
-    metricInstance *mi = metricInstance::getMI(mih); 
-    metric *met = metric::getMetric(mi->getMetricHandle());
+    metricHandle* hmet = dataMgr->getMetric( mih );
+    if( hmet == NULL )
+    {
+        // we failed to find the metric
+        // this may be because we have just defined a new phase,
+        // and the metric instance named by mih is no longer relevant.
+        return;
+    }
+    assert( hmet != NULL );
+    T_dyninstRPC::metricInfo* pmi = dataMgr->getMetricInfo( *hmet );
+    assert( pmi != NULL );
 
     // I want to elinate these different metric types.  It's just
     // unnecessary.  I'll have the visis and the PC use the sample values in
@@ -697,24 +706,42 @@ filteredDataServer::newData (metricInstanceHandle mih, pdSample deltaVal,
     // essence, were integrating (summing) the change in sample value as we
     // go along.  The actual value (as opposed to the delta value) is used by
     // metrics such as num_of_cpus, active_processes
-    if(met->getStyle() == SampledFunction) {
+    if( pmi->style == SampledFunction ) {
       pdSample actVal = curr->getCurActualValue();
       if(actVal.isNaN())
-	newValue.setNaN();
+        newValue.setNaN();
       else {
-	newValue = pdRate(static_cast<double>(actVal.getValue()));
-	curr->incCurActualValue(deltaVal);
+        newValue = pdRate(static_cast<double>(actVal.getValue()));
+        curr->incCurActualValue(deltaVal);
       }
     } else {
       if(deltaVal.isNaN())
-	newValue.setNaN();
+        newValue.setNaN();
       else {
-	timeLength bucketWidth = mi->getBucketWidth(ptype);
-	newValue = pdRate(deltaVal, bucketWidth);
+        // get the bucket width
+        // because we may be making this call in the temporal
+        // vacinity of the start of a new phase, where the mih
+        // is still valid but the metric has no data, be sure to 
+        // deal with the situation
+        timeLength* bucketWidth = dataMgr->getBucketWidth( mih, ptype );
+        if( bucketWidth != NULL )
+        {
+            newValue = pdRate(deltaVal, *bucketWidth);
+            delete bucketWidth;
+        }
+        else
+        {
+            timeLength curBucketWidth = timeLength::Zero();
+            dataMgr->getCurrentBucketWidth( &curBucketWidth );            
+            newValue = pdRate( deltaVal, curBucketWidth );
+        }
       }
     }
-  //cerr << "PC- newData, " << met->getName() << ", val: " << newValue << "\n";
     curr->newData(newValue, start, end);
+
+    // cleanup
+    delete hmet;
+    delete pmi;
   } 
 
 #ifdef PCDEBUG

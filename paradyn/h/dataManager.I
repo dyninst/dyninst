@@ -1,6 +1,6 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
- * $Id: dataManager.I,v 1.108 2003/01/02 21:43:28 schendel Exp $
+ * $Id: dataManager.I,v 1.109 2003/05/09 20:12:58 pcroth Exp $
  */
 
 #ifndef MMTHREAD_H
@@ -175,7 +175,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2500;
-    $version 57;
+    $version 58;
 
     //
     // Start a paradyn daemon
@@ -442,11 +442,8 @@ $remote dataManager {
     // 
     // Histogram/timebase information
     //
+    timeLength* getBucketWidth( metricInstanceHandle mih, phaseType ptype );
     void getCurrentBucketWidth(timeLength *widthVal);
-
-    // 
-    // Histogram/timebase information
-    //
     void getGlobalBucketWidth(timeLength *widthVal);
 
     //

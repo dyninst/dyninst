@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2002 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.134 2003/03/04 19:16:11 willb Exp $
+// $Id: DMpublic.C,v 1.135 2003/05/09 20:12:58 pcroth Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -1397,6 +1397,20 @@ resourceHandle dataManager::newResource(resourceHandle parent,
     return(child);
 
 }
+
+timeLength*
+dataManager::getBucketWidth( metricInstanceHandle mih, phaseType ptype )
+{
+    timeLength* ret = NULL;
+
+    metricInstance* mi = metricInstance::allMetricInstances[mih];
+    if( (mi != NULL) && (mi->hasData()) )
+    {
+        ret = new timeLength( mi->getBucketWidth( ptype ) );
+    }
+    return ret;
+}
+
 
 void dataManager::getGlobalBucketWidth(timeLength *widthVal)
 {
