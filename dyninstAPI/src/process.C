@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.429 2003/05/30 02:36:23 bernat Exp $
+// $Id: process.C,v 1.430 2003/06/11 20:05:47 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2839,7 +2839,7 @@ process *createProcess(const string File, pdvector<string> argv,
     // have a pending TRAP that we need to handle, but not right
     // now.
 #if defined(rs6000_ibm_aix4_1)
-    int fileDescSignal = WSTOPSIG(status);
+    int fileDescSignal = status;
 #endif
 
     image *img = image::parseImage(desc);
@@ -3442,7 +3442,7 @@ bool AttachToCreatedProcess(int pid,const string &progpath)
     // have a pending TRAP that we need to handle, but not right
     // now.
 #if defined(rs6000_ibm_aix4_1)
-    int fileDescSignal = WSTOPSIG(status);
+    int fileDescSignal = status;
 #endif 
 
     if (!desc) {
@@ -5491,6 +5491,7 @@ void process::handleForkEntry() {
 
 void process::handleForkExit(process *child) {
     nextTrapIsFork = false;
+
 #if !defined(BPATCH_LIBRARY)
     // shared memory will probably become part of dyninst soon
     child->init_shared_memory(this);
@@ -5594,6 +5595,12 @@ void process::handleExecExit() {
 #endif
    
    int status = pid;
+
+   // Before we parse the file descriptor, re-open the /proc/pid/as file handle
+#if defined(rs6000_ibm_aix4_1) && defined(AIX_PROC)
+   reopen_fds();
+#endif
+
    fileDescriptor *desc = getExecFileDescriptor(execFilePath,
                                                 status,
                                                 false);

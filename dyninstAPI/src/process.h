@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.258 2003/05/30 02:36:24 bernat Exp $
+/* $Id: process.h,v 1.259 2003/06/11 20:05:48 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -1388,7 +1388,7 @@ private:
   handleT status_fd() const { return status_fd_; }
   handleT usage_fd() const  { return usage_fd_; }
 
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) || defined(AIX_PROC)
   bool get_status(pstatus_t *) const;
   bool set_syscalls (sysset_t *, sysset_t *) const;
   bool process::get_entry_syscalls(pstatus_t *status,
@@ -1407,6 +1407,10 @@ private:
   handleT ps_fd_; // ps (/proc)
   handleT usage_fd_;
 
+#if defined(AIX_PROC)
+  void reopen_fds(); // Re-open whatever FDs might need to be
+#endif
+  
   // TODO: public access functions. The NT handler needs direct access
   // to this (or a NT-compatible handleIfDueToSharedObjectMapping)
   public:
