@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.123 2004/04/02 06:34:15 jaw Exp $
+// $Id: unix.C,v 1.124 2004/04/08 21:15:47 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -446,14 +446,19 @@ int forwardSigToProcess(const procevent &event) {
     process *proc = event.proc;
 
     // Pass the signal along to the child
-
-    if (!proc->continueProc(event.what)) {
+    bool res;
+    if(process::IndependentLwpControl()) {
+       res = event.lwp->continueLWP(event.what);
+    } else {
+       res = proc->continueProc(event.what);
+    } 
+    if (res == false) {
         cerr << "Couldn't forward signal " << event.what << endl;
         logLine("error  in forwarding  signal\n");
         showErrorCallback(38, "Error  in forwarding  signal");
         return 0;
-        //P_abort();
     } 
+
     return 1;
 }
 
@@ -480,7 +485,7 @@ int handleSigTrap(const procevent &event) {
             if (proc->insertTrapAtEntryPointOfMain()) {
                 pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
                 buffer += pdstring(", attached to process, stepping to main");       
-                statusLine(buffer.c_str());
+                statusLine(buffer.c_str());		
                 if (!proc->continueProc()) {
                     assert(0);
                 }
@@ -495,7 +500,7 @@ int handleSigTrap(const procevent &event) {
                 // frontend.
                 proc->triggerNormalExitCallback(0);
                 proc->handleProcessExit();
-                proc->continueProc();
+		proc->continueProc();
             }
             // Now we wait for the entry point trap to be reached
             return 1;
@@ -568,16 +573,16 @@ int handleSigTrap(const procevent &event) {
     // As a last resort on AIX, we check to see if this is the
     // cause of the SIGTRAP before we give up.
     if(proc->nextTrapIsFork){
-        proc->continueProc();
-       proc->nextTrapIsFork = false;
-       return 1;
+      proc->continueProc();
+      proc->nextTrapIsFork = false;
+      return 1;
     }
 #endif
 
     // Check to see if this is a syscall exit
     if (proc->handleSyscallExit(0, event.lwp)) {
-        proc->continueProc();
-        return 1;
+      proc->continueProc();
+      return 1;
     }
 
     return 0;
@@ -595,6 +600,22 @@ int handleSigStopNInt(const procevent &event) {
        return 1;
    }
    else {
+#if defined(os_linux) && defined(arch_x86)
+     /**
+      * Extra sig stops are expected on Linux and silently dropped.
+      * We'll continue the process, if the process insn't supposed
+      * to be continued right now, continueProc() should return an 
+      * error.
+      * See waitUntilStoppedGeneral() for details on why we gotta
+      * do this.
+      **/
+     if (proc->multithread_capable())
+     {
+       proc->continueProc();
+       return 1;
+     }
+     else
+#endif
        signal_cerr << "unhandled SIGSTOP for pid " << proc->getPid() 
                    << " so just leaving process in paused state.\n" 
                    << std::flush;
@@ -695,7 +716,7 @@ int handleSigCritical(const procevent &event) {
       case SIGCHLD:
          // Ignore
          ret = 1;
-         proc->continueProc();
+	 proc->continueProc();
          break;
          // Else fall through
       case SIGIOT:
@@ -743,7 +764,6 @@ int handleSigCritical(const procevent &event) {
     int ret = 0;
     switch (syscall) {
       case procSysFork:
-
           ret = handleForkEntry(event);
           break;
       case procSysExec:
@@ -796,12 +816,12 @@ int handleSigCritical(const procevent &event) {
                  theChild->set_status(stopped);
 
                  proc->handleForkExit(theChild);
-                 proc->continueProc();
-                 theChild->continueProc();
+		 proc->continueProc();
+		 theChild->continueProc();
             }
             else {
                 // Can happen if we're forking something we can't trace
-                proc->continueProc();
+	      proc->continueProc();
             }
         }
     }
@@ -876,12 +896,12 @@ int handleExecExit(const procevent &event) {
     }
     proc->setBootstrapState(begun);
     if (!proc->insertTrapAtEntryPointOfMain()) {
-        proc->continueProc();
-        // We should actually delete any mention of this
-        // process... including (for Paradyn) removing it from the
-        // frontend.
-        proc->triggerNormalExitCallback(0);
-        proc->handleProcessExit();
+      proc->continueProc();
+      // We should actually delete any mention of this
+      // process... including (for Paradyn) removing it from the
+      // frontend.
+      proc->triggerNormalExitCallback(0);
+      proc->handleProcessExit();
     }
     else {
         proc->continueProc();
@@ -932,7 +952,7 @@ int handleSyscallExit(const procevent &event) {
     // continued at the appropriate time by handleForkExit.
     if (syscall != procSysFork)
 #endif
-    proc->continueProc();
+      proc->continueProc();
     
     if (ret || wasHandled)
         return 1;
@@ -996,13 +1016,13 @@ int signalHandler::handleProcessEvent(const procevent &event) {
             cerr << "handlesyscallExit failed! " << event.what <<  endl;
         break;
      case procSuspended:
-        proc->continueProc();   // ignoring this signal
-        ret = 1;
-        break;
+       proc->continueProc();   // ignoring this signal
+       ret = 1;
+       break;
      case procInstPointTrap:
          // Linux inst via traps
          event.lwp->changePC(event.info, NULL);
-         proc->continueProc();
+	 proc->continueProc();
          ret = 1;
          break;
      case procUndefined:
