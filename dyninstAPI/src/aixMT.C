@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixMT.C,v 1.7 2002/07/03 22:18:33 bernat Exp $
+// $Id: aixMT.C,v 1.8 2002/07/11 19:45:39 bernat Exp $
 
 #include <sys/pthdebug.h> // Pthread debug library
 #include "dyninstAPI/src/pdThread.h"
@@ -196,9 +196,19 @@ void process::deleteThread(int tid)
     unsigned theSize = threads.size();
     threads[i] = threads[theSize-1];
     threads.resize(theSize-1);
+
+    /* Set the POS to "reusable" */
+    /* Note: we don't acquire a lock. This is okay, because we're simply clearing
+       the bit, which was not usable before now anyway. */
+    assert(RTsharedData.posToThread[thr->get_pos()] == THREAD_AWAITING_DELETION);
+    RTsharedData.posToThread[thr->get_pos()] = 0;
+
     delete thr;    
     sprintf(errorLine,"----- deleting thread, tid=%d, threads.size()=%d\n",tid,threads.size());
     logLine(errorLine);
+
+    // And we need to handle thread deletion in the MDNs
+
   }
 }
 /* 
