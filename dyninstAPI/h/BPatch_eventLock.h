@@ -79,10 +79,6 @@
  * api's to dyninst
  */
 
-#define Lock _Lock(__FILE__, __LINE__)
-#define Trylock _Trylock(__FILE__, __LINE__)
-#define Unlock _Unlock(__FILE__, __LINE__)
-
 #if defined(os_windows)
 #define MUTEX_TYPE CRITICAL_SECTION
 extern MUTEX_TYPE global_mutex;
