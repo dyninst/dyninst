@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.159 2003/04/10 22:46:59 jodom Exp $
+// $Id: symtab.C,v 1.160 2003/04/11 22:32:31 mirg Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1061,6 +1061,12 @@ pdvector<function_base *> *pdmodule::getIncludedFunctions() {
 }
 #endif
 
+// Tests if a symbol starts at a given point
+bool image::hasSymbolAtPoint(Address point) const
+{
+    return knownSymAddrs.defines(point);
+}
+
 const pdvector<pd_Function*> &image::getAllFunctions() 
 {
     return instrumentableFunctions;
@@ -1465,6 +1471,7 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
   _mods(0),
 #endif
   instrumentableFunctions(0),
+  knownSymAddrs(addrHash4),
   funcsByAddr(addrHash4),
   funcsByPretty(string::hash),
   funcsByMangled(string::hash),
@@ -1553,6 +1560,8 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
 	tmods.push_back(lookUp);
       }
     }
+    // As a side project, fill knownSymAddrs
+    knownSymAddrs[lookUp.addr()] = 0; // 0 is a dummy value
   }
   
   // sort the modules by address

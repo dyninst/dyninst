@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.123 2003/04/10 22:46:59 jodom Exp $
+// $Id: symtab.h,v 1.124 2003/04/11 22:32:31 mirg Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -950,6 +950,10 @@ public:
 
 
   const pdvector<pd_Function*> &getAllFunctions();
+  
+  // Tests if a symbol starts at a given point
+  bool hasSymbolAtPoint(Address point) const;
+
 #ifndef BPATCH_LIBRARY
   // origionally return mdlNormal;....
   // Note that (unlike name), this returns ONLY functions for which
@@ -1107,6 +1111,11 @@ public:
 
 #endif
   pdvector<pd_Function*> instrumentableFunctions;
+
+  // The dictionary of all symbol addresses in the image. We use it as a hack
+  // on x86 to scavenge some bytes past a function exit for the exit-point
+  // instrumentation
+  dictionary_hash<Address, unsigned> knownSymAddrs;
   //
   // Hash Tables of Functions....
   //
