@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_Vector.h,v 1.14 2003/04/02 07:12:23 jaw Exp $
+// $Id: BPatch_Vector.h,v 1.15 2003/07/01 23:41:55 jaw Exp $
 
 #ifndef _BPatch_Vector_h_
 #define _BPatch_Vector_h_
@@ -53,11 +53,11 @@
 //#include <stl.h>
 #include <vector>
 #include <algorithm>
-#if ( __GNUC__ == 3 ) && ( __GNUC_MINOR__ == 1 )
+//#if ( __GNUC__ == 3 ) && ( __GNUC_MINOR__ == 1 )
 #define BPatch_Vector std::vector
-#else
-#define BPatch_Vector	vector
-#endif
+//#else
+//#define BPatch_Vector	vector
+//#endif
 
 #else
 #ifdef external_templates
