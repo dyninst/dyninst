@@ -16,9 +16,13 @@
  */
 
 /* $Log: VMmain.C,v $
-/* Revision 1.9  1994/06/29 02:56:47  hollings
-/* AFS path changes
+/* Revision 1.10  1994/07/07 03:27:00  markc
+/* Removed reading of configuration file, which is now supported by the
+/* configuration language.
 /*
+ * Revision 1.9  1994/06/29  02:56:47  hollings
+ * AFS path changes
+ *
  * Revision 1.8  1994/05/22  16:40:58  newhall
  * *** empty log message ***
  *
@@ -59,6 +63,10 @@ List<VMvisis *> visiList;
 
 extern void VISIthreadmain(visi_thread_args *args);
 
+#define ERROR_MSG(s1, s2) \
+   perror(s1); \
+   uiMgr->showError(s1); \
+   printf(s2);
 
 VM_activeVisiInfo_Array VM::VMActiveVisis(){
 
@@ -70,9 +78,7 @@ VM_activeVisiInfo_Array VM::VMActiveVisis(){
   if((temp.data  = 
       (VM_activeVisiInfo *) malloc(sizeof(VM_activeVisiInfo)*temp.count))
       == NULL){
-    perror("malloc in VMActiveVisis");
-    uiMgr->showError("malloc in VMActiveVisis");
-    printf("error # : serious\n");
+    ERROR_MSG("malloc in VMActiveVisis", "error #: serious\n");
     return;
   }
 
@@ -80,17 +86,14 @@ VM_activeVisiInfo_Array VM::VMActiveVisis(){
   for(i=0; i < temp.count; i++){
      if((tempdata = activeVisis.getCurrent()) == 0){
        PARADYN_DEBUG(("Error in getCurrent() in VMActiveVisis")); 
-       uiMgr->showError("getCurrent in VMActiveVisis");
-       printf("error # : serious???\n");
+       ERROR_MSG("getCurrent in VMActiveVisis", "error #: serious?\n");
      } 
      if(tempdata != 0){
        temp.data[i].visiNum = tempdata->visiThreadId;
        temp.data[i].visiTypeId = tempdata->visiTypeId;
        if(tempdata->name != NULL){
          if((temp.data[i].name = strdup(tempdata->name)) == NULL){
-           perror("strdup in VM::VMActiveVisis");
-           uiMgr->showError("strdup in VM::VMActiveVisis");
-           printf("error # : not so serious???\n");
+	   ERROR_MSG("strdup in VM::VMActiveVisis", "error#: not serious\n");
 	   tempdata->name = NULL;
          }
        }
@@ -115,25 +118,21 @@ VM_visiInfo_Array VM::VMAvailableVisis(){
   temp.count = visiList.count();
   if((temp.data  = (VM_visiInfo *)malloc(sizeof(VM_visiInfo)*temp.count))
        == NULL){ 
-    perror("malloc in VMAvailableVisis");
-    uiMgr->showError("malloc in VMAvailableVisis");
-    printf("error # : serious\n");
+    ERROR_MSG("malloc in VMAvailableVisis", "error#: serious\n");
     return;
   }
   visiList.setCurrent();
   for(i=0; i < temp.count; i++){
     if((temp2 = visiList.getCurrent()) == 0){
        PARADYN_DEBUG(("Error in getCurrent() in VMAvailableVisis"));
-       uiMgr->showError("getCurrent in VMAvailableVisis");
-       printf("error # : serious???\n");
+       ERROR_MSG("Error in getCurrent() in VMAvailableVisis",
+		 "error#: serious\n");
     }
     else{
       temp.data[i].visiTypeId = temp2->Id;
       if(temp2->name != NULL){
         if((temp.data[i].name = strdup(temp2->name)) == NULL){
-          perror("strdup in VM::VMAvailableVisis");
-          uiMgr->showError("strdup in VM::VMAvailableVisis");
-          printf("error # : not so serious???\n");
+	  ERROR_MSG("strdup in VM::AvailableVisis", "error#: not serious\n");
 	  temp.data[i].name = NULL;
         }
       }
@@ -160,30 +159,25 @@ int id;
 
   // create new VMvisis list element and add to visiList
   if((temp = (VMvisis *)malloc(sizeof(VMvisis))) == NULL){
-    perror("malloc in VM::VMAddNewVisualization");
-    uiMgr->showError("malloc in VM::VMAddNewVisualization");
-    printf("error # : serious???\n");
-    return(VMERROR_MALLOC);
-  }
-  if((temp->argv = (char **)malloc(sizeof(char *)*argc)) == NULL){
-    perror("malloc in VM::VMAddNewVisualization");
-    uiMgr->showError("malloc in VM::VMAddNewVisualization");
-    printf("error # : serious???\n");
+    ERROR_MSG("malloc in VM::VMAddNewVisualization", "error#: serious\n");
     return(VMERROR_MALLOC);
   }
 
+  if((temp->argv = (char **)malloc(sizeof(char **) * argc)) == NULL){
+    ERROR_MSG("malloc in VM::VMAddNewVisualization", "error#: serious\n");
+    return(VMERROR_MALLOC);
+  }
+
+  // argv must be null terminated
+  temp->argv[argc] = (char *) 0;
   for(i=0;i<argc;i++){
     if((temp->argv[i] = strdup(argv[i])) == NULL){
-      perror("strdup in VM::VMAddNewVisualization");
-      uiMgr->showError("strdup in VM::VMAddNewVisualization");
-      printf("error # : serious???\n");
+      ERROR_MSG("strdup in VM::VMAddNewVisualization", "error#: serious\n");
       return(VMERROR_MALLOC);
     }
   }
   if((temp->name = strdup(name)) == NULL){
-    perror("strdup in VM::VMAddNewVisualization");
-    uiMgr->showError("strdup in VM::VMAddNewVisualization");
-    printf("error # : serious???\n");
+    ERROR_MSG("strdup in VM::VMAddNewVisualization", "error#: serious\n");
     return(VMERROR_MALLOC);
   }
   temp->argc = argc;
@@ -300,14 +294,8 @@ void *VMmain(int arg){
   int      from;
   VM       *vmp; 
   UIMUser   *ump;
-  char 	   *vmConfigFile;
   performanceConsultantUser   *pcp; 
-  int i,j,k,found;
-  int num,num2;
-  char temp[128];
-  int  c;
-  FILE *fd;
-  VMvisis *tempvals;
+  int found;
 
   char  VMbuff[32];
   tag_t mtag;
@@ -330,87 +318,8 @@ void *VMmain(int arg){
   }
 
   // initialize VM data structures
-
-  // for visilist need info. from config. file on visualization info.
-  if (!(vmConfigFile = getenv("PARADYNCONFIG"))) {
-     vmConfigFile = "/p/paradyn/core/paradyn/src/VMthread/VMconfig.file";
-  }
-
-  if ((fd = fopen(vmConfigFile,"r")) == NULL){
-     // call error routine from UIM
-     PARADYN_DEBUG(("error in VMmain opening VMconfig.file"));
-     uiMgr->showError("error in VMmain opening VMconfig.file");
-     printf("error # : serious\n");
-  }
-  else {
-   fscanf(fd,"%d",&num);   
-   for(i=0;i<num;i++){
-      if((tempvals = (VMvisis *)malloc(sizeof(VMvisis))) == NULL){
-	perror("malloc in VMmain");
-        PARADYN_DEBUG(("error in VMmain malloc"));
-        uiMgr->showError("error in VMmain malloc");
-        printf("error # : serious\n");
-      }
-      else{
-        fscanf(fd,"%d",&num2);
-	if((tempvals->argv=(char **)malloc(sizeof(char *)*(num2+1)))
-	   == NULL){
-	  perror("malloc in VMmain");
-          PARADYN_DEBUG(("error in VMmain malloc"));
-          uiMgr->showError("error in VMmain malloc");
-          printf("error # : serious\n");
-	}
-	else{
-
-	  fscanf(fd,"%s",temp);
-	  if((tempvals->name = strdup(temp)) == NULL){
-              PARADYN_DEBUG(("error in VMmain strdup"));
-              uiMgr->showError("error in VMmain strdup");
-              printf("error # : serious\n");
-	  }
-
-          for(j=0;j<num2;j++){
-	    fscanf(fd,"%s",temp);
-	    if((tempvals->argv[j] = strdup(temp)) == NULL){
-              PARADYN_DEBUG(("error in VMmain strdup"));
-              uiMgr->showError("error in VMmain strdup");
-              printf("error # : serious\n");
-	    }
-	  }
-          tempvals->argv[j++] = 0;
-	  tempvals->argc = num2;
-	  tempvals->Id   = i;
-
-#ifdef DEBUG
-	  printf("\nvisi %d:\n",i);
-	  for(j=0;j<num2;j++){
-           printf("arg %d: %s\n",j,tempvals->argv[j]); 
-	  }
-         printf("adding visi %d to the visi List\n",i);
-#endif
-
-          visiList.add(tempvals,(void *)i);
-	}
-      } // else
-    } // for
-  }
-
-
-#ifdef DEBUG
-visiList.setCurrent();
-for(i=0;i<visiList.count();i++){
-  tempvisi = visiList.getCurrent();
-  printf("tempvisi %d: id = %d name = %s args = %d argv[0] = %s\n",i,
-  tempvisi->Id,tempvisi->name, tempvisi->argc,tempvisi->argv[0]);
-  visiList.advanceCurrent();
-}
-for(i=0;i<visiList.count();i++){
-  if((tempvisi = visiList.find((void *)i)) != 0){
-     printf("visi %d: id = %d name = %s args = %d argv[0] = %s\n",i,
-     tempvisi->Id,tempvisi->name,tempvisi->argc,tempvisi->argv[0]);
-  }
-}
-#endif
+  // visis are defined in the configuration language and
+  // reported using VMAddNewVisualization
 
   vmp = new VM(MAINtid);
 
