@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: rtinst.h,v 1.48 2001/10/11 23:58:13 schendel Exp $
+ * $Id: rtinst.h,v 1.49 2002/05/02 21:29:06 schendel Exp $
  * This file contains the extended instrumentation functions that are provided
  *   by the Paradyn run-time instrumentation layer.
  */
@@ -106,7 +106,6 @@ typedef struct sampleIdRec sampleId;
 
 struct intCounterRec {
    int64_t value;    /* this field must be first for setValue to work -jkh */
-   sampleId id;
   /* seems to be unused, implementing atomic loads and stores for the counters
      should make this method unnecessary anyways - bhs
     unsigned char theSpinner;
@@ -118,7 +117,6 @@ typedef struct intCounterRec intCounter;
 
 struct floatCounterRec {
     float value;
-    sampleId id;
 };
 typedef struct floatCounterRec floatCounter;
 
@@ -127,7 +125,6 @@ struct tTimerRec {
    volatile rawTime64 total;
    volatile rawTime64 start;
    volatile int counter;
-   volatile sampleId id; /* can be made obsolete in the near future */
 #if defined(MT_THREAD)
    volatile int lwp_id;  /* we need to save the lwp id so paradynd can sync */
    volatile int in_inferiorRPC; /* flag to avoid time going backwards - naim */
