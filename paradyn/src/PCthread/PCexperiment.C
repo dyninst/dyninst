@@ -41,7 +41,7 @@
 
 /*
  * The experiment class methods.
- * $Id: PCexperiment.C,v 1.16 1998/04/28 22:22:00 wylie Exp $
+ * $Id: PCexperiment.C,v 1.17 1999/05/19 21:13:53 karavan Exp $
  */
 
 #include "PCintern.h"
@@ -54,7 +54,9 @@
 
 ostream& operator <<(ostream &os, experiment& ex)
 {
-  os << "experiment: " << ex.pcmih <<  endl;
+  os << ex.getStartTime() << " " << ex.getEndTime() << 
+    " " << ex.getCurrentValue() << " " <<  ex.getLastThreshold() <<
+     " # experiment start end value threshold" << endl;
     
   return os;
 }
