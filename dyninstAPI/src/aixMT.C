@@ -39,9 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixMT.C,v 1.14 2002/10/15 17:11:08 schendel Exp $
+// $Id: aixMT.C,v 1.15 2003/01/06 19:27:02 bernat Exp $
 
-#include <sys/pthdebug.h> // Pthread debug library
+//#include <sys/pthdebug.h> // Pthread debug library, disabled
 #include "dyninstAPI/src/dyn_thread.h"
 #include "paradynd/src/metricFocusNode.h"
 #include "dyninstAPI/src/dyn_lwp.h"
@@ -59,17 +59,6 @@
 Frame dyn_thread::getActiveFrame() {
   Frame newFrame;
 
-  pthdb_context_t context;
-
-  //static int init = 0;
-  pthdb_session_t *session_ptr;
-  //static pthdb_callbacks_t callbacks;
-  unsigned ret;
-
-  process *proc = get_proc();
-
-  // First, see if we're on a running thread. That's much simpler
-  // than doing lookup through the pthread debug library
 
   updateLWP();
 
@@ -80,6 +69,7 @@ Frame dyn_thread::getActiveFrame() {
 		     lwpFrame.getPID(), this, lwp, true);
   }
   else {
+#if 0 // Unsupported for now
     // process object holds a pointer to the appropriate thread session
     session_ptr = proc->get_pthdb_session();
     
@@ -122,101 +112,8 @@ Frame dyn_thread::getActiveFrame() {
 	// What?
 	assert(0 && "Process running but virtualTimer incorrect");
       }
+#endif
+    fprintf(stderr, "Error: attempt to get frame info for non-scheduled thread\n");
   }
   return newFrame;
 }
-
-int PTHDB_read_data(pthdb_user_t user,
-		    void *buf,
-		    pthdb_addr_t addr,
-		    size_t len)
-{
-  // We hide the process pointer in the user data. Heh.
-  process *p = (process *)user;
-  /*
-  fprintf(stderr, "read_data(0x%x, 0x%x, 0x%x, %d)\n",
-	  (int) user, (int) buf, (int) addr, (int) len);
-  */
-  if (!p->readDataSpace((void *)addr, len, buf, false))
-    fprintf(stderr, "Error reading data space\n");
-  return 0;
-}
-
-int PTHDB_write_data(pthdb_user_t user,
-		    void *buf,
-		    pthdb_addr_t addr,
-		    size_t len)
-{
-  // We hide the process pointer in the user data. Heh.
-  process *p = (process *)user;
-  /*
-  fprintf(stderr, "write_data(0x%x, 0x%x, 0x%x, %d)\n",
-	  (int) user, (int) buf, (int) addr, (int) len);
-  */
-  if (!p->writeDataSpace((void *)addr, len, buf))
-    fprintf(stderr, "Error writing data space\n");
-  return 0;
-}
-
-int PTHDB_read_regs(pthdb_user_t /*user*/,
-		    tid_t tid,
-		    unsigned long long flags,
-		    pthdb_context_t * /*context*/)
-{
-  fprintf(stderr, "UNWRITTEN read regs, tid %d, flags %lld\n", tid, flags);
-  return 1;
-}
-
-int PTHDB_write_regs(pthdb_user_t /*user*/,
-		     tid_t tid,
-		     unsigned long long flags,
-		     pthdb_context_t */*context*/)
-{
-  fprintf(stderr, "UNWRITTEN write regs, tid %d, flags %lld\n", tid, flags);
-  return 1;
-}
-  
-
-int PTHDB_alloc(pthdb_user_t /*user*/,
-		size_t len,
-		void **bufp)
-{
-  *bufp = malloc(len);
-  /*
-  fprintf(stderr, "alloc(0x%x, %d), returning 0x%x\n",
-	  (int) user, (int) len, (int) *bufp);
-  */
-  return 0;
-}
-
-int PTHDB_dealloc(pthdb_user_t /*user*/,
-		  void *buf)
-{
-  /*  fprintf(stderr, "dealloc(0x%x, 0x%x)\n",
-	  (int) user, (int) buf);
-  */
-  free(buf);
-  return 0;
-}
-
-int PTHDB_realloc(pthdb_user_t user,
-		  void *buf,
-		  size_t len,
-		  void **bufp)
-{
-  /*
-  fprintf(stderr, "realloc(0x%x, 0x%x, %d)\n",
-	  (int) user, (int) buf, (int) len);
-  */
-  PTHDB_dealloc(user, buf);
-  PTHDB_alloc(user, len, bufp);
-  return 0;
-}
-
-int PTHDB_print(pthdb_user_t user, char *str)
-{
-  fprintf(stderr, "print(0x%x, %s)\n",
-	  (int) user, str);
-  return 0;
-}
-

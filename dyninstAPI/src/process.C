@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.376 2003/01/02 19:51:38 schendel Exp $
+// $Id: process.C,v 1.377 2003/01/06 19:27:02 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -7893,75 +7893,6 @@ void process::deleteThread(int tid)
    }
 }
 
-/*
- * On AIX there is a pthread debugging library which allows us to 
- * access most of the internal data for a pthread. This is much
- * preferable to the situation on Solaris, where we use magic offsets
- * gotten from examining header files. However, their mechanism uses
- * callbacks, which we have to define and initialize. 
- */
-#ifdef rs6000_ibm_aix4_1
-// Prototypes, oh boy.
-
-int PTHDB_read_data(pthdb_user_t user,
-		    void *buf,
-		    pthdb_addr_t addr,
-		    size_t len);
-int PTHDB_write_data(pthdb_user_t user,
-		    void *buf,
-		    pthdb_addr_t addr,
-		    size_t len);
-int PTHDB_read_regs(pthdb_user_t user,
-		    tid_t tid,
-		    unsigned long long flags,
-		    pthdb_context_t *context);
-int PTHDB_write_regs(pthdb_user_t user,
-		    tid_t tid,
-		    unsigned long long flags,
-		    pthdb_context_t *context);
-int PTHDB_alloc(pthdb_user_t user,
-		size_t len,
-		void **bufp);
-int PTHDB_realloc(pthdb_user_t user,
-		  void *buf,
-		  size_t len,
-		  void **bufp);
-int PTHDB_dealloc(pthdb_user_t user,
-		  void *buf);
-int PTHDB_print(pthdb_user_t user, char *str);
-
-
-bool process::init_pthdb_library()
-{
-  static int initialized = 0;
-
-  if (initialized) return false;
-  
-  // Use our address as the unique user value
-  pthdb_user_t user = (pthdb_user_t) this;
-  pthdb_callbacks_t callbacks;
-  callbacks.symbol_addrs = NULL;
-  callbacks.read_data = PTHDB_read_data;
-  callbacks.write_data = PTHDB_write_data;
-  callbacks.read_regs = PTHDB_read_regs;
-  callbacks.write_regs = PTHDB_write_regs;
-  callbacks.alloc = PTHDB_alloc;
-  callbacks.realloc = PTHDB_realloc;
-  callbacks.dealloc = PTHDB_dealloc;
-  callbacks.print = PTHDB_print;
-  int ret;
-  ret = pthdb_session_init(user, PEM_32BIT, 
-			   PTHDB_FLAG_GPRS | PTHDB_FLAG_SPRS | PTHDB_FLAG_FPRS | PTHDB_FLAG_SUSPEND,
-			   &callbacks, &pthdb_session_);
-  if (ret) {
-    fprintf(stderr, "Initializing pthread debug library returned %d\n", ret);
-    return false;
-  }
-  initialized = true;
-  return true;
-}
-    
-#endif /* AIX */
 #endif /* MT*/
 
     
