@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.12 2001/02/02 21:17:18 gurari Exp $
+// $Id: arch-x86.C,v 1.13 2001/07/20 19:45:57 gurari Exp $
 // x86 instruction decoder
 
 #include <assert.h>
@@ -1125,7 +1125,6 @@ int set_disp(bool setDisp, instruction *insn, int newOffset, bool outOfFunc) {
           } else {
               if (setDisp) {
                 instr++; 
-                instr++;
                 *((char *) instr) = (char) newOffset;
 	      }
               else return 0;
