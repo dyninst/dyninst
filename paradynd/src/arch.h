@@ -1,4 +1,4 @@
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4) || defined(sparc_tmc_cmost7_3)
 #include "arch-sparc.h"
 #endif
 

@@ -1,4 +1,4 @@
-#if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
+#if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4) && !defined(sparc_tmc_cmost7_3)
 #error "invalid architecture-os inclusion"
 #endif
 
@@ -7,7 +7,10 @@
 
 /*
  * $Log: inst-sparc.h,v $
- * Revision 1.4  1995/05/30 05:22:21  krisna
+ * Revision 1.5  1995/07/11 20:57:30  jcargill
+ * Changed sparc-specific ifdefs to include sparc_tmc_cmost7_3
+ *
+ * Revision 1.4  1995/05/30  05:22:21  krisna
  * architecture-os include protection
  *
  * Revision 1.3  1994/11/02  11:07:46  markc
@@ -24,7 +27,10 @@
  * inst-sparc.h - Common definitions to the SPARC specific instrumentation code.
  *
  * $Log: inst-sparc.h,v $
- * Revision 1.4  1995/05/30 05:22:21  krisna
+ * Revision 1.5  1995/07/11 20:57:30  jcargill
+ * Changed sparc-specific ifdefs to include sparc_tmc_cmost7_3
+ *
+ * Revision 1.4  1995/05/30  05:22:21  krisna
  * architecture-os include protection
  *
  * Revision 1.3  1994/11/02  11:07:46  markc

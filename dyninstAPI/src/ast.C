@@ -1,7 +1,10 @@
 
 /* 
  * $Log: ast.C,v $
- * Revision 1.15  1995/05/30 05:04:55  krisna
+ * Revision 1.16  1995/07/11 20:57:29  jcargill
+ * Changed sparc-specific ifdefs to include sparc_tmc_cmost7_3
+ *
+ * Revision 1.15  1995/05/30  05:04:55  krisna
  * upgrade from solaris-2.3 to solaris-2.4.
  * architecture-os based include protection of header files.
  * removed architecture-os dependencies in generic sources.
@@ -55,7 +58,7 @@
 #include "metric.h"
 #include "ast.h"
 #include "util.h"
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4) || defined(sparc_tmc_cmost7_3)
 #include "inst-sparc.h"
 #else
 #if defined(hppa1_1_hp_hpux)
