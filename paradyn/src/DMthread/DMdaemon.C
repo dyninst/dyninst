@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.90 2000/04/20 22:41:56 mirg Exp $
+ * $Id: DMdaemon.C,v 1.91 2000/04/21 14:35:35 paradyn Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 
@@ -1168,6 +1168,7 @@ bool mpichUnlinkWrappers()
 	return rv;
 }
 				
+#if !defined(i386_unknown_nt4_0)
 /*
   Create a script file which will start paradynd with appropriate
   parameters in a given directory. MPICH hides the user cmdline from
@@ -1348,7 +1349,6 @@ static bool startMPICH(const string &machine, const string &login,
 		       const vector<string> &argv, const vector<string> &args,
 		       daemonEntry *de)
 {
-#if !defined(i386_unknown_nt4_0)
 	string app_name;
 	vector<string> params;
 	const char *script;
@@ -1399,9 +1399,9 @@ static bool startMPICH(const string &machine, const string &login,
 	if (execvp(s[0], s) < 0) {
 		cerr << "Could not start MPICH\n";
 	}
-#endif
 	return false;
 }
+#endif // !defined(i386_unknown_nt4_0)
 
 // TODO: fix this
 //
