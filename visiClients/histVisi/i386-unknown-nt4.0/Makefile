@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 1999/10/05 22:07:37 pcroth Exp $
+# $Id: Makefile,v 1.2 1999/12/06 23:10:32 pcroth Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
