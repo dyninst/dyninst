@@ -7,7 +7,13 @@
  * instP.h - interface between inst and the arch specific inst functions.
  *
  * $Log: instP.h,v $
- * Revision 1.4  1994/09/22 02:01:19  markc
+ * Revision 1.6  1994/11/02 11:09:27  markc
+ * Changed PCptrace prototype.
+ *
+ * Revision 1.5  1994/10/13  07:24:47  krisna
+ * solaris porting and updates
+ *
+ * Revision 1.4  1994/09/22  02:01:19  markc
  * change instInstanceRec struct to a class
  * change signature to PCptrace
  * changed #defines for cust PTRACE_
@@ -45,6 +51,7 @@
 extern "C" {
 #include <sys/ptrace.h>
 }
+#include "ptrace_emul.h"
 
 /*
  * Functions that need to be provided by the inst-arch file.
@@ -66,7 +73,7 @@ class instInstance {
  public:
      instInstance() {
        proc = NULL; location = NULL; trampBase=0;
-       returnAddr = 0; baseAddr=NULL; next = NULL;
+       returnAddr = 0; baseAddr=0; next = NULL;
        prev = NULL; nextAtPoint = NULL; prevAtPoint = NULL; cost=0;
      }
      process *proc;             /* process this inst is for */
@@ -74,7 +81,7 @@ class instInstance {
      instPoint *location;       /* where we put the code */
      int trampBase;             /* base of code */
      int returnAddr;            /* address of the return from tramp insn */
-     void *baseAddr;		/* address of base instance */
+     unsigned baseAddr;		/* address of base instance */
      instInstance *next;        /* linked list of installed instances */
      instInstance *prev;        /* linked list of prev. instance */
      instInstance *nextAtPoint; /* next in same addr space at point */
@@ -82,15 +89,15 @@ class instInstance {
      int cost;			/* cost in cycles of this inst req. */
 };
 
-void *findAndInstallBaseTramp(process *proc, instPoint *location);
+unsigned findAndInstallBaseTramp(process *proc, instPoint *location);
 void installTramp(instInstance *inst, char *code, int codeSize);
 void modifyTrampReturn(process*, int returnAddr, int newReturnTo);
 void generateReturn(process *proc, int currAddr, instPoint *location);
 void generateEmulationInsn(process *proc, int addr, instPoint *location);
 void generateNoOp(process *proc, int addr);
 
-void copyToProcess(process *proc, void *from, void *to, int size);
-void copyFromProcess(process *proc, void *from, void *to, int size);
+void copyToProcess(process *proc, char *from, char *to, int size);
+void copyFromProcess(process *proc, char *from, char *to, int size);
 
 void initTramps();
 void generateBranch(process *proc, int fromAddr, int newAddr);
@@ -106,11 +113,7 @@ void continueProcess(process *proc);
 void pauseProcess(process *proc);
 
 /* do ptrace stuff */
-int PCptrace(ptracereq request, process *proc, void *addr, int data, void *addr2);
+int PCptrace(int request, process *proc, char *addr, int data, char *addr2);
 
 int flushPtrace();
 
-/* we define this to be stop a process on the spot. */
-#define PTRACE_INTERRUPT	PTRACE_26
-#define PTRACE_STATUS		PTRACE_27
-#define PTRACE_SNARFBUFFER	PTRACE_28
