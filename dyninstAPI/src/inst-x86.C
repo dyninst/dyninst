@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.195 2005/03/02 19:44:47 bernat Exp $
+ * $Id: inst-x86.C,v 1.196 2005/03/03 17:25:04 bernat Exp $
  */
 #include <iomanip>
 
@@ -6091,8 +6091,17 @@ bool int_function::PA_attachOverlappingInstPoints(
 // Cheap and cheesy sort routine
 
 int basicBlockStartAddrSort(const void *b1, const void *b2) {
+#if defined(os_windows)
+  // HACK. We aren't exporting _anything_ as const on Windows,
+  // so we need to de-constify the BPatch_basicBlocks before we
+  // call getRelStart
+  BPatch_basicBlock *block1 = const_cast<BPatch_basicBlock *>((const BPatch_basicBlock *)b1);
+  BPatch_basicBlock *block2 = const_cast<BPatch_basicBlock *>((const BPatch_basicBlock *)b2);
+#else
   const BPatch_basicBlock *block1 = (const BPatch_basicBlock *)b1;
   const BPatch_basicBlock *block2 = (const BPatch_basicBlock *)b2;
+#endif
+
   
   if (block1->getRelStart() < block2->getRelStart()) return -1;
   if (block1->getRelStart() > block2->getRelStart()) return -1;
@@ -6536,7 +6545,7 @@ bool registerSpace::clobberRegister(Register /*reg*/)
   return false;
 }
 
-unsigned saveGPRegister(char */*baseInsn*/, Address &/*base*/, Register /*reg*/)
+unsigned saveGPRegister(char * /*baseInsn*/, Address & /*base*/, Register /*reg*/)
 {
   return 0;
 }
