@@ -248,7 +248,7 @@ metricInstance::saveAllData (ofstream& fptr, phaseType ph)
   int numBins = hdata->getNumBins();
   sampleValue *buckets = new sampleValue [numBins];
   unsigned count = hdata->getBuckets(buckets, numBins, 0);
-  // write header info:  numBuckets, bucketWidth
+  // write header info:  datatype, numBuckets, bucketWidth
   fptr << numBins << " " << width << endl;
   // write all data values
   for (unsigned k = 0; k < count; k++) {
