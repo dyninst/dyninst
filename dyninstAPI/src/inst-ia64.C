@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.65 2005/01/17 20:10:27 rutar Exp $
+ * $Id: inst-ia64.C,v 1.66 2005/01/19 18:17:30 bernat Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -77,6 +77,7 @@
 /* While we don't do function relocation, we need to avoid link errors. */
 #include "dyninstAPI/src/func-reloc.h" 
 #include "dyninstAPI/src/LocalAlteration.h"
+#include "dyninstAPI/src/LocalAlteration-ia64.h"
 
 #include "dyninstAPI/src/rpcMgr.h"
 
