@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.272 2003/10/07 19:06:09 schendel Exp $
+/* $Id: process.h,v 1.273 2003/10/21 17:22:25 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -68,11 +68,11 @@
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/frame.h"
 #include "dyninstAPI/src/showerror.h"
-#include "dyninstAPI/src/installed_miniTramps_list.h"
 #include "dyninstAPI/src/syscalltrap.h"
 #include "dyninstAPI/src/libState.h"
 #include "dyninstAPI/src/signalhandler.h"
 #include "dyninstAPI/src/rpcMgr.h"
+#include "dyninstAPI/src/codeRange.h"
 
 #include "dyninstAPI/src/symtab.h" // internalSym
 
@@ -249,8 +249,6 @@ class inferiorHeap {
 
   pdvector<heapItem *> bufferPool;        // distributed heap segments -- csserra
 };
-
-
  
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
 class mutationRecord {
@@ -292,7 +290,7 @@ static inline unsigned ipHash(const instPoint * const &ip)
 }
 
 
-static inline unsigned instInstanceHash(instInstance * const &inst) {
+static inline unsigned miniTrampHandleHash(miniTrampHandle * const &inst) {
    unsigned result = (unsigned)(Address)inst;
    result >>= 2;
    return result; // how about %'ing by a huge prime number?
@@ -352,9 +350,11 @@ class process {
   bool collectSaveWorldData;//this is set to collect data for
 				//save the world
 
-  bool triggeredInStackFrame(instPoint* point, Frame &frame,
-                             pd_Function *&func,
-                             callWhen when, callOrder order);
+  // Is the current address "after" the given instPoint?
+  bool triggeredInStackFrame(Frame &frame,
+                             instPoint *point,
+                             callWhen when,
+                             callOrder order);
 
   bool isInSignalHandler(Address addr);
 
@@ -482,9 +482,10 @@ class process {
   // Get the list of inferior heaps from:
   bool getInfHeapList(pdvector<heapDescriptor> &infHeaps); // Whole process
   bool getInfHeapList(const image *theImage,
-		      pdvector<heapDescriptor> &infHeaps); // Single image
+                      pdvector<heapDescriptor> &infHeaps,
+                      Address baseAddr); // Single image
 
-  void addInferiorHeap(const image *theImage);
+  void addInferiorHeap(const image *theImage, Address baseAddr = 0);
 
   void initInferiorHeap();
 
@@ -785,7 +786,7 @@ class process {
   // addASharedObject: This routine is called whenever a new shared object
   // has been loaded by the run-time linker after the process starts running
   // It processes the image, creates new resources
-  bool addASharedObject(shared_object &, Address newBaseAddr = 0);
+  bool addASharedObject(shared_object *, Address newBaseAddr = 0);
 
   // return the list of dynamically linked libs
   pdvector<shared_object *> *sharedObjects() { return shared_objects;  } 
@@ -804,38 +805,6 @@ class process {
   // due to gcc emitting duplicate constructors/destructors
   bool findAllFuncsByName(resource *func, resource *mod, pdvector<function_base *> &res);
 #endif
-
-  typedef struct {
-    const instPoint *loc;
-    callWhen when;
-    installed_miniTramps_list *mtList;
-  } mtListInfo;
-  void newMiniTrampList(const instPoint *loc, callWhen when,
-			installed_miniTramps_list **mtList);
-  
-#ifndef BPATCH_LIBRARY
-  installed_miniTramps_list* getMiniTrampList(instPoint*&, callWhen&, installed_miniTramps_list**);
-#endif
-
-  installed_miniTramps_list* getMiniTrampList(const instPoint *loc,
-                                                callWhen when );
-
-  const installed_miniTramps_list* getMiniTrampList(const instPoint *loc,
-                                                callWhen when ) const;
-
-  void removeMiniTrampList(const instPoint *loc, callWhen when);
-
-  instPoint *findInstPointFromAddress(Address addr, trampTemplate **bt=NULL,
-				      instInstance **mt=NULL);
-
-  // findAddressInFuncsAndTramps: returns the function which contains this
-  // address.  This checks the a.out image and shared object images for this
-  // function, as well as checking base- and mini-tramps which correspond to
-  // this function.  If the address was in a tramp, the trampTemplate is
-  // returned as well.
-  pd_Function *findAddressInFuncsAndTramps(Address addr, instPoint **ip=NULL,
-					   trampTemplate **bt=NULL, 
-					   instInstance **mt=NULL);
 
 #ifndef BPATCH_LIBRARY
   // returns all the functions in the module "mod" that are not excluded by
@@ -900,21 +869,32 @@ class process {
   // And do it, returning a vector if multiple matches
   bool findAllFuncsByName(const pdstring &func_name, pdvector<function_base *> &res);
 
-  // Check all loaded images for a function containing the given address.
-  pd_Function *findFuncByAddr(Address adr);
-
-  // findModule: returns the module associated with "mod_name" 
-  // this routine checks both the a.out image and any shared object 
-  // images for this module
-  // if check_excluded is true it checks to see if the module is excluded
-  // and if it is it returns 0.  If check_excluded is false it doesn't check
-
+  // Find the code sequence containing an address
+  // Note: fix the name....
+  codeRange *findCodeRangeByAddress(const Address &addr);
+  pd_Function *findFuncByAddr(const Address &addr);
+  
+  // Add various things to the tree of address mappings
+  bool addCodeRange(Address addr, miniTrampHandle *mini);
+  bool addCodeRange(Address addr, trampTemplate *base);
+  bool addCodeRange(Address addr, image *img);
+  bool addCodeRange(Address addr, shared_object *shr);
+  // Relocated functions
+  bool addCodeRange(Address addr, relocatedFuncInfo *reloc);
+  bool deleteCodeRange(Address addr);
+    
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
   // Same as pdvector <pd_Function*>convertPCsToFuncs(pdvector<Address> pcs);
   // except that NULL is not used if address cannot be resolved to unique 
   // function. Used in function relocation for x86.
   pdvector<pd_Function *>pcsToFuncs(pdvector<Frame> stackWalk);
 #endif
+
+  // findModule: returns the module associated with "mod_name" 
+  // this routine checks both the a.out image and any shared object 
+  // images for this module
+  // if check_excluded is true it checks to see if the module is excluded
+  // and if it is it returns 0.  If check_excluded is false it doesn't check
 
 #ifndef BPATCH_LIBRARY
   module *findModule(const pdstring &mod_name,bool check_excluded);
@@ -1109,10 +1089,7 @@ private:
   process *parent;        /* parent of this process */
   image *symbols;               /* information related to the process */
   shared_object *runtime_lib;           /* shortcut to the runtime library */
-  dictionary_hash<const instPoint *, installed_miniTramps_list*> 
-                                           installedMiniTramps_beforePt;
-  dictionary_hash<const instPoint *, installed_miniTramps_list*> 
-                                           installedMiniTramps_afterPt;
+  codeRangeTree codeRangesByAddr_;
 
   int pid;                      /* id of this process */
 
@@ -1332,19 +1309,19 @@ private:
 
    // Maybe this should be in a different file... instead of crudding up
    // process.h more
+   // Easy fix: subclass both base tramp and minitramp off the same
+   // kind of object which has certain things in common (base address and size)
    struct instPendingDeletion {
-     pdvector<Address> hot;
-     Address baseAddr;
      // Stupid duplication...
-     instInstance *oldMini;
+     miniTrampHandle *oldMini;
      trampTemplate *oldBase;
    };
 
    // Closely related: deletion of minitramps
-   void deleteInstInstance(instInstance *delInst);
-   bool checkIfInstAlreadyDeleted(instInstance *delInst);
+   void deleteMiniTramp(miniTrampHandle *delInst);
+   bool checkIfMiniTrampAlreadyDeleted(miniTrampHandle *delInst);
    // And the associated deletion of a base tramp
-   void deleteBaseTramp(trampTemplate *baseTramp, instInstance *lastMiniTramp);
+   void deleteBaseTramp(trampTemplate *baseTramp);
 
 Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type=anyHeap,
                        Address near_=0, bool *err=NULL);

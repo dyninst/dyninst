@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.453 2003/10/16 23:14:29 jodom Exp $
+// $Id: process.C,v 1.454 2003/10/21 17:22:24 bernat Exp $
 
 #include <ctype.h>
 
@@ -259,11 +259,11 @@ Address process::getTOCoffsetInfo(Address dest)
   // the module dyninst_rt is contained in.
   // I think this is the right func to use
 
-  if (symbols->findFuncByAddr(dest, this))
+  if (symbols->findFuncByOffset(dest))
     return (symbols->getObject()).getTOCoffset();
   if (shared_objects)
     for(u_int j=0; j < shared_objects->size(); j++)
-      if (((*shared_objects)[j])->getImage()->findFuncByAddr(dest, this))
+      if (((*shared_objects)[j])->findFuncByAddress(dest))
 #if ! defined(ia64_unknown_linux2_4)
         return (((*shared_objects)[j])->getImage()->getObject()).getTOCoffset();
 #else
@@ -454,18 +454,18 @@ void process::inferiorFreeCompact(inferiorHeap *hp)
   /* combine adjacent buffers */
   bool needToCompact = false;
   for (i = 1; i < freeList.size(); i++) {
-    heapItem *h1 = freeList[i-1];
-    heapItem *h2 = freeList[i];
-    assert(h1->length != 0);
-    assert(h1->addr + h1->length <= h2->addr);
-    if (h1->addr + h1->length == h2->addr
-        && h1->type == h2->type) {
-      h2->addr = h1->addr;
-      h2->length = h1->length + h2->length;
-      h1->length = 0;
-      nbuf--;
-      needToCompact = true;
-    }
+      heapItem *h1 = freeList[i-1];
+      heapItem *h2 = freeList[i];
+      assert(h1->length != 0);
+      assert(h1->addr + h1->length <= h2->addr);
+      if (h1->addr + h1->length == h2->addr
+          && h1->type == h2->type) {
+          h2->addr = h1->addr;
+          h2->length = h1->length + h2->length;
+          h1->length = 0;
+          nbuf--;
+          needToCompact = true;
+      }
   }
 
   /* remove any absorbed (empty) buffers */ 
@@ -498,15 +498,15 @@ bool process::getInfHeapList(pdvector<heapDescriptor> &infHeaps)
 {
   bool foundHeap = false;
   // First check the program (without shared libs)
-  foundHeap = getInfHeapList(symbols, infHeaps);
-
+  foundHeap = getInfHeapList(symbols, infHeaps, 0);
+  
   // Now iterate through shared libs
   if (shared_objects)
-    for(u_int j=0; j < shared_objects->size(); j++)
+      for(u_int j=0; j < shared_objects->size(); j++)
       {
-	if(((*shared_objects)[j]->getImage())){
-		if (getInfHeapList(((*shared_objects)[j])->getImage(), infHeaps))
-		  foundHeap = true;
+          if(((*shared_objects)[j]->getImage())){
+              if (getInfHeapList(((*shared_objects)[j])->getImage(), infHeaps, 0))
+                  foundHeap = true;
 	      }
 	}
 
@@ -514,29 +514,35 @@ bool process::getInfHeapList(pdvector<heapDescriptor> &infHeaps)
 }
 
 bool process::getInfHeapList(const image *theImage, // okay, boring name
-                             pdvector<heapDescriptor> &infHeaps)
+                             pdvector<heapDescriptor> &infHeaps,
+                             Address baseAddr)
 {
 
   // First we get the list of symbols we're interested in, then
   // we go through and add them to the heap list. This is done
   // for two reasons: first, the symbol address might be off (depends
   // on the image), and this lets us do some post-processing.
-  bool foundHeap = false;
-  pdvector<Symbol> heapSymbols;
-  Address baseAddr = 0;
+    bool foundHeap = false;
+    pdvector<Symbol> heapSymbols;
 
-  // For maximum flexibility the findInternalByPrefix function
-  // returns a list of symbols
-
-  foundHeap = theImage->findInternalByPrefix(pdstring("DYNINSTstaticHeap"),
-					     heapSymbols);
-  if (!foundHeap)
-    // Some platforms preface with an underscore
-    foundHeap = theImage->findInternalByPrefix(pdstring("_DYNINSTstaticHeap"),
-					       heapSymbols);
-  // The address in the symbol isn't necessarily absolute
-  getBaseAddress(theImage, baseAddr);
-  for (u_int j = 0; j < heapSymbols.size(); j++)
+    // For maximum flexibility the findInternalByPrefix function
+    // returns a list of symbols
+    
+    foundHeap = theImage->findInternalByPrefix(pdstring("DYNINSTstaticHeap"),
+                                               heapSymbols);
+    if (!foundHeap)
+        // Some platforms preface with an underscore
+        foundHeap = theImage->findInternalByPrefix(pdstring("_DYNINSTstaticHeap"),
+                                                   heapSymbols);
+    // The address in the symbol isn't necessarily absolute
+    if (!baseAddr) {
+        // Possible that this call will fail if we're looking for
+        // heaps before this image has been added to the shared objects
+        // list - hence the handed-in parameter.
+        getBaseAddress(theImage, baseAddr);
+    }
+    
+    for (u_int j = 0; j < heapSymbols.size(); j++)
     {
         // The string layout is: DYNINSTstaticHeap_size_type_unique
         // Can't allocate a variable-size array on NT, so malloc
@@ -1100,12 +1106,12 @@ void process::saveWorldAddSharedLibs(void *ptr){ // ccw 14 may 2002
  * (DYNINSTstaticHeap...) to the buffer pool.
  */
 
-void process::addInferiorHeap(const image *theImage)
+void process::addInferiorHeap(const image *theImage, Address baseAddr)
 {
   pdvector<heapDescriptor> infHeaps;
 
   /* Get a list of inferior heaps in the new image */
-  if (getInfHeapList(theImage, infHeaps))
+  if (getInfHeapList(theImage, infHeaps, baseAddr))
     {
       /* Add the vector to the inferior heap structure */
         for (u_int j=0; j < infHeaps.size(); j++)
@@ -1575,22 +1581,22 @@ process::~process()
        counting mechanism, don't delete instPoints until something like
        this exists.  Otherwise, an error occurs when the instPoint is
        attempted to be deleted after it was already deleted.
-    // remove inst points for this process
-    dictionary_hash_iter<const instPoint *, installed_miniTramps_list*>
-      befList = installedMiniTramps_beforePt;
-    for(; befList; befList++) {
-      const instPoint *pt = befList.currkey();
-      delete pt;
-    }
-
-    // remove inst points for this process
-    dictionary_hash_iter<const instPoint *, installed_miniTramps_list*>
-      aftList = installedMiniTramps_afterPt;
-    for(; aftList; aftList++) {
-      const instPoint *pt = aftList.currkey();
-      delete pt;
-    }
    */
+    // We do however delete the basetramps
+    // Shouldn't we delete instpoints when we delete the associated
+    // image object?
+    
+    {
+        dictionary_hash_iter<const instPoint *, trampTemplate *> baseMap_iter(baseMap);
+        for (; baseMap_iter; baseMap_iter++) {
+#if defined(REFERENCE_COUNTING_INSTPOINTS)
+            const instPoint *p = baseMap_iter.currkey();
+            delete p;
+#endif
+            trampTemplate *t = baseMap_iter.currval();
+            delete t;
+        }
+    }
 
 #ifndef BPATCH_LIBRARY
     // the varMgr needs to be deleted before the shmMgr because the varMgr
@@ -1657,8 +1663,6 @@ process::process(int iPid, image *iImage, int iTraceLink
   shmMetaData(NULL), shMetaOffsetData(NULL),
 #endif
   savedRegs(NULL),
-  installedMiniTramps_beforePt(ipHash),
-  installedMiniTramps_afterPt(ipHash),
   pid(iPid), // needed in fastInferiorHeap ctors below
 #if !defined(BPATCH_LIBRARY)
   previous(0),
@@ -1697,6 +1701,12 @@ process::process(int iPid, image *iImage, int iTraceLink
     needToContinueAfterDYNINSTinit = false;  //Wait for press of "RUN" button
 
     symbols = iImage;
+    // The a.out is a special case... all addresses in it are absolutes,
+    // but we only want it to occupy the area in our memory map that the
+    // functions take up. So we insert it at the codeOffset, and then
+    // _don't_ pass in offsets for recursed function lookups
+    addCodeRange(symbols->codeOffset(), symbols);
+    
     mainFunction = NULL; // set in platform dependent function heapIsOk
 
     theRpcMgr = new rpcMgr(this);
@@ -1820,8 +1830,6 @@ process::process(int iPid, image *iSymbols,
   PARADYNhasBootstrapped(false),
 #endif
   savedRegs(NULL),
-  installedMiniTramps_beforePt(ipHash),
-  installedMiniTramps_afterPt(ipHash),
   pid(iPid),
 #if !defined(BPATCH_LIBRARY)  && defined(i386_unknown_nt4_0)
   previous(0), //ccw 8 jun 2002
@@ -1994,28 +2002,6 @@ process::process(int iPid, image *iSymbols,
    success = true;
 }
 
-
-
-void copyOverInstInstanceObjects(
-        dictionary_hash<const instPoint *, installed_miniTramps_list*> *mtdata)
-{
-   dictionary_hash_iter<const instPoint *, installed_miniTramps_list*> it =
-      *mtdata;
-   for(; it; it++) {
-      installed_miniTramps_list *oldMTlist = it.currval();
-      installed_miniTramps_list *newMTlist =
-         it.currval() = new installed_miniTramps_list();
-      newMTlist->clear();
-      List<instInstance*>::iterator lstIter = oldMTlist->get_begin_iter();
-      List<instInstance*>::iterator endIter = oldMTlist->get_end_iter();
-      for(; lstIter != endIter; lstIter++) {
-         instInstance *oldII = *lstIter;
-         instInstance *newII = new instInstance(*oldII);
-         newMTlist->addMiniTramp(orderLastAtPoint, newII);
-      }
-   }
-}
-
 //
 // Process "fork" ctor, for when a process which is already being monitored by
 // paradynd executes the fork syscall.
@@ -2036,8 +2022,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
   PARADYNhasBootstrapped(false),
 #endif
   savedRegs(NULL),
-  installedMiniTramps_beforePt(parentProc.installedMiniTramps_beforePt),
-  installedMiniTramps_afterPt(parentProc.installedMiniTramps_afterPt),
+  codeRangesByAddr_(parentProc.codeRangesByAddr_),
 #ifdef SHM_SAMPLING
   previous(0),
 #endif
@@ -2075,8 +2060,18 @@ process::process(const process &parentProc, int iPid, int iTrace_fd) :
    continueAfterNextStop_ = 0;
 
    pid = iPid; 
-   copyOverInstInstanceObjects(&installedMiniTramps_beforePt);
-   copyOverInstInstanceObjects(&installedMiniTramps_afterPt);
+
+   // Copy over the base tramp data structure
+   {
+       dictionary_hash_iter<const instPoint *, trampTemplate *> baseMap_iter(parentProc.baseMap);
+       trampTemplate *t;
+       for (; baseMap_iter; baseMap_iter++) {
+           const instPoint *p = baseMap_iter.currkey();
+           t = baseMap_iter.currval();
+           // Also copies internal minitramp lists
+           baseMap[p] = new trampTemplate(t, this);
+       }
+   }
 
    theRpcMgr = new rpcMgr(this);
 
@@ -2650,7 +2645,7 @@ bool process::loadDyninstLib() {
 
     if (!initSharedObjects())
         assert(0);// && "Failed to init shared objects!");
-
+    
     if (dyninstLibAlreadyLoaded()) {
         logLine("ERROR: dyninst library already loaded, we missed initialization!");
         assert(0);
@@ -2680,10 +2675,9 @@ bool process::loadDyninstLib() {
     buffer = pdstring("PID=") + pdstring(pid);
     buffer += pdstring(", loading dyninst library");       
     statusLine(buffer.c_str());
-
     loadDYNINSTlib();
     setBootstrapState(loadingRT);
-
+    
     if (!continueProc()) {
         assert(0);
     }
@@ -2693,8 +2687,8 @@ bool process::loadDyninstLib() {
        if(hasExited())
           return false;
        decodeAndHandleProcessEvent(true);
+       
     }
-
     // Make sure the library was actually loaded
     if (!runtime_lib) return false;
     
@@ -2713,7 +2707,7 @@ bool process::loadDyninstLib() {
     extern pdvector<sym_data> syms_to_find;
     if (!heapIsOk(syms_to_find))
         return false;
-
+    
     // The library is loaded, so do mutator-side initialization
     buffer = pdstring("PID=") + pdstring(pid);
     buffer += pdstring(", finalizing RT library");
@@ -3435,7 +3429,7 @@ bool process::handleIfDueToSharedObjectMapping(){
    if(!dyn) { 
       return false;
    }
-
+   
    pdvector<shared_object *> *changed_objects = 0;
    u_int change_type = 0;
    bool error_occured = false;
@@ -3456,15 +3450,19 @@ bool process::handleIfDueToSharedObjectMapping(){
              // library
              // UGLY.
              
-             if(addASharedObject(*((*changed_objects)[i]))){
+             if(addASharedObject((*changed_objects)[i],
+                                 (*changed_objects)[i]->getBaseAddress()))
+             {
                  (*shared_objects).push_back((*changed_objects)[i]);
-
+                 addCodeRange((*changed_objects)[i]->getBaseAddress(),
+                              (*changed_objects)[i]);
+                 
                  // Check to see if there is a callback registered for this
                  // library, and if so call it.
                  pdstring libname =  (*changed_objects)[i]->getName();
-
+                 
                  runLibraryCallback(libname, (*changed_objects)[i]);;
-
+                 
              } // addASharedObject, above
              else {
                  //logLine("Error after call to addASharedObject\n");
@@ -3602,18 +3600,17 @@ check_rtinst(process *proc, shared_object *so)
 // addASharedObject: This routine is called whenever a new shared object
 // has been loaded by the run-time linker
 // It processes the image, creates new resources
-bool process::addASharedObject(shared_object &new_obj, Address newBaseAddr){
+bool process::addASharedObject(shared_object *new_obj, Address newBaseAddr){
     int ret;
     pdstring msg;
-    // FIXME
-
-    image *img = image::parseImage(new_obj.getFileDesc(),newBaseAddr); 
-
+    image *img = image::parseImage(new_obj->getFileDesc(),newBaseAddr); 
+    
     if(!img){
         //logLine("error parsing image in addASharedObject\n");
+        fprintf(stderr, "No image: failed parse\n");
         return false;
     }
-    new_obj.addImage(img);
+    new_obj->addImage(img);
 
     // TODO: check for "is_elf64" consistency (Object)
 
@@ -3622,13 +3619,14 @@ bool process::addASharedObject(shared_object &new_obj, Address newBaseAddr){
     if (heap.bufferPool.size() != 0)
       // Need to search/add heaps here, instead of waiting for
       // initInferiorHeap.
-      addInferiorHeap(img);
+        addInferiorHeap(img, newBaseAddr);
+
 
 #if !defined(i386_unknown_nt4_0)  && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
     /* If we're not currently trying to load the runtime library,
        check whether this shared object is the runtime lib. */
     if (!(bootstrapState == loadingRT)
-        && (ret = check_rtinst(this, &new_obj))) {
+        && (ret = check_rtinst(this, new_obj))) {
         if (ret == 1) {
             /* The runtime library has been loaded, but not initialized.
                Proceed anyway. */
@@ -3654,12 +3652,12 @@ bool process::addASharedObject(shared_object &new_obj, Address newBaseAddr){
     // created for this process, then the functions and modules from this
     // shared object need to be added to those lists 
     if(all_modules){
-      pdvector<module *> *vptr = const_cast< pdvector<module *> *>(reinterpret_cast< const pdvector<module *> *>(new_obj.getModules()));
+      pdvector<module *> *vptr = const_cast< pdvector<module *> *>(reinterpret_cast< const pdvector<module *> *>(new_obj->getModules()));
       VECTOR_APPEND(*all_modules, *vptr);
     }
     if(all_functions){
       pdvector<function_base *> *normal_funcs = (pdvector<function_base *> *)
-                const_cast< pdvector<pd_Function *> *>(new_obj.getAllFunctions());
+                const_cast< pdvector<pd_Function *> *>(new_obj->getAllFunctions());
 	// need to concat two vectors ...
         VECTOR_APPEND(*all_functions, *normal_funcs); 
         normal_funcs = 0;
@@ -3671,7 +3669,7 @@ bool process::addASharedObject(shared_object &new_obj, Address newBaseAddr){
       Symbol s;
       if (img->symbol_info(SIGNAL_HANDLER, s)) {
 	  // Add base address of shared library
-	  signal_restore = s.addr() + new_obj.getBaseAddress();
+	  signal_restore = s.addr() + new_obj->getBaseAddress();
       }
     }
 #else
@@ -3715,10 +3713,10 @@ bool process::addASharedObject(shared_object &new_obj, Address newBaseAddr){
            // if the lib constraint is not of the form "module/function" and
            // if it is contained in the name of this object, then exclude
            // this shared object
-           char *obj_name = P_strdup(new_obj.getName().c_str());
+           char *obj_name = P_strdup(new_obj->getName().c_str());
            char *lib_name = P_strdup(lib_constraints[j].c_str());
            if(obj_name && lib_name && (where=P_strstr(obj_name, lib_name))){
-              new_obj.changeIncludeFuncs(false); 
+              new_obj->changeIncludeFuncs(false); 
            }
            if(lib_name) free(lib_name);
            if(obj_name) free(obj_name);
@@ -3727,17 +3725,17 @@ bool process::addASharedObject(shared_object &new_obj, Address newBaseAddr){
 
     // This looks a bit wierd at first glance, but apparently is ok -
     //  A shared object has 1 module.  If that module is excluded,
-    //  then new_obj.includeFunctions() should return FALSE.  As such,
-    //  the some_modules += new_obj.getModules() is OK as long as
+    //  then new_obj->includeFunctions() should return FALSE.  As such,
+    //  the some_modules += new_obj->getModules() is OK as long as
     //  shared objects have ONLY 1 module.
-    if(new_obj.includeFunctions()){
+    if(new_obj->includeFunctions()){
         if(some_modules) {
-            *some_modules += *((const pdvector<module *> *)(new_obj.getModules()));
+            *some_modules += *((const pdvector<module *> *)(new_obj->getModules()));
         }
         if(some_functions) {
             // gets only functions not excluded by mdl "exclude_node" option
             *some_functions += 
-                *((pdvector<function_base *> *)(new_obj.getIncludedFunctions()));
+                *((pdvector<function_base *> *)(new_obj->getIncludedFunctions()));
         }
     }
 #endif /* BPATCH_LIBRARY */
@@ -3746,7 +3744,7 @@ bool process::addASharedObject(shared_object &new_obj, Address newBaseAddr){
 #ifdef BPATCH_LIBRARY
 
     assert(BPatch::bpatch);
-    const pdvector<pdmodule *> *modlist = new_obj.getModules();
+    const pdvector<pdmodule *> *modlist = new_obj->getModules();
     if (modlist != NULL) {
       for (unsigned i = 0; i < modlist->size(); i++) {
         pdmodule *curr = (*modlist)[i];
@@ -3817,10 +3815,17 @@ bool process::getSharedObjects() {
 // 	    temp2 += pdstring(((*shared_objects)[j])->getName());
 // 	    temp2 += pdstring("\n");
 // 	    logLine(P_strdup(temp2.c_str()));
- 	    if(!addASharedObject(*((*shared_objects)[j]))){
-		logLine("Error after call to addASharedObject\n");
- 	    }
+ 	    if(addASharedObject((*shared_objects)[j],
+                             (*shared_objects)[j]->getBaseAddress())){
+            addCodeRange((*shared_objects)[j]->getBaseAddress(),
+                         (*shared_objects)[j]);
+            
+        }
+        else
+            logLine("Error after call to addASharedObject\n");
+
 	}
+
 
 #ifndef BPATCH_LIBRARY
         tp->resourceBatchMode(false);
@@ -4052,61 +4057,61 @@ function_base *process::findOnlyOneFunction(const pdstring &name) const {
 
     // If no library was specified, grab the first function we find
     if (lib_name == "") {
-
-      // first check a.out for function symbol
-      pdf = symbols->findOnlyOneFunction(func_name);
-      if(pdf) {
-        ret = pdf;
-      }
-
-      // search any shared libraries for the file name 
-      if(dynamiclinking && shared_objects){
-        for(u_int j=0; j < shared_objects->size(); j++){
-          pdf = ((*shared_objects)[j])->findOnlyOneFunction(func_name);
-          if(pdf){
-	    // fail if we already found a match
-	    if (ret) {
-	      cerr << __FILE__ << ":" << __LINE__ << ": ERROR:  findOnlyOneFunction"
-		   << " found more than one match for function " << func_name <<endl;
-	      return NULL;
-	    }
-	    ret = pdf;
-          }
-	  else {
-	    // cerr << __FILE__ << ":" << __LINE__ << ": WARNING:  findOnlyOneFunction"
-	    //<< " could not find function " << func_name << endl;
-	  }
+        cerr << "Looking for " << func_name << endl;
+        // first check a.out for function symbol
+        pdf = symbols->findOnlyOneFunction(func_name);
+        if(pdf) {
+            ret = pdf;
         }
-      }
+
+        // search any shared libraries for the file name 
+        if(dynamiclinking && shared_objects){
+            for(u_int j=0; j < shared_objects->size(); j++){
+                pdf = ((*shared_objects)[j])->findOnlyOneFunction(func_name);
+                if(pdf){
+                    // fail if we already found a match
+                    if (ret) {
+                        cerr << __FILE__ << ":" << __LINE__ << ": ERROR:  findOnlyOneFunction"
+                             << " found more than one match for function " << func_name <<endl;
+                        return NULL;
+                    }
+                    ret = pdf;
+                }
+                else {
+                    // cerr << __FILE__ << ":" << __LINE__ << ": WARNING:  findOnlyOneFunction"
+                    //<< " could not find function " << func_name << endl;
+                }
+            }
+        }
     } else {
-  
+        
         // Search specified shared library for function 
         if(dynamiclinking && shared_objects){ 
-          for(u_int j=0; j < shared_objects->size(); j++){
-            shared_object *so = (*shared_objects)[j];
-            
-	    // Add prefix wildcard to make name matching easy
-	    if (!lib_name.prefixed_by("*"))
-	      lib_name = "*" + lib_name;             
-
-            if(matchLibName(lib_name, so->getName())) {
-              function_base *fb = so->findOnlyOneFunction(func_name);
-              if (fb) {
-		if (ret) {
-		  cerr << __FILE__ << ":" << __LINE__ << ": ERROR:  findOnlyOneFunction"
-		       << " found more than one match for function " << func_name <<endl;
-		  return NULL;
-		}
-		ret = fb;
-		//cerr << "Found " << func_name << " in " << lib_name << endl;
-              }
-	      else {
-		//cerr << __FILE__ << ":" << __LINE__ << ": WARNING:  findOnlyOneFunction"
-		//  << " could not find function " << func_name << " in module " << so->getName()<<endl;
-	      }
-	    }
-	  }
-	}
+            for(u_int j=0; j < shared_objects->size(); j++){
+                shared_object *so = (*shared_objects)[j];
+                
+                // Add prefix wildcard to make name matching easy
+                if (!lib_name.prefixed_by("*"))
+                    lib_name = "*" + lib_name;             
+                
+                if(matchLibName(lib_name, so->getName())) {
+                    function_base *fb = so->findOnlyOneFunction(func_name);
+                    if (fb) {
+                        if (ret) {
+                            cerr << __FILE__ << ":" << __LINE__ << ": ERROR:  findOnlyOneFunction"
+                                 << " found more than one match for function " << func_name <<endl;
+                            return NULL;
+                        }
+                        ret = fb;
+                        //cerr << "Found " << func_name << " in " << lib_name << endl;
+                    }
+                    else {
+                        //cerr << __FILE__ << ":" << __LINE__ << ": WARNING:  findOnlyOneFunction"
+                        //  << " could not find function " << func_name << " in module " << so->getName()<<endl;
+                    }
+                }
+            }
+        }
     }
 
     return ret;
@@ -4188,8 +4193,9 @@ bool process::getSymbolInfo( const pdstring &name, Symbol &ret )
 	if (!(*shared_objects)[j]) abort();
          sflag = ((*shared_objects)[j])->getSymbolInfo( name, ret );
          if( sflag ) {
-            ret.setAddr( ret.addr() + (*shared_objects)[j]->getBaseAddress() );
-	    return true;
+             // NT already has base address added in
+             ret.setAddr( ret.addr() + (*shared_objects)[j]->getBaseAddress() );
+             return true;
          }
       }
    }
@@ -4197,124 +4203,173 @@ bool process::getSymbolInfo( const pdstring &name, Symbol &ret )
    return false;
 }
 
-// findFunctionIn: returns the function which contains this address
-// This routine checks both the a.out image and any shared object images
-// for this function
+// findRangeByAddr: finds the object (see below) that corresponds with
+// a given absolute address. This includes:
+//   Functions (non-relocated)
+//   Base tramps
+//   Mini tramps
+//   Relocated functions
+//
+// The process class keeps a tree of objects occupying the address space.
+// This top-level tree includes trampolines, relocated functions, and the
+// application and shared objects. The search starts at the top of this tree.
+// If the address resolves to a base tramp, mini tramp, or relocated function,
+// that is returned. If the address resolves within the range of an shared
+// object, the search recurses into the object (the offset into the object
+// is calculated and the function lookup works from the offset). If the offset
+// is within the a.out, we look up the function assuming the address given is
+// the offset. 
 
-// New addition: keep a vector of functions. Return only the first, but
-// complain if additional are found. 
-// Kept around until we're sure the new findFuncByAddr works
-#if 0
-pd_Function *process::findFunctionIn(Address adr)
-{
+codeRange *process::findCodeRangeByAddress(const Address &addr) {
+    codeRange *range;
+    if (!codeRangesByAddr_.precessor(addr, range))
+        return false;
 
-  pdvector <pd_Function *> returned_functions;
-  pd_Function *pdf;
-  // first check a.out for function symbol
-  // Search all functions 
-  pdf = symbols->findFuncByAddr(adr, this);
-  if (pdf) returned_functions.push_back(pdf);
-
-  // search any shared libraries for the function 
-  if(dynamiclinking && shared_objects){
-    for(u_int j=0; j < shared_objects->size(); j++){
-      pdf = ((*shared_objects)[j])->findFuncByAddr(adr,this);
-      if(pdf){
-	returned_functions.push_back(pdf);
-      }
+    assert(range);
+    // Need to check whether the object we got back contains
+    // the given address....
+    if (range->basetramp_ptr) {
+        if (addr > (range->basetramp_ptr->baseAddr + range->basetramp_ptr->size))
+            range = NULL;
     }
-  }
-
-  if (returned_functions.size() > 1) { // Got more than one return
-#ifdef DEBUG
-    cerr << "Warning: multiple matches found for address " << adr << endl;
-#endif
-    for (int i = 0; i < returned_functions.size(); i++)
-      cerr << returned_functions[i]->prettyName() << endl;
-  }
-
-  if (returned_functions.size())
-    return returned_functions[0];
-
-  if(!all_functions) getAllFunctions();
-  
-  // if the function was not found, then see if this addr corresponds
-  // to  a function that was relocated in the heap
-  if(all_functions){
-    for(u_int j=0; j < all_functions->size(); j++){
-      Address func_adr = ((*all_functions)[j])->getAddress(this);
-      if((adr>=func_adr) && 
-	 (adr<=(((*all_functions)[j])->size()+func_adr))){
-	// yes, this is very bad, but too bad
-	cerr << "Found function in relocated heap. Please fix in symtab.C" << endl;
-	return((pd_Function*)((*all_functions)[j]));
-      }
+    else if (range->minitramp_ptr) {
+        if (addr > range->minitramp_ptr->returnAddr)
+            range = NULL;
     }
-  }
-  return(0);
+    else if (range->image_ptr) {
+        if (addr > (range->image_ptr->codeOffset() + range->image_ptr->codeLength())) {
+            range = NULL;
+        }
+    }
+    else if (range->sharedobject_ptr) {
+        if (!range->sharedobject_ptr->isProcessed()) {
+            // Very odd case....
+            return NULL;
+        }
+        Address inImage = (addr - range->sharedobject_ptr->getBaseAddress());        
+        const image *img = range->sharedobject_ptr->getImage();
+        
+        if (!img) {
+            fprintf(stderr, "Warning: shared object has no image pointer!\n");
+            return NULL;
+        }
+        if (inImage > (img->codeOffset() + img->codeLength())) {
+            range = NULL;
+        }
+    }
+    else if (range->reloc_ptr) {
+        if (addr > (range->reloc_ptr->address() + range->reloc_ptr->size()))
+            range = NULL;
+    }
+
+    if (!range) return NULL;
+
+    // If we're talking the a.out or a shared object, recurse....
+    if (range->image_ptr) {
+        // Assumes the base addr of the image is 0!
+        // Fill in the function part as well for complete info
+        range->function_ptr = range->image_ptr->findFuncByOffset(addr);
+    }
+    else if (range->sharedobject_ptr) {
+        range->function_ptr = range->sharedobject_ptr->findFuncByAddress(addr);
+    }
+    
+    return range;
 }
-#endif    
-// findFuncByAddr: returns the function which contains this address
-// This routine checks both the a.out image and any shared object images
-// for this function
 
-// New addition: keep a vector of functions. Return only the first, but
-// complain if additional are found. 
-
-// We've been having problems with multiple matches. In several cases, a
-// given address both matches the absolute addr of a function and the offset
-// of a function within a module. So instead of calling image::findFuncByAddr,
-// we do it the hard way.
-
-// We've been having problems with multiple matches. In several cases, a
-// given address both matches the absolute addr of a function and the offset
-// of a function within a module. So instead of calling image::findFuncByAddr,
-// we do it the hard way.
-
-pd_Function *process::findFuncByAddr(Address adr)
-{
-  pd_Function *pdf;
-  // first check a.out for function symbol
-  // Search all functions 
-  pdf = symbols->findFuncByEntryAddr(adr, this);
-  if (pdf) return pdf;
-  
-  if (dynamiclinking && shared_objects) {
-    for(u_int j=0; j < shared_objects->size(); j++){
-      pdf = ((*shared_objects)[j])->findFuncByEntryAddr(adr,this);
-      if (pdf) return pdf;
+pd_Function *process::findFuncByAddr(const Address &addr) {
+    codeRange *range = findCodeRangeByAddress(addr);
+    if (!range) return NULL;
+    
+    if (range->function_ptr) {
+        return range->function_ptr;
     }
-  }
-
-  pdf = symbols->findFuncByOrigAddr(adr, this);
-  if (pdf) return pdf;
-
-  // search any shared libraries for the function 
-  if(dynamiclinking && shared_objects){
-    for(u_int j=0; j < shared_objects->size(); j++){
-      pdf = ((*shared_objects)[j])->findFuncByOrigAddr(adr, this);
-      if (pdf) return pdf;
+    else if (range->basetramp_ptr) {
+        return range->basetramp_ptr->location->func();
     }
-  }
-
-  // So we checked by entry points and by absolute addresses, and got no
-  // matches. Check by relocated addresses and (possibly) offsets within
-  // a file.
-
-  // first check a.out for function symbol
-  // Search all functions 
-  pdf = symbols->findFuncByRelocAddr(adr, this);
-  if (pdf) return pdf;
-
-  // search any shared libraries for the function 
-  if(dynamiclinking && shared_objects){
-    for(u_int j=0; j < shared_objects->size(); j++){
-      pdf = ((*shared_objects)[j])->findFuncByRelocAddr(adr,this);
-      if (pdf) return pdf;
+    else if (range->minitramp_ptr) {   
+        return range->minitramp_ptr->baseTramp->location->func();
     }
-  }
-  return NULL;
+    else if (range->reloc_ptr) {
+        return range->reloc_ptr->func();
+    }
+    else {
+        return NULL;
+    }
 }
+
+
+// Stack of overloaded add functions
+    
+bool process::addCodeRange(Address addr, miniTrampHandle *mini) {
+    codeRange *range = new codeRange;
+    range->function_ptr = NULL;
+    range->image_ptr = NULL;
+    range->sharedobject_ptr = NULL;
+    range->basetramp_ptr = NULL;
+    range->minitramp_ptr = mini;
+    range->reloc_ptr = NULL;
+    //fprintf(stderr, "Added minitramp %p at 0x%x\n", mini, addr);
+    codeRangesByAddr_.insert(addr, range);
+    return true;
+}
+
+bool process::addCodeRange(Address addr, trampTemplate *base) {
+    codeRange *range = new codeRange;
+    range->function_ptr = NULL;
+    range->image_ptr = NULL;
+    range->sharedobject_ptr = NULL;
+    range->basetramp_ptr = base;
+    range->minitramp_ptr = NULL;
+    range->reloc_ptr = NULL;
+    //fprintf(stderr, "Added basetramp %p at 0x%x\n", base, addr);
+    codeRangesByAddr_.insert(addr, range);
+    return true;
+}
+
+bool process::addCodeRange(Address addr, image *img) {
+    //fprintf(stderr, "Adding img at 0x%x\n", addr);
+    codeRange *range = new codeRange;
+    range->function_ptr = NULL;
+    range->image_ptr = img;
+    range->sharedobject_ptr = NULL;
+    range->basetramp_ptr = NULL;
+    range->minitramp_ptr = NULL;
+    range->reloc_ptr = NULL;
+    codeRangesByAddr_.insert(addr, range);
+    return true;
+}
+
+bool process::addCodeRange(Address addr, shared_object *shr) {
+    //fprintf(stderr, "Adding shared obj at 0x%x\n", addr);
+    codeRange *range = new codeRange;
+    range->function_ptr = NULL;
+    range->image_ptr = NULL;
+    range->sharedobject_ptr = shr;
+    range->basetramp_ptr = NULL;
+    range->minitramp_ptr = NULL;
+    range->reloc_ptr = NULL;
+    codeRangesByAddr_.insert(addr, range);
+    return true;
+}
+bool process::addCodeRange(Address addr, relocatedFuncInfo *reloc) {
+    codeRange *range = new codeRange;
+    range->function_ptr = NULL;
+    range->image_ptr = NULL;
+    range->sharedobject_ptr = NULL;
+    range->basetramp_ptr = NULL;
+    range->minitramp_ptr = NULL;
+    range->reloc_ptr = reloc;
+    codeRangesByAddr_.insert(addr, range);
+    return true;
+}
+
+
+bool process::deleteCodeRange(Address addr) {
+    codeRangesByAddr_.remove(addr);
+    return true;
+}
+
     
 // findModule: returns the module associated with mod_name 
 // this routine checks both the a.out image and any shared object
@@ -4377,7 +4432,7 @@ bool process::getSymbolInfo(const pdstring &name, Symbol &info,
    // first check a.out for symbol
    if(symbols->symbol_info(name,info))
       return getBaseAddress(symbols, baseAddr);
-
+   
    // next check shared objects
    if(dynamiclinking && shared_objects) {
       for(u_int j=0; j < shared_objects->size(); j++) {
@@ -4524,189 +4579,6 @@ pdvector<module *> *process::getIncludedModules(){
 }
 #endif /* BPATCH_LIBRARY */
 
-// writes newly created installed_miniTramps_list into mtList
-void process::newMiniTrampList(const instPoint *loc, callWhen when,
-			       installed_miniTramps_list **mtList) {
-  // operator[] creates an empty installed_miniTramps_list
-  installed_miniTramps_list *newList = new installed_miniTramps_list;
-
-  switch(when) {
-    case callPreInsn: {
-      installedMiniTramps_beforePt[loc] = newList;
-      assert(newList->numMiniTramps() == 0);
-      (*mtList) = newList;
-      break;
-    }
-    case callPostInsn: {
-      installedMiniTramps_afterPt[loc] = newList;
-      assert(newList->numMiniTramps() == 0);
-      (*mtList) = newList;
-      break;
-    }
-    default:
-      assert(false);
-  }
-}
-
-installed_miniTramps_list*
-process::getMiniTrampList(const instPoint *loc, callWhen when)
-{
-  installed_miniTramps_list* ret = NULL;
-
-  // doesn't create an empty installed_miniTramps_list if doesn't already exist
-  switch(when) {
-    case callPreInsn: {
-      dictionary_hash<const instPoint *, installed_miniTramps_list*>::iterator
-        lst = installedMiniTramps_beforePt.find(loc);
-
-      if(lst != installedMiniTramps_beforePt.end())
-        ret = lst.currval();
-
-      break;
-    }
-    case callPostInsn: {
-      dictionary_hash<const instPoint *, installed_miniTramps_list*>::iterator
-        lst = installedMiniTramps_afterPt.find(loc);
-
-      if(lst != installedMiniTramps_afterPt.end())
-        ret = lst.currval();
-
-      break;
-    }
-    default:
-      assert(false);
-  }
-  return ret;
-}
-
-
-const installed_miniTramps_list*
-process::getMiniTrampList(const instPoint *loc, callWhen when ) const
-{
-  const installed_miniTramps_list* ret = NULL;
-
-  // doesn't create an empty installed_miniTramps_list if doesn't already exist
-  switch(when) {
-    case callPreInsn: {
-      dictionary_hash<const instPoint *, installed_miniTramps_list*>::iterator
-        lst = installedMiniTramps_beforePt.find(loc);
-
-      if(lst != installedMiniTramps_beforePt.end())
-        ret = lst.currval();
-
-      break;
-    }
-    case callPostInsn: {
-      dictionary_hash<const instPoint *, installed_miniTramps_list*>::iterator
-        lst = installedMiniTramps_afterPt.find(loc);
-
-      if(lst != installedMiniTramps_afterPt.end())
-        ret = lst.currval();
-
-      break;
-    }
-    default:
-      assert(false);
-  }
-  return ret;
-}
-
-void process::removeMiniTrampList(const instPoint *loc, callWhen when) {
-  switch(when) {
-    case callPreInsn:
-      installedMiniTramps_beforePt.undef(loc);
-      break;
-    case callPostInsn:
-      installedMiniTramps_afterPt.undef(loc);
-      break;
-    default:
-      assert(false);
-  }
-}
-
-instPoint *process::findInstPointFromAddress(Address addr,
-					     trampTemplate **bt,
-					     instInstance **mt)
-{
-   unsigned u;
-   pdvector<const instPoint*> ips;
-   pdvector<trampTemplate*> bts;
-   ips = baseMap.keys();
-   bts = baseMap.values();
-   assert( ips.size() == bts.size() );
-
-   for( u = 0; u < bts.size(); ++u ) {
-      if( bts[u]->inBasetramp( addr ) )
-      {
-	 if(bt!=NULL)  (*bt) = bts[u];
-	 return const_cast<instPoint*>(ips[u]);
-      }
-   }
-
-   dictionary_hash_iter<const instPoint *, installed_miniTramps_list*>
-      befIter = installedMiniTramps_beforePt;
-   
-   for(; befIter; befIter++) {
-      installed_miniTramps_list *curList = befIter.currval();
-
-      List<instInstance*>::iterator curMT = curList->get_begin_iter();
-      List<instInstance*>::iterator endMT = curList->get_end_iter();
-      for(; curMT != endMT; curMT++) {
-	 instInstance *inst = *curMT;
-	 if( ( inst->trampBase <= addr && addr <= inst->returnAddr)
-	     || inst->baseInstance->inBasetramp(addr) )
-	 {
-	    if(mt!=NULL)  (*mt) = inst;
-	    return const_cast<instPoint *>(befIter.currkey());
-	 } 
-      }
-   }
-
-   dictionary_hash_iter<const instPoint *, installed_miniTramps_list*>
-      aftIter = installedMiniTramps_afterPt;
-   for(; aftIter; aftIter++) {
-      installed_miniTramps_list *curList = aftIter.currval();
-
-      List<instInstance*>::iterator curMT = curList->get_begin_iter();
-      List<instInstance*>::iterator endMT = curList->get_end_iter();	 
-      for(; curMT != endMT; curMT++) {
-	 instInstance *inst = *curMT;
-	 if( ( inst->trampBase <= addr && addr <= inst->returnAddr)
-	     || inst->baseInstance->inBasetramp(addr) )
-	 {
-	    if(mt!=NULL)  (*mt) = inst;
-	    return const_cast<instPoint *>(aftIter.currkey());
-	 } 
-      }
-   }
-
-   return NULL;
-}
-
-pd_Function *process::findAddressInFuncsAndTramps(Address addr,
-						  instPoint **ip,
-						  trampTemplate **bt,
-						  instInstance **mt)
-{
-  if(ip!=NULL)  (*ip) = NULL;
-  if(bt!=NULL)  (*bt) = NULL;
-  if(mt!=NULL)  (*mt) = NULL;
-
-  pd_Function *func = NULL;
-  func = (pd_Function *)findFuncByAddr(addr);
-  instPoint *foundInstPt = findInstPointFromAddress(addr, bt, mt);
-  if (ip)
-    *ip = foundInstPt;
-  if(foundInstPt != NULL) {
-    function_base *func_base = 
-      const_cast<function_base*>(foundInstPt->iPgetFunction());
-    if(func_base) {
-      func = static_cast<pd_Function *>(func_base);
-    }
-  }
-  return func;
-}
-      
 // getBaseAddress: sets baseAddress to the base address of the 
 // image corresponding to which.  It returns true  if image is mapped
 // in processes address space, otherwise it returns 0
@@ -4720,12 +4592,17 @@ bool process::getBaseAddress(const image *which, Address &baseAddress) const {
       // find shared object corr. to this image and compute correct address
       for(unsigned j=0; j < shared_objects->size(); j++){ 
           if(((*shared_objects)[j])->isMapped()){
-            if(((*shared_objects)[j])->getImage() == which) { 
-              baseAddress = ((*shared_objects)[j])->getBaseAddress();
-              return true;
-          } }
+              if(((*shared_objects)[j])->getImage() == which) { 
+                  baseAddress = ((*shared_objects)[j])->getBaseAddress();
+                  return true;
+              }
+          }
       }
   }
+  else {
+      fprintf(stderr, "shared_objects not defined\n");
+  }
+  
   return false;
 }
 
@@ -4795,7 +4672,7 @@ bool process::findInternalSymbol(const pdstring &name, bool warn,
 
      if (getSymbolInfo(name, sym, baseAddr)
          || getSymbolInfo(underscore+name, sym, baseAddr)) {
-#ifdef mips_unknown_ce2_11 //ccw 29 mar 2001
+#if defined(mips_unknown_ce2_11)
         ret_sym = internalSym(sym.addr(), name);
 #else
         ret_sym = internalSym(baseAddr+sym.addr(), name);
@@ -4975,8 +4852,11 @@ void process::handleProcessExit(int exitCode) {
    }
 
    --activeProcesses;
-
+   
    BPatch::bpatch->registerExit(bpatch_thread, exitCode);
+
+   // Let the process die
+   //continueProc();
    
    status_ = exited;
    detach(false);
@@ -5084,8 +4964,6 @@ void process::handleExecExit() {
    baseMap.clear();
    instPointMap.clear(); /* XXX Should delete instPoints first? */
    PDFuncToBPFuncMap.clear();
-   installedMiniTramps_beforePt.clear();
-   installedMiniTramps_afterPt.clear();
 
 #ifdef SHM_SAMPLING   
    // the shared memory segment is unusable after the exec
@@ -5294,11 +5172,14 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
             const pdvector<instPoint*> func_rets = func->funcExits(this);
             for (unsigned j=0; j < func_rets.size(); j++) {
                instPoint *func_ret = const_cast<instPoint *>(func_rets[j]);
-               miniTrampHandle mtHandle;
-               loadMiniTramp_result opResult = addInstFunc(&mtHandle, this,
-                                                func_ret, ast,
-                                                req->when, req->order, false, 
-                                                (!req->useTrampGuard));
+               miniTrampHandle *mtHandle;
+               // We ignore the mtHandle return, which is okay -- it's
+               // also stored with the base tramp. 
+               loadMiniTramp_result opResult = addInstFunc(this,
+                                                           mtHandle,
+                                                           func_ret, ast,
+                                                           req->when, req->order, false, 
+                                                           (!req->useTrampGuard));
                assert( opResult == success_res );
             }
 	  
@@ -5306,11 +5187,11 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
          
          if (req->where & FUNC_ENTRY) {
             instPoint *func_entry = const_cast<instPoint *>(func->funcEntry(this));
-            miniTrampHandle mtHandle;
-            loadMiniTramp_result opResult = addInstFunc(&mtHandle, this,
-                                                func_entry, ast,
-                                                req->when, req->order, false,
-                                                (!req->useTrampGuard));
+            miniTrampHandle *mtHandle;
+            loadMiniTramp_result opResult = addInstFunc(this, mtHandle,
+                                                        func_entry, ast,
+                                                        req->when, req->order, false,
+                                                        (!req->useTrampGuard));
             assert( opResult == success_res );
             
          }
@@ -5321,8 +5202,8 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
                continue;
             
             for (unsigned j=0; j < func_calls.size(); j++) {
-               miniTrampHandle mtHandle;
-               loadMiniTramp_result opResult = addInstFunc(&mtHandle, this,
+               miniTrampHandle *mtHandle;
+               loadMiniTramp_result opResult = addInstFunc(this, mtHandle,
                                                 func_calls[j], ast,
                                                 req->when, req->order, false, 
                                                 (!req->useTrampGuard));
@@ -5647,7 +5528,7 @@ BPatch_function *process::findOrCreateBPFunc(pd_Function* pdfunc,
 }
 
 // Add it at the bottom...
-void process::deleteInstInstance(instInstance *delInst)
+void process::deleteMiniTramp(miniTrampHandle *delInst)
 {
   // Add to the list and deal with it later.
   // The question is then, when to GC. I'd suggest
@@ -5655,14 +5536,12 @@ void process::deleteInstInstance(instInstance *delInst)
   // it a public member that can be called when
   // necessary
   struct instPendingDeletion *toBeDeleted = new instPendingDeletion();
-  toBeDeleted->hot.push_back(delInst->trampBase);
-  toBeDeleted->baseAddr = delInst->trampBase;
   toBeDeleted->oldMini = delInst;
   toBeDeleted->oldBase = NULL;
   pendingGCInstrumentation.push_back(toBeDeleted);
 }
 
-bool process::checkIfInstAlreadyDeleted(instInstance *delInst)
+bool process::checkIfMiniTrampAlreadyDeleted(miniTrampHandle *delInst)
 {
   for (unsigned i = 0; i < pendingGCInstrumentation.size(); i++)
     if (pendingGCInstrumentation[i]->oldMini == delInst)
@@ -5670,13 +5549,9 @@ bool process::checkIfInstAlreadyDeleted(instInstance *delInst)
   return false;
 }
 
-void process::deleteBaseTramp(trampTemplate *baseTramp, 
-			      instInstance *lastMiniTramp)
+void process::deleteBaseTramp(trampTemplate *baseTramp)
 {
   struct instPendingDeletion *toBeDeleted = new instPendingDeletion();
-  toBeDeleted->hot.push_back(baseTramp->baseAddr);
-  toBeDeleted->hot.push_back(lastMiniTramp->trampBase);
-  toBeDeleted->baseAddr = baseTramp->baseAddr;
   toBeDeleted->oldMini = NULL;
   toBeDeleted->oldBase = baseTramp;
   pendingGCInstrumentation.push_back(toBeDeleted);
@@ -5721,6 +5596,10 @@ void process::gcInstrumentation(pdvector<pdvector<Frame> > &stackWalks)
   // instInstances that are freeable.
   if (status() == exited) return;
 
+  // This is seriously optimizable -- go by the stack walks first,
+  // and label each item as to whether it is deletable or not,
+  // then handle them all at once.
+
   inferiorHeap *hp = &heap;
 
   if (pendingGCInstrumentation.size() == 0) return;
@@ -5728,49 +5607,65 @@ void process::gcInstrumentation(pdvector<pdvector<Frame> > &stackWalks)
   for (unsigned i = 0; i < pendingGCInstrumentation.size(); i++) {
     instPendingDeletion *old = pendingGCInstrumentation[i];
     bool safeToDelete = true;
-    pdvector<Address> hotAddrs = old->hot;
-    // Get the heap item associated with the mini
-    for (unsigned hotIter = 0; hotIter < hotAddrs.size(); hotIter++) {
-      // Optimization...
-      if (!safeToDelete) break;
-      heapItem *ptr = NULL;
-      if (!hp->heapActive.find(hotAddrs[hotIter], ptr)) {
-	sprintf(errorLine,"Warning: attempt to free undefined heap entry 0x%p (pid=%d, heapActive.size()=%d)\n", 
-		(void*)hotAddrs[hotIter], getPid(), 
-		hp->heapActive.size());
-	logLine(errorLine);
-	continue;
-      }
-      // We only can delete an item if it is free for all
-      // threads
-      for (unsigned threadIter = 0;
-	   threadIter < stackWalks.size();
-	   threadIter++) {
-	if (!safeToDelete) break;
-	for (unsigned stackIter = 0;
-	     stackIter < stackWalks[threadIter].size();
-	     stackIter++) {
-	  if (!safeToDelete) break;
-	  Address pc = stackWalks[threadIter][stackIter].getPC();
-	  // First check if PC is within the minitramp
-	  if ((pc >= ptr->addr) && (pc <= ptr->addr + ptr->length))
-	    safeToDelete = false;
-	}
-      }
+
+    for (unsigned tI = 0;
+         tI < stackWalks.size(); 
+         tI++) {
+        for (unsigned sI = 0;
+             sI < stackWalks[tI].size();
+             tI++) {
+            codeRange *range = findCodeRangeByAddress(stackWalks[sI][tI].getPC());
+            if (old->oldBase) {
+                // If we're in the base tramp we can't delete
+                if (range->basetramp_ptr == old->oldBase)
+                    safeToDelete = false;
+                // If we're in a child minitramp, we also can't delete
+                if (range->minitramp_ptr->baseTramp == old->oldBase)
+                    safeToDelete = false;
+            }
+            else {
+                assert(old->oldMini);
+                if (range->minitramp_ptr == old->oldMini)
+                    safeToDelete = false;
+            }
+            if (!safeToDelete)
+                break;
+        }
+        if (!safeToDelete)
+            break;
     }
     if (safeToDelete) {
-      inferiorFree(old->baseAddr);
-      // Delete from list of GCs
-      pendingGCInstrumentation[i] = 
-	pendingGCInstrumentation[pendingGCInstrumentation.size()-1];
-      pendingGCInstrumentation.resize(pendingGCInstrumentation.size()-1);
-      // Back up iterator to cover the fresh one
-      i--;
-      if (old->oldMini)
-	delete old->oldMini;
-      if (old->oldBase)
-	delete old->oldBase;
-      delete old;
+        heapItem *ptr = NULL;
+        Address baseAddr;
+        if (old->oldBase)
+            baseAddr = old->oldBase->baseAddr;
+        else
+            baseAddr = old->oldMini->miniTrampBase;
+        if (!hp->heapActive.find(baseAddr, ptr)) {
+            sprintf(errorLine,"Warning: attempt to free undefined heap entry 0x%p (pid=%d, heapActive.size()=%d)\n", 
+                    (void*)baseAddr, getPid(), 
+                    hp->heapActive.size());
+            logLine(errorLine);
+            // Skip to next item on the list
+            continue;
+        }
+        inferiorFree(baseAddr);
+
+        // Delete from list of GCs
+        pendingGCInstrumentation[i] = 
+        pendingGCInstrumentation[pendingGCInstrumentation.size()-1];
+        pendingGCInstrumentation.resize(pendingGCInstrumentation.size()-1);
+        // Back up iterator to cover the fresh one
+        i--;
+        
+        // Delete from the codeRange tree
+        deleteCodeRange(baseAddr);
+        
+        if (old->oldMini)
+            delete old->oldMini;
+        if (old->oldBase)
+            delete old->oldBase;
+        delete old;
     }
   }
 }
@@ -5927,7 +5822,8 @@ dyn_thread *process::createThread(
   if (startpc) {
     thr->update_stack_addr(stackbase) ;
     thr->update_start_pc(startpc) ;
-    pdf = findFuncByAddr(startpc) ;
+    codeRange *range = findCodeRangeByAddress(startpc);
+    pdf = range->function_ptr;
     thr->update_start_func(pdf) ;
   } else {
     pdf = findOnlyOneFunction("main");
@@ -5993,7 +5889,8 @@ void process::updateThread(
 
   if(startpc) {
     thr->update_start_pc(startpc) ;
-    pdf = findFuncByAddr(startpc) ;
+    codeRange *range = findCodeRangeByAddress(startpc);
+    pdf = range->function_ptr;
     thr->update_start_func(pdf) ;
     thr->update_stack_addr(stackbase) ;
   } else {
