@@ -142,6 +142,12 @@ public:
 			const BPatch_Vector<BPatch_snippet *> &args);
 };
 
+class BPatch_funcJumpExpr : public BPatch_snippet {
+public:
+     BPatch_funcJumpExpr(const BPatch_function& func);
+};
+
+
 class BPatch_ifExpr : public BPatch_snippet {
 public:
     BPatch_ifExpr(const BPatch_boolExpr &conditional,

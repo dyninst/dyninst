@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.11 1998/12/25 21:58:05 wylie Exp $
+// $Id: BPatch_snippet.C,v 1.12 1999/05/03 20:00:51 zandy Exp $
 
 #include <string.h>
 #include "ast.h"
@@ -297,13 +297,34 @@ BPatch_funcCallExpr::BPatch_funcCallExpr(
     for (i = 0; i < args.size(); i++)
 	ast_args += assignAst(args[i]->ast);
 
-    ast = new AstNode(func.func->prettyName(), ast_args);
+    ast = new AstNode(func.func, ast_args);
 
     for (i = 0; i < args.size(); i++)
 	removeAst(ast_args[i]);
 
     assert(BPatch::bpatch != NULL);
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
+}
+
+
+/*
+ * BPatch_funcJumpExpr::BPatch_funcJumpExpr
+ *
+ * Constructs a snippet representing a jump to a function without
+ * linkage.
+ *
+ * func Identifies the function to jump to.  */
+BPatch_funcJumpExpr::BPatch_funcJumpExpr(
+    const BPatch_function &func)
+{
+#if defined(sparc_sun_solaris2_4)
+    ast = new AstNode(func.func);
+    assert(BPatch::bpatch != NULL);
+    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
+#else
+    BPatch_reportError(BPatchSerious, 109,
+		       "BPatch_funcJumpExpr is not implemented on this platform");
+#endif
 }
 
 

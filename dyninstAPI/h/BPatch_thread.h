@@ -184,6 +184,8 @@ public:
     bool	replaceFunctionCall(BPatch_point &point,
 				    BPatch_function &newFunc);
     bool	removeFunctionCall(BPatch_point &point);
+    bool        replaceFunction(BPatch_function &oldFunc,
+				BPatch_function &newFunc);
 
     void	oneTimeCode(const BPatch_snippet &expr) {
 			oneTimeCodeInternal(expr);

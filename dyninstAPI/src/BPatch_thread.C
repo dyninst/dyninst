@@ -702,6 +702,47 @@ bool BPatch_thread::removeFunctionCall(BPatch_point &point)
 
 
 /*
+ * BPatch_thread::replaceFunction
+ *
+ * Replace all calls to function OLDFUNC with calls to NEWFUNC.
+ * Returns true upon success, false upon failure.
+ * 
+ * oldFunc	The function to replace
+ * newFunc      The replacement function
+ */
+bool BPatch_thread::replaceFunction(BPatch_function &oldFunc,
+				    BPatch_function &newFunc)
+{
+#if defined(sparc_sun_solaris2_4)
+    // Can't make changes to code when mutations are not active.
+    if (!mutationsActive)
+	return false;
+
+    assert(oldFunc.func && newFunc.func);
+
+    // Self replacement is a nop
+    if (oldFunc.func == newFunc.func)
+	 return true;
+
+    // We replace functions by instrumenting the entry of OLDFUNC with
+    // a non-linking jump to NEWFUNC.  Calls to OLDFUNC do actually
+    // transfer to OLDFUNC, but then our jump shunts them to NEWFUNC.
+    // The non-linking jump ensures that when NEWFUNC returns, it
+    // returns directly to the caller of OLDFUNC.
+    BPatch_Vector<BPatch_point *> *pts = oldFunc.findPoint(BPatch_entry);
+    if (! pts || ! pts->size())
+	 return false;
+    BPatch_funcJumpExpr fje(newFunc);
+    return (NULL != insertSnippet(fje, *pts));
+#else
+    BPatch_reportError(BPatchSerious, 109,
+		       "replaceFunction is not implemented on this platform");
+    return false;
+#endif
+}
+
+
+/*
  * BPatch_thread::oneTimeCodeCallbackDispatch
  *
  * This function is registered with the lower-level code as the callback for
