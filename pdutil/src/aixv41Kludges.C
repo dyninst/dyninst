@@ -95,9 +95,6 @@ pid_t P_waitpid(pid_t pid, int *statusp, int options) {
   return (waitpid(pid, statusp, options));}
 size_t P_write (int FILEDES, const void *BUFFER, size_t SIZE) {
   return (write(FILEDES, BUFFER, SIZE));}
-int P_chdir(const char *path) { return (chdir(path)); }
-
-int P_putenv(const char *str) { return putenv(str); }
 
 /* SYSTEM-V shared memory */
 int P_shmget(key_t thekey, int size, int flags) { return shmget(thekey, size, flags); }
@@ -192,7 +189,7 @@ caddr_t P_mmap(caddr_t addr, size_t len, int prot, int flags,
 int P_munmap(caddr_t ca, int i) {return (munmap(ca, i));}
 
 int P_select (int wid, fd_set *rd, fd_set *wr, fd_set *ex, struct timeval *tm) {
-  return (select((unsigned long)wid, (void *)rd, (void *)wr, (void *)ex, tm));}
+  return (select((unsigned long)wid, rd, wr, ex, tm));}
 
 int P_socket (int NAMESPACE, int STYLE, int PROTOCOL) {
   return (socket(NAMESPACE, STYLE, PROTOCOL));}
