@@ -19,14 +19,18 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.18 1994/11/02 11:07:09 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.19 1994/11/02 19:01:24 hollings Exp $";
 #endif
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
- * Revision 1.18  1994/11/02 11:07:09  markc
+ * Revision 1.19  1994/11/02 19:01:24  hollings
+ * Made the observed cost model use a normal variable rather than a reserved
+ * register.
+ *
+ * Revision 1.18  1994/11/02  11:07:09  markc
  * Attempted to reduce the number of types used to represent addresses
  * to 1.  Move sparc-independent routines to symtab.C.
  *
@@ -171,6 +175,9 @@ unsigned getMaxBranch() {
 #define	REG_G6		6
 #define	REG_G7		7
 
+#define REG_L0          16
+#define REG_L1          17
+
 const char *registerNames[] = { "g0", "g1", "g2", "g3", "g4", "g5", "g6", "g7",
 				"o0", "o1", "o2", "o3", "o4", "o5", "sp", "o7",
 				"l0", "l1", "l2", "l3", "l4", "l5", "l6", "l7",
@@ -281,6 +288,28 @@ inline void generateSetHi(instruction *insn, int src1, int dest)
 
     // logLine("sethi  %%hi(0x%x), %%%s\n", HIGH(src1)*1024, 
     // 	registerNames[dest]);
+}
+
+// st rd, [rs1 + offset]
+inline void generateStore(instruction *insn, int rd, int rs1, int offset)
+{
+    insn->resti.op = STop;
+    insn->resti.rd = rd;
+    insn->resti.op3 = STop3;
+    insn->resti.rs1 = rs1;
+    insn->resti.i = 1;
+    insn->resti.simm13 = LOW(offset);
+}
+
+// load [rs1 + offset], rd
+inline void generateLoad(instruction *insn, int rs1, int offset, int rd)
+{
+    insn->resti.op = LOADop;
+    insn->resti.op3 = LDop3;
+    insn->resti.rd = rd;
+    insn->resti.rs1 = rs1;
+    insn->resti.i = 1;
+    insn->resti.simm13 = LOW(offset);
 }
 
 instPoint::instPoint(pdFunction *f, const instruction &instr, 
@@ -437,12 +466,8 @@ void relocateInstruction(instruction *insn, int origAddr, int targetAddr)
 }
 
 trampTemplate baseTemplate;
-trampTemplate noArgsTemplate;
-trampTemplate withArgsTemplate;
 
 extern "C" void baseTramp();
-extern "C" void noArgsTramp();
-extern "C" void withArgsTramp();
 
 void initATramp(trampTemplate *thisTemp, instruction *tramp)
 {
@@ -658,12 +683,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 	generateSetHi(insn, src1, dest);
 	insn++;
 
-	insn->resti.op = LOADop;
-	insn->resti.op3 = LDop3;
-	insn->resti.rd = dest;
-	insn->resti.rs1 = dest;
-	insn->resti.i = 1;
-	insn->resti.simm13 = LOW(src1);
+	generateLoad(insn, dest, src1, dest);
 
 	base += sizeof(instruction)*2;
     } else if (op ==  storeOp) {
@@ -673,12 +693,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 	insn->sethi.imm22 = HIGH(dest);
 	insn++;
 
-	insn->resti.op = STop;
-	insn->resti.rd = src1;
-	insn->resti.op3 = STop3;
-	insn->resti.rs1 = src2;
-	insn->resti.i = 1;
-	insn->resti.simm13 = LOW(dest);
+	generateStore(insn, src1, src2, dest);
 
 	base += sizeof(instruction)*2;
     } else if (op ==  ifOp) {
@@ -720,23 +735,26 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base)
 
 	base += 3 * sizeof(instruction);
     } else if (op ==  trampPreamble) {
-      genImmInsn(insn, SAVEop3, 14, -112, 14);
-      insn++;
+        genImmInsn(insn, SAVEop3, 14, -112, 14);
+        insn++;
       
-	// generate code to update the observed cost register.
-	// SPARC ABI reserved register %g7
-	// add %g7, <cost>, %g7
-
-      // TODO COST MODEL if you want to turn off the cost
-      // model, comment out the next instruction and uncomment
-      // the noop.
-#ifdef COST_MODEL      
-      genImmInsn(insn, ADDop3, REG_G7, src1, REG_G7);
-#else
-      generateNOOP(insn);
-#endif
-
-      base += 2 * sizeof(instruction);
+        // generate code to update the observed cost.
+	// sethi %hi(dest), %l0
+        generateSetHi(insn, dest, REG_L0);
+        insn++;
+  
+	// ld [%l0+ lo(dest)], %l1
+        generateLoad(insn, REG_L0, dest, REG_L1);
+        insn++;
+  
+        // update value
+        genImmInsn(insn, ADDop3, REG_L1, src1, REG_L1);
+        insn++;
+  
+        // store result st %l1, [%l0+ lo(dest)];
+        generateStore(insn, REG_L1, REG_L0, dest);
+  
+        base += 5 * sizeof(instruction);
     } else if (op ==  trampTrailer) {
         genSimpleInsn(insn, RESTOREop3, 0, 0, 0); insn++;
 
@@ -867,9 +885,11 @@ int getInsnCost(opCode op)
 
 	return(count);
     } else if (op ==  trampPreamble) {
-	// save %o6, -112, %o6
-	// add %g7, <cost>, %g7
-	return(2);
+        // sethi %hi(obsCost), %l0
+        // ld [%lo + %lo(obsCost)], %l1
+        // add %l1, <cost>, %l1
+        // st %l1, [%lo + %lo(obsCost)]
+        return(1+1+2+1+3);
     } else if (op ==  trampTrailer) {
 	// restore
 	// noop

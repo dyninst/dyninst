@@ -5,9 +5,13 @@
  *    appropriate inferior process via ptrace calls.
  *
  * $Log: tramp-sparc.s,v $
- * Revision 1.7  1994/11/02 11:18:32  markc
- * Commented out the cost model.
+ * Revision 1.8  1994/11/02 19:01:26  hollings
+ * Made the observed cost model use a normal variable rather than a reserved
+ * register.
  *
+# Revision 1.7  1994/11/02  11:18:32  markc
+# Commented out the cost model.
+#
 # Revision 1.6  1994/10/13  07:25:08  krisna
 # solaris porting and updates
 #
@@ -55,24 +59,15 @@
  *
  * - do global before local because global call DYNINSTinit.
  *
- ***************************************************************************
- *   WARNING: This code used SPARC ABI reserved register %g6 && %g7,
- *      bininst should really verify the application is ABI compliant.
- ***************************************************************************
- *
  */
 	.global baseTramp
 	.global	_baseTramp
 .data
 baseTramp:
 _baseTramp:
-	/* add %g6, 1, %g6	-- g6 counts the number of slots executed */
-#ifdef COST_MODEL
-	add %g7, 5, %g7 	-- cost of base tramp yp to emulate insn */
-#else
-	/* I added the nop and commented out the g7 */
-	nop
-#endif				/* also needs to include cost of ba,a in */
+	/* should update cost of base tramp here, but we don't have a
+	   register to use!
+	*/
 	.word	GLOBAL_PRE_BRANCH
 	.word	LOCAL_PRE_BRANCH
 	.word 	EMULATE_INSN
@@ -80,11 +75,6 @@ _baseTramp:
 	nop			/* extra nop for aggregate size */
 	.word	GLOBAL_POST_BRANCH
 	.word	LOCAL_POST_BRANCH
-	/* add %g6, 1, %g6	-- g6 counts the number of slots executed */
-#ifdef COST_MODEL
-	add %g7, 0x9, %g7    -- cost of base tramp from nop to return */
-#else
-	nop
-#endif
+	/* should update post insn cost of base tramp here */
 	.word	RETURN_INSN
 	.word	END_TRAMP

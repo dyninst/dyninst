@@ -1,7 +1,11 @@
 
 /* 
  * $Log: ast.C,v $
- * Revision 1.8  1994/11/02 11:00:33  markc
+ * Revision 1.9  1994/11/02 19:01:22  hollings
+ * Made the observed cost model use a normal variable rather than a reserved
+ * register.
+ *
+ * Revision 1.8  1994/11/02  11:00:33  markc
  * Replaced string handles.
  * Attempted to use one type for addresses vs. caddr_t, int, unsigned.
  *
@@ -132,10 +136,18 @@ reg AstNode::generateCode(process *proc,
 	    return((unsigned) emit(op, 0, 0, 0, insn, base));
 	} else if (op == trampPreamble) {
 	    int cost;
+	    bool err;
+	    int costAddr;
 
 	    // loperand is a constant AST node with the cost.
 	    cost = (int) loperand->oValue;
-	    return((unsigned) emit(op, cost, 0, 0, insn, base));
+	    costAddr = (proc->symbols)->findInternalAddress("DYNINSTobsCostLow",
+		True, err);
+	    if (err) {
+		logLine("unable to find addr of DYNINSTobsCostLow\n");
+		abort();
+	    }
+	    return((unsigned) emit(op, cost, 0, costAddr, insn, base));
 	} else {
 	    if (loperand) 
 		src = loperand->generateCode(proc, rs, insn, base);
