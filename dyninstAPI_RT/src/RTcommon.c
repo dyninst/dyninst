@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.7 2000/03/06 21:30:35 zandy Exp $ */
+/* $Id: RTcommon.c,v 1.8 2000/03/12 23:30:16 hollings Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -90,3 +90,25 @@ void DYNINSTinit(int cause, int pid)
 
     DYNINSTbreakPoint();
 }
+
+#if !defined(i386_unknown_nt4_0)
+/*
+ * handle vfork special case
+ */
+void DYNINSTvfork(int parent)
+{
+    /* sanity check */
+    assert(sizeof(time64) == 8);
+    assert(sizeof(int64_t)  == 8);
+    assert(sizeof(int32_t)  == 4);
+
+    if (parent != getpid()) {
+	DYNINST_bootstrap_info.pid = getpid();
+	DYNINST_bootstrap_info.ppid = getppid();
+	DYNINST_bootstrap_info.event = 3;
+    } else {
+	DYNINSTbreakPoint();
+	DYNINST_bootstrap_info.event = 0;
+    }
+}
+#endif
