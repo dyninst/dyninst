@@ -3,6 +3,9 @@
 
 /*
  * $Log: metParser.y,v $
+ * Revision 1.17  1996/01/05 20:01:27  newhall
+ * fixed purify error
+ *
  * Revision 1.16  1995/12/18 23:22:13  newhall
  * changed metric units type so that it can have one of 3 values (normalized,
  * unnormalized or sampled)
@@ -164,7 +167,7 @@ resList: tRES_LIST tLPAREN list_type list_id list_items opt_library tCOMMA tIDEN
        T_dyninstRPC::mdl_stmt *s = new T_dyninstRPC::mdl_list_stmt($4.u, *$2.sp, 
 								   $6.vs, $6.b, $6.vsf);
          if (s) mdl_data::stmts += s; 
-         delete $2.sp; delete $6.sp; }
+         }
  | tRES_LIST error;
 
 library : tTRUE { $$.b = true; }
