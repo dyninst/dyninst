@@ -1076,7 +1076,13 @@ bool pd_Function::relocateFunction(process *proc,
       cerr << "WARNING -- process::walkStack returned an empty stack" << endl;
     vector<pd_Function *> stack_funcs = proc->pcsToFuncs(stack_pcs);
     for(i=0;i<stack_funcs.size();i++) {
-      stack_func = stack_funcs[i];      
+      stack_func = stack_funcs[i];
+
+      if (i == 0 && stack_pcs[0] == this->getEffectiveAddress(proc)) {
+          /* okay if we haven't really entered the function yet */
+          continue;
+      }
+
       if( stack_func == this ) {
 
 #ifdef DEBUG_FUNC_RELOC
