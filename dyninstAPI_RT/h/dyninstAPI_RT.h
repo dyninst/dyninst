@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: dyninstAPI_RT.h,v 1.1 1999/11/11 00:53:15 wylie Exp $
+ * $Id: dyninstAPI_RT.h,v 1.2 1999/12/22 16:27:56 paradyn Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the run-time instrumentation layer.
  */
@@ -119,6 +119,6 @@ struct trampTableEntryStruct {
 
 #endif
 
-#endif !defined(__ASSEMBLER__)
+#endif /* !defined(__ASSEMBLER__) */
 
-#endif _DYNINSTAPI_RT_H
+#endif /* _DYNINSTAPI_RT_H */
