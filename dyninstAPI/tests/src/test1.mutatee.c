@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.66 2001/01/04 19:10:21 tikir Exp $ */
+/* $Id: test1.mutatee.c,v 1.67 2001/02/02 21:22:14 gurari Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -65,7 +65,7 @@ int debugPrint = 0;
 #define TRUE	1
 #define FALSE	0
 
-#define MAX_TEST 34
+#define MAX_TEST 35
 
 int runTest[MAX_TEST+1];
 int passedTest[MAX_TEST+1];
@@ -2339,6 +2339,50 @@ void func34_1()
     printf( "Passed test #34 (loop information)\n" );
 }
 
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
+#ifdef __cplusplus
+extern "C" int call35_1();
+#else
+extern int call35_1();
+#endif
+#endif
+
+void func35_1() 
+{
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
+
+    int value;
+    value = call35_1();
+
+    if( value != 35 )
+    {
+      printf( "**Failed** test #35 (function relocation)\n" );
+
+      printf( "    total = %d, should be 35.\n", value );
+
+      switch(value)
+      {
+        case 1: printf( "    Entry instrumentation did not work.\n" ); break;
+        case 2: printf( "    Exit instrumentation did not work.\n" ); break;
+        default: printf("    Take a look at the call to call35_2.\n" ); break;
+      }
+      passedTest[ 35 ] = FALSE;
+      return;
+    }
+
+    passedTest[ 35 ] = TRUE;
+    printf( "Passed test #35 (function relocation)\n" );
+#else
+    passedTest[ 35 ] = TRUE;
+    printf( "Skipped test #35 (function relocation)\n" );
+#if defined(i386_unknown_nt4_0)
+    printf( "\t- test not implemented for this platform\n" ); 
+#else
+    printf( "\t- not implemented on this platform\n" );
+#endif
+#endif
+}
+
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
@@ -2468,6 +2512,7 @@ int main(int iargc, char *argv[])
 
     if (runTest[33]) func33_1();
     if (runTest[33]) func34_1();
+    if (runTest[35]) func35_1();
 
     /* See how we did running the tests. */
     for (i=1; i <= MAX_TEST; i++) {

@@ -39,7 +39,7 @@ int errorPrint = 0; // external "dyninst" tracing (via errorFunc)
 
 int mutateeCplusplus = 0;
 bool runAllTests = true;
-const unsigned int MAX_TEST = 34;
+const unsigned int MAX_TEST = 35;
 bool runTest[MAX_TEST+1];
 bool passedTest[MAX_TEST+1];
 
@@ -3116,6 +3116,70 @@ void mutatorTest34( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     }
 }
 
+// Start Test Case #35 - (function relocation)
+void mutatorTest35( BPatch_thread * appThread, BPatch_image * appImage )
+{
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
+
+    char * foo_name = "call35_1";
+
+    BPatch_function * foo_function = appImage->findFunction( foo_name );
+    if( foo_function == 0 )
+    {
+      fprintf( stderr, "Cannot find \"%s\" function.",
+	       foo_name );
+      exit( -1 );
+    }
+
+    BPatch_Vector<BPatch_point *> *point35_1 =  
+	foo_function->findPoint( BPatch_subroutine );
+
+    assert(point35_1);
+
+    BPatch_variableExpr *var1 = appImage->findVariable(*(*point35_1)[0], 
+	"localVariable35_1");
+    BPatch_variableExpr *var2 = appImage->findVariable(*(*point35_1)[0], 
+	"localVariable35_2");
+    BPatch_variableExpr *var3 = appImage->findVariable(*(*point35_1)[0], 
+	"total35_1");
+    BPatch_variableExpr *var4 = appImage->findVariable(*(*point35_1)[0], 
+	"total35_2");
+
+    if (!var1 || !var2 || !var3 || !var4 ) {
+	fprintf(stderr, "**Failed** test #35 (function relocation)\n");
+	if (!var1) 
+	    fprintf(stderr, "  can't find local variable localVariable35_1\n");
+	if (!var2) 
+	    fprintf(stderr, "  can't find local variable localVariable35_2\n");
+        if (!var3) 
+	    fprintf(stderr, "  can't find local variable total35_1\n");
+        if (!var4) 
+	    fprintf(stderr, "  can't find local variable total35_2\n");
+	return;
+    }
+
+    BPatch_snippet * snippet35_1 = 
+      new BPatch_arithExpr(BPatch_assign, *var1, BPatch_constExpr(7));
+
+    BPatch_snippet * snippet35_2 = 
+      new BPatch_arithExpr(BPatch_assign, *var2, BPatch_constExpr(5));
+
+    BPatch_snippet * snippet35_3 = 
+      new BPatch_arithExpr(BPatch_assign, *var4, *var3);
+
+    BPatch_point * call_1 = ( (* point35_1)[0] );
+    assert( call_1 != 0 );
+    
+    BPatch_point * call_2 = ( (* point35_1)[1] );
+    assert( call_2 != 0 );
+    
+    appThread->insertSnippet( * snippet35_3, * call_2, BPatch_callAfter, BPatch_firstSnippet );
+    appThread->insertSnippet( * snippet35_2, * call_1, BPatch_callBefore, BPatch_firstSnippet );
+    appThread->insertSnippet( * snippet35_1, * call_1, BPatch_callBefore, BPatch_firstSnippet );
+
+#endif   
+}    
+
 /*******************************************************************************/
 /*******************************************************************************/
 /*******************************************************************************/
@@ -3243,6 +3307,8 @@ int mutatorMAIN(char *pathname, bool useAttach)
 
     if( runTest[ 33 ] ) mutatorTest33( appThread, appImage );
     if( runTest[ 34 ] ) mutatorTest34( appThread, appImage );
+
+    if( runTest[ 35 ] ) mutatorTest35( appThread, appImage );
 
     // Start of code to continue the process.  All mutations made
     // above will be in place before the mutatee begins its tests.
