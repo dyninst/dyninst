@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.433 2003/06/20 22:07:51 schendel Exp $
+// $Id: process.C,v 1.434 2003/06/22 22:40:28 rchen Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -5426,6 +5426,15 @@ bool process::handleSyscallExit(procSignalWhat_t syscall)
             return true;            
         }
         else {
+#if defined(alpha_dec_osf4_0)
+	    // On alpha fortran, the mutator recieves an extra SIGTRAP
+	    // when the mutatee is instructed to continue.  The mutatee
+	    // claims to be returning from system call #91.
+	    //
+	    // We haven't requested to hear about returns from system
+	    // calls, but it seems safe to ignore the trap.
+	    if (syscall == 91) return true;
+#endif
             thr->get_lwp()->clearSyscallExitTrap();
             return true;
         }
