@@ -88,6 +88,29 @@ DataElement::DataElement( const DataElement & de)
             val.p = NULL;
         }
         break;
+    case STRING_ARRAY_T:
+        if( de.val.p ){
+            const char** orig_str_array = (const char**)de.val.p;
+            char** str_array = (char**)malloc( array_len * sizeof(char*) );
+            for( unsigned int i = 0; i < array_len; i++ )
+            {
+                if( orig_str_array[i] != NULL )
+                {
+                    size_t slen = strlen( orig_str_array[i] );
+                    str_array[i] = (char*)malloc( slen * sizeof(char) );
+                    memcpy( str_array[i], orig_str_array[i], slen );
+                }
+                else
+                {
+                    str_array[i] = NULL;
+                }
+            }
+            val.p = str_array;
+        }
+        else{
+            val.p = NULL;
+        }
+        break;
     case UNKNOWN_T:
         //TODO: error
         break;
@@ -206,6 +229,33 @@ DataElement & DataElement::operator=( const DataElement & de)
             val.p = NULL;
         }
         break;
+    case STRING_ARRAY_T:
+        if( val.p != NULL ){
+            //TODO: check and *NOT* free memory that will be passed to user
+            //free(val.p)
+        }
+        if( de.val.p != NULL ){
+            const char** orig_str_array = (const char**)de.val.p;
+            char** str_array = (char**)malloc( array_len * sizeof(char*) );
+            for( unsigned int i = 0; i < array_len; i++ )
+            {
+                if( orig_str_array[i] != NULL )
+                {
+                    size_t slen = strlen( orig_str_array[i] );
+                    str_array[i] = (char*)malloc( slen * sizeof(char) );
+                    memcpy( str_array[i], orig_str_array[i], slen );
+                }
+                else
+                {
+                    str_array[i] = NULL;
+                }
+            }
+            val.p = str_array;
+        }
+        else{
+            val.p = NULL;
+        }
+        break;
     case UNKNOWN_T:
         //TODO: error
         break;
@@ -257,6 +307,8 @@ DataType Fmt2Type(const char * cur_fmt)
         return DOUBLE_ARRAY_T;
     else if( !strcmp(cur_fmt, "s") )
         return STRING_T;
+    else if( !strcmp(cur_fmt, "as") )
+        return STRING_ARRAY_T;
     else
         return UNKNOWN_T;
 }

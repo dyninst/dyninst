@@ -22,7 +22,7 @@ typedef union{
 typedef enum {
     UNKNOWN_T, CHAR_T, UCHAR_T,
     CHAR_ARRAY_T, UCHAR_ARRAY_T,
-    STRING_T,
+    STRING_T, STRING_ARRAY_T,
     INT16_T, UINT16_T,
     INT16_ARRAY_T, UINT16_ARRAY_T,
     INT32_T, UINT32_T,
@@ -51,42 +51,45 @@ class DataElement{
         //      used again. array ptrs that result from recv'd data
         //      packets must be "free()'d" by the user.
     }
-    DataType get_Type( void ) { return type; }
+    DataType get_Type( void ) const { return type; }
 
-    char get_char( void ) { return val.c; }
+    char get_char( void ) const { return val.c; }
     void set_char( char c ) { val.c = c; type = CHAR_T; }
 
-    unsigned char get_uchar( void ) { return val.uc; }
+    unsigned char get_uchar( void ) const { return val.uc; }
     void set_uchar( unsigned char uc ) { val.uc = uc; type = UCHAR_T; }
 
-    int16_t get_int16_t( void ) { return val.hd; }
+    int16_t get_int16_t( void ) const { return val.hd; }
     void set_int16_t( int16_t hd ) { val.hd = hd; type = INT16_T; }
 
-    uint16_t get_uint16_t( void ) { return val.uhd; }
+    uint16_t get_uint16_t( void ) const { return val.uhd; }
     void set_uint16_t( uint16_t uhd ) { val.uhd = uhd; type = UINT16_T; };
 
-    int32_t get_int32_t( void ) { return val.d; }
+    int32_t get_int32_t( void ) const { return val.d; }
     void set_int32_t( int32_t d ) { val.d = d; type = INT32_T; };
 
-    uint32_t get_uint32_t( void ) { return val.ud; }
+    uint32_t get_uint32_t( void ) const { return val.ud; }
     void set_uint32_t( uint32_t ud ) { val.ud = ud; type = UINT32_T; };
 
-    int64_t get_int64_t( void ) { return val.ld; }
+    int64_t get_int64_t( void ) const { return val.ld; }
     void set_int64_t( int64_t ld ) { val.ld = ld; type = INT64_T; };
 
-    uint64_t get_uint64_t( void ) { return val.uld; }
+    uint64_t get_uint64_t( void ) const { return val.uld; }
     void set_uint64_t( uint64_t uld ) { val.uld = uld; type = UINT64_T; };
 
-    float get_float( void ) { return val.f; }
+    float get_float( void ) const { return val.f; }
     void set_float( float f ) { val.f = f; type = FLOAT_T; };
 
-    double get_double( void ) { return val.lf; }
+    double get_double( void ) const { return val.lf; }
     void set_double( double lf ) { val.lf = lf; type = DOUBLE_T; };
 
     char * get_string( void ) { return (char *)val.p; }
+    const char * get_string( void ) const { return (const char *)val.p; }
     void set_string( char *p ) { val.p = (void *)p; type = STRING_T; };
 
     void * get_array( DataType *t, uint32_t *len )
+        { *t=type; *len=array_len; return val.p; }
+    const void * get_array( DataType *t, uint32_t *len ) const
         { *t=type; *len=array_len; return val.p; }
     void set_array( void *p, DataType t, uint32_t len )
         { val.p = p; type = t; array_len = len; }
