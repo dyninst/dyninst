@@ -2,19 +2,26 @@
 
 /*
  * $Log: PriorityQueue.h,v $
+ * Revision 1.2  1995/12/08 21:30:26  tamches
+ * added printing (for debugging purposes)
+ *
  * Revision 1.1  1995/12/08 04:55:29  tamches
  * first version of priority queue class
  *
  */
 
+// Note: in this priority queue class, the item with the _smallest_ key
+//       will be the first item.
+
 #ifndef _PRIORITY_QUEUE_H_
 #define _PRIORITY_QUEUE_H_
 
+#include <iostream.h>
 #include "util/h/Vector.h"
 
 template <class KEY, class DATA>
 // KEY must have operator<, operator>, etc. defined
-// DATA can be arbitrary
+// DATA can be an arbitrary type
 class PriorityQueue {
  private:
    struct pair {
@@ -22,11 +29,20 @@ class PriorityQueue {
       DATA theData;
       pair(const KEY &k, const DATA &d) : theKey(k), theData(d) {}
       pair() {} // required by Vector.h
+      bool operator<(const pair &other) const {return theKey < other.theKey;}
+      bool operator>(const pair &other) const {return theKey > other.theKey;}
+      ostream &operator<<(ostream &os) const {
+         os << theKey << ',' << theData;
+         return os;
+      }
    };
 
    vector<pair> data;
 
  private:
+   static int cmpfunc(const void *ptr1, const void *ptr2);
+      // for sorting w/in operator<<()
+
    void swap_items(unsigned index1, unsigned index2);
 
    void reheapify_with_parent(unsigned index);
@@ -54,6 +70,10 @@ class PriorityQueue {
    const DATA &peek_first_data() const;
    
    void delete_first(); // bombs if empty
+
+   ostream &operator<<(ostream &os) const; // just for debugging, nach...
+
+   friend ostream &operator<<(ostream &os, PriorityQueue<KEY, DATA> &q);
 };
 
 #endif

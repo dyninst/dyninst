@@ -2,6 +2,9 @@
 
 /*
  * $Log: PriorityQueue.C,v $
+ * Revision 1.2  1995/12/08 21:30:40  tamches
+ * added printing (for debugging purposes)
+ *
  * Revision 1.1  1995/12/08 04:55:41  tamches
  * first version of priority queue class
  *
@@ -150,3 +153,40 @@ void PriorityQueue<KEY, DATA>::reheapify_with_children(unsigned index) {
    }
 }
 
+template <class KEY, class DATA>
+int PriorityQueue<KEY, DATA>::cmpfunc(const void *ptr1, const void *ptr2) {
+   const PriorityQueue<KEY, DATA>::pair &pair1 = *(const PriorityQueue<KEY, DATA>::pair *)ptr1;
+   const PriorityQueue<KEY, DATA>::pair &pair2 = *(const PriorityQueue<KEY, DATA>::pair *)ptr2;
+
+   if (pair1 < pair2)
+      return -1;
+   else if (pair1 > pair2)
+      return 1;
+   else
+      return 0;
+}
+
+template <class KEY, class DATA>
+ostream &PriorityQueue<KEY, DATA>::operator<<(ostream &os) const {
+   // we need to walk the priority queue (in key order), printing each item.
+   // However, this is surprisingly hard.  We end up needing to make a copy
+   // of the array and sorting it...
+
+   vector<PriorityQueue<KEY,DATA>::pair> copy = data;
+   copy.sort(cmpfunc);
+
+   for (unsigned i=0; i < copy.size(); i++) {
+      const PriorityQueue<KEY, DATA>::pair &p = copy[i];
+
+      os << "[" << i << "]: ";
+      p.operator<<(os);
+      os << endl;
+   }
+
+   return os;
+}
+
+template <class KEY, class DATA>
+ostream &operator<<(ostream &os, PriorityQueue<KEY, DATA> &q) {
+   return q.operator<<(os);
+}
