@@ -111,6 +111,8 @@ extern unsigned DYNINST_initialize_done;
 void DYNINST_initialize_once();
 extern tc_lock_t DYNINST_traceLock;
 
+/* RTinst.c */
+unsigned MAX_NUMBER_OF_THREADS;
 
 #endif
 

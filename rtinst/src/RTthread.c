@@ -93,12 +93,20 @@ void DYNINST_initialize_once(char *DYNINST_shmSegAttachedPtr) {
     return;
   fprintf(stderr, "DYNINST_init_done...\n");
   if (!DYNINST_initialize_done) {
-    /* Shorthand */
+    unsigned i;
     DYNINST_initialize_pos_list();
     DYNINST_initialize_done=1;
     P_thread_key_create(&DYNINST_thread_key, NULL /* no destructor */) ;
-    memset((char*)&(RTsharedData->virtualTimers), '\0', sizeof(tTimer)*MAX_NUMBER_OF_THREADS) ;    
+    for (i = 0; i < MAX_NUMBER_OF_THREADS; i++) {
+      RTsharedData.virtualTimers[i].total = 0;
+      RTsharedData.virtualTimers[i].start = 0;
+      RTsharedData.virtualTimers[i].counter = 0;
+      RTsharedData.virtualTimers[i].pos = 0;
+      RTsharedData.virtualTimers[i].protector1 = 0;
+      RTsharedData.virtualTimers[i].protector2 = 0;
+    }    
     
+
   }
   tc_lock_unlock(&DYNINST_initLock);
   fprintf(stderr, "Returning from init once\n");  

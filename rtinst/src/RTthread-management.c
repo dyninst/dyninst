@@ -83,7 +83,7 @@ int DYNINST_reportThreadUpdate(int flag) {
   } 
 
   /* Called by parent thread... start its virtual timer */
-  _VirtualTimerStart(&(RTsharedData->virtualTimers[pos]), THREAD_CREATE) ;
+  _VirtualTimerStart(&(RTsharedData.virtualTimers[pos]), THREAD_CREATE) ;
   return pos ;
 }
 
@@ -143,14 +143,14 @@ void DYNINSTthreadDelete(void) {
   unsigned pos = DYNINSTthreadPosFAST();
   int tid = DYNINSTthreadSelf();
 
-  /* Report freeing of the pos before we actually do it
-     so that if it's reused soon the daemon doesn't get 
-     confused */
+  /* Order: set the POS to "awaiting deletion",
+     report deletion, then destroy the timer */
+  DYNINST_free_pos(pos, tid);
+
   DYNINST_reportThreadDeletion(pos, tid);
 
-  DYNINST_VirtualTimerDestroy(&(RTsharedData->virtualTimers[pos]));
+  DYNINST_VirtualTimerDestroy(&(RTsharedData.virtualTimers[pos]));
 
-  DYNINST_free_pos(pos, tid);
 }
 
 /* Returns new POS */
@@ -182,9 +182,9 @@ unsigned DYNINSTthreadCreate(int tid)
   fprintf(stderr, "Setspecific run\n");
   /* Set up virtual timers */
   fprintf(stderr, "Doing virtual timer at addr 0x%x\n",
-	  (unsigned) &(RTsharedData->virtualTimers[pos]));
-  if (&(RTsharedData->virtualTimers[pos])) {
-    _VirtualTimerStart(&(RTsharedData->virtualTimers[pos]), THREAD_CREATE) ;
+	  (unsigned) &(RTsharedData.virtualTimers[pos]));
+  if (&(RTsharedData.virtualTimers[pos])) {
+    _VirtualTimerStart(&(RTsharedData.virtualTimers[pos]), THREAD_CREATE) ;
   }
   fprintf(stderr, "Virtual timer started\n");
   return pos;
@@ -203,16 +203,16 @@ void DYNINSTthreadStart() {
     int lwpid = P_lwp_self() ;
 
     /* Restart the virtual timer */
-    _VirtualTimerStart(&(RTsharedData->virtualTimers[pos]), VIRTUAL_TIMER_START) ;
+    _VirtualTimerStart(&(RTsharedData.virtualTimers[pos]), VIRTUAL_TIMER_START) ;
 
     /* Check to see if there are pending iRPCs to run */
     for (i = 0; i < MAX_PENDING_RPC; i++)
-      if (RTsharedData->pendingIRPCs[pos][i].flag == 1) { /* Ha! We have an RPC! */
+      if (RTsharedData.pendingIRPCs[pos][i].flag == 1) { /* Ha! We have an RPC! */
 	fprintf(stderr, "Found an inferior RPC for pos %d, slot %d\n", pos, i);
-	if (RTsharedData->pendingIRPCs[pos][i].rpc)
-	  (*RTsharedData->pendingIRPCs[pos][i].rpc)();
+	if (RTsharedData.pendingIRPCs[pos][i].rpc)
+	  (*RTsharedData.pendingIRPCs[pos][i].rpc)();
 	fprintf(stderr, "Finished inferior RPC\n");
-	RTsharedData->pendingIRPCs[pos][i].flag = 2;
+	RTsharedData.pendingIRPCs[pos][i].flag = 2;
       }
   }
 }
@@ -222,7 +222,7 @@ void DYNINSTthreadStop() {
   int pos; /* in mini */
   pos = DYNINSTthreadPosFAST() ; /* in mini */
   if (pos >=0) {
-    _VirtualTimerStop(&(RTsharedData->virtualTimers[pos])) ;
+    _VirtualTimerStop(&(RTsharedData.virtualTimers[pos])) ;
   }
 }
 

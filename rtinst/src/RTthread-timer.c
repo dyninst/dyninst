@@ -47,27 +47,27 @@
 void DEBUG_VIRTUAL_TIMER_START(tTimer *timer, int context) {
   switch(context) {
   case THREAD_UPDATE: {
-    fprintf(stderr, "THREAD_UPDATE--->start virtual timer(%d), lwp_id=%d\n", timer-(RTsharedData->virtualTimers), timer->pos);
+    fprintf(stderr, "THREAD_UPDATE--->start virtual timer(%d), lwp_id=%d\n", timer-(RTsharedData.virtualTimers), timer->pos);
     break ;
   }
   case THREAD_CREATE: {
-    fprintf(stderr, "THREAD_CREATE--->start virtual timer(%d), lwp_id=%d\n", timer-(RTsharedData->virtualTimers), timer->pos);
+    fprintf(stderr, "THREAD_CREATE--->start virtual timer(%d), lwp_id=%d\n", timer-(RTsharedData.virtualTimers), timer->pos);
     break ;
   }
   case THREAD_DETECT: {
-    fprintf(stderr, "THREAD_DETECT--->start virtual timer(%d), lwp_id=%d\n", timer-(RTsharedData->virtualTimers), timer->pos);
+    fprintf(stderr, "THREAD_DETECT--->start virtual timer(%d), lwp_id=%d\n", timer-(RTsharedData.virtualTimers), timer->pos);
     break ;
   }
   case VIRTUAL_TIMER_CREATE: {
-    fprintf(stderr, "VIRTUAL_TIMER_CREATE--->start virtual timer(%d), lwp_id=%d\n", timer-(RTsharedData->virtualTimers), timer->pos);
+    fprintf(stderr, "VIRTUAL_TIMER_CREATE--->start virtual timer(%d), lwp_id=%d\n", timer-(RTsharedData.virtualTimers), timer->pos);
     break ;
   }
   case VIRTUAL_TIMER_START: {
-    fprintf(stderr, "VIRTUAL_TIMER_START--->start virtual timer(%d), lwp_id=%d\n", timer-(RTsharedData->virtualTimers), timer->pos);
+    fprintf(stderr, "VIRTUAL_TIMER_START--->start virtual timer(%d), lwp_id=%d\n", timer-(RTsharedData.virtualTimers), timer->pos);
     break ;
   }
   case THREAD_TIMER_START: {
-    fprintf(stderr, "THREAD_TIMER_START--->start virtual timer(%d), lwp_id=%d\n", timer-(RTsharedData->virtualTimers), timer->pos);
+    fprintf(stderr, "THREAD_TIMER_START--->start virtual timer(%d), lwp_id=%d\n", timer-(RTsharedData.virtualTimers), timer->pos);
     break ;
   }
   }
@@ -128,7 +128,7 @@ rawTime64 getThreadCPUTime(unsigned pos, int *valid) {
   volatile rawTime64 total, start ;
   rawTime64 now = -1;
   volatile int    count, vt_lwp_id;
-  tTimer *vt = &(RTsharedData->virtualTimers[pos]);
+  tTimer *vt = &(RTsharedData.virtualTimers[pos]);
 
   protector2 = vt->protector2 ;
   count = vt->counter;

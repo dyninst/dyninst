@@ -21,7 +21,7 @@ int DYNINSTthreadPos ()
   /* Quick method. Could we get away with a logical AND? */
   if ((curr_pos > 0) && 
       (curr_pos < MAX_NUMBER_OF_THREADS) &&
-      (RTsharedData->posToThread[curr_pos] == tid)) {
+      (RTsharedData.posToThread[curr_pos] == tid)) {
     return curr_pos;
   }
   /* Slow method */
