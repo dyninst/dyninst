@@ -7,14 +7,19 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-cm5.C,v 1.8 1994/06/29 02:52:39 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-cm5.C,v 1.9 1994/07/01 22:14:15 markc Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricDefs-cm5.C,v $
- * Revision 1.8  1994/06/29 02:52:39  hollings
+ * Revision 1.9  1994/07/01 22:14:15  markc
+ * Moved createSyncWait from metricDefs-common to machine dependent files
+ * since pvm uses a wall timer and cm5 uses a process timer.  On the cm5 the
+ * process timer continues to run during blocking system calls.
+ *
+ * Revision 1.8  1994/06/29  02:52:39  hollings
  * Added metricDefs-common.{C,h}
  * Added module level performance data
  * cleanedup types of inferrior addresses instrumentation defintions
@@ -100,6 +105,27 @@ extern libraryList msgFilterFunctions;
 extern libraryList msgByteFunctions;
 extern libraryList msgByteSentFunctions;
 extern libraryList msgByteRecvFunctions;
+
+
+// A process timer is used because it does not stop on blocking
+// system calls.
+void createSyncWait(metricDefinitionNode *mn, AstNode *trigger)
+{
+    dataReqNode *dataPtr;
+    AstNode *stopNode, *startNode;
+
+    dataPtr = mn->addTimer(processTime);
+
+    startNode = new AstNode("DYNINSTstartProcessTimer", 
+	new AstNode(DataValue, dataPtr), NULL);
+    if (trigger) startNode = createIf(trigger, startNode);
+
+    stopNode = new AstNode("DYNINSTstopProcessTimer", 
+	new AstNode(DataValue, dataPtr), NULL);
+    if (trigger) stopNode = createIf(trigger, stopNode);
+
+    instAllFunctions(mn, TAG_MSG_FUNC, startNode, stopNode);
+}
 
 //
 // ***** Warning this metric is CM-5 specific. *****

@@ -19,12 +19,17 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-common.C,v 1.1 1994/06/29 02:52:41 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-common.C,v 1.2 1994/07/01 22:14:17 markc Exp $";
 #endif
 
 /*
  * $Log: metricDefs-common.C,v $
- * Revision 1.1  1994/06/29 02:52:41  hollings
+ * Revision 1.2  1994/07/01 22:14:17  markc
+ * Moved createSyncWait from metricDefs-common to machine dependent files
+ * since pvm uses a wall timer and cm5 uses a process timer.  On the cm5 the
+ * process timer continues to run during blocking system calls.
+ *
+ * Revision 1.1  1994/06/29  02:52:41  hollings
  * Added metricDefs-common.{C,h}
  * Added module level performance data
  * cleanedup types of inferrior addresses instrumentation defintions
@@ -32,6 +37,12 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  * assorted bug fixes.
  *
  *
+ */
+
+/* Note - createSyncWait is machine dependent.  The cm5 process timer
+ * continues to run during blocking system calls, but the pvm process
+ * timer does not.  Timing system calls is done with a wall timer in
+ * pvm and a process timer in cm5 because of this.
  */
 
 #include <stdio.h>
@@ -269,24 +280,6 @@ void createMsgs(metricDefinitionNode *mn, AstNode *trigger)
 //
 void dummyCreate(metricDefinitionNode *mn, AstNode *trigger)
 {
-}
-
-void createSyncWait(metricDefinitionNode *mn, AstNode *trigger)
-{
-    dataReqNode *dataPtr;
-    AstNode *stopNode, *startNode;
-
-    dataPtr = mn->addTimer(processTime);
-
-    startNode = new AstNode("DYNINSTstartProcessTimer", 
-	new AstNode(DataValue, dataPtr), NULL);
-    if (trigger) startNode = createIf(trigger, startNode);
-
-    stopNode = new AstNode("DYNINSTstopProcessTimer", 
-	new AstNode(DataValue, dataPtr), NULL);
-    if (trigger) stopNode = createIf(trigger, stopNode);
-
-    instAllFunctions(mn, TAG_MSG_FUNC, startNode, stopNode);
 }
 
 
