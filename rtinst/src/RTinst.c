@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.71 2003/03/14 23:18:40 bernat Exp $
+ * $Id: RTinst.c,v 1.72 2003/03/21 21:19:08 bernat Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -471,7 +471,7 @@ void PARADYNinit(int paradyndPid,
        paradyndPid);
    */
 #endif
-
+   
    initFPU();
    DYNINSThasInitialized = 3;
 
@@ -484,17 +484,20 @@ void PARADYNinit(int paradyndPid,
   
    /* initialize the tag and group info */
    DYNINSTtagGroupInfo_Init();
-
+   
    if (!calledFromFork) {
       RTsharedData_t *RTsharedInShm;
       char *endOfShared;
       Address shmBase;
       unsigned i;
+      rpcToDo **pendingRPCs;
+      
       DYNINST_shmSegKey = theKey;
       DYNINST_shmSegNumBytes = shmSegSize;
       DYNINST_shmSegAttachedPtr = DYNINST_shm_init(theKey, shmSegSize,
                                                    &DYNINST_shmSegShmId);      
       shmBase = (Address) DYNINST_shmSegAttachedPtr;
+      
       /* Yay, pointer arithmetic */
       RTsharedInShm = (RTsharedData_t *)
          (shmBase + offsetToSharedData);
@@ -506,19 +509,24 @@ void PARADYNinit(int paradyndPid,
          ((Address) RTsharedInShm->daemon_pid + shmBase);
       RTsharedData.observed_cost = 
          (unsigned *) ((Address) RTsharedInShm->observed_cost + shmBase);
+
       RTsharedData.virtualTimers = (virtualTimer *)
          ((Address) RTsharedInShm->virtualTimers + shmBase);
       RTsharedData.posToThread = (unsigned *)
          ((Address) RTsharedInShm->posToThread + shmBase);
       RTsharedData.pendingIRPCs = 
          malloc(sizeof(rpcToDo *)*MAX_NUMBER_OF_THREADS);
-      RTsharedInShm->pendingIRPCs = (rpcToDo **) 
-         ((unsigned) RTsharedInShm->pendingIRPCs + (unsigned) shmBase);
-      for (i = 0; i < MAX_NUMBER_OF_THREADS; i++) {
-         RTsharedData.pendingIRPCs[i] = (rpcToDo *)
-            ((Address) RTsharedInShm->pendingIRPCs[i] + shmBase);
+      RTsharedData.pendingIRPCs[0] = NULL;
+      
+      pendingRPCs = (rpcToDo **)
+      ((unsigned) RTsharedInShm->pendingIRPCs + (unsigned) shmBase);
+ 
+      for (i = 0; i < MAX_NUMBER_OF_THREADS; i++) { 
+          RTsharedData.pendingIRPCs[i] = (rpcToDo *)
+          ((Address) pendingRPCs[i] + shmBase);
       }
    }
+   
    /*
      In accordance with usual stdio rules, stdout is line-buffered and stderr
      is non-buffered.  Unfortunately, stdio is a little clever and when it
