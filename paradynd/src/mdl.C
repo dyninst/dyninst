@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.133 2003/04/24 19:56:26 zandy Exp $
+// $Id: mdl.C,v 1.134 2003/05/05 23:23:05 schendel Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -499,6 +499,7 @@ bool update_environment_start_point(instrCodeNode *codeNode) {
    pdvector<function_base *> fbv;
    
    if(proc->multithread_ready()) {
+#if defined(rs6000_ibm_aix4_1)
       if (!proc->findAllFuncsByName("_pthread_body", fbv)) {
          string msg = string("unable to find procedure '") + 
                       string("_pthread_body") + string("'");
@@ -520,9 +521,11 @@ bool update_environment_start_point(instrCodeNode *codeNode) {
       }
       
       if(pdf)  (*start_func_buf).push_back(pdf);
+#endif
       fbv.clear();
       pdf = NULL;
-      
+
+#if defined(sparc_sun_solaris2_4)      
       if (!proc->findAllFuncsByName("_thread_start", fbv)) {
          string msg = string("unable to find procedure '") + 
                       string("_thread_start") + string("'");
@@ -543,6 +546,7 @@ bool update_environment_start_point(instrCodeNode *codeNode) {
          pdf = fbv[0];
       }
       if(pdf)  (*start_func_buf).push_back(pdf);
+#endif
    }
    
    if (NULL != (pdf = proc->getMainFunction())) {
