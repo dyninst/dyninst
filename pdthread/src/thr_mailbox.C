@@ -487,7 +487,8 @@ int thr_mailbox::put_sock(message* m) {
 
 int thr_mailbox::recv(thread_t* sender, tag_t* tagp, void* buf, unsigned* countp) {
     int retval = THR_OKAY;
-    
+    COLLECT_MEASUREMENT(THR_MSG_TIMER_START);
+        
 //    monitor->lock();
     thr_debug_msg(CURRENT_FUNCTION, "RECEIVING: size of messages = %d, size of sock_messages = %d\n", messages->get_size(), sock_messages->get_size());
     message* to_recv;
@@ -508,6 +509,8 @@ int thr_mailbox::recv(thread_t* sender, tag_t* tagp, void* buf, unsigned* countp
 
   done:
 //    monitor->unlock();
+    COLLECT_MEASUREMENT(THR_MSG_TIMER_STOP);
+
     return retval;
 }
 
@@ -557,11 +560,14 @@ int thr_mailbox::poll(thread_t* from, tag_t* tagp, unsigned block,
 { 
 //    monitor->lock();
     
+    COLLECT_MEASUREMENT(THR_MSG_TIMER_START);
 
     bool found = check_for(from, tagp, (block != 0), false, NULL, fd_first);
 
 
  //   monitor->unlock();
+
+    COLLECT_MEASUREMENT(THR_MSG_TIMER_STOP);
 
     if(found) {
         return THR_OKAY;

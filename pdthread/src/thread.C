@@ -5,6 +5,8 @@
 #include "thrtab.h"
 #include <assert.h>
 
+#include <sys/time.h>
+
 #if DO_DEBUG_LIBPDTHREAD_THREAD == 1
 #define DO_DEBUG_LIBPDTHREAD 1
 #else
@@ -15,6 +17,83 @@
 #include "thr_debug.h"
 
 #undef DO_DEBUG_LIBPDTHREAD
+
+#if DO_LIBPDTHREAD_MEASUREMENTS
+
+long long thr_get_vtime() {
+    long long retval;
+#if defined (i386_unknown_linux2_0)
+#define THR_GET_VTIME_DEFINED 1
+#warning libthread: no thr_get_vtime for linux yet; timer numbers will be nonsense
+    // FIXME:  do rdtsc implementation
+    static long long blah = 0;
+    retval = blah++;
+    
+#endif
+
+#if defined (sparc_sun_solaris2_4)
+#define THR_GET_VTIME_DEFINED 1
+    retval = gethrvtime();
+#endif 
+
+#if defined (rs6000_ibm_aix4_1)
+#define THR_GET_VTIME_DEFINED 1
+#warning libthread: no thr_get_vtime for aix yet; timer numbers will be nonsense
+    // FIXME: do big perfctr implementation
+    static long long blah = 0;
+    retval = blah++;
+#endif 
+
+#ifndef THR_GET_VTIME_DEFINED
+#warning libthread: no thr_get_vtime for your platform, please edit pdthread/src/thread.C and add one
+#warning libthread: using lame gettimeofday() based timer; horribly inaccurate
+
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    
+    retval = (tv.tv_sec * 1000000) + tv.usec;
+    
+#endif
+
+    return retval;
+}
+
+void thr_collect_measurement(int op) {
+    thr_perf_data_t* perf_data;
+    unsigned long long current_time;
+
+    current_time = thr_get_vtime();
+
+    perf_data = pthread_getspecific(lwp::perf_data_key);
+
+    switch (op) {
+        case THR_LOCK_ACQ:
+            perf_data->num_lock_acquires++;
+            break;
+        case THR_LOCK_BLOCK:
+            perf_data->num_lock_blocks++;
+            break;
+        case THR_LOCK_TIMER_START:
+            perf_data->lock_timer_start = current_time;
+            break;
+        case THR_LOCK_TIMER_STOP:
+            perf_data->lock_contention_time += (current_time - perf_data->lock_timer_start);
+            break;
+        case THR_MSG_SEND:
+        case THR_MSG_RECV:            
+        case THR_MSG_POLL:
+            perf_data->num_msg_ops++;
+            break;
+        case THR_MSG_TIMER_START:
+            perf_data->msg_timer_start = current_time;
+            break;
+        case THR_MSG_TIMER_STOP:
+            perf_data->msg_time += (current_time - perf_data->msg_timer_start);
+            break;
+    }
+}
+
+#endif /* DO_LIBPDTHREAD_MEASUREMENTS */
 
 item_t thr_type(thread_t tid) {
     thr_debug_msg(CURRENT_FUNCTION, "tid = %d\n", (unsigned)tid);

@@ -1,7 +1,8 @@
 #include "pthread_sync.h"
-#include<pthread.h>
-#include<stdlib.h>
+#include <pthread.h>
+#include <stdlib.h>
 #include <stdio.h>
+#include "../h/thread.h"
 
 #define MAX_CONDS 512
 
@@ -25,10 +26,21 @@ pthread_sync::~pthread_sync() {
 }
 
 void pthread_sync::lock() {
+    int status = 0;
+    COLLECT_MEASUREMENT(THR_LOCK_ACQ);
+    
 #if LIBTHREAD_DEBUG == 1
         fprintf(stderr, "acquiring lock %p (by pthread %d)...\n", &mutex, pthread_self());
 #endif
-    pthread_mutex_lock(mutex);
+    status = pthread_mutex_trylock(mutex);
+
+    if (status && errno == EBUSY) {
+        COLLECT_MEASUREMENT(THR_LOCK_BLOCK);
+        COLLECT_MEASUREMENT(THR_LOCK_TIMER_START);
+        pthread_mutex_lock(mutex);
+        COLLECT_MEASUREMENT(THR_LOCK_TIMER_STOP);
+    }
+
 #if LIBTHREAD_DEBUG == 1
         fprintf(stderr, "acquired lock %p!\n", &mutex);
 #endif

@@ -21,6 +21,8 @@
 
 
 int msg_send(thread_t tid, tag_t tag, void* buf, unsigned size) {
+    COLLECT_MEASUREMENT(THR_MSG_SEND);
+
     thr_debug_msg(CURRENT_FUNCTION, "tid = %d, tag = %d, buf = %p, size = %d\n", tid, tag, buf, size);
 
     thread_t sender = lwp::get_self();
@@ -43,6 +45,7 @@ int msg_send(thread_t tid, tag_t tag, void* buf, unsigned size) {
 }
 
 int msg_poll(thread_t* tid, tag_t* tag, unsigned block) {
+    COLLECT_MEASUREMENT(THR_MSG_POLL);
 
     thr_debug_msg(CURRENT_FUNCTION, "tid = %d, tag = %d, block = %d\n", *tid, *tag, block);
 
@@ -54,6 +57,8 @@ int msg_poll(thread_t* tid, tag_t* tag, unsigned block) {
 }
 
 int msg_poll_preference(thread_t* tid, tag_t* tag, unsigned block, unsigned fd_first) {
+    COLLECT_MEASUREMENT(THR_MSG_POLL);
+
     thr_debug_msg(CURRENT_FUNCTION, "tid = %d, tag = %d, block = %d, fd_first = %d\n", *tid, *tag, block, fd_first);
 
     mailbox* mbox = lwp::get_mailbox();
@@ -66,6 +71,8 @@ int msg_poll_preference(thread_t* tid, tag_t* tag, unsigned block, unsigned fd_f
 
 
 int msg_recv(thread_t* tid, tag_t* tag, void* buf, unsigned* bufsize) {
+    COLLECT_MEASUREMENT(THR_MSG_RECV);
+
     thr_debug_msg(CURRENT_FUNCTION, "tid = %d, tag = %d, buf = %p, bufsize = %d\n", *tid, *tag, buf, *bufsize);
 
     mailbox* mbox = lwp::get_mailbox();

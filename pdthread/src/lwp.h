@@ -49,11 +49,17 @@ class lwp : public entity {
     /* For any thread, errno_key points to its "errno" */
     static pthread_key_t errno_key;
 
+#ifdef DO_LIBPDTHREAD_MEASUREMENTS
+
+    static pthread_key_t perf_data_key;
+
+#endif /* DO_LIBPDTHREAD_MEASUREMENTS */
+    
     /* keys_once is a latch used to ensure that the static TSD keys
        are only initialized once */
     static pthread_once_t keys_once;
 
-    /* initialize_tsd_keys creates TSD keys for each of the three
+    /* initialize_tsd_keys creates TSD keys for each of the
        preceding TSD items */
     static void initialize_tsd_keys();
 
@@ -82,6 +88,12 @@ class lwp : public entity {
     rwlock_t _completed_lk;
     rwlock_t _joined_lk;
     rwlock_t _reaped_lk;
+    
+#ifdef DO_LIBPDTHREAD_MEASUREMENTS
+
+    thr_perf_data_t _perf_data;
+    
+#endif /* DO_LIBPDTHREAD_MEASUREMENTS */
 
     wrapper_arg_t _wrapped_args;
     mailbox *_mail;
@@ -94,7 +106,19 @@ class lwp : public entity {
         _running_lk(rwlock::favor_writers),
         _completed_lk(rwlock::favor_writers),
         _joined_lk(rwlock::favor_writers),
-        _reaped_lk(rwlock::favor_writers) {}
+        _reaped_lk(rwlock::favor_writers)
+        {
+#ifdef DO_LIBPDTHREAD_MEASUREMENTS
+            perf_data.num_lock_acquires = 0;
+            perf_data.num_lock_blocks = 0;
+            perf_data.lock_contention_time = 0;
+            perf_data.lock_timer_start = 0;
+
+            perf_data.num_msg_ops = 0;
+            perf_data.msg_time = 0;
+            perf_data.msg_timer_start = 0;
+#endif /* DO_LIBPDTHREAD_MEASUREMENTS */
+        }
     
     virtual item_t gettype() { return item_t_thread; }
 
