@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.138 2002/06/25 20:26:15 bernat Exp $
+ * $Id: inst-power.C,v 1.139 2002/06/26 21:14:43 schendel Exp $
  */
 
 #include "common/h/headers.h"
@@ -1775,25 +1775,29 @@ trampTemplate* findAndInstallBaseTramp(process *proc,
      //Given a process and a vector of instInstance's, reconstruct branches 
      //  from base trampolines to their mini trampolines
      //
-void reattachMiniTramps(process               *p,
-			vector<instInstance*> &allInstInstances)
-{
+void reattachMiniTramps(process *p,
+			const vector<process::mtListInfo> &allMTlistsInfo)
+{  // pass in a vector of installed_miniTramps_list's and just 
+   // work on the first minitramp
   if (! p) return;
 
-  for (unsigned u = 0; u < allInstInstances.size(); u++) {
-    instInstance *ii = allInstInstances[u];
-    if (ii->prevAtPoint) continue;              //Not first at inst point
+  for (unsigned u = 0; u < allMTlistsInfo.size(); u++) {
+    installed_miniTramps_list *curMTlist = allMTlistsInfo[u].mtList;
+    callWhen when = allMTlistsInfo[u].when;
 
-    trampTemplate *bt       = ii->baseInstance; //Base trampoline
-    Address        skipAddr = bt->baseAddr;
-    if (ii->when == callPreInsn)
+    instInstance *first_ii = curMTlist->getFirstMT();
+
+    trampTemplate *bt = first_ii->baseInstance; //Base trampoline
+    Address  skipAddr = bt->baseAddr;
+    if (when == callPreInsn)
       skipAddr += bt->skipPreInsOffset;
     else
       skipAddr += bt->skipPostInsOffset;
     generateNoOp(p, skipAddr);                  //Clear "skip" branch
                                                 //Restore branch from base tramp
-    extern int getBaseBranchAddr(process *, instInstance *);
-    resetBRL(p, getBaseBranchAddr(p, ii), ii->trampBase);
+    extern Address getBaseBranchAddr(process *, const instInstance *inst, 
+				     callWhen when);
+    resetBRL(p, getBaseBranchAddr(p, first_ii, when), first_ii->trampBase);
   }
 }
 
@@ -1803,15 +1807,16 @@ void reattachMiniTramps(process               *p,
  * Install a single tramp.
  *
  */
-void installTramp(instInstance *inst, char *code, int codeSize) 
+void installTramp(instInstance *inst, process *proc, char *code, int codeSize,
+		  instPoint * /*location*/, callWhen when)
 {
     totalMiniTramps++;
     insnGenerated += codeSize/sizeof(int);
     // TODO cast
-    (inst->proc)->writeDataSpace((caddr_t)inst->trampBase, codeSize, code);
+    proc->writeDataSpace((caddr_t)inst->trampBase, codeSize, code);
 
     Address atAddr;
-    if (inst->when == callPreInsn) {
+    if (when == callPreInsn) {
 	if (inst->baseInstance->prevInstru == false) {
 	  //fprintf(stderr, "Base addr %x, skipPre %x\n",
 	  //  inst->baseInstance->baseAddr,
@@ -1820,7 +1825,7 @@ void installTramp(instInstance *inst, char *code, int codeSize)
 	      inst->baseInstance->skipPreInsOffset;
 	    inst->baseInstance->cost += inst->baseInstance->prevBaseCost;
 	    inst->baseInstance->prevInstru = true;
-	    generateNoOp(inst->proc, atAddr);
+	    generateNoOp(proc, atAddr);
 	}
     }
     else {
@@ -1829,7 +1834,7 @@ void installTramp(instInstance *inst, char *code, int codeSize)
 	      inst->baseInstance->skipPostInsOffset; 
 	    inst->baseInstance->cost += inst->baseInstance->postBaseCost;
 	    inst->baseInstance->postInstru = true;
-	    generateNoOp(inst->proc, atAddr);
+	    generateNoOp(proc, atAddr);
 	}
     }
 }
@@ -3542,70 +3547,76 @@ bool completeTheFork(process *parentProc, int childpid) {
    // We can use "location" as the index into dictionary "baseMap"
    // of the parent process to get a "trampTemplate".
 
-   vector<instInstance*> allParentInstInstances;
-   getAllInstInstancesForProcess(parentProc, allParentInstInstances);
+   vector<process::mtListInfo> allMTlistsInfo;
+   parentProc->getMiniTrampLists(&allMTlistsInfo);
 
-   for (unsigned lcv=0; lcv < allParentInstInstances.size(); lcv++) {
-      instInstance *inst = allParentInstInstances[lcv];
-      assert(inst);
+   for (unsigned lcv=0; lcv < allMTlistsInfo.size(); lcv++) {
+      installed_miniTramps_list *curMTlist = allMTlistsInfo[lcv].mtList;
+      const instPoint *theLocation = allMTlistsInfo[lcv].loc;
 
-      instPoint *theLocation = inst->location;
-      unsigned addr = theLocation->addr;
+      List<instInstance*>::iterator curMT = curMTlist->get_begin_iter();
+      List<instInstance*>::iterator endMT = curMTlist->get_end_iter();	 
+      for(; curMT != endMT; curMT++) {
+	 instInstance *inst = *curMT;
+	 assert(inst);
 
-      // I don't think we need these - naim
-      //unsigned   theTrampBase = inst->trampBase;
-      //trampTemplate *theBaseInstance = inst->baseInstance;
+	 unsigned addr = theLocation->addr;
 
-      // I had to comment out the following line because it was causing 
-      // problems. Also, I don't understand why do we want to overwrite the
-      // content of the baseAddr field in the parent - naim
-      //if (theBaseInstance) theBaseInstance->baseAddr = theTrampBase;
+	 // I don't think we need these - naim
+	 //unsigned   theTrampBase = inst->trampBase;
+	 //trampTemplate *theBaseInstance = inst->baseInstance;
+	 
+	 // I had to comment out the following line because it was causing 
+	 // problems. Also, I don't understand why do we want to overwrite the
+	 // content of the baseAddr field in the parent - naim
+	 //if (theBaseInstance) theBaseInstance->baseAddr = theTrampBase;
 
-      if (theLocation->addr==0) {
-	// This happens when we are only instrumenting the return point of
-	// a function, so we need to find the address where to insert the
-	// jump to the base trampoline somewhere else. Actually, if we have
-	// instrumentation at the entry point, this is not necessary, but
-	// it looks easier this way - naim
-	const function_base *base_f = theLocation->iPgetFunction();
-	assert(base_f);
-	const instPoint *ip = base_f->funcEntry(parentProc);
-	assert(ip);
-	addr = ip->addr;
-      }
-      assert(addr);
-
-      // Now all we need is a "returnInstance", which contains
-      // "instructionSeq", a sequence of instructions to be installed,
-      // and "addr_", an address to write to.
-
-      // But for now, since we always relocate exactly ONE
-      // instruction on AIX, we can hack our way around without
-      // the returnInstance.
-
-      // So, we need to copy one word.  The word to copy can be found
-      // at address "theLocation->addr" for AIX.  The original instruction
-      // can be found at "theLocation->originalInstruction", but we don't
-      // need it.  So, we ptrace-read 1 word @ theLocation->addr from
-      // the parent process, and then ptrace-write it to the same location
-      // in the child process.
-
-      if (theLocation->ipLoc != ipFuncReturn) {
-	// 64-bit problem
-	int data; // big enough to hold 1 instr
-	
-	errno = 0;
-	data = ptrace(PT_READ_I, parentProc->getPid(), 
-		      (int*)addr, 0, 0);
-	if (data == -1 && errno != 0) {
-	  fprintf(stderr, "Error in fork handler, parent proc %d, reading instr at %x\n", parentProc->getPid(), addr);
-	  perror("fork handler");
-	  assert(0);
-	}
-      errno = 0;
-      if (-1 == ptrace(PT_WRITE_I, childpid, (int*)addr, data, 0) &&
-	  errno != 0)
-	 assert(0);
+	 if (theLocation->addr==0) {
+	    // This happens when we are only instrumenting the return point of
+	    // a function, so we need to find the address where to insert the
+	    // jump to the base trampoline somewhere else. Actually, if we have
+	    // instrumentation at the entry point, this is not necessary, but
+	    // it looks easier this way - naim
+	    const function_base *base_f = theLocation->iPgetFunction();
+	    assert(base_f);
+	    const instPoint *ip = base_f->funcEntry(parentProc);
+	    assert(ip);
+	    addr = ip->addr;
+	 }
+	 assert(addr);
+	 
+	 // Now all we need is a "returnInstance", which contains
+	 // "instructionSeq", a sequence of instructions to be installed,
+	 // and "addr_", an address to write to.
+	 
+	 // But for now, since we always relocate exactly ONE
+	 // instruction on AIX, we can hack our way around without
+	 // the returnInstance.
+	 
+	 // So, we need to copy one word.  The word to copy can be found
+	 // at address "theLocation->addr" for AIX.  The original instruction
+	 // can be found at "theLocation->originalInstruction", but we don't
+	 // need it.  So, we ptrace-read 1 word @ theLocation->addr from
+	 // the parent process, and then ptrace-write it to the same location
+	 // in the child process.
+	 
+	 if (theLocation->ipLoc != ipFuncReturn) {
+	    // 64-bit problem
+	    int data; // big enough to hold 1 instr
+	    
+	    errno = 0;
+	    data = ptrace(PT_READ_I, parentProc->getPid(), 
+			  (int*)addr, 0, 0);
+	    if (data == -1 && errno != 0) {
+	       fprintf(stderr, "Error in fork handler, parent proc %d, reading instr at %x\n", parentProc->getPid(), addr);
+	       perror("fork handler");
+	       assert(0);
+	    }
+	    errno = 0;
+	    if (-1 == ptrace(PT_WRITE_I, childpid, (int*)addr, data, 0) &&
+		errno != 0)
+	       assert(0);
+	 }
       }
    }
    return true;
@@ -3860,10 +3871,11 @@ bool process::MonitorCallSite(instPoint *callSite){
       // Monitoring function
       AstNode *func = new AstNode("DYNINSTRegisterCallee", 
 				  the_args);
-      addInstFunc(this, callSite, func, callPreInsn,
+      miniTrampHandle mtHandle;
+      addInstFunc(&mtHandle, this, callSite, func, callPreInsn,
 		  orderFirstAtPoint,
-		  true,                              /* noCost flag                */
-		  false);                            /* trampRecursiveDesired flag */
+		  true,                        /* noCost flag   */
+		  false);                      /* trampRecursiveDesired flag */
       return true;
     }
   else
@@ -3875,8 +3887,9 @@ bool process::MonitorCallSite(instPoint *callSite){
 
 #endif
 
+
 bool deleteBaseTramp(process */*proc*/,instPoint* /*location*/,
-                     instInstance* /*instance*/)
+                     trampTemplate *, instInstance * /* lastMT */)
 {
 	cerr << "WARNING : deleteBaseTramp is unimplemented "
 	     << "(after the last instrumentation deleted)" << endl;
