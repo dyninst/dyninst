@@ -3,7 +3,12 @@
  *   functions for a SUNOS SPARC processor.
  *
  * $Log: RTfuncs.c,v $
- * Revision 1.7  1994/07/05 03:25:09  hollings
+ * Revision 1.8  1994/07/11 22:47:49  jcargill
+ * Major CM5 commit: include syntax changes, some timer changes, removal
+ * of old aggregation code, old pause code, added signal-driven sampling
+ * within node processes
+ *
+ * Revision 1.7  1994/07/05  03:25:09  hollings
  * obsereved cost model.
  *
  * Revision 1.6  1994/02/02  00:46:11  hollings
@@ -55,7 +60,7 @@ int DYNINSTtotalAlaramExpires;
  * for now costCount is in cycles. 
  */
 float DYNINSTcyclesToUsec = 1/66.0;
-extern time64 DYNINSTtotalSampleTime;
+time64 DYNINSTtotalSampleTime;
 
 void DYNINSTreportCounter(intCounter *counter)
 {
@@ -104,6 +109,7 @@ volatile int DYNINSTsampleMultiple = 1;
  */
 void DYNINSTsampleValues()
 {
+/*     printf ("DYNINSTsampleValues called...\n"); */
     DYNINSTnumReported++;
 }
 
@@ -190,6 +196,7 @@ void DYNINSTalarmExpire()
     time64 start, end;
     static int inSample;
 
+/*     printf ("DYNINSTalarmExpired\n"); */
     /* should use atomic test and set for this */
     if (inSample) return;
 

@@ -4,7 +4,12 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.10  1993/12/14 17:27:21  jcargill
+ * Revision 1.11  1994/07/11 22:47:47  jcargill
+ * Major CM5 commit: include syntax changes, some timer changes, removal
+ * of old aggregation code, old pause code, added signal-driven sampling
+ * within node processes
+ *
+ * Revision 1.10  1993/12/14  17:27:21  jcargill
  * Put sampleMultiple and length alignment fixes back, and one retry fix
  *
  * Revision 1.9  1993/12/14  16:35:27  hollings
@@ -36,14 +41,18 @@
  *
  *
  */
-#include <signal.h>
+#include <stdlib.h>
+/* #include <signal.h> */
 #include <assert.h>
 
 /* our include files */
-#include <h/rtinst.h>
-#include <h/trace.h>
-#include <rtinst/traceio.h>
+#include "rtinst/h/rtinst.h"
+#include "rtinst/h/trace.h"
+#define extern
+#include "traceio.h"
+#undef extern
 
+#include <cm/timers.h>
 #include <cm/cmmd/amx.h>
 #include <cm/cmmd/mp.h>
 #include <cm/cmmd/cn.h>
@@ -51,6 +60,7 @@
 #include <cm/cmmd/util.h>
 #include <cm/cmmd/cmmd_constants.h>
 #include <cm/cmmd.h>
+#include <cmsys/cm_signal.h>
 #define pe_obj
 #include <cm/cmna.h>
 #include <cmsys/ni_interface.h>
@@ -79,6 +89,12 @@
 #define MILLION 1000000
 
 
+char *TRACELIBcurrPtr;		/* current pointer in buffer  */
+char *TRACELIBfreePtr;		/* pointer to next free byte in buffer */
+char *TRACELIBendPtr;		/* last byte in trace buffer */
+char *TRACELIBtraceBuffer;	/* beginning of trace buffer */
+int TRACELIBmustRetry;		/* signal variable from consumer -> producer */
+
 #ifdef notdef
 time64 inline getProcessTime()
 {
@@ -88,7 +104,7 @@ time64 inline getProcessTime()
 
 retry:
     CMOS_get_NI_time(&ni_end);
-    CMOS_get_time(&end);
+    CMOS_get_time((CM_TIME) &end);
     CMOS_get_NI_time(&ni2);
     if (ni_end != ni2) goto retry;
     return(end-ni_end);
@@ -99,6 +115,12 @@ struct timer_buf {
     unsigned int high;
     unsigned int sync;
     time64   ni_time;
+/*   instead of: */
+/*     unsigned int ni_time_high; */
+/*     unsigned int ni_time_low; */
+    unsigned int trap_start;
+    unsigned int trap_cnt;
+    unsigned int trap_time;
 };
 
 typedef union {
@@ -110,9 +132,20 @@ typedef union {
 } timeParts;
 
 static volatile unsigned int *ni;
-static volatile struct timer_buf timerBuffer;
+volatile struct timer_buf timerBuffer;
 
-time64 inline getProcessTime()
+time64 DYNINSTgetCPUtime()
+{
+     time64 now;
+
+     now = getProcessTime();
+     now /= NI_CLK_USEC * MILLION;
+
+     return(now);
+}
+
+
+inline time64 getProcessTime()
 {
     timeParts end;
     time64 ni_end;
@@ -126,11 +159,10 @@ retry:
     return(end.value-ni_end);
 }
 
-#ifdef notdef
-time64 inline getWallTime()
+/* #ifdef notdef */
+inline time64 getWallTime()
 {
     timeParts end;
-    time64 ni_end;
 
 retry:
     timerBuffer.sync = 1;
@@ -215,32 +247,19 @@ retry:
 	timer->counter--;
     }
 }
-#endif
+/* #endif */
 
 double previous[1000];
 
-void set_timer_buf(struct timer_buf *param)
+void set_timer_buf(volatile struct timer_buf *param)
 {
-    asm("set 50,%g1");
+/*     asm("set 50,%g1"); */
+    asm("set 29,%g1");
     /* asm("set 23,%g1"); */
     asm("retl");
     asm("ta 0x8");
 }
 
-void DYNINSTreportAggregateCounter(intCounter *counter)
-{
-    traceSample sample;
-    int aggregate;
-
-    /* Everyone aggregates to a single value */
-    CMNA_com(ADD_SCAN, SCAN_REDUCE, &counter->value, 1, &aggregate);
-
-    sample.value = aggregate;
-    sample.id = counter->id;
-
-    if (CMNA_self_address == 0)
-	DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample);
-}
 
 
 void DYNINSTreportTimer(tTimer *timer)
@@ -248,7 +267,6 @@ void DYNINSTreportTimer(tTimer *timer)
     double temp;
     double temp2;
     time64 now;
-    double value;
     time64 total;
     tTimer timerTemp;
     traceSample sample;
@@ -293,91 +311,6 @@ void DYNINSTreportTimer(tTimer *timer)
 }
 
 
-Add_combine_64bit (x, aggregate)
-    time64 *x, *aggregate;
-{
-    unsigned int *x_lsw_p;
-    unsigned int *x_msw_p;
-    unsigned int *agg_lsw_p;
-    unsigned int *agg_msw_p;
-
-   x_lsw_p = (((unsigned int *) x) + 1);
-    x_msw_p = ((unsigned int *) x);
-    agg_lsw_p = (((unsigned int *) aggregate) + 1);
-    agg_msw_p = ((unsigned int *) aggregate);
-
-    do {
-	CMNA_com_send_first (UADD_SCAN, SCAN_REDUCE, 2, *x_lsw_p);
-	CMNA_com_send_word (*x_msw_p);
-    }
-    while (!SEND_OK(CMNA_com_status()));
-
-    while (!(RECEIVE_OK(CMNA_com_status())))
-	continue;
-/*     recv_length = RECEIVE_LENGTH_LEFT(CMNA_com_status()); */
-    
-    *agg_lsw_p = CMNA_com_receive_word();
-    *agg_msw_p = CMNA_com_receive_word();
-}
-
-
-void DYNINSTreportAggregateTimer(tTimer *timer)
-{
-    double temp;
-    double temp2;
-    time64 now;
-    double value;
-    time64 total;
-    time64 aggregate;
-    tTimer timerTemp;
-    traceSample sample;
-
-
-    if (timer->mutex) {
-	total = timer->snapShot;
-    } else if (timer->counter) {
-	/* timer is running */
-	if (timer->type == processTime) {
-	    now = getProcessTime();
-	    total = now - timer->start;
-	} else {
-	    CMOS_get_time(&now);
-	    total = (now - timer->start);
-	}
-	total += timer->total;
-    } else {
-	total = timer->total;
-    }
-
-    if (total < 0) {
-	timerTemp = *timer;
-	abort();
-    }
-
-    timer->normalize = NI_CLK_USEC * MILLION;
-
-    /* Combine all timers to get a single aggregate 64-bit timer */
-    Add_combine_64bit (&total, &aggregate);
-
-    sample.value = aggregate / (double) timer->normalize;
-    sample.id = timer->id;
-
-    /* only node 0 does sanity check and reports the timer */
-    if (CMNA_self_address == 0) {
-	temp = sample.value;
-	if (temp < previous[sample.id.id]) {
-	    timerTemp = *timer;
-	    temp2 = previous[sample.id.id];
-	    abort();
-	    while(1);
-	}
-	previous[sample.id.id] = temp;
-
-	DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample);
-    }
-}
-
-
 
 static time64 startWall;
 int DYNINSTnoHandlers;
@@ -393,6 +326,8 @@ static int DYNINSTinitDone;
 void DYNINSTinit()
 {
     char *interval;
+    struct itimerval timeInterval;
+    int sampleInterval;
     struct timeval tv;
     time64 startNItime;
     extern void DYNINSTalarmExpire();
@@ -410,6 +345,9 @@ void DYNINSTinit()
 
     startWall -= startNItime;
 
+/*     printf ("startWall is %x%x\n", *(int *) &startWall,  */
+/* 	    *((int *) &startWall) + 1); */
+
     ni = (unsigned int *) NI_TIME_A;
     set_timer_buf(&timerBuffer);
 
@@ -417,25 +355,38 @@ void DYNINSTinit()
 	DYNINSTsampleMultiple = atoi(getenv("DYNINSTsampleMultiple"));
     }
 
+    /*
+     * Allocate a trace buffer for this node, and set up the buffer
+     * pointers.
+     */
+    TRACELIBcurrPtr = TRACELIBfreePtr = TRACELIBtraceBuffer = (char *) malloc (TRACE_BUF_SIZE);
+    TRACELIBendPtr = TRACELIBtraceBuffer + TRACE_BUF_SIZE - 1;
+
+
+    /*
+     * Set up the SIGALRM handler stuff so counters/timers get sampled and
+     * traces get puit into the traceBuffer every once in a while.
+     */
+
+    sampleInterval = 500000;     /* default is 500msec  */
+    interval = (char *) getenv("DYNINSTsampleInterval");
+    if (interval) {
+	sampleInterval = atoi(interval);
+    }
+    CMOS_signal (CM_SIGALRM, DYNINSTalarmExpire, ~0);
+    timeInterval.it_interval.tv_sec = ((int) (sampleInterval) / 1000000);
+    timeInterval.it_interval.tv_usec = sampleInterval % 1000000;
+    CMOS_setitimer (1, &timeInterval, NULL);
+    CMOS_ualarm (sampleInterval);
+
     DYNINSTinitDone = 1;
-/*     initTraceLibPN(); */
 }
 
-/*
- * DYNINSTinitTraceLib - call initTraceLibPN & trap back.
- *
- */
-asm(".global _DYNINSTinitTraceLib");
-asm("_DYNINSTinitTraceLib:");
-asm("	call	_initTraceLibPN");
-asm("	nop	");
-asm("	ta 0x1");
-asm("	nop	");
 
 void DYNINSTexit()
 {
-    cleanupTraceLibPN();
 }
+
 
 /*
  * generate a trace record onto the named stream.
@@ -449,7 +400,6 @@ void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
     time64 pTime;
     double newVal;
     char buffer[1024];
-    traceSample *sample;
     traceHeader header;
 
     if (!DYNINSTinitDone) return;
@@ -458,8 +408,7 @@ void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
     header.wall += startWall;
     header.wall /= NI_CLK_USEC;
 
-    CMOS_get_time(&header.process);
-    CMOS_get_NI_time(&pTime);
+    CMOS_get_times(&header.process, &pTime);
     header.process -= pTime;
     header.process /= NI_CLK_USEC;
 
@@ -482,6 +431,18 @@ void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
 
 void DYNINSTbreakPoint(int arg)
 {
-    /* printf("Break point %d reached\n", arg); */
-    asm("ta 0x81");
+    printf("Break point %d reached\n", arg);
+/*     asm("ta 0x81"); */
+}
+
+void must_end_timeslice()
+{
+  printf ("Need to end timeslice!!!\n");
+  /*
+   * We still don't do anything good for this case.
+   * Simple solutions are:
+   * 1.  Increase buffer size
+   * 2.  Implement a way for a node to trigger a context switch and
+   * surrender the rest of a timeslice.
+   */
 }

@@ -3,7 +3,12 @@
  *   functions for a processor running UNIX.
  *
  * $Log: RTunix.c,v $
- * Revision 1.10  1994/07/05 03:25:11  hollings
+ * Revision 1.11  1994/07/11 22:47:51  jcargill
+ * Major CM5 commit: include syntax changes, some timer changes, removal
+ * of old aggregation code, old pause code, added signal-driven sampling
+ * within node processes
+ *
+ * Revision 1.10  1994/07/05  03:25:11  hollings
  * obsereved cost model.
  *
  * Revision 1.9  1994/05/18  00:53:28  hollings
@@ -55,7 +60,7 @@
 #define MILLION	1000000
 extern int DYNINSTmappedUarea;
 extern float DYNINSTcyclesToUsec;
-time64 DYNINSTtotalSampleTime;
+extern time64 DYNINSTtotalSampleTime;
 int64 DYNINSTgetObservedCycles();
 
 /* clockWord must be volatile becuase it changes on clock interrups. 
@@ -106,9 +111,14 @@ retry:
      return(now);
 }
 
+
 void DYNINSTbreakPoint()
 {
+/*     printf ("Process %d about to stop self...\n", getpid()); */
+/*     fflush (stdout); */
     kill(getpid(), SIGSTOP);
+/*     printf ("Process %d has been restarted...\n", getpid()); */
+/*     fflush (stdout); */
 }
 
 void DYNINSTstartProcessTimer(tTimer *timer)
@@ -197,40 +207,8 @@ void DYNINSTstopWallTimer(tTimer *timer)
     }
 }
 
+
 time64 startWall;
-
-volatile int DYNINSTpauseDone = 0;
-
-/*
- * change the variable to let the process proceed.
- *
- */
-void DYNINSTcontinueProcess()
-{
-    DYNINSTpauseDone = 1;
-}
-
-/*
- * pause the process and let only USR2 signal handlers run until a SIGUSR1.
- *    arrives.
- *
- */
-void DYNINSTpauseProcess()
-{
-    int mask;
-    int sigs;
-
-    sigs = ((1 << (SIGUSR2-1)) | (1 << (SIGUSR1-1)) | (1 << (SIGTSTP-1)));
-    mask = ~sigs;
-    DYNINSTpauseDone = 0;
-    while (!DYNINSTpauseDone) {
-#ifdef notdef
-       sigpause(mask);
-       // temporary busy wait until we figure out what the TSD is up to. 
-       printf("out of sigpuase\n");
-#endif
-    }
-}
 
 void DYNINSTinit(int skipBreakpoint)
 {
@@ -244,18 +222,6 @@ void DYNINSTinit(int skipBreakpoint)
 
     startWall = 0;
 
-    /*
-     * Define the signal handlers for stopping a process.
-     *
-     */
-    pauseVector.sv_handler = DYNINSTpauseProcess;
-    sigs = ((1 << (SIGUSR2-1)) | (1 << (SIGUSR1-1)) | (1 << (SIGTSTP-1)));
-    pauseVector.sv_mask = ~sigs;
-    pauseVector.sv_flags = 0;
-    sigvec(SIGPROF, &pauseVector, NULL);
-
-    signal(SIGUSR1, DYNINSTcontinueProcess);
-
     /* define the alarm signal vector. We block all signals while sampling.  
      *  This prevents race conditions where signal handlers cause timers to 
      *  be started and stopped.
@@ -264,6 +230,9 @@ void DYNINSTinit(int skipBreakpoint)
     alarmVector.sv_mask = ~0;
     alarmVector.sv_flags = 0;
 
+    sigvec(SIGALRM, &alarmVector, NULL);
+
+    /* All the signal-initiating stuff is now in the paradynd. */
 
     /* default is 500msec */
     val = 500000;
@@ -273,6 +242,7 @@ void DYNINSTinit(int skipBreakpoint)
     }
     sigvec(SIGALRM, &alarmVector, NULL);
     ualarm(val, val);
+
 
     DYNINSTmappedUarea = DYNINSTmapUarea();
     DYNINSTcyclesToUsec = 1.0/DYNINSTgetClock();
@@ -285,9 +255,11 @@ void DYNINSTinit(int skipBreakpoint)
     if (!skipBreakpoint) DYNINSTbreakPoint();
 }
 
+
 void DYNINSTexit()
 {
 }
+
 
 /*
  * generate a trace record onto the named stream.
@@ -421,7 +393,7 @@ void DYNINSTfork(void *arg, int pid)
     } else {
 	/* set up signals and stop at a break point */
 	DYNINSTinit(1);
-	sigpause();
+	sigpause(0);
     }
 }
 

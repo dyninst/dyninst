@@ -3,7 +3,12 @@
  *   functions for a normal Sparc with SUNOS.
  *
  * $Log: RTcm5_cp.c,v $
- * Revision 1.3  1993/09/02 22:10:10  hollings
+ * Revision 1.4  1994/07/11 22:47:43  jcargill
+ * Major CM5 commit: include syntax changes, some timer changes, removal
+ * of old aggregation code, old pause code, added signal-driven sampling
+ * within node processes
+ *
+ * Revision 1.3  1993/09/02  22:10:10  hollings
  * new include syntax.
  *
  * Revision 1.2  1993/07/02  21:53:33  hollings
@@ -49,8 +54,8 @@
 #include <math.h>
 
 /* now our include files */
-#include <h/rtinst.h>
-#include <h/trace.h>
+#include "rtinst/h/rtinst.h"
+#include "rtinst/h/trace.h"
 
 /*
  * Generate a fork record for each node in the partition.
@@ -75,7 +80,7 @@ DYNINSTnodeCreate()
 
 void DYNINSTparallelInit()
 {
-    printf("calling initTraceLibCP\n");
-    initTraceLibCP(CONTROLLER_FD);
+    printf("DYNINSTparallelInit called on the CP\n");
+/*     initTraceLibCP(CONTROLLER_FD); */
 }
 
