@@ -5,7 +5,10 @@
 # choices directly.
 
 # $Log: mets.tcl,v $
-# Revision 1.10  1994/11/07 05:41:27  karavan
+# Revision 1.11  1995/09/26 20:47:49  naim
+# Minor comment about error message displaying
+#
+# Revision 1.10  1994/11/07  05:41:27  karavan
 # Added clear button
 #
 # Revision 1.9  1994/11/07  00:32:06  karavan
@@ -105,6 +108,11 @@ proc endSelection {visiToken rdoToken cancelflag win} {
     if {$x == 1} {
 	$win.top.msg configure -text \
 		"Please select one or more metrics or press cancel"
+		#
+		# I think we should use showError here. It does not
+		# make sense to have several equivalent routines to
+		# display error messages
+		#
     } elseif {$x == 2} {
 	$win.top.msg configure -text \
 		"Please select a focus on the where axis or press cancel"
