@@ -39,7 +39,14 @@
 #include "kludges.h"
 #include "rtinst/h/rtinst.h"
 
+#if defined(hppa1_1_hp_hpux)
+
+#include <sys/pstat.h>
+#include <sys/unistd.h>
+#define _PROTOTYPES
+#else
 extern int getrusage (int, struct rusage *);
+#endif
 
 
 
@@ -78,6 +85,38 @@ DYNINSTos_init(void) {
  * return value is in usec units.
 ************************************************************************/
 
+#if defined(hppa1_1_hp_hpux)
+/* 
+ * The compilng warning could be eliminated if we use cc instead
+ * of gcc. Change it if you think that's good. --ling
+ */
+
+time64
+DYNINSTgetCPUtime(void) {
+    time64 now;
+    static time64 previous=0;
+    struct pst_status pst;
+    int target = (int)getppid();
+
+  try_again:
+    if (pstat_getproc(&pst, sizeof(pst), (size_t)0, target) != -1) {
+      now = (time64)pst.pst_utime + (time64)pst.pst_stime;
+      now *= (time64)1000000;
+      if (now<previous) {
+        goto try_again;
+    }
+      previous=now;
+      return(now);
+  }
+    else {
+      perror("pstat_getproc");
+      abort();
+  }
+}
+
+
+#else
+
 time64
 DYNINSTgetCPUtime(void) {
     time64 now;
@@ -101,7 +140,7 @@ try_again:
     }
 }
 
-
+#endif
 
 
 
