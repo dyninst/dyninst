@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/process.C,v 1.9 1994/06/22 01:43:18 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/process.C,v 1.10 1994/06/22 03:46:32 markc Exp $";
 #endif
 
 /*
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.9  1994/06/22 01:43:18  markc
+ * Revision 1.10  1994/06/22 03:46:32  markc
+ * Removed compiler warnings.
+ *
+ * Revision 1.9  1994/06/22  01:43:18  markc
  * Removed warnings.  Changed bcopy in inst-sparc.C to memcpy.  Changed process.C
  * reference to proc->status to use proc->heap->status.
  *
@@ -107,6 +110,11 @@ int ptrace(enum ptracereq request,
 		      int *addr, 
 		      int data, 
 		      char *addr2);
+
+#ifdef PARADYND_PVM
+int pvmputenv (char *);
+int pvmendtask();
+#endif
 }
 
 #define INFERRIOR_HEAP_BASE	"DYNINSTdata"

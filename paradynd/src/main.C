@@ -2,7 +2,10 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.14  1994/06/02 23:27:56  markc
+ * Revision 1.15  1994/06/22 03:46:31  markc
+ * Removed compiler warnings.
+ *
+ * Revision 1.14  1994/06/02  23:27:56  markc
  * Replaced references to igen generated class to a new class derived from
  * this class to implement error handling for igen code.
  *
@@ -72,6 +75,10 @@
 #include "dyninstP.h"
 #include "metric.h"
 #include "comm.h"
+
+extern "C" {
+int gethostname(char*, int);
+}
 
 pdRPC *tp;
 extern int controllerMainLoop();

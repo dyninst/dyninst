@@ -1,4 +1,11 @@
 
+/*
+ * $Log: debugger.C,v $
+ * Revision 1.3  1994/06/22 03:46:30  markc
+ * Removed compiler warnings.
+ *
+ */
+
 //
 // support for debugger style commands and interface.
 //
