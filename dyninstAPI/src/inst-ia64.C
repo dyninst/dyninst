@@ -41,7 +41,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.18 2002/08/29 18:57:27 tlmiller Exp $
+ * $Id: inst-ia64.C,v 1.19 2002/09/27 19:38:12 tlmiller Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -92,13 +92,17 @@ void emitVload( opCode op, Address src1, Register src2, Register dest,
 	ia64_bundle_t * rawBundlePointer = (ia64_bundle_t *)((Address)ibuf + base);
 
 	switch( op ) {
-		case loadOp:  // FIXME
-			assert( 0 );
-			break;
+		case loadOp: {
+			/* dest = [src1] */
+			IA64_instruction loadInsn = generateRegisterLoad( dest, src1 );
+			IA64_bundle loadBundle( MIIstop, loadInsn, NOP_I, NOP_I );
+			* rawBundlePointer = loadBundle.getMachineCode();
+			base += 16;
+			break; }
 
 		case loadConstOp: {
 			// fprintf( stderr, "Loading a constant (0x%lx) into register %d\n", src1, dest );
-			// Optimization: if |immediate| <= 22 bits, use generateShortConstantInRegister(), instead.
+			// Optimization: if |immediate| <= 22 bits, use generateShortImmediateAdd(), instead.
 			IA64_instruction_x lCO = generateLongConstantInRegister( dest, src1 );
 			* rawBundlePointer = generateBundleFromLongInstruction( lCO ).getMachineCode();
 			base += 16;
@@ -430,7 +434,99 @@ bool process::replaceFunctionCall( const instPoint * point,
 
 /* Required by ast.C */
 void emitV( opCode op, Register src1, Register src2, Register dest,
-		char * ibuf, Address & base, bool noCost, int size ) { assert( 0 ); }
+		char * ibuf, Address & base, bool noCost, int size ) {
+	assert( (((Address)ibuf + base) % 16) == 0 );
+	ia64_bundle_t * rawBundlePointer = (ia64_bundle_t *)((Address)ibuf + base);
+
+	switch( op ) { 
+		case eqOp:
+		case leOp:
+		case greaterOp:
+		case lessOp:
+		case geOp: 
+		case neOp: {
+			/* Unless we can verify that a comparison result is never used
+			   as an operand, we can't do the right thing and treat the
+			   destination as a predicate register.  *Sigh*. */
+			IA64_instruction comparisonInsn = generateComparison( op, dest, src1, src2 );
+			IA64_instruction setZero = predicateInstruction( dest, generateShortImmediateAdd( dest, 0, 0 ) );
+			IA64_instruction setOne = predicateInstruction( dest + 1, generateShortImmediateAdd( dest, 1, 0 ));
+			IA64_bundle comparisonBundle( MstopMIstop, comparisonInsn, setZero, setOne );
+			* rawBundlePointer = comparisonBundle.getMachineCode();
+			base += 16;
+			break; }
+
+		case plusOp:
+		case minusOp:
+		case andOp:
+		case orOp: {
+			IA64_instruction arithmeticInsn = generateArithmetic( op, dest, src1, src2 );
+			IA64_instruction integerNOP( NOP_I );
+			IA64_bundle arithmeticBundle( MIIstop, arithmeticInsn, integerNOP, integerNOP );
+			* rawBundlePointer = arithmeticBundle.getMachineCode();
+			base += 16;
+			break; }
+
+		case timesOp: {
+			/* We have to get cute.  (Ick!)  'Cause our friends in Intel
+			   decided that nobody would want to multiply integers _that_
+			   often, they wedged the integer multiplier into the FPU.
+
+			   Yeah.  I'm going to try not to ask, too. */
+			unsigned bundleCount = 0;
+
+			/* Since I don't save the FP registers, spill two of them.
+			   This usage assumes that the SP is _correct_, that is,
+			   that we won't overwrite anything, including the stored predicates
+			   from the basetramp, if we subtract the space we use first. */
+			IA64_instruction moveSPDown = generateShortImmediateAdd( REGISTER_SP, -16, REGISTER_SP );
+			IA64_instruction spillFP2 = generateFPSpillTo( REGISTER_SP, 2 );
+			IA64_instruction spillFP3 = generateFPSpillTo( REGISTER_SP, 3 );
+			IA64_instruction integerNOP( NOP_I );
+			IA64_bundle spillF2Bundle( MstopMIstop, moveSPDown, spillFP2, integerNOP );
+			IA64_bundle spillF3Bundle( MstopMIstop, moveSPDown, spillFP3, integerNOP );
+			rawBundlePointer[bundleCount++] = spillF2Bundle.getMachineCode();
+			rawBundlePointer[bundleCount++] = spillF3Bundle.getMachineCode();
+
+			/* Do the multiplication. */
+			IA64_instruction copySrc1 = generateRegisterToFloatMove( src1, 2 );
+			IA64_instruction copySrc2 = generateRegisterToFloatMove( src2, 3 );
+			IA64_instruction fixedMultiply = generateFixedPointMultiply( 2, 2, 3 );
+			IA64_instruction copyDest = generateFloatToRegisterMove( 2, dest );
+			IA64_bundle copySources( MMIstop, copySrc1, copySrc2, integerNOP );
+			IA64_instruction memoryNOP( NOP_M );
+			IA64_bundle doMultiplication( MFIstop, memoryNOP, fixedMultiply, integerNOP );
+			IA64_bundle copyToDestination( MMIstop, copyDest, memoryNOP, integerNOP );
+			rawBundlePointer[bundleCount++] = copySources.getMachineCode();
+			rawBundlePointer[bundleCount++] = doMultiplication.getMachineCode();
+			rawBundlePointer[bundleCount++] = copyToDestination.getMachineCode();
+
+			/* Restore the FP registers, SP. */
+			IA64_instruction moveSPUp = generateShortImmediateAdd( REGISTER_SP, 16, REGISTER_SP );
+			IA64_instruction fillFP2 = generateFPFillFrom( REGISTER_SP, 2 );
+			IA64_instruction fillFP3 = generateFPFillFrom( REGISTER_SP, 3 );
+			IA64_bundle fillF2Bundle( MstopMIstop, fillFP2, moveSPUp, integerNOP );
+			IA64_bundle fillF3Bundle( MstopMIstop, fillFP3, moveSPUp, integerNOP );
+			rawBundlePointer[bundleCount++] = fillF2Bundle.getMachineCode();
+			rawBundlePointer[bundleCount] = fillF3Bundle.getMachineCode();
+			base += (16 * bundleCount);
+			break; }
+
+		case divOp: {
+			/* We would just call out to __udivsi3, but emitV() isn't given
+			   enough information to call emitFuncCall().  So we generate
+			   the equivalent in-line. */
+			
+			
+			
+			break; }
+
+		default:
+			fprintf( stderr, "emitV(): unrecognized op code %d\n", op );
+			assert( 0 );
+			break;
+		} /* end op switch */
+	} /* end emitV() */
 
 /* Required by inst.C */
 bool deleteBaseTramp( process *, instPoint *, trampTemplate *,
@@ -875,10 +971,12 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc ) { // 
 	bool useSaveAndRestoreMethod = false;
 	registerSpace baseRegisterSpace( 0, NULL, 0, NULL );
 	defineBaseTrampRegisterSpaceFor( location, & baseRegisterSpace );
-	if( baseRegisterSpace.getRegSlot( 0 )->number == 32 ) { 
-		/* This means that we couldn't do an intelligent alloc. */
+	if( baseRegisterSpace.getRegisterCount() == 0 ) {
+		/* We either couldn't find an alloc(), or they didn't all have the same
+		   inputs + locals size. */
 		useSaveAndRestoreMethod = true;
 		}
+
 	IA64_instruction allocInsn;
 
 	/* Insert the skipPreInsn nop bundle. */
@@ -931,8 +1029,9 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc ) { // 
 	/* Restore state for the relocated instructions.  This always includes the predicates. */
 	baseTramp->localPreReturnOffset = baseTramp->size;
 	IA64_instruction loadPRCopy = generateRegisterLoad( localZero, REGISTER_SP );
+	IA64_instruction moveSPUp = generateShortImmediateAdd( REGISTER_SP, 8, REGISTER_SP );
 	IA64_instruction moveRegToPr = generateRegisterToPredicatesMove( localZero, 0x1FFFF );
-	IA64_bundle restorePRBundle( MstopMIstop, loadPRCopy, NOP_M, moveRegToPr );
+	IA64_bundle restorePRBundle( MstopMIstop, loadPRCopy, moveSPUp, moveRegToPr );
 	baseTramp->restorePreInsOffset = baseTramp->size;
 	insnPtr[bundleCount++] = restorePRBundle.getMachineCode(); baseTramp->size += 16;
 
@@ -981,6 +1080,10 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc ) { // 
 		IA64_bundle allocBundle( MIIstop, alteredAlloc, NOP_I, NOP_I );
 		insnPtr[bundleCount++] = allocBundle.getMachineCode(); baseTramp->size += 16;
 		} /* end if using alloc method */
+
+	/* Save the predicate registers to the memory stack again. */
+	insnPtr[bundleCount++] = savePredicateMoves.getMachineCode(); baseTramp->size += 16;
+	insnPtr[bundleCount++] = savePredicateStore.getMachineCode(); baseTramp->size += 16;
 
 	/* Insert the localPost nop bundle. */
 	baseTramp->localPostOffset = baseTramp->size;
@@ -1073,6 +1176,10 @@ bool pd_Function::isNearBranchInsn( const instruction insn ) { assert( 0 ); retu
 /* Required by process.C */
 bool process::emitInferiorRPCheader( void * void_insnPtr, Address & baseBytes, bool isFunclet ) { assert( 0 ); return false; }
 
+void generateMTpreamble(char *, Address &, process *) {
+	assert( 0 );	// We don't yet handle multiple threads.
+	} /* end generateMTpreamble() */
+
 /* Required by ast.C */
 Register emitR( opCode op, Register src1, Register src2, Register dest,
 			char * ibuf, Address & base, bool noCost ) {
@@ -1127,6 +1234,20 @@ Address emitA( opCode op, Register src1, Register src2, Register dest,
 			base += 16;
 			return (base - 16);
 			break; }
+
+		case ifOp: {
+			/* If src1 == 0, branch relative by immediate 'dest'. */
+			IA64_instruction compareInsn = generateComparison( eqOp, src1, src1, REGISTER_ZERO );
+			IA64_instruction_x branchInsn = predicateLongInstruction( src1, generateLongBranchTo( dest ) );
+			IA64_bundle compareBundle( MIIstop, compareInsn, NOP_I, NOP_I );
+			IA64_instruction memoryNOP( NOP_M );
+			IA64_bundle branchBundle( MLXstop, memoryNOP, branchInsn );
+			rawBundlePointer[0] = compareBundle.getMachineCode();
+			rawBundlePointer[1] = branchBundle.getMachineCode();
+			base += 32;
+			return (base - 32);
+			break; }
+
 		default:
 			assert( 0 );
 			return 0;
@@ -1134,7 +1255,11 @@ Address emitA( opCode op, Register src1, Register src2, Register dest,
 	} /* end emitA() */
 
 /* Required by ast.C */
-bool doNotOverflow( int value ) { assert( 0 ); return false; }
+bool doNotOverflow( int value ) { 
+	/* To be on the safe side, we'll say it always overflows,
+	   since it's not clear to me which immediate size(s) are going to be used. */
+	return false;
+	} /* end doNotOverflow() */
 
 /* Required by func-reloc.C */
 bool pd_Function::PA_attachOverlappingInstPoints(
@@ -1184,7 +1309,32 @@ bool pd_Function::fillInRelocInstPoints(
 
 /* Required by ast.C */
 void emitVstore( opCode op, Register src1, Register src2, Address dest,
-		char * ibuf, Address & base, bool noCost, int size ) { assert( 0 ); }
+		char * ibuf, Address & base, bool noCost, int size ) {
+	assert( (((Address)ibuf + base) % 16) == 0 );
+	ia64_bundle_t * rawBundlePointer = (ia64_bundle_t *)((Address)ibuf + base);
+
+	switch( op ) {
+		case storeOp: {
+			IA64_instruction storeInsn = generateRegisterStore( dest, src1 );
+			IA64_bundle storeBundle( MIIstop, storeInsn, NOP_I, NOP_I );
+			* rawBundlePointer = storeBundle.getMachineCode();
+			base += 16;
+			break; }
+
+		case storeFrameRelativeOp:  // FIXME
+			assert( 0 );
+			break;
+
+		case storeIndirOp:  // FIXME
+			assert( 0 );
+			break;
+
+                default:
+			fprintf( stderr, "emitVstore(): op not a load, aborting.\n" );
+			abort();
+			break;
+		} /* end switch */
+	} /* end emitVstore() */
 
 /* Required by ast.C */
 void emitJmpMC( int condition, int offset, char * baseInsn, Address & base ) { assert( 0 ); }
@@ -1351,4 +1501,7 @@ instPoint::instPoint( Address encodedAddress, pd_Function * pdfn, const image * 
 	myTargetAddress = myInstruction->getTargetAddress() + myPDFunction->addr();
 	} /* end instPoint constructor */
 
-
+/* I haven't the slightest idea what needs this. */
+int BPatch_point::getDisplacedInstructions( int maxSize, void * insns ) {
+	assert( 0 );
+	} /* end getDisplacedInstructions() */

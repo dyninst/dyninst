@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.10 2002/09/26 21:03:35 rchen Exp $
+// $Id: arch-ia64.h,v 1.11 2002/09/27 19:38:12 tlmiller Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -96,6 +96,7 @@ class IA64_instruction {
 
 		uint8_t getTemplateID() { return templateID; }
 		uint8_t getSlotNumber() { return slotNumber; }
+		const IA64_bundle * getMyBundle() { return myBundle; }
 
 	protected:
 		const IA64_bundle * myBundle;
@@ -109,7 +110,7 @@ class IA64_instruction_x : public IA64_instruction {
 	friend class IA64_bundle;
 
 	public:
-		IA64_instruction_x( uint64_t lowHalf = 0, uint64_t highHalf = 0, uint8_t templ = 0x20, IA64_bundle * mybl = 0 );
+		IA64_instruction_x( uint64_t lowHalf = 0, uint64_t highHalf = 0, uint8_t templ = 0x20, const IA64_bundle * mybl = 0 );
 
 		ia64_bundle_t getMachineCode() { ia64_bundle_t r = { instruction, instruction_x }; return r; }	
 
@@ -212,14 +213,26 @@ IA64_instruction generateIPToRegisterMove( Register destination );
 IA64_instruction generateBranchToRegisterMove( Register source, Register destination );
 IA64_instruction generateRegisterToBranchMove( Register source, Register destination );
 IA64_instruction generateShortImmediateAdd( Register destination, int immediate, Register source );
-IA64_instruction generateSubtraction( Register destination, Register lhs, Register rhs );
 IA64_instruction generateIndirectCallTo( Register indirect, Register rp );
 IA64_instruction generatePredicatesToRegisterMove( Register destination );
 IA64_instruction generateRegisterToPredicatesMove( Register source, uint64_t imm17 );
-IA64_instruction generateRegisterStore( Register address, Register destination );
+IA64_instruction generateRegisterStore( Register address, Register source );
 IA64_instruction generateRegisterLoad( Register destination, Register address );
 IA64_instruction generateRegisterToApplicationMove( Register source, Register destination );
 IA64_instruction generateApplicationToRegisterMove( Register source, Register destination );
+
+IA64_instruction generateFPSpillTo( Register address, Register source );
+IA64_instruction generateFPFillFrom( Register address, Register destination );
+IA64_instruction generateRegisterToFloatMove( Register source, Register destination );
+IA64_instruction generateFloatToRegisterMove( Register source, Register destination );
+IA64_instruction generateFixedPointMultiply( Register destination, Register lhs, Register rhs );
+
+#include "ast.h"
+IA64_instruction generateComparison( opCode op, Register destination, Register lhs, Register rhs );
+IA64_instruction generateArithmetic( opCode op, Register destination, Register lhs, Register rhs );
+
+IA64_instruction predicateInstruction( Register predicate, IA64_instruction insn );
+IA64_instruction_x predicateLongInstruction( Register predicate, IA64_instruction_x longInsn );
 
 /* For ast.C */
 class instPoint;
@@ -233,7 +246,8 @@ void defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace 
 
 #define BRANCH_SCRATCH	6	/* or 7 */
 #define BRANCH_RETURN	0
-#define REGISTER_GP	1
+#define REGISTER_ZERO	0	/* makes it clearer when I'm using the register and not the value */
+#define REGISTER_GP	1	/* the general pointer */
 #define REGISTER_RP	8	/* return value, if structure/union, pointer. */
 #define REGISTER_SP	12	/* memory stack pointer */
 #define REGISTER_TP	13	/* thread pointer */

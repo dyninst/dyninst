@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.13 2002/09/26 21:03:35 rchen Exp $
+// $Id: arch-ia64.C,v 1.14 2002/09/27 19:38:12 tlmiller Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -142,7 +142,7 @@ IA64_instruction::unitType INSTRUCTION_TYPE_ARRAY[(0x20 + 1) * 3] = {
 
 /* NOTE: for the IA64_bundle constructor to work, the individual
 	instruction 'halves' should left-aligned as if they were independent instructions. */
-IA64_instruction_x::IA64_instruction_x( uint64_t lowHalf, uint64_t highHalf, uint8_t templ, IA64_bundle * mybl ) {
+IA64_instruction_x::IA64_instruction_x( uint64_t lowHalf, uint64_t highHalf, uint8_t templ, const IA64_bundle * mybl ) {
 	instruction = lowHalf;
 	instruction_x = highHalf;
 	templateID = templ;
@@ -343,8 +343,14 @@ bool IA64_bundle::setInstruction(IA64_instruction_x &newInst)
 bool extractAllocatedRegisters( uint64_t allocInsn, uint64_t * allocatedLocal, uint64_t * allocatedOutput, uint64_t * allocatedRotate ) {
 	/* Verify that the given instruction is actually, so far as we can tell
 	   (we don't have the template and the offset), an alloc. */
-	if( allocInsn & MAJOR_OPCODE_MASK != ((uint64_t)0x01) << 37 + ALIGN_RIGHT_SHIFT ||
-	    allocInsn & MEMORY_X3_MASK != ((uint64_t)0x06) << 33 + ALIGN_RIGHT_SHIFT ) {
+
+	// GCC didn't seem to want to compile this the right way inline...
+	uint64_t majorOpCode = allocInsn & MAJOR_OPCODE_MASK;
+	uint64_t x3 = allocInsn & X3_MASK;
+	uint64_t opcodeOne = ((uint64_t)0x01) << (37 + ALIGN_RIGHT_SHIFT);
+	uint64_t x3six = ((uint64_t)0x06) << (33 + ALIGN_RIGHT_SHIFT); 
+
+	if( majorOpCode != opcodeOne || x3 != x3six ) {
 		* allocatedLocal = * allocatedOutput = * allocatedRotate = 0;
 		return false;
 		} /* end if not an alloc instruction */
@@ -575,7 +581,9 @@ void defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace 
 	/* Extract the allocated sizes. */
 	uint64_t allocatedLocal, allocatedOutput, allocatedRotate;
 	if( ! extractAllocatedRegisters( initialBundle.getInstruction(0)->getMachineCode(), & allocatedLocal, & allocatedOutput, & allocatedRotate ) ) {
-		assert( 0 );
+		/* Return an empty register space. */
+		registerSpace rs( 0, NULL, 0, NULL );
+		* regSpace = rs;
 		return;
 		} /* end if no alloc was found. */
 
@@ -643,21 +651,33 @@ IA64_instruction generateShortImmediateAdd( Register destination, int immediate,
 	return IA64_instruction( rawInsn );
 	} /* end generateShortImmediateAdd() */
 
-IA64_instruction generateSubtraction( Register destination, Register lhs, Register rhs ) {
+IA64_instruction generateArithmetic( opCode op, Register destination, Register lhs, Register rhs ) {
 	uint64_t destinationRegister = ((uint64_t)destination) & 0x7F;
 	uint64_t lhsRegister = ((uint64_t)lhs) & 0x7F;
 	uint64_t rhsRegister = ((uint64_t)rhs) & 0x7F;
 
+	uint64_t x4, x2b;
+	switch( op ) {
+		case plusOp: x4 = 0; x2b = 0; break;
+		case minusOp: x4 = 1; x2b = 1; break;
+		case andOp: x4 = 3; x2b = 0; break;
+		case orOp: x4 = 3; x2b = 2; break;
+		default:
+			fprintf( stderr, "generateArithmetic() did not recognize opcod %d, aborting.\n", op );
+			abort();
+			break;
+		} /* end op switch */
+
 	uint64_t rawInsn = 0x0000000000000000 |
 			   ( ((uint64_t)0x08) << (37 + ALIGN_RIGHT_SHIFT) ) |
-			   ( ((uint64_t)0x01) << (29 + ALIGN_RIGHT_SHIFT) ) |
-			   ( ((uint64_t)0x01) << (27 + ALIGN_RIGHT_SHIFT) ) |
+			   ( x4 << (29 + ALIGN_RIGHT_SHIFT) ) |
+			   ( x2b << (27 + ALIGN_RIGHT_SHIFT) ) |
 			   ( destinationRegister << (6 + ALIGN_RIGHT_SHIFT) ) |
 			   ( lhsRegister << (13 + ALIGN_RIGHT_SHIFT) ) |
 			   ( rhsRegister << (20 + ALIGN_RIGHT_SHIFT) );
 			   
 	return IA64_instruction( rawInsn );
-	} /* end generateSubtraction() */
+	} /* end generateArithmetic() */
 
 IA64_instruction generateIndirectCallTo( Register indirect, Register rp ) {
 	uint64_t indirectRegister = ((uint64_t)indirect) & 0x7;
@@ -744,3 +764,150 @@ IA64_instruction generateApplicationToRegisterMove( Register source, Register de
 	return IA64_instruction( rawInsn );
 	} /* end generateRegisterToApplicationMove() */
 
+IA64_instruction predicateInstruction( Register predicate, IA64_instruction insn ) {
+	uint64_t predicateRegister = ((uint64_t)predicate) & 0x3F;
+
+	uint64_t rawInsn = insn.getMachineCode() |
+			   predicateRegister << ALIGN_RIGHT_SHIFT;
+
+	return IA64_instruction( rawInsn, insn.getTemplateID(), insn.getMyBundle(), insn.getSlotNumber() );
+	} /* end predicateInstruction() */
+
+/* This was probably implemented somewhere else already.  Too bad. */
+void swap( uint64_t & lhs, uint64_t & rhs ) {
+	uint64_t temporary = lhs;
+	lhs = rhs;
+	rhs = temporary;
+	} /* end swap() */
+
+IA64_instruction generateComparison( opCode op, Register destination, Register lhs, Register rhs ) {
+	uint64_t truePredicate = ((uint64_t)destination) & 0x7F;
+	uint64_t falsePredicate = truePredicate + 1;
+	uint64_t lhsRegister = ((uint64_t)lhs) & 0x7F;
+	uint64_t rhsRegister = ((uint64_t)rhs) & 0x7F;
+
+	uint64_t machineCodeOp;
+	
+	/* We'll assume that all of our comparisons are signed. */
+	switch( op ) {
+		/* This gets cute.  The IA-64 hardware only implements the eq and lt ops,
+		   so we get to do some argument and target rewriting to make things work.
+	 	   The idea is to fall through the operations until we get to one that
+		   can be implemented in hardware. */
+	
+		case greaterOp:
+			/* Swap source registers; since we fall through geOp's
+			   predicate register swap, swap them, too. */
+			swap( truePredicate, falsePredicate );
+		case leOp:
+			/* Swap both source and predicate registers. */
+			swap( lhsRegister, rhsRegister );
+		case geOp:
+			/* Swap predicate registers. */
+			swap( truePredicate, falsePredicate );
+		case lessOp:
+			/* Generate a cmp.lt instruction. */
+			machineCodeOp = 0x0C;
+			break;
+
+		case neOp:
+			swap( truePredicate, falsePredicate );
+		case eqOp:
+			/* Generate a cmp.eq instruction. */
+			machineCodeOp = 0x0E;
+			break;
+
+		default:
+			fprintf( stderr, "Unrecognized op %d in generateComparison(), aborting.\n", op );
+			abort();
+		} /* end op switch */
+
+	uint64_t rawInsn = 0x0000000000000000 |
+				( machineCodeOp << (37 + ALIGN_RIGHT_SHIFT) ) |
+				( falsePredicate << (27 + ALIGN_RIGHT_SHIFT) ) |
+				( rhsRegister << (20 + ALIGN_RIGHT_SHIFT) ) |
+				( lhsRegister << (13 + ALIGN_RIGHT_SHIFT) ) |
+				( truePredicate << (6 + ALIGN_RIGHT_SHIFT) );
+
+	return IA64_instruction( rawInsn );
+	} /* end generateComparison() */
+
+IA64_instruction_x predicateLongInstruction( Register predicate, IA64_instruction_x insn ) {
+	uint64_t predicateRegister = ((uint64_t)predicate) & 0x3F;
+
+	uint64_t highInsn = insn.getMachineCode().high |
+			   predicateRegister << ALIGN_RIGHT_SHIFT;
+
+	return IA64_instruction_x( insn.getMachineCode().low, highInsn, insn.getTemplateID(), insn.getMyBundle() );
+	} /* end predicateLongInstruction() */
+
+IA64_instruction generateFPSpillTo( Register address, Register source ) {
+	uint64_t addressRegister = ((uint64_t)address) & 0x3F;
+	uint64_t sourceRegister = ((uint64_t)source) & 0x3F;
+
+	uint64_t rawInsn = 0x0000000000000000 |
+			   ( ((uint64_t)0x06) << (37 + ALIGN_RIGHT_SHIFT) ) |
+			   ( ((uint64_t)0x3B) << (30 + ALIGN_RIGHT_SHIFT) ) |
+			   ( (addressRegister) << (20 + ALIGN_RIGHT_SHIFT) ) |
+			   ( (sourceRegister) << (13 + ALIGN_RIGHT_SHIFT) );
+
+	return IA64_instruction( rawInsn );
+	} /* end generateFPSpillTo() */
+
+IA64_instruction generateFPFillFrom( Register address, Register destination ) {
+	uint64_t addressRegister = ((uint64_t)address) & 0x3F;
+	uint64_t destinationRegister = ((uint64_t)destination) & 0x3F;
+
+	uint64_t rawInsn = 0x0000000000000000 |
+			   ( ((uint64_t)0x06) << (37 + ALIGN_RIGHT_SHIFT) ) |
+			   ( ((uint64_t)0x1B) << (30 + ALIGN_RIGHT_SHIFT) ) |
+			   ( (addressRegister) << (20 + ALIGN_RIGHT_SHIFT) ) |
+			   ( (destinationRegister) << (6 + ALIGN_RIGHT_SHIFT) );
+
+	return IA64_instruction( rawInsn );
+	} /* end generateFPFillFrom() */
+
+IA64_instruction generateRegisterToFloatMove( Register source, Register destination ) {
+	uint64_t sourceRegister = ((uint64_t)source) & 0x3F;
+	uint64_t destinationRegister = ((uint64_t)destination) & 0x3F;
+	
+	uint64_t rawInsn = 0x0000000000000000 |
+			   ( ((uint64_t)0x06) << (37 + ALIGN_RIGHT_SHIFT) ) |
+			   ( ((uint64_t)0x1C) << (30 + ALIGN_RIGHT_SHIFT) ) |
+			   ( ((uint64_t)0x01) << (27 + ALIGN_RIGHT_SHIFT) ) |
+			   ( sourceRegister << (13 + ALIGN_RIGHT_SHIFT) ) |
+			   ( destinationRegister << (6 + ALIGN_RIGHT_SHIFT) );
+
+	return IA64_instruction( rawInsn );
+	} /* end generateRegisterToFloatMove() */
+
+IA64_instruction generateFloatToRegisterMove( Register source, Register destination ) {
+	uint64_t sourceRegister = ((uint64_t)source) & 0x3F;
+	uint64_t destinationRegister = ((uint64_t)destination) & 0x3F;
+	
+	uint64_t rawInsn = 0x0000000000000000 |
+			   ( ((uint64_t)0x04) << (37 + ALIGN_RIGHT_SHIFT) ) |
+			   ( ((uint64_t)0x1C) << (30 + ALIGN_RIGHT_SHIFT) ) |
+			   ( ((uint64_t)0x01) << (27 + ALIGN_RIGHT_SHIFT) ) |
+			   ( sourceRegister << (13 + ALIGN_RIGHT_SHIFT) ) |
+			   ( destinationRegister << (6 + ALIGN_RIGHT_SHIFT) );
+
+	return IA64_instruction( rawInsn );
+	} /* end generateFloatToRegisterMove() */
+
+IA64_instruction generateFixedPointMultiply( Register destination, Register lhs, Register rhs ) {
+	uint64_t destinationRegister = ((uint64_t)destination) & 0x3F;
+	uint64_t lhsRegister = ((uint64_t)lhs) & 0x3F;
+	uint64_t rhsRegister = ((uint64_t)rhs) & 0x3F;
+
+	/* FIXME: We're assuming unsigned, and that the lower 64 bits are more interesting,
+		  but this may well not be the case. */
+	uint64_t rawInsn = 0x0000000000000000 |
+			   ( ((uint64_t)0x0E) << (37 + ALIGN_RIGHT_SHIFT) ) |
+			   ( ((uint64_t)0x01) << (36 + ALIGN_RIGHT_SHIFT) ) |
+			   ( destinationRegister << (6 + ALIGN_RIGHT_SHIFT) ) |
+			   ( lhsRegister << (20 + ALIGN_RIGHT_SHIFT) ) |
+			   ( rhsRegister << (27 + ALIGN_RIGHT_SHIFT) );
+
+	return IA64_instruction( rawInsn );
+	} /* end generateFixedPointMultiply() */
