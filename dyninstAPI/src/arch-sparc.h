@@ -48,6 +48,9 @@
 
 /*
  * $Log: arch-sparc.h,v $
+ * Revision 1.19  1997/06/23 17:05:44  tamches
+ * instPointType moved to another file
+ *
  * Revision 1.18  1997/05/20 15:46:15  zhichen
  * Added WRYop3 & RDYop3 for correctly handle DIVop3
  *
@@ -103,14 +106,6 @@
  * Added log message, duplicate include guards
  *
  */
-
-
-typedef enum { 
-    noneType,
-    functionEntry,
-    functionExit,
-    callSite
-} instPointType;
 
 
 /*
