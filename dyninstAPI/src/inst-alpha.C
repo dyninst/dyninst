@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.48 2002/06/18 21:35:55 rchen Exp $
+// $Id: inst-alpha.C,v 1.49 2002/06/26 21:14:39 schendel Exp $
 
 #include "common/h/headers.h"
 
@@ -1677,24 +1677,25 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
  * Install a single tramp.
  *
  */
-void installTramp(instInstance *inst, char *code, int codeSize)
+void installTramp(instInstance *inst, process *proc, char *code, int codeSize,
+		  instPoint * /*location*/, callWhen when)
 {
     totalMiniTramps++;
     insnGenerated += codeSize/sizeof(int);
 
     // TODO cast
-    (inst->proc)->writeDataSpace((caddr_t)inst->trampBase, codeSize, code);
+    proc->writeDataSpace((caddr_t)inst->trampBase, codeSize, code);
 
     // overwrite branches for skipping instrumentation
     trampTemplate *base = inst->baseInstance;
-    if (inst->when == callPreInsn && base->prevInstru == false) {
+    if(when == callPreInsn && base->prevInstru == false) {
 	base->cost += base->prevBaseCost;
 	base->prevInstru = true;
-	generateNoOp(inst->proc, base->baseAddr + base->skipPreInsOffset);
+	generateNoOp(proc, base->baseAddr + base->skipPreInsOffset);
     } else if (inst->when == callPostInsn && base->postInstru == false) {
 	base->cost += base->postBaseCost;
 	base->postInstru = true;
-	generateNoOp(inst->proc, base->baseAddr + base->skipPostInsOffset);
+	generateNoOp(proc, base->baseAddr + base->skipPostInsOffset);
     }
 }
 
@@ -2253,8 +2254,8 @@ bool process::MonitorCallSite(instPoint *callSite){
 }
 #endif
 
-bool deleteBaseTramp(process *proc,instPoint* location,
-                     instInstance* instance)
+bool deleteBaseTramp(process *proc, instPoint* location,
+                     trampTemplate *, instInstance * /*lastMT*/)
 {
 	cerr << "WARNING : deleteBaseTramp is unimplemented "
 	     << "(after the last instrumentation deleted)" << endl;

@@ -41,7 +41,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.9 2002/06/20 20:06:13 tlmiller Exp $
+ * $Id: inst-ia64.C,v 1.10 2002/06/26 21:14:41 schendel Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -158,7 +158,9 @@ void emitV( opCode op, Register src1, Register src2, Register dest,
 		char * ibuf, Address & base, bool noCost, int size ) { }
 
 /* Required by inst.C */
-bool deleteBaseTramp( process *, instPoint *, instInstance * ) { return false; }
+bool deleteBaseTramp( process *, instPoint *, trampTemplate *,
+		      instInstance * /*lastMT*/) 
+{ return false; }
 
 /* Required by ast.C */
 void emitImm( opCode op, Register src1, RegValue src2imm, Register dest,
@@ -253,7 +255,8 @@ bool pd_Function::PA_attachOverlappingInstPoints(
 		instruction * loadedCode , int codeSize ) { return false; }
 
 /* Required by inst.C */
-void installTramp( instInstance * inst, char * code, int codeSize ) { }
+void installTramp( instInstance *inst, process *proc, char *code, int codeSize,
+		  instPoint * /*location*/, callWhen when ) { }
 
 /* Required by func-reloc.C */
 void pd_Function::copyInstruction( instruction & newInsn,
