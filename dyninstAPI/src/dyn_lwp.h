@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.21 2003/10/28 18:57:34 schendel Exp $
+ * $Id: dyn_lwp.h,v 1.22 2003/11/13 22:49:03 schendel Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -156,9 +156,8 @@ class dyn_lwp
   bool waitUntilStopped();
   processState status_;
   processState status() const { return status_;}
-  void set_status(processState st) {
-     status_ = st;
-  }
+  void set_status(processState st);
+
   bool pauseLWP(bool shouldWaitUntilStopped = true);
   bool stop_(); // formerly OS::osStop
   bool continueLWP();

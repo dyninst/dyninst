@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.14 2003/10/22 16:00:43 schendel Exp $
+ * $Id: dyn_lwp.C,v 1.15 2003/11/13 22:49:02 schendel Exp $
  */
 
 #include "common/h/headers.h"
@@ -112,6 +112,14 @@ dyn_lwp::~dyn_lwp()
    detach();
 }
 
+void dyn_lwp::set_status(processState st) {
+   status_ = st;
+   
+   if(this==proc_->getRepresentativeLWP() && proc_->status() != st)
+      proc_->set_status(st, this);
+}
+
+
 // TODO is this safe here ?
 bool dyn_lwp::continueLWP() {
    if(status_ == running) {
@@ -123,7 +131,7 @@ bool dyn_lwp::continueLWP() {
       perror("continueProc_()");
    }
 
-   status_ = running;
+   set_status(running);
    return true;
 }
 
@@ -149,7 +157,7 @@ bool dyn_lwp::pauseLWP(bool shouldWaitUntilStopped) {
       res = waitUntilStopped();
    }
 
-   status_ = stopped;
+   set_status(stopped);
    return res;
 }
 
