@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.108 2003/09/05 16:27:58 schendel Exp $
+// $Id: pdwinnt.C,v 1.109 2003/10/07 19:06:07 schendel Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -307,26 +307,28 @@ bool process::walkStackFromFrame(Frame currentFrame, pdvector<Frame> &stackWalk)
     bool done = false;
 
     while( !done ) {
-        STACKFRAME saved_sf = sf;
-	BOOL walked;
-     	ADDRESS patchedAddrReturn;
-       	ADDRESS patchedAddrPC;
-       	instPoint* ip = NULL;
-       	function_base* fp = NULL;
-
-       	// set defaults for return address and PC
-       	patchedAddrReturn = saved_sf.AddrReturn;
-       	patchedAddrPC = saved_sf.AddrPC;
-
-	// try to step through the stack using the current information
-      	walked = walkStackFrame((HANDLE)procHandle_,  hThread, &sf);
-
-	if( !walked && (GetLastError() == ERROR_INVALID_ADDRESS) ) {
-
+       STACKFRAME saved_sf = sf;
+       BOOL walked;
+       ADDRESS patchedAddrReturn;
+       ADDRESS patchedAddrPC;
+       instPoint* ip = NULL;
+       function_base* fp = NULL;
+       
+       // set defaults for return address and PC
+       patchedAddrReturn = saved_sf.AddrReturn;
+       patchedAddrPC = saved_sf.AddrPC;
+       
+       handleT procHandle = getProcessLWP()->getProcessHandle();
+       
+       // try to step through the stack using the current information
+       walked = walkStackFrame((HANDLE)procHandle, hThread, &sf);
+       
+       if( !walked && (GetLastError() == ERROR_INVALID_ADDRESS) ) {
+          
           // try to patch the return address, in case it is outside
           // of the original text of the process.  It might be outside
           // the original text if the function has been relocated, or
-  	  // if it represents a return from a call instruction that
+          // if it represents a return from a call instruction that
           // has been relocated to a base tramp.
           // we first try to patch the return address only, because it
           // is most likely that the return address only is out of the
@@ -338,111 +340,112 @@ bool process::walkStackFromFrame(Frame currentFrame, pdvector<Frame> &stackWalk)
           // the StackWalk
           sf = saved_sf;
           fp = findFunctionFromAddress( this, sf.AddrReturn.Offset );
-
-	  if( fp != NULL ) {
+          
+          if( fp != NULL ) {
       	    // because StackWalk seems to support it, we simply use 
        	    // the address of the function itself rather than
        	    // trying to do the much more difficult task of finding
        	    // the original address of the relocated instruction
        	    patchedAddrReturn.Offset = fp->addr();
        	    sf.AddrReturn = patchedAddrReturn;
-	  }
-
+          }
+          
           // retry the stack step
           walked = 
-              walkStackFrame((HANDLE)procHandle_, hThread, &sf);
-	}
-
-	if( !walked && (GetLastError() == ERROR_INVALID_ADDRESS) ) {
-
-       	  // patching the return address alone didn't work.
-       	  // try patching the return address and the PC
-       	  sf = saved_sf;
+             walkStackFrame((HANDLE)getProcessLWP()->getProcessHandle(),
+                            hThread, &sf);
+       }
+       
+       if( !walked && (GetLastError() == ERROR_INVALID_ADDRESS) ) {
+          
+          // patching the return address alone didn't work.
+          // try patching the return address and the PC
+          sf = saved_sf;
           fp = findFunctionFromAddress( this, sf.AddrPC.Offset );
-
-       	  if( fp != NULL ) {
-
+          
+          if( fp != NULL ) {
+             
        	    // because StackWalk seems to support it, we simply use 
        	    // the address of the function itself rather than
        	    // trying to do the much more difficult task of finding
        	    // the original address of the relocated instruction
        	    patchedAddrPC.Offset = fp->addr();
        	    sf.AddrPC = patchedAddrPC;
-       	  }
+          }
+          
+          // use the patched return address we calculated above
+          sf.AddrReturn = patchedAddrReturn;
 
-       	  // use the patched return address we calculated above
-       	  sf.AddrReturn = patchedAddrReturn;
+          // retry the stack step
+          walked = walkStackFrame((HANDLE)getProcessLWP()->getProcessHandle(),
+                                  hThread, &sf);
+       }
+       
+       if( !walked && (GetLastError() == ERROR_INVALID_ADDRESS) )
+       {
+          
+          // patching both addresses didn't work
+          //
+          // try patching the PC only
+          sf = saved_sf;
+          sf.AddrPC = patchedAddrPC;
+          
+          // retry the stack step
+          walked = walkStackFrame((HANDLE)getProcessLWP()->getProcessHandle(),
+                                  hThread, &sf);
+       }
+       
 
-       	  // retry the stack step
-       	  walked = 
-              walkStackFrame((HANDLE)procHandle_, hThread, &sf);
-       	}
-
-       	if( !walked && (GetLastError() == ERROR_INVALID_ADDRESS) )
-       	{
-
-       	  // patching both addresses didn't work
-       	  //
-       	  // try patching the PC only
-      	  sf = saved_sf;
-       	  sf.AddrPC = patchedAddrPC;
-
-      	  // retry the stack step
-       	  walked = 
-              walkStackFrame((HANDLE)procHandle_, hThread, &sf);
-       	}
-
-
-	// by now we've tried all of our tricks to handle the stack 
-        // frame if we haven't succeeded by now, we're not going to be
-        // able to handle this frame
-      	if( walked ) {
+       // by now we've tried all of our tricks to handle the stack 
+       // frame if we haven't succeeded by now, we're not going to be
+       // able to handle this frame
+       if( walked ) {
+          
+          Address pc = NULL;
 	  
-	  Address pc = NULL;
-	  
-	  // save the PC for this stack frame
-	  // make sure we use the original address in case
-	  // it was outside the original text of the process
-	  if( saved_sf.AddrReturn.Offset == 0 ) {
-	    
-	    // this was the first stack frame, so we had better
-	    // use the original PC
-	    pc = saved_sf.AddrPC.Offset;
-	    
-	  } else {
-	    
-	    // this was not the first stack frame
-	    // use the original return address
-	    pc = saved_sf.AddrReturn.Offset;
-	  }
-	
-	  stackWalk.push_back(Frame(pc, 0, getPid(), 
-				    currentFrame.getThread(), 
-				    currentFrame.getLWP(), 
-				    false));
-
+          // save the PC for this stack frame
+          // make sure we use the original address in case
+          // it was outside the original text of the process
+          if( saved_sf.AddrReturn.Offset == 0 ) {
+             
+             // this was the first stack frame, so we had better
+             // use the original PC
+             pc = saved_sf.AddrPC.Offset;
+             
+          } else {
+             
+             // this was not the first stack frame
+             // use the original return address
+             pc = saved_sf.AddrReturn.Offset;
+          }
+          
+          stackWalk.push_back(Frame(pc, 0, getPid(), 
+                                    currentFrame.getThread(), 
+                                    currentFrame.getLWP(), 
+                                    false));
+          
 #ifdef DEBUG_STACKWALK
-	  cout << "0x" << setw(8) << setfill('0') << std::hex << pc << ": ";
-	  
-	  if( fp != NULL ) {
-	    cout << fp->prettyName();
-	  } else {
-	    cout << "<unknown>";
-	  }
-	  
-	  if( sf.AddrPC.Offset != pc ) {
-	    cout << " (originally 0x" << setw(8) << setfill('0') 
-            << std::hex << sf.AddrPC.Offset << ")";
-	  }
-	  cout << endl;
+          cout << "0x" << setw(8) << setfill('0') << std::hex << pc << ": ";
+          
+          if( fp != NULL ) {
+             cout << fp->prettyName();
+          } else {
+             cout << "<unknown>";
+          }
+          
+          if( sf.AddrPC.Offset != pc ) {
+             cout << " (originally 0x" << setw(8) << setfill('0') 
+                  << std::hex << sf.AddrPC.Offset << ")";
+          }
+          cout << endl;
 #endif
-	  
-	} else {
-	  // we tried everything we know to recover - we'll have 
-	  // to fail
-	  done = true;
-	}
-	
+          
+       } else {
+          // we tried everything we know to recover - we'll have 
+          // to fail
+          done = true;
+       }
+       
     }
 
     // Terminate stack walk with an empty frame
@@ -526,7 +529,6 @@ DWORD handleBreakpoint(process *proc,
     */
 
     if (!proc->reachedBootstrapState(bootstrapped)) {
-        
         // If we're attaching, the OS sends a stream of debug events
         // to the mutator informing it of the status of the process.
         // This finishes with a breakpoint that basically says
@@ -742,71 +744,73 @@ DWORD handleException(process *proc, procSignalWhat_t what, procSignalInfo_t inf
 
 // Thread creation
 DWORD handleThreadCreate(process *proc, procSignalInfo_t info) {
-    dyn_lwp *l = proc->createLWP(info.dwThreadId, info.dwThreadId, 
-                                 info.u.CreateThread.hThread);
-    l->openFD();
-    dyn_thread *t = new dyn_thread(proc, info.dwThreadId, // thread ID
-                                   proc->threads.size(), // POS in threads array (and rpcMgr thrs_ array?)
-                                   l); // dyn_lwp object for thread handle
-    proc->threads.push_back(t);
-    proc->continueProc();
-    return DBG_CONTINUE;
+   dyn_lwp *l = proc->createLWP(info.dwThreadId);
+   l->setFileHandle(info.u.CreateThread.hThread);
+   l->attach();
+   dyn_thread *t = new dyn_thread(proc, info.dwThreadId, // thread ID
+                                  proc->threads.size(), // POS in threads array (and rpcMgr thrs_ array?)
+                                  l); // dyn_lwp object for thread handle
+   proc->threads.push_back(t);
+   proc->continueProc();
+   return DBG_CONTINUE;
 }
 
 // Process creation
 DWORD handleProcessCreate(process *proc, procSignalInfo_t info) {
-    
-    if (proc) {
-        
-		if( proc->getImage()->getObject().have_deferred_parsing() )
-		{
-            fileDescriptor_Win* oldDesc = 
-              proc->getImage()->getObject().GetDescriptor();
-            
-			// now we have an process to work with -
-			// build a new descriptor with the new information
-			fileDescriptor_Win* desc = new fileDescriptor_Win( *oldDesc );
+   if(! proc)
+      return DBG_CONTINUE;
 
-			// update the descriptor with the new information
-			desc->SetAddr( (Address)info.u.CreateProcessInfo.lpBaseOfImage );
-			desc->SetFileHandle( info.u.CreateProcessInfo.hFile );
-            // 7APR -- when we attach we get a process handle after oldDesc was created
-            if( proc->getProcessHandle() == INVALID_HANDLE_VALUE )
-			{
-				desc->SetProcessHandle( info.u.CreateProcessInfo.hProcess );
-				proc->setProcessHandle( info.u.CreateProcessInfo.hProcess );
-			}
-			else
-			{
-				desc->SetProcessHandle (proc->getProcessHandle());
-            }
+   dyn_lwp *rep_lwp = proc->getProcessLWP();
+   assert(rep_lwp);  // the process based lwp should already be set
 
-			// reparse the image with the updated descriptor
-			image* img = image::parseImage( desc );
-			proc->setImage( img );
-		}
+   if(! rep_lwp->isFileHandleSet()) {
+      rep_lwp->setFileHandle(info.u.CreateProcessInfo.hThread);
+      // the real lwp id is at info.dwThreadId if want to save around
+   }
 
-        dyn_lwp *l = proc->getDefaultLWP();
-        if (!l) {
-            // It's possible we never created the default LWP
-            l = proc->createLWP(info.dwThreadId, 0, 
-                                info.u.CreateProcessInfo.hThread);
-        }
-        if (proc->threads.size() == 0) {
-            dyn_thread *t = new dyn_thread(proc, info.dwThreadId, // thread ID,
-                                           0, // POS (main thread is always 0)
-                                           l);
-            // define the main thread
-            proc->threads.push_back(t);
-        }
-        else {
-            proc->threads[0]->update_tid(info.dwThreadId);
-            proc->threads[0]->update_lwp(l);
-        }
-        proc->continueProc();
-    }
-    
-    return DBG_CONTINUE;
+   if (proc->threads.size() == 0) {
+      dyn_thread *t = new dyn_thread(proc, info.dwThreadId, // thread ID,
+                                     0, // POS (main thread is always 0)
+                                     rep_lwp);
+      // define the main thread
+      proc->threads.push_back(t);
+   }
+   else {
+      proc->threads[0]->update_tid(info.dwThreadId);
+      proc->threads[0]->update_lwp(rep_lwp);
+   }
+
+   
+   if( proc->getImage()->getObject().have_deferred_parsing() )
+   {
+      fileDescriptor_Win* oldDesc = 
+         proc->getImage()->getObject().GetDescriptor();
+      
+      // now we have an process to work with -
+      // build a new descriptor with the new information
+      fileDescriptor_Win* desc = new fileDescriptor_Win( *oldDesc );
+      
+      // update the descriptor with the new information
+      desc->SetAddr( (Address)info.u.CreateProcessInfo.lpBaseOfImage );
+      desc->SetFileHandle( info.u.CreateProcessInfo.hFile );
+      // 7APR -- when we attach we get a process handle after oldDesc was created
+      if(! rep_lwp->isProcessHandleSet()) {
+         desc->SetProcessHandle( info.u.CreateProcessInfo.hProcess );
+         rep_lwp->setProcessHandle( info.u.CreateProcessInfo.hProcess );
+      } else {
+         desc->SetProcessHandle(rep_lwp->getProcessHandle());
+      }
+      
+      fileDescriptor_Win *ptr = dynamic_cast<fileDescriptor_Win*>(desc);
+
+      // reparse the image with the updated descriptor
+      image* img = image::parseImage( desc );
+      proc->setImage( img );
+   }
+
+   proc->continueProc();
+
+   return DBG_CONTINUE;
 }
 
 DWORD handleThreadExit(process *proc, procSignalInfo_t info) {
@@ -856,10 +860,12 @@ DWORD handleDllLoad(process *proc, procSignalInfo_t info) {
     // obtain the name of the DLL
     pdstring imageName = GetLoadedDllImageName( proc, info );
     
-    fileDescriptor* desc = new fileDescriptor_Win( imageName,
-                                (HANDLE)proc->getProcessHandle(),
-                                (Address)info.u.LoadDll.lpBaseOfDll,
-                                info.u.LoadDll.hFile );
+    handleT procHandle = proc->getProcessLWP()->getProcessHandle();
+
+    fileDescriptor* desc =
+       new fileDescriptor_Win(imageName, (HANDLE)procHandle,
+                              (Address)info.u.LoadDll.lpBaseOfDll,
+                              info.u.LoadDll.hFile );
 
     // discover structure of new DLL, and incorporate into our
     // list of known DLLs
@@ -1096,68 +1102,30 @@ void OS::osDisconnect(void) {
 #endif
 }
 
-dyn_lwp *process::createLWP(unsigned lwp_id, int index, handleT fd) {
-   dyn_lwp *lwp = new dyn_lwp(lwp_id, fd, this);
-   theRpcMgr->addLWP(lwp);
-   lwps[index] = lwp;
-   return lwp;
-}
-
 bool process::installSyscallTracing()
 {
     return true;
 }
 
-
-bool process::attach_() {
-    if (createdViaAttach) {
-#ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-        if (!BPatch::bpatch->rDevice->RemoteDebugActiveProcess(getPid()))
-        {
-            return false;
-        }
-        procHandle_ = 
-            BPatch::bpatch->rDevice->RemoteOpenProcess(PROCESS_ALL_ACCESS,
-                                                        false, getPid());
-        assert( procHandle_ != NULL );
-        return true;
-#else
-        if (!DebugActiveProcess(getPid()))
-        {
-            //printf("Error: DebugActiveProcess failed\n");
-            return false;
-        }
-#endif
-    }
-
-    // We either created this process, or we have just attached it.
-    // In either case, our descriptor already has a valid process handle.
-    fileDescriptor_Win* fdw = (fileDescriptor_Win*)(getImage()->desc());
-    assert( fdw != NULL );
-    procHandle_ = fdw->GetProcessHandle();
-    assert( procHandle_ != NULL );
-
-    return true;
-}
-
 /* continue a process that is stopped */
 bool process::continueProc_() {
-  for (unsigned u = 0; u < threads.size(); u++) {
+   for (unsigned u = 0; u < threads.size(); u++) {
       unsigned count = 0;
+
       if (threads[u]->get_lwp()) {
 #ifdef mips_unknown_ce2_11 //ccw 10 feb 2001 : 29 mar 2001
-          count = BPatch::bpatch->rDevice->RemoteResumeThread((HANDLE)threads[u]->get_lwp()->get_fd());
+         count = BPatch::bpatch->rDevice->RemoteResumeThread((HANDLE)threads[u]->get_lwp()->get_fd());
 #else
-          count = ResumeThread((HANDLE)threads[u]->get_lwp()->get_fd());
+         count = ResumeThread((HANDLE)threads[u]->get_lwp()->get_fd());
 #endif
       }
       
       if (count == 0xFFFFFFFF) {
-          printSysError(GetLastError());
-          return false;
+         printSysError(GetLastError());
+         return false;
       }
-  }
-  return true;
+   }
+   return true;
 }
 
 
@@ -1202,7 +1170,6 @@ bool process::detach_() {
    return false;
 }
 
-
 /*
    detach from thr process, continuing its execution if the parameter "cont"
    is true.
@@ -1228,7 +1195,8 @@ bool process::writeTextSpace_(void *inTraced, u_int amount, const void *inSelf) 
 }
 
 bool process::flushInstructionCache_(void *baseAddr, size_t size){ //ccw 25 june 2001
-	return FlushInstructionCache((HANDLE)procHandle_, baseAddr, size);
+	return FlushInstructionCache((HANDLE)getProcessLWP()->getProcessHandle(),
+                                baseAddr, size);
 }
 
 //#ifdef BPATCH_SET_MUTATIONS_ACTIVE
@@ -1241,11 +1209,12 @@ bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) 
     DWORD nbytes;
 
     //printf("write %d bytes, %x\n", amount, inTraced);
+    handleT procHandle = getProcessLWP()->getProcessHandle();
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-    bool res = BPatch::bpatch->rDevice->RemoteWriteProcessMemory((HANDLE)procHandle_, (LPVOID)inTraced, 
+    bool res = BPatch::bpatch->rDevice->RemoteWriteProcessMemory((HANDLE)procHandle, (LPVOID)inTraced, 
 				  (LPVOID)inSelf, (DWORD)amount, &nbytes);
 #else
-    bool res = WriteProcessMemory((HANDLE)procHandle_, (LPVOID)inTraced, 
+    bool res = WriteProcessMemory((HANDLE)procHandle, (LPVOID)inTraced, 
 				  (LPVOID)inSelf, (DWORD)amount, &nbytes);
 #endif
     return res && (nbytes == amount);
@@ -1254,11 +1223,12 @@ bool process::writeDataSpace_(void *inTraced, u_int amount, const void *inSelf) 
 
 bool process::readDataSpace_(const void *inTraced, u_int amount, void *inSelf) {
     DWORD nbytes;
+    handleT procHandle = getProcessLWP()->getProcessHandle();
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-    bool res = BPatch::bpatch->rDevice->RemoteReadProcessMemory((HANDLE)procHandle_, (LPVOID)inTraced, 
+    bool res = BPatch::bpatch->rDevice->RemoteReadProcessMemory((HANDLE)procHandle, (LPVOID)inTraced, 
 				 (LPVOID)inSelf, (DWORD)amount, &nbytes);
 #else
-    bool res = ReadProcessMemory((HANDLE)procHandle_, (LPVOID)inTraced, 
+    bool res = ReadProcessMemory((HANDLE)procHandle, (LPVOID)inTraced, 
 				 (LPVOID)inSelf, (DWORD)amount, &nbytes);
 	if( !res )
 	{
@@ -2215,16 +2185,47 @@ static pdstring GetLoadedDllImageName( process* p, const DEBUG_EVENT& ev )
 	return ret;
 }
 
-bool dyn_lwp::openFD_()
-{
-  // Nothing to do here that I know of, since we are handed the FD
-  // as part of a debug message
-  return true;
+bool dyn_lwp::threadLWP_attach_() {
+   //assert( false && "threads not yet supported on Windows");
+   return false;
 }
 
-void dyn_lwp::closeFD_()
+bool dyn_lwp::processLWP_attach_() {
+   if(proc_->createdViaAttach) {
+#ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
+      if (!BPatch::bpatch->rDevice->RemoteDebugActiveProcess(getPid()))
+      {
+         return false;
+      }
+      procHandle_ = 
+         BPatch::bpatch->rDevice->RemoteOpenProcess(PROCESS_ALL_ACCESS,
+                                                    false, getPid());
+      assert( procHandle_ != NULL );
+      return true;
+#else
+      if (!DebugActiveProcess(getPid()))
+      {
+         //printf("Error: DebugActiveProcess failed\n");
+         return false;
+      }
+#endif
+   }
+
+   // We either created this process, or we have just attached it.
+   // In either case, our descriptor already has a valid process handle.
+   fileDescriptor_Win* fdw = (fileDescriptor_Win*)(proc_->getImage()->desc());
+   assert( fdw != NULL );
+
+   if(fdw->GetProcessHandle() != INVALID_HANDLE_VALUE)
+      setProcessHandle(fdw->GetProcessHandle());
+   
+   return true;
+}
+
+void dyn_lwp::detach_()
 {
-  return;
+   assert(is_attached());  // dyn_lwp::detach() shouldn't call us otherwise
+   return;
 }
 
 
@@ -2289,7 +2290,7 @@ bool process::handleTrapAtEntryPointOfMain()
     flushInstructionCache_((void *)main_brk_addr, sizeof(unsigned char));
 
     // And bump the PC back
-    getDefaultLWP()->changePC(main_brk_addr, NULL);
+    getProcessLWP()->changePC(main_brk_addr, NULL);
 
     // Don't trap here accidentally
     main_brk_addr = 0;
@@ -2332,7 +2333,6 @@ bool process::loadDYNINSTlib()
     Address LoadLibAddr;
     Symbol sym;
 
-
 #ifdef mips_unknown_ce2_11 //ccw 14 aug 2000 : 29 mar 2001
 
 	Address hackLoadLibAddr = 0x01f9ac30; //ccw 2 feb 2001 : HACK
@@ -2350,6 +2350,7 @@ bool process::loadDYNINSTlib()
 		}
 	}
 #else
+
 	if (!getSymbolInfo("_LoadLibraryA@4", sym, LoadLibBase) &&
 		!getSymbolInfo("_LoadLibraryA", sym, LoadLibBase ) &&
 		!getSymbolInfo("LoadLibraryA", sym, LoadLibBase ) )
@@ -2357,7 +2358,9 @@ bool process::loadDYNINSTlib()
 	    printf("unable to find function LoadLibrary\n");
 	    assert(0);
     }
+
     LoadLibAddr = sym.addr() + LoadLibBase;
+
     assert(LoadLibAddr);
 #endif
     char ibuf[BYTES_TO_SAVE];
@@ -2373,7 +2376,7 @@ bool process::loadDYNINSTlib()
     // Trap
 
     process::dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
-    
+
     if (!process::dyninstRT_name.length())
         // if environment variable unset, use the default name/strategy
         process::dyninstRT_name = "libdyninstAPI_RT.dll";
@@ -2420,7 +2423,6 @@ bool process::loadDYNINSTlib()
     readDataSpace((void *)codeBase, BYTES_TO_SAVE, savedCodeBuffer, false);
     writeDataSpace((void *)codeBase, BYTES_TO_SAVE, ibuf);
     flushInstructionCache_((void *)codeBase, BYTES_TO_SAVE);
-    
 
 #ifdef mips_unknown_ce2_11 //ccw 22 aug 2000
     assert(0 && "Need to update dyninst lib load instructions");
@@ -2429,9 +2431,9 @@ bool process::loadDYNINSTlib()
 #endif
 
 
-    savedRegs = getDefaultLWP()->getRegisters();
+    savedRegs = getProcessLWP()->getRegisters();
 
-    getDefaultLWP()->changePC(codeBase + instructionOffset, NULL);
+    getProcessLWP()->changePC(codeBase + instructionOffset, NULL);
 
     setBootstrapState(loadingRT);
 
@@ -2456,7 +2458,7 @@ bool process::loadDYNINSTlibCleanup()
 {
    
     // First things first: 
-    getDefaultLWP()->restoreRegisters(savedRegs);
+    getProcessLWP()->restoreRegisters(savedRegs);
     delete savedRegs;
 
     writeDataSpace((void *)getImage()->codeOffset(),
