@@ -19,12 +19,15 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-common.C,v 1.2 1994/07/01 22:14:17 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-common.C,v 1.3 1994/07/05 03:26:13 hollings Exp $";
 #endif
 
 /*
  * $Log: metricDefs-common.C,v $
- * Revision 1.2  1994/07/01 22:14:17  markc
+ * Revision 1.3  1994/07/05 03:26:13  hollings
+ * observed cost model
+ *
+ * Revision 1.2  1994/07/01  22:14:17  markc
  * Moved createSyncWait from metricDefs-common to machine dependent files
  * since pvm uses a wall timer and cm5 uses a process timer.  On the cm5 the
  * process timer continues to run during blocking system calls.
@@ -182,6 +185,21 @@ void instAllFunctions(metricDefinitionNode *nm,
 	    }
 	}
     }
+}
+
+dataReqNode *createObservedCost(metricDefinitionNode *mn, AstNode *pred)
+{
+    function *sampler;
+    AstNode *reportNode;
+    dataReqNode *dataPtr;
+
+    dataPtr = mn->addIntCounter(0, False);
+
+    sampler = findFunction(mn->proc->symbols, "DYNINSTsampleValues");
+    assert(sampler);
+    reportNode = new AstNode("DYNINSTreportCost", 
+		 new AstNode(DataPtr, dataPtr), new AstNode(Constant, 0));
+    mn->addInst(sampler->funcEntry, reportNode, callPreInsn, orderLastAtPoint);
 }
 
 dataReqNode *createCPUTime(metricDefinitionNode *mn, AstNode *pred)
@@ -479,4 +497,21 @@ void perModuleCalls(metricDefinitionNode *mn,
 	return;
     }
 }
+
+
+resourcePredicate observedCostPredicates[] = {
+  { "/SyncObject",	
+    invalidPredicate,		
+    (createPredicateFunc) NULL },
+  { "/Machine",	
+    nullPredicate,		
+    (createPredicateFunc) NULL },
+  { "/Process",	
+    nullPredicate,		
+    (createPredicateFunc) NULL },
+  { "/Procedure",	
+    invalidPredicate,		
+    (createPredicateFunc) NULL },
+  { NULL, nullPredicate, (createPredicateFunc) NULL },
+};
 

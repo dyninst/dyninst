@@ -8,7 +8,10 @@
  *   by the instrumentation layer.
  *
  * $Log: inst.h,v $
- * Revision 1.2  1994/06/29 02:52:31  hollings
+ * Revision 1.3  1994/07/05 03:26:06  hollings
+ * observed cost model
+ *
+ * Revision 1.2  1994/06/29  02:52:31  hollings
  * Added metricDefs-common.{C,h}
  * Added module level performance data
  * cleanedup types of inferrior addresses instrumentation defintions
@@ -156,8 +159,12 @@ void installDefaultInst(process *proc, instMaping *initialRequests);
  */
 void initPrimitiveCost();
 void initDefaultPointFrequencyTable();
-float getPrimitiveCost(char *name);
 
+//
+// Return the expected runtime of the passed function in instruction
+//   times.
+//
+int getPrimitiveCost(char *name);
 
 // a register.
 typedef int reg;

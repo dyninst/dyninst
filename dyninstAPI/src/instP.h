@@ -7,7 +7,10 @@
  * instP.h - interface between inst and the arch specific inst functions.
  *
  * $Log: instP.h,v $
- * Revision 1.1  1994/01/27 20:31:26  hollings
+ * Revision 1.2  1994/07/05 03:26:07  hollings
+ * observed cost model
+ *
+ * Revision 1.1  1994/01/27  20:31:26  hollings
  * Iinital version of paradynd speaking dynRPC igend protocol.
  *
  * Revision 1.6  1993/10/19  15:27:54  hollings
@@ -59,6 +62,7 @@ struct instInstanceRec {
      instInstance *prev;        /* linked list of prev. instance */
      instInstance *nextAtPoint; /* next in same addr space at point */
      instInstance *prevAtPoint; /* next in same addr space at point */
+     int cost;			/* cost in cycles of this inst req. */
 };
 
 void *findAndInstallBaseTramp(process *proc, instPoint *location);

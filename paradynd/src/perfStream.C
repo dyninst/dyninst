@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.18 1994/06/29 02:52:45 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.19 1994/07/05 03:26:17 hollings Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.18  1994/06/29 02:52:45  hollings
+ * Revision 1.19  1994/07/05 03:26:17  hollings
+ * observed cost model
+ *
+ * Revision 1.18  1994/06/29  02:52:45  hollings
  * Added metricDefs-common.{C,h}
  * Added module level performance data
  * cleanedup types of inferrior addresses instrumentation defintions
@@ -339,6 +342,12 @@ void processTraceStream(process *curr)
 		break;
 
 	    case TR_EXIT:
+		extern void printDyninstStats();
+
+		sprintf(errorLine, "process %d exited\n", curr->pid);
+		logLine(errorLine);
+		printDyninstStats();
+
 		curr->status = exited;
 		break;
 
@@ -433,11 +442,14 @@ int handleSigChild(int pid, int status)
 		break;
 	}
     } else if (WIFEXITED(status)) {
+	extern void printDyninstStats();
 #ifdef PARADYND_PVM
 		PDYN_reportSIGCHLD (pid, WEXITSTATUS(status));
 #endif
 	sprintf(errorLine, "process %d has terminated\n", curr->pid);
 	logLine(errorLine);
+
+	printDyninstStats();
 	curr->status = exited;
     } else if (WIFSIGNALED(status)) {
 	sprintf(errorLine, "process %d has terminated on signal %d\n", curr->pid,

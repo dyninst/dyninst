@@ -16,7 +16,10 @@
 
 /*
  * $Log: metricDefs-common.h,v $
- * Revision 1.1  1994/06/29 02:52:42  hollings
+ * Revision 1.2  1994/07/05 03:26:14  hollings
+ * observed cost model
+ *
+ * Revision 1.1  1994/06/29  02:52:42  hollings
  * Added metricDefs-common.{C,h}
  * Added module level performance data
  * cleanedup types of inferrior addresses instrumentation defintions
@@ -39,6 +42,7 @@ void instAllFunctions(metricDefinitionNode *nm,
 		      AstNode *leaveAst);
 
 dataReqNode *createCPUTime(metricDefinitionNode *mn, AstNode *pred);
+dataReqNode *createObservedCost(metricDefinitionNode *mn, AstNode *pred);
 
 void createExecTime(metricDefinitionNode *mn, AstNode *pred);
 
@@ -64,3 +68,4 @@ void perModuleCalls(metricDefinitionNode *mn,
 		    char *constraint, 
 		    AstNode *trigger);
 
+extern resourcePredicate observedCostPredicates[];

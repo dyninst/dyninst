@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.22 1994/07/02 01:46:41 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.23 1994/07/05 03:26:09 hollings Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.22  1994/07/02 01:46:41  markc
+ * Revision 1.23  1994/07/05 03:26:09  hollings
+ * observed cost model
+ *
+ * Revision 1.22  1994/07/02  01:46:41  markc
  * Use aggregation operator defines from util/h/aggregation.h
  * Changed average aggregations to summations.
  *
@@ -492,8 +495,11 @@ metricInstance createMetricInstance(resourceList l, metric m)
 int startCollecting(resourceList l, metric m)
 {
     float cost;
+    timeStamp now;
     metricInstance mi;
-    extern internalMetric totalPredictedCost;
+    extern double totalPredictedCost;
+    extern timeStamp timeCostLastChanged;
+    extern internalMetric currentPredictedCost;
     extern void printResourceList(resourceList);
 
     mi = createMetricInstance(l, m);
@@ -501,7 +507,13 @@ int startCollecting(resourceList l, metric m)
 
     cost = mi->cost();
     mi->originalCost = cost;
-    totalPredictedCost.value += cost;
+
+    now = getCurrentTime(FALSE);
+    totalPredictedCost += currentPredictedCost.value * 
+	(now - timeCostLastChanged);
+    timeCostLastChanged = now;
+
+    currentPredictedCost.value += cost;
     sprintf(errorLine, "*** metric cost = %f\n", cost);
     logLine(errorLine);
 
@@ -648,7 +660,7 @@ void metricDefinitionNode::updateValue(time64 wallTime,
     List<metricDefinitionNode*> curr;
     // extern timeStamp elapsedPauseTime;
 
-    // sampleTime = (wallTime - elapsedPauseTime) / 1000000.0; 
+    // sampleTime = wallTime/ 1000000.0 - elapsedPauseTime;
     // commented out elapsedPauseTime because we don't currently stop CM-5
     // node processes. (brought it back jkh 11/9/93).
     sampleTime = wallTime / 1000000.0; 
@@ -798,13 +810,16 @@ instReqNode::~instReqNode()
     instance = NULL;
 }
 
+// 66Mhz clock for ss10/40.
+#define CYCLES_TO_SEC	66.0/1000000.0
+
 float instReqNode::cost()
 {
     float value;
     float unitCost;
     float frequency;
 
-    unitCost = ast->cost();
+    unitCost = ast->cost() / CYCLES_TO_SEC;
     frequency = getPointFrequency(point);
     value = unitCost * frequency;
 
@@ -932,8 +947,8 @@ dataReqNode::~dataReqNode()
 
 float computePauseTimeMetric()
 {
+    timeStamp now;
     timeStamp elapsed;
-    struct timeval tv;
     extern timeStamp startPause;
     extern time64 firstRecordTime;
     extern Boolean firstSampleReceived;
@@ -941,16 +956,15 @@ float computePauseTimeMetric()
     extern timeStamp elapsedPauseTime;
     static timeStamp reportedPauseTime = 0;
 
+    now = getCurrentTime(FALSE);
     if (firstRecordTime && firstSampleReceived) {
-	gettimeofday(&tv, NULL);
-
 	elapsed = elapsedPauseTime - reportedPauseTime;
 	if (applicationPaused) {
-	    elapsed += tv.tv_sec * MILLION + tv.tv_usec - startPause;
+	    elapsed += now - startPause;
 	}
 	assert(elapsed >= 0.0); 
 	reportedPauseTime += elapsed;
-	return(elapsed/MILLION);
+	return(elapsed);
     } else {
 	return(0.0);
     }
@@ -989,10 +1003,10 @@ internalMetric pauseTime("pause_time",
 			 "% Time",
 			 computePauseTimeMetric);
 
-internalMetric totalPredictedCost("predicted_cost", 
+internalMetric currentPredictedCost("predicted_cost", 
 				  SampledFunction,
 				  aggMax,
-				  "% Time",
+				  "Wasted CPUs",
 				  NULL);
 
 internalMetric activeSlots("active_slots", 
@@ -1001,24 +1015,40 @@ internalMetric activeSlots("active_slots",
 			    "NUmber",
 			    NULL);
 
+timeStamp getCurrentTime(Boolean firstRecordRelative)
+{
+    time64 now;
+    timeStamp ret;
+    struct timeval tv;
+    extern time64 firstRecordTime;
+
+    gettimeofday(&tv, NULL);
+    now = (time64) (tv.tv_sec * MILLION) + tv.tv_usec;
+    if (firstRecordRelative) now -= firstRecordTime;
+    
+    ret = now/MILLION;
+
+    return(ret);
+}
+
 void reportInternalMetrics()
 {
     timeStamp now;
     timeStamp start;
     sampleValue value;
-    struct timeval tv;
     internalMetric *im;
     static timeStamp end;
     extern float samplingRate;
     List<internalMetric*> curr;
     extern time64 firstRecordTime;
 
-    //  check if it is time for a sample
-    gettimeofday(&tv, NULL);
 
     // see if we have a sample to establish time base.
     if (!firstRecordTime) return;
-    now = (tv.tv_sec * MILLION + tv.tv_usec - firstRecordTime)/MILLION;
+
+    now = getCurrentTime(TRUE);
+
+    //  check if it is time for a sample
     if (now < end + samplingRate) 
 	return;
 

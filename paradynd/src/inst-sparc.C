@@ -19,14 +19,17 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.6 1994/06/30 18:01:35 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sparc.C,v 1.7 1994/07/05 03:26:03 hollings Exp $";
 #endif
 
 /*
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
- * Revision 1.6  1994/06/30 18:01:35  jcargill
+ * Revision 1.7  1994/07/05 03:26:03  hollings
+ * observed cost model
+ *
+ * Revision 1.6  1994/06/30  18:01:35  jcargill
  * Fixed MAX_BRANCH definition (offset is in words, not bytes).
  *
  * Revision 1.5  1994/06/29  22:37:19  hollings
@@ -174,7 +177,7 @@ typedef union instructUnion instruction;
 #define ANDop3		1
 #define ORop3		2
 #define SUBop3		4
-#define SUBop3cc	SetCC|4
+#define SUBop3cc	SetCC|SUBop3
 #define SMULop3		11
 #define SDIVop3		15
 #define XNORop3		SetCC|7
@@ -284,6 +287,12 @@ struct instPointRec {
 	 isInsn(insn, TRAPmask, TRAPmatch))
 
 /* catch small ints that are invalid instructions */
+/*
+ * insn.call.op checks for CALL or Format 3 insns
+ * op2 == {2,4,6,7} checks for valid format 2 instructions.
+ *    See SPARC Arch manual v8 p. 44.
+ *
+ */
 #define IS_VALID_INSN(insn)     \
         ((insn.call.op) || ((insn.branch.op2 == 2) ||   \
                            (insn.branch.op2 == 4) ||    \
@@ -293,6 +302,9 @@ struct instPointRec {
 extern int errno;
 extern int totalMiniTramps;
 
+#define	REG_G5		5
+#define	REG_G6		6
+#define	REG_G7		7
 
 char *registerNames[] = { "g0", "g1", "g2", "g3", "g4", "g5", "g6", "g7",
 			  "o0", "o1", "o2", "o3", "o4", "o5", "sp", "o7",
@@ -563,7 +575,7 @@ Boolean locateAllInstPoints(image *i)
 	sprintf(errorLine, "    heap ends at %x\n", instHeapEnd);
 	logLine(errorLine);
 	return(FALSE);
-    } else if (instHeapEnd + SYN_INST_BUF_SIZE) {
+    } else if (instHeapEnd + SYN_INST_BUF_SIZE > MAX_BRANCH) {
 	logLine("WARNING: Program text + data could be too big for dyninst\n");
     }
 
@@ -890,7 +902,14 @@ caddr_t emit(opCode op, reg src1, reg src2, reg dest, char *i, caddr_t *base)
 	*base += 3 * sizeof(instruction);
     } else if (op ==  trampPreamble) {
 	genImmInsn(insn, SAVEop3, 14, -112, 14);
-	*base += sizeof(instruction);
+	insn++;
+
+	// generate code to update the observed cost register.
+	// SPARC ABI reserved register %g7 (%g6 is used as the high order word)
+	// add %g7, <cost>, %d7
+	genImmInsn(insn, ADDop3, REG_G7, src1, REG_G7);
+
+	*base += 2 * sizeof(instruction);
     } else if (op ==  trampTrailer) {
 	genSimpleInsn(insn, RESTOREop3, 0, 0, 0); insn++;
 
@@ -975,29 +994,80 @@ reg getParameter(reg dest, int param)
     return(-1);
 }
 
-#define NS_TO_SEC       1000000000.0
-
-float getInsnCost(operandType oType)
+//
+// All values based on Cypress0 && Cypress1 implementations as documented in
+//   SPARC v.8 manual p. 291
+//
+int getInsnCost(opCode op)
 {
-    return(100/NS_TO_SEC);
-#ifdef notdef
-    if (oType == Constant) {
-	// (void) emit(loadConstOp, (reg) oValue, dest, dest, insn, base);
-        return(10);
-    } else if (oType == DataPtr) {
-	// (void) emit(loadConstOp, (reg) addr, dest, dest, insn, base);
-    } else if (oType == DataValue) {
-	// if (dValue->getType() == timer) {
-	    // (void) emit(loadConstOp, (reg) addr, dest, dest, insn, base);
-	// } else {
-	    // (void) emit(loadOp, (reg) addr, dest, dest, insn, base);
-	// }
-    } else if (oType == Param) {
-	// src = rs->allocateRegister();
-	// dest = getParameter(src, (int) oValue);
-	// if (src != dest) {
-	    // rs->freeRegister(src);
-	// }
+    if (op == loadConstOp) {
+	return(2);
+    } else if (op ==  loadOp) {
+	// sethi + load single
+	return(1+2);
+    } else if (op ==  storeOp) {
+	// sethi + store single
+	return(1+3);
+    } else if (op ==  ifOp) {
+	// subcc
+	// be
+	// nop
+	return(1+1+1);
+    } else if (op ==  callOp) {
+	int count = 0;
+
+	// mov src1, %o0
+	count += 1;
+
+	// mov src2, %o1
+	count += 1;
+
+	// clr i2
+	count += 1;
+
+	// clr i3
+	count += 1;
+
+	// sethi
+	count += 1;
+
+	// jmpl
+	count += 2;
+
+	// noop
+	count += 1;
+    } else if (op ==  trampPreamble) {
+	// save %o6, -112, %o6
+	// add %g6, <cost>, %d6
+	return(2);
+    } else if (op ==  trampTrailer) {
+	// restore
+	// noop
+	// retl
+	return(1+1+2);
+    } else if (op == noOp) {
+	// noop
+	return(1);
+    } else {
+	switch (op) {
+	    // rel ops
+	    case eqOp:
+            case neOp:
+	        // bne -- assume taken
+	        return(3);
+	        break;
+
+	    case lessOp:
+	    case greaterOp:
+	    case leOp:
+	    case geOp:
+		abort();
+		return(-1);
+		break;
+	    
+	    default:
+		return(1);
+		break;
+	}
     }
-#endif
 }

@@ -59,8 +59,23 @@ extern registerSpace *regSpace;
 int AstNode::generateTramp(process *proc, char *i, caddr_t *count)
 {
     int ret;
-    static AstNode *preamble = new AstNode(trampPreamble, NULL, NULL);
+    int cycles;
+    AstNode *preamble;
     static AstNode *trailer = new AstNode(trampTrailer, NULL, NULL);
+    // used to estimate cost.
+    static AstNode *preambleTemplate = new AstNode(trampPreamble, 
+	new AstNode(Constant, (void *) 0), NULL);
+    
+    
+    //
+    // argument to the preamble is the cost of this tramp
+    //    WARNING: WE assume the machine specific part will add the
+    //       cost of its preamble and trailer to this cost.
+    // 
+    cycles = preambleTemplate->cost() + cost() + trailer->cost();
+
+    preamble = new AstNode(trampPreamble, 
+	new AstNode(Constant, (void *) cycles), NULL);
 
     regSpace->resetSpace();
 
@@ -68,6 +83,7 @@ int AstNode::generateTramp(process *proc, char *i, caddr_t *count)
     generateCode(proc, regSpace, i, count);
     ret = trailer->generateCode(proc, regSpace, i, count);
 
+    delete(preamble);
     return(ret);
 }
 
@@ -103,6 +119,12 @@ reg AstNode::generateCode(process *proc,
 	    rs->freeRegister(src2);
 	} else if (op == trampTrailer) {
 	    return((unsigned) emit(op, 0, 0, 0, insn, base));
+	} else if (op == trampPreamble) {
+	    int cost;
+
+	    // loperand is a constant AST node with the cost.
+	    cost = (int) loperand->oValue;
+	    return((unsigned) emit(op, cost, 0, 0, insn, base));
 	} else {
 	    if (loperand) 
 		src = loperand->generateCode(proc, rs, insn, base);
@@ -192,25 +214,52 @@ char *getOpString(opCode op)
     }
 }
 
-float AstNode::cost()
+int AstNode::cost()
 {
-    float total;
-    float getInsnCost(operandType t);
+    int total = 0;
+    int getInsnCost(opCode t);
 
-    if (type == operandNode) {
-	total = getInsnCost(oType);
-    } else if (type == opCodeNode) {
-	total = 0.0;
-	if (loperand) total += loperand->cost();
-	if (roperand) total += roperand->cost();
+    if (type == opCodeNode) {
+        if (op == ifOp) {
+	    total += loperand->cost();
+	    total += getInsnCost(op);
+	    total += roperand->cost();
+	} else if (op == storeOp) {
+	    total += roperand->cost();
+	    total += getInsnCost(op);
+	} else if (op == trampTrailer) {
+	    total = getInsnCost(op);
+	} else if (op == trampPreamble) {
+	    total = getInsnCost(op);
+	} else {
+	    if (loperand) 
+		total += loperand->cost();
+	    if (roperand) 
+		total += loperand->cost();
+	    total += getInsnCost(op);
+	}
+    } else if (type == operandNode) {
+	if (oType == Constant) {
+	    total = getInsnCost(loadConstOp);
+	} else if (oType == DataPtr) {
+	    total = getInsnCost(loadConstOp);
+	} else if (oType == DataValue) {
+	    if (dValue->getType() == timer) {
+		total = getInsnCost(loadConstOp);
+	    } else {
+		total = getInsnCost(loadOp);
+	    }
+	} else if (oType == Param) {
+	    // for SPARC its always in a register.
+	    total = 0;
+	}
     } else if (type == callNode) {
 	total = getPrimitiveCost(callee);
 	if (loperand) total += loperand->cost();
 	if (roperand) total += roperand->cost();
     } else if (type == sequenceNode) {
-	total = 0.0;
-	if (loperand) total += loperand->cost();
-	if (roperand) total += roperand->cost();
+	total += loperand->cost();
+	total += roperand->cost();
     }
     return(total);
 }

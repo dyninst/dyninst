@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.11 1994/06/29 02:52:23 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.12 1994/07/05 03:26:00 hollings Exp $";
 #endif
 
 /*
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
- * Revision 1.11  1994/06/29 02:52:23  hollings
+ * Revision 1.12  1994/07/05 03:26:00  hollings
+ * observed cost model
+ *
+ * Revision 1.11  1994/06/29  02:52:23  hollings
  * Added metricDefs-common.{C,h}
  * Added module level performance data
  * cleanedup types of inferrior addresses instrumentation defintions
@@ -113,6 +116,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "instP.h"
 #include "ast.h"
 #include "util.h"
+#include "metric.h"
 
 #define MILLION 1000000
 
@@ -172,6 +176,7 @@ instMaping initialRequests[] = {
     { "fork", "DYNINSTfork", FUNC_EXIT|FUNC_FULL_ARGS },
 #endif
     { "exit", "DYNINSTsampleValues", FUNC_ENTRY },
+    { "exit", "DYNINSTprintCost", FUNC_ENTRY },
     { "exit", "DYNINSTbreakPoint", FUNC_ENTRY },
     { "main", "DYNINSTinit", FUNC_ENTRY },
     { "DYNINSTsampleValues", "DYNINSTreportNewTags", FUNC_ENTRY },
@@ -290,18 +295,14 @@ timeStamp elapsedPauseTime = 0.0;
 
 Boolean markApplicationPaused()
 {
-    struct timeval tv;
 
     if (applicationPaused) return(False);
     applicationPaused = True;
 
     // get the time when we paused it.
 
-    gettimeofday(&tv, NULL);
-    startPause = tv.tv_sec;
-    startPause *= MILLION;
-    startPause += tv.tv_usec;
-    // sprintf(errorLine, "paused at %f\n", startPause / 1000000.0);
+    startPause = getCurrentTime(FALSE);
+    // sprintf(errorLine, "paused at %f\n", startPause);
     // logLine(errorLine);
     
     return(True);
@@ -314,7 +315,6 @@ Boolean isApplicationPaused()
 
 Boolean continueAllProcesses()
 {
-    struct timeval tv;
     struct List<process *> curr;
     extern void computePauseTimeMetric(time64, time64, sampleValue);
 
@@ -325,17 +325,13 @@ Boolean continueAllProcesses()
     if (!applicationPaused) return(False);
     applicationPaused = False;
 
-    gettimeofday(&tv, NULL);
-    endPause = tv.tv_sec;
-    endPause *= MILLION;
-    endPause += tv.tv_usec;
-
+    endPause = getCurrentTime(FALSE);
     if (!firstSampleReceived) {
 	return(False);
     }
 
     elapsedPauseTime += (endPause - startPause);
-    // sprintf(errorLine, "continued at %f\n", endPause / 1000000.0);
+    // sprintf(errorLine, "continued at %f\n", endPause);
     // logLine(errorLine);
 
     return(False);

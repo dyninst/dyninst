@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.7 1994/06/29 02:52:25 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.8 1994/07/05 03:26:02 hollings Exp $";
 #endif
 
 /*
  * inst-cm5.C - runtime library specific files to inst on this machine.
  *
  * $Log: inst-cm5.C,v $
- * Revision 1.7  1994/06/29 02:52:25  hollings
+ * Revision 1.8  1994/07/05 03:26:02  hollings
+ * observed cost model
+ *
+ * Revision 1.7  1994/06/29  02:52:25  hollings
  * Added metricDefs-common.{C,h}
  * Added module level performance data
  * cleanedup types of inferrior addresses instrumentation defintions
@@ -926,6 +929,8 @@ void sendPtraceBuffer(process *proc)
 
 #define NS_TO_SEC	1000000000.0
 
+#ifdef notdef
+-- need to make this truely cm-5 specific!!! not even on front ends.
 StringList<int> primitiveCosts;
 
 //
@@ -952,7 +957,7 @@ float getPrimitiveCost(char *name)
 {
     float ret;
 
-    ret = primitiveCosts.find(name)/NS_TO_SEC;
+    ret = primitiveCosts.find(name);
     if (ret == 0.0) {
 	sprintf(errorLine, "no cost value for primitive %s, using 10 usec\n", name);
 	logLine(errorLine);
@@ -961,6 +966,7 @@ float getPrimitiveCost(char *name)
     ret = 0.0;
     return(ret);
 }
+#endif
 
 /*
  * Not required on this platform.

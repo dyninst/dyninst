@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/sym-bsd.C,v 1.3 1994/06/29 02:52:49 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/sym-bsd.C,v 1.4 1994/07/05 03:26:19 hollings Exp $";
 #endif
 
 /*
  * sym-bsd.C - parse BSD style a.out files.
  *
  * $Log: sym-bsd.C,v $
- * Revision 1.3  1994/06/29 02:52:49  hollings
+ * Revision 1.4  1994/07/05 03:26:19  hollings
+ * observed cost model
+ *
+ * Revision 1.3  1994/06/29  02:52:49  hollings
  * Added metricDefs-common.{C,h}
  * Added module level performance data
  * cleanedup types of inferrior addresses instrumentation defintions
@@ -218,6 +221,10 @@ void locateLibFunctions(image *ret, libraryList libraryFunctions)
     free(tempSyms);
 }
 
+extern "C" {
+int getpagesize();
+}
+
 image *loadSymTable(char *file, int offset, libraryList libraryFunctions,
     char **iSym)
 {
@@ -372,7 +379,7 @@ image *loadSymTable(char *file, int offset, libraryList libraryFunctions,
 		} else {
 			mapLines(currentModule);
 		    currentModule = newModule(ret, currentDirectory, 
-			str, stabs[i].n_value);
+			str, (caddr_t) stabs[i].n_value);
 		}
 		break;
 

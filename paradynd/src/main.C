@@ -2,7 +2,10 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.18  1994/06/29 02:52:34  hollings
+ * Revision 1.19  1994/07/05 03:26:08  hollings
+ * observed cost model
+ *
+ * Revision 1.18  1994/06/29  02:52:34  hollings
  * Added metricDefs-common.{C,h}
  * Added module level performance data
  * cleanedup types of inferrior addresses instrumentation defintions
@@ -182,6 +185,13 @@ main(int argc, char *argv[])
     controllerMainLoop();
 }
 
+void dynRPC::printStats()
+{
+    extern void printDyninstStats();
+
+    printDyninstStats();
+}
+
 void dynRPC::addResource(String parent, String name)
 {
     resource pr;
@@ -256,8 +266,11 @@ double dynRPC::getPredictedDataCost(String_Array focusString, String metric)
 void dynRPC::disableDataCollection(int mid)
 {
     float cost;
+    timeStamp now;
     metricInstance mi;
-    extern internalMetric totalPredictedCost;
+    extern double totalPredictedCost;
+    extern timeStamp timeCostLastChanged;
+    extern internalMetric currentPredictedCost;
     extern void printResourceList(resourceList);
 
     mi = allMIs.find((void *) mid);
@@ -268,7 +281,13 @@ void dynRPC::disableDataCollection(int mid)
     logLine("\n");
 
     cost = mi->originalCost;
-    totalPredictedCost.value -= cost;
+
+    now = getCurrentTime(FALSE);
+    totalPredictedCost += currentPredictedCost.value * 
+	(now - timeCostLastChanged);
+    timeCostLastChanged = now;
+
+    currentPredictedCost.value -= cost;
 
     mi->disable();
     allMIs.remove(mi);

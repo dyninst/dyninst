@@ -3,7 +3,10 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.6  1994/06/29 02:52:29  hollings
+ * Revision 1.7  1994/07/05 03:26:04  hollings
+ * observed cost model
+ *
+ * Revision 1.6  1994/06/29  02:52:29  hollings
  * Added metricDefs-common.{C,h}
  * Added module level performance data
  * cleanedup types of inferrior addresses instrumentation defintions
@@ -33,7 +36,7 @@
  *
  *
  */
-char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sunos.C,v 1.6 1994/06/29 02:52:29 hollings Exp $";
+char inst_sunos_ident[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-sunos.C,v 1.7 1994/07/05 03:26:04 hollings Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -96,14 +99,34 @@ StringList<int> primitiveCosts;
 //
 void initPrimitiveCost()
 {
-    /* based on measured values for the CM-5. */
     /* Need to add code here to collect values for other machines */
-    primitiveCosts.add(240, (void *) "DYNINSTincrementCounter");
-    primitiveCosts.add(240, (void *) "DYNINSTdecrementCounter");
-    primitiveCosts.add(4990, (void *) "DYNINSTstartWallTimer");
-    primitiveCosts.add(5020, (void *) "DYNINSTstopWallTimer");
-    primitiveCosts.add(1150, (void *) "DYNINSTstartProcessTimer");
-    primitiveCosts.add(1510, (void *) "DYNINSTstopProcessTimer");
+
+    // these happen async of the rest of the system.
+    primitiveCosts.add(-1, (void *) "DYNINSTsampleValues");
+    primitiveCosts.add(-1, (void *) "DYNINSTreportTimer");
+    primitiveCosts.add(-1, (void *) "DYNINSTreportCounter");
+    primitiveCosts.add(-1, (void *) "DYNINSTreportCost");
+
+    // this doesn't really take any time
+    primitiveCosts.add(-1, (void *) "DYNINSTbreakPoint");
+
+    // this happens before we start keeping time.
+    primitiveCosts.add(-1, (void *) "DYNINSTinit");
+
+    // isthmus acutal numbers from 7/3/94 -- jkh
+    // 240 ns
+    primitiveCosts.add(16, (void *) "DYNINSTincrementCounter");
+    // 240 ns
+    primitiveCosts.add(16, (void *) "DYNINSTdecrementCounter");
+    // 2.82 usec * 40 mhz
+    primitiveCosts.add(113, (void *) "DYNINSTstartWallTimer");
+    // 5.22 usec * 40 mhz
+    primitiveCosts.add(208, (void *) "DYNINSTstopWallTimer");
+    // 2.9 usec * 40 mhz
+    // counted instructions == 84 cycles + 2 * 14 for cache miss ???
+    primitiveCosts.add(116, (void *) "DYNINSTstartProcessTimer");
+    // 3.74 usec * 40 mhz
+    primitiveCosts.add(150, (void *) "DYNINSTstopProcessTimer");
 }
 
 
@@ -111,17 +134,16 @@ void initPrimitiveCost()
  * return the time required to execute the passed primitive.
  *
  */
-float getPrimitiveCost(char *name)
+int getPrimitiveCost(char *name)
 {
-    float ret;
+    int ret;
     static int init;
 
     if (!init) { init = 1; initPrimitiveCost(); }
 
-    ret = primitiveCosts.find(name)/NS_TO_SEC;
-    if (ret == 0.0) {
-        printf("no cost value for primitive %s, using 10 usec\n", name);
-        ret = 10000/NS_TO_SEC;
+    ret = primitiveCosts.find(name);
+    if (ret == 0) {
+        ret = 1000;
     }
     return(ret);
 }

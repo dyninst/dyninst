@@ -106,7 +106,7 @@ class AstNode {
 	int generateTramp(process *proc, char *i, caddr_t *base);
 	reg generateCode(process *proc, registerSpace *rs, char *i, 
 			 caddr_t *base);
-	float cost();
+	int cost();	// return the # of instruction times in the ast.
 	void print();
     private:
 	nodeType type;

@@ -5,9 +5,12 @@
  *    appropriate inferior process via ptrace calls.
  *
  * $Log: tramp-sparc.s,v $
- * Revision 1.1  1994/01/27 20:31:47  hollings
- * Iinital version of paradynd speaking dynRPC igend protocol.
+ * Revision 1.2  1994/07/05 03:26:20  hollings
+ * observed cost model
  *
+# Revision 1.1  1994/01/27  20:31:47  hollings
+# Iinital version of paradynd speaking dynRPC igend protocol.
+#
  * Revision 1.6  1993/10/19  15:27:54  hollings
  * AST based mini-tramp code generator.
  *
@@ -34,15 +37,25 @@
  *
  * - do global before local because global call DYNINSTinit.
  *
+ ***************************************************************************
+ *   WARNING: This code used SPARC ABI reserved register %g5, bininst should
+ *     really verify the application is ABI compliant.
+ ***************************************************************************
+ *
  */
 	.global	_baseTramp
 .data
 _baseTramp:
+	add %g5, 1, %g5		/* g5 counts the number of slots executed */
+	add %g7, 6, %g7		/* cost of base tramp yp to emulate insn */
+				/* also needs to include cost of ba,a in */
 	.word	GLOBAL_PRE_BRANCH
 	.word	LOCAL_PRE_BRANCH
 	.word 	EMULATE_INSN
 	nop
 	.word	GLOBAL_POST_BRANCH
 	.word	LOCAL_POST_BRANCH
+	add %g5, 1, %g5		/* g5 counts the number of slots executed */
+	add %g7, 7, %g7		/* cost of base tramp from nop to return */
 	.word	RETURN_INSN
 	.word	END_TRAMP

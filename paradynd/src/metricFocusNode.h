@@ -7,7 +7,10 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
- * Revision 1.8  1994/07/02 01:46:42  markc
+ * Revision 1.9  1994/07/05 03:26:11  hollings
+ * observed cost model
+ *
+ * Revision 1.8  1994/07/02  01:46:42  markc
  * Use aggregation operator defines from util/h/aggregation.h
  * Changed average aggregations to summations.
  *
@@ -232,5 +235,13 @@ struct _metricRec {
 };
 
 extern List<metricDefinitionNode*> allMIs;
+
+//
+// Return the current wall time -- 
+//
+//    If firstRecordRelative is TRUE, time starts at the arrival of record 0.
+//    otherwise it starts at 1/1/1970 0:00 GMT.
+//
+timeStamp getCurrentTime(Boolean firstRecordRelative);
 
 #endif

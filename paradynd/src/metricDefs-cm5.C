@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-cm5.C,v 1.10 1994/07/02 01:46:43 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-cm5.C,v 1.11 1994/07/05 03:26:12 hollings Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricDefs-cm5.C,v $
- * Revision 1.10  1994/07/02 01:46:43  markc
+ * Revision 1.11  1994/07/05 03:26:12  hollings
+ * observed cost model
+ *
+ * Revision 1.10  1994/07/02  01:46:43  markc
  * Use aggregation operator defines from util/h/aggregation.h
  * Changed average aggregations to summations.
  *
@@ -322,6 +325,9 @@ resourcePredicate globalOnlyPredicates[] = {
 struct _metricRec DYNINSTallMetrics[] = {
     { { "active_processes", SampledFunction, aggSum, "Processes" },
       { (createMetricFunc) createActiveProcesses, defaultPredicates },
+    },
+    { { "observed_cost", EventCounter, aggMax, "Wasted CPUs" },
+      { (createMetricFunc) createObservedCost, observedCostPredicates },
     },
     { { "cpu", EventCounter, aggSum, "# CPUs" },
       { (createMetricFunc) createCPUTime, cpuTimePredicates },
