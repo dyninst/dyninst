@@ -31,7 +31,6 @@ class thr_mailbox : public mailbox {
     pthread_sync* fds_monitor;
     pthread_sync* sock_monitor;
     
-    thread_t owned_by;
     dllist<PDDESC,dummy_sync> *ready_fds;
     dllist<PDDESC,dummy_sync> *bound_fds;
 

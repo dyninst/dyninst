@@ -11,6 +11,16 @@
 #include <unistd.h>
 #include "mailbox_defs.h"
 
+#if DO_DEBUG_LIBPDTHREAD_THR_MAILBOX == 1
+#define DO_DEBUG_LIBPDTHREAD 1
+#else
+#define DO_DEBUG_LIBPDTHREAD 0
+#endif
+
+#include "thr_debug.h"
+
+#undef DO_DEBUG_LIBPDTHREAD
+
 struct fd_set_populator {
     fd_set* to_populate;
     dllist<PDDESC,dummy_sync>* already_ready;
@@ -55,6 +65,10 @@ struct ready_fds_populator {
 void* thr_mailbox::fds_select_loop(void* which_mailbox) {
     thr_mailbox* owner = (thr_mailbox*)which_mailbox;
 
+    assert(thr_type(owner->owned_by) == item_t_thread);
+
+    thr_debug_msg(CURRENT_FUNCTION, "entering fds_select_loop for mailbox owned by %d\n", owner->owned_by);
+
     fd_set* readable_fds = new fd_set;
     fd_set_populator fd_visitor;
     ready_fds_populator ready_visitor;
@@ -63,6 +77,7 @@ void* thr_mailbox::fds_select_loop(void* which_mailbox) {
     fd_visitor.to_populate = readable_fds;
 
     while(1) {
+        thr_debug_msg(CURRENT_FUNCTION, "LOOPING in fds_select_loop for mailbox owned by %d\n", owner->owned_by);
         int select_status;
         char buf[256];
         
@@ -146,16 +161,20 @@ struct sock_set_populator {
     
     int count;
 
-    void reset() {
+    void reset(PDSOCKET selector_fd) {
         FD_ZERO(to_populate);
-        count=0;
+        FD_SET(selector_fd, to_populate);
+        count=selector_fd + 1;
     }
-
+    
     /* FIXME: using fd_set, not portable to non-unix */
     void visit(PDSOCKET desc) {
         if(!already_ready->contains(desc)) {
+            thr_debug_msg(CURRENT_FUNCTION, "ADDING %d to wait set\n", (unsigned)desc);
             FD_SET(desc, to_populate);
-            count++;
+            if(desc + 1 > count) count = desc + 1;
+        } else {
+            thr_debug_msg(CURRENT_FUNCTION, "NOT ADDING %d to wait set\n", (unsigned)desc);
         }
     }
 };
@@ -174,12 +193,17 @@ struct ready_socks_populator {
 
         if(!(populate_to->contains(desc)) && descs_from->contains(desc)) {
             
-            if (ie->will_block() || FD_ISSET(desc, populate_from)) {
+            if (FD_ISSET(desc, populate_from)) {
+                
+                thr_debug_msg(CURRENT_FUNCTION, "enqueuing SOCKET message from %d\n", (unsigned)desc);
+
                 message *m = new io_message(ie,ie->self(), MSG_TAG_SOCKET);
                 
                 owner->put(m);
                 populate_to->put(desc);
-            } 
+            } else {
+                thr_debug_msg(CURRENT_FUNCTION, "NOT enqueuing SOCKET message from %d\n", (unsigned)desc);
+            }
         }
     }
     
@@ -187,6 +211,10 @@ struct ready_socks_populator {
 
 void* thr_mailbox::sock_select_loop(void* which_mailbox) {
     thr_mailbox* owner = (thr_mailbox*)which_mailbox;
+
+    assert(thr_type(owner->owned_by) == item_t_thread);
+
+    thr_debug_msg(CURRENT_FUNCTION, "ENTERING for mailbox owned by %d\n", owner->owned_by);
 
     fd_set* readable_socks = new fd_set;
     sock_set_populator sock_visitor;
@@ -196,22 +224,25 @@ void* thr_mailbox::sock_select_loop(void* which_mailbox) {
     sock_visitor.to_populate = readable_socks;
 
     while(1) {
+        thr_debug_msg(CURRENT_FUNCTION, "LOOPING for mailbox owned by %d\n", owner->owned_by);
         int select_status;
         char buf[256];
-        
+
         sock_visitor.already_ready = owner->ready_socks;
         
         if(owner->kill_sock_selector) goto done;
 
-        sock_visitor.reset();
-        FD_SET(owner->sock_selector_pipe[0],sock_visitor.to_populate);
+        sock_visitor.reset(owner->sock_selector_pipe[0]);
 
         monitor->lock();
         owner->bound_socks->visit(&sock_visitor);
         monitor->unlock();
 
+
+        thr_debug_msg(CURRENT_FUNCTION, "SELECTING for mailbox owned by %d; count = %d\n", owner->owned_by, sock_visitor.count);
         select_status = 
             select(sock_visitor.count,sock_visitor.to_populate,NULL,NULL,NULL);
+        thr_debug_msg(CURRENT_FUNCTION, "SELECT RETURNING for mailbox owned by %d; status = %d\n", owner->owned_by, select_status);
 
         if(FD_ISSET(owner->sock_selector_pipe[0],sock_visitor.to_populate))
             read(owner->sock_selector_pipe[0],buf,256);
@@ -249,6 +280,8 @@ void* thr_mailbox::sock_select_loop(void* which_mailbox) {
             monitor->lock();            
             
             ready_visitor.owner = owner;
+
+            ready_visitor.populate_from = sock_visitor.to_populate;
             
             ready_visitor.descs_from = owner->bound_socks;
             ready_visitor.populate_to = owner->ready_socks;            
@@ -276,6 +309,10 @@ void* thr_mailbox::sock_select_loop(void* which_mailbox) {
 
 thr_mailbox::thr_mailbox(thread_t owner) 
     : mailbox(owner) {
+    thr_debug_msg(CURRENT_FUNCTION, "building mailbox for %d\n", owner);
+ 
+    assert(owned_by == owner);
+
     messages = new dllist<message*,dummy_sync>;
     
     ready_fds = new dllist<PDDESC,dummy_sync>;
@@ -303,6 +340,10 @@ thr_mailbox::thr_mailbox(thread_t owner)
     assert(pipe_success == 0);
 
     // create sock and fd selector threads
+    pthread_create(&fd_selector_thread, NULL, 
+                   thr_mailbox::fds_select_loop, this);
+    pthread_create(&sock_selector_thread, NULL, 
+                   thr_mailbox::sock_select_loop, this);    
 }
 
 thr_mailbox::~thr_mailbox() {
@@ -312,6 +353,15 @@ thr_mailbox::~thr_mailbox() {
 
     delete ready_socks;
     delete bound_socks;
+
+    kill_fd_selector = 0;
+    kill_sock_selector = 0;
+
+    signal_fd_selector();
+    signal_sock_selector();
+
+    pthread_join(fd_selector_thread, NULL);
+    pthread_join(sock_selector_thread, NULL);
 
     close(fds_selector_pipe[0]);
     close(fds_selector_pipe[1]);

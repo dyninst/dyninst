@@ -7,35 +7,23 @@
 
 #include <assert.h>
 #include <stdio.h>
-#include <stdarg.h>
-
-#ifndef __GNUC__
-#define __PRETTY_FUNCTION__ ((const char*)0)
-#endif
 
 #if DO_DEBUG_LIBPDTHREAD_MSGS == 1
-inline static void thr_debug_msg(const char* func_name, const char* format, ...) {
-    va_list ap;
-    va_start(ap, format);
-
-    static const char* preamble_format = "[tid: %d; func: %s] ";
-    unsigned len = 2048 + strlen(preamble_format) + (func_name ? strlen(func_name) : 0) + strlen(format);
-    char* real_format = 
-        new char[len];
-    unsigned ct = snprintf(real_format, 64, preamble_format, thr_self(), func_name);
-    strncat(real_format, format, len - ct - 1);
-    vfprintf(stderr, real_format, ap);
-    delete [] real_format;
-}
+#define DO_DEBUG_LIBPDTHREAD 1
 #else
-inline static void thr_debug_msg(const char* func_name, const char* format, ...) { }
+#define DO_DEBUG_LIBPDTHREAD 0
 #endif
 
+#include "thr_debug.h"
+
+#undef DO_DEBUG_LIBPDTHREAD
+
+
 int msg_send(thread_t tid, tag_t tag, void* buf, unsigned size) {
-    thr_debug_msg(__PRETTY_FUNCTION__, "tid = %d, tag = %d, buf = %p, size = %d\n", tid, tag, buf, size);
+    thr_debug_msg(CURRENT_FUNCTION, "tid = %d, tag = %d, buf = %p, size = %d\n", tid, tag, buf, size);
 
     thread_t sender = lwp::get_self();
-    unsigned ret;
+    int ret;
     
     if(!thrtab::is_valid(tid)) {
         ret = THR_ERR;
@@ -49,35 +37,35 @@ int msg_send(thread_t tid, tag_t tag, void* buf, unsigned size) {
         ret = recipient->put(m);
     }
 
-    thr_debug_msg(__PRETTY_FUNCTION__, "returning %d\n", ret);
+    thr_debug_msg(CURRENT_FUNCTION, "returning %d\n", ret);
     return ret;
 }
 
 int msg_poll(thread_t* tid, tag_t* tag, unsigned block) {
 
-    thr_debug_msg(__PRETTY_FUNCTION__, "tid = %d, tag = %d, block = %d\n", tid, tag, block);
+    thr_debug_msg(CURRENT_FUNCTION, "tid = %d, tag = %d, block = %d\n", *tid, *tag, block);
 
     mailbox* mbox = lwp::get_mailbox();
     int ret = mbox->poll(tid, tag, block);
 
-    thr_debug_msg(__PRETTY_FUNCTION__, "returning %d\n", ret);
+    thr_debug_msg(CURRENT_FUNCTION, "returning %d; tid = %d, tag = %d\n", ret, *tid, *tag);
     return ret;
 }
 
 int msg_poll_preference(thread_t* tid, tag_t* tag, unsigned block, unsigned fd_first) {
-    thr_debug_msg(__PRETTY_FUNCTION__, "tid = %d, tag = %d, block = %d, fd_first = %d\n", tid, tag, block, fd_first);
+    thr_debug_msg(CURRENT_FUNCTION, "tid = %d, tag = %d, block = %d, fd_first = %d\n", *tid, *tag, block, fd_first);
 
     mailbox* mbox = lwp::get_mailbox();
     int ret = mbox->poll(tid, tag, block, fd_first);
 
   done:
-    thr_debug_msg(__PRETTY_FUNCTION__, "returning %d\n", ret);
+    thr_debug_msg(CURRENT_FUNCTION, "returning %d; tid = %d, tag = %d\n", ret, *tid, *tag);
     return ret;
 }
 
 
 int msg_recv(thread_t* tid, tag_t* tag, void* buf, unsigned* bufsize) {
-    thr_debug_msg(__PRETTY_FUNCTION__, "tid = %d, tag = %d, buf = %p, bufsize = %d\n", *tid, *tag, buf, *bufsize);
+    thr_debug_msg(CURRENT_FUNCTION, "tid = %d, tag = %d, buf = %p, bufsize = %d\n", *tid, *tag, buf, *bufsize);
 
     mailbox* mbox = lwp::get_mailbox();
     if(!mbox) {
@@ -88,12 +76,12 @@ int msg_recv(thread_t* tid, tag_t* tag, void* buf, unsigned* bufsize) {
     int ret = mbox->recv(tid,tag,buf,bufsize);
     
   done:
-    thr_debug_msg(__PRETTY_FUNCTION__, "returning %d\n", ret);
+    thr_debug_msg(CURRENT_FUNCTION, "returning %d; tid = %d, tag = %d, count = %d\n", ret, *tid, *tag, *bufsize);
     return ret;
 }
 
 int msg_bind(PDDESC fd, unsigned special, int (*will_block)(void*), void* arg, thread_t* tid) {
-    thr_debug_msg(__PRETTY_FUNCTION__, "fd = %d, special = %d, will_block = %p, arg = %p\n", fd, special, will_block, arg);
+    thr_debug_msg(CURRENT_FUNCTION, "fd = %d, special = %d, will_block = %p, arg = %p\n", fd, special, will_block, arg);
 
     fprintf(stderr,"binding files to message queues not implemented; aborting...\n");
     assert(false);
@@ -107,7 +95,7 @@ int msg_bind_sig(int sig, thread_t* tid) {
 
 
 int msg_bind_socket(PDSOCKET s, unsigned special, int (*will_block)(void*), void* arg, thread_t* tid) {
-    thr_debug_msg(__PRETTY_FUNCTION__, "s = %d, special = %d, will_block = %p, arg = %p\n", s, special, will_block, arg);
+    thr_debug_msg(CURRENT_FUNCTION, "s = %d, special = %d, will_block = %p, arg = %p\n", s, special, will_block, arg);
     int ret = THR_OKAY;
 
     thr_mailbox* my_mail = (thr_mailbox*)lwp::get_mailbox();
@@ -115,7 +103,7 @@ int msg_bind_socket(PDSOCKET s, unsigned special, int (*will_block)(void*), void
     my_mail->bind_sock(s, special, will_block, (void*)(&s), &me);
     
   done:
-    thr_debug_msg(__PRETTY_FUNCTION__, "returning %d\n", ret);
+    thr_debug_msg(CURRENT_FUNCTION, "returning %d\n", ret);
     return ret;
 }
 
