@@ -21,6 +21,10 @@
  * PC thread interface functions
  *
  * $Log: PCpublic.C,v $
+ * Revision 1.38  1996/07/26 07:25:02  karavan
+ * added global performanceConsultant::numMetrics which is used to size
+ * some filteredDataServer data structures.
+ *
  * Revision 1.37  1996/05/08 07:35:21  karavan
  * Changed enable data calls to be fully asynchronous within the performance consultant.
  *
@@ -110,6 +114,10 @@ performanceConsultant::activateSearch(unsigned phaseID)
       assert (tmpmh);
       performanceConsultant::normalMetric = *tmpmh;
       delete tmpmh;
+      // number of metrics is used to setup filteredDataServer data structures
+      vector<string> *mets = dataMgr->getAvailableMetrics(true);
+      performanceConsultant::numMetrics = mets->size();
+      delete mets;
     }
 
     // create new search 

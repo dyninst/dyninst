@@ -16,9 +16,13 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.62  1996/05/08 13:37:06  naim
-/* Minor changes to debugging information - naim
+/* Revision 1.63  1996/07/26 07:25:07  karavan
+/* added global performanceConsultant::numMetrics which is used to size
+/* some filteredDataServer data structures.
 /*
+ * Revision 1.62  1996/05/08 13:37:06  naim
+ * Minor changes to debugging information - naim
+ *
  * Revision 1.61  1996/05/08  07:35:15  karavan
  * Changed enable data calls to be fully asynchronous within the performance consultant.
  *
@@ -189,6 +193,7 @@ PCmetricInstServer *performanceConsultant::globalPCMetricServer = NULL;
 perfStreamHandle performanceConsultant::pstream = 0;
 metricHandle performanceConsultant::normalMetric = 0;
 bool performanceConsultant::PChyposDefined = false;
+unsigned performanceConsultant::numMetrics = 0;
 //costServer cs;
 
 
