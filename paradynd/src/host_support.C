@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: host_support.C,v 1.12 2000/03/12 22:34:07 wylie Exp $
+ * $Id: host_support.C,v 1.13 2000/06/14 22:26:48 paradyn Exp $
  *    code that enables paradyndPVM to function as the hoster process
  *    in the PVM environment, which means that it will be responsible for 
  *    starting new PVM daemons.
@@ -91,7 +91,7 @@ extern "C" {
 
 // temp hack; stuff like this should probably move to util/h/{PLATFORM}headers.h
 // anyway.
-#if defined(hppa1_1_hp_hpux) \
+#if defined(alpha_dec_osf4_0) \
  || defined(i386_unknown_linux2_0) \
  || defined(mips_sgi_irix6_4)
   extern void endservent(void);
