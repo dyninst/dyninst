@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.54 1998/08/27 19:09:30 wylie Exp $
+// $Id: ast.C,v 1.55 1998/08/28 21:56:30 zhichen Exp $
 
 #include "dyninstAPI/src/pdThread.h"
 
@@ -742,6 +742,7 @@ bool isPowerOf2(int value, int &result)
   else return(false);
 }
 
+/*
 void AstNode::setUseCount(void)
 {
 
@@ -753,10 +754,20 @@ void AstNode::setUseCount(void)
   for (unsigned i=0;i<operands.size(); i++)
     operands[i]->setUseCount() ;
 }
+*/
+
+void AstNode::setUseCount(void) {
+  useCount++ ;
+  kept_register=-1;
+  if (loperand) loperand->setUseCount();
+  if (roperand) roperand->setUseCount();
+  if (eoperand) eoperand->setUseCount();
+  for (unsigned i=0;i<operands.size(); i++)
+    operands[i]->setUseCount() ;
+}
 
 void AstNode::cleanUseCount(void)
 {
-/*
   useCount=0;
   kept_register=-1;
   if (loperand) loperand->cleanUseCount();
@@ -764,7 +775,6 @@ void AstNode::cleanUseCount(void)
   if (eoperand) eoperand->cleanUseCount();
   for (unsigned i=0;i<operands.size(); i++)
     operands[i]->cleanUseCount() ;
-*/
 }
 
 #if defined(ASTDEBUG)
@@ -821,6 +831,7 @@ reg AstNode::generateCode(process *proc,
 			  char *insn, 
 			  Address &base, bool noCost, bool root) {
   if (root) {
+    cleanUseCount();
     setUseCount();
 #if defined(ASTDEBUG)
     print() ;
@@ -1259,6 +1270,9 @@ void AstNode::print() const {
       if (oType == Constant) {
 	sprintf(errorLine, " %d", (int) oValue);
 	logLine(errorLine);
+      } else if (oType == ConstantString) {
+        sprintf(errorLine, "%s", (char *)oValue);
+	logLine(errorLine) ;
       } else if (oType == DataPtr) {
 	sprintf(errorLine, " %d", (int) oValue);
 	logLine(errorLine);
