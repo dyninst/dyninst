@@ -5,6 +5,9 @@
 ; *    appropriate inferior process via ptrace calls.
 ; *
 ; * $Log: tramp-hppa.s,v $
+; * Revision 1.8  1997/02/28 15:53:17  naim
+; * Fixing problem with use of registers before and after function calls - naim
+; *
 ; * Revision 1.7  1997/01/27 19:41:15  naim
 ; * Part of the base instrumentation for supporting multithreaded applications
 ; * (vectors of counter/timers) implemented for all current platforms +
@@ -88,6 +91,8 @@ _baseTramp
 	nop
 	nop
 	nop
+	nop
+	nop
 	.word	0xfffffff8		; LOCAL_PRE_BRANCH
 	.word	0xfffffff9		; LOCAL_PRE_BRANCH_1
 	.word   0xffffffd4		; update cost
@@ -131,6 +136,8 @@ _baseTramp
 	nop			        ; fill this in with instructions to 
 	nop			        ; compute the address of the vector
 	nop			        ; of counter/timers for each thread
+	nop
+	nop
 	nop
 	nop
 	nop

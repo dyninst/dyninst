@@ -23,7 +23,7 @@ extern trampTemplate withArgsTemplate;
 #define REG_MT                3   /* register saved to keep the address of */
                                   /* the current vector of counter/timers  */
                                   /* for each thread.                      */
-#define NUM_INSN_MT_PREAMBLE  9   /* number of instructions required for   */
+#define NUM_INSN_MT_PREAMBLE  11  /* number of instructions required for   */
                                   /* the MT preamble.                      */ 
 
 #endif /* !defined(hppa1_1_hp_hpux) */

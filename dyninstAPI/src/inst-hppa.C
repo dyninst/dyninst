@@ -43,6 +43,9 @@
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.38  1997/02/28 15:53:13  naim
+ * Fixing problem with use of registers before and after function calls - naim
+ *
  * Revision 1.37  1997/02/21 20:13:22  naim
  * Moving files from paradynd to dyninstAPI + moving references to dataReqNode
  * out of the ast class. The is the first pre-dyninstAPI commit! - naim
@@ -918,15 +921,17 @@ registerSpace *regSpace;
 
 // return values come via r28, r29; these should be dead at call point
 // Not really, actually.
+// r26, r25, r24, r23 are call arguments (in that order)
+// All are caller save registers
 #if defined(MT_THREAD)
 int deadRegList[] = { 2, 23, 24, 25, 26 };
 #else
 int deadRegList[] = { 3, 2, 23, 24, 25, 26 };
 #endif
 
-// r26, r25, r24, r23 are call arguments (in that order)
-int liveRegList[] = { 1, 19, 20, 21, 22, 31 };
-    // all are caller save registers
+// At the moment, there is no support for live registers on hpux - naim 2/27/97
+// int liveRegList[] = { 1, 19, 20, 21, 22, 31 };
+int liveRegList[] = {};
 
 void initTramps()
 {
@@ -1373,6 +1378,12 @@ unsigned emitFuncCall(opCode op,
 	}
 
 	instruction *insn = (instruction *) ((void*)&i[base]);
+
+        // save REG_MT
+	generateStore(insn, REG_MT, 30, -52);
+	insn++;
+	base += sizeof(instruction);
+
         unsigned dest;
         bool err;
         pdFunction *func;
@@ -1410,6 +1421,11 @@ unsigned emitFuncCall(opCode op,
         generateToBranchInsn2(insn, dest, false); insn++;
         generateNOOP(insn);insn++;
         base += 3*sizeof(instruction);   
+
+        // restore REG_MT
+	generateLoad(insn, 30, REG_MT, -52);
+	insn++;
+	base += sizeof(instruction);
 
         // return value is the register with the return value from the
         //   function.
