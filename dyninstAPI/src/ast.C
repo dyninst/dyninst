@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.109 2002/07/03 22:19:56 bernat Exp $
+// $Id: ast.C,v 1.110 2002/07/10 17:29:33 mirg Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1122,6 +1122,7 @@ Address AstNode::generateCode_phase2(process *proc,
 	else {
 	    // Can't keep the register anymore
 	    forceUnkeepAndFree(rs);
+	    fixChildrenCounts(rs);
 	}
     }
     if (type == opCodeNode) {
@@ -1226,6 +1227,14 @@ Address AstNode::generateCode_phase2(process *proc,
 	} else if (op == storeOp) {
             // This ast cannot be shared because it doesn't return a register
 	    src1 = (Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
+	    // loperand's value will be invalidated. Discard the cached reg
+	    if (loperand->hasKeptRegister()) {
+		loperand->forceUnkeepAndFree(rs);
+	    }
+	    // We will access loperand's children directly. They do not expect
+	    // it, so we need to bump up their useCounts
+	    loperand->fixChildrenCounts(rs);
+
 	    src2 = rs->allocateRegister(insn, base, noCost);
 	    switch (loperand->oType) {
 	    case DataAddr:
@@ -2202,9 +2211,12 @@ void AstNode::forceUnkeepAndFree(registerSpace *rs)
     assert(kept_register != Null_Register);
     rs->forceFreeRegister(kept_register);
     kept_register = Null_Register;
+}
 
-    // Our children have incorrect useCounts (most likely they 
-    // assume that we will not bother them again, which is wrong)
+// Our children may have incorrect useCounts (most likely they 
+// assume that we will not bother them again, which is wrong)
+void AstNode::fixChildrenCounts(registerSpace *rs)
+{
     vector<AstNode*> children;
     getChildren(&children);
     for (unsigned i=0; i<children.size(); i++) {

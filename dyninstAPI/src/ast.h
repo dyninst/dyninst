@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.55 2002/06/27 20:20:53 mirg Exp $
+// $Id: ast.h,v 1.56 2002/07/10 17:29:33 mirg Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -234,6 +234,10 @@ class AstNode {
 
 	// Do not keep the register and force-free it
 	void forceUnkeepAndFree(registerSpace *rs);
+
+	// Our children may have incorrect useCounts (most likely they 
+	// assume that we will not bother them again, which is wrong)
+	void fixChildrenCounts(registerSpace *rs);
 
 	// Check to see if the value had been computed earlier
 	bool hasKeptRegister() const;
