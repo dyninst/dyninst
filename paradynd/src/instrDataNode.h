@@ -72,6 +72,14 @@ class instrDataNode {
   // styles are enumerated in aggregation.h
   instrDataNode(process *proc_, unsigned type, bool arg_dontInsertData);
 
+  instrDataNode(const instrDataNode &par, process *childProc);
+  /*
+  instrDataNode(const instrDataNode &par, process *childProc) :
+    proc(childProc), varType(par.varType), varIndex(par.varIndex),
+    thrNodeClientSet(par.thrNodeClientSet), 
+    dontInsertData_(par.dontInsertData_), refCount(par.refCount) { }
+  */
+
   bool dontInsertData() { return dontInsertData_; }
   Address getInferiorPtr() const;
   unsigned getSize() const;
