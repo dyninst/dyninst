@@ -44,6 +44,9 @@
 
 /*
  * $Log: templates.C,v $
+ * Revision 1.8  1999/02/08 14:08:15  nash
+ * - Fixes for error/warnings in egcs 1.1
+ *
  * Revision 1.7  1997/10/28 20:45:43  tamches
  * update for new dictionary class
  *
@@ -84,8 +87,8 @@ template class vector< vector<tvCell> >;
 #include "../../../paradyn/src/UIthread/minmax.C"
 template unsigned max(unsigned, unsigned);
 template float max(float, float);
-template bool ipmax(unsigned, unsigned);
-template int ipmin(int, int);
+template void ipmax(unsigned&, unsigned);
+template void ipmin(int&, int);
 template int min(int, int);
 template int max(int, int);
 
