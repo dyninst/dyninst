@@ -4,7 +4,10 @@
 # included from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.4  1995/03/11 06:02:19  krisna
+# Revision 1.5  1995/04/05 20:24:12  jcargill
+# Removed CXXFLAGS brokenness; added INSTANTIATE_TEMPLATES instead
+#
+# Revision 1.4  1995/03/11  06:02:19  krisna
 # library name change to include pd- prefix
 #
 # Revision 1.3  1995/02/27  18:17:39  tamches
@@ -17,6 +20,8 @@
 # Major build system reorganization
 #
 #
+
+INSTANTIATE_TEMPLATES	= true
 
 TARGET	      = libpdutil.a
 TARGET2	      = libpdutilPVM.a
@@ -35,6 +40,3 @@ SRCS2	     += rpcUtilPVM.C
 OBJS2	     += rpcUtilPVM.o
 
 all: $(TARGET) $(TARGET2) 
-
-TFLAGS +=  $(USEFULWARNINGS) -DDO_INLINE_F="inline"
-CXXFLAGS = $(TFLAGS) -g

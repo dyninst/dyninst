@@ -4,7 +4,10 @@
 # included from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.3  1995/02/26 01:59:20  newhall
+# Revision 1.4  1995/04/05 20:24:05  jcargill
+# Removed CXXFLAGS brokenness; added INSTANTIATE_TEMPLATES instead
+#
+# Revision 1.3  1995/02/26  01:59:20  newhall
 # added phase interface functions
 #
 # Revision 1.2  1995/02/16  09:29:13  markc
@@ -14,6 +17,8 @@
 # Major build system reorganization
 #
 #
+
+INSTANTIATE_TEMPLATES	= true
 
 TARGET	      = libvisi.a 
 
@@ -34,8 +39,3 @@ all: $(TARGET)
 
 templates.o: ../src/templates.C
 	$(CXX) $(TFLAGS) -c ../src/templates.C
-
-
-TFLAGS +=  $(USEFULWARNINGS) 
-CXXFLAGS = $(TFLAGS) $(ALL_INLINE_DEFINES)
-CFLAGS = $(TFLAGS) 
