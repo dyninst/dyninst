@@ -73,14 +73,14 @@
 
 
 #include "util/h/headers.h"
-#include "os.h"
-#include "symtab.h"
-#include "process.h"
-#include "stats.h"
+#include "dyninstAPI/src/os.h"
+#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/stats.h"
 #include "util/h/Types.h"
 #include "util/h/Object.h"
 #include "util/h/Dictionary.h"
-#include "instP.h" // class instInstance
+#include "dyninstAPI/src/instP.h" // class instInstance
 #include "util/h/pathName.h"
 
 #include <sys/ioctl.h>
@@ -102,7 +102,7 @@
 #include <procinfo.h> // struct procsinfo
 #include <sys/types.h>
 
-#include "showerror.h"
+#include "paradynd/src/showerror.h"
 #include "util/h/debugOstream.h"
 
 extern "C" {
@@ -1393,8 +1393,8 @@ int getNumberOfCPUs()
   return(1);
 }
 
-#include "metric.h"
-#include "costmetrics.h"
+#include "paradynd/src/metric.h"
+#include "paradynd/src/costmetrics.h"
 
 class instInstance;
 
