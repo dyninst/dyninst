@@ -108,18 +108,18 @@ Object::load_object() {
             /* throw exception */ goto cleanup;
         }
 
-        code_ptr_ = (Word *) ((void*)&ptr[unsigned(N_TXTOFF(*execp))]);
+        code_ptr_ = (Word *) ((void*)&ptr[(unsigned)(N_TXTOFF(*execp))]);
         code_off_ = (unsigned) N_TXTADDR(*execp);
         code_len_ = unsigned(execp->a_text / sizeof(Word));
 
-        data_ptr_ = (Word *) ((void*)&ptr[unsigned(N_DATOFF(*execp))]);
+        data_ptr_ = (Word *) ((void*)&ptr[(unsigned)(N_DATOFF(*execp))]);
         data_off_ = (unsigned) N_DATADDR(*execp);
         data_len_ = unsigned(execp->a_data / sizeof(Word));
 
         struct nlist* syms   = (struct nlist *)
-	  ((void*)&ptr[unsigned(N_SYMOFF(*execp))]);
+	  ((void*)&ptr[(unsigned)(N_SYMOFF(*execp))]);
         unsigned      nsyms  = execp->a_syms / sizeof(struct nlist);
-        char*         strs   = &ptr[unsigned(N_STROFF(*execp))];
+        char*         strs   = &ptr[(unsigned)(N_STROFF(*execp))];
         string        module = "DEFAULT_MODULE";
         string        name   = "DEFAULT_SYMBOL";
         for (unsigned i = 0; i < nsyms; i++) {
