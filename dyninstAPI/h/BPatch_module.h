@@ -64,7 +64,7 @@ extern BPatch_builtInTypeCollection * builtInTypes;
 class BPATCH_DLL_EXPORT BPatch_module: public BPatch_sourceObj, public BPatch_eventLock{
 
     friend class process;
-    //friend class BPatch_function;
+    friend class BPatch_function;
     //friend class BPatch_image;
     //friend class BPatch_thread;
     friend class BPatch_flowGraph;
@@ -91,7 +91,6 @@ public:
     virtual ~BPatch_module();
     bool getSourceObj(BPatch_Vector<BPatch_sourceObj *>&);
     BPatch_sourceObj *getObjParent();
-    BPatch_typeCollection *moduleTypes;
     void parseTypes();
     char *parseStabStringSymbol(int line, char *stabstr, void *stabptr);
     void setDefaultNamespacePrefix(char *name);
@@ -152,6 +151,9 @@ public:
                              BPatch_Vector<BPatch_function *> &funcs,
                              bool notify_on_failure = true,
                              bool incUninstrumentable = false));
+
+    // get the module types member (instead of directly accessing)
+    API_EXPORT(Int, (), BPatch_typeCollection *, getModuleTypes, ());
 
     // BPatch_module::findFunctionByMangled
     // Returns a function, if it exits, that matches the provided mangled name
@@ -217,6 +219,9 @@ public:
 
 
 private:
+    // Parse wrapper
+    void parseTypesIfNecessary();
+    BPatch_typeCollection *moduleTypes;
 
     // In particular, we understand the type information
     // in both DWARF and STABS format.
