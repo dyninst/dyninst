@@ -4,6 +4,9 @@
 # included from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
+# Revision 1.17  1997/01/14 23:50:21  tamches
+# added debugOstream.C
+#
 # Revision 1.16  1996/10/31 07:35:21  tamches
 # added vectorSet
 #
@@ -49,7 +52,8 @@ SRCS	     += ../src/String.C \
 		../src/PriorityQueue.C \
 		../src/odometer.C \
 		../src/CircularBuffer.C \
-		../src/vectorSet.C
+		../src/vectorSet.C \
+		../src/debugOstream.C
 
 OBJS         += String.o DictionaryLite.o \
 		lprintf.o rpcUtil.o aggregateSample.o \
