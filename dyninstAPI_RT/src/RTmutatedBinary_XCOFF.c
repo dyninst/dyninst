@@ -1,4 +1,4 @@
-/* $Id: RTmutatedBinary_XCOFF.c,v 1.3 2003/08/11 17:33:25 chadd Exp $ */
+/* $Id: RTmutatedBinary_XCOFF.c,v 1.4 2003/09/11 18:21:12 chadd Exp $ */
 
 
 /* this file contains the code to restore the necessary
@@ -86,6 +86,7 @@ int checkMutatedFile(){
 	struct xcoffhdr *XCOFFhdr;
 	char *data;
 	void *XCOFFfile;
+	unsigned int *numbNewHdrs;
 	sprintf(execStr,"%s/dyninst_mutatedBinary",getenv("PWD"));
 
 
@@ -96,21 +97,58 @@ int checkMutatedFile(){
 		return 0;
 	}
 
-	/*printf(" restoring mutated binary...");*/
+	/*fprintf(stderr," restoring mutated binary...");*/
 
 	XCOFFhdr = (struct xcoffhdr*) XCOFFfile;
+
+
+	/* 	WHAT IS GOING ON HERE?
+		I cannot put the extra data (tramps, highmem data, shared lib info)
+		in the middle of the file as in the ELF stuff.  I must place it at
+		the end, AFTER the symbol table and string table.  Really this is
+		like having two XCOFF files stuck together.  THe loader only pays
+		attention to the first one (ie the one refered to by the file header
+		info).  The stuff tacked on at the end is as follows:
+
+		number of sections
+		section header
+		section header
+		...
+		section data
+		section data
+		...
+
+		I need to find the end of the string table and then pull out the
+		number of section headers tacked on to the end.  Then I can
+		go through the section data a section at a time.
+		
+	*/
+
 	/*fine end of symbol table*/
 	firstScnhdr = (struct scnhdr*) ( ((char*) XCOFFfile) + XCOFFhdr->filehdr.f_symptr +
 			XCOFFhdr->filehdr.f_nsyms * 18); /* 18 == sizeof symbol */
 	/*find end of string table*/
-	firstScnhdr = (struct scnhdr *) ( ((char*) firstScnhdr ) + *((unsigned int*) firstScnhdr));
+	numbNewHdrs = (unsigned int*) ( ((char*) firstScnhdr ) + *((unsigned int*) firstScnhdr));
 		/*(struct scnhdr*)  ( (char*) XCOFFfile + sizeof(struct xcoffhdr));*/
+
+	firstScnhdr = (struct scnhdr *) ( sizeof(unsigned int) + ((char*) firstScnhdr ) + *((unsigned int*) firstScnhdr));
 
 	currScnhdr = firstScnhdr;
 
 	pageSize =  getpagesize();
-   	for(currScnhdr = firstScnhdr, cnt=0; cnt < XCOFFhdr->filehdr.f_nscns; currScnhdr++, cnt++){
-		if(!strcmp( currScnhdr->s_name, "dyn_dat")){
+
+   	for(currScnhdr = firstScnhdr, cnt=0; cnt < *numbNewHdrs; currScnhdr++, cnt++){
+		if(!strcmp( currScnhdr->s_name, "dyn_lib")){
+			/* use dlopen to load a list of shared libraries */
+
+			int len;
+
+			data = (char*) XCOFFfile + currScnhdr->s_scnptr;
+			while(*data != '\0'){
+				DYNINSTloadLibrary(data);
+				data += (strlen(data) +1);
+			}
+		}else if(!strcmp( currScnhdr->s_name, "dyn_dat")){
 			/* reload data */
 			tmpPtr =  (char*) XCOFFfile + currScnhdr->s_scnptr;
 			dataAddress = -1;
@@ -214,7 +252,7 @@ int checkMutatedFile(){
 
 			retVal = 1; /* just to be sure */
 
-			data = (char*) XCOFFfile + currScnhdr->s_scnptr;
+			data = (char*) XCOFFfile + currScnhdr->s_scnptr	;
 			
 			numberUpdates = (unsigned int) ( ((unsigned int*) data)[
 				(dataSize - sizeof(unsigned int))/ sizeof(unsigned int) ]);
