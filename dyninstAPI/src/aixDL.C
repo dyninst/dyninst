@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.39 2003/04/16 21:07:06 bernat Exp $
+// $Id: aixDL.C,v 1.40 2003/05/07 19:10:48 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -406,8 +406,7 @@ bool process::getDyninstRTLibName() {
             dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
         }
         else {
-            string msg = string("Environment variable " + string("DYNINSTAPI_RT_
-LIB")
+            string msg = string("Environment variable " + string("DYNINSTAPI_RT_LIB")
                                 + " has not been defined for process ") + string
             (pid);
             showErrorCallback(101, msg);
