@@ -3,10 +3,13 @@
 // The scrollbar class for where4tree.h/.C
 
 /* $Log: scrollbar.h,v $
-/* Revision 1.3  1995/10/17 22:06:39  tamches
-/* Removed where4TreeConstants influences; now Tk_3DBorder is
-/* passed directly to draw().
+/* Revision 1.4  1996/08/02 19:08:59  tamches
+/* tkclean.h --> tk.h
 /*
+ * Revision 1.3  1995/10/17 22:06:39  tamches
+ * Removed where4TreeConstants influences; now Tk_3DBorder is
+ * passed directly to draw().
+ *
  * Revision 1.2  1995/09/20 01:18:28  tamches
  * Some routines didn't need where4TreeConstants
  *
@@ -19,7 +22,7 @@
 #define _SCROLLBAR_H_
 
 #include <assert.h>
-#include "tkclean.h"
+#include "tk.h"
 
 class scrollbar {
  private:
