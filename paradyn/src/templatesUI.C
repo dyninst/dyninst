@@ -25,8 +25,6 @@ template class vector<tunableBooleanConstant>;
 template class vector<tunableFloatConstant>;
 template class dictionary_lite<string, tunableBooleanConstant>;
 template class dictionary_lite<string, tunableFloatConstant>;
-template class pair<string, tunableBooleanConstant>;
-template class pair<string, tunableFloatConstant>;
 template class vector< dictionary_lite<string, tunableBooleanConstant> :: hash_pair >;
 template class vector< dictionary_lite<string, tunableFloatConstant> :: hash_pair >;
 template class vector< vector< dictionary_lite<string, tunableBooleanConstant>::hash_pair > >;
@@ -63,7 +61,6 @@ template class dictionary_lite< resourceHandle, where4tree<whereAxisRootNode> * 
 template class vector<where4tree<whereAxisRootNode> *>;
 template class vector<dictionary_lite<resourceHandle,where4tree<whereAxisRootNode>*>::hash_pair>;
 template class vector< vector< dictionary_lite<resourceHandle,where4tree<whereAxisRootNode>*>::hash_pair> >;
-template class pair<resourceHandle, where4tree<whereAxisRootNode>* >;
 
 #include "paradyn/src/UIthread/graphicalPath.C"
 template class whereNodeGraphicalPath<whereAxisRootNode>;
@@ -91,12 +88,10 @@ template class dictionary_lite<unsigned, where4tree<shgRootNode> *>;
 template class vector<where4tree<shgRootNode> *>;
 template class vector<dictionary_lite<unsigned, where4tree<shgRootNode> *>::hash_pair>;
 template class vector< vector< dictionary_lite<unsigned, where4tree<shgRootNode> *>::hash_pair> >;
-template class pair<unsigned, where4tree<shgRootNode> *>;
 
 template class dictionary_lite<where4tree<shgRootNode> *, where4tree<shgRootNode> *>;
 template class vector<dictionary_lite<where4tree<shgRootNode> *, where4tree<shgRootNode> *>::hash_pair>;
 template class vector< vector< dictionary_lite<where4tree<shgRootNode> *, where4tree<shgRootNode> *>::hash_pair> >;
-template class pair<where4tree<shgRootNode> *, where4tree<shgRootNode> *>;
 
 template class vector<Tk_3DBorder>; // shg consts
 
@@ -107,7 +102,6 @@ template class vector<Tk_3DBorder>; // shg consts
 #include "paradyn/src/UIthread/pdLogo.h"
 template class vector<pdLogo *>;
 template class dictionary_lite<string, pdLogo *>;
-template class pair<string, pdLogo *>;
 template class vector<dictionary_lite<string, pdLogo *>::hash_pair>;
 template class vector< vector<dictionary_lite<string,pdLogo*>::hash_pair> >;
 
@@ -115,7 +109,6 @@ template class dictionary_lite<string, pdLogo::logoStruct>;
 template class vector<pdLogo::logoStruct>;
 template class vector<dictionary_lite<string, pdLogo::logoStruct>::hash_pair>;
 template class vector< vector<dictionary_lite<string, pdLogo::logoStruct>::hash_pair> >;
-template class pair<string, pdLogo::logoStruct>;
 
 /* *************************************
  * UIthread Misc Stuff
