@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.106 2004/02/24 16:51:04 rchen Exp $ */
+/* $Id: test1.mutatee.c,v 1.107 2004/03/12 20:08:35 rchen Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -1247,7 +1247,7 @@ volatile int _unused;	/* move decl here to dump compiler warning - jkh */
 
 void func22_1()
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_linux2_0) && !defined(alpha_dec_osf4_0)
+#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_linux2_0) && !defined(alpha_dec_osf4_0) && !defined(ia64_unknown_linux2_4)
 
     printf("Skipped test #22 (replace function)\n");
     printf("\t- not implemented on this platform\n");

@@ -2271,7 +2271,7 @@ void mutatorTest21(BPatch_thread *, BPatch_image *appImage)
 // test2.
 void mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(alpha_dec_osf4_0)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(alpha_dec_osf4_0) || defined(ia64_unknown_linux2_4)
 
     if (mutateeFortran) {
 	return;
