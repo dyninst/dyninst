@@ -1,0 +1,116 @@
+# 
+# Common makefile template for paradynd.  This file is not intended to
+# be a useful Makefile in isolation; instead, it should be included
+# from within an architecture-specific Makefile.
+#
+# make.module.tmpl,v
+#
+#
+
+TARGET	      = paradynd.exe
+
+VPATH	     = $(VPATH) ../../paradynd/src:../../paradyn/h
+
+#SRCS	     = $(SRCS) ../src/association.C \
+#		../src/ast.C \
+#		../src/comm.C \
+#		../src/context.C \
+#		../src/debugger.C \
+#		../src/dynrpc.C \
+#		../src/init.C \
+#		../src/inst.C \
+#		../src/main.C \
+#		../src/metric.C \
+#		../src/internalMetrics.C \
+#		../src/costmetrics.C \
+#		../src/metricDefs-critPath.C \
+#		../src/perfStream-def.C \
+#		../src/perfStream.C \
+#		../src/process.C \
+#		../src/resource.C \
+#		../src/stats.C \
+#		../src/symtab.C \
+#		../src/util.C \
+# 		../src/mdl.C \
+#		../src/templates0.C \
+#		../src/templates05.C \
+#		../src/templates1.C \
+#		../src/templatesIGEN.C
+
+!ifdef USES_PVM
+#SRCS	     +=	../src/pvm_support.C \
+#		../src/host_support.C \
+#		../src/task_support.C \
+#		../src/templatesPVM.C
+
+OBJS		= $(OBJS) pvm_support.obj \
+			host_support.obj \
+			task_support.obj
+
+CXXFLAGS	= $(CXXFLAGS) -DPARADYND_PVM
+#LIBS		+= -lpvm3
+!endif
+
+!ifdef USES_SHM_SAMPLING
+SRCS 		+= ../src/fastInferiorHeap.C ../src/fastInferiorHeapHKs.C \
+		   ../src/fastInferiorHeapMgr.C
+CXXFLAGS	+= -DSHM_SAMPLING
+TFLAGS		+= -DSHM_SAMPLING
+CFLAGS		+= -DSHM_SAMPLING
+!endif
+
+IGEN_GEN_SRCS = dyninstRPC.xdr.SRVR.C \
+		dyninstRPC.xdr.C
+
+IGEN_ISRCS    = dyninstRPC.I
+
+
+OBJS      = $(OBJS) association.obj \
+		ast.obj \
+		comm.obj \
+		context.obj \
+		debugger.obj \
+		dynrpc.obj \
+		init.obj \
+		inst.obj \
+		main-nt.obj \
+		metric.obj \
+		internalMetrics.obj \
+		costmetrics.obj \
+		metricDefs-critPath.obj \
+		perfStream-def.obj \
+		resource.obj \
+		stats.obj \
+		symtab.obj \
+		util.obj \
+ 		mdl.obj \
+		showerror.obj \
+		perfStream.obj \
+		process.obj \
+		dyninstRPC.xdr.SRVR.obj \
+		dyninstRPC.xdr.obj \
+		templates-nt.obj
+
+
+
+LIBS		= ../../../lib/$(PLATFORM)/libpdutil.lib
+
+SYSLIBS		= oncrpc.lib wsock32.lib imagehlp.lib
+
+IFLAGS       = $(IFLAGS) -I../$(PLATFORM)
+
+all:    $(IGEN_GEN_SRCS) $(TARGET)
+
+dyninstRPC.xdr.SRVR.C: ..\..\paradyn\h\dyninstRPC.I
+	igen -xdr ../../paradyn/h/dyninstRPC.I
+
+{..\..\paradyn\h\}.I.C:
+	igen -xdr ../../paradyn/h/dyninstRPC.I
+
+{..\..\paradyn\h\}.I.h:
+	igen -xdr ../../paradyn/h/dyninstRPC.I
+
+{..\..\dyninstAPI\src\}.C.obj:
+	$(CXX) $(CXXFLAGS) -c $<
+
+

@@ -50,6 +50,9 @@
 
 /*
  * $Log: metMain.C,v $
+ * Revision 1.34  1997/05/23 23:04:08  mjrg
+ * Windows NT port
+ *
  * Revision 1.33  1996/11/26 16:07:17  naim
  * Fixing asserts - naim
  *
@@ -215,6 +218,7 @@ bool metDoDaemon()
     // TODO -- should cm5d be defined
     dataMgr->defineDaemon("paradynd", NULL, NULL, "cm5d", NULL, "cm5");
     //dataMgr->defineDaemon("simd", NULL, NULL, "simd", NULL, "unix");
+    dataMgr->defineDaemon("paradynd", NULL, NULL, "winntd", NULL, "winnt");
     been_done = true;
   }
   unsigned size=daemonMet::allDaemons.size();

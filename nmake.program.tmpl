@@ -1,0 +1,135 @@
+#
+# This file defines the things that should be common to all "programs"
+# in the paradyn build tree.  It depends on things like SRCS and
+# TARGET being set correctly in the module-specific template and the
+# architecture-specific Makefile.
+# 
+# $Log: nmake.program.tmpl,v $
+# Revision 1.1  1997/05/23 23:04:54  mjrg
+# Windows NT port
+#
+#
+
+
+!ifndef UNCOMMON_LINK
+$(TARGET): $(OBJS)
+	link -out:$(TARGET) -debug $(LDFLAGS) $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS)
+!endif
+
+#!ifndef UNCOMMON_LINK
+# The user may set APP_PURE_OPTIONS for application-specific purify options
+#pure: $(OBJS) $(LIBS)
+#	purify $(APP_PURE_OPTIONS) -cache-dir=/tmp -$(MODCC) -collector=$(COLLECTOR) $(MODCC) -o $(TARGET) $(LDFLAGS) $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS)
+#!endif
+
+#!ifndef UNCOMMON_LINK
+#quantify: $(OBJS) $(LIBS)
+#	quantify -cache-dir=/tmp -$(MODCC) -collector=$(COLLECTOR) $(MODCC) -o $(TARGET) $(LDFLAGS) $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS)
+#!endif
+
+#!ifndef UNCOMMON_LINK
+#qpt: $(OBJS) $(LIBS)
+#	$(MODCC) -static -o $(TARGET) $(LDFLAGS) $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS)
+#	# qpt's quick profiling may produce incorrect results in programs
+#	# executing interprocedural jumps; this includes setjmp/longjmp.
+#	# Hence we must use the -s option for paradyn:
+#	qpt2 -s $(TARGET)
+#!endif
+
+!ifndef DEST
+DEST		= $(TO_CORE)\..\bin\$(PLATFORM)
+!endif
+
+VPATH		= $(VPATH) ../src:$(TO_CORE)/../lib/$(PLATFORM):$(BACKUP_CORE)/../lib/$(PLATFORM)
+
+
+echo:
+	echo $(VPATH)
+
+clean:
+	del *.obj  *.ilk *.pdb *.h *.C $(TARGET)
+
+install:  $(DEST)\$(TARGET)
+
+$(DEST)\$(TARGET): $(TARGET)
+	copy $(TARGET) $(DEST)
+
+#.PHONY : depend
+#depend:
+#	rm -f DEPENDS
+#	$(MAKE) DEPENDS
+
+# 
+# Define DEPENDS dependencies such that the DEPENDS files depends on
+# the .I files, not the .[Ch] files; otherwise, DEPENDS get rebuilt
+# all the time.  We do need to build the Igen-generated files before
+# updating DEPENDS, however,
+#
+#!ifdef IGEN_ISRCS
+#!ifdef EXPLICIT_DEPENDS
+#DEPENDS:
+#!else
+#DEPENDS: $(SRCS) $(IGEN_ISRCS)
+#!endif
+#	touch DEPENDS
+#	$(MAKE) $(IGEN_GEN_SRCS)
+#	$(MAKE) $(SRCS)
+#	$(MODCC) -MM $(MODCFLAGS) $(SRCS) $(IGEN_GEN_SRCS) > DEPENDS
+##	makedepend -fDEPENDS -- $(CFLAGS) $(SRCS) $(IGEN_SRCS) $(NOPED_SRCS)
+#!else
+#!ifdef EXPLICIT_DEPENDS
+#ADEPENDS:
+#!else
+#DEPENDS: $(SRCS)
+#!endif
+#	touch DEPENDS
+#	$(MAKE) $(SRCS)
+#	$(MODCC) -MM $(MODCFLAGS) $(SRCS) > DEPENDS
+##	makedepend -fDEPENDS -- $(CFLAGS) $(SRCS)
+#!endif
+
+
+
+# A few pattern rules for simplicity.  The default lex rule is
+# redefined, just for the sake of cleanliness.  More important are the
+# igen rules; they "automatically" pick the correct type of igen to
+# run.  Actually, we can't do this completely "right" unless igen is
+# changed to generate different output files for the various type of
+# interfaces.
+#
+
+{..\src\}.C.obj:
+	$(CXX) $(CXXFLAGS) -c $<
+
+.C.obj:
+	$(CXX) $(CXXFLAGS) -c $<
+
+{..\src\}.y.C:
+	$(YACC) $(YFLAGS) $<
+	del $@
+	move y.tab.c $@
+
+{..\src\}.y.obj:
+	$(YACC) $(YFLAGS) $<
+	del $@
+	move y.tab.c $@
+	$(CXX) $(CXXFLAGS) -c $<
+
+
+#%.C: %.y
+#	$(YACC) $(YFLAGS) $<
+#	mv y.tab.c $@
+
+%.C: %.l
+	$(LEX) -t $(LFLAGS) $< > $@
+
+%.xdr.C %.xdr.CLNT.C %.xdr.CLNT.h %.xdr.SRVR.C %.xdr.SRVR.h %.xdr.h: %.I
+	$(IGEN) -xdr $(ICFLAGS) $<
+
+%.thread.C %.thread.CLNT.h %.thread.SRVR.h %.thread.h: %.I
+	$(IGEN) -thread $(ICFLAGS) $<
+
+#
+# include the dependencies.
+#
+!include DEPENDS

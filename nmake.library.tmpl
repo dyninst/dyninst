@@ -1,0 +1,140 @@
+#
+# This file defines the things that should be common to all "libraries"
+# in the paradyn build tree.  It depends on things like SRCS and
+# TARGET being set correctly in the module-specific template and the
+# architecture-specific Makefile.
+# 
+# $Log: nmake.library.tmpl,v $
+# Revision 1.1  1997/05/23 23:04:53  mjrg
+# Windows NT port
+#
+#
+#
+
+
+VPATH           = $(VPATH) ../src
+
+!ifndef UNCOMMON_LINK
+$(TARGET): $(OBJS)
+	@rm -f $(TARGET)
+	lib -out:$*.lib $(OBJS)
+#	$(RANLIB) $(TARGET)
+
+!ifdef TARGET2
+$(TARGET2): $(OBJS2)
+	@rm -f $(TARGET2)
+	ar crv $(TARGET2) $(OBJS2)
+	$(RANLIB) $(TARGET2)
+!endif  # TARGET2
+!endif  # UNCOMMON_LINK
+
+!ifndef DEST
+DEST            = $(TO_CORE)\..\lib\$(PLATFORM)
+!endif
+
+echo:
+	echo $(OBJS)
+
+clean:
+	del *.obj *.h *.C *.lib $(TARGET)
+
+!ifndef UNCOMMON_INSTALL
+install: $(DEST)/$(TARGET)
+
+$(DEST)/$(TARGET):  $(TARGET)
+	copy $(TARGET) $(DEST)
+#	$(RANLIB) $(DEST)/$(TARGET)
+
+#
+# definition for secondary library
+#
+!ifdef TARGET2
+install: $(DEST)/$(TARGET2)
+
+$(DEST)/$(TARGET2):  $(TARGET2)
+	cp $(TARGET2) $(DEST)
+	$(RANLIB) $(DEST)/$(TARGET2)
+!endif
+!endif      # ifndef UNCOMMON_INSTALL
+
+#
+# dependency generation definitions
+#
+
+#.PHONY : depend
+#depend:
+#	rm -f DEPENDS
+#	$(MAKE) DEPENDS
+
+# 
+# Define DEPENDS dependencies such that the DEPENDS files depends on
+# the .I files, not the .[Ch] files; otherwise, DEPENDS get rebuilt
+# all the time.  We do need to build the Igen-generated files before
+# updating DEPENDS, however,
+#
+#!ifdef IGEN_ISRCS
+#!ifdef EXPLICIT_DEPENDS
+#DEPENDS:
+#!else
+#DEPENDS: $(SRCS) $(IGEN_ISRCS)
+#!endif
+#	touch DEPENDS
+#	$(MAKE) $(IGEN_GEN_SRCS)
+#	$(MAKE) $(SRCS)
+#	$(MODCC) -MM $(MODCFLAGS) $(SRCS) $(IGEN_GEN_SRCS) > DEPENDS
+##       makedepend -fDEPENDS -- $(CFLAGS) $(SRCS) $(IGEN_SRCS) $(NOPED_SRCS)
+#!else
+#!ifdef EXPLICIT_DEPENDS
+#DEPENDS:
+#!else
+#DEPENDS: $(SRCS)
+#!endif
+#	touch DEPENDS
+#	$(MAKE) $(SRCS)
+#	$(MODCC) -MM $(MODCFLAGS) $(SRCS) > DEPENDS
+##       makedepend -fDEPENDS -- $(CFLAGS) $(SRCS)
+#!endif
+
+
+#.depend.% %.C:
+#       makedepend -fDEPENDS -- $(CFLAGS) $(SRCS)
+
+pure:
+
+
+
+#
+# A few pattern rules for simplicity in handling igen-generated files.
+#
+
+%.xdr.C %.xdr.CLNT.C %.xdr.CLNT.h %.xdr.SRVR.C %.xdr.SRVR.h %.xdr.h: %.I
+	$(IGEN) -xdr $(ICFLAGS) $<
+
+%.thread.C %.thread.CLNT.h %.thread.SRVR.h %.thread.h: %.I
+	$(IGEN) -thread $(ICFLAGS) $<
+
+
+{..\src\}.C.obj:
+	$(CXX) $(CXXFLAGS) -c $<
+
+.C.obj:
+	$(CXX) $(CXXFLAGS) -c $<
+
+{..\src\}.y.C:
+	$(YACC) $(YFLAGS) $<
+	del $@
+	move y.tab.c $@
+
+{..\src\}.y.obj:
+	$(YACC) $(YFLAGS) $<
+	del $@
+	move y.tab.c $@
+	$(CXX) $(CXXFLAGS) -c $<
+
+
+
+#
+# include the dependencies.
+#
+!include DEPENDS
+

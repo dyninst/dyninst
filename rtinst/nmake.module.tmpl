@@ -1,0 +1,67 @@
+#
+# Common makefile template for rtinst library.  This file is not
+# intended to be a useful Makefile in isolation; instead, it should be
+# included from within an architecture-specific Makefile.
+#
+# $Log: nmake.module.tmpl,v $
+# Revision 1.1  1997/05/23 23:00:30  mjrg
+# Windows NT port
+#
+#
+#
+
+!ifndef TARGET
+TARGET	      = libdyninstRT.dll
+ALT_TARGET    = DYNINSTstartCode.obj DYNINSTendCode.obj
+!endif
+
+MODCC         = $(CC)
+MODCFLAGS     = $(CFLAGS)
+
+SRCS	     = $(SRCS) ../src/RTend.c
+
+DYNSRCS	      = ../src/DYNINSTstartCode.c \
+		../src/DYNINSTendCode.c
+
+DYNOBJS		= DYNINSTstartCode.obj DYNINSTendCode.obj
+!ifdef USES_SHM_SAMPLING
+CFLAGS	+= -DSHM_SAMPLING
+!endif
+
+#all: $(TARGET) $(TARGET2) $(ALT_TARGET)
+all: $(TARGET)
+
+#
+# override standard link rule; libdyninst is not really a library or a program.
+#
+UNCOMMON_LINK= true
+
+OBJS		= $(OBJS) RTinst.obj RTend.obj
+
+#$(TARGET): $(OBJS) $(DYNOBJS) $(LIBS)
+#	$(LD) $(LDFLAGS) -out:$(TARGET) $(OBJS) $(LIBS)
+
+#
+# override standard install rule; provide a default DEST if not already set
+#
+!ifndef DEST
+DEST		= $(TO_CORE)/../lib/$(PLATFORM)
+!endif
+
+UNCOMMON_INSTALL= true
+install: $(DEST)/$(TARGET) \
+	 $(DEST)/DYNINSTstartCode.obj \
+	 $(DEST)/DYNINSTendCode.obj
+#	 $(DEST)/RTpvmPiggy.obj
+
+$(DEST)/libdyninstRT.dll:       libdyninstRT.dll
+	copy libdyninstRT.dll ..\..\..\lib\$(PLATFORM)
+
+#$(DEST)/RTpvmPiggy.o: RTpvmPiggy.o
+#	cp RTpvmPiggy.o ../../../lib/$(PLATFORM)
+
+$(DEST)/DYNINSTstartCode.obj: DYNINSTstartCode.obj
+	copy DYNINSTstartCode.obj ..\..\..\lib\$(PLATFORM)
+
+$(DEST)/DYNINSTendCode.obj: DYNINSTendCode.obj
+	copy DYNINSTendCode.obj ..\..\..\lib\$(PLATFORM)

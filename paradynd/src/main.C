@@ -43,6 +43,9 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
+ * Revision 1.65  1997/05/23 23:02:17  mjrg
+ * Windows NT port
+ *
  * Revision 1.64  1997/05/17 19:58:51  lzheng
  * Changes made for nonblocking write
  *
@@ -297,6 +300,7 @@ int main(int argc, char *argv[]) {
     //   cerr << argv[lcv] << endl;
     //}
 
+#if !defined(i386_unknown_nt4_0)
     struct sigaction act;
 
     // int i = 1;
@@ -321,6 +325,14 @@ int main(int argc, char *argv[]) {
         perror("sigaction(SIGTERM)");
         abort();
     }
+#endif
+
+#if defined(i386_unknown_nt4_0)
+    // Windows NT needs to initialize winsock library
+    WORD wsversion = MAKEWORD(2,0);
+    WSADATA wsadata;
+    WSAStartup(wsversion, &wsadata);
+#endif
 
     process::programName = argv[0];
     // process command line args passed in
@@ -449,7 +461,11 @@ int main(int argc, char *argv[]) {
       // not put here, only up above since PARADYND_PVM is always set
       assert(0);
     } else if (!pd_flag) {
+#if !defined(i386_unknown_nt4_0)
       int pid = fork();
+#else
+      int pid = 0;
+#endif
       if (pid == 0) {
 	// configStdIO(true);
 	// setup socket
