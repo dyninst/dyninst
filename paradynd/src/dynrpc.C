@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.82 2001/06/20 20:39:54 schendel Exp $ */
+/* $Id: dynrpc.C,v 1.83 2001/06/23 19:07:05 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -88,7 +88,7 @@ void setCurrSamplingRate(timeLength tl) {
 
 const timeLength &getCurrSamplingRate() {
   if(currSamplingRate == NULL) {
-    currSamplingRate = new timeLength(BASEBUCKETWIDTH_SECS, timeUnit::ms());
+    currSamplingRate = new timeLength(BASEBUCKETWIDTH_SECS, timeUnit::sec());
   }
   return *currSamplingRate;
 }
