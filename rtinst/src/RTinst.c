@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.50 2002/02/11 22:07:53 tlmiller Exp $
+ * $Id: RTinst.c,v 1.51 2002/02/21 21:48:41 bernat Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -57,7 +57,7 @@
 #include <math.h>
 #include <sys/types.h>
 
-#if defined(SHM_SAMPLING) && !defined(i386_unknown_nt4_0)
+#if !defined(i386_unknown_nt4_0)
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #endif
@@ -120,6 +120,10 @@ char DYNINSThasInitialized = 0; /* 0 : has not initialized
 				   2 : initialized by Dyninst
 				   3 : initialized by Paradyn */
 
+#if !defined(MT_THREAD)
+#define MAX_NUMBER_OF_THREADS 1
+#endif
+unsigned DYNINST_tramp_guard[MAX_NUMBER_OF_THREADS] = {1};
 /************************************************************************/
 
 /************************************************************************/
@@ -228,10 +232,6 @@ DYNINSTstartProcessTimer(tTimer* timer) {
   assert(timer->protector1 == timer->protector2);
   timer->protector1++;
   MEMORY_BARRIER;
-    /* How about some kind of inline asm that flushes writes when the
-       architecture is using some kind of relaxed multiprocessor
-       consistency? */
-
   if (timer->counter == 0) {
     timer->start     =  DYNINSTgetCPUtime();
   }
@@ -446,7 +446,7 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
      is positive, then we're not called from attach (and we use +paradyndPid
      as paradynd's pid). */
   
- 
+  int i;
   int calledFromAttachToCreated = 0;
   int calledFromFork = (theKey == -1);
   int calledFromAttach = (paradyndPid < 0);
@@ -455,7 +455,7 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
     calledFromAttachToCreated = 1;
     theKey *= -1;
   }
-  
+
 #ifdef SHM_SAMPLING_DEBUG
   char thehostname[80];
   extern int gethostname(char*,int);
@@ -471,6 +471,10 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
 #endif
 
   initFPU();
+  for (i = 0; i < MAX_NUMBER_OF_THREADS; i++) {
+    printf("%d: %d\n", i, DYNINST_tramp_guard[i]);
+    DYNINST_tramp_guard[i] = 1;
+  }
   DYNINSThasInitialized = 3;
 
   /* sanity check */
