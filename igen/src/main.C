@@ -2,7 +2,11 @@
  * main.C - main function of the interface compiler igen.
  *
  * $Log: main.C,v $
- * Revision 1.27  1994/08/18 05:56:54  markc
+ * Revision 1.28  1994/08/18 19:53:28  markc
+ * Added support for new files.
+ * Removed compiler warnings for solaris2.3
+ *
+ * Revision 1.27  1994/08/18  05:56:54  markc
  * Changed char*'s to stringHandles
  *
  * Revision 1.26  1994/08/17  17:51:57  markc
@@ -536,7 +540,7 @@ void remoteFunc::genSwitch(int forUpcalls, char *ret_str, ofstream &output)
 	output << "                 __tag__ = " <<
 	  (char*)spec->getName() << "_" << (char*)name;
 	output << "_RESP;\n";
-	output << "                if (!xdr_int(__xdrs__, &__tag__)) {\n";
+	output << "                if (!xdr_u_int(__xdrs__, &__tag__)) {\n";
 	output << "                   err_state = igen_encode_err;\n";
 	output << "                   handle_error();\n";
 	output << "                   return " << ret_str << ";\n";
@@ -742,7 +746,7 @@ void remoteFunc::genXDRStub(char *className, ofstream &output)
     output << "   __ptrTable__.destroy();\n";
 
   // the error check depends on short circuit boolean expression evaluation
-  output << "    if (!xdr_int(__xdrs__, &__tag__)\n";
+  output << "    if (!xdr_u_int(__xdrs__, &__tag__)\n";
   for (lp = args; *lp; lp++) {
     output << "      ||  !xdr_" << (char*)(*lp)->type << "(__xdrs__, &";
     output << (char*)(*lp)->name << ")\n";
@@ -951,7 +955,7 @@ templatePVMarray (pvm_args *the_arg)
     return;
   dot_c << "bool_t IGEN_pvm_Array_of_" << (char*)the_arg->type_name <<
     " (IGEN_PVM_FILTER dir, ";
-  dot_c << (char*)the_arg->type_name << " **data, int *count) {\n";
+  dot_c << (char*)the_arg->type_name << " **data, unsigned int *count) {\n";
   dot_c << "   int bytes, msgtag, tid;\n";
   dot_c << "   switch (dir)\n";
   dot_c << "     {\n";
@@ -1091,7 +1095,7 @@ PVM_map_array_includes (pvm_args *the_arg)
     return;
   dot_h << "bool_t IGEN_pvm_Array_of_" << (char*)the_arg->type_name <<
     " (IGEN_PVM_FILTER ";
-  dot_h << "direction, " << (char*)the_arg->type_name << " **data, int *count);\n";
+  dot_h << "direction, " << (char*)the_arg->type_name << " **data, unsigned int *count);\n";
 }
 
 void

@@ -168,7 +168,7 @@ typeName: tIDENT {
 		} else { 
 		  if (!(foundType = userPool.find($1.cp))) {
 		    char str[80];
-		    sprintf(str, "unknown type %s, exiting", $1.cp);
+		    sprintf(str, "unknown type %s, exiting", (char*)$1.cp);
 		    yyerror(str);
 		    exit(0);
 		  }
@@ -187,7 +187,7 @@ typeName: tIDENT {
 	        char str[80];
 		$$.td.cp = findAndAddArrayType($2.cp);
 		if (!$$.td.cp) {
-		  sprintf(str, "%s cannot be an array, exiting \n", $$.td.cp);
+		  sprintf(str, "%s cannot be an array, exiting \n", (char*)$$.td.cp);
 		  yyerror(str);
 		  exit(0);
 		}

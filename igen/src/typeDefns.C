@@ -3,7 +3,11 @@
  * defns.C - type and structure definition support
  *
  * $Log: typeDefns.C,v $
- * Revision 1.2  1994/08/18 05:57:00  markc
+ * Revision 1.3  1994/08/18 19:53:34  markc
+ * Added support for new files.
+ * Removed compiler warnings for solaris2.3
+ *
+ * Revision 1.2  1994/08/18  05:57:00  markc
  * Changed char*'s to stringHandles
  *
  * Revision 1.1  1994/08/17  17:52:05  markc
@@ -112,7 +116,7 @@ void typeDefn::genHeader()
     dot_h << "#define " << (char*)name << "_PTR " << (char*)name << "* \n";
     dot_h << "class " << (char*)name << " {  \npublic:\n";
     if (arrayType) {
-	dot_h << "    int count;\n";
+	dot_h << "    unsigned int count;\n";
 	dot_h << "    " << (char*)type << "* data;\n";
     } else {
 	for (fp = fields; *fp; fp++) {
@@ -190,7 +194,7 @@ void typeDefn::genBundlerPVM()
   if (arrayType) {
     assert (foundType = userPool.find(type));
     if (foundType->userDefined) {
-      dot_c << "        int i;\n";
+      dot_c << "        unsigned int i;\n";
       dot_c << "        for (i=0; i<__ptr__->count; ++i)\n";
       dot_c << "            if (!IGEN_pvm_" << (char*)type <<
 	"(__dir__, &(__ptr__->data[i])))\n";
@@ -294,7 +298,7 @@ void typeDefn::genPtrBundlerXDR()
 {
   dot_c << "\nbool_t xdr_" << (char*)name << "_PTR" <<
     "(XDR *__xdrs__, " << (char*)name << " **__ptr__) {\n";
-  dot_c << "    int __flag__ = 0;\n";
+  dot_c << "    unsigned long __flag__ = 0;\n";
   if (ptrMode == ptrHandle)
     dot_c << "    void *__val__; int __fd__;\n";
 
@@ -302,7 +306,7 @@ void typeDefn::genPtrBundlerXDR()
   dot_c << "       case XDR_DECODE:\n";
   dot_c << "          if (!__ptr__)\n";
   dot_c << "              return FALSE;\n";
-  dot_c << "          else if (!xdr_u_int(__xdrs__, &__flag__))\n";
+  dot_c << "          else if (!xdr_u_long(__xdrs__, &__flag__))\n";
   dot_c << "              return FALSE;\n";
   dot_c << "          else if (igen_flag_is_null(__flag__)) {\n";
   dot_c << "              *__ptr__ = (" << (char*)name << "_PTR) 0;\n";
@@ -316,7 +320,7 @@ void typeDefn::genPtrBundlerXDR()
     dot_c << "        *__ptr__ = new " << (char*)name <<";\n";
     break;
   case ptrHandle:
-    dot_c << "        if (!xdr_u_int(__xdrs__, (unsigned int*)&__val__))\n";
+    dot_c << "        if (!xdr_u_long(__xdrs__, (unsigned long*)&__val__))\n";
     dot_c << "            return FALSE;\n";
     dot_c << "        if (igen_flag_is_shared(__flag__)) {\n";
     dot_c << "            *__ptr__ = (" << (char*)name <<
@@ -340,7 +344,7 @@ void typeDefn::genPtrBundlerXDR()
   dot_c << "          else if (!*__ptr__) {\n";
   dot_c << "              // signifies NULL\n";
   dot_c << "              igen_flag_set_null(__flag__);\n";
-  dot_c << "              if (!xdr_u_int(__xdrs__, &__flag__))\n";
+  dot_c << "              if (!xdr_u_long(__xdrs__, &__flag__))\n";
   dot_c << "                  return FALSE;\n";
   dot_c << "              else\n";
   dot_c << "                  return TRUE;\n";
@@ -351,7 +355,7 @@ void typeDefn::genPtrBundlerXDR()
   switch (ptrMode) {
   case ptrIgnore:
     dot_c << "             // ignore duplicate pointers\n";
-    dot_c << "              if (!xdr_u_int(__xdrs__, &__flag__))\n";
+    dot_c << "              if (!xdr_u_long(__xdrs__, &__flag__))\n";
     dot_c << "                  return FALSE;\n";
     break;
   case ptrDetect:
@@ -360,7 +364,7 @@ void typeDefn::genPtrBundlerXDR()
     dot_c << "            printf(\"DUPLICATE POINTER\\n\");\n";
     dot_c << "            return FALSE;\n";
     dot_c << "        };\n";
-    dot_c << "        if (!xdr_u_int(__xdrs__, &__flag__))\n";
+    dot_c << "        if (!xdr_u_long(__xdrs__, &__flag__))\n";
     dot_c << "            return FALSE;\n";
     dot_c << "        if (!__ptrTable__.add((void*) *__ptr__, (void*) *__ptr__))\n";
     dot_c << "            return FALSE;\n";
@@ -370,10 +374,10 @@ void typeDefn::genPtrBundlerXDR()
     dot_c << "        if (__ptrTable__.inTable((void*) *__ptr__)) {\n";
     dot_c << "            igen_flag_set_shared(__flag__);\n";
     dot_c << "        };\n";
-    dot_c << "        if (!xdr_u_int(__xdrs__, &__flag__))\n";
+    dot_c << "        if (!xdr_u_long(__xdrs__, &__flag__))\n";
     dot_c << "            return FALSE;\n";
-    dot_c << "        __flag__ = (unsigned int)__ptr__;\n";
-    dot_c << "        if (!xdr_u_int(__xdrs__, &__flag__))\n";
+    dot_c << "        __flag__ = (unsigned long)__ptr__;\n";
+    dot_c << "        if (!xdr_u_long(__xdrs__, &__flag__))\n";
     dot_c << "            return FALSE;\n";
     dot_c << "        if (!__ptrTable__.add((void*) *__ptr__, (void*) *__ptr__))\n";
     dot_c << "            return FALSE;\n";

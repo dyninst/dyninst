@@ -3,7 +3,11 @@
  * classDefns.C - class definition support
  *
  * $Log: classDefns.C,v $
- * Revision 1.2  1994/08/18 05:56:43  markc
+ * Revision 1.3  1994/08/18 19:53:24  markc
+ * Added support for new files.
+ * Removed compiler warnings for solaris2.3
+ *
+ * Revision 1.2  1994/08/18  05:56:43  markc
  * Changed char*'s to stringHandles
  *
  * Revision 1.1  1994/08/17  17:51:52  markc
@@ -43,16 +47,18 @@ void classDefn::genPtrBundlerXDR()
   dot_c << "\nbool_t xdr_" << (char*)name << "_PTR" <<
     "(XDR *__xdrs__, " << (char*)name << "_PTR *__ptr__) {\n";
   dot_c << "    unsigned char __class_type__;\n";
-  dot_c << "    int __flag__ = 0, __share__ = 0;\n";
-  if (ptrMode == ptrHandle) 
+  dot_c << "    unsigned long __flag__ = 0;\n";
+  if (ptrMode == ptrHandle) {
     dot_c << "      void *__val__; int __fd__;\n";
+    dot_c << "      unsigned long __share__ = 0;\n";
+  }
 
   dot_c << "    switch (__xdrs__->x_op) {\n";
   dot_c << "       case XDR_DECODE:\n";
   dot_c << "          *__ptr__ = (" << (char*)name << "_PTR) 0;\n";
   dot_c << "          if (!__ptr__)\n";
   dot_c << "              return FALSE;\n";
-  dot_c << "          else if (!xdr_u_int(__xdrs__, &__flag__))\n";
+  dot_c << "          else if (!xdr_u_long(__xdrs__, &__flag__))\n";
   dot_c << "              return FALSE;\n";
   dot_c << "          else if (igen_flag_is_null(__flag__)) {\n";
   dot_c << "              return TRUE;\n";
@@ -63,7 +69,7 @@ void classDefn::genPtrBundlerXDR()
   case ptrDetect:
     break;
   case ptrHandle:
-    dot_c << "          if (!xdr_u_int(__xdrs__, (unsigned int*)&__val__))\n";
+    dot_c << "          if (!xdr_u_long(__xdrs__, (unsigned long*)&__val__))\n";
     dot_c << "              return FALSE;\n";
     dot_c << "          if (igen_flag_is_shared(__flag__)) {\n";
     dot_c << "              *__ptr__ =(" << (char*)name <<
@@ -105,7 +111,7 @@ void classDefn::genPtrBundlerXDR()
   dot_c << "          else if (!*__ptr__) {\n";
   dot_c << "              // signifies NULL\n";
   dot_c << "              igen_flag_set_null(__flag__);\n";
-  dot_c << "              if (!xdr_u_int(__xdrs__, &__flag__))\n";
+  dot_c << "              if (!xdr_u_long(__xdrs__, &__flag__))\n";
   dot_c << "                  return FALSE;\n";
   dot_c << "              else\n";
   dot_c << "                  return TRUE;\n";
@@ -116,7 +122,7 @@ void classDefn::genPtrBundlerXDR()
   switch (ptrMode) {
   case ptrIgnore:
     dot_c << "             // ignore duplicate pointers\n";
-    dot_c << "              if (!xdr_u_int(__xdrs__, &__flag__))\n";
+    dot_c << "              if (!xdr_u_long(__xdrs__, &__flag__))\n";
     dot_c << "                  return FALSE;\n";
     break;
   case ptrDetect:
@@ -125,7 +131,7 @@ void classDefn::genPtrBundlerXDR()
     dot_c << "            printf(\"DUPLICATE POINTER\\n\");\n";
     dot_c << "            return FALSE;\n";
     dot_c << "        };\n";
-    dot_c << "        if (!xdr_u_int(__xdrs__, &__flag__))\n";
+    dot_c << "        if (!xdr_u_long(__xdrs__, &__flag__))\n";
     dot_c << "            return FALSE;\n";
     dot_c << "        if (!__ptrTable__.add((void*) *__ptr__, (void*) __ptr__))\n";
     dot_c << "            return FALSE;\n";
@@ -136,10 +142,10 @@ void classDefn::genPtrBundlerXDR()
     dot_c << "            igen_flag_set_shared(__flag__);\n";
     dot_c << "            __share__ = 1;\n";
     dot_c << "        };\n";
-    dot_c << "        if (!xdr_u_int(__xdrs__, &__flag__))\n";
+    dot_c << "        if (!xdr_u_long(__xdrs__, &__flag__))\n";
     dot_c << "            return FALSE;\n";
-    dot_c << "        __flag__ = (unsigned int)__ptr__;\n";
-    dot_c << "        if (!xdr_u_int(__xdrs__, &__flag__))\n";
+    dot_c << "        __flag__ = (unsigned long)__ptr__;\n";
+    dot_c << "        if (!xdr_u_long(__xdrs__, &__flag__))\n";
     dot_c << "            return FALSE;\n";
     dot_c << "        if (__share__) return TRUE;\n";
     dot_c << "        if (!__ptrTable__.add((void*) *__ptr__, (void*) *__ptr__))\n";

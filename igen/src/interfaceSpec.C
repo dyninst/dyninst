@@ -2,7 +2,11 @@
 /*
  *
  * $Log: interfaceSpec.C,v $
- * Revision 1.2  1994/08/18 05:56:51  markc
+ * Revision 1.3  1994/08/18 19:53:25  markc
+ * Added support for new files.
+ * Removed compiler warnings for solaris2.3
+ *
+ * Revision 1.2  1994/08/18  05:56:51  markc
  * Changed char*'s to stringHandles
  *
  * Revision 1.1  1994/08/17  17:51:54  markc
@@ -129,7 +133,7 @@ void interfaceSpec::generateXDRLoop()
     srvr_dot_c << "          handle_error();\n";
     srvr_dot_c << "          return (-1);\n";
     srvr_dot_c << "    }\n";
-    srvr_dot_c << "    if (!(__status__ = xdr_int(__xdrs__, &__tag__))) {\n";
+    srvr_dot_c << "    if (!(__status__ = xdr_u_int(__xdrs__, &__tag__))) {\n";
     srvr_dot_c << "          err_state = igen_read_err;\n";
     srvr_dot_c << "          handle_error();\n";
     srvr_dot_c << "          return(-1);\n";
@@ -159,7 +163,8 @@ void interfaceSpec::generatePVMLoop()
 
     srvr_dot_c << "int " << (char*)name << "::mainLoop(void)\n";
     srvr_dot_c << "{\n";
-    srvr_dot_c << "    int __tag__, __bytes__, __msgtag__, __tid__, __bufid__, __other__, __count__;\n";
+    srvr_dot_c << "    unsigned int __tag__;\n";
+    srvr_dot_c << "    int __bytes__, __msgtag__, __tid__, __bufid__, __other__, __count__;\n";
     srvr_dot_c << "    struct taskinfo __taskp__, *__tp__;\n";
     srvr_dot_c << "    __tp__ = &__taskp__;\n";
     srvr_dot_c << "    if (err_state != igen_no_err) return (-1);\n";
@@ -278,7 +283,7 @@ void interfaceSpec::generateServerCode()
 
     // generate stubs for upcalls.
     for (cf = methods; *cf; cf++)
-      (*cf)->genStub(name, TRUE, srvr_dot_c);
+      (*cf)->genStub((char*)name, TRUE, srvr_dot_c);
 }
 
 
@@ -308,7 +313,7 @@ void interfaceSpec::genWaitLoop()
 	clnt_dot_c << "        handle_error();\n";
 	clnt_dot_c << "        return;\n";
 	clnt_dot_c << "    }\n";
-	clnt_dot_c << "    if (!xdr_int(__xdrs__, &__tag__)) {\n";
+	clnt_dot_c << "    if (!xdr_u_int(__xdrs__, &__tag__)) {\n";
 	clnt_dot_c << "        err_state = igen_decode_err;\n";
 	clnt_dot_c << "        handle_error();\n";
 	clnt_dot_c << "        return;\n";
@@ -361,7 +366,7 @@ void interfaceSpec::genProtoVerify()
     clnt_dot_c << "    int version;\n";
     clnt_dot_c << "    __tag__ = 0;\n";
     clnt_dot_c << "    __xdrs__->x_op = XDR_ENCODE;\n";
-    clnt_dot_c << "    if (xdr_int(__xdrs__, &__tag__) != TRUE)\n";
+    clnt_dot_c << "    if (xdr_u_int(__xdrs__, &__tag__) != TRUE)\n";
     clnt_dot_c << "       {\n";
     clnt_dot_c << "          err_state = igen_encode_err;\n";
     clnt_dot_c << "          handle_error();\n";
@@ -474,7 +479,7 @@ void interfaceSpec::generateStubs(ofstream &output)
     char className[80];
 
 
-    sprintf((void*)className, "%sUser", (char*)name);
+    sprintf(className, "%sUser", (char*)name);
     for (cf = methods; *cf; cf++) {
 	(*cf)->genStub(className, FALSE, output);
     }
@@ -658,14 +663,15 @@ void interfaceSpec::genXDRLookForVerify()
 {
   srvr_dot_c << "   int " << (char*)name << "::look_for_verify()\n";
   srvr_dot_c << "   {\n";
-  srvr_dot_c << "     int __status__, __tag__;\n\n";
+  srvr_dot_c << "     unsigned int __tag__;\n";
+  srvr_dot_c << "     int __status__;\n\n";
   srvr_dot_c << "     if (!xdrrec_skiprecord(__xdrs__)) {\n";
   srvr_dot_c << "         err_state = igen_read_err;\n";
   srvr_dot_c << "         handle_error();\n";
   srvr_dot_c << "         return (-1);\n";
   srvr_dot_c << "     }\n\n";
   srvr_dot_c << "     __xdrs__->x_op = XDR_DECODE;\n\n";
-  srvr_dot_c << "     if (!(__status__  = xdr_int(__xdrs__, &__tag__))) {\n";
+  srvr_dot_c << "     if (!(__status__  = xdr_u_int(__xdrs__, &__tag__))) {\n";
   srvr_dot_c << "         err_state = igen_decode_err;\n";
   srvr_dot_c << "         handle_error();\n";
   srvr_dot_c << "         return (-1);\n";
