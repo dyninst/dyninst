@@ -111,12 +111,11 @@ void
 AstNode::optRetVal(AstNode *opt) {
 
     if (oType == ReturnVal) {
+	cout << "Optimazed Return." << endl;
 	if (loperand == 0) {
-	    assert(opt != 0);  // AstNode is not null
 	    loperand = opt;
 	    return;
-	} else {
-	    assert(opt == 0);  // AstNode is null in this case
+	} else if (opt == 0) {
 	    delete loperand;
 	    loperand = NULL;
 	    return; 
@@ -140,9 +139,9 @@ processOptimaRet(instPoint *location, AstNode *&ast) {
 			   RESTOREmask, RESTOREmatch)&&
 		((location->delaySlotInsn.raw | 0xc1e82000) != 0xc1e82000)) 
 	    {
-		cout << "Optimazed Retrun Value:  Addr " << hex << 
+		/* cout << "Optimazed Retrun Value:  Addr " << hex << 
 		    location->addr << " in "
-			<< location -> func -> prettyName() << endl;
+			<< location -> func -> prettyName() << endl; */
 		AstNode *opt = new AstNode(AstNode::Constant,
 					   (void *)location->delaySlotInsn.raw);
 		ast -> optRetVal(opt);
