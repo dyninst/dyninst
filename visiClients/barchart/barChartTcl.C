@@ -1,9 +1,12 @@
 // barChartTcl.C
 
 /* $Log: barChartTcl.C,v $
-/* Revision 1.11  1996/01/11 01:53:42  tamches
-/* added long2shortFocusNameCommand to compute short focus names
+/* Revision 1.12  1996/01/17 19:44:07  tamches
+/* shuffled colors a bit
 /*
+ * Revision 1.11  1996/01/11 01:53:42  tamches
+ * added long2shortFocusNameCommand to compute short focus names
+ *
  * Revision 1.10  1996/01/10 19:36:12  tamches
  * launchBarChart now takes 4 args instead of 7
  *
@@ -255,11 +258,15 @@ int launchBarChartCommand(ClientData, Tcl_Interp *, int argc, char **argv) {
 
    // bar colors: (see /usr/lib/X11/rgb.txt)
    vector<string> barColorNames;
-   barColorNames += "cornflower blue";
-   barColorNames += "medium sea green";
+//   barColorNames += "cornflower blue";
+   barColorNames += "mediumslateblue";
    barColorNames += "hotpink";
+//   barColorNames += "chartreuse"; // too bright
+   barColorNames += "#3aa041"; // a type of green not far from mediumseagreen
+//   barColorNames += "orange";
+//   barColorNames += "lightsalmon"; // text part is too unreadable on grey
+   barColorNames += "salmon";
    barColorNames += "chocolate";
-   barColorNames += "orange";
 
    theBarChart = new BarChart(wname, iNumMetrics, iNumResources, barColorNames);
    assert(theBarChart);
