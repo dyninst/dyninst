@@ -1,7 +1,10 @@
 /* $Log: main.C,v $
-/* Revision 1.36  1995/12/20 20:18:35  newhall
-/* removed matherr.h
+/* Revision 1.37  1996/01/09 01:08:27  tamches
+/* added develModeCallback
 /*
+ * Revision 1.36  1995/12/20 20:18:35  newhall
+ * removed matherr.h
+ *
  * Revision 1.35  1995/12/03  21:33:11  newhall
  * changes to support new sampleDataCallbackFunc
  *
@@ -143,8 +146,8 @@
  *   This routine creates DM, UIM, VM, and PC threads.
  */
 
-#include "tclclean.h"
-#include "tkclean.h"
+#include "tcl.h"
+#include "tk.h"
 
 #include "../TCthread/tunableConst.h"
 #include "util/h/headers.h"
@@ -226,11 +229,20 @@ extern bool metMain(string&);
 extern bool metDoProcess();
 extern bool metDoDaemon();
 
-
-//extern void tclpanic(Tcl_Interp *, const char *msg);
 Tcl_Interp *interp;
 Tk_Window   mainWindow;
 int         tty;
+
+bool inDeveloperMode = false; // global variable used elsewhere
+void develModeCallback(bool newValue) {
+   inDeveloperMode = newValue;
+
+   // plus any other necessary action...
+   // The shg wants to hear of such changes, so it can resize its
+   // status line (w/in the shg window) appropriately
+   extern void shgDevelModeChange(Tcl_Interp *, bool);
+   shgDevelModeChange(interp, inDeveloperMode);
+}
 
 int
 main (int argc, char **argv)
@@ -279,7 +291,7 @@ main (int argc, char **argv)
    tunableBooleanConstantDeclarator tcInDeveloperMode("developerMode",
 	 "Allow access to all tunable constants, including those limited to developer mode.  (Use with caution)",
 	 false, // initial value
-	 NULL, // no callback routine (yet)
+	 develModeCallback,
          userConstant);
 
   //
