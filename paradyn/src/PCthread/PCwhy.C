@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCwhy.C,v $
- * Revision 1.2  1994/06/22 22:58:27  hollings
+ * Revision 1.3  1994/06/29 02:56:30  hollings
+ * AFS path changes?  I am not sure why this changed.
+ *
+ * Revision 1.2  1994/06/22  22:58:27  hollings
  * Compiler warnings and copyrights.
  *
  * Revision 1.1  1994/02/02  00:38:24  hollings
@@ -52,7 +55,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCwhy.C,v 1.2 1994/06/22 22:58:27 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCwhy.C,v 1.3 1994/06/29 02:56:30 hollings Exp $";
 #endif
 
 #include <stdio.h>

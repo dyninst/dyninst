@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCmetric.C,v $
- * Revision 1.13  1994/06/22 22:58:20  hollings
+ * Revision 1.14  1994/06/29 02:56:20  hollings
+ * AFS path changes?  I am not sure why this changed.
+ *
+ * Revision 1.13  1994/06/22  22:58:20  hollings
  * Compiler warnings and copyrights.
  *
  * Revision 1.12  1994/06/14  15:29:45  markc
@@ -105,7 +108,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.13 1994/06/22 22:58:20 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.14 1994/06/29 02:56:20 hollings Exp $";
 #endif
 
 #include <stdio.h>

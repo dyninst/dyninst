@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCpublic.C,v $
- * Revision 1.12  1994/06/27 18:55:09  hollings
+ * Revision 1.13  1994/06/29 02:56:22  hollings
+ * AFS path changes?  I am not sure why this changed.
+ *
+ * Revision 1.12  1994/06/27  18:55:09  hollings
  * Added compiler flag to add SHG nodes to dag only on first evaluation.
  *
  * Revision 1.11  1994/06/22  22:58:21  hollings
@@ -99,7 +102,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCpublic.C,v 1.12 1994/06/27 18:55:09 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCpublic.C,v 1.13 1994/06/29 02:56:22 hollings Exp $";
 #endif
 
 #include <stdio.h>

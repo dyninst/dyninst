@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCrules.C,v $
- * Revision 1.14  1994/06/27 18:55:10  hollings
+ * Revision 1.15  1994/06/29 02:56:23  hollings
+ * AFS path changes?  I am not sure why this changed.
+ *
+ * Revision 1.14  1994/06/27  18:55:10  hollings
  * Added compiler flag to add SHG nodes to dag only on first evaluation.
  *
  * Revision 1.13  1994/06/22  22:58:22  hollings
@@ -98,7 +101,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.14 1994/06/27 18:55:10 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCrules.C,v 1.15 1994/06/29 02:56:23 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -152,7 +155,9 @@ const float maxSemaphoreRate = 6000.0;	// actual # from ips2 3092 pairs
 const float maxLockRate = 600000.0;	// actual # from ips2 685,689
 
 // actual from ips2 21,030
-const float maxIPSprocedureCallRate = 20000;
+//const float maxIPSprocedureCallRate = 20000;
+// paradyn and sparcs are faster
+const float maxIPSprocedureCallRate = 2000000;
 
 const float highInstOverheadThreshold	= 0.15;
 
