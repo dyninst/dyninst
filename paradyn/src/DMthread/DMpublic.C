@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.44  1995/08/11 21:50:33  newhall
+ * Revision 1.45  1995/08/18 22:06:55  mjrg
+ * Fixed dataManager::defineDaemon
+ *
+ * Revision 1.44  1995/08/11  21:50:33  newhall
  * Removed DM kludge method function.  Added calls to metDoDaemon,
  * metDoProcess and metDoTunable that were moved out of metMain
  *
@@ -312,7 +315,6 @@ bool dataManager::addDaemon(const char *machine,
   return (paradynDaemon::getDaemon(m, l, n));
 }
 
-#ifdef n_def
 //
 // define a new entry for the daemon dictionary
 //
@@ -325,15 +327,9 @@ bool dataManager::defineDaemon(const char *command,
 {
   if(!name || !command)
       return false;
-  string c = command;
-  string d = dir;
-  string l = login;
-  string n = name;
-  string m = machine;
-  string f = flavor;
-  return (paradynDaemon::defineDaemon(c, d, l, n, m, f));
+  return (paradynDaemon::defineDaemon(command, dir, login, name, machine, flavor));
 }
-#endif
+
 
 bool dataManager::addExecutable(const char *machine,
 				const char *login,
