@@ -2,6 +2,9 @@
  *  DGclient.C -- Code for the visi<->tcl interface.
  *    
  * $Log: DGclient.C,v $
+ * Revision 1.13  1996/02/11 21:25:09  tamches
+ * added param to start-phase
+ *
  * Revision 1.12  1996/01/26 22:02:00  newhall
  * added myphasename, myphasestartT, myphasehandle
  *
@@ -179,7 +182,7 @@ static struct cmdTabEntry Dg_Cmds[] = {
   {"numbins",      NUMBINS,         0},
   {"nummetrics",   NUMMETRICS,      0},
   {"numresources", NUMRESOURCES,    0},
-  {"phase",        DEFINEPHASE,     0},
+  {"phase",        DEFINEPHASE,     1},
   {"resourcename", RESOURCENAME,    1},
   {"start",        STARTSTREAM,     2},
   {"stop",         STOPSTREAM,      2},
@@ -277,7 +280,7 @@ int Dg_TclCommand(ClientData clientData,
     return TCL_OK;
 
   case DEFINEPHASE:       
-    visi_DefinePhase(NULL);
+    visi_DefinePhase(argv[2]); // argv[2] --> flags (plain, pc, visis, or both)
     return TCL_OK;
 
   case RESOURCENAME:
