@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.479 2004/03/10 20:25:21 eli Exp $
+// $Id: process.C,v 1.480 2004/03/11 22:20:36 bernat Exp $
 
 #include <ctype.h>
 
@@ -531,7 +531,6 @@ bool process::getInfHeapList(const image *theImage, // okay, boring name
   // on the image), and this lets us do some post-processing.
     bool foundHeap = false;
     pdvector<Symbol> heapSymbols;
-
     // For maximum flexibility the findInternalByPrefix function
     // returns a list of symbols
     
@@ -605,13 +604,14 @@ bool process::getInfHeapList(const image *theImage, // okay, boring name
             heap_type = dataHeap;
         else if (!strcmp(heap_type_str, "textHeap"))
             heap_type = textHeap;
+        else if (!strcmp(heap_type_str, "uncopiedHeap"))
+            heap_type = uncopiedHeap;
         else
         {
             cerr << "Unknown heap string " << heap_type_str << " read from file!" << endl;
             free(temp_str);
             continue;
         }
-        
         infHeaps.push_back(heapDescriptor(heapSymbols[j].name(),
 #ifdef mips_unknown_ce2_11 //ccw 13 apr 2001
                                           heapSymbols[j].addr(), 
@@ -1119,7 +1119,6 @@ void process::saveWorldAddSharedLibs(void *ptr){ // ccw 14 may 2002
 void process::addInferiorHeap(const image *theImage, Address baseAddr)
 {
   pdvector<heapDescriptor> infHeaps;
-
   /* Get a list of inferior heaps in the new image */
   if (getInfHeapList(theImage, infHeaps, baseAddr))
     {
@@ -1160,39 +1159,39 @@ void process::initInferiorHeap()
     bool heapAdded = false;
     
     for (u_int j=0; j < infHeaps.size(); j++)
-      {
-	hp->bufferPool.push_back(new heapItem (infHeaps[j].addr(), infHeaps[j].size(),
-					infHeaps[j].type(), false));
-	heapAdded = true;
-	if (infHeaps[j].type() == lowmemHeap)
-	  lowmemHeapAdded = true;
-      }
+    {
+        hp->bufferPool.push_back(new heapItem (infHeaps[j].addr(), infHeaps[j].size(),
+                                               infHeaps[j].type(), false));
+        heapAdded = true;
+        if (infHeaps[j].type() == lowmemHeap)
+            lowmemHeapAdded = true;
+    }
     if (!heapAdded)
-      {
-	// No heap added. Check for the old DYNINSTdata heap
-	unsigned LOWMEM_HEAP_SIZE=(32*1024);
-	cerr << "No heap found of the form DYNINSTstaticHeap_<size>_<type>_<unique>." << endl;
-	cerr << "Attempting to use old DYNINSTdata inferior heap..." << endl;
-	heapAddr = findInternalAddress(pdstring("DYNINSTdata"), true, err);
-	assert(heapAddr);
-	hp->bufferPool.push_back(new heapItem(heapAddr, staticHeapSize - LOWMEM_HEAP_SIZE,
-				       anyHeap, false));
-	hp->bufferPool.push_back(new heapItem(heapAddr + staticHeapSize - LOWMEM_HEAP_SIZE,
-				       LOWMEM_HEAP_SIZE, lowmemHeap, false));
-	heapAdded = true; 
-	lowmemHeapAdded = true;
-      }
+    {
+        // No heap added. Check for the old DYNINSTdata heap
+        unsigned LOWMEM_HEAP_SIZE=(32*1024);
+        cerr << "No heap found of the form DYNINSTstaticHeap_<size>_<type>_<unique>." << endl;
+        cerr << "Attempting to use old DYNINSTdata inferior heap..." << endl;
+        heapAddr = findInternalAddress(pdstring("DYNINSTdata"), true, err);
+        assert(heapAddr);
+        hp->bufferPool.push_back(new heapItem(heapAddr, staticHeapSize - LOWMEM_HEAP_SIZE,
+                                              anyHeap, false));
+        hp->bufferPool.push_back(new heapItem(heapAddr + staticHeapSize - LOWMEM_HEAP_SIZE,
+                                              LOWMEM_HEAP_SIZE, lowmemHeap, false));
+        heapAdded = true; 
+        lowmemHeapAdded = true;
+    }
     if (!lowmemHeapAdded)
-      {
-	// Didn't find the low memory heap. 
-	// Handle better?
-	// Yeah, gripe like hell
-	cerr << "No lowmem heap found (DYNINSTstaticHeap_*_lowmem), inferior RPCs" << endl;
-	cerr << "will probably fail" << endl;
-      }
+    {
+        // Didn't find the low memory heap. 
+        // Handle better?
+        // Yeah, gripe like hell
+        cerr << "No lowmem heap found (DYNINSTstaticHeap_*_lowmem), inferior RPCs" << endl;
+        cerr << "will probably fail" << endl;
+    }
     
   }
-
+  
   // (re)initialize everything 
   hp->heapActive.clear();
   hp->heapFree.resize(0);
@@ -1262,21 +1261,23 @@ inferiorHeap::inferiorHeap(const inferiorHeap &src):
 //
 int process::findFreeIndex(unsigned size, int type, Address lo, Address hi)
 {
+    // type is a bitmask: match on any bit in the mask
   pdvector<heapItem *> &freeList = heap.heapFree;
 
   int best = -1;
   for (unsigned i = 0; i < freeList.size(); i++) {
-    heapItem *h = freeList[i];
-    // check if free block matches allocation constraints
-    if (h->type & type &&
-        h->addr >= lo &&
-        h->addr + size - 1 <= hi &&
-        h->length >= size) 
-      {
-        if (best == -1) best = i;
-        // check for better match
-        if (h->length < freeList[best]->length) best = i;
-      } 
+      heapItem *h = freeList[i];
+      // check if free block matches allocation constraints
+      // Split out to facilitate debugging
+      if (h->addr >= lo &&
+          (h->addr + size - 1) <= hi &&
+          h->length >= size &&
+          h->type & type) {
+          if (best == -1)
+              best = i;
+          // check for better match
+          if (h->length < freeList[best]->length) best = i;
+      }
   }
   return best;
 }  
@@ -1373,8 +1374,15 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
         break;
      default:
         // add new segment to buffer pool
+         // FIXME
+#if defined(os_aix)
+         // for save the world...
+        heapItem *h = new heapItem((Address)ret.result, size, dataHeap, true,
+                                   HEAPfree);
+#else
         heapItem *h = new heapItem((Address)ret.result, size, anyHeap, true,
                                    HEAPfree);
+#endif
         heap.bufferPool.push_back(h);
         // add new segment to free list
         heapItem *h2 = new heapItem(h);
@@ -1437,7 +1445,7 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
 	  inferiorFreeCompact(hp);
 	  break;
 	case 2: // allocate new segment (1MB, constrained)
-	   inferiorMallocDynamic(HEAP_DYN_BUF_SIZE, lo, hi);
+        inferiorMallocDynamic(HEAP_DYN_BUF_SIZE, lo, hi);
 	   break;
 	case 3: // allocate new segment (sized, constrained)
 	   inferiorMallocDynamic(size, lo, hi);
