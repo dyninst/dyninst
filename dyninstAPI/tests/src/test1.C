@@ -1,4 +1,4 @@
-// $Id: test1.C,v 1.39 1999/10/25 23:24:24 hollings Exp $
+// $Id: test1.C,v 1.40 1999/10/29 23:16:48 hollings Exp $
 //
 // libdyninst validation suite test #1
 //    Author: Jeff Hollingsworth (1/7/97)
@@ -1655,7 +1655,7 @@ void mutatorTest24(BPatch_thread *appThread, BPatch_image *appImage)
 	if (!gvar[i]) {
 	    fprintf(stderr, "**Failed** test #24 (array variables)\n");
 	    fprintf(stderr, "  can't find variable globalVariable24_%d\n", i);
-	    exit(-1);
+	    return;
 	}
     }
 
@@ -1663,6 +1663,7 @@ void mutatorTest24(BPatch_thread *appThread, BPatch_image *appImage)
     if (!lvar) {
 	fprintf(stderr, "**Failed** test #24 (array variables)\n");
 	fprintf(stderr, "  can't find variable localVariable24_1\n");
+	return;
     }
 
     //     globalVariable24_1[1] = 2400001
