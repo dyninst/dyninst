@@ -1,9 +1,10 @@
 #
-# $Id: Makefile,v 1.5 2004/03/05 16:51:15 bernat Exp $
+# $Id: Makefile,v 1.6 2004/03/31 20:37:27 tlmiller Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 
+USES_UNWIND_LIB = true
 DEBUG_FLAG = -g
 
 # Include standard make configuration stuff that applies to everything
@@ -20,7 +21,9 @@ CFLAGS			+= -O2
 CC				= $(GCC)
 LD				= $(GCC)
 CFLAGS			+= -I. -I../.. -fpic
-LDFLAGS			= -shared -ldl -Wl,-init,_start
+LDFLAGS			= -shared -ldl -Wl,-init,_start \
+				  -L$(LIBUNWINDDIR)/lib \
+				  -Wl,--whole-archive -Wl,-Bstatic -lunwind -Wl,-Bdynamic -Wl,--no-whole-archive
 
 ASFLAGS			= 
 
