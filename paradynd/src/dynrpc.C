@@ -19,7 +19,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, \
   Karen Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/dynrpc.C,v 1.7 1994/09/22 01:53:48 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/dynrpc.C,v 1.8 1994/09/22 16:02:25 markc Exp $";
 #endif
 
 
@@ -27,7 +27,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.7  1994/09/22 01:53:48  markc
+ * Revision 1.8  1994/09/22 16:02:25  markc
+ * Removed #include "resource.h"
+ *
+ * Revision 1.7  1994/09/22  01:53:48  markc
  * Made system includes extern "C"
  * added const to char* args to stop compiler warnings
  * changed String to char*
@@ -72,7 +75,6 @@ extern "C" {
 #include "dyninstRPC.SRVR.h"
 #include "dyninst.h"
 #include "kludges.h"
-#include "resource.h"
 
 // default to once a second.
 float samplingRate = 1.0;
