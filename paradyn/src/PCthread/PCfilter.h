@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCfilter.h,v 1.15 2001/06/20 20:33:40 schendel Exp $
+ * $Id: PCfilter.h,v 1.16 2001/08/23 14:43:48 schendel Exp $
  * Data filter class performs initial processing of raw DM data arriving 
  * in the Performance Consultant.  
  */
@@ -97,6 +97,9 @@ class filter : public dataProvider
   bool isPending() {return status == ActivationRequestPending;}
   // true means we want to disable this as part of a PC pause event
   bool pausable() {return (numConsumers > 0 && !costFlag);}
+  void setCurActualValue(pdSample v) {  curActualVal = v; }
+  void incCurActualValue(pdSample d) {  curActualVal += d; }
+  pdSample getCurActualValue() { return curActualVal; }
   void setcostFlag() {costFlag = true;}
  protected:  
   // activate filter by enabling met/focus pair
@@ -120,6 +123,11 @@ class filter : public dataProvider
   // denominator of running average: sum of all time used in this 
   // average; time used may not start at 0; may not be contiguous
   timeLength workingInterval;  
+  // the current actual value for this filter; used by PC when using
+  // metrics that require using the actual value like num_cpus, etc.
+  // initialized to initialActualValue as passed from the performance
+  // stream
+  pdSample curActualVal;
   // identifiers for this filter
   metricInstanceHandle mi;
   metricHandle metric;
@@ -196,12 +204,13 @@ public:
 
   // interface to raw data source (consumer role)
   void newBinSize(timeLength newSize);
-  void newData(metricInstanceHandle mih, pdSample value, int bin, 
-	       phaseType ptype);
+  void newData (metricInstanceHandle mih, pdSample deltaVal, 
+		int bucketNumber, phaseType ptype);
   void newDataEnabled(vector<metricInstInfo>* newlyEnabled);
 
   // miscellaneous  
   timeLength getCurrentBinSize () {return currentBinSize;}
+  void setCurActualValue(metricInstanceHandle mih, pdSample v);
  private:
   void printPendings(); 
   filter *findFilter(metricHandle mh, focus f);

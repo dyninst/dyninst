@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCfilter.C,v 1.37 2001/06/20 20:33:40 schendel Exp $    
+ * $Id: PCfilter.C,v 1.38 2001/08/23 14:43:47 schendel Exp $    
  */
 
 #include "PCfilter.h"
@@ -240,7 +240,6 @@ avgFilter::newData(pdRate newVal, relTimeStamp start, relTimeStamp end)
   workingValue += newVal * currInterval;
   workingInterval += currInterval;
   lastDataSeen = end;
-  
 #ifdef PCDEBUG
   // debug printing
   if (performanceConsultant::printDataTrace) {
@@ -338,7 +337,6 @@ valFilter::newData(pdRate newVal, relTimeStamp start, relTimeStamp end)
   workingValue = newVal * currInterval;
   workingInterval = currInterval;
   lastDataSeen = end;
-  
 #ifdef PCDEBUG
   // debug printing
   if (performanceConsultant::printDataTrace) {
@@ -494,6 +492,15 @@ filteredDataServer::newDataEnabled(vector<metricInstInfo> *newlyEnabled)
     printPendings();
     ;
 #endif
+}
+
+void filteredDataServer::setCurActualValue(metricInstanceHandle mih, 
+					   pdSample v)
+{
+  filter *curr;
+  bool fndflag = DataFilters.find(mih, curr);
+  assert(fndflag && curr);
+  curr->setCurActualValue(v);
 }
 	
 void 
@@ -673,7 +680,7 @@ filteredDataServer::endSubscription(fdsSubscriber sub,
 }
 
 void
-filteredDataServer::newData (metricInstanceHandle mih, pdSample value, 
+filteredDataServer::newData (metricInstanceHandle mih, pdSample deltaVal, 
 			     int bucketNumber, phaseType ptype)
 {
   filter *curr;
@@ -684,19 +691,44 @@ filteredDataServer::newData (metricInstanceHandle mih, pdSample value,
     relTimeStamp end = currentBinSize * (bucketNumber + 1);
     pdRate newValue;
 
+    // the PC needs the actual value of the SampledFunction metrics
+    // (eg. number_of_cpus, active_processes, etc.)  the rate is used for the
+    // "time", EventCounter metrics (cputime, etc.)  currently, considering
+    // holding actual values of SampledFunctions in a pdRate object even
+    // though they aren't rates, but actual values.  The PC was previously
+    // written so that sample values (being rates or actual values) were just
+    // doubles.  It would be nice if this inconsistency was fixed.
     metricInstance *mi = metricInstance::getMI(mih); 
     metric *met = metric::getMetric(mi->getMetricHandle());
-    if(value.isNaN()) {
-      newValue = pdRate(0.0);
-    } else if(met->getStyle() != SampledFunction) {
-      timeLength bucketWidth = mi->getBucketWidth(ptype);
-      newValue = pdRate(value, bucketWidth);
+
+    // I want to elinate these different metric types.  It's just
+    // unnecessary.  I'll have the visis and the PC use the sample values in
+    // whatever way they want, whether actual value or the sample rate.  In
+    // the PC, we can indicate what format (whether actual or delta value)
+    // when we define a PCmetricInst in PCrules.C::initPCmetrics().  Or get
+    // this "default" data format from the metric definition in the pcl file.
+
+    // We're keeping a running current actual value of each metric.  In
+    // essence, were integrating (summing) the change in sample value as we
+    // go along.  The actual value (as opposed to the delta value) is used by
+    // metrics such as num_of_cpus, active_processes
+    if(met->getStyle() == SampledFunction) {
+      pdSample actVal = curr->getCurActualValue();
+      if(actVal.isNaN())
+	newValue.setNaN();
+      else {
+	newValue = pdRate(static_cast<double>(actVal.getValue()));
+	curr->incCurActualValue(deltaVal);
+      }
     } else {
-      // In the final conversion is made, the following line will need to be
-      // included so that the SampledMetric metrics value are NOT normalized
-      // by the currentBinSize.
-      newValue.assign(static_cast<double>(value.getValue()));
+      if(deltaVal.isNaN())
+	newValue.setNaN();
+      else {
+	timeLength bucketWidth = mi->getBucketWidth(ptype);
+	newValue = pdRate(deltaVal, bucketWidth);
+      }
     }
+  //cerr << "PC- newData, " << met->getName() << ", val: " << newValue << "\n";
     curr->newData(newValue, start, end);
   } 
 

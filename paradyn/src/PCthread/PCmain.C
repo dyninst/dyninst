@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: PCmain.C,v 1.71 2001/06/20 20:33:40 schendel Exp $ */
+/* $Id: PCmain.C,v 1.72 2001/08/23 14:43:49 schendel Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -99,6 +99,7 @@ void PCfold(perfStreamHandle,
   // in which case we don't want to do anything at all.  (bin size is 
   // properly initialized when each search is created.)   
   filteredDataServer *rawInput;
+
   if (performanceConsultant::PChyposDefined) { 
     if (phase_type == GlobalPhase)
       rawInput = performanceConsultant::globalRawDataServer;
@@ -107,6 +108,21 @@ void PCfold(perfStreamHandle,
     if (rawInput)
       rawInput-> newBinSize(newWidth);      
   }
+}
+
+void PCinitialActualValue(perfStreamHandle, metricInstanceHandle mih,
+			  pdSample *_newInitActValPtr, phaseType phaseID) {
+  pdSample initActVal = *_newInitActValPtr;
+  delete _newInitActValPtr;
+
+  filteredDataServer *rawInput;
+  if (phaseID == GlobalPhase)
+    rawInput = performanceConsultant::globalRawDataServer;
+  else
+    rawInput = performanceConsultant::currentRawDataServer;
+  assert (rawInput);
+  
+  rawInput->setCurActualValue(mih, initActVal);
 }
 
 //
@@ -280,6 +296,9 @@ void* PCmain(void* varg)
     controlHandlers.fFunc = PCfold;
     controlHandlers.pFunc = PCphase;
 
+    // will wait to implement this
+    controlHandlers.avFunc = PCinitialActualValue;
+    
     // The PC has to register a callback routine for predictedDataCost callbacks
     // even though there is a kludge in the PC to receive the msg before the
     // callback routine is called (PCpredData will never execute).  This is 
