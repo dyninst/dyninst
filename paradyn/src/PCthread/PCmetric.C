@@ -1,7 +1,11 @@
 /*
  * 
  * $Log: PCmetric.C,v $
- * Revision 1.3  1994/03/08 17:39:38  hollings
+ * Revision 1.4  1994/03/11 21:04:07  hollings
+ * Wait min. observation time between calls to eval.  This prevents over
+ * evaulation of the hypotheses when new data is arriving at a high frequency.
+ *
+ * Revision 1.3  1994/03/08  17:39:38  hollings
  * Added foldCallback and getResourceListName.
  *
  * Revision 1.2  1994/03/01  21:25:11  hollings
@@ -49,7 +53,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.3 1994/03/08 17:39:38 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmetric.C,v 1.4 1994/03/11 21:04:07 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -411,7 +415,10 @@ void datum::newSample(timeStamp start, timeStamp end, sampleValue value)
 
     samplesSinceLastChange = globalMinSampleCount();
 
-    if (end > currentTime) {
+    //
+    // wait minObservationTime between calls to eval.
+    //
+    if (end > currentTime + minObservationTime.getValue()) {
 	currentTime = end;
 
 	if (currentTime < lastTestChageTime + minObservationTime.getValue()) 
