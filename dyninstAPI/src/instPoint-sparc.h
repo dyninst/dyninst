@@ -1,6 +1,3 @@
-// instPoint-sparc.h
-// sparc-specific definition of class instPoint
-
 /*
  * Copyright (c) 1996 Barton P. Miller
  * 
@@ -41,6 +38,9 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
+
+// $Id: instPoint-sparc.h,v 1.4 1998/12/25 22:32:37 wylie Exp $
+// sparc-specific definition of class instPoint
 
 #ifndef _INST_POINT_SPARC_H_
 #define _INST_POINT_SPARC_H_
@@ -112,7 +112,7 @@ public:
   //  Is this always same as iPgetAddress????
   Address firstAddress() {return iPgetAddress();}
   // address of 1st instruction AFTER those clobbered by inst point....
-  Address followingAddress() {return firstAddress() + sizeof(instruction);}
+  Address followingAddress() {return firstAddress() + Size();}
 
   // These are the instructions corresponding to different instrumentation
   // points (the instr point is always the "originalInstruction" instruction,
