@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.24 2001/06/12 15:43:31 hollings Exp $
+// $Id: irix.C,v 1.25 2001/10/11 23:57:58 schendel Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -2057,10 +2057,10 @@ bool process::isR10kCntrAvail() {
 void process::initCpuTimeMgrPlt() {
  cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_ONE, &process::isR10kCntrAvail,
 			   getCyclesPerSecond(), timeBase::bNone(), 
-			   &process::getRawCpuTime_hw, "DYNINSTgetCPUtime_hw");
+			   &process::getRawCpuTime_hw, "hwCpuTimeFPtrInfo");
   cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_TWO, &process::yesAvail, 
 			   timeUnit::ns(), timeBase::bNone(), 
-			   &process::getRawCpuTime_sw, "DYNINSTgetCPUtime_sw");
+			   &process::getRawCpuTime_sw, "swCpuTimeFPtrInfo");
 }
 #endif
 
