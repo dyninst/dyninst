@@ -45,9 +45,12 @@
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
 /* $Log: whereAxis.h,v $
-/* Revision 1.12  1996/08/16 21:07:46  tamches
-/* updated copyright for release 1.1
+/* Revision 1.13  1997/09/24 19:27:55  tamches
+/* XFontStruct --> Tk_Font for the tcl 8.0 release
 /*
+ * Revision 1.12  1996/08/16 21:07:46  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.11  1996/04/01 22:34:14  tamches
  * added makeVisibility* member functions
  *
@@ -96,8 +99,9 @@
 class whereAxis {
  private:
    // these static members are needed by whereAxisRootNode (rootNode.h)
-   static XFontStruct *theRootItemFontStruct;
-   static XFontStruct *theListboxItemFontStruct;
+   static Tk_Font theRootItemFontStruct;
+   static Tk_Font theListboxItemFontStruct;
+
    static Tk_3DBorder rootItemTk3DBorder;
    static GC rootItemTextGC;
    static Tk_3DBorder listboxItem3DBorder;
@@ -226,13 +230,13 @@ class whereAxis {
       rootPtr->recursiveDoneAddingChildren(consts, resortNow);
    }
 
-   static XFontStruct &getRootItemFontStruct() {
+   static Tk_Font &getRootItemFontStruct() {
       assert(theRootItemFontStruct); // a static member vrble
-      return *theRootItemFontStruct;
+      return theRootItemFontStruct;
    }
-   static XFontStruct &getListboxItemFontStruct() {
+   static Tk_Font &getListboxItemFontStruct() {
       assert(theListboxItemFontStruct); // a static member vrble
-      return *theListboxItemFontStruct;
+      return theListboxItemFontStruct;
    }
    static Tk_3DBorder getRootItemTk3DBorder() {
       return rootItemTk3DBorder;
