@@ -14,10 +14,13 @@
  *
  */
 /* $Log: VMmain.C,v $
-/* Revision 1.29  1995/02/16 08:23:18  markc
-/* Changed Boolean to bool.
-/* Changed wait loop code for igen messages
+/* Revision 1.30  1995/05/18 10:57:53  markc
+/* modified AddNewVisi.. used by the mdl to report visis
 /*
+ * Revision 1.29  1995/02/16  08:23:18  markc
+ * Changed Boolean to bool.
+ * Changed wait loop code for igen messages
+ *
  * Revision 1.28  1995/02/07  21:55:11  newhall
  * modified VMCreateVisi to get value for forceProcessStart from either
  * the caller or the visi table
@@ -213,9 +216,8 @@ VM_visiInfo_Array VM::VMAvailableVisis(){
 // Note - this may add the visi to the list, or update an entry
 //        in the list
 /////////////////////////////////////////////////////////////
-int VM::VMAddNewVisualization(char *name,
-			      int argc,
-			      char *argv[],
+int VM::VMAddNewVisualization(const char *name,
+			      vector<string> *arg_str,
 			      int  forceProcessStart,
 			      char *matrix,
 			      int numMatrices){
@@ -223,6 +225,12 @@ int VM::VMAddNewVisualization(char *name,
 VMvisis *temp = (VMvisis*) NULL;
 int id,i;
 List<VMvisis *> walk;
+
+  if (!arg_str || !name) {
+    // TODO -- is this error number correct
+    ERROR_MSG(20,"parameters in VM::VMAddNewVisualization");
+    return(VMERROR);
+  }
 
   // walk the list to determine if a visi with
   // this name is on the list
@@ -257,16 +265,18 @@ List<VMvisis *> walk;
     }
   }
 
+  unsigned size = arg_str->size();
   // update info. for new entry 
-  if((temp->argv = (char **)malloc(sizeof(char *)*(argc+1))) == NULL){
+  if((temp->argv = (char **)malloc(sizeof(char *)*(size+1))) == NULL){
     ERROR_MSG(18,"malloc in VM::VMAddNewVisualization");
     return(VMERROR);
   }
 
   // argv must be null terminated
-  temp->argv[argc] = (char *) 0;
-  for(i=0;i<argc;i++){
-    if((temp->argv[i] = strdup(argv[i])) == NULL){
+  temp->argv[size] = (char *) 0;
+  unsigned a_size = arg_str->size();
+  for(i=0;i<a_size;i++){
+    if((temp->argv[i] = strdup((*arg_str)[i].string_of())) == NULL){
         ERROR_MSG(19,"strdup in VM::VMAddNewVisualization");
         return(VMERROR);
     }
@@ -287,7 +297,7 @@ List<VMvisis *> walk;
       matrix = NULL;
   }
   temp->numMatrices = numMatrices;
-  temp->argc = argc;
+  temp->argc = size;
   temp->Id = id;
   temp->forceProcessStart = forceProcessStart;
   return(VMOK); 
