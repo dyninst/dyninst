@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.303 2004/10/19 08:37:44 jaw Exp $
+/* $Id: process.h,v 1.304 2004/12/02 00:57:09 tlmiller Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -48,15 +48,16 @@
 
 #ifndef PROCESS_H
 #define PROCESS_H
+
 #include <stdio.h>
 #include <assert.h>
-#ifdef BPATCH_LIBRARY
-#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
-#else
-#include "dyninstAPI_RT/h/dyninstAPI_RT.h" // ccw 18 apr 2002 : SPLIT only for (DYNINSTbootstrapStruct
 
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
+
+#ifdef BPATCH_LIBRARY
 #include "rtinst/h/rtinst.h"
 #endif
+
 #include "dyninstAPI/src/Object.h"
 #include "common/h/String.h"
 #include "common/h/vectorSet.h"
@@ -73,21 +74,11 @@
 #include "dyninstAPI/src/rpcMgr.h"
 #include "dyninstAPI/src/codeRange.h"
 
-#include "dyninstAPI/src/symtab.h" // internalSym
+#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/imageUpdate.h"
 
-#include "dyninstAPI/src/imageUpdate.h" //ccw 29 oct 2001
-
-#if 0
-#include "paradynd/src/shmSegment.h"
-#include "paradynd/src/shmMgr.h"
-#include "paradynd/src/variableMgr.h"
-#include "paradynd/src/sharedMetaData.h"
-#endif
-
-#ifndef BPATCH_LIBRARY
-#ifdef PAPI
+#if (! defined( BPATCH_LIBRARY )) && defined( PAPI )
 #include "paradynd/src/papiMgr.h"
-#endif
 #endif
 
 // Annoying... Solaris has two /proc header files, one for the
@@ -106,6 +97,7 @@
 
 #if defined( ia64_unknown_linux2_4 )
 #include <libunwind.h>
+#include <libunwind-ptrace.h>
 #endif
 
 #if defined(SHM_SAMPLING)
@@ -621,13 +613,7 @@ class process {
   bool isDynamicCallSite(instPoint *callSite); 
   bool getDynamicCallSiteArgs(instPoint *callSite, 
                               pdvector<AstNode *> &args);
-#ifdef NOTDEF // PDSEP
-#ifndef BPATCH_LIBRARY
-  bool MonitorCallSite(instPoint *callSite);
-  bool isDynamicCallSite(instPoint *callSite); 
-#endif
-#endif
-
+                              
 #ifdef mips_unknown_ce2_11 //ccw 27 july 2000 : 29 mar 2001
 	 //void* GetRegisters() { return getRegisters(); }
 	 //ccw 10 aug 2000
