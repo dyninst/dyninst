@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.10 2002/04/09 18:05:07 mjbrim Exp $
+# $Id: nmake.module.tmpl,v 1.11 2003/06/05 18:06:02 pcroth Exp $
 #
 
 USES_FLEX = TRUE
@@ -16,11 +16,23 @@ TARGET	      = igen.exe
 #		../src/interface_spec.C \
 #	        ../src/templates-nt.C 
 
-OBJS 		= main.obj parser.obj scanner.obj arg.obj interface_spec.obj \
-                  message_layer.obj Options.obj remote_func.obj signature.obj \
-		  type_defn.obj templates-nt.obj
 
-LIBS 	     = $(LIBS) $(TO_CORE)\$(LIBRARY_DEST)\libpdutil.lib
+OBJS 		= \
+                Ident.obj \
+                String.obj \
+                debugOstream.obj \
+                int64iostream.obj \
+                main.obj \
+                parser.obj \
+                scanner.obj \
+                arg.obj \
+                interface_spec.obj \
+                message_layer.obj \
+                Options.obj \
+                remote_func.obj \
+                signature.obj \
+		        type_defn.obj \
+                templates-nt.obj
 
 SYSLIBS = $(FLEX_LIB)
 
@@ -38,4 +50,7 @@ scanner.obj:
 	$(PERL) $(TO_CORE)\..\scripts\vcStripUnistd.pl < lex.yy.c > $*.C
 	-$(RM) lex.yy.c
 	$(CXX) $(CXXFLAGS) -I../src -c $*.C
+
+{..\..\common\src\}.C.obj:
+	$(CXX) $(CXXFLAGS) -c $<
 

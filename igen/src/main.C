@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.56 2003/01/17 20:53:17 bernat Exp $
+// $Id: main.C,v 1.57 2003/06/05 18:06:02 pcroth Exp $
 
 /*
  * Note: AIX 5.1
@@ -57,8 +57,6 @@
 
 extern "C" const char V_igen[];
 Ident V_id(V_igen,"Paradyn");
-extern "C" const char V_libpdutil[];
-Ident V_Uid(V_libpdutil,"Paradyn");
 
 bool Options::dont_gen_handle_err = false;
 dictionary_hash<string, type_defn*> Options::all_types(string::hash);

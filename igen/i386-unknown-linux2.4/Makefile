@@ -1,5 +1,9 @@
 #
 # $Log: Makefile,v $
+# Revision 1.3  2003/06/05 18:06:02  pcroth
+# Removed igen's dependency on the pdutil library.  Igen can now be built
+# independently of pdutil.
+#
 # Revision 1.2  2000/05/31 18:33:22  schendel
 # updates the daemon, util library, igen, dyninstAPI, and dyninstAPI test suite
 # to use the -fno-impilicit-templates flag instead of the -fexplicit-templates
@@ -28,7 +32,7 @@ include ../../make.config
 
 # Now make any necessary architecture specific changes to variables:
 
-# none
+SRCS += ../../common/src/linuxKludges.C
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

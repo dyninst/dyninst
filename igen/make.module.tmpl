@@ -3,14 +3,19 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.10 2002/12/20 07:49:59 jaw Exp $
+# $Id: make.module.tmpl,v 1.11 2003/06/05 18:06:02 pcroth Exp $
 #
 
 USES_FLEX = true
 
 TARGET	      = igen
 
+VPATH         = ../../common/src
+
 SRCS 	     += \
+		../../common/src/String.C \
+		../../common/src/Ident.C \
+		../../common/src/debugOstream.C \
 		../src/arg.C \
 		../src/type_defn.C \
 		../src/remote_func.C \
@@ -23,7 +28,6 @@ SRCS 	     += \
 		parser.C \
 		scanner.C
 
-LIBS 	     +=  -lpdutil
 SYSLIBS	     += $(FLEX_LIB)
 
 ifdef CROSSCOMPILER
