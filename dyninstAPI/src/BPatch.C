@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.38 2001/08/29 23:25:26 hollings Exp $
+// $Id: BPatch.C,v 1.39 2001/08/30 18:12:54 beyerj Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -237,9 +237,16 @@ BPatch::BPatch()
     // -28 integer*2, 16 bit signed integral type
     builtInTypes->addBuiltInType(new BPatch_type("integer*2",-28,
 						 BPatch_dataBuilt_inType, 2));
-    // -29 integer*4, 32 bit signed integral type
+
+/* Quick hack to make integer*4 compatible with int for Fortran
+   jnb 6/20/01 */
+
+    builtInTypes->addBuiltInType(new BPatch_type("int",-29,
+                                                 BPatch_built_inType, 4));
+/*    // -29 integer*4, 32 bit signed integral type
     builtInTypes->addBuiltInType(new BPatch_type("integer*4",-29,
-						 BPatch_dataBuilt_inType, 4));
+                                                 BPatch_built_inType, 4)); */
+
     // -30 wchar, Wide character, 16 bits wide, unsigned (unknown format)
     builtInTypes->addBuiltInType(new BPatch_type("wchar",-30,
 						 BPatch_dataBuilt_inType, 2));
