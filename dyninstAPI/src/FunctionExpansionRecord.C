@@ -170,9 +170,10 @@ FunctionExpansionRecord& FunctionExpansionRecord::operator=(const FunctionExpans
         collapsed = f.collapsed;
         totalShift = f.totalShift;
 
-        for (int i = 0; i < expansions.size(); i++) {
+        for (unsigned int i = 0; i < expansions.size(); i++) {
             expansions[i] = new FERNode();
             *expansions[i] = *(f.expansions[i]);
         }
     }
+    return *this;
 }
