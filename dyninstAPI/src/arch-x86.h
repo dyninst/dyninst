@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.19 2004/04/08 21:14:08 lharris Exp $
+// $Id: arch-x86.h,v 1.20 2004/04/11 04:52:07 legendre Exp $
 // x86 instruction declarations
 
 #if !(defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0))
@@ -190,6 +190,8 @@ class instruction {
   bool isJumpIndir() const { return (type_ & IS_JUMP) && (type_ & INDIR); }
   bool isJumpDir() const
     { return ~(type_ & INDIR) && ((type_ & IS_JUMP) || (type_ & IS_JCC)); }
+  bool isUncondJump() const
+    { return ((type_ & IS_JUMP) && !(type_ & IS_JCC)); }
   bool isNop() const { return *ptr_ == 0x90; }
   bool isIndir() const { return type_ & INDIR; }
   bool isIllegal() const { return type_ & ILLEGAL; }
