@@ -43,7 +43,7 @@
 #define _BPatch_Set_h_
 
 #if defined(external_templates)
-#pragma interface
+pragma interface
 #endif
 
 /*******************************************************/
@@ -53,6 +53,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include "BPatch_dll.h"
+
 
 #if !defined(DO_INLINE_P)
 #define DO_INLINE_P
@@ -83,6 +84,7 @@ struct comparison {
 	}
 };
 
+
 /** template class for BPatch_Set. The implementation is based on red black
   * tree implementation for efficiency concerns and for getting sorted
   * elements easier. The template depends on two types. The first one is the
@@ -95,6 +97,7 @@ typedef enum { RED, BLACK } bpatch_entry_color_type;
 
 template<class T,class Compare = comparison<T> >
 class BPATCH_DLL_EXPORT BPatch_Set {
+
 
 	/** tree implementation structure. Used to implement the RB tree */
 	typedef struct entry {
@@ -179,13 +182,136 @@ class BPATCH_DLL_EXPORT BPatch_Set {
 	DO_INLINE_P void destroy(entry*);
 
 public:
+    
+    class iterator
+    {
+    private:
+        entry* ent;
+        entry* nil;
+    public:
+        iterator(): ent( NULL ), nil( NULL ){}
+        iterator( entry* e, BPatch_Set<T, Compare >* bs ) 
+            : ent( e ), nil( bs->nil ){}
+        ~iterator(){}
+               
+        void operator++( int )
+        {
+            if( ent == nil || ent == NULL )
+                return;
+                                   
+            //current node has right child
+            if( ent->right != nil )
+            {
+                ent = ent->right;
+                while( ent->left != nil )
+                    ent = ent->left;                
+            }
+            else
+            {            
+                while( ent->parent && ent->parent != nil && 
+                       ent->parent->right != nil && ent == ent->parent->right )
+                {                   
+                    ent = ent->parent;
+                }
+                                
+                if( ent->parent == nil || ent->parent == NULL )
+                {              
+                    ent = nil;
+                }
+                else
+                {
+                    ent = ent->parent;
+                }
+            }
+        }
+        
+        void operator--( int )
+        {
+             if( ent == nil || ent == NULL )
+                return;
+                                   
+            //current node has left child
+            if( ent->left != nil )
+            {
+                ent = ent->left;
+                while( ent->right != nil )
+                    ent = ent->right;                
+            }
+            else
+            {            
+                while( ent->parent && ent->parent != nil && 
+                       ent->parent->left != nil && ent == ent->parent->left )
+                {                   
+                    ent = ent->parent;
+                }
+                                
+                if( ent->parent == nil || ent->parent == NULL )
+                {              
+                    ent = nil;
+                }
+                else
+                {
+                    ent = ent->parent;
+                }
+            }
+        }
+
+        void operator=( const iterator& right )
+        {
+            ent = right.ent;
+            nil = right.nil;
+        }
+        
+        bool operator==( const iterator& right )
+        {
+            return ent == right.ent;
+        }
+        bool operator!=( const iterator& right )
+        {
+            return ent != right.ent;
+        }
+
+        T& operator*()
+        {
+            return ent->data;
+        }
+    };
+    
+    iterator begin()
+    {
+        entry* b = setData;
+
+        while( b->left != nil  )
+            b = b->left;
+
+        return iterator( b, this );
+    }
+
+    iterator end()
+    {
+        return iterator( nil, this );
+    }
+    iterator rend()
+    {
+        return iterator( nil, this );
+    }
+
+    iterator rbegin()
+    {
+        entry* b = setData;
+        
+        while( b->right != nil )
+            b = b->right;
+        
+        return iterator( b, this );
+    }
 
 	/** constructor. The default comparison structure is used */
-	DO_INLINE_F BPatch_Set() : setSize(0) 
+	DO_INLINE_F BPatch_Set() : setSize(0), compareFunc()
 	{ 
 		nil = new entry;
-		setData = nil;
-		compareFunc = Compare();
+        setData = nil;
+        //compareFunc = Compare();
 	}
 
 	/** copy constructor.
