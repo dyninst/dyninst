@@ -1,6 +1,9 @@
 
 /* 
  * $Log: ast.C,v $
+ * Revision 1.22  1996/04/08 21:21:11  lzheng
+ * changes for HP generateCode and emitFuncCall
+ *
  * Revision 1.21  1996/03/25 20:20:39  tamches
  * the reduce-mem-leaks-in-paradynd commit
  *
@@ -483,10 +486,14 @@ reg AstNode::generateCode(process *proc,
 	    // the left operand source register can be reused here
 	    rs->freeRegister(src);
 
+#if defined(hppa1_1_hp_hpux)
+              dest = rs->allocateRegister(insn, base);
+#else
 	    if ((right_dest != -1) && rs->readOnlyRegister(right_dest))
 	      dest = rs->allocateRegister(insn, base);
 	    else
 	      dest = right_dest;
+#endif
 
 	    (void) emit(op, src, right_dest, dest, insn, base);
 	}
@@ -523,22 +530,29 @@ reg AstNode::generateCode(process *proc,
 	unsigned addr;
 	// find func addr.
 	bool err;
-	addr = (proc->symbols)->findInternalAddress(callee, false, err);
-	if (err) {
-	  pdFunction *func = (proc->symbols)->findOneFunction(callee);
-	  if (!func) {
-	    ostrstream os(errorLine, 1024, ios::out);
-	    os << "Internal error: unable to find addr of " << callee << endl;
-	    logLine(errorLine);
-	    showErrorCallback(80, (const char *) errorLine);
-	    P_abort();
-	  }
-	  addr = func->addr();
-	}
-
+        // This part for HP is moved to the HP dependent file  
+#if defined(hppa1_1_hp_hpux)
+        for (unsigned u = 0; u < operands.size(); u++)
+          srcs += operands[u].generateCode(proc, rs, insn, base);
+	dest = emitFuncCall(callOp, srcs, insn, base, callee, proc);
+#else
+        addr = (proc->symbols)->findInternalAddress(callee, false, err);
+        if (err) {
+          pdFunction *func = (proc->symbols)->findOneFunction(callee);
+          if (!func) {
+            ostrstream os(errorLine, 1024, ios::out);
+            os << "Internal error: unable to find addr of " << callee << endl;
+            logLine(errorLine);
+            showErrorCallback(80, (const char *) errorLine);
+            P_abort();
+          }
+          addr = func->addr();
+        }
+	
 	for (unsigned u = 0; u < operands.size(); u++)
 	  srcs += operands[u].generateCode(proc, rs, insn, base);
 	dest = emitFuncCall(callOp, srcs, (int) addr, insn, base);
+#endif
     } else if (type == sequenceNode) {
 	loperand->generateCode(proc, rs, insn, base);
 	return(roperand->generateCode(proc, rs, insn, base));
