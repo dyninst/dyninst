@@ -2,7 +2,10 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.4  1994/02/08 21:05:54  hollings
+ * Revision 1.5  1994/02/09 22:35:29  hollings
+ * added debugging code to print Hash table.
+ *
+ * Revision 1.4  1994/02/08  21:05:54  hollings
  * Found a few pointer problems.
  *
  * Revision 1.3  1994/02/05  23:14:00  hollings
@@ -199,6 +202,8 @@ String_Array applicationContext::getAvailableMetrics()
        names.data[i] = (*cm)->getName();
        assert(names.data[i]);
     }
+    metric::allMetrics.print();
+    assert(i==names.count);
     return(names);
 }
 
