@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.h,v 1.16 1998/12/25 22:13:18 wylie Exp $
+// $Id: sharedobject.h,v 1.17 1999/05/13 23:08:22 hollings Exp $
 
 #if !defined(_shared_object_h)
 #define _shared_object_h
@@ -88,7 +88,6 @@ public:
     bool  isProcessed() { return(processed); }
     bool  isMapped() { return(mapped); }
     const image  *getImage() { return(objs_image); }
-    u_int getImageId(){ return((u_int)objs_image); }
     bool includeFunctions(){ return(include_funcs); }
     void changeIncludeFuncs(bool flag){ include_funcs = flag; } 
 

@@ -881,7 +881,6 @@ void mutatorTest15b(BPatch_thread *appThread, BPatch_image * /*appImage*/)
     appThread->continueExecution();
 }
 
-
 //
 // Start Test Case #16 - mutator side (if-else)
 //
@@ -1099,7 +1098,7 @@ void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
 // test2.
 void mutatorTest21(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4) || defined(mips_sgi_irix6_4) || defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
+#if defined(sparc_sun_solaris2_4) || defined(mips_sgi_irix6_4) || defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(alpha_dec_osf4_0)
     if (! appThread->loadLibrary("./libtestA.so")) {
 	 fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
 	 fprintf(stderr, "  Mutator couldn't load libtestA.so into mutatee\n");
@@ -1169,7 +1168,7 @@ void mutatorTest21(BPatch_thread *appThread, BPatch_image *appImage)
 // test2.
 void mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0)
     char errbuf[1024]; errbuf[0] = '\0';
     BPatch_module *modA = NULL;
     BPatch_module *modB = NULL;
@@ -1279,6 +1278,7 @@ void mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
 	 fprintf(stderr, "  Mutator couldn't replaceFunction (shlib -> a.out)\n");
 	 exit(1);
     }
+
 #endif
 }
 
@@ -1572,7 +1572,7 @@ main(int argc, char *argv[])
 	}
     }
 
-#if defined(sparc_sun_sunos4_1_3) || defined(alpha_dec_osf4_0)
+#if defined(sparc_sun_sunos4_1_3)
     if (useAttach) {
         printf("Attach is not supported on this platform.\n");
         exit(1);

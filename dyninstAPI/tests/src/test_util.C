@@ -40,7 +40,8 @@ void waitUntilStopped(BPatch *bpatch,
 	exit(-1);
     }
 #else
-    else if (appThread->stopSignal() != SIGSTOP) {
+    else if ((appThread->stopSignal() != SIGSTOP) &&
+	    (appThread->stopSignal() != SIGHUP)) {
 	printf("**Failed test #%d (%s)\n", testnum, testname);
 	printf("    process stopped on signal %d, not SIGSTOP\n", 
 		appThread->stopSignal());

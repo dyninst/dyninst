@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.167 1999/05/12 15:34:38 nash Exp $
+// $Id: process.C,v 1.168 1999/05/13 23:08:16 hollings Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -345,8 +345,16 @@ int heapItemCmpByAddr(const void *A, const void *B)
 {
   heapItem *a = *(heapItem **)const_cast<void*>(A);
   heapItem *b = *(heapItem **)const_cast<void*>(B);
-  return (int)(a->addr - b->addr);
+
+  if (a->addr < b->addr) {
+      return -1;
+  } else if (a->addr > b->addr) {
+      return 1;
+  } else {
+      return 0;
+  }
 }
+
 void inferiorFreeCompact(inferiorHeap *hp)
 {
   vector<heapItem *> &freeList = hp->heapFree;
@@ -879,6 +887,9 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
 	//initInferiorHeap(true);
 	splitHeaps = true;
 #endif
+#if defined(alpha_dec_osf4_0)
+   changedPCvalue = 0;
+#endif
 
    traceLink = iTraceLink;
    ioLink = iIoLink;
@@ -993,6 +1004,10 @@ process::process(int iPid, image *iSymbols,
 	// create a seperate text heap.
 	//initInferiorHeap(true);
 	splitHeaps = true;
+#endif
+
+#if defined(alpha_dec_osf4_0)
+   changedPCvalue = 0;
 #endif
 
    traceLink = -1; // will be set later, when the appl runs DYNINSTinit
@@ -1132,6 +1147,9 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 #if defined(USES_LIBDYNINSTRT_SO)
     dyninstlib_brk_addr = 0;
     main_brk_addr = 0;
+#endif
+#if defined(alpha_dec_osf4_0)
+   changedPCvalue = 0;
 #endif
 
     reachedFirstBreak = true; // initial TRAP has (long since) been reached
@@ -1598,6 +1616,12 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
    // Note: we used to pause() the process while attaching.  Not anymore.
    // The attached process is running even as we speak.  (Though we'll interrupt
    // it pretty soon when the inferior RPC of DYNINSTinit gets launched).
+
+
+#if defined(alpha_dec_osf4_0)
+   // need to perform this after dyninst Heap is present and happy
+   theProc->getDyn()->setMappingHooks(theProc);
+#endif
 
    return true; // successful
 }
@@ -2241,7 +2265,13 @@ bool process::addASharedObject(shared_object &new_obj){
 // that have been mapped into the process's address space
 bool process::getSharedObjects() {
 
+#ifndef alpha_dec_osf4_0
     assert(!shared_objects);
+#else
+    // called twice on alpha.
+    if (shared_objects) return true;
+#endif
+
     shared_objects = dyn->getSharedObjects(this); 
     if(shared_objects){
 	statusLine("parsing shared object files");
@@ -2519,8 +2549,9 @@ bool process::getSymbolInfo(const string &name, Symbol &info, Address &baseAddr)
     // next check shared objects
     if(dynamiclinking && shared_objects) {
       for(u_int j=0; j < shared_objects->size(); j++) {
-	    if(((*shared_objects)[j])->getSymbolInfo(name,info))
+	    if(((*shared_objects)[j])->getSymbolInfo(name,info)) {
 	        return getBaseAddress(((*shared_objects)[j])->getImage(), baseAddr); 
+	    }
       }
     }
 
@@ -2667,7 +2698,7 @@ bool process::getBaseAddress(const image *which, Address &baseAddress) const {
       // find shared object corr. to this image and compute correct address
       for(unsigned j=0; j < shared_objects->size(); j++){ 
 	  if(((*shared_objects)[j])->isMapped()){
-            if(((*shared_objects)[j])->getImageId() == (Address)which) { 
+            if(((*shared_objects)[j])->getImage() == which) { 
 	      baseAddress = ((*shared_objects)[j])->getBaseAddress();
 	      return true;
 	  } }
@@ -2724,7 +2755,7 @@ Address process::findInternalAddress(const string &name, bool warn, bool &err) c
      Symbol sym;
      Address baseAddr;
      static const string underscore = "_";
-#if defined(USES_LIBDYNINSTRT_SO) && !defined(i386_unknown_linux2_0)
+#if defined(USES_LIBDYNINSTRT_SO) && !defined(i386_unknown_linux2_0) && !defined(alpha_dec_osf4_0)
      // we use "dlopen" because we took out the leading "_"'s from the name
      if (name==string("dlopen")) {
        // if the function is dlopen, we use the address in ld.so.1 directly
@@ -3194,18 +3225,10 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
       return false;
    }
 
-#ifdef alpha_dec_osf4_0
-   if (!continueProc_(tempTrampBase)) {
-      cerr << "launchRPCifAppropriate: continueProc() failed" << endl;
-      return false;
-   }
-   status_ = running; /* Since we called continueProc_ instead of continueProc we need to update the process status explicitly */
-#else
    if (!continueProc()) {
       cerr << "launchRPCifAppropriate: continueProc() failed" << endl;
       return false;
    }
-#endif
    inferiorrpc_cerr << "inferiorRPC should be running now" << endl;
 
    return true; // success
@@ -3410,14 +3433,8 @@ bool process::handleTrapIfDueToRPC() {
       if (!changePC(theStruct.justAfter_stopForResultAddr))
 	 assert(false);
 
-#if defined(alpha_dec_osf4_0)
-      if (!continueProc_(theStruct.justAfter_stopForResultAddr))
-	 cerr << "RPC getting result: continueProc failed" << endl;
-      status_ = running;
-#else
       if (!continueProc())
 	 cerr << "RPC getting result: continueProc failed" << endl;
-#endif
       return true;
    }
 
@@ -3549,6 +3566,11 @@ void process::installBootstrapInst() {
        printf("no main function, skipping DYNINSTinit\n");
        hasBootstrapped = true;
     }
+#endif
+
+#if defined(alpha_dec_osf4_0)
+      // need to perform this after dyninst Heap is present and happy
+      dyn->setMappingHooks(this);
 #endif
 }
 
@@ -3755,6 +3777,7 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
 	logLine("WARNING: handleStartProcess failed\n");
       }
 #endif
+
 
 #ifndef BPATCH_LIBRARY
       // we decrement the batch mode here; it matches the bump-up in createProcess()

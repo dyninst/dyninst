@@ -72,6 +72,7 @@ union instructUnion {
 };
 
 typedef union instructUnion instruction;
+#define INSN_SIZE	sizeof(instruction)
 
 // ************************************************************************
 // Memory format opcodes

@@ -41,7 +41,7 @@
 
 /*
  * Common definitions to the ALPHA specific instrumentation code.
- * $Id: inst-alpha.h,v 1.2 1998/12/25 22:02:10 wylie Exp $
+ * $Id: inst-alpha.h,v 1.3 1999/05/13 23:08:12 hollings Exp $
  */
 
 #ifndef INST_ALPHA_H
@@ -72,5 +72,13 @@ extern trampTemplate withArgsTemplate;
 bool isCallInsn(const instruction);
 bool isReturnInsn(const image *, Address,bool &lastOne);
 int software_divide(int src1,int src2,int dest,char *i,Address &base,bool noCost,Address divl_addr,bool Imm = false);
+
+extern unsigned long generate_nop(instruction* insn);
+extern void generateBranchInsn(instruction *insn, int offset);
+extern bool isReturnInsn(const image *owner, Address adr, bool &lastOne);
+extern void generateBreakPoint(instruction &insn);
+extern void relocateInstruction(instruction*, Address, Address);
+extern bool isReturn(const instruction insn);
+
 #endif
 

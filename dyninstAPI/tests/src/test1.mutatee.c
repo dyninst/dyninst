@@ -14,7 +14,7 @@
 #include <windows.h>
 #endif
 
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0)
 #include <dlfcn.h> // For replaceFunction test
 #endif
 
@@ -522,6 +522,7 @@ void func11_1()
     globalVariable11_1 = 1;
     func11_2();
     globalVariable11_1 = 3;
+
 }
 
 void func12_2()
@@ -854,7 +855,7 @@ void func20_1()
 void func21_1()
 {
      // Nothing for the mutatee to do in this test (findFunction in module)
-#if defined(sparc_sun_solaris2_4) || defined(mips_sgi_irix6_4) || defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
+#if defined(sparc_sun_solaris2_4) || defined(mips_sgi_irix6_4) || defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(alpha_dec_osf4_0)
      printf("Passed test #21 (findFunction in module)\n");
 #else
     printf("Skipped test #21 (findFunction in module)\n");
@@ -868,7 +869,7 @@ extern void call22_6(int);
 
 void func22_1()
 {
-#if !defined(sparc_sun_solaris2_4)
+#if !defined(sparc_sun_solaris2_4) && !defined(alpha_dec_osf4_0)
     printf("Skipped test #22 (replace function)\n");
     printf("\t- not implemented on this platform\n");
 #else
@@ -877,11 +878,16 @@ void func22_1()
     // it defines.
     void (*call22_5)(int);
     void (*call22_6)(int);
+#if defined(sparc_sun_solaris2_4)
     void *handleA = dlopen("./libtestA.so", RTLD_NOW | RTLD_GLOBAL);
+#else
+    void *handleA = dlopen("./libtestA.so", RTLD_NOW);
+#endif
     if (! handleA) {
 	 printf("**Failed test #22 (replaceFunction)\n");
 	 printf("  Mutatee couldn't get handle for libtestA.so\n");
     }
+
     call22_5 = dlsym(handleA, "call22_5");
     if (! call22_5) {
 	 printf("**Failed test #22 (replaceFunction)\n");
@@ -982,9 +988,12 @@ int main(int argc, char *argv[])
     	while (!checkIfAttached()) ;
 	printf("Mutator attached.  Mutatee continuing.\n");
     }
+
     /* Test #1 */
     dprintf("Value of globalVariable1_1 is %d.\n", globalVariable1_1);
+
     func1_1();
+
     dprintf("Value of globalVariable1_1 is now %d.\n", globalVariable1_1);
 
     if (globalVariable1_1 == 11)
@@ -1141,4 +1150,5 @@ int main(int argc, char *argv[])
     func22_1();
 
     return(0);
+
 }

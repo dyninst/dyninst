@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-osf.C,v 1.2 1998/12/25 22:02:10 wylie Exp $
+// $Id: init-osf.C,v 1.3 1999/05/13 23:08:10 hollings Exp $
 
 #include "metric.h"
 #include "internalMetrics.h"
@@ -62,7 +62,9 @@ bool initOS() {
 
   initialRequests += new instMapping(EXIT_NAME, "DYNINSTalarmExpire", FUNC_ENTRY);
   initialRequests += new instMapping(EXIT_NAME, "DYNINSTprintCost", FUNC_ENTRY);
+#ifdef notdef
   initialRequests += new instMapping(EXIT_NAME, "DYNINSTbreakPoint", FUNC_ENTRY);
+#endif
   initialRequests += new instMapping("main", "DYNINSTinit", FUNC_ENTRY);
   initialRequests += new instMapping("DYNINSTsampleValues", "DYNINSTreportNewTags",
 				 FUNC_ENTRY);

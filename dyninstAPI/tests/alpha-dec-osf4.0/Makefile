@@ -1,4 +1,7 @@
 # $Log: Makefile,v $
+# Revision 1.2  1999/05/13 23:08:26  hollings
+# Shared libraries on Alpha.
+#
 # Revision 1.1  1998/08/25 19:35:42  buck
 # Initial commit of DEC Alpha port.
 #
@@ -62,14 +65,29 @@ SYSLIBS   += -g -lmld -liberty
 
 include ../make.module.tmpl
 
+USES_LIBDYNINSTRT_SO=1
+
 ifdef USES_LIBDYNINSTRT_SO
 $(TARGET2): $(TARGET2).o
-	$(CC) $(TARGET2).o -o $(TARGET2)
+	# $(CC) $(TARGET2).o -o $(TARGET2) ../../../../lib/$(PLATFORM)/libdyninstAPI_RT.so.1
+	# $(CC) -taso -g $(TARGET2).o -o $(TARGET2) 
+	$(CC) -g $(TARGET2).o -o $(TARGET2) 
 else
 $(TARGET2): $(TARGET2).o
-	$(CC) -static -taso -g \
-       $(TARGET2).o ../../../../lib/$(PLATFORM)/libdyninstAPI_RT.o -o $(TARGET2)
+	$(CC) -g $(TARGET2).o -o $(TARGET2)
 endif
+
+libtestA.o:
+	$(CC) -g -fpic -c ../src/libtestA.c
+
+libtestB.o:
+	$(CC) -fpic -c ../src/libtestB.c
+
+libtestA.so: libtestA.o
+	$(CC) -g -shared -o libtestA.so libtestA.o
+
+libtestB.so: libtestB.o
+	$(CC) -shared -o libtestB.so libtestB.o
 
 # Include the "standard program template".  This defines all the
 # common targets like "clean", "install", etc.

@@ -713,7 +713,7 @@ bool BPatch_thread::removeFunctionCall(BPatch_point &point)
 bool BPatch_thread::replaceFunction(BPatch_function &oldFunc,
 				    BPatch_function &newFunc)
 {
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0)
     // Can't make changes to code when mutations are not active.
     if (!mutationsActive)
 	return false;
@@ -733,7 +733,7 @@ bool BPatch_thread::replaceFunction(BPatch_function &oldFunc,
     if (! pts || ! pts->size())
 	 return false;
     BPatch_funcJumpExpr fje(newFunc);
-    return (NULL != insertSnippet(fje, *pts));
+    return (NULL != insertSnippet(fje, *pts, BPatch_callBefore));
 #else
     BPatch_reportError(BPatchSerious, 109,
 		       "replaceFunction is not implemented on this platform");
@@ -840,7 +840,8 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr)
 bool BPatch_thread::loadLibrary(char *libname)
 {
 #if defined(sparc_sun_solaris2_4)  || defined(i386_unknown_solaris2_5) || \
-    defined(i386_unknown_linux2_0) || defined(mips_sgi_irix6_4)
+    defined(i386_unknown_linux2_0) || defined(mips_sgi_irix6_4) || \
+    defined(alpha_dec_osf4_0)
     if (!statusIsStopped())
 	return false;
 

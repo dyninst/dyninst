@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.4 1999/05/07 15:22:19 nash Exp $
+// $Id: procfs.C,v 1.5 1999/05/13 23:08:21 hollings Exp $
 
 #include "symtab.h"
 #include "util/h/headers.h"
@@ -61,6 +61,7 @@
 
 // PC register index into the gregset_t array for the alphas
 #define PC_REGNUM 31
+#define GP_REGNUM 27
 
 extern "C" {
 extern int ioctl(int, int, ...);
@@ -107,23 +108,19 @@ void OS::osTraceMe(void) {
     fflush(stderr);
     P__exit(-1); // must use _exit here.
   }
-  /* DIGITAL UNIX (ver 3.2) uses PRFS_STOPEXEC to indicate a breakpoint after exec */
-  /*#ifdef PRFS_STOPEXEC
-  {
-    long pr_flags;
-    if (ioctl(fd, PIOCGSPCACT, &pr_flags) < 0) {
+
+  long pr_flags;
+  if (ioctl(fd, PIOCGSPCACT, &pr_flags) < 0) {
       sprintf(errorLine, "Cannot get status\n");
       logLine(errorLine);
       close(fd);
-      return false;
-    }
-    pr_flags |= PRFS_STOPEXEC;
-    ioctl(fd, PIOCSSPCACT, &pr_flags);
+      return;
   }
-#endif*/
-  
+  pr_flags |= PRFS_STOPEXEC;	/* stop on exec */
+  pr_flags |= PRFS_KOLC;	/* add kill on last close flag */
+  ioctl(fd, PIOCSSPCACT, &pr_flags);
+ 
   errno = 0;
-  close(fd);
   return;
 }
 
@@ -140,14 +137,6 @@ bool process::stop_()
 {
   assert(false);
 }
-
-//bool OS::osAttach(pid_t) { assert(0); }
-
-//bool OS::osStop(pid_t) { assert(0); }
-
-//bool OS::osDumpCore(pid_t, const string) { return false; }
-
-//bool OS::osForwardSignal (pid_t, int) { assert(0); }
 
 bool process::isRunning_() const {
    // determine if a process is running by doing low-level system checks, as
@@ -173,9 +162,9 @@ bool process::isRunning_() const {
 */
 bool process::attach() {
   char procName[128];
-  prrun_t flags;
 
-  sleep(15);
+  // why is this sleep here?? -- jkh 4/1/99
+  // sleep(15);
   sprintf(procName,"/proc/%05d", (int)pid);
   int fd = P_open(procName, O_RDWR, 0);
   if (fd < 0) {
@@ -235,22 +224,12 @@ bool process::attach() {
 #endif
 #endif
 
-  // flags.pr_flags = PRSTOP;
-//   if (ioctl(fd, PIOCRUN, &flags) == -1) {
-//       fprintf(stderr, "attach: PIOCRUN failed: %s\n", sys_errlist[errno])
-// ;
-//       return false;
-//   }
-
   proc_fd = fd;
   return true;
 }
 
-bool process::restoreRegisters(void *buffer) {
-   Address addr;
-   prrun_t flags;
-   prstatus_t stat;
-
+bool process::restoreRegisters(void *buffer) 
+{
    assert(status_ == stopped); // /proc requires it
 
    gregset_t theIntRegs = *(gregset_t *)buffer;
@@ -274,64 +253,13 @@ bool process::restoreRegisters(void *buffer) {
       return false;
    }
 
-   addr = theIntRegs.regs[PC_REGNUM];
+   // make sure the next continue restores the old pc value
+   changedPCvalue = theIntRegs.regs[PC_REGNUM];
 
-   if (ioctl(proc_fd, PIOCSTATUS, &stat) == -1) {
-         fprintf(stderr, "unable to get process status\n");
-         return false;
-   }
-   if (!((stat.pr_flags & PR_STOPPED) && (stat.pr_why == PR_FAULTED))) {
-             fprintf(stderr, "unexpected state\n");
-             return false;
-   }
-
-   flags.pr_flags = PRCFAULT || PRSTOP || PRSVADDR;
-   flags.pr_vaddr = addr;
-
-   if (ioctl(proc_fd, PIOCRUN, &flags) == -1) {
-        fprintf(stderr, "continueProc_: PIOCRUN failed: %s\n",
-             sys_errlist[errno]);
-        return false;
-    }
-
-    if (ioctl(proc_fd, PIOCWSTOP, 0) == -1) {
-        fprintf(stderr, "continueProc_: PIOCWSTOP failed: %s\n",
-                sys_errlist[errno]);
-        return false;
-    }
-    return true;
+   return true;
 }
 
-bool process::continueProc_(Address vaddr)
-{
-  ptraceOps++; ptraceOtherOps++;
-  prrun_t flags;
-  prstatus_t stat;
 
-  // a process that receives a stop signal stops twice. We need to run the process
-  // and wait for the second stop.
-  if ((ioctl(proc_fd, PIOCSTATUS, &stat) != -1)
-      && (stat.pr_flags & PR_STOPPED)
-      && (stat.pr_why == PR_SIGNALLED)
-      && (stat.pr_what == SIGSTOP) || (stat.pr_what == SIGINT)) {
-    flags.pr_flags = PRSTOP || PRSVADDR;
-    flags.pr_vaddr = (char*)vaddr;
-    if (ioctl(proc_fd, PIOCRUN, &flags) == -1) {
-      fprintf(stderr, "continueProc_: PIOCRUN failed: %s\n", sys_errlist[errno]);
-      return false;
-    }
-    if (ioctl(proc_fd, PIOCWSTOP, 0) == -1) {
-      fprintf(stderr, "continueProc_: PIOCWSTOP failed: %s\n", sys_errlist[errno]);
-      return false;
-    }
-  }
-  flags.pr_flags = PRCSIG; // clear current signal
-  if (ioctl(proc_fd, PIOCRUN, &flags) == -1) {
-    fprintf(stderr, "continueProc_: PIOCRUN failed: %s\n", sys_errlist[errno]);
-    return false;
-  }
-  return true;
-}
 
 /* 
    continue a process that is stopped 
@@ -341,6 +269,7 @@ bool process::continueProc_() {
   prrun_t flags;
   prstatus_t stat;
 
+#ifdef notdef
   // a process that receives a stop signal stops twice. We need to run the process
   // and wait for the second stop.
   if ((ioctl(proc_fd, PIOCSTATUS, &stat) != -1)
@@ -348,6 +277,12 @@ bool process::continueProc_() {
       && (stat.pr_why == PR_SIGNALLED)
       && (stat.pr_what == SIGSTOP) || (stat.pr_what == SIGINT)) {
     flags.pr_flags = PRSTOP;
+    if (changedPCvalue) {
+      // if we are changing the PC, use the new value as the cont addr.
+      flags.pr_flags |= PRSVADDR;
+      flags.pr_vaddr = (char*)changedPCvalue;
+      printf("continuing stopped process at %lx\n", changedPCvalue);
+    }
     if (ioctl(proc_fd, PIOCRUN, &flags) == -1) {
       fprintf(stderr, "continueProc_: PIOCRUN failed: %s\n", sys_errlist[errno]);
       return false;
@@ -357,13 +292,33 @@ bool process::continueProc_() {
       return false;
     }
   }
-  flags.pr_flags = PRCSIG; // clear current signal
+#endif
+
+  bool needsCont;
+
+  flags.pr_flags = PRCFAULT; 
+  if ((ioctl(proc_fd, PIOCSTATUS, &stat) != -1)
+      && (stat.pr_flags & PR_STOPPED)
+      && (stat.pr_why == PR_SIGNALLED)) {
+      flags.pr_flags |= PRCSIG; // clear current signal
+      needsCont = true;
+  }
+
+  if (changedPCvalue) {
+      // if we are changing the PC, use the new value as the cont addr.
+      flags.pr_flags |= (PRSVADDR | PRCFAULT);
+      flags.pr_vaddr = (char*)changedPCvalue;
+      changedPCvalue = 0;
+  }
+
   if (ioctl(proc_fd, PIOCRUN, &flags) == -1) {
     fprintf(stderr, "continueProc_: PIOCRUN failed: %s\n", sys_errlist[errno]);
     return false;
   }
+
   return true;
 }
+
 
 /*
    pause a process that is running
@@ -434,6 +389,7 @@ void *process::getRegisters() {
    return buffer;
 }
 
+
 bool process::changePC(Address addr, const void *savedRegs) {
    assert(status_ == stopped);
 
@@ -445,6 +401,8 @@ bool process::changePC(Address addr, const void *savedRegs) {
 	 cerr << "It appears that the process wasn't stopped in the eyes of /proc" << endl;
       return false;
    }
+
+   changedPCvalue = addr;
 
    return true;
 }
@@ -463,6 +421,7 @@ bool process::changePC(Address addr) {
    }
 
    theIntRegs.regs[PC_REGNUM] = addr;
+   changedPCvalue = addr;
 
    if (-1 == ioctl(proc_fd, PIOCSREG, &theIntRegs)) {
       perror("process::changePC PIOCSREG");
@@ -557,16 +516,27 @@ bool process::readTextSpace_(void *inTraced, u_int amount, const void *inSelf) {
 #endif
 
 bool process::writeDataSpace_(void *inTracedProcess, u_int amount,const void *inSelf) {
+  off_t ret;
   ptraceOps++; ptraceBytes += amount;
-  if (lseek(proc_fd, (off_t)inTracedProcess, SEEK_SET) != (off_t)inTracedProcess)
-    return false;
+
+  ret =  lseek(proc_fd, (off_t)inTracedProcess, SEEK_SET);
+  if (ret != (off_t)inTracedProcess) {
+      perror("lseek");
+      fprintf(stderr, "   target address %lx\n", inTracedProcess);
+      return false;
+  }
   return (write(proc_fd, inSelf, amount) == (int)amount);
 }
 
 bool process::readDataSpace_(const void *inTracedProcess, u_int amount, void *inSelf) {
   ptraceOps++; ptraceBytes += amount;
-  if (lseek(proc_fd, (off_t)inTracedProcess, SEEK_SET) != (off_t)inTracedProcess) {
-    return false;
+  off_t ret;
+
+  ret = lseek(proc_fd, (off_t)inTracedProcess, SEEK_SET);
+  if (ret != (off_t)inTracedProcess) {
+      perror("lseek");
+      fprintf(stderr, "   target address %lx\n", inTracedProcess);
+      return false;
   }
   return (read(proc_fd, inSelf, amount) == (int)amount);
 }

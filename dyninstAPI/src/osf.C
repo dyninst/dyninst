@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.4 1999/01/21 01:26:41 hollings Exp $
+// $Id: osf.C,v 1.5 1999/05/13 23:08:13 hollings Exp $
 
 #include "util/h/headers.h"
 #include "os.h"
@@ -62,6 +62,8 @@
 #include <sys/fault.h>
 
 #define PC_REGNUM 31
+#define FP_REGNUM 15
+#define RA_REGNUM 26
 extern bool exists_executable(const string &fullpathname);
 
 
@@ -134,7 +136,8 @@ Address process::read_inferiorRPC_result_register(Register) {
 //void OS::osTraceMe(void) { P_ptrace(PT_TRACE_ME, 0, 0, 0); }
 
 
-bool process::needToAddALeafFrame(Frame current_frame, Address &leaf_pc){
+bool process::needToAddALeafFrame(Frame, Address &)
+{
     return false;
 }
 
@@ -148,14 +151,15 @@ bool process::getActiveFrame(Address *fp, Address *pc)
   bool ok=false;
 
   if (ioctl (proc_fd, PIOCGREG, &theIntRegs) != -1) {
-      *fp=0; /* Don't know the index number for fp */
+      *fp=theIntRegs.regs[FP_REGNUM];  
       *pc=theIntRegs.regs[PC_REGNUM]-4; /* -4 because the PC is updated */
       ok=true;
   }
   return(ok);
 }
 
-static inline bool execResult(prstatus_t stat) {
+static inline bool execResult(prstatus_t) 
+{
   return  1;
 }
 
@@ -165,7 +169,7 @@ static inline bool execResult(prstatus_t stat) {
 
 
 #ifdef BPATCH_LIBRARY
-int process::waitforRPC(int *status,bool block)
+int process::waitforRPC(int *status, bool /* block */)
 {
   static struct pollfd fds[OPEN_MAX];  // argument for poll
   static int selected_fds;             // number of selected
@@ -215,142 +219,165 @@ int process::waitforRPC(int *status,bool block)
 #endif
 
 // wait for a process to terminate or stop
-#ifdef BPATCH_LIBRARY
-int process::waitProcs(int *status,bool block = false) {
-#else
-int process::waitProcs(int *status) {
-#endif
-  static struct pollfd fds[OPEN_MAX];  // argument for poll
-  static int selected_fds;             // number of selected
-  static int curr;                     // the current element of fds
-
-#ifdef BPATCH_LIBRARY
-   do {
-#endif
-
-  /* Each call to poll may return many selected fds. Since we only report the status
-     of one process per each call to waitProcs, we keep the result of the last
-     poll buffered, and simply process an element from the buffer until all of
-     the selected fds in the last poll have been processed.
-     */
-  
-  if (selected_fds == 0) {
-    for (unsigned u = 0; u < processVec.size(); u++) {
-      if (processVec[u]->status() == running || processVec[u]->status() == neonatal)
-	fds[u].fd = processVec[u]->proc_fd;
-      else
-	fds[u].fd = -1;
-      fds[u].events = POLLPRI | POLLRDNORM;
-      fds[u].revents = 0;
-    }
-#ifdef BPATCH_LIBRARY
-    int timeout;
-    if (block) timeout = INFTIM; 
-    else timeout = 0;
-    selected_fds = poll(fds, processVec.size(), timeout);
-#else
-    selected_fds = poll(fds, processVec.size(), 0);
-#endif
-    if (selected_fds < 0) {
-      fprintf(stderr, "waitProcs: poll failed: %s\n", sys_errlist[errno]);
-      selected_fds = 0;
-      return 0;
-    }
-    
-    curr = 0;
-  }
-  
-  if (selected_fds > 0) {
-    while (fds[curr].revents == 0)
-      ++curr;
-    
-    // fds[curr] has an event of interest
-    prstatus_t stat;
+//   return the pid of the process that has stopped or blocked.
+int process::waitProcs(int *status, bool block = false) 
+{
     int ret = 0;
-#ifdef BPATCH_LIBRARY
-    if (fds[curr].revents & POLLHUP) {
-      do {
-	ret = waitpid(processVec[curr]->getPid(), status, 0);
-      } while ((ret < 0) && (errno == EINTR));
-      if (ret < 0) {
-	// This means that the application exited, but was not our child
-	// so it didn't wait around for us to get it's return code.  In
-	// this case, we can't know why it exited or what it's return
-	// code was.
-	ret = processVec[curr]->getPid();
-	*status = 0;
-      }
-      assert(ret == processVec[curr]->getPid());
-    } else {
-#endif
-      if (ioctl(fds[curr].fd, PIOCSTATUS, &stat) != -1) {
-	if (stat.pr_why == PR_DEAD) {
-	  do {
-	    ret = waitpid(processVec[curr]->getPid(), status, 0);
-	  } while ((ret < 0) && (errno == EINTR));
-	  if (ret < 0) {
-	    // This means that the application exited, but was not our child
-	    // so it didn't wait around for us to get it's return code.  In
-	    // this case, we can't know why it exited or what it's return
-	    // code was.
-	    ret = processVec[curr]->getPid();
-	    *status = 0;
-	  }
-	  assert(ret == processVec[curr]->getPid());
-	} else if (stat.pr_flags & PR_STOPPED || stat.pr_flags & PR_ISTOP) {
-	  switch (stat.pr_why) {
-	  case PR_SIGNALLED:
-	    // return the signal number
-	    *status = stat.pr_what << 8 | 0177;
-	    ret = processVec[curr]->getPid();
-	    break;
-	  case PR_SYSEXIT:
-	    // exit of exec
-	    if (!execResult(stat)) {
-	      // a failed exec. continue the process
-	      processVec[curr]->continueProc_();
-	      break;
-	    }	    
-	    
-	    *status = SIGTRAP << 8 | 0177;
-	    ret = processVec[curr]->getPid();
-	    break;
-	  case PR_REQUESTED:
-	      stat.pr_flags = PRCSIG;
-	      if (ioctl(fds[curr].fd, PIOCRUN, &stat) == -1) {
-		fprintf(stderr, "attach: PIOCRUN failed: %s\n",
-			sys_errlist[errno]);
-		
-		return false;
+    static struct pollfd fds[OPEN_MAX];  // argument for poll
+    static int selected_fds;             // number of selected
+    static int curr;                     // the current element of fds
+    bool skipPoll = false;
+
+    do {
+         /* 
+	 Each call to poll may return many selected fds. Since we only report 
+	 the status of one process per each call to waitProcs, we keep the result of 
+	 the last poll buffered, and simply process an element from the buffer until 
+	 all of the selected fds in the last poll have been processed.
+	 */
+      
+	if (selected_fds == 0) {
+	    for (unsigned u = 0; u < processVec.size(); u++) {
+#ifdef notdef
+	      if (processVec[u]->status() == running || 
+		  processVec[u]->status() == neonatal) {
+		    fds[u].fd = processVec[u]->proc_fd;
+	      } else {
+		  fds[u].fd = -1;
 	      }
-	      break;
-	  case PR_FAULTED:
-	    *status = SIGTRAP << 8 | 0177;
-	    ret = processVec[curr]->getPid();
-	    break;
-	  case PR_JOBCONTROL:
-	    assert(0);
-	    break;
-	  }	
+#endif
+	      if (waitpid(processVec[u]->getPid(), status, WNOHANG|WNOWAIT)) {
+		  ret = processVec[u]->getPid();
+		  fds[u].revents = POLLPRI;
+		  skipPoll = true;
+		  break;
+		  printf("found wiating process skipping poll\n");
+	      }
+	      fds[u].fd = processVec[u]->proc_fd;
+	      fds[u].events = POLLPRI | POLLIN;
+	      fds[u].revents = 0;
+	    }
+
+	    if (!skipPoll) {
+		int timeout = 0;
+		if (block) timeout = 5; 
+		// if (block) timeout = INFTIM; 
+		//printf("about to poll with timeout = %d, %d processes ", 
+		     //timeout, processVec.size());
+		fflush(stdout);
+		selected_fds = poll(fds, processVec.size(), timeout);
+		if (selected_fds < 0) {
+		    fprintf(stderr, "waitProcs: poll failed: %s\n", sys_errlist[errno]);
+		    selected_fds = 0;
+		    return 0;
+		}
+		//printf("got = %d, \n", selected_fds);
+
+		if (selected_fds <= 0) {
+		    if (!block) return 0;
+		    continue;
+		}
+	    }
 	}
-      }
-#ifdef BPATCH_LIBRARY
-    }
+
+	curr = 0;
+	while (fds[curr].revents == 0) ++curr;
+
+#if defined(USES_LIBDYNINSTRT_SO)
+	if (!processVec[curr]->dyninstLibAlreadyLoaded() &&
+	     processVec[curr]->wasCreatedViaAttach()) {
+	   bool wasRunning = (processVec[curr]->status() == running);
+	   if (processVec[curr]->status() != stopped)
+	     processVec[curr]->Stopped();
+	   if(processVec[curr]->isDynamicallyLinked()) {
+	     processVec[curr]->handleIfDueToSharedObjectMapping();
+	   }
+	   if (processVec[curr]->trapDueToDyninstLib()) {
+	     // we need to load libdyninstRT.so.1 - naim
+	     processVec[curr]->handleIfDueToDyninstLib();
+	     if (wasRunning) processVec[curr]->continueProc();
+	   }
+	}
 #endif
+
+	// fds[curr] has an event of interest
+	prstatus_t stat;
+	if (fds[curr].revents & POLLHUP) {
+	    do {
+		ret = waitpid(processVec[curr]->getPid(), status, 0);
+	    } while ((ret < 0) && (errno == EINTR));
+	    if (ret < 0) {
+		// This means that the application exited, but was not our child
+		// so it didn't wait around for us to get it's return code.  In
+		// this case, we can't know why it exited or what it's return
+		// code was.
+		ret = processVec[curr]->getPid();
+		*status = 0;
+	    }
+	    ret = processVec[curr]->getPid();
+	} else if (ioctl(fds[curr].fd, PIOCSTATUS, &stat) != -1) {
+	    if (stat.pr_why == PR_DEAD) {
+	        do {
+		    ret = waitpid(processVec[curr]->getPid(), status, 0);
+	        } while ((ret < 0) && (errno == EINTR));
+		if (ret < 0) {
+		    // This means that the application exited, but was not our child
+		    // so it didn't wait around for us to get it's return code.  In
+		    // this case, we can't know why it exited or what it's return
+		    // code was.
+		    ret = processVec[curr]->getPid();
+		    *status = 0;
+		}
+		assert(ret == processVec[curr]->getPid());
+	    } else if (stat.pr_flags & PR_STOPPED || stat.pr_flags & PR_ISTOP) {
+		switch (stat.pr_why) {
+		      case PR_SIGNALLED:
+			    // return the signal number
+			    *status = stat.pr_what << 8 | 0177;
+			    ret = processVec[curr]->getPid();
+			    break;
+		      case PR_SYSEXIT:
+			    // exit of exec
+			    if (!execResult(stat)) {
+			      // a failed exec. continue the process
+			      processVec[curr]->continueProc_();
+			      break;
+			    }	    
+		
+			    *status = SIGTRAP << 8 | 0177;
+			    ret = processVec[curr]->getPid();
+			    break;
+
+		      case PR_REQUESTED:
+			    stat.pr_flags = PRCSIG;
+			    if (ioctl(fds[curr].fd, PIOCRUN, &stat) == -1) {
+				fprintf(stderr, "attach: PIOCRUN failed: %s\n",
+				      sys_errlist[errno]);
+				return false;
+			    }
+			    break;
+
+		      case PR_FAULTED:
+			    *status = SIGTRAP << 8 | 0177;
+			    ret = processVec[curr]->getPid();
+			    break;
+
+		      case PR_JOBCONTROL:
+			    *status = stat.pr_what << 8 | 0177;
+			    int ret = processVec[curr]->getPid();
+			    break;
+		}	
+	    }
+	}
     
-    --selected_fds;
-    ++curr;
-    
-    if (ret > 0) {
-      return ret;
-    }
-  }
-#ifdef BPATCH_LIBRARY
-   } while(block);
-   return 0;
-#else
-  return waitpid(0, status, WNOHANG);
-#endif
+	--selected_fds;
+	++curr;
+	
+	if (ret > 0) {
+	      return ret;
+	}
+    } while(block);
+    return ret;
 }
 
 
@@ -364,26 +391,53 @@ int process::waitProcs(int *status) {
 bool process::readDataFromFrame(Address currentFP, Address *fp, Address *rtn,
                                 bool uppermost = False)
 {
-	return false;
-}
+    Address values[2];
+    gregset_t theIntRegs;
 
-bool process::dumpCore_(const string coreFile) {
-  if (!checkStatus()) 
+#ifdef notdef
+    if (currentFP == 0) return false;
+
+    if (uppermost) {
+	if (ioctl (proc_fd, PIOCGREG, &theIntRegs) != -1) {
+	    *fp=theIntRegs.regs[FP_REGNUM];  
+	    *rtn=theIntRegs.regs[RA_REGNUM];  
+	} else {
+	    return false;
+	}
+    } else {
+	if (!readDataSpace((void *)currentFP, sizeof(Address)*2, values,false)){
+	    *rtn = 0;
+	    *fp = 0;
+	    printf("error reading frame at %lx\n", currentFP);
+	    return false;
+	} else {
+	    // (*fp) = RA
+	    // (*fp+8) = saved fp
+	    *rtn = values[0];
+	    *fp = values[1];
+	    printf("in uppermost fp = %lx, ra = %lx\n", *fp, *rtn);
+	}
+    }
+    return true;
+#endif
     return false;
-  ptraceOps++; ptraceOtherOps++;
-  char temp[255];
-  char name[] = "./test1.mutatee";
-  sprintf(temp,"file = %s",coreFile.string_of());
-  logLine(temp);
-  assert(dumpImage(name));
-  //  assert(OS::osDumpImage(symbols->file(), pid, symbols->codeOffset()));
-  errno = 0;
-  (void) ptrace(PT_CONTINUE, pid, (Address*)1, SIGBUS);
-  assert(errno == 0);
-  return true;
 }
 
-string process::tryToFindExecutable(const string &progpath, int pid) {
+bool process::dumpCore_(const string coreFile) 
+{
+  //fprintf(stderr, ">>> process::dumpCore_()\n");
+  bool ret;
+#ifdef BPATCH_LIBRARY
+  ret = dumpImage(coreFile);
+#else
+  ret = dumpImage();
+#endif
+  return ret;
+
+}
+
+string process::tryToFindExecutable(const string &progpath, int /* pid */) 
+{
    // returns empty string on failure
 
    if (progpath.length() == 0)
@@ -412,8 +466,6 @@ bool process::dumpImage()
     int rd;
     int ifd;
     int ofd;
-    int cnt;
-    int ret;
     int total;
     int length;
     Address baseAddr;

@@ -15,7 +15,8 @@
 #endif
 
 #if defined(sparc_sun_solaris2_4)  || defined(i386_unknown_solaris2_5) || \
-    defined(i386_unknown_linux2_0) || defined(mips_sgi_irix6_4)
+    defined(i386_unknown_linux2_0) || defined(mips_sgi_irix6_4) || \
+    defined(alpha_dec_osf4_0)
 #include <dlfcn.h>
 #endif
 
@@ -125,9 +126,14 @@ int main(int argc, char *argv[])
     }
 
 #if defined(sparc_sun_solaris2_4)  || defined(i386_unknown_solaris2_5) || \
-    defined(i386_unknown_linux2_0) || defined(mips_sgi_irix6_4)
+    defined(i386_unknown_linux2_0) || defined(mips_sgi_irix6_4) || \
+    defined(alpha_dec_osf4_0)
     /* now use the dlopen interface to force an object to load. */
+#if defined(alpha_dec_osf4_0)
+    ref = dlopen(TEST_DYNAMIC_LIB, RTLD_NOW);
+#else
     ref = dlopen(TEST_DYNAMIC_LIB, RTLD_NOW | RTLD_GLOBAL);
+#endif
     if (!ref) {
 	fprintf(stderr, "%s\n", dlerror());
 	fflush(stderr);
@@ -135,6 +141,7 @@ int main(int argc, char *argv[])
 
     /* Stop and wait for the mutator to check that we linked the library */
     stop_process();
+
 #endif
 
     func10_1();

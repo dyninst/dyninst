@@ -418,7 +418,8 @@ bool BPatch::getThreadEvent(bool block)
     bool	result = false;
     int		pid, status;
 
-    while ((pid = process::waitProcs(&status, block)) > 0) {
+    // while ((pid = process::waitProcs(&status, block)) > 0) {
+    if ((pid = process::waitProcs(&status, block)) > 0) {
 	// There's been a change in a child process
 	result = true;
 	// Since we found something, we don't want to block anymore

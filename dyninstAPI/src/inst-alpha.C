@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.8 1999/05/03 20:02:32 zandy Exp $
+// $Id: inst-alpha.C,v 1.9 1999/05/13 23:08:11 hollings Exp $
 
 #include "util/h/headers.h"
 
@@ -105,6 +105,9 @@
  */
 
 
+// HACK: This allows the bootstrap code for loading the dyninst library to
+//    skip calling save/restore register code.
+bool skipSaveCalls = false;
 
 // The API for Alphas does not appear to be followed in all cases
 // rather than spend much time and effort disassembling and cursing
@@ -176,6 +179,7 @@ static inline void generate_tramp_preamble(instruction*, Address,
 
 // undocumented pv/t12
 #define REG_PV          27
+#define REG_T12		27
 
 #define REG_GP          29
 #define REG_SP          30
@@ -201,7 +205,7 @@ Register regList[] = {1, 2, 3, 4, 5, 6, 7, 8};
 
 trampTemplate baseTemplate;
 
-string getStrOp(int op) {
+string getStrOp(int /* op */) {
   assert(0);
 }
 
@@ -309,7 +313,7 @@ generate_jump(instruction *insn, Register dest_reg, unsigned long ext_code,
 	      Register ret_reg, int hint) {
   assert(dest_reg < Num_Registers); 
   assert(ret_reg < Num_Registers); 
-  assert((ext_code == MD_JSR));
+  assert((ext_code == MD_JSR) || (ext_code == MD_JMP));
 
   // If you want to use this for other ext_code values, then modify the branch
   // prediction
@@ -380,10 +384,11 @@ genRelOp(instruction *insn, unsigned opcode, unsigned fcode, Register src1,
 }
 
 instPoint::instPoint(pd_Function *f, const instruction &instr, 
-		     const image *owner, Address &adr,
-		     const bool delayOK,instPointType pointType)
+		     const image *img, Address &adr,
+		     const bool,instPointType pointType)
 : addr(adr), originalInstruction(instr), inDelaySlot(false), isDelayed(false),
-  callIndirect(false), callAggregate(false), callee(NULL), func(f),ipType(pointType)
+  callIndirect(false), callAggregate(false), callee(NULL), func(f),
+  ipType(pointType), image_ptr(img)
 {
 }
 
@@ -399,8 +404,11 @@ unsigned long
 generate_lda(instruction *insn, Register rdest, Register rstart,
 	     long offset, bool do_low) {
 
-  assert(ABS(offset) < shifted_16);
-  assert(offset >= (- (long) 0xffffffff));
+  // this is not wuite the correct check, but some calls supply the actual
+  //   signed displacement and others supply the raw 16 bits (i.e. not sign
+  //   extended.  - jkh
+  assert(ABS(offset) < (int) shifted_16);
+  // assert(offset >= (- (long) 0xffffffff));
   assert(rdest < Num_Registers);
   assert(rstart < Num_Registers);
 
@@ -415,6 +423,7 @@ generate_lda(instruction *insn, Register rdest, Register rstart,
 // left == true, shift left
 // left == false, shift right
 // unsigned
+// amount is a literal
 // generate_sxl(instruction *insn, unsigned rdest, unsigned amount,
 //	     bool left, unsigned rsrc) {
 unsigned long
@@ -427,15 +436,18 @@ generate_sxl(instruction *insn, Register rdest, unsigned long amount,
   // insn->oper.sbz = 0;
   // insn->oper.zero = 0;
 
-  insn->oper.opcode = left ? OP_SLL : OP_SRL;
-  insn->oper.function = left ? FC_SLL : FC_SRL;
-  insn->oper.ra = rsrc;
-  insn->oper.rb = amount;
-  insn->oper.rc = rdest;
+  insn->oper_lit.opcode = left ? OP_SLL : OP_SRL;
+  insn->oper_lit.function = left ? FC_SLL : FC_SRL;
+  insn->oper_lit.one = 1;
+  insn->oper_lit.ra = rsrc;
+  insn->oper_lit.lit = amount;
+  insn->oper_lit.rc = rdest;
   return 1;
 }
 
 #define SEXT_16(x) (((x) & bit_15) ? ((x) | 0xffffffffffff0000) : (x))
+
+typedef unsigned long int Offset;
 
 // remainder returns 15 bit offset to be included in load or store
 // returns number of instruction words
@@ -449,21 +461,18 @@ unsigned long generate_address(instruction *insn,
 			 int& remainder) {
 //  unsigned words = 0;
   unsigned long words = 0;
-  Address extra = 0;
-  Address third = THIRD_16(addr);
-  Address low = 0xffff & addr;
-  Address tmp1 = addr - SEXT_16(low);
-//  Address high = tmp1 >> 16;
-  Address high = (tmp1 >> 16) & 0xffff;
-  Address tmp2 = tmp1 - ((SEXT_16(high)) << 16);
 
-  if (tmp2) {
-    extra = 0x4000;
-    tmp1 -= 0x40000000;
-    high = tmp1 >> 16;
-  } else
-    extra = 0;
-  
+  Offset tempAddr = addr;
+  Offset low = tempAddr & 0xffff;
+  tempAddr -= SEXT_16(low);
+  Offset high = (tempAddr >> 16) & 0xffff;
+  tempAddr -= (SEXT_16(high) << 16);
+  Offset third = (tempAddr >> 32) & 0xffff;
+
+  assert((Address)SEXT_16(low) +
+	 ((Address)SEXT_16(high)<<16) +
+	 ((Address)SEXT_16(third)<<32) == addr);
+
   bool primed = false;
   if (third) {
     primed = true;
@@ -473,23 +482,14 @@ unsigned long generate_address(instruction *insn,
     generate_sxl(insn+words, rdest, 16, true, rdest);  // move (31:15) to (47:32)
     words++;
   }
-  // generate_lda(insn+words, rdest, rdest, low, true);
-  // words++;
-  remainder = low;
 
-  if (extra) {
-    if (primed) 
-      generate_lda(insn+words, rdest, rdest, extra, false);
-    else
-      generate_lda(insn+words, rdest, REG_ZERO, extra, false);
-    words++; primed = true;
-  }
   if (high) {
     if (primed)
       generate_lda(insn+words, rdest, rdest, high, false);
     else
       generate_lda(insn+words, rdest, REG_ZERO, high, false);
-    words++; primed = true;
+    words++; 
+    primed = true;
   }
   // a better solution is to use register zero as the base
   // clear the base register
@@ -497,10 +497,7 @@ unsigned long generate_address(instruction *insn,
     words += generate_operate(insn+words, REG_ZERO, REG_ZERO, rdest, 
 			      OP_BIS, FC_BIS);
 
-  assert((Address)SEXT_16(low) +
-	 ((Address)SEXT_16(extra)<<16) +
-	 ((Address)SEXT_16(high)<<16) +
-	 ((Address)SEXT_16(third)<<32) == addr);
+  remainder = low;
   return words;
 }
 
@@ -511,7 +508,7 @@ unsigned long generate_address(instruction *insn,
 unsigned long
 generate_store(instruction* insn, Register rsrc, Register rbase, 
 	int disp, data_width width) {
-  assert((Address)disp < shifted_16); 
+  assert(ABS(disp) < (int) shifted_16); 
   assert(rsrc < Num_Registers); 
   assert(rbase < Num_Registers);
   insn->raw = 0;
@@ -533,7 +530,7 @@ generate_store(instruction* insn, Register rsrc, Register rbase,
 unsigned long
 generate_load(instruction *insn, Register rdest, Register rbase, 
 	int disp, data_width width,bool aligned = true) {
-  assert(disp < shifted_16); 
+  assert(ABS(disp) < (int) shifted_16); 
   assert(rdest < Num_Registers);
   assert(rbase < Num_Registers);
   insn->raw = 0;
@@ -647,93 +644,35 @@ void relocateInstruction(instruction* insn, Address origAddr,
   // The rest of the instructions should be fine as is 
 }
 
+registerSpace *createRegisterSpace()
+{
+  return new registerSpace(sizeof(regList)/sizeof(Register), regList,
+                                0, NULL);
+}
+
 //
-// Note -- the code in initTramps and installBaseTramp should be changed
-// together.  initTramps generates a "dummy" base trampoline.  
-// installBaseTramp generates the real thing.  the dummy base tramp is 
-// used to determine offsets and the trampoline size
+// We now generate tramps on demand, so all we do is init the reg space.
 //
 void initTramps() {
-  static instruction insn_buffer[50];
   static bool init_done=false;
-//  unsigned words = 0;
-  unsigned long words = 0;
 
   if (init_done) return;
   init_done = true;
 
   regSpace = new registerSpace(sizeof(regList)/sizeof(Register), regList,
                                 0, NULL);
+}
 
-  // Pre branch
-  baseTemplate.skipPreInsOffset = words*4;
-  words += generate_nop(insn_buffer+words);
-  // decrement stack by 8
-  words += generate_nop(insn_buffer+words);
-
-  // push ra onto the stack
-  words += generate_nop(insn_buffer+words);
-
-  // Call to DYNINSTsave
-  words += generate_nop(insn_buffer+words);
-
-  // global_pre -- assume a word is 4 bytes
-  baseTemplate.globalPreOffset = words * 4;
-  words += generate_nop(insn_buffer+words);
-
-  // local_pre
-  baseTemplate.localPreOffset = words * 4;
-  words += generate_nop(insn_buffer+words);
-
-  // Call to DYNINSTrestore
-  baseTemplate.localPreReturnOffset = words * 4;
-  words += generate_nop(insn_buffer+words);
-
-  // load ra from the stack
-  words += generate_nop(insn_buffer+words);
-
-  // increment stack by 8
-  words += generate_nop(insn_buffer+words);
-
-  baseTemplate.emulateInsOffset = words*4;
-  // slot for emulate instruction
-  words += generate_nop(insn_buffer+words);
-
-  // decrement stack by 8
-  words += generate_nop(insn_buffer+words);
-
-  // push ra onto the stack
-  words += generate_nop(insn_buffer+words);
-
-  // Call to DYNINSTsave
-  words += generate_nop(insn_buffer+words);
-
-  // global_post
-  baseTemplate.globalPostOffset = words * 4;
-  words += generate_nop(insn_buffer+words);
-
-  // local_post
-  baseTemplate.localPostOffset = words * 4;
-  words += generate_nop(insn_buffer+words);
-
-  // Call to DYNINSTrestore
-  baseTemplate.localPostReturnOffset = words * 4;
-  words += generate_nop(insn_buffer+words);
-
-  // load ra from the stack
-  words += generate_nop(insn_buffer+words);
-
-  // increment stack by 8
-  words += generate_nop(insn_buffer+words);
-
-  words += generate_nop(insn_buffer+words);   // nop
-  // slot for return instruction
-  words += generate_nop(insn_buffer+words);
-  //  words += generate_nop(insn_buffer+words);   //nop padding to 64bit boundary
-  words += generate_nop(insn_buffer+words);   // nop
-  
-  baseTemplate.size = words * 4;
-  baseTemplate.trampTemp = (void*) insn_buffer;
+// Emit a func 64bit address for the call
+inline void callAbsolute(instruction *code, 
+			 unsigned long &words, 
+			 Address funcAddr)
+{
+  int remainder;
+  words += generate_address(code+(words), REG_GP, funcAddr, remainder);
+  if (remainder)
+    words += generate_lda(code+(words), REG_GP, REG_GP, remainder, true);
+  words += generate_jump(code+(words), REG_GP, MD_JSR, REG_RA, remainder);
 }
 
 /*
@@ -741,107 +680,165 @@ void initTramps() {
  * An obvious optimization is to turn off the save-restore calls when they 
  * are not needed.
  */
-trampTemplate *installBaseTramp(Address baseAddr, 
-		      instPoint *location,
-		      process *proc) {
+void installBaseTramp(instPoint *location,
+		      process *proc,
+		      trampTemplate &tramp
+		      ) {
 //  unsigned words = 0;
   unsigned long words = 0;
+  const int MAX_BASE_TRAMP = 128;
 
-  assert(baseTemplate.size > 0);
-  instruction *code = new instruction[baseTemplate.size]; assert(code);
+  // XXX - for now assume base tramp is less than 1K
+  instruction *code = new instruction[MAX_BASE_TRAMP]; assert(code);
 
   function_base *fun_save;
   function_base *fun_restore;
 
+  Symbol info;
+  Address baseAddr;
+
   if (location->ipType == otherPoint) {
       fun_save = proc->findOneFunction("DYNINSTsave_conservative");
       fun_restore = proc->findOneFunction("DYNINSTrestore_conservative");
+      proc->getSymbolInfo("DYNINSTsave_conservative", info, baseAddr);
   } else {
       fun_save = proc->findOneFunction("DYNINSTsave_temp");
       fun_restore = proc->findOneFunction("DYNINSTrestore_temp");
+      proc->getSymbolInfo("DYNINSTsave_temp", info, baseAddr);
   }
 
   assert(fun_save && fun_restore);
-  Address dyn_save = fun_save->addr();
-  Address dyn_restore = fun_restore->addr();
-  Address off_save = dyn_save - baseAddr;
-  Address off_restore = dyn_restore - baseAddr;
+  Address dyn_save = fun_save->addr() + baseAddr;
+  Address dyn_restore = fun_restore->addr() + baseAddr;
 
   // Pre branch
+  tramp.skipPreInsOffset = words*4;
   words += generate_nop(code+words);
-  // decrement stack by 8
-  words += generate_lda(code+words, REG_SP, REG_SP, -8, true);
+
+  // decrement stack by 16
+  words += generate_lda(code+words, REG_SP, REG_SP, -16, true);
 
   // push ra onto the stack
   words += generate_store(code+words, REG_RA, REG_SP, 0, dw_quad);
 
+  // push GP onto the stack
+  words += generate_store(code+words, REG_GP, REG_SP, 8, dw_quad);
+
   // Call to DYNINSTsave_temp
-  words += generate_branch(code+words, REG_RA, off_save-(words*4)-4, OP_BSR);
+  callAbsolute(code, words, dyn_save);
 
   // global_pre
+  tramp.globalPreOffset = words * 4;
   words += generate_nop(code+words);
 
   // local_pre
+  tramp.localPreOffset = words * 4;
   words += generate_nop(code+words);
 
+  words += generate_nop(code+words);
+
+  // **** When you change these code also look at emitFuncJump ****
   // Call to DYNINSTrestore_temp
-  words += generate_branch(code+words, REG_RA, off_restore-(words*4)-4, OP_BSR);
+  tramp.localPreReturnOffset = words * 4;
+  callAbsolute(code, words, dyn_restore);
 
   // load ra from the stack
   words += generate_load(code+words, REG_RA, REG_SP, 0, dw_quad);
 
-  // increment stack by 8
-  words += generate_lda(code+words, REG_SP, REG_SP, 8, true);
+  // load GP from the stack
+  words += generate_load(code+words, REG_GP, REG_SP, 8, dw_quad);
+
+  // increment stack by 16
+  words += generate_lda(code+words, REG_SP, REG_SP, 16, true);
+
+  // *** end code cloned in emitFuncJump ****
 
   // slot for emulate instruction
-  instruction *reloc = &code[words]; *reloc = location->originalInstruction;
-  relocateInstruction(reloc, location->addr, baseAddr + (words * 4));
+  tramp.emulateInsOffset = words*4;
+  instruction *reloc = &code[words]; 
+  *reloc = location->originalInstruction;
   words += 1;
+  // Do actual relocation once we know the base address of the tramp
 
-  // decrement stack by 8
-  words += generate_lda(code+words, REG_SP, REG_SP, -8, true);
+  // compute effective address of this location
+  Address pointAddr = location->addr;
+  Address baseAddress;
+  if(proc->getBaseAddress(location->image_ptr, baseAddress)){
+      pointAddr += baseAddress;
+  }
+
+  // decrement stack by 16
+  words += generate_lda(code+words, REG_SP, REG_SP, -16, true);
 
   // push ra onto the stack
   words += generate_store(code+words, REG_RA, REG_SP, 0, dw_quad);
 
+  // push GP onto the stack
+  words += generate_store(code+words, REG_GP, REG_SP, 8, dw_quad);
+
   // Call to DYNINSTsave_temp
-  words += generate_branch(code+words, REG_RA, off_save-(words*4)-4, OP_BSR);
+  callAbsolute(code, words, dyn_save);
 
   // global_post
+  tramp.globalPostOffset = words * 4;
   words += generate_nop(code+words);
 
   // local_post
+  tramp.localPostOffset = words * 4;
   words += generate_nop(code+words);
 
   // Call to DYNINSTrestore_temp
-  words += generate_branch(code+words, REG_RA, off_restore-(words*4)-4, OP_BSR);
+  tramp.localPostReturnOffset = words * 4;
+  callAbsolute(code, words, dyn_restore);
 
   // load ra from the stack
   words += generate_load(code+words, REG_RA, REG_SP, 0, dw_quad);
 
-  // increment stack by 8
-  words += generate_lda(code+words, REG_SP, REG_SP, 8, true);
+  // load GP from the stack
+  words += generate_load(code+words, REG_GP, REG_SP, 8, dw_quad);
+
+  // increment stack by 16
+  words += generate_lda(code+words, REG_SP, REG_SP, 16, true);
 
   // If the relocated insn is a Jsr or Bsr then 
   // appropriately set Register Ra
-  if (isCallInsn(location->originalInstruction))
-    words += generate_load(code+words,REG_RA,REG_RA,40,dw_quad,true);
-  else 
-    words += generate_nop(code+words);
+  if (isCallInsn(location->originalInstruction)) {
+      int remainder;
+      words += generate_address(code+words, REG_RA, pointAddr+4,remainder);
+      if (remainder)
+	words += generate_lda(code+words, REG_RA, REG_RA, remainder, true);
+  }
 
   // slot for return (branch) instruction
-  reloc = &code[words];
-  // location->addr + 4 is address of instruction after relocated instr
-  // curr_addr is address of the branch instruction that returns to user code
-  // curr_addr + 4 is updated pc when branch instruction executes
-  Address curr_addr = baseAddr + (words * 4);
-  words += generate_branch(reloc, REG_ZERO,
-			   (location->addr+4) - (curr_addr+4), OP_BR);
-  //  words += 1;  // skip the padding NOP
-  ((instruction *)(code+words))->raw = location->addr+4;
+  // actual code after we know its locations
+  // branchFromAddr offset from base until we know base of tramp 
+  Address branchFromAddr = (words * 4);		
+  instruction *branchBack = &code[words];
   words += 1;
 
-  proc->writeDataSpace((caddr_t)baseAddr, baseTemplate.size, (caddr_t) code);
+  words += generate_nop(code+words);
+
+  assert(words < MAX_BASE_TRAMP);
+
+  tramp.size = words * sizeof(instruction);
+  tramp.baseAddr = inferiorMalloc(proc, tramp.size, textHeap, pointAddr);
+  assert(tramp.baseAddr);
+
+  // pointAddr + 4 is address of instruction after relocated instr
+  // branchFromAddr = address of the branch insn that returns to user code
+  // branchFromAddr + 4 is updated pc when branch instruction executes
+  // we assumed this one was instruction long before
+  branchFromAddr += tramp.baseAddr;	// update now that we know base
+
+  int count = generate_branch(branchBack, REG_ZERO,
+			   (pointAddr+4) - (branchFromAddr+4), OP_BR);
+  assert(count == 1);
+
+  // Do actual relocation once we know the base address of the tramp
+  relocateInstruction(reloc, pointAddr, 
+       tramp.baseAddr + tramp.emulateInsOffset);
+
+  proc->writeDataSpace((caddr_t)tramp.baseAddr, tramp.size, (caddr_t) code);
   delete (code);
 }
 
@@ -858,10 +855,13 @@ void emitSaveConservative(process *proc, char *code, unsigned &offset)
   function_base *fun_save;
   instruction *insn = (instruction *) ((void*)&code[offset]);
 
+  Symbol info;
+  Address baseAddr;
   fun_save = proc->findOneFunction("DYNINSTsave_conservative");
+  proc->getSymbolInfo("DYNINSTsave_temp", info, baseAddr);
   assert(fun_save);
 
-  Address dyn_save = fun_save->addr();
+  Address dyn_save = fun_save->addr() + baseAddr;
 
   // decrement stack by 16
   count += generate_lda(&insn[count], REG_SP, REG_SP, -16, true);
@@ -895,10 +895,13 @@ void emitRestoreConservative(process *proc, char *code, unsigned &offset)
   function_base *fun_restore;
   instruction *insn = (instruction *) ((void*)&code[offset]);
 
+  Symbol info;
+  Address baseAddr;
   fun_restore = proc->findOneFunction("DYNINSTrestore_conservative");
+  proc->getSymbolInfo("DYNINSTsave_temp", info, baseAddr);
   assert(fun_restore);
 
-  Address dyn_restore = fun_restore->addr();
+  Address dyn_restore = fun_restore->addr() + baseAddr;
 
   // Call to DYNINSTrestore_temp
   int remainder;
@@ -923,7 +926,7 @@ void emitRestoreConservative(process *proc, char *code, unsigned &offset)
 // move the passed parameter into the passed register, or if it is already
 //    in a register return the register number.
 //
-Register getParameter(Register dest, int param) {
+Register getParameter(Register, int param) {
   if (param <= 5) {
     return(16+param);
   }
@@ -1013,15 +1016,13 @@ if (a > b) {
   // +4 to use updated pc
   disp = newAddr - (fromAddr+4);
   generateBranchInsn(&insn, disp);
-  int sraw = insn.raw;
-  unsigned uraw = insn.raw;
 
   proc->writeTextWord((caddr_t)fromAddr, insn.raw);
 }
 
 // The Alpha does not have a divide instruction
 // The divide is performed in software by calling __divl
-int software_divide(int src1,int src2,int dest,char *i,Address &base,bool noCost,Address divl_addr,bool Imm = false)
+int software_divide(int src1,int src2,int dest,char *i,Address &base,bool,Address divl_addr,bool Imm = false)
 {
   int words;
   int remainder;
@@ -1136,11 +1137,15 @@ generate_call_code(instruction *insn, Address src1, Address src2, Address dest,
   unsigned long words = 0;
 //  int decrement = -8;
 
+  Symbol info;
+  Address baseAddr;
+
+  proc->getSymbolInfo("DYNINSTsave_misc", info, baseAddr);
   function_base *fun_save = proc->findOneFunction("DYNINSTsave_misc");
   function_base *fun_restore = proc->findOneFunction("DYNINSTrestore_misc");
   assert(fun_save && fun_restore);
-  Address dyn_save = fun_save->addr();
-  Address dyn_restore = fun_restore->addr();
+  Address dyn_save = fun_save->addr() + baseAddr;
+  Address dyn_restore = fun_restore->addr() + baseAddr;
 
   // save the current values in v0, a0..a5, pv, at, gp
   // Call to DYNINSTsave_misc
@@ -1300,8 +1305,8 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
   return(Null_Register);        // should never get here!
 }
 
-void emitVload(opCode op, Address src1, Register src2, Register dest,
-	     char *i, Address &base, bool noCost)
+void emitVload(opCode op, Address src1, Register, Register dest,
+	     char *i, Address &base, bool)
 {
   instruction *insn = (instruction *) ((void*)&i[base]);
   assert(!((unsigned long)insn & (unsigned long)3));
@@ -1347,7 +1352,7 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
 }
 
 void emitVstore(opCode op, Register src1, Register src2, Address dest,
-	     char *i, Address &base, bool noCost)
+	     char *i, Address &base, bool /* noCost */)
 {
   instruction *insn = (instruction *) ((void*)&i[base]);
   assert(!((unsigned long)insn & (unsigned long)3));
@@ -1370,8 +1375,9 @@ void emitVstore(opCode op, Register src1, Register src2, Address dest,
   }
 }
 
-void emitVupdate(opCode op, RegValue src1, Register /*src2*/, Address dest,
-	     char *i, Address &base, bool noCost)
+void emitVupdate(opCode op, RegValue /* src1 */, 
+			    Register /*src2*/, Address /* dest */,
+			    char *i, Address &base, bool /* noCost */)
 {
   instruction *insn = (instruction *) ((void*)&i[base]);
   assert(!((unsigned long)insn & (unsigned long)3));
@@ -1494,12 +1500,13 @@ void initDefaultPointFrequencyTable()
 
 // unsigned findAndInstallBaseTramp(process *proc, 
 trampTemplate *findAndInstallBaseTramp(process *proc, 
-				 instPoint *&location,returnInstance *&retInstance,bool noCost)
+				       instPoint *&location,
+				       returnInstance *&retInstance, 
+				       bool /* noCost */)
 {
   trampTemplate *ret;
   process *globalProc;
   retInstance = NULL;
-  Address baseAddr;
 
 #ifdef notdef
     if (nodePseudoProcess && (proc->symbols == nodePseudoProcess->symbols)){
@@ -1512,19 +1519,23 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
     globalProc = proc;
 
     if (!globalProc->baseMap.defines(location)) {
-	baseAddr = inferiorMalloc(globalProc, baseTemplate.size, textHeap);
-	installBaseTramp(baseAddr, location, globalProc);
+	ret = new trampTemplate;
+	installBaseTramp(location, globalProc, *ret);
 	instruction *insn = new instruction;
-	generateBranchInsn(insn, baseAddr - (location->addr+4));
-	globalProc->baseMap[location] = (trampTemplate*)baseAddr;
-	retInstance = new returnInstance((instruction *)insn,sizeof(instruction), location->addr, sizeof(instruction)); 
+
+	Address pointAddr = location->addr;
+	Address baseAddress;
+	if (proc->getBaseAddress(location->image_ptr, baseAddress)) {
+	    pointAddr += baseAddress;
+	}
+	generateBranchInsn(insn, ret->baseAddr - (pointAddr+4));
+	globalProc->baseMap[location] = ret;
+	retInstance = new returnInstance((instruction *)insn,sizeof(instruction), 
+	    pointAddr, sizeof(instruction)); 
     } else {
-        baseAddr = (Address)globalProc->baseMap[location];
+        ret = globalProc->baseMap[location];
     }
       
-    ret = new trampTemplate;
-    *ret = baseTemplate;
-    ret->baseAddr = baseAddr;
     return(ret);
 }
 
@@ -1563,6 +1574,11 @@ float getPointFrequency(instPoint *point)
     }
 }
 
+bool isReturn(const instruction insn) {
+    return ((insn.mem_jmp.opcode == OP_MEM_BRANCH) &&
+	    (insn.mem_jmp.ext == MD_RET));
+}
+
 // Borrowed from the POWER version
 bool isReturnInsn(const image *owner, Address adr, bool &lastOne)
 {
@@ -1572,8 +1588,7 @@ bool isReturnInsn(const image *owner, Address adr, bool &lastOne)
   // need to know if this is really the last return.
   //    for now assume one return per function - jkh 4/12/96
   lastOne = true;
-  return ((insn.mem_jmp.opcode == OP_MEM_BRANCH) &&
-          (insn.mem_jmp.ext == MD_RET));
+  return isReturn(insn);
 }
 
 bool isCallInsn(const instruction i) {
@@ -1631,9 +1646,11 @@ bool pd_Function::findInstPoints(const image *owner)
 //
 // find all DYNINST symbols that are data symbols
 bool process::heapIsOk(const vector<sym_data> &find_us) {
-  Address instHeapStart, curr;
+  bool err;
   Symbol sym;
   string str;
+  Address addr;
+  Address instHeapStart;
 
   // find the main function
   // first look for main or _main
@@ -1645,69 +1662,44 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
      return false;
   }
   
-//  for (unsigned i=0; i<find_us.size(); i++) {
   for (unsigned long i=0; i<find_us.size(); i++) {
-    str = find_us[i].name;
-    if (!symbols->symbol_info(str, sym)) {
-      string str1 = string("_") + str.string_of();
-      if (!symbols->symbol_info(str1, sym) && find_us[i].must_find) {
+    addr = findInternalAddress(find_us[i].name, false, err);
+    printf("looking for %s\n", find_us[i].name.string_of());
+    if (err) {
 	string msg;
         msg = string("Cannot find ") + str + string(". Exiting");
 	statusLine(msg.string_of());
 	showErrorCallback(50, msg);
 	return false;
-      }
     }
-    //addInternalSymbol(str, sym.addr());
   }
 
   string ghb = "_DYNINSTtext";
-  if (!symbols->symbol_info(ghb, sym)) {
+  addr = findInternalAddress(ghb, false, err);
+  if (err) {
       string msg;
-      msg = string("Cannot find ") + ghb + string(". Exiting");
+      msg = string("Cannot find _DYNINSTtext") + string(". Exiting");
       statusLine(msg.string_of());
       showErrorCallback(50, msg);
-      return false;
   }
-  instHeapStart = sym.addr();
-  //addInternalSymbol(ghb, instHeapStart);
-
-  // check that we can get to our heap.
-  const Address instHeapEnd = 
-        getMaxBranch()+(Address)(symbols->codeOffset())+SYN_INST_BUF_SIZE;
-  if (instHeapStart > instHeapEnd) {
-    logLine("*** FATAL ERROR: Program text + data too big for dyninst\n");
-    sprintf(errorLine, "    heap starts at 0x%lx\n", instHeapStart);
-    logLine(errorLine);
-    sprintf(errorLine, "    max reachable at 0x%lx\n", getMaxBranch());
-    logLine(errorLine);
-    showErrorCallback(53,(const char *) errorLine);
-    return false;
-  } 
-/*
-  else if (instHeapStart + SYN_INST_BUF_SIZE > getMaxBranch()) {
-    logLine("WARNING: Program text + data could be too big for dyninst\n");
-    showErrorCallback(54,(const char *) errorLine);
-    return false;
-  }
-*/
+  instHeapStart = addr;
 
   string hd = "DYNINSTdata";
-  if (!symbols->symbol_info(hd, sym)) {
+  addr = findInternalAddress(hd, true, err);
+  if (err) {
       string msg;
-      msg = string("Cannot find ") + hd + string(". Exiting");
+      msg = string("Cannot find DYNINSTdata") + string(". Exiting");
       statusLine(msg.string_of());
       showErrorCallback(50, msg);
       return false;
   }
-  instHeapStart = sym.addr();
-  //addInternalSymbol(hd, instHeapStart);
+  instHeapStart = addr;
 
   return true;
 }
 
 void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, 
-             char *i, Address &base, bool noCost)
+             char *i, Address &base, bool /* noCost */)
 {
   instruction *insn = (instruction *) ((void*)&i[base]);
   assert(!((unsigned long)insn & (unsigned long)3));
@@ -1716,7 +1708,7 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
 }
 
 Register
-emitFuncCall(opCode op, 
+emitFuncCall(opCode /* op */, 
 	     registerSpace *rs,
 	     char *i, Address &base, 
 	     const vector<AstNode *> &operands,
@@ -1740,12 +1732,12 @@ emitFuncCall(opCode op,
   if (calleebase)
        addr = calleebase->getEffectiveAddress(proc);
   else {
-       addr = proc->findInternalAddress(func, false, err);
+       addr = proc->findInternalAddress(callee, false, err);
        if (err) {
-	    function_base *func_b = proc->findOneFunction(func);
+	    function_base *func_b = proc->findOneFunction(callee);
 	    if (!func_b) {
 		 ostrstream os(errorLine, 1024, ios::out);
-		 os << "Internal error: unable to find addr of " << func << endl;
+		 os << "Internal error: unable to find addr of " << callee << endl;
 		 logLine(errorLine);
 		 showErrorCallback(80, (const char *) errorLine);
 		 P_abort();
@@ -1754,27 +1746,38 @@ emitFuncCall(opCode op,
        }
   }
 
-  function_base *fun_save = proc->findOneFunction("DYNINSTsave_misc");
-  function_base *fun_restore = proc->findOneFunction("DYNINSTrestore_misc");
-  assert(fun_save && fun_restore);
-  Address dyn_save = fun_save->addr();
-  Address dyn_restore = fun_restore->addr();
-
-  // save the current values in v0, a0..a5, pv, at, gp
-  // Call to DYNINSTsave_misc
   int remainder;
   instruction *insn = (instruction *) ((void*)&i[base]);
-  base += (4* generate_address(insn, REG_T10, dyn_save, remainder));
-  if (remainder)
-    {
-      insn = (instruction *) ((void*)&i[base]);
-      base += (4 * generate_lda(insn, REG_T10, REG_T10, remainder, true));
-    }
-  insn = (instruction *) ((void*)&i[base]);
-  base += (4 * generate_jump(insn, REG_T10, MD_JSR, REG_RA, remainder));
+  Address dyn_save;
+  Address dyn_restore;
 
-  //  words += (base - temp_base) / sizeof(insn);
-  //  base = temp_base;
+  if (!skipSaveCalls) {
+      function_base *fun_save = proc->findOneFunction("DYNINSTsave_misc");
+      function_base *fun_restore = proc->findOneFunction("DYNINSTrestore_misc");
+      assert(fun_save && fun_restore);
+      dyn_save = fun_save->addr();
+      dyn_restore = fun_restore->addr();
+
+      Symbol info;
+      Address baseAddr;
+      proc->getSymbolInfo("DYNINSTsave_misc", info, baseAddr);
+
+      dyn_save += baseAddr;
+      dyn_restore += baseAddr;
+
+      // save the current values in v0, a0..a5, pv, at, gp
+      // Call to DYNINSTsave_misc
+      base += (4* generate_address(insn, REG_T10, dyn_save, remainder));
+      if (remainder) {
+	  insn = (instruction *) ((void*)&i[base]);
+	  base += (4 * generate_lda(insn, REG_T10, REG_T10, remainder, true));
+      }
+      insn = (instruction *) ((void*)&i[base]);
+      base += (4 * generate_jump(insn, REG_T10, MD_JSR, REG_RA, remainder));
+
+      //  words += (base - temp_base) / sizeof(insn);
+      //  base = temp_base;
+  }
 
   for (unsigned u=0; u<srcs.size(); u++){
     if (u >= 5) {
@@ -1806,17 +1809,17 @@ emitFuncCall(opCode op,
   insn = (instruction *) ((void*)&i[base]);
   base += (4 * generate_jump(insn, REG_PV, MD_JSR, REG_RA, remainder));
   
-  // Call to DYNINSTrestore_misc
-  insn = (instruction *) ((void*)&i[base]);
-  base += (4 * generate_address(insn, REG_T10, dyn_restore, remainder));
-  if (remainder)
-    {
+  if (!skipSaveCalls) {
+      // Call to DYNINSTrestore_misc
       insn = (instruction *) ((void*)&i[base]);
-      base += (4 * generate_lda(insn, REG_T10, REG_T10, remainder, true));
-      
-    }
-  insn = (instruction *) ((void*)&i[base]);
-  base += ( 4 * generate_jump(insn, REG_T10, MD_JSR, REG_RA, remainder));
+      base += (4 * generate_address(insn, REG_T10, dyn_restore, remainder));
+      if (remainder) {
+	  insn = (instruction *) ((void*)&i[base]);
+	  base += (4 * generate_lda(insn, REG_T10, REG_T10, remainder, true));
+      }
+      insn = (instruction *) ((void*)&i[base]);
+      base += ( 4 * generate_jump(insn, REG_T10, MD_JSR, REG_RA, remainder));
+  }
 
   Register dest = rs->allocateRegister(i, base, noCost);
 
@@ -1833,7 +1836,8 @@ emitFuncCall(opCode op,
   return dest;
 }
 
-bool returnInstance::checkReturnInstance(const vector<Address> &adr, u_int &index) {
+bool returnInstance::checkReturnInstance(const vector<Address> & /* adr */, 
+					 u_int & /* index */) {
     return true;
 }
  
@@ -1841,11 +1845,14 @@ void returnInstance::installReturnInstance(process *proc) {
     proc->writeTextSpace((caddr_t)addr_, instSeqSize, (caddr_t) instructionSeq); 
 }
 
-void returnInstance::addToReturnWaitingList(Address pc,process *proc) {
+void returnInstance::addToReturnWaitingList(Address /* pc */, 
+					    process*  /* proc */) 
+{
     P_abort();
 }
 
-void generateBreakPoint(instruction &insn){
+void generateBreakPoint(instruction &insn)
+{
   insn.raw = BREAK_POINT_INSN;
 }
 
@@ -1885,14 +1892,93 @@ bool process::replaceFunctionCall(const instPoint *point,
     return true;
 }
 
+static const Address lowest_addr = 0x00400000;
+void inferiorMallocConstraints(Address near, Address &lo, Address &hi)
+{
+  lo = near - MAX_BRANCH;
+  hi = near + MAX_BRANCH;
+  // avoid mapping the zero page
+  if (lo < lowest_addr) lo = lowest_addr;
+}
+
+void inferiorMallocAlign(unsigned &size)
+{
+  // quadword-aligned (stack alignment)
+  unsigned align = 16;
+  if (size % align) size = ((size/align)+1)*align;
+}
+
 // Emit code to jump to function CALLEE without linking.  (I.e., when
 // CALLEE returns, it returns to the current caller.)
 void emitFuncJump(opCode op, 
 		  char *i, Address &base, 
 		  const function_base *callee, process *proc)
 {
-     /* Unimplemented on this platform! */
-     assert(0);
+
+    Address addr;
+    int remainder;
+    unsigned long count;
+
+    assert(op == funcJumpOp);
+
+    addr = callee->getEffectiveAddress(proc);
+    Address addr2 = ((function_base *)callee)->getAddress(0);
+    instruction *insn = (instruction *) ((void*)&i[base]);
+    count = 0;
+
+    // Cleanup stack state from tramp preamble
+
+    // call DYNINSTrestore_temp
+    Symbol info;
+    Address baseAddr;
+    function_base *fun_restore = proc->findOneFunction("DYNINSTrestore_temp");
+    proc->getSymbolInfo("DYNINSTrestore_temp", info, baseAddr);
+    assert(fun_restore);
+    Address dyn_restore = fun_restore->addr() + baseAddr;
+
+    callAbsolute(insn, count, dyn_restore);
+
+    // load ra from the stack
+    count += generate_load(&insn[count], REG_RA, REG_SP, 0, dw_quad);
+
+    // load GP from the stack
+    count += generate_load(&insn[count], REG_GP, REG_SP, 8, dw_quad);
+
+    // increment stack by 16
+    count += generate_lda(&insn[count], REG_SP, REG_SP, 16, true);
+
+    // save gp and ra in special location
+    // **** Warning this fails in the case of replacing a mutually recursive
+    //    function
+    Address saveArea = inferiorMalloc(proc, 2*sizeof(long), dataHeap, 0);
+
+    count += generate_address(&insn[count], REG_T12, saveArea, remainder);
+    count += generate_store(&insn[count], REG_GP, REG_T12, remainder, 
+	dw_quad); 
+
+    count += generate_store(&insn[count], REG_RA, REG_T12, 
+	remainder+sizeof(long), dw_quad);
+
+    // calling convention seems to expect t12 to contain the address of the
+    //    suboutine being called, so we use t12 to build the address
+    count += generate_address(&insn[count], REG_T12, addr, remainder);
+    if (remainder)
+	count += generate_lda(&insn[count], REG_T12, REG_T12, remainder, true);
+    count += generate_jump(&insn[count], REG_T12, MD_JSR, REG_RA, remainder);
+
+    count += generate_nop(&insn[count]);
+
+    // back after function, restore everything
+    count += generate_address(&insn[count], REG_RA, saveArea, remainder);
+    count += generate_load(&insn[count], REG_GP, REG_RA, remainder, 
+	dw_quad); 
+
+    count += generate_load(&insn[count], REG_RA, REG_RA, 
+	remainder+sizeof(long), dw_quad);
+    count += generate_jump(&insn[count], REG_RA, MD_JMP, REG_ZERO, remainder);
+    count += generate_nop(&insn[count]);
+
+    base += count * sizeof(instruction);
 }
 
 #ifdef BPATCH_LIBRARY

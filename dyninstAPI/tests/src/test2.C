@@ -278,7 +278,7 @@ main(int argc, char *argv[])
 	printf("Passed test #2 (try to execute a file that is not a valid program)\n");
     }
 
-#if defined(sparc_sun_sunos4_1_3) || defined(alpha_dec_osf4_0)
+#if defined(sparc_sun_sunos4_1_3)
     printf("Skipping test #3 (attach to an invalid pid)\n");
     printf("Skipping test #4 (attach to a protected pid)\n");
     printf("    attach is not supported on this platform\n");
@@ -347,17 +347,20 @@ main(int argc, char *argv[])
     ret->continueExecution();
 
 #if !defined(sparc_sun_solaris2_4)  && !defined(i386_unknown_solaris2_5) && \
-    !defined(i386_unknown_linux2_0) && !defined(mips_sgi_irix6_4)
+    !defined(i386_unknown_linux2_0) && !defined(mips_sgi_irix6_4) && \
+    !defined(alpha_dec_osf4_0)
     printf("Skipping test #6 (load a dynamically linked library from the mutatee)\n");
     printf("    feature not implemented on this platform\n");
 
     printf("Skipping test #7 (load a dynamically linked library from the mutator)\n");
     printf("    feature not implemented on this platform\n");
 #else
+
+    bool found = false;
+
     waitUntilStopped(bpatch, ret, 6, "load a dynamically linked library");
 
     // see if the dlopen happended.
-    bool found = false;
     char match2[256];
     sprintf(match2, "%s_module", TEST_DYNAMIC_LIB);
     BPatch_Vector<BPatch_module *> *m = img->getModules();
@@ -378,7 +381,9 @@ main(int argc, char *argv[])
 	failed = true;
     }
 
-    // make our own dlopen call
+#if defined(alpha_dec_osf4_0)
+    printf("Skipping test #7 (load a dynamically linked library from the mutator)\n");
+#else
     if (!ret->loadLibrary(TEST_DYNAMIC_LIB2)) {
     	printf("**Failed** test #7 (load a dynamically linked library from the mutator)\n");
 	printf("    BPatch_thread::loadLibrary returned an error\n");
@@ -406,12 +411,15 @@ main(int argc, char *argv[])
 	    failed = true;
 	}
     }
-
-    ret->continueExecution();
 #endif
 
-    // Wait for process to hit breakpoint
+    ret->continueExecution();
+
+#endif
+
+    // Wait for process to finish
     waitUntilStopped(bpatch, ret, 8, "BPatch_breakPointExpr");
+
     // waitUntilStopped would not return is we didn't stop
     printf("Passed test #8 (BPatch_breakPointExpr)\n");
 
@@ -446,7 +454,7 @@ main(int argc, char *argv[])
 
 #if !defined(rs6000_ibm_aix4_1)    && !defined(sparc_sun_sunos4_1_3)  && \
     !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_linux2_0) && \
-    !defined(mips_sgi_irix6_4)
+    !defined(mips_sgi_irix6_4) && !defined(alpha_dec_osf4_0)
     printf("Skipping test #10 (dump image)\n");
     printf("    BPatch_thread::dumpImage not implemented on this platform\n");
 #else

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.h,v 1.2 1998/12/25 22:02:15 wylie Exp $
+// $Id: osfDL.h,v 1.3 1999/05/13 23:08:16 hollings Exp $
 
 #if !defined(osf_dl_hdr)
 #define osf_dl_hdr
@@ -57,26 +57,38 @@ class dynamic_linking {
 
 public:
 
-    dynamic_linking(){} 
+    dynamic_linking(): dynlinked(false) {} 
     ~dynamic_linking(){}
     
+    // get_ld_base_addr: This routine returns the base address of ld.so.1
+    // it returns true on success, and false on error
+    bool dynamic_linking::get_ld_base_addr(Address &addr, int proc_fd);
+
     // getSharedObjects: This routine is called before main() to get and
     // process all shared objects that have been mapped into the process's
     // address space
     // returns 0 
-    vector< shared_object *> *getSharedObjects(process *){ return 0;}
+    vector< shared_object *> *getSharedObjects(process *);
 
     // handleIfDueToSharedObjectMapping: returns true if the trap was caused
     // by a change to the link maps  
     bool handleIfDueToSharedObjectMapping(process *, vector<shared_object *> **,
-			       u_int &, bool &){ return false;}
+			       u_int &, bool &);
 
+
+    // setup all of the dlopen/dlcose traps
+    void setMappingHooks(process *);
 
     // returns true if the executable is dynamically linked 
-    bool isDynamic(){ return(false);}
+    bool isDynamic(){ return(dynlinked);}
 
+    Address get_dlopen_addr() const { return dlopen_addr; }
 
 private:
+    bool dynlinked;
+    Address dlopenRetAddr;
+    Address dlcloseRetAddr;
+    Address dlopen_addr;
 };
 
 #endif

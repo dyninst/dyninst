@@ -80,13 +80,14 @@ public:
   pd_Function *callee;		/* what function is called */
   pd_Function *func;		/* what function we are inst */
 
-  bool isBranchOut;                /* true if this point is a conditional branch, 
+  bool isBranchOut;		/* true if this point is a conditional branch, 
 				   that may branch out of the function */
-  int branchTarget;                /* the original target of the branch */
-  bool leaf;                       /* true if the procedure is a leaf     */
+  int branchTarget;		/* the original target of the branch */
+  bool leaf;			/* true if the procedure is a leaf     */
   instPointType ipType;
   int instId;                      /* id of inst in this function */
   int size;                        /* size of multiple instruction sequences */
+  const image *image_ptr;       /* for finding correct image in process */
 };
 
 

@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.8 1998/09/15 04:15:34 buck Exp $
+# $Id: make.module.tmpl,v 1.9 1999/05/13 23:08:03 hollings Exp $
 #
 
 SUITE_NAME	= DynInst
@@ -17,6 +17,17 @@ DEFINES		     += -UMT_THREAD \
 CFLAGS		     += $(TCLFRIENDLYWARNINGS) $(DEFINES)
 CXXFLAGS	     += $(TCLFRIENDLYWARNINGS) $(DEFINES)
 TFLAGS		     += $(TCLFRIENDLYWARNINGS) $(DEFINES)
+
+ifdef USES_LIBDYNINST_SO
+UNCOMMON_INSTALL = 1
+TARGET3		= libdyninstAPI.so
+LD		= g++
+LDFLAGS         = $(LIBDIR)
+CFLAGS		+= -fPIC
+CXXFLAGS	+= -fPIC
+TFLAGS		+= -fPIC
+endif
+
 
 TARGET	      = libdyninstAPI.a
 
@@ -68,7 +79,8 @@ endif
 
 IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../paradynd/src
 
-all:    $(TARGET)
+#all: $(TARGET) $(TARGET3)
+all: $(TARGET3)
 
 templates0.o: ../src/templates0.C
 	$(CXX) $(TFLAGS) -c ../src/templates0.C
@@ -78,3 +90,10 @@ templates05.o: ../src/templates05.C
 
 templates1.o: ../src/templates1.C
 	$(CXX) $(TFLAGS) -c ../src/templates1.C
+
+DEST  = $(TO_CORE)/$(LIBRARY_DEST)
+
+ifdef USES_LIBDYNINST_SO
+install: all 
+	$(CP) $(TARGET3) $(DEST)/$(TARGET3) 
+endif

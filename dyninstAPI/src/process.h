@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.107 1999/05/07 15:22:18 nash Exp $
+/* $Id: process.h,v 1.108 1999/05/13 23:08:20 hollings Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -580,7 +580,9 @@ class process {
   Address get_dlopen_addr() const;
   Address dyninstlib_brk_addr;
   Address main_brk_addr;
+#if !defined(alpha_dec_osf4_0)
   Address rbrkAddr() { assert(dyn); return dyn->get_r_brk_addr(); }
+#endif
   bool dlopenDYNINSTlib();
   bool trapDueToDyninstLib();
   bool trapAtEntryPointOfMain();
@@ -766,6 +768,7 @@ class process {
 
 #if defined(alpha_dec_osf4_0)
   int waitforRPC(int *status,bool block = false);
+  Address changedPCvalue;
 #endif
   const process *getParent() const {return parent;}
 
@@ -875,6 +878,7 @@ public:
 #endif
   trampTableEntry trampTable[TRAMPTABLESZ];
   unsigned trampTableItems;
+  dynamic_linking *getDyn() { return dyn; }
 
   Address currentPC() {
     Address pc, fp;
@@ -942,9 +946,6 @@ private:
 #endif
   bool pause_();
   bool continueProc_();
-#ifdef alpha_dec_osf4_0
-  bool continueProc_(Address vaddr);
-#endif
 #ifdef BPATCH_LIBRARY
   bool terminateProc_();
 #endif
