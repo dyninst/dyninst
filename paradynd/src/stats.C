@@ -2,7 +2,10 @@
  * Report statistics about dyninst and data collection.
  *
  * $Log: stats.C,v $
- * Revision 1.3  1994/07/14 23:30:32  hollings
+ * Revision 1.4  1994/07/15 04:19:13  hollings
+ * moved dyninst stats to stats.C
+ *
+ * Revision 1.3  1994/07/14  23:30:32  hollings
  * Hybrid cost model added.
  *
  * Revision 1.2  1994/07/05  03:26:18  hollings
@@ -46,7 +49,6 @@ int ptraceOtherOps, ptraceOps, ptraceBytes;
 void printDyninstStats()
 {
     float now;
-    extern internalMetric currentPredictedCost;
 
     now = getCurrentTime(FALSE);
     sprintf(errorLine, "totalPredictedCost = %f\n", 
@@ -74,3 +76,32 @@ void printDyninstStats()
     sprintf(errorLine, "%d ptrace bytes written\n", ptraceBytes);
     logLine(errorLine);
 }
+
+void printAppStats(struct endStatsRec *stats)
+{
+    sprintf(errorLine, "DYNINSTtotalAlaramExpires %d\n", stats->alarms);
+    logLine(errorLine);
+#ifdef notdef
+    sprintf(errorLine, "DYNINSTnumReported %d\n", stats->numReported);
+    logLine(errorLine);
+#endif
+    sprintf(errorLine,"Raw cycle count = %f\n", (double) stats->instCycles);
+    logLine(errorLine);
+
+    // for ss-10 use 60 MHZ clock.
+    sprintf(errorLine,"Total instrumentation (60Mhz clock) cost = %f\n", 
+	stats->instCycles/60000000.0);
+    logLine(errorLine);
+    sprintf(errorLine,"Total handler cost = %f\n", stats->handlerCost);
+    logLine(errorLine);
+    sprintf(errorLine,"Total cpu time of program %f\n", stats->totalCpuTime);
+    logLine(errorLine);
+    sprintf(errorLine,"Elapsed wall time of program %f\n",
+	stats->totalWallTime/1000000.0);
+    logLine(errorLine);
+    sprintf(errorLine,"total data samples %d\n", stats->samplesReported);
+    logLine(errorLine);
+    sprintf(errorLine,"sampling rate %f\n", stats->samplingRate);
+    logLine(errorLine);
+}
+

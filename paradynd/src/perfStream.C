@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.22 1994/07/14 23:30:30 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.23 1994/07/15 04:19:12 hollings Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.22  1994/07/14 23:30:30  hollings
+ * Revision 1.23  1994/07/15 04:19:12  hollings
+ * moved dyninst stats to stats.C
+ *
+ * Revision 1.22  1994/07/14  23:30:30  hollings
  * Hybrid cost model added.
  *
  * Revision 1.21  1994/07/14  14:35:37  jcargill
@@ -246,37 +249,8 @@ void logLine(char *line)
     }
 }
 
-void printAppStats(struct endStatsRec *stats)
-{
-    sprintf(errorLine, "DYNINSTtotalAlaramExpires %d\n", stats->alarms);
-    logLine(errorLine);
-    sprintf(errorLine, "DYNINSTnumReported %d\n", stats->numReported);
-    logLine(errorLine);
-    sprintf(errorLine,"Raw cycle count = %f\n", (double) stats->instCycles);
-    logLine(errorLine);
-
-    // for ss-10 use 60 MHZ clock.
-    sprintf(errorLine,"Total instrumentation (60Mhz clock) cost = %f\n", 
-	stats->instCycles/60000000.0);
-    logLine(errorLine);
-    sprintf(errorLine,"Total handler cost = %f\n", stats->handlerCost);
-    logLine(errorLine);
-    sprintf(errorLine,"Total cpu time of program %f\n", stats->totalCpuTime);
-    logLine(errorLine);
-    sprintf(errorLine,"Elapsed wall time of program %f\n",
-	stats->totalWallTime/1000000.0);
-    logLine(errorLine);
-    sprintf(errorLine,"total data samples %d\n", stats->samplesReported);
-    logLine(errorLine);
-    sprintf(errorLine,"sampling rate %f\n", stats->samplingRate);
-    logLine(errorLine);
-    sprintf(errorLine,"Application program ticks %d\n", stats->userTicks);
-    logLine(errorLine);
-    sprintf(errorLine,"Instrumentation ticks %d\n", stats->instTicks);
-    logLine(errorLine);
-}
-
 extern void processCost(process *p, traceHeader *h, costUpdate *c);
+extern void printAppStats(struct endStatsRec *stats);
 
 void processTraceStream(process *curr)
 {
