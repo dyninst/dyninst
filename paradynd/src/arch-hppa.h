@@ -221,6 +221,8 @@ union instruction {
 #define ADDIop          0x2d
 #define SUBIop          0x25
 
+#define SHDop           0x34
+
 #define COMCLRop        0x02
 #define COMCLRext7      0x44
 
