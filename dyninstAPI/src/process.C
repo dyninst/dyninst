@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.380 2003/01/31 18:55:42 chadd Exp $
+// $Id: process.C,v 1.381 2003/02/02 16:52:58 chadd Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -6238,7 +6238,25 @@ bool process::handleTrapIfDueToRPC() {
 }
     
 
+#if defined(rs6000_ibm_aix4_1) && defined(BPATCH_LIBRARY)
+//When we save the world on AIX we must instrument the
+//beginning of main() to call dlopen() to load the
+//dyninst rt shared library.  The file format of an
+//AIX exec does not easily allow dyninst to add the
+//dyninst rt lib to the list of libraries to load upon
+//startup.  This is why we use dlopen().  If the
+//instrumentation that calls DYNINSTinit() is placed
+//at the beginning of main() when this dlopen() call
+//is inserted, bad things happen.  So we remove
+//the call to DYNINSTinit() and replace it with the
+//call to dlopen() when we save the world.  
+//The handle declared below denotes the DYNINSTinit()
+//instrumentation.  It is deleted once the mutatee
+//has executed DYNINSTinit() and is ready to execute the
+//start of main().
+
 BPatchSnippetHandle *handle; //ccw 17 jul 2002
+#endif
 
 //ccw 19 apr 2002 : SPLIT
 //this function calls DYNINSTinit in either the DYNINST or PARADYN
@@ -6308,8 +6326,11 @@ void process::installBootstrapInst() {
             return;
        }
 #endif
+
+#if defined(rs6000_ibm_aix4_1) && defined(BPATCH_LIBRARY)
+//see comment at declaration of handle.
 	handle= new BPatchSnippetHandle(this); //ccw 17 jul 2002
-	
+#endif	
 
        miniTrampHandle *mtHandle= new miniTrampHandle; //ccw 17 jul 2002
        assert(addInstFunc(mtHandle, this, func_entry, ast, callPreInsn, //ccw 17 jul 2002
@@ -6320,7 +6341,10 @@ void process::installBootstrapInst() {
 	      == success_res);
        // returns an "instInstance", which we ignore (but should we?)
 
+#if defined(rs6000_ibm_aix4_1) && defined(BPATCH_LIBRARY)
+
 	handle->add(mtHandle); //ccw 17 jul 2002
+#endif
 
        removeAst(ast);
        attach_cerr << "wrote call to DYNINSTinit to entry of main" << endl;
@@ -6581,12 +6605,11 @@ int process::procStopFromDYNINSTinit() {
       handleCompletionOfDYNINSTinit(false);
 
 	// ccw 17 jul 2002 : DELETE THE SNIPPET THAT CALLED DYNINSTinit
-	//handle 
-#if defined(rs6000_ibm_aix4_1)
+	// see comment at declaration of handle.
+#if defined(rs6000_ibm_aix4_1) && defined(BPATCH_LIBRARY)
 	if(collectSaveWorldData){	
 		thread->deleteSnippet(handle);	
 	}
-	// ccw 17 jul 2002
 #endif
 
       return 1;
@@ -6601,11 +6624,11 @@ int process::procStopFromDYNINSTinit() {
 
 	// ccw 17 jul 2002 : DELETE THE SNIPPET THAT CALLED DYNINSTinit
 	//handle 
-#if defined(rs6000_ibm_aix4_1)
+#if defined(rs6000_ibm_aix4_1) &&  defined(BPATCH_LIBRARY)
+	// see comment at declaration of handle.
 	if(collectSaveWorldData){	
 		thread->deleteSnippet(handle);	
 	}
-	// ccw 17 jul 2002
 #endif
       if (!continueProc())
          assert(false);
