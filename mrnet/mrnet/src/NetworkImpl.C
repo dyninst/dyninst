@@ -130,15 +130,17 @@ EndPoint * NetworkImpl::get_EndPoint(const char * _hostname,
   return NULL;
 }
 
-int NetworkImpl::recv(void)
+int NetworkImpl::recv( bool blocking )
 {
   if(Network::network){
-    mrn_printf(3, MCFL, stderr, "In net.recv(). Calling frontend.recv()\n");
-    return Network::network->front_end->recv();
+    mrn_printf(3, MCFL, stderr, "In NetImpl::recv(). "
+               "Calling FrontEnd::recv()\n");
+    return Network::network->front_end->recv( blocking );
   }
   else{
-    mrn_printf(3, MCFL, stderr, "In net.recv(). Calling backend.recv()\n");
-    return Network::back_end->recv();
+    mrn_printf(3, MCFL, stderr, "In NetImpl::recv(). "
+               "Calling BackEnd::recv()\n");
+    return Network::back_end->recv( blocking );
   }
 }
 

@@ -10,6 +10,7 @@
 unsigned int StreamImpl::cur_stream_idx=0;
 unsigned int StreamImpl::next_stream_id=0;
 std::map <unsigned int, StreamImpl *>* StreamImpl::streams = NULL;
+bool StreamImpl::force_network_recv=false;
 
 StreamImpl::StreamImpl(Communicator *_comm, int _filter_id)
   :filter_id(_filter_id)
@@ -30,7 +31,7 @@ StreamImpl::StreamImpl(Communicator *_comm, int _filter_id)
     int * backends = new int[endpoints->size()];
     unsigned int i;
 
-    mrn_printf(3, MCFL, stderr, "Adding backends to stream %d: [ ", stream_id);
+    mrn_printf(4, MCFL, stderr, "Adding backends to stream %d: [ ", stream_id);
     for(i=0; i<endpoints->size(); i++){
       _fprintf((stderr, "%d, ", (*endpoints)[i]->get_Id()));
       backends[i] = (*endpoints)[i]->get_Id();
@@ -62,82 +63,79 @@ StreamImpl::~StreamImpl()
 {
 }
 
-int StreamImpl::recv(int *tag, void **ptr, Stream **stream)
+int StreamImpl::recv(int *tag, void **ptr, Stream **stream, bool blocking)
 {
-  unsigned int start_idx;
-  StreamImpl * cur_stream=NULL;
-  Packet * cur_packet=NULL;
+    unsigned int start_idx;
+    StreamImpl * cur_stream=NULL;
+    Packet * cur_packet=NULL;
 
-  mrn_printf(3, MCFL, stderr, "In stream.recv(). Calling network.recv()\n");
-
-    if( streams == NULL )
-    {
-        streams = new 
-            std::map<unsigned int, StreamImpl*>;
-    }
+    mrn_printf(3, MCFL, stderr, "In StreamImpl::recv().\n");
 
  get_packet_from_stream_label:
-  start_idx = cur_stream_idx;
-  do{
-    cur_stream = (*StreamImpl::streams)[cur_stream_idx];
-    if(!cur_stream){
-      cur_stream_idx++;
-      cur_stream_idx %= streams->size();
-      continue;
+    start_idx = cur_stream_idx;
+    do{
+        cur_stream = (*StreamImpl::streams)[cur_stream_idx];
+        if(!cur_stream){
+            cur_stream_idx++;
+            cur_stream_idx %= streams->size();
+            continue;
+        }
+
+        mrn_printf(3, MCFL, stderr, "Checking stream[%d] ...", cur_stream_idx);
+        if( cur_stream->IncomingPacketBuffer.size() != 0 ){
+            mrn_printf( 3, 0, 0, stderr, "found %d packets\n",
+                         (int)cur_stream->IncomingPacketBuffer.size() );
+
+            cur_packet = *( cur_stream->IncomingPacketBuffer.begin() );
+            cur_stream->IncomingPacketBuffer.pop_front();
+            cur_stream_idx++;
+            cur_stream_idx %= streams->size();
+
+            break;
+        }
+        mrn_printf(3, 0, 0, stderr, "found 0 packets\n");
+
+        cur_stream_idx++;
+        cur_stream_idx %= streams->size();
+    } while(start_idx != cur_stream_idx);
+
+    if( force_network_recv || !cur_packet ){
+        int rret = Network::network->recv( false );
+        if( rret == 0 ) {
+            // broken connection indicator seen - exit the recv
+            mrn_printf(1, MCFL, stderr, "broken connection 0\n" );
+            return 0;
+        }
+        else if( rret == -1 ) {
+            // broken connection indicator seen - exit the recv
+            mrn_printf(1, MCFL, stderr, "broken connection -1\n" );
+            return -1;
+        }
     }
 
-    mrn_printf(3, MCFL, stderr, "Checking stream[%d] for packets ...", cur_stream_idx);
-    if( cur_stream->IncomingPacketBuffer.size() != 0 ){
-      _fprintf((stderr, "found %d packets\n",
-                (int)cur_stream->IncomingPacketBuffer.size()));
-
-      std::list<Packet *>::iterator iter = cur_stream->IncomingPacketBuffer.begin();
-
-      cur_packet = *iter;
-      *tag = cur_packet->get_Tag();
-      *stream = (*StreamImpl::streams)[cur_packet->get_StreamId()];
-      *ptr = (void *) cur_packet;
-      cur_stream_idx++;
-      cur_stream_idx %= streams->size();
-
-      cur_stream->IncomingPacketBuffer.pop_front();
-      break;
+    if( cur_packet ){
+        *tag = cur_packet->get_Tag();
+        *stream = (*StreamImpl::streams)[cur_packet->get_StreamId()];
+        *ptr = (void *) cur_packet;
+        mrn_printf(4, MCFL, stderr, "cur_packet(%p) tag: %d, fmt: %s\n",
+                   cur_packet, cur_packet->get_Tag(),
+                   cur_packet->get_FormatString() );
+        mrn_printf(5, MCFL, stderr, "%d packets left\n",
+                   cur_stream->IncomingPacketBuffer.size());
+        return 1;
     }
-    _fprintf((stderr, "No Packets found\n"));
+    else if( !blocking ){
+        //No packets, but non-blocking
+        mrn_printf(3, MCFL, stderr, "No packets currently available\n");
+        return 0;
+    }
+    else{
+        // No packets, but blocking, start over again.
+        goto get_packet_from_stream_label;
+    }
 
-    cur_stream_idx++;
-    cur_stream_idx %= streams->size();
-  } while(start_idx != cur_stream_idx);
-
-  if(cur_packet){
-    mrn_printf(3, MCFL, stderr, "cur_packet(%p) tag: %d, fmt: %s\n", cur_packet,
-               cur_packet->get_Tag(), cur_packet->get_FormatString());
-    mrn_printf(3, MCFL, stderr, "%d packets left\n",
-              cur_stream->IncomingPacketBuffer.size());
-    return 1;
-  }
-  else{
-    mrn_printf(3, MCFL, stderr, "No packets currently on any stream\n");
-
-	// blocking receive?
-    int rret = Network::network->recv();
-	if( rret == 0 )
-	{
-		// broken connection indicator seen - exit the recv
-		mrn_printf(1, MCFL, stderr, "broken connection 0, leaving stream::recv\n" );
-		return 0;
-	}
-	else if( rret == -1 )
-	{
-		// broken connection indicator seen - exit the recv
-		mrn_printf(1, MCFL, stderr, "broken connection -1, leaving stream::recv\n" );
-		return -1;
-	}
-    goto get_packet_from_stream_label;
-    return 0;
-  }
+    return 0; //shouldn't get here, but shut up compiler warnings!
 }
-
 
 int StreamImpl::send_aux(int tag, char const * fmt, va_list arg_list )
 {
@@ -178,38 +176,37 @@ int StreamImpl::flush()
 }
 
 
-int StreamImpl::recv(int *tag, void ** ptr)
+int StreamImpl::recv(int *tag, void ** ptr, bool blocking)
 {
   Packet * cur_packet=NULL;
 
-  mrn_printf(3, MCFL, stderr, "In stream.recv(). Calling network.recv()\n");
+  mrn_printf(3, MCFL, stderr, "In StreamImpl::recv().\n");
 
-  if( IncomingPacketBuffer.size() == 0){
-      Network::network->recv();
+  if( force_network_recv || IncomingPacketBuffer.size() == 0 ){
+      Network::network->recv( false );
+  }
+
+  if( IncomingPacketBuffer.size() == 0  && !blocking ){
+      //No packets, but non-blocking
+      mrn_printf(3, MCFL, stderr, "No packets currently on stream\n");
+      return 0;
   }
   else{
-    mrn_printf(3, MCFL, stderr, "stream has packets\n");
-    std::list<Packet *>::iterator iter = IncomingPacketBuffer.begin();
-
-    cur_packet = *iter;
-    *tag = cur_packet->get_Tag();
-    *ptr = (void *) cur_packet;
+      while( IncomingPacketBuffer.size() == 0 ){
+          //Loop until we get a packet on this stream's incoming buffer.
+          if( Network::network->recv( true ) == -1 ){
+              mrn_printf(1, MCFL, stderr, "Network::recv failed.");
+          }
+      }
+      cur_packet = *( IncomingPacketBuffer.begin() );
+      IncomingPacketBuffer.remove(cur_packet);
+      *tag = cur_packet->get_Tag();
+      *ptr = (void *) cur_packet;
   }
 
-  cur_stream_idx++;
-  cur_stream_idx %= streams->size();
-
-  int ret = 0;
-  if(cur_packet){
-    mrn_printf(3, MCFL, stderr, "cur_packet's tag: %d\n", cur_packet->get_Tag());
-    IncomingPacketBuffer.remove(cur_packet);
-    ret = 1;
-  }
-  else{
-    mrn_printf(3, MCFL, stderr, "No packets currently on stream\n");
-  }
-
-  return ret;
+  mrn_printf(4, MCFL, stderr, "packet's tag: %d\n", cur_packet->get_Tag());
+  mrn_printf(3, MCFL, stderr, "Leaving StreamImpl::recv().\n");
+  return 1;
 }
 
 StreamImpl * StreamImpl::get_Stream(int stream_id)
@@ -223,6 +220,11 @@ StreamImpl * StreamImpl::get_Stream(int stream_id)
     streams->erase(stream_id);
     return NULL;
   }
+}
+
+void StreamImpl::set_ForceNetworkRecv( bool force )
+{
+    force_network_recv = force;
 }
 
 void StreamImpl::add_IncomingPacket(Packet *packet)

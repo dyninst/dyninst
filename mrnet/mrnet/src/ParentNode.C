@@ -84,20 +84,22 @@ ParentNode::ParentNode(bool _threaded, std::string _hostname,
 ParentNode::~ParentNode(void)
 {}
 
-int ParentNode::recv_PacketsFromDownStream(std::list<Packet*>& pkt_list )
+int ParentNode::recv_PacketsFromDownStream(std::list<Packet*>& pkt_list,
+                                           std::vector<RemoteNode*>*rmt_nodes,
+                                           bool blocking)
 {
     int ret = 0;
 
-    mrn_printf(3, MCFL, stderr, "In recv_PacketsFromDownStream()\n" );
+    mrn_printf(3, MCFL, stderr, "In PN::recv_PacketsFromDownStream()\n" );
 
 
-    // add all downstream remote nodes to the set to poll
-    pollfd* pfds = new pollfd[ children_nodes.size() ];
-    unsigned int npfds = children_nodes.size();
+    // add the passed set of remote nodes to the poll set
+    pollfd* pfds = new pollfd[ rmt_nodes->size() ];
+    unsigned int npfds = rmt_nodes->size();
     unsigned int i = 0;
-    for( std::vector<RemoteNode*>::iterator iter = children_nodes.begin();
-                iter != children_nodes.end();
-                iter++, i++ )
+    for( std::vector<RemoteNode*>::iterator iter = rmt_nodes->begin();
+         iter != rmt_nodes->end();
+         iter++, i++ )
     {
         RemoteNode* currRemNode = *iter;
         assert( currRemNode != NULL );
@@ -108,41 +110,40 @@ int ParentNode::recv_PacketsFromDownStream(std::list<Packet*>& pkt_list )
 
 
     // check for input on our downstream connections
-    int pollret = poll( pfds, npfds, 0 );
+    int pollret=0;
+    if( blocking ){
+        pollret = poll( pfds, npfds, CommunicationNode::poll_timeout );
+    }
+    else{
+        pollret = poll( pfds, npfds, 0 );
+    }
 
-    if( pollret > 0 )
-    {
+    if( pollret > 0 ) {
         // there is input on some connection
         // determine the connection on which input exists
         RemoteNode* readyNode = NULL;
-        for( i = 0; i < children_nodes.size(); i++ )
-        {
-            if( pfds[i].revents & POLLIN )
-            {
-                readyNode = children_nodes[i];
-                break;
+        for( i = 0; i < rmt_nodes->size(); i++ ) {
+            if( pfds[i].revents & POLLIN ) {
+                readyNode = (*rmt_nodes)[i];
+                assert( readyNode != NULL );
+
+                if ( readyNode->recv( pkt_list ) == -1){
+                    ret = -1;
+                    mrn_printf(1, MCFL, stderr,
+                               "PN: recv() from ready node failed\n" );
+                }
             }
         }
-        assert( readyNode != NULL );
-
-        // receive data from the ready connection
-        int rret = readyNode->recv( pkt_list );
-        if( rret == -1 )
-        {
-            ret = -1;
-            mrn_printf(1, MCFL, stderr,
-                 "recv_PacketsFromDownStream recv() from ready node failed\n" );
-        }
     }
-    else if( pollret < 0 )
-    {
+    else if( pollret < 0 ) {
         // an error occurred
         ret = -1;
-        mrn_printf(1, MCFL, stderr, "recv_PacketsFromDownStream poll failed\n" );
+        mrn_printf(1, MCFL, stderr,
+                   "PN::recv_PacketsFromDownStream() poll failed\n" );
     }
     delete[] pfds;
 
-    mrn_printf(3, MCFL, stderr, "recv_PacketsFromDownStream %s\n",
+    mrn_printf(3, MCFL, stderr, "PN::recv_PacketsFromDownStream() %s\n",
 	     (ret == 0 ? "succeeded" : "failed") );
 
     return ret;

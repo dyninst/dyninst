@@ -23,7 +23,7 @@ class FrontEndNode: public ParentNode, public CommunicationNode{
   int send(Packet *);
   int flush();
   int flush(unsigned int);
-  int recv();
+  int recv( bool blocking=true );
 
   Packet* get_leafInfoPacket( void )     
     {

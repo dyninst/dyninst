@@ -20,7 +20,7 @@ class BackEndNode: public ChildNode, public CommunicationNode {
   virtual int proc_DataFromUpStream(Packet *);
   int send(Packet *);
   int flush();
-  int recv();
+  int recv( bool blocking=true );
 };
 
 #endif /* __backendnode_h */

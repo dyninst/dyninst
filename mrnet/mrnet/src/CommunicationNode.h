@@ -14,17 +14,21 @@ enum ProtocolTags{MRN_NEW_SUBTREE_PROT=200, MRN_DEL_SUBTREE_PROT,
 
 class CommunicationNode: public Error{
  protected:
-  std::string hostname;
-  unsigned short port;      // MRNet-assigned "port"
-  unsigned short id;        // id, if back-end
+    std::string hostname;
+    unsigned short port;      // MRNet-assigned "port"
+    unsigned short id;        // id, if back-end
 
  public:
-  CommunicationNode(std::string &_hostname, unsigned short _port);
-  CommunicationNode(std::string &_hostname, unsigned short _port,
+    CommunicationNode(std::string &_hostname, unsigned short _port);
+    CommunicationNode(std::string &_hostname, unsigned short _port,
                        unsigned short _id);
-  std::string get_HostName() const  { return hostname; }
-  unsigned short get_Port() const   { return port; }
-  unsigned short get_Id() const     { return id; }
+    std::string get_HostName() const;
+    unsigned short get_Port() const;
+    unsigned short get_Id() const;
+
+    static void set_BlockingTimeOut(int _timeout);
+    static int get_BlockingTimeOut( );
+    static int poll_timeout;
 };
 
 #endif /* __MRN_communicationnode_h */

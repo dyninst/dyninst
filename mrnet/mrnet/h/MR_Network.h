@@ -74,12 +74,14 @@ class Communicator{
 class Stream{
  public:
   static Stream * new_Stream(Communicator *, int _filter_id);
-  static int recv(int *tag, void **buf, Stream ** stream);
+  static int recv(int *tag, void **buf, Stream ** stream, bool blocking=true);
   static int unpack(char * buf, const char * format_str, ...);
+  static void set_BlockingTimeOut(int timeout);
+  static int get_BlockingTimeOut( );
 
   virtual int send(int tag, const char * format_str, ...)=NULL;
   virtual int flush()=NULL;
-  virtual int recv(int *tag, void **buf)=NULL;
+  virtual int recv(int *tag, void **buf, bool blocking=true)=NULL;
 
   //static Stream * get_Stream(int stream_id);
   //static Stream * new_Stream(int stream_id, int * backends=NULL,

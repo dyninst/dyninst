@@ -20,9 +20,11 @@ BackEndNode::BackEndNode(std::string _hostname,
    backend_id(_backend_id)
 {
   RemoteNode::local_child_node = this;
-  mrn_printf(3, MCFL, stderr,
-    "creating BackEndNode, host=%s, backendId=%u, parHost=%s, parPort=%u, parRank=%u\n",
-    _hostname.c_str(), _backend_id, _parent_hostname.c_str(), _parent_port, _parent_id );
+  mrn_printf(3, MCFL, stderr, "In BackEndNode() cnstr.\n");
+  mrn_printf(4, MCFL, stderr, "host=%s, backendId=%u, parHost=%s, parPort=%u, "
+             "parRank=%u\n",
+             _hostname.c_str(), _backend_id, _parent_hostname.c_str(),
+             _parent_port, _parent_id );
   upstream_node = new RemoteNode(false, _parent_hostname, _parent_port,
                                     _parent_id);
 
@@ -69,8 +71,8 @@ int BackEndNode::proc_PacketsFromUpStream(std::list <Packet *> &packets)
     case MRN_GET_LEAF_INFO_PROT:
     case MRN_CONNECT_LEAVES_PROT:
       //these protocol tags should never reach backend
-      mrn_printf(1, MCFL,stderr,"BackEndNode::proc_DataFromUpStream saw poison tag: %d\n",
-        cur_packet->get_Tag());
+      mrn_printf(1, MCFL,stderr,"BackEndNode::proc_DataFromUpStream(): "
+                 "poison tag: %d\n", cur_packet->get_Tag());
       assert(0);
       break;
 
@@ -81,8 +83,8 @@ int BackEndNode::proc_PacketsFromUpStream(std::list <Packet *> &packets)
       //mrn_printf(3, MCFL, stderr, "Calling proc_DataFromUpStream(). Tag: %d\n",
       //cur_packet->get_Tag());
       if(proc_DataFromUpStream(cur_packet) == -1){
-	mrn_printf(1, MCFL, stderr, "proc_DataFromUpStream() failed\n");
-	retval=-1;
+          mrn_printf(1, MCFL, stderr, "proc_DataFromUpStream() failed\n");
+          retval=-1;
       }
       //mrn_printf(3, MCFL, stderr, "proc_DataFromUpStream() succeded\n");
       break;
@@ -118,23 +120,23 @@ int BackEndNode::proc_DataFromUpStream(Packet *packet)
 
 int BackEndNode::send(Packet *packet)
 {
-  mrn_printf(3, MCFL, stderr, "In backend.send(). Calling sendupstream()\n");
+  mrn_printf(3, MCFL, stderr, "In backend.send(). Calling sendUpStream()\n");
   return send_PacketUpStream(packet);
 }
 
 int BackEndNode::flush()
 {
-  mrn_printf(3, MCFL, stderr, "In backend.flush(). Calling flushupstream()\n");
+  mrn_printf(3, MCFL, stderr, "In backend.flush(). Calling flushUpStream()\n");
   return flush_PacketsUpStream();
 }
 
-int BackEndNode::recv()
+int BackEndNode::recv( bool blocking )
 {
   std::list <Packet *> packet_list;
-  mrn_printf(3, MCFL, stderr, "In backend.recv(). Calling recvfromupstream()\n");
+  mrn_printf(3, MCFL, stderr, "In backend.recv(). Calling recvfromUpStream()\n");
 
   if(recv_PacketsFromUpStream(packet_list) == -1){
-    mrn_printf(1, MCFL, stderr, "recv_packetsfromupstream() failed\n");
+    mrn_printf(1, MCFL, stderr, "recv_packetsfromUpStream() failed\n");
     return -1;
   }
 
@@ -144,7 +146,7 @@ int BackEndNode::recv()
   }
 
   if(proc_PacketsFromUpStream(packet_list) == -1){
-    mrn_printf(1, MCFL, stderr, "proc_packetsfromupstream() failed\n");
+    mrn_printf(1, MCFL, stderr, "proc_packetsfromUpStream() failed\n");
     return -1;
   }
 

@@ -38,13 +38,17 @@ AC_ARG_WITH(libfl,
             [AC_CHECK_LIB(fl, [printf], FLEX_LIB="-lfl", [AC_MSG_ERROR(Can't find flex library libfl. Must specify with --with-libfl)])] )
 
 AC_ARG_WITH(outputlevel,
-            [  --with-outputlevel          output level (off, *error*, info, debug)],
+            [  --with-outputlevel          output level (off, *error*, info, lo-debug, mid-debug, hi-debug)],
             [if test "${withval}" = "off" ; then
                OUTPUT_LEVEL=0;
              elif test "${withval}" = "info" ; then
                OUTPUT_LEVEL=2;
-             elif test "${withval}" = "debug" ; then
+             elif test "${withval}" = "lo-debug" ; then
                OUTPUT_LEVEL=3;
+             elif test "${withval}" = "mid-debug" ; then
+               OUTPUT_LEVEL=4;
+             elif test "${withval}" = "hi-debug" ; then
+               OUTPUT_LEVEL=5;
              else
                OUTPUT_LEVEL=1;
              fi],

@@ -17,11 +17,11 @@ StreamManager::push_packet(Packet *packet,
                               std::list<Packet *> & out_packet_list){
   std::list<Packet *> in_packet_list;
 
-  mrn_printf(3, MCFL, stderr, "In stream_mgr.push_packet()\n");
+  mrn_printf(3, MCFL, stderr, "Entering StreamMgr.push_packet()\n");
 
   in_packet_list.push_back(packet);
   if( sync->push_packets(in_packet_list, out_packet_list) == -1){
-    mrn_printf(1, MCFL, stderr, "sync.push_packets() failed\n");
+    mrn_printf(1, MCFL, stderr, "Sync.push_packets() failed\n");
     return -1;
   }
 
@@ -29,7 +29,7 @@ StreamManager::push_packet(Packet *packet,
     in_packet_list = out_packet_list;
     out_packet_list.clear();
     if( aggregator->push_packets(in_packet_list, out_packet_list) == -1){
-      mrn_printf(1, MCFL, stderr, "sync.push_packets() failed\n");
+      mrn_printf(1, MCFL, stderr, "Sync.push_packets() failed\n");
       return -1;
     }
   }

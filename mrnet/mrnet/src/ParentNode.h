@@ -62,7 +62,9 @@ class ParentNode{
   virtual int proc_PacketsFromDownStream(std::list <Packet *> &)=0;
   virtual int proc_DataFromDownStream(Packet *)=0;
 
-  int recv_PacketsFromDownStream(std::list <Packet *> &packet_list);
+  int recv_PacketsFromDownStream(std::list <Packet *> &packet_list,
+                                 std::vector<RemoteNode*>*rmt_nodes=NULL,
+                                 bool blocking=true);
   int send_PacketDownStream(Packet *packet);
   int flush_PacketsDownStream(unsigned int stream_id);
   int flush_PacketsDownStream(void);

@@ -604,10 +604,13 @@ int mrn_printf(int level, const char * file, int line, FILE * fp,
   {
       thread_name = tsd->thread_name;
   }
-  fprintf(fp, "%s:%s:%d: ",
-                (thread_name != NULL) ? thread_name : "<noname (tsd NULL)>",
-                basename(tmp_filename),
-                line);
+
+  if( file ){
+      fprintf(fp, "%s:%s:%d: ",
+              (thread_name != NULL) ? thread_name : "<noname (tsd NULL)>",
+              basename(tmp_filename),
+              line);
+  }
 
   va_start(arglist, format);
   retval = vfprintf(fp, format, arglist);

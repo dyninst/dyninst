@@ -31,14 +31,15 @@ int Network::new_Network(const char * _filename,
                                 const char * _commnode,
                                 const char * _application)
 {
-  Network::network = new NetworkImpl(_filename, _commnode, _application);
+    Network::network = new NetworkImpl(_filename, _commnode, _application);
 
-  if( Network::network->fail() ){
-    return -1;
-  }
-  else{
+    if( Network::network->fail() ){
+        return -1;
+    }
+
+    StreamImpl::streams = new std::map<unsigned int, StreamImpl*>;
+    StreamImpl::set_ForceNetworkRecv( );
     return 0;
-  }
 }
 
 
@@ -174,17 +175,13 @@ void Network::error_str(const char *s)
 /*================================================*/
 Stream * Stream::new_Stream(Communicator *comm, int _filter_id)
 {
-  //printf(3, MCFL, stderr, "comm(%p) size:%d\n",
-	     //comm, ((CommunicatorImpl*)(comm))->get_EndPoints()->size());
-  //printf(3, MCFL, stderr, "comm's endpoint: %p\n", ((CommunicatorImpl*)(comm))->get_EndPoints());
   return new StreamImpl(comm, _filter_id);
 }
 
-int Stream::recv(int *tag, void **buf, Stream ** stream)
+int Stream::recv(int *tag, void **buf, Stream ** stream, bool blocking)
 {
-  return StreamImpl::recv(tag, buf, stream);
+  return StreamImpl::recv(tag, buf, stream, blocking);
 }
-
 
 int Stream::unpack(char * buf, char const *fmt_str, ...)
 {
@@ -196,6 +193,15 @@ int Stream::unpack(char * buf, char const *fmt_str, ...)
     return ret;
 }
 
+void Stream::set_BlockingTimeOut(int timeout)
+{
+    CommunicationNode::set_BlockingTimeOut(timeout);
+}
+
+int Stream::get_BlockingTimeOut( )
+{
+    return CommunicationNode::get_BlockingTimeOut( );
+}
 
 /*======================================================*/
 /*             Communicator class DEFINITIONS        */

@@ -118,7 +118,7 @@ int FrontEndNode::flush(unsigned int stream_id)
   return flush_PacketsDownStream(stream_id);
 }
 
-int FrontEndNode::recv()
+int FrontEndNode::recv( bool blocking )
 {
   std::list <Packet *> packet_list;
   mrn_printf(3, MCFL, stderr, "In frontend.recv(). Calling recvfromdownstream()\n");
