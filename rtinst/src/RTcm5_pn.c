@@ -4,7 +4,11 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.24  1995/05/18 11:08:22  markc
+ * Revision 1.25  1995/10/27 01:02:25  zhichen
+ * took out some static storage class for global variables,
+ * for the first version of paradyn-blizzard
+ *
+ * Revision 1.24  1995/05/18  11:08:22  markc
  * added guard prevent timer start-stop during alarm handler
  * added version number
  *
@@ -171,7 +175,7 @@ typedef union {
     time64 value;
 } timeParts;
 
-static volatile unsigned int *ni;
+volatile unsigned int *ni; /* zxu deleted "static" (unneeded; clashes w/blz) */
 volatile struct timer_buf timerBuffer;
 
 #ifdef notdef
@@ -301,7 +305,7 @@ void DYNINSTstopProcessTimer(tTimer *timer)
 {
     time64 end;
     time64 elapsed;
-    tTimer timerTemp;
+    /* tTimer timerTemp; --commented out since unused -ZXU */
 
     /* events that trigger timer stops during trace flushes are to be ignored */
     if (DYNINSTin_sample) return;
@@ -347,6 +351,14 @@ retry:
 
 time64 previous[1000];
 
+
+/* CMMD programs use set_timer_buf, as usual.
+   For Blizzard programs, we cannot use set_timer_buf because
+   the blizzard library already defines this function. */
+#ifdef blizzard_cm5
+#define set_timer_buf PD_set_timer_buf
+#endif
+
 void set_timer_buf(volatile struct timer_buf *param)
 {
 /*     asm("set 50,%g1"); */
@@ -364,7 +376,7 @@ void DYNINSTreportTimer(tTimer *timer)
     double temp2;
     time64 now;
     time64 total;
-    tTimer timerTemp;
+    /* tTimer timerTemp; --commented out since unused -ZXU */
     traceSample sample;
 
 
@@ -418,15 +430,15 @@ void DYNINSTreportTimer(tTimer *timer)
 
 
 
-static time64 startWall;
+time64 startWall;       /* zxu deleted storage class static for blz_RTcm5_pn.c */
 int DYNINSTnoHandlers;
-static int DYNINSTinitDone;
+int DYNINSTinitDone;   /* zxu deleted storage class static */
 time64 DYNINSTelapsedTime;
 tTimer DYNINSTelapsedCPUTime;
 
 extern float DYNINSTsamplingRate;
 
-#define NI_BASE       (0x20000000)
+#define NI_BASE       	      (0x20000000)
 #define NI_TIME_A     	      (NI_BASE + 0x0070)
 
 /*
@@ -448,10 +460,14 @@ void DYNINSTinit()
        perform a max operation in addition to sum - jk 10/19/94 */
     DYNINSTnprocs = 32;
 
+    /* This is the base time, in generateTraceRecord
+     * startWall is added to the hearder.wall 
+     * - zxu 10/19/95
+     */
     CMOS_get_time(&startNItime);
     gettimeofday(&tv, NULL);
 
-    startWall = tv.tv_sec;
+    startWall = tv.tv_sec;  
     startWall *= MILLION;
     startWall += tv.tv_usec;
 
@@ -469,7 +485,7 @@ void DYNINSTinit()
     if (getenv("DYNINSTsampleMultiple")) {
 	DYNINSTsampleMultiple = atoi(getenv("DYNINSTsampleMultiple"));
     }
-
+	
     /*
      * Allocate a trace buffer for this node, and set up the buffer
      * pointers.
@@ -537,7 +553,7 @@ void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
     header.process -= pTime;
     header.process /= NI_CLK_USEC;
 
-    length = ALIGN_TO_WORDSIZE(length);
+    length = ALIGN_TO_WORDSIZE(length); 
 
     header.type = type;
     header.length = length;
