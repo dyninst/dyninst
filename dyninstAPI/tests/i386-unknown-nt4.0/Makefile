@@ -1,7 +1,7 @@
 #
 # Makefile for dyninst test programs on Windows NT.
 #
-# $Id: Makefile,v 1.11 2001/10/26 22:45:31 hollings Exp $
+# $Id: Makefile,v 1.12 2001/11/05 07:54:37 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in nmake.config
@@ -18,8 +18,9 @@ LDFLAGS = $(LDFLAGS) /NODEFAULTLIB:LIBC.lib  # ccw 12 july 2001
 # Now make any necessary architecture specific changes to variables:
 
 CFLAGS = /Z7
-GNU_CC = gcc
-GNU_CXX = g++
+#Support for GNU compilers is being dropped since it seems to be rarely used.
+#GNU_CC = gcc
+#GNU_CXX = g++
 NATIVE_CC = VC
 NATIVE_CXX = VC++
 
