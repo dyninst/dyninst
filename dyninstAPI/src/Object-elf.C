@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.34 2002/01/16 23:24:56 jaw Exp $
+ * $Id: Object-elf.C,v 1.35 2002/01/17 01:09:28 jaw Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -141,7 +141,11 @@ SectionHeaderSortFunction( const void* v1, const void* v2 )
 	return hdr1->pd_addr - hdr2->pd_addr;
 }
 
-
+#ifdef USE_STL_VECTOR
+struct sort_func : public binary_function<pdElfShdr *, pdElfShdr *, bool> {
+  bool operator()(pdElfShdr *hdr1, pdElfShdr *hdr2) {return hdr1->pd_addr < hdr2->pd_addr;}
+};
+#endif
 
 
 
@@ -473,7 +477,7 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
 #ifndef USE_STL_VECTOR
   allSectionHdrs.sort( SectionHeaderSortFunction );
 #else
-  sort(allSectionHdrs.begin(), allSectionHdrs.end());
+  sort(allSectionHdrs.begin(), allSectionHdrs.end(), sort_func());
 #endif
 
 #ifndef BPATCH_LIBRARY /* Some objects really don't have all sections. */
