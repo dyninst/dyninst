@@ -1,8 +1,11 @@
 /* $Log: paradyn.h,v $
-/* Revision 1.8  1995/01/26 17:59:22  jcargill
-/* Changed igen-generated include files to new naming convention; fixed
-/* some bugs compiling with gcc-2.6.3.
+/* Revision 1.9  1995/02/27 19:12:23  tamches
+/* added TCtid for the new tunable constants thread
 /*
+ * Revision 1.8  1995/01/26  17:59:22  jcargill
+ * Changed igen-generated include files to new naming convention; fixed
+ * some bugs compiling with gcc-2.6.3.
+ *
  * Revision 1.7  1994/07/19  23:53:03  markc
  * Moved "include "metricExt.h"" to main.C from paradyn.h to remove false
  * dependencies.
@@ -53,12 +56,14 @@ typedef struct CLargStruct CLargStruct;
 #define MSG_TAG_VM_READY 1003
 #define MSG_TAG_PC_READY 1004
 #define MSG_TAG_ALL_CHILDREN_READY 1005
+#define MSG_TAG_TC_READY 1006
 
 extern thread_t UIMtid;
 extern thread_t MAINtid;
 extern thread_t PCtid;
 extern thread_t DMtid;
 extern thread_t VMtid;
+extern thread_t TCtid; // tunable constant
 extern applicationContext *context;
 
 extern dataManagerUser *dataMgr;
