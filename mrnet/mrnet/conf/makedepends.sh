@@ -1,5 +1,8 @@
 #!/bin/sh
 
+RM=/bin/rm
+MV=/bin/mv
+
 cmdname=`basename $0`
 
 print_usage()
@@ -46,10 +49,16 @@ do
   fi
 done
 
-/bin/rm -f $dep_file
-echo "$obj_file: \\" > $dep_file
+$RM -f $dep_file.tmp
+echo "$obj_file: \\" > $dep_file.tmp
 for i in  $inc_files
 do
-  echo "  $i \\" >> $dep_file
+  echo "  $i \\" >> $dep_file.tmp
 done
-echo >> $dep_file
+echo >> $dep_file.tmp
+
+if !diff $dep_file.tmp $dep_file >& /dev/null; then
+    $MV -f $dep_file.tmp $dep_file
+else
+    $RM $dep_file.tmp
+fi ;
