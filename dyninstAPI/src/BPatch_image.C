@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.55 2004/04/20 01:27:54 jaw Exp $
+// $Id: BPatch_image.C,v 1.56 2004/06/02 20:17:33 tlmiller Exp $
 
 #define BPATCH_FILE
 
@@ -121,7 +121,7 @@ BPatch_image::~BPatch_image()
  */
 bool BPatch_image::getSourceObj(BPatch_Vector<BPatch_sourceObj *> &vect)
 {
-    BPatch_Vector<BPatch_module *> *temp =  getModules();
+    BPatch_Vector<BPatch_module *> *temp = getModules();
     if (temp) {
        vect = * (BPatch_Vector<BPatch_sourceObj *> *) temp;
        return (true);
@@ -242,32 +242,45 @@ bool BPatch_image::getVariables(BPatch_Vector<BPatch_variableExpr *> &vars)
  * Returns a list of all procedures in the image upon success, and NULL
  * upon failure.
  */
-BPatch_Vector<BPatch_module *> *BPatch_image::getModules()
-{
-  if (modlist) {
-    return modlist;
-  }
+BPatch_Vector<BPatch_module *> *BPatch_image::getModules() {
+	if( modlist ) { return modlist; }
+	
+	modlist = new BPatch_Vector< BPatch_module *>;
+	if( modlist == NULL ) { return NULL; }
   
-  modlist = new BPatch_Vector<BPatch_module *>;
-  if (modlist == NULL) return NULL;
-  
-  // XXX Also, what should we do about getting rid of this?  Should
-  //     the BPatch_modules already be made and kept around as long
-  //     as the process is, so the user doesn't have to delete them?
-  pdvector<module *> *mods = proc->getAllModules();
-  
-  for (unsigned int m = 0; m < mods->size(); m++) {
-    pdmodule *curr = (pdmodule *) (*mods)[m];
-    BPatch_module *bpmod = new BPatch_module(proc, curr, this);
-    modlist->push_back(bpmod);
-  }
-  
-  // BPatch_procedures are only built on demand, and we need to make sure
-  //    they get built.
-  (void) getProcedures();
+	pdvector< module * > * pdModules = proc->getAllModules();
+	/* Generate the BPatch_functions for every module before
+	   constructing the BPatch_modules.  This allows us to
+	   parse the debug information once per image.*/
+	for( unsigned int i = 0; i < pdModules->size(); i++ ) {
+		pdmodule * currentModule = (pdmodule *) ((* pdModules)[i]);
+		pdvector< function_base * > * currentFunctions = currentModule->getFunctions();
+		for( unsigned int j = 0; j < currentFunctions->size(); j++ ) {
+			/* The constructor will register the bpf with proc's map. */
+			new BPatch_function( proc, (* currentFunctions)[j], NULL );
+			} /* end iteration over functions in modules */
+		} /* end initial iteration over modules */
+	
+	/* With all the BPatch_functions created, generate the modules.
+	   The BPatch_module constructor will set its bpfs to point to itself,
+	   and the parser will cache per-image type collections. */
+	for( unsigned int i = 0; i < pdModules->size(); i++ ) {
+		pdmodule * currentModule = (pdmodule *) ((* pdModules)[i]);
+		BPatch_module * bpm = new BPatch_module( proc, currentModule, this );
+		modlist->push_back( bpm );
+		} /* end of second iteration over modules */		
 
-  return modlist;
-}
+	/* DEBUG: verify that all known bpfs have non-NULL bpm pointers. */
+	dictionary_hash< function_base *, BPatch_function *>::const_iterator iter = proc->PDFuncToBPFuncMap.begin();
+	dictionary_hash< function_base *, BPatch_function *>::const_iterator end = proc->PDFuncToBPFuncMap.end();
+	for( ; iter != end; ++iter ) {
+		char name[255];
+		BPatch_function * bpf = * iter;
+		if( bpf->getModule() == NULL ) { fprintf( stderr, "Warning: bpf '%s' has no module.\n", bpf->getName( name, 255 ) ); }
+		} /* end iteration over function map */
+		
+	return modlist;
+	} /* end getModules() */
 
 /*
  * BPatch_image::createInstPointAtAddr
