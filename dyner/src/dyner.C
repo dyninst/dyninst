@@ -2593,8 +2593,6 @@ int debugParse(ClientData, Tcl_Interp *, int argc, char **argv)
 	return TCL_ERROR;
     }
 
-    if (!haveApp()) return TCL_ERROR;
-
     if (argc == 1) {
 	printf("Debug parsing is %s\n", (bpatch->parseDebugInfo()?"on":"off") );
         printf("Usage: debugparse [enable | disable]\n");

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.25 2003/05/30 02:50:58 igor Exp $
+// $Id: Object-xcoff.C,v 1.26 2003/05/30 18:57:39 buck Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -418,9 +418,6 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
      if (sectHdr[i].s_flags & STYP_TEXT) {
        nlines = sectHdr[i].s_nlnno;
        
-       /* Some libraries have shown line numbers of 0 */
-       if (nlines == 0)
-	 continue;
        /* if there is overflow in the number of lines */
        if (nlines == 65535)
 	 for (j=0; j < hdr.f_nscns; j++)
@@ -429,6 +426,10 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
 	     nlines = (unsigned int)(sectHdr[j].s_vaddr);
 	     break;
 	   }
+
+       /* There may not be any line information. */
+       if (nlines == 0)
+	 continue;
        
        /* read the line information table */
        if (!seekAndRead(fd,sectHdr[i].s_lnnoptr + offset,(void**) &lines,
