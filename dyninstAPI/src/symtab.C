@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.164 2003/04/25 22:31:14 jaw Exp $
+// $Id: symtab.C,v 1.165 2003/04/26 04:09:08 igor Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -437,6 +437,21 @@ pd_Function *image::makeOneFunction(pdvector<Symbol> &mods,
 
   return func;
 }
+
+//Add an extra pretty name to a known function (needed for handling
+//overloaded functions in paradyn)
+void image::addTypedPrettyName( pd_Function *func, const char *typedName) {
+   pdvector<pd_Function*> *funcsByPrettyEntry = NULL;
+   string typed(typedName);
+
+   if (!funcsByPretty.find(typed, funcsByPrettyEntry)) {
+      funcsByPrettyEntry = new pdvector<pd_Function*>;
+      funcsByPretty[typed] = funcsByPrettyEntry;
+   }
+   assert(funcsByPrettyEntry);
+   (*funcsByPrettyEntry).push_back(func);
+}
+
 
 /*
  * Add another name for the current function to the names vector in
@@ -1014,9 +1029,29 @@ void pdmodule::define() {
 					    false);
       }
 
+      //check if the function is overloaded, and store types with the name
+      //in the case that it is.  This way, we can differentiate
+      //between overloaded functions in the paradyn front-end.
+      bool useTyped = false;
+      pdvector <pd_Function *> *pdfv;
+      char prettyWithTypes[1000];
+      if (NULL != (pdfv = exec()->findFuncVectorByPretty(pdf->prettyName()))
+          && pdfv->size() > 1) {
+         char *tempName = P_strdup(pdf->symTabName().c_str());
+         int result = P_cplus_demangle(tempName, prettyWithTypes,
+                                       1000, exec()->isNativeCompiler(), true /* include types */ );
+         if (result == 0) {
+            useTyped= true;
+            //add another "pretty name" to the dictionary
+            exec()->addTypedPrettyName(pdf, prettyWithTypes);
+            pdf->addPrettyName(string(prettyWithTypes));
+         }
+         free(tempName);
+      }
+
       pdf->SetFuncResource(resource::newResource(modResource, pdf,
 						 nullString, // abstraction
-						 pdf->prettyName(), 
+						  useTyped ? prettyWithTypes : pdf->prettyName(), 
 						 timeStamp::ts1970(),
 						 nullString, // uniquifier
 						 MDL_T_PROCEDURE,

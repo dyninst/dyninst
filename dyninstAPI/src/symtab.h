@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.127 2003/04/25 22:31:14 jaw Exp $
+// $Id: symtab.h,v 1.128 2003/04/26 04:09:09 igor Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -923,7 +923,11 @@ public:
 
   // report modules to paradyn
   void defineModules();
-
+  
+  //Add an extra pretty name to a known function (needed for handling
+  //overloaded functions in paradyn)
+  void addTypedPrettyName(pd_Function *func, const char *typedName);
+	
 #ifndef BPATCH_LIBRARY
  // report statically determinable caller-callee relationship to paradyn....
   void FillInCallGraphStatic(process *proc);
