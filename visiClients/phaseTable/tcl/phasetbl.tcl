@@ -1,5 +1,8 @@
 #
 # $Log: phasetbl.tcl,v $
+# Revision 1.3  1996/02/23 17:49:07  tamches
+# starting a phase now properly sends "with pc/with visis" flags
+#
 # Revision 1.2  1996/02/11 21:22:40  tamches
 # Now have a "Phase" menu just like the main paradyn window does.
 # Dimmed the help menu since not yet implemented
@@ -100,16 +103,14 @@ $W.top.left.menubar.file.m add command -label "Close" -command Shutdown
 menubutton $W.top.left.menubar.phase -text "Phase" \
 	-menu $W.top.left.menubar.phase.m
 menu $W.top.left.menubar.phase.m
-$W.top.left.menubar.phase.m add command -label "Start" -command "PhaseDef plain"
+$W.top.left.menubar.phase.m add command -label "Start" -command "PhaseDef <null> false false"
 $W.top.left.menubar.phase.m add command -label "Start with Perf Consultant" \
-	-command "PhaseDef pc"
+	-command "PhaseDef <null> true false"
 $W.top.left.menubar.phase.m add command -label "Start with Visis" \
-	-command "PhaseDef visis" -state disabled
+	-command "PhaseDef <null> false true" -state disabled
 $W.top.left.menubar.phase.m add command -label "Start" \
-	-command "PhaseDef both" -state disabled
+	-command "PhaseDef <null> true true" -state disabled
 
-#button $W.top.left.menubar.acts -text "Start Phase"  \
-#		-relief flat -borderwidth 0 -highlightbackground white -command PhaseDef  
 #
 #  Help menu
 #
@@ -359,8 +360,8 @@ proc TimeLabel {val} {
 #
 # PhaseDef: ask paradyn to start a new phase
 #
-proc PhaseDef {flags} {
+proc PhaseDef {phaseName withPC withVisis} {
 
-  Dg phase $flags
+  Dg phase $phaseName $withPC $withVisis
 
 }
