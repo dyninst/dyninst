@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.145 2003/05/14 20:46:17 bernat Exp $
+// $Id: aix.C,v 1.146 2003/05/15 22:12:25 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -1041,12 +1041,12 @@ process *decodeProcessEvent(int pid,
                           return decodeProcessEvent(pid, why, what, info, block);
                       }
                       else {
-                          fprintf(stderr, "Finished spinning, returning to normal processing.\n");
                           recurse_level = 0;
                           return NULL;
                       }
                   }
                   else if (in_trap_loop) {
+                      fprintf(stderr, "Finished spinning, returning to normal processing.\n");
                       in_trap_loop = false;
                   }
                   proc->setPreviousSignalAddr(regs->gprs[3]); 
