@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.133 2003/04/23 19:57:03 zandy Exp $
+ * $Id: inst-x86.C,v 1.134 2003/05/22 21:31:16 zandy Exp $
  */
 
 #include <iomanip.h>
@@ -485,6 +485,21 @@ bool isRealCall(instruction &insn, Address adr, image *owner, bool &validTarget,
   return true;
 }
 
+static bool isStackFramePreamble(instruction& one, instruction& two)
+{
+  /* test for
+     one:  push   %ebp
+     two:  mov    %esp,%ebp
+  */
+  const unsigned char *p, *q;
+  p = one.ptr();
+  q = two.ptr();
+  return (one.size() == 1
+	  && p[0] == 0x55
+	  && two.size() == 2
+	  && q[0] == 0x89
+	  && q[1] == 0xe5);
+}
 
 /* auxiliary data structures for function findInstPoints */
 enum { EntryPt, CallPt, ReturnPt, OtherPt };
@@ -585,6 +600,14 @@ bool pd_Function::findInstPoints(const image *i_owner) {
    numInsns++;
    instr += insnSize;
    adr += insnSize;
+   funcEnd = getAddress(0) + size();
+
+   if (adr < funcEnd) {
+     instruction next_insn;
+     next_insn.getNextInstruction(instr);
+     if (isStackFramePreamble(insn, next_insn))
+       noStackFrame = false;       
+   }
 
    // get all the instructions for this function, and define the
    // instrumentation points. For now, we only add one instruction to each
@@ -603,7 +626,6 @@ bool pd_Function::findInstPoints(const image *i_owner) {
       canBeRelocated = false;
    }
 
-   funcEnd = getAddress(0) + size();
    for ( ; adr < funcEnd; instr += insnSize, adr += insnSize) {
 
       insnSize = insn.getNextInstruction(instr);
