@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.87 2005/03/01 23:07:54 bernat Exp $
+// $Id: irix.C,v 1.88 2005/03/04 21:12:15 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -1088,7 +1088,7 @@ Frame dyn_lwp::getActiveFrame()
   // (kludge for stack walk code)
   if (fp == 0) fp = sp;
 
-  return Frame(pc, fp, sp, proc_->getPid(), NULL, NULL, this, true);
+  return Frame(pc, fp, sp, proc_->getPid(), proc_, NULL, this, true);
 
 }
  

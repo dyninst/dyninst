@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.C,v 1.6 2005/03/02 19:44:42 bernat Exp $
+// $Id: frame.C,v 1.7 2005/03/04 21:12:15 bernat Exp $
 
 #include <stdio.h>
 #include <iostream>
@@ -129,6 +129,9 @@ void Frame::calcFrameType()
    miniTrampHandle *mini;
    trampTemplate *base;
    edgeTrampTemplate *edge;
+
+   // Without a process pointer, we're not going to get far.
+   assert(getProc());
 
    // Better to have one function that has platform-specific IFDEFs
    // than a stack of 90% equivalent functions
