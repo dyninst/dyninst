@@ -1,8 +1,11 @@
 /* $Log: UImain.C,v $
-/* Revision 1.51  1995/08/13 01:41:05  tamches
-/* Tightened and heavily commented the main loop.
-/* Removed superfluous code; general cleaning up.
+/* Revision 1.52  1995/08/13 23:21:21  tamches
+/* Moved tcl/tk initialization to pdMain
 /*
+ * Revision 1.51  1995/08/13  01:41:05  tamches
+ * Tightened and heavily commented the main loop.
+ * Removed superfluous code; general cleaning up.
+ *
  * Revision 1.50  1995/08/05  17:10:19  krisna
  * deleted prototype for `strrchr', this file is anyway bogus
  *
@@ -233,14 +236,14 @@ bool tryFirstGoodWhereAxisWid(Tcl_Interp *interp, Tk_Window topLevelTkWindow) {
  * Global variables used by tcl/tk UImain program:
  */
 
-Tk_Window mainWindow;	/* The main window for the application.  If
-			 * NULL then the application no longer
-			 * exists. */
-Tcl_Interp *interp;	/* Interpreter for this application. */
+extern Tk_Window mainWindow;	/* The main window for the application.  If
+				 * NULL then the application no longer
+				 * exists. */
+extern Tcl_Interp *interp;	/* Interpreter for this application. */
 
 static Tcl_DString command;	/* Used to assemble lines of terminal input
 				 * into Tcl commands. */
-static int tty;			/* Non-zero means standard input is a
+extern int tty;			/* Non-zero means standard input is a
 				 * terminal-like device.  Zero means it's
 				 * a file. */
 
@@ -260,22 +263,13 @@ appState PDapplicState = appPaused;     // used to update run/pause buttons
 status_line *ui_status;
 
 /*
- * Command-line options:
- */
-
-static char *fileName = NULL;
-
-/*
  * Declarations for various library procedures and variables 
  */
 
-extern "C" {
-  /* void		exit _ANSI_ARGS_((int status)); */
-  /* char *	strrchr _ANSI_ARGS_((CONST char *string, int c)); */
-
-  int Tk_DagCmd _ANSI_ARGS_((ClientData clientData,
-        Tcl_Interp *interp, int argc, char **argv));
-}
+//extern "C" {
+//  int Tk_DagCmd _ANSI_ARGS_((ClientData clientData,
+//        Tcl_Interp *interp, int argc, char **argv));
+//}
 
 extern int UimpdCmd(ClientData clientData, 
 		Tcl_Interp *interp, 
@@ -285,7 +279,7 @@ extern int ParadynCmd(ClientData clientData,
 		Tcl_Interp *interp, 
 		int argc, 
 		char *argv[]);
-extern int getDagToken ();
+//extern int getDagToken ();
 extern void resourceAddedCB (perfStreamHandle handle, 
 		      resourceHandle parent, 
 		      resourceHandle newResource, 
@@ -298,7 +292,7 @@ extern void resourceAddedCB (perfStreamHandle handle,
 
 void             Prompt _ANSI_ARGS_((Tcl_Interp *interp, int partial));
 void             StdinProc _ANSI_ARGS_((ClientData clientData,
-                            int mask));
+					int mask));
 
 // This callback invoked by dataManager before and after a large 
 // batch of draw requests.  If UIM_BatchMode is set, the UI thread 
@@ -396,53 +390,14 @@ void processPendingTkEventsNoBlock() {
 void *
 UImain(void* vargs)
 {
-    CLargStruct* clargs = (CLargStruct *) vargs;
+//    CLargStruct* clargs = (CLargStruct *) vargs;
 
-    char *args;
     tag_t mtag;
     int retVal;
     unsigned msgSize = 0;
     char UIMbuff[UIMBUFFSIZE];
     controlCallback controlFuncs;
     dataCallback dataFunc;
-
-    interp = Tcl_CreateInterp();
-
-    // Tk main window initialization
-    mainWindow = Tk_CreateMainWindow(interp, NULL, "paradyn", "Paradyn");
-    if (mainWindow == NULL)
-       tclpanic(interp, "Could not Tk_CreateMainWindow");
-
-    if (false)
-       // This is cool for X debugging...but we don't want it normally.
-       // It forces a flush after every X event -- no buffering.
-       XSynchronize(Tk_Display(mainWindow), True);
-
-    Tk_GeometryRequest(mainWindow, 725, 475);
-
-    // initialize tcl and tk
-    tty = isatty(0);
-    Tcl_SetVar(interp, "tcl_interactive", "0", TCL_GLOBAL_ONLY);
-    if (Tcl_Init(interp) == TCL_ERROR)
-       tclpanic(interp, "tcl_init() failed (perhaps TCL_LIBRARY not set?)");
-    if (Tk_Init(interp) == TCL_ERROR)
-       tclpanic(interp, "tk_init() failed (perhaps TK_LIBRARY not set?");
-
-
-    // Parse commandline arguments 
-    int uiargc = clargs->clargc;
-    char **uiargv = clargs->clargv;
-
-    // Copy commandline arguments into the Tcl variables "argc" and "argv"  
-    args = Tcl_Merge(uiargc-1, uiargv+1);
-    Tcl_SetVar(interp, "argv", args, TCL_GLOBAL_ONLY);
-    ckfree(args);
-    
-    char buf[20];
-    sprintf(buf, "%d", uiargc-1);
-    Tcl_SetVar(interp, "argc", buf, TCL_GLOBAL_ONLY);
-    Tcl_SetVar(interp, "argv0", (fileName != NULL) ? fileName : uiargv[0],
-	    TCL_GLOBAL_ONLY);
 
     // Add internal UIM command to the tcl interpreter.
     Tcl_CreateCommand(interp, "uimpd", 
@@ -483,10 +438,6 @@ UImain(void* vargs)
       printf ("NOTOOLBAR:: %s\n", interp->result);
      // initialize number of errors read in from error database 
     uim_maxError = atoi(Tcl_GetVar (interp, "numPdErrors", 0));
-
-//   // first take care of any events caused by initialization.
-//    while (Tk_DoOneEvent (TK_DONT_WAIT) > 0)
-//      ;
 
     // bind stdin to this thread & setup command-line input w/prompt
     retVal = msg_bind (fileno(stdin),
@@ -620,15 +571,15 @@ UImain(void* vargs)
 
    unInstallWhereAxisCommands(interp);
 
-    /*
-     * Exiting this thread will signal the main/parent to exit.  No other
-     * notification is needed.  This call will be reached when there are 
-     * no windows remaining for the application -- either grievous error 
-     * or user has selected "EXIT".
-     */
-    thr_exit(0);
-    return ((void*)0);
-  }
+   /*
+    * Exiting this thread will signal the main/parent to exit.  No other
+    * notification is needed.  This call will be reached when there are 
+    * no windows remaining for the application -- either grievous error 
+    * or user has selected "EXIT".
+    */
+   thr_exit(0);
+   return ((void*)0);
+}
     
 
 
