@@ -21,6 +21,8 @@ class MC_RemoteNode:public MC_CommunicationNode{
   bool _is_internal_node;
   struct pollfd poll_struct;
 
+  int accept_Connection( int listening_sock_fd );
+
  public:
   static MC_ParentNode * local_parent_node;
   static MC_ChildNode * local_child_node;
@@ -40,6 +42,8 @@ class MC_RemoteNode:public MC_CommunicationNode{
   int new_Application(int listening_sock_fd, std::string parent_hostname,
                       unsigned short parent_port, unsigned short parent_id,
                       std::string &cmd, std::vector <std::string> &args);
+  int accept_Application( int listening_sock_fd );
+
   int send(MC_Packet *);
   int flush();
   int recv(std::list <MC_Packet *> &); //blocking recv

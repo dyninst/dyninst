@@ -68,9 +68,19 @@ void * MC_RemoteNode::recv_thread_main(void * args)
 
   mc_printf(MCFL, stderr, "In recv_thread_main()\n");
   while(1){
-    if( remote_node->recv(packet_list) == -1 ){
-      mc_printf(MCFL, stderr, "remote_node->recv() failed. Thread Exiting\n");
-      pthread_exit(args);
+
+    // TODO this only works if the recv on remote_node is a blocking recv...
+    // is it?
+    int rret = remote_node->recv( packet_list );
+    if( (rret == -1) || ((rret == 0) && (packet_list.size() == 0)) )
+    {
+        if( rret == -1 )
+        {
+            mc_printf(MCFL, stderr, 
+                "RemoteNode recv failed - recv thread exiting\n");
+
+        }
+        pthread_exit(args);
     }
 
     if( remote_node->is_upstream() ){
@@ -197,12 +207,50 @@ int MC_RemoteNode::connect()
   return 0;
 }
 
+
+
+int
+MC_RemoteNode::accept_Connection( int listening_sock_fd )
+{
+  int retval = 0;
+
+
+  if( (sock_fd = get_socket_connection(listening_sock_fd)) == -1){
+    mc_printf(MCFL, stderr, "get_socket_connection() failed\n");
+    mc_errno = MC_ESOCKETCONNECT;
+    return -1;
+  }
+
+  if(threaded){
+    mc_printf(MCFL, stderr, "Creating Downstream recv thread ...\n");
+    retval = pthread_create(&recv_thread_id, NULL,
+                            MC_RemoteNode::recv_thread_main, (void *) this);
+    if(retval != 0){
+      mc_printf(MCFL, stderr, "Downstream recv thread creation failed...\n");
+      //thread create error
+    }
+    mc_printf(MCFL, stderr, "Creating Downstream send thread ...\n");
+    retval = pthread_create(&send_thread_id, NULL,
+                            MC_RemoteNode::send_thread_main, (void *) this);
+    if(retval != 0){
+      mc_printf(MCFL, stderr, "Downstream send thread creation failed...\n");
+      //thread create error
+    }
+  }
+  else{
+    poll_struct.fd = sock_fd;
+    poll_struct.events = POLLIN;
+  }
+
+  return retval;
+}
+
+
 int MC_RemoteNode::new_InternalNode(int listening_sock_fd, std::string parent_host,
                                     unsigned short parent_port,
                                     unsigned short parent_id,
                                     std::string commnode_cmd)
 {
-  int retval;
   char parent_port_str[128];
   char parent_id_str[128];
   char port_str[128];
@@ -230,41 +278,14 @@ int MC_RemoteNode::new_InternalNode(int listening_sock_fd, std::string parent_ho
     return -1;
   }
 
-  if( (sock_fd = get_socket_connection(listening_sock_fd)) == -1){
-    mc_printf(MCFL, stderr, "get_socket_connection() failed\n");
-    mc_errno = MC_ESOCKETCONNECT;
-    return -1;
-  }
-
-  if(threaded){
-    mc_printf(MCFL, stderr, "Creating Downstream recv thread ...\n");
-    retval = pthread_create(&recv_thread_id, NULL,
-                            MC_RemoteNode::recv_thread_main, (void *) this);
-    if(retval != 0){
-      mc_printf(MCFL, stderr, "Downstream recv thread creation failed...\n");
-      //thread create error
-    }
-    mc_printf(MCFL, stderr, "Creating Downstream send thread ...\n");
-    retval = pthread_create(&send_thread_id, NULL,
-                            MC_RemoteNode::send_thread_main, (void *) this);
-    if(retval != 0){
-      mc_printf(MCFL, stderr, "Downstream send thread creation failed...\n");
-      //thread create error
-    }
-  }
-  else{
-    poll_struct.fd = sock_fd;
-    poll_struct.events = POLLIN;
-  }
-
-  return 0;
+  return accept_Connection( listening_sock_fd );
 }
+
 
 int MC_RemoteNode::new_Application(int listening_sock_fd, std::string parent_host,
                                    unsigned short parent_port,
                                    unsigned short parent_id, std::string &cmd,
                                    std::vector <std::string> &args){
-  int retval;
   std::string rsh("");
   std::string username("");
 
@@ -291,39 +312,16 @@ int MC_RemoteNode::new_Application(int listening_sock_fd, std::string parent_hos
     mc_errno = MC_ECREATPROCFAILURE;
     return -1;
   }
-  if( (sock_fd = get_socket_connection(listening_sock_fd)) == -1){
-    mc_printf(MCFL, stderr, "get_socket_connection() failed\n");
-    mc_errno = MC_ESOCKETCONNECT;
-    return -1;
-  }
-
-  if(threaded){
-    mc_printf(MCFL, stderr, "Creating Downstream recv thread ...\n");
-    retval = pthread_create(&recv_thread_id, NULL,
-                            MC_RemoteNode::recv_thread_main, (void *) this);
-    if(retval != 0){
-      mc_printf(MCFL, stderr, "Downstream recv thread creation failed...\n");
-      //thread create error
-    }
-
-    mc_printf(MCFL, stderr, "Creating Downstream send thread ...\n");
-    retval = pthread_create(&send_thread_id, NULL,
-                            MC_RemoteNode::send_thread_main, (void *) this);
-    if(retval != 0){
-      mc_printf(MCFL, stderr, "Downstream send thread creation failed...\n");
-      //thread create error
-    }
-    else{
-        mc_printf(MCFL, stderr, "success\n");
-    }
-  }
-  else{
-    poll_struct.fd = sock_fd;
-    poll_struct.events = POLLIN;
-  }
-
-  return 0;
+  return accept_Connection( listening_sock_fd );
 }
+
+
+int
+MC_RemoteNode::accept_Application( int listening_sock_fd )
+{
+    return accept_Connection( listening_sock_fd );    
+}
+
 
 int MC_RemoteNode::send(MC_Packet *packet)
 {
