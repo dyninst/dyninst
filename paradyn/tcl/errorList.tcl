@@ -1,7 +1,10 @@
 
 #
 # $Log: errorList.tcl,v $
-# Revision 1.5  1995/10/06 19:51:41  naim
+# Revision 1.6  1995/10/12 19:45:52  naim
+# Adding some more error messages and modifying existing ones - naim.
+#
+# Revision 1.5  1995/10/06  19:51:41  naim
 # Changing default message for error 59 and adding a few more error messages
 # - naim
 #
@@ -267,8 +270,10 @@ set pdError(14) {
 } {vi
 } {serious
 } {
-A request to start a new visualization process failed.  This is due
-to a failure in RPCprocessCreate, msg_bind_buffered, or thr_setspecific.
+A request to start a new visualization process has failed. Some possible
+explanations are: (1) the executable for this visi is not well installed,
+and you should check whether the executable is in the right place;
+(2) the process you just started is not a visi process.
 }} 
 
 set pdError(15) {
@@ -832,4 +837,14 @@ set pdError(83) {
 Internal error. Please, report this error to paradyn@cs.wisc.edu
 }}
 
-set numPdErrors 83
+set pdError(84) {
+{Cannot create new paradyn daemon process.
+} {dm
+} {serious
+} {
+An error was detected when a paradyn daemon was being created. Possible
+explanations for this problem are: (1) unknown host; (2) it is not possible
+to establish connection with the specified host. 
+}}
+
+set numPdErrors 84
