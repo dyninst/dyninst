@@ -4,9 +4,12 @@
 // Ariel Tamches
 
 /* $Log: shg.C,v $
-/* Revision 1.1  1995/10/17 22:07:08  tamches
-/* First version of "new search history graph".
+/* Revision 1.2  1995/11/06 19:28:03  tamches
+/* slider mouse motion bug fixes
 /*
+ * Revision 1.1  1995/10/17 22:07:08  tamches
+ * First version of "new search history graph".
+ *
  */
 
 #include "tkTools.h"
@@ -321,6 +324,11 @@ void shg::nonSliderButtonRelease(ClientData cd, XEvent *) {
 }
 
 void shg::sliderMouseMotion(ClientData cd, XEvent *eventPtr) {
+   // This is a static method.
+   // Since, in an shg, things may expand at any time (even while one is sliding
+   // a scrollbar), we must be very careful.  The algorithm we use here is slower than
+   // that of the where axis, but is safer.  We use "slider_scrollbar_path"
+   // to obtain what the where axis caches and assumes not to change.
    assert(eventPtr->type == MotionNotify);
    shg *pthis = (shg *)cd;
 
@@ -331,13 +339,41 @@ void shg::sliderMouseMotion(ClientData cd, XEvent *eventPtr) {
                                         amount_moved;
 
    assert(pthis->slider_currently_dragging_subtree != NULL);
-   (void)pthis->slider_currently_dragging_subtree->
-           rigListboxScrollbarSliderTopPix(pthis->consts, pthis->slider_scrollbar_left,
-                                           pthis->slider_scrollbar_top,
-                                           pthis->slider_scrollbar_bottom,
-                                           newScrollBarSliderTopPix,
-                                           true // redraw now
-                                           );
+
+   const int overallWindowBorderPix = 0;
+   int root_centerx = pthis->nominal_centerx + pthis->horizScrollBarOffset;
+   int root_centery = overallWindowBorderPix + pthis->vertScrollBarOffset;
+   whereNodeGraphicalPath<shgRootNode> thePath(pthis->slider_scrollbar_path,
+					       pthis->consts, pthis->rootPtr,
+					       root_centerx, root_centery);
+
+   // a sanity check:
+   if (thePath.getLastPathNode(pthis->rootPtr) !=
+       pthis->slider_currently_dragging_subtree) {
+      cerr << "shg: slider-dragging-subtree unexpectedly changed (ignoring)" << endl;
+      return;
+   }
+
+   where4tree<shgRootNode> *ptr = pthis->slider_currently_dragging_subtree;
+   assert(thePath.getLastPathNode(pthis->rootPtr) == ptr);
+
+   int slider_scrollbar_top = thePath.get_endpath_topy() +
+                                 ptr->getNodeData().getHeightAsRoot() +
+			      pthis->consts.vertPixParent2ChildTop;
+
+   int slider_scrollbar_bottom = slider_scrollbar_top +
+                                 ptr->getListboxActualPixHeight() - 1;
+
+   int slider_scrollbar_left = thePath.get_endpath_centerx() -
+                               ptr->horiz_pix_everything_below_root(pthis->consts) / 2;
+
+   (void)ptr->rigListboxScrollbarSliderTopPix(pthis->consts,
+					      slider_scrollbar_left,
+					      slider_scrollbar_top,
+					      slider_scrollbar_bottom,
+					      newScrollBarSliderTopPix,
+					      true // redraw now
+					      );
 }
 
 void shg::sliderButtonRelease(ClientData cd, XEvent *eventPtr) {
@@ -396,6 +432,7 @@ void shg::processSingleClick(int x, int y) {
 
          slider_initial_yclick = y;
          slider_currently_dragging_subtree = parentPtr;
+         slider_scrollbar_path = thePath.getPath();
 
          const int lbTop = thePath.get_endpath_topy() +
                            parentPtr->getNodeData().getHeightAsRoot() +
@@ -408,14 +445,6 @@ void shg::processSingleClick(int x, int y) {
                      parentPtr->getListboxFullPixHeight() - 2*listboxBorderPix,
                      slider_initial_scrollbar_slider_top, // filled in
                      dummyint);
-
-         slider_scrollbar_left = thePath.get_endpath_centerx() -
-                                 parentPtr->horiz_pix_everything_below_root(consts) / 2;
-         slider_scrollbar_top = thePath.get_endpath_topy() +
-                                parentPtr->getNodeData().getHeightAsRoot() +
-                                consts.vertPixParent2ChildTop;
-         slider_scrollbar_bottom = slider_scrollbar_top +
-                                   parentPtr->getListboxActualPixHeight() - 1;
 
          Tk_CreateEventHandler(consts.theTkWindow,
                                ButtonReleaseMask,
