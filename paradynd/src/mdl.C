@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.124 2003/04/05 01:54:44 jaw Exp $
+// $Id: mdl.C,v 1.125 2003/04/09 20:25:05 jaw Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -497,41 +497,52 @@ bool update_environment_start_point(instrCodeNode *codeNode) {
    if(proc->multithread_ready()) {
      if (!proc->findAllFuncsByName("_pthread_body", fbv)) {
 	string msg = string("unable to find procedure '") + string("_pthread_body") + string("'");
-	showErrorCallback(95, msg);
+	//showErrorCallback(95, msg);
+	cerr <<msg << endl;
      }
      else {
        if (fbv.size() > 1) {
 	 string msg = string("WARNING:  found ") + string(fbv.size()) + string(" records of function '") 
 	   + string("_pthread_body") + string("'") + string(".  Using the first.");
-	 showErrorCallback(95, msg);
+	 //showErrorCallback(95, msg);
+	 cerr <<msg << endl;
        }
        pdf = fbv[0];
      }
 
      if(pdf)  (*start_func_buf).push_back(pdf);
      fbv.clear();
+     pdf = NULL;
 
     if (!proc->findAllFuncsByName("_thread_start", fbv)) {
 	string msg = string("unable to find procedure '") + string("_thread_start") + string("'");
-	showErrorCallback(95, msg);
+	//showErrorCallback(95, msg);
+	cerr <<msg << endl;;
      }
      else {
        if (fbv.size() > 1) {
 	 string msg = string("WARNING:  found ") + string(fbv.size()) + string(" records of function '") 
 	   + string("_thread_start") + string("'") + string(".  Using the first.");
-	 showErrorCallback(95, msg);
+	 //showErrorCallback(95, msg);
+	 cerr <<msg << endl;;
        }
        pdf = fbv[0];
      }
    }
+   
+   if (NULL != (pdf = proc->getMainFunction())) {
+     (*start_func_buf).push_back(pdf);      
+   }
+   else {
+     cerr << __FILE__ << __LINE__ << "getMainFunction() returned NULL!" << endl;
+   }
 
-   pdf = proc->getMainFunction();      
-   (*start_func_buf).push_back(pdf);      
-      
-   string vname = "$start";
-   // change this to MDL_T_LIST_PROCEDURE
-   mdl_env::add(vname, false, MDL_T_PROCEDURE);
-   mdl_env::set(start_func_buf, vname);
+   if (start_func_buf->size()) {
+     string vname = "$start";
+     // change this to MDL_T_LIST_PROCEDURE
+     mdl_env::add(vname, false, MDL_T_PROCEDURE);
+     mdl_env::set(start_func_buf, vname);
+   }
    return true;
 }
 
@@ -543,46 +554,53 @@ static bool update_environment(pd_process *proc) {
    string vname = "$exit";
    pdvector<function_base *> *exit_func_buf = new pdvector<function_base*>;
    pdvector<function_base *> fbv;
-   function_base *pdf;
+   function_base *pdf = NULL;
 
    proc->findAllFuncsByName(string(EXIT_NAME), *exit_func_buf); // JAW 04-03
    if (exit_func_buf->size() > 1) {
      string msg = string("WARNING:  found ") + string(exit_func_buf->size()) 
        + string(" records of function '") 
        + string(EXIT_NAME) + string("'") + string(".  Using the first.(2)");
-     showErrorCallback(95, msg);
+     //showErrorCallback(95, msg);
+     cerr << msg << endl;      
+     
      // findAllFuncs found more than one function, clear all but one
      pdf = (*exit_func_buf)[0];
      exit_func_buf->clear();
      exit_func_buf->push_back(pdf);
    }
 
-
+   pdf = NULL;
    if (!proc->findAllFuncsByName("pthread_exit", fbv)) {
 	string msg = string("unable to find procedure '") + string("pthread_exit") + string("'");
-	showErrorCallback(95, msg);
+	//showErrorCallback(95, msg);
+	cerr << msg << endl;      
      }
      else {
        if (fbv.size() > 1) {
 	 string msg = string("WARNING:  found ") + string(fbv.size()) + string(" records of function '") 
 	   + string("pthread_exit") + string("'") + string(".  Using the first.");
-	 showErrorCallback(95, msg);
+	 //showErrorCallback(95, msg);
+	 cerr << msg << endl;;      
        }
        pdf = fbv[0];
      }
 
    if(pdf)  (*exit_func_buf).push_back(pdf);
    fbv.clear();
+   pdf = NULL;
 
   if (!proc->findAllFuncsByName("thr_exit", fbv)) {
 	string msg = string("unable to find procedure '") + string("thr_exit") + string("'");
-	showErrorCallback(95, msg);
+	//showErrorCallback(95, msg);
+	cerr << msg << endl;;      
      }
      else {
        if (fbv.size() > 1) {
 	 string msg = string("WARNING:  found ") + string(fbv.size()) + string(" records of function '") 
 	   + string("thr_exit") + string("'") + string(".  Using the first.");
-	 showErrorCallback(95, msg);
+	 //showErrorCallback(95, msg);
+	 cerr << msg << endl;      
        }
        pdf = fbv[0];
      }
@@ -754,7 +772,6 @@ bool createThreadNodes(processMetFocusNode **procNode_arg,
 		       const Focus &full_focus) 
 {
    processMetFocusNode *procNode = (*procNode_arg);
-
    pd_process *proc = procNode->proc();
    bool bMT = proc->multithread_capable();
 
@@ -765,15 +782,19 @@ bool createThreadNodes(processMetFocusNode **procNode_arg,
 						   proc->STthread());
       threadNodeBuf.push_back(thrNode);
    } else {      // --- multi-threaded ---
-      int thrSelected = full_focus.getThreadID();
+     int thrSelected = full_focus.getThreadID();
       if(thrSelected == -1) {
 	 Focus focus_with_thr = no_thr_focus;
 	 threadMgr::thrIter itr = proc->beginThr();
 	 while(itr != proc->endThrMark()) {
 	    pd_thread *thr = *itr;
             itr++;
+	    string start_func_name;
+	    start_func_name = thr->get_start_func() ? thr->get_start_func()->prettyName()
+	      : string("no start func!");
+	    
 	    string thrName = string("thr_") + string(thr->get_tid()) + "{" + 
-	                      thr->get_start_func()->prettyName() + "}";
+	                      start_func_name + "}";
 	    focus_with_thr.set_thread(thrName);
 	    threadMetFocusNode *thrNode = threadMetFocusNode::
 	       newThreadMetFocusNode(metname, focus_with_thr, thr);
@@ -1665,14 +1686,16 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
 	if (!global_proc->findAllFuncsByName(var_, fbv)) {
 	  string msg = string("In metric '") + currentMetric + string("': ")
             + string("unable to find procedure '") + var_ + string("'");
-	  showErrorCallback(95, msg);
+	  //showErrorCallback(95, msg);
+	  cerr << msg;
 	  return false;
 	}
 	else {
 	  if (fbv.size() > 1) {
 	    string msg = string("WARNING:  found ") + string(fbv.size()) + string(" records of function '") 
 	      + var_ + string("'") + string(".  Using the first.(3)");
-	    showErrorCallback(95, msg);
+	    //showErrorCallback(95, msg);
+	    cerr << msg;
 	  }
 	  pdf = fbv[0];
 	}
@@ -1681,7 +1704,8 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
 	  {
           string msg = string("In metric '") + currentMetric + string("': ")
             + string("unable to find procedure '") + var_ + string("'");
-          showErrorCallback(95, msg);
+          //showErrorCallback(95, msg);
+	  cerr << msg;
           return false;
         }
         ast = new AstNode(var_, astargs); //Cannot use simple assignment here!
