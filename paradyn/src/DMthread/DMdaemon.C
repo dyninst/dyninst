@@ -71,6 +71,12 @@ bool paradynDaemon::addDaemon (int new_fd)
   // constructor adds new daemon to dictionary allDaemons
   paradynDaemon *new_daemon = new paradynDaemon (new_fd);
 
+  if (new_daemon->errorConditionFound) {
+    //TODO: "something" has to be done for a proper clean up - naim
+    uiMgr->showError(6,"");
+    return(false);
+  }
+
   msg_bind_buffered (new_daemon->get_fd(), true, (int(*)(void*)) xdrrec_eof,
 		     (void*)new_daemon->net_obj());
 
@@ -165,6 +171,15 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const string &machine,
 
     pd = new paradynDaemon(m, login, def->getCommandString(), 
 			       def->getNameString(), def->getFlavorString());
+
+    if (pd->errorConditionFound) {
+      //TODO: "something" has to be done for a proper clean up - naim
+      string msg;
+      msg=string("Cannot create daemon process on host \"") + m + string("\"");
+      uiMgr->showError(84,P_strdup(msg.string_of())); 
+      return((paradynDaemon*) 0);
+    }
+
     paradynDaemon::args.resize(asize);
     (*DMstatus) << "ready";
 
@@ -180,8 +195,6 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const string &machine,
    unsigned size = info.size();
    for (unsigned u=0; u<size; u++)
 	addMetric(info[u]);
-
-
 
     msg_bind_buffered(pd->get_fd(), true, (int(*)(void*))xdrrec_eof,
 		     (void*) pd->net_obj());
@@ -686,28 +699,34 @@ paradynDaemon::paradynDaemon(const string &m, const string &u, const string &c,
 : dynRPCUser(m, u, c, NULL, NULL, args, false, dataManager::sock_fd),
   machine(m), login(u), command(c), name(n), flavor(f), activeMids(uiHash)
 {
-  assert(m.length());
-  assert(c.length());
-  assert(n.length());
-  assert(f.length());
+  if (!(this->errorConditionFound)) {
+    // No problems found in order to create this new daemon process - naim
+    assert(m.length());
+    assert(c.length());
+    assert(n.length());
+    assert(f.length());
 
-  // if c includes a pathname, lose the pathname
-  char *loc = P_strrchr(c.string_of(), '/');
-  if (loc) {
-    loc = loc + 1;
-    command = loc;
-  }
+    // if c includes a pathname, lose the pathname
+    char *loc = P_strrchr(c.string_of(), '/');
+    if (loc) {
+      loc = loc + 1;
+      command = loc;
+    }
   
-  status = new status_line(machine.string_of());
-  paradynDaemon *pd = this;
-  paradynDaemon::allDaemons+=pd;
+    status = new status_line(machine.string_of());
+    paradynDaemon *pd = this;
+    paradynDaemon::allDaemons+=pd;
+  }
 }
 
 // machine, name, command, flavor and login are set via a callback
 paradynDaemon::paradynDaemon(int f)
 : dynRPCUser(f, NULL, NULL, false), flavor(0), activeMids(uiHash){
-  paradynDaemon *pd = this;
-  paradynDaemon::allDaemons += pd;
+  if (!(this->errorConditionFound)) {
+    // No problems found in order to create this new daemon process - naim 
+    paradynDaemon *pd = this;
+    paradynDaemon::allDaemons += pd;
+  }
 }
 
 void paradynDaemon::sampleDataCallbackFunc(int program,
