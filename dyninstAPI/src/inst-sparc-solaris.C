@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.49 1999/05/28 22:12:33 hollings Exp $
+// $Id: inst-sparc-solaris.C,v 1.50 1999/05/31 20:40:23 wylie Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -363,7 +363,7 @@ Address pd_Function::newCallPoint(Address &adr, const instruction instr,
     if (isTrap) {
 	if (!reloc_info) {
 	    calls += point;
-	    calls[callId] -> instId = callId++;
+	    calls[callId] -> instId = callId; callId++;
 	} else {
 	    // calls to a location within the function are not
 	    // kept in the calls vector
@@ -2253,7 +2253,7 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
        instPoint *point	= new instPoint(this, instr, owner, newAdr, false, 
 					functionExit, adr);
        funcReturns += point;
-       funcReturns[retId] -> instId = retId++;
+       funcReturns[retId] -> instId = retId; retId++;
      } else if (instr.branch.op == 0 
 		&& (instr.branch.op2 == 2 || instr.branch.op2 == 6)) {
        // find if this branch is going out of the function
@@ -2268,7 +2268,7 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
 	       point->branchTarget = target;
 	   }
 	   funcReturns += point;
-	   funcReturns[retId] -> instId = retId++;
+	   funcReturns[retId] -> instId = retId; retId++;
        }
 
      } else if (isCallInsn(instr)) {
@@ -2296,7 +2296,7 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
 				      newAdrdisp, false,
 				      functionExit, adr);
            funcReturns += point;
-           funcReturns[retId] -> instId = retId++;
+           funcReturns[retId] -> instId = retId; retId++;
 
        } else {
 	   // check if the call is to inside the function - if definately
@@ -2329,7 +2329,7 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
                                         newAdrdisp, false,
 				        functionExit, adr);
            funcReturns += point;
-           funcReturns[retId] -> instId = retId++;
+           funcReturns[retId] -> instId = retId; retId++;
      } 
      else if (isInsnType(instr, JMPLmask, JMPLmatch)) {
        /* A register indirect jump. Some jumps may exit the function 
@@ -2373,7 +2373,7 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
 						  newAdr, false,
 						  functionExit, adr);
 		 funcReturns += point;
-		 funcReturns[retId] -> instId = retId++;
+		 funcReturns[retId] -> instId = retId; retId++;
 	     }
 	 }
      }
