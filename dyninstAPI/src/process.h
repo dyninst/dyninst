@@ -10,7 +10,10 @@
  *   ptrace updates are applied to the text space.
  *
  * $Log: process.h,v $
- * Revision 1.11  1994/09/22 02:23:44  markc
+ * Revision 1.12  1994/11/02 11:15:38  markc
+ * Added prototypes.
+ *
+ * Revision 1.11  1994/09/22  02:23:44  markc
  * Changed structs to classes
  *
  * Revision 1.10  1994/08/17  18:18:07  markc
@@ -72,10 +75,17 @@
 #ifndef PROCESS_H
 #define PROCESS_H
 
-#include "util/h/list.h"
 #include "rtinst/h/rtinst.h"
+#include "util.h"
+#include "util/h/String.h"
+#include "util/h/Dictionary.h"
+#include "util/h/Types.h"
 
 class resource;
+class instPoint;
+
+// TODO a kludge - to prevent recursive includes
+class image;
 
 typedef enum { neonatal, running, stopped, exited } processState;
 typedef enum { HEAPfree, HEAPallocated } heapStatus;
@@ -85,7 +95,7 @@ class heapItem {
   heap() {
     addr =0; length = 0; status = HEAPfree;
   }
-  int addr;
+  Address addr;
   int length;
   heapStatus status;
 }; 
@@ -112,12 +122,16 @@ class costC {
     time64 wallTimeLastTrampSample;
 };
 
+inline unsigned ipHash(const instPoint *&ip) {
+  return ((unsigned)ip);
+}
+
 class process {
  public:
-    process() {
+    process() : heapActive(uiHash), baseMap(ipHash) {
       symbols = NULL; traceLink = 0; ioLink = 0;
       status = neonatal; pid = 0; thread = 0;
-      aggregate = FALSE; rid = 0; parent = NULL;
+      aggregate = false; rid = 0; parent = NULL;
       bufStart = 0; bufEnd = 0; pauseTime = 0.0;
       freed = 0; reachedFirstBreak = 0;
     }
@@ -127,12 +141,12 @@ class process {
     processState status;	/* running, stopped, etc. */
     int pid;			/* id of this process */
     int thread;			/* thread id for thread */
-    Boolean aggregate;		/* is this process a pseudo process ??? */
-    HTable<heapItem*> heapActive;	/* acctive part of inferior heap */
-    List<heapItem*> heapFree;	/* free block of inferrior heap */
+    bool aggregate;		/* is this process a pseudo process ??? */
+    dictionary_hash<unsigned, heapItem*> heapActive; // active part of inferior heap 
+    vector<heapItem*> heapFree;  /* free block of inferrior heap */
     resource *rid;		/* handle to resource for this process */
     process *parent;		/* parent of this proces */
-    List<void *> baseMap;	/* map and inst point to its base tramp */
+    dictionary_hash<instPoint*, unsigned> baseMap;	/* map and inst point to its base tramp */
     char buffer[2048];
     int bufStart;
     int bufEnd;
@@ -143,15 +157,15 @@ class process {
     int reachedFirstBreak;
 };
 
-extern List<process*> processList;
+extern dictionary_hash<int, process*> processMap;
 
-process *createProcess(char *file, char *argv[], int nenv, char *envp[]);
-process *allocateProcess(int pid, char *name);
-process *findProcess(int pid);
-void initInferiorHeap(process *proc, Boolean globalHeap);
-void copyInferriorHeap(process *from, process *to);
+process *createProcess(char *file, int avCount, char *argv[], int nenv, char *envp[]);
+process *allocateProcess(int pid, const string name);
 
-int inferriorMalloc(process *proc, int size);
-void inferriorFree(process *proc, int pointer);
+void initInferiorHeap(process *proc, bool globalHeap);
+void copyInferiorHeap(process *from, process *to);
+
+unsigned inferiorMalloc(process *proc, int size);
+void inferiorFree(process *proc, unsigned pointer);
 
 #endif
