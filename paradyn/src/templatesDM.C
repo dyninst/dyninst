@@ -151,6 +151,7 @@ template class vector<dictionary_hash<string, resource*>::entry>;
 
 template class dictionary_hash<unsigned, resource*>;
 template class vector<dictionary_hash<unsigned, resource*>::entry>;
+template class dictionary_hash_iter<unsigned, resource*>;
 
 
 template class dictionary_hash<unsigned int, cpContext*>;
