@@ -1,7 +1,10 @@
 /* $Log: UIglobals.h,v $
-/* Revision 1.21  1995/11/09 02:10:00  tamches
-/* removed some obsolete references (e.g. uim_eid, uim_rootRes)
+/* Revision 1.22  1996/01/23 06:53:56  tamches
+/* uim_VisiSelections is no longer a ptr
 /*
+ * Revision 1.21  1995/11/09 02:10:00  tamches
+ * removed some obsolete references (e.g. uim_eid, uim_rootRes)
+ *
  * Revision 1.20  1995/11/06 02:44:43  tamches
  * removed nodeIdType and numlist (no longer used typedefs)
  *
@@ -126,7 +129,7 @@ extern status_line *ui_status;
 extern int uim_maxError;     
 
 //// metric-resource selection 
-extern vector<metric_focus_pair> *uim_VisiSelections;
+extern vector<metric_focus_pair> uim_VisiSelections;
 extern char **uim_AvailMets;
 extern int uim_AvailMetsSize;
 extern metricHandle *uim_AvailMetHandles;
