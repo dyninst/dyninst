@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.19 2003/04/02 07:12:26 jaw Exp $
+// $Id: sol_proc.C,v 1.20 2003/04/11 22:46:28 schendel Exp $
 
 #ifdef rs6000_ibm_aix4_1
 #include <sys/procfs.h>
@@ -50,6 +50,8 @@
 #endif
 #include <limits.h>
 #include <poll.h>
+#include <sys/types.h>  // for reading lwps out of proc
+#include <dirent.h>     // for reading lwps out of proc
 #include "common/h/headers.h"
 #include "dyninstAPI/src/signalhandler.h"
 #include "dyninstAPI/src/process.h"
@@ -490,6 +492,115 @@ struct dyn_saved_regs *dyn_lwp::getRegisters()
     return regs;
 }
 
+void doneWithLwp(process *, unsigned /*rpc_id*/, void * /* data*/, 
+                 void * /* result*/) {
+   //int lwp_id = (int)data;
+   //cerr << "doneWithLwp - lwp_id: " << lwp_id << ", result: "
+   //     << result << ", rpc_id: " << rpc_id << endl;
+}
+
+// inferior RPC callback function type
+typedef void(*inferiorRPCcallbackFunc)(process *p, unsigned rpcid, void *data,
+                                       void *result);
+
+// returns rpc_id
+unsigned recognize_lwp(process *proc, int lwp_id) {
+   dyn_lwp *lwp = proc->getLWP(lwp_id);
+
+   pdvector<AstNode *> ast_args;
+   AstNode *ast = new AstNode("DYNINSTregister_running_thread", ast_args);
+
+   return proc->postRPCtoDo(ast, true, &doneWithLwp, (void *)lwp_id, lwp);
+}
+
+void determineLWPs(int pid, pdvector<unsigned> *all_lwps) {
+   char procdir[128];
+   sprintf(procdir, "/proc/%d/lwp", pid);
+   DIR *dirhandle = opendir(procdir);
+   dirent_t *direntry;
+   while((direntry= readdir(dirhandle)) != NULL) {
+      char str[100];
+      strlcpy(str, direntry->d_name, direntry->d_reclen);
+      unsigned lwp_id = atoi(direntry->d_name);
+      if(lwp_id != 0) // && lwp_id != 1)
+         (*all_lwps).push_back(lwp_id);
+   }
+   closedir(dirhandle);
+}
+
+struct lwprequest_info {
+public:
+   lwprequest_info() : lwp_id(0), rpc_id(0), 
+                       completed(false), cancelled(false) 
+   { }
+   unsigned lwp_id;
+   unsigned rpc_id;
+   bool completed;
+   bool cancelled;
+};
+
+template class pdvector<lwprequest_info*>;
+
+bool anyRpcsActive(process *proc, pdvector<lwprequest_info*> *rpcReqBuf) {
+   pdvector<lwprequest_info*>::iterator iter = (*rpcReqBuf).begin();
+   bool any_active = false;
+
+   while(iter != (*rpcReqBuf).end()) {
+      lwprequest_info *rpcReq = (*iter);
+      if(rpcReq->completed || rpcReq->cancelled) {
+         iter++;
+         continue;
+      }      
+
+      int rpc_id = rpcReq->rpc_id;
+      irpcState_t rpc_state = proc->getRPCState(rpc_id);
+      if(rpc_state == irpcWaitingForTrap) {
+         proc->cancelRPC(rpc_id);
+         rpcReq->cancelled = true;
+      }
+      else if(rpc_state == irpcNotValid) {   // ie. it's already completed
+         rpcReq->completed = true;
+      }
+      else {
+         any_active = true;
+      }
+      iter++;
+   }
+   return any_active;
+}
+
+void process::recognize_threads(pdvector<unsigned> *completed_lwps) {
+   pdvector<unsigned> found_lwps;
+   determineLWPs(getPid(), &found_lwps);
+
+   pdvector<lwprequest_info*> rpcReqBuf;
+   for(unsigned i=0; i<found_lwps.size(); i++) {
+      unsigned lwp_id = found_lwps[i];
+      unsigned rpc_id = recognize_lwp(this, lwp_id);
+      lwprequest_info *newReq = new lwprequest_info;
+      newReq->lwp_id = lwp_id;
+      newReq->rpc_id = rpc_id;
+      rpcReqBuf.push_back(newReq);
+   }
+
+   do {
+      launchRPCs(false);
+      if(hasExited())  return;
+      decodeAndHandleProcessEvent(false);
+      // Loop until all rpcs are done
+   } while(anyRpcsActive(this, &rpcReqBuf));
+
+   pdvector<lwprequest_info*>::iterator iter = rpcReqBuf.begin();
+   while(iter != rpcReqBuf.end()) {
+      lwprequest_info *rpcReq = (*iter);
+      if(rpcReq->completed) {
+         (*completed_lwps).push_back(rpcReq->lwp_id);
+      }
+      iter++;
+      delete rpcReq;
+   }
+}
+
 // Restore registers saved as above.
 bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs)
 {
@@ -564,7 +675,7 @@ bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *regs)
     // nPC will be overwritten by the PC write
     GETREG_nPC(local->theIntRegs) = addr + sizeof(instruction);
     GETREG_PC(local->theIntRegs) = addr;
-    
+
     if (!restoreRegisters(local))
         return false;
     
@@ -1121,7 +1232,7 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall)
     // and return
 
     for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
-        if (syscallTraps_[iter]->syscall_id == (int) syscall) {
+        if (syscallTraps_[iter]->syscall_id == syscall) {
             trappedSyscall = syscallTraps_[iter];
             break;
         }
@@ -1263,52 +1374,56 @@ int dyn_lwp::hasReachedSyscallTrap() {
 
 procSyscall_t decodeSyscall(process *p, procSignalWhat_t syscall)
 {
-    if (syscall == SYSSET_MAP(SYS_fork, p->getPid()) ||
-        syscall == SYSSET_MAP(SYS_fork1, p->getPid()) ||
-        syscall == SYSSET_MAP(SYS_vfork, p->getPid()))
+   int pid = p->getPid();
+    if (syscall == SYSSET_MAP(SYS_fork, pid) ||
+        syscall == SYSSET_MAP(SYS_fork1, pid) ||
+        syscall == SYSSET_MAP(SYS_vfork, pid))
         return procSysFork;
-    if (syscall == SYSSET_MAP(SYS_exec, p->getPid()) || 
-        syscall == SYSSET_MAP(SYS_execve, p->getPid()))
+    if (syscall == SYSSET_MAP(SYS_exec, pid) || 
+        syscall == SYSSET_MAP(SYS_execve, pid))
         return procSysExec;
-    if (syscall == SYSSET_MAP(SYS_exit, p->getPid()))
+    if (syscall == SYSSET_MAP(SYS_exit, pid))
         return procSysExit;
+
     return procSysOther;
 }
 
 
 
-int decodeProcStatus(process *proc,
+int decodeProcStatus(process *,
                      lwpstatus_t status,
                      procSignalWhy_t &why,
                      procSignalWhat_t &what,
                      procSignalInfo_t &info) {
-    info = status.pr_reg[R_O0];
-    
-    switch (status.pr_why) {
-  case PR_SIGNALLED:
-      why = procSignalled;
-      what = status.pr_what;
-      break;
-  case PR_SYSENTRY:
-      why = procSyscallEntry;
-      what = status.pr_what;
-      break;
-  case PR_SYSEXIT:
-      why = procSyscallExit;
-      what = status.pr_what;
-      break;
-  case PR_REQUESTED:
+   info = status.pr_reg[R_O0];
+   switch (status.pr_why) {
+     case PR_SIGNALLED:
+        why = procSignalled;
+        what = status.pr_what;
+        break;
+     case PR_SYSENTRY:
+        why = procSyscallEntry;
+        what = status.pr_what;
+        break;
+     case PR_SYSEXIT:
+        why = procSyscallExit;
+        what = status.pr_what;
+        break;
+     case PR_REQUESTED:
       // We don't expect PR_REQUESTED in the signal handler
       assert(0 && "PR_REQUESTED not handled");
-      break;
-  case PR_JOBCONTROL:
-  case PR_FAULTED:
-  case PR_SUSPENDED:
-  default:
-      assert(0);
-      break;
-    }
-    return 1;
+     case PR_SUSPENDED:
+        // I'm seeing this state at times with a forking multi-threaded
+        // child process, currently handling by just continuing the process
+        why = procSuspended;
+        break;
+     case PR_JOBCONTROL:
+     case PR_FAULTED:
+     default:
+        assert(0);
+        break;
+   }
+   return 1;
 }
 
 // Get and decode a signal for a process
@@ -1358,6 +1473,7 @@ process *decodeProcessEvent(int pid,
         int timeout;
         if (block) timeout = -1;
         else timeout = 0;
+
         selected_fds = poll(fds, processVec.size(), timeout);
 
         if (selected_fds <= 0) {
@@ -1403,19 +1519,20 @@ process *decodeProcessEvent(int pid,
             return NULL;
 
     } else {
-        // Real return from poll
-        if (currProcess->getDefaultLWP()->get_status(&procstatus)) {
-           // Check if the process is stopped waiting for us
-            if (procstatus.pr_flags & PR_STOPPED ||
-                procstatus.pr_flags & PR_ISTOP) {
-               if (!decodeProcStatus(currProcess, procstatus, why, what, info))
-                    return NULL;
-            }
-        }
-        else {
-            // get_status failed, probably because the process doesn't exist
-        }
+       // Real return from poll
+       if (currProcess->getDefaultLWP()->get_status(&procstatus)) {
+          // Check if the process is stopped waiting for us
+          if (procstatus.pr_flags & PR_STOPPED ||
+              procstatus.pr_flags & PR_ISTOP) {
+             if(!decodeProcStatus(currProcess, procstatus, why, what, info))
+                return NULL;
+          }
+       }
+       else {
+          // get_status failed, probably because the process doesn't exist
+       }
     }
+
     // Skip this FD the next time through
     if (currProcess) {
         currProcess->savePreSignalStatus();
