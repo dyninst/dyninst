@@ -10,6 +10,9 @@
 
 /*
  * $Log: metMain.C,v $
+ * Revision 1.28  1996/02/16 20:23:57  tamches
+ * fixed compile error
+ *
  * Revision 1.27  1996/02/16 20:12:32  tamches
  * start_process now calls expand_tilde_pathname
  *
@@ -286,15 +289,17 @@ static void start_process(processMet *the_ps)
 {
   vector<string> argv;
 
+  string directory;
   if (the_ps->command().length()) {
     assert(RPCgetArg(argv, the_ps->command().string_of()));
-    string directory = expand_tilde_pathname(the_ps->execDir()); // see util lib
+    directory = expand_tilde_pathname(the_ps->execDir()); // see util lib
   }
   else {
     string msg;
     msg = string("Process \"") + the_ps->name() + 
 	  string("\": command line is missing in PCL file.");
     uiMgr->showError(89,P_strdup(msg.string_of()));
+    return;
   }
 
   if(dataMgr->addExecutable(the_ps->host().string_of(), 
