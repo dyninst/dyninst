@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: func-reloc.C,v 1.55 2005/02/24 10:15:41 rchen Exp $
+ * $Id: func-reloc.C,v 1.56 2005/03/01 23:07:44 bernat Exp $
  */
 
 #include "dyninstAPI/src/func-reloc.h"
@@ -290,8 +290,8 @@ int int_function::relocatedSizeChange(const image *owner, process *proc) {
   Address mutator, mutatee;
   LocalAlterationSet normalized_alteration_set(this);
 
-  return findAlterations(owner, proc, oldInstructions, normalized_alteration_set, 
-                         mutator, mutatee);
+  return calculateAlterations(owner, proc, oldInstructions, normalized_alteration_set, 
+			      mutator, mutatee);
 }
 
 
@@ -309,11 +309,11 @@ int int_function::relocatedSizeChange(const image *owner, process *proc) {
 // mutatee: address of actual function to be relocated (located in the mutatee)
 // mutator: address of copy of the above function  (located in the mutator)
 
-int int_function::findAlterations(const image *owner, 
-                                 process *proc, 
-                                 instruction *&oldInstructions,
-                                 LocalAlterationSet &normalized_alteration_set,
-                                 Address &mutator, Address &mutatee) {
+int int_function::calculateAlterations(const image *owner, 
+				       process *proc, 
+				       instruction *&oldInstructions,
+				       LocalAlterationSet &normalized_alteration_set,
+				       Address &mutator, Address &mutatee) {
 
 LocalAlterationSet temp_alteration_set(this);
 Address baseAddress;
@@ -328,7 +328,6 @@ bool expanded = true;
     cerr << " size() = " << get_size() << endl;
     cerr << " this = " << this << endl;
 #endif
-
   if (get_size() == 0) {
     cerr << "WARN : attempting to relocate function " \
        	 << prettyName().c_str() << " with size 0, unable to instrument" \
@@ -407,14 +406,14 @@ bool expanded = true;
 
 // creates a new relocatedFuncInfo if successful
 relocatedFuncInfo *int_function::findAndApplyAlterations(const image *owner, 
-                                          instPoint *&location,
-                                          u_int &newAdr, 
-                                          process *proc, 
-                                          unsigned &size_change) {
-   instruction *oldInstructions = 0, *newInstructions = 0;
-   Address mutator, mutatee;
-   int totalSizeChange = 0;
-   LocalAlterationSet normalized_alteration_set(this); 
+							 instPoint *&location,
+							 u_int &newAdr, 
+							 process *proc, 
+							 unsigned &size_change) {
+  instruction *oldInstructions = 0;
+  Address mutator, mutatee;
+  int totalSizeChange = 0;
+  LocalAlterationSet normalized_alteration_set(this); 
    
    // assumes delete NULL ptr safe....
    oldInstructions = NULL;
@@ -427,13 +426,14 @@ relocatedFuncInfo *int_function::findAndApplyAlterations(const image *owner,
 #endif
    
    // Find the alterations that need to be applied
-   totalSizeChange = findAlterations(owner, proc, oldInstructions,
-                                     normalized_alteration_set,
-                                     mutator, mutatee);  
+   totalSizeChange = calculateAlterations(owner, proc, oldInstructions,
+					  normalized_alteration_set,
+					  mutator, mutatee);  
 
    if (totalSizeChange == -1) {  
       // Do not relocate function
-      delete []oldInstructions;
+     
+     if (oldInstructions) delete []oldInstructions;
       return NULL;
    }
 
@@ -446,7 +446,7 @@ relocatedFuncInfo *int_function::findAndApplyAlterations(const image *owner,
    relocatedFuncInfo *reloc_info = NULL;
    Address ipAddr = 0;
    proc->getBaseAddress(owner,ipAddr);
-   ipAddr += location->pointAddr();
+   if (location) ipAddr += location->pointAddr();
    u_int ret = proc->inferiorMalloc(get_size() + totalSizeChange, textHeap,
                                     ipAddr);
    newAdr = ret;
@@ -460,6 +460,8 @@ relocatedFuncInfo *int_function::findAndApplyAlterations(const image *owner,
    
    // Allocate the memory in paradyn to hold a copy of the rewritten function
    relocatedCode = new unsigned char[get_size() + totalSizeChange];
+   fprintf(stderr, "Relocated code allocated: %d (%p)\n",
+	   get_size() + totalSizeChange, relocatedCode);
    if(!relocatedCode) {
       cerr << "WARNING: Allocation of space for relocating function "
            << prettyName() << " failed." << endl;
@@ -468,24 +470,29 @@ relocatedFuncInfo *int_function::findAndApplyAlterations(const image *owner,
       return NULL;
    } 
 
-#if defined(i386_unknown_solaris2_5) \
- || defined(i386_unknown_nt4_0) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
+#if defined(arch_x86) || defined(arch_x86_64)
    // Upper bound on the number of instructions in the relocated function. 
    // The original function has getNumInstructions instructions and so the
    // relocated function has at least that many functions. At most, each byte
    // added to the new function is an instruction, so the maximum number of 
    // instructions in the new function is getNumInstructions + totalSizeChange
-   newInstructions = new instruction[getNumInstructions() + totalSizeChange];
-#elif defined(sparc_sun_solaris2_4)
-   newInstructions = reinterpret_cast<instruction *> (relocatedCode);
+
+   // On x86, the instruction is a data structure. Caused by variable-length instructions.
+   relocatedInstructions = new instruction[getNumInstructions() + totalSizeChange];
+   fprintf(stderr, "Relocated instructions: %d (%d), %p\n",
+	   getNumInstructions() + totalSizeChange, 
+	   (getNumInstructions() + totalSizeChange)*sizeof(instruction),
+	   relocatedInstructions);
+#else
+   // On other platforms, instructions are unions that describe the insn. Easier
+   // to key based on the (fixed-size) opcode.
+   relocatedInstructions = reinterpret_cast<instruction *> (relocatedCode);
 #endif
 
    // Apply the alterations needed for relocation. The expanded function 
    // will be written to relocatedCode.
    if (!(applyAlterations(normalized_alteration_set, mutator, mutatee, 
-                       newAdr, oldInstructions, get_size(), newInstructions) ))
+                       newAdr, oldInstructions, get_size(), relocatedInstructions, reloc_info) ))
    {
       delete []oldInstructions;
       delete reloc_info;
@@ -496,11 +503,17 @@ relocatedFuncInfo *int_function::findAndApplyAlterations(const image *owner,
    // points. Do AFTER all alterations are attached AND applied....
    fillInRelocInstPoints(owner, proc, location, reloc_info, 
                          mutatee, mutator, oldInstructions, newAdr, 
-                         newInstructions, normalized_alteration_set);
+                         relocatedInstructions, normalized_alteration_set);
    
    size_change = totalSizeChange;  
    
-   delete []oldInstructions;
+   // Keep a hold of the alteration set for future reference.
+   // Also gives us a FunctionExpansionRecord -- useful for
+   // figuring out where things are in the new function.
+   reloc_info->alteration_set = normalized_alteration_set;
+
+   instructions = oldInstructions;
+
    return reloc_info;
 }
 
@@ -518,16 +531,12 @@ bool int_function::expandInstPoints(const image *owner,
                                Address baseAddress, Address mutator,
                                Address mutatee, instruction oldInstructions[], 
                                unsigned num_instructions,
-#if defined (sparc_sun_solaris2_4)
-                               process *proc
-#else
-                               process *
-#endif
-                                   )
+                               process *proc)
 {
 
-  bool combined1, combined2, combined3, combined4, combined5;
+  bool combined1, combined2, combined3, combined4, combined5, combined6;
   bool attach1 = true, attach2 = true, attach3 = true, attach4 = true, attach5 = true;
+  bool attach6 = true;
 
 #ifdef DEBUG_FUNC_RELOC
     cerr << "int_function::expandInstPoints called "<< endl;
@@ -541,6 +550,7 @@ bool int_function::expandInstPoints(const image *owner,
   LocalAlterationSet tmp_alt_set2(this);
   LocalAlterationSet tmp_alt_set3(this);
   LocalAlterationSet tmp_alt_set4(this);
+  LocalAlterationSet tmp_alt_set5(this);
 
   // Perform three passes looking for instPoints that need expansion
 
@@ -555,8 +565,11 @@ bool int_function::expandInstPoints(const image *owner,
                                            proc);
   attach5 = PA_attachTailCalls(&tmp_alt_set4);
 #endif
+#if defined(arch_x86)
+  attach6 = PA_expandLoopBlocks(&tmp_alt_set5,proc); 
+#endif
 
-  if (!attach1 || !attach2 || !attach3 || !attach4 || !attach5) {
+  if (!attach1 || !attach2 || !attach3 || !attach4 || !attach5 || !attach6) {
     return false;
   }
 
@@ -567,7 +580,8 @@ bool int_function::expandInstPoints(const image *owner,
   combined2 = combineAlterationSets(temp_alteration_set, &tmp_alt_set2);
   combined3 = combineAlterationSets(temp_alteration_set, &tmp_alt_set3);
   combined4 = combineAlterationSets(temp_alteration_set, &tmp_alt_set4);
-  combined5 = combineAlterationSets(&normalized_alteration_set, temp_alteration_set);    
+  combined5 = combineAlterationSets(temp_alteration_set, &tmp_alt_set5);
+  combined6 = combineAlterationSets(&normalized_alteration_set, temp_alteration_set);    
 
   if (!combined1 || !combined2 || !combined3 || !combined4 || !combined5) {
     return false;
@@ -761,11 +775,12 @@ bool int_function::discoverAlterations(LocalAlterationSet *temp_alteration_set,
 //          in temporary buffer in mutator
 
 bool int_function::applyAlterations(LocalAlterationSet &norm_alt_set,
-				   Address mutator, Address mutatee, 
-                                   Address newAdr, 
-                                   instruction oldInstructions[], 
-				   unsigned codeSize, 
-                                   instruction newInstructions[]) {
+				    Address mutator, Address mutatee, 
+				    Address newAdr, 
+				    instruction oldInstructions[], 
+				    unsigned codeSize, 
+				    instruction newInstructions[],
+				    relocatedFuncInfo *reloc) {
 
   // offset of current insn from beginning of original function  
   Address oldOffset = 0;
@@ -933,10 +948,13 @@ bool int_function::applyAlterations(LocalAlterationSet &norm_alt_set,
 
       nextAlter->RewriteFootprint(mutatee, oldAdr_after, 
                                   newAdr, newAdr_after, 
-                                  oldInstructions, newInstructions, 
-                                  oldInsnOffset, newInsnOffset, newDisp, 
-                                  codeOffset, relocatedCode);
+                                  oldInstructions, 
+				  newInstructions, 
+                                  oldInsnOffset, newInsnOffset, 
+				  newDisp, codeOffset, 
+				  relocatedCode);
 
+      
       // update offsets by the # of bytes RewriteFootprint walked over
       oldOffset += (oldAdr_after - oldAdr_before);
       newOffset += (newAdr_after - newAdr_before);
@@ -1130,7 +1148,7 @@ bool int_function::relocateFunction(process *proc, instPoint *&location) {
       so proceed with the relocation */
     
    Address baseAddress = 0;
-   if(!(proc->getBaseAddress(location->getOwner(),baseAddress))){
+   if(!(proc->getBaseAddress(pdmod()->exec(),baseAddress))){
       baseAddress = 0;
    }
     
@@ -1144,7 +1162,7 @@ bool int_function::relocateFunction(process *proc, instPoint *&location) {
    // findAndApplyAlterations expands and updates the function, 
    // storing the expanded function with relocated addresses in 
    // the buffer relocatedCode.
-   reloc_info = findAndApplyAlterations(location->getOwner(), location, ret,
+   reloc_info = findAndApplyAlterations(pdmod()->exec(), location, ret,
                                         proc, size_change);
    if(reloc_info == NULL) {
 #ifdef DEBUG_FUNC_RELOC
@@ -1233,4 +1251,8 @@ void int_function::sorted_ips_vector(pdvector<instPoint*> &fill_in) {
       }
    }
 }
+
+
+
+    
 

@@ -88,18 +88,17 @@
 #include "common/h/headers.h"
 #include "codeRange.h"
 #include "instPoint.h"
+#include "LocalAlteration.h"
 
 class LocalAlteration;
 class LocalAlterationSet;
 class process;
 class int_function;
 
+// Class that tracks the fact that the function got bigger
+// when we relocated it.
 
-#if defined(i386_unknown_solaris2_5) \
- || defined(i386_unknown_nt4_0) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(ia64_unknown_linux2_4) /* Temporary duplication. - TLM */
+#if (defined(arch_x86) || defined(arch_x86_64)) && defined(cap_relocation)
 
 // Check for ExpandInstruction alterations that have already been found.
 // Sparc does not use ExpandInstruction alterations
@@ -118,6 +117,8 @@ LocalAlteration *fixOverlappingAlterations(LocalAlteration *alteration,
 // process basis (there is no guarentee that two processes are going to
 // relocated this function to the same location in the heap)
 class relocatedFuncInfo : public codeRange {
+  friend class int_function;
+
  public:
    relocatedFuncInfo(process *p, Address na, unsigned s, int_function *f):
      proc_(p), addr_(na), size_(s), funcEntry_(0), func_(f) {};
@@ -160,6 +161,13 @@ class relocatedFuncInfo : public codeRange {
       if(r) arbitraryPoints_.push_back(r);
    }
 
+#if defined(cap_relocation)
+   // This entire file could be #ifdefed to cap_relocation,
+   // but that would be a pain in the neck in the function.C
+   // file. Instead, remove any mention of LocalAlterationSets
+   const LocalAlterationSet &getAlterationSet() const {return alteration_set; }
+#endif
+
  private:
    const process *proc_;		// process assoc. with the relocation
    Address addr_;			// function's relocated address
@@ -168,7 +176,11 @@ class relocatedFuncInfo : public codeRange {
    pdvector<instPoint*> funcReturns_;    // return point(s)
    pdvector<instPoint*> calls_;          // pointer to the calls
    pdvector<instPoint*> arbitraryPoints_;          // pointer to the calls
+
    int_function *func_;         // "Parent" function pointer
+#if defined(cap_relocation)
+   LocalAlterationSet alteration_set;
+#endif
 };
 
 #endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.157 2005/02/17 21:10:37 bernat Exp $
+// $Id: inst-sparc-solaris.C,v 1.158 2005/03/01 23:07:46 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -3292,15 +3292,13 @@ void int_function::addArbitraryPoint(instPoint* location,
     instPoint *point;
     int originalOffset, newOffset, arrayOffset;
     Address tmp, tmp2,mutatee,newAdr,mutator;
-    LocalAlterationSet alteration_set(this);
+    const LocalAlterationSet alteration_set = reloc_info->getAlterationSet();
 
-    instruction *oldInstructions = NULL, *newCode = NULL;
-
+    instruction *oldInstructions = instructions;
+    instruction *newCode = relocatedInstructions;
 
     const image* owner = location->getOwner();
 
-    findAlterations(owner,proc,oldInstructions,alteration_set,
-                                    mutator, mutatee);
     Address imageBaseAddr;
     if (!proc->getBaseAddress(owner,imageBaseAddr))
         abort();
