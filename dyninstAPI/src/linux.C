@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.84 2003/02/21 20:06:00 bernat Exp $
+// $Id: linux.C,v 1.85 2003/02/26 16:50:45 mikem Exp $
 
 #include <fstream.h>
 
@@ -808,6 +808,18 @@ string process::tryToFindExecutable(const string &iprogpath, int pid) {
 }
 */
 
+
+#if !defined(BPATCH_LIBRARY)
+#ifdef PAPI
+papiMgr* dyn_lwp::papi() {
+
+  return proc()->getPapiMgr();
+
+}
+#endif
+#endif
+
+
 #if !defined(BPATCH_LIBRARY)
 
 rawTime64 dyn_lwp::getRawCpuTime_hw()
@@ -818,7 +830,7 @@ rawTime64 dyn_lwp::getRawCpuTime_hw()
 #endif
   
 #ifdef PAPI
-  result = papi->getCurrentVirtCycles();
+  result = papi()->getCurrentVirtCycles();
 #endif
   
   if (result < hw_previous_) {
