@@ -43,9 +43,12 @@
 // Ariel Tamches
 
 /* $Log: where4tree.C,v $
-/* Revision 1.16  1996/11/26 16:07:02  naim
-/* Fixing asserts - naim
+/* Revision 1.17  1997/09/24 19:25:16  tamches
+/* use of Tk_GetFontMetrics; other changes for tcl 8.0
 /*
+ * Revision 1.16  1996/11/26 16:07:02  naim
+ * Fixing asserts - naim
+ *
  * Revision 1.15  1996/08/16 21:07:36  tamches
  * updated copyright for release 1.1
  *
@@ -373,8 +376,10 @@ void where4tree<NODEDATA>::rethink_listbox_dimensions(const where4TreeConstants 
                      tc.listboxHorizPadAfterTriangle;
                            
    // Step 2: full listbox height
+   Tk_FontMetrics listboxFontMetrics;
+   Tk_GetFontMetrics(tc.listboxFontStruct, &listboxFontMetrics);
    const int itemHeight = tc.listboxVertPadAboveItem +
-                          tc.listboxFontStruct->ascent +
+                          listboxFontMetrics.ascent +
                           tc.listboxVertPadAfterItemBaseline;
    listboxFullPixHeight = 2*tc.listboxBorderPix +
                           numItemsInlistbox * itemHeight;
@@ -492,15 +497,18 @@ void where4tree<NODEDATA>::draw_listbox(Tk_Window theTkWindow,
    int currItemBoxTop = top - (existsScrollBar ? theScrollbar.getPixFirst() : 0)
                             + tc.listboxBorderPix;
 
+   Tk_FontMetrics listboxFontMetrics;
+   Tk_GetFontMetrics(tc.listboxFontStruct, &listboxFontMetrics);
+   
    const int itemBoxWidth = backgroundWidth - tc.listboxBorderPix * 2;
    const int itemBoxHeight = tc.listboxVertPadAboveItem +
-                             tc.listboxFontStruct->ascent +
+                             listboxFontMetrics.ascent +
                              tc.listboxVertPadAfterItemBaseline;
 
    const int textLeft = itemBoxLeft + tc.listboxHorizPadBeforeText;
    int currBaseline = currItemBoxTop +
                       tc.listboxVertPadAboveItem + 
-                      tc.listboxFontStruct->ascent - 1;
+                      listboxFontMetrics.ascent - 1;
 
    const int normalItemRelief = TK_RELIEF_RAISED;
    const int highlightedItemRelief = TK_RELIEF_SUNKEN;
@@ -1274,8 +1282,11 @@ int where4tree<NODEDATA>::point2ItemWithinListbox(const where4TreeConstants &tc,
    assert(0 <= localy);
    assert(localy < listboxFullPixHeight);
 
+   Tk_FontMetrics listboxFontMetrics;
+   Tk_GetFontMetrics(tc.listboxFontStruct, &listboxFontMetrics);
+   
    const int itemHeight = tc.listboxVertPadAboveItem +
-                          tc.listboxFontStruct->ascent +
+                          listboxFontMetrics.ascent +
                           tc.listboxVertPadAfterItemBaseline;
    int theRelativeItem = localy / itemHeight;
    assert(theRelativeItem >= 0);
