@@ -1,7 +1,7 @@
-// $Id: arch-ia32.h,v 1.2 2002/06/07 20:17:54 gaburici Exp $
+// $Id: arch-ia32.h,v 1.3 2002/06/10 20:01:31 gaburici Exp $
 // VG(02/06/2002): configurable IA-32 decoder
 
-#if !(defined(i386_unknown_linux2_0))
+#if !(defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0))
 #error "invalid architecture-os inclusion"
 #endif
 
