@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.28 2003/09/05 16:28:08 schendel Exp $
+// $Id: templates2.C,v 1.29 2003/09/17 15:41:23 pcroth Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -205,6 +205,7 @@ template class pdvector<defInst *>;
 
 #if defined( USES_DWARF_DEBUG )
 #include <stack>
+template class std::deque< long int >;
 template class std::stack< long int >;
 #include <map>
 template class std::map< unsigned int, char * >;
