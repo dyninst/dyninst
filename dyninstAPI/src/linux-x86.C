@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.19 2003/03/06 19:23:00 zandy Exp $
+// $Id: linux-x86.C,v 1.20 2003/03/10 15:05:29 chadd Exp $
 
 #include <fstream.h>
 
@@ -550,7 +550,6 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 
 	saveWorldCreateHighMemSections(compactedHighmemUpdates, highmemUpdates, (void*) newElf);
 
-	saveWorldCreateDataSections((void*) newElf);
 
 	unsigned int k;
 
@@ -578,6 +577,7 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 	//the following reloads any shared libraries loaded into the
 	//mutatee using BPatch_thread::loadLibrary
 	saveWorldAddSharedLibs((void*)newElf); // ccw 14 may 2002 
+	saveWorldCreateDataSections((void*) newElf);
 
         newElf->createElf();
 

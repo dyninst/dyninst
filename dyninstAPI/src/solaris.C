@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.135 2003/03/08 01:23:47 bernat Exp $
+// $Id: solaris.C,v 1.136 2003/03/10 15:05:12 chadd Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -321,9 +321,6 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 
 	saveWorldCreateHighMemSections(compactedHighmemUpdates, highmemUpdates, (void*) newElf);
 
-
-	saveWorldCreateDataSections((void*)newElf);
-
 	if(mutatedSharedObjectsSize){
 		newElf->addSection(0, mutatedSharedObjects, mutatedSharedObjectsSize,
 								 "dyninstAPI_mutatedSO", false);
@@ -356,7 +353,8 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 28 oct 2001
 	//mutatee using BPatch_thread::loadLibrary
 	saveWorldAddSharedLibs((void*)newElf); // ccw 14 may 2002 
 
-
+	saveWorldCreateDataSections((void*)newElf);
+	
 	newElf->createElf();
 	char* fullName = new char[strlen(directoryName) + strlen ( (char*)imageFileName.c_str())+1];
 	strcpy(fullName, directoryName);
