@@ -59,6 +59,12 @@
 
 dictionary_hash <string, unsigned> primitiveCosts(string::hash);
 
+#if defined(rs6000_ibm_aix4_1)
+  extern void resetBRL(process *p, unsigned loc, unsigned val); //inst-power.C
+  extern void resetBR( process *p, unsigned loc);               //inst-power.C
+#endif
+
+
 // get the address of the branch from the base to the minitramp
 int getBaseBranchAddr(process *, instInstance *inst)
 {
@@ -97,7 +103,11 @@ void clearBaseBranch(process *proc, instInstance *inst)
     }
     // stupid kludge because the instPoint class is defined in a .C file
     // so we can't access any of its member functions
+#if defined(rs6000_ibm_aix4_1)
+    resetBRL(proc, addr, 0);
+#else
     generateNoOp(proc, addr);
+#endif
     // If there is no instrumentation at this point, skip.
     unsigned fromAddr, toAddr;
 
@@ -123,7 +133,6 @@ void clearBaseBranch(process *proc, instInstance *inst)
       trampCost = -(inst->baseInstance->postBaseCost);
     }
     inst->baseInstance->updateTrampCost(proc, trampCost);
-    
     generateBranch(proc,fromAddr,toAddr);
 #if defined(MT_DEBUG)
     sprintf(errorLine,"generating branch from address 0x%x to address 0x%x - CLEAR\n",fromAddr,toAddr);
@@ -258,8 +267,11 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
 	ret->cost = trampCost; 
 	ret->baseInstance->updateTrampCost(proc, trampCost);
     }
-
+#if defined(rs6000_ibm_aix4_1)
+    ret->trampBase = inferiorMalloc(proc, count, dataHeap);
+#else
     ret->trampBase = inferiorMalloc(proc, count, textHeap);
+#endif
     assert(ret->trampBase);
 
     if (!ret->trampBase) return(NULL);
@@ -283,11 +295,19 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
     if (!lastAtPoint) {
         // jump from the base tramp to the minitramp
 	unsigned fromAddr = getBaseBranchAddr(proc, ret);
+#if defined(rs6000_ibm_aix4_1)
+	resetBRL(proc, fromAddr, ret->trampBase);
+#else
 	generateBranch(proc, fromAddr, ret->trampBase);
+#endif
 
 	// jump from the minitramp back to the basetramp
+#if defined(rs6000_ibm_aix4_1)
+	resetBR(proc, ret->returnAddr);
+#else
 	unsigned toAddr = getBaseReturnAddr(proc, ret);
 	generateBranch(proc, ret->returnAddr, toAddr);
+#endif
 
 	// just activated this slot.
 	//activeSlots->value += 1.0;
@@ -298,8 +318,12 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
 	ret->prevAtPoint = lastAtPoint;
 	
 	// jump from the minitramp to the basetramp
+#if defined(rs6000_ibm_aix4_1)
+	resetBR(proc, ret->returnAddr);
+#else
 	unsigned toAddr = getBaseReturnAddr(proc, ret);
 	generateBranch(proc, ret->returnAddr, toAddr);
+#endif
     } else {
 	/* first at point */
 	firstAtPoint->prevAtPoint = ret;
@@ -310,7 +334,11 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
 
 	/* base tramp branches to us */
 	unsigned fromAddr = getBaseBranchAddr(proc, ret);
+#if defined(rs6000_ibm_aix4_1)
+	resetBRL(proc, fromAddr, ret->trampBase);
+#else
 	generateBranch(proc, fromAddr, ret->trampBase);
+#endif
     }
 
     return(ret);
@@ -464,15 +492,22 @@ void deleteInst(instInstance *old, const vector<unsigned> &pointsToCheck)
 		generateBranch(old->proc, left->returnAddr, right->trampBase);
 	    } else {
 		/* branch back to the correct point in the base tramp */
+#if defined(rs6000_ibm_aix4_1)
+		resetBR(old->proc, left->returnAddr);
+#else
 		unsigned toAddr = getBaseReturnAddr(old->proc, old);
 		generateBranch(old->proc, left->returnAddr, toAddr);
+#endif
 	    }
 	} else {
 	    /* old is first one make code call right tramp */
 	    int fromAddr;
-
 	    fromAddr = getBaseBranchAddr(old->proc, right);
+#if defined(rs6000_ibm_aix4_1)
+	    resetBRL(old->proc, fromAddr, right->trampBase);
+#else
 	    generateBranch(old->proc, fromAddr, right->trampBase);
+#endif
 	}
     }
 
@@ -483,8 +518,11 @@ void deleteInst(instInstance *old, const vector<unsigned> &pointsToCheck)
     sprintf(errorLine,"***** (pid=%d) In inst.C, calling inferiorFree, pointer=0x%x\n",old->proc->pid,old->trampBase);
     logLine(errorLine);
 #endif
-
+#if defined(rs6000_ibm_aix4_1)
+    inferiorFree(old->proc, old->trampBase, dataHeap, tmp);
+#else
     inferiorFree(old->proc, old->trampBase, textHeap, tmp);
+#endif
   }
 
     /* remove old from atPoint linked list */
