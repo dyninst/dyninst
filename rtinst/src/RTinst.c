@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.72 2003/03/21 21:19:08 bernat Exp $
+ * $Id: RTinst.c,v 1.73 2003/04/11 22:46:48 schendel Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -227,8 +227,6 @@ timeQueryFuncPtr_t hwWallTimeFPtrInfo = &DYNINSTgetWalltime_hw;
 timeQueryFuncPtr_t PARADYNgetCPUtime  = &DYNINSTgetCPUtime_sw;
 timeQueryFuncPtr_t PARADYNgetWalltime = &DYNINSTgetWalltime_sw;
 
-int paradyn_fork_occurring = 0;
-
 /************************************************************************
  * void DYNINSTstartProcessTimer(tTimer* timer)
 ************************************************************************/
@@ -356,7 +354,6 @@ DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
     if (DYNINST_DEAD_LOCK == tc_lock_lock(&DYNINST_traceLock)){
       return ;
     }
-
 #endif /*MT_THREAD*/
 
     if (inDYNINSTgenerateTraceRecord) return;
@@ -805,28 +802,6 @@ DYNINSTexit(void) {
     DYNINSTprintCost();
 }
 
-/************************************************************************
- * void DYNINSTfork(void* arg, int pid)
- *
- * track a fork() system call, and report to the paradyn daemon.
- *
- * Instrumented by paradynd to be called at the exit point of fork().  So,
- * the address space (including the instrumentation heap) has already been
- * duplicated, though some meta-data still needs to be manually duplicated by
- * paradynd.  Note that for shm_sampling, a fork() just increases the
- * reference count for the shm segment.  This is not what we want, so we need
- * to (1) detach from the old segment, (2) create a new shm segment and
- * attach to it in the *same* virtual addr spot as the old one (otherwise,
- * references to the shm segment will be out of date!), and (3) let paradynd
- * know what segment key numbers we have chosen for the new segments, so that
- * it may attach to them (paradynd may also set some values w/in the segments
- * such as mid's).
- * 
- * Who sends the initial trace record to paradynd?  The child creates the new
- * shm seg and thus only the child can inform paradynd of the chosen keys.
- * One might argue that the child does't have a traceRecord connection yet,
- * but fork() should dup() all fd's and take care of that limitation...
-************************************************************************/
 /* debug code should call forkexec_printf as a way of avoiding
    putting #ifdef FORK_EXEC_DEBUG around their fprintf(stderr, ...) statements,
    which can lead to horribly ugly code --ari */
@@ -845,109 +820,57 @@ void forkexec_printf(const char *fmt, ...) {
 }
 
 #if !defined(i386_unknown_nt4_0)
-static void
-breakpoint_for_fork()
-{
-     int sample;
-     kill(getpid(), SIGSTOP);
-     DYNINSTgenerateTraceRecord(0, TR_SYNC, 0, &sample, 0, 0.0, 0.0);
-}
+int PARADYN_init_child_after_fork() {
+   int pid;
+   int ppid;
+   int ptr_size;
+   int cookie = 0;
+   /* we are the child process */
 
-void
-DYNINSTfork(int pid) {
-    forkexec_printf("DYNINSTfork -- WELCOME -- called with pid = %d\n", pid);
+   /* don't want to call alloc_pos with fork, but want to reuse existing
+      positions.  This is setup through DYNINSTregister_running_thread() */
+#if defined(MT_THREAD)
+   /* setting this to 0 here and to 1 at the end of this function
+      fixes a bug we had where a threadCreate occurred in the rtinst
+      library when this function was called for MT.  For MT, we don't
+      want to create a new thread and pos, but want to reuse the position
+      variables, using the same tid<->pos mapping as in the parent app.
+   */
+   DYNINST_initialize_done = 0;  
+#endif
+   pid = getpid();
+   ppid = getppid();
+   ptr_size = sizeof(DYNINST_shmSegAttachedPtr);
 
-    if (pid > 0) {
-       /* We used to send TR_FORK trace record here, in the parent.  
-          But shm sampling requires the child to do this, so we moved the 
-          code there... 
-          See metric.C for an explanation why it's important for the parent to
-          be paused (not just the child) while propagating metric instances.
-          Here's the short explanation: to initialize some of the timers and 
-          counters, the child will copy some fields from the parent, and for
-          the child to get values from the parent after the fork would be a 
-          bad thing.  --ari */
-        
-        forkexec_printf("DYNINSTfork parent; about to PARADYNbreakPoint\n");
-        paradyn_fork_occurring = 2;
-        breakpoint_for_fork();
-        paradyn_fork_occurring = 0;
-        forkexec_printf("parent is continuing past SIGSTOP\n");
-    } else if (pid == 0) {
-        /* we are the child process */
-        int pid = getpid();
-        int ppid = getppid();
-        int ptr_size = sizeof(DYNINST_shmSegAttachedPtr);
-        /* char *traceEnv; */
-        sleep(2);
-        paradyn_fork_occurring = 1;
-        forkexec_printf("DYNINSTfork CHILD -- welcome, pid = %d, ppid = %d\n",
-                        pid, ppid);
-        fflush(stderr);
-        
-        /* Here, we need to detach from the old shm segment, create a new one
-           (in the same virtual memory location as the old one), and attach 
-           to it */
-        makeNewShmSegCopy();
-        
-        /* Some aspects of initialization need to occur right away (such
-           as resetting the PMAPI counters on AIX) because the daemon
-           may use aspects of the process before PARADYNinit is called */
-        PARADYN_forkEarlyInit();
-        
-        /* Here is where we used to send a TR_FORK trace record.  But we've
-           found that sending a trace record followed by a DYNINSTbreakPoint
-           had unpredictable results -- sometimes the breakPoint would get
-           delivered to paradynd first.  So idea #2 was to fill in
-           DYNINST_bootstrapStruct and then do a breakpoint.  But the
-           breakPoint won't get forwarded to paradynd because paradynd hasn't
-           yet attached to the child process.  So idea #3 (the current one)
-           is to just send all that information along the new connection
-           (whereas we used to just send the pid).
-           
-           NOTE: soon attach will probably be implemented in a similar way -- by
-           writing to the connection.
-        */
-        
-        /* set up a connection to the daemon for the trace stream.  (The
-           child proc gets a different connection from the parent proc) */
-        forkexec_printf("dyninst-fork child closing old connections...\n");
-        DYNINSTcloseTrace();
-        
-        forkexec_printf("dyninst-fork child opening new connection.\n");
-        assert(DYNINST_mutatorPid > 0);
-        DYNINSTinitTrace(DYNINST_mutatorPid);
-        
-        forkexec_printf("dyninst-fork child pid %d opened new connection...now sending pid etc. along it\n", (int)getpid());
-        
-        {
-            unsigned fork_cookie = 0x11111111;
-            DYNINSTwriteTrace(&fork_cookie, sizeof(fork_cookie));
-        }
-        
-        DYNINSTwriteTrace(&pid, sizeof(pid));
-        DYNINSTwriteTrace(&ppid, sizeof(ppid));
-        DYNINSTwriteTrace(&DYNINST_shmSegKey, sizeof(DYNINST_shmSegKey));
-        DYNINSTwriteTrace(&ptr_size, sizeof(ptr_size));
-        DYNINSTwriteTrace(&DYNINST_shmSegAttachedPtr, sizeof(DYNINST_shmSegAttachedPtr));
-        DYNINSTflushTrace();
-        
-        forkexec_printf("dyninst-fork child pid %d sent pid;"
-                        " now doing PARADYNbreakPoint() to wait"
-                        " for paradynd to initialize me.\n", (int)getpid());
-        
-        breakpoint_for_fork();
-        
-        forkexec_printf("dyninst-fork child past PARADYNbreakPoint()"
-                        " ...calling DYNINSTinit(-1,-1)\n");
-        
-        PARADYNinit(DYNINST_mutatorPid, 2, MAX_NUMBER_OF_THREADS, -1, -1, -1);
-        /* 2: wasForked */
-        /* -1 params indicate called from DYNINSTfork */
-        
-        paradyn_fork_occurring = 0;
-        forkexec_printf("dyninst-fork child done...running freely.\n");
-    }
+   setvbuf(stdout, NULL, _IOLBF, 0);
+   /* make stdout line-buffered.  "setlinebuf(stdout)" is cleaner but HP
+      doesn't seem to have it */
+   setvbuf(stderr, NULL, _IONBF, 0);
+   /* make stderr non-buffered */
+   
+   /* Here, we need to detach from the old shm segment, create a new one
+      (in the same virtual memory location as the old one), and attach 
+      to it */
+   makeNewShmSegCopy();
+
+   /* Some aspects of initialization need to occur right away (such
+      as resetting the PMAPI counters on AIX) because the daemon
+      may use aspects of the process before pDYNINSTinit is called */
+   PARADYN_forkEarlyInit();
+   PARADYNos_init(1, 0);
+
+   DYNINSTinitTrace(DYNINST_mutatorPid);
+
+   DYNINSTwriteTrace(&cookie, sizeof(cookie));
+   DYNINSTwriteTrace(&pid, sizeof(pid));
+   DYNINSTwriteTrace(&ppid, sizeof(ppid));
+   DYNINSTwriteTrace(&DYNINST_shmSegKey, sizeof(DYNINST_shmSegKey));
+   ptr_size = sizeof(DYNINST_shmSegAttachedPtr);
+   DYNINSTwriteTrace(&ptr_size, sizeof(int32_t));
+   DYNINSTwriteTrace(&DYNINST_shmSegAttachedPtr, ptr_size);
+   DYNINSTflushTrace();
+
+   return 123;
 }
 
 void DYNINSTmpi_fork(int pid) {
@@ -964,47 +887,6 @@ void DYNINSTmpi_fork(int pid) {
 	}
 }
 #endif
-
-
-void
-DYNINSTexec(char *path) {
-    /* paradynd instruments programs to call this routine on ENTRY to exec
-       (so the exec hasn't yet taken place).  All that we do here is inform
-       paradynd of the (pending) exec, and pause ourselves.  Paradynd will
-       continue us after digesting the info...then, presumably, a TRAP will
-       be generated, as the exec syscall completes. */
-
-    forkexec_printf("execve called, path = %s\n", path);
-
-    if (strlen(path) + 1 > sizeof(PARADYN_bootstrap_info.path)) { /* was DYNINST_ ccw 18 apr 2002 SPLIT */
-      fprintf(stderr, "DYNINSTexec failed...path name too long\n");
-      abort();
-    }
-
-    /* We used to send a TR_EXEC record here and then DYNINSTbreakPoint().
-       But we've seen a race condition -- sometimes the break-point is
-       delivered to paradynd before the trace record.  So instead, we fill in
-       DYNINST_bootstrap_info and then do a breakpoint.  This approach is the
-       same as the end of DYNINSTinit. */
-    PARADYN_bootstrap_info.event = 4; /* was DYNINST_ ccw 18 apr 2002 SPLIT */
-    PARADYN_bootstrap_info.pid = getpid(); /* was DYNINST_ ccw 18 apr 2002 SPLIT */
-    strcpy(PARADYN_bootstrap_info.path, path);/* was DYNINST_ ccw 18 apr 2002 SPLIT */
-
-    /* The following turns OFF the alarm signal (the 0,0 parameters); when
-       DYNINSTinit() runs again for the exec'd process, it'll be turned back
-       on.  This stuff is necessary to avoid the process dying on an uncaught
-       sigalarm while processing the exec */
-
-    forkexec_printf("DYNINSTexec before breakpoint\n");
-
-    PARADYNbreakPoint();
-
-    /* after the breakpoint, clear DYNINST_bootstrap_info */
-    PARADYN_bootstrap_info.event = 0; /* 0 --> nothing */ /* was DYNINST_ ccw 18 apr 2002 SPLIT */
-
-    forkexec_printf("DYNINSTexec after breakpoint...allowing the exec to happen now\n");
-}
-
 
 void
 DYNINSTexecFailed() {
