@@ -20,6 +20,10 @@
  * All tunable Constants used by hypotheses.
  *
  * $Log: PCconstants.C,v $
+ * Revision 1.4  1996/04/18 02:27:13  tamches
+ * tunable "predictedCostLimit" renamed to "costLimit"; also, its initial
+ * value now 0.2
+ *
  * Revision 1.3  1996/03/18 07:10:28  karavan
  * added new tunable constant, PCcollectInstrTimings.
  *
@@ -94,10 +98,10 @@ void initPCconstants ()
   // user-level TCs used by the PC
   //
 
-  floatInitializer = 0.10;
+  floatInitializer = 0.20;
   tunableConstantRegistry::createFloatTunableConstant
-    ("predictedCostLimit",
-     "Max. allowable perturbation of the application.",
+    ("costLimit",
+     "Max allowable perturbation of the application, as a fraction of the program's CPU time",
      TCpredictedCostLimitCB, // callback routine
      userConstant,
      floatInitializer, // initial value
