@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfKludges.C,v 1.7 2001/12/10 21:15:38 chadd Exp $
+// $Id: osfKludges.C,v 1.8 2003/04/10 19:01:13 rchen Exp $
 
 #include "common/h/headers.h"
 #include <sys/procfs.h>
@@ -237,8 +237,8 @@ void P_xdrrec_create(XDR *x, const u_int send_sz, const u_int rec_sz,
 		     const caddr_t handle, 
 		     xdr_rd_func readit, xdr_wr_func writeit) {
   xdrrec_create(x, send_sz, rec_sz, handle, 
-		(int(*)(...))readit, 
-		(int(*)(...))writeit);}
+		(int(*)())readit, 
+		(int(*)())writeit);}
 
 
 unsigned long long PDYN_div1000(unsigned long long in) {
