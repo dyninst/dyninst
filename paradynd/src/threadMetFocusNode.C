@@ -79,6 +79,34 @@ threadMetFocusNode *threadMetFocusNode::newThreadMetFocusNode(
   return thrNode;
 }
 
+threadMetFocusNode *threadMetFocusNode::copyThreadMetFocusNode(
+		    const threadMetFocusNode &par, process *childProc,
+		    pdThread *pdThr)
+{
+  // since the only thing in the thread nodes that we want to copy over is
+  // the cumulativeValue we'll use the "create new threadMetFocusNode" method
+  // (we'll start out this new threadNode without aggregation and insert it
+  // later).  This will do threadNode sharing when it's applicable.
+  Focus adjustedFocus = adjustFocusForPid(par.getFocus(), childProc->getPid());
+  threadMetFocusNode *newThreadNode = 
+    newThreadMetFocusNode(par.getMetricName(), adjustedFocus, pdThr);
+
+  // copy over the cumulative value from the parent threadNode to the child
+  newThreadNode->getValuePtr()->setCumulativeValue(
+				  par.getValuePtr()->getCumulativeValue());
+  return newThreadNode;
+}
+
+threadMetFocusNode_Val::threadMetFocusNode_Val(
+                         const threadMetFocusNode_Val &par, process *childProc,
+			 pdThread *pdthr)
+  : metric_name(par.metric_name), 
+    focus(adjustFocusForPid(par.focus, childProc->getPid())),
+    cumulativeValue(pdSample::Zero()), allAggInfoInitialized(false),
+    pdThr(pdthr), referenceCount(1)
+{
+}
+
 threadMetFocusNode_Val::~threadMetFocusNode_Val() {
   for(unsigned i=0; i<parentsBuf.size(); i++) {
     processMetFocusNode *parent = parentsBuf[i].parent;
@@ -89,7 +117,7 @@ threadMetFocusNode_Val::~threadMetFocusNode_Val() {
 
 threadMetFocusNode::~threadMetFocusNode() {
   V.decrementRefCount();
-
+  
   if(V.getRefCount() == 0) {
     allThrMetFocusNodeVals.undef(V.getKeyName());
     delete &V;
@@ -103,6 +131,16 @@ void threadMetFocusNode::recordAsParent(processMetFocusNode *procNode,
   assert(parent == NULL);
   parent = procNode;
   V.recordAsParent(procNode, childAggInfo);
+}
+
+void threadMetFocusNode_Val::updateAllAggInfoInitialized() {
+  bool allInitialized = true;
+  for(unsigned i=0; i<parentsBuf.size(); i++) {
+    aggComponent *curAggInfo = parentsBuf[i].childNodeAggInfo;
+    if(! curAggInfo->isReadyToReceiveSamples())
+      allInitialized = false;
+  }
+  allAggInfoInitialized = allInitialized;
 }
 
 void threadMetFocusNode::print() {
@@ -143,7 +181,6 @@ bool threadMetFocusNode_Val::isReadyForUpdates() {
 void threadMetFocusNode_Val::updateValue(timeStamp sampleTime, pdSample value)
 {
   assert(value >= pdSample::Zero());
- 
   sampleVal_cerr << "thrNode::updateValue() - mdn: " << (void*)this
 		 << ", value: " << value << ", cumVal: " << cumulativeValue 
 		 << "\n";
@@ -172,8 +209,9 @@ void threadMetFocusNode_Val::updateWithDeltaValue(timeStamp startTime,
     bool shouldAddSample = adjustSampleIfNewMdn(&valToPass, startTime, 
 				  sampleTime, curParent->getStartTime());
     if(!shouldAddSample)   continue;
-    //cerr << "thrNode::updateWithDeltaVal- (" << i+1 << ") addSamplePt, tm: " 
-    // << sampleTime << ", val: " << valToPass << "\n";
+    sampleVal_cerr << "thrNode::updateWithDeltaVal- (" << i+1 
+		   << ") addSamplePt, tm: " << sampleTime << ", val: " 
+		   << valToPass << "\n";
     thrNodeAggInfo->addSamplePt(sampleTime, valToPass);
     curParent->tryAggregation();
   }
@@ -208,34 +246,27 @@ void threadMetFocusNode_Val::removeParent(processMetFocusNode *procNode) {
       parentsBuf.erase(i);
     }
   }
-
+  
+  // it's possible that one of the parents caused allAggInfoInitialized
+  // to be turned off, now this parent could have been deleted and so
+  // it's possible allAggInfoInitialized should be changed to true
+  // or 
   // assuming we removed one or more parents, we may have just changed
   // things so that the all remaining parents' childAggInfos are 
-  // ready to receive samples
+  // ready to receive samples  
+  // Here's one example:
+  // a metric-focus with a whole program focus is sharing a threadNode
+  // with a metric-focus with a process focus where this process is the
+  // child process of a recently forked process.  When we added this child
+  // procNode as a parent to the shared thrNodeVal, the allAggInfoInitialized
+  // got turned off (in recordAsParent) since the agg info for the child
+  // process wasn't initialized yet.  Now in the case that this child
+  // procMetFocusNode has it's instrumentation deleted (ie. "unforked")
+  // we delete this procMetFocusNode.  And then since this procMetFocusNode
+  // is no longer a parent of this thrMetFocusNode_Val we can turn the
+  // allAggInfoInitialized back to true.
   updateAllAggInfoInitialized();
 }
-
-
-void
-threadMetFocusNode_Val::updateAllAggInfoInitialized( void )
-{
-	bool allInitialized = true;
-
-	for( vector<parentDataRec<processMetFocusNode> >::const_iterator parIter = parentsBuf.begin();
-		  parIter != parentsBuf.end();
-		  parIter++ )
-	{
-		const parentDataRec<processMetFocusNode>& currPdr = *parIter;
-		aggComponent* currAggComp = currPdr.childNodeAggInfo;
-		if( !(currAggComp->isReadyToReceiveSamples()) )
-		{
-			allInitialized = false;
-			break;
-		}
-	}
-	allAggInfoInitialized = allInitialized;
-}
-
 
 string threadMetFocusNode_Val::getKeyName() {
   return construct_key_name(metric_name, focus.getName());
@@ -250,22 +281,17 @@ process *threadMetFocusNode::proc() {
 void threadMetFocusNode::initAggInfoObjects(timeStamp startTime, 
 					    pdSample initValue)
 {
-  //cerr << "    thrNode (" << (void*)this << ") initAggInfo\n";
    for(unsigned i=0; i<V.parentsBuf.size(); i++) {  
       processMetFocusNode *curParent  = V.parentsBuf[i].parent;    
       if(parent == curParent) {
 	 aggComponent *thrNodeAggInfo = V.parentsBuf[i].childNodeAggInfo;
 	 if(! thrNodeAggInfo->isInitialized()) {
-	   //cerr << "      initializing aggInfo " << (void*)thrNodeAggInfo
-	   //<< "\n";
 	    thrNodeAggInfo->setInitialStartTime(startTime);
 	    thrNodeAggInfo->setInitialActualValue(initValue);
 	 }
       }
    }
-   V.updateAllAggInfoInitialized();
-   //cerr << "    allAggInfoInitialized = " << V.hasAggInfoBeenInitialized() 
-   //     << "\n";
+   updateAllAggInfoInitialized();
 }
 
 void threadMetFocusNode::initializeForSampling(timeStamp startTime, 
