@@ -39,7 +39,7 @@ v * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.79 2001/10/12 20:47:14 schendel Exp $ 
+// $Id: metricFocusNode.h,v 1.80 2001/10/18 16:06:56 schendel Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -68,6 +68,8 @@ class pdThread; // enough since we only use pdThread* in this file
 #if defined(SHM_SAMPLING)
 #include "paradynd/src/superTable.h"
 #endif
+
+extern void mdnContinueCallback(timeStamp timeOfCont);
 
 class dataReqNode {
  private:

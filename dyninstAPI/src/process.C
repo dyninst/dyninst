@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.268 2001/10/11 23:58:06 schendel Exp $
+// $Id: process.C,v 1.269 2001/10/18 16:06:55 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2590,6 +2590,7 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
 
 #ifndef BPATCH_LIBRARY
    theProc->threads += new pdThread(theProc);
+   theProc->setCallbackBeforeContinue(mdnContinueCallback);
 #endif
 
 #if !defined(i386_unknown_nt4_0)  && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
