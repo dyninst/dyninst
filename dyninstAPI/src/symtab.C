@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.126 2001/08/20 19:59:13 bernat Exp $
+// $Id: symtab.C,v 1.127 2001/08/23 14:43:29 schendel Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1529,7 +1529,7 @@ Address pd_Function::getEffectiveAddress(const process *p) const {
  */
 
 pd_Function *image::findFuncByAddr(const Address &addr, 
-				   const process *p = 0) const
+				   const process *p) const
 {
   pd_Function *pdf;
 
