@@ -1,0 +1,88 @@
+This directory contains test programs for both sides of the visi interface.
+Server side programs (visualizations) are in the server subdirectory, and
+client side programs are in the client subdirectory.
+
+Interface test programs 
+-----------------------
+#############
+psuedoparadyn: 
+#############
+    This program is a visiLib client application.   It is an interactive
+    test in which a user can specify actions to take that will invoke 
+    visiLib interface routines.  This application writes output prefaced
+    by "###" to stderr.
+
+    to run psuedoparadyn:
+    --------------------
+    psuedoparadyn server_executable numMetrics numResources numBins binWidth
+    - OR -
+    psuedoparadyn server_executable
+         (default values are: numMetrics = 0, numResources = 0, 
+	  numBins = 1000, binWidth = 0.2)
+    
+
+
+##############
+xtext, xtext2:  
+##############  
+    These are visiLib server applications (visualization processes).
+    Both are examples of integrating visi interface routines into an
+    existing visualization application's source code.  Both are based
+    on a simple X application that uses the Athena widget set.
+    The source code for xtext contains references to the README file in 
+    ~paradyn/core/visi/docs/.  The server's output is prefaced by @@@@ 
+    and is written to stderr.
+
+xtext
+-----
+    xtext.C includes examples of adding  callbacks to the Paradyn handler for
+    certain Paradyn events (DATAVALUES,FOLD,ADDMETRICSRESROURCES).  Also,
+    it includes an example of adding an upcall to Paradyn by creating a widget
+    which will invoke an upcall to Paradyn (ie. GetMetricsResources) 
+
+    code that was added to the original xtext.C source in order to add it to 
+    Paradyn is surrounded by "///////////////////////////////" in xtext.C
+
+xtext2
+------
+    is an extension to xtext that includes callbacks for all Paradyn events
+    and upcalls.
+      
+######################################
+examples of how run test applications: 
+######################################
+psuedoparadyn:  
+
+    psuedoparadyn rthist
+	(starts psuedoparadyn with the default arguments, psuedoparadyn then
+	 will start the real time histogram visualization)
+        
+    psuedoparadyn xtext2 1 2 10 1.0
+	(starts psuedoparadyn with 1 metric and 2 resources defined, a histogram
+	 bucket width of 1.0, and each histogram contains 10 buckets)
+
+
+xtext and xtext2 with paradyn:
+
+     (1) add a visi description to a paradyn config. file 
+	 ex.
+	     visi Xtext2 {
+                 command "xtext2";
+		 force 1;
+	     }
+
+	     visi Xtext {
+                 command "xtext";
+	     }
+
+     (2) start paradyn and define a process
+     (3) select "Start a Visualization" from the Visualization menu on
+	 the Paradyn main window
+     (4) menu options labeled "Xtext2" and "Xtext" will appear in the menu
+	 and can be selected to start either one
+
+      note: the force option above is optional, and if set to 1 means that
+	    the visualization process (xtext2) will be started without the
+	    paradyn process menuing for metrics and resources first.  The
+	    default behavior is that menuing occurs before the visualization
+	    process is started.
