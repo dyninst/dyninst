@@ -17,9 +17,12 @@
  */
 
 /* $Log: mrlist.h,v $
-/* Revision 1.2  1994/05/11 17:11:06  newhall
-/* changed data values from double to float
+/* Revision 1.3  1994/06/07 17:46:53  newhall
+/* added InList method function
 /*
+ * Revision 1.2  1994/05/11  17:11:06  newhall
+ * changed data values from double to float
+ *
  * Revision 1.1  1994/03/14  20:27:30  newhall
  * changed visi subdirectory structure
  *  */ 
@@ -63,5 +66,6 @@ class visi_MRList{
     int   RemoveElement(int elmNum);
     int   CreateMRList(char **elements);
     int   ListSize(){return(listSize);}
+    int   InList(char *); // returns 1 if element in list, else returns 0
 };
 #endif
