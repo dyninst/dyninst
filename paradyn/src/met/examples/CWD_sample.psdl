@@ -1,0 +1,37 @@
+
+// an application configuration file might declare the daemons and
+// processes for the application
+
+
+
+// set the values of the tunable constants 
+// there are two ways to do this
+// ... individually
+tunable_constant "maxEval" 3;
+
+//... or as a group
+tunable_constant {
+    "sufficientTime" 8;
+    "minObservationTime" 6;
+}
+
+
+// the flavor parameter is not used yet!
+daemon {
+    command "paradyndPVM";
+    host "localhost";
+    flavor pvm;
+}
+
+// the daemon field specifies the daemon that should start this
+// process, if a daemon of that name is not running on the 
+// host, then one will be started
+process {
+    command "potato";
+    name "mark";
+    args {"3" "300000"};
+    host "localhost";
+    daemon "paradyndPVM";
+    flavor pvm;
+}
+

@@ -1,0 +1,12 @@
+
+CWD_sample.psdl - an application configuration file, this would be searched
+		  for in $CWD/sample.psdl
+		  
+HOME_sample.psdl - a user configuration file, this would be searched for
+		  in $HOME/sample.psdl
+
+P_PARADYN_sample.psdl - the system configuration file, this would be 
+		  searched for in /p/paradyn/sample.psdl
+
+sample.psdl - a general configuration file showing most of the features
+	      of the current configuration language

@@ -1,0 +1,16 @@
+
+// my favorite tunable constant settings are what I would
+// declare in the user configuration file
+
+// set the values of the tunable constants 
+// there are two ways to do this
+// ... individually
+tunable_constant "maxEval" 3;
+
+//... or as a group
+tunable_constant {
+    "sufficientTime" 8;
+    "minObservationTime" 6;
+}
+
+
