@@ -43,6 +43,10 @@
 
 /*
  * $Log: metParser.y,v $
+ * Revision 1.26  1997/05/02 18:23:41  mjrg
+ * Removed use of class objects from struct parseStack which is allocated
+ * with malloc
+ *
  * Revision 1.25  1997/04/17 19:43:36  sec
  * Made is so that negative numbers are allowed.
  *
@@ -631,10 +635,12 @@ constraint_list: tCONSTRAINT tIDENT tSEMI {
 						            NULL, NULL, false,
 							    MDL_T_COUNTER);
 	         delete $2.sp;
-		 $$.mfld.constraint = c; }
+		 $$.mfld = new metricFld;
+		 $$.mfld->constraint = c; }
 
 	       | int_constraint_definition {
-	         $$.mfld.constraint = $1.constraint; };
+		 $$.mfld = new metricFld;
+	         $$.mfld->constraint = $1.constraint; };
 
 met_temps: tCOUNTER tIDENT tSEMI { $$.sp = $2.sp; };
 
@@ -642,26 +648,38 @@ metric_struct: tLBLOCK metric_list tRBLOCK {$$.mde = $2.mde;};
 
 metric_list: {$$.mde = new metricDef();}
 	   | metric_list metric_elem_list { $$.mde = $1.mde;
-				            $$.mde->setField($2.mfld);};
+				            $$.mde->setField(*$2.mfld);
+					    delete $2.mfld };
 
-metric_elem_list: met_name {$$.mfld.name = *$1.sp; $$.mfld.spec = SET_MNAME;
+metric_elem_list: met_name {$$.mfld = new metricFld;
+			    $$.mfld->name = *$1.sp; $$.mfld->spec = SET_MNAME;
                             delete $1.sp;}
-                | met_units {$$.mfld.units = *$1.sp; $$.mfld.spec = SET_UNITS;
+                | met_units {$$.mfld = new metricFld;
+			     $$.mfld->units = *$1.sp; $$.mfld->spec = SET_UNITS;
 			     delete $1.sp;}
-                | met_agg {$$.mfld.agg = $1.u; $$.mfld.spec = SET_AGG;}
-                | met_style {$$.mfld.style = $1.u; $$.mfld.spec = SET_STYLE;}
-                | met_flavor {$$.mfld.flavor = $1.vs;
-                              $$.mfld.spec = SET_MFLAVOR;}
-                | met_mode {$$.mfld.mode = $1.b; $$.mfld.spec = SET_MODE;}
-                | constraint_list {$$.mfld.constraint = $1.mfld.constraint;
-                                   $$.mfld.spec = SET_CONSTRAINT;}
-                | met_temps {$$.mfld.temps = *$1.sp;
-                             $$.mfld.spec = SET_TEMPS;}
-                | met_base {$$.mfld.base_type = $1.base.type;
-                            $$.mfld.base_m_stmt_v = $1.base.m_stmt_v;
-                            $$.mfld.spec = SET_BASE;}
-		| met_unittype { $$.mfld.unittype = $1.i; 
-				 $$.mfld.spec = SET_UNITTYPE; };
+                | met_agg {$$.mfld = new metricFld;
+			   $$.mfld->agg = $1.u; $$.mfld->spec = SET_AGG;}
+                | met_style {$$.mfld = new metricFld;
+			     $$.mfld->style = $1.u; $$.mfld->spec = SET_STYLE;}
+                | met_flavor {$$.mfld = new metricFld;
+			      $$.mfld->flavor = $1.vs;
+                              $$.mfld->spec = SET_MFLAVOR;}
+                | met_mode {$$.mfld = new metricFld;
+			    $$.mfld->mode = $1.b; $$.mfld->spec = SET_MODE;}
+                | constraint_list {$$.mfld = new metricFld;
+				   $$.mfld->constraint = $1.mfld->constraint;
+                                   $$.mfld->spec = SET_CONSTRAINT;
+				   delete $1.mfld;}
+                | met_temps {$$.mfld = new metricFld;
+			     $$.mfld->temps = *$1.sp;
+                             $$.mfld->spec = SET_TEMPS;}
+                | met_base {$$.mfld = new metricFld;
+			    $$.mfld->base_type = $1.base.type;
+                            $$.mfld->base_m_stmt_v = $1.base.m_stmt_v;
+                            $$.mfld->spec = SET_BASE;}
+		| met_unittype { $$.mfld = new metricFld;
+				 $$.mfld->unittype = $1.i; 
+				 $$.mfld->spec = SET_UNITTYPE; };
 
 metric_definition: tMETRIC tIDENT metric_struct {
   if (!($3.mde->addNewMetricDef(*$2.sp)))

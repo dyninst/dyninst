@@ -41,6 +41,10 @@
 
 /*
  * $Log: metParse.h,v $
+ * Revision 1.14  1997/05/02 18:23:40  mjrg
+ * Removed use of class objects from struct parseStack which is allocated
+ * with malloc
+ *
  * Revision 1.13  1996/08/16 21:12:22  tamches
  * updated copyright for release 1.1
  *
@@ -292,6 +296,10 @@ typedef struct string_list {
 
 extern void add_string_list(string &name, vector<string> &elem);
 
+// Warning: bison will allocate a parseStack struct with malloc, so the constructors
+// for C++ classes will not be called!
+// This struct should not have any C++ objects. Use a pointer instead, and allocate
+// the object with new.
 struct parseStack {
   int i;
   float f;
@@ -320,7 +328,7 @@ struct parseStack {
   mdl_base base;
   T_dyninstRPC::mdl_constraint *constraint;
   T_dyninstRPC::mdl_icode *i_code;
-  metricFld mfld;
+  metricFld *mfld;
   metricDef *mde;
   vector<string> *vsf;
 };
