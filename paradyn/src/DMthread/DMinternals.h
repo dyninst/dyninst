@@ -3,7 +3,13 @@
  * Define the classes used in the implementation of the data manager.
  *
  * $Log: DMinternals.h,v $
- * Revision 1.21  1994/07/05 03:27:16  hollings
+ * Revision 1.22  1994/07/07 03:31:20  markc
+ * Changed return types for public functions to Boolean to agree with exported
+ * functions.
+ * Added code to handle relative path names and extract the tail when new
+ * daemons are started.
+ *
+ * Revision 1.21  1994/07/05  03:27:16  hollings
  * added observed cost model.
  *
  * Revision 1.20  1994/07/02  01:43:09  markc
@@ -89,22 +95,31 @@ class paradynDaemon: public dynRPCUser {
     public:
 	paradynDaemon(char *m, char *u, char *p, xdrIOFunc r, xdrIOFunc w):
 	    dynRPCUser(m, u, p, r, w, args) {
+	        char *loc;
+		char *newm;
+
 		if (!m) m = "";
 		if (!u) u = "";
-
+		
+		// if p includes a pathname, lose the pathname
+		loc = strrchr(p, '/');
+		if (loc)
+		  {
+		    loc = loc + 1;
+		    newm = strdup (loc);
+		    free (m);
+		    m = newm;
+		  }
+		
 		machine = m;
 		login = u;
 		program = p;
 
 		allDaemons.add(this);
 	}
-	// TODO setup machine, login, program
+	// machine, program, and login are set via a callback
 	paradynDaemon(int f, xdrIOFunc r, xdrIOFunc w):
 	    dynRPCUser(f, r, w) {
-	      // machine = m;
-	      // login = u;
-	      // program = p;
-
 		allDaemons.add(this);
 	}
 
@@ -167,17 +182,29 @@ class applicationContext {
 	applicationContext(errorHandler ef)	{
  	    errorFunc = ef;
 	}
-        addDaemon (int new_fd);
+        Boolean addDaemon (int new_fd);
         void removeDaemon(paradynDaemon *d, Boolean informUser);
-	addExecutable(char  *machine,
-                      char *login,
-                      char *name,
-                      int argc,
-                      char **argv);
-	addRunningProgram(int pid,
-			  int argc,
-			  char **argv, 
-			  paradynDaemon *daemon);	
+
+	// start a daemon on a specific machine, if the daemon
+	// is not currently running on that machine
+	paradynDaemon *getDaemonHelper (char *machine,
+					char *login,
+					char *program);
+
+	// start a daemon on a specific machine, if the daemon
+	// is not currently running on that machine
+        Boolean getDaemon (char *machine,
+			   char *login,
+			   char *program);
+	Boolean addExecutable(char  *machine,
+			      char *login,
+			      char *name,
+			      int argc,
+			      char **argv);
+	Boolean addRunningProgram(int pid,
+				  int argc,
+				  char **argv, 
+				  paradynDaemon *daemon);	
 	Boolean applicationDefined();
 	Boolean startApplication();
   	Boolean pauseApplication();	
