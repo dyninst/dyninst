@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.43 1994/11/10 18:58:06 jcargill Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.44 1994/11/10 21:03:42 markc Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.43  1994/11/10 18:58:06  jcargill
+ * Revision 1.44  1994/11/10 21:03:42  markc
+ * metricValue gets intialized to 0.
+ *
+ * Revision 1.43  1994/11/10  18:58:06  jcargill
  * The "Don't Blame Me Either" commit
  *
  * Revision 1.42  1994/11/09  18:40:14  rbi
@@ -1209,7 +1212,7 @@ void reportInternalMetrics()
 {
     timeStamp now;
     timeStamp start;
-    sampleValue value;
+    sampleValue value=0;
 
     static timeStamp end=0.0;
 
