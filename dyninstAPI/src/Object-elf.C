@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.75 2004/06/11 20:44:44 tlmiller Exp $
+ * $Id: Object-elf.C,v 1.76 2004/08/05 23:29:49 lharris Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -1068,10 +1068,10 @@ bool lookUpSymbol( pdvector< Symbol >& allsymbols, Address& addr )
 {
     for( unsigned i = 0; i < allsymbols.size(); i++ )
     {
-	if( allsymbols[ i ].addr() == addr )
-	{
-	    return true;
-	}
+        if( allsymbols[ i ].addr() == addr )
+        {
+            return true;
+        }
     }
     return false;
 }
@@ -1080,10 +1080,10 @@ bool lookUpAddress( pdvector< Address >& jumpTargets, Address& addr )
 {
     for( unsigned i = 0; i < jumpTargets.size(); i++ )
     {
-	if( jumpTargets[ i ] == addr )
-	{
-	    return true;
-	}
+        if( jumpTargets[ i ] == addr )
+        {
+            return true;
+        }
     }
     return false;
 }
@@ -1095,6 +1095,7 @@ findMain: we parse _start for the address of main.  _start pushes the address
 
 assumptions: (address of _start) == (address of .text)
 ******************************************************************************/
+bool pltMain = false;
 
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) ||\
@@ -1106,17 +1107,17 @@ Symbol Object::findMain( pdvector< Symbol > &allsymbols )
     //check if 'main' is in allsymbols
     for( unsigned i = 0; i < allsymbols.size(); i++ )
     {
-	if( allsymbols[ i ].name() == "main" ||
-	    allsymbols[ i ].name() == "_main"   )
-	{
-	    return allsymbols[ i ].addr();
-	}	
+        if( allsymbols[ i ].name() == "main" ||
+            allsymbols[ i ].name() == "_main"   )
+        {
+            return allsymbols[ i ].addr();
+        }	
     }
-
+    
     //find and add main to allsymbols
     const unsigned char* p;
     p = ( const unsigned char* )elf_vaddr_to_ptr( text_addr_ );
-
+    
     const int pushCodeSize = 1;
 
     instruction insn;
@@ -1124,19 +1125,37 @@ Symbol Object::findMain( pdvector< Symbol > &allsymbols )
     
     while( !insn.isCall() )
     {
-	p += insn.size();
-	insn.getNextInstruction( p );
+        p += insn.size();
+        insn.getNextInstruction( p );
     }
     p -= insn.size() - pushCodeSize;
-     
+    
     Address mainAddress =  *( const Address* )p;
-    
+
+   
     logLine( "No main symbol found: creating symbol for main\n" );
-    Symbol newSym( "main", "DEFAULT_MODULE", Symbol::PDST_FUNCTION,
-    	   Symbol::SL_GLOBAL, mainAddress, 0, (unsigned) -1 );
     
-    allsymbols.push_back( newSym );
-    return newSym;
+    if( mainAddress >= plt_addr_ && mainAddress < plt_addr_ + plt_size_ )
+    {
+        logLine( "No static symbol for function main\n" );
+        pltMain = true;
+    
+        Symbol newSym("DYNINST_pltMain","DEFAULT_MODULE",Symbol::PDST_FUNCTION,
+                   Symbol::SL_GLOBAL, mainAddress, 0, (unsigned) -1 );
+        
+        allsymbols.push_back( newSym );
+        return newSym;
+
+    }
+    else
+    {
+        Symbol newSym( "main", "DEFAULT_MODULE", Symbol::PDST_FUNCTION,
+                   Symbol::SL_GLOBAL, mainAddress, 0, (unsigned) -1 );
+    
+        allsymbols.push_back( newSym );
+        return newSym;
+    }
+    
 }
 
 #endif
