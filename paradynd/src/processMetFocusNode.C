@@ -55,17 +55,22 @@ extern pdDebug_ostream sampleVal_cerr;
 
 vector<processMetFocusNode*> processMetFocusNode::allProcNodes;
 
+inline unsigned ui_hash_(const unsigned &u) { return u; }
+
 processMetFocusNode::processMetFocusNode(pd_process *p,
                        const string &metname, const Focus &focus_,
 		       aggregateOp agg_op, bool arg_dontInsertData)
-  : aggregator(agg_op, getCurrSamplingRate()),
+  : metricVarCodeNode(NULL), aggregator(agg_op, getCurrSamplingRate()),
     parentNode(NULL), aggInfo(NULL), proc_(p), aggOp(agg_op), 
-    metric_name(metname), focus(focus_), 
-    dontInsertData_(arg_dontInsertData), catchupNotDoneYet_(false),
-    currentlyPaused(false), insertionAttempts(0), function_not_inserted(NULL),
-    isBeingDeleted_(false)
+    metric_name(metname), focus(focus_), dontInsertData_(arg_dontInsertData),
+    currentlyPaused(false), thridsCatchuped(ui_hash_), 
+    hasBeenCatchuped_(false), isBeingDeleted_(false)
 {
   allProcNodes.push_back(this);
+  
+  threadMgr::thrIter iter = p->thrMgr().begin();
+  while(iter != p->thrMgr().end())
+     threadsNeedingCatchup.push_back((*iter++));
 }
 
 processMetFocusNode::processMetFocusNode(const processMetFocusNode &par, 
@@ -74,7 +79,10 @@ processMetFocusNode::processMetFocusNode(const processMetFocusNode &par,
    // set by recordAsParent(), in propagateToForkedProcess
    parentNode(NULL), aggInfo(NULL), proc_(childProc),
    metric_name(par.metric_name), 
-   focus(adjustFocusForPid(par.focus, childProc->getPid()))
+   focus(adjustFocusForPid(par.focus, childProc->getPid())),
+   thridsCatchuped(par.thridsCatchuped),  
+   threadsNeedingCatchup(par.threadsNeedingCatchup),
+   hasBeenCatchuped_(par.hasBeenCatchuped_)
 {
    metricVarCodeNode = instrCodeNode::copyInstrCodeNode(*par.metricVarCodeNode,
 							childProc);
@@ -105,14 +113,10 @@ processMetFocusNode::processMetFocusNode(const processMetFocusNode &par,
    procStartTime = par.procStartTime;
    
    dontInsertData_ = par.dontInsertData_;
-   catchupNotDoneYet_ = par.catchupNotDoneYet_;
    currentlyPaused = par.currentlyPaused;
    
    catchupASTList = par.catchupASTList;
    sideEffectFrameList = par.sideEffectFrameList;
-   
-   insertionAttempts = par.insertionAttempts;
-   function_not_inserted = par.function_not_inserted;
 }
 
 void processMetFocusNode::getProcNodes(vector<processMetFocusNode*> *procnodes)
@@ -134,23 +138,23 @@ void processMetFocusNode::getProcNodes(vector<processMetFocusNode*> *procnodes,
 }
 
 bool processMetFocusNode::instrLoaded() {
-  bool allCompInserted = true;
+   bool allCompInserted = true;
 
-  vector<instrCodeNode *> codeNodes;
-  getAllCodeNodes(&codeNodes);
-  if(codeNodes.size() == 0) {
-    allCompInserted = false;
-  } else {
-    for(unsigned i=0; i<codeNodes.size(); i++) {
-      instrCodeNode *codenode = codeNodes[i];
-      bool result = codenode->instrLoaded();
-      if(result == false) {
-	allCompInserted = false; 
-	break;
+   vector<instrCodeNode *> codeNodes;
+   getAllCodeNodes(&codeNodes);
+   if(codeNodes.size() == 0) {
+      allCompInserted = false;
+   } else {
+      for(unsigned i=0; i<codeNodes.size(); i++) {
+         instrCodeNode *codenode = codeNodes[i];
+         bool result = codenode->instrLoaded();
+         if(result == false) {
+            allCompInserted = false; 
+            break;
+         }
       }
-    }
-  }
-  return allCompInserted;
+   }
+   return allCompInserted;
 }
 
 bool processMetFocusNode::trampsHookedUp() {
@@ -424,7 +428,6 @@ int processMetFocusNode::getMetricID() {
   return parentNode->getMetricID();
 }
 
-const int MAX_INSERTION_ATTEMPTS_USING_RELOCATION = 1000;
 vector<int> deferredMetricIDs;
 
 void registerAsDeferred(int metricID) {
@@ -437,25 +440,15 @@ void registerAsDeferred(int metricID) {
 }
 
 instr_insert_result_t processMetFocusNode::insertInstrumentation() {
+   assert(dontInsertData() == false);  // code doesn't have allocated variables
    if(instrInserted()) {
       return insert_success;
    }
-   ++insertionAttempts;
-   if(insertionAttempts == MAX_INSERTION_ATTEMPTS_USING_RELOCATION) {
-      if(function_not_inserted != NULL)
-	 function_not_inserted->setRelocatable(false);
-   }
-
+   
    pauseProcess();
 
-   instr_insert_result_t insert_status = 
-      loadInstrIntoApp(&function_not_inserted);
+   instr_insert_result_t insert_status = loadInstrIntoApp();
    
-   // Instrumentation insertion may have failed. We should handle this case
-   // better than an assert. Currently we handle the case where (on x86) we
-   // couldn't insert the instrumentation due to relocation failure (deferred
-   // instrumentation). If it's deferred, come back later.
-  
    if(insert_status == insert_deferred) {
       continueProcess();
       if(hasDeferredInstr()) {
@@ -503,25 +496,24 @@ instr_insert_result_t processMetFocusNode::insertInstrumentation() {
 //       No -> don't manually trigger n's instrumentation.
 //       Yes ->
 //         
-
 void processMetFocusNode::doCatchupInstrumentation() {
-  if(! catchupNotDoneYet()) {
-    return;
-  }
+   if(hasBeenCatchuped()) {
+      return;
+   }
 
-  prepareCatchupInstr();
+   // only does catchup on threads which need it
+   prepareCatchupInstr();
+   postCatchupRPCs();
 
-  postCatchupRPCs();
+   extern void checkProcStatus();
+   checkProcStatus();
 
-  void checkProcStatus();
-  
-  // Get them all cleared out
-  do {
-    proc_->launchRPCifAppropriate(false, false);
-    checkProcStatus();
-  } while (proc_->existsRPCreadyToLaunch() ||
-	   proc_->existsRPCinProgress());
-  catchupNotDoneYet_ = false;
+   // Get them all cleared out
+   do {
+      proc_->launchRPCifAppropriate(false, false);
+      checkProcStatus();
+   } while (proc_->existsRPCreadyToLaunch() ||
+            proc_->existsRPCinProgress());
 }
 
 bool processMetFocusNode::catchupInstrNeeded() const {
@@ -550,79 +542,87 @@ bool processMetFocusNode::catchupInstrNeeded() const {
 //       Yes ->
 //         
 
-void processMetFocusNode::prepareCatchupInstr() {
+void processMetFocusNode::prepareCatchupInstr(pd_thread *thr) {
+   vector<Frame> stackWalk;
+   thr->walkStack(stackWalk);
+   
+   // Convert the stack walks into a similar list of catchupReq nodes, which
+   // maps 1:1 onto the stack walk and includes a vector of instReqNodes that
+   // need to be executed
 
-  vector< vector<Frame> > allStackWalks;
+   vector<catchupReq *> catchupWalk;
+   for (unsigned f=0; f<stackWalk.size(); f++)
+      catchupWalk.push_back(new catchupReq(stackWalk[f]));
 
-  proc()->walkStacks(allStackWalks);
+   // Now go through all associated code nodes, and add appropriate bits to
+   // the catchup request list.
+   for (unsigned cIter = 0; cIter < constraintCodeNodes.size(); cIter++)
+      constraintCodeNodes[cIter]->prepareCatchupInstr(thr, catchupWalk);
+   
+   // Get the metric code node catchup list
+   metricVarCodeNode->prepareCatchupInstr(thr, catchupWalk);
+   
+   // Note: stacks are delivered to us in bottom-up order (most recent to
+   // main()), and we want to execute from main down. So loop through
+   // backwards and add to the main list. We can go one thread at a time,
+   // because multiple threads will not interfere with each other.
 
-  assert(catchupASTList.size() == 0); // Make sure there's no catchup sitting around
-
-  // Convert the stack walks into a similar list of catchupReq nodes,
-  // which maps 1:1 onto the stack walk and includes a vector of instReqNodes
-  // that need to be executed
-
-  // 2d vector -- first by thread, then by individual stack frame
-  vector<vector<catchupReq *> > catchupStackWalks;
-  for (unsigned i = 0; i < allStackWalks.size(); i++) {
-    vector<catchupReq *> catchupWalk;
-    for (unsigned j = 0; j < allStackWalks[i].size(); j++)
-      catchupWalk.push_back(new catchupReq(allStackWalks[i][j]));
-    catchupStackWalks.push_back(catchupWalk);
-  }
-
-  // Now go through all associated code nodes, and add appropriate bits
-  // to the catchup request list.
-  for (unsigned cIter = 0; cIter < constraintCodeNodes.size(); cIter++)
-    if (!constraintCodeNodes[cIter]->hasBeenCatchuped()) {
-      constraintCodeNodes[cIter]->prepareCatchupInstr(catchupStackWalks);
-    }
-
-  // Get the metric code node catchup list
-  metricVarCodeNode->prepareCatchupInstr(catchupStackWalks);
-
-  // Note: stacks are delivered to us in bottom-up order (most recent to
-  // main()), and we want to execute from main down. So loop through
-  // backwards and add to the main list. We can go one thread at a time,
-  // because multiple threads will not interfere with each other.
-
-  // Iterate through all threads
-  //  cerr << "Looping through " << catchupStackWalks.size() << " stack walks" << endl;
-  for (unsigned i1 = 0; i1 < catchupStackWalks.size(); i1++) {
-    // Then through each frame in the stack walk
-    AstNode *conglomerate = NULL;
-    for (int j1 = catchupStackWalks[i1].size()-1;
-	 j1 >= 0; j1--) { // Note: backwards iteration
-      //      cerr << "Frame " <<i1<<"/"<<j1 << " "  << catchupStackWalks[i1][j1]->frame << endl;
-      if (((catchupStackWalks[i1])[j1]->reqNodes).size()) { // Means we have a catchup request
-	// What we want to do: build a single big AST then
-	// launch it as an RPC. 
-	for (unsigned k1 = 0; k1<((catchupStackWalks[i1])[j1]->reqNodes).size();
-	     k1++) {
-	  AstNode *AST = catchupStackWalks[i1][j1]->reqNodes[k1]->Ast();
-	  if (!conglomerate) {
-	    conglomerate = AST;
-	  }
-	  else { // Need to combine with a SequenceNode
-	    AstNode *old = conglomerate;
-	    conglomerate = new AstNode(conglomerate, AST);
-	    removeAst(old);
-	  }
-	}
-	sideEffect_t side;
-	side.frame = catchupStackWalks[i1][j1]->frame;
-	side.reqNode = catchupStackWalks[i1][j1]->reqNodes[0];
-	sideEffectFrameList.push_back(side);
+   // Then through each frame in the stack walk
+   AstNode *conglomerate = NULL;
+   for(int j = catchupWalk.size()-1; j >= 0; j--) { 
+      catchupReq *curCReq = catchupWalk[j];
+      // Note: backwards iteration
+      if ((curCReq->reqNodes).size()) {   // Means we have a catchup request
+	 // What we want to do: build a single big AST then launch it as
+	 // an RPC.
+	 for (unsigned k1 = 0; k1<(curCReq->reqNodes).size(); k1++) {
+	    AstNode *AST = curCReq->reqNodes[k1]->Ast();
+	    if (!conglomerate) {
+	       conglomerate = AST;
+	    }
+	    else { // Need to combine with a SequenceNode
+	       AstNode *old = conglomerate;
+	       conglomerate = new AstNode(conglomerate, AST);
+	       removeAst(old);
+	    }
+	 }
+	 sideEffect_t side;
+	 side.frame = curCReq->frame;
+	 side.reqNode = curCReq->reqNodes[0];
+	 sideEffectFrameList.push_back(side);
       }
-    } // Inner loop
-    if (conglomerate) {
+   }
+
+   if (conglomerate) {
       catchup_t catchup;
+      //conglomerate->print();
       catchup.ast = conglomerate;
-      catchup.thread = catchupStackWalks[i1][0]->frame.getThread();
-      catchup.lwp = catchupStackWalks[i1][0]->frame.getLWP();
+      catchup.thread = catchupWalk[0]->frame.getThread();
+      catchup.lwp = catchupWalk[0]->frame.getLWP();
       catchupASTList.push_back(catchup);
-    }
-  }
+   }
+}
+
+// only does catchup on threads which need it
+// returns false if no catchup needed
+void processMetFocusNode::prepareCatchupInstr() {
+   vector<pd_thread*>::iterator itr = threadsNeedingCatchup.end();
+   while(itr != threadsNeedingCatchup.begin()) {
+      itr--;
+      pd_thread *pdthr = *itr;
+      if(! hasBeenCatchuped(pdthr)) {
+	 prepareCatchupInstr(pdthr);
+         markAsCatchuped(pdthr);
+         threadsNeedingCatchup.erase(itr);
+
+         if(threadsNeedingCatchup.size() == 0)
+            hasBeenCatchuped_ = true;
+      } else {
+         if (pd_debug_catchup)
+            cerr << "  skipping prepareCatchup for thr " << pdthr->get_tid()
+                 << ", already done\n";
+      }
+   }
 }
 
 void processMetFocusNode::postCatchupRPCs()
@@ -636,13 +636,18 @@ void processMetFocusNode::postCatchupRPCs()
   }
 
   for (unsigned i=0; i < catchupASTList.size(); i++) {
-    proc_->postRPCtoDo(catchupASTList[i].ast, false,
-		       NULL, NULL,
-		       getMetricID(),
-		       catchupASTList[i].thread,
-		       catchupASTList[i].lwp,
-		       false);
+     if (pd_debug_catchup) {
+        cerr << "metricID: " << getMetricID() << ", posting ast " << i 
+             << " with tid: " 
+             << catchupASTList[i].thread->get_tid() << ", lwp_id: " 
+             << catchupASTList[i].lwp->get_lwp() << ", lwp-fd: "
+             << catchupASTList[i].lwp->get_fd() << "\n";
+     }
+     proc_->postRPCtoDo(catchupASTList[i].ast, false, NULL, NULL,
+                        getMetricID(), catchupASTList[i].thread,
+                        catchupASTList[i].lwp, false);
   }
+
   catchupASTList.resize(0);
   for (unsigned j = 0; j < sideEffectFrameList.size(); j++) {
     proc_->catchupSideEffect(sideEffectFrameList[j].frame, 
@@ -684,7 +689,7 @@ void processMetFocusNode::initAggInfoObjects(timeStamp startTime,
   }
 }
 
-instr_insert_result_t processMetFocusNode::loadInstrIntoApp(pd_Function **func)
+instr_insert_result_t processMetFocusNode::loadInstrIntoApp()
 {
    if(instrLoaded()) {
       return insert_success;
@@ -697,14 +702,12 @@ instr_insert_result_t processMetFocusNode::loadInstrIntoApp(pd_Function **func)
    // one deferred component
    for (unsigned j=0; j<codeNodes.size(); j++) {
       instrCodeNode *codeNode = codeNodes[j];
-      instr_insert_result_t status = codeNode->loadInstrIntoApp(func);
+      instr_insert_result_t status = codeNode->loadInstrIntoApp();
       if(status != insert_success) {
 	 return status;
       }
    }
 
-   catchupNotDoneYet_ = true;
-   
    return insert_success;
 }
 
@@ -826,7 +829,6 @@ void processMetFocusNode::print() {
       codeNodes[j]->print();
 }
 
-
 processMetFocusNode::~processMetFocusNode() {
   isBeingDeleted_ = true;
   // NULL possible if processMetFocusNode created for fork and then deleted
@@ -847,8 +849,11 @@ processMetFocusNode::~processMetFocusNode() {
     delete constraintCodeNodes[j];
   }
 
-  for(int k=(int)allProcNodes.size()-1; k>=0; k--) {
-    if(allProcNodes[k] == this)  allProcNodes.erase(k);
+  vector<processMetFocusNode*>::iterator itr = allProcNodes.end();
+  while(itr != allProcNodes.begin()) {
+     itr--;
+     if(*itr == this)  
+        allProcNodes.erase(itr);
   }
 }
 
@@ -916,13 +921,46 @@ void processMetFocusNode::addConstraintCodeNode(instrCodeNode* part) {
   constraintCodeNodes.push_back(part);
 }
 
+// returns true if any instrumentation was added for codeNodes
+bool processMetFocusNode::updateCodeNodes(pd_thread *thr) {
+   // only the main code node needs to be updated for the new thread
+   // since it wouldn't make sense to have $start in an ordinary constraint
+   bool codeNodeModified = metricVarCodeNode->updateForNewThread(thr);
+
+   // Because there is a new thread that applies to the processMetFocusNode
+   // we need to check whether it needs to be catchuped on this new thread.
+   // The codeNode->updateForNewThread possible inserts code for the new
+   // thread.  But even if it doesn't insert any new code, we still need to
+   // run catchup on the existing instrumentation code for the new thread.
+   // Catchup changes the instrumentation (eg. timer) variable, but there is
+   // one instrumentation variable (timer) for each thread.  So we need to
+   // run catchup for this new thread, so the new thread's timer timer will
+   // get updated.
+   if(codeNodeModified) {
+      threadsNeedingCatchup.push_back(thr);
+      hasBeenCatchuped_ = false;
+   }
+   return codeNodeModified;
+}
+
 void processMetFocusNode::propagateToNewThread(pd_thread *thr)
 {
    // we only want to sample this new thread if the selected focus for this
-   // processMetFocusNode was for the whole process.  If it's not a thread
-   // specific focus, then the focus includes the whole process (ie. all of
-   // the threads)
+   // processMetFocusNode was for the whole process.  If it's a thread
+   // specific focus, then it can't have been the given thread because this
+   // propagate function is only called on existing metrics.  If it's not a
+   // thread specific focus, then the focus includes the whole process
+   // (ie. all of the threads).
    if(getFocus().thread_defined()) return;
+
+   bool codeNodesModified = updateCodeNodes(thr);
+   if(codeNodesModified == true) {
+      assert(instrInserted() == false);  // since catchup is needed for new thr
+      insertInstrumentation();
+   }
+   else {
+      assert(instrInserted() == true);
+   }
 
    string thrName = string("thr_") + string(thr->get_tid()) + "{" + 
                       thr->get_start_func()->prettyName() + "}";
