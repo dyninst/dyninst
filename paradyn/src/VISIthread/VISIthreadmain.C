@@ -25,11 +25,14 @@
 // * VISIthread server routines:  VISIKillVisi
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.7  1994/06/14 15:19:15  markc
-/* Added new param to enableDataCollection call which specifies how a metric is
-/* to be aggregated.  This is probably temporary, since the data manager or the
-/* configuration language should specify this info.
+/* Revision 1.8  1994/06/16 18:28:30  newhall
+/* added short focus names
 /*
+ * Revision 1.7  1994/06/14  15:19:15  markc
+ * Added new param to enableDataCollection call which specifies how a metric is
+ * to be aggregated.  This is probably temporary, since the data manager or the
+ * configuration language should specify this info.
+ *
  * Revision 1.6  1994/06/07  18:16:32  newhall
  * support for adding metrics/resources to an existing set
  *
@@ -70,9 +73,11 @@
 
 /*
 #define DEBUG2
+*/
 #define DEBUG
 #define DEBUG3
-*/
+
+char *AbbreviatedFocus(char *);
 
 //////////////////////////////////////////////////
 // VISIKillVisi:  VISIthread server routine 
@@ -149,7 +154,7 @@ if((bucketNum % 100) == 0){
   ptr->bufferSize++;
 
   // if buffer is full, send buffer to visualization
-  // if(ptr->bufferSize == BUFFERSIZE){
+  // if(ptr->bufferSize == BUFFERSIZE)
   if(ptr->bufferSize) {
 
     temp.count = ptr->bufferSize;
@@ -315,6 +320,9 @@ void VISIthreadchooseMetRes(char **metricNames,
  sampleValue buckets[1000];
  int howmany;
  char *key;
+ int  numFoci = 0;
+ dataValue_Array   tempdata;
+
 
   PARADYN_DEBUG(("In VISIthreadchooseMetRes numMetrics = %d",numMetrics));
 
@@ -364,7 +372,7 @@ void VISIthreadchooseMetRes(char **metricNames,
 
         if((currMetInst = 
 	     ptr->dmp->enableDataCollection(ptr->perStream,
-	     focusChoice,currMetric, Sum)) 
+	     focusChoice,currMetric,Avg)) 
 	     != NULL){
 	    PARADYN_DEBUG(("after enable metric/focus\n"));
             ptr->mrlist->add(currMetInst,currMetInst);
@@ -407,7 +415,7 @@ void VISIthreadchooseMetRes(char **metricNames,
 
 	  if(!found){ // enable
               if((currMetInst = ptr->dmp->enableDataCollection(ptr->perStream,
-		  focusChoice, currMetric, Sum)) != NULL){
+		  focusChoice, currMetric,Avg)) != NULL){
 
                   ptr->mrlist->add(currMetInst,currMetInst);
 	          newEnabled[numEnabled] = currMetInst;
@@ -463,8 +471,12 @@ void VISIthreadchooseMetRes(char **metricNames,
     y = newEnabled[0]->focus->convertToStringList();
     totalSize = 0;
 
-    for(i=0;i<newEnabled[0]->focus->getCount();i++)
+    numFoci = newEnabled[0]->focus->getCount();
+
+    for(i = 0; i < numFoci; i++)
         totalSize += strlen(y[i]);
+ 
+    totalSize += numFoci;  // space for commas
 
     if((resources.data[0].name = 
 	(char *)malloc(sizeof(char)*(totalSize +1))) == NULL){
@@ -475,7 +487,7 @@ void VISIthreadchooseMetRes(char **metricNames,
     }
     where = 0;
 
-    for(i=0;i<newEnabled[0]->focus->getCount();i++){
+    for(i = 0; i < numFoci; i++){
         if((strncpy(&(resources.data[0].name[where]),y[i],strlen(y[i])))
 	    ==NULL){
             perror("strncpy in VISIthreadchooseMetRes");
@@ -484,6 +496,9 @@ void VISIthreadchooseMetRes(char **metricNames,
             return;
         }
         where += strlen(y[i]);
+	if( i < (numFoci - 1)){
+	  resources.data[0].name[where++] = ',';
+	}
     }
 
     resources.data[0].name[where] = '\0';
@@ -491,9 +506,18 @@ void VISIthreadchooseMetRes(char **metricNames,
     binWidth = ptr->dmp->getCurrentBucketWidth(); 
     numBins = ptr->dmp->getMaxBins();
 
-#ifdef DEBUG
+    resources.data[0].name = AbbreviatedFocus(resources.data[0].name);
+
     fprintf(stderr,"adding new resource %d\n",resources.data[0].Id);
+#ifdef DEBUG
 #endif
+// if buffer is not empty send visualization buffer of data values
+    if(ptr->bufferSize != 0){
+	  tempdata.count = ptr->bufferSize;
+          tempdata.data = ptr->buffer;
+	  ptr->visip->Data(tempdata);
+	  ptr->bufferSize = 0;
+    }
 
     ptr->visip->AddMetricsResources(metrics,resources,binWidth,numBins);
 
@@ -519,8 +543,9 @@ void VISIthreadchooseMetRes(char **metricNames,
     free(resources.data);
     free(y);
   }
-  else 
+  else {
       uiMgr->showErrorWait("No enabled Metric/focus pairs",0,NULL);
+  }
 }
 
 
@@ -772,11 +797,10 @@ void *VISIthreadmain(visi_thread_args *args){
     else if (globals->dmp->isValidUpCall(tag)) {
       globals->dmp->awaitResponce(-1);
     }
-    else if ((died = RPC_readReady(globals->fd))) {
-      PARADYN_DEBUG(("RPC_readReady: %d\n",died));
-      if(died == -1)
+    else if ((RPC_readReady(globals->fd) == -1)) {
 	globals->quit = 1;  // visualization process has died
-      else
+    }
+    else if (tag == MSG_TAG_FILE){
         globals->visip->awaitResponce(-1);
     }
     else {
@@ -850,5 +874,41 @@ void visiUser::handle_error()
     }
 }
 
+char *AbbreviatedFocus(char *longName){
+
+int i,size,num = 0;
+int next = 0;
+int flag  = 0;
+char *newword;
+int nextFocus = 0;
+
+  size = strlen(longName); 
+  newword = (char *)malloc(sizeof(size));
+
+  for(i = 0; i < size; i++){
+      if(longName[i] == '/'){
+	  if(!nextFocus){
+	     nextFocus = 1;
+          }
+	  else { 
+             flag = 1;
+	  }
+      }
+      else if(longName[i] == ','){
+	  nextFocus = 0;
+	  flag = 0;
+      }
+      if(flag){
+	  newword[num] = longName[i]; 
+	  num++;
+      }
+  }
+  if(num == 0)
+     strcpy(newword,"Root Nodes");
+  else
+     newword[num] = '\0';
+  return(newword);
+
+}
 
 
