@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.34 2002/06/26 21:14:56 schendel Exp $
+// $Id: templates0.C,v 1.35 2002/10/15 17:11:20 schendel Exp $
 // Generate all the templates in one file.
 
 /*
@@ -83,8 +83,8 @@
 #include "paradynd/src/processMetFocusNode.h"
 #endif
 
-template class  vector<pdThread *>;
-template class  vector< vector<pdThread *> >;
+template class  vector<dyn_thread *>;
+template class  vector< vector<dyn_thread *> >;
 template class  vector<bool>;
 template class  vector<AstNode>;
 template class  vector<AstNode *>;

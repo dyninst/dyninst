@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.117 2002/08/31 16:53:08 mikem Exp $
+// $Id: ast.C,v 1.118 2002/10/15 17:11:09 schendel Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -58,7 +58,7 @@
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "dyninstAPI/src/BPatch_collections.h"
 #else
-#include "dyninstAPI/src/pdThread.h"
+#include "dyninstAPI/src/dyn_thread.h"
 #include "rtinst/h/rtinst.h"
 #endif
 

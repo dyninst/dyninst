@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.h,v 1.5 2002/10/08 22:49:53 bernat Exp $
+// $Id: frame.h,v 1.6 2002/10/15 17:11:13 schendel Exp $
 
 #ifndef FRAME_H
 #define FRAME_H
@@ -47,7 +47,7 @@
 #include "rtinst/h/rtinst.h"
 #include <iostream.h>
 
-class pdThread;
+class dyn_thread;
 class process;
 class dyn_lwp;
 
@@ -61,13 +61,13 @@ class Frame {
   // I'm keeping the frame class (relatively) stupid,
   // so the standard method of getting a frame is to
   // call a different function (getActiveFrame or the
-  // pdThread method) which gives you a frame. You can
+  // dyn_thread method) which gives you a frame. You can
   // then trace it back. The thread and lwp are just there
   // for reference by the frame user
 
   // For all those times you just need to stick in values
   Frame(Address pc, Address fp, 
-	unsigned pid, pdThread *thread, dyn_lwp *lwp, 
+		  unsigned pid, dyn_thread *thread, dyn_lwp *lwp, 
 	bool uppermost) :
     uppermost_(uppermost),
     pc_(pc), fp_(fp), sp_(0),
@@ -75,7 +75,7 @@ class Frame {
     {};
   // Identical, with sp definition
   Frame(Address pc, Address fp, Address sp,
-	unsigned pid, pdThread *thread, dyn_lwp *lwp, 
+		  unsigned pid, dyn_thread *thread, dyn_lwp *lwp, 
 	bool uppermost) :
     uppermost_(uppermost),
     pc_(pc), fp_(fp), sp_(sp),
@@ -109,7 +109,7 @@ class Frame {
   Address  getFP() const { return fp_; }
   Address  getSP() const { return sp_; }
   unsigned getPID() const { return pid_; }
-  pdThread *getThread() const { return thread_; }
+  dyn_thread *getThread() const { return thread_; }
   dyn_lwp  *getLWP() const { return lwp_;}
   bool     isUppermost() const { return uppermost_; }
 
@@ -133,7 +133,7 @@ class Frame {
   Address   fp_;
   Address   sp_;     // NOTE: this is not always populated
   int       pid_;    // Process id 
-  pdThread *thread_; // user-level thread
+  dyn_thread *thread_; // user-level thread
   dyn_lwp  *lwp_;    // kernel-level thread (LWP)
   Address   saved_fp;// IRIX
   

@@ -39,10 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdThread.h,v 1.19 2002/10/14 21:02:13 bernat Exp $
+// $Id: dyn_thread.h,v 1.1 2002/10/15 17:11:12 schendel Exp $
 
-#ifndef _PDTHREAD_H_
-#define _PDTHREAD_H_
+#ifndef _DYNTHREAD_H_
+#define _DYNTHREAD_H_
 
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inferiorRPC.h"
@@ -50,10 +50,10 @@
 class Frame;
 class dyn_lwp;
 
-class pdThread {
+class dyn_thread {
  public:
   //
-  pdThread(process *pproc) : 
+  dyn_thread(process *pproc) : 
     pos(0),
     stack_addr(0),
     start_pc(0),
@@ -66,7 +66,7 @@ class pdThread {
       ppid = pproc->getPid();
       lwp  = pproc->getDefaultLWP();
     }
-  pdThread(process *proc_, unsigned tid_, unsigned pos_, dyn_lwp *lwp_) :
+  dyn_thread(process *proc_, unsigned tid_, unsigned pos_, dyn_lwp *lwp_) :
     tid(tid_),
     pos(pos_),
     lwp(lwp_),
@@ -80,7 +80,7 @@ class pdThread {
       proc = proc_;
       ppid = proc_->getPid();
     }
-  pdThread(process *parent, pdThread *src) {
+  dyn_thread(process *parent, dyn_thread *src) {
     assert(src && parent);
     lwp = src->lwp;
     ppid = parent->getPid();
@@ -94,9 +94,9 @@ class pdThread {
     in_IRPC = false;
     in_syscall = false;
   }
-  ~pdThread() {
+  ~dyn_thread() {
   }
-
+  
   // Get the active frame (PC, SP, FP) of the thread
   // calls dyn_lwp::getActiveFrame if necessary
   // Note: OS specific, defined in <OS>MT.C files

@@ -228,7 +228,7 @@ Address process::readRegister(unsigned /*lwp*/, Register) {
 
 Frame dyn_lwp::getActiveFrame() {
   Address pc, fp, sp, tp;
-  pdThread * pdThreadPtr = NULL;                  /* [1] */
+  dyn_thread *threadPtr = NULL;                  /* [1] */
   
   /* FIXME: check for errors (errno) */
   pid_t pid = proc_->getPid();

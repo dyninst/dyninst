@@ -39,10 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixMT.C,v 1.13 2002/10/08 22:49:45 bernat Exp $
+// $Id: aixMT.C,v 1.14 2002/10/15 17:11:08 schendel Exp $
 
 #include <sys/pthdebug.h> // Pthread debug library
-#include "dyninstAPI/src/pdThread.h"
+#include "dyninstAPI/src/dyn_thread.h"
 #include "paradynd/src/metricFocusNode.h"
 #include "dyninstAPI/src/dyn_lwp.h"
 
@@ -56,7 +56,7 @@
  * Get the stack frame, given a (p)thread ID 
  */
 
-Frame pdThread::getActiveFrame() {
+Frame dyn_thread::getActiveFrame() {
   Frame newFrame;
 
   pthdb_context_t context;

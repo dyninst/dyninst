@@ -39,12 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#include "dyninstAPI/src/pdThread.h"
+#include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/dyn_lwp.h"
 
 #if defined(MT_THREAD)
-rawTime64 pdThread::getInferiorVtime(virtualTimer *vTimer,
-				     bool& success) {
+rawTime64 dyn_thread::getInferiorVtime(virtualTimer *vTimer,
+													bool& success) {
   rawTime64 ret ;
   success = true ;
 
@@ -81,7 +81,7 @@ rawTime64 pdThread::getInferiorVtime(virtualTimer *vTimer,
 
 #if !defined(BPATCH_LIBRARY)
 
-bool pdThread::updateLWP()
+bool dyn_thread::updateLWP()
 {
   // ST case
   if ((!proc->multithread_ready()) || 
@@ -112,16 +112,17 @@ bool pdThread::updateLWP()
 
 // No shared data, so we can't use the above since the reference
 // won't link
-bool pdThread::updateLWP()
+bool dyn_thread::updateLWP()
 {
   return true;
 }
 #endif
+  
 
 #if !defined(MT_THREAD)
 // MT version lives in the <os>MT.C files, and can do things like
 // get info for threads not currently scheduled on an LWP
-Frame pdThread::getActiveFrame()
+Frame dyn_thread::getActiveFrame()
 {
   updateLWP();
   return lwp->getActiveFrame();
@@ -129,7 +130,7 @@ Frame pdThread::getActiveFrame()
 #endif
 
 // stackWalk: return parameter.
-bool pdThread::walkStack(vector<Frame> &stackWalk)
+bool dyn_thread::walkStack(vector<Frame> &stackWalk)
 {
   // We cheat (a bit): this method is here for transparency, 
   // but the process class does the work in the walkStackFromFrame
@@ -138,30 +139,30 @@ bool pdThread::walkStack(vector<Frame> &stackWalk)
   
   return proc->walkStackFromFrame(active, stackWalk);
 }
-  
-dyn_lwp *pdThread::get_lwp()
+
+dyn_lwp *dyn_thread::get_lwp()
 {
   if (proc->multithread_ready())
     updateLWP();
   return lwp;
 }
 
-void pdThread::scheduleIRPC(inferiorRPCtoDo todo)
+void dyn_thread::scheduleIRPC(inferiorRPCtoDo todo)
 {
   thrRPCsWaitingToStart += todo;
 }
 
-bool pdThread::readyIRPC()
+bool dyn_thread::readyIRPC()
 {
   return !thrRPCsWaitingToStart.empty();
 }
 
-inferiorRPCtoDo pdThread::peekIRPC()
+inferiorRPCtoDo dyn_thread::peekIRPC()
 {
   return thrRPCsWaitingToStart[0];
 }
 
-inferiorRPCtoDo pdThread::popIRPC()
+inferiorRPCtoDo dyn_thread::popIRPC()
 {
   inferiorRPCtoDo first;
   first = thrRPCsWaitingToStart[0];
@@ -169,42 +170,42 @@ inferiorRPCtoDo pdThread::popIRPC()
   return first;
 }
 
-void pdThread::runIRPC(inferiorRPCinProgress running)
+void dyn_thread::runIRPC(inferiorRPCinProgress running)
 {
   thrCurrRunningRPC = running;
 }
 
-void pdThread::setRunningIRPC()
+void dyn_thread::setRunningIRPC()
 {
   in_IRPC=true;
 }
 
-inferiorRPCinProgress pdThread::getIRPC()
+inferiorRPCinProgress dyn_thread::getIRPC()
 {
   return thrCurrRunningRPC;
 }
 
-void pdThread::clearRunningIRPC()
+void dyn_thread::clearRunningIRPC()
 {
   in_IRPC = false;
 }
 
-bool pdThread::isRunningIRPC()
+bool dyn_thread::isRunningIRPC()
 {
   return in_IRPC;
 }
 
-void pdThread::setInSyscall()
+void dyn_thread::setInSyscall()
 {
   in_syscall = true;
 }
 
-void pdThread::clearInSyscall()
+void dyn_thread::clearInSyscall()
 {
   in_syscall = false;
 }
 
-bool pdThread::isInSyscall()
+bool dyn_thread::isInSyscall()
 {
   return in_syscall;
 }

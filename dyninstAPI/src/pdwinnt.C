@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.64 2002/10/14 21:02:24 bernat Exp $
+// $Id: pdwinnt.C,v 1.65 2002/10/15 17:11:17 schendel Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/pdThread.h"
+#include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/stats.h"
 #include "common/h/Types.h"
 #include "dyninstAPI/src/showerror.h"
@@ -1226,7 +1226,7 @@ int process::waitProcs(int *status) {
 		    // this is a trap from an instrumentation point
 
 	      // find the current thread
-	      pdThread* currThread = NULL;
+	      dyn_thread* currThread = NULL;
 	      for(unsigned int i = 0; i < p->threads.size(); i++)
 		{
 		  if ((unsigned)p->threads[i]->get_tid() == debugEv.dwThreadId)
@@ -1343,14 +1343,14 @@ int process::waitProcs(int *status) {
 		// any pending instrumentation
 		
 		// find the current thread
-		pdThread* currThread = NULL;
+		dyn_thread* currThread = NULL;
 		for( unsigned int i = 0; i < p->threads.size(); i++ ) {
 		  if ((unsigned)p->threads[i]->get_tid() == 
 		      debugEv.dwThreadId) {
 		    currThread = p->threads[i];
 		    break;
 		  }
-                }
+		}
 		assert( currThread != NULL );
 		
 		Address pendingTrampAddr = currThread->get_pending_tramp_addr();
@@ -1426,7 +1426,7 @@ int process::waitProcs(int *status) {
 			       debugEv.u.CreateThread.hThread, // fd
 			       p); // process
       l->openFD();
-      pdThread *t = new pdThread(p, debugEv.dwThreadId, // thread ID
+      dyn_thread *t = new dyn_thread(p, debugEv.dwThreadId, // thread ID
 				 p->threads.size()-1, // POS (unused currently)
 				 l); // dyn_lwp object for thread handle
       p->threads.push_back(t);
@@ -1444,15 +1444,13 @@ int process::waitProcs(int *status) {
 	      dyn_lwp *l = new dyn_lwp(debugEv.dwThreadId,
 				       debugEv.u.CreateProcessInfo.hThread, 
 				       p);
-	      pdThread *t = new pdThread(p, debugEv.dwThreadId, // thread ID,
-					 0, // POS (main thread is always 0)
-					 l);
+
+			dyn_thread *t = new dyn_thread(p, debugEv.dwThreadId, // thread ID,
+													 0, // POS (main thread is always 0)
+													 l);
 		// define the main thread
 	      p->threads.push_back(t);
 	      p->lwps[0] = l;
-	    }
-	    else {
-	      cerr << "Warning: main process thread already defined! Ignoring..." << endl;
 	    }
 	}
     } break;

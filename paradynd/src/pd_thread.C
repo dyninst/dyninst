@@ -39,50 +39,6 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisMT.C,v 1.10 2002/10/15 17:11:19 schendel Exp $
 
-#include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/dyn_thread.h"
-#include "dyninstAPI/src/dyn_lwp.h"
-
-// As of solaris 8, threads are bound 1:1 with lwps. So this will always
-// end up querying an lwp.
-
-Frame dyn_thread::getActiveFrame() {
-
-  typedef struct {
-    long    sp;
-    long    pc;
-    long    l1; //fsr
-    long    l2; //fpu_en;
-    long    l3; //g2, g3, g4
-    long    l4; 
-    long    l5; 
-  } resumestate_t;
-
-  Address fp = 0, pc = 0;
-
-  Frame newFrame;
-
-  process* proc = get_proc();
-
-  updateLWP();
-  if (lwp) {
-    Frame lwpFrame = lwp->getActiveFrame();
-    newFrame = Frame(lwpFrame.getPC(), lwpFrame.getFP(),
-		     lwpFrame.getPID(), this, lwp, true);
-  }
-  else {
-    resumestate_t rs ;
-    if (get_start_pc() &&
-	proc->readDataSpace((caddr_t) get_resumestate_p(),
-			    sizeof(resumestate_t), (caddr_t) &rs, false)) {
-      fp = rs.sp;
-      pc = rs.pc;
-    } 
-    newFrame = Frame(pc, fp, proc->getPid(), this, 0, true);
-  }
-  return newFrame;
-}  
-
+#include "paradynd/src/pd_thread.h"
 
