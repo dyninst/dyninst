@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.282 2004/02/07 18:34:18 schendel Exp $
+/* $Id: process.h,v 1.283 2004/02/25 04:36:46 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -1226,7 +1226,7 @@ private:
   bool API_detach_(const bool cont); // XXX Should eventually replace detach_()
 
   dyn_lwp *query_for_stopped_lwp();
-  dyn_lwp *stop_an_lwp();
+  dyn_lwp *stop_an_lwp(bool *wasRunning);
 
   // stops a process
   bool waitUntilStopped();
