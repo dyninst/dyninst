@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.147 2003/03/08 01:23:37 bernat Exp $
+// $Id: perfStream.C,v 1.148 2003/04/11 22:46:40 schendel Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -73,10 +73,10 @@ extern "C" {
 #include "paradynd/src/main.h"
 #include "common/h/debugOstream.h"
 #include "pdutil/h/pdDebugOstream.h"
-#include "pdutil/h/airtStreambuf.h"
 #include "paradynd/src/processMgr.h"
 #include "paradynd/src/pd_process.h"
 #include "dyninstAPI/src/signalhandler.h"
+#include "pdutil/h/airtStreambuf.h"
 
 // trace data streams
 #include "common/h/Dictionary.h"
@@ -251,96 +251,93 @@ unsigned mid_hash(const unsigned &mid) {return mid;}
 dictionary_hash<unsigned, unsigned> traceOn(mid_hash);
 
 // Read trace data from process proc.
-void processTraceStream(pd_process *proc)
+void processTraceStream(process *dproc)
 {
-    cerr << "processTraceStream" << endl;
-    
     int ret;
     traceStream sid;
     char *recordData;
     traceHeader header;
     struct _association *a;
-    process *dproc = proc->get_dyn_process();
 
-    ret = read(dproc->traceLink, &(proc->buffer[proc->bufEnd]), 
-	       sizeof(proc->buffer) - proc->bufEnd);
+    ret = read(dproc->traceLink, &(dproc->buffer[dproc->bufEnd]), 
+	       sizeof(dproc->buffer) - dproc->bufEnd);
 
     if (ret < 0) {
-        //statusLine("read error, exiting");
-        //showErrorCallback(23, "Read error");
-	//proc->traceLink = -1;
-	//cleanUpAndExit(-2);
-        string msg = string("Read error on trace stream from PID=") +
-	             string(proc->getPid()) + string(": ") +
-		     string(sys_errlist[errno]) + 
-		     string("\nNo more data will be received from this process");
-	showErrorCallback(23, msg);
-	P_close(dproc->traceLink);
-	dproc->traceLink = -1;
-	return;
+       //statusLine("read error, exiting");
+       //showErrorCallback(23, "Read error");
+       //dproc->traceLink = -1;
+       //cleanUpAndExit(-2);
+       string msg = string("Read error on trace stream from PID=") +
+          string(dproc->getPid()) + string(": ") +
+          string(sys_errlist[errno]) + 
+          string("\nNo more data will be received from this process");
+       showErrorCallback(23, msg);
+       P_close(dproc->traceLink);
+       dproc->traceLink = -1;
+       return;
     } else if (ret == 0) {
-	/* end of file */
-	// process exited unexpectedly
-	//string buffer = string("Process ") + string(proc->pid);
-	//buffer += string(" has exited unexpectedly");
-	//statusLine(P_strdup(buffer.c_str()));
-	//showErrorCallback(11, P_strdup(buffer.c_str()));
-	string msg = string("Process ") + string(proc->getPid()) + 
-                     string(" exited");
-	statusLine(msg.c_str());
-	P_close(dproc->traceLink);
-  	dproc->traceLink = -1;
-	handleProcessExit(dproc, 0);
-	return;
+       /* end of file */
+       // process exited unexpectedly
+       //string buffer = string("Process ") + string(proc->pid);
+       //buffer += string(" has exited unexpectedly");
+       //statusLine(P_strdup(buffer.c_str()));
+       //showErrorCallback(11, P_strdup(buffer.c_str()));
+       string msg = string("Process ") + string(dproc->getPid()) + 
+          string(" exited");
+       statusLine(msg.c_str());
+       P_close(dproc->traceLink);
+       dproc->traceLink = -1;
+       handleProcessExit(dproc, 0);
+       return;
     }
 
-    proc->bufEnd += ret;
-    proc->bufStart = 0;
-
-    while(proc->bufStart < proc->bufEnd) {
-       if(proc->bufEnd - proc->bufStart < 
+    dproc->bufEnd += ret;
+    dproc->bufStart = 0;
+    
+    while(dproc->bufStart < dproc->bufEnd) {
+       if(dproc->bufEnd - dproc->bufStart < 
           (sizeof(traceStream) + sizeof(header))) {
           break;
        }
        
-       if(proc->bufStart % WORDSIZE != 0)     /* Word alignment check */
+       if(dproc->bufStart % WORDSIZE != 0)     /* Word alignment check */
           break;		        /* this will re-align by shifting */
        
-       unsigned curr_bufStart = proc->bufStart;
-       memcpy(&sid, &(proc->buffer[proc->bufStart]), sizeof(traceStream));
-       proc->bufStart += sizeof(traceStream);
+       unsigned curr_bufStart = dproc->bufStart;
+       memcpy(&sid, &(dproc->buffer[dproc->bufStart]), sizeof(traceStream));
+       dproc->bufStart += sizeof(traceStream);
        
-       memcpy(&header, &(proc->buffer[proc->bufStart]), sizeof(header));
-       proc->bufStart += sizeof(header);
+       memcpy(&header, &(dproc->buffer[dproc->bufStart]), sizeof(header));
+       dproc->bufStart += sizeof(header);
 
-       proc->bufStart = ALIGN_TO_WORDSIZE(proc->bufStart);
+       dproc->bufStart = ALIGN_TO_WORDSIZE(dproc->bufStart);
        if (header.length % WORDSIZE != 0) {
-	  sprintf(errorLine, "Warning: non-aligned length (%d) received"
+          sprintf(errorLine, "Warning: non-aligned length (%d) received"
                   " on traceStream.  Type=%d\n", header.length, header.type);
-	  logLine(errorLine);
-	  showErrorCallback(36,(const char *) errorLine);
+          logLine(errorLine);
+          showErrorCallback(36,(const char *) errorLine);
        }
        
-       if(proc->bufEnd - proc->bufStart < (unsigned)header.length) {
+       if(dproc->bufEnd - dproc->bufStart < (unsigned)header.length) {
           /* the whole record isn't here yet */
-          // proc->bufStart -= sizeof(traceStream) + sizeof(header);
-          proc->bufStart = curr_bufStart;
+          // dproc->bufStart -= sizeof(traceStream) + sizeof(header);
+          dproc->bufStart = curr_bufStart;
           break;
        }
        
-       recordData = &(proc->buffer[proc->bufStart]);
-       proc->bufStart +=  header.length;
+       recordData = &(dproc->buffer[dproc->bufStart]);
+       dproc->bufStart +=  header.length;
 
        switch (header.type) {
 #if defined(MT_THREAD)
          case TR_THR_CREATE:
-            // sprintf(errorLine, "paradynd received TR_THR_CREATE, proc=0x%x", proc) ;
-            // cerr << errorLine <<endl ;
+            // cerr << "paradynd received TR_THR_CREATE, dproc: " << dproc
+            //      << endl;
             createThread((traceThread *) ((void*)recordData));
             break;
          case TR_THR_SELF:
-            // sprintf(errorLine, "paradynd received TR_THR_SELF, proc=0x%x", proc) ;
-            // cerr << errorLine <<endl ;
+            // cerr << "paradynd received TR_THR_SELF, dproc: " << dproc
+            //      << endl;
             updateThreadId((traceThread *) ((void*)recordData));
             break;
          case TR_THR_DELETE:
@@ -349,17 +346,18 @@ void processTraceStream(pd_process *proc)
 #endif
          case TR_NEW_RESOURCE:
             //cerr << "paradynd: received a new resource from pid " 
-            //     << proc->getPid() << "; processing now" << endl;
-            createResource(proc->getPid(), &header, 
+            //     << dproc->getPid() << "; dprocessing now" << endl;
+            createResource(dproc->getPid(), &header, 
                            (struct _newresource *) ((void*)recordData));
             // createResource() is in this file, below
             break;
 
-         case TR_NEW_ASSOCIATION:
+         case TR_NEW_ASSOCIATION: {
             a = (struct _association *) ((void*)recordData);
-            newAssoc(proc, a->abstraction, a->type, a->key, a->value);
+            pd_process *p = getProcMgr().find_pd_process(dproc->getPid());
+            newAssoc(p, a->abstraction, a->type, a->key, a->value);
             break;
-            
+         }            
          case TR_EXIT:
             {
                /* 03/09/2001 - Jeffrey Shergalis
@@ -370,7 +368,7 @@ void processTraceStream(pd_process *proc)
                 * struct to the printAppStats call
                 */
                struct endStatsRec r;
-               sprintf(errorLine, "process %d exited\n", proc->getPid());
+               sprintf(errorLine, "dprocess %d exited\n", dproc->getPid());
                logLine(errorLine);
                memcpy(&r, recordData, sizeof(r));
                printAppStats(&r);
@@ -381,12 +379,13 @@ void processTraceStream(pd_process *proc)
                break;
             }
 
-         case TR_CP_SAMPLE:
+         case TR_CP_SAMPLE: {
             // critical path sample
             extern void processCP(pd_process *, traceHeader *, cpSample *);
-            processCP(proc, &header, (cpSample *) recordData);
+            pd_process *p = getProcMgr().find_pd_process(dproc->getPid());
+            processCP(p, &header, (cpSample *) recordData);
             break;
-
+         }
          case TR_EXEC_FAILED: 
             { 
                int pid = *(int *)recordData;
@@ -401,15 +400,15 @@ void processTraceStream(pd_process *proc)
                pd_Function *caller, *callee;
                resource *caller_res, *callee_res;
                pdvector<shared_object *> *sh_objs = NULL;
-               image *symbols = proc->getImage();
+               image *symbols = dproc->getImage();
                callercalleeStruct *c = (struct callercalleeStruct *) 
                   ((void*)recordData);
                
                //cerr << "DYNAMIC trace record received!!, caller = " << hex 
                //   << c->caller << " callee = " << c->callee << dec << endl;
                assert(symbols);	
-               if (proc->isDynamicallyLinked())
-                  sh_objs  = proc->sharedObjects();
+               if (dproc->isDynamicallyLinked())
+                  sh_objs  = dproc->sharedObjects();
                // Have to look in main image and (possibly) in shared objects
                caller = symbols->findFuncByAddr(c->caller, dproc);
                if (!caller && sh_objs)
@@ -430,8 +429,8 @@ void processTraceStream(pd_process *proc)
                }
                if(!callee || !caller){
                   cerr << "callee for addr " << ostream::hex << c->callee 
-                       << ostream::dec << " not found, caller = " <<
-		     caller->ResourceFullName() << endl;
+                       << ostream::dec << " not found, caller = "
+                       << caller->ResourceFullName() << endl;
                   break;
                }
 		 
@@ -440,9 +439,9 @@ void processTraceStream(pd_process *proc)
                  notify the front end.*/
                if(callee->FuncResourceSet() && caller->FuncResourceSet()){
                   callee_res =  
-		     resource::findResource(callee->ResourceFullName());
+                     resource::findResource(callee->ResourceFullName());
                   caller_res =
-		     resource::findResource(caller->ResourceFullName());
+                     resource::findResource(caller->ResourceFullName());
                   assert(callee_res);
                   assert(caller_res);
                   tp->AddCallGraphDynamicChildCallback(symbols->file(),
@@ -472,10 +471,10 @@ void processTraceStream(pd_process *proc)
             break ;
          default:
             sprintf(errorLine, "Got unknown record type %d on sid %d\n", 
-		    header.type, sid);
+                    header.type, sid);
             logLine(errorLine);
             sprintf(errorLine, "Received bad trace data from process %d.", 
-                    proc->getPid());
+                    dproc->getPid());
             showErrorCallback(37,(const char *) errorLine);
        }
     }
@@ -498,9 +497,9 @@ void processTraceStream(pd_process *proc)
     }
 
     /* copy those bits we have to the base */
-    memcpy(proc->buffer, &(proc->buffer[proc->bufStart]), 
-	proc->bufEnd - proc->bufStart);
-    proc->bufEnd = proc->bufEnd - proc->bufStart;
+    memcpy(dproc->buffer, &(dproc->buffer[dproc->bufStart]), 
+           dproc->bufEnd - dproc->bufStart);
+    dproc->bufEnd = dproc->bufEnd - dproc->bufStart;
 }
 
 extern pdvector<int> deferredMetricIDs;
@@ -584,7 +583,7 @@ static void checkAndDoShmSampling(timeLength *pollTime) {
    static timeStamp nextMajorSampleTime = timeStamp::ts1970();
    static timeStamp nextMinorSampleTime = timeStamp::ts1970();
    const timeStamp currWallTime = getWallTime();
-      // checks for rollback
+   // checks for rollback
 
    bool doMajorSample = false; // so far...
    bool doMinorSample = false; // so far...
@@ -612,49 +611,48 @@ static void checkAndDoShmSampling(timeLength *pollTime) {
       itr++;
 
       if (theProc == NULL)
-	 continue; // proc died & had its structures cleaned up
+         continue; // proc died & had its structures cleaned up
 
-      // Don't sample paused/exited/neonatal processes, or even running processes
-      // that haven't been bootstrapped yet (i.e. haven't called DYNINSTinit yet),
-      // or processes that are in the middle of an inferiorRPC (we like for
-      // inferiorRPCs to finish up quickly).
+      // Don't sample paused/exited/neonatal processes, or even running
+      // processes that haven't been bootstrapped yet (i.e. haven't called
+      // DYNINSTinit yet), or processes that are in the middle of an
+      // inferiorRPC (we like for inferiorRPCs to finish up quickly).
       if (theProc->status() != running) {
-	 //shmsample_cerr << "(-" << theProc->getStatusAsString() << "-)";
-	 continue;
+         //shmsample_cerr << "(-" << theProc->getStatusAsString() << "-)";
+         continue;
       }
       else if (!theProc->isBootstrappedYet() || !theProc->isPARADYNBootstrappedYet()) { //ccw 1 may 2002 : SPLIT
-	 //shmsample_cerr << "(-*-)" << endl;
-	 continue;
+         //shmsample_cerr << "(-*-)" << endl;
+         continue;
       }
       else if (theProc->existsRPCinProgress()) {
-	 //shmsample_cerr << "(-~-)" << endl;
-	 continue;
+         //shmsample_cerr << "(-~-)" << endl;
+         continue;
       }
 
       if (doMajorSample) {
-	 //shmsample_cerr << "(-Y-)" << endl;
+         //shmsample_cerr << "(-Y-)" << endl;
+         if (!theProc->doMajorShmSample()) {
+            // The major sample didn't complete all of its work, so we
+            // schedule a minor sample for sometime in the near future
+            // (before the next major sample)
+            shmsample_cerr << "a minor sample will be needed" << endl;
 
-	 if (!theProc->doMajorShmSample()) {
-	    // The major sample didn't complete all of its work, so we
-	    // schedule a minor sample for sometime in the near future
-	    // (before the next major sample)
-	    shmsample_cerr << "a minor sample will be needed" << endl;
-
-	    forNextTimeDoMinorSample = true;
-	 }
+            forNextTimeDoMinorSample = true;
+         }
       }
       else if (doMinorSample) {
-	 shmsample_cerr << "trying needed minor sample..."; cerr.flush();
+         shmsample_cerr << "trying needed minor sample..."; cerr.flush();
 
-	 if (!theProc->doMinorShmSample()) {
-	    // The minor sample didn't complete all of its work, so
-	    // schedule another one.
-	    forNextTimeDoMinorSample = true;
-	    shmsample_cerr << "it failed" << endl; cerr.flush();
-	 }
-	 else {
-	    shmsample_cerr << "it succeeded" << endl; cerr.flush();
-	 }
+         if (!theProc->doMinorShmSample()) {
+            // The minor sample didn't complete all of its work, so
+            // schedule another one.
+            forNextTimeDoMinorSample = true;
+            shmsample_cerr << "it failed" << endl; cerr.flush();
+         }
+         else {
+            shmsample_cerr << "it succeeded" << endl; cerr.flush();
+         }
       }
    } // loop thru the processes
 
@@ -677,25 +675,27 @@ static void checkAndDoShmSampling(timeLength *pollTime) {
       // and reset the next minor sample time.
       nextMajorSampleTime += shmSamplingInterval;
       if (nextMajorSampleTime <= currWallTime)
-	 nextMajorSampleTime = currWallTime + shmSamplingInterval;
+         nextMajorSampleTime = currWallTime + shmSamplingInterval;
    }
 
    if (forNextTimeDoMinorSample) {
       // If a minor sample is needed, then we schedule it.  For now, let's
       // assume that a minor sample is always scheduled for now plus
-      // one-fourth of the original sampling rate...i.e. for now + (0.2 sec/4) =
-      // now + (0.05 sec), i.e. now + 50 milliseconds.
-// temp: one-tenth of original sample rate...i.e. for now + 0.02 sec (+20 millisec)
+      // one-fourth of the original sampling rate...i.e. for now + (0.2
+      // sec/4) = now + (0.05 sec), i.e. now + 50 milliseconds.  temp:
+      // one-tenth of original sample rate...i.e. for now + 0.02 sec (+20
+      // millisec)
 
-//      nextMinorSampleTime = currWallTime + 50000; // 50ms = 50000us
+      //      nextMinorSampleTime = currWallTime + 50000; // 50ms = 50000us
       nextMinorSampleTime = currWallTime + 20*timeLength::ms();
       if (nextMinorSampleTime > nextMajorSampleTime)
-	 // oh, never mind, we'll just do the major sample which is going to
-	 // happen first anyway.
-	 nextMinorSampleTime = nextMajorSampleTime;
+         // oh, never mind, we'll just do the major sample which is going to
+         // happen first anyway.
+         nextMinorSampleTime = nextMajorSampleTime;
    }
    else {
-      // we don't need to do a minor sample next time, so reset nextMinorSampleTime
+      // we don't need to do a minor sample next time, so reset
+      // nextMinorSampleTime
       nextMinorSampleTime = nextMajorSampleTime;
    }
 
@@ -704,8 +704,7 @@ static void checkAndDoShmSampling(timeLength *pollTime) {
       nextAnyKindOfSampleTime = nextMinorSampleTime;
 
    assert(nextAnyKindOfSampleTime >= currWallTime);
-   const timeLength shmSamplingTimeout = nextAnyKindOfSampleTime - currWallTime;
-
+   const timeLength shmSamplingTimeout = nextAnyKindOfSampleTime -currWallTime;
    if (shmSamplingTimeout < *pollTime)
       *pollTime = shmSamplingTimeout;
 }
@@ -761,7 +760,6 @@ void setupTraceSocket()
 #endif
 }
 
-
 /*
  * Wait for a data from one of the inferiors or a request to come in.
  *
@@ -782,23 +780,23 @@ void controllerMainLoop(bool check_buffer_first)
       // requests arrives at that moment - naim
       if( isInfProcAttached )
       {
-          decodeAndHandleProcessEvent(false);
+         decodeAndHandleProcessEvent(false);
       }
       
       FD_ZERO(&readSet);
       FD_ZERO(&errorSet);
       width = 0;
 
-      processMgr::procIter itr = getProcMgr().begin();
-      while(itr != getProcMgr().end()) {
-	 pd_process *curProc = *itr++;
-	 if(curProc == NULL)
-	    continue;
+      processMgr::procIter itrA = getProcMgr().begin();
+      while(itrA != getProcMgr().end()) {
+         pd_process *curProc = *itrA++;
+         if(curProc == NULL)
+            continue;
 	 
-	 if(curProc->getTraceLink() >= 0)
-	    FD_SET(curProc->getTraceLink(), &readSet);
-	 if(curProc->getTraceLink() > width)
-	    width = curProc->getTraceLink();
+         if(curProc->getTraceLink() >= 0)
+            FD_SET(curProc->getTraceLink(), &readSet);
+         if(curProc->getTraceLink() > width)
+            width = curProc->getTraceLink();
       }
       
       // add traceSocket_fd, which accept()'s new connections (from processes
@@ -837,161 +835,163 @@ void controllerMainLoop(bool check_buffer_first)
       // may update pollTimeUSecs.
 
       pollTimeStruct.tv_sec  = 
-	 static_cast<long>(pollTime.getI(timeUnit::sec()));
+         static_cast<long>(pollTime.getI(timeUnit::sec()));
       pollTimeStruct.tv_usec = 
-	 static_cast<long>(pollTime.getI(timeUnit::us()));
+         static_cast<long>(pollTime.getI(timeUnit::us()));
 
       // This fd may have been read from prior to entering this loop
       // There may be some bytes lying around
       if (check_buffer_first) {
-	 bool no_stuff_there = P_xdrrec_eof(tp->net_obj());
-	 while (!no_stuff_there) {
-	    T_dyninstRPC::message_tags ret = tp->waitLoop();
-	    if (ret == T_dyninstRPC::error) {
-	       // assume the client has exited, and leave.
-	       cleanUpAndExit(-1);
-	    }
-	    no_stuff_there = P_xdrrec_eof(tp->net_obj());
-	 }
+         bool no_stuff_there = P_xdrrec_eof(tp->net_obj());
+         while (!no_stuff_there) {
+            T_dyninstRPC::message_tags ret = tp->waitLoop();
+            if (ret == T_dyninstRPC::error) {
+               // assume the client has exited, and leave.
+               cleanUpAndExit(-1);
+            }
+            no_stuff_there = P_xdrrec_eof(tp->net_obj());
+         }
       }
 
       // TODO - move this into an os dependent area
       ct = P_select(width+1, &readSet, NULL, &errorSet, &pollTimeStruct);
 
-      if (ct > 0) {
-	 if (traceSocket_fd >= 0 && FD_ISSET(traceSocket_fd, &readSet)) {
-	    // Either (1) a process we're measuring has forked, and the child
-	    // process is asking for a new connection, or (2) a process we've
-	    // attached to is asking for a new connection.
-	    
-	    processNewTSConnection(traceSocket_fd); // context.C
-	 }
+      if (ct <= 0)   continue;
 
-	 processMgr::procIter itr = getProcMgr().begin();
-	 while(itr != getProcMgr().end()) {
-	    pd_process *curProc = *itr++;
-	    if(curProc == NULL)
-	       continue; // process structure has been deallocated
-	    if(curProc && curProc->getTraceLink() >= 0 && 
-	       FD_ISSET(curProc->getTraceLink(), &readSet)) {
-            processTraceStream(curProc);
+      if (traceSocket_fd >= 0 && FD_ISSET(traceSocket_fd, &readSet)) {
+         // Either (1) a process we're measuring has forked, and the child
+         // process is asking for a new connection, or (2) a process we've
+         // attached to is asking for a new connection.
+         processNewTSConnection(traceSocket_fd); // context.C
+      }
+      
+      processMgr::procIter itr = getProcMgr().begin();
+      while(itr != getProcMgr().end()) {
+         pd_process *curProc = *itr++;
+         if(curProc == NULL)
+            continue; // process structure has been deallocated
+         if(curProc && curProc->getTraceLink() >= 0 && 
+            FD_ISSET(curProc->getTraceLink(), &readSet)) {
+            processTraceStream(curProc->get_dyn_process());
             /* in the meantime, the process may have died, setting
                curProc to NULL */
             
             /* clear it in case another process is sharing it */
             if (curProc && curProc->getTraceLink() >= 0) {
-                // may have been set to -1
-                FD_CLR(curProc->getTraceLink(), &readSet);
+               // may have been set to -1
+               FD_CLR(curProc->getTraceLink(), &readSet);
             }
-	    }
-	 }
+         }
+      }
 #if !defined(i386_unknown_nt4_0)
-	 if (FD_ISSET(tp->get_sock(), &errorSet)) {
-	    // paradyn is gone so we go too.
-	    cleanUpAndExit(-1);
-	 }
+      if (FD_ISSET(tp->get_sock(), &errorSet)) {
+         // paradyn is gone so we go too.
+         cleanUpAndExit(-1);
+      }
 #else // !defined(i386_unknown_nt4_0)
+         
+      // WinSock indicates the socket closed as a read event.  When
+      // reading on the socket, the number of bytes available is zero.
 	 
-	 // WinSock indicates the socket closed as a read event.  When
-	 // reading on the socket, the number of bytes available is zero.
-	 
-	 if( FD_ISSET( tp->get_sock(), &readSet )) {
-            int junk;
-            int nbytes = recv(tp->get_sock(), (char*)&junk, sizeof(junk),
-			      MSG_PEEK );
-            if( nbytes == 0 ) {
-	       // paradyn is gone so we go too
-	       cleanUpAndExit(-1);
-            }
-	 }
+      if( FD_ISSET( tp->get_sock(), &readSet )) {
+         int junk;
+         int nbytes = recv(tp->get_sock(), (char*)&junk, sizeof(junk),
+                           MSG_PEEK );
+         if( nbytes == 0 ) {
+            // paradyn is gone so we go too
+            cleanUpAndExit(-1);
+         }
+      }
 #endif // !defined(i386_unknown_nt4_0)
 	 
-	 bool delayIGENrequests=false;
-	 processMgr::procIter itrB = getProcMgr().begin();
+      bool delayIGENrequests=false;
 #if 0
-     // Need to take another look at this... it REALLY hoses
-     // the response of the daemon to the frontend in the MT
-     // case (where we can be waiting for a syscall for a long time)
-	 while(itrB != getProcMgr().end()) {
+      processMgr::procIter itrB = getProcMgr().begin();
+      // Need to take another look at this... it REALLY hoses
+      // the response of the daemon to the frontend in the MT
+      // case (where we can be waiting for a syscall for a long time)
+      while(itrB != getProcMgr().end()) {
          pd_process *curProc = *itrB++;
          if(curProc == NULL)
-             continue; // process structure has been deallocated
+            continue; // process structure has been deallocated
          
          if((curProc->isAnyIRPCwaitingForSyscall()) &&
             curProc->status() == running) {
-             delayIGENrequests=true;
-             break;
+            delayIGENrequests=true;
+            break;
          }
-	 }
+      }
 #endif
-	 // if we are waiting for a system call to complete in order to
-	 // launch an inferiorRPC, we will avoid processing any igen
-	 // request - naim
-	 if (!delayIGENrequests) {
-	    // Check if something has arrived from Paradyn on our igen link.
-	    if (FD_ISSET(tp->get_sock(), &readSet)) {
-	       bool no_stuff_there = false;
-	       while(!no_stuff_there) {
-		  T_dyninstRPC::message_tags ret = tp->waitLoop();
-		  if (ret == T_dyninstRPC::error) {
-		     // assume the client has exited, and leave.
-		     cleanUpAndExit(-1);
-		  }
-		  no_stuff_there = P_xdrrec_eof(tp->net_obj());
-	       }
-	    }
-	    while (tp->buffered_requests()) {
-	       T_dyninstRPC::message_tags ret = tp->process_buffered();
-	       if (ret == T_dyninstRPC::error)
-		  cleanUpAndExit(-1);
-	    }
-	 }
+      // if we are waiting for a system call to complete in order to
+      // launch an inferiorRPC, we will avoid processing any igen
+      // request - naim
+      if (!delayIGENrequests) {
+         // Check if something has arrived from Paradyn on our igen link.
+         if (FD_ISSET(tp->get_sock(), &readSet)) {
+            bool no_stuff_there = false;
+            while(!no_stuff_there) {
+               T_dyninstRPC::message_tags ret = tp->waitLoop();
+               if (ret == T_dyninstRPC::error) {
+                  // assume the client has exited, and leave.
+                  cleanUpAndExit(-1);
+               }
+               no_stuff_there = P_xdrrec_eof(tp->net_obj());
+            }
+         }
+         while (tp->buffered_requests()) {
+            T_dyninstRPC::message_tags ret = tp->process_buffered();
+            if (ret == T_dyninstRPC::error)
+               cleanUpAndExit(-1);
+         }
       }
    }
 }
 
 static void createResource(int pid, traceHeader *header, struct _newresource *r)
 {
-    char *tmp;
-    char *name;
-    // resource *res;
-    pdvector<string> parent_name;
-    resource *parent = NULL;
-    unsigned type;
-    
-    switch (r->type) {
-    case RES_TYPE_STRING: type = MDL_T_STRING; break;
-    case RES_TYPE_INT:    type = MDL_T_INT; break;
-    default: 
-      string msg = string("Invalid resource type reported on trace stream from PID=")
-	           + string(pid);
-      showErrorCallback(36,msg);
-      return;
-    }
+   char *tmp;
+   char *name;
+   // resource *res;
+   pdvector<string> parent_name;
+   resource *parent = NULL;
+   unsigned type;
+   cerr << "in createResource pid: " << pid << endl;
+   switch (r->type) {
+     case RES_TYPE_STRING: type = MDL_T_STRING; break;
+     case RES_TYPE_INT:    type = MDL_T_INT; break;
+     default: 
+        string msg = string("Invalid resource type reported on trace stream from PID=")
+           + string(pid);
+        showErrorCallback(36,msg);
+        cerr << "cr - ret A\n";
+        return;
+   }
 
-    name = r->name;
-    do {
-	tmp = strchr(name, '/');
-	if (tmp) {
-	    *tmp = '\0';
-	    tmp++;
-	    parent_name += name;
-	    name = tmp;
-	}
-    } while (tmp);
-
-    timeStamp trWall(timeStamp::ts1970());
-    trWall = getWallTimeMgr().units2timeStamp(header->wall);
-
-    if ((parent = resource::findResource(parent_name)) && name != r->name) {
+   name = r->name;
+   cerr << "cr - a, name: " << name << endl;
+   do {
+      tmp = strchr(name, '/');
+      cerr << "  tmp at " << tmp << endl;
+      if (tmp) {
+         *tmp = '\0';
+         tmp++;
+         parent_name += name;
+         name = tmp;
+      }
+   } while (tmp);
+   cerr << "cr - b\n";
+   timeStamp trWall(timeStamp::ts1970());
+   trWall = getWallTimeMgr().units2timeStamp(header->wall);
+   cerr << "cr - c\n";
+   if ((parent = resource::findResource(parent_name)) && name != r->name) {
       resource::newResource(parent, NULL, r->abstraction, name,
-			    trWall, "", type, true);
-    }
-    else {
+                            trWall, "", type, true);
+   }
+   else {
       string msg = string("Unknown resource '") + string(r->name) +
-	           string("' reported on trace stream from PID=") +
+         string("' reported on trace stream from PID=") +
 		   string(pid);
       showErrorCallback(36,msg);
-    }
-
+   }
+   cerr << "cr - return normal\n";
 }
