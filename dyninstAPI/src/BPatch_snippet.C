@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.23 1999/08/26 20:02:17 hollings Exp $
+// $Id: BPatch_snippet.C,v 1.24 1999/11/24 22:25:55 zandy Exp $
 
 #include <string.h>
 #include "ast.h"
@@ -886,7 +886,7 @@ char *BPatch_function::getName(char *s, int len)
  */
 void *BPatch_function::getBaseAddr()
 {
-  return (void *)func->addr();
+     return (void *)func->getEffectiveAddress(proc);
 }
 
 
