@@ -1178,10 +1178,11 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
      threads += new pdThread(this,parentProc.threads[i]);
    }
 
-#ifdef SHM_SAMPLING
-#ifdef sparc_sun_sunos4_1_3
+#if defined(SHM_SAMPLING) && defined(sparc_sun_sunos4_1_3)
    childUareaPtr = NULL;
 #endif
+
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
    // thread mapping table
    threadMap = new hashTable(parentProc.threadMap);
 #endif

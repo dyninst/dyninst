@@ -425,7 +425,7 @@ class process {
   int ioLink;			/* pipe to transfer stdout/stderr over */
   processState status_;	        /* running, stopped, etc. */
   vector<pdThread *> threads;	/* threads belonging to this process */
-#if defined(SHM_SAMPLING)
+#if defined(SHM_SAMPLING) && defined(MT_THREAD)
   hashTable *threadMap;         /* mapping table for threads into superTable */
 #endif
   bool continueAfterNextStop_;
