@@ -4,7 +4,10 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.8  1995/05/18 10:50:05  markc
+# Revision 1.9  1995/05/18 10:53:47  markc
+# added define to quiet mdl error printing
+#
+# Revision 1.8  1995/05/18  10:50:05  markc
 # Added mdl.C and define for mdl code
 #
 # Revision 1.7  1995/03/15  19:16:15  jcargill
@@ -109,6 +112,10 @@ LIBDIR	     += -L/usr/psup/lib
 
 LIBS 	     += -lpdutil -lpdthread
 SYSLIBS	     += -ltk -ltcl -lX11 -lm -lfl
+
+CFLAGS       += -DNO_MDL_PRINT
+CXXFLAGS     += -DNO_MDL_PRINT
+TFLAGS       += -DNO_MDL_PRINT
 
 all:	$(TARGET) metTester
 
