@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.32 2001/12/18 22:39:45 pcroth Exp $
+ * $Id: Object-elf.C,v 1.33 2002/01/08 22:58:54 buck Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -967,6 +967,10 @@ void Object::fix_zero_function_sizes(vector<Symbol> &allsymbols, bool isEEL)
 			{
 				Address slow = allSectionHdrs[u_section_idx]->pd_addr;
 				Address shi = slow + allSectionHdrs[u_section_idx]->pd_size;
+#if defined(mips_sgi_irix6_4)
+				slow -= get_base_addr();
+				shi -= get_base_addr();
+#endif
 				if( (allsymbols[u].addr() >= slow) &&
 					(allsymbols[u].addr() <= shi) )
 				{
@@ -999,6 +1003,10 @@ void Object::fix_zero_function_sizes(vector<Symbol> &allsymbols, bool isEEL)
 				{
 					Address slow = allSectionHdrs[v_section_idx]->pd_addr;
 					Address shi = slow + allSectionHdrs[v_section_idx]->pd_size;
+#if defined(mips_sgi_irix6_4)
+					slow -= get_base_addr();
+					shi -= get_base_addr();
+#endif
 					if( (allsymbols[v].addr() >= slow) &&
 						(allsymbols[v].addr() <= shi) )
 					{
@@ -1032,7 +1040,11 @@ void Object::fix_zero_function_sizes(vector<Symbol> &allsymbols, bool isEEL)
 				//
 				symSize = allSectionHdrs[u_section_idx]->pd_addr + 
 							allSectionHdrs[u_section_idx]->pd_size -
+#if defined(mips_sgi_irix6_4)
+								(allsymbols[u].addr() + get_base_addr());
+#else
 								allsymbols[u].addr();
+#endif
 			}
 
 			// update the symbol size
