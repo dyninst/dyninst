@@ -30,9 +30,19 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.25  1995/09/26 20:27:05  naim
-/* Minor warning fixes and some other minor error messages fixes
+/* Revision 1.26  1995/10/05 04:28:03  karavan
+/* added ActiveDags to dag class.
+/* removed globals formerly used for search display to move to multiple-display
+/* model.
+/* removed ui::DAGaddEStyle and ui::DAGaddNStyle from interface (obsolete).
+/* added dagID creation to dag constructor.
+/* Added shgDisplay class.
+/* removed UIstatDisp class.
+/* removed obsolete commented code.
 /*
+ * Revision 1.25  1995/09/26  20:27:05  naim
+ * Minor warning fixes and some other minor error messages fixes
+ *
  * Revision 1.24  1995/07/24  21:31:03  tamches
  * removed some obsolete code related to the old where axis
  *
@@ -120,20 +130,9 @@
 #include "UIglobals.h"
 #include "../pdMain/paradyn.h"
 #include "dag.h"
+#include "shgDisplay.h"
 
-#define PCSTATUSOBJECT 1
-#define GENSTATUSOBJECT 2
-
-class statusDisplayObject;
-
-#define SHG_DAGID 1
-     /** note: right now there is a hard limit of 20 dags total; numbers 
-              are never re-used.  This should be changed eventually.  
-      */
-dag *ActiveDags[MAXNUMACTIVEDAGS];
-Tcl_HashTable shgNamesTbl;   /* store full pathname for SHG nodes */
 extern void initSHGStyles();
-char *SHGwinName = (char *) NULL;
 
  /* globals for metric resource selection */
 vector<metric_focus_pair> *uim_VisiSelections;
@@ -172,96 +171,6 @@ UIM::chooseMenuItem(chooseMenuItemCBFunc cb,
   fprintf (stderr, "chooseMenuItem called\n");
 
 }
-
-// ****************************************************************
-// Display Objects 
-// ****************************************************************
-
-statusDisplayObj::statusDisplayObj (int type)
-{
-  if (type == PCSTATUSOBJECT) {
-    wname = SHGwinName;
-  }
-  else {
-    wname = new char [11];
-    strcpy (wname, "notawindow");
-    printf ("only PC supported so far!\n");
-  }
-}
-
-void
-statusDisplayObj::updateStatusDisplay (int displayCode, 
-				       const char *fmt ...)
-{
-  char newItem[256];
-  va_list ap;
-  va_start(ap, fmt);
-  char c;
-  char *curr = newItem;
-
-  while (c = *fmt++) {
-    if (c == '%') {
-      switch (c = *fmt++) {
-      case 'c': 
-	*curr = c;
-	curr++;
-	break;
-      case 'd':
-	sprintf (curr, "%d", va_arg(ap, int));
-	curr = curr + strlen(curr);
-	break;
-      case 'f':
-      case 'g':
-	sprintf (curr, "%g", va_arg(ap, double));
-	curr = curr + strlen(curr);
-	break;
-      case 's':
-	strcpy (curr, va_arg(ap, char *));
-	curr = curr + strlen(curr);
-	break;
-      }
-    } else {
-      *curr = c;
-      curr++;
-    }
-    va_end (ap);
-    *curr = '\0';
-  }
-
-  if (Tcl_VarEval (interp, "shgUpdateStatusLine ", SHGwinName, " {",
-		   newItem, "}", (char *) NULL) == TCL_ERROR)
-    fprintf (stderr, "status insert error: %s\n", interp->result);
-
-}
-
-statusDisplayObj *
-UIM::initStatusDisplay (int type)
-{
-  statusDisplayObj *token;
-  token = new statusDisplayObj (type);
-  return token;
-}
-
-// ****************************************************************
-// Batch Mode 
-// ****************************************************************
-
-// These member functions were not used, so I commented them out --ari
-//void
-//UIM::startBatchMode ()
-//{
-//  cout << "@" << endl; cout.flush();
-//  UIM_BatchMode++;
-//}
-//
-//void 
-//UIM::endBatchMode ()
-//{
-//  cout << "#" << endl; cout.flush();
-//  UIM_BatchMode--;
-//  if (UIM_BatchMode < 0)
-//    UIM_BatchMode = 0;
-//}
 
 // 
 // Startup File
@@ -481,166 +390,60 @@ StrToNodeIdType (char *instring)
   return retval;
 }
 
-char *
-NodeIdTypeToStr (nodeIdType intoken)
+void
+UIM::updateStatusDisplay (int shgToken, const char *info)
 {
-  char *retval = new char[10];
-  sprintf(retval, "%u", intoken); 
-  return retval;
+  shgDisplay::AllSearchDisplays[(unsigned)shgToken]->updateStatus(info);
 }
 
-int getDagToken () 
-{
-  int token;
-  static int nextActiveDag = 0;
-  if (nextActiveDag == MAXNUMACTIVEDAGS) {
-    return -1;
-  }
-  token = nextActiveDag;
-  nextActiveDag++;
-  return token;
-}
-
-/* 
- * returns shg token if successful, -1 otherwise
- */ 
+//
+// called from Paradyn Search Command when search requested; returns SHG token
+// if successful, -1 for error
+//
 int 
-UIM::initSHG() 
+UIM::initSHG(const char *phaseName, int phaseID) 
 {
-  int token;
-  char tcommand[100];
-  char win[20];
-  dag *shgdag;
-  char tokstr[10];
-  token = getDagToken();
-  if (token < 0) {
-    printf ("getDagToken error: max no. active dags exceeded\n");
-    return -1;
-  }
-  sprintf (tokstr, "%d", token);
-  sprintf (win, ".shg%02d", token);
-  shgdag = new dag (interp);
-      /* set global tcl variable to unique window name */
-  SHGwinName = new char [strlen(win) + 1];
-  strcpy (SHGwinName, win);
-  
-  if (Tcl_VarEval (interp, "initSHG ", win, " ", tokstr, (char *) NULL) 
-      == TCL_ERROR) {
-    printf ("initSHG error: %s\n", interp->result);
-    return -1;
-  }
-  sprintf (win+6, ".dag");
-#if UIM_DAG_DEBUG
-  printf ("creating dag name %s\n", win);
-#endif
-  shgdag->createDisplay (win);
-  ActiveDags[token] = shgdag;
+  // ** TODO first check if search display already exists for this phase 
 
-  // add default bindings and styles for SHG
-  sprintf (tcommand, "addDefaultShgBindingsAndStyles %s %d",
-	   shgdag->getCanvasName(), token);
-  if (Tcl_VarEval (interp, tcommand, (char *) NULL) == TCL_ERROR) {
-    printf ("initSHGbindingsAndStyles error: %s\n", interp->result);
+  // create display object
+  shgDisplay *displ = new shgDisplay(phaseName, phaseID);
+  if (displ->initDisplay() == -1) 
     return -1;
-  }
-
-      /* hash table for long node names */
-  Tcl_InitHashTable (&shgNamesTbl, TCL_ONE_WORD_KEYS);
-
-  return token;
+  return displ->getToken();
 }
+
 
 /*  flags: 1 = root
- *         2 = shg name handling
+ *         0 = non-root
  */
 
 int 
 UIM::DAGaddNode(int dagID, nodeIdType nodeID, int styleID, 
 			char *label, char *shgname, int flags)
 {
-  dag *dagName;
-  char *nodeIDstr;
-  Tcl_HashEntry *entryPtr;
-  Tk_Uid token;
-  int added, retVal;
-  
-  dagName = ActiveDags[dagID];
-  if (flags)
-    retVal = dagName->CreateNode (nodeID, 1, "root", styleID, (void *)NULL);
-  else 
-    retVal = dagName->CreateNode (nodeID, 0, label, styleID, (void *)NULL);
+  int retVal;
 
-  if (retVal != AOK)
-    printf ("ERROR in UIM::DAGaddNode\n");
-
-     // store pointer to full node pathname and use last piece as label
-  nodeIDstr = NodeIdTypeToStr(nodeID);
-  token = Tk_GetUid (nodeIDstr);
-  entryPtr = Tcl_CreateHashEntry (&shgNamesTbl, token, &added);
-  if (added) {
-    Tcl_SetHashValue (entryPtr, shgname);
-  }
-  delete nodeIDstr;
-  return 1;
+  retVal = shgDisplay::AllSearchDisplays[dagID]->addNode 
+    (nodeID, styleID, label, shgname, flags);
+						 
 }
 
 int 
 UIM::DAGaddEdge (int dagID, nodeIdType srcID, 
 		 nodeIdType dstID, int styleID)
 {
-  dag *dagName;
-  dagName = ActiveDags[dagID];
-  if (dagName->AddEdge (srcID, dstID, styleID) == AOK)
-    return 1;
-  else 
-    return 0;
+  return (shgDisplay::AllSearchDisplays[dagID])->
+      addEdge (srcID, dstID, styleID);
 }
 
   
 int 
 UIM::DAGconfigNode (int dagID, nodeIdType nodeID, int styleID)
 {
-  dag *dagName;
-
-  dagName = ActiveDags[dagID];
-  int configureNode (nodeIdType nodeID, char *label, int styleID);
-  if (dagName->configureNode (nodeID, NULL, styleID) != AOK)
-    return 0;
-  else
-    return 1;
+  return shgDisplay::AllSearchDisplays[dagID]->
+    configureNode (nodeID, NULL, styleID);
 }
   
-int 
-UIM::DAGcreateNodeStyle(int dagID, int styleID, char *options)
-{
-  char *dagName;
-  char tcommand[200];
-//  dagName = ActiveDags[dagID];
-  sprintf (tcommand, "%s addNstyle %d %s", dagName, styleID, options);
-
-  if (Tcl_VarEval (interp, tcommand, (char *) NULL) == TCL_ERROR) {
-    printf ("DAGcreateNodeStyle: %s\n", interp->result);
-    return 0;
-  }
-  else
-    return 1;
-}
-
-int 
-UIM::DAGcreateEdgeStyle(int dagID, int styleID, char *options)
-{
-  char *dagName;
-  char tcommand[200];
-//  dagName = ActiveDags[dagID];
-  sprintf (tcommand, "%s addEstyle %d %s", dagName, styleID, options);
-
-  if (Tcl_VarEval (interp, tcommand, (char *) NULL) == TCL_ERROR) {
-    printf ("DAGcreateNodeStyle: %s\n", interp->result);
-    return 0;
-  }
-  else
-    return 1;
-}
 
 
 
