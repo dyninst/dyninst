@@ -1,7 +1,13 @@
 /*
  * 
  * $Log: PCwhy.h,v $
- * Revision 1.3  1994/03/01 21:25:13  hollings
+ * Revision 1.4  1994/09/22 01:12:01  markc
+ * Added const to char* in
+ * test(changeCollectionFunc, evalFunc, const char *);
+ * hypothesis(hypothesis*, test*, const char *);
+ * hypothesis(hypothesis*, test*, const char *, explanationFunction);
+ *
+ * Revision 1.3  1994/03/01  21:25:13  hollings
  * added tunable constants.
  *
  * Revision 1.2  1994/02/03  23:27:06  hollings
@@ -49,11 +55,11 @@ enum statusType { Enabled, Disabled };
 
 class test {
     public:
-	test(changeCollectionFunc, evalFunc, char *);
+	test(changeCollectionFunc, evalFunc, const char *);
 	changeCollectionFunc changeCollection;
-	collect(PCmetricList);	// make sure data is current
+	// collect(PCmetricList);	// make sure data is current
 	evalFunc evaluate;
-	disable(PCmetricList);	// tell inst. we are done w data
+	// disable(PCmetricList);	// tell inst. we are done w data
 	void print();
 	char *name;		// name of the test.
 };
@@ -80,8 +86,8 @@ class hypothesis {
 	friend Boolean checkPreconditions(hypothesis*, focus*, timeInterval*);
 	friend Boolean checkIfTrue(hypothesis*, focus*, timeInterval*);
     public:
-	hypothesis(hypothesis*, test*, char *);
-	hypothesis(hypothesis*, test*, char *, explanationFunction);
+	hypothesis(hypothesis*, test*, const char *);
+	hypothesis(hypothesis*, test*, const char *, explanationFunction);
 	void unLabel();
 	float cost();
 	void print(int);		// print a hypothesis
