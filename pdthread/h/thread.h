@@ -219,6 +219,8 @@ void	clear_ready_sock( PDSOCKET sock );
 /*
   thread performance measurement collection/display types/functions/constants
 */
+
+#if !defined(i386_unknown_nt4_0)
     
 struct thr_perf_data_t {
     unsigned long long num_lock_acquires;
@@ -251,6 +253,8 @@ void thr_dump_measurements_to_file(const char* filename);
 #define COLLECT_MEASUREMENT(x) while(0)
 #endif
 
+
+#endif /* NT */
 
     
 /* synchronization primitives */
