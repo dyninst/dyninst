@@ -1,7 +1,10 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.24  1994/11/03 21:04:24  tamches
+# Revision 1.25  1994/11/03 22:08:03  tamches
+# Changed "Start Visual" to "Visualization"
+#
+# Revision 1.24  1994/11/03  21:04:24  tamches
 # "Metrics" (blank) and "Options" (error history, where axis postscripts) menus
 # commented out.  "File" menu (only option: Exit) added.
 #
@@ -183,7 +186,7 @@ proc drawToolBar {} {
     menubutton .menub.left.men.b1 -text "Setup" -menu .menub.left.men.b1.m 
 #    menubutton .menub.left.men.b3 -text "Metrics"
 #    menubutton .menub.left.men.b2 -text "Options" -menu .menub.left.men.b2.m
-    menubutton .menub.left.men.b5 -text "Start Visual" \
+    menubutton .menub.left.men.b5 -text "Visualization" \
 	    -menu .menub.left.men.b5.m 
     menubutton .menub.left.men.b6 -text "Help" 
 
