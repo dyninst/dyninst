@@ -4,6 +4,7 @@
 #include <sys/time.h>
 #include "sys.h"
 
+#ifdef notdef
 timeStamp getCurrentTime(void) {
     struct timeval tv;
     assert(gettimeofday(&tv, NULL) == 0); // 0 --> success; -1 --> error
@@ -16,5 +17,6 @@ timeStamp getCurrentTime(void) {
 
     return seconds_dbl;
 }
+#endif
 
 #endif
