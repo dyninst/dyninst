@@ -1,6 +1,9 @@
 #applic.tcl
 # window to get application choices from user
 # $Log: applic.tcl,v $
+# Revision 1.19  1997/01/15 00:14:58  tamches
+# added attach
+#
 # Revision 1.18  1995/10/30 23:28:21  naim
 # Chaning "Machine" by "Host" - naim
 #
@@ -24,42 +27,6 @@
 # Changed default for user to blank, workaround for nonstandard rsh in use
 # in the CS department.
 #
-# Revision 1.12  1994/11/11  23:00:49  rbi
-# added documentation and allowed definition of default daemon
-#
-# Revision 1.11  1994/11/09  18:39:51  rbi
-# the "Don't Blame Me" commit
-#
-# Revision 1.10  1994/11/04  16:30:00  rbi
-# Auto placement of process defn dialog, and radio buttons for daemons.
-#
-# Revision 1.9  1994/11/03  20:23:17  karavan
-# Changes to overall look to fit into paradyn UI.
-#
-# Revision 1.8  1994/11/03  17:59:38  rbi
-# Added a little bit of error handling.
-#
-# Revision 1.7  1994/11/03  16:10:42  rbi
-# New process definition interface.
-#
-# Revision 1.6  1994/08/23  18:01:11  karavan
-# fixed argument parsing to paradyn process command.
-#
-# Revision 1.5  1994/07/21  17:47:43  rbi
-# No more jumpy resizes.
-#
-# Revision 1.4  1994/07/21  01:53:30  rbi
-# YANS -- Yet another new style
-#
-# Revision 1.3  1994/06/18  20:31:10  hollings
-# Changed default host to empty string since the environment variable host is
-# not guarnteed to be defined.
-#
-# Revision 1.2  1994/05/26  21:23:10  karavan
-# changed parent window name.
-#
-# Revision 1.1  1994/05/23  01:56:22  karavan
-# initial version.
 #
 
 #
@@ -92,11 +59,129 @@ if {[catch {set applicDaemon}]} {
 #
 #  TODO -- use the dialog creation routine in uimpd file
 #
+proc AttachProcess {} {
+  global env applicDaemon applicUser applicMachine applicCmd applicDir 
+
+  set W .attachDefn
+
+  # If the window already exists, the following line brings it to the fore.  In other
+  # words, if "Attach" is chosen twice from the menu, only one window appears.
+  if {[winfo exists $W]} {
+     puts stderr "attach: the window already exists...bringing it to fore"
+
+     wm deiconify $W
+     raise $W
+     return
+  }
+
+  if {[winfo exists .pDefn]} {
+     puts stderr "attach: the process definition window is already up...killing it"
+     destroy .pDefn
+  }
+
+  toplevel $W
+  wm title $W "Attach"
+  wm iconname $W "Attach"
+
+# force the window to a happy location
+  set baseGeom [wm geometry .]
+  set Xbase 0
+  set Ybase 0
+  set Xoffset 30
+  set Yoffset 30
+  scan $baseGeom "%*dx%*d+%d+%d" Xbase Ybase
+  wm geometry $W [format "+%d+%d" [expr $Xbase + $Xoffset] \
+                                      [expr $Ybase + $Yoffset]]
+ 
+# define all of the main frames
+  set T $W.title
+  label $T -text "Attach to a Process" \
+            -anchor center -relief raised \
+            -font "-Adobe-times-bold-r-normal--*-120*" 
+  set D $W.data
+  frame $D
+  set B $W.buttons
+  frame $B
+  pack $T $D $B -side top -expand yes -fill both
+
+#
+#  In the data area, each line contains a label and an entry
+#  
+  frame $D.user -border 2
+  pack $D.user -side top -expand yes -fill x
+  label $D.user.lbl -text "User: " -anchor e -width 12
+  pack $D.user.lbl -side left -expand false
+  entry $D.user.ent -width 50 -textvariable applicUser -relief sunken
+  pack  $D.user.ent -side right -fill x -expand true
+  bind $D.user.ent <Return> "$B.1 invoke"
+
+  frame $D.machine -border 2
+  pack $D.machine -side top -expand yes -fill x
+  label $D.machine.lbl -text "Host: " -anchor e -width 12
+  pack $D.machine.lbl -side left -expand false
+  entry $D.machine.ent -width 50 -textvariable applicMachine -relief sunken
+  pack $D.machine.ent -side right -fill x -expand true
+  bind $D.machine.ent <Return> "$B.1 invoke"
+
+  # Does a directory entry make any sense for attach???  Might have some use...
+#  frame $D.directory -border 2
+#  pack $D.directory -side top -expand yes -fill x
+#  label $D.directory.lbl -text "Directory: " -anchor e -width 12
+#  pack $D.directory.lbl -side left -expand false
+#  entry $D.directory.ent -width 50 -textvariable applicDir -relief sunken
+#  pack $D.directory.ent -side right -fill x -expand true
+#  bind $D.directory.ent <Return> "$B.1 invoke"
+  
+  set daemons [paradyn daemons]
+  frame $D.daemon -border 2
+  label $D.daemon.lbl -text "Daemon: " -anchor e -width 12
+  pack $D.daemon -side top -expand yes -fill x
+  pack $D.daemon.lbl -side left -expand no -fill x
+  foreach d $daemons {
+    radiobutton $D.daemon.$d -text $d -variable applicDaemon -value $d \
+	-relief flat
+    pack $D.daemon.$d -side left -expand yes -fill x
+  }
+  $D.daemon.$applicDaemon invoke
+
+  frame $D.pid -border 2
+  pack  $D.pid -side top -fill x -expand false
+  entry $D.pid.entry -textvariable applicPid -relief sunken
+  pack  $D.pid.entry -side right -fill x -expand true
+  bind  $D.pid.entry <Return> "$B.1 invoke"
+
+  label $D.pid.label -text "pid: " -anchor e -width 12
+  pack  $D.pid.label -side left -expand false
+  
+
+  mkButtonBar $B {} retVal \
+  {{"ATTACH" {AcceptAttachDefn $applicUser $applicMachine \
+	  $applicDaemon $applicPid}} \
+  {"CANCEL" {destroy .attachDefn}}}
+
+  focus $D.machine.ent
+}
+
 proc DefineProcess {} {
   global env applicDaemon applicUser applicMachine applicCmd applicDir 
 
   set W .pDefn
-  catch {destroy $W}
+
+  # If the window already exists, the following line brings it to the fore.  In other
+  # words, if "Attach" is chosen twice from the menu, only one window appears.
+  if {[winfo exists $W]} {
+     puts stderr "DefineProcess: the window already exists...bringing it to fore"
+
+     wm deiconify $W
+     raise $W
+     return
+  }
+
+  if {[winfo exists .attachDefn]} {
+     puts stderr "DefineProcess: the attach definition window is already up...killing it"
+     destroy .attachDefn
+  }
+
   toplevel $W
   wm title $W "Process Defn"
   wm iconname $W "Process Defn"
@@ -187,11 +272,14 @@ proc DefineProcess {} {
 #        failures.  the current error message is useless.
 #
 proc AcceptNewApplicDefn {user machine daemon directory cmd} {
+  set W .pDefn
+  set D $W.data
 
-    if {[string length $cmd] == 0} {
-	puts "\a"
-	return
-    }
+  if {[string length $cmd] == 0} {
+      # user forgot to enter a command (program name + args); ring bell
+      puts "\a"
+      return
+  }
   set pcmd [list paradyn process]
 
   if {[string length $user] > 0} {
@@ -212,15 +300,50 @@ proc AcceptNewApplicDefn {user machine daemon directory cmd} {
 
   set pcmd [concat $pcmd $cmd]
  
-  destroy .pDefn
+  destroy $W
 
-  set retval [catch $pcmd]
+  # Now execute it!
+  set retval [catch $pcmd result]
 
   if {$retval == 1} {
-    set result "Illegal Process Definition"
-#    eval [list uimpd showError 25 $result]
-#    The idea here is to display a more precise error code.
+#    set result "Illegal Process Definition"
+    eval [list uimpd showError 25 $result]
   }
 }
 
+proc AcceptAttachDefn {user machine daemon pid} {
+  set W .attachDefn
+  set D $W.data
 
+  if {[string length $pid] == 0} {
+      # user forgot to enter a command (program name + args); ring bell
+      puts "\a"
+      return
+  }
+  set pcmd [list paradyn attach]
+
+  if {[string length $user] > 0} {
+    lappend pcmd "-user" $user
+  }
+
+  if {[string length $machine] > 0} {
+    lappend pcmd "-machine" $machine
+  }
+
+  if {[string length $daemon] > 0} {
+    lappend pcmd "-daemon" $daemon
+  }
+
+  lappend pcmd "-pid" $pid
+ 
+  destroy $W
+
+puts stderr $pcmd
+
+  # Now execute it!
+  set retval [catch $pcmd result]
+
+  if {$retval == 1} {
+    eval [list uimpd showError 26 $result]
+  }
+}
