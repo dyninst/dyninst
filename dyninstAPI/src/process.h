@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.241 2003/03/08 01:23:34 bernat Exp $
+/* $Id: process.h,v 1.242 2003/03/10 23:15:36 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -342,10 +342,6 @@ class process {
  friend class BPatch_image;
 #endif
  friend Address loadDyninstDll(process *, char Buffer[]);
- // NT
-#if defined(i386_unknown_nt4_0)
- friend int handleDllLoad(process *proc, procSignalWhat_t debugEv);
-#endif
  
   //  
   //  PUBLIC MEMBERS FUNCTIONS
@@ -804,7 +800,7 @@ void saveWorldData(Address address, int size, const void* src);
   int traceLink;                /* pipe to transfer traces data over */
   //removed for output redirection
   //int ioLink;                   /* pipe to transfer stdout/stderr over */
-  int exitCode_;                /* termination status code */
+  procSignalWhat_t exitCode_;                /* termination status code */
   processState status_;         /* running, stopped, etc. */
   processState status_before_signal_; /* Store the previous proc state */
   
@@ -1369,9 +1365,15 @@ private:
   bool writeTextSpace_(void *inTracedProcess, u_int amount, const void *inSelf);
   bool readTextSpace_(void *inTracedProcess, u_int amount, const void *inSelf);
 
+#if defined(i386_unknown_nt4_0)
+  public:
+#endif
   bool pause_();
   bool continueProc_();
-
+#if defined(i386_unknown_nt4_0)
+  private:
+#endif
+  
 #ifdef BPATCH_LIBRARY
   bool terminateProc_();
 #endif
@@ -1422,13 +1424,15 @@ private:
   handleT status_fd_; // Status (/proc)
   handleT ps_fd_; // ps (/proc)
   handleT usage_fd_;
-  
- private:
+
+  // TODO: public access functions. The NT handler needs direct access
+  // to this (or a NT-compatible handleIfDueToSharedObjectMapping)
+  public:
   dynamic_linking *dyn;   // platform specific dynamic linking routines & data
 
   bool dynamiclinking;   // if true this a.out has a .dynamic section
   pdvector<shared_object *> *shared_objects;  // list of dynamically linked libs
-
+  private:
   // The set of all functions and modules from the shared objects that show
   // up on the Where axis (both  instrumentable and uninstrumentable due to 
   // exclude_lib or exclude_func),  and all the functions from the a.out that
