@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.5 2003/06/27 20:58:05 tlmiller Exp $
+# $Id: Makefile,v 1.6 2003/11/03 19:21:04 tlmiller Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -26,13 +26,6 @@ MUTATEE_FLINKFLAGS += -g -ldl
 SYSLIBS += -L$(LIBDWARFDIR)/lib -ldwarf -lelf -ldl
 M_GXX = $(GXX)
 M_GCC = $(GCC)
-# there is no "native" or OS-provided compiler for Linux!
-# we use the Portland Group compilers, as that's what we've currently got
-# (in future we probably also want to test with the KAI/Intel compilers)
-ifdef PGI
-NATIVE_CC = pgcc
-NATIVE_CXX = pgCC
-endif
 
 NATIVE_FC = g77
 COMMA=,
