@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-//$Id: templates1.C,v 1.58 2003/09/05 16:28:07 schendel Exp $
+//$Id: templates1.C,v 1.59 2003/10/21 17:22:33 bernat Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -104,20 +104,13 @@ template class pdvector<rpcThr *>;
 template class pdvector<inferiorRPCtoDo *>;
 template class pdvector<inferiorRPCinProgress *>;
 
-
-
 #include "common/src/List.C"
-template class  List<instInstance*>;
-template class  ListBase<instInstance*, void*>;
+template class  List<miniTrampHandle*>;
+template class  ListBase<miniTrampHandle*, void*>;
 template class  dictionary_hash <const instPoint *, trampTemplate *>;
 template class  pdvector<dictionary_hash <const instPoint *, trampTemplate *>::entry>;
 template class  dictionary_hash_iter <const instPoint *, trampTemplate *>;
 
-template class  pdvector<miniTrampHandle>;
-template class  pdvector<process::mtListInfo>;
-
-template class  dictionary_hash <instInstance *, instInstance *>;
-template class  pdvector<dictionary_hash <instInstance *, instInstance *>::entry>;
 template class  dictionary_hash <Address, Symbol*>;
 template class  pdvector<dictionary_hash <Address, Symbol*>::entry>;
 template class  dictionary_hash <instPoint*, unsigned>;

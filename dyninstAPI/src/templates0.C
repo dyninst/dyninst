@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.39 2003/09/05 16:28:41 schendel Exp $
+// $Id: templates0.C,v 1.40 2003/10/21 17:22:32 bernat Exp $
 // Generate all the templates in one file.
 
 /*
@@ -140,8 +140,8 @@ template class  pdvector<disabledItem>;
 template class  pdvector<addrVecType>;
 template class  pdvector<pdvector<pdstring> >;
 template class  pdvector<double>;
-template class  pdvector<instInstance *>;
-template class  pdvector<const instInstance *>;
+template class  pdvector<miniTrampHandle *>;
+template class  pdvector<const miniTrampHandle *>;
 template class  pdvector<returnInstance *>;             //XXX
 template class  pdvector<relocatedFuncInfo *>; 
 template class  pdvector<relocationEntry>;

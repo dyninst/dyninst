@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.29 2003/09/17 15:41:23 pcroth Exp $
+// $Id: templates2.C,v 1.30 2003/10/21 17:22:34 bernat Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -188,10 +188,6 @@ template class pdvector<inferiorRPCtoDo>;
 template class pdvector<inferiorRPCinProgress>;
 
 template class pdvector<dictionary_hash <unsigned int, Address>::entry>;
-
-#include "dyninstAPI/src/installed_miniTramps_list.h"
-template class dictionary_hash<const instPoint *, installed_miniTramps_list*>;
-template class pdvector<dictionary_hash <const instPoint *, installed_miniTramps_list*>::entry>;
 
 class BPatch_basicBlock;
 
