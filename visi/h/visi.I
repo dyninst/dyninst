@@ -16,10 +16,13 @@
  */
 
 /* $Log: visi.I,v $
-/* Revision 1.13  1995/11/17 17:27:56  newhall
-/* added normalized member to Metric class which specifies units type
-/* added MetricLabel, MetricAveLabel, and MetricSumLabel DG method functions
+/* Revision 1.14  1995/12/15 20:15:11  naim
+/* Adding call back function to display error messages from visis - naim
 /*
+# Revision 1.13  1995/11/17  17:27:56  newhall
+# added normalized member to Metric class which specifies units type
+# added MetricLabel, MetricAveLabel, and MetricSumLabel DG method functions
+#
 # Revision 1.12  1995/08/01  01:58:45  newhall
 # changes relating to phase interface stuff
 #
@@ -181,4 +184,9 @@ $remote visualization {
   // name:  phase name (default of NULL means let paradyn provide name)
   $upcall $async void StartPhase(double begin, 
 				string name);
+
+  //
+  // call back to Paradyn to display error message
+  //
+  $upcall $async void showError(int code, string msg);
 };

@@ -17,9 +17,12 @@
  */
 
 /* $Log: visualization.h,v $
-/* Revision 1.11  1995/09/18 18:26:00  newhall
-/* updated test subdirectory, added visilib routine GetMetRes()
+/* Revision 1.12  1995/12/15 20:15:12  naim
+/* Adding call back function to display error messages from visis - naim
 /*
+ * Revision 1.11  1995/09/18  18:26:00  newhall
+ * updated test subdirectory, added visilib routine GetMetRes()
+ *
  * Revision 1.10  1995/08/01  01:58:46  newhall
  * changes relating to phase interface stuff
  *
@@ -168,6 +171,11 @@ extern void QuitVisi();
 // sets eventCallbacks[event] to callback routine provided by user
 //
 extern int RegistrationCallback(msgTag event,int (*callBack)(int));
+
+//
+// request to Paradyn to display error message
+//
+extern void showErrorVisiCallback(int code, string msg);
 
 //
 // main loop provided by paradyn (not currently supported)

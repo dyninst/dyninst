@@ -14,9 +14,12 @@
  *
  */
 /* $Log: VISIthreadpublic.C,v $
-/* Revision 1.12  1995/11/20 03:34:13  tamches
-/* changes to use new buffer scheme of VISIthreadmain.C
+/* Revision 1.13  1995/12/15 20:12:54  naim
+/* Adding call back function to display error messages from visis - naim
 /*
+ * Revision 1.12  1995/11/20  03:34:13  tamches
+ * changes to use new buffer scheme of VISIthreadmain.C
+ *
  * Revision 1.11  1995/08/01 02:18:44  newhall
  * changes to support phase interface
  *
@@ -213,7 +216,14 @@ void visualizationUser::StopMetricResource(u_int metricId,
 #endif
 }
 
-
+//
+// showError: visualizationUser routine called by a visi process to
+// display error messages
+//
+void visualizationUser::showError(int code, string msg)
+{
+  uiMgr->showError(code,P_strdup(msg.string_of()));
+}
 
 ///////////////////////////////////////////////////////////////////
 //  StartPhase: visualizationUser routine (called by visi process)

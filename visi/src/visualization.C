@@ -14,10 +14,13 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.34  1995/11/17 17:28:40  newhall
-/* added normalized member to Metric class which specifies units type
-/* added MetricLabel, MetricAveLabel, and MetricSumLabel DG method functions
+/* Revision 1.35  1995/12/15 20:15:24  naim
+/* Adding call back function to display error messages from visis - naim
 /*
+ * Revision 1.34  1995/11/17  17:28:40  newhall
+ * added normalized member to Metric class which specifies units type
+ * added MetricLabel, MetricAveLabel, and MetricSumLabel DG method functions
+ *
  * Revision 1.33  1995/11/13  17:24:25  newhall
  * bug fix
  *
@@ -205,8 +208,13 @@ void QuitVisi(){
 
 }
 
-
-
+//
+// call back to Paradyn to display error message
+//
+void showErrorVisiCallback(int code, string msg)
+{
+  vp->showError(code,msg);
+}  
 
 ///////////////////////////////////////////////////////////
 // registration callback routine for paradyn events
