@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.22 2001/10/30 21:02:51 gaburici Exp $
+# $Id: Makefile,v 1.23 2002/07/31 22:06:43 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -14,8 +14,8 @@ include $(TO_CORE)/make.config
 
 # Now make any necessary architecture specific changes to variables:
 
-MODCC = g++
-CXX   = g++
+#MODCC = g++
+#CXX   = g++
 
 CXXFLAGS += -DUSES_DYNAMIC_INF_HEAP -g
 CFLAGS += -DUSES_DYNAMIC_INF_HEAP -g
@@ -35,8 +35,9 @@ MUTATEE_FLINKFLAGS += -g -bgcbypass:3 -ldl -lgcc -L$(LIBGCCLOC) -L$(LIBGCCLOC_AL
 NATIVE_CC = xlc
 NATIVE_CXX = xlC
 
-GNU_CC = gcc
-GNU_CXX = g++
+# Define special compilers for mutatees
+M_GCC = gcc
+M_GXX = g++
 
 NATIVE_FC = xlf90
 COMMA=,

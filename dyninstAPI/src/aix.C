@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.105 2002/07/30 18:42:26 bernat Exp $
+// $Id: aix.C,v 1.106 2002/07/31 22:07:04 bernat Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -425,15 +425,10 @@ void *process::getRegisters() {
    // Errors:
    //    EIO --> 3d arg didn't specify a valid register (must be 0-31 or 128-136)
 
-   cerr << "Getting registers for pid " << pid << "Errno = " << errno << endl;
-   int old_errno = errno; // pthread: errno is no longer an lvalue, and will sometimes
-   // be non-0 when entering this function. Since ptrace(PT_READ_GPR) returns the 
-   // value which can be -1, we then need to compare pre- and post- errno to find if
-   // there is a problem.
-
+   errno = 0;
    for (unsigned i=0; i < 32; i++) {
      unsigned value = P_ptrace(PT_READ_GPR, pid, (void *)i, 0, 0);
-     if ((value == (unsigned) -1) && (errno != old_errno)) {
+     if ((value == (unsigned) -1) && (errno)) {
        perror("ptrace PT_READ_GPR");
        cerr << "regnum was " << i << endl;
        return NULL;
@@ -481,10 +476,10 @@ void *process::getRegisters() {
       // see <sys/reg.h>; FPINFO and FPSCRX are out of range, so we can't use them!
    const u_int num_special_registers = 9;
 
-   old_errno = errno;
+   errno = 0;
    for (unsigned i=0; i < num_special_registers; i++) {
      unsigned value = P_ptrace(PT_READ_GPR, pid, (void *)special_register_codenums[i], 0, 0);
-     if ((value == (unsigned) -1) && (errno != old_errno)) {
+     if ((value == (unsigned) -1) && errno) {
        perror("ptrace PT_READ_GPR for a special register");
        cerr << "regnum was " << special_register_codenums[i] << endl;
        return NULL;
@@ -620,7 +615,7 @@ static bool executeDummyTrap(process *theProc) {
 
 bool process::executingSystemCall(unsigned lwp) {
   // lwp -- we may care about a particular thread.
-  
+  errno = 0;
   if (lwp) {
     // Easiest way to check: try to read GPRs and see
     // if we get EPERM back

@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.40 2002/06/26 21:15:01 schendel Exp $
+# $Id: make.module.tmpl,v 1.41 2002/07/31 22:06:38 bernat Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -156,15 +156,15 @@ all:	tests.done
 
 tests.done:
 endif
-	$(MAKE) aTest MUTATEE_CC=gcc TARGET=test1 TARGET2=test1.mutatee_gcc
-	$(MAKE) aTest MUTATEE_CC=gcc TARGET=test2 TARGET2=test2.mutatee_gcc
-	$(MAKE) aTest MUTATEE_CC=gcc TARGET=test3 TARGET2=test3.mutatee_gcc
-	$(MAKE) aTest MUTATEE_CC=gcc TARGET=test4 TARGET2=test4a.mutatee_gcc
-	$(MAKE) aTest MUTATEE_CC=gcc TARGET2=test4b.mutatee_gcc
-	$(MAKE) aTest MUTATEE_CC=gcc TARGET=test5
-	$(MAKE) aTest MUTATEE_CC=gcc TARGET=test6 TARGET2=test6.mutatee_gcc
-	$(MAKE) aTest MUTATEE_CC=gcc TARGET=test7 TARGET2=test7.mutatee_gcc
-	$(MAKE) testlibs MUTATEE_CC=gcc
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test1 TARGET2=test1.mutatee_$(M_GCC)
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test2 TARGET2=test2.mutatee_$(M_GCC)
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test3 TARGET2=test3.mutatee_$(M_GCC)
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test4 TARGET2=test4a.mutatee_$(M_GCC)
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET2=test4b.mutatee_$(M_GCC)
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test5
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test6 TARGET2=test6.mutatee_$(M_GCC)
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test7 TARGET2=test7.mutatee_$(M_GCC)
+	$(MAKE) testlibs MUTATEE_CC=$(M_GCC)
 
 ifneq ($(NATIVE_CC),)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test1.mutatee_$(NATIVE_CC)
@@ -177,16 +177,16 @@ ifneq ($(NATIVE_CC),)
 else
 	@echo "WARNING: Skipping native C compiler mutatees..."
 endif
-ifneq ($(GNU_CXX),)
-	$(MAKE) aTest MUTATEE_CC=$(GNU_CXX) TARGET2=test1.mutatee_$(GNU_CXX)
-	$(MAKE) aTest MUTATEE_CC=$(GNU_CXX) TARGET2=test2.mutatee_$(GNU_CXX)
-	$(MAKE) aTest MUTATEE_CC=$(GNU_CXX) TARGET2=test3.mutatee_$(GNU_CXX)
-	$(MAKE) aTest MUTATEE_CC=$(GNU_CXX) TARGET2=test4a.mutatee_$(GNU_CXX)
-	$(MAKE) aTest MUTATEE_CC=$(GNU_CXX) TARGET2=test4b.mutatee_$(GNU_CXX)
-	$(MAKE) aTest MUTATEE_CC=$(GNU_CXX) TARGET2=test5.mutatee_$(GNU_CXX) MUTATEE_SUFFIX=.C
-	$(MAKE) aTest MUTATEE_CC=$(GNU_CXX) TARGET2=test7.mutatee_$(GNU_CXX)
+ifneq ($(M_GXX),)
+	$(MAKE) aTest MUTATEE_CC=$(M_GXX) TARGET2=test1.mutatee_$(M_GXX)
+	$(MAKE) aTest MUTATEE_CC=$(M_GXX) TARGET2=test2.mutatee_$(M_GXX)
+	$(MAKE) aTest MUTATEE_CC=$(M_GXX) TARGET2=test3.mutatee_$(M_GXX)
+	$(MAKE) aTest MUTATEE_CC=$(M_GXX) TARGET2=test4a.mutatee_$(M_GXX)
+	$(MAKE) aTest MUTATEE_CC=$(M_GXX) TARGET2=test4b.mutatee_$(M_GXX)
+	$(MAKE) aTest MUTATEE_CC=$(M_GXX) TARGET2=test5.mutatee_$(M_GXX) MUTATEE_SUFFIX=.C
+	$(MAKE) aTest MUTATEE_CC=$(M_GXX) TARGET2=test7.mutatee_$(M_GXX)
 else
-	@echo "WARNING: Skipping g++ mutatees..."
+	@echo "WARNING: Skipping $(M_GXX) mutatees..."
 endif
 ifneq ($(NATIVE_CXX),)
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test1.mutatee_$(NATIVE_CXX)

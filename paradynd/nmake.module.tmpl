@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.18 2002/06/26 21:14:26 schendel Exp $
+# $Id: nmake.module.tmpl,v 1.19 2002/07/31 22:07:06 bernat Exp $
 #
 
 TARGET	      = paradynd.exe
@@ -101,6 +101,7 @@ OBJS      = $(OBJS) association.obj \
 		costmetrics.obj \
 		metricDefs-critPath.obj \
 		Object.obj \
+		pdThread.obj \
 		perfStream-def.obj \
 		resource.obj \
 		stats.obj \

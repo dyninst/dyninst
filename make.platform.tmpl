@@ -1,5 +1,5 @@
 #
-# $Id: make.platform.tmpl,v 1.4 2000/04/01 01:05:39 paradyn Exp $
+# $Id: make.platform.tmpl,v 1.5 2002/07/31 22:06:34 bernat Exp $
 # make.platform.tmpl: toplevel, platform-specific make configuration
 #
 
@@ -36,8 +36,8 @@ ASFLAGS      := $(filter-out -P,$(ASFLAGS))
 ifndef USES_NATIVE_CC
 
 ### generic "-64" binaries (default)
-CC            = gcc -mabi=64
-CXX           = g++ -mabi=64
+CC	= $(GCC)
+CXX	= $(GXX)
 MODCC         = g++ -mabi=64
 ### generic "-n32" binaries
 CC2           = gcc -mabi=n32
@@ -50,7 +50,7 @@ LDFLAGS      += -Wl,-woff,131 -Wl,-woff,85
 else # USES_NATIVE_CC
 
 ### native "-64" binaries (default)
-CC            = cc -64
+CC	= $(NATIVE_CC)
 CXX           = CC -64
 MODCC         = CC -64
 ### native "-n32" binaries

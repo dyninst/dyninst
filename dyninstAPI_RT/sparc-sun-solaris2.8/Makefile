@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.7 2002/04/15 21:48:44 chadd Exp $
+# $Id: Makefile,v 1.8 2002/07/31 22:06:49 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -27,8 +27,8 @@ LD		= $(NATIVE_CC)
 CFLAGS          += -Kpic -D_NATIVESO_
 LDFLAGS         = -ldl -lelf -dy -G -z text
 else
-CC              = gcc
-LD              = gcc
+CC              = $(GCC)
+LD              = $(GCC)
 CFLAGS          += -fpic
 LDFLAGS		= -ldl -lelf -shared -nostdlib
 #ccw 19 nov 2001

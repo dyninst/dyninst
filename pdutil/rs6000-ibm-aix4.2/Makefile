@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.8 2002/02/26 15:49:46 pcroth Exp $
+# $Id: Makefile,v 1.9 2002/07/31 22:06:56 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -11,12 +11,6 @@ DO_INLINE_ALL           = true
 # in the paradyn tree.
 
 include ../../make.config 
-
-
-ifdef USES_PMAPI
-CFLAGS			+=	-DUSES_PMAPI
-CXXFLAGS		+=	-DUSES_PMAPI
-endif
 
 #CXXFLAGS        +=  -DHIST_DEBUG
 #CXXFLAGS        +=  -DAGGREGATE_DEBUG

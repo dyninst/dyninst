@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.3 2002/06/17 21:31:17 chadd Exp $
+# $Id: Makefile,v 1.4 2002/07/31 22:07:00 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -30,8 +30,8 @@ LD		= $(NATIVE_CC)
 CFLAGS		+= -Kpic -O
 LDFLAGS		= -dy -G -z text
 else
-CC		= gcc
-LD		= gcc
+CC		= $(GCC)
+LD		= $(GCC)
 CFLAGS		+= -fpic -O2
 LDFLAGS		= -shared
 endif
@@ -49,7 +49,6 @@ SRCS	     += ../src/RTfirst.c \
 #		../../dyninstAPI_RT/src/RTheap-solaris.c \
 #		../../dyninstAPI_RT/src/RTposix.c \
 #		../../dyninstAPI_RT/src/RTsolaris.c \
-	
 
 #CFLAGS += -DDEBUG_PRINT_RT     # enable debug/trace messages from library
 #CFLAGS += -DSHM_SAMPLING_DEBUG # shared-memory sampling debug/trace

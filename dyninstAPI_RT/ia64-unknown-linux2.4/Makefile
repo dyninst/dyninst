@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2002/02/11 22:01:28 tlmiller Exp $
+# $Id: Makefile,v 1.2 2002/07/31 22:06:47 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -12,14 +12,14 @@
 include ../../make.config 
 
 # Now make any necessary architecture specific changes to variables:
-LD		= gcc
+LD		= $(GCC)
 LDFLAGS         += -static -nostdlib -Xlinker -r
 
 CFLAGS		+= -O2 
 
 # if we want to produce a shared object...
-CC              = gcc
-LD              = gcc
+CC              = $(GCC)
+LD              = $(GCC)
 CFLAGS          = -I. -I../.. -Dia64_unknown_linux2_4 -g -fpic
 LDFLAGS         = -shared -ldl
 

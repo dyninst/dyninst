@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-nt.C,v 1.27 2002/06/27 19:01:44 schendel Exp $
+// $Id: templates-nt.C,v 1.28 2002/07/31 22:07:03 bernat Exp $
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
  * "template class specialization XXXX is already instantiated"
@@ -60,8 +60,8 @@
 #include "paradynd/src/threadMetFocusNode.h"
 #endif
 
-template class vectorSet<process::inferiorRPCtoDo>;
-template class vectorSet<process::inferiorRPCinProgress>;
+template class vectorSet<inferiorRPCtoDo>;
+template class vectorSet<inferiorRPCinProgress>;
 
 template class dictionary_hash<unsigned int, unsigned int>;
 template class dictionary_hash<unsigned int, resource *>;

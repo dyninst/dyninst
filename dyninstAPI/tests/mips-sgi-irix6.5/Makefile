@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.14 2002/03/15 15:26:39 hollings Exp $
+# $Id: Makefile,v 1.15 2002/07/31 22:06:42 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -16,7 +16,8 @@ include $(TO_CORE)/make.config
 # Now make any necessary architecture specific changes to variables:
 
 SYSLIBS   += -ldwarf -lelf
-GNU_CXX		= g++
+M_GXX		= g++
+M_GCC           = gcc
 NATIVE_CC	= cc
 NATIVE_CXX	= CC
 

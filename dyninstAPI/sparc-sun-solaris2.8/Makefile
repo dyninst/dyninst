@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.6 2002/04/05 17:13:03 gaburici Exp $
+# $Id: Makefile,v 1.7 2002/07/31 22:06:37 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -36,10 +36,10 @@ SRCS =		../src/solaris.C \
 # make.confing any way and it is actually configurable there via
 # DEBUG_FLAG....
 
-#CFLAGS		+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP -g -O0 -I/usr/local/stow/bind-8.2.2.p5/include/
-CFLAGS		+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP -O0 -I/usr/local/stow/bind-8.2.2.p5/include/
-#CXXFLAGS	+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP -g -O0 -DUSES_ELF32_ONLY  -I/usr/local/stow/bind-8.2.2.p5/include/
-CXXFLAGS	+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP -O0 -DUSES_ELF32_ONLY  -I/usr/local/stow/bind-8.2.2.p5/include/
+CFLAGS		+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP -g -O0 -I/usr/local/stow/bind-8.2.2.p5/include/
+#CFLAGS		+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP -O0 -I/usr/local/stow/bind-8.2.2.p5/include/ 
+CXXFLAGS	+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP -g -O0 -DUSES_ELF32_ONLY  -I/usr/local/stow/bind-8.2.2.p5/include/
+#CXXFLAGS	+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP -O0 -DUSES_ELF32_ONLY  -I/usr/local/stow/bind-8.2.2.p5/include/
 TFLAGS		+= -DUSES_ELF32_ONLY 
 
 
