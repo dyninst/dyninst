@@ -1,11 +1,12 @@
 #
-# $Id: Makefile,v 1.4 2003/01/23 17:05:12 tlmiller Exp $
+# $Id: Makefile,v 1.5 2003/06/27 20:58:05 tlmiller Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 TO_CORE	= 	../../..
 NO_OPT_FLAG=true
 NO_IMPLICIT_TEMPLATES = true
+USES_DWARF_DEBUG = true
 
 DEBUG_FLAG = -g
 
@@ -22,7 +23,7 @@ CFLAGS += -Wno-deprecated
 MUTATEE_FFLAGS += -Dia64_unknown_linux2_4 -DF77 -fno-second-underscore -g
 MUTATEE_FLINKFLAGS += -g -ldl
 
-SYSLIBS += -lelf -ldl
+SYSLIBS += -L$(LIBDWARFDIR)/lib -ldwarf -lelf -ldl
 M_GXX = $(GXX)
 M_GCC = $(GCC)
 # there is no "native" or OS-provided compiler for Linux!
