@@ -43,6 +43,9 @@
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
+ * Revision 1.45  1996/11/08 23:41:02  tamches
+ * change from 3-->1 shm segment per process
+ *
  * Revision 1.44  1996/10/31 08:37:54  tamches
  * the shm-sampling commit
  *
@@ -113,10 +116,8 @@ void forkProcess(traceFork *fr)
     // timeStamp forkTime = getCurrentTime(false);
 #ifdef SHM_SAMPLING
     ret = process::forkProcess(parent, fr->pid,
-			       fr->the_shmSegBaseKey,
-			       fr->appl_shmSegIntCounterPtr,
-			       fr->appl_shmSegWallTimerPtr,
-			       fr->appl_shmSegProcTimerPtr);
+			       fr->the_shmSegKey,
+			       fr->appl_attachedAtPtr);
 #else
     ret = process::forkProcess(parent, fr->pid);
 #endif
