@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test3.mutatee.c,v 1.10 2000/04/24 02:33:19 wylie Exp $ */
+/* $Id: test3.mutatee.c,v 1.11 2000/06/20 21:45:32 wylie Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -23,12 +23,23 @@
 #include <dlfcn.h> /* For replaceFunction test */
 #endif
 
+#ifdef __cplusplus
+int mutateeCplusplus = 1;
+#else
+int mutateeCplusplus = 0;
+#endif
+
 /* Mutatee for multi-process tests.
  */
 
 /* control debug printf statements */
 #define dprintf	if (debugPrint) printf
 int debugPrint = 0;
+
+#define TRUE    1
+#define FALSE   0
+
+#define MAX_TEST 4
 
 /* 
  * Test #1 - just run in a busy wait loop and then exit.
@@ -38,6 +49,7 @@ void test1()
      int i;
 
      for (i=0; i < 2000000; i++);
+     dprintf("Mutatee exiting.\n");
      exit(0);
 }
 
@@ -73,6 +85,7 @@ void test2()
  */
 void test4()
 {
+     dprintf("Mutatee aborting.\n");
      abort();
 }
 
@@ -82,13 +95,28 @@ int main(int iargc, char *argv[])
     unsigned int i;
     unsigned int testNum;
 
-    if ((argc!=2) || (testNum=atoi(argv[1]))==0) {
-	printf("usage: %s <num>\n", argv[0]);
-        printf("given: \"%s", argv[0]);
-        for (i=1; i<argc; i++) printf(" %s", argv[i]);
-        printf("\"\n");
-	exit(-1);
+    for (i=1; i < argc; i++) {
+        if (!strcmp(argv[i], "-verbose")) {
+            debugPrint = TRUE;
+        } else if (!strcmp(argv[i], "-run")) {
+            if ((testNum = atoi(argv[i+1]))) {
+                if ((testNum <= 0) || (testNum > MAX_TEST)) {
+                    printf("invalid test %d requested\n", testNum);
+                    exit(-1);
+                }
+            } else {
+                /* end of test list */
+                break;
+            }
+            i++;
+        } else {
+            fprintf(stderr, "Usage: %s [-verbose] -run <num>\n", argv[0]);
+            exit(-1);
+        }
     }
+
+    dprintf("Mutatee %s running (%s).\n", argv[0], 
+                mutateeCplusplus ? "C++" : "C");
 
     switch (testNum) {
 	case 1:
@@ -107,6 +135,6 @@ int main(int iargc, char *argv[])
 		printf("invalid test number %d in mutatee\n", testNum);
 		break;
     }
-    dprintf("Mutatee terminating.\n");
+    dprintf("Mutatee %s terminating.\n", argv[0]);
     return(0);
 }
