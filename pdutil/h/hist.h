@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: hist.h,v 1.26 2002/12/20 07:50:08 jaw Exp $
+// $Id: hist.h,v 1.27 2003/05/27 17:04:39 pcroth Exp $
 
 #ifndef HIST
 #define HIST
@@ -112,6 +112,9 @@ class Histogram {
 	static timeLength getMinBucketWidth();
 	static int getNumBins(){ return(numBins);}
 	void flushUnsentBuckets();
+
+    static unsigned int getHistCount( void )    { return allHist.size(); }
+
     private:
 	void foldAllHist();
 	void bucketValue(relTimeStamp start, relTimeStamp end, pdSample value);

@@ -80,7 +80,27 @@ void phaseInfo::startPhase(const string &name, bool with_new_pc,
     relTimeStamp start_time = relTimeStamp::Zero();
     // histCurTime is a sentinal value passed as the default arg for startTime
     if(startTime == histCurTime) {  
-      start_time = Histogram::currentTime();
+      if( (Histogram::getHistCount() > 0) || 
+            (paradynDaemon::allDaemons.size() == 0) )
+      {
+        // We're collecting data or we're just starting up -
+        // the Histogram class' idea of the last known time is up-to-date.
+        start_time = Histogram::currentTime();
+      }
+      else 
+      {
+        // We're not collecting data - the Histogram class'
+        // idea of the last known time may be out-of-date.
+        // Instead, use the time from a daemon?
+        // TODO combine the time from all daemons?
+        paradynDaemon* pd = paradynDaemon::allDaemons[0];
+        assert( pd != NULL );
+
+        timeStamp curTime( pd->getTime(), timeUnit::sec(), timeBase::bStd() );
+        timeLength adjTime( pd->getAdjustedTime( curTime ) - 
+                            pd->getAdjustedTime( pd->getStartTime()) );
+        start_time = relTimeStamp( adjTime );
+      }
     } else {
       // As of May 2001, this method was not used in Paradyn and untested
       start_time = startTime;
