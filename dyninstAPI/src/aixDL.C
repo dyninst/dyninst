@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.20 2002/06/17 21:31:14 chadd Exp $
+// $Id: aixDL.C,v 1.21 2002/07/03 22:18:31 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -157,11 +157,11 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
 			     (strlen(ptr->ldinfo_filename) + 1));
       Address text_org =(Address) ptr->ldinfo_textorg;
       Address data_org =(Address) ptr->ldinfo_dataorg;
-#ifdef DEBUG
+#if defined(DEBUG)
       fprintf(stderr, "%s:%s (%x/%x)\n",
 	      obj_name.c_str(), member.c_str(),
 	      text_org, data_org);
-#endif /* DEBUG */
+#endif
       // I believe that we need to pass this as a pointer so that
       // subclassing will work
       // "false" == shared library, not exec file
