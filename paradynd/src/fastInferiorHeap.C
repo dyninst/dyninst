@@ -39,13 +39,16 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: fastInferiorHeap.C,v 1.12 2000/10/17 17:42:33 schendel Exp $
+// $Id: fastInferiorHeap.C,v 1.13 2001/10/12 20:47:17 schendel Exp $
 
 #include <sys/types.h>
 #include <limits.h>
 #include "common/h/headers.h"
 #include "fastInferiorHeap.h"
 #include "rtinst/h/rtinst.h" // for time64
+#include "pdutil/h/pdDebugOstream.h"
+
+extern pdDebug_ostream sampleVal_cerr;
 
 #if defined(MT_THREAD)
 template <class HK, class RAW>
