@@ -45,6 +45,9 @@
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
+ * Revision 1.46  1996/10/08 19:30:01  lzheng
+ * add notInstruFunction to class image (for stack walking)
+ *
  * Revision 1.45  1996/09/26 18:59:20  newhall
  * added support for instrumenting dynamic executables on sparc-solaris
  * platform
@@ -194,8 +197,9 @@ bool image::newFunc(module *mod, const string name, const Address addr, const un
   //cout << name << " pretty: " << demangled << " addr :" << addr <<endl;
   retFunc = func;
   if (err) {
-    delete func;
+    //delete func;
     retFunc = NULL;
+    notInstruFunction += func;
     return false;
   }
   
@@ -452,6 +456,14 @@ pdFunction *image::findFunctionIn(const Address &addr)
 	  return pdf;
   }
   
+  // If not found, we are going to search them in the 
+  // uninstrumentable function
+  for (unsigned i = 0; i < notInstruFunction.size(); i++) {
+      pdf = notInstruFunction[i];
+      if ((addr >= pdf->addr())&&(addr <= (pdf->addr() + pdf->size()))) 
+	  return pdf;
+  }
+
   return NULL; 
 }
 

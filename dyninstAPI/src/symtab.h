@@ -46,6 +46,9 @@
  * symtab.h - interface to generic symbol table.
  *
  * $Log: symtab.h,v $
+ * Revision 1.29  1996/10/08 19:29:43  lzheng
+ * add notInstruFunction to class image (for stack walking)
+ *
  * Revision 1.28  1996/09/26 18:59:22  newhall
  * added support for instrumenting dynamic executables on sparc-solaris
  * platform
@@ -388,6 +391,9 @@ private:
   dictionary_hash <string, vector<pdFunction*>*> funcsByPretty;
   // note, a prettyName is not unique, it may map to a function appearing
   // in several modules
+
+  vector <pdFunction *> notInstruFunction;
+  // The functions that we are not going to instrument 
 
   bool newFunc(module *, const string name, const Address addr, const unsigned size,
 	       const unsigned tags, pdFunction *&retFunc);
