@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-cm5.C,v 1.3 1994/02/03 23:29:44 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-cm5.C,v 1.4 1994/03/25 23:00:44 hollings Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricDefs-cm5.C,v $
- * Revision 1.3  1994/02/03 23:29:44  hollings
+ * Revision 1.4  1994/03/25 23:00:44  hollings
+ * Made active_processes a sampledFunction.
+ *
+ * Revision 1.3  1994/02/03  23:29:44  hollings
  * Corrected metric type for active_processes.
  *
  * Revision 1.2  1994/02/01  18:46:54  hollings
@@ -554,7 +557,7 @@ resourcePredicate defaultPredicates[] = {
 };
 
 struct _metricRec DYNINSTallMetrics[] = {
-    { { "active_processes", EventCounter, "Processes" },
+    { { "active_processes", SampledFunction, "Processes" },
       { (createMetricFunc) createActiveProcesses, defaultPredicates },
     },
     { { "cpu", EventCounter, "# CPUs" },
