@@ -41,7 +41,7 @@
 
 // barChartTcl.C
 
-/* $Id: barChartTcl.C,v 1.29 2004/03/23 01:12:47 eli Exp $ */
+/* $Id: barChartTcl.C,v 1.30 2004/07/27 18:26:32 mjbrim Exp $ */
 
 #include <iostream>
 
@@ -291,9 +291,9 @@ int long2shortFocusNameCommand(ClientData, Tcl_Interp *interp, int argc, TCLCONS
 
       char *ptr = strrchr(oldComponentString.c_str(), '/');
       if (ptr == NULL)
-         cerr << "tableVisi: could not find / in component " << oldComponentString << endl;
+         cerr << "barChart: could not find / in component " << oldComponentString << endl;
       else if (ptr+1 == '\0')
-         cerr << "tableVisi: there was nothing after / in component " << oldComponentString << endl;
+         cerr << "barChart: there was nothing after / in component " << oldComponentString << endl;
       else
          components[componentlcv] = pdstring(ptr+1);
    }
