@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.315 2002/04/15 21:48:44 chadd Exp $
+// $Id: process.C,v 1.316 2002/04/17 16:37:42 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1902,8 +1902,10 @@ Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type,
       inferiorMallocDynamic(p, size, lo, hi);
       break;
     case 4: // remove range constraints
+      /*
       fprintf(stderr, "Removing address limits: looking for 0x%x near 0x%x. Old constraints: 0x%x - 0x%x\n", 
 	      (unsigned int) size, (unsigned int) near_, (unsigned int)lo, (unsigned int)hi);
+      */
       lo = ADDRESS_LO;
       hi = ADDRESS_HI;
       if (err) {
