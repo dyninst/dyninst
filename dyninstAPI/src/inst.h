@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.59 2000/10/17 17:42:18 schendel Exp $
+// $Id: inst.h,v 1.60 2001/06/12 15:43:31 hollings Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -157,19 +157,19 @@ public:
   instMapping(const string f, const string i, const int w, 
 	      callWhen wn, callOrder o, AstNode *a=NULL)
     : func(f), inst(i), where(w), when(wn), order(o)  {
-    if(a) args += assignAst(a);
+    if(a) args.push_back(assignAst(a));
   }
 
   instMapping(const string f, const string i, const int w, AstNode *a=NULL)
     : func(f), inst(i), where(w), when(callPreInsn), order(orderLastAtPoint)  {
-    if(a) args += assignAst(a);
+    if(a) args.push_back(assignAst(a));
   }
 
   instMapping(const string f, const string i, const int w, 
 	      vector<AstNode*> &aList) : func(f), inst(i), where(w),
 	      when(callPreInsn), order(orderLastAtPoint) {
     for(unsigned u=0; u < aList.size(); u++) {
-      if(aList[u]) args += assignAst(aList[u]);
+      if(aList[u]) args.push_back(assignAst(aList[u]));
     }
   };
 

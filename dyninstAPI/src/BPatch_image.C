@@ -39,7 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.23 2001/05/07 19:22:35 tikir Exp $
+// $Id: BPatch_image.C,v 1.24 2001/06/12 15:43:28 hollings Exp $
+
+#define BPATCH_FILE
 
 #include <stdio.h>
 #include <assert.h>

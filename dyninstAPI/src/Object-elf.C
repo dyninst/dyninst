@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.23 2001/02/19 07:03:16 buck Exp $
+ * $Id: Object-elf.C,v 1.24 2001/06/12 15:43:29 hollings Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -510,7 +510,7 @@ bool Object::get_relocation_entries(Elf_Scn*& rel_plt_scnp,
 	    Elf32_Word sym_index = ELF32_R_SYM(next_entry->r_info); 
 	    relocationEntry re(next_plt_entry_addr, next_entry->r_offset,
 			       string(&strs[syms[sym_index].st_name]));
-            relocation_table_ += re; 
+            relocation_table_.push_back(re); 
 	    next_entry++;
 	    next_plt_entry_addr += plt_entry_size_;
 	}
@@ -616,7 +616,7 @@ void Object::load_object()
     
     vector<Symbol> allsymbols;
     parse_symbols(allsymbols, symdatap, strdatap, false, module);
-    allsymbols.sort(symbol_compare);
+    VECTOR_SORT(allsymbols,symbol_compare);
     fix_zero_function_sizes(allsymbols, 0);
     override_weak_symbols(allsymbols);
     
@@ -705,7 +705,7 @@ void Object::load_shared_object()
     // build symbol dictionary
     vector<Symbol> allsymbols;
     parse_symbols(allsymbols, symdatap, strdatap, true, module);
-    allsymbols.sort(symbol_compare);
+    VECTOR_SORT(allsymbols,symbol_compare);
     fix_zero_function_sizes(allsymbols, 0);
     override_weak_symbols(allsymbols);
     insert_symbols_shared(allsymbols);
@@ -789,7 +789,7 @@ void Object::parse_symbols(vector<Symbol> &allsymbols,
       {
 	symbols_[sname] = newsym; // special case
       } else {
-	allsymbols += newsym; // normal case
+	allsymbols.push_back(newsym); // normal case
       }   
     }
 #endif
@@ -828,7 +828,7 @@ void Object::parse_symbols(vector<Symbol> &allsymbols,
       {
 	symbols_[sname] = newsym; // special case
       } else {
-	allsymbols += newsym; // normal case
+	allsymbols.push_back(newsym); // normal case
       }   
     }
 

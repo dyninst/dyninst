@@ -39,32 +39,30 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object.C,v 1.8 2000/07/28 17:20:42 pcroth Exp $
+// $Id: Object.C,v 1.9 2001/06/12 15:43:29 hollings Exp $
 
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
 
-int symbol_compare(const void *x, const void *y) {
-    const Symbol *s1 = (const Symbol *)x;
-    const Symbol *s2 = (const Symbol *)y;
+int symbol_compare(const Symbol &s1, const Symbol &s2) {
     // select the symbol with the lowest address
-    Address s1_addr = s1->addr();
-    Address s2_addr = s2->addr();
+    Address s1_addr = s1.addr();
+    Address s2_addr = s2.addr();
     if (s1_addr > s2_addr) return 1;
     if (s1_addr < s2_addr) return -1;
 
     // symbols are co-located at the same address
     // select the symbol which is not a function
-    if (s1->type() != Symbol::PDST_FUNCTION) return(-1);
-    if (s2->type() != Symbol::PDST_FUNCTION) return(1);
+    if (s1.type() != Symbol::PDST_FUNCTION) return(-1);
+    if (s2.type() != Symbol::PDST_FUNCTION) return(1);
     // symbols are both functions
     // select the symbol which has GLOBAL linkage
-    if (s1->linkage() == Symbol::SL_GLOBAL) return(-1);
-    if (s2->linkage() == Symbol::SL_GLOBAL) return(1);
+    if (s1.linkage() == Symbol::SL_GLOBAL) return(-1);
+    if (s2.linkage() == Symbol::SL_GLOBAL) return(1);
     // neither function is GLOBAL
     // select the symbol which has LOCAL linkage
-    if (s1->linkage() == Symbol::SL_LOCAL) return(-1);
-    if (s2->linkage() == Symbol::SL_LOCAL) return(1);
+    if (s1.linkage() == Symbol::SL_LOCAL) return(-1);
+    if (s2.linkage() == Symbol::SL_LOCAL) return(1);
     // both functions are WEAK
     return(0);    
 }

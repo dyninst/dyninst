@@ -175,7 +175,7 @@ class pdElfSymVector {
 	unsigned nsyms = symdatap->d_size / sizeof(Elf64_Sym);
 	Elf64_Sym *syms = (Elf64_Sym *)symdatap->d_buf;
 	for (unsigned i = 0; i < nsyms; i++) {
-	  elf_syms_ += new pdElfSym(&syms[i]);
+	  elf_syms_.push_back(new pdElfSym(&syms[i]));
 	}
 
       } else { // 32-bit ELF
@@ -183,7 +183,7 @@ class pdElfSymVector {
 	unsigned nsyms = symdatap->d_size / sizeof(Elf32_Sym);
 	Elf32_Sym *syms = (Elf32_Sym *)symdatap->d_buf;
 	for (unsigned i = 0; i < nsyms; i++) {
-	  elf_syms_ += new pdElfSym(&syms[i]);
+	  elf_syms_.push_back(new pdElfSym(&syms[i]));
 	}
 
       }

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.34 2000/11/21 20:23:59 bernat Exp $
+ * $Id: Object.h,v 1.35 2001/06/12 15:43:29 hollings Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -60,7 +60,7 @@
 #include "common/h/Vector.h"
 #include "common/h/lprintf.h"
 
-extern int symbol_compare(const void *x, const void *y);
+extern int symbol_compare(const Symbol &s1, const Symbol &s2);
 
 // File descriptor information
 class fileDescriptor {

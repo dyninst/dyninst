@@ -418,7 +418,7 @@ bool pd_Function::findAndApplyAlterations(const image *owner,
         return false;
       }
       reloc_info = new relocatedFuncInfo(proc,newAdr);
-      relocatedByProcess += reloc_info;
+      relocatedByProcess.push_back(reloc_info);
     }
 
     // Allocate the memory in paradyn to hold a copy of the rewritten function
@@ -1007,7 +1007,7 @@ vector<pd_Function *> process::pcsToFuncs(vector<Address> pcs) {
     for(i=0;i<pcs.size();i++) {
         fn = (pd_Function *)findFunctionIn(pcs[i]);
         // no reason to add a null function to ret
-        if (fn != 0) ret += fn;
+        if (fn != 0) ret.push_back(fn);
     }
     return ret;
 }
@@ -1154,7 +1154,7 @@ void pd_Function::sorted_ips_vector(vector<instPoint*>&fill_in) {
 #endif
 
     // sorted vector of inst points starts with funcEntry_  ....
-    fill_in += funcEntry_;
+    fill_in.push_back(funcEntry_);
 
     returns_idx = calls_idx = 0;
 
@@ -1179,9 +1179,9 @@ void pd_Function::sorted_ips_vector(vector<instPoint*>&fill_in) {
 	// if next call inst point comes before next return inst point, add
 	//  the call inst point....
 	if (calls_ip_addr < returns_ip_addr) {
-	    fill_in += calls[calls_idx++];
+	    fill_in.push_back(calls[calls_idx++]);
 	} else {
-	    fill_in += funcReturns[returns_idx++];
+	    fill_in.push_back(funcReturns[returns_idx++]);
 	}
     }
 }

@@ -39,7 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.28 2000/10/17 17:42:14 schendel Exp $
+// $Id: BPatch_snippet.C,v 1.29 2001/06/12 15:43:28 hollings Exp $
+
+#define BPATCH_FILE
 
 #include <string.h>
 #include "ast.h"
@@ -427,7 +429,7 @@ BPatch_funcCallExpr::BPatch_funcCallExpr(
 
     int i;
     for (i = 0; i < args.size(); i++)
-        ast_args += assignAst(args[i]->ast);
+        ast_args.push_back(assignAst(args[i]->ast));
 
     ast = new AstNode(func.func->prettyName(), ast_args);
 

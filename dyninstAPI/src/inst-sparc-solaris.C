@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.81 2001/05/23 21:58:59 ning Exp $
+// $Id: inst-sparc-solaris.C,v 1.82 2001/06/12 15:43:30 hollings Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -318,7 +318,7 @@ void pd_Function::checkCallPoints() {
       pd_Function *pdf = (file_->exec())->findFunction(loc_addr);
       if (pdf) {
 	p->callee = pdf;
-	non_lib += p;
+	non_lib.push_back(p);
 	//cerr << "  pdf (called func?) non-NULL = " << *pdf;
       } else if(!pdf){
 	   //cerr << "  pdf (called func) NULL" << endl;
@@ -328,7 +328,7 @@ void pd_Function::checkCallPoints() {
 	        //     << endl;
 	        p->callIndirect = true;
                 p->callee = NULL; 
-                non_lib += p;
+                non_lib.push_back(p);
 	   }
 	   else {
 	       //cerr << "   apparent call inside function, deleting p" << endl;
@@ -341,7 +341,7 @@ void pd_Function::checkCallPoints() {
       // an unnamed user function
       assert(!p->callee); assert(p->callIndirect);
       p->callee = NULL;
-      non_lib += p;
+      non_lib.push_back(p);
     }
   }
   calls = non_lib;
@@ -396,7 +396,7 @@ Address pd_Function::newCallPoint(Address &adr, const instruction instr,
 
     if (isTrap) {
 	if (!reloc_info) {
-	    calls += point;
+	    calls.push_back(point);
 	    calls[callId] -> instId = callId; callId++;
 	} else {
 	    // calls to a location within the function are not
@@ -432,7 +432,7 @@ Address pd_Function::newCallPoint(Address &adr, const instruction instr,
 	}
     } else {
 	if (!reloc_info) {
-	    calls += point;
+	    calls.push_back(point);
 	}
 	else {
 	    point->relocated_ = true;
@@ -1606,7 +1606,7 @@ Register emitFuncCall(opCode op,
 	     }
 	}
 	for (unsigned u = 0; u < operands.size(); u++)
-	    srcs += operands[u]->generateCode(proc, rs, i, base, noCost, false);
+	    srcs.push_back(operands[u]->generateCode(proc, rs, i, base, noCost, false));
 
 	// TODO cast
 	instruction *insn = (instruction *) ((void*)&i[base]);
@@ -2461,8 +2461,8 @@ bool pd_Function::findInstPoints(const image *owner) {
      //   end of the function.
      if (isReturnInsn(owner, adr, done, prettyName())) {
        // define the return point
-       funcReturns += new instPoint(this, instr, owner, adr, false,
-				    functionExit);
+       funcReturns.push_back(new instPoint(this, instr, owner, adr, false,
+				    functionExit));
 
      } else if (instr.branch.op == 0 
 		&& (instr.branch.op2 == 2 || instr.branch.op2 == 6) 
@@ -2474,7 +2474,7 @@ bool pd_Function::findInstPoints(const image *owner) {
 	   || (target >= (getAddress(0) + size()))) {
 	 instPoint *point = new instPoint(this, instr, owner, adr, false,
 					  functionExit);
-	 funcReturns += point;
+	 funcReturns.push_back(point);
        }
 
      } else if (isCallInsn(instr)) {
@@ -2509,8 +2509,8 @@ bool pd_Function::findInstPoints(const image *owner) {
        if (CallRestoreTC(instr, nexti)) {
 	 // Alert!!!!
 	 adr = newCallPoint(adr, instr, owner, err, dummyId, adr,0,blah);
-	 funcReturns += new instPoint(this, instr, owner, adr, false,
-				      functionExit);
+	 funcReturns.push_back(new instPoint(this, instr, owner, adr, false,
+				      functionExit));
 
        } else {
 	   // check if the call is to inside the function - if definately
@@ -2539,8 +2539,8 @@ bool pd_Function::findInstPoints(const image *owner) {
          // Alert!!!! 
          adr = newCallPoint(adr, instr, owner, err, dummyId, adr,0,blah);
 
-	 funcReturns += new instPoint(this, instr, owner, adr, false,
-				      functionExit);
+	 funcReturns.push_back(new instPoint(this, instr, owner, adr, false,
+				      functionExit));
      }
      else if (isInsnType(instr, JMPLmask, JMPLmatch)) {
        /* A register indirect jump. Some jumps may exit the function 
@@ -2581,7 +2581,7 @@ bool pd_Function::findInstPoints(const image *owner) {
 	 if ((targetAddr<getAddress(0))||(targetAddr>=(getAddress(0)+size()))){
 	   instPoint *point = new instPoint(this, instr, owner, adr, false, 
 					    functionExit);
-	   funcReturns += point;
+	   funcReturns.push_back(point);
 	 }
        }
 
@@ -2789,7 +2789,7 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
        // define the return point
        instPoint *point	= new instPoint(this, instr, owner, newAdr, false, 
 					functionExit, adr);
-       funcReturns += point;
+       funcReturns.push_back(point);
        funcReturns[retId] -> instId = retId; retId++;
      } else if (instr.branch.op == 0 
 		&& (instr.branch.op2 == 2 || instr.branch.op2 == 6)) {
@@ -2804,7 +2804,7 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
 	       point->isBranchOut = true;
 	       point->branchTarget = target;
 	   }
-	   funcReturns += point;
+	   funcReturns.push_back(point);
 	   funcReturns[retId] -> instId = retId; retId++;
        }
 
@@ -2832,7 +2832,7 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
            instPoint *point = new instPoint(this, instr, owner, 
 				      newAdrdisp, false,
 				      functionExit, adr);
-           funcReturns += point;
+           funcReturns.push_back(point);
            funcReturns[retId] -> instId = retId; retId++;
 
        } else {
@@ -2876,7 +2876,7 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
            instPoint *point = new instPoint(this, instr, owner, 
                                         newAdrdisp, false,
 				        functionExit, adr);
-           funcReturns += point;
+           funcReturns.push_back(point);
            funcReturns[retId] -> instId = retId; retId++;
      } 
      else if (isInsnType(instr, JMPLmask, JMPLmatch)) {
@@ -2920,7 +2920,7 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
 		 instPoint *point = new instPoint(this, instr, owner, 
 						  newAdr, false,
 						  functionExit, adr);
-		 funcReturns += point;
+		 funcReturns.push_back(point);
 		 funcReturns[retId] -> instId = retId; retId++;
 	     }
 	 }
@@ -3267,12 +3267,12 @@ bool pd_Function::PA_attachBranchOverlaps(
     // Make a list of all inst-points attached to function, and sort
     //  by address.  Then check for overlaps....
     vector<instPoint*> foo;
-    foo += funcEntry_;
-    foo += funcReturns;
-    foo += calls;
+    foo.push_back(funcEntry_);
+    VECTOR_APPEND(foo,funcReturns);
+    VECTOR_APPEND(foo,calls);
 
     // Sort inst points list by address....
-    foo.sort(sort_inst_points_by_address);
+    VECTOR_SORT(foo, sort_inst_points_by_address);
 
     // Iterate over function instruction by instruction....
     assert((codeSize % sizeof(instruction)) == 0);

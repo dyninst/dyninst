@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates1.C,v 1.37 2000/07/27 17:42:36 pcroth Exp $
+// $Id: templates1.C,v 1.38 2001/06/12 15:43:33 hollings Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -144,107 +144,3 @@ template class  vector<dictionary_hash <unsigned long, unsigned long>::entry>;
 template class  dictionary_hash_iter <unsigned long, unsigned long>;
 template class  dictionary_hash <metricDefinitionNode*,metricDefinitionNode*>;
 template class  vector<dictionary_hash <metricDefinitionNode*,metricDefinitionNode*>::entry>;
-
-template class  dictionary_hash_iter <Address, Symbol*>;
-template class  dictionary_hash_iter <const instPoint*, point*>;
-template class  dictionary_hash_iter <instPoint*, unsigned>;
-template class  dictionary_hash_iter <string, Symbol>;
-template class  dictionary_hash_iter <string, internalSym*>;
-template class  dictionary_hash_iter <string, pdmodule *>;
-template class  dictionary_hash_iter <string, pd_Function*>;
-template class  dictionary_hash_iter <string, resource*>;
-template class  dictionary_hash_iter <string, unsigned>;
-template class  dictionary_hash_iter <string, vector<pd_Function*>*>;
-template class  dictionary_hash_iter <unsigned, unsigned>;
-template class  dictionary_hash_iter <unsigned, heapItem*>;
-template class  dictionary_hash_iter <unsigned, metricDefinitionNode*>;
-template class  dictionary_hash_iter <unsigned long, metricDefinitionNode*>;
-template class  dictionary_hash_iter <unsigned, pd_Function*>;
-template class  dictionary_hash_iter <unsigned long, pd_Function*>;
-template class  vector<shared_object *> ;
-
-
-/* ***************************************************************************** */
-
-#ifdef SHM_SAMPLING
-#include "fastInferiorHeap.C"
-#include "fastInferiorHeapHKs.h"
-
-template class vector<genericHK::trampRange>;
-template class vector<states>;
-
-template class fastInferiorHeap<intCounterHK, intCounter>;
-template class fastInferiorHeap<wallTimerHK, tTimer>;
-template class fastInferiorHeap<processTimerHK, tTimer>;
-template class vector< fastInferiorHeap<intCounterHK, intCounter> >;
-template class vector< fastInferiorHeap<wallTimerHK, tTimer> >;
-template class vector< fastInferiorHeap<processTimerHK, tTimer> >;
-
-#ifndef USES_NATIVE_CC
-#include "baseTable.C"
-#endif
-template class baseTable<intCounterHK, intCounter>;
-template class baseTable<wallTimerHK, tTimer>;
-template class baseTable<processTimerHK, tTimer>;
-
-#ifndef USES_NATIVE_CC
-#include "superVector.C"
-#endif
-template class superVector<intCounterHK, intCounter>;
-template class superVector<wallTimerHK, tTimer>;
-template class superVector<processTimerHK, tTimer>;
-template class vector<superVector<intCounterHK, intCounter> *>;
-template class vector<superVector<wallTimerHK, tTimer> *>;
-template class vector<superVector<processTimerHK, tTimer> *>;
-#endif
-
-#include "common/src/vectorSet.C"
-template class vectorSet<process::inferiorRPCtoDo>;
-template class vectorSet<process::inferiorRPCinProgress>;
-
-#ifdef SHM_SAMPLING
-#include "fastInferiorHeapMgr.h"
-template class vector<fastInferiorHeapMgr::oneHeapStats>;
-#endif
-
-#ifdef BPATCH_LIBRARY
-template class dictionary_hash <string, Symbol>;
-template class vector<dictionary_hash <string, Symbol>::entry>;
-template class vector<dictionary_hash<Address, BPatch_point *>::entry>;
-
-template class dictionary_hash<string, BPatch_type *>;
-template class dictionary_hash<int, BPatch_type *>;
-template class dictionary_hash<string, BPatch_localVar *>;
-template class dictionary_hash<int, BPatch_thread *>;
-template class dictionary_hash<Address, BPatch_point *>;
-
-template class dictionary_hash_iter<string, BPatch_type *>;
-template class vector<dictionary_hash <string, BPatch_type *>::entry>;
-template class dictionary_hash_iter<int, BPatch_type *>;
-template class vector<dictionary_hash <int, BPatch_type *>::entry>;
-template class dictionary_hash_iter<string, BPatch_localVar *>;
-template class vector<dictionary_hash <string, BPatch_localVar *>::entry>;
-template class dictionary_hash_iter<int, BPatch_thread *>;
-template class vector<dictionary_hash <int, BPatch_thread *>::entry>;
-
-template class vector<BPatch_localVar *>;
-template class vector<BPatch_field *>;
-#endif
-
-template class dictionary_hash <string, vector<string>*>;
-template class vector<dictionary_hash <string, vector<string>*>::entry>;
-
-template class vector<process::inferiorRPCtoDo>;
-template class vector<process::inferiorRPCinProgress>;
-
-template class vector<dictionary_hash <unsigned int, Address>::entry>;
-
-
-#if defined(BPATCH_LIBRARY)
-
-class BPatch_basicBlock;
-
-template class  dictionary_hash<Address,BPatch_basicBlock*>;
-template class  vector<dictionary_hash<Address,BPatch_basicBlock*>::entry>;
-
-#endif

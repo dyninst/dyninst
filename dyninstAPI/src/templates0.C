@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.21 2001/02/20 21:48:45 gurari Exp $
+// $Id: templates0.C,v 1.22 2001/06/12 15:43:32 hollings Exp $
 // Generate all the templates in one file.
 
 /*
@@ -59,6 +59,7 @@
  */
 
 
+#pragma implementation "stl.h"
 #pragma implementation "Pair.h"
 #include "common/h/Pair.h"
 
@@ -88,6 +89,7 @@ template class  vector<bool>;
 template class  vector<AstNode>;
 template class  vector<AstNode *>;
 template class  vector<Symbol*>;
+
 template class  vector<Symbol>;
 template class  vector<float>;
 template class  vector<heapItem*>;
@@ -123,3 +125,9 @@ template class  vector<relocationEntry>;
 template class vector<LocalAlteration*>;
 template class vector<FERNode>;
 template class vector<FERNode*>;
+
+#ifndef BPATCH_LIBRARY
+template class vector<processTimerHK>;
+template class vector<wallTimerHK>;
+template class vector<vector<string> *>;
+#endif

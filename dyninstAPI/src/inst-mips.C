@@ -350,7 +350,7 @@ void print_function(pd_Function *f)
 	  f->size() / (int)INSN_SIZE);
 
   vector<instPoint*> t;
-  t += const_cast<instPoint*>(f->funcEntry(0));
+  t.push_back(const_cast<instPoint*>(f->funcEntry(0)));
   print_inst_pts(t, f);
 
   print_inst_pts(f->funcCalls(0), f);
@@ -591,14 +591,14 @@ bool pd_Function::findInstPoints(const image *owner) {
     if (isCallInsn(insn)) {
       /* simple call */
       //cerr << "  found call pt" << endl;
-      calls += new callPoint(this, off);
+      calls.push_back(new callPoint(this, off));
     } else if (isInsnType(insn, BGEZALLmask, BGEZALLmatch)) {
       /* optimized recursive call: branch to start of function */
       //cerr << "  found optimized recursive call pt" << endl;
       signed branchOff = insn.regimm.simm16 << 2;
       Offset targetOff = off + INSN_SIZE + branchOff;
       if (targetOff == 0) {
-	calls += new callPoint(this, off, IP_RecursiveBranch);
+	calls.push_back(new callPoint(this, off, IP_RecursiveBranch));
       }
     } else if (isInsnType(insn, SYSCALLmask, SYSCALLmatch)) {
       isTrap = true;
@@ -610,7 +610,7 @@ bool pd_Function::findInstPoints(const image *owner) {
     // TODO - distinguish between return and switch? (maybe "jr ra" vs "jr v1")
     if (isReturnInsn(insn)) {
       //cerr << "  found return pt" << endl;
-      funcReturns += new exitPoint(this, off);
+      funcReturns.push_back(new exitPoint(this, off));
     }
   }
 
@@ -658,7 +658,7 @@ static void addIfNew(vector<int> &V, int val)
       return;
     }
 
-  V += val;
+  V.push_back(val);
 
   TRACE_E( "addIfNew" );
 }
@@ -967,7 +967,7 @@ Address pd_Function::findStackFrame(const image *owner)
             //fprintf(stderr, "\n\n  in function %s, saving pop %d and ret %d\n", prettyName().string_of(), lastRestore, off);
             ifr.popOffset = lastRestore;
             ifr.retOffset = off;
-            inactiveRanges += ifr;
+            inactiveRanges.push_back(ifr);
           }
         }
 
@@ -1069,14 +1069,14 @@ bool pd_Function::checkInstPoints()
 
   /* sort all instPoints by address */
   vector<instPoint*> pts;
-  if (funcEntry_) pts += funcEntry_;
+  if (funcEntry_) pts.push_back(funcEntry_);
   for (unsigned i = 0; i < funcReturns.size(); i++) {
-    pts += funcReturns[i];
+    pts.push_back(funcReturns[i]);
   }
   for (unsigned i = 0; i < calls.size(); i++) {
-    pts += calls[i];
+    pts.push_back(calls[i]);
   }
-  pts.sort(cmpByAddr);
+  VECTOR_SORT(pts, cmpByAddr);
 
   /* first instPoint not an entry point */
   if (pts[0]->type() != IPT_ENTRY) {
@@ -1150,7 +1150,7 @@ void pd_Function::checkCallPoints()
      * - target is unknown (trap)
      * - target is external, but callee function cannot be found
      */
-    calls2 += ip;
+    calls2.push_back(ip);
   }
   calls = calls2;
   setVectorIds();
@@ -1361,8 +1361,8 @@ Address pd_Function::findIndirectJumpTarget(instPoint *ip, instruction i)
   int adjust = 0;
   instruction i2;
   // indirect jump insn (debug)
-  insns += i.raw;
-  insnAddrs += ip->offset() + start;
+  insns.push_back(i.raw);
+  insnAddrs.push_back(ip->offset() + start);
   int off; // must be signed
   // start at "ip+4" to parse delay slot insn
   for (off = ip->offset() + INSN_SIZE; off >= 0; off -= INSN_SIZE) {
@@ -1383,8 +1383,8 @@ Address pd_Function::findIndirectJumpTarget(instPoint *ip, instruction i)
     {
       targetReg = REG_GP;
       // debug
-      insns += i2.raw;
-      insnAddrs += start+off;
+      insns.push_back(i2.raw);
+      insnAddrs.push_back(start+off);
     }
     // move R2,R1
     if (isInsnType(i2, ORmask, ORmatch) &&
@@ -1393,8 +1393,8 @@ Address pd_Function::findIndirectJumpTarget(instPoint *ip, instruction i)
     {
       targetReg = i2.rtype.rs;
       // debug
-      insns += i2.raw;
-      insnAddrs += start+off;
+      insns.push_back(i2.raw);
+      insnAddrs.push_back(start+off);
     }
     // addiu  R1,R1,X
     // daddiu R1,R1,X
@@ -1405,8 +1405,8 @@ Address pd_Function::findIndirectJumpTarget(instPoint *ip, instruction i)
     {
       adjust += i2.itype.simm16;
       // debug
-      insns += i2.raw;
-      insnAddrs += start+off;
+      insns.push_back(i2.raw);
+      insnAddrs.push_back(start+off);
     }
     // lw R2,X(R1)
     // ld R2,X(R1)
@@ -1414,14 +1414,14 @@ Address pd_Function::findIndirectJumpTarget(instPoint *ip, instruction i)
 	 isInsnType(i2, LDmask, LDmatch)) &&
 	i2.itype.rt == targetReg) 
     {
-      baseRegs += (int)i2.itype.rs;
-      baseAdjusts += (int)i2.itype.simm16;
-      adjusts += adjust;
+      baseRegs.push_back((int)i2.itype.rs);
+      baseAdjusts.push_back((int)i2.itype.simm16);
+      adjusts.push_back(adjust);
       adjust = 0;
       targetReg = i2.itype.rs;
       // debug
-      insns += i2.raw;
-      insnAddrs += start+off;
+      insns.push_back(i2.raw);
+      insnAddrs.push_back(start+off);
     }
   }
 
@@ -3057,7 +3057,7 @@ Register emitFuncCall(opCode op, registerSpace *rs, char *code, Address &base,
   // generate argument values
   vector<reg> args;
   for (unsigned i = 0; i < params.size(); i++) {
-    args += params[i]->generateCode(p, rs, code, base, noCost, false);
+    args.push_back(params[i]->generateCode(p, rs, code, base, noCost, false));
   }
   
   unsigned nargs = args.size();
@@ -4333,8 +4333,8 @@ void returnInstance::addToReturnWaitingList(Address pc, process *proc)
     proc->writeTextSpace((void*)pc, INSN_SIZE, &insnTrap);
   }
   
-  instWList += new instWaitingList(instructionSeq, instSeqSize,
-				   addr_, pc, insn, pc, proc);
+  instWList.push_back(new instWaitingList(instructionSeq, instSeqSize,
+				   addr_, pc, insn, pc, proc));
 
   TRACE_E( "returnInstance::addToReturnWaitingList" );
 }
@@ -4594,6 +4594,7 @@ int BPatch_point::getDisplacedInstructions(int maxSize, void *insns)
 #endif
 
 
+#ifndef BPATCH_LIBRARY
 // needed in metric.C
 bool instPoint::match(instPoint *p)
 {
@@ -4606,3 +4607,4 @@ bool instPoint::match(instPoint *p)
   
   return false;
 }
+#endif

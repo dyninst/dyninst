@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration.C,v 1.4 2001/03/07 21:02:08 pcroth Exp $
+// $Id: LocalAlteration.C,v 1.5 2001/06/12 15:43:29 hollings Exp $
 
 #include "dyninstAPI/src/LocalAlteration.h"
 #include "dyninstAPI/src/symtab.h"
@@ -127,7 +127,7 @@ void LocalAlterationSet::DeleteAlterations() {
 }
 
 void LocalAlterationSet::AddAlteration(LocalAlteration *a) {
-    alterations += a;
+    alterations.push_back(a);
     a->UpdateExpansions(&fer);
     a->UpdateInstPoints(&ips);
     ordered = false;
@@ -144,7 +144,7 @@ int order_peephole_alteration_offsets(const void *a1, const void *a2) {
 
 void LocalAlterationSet::Order() {
     if (ordered == true) return;
-    alterations.sort(order_peephole_alteration_offsets);
+    VECTOR_SORT(alterations, order_peephole_alteration_offsets);
     ordered = true;
 }
 

@@ -39,7 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_init.C,v 1.6 2000/10/25 17:34:34 willb Exp $
+// $Id: BPatch_init.C,v 1.7 2001/06/12 15:43:28 hollings Exp $
+
+#define BPATCH_FILE
+
 
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
@@ -79,11 +82,11 @@ bool dyninstAPI_init() {
   static AstNode  actArg(AstNode::Param, (void*) 1); argList[1] = &actArg;
   static AstNode oactArg(AstNode::Param, (void*) 2); argList[2] = &oactArg;
       
-  initialRequests += new instMapping(sigactionF, "DYNINSTdeferSigHandler",
-                                     FUNC_ENTRY|FUNC_ARG, argList);
+  initialRequests.push_back(new instMapping(sigactionF, "DYNINSTdeferSigHandler",
+                                     FUNC_ENTRY|FUNC_ARG, argList));
       
-  initialRequests += new instMapping(sigactionF, "DYNINSTresetSigHandler",
-                                     FUNC_EXIT|FUNC_ARG, argList);
+  initialRequests.push_back(new instMapping(sigactionF, "DYNINSTresetSigHandler",
+                                     FUNC_EXIT|FUNC_ARG, argList));
 #endif
 
   return true;

@@ -39,7 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.12 2001/04/16 18:47:38 tikir Exp $
+// $Id: BPatch_function.C,v 1.13 2001/06/12 15:43:28 hollings Exp $
+
+#define BPATCH_FILE
 
 #include <string.h>
 #include "symtab.h"
@@ -426,4 +428,38 @@ BPatch_flowGraph* BPatch_function::getCFG(){
 
 BPatch_Vector<BPatch_localVar *> *BPatch_function::getVars() {
       return localVariables->getAllVars(); 
+}
+
+BPatch_Vector<BPatch_variableExpr *> *BPatch_function::findVariable(const char *name)
+{
+    BPatch_Vector<BPatch_variableExpr *> *ret;
+    BPatch_localVar *lv = findLocalVar(name);
+
+    if (!lv) {
+	// look for it in the parameter scope now
+	lv = findLocalParam(name);
+    }
+    if (lv) {
+	// create a local expr with the correct frame offset or absolute
+	//   address if that is what is needed
+	ret = new BPatch_Vector<BPatch_variableExpr *>;
+	BPatch_Vector<BPatch_point*> *points = findPoint(BPatch_entry);
+	assert(points->size() == 1);
+	ret->push_back(new BPatch_variableExpr(proc, (void *) lv->getFrameOffset(), 
+	    lv->getType(), lv->getFrameRelative(), (*points)[0]));
+	return ret;
+    } else {
+	// finally check the global scope.
+	BPatch_image *imgPtr = (BPatch_image *) mod->getObjParent();
+
+
+	if (!imgPtr) return NULL;
+
+	BPatch_variableExpr *vars = imgPtr->findVariable(name);
+	if (!vars) return NULL;
+
+	ret = new BPatch_Vector<BPatch_variableExpr *>;
+	ret->push_back(vars);
+	return ret;
+    }
 }

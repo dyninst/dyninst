@@ -95,7 +95,7 @@ int FunctionExpansionRecord::sizeChange() {
 // updated by adding totalShift for function relocation
 void FunctionExpansionRecord::AddExpansion(int original_offset, int shift) {
     collapsed = 0;
-    expansions += new FERNode(original_offset, shift);
+    expansions.push_back(new FERNode(original_offset, shift));
     totalShift += shift;
 }
 
@@ -150,10 +150,10 @@ void FunctionExpansionRecord::Collapse() {
     //}
 
     total_expansions.resize(0);
-    expansions.sort(sort_fernode_by_offset);
+    VECTOR_SORT(expansions, sort_fernode_by_offset);
 
     for(i=0;(unsigned)i<expansions.size();i++) {
-	total_expansions += FERNode(expansions[i]->OriginalOffset(), total);
+	total_expansions.push_back(FERNode(expansions[i]->OriginalOffset(), total));
         total += expansions[i]->Shift();
     }
 

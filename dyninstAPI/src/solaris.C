@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.98 2001/06/04 18:42:20 bernat Exp $
+// $Id: solaris.C,v 1.99 2001/06/12 15:43:31 hollings Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -502,7 +502,7 @@ int process::waitProcs(int *status) {
 		     // the parent loaded it!
 		     theChild->hasLoadedDyninstLib = true;
 
-		     processVec += theChild;
+		     processVec.push_back(theChild);
 		     activeProcesses++;
 
 		     // it's really stopped, but we need to mark it running so
@@ -586,7 +586,7 @@ int process::waitProcs(int *status) {
 		     int parentPid = processVec[curr]->getPid();
 		     process *theParent = processVec[curr];
 		     process *theChild = new process(*theParent, (int)childPid, -1);
-		     processVec += theChild;
+		     processVec.push_back(theChild);
 		     activeProcesses++;
 
 		     // it's really stopped, but we need to mark it running so

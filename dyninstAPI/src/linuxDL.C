@@ -478,7 +478,7 @@ vector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
 	   if((!(p->wasExeced())) || (p->wasExeced() && !first_time)){ 
                 shared_object *newobj = new shared_object(obj_name,
 			link_elm.l_addr,false,true,true,0);
-	        *shared_objects += newobj;
+	        (*shared_objects).push_back(newobj);
 	    }
 	}
 	else {
@@ -523,7 +523,7 @@ vector<u_int> *dynamic_linking::getLinkMapAddrs(process *p) {
         }
 	// kludge: ignore the first entry
 	if(!first_time) { 
-	    *link_addresses += link_elm.l_addr; 
+	    (*link_addresses).push_back(link_elm.l_addr); 
 	}
 	else {
 #ifdef PDYN_DEBUG
@@ -601,7 +601,7 @@ vector<shared_object *> *dynamic_linking::getNewSharedObjects(process *p,
 	        string obj_name = string(f_name);
                 shared_object *newobj = new shared_object(obj_name,
 			link_elm.l_addr,false,true,true,0);
-		*new_shared_objects += newobj;
+		(*new_shared_objects).push_back(newobj);
             }
 	}
 	first_time = false;
@@ -703,7 +703,7 @@ vector <shared_object *> *dynamic_linking::findChangeToLinkMaps(process *p,
         // create a vector of addresses of the current set of shared objects
 	vector<u_int> *addr_list =  new vector<u_int>;
 	for (u_int i=0; i < curr_list->size(); i++) {
-	    *addr_list += ((*curr_list)[i])->getBaseAddress();
+	    (*addr_list).push_back(((*curr_list)[i])->getBaseAddress());
 	}
 	vector <shared_object *> *new_shared_objs = 
 				getNewSharedObjects(p, addr_list,error_occured);
@@ -732,7 +732,7 @@ vector <shared_object *> *dynamic_linking::findChangeToLinkMaps(process *p,
 		    }
                 }
 		if(!found) {
-		    *remove_list += (*curr_list)[i];
+		    (*remove_list).push_back((*curr_list)[i]);
 		}
 	    }
 	    delete addr_list;

@@ -39,12 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.34 2000/11/30 19:08:38 hollings Exp $
+// $Id: BPatch.C,v 1.35 2001/06/12 15:43:28 hollings Exp $
 
 #include <stdio.h>
 #include <assert.h>
 #include <signal.h>
 
+#define BPATCH_FILE
 #include "BPatch.h"
 #include "BPatch_libInfo.h"
 #include "process.h"

@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.28 2001/03/22 20:47:10 bernat Exp $
+# $Id: make.module.tmpl,v 1.29 2001/06/12 15:43:27 hollings Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -47,7 +47,6 @@ SRCS	     +=	../src/BPatch.C \
 		../src/BPatch_image.C \
 		../src/BPatch_function.C \
 		../src/BPatch_snippet.C \
-		../src/BPatch_templates.C \
 		../src/BPatch_thread.C \
 		../src/BPatch_type.C \
 		../src/BPatch_init.C \
@@ -81,9 +80,15 @@ SRCS	     +=	../src/BPatch.C \
 		../../common/src/Time.C \
 		../../common/src/fraction.C \
 		../../common/src/timing.C \
+
+ifndef AUTO_TEMPLATES
+SRCS         += ../src/BPatch_templates.C \
 		../src/templates0.C \
 		../src/templates05.C \
-		../src/templates1.C
+		../src/templates1.C \
+		../src/templates2.C \
+
+endif
 
 #IGEN_GEN_SRCS = 
 
@@ -114,3 +119,6 @@ templates05.o: ../src/templates05.C
 
 templates1.o: ../src/templates1.C
 	$(CXX) $(TFLAGS) -c ../src/templates1.C
+
+templates2.o: ../src/templates2.C
+	$(CXX) $(TFLAGS) -c ../src/templates2.C

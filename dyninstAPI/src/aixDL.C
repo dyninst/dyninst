@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.8 2001/05/30 22:25:40 bernat Exp $
+// $Id: aixDL.C,v 1.9 2001/06/12 15:43:29 hollings Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -154,6 +154,7 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
 						       pid);
       shared_object *newobj = new shared_object(fda,
 						false,true,true,0);
+      (*result).push_back(newobj);      
       *result += newobj;      
 
       // Close the file descriptor we're given
@@ -239,7 +240,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
       // So if found_object is true, we don't care. Set it to false and loop. Otherwise,
       // add this to the new list of objects
       if (!found_object) {
-	(**changed_objects) += ((*new_list)[i]);
+	(**changed_objects).push_back(((*new_list)[i]));
       }
       else found_object = false; // reset
     }
@@ -268,7 +269,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
       // So if found_object is true, we don't care. Set it to false and loop. Otherwise,
       // add this to the new list of objects
       if (!found_object) {
-	(**changed_objects) += ((*new_list)[j]);
+	(**changed_objects).push_back(((*new_list)[j]));
       }
       else found_object = false; // reset
     }

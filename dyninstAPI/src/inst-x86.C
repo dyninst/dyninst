@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.81 2001/06/04 18:42:17 bernat Exp $
+ * $Id: inst-x86.C,v 1.82 2001/06/12 15:43:30 hollings Exp $
  */
 
 #include <iomanip.h>
@@ -336,11 +336,11 @@ void pd_Function::checkCallPoints() {
 
       if (pdf) {
         p->set_callee(pdf);
-        non_lib += p;
+        non_lib.push_back(p);
       } else {
 	   // if this is a call outside the fuction, keep it
 	   if((loc_addr < getAddress(0))||(loc_addr > (getAddress(0)+size()))){
-                non_lib += p;
+                non_lib.push_back(p);
 	   }
 	   else {
 	       delete p;
@@ -351,7 +351,7 @@ void pd_Function::checkCallPoints() {
       // an unnamed user function
       //assert(!p->callee());
       p->set_callee(NULL);
-      non_lib += p;
+      non_lib.push_back(p);
     }
   }
   calls = non_lib;
@@ -566,12 +566,12 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
        if (target < getAddress(0) || target >= getAddress(0) + size()) {
 	 // jump out of function
 	 instPoint *p = new instPoint(this, owner, adr, insn);
-	 funcReturns += p;
+	 funcReturns.push_back(p);
 	 points[npoints++] = point_(p, numInsns, ReturnPt);
        } 
      } else if (insn.isReturn()) {
        instPoint *p = new instPoint(this, owner, adr, insn);
-       funcReturns += p;
+       funcReturns.push_back(p);
        points[npoints++] = point_(p, numInsns, ReturnPt);
 
      } else if (insn.isCall()) {
@@ -580,7 +580,7 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
        // We skip them here.
        if (insn.getTarget(adr) != adr + 5) {
 	 instPoint *p = new instPoint(this, owner, adr, insn);
-	 calls += p;
+	 calls.push_back(p);
 	 points[npoints++] = point_(p, numInsns, CallPt);
        } else {
 	   // Temporary: Currently we can't relocate a function if it
@@ -2054,7 +2054,7 @@ Register emitFuncCall(opCode op,
        }
   }
   for (unsigned u = 0; u < operands.size(); u++)
-    srcs += (Register)operands[u]->generateCode(proc, rs, ibuf, base, noCost, false);
+    srcs.push_back((Register)operands[u]->generateCode(proc, rs, ibuf, base, noCost, false));
 
   unsigned char *insn = (unsigned char *) ((void*)&ibuf[base]);
   unsigned char *first = insn;
@@ -3216,7 +3216,7 @@ bool pd_Function::loadCode(const image* /* owner */, process *proc,
     // new instruction object 
     insnSize = get_instruction(p, type);
     insn = new instruction(p, type, insnSize);   
-    insnVec += *insn;
+    insnVec.push_back(*insn);
 
     // check for the following instruction sequence:
     //
@@ -3287,7 +3287,7 @@ bool pd_Function::loadCode(const image* /* owner */, process *proc,
 
     // replace all "garbage" bytes up to the end of the function with nops
     for (int i = 0; i < garbage; i++) {   
-      insnVec += *insn;
+      insnVec.push_back(*insn);
     }  
   }
 

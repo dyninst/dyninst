@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.107 2001/06/04 18:42:16 bernat Exp $
+ * $Id: inst-power.C,v 1.108 2001/06/12 15:43:30 hollings Exp $
  */
 
 #include "common/h/headers.h"
@@ -284,11 +284,11 @@ void pd_Function::checkCallPoints() {
       pd_Function *pdf = owner->findFunction(loc_addr);
       if (pdf) {
         p->callee = pdf;
-        non_lib += p;
+        non_lib.push_back(p);
       } else {
 	p->callIndirect = true;
 	p->callee = NULL;
-	non_lib += p;
+	non_lib.push_back(p);
       }
     } else 
       {
@@ -298,7 +298,7 @@ void pd_Function::checkCallPoints() {
 	    // Assert the call is a bctr. Otherwise this code is FUBARed.
 	    p->callIndirect = true;
 	    p->callee = NULL;
-	    non_lib += p;
+	    non_lib.push_back(p);
 	  }
 	else 
 	  {
@@ -306,7 +306,7 @@ void pd_Function::checkCallPoints() {
 	    // an unnamed user function
 	    assert(!p->callee); assert(p->callIndirect);
 	    p->callee = NULL;
-	    non_lib += p;
+	    non_lib.push_back(p);
 	  }
       }
   }
@@ -336,7 +336,7 @@ Address pd_Function::newCallPoint(const Address adr, const instruction instr,
 
     // point->callAggregate = false;
 
-    calls += point;
+    calls.push_back(point);
     err = false;
     return ret;
 }
@@ -1929,7 +1929,7 @@ Register emitFuncCall(opCode /* ocode */,
   // Generate the code for all function parameters, and keep a list
   // of what registers they're in.
   for (unsigned u = 0; u < operands.size(); u++) {
-    srcs += operands[u]->generateCode(proc, rs, iPtr, base, false, false);
+    srcs.push_back(operands[u]->generateCode(proc, rs, iPtr, base, false, false));
   }
   
   // generateCode can shift the instruction pointer, so reset insn
@@ -1946,11 +1946,11 @@ Register emitFuncCall(opCode /* ocode */,
   // don't want to overwrite the LR slot, save it as "register 0"
   saveRegister(insn, base, 0, STKFCALLREGS);
   // Add 0 to the list of saved registers
-  savedRegs += 0;
+  savedRegs.push_back(0);
   
   // Save register 2 (TOC)
   saveRegister(insn, base, 2, STKFCALLREGS);
-  savedRegs += 2;
+  savedRegs.push_back(2);
 
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
   // save REG_MT
@@ -1989,7 +1989,7 @@ Register emitFuncCall(opCode /* ocode */,
       // assert((u == srcs.size()) || (srcs[u] != (int) (u+3)));
       if(u == srcs.size()) {
 	saveRegister(insn, base, reg->number, STKFCALLREGS);
-	savedRegs += reg->number;
+	savedRegs.push_back(reg->number);
       }
     } else if (reg->inUse) {
       // only inuse registers permitted here are the parameters.
@@ -2940,7 +2940,7 @@ bool pd_Function::findInstPoints(const image *owner)
   //     not to be used by any other point in the function.
   instruction retInsn;
   retInsn.raw = 0;
-  funcReturns+= new instPoint(this, retInsn, owner, adr+1, false, ipFuncReturn);
+  funcReturns.push_back(new instPoint(this, retInsn, owner, adr+1, false, ipFuncReturn));
 
   // Define call sites in the function
   instr.raw = owner->get_instruction(adr);

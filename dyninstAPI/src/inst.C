@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.78 2001/04/19 17:52:26 gurari Exp $
+// $Id: inst.C,v 1.79 2001/06/12 15:43:30 hollings Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -570,7 +570,7 @@ void getAllInstInstancesForProcess(const process *proc,
     for (unsigned u = 0; u < allPoints.size(); u++) {
       for (instInstance *inst = allPoints[u]->inst; inst; inst = inst->next) {
 	if (inst->proc == proc)
-	  result += inst;
+	  result.push_back(inst);
       }
     }
 }
@@ -594,7 +594,7 @@ void copyInstInstances(const process *parent, const process *child,
       newInst->baseInstance = old->baseInstance;
       newInst->cost = old->cost;
       instInstanceMapping[old] = newInst;
-      newInsts += newInst;
+      newInsts.push_back(newInst);
     }
 
     // update nextAtPoint and prevAtPoint
@@ -630,15 +630,15 @@ vector<Address> getAllTrampsAtPoint(instInstance *instance)
         thePoint = activePoints[instance->location];
         start = thePoint->inst;
         // Base tramp
-        pointsToCheck += start->baseInstance->baseAddr; 
-        pointsToCheck += start->trampBase;
+        pointsToCheck.push_back(start->baseInstance->baseAddr); 
+        pointsToCheck.push_back(start->trampBase);
         // All mini-tramps at this point
         for (next = start->next; next; next = next->next) {
 	  if ((next->location == instance->location) && 
 	      (next->proc == instance->proc) &&
 	      (next->when == instance->when)) {
   	      if (next != instance) {
-                pointsToCheck += next->trampBase;
+                pointsToCheck.push_back(next->trampBase);
                 //pointsToCheck += start->trampBase;
 	      }
 	  }
@@ -727,7 +727,7 @@ void deleteInst(instInstance *old, const vector<Address> &pointsToCheck)
     }
 
     vector< vector<Address> > tmp;
-    tmp += (vector<Address>) pointsToCheck;
+    tmp.push_back((vector<Address>) pointsToCheck);
 
 #ifdef FREEDEBUG1
     sprintf(errorLine,"***** (pid=%d) In inst.C, calling inferiorFree, "

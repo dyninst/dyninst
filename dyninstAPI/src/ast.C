@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.82 2001/05/12 21:29:36 ning Exp $
+// $Id: ast.C,v 1.83 2001/06/12 15:43:29 hollings Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -165,7 +165,7 @@ bool registerSpace::is_keep_register(Register k)
 void registerSpace::keep_register(Register k)
 {
   if (!is_keep_register(k)) {
-    keep_list += k;
+    keep_list.push_back(k);
 #if defined(ASTDEBUG)
     sprintf(errorLine,"==> keeping register %d, size is %d <==\n",k,keep_list.size());
     logLine(errorLine);
@@ -312,7 +312,7 @@ AstNode &AstNode::operator=(const AstNode &src) {
       callee = src.callee; // defined only for call nodes
       calleefunc = src.calleefunc;
       for (unsigned i=0;i<src.operands.size();i++) 
-        operands += assignAst(src.operands[i]);
+        operands.push_back(assignAst(src.operands[i]));
    }
 
    if (type == operandNode) {
@@ -394,8 +394,8 @@ AstNode::AstNode(const string &func, AstNode *l, AstNode *r) {
     callee = func;
     calleefunc = NULL;
     loperand = roperand = eoperand = NULL;
-    if (l) operands += assignAst(l);
-    if (r) operands += assignAst(r);
+    if (l) operands.push_back(assignAst(l));
+    if (r) operands.push_back(assignAst(r));
     size = 4;
 #if defined(BPATCH_LIBRARY)
     bptype = NULL;
@@ -417,7 +417,7 @@ AstNode::AstNode(const string &func, AstNode *l) {
     loperand = roperand = eoperand = NULL;
     callee = func;
     calleefunc = NULL;
-    if (l) operands += assignAst(l);
+    if (l) operands.push_back(assignAst(l));
     size = 4;
 #if defined(BPATCH_LIBRARY)
     bptype = NULL;
@@ -436,7 +436,7 @@ AstNode::AstNode(const string &func, vector<AstNode *> &ast_args) {
    useCount = 0;
    kept_register = Null_Register;
    for (unsigned i=0;i<ast_args.size();i++) 
-     if (ast_args[i]) operands += assignAst(ast_args[i]);
+     if (ast_args[i]) operands.push_back(assignAst(ast_args[i]));
    loperand = roperand = eoperand = NULL;
    type = callNode;
    callee = func;
@@ -460,7 +460,7 @@ AstNode::AstNode(function_base *func, vector<AstNode *> &ast_args) {
    useCount = 0;
    kept_register = Null_Register;
    for (unsigned i=0;i<ast_args.size();i++) 
-     if (ast_args[i]) operands += assignAst(ast_args[i]);
+     if (ast_args[i]) operands.push_back(assignAst(ast_args[i]));
    loperand = roperand = eoperand = NULL;
    type = callNode;
    callee = func->prettyName();
@@ -686,7 +686,7 @@ AstNode::AstNode(AstNode *src) {
       callee = src->callee;     // defined only for call nodes
       calleefunc = src->calleefunc;
       for (unsigned i=0;i<src->operands.size();i++) {
-        if (src->operands[i]) operands += assignAst(src->operands[i]);
+        if (src->operands[i]) operands.push_back(assignAst(src->operands[i]));
       }
    }
 
@@ -2013,7 +2013,7 @@ void AstNode::replaceFuncInAst(function_base *func1, function_base *func2,
 	    operands[i] = assignAst(more_args[j++]) ;
 	  }
 	  while (j<more_args.size()) {
-	    operands += assignAst(more_args[j++]) ;
+	    operands.push_back(assignAst(more_args[j++]));
 	  }
       }
   }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-x86.h,v 1.12 2001/05/23 21:59:00 ning Exp $
+// $Id: instPoint-x86.h,v 1.13 2001/06/12 15:43:31 hollings Exp $
 
 #ifndef _INST_POINT_X86_H_
 #define _INST_POINT_X86_H_
@@ -92,13 +92,13 @@ class instPoint {
   // order, the instruction closest to the point first.
   void addInstrBeforePt(instruction inst) {
     if (!insnBeforePt_) insnBeforePt_ = new vector<instruction>;
-    (*insnBeforePt_) += inst;
+    (*insnBeforePt_).push_back(inst);
   };
 
   // add an instruction after the point.
   void addInstrAfterPt(instruction inst) {
     if (!insnAfterPt_) insnAfterPt_ = new vector<instruction>;
-    (*insnAfterPt_) += inst;
+    (*insnAfterPt_).push_back(inst);
   }
 
   const instruction &insnBeforePt(unsigned index) const 

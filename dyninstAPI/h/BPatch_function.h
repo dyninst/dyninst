@@ -104,6 +104,7 @@ public:
 	*findPoint(const BPatch_procedureLocation loc);
     BPatch_localVar * findLocalVar( const char * name);
     BPatch_localVar * findLocalParam(const char * name);
+    BPatch_Vector<BPatch_variableExpr *> *findVariable(const char *);
 
     //method to retrieve addresses corresponding a line in the function
     bool getLineToAddr (unsigned short lineNo,

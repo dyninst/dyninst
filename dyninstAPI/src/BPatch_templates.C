@@ -39,9 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_templates.C,v 1.15 2001/02/27 20:44:52 buck Exp $
+// $Id: BPatch_templates.C,v 1.16 2001/06/12 15:43:28 hollings Exp $
 
 #include <sys/types.h>
+
+#define BPATCH_FILE
 
 #if !defined(i386_unknown_nt4_0)
 #pragma implementation "BPatch_Vector.h"
@@ -75,20 +77,24 @@ class BPatch_localVar;
 class BPatch_sourceObj;
 class instInstance;
 
-template class BPatch_Vector<BPatch_function *>;
+/* only define the ones not defined with a vector inside  */
 template class BPatch_Vector<BPatch_point *>;
-template class BPatch_Vector<BPatch_localVar *>;
-template class BPatch_Vector<BPatch_snippet *>;
 template class BPatch_Vector<BPatch_thread *>;
-template class BPatch_Vector<BPatch_module *>;
-template class BPatch_Vector<BPatch_field *>;
-template class BPatch_Vector<BPatch_type *>;
+template class BPatch_Vector<BPatch_snippet *>;
+template class BPatch_Vector<BPatch_function *>;
 template class BPatch_Vector<BPatch_variableExpr *>;
+template class BPatch_Vector<BPatch_type *>;
+template class BPatch_Vector<BPatch_module *>;
+template class BPatch_Vector<char *>;
+
+#ifndef USE_STL_VECTOR
+template class BPatch_Vector<BPatch_localVar *>;
+template class BPatch_Vector<BPatch_field *>;
 template class BPatch_Vector<BPatch_sourceObj *>;
 template class BPatch_Vector<instInstance *>;
 template class BPatch_Vector<int>;
-template class BPatch_Vector<char *>;
 template class BPatch_Vector<unsigned long>;
+#endif
 #if defined(rs6000_ibm_aix4_1)
 template class BPatch_Vector<IncludeFileInfo>;
 #endif

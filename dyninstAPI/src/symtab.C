@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.119 2001/06/04 18:42:20 bernat Exp $
+// $Id: symtab.C,v 1.120 2001/06/12 15:43:32 hollings Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -145,7 +145,7 @@ pdmodule *image::newModule(const string &name, const Address addr)
 #endif /* BPATCH_LIBRARY */
         modsByFileName[ret->fileName()] = ret;
         modsByFullName[ret->fullName()] = ret;
-        includedMods += ret;
+	includedMods.push_back(ret);
 #ifndef BPATCH_LIBRARY
     }
 #endif /* BPATCH_LIBRARY */
@@ -249,13 +249,13 @@ void image::addInstruFunction(pd_Function *func, pdmodule *mod,
 
     // any functions whose instrumentation info could be determined 
     //  get added to instrumentableFunctions, and mod->funcs.
-    instrumentableFunctions += func;
-    mod->funcs += func;
+    instrumentableFunctions.push_back(func);
+    mod->funcs.push_back(func);
 
     if (excluded) {
 	excludedFunctions[func->prettyName()] = func;
     } else {
-        includedFunctions += func;
+        includedFunctions.push_back(func);
 	funcsByAddr[addr] = func;
 	if (!funcsByPretty.find(func->prettyName(), funcsByPrettyEntry)) {
             funcsByPrettyEntry = new vector<pd_Function*>;
@@ -264,7 +264,7 @@ void image::addInstruFunction(pd_Function *func, pdmodule *mod,
 	// several functions may have the same demangled name, and each one
         // will appear in a different module
         assert(funcsByPrettyEntry);
-        (*funcsByPrettyEntry) += func;
+        (*funcsByPrettyEntry).push_back(func);
 
 	if (!funcsByMangled.find(func->symTabName(), funcsByMangledEntry)) {
             funcsByMangledEntry = new vector<pd_Function*>;
@@ -273,7 +273,7 @@ void image::addInstruFunction(pd_Function *func, pdmodule *mod,
 	// several functions may have the same demangled name, and each one
         // will appear in a different module
         assert(funcsByMangledEntry);
-        (*funcsByMangledEntry) += func;
+        (*funcsByMangledEntry).push_back(func);
     }
 }
 
@@ -504,7 +504,7 @@ bool image::findInternalByPrefix(const string &prefix,
     if (!strncmp(prefix.string_of(), lookUp.name().string_of(),
 		 strlen(prefix.string_of())))
       {
-	found += lookUp;
+	found.push_back(lookUp);
 	flag = true;
       }
   }
@@ -678,7 +678,7 @@ bool image::find_excluded_function(const string &name,
 
     found = excludedFunctions.defines(name);
     if (found) {
-        retList += excludedFunctions[name];
+        retList.push_back(excludedFunctions[name]);
     }
     return found;
 }
@@ -1167,8 +1167,8 @@ const vector <pdmodule*> &image::getAllModules() {
     allMods.resize(0);
 
     // and add includedModules && excludedModules to it....
-    allMods += includedMods;
-    allMods += excludedMods;
+    VECTOR_APPEND(allMods, includedMods);
+    VECTOR_APPEND(allMods, excludedMods);
 
     //cerr << "image::getAllModules called" << endl;
     //cerr << " about to return sum of includedMods and excludedMods" << endl;
@@ -1462,7 +1462,7 @@ image *image::parseImage(fileDescriptor *desc)
   // Add to master image list.
 #endif
   if (beenReplaced == false) // short-circuit on non-AIX
-    image::allImages += ret;
+    image::allImages.push_back(ret);
 
   // define all modules.
 #ifndef BPATCH_LIBRARY
@@ -1575,14 +1575,14 @@ image::image(fileDescriptor *desc, bool &err)
       
       // directory definition -- ignored for now
       if (str[ln-1] != '/') {
-	tmods += lookUp;
+	tmods.push_back(lookUp);
       }
     }
   }
   
   // sort the modules by address
   statusLine("sorting modules");
-  tmods.sort(symbol_compare);
+  VECTOR_SORT(tmods, symbol_compare);
   
   // remove duplicate entries -- some .o files may have the same 
   // address as .C files.  kludge is true for module symbols that 
@@ -1600,7 +1600,7 @@ image::image(fileDescriptor *desc, bool &err)
 	tmods[loop+1] = tmods[loop];
     } 
     else
-      uniq += tmods[loop];
+      uniq.push_back(tmods[loop]);
   }
   // avoid case where all (ELF) module symbols have address zero
   if (num_zeros == tmods.size()) uniq.resize(0);
@@ -1637,7 +1637,7 @@ image::image(fileDescriptor *desc, bool &err)
       instrumentableFunctions[index]->getAddress(0);
     if (!addr_dict.defines(the_address)) {
       addr_dict[the_address] = 1;
-      temp_vec += instrumentableFunctions[index];
+      temp_vec.push_back(instrumentableFunctions[index]);
     }
   }
   // Memory leak, eh?

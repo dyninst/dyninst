@@ -1,12 +1,12 @@
 #
-# $Id: Makefile,v 1.1 2001/06/04 16:24:13 schendel Exp $
+# $Id: Makefile,v 1.2 2001/06/12 15:43:27 hollings Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 
 #USES_LIBERTY = true
 #USES_SHM_SAMPLING = true
-NO_OPT_FLAG = true
+#NO_OPT_FLAG = true
 NO_IMPLICIT_TEMPLATES = true
 
 # Include standard make configuration stuff that applies to everything
@@ -35,8 +35,8 @@ SRCS =		../src/solaris.C \
 
 
 CFLAGS		+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP -g -O0
-CXXFLAGS	+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP -g -O0 -DUSES_ELF32_ONLY
-TFLAGS		+= -DUSES_ELF32_ONLY
+CXXFLAGS	+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP -g -O0 -DUSES_ELF32_ONLY 
+TFLAGS		+= -DUSES_ELF32_ONLY 
 
 
 # Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space

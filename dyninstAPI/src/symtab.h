@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.83 2001/06/04 18:42:20 bernat Exp $
+// $Id: symtab.h,v 1.84 2001/06/12 15:43:32 hollings Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -109,6 +109,7 @@ typedef enum { lang_Unknown,
 class image;
 class lineTable;
 class process;
+class pd_Function;
 
 // if a function needs to be relocated when it's instrumented then we need
 // to keep track of new instrumentation points for this function on a per
@@ -125,8 +126,8 @@ public:
     const vector<instPoint*> &funcCallSites(){ return calls_;}
     const instPoint *funcEntry(){ return funcEntry_;}
     void addFuncEntry(instPoint *e){ if(e) funcEntry_ = e; }
-    void addFuncReturn(instPoint *r){ if(r) funcReturns_ += r; }
-    void addFuncCall(instPoint *c){ if(c) calls_ += c; }
+    void addFuncReturn(instPoint *r){ if(r) funcReturns_.push_back(r); }
+    void addFuncCall(instPoint *c){ if(c) calls_.push_back(c); }
     bool isInstalled(){ return installed_; }
     void setInstalled() { installed_ = true; }
 private:
@@ -627,6 +628,7 @@ private:
 //  belonging to a process....
 class image {
    friend class process;
+   friend class pd_Function;
 
    //
    // ****  PUBLIC MEMBER FUBCTIONS  ****

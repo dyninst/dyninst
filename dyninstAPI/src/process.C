@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.252 2001/06/05 19:50:13 bernat Exp $
+// $Id: process.C,v 1.253 2001/06/12 15:43:31 hollings Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -331,7 +331,7 @@ vector<Address> process::walkStack(bool noPause)
 
       Address next_pc = currentFrame.getPC();
       // printf("currentFrame pc = %p\n",next_pc);
-      pcs += next_pc;
+      pcs.push_back(next_pc);
       // is this pc in the signal_handler function?
       if(signal_handler && (next_pc >= sig_addr)
           && (next_pc < (sig_addr+sig_size))){
@@ -341,12 +341,12 @@ vector<Address> process::walkStack(bool noPause)
           // will get the function that called the leaf function
           Address leaf_pc = 0;
           if(this->needToAddALeafFrame(currentFrame,leaf_pc)){
-              pcs += leaf_pc;
+              pcs.push_back(leaf_pc);
           }
       }
       currentFrame = currentFrame.getCallerFrame(this); 
     }
-    pcs += currentFrame.getPC();
+    pcs.push_back(currentFrame.getPC());
   }
 
   if (!noPause && needToCont) {
@@ -524,7 +524,7 @@ vector<pd_Function *> process::convertPCsToFuncs(vector<Address> pcs) {
         pd_Function *fn;
     for(i=0;i<pcs.size();i++) {
                 fn = (pd_Function *)findFunctionIn(pcs[i]);
-        ret += fn;
+        ret.push_back(fn);
     }
     return ret;
 }
@@ -876,10 +876,10 @@ bool isFreeOK(process *proc, disabledItem &dis, vector<Address> &pcs)
   return true;
 }
 
-int heapItemCmpByAddr(const void *A, const void *B)
+int heapItemCmpByAddr(const heapItem **A, const heapItem **B)
 {
-  heapItem *a = *(heapItem **)const_cast<void*>(A);
-  heapItem *b = *(heapItem **)const_cast<void*>(B);
+  heapItem *a = *(heapItem **)const_cast<heapItem **>(A);
+  heapItem *b = *(heapItem **)const_cast<heapItem **>(B);
 
   if (a->addr < b->addr) {
       return -1;
@@ -896,7 +896,7 @@ void inferiorFreeCompact(inferiorHeap *hp)
   unsigned i, nbuf = freeList.size();
 
   /* sort buffers by address */
-  freeList.sort(&heapItemCmpByAddr);
+  VECTOR_SORT(freeList, heapItemCmpByAddr);
 
   /* combine adjacent buffers */
   bool needToCompact = false;
@@ -922,7 +922,7 @@ void inferiorFreeCompact(inferiorHeap *hp)
     for (i = 0; i < end; i++) {
       heapItem *h1 = freeList[i];
       if (h1->length != 0) {
-        cleanList += h1;
+        cleanList.push_back(h1);
       } else {
         delete h1;
       }
@@ -989,7 +989,7 @@ void inferiorFreeDeferred(process *proc, inferiorHeap *hp, bool runOutOfMem)
       hp->disabledListTotalMem -= np->length;
       // add to free list
       np->status = HEAPfree;      
-      hp->heapFree += np;
+      hp->heapFree.push_back(np);
       hp->totalFreeMemAvailable += np->length;
       // bookkeeping
       hp->freed += np->length;
@@ -1107,9 +1107,9 @@ bool process::getInfHeapList(const image *theImage, // okay, boring name
 	  continue;
 	}
 
-      infHeaps += heapDescriptor(heapSymbols[j].name(),
+      infHeaps.push_back(heapDescriptor(heapSymbols[j].name(),
 				 heapSymbols[j].addr()+baseAddr,
-				 heap_size, heap_type);
+				 heap_size, heap_type));
       free(temp_str);
     }
   return foundHeap;
@@ -1132,9 +1132,9 @@ void process::addInferiorHeap(const image *theImage)
 	{
 	  heapItem *h = new heapItem (infHeaps[j].addr(), infHeaps[j].size(),
 				      infHeaps[j].type(), false);
-	  heap.bufferPool += h;
+	  heap.bufferPool.push_back(h);
 	  heapItem *h2 = new heapItem(h);
-	  heap.heapFree += h2;
+	  heap.heapFree.push_back(h2);
 	}
     }
 }
@@ -1165,8 +1165,8 @@ void process::initInferiorHeap()
     
     for (u_int j=0; j < infHeaps.size(); j++)
       {
-	hp->bufferPool += new heapItem (infHeaps[j].addr(), infHeaps[j].size(),
-					infHeaps[j].type(), false);
+	hp->bufferPool.push_back(new heapItem (infHeaps[j].addr(), infHeaps[j].size(),
+					infHeaps[j].type(), false));
 	heapAdded = true;
 	if (infHeaps[j].type() == lowmemHeap)
 	  lowmemHeapAdded = true;
@@ -1179,10 +1179,10 @@ void process::initInferiorHeap()
 	cerr << "Attempting to use old DYNINSTdata inferior heap..." << endl;
 	heapAddr = findInternalAddress(string("DYNINSTdata"), true, err);
 	assert(heapAddr);
-	hp->bufferPool += new heapItem(heapAddr, staticHeapSize - LOWMEM_HEAP_SIZE,
-				       anyHeap, false);
-	hp->bufferPool += new heapItem(heapAddr + staticHeapSize - LOWMEM_HEAP_SIZE,
-				       LOWMEM_HEAP_SIZE, lowmemHeap, false);
+	hp->bufferPool.push_back(new heapItem(heapAddr, staticHeapSize - LOWMEM_HEAP_SIZE,
+				       anyHeap, false));
+	hp->bufferPool.push_back(new heapItem(heapAddr + staticHeapSize - LOWMEM_HEAP_SIZE,
+				       LOWMEM_HEAP_SIZE, lowmemHeap, false));
 	heapAdded = true; 
 	lowmemHeapAdded = true;
       }
@@ -1209,7 +1209,7 @@ void process::initInferiorHeap()
   for (unsigned i = 0; i < hp->bufferPool.size(); i++) {
     heapItem *hi = new heapItem(hp->bufferPool[i]);
     hi->status = HEAPfree;
-    hp->heapFree += hi;
+    hp->heapFree.push_back(hi);
     hp->totalFreeMemAvailable += hi->length;     
   }
   inferiorMemAvailable = hp->totalFreeMemAvailable;
@@ -1221,7 +1221,7 @@ inferiorHeap::inferiorHeap(const inferiorHeap &src):
     heapActive(addrHash16)
 {
     for (unsigned u1 = 0; u1 < src.heapFree.size(); u1++) {
-      heapFree += new heapItem(src.heapFree[u1]);
+      heapFree.push_back(new heapItem(src.heapFree[u1]));
     }
 
     vector<heapItem *> items = src.heapActive.values();
@@ -1230,11 +1230,11 @@ inferiorHeap::inferiorHeap(const inferiorHeap &src):
     }
     
     for (unsigned u3 = 0; u3 < src.disabledList.size(); u3++) {
-      disabledList += src.disabledList[u3];
+      disabledList.push_back(src.disabledList[u3]);
     }
 
     for (unsigned u4 = 0; u4 < src.bufferPool.size(); u4++) {
-      bufferPool += new heapItem(src.bufferPool[u4]);
+      bufferPool.push_back(new heapItem(src.bufferPool[u4]));
     }
 
     disabledListTotalMem = src.disabledListTotalMem;
@@ -1358,10 +1358,10 @@ void inferiorMallocDynamic(process *p, int size, Address lo, Address hi)
   default:
     // add new segment to buffer pool
     heapItem *h = new heapItem((Address)ret.result, size, anyHeap, true, HEAPfree);
-    p->heap.bufferPool += h;
+    p->heap.bufferPool.push_back(h);
     // add new segment to free list
     heapItem *h2 = new heapItem(h);
-    p->heap.heapFree += h2;
+    p->heap.heapFree.push_back(h2);
     break;
   }
 
@@ -1509,7 +1509,7 @@ void inferiorFree(process *p, Address block,
   assert(h);
 
   // add block to disabled list
-  hp->disabledList += disabledItem(h, pointsToCheck);
+  hp->disabledList.push_back(disabledItem(h, pointsToCheck));
   hp->disabledListTotalMem += h->length;
   
   // perform deferred freeing if above watermark
@@ -2171,8 +2171,8 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     if (parentProc.shared_objects) {
       shared_objects = new vector<shared_object*>;
       for (unsigned u1 = 0; u1 < parentProc.shared_objects->size(); u1++){
-        *shared_objects += 
-                new shared_object(*(*parentProc.shared_objects)[u1]);
+        (*shared_objects).push_back(
+	    new shared_object(*(*parentProc.shared_objects)[u1]));
       }
     }
 
@@ -2180,28 +2180,28 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     if (parentProc.all_functions) {
       all_functions = new vector<function_base *>;
       for (unsigned u2 = 0; u2 < parentProc.all_functions->size(); u2++)
-        *all_functions += (*parentProc.all_functions)[u2];
+        (*all_functions).push_back((*parentProc.all_functions)[u2]);
     }
 
     all_modules = 0;
     if (parentProc.all_modules) {
       all_modules = new vector<module *>;
       for (unsigned u3 = 0; u3 < parentProc.all_modules->size(); u3++)
-        *all_modules += (*parentProc.all_modules)[u3];
+        (*all_modules).push_back((*parentProc.all_modules)[u3]);
     }
 
     some_modules = 0;
     if (parentProc.some_modules) {
       some_modules = new vector<module *>;
       for (unsigned u4 = 0; u4 < parentProc.some_modules->size(); u4++)
-        *some_modules += (*parentProc.some_modules)[u4];
+        (*some_modules).push_back((*parentProc.some_modules)[u4]);
     }
     
     some_functions = 0;
     if (parentProc.some_functions) {
       some_functions = new vector<function_base *>;
       for (unsigned u5 = 0; u5 < parentProc.some_functions->size(); u5++)
-        *some_functions += (*parentProc.some_functions)[u5];
+        (*some_functions).push_back((*parentProc.some_functions)[u5]);
     }
 
     waiting_for_resources = false;
@@ -2389,7 +2389,7 @@ tp->resourceBatchMode(true);
 
         assert(ret);
 
-        processVec += ret;
+        processVec.push_back(ret);
         activeProcesses++;
 
 #ifndef BPATCH_LIBRARY
@@ -2530,7 +2530,7 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
    // Note: it used to be that the attach ctor called pause()...not anymore...so
    // the process is probably running even as we speak.
 
-   processVec += theProc;
+   processVec.push_back(theProc);
    activeProcesses++;
 
 #ifndef BPATCH_LIBRARY
@@ -3302,7 +3302,7 @@ bool process::handleIfDueToSharedObjectMapping(){
 	    {
 #endif
                if(addASharedObject(*((*changed_objects)[i]))){
-                 *shared_objects += (*changed_objects)[i];
+                 (*shared_objects).push_back((*changed_objects)[i]);
 		 if (((*changed_objects)[i])->getImage()->isDyninstRTLib()) {
 		   hasLoadedDyninstLib = true;
 		   isLoadingDyninstLib = false;
@@ -3493,12 +3493,13 @@ bool process::addASharedObject(shared_object &new_obj){
     // created for this process, then the functions and modules from this
     // shared object need to be added to those lists 
     if(all_modules){
-        *all_modules += *((const vector<module *> *)(new_obj.getModules())); 
+        VECTOR_APPEND(*all_modules, *((vector<module *> *)(new_obj.getModules()))); 
     }
     if(all_functions){
       vector<function_base *> *normal_funcs = (vector<function_base *> *)
                 const_cast< vector<pd_Function *> *>(new_obj.getAllFunctions());
-        *all_functions += *normal_funcs; 
+	// need to concat two vectors ...
+        VECTOR_APPEND(*all_functions, *normal_funcs); 
         normal_funcs = 0;
     }
 
@@ -3920,7 +3921,7 @@ vector<function_base *> *process::getAllFunctions(){
     all_functions = new vector<function_base *>;
     const vector<function_base *> &blah = 
                     (vector<function_base *> &)(symbols->getAllFunctions());
-    *all_functions += blah;
+    VECTOR_APPEND(*all_functions,blah);
 
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
@@ -3928,7 +3929,7 @@ vector<function_base *> *process::getAllFunctions(){
                         const_cast< vector<pd_Function *> *>
                         (((*shared_objects)[j])->getAllFunctions());
            if(funcs){
-               *all_functions += *funcs; 
+               VECTOR_APPEND(*all_functions,*funcs); 
            }
         }
     }
@@ -3945,14 +3946,14 @@ vector<module *> *process::getAllModules(){
 
     // else create the list of all modules
     all_modules = new vector<module *>;
-    *all_modules += *((const vector<module *> *)(&(symbols->getAllModules())));
+    VECTOR_APPEND(*all_modules,*((const vector<module *> *)(&(symbols->getAllModules()))));
 
     if(dynamiclinking && shared_objects){
         for(u_int j=0; j < shared_objects->size(); j++){
            const vector<module *> *mods = (const vector<module *> *)
                         (((*shared_objects)[j])->getModules());
            if(mods) {
-               *all_modules += *mods; 
+               VECTOR_APPEND(*all_modules,*mods); 
            }
     } } 
     return all_modules;
@@ -5485,9 +5486,11 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
       }
       if (req->where & FUNC_EXIT) {
          const vector<instPoint*> func_rets = func->funcExits(this);
-         for (unsigned j=0; j < func_rets.size(); j++)
-            (void)addInstFunc(this, func_rets[j], ast,
+         for (unsigned j=0; j < func_rets.size(); j++) {
+	    instPoint *func_ret = const_cast<instPoint *>(func_rets[j]);
+            (void)addInstFunc(this, func_ret, ast,
                               req->when, req->order, false, false);
+	 }
 
       }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irixDL.C,v 1.10 2000/07/28 17:21:15 pcroth Exp $
+// $Id: irixDL.C,v 1.11 2001/06/12 15:43:31 hollings Exp $
 
 #include <stdio.h>
 #include <sys/ucontext.h>             // gregset_t
@@ -267,7 +267,7 @@ vector<pdElfObjInfo *>dynamic_linking::getRldMap(process *p)
        ptr = rld_obj->pd_next)
   {
     rld_obj = new pdElfObjInfo(p, ptr, is_elf64); // wrapper object
-    ret += rld_obj;
+    ret.push_back(rld_obj);
   }
 
   return ret;
@@ -334,9 +334,9 @@ bool dynamic_linking::setMappingHooks(process *p, pdElfObjInfo *libc_obj)
     if (strcmp(name, "dlopen") == 0) {
       dlopen_addr = rt_addr;
     } else if (strcmp(name, "___tp_dlinsert_post") == 0) {
-      dso_events += new pdDsoEvent(p, DSO_INSERT_POST, rt_addr);
+      dso_events.push_back(new pdDsoEvent(p, DSO_INSERT_POST, rt_addr));
     } else if (strcmp(name, "___tp_dlremove_post") == 0) {
-      dso_events += new pdDsoEvent(p, DSO_REMOVE_POST, rt_addr);
+      dso_events.push_back(new pdDsoEvent(p, DSO_REMOVE_POST, rt_addr));
     }
   }
 
@@ -389,7 +389,7 @@ vector<shared_object *> *dynamic_linking::getSharedObjects(process *p)
     
     // add new shared object
     Address dso_base = obj->pd_ehdr;
-    *ret += new shared_object(dso_name, dso_base, false, true, true, 0);
+    (*ret).push_back(new shared_object(dso_name, dso_base, false, true, true, 0));
   }
   assert(libc_obj);
 
@@ -629,7 +629,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
 	  pdElfObjInfo *obj = new_map[i];
 	  Address base = obj->pd_ehdr;
 	  string name = obj->pd_pathname;
-	  (**changed_objs) += new shared_object(name, base, false, true, true, 0);
+	  (**changed_objs).push_back(new shared_object(name, base, false, true, true, 0));
 	}
       }      
       ret = true;
@@ -649,7 +649,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
 	for (unsigned i = 0; i < old_size; i++) {
 	  if (j == new_size || ((*rld_map[i]) != (*new_map[j]))) 
 	  {
-	    deleted += i;
+	    deleted.push_back(i);
 	  } else {
 	    j++;
 	  }
@@ -669,7 +669,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *p,
 	    }
 	  }
 	  assert(sobj);
-	  (**changed_objs) += sobj;
+	  (**changed_objs).push_back(sobj);
 	}
       }
       ret = true;

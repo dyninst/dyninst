@@ -42,6 +42,8 @@
 #include <stdio.h>
 #include <ctype.h>
 
+#define BPATCH_FILE
+
 #include "process.h"
 #include "symtab.h"
 #include "showerror.h"

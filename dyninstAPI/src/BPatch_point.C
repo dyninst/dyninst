@@ -44,6 +44,8 @@
 #include <memory.h>
 #endif
 
+#define BPATCH_FILE
+
 #include "BPatch_point.h"
 #include "BPatch_snippet.h"
 #include "process.h"

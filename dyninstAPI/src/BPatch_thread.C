@@ -39,11 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.39 2001/02/26 21:34:37 bernat Exp $
+// $Id: BPatch_thread.C,v 1.40 2001/06/12 15:43:28 hollings Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
 #endif
+
+#define BPATCH_FILE
+
 
 #include "process.h"
 #include "inst.h"
@@ -115,12 +118,12 @@ BPatch_thread::BPatch_thread(char *path, char *argv[], char *envp[],
 
     // Contruct a vector out of the contents of argv
     for(int i = 0; argv[i] != NULL; i++)
-	argv_vec += argv[i];
+	argv_vec.push_back(argv[i]);
 
     // Construct a vector out of the contents of envp
     if (envp != NULL) {
     	for(int i = 0; envp[i] != NULL; i++)
-    	    envp_vec += envp[i];
+    	    envp_vec.push_back(envp[i]);
     }
 
     string directoryName = "";

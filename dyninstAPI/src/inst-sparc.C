@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.100 2001/05/12 21:29:37 ning Exp $
+// $Id: inst-sparc.C,v 1.101 2001/06/12 15:43:30 hollings Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1265,7 +1265,7 @@ void returnInstance::addToReturnWaitingList(Address pc, process *proc) {
 
     instWaitingList *instW = new instWaitingList(instructionSeq,instSeqSize,
                                                  addr_,pc,insn,pc,proc);
-    instWList += instW;
+    instWList.push_back(instW);
 }
 
 /****************************************************************************/

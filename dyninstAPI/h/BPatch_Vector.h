@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_Vector.h,v 1.7 2001/02/27 20:44:51 buck Exp $
+// $Id: BPatch_Vector.h,v 1.8 2001/06/12 15:43:27 hollings Exp $
 
 #ifndef _BPatch_Vector_h_
 #define _BPatch_Vector_h_
@@ -49,6 +49,12 @@
 #include <assert.h>
 #include "BPatch_dll.h"
 
+#ifdef USE_STL_VECTOR
+#include <stl.h>
+
+#define BPatch_Vector   vector
+
+#else
 #ifdef external_templates
 #pragma interface
 #endif /* external_templates */
@@ -178,5 +184,7 @@ T& BPatch_Vector<T>::operator[](int n) const
     assert(data != NULL && n >= 0 && n < len);
     return data[n];
 }
+
+#endif
 
 #endif /* _BPatch_Vector_h_ */

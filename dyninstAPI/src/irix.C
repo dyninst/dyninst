@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.23 2001/06/04 18:42:17 bernat Exp $
+// $Id: irix.C,v 1.24 2001/06/12 15:43:31 hollings Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -732,7 +732,7 @@ int process::waitProcs(int *status)
 		     // the parent loaded it!
 		     theChild->hasLoadedDyninstLib = true;
 
-		     processVec += theChild;
+		     processVec.push_back(theChild);
 		     activeProcesses++;
 
 		     // it's really stopped, but we need to mark it running so
