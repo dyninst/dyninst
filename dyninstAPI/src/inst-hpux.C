@@ -189,8 +189,8 @@ void initLibraryFunctions()
 #endif
 }
  
-float computePauseTimeMetric()
-{
+float computePauseTimeMetric(const metricDefinitionNode *) {
+    // we don't need to use the metricDefinitionNode
     timeStamp now;
     timeStamp elapsed=0.0;
 

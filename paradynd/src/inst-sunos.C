@@ -3,6 +3,9 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
+ * Revision 1.38  1996/04/29 03:37:23  tamches
+ * computePauseTimeMetric now takes in a param (but doesn't use it)
+ *
  * Revision 1.37  1996/02/13 21:37:45  naim
  * Minor changes related to cost model - naim
  *
@@ -407,8 +410,8 @@ void initLibraryFunctions()
 #endif
 }
  
-float computePauseTimeMetric()
-{
+float computePauseTimeMetric(const metricDefinitionNode *) {
+    // we don't need to use the metricDefinitionNode
     timeStamp now;
     timeStamp elapsed=0.0;
 
