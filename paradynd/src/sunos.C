@@ -1,7 +1,10 @@
 
 /* 
  * $Log: sunos.C,v $
- * Revision 1.8  1995/09/26 20:17:53  naim
+ * Revision 1.9  1995/10/19 22:37:50  mjrg
+ * Changed back to ptrace stop/cont.
+ *
+ * Revision 1.8  1995/09/26  20:17:53  naim
  * Adding error messages using showErrorCallback function for paradynd
  *
  * Revision 1.7  1995/09/18  22:42:09  mjrg
@@ -106,8 +109,11 @@ void ptraceKludge::continueProcess(process *p, const bool wasStopped) {
 /* Choose either one of the following methods to continue a process.
  * The choice must be consistent with that in process::continueProc_ and OS::osStop.
  */
+#ifndef PTRACE_ATTACH_DETACH
+    if (P_ptrace(PTRACE_CONT, p->pid, (caddr_t) 1, SIGCONT, NULL) == -1) {
+#else
     if (P_ptrace(PTRACE_DETACH, p->pid, (caddr_t) 1, SIGCONT, NULL) == -1) {
-//    if (P_ptrace(PTRACE_CONT, p->pid, (caddr_t) 1, SIGCONT, NULL) == -1) {
+#endif
       cerr << "error in continueProcess\n";
       assert(0);
     }
@@ -130,8 +136,11 @@ bool OS::osStop(pid_t pid) {
  * The choice must be consistent with that in process::continueProc_ 
  * and ptraceKludge::continueProcess
  */
+#ifndef PTRACE_ATTACH_DETACH
+	return (P_kill(pid, SIGSTOP) != -1); 
+#else
 	return (osAttach(pid));
-//	return (P_kill(pid, SIGSTOP) != -1); 
+#endif
 }
 
 // TODO dump core
@@ -158,8 +167,11 @@ bool process::continueProc_() {
 /* choose either one of the following ptrace calls, but not both. 
  * The choice must be consistent with that in OS::osStop and ptraceKludge::continueProcess.
  */
-//  ret = P_ptrace(PTRACE_CONT, pid, (char*)1, 0, (char*)NULL);
+#ifndef PTRACE_ATTACH_DETACH
+  ret = P_ptrace(PTRACE_CONT, pid, (char*)1, 0, (char*)NULL);
+#else
   ret = P_ptrace(PTRACE_DETACH, pid, (char*)1, SIGCONT, (char*)NULL);
+#endif
   return ret != -1;
 }
 
