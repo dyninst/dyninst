@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.70 2004/05/26 21:29:18 legendre Exp $
+ * $Id: Object-elf.C,v 1.71 2004/05/27 18:43:02 tlmiller Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -692,16 +692,20 @@ bool Object::get_relocation_entries( Elf_Scn*& rel_plt_scnp,
 		/* The IA-64 PLT contains 1 special entry, and two entries for each functionDescriptor
 		   in the function descriptor table (.IA_64.pltoff, whose count we're deriving from
 		   its relocation entries).  These entries are in two groups, the second of which is
-		   separated from the first by 128 bits of zeroes.  The entries in the latter group
+		   sometimes separated from the first by 128 bits of zeroes.  The entries in the latter group
 		   are call targets that makes an indirect jump using an FD table entry.  If the
 		   function they want to call hasn't been linked yet, the FD will point to one of 
 		   former group's entries, which will then jump to the first, special entry, in order
 		   to invoke the linker.  The linker, after doing the link, will rewrite the FD to
 		   point directly to the requested function. 
 		   
-		   As we're only interested in call targets, skip the first group and the buffer entirely.
+		   As we're only interested in call targets, skip the first group and the buffer entirely,
+		   if it's present.
 		  */
-		next_plt_entry_addr += (0x10 * 3) + (functionDescriptorCount * 0x10) + 0x10;
+		next_plt_entry_addr += (0x10 * 3) + (functionDescriptorCount * 0x10);
+		
+		unsigned long long * bufferPtr = (unsigned long long*)elf_vaddr_to_ptr( next_plt_entry_addr );
+		if( bufferPtr[0] == 0 && bufferPtr[1] == 0 ) { next_plt_entry_addr += 0x10; }
 		
 #elif defined( i386_unknown_solaris2_5 ) || defined( i386_unknown_linux2_0 )
 		next_plt_entry_addr += plt_entry_size_;  // 1st PLT entry is special
