@@ -6,6 +6,6 @@
 #define SOLARIS_PD_HDR
 
 #include <sys/param.h>
-#define EXIT_NAME "exithandle"
+#define EXIT_NAME "exit"
 
 #endif
