@@ -43,6 +43,9 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
+ * Revision 1.63  1997/05/13 14:26:04  sec
+ * Removed a simple assert
+ *
  * Revision 1.62  1997/05/07 19:01:15  naim
  * Getting rid of old support for threads and turning it off until the new
  * version is finished. Additionally, new superTable, baseTable and superVector
@@ -381,8 +384,6 @@ int main(int argc, char *argv[]) {
     } else if(pd_flavor == string("mpi")) {
       // the executables which are started by poe (for mpi daemon) must report to paradyn
       // the pdRPC is allocated and reportSelf is called
-      assert(pd_flag == 0);
-
       tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, 
 		     pd_machine, NULL, NULL, 0);
       assert(tp);
