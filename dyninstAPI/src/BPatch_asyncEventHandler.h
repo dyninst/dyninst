@@ -372,7 +372,7 @@ class BPatch_asyncEventHandler : public BPatch_eventLock {
     //  requires accessing lower level dyninst data structures), this is
     //  where it should be done.
     bool handleEvent(BPatch_asyncEventRecord &ev)
-         { LOCK_FUNCTION(handleEventLocked)(ev); }
+         { LOCK_FUNCTION(bool, handleEventLocked, (ev)); }
     bool handleEventLocked(BPatch_asyncEventRecord &ev);
 
     //  BPatch_asyncEventHandler::readEvent()

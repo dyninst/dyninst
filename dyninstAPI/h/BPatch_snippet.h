@@ -129,7 +129,7 @@ class BPATCH_DLL_EXPORT BPatch_snippet : public BPatch_eventLock {
     //  Copy constructor
 
     public:  BPatch_snippet(const BPatch_snippet &src) : BPatch_eventLock(src)
-             { LOCK_FUNCTION_V(BPatch_snippetInt)(src); }
+             { LOCK_FUNCTION_V(BPatch_snippetInt,(src)); }
     private: void BPatch_snippetInt(const BPatch_snippet &src);
 
     //  BPatch_snippet:operator=
