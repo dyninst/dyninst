@@ -1,6 +1,9 @@
 # main tool bar
 # $Log: mainMenu.tcl,v $
-# Revision 1.5  1994/05/26 20:56:36  karavan
+# Revision 1.6  1994/05/30 19:22:26  hollings
+# Removed debugging puts.
+#
+# Revision 1.5  1994/05/26  20:56:36  karavan
 # changed location of bitmap file for logo.
 #
 # Revision 1.4  1994/05/23  01:55:41  karavan
@@ -20,17 +23,13 @@
 proc changeApplicState {newVal} {
 global PdApplicState
 
-puts \
-"changeApplicState called with PdApplicState= $PdApplicState newVal = $newVal"
 if {$newVal} {
 	if {! $PdApplicState} {
-	puts "changing state from 0 to 1"
 	set PdApplicState 1
 #	.buttons.2 configure -state normal
 #	.buttons.1 configure -state disabled
 	} 
 } elseif {$PdApplicState} {
-	puts "changing state from 1 to 0"
 	set PdApplicState 0
 #	.buttons.2 configure -state disabled
 #	.buttons.1 configure -state normal
