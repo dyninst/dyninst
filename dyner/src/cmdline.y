@@ -53,7 +53,7 @@ parse_ret parse_type;
 
 %type <boolExpr> bool_expression 
 %type <snippet> arith_expression variable_expr statement inc_decr_expr
-%type <snippet> param
+%type <snippet> param block
 %type <snippetList> param_list statement_list
 %type <funcCall> func_call
 
@@ -61,42 +61,60 @@ parse_ret parse_type;
 %%
 
 start:
-    '(' bool_expression ')' {
+    '(' bool_expression ')' 
+    {
 	parse_result = (BPatch_snippet *) $2;
         parse_type = parsed_bool;
     }
     |
-    statement_list { parse_result = new BPatch_sequence(*$1); 
-		   parse_type = parsed_statement; 
-		   delete $1;
-		   }
+    statement_list
+    { 
+	parse_result = new BPatch_sequence(*$1); 
+	parse_type = parsed_statement; 
+	delete $1;
+    }
     ; 
 
-statement_list:
-    { $$ = new BPatch_Vector<BPatch_snippet *>; }
-    | statement SEMI statement_list
+statement_list: 
+    statement
+    { 
+	$$ = new BPatch_Vector<BPatch_snippet *>; 
+	$$->push_back($1);
+    }
+    | statement_list statement
     {
-	$3->push_front($1);
-        $$ = $3;
+	$1->push_back($2);
+        $$ = $1;
     }
     ;
 
 statement:
-	arith_expression { $$ = $1; }
-	|
-	IF '(' bool_expression ')' statement {
-	     $$ = new BPatch_ifExpr(*$3, *$5);
-	     delete $3;
-	     delete $5;
-	}
-	|
-	IF '(' bool_expression ')' statement ELSE statement {
-	     $$ = new BPatch_ifExpr(*$3, *$5, *$7);
-	     delete $3;
-	     delete $5;
-	     delete $7;
-	}
-	;
+    arith_expression SEMI
+    { 
+	$$ = $1; 
+    }
+    | IF '(' bool_expression ')' block 
+    {
+	$$ = new BPatch_ifExpr(*$3, *$5);
+	delete $3;
+	delete $5;
+    }
+    | IF '(' bool_expression ')' block ELSE block 
+    {
+	$$ = new BPatch_ifExpr(*$3, *$5, *$7);
+	delete $3;
+	delete $5;
+	delete $7;
+    }
+;
+
+block: statement
+     | START_BLOCK statement_list END_BLOCK
+     {
+	$$ = new BPatch_sequence(*$2);
+	delete $2;
+     }
+;
 
 func_call: IDENTIFIER '(' param_list ')'
     { 
@@ -289,6 +307,7 @@ inc_decr_expr:
 	$$ = new BPatch_arithExpr(BPatch_assign, *$2, BPatch_arithExpr(BPatch_minus, 
 			*$2, BPatch_constExpr(1)));
     }
+
 %%
 
 
