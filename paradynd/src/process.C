@@ -14,6 +14,10 @@ char process_rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/process.C,v 1.
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
+ * Revision 1.40  1996/04/08 21:25:18  lzheng
+ * inferiorFreeDefered is not called for HP, since it's not yet
+ * implemented for HP.
+ *
  * Revision 1.39  1996/04/06 21:25:28  hollings
  * Fixed inst free to work on AIX (really any platform with split I/D heaps).
  * Removed the Line class.
@@ -464,8 +468,9 @@ unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
         sprintf(errorLine,"==> TEST <== In inferiorMalloc: heap overflow, calling inferiorFreeDefered for a second chance...\n");
         logLine(errorLine);
 #endif
-
+#if !defined(hppa1_1_hp_hpux)
         inferiorFreeDefered(proc, hp);
+#endif
       }
       countingChances++;
     } while (secondChance);      
@@ -571,9 +576,9 @@ void inferiorFree(process *proc, unsigned pointer, inferiorHeapType type,
 timeStamp t1,t2;
 t1=getCurrentTime(false);
 #endif
-
+#if !defined(hppa1_1_hp_hpux)
       inferiorFreeDefered(proc, hp);
-
+#endif
 #ifdef FREEDEBUG
 t2=getCurrentTime(false);
 if ((float)(t2-t1) > 1.0) {
