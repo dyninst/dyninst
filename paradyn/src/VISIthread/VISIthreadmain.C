@@ -25,9 +25,13 @@
 // * VISIthread server routines:  VISIKillVisi
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.16  1994/07/28 22:32:59  krisna
-/* proper starting sequence for VISIthreadmain thread
+/* Revision 1.17  1994/07/30 20:38:05  newhall
+/* Added calls to visi interface routines Enabled and BulkDataTransfer
+/* durring the processing of new metric choices
 /*
+ * Revision 1.16  1994/07/28  22:32:59  krisna
+ * proper starting sequence for VISIthreadmain thread
+ *
  * Revision 1.15  1994/07/12  17:03:09  newhall
  * added error handling, changed msg binding for the visualization
  * file discriptor
@@ -99,8 +103,7 @@
 #define  VISI_DEFAULT_FOCUS "Root Nodes"
 #define  ERROR_MSG(s1, s2) \
 	 uiMgr->showError(s1,s2); \
-	 printf("error # %d;"); \
-	 printf(s2);
+	 printf("error# %d: %s\n",s1,s2); 
 
 char *AbbreviatedFocus(char *);
 
@@ -323,24 +326,27 @@ void VISIthreadchooseMetRes(char **metricNames,
  VISIthreadGlobals *ptr;
  metric *currMetric;
  metricInstance *currMetInst;
- int numEnabled = 0;
  metricInstance *newEnabled[numMetrics];
- int i,j,found;
  metricType_Array metrics;
  resourceType_Array resources;
  metricInstance *temp;
- timeStamp binWidth = 0.0;
- int numBins = 0;
- char **y;
- int totalSize, where;
  metricInfo *temp2;
- char errorString[128];
  sampleValue buckets[1000];
- int howmany;
+ dataValue_Array   tempdata;
+ timeStamp binWidth = 0.0;
+ int  numEnabled = 0;
+ int  i,j,found;
+ int  numBins = 0;
+ char **y;
+ int  totalSize, where;
+ char errorString[128];
+ int  howmany;
  char *key;
  int  numFoci = 0;
- dataValue_Array   tempdata;
  char *tempName;
+ int  not_nan_count;
+ float_Array bulk_data;
+ int_Array metricIds;
 
 
   PARADYN_DEBUG(("In VISIthreadchooseMetRes numMetrics = %d",numMetrics));
@@ -517,33 +523,49 @@ void VISIthreadchooseMetRes(char **metricNames,
 
     ptr->visip->AddMetricsResources(metrics,resources,binWidth,numBins);
 
+    // send list of enabled metrics to visualizaion
+    if((metricIds.data=(int *)malloc(sizeof(int)*numEnabled))
+        == (int *)NULL){
+	ERROR_MSG(12,"in VISIthreadchooseMetRes");
+        return;
+    }
+    metricIds.count = numEnabled;
+    for(i=0;i<numEnabled;i++){
+       metricIds.data[i] = (int)newEnabled[i]->met; 
+    }
+    ptr->visip->Enabled(metricIds,
+			(int)newEnabled[0]->focus->getCanonicalName());
+
 
     // get old data bucket values for new metric/resources and
     // send them to visualization
     for(i=0;i<numEnabled;i++){
-        howmany = ptr->dmp->getSampleValues(newEnabled[i],buckets,1000,0);
+        howmany = ptr->dmp->getSampleValues(newEnabled[i],
+					    buckets,1000,0);
+        /*
+	printf("howmany = %d after call to dmp->getSampleValues for metricInstance %d\n",howmany,(int)newEnabled[i]);
+	*/
 
-        // if the current bucket value is valid add it to the data
-        // buffer associated with this visualization
-        for(j=0;j<howmany;j++){  
-           if(!(isnan(buckets[j]))){
-              VISIthreadDataHandler(ptr->perStream,
-				    newEnabled[i],j,
-				    buckets[j]);
-           } 
-	} 
+        // send visi all old data bucket values
+	if(howmany > 0){
+            bulk_data.count = howmany; 
+            bulk_data.data = buckets; 
+            ptr->visip->BulkDataTransfer(bulk_data,
+		   (int)newEnabled[i]->met,
+		   (int)newEnabled[0]->focus->getCanonicalName());
+	}
+
     }
 
     free(metrics.data);
     free(resources.data);
+    free(metricIds.data);
     free(tempName); 
     free(y);
   }
-  /*
   else {
       ERROR_MSG(17,"No enabled Metric/focus pairs: VISIthreadchooseMetRes");
   }
-  */
 }
 
 
@@ -660,6 +682,7 @@ void visualizationUser::StopMetricResource(int metricId,
       ptr->dmp->disableDataCollection(ptr->perStream,listItem);
       if(!(ptr->mrlist->remove(listItem))){
         perror("ptr->mrlist->remove"); 
+	ERROR_MSG(16,"remove() in StopMetricResource()");
         return;
       }
     }
@@ -707,7 +730,6 @@ void *VISIthreadmain(void *vargs){
   union dataCallback dataHandlers;
 
 
-
   //initialize global variables
 
   if((globals=(VISIthreadGlobals *)malloc(sizeof(VISIthreadGlobals)))==0){
@@ -732,7 +754,6 @@ void *VISIthreadmain(void *vargs){
   PARADYN_DEBUG(("in visi thread"));
   globals->fd = RPCprocessCreate(&globals->pid, "localhost", "",
 				 args->argv[0],args->argv);
-
   if (globals->fd < 0) {
     PARADYN_DEBUG(("Error in process Create"));
     ERROR_MSG(14,"Error in VISIthreadmain: RPCprocessCreate");
@@ -804,11 +825,12 @@ void *VISIthreadmain(void *vargs){
   // disable all metricInstance data collection
   globals->mrlist->setCurrent();
   while((listItem = globals->mrlist->getCurrent()) != 0){
-    globals->dmp->disableDataCollection(globals->perStream,listItem);
-    if(!(globals->mrlist->remove(listItem))){
-      perror("globals->mrlist->remove");
-    }
-    globals->mrlist->advanceCurrent();
+      globals->dmp->disableDataCollection(globals->perStream,listItem);
+      if(!(globals->mrlist->remove(listItem))){
+          perror("globals->mrlist->remove");
+          ERROR_MSG(16,"remove() in VISIthreadmain"); 
+      }
+      globals->mrlist->advanceCurrent();
   }
 
   // notify VM 
@@ -817,6 +839,8 @@ void *VISIthreadmain(void *vargs){
   PARADYN_DEBUG(("leaving visithread main"));
   thr_exit(0);
 }
+
+
 
 // TODO: change the printf stmts to error no.s and calls to UIM 
 // error reporting routine
@@ -846,18 +870,22 @@ void visiUser::handle_error()
     case igen_decode_err:
          fprintf(stderr, "Could not (un)marshall parameters, pid=%d tid=%d\n",
 		 getpid(),thr_self());
+         ERROR_MSG(16,
+	  "IGEN ERROR igen_(d,en)code_err: Could not (un)marshall parameters");
          ptr->quit = 1;
          break;
 
     case igen_call_err:
          fprintf(stderr, "can't do sync call here, pid = %d tid = %d\n",
 	         getpid(),thr_self());
+         ERROR_MSG(16,"IGEN ERROR igen_call_err: can't do sync call here"); 
          ptr->quit = 1;
          break;
 
     case igen_request_err:
          fprintf(stderr, "unknown message tag pid=%d tid = %d\n",
 	         getpid(),thr_self());
+         ERROR_MSG(16,"IGEN ERROR igen_request_err: unknown message tag"); 
          ptr->quit = 1;
          break;
 
@@ -866,11 +894,13 @@ void visiUser::handle_error()
     default:
          fprintf(stderr, "Error: err_state = %d tid = %d\n", 
 		 err_state,thr_self());
+         ERROR_MSG(16,"IGEN ERROR igen_(send,read)_err"); 
          ptr->quit = 1;
          break;
   }
-  if(ptr->quit == 1)
+  if(ptr->quit == 1){
      kill(ptr->pid,SIGKILL);
+  }
 }
 
 char *AbbreviatedFocus(char *longName){
