@@ -4,10 +4,13 @@
 // Ariel Tamches
 
 /* $Log: shg.C,v $
-/* Revision 1.15  1996/03/29 20:51:12  tamches
-/* on configNode, check for change in hide-ness is moved before check for
-/* true-ness; avoids an assertion failure when expanding a hidden node at times.
+/* Revision 1.16  1996/04/01 21:19:22  tamches
+/* changeHiddenNodes now checks for a NULL rootPtr
 /*
+ * Revision 1.15  1996/03/29 20:51:12  tamches
+ * on configNode, check for change in hide-ness is moved before check for
+ * true-ness; avoids an assertion failure when expanding a hidden node at times.
+ *
  * Revision 1.14  1996/03/08 00:21:39  tamches
  * added support for hidden nodes
  *
@@ -858,6 +861,9 @@ bool shg::changeHiddenNodes(bool newHideTrue, bool newHideFalse, bool newHideUnk
    hideInactiveNodes = newHideInactive;
    hideShadowNodes = newHideShadow;
 
+   if (rootPtr==NULL)
+      return false; // nothing changed since shg has no nodes!
+
    // Now we need to loop thru each node in the dag, rethinking
    // whether or not it is hidden:
    if (!recursiveUpdateHiddenNodes(rootPtr))
@@ -899,6 +905,9 @@ bool shg::changeHiddenNodes(shg::changeType ct, bool hide, bool isCurrShg) {
        default:
 	 assert(false);
    }
+
+   if (rootPtr == NULL)
+      return false; // nothing changed; the shg contains (at the moment) no nodes!
 
    if (!recursiveUpdateHiddenNodes(rootPtr))
       return false; // nothing changed; somewhat surprising.
