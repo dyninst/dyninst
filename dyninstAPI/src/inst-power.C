@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.75 1999/05/03 20:02:34 zandy Exp $
+ * $Id: inst-power.C,v 1.76 1999/07/07 16:03:59 zhichen Exp $
  */
 
 #include "util/h/headers.h"
@@ -971,6 +971,7 @@ void restoreAllRegistersThatNeededSaving(instruction *insn, Address &base)
    base += numInsn/sizeof(instruction);
 }
 
+#if defined(MT_THREAD)
 void generateMTpreamble(char *insn, Address &base, process *proc)
 {
   AstNode *t1,*t2,*t3,*t4,*t5;
@@ -1004,6 +1005,7 @@ void generateMTpreamble(char *insn, Address &base, process *proc)
   base += sizeof(instruction);
   regSpace->freeRegister(src);
 }
+#endif
 
 /*
  * Install a base tramp -- fill calls with nop's for now.
