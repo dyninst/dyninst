@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.13 1994/09/22 00:57:16 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/DMthread/DMresource.C,v 1.14 1994/09/30 19:17:51 rbi Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
- * Revision 1.13  1994/09/22 00:57:16  markc
+ * Revision 1.14  1994/09/30 19:17:51  rbi
+ * Abstraction interface change.
+ *
+ * Revision 1.13  1994/09/22  00:57:16  markc
  * Entered stringHandles into stringPool rather than assigning from const char *
  * Added casts to remove compiler warnings
  *
@@ -84,9 +87,14 @@ resource::resource()
     fullName = names.findAndAdd("");
     parent = NULL;
     suppressSearch = FALSE;
+    abstr = NULL;            // We cannot give it a real abstraction
+                             // because abstractions have not been initialized
+                             // yet.  This is UGLY.  We need a better way
+                             // to initialize globals than relying on 
+                             // their constructors.
 }
 
-resource::resource(resource *p, char *newResource, abstractionType at) 
+resource::resource(resource *p, char *newResource, const char *a) 
 {
     stringHandle iName;
     char tempName[255];
@@ -101,7 +109,7 @@ resource::resource(resource *p, char *newResource, abstractionType at)
     allResources.add(this, (void *) fullName);
     name = iName;
 
-    abstraction = at;
+    abstr = AMfind(a);
 
     suppressSearch = FALSE;
 

@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.28  1994/09/05 20:04:49  jcargill
-/* Fixed read-before-write of thread stack data (spotted by purify)
+/* Revision 1.29  1994/09/30 19:18:28  rbi
+/* Abstraction interface change.
 /*
+ * Revision 1.28  1994/09/05  20:04:49  jcargill
+ * Fixed read-before-write of thread stack data (spotted by purify)
+ *
  * Revision 1.27  1994/08/30  16:23:17  karavan
  * added "silent" node trimming to the base where axis.
  *
@@ -274,6 +277,7 @@ void controlFunc (performanceStream *ps ,
   stringHandle parname;
   char *label;
   dataMgr->enableResourceCreationNotification(ps, newResource);
+
   nodeID = (int) Tk_GetUid(name);
   label = strrchr(name, '/'); label++; 
   if (parent == uim_rootRes) {
@@ -285,6 +289,7 @@ void controlFunc (performanceStream *ps ,
     baseWhere->AddEdge ((int) Tk_GetUid((char *) parname), nodeID, 1);
   }
 }
+
 
 // This callback invoked by dataManager before and after a large 
 // batch of draw requests.  If UIM_BatchMode is set, the UI thread 
@@ -572,7 +577,7 @@ UImain(void* vargs)
     controlFuncs.sFunc = applicStateChanged;
     controlFuncs.bFunc = resourceBatchChanged;
     dataFunc.sample = NULL;
-    uim_defaultStream = dataMgr->createPerformanceStream(context, Sample, BASE,
+    uim_defaultStream = dataMgr->createPerformanceStream(context, Sample, 
         dataFunc, controlFuncs);
     dataMgr->enableResourceCreationNotification(uim_defaultStream, uim_rootRes);
    // display the where axis 

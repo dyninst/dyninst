@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.30  1994/09/22 00:43:30  markc
+ * Revision 1.31  1994/09/30 19:16:49  rbi
+ * Abstraction interface change.
+ *
+ * Revision 1.30  1994/09/22  00:43:30  markc
  * Added "const" for char* args to addExecutable()
  * Made String_Array declaration explicit
  * Incremented version number
@@ -148,7 +151,6 @@ typedef metric *metricList;
 class metricInstance;		
 
 typedef enum { Trace, Sample } dataType;
-typedef enum { BASE, CMF, TCL } abstractionType;
 
 /*
  * error handler call back.
@@ -349,14 +351,12 @@ $remote dataManager {
     //
     // applicationContext	- an application context.
     // dataType 		- Sample or Trace
-    // abstractionType  - source language
     // dataCallback 	- Function to call when new data arrives
     // controlCallback	- Function to call when new structure info arrives
     // sampleInterval	- nominal interval between samples (sample only)
     //
     performanceStream *createPerformanceStream(applicationContext*, 
 					       dataType, 
-					       abstractionType, 
 					       dataCallback, 
 					       controlCallback);
 

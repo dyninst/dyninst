@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.29  1994/09/22 00:56:05  markc
+ * Revision 1.30  1994/09/30 19:17:47  rbi
+ * Abstraction interface change.
+ *
+ * Revision 1.29  1994/09/22  00:56:05  markc
  * Added const to args to addExecutable()
  *
  * Revision 1.28  1994/08/22  15:59:07  markc
@@ -201,7 +204,6 @@ Boolean dataManager::detachApplication(applicationContext *app, Boolean pause)
 
 performanceStream *dataManager::createPerformanceStream(applicationContext *ap,
 						        dataType dt,
-						        abstractionType ab,
 						        dataCallback dc,
 						        controlCallback cc)
 {
@@ -209,7 +211,7 @@ performanceStream *dataManager::createPerformanceStream(applicationContext *ap,
     performanceStream *ps;
 
     tid = getRequestingThread();
-    ps = new performanceStream(ap, dt, ab, dc, cc, tid);
+    ps = new performanceStream(ap, dt, dc, cc, tid);
     ap->streams.add(ps);
 
     return(ps);
@@ -405,7 +407,13 @@ resource *dataManager::newResource(applicationContext *app,
 {
     resource *child;
 
-    child = createResource(res, name, BASE);
+    // rbi: kludge 
+    // calls to this method should specify an abstraction,
+    // but that involves a bunch of other changes that I don't want 
+    // to make right now.
+    // the kludge works because we know that all calls to this method 
+    // are for BASE abstraction resources.  
+    child = createResource(res, name, "BASE");  
     app->tellDaemonsOfResource((const char *) res->getFullName(), name);
     return(child);
 }

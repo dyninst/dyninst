@@ -2,7 +2,10 @@
  * DMresource.h - define the resource data abstraction.
  *
  * $Log: DMresource.h,v $
- * Revision 1.10  1994/09/25 01:56:27  newhall
+ * Revision 1.11  1994/09/30 19:17:52  rbi
+ * Abstraction interface change.
+ *
+ * Revision 1.10  1994/09/25  01:56:27  newhall
  * added #ifndef's
  *
  * Revision 1.9  1994/09/22  00:58:02  markc
@@ -53,6 +56,7 @@ extern "C" {
 #include "util/h/list.h"
 #include "util/h/stringPool.h"
 #include "dataManager.h"
+#include "DMabstractions.h"
 
 class resource;
 
@@ -113,8 +117,7 @@ class resourceList {
 };
 
 class resource {
-      friend resource *createResource(resource *parent, const char *name,
-				      abstractionType at);
+      friend resource *createResource(resource *parent, const char *name, const char *abstr);
       friend class dataManager;
       friend class performanceStream;
       friend class resourceList;
@@ -133,10 +136,10 @@ class resource {
     static resource *rootResource;
     setSuppress(Boolean nv)	{ suppressSearch = nv; }
     getSuppress()		{ return(suppressSearch); }
-
+    abstraction *getAbstraction() { return(abstr); }
   protected:
     resource();
-    resource(resource *parent, char *name, abstractionType at);
+    resource(resource *parent, char *name, const char *a);
 
   private:
     resource *parent;         /* parent of this resourceBase */
@@ -146,7 +149,7 @@ class resource {
 
     stringHandle name;
     stringHandle fullName;
-    abstractionType abstraction;
+    abstraction *abstr;
 
     List<performanceStream*> notify;
 

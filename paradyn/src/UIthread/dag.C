@@ -174,7 +174,7 @@ dag::PrintGraph(FILE *f)
     fprintf(f, "rSize = %d\n", graph->rSize);
     for (r = 0; r < graph->rSize; r++) {
       fprintf (f, "*ROW %d:\n", r);
-      fprintf (f, "\ty y0 y1 y2 y3: %d %d %d %d %d %d\n",
+      fprintf (f, "\ty y0 y1 y2 y3: %d %d %d %d %d\n",
 	       graph->row[r].y, graph->row[r].y0, 
 	       graph->row[r].y1, graph->row[r].y2, graph->row[r].y3);
         for (me = graph->row[r].first; me != NULL; me = me->forw) {

@@ -16,9 +16,12 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.25  1994/09/22 01:01:08  markc
-/* Cast stringHandle to char* to view as text
+/* Revision 1.26  1994/09/30 19:18:12  rbi
+/* Abstraction interface change.
 /*
+ * Revision 1.25  1994/09/22  01:01:08  markc
+ * Cast stringHandle to char* to view as text
+ *
  * Revision 1.24  1994/09/06  08:32:30  karavan
  * Better control of PC output through tunable constants.
  *
@@ -99,7 +102,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmain.C,v 1.25 1994/09/22 01:01:08 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCmain.C,v 1.26 1994/09/30 19:18:12 rbi Exp $";
 #endif
 
 #include <assert.h>
@@ -233,7 +236,7 @@ void PCmain(void* varg)
     controlHandlers.fFunc = PCfold;
 
     dataHandlers.sample = PCnewData;
-    pcStream = dataMgr->createPerformanceStream(context, Sample, BASE,
+    pcStream = dataMgr->createPerformanceStream(context, Sample,
 	dataHandlers, controlHandlers);
     PCbucketWidth = dataMgr->getCurrentBucketWidth();
 

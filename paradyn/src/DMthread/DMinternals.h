@@ -3,7 +3,10 @@
  * Define the classes used in the implementation of the data manager.
  *
  * $Log: DMinternals.h,v $
- * Revision 1.29  1994/09/25 01:56:25  newhall
+ * Revision 1.30  1994/09/30 19:17:43  rbi
+ * Abstraction interface change.
+ *
+ * Revision 1.29  1994/09/25  01:56:25  newhall
  * added #ifndef's
  *
  * Revision 1.28  1994/09/22  00:54:06  markc
@@ -115,7 +118,7 @@
 #include "dataManager.h"
 #include <string.h>
 #include "util/h/machineType.h"
-
+#include <stdlib.h>
 
 // an entry in the daemon dictionary
 class daemonEntry {
@@ -331,13 +334,11 @@ class performanceStream {
     public:
 	performanceStream(applicationContext *a, 
 			  dataType t,
-			  abstractionType ab,
 			  dataCallback dc,
 			  controlCallback cc,
 			  int tid) {
 	    appl = a;
 	    type = t;
-	    abstraction = ab;
 	    dataFunc = dc;
 	    controlFunc = cc;
 	    sampleRate = 10000;
@@ -354,11 +355,9 @@ class performanceStream {
 	void callResourceBatchFunc(batchMode mode);
 	void callFoldFunc(timeStamp width);
 	void callStateFunc(appState state);
-        abstractionType getAbstraction() { return abstraction; }
     private:
 	applicationContext      *appl;
 	dataType                type;
-        abstractionType         abstraction;
 	dataCallback            dataFunc;
 	controlCallback         controlFunc;
 	int threadId;
