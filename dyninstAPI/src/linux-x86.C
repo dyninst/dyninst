@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.4 2002/07/25 22:46:42 bernat Exp $
+// $Id: linux-x86.C,v 1.5 2002/08/28 21:16:12 chadd Exp $
 
 #include <fstream.h>
 
@@ -1196,9 +1196,9 @@ bool process::dlopenDYNINSTlib() {
   //ccw 29 apr 2002 : SPLIT3
   const char DyninstEnvVar[]="DYNINSTAPI_RT_LIB";
 
-  if (dyninstName.length()) {
+/*  if (dyninstName.length()) { //ccw 28 aug 2002 
     // use the library name specified on the start-up command-line
-  } else {
+  } else {*/
     // check the environment variable
     if (getenv(DyninstEnvVar) != NULL) {
       dyninstName = getenv(DyninstEnvVar);
@@ -1208,7 +1208,7 @@ bool process::dlopenDYNINSTlib() {
       showErrorCallback(101, msg);
       return false;
     }
-  }
+/*  }*/
   if (access(dyninstName.c_str(), R_OK)) {
     string msg = string("Runtime library ") + dyninstName
         + string(" does not exist or cannot be accessed!");
