@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixMT.C,v 1.5 2002/05/13 19:51:59 mjbrim Exp $
+// $Id: aixMT.C,v 1.6 2002/06/25 20:27:32 bernat Exp $
 
 #include <sys/pthdebug.h> // Pthread debug library
 #include "dyninstAPI/src/pdThread.h"
@@ -79,7 +79,7 @@ pdThread *process::createThread(
   bool bySelf)
 {
   pdThread *thr;
-
+  fprintf(stderr, "Received notice of new thread.... tid %d, pos %d, stackbase 0x%x, startpc 0x%x\n", tid, pos, stackbase, startpc);
   // creating new thread
   thr = new pdThread(this, tid, pos);
   threads += thr;
