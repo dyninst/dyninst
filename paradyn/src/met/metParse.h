@@ -1,7 +1,12 @@
 
 /*
  * $Log: metParse.h,v $
- * Revision 1.3  1994/08/22 15:53:25  markc
+ * Revision 1.4  1995/02/07 21:59:53  newhall
+ * added a force option to the visualization definition, this specifies
+ * if the visi should be started before metric/focus menuing
+ * removed compiler warnings
+ *
+ * Revision 1.3  1994/08/22  15:53:25  markc
  * Config language version 2.
  *
  * Revision 1.1  1994/07/07  03:25:26  markc
@@ -23,6 +28,7 @@
 #define SET_USER 5
 #define SET_DIR 6
 #define SET_DAEMON 7
+#define SET_FORCE 8
 
 typedef enum { ERR_NO_ERROR,
 	       ERR_NAME_IN_USE_TYPE,
@@ -88,10 +94,10 @@ class tunableMet {
   static void dumpAll();
   static List<tunableMet*> allTunables;
 
-  char *name;
-  int useBvalue;
   float Fvalue;
   int Bvalue;
+  char *name;
+  int useBvalue;
 
  private:
   static int addHelper(char *c);
@@ -158,14 +164,14 @@ public:
   char * command;
   char * daemon;
   char * host;
-  char * execDir;
   char * user;
+  char * execDir;
 };
 
 class visiMet {
 public:
   visiMet() : name(0), user(0), host(0), execDir(0), command(0)
-    { ; }
+    { force = 0; }
   ~visiMet() { destroy(); }
   void destroy();
 
@@ -178,10 +184,11 @@ public:
   static List<visiMet*> allVisis;
 
   char *name;
-  char * command;
-  char * execDir;
-  char * host;
   char * user;
+  char * host;
+  char * execDir;
+  char * command;
+  int force;
 };
 
 #endif

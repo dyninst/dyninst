@@ -10,7 +10,12 @@
 
 /*
  * $Log: metMain.C,v $
- * Revision 1.12  1994/12/21 07:38:43  tamches
+ * Revision 1.13  1995/02/07 21:59:52  newhall
+ * added a force option to the visualization definition, this specifies
+ * if the visi should be started before metric/focus menuing
+ * removed compiler warnings
+ *
+ * Revision 1.12  1994/12/21  07:38:43  tamches
  * Removed uses of tunableConstant::allConstants, which became a private
  * class variable.
  *
@@ -212,7 +217,8 @@ static void add_visi(visiMet *the_vm)
   argv = RPCgetArg(argc, the_vm->command);
 
   // the strings created here are used, not copied in the VM
-  vmMgr->VMAddNewVisualization(the_vm->name, argc, argv, 0, NULL, 0);
+  vmMgr->VMAddNewVisualization(the_vm->name, argc, argv, 
+			       the_vm->force, NULL, 0);
   while (argv[i])
     delete argv[i++];
   delete [] argv;

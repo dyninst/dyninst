@@ -1,7 +1,12 @@
 %{
 /*
  * $Log: metScanner.l,v $
- * Revision 1.2  1994/08/22 15:53:30  markc
+ * Revision 1.3  1995/02/07 21:59:56  newhall
+ * added a force option to the visualization definition, this specifies
+ * if the visi should be started before metric/focus menuing
+ * removed compiler warnings
+ *
+ * Revision 1.2  1994/08/22  15:53:30  markc
  * Config language version 2.
  *
  * Revision 1.1  1994/07/07  03:25:28  markc
@@ -13,7 +18,7 @@
 static char Copyright[] =
     "@(#) Copyright (c) 1992 Jeff Hollingsworth. All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/met/Attic/metScanner.l,v 1.2 1994/08/22 15:53:30 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/met/Attic/metScanner.l,v 1.3 1995/02/07 21:59:56 newhall Exp $";
 #endif
 
 #include <stdio.h>
@@ -91,6 +96,7 @@ name		{ return(tNAME); }
 list		{ return(tLIST); }
 dir		{ return(tDIR); }
 user		{ return(tUSER);}
+force		{ return(tFORCE);}
 [Tt][Rr][Uu][Ee]	{ return(tTRUE);}
 [Ff][Aa][Ll][Ss][Ee]	{ return(tFALSE);}
 {INT}		{

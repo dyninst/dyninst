@@ -3,7 +3,12 @@
 
 /*
  * $Log: metParser.y,v $
- * Revision 1.2  1994/08/22 15:53:26  markc
+ * Revision 1.3  1995/02/07 21:59:54  newhall
+ * added a force option to the visualization definition, this specifies
+ * if the visi should be started before metric/focus menuing
+ * removed compiler warnings
+ *
+ * Revision 1.2  1994/08/22  15:53:26  markc
  * Config language version 2.
  *
  * Revision 1.1  1994/07/07  03:25:27  markc
@@ -25,7 +30,7 @@ extern void handle_error();
 %token tDAEMON tPROCESS tTUNABLE_CONSTANT tIDENT tINT
 %token tCOMMAND tARGS tHOST tLITERAL tFLOAT tCOMMA
 %token tSEMI tLBRAC tRBRAC tFLAVOR tPVM tCM5 tUNIX tNAME
-%token tLIST tVISI tUSER tDIR tFALSE tTRUE
+%token tLIST tVISI tUSER tDIR tFALSE tTRUE tFORCE
 
 %%
 
@@ -79,6 +84,8 @@ vItem: tCOMMAND tLITERAL tSEMI
            { $$.fld.val = $2.cp; $$.fld.spec = SET_USER;}
      | tDIR tIDENT tSEMI
            { $$.fld.val = $2.cp; $$.fld.spec = SET_DIR;};
+     | tFORCE tINT tSEMI
+           { $$.fld.flav = $2.i; $$.fld.spec = SET_FORCE;};
 
 processDef: tPROCESS tIDENT processItem {
                field f;

@@ -199,6 +199,7 @@ q4) What can be defined?
             [user <user string>;]
             [host <host string>;]
             [dir <directory>;]
+	    [force <int >;]
 	}
 
         REQUIRED:
@@ -211,6 +212,8 @@ q4) What can be defined?
         <host string>: IDENTIFIER, determines where the visi is started
                        no entry implies the local host
         <directory>:   IDENTIFIER, not used now
+	<force>:  int, if 1 then the visi will be started without menuing
+		  first, otherwise met/focus menuing will occur first
 
 	Effects:
 	    a visualization named <name> is made available to

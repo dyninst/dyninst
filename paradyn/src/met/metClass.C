@@ -3,7 +3,12 @@
  * Implements classes used for metric description language
  *
  * $Log: metClass.C,v $
- * Revision 1.2  1994/08/31 22:21:01  markc
+ * Revision 1.3  1995/02/07 21:59:50  newhall
+ * added a force option to the visualization definition, this specifies
+ * if the visi should be started before metric/focus menuing
+ * removed compiler warnings
+ *
+ * Revision 1.2  1994/08/31  22:21:01  markc
  * Added log entries to metClass
  *
  */
@@ -239,6 +244,12 @@ int visiMet::set_field(field &f)
   case SET_NAME:
     if (name) delete (name);
     name = f.val;
+    break;
+  case SET_FORCE:
+    force = f.flav;
+    if((force < 0) || (force > 1)){
+      force = 0;
+    }
     break;
   default:
     return 0;
