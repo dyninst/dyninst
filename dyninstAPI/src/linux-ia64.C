@@ -816,18 +816,18 @@ bool process::hasBeenBound( const relocationEntry entry, pd_Function * & target_
 	   
 	Address gotAddress = entry.rel_addr() + base_addr;
 	assert( gotAddress % 16 == 0 );
-	/* DEBUG */ fprintf( stderr, "hasBeenBound(): checking entry at 0x%lx\n", gotAddress );
+	// /* DEBUG */ fprintf( stderr, "hasBeenBound(): checking entry at 0x%lx\n", gotAddress );
 
 	Address functionAddress;
 	if( ! this->readDataSpace( (const void *)gotAddress, 8, (void *) & functionAddress, true ) ) {
 		fprintf( stderr, "%s: failed to read from GOT (0x%lx)\n", __FUNCTION__, gotAddress );
 		return false;
 		}
-	/* DEBUG */ fprintf( stderr, "hasBeenBound(): checking function address 0x%lx\n", functionAddress );
+	// /* DEBUG */ fprintf( stderr, "hasBeenBound(): checking function address 0x%lx\n", functionAddress );
 	
 	/* Do the look up.  We're skipping a potential optimization here (checking to see if
  	   functionAddress is in the PLT first) for simplicitly. */
 	target_pdf = this->findFuncByAddr( functionAddress );
-	/* DEBUG */ fprintf( stderr, "hasBeenBound(): found pd_Function at %p\n", target_pdf );
+	// /* DEBUG */ fprintf( stderr, "hasBeenBound(): found pd_Function at %p\n", target_pdf );
 	return ( target_pdf != NULL );
 	} /* end hasBeenBound() */
