@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.208 2004/04/01 00:48:20 lharris Exp $
+// $Id: symtab.C,v 1.209 2004/04/01 18:54:15 lharris Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2098,8 +2098,7 @@ bool image::buildFunctionMaps(pdvector<pd_Function *> *raw_funcs)
     }     
 
 #if defined(i386_unknown_linux2_0) ||\
-    defined(i386_unknown_solaris2_5) ||\
-    defined(i386_unknown_nt4_0)    
+    defined(i386_unknown_solaris2_5) 
     
     int numIndir = 0;
     unsigned p = 0;
@@ -2181,6 +2180,12 @@ top:
             }   
         }
     }
+#endif
+
+#if defined(i386_unknown_linux2_0) ||\
+    defined(i386_unknown_solaris2_5) ||\
+    defined(i386_unknown_nt4_0) 
+
     //phase 2 - error detection and recovery 
     VECTOR_SORT( (*raw_funcs), rawfuncscmp );
     for( unsigned int k = 0; k + 1 < raw_funcs->size(); k++ )
@@ -2203,11 +2208,9 @@ top:
         }
     }    
 #endif
-
     delete temp;
     return true;
 }
-
 
 
 // Constructor for the image object. The fileDescriptor simply
