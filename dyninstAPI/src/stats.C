@@ -2,7 +2,10 @@
  * Report statistics about dyninst and data collection.
  *
  * $Log: stats.C,v $
- * Revision 1.6  1994/07/20 23:23:40  hollings
+ * Revision 1.7  1994/07/20 23:29:46  hollings
+ * made time in code gen stat stadard.
+ *
+ * Revision 1.6  1994/07/20  23:23:40  hollings
  * added insn generated metric.
  *
  * Revision 1.5  1994/07/16  03:38:50  hollings
@@ -55,9 +58,7 @@ int ptraceOtherOps, ptraceOps, ptraceBytes;
 
 
 
-#ifdef TIME_INST
 time64 totalInstTime;
-#endif
 
 void printDyninstStats()
 {
@@ -90,13 +91,9 @@ void printDyninstStats()
     logLine(errorLine);
     sprintf(errorLine, "    %d instructions generated\n", insnGenerated);
     logLine(errorLine);
-#ifdef TIME_INST
     sprintf(errorLine, "    %f time used to generate instrumentation\n",
-((double) totalInstTime)/1000000.0);
+	((double) totalInstTime)/1000000.0);
     logLine(errorLine);
-#endif
-
-
 }
 
 void printAppStats(struct endStatsRec *stats)
