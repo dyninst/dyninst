@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.104 2002/06/13 19:52:15 mirg Exp $
+// $Id: ast.C,v 1.105 2002/06/14 20:27:16 mirg Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1064,25 +1064,39 @@ Address AstNode::generateCode_phase2(process *proc,
     sprintf(errorLine,"### location: %p ###\n", location);
     logLine(errorLine);
 #endif
-    // Before using kept_register we need to make sure it was computed
-    // on the same path as we are right now
-    if (kept_register!=Null_Register && subpath(kept_path, ifForks)) { 
+    if (kept_register != Null_Register) {
+	// Before using kept_register we need to make sure it was computed
+	// on the same path as we are right now
+	if (subpath(kept_path, ifForks)) { 
 #if defined(ASTDEBUG)
-      sprintf(errorLine,"==> Returning register %d <==\n",kept_register);
-      logLine(errorLine);
+	    sprintf(errorLine,"==> Returning register %d <==\n",kept_register);
+	    logLine(errorLine);
 #endif
-      if (useCount==0) { 
-          rs->unkeep_register(kept_register);
-          Register tmp=kept_register;
-          unkeepRegister();
+	    if (useCount==0) { 
+		rs->unkeep_register(kept_register);
+		Register tmp=kept_register;
+		unkeepRegister();
 #ifdef BPATCH_LIBRARY_F
-	  assert(!rs->isFreeRegister(tmp));
+		assert(!rs->isFreeRegister(tmp));
 #endif
-          return (Address)tmp;
-      }
-      return (Address)kept_register;
+		return (Address)tmp;
+	    }
+	    return (Address)kept_register;
+	}
+	else {
+	    // no need to keep the register anymore
+	    rs->unkeep_register(kept_register);
+	    rs->freeRegister(kept_register);
+	    unkeepRegister();
+	    // Our children have incorrect useCounts (most likely they 
+	    // assume that we will not bother them again, which is wrong)
+	    if (loperand) loperand->setUseCount();
+	    if (roperand) roperand->setUseCount();
+	    if (eoperand) eoperand->setUseCount();
+	    for (unsigned i=0;i<operands.size(); i++)
+		operands[i]->setUseCount() ;
+	}
     }
-
     if (type == opCodeNode) {
         if (op == branchOp) {
 	    assert(loperand->oType == Constant);
