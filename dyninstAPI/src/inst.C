@@ -145,9 +145,14 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
 			  bool noCost)
 {
     returnInstance *retInstance = NULL;
+       // describes how to jmp to the base tramp
+
     instInstance *inst = addInstFunc(proc, location, ast, when, order,
 				     noCost, retInstance);
     if (retInstance) {
+       // Looking at the code for the other addInstFunc below, it seems that
+       // this will always be true...retInstance is never NULL.
+
        retInstance-> installReturnInstance(proc);
        // writes to addr space
     }
@@ -165,6 +170,9 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
 			  bool noCost,
 			  returnInstance *&retInstance)
 {
+    // retInstance gets filled in with info on how to jmp to the base tramp
+    // (the call to findAndInstallBaseTramp doesn't do that)
+
     assert(proc && location);
     initTramps();
 
@@ -188,12 +196,18 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
     instInstance *lastAtPoint = NULL;
 
     point *thePoint;
-    if (!activePoints.defines((const instPoint *)location)) {
-      thePoint = new point;
-      activePoints[(const instPoint*)location] = thePoint;
-    } else
-      thePoint = activePoints[(const instPoint*)location];
-    assert(thePoint);
+    if (!activePoints.find((const instPoint *)location, thePoint)) {
+       thePoint = new point;
+       activePoints[(const instPoint*)location] = thePoint;
+    }
+    
+//    point *thePoint;
+//    if (!activePoints.defines((const instPoint *)location)) {
+//      thePoint = new point;
+//      activePoints[(const instPoint*)location] = thePoint;
+//    } else
+//      thePoint = activePoints[(const instPoint*)location];
+//    assert(thePoint);
 
     instInstance *next;
     for (next = thePoint->inst; next; next = next->next) {
@@ -207,12 +221,8 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
     // get the correct cost.
     // int trampCost = getPointCost(proc, (const instPoint*)location);
 
-    /* make sure the base tramp has been installed for this point */
-    //ret->baseAddr = findAndInstallBaseTramp(proc, location, retInstance);
-    //if (!ret->baseAddr) return(NULL);
-
     // 
-    // Generate the code for this tramp.
+    // Generate the code for this (mini-)tramp.
     //
     // return value is offset of return stmnt.
     //
@@ -271,7 +281,6 @@ instInstance *addInstFunc(process *proc, instPoint *&location,
     installTramp(ret, insn, count); // install mini-tramp into inferior addr space
 
     if (!lastAtPoint) {
-      
         // jump from the base tramp to the minitramp
 	unsigned fromAddr = getBaseBranchAddr(proc, ret);
 	generateBranch(proc, fromAddr, ret->trampBase);
@@ -333,18 +342,9 @@ void getAllInstInstancesForProcess(const process *proc,
 void copyInstInstances(const process *parent, const process *child, 
 	    dictionary_hash<instInstance *, instInstance *> &instInstanceMapping)
 {
-//    vector<point*> allPoints = activePoints.values();
     vector<instInstance*> instsToCopy;
     getAllInstInstancesForProcess(parent, instsToCopy);
  
-//    // find all instInstances of the parent process
-//    for (unsigned u = 0; u < allPoints.size(); u++) {
-//      for (instInstance *inst = allPoints[u]->inst; inst; inst = inst->next) {
-//	if (inst->proc == parent)
-//	  instsToCopy += inst;
-//      }
-//    }
-
     // duplicate the parent instance for the child, and define instMapping
     vector<instInstance *>newInsts;
     for (unsigned u1 = 0; u1 < instsToCopy.size(); u1++) {
