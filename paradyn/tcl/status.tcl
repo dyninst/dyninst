@@ -94,7 +94,12 @@ proc status_message {id message} {
     $widget delete [list $mark +1 chars] end
     $widget insert end $message
     $widget configure -state disabled
-    #update
+
+    # The paradyn UI freezes when starting paradynd and at other times.
+    # At such times, it is advantageous for us to ensure that every
+    # status line is updated before the freeze.  When paradyn stops freezing,
+    # we can remove this line, which slows things down quite a bit.
+    update
 }
 
 
@@ -118,7 +123,9 @@ proc status_state {id urgent} {
     } {
         $widget configure -foreground $status_mesg_fg_normal
     }
-    #update
+    
+    # See the argument in the above routine...
+    update
 }
 
 
