@@ -44,6 +44,9 @@
 
 /*
  * $Log: resource.h,v $
+ * Revision 1.8  1997/01/15 00:29:51  tamches
+ * added uses of dictionary find() method.  Added some const.
+ *
  * Revision 1.7  1996/09/26 18:59:13  newhall
  * added support for instrumenting dynamic executables on sparc-solaris
  * platform
@@ -122,13 +125,15 @@ public:
 
   static void make_canonical(const vector< vector<string> >& focus,
 			     vector< vector<string> >& ret);
-  inline static resource *findResource(string& name);
+  inline static resource *findResource(const string& name);
   inline static resource *findResource(unsigned& name);
   inline static resource *findResource(vector<string>& name);
 
   inline bool isResourceDescendent(resource *is_a_parent);
 
-  static bool foc_to_strings(vector< vector<string> >& string_foc, vector<u_int>& ids);
+  static bool foc_to_strings(vector< vector<string> >& string_foc,
+			     const vector<u_int>& ids,
+			     bool print_err_msg);
   static resource *newResource(resource *parent, void *handle,
 			       const string &abstraction,
 			       const string &name, timeStamp creation,
@@ -181,17 +186,22 @@ inline resource::resource(const string& abstraction, const string& self_name,
   part_name_(self_name), type_(type) { }
 
 inline resource *resource::findResource(unsigned& name) {
-  if (!res_dict.defines(name)) return NULL;
-  return (res_dict[name]);
+   // why is the param call-by-reference?
+   resource *result;
+   if (!res_dict.find(name, result))
+      return NULL;
+   else
+      return result;
 }
 
-inline resource *resource::findResource(string &name) {
+inline resource *resource::findResource(const string &name) {
   if (!name.length()) assert(0);
 
-  if (allResources.defines(name))
-    return (allResources[name]);
+  resource *result;
+  if (!allResources.find(name, result))
+     return NULL;
   else
-    return (NULL);
+     return result;
 }
 
 inline resource *resource::findResource(vector<string>& name) {
@@ -202,12 +212,13 @@ inline resource *resource::findResource(vector<string>& name) {
   for (unsigned u=1; u<n_size; u++)
     flat += string("/") + name[u];
 
-  if (allResources.defines(flat))
-    return (allResources[flat]);
-  else {
+  resource *result;
+  if (!allResources.find(flat, result)) {
     cout << "Cannot find " << flat << endl;
     return (NULL);
   }
+  else
+     return result;
 }
 
 inline void resource::set_id(unsigned id) {
