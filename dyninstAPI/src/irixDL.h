@@ -42,6 +42,7 @@
 #ifndef _IRIX_DL_H_
 #define _IRIX_DL_H_
 
+#include <libelf.h>                        /* ElfXX_Sym */
 #include "util/h/Types.h"
 #include "util/h/Vector.h"
 #include "dyninstAPI/src/sharedobject.h"
@@ -54,7 +55,7 @@ class process;
 // Each version of this class must have the following functions:
 // getSharedObjects, isDynamic, handleIfDueToSharedObjectMapping
 //
-enum dsoEventType_t {
+enum pdDsoEventType {
   DSO_INSERT_PRE,
   DSO_INSERT_VERSION_PRE,
   DSO_INSERT_POST,
@@ -63,24 +64,21 @@ enum dsoEventType_t {
   DSO_UNKNOWN
 };
 
-class dsoEvent_t {
+class pdDsoEvent {
  public:
-  dsoEvent_t(process *p, dsoEventType_t t, Address f);
-  ~dsoEvent_t();
+  pdDsoEvent(process *p, pdDsoEventType t, Address b);
+  ~pdDsoEvent();
 
-  dsoEventType_t type;
-  Address fn_brk;
-  Address next_brk;
-  instruction buf;
-  process *proc;
+  pdDsoEventType type;
+  Address        brk;
+  instruction    buf[2];
+  process       *proc;
 };
+
+class pdElfObjInfo;
 
 class dynamic_linking {
  public:
-  enum rldState_t { rldInit, 
-		    rldPreInsert, rldInsert, 
-		    rldPreRemove, rldRemove};
-
   dynamic_linking();
   ~dynamic_linking();
     
@@ -89,38 +87,47 @@ class dynamic_linking {
      calls to dlopen() and dlclose() */
   vector<shared_object *> *getSharedObjects(process *);
 
-  // returns true if the executable is dynamically linked 
+  /* isDynamic(): returns true if the executable is dynamically linked */
   bool isDynamic();
   
-  /* handleIfDueToSharedObjectMapping(): returns true (and handles
-     new object mapping) if the trap was caused by a change to the
-     link maps */
+  /* handleIfDueToSharedObjectMapping(): if $pc corresponds to a
+     shared object event (i.e. dlopen() or dlclose()), returns true
+     and handles event */
   bool handleIfDueToSharedObjectMapping(process *, 
 					vector<shared_object *> **,
 					u_int &, bool &);
 
-  // undo effects of setMappingHooks() below
   void unsetMappingHooks(process *p);
-
   Address get_r_brk_addr() const;
   Address get_dlopen_addr() const;
-  char r_brk_saved_code[sizeof(instruction)];
 
  private:
-  vector<shared_object *> *getRldObjects(process *p, int &libc_fd, Address &libc_base);
-  void getObjectPath(process *p, Address base, string &ret);
-  bool setMappingHooks(process *p, int libc_fd, Address libc_base);
-  Address dlopenToAddr(process *p, void *dlopen_ret);
+  vector<pdElfObjInfo *> getRldMap(process *p);
+  bool setMappingHooks(process *p, pdElfObjInfo *libc_obj);
   
   bool dynlinked;
   Address dlopen_addr;
-  Address r_brk_addr; // NOTUSED
-  vector<dsoEvent_t *> dso_events;
-  rldState_t state;
+  Address r_brk_addr;
+  vector<pdDsoEvent *> dso_events;
+  vector<pdElfObjInfo *> rld_map;
 };
 
+// ABI-generic wrapper class for "ElfXX_Obj_Info"
+class pdElfObjInfo {
+ public:
+  Address pd_self;
+  Address pd_next;
+  Address pd_prev;
+  Address pd_ehdr;
+  Address pd_orig_ehdr;
+  string  pd_pathname;
 
-// ABI-generic wrapper class for ELF symbol
+  pdElfObjInfo(process *p, Address addr, bool is_elf64);
+  bool operator==(const pdElfObjInfo &) const;
+  bool operator!=(const pdElfObjInfo &) const;
+};
+
+// ABI-generic wrapper class for "ElfXX_Sym"
 class pdElfSym {
  public:
   
@@ -151,7 +158,7 @@ class pdElfSym {
 };
 
 
-// ABI-generic wrapper class for ELF symbol array
+// ABI-generic wrapper class for "ElfXX_Sym" vector
 class pdElfSymVector {
  private:
 
