@@ -348,31 +348,31 @@ void instrCodeNode::prepareCatchupInstr(pdvector<catchupReq *> &stackWalk)
 
       // If the instRequest was not installed, skip...
       if( (curInstReq->getRInstance() != NULL) &&
-	  !(curInstReq->getRInstance()->Installed())) {
-	 if (pd_debug_catchup)   cerr << "Skipped, not installed\n";
-	 continue; // skip it (case 3 above)
+          !(curInstReq->getRInstance()->Installed())) {
+          if (pd_debug_catchup)   cerr << "Skipped, not installed\n";
+          continue; // skip it (case 3 above)
       }
       // If it accesses parameters, skip it...
       if(curInstReq->Ast()->accessesParam()) {
-	 if (pd_debug_catchup)   cerr << "Skipped, accesses parameters\n";
-	 continue; // Case 2
+          if (pd_debug_catchup)   cerr << "Skipped, accesses parameters\n";
+          continue; // Case 2
       }
-
+      
       // Finally, test if it is active in any stack frame. Note: we can
       // get multiple starts this way, which is good. The counter variable
       // in the timer takes care of that.    
       for(unsigned frameIter=0; frameIter < stackWalk.size(); frameIter++)
       {
-	 Frame thisFrame = stackWalk[frameIter]->frame;
-	 bool triggered = 
-	    curInstReq->triggeredInStackFrame(thisFrame, proc());
-	 if(triggered) {
-	    // Push this instRequest onto the list of ones to execute
-	    stackWalk[frameIter]->reqNodes.push_back(curInstReq);
-	 }
+          Frame thisFrame = stackWalk[frameIter]->frame;
+          bool triggered = 
+          curInstReq->triggeredInStackFrame(thisFrame, proc());
+          if(triggered) {
+              // Push this instRequest onto the list of ones to execute
+              stackWalk[frameIter]->reqNodes.push_back(curInstReq);
+          }
       }
    }
-
+   
    // don't mark catchup as having completed because we don't want to mark
    // this until the processMetFocusNode has completed initiating catchup for
    // all of the threads

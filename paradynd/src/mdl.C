@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.128 2003/04/10 21:34:34 schendel Exp $
+// $Id: mdl.C,v 1.129 2003/04/16 21:07:31 bernat Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -717,68 +717,70 @@ bool createCodeAndDataNodes(processMetFocusNode **procNode_arg,
 		     const pdvector<string> &temp_ctr, 
 		     bool /*replace_component*/)
 {
-   processMetFocusNode *procNode = (*procNode_arg);
-   pd_process *proc = procNode->proc();
-   bool dontInsertData = procNode->dontInsertData();
-   // create the instrCodeNodes and instrDataNodes for the flag constraints
-
-   if(repl_cons == NULL) {
-      unsigned flag_size = flag_cons.size(); // could be zero
-
-      for(unsigned fs=0; fs<flag_size; fs++) {
-	 string cons_name(flag_cons[fs]->id());
-	 
-	 instrCodeNode *consCodeNode = 
-	    instrCodeNode::newInstrCodeNode(cons_name, no_thr_focus,
-					    proc, dontInsertData);
-	 bool consCodeNodeComplete = (consCodeNode->numDataNodes() > 0);
-	 
-	 if(! consCodeNodeComplete) {
-	    if(! setup_constraint_code_node(consCodeNode, proc, flag_cons[fs],
-				       *flags_focus_data[fs], dontInsertData)) 
-	    {
-	       delete consCodeNode;
-	       return false;
-	    }
-	 } else {
-	    metric_cerr << "  flag already there " << endl;
-	    assert(consCodeNode);
-	 }
-	 procNode->addConstraintCodeNode(consCodeNode);	    
-      }
-   }
-   instrCodeNode *metCodeNode = 
-      instrCodeNode::newInstrCodeNode(name, no_thr_focus, proc, dontInsertData,
-                                      hw_cntr_str);
-
-   /* if hw_cntr_str is no good, metCodeNode is NULL */
-   if (metCodeNode == NULL) {
-      return false;
-   }
-
-
-   bool metCodeNodeComplete = (metCodeNode->numDataNodes() > 0);
-   if(! metCodeNodeComplete) {
-      // Create the data objects (timers/counters) and create the
-      // astNodes which will be used to generate the instrumentation
-      if(! setup_sampled_code_node(procNode, metCodeNode, proc, id, type, 
-				   repl_cons, stmts, temp_ctr,
-				   repl_focus_data, dontInsertData)) {
-	 delete metCodeNode;
-	 return false;
-      }
-   } else {
-      //cerr << "  met code node already there, reuse it! " << endl;
-   }
-
-   if(!metCodeNode->nonNull()) {
-      metric_cerr << "metCodeNode->nonNull()" << endl;
-      delete metCodeNode;
-      return false;
-   }
-
-   procNode->setMetricVarCodeNode(metCodeNode);
-   return true;
+    processMetFocusNode *procNode = (*procNode_arg);
+    pd_process *proc = procNode->proc();
+    bool dontInsertData = procNode->dontInsertData();
+    // create the instrCodeNodes and instrDataNodes for the flag constraints
+    
+    if(repl_cons == NULL) {
+        unsigned flag_size = flag_cons.size(); // could be zero
+        
+        for(unsigned fs=0; fs<flag_size; fs++) {
+            string cons_name(flag_cons[fs]->id());
+            
+            instrCodeNode *consCodeNode = 
+            instrCodeNode::newInstrCodeNode(cons_name, no_thr_focus,
+                                            proc, dontInsertData);
+            bool consCodeNodeComplete = (consCodeNode->numDataNodes() > 0);
+            
+            if(! consCodeNodeComplete) {
+                if(! setup_constraint_code_node(consCodeNode, proc, flag_cons[fs],
+                                                *flags_focus_data[fs], dontInsertData)) 
+                {
+                    delete consCodeNode;
+                    return false;
+                }
+            } else {
+                metric_cerr << "  flag already there " << endl;
+                assert(consCodeNode);
+            }
+            fprintf(stderr, "Adding constraint node 0x%x to processMetFocusNode 0x%x\n",
+                    consCodeNode, procNode);
+            procNode->addConstraintCodeNode(consCodeNode);	    
+        }
+    }
+    instrCodeNode *metCodeNode = 
+    instrCodeNode::newInstrCodeNode(name, no_thr_focus, proc, dontInsertData,
+                                    hw_cntr_str);
+    
+    /* if hw_cntr_str is no good, metCodeNode is NULL */
+    if (metCodeNode == NULL) {
+        return false;
+    }
+    
+    
+    bool metCodeNodeComplete = (metCodeNode->numDataNodes() > 0);
+    if(! metCodeNodeComplete) {
+        // Create the data objects (timers/counters) and create the
+        // astNodes which will be used to generate the instrumentation
+        if(! setup_sampled_code_node(procNode, metCodeNode, proc, id, type, 
+                                     repl_cons, stmts, temp_ctr,
+                                     repl_focus_data, dontInsertData)) {
+            delete metCodeNode;
+            return false;
+        }
+    } else {
+        //cerr << "  met code node already there, reuse it! " << endl;
+    }
+    
+    if(!metCodeNode->nonNull()) {
+        metric_cerr << "metCodeNode->nonNull()" << endl;
+        delete metCodeNode;
+        return false;
+    }
+    
+    procNode->setMetricVarCodeNode(metCodeNode);
+    return true;
 }
 
 bool createThreadNodes(processMetFocusNode **procNode_arg,
@@ -873,10 +875,10 @@ apply_to_process(pd_process *proc,
 					  aggregateOp(agg_op), dontInsertData);
 
    bool ret = createCodeAndDataNodes(&procNode, id, name, no_thr_focus, 
-			      type, hw_cntr_str, flag_cons, repl_cons, stmts, 
-			      flags_focus_data, repl_focus_data, temp_ctr, 
-			      replace_component);
-
+                                     type, hw_cntr_str, flag_cons, repl_cons, stmts, 
+                                     flags_focus_data, repl_focus_data, temp_ctr, 
+                                     replace_component);
+   
    if(ret == false) {
       return NULL;
    }
