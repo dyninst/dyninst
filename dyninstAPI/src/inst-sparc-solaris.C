@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.60 1999/11/09 19:20:53 cain Exp $
+// $Id: inst-sparc-solaris.C,v 1.61 1999/11/11 20:11:14 nick Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1061,9 +1061,10 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
     Address adr = location->addr;
     retInstance = NULL;
 
+    const instPoint *&cLocation = const_cast<const instPoint *&>(location);
     
     trampTemplate *ret;
-    if (proc->baseMap.find((const instPoint *)location, ret)) // writes to ret if found
+    if (proc->baseMap.find(cLocation, ret)) // writes to ret if found
        // This base tramp already exists; nothing to do.
        return ret;
 
@@ -1079,7 +1080,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
        // relocated to the heap.
        vector<instruction> extra_instrs;
 
-       ret = installBaseTrampSpecial(location, proc,extra_instrs);
+       ret = installBaseTrampSpecial(cLocation, proc,extra_instrs);
 
        // add a branch from relocated function to the base tramp
        // if function was just relocated then location has old address
@@ -2100,7 +2101,7 @@ static enum fuzzyBoolean is_call_outside_function(instruction instr, Address
 bool pd_Function::findInstPoints(const image *owner) {
     bool call_restore_tc;
     int jmp_nop_tc;
-    instPoint *blah = 0;
+    const instPoint *blah = 0;
     bool err;
     unsigned dummyId;
 
@@ -2439,7 +2440,7 @@ bool pd_Function::findInstPoints(const image *owner, Address newAdr, process*){
    enum fuzzyBoolean is_inst_point;
 
    bool err;
-   instPoint *blah = 0;
+   const instPoint *blah = 0;
 
    if (size() == 0) {
      return false;
@@ -2819,14 +2820,14 @@ bool pd_Function::findNewInstPoints(const image *owner,
     return true;
 }
 
-// used for sorting inst points - typecast void *s to instPoint *s, then
+// used for sorting inst points - typecast void *s to instPoint **s, then
 //  do {-1, 0, 1} comparison by address....
 int sort_inst_points_by_address(const void *arg1, const void *arg2) {
-    const instPoint *a = *(const instPoint**)arg1;
-    const instPoint *b = *(instPoint**)arg2;
-    if (a->iPgetAddress() > b->iPgetAddress()) {
+    instPoint * const *a = static_cast<instPoint* const *>(arg1);
+    instPoint * const *b = static_cast<instPoint* const *>(arg2);
+    if ((*a)->iPgetAddress() > (*b)->iPgetAddress()) {
         return 1;
-    } else if (a->iPgetAddress() < b->iPgetAddress()) {
+    } else if ((*a)->iPgetAddress() < (*b)->iPgetAddress()) {
         return -1;
     }
     return 0;
