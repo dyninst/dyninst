@@ -2,9 +2,13 @@
 // customized (for barchart) version of DGclient.C in tclVisi directory
 
 /* $Log: dg2.C,v $
-/* Revision 1.4  1994/10/10 23:08:47  tamches
-/* preliminary changes on the way to swapping the x and y axes
+/* Revision 1.5  1994/10/11 21:59:47  tamches
+/* Removed extra StartVisi() bug.
+/* Implemented dataGrid[][].Enabled()
 /*
+ * Revision 1.4  1994/10/10  23:08:47  tamches
+ * preliminary changes on the way to swapping the x and y axes
+ *
  * Revision 1.3  1994/10/10  14:36:18  tamches
  * fixed some resizing bugs
  *
@@ -29,6 +33,7 @@
 #include "visi/h/visualization.h"
 #include "barChartTcl.h"
 #include "barChart.h"
+
 
 void my_visi_callback(void* arg0, int* arg1, long unsigned int* arg2) {
    if (visi_callback() == -1)
@@ -85,9 +90,10 @@ int Dg2PhaseNameCallback(int dummy) {
 #define   STOPSTREAM       11
 #define   DGSUM            12
 #define   DGVALID          13
-#define   VALUE            14
-#define   CMDERROR         15
-#define   LASTBUCKET       16
+#define   DGENABLED        14
+#define   VALUE            15
+#define   CMDERROR         16
+#define   LASTBUCKET       17
 #define   FIRSTBUCKET      18
 
 struct cmdTabEntry {
@@ -113,6 +119,7 @@ static struct cmdTabEntry Dg_Cmds[] = {
   {"stop",         STOPSTREAM,      2},
   {"sum",          DGSUM,           2},
   {"valid",        DGVALID,         2},
+  {"enabled",      DGENABLED,       2},
   {"value",        VALUE,           3},
   {NULL,           CMDERROR,        0}
 };
@@ -238,6 +245,13 @@ int Dg_TclCommand(ClientData clientData,
     sprintf(interp->result, "%d", dataGrid.Valid(m,r));
     return TCL_OK;
 
+  case DGENABLED:
+    m = atoi(argv[2]);
+    r = atoi(argv[3]);
+    sprintf(interp->result, "%d", dataGrid[m][r].Enabled());
+//    sprintf(interp->result, "%d", dataGrid.Enabled(m,r));
+    return TCL_OK;
+
   case VALUE:       
     m = atoi(argv[2]);
     r = atoi(argv[3]);
@@ -255,7 +269,6 @@ void (*UsersNewDataCallbackRoutine)(int firstBucket, int lastBucket);
    // from the visi lib (first, we do a bit of processing for you, such
    // as determining what the range is buckets you haven't seen yet is).
 
-//int Dg2_Init(Tcl_Interp *interp, void (*userDataCallbackRoutine)(int, int)) {
 int Dg2_Init(Tcl_Interp *interp) {
    // initialize with the visi lib
    int fd = VisiInit();
@@ -298,8 +311,6 @@ int Dg2_Init(Tcl_Interp *interp) {
       cerr << "Dg2_Init() -- couldn't install DATAVALUES callback with visilib" << endl;
       exit(5);
    }
-
-   (void) StartVisi(0, NULL); // presently, the return value is undefined
 
    // install "Dg" as a new tcl command; Dg_TclCommand() will be invoked when a script
    // calls Dg.
