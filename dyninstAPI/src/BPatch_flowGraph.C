@@ -84,11 +84,13 @@ BPatch_flowGraph::BPatch_flowGraph(int_function *func,
    
    unsigned tmpSize = func->get_size();
    if(!tmpSize){
+     fprintf(stderr, "Func has no size!\n");
 	valid = false;
 	return;
    }
 
    if (!createBasicBlocks()) {
+     fprintf(stderr, "Failed to make basic blocks!\n");
       valid = false;
       return;
    }
@@ -182,7 +184,11 @@ BPatch_flowGraph::findLoopExitInstPoints(BPatch_loop *loop,
         for (unsigned j = 0; j < edges.size(); j++) 
             if (!loop->hasBlock(edges[j]->target)) {
 		if (DEBUG_LOOP) edges[j]->dump();
-                points->push_back(edges[j]->instPoint());
+		BPatch_point *iP = edges[j]->instPoint();
+		iP->overrideType(BPatch_locLoopExit);
+		iP->setLoop(loop);
+                points->push_back(iP);
+		
             }
     }
 }
@@ -249,7 +255,10 @@ BPatch_flowGraph::findLoopInstPointsInt(const BPatch_procedureLocation loc,
             // hasBlock is inclusive, checks subloops
             if (!loop->hasBlock(edges[i]->source)) {
 		if (DEBUG_LOOP) edges[i]->dump();
-                points->push_back(edges[i]->instPoint());
+		BPatch_point *iP = edges[i]->instPoint();
+		iP->overrideType(BPatch_locLoopEntry);
+		iP->setLoop(loop);
+                points->push_back(iP);
             }
         }
 
@@ -268,7 +277,7 @@ BPatch_flowGraph::findLoopInstPointsInt(const BPatch_procedureLocation loc,
         // member of this loop (including subloops) and e->target is
         // not a member of this loop (including its subloops)
         findLoopExitInstPoints(loop, points);
-
+	
         break;
     }
 
@@ -279,7 +288,9 @@ BPatch_flowGraph::findLoopInstPointsInt(const BPatch_procedureLocation loc,
         BPatch_point *p;
         void *addr = (void*)loop->getLoopHead()->getRelStart();
         p = createInstructionInstPoint(proc, addr, NULL, NULL);
-        points->push_back(p);
+        p->overrideType(BPatch_locLoopStartIter);
+	p->setLoop(loop);
+	points->push_back(p);
 
         break;
     }
@@ -290,7 +301,10 @@ BPatch_flowGraph::findLoopInstPointsInt(const BPatch_procedureLocation loc,
         // point for the backedge of this loop 
         BPatch_edge *edge = loop->backEdge;
         if (DEBUG_LOOP) edge->dump();
-        points->push_back(edge->instPoint());
+	BPatch_point *iP = edge->instPoint();
+	iP->overrideType(BPatch_locLoopEndIter);
+	iP->setLoop(loop);
+        points->push_back(iP);
 
         // and all edges which exit the loop
         findLoopExitInstPoints(loop, points);
@@ -1497,7 +1511,12 @@ void BPatch_flowGraph::createEdges()
         image *img = mod->exec();
         const unsigned char *relocp;
 
-        relocp = img->getPtrToInstruction((unsigned long)source->getRelLast());
+	if (source->getRelLast() == 0) {
+	  fprintf(stderr, "ERROR: 0 addr for block end!\n");
+	  continue;
+	}
+	else
+	  relocp = img->getPtrToInstruction((unsigned long)source->getRelLast());
 
         if (numTargs == 1) {
             BPatch_edge *edge;
