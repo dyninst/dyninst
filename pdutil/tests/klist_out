@@ -1,0 +1,50 @@
+ ilist empty = 1
+ clist empty = 1
+Printing iList 
+Printing cList 
+Printing iList  : 3 :  : 4 :  : 5 : 
+Printing cList  : happy :  : sad :  : zippy : 
+Printing c2List  : apple :  : orange : 
+These lists should be equal
+Printing iList  : 3 :  : 4 :  : 5 : 
+Printing i2List  : 3 :  : 4 :  : 5 : 
+Printing c2List  : apple :  : orange :  : happy :  : sad :  : zippy : 
+Printing c2List  : apple :  : orange :  : happy :  : sad :  : zippy : 
+Printing pcList  : zippy :  : sad :  : happy :  : orange :  : apple : 
+Printing c2List  : apple :  : orange :  : happy :  : sad :  : zippy : 
+Printing cList  : zippy :  : sad :  : happy :  : orange :  : apple : 
+Printing iList (before 3)  : 3 :  : 4 :  : 5 : 
+Printing iList (removed 3)  : 4 :  : 5 : 
+Printing cList (before removing apple)  : zippy :  : sad :  : happy :  : orange :  : apple : 
+Printing cList (after removing apple)  : zippy :  : sad :  : happy :  : orange : 
+Printing cList (before removing orange)  : zippy :  : sad :  : happy :  : orange : 
+Printing cList (after removing orange)  : zippy :  : sad :  : happy : 
+Printing iList  : 4 :  : 5 :  : 5 :  : 1 : 
+iList after pure_map(&add1)  : 5 :  : 6 :  : 6 :  : 2 : 
+iList after modify(&add1)  : 6 :  : 7 :  : 7 :  : 3 : 
+cList before modify(&addTag)  : zippy :  : sad :  : happy : 
+cList after modify(&addTag)  : zippyhappy :  : sadhappy :  : happyhappy : 
+ count of  : 6 :  : 7 :  : 7 :  : 3 :  is 4 the list is   empty 
+ count of  : zippyhappy :  : sadhappy :  : happyhappy :  is 3 the list is   empty 
+ iList.map(&printTimesTwo) 
+6 * 2 = 12
+7 * 2 = 14
+7 * 2 = 14
+3 * 2 = 6
+ cList.mapUntil(&printUntilZippy) 
+zippyhappy
+sadhappy
+happyhappy
+ Search  : zippyhappy :  : sadhappy :  : happyhappy :  for sadhappy
+cList.find('sadhappy') = sadhappy
+cdr ( : zippyhappy :  : sadhappy :  : happyhappy :  ) =  : zippyhappy :  : sadhappy : 
+cdr ( : 6 :  : 7 :  : 7 :  : 3 :  ) =  : 6 :  : 7 :  : 7 : 
+ car (  : zippyhappy :  : sadhappy :  : happyhappy :  ) = zippyhappy
+ car (  : sadhappy :  : happyhappy :  ) = sadhappy
+ car (  : happyhappy :  ) = happyhappy
+ car (  ) = <empty>
+ car (  : 6 :  : 7 :  : 7 :  : 3 :  ) = 6
+ car (  : 7 :  : 7 :  : 3 :  ) = 7
+ car (  : 7 :  : 3 :  ) = 7
+ car (  : 3 :  ) = 3
+ car (  ) = 3

@@ -1,0 +1,21 @@
+three == happy
+one == p1
+sad is not < p2
+sad is < zippy
+sad is < sade
+sad is not < sa
+sad is not < sad
+sad is > p2
+sad is not > zippy
+sad is not > sade
+sad is not > sad
+one is sad
+two is <empty>
+three is happy
+p1 is sad
+p2 is p2
+p2 is p2
+p4 is p2
+p4 is p2
+sad plus <empty> = sad
+sad plus sad = sadsad

@@ -1,0 +1,37 @@
+String is:            
+DUMP STRING:
+String is:    mark
+DUMP STRING:%s,
+String is: mark  
+DUMP STRING:%s,
+String is: mark 
+DUMP STRING:%s,
+String is:    mark 
+DUMP STRING:%s,
+String is:  mark mark
+DUMP STRING:%s,%s,
+String is:  mark  mark
+DUMP STRING:%s,%s,
+String is:  mark mark 
+DUMP STRING:%s,%s,
+String is:  mark  mark  
+DUMP STRING:%s,%s,
+String is: mark mark 
+DUMP STRING:%s,%s,
+String is:   mark1  mark2 mark3   mark4
+DUMP STRING:%s,%s,%s,%s,
+String is:   mark1  mark2 mark3    mark4 mark5    mark6 mark7 mark8     mark9           mark10    
+DUMP STRING:%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,
+ ilist = 
+ ilist is   empty 
+ slist = 
+ slist is   empty 
+ ilist = 3
+2
+1
+
+ ilist is  NOT  empty 
+ slist = sad
+happy
+
+ slist is  NOT  empty 
