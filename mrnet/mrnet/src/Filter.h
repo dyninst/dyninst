@@ -14,6 +14,7 @@ namespace MRN
 class Filter{
  protected:
   unsigned short filter_id;
+  void * object_local_storage;
 
  public:
   Filter(unsigned short _filter_id);
@@ -26,7 +27,9 @@ class Aggregator: public Filter{
  public:
   typedef struct{
     std::string format_str;
-    void(*filter)(DataElement **, unsigned int, DataElement ***, unsigned int*);
+    void(*filter)(DataElement **, unsigned int,
+                    DataElement ***, unsigned int*,
+                    void**);
   }AggregatorSpec;
 
  private:
@@ -46,7 +49,6 @@ class Synchronizer: public Filter{
   void(*sync)(std::list <Packet *>&, std::list <Packet *>&,
               std::list <RemoteNode *> &, void **);
   std::list <RemoteNode *> downstream_nodes;
-  void * object_local_storage;
   pthread_sync fsync;
 
  public:

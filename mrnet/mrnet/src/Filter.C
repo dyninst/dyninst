@@ -10,7 +10,8 @@ namespace MRN
  *    Filter Class Definition        *
  *======================================*/
 Filter::Filter(unsigned short _filter_id)
-  :filter_id(_filter_id)
+  :filter_id(_filter_id),
+   object_local_storage(NULL)
 {
 }
 
@@ -72,7 +73,7 @@ int Aggregator::push_packets(std::list <Packet *> &packets_in,
     }
   }
 
-  aggr_spec->filter(in, in_count, &out, &out_count);
+  aggr_spec->filter(in, in_count, &out, &out_count, &object_local_storage);
 
   //put out dataelements in packets and push into packets_out list
   for(i=0; i<out_count; i++){
@@ -93,7 +94,7 @@ int Aggregator::push_packets(std::list <Packet *> &packets_in,
  *============================================*/
 Synchronizer::Synchronizer(unsigned short _filter_id,
                                  std::list <RemoteNode *> &nodes)
-  :Filter(_filter_id), downstream_nodes(nodes), object_local_storage(NULL)
+  :Filter(_filter_id), downstream_nodes(nodes)
 {
   sync = (*ParentNode::SyncById)[filter_id];
 }
@@ -119,7 +120,8 @@ int Synchronizer::push_packets(std::list <Packet *> &packets_in,
  *    Default Aggregator Definitions        *
  *==========================================*/
 void aggr_Int_Sum(DataElement **in_elems, unsigned int in_count,
-                  DataElement ***out_elems, unsigned int *out_count)
+                  DataElement ***out_elems, unsigned int *out_count,
+                  void** /* client_data */)
 {
   int sum=0;
 
@@ -135,7 +137,8 @@ void aggr_Int_Sum(DataElement **in_elems, unsigned int in_count,
 }
 
 void aggr_Float_Avg(DataElement **in_elems, unsigned int in_count,
-                    DataElement ***out_elems, unsigned int *out_count)
+                    DataElement ***out_elems, unsigned int *out_count,
+                    void** /* client_data */)
 {
   float avg=0;
 
@@ -156,7 +159,8 @@ void aggr_Float_Avg(DataElement **in_elems, unsigned int in_count,
 }
 
 void aggr_Float_Max(DataElement **in_elems, unsigned int in_count,
-                    DataElement ***out_elems, unsigned int *out_count)
+                    DataElement ***out_elems, unsigned int *out_count,
+                    void** /* client_data */)
 {
   double max=0;
 
@@ -179,7 +183,8 @@ void aggr_Float_Max(DataElement **in_elems, unsigned int in_count,
 
 
 void aggr_CharArray_Concat(DataElement **in_elems, unsigned int in_count,
-                           DataElement ***out_elems, unsigned int *out_count)
+                           DataElement ***out_elems, unsigned int *out_count,
+                           void** /* client_data */)
 {
   int result_array_size=0;
   char *result_array;
@@ -206,7 +211,8 @@ void aggr_CharArray_Concat(DataElement **in_elems, unsigned int in_count,
 
 void
 aggr_IntEqClass(DataElement **in_elems, unsigned int in_count,
-                  DataElement ***out_elems, unsigned int *out_count)
+                  DataElement ***out_elems, unsigned int *out_count,
+                  void** /* client_data */)
 {
     std::map<unsigned int, std::vector<unsigned int> > classes;
 
