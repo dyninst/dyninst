@@ -34,7 +34,9 @@ int main(int argc, char **argv)
             "MRNet's \"Filter Loading\" functionality.\n");
 
     test = new Test("MRNet Dynamic Filter Test");
-    Network * network = new Network( topology_file, backend_exe );
+
+	const char * dummy_argv=NULL;
+    Network * network = new Network( topology_file, backend_exe, &dummy_argv );
     if( network->fail() ){
         fprintf(stderr, "Network Initialization failure\n");
         network->error_str(argv[0]);
@@ -77,7 +79,7 @@ int main(int argc, char **argv)
 int test_CountFilter( Network * network, const char * so_file )
 {
     int retval, tag, recv_val=0;
-    void * buf;
+    Packet * buf;
     std::string testname("test_Count"); 
 
     test->start_SubTest(testname);
@@ -103,7 +105,7 @@ int test_CountFilter( Network * network, const char * so_file )
         return -1;
     }
 
-    retval = stream->recv(&tag, (void**)&buf);
+    retval = stream->recv(&tag, &buf);
     assert( retval != 0 ); //shouldn't be 0, either error or block till data
     if( retval == -1){
         //recv error
@@ -134,7 +136,7 @@ int test_CountFilter( Network * network, const char * so_file )
 int test_CountOddsAndEvensFilter( Network * network, const char * so_file )
 {
     int num_odds=0, num_evens=0, retval, tag=0;
-    void * buf;
+    Packet * buf;
     std::string testname("test_CountOddsAndEvens"); 
 
     test->start_SubTest(testname);
@@ -162,7 +164,7 @@ int test_CountOddsAndEvensFilter( Network * network, const char * so_file )
         return -1;
     }
 
-    retval = stream->recv(&tag, (void**)&buf);
+    retval = stream->recv(&tag, &buf);
     assert( retval != 0 ); //shouldn't be 0, either error or block till data
     if( retval == -1){
         //recv error

@@ -32,7 +32,8 @@ int main(int argc, char **argv)
             "MRNet's built-in filters.\n\n");
 
     test = new Test("MRNet Native Filter Test");
-    Network * network = new Network( topology_file, backend_exe );
+	const char * dummy_argv=NULL;
+    Network * network = new Network( topology_file, backend_exe, &dummy_argv  );
     if( network->fail() ){
         fprintf(stderr, "Network Initialization failure\n");
         network->error_str(argv[0]);
@@ -72,7 +73,7 @@ int main(int argc, char **argv)
 
 int test_Sum( Network * network, DataType type )
 {
-    void * buf;
+    Packet * buf;
     char recv_val[8];
     int tag=0, retval=0;
     std::string testname;
@@ -154,7 +155,7 @@ int test_Sum( Network * network, DataType type )
         return -1;
     }
 
-    retval = stream->recv(&tag, (void**)&buf);
+    retval = stream->recv(&tag, &buf);
     assert( retval != 0 ); //shouldn't be 0, either error or block till data
     if( retval == -1){
         //recv error

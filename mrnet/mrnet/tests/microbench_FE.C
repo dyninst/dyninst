@@ -112,10 +112,11 @@ BuildNetwork( std::string cfgfile, std::string backend_exe )
 {
     mb_time startTime;
     mb_time endTime;
+	const char *argv=NULL;
 
     std::cout << "FE: network instantiation: ";
     startTime.set_time();
-    Network * network = new Network( cfgfile.c_str(), backend_exe.c_str() );
+    Network * network = new Network( cfgfile.c_str(), backend_exe.c_str(), &argv );
     if( network->fail() )
     {
         std::cerr << "FE: network initialization failed" << std::endl;
@@ -184,7 +185,7 @@ DoRoundtripLatencyExp( Stream* stream,
 
         // receive reduced value
         int tag;
-        char* buf = NULL;
+        Packet* buf = NULL;
         int rret = 0;
         nTries = 0;
 #if READY
@@ -195,7 +196,7 @@ DoRoundtripLatencyExp( Stream* stream,
         {
             tag = 0;
             buf = NULL;
-            rret = stream->recv( &tag, (void**)&buf );
+            rret = stream->recv( &tag, &buf );
             if( rret == -1 )
             {
                 std::cerr << "FE: roundtrip latency recv() failed" << std::endl;
@@ -280,14 +281,14 @@ DoReductionThroughputExp( Stream* stream,
     {
         // receive reduced value
         int tag;
-        char* buf;
+        Packet* buf;
         int rret;
         unsigned int nTries = 0;
         do
         {
             tag = 0;
             buf = NULL;
-            rret = stream->recv( &tag, (void**)&buf );
+            rret = stream->recv( &tag, &buf );
             if( rret == -1 )
             {
                 std::cerr << "FE: reduction throughput recv() failed" 

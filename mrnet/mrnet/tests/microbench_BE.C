@@ -21,7 +21,7 @@ main( int argc, char* argv[] )
     int ret = 0;
     Stream* stream;
     int tag;
-    char* buf = NULL;
+    Packet* buf = NULL;
 
 
     if( getenv( "MRN_DEBUG_BE" ) != NULL )
@@ -65,7 +65,7 @@ main( int argc, char* argv[] )
     {
         // receive the broadcast message
         tag = 0;
-        int rret = network->recv( &tag, (void**)&buf, &stream );
+        int rret = network->recv( &tag, &buf, &stream );
         if( rret == -1 )
         {
             std::cerr << "BE: Stream::recv() failed" << std::endl;
@@ -140,7 +140,7 @@ main( int argc, char* argv[] )
     // cleanup
     // receive a go-away message
     tag = 0;
-    int rret = network->recv( &tag, (void**)&buf, &stream );
+    int rret = network->recv( &tag, &buf, &stream );
     if( (rret != -1) && (tag != MB_EXIT) )
     {
         std::cerr << "BE: received unexpected go-away tag " << tag << std::endl;

@@ -27,12 +27,12 @@ class timer{
     while(gettimeofday(&_end, NULL) == -1);
   }
   void print_start(){
-    mrn_printf(1, MCFL, stderr, "TIME: %s started at %d.%d\n", 
-	    id_str, (int)_start.tv_sec, (int)_start.tv_usec);
+    mrn_dbg(1, mrn_printf(FLF, stderr, "TIME: %s started at %d.%d\n", 
+	    id_str, (int)_start.tv_sec, (int)_start.tv_usec));
   }
   void print_end(){
-    mrn_printf(1, MCFL, stderr, "TIME: %s ended at %d.%d\n", 
-	    id_str, (int)_end.tv_sec, (int)_end.tv_usec);
+    mrn_dbg(1, mrn_printf(FLF, stderr, "TIME: %s ended at %d.%d\n", 
+	    id_str, (int)_end.tv_sec, (int)_end.tv_usec));
   }
 };
 

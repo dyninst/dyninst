@@ -39,7 +39,8 @@ int main(int argc, char **argv)
 
     test = new Test( "MRNet Basic Test", stdout );
 
-    Network * network = new Network(argv[1], argv[2]);
+	const char * dummy_argv=NULL;
+    Network * network = new Network( argv[1], argv[2], &dummy_argv );
     if( network->fail() ){
         fprintf(stderr, "Network Initialization failure\n");
         network->error_str(argv[0]);
@@ -172,7 +173,7 @@ int test_array( Network * network, Stream *stream, bool anonymous, bool block,
     unsigned int i, recv_array_len=0;
     int num_received=0, num_to_receive=0, data_size=0;
     int tag=0;
-    char *buf;
+    Packet *buf;
     bool success = true;
     std::string testname, format_string;
 
@@ -335,10 +336,10 @@ int test_array( Network * network, Stream *stream, bool anonymous, bool block,
         int retval;
 
         if(!anonymous){
-            retval = stream->recv(&tag, (void**)&buf, block);
+            retval = stream->recv(&tag, &buf, block);
         }
         else{
-            retval = network->recv(&tag, (void**)&buf, &recv_stream, block);
+            retval = network->recv(&tag, &buf, &recv_stream, block);
         }
 
         if( retval == -1){

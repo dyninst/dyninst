@@ -9,7 +9,7 @@
 #include "mrnet/tests/timer.h"
 
 enum{
-    PROT_CHAR_SUM=MRN::FIRST_APPL_TAG,
+    PROT_CHAR_SUM=FIRST_APPL_TAG,
     PROT_UCHAR_SUM,
     PROT_INT16_SUM,
     PROT_UINT16_SUM,

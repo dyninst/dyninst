@@ -11,7 +11,7 @@ using namespace MRN;
 
 int main(int argc, char **argv){
     Stream * stream;
-    char * buf=NULL;
+    Packet * buf=NULL;
     int tag=0, recv_array_len=0;
     void * recv_array=NULL;
     bool success=true;
@@ -26,7 +26,7 @@ int main(int argc, char **argv){
     }
 
     do{
-        if ( network->recv(&tag, (void **)&buf, &stream) != 1){
+        if ( network->recv(&tag, &buf, &stream) != 1){
             fprintf(stderr, "stream::recv() failure\n");
         }
 

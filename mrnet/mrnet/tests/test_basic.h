@@ -6,7 +6,7 @@
 #if !defined(test_basic_h)
 #define test_basic_h 1
 
-typedef enum {PROT_CHAR=MRN::FIRST_APPL_TAG, PROT_UCHAR,
+typedef enum {PROT_CHAR=FIRST_APPL_TAG, PROT_UCHAR,
               PROT_SHORT, PROT_USHORT,
               PROT_INT, PROT_UINT,
               PROT_LONG, PROT_ULONG,

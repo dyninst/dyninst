@@ -51,6 +51,7 @@ int main(int argc, char **argv)
 {
     Stream * stream_BC;
 
+    //set_OutputLevel(5);
     if( argc != 3 ){
         fprintf(stderr, "Usage: %s <topology file> <backend_exe>\n", argv[0]);
         exit(-1);
@@ -67,7 +68,8 @@ int main(int argc, char **argv)
 
     test = new Test( "MRNet Basic Test", stdout );
 
-    Network * network = new Network( argv[1], argv[2] );
+	const char * dummy_argv=NULL;
+    Network * network = new Network( argv[1], argv[2], &dummy_argv );
     if( network->fail() ){
         fprintf(stderr, "Network Initialization failure\n");
         network->error_str(argv[0]);
@@ -221,7 +223,7 @@ int test_char( Network * network, Stream *stream, bool anonymous, bool block)
     char send_val=-17, recv_val=0;
     int num_received=0, num_to_receive=0;
     int tag;
-    char *buf;
+    Packet *buf;
     bool success = true;
     std::string testname("test_char(");
 
@@ -265,15 +267,15 @@ int test_char( Network * network, Stream *stream, bool anonymous, bool block)
         int retval;
 
         if(!anonymous){
-            retval = stream->recv(&tag, (void**)&buf, block);
+            retval = stream->recv(&tag, &buf, block);
         }
         else{
-            retval = network->recv(&tag, (void**)&buf, &recv_stream, block);
+            retval = network->recv(&tag, &buf, &recv_stream, block);
         }
 
         if( retval == -1){
             //recv error
-            test->print("stream::recv() failure\n", testname);
+            test->print("stream::recv1() failure\n", testname);
             test->end_SubTest(testname, FAILURE);
             return -1;
         }
@@ -326,7 +328,7 @@ int test_uchar( Network * network, Stream *stream, bool anonymous, bool block)
     unsigned char send_val=17, recv_val=0;
     int num_received=0, num_to_receive=0;
     int tag;
-    char *buf;
+    Packet *buf;
     bool success = true;
     std::string testname("test_uchar(");
 
@@ -370,10 +372,10 @@ int test_uchar( Network * network, Stream *stream, bool anonymous, bool block)
         int retval;
 
         if(!anonymous){
-            retval = stream->recv(&tag, (void**)&buf, block);
+            retval = stream->recv(&tag, &buf, block);
         }
         else{
-            retval = network->recv(&tag, (void**)&buf, &recv_stream, block);
+            retval = network->recv(&tag, &buf, &recv_stream, block);
         }
 
         if( retval == -1){
@@ -431,7 +433,7 @@ int test_short( Network * network, Stream *stream, bool anonymous, bool block)
     int16_t send_val=-17, recv_val=0;
     int num_received=0, num_to_receive=0;
     int tag;
-    char *buf;
+    Packet *buf;
     bool success = true;
     std::string testname("test_short(");
 
@@ -475,10 +477,10 @@ int test_short( Network * network, Stream *stream, bool anonymous, bool block)
         int retval;
 
         if(!anonymous){
-            retval = stream->recv(&tag, (void**)&buf, block);
+            retval = stream->recv(&tag, &buf, block);
         }
         else{
-            retval = network->recv(&tag, (void**)&buf, &recv_stream, block);
+            retval = network->recv(&tag, &buf, &recv_stream, block);
         }
 
         if( retval == -1){
@@ -537,7 +539,7 @@ int test_ushort( Network * network, Stream *stream, bool anonymous, bool block)
     uint16_t send_val=17, recv_val=0;
     int num_received=0, num_to_receive=0;
     int tag;
-    char *buf;
+    Packet *buf;
     bool success = true;
     std::string testname("test_ushort(");
 
@@ -581,10 +583,10 @@ int test_ushort( Network * network, Stream *stream, bool anonymous, bool block)
         int retval;
 
         if(!anonymous){
-            retval = stream->recv(&tag, (void**)&buf, block);
+            retval = stream->recv(&tag, &buf, block);
         }
         else{
-            retval = network->recv(&tag, (void**)&buf, &recv_stream, block);
+            retval = network->recv(&tag, &buf, &recv_stream, block);
         }
 
         if( retval == -1){
@@ -643,7 +645,7 @@ int test_int( Network * network, Stream *stream, bool anonymous, bool block)
     int32_t send_val = -17, recv_val=0;
     int num_received=0, num_to_receive=0;
     int tag;
-    char *buf;
+    Packet *buf;
     bool success = true;
     std::string testname("test_int(");
 
@@ -687,10 +689,10 @@ int test_int( Network * network, Stream *stream, bool anonymous, bool block)
         int retval;
 
         if(!anonymous){
-            retval = stream->recv(&tag, (void**)&buf, block);
+            retval = stream->recv(&tag, &buf, block);
         }
         else{
-            retval = network->recv(&tag, (void**)&buf, &recv_stream, block);
+            retval = network->recv(&tag, &buf, &recv_stream, block);
         }
 
         if( retval == -1){
@@ -749,7 +751,7 @@ int test_uint( Network * network, Stream *stream, bool anonymous, bool block)
     uint32_t send_val = 17, recv_val=0;
     int num_received=0, num_to_receive=0;
     int tag;
-    char *buf;
+    Packet *buf;
     bool success = true;
     std::string testname("test_uint(");
 
@@ -793,10 +795,10 @@ int test_uint( Network * network, Stream *stream, bool anonymous, bool block)
         int retval;
 
         if(!anonymous){
-            retval = stream->recv(&tag, (void**)&buf, block);
+            retval = stream->recv(&tag, &buf, block);
         }
         else{
-            retval = network->recv(&tag, (void**)&buf, &recv_stream, block);
+            retval = network->recv(&tag, &buf, &recv_stream, block);
         }
 
         if( retval == -1){
@@ -855,7 +857,7 @@ int test_long( Network * network, Stream *stream, bool anonymous, bool block)
     int64_t send_val = -17, recv_val=0;
     int num_received=0, num_to_receive=0;
     int tag;
-    char *buf;
+    Packet *buf;
     bool success = true;
     std::string testname("test_long(");
 
@@ -899,10 +901,10 @@ int test_long( Network * network, Stream *stream, bool anonymous, bool block)
         int retval;
 
         if(!anonymous){
-            retval = stream->recv(&tag, (void**)&buf, block);
+            retval = stream->recv(&tag, &buf, block);
         }
         else{
-            retval = network->recv(&tag, (void**)&buf, &recv_stream, block);
+            retval = network->recv(&tag, &buf, &recv_stream, block);
         }
 
         if( retval == -1){
@@ -961,7 +963,7 @@ int test_ulong( Network * network, Stream *stream, bool anonymous, bool block)
     uint64_t send_val = 17, recv_val=0;
     int num_received=0, num_to_receive=0;
     int tag;
-    char *buf;
+    Packet *buf;
     bool success = true;
     std::string testname("test_ulong(");
 
@@ -1005,10 +1007,10 @@ int test_ulong( Network * network, Stream *stream, bool anonymous, bool block)
         int retval;
 
         if(!anonymous){
-            retval = stream->recv(&tag, (void**)&buf, block);
+            retval = stream->recv(&tag, &buf, block);
         }
         else{
-            retval = network->recv(&tag, (void**)&buf, &recv_stream, block);
+            retval = network->recv(&tag, &buf, &recv_stream, block);
         }
 
         if( retval == -1){
@@ -1067,7 +1069,7 @@ int test_float( Network * network, Stream *stream, bool anonymous, bool block)
     float send_val = -17.234, recv_val=0;
     int num_received=0, num_to_receive=0;
     int tag;
-    char *buf;
+    Packet *buf;
     bool success = true;
     std::string testname("test_float(");
 
@@ -1111,10 +1113,10 @@ int test_float( Network * network, Stream *stream, bool anonymous, bool block)
         int retval;
 
         if(!anonymous){
-            retval = stream->recv(&tag, (void**)&buf, block);
+            retval = stream->recv(&tag, &buf, block);
         }
         else{
-            retval = network->recv(&tag, (void**)&buf, &recv_stream, block);
+            retval = network->recv(&tag, &buf, &recv_stream, block);
         }
 
         if( retval == -1){
@@ -1173,7 +1175,7 @@ int test_double( Network * network, Stream *stream, bool anonymous, bool block)
     double send_val = 17.3421, recv_val=0;
     int num_received=0, num_to_receive=0;
     int tag;
-    char *buf;
+    Packet *buf;
     bool success = true;
     std::string testname("test_double(");
 
@@ -1217,10 +1219,10 @@ int test_double( Network * network, Stream *stream, bool anonymous, bool block)
         int retval;
 
         if(!anonymous){
-            retval = stream->recv(&tag, (void**)&buf, block);
+            retval = stream->recv(&tag, &buf, block);
         }
         else{
-            retval = network->recv(&tag, (void**)&buf, &recv_stream, block);
+            retval = network->recv(&tag, &buf, &recv_stream, block);
         }
 
         if( retval == -1){
@@ -1279,7 +1281,7 @@ int test_string( Network * network, Stream *stream, bool anonymous, bool block)
     char *send_val=strdup("Test String"), *recv_val=0;
     int num_received=0, num_to_receive=0;
     int tag;
-    char *buf;
+    Packet *buf;
     bool success = true;
     std::string testname("test_string(");
 
@@ -1323,10 +1325,10 @@ int test_string( Network * network, Stream *stream, bool anonymous, bool block)
         int retval;
 
         if(!anonymous){
-            retval = stream->recv(&tag, (void**)&buf, block);
+            retval = stream->recv(&tag, &buf, block);
         }
         else{
-            retval = network->recv(&tag, (void**)&buf, &recv_stream, block);
+            retval = network->recv(&tag, &buf, &recv_stream, block);
         }
 
         if( retval == -1){
@@ -1385,7 +1387,7 @@ int test_alltypes( Network * network, Stream *stream, bool anonymous, bool block
     Stream *recv_stream;
     int num_received=0, num_to_receive=0;
     int tag;
-    char *buf;
+    Packet *buf;
     bool success = true;
 
     char send_char='A', recv_char=0;
@@ -1447,10 +1449,10 @@ int test_alltypes( Network * network, Stream *stream, bool anonymous, bool block
         int retval;
 
         if(!anonymous){
-            retval = stream->recv(&tag, (void**)&buf, block);
+            retval = stream->recv(&tag, &buf, block);
         }
         else{
-            retval = network->recv(&tag, (void**)&buf, &recv_stream, block);
+            retval = network->recv(&tag, &buf, &recv_stream, block);
         }
 
         if( retval == -1){
