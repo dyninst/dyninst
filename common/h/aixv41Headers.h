@@ -113,6 +113,16 @@ extern int P_waitpid(pid_t pid, int *statusp, int options);
 extern size_t P_write (int FILEDES, const void *BUFFER, size_t SIZE);
 extern int P_chdir(const char *path);
 
+extern int P_putenv(const char *str);
+
+/* SYSTEM-V shared memory */
+#include <sys/ipc.h>
+#include <sys/shm.h> /* shmid_ds */
+extern int P_shmget(key_t, int, int);
+extern void *P_shmat(int, void *, int);
+extern int P_shmdt(void *);
+extern int P_shmctl(int, int, struct shmid_ds *);
+
 /* ANSI */
 extern void P_exit (int STATUS);
 extern int P_fflush(FILE *stream);
@@ -159,7 +169,7 @@ extern int P_strcasecmp(const char *s1, const char *s2);
 extern int P_strncasecmp (const char *S1, const char *S2, size_t N);
 extern void P_endservent(void);
 
-inline int P_ptrace(int req, int pid, char *addr, int data, char *addr2)
+inline int P_ptrace(int req, int pid, void *addr, int data, void *addr2)
   { return(ptrace(req, pid, (int *)addr, data, (int *)addr2));}
 
 extern int P_rexec(char **ahost, u_short inport, char *user, char *passwd, char *cmd, int *fd2p);
