@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Types.h,v 1.5 1998/12/25 21:47:23 wylie Exp $
+ * $Id: Types.h,v 1.6 1999/01/24 00:13:52 wylie Exp $
  * Types.h: commonly used types.
 ************************************************************************/
 
@@ -49,7 +49,7 @@
 
 typedef unsigned int Word;
 
-typedef int RegValue;           // register content
+typedef long int RegValue;      // register content
 typedef unsigned char Register; // a register number, e.g., [0..31]
 const Register Null_Register = (Register)(-1); // '255'
 
