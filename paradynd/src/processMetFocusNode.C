@@ -59,8 +59,9 @@ processMetFocusNode::processMetFocusNode(process *p,
 		       aggregateOp agg_op, bool arg_dontInsertData)
   : aggregator(agg_op, getCurrSamplingRate()),
     parentNode(NULL), aggInfo(NULL), proc_(p), aggOp(agg_op), 
-    aggInfoInitialized(false), metric_name(metname), focus(focus_), 
-    dontInsertData_(arg_dontInsertData), catchupNotDoneYet_(false)
+    metric_name(metname), focus(focus_), 
+    dontInsertData_(arg_dontInsertData), catchupNotDoneYet_(false),
+    currentlyPaused(false), insertionAttempts(0), function_not_inserted(NULL)
 {
   allProcNodes.push_back(this);
 }
@@ -115,7 +116,7 @@ bool processMetFocusNode::instrLoaded() {
   return allCompInserted;
 }
 
-bool processMetFocusNode::baseTrampsHookedUp() {
+bool processMetFocusNode::trampsHookedUp() {
   vector<instrCodeNode *> codeNodes;
   getAllCodeNodes(&codeNodes);
 
@@ -124,7 +125,7 @@ bool processMetFocusNode::baseTrampsHookedUp() {
   bool hookedUp = true;
   for(unsigned i=0; i<codeNodes.size(); i++) {
     instrCodeNode *codeNode = codeNodes[i];
-    if(codeNode->baseTrampsHookedUp() == false) {
+    if(codeNode->trampsHookedUp() == false) {
       hookedUp = false;
       break;
     }
@@ -383,6 +384,82 @@ int processMetFocusNode::getMetricID() {
   return parentNode->getMetricID();
 }
 
+const int MAX_INSERTION_ATTEMPTS_USING_RELOCATION = 1000;
+vector<int> deferredMetricIDs;
+
+void registerAsDeferred(int metricID) {
+   for(unsigned i=0; i<deferredMetricIDs.size(); i++) {
+      if(metricID == deferredMetricIDs[i]) {
+	 return;
+      }
+   }
+   deferredMetricIDs.push_back(metricID);
+}
+
+bool processMetFocusNode::insertInstrumentation() {
+   if(instrInserted()) {
+      return true;
+   }
+
+   ++insertionAttempts;
+   if(insertionAttempts == MAX_INSERTION_ATTEMPTS_USING_RELOCATION) {
+      if(function_not_inserted != NULL)
+	 function_not_inserted->setRelocatable(false);
+   }
+
+   pauseProcess();
+
+   bool inserted = loadInstrIntoApp(&function_not_inserted);
+   
+   // Instrumentation insertion may have failed. We should handle this case
+   // better than an assert. Currently we handle the case where (on x86) we
+   // couldn't insert the instrumentation due to relocation failure (deferred
+   // instrumentation). If it's deferred, come back later.
+  
+   if(inserted == false) {
+      continueProcess();
+      if(hasDeferredInstr()) {
+	 registerAsDeferred(getMetricID());
+	 return false;
+      }
+      else {
+	 return false;  //failed for unknown reason.
+      }
+   }
+
+   insertJumpsToTramps();
+
+   // Now that the timers and counters have been allocated on the heap, and
+   // the instrumentation added, we can manually execute instrumentation we
+   // may have processed at function entry points and pre-instruction call
+   // sites which have already executed.
+   doCatchupInstrumentation();
+
+   continueProcess();
+   return true;
+}
+
+//
+// Added to allow metrics affecting a function F to be triggered when
+//  a program is executing (in a stack frame) under F:
+// The basic idea here is similar to Ari's(?) hack to start "whole 
+//  program" metrics requested while the program is executing 
+//  (see T_dyninstRPC::mdl_instr_stmt::apply in mdl.C).  However,
+//  in this case, the manuallyTrigger flag is set based on the 
+//  program stack (the call sequence implied by the sequence of PCs
+//  in the program stack), and the types of the set of inst points 
+//  which the metricFocusNode corresponds to, as opposed to
+//  a hacked interpretation of the original MDL statement syntax.
+// The basic algorithm is as follows:
+//  1. Construct function call sequence leading to the current 
+//     stack frame (yields vector of pf_Function hopefully equivalent
+//     to yield of "backtrace" functionality in gdb.
+//  2. Look at each instReqNode in *this (call it node n):
+//     Does n correspond to a function currently on the stack?
+//       No -> don't manually trigger n's instrumentation.
+//       Yes ->
+//         
+
 void processMetFocusNode::doCatchupInstrumentation() {
   if(! catchupNotDoneYet()) {
     return;
@@ -401,6 +478,7 @@ void processMetFocusNode::doCatchupInstrumentation() {
     checkProcStatus();
   } while (proc_->existsRPCreadyToLaunch() ||
 	   proc_->existsRPCinProgress());
+  catchupNotDoneYet_ = false;
 }
 
 bool processMetFocusNode::catchupInstrNeeded() const {
@@ -517,8 +595,8 @@ void processMetFocusNode::postCatchupRPCs()
   // sorted
 
   if (pd_debug_catchup) {
-    cerr << "Posting " << catchupASTList.size() << " catchup requests" << endl;
-    cerr << "Handing " << sideEffectFrameList.size() << " side effects" << endl;
+    cerr << "Posting " << catchupASTList.size() << " catchup requests\n";
+    cerr << "Handing " << sideEffectFrameList.size() << " side effects\n";
   }
   for (unsigned i=0; i < catchupASTList.size(); i++) {
     proc_->postRPCtoDo(catchupASTList[i].ast, false,
@@ -536,31 +614,43 @@ void processMetFocusNode::postCatchupRPCs()
   sideEffectFrameList.resize(0);
 }
 
+void processMetFocusNode::initializeForSampling(timeStamp startTime, 
+						pdSample initValue)
+{
+  initAggInfoObjects(startTime, initValue);
+  prepareForSampling();  
+}
 
 void processMetFocusNode::initAggInfoObjects(timeStamp startTime, 
 					     pdSample initValue)
 {
-  //cerr << "  processMF::initAggInfo, startT: " << startTime << "\n";
+  //cerr << "  procNode (" << (void*)this << ") initAggInfo\n";
+  // Initialize aggComponent between [parent MACHnode] <-> [this PROCnode]
 
-  // Initialize aggComponents between PROC <-> THR nodes
-  for(unsigned k=0; k<aggregator.numComponents(); k++) {
-    aggComponent *curAggInfo = aggregator.getComponent(k);
-    //cerr << "    initializing aggComponent: " << (void*)curAggInfo << "\n";
-    curAggInfo->setInitialStartTime(startTime);
-    curAggInfo->setInitialActualValue(initValue);
+  // some processMetFocusNodes might be shared and thus already initialized
+  // don't reinitialize these
+  // eg. already exist:  MACH-WHOLEPROG -> PROC1, PROC2, PROC3
+  //     new request:    MACH-PROC1     -> PROC1
+  // in the case above, PROC1 already exists and it's aggInfo is already
+  // initialized
+  if(! aggInfo->isInitialized()) {
+    //cerr << "    initializing aggInfo " << (void*)aggInfo << "\n";
+    aggInfo->setInitialStartTime(startTime);
+    aggInfo->setInitialActualValue(initValue);
   }
 
-  aggInfoInitialized = true;
   procStartTime = startTime;
 
+  // Initialize aggComponent between [this PROCnode] <-> [THRnodes]
   for(unsigned j=0; j<thrNodes.size(); j++) {
-    thrNodes[j]->updateAllAggInfoInitialized();
+    thrNodes[j]->initAggInfoObjects(startTime, initValue);
   }
 }
 
 bool processMetFocusNode::loadInstrIntoApp(pd_Function **func) {
-   if(instrLoaded())
+   if(instrLoaded()) {
       return true;
+   }
 
    vector<instrCodeNode *> codeNodes;
    getAllCodeNodes(&codeNodes);
@@ -623,7 +713,30 @@ bool processMetFocusNode::needToWalkStack() {
    return anyNeeded;
 }
 
+// Patch up the application to make it jump to the base trampoline(s) of this
+// metric.  (The base trampoline and mini-tramps have already been installed
+// in the inferior heap).  We must first check to see if it's safe to install
+// by doing a stack walk, and determining if anything on it overlaps with any
+// of our desired jumps to base tramps.  The key variable is "returnsInsts",
+// which was created for us when the base tramp(s) were created.
+// Essentially, it contains the details of how we'll jump to the base tramp
+// (where in the code to patch, how many instructions, the instructions
+// themselves).  Note that it seems this routine is misnamed: it's not
+// instrumentation that needs to be installed (the base & mini tramps are
+// already in place); it's just the last step that is still needed: the jump
+// to the base tramp.  If one or more can't be added, then a TRAP insn is
+// inserted in the closest common safe return point along the stack walk, and
+// some structures are appended to the process' "wait list", which is then
+// checked when a TRAP signal arrives.  At that time, the jump to the base
+// tramp is finally done.  WARNING: It seems to me that such code isn't
+// thread-safe...just because one thread hits the TRAP, there may still be
+// other threads that are unsafe.  It seems to me that we should be doing
+// this check again when a TRAP arrives...but for each thread (right now,
+// there's no stack walk for other threads).  --ari
 bool processMetFocusNode::insertJumpsToTramps() {
+   if(trampsHookedUp()) {
+      return true;
+   }
    // pause once for all primitives for this component
    
    // only overwrite 1 instruction on power arch (2 on mips arch)
@@ -714,6 +827,32 @@ processMetFocusNode::~processMetFocusNode() {
   }
 }
 
+void processMetFocusNode::pauseProcess() {
+  if(currentlyPaused == true)  return;
+
+  if (proc()->status() == running) {
+#ifdef DETACH_ON_THE_FLY
+    if (proc()->reattachAndPause())
+#else
+    if (proc()->pause())
+#endif
+    {
+      currentlyPaused = true;
+    }
+  }
+}
+
+void processMetFocusNode::continueProcess() {
+  if(currentlyPaused) {
+#ifdef DETACH_ON_THE_FLY
+      proc()->detachAndContinue();
+#else
+      proc()->continueProc();
+#endif
+      currentlyPaused = false;
+   }
+}
+
 bool processMetFocusNode::hasDeferredInstr() {
   bool hasDeferredComp = false;
 
@@ -746,15 +885,13 @@ void processMetFocusNode::addPart(threadMetFocusNode* thrNode)
 
 void processMetFocusNode::setMetricVarCodeNode(instrCodeNode* part) {
   metricVarCodeNode = part;
-  part->recordAsParent(this);
 }
 
 void processMetFocusNode::addConstraintCodeNode(instrCodeNode* part) {
   constraintCodeNodes.push_back(part);
-  part->recordAsParent(this);
 }
 
-void processMetFocusNode::addThread(pdThread *thr)
+void processMetFocusNode::propagateToNewThread(pdThread *thr)
 {
    // we only want to sample this new thread if the selected focus for this
    // processMetFocusNode was for the whole process.  If it's not a thread
