@@ -282,11 +282,16 @@ dictionary_hash<K,V>::locate_addIfNotFound(const K& key) {
       bins[bin] = new_entry_ndx;
 
 //      assert(defines(key)); // WARNING: expensive assert()
-      
+
+      assert(bins.size() * max_bin_load >= size());  // Check invariant again
+
       return new_entry_ndx;
    }
    else {
       // found the item.
+     
+      assert(bins.size() * max_bin_load >= size());  // Check invariant first
+
       entry &e = all_elems[result];
       if (e.removed) {
          // Item has been removed.  We're gonna un-remove it.
@@ -298,10 +303,31 @@ dictionary_hash<K,V>::locate_addIfNotFound(const K& key) {
          e.removed = false;
          e.val = V();
          num_removed_elems--;
+
+         if (! (bins.size() * max_bin_load >= size())) {
+           // Oops, the un-remove just broke the invariant!
+           // Grow some bins to re-establish the invariant.
+
+           const unsigned new_numbins = (unsigned)(bins.size() * bin_grow_factor);
+           assert(new_numbins > bins.size() && "grow factor negative or barely > 1.00?");
+
+           // ... after the grow, we should have enough bins:
+           assert(new_numbins * max_bin_load >= size());
+
+           grow_numbins(new_numbins);
+
+           // ...verify that we have enough bins after the grow:
+           assert(bins.size() * max_bin_load >= size());
+
+           result = locate(key, true); // true --> find even if 'removed' flag set
+           assert(result != UINT_MAX); // should exist
+        }
       }
 
 //      assert(defines(key)); // WARNING: expensive assert
-      
+
+      assert(bins.size() * max_bin_load >= size());  // Check invariant again
+
       return result;
    }
 }
