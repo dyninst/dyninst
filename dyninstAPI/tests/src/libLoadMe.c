@@ -57,7 +57,7 @@ extern int globalVariable5_1;
 */
 
 /* Convince GCC to run _init when the library is loaded */
-#ifdef __GNUC
+#if defined(_GNUC) || defined(__GNUC__)
 void loadMe_init(void) __attribute__ ((constructor));
 #endif
 
