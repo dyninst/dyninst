@@ -1,7 +1,10 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.18  1994/10/26 22:54:38  tamches
+# Revision 1.19  1994/11/01 05:49:15  karavan
+# updated Where axis choices
+#
+# Revision 1.18  1994/10/26  22:54:38  tamches
 # Added tunable constants menu item
 #
 # Revision 1.17  1994/10/09  01:15:26  karavan
@@ -91,7 +94,7 @@ proc changeApplicState {newVal} {
 
 proc drawToolBar {} {
 
-    global PdBitmapDir fmap metMenuCtr
+    global PdBitmapDir fmap metMenuCtr tclSelectionState
 
     # setup fontmap for dumping postscript files
     set fmap(-*-Times-Bold-R-Normal--*-80*)  \
@@ -116,8 +119,10 @@ proc drawToolBar {} {
 	    {Courier-Bold 10}
 
     # used in metric menu creation code
+    # unique id for each menu window
     set metMenuCtr 0 
-
+    # state = 1 during met/res selection, 0 otherwise
+    set tclSelectionState 0 
     if {[string match [tk colormodel .] color] == 1} {
       # . created before options are added
       . config -bg #e830e830e830
@@ -176,8 +181,6 @@ proc drawToolBar {} {
     menu .menub.left.men.b2.m 
     .menub.left.men.b2.m add command -label "Error History" \
 	    -command {showErrorHistory}
-#    .menub.left.men.b2.m add command -label "Display Where Axis" \
-#	    -command {uimpd showWhereAxis}
     .menub.left.men.b2.m add command -label "Where Axis Postscript C" \
 	    -command ".baseWA.dag._c_ postscript -colormode color \
 	    -file cwhere.ps -pageheight 3.0i"
