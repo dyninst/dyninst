@@ -7,7 +7,10 @@
  * list.h - list ADT
  *
  * $Log: list.h,v $
- * Revision 1.7  1994/01/19 20:46:17  hollings
+ * Revision 1.8  1994/01/25 20:49:40  hollings
+ * First real version of utility library.
+ *
+ * Revision 1.7  1994/01/19  20:46:17  hollings
  * guardef defn of true/false.
  *
  * Revision 1.6  1993/12/15  21:06:54  hollings
@@ -40,7 +43,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef char Boolean;
+typedef int Boolean;
 
 #ifndef FALSE
 #define FALSE 0
