@@ -4,7 +4,10 @@
 
 /*
  * $Log: rpcUtil.h,v $
- * Revision 1.20  1994/07/19 18:29:59  markc
+ * Revision 1.21  1994/07/28 22:21:26  krisna
+ * changed declaration of xdrIOFunc to conform to prototypes
+ *
+ * Revision 1.20  1994/07/19  18:29:59  markc
  * Made machineName default to zero as last parameter to RPC_make_arg_list.
  * Added typecast to malloc call in RPC_make_arg_list.
  *
@@ -46,7 +49,7 @@ extern "C" {
 
 #define xdr_Boolean xdr_char
 typedef XDR *XDRptr;
-typedef int (*xdrIOFunc)(int handle, char *buf, unsigned int len);
+typedef int (*xdrIOFunc)(const void *, char *, int);
 
 typedef char Boolean;
 typedef char *String;
