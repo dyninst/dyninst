@@ -1,7 +1,12 @@
 /* $Log: main.C,v $
-/* Revision 1.20  1995/08/12 22:27:51  newhall
-/* added calls to DM and VM sequential initialization routines
+/* Revision 1.21  1995/08/13 23:22:26  tamches
+/* Moved tcl/tk initialization code here from UImain.
+/* tcl/tk initialization is now the very first thing done
+/* in main()
 /*
+ * Revision 1.20  1995/08/12  22:27:51  newhall
+ * added calls to DM and VM sequential initialization routines
+ *
  * Revision 1.19  1995/08/11  21:51:16  newhall
  * Parsing of PDL files is done before thread creation
  * Removed call to dataManager kludge method function
@@ -74,6 +79,9 @@
  *   This routine creates DM, UIM, VM, and PC threads.
  */
 
+#include "tclclean.h"
+#include "tkclean.h"
+
 #include "../TCthread/tunableConst.h"
 #include "util/h/headers.h"
 #include "paradyn.h"
@@ -134,17 +142,52 @@ void eFunction(int errno, char *message)
 extern bool metDoTunable();
 extern bool metMain(string&);
 
+extern void tclpanic(Tcl_Interp *, const char *msg);
+Tcl_Interp *interp;
+Tk_Window   mainWindow;
+int         tty;
+
 int
-main (int argc, char *argv[])
+main (int argc, char **argv)
 {
 
-  CLargStruct* clargs;
+//  CLargStruct* clargs;
   char mbuf[MBUFSIZE];
   unsigned int msgsize;
   tag_t mtag;
   char *temp;
 
+  // Initialize tcl/tk
+  interp = Tcl_CreateInterp();
+  assert(interp);
 
+  mainWindow = Tk_CreateMainWindow(interp, NULL, "paradyn", "Paradyn");
+  if (mainWindow == NULL)
+     tclpanic(interp, "Could not Tk_CreateMainWindow");
+  Tk_GeometryRequest(mainWindow, 725, 475);
+
+  if (false)
+     // This is cool for X debugging...but we don't want it normally.
+     // It forces a flush after every X event -- no buffering.
+     XSynchronize(Tk_Display(mainWindow), True);
+
+  tty = isatty(0);
+  Tcl_SetVar(interp, "tcl_interactive", "0", TCL_GLOBAL_ONLY);
+
+  if (Tcl_Init(interp) == TCL_ERROR)
+     tclpanic(interp, "tcl_init() failed (perhaps TCL_LIBRARY not set?)");
+  if (Tk_Init(interp) == TCL_ERROR)
+     tclpanic(interp, "tk_init() failed (perhaps TK_LIBRARY not set?");
+
+  // copy command-line arguments into tcl vrbles argc / argv
+  char *args = Tcl_Merge(argc - 1, argv + 1);
+  Tcl_SetVar(interp, "argv", args, TCL_GLOBAL_ONLY);
+  ckfree(args);
+
+  string argcStr = string(argc - 1);
+  Tcl_SetVar(interp, "argc", argcStr.string_of(), TCL_GLOBAL_ONLY);
+  Tcl_SetVar(interp, "argv0", argv[0], TCL_GLOBAL_ONLY);
+  
   //
   // We check our own read/write events.
   //
@@ -292,15 +335,16 @@ main (int argc, char *argv[])
 
 // initialize UIM 
  
-  if ((clargs = (CLargStruct *) malloc(sizeof(CLargStruct))) == 0) {
-    perror("malloc(ClargsStruct)");
-    return -1;
-  }
-  clargs->clargc = argc;	
-  clargs->clargv = argv; 
+//  if ((clargs = (CLargStruct *) malloc(sizeof(CLargStruct))) == 0) {
+//    perror("malloc(ClargsStruct)");
+//    return -1;
+//  }
+//  clargs->clargc = argc;	
+//  clargs->clargv = argv; 
 
-
-  if (thr_create (UIStack, sizeof(UIStack), &UImain, (void *) clargs, 
+//  if (thr_create (UIStack, sizeof(UIStack), &UImain, (void *) clargs, 
+//		  0, &UIMtid) == THR_ERR) 
+  if (thr_create (UIStack, sizeof(UIStack), &UImain, NULL,
 		  0, &UIMtid) == THR_ERR) 
     exit(1);
   PARADYN_DEBUG (("UI thread created\n"));
@@ -346,4 +390,8 @@ main (int argc, char *argv[])
 // wait for UIM thread to exit 
 
   thr_join (UIMtid, NULL, NULL);
+
+//  Tcl_DeleteInterp(interp);
+//    Unfortunately, status lines core dump on exit if I
+//    un-comment this out. --ari
 }
