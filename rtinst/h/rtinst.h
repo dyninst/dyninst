@@ -66,9 +66,11 @@ struct tTimerRec {
     time64	total;
     time64	start;
     time64	ni_start;
+    time64	snapShot;	/* used to get consistant value during st/stp */
     timerType type;
     int		normalize;	/* value to divide total by to get seconds */
     sampleId id;
+    volatile int mutex;
 };
 
 
