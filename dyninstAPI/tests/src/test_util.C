@@ -1,5 +1,5 @@
 //
-// $Id: test_util.C,v 1.10 1999/06/29 19:02:15 hollings Exp $
+// $Id: test_util.C,v 1.11 1999/11/06 21:43:36 wylie Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -57,11 +57,12 @@ void waitUntilStopped(BPatch *bpatch,
 // "isAttached."  We add instrumentation to "checkIfAttached" to set
 // "isAttached" to 1.
 //
-void signalAttached(BPatch_thread *appThread, BPatch_image *appImage)
+void signalAttached(BPatch_thread* /*appThread*/, BPatch_image *appImage)
 {
     BPatch_variableExpr *isAttached = appImage->findVariable("isAttached");
     if (isAttached == NULL) {
-	printf("*ERROR*: unable to start tests because variable \"isAttached\" could not be found in the child process\n");
+	printf("*ERROR*: unable to start tests because variable \"isAttached\""
+               " could not be found in the child process\n");
 	exit(-1);
     }
 

@@ -5,6 +5,12 @@
 #include "BPatch_thread.h"
 #include "BPatch_image.h"
 
+#ifdef i386_unknown_nt4_0
+#define P_sleep(sec) Sleep(1000*(sec))
+#else
+#define P_sleep(sec) sleep(sec)
+#endif
+
 void waitUntilStopped(BPatch *, BPatch_thread *appThread, 
 	int testnum, char *testname);
 void signalAttached(BPatch_thread *appThread, BPatch_image *appImage);

@@ -1,28 +1,20 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test2.mutatee.c,v 1.18 1999/10/18 21:57:19 hollings Exp $ */
+/* $Id: test2.mutatee.c,v 1.19 1999/11/06 21:44:38 wylie Exp $ */
 
 #include <stdio.h>
 #include <sys/types.h>
 #include <signal.h>
 #include <string.h>
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4) || \
-    defined(mips_sgi_irix6_4)
-#include <unistd.h>
-#endif
-
-#if defined(mips_sgi_irix6_4)
-#include <ctype.h>
-#endif
-
-#if defined(i386_unknown_nt4_0) || defined(mips_sgi_irix6_4)
 #include <stdlib.h>
-#endif
+#include <ctype.h>
 
 #if defined(i386_unknown_nt4_0)
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#else
+#include <unistd.h>
 #endif
 
 #if defined(sparc_sun_solaris2_4)  || defined(i386_unknown_solaris2_5) || \
@@ -69,7 +61,6 @@ int checkIfAttached()
 {
     return isAttached;
 }
-
 
 /*
  * Stop the process (in order to wait for the mutator to finish what it's
@@ -194,7 +185,7 @@ int main(int iargc, char *argv[])
 	}
 	close(pfd);
 #endif
-	printf("Waiting for mutator to attach...\n");
+	printf("Waiting for mutator to attach...\n"); fflush(stdout);
 	while (!checkIfAttached()) ;
 	printf("Mutator attached.  Mutatee continuing.\n");
     }

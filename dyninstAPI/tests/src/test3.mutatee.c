@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test3.mutatee.c,v 1.7 1999/10/18 21:57:20 hollings Exp $ */
+/* $Id: test3.mutatee.c,v 1.8 1999/11/06 21:44:38 wylie Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -9,16 +9,14 @@
 #include <signal.h>
 #include <string.h>
 #include <stdlib.h>
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4) || \
-    defined(mips_sgi_irix6_4)
-#include <unistd.h>
-#endif
 
 #ifdef i386_unknown_nt4_0
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <process.h>
 #define getpid _getpid
+#else
+#include <unistd.h>
 #endif
 
 #if defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0)
@@ -39,7 +37,7 @@ void test1()
      exit(0);
 }
 
-int test2ret = 0xdeadbeef;
+int test2ret = (int)0xdeadbeef;
 
 volatile int dummy = 1;
 
