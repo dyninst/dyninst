@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.153 2003/03/21 23:40:40 jodom Exp $
+// $Id: symtab.C,v 1.154 2003/03/22 00:35:29 jodom Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -73,8 +73,7 @@ extern pdvector<sym_data> syms_to_find;
 // All debug_ostream vrbles are defined in process.C (for no particular reason)
 extern unsigned enable_pd_sharedobj_debug;
 
-// Parsing for compiler type in parseStab.C
-extern bool parseCompilerType(Object *);
+static bool parseCompilerType(Object *);
 
 #if ENABLE_DEBUG_CERR == 1
 #define sharedobj_cerr if (enable_pd_sharedobj_debug) cerr
@@ -1372,6 +1371,7 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
     is_libdyninstRT(false),
     is_a_out(false),
     main_call_addr_(0),
+    nativeCompiler(false),    
     linkedFile(desc, newBaseAddr,pd_log_perror),//ccw jun 2002
     knownJumpTargets(int_addrHash, 8192),
     includedMods(0),
@@ -1386,8 +1386,7 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
     excludedFunctions(string::hash),
     modsByFileName(string::hash),
     modsByFullName(string::hash),
-    varsByPretty(string::hash),
-    nativeCompiler(false)
+    varsByPretty(string::hash)
 {
   sharedobj_cerr << "image::image for file name="
 		 << desc->file() << endl;
@@ -1940,4 +1939,42 @@ bool image::findFunction(const string &name, pdvector<pd_Function*> &retList,
 
 bool pdmodule::isShared() const { 
   return !exec_->isAOut();
+}
+
+//
+// parseCompilerType - parse for compiler that was used to generate object
+//
+//
+//
+static bool parseCompilerType(Object *objPtr) {
+
+  int stab_nsyms;
+  char *stabstr_nextoffset;
+  const char *stabstrs = 0;
+  struct stab_entry *stabptr = NULL;
+
+  objPtr->get_stab_info((void **) &stabptr, stab_nsyms, 
+	(void **) &stabstr_nextoffset);
+
+  for(int i=0;i<stab_nsyms;i++){
+    // if (stabstrs) printf("parsing #%d, %s\n", stabptr[i].type, &stabstrs[stabptr[i].name]);
+    switch(stabptr[i].type){
+
+    case N_UNDF: /* start of object file */
+      /* value contains offset of the next string table for next module */
+      // assert(stabptr[i].name == 1);
+      stabstrs = stabstr_nextoffset;
+      stabstr_nextoffset = const_cast<char*>(stabstrs) + stabptr[i].val;
+      
+      break;
+    case N_OPT: /* Compiler options */
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)      
+      if (strstr(&stabstrs[stabptr[i].name], "Sun")!=NULL)
+	return true;
+#endif
+      return false;
+    }
+
+  }
+  return false; // Shouldn't happen - maybe N_OPT stripped
 }

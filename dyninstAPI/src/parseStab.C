@@ -1680,40 +1680,4 @@ static BPatch_type *parseConstantUse(BPatch_module *mod, char *stabstr, int &cnt
     return ret;
 }
 
-//
-// parseCompilerType - parse for compiler that was used to generate object
-//
-//
-//
-bool parseCompilerType(Object *objPtr) {
 
-  int stab_nsyms;
-  char *stabstr_nextoffset;
-  const char *stabstrs = 0;
-  struct stab_entry *stabptr = NULL;
-
-  objPtr->get_stab_info((void **) &stabptr, stab_nsyms, 
-	(void **) &stabstr_nextoffset);
-
-  for(int i=0;i<stab_nsyms;i++){
-    // if (stabstrs) printf("parsing #%d, %s\n", stabptr[i].type, &stabstrs[stabptr[i].name]);
-    switch(stabptr[i].type){
-
-    case N_UNDF: /* start of object file */
-      /* value contains offset of the next string table for next module */
-      // assert(stabptr[i].name == 1);
-      stabstrs = stabstr_nextoffset;
-      stabstr_nextoffset = const_cast<char*>(stabstrs) + stabptr[i].val;
-      
-      break;
-    case N_OPT: /* Compiler options */
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)      
-      if (strstr(&stabstrs[stabptr[i].name], "Sun")!=NULL)
-	return true;
-#endif
-      return false;
-    }
-
-  }
-  return false; // Shouldn't happen - maybe N_OPT stripped
-}
