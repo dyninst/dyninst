@@ -4,7 +4,10 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.1  1995/01/30 18:10:31  jcargill
+# Revision 1.2  1995/02/16 08:26:31  markc
+# New support for templates
+#
+# Revision 1.1  1995/01/30  18:10:31  jcargill
 # Major build system reorganization
 #
 #
@@ -15,7 +18,6 @@ VPATH	     += ../../paradynd/src:../../paradyn/h
 
 SRCS	     += ../src/association.C \
 		../src/ast.C \
-		../src/clock.C \
 		../src/comm.C \
 		../src/context.C \
 		../src/debugger.C \
@@ -36,7 +38,6 @@ SRCS	     += ../src/association.C \
 		../src/stats.C \
 		../src/symtab.C \
 		../src/templates.C \
-		../src/templates2.C \
 		../src/util.C
 
 
@@ -47,4 +48,11 @@ IGEN_ISRCS    = dyninstRPC.I
 
 LIBS	     += -lutil -liberty
 
+IFLAGS       += -I../$(PLATFORM)
+CXXFLAGS     += $(USEFULWARNINGS) 
+
 all:    $(TARGET)
+
+templates.o: ../src/templates.C
+	$(CXX) $(TFLAGS) -c ../src/templates.C
+
