@@ -1,6 +1,9 @@
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.6  1994/04/12 15:32:46  hollings
+ * Revision 1.7  1994/04/13 01:37:06  markc
+ * Added ifdef print statements to see hypothesis checks.
+ *
+ * Revision 1.6  1994/04/12  15:32:46  hollings
  * generalized hysteresis into a normalization constant to cover pause,
  * contention, and ignored bottlenekcks too.
  *
@@ -65,7 +68,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
   All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.6 1994/04/12 15:32:46 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.7 1994/04/13 01:37:06 markc Exp $";
 #endif
 
 
@@ -86,6 +89,7 @@ tunableConstant hysteresisRange(0.15, 0.0, 1.0, NULL, "hysteresisRange",
 
 extern Boolean textMode;
 Boolean printTestResults = FALSE;
+Boolean printNodes = FALSE;
 
 int testResult::operator ==(testResult *arg)
 {
