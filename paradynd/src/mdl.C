@@ -1595,8 +1595,8 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
 	assert(aflag);
 
 	// Make a note to do an inferiorRPC to manually execute this code.
-	if (!manuallyTrigger)
-	   cerr << "mdl: found $start.entry; going to manually execute via inferior-RPC" << endl;
+//	if (!manuallyTrigger)
+//	   cerr << "mdl: found $start.entry; going to manually execute via inferior-RPC" << endl;
 
 	manuallyTrigger = true;
      }
