@@ -1082,7 +1082,14 @@ void BPatch_type::addField(const char * _fieldname, BPatch_dataClass _typeDes,
       if( _nsize > size) size = _nsize;
   } else if (type_ == BPatch_dataCommon) {
       if (size < _offset + _nsize) size = _offset + _nsize; 
-  } assert ( this->size > 0 || ( (_typeDes == BPatch_dataMethod) && this->size >= 0) );
+  } 
+  
+  if (!( this->size > 0 || ( (_typeDes == BPatch_dataMethod || _typeDes == BPatch_dataUnknownType ) && this->size >= 0) ) ) {
+  	fprintf( stderr, "Invalid size: this->size = %d, _nsize = %d", this->size, _nsize );
+  	if( _typeDes == BPatch_dataMethod ) { fprintf( stderr, ", and the field is a data method" ); }
+  	if( _typeDes == BPatch_dataUnknownType ) { fprintf( stderr, ", and the field is an unknown type" ); }
+  	fprintf( stderr, ".\n" );
+  	}
 
   // Create Field for struct or union
   newField = new BPatch_field(_fieldname, _typeDes, _type, _offset, _nsize);
