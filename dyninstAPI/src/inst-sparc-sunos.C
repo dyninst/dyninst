@@ -757,7 +757,7 @@ unsigned emitFuncCall(opCode op,
 	}
 	
 	for (unsigned u = 0; u < operands.size(); u++)
-	    srcs += operands[u]->generateCode(proc, rs, i, base, noCost);
+	    srcs += operands[u]->generateCode(proc, rs, i, base, noCost, false);
 
 	// TODO cast
 	instruction *insn = (instruction *) ((void*)&i[base]);
