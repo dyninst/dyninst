@@ -2,7 +2,10 @@
  * tunableConstant - a constant that might be changed during execution.
  *
  * $Log: tunableConst.h,v $
- * Revision 1.4  1994/08/05 16:01:55  hollings
+ * Revision 1.5  1994/09/22 03:15:59  markc
+ * changed char* to const char *
+ *
+ * Revision 1.4  1994/08/05  16:01:55  hollings
  * More consistant use of stringHandle vs. char *.
  *
  * Revision 1.3  1994/08/03  18:37:30  hollings
@@ -31,14 +34,14 @@ typedef enum tunableType { tunableBoolean, tunableFloat };
 //
 class tunableConstant {
     public:
-	stringHandle getDesc() { return(desc); }
+	char *getDesc() { return(desc); }
 	stringHandle getName() { return(name); }
 	static List<tunableConstant*> *allConstants;
 	static stringPool *pool;
 	virtual void print() = NULL;
 	tunableType getType() { return(typeName); }
     protected:
-	stringHandle desc;
+	char *desc;
 	stringHandle name;
 	tunableType typeName;
 	tunableUse use;
@@ -53,8 +56,8 @@ class tunableBooleanConstant: public tunableConstant {
 	tunableBooleanConstant(Boolean initialValue, 
 			       booleanChangeValCallBackFunc cb,
 			       tunableUse type,
-			       char *name,
-			       char *desc);
+			       const char *name,
+			       const char *desc);
 	Boolean getValue() { return value; }
 	Boolean setValue(Boolean newVal) {
 	    value = newVal;
@@ -72,14 +75,14 @@ class tunableFloatConstant: public tunableConstant {
 			float max, 
 			floatChangeValCallBackFunc cb,
 		        tunableUse type,
-			char *name,
-			char *desc);
+			const char *name,
+			const char *desc);
 	tunableFloatConstant(float initialValue, 
 			isValidFunc, 
 			floatChangeValCallBackFunc cb,
 		        tunableUse type,
-			char *name,
-			char *desc);
+			const char *name,
+			const char *desc);
 	float getValue() { return value; }
 	Boolean setValue(float newVal) {
 	    if ((isValidValue) && isValidValue(newVal)) {
