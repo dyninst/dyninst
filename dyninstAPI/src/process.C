@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.160 1999/01/21 01:26:43 hollings Exp $
+// $Id: process.C,v 1.161 1999/01/21 20:51:50 wylie Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -3523,6 +3523,7 @@ bool process::handleTrapIfDueToRPC() {
    }
    else
       inferiorrpc_cerr << "end of rpc -- leaving process paused, since it wasn't running before" << endl;
+
    // step 4) invoke user callback, if any
    // note: I feel it's important to do the user callback last, since it
    // may perform arbitrary actions (such as making igen calls) which can lead
@@ -3539,7 +3540,11 @@ bool process::handleTrapIfDueToRPC() {
 
    inferiorrpc_cerr << "handleTrapIfDueToRPC match type 2 -- done with callbackFunc, if any" << endl;
 
+#if defined(i386_unknown_nt4_0)
+   delete    theStruct.savedRegs;       // not an array on WindowsNT
+#else
    delete [] theStruct.savedRegs;
+#endif
 
    return true;
 }
