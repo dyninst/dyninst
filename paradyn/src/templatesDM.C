@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: templatesDM.C,v 1.20 2001/01/04 22:26:23 pcroth Exp $
+// $Id: templatesDM.C,v 1.21 2001/08/23 14:43:34 schendel Exp $
 // templates for DMthread, excluding igen templates
 //
 
@@ -115,7 +115,7 @@ template class vector<daemonEntry*>;
 template class vector<paradynDaemon*>;
 template class vector<executable*>;
 template class vector<component*>;
-template class vector<sampleInfo*>;
+template class vector<aggComponent*>;
 template class vector<bool>;
 template class vector< vector<bool> >;
 template class vector<metric_focus_pair>;
@@ -173,6 +173,7 @@ template class dictionary_hash<metricInstanceHandle,metricInstance*>;
 template class vector<dictionary_hash<metricInstanceHandle,metricInstance*>::entry>;
 template class dictionary_hash_iter<metricInstanceHandle,metricInstance*>;
 
+template class vector<perfStreamEntry>;
 
 //Blizzard
 template class dictionary_hash<string,unsigned>;
@@ -180,8 +181,8 @@ template class vector<dictionary_hash<string,unsigned>::entry>;
 template class dictionary_hash_iter<string,unsigned>;
 //
 
-template class List<sampleInfo*>;
-template class ListItem<sampleInfo*>;
+template class List<aggComponent*>;
+template class ListItem<aggComponent*>;
 
 template class vector<T_dyninstRPC::batch_buffer_entry>;
 template bool_t T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::batch_buffer_entry> *, int (*)(XDR *, T_dyninstRPC::batch_buffer_entry *), T_dyninstRPC::batch_buffer_entry *) ;
