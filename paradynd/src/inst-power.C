@@ -6,7 +6,10 @@
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
  *
  * $Log: inst-power.C,v $
- * Revision 1.9  1996/01/30 23:44:21  hollings
+ * Revision 1.10  1996/02/12 16:43:17  naim
+ * Minor change to cost model - naim
+ *
+ * Revision 1.9  1996/01/30  23:44:21  hollings
  * Added the cost model to the POWER version of Paradyn
  *
  * Revision 1.7  1995/12/19  01:18:43  hollings
@@ -978,7 +981,8 @@ int getInsnCost(opCode op)
 	// mtlr	0 
 	cost++;
     } else if (op ==  trampPreamble) {
-	// XXXX - Todo generate code to update the observed cost.
+	// Generate code to update the observed cost.
+	cost += 4;
 
     } else if (op ==  trampTrailer) {
 	// Should compute the cost to restore registers here.  However, we lack 

@@ -3,7 +3,10 @@
  * inst-sunos.C - sunos specifc code for paradynd.
  *
  * $Log: inst-sunos.C,v $
- * Revision 1.35  1996/02/09 23:54:10  naim
+ * Revision 1.36  1996/02/12 16:43:35  naim
+ * Minor change to cost model - naim
+ *
+ * Revision 1.35  1996/02/09  23:54:10  naim
  * Changes to the cost model - naim
  *
  * Revision 1.34  1995/12/13  23:57:31  mjrg
@@ -274,11 +277,11 @@ void initPrimitiveCost()
     primitiveCosts["DYNINSTreportCost"] = 131;
     // 0.66 usecs * 64 Mhz
     primitiveCosts["DYNINSTreportNewTags"] = 42;
-#elif sparc_tmc_cmost7_2
-#elif sparc_wwt_cm5tempest1_2_3
 #else
     logLine("SunOS platform\n");   
     // sparc_sun_sunos4_1_3 - default
+    // The same values are used for sparc_tmc_cmost7_2 and 
+    // sparc_wwt_cm5tempest1_2_3 platforms.
     // Updated calculation of the cost for the following procedures.
     // Clock rate = 67Mhz (SS-10) - naim
     if (getenv("DYNINSTuseGetrusage")) {
