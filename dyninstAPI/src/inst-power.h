@@ -45,6 +45,9 @@
 
 /*
  * $Log: inst-power.h,v $
+ * Revision 1.9  1997/06/23 17:06:48  tamches
+ * class instPoint moved to another file
+ *
  * Revision 1.8  1997/06/15 19:24:07  ssuen
  * Changed iPgetFunction and iPgetCallee to return const function_base *
  *
@@ -117,45 +120,6 @@ extern trampTemplate withArgsTemplate;
                                   /* the MT preamble.                      */ 
 
 enum ipFuncLoc { ipFuncEntry, ipFuncReturn, ipFuncCallPoint };
-
-class instPoint {
-public:
-  instPoint(pd_Function *f, const instruction &instr, const image *owner,
-	    const Address adr, const bool delayOK, const ipFuncLoc);
-
-  ~instPoint() {  /* TODO */ }
-
-  // can't set this in the constructor because call points can't be classified until
-  // all functions have been seen -- this might be cleaned up
-  void set_callee(pd_Function *to) { callee = to; }
-
-
-  const function_base *iPgetFunction() const { return func;   }
-  const function_base *iPgetCallee()   const { return callee; }
-  const image         *iPgetOwner()    const { 
-    return (func) ? ( (func->file()) ? func->file()->exec() : NULL ) : NULL; }
-        Address        iPgetAddress()  const { return addr;   }
-
-
-  Address addr;                   /* address of inst point */
-  instruction originalInstruction;    /* original instruction */
-
-//  instruction delaySlotInsn;  /* original instruction */
-//  instruction aggregateInsn;  /* aggregate insn */
-//  bool inDelaySlot;            /* Is the instruction in a delay slot */
-//  bool isDelayed;		/* is the instruction a delayed instruction */
-
-  bool callIndirect;		/* is it a call whose target is rt computed ? */
-
-//  bool callAggregate;		/* calling a func that returns an aggregate
-//				   we need to reolcate three insns in this case
-//				   */
-
-  pd_Function *callee;		/* what function is called */
-  pd_Function *func;		/* what function we are inst */
-  
-  ipFuncLoc ipLoc;
-};
 
 
 bool isCallInsn(const instruction);

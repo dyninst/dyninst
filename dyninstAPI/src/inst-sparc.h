@@ -55,7 +55,6 @@
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/arch-sparc.h"
 #include "dyninstAPI/src/util.h"
-// #include "paradynd/src/internalMetrics.h"
 #include "dyninstAPI/src/stats.h"
 #include "dyninstAPI/src/os.h"
 #include "paradynd/src/showerror.h"
@@ -107,91 +106,7 @@ extern registerSpace *regSpace;
 extern int deadList[];
 extern instruction newInstr[1024];
 
-class instPoint {
-public:
-  instPoint(pd_Function *f, const instruction &instr, const image *owner,
-	    Address &adr, const bool delayOK, bool isLeaf,
-	    instPointType ipt);
-  instPoint(pd_Function *f, const instruction &instr, const image *owner,
-            Address &adr, const bool delayOK, instPointType ipt,   
-	    Address &oldAddr);
-  ~instPoint() {  /* TODO */ }
-
-  // can't set this in the constructor because call points can't be classified
-  // until all functions have been seen -- this might be cleaned up
-  void set_callee(pd_Function *to) { callee = to; }
-
-  const instruction &insnAtPoint() const { return originalInstruction;}
-
-  const function_base *iPgetFunction() const { return func;      }
-  const function_base *iPgetCallee()   const { return callee;    }
-  const image         *iPgetOwner()    const { return image_ptr; }
-        Address        iPgetAddress()  const { return addr;      }
-
-  Address getTargetAddress() {
-      if(!isCallInsn(originalInstruction)) return 0;
-       if (!isInsnType(originalInstruction, CALLmask, CALLmatch)) {
-	       return 0;  // can't get target from indirect call instructions
-       }
-
-      Address ta = (originalInstruction.call.disp30 << 2); 
-      return ( addr+ta ); 
-  }
-
-  // These are the instructions corresponding to different instrumentation
-  // points (the instr point is always the "originalInstruction" instruction,
-  // "addr" has the value of the address of "originalInstruction")
-  // 
-  //  entry point	   entry point leaf	  call site 
-  //  -----------	   ----------------       ---------
-  //  saveInstr		   originalInstruction    originalInstruction	
-  //  originalInstruction  otherInstruction	  delaySlotInsn
-  //  delaySlotInsn 	   delaySlotInsn	  aggregateInsn
-  //  isDelayedInsn 	   isDelayedInsn
-  //  aggregateInsn 
-  // 
-  //  return leaf		return non-leaf
-  //  ----------		---------------
-  //  originalInstruction  	originalInstruction
-  //  otherInstruction		delaySlotInsn
-  //  delaySlotInsn
-  //  inDelaySlotInsn
-  //  extraInsn
-  // 
-
-// TODO: These should all be private
-  Address addr;                       // address of inst point
-  instruction originalInstruction;    // original instruction
-  instruction delaySlotInsn;          // original instruction
-  instruction aggregateInsn;          // aggregate insn
-  instruction otherInstruction;       
-  instruction isDelayedInsn;  
-  instruction inDelaySlotInsn;
-  instruction extraInsn;   	// if 1st instr is conditional branch this is
-			        // previous instruction 
-  instruction saveInsn;         // valid only with nonLeaf function entry 
-
-  bool inDelaySlot;             // Is the instruction in a delay slot
-  bool isDelayed;		// is the instruction a delayed instruction
-  bool callIndirect;		// is it a call whose target is rt computed ?
-  bool callAggregate;		// calling a func that returns an aggregate
-				// we need to reolcate three insns in this case
-  pd_Function *callee;		// what function is called
-  pd_Function *func;		// what function we are inst
-  bool isBranchOut;             // true if this point is a conditional branch, 
-				// that may branch out of the function
-  int branchTarget;             // the original target of the branch
-  bool leaf;                    // true if the procedure is a leaf
-  instPointType ipType;
-  int instId;                   // id of inst in this function
-  int size;                     // size of multiple instruction sequences
-  const image *image_ptr;	// for finding correct image in process
-  bool firstIsConditional;      // 1st instruction is conditional branch
-  bool relocated_;	        // true if instPoint is from a relocated func
-
-  bool isLongJump;              // true if it turned out the branch from this 
-                                // point to baseTramp needs long jump.   
-};
+class instPoint;
 
 inline unsigned getMaxBranch3Insn() {
    // The length we can branch using 3 instructions
