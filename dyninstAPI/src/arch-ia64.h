@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.22 2004/03/12 20:08:03 rchen Exp $
+// $Id: arch-ia64.h,v 1.23 2004/03/15 18:46:01 tlmiller Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -90,7 +90,7 @@ class IA64_instruction {
 
 		uint64_t getMachineCode() const { return instruction; }
 
-		enum insnType { RETURN, BRANCH_IA, DIRECT_CALL, DIRECT_BRANCH, INDIRECT_CALL, INDIRECT_BRANCH, BRANCH_PREDICT, CHECK, MOVE_FROM_IP, OTHER, INVALID, ALLOC, INTEGER_STORE, INTEGER_LOAD, FP_STORE, FP_LOAD };
+		enum insnType { RETURN, BRANCH_IA, DIRECT_CALL, DIRECT_BRANCH, INDIRECT_CALL, INDIRECT_BRANCH, BRANCH_PREDICT, CHECK, MOVE_FROM_IP, OTHER, INVALID, ALLOC, INTEGER_STORE, INTEGER_LOAD, FP_STORE, FP_LOAD, INTEGER_PAIR_LOAD, FP_PAIR_LOAD, PREFETCH };
 		enum unitType { M, I, F, B, L, X, RESERVED };
 		virtual insnType getType() const;
 		virtual unitType getUnitType() const;
@@ -250,6 +250,12 @@ IA64_instruction_x predicateLongInstruction( Register predicate, IA64_instructio
 /* For ast.C */
 class instPoint;
 class registerSpace;
+
+/* There are twenty-five unstacked integer registers, four application registers,
+   and three branch registers which are or must be treated as if they were 
+   scratch registers.  We also use a general register to preserve the predicates
+   and the stack pointer. */
+#define NUM_PRESERVED 34
 #define NUM_LOCALS 8
 #define NUM_OUTPUT 8
 bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace * regSpace, Register * deadRegisterList );
@@ -279,14 +285,31 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace 
 /* (right-aligned) Template IDs. */
 const uint8_t MII = 0x00;
 const uint8_t MIIstop = 0x01;
+const uint8_t MIstopI = 0x02;
+const uint8_t MIstopIstop = 0x03;
 const uint8_t MLX = 0x04;
 const uint8_t MLXstop = 0x05;
+
+const uint8_t MMI = 0x08;
 const uint8_t MMIstop = 0x09;
-const uint8_t MIBstop = 0x11;
+const uint8_t MstopMI = 0x0A;
 const uint8_t MstopMIstop = 0x0B;
-const uint8_t BBBstop = 0x17;
-const uint8_t MMBstop = 0x19;
+const uint8_t MFI = 0x0C;
 const uint8_t MFIstop = 0x0D;
+const uint8_t MMF = 0x0E;
+const uint8_t MMFstop = 0x0F;
+const uint8_t MIB = 0x10;
+const uint8_t MIBstop = 0x11;
+const uint8_t MBB  = 0x12;
+const uint8_t MBBstop = 0x13;
+
+const uint8_t BBB  = 0x16;
+const uint8_t BBBstop = 0x17;
+const uint8_t MMB = 0x18;
+const uint8_t MMBstop = 0x19;
+
+const uint8_t MFB = 0x1C;
+const uint8_t MFBstop = 0x1D;
 
 /* (left-aligned) Machine code. */
 const uint64_t NOP_I = 0x0004000000000000;
