@@ -7,8 +7,13 @@ in main():
 (2) register callback routines associated with certain Paradyn events
     by calling RegistrationCallback():  these are routines written by the
     visualization writer to be called by the visi_callback routine when 
-    the specified event occurs. 
+    the specified event occurs.  
     the event types (type msgTag) are defined in ../src/error.h
+    
+    Callback routines should take one integer parameter.  This parameter
+    is only used for the DATAVALUES event, where it is the bucket number
+    of the next full set of data across all the valid metrics/resources
+    of the datagrid.    
 
     Most of the work involved in integrating the visualization has to 
     do with writing these callback routines.  In most cases this will
@@ -45,16 +50,34 @@ in main():
 interface test programs
 -----------------------
 
+client2
+-------
+    client2: is a pseudo visi-thread program
+    client2 is an interactive test which generates its own input values:
+      data values are generated a bucket at a time across all 
+      metrics/resources: this means that the DATAVALUES callback routine
+      will be called for each set of data values sent to the server 
+
+    to run client2 (with default parameters or with user supplied params):  
+    ---------------
+       client2 server_executable  
+       client2 server_executable numMetrics numResources numBuckets bucketWidth
+
+client1
+-------
     client1: is a pseudo visi-thread program
+    client1 is an interactive test that requires user to add input values 
+    sample input for each option is in file "sample.input.client"
+    (entering the datavalues input choices in the same order that they
+    appear in the input file will test the triggering of the DATAVALUES
+    callback routine)
+
     it has one command line argument which is a visualization to fork 
     the client forks a server process  
 
     to run client1 with xtext2:   client1 xtext2
     to run client1 with xtext:    client1 xtext
     to run client1 with server1:  client1 server1 m r
-
-    client1 is an interactive test 
-    sample input for each option is in file "sample.input.client"
 
     server and client both print output to stderr 
     server's output is prefaced by @@@@
