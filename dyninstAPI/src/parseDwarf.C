@@ -1518,7 +1518,7 @@ void BPatch_module::parseDwarfTypes() {
 	Elf * dwarfElf;
 	status = dwarf_get_elf( dbg, & dwarfElf, NULL );
 	assert( status == DW_DLV_OK );
-	elf_end( dwarfElf );
+	// elf_end( dwarfElf );
 
 	status = dwarf_finish( dbg, NULL );
 	assert( status == DW_DLV_OK );
