@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.465 2003/12/11 16:29:18 bernat Exp $
+// $Id: process.C,v 1.466 2003/12/11 21:23:38 rchen Exp $
 
 #include <ctype.h>
 
@@ -5114,15 +5114,6 @@ bool process::handleSyscallExit(procSignalWhat_t)
             return true;            
         }
         else {
-#if defined(alpha_dec_osf4_0)
-	    // On alpha fortran, the mutator recieves an extra SIGTRAP
-	    // when the mutatee is instructed to continue.  The mutatee
-	    // claims to be returning from system call #91.
-	    //
-	    // We haven't requested to hear about returns from system
-	    // calls, but it seems safe to ignore the trap.
-	    if (syscall == 91) return true;
-#endif
             thr->get_lwp()->clearSyscallExitTrap();
             return true;
         }
