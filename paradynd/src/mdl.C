@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.83 2000/07/28 17:22:11 pcroth Exp $
+// $Id: mdl.C,v 1.84 2000/08/08 15:43:17 wylie Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -1201,11 +1201,11 @@ metricDefinitionNode *T_dyninstRPC::mdl_metric::apply(vector< vector<string> > &
 
   // build the instrumentation request
   vector<metricDefinitionNode*> parts; // one per process
+  if (!apply_to_process_list(instProcess, 
 #if defined(MT_THREAD)
-  if (!apply_to_process_list(instProcess, instThreadsVec, parts, id_, name_, focus,
-#else
-  if (!apply_to_process_list(instProcess, parts, id_, name_, focus,
+                             instThreadsVec, 
 #endif
+                             parts, id_, name_, focus,
 			     agg_op_, type_, flag_cons, base_used,
 			     stmts_, flag_dex, base_dex, temp_ctr_,
 			     replace_components_if_present,

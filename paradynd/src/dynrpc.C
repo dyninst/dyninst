@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.76 2000/07/28 17:22:10 pcroth Exp $ */
+/* $Id: dynrpc.C,v 1.77 2000/08/08 15:43:17 wylie Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -245,7 +245,8 @@ void dynRPC::enableDataCollection(vector<T_dyninstRPC::focusStruct> focus,
 #endif
 
     for (u_int i=0;i<metric.size();i++) {
-        return_id[i] = startCollecting(metric[i], focus[i].focus, mi_ids[i],                                          procsToContinue);
+        return_id[i] = startCollecting(metric[i], focus[i].focus, mi_ids[i], 
+                                       procsToContinue);
     }
 
 #if defined(sparc_sun_solaris2_4) && defined(TIMINGDEBUG)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.176 2000/07/28 17:22:32 pcroth Exp $
+// $Id: metricFocusNode.C,v 1.177 2000/08/08 15:43:16 wylie Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -144,13 +144,14 @@ bool mdl_internal_metric_data(const string& metric_name, mdl_inst_data& result) 
 
 // for non-aggregate metrics
 metricDefinitionNode::metricDefinitionNode(process *p, const string& met_name, 
-				   const vector< vector<string> >& foc,
-				   const vector< vector<string> >& component_foc,
+                        const vector< vector<string> >& foc,
+                        const vector< vector<string> >& component_foc,
+                        const string& component_flat_name, int agg_style
 #if defined(MT_THREAD)
-                                   const string& component_flat_name, int agg_style, AGG_LEVEL agg_level)
+                      , AGG_LEVEL agg_level)
 : aggLevel(agg_level), 
 #else
-                                   const string& component_flat_name, int agg_style)
+                        )
 : aggregate_(false), 
 #endif
   aggOp(agg_style), // CM5 metrics need aggOp to be set
@@ -161,6 +162,7 @@ metricDefinitionNode::metricDefinitionNode(process *p, const string& met_name,
   cumulativeValue_float(0.0),
   id_(-1), originalCost_(0.0), proc_(p)
 {
+  metric_cerr << "metricDefinitionNode[non-aggregate]" << endl;
   mdl_inst_data md;
   bool aflag;
   aflag=mdl_internal_metric_data(met_name, md);
@@ -191,6 +193,7 @@ metricDefinitionNode::metricDefinitionNode(const string& metric_name,
   id_(-1), originalCost_(0.0), proc_(NULL)
 {
   unsigned p_size = parts.size();
+  metric_cerr << "metricDefinitionNode[aggregate:" << p_size << "]" << endl;
   for (unsigned u=0; u<p_size; u++) {
     metricDefinitionNode *mi = parts[u];
     mi->aggregators += this;
@@ -220,6 +223,7 @@ metricDefinitionNode *doInternalMetric(vector< vector<string> >& canon_focus,
 
   // check to see if this is an internal metric
   unsigned im_size = internalMetric::allInternalMetrics.size();
+  metric_cerr << "doInternalMetric(<" << im_size << ">)" << endl;
   for (unsigned im_index=0; im_index<im_size; im_index++){
     internalMetric *theIMetric = internalMetric::allInternalMetrics[im_index];
     if (theIMetric->name() == metric_name) {
@@ -321,20 +325,20 @@ metricDefinitionNode *createMetricInstance(string& metric_name,
        return NULL;
     }
 
-    //cerr << "createMetricInstance called.  metric_name = "
-    //     << metric_name << endl;
-    //cerr << " canonicalFocus (derived from focus (u_int id array)) == "
-    //	 << endl;
-    //for(unsigned z = 0; z < canonicalFocus.size(); z++) {
-    //    vector<string> temp_strings = canonicalFocus[z];
-    //	cerr << "  canonicalFocus[" << z << "] : " << endl;
-    //    for(unsigned y = 0; y < temp_strings.size(); y++) {
-    //        cerr << "   " << temp_strings[y] << endl;
-    //    }
-    //}
+    metric_cerr << "createMetricInstance called.  metric_name = "
+                << metric_name << endl;
+    metric_cerr << " canonicalFocus (derived from focus (u_int id array)) == "
+    	 << endl;
+    for(unsigned z = 0; z < canonicalFocus.size(); z++) {
+        vector<string> temp_strings = canonicalFocus[z];
+    	metric_cerr << "  canonicalFocus[" << z << "] : " << endl;
+        for(unsigned y = 0; y < temp_strings.size(); y++) {
+            metric_cerr << "   " << temp_strings[y] << endl;
+        }
+    }
 
     string flat_name = metricAndCanonFocus2FlatName(metric_name, canonicalFocus);
-    //cerr << "flat_name = " << flat_name << endl;
+    metric_cerr << "flat_name = " << flat_name << endl;
 
 
     // first see if it is already defined.
@@ -362,11 +366,11 @@ metricDefinitionNode *createMetricInstance(string& metric_name,
        }
     }
 
-    //cerr << " previous instance of metric not found, trying to create"
-    //	 << endl;
+    metric_cerr << " previous instance of metric not found, trying to create"
+                << endl;
 
     if (mdl_can_do(metric_name)) {
-      //cerr << " mdl_can_do(metrix_name) == TRUE" << endl;
+      metric_cerr << " mdl_can_do(metrix_name) == TRUE" << endl;
       internal = false;
 
       /* select the processes that should be instrumented. We skip process
@@ -457,7 +461,7 @@ metricDefinitionNode *createMetricInstance(string& metric_name,
 #endif
       return mi;
     } else {
-      //cerr << " mdl_can_do(metrix_name) == FALSE" << endl;
+      metric_cerr << " mdl_can_do(metrix_name) == FALSE" << endl;
       bool matched;
       metricDefinitionNode *mi=doInternalMetric(canonicalFocus,
 			  canonicalFocus, // is this right for component_canon_focus???
@@ -1345,7 +1349,7 @@ bool metricDefinitionNode::anythingToManuallyTrigger() const {
 void metricDefinitionNode::adjustManuallyTrigger()
 {
   vector<instPoint*> instPts;
-  unsigned i, j, k, l;
+  unsigned i, j, k;
   pd_Function *stack_func;
   instPoint *point;
   Address stack_pc;
@@ -1714,7 +1718,12 @@ void metricDefinitionNode::manuallyTrigger(int parentMId) {
    manuallyTriggerNodes.resize( 0 );
 }
 
-void metricDefinitionNode::manuallyTrigger(int parentMId, int thrId) {
+#if defined(MT_THREAD)
+void metricDefinitionNode::manuallyTrigger(int parentMId, int thrId)
+#else
+void metricDefinitionNode::manuallyTrigger(int parentMId, int /*thrId*/)
+#endif
+{
    assert(anythingToManuallyTrigger());
 
    bool aggr = true;
@@ -1761,18 +1770,19 @@ void metricDefinitionNode::propagateId(int id) {
 }
 #endif
 
-// startCollecting is called by dynRPC::enableDataCollection (or enableDataCollection2)
-// in dynrpc.C
+// startCollecting is called by dynRPC::enableDataCollection 
+// (or enableDataCollection2) in dynrpc.C
 // startCollecting is a friend of metricDefinitionNode; can it be
 // made a member function of metricDefinitionNode instead?
 // Especially since it clearly is an integral part of the class;
 // in particular, it sets the crucial vrble "id_"
+//
 int startCollecting(string& metric_name, vector<u_int>& focus, int id,
 		    vector<process *> &procsToCont)
 {
     bool internal = false;
 
-    //cerr << "startCollecting called for metric " << metric_name.string_of() << endl;
+    metric_cerr << "startCollecting called for metric " << metric_name << endl;
 
     // Make the unique ID for this metric/focus visible in MDL.
     string vname = "$globalId";
@@ -1783,7 +1793,8 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
                                                     true, internal);
        // calls mdl_do()
     if (!mi) {
-       //cerr << "startCollecting for " << metric_name << " failed because createMetricInstance failed" << endl;
+       metric_cerr << "startCollecting for " << metric_name 
+                << " failed because createMetricInstance failed" << endl;
        return(-1);
     }
 
@@ -1851,14 +1862,14 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
 	mi->checkAndInstallInstrumentation();
 
 	//
-    // Now that the timers and counters have been allocated on the heap, and
+        // Now that the timers and counters have been allocated on the heap, and
 	// the instrumentation added, we can manually execute instrumentation
 	// we may have missed at function entry points and pre-instruction call 
 	// sites which have already executed.
 	//
 
-	// Adjust mi's manuallyTrigger fields to try to execute function entry and call
-	//  site instrumentation according to the program stack....
+	// Adjust mi's manuallyTrigger fields to try to execute function entry
+	// and call site instrumentation according to the program stack....
 	//cerr << " (startCollecting) about to call mi->adjustManuallyTrigger" << endl;
 	if (!alreadyThere) // trigger only if it is fresh request
 	  mi->adjustManuallyTrigger();
@@ -1904,7 +1915,7 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
 #endif
 
     metResPairsEnabled++;
-	//cerr << "startCollecting -- exiting" << endl;
+    metric_cerr << "startCollecting -- returning id_=" << mi->id_ << endl;
     return(mi->id_);
 }
 
