@@ -1069,16 +1069,6 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	   }
 
 	   if (found) {
-#ifdef ndef
-	      tunableBooleanConstant developerMode = tunableConstantRegistry::findBoolTunableConstant("developerMode");
-	      bool developerModeActive = developerMode.getValue();
-	      if (developerModeActive) {
-		 string msg;
-		 msg = string("ERROR?:data for disabled mid: ") + string(mid);
-		 cout << msg.string_of() << endl;
-		 uiMgr->updateStatus(DMstatus,P_strdup(msg.string_of()));
-	      }
-#endif
 	      return;
 	   } else {
 	      cout << "ERROR: data for unknown mid: " << mid << endl;
@@ -1149,16 +1139,6 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	// newValue will aggregate the parts according to mi's aggOp
 	//
 	ret = mi->aggSample.aggregateValues();
-#ifdef notdef
-	if(internal_metric){  // each part has same weight
-    	   ret = mi->sample.newValue(mi->parts, endTimeStamp, value);
-
-	}
-	else {  // each part is weighted by the num processes per daemon
-    	   ret = mi->sample.newValue(mi->parts, mi->num_procs_per_part,
-				  endTimeStamp, value);
-	}
-#endif
 	
 	if (ret.valid) {  // there is new data from all components 
 	   assert(ret.end >= 0.0);
