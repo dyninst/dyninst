@@ -1,4 +1,4 @@
-# $Id: errorList.tcl,v 1.60 2003/05/23 14:50:20 pcroth Exp $
+# $Id: errorList.tcl,v 1.61 2004/03/12 23:18:12 legendre Exp $
 
 #
 # Error message format:
@@ -1148,10 +1148,23 @@ an instrumentation point.  Paradyn will insert the instrumentation as\
 soon as it is able.}
 }
 
+set pdError(129) {
+{Error reading from the VSyscall page}
+{paradynd}
+{warning}
+{Paradyn was unable to read from the vsyscall page and may function incorrectly.  This is probably caused by a bug present in Linux 2.6.0 to Linux 2.6.2 (and probably some versions of 2.5.*).  Please upgrade to at least Linux 2.6.3.}
+}
+
+set pdError(130) {
+{libdwarf failed to open VSyscall DSO}
+{paradynd}
+{warning}
+{libdwarf returned an error while attempting to open the VSyscall DSO.  This was probably caused by a bug in libdwarf.  Please upgrade libdwarf to the build from 12/30/2003 or latter.  Paradyn may work incorrectly.}
+}
 
 #
 # be sure to change this value if you add/delete an entry to the database
 #
 proc getNumPdErrors {} {
-    return 128
+    return 130
 }
