@@ -1813,13 +1813,16 @@ void initTramps()
 
 Register emitFuncCall(opCode op, registerSpace *rs, char *code, Address &base, 
 		      const vector<AstNode *> &params, const string &callee,
-		      process *p, bool noCost)
+		      process *p, bool noCost, const function_base *calleebase)
 {
   //fprintf(stderr, ">>> emitFuncCall(%s)\n", callee.string_of());
   //Address base_orig = base; // debug
   assert(op == callOp);
-
-  Address calleeAddr = lookup_fn(p, callee);
+  Address calleeAddr;
+  if (calleebase)
+       calleeAddr = calleebase->getEffectiveAddress(p);
+  else
+       calleeAddr = lookup_fn(p, callee);
   //fprintf(stderr, "  <0x%08x:%s>\n", calleeAddr, callee.string_of());
 
   // generate argument values
@@ -2111,6 +2114,16 @@ bool process::replaceFunctionCall(const instPoint *ip,
   //disDataSpace(this, (void *)pt_addr, 2, "  ");
 
   return true;
+}
+
+// Emit code to jump to function CALLEE without linking.  (I.e., when
+// CALLEE returns, it returns to the current caller.)
+void emitFuncJump(opCode op, 
+		  char *i, Address &base, 
+		  const function_base *callee, process *proc)
+{
+     /* Unimplemented on this platform! */
+     assert(0);
 }
 
 bool process::findCallee(instPoint &inst, function_base *&target)

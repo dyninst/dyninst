@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.74 1999/03/19 18:11:06 csserra Exp $
+ * $Id: inst-power.C,v 1.75 1999/05/03 20:02:34 zandy Exp $
  */
 
 #include "util/h/headers.h"
@@ -1587,25 +1587,29 @@ Register emitFuncCall(opCode /* ocode */,
 		      registerSpace *rs,
 		      char *iPtr, Address &base, 
 		      const vector<AstNode *> &operands, 
-		      const string &callee, process *proc, bool noCost)
+		      const string &callee, process *proc, bool noCost,
+		      const function_base *calleefunc)
 {
   Address dest;
   bool err;
   vector <Register> srcs;
   
-  dest = proc->findInternalAddress(callee, false, err);
-  if (err) {
-    function_base *func = proc->findOneFunction(callee);
-    if (!func) {
-      ostrstream os(errorLine, 1024, ios::out);
-      os << "Internal error: unable to find addr of " << callee << endl;
-      logLine(errorLine);
-      showErrorCallback(80, (const char *) errorLine);
-      P_abort();
-    }
-    dest = func->getAddress(0);
+  if (calleefunc)
+       dest = calleefunc->getEffectiveAddress(proc);
+  else {
+       dest = proc->findInternalAddress(callee, false, err);
+       if (err) {
+	    function_base *func = proc->findOneFunction(callee);
+	    if (!func) {
+		 ostrstream os(errorLine, 1024, ios::out);
+		 os << "Internal error: unable to find addr of " << callee << endl;
+		 logLine(errorLine);
+		 showErrorCallback(80, (const char *) errorLine);
+		 P_abort();
+	    }
+	    dest = func->getAddress(0);
+       }
   }
-	
   // If this code tries to save registers, it might save them in the
   // wrong area; there was a conflict with where the base trampoline saved
   // registers and the function, so now the function is saving the registers
@@ -2849,4 +2853,14 @@ bool process::replaceFunctionCall(const instPoint *point,
     writeTextSpace((caddr_t)point->addr, sizeof(instruction), &newInsn);
 
     return true;
+}
+
+// Emit code to jump to function CALLEE without linking.  (I.e., when
+// CALLEE returns, it returns to the current caller.)
+void emitFuncJump(opCode op, 
+		  char *i, Address &base, 
+		  const function_base *callee, process *proc)
+{
+     /* Unimplemented on this platform! */
+     assert(0);
 }

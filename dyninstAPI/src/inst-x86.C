@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.41 1999/04/27 16:03:05 nash Exp $
+ * $Id: inst-x86.C,v 1.42 1999/05/03 20:02:36 zandy Exp $
  */
 
 #include <limits.h>
@@ -1713,26 +1713,29 @@ Register emitFuncCall(opCode op,
 		      char *ibuf, Address &base,
 		      const vector<AstNode *> &operands, 
 		      const string &callee, process *proc,
-	              bool noCost)
+	              bool noCost, const function_base *calleefunc)
 {
   assert(op == callOp);
   Address addr;
   bool err;
   vector <Register> srcs;
 
-  addr = proc->findInternalAddress(callee, false, err);
-  if (err) {
-    function_base *func = proc->findOneFunction(callee);
-    if (!func) {
-      ostrstream os(errorLine, 1024, ios::out);
-      os << "Internal error: unable to find addr of " << callee << endl;
-      logLine(errorLine);
-      showErrorCallback(80, (const char *) errorLine);
-      P_abort();
-    }
-    addr = func->getAddress(0);
+  if (calleefunc)
+       addr = calleefunc->getEffectiveAddress(proc);
+  else {
+       addr = proc->findInternalAddress(callee, false, err);
+       if (err) {
+	    function_base *func = proc->findOneFunction(callee);
+	    if (!func) {
+		 ostrstream os(errorLine, 1024, ios::out);
+		 os << "Internal error: unable to find addr of " << callee << endl;
+		 logLine(errorLine);
+		 showErrorCallback(80, (const char *) errorLine);
+		 P_abort();
+	    }
+	    addr = func->getAddress(0);
+       }
   }
-
   for (unsigned u = 0; u < operands.size(); u++)
     srcs += (Register)operands[u]->generateCode(proc, rs, ibuf, base, noCost, false);
 
@@ -2528,6 +2531,16 @@ bool process::replaceFunctionCall(const instPoint *point,
     }
 
     return true;
+}
+
+// Emit code to jump to function CALLEE without linking.  (I.e., when
+// CALLEE returns, it returns to the current caller.)
+void emitFuncJump(opCode op, 
+		  char *i, Address &base, 
+		  const function_base *callee, process *proc)
+{
+     /* Unimplemented on this platform! */
+     assert(0);
 }
 
 #if (defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0))

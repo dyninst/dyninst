@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.7 1999/03/04 00:04:18 wylie Exp $
+// $Id: inst-alpha.C,v 1.8 1999/05/03 20:02:32 zandy Exp $
 
 #include "util/h/headers.h"
 
@@ -1720,7 +1720,8 @@ emitFuncCall(opCode op,
 	     registerSpace *rs,
 	     char *i, Address &base, 
 	     const vector<AstNode *> &operands,
-	     const string &func, process *proc, bool noCost)
+	     const string &callee, process *proc, bool noCost,
+	     const function_base *calleebase)
 {
   vector <Register> srcs;
 
@@ -1735,17 +1736,22 @@ emitFuncCall(opCode op,
   Address addr;
   bool err;
   void cleanUpAndExit(int status);
-  addr = proc->findInternalAddress(func, false, err);
-  if (err) {
-       function_base *func_b = proc->findOneFunction(func);
-       if (!func_b) {
-          ostrstream os(errorLine, 1024, ios::out);
-          os << "Internal error: unable to find addr of " << func << endl;
-	  logLine(errorLine);
-	  showErrorCallback(80, (const char *) errorLine);
-	  P_abort();
+
+  if (calleebase)
+       addr = calleebase->getEffectiveAddress(proc);
+  else {
+       addr = proc->findInternalAddress(func, false, err);
+       if (err) {
+	    function_base *func_b = proc->findOneFunction(func);
+	    if (!func_b) {
+		 ostrstream os(errorLine, 1024, ios::out);
+		 os << "Internal error: unable to find addr of " << func << endl;
+		 logLine(errorLine);
+		 showErrorCallback(80, (const char *) errorLine);
+		 P_abort();
+	    }
+	    addr = func_b->addr();
        }
-       addr = func_b->addr();
   }
 
   function_base *fun_save = proc->findOneFunction("DYNINSTsave_misc");
@@ -1879,6 +1885,15 @@ bool process::replaceFunctionCall(const instPoint *point,
     return true;
 }
 
+// Emit code to jump to function CALLEE without linking.  (I.e., when
+// CALLEE returns, it returns to the current caller.)
+void emitFuncJump(opCode op, 
+		  char *i, Address &base, 
+		  const function_base *callee, process *proc)
+{
+     /* Unimplemented on this platform! */
+     assert(0);
+}
 
 #ifdef BPATCH_LIBRARY
 /*
