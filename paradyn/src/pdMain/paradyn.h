@@ -1,7 +1,10 @@
 /* $Log: paradyn.h,v $
-/* Revision 1.3  1994/04/05 20:05:37  karavan
-/* Reinstated User Interface.
+/* Revision 1.4  1994/04/10 19:16:19  newhall
+/* added VM definitions
 /*
+ * Revision 1.3  1994/04/05  20:05:37  karavan
+ * Reinstated User Interface.
+ *
  * Revision 1.1  1994/03/29  20:21:25  karavan
  * initial version for testing.
  * */
@@ -18,7 +21,7 @@
 #include "dataManager.CLNT.h"
 #include "performanceConsultant.CLNT.h"
 #include "UI.CLNT.h"
-// #include "VM.CLNT.h"
+#include "VM.CLNT.h"
 
 struct CLargStruct {
   int clargc;
@@ -46,7 +49,7 @@ extern applicationContext *context;
 extern dataManagerUser *dataMgr;
 extern performanceConsultantUser *perfConsult;
 extern UIMUser *uiMgr;
-// extern VMUser  *vmMgr;
+extern VMUser  *vmMgr;
 
 #endif
 
