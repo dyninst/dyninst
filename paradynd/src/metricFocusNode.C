@@ -14,7 +14,10 @@ char rcsid_metric[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.94  1996/05/08 23:54:55  mjrg
+ * Revision 1.95  1996/05/09 15:36:57  naim
+ * Making change in disable routine to avoid resize problem - naim
+ *
+ * Revision 1.94  1996/05/08  23:54:55  mjrg
  * added support for handling fork and exec by an application
  * use /proc instead of ptrace on solaris
  * removed warnings
@@ -610,16 +613,13 @@ void metricDefinitionNode::disable()
           components[u]->disable();
     } else {
       vector<unsigVecType> pointsToCheck;
-      unsigned size;
-      size = requests.size();
-      for (unsigned u1=0; u1<size; u1++) {
+      for (unsigned u1=0; u1<requests.size(); u1++) {
         unsigVecType pointsForThisRequest = 
             getAllTrampsAtPoint(requests[u1].getInstance());
         pointsToCheck += pointsForThisRequest;
         requests[u1].disable(pointsForThisRequest);
       }
-      size = data.size();
-      for (unsigned u=0; u<size; u++) {
+      for (unsigned u=0; u<data.size(); u++) {
         data[u]->disable(pointsToCheck);
       }
     }
