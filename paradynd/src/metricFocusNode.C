@@ -14,6 +14,11 @@ char rcsid_metric[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
+ * Revision 1.93  1996/05/08 17:05:30  tamches
+ * the bucket_width internal metric is now reported using currSamplingRate
+ * instead of the ostensible value in the internalMetric enabled-instance
+ * structure.
+ *
  * Revision 1.92  1996/05/08 15:26:22  naim
  * Changing buffer size to 1K - naim
  *
@@ -1255,7 +1260,12 @@ void reportInternalMetrics()
 	  //value = (end - start) * activeProcesses;
 	  value = (end - start) * theInstance.getValue();
         } else if (theIMetric->name() == "bucket_width") {
-	  value = (end - start)* theInstance.getValue();
+	  //value = (end - start)* theInstance.getValue();
+	  // I would prefer to use (end-start) * theInstance.getValue(); however,
+	  // we've had some problems getting setValue() called in time, thus
+	  // leaving us with getValues() of 0 sometimes.  See longer comment in dynrpc.C --ari
+	  extern float currSamplingRate;
+	  value = (end - start) * currSamplingRate;
         } else if (theIMetric->name() == "number_of_cpus") {
 #ifdef sparc_tmc_cmost7_3
 	  value = (end - start) * getNumberOfCPUs();
