@@ -3,6 +3,9 @@
 
 /*
  * $Log: tableVisiTcl.C,v $
+ * Revision 1.9  1996/04/30 20:19:06  tamches
+ * Added label with phase name
+ *
  * Revision 1.8  1996/01/17 18:31:39  newhall
  * changes due to new visiLib
  *
@@ -64,6 +67,33 @@ tkInstallIdle tableDrawWhenIdle(&tableWhenIdleDrawRoutine);
 
 /* ************************************************************* */
 
+void updatePhaseLabelIfFirstTime() {
+   static bool firstTime = true;
+
+   if (!firstTime)
+      return;
+
+   int phaseHandle = visi_GetMyPhaseHandle();
+   if (phaseHandle < -1)
+      return; // sorry, not yet defined
+
+   extern Tcl_Interp *mainInterp;
+   const char *phaseName = visi_GetMyPhaseName();
+   if (phaseName == NULL) {
+      // ugh; we have a current phase, but the name isn't yet known
+      myTclEval(mainInterp, string(".phasename config -text \"Phase: Current Phase\""));
+      return; // return w/o setting firstTime to false
+   }
+
+   // success
+   string commandStr = string(".phasename config -text \"Phase: ") + phaseName + "\"";
+   myTclEval(mainInterp, commandStr);
+
+   firstTime = false;
+}
+
+/* ************************************************************* */
+
 int Dg2NewDataCallback(int) {
    // This callback implies that new data has arrived for each valid metric/focus
    // pair; hence, it's time to update the screen!
@@ -72,6 +102,8 @@ int Dg2NewDataCallback(int) {
       cout << "Dg2NewDataCallback tableVisi: missed an early sample since not yet initialized" << endl;
       return TCL_OK;
    }
+
+   updatePhaseLabelIfFirstTime();
 
    // This should give the number of _enabled_ metrics & foci:
    const unsigned numMetrics = theTableVisi->getNumMetrics();
@@ -114,6 +146,13 @@ int Dg2NewDataCallback(int) {
    return TCL_OK;
 }
 
+int Dg2PhaseDataCallback(int) {
+   extern Tcl_Interp *mainInterp;
+   myTclEval(mainInterp, "DgPhaseDataCallback");
+
+   return TCL_OK;
+}
+
 int Dg2AddMetricsCallback(int) {
    // completely rethink metrics and resources
    // very ugly; necessary because the visilib interface
@@ -122,10 +161,13 @@ int Dg2AddMetricsCallback(int) {
    // rethinking everything, by making a pass over the dataGrid to
    // _manually_ compute what has actually changed.
 
+   updatePhaseLabelIfFirstTime();
+
    extern Tcl_Interp *mainInterp;
    theTableVisi->clearMetrics(mainInterp);
+
    unsigned newNumMetrics = visi_NumMetrics();
-      // not necessarily the correct value; metric(s) may be disabled
+      // not necessarily the correct value; some metric(s) may be disabled
 
    for (unsigned metriclcv=0; metriclcv < newNumMetrics; metriclcv++) {
       // Is this metric enabled?  Boils down to "is this metric enabled for
@@ -155,6 +197,7 @@ int Dg2AddMetricsCallback(int) {
    }
 
    theTableVisi->clearFoci(mainInterp);
+
    unsigned newNumFoci = visi_NumResources();
       // not necessarily the correct value; foci may be disabled
 
@@ -167,8 +210,10 @@ int Dg2AddMetricsCallback(int) {
 	    break;
 	 }
 
-      if (!enabled)
+      if (!enabled) {
+         cout << "table: the focus " << visi_ResourceName(focuslcv) << " isn't enabled...not adding" << endl;
          continue;
+      }
 
       theTableVisi->addFocus(focuslcv, visi_ResourceName(focuslcv));
    }
@@ -195,29 +240,6 @@ int Dg2AddMetricsCallback(int) {
 
    return TCL_OK;
 }
-
-//int Dg2Fold(int) {
-//   cout << "welcome to Dg2Fold" << endl;
-//   tableDrawWhenIdle.install(NULL);
-//
-//   return TCL_OK;
-//}
-
-//int Dg2InvalidMetricsOrResources(int) {
-//   cout << "welcome to Dg2InvalidMetricsOrResources" << endl;
-////   myTclEval(MainInterp, "DgInvalidCallback");
-//   tableDrawWhenIdle.install(NULL);
-//
-//   return TCL_OK;
-//}
-
-//int Dg2PhaseNameCallback(int) {
-//   cout << "welcome to Dg2PhaseNameCallback" << endl;
-////   myTclEval(MainInterp, "DgPhaseCallback");
-//   tableDrawWhenIdle.install(NULL);
-//
-//   return TCL_OK;
-//}
 
 /* ************************************************************* */
 
