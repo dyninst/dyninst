@@ -45,6 +45,9 @@
 
 /*
  * $Log: perfStream.h,v $
+ * Revision 1.7  1996/10/31 09:04:41  tamches
+ * removed 2 unused cm5 vrbles
+ *
  * Revision 1.6  1996/08/16 21:19:33  tamches
  * updated copyright for release 1.1
  *
@@ -79,8 +82,6 @@
 
 extern void controllerMainLoop(bool check_buffer_first);
 extern bool firstSampleReceived;
-extern bool CMMDhostless;
-extern bool synchronousMode;
 extern double cyclesPerSecond;
 extern time64 firstRecordTime;
 extern void createResource(traceHeader *header, struct _newresource *r);
