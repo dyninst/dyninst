@@ -88,11 +88,46 @@ void AddCallGraphStaticChildrenCallback(pdstring exe_name, pdstring r,
 }
 
 
+// Add nested loops and functions to the call graph
+void FillInCallGraphNodeNested(pdstring exe_name, 
+			       pdstring resource_full_name,
+			       BPatch_loopTreeNode *node)
+{
+    AddCallGraphNodeCallback(exe_name, resource_full_name);
+				
+    // add nested function calls and loops as this node's child resources
+    pdvector<pdstring> children;
+
+    for (unsigned i = 0; i < node->callees.size(); i++) {
+	pd_Function *f = static_cast<pd_Function *>(node->callees[i]);
+
+        assert(f != NULL);
+
+	children.push_back(f->ResourceFullName());
+    }
+    
+    for (unsigned j = 0; j < node->children.size(); j++) {
+	children.push_back(resource_full_name + "/" + 
+			node->children[j]->name());
+    }
+    
+    AddCallGraphStaticChildrenCallback(exe_name, resource_full_name, children);
+
+    // recurse with children
+    for (unsigned k = 0; k < node->children.size(); k++) {
+	FillInCallGraphNodeNested(exe_name, 
+                                  resource_full_name + "/" + 
+                                  node->children[k]->name(),
+                                  node->children[k]);
+    }
+}
+
+
 // Called across all modules (in a given image) to define the call
 //  graph relationship between functions.
 // Must be called AFTER all functions in all modules (in image) are
 //  registered as resource (e.g. w/ pdmodule::define())....
-void pd_module::FillInCallGraphStatic(process *proc, bool printLoops=false) {
+void pd_module::FillInCallGraphStatic(process *proc) {
    pdvector<pd_Function *> callees;
    pdvector<pdstring>        callees_as_strings;
    const pdvector<pd_Function *> *mod_funcs = get_dyn_module()->getPD_Functions();
@@ -103,8 +138,6 @@ void pd_module::FillInCallGraphStatic(process *proc, bool printLoops=false) {
    for(unsigned f=0; f<(*mod_funcs).size(); f++) {
       pd_Function *pdf = (*mod_funcs)[f];
 
-      if (printLoops) pdf->printLoops(proc);
-    
       callees_as_strings.resize(0);
     
       // Translate from function name to resource *.
@@ -146,10 +179,21 @@ void pd_module::FillInCallGraphStatic(process *proc, bool printLoops=false) {
       // register that callee_resources holds list of resource*s 
       //  describing children of resource r....
       pdstring exe_name = proc->getImage()->file();
-      AddCallGraphNodeCallback(exe_name, resource_full_name);
 
-      AddCallGraphStaticChildrenCallback(exe_name, resource_full_name,
-                                         callees_as_strings);
+      // if displaying loops as resources for the current module...
+      // add nested loops and function calls
+      //if (resource_full_name == "/Code/mtee.C/main") {
+      char *mname = getenv("PARADYN_LOOPS");
+      if (mname && (0 == strcmp(mname, dyn_module->fileName().c_str()))) {
+	  BPatch_loopTreeNode *root = pdf->getLoopTree(proc);
+	  FillInCallGraphNodeNested(exe_name, resource_full_name, root);
+      }
+      else {
+          AddCallGraphNodeCallback(exe_name, resource_full_name);
+
+          AddCallGraphStaticChildrenCallback(exe_name, resource_full_name,
+                                             callees_as_strings);
+      }
 
       //Locate the dynamic call sites within the function, and notify 
       //the front end as to their existence
