@@ -17,7 +17,7 @@ static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
  Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/form.c,v 1.2 1997/05/14 19:14:57 naim Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/form.c,v 1.3 1997/05/20 01:29:23 tung Exp $";
 #endif
 
 /*
@@ -25,6 +25,9 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
  *          scroll bars and menu routines.
  *
  * $Log: form.c,v $
+ * Revision 1.3  1997/05/20 01:29:23  tung
+ * put up the paradyn logo.
+ *
  * Revision 1.2  1997/05/14 19:14:57  naim
  * Minor changes for sunos version of terrain - naim
  *
@@ -201,38 +204,40 @@ int h, w;			/* How big should the form be initially */
     /* Paradyn Logo */
     i = 0;
     XtSetArg(arg[i], XtNbitmap, logobitmap); i++;
-    XtSetArg(arg[i], XtNfromHoriz, form); i++;
+//    XtSetArg(arg[i], XtNfromHoriz, form); i++;
     XtSetArg(arg[i], XtNshowGrip, False);  i++;
     XtSetArg(arg[i], XtNjustify, XtJustifyRight);  i++;
-    XtSetArg(arg[i], XtNwidth, (logo_width + 5));  i++;
+    XtSetArg(arg[i], XtNwidth, logo_width + 5);  i++;
     XtSetArg(arg[i], XtNheight, logo_height);  i++;
     XtSetArg(arg[i], XtNvertDistance, 0);  i++;
-    XtSetArg(arg[i], XtNhorizDistance, 0);  i++;
-    XtSetArg(arg[i], XtNborderWidth, 0);  i++;
+    XtSetArg(arg[i], XtNhorizDistance, (FORM_W - logo_width - 5));  i++;
     XtSetArg(arg[i], XtNright, XtChainRight); i++;
     XtSetArg(arg[i], XtNleft, XtChainRight); i++;
-//    logo = XtCreateManagedWidget( "logo", labelWidgetClass, form, arg, i); 
+    XtSetArg(arg[i], XtNtop, XtChainTop); i++;
+    XtSetArg(arg[i], XtNbottom, XtChainTop); i++;
+    XtSetArg(arg[i], XtNresizable, False); i++;
+    logo = XtCreateManagedWidget( "logo", labelWidgetClass, form, arg, i); 
 
     /* Menu bar */
     i = 0;
     XtSetArg(arg[i], XtNshowGrip, False);            i++;
     XtSetArg(arg[i], XtNlabel, "3D-Histogram Display"); i++;
-    XtSetArg(arg[i], XtNleft, XtChainLeft); i++; /* R4 have no XawChainTop */
+    XtSetArg(arg[i], XtNleft, XtChainLeft); i++;  /* R4 have no XawChainTop */ 
     XtSetArg(arg[i], XtNright, XtChainRight); i++;
     XtSetArg(arg[i], XtNtop, XtChainTop); i++;
     XtSetArg(arg[i], XtNbottom, XtChainTop); i++;
     XtSetArg(arg[i], XtNvertDistance, 0);  i++;
     XtSetArg(arg[i], XtNborderWidth, 1);  i++;
     XtSetArg(arg[i], XtNhorizDistance, 0);  i++;
-    XtSetArg(arg[i], XtNwidth, FORM_W);  i++;
-    XtSetArg(arg[i], XtNheight, TITLE_H);  i++;
+    XtSetArg(arg[i], XtNwidth, FORM_W - logo_width - 5);  i++;
+    XtSetArg(arg[i], XtNheight, logo_height / 2);  i++;
     XtSetArg(arg[i], XtNborderWidth, 1);  i++;
     titleBar = XtCreateManagedWidget("titlebar", labelWidgetClass, form, arg, i);
 
     /* File Menu*/
     i=0;
-    XtSetArg(arg[i], XtNvertDistance, TITLE_H + 2); i++;
-    XtSetArg(arg[i], XtNheight, TITLE_H); i++;
+    XtSetArg(arg[i], XtNvertDistance, logo_height / 2); i++;
+    XtSetArg(arg[i], XtNheight, logo_height / 2); i++;
     XtSetArg(arg[i], XtNwidth, TITLE_H * 3); i++;
     XtSetArg(arg[i], XtNresizable, True);  i++;
     XtSetArg(arg[i], XtNleft, XtChainLeft); i++; /* R4 have no XawChainTop */
@@ -244,15 +249,15 @@ int h, w;			/* How big should the form be initially */
     filemenuTitle = XtCreateManagedWidget("title", menuButtonWidgetClass, form, 
 				  arg , (Cardinal)i);
 
-    XtOverrideTranslations(filemenuTitle, XtParseTranslationTable("<Btn1Down>: XawPositionSimpleMenu(menu) MenuPopup(menu)"));
+    XtOverrideTranslations(filemenuTitle, XtParseTranslationTable("<Btn1Down>:XawPositionSimpleMenu(menu) MenuPopup(menu)"));
 
     filemenu = CreateMenu(filemenuTitle, FILEMENU_TITLE, fileMenu, NULL);
 
     /* Smooth Menu */
     i=0;
-    XtSetArg(arg[i], XtNvertDistance, TITLE_H + 2); i++;
+    XtSetArg(arg[i], XtNvertDistance, logo_height / 2); i++;
     XtSetArg(arg[i], XtNhorizDistance, TITLE_H * 4);  i++;    
-    XtSetArg(arg[i], XtNheight, TITLE_H); i++;
+    XtSetArg(arg[i], XtNheight, logo_height / 2); i++;
     XtSetArg(arg[i], XtNwidth, TITLE_H * 3); i++;
     XtSetArg(arg[i], XtNresizable, True);  i++;
     XtSetArg(arg[i], XtNleft, XtChainLeft); i++; /* R4 have no XawChainTop */
@@ -264,7 +269,7 @@ int h, w;			/* How big should the form be initially */
     viewmenuTitle = XtCreateManagedWidget("title", menuButtonWidgetClass, form, 
 				  arg , (Cardinal)i);
 
-    XtOverrideTranslations(viewmenuTitle, XtParseTranslationTable("<Btn1Down>: XawPositionSimpleMenu(menu) MenuPopup(menu)"));
+    XtOverrideTranslations(viewmenuTitle, XtParseTranslationTable("<Btn1Down>:XawPositionSimpleMenu(menu) MenuPopup(menu)"));
 
     viewmenu = CreateMenu(viewmenuTitle, VIEWMENU_TITLE, viewRawMenu, NULL);
 
@@ -272,7 +277,7 @@ int h, w;			/* How big should the form be initially */
     /* V-info box */
 
     i=0;
-    XtSetArg(arg[i], XtNvertDistance, TITLE_H * 2 + 2); i++;
+    XtSetArg(arg[i], XtNvertDistance, logo_height); i++;
     XtSetArg(arg[i], XtNhorizDistance, 0); i++;
 
     XtSetArg(arg[i], XtNheight, INFO_H); i++;
@@ -292,7 +297,7 @@ int h, w;			/* How big should the form be initially */
     /* H-info box */
 
     i=0;
-    XtSetArg(arg[i], XtNvertDistance, TITLE_H * 2 + 2); i++;
+    XtSetArg(arg[i], XtNvertDistance, logo_height); i++;
     XtSetArg(arg[i], XtNhorizDistance, INFO_W); i++;
 
     XtSetArg(arg[i], XtNheight, INFO_H); i++;

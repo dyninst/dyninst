@@ -21,13 +21,16 @@
  */
 
 #ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/terrain.c,v 1.3 1997/05/19 19:43:07 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/terrain.c,v 1.4 1997/05/20 01:29:25 tung Exp $";
 #endif
 
 /*
  * terrain.c - main entry point and x driver.
  *
  * $Log: terrain.c,v $
+ * Revision 1.4  1997/05/20 01:29:25  tung
+ * put up the paradyn logo.
+ *
  * Revision 1.3  1997/05/19 19:43:07  tung
  * Make the axis appears before the curve surface shows up.
  *
@@ -84,7 +87,7 @@ Window win;			/* Which window we are in */
 Display *dpy;			/* Which display we are in */
 Pixmap pixmap;			/* The drawing area in the main viewer */
 GC gc = (GC)NULL;
-Dimension W = 640, H = 450, D = 0; /* Initial dimension of terrain window */
+Dimension W = 700, H = 450, D = 0; /* Initial dimension of terrain window */
 Arg args[5];
 
 static void resize();
@@ -131,6 +134,9 @@ String fallback_resources[] = {
  "*titlebar*font: *-New*Century*Schoolbook-Bold-R-*-18-*",
  "*titlebar*background: Red",
  "*titlebar*foreground: White",
+ "*logo*background: White",
+ "*logo*foreground: #c06077",
+ "*title*font: *-New*Century*Schoolbook-*-R-*-14-*",
  NULL,
 };
 

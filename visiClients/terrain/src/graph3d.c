@@ -37,12 +37,15 @@
  */
 
 #ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/graph3d.c,v 1.1 1997/05/12 20:15:28 naim Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/graph3d.c,v 1.2 1997/05/20 01:29:24 tung Exp $";
 #endif
 
 /*
  *
  * $Log: graph3d.c,v $
+ * Revision 1.2  1997/05/20 01:29:24  tung
+ * put up the paradyn logo.
+ *
  * Revision 1.1  1997/05/12 20:15:28  naim
  * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
  *
@@ -599,7 +602,7 @@ transform_matrix mat;
 		int x, y;
 
 		x = title_xoffset * t->h_char;
-		y = title_yoffset * t->v_char - 30;
+		y = title_yoffset * t->v_char - 160;
 
 		if ((*t->justify_text)(CENTRE)) 
 			(*t->put_text)(x+(xleft+xright)/2, 
