@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.54 2004/07/27 02:25:46 jaw Exp $
+// $Id: aixDL.C,v 1.55 2005/01/18 18:34:07 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -120,15 +120,13 @@ bool dynamic_linking::installTracing() {
 
     pdvector<instPoint *> exit_pts = loadfunc->funcExits(proc);
 
-    //fprintf(stderr, "%s[%d]:  exit pt addrs:\n", __FILE__, __LINE__); 
-    //for (unsigned int i = 0; i < exit_pts.size(); ++i) {
-    //  fprintf(stderr, "exit point %d: %p/%p\n", i, exit_pts[i]->pointAddr(),
-    //          exit_pts[i]->absPointAddr(proc));
-    //}
+    for (unsigned int i = 0; i < exit_pts.size(); ++i) {
+      sharedLibHook *sharedHook = new sharedLibHook(proc, SLH_UNKNOWN, 
+						    // not used
+						    exit_pts[i]->absPointAddr(proc));
+      sharedLibHooks_.push_back(sharedHook);
+    }
     
-    sharedLibHook *sharedHook = new sharedLibHook(proc, SLH_UNKNOWN, // not used
-                                                  exit_pts[exit_pts.size() - 1]->absPointAddr(proc));
-    sharedLibHooks_.push_back(sharedHook);
 
     return true;
     // TODO: handle dlclose as well
@@ -199,7 +197,8 @@ pdvector <shared_object *> *dynamic_linking::processLinkMaps()
                                                       false,
                                                       true,
                                                       true,
-                                                      0);
+                                                      0,
+						      proc);
             (*result).push_back(newobj);
         }
         
@@ -345,7 +344,6 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<shared_object *>
 
 sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b) 
         : proc_(p), type_(t), breakAddr_(b) {
-
 
     // Before putting in the breakpoint, save what is currently at the
     // location that will be overwritten.
