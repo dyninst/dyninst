@@ -25,9 +25,13 @@
 // * VISIthread server routines:  VISIKillVisi
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.14  1994/07/07 17:27:14  newhall
-/* fixed compile warnings
+/* Revision 1.15  1994/07/12 17:03:09  newhall
+/* added error handling, changed msg binding for the visualization
+/* file discriptor
 /*
+ * Revision 1.14  1994/07/07  17:27:14  newhall
+ * fixed compile warnings
+ *
  * Revision 1.13  1994/07/02  01:44:32  markc
  * Removed aggregation operator from enableDataCollection call.
  * Remove aggregation operator from enableDataCollection call.
@@ -90,6 +94,10 @@
 #include "dyninstRPC.CLNT.h"
 #include "../DMthread/DMinternals.h"
 #define  VISI_DEFAULT_FOCUS "Root Nodes"
+#define  ERROR_MSG(s1, s2) \
+	 uiMgr->showError(s1,s2); \
+	 printf("error # %d;"); \
+	 printf(s2);
 
 char *AbbreviatedFocus(char *);
 
@@ -107,8 +115,8 @@ char *AbbreviatedFocus(char *);
 
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
     PARADYN_DEBUG(("thr_getspecific in VISIthread::VISIKillVisi"));
-    // uiMgr->showError("thr_getspecific in VISIthread::VISIKillVisi");
-    printf("error # :fatal or serious\n");
+    ERROR_MSG(13,"thr_getspecific in VISIthread::VISIKillVisi");
+    return;
   }
 
   ptr->quit = 1;
@@ -136,19 +144,17 @@ void VISIthreadDataHandler(performanceStream *ps,
 
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
     PARADYN_DEBUG(("thr_getspecific in VISIthreadDataCallback"));
-    // uiMgr->showError("thr_getspecific in VISIthreadDataCallback");
-    printf("error # :fatal or serious\n");
+    ERROR_MSG(13,"thr_getspecific in VISIthread::VISIthreadDataCallback");
+    return;
   }
   if((ptr->bufferSize >= BUFFERSIZE) || (ptr->bufferSize < 0)){
     PARADYN_DEBUG(("bufferSize out of range: VISIthreadDataCallback")); 
-    // uiMgr->showError("bufferSize out of range: VISIthreadDataCallback");
-    printf("error # : serious\n");
+    ERROR_MSG(16,"bufferSize out of range: VISIthreadDataCallback");
     return;
   }
   if((ptr->buffer == NULL)){
     PARADYN_DEBUG(("buffer error: VISIthreadDataCallback")); 
-    // uiMgr->showError("buffer error: VISIthreadDataCallback");
-    printf("error # : serious\n");
+    ERROR_MSG(16,"buffer error: VISIthreadDataCallback");
     return;
   }
   // add data value to buffer
@@ -199,8 +205,8 @@ void VISIthreadDataCallback(performanceStream *ps,
 #endif
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
     PARADYN_DEBUG(("thr_getspecific in VISIthreadDataCallback"));
-    // uiMgr->showError("thr_getspecific in VISIthreadDataCallback");
-    printf("error # :fatal or serious\n");
+    ERROR_MSG(13,"thr_getspecific in VISIthread::VISIthreadDataCallback");
+    return;
   }
 
   for(i=first; i < (first+total);i++){
@@ -222,8 +228,8 @@ void VISIthreadnewMetricCallback(performanceStream *ps,
 
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
     PARADYN_DEBUG(("thr_getspecific in VISIthreadnewMetricCallback"));
-    // uiMgr->showError("thr_getspecific in VISIthreadnewMetricCallback");
-    printf("error # :fatal or serious\n");
+    ERROR_MSG(13,"thr_getspecific in VISIthread::VISIthreadnewMetricCallback");
+    return;
   }
 }
 
@@ -241,8 +247,8 @@ void VISIthreadnewResourceCallback(performanceStream *ps,
 
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
     PARADYN_DEBUG(("thr_getspecific in VISIthreadnewResourceCallback"));
-    // uiMgr->showError("thr_getspecific in VISIthreadnewResourceCallback");
-    printf("error # :fatal or serious\n");
+    ERROR_MSG(13,"thr_getspecific in VISIthread::VISIthreadnewResourceCallback");
+    return;
   }
 
 }
@@ -264,19 +270,17 @@ void VISIthreadFoldCallback(performanceStream *ps,
 
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
      PARADYN_DEBUG(("thr_getspecific in VISIthreadFoldCallback"));
-     // uiMgr->showError("thr_getspecific in VISIthreadFoldCallback");
-     printf("error # :fatal or serious\n");
+     ERROR_MSG(13,"thr_getspecific in VISIthread::VISIthreadFoldCallback");
+     return;
   }
   if((ptr->bufferSize >= BUFFERSIZE) || (ptr->bufferSize < 0)){
      PARADYN_DEBUG(("bufferSize out of range: VISIthreadFoldCallback")); 
-     // uiMgr->showError("bufferSize out of range: VISIthreadFoldCallback");
-     printf("error # : serious\n");
+     ERROR_MSG(16,"bufferSize out of range: VISIthreadFoldCallback");
      return;
   }
   if((ptr->buffer == NULL)){
      PARADYN_DEBUG(("buffer error: VISIthreadFoldCallback")); 
-     // uiMgr->showError("buffer error: VISIthreadFoldCallback");
-     printf("error # : serious\n");
+     ERROR_MSG(16,"buffer error: VISIthreadFoldCallback");
      return;
   }
   // if new Width is same as old width ignore Fold 
@@ -340,15 +344,15 @@ void VISIthreadchooseMetRes(char **metricNames,
 
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
     PARADYN_DEBUG(("thr_getspecific in VISIthreadchooseMetRes"));
-    // uiMgr->showError("thr_getspecific in VISIthreadchooseMetRes");
+    ERROR_MSG(13,"thr_getspecific in VISIthread::VISIthreadchooseMetRes");
+    return;
     printf("error # :fatal or serious\n");
   }
 
   // temp. check for invalid reply, this will be handled by error msgs later
   if((numMetrics <= 0) || (focusChoice == NULL)){
     PARADYN_DEBUG(("no metric and resource in VISIthreadchooseMetRes"));
-    // uiMgr->showError("Incomplete metric or focus list");
-    printf("error # :informational\n");
+    ERROR_MSG(17,"Incomplete metric or focus list::VISIthreadchooseMetRes");
     return;
   }
 
@@ -395,9 +399,7 @@ void VISIthreadchooseMetRes(char **metricNames,
       else {
          // there is an error with findMetric
          sprintf(errorString,"dataManager::findMetric failed (returned NULL)for metric %s.",metricNames[i]);
-	 printf("%s\n",errorString);
-	 // uiMgr->showError(errorString);
-         printf("error # :serious\n");
+         ERROR_MSG(17,errorString);
 	 return;
       }
     }
@@ -442,19 +444,13 @@ void VISIthreadchooseMetRes(char **metricNames,
 
     if((resources.data=(resourceType *)malloc(sizeof(resourceType)))
         == (resourceType *)NULL){
-
-        perror("malloc in VISIthreadchooseMetRes"); 
-        // uiMgr->showError("malloc in VISIthreadchooseMetRes");
-        printf("error # : serious\n");
+	ERROR_MSG(12,"in VISIthreadchooseMetRes");
         return;
     }
 
     if((metrics.data=(metricType *)malloc(sizeof(metricType)*numEnabled))
 	== (metricType *)NULL){
-
-        perror("malloc in VISIthreadchooseMetRes"); 
-        // uiMgr->showError("malloc in VISIthreadchooseMetRes");
-        printf("error # : serious\n");
+	ERROR_MSG(12,"in VISIthreadchooseMetRes");
         return;
     }
 
@@ -484,9 +480,7 @@ void VISIthreadchooseMetRes(char **metricNames,
 
     if((tempName = 
 	(char *)malloc(sizeof(char)*(totalSize +1))) == NULL){
-        perror("malloc in VISIthreadchooseMetRes");
-        // uiMgr->showError("malloc in VISIthreadchooseMetRes");
-        printf("error # : serious\n");
+	ERROR_MSG(12,"in VISIthreadchooseMetRes");
         return ;
     }
     where = 0;
@@ -494,9 +488,7 @@ void VISIthreadchooseMetRes(char **metricNames,
     for(i = 0; i < numFoci; i++){
         if((strncpy(&(tempName[where]),y[i],strlen(y[i])))
 	    ==NULL){
-            perror("strncpy in VISIthreadchooseMetRes");
-            // uiMgr->showError("strncpy in VISIthreadchooseMetRes");
-            printf("error # : serious\n");
+	    ERROR_MSG(12,"strncpy in VISIthreadchooseMetRes");
             return;
         }
         where += strlen(y[i]);
@@ -544,9 +536,11 @@ void VISIthreadchooseMetRes(char **metricNames,
     free(tempName); 
     free(y);
   }
+  /*
   else {
-      // uiMgr->showErrorWait("No enabled Metric/focus pairs",0,NULL);
+      ERROR_MSG(17,"No enabled Metric/focus pairs: VISIthreadchooseMetRes");
   }
+  */
 }
 
 
@@ -605,8 +599,8 @@ void visualizationUser::GetMetricResource(String metric,
 PARADYN_DEBUG(("in visualizationUser::GetMetricResource"));
  if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
     PARADYN_DEBUG(("thr_getspecific in visiUser::GetMetricResource"));
-    // uiMgr->showError("thr_getspecific in visiUser::GetMetricResource");
-    printf("error # :fatal or serious\n");
+    ERROR_MSG(13,"thr_getspecific in VISIthread::GetMetricResource");
+    return;
  }
  ptr->ump->chooseMetricsandResources((chooseMandRCBFunc)VISIthreadchooseMetRes);
 }
@@ -629,8 +623,8 @@ void visualizationUser::StopMetricResource(int metricId,
 
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
     PARADYN_DEBUG(("thr_getspecific in visualizationUser::StopMetricResource"));
-    // uiMgr->showError("thr_getspecific in visualizationUser::StopMetricResource");
-    printf("error # :fatal or serious\n");
+    ERROR_MSG(13,"thr_getspecific in VISIthread::StopMetricResource");
+    return;
   }
 
 
@@ -684,8 +678,8 @@ void visualizationUser::PhaseName(double begin,
 
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
     PARADYN_DEBUG(("thr_getspecific in visualizationUser::PhaseName"));
-    // uiMgr->showError("thr_getspecific in visualizationUser::PhaseName");
-    printf("error # :fatal or serious\n");
+    ERROR_MSG(13,"thr_getspecific in VISIthread::PhaseName");
+    return;
   }
 
 }
@@ -714,8 +708,7 @@ void *VISIthreadmain(visi_thread_args *args){
 
   if((globals=(VISIthreadGlobals *)malloc(sizeof(VISIthreadGlobals)))==0){
     PARADYN_DEBUG(("Error in malloc globals"));
-    // uiMgr->showError("error  in malloc globals in VISIthreadmain");
-    printf("error # : serious");
+    ERROR_MSG(13,"malloc in VISIthread::main");
     globals->quit = 1;
   }
 
@@ -738,28 +731,27 @@ void *VISIthreadmain(visi_thread_args *args){
 
   if (globals->fd < 0) {
     PARADYN_DEBUG(("Error in process Create"));
-    printf("Error in process Create : serious");
-    // uiMgr->showError("error in VISIthreadmain: process Create");
-    printf("error # : serious");
+    ERROR_MSG(14,"Error in VISIthreadmain: RPCprocessCreate");
     globals->quit = 1;
   }
 
   globals->visip = new visiUser(globals->fd,NULL,NULL); 
 
-  if(msg_bind(globals->fd,0) != THR_OKAY) {
+  if(msg_bind_buffered(globals->fd,0,xdrrec_eof,globals->visip->__xdrs__) 
+     != THR_OKAY) {
     PARADYN_DEBUG(("Error in msg_bind(globals->fd)"));
-    // uiMgr->showError("error in VISIthreadmain: msg_bind()");
-    printf("error # : serious");
+    ERROR_MSG(14,"Error in VISIthreadmain: msg_bind_buffered");
     globals->quit = 1;
+    kill(globals->pid,SIGKILL);
   }
 
   globals->bucketWidth = globals->dmp->getCurrentBucketWidth(); 
 
   if (thr_setspecific(visiThrd_key, globals) != THR_OKAY) {
     PARADYN_DEBUG(("Error in thr_setspecific"));
-    // uiMgr->showError("error in thr_setspecific");
-    printf("error # : serious");
+    ERROR_MSG(14,"Error in VISIthreadmain: thr_setspecific");
     globals->quit = 1;
+    kill(globals->pid,SIGKILL);
   }
 
 
@@ -775,8 +767,9 @@ void *VISIthreadmain(visi_thread_args *args){
   if((globals->perStream = globals->dmp->createPerformanceStream(context,
 		   Sample,BASE,dataHandlers,callbacks)) == NULL){
     PARADYN_DEBUG(("Error in createPerformanceStream"));
-    // uiMgr->showError("error in createPerformanceStream in VISImain");
-    printf("error # : serious");
+    ERROR_MSG(15,"Error in VISIthreadmain: createPerformanceStream");
+    globals->quit = 1;
+    kill(globals->pid,SIGKILL);
   }
 
  
@@ -835,8 +828,7 @@ void visiUser::handle_error()
 
    if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
       PARADYN_DEBUG(("thr_getspecific in visualizationUser::PhaseName"));
-      // uiMgr->showError("thr_getspecific in visualizationUser::PhaseName");
-      printf("error # :fatal or serious\n");
+      ERROR_MSG(13,"thr_getspecific in visiUser::handle_error");
    }
 
   // err_state is set by the event that caused the error
@@ -847,10 +839,6 @@ void visiUser::handle_error()
          break;
 
     case igen_encode_err:
-         fprintf(stderr, "encode: Could not marshall parameters, tid = %d\n",
-		 thr_self());
-         ptr->quit = 1;
-         break;
     case igen_decode_err:
          fprintf(stderr, "Could not (un)marshall parameters, pid=%d tid=%d\n",
 		 getpid(),thr_self());
