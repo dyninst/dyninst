@@ -1,16 +1,13 @@
 #
-# $Id: Makefile,v 1.5 1998/04/01 02:26:44 wylie Exp $
+# $Id: Makefile,v 1.6 1998/04/06 04:48:23 wylie Exp $
 #
 #
 # Define any symbols needed to invoke configuration changes in make.config
 
-# none
+#USES_SHM_SAMPLING = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
-
-#USES_PVM = 1
-#USES_SHM_SAMPLING = true
 
 include ../../nmake.config 
 
