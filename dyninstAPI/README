@@ -59,11 +59,15 @@ Building the library on Windows NT
 
 If you have received this file as part of the source code distribution of
 the library and wish to compile on Windows NT, you will need to obtain and
-install the ONC RPC package for Windows NT.  See the page
-http://set.gmd.de/~mfg/oncrpc.html for information about this package.  You
-should then create a file named "make.config.local" in the core directory,
-and include a line setting the RPCPKG variable to the location in which you
-installed ONC RPC.  For instance, if you installed it in C:\SUNRPC:
+install the ONC RPC package for Windows NT.  You can get this from the
+following URL:
+
+    ftp://grilled.cs.wisc.edu/paradyn/etc/oncrpc112winnt.tar.gz
+
+After installing ONC RPC, you should create a file named "make.config.local"
+in the core directory, and include a line in it to set the RPCPKG variable to
+the location in which you installed ONC RPC.  For instance, if you installed
+it in C:\SUNRPC:
 
     RPCPKG = C:\SUNRPC
 
