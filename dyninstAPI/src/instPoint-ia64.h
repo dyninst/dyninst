@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-ia64.h,v 1.6 2003/06/27 20:57:55 tlmiller Exp $
+// $Id: instPoint-ia64.h,v 1.7 2003/09/05 16:27:49 schendel Exp $
 
 #ifndef _INST_POINT_IA64_H_
 #define _INST_POINT_IA64_H_
@@ -91,7 +91,6 @@ class instPoint {
 			return myPDFunction;
 			} /* required by inst.C */
 
-#ifdef BPATCH_LIBRARY
 	private:
 		// We need this here because BPatch_point gets dropped before
 		// we get to generate code from the AST, and we glue info needed  
@@ -105,7 +104,6 @@ class instPoint {
 
 	public:
 		const BPatch_point* getBPatch_point() const { return bppoint; }
-#endif
 
 	private:
 

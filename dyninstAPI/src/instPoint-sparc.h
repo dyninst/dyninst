@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-sparc.h,v 1.20 2003/03/07 20:15:47 mirg Exp $
+// $Id: instPoint-sparc.h,v 1.21 2003/09/05 16:27:52 schendel Exp $
 // sparc-specific definition of class instPoint
 
 #ifndef _INST_POINT_SPARC_H_
@@ -189,7 +189,6 @@ public:
   // BPatch_point). 
   // TODO: Merge these classes and put ifdefs for platform-specific
   // fields.
-#ifdef BPATCH_LIBRARY
  private:
   // We need this here because BPatch_point gets dropped before
   // we get to generate code from the AST, and we glue info needed
@@ -201,8 +200,6 @@ public:
  public:
   const BPatch_point* getBPatch_point() const { return bppoint; }
   void setBPatch_point(const BPatch_point *p) { bppoint = const_cast<BPatch_point *>(p); }
-#endif
-
 };
 
 #endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-power.h,v 1.8 2001/11/28 05:44:12 gaburici Exp $
+// $Id: instPoint-power.h,v 1.9 2003/09/05 16:27:51 schendel Exp $
 
 #ifndef _INST_POINT_POWER_H_
 #define _INST_POINT_POWER_H_
@@ -96,7 +96,6 @@ public:
   // BPatch_point). 
   // TODO: Merge these classes and put ifdefs for platform-specific
   // fields.
-#ifdef BPATCH_LIBRARY
  private:
   // We need this here because BPatch_point gets dropped before
   // we get to generate code from the AST, and we glue info needed
@@ -107,7 +106,6 @@ public:
   			 // is created afterwards, so it needs to set this
  public:
   const BPatch_point* getBPatch_point() const { return bppoint; }
-#endif
 };
 
 #endif

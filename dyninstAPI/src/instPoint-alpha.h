@@ -101,7 +101,6 @@ public:
   // BPatch_point). 
   // TODO: Merge these classes and put ifdefs for platform-specific
   // fields.
-#ifdef BPATCH_LIBRARY
  private:
   // We need this here because BPatch_point gets dropped before
   // we get to generate code from the AST, and we glue info needed
@@ -112,7 +111,6 @@ public:
   			 // is created afterwards, so it needs to set this
  public:
   const BPatch_point* getBPatch_point() const { return bppoint; }
-#endif
 
 };
 

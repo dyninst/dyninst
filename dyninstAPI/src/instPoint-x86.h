@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-x86.h,v 1.19 2003/02/26 21:27:40 schendel Exp $
+// $Id: instPoint-x86.h,v 1.20 2003/09/05 16:27:53 schendel Exp $
 
 #ifndef _INST_POINT_X86_H_
 #define _INST_POINT_X86_H_
@@ -268,7 +268,7 @@ class instPoint {
   // BPatch_point). 
   // TODO: Merge these classes and put ifdefs for platform-specific
   // fields.
-#ifdef BPATCH_LIBRARY
+
  private:
   // We need this here because BPatch_point gets dropped before
   // we get to generate code from the AST, and we glue info needed
@@ -279,8 +279,6 @@ class instPoint {
   			 // is created afterwards, so it needs to set this
  public:
   const BPatch_point* getBPatch_point() const { return bppoint; }
-#endif
-
 };
 
 #endif

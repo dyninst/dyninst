@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-mips.h,v 1.12 2002/05/13 19:52:22 mjbrim Exp $
+// $Id: instPoint-mips.h,v 1.13 2003/09/05 16:27:50 schendel Exp $
 // MIPS-specific definition of class instPoint
 
 #ifndef _INST_POINT_MIPS_H_
@@ -141,7 +141,6 @@ class instPoint {
   // BPatch_point). 
   // TODO: Merge these classes and put ifdefs for platform-specific
   // fields.
-#ifdef BPATCH_LIBRARY
  private:
   // We need this here because BPatch_point gets dropped before
   // we get to generate code from the AST, and we glue info needed
@@ -152,8 +151,6 @@ class instPoint {
   			 // is created afterwards, so it needs to set this
  public:
   const BPatch_point* getBPatch_point() const { return bppoint; }
-#endif
-
 };
 
 class entryPoint : public instPoint {
