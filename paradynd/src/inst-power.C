@@ -6,7 +6,10 @@
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
  *
  * $Log: inst-power.C,v $
- * Revision 1.7  1995/12/19 01:18:43  hollings
+ * Revision 1.8  1996/01/18 16:27:28  hollings
+ * removed bool variable err that was shadowing a parameter.
+ *
+ * Revision 1.7  1995/12/19  01:18:43  hollings
  * Fixed a couple of ADDISop that should be ADDIop's.
  *
  * Revision 1.6  1995/12/19  01:04:48  hollings
@@ -198,7 +201,7 @@ Address pdFunction::newCallPoint(const Address adr, const instruction instr,
 {
     Address ret=adr;
     instPoint *point;
-    bool err = true;
+    err = true;
 
     point = new instPoint(this, instr, owner, adr, false);
 
