@@ -128,83 +128,121 @@ BPatch_instruction *InstrucIter::getBPInstruction() {
   return in;
 }
 
-void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
+void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
+{
+    instruction check;
+    Address jumpTableLoc = 0;
+    Address jumpTableOffset = 0;
+    bool jumpTableIndirect;
+    Address initialAddress = currentAddress - INSN_SIZE;
 
-        (*this)--;
-	Address initialAddress = currentAddress;
-
-        instruction check;
-        int jumpTableOffset = 0;
-        while(hasMore()){
-                check = getInstruction();
-		if((check.mem.opcode == OP_LDQ) && (check.mem.rb == 29)){
-			jumpTableOffset = check.mem.disp;
-			break;
-		}
-                (*this)--;
-        }
-	if(!jumpTableOffset)
-		return;
-        (*this)--;
-        unsigned maxSwitch = 0;
-        while(hasMore()){
-                check = getInstruction();
-		if(check.branch.opcode == OP_BEQ){
-                        (*this)--;
-                        check = getInstruction();
-                	if((check.oper_lit.opcode != OP_CMPLUE) ||
-		   	   (check.oper_lit.function != 0x3d) ||
-		   	   (!check.oper_lit.one))
-				break;
-                        maxSwitch = check.oper_lit.lit + 1;
-                        break;
-                }
-                (*this)--;
-        }
-        if(!maxSwitch){
-                result += (initialAddress + sizeof(instruction));
-		return;
+    //
+    // Search Backwards for an LDQ LDL or LDAH LDL instruction pair.
+    // Allow one instruction between the pair.  Note, we are searching
+    // backwards, so look for LDL first.
+    //
+    (*this)--;
+    while (hasMore()) {
+	check = getInstruction();
+	if (check.mem.opcode == OP_LDL) {
+	    jumpTableOffset = check.mem.disp;
+	    (*this)--;
+	    (*this)--;
+	    check = getInstruction();
+	    if ((check.mem.opcode == OP_LDQ || check.mem.opcode == OP_LDAH) &&
+		check.mem.rb == 29) {
+		jumpTableIndirect = (check.mem.opcode == OP_LDQ);
+		jumpTableLoc = check.mem.disp;
+		break;
+	    }
 	}
+	jumpTableOffset = 0;
+	(*this)--;
+    }
+    if (!jumpTableLoc)
+	return;
 
-	currentAddress = baseAddress;
-	Address GOT_Value = 0;
-	while(hasMore()){
-		check = getInstruction();
-		if((check.mem.opcode == OP_LDAH) && 
-		   (check.mem.ra == 29) &&
-		   (check.mem.rb == 27))
-		{
-			int highDisp = check.mem.disp;
-			(*this)++;
-			check = getInstruction();
-			if((check.mem.opcode != OP_LDA) ||
-			   (check.mem.ra != 29) || 
-			   (check.mem.rb != 29))
-				return;	
-			int lowDisp = check.mem.disp;
-			GOT_Value = (Address)((long)baseAddress + (highDisp * (long)0x10000) + lowDisp);
-			break;
-		}
-		(*this)++;
+    //
+    // Search for a CMPULE BEQ instruction pair.
+    // Allow one instruction between the pair.
+    //
+    (*this)--;
+    unsigned maxSwitch = 0;
+    while (hasMore()){
+	check = getInstruction();
+	if (check.branch.opcode == OP_BEQ) {
+	    (*this)--;
+	    check = getInstruction();
+	    if (check.oper_lit.opcode == OP_CMPULE &&
+		check.oper_lit.function == FC_CMPULE &&
+		check.oper_lit.one == 1) {
+		maxSwitch = check.oper_lit.lit + 1;
+		break;
+	    }
+
+	    (*this)--;
+	    check = getInstruction();
+	    if (check.oper_lit.opcode == OP_CMPULE &&
+		check.oper_lit.function == FC_CMPULE &&
+		check.oper_lit.one == 1) {
+		maxSwitch = check.oper_lit.lit + 1;
+		break;
+	    }
 	}
-	if(!GOT_Value)
-		return;
+	(*this)--;
+    }
+    if (!maxSwitch){
+	result += (initialAddress + INSN_SIZE);
+	return;
+    }
 
-        Address jumpTableAddress = 
-		(Address)((long)GOT_Value + jumpTableOffset);
-	Address jumpTable = 0;
-	addressProc->readTextSpace((const void*)jumpTableAddress,
+    //
+    // Search for current $gp.
+    //
+    Address GOT_Value = 0;
+    Address gpBase;
+    while (hasMore()) {
+	check = getInstruction();
+	if (check.mem.opcode == OP_LDAH && check.mem.ra == 29 &&
+	    (check.mem.rb == 27 || check.mem.rb == 26)) {
+
+	    int disp = check.mem.disp * 0x10000;
+	    gpBase = (check.mem.rb == 26 ? currentAddress : baseAddress);
+
+	    (*this)++;
+	    check = getInstruction();
+	    if (check.mem.opcode == OP_LDA &&
+		check.mem.ra == 29 && check.mem.rb == 29) {
+		disp += check.mem.disp;
+		GOT_Value = gpBase + disp;
+	    }
+	    break;
+	}
+	(*this)--;
+    }
+    if (!GOT_Value)
+	return;
+
+    Address jumpTableAddress;
+    if (jumpTableIndirect) {
+	jumpTableLoc += GOT_Value;
+	addressProc->readTextSpace((const void*)jumpTableLoc,
 				   sizeof(Address),
-				   (const void*)&jumpTable);
+				   (const void*)&jumpTableAddress);
+    } else {
+	jumpTableAddress = (jumpTableLoc * 0x10000) + GOT_Value;
+    }
 
-        for(unsigned int i=0;i<maxSwitch;i++){
-                Address tableEntry = jumpTable + (i * sizeof(instruction));
-                int jumpOffset = 0;
-		addressProc->readTextSpace((const void*)tableEntry,
-					   sizeof(Address),
-					   (const void*)&jumpOffset);
-                result += (Address)((long)GOT_Value + jumpOffset) & ~0x3;
-        }
+    for (unsigned int i = 0; i < maxSwitch; i++) {
+	int tableEntryValue;
+	Address tableEntryAddress = jumpTableAddress + jumpTableOffset;
+
+	tableEntryAddress += i * INSN_SIZE;
+	addressProc->readTextSpace((const void*)tableEntryAddress,
+				   INSN_SIZE,
+				   (const void*)&tableEntryValue);
+	result += (Address)(GOT_Value + tableEntryValue) & ~0x3;
+    }
 }
 bool InstrucIter::delayInstructionSupported(){
 	return false;
