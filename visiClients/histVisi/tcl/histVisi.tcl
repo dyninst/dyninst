@@ -48,7 +48,7 @@
 # actually a custom pdgraph Tk widget.
 #
 #---------------------------------------------------------------------------
-# $Id: histVisi.tcl,v 1.4 2000/07/05 21:36:52 pcroth Exp $
+# $Id: histVisi.tcl,v 1.5 2001/11/07 05:03:21 darnold Exp $
 #---------------------------------------------------------------------------
 
 
@@ -154,6 +154,7 @@ namespace eval RTHist {
         menubutton $mbar.filemb -text "File" -menu $mbar.filemb.m
         menu $mbar.filemb.m -tearoff false
         $mbar.filemb.m add checkbutton -label "Keep on Paradyn exit" -variable ::RTHist::is_kept_on_paradyn_exit -onvalue 1 -offvalue 0
+        $mbar.filemb.m add command -label "Save ..." -command "ExportHandler"
         $mbar.filemb.m add separator
         $mbar.filemb.m add command -label "Close" -command "::RTHist::shutdown"
         pack $mbar.filemb -side left

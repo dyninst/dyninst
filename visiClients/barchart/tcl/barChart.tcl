@@ -2,6 +2,10 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
+#  Revision 1.34  2001/11/07 05:03:20  darnold
+#  Histogram Save Functionality added:
+#  .tcl files add "save ..." menu item that initiates Export.tcl:HandlExport()
+#
 #  Revision 1.33  1999/07/13 17:16:04  pcroth
 #  Fixed ordering problem of destroying GUI and destructing static variable
 #  pdLogo::all_logos.  On NT, the static variable is destroyed before the
@@ -129,6 +133,7 @@ proc init_barchart_window {} {
    
    menubutton $Wmbar.file -text File -menu $Wmbar.file.m
    menu $Wmbar.file.m -selectcolor tomato
+   $Wmbar.file.m add command -label "Save ..." -command "ExportHandler"
    $Wmbar.file.m add command -label "Close Bar chart" -command GracefulClose
    
    # #################### Actions Menu ###################

@@ -1,5 +1,5 @@
 #
-# $Id: tableVisi.tcl,v 1.9 2000/08/11 16:33:19 pcroth Exp $
+# $Id: tableVisi.tcl,v 1.10 2001/11/07 05:03:22 darnold Exp $
 #
 
 proc initializeTableVisi {} {
@@ -37,6 +37,7 @@ proc initializeTableVisi {} {
    
    menubutton .top.left.menubar.file -text "File" -menu .top.left.menubar.file.m
    menu .top.left.menubar.file.m -selectcolor #6495ED
+   .top.left.menubar.file.m add command -label "Save ..." -command {ExportHandler}
    .top.left.menubar.file.m add command -label "Close Table" -command {GracefulShutdown}
    
    menubutton .top.left.menubar.acts -text "Actions" -menu .top.left.menubar.acts.m
