@@ -4,6 +4,9 @@
  *        Tcl_AppInit() function.
  *
  *  $Log: tclVisi.C,v $
+ *  Revision 1.7  1996/08/05 07:14:01  tamches
+ *  update for tcl 7.5
+ *
  *  Revision 1.6  1995/12/20 18:37:00  newhall
  *  matherr.h does not need to be included by visis
  *
@@ -28,8 +31,8 @@
 #include <stdio.h>
 #include <signal.h>
 
-#include "tclclean.h"
-#include "tkclean.h"
+#include "tcl.h"
+#include "tk.h"
 
 #include "pdLogo.h"
 #include "paradyn/xbm/logo.xbm"
@@ -57,8 +60,6 @@ int Tcl_AppInit(Tcl_Interp *interp) {
     if (Tk_Init(interp) == TCL_ERROR)
 	return TCL_ERROR;
 
-    tcl_RcFileName = "~/.wishrc";
-
     // now install "makeLogo", etc:
     pdLogo::install_fixed_logo("paradynLogo", logo_bits, logo_width,
 			       logo_height);
@@ -68,9 +69,9 @@ int Tcl_AppInit(Tcl_Interp *interp) {
     return TCL_OK;
 }
 
-main(int argc,char **argv){
-
+int main(int argc,char **argv){
+//sigpause(0);
     Tk_Main(argc,argv,Tcl_AppInit);
-
+    return 0;
 }
 

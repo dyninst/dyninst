@@ -3,6 +3,9 @@
 
 /*
  * $Log: main.C,v $
+ * Revision 1.9  1996/08/05 07:11:55  tamches
+ * update for tcl 7.5
+ *
  * Revision 1.8  1996/01/17 18:31:38  newhall
  * changes due to new visiLib
  *
@@ -34,8 +37,8 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <iostream.h>
-#include "tclclean.h"
-#include "tkclean.h"
+#include "tcl.h"
+#include "tk.h"
 #include "tkTools.h"
 
 #include "pdLogo.h"
@@ -48,7 +51,6 @@
 #include "tableVisiTcl.h"
 
 Tcl_Interp *mainInterp;
-Tk_Window   mainTkWindow;
 
 void panic(const char *msg) {
    cerr << msg << endl;
@@ -83,15 +85,9 @@ int main(int argc, char **argv) {
    mainInterp = Tcl_CreateInterp();
    assert(mainInterp);
 
-   mainTkWindow = Tk_CreateMainWindow(mainInterp, NULL,
-				      "tableVisi",
-				      "TableVisi");
-   if (mainTkWindow == NULL)
-      tclpanic(mainInterp, "Could not Tk_CreateMainWindow()");
-
    if (xsynch_flag) {
       cout << "xsynching..." << endl;
-      XSynchronize(Tk_Display(mainTkWindow), 1);
+      XSynchronize(Tk_Display(Tk_MainWindow(mainInterp)), 1);
    }
 
    if (TCL_OK != Tcl_Init(mainInterp))
@@ -118,7 +114,12 @@ int main(int argc, char **argv) {
    if (visi_RegistrationCallback(DATAVALUES, Dg2NewDataCallback) != 0)
       panic("Dg2_Init() -- couldn't install DATAVALUES callback");
 
-   Tk_CreateFileHandler(fd, TK_READABLE, visiFdReadableHandler, 0);
+//   if (visi_RegistrationCallback(PHASEDATA, Dg2PhaseDataCallback) != 0)
+//      panic("Dg2_Init() -- couldn't install PHASEINFO callback");
+
+   // new with tcl 7.5: the Tcl_File type instead of int is passed to Tk_CreateFileHandler
+   Tcl_File visiFdFile = Tcl_GetFile((ClientData)fd, TCL_UNIX_FD);
+   Tcl_CreateFileHandler(visiFdFile, TK_READABLE, visiFdReadableHandler, 0);
 
    // Krishna's tcl2c stuff:
    extern int initialize_tcl_sources(Tcl_Interp *);
@@ -130,13 +131,14 @@ int main(int argc, char **argv) {
 
    pdLogo::install_fixed_logo("paradynLogo", logo_bits, logo_width, logo_height);
    tcl_cmd_installer createPdLogo(mainInterp, "makeLogo", pdLogo::makeLogoCommand,
-				  (ClientData)mainTkWindow);
+				  (ClientData)Tk_MainWindow(mainInterp));
 
    myTclEval(mainInterp, "initializeTableVisi");
 
    // Create our main data structure:
    theTableVisi = new tableVisi(mainInterp,
-				Tk_NameToWindow(mainInterp, ".body", mainTkWindow),
+				Tk_NameToWindow(mainInterp, ".body",
+						Tk_MainWindow(mainInterp)),
 				"*-Helvetica-*-r-*-14-*", // metric font
 				"*-Helvetica-*-r-*-12-*", // metric units font
 				"*-Helvetica-*-r-*-14-*", // focus font
@@ -155,4 +157,6 @@ int main(int argc, char **argv) {
    Tk_MainLoop(); // returns when all tk windows are closed
 
    delete theTableVisi;
+
+   Tcl_FreeFile(visiFdFile);
 }

@@ -2,9 +2,12 @@
 // customized (for barchart) version of DGclient.C in tclVisi directory
 
 /* $Log: dg2.C,v $
-/* Revision 1.17  1996/04/30 20:45:42  tamches
-/* moved some Dg2 stuff to barChartTcl.C (makes more sense there)
+/* Revision 1.18  1996/08/05 07:09:30  tamches
+/* update for tcl 7.5
 /*
+ * Revision 1.17  1996/04/30 20:45:42  tamches
+ * moved some Dg2 stuff to barChartTcl.C (makes more sense there)
+ *
  * Revision 1.16  1996/02/23 17:48:06  tamches
  * removed DEFINEPHASE
  *
@@ -308,9 +311,11 @@ int Dg2_Init(Tcl_Interp *interp) {
 		    (ClientData *) NULL,(Tcl_CmdDeleteProc *) NULL);
  
    // Arrange for my_visi_callback() to be called whenever data is waiting
-   // to be read off of descriptor "fd".  Extremely important! [tcl book
-   // page 357]
-   Tk_CreateFileHandler(fd, TK_READABLE, (Tk_FileProc *) my_visi_callback, 0);
+   // to be read off of descriptor "fd".
+   Tcl_File visiFdFile = Tcl_GetFile((ClientData)fd, TCL_UNIX_FD); // new with tcl 7.5
+   Tcl_CreateFileHandler(visiFdFile, TK_READABLE, (Tk_FileProc *) my_visi_callback, 0);
+      // note that we don't call Tcl_FreeFile() properly since we don't return
+      // the Tcl_File, but that's no big tragedy.
 
    return TCL_OK;
 }
