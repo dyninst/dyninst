@@ -22,9 +22,12 @@
 //   		VISIthreadnewResourceCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.30  1994/10/10 02:51:15  newhall
-/* purify fixes, fixes to support new metric/focus choices
+/* Revision 1.31  1994/10/10 21:41:15  newhall
+/* more changes to support new UI metric/focus selections
 /*
+ * Revision 1.30  1994/10/10  02:51:15  newhall
+ * purify fixes, fixes to support new metric/focus choices
+ *
  * Revision 1.29  1994/09/30  21:21:14  newhall
  * purify related fixes
  *
@@ -606,7 +609,7 @@ void VISIthreadchooseMetRes(metrespair *newMetRes,
             bulk_data.data = buckets; 
             ptr->visip->BulkDataTransfer(bulk_data,
 		   (int)newEnabled[i]->met,
-		   (int)newEnabled[0]->focus->getCanonicalName());
+		   (int)newEnabled[i]->focus->getCanonicalName());
             if(ptr->visip->did_error_occur()){
             PARADYN_DEBUG(("igen:visip->BulkDataTransfer():VISIthreadchoose"));
                 ptr->quit = 1;
@@ -834,7 +837,7 @@ void *VISIthreadmain(void *vargs){
   PARADYN_DEBUG(("after notify VM of thread died"));
 
   // unbind file descriptor associated with visualization
-  if(globals->start_up){
+  if(!globals->start_up){
       if(msg_unbind(globals->fd) == THR_ERR){
           PARADYN_DEBUG(("Error in msg_unbind(globals->fd)"));
           ERROR_MSG(14,"Error in VISIthreadmain: msg_unbind");
@@ -871,34 +874,17 @@ void visiUser::handle_error()
 
   // err_state is set by the event that caused the error
   switch (get_err_state()) {
-    case igen_no_err:
+      case igen_no_err:
          fprintf(stderr,"Handle error called for igen_no_err tid = %d\n",
 		 thr_self());
          break;
-
-    case igen_encode_err:
-    case igen_decode_err:
-         fprintf(stderr, "VISIthread: Could not (un)marshall parameters, pid=%d tid=%d\n", getpid(),thr_self());
-         ptr->quit = 1;
-         break;
-
-    case igen_call_err:
-         fprintf(stderr, "VISIthread: can't do sync call here, pid = %d tid = %d\n",
-	         getpid(),thr_self());
-         ptr->quit = 1;
-         break;
-
-    case igen_request_err:
-         fprintf(stderr, "VISIthread: unknown message tag pid=%d tid = %d\n",
-	         getpid(),thr_self());
-         ptr->quit = 1;
-         break;
-
-    case igen_send_err:
-    case igen_read_err:
-    default:
-         fprintf(stderr, "VISIthread: Error: err_state = %d tid = %d\n", 
-		 get_err_state(),thr_self());
+      case igen_encode_err:
+      case igen_decode_err:
+      case igen_call_err:
+      case igen_request_err:
+      case igen_send_err:
+      case igen_read_err:
+      default:
          ptr->quit = 1;
          break;
   }
