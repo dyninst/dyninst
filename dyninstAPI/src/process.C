@@ -849,6 +849,7 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
     reachedFirstBreak = false; // haven't yet seen first trap
     reachedVeryFirstTrap = false;
     createdViaAttach = false;
+    needToContinueAfterDYNINSTinit = false;  //Wait for press of "RUN" button
 
     symbols = iImage;
     mainFunction = NULL; // set in platform dependent function heapIsOk
@@ -3567,11 +3568,9 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
    // if we had attached to the process, then it will be running even as we speak.
    // While we're parsing the shared libraries, we should pause.  So do that now.
    bool wasRunning;
-#if defined(USES_LIBDYNINSTRT_SO)       //Without the `#if', paradynd on AIX
-   if (needToContinueAfterDYNINSTinit)  //  was not waiting for the "RUN"
-     wasRunning = true;                 //  button to be pressed before
-   else                                 //  letting the application processes
-#endif                                  //  continue after DYNINSTinit().
+   if (needToContinueAfterDYNINSTinit) 
+     wasRunning = true;
+   else 
      wasRunning = status_ == running;
    (void)pause();
 
