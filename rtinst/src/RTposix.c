@@ -1130,6 +1130,27 @@ DYNINSTfork(int pid) {
 }
 
 
+/************************************************************************
+ * void DYNINSTstart(void)
+ *
+ * pause at the start of the application so that the daemon can
+ * insert instrumentation for dynamic linking
+************************************************************************/
+void
+DYNINSTstart() {
+    time64 process_time = DYNINSTgetCPUtime();
+    time64 wall_time = DYNINSTgetWalltime();
+    traceStart blah;
+
+    blah.value = getpid();
+    DYNINSTgenerateTraceRecord(0, TR_START, sizeof(traceStart), &blah, 1,
+				wall_time,process_time);
+
+    /* stop here and wait for paradynd to insert the initial instrumentation */
+    DYNINSTbreakPoint();
+}
+
+
 void
 DYNINSTexec(char *path) {
     traceExec execRec;
