@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.105 2002/05/13 19:53:48 mjbrim Exp $
+// $Id: main.C,v 1.106 2002/08/21 19:42:04 schendel Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -493,6 +493,28 @@ InitForPVM( char* argv[], const string& pd_machine )
 #endif // PARADYND_PVM
 
 
+#if !defined(i386_unknown_nt4_0)
+void sighup_handler( int ) {
+   // we get SIGHUP when Paradyn closes our connection
+   // we want to ignore this, and close 
+}
+
+void sighupInit() {
+   // ensure that we don't die from SIGHUP when our connection
+   // to Paradyn closes
+   struct sigaction act;
+   
+   act.sa_handler = sighup_handler;
+   act.sa_flags = 0;
+   sigfillset( &act.sa_mask );
+   
+   if( sigaction( SIGHUP, &act, 0 ) == -1 )
+   {
+      cerr << "Failed to install SIGHUP handler: " << errno << endl;
+      // this isn't a fatal error for us
+   }
+}
+#endif
 
 //
 // Note: the pd_flag variable is set from the argument to the -l command
@@ -715,6 +737,9 @@ extern PDSOCKET connect_Svr(string machine,int port);
     assert(aflag);
 
     initLibraryFunctions();
+#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
+    sighupInit();
+#endif
     if (!init()) 
       {
 	abort();
