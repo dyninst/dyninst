@@ -1,7 +1,10 @@
 
 /*
  * $Log: init-cm5.C,v $
- * Revision 1.2  1994/11/10 21:17:36  jcargill
+ * Revision 1.3  1994/11/10 22:59:25  jcargill
+ * Corrected slight "oops" in last commit with number of metrics defined
+ *
+ * Revision 1.2  1994/11/10  21:17:36  jcargill
  * Removed active_process from the list of all metrics; it's now an internal
  *
  * Revision 1.1  1994/11/01  16:55:52  markc
@@ -72,8 +75,8 @@ bool initOS() {
   globalOnlyPredicates[4].set("/Process", nullPredicate, NULL);
   globalOnlyPredicates[5].set((char*)NULL, nullPredicate,  NULL, false);
 
-  DYNINSTallMetrics = new metric[11];
-  metricCount = 11;
+  DYNINSTallMetrics = new metric[10];
+  metricCount = 10;
 
   DYNINSTallMetrics[0].set("observed_cost", EventCounter, aggMax, "Wasted CPUs",
 			   createObservedCost, observedCostPredicates);
