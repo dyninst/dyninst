@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.37 2003/10/16 23:14:29 jodom Exp $
+// $Id: linux-x86.C,v 1.38 2003/10/22 16:00:47 schendel Exp $
 
 #include <fstream>
 
@@ -182,55 +182,57 @@ const int FPREGS_STRUCT_SIZE = sizeof( user_i387_struct );
 struct dyn_saved_regs *dyn_lwp::getRegisters() {
    // Cycle through all registers, reading each from the
    // process user space with ptrace(PTRACE_PEEKUSER ...
-    struct dyn_saved_regs *regs = new dyn_saved_regs();
+   struct dyn_saved_regs *regs = new dyn_saved_regs();
     
    int error;
    bool errorFlag = false;
-   error = P_ptrace( PTRACE_GETREGS, proc_->getPid(), 0, (int)&(regs->gprs) );
+   error = P_ptrace(PTRACE_GETREGS, get_lwp_id(), 0, (int)&(regs->gprs) );
    if( error ) {
-       perror("dyn_lwp::getRegisters PTRACE_GETREGS" );
-       errorFlag = true;
+      perror("dyn_lwp::getRegisters PTRACE_GETREGS" );
+      errorFlag = true;
    } else {
-       error = P_ptrace( PTRACE_GETFPREGS, proc_->getPid(), 0, (int)&(regs->fprs));
-       if( error ) {
-	   perror("dyn_lwp::getRegisters PTRACE_GETFPREGS" );
-	   errorFlag = true;
-       }
+      error = P_ptrace(PTRACE_GETFPREGS, get_lwp_id(), 0, (int)&(regs->fprs));
+      if( error ) {
+         perror("dyn_lwp::getRegisters PTRACE_GETFPREGS" );
+         errorFlag = true;
+      }
    }
-
+   
    if( errorFlag )
-       return NULL;
+      return NULL;
    else
-       return regs;
+      return regs;
 }
 
-bool dyn_lwp::changePC(Address loc, struct dyn_saved_regs */*ignored registers*/) {
-  Address regaddr = EIP * INTREGSIZE;
-  if (0 != P_ptrace (PTRACE_POKEUSER, proc_->getPid(), regaddr, loc )) {
-    perror( "dyn_lwp::changePC - PTRACE_POKEUSER" );
-    return false;
-  }
-
-  return true;
+bool dyn_lwp::changePC(Address loc,
+                       struct dyn_saved_regs */*ignored registers*/)
+{
+   Address regaddr = EIP * INTREGSIZE;
+   if (0 != P_ptrace(PTRACE_POKEUSER, get_lwp_id(), regaddr, loc )) {
+      perror( "dyn_lwp::changePC - PTRACE_POKEUSER" );
+      return false;
+   }
+   
+   return true;
 }
 
 bool dyn_lwp::clearOPC() {
-  Address regaddr = ORIG_EAX * INTREGSIZE;
-  if (0 != P_ptrace(PTRACE_POKEUSER, proc_->getPid(), regaddr, -1UL)) {
-    perror( "dyn_lwp::changePC - PTRACE_POKEUSER" );
-    return false;
-  }
-  return true;
+   Address regaddr = ORIG_EAX * INTREGSIZE;
+   if (0 != P_ptrace(PTRACE_POKEUSER, get_lwp_id(), regaddr, -1UL)) {
+      perror( "dyn_lwp::changePC - PTRACE_POKEUSER" );
+      return false;
+   }
+   return true;
 }
 
 static bool changeBP(int pid, Address loc) {
-  Address regaddr = EBP * INTREGSIZE;
-  if (0 != P_ptrace (PTRACE_POKEUSER, pid, regaddr, loc )) {
-    perror( "process::changeBP - PTRACE_POKEUSER" );
-    return false;
-  }
-
-  return true;
+   Address regaddr = EBP * INTREGSIZE;
+   if (0 != P_ptrace(PTRACE_POKEUSER, pid, regaddr, loc )) {
+      perror( "process::changeBP - PTRACE_POKEUSER" );
+      return false;
+   }
+   
+   return true;
 }
 
 void printRegs( void *save ) {
@@ -265,17 +267,17 @@ bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs) {
    // buffer with ptrace(PTRACE_POKEUSER ...
 
    bool retVal = true;
-
-   if( P_ptrace( PTRACE_SETREGS, proc_->getPid(), 0,(int)&(regs->gprs) ) )
-     {
-       perror("dyn_lwp::restoreRegisters PTRACE_SETREGS" );
-       retVal = false;
-   }
-
-   if( P_ptrace( PTRACE_SETFPREGS, proc_->getPid(), 0, (int)&(regs->fprs)))
+   
+   if( P_ptrace( PTRACE_SETREGS, get_lwp_id(), 0,(int)&(regs->gprs) ) )
    {
-       perror("dyn_lwp::restoreRegisters PTRACE_SETFPREGS" );
-       retVal = false;
+      perror("dyn_lwp::restoreRegisters PTRACE_SETREGS" );
+      retVal = false;
+   }
+   
+   if( P_ptrace( PTRACE_SETFPREGS, get_lwp_id(), 0, (int)&(regs->fprs)))
+   {
+      perror("dyn_lwp::restoreRegisters PTRACE_SETFPREGS" );
+      retVal = false;
    }
 
    return retVal;
@@ -284,17 +286,17 @@ bool dyn_lwp::restoreRegisters(struct dyn_saved_regs *regs) {
 // getActiveFrame(): populate Frame object using toplevel frame
 Frame dyn_lwp::getActiveFrame()
 {
-  Address pc, fp, sp;
-  fp = ptraceKludge::deliverPtraceReturn(proc_, PTRACE_PEEKUSER, 0 + EBP * INTREGSIZE, 0);
-  if (errno) return Frame();
-
-  pc = ptraceKludge::deliverPtraceReturn(proc_, PTRACE_PEEKUSER, 0 + EIP * INTREGSIZE, 0);
-  if (errno) return Frame();
-
-  sp = ptraceKludge::deliverPtraceReturn(proc_, PTRACE_PEEKUSER, 0 + UESP * INTREGSIZE, 0);
-  if (errno) return Frame();
-
-  return Frame(pc, fp, sp, proc_->getPid(), NULL, this, true);
+   Address pc, fp, sp;
+   fp = deliverPtraceReturn(PTRACE_PEEKUSER, 0 + EBP * INTREGSIZE, 0);
+   if (errno) return Frame();
+   
+   pc = deliverPtraceReturn(PTRACE_PEEKUSER, 0 + EIP * INTREGSIZE, 0);
+   if (errno) return Frame();
+   
+   sp = deliverPtraceReturn(PTRACE_PEEKUSER, 0 + UESP * INTREGSIZE, 0);
+   if (errno) return Frame();
+   
+   return Frame(pc, fp, sp, proc_->getPid(), NULL, this, true);
 }
 
 // MT problem FIXME
@@ -303,20 +305,20 @@ Address getPC(int pid) {
    Address regaddr = EIP * INTREGSIZE;
    int res;
    res = P_ptrace (PTRACE_PEEKUSER, pid, regaddr, 0);
-   if(errno == ESRCH){ //ccw 6 sep 2002
-	//pause and try again, let the mutatee have time
-	//to ptrace(TRACEME)
-	sleep(2);
-	res = P_ptrace (PTRACE_PEEKUSER, pid, regaddr, 0);
+   if(errno == ESRCH) { //ccw 6 sep 2002
+      //pause and try again, let the mutatee have time
+      //to ptrace(TRACEME)
+      sleep(2);
+      res = P_ptrace (PTRACE_PEEKUSER, pid, regaddr, 0);
    }
    if( errno ) {
-     perror( "getPC" );
-     exit(-1);
-     return 0; // Shut up the compiler
+      perror( "getPC" );
+      exit(-1);
+      return 0; // Shut up the compiler
    } else {
-     assert(res);
-     return (Address)res;
-   }   
+      assert(res);
+      return (Address)res;
+   }
 }
 
 bool process::loadDYNINSTlibCleanup()
@@ -344,7 +346,7 @@ bool process::loadDYNINSTlibCleanup()
   writeDataSpace((void *)codeBase, count, (char *)savedCodeBuffer);
 
   // restore registers
-  getProcessLWP()->restoreRegisters(savedRegs); 
+  getRepresentativeLWP()->restoreRegisters(savedRegs); 
 
   // restore the stack frame of _start()
   user_regs_struct *theIntRegs = (user_regs_struct *)savedRegs;
@@ -606,7 +608,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
 Address dyn_lwp::readRegister(Register /*reg*/) {
    // On x86, the result is always stashed in %EAX
    int ret;
-   ret = ptraceKludge::deliverPtraceReturn(proc_, PTRACE_PEEKUSER, EAX*4, 0);
+   ret = deliverPtraceReturn(PTRACE_PEEKUSER, EAX*4, 0);
    return (Address)ret;
 }
 
@@ -978,7 +980,7 @@ bool process::loadDYNINSTlib() {
   }
 
   // save registers
-  savedRegs = getProcessLWP()->getRegisters();
+  savedRegs = getRepresentativeLWP()->getRegisters();
   assert((savedRegs!=NULL) && (savedRegs!=(void *)-1));
   // save the stack frame of _start()
   struct dyn_saved_regs new_regs;
@@ -1006,7 +1008,7 @@ bool process::loadDYNINSTlib() {
 
   if (!libc_21)
   {
-      if (!getProcessLWP()->changePC(codeBase,NULL))
+      if (!getRepresentativeLWP()->changePC(codeBase,NULL))
       {
           logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
           assert(0);
@@ -1024,7 +1026,7 @@ bool process::loadDYNINSTlib() {
           reg_ptr->ecx = codeBase;
       }
 
-      if( !getProcessLWP()->restoreRegisters(&new_regs) )
+      if( !getRepresentativeLWP()->restoreRegisters(&new_regs) )
       {
           logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
           assert(0);
