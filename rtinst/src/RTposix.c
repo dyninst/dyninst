@@ -534,4 +534,46 @@ DYNINSTgetMsgVectBytes(struct msghdr *msg)
     return count;
 }
 
+#define stache_blk_align(va)    ((void *)((unsigned)va & ~(STACHE_BLK_SIZE-1)))
+#define STACHE_BLK_SIZE          stache_blk_size
 
+//Blizzard
+extern int stache_blk_size ;
+void
+DYNINSTreportNewMem(char *data_structure, void *va, int memory_size, int blk_size)
+/*
+ *
+ */
+{
+    void *align_va ;
+    struct _traceMemory newRes;
+
+    stache_blk_size = blk_size ;
+    align_va = stache_blk_align(va) ;    /* Do I need to align them?*/
+
+	printf("DYNINSTreportNewMem is called...\n") ;
+#ifdef COSTTEST
+    time64 startT,endT;
+    startT=DYNINSTgetCPUtime();
+#endif
+        memset(&newRes, '\0', sizeof(newRes));
+        sprintf(newRes.name, "%s", data_structure);
+        newRes.va = (int)align_va ;
+        newRes.memSize = memory_size ;
+        newRes.blkSize = blk_size ;
+        DYNINSTgenerateTraceRecord(0, TR_NEW_MEMORY, 
+				sizeof(struct _traceMemory), 
+                                &newRes, 1, 0.0, 0.0);
+
+#ifdef COSTTEST
+    endT=DYNINSTgetCPUtime();
+    DYNINSTtest[8]+=endT-startT;
+    DYNINSTtestN[8]++;
+#endif
+}
+
+int 
+fallIn(int addr, int lower, int upper)
+{
+        return (addr<=upper && addr >= lower) ;
+}
