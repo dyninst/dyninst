@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.49 1995/02/16 08:53:42 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.50 1995/02/26 22:46:45 markc Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.49  1995/02/16 08:53:42  markc
+ * Revision 1.50  1995/02/26 22:46:45  markc
+ * Commented code that needs to be reexamined.
+ *
+ * Revision 1.49  1995/02/16  08:53:42  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.48  1995/02/16  08:33:45  markc
@@ -1207,7 +1210,8 @@ timeStamp getCurrentTime(bool firstRecordRelative)
     time64 now;
     timeStamp ret;
     struct timeval tv;
-
+    
+    // TODO -- declaration for gettimeofday ?
     gettimeofday(&tv, NULL);
     now = (time64) (tv.tv_sec * MILLION) + tv.tv_usec;
     if (firstRecordRelative) now -= firstRecordTime;
