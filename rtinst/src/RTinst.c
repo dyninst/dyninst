@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.19 1999/11/09 19:17:39 cain Exp $
+ * $Id: RTinst.c,v 1.20 1999/11/11 00:59:24 wylie Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -200,7 +200,7 @@ struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
 #ifndef SHM_SAMPLING
 /* This could be static, but gdb has can't find them if they are.  
    jkh 5/8/95 */
-int64    DYNINSTvalue = 0;
+int64_t  DYNINSTvalue = 0;
 unsigned DYNINSTlastLow;
 unsigned DYNINSTobsCostLow;
 #endif
@@ -545,7 +545,7 @@ restoreFPUstate(float* base) {
  *      DYNINSTgetObservedCycles(false) 
  */
 /************************************************************************
- * int64 DYNINSTgetObservedCycles(RT_Boolean in_signal)
+ * int64_t DYNINSTgetObservedCycles(RT_Boolean in_signal)
  *
  * report the observed cost of instrumentation in machine cycles.
  *
@@ -560,7 +560,7 @@ restoreFPUstate(float* base) {
  *   delta is not negative (which happens when the low counter roles over).
  ************************************************************************/
 #ifndef SHM_SAMPLING
-int64 DYNINSTgetObservedCycles(RT_Boolean in_signal) 
+int64_t DYNINSTgetObservedCycles(RT_Boolean in_signal) 
 {
     if (in_signal) {
         return DYNINSTvalue;
@@ -854,8 +854,8 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
 
   /* sanity check */
   assert(sizeof(time64) == 8);
-  assert(sizeof(int64)  == 8);
-  assert(sizeof(int32)  == 4);
+  assert(sizeof(int64_t) == 8);
+  assert(sizeof(int32_t) == 4);
   
   if (calledFromAttach)
     paradyndPid = -paradyndPid;
@@ -975,7 +975,7 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
     int ppid = 0;
 #endif
     unsigned attach_cookie = 0x22222222;
-    int32 ptr_size;
+    int32_t ptr_size;
     
     DYNINSTinitTrace(paradyndPid);
     
@@ -985,7 +985,7 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
 #ifdef SHM_SAMPLING
     DYNINSTwriteTrace(&DYNINST_shmSegKey, sizeof(DYNINST_shmSegKey));
     ptr_size = sizeof(DYNINST_shmSegAttachedPtr);
-    DYNINSTwriteTrace(&ptr_size, sizeof(int32));
+    DYNINSTwriteTrace(&ptr_size, sizeof(int32_t));
     DYNINSTwriteTrace(&DYNINST_shmSegAttachedPtr, ptr_size);
 #endif
     DYNINSTflushTrace();
@@ -1063,7 +1063,7 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
 #ifdef SHM_SAMPLING
 /* bootstrap structure extraction info (see rtinst/h/trace.h) */
 static struct DYNINST_bootstrapStruct _bs_dummy;
-int32 DYNINST_attachPtrSize = sizeof(_bs_dummy.appl_attachedAtPtr.ptr);
+int32_t DYNINST_attachPtrSize = sizeof(_bs_dummy.appl_attachedAtPtr.ptr);
 #endif /* SHM_SAMPLING */
 
 
@@ -1296,7 +1296,7 @@ void
 DYNINSTprintCost(void) {
     FILE *fp;
     time64 now;
-    int64 value;
+    int64_t value;
     struct endStatsRec stats;
     time64 wall_time; 
 

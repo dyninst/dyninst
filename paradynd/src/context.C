@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.59 1999/08/09 05:48:43 csserra Exp $ */
+/* $Id: context.C,v 1.60 1999/11/11 00:59:06 wylie Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/pdThread.h"
@@ -372,7 +372,7 @@ void processNewTSConnection(int tracesocket_fd) {
    if (sizeof(theKey) != read(fd, &theKey, sizeof(theKey)))
       assert(false);
 
-   int32 ptr_size;
+   int32_t ptr_size;
    if (sizeof(ptr_size) != read(fd, &ptr_size, sizeof(ptr_size)))
       assert(false);
 
@@ -380,7 +380,7 @@ void processNewTSConnection(int tracesocket_fd) {
    char *ptr_dst = (char *)&applAttachedAtPtr;
    if (sizeof(void *) > ptr_size) {
       // adjust for pointer size mismatch
-      ptr_dst += sizeof(void *) - sizeof(int32);
+      ptr_dst += sizeof(void *) - sizeof(int32_t);
    }
    if (ptr_size != read(fd, ptr_dst, ptr_size))
       assert(false);
