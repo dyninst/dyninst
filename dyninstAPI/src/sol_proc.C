@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.25 2003/05/02 20:40:17 mirg Exp $
+// $Id: sol_proc.C,v 1.26 2003/05/05 17:03:38 mjbrim Exp $
 
 #ifdef rs6000_ibm_aix4_1
 #include <sys/procfs.h>
@@ -1288,8 +1288,8 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall)
     if (trappedSyscall) {
         // That was easy...
         trappedSyscall->refcount++;
-        fprintf(stderr, "Bumping refcount for syscall %d to %d\n",
-                trappedSyscall->syscall_id, trappedSyscall->refcount);
+        //fprintf(stderr, "Bumping refcount for syscall %d to %d\n",
+        //        trappedSyscall->syscall_id, trappedSyscall->refcount);
         
         return trappedSyscall;
     }
@@ -1324,8 +1324,8 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall)
             perror("Syscall trap set");
             return NULL;
         }
-        fprintf(stderr, "PCSexit for %d, orig %d\n", 
-                trappedSyscall->syscall_id, trappedSyscall->orig_setting);
+        //fprintf(stderr, "PCSexit for %d, orig %d\n", 
+        //        trappedSyscall->syscall_id, trappedSyscall->orig_setting);
         
         // Insert into the list of trapped syscalls
         syscallTraps_ += (trappedSyscall);
@@ -1343,9 +1343,9 @@ bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
     
     trappedSyscall->refcount--;
     if (trappedSyscall->refcount > 0) {
-        fprintf(stderr, "Refcount on syscall %d reduced to %d\n",
-                trappedSyscall->syscall_id,
-                trappedSyscall->refcount);
+        //fprintf(stderr, "Refcount on syscall %d reduced to %d\n",
+        //        trappedSyscall->syscall_id,
+        //        trappedSyscall->refcount);
         return true;
     }
     // Erk... it hit 0. Remove the trap at the system call
