@@ -4,9 +4,13 @@
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
 /* $Log: whereAxis.h,v $
-/* Revision 1.4  1995/08/07 00:02:52  tamches
-/* Added selectUnSelectFromFullPathName
+/* Revision 1.5  1995/09/20 01:27:10  tamches
+/* constness removed from many prototypes; other changes to correspond
+/* with whereAxis.C
 /*
+ * Revision 1.4  1995/08/07  00:02:52  tamches
+ * Added selectUnSelectFromFullPathName
+ *
  * Revision 1.3  1995/07/24  21:36:03  tamches
  * removed addChildToRoot() member function.
  * Some changes related to newly implemented where4tree sorting.
@@ -49,7 +53,7 @@ class whereAxis {
    string vertSBName;  // e.g. ".nontop.main.leftsb"
    string navigateMenuName;
 
-   whereNodeRawPath lastClickPath;
+   whereNodePosRawPath lastClickPath;
       // used in the navigate menu
    where4tree<USERNODEDATA> *beginSearchFromPtr;
       // if NULL, then begin from the top.  Otherwise,
@@ -66,9 +70,11 @@ class whereAxis {
 
    void resizeScrollbars();
 
-   bool set_scrollbars(const int absolute_x, const int relative_x,
-		       const int absolute_y, const int relative_y);
+   bool set_scrollbars(int absolute_x, int relative_x,
+		       int absolute_y, int relative_y,
+		       bool warpPointer);
       // returns true iff any sb changes were made
+      // Moves the cursor if warpPointer is true.
 
  protected:
    void rethink_nominal_centerx();
@@ -86,27 +92,7 @@ class whereAxis {
    whereAxis(Tcl_Interp *in_interp, Tk_Window theTkWindow,
 	     const string &root_str,
 	     const string &iHorizSBName, const string &iVertSBName,
-	     const string &iNavigateMenuName) :
-                        consts(in_interp, theTkWindow),
-	                hash(hashFunc, 32),
-	                horizSBName(iHorizSBName),
-	                vertSBName(iVertSBName),
-	                navigateMenuName(iNavigateMenuName) {
-      USERNODEDATA rootUND = 0;
-
-      rootPtr = new where4tree<USERNODEDATA>(rootUND, root_str, consts);
-      assert(rootPtr);
-
-      hash[rootUND] = rootPtr;
-
-      beginSearchFromPtr = NULL;
-
-      interp = in_interp;
-      
-      horizScrollBarOffset = vertScrollBarOffset = 0;
-      
-      rethink_nominal_centerx();
-   }
+	     const string &iNavigateMenuName);
 
 #ifndef PARADYN
    // only the where axis test program reads from a file
@@ -121,6 +107,16 @@ class whereAxis {
       return rootPtr->getRootName();
    }
 
+   // the return values of the next 2 routines will be <= 0
+   int getVertSBOffset() const {return vertScrollBarOffset;}
+   int getHorizSBOffset() const {return horizScrollBarOffset;}
+
+   int getTotalVertPixUsed() const {return rootPtr->entire_height(consts);}
+   int getTotalHorizPixUsed() const {return rootPtr->entire_width(consts);}
+
+   int getVisibleVertPix() const {return Tk_Height(consts.theTkWindow);}
+   int getVisibleHorizPix() const {return Tk_Width(consts.theTkWindow);}
+
    void addItem(const string &name,
 		USERNODEDATA parentUniqueId,
 		USERNODEDATA newNodeUniqueId,
@@ -131,9 +127,9 @@ class whereAxis {
       return consts;
    }
 
-   void draw(const bool doubleBuffer, const bool isXsynchOn) const;
+   void draw(bool doubleBuffer, bool isXsynchOn) const;
 
-   void resize(const int newWidth, const int newHeight);
+   void resize(int newWidth, int newHeight);
    void resize(bool rethinkScrollbars);
       // should be true only if we are the currently displayed abstraction
 
@@ -141,46 +137,49 @@ class whereAxis {
       rootPtr->recursiveDoneAddingChildren(consts);
    }
 
-   void processSingleClick(const int x, const int y,
-			   const bool redrawNow);
-   bool processDoubleClick(const int x, const int y, const bool redrawNow);
+   void processSingleClick(int x, int y, bool redrawNow);
+   bool processDoubleClick(int x, int y);
       // returns true iff a redraw of everything is still needed
-   bool processShiftDoubleClick(const int x, const int y);
-   bool processCtrlDoubleClick(const int x, const int y);
+   bool processShiftDoubleClick(int x, int y);
+   bool processCtrlDoubleClick (int x, int y);
 
-   void navigateTo(const int index);
+   void navigateTo(unsigned pathLen);
+      // forcibly scrolls to item #pathLen of "lastClickPath"
 
    int find(const string &str);
       // uses and updates "beginSearchFromPtr"
+      // returns 0 if not found; 1 if found & no expansion needed;
+      // 2 if found & some expansion is needed
 
-   bool softScrollToPathItem(const whereNodeRawPath &thePath,
-			     const int index);
-      // scrolls s.t. the (centerx, topy) of the path item in
-      // question is placed in the middle of the screen.  Returns true
-      // iff the scrollbar settings changed
+   bool softScrollToPathItem(const whereNodePosRawPath &thePath,
+			     unsigned index);
+      // scrolls s.t. the (centerx, topy) of the path item in question is placed in the
+      // middle of the screen.  Returns true iff the scrollbar settings changed.
 
-   bool softScrollToEndOfPath(const whereNodeRawPath &thePath);
+   bool softScrollToEndOfPath(const whereNodePosRawPath &thePath);
       // Like the above routine, but always scrolls to the last item in the path.
 
-   bool forciblyScrollToEndOfPath(const whereNodeRawPath &thePath);
+   bool forciblyScrollToEndOfPath(const whereNodePosRawPath &thePath);
       // Like the above routine, but explicitly expands any un-expanded children
       // along the path.
-   bool forciblyScrollToPathItem(const whereNodeRawPath &thePath, const int index);
+   bool forciblyScrollToPathItem(const whereNodePosRawPath &thePath, unsigned pathLen);
 
    // Noe of these scrollbar adjustment routines redraw anything
-   void adjustHorizSBOffset(const float newFirstFrac);
-   void adjustHorizSBOffsetFromDeltaPix(const int deltapix);
-   void adjustHorizSBOffsetFromDeltaPages(const int deltapages);
-   void adjustHorizSBOffset(); // Obtains FirstPix from actual tk scrollbar
+   bool adjustHorizSBOffset(float newFirstFrac);
+   bool adjustHorizSBOffsetFromDeltaPix(int deltapix);
+      // needed for alt-mousemove
+//   bool adjustHorizSBOffsetFromDeltaPages(int deltapages);
+   bool adjustHorizSBOffset(); // Obtains FirstPix from actual tk scrollbar
 
-   void adjustVertSBOffset (const float newFirstFrac);
-   void adjustVertSBOffsetFromDeltaPix(const int deltapix);
-   void adjustVertSBOffsetFromDeltaPages(const int deltapages);
-   void adjustVertSBOffset(); // Obtains FirstPix from actual tk scrollbar
+   bool adjustVertSBOffset (float newFirstFrac);
+   bool adjustVertSBOffsetFromDeltaPix(int deltapix);
+      // needed for alt-mousemove
+//   bool adjustVertSBOffsetFromDeltaPages(int deltapages);
+   bool adjustVertSBOffset(); // Obtains FirstPix from actual tk scrollbar
 
    void rethinkNavigateMenu();
 
-   bool selectUnSelectFromFullPathName(const string &name, const bool select);
+   bool selectUnSelectFromFullPathName(const string &name, bool select);
       // returns true iff the item was found
       // pass true for the 2nd param iff you want to select it; false
       // if you want to unselect it.
