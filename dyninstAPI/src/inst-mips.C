@@ -4936,11 +4936,17 @@ bool deleteBaseTramp(process *proc,instPoint* location,
  * address	The address for which to create the point.
  */
 BPatch_point *createInstructionInstPoint(process *proc, void *address,
-					 BPatch_point** alternative)
+					 BPatch_point** alternative,
+					 BPatch_function* bpf)
 {
     int i;
 
-    pd_Function *func = (pd_Function *)proc->findFuncByAddr((Address)address);
+    pd_Function *func = NULL;
+
+    if(bpf)
+	func = (pd_Function *)bpf->func;
+    else
+	func = (pd_Function *)proc->findFuncByAddr((Address)address);
 
     if (!isAligned((Address)address))
 	return NULL;

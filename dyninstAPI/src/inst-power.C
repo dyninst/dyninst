@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.128 2002/03/22 00:11:05 gaburici Exp $
+ * $Id: inst-power.C,v 1.129 2002/04/09 18:56:37 tikir Exp $
  */
 
 #include "common/h/headers.h"
@@ -3890,9 +3890,15 @@ bool deleteBaseTramp(process */*proc*/,instPoint* /*location*/,
  * address      The address for which to create the point.
  */
 BPatch_point* createInstructionInstPoint(process *proc, void *address,
-                                         BPatch_point** /*alternative*/)
+                                         BPatch_point** /*alternative*/,
+					 BPatch_function* bpf)
 {
-    function_base *func = proc->findFuncByAddr((Address)address);
+
+    function_base *func = NULL;
+    if(bpf)
+        func = bpf->func;
+    else
+        func = proc->findFuncByAddr((Address)address);
 
     if (!isAligned((Address)address))
 	return NULL;
@@ -3916,37 +3922,6 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
 
     return proc->findOrCreateBPPoint(NULL, newpt, BPatch_instruction);
 }
-
-#ifdef BPATCH_LIBRARY
-BPatch_point *createArbitraryPoint(const BPatch_function* bpfunc,
-                                   void *address)
-{
-  if (!isAligned((Address)address))
-    return NULL;
-
-  process *proc = bpfunc->getProc();
-  pd_Function* pointFunction = (pd_Function*)bpfunc->func;
-  instruction instr;
-
-  proc->readTextSpace(address, sizeof(instruction), &instr.raw);
-
-  Address pointImageBase = 0;
-  image* pointImage = pointFunction->file()->exec();
-  proc->getBaseAddress((const image*)pointImage,pointImageBase);
-
-  instPoint *newpt = new instPoint(pointFunction,
-                                   instr,
-                                   NULL, // image *owner - this is ignored
-                                   (Address)((Address)address-pointImageBase),
-                                   false, // bool delayOk - this is ignored
-                                   ipOther);
-
-  pointFunction->addArbitraryPoint(newpt,NULL);
-
-  return proc->findOrCreateBPPoint(NULL, newpt, BPatch_instruction);
-}
-#endif
-
 
 /*
  * BPatch_point::getDisplacedInstructions

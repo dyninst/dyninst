@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.24 2002/04/05 17:13:03 gaburici Exp $
+// $Id: BPatch_function.C,v 1.25 2002/04/09 18:56:36 tikir Exp $
 
 #define BPATCH_FILE
 
@@ -329,7 +329,8 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
 BPatch_point* BPatch_function::createMemInstPoint(void *addr,
                                                   BPatch_memoryAccess* ma)
 {
-  BPatch_point *p = createArbitraryPoint(this, (void*)addr);
+  BPatch_point *p = createInstructionInstPoint(proc, (void*) addr, NULL,
+					       this);
   if(p)
     p->memacc = ma;
   return p;

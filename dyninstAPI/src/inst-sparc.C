@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.119 2002/04/05 19:39:24 schendel Exp $
+// $Id: inst-sparc.C,v 1.120 2002/04/09 18:56:37 tikir Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -2084,7 +2084,9 @@ bool isV8plusISA()
  * address      The address for which to create the point.
  */
 
-BPatch_point *createInstructionInstPoint(process *proc, void *address,BPatch_point** alternative)
+BPatch_point *createInstructionInstPoint(process *proc, void *address,
+					 BPatch_point** alternative,
+					 BPatch_function* bpf)
 {
     unsigned i;
     Address begin_addr,end_addr,curr_addr;
@@ -2105,7 +2107,11 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address,BPatch_poi
     if(!isAligned(curr_addr))	
 	return NULL;
 
-    function_base *func = proc->findFuncByAddr(curr_addr);
+    function_base *func = NULL;
+    if(bpf)
+	func = bpf->func;
+    else
+	func = proc->findFuncByAddr(curr_addr);
 
     pd_Function* pointFunction = (pd_Function*)func;
     Address pointImageBase = 0;

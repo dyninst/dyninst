@@ -107,7 +107,8 @@ class BPATCH_DLL_EXPORT BPatch_point {
     friend class BPatch_function;
     friend class process;
     friend BPatch_point* createInstructionInstPoint(process*proc,void*address,
-						    BPatch_point** alternative);
+						    BPatch_point** alternative,
+						    BPatch_function* bpf = NULL);
     friend BPatch_point* createInstPointForMemAccess(process *proc,
 						     void *addr,
 						     BPatch_memoryAccess* ma,

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.h - Common definitions to the POWER specific instrumentation code.
- * $Id: inst-power.h,v 1.17 2002/03/21 22:35:18 gaburici Exp $
+ * $Id: inst-power.h,v 1.18 2002/04/09 18:56:37 tikir Exp $
  */
 
 #ifndef INST_POWER_H
@@ -115,11 +115,5 @@ enum ipFuncLoc { ipFuncEntry, ipFuncReturn, ipFuncCallPoint, ipOther };
 
 bool isCallInsn(const instruction);
 bool isReturnInsn(const image *, Address);
-
-#ifdef BPATCH_LIBRARY
-BPatch_point* createArbitraryPoint(const BPatch_function* bpfunc,
-                                   void *address);
-#endif
-
 
 #endif

@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.102 2002/03/12 18:40:03 jaw Exp $
+ * $Id: inst-x86.C,v 1.103 2002/04/09 18:56:38 tikir Exp $
  */
 
 #include <iomanip.h>
@@ -3245,12 +3245,17 @@ bool deleteBaseTramp(process *proc,instPoint* location,
  * address      The address for which to create the point.
  */
 BPatch_point *createInstructionInstPoint(process* proc, void *address,
-                                         BPatch_point** alternative)
+                                         BPatch_point** alternative,
+					 BPatch_function* bpf)
 {
     /*
      * Get some objects we need, such as the enclosing function, image, etc.
      */
-    pd_Function *func = (pd_Function*)proc->findFuncByAddr((Address)address);
+    pd_Function *func = NULL;
+    if(bpf)
+        func = (pd_Function*)bpf->func;
+    else
+        func = (pd_Function*)proc->findFuncByAddr((Address)address);
 
     if (func == NULL) // Should make an error callback here?
 	return NULL;

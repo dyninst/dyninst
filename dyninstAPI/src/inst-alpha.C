@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.43 2001/12/14 17:57:01 gaburici Exp $
+// $Id: inst-alpha.C,v 1.44 2002/04/09 18:56:36 tikir Exp $
 
 #include "common/h/headers.h"
 
@@ -2270,11 +2270,16 @@ bool deleteBaseTramp(process *proc,instPoint* location,
  * address      The address for which to create the point.
  */
 BPatch_point *createInstructionInstPoint(process *proc, void *address,
-					 BPatch_point** alternative)
+					 BPatch_point** alternative,
+					 BPatch_function* bpf)
 {
     int i;
 
-    function_base *func = proc->findFuncByAddr((Address)address);
+    function_base *func = NULL;
+    if(bpf)
+        func = bpf->func;
+    else
+        func = proc->findFuncByAddr((Address)address);
 
     if (!isAligned((Address)address))
 	return NULL;

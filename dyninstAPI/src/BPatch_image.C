@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.34 2002/03/19 22:57:20 jaw Exp $
+// $Id: BPatch_image.C,v 1.35 2002/04/09 18:56:36 tikir Exp $
 
 #define BPATCH_FILE
 
@@ -334,8 +334,24 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address)
 	return createInstPointAtAddr(address,NULL);
 }
 
+/*
+ * BPatch_image::createInstPointAtAddr
+ *
+ * Returns a pointer to a BPatch_point object representing an
+ * instrumentation point at the given address. If the BPatch_function
+ * argument is given it has to be the function that address belongs to or NULL.
+ * The function is used to bypass the function that the address belongs to
+ * The alternative argument is used to retrieve the point if the new point
+ * intersects with another already existing one.
+ *
+ * Returns the pointer to the BPatch_point on success, or NULL upon
+ * failure.
+ *
+ * address	The address that the instrumenation point should refer to.
+ */
 BPatch_point *BPatch_image::createInstPointAtAddr(void *address,
-					          BPatch_point** alternative)
+					          BPatch_point** alternative,
+						  BPatch_function* bpf)
 {
     unsigned i;
 
@@ -345,7 +361,11 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address,
     }
 
     /* Look in the regular instPoints of the enclosing function. */
-    function_base *func = proc->findFuncByAddr((Address)address);
+    function_base *func = NULL;
+    if(bpf)
+	func = bpf->func;
+    else
+	func = proc->findFuncByAddr((Address)address);
 
     // If it's in an uninstrumentable function, just return an error.
     if (!((pd_Function*)func)->isInstrumentable())
@@ -396,7 +416,7 @@ BPatch_point *BPatch_image::createInstPointAtAddr(void *address,
 	*alternative = NULL;
 
     /* We don't have an instPoint for this address, so make one. */
-    return createInstructionInstPoint(proc, address, alternative);
+    return createInstructionInstPoint(proc, address, alternative,bpf);
 }
 
 
