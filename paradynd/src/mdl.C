@@ -39,13 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.109 2002/05/09 21:42:36 schendel Exp $
+// $Id: mdl.C,v 1.110 2002/05/10 18:36:55 schendel Exp $
 
 #include <iostream.h>
 #include <stdio.h>
 #include "dyninstRPC.xdr.SRVR.h"
 #include "paradyn/src/met/mdl_data.h"
-#include "paradynd/src/metric.h"
 #include "paradynd/src/machineMetFocusNode.h"
 #include "paradynd/src/processMetFocusNode.h"
 #include "paradynd/src/threadMetFocusNode.h"
@@ -637,11 +636,6 @@ void createThreadNodes(processMetFocusNode **procNode_arg,
 						      selThr);
 	 threadNodeBuf.push_back(thrNode);
       }
-#if defined(MT_THREAD)
-      if (! procNode->dontInsertData()) {
-	 proc->allMIComponentsWithThreads += procNode;
-      }
-#endif
    }
 
    for(unsigned k=0; k<threadNodeBuf.size(); k++) {
@@ -649,7 +643,7 @@ void createThreadNodes(processMetFocusNode **procNode_arg,
    }
 }
 
-// Creates the process and primitive metricDefinitionNodes, as well as mdn's 
+// Creates the process and primitive metricFocusNodes, as well as mdn's 
 // for any specified threads. Then allocate the data (the timers/counters) in
 // the application, and create the astNode's which will be used to generate
 // the instrumentation code
@@ -686,13 +680,8 @@ apply_to_process(process *proc,
    // no_thr_focus, has the thr info stripped
 
    processMetFocusNode *procNode = 
-      processMetFocusNode::newProcessMetFocusNode(proc, no_thr_focus, 
+      processMetFocusNode::newProcessMetFocusNode(proc, name, full_focus, 
 					  aggregateOp(agg_op), dontInsertData);
-
-#ifdef MT_THREAD    
-   // memorizing stuff
-   procNode->setMetricRelated(type, dontInsertData, temp_ctr,flag_cons,repl_cons);
-#endif
 
    bool ret = createCodeAndDataNodes(&procNode, id, name, no_thr_focus, 
 			      type, flag_cons, repl_cons, stmts, 
