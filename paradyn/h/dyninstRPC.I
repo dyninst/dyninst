@@ -1,89 +1,44 @@
 /*
- * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
- *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
- *     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
+ * Copyright (c) 1996 Barton P. Miller
  * 
- * This software is furnished under the condition that it may not be
- * provided or otherwise made available to, or used by, any other
- * person, except as provided for by the terms of applicable license
- * agreements.  No title to or ownership of the software is hereby
- * transferred.  The name of the principals may not be used in any
- * advertising or publicity related to this software without specific,
- * written prior authorization.  Any use of this software must include
- * the above copyright notice.
- *
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * dyninstRPC.I,v
- *
- * Revision 1.28  1995/10/13  14:43:55  naim
- * Revision version update for the showErrorCallback function
- *
- * Revision 1.27  1995/06/02  20:58:45  newhall
- * made code compatable with new datamanager interface
- * replaced List and HTable container classes with STL containers
- *
- * Revision 1.26  1995/05/18  10:51:49  markc
- * added mdl classes
- * modified resource specifications in interfaces to use ids
- *
- * Revision 1.25  1995/02/16  08:01:42  markc
- * Modified interfaces:
- *   1) XDR interfaces use strings and vectors instead of igen arrays and char*'s
- *   2) No sync upcalls are allowed by the server in xdr interfaces
- *   3) Redefined igen arrays that were used in thread code to use manually 
- *      defined structures rather than igen-defined, since igen did not need
- *      to know about these structures.
- *   4) Upped all of the version numbers since all new interface code is 
- *      generated.
- *   5) Async calls are no longer handled while waiting for sync responses, these
- *      requests are buffered.
- *
- * Revision 1.24  1994/11/09  18:38:36  rbi
- * the "Don't Blame Me" commit
- *
- * Revision 1.23  1994/11/03  16:05:31  rbi
- * eliminated argc from addExecutable interface
- *
- * Revision 1.22  1994/11/02  11:41:27  markc
- * Incremented the version.
- *
- * Revision 1.21  1994/09/22  00:44:26  markc
- * Incremented version number
- * Changed "String" to "char*"
- * Made array declarations explicit
- *
- * Revision 1.20  1994/08/22  16:01:31  markc
- * Remove my_pid which duplicated a class member
- * Add daemon dictionary calls to dataManager interface.
- *
- * Revision 1.19  1994/08/17  17:55:27  markc
- * Incremented version numbers because a new version of igen has been
- * committed.
- *
- * Revision 1.18  1994/08/08  20:14:56  hollings
- * added suppress instrumentation command.
- *
- * Revision 1.17  1994/07/20  16:30:40  hollings
- * added resourceBatchMode
- *
- * Revision 1.16  1994/07/14  23:44:29  hollings
- * added getCurrentHybridCost
- *
- * Revision 1.15  1994/07/05  03:26:54  hollings
- * added stat printing command.
- *
- * Revision 1.14  1994/07/02  01:45:24  markc
- * Removed aggregation operator from enableDataCollection call.
- * Remove aggregation operator definitions, which are provided by
- * util/h/aggregation.H
- *
- * Revision 1.13  1994/06/29  02:55:34  hollings
- * Added copyright and log line.
- *
- *
- */
 
 #define MetStyleEventCounter	0
 #define MetStyleSampledFunction	1
@@ -329,11 +284,11 @@ $ignore
 
 $remote
 class mdl_instr_stmt : mdl_stmt {
-  u_int position_;
-  mdl_expr *point_expr_;
-  vector<mdl_icode*> *icode_reqs_;
-  u_int where_instr_;
-  bool constrained_;
+  u_int position_; // append or prepend
+  mdl_expr *point_expr_; // e.g. $start.entry.  Can be a fn entry, exit, or call site.
+  vector<mdl_icode*> *icode_reqs_; // the instrumentation code itself
+  u_int where_instr_; // preInsn or postInsn
+  bool constrained_; // if not true, no constraints will be applied
 
 $ignore
 public:
@@ -401,15 +356,15 @@ class mdl_metric {
   string id_;
   string name_;
   string units_;
-  u_int agg_op_;
-  u_int style_;
-  u_int type_;
-  vector<mdl_stmt*> *stmts_;
-  vector<string> *flavors_;
+  u_int agg_op_; // avg, sum, min, or max
+  u_int style_;  // currently, always EventCounter
+  u_int type_;   // counter, processTimer, or wallTimer
+  vector<mdl_stmt*> *stmts_; // for "base is <type_> { ... } (is this correct?)
+  vector<string> *flavors_; // which flavors this metric is valid for
   vector<mdl_constraint*> *constraints_;
-  vector<string> *temp_ctr_;
+  vector<string> *temp_ctr_; // temporary counters
   bool developerMode_;
-  int unitstype_;
+  int unitstype_; // normalized, unnormalized, or sampled
 
 $ignore
 public:
@@ -473,7 +428,7 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 46;
+    $version 47;
 
     //
     // Define a program to run. 
