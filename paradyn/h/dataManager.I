@@ -2,6 +2,9 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
+ * Revision 1.73  1996/05/02 19:52:15  karavan
+ * removed obsolete parameters from predicted cost callback defn
+ *
  * Revision 1.72  1996/05/01 18:06:31  newhall
  * added param to predicted cost routines
  *
@@ -378,10 +381,8 @@ typedef void (*newPhaseCallback)(perfStreamHandle handle,
  *   cost     - the cost of enabling the metric/focus pair
  *   clientId - the identifier passed by the calling thread
  */
-typedef void (*predDataCostCallbackFunc)(metricHandle m_handle,
-					 resourceListHandle rl_handle,
-					 float cost,
-					 u_int clientId);
+typedef void (*predDataCostCallbackFunc)(u_int clientId,
+					 float cost);
 
 /*
  * Handler that gets called when there is a response to an enableData request 
@@ -409,7 +410,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2500;
-    $version 44;
+    $version 45;
 
     //
     // Start a paradyn daemon
