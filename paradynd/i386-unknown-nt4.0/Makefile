@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.9 2001/02/20 21:45:39 gurari Exp $
+# $Id: Makefile,v 1.10 2002/06/07 23:02:26 gaburici Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -25,6 +25,7 @@ SRCS =		../src/pdwinnt.C \
 		../src/LocalAlteration-x86.C \
 		../src/FunctionExpansionRecord.C \
 		../src/arch-x86.C \
+		../src/arch-ia32.C \
 		../../rtinst/src/RThwtimer-winnt.c
 
 OBJS = 		pdwinnt.obj \
