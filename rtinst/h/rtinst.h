@@ -18,6 +18,8 @@ typedef enum { processTime, wallTime } timerType;
 
 /* 64 bit time values */
 typedef long long int time64;
+typedef long long int int64;
+
 struct sampleIdRec {
     unsigned int aggregate:1;
     unsigned int id:31;
@@ -58,6 +60,11 @@ typedef (*filterFunc)(void *cdata, parameters *params);
  * standard inst. functions.
  *
  */
+
+/*
+ * return the current CPU time in usec.
+ */
+time64 DYNINSTgetCPUtime();
 
 /*
  * start a timer.
