@@ -3,10 +3,14 @@
  * code related to displaying the where axes lives here
  */
 /* $Log: UIwhere.C,v $
-/* Revision 1.8  1995/02/16 08:20:50  markc
-/* Changed Boolean to bool
-/* Changed wait loop code for igen messages
+/* Revision 1.9  1995/04/01 22:21:40  karavan
+/* removed call to dm->enableResourceCreationNotification, which was being
+/* made on every resource notification.
 /*
+ * Revision 1.8  1995/02/16  08:20:50  markc
+ * Changed Boolean to bool
+ * Changed wait loop code for igen messages
+ *
  * Revision 1.7  1995/01/26  17:59:03  jcargill
  * Changed igen-generated include files to new naming convention; fixed
  * some bugs compiling with gcc-2.6.3.
@@ -77,7 +81,7 @@ void resourceAddedCB (performanceStream *ps ,
 {
   stringHandle rname;
   List<resourceDisplayObj *> tmp;
-  dataMgr->enableResourceCreationNotification(ps, newResource);
+
   rname = newResource->getAbstraction()->getName();
 #if UIM_DEBUG
   printf ("resourceAddedCB %s\n", name);
