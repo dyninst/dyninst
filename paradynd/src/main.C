@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.79 1999/12/01 14:41:45 zhichen Exp $
+// $Id: main.C,v 1.80 1999/12/06 22:49:42 chambrea Exp $
 
 #include "util/h/headers.h"
 #include "util/h/makenan.h"
@@ -89,8 +89,13 @@ extern "C" {
 bool pvm_running = false;
 
 static string machine_name;
+string osName;
 
 int ready;
+
+#ifdef mips_sgi_irix6_4
+extern bool execIrixMPIProcess(vector<string> &argv);
+#endif
 
 /*
  * These variables are global so that we can easily find out what
@@ -322,8 +327,9 @@ int main(unsigned argc, char *argv[]) {
       assert(tp);
 
       tp->reportSelf (machine_name, argv[0], getpid(), "pvm");
-    } else if(pd_flavor == string("mpi")) {
-      // the executables which are started by poe (for mpi daemon) must report to paradyn
+    } else if ( pd_flavor == "mpi" ) {
+      // Both IRIX and AIX MPI job-launchers will start paradynd,
+      // which must report to paradyn
       // the pdRPC is allocated and reportSelf is called
       tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, 
 		     pd_machine, NULL, NULL, 2);
@@ -383,8 +389,9 @@ int main(unsigned argc, char *argv[]) {
     assert(tp);
 #else
 
-    if(pd_flavor == string("mpi")) {
-      // the executables which are started by poe (for mpi daemon) must report to paradyn
+    if ( pd_flavor == "mpi" ) {
+      // Both IRIX and AIX MPI job-launchers will start paradynd,
+      // which must report to paradyn
       // the pdRPC is allocated and reportSelf is called
       tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, 
 		     pd_machine, NULL, NULL, 2);
@@ -456,10 +463,28 @@ int main(unsigned argc, char *argv[]) {
     if (!init()) 
       abort();
 
-    if (cmdLine.size()) {
-         vector<string> envp;
-	 addProcess(cmdLine, envp, *dir); // ignore return val (is this right?)
+#ifdef mips_sgi_irix6_4
+    struct utsname unameInfo;
+    if ( P_uname(&unameInfo) == -1 )
+    {
+        perror("uname");
+        return false;
     }
+
+    // osName is used in irix.C and process.C
+    osName = unameInfo.sysname;
+
+    if ( pd_flavor == "mpi" && osName.prefixed_by("IRIX") )
+    {
+      if ( !execIrixMPIProcess(cmdLine) )
+        return(0);
+    }
+    else
+#endif
+        if (cmdLine.size()) {
+            vector<string> envp;
+            addProcess(cmdLine, envp, *dir); // ignore return val (is this right?)
+        }
 
     controllerMainLoop(true);
     return(0);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.11 1999/10/29 22:32:32 zandy Exp $
+// $Id: irix.C,v 1.12 1999/12/06 22:49:31 chambrea Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -71,8 +71,17 @@
 
 
 extern debug_ostream inferiorrpc_cerr;
-
 extern char *Bool[];
+#ifndef BPATCH_LIBRARY
+extern string osName;
+#endif
+
+char* irixMPIappName;
+bool attachToIrixMPIprocess(const string &progpath, int pid, int afterAttach);
+int masterMPIfd;
+int masterMPIpid;
+
+
 void print_proc_flags(int fd)
 {
   prstatus stat;
@@ -445,6 +454,14 @@ int process::waitProcs(int *status)
   static int selected_fds;             // number of selected
   static int curr;                     // the current element of fds
 
+  int processCount;	               // the current number of fds, > processVec.size (IRIX MPI)
+  prstatus_t stat;
+
+  if ( masterMPIfd != -1 )
+    processCount = processVec.size() + 1;
+  else
+    processCount = processVec.size();
+  
 #ifdef BPATCH_LIBRARY
   do {
 #endif
@@ -467,13 +484,21 @@ int process::waitProcs(int *status)
 	fds[i].revents = 0;
       }
       
+	  //  Add file descriptor for MPI master process
+      if ( masterMPIfd != -1 )
+      {
+	fds[processVec.size()].fd = masterMPIfd;
+	fds[processVec.size()].events = POLLPRI;
+	fds[processVec.size()].revents = 0;
+      }
+	  
 #ifdef BPATCH_LIBRARY
       int timeout;
       if (block) timeout = INFTIM;
       else timeout = 0;
       selected_fds = poll(fds, processVec.size(), timeout);
 #else
-      selected_fds = poll(fds, processVec.size(), 0);
+      selected_fds = poll(fds, processCount, 0);
 #endif
       if (selected_fds == -1) {
 	perror("process::waitProcs(poll)");
@@ -482,13 +507,58 @@ int process::waitProcs(int *status)
       }      
       curr = 0;
     }
-    
+
+    int test;
+	
     if (selected_fds > 0) {
       while (fds[curr].revents == 0) curr++;
       // fds[curr] has an event of interest
       //fprintf(stderr, ">>> process::waitProcs(fd %i)\n", curr);
 
-      prstatus_t stat;
+      //  check for activity from IRIX MPI master process
+      if (fds[curr].fd == masterMPIfd )
+      {
+	if (fds[curr].revents & POLLHUP) {
+	  close(fds[curr].fd);
+	  masterMPIfd = -1;
+	}
+	else if ( (test = ioctl(fds[curr].fd, PIOCSTATUS, &stat)) != -1 
+		  && ((stat.pr_flags & PR_STOPPED) || (stat.pr_flags & PR_ISTOP)))
+	{
+	  // check if master MPI process forked
+	  if ( stat.pr_syscall == SYS_fork && stat.pr_rval1 > 0 )
+	  {
+	    prpsinfo_t info;
+	    // check if new process is an MPI app
+	    if ( ioctl(fds[curr].fd, PIOCPSINFO, &info) == -1 )
+	      perror("ioctl psinfo");
+	    else
+	    {
+	      if ( irixMPIappName != 0 && strncmp(irixMPIappName, info.pr_psargs, strlen(irixMPIappName)) == 0 )
+	      {
+		char * progName;
+
+		progName = strdup(info.pr_psargs);
+
+		progName = strtok(progName, " ");
+
+		if ( !attachToIrixMPIprocess(progName, stat.pr_rval1, 1) )
+		{
+		  cerr << "attachProcess failed when attempting to attach to MPI daemon!" << endl;
+		  assert(0);
+		}
+	      }
+	      ioctl(fds[curr].fd, PIOCRUN, 0);
+	    }
+	  }
+	}
+	else if ( test == -1 )
+	  cerr << ">>> proc failed!!!!!!" << endl;
+		  
+	--selected_fds;
+	return 0;
+      }
+
       int ret = 0;
 #ifdef BPATCH_LIBRARY
       if (fds[curr].revents & POLLHUP) {
@@ -506,6 +576,39 @@ int process::waitProcs(int *status)
 	}
 	assert(ret == processVec[curr]->getPid());
       } else
+#else
+	// IRIX MPI programs are started by paradynd, but the MPI
+	// process created by paradyn is a master process (or mpi
+	// daemon) that doesn't ever actually enter main() in the
+	// application.  It just forks the appropriate number of local
+	// processes.  In order to keep track of when the application
+	// processes exit, we must interpret POLLHUPs as application
+	// exits.
+
+	if ( fds[curr].revents & POLLHUP && process::pdFlavor == "mpi" 
+	     && osName.prefixed_by("IRIX") && fds[curr].fd != masterMPIfd )
+	{
+	  //fprintf(stderr, ">>> process::waitProcs(fd %i): POLLHUP\n", curr);
+	  do {
+	    ret = waitpid(processVec[curr]->getPid(), status, 0);
+	  } while ((ret < 0) && (errno == EINTR));
+	  if (ret < 0) {
+	    // This means that the application exited, but was not our child
+	    // so it didn't wait around for us to get it's return code.  In
+	    // this case, we can't know why it exited or what it's return
+	    // code was.
+	    ret = processVec[curr]->getPid();
+	    *status = 0;
+	  }
+
+	  sprintf(errorLine, "Process %d has terminated\n", processVec[curr]->getPid());
+	  statusLine(errorLine);
+	  logLine(errorLine);
+		  
+	  handleProcessExit(processVec[curr], 0);
+	  // In this case, we don't want handleSigChild to examine the process state
+	  ret = 0;
+	} else
 #endif
 	if (ioctl(fds[curr].fd, PIOCSTATUS, &stat) != -1 
 	    && ((stat.pr_flags & PR_STOPPED) || (stat.pr_flags & PR_ISTOP))) {
@@ -574,16 +677,27 @@ int process::waitProcs(int *status)
 	    break;
 	  }        
 	}
+	else
+	{
+	  perror("waitProcs:");
+	  cerr << "proc failed in waitProcs!" << endl;
+	}
       
       --selected_fds;
       ++curr;      
-      if (ret > 0) return ret;
+      if (ret > 0)
+	  return ret;
     }
 #ifdef BPATCH_LIBRARY
   } while (block);
   return 0;
 #else
-  return waitpid(0, status, WNOHANG);
+  int ret = waitpid(0, status, WNOHANG); 
+
+  if ( ret == masterMPIpid )
+    ret = 0;
+
+  return ret;
 #endif
 }
 
@@ -599,7 +713,6 @@ bool process::detach_()
 
 bool process::continueProc_()
 {
-  //fprintf(stderr, ">>> process::continueProc_()\n");
   ptraceOps++; 
   ptraceOtherOps++;
 
@@ -670,13 +783,16 @@ bool process::executingSystemCall()
      inferiorrpc_cerr << "pr_syscall=" << stat.pr_syscall << endl;
      ret = true;
    }
+
    return ret;
 }
 
 Address process::read_inferiorRPC_result_register(Register retval_reg)
 {
-  //fprintf(stderr, ">>> process::read_inferiorRPC_result_register()\n");
   gregset_t regs;
+
+  assert(retval_reg < NGREG);
+
   if (ioctl (proc_fd, PIOCGREG, &regs) == -1) {
     perror("process::_inferiorRPC_result_registerread(PIOCGREG)");
     return 0;
@@ -1419,3 +1535,101 @@ time64 process::getInferiorProcessCPUtime(int /*lwp_id*/)
 }
 #endif
 
+
+//  Here we start the MPI application by fork/exec.
+//
+//  The application will load libmpi and execute the init section of
+//  this library.  Our child becomes the MPI daemon process, which
+//  forks the appropriate number of worker processes.
+//
+//  We attach to the child before exec'ing and set flags
+//  to make sure that we can attach to the children of
+//  the MPI daemon.
+//
+//  Attaching to the children is handled in handleSigChild.
+
+bool execIrixMPIProcess(vector<string> &argv)
+{
+  int pipeFlag[2], retval;
+  char processFile[64];
+  char flag;
+	
+  if ( pipe(pipeFlag) == -1)
+    assert(false);
+	
+  if ( (masterMPIpid = fork()) )
+  {
+    // parent
+    // attach to child process
+    sprintf(processFile, "/proc/%d", masterMPIpid);
+    masterMPIfd = open(processFile, O_RDWR);
+    irixMPIappName = strdup(argv[0].string_of()); // used to identify MPI app processes
+		
+    if ( masterMPIfd == -1 )
+    {
+      perror("startIrixMPIProcess failed to attach to child");
+      return(false);
+    }
+
+    flag = 'x';
+    if ( write(pipeFlag[1], &flag, 1) != 1)
+      perror("startIrixMPIProcess:parent pipe flag");
+		
+    close(pipeFlag[0]);
+    close(pipeFlag[1]);
+  }
+  else
+  {
+    int proc_fh;
+    sysset_t exitCallset;
+    premptyset(&exitCallset);
+    praddset(&exitCallset, SYS_fork);	
+
+    // child
+    // This process becomes the master MPI application process/daemon
+
+    // MPI on IRIX is started using mpirun
+    // mpirun forks/execs local copies of the application process
+    //   and starts remote processes using the array_services call asremexec().
+    // The first copy of the application process on any machine, loads the libmpi.so
+    // library and from within the libmpi.so init section,
+    // forks the appropriate number of local MPI applications.
+    // Note that the original/master application process never leaves
+    // the init section (i.e. never reaches main).  Its purpose
+    // is to communicate with the controlling mpirun process.
+
+    // make sure parent has attached before proceeding
+
+    int size = read(pipeFlag[0], &flag, 1);
+    close(pipeFlag[0]);
+    close(pipeFlag[1]);
+
+    if ( size < 0 )
+      perror("addIrixMPIprocesses read parent flag");
+
+    //  set trace information so that this process stops at fork exits
+
+    sprintf(processFile, "/proc/%d", getpid());
+    proc_fh = open(processFile, O_RDWR);
+
+    retval = ioctl(proc_fh, PIOCSEXIT, &exitCallset);
+    if ( retval == -1 )
+      perror("PIOCSEXIT");
+
+    close(proc_fh);
+
+    char **args;
+    args = new char*[argv.size()+1];
+    for (unsigned ai=0; ai<argv.size(); ai++)
+      args[ai] = P_strdup(argv[ai].string_of());
+    args[argv.size()] = NULL;
+
+    if ( P_execvp(args[0], args) == -1 )
+    {
+      perror("MPI application exec");
+      exit(-1);
+    }
+  }
+	
+  return(true);
+}

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.197 1999/11/11 00:56:10 wylie Exp $
+// $Id: process.C,v 1.198 1999/12/06 22:49:31 chambrea Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -138,6 +138,10 @@ vector<process*> processVec;
 string process::programName;
 string process::pdFlavor;
 vector<string> process::arg_list;
+
+#ifndef BPATCH_LIBRARY
+extern string osName;
+#endif
 
 process *findProcess(int pid) { // make a public static member fn of class process
   unsigned size=processVec.size();
@@ -289,6 +293,7 @@ vector<Address> process::walkStack(bool noPause)
     }
     pcs += currentFrame.getPC();
   }
+
   if (!noPause && needToCont) {
      if (!continueProc()){
         cerr << "walkStack: continueProc failed" << endl;
@@ -1198,10 +1203,28 @@ process::process(int iPid, image *iSymbols,
     main_brk_addr = 0;
 #endif
 
+#ifndef BPATCH_LIBRARY
+   //  When running an IRIX MPI program, the IRIX MPI job launcher
+   //  "mpirun" creates all the processes.  When we create process
+   //  objects for these processes we aren't actually "attaching" to
+   //  the program, but we use most of this constructor since we
+   //  don't actually create the processes.
+
+   if ( process::pdFlavor == "mpi" && osName.prefixed_by("IRIX") )
+   {
+      needToContinueAfterDYNINSTinit = false;  //Wait for press of "RUN" button		
+      reachedFirstBreak = false; // haven't yet seen first trap
+      createdViaAttach = false;
+   }
+   else
+#endif
+   {
+      reachedFirstBreak = true;
+      createdViaAttach = true;
+   }
+
    hasBootstrapped = false;
-   reachedFirstBreak = true; // the initial trap of program entry was passed long ago...
    reachedVeryFirstTrap = true;
-   createdViaAttach = true;
    createdViaFork = false;
 
    // the next two variables are used only if libdyninstRT is dynamically linked
@@ -1293,6 +1316,15 @@ process::process(int iPid, image *iSymbols,
       success = false;
       return;
    }
+
+#if defined(mips_sgi_irix6_4) && !defined(BPATCH_LIBRARY)
+   if ( process::pdFlavor == "mpi" && osName.prefixed_by("IRIX") )
+   {
+      pause_();
+      insertTrapAtEntryPointOfMain();
+      continueProc();
+   }
+#endif
 
 #if defined(BPATCH_LIBRARY) && defined(rs6000_ibm_aix4_1)
    wasRunningWhenAttached = false; /* XXX Or should the default be true? */
@@ -1885,7 +1917,13 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
 #endif /* BPATCH_LIBRARY */
 
    AstNode *the_ast = new AstNode("DYNINSTinit", the_args);
-   for (unsigned j=0;j<the_args.size();j++) removeAst(the_args[j]);
+
+   //  Do not call removeAst if Irix MPI, as the initialRequests vector 
+   //  is being used more than once.
+#ifndef BPATCH_LIBRARY
+   if ( !(process::pdFlavor == "mpi" && osName.prefixed_by("IRIX")) )
+#endif
+      for (unsigned j=0;j<the_args.size();j++) removeAst(the_args[j]);
 
    theProc->postRPCtoDo(the_ast,
 			true, // true --> don't try to update cost yet
@@ -1917,6 +1955,75 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
 
    return true; // successful
 }
+
+
+#ifndef BPATCH_LIBRARY
+bool attachToIrixMPIprocess(const string &progpath, int pid, int afterAttach) {
+
+   //  This function has been cannibalized from attachProcess.
+   //  IRIX MPI applications appear to present a unique attaching
+   //  scenario: We technically "attach" to processes forked by
+   //  the master MPI app process/daemon (which is started by
+   //  mpirun), but since we haven't passed main yet, we want to
+   //  add a breakpoint at main and call DYNINSTinit then.
+	
+   string fullPathToExecutable = process::tryToFindExecutable(progpath, pid);
+   if (!fullPathToExecutable.length())
+      return false;
+
+   tp->resourceBatchMode(true);
+      // matching bump-down occurs in procStopFromDYNINSTinit().
+
+   image *theImage = image::parseImage(fullPathToExecutable);
+   if (theImage == NULL) {
+      // two failure return values would be useful here, to differentiate
+      // file-not-found vs. catastrophic-parse-error.
+      string msg = string("Unable to parse image: ") + fullPathToExecutable;
+      showErrorCallback(68, msg.string_of());
+      return false; // failure
+   }
+
+#ifdef SHM_SAMPLING
+   vector<fastInferiorHeapMgr::oneHeapStats> theShmHeapStats(3);
+   theShmHeapStats[0].elemNumBytes = sizeof(intCounter);
+   theShmHeapStats[0].maxNumElems  = numIntCounters;
+
+   theShmHeapStats[1].elemNumBytes = sizeof(tTimer);
+   theShmHeapStats[1].maxNumElems  = numWallTimers;
+
+   theShmHeapStats[2].elemNumBytes = sizeof(tTimer);
+   theShmHeapStats[2].maxNumElems  = numProcTimers;
+#endif
+
+   // NOTE: the actual attach happens in the process "attach" constructor:
+   bool success=false;
+   process *theProc = new process(pid, theImage, afterAttach, success
+#ifdef SHM_SAMPLING
+				  ,7000, // shm seg key to try first
+				  theShmHeapStats
+#endif				  
+				  );
+   assert(theProc);
+   if (!success) {
+       delete theProc;
+       return false;
+   }
+
+   processVec += theProc;
+   activeProcesses++;
+
+   theProc->threads += new pdThread(theProc);
+
+   if (!costMetric::addProcessToAll(theProc))
+      assert(false);
+
+   // find the signal handler function
+   theProc->findSignalHandler(); // shouldn't this be in the ctor?
+
+   return true; // successful
+}
+#endif  // #ifndef BPATCH_LIBRARY
+
 
 #ifdef SHM_SAMPLING
 bool process::doMajorShmSample(time64 theWallTime) {
@@ -3520,6 +3627,7 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
      if (!finishingSysCall && RPCs_waiting_for_syscall_to_complete) {
 #ifndef i386_unknown_linux2_0
 	    assert(executingSystemCall());
+
 #endif
         return false;
      }
@@ -3642,6 +3750,7 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
 	   inProgStruct.wasRunning = was_running_before_RPC_syscall_complete;
    else
 	   inProgStruct.wasRunning = wasRunning;
+
       // If finishing up a system call, current state is paused, but we want to
       // set wasRunning to true so that it'll continue when the inferiorRPC
       // completes.  Sorry for the kludge.
@@ -3988,10 +4097,19 @@ bool process::handleTrapIfDueToRPC() {
       assert(theStruct.callbackFunc != NULL);
         // must be a callback to ever see this match_type
 
-      Address returnValue = read_inferiorRPC_result_register(theStruct.resultRegister);
+      //  In the case where the resultRegister is the Null_Register, we can assume that
+	  //  the return value will be ignored and can be set to 0.  This happens in some cases when
+	  //  catch-up instrumentation is being executed: there isn't a result value that we are
+	  //  interested in, but we call a callback function anyway.
+      Address returnValue = 0;
 
-      extern registerSpace *regSpace;
-      regSpace->freeRegister(theStruct.resultRegister);
+	  if ( theStruct.resultRegister != Null_Register )
+	  {
+      	returnValue = read_inferiorRPC_result_register(theStruct.resultRegister);
+
+      	extern registerSpace *regSpace;
+      	regSpace->freeRegister(theStruct.resultRegister);
+	  }
 
       theStruct.resultValue = (void *)returnValue;
 
@@ -4000,10 +4118,10 @@ bool process::handleTrapIfDueToRPC() {
       // that will just re-do the trap!  Instead, we need to continue at the location
       // of the next instruction.
       if (!changePC(theStruct.justAfter_stopForResultAddr))
-	 assert(false);
+	    assert(false);
 
       if (!continueProc())
-	 cerr << "RPC getting result: continueProc failed" << endl;
+          cerr << "RPC getting result: continueProc failed" << endl;
       return true;
    }
 
@@ -4164,7 +4282,16 @@ void process::installInstrRequests(const vector<instMapping*> &requests) {
       AstNode *ast;
       if ((req->where & FUNC_ARG) && req->args.size()>0) {
         ast = new AstNode(req->inst, req->args);
-	for (unsigned i=0; i<req->args.size(); i++) removeAst(req->args[i]) ;
+
+	// Why does the below removeAst cause a seg fault in some cases?
+	// My consistent error seems to have something to do with recursive
+	//  removeAst calls for an invalid roperand.  This may be related
+        //  to paradynd handling multiple processes with IRIX MPI.
+
+#ifndef BPATCH_LIBRARY
+        if ( !(process::pdFlavor == "mpi" && osName.prefixed_by("IRIX")) )
+#endif
+            for (unsigned i=0; i<req->args.size(); i++) removeAst(req->args[i]) ;
       } else {
 	AstNode *tmp = new AstNode(AstNode::Constant, (void*)0);
 	ast = new AstNode(req->inst, tmp);
