@@ -2,7 +2,10 @@
  * tunable constants entry point
  *
  * $Log: TCmain.C,v $
- * Revision 1.1  1995/02/27 18:50:01  tamches
+ * Revision 1.2  1995/11/06 19:25:36  tamches
+ * dictionary_hash --> dictionary_lite
+ *
+ * Revision 1.1  1995/02/27  18:50:01  tamches
  * First version of TCthread; files tunableConst.h and .C have
  * simply moved from the util lib (and have been changed); file
  * TCmain.C is completely new.
@@ -19,8 +22,8 @@
 #include "tunableConst.h"
 
 // Time to define some important static member variables
-typedef dictionary_hash<string, tunableBooleanConstant> tunBoolAssocArrayType;
-typedef dictionary_hash<string, tunableFloatConstant>   tunFloatAssocArrayType;
+typedef dictionary_lite<string, tunableBooleanConstant> tunBoolAssocArrayType;
+typedef dictionary_lite<string, tunableFloatConstant>   tunFloatAssocArrayType;
 
 unsigned boolHashFunc(const string &name)  { return string::hash(name); }
 unsigned floatHashFunc(const string &name) { return string::hash(name); }

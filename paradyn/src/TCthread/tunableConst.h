@@ -2,6 +2,9 @@
  * tunableConstant - a constant that might be changed during execution.
  *
  * $Log: tunableConst.h,v $
+ * Revision 1.4  1995/11/06 19:25:54  tamches
+ * dictionary_hash --> dictionary_lite
+ *
  * Revision 1.3  1995/10/12 18:35:26  tamches
  * Changed a lot of prototypes from "string" to "const string &", which is
  * better because it doesn't make an unneeded and expensive string copy.
@@ -62,7 +65,7 @@
 #include <iostream.h>
 #include <string.h>
 #include "util/h/String.h"
-#include "util/h/Dictionary.h"
+#include "util/h/DictionaryLite.h"
 
 typedef enum tunableUse { developerConstant, userConstant };
 typedef enum tunableType { tunableBoolean, tunableFloat };
@@ -248,8 +251,8 @@ class tunableFloatConstant : public tunableConstantBase {
 
 class tunableConstantRegistry {
  private:
-   typedef dictionary_hash<string, tunableBooleanConstant> tunBoolAssocArrayType;
-   typedef dictionary_hash<string, tunableFloatConstant>   tunFloatAssocArrayType;
+   typedef dictionary_lite<string, tunableBooleanConstant> tunBoolAssocArrayType;
+   typedef dictionary_lite<string, tunableFloatConstant>   tunFloatAssocArrayType;
 
    // the central registry is comprised of these two arrays:
    static tunBoolAssocArrayType  allBoolTunables;

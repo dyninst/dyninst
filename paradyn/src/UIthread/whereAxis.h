@@ -4,11 +4,14 @@
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
 /* $Log: whereAxis.h,v $
-/* Revision 1.6  1995/10/17 22:18:46  tamches
-/* whereAxis is no longer a templated type; it used where4tree
-/* with a template of whereAxisRootNode.
-/* Added back static members which used to be in whereAxisMisc.
+/* Revision 1.7  1995/11/06 19:28:44  tamches
+/* dictionary_hash --> dictionary_lite
 /*
+ * Revision 1.6  1995/10/17 22:18:46  tamches
+ * whereAxis is no longer a templated type; it used where4tree
+ * with a template of whereAxisRootNode.
+ * Added back static members which used to be in whereAxisMisc.
+ *
  * Revision 1.5  1995/09/20 01:27:10  tamches
  * constness removed from many prototypes; other changes to correspond
  * with whereAxis.C
@@ -40,9 +43,9 @@
 #include "graphicalPath.h"
 
 #ifndef PARADYN
-#include "Dictionary.h"
+#include "DictionaryLite.h"
 #else
-#include "util/h/Dictionary.h"
+#include "util/h/DictionaryLite.h"
 #endif
 
 // Note: whereAxis is no longer a templated type.
@@ -85,7 +88,7 @@ class whereAxis {
       // for example, have different color configurations.
    where4tree<whereAxisRootNode> *rootPtr;
 
-   dictionary_hash<resourceHandle, where4tree<whereAxisRootNode> *> hash;
+   dictionary_lite<resourceHandle, where4tree<whereAxisRootNode> *> hash;
       // associative array: resource unique id --> its corresponding node
 
    string horizSBName; // e.g. ".nontop.main.bottsb"
