@@ -32,9 +32,10 @@ void pthread_sync::lock() {
 #if LIBTHREAD_DEBUG == 1
         fprintf(stderr, "acquiring lock %p (by pthread %d)...\n", &mutex, pthread_self());
 #endif
+
     status = pthread_mutex_trylock(mutex);
 
-    if (status && errno == EBUSY) {
+    if (status == EBUSY) {
         COLLECT_MEASUREMENT(THR_LOCK_BLOCK);
         COLLECT_MEASUREMENT(THR_LOCK_TIMER_START);
         pthread_mutex_lock(mutex);
