@@ -1,6 +1,10 @@
 
 /* 
  * $Log: ast.C,v $
+ * Revision 1.24  1996/04/26 20:16:16  lzheng
+ * Move part of code in AstNode::generateCode to machine dependent file.
+ * (Those code are put into the procedure emitFuncCall)
+ *
  * Revision 1.23  1996/04/10 18:00:11  lzheng
  * Added multiple arguments to calls for HPUX by using stack instead of extra
  * registers.
@@ -95,6 +99,10 @@
 #else
 #if defined(hppa1_1_hp_hpux)
 #include "inst-hppa.h"
+#else
+#if defined(rs6000_ibm_aix3_2)
+#include "inst-power.h"
+#endif
 #endif
 #endif
 
@@ -444,11 +452,6 @@ reg AstNode::generateCode(process *proc,
     reg src = -1;
     reg dest = -1;
     reg right_dest = -1;
-#if defined(hppa1_1_hp_hpux)
-    reg srcs;
-#else
-    vector <reg> srcs;
-#endif
 
     if (type == opCodeNode) {
         if (op == ifOp) {
@@ -535,53 +538,14 @@ reg AstNode::generateCode(process *proc,
 	  emit(loadOp, (reg) addr, dest, dest, insn, base);
 	}
     } else if (type == callNode) {
-	unsigned addr;
-	// find func addr.
-	bool err;
-        // This part for HP is moved to the HP dependent file  
-#if defined(hppa1_1_hp_hpux)
-        for (unsigned u = 0; u < operands.size(); u++) {
-	    if (u >= 4) {
-                 string msg = "Too many arguments to function call in instrumentation code:
- only 4 arguments can be passed on the sparc architecture.\n";
-                 fprintf(stderr, msg.string_of());
-                 showErrorCallback(94,msg);
-                 cleanUpAndExit(-1);
-            }  
-	    srcs = operands[u].generateCode(proc, rs, insn, base);
-	    emit(storeMemOp, srcs, 30, -36-4*u, insn, base);
-	    rs->freeRegister(srcs);
-        }
-
-	for (unsigned u = 0; u < operands.size(); u++) {
-	    assert(u < 4);
-	    emit(loadMemOp, 30, 26-u,-36-4*u, insn, base);  
-	}
-	dest = emitFuncCall(callOp, insn, base, callee, proc);
-#else
-        addr = (proc->symbols)->findInternalAddress(callee, false, err);
-        if (err) {
-          pdFunction *func = (proc->symbols)->findOneFunction(callee);
-          if (!func) {
-            ostrstream os(errorLine, 1024, ios::out);
-            os << "Internal error: unable to find addr of " << callee << endl;
-            logLine(errorLine);
-            showErrorCallback(80, (const char *) errorLine);
-            P_abort();
-          }
-          addr = func->addr();
-        }
-	
-	for (unsigned u = 0; u < operands.size(); u++)
-	  srcs += operands[u].generateCode(proc, rs, insn, base);
-	dest = emitFuncCall(callOp, srcs, (int) addr, insn, base);
-#endif
+	dest = emitFuncCall(callOp, rs, insn, base, operands, callee, proc);
     } else if (type == sequenceNode) {
 	loperand->generateCode(proc, rs, insn, base);
 	return(roperand->generateCode(proc, rs, insn, base));
     }
     return(dest);
 }
+
 
 string getOpString(opCode op)
 {
