@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: PCpublic.C,v $
- * Revision 1.7  1994/05/06 06:39:36  karavan
+ * Revision 1.8  1994/05/09 20:58:02  hollings
+ * Added clearSHG.
+ *
+ * Revision 1.7  1994/05/06  06:39:36  karavan
  * SHG now initialized only upon request
  *
  * Revision 1.6  1994/05/02  20:38:13  hollings
@@ -64,7 +67,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCpublic.C,v 1.7 1994/05/06 06:39:36 karavan Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCpublic.C,v 1.8 1994/05/09 20:58:02 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -119,7 +122,7 @@ void performanceConsultant::createInterval(int parent,
 
 searchHistoryNodeList BuildWhyRefinements(searchHistoryNode *of)
 {
-    Boolean val;
+    Boolean newArc;
     hypothesis *h;
     hypothesisList hl;
     searchHistoryNode *newNode;
@@ -132,7 +135,7 @@ searchHistoryNodeList BuildWhyRefinements(searchHistoryNode *of)
     for (hl = *of->why->children; h = *hl; hl++) {
 	newNode = findAndAddSHG(of, h, of->where, of->when);
 	ret.add(newNode);
-	val = of->children->addUnique(newNode);
+	newArc = of->children->addUnique(newNode);
 
 	  // extract display label string from node name
 	nptr = strchr (newNode->name, ' ');
@@ -140,7 +143,10 @@ searchHistoryNodeList BuildWhyRefinements(searchHistoryNode *of)
 	strncat (newNode->shortName, newNode->name, (nptr-newNode->name));
 	uiMgr->DAGaddNode (SHGid, newNode->nodeId, UNTESTEDNODESTYLE, 
 			   newNode->shortName, newNode->name, 0);
-	uiMgr->DAGaddEdge (SHGid, of->nodeId, newNode->nodeId, WHYEDGESTYLE);
+	if (newArc) {
+	    uiMgr->DAGaddEdge(SHGid, of->nodeId, 
+			      newNode->nodeId, WHYEDGESTYLE);
+	}
     }
     return(ret);
 }
@@ -162,7 +168,7 @@ SHNptr_Array performanceConsultant::getWhyRefinements(searchHistoryNode *node)
 
 searchHistoryNodeList BuildWhenRefinements(searchHistoryNode *of)
 {
-    Boolean val;
+    Boolean newArc;
     timeInterval *i;
     timeIntervalList il;
     searchHistoryNodeList ret;
@@ -174,13 +180,15 @@ searchHistoryNodeList BuildWhenRefinements(searchHistoryNode *of)
     for (il=*of->when->subIntervals; i = *il; il++) {
 	newNode = findAndAddSHG(of, of->why, of->where, i);
 	ret.add(newNode);
-	val = of->children->addUnique(newNode);
+	newArc = of->children->addUnique(newNode);
 
           // note:  this will draw the nodeID# as the shg node label!!
 	uiMgr->DAGaddNode (SHGid, newNode->nodeId, UNTESTEDNODESTYLE, 
 			   newNode->shortName, newNode->name, 0);
-	uiMgr->DAGaddEdge (SHGid, of->nodeId, newNode->nodeId, WHENEDGESTYLE);
-	
+	if (newArc) {
+	    uiMgr->DAGaddEdge(SHGid, of->nodeId, 
+			      newNode->nodeId, WHENEDGESTYLE);
+	}
     }
     return(ret);
 }
@@ -204,7 +212,7 @@ SHNptr_Array performanceConsultant::getWhenRefinements(searchHistoryNode *node)
 searchHistoryNodeList BuildWhereRefinements(searchHistoryNode *of)
 {
     focus *f;
-    Boolean val;
+    Boolean newArc;
     focusList newFoci;
     searchHistoryNodeList ret;
     searchHistoryNode *newNode;
@@ -214,7 +222,8 @@ searchHistoryNodeList BuildWhereRefinements(searchHistoryNode *of)
 
     if (!of) return(ret);
 
-    for (newFoci = of->where->enumerateRefinements(); f=*newFoci; newFoci++){
+    for (newFoci = of->where->enumerateRefinements(); *newFoci; newFoci++){
+	f = *newFoci;
 	newNode = findAndAddSHG(of, of->why, f, of->when);
 
 	    // get label name for shg display
@@ -242,9 +251,12 @@ searchHistoryNodeList BuildWhereRefinements(searchHistoryNode *of)
 	delete (childf);
 	uiMgr->DAGaddNode (SHGid, newNode->nodeId, UNTESTEDNODESTYLE, 
 			   newNode->shortName, newNode->name, 0);
-	uiMgr->DAGaddEdge (SHGid, of->nodeId, newNode->nodeId, WHEREEDGESTYLE);
 	
-	val = of->children->addUnique(newNode);
+	newArc = of->children->addUnique(newNode);
+	if (newArc) {
+	    uiMgr->DAGaddEdge(SHGid, of->nodeId, newNode->nodeId, 
+		WHEREEDGESTYLE);
+	}
 	ret.add(newNode);
     }
     // delete(newFoci);
@@ -322,7 +334,26 @@ void performanceConsultant::printSHGNode(searchHistoryNode *node)
 
 void performanceConsultant::startSHG()
 {
-  shgInit();
+  static int init;
+
+  if (!init) {
+      shgInit();
+  }
+}
+
+
+void performanceConsultant::clearSHG()
+{
+    searchHistoryNode *n;
+    searchHistoryNodeList curr;
+
+    for (curr = allSHGNodes; n = *curr; curr++) {
+	assert(allSHGNodes.remove(n->name));
+	// delete(n);
+    }
+
+    // init a new root node.
+    shgInit();
 }
 
 void performanceConsultant::doRefine(int_Array ids)

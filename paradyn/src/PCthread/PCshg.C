@@ -1,6 +1,9 @@
 /*
  * $Log: PCshg.C,v $
- * Revision 1.2  1994/04/21 04:58:53  karavan
+ * Revision 1.3  1994/05/09 20:58:04  hollings
+ * Added clearSHG.
+ *
+ * Revision 1.2  1994/04/21  04:58:53  karavan
  * updated shgInit() to include display initialization; added changeStatus
  * and changeActive member functions to searchHistoryNode.
  *
@@ -44,7 +47,7 @@
 static char Copyright[] = 
     "@(#) Copyright (c) 1992 Jeff Hollingsworth. All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.2 1994/04/21 04:58:53 karavan Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/PCshg.C,v 1.3 1994/05/09 20:58:04 hollings Exp $";
 #endif
 
 #include <stdio.h>
@@ -156,7 +159,6 @@ Boolean searchHistoryNode::print(int parent, FILE *fp)
 void 
 searchHistoryNode::changeActive(Boolean newact)
 {
-  printf ("SHN::changeActive\n");
   active = newact;
   if (newact == TRUE) {
     if (status == TRUE) 
@@ -171,7 +173,6 @@ searchHistoryNode::changeActive(Boolean newact)
 void 
 searchHistoryNode::changeStatus(Boolean newstat)
 {
-  printf ("SHN::changeStatus\n");
   status = newstat;
   if (newstat == TRUE) {
     uiMgr->DAGconfigNode(SHGid, nodeId, ACTIVETRUENODESTYLE);
@@ -260,6 +261,8 @@ searchHistoryNode *findAndAddSHG(searchHistoryNode *parent,
 
 void shgInit()
 {
+    extern int PCpathDepth;
+
     // init default interval.
     whenAxis.start = 0;
     whenAxis.end = FLT_MAX;
@@ -274,11 +277,11 @@ void shgInit()
 
     // begin visual display of shg
     SHGid = uiMgr->initSHG();     
-    printf ("PC: SHG initialized w/ SHGid = %d\n", SHGid);
     // display root node with style 1 
     uiMgr->DAGaddNode (SHGid, currentSHGNode->nodeId, UNTESTEDNODESTYLE, 
 		       currentSHGNode->shortName, currentSHGNode->name, 1);
 
+    PCpathDepth = 0;
 }
 
 searchHistoryNode *SearchHistoryGraph;
