@@ -2,9 +2,12 @@
 // customized (for barchart) version of DGclient.C in tclVisi directory
 
 /* $Log: dg2.C,v $
-/* Revision 1.11  1995/11/17 17:39:32  newhall
-/* changed Dg start command, and call to GetMetsRes
+/* Revision 1.12  1995/11/29 00:40:07  tamches
+/* removed myTclEval
 /*
+ * Revision 1.11  1995/11/17 17:39:32  newhall
+ * changed Dg start command, and call to GetMetsRes
+ *
  * Revision 1.10  1995/11/17  17:32:27  newhall
  * changed Dg start command to take no arguments, replaced call to MetricUnits
  * with call to MetricLabel
@@ -49,6 +52,7 @@
 
 #include "tclclean.h"
 #include "tkclean.h"
+#include "tkTools.h" // myTclEval()
 
 #include "dg2.h"
 #include "visi/h/visualization.h"
@@ -60,12 +64,12 @@ void my_visi_callback(void*, int*, long unsigned int*) {
       exit(0);
 }
 
-void myTclEval(Tcl_Interp *interp, const char *cmd) {
-   if (TCL_OK != Tcl_Eval(interp, cmd)) {
-      cerr << interp->result << endl;
-      exit(5);
-   }
-}
+//void myTclEval(Tcl_Interp *interp, const char *cmd) {
+//   if (TCL_OK != Tcl_Eval(interp, cmd)) {
+//      cerr << interp->result << endl;
+//      exit(5);
+//   }
+//}
 
 int Dg2AddMetricsCallback(int) {
    myTclEval(MainInterp, "DgConfigCallback");
