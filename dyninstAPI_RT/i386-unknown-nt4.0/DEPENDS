@@ -1,4 +1,4 @@
 RTwinnt.o: ../src/RTwinnt.c ../../dyninstAPI_RT/h/dyninstAPI_RT.h \
- ../../util/h/Types.h ../../util/h/sys.h
+ ../../common/h/Types.h ../../common/h/sys.h
 RTcommon.o: ../src/RTcommon.c ../../dyninstAPI_RT/h/dyninstAPI_RT.h \
- ../../util/h/Types.h ../../util/h/sys.h
+ ../../common/h/Types.h ../../common/h/sys.h
