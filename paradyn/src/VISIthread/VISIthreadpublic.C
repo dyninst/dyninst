@@ -14,9 +14,17 @@
  *
  */
 /* $Log: VISIthreadpublic.C,v $
-/* Revision 1.2  1994/09/22 01:20:20  markc
-/* Changed "String" to "char*"
+/* Revision 1.4  1994/11/04 06:41:05  newhall
+/* removed printfs
 /*
+ * Revision 1.3  1994/09/25  01:52:10  newhall
+ * updated to support the changes to the  visi, UI and VM interfaces having
+ * to do with a new representation of metric/focus lists as a list of
+ * metric/focus pairs.
+ *
+ * Revision 1.2  1994/09/22  01:20:20  markc
+ * Changed "String" to "char*"
+ *
  * Revision 1.1  1994/08/13  20:52:40  newhall
  * changed when a visualization process is started
  * added new file VISIthreadpublic.C
@@ -42,8 +50,7 @@
 #include "dyninstRPC.CLNT.h"
 #include "../DMthread/DMinternals.h"
 #define  ERROR_MSG(s1, s2) \
-	 uiMgr->showError(s1,s2); \
-	 printf("error# %d: %s\n",s1,s2); 
+	 uiMgr->showError(s1,s2); 
 
 //////////////////////////////////////////////////
 // VISIKillVisi:  VISIthread server routine 
@@ -67,6 +74,7 @@
 }
 
 
+
 //////////////////////////////////////////////////////////////////////
 //  GetMetricResource: visualizationUser routine (called by visi process)
 //  input: string of metric names, string of focus names, type of data
@@ -77,8 +85,8 @@
 // only option), else make enable data collection call to DM for each
 // metric resource pair
 //////////////////////////////////////////////////////////////////////
-void visualizationUser::GetMetricResource(char *metric,
-					  char *resource,
+void visualizationUser::GetMetricResource(char *mets_res,
+					  int numElements,
 					  int type){
  VISIthreadGlobals *ptr;
 
@@ -88,7 +96,13 @@ PARADYN_DEBUG(("in visualizationUser::GetMetricResource"));
     ERROR_MSG(13,"thr_getspecific in VISIthread::GetMetricResource");
     return;
  }
- ptr->ump->chooseMetricsandResources((chooseMandRCBFunc)VISIthreadchooseMetRes,NULL,0,NULL);
+ // TODO: parse the mets_res list
+ // if not empty and no wild cards convert mets_res to list of 
+ // metrespairs representation and call VISIthreadchooseMetRes routine
+
+ // otherwise initiate menuing request
+ ptr->ump->chooseMetricsandResources((chooseMandRCBFunc)VISIthreadchooseMetRes,
+				     NULL,0);
 }
 
 

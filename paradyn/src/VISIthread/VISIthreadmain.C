@@ -22,9 +22,12 @@
 //   		VISIthreadnewResourceCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.32  1994/11/03 05:17:43  newhall
-/* removed trailing comma in AbbreviatedFocus
+/* Revision 1.33  1994/11/04 06:41:03  newhall
+/* removed printfs
 /*
+ * Revision 1.32  1994/11/03  05:17:43  newhall
+ * removed trailing comma in AbbreviatedFocus
+ *
  * Revision 1.31  1994/10/10  21:41:15  newhall
  * more changes to support new UI metric/focus selections
  *
@@ -145,8 +148,7 @@
 #include "dyninstRPC.CLNT.h"
 #include "../DMthread/DMinternals.h"
 #define  ERROR_MSG(s1, s2) \
-	 uiMgr->showError(s1,s2); \
-	 printf("error# %d: %s\n",s1,s2); 
+	 uiMgr->showError(s1,s2); 
 
 /*
 #define DEBUG3

@@ -14,9 +14,12 @@
  *
  */
 /* $Log: VMmain.C,v $
-/* Revision 1.25  1994/11/04 03:59:30  karavan
-/* Removed status line displays
+/* Revision 1.26  1994/11/04 06:41:31  newhall
+/* removed printfs
 /*
+ * Revision 1.25  1994/11/04  03:59:30  karavan
+ * Removed status line displays
+ *
  * Revision 1.24  1994/11/03  21:35:15  krisna
  * status lines for active visis.
  *
@@ -108,8 +111,7 @@
 */
 
 #define ERROR_MSG(s1, s2) \
-   uiMgr->showError(s1,s2); \
-   printf("error number %d: %s\n",s1,s2); 
+   uiMgr->showError(s1,s2); 
 
 static int      currNumActiveVisis = 0;
 thread_key_t visiThrd_key;
