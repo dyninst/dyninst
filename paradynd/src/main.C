@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.76 1999/07/07 16:18:47 zhichen Exp $
+// $Id: main.C,v 1.77 1999/07/08 00:26:22 nash Exp $
 
 #include "util/h/headers.h"
 #include "util/h/makenan.h"
@@ -202,6 +202,22 @@ RPC_undo_arg_list (string &flavor, unsigned argc, char **arg_list,
 }
 
 int main(unsigned argc, char *argv[]) {
+
+#if !defined(i386_unknown_nt4_0)
+    {
+        char *pdkill;
+        pdkill = getenv( "PARADYND_DEBUG" );
+        if( pdkill && ( *pdkill == 'y' || *pdkill == 'Y' ) ) {
+            int pid = getpid();
+            cerr << "breaking for debug in controllerMainLoop...pid=" << pid << endl;
+#if defined(i386_unknown_nt4_0)
+            DebugBreak();
+#else
+            kill(pid, SIGSTOP);
+#endif
+        }
+    }
+#endif // !defined(i386_unknown_nt4_0)
 
 #if !defined(i386_unknown_nt4_0)
     struct sigaction act;

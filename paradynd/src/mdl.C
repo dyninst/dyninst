@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.74 1999/07/07 16:19:52 zhichen Exp $
+// $Id: mdl.C,v 1.75 1999/07/08 00:26:22 nash Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -2472,50 +2472,9 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
       default: assert(0);
   }
 
-  // Here is where auto-activate should occur.
-  // If there is 1 point and it is $start.entry then
-  // do an inferiorRPC right now (of the ast 'code').
-  // In this way, we can get metrics like cpu and exec-time for whole program
-  // to work correctly even when the metrics are instantiated after
-  // the entrypoint of main() is in execution.
-
-  bool manuallyTrigger = false; // for now
-
-  if (points.size() == 1) {
-     // now look at the mdl variable to check for $start.entry.
-     if (pointsVar.get_name() == "$start" && pointsVar.type()==MDL_T_POINT) {
-        // having a type of MDL_T_POINT should mean $start.entry as opposed to
-        // $start.exit, since $start.exit would yield a type of MDL_T_LIST_POINT,
-        // since exit locations are always a list-of-points.  Sorry for the kludge.
-
-        instPoint *theVrbleInstPoint; // NOTE: instPoint is defined in arch-specific files!!!
-	bool aflag = pointsVar.get(theVrbleInstPoint);
-        // theVrbleInstPoint set to equiv of points[0]
-        assert(aflag);
-
-	assert(theVrbleInstPoint == points[0]); // just a sanity check
-
-	mdl_var theVar;
-	string varName = pointsVar.get_name();
-        aflag=mdl_env::get(theVar, varName);
-	assert(aflag);
-
-	function_base *theFunction;
-	aflag=theVar.get(theFunction);
-	assert(aflag);
-
-	// Make a note to do an inferiorRPC to manually execute this code.
-//	if (!manuallyTrigger)
-//	   metric_cerr << "mdl: found $start.entry; going to manually execute via inferior-RPC" << endl;
-
-	manuallyTrigger = true;
-     }
-  }
-
   // for all of the inst points, insert the predicates and the code itself.
   for (unsigned i = 0; i < points.size(); i++) {
-      mn->addInst(points[i], code, cwhen, corder,
-		  manuallyTrigger && (i==0)); // manually trigger at most once
+      mn->addInst(points[i], code, cwhen, corder, 0 );
          // appends an instReqNode to mn's instRequests; actual 
          // instrumentation only
          // takes place when mn->insertInstrumentation() is later called.

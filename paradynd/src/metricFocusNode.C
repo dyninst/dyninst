@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.156 1999/07/07 16:20:46 zhichen Exp $
+// $Id: metricFocusNode.C,v 1.157 1999/07/08 00:26:23 nash Exp $
 
 #include "util/h/headers.h"
 #include <limits.h>
@@ -69,6 +69,8 @@
 #include "paradynd/src/costmetrics.h"
 #include "paradynd/src/metric.h"
 #include "util/h/debugOstream.h"
+
+#include "dyninstAPI/src/instPoint.h"
 
 // The following vrbles were defined in process.C:
 extern debug_ostream attach_cerr;
@@ -1306,6 +1308,131 @@ bool metricDefinitionNode::anythingToManuallyTrigger() const {
    assert(false);
 }
 
+//
+// Added to allow metrics affecting a function F to be triggered when
+//  a program is executing (in a stack frame) under F:
+// The basic idea here is similar to Ari's(?) hack to start "whole 
+//  program" metrics requested while the program is executing 
+//  (see T_dyninstRPC::mdl_instr_stmt::apply in mdl.C).  However,
+//  in this case, the manuallyTrigger flag is set based on the 
+//  program stack (the call sequence implied by the sequence of PCs
+//  in the program stack), and the types of the set of inst points 
+//  which the metricDefinitionNode corresponds to, as opposed to
+//  a hacked interpretation of the original MDL statement syntax.
+// The basic algorithm is as follows:
+//  1. Construct function call sequence leading to the current 
+//     stack frame (yields vector of pf_Function hopefully equivalent
+//     to yield of "backtrace" functionality in gdb.
+//  2. Look at each instReqNode in *this (call it node n):
+//     Does n correspond to a function currently on the stack?
+//       No -> don't manually trigger n's instrumentation.
+//       Yes ->
+//         
+void metricDefinitionNode::adjustManuallyTrigger() {
+    vector<instPoint*> instPts;
+    unsigned i, j, k;
+    pd_Function *stack_func;
+    instPoint *point;
+    Address stack_pc;
+
+    // aggregate metricDefinitionNode - decide whether to manually trigger 
+    //  instrumentation corresponding to each component node individually.
+    if (aggregate_) {
+		//cerr << "metricDefinitionNode::adjustManuallyTrigger() called, flat_name = "
+		// << flat_name_.string_of() << endl;
+        //cerr << " (metricDefinitionNode::adjustManuallyTrigger()) aggregate = true" << endl;
+        for (i=0; i < components.size(); i++) {
+	    components[i]->adjustManuallyTrigger();
+        }
+    } 
+    // non-aggregate:
+    else {
+		//cerr << "metricDefinitionNode::adjustManuallyTrigger() called, flat_name = "
+		//	 << flat_name_.string_of() << "aggregate = false, instRequests.size = "
+		//	 << instRequests.size() << endl;
+
+	vector<Address> stack_pcs = proc_->walkStack();
+	vector<pd_Function *> stack_funcs = proc_->convertPCsToFuncs(stack_pcs);
+
+	for(i=0;i<stack_funcs.size();i++) {
+	    stack_func = stack_funcs[i];
+	    stack_pc = stack_pcs[i];
+		//if( stack_func != NULL )
+		//	cerr << i << ": " << stack_func->prettyName() << "@" << (void*)stack_pc << endl;
+		//else
+		//	cerr << i << ": @" << (void*)stack_pc << endl;
+	    if (stack_func == NULL) continue;
+	    instPts.resize(0);
+	    instPts += const_cast<instPoint*>( stack_func->funcEntry(proc_) );
+	    instPts += stack_func->funcCalls(proc_);
+	    instPts += stack_func->funcExits(proc_);
+	    for(j=0;j<instPts.size();j++) {
+	        point = instPts[j];
+		for(k=0;k<instRequests.size();k++) {
+		    if (point == instRequests[k].Point()) {
+		        if (point->triggeredInStackFrame(stack_func, stack_pc, 
+							 instRequests[k].When()))
+				{
+					//cerr << "AdjustManuallyTrigger -- catch-up needed for "
+					//	 << flat_name_ << " @ " << stack_func->prettyName() << endl;
+					instRequests[k].incrManuallyTrigger();
+				}
+		    }
+		}
+	    }
+	}
+
+	// Kludge to catch $start.entry and main.entry if the stack walk doesn't 
+	// work for some reason.  Check all the instReqNodes against said functions
+	// and for entry point.
+	assert(proc_); // proc_ should always be correct for non-aggregates
+	const function_base *mainFunc = proc_->getMainFunction();
+	assert(mainFunc); // processes should always have mainFunction defined
+	for( k = 0; k < instRequests.size(); ++k ) {
+		if( instRequests[ k ].Point()->iPgetFunction() == mainFunc
+			&& !instRequests[ k ].anythingToManuallyTrigger() )
+		{
+#if defined(mips_sgi_irix6_4)
+			if( instRequests[ k ].Point()->type() == IPT_ENTRY )
+#elif defined(sparc_sun_solaris2_4) || defined(sparc_sun_sunos4_1_3)
+			if( instRequests[ k ].Point()->ipType == functionEntry )
+#elif defined(rs6000_ibm_aix4_1)
+			if( instRequests[ k ].Point()->ipLoc == ipFuncEntry )
+#elif defined(i386_unknown_nt4_0) || defined(i386_unknown_solaris2_5) \
+      || defined(i386_unknown_linux2_0)
+			if( instRequests[ k ].Point()->iPgetAddress() == mainFunc->addr() )
+#else
+#error Check for instPoint type == entry not implemented on this platform
+#endif
+			{
+				//cerr << "AdjustManuallyTrigger -- (main kludge) catch-up needed for "
+				//	 << flat_name_ << " @ " << mainFunc->prettyName() << endl;
+				instRequests[ k ].incrManuallyTrigger();
+			}
+		}
+	}
+	}
+}
+
+// Look at the inst point corresponding to *this, and the stack.
+// If inst point corresponds a location which is conceptually "over"
+// the current execution frame, then set the manuallyTrigger flag
+// (of *this) to true, (hopefully) causing the AST corresponding
+// to the inst point to be executed (before the process resumes
+// execution).
+// What does conceptually "over" mean?
+// An inst point is "over" the current execution state if that inst
+//  point would have had to have been traversed to get to the current
+//  execution state, had the inst point existed since before the
+//  program began execution.
+// In practise, inst points are categorized as function entry, exit, and call
+//  site instrumentation.  entry instrumentation is "over" the current 
+//  execution frame if the function it is applied to appears anywhere
+//  on the stack.  exit instrumentation is never "over" the current 
+//  execution frame.  call site instrumentation is "over" the current
+//  execution frame if   
+
+
 void metricDefinitionNode::manuallyTrigger(int parentMId) {
    assert(anythingToManuallyTrigger());
 
@@ -1362,6 +1489,8 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
 {
     bool internal = false;
 
+    //cerr << "startCollecting called for metric " << metric_name.string_of() << endl;
+
     // Make the unique ID for this metric/focus visible in MDL.
     string vname = "$globalId";
     mdl_env::add(vname, false, MDL_T_INT);
@@ -1410,6 +1539,7 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
         // We don't rerun the processes after we insert instrumentation,
         // this will be done by our caller, after all instrumentation
         // has been inserted.
+		//cerr << "startCollecting -- pausing processes" << endl;
         for (unsigned u = 0; u < mi->components.size(); u++) {
           process *p = mi->components[u]->proc();
           if (p->status() == running && p->pause()) {
@@ -1421,10 +1551,17 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
 	mi->insertInstrumentation(); // calls pause and unpause (this could be a bug, since the next line should be allowed to execute before the unpause!!!)
 	mi->checkAndInstallInstrumentation();
 
-	// Now that the timers and counters have been allocated on the heap, and
+	//
+    // Now that the timers and counters have been allocated on the heap, and
 	// the instrumentation added, we can manually execute instrumentation
-	// we may have missed at $start.entry.  But has the process been paused
-	// all this time?  Hopefully so; otherwise things can get screwy.
+	// we may have missed at function entry points and pre-instruction call 
+	// sites which have already executed.
+	//
+
+	// Adjust mi's manuallyTrigger fields to try to execute function entry and call
+	//  site instrumentation according to the program stack....
+	//cerr << " (startCollecting) about to call mi->adjustManuallyTrigger" << endl;
+	mi->adjustManuallyTrigger();
 
 	if (mi->anythingToManuallyTrigger()) {
 	   process *theProc = mi->components[0]->proc();
@@ -1453,6 +1590,7 @@ int startCollecting(string& metric_name, vector<u_int>& focus, int id,
 #endif
 
     metResPairsEnabled++;
+	//cerr << "startCollecting -- exiting" << endl;
     return(mi->id_);
 }
 
@@ -1591,7 +1729,7 @@ bool metricDefinitionNode::checkAndInstallInstrumentation() {
     } else {
         needToCont = proc_->status() == running;
         if (!proc_->pause()) {
-	    cerr << "checkAnd... pause failed" << endl; cerr.flush();
+	    cerr << "checkAndInstallInstrumentation -- pause failed" << endl; cerr.flush();
             return false;
         }
 
@@ -1704,8 +1842,9 @@ bool metricDefinitionNode::checkAndInstallInstrumentation() {
 	    }
 	    Address pc2 = pc[max_index+1];
 	    for (u_int i=0; i < rsize; i++)
-		if (delay_elm[i])
+	        if (delay_elm[i]) {
                     returnInsts[i]->addToReturnWaitingList(pc2, proc_);
+	        }
 	}
 
         if (needToCont) proc_->continueProc();
@@ -2418,7 +2557,7 @@ void processSample(int /* pid */, traceHeader *h, traceSample *s)
 instReqNode::instReqNode(instPoint *iPoint,
                          AstNode *iAst,
                          callWhen  iWhen,
-                         callOrder o, bool iManuallyTrigger) {
+                         callOrder o, int iManuallyTrigger) {
     point = iPoint;
     when = iWhen;
     order = o;
@@ -2514,13 +2653,25 @@ float instReqNode::cost(process *theProc) const
     return(value);
 }
 
+extern void checkProcStatus();
+
 #if defined(MT_THREAD)
 bool instReqNode::triggerNow(process *theProc, int mid, int thrId) {
 #else
 bool instReqNode::triggerNow(process *theProc, int mid) {
 #endif
-   assert(manuallyTrigger);
+   int i/*, status, pid*/;
+   if(!manuallyTrigger) return false;
 
+   bool needToCont = theProc->status() == running;
+   if ( !theProc->pause() ) {
+	   cerr << "instReqNode::triggerNow -- pause failed" << endl;
+	   return false;
+   }
+
+   // trigger the instrumentation <manuallyTrigger> times - may need to 
+   //  trigger multiple times to account for recursive function calls....
+   for(i=0;i<manuallyTrigger;i++) {
 #if defined(MT_THREAD)
    for (unsigned i=0;i<manuallyTriggerTIDs.size();i++) {
      if (manuallyTriggerTIDs[i]==thrId) {
@@ -2536,8 +2687,7 @@ bool instReqNode::triggerNow(process *theProc, int mid) {
 #endif
 #endif
    theProc->postRPCtoDo(ast, false, // don't skip cost
-			NULL, // no callback fn needed
-			NULL,
+			instReqNode::triggerNowCallbackDispatch, this,
 #if defined(MT_THREAD)
 			mid,
 			thrId,
@@ -2549,10 +2699,24 @@ bool instReqNode::triggerNow(process *theProc, int mid) {
 #else
 			mid);
 #endif
-      // the rpc will be launched with a call to launchRPCifAppropriate()
-      // in the main loop (perfStream.C)
+
+	   rpcCount = 0;
+	   do {
+		   theProc->launchRPCifAppropriate(false, false);
+		   checkProcStatus();
+	   } while ( !rpcCount && theProc->status() != exited );
+   }
+
+   manuallyTrigger = 0;
+
+   if( needToCont )
+	   theProc->continueProc();
 
    return true;
+}
+
+void instReqNode::triggerNowCallback(void * /*returnValue*/ ) {
+	++rpcCount;
 }
 
 /* ************************************************************************* */

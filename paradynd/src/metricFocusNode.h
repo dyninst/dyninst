@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.56 1999/07/07 16:20:47 zhichen Exp $ 
+// $Id: metricFocusNode.h,v 1.57 1999/07/08 00:26:24 nash Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -563,12 +563,12 @@ class sampledShmProcTimerReqNode : public dataReqNode {
 class instReqNode {
 public:
   instReqNode(instPoint*, AstNode *, callWhen, callOrder order,
-              bool iManuallyTrigger);
+              int iManuallyTrigger);
  ~instReqNode();
 
   instReqNode() {
      // needed by Vector class
-     ast = NULL; point=NULL; instance = NULL; manuallyTrigger = false;
+     ast = NULL; point=NULL; instance = NULL; manuallyTrigger = 0;
   }
 
   instReqNode(const instReqNode &src) {
@@ -617,6 +617,14 @@ public:
 #else
   bool triggerNow(process *theProc, int mid);
 #endif
+  static void triggerNowCallbackDispatch(process * /*theProc*/,
+						    void *userData, void *returnValue)
+	  { ((instReqNode*)userData)->triggerNowCallback( returnValue ); }
+  void triggerNowCallback(void *returnValue);
+
+  instPoint *Point() {return point;}
+  callWhen When() {return when;}
+  void incrManuallyTrigger() {manuallyTrigger++;}
 
 private:
   instPoint	*point;
@@ -624,9 +632,14 @@ private:
   callWhen	when;
   callOrder	order;
   instInstance	*instance; // undefined until insertInstrumentation() calls addInstFunc
-  bool manuallyTrigger;
-     // if true, then 'ast' is manually executed (inferiorRPC) when
-     // inserting instrumentation.
+
+  // if true, then 'ast' is manually executed (inferiorRPC) when
+  // inserting instrumentation.
+  int manuallyTrigger;
+  // Counts the number of rpcs which have successfully completed 
+  // for this node.  This is needed because we may need to manually 
+  // trigger multiple times for recursive functions.
+  int rpcCount;
 #if defined(MT_THREAD)
   vector<int> manuallyTriggerTIDs;
 #endif
@@ -763,7 +776,7 @@ public:
 #endif
   inline void addInst(instPoint *point, AstNode *, callWhen when, 
                       callOrder o,
-		      bool manuallyTrigger);
+		      int manuallyTrigger);
 
   // propagate this aggregate mi to a newly started process p (not for processes
   // started via fork or exec, just for those started "normally")
@@ -803,7 +816,9 @@ public:
 
   bool anythingToManuallyTrigger() const;
 
+  void adjustManuallyTrigger();
   void manuallyTrigger(int);
+
 #if defined(MT_THREAD)
 // void manuallyTrigger2(metricDefinitionNode *);
 // void propagateId2(int);
@@ -888,7 +903,7 @@ private:
 inline void metricDefinitionNode::addInst(instPoint *point, AstNode *ast,
 					  callWhen when,
 					  callOrder o,
-                                          bool manuallyTrigger) {
+                                          int manuallyTrigger) {
   if (!point) return;
 
   instReqNode temp(point, ast, when, o, manuallyTrigger);

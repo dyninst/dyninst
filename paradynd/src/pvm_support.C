@@ -213,6 +213,7 @@ start_other_paradynds (char **argv)
       if (pvmd_tid != hostp[loop].hi_tid) {
 	if ((res=pvm_spawn("paradynd", argv, 1, hostp[loop].hi_name, 1, &kidid)) != 1) {
 	   PDYN_goodbye("Spawn failed in start_other_paradynd\n");
+	   fprintf( stderr, "Error in pvm_spawn, %d tasks started: %d\n", res, kidid );
 	   return false;
 	 }
       }

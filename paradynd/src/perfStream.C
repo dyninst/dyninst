@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.100 1999/07/07 16:21:25 zhichen Exp $
+// $Id: perfStream.C,v 1.101 1999/07/08 00:26:24 nash Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -123,7 +123,7 @@ void processAppIO(process *curr)
 	curr->ioLink = -1;
 	string msg = string("Process ") + string(curr->getPid()) + string(" exited");
 	statusLine(msg.string_of());
-        handleProcessExit(curr,0);
+	handleProcessExit(curr,0);
 	return;
     }
 
@@ -208,7 +208,7 @@ void processTraceStream(process *curr)
 	statusLine(msg.string_of());
 	P_close(curr->traceLink);
   	curr->traceLink = -1;
-        handleProcessExit(curr,0);
+	handleProcessExit(curr,0);
 	return;
     }
 
@@ -578,22 +578,6 @@ void controllerMainLoop(bool check_buffer_first)
     assert(fd_num == 1);
 #endif
 #endif
-
-#if !defined(i386_unknown_nt4_0)
-    {
-        char *pdkill;
-        pdkill = getenv( "PARADYND_DEBUG" );
-        if( pdkill && ( *pdkill == 'y' || *pdkill == 'Y' ) ) {
-            int pid = getpid();
-            cerr << "breaking for debug in controllerMainLoop...pid=" << pid << endl;
-#if defined(i386_unknown_nt4_0)
-            DebugBreak();
-#else
-            kill(pid, SIGSTOP);
-#endif
-        }
-    }
-#endif // !defined(i386_unknown_nt4_0)
 
 //    cerr << "doing controllerMainLoop..." << endl;
 
