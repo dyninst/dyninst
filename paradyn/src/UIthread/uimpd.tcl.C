@@ -3,9 +3,12 @@
    is used internally by the UIM.
 */
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.26  1996/01/23 07:11:25  tamches
-/* uim_VisiSelections no longer a ptr
+/* Revision 1.27  1996/01/30 23:04:01  tamches
+/* removed include to obsolete file shgDisplay.h
 /*
+ * Revision 1.26  1996/01/23 07:11:25  tamches
+ * uim_VisiSelections no longer a ptr
+ *
  * Revision 1.25  1996/01/11 04:43:04  tamches
  * replaced parseSelections - memory leaks gone, runs more efficiently,
  * and doesn't add spurious metric/focus pairs when Whole Program is chosen
@@ -111,7 +114,6 @@ extern "C" {
 #include "UIglobals.h"
 #include "../pdMain/paradyn.h"
 #include "../DMthread/DMinclude.h"
-#include "shgDisplay.h"
 #include "abstractions.h"
 
 void printMFPlist (vector<metric_focus_pair> *list) 

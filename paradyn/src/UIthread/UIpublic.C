@@ -21,11 +21,14 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.37  1996/01/23 06:56:42  tamches
-/* uim_VisiSelections no longer a ptr
-/* int2style reworked for 7 styles
-/* new "label" arg for DAGaddEdge (for shadow nodes)
+/* Revision 1.38  1996/01/30 23:04:22  tamches
+/* removed include to obsolete file shgDisplay.h
 /*
+ * Revision 1.37  1996/01/23 06:56:42  tamches
+ * uim_VisiSelections no longer a ptr
+ * int2style reworked for 7 styles
+ * new "label" arg for DAGaddEdge (for shadow nodes)
+ *
  * Revision 1.36  1996/01/11 23:40:41  tamches
  * int2style now handles 6 styles instead of 4
  *
@@ -167,8 +170,6 @@
 #include "thread/h/thread.h"
 #include "UIglobals.h"
 #include "../pdMain/paradyn.h"
-
-#include "shgDisplay.h"
 
 #include "shgPhases.h"
 #include "shgTcl.h"
