@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.96 2001/08/23 14:44:14 schendel Exp $
+// $Id: main.C,v 1.97 2001/10/26 06:29:27 schendel Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -303,12 +303,7 @@ InitSigTermHandler( void )
     // int i = 1;
     // while (i) {};
 
-
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
-    act.sa_handler = (void (*)(...)) sigtermHandler;
-#else
     act.sa_handler = (void (*)(int)) sigtermHandler;
-#endif
     act.sa_flags   = 0;
 
     /* for AIX - default (non BSD) library does not restart - jkh 7/26/95 */

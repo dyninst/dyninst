@@ -178,7 +178,7 @@ inline unsigned long int P_strtoul(const char *STRING, char **TAILPTR, int BASE)
 
 /* BSD */
 inline int P_accept (int SOCK, struct sockaddr *ADDR, size_t *LENGTH_PTR) {
-  return (accept(SOCK, ADDR, (int*) LENGTH_PTR));}
+  return (accept(SOCK, ADDR, LENGTH_PTR));}
 inline int P_bind(int socket, struct sockaddr *addr, size_t len) {
   return (bind(socket, addr, len));}
 inline int P_connect(int socket, struct sockaddr *addr, size_t len) {
@@ -192,9 +192,11 @@ inline struct hostent * P_gethostbyname (const char *NAME) {
 inline struct servent * P_getservbyname (const char *NAME, const char *PROTO) {
   return (getservbyname(NAME, PROTO));}
 inline int P_getsockname (int SOCKET, struct sockaddr *ADDR, size_t *LENGTH_PTR) {
-  return (getsockname(SOCKET, ADDR, (int*) LENGTH_PTR));}
-inline int P_getsockopt(int s, int level, int optname, void *optval, int *optlen) {
-   return getsockopt(s, level, optname, (char*)optval, optlen);
+  return (getsockname(SOCKET, ADDR, LENGTH_PTR));}
+inline int P_getsockopt(int s, int level, int optname, void *optval, 
+			unsigned int *optlen) {
+   return getsockopt(s, level, optname, optval, 
+		     static_cast<socklen_t*>(optlen));
 }
 inline int P_setsockopt(int s, int level, int optname, void *optval, int optlen) {
    return setsockopt(s, level, optname, (const char*)optval, optlen);
@@ -205,7 +207,7 @@ inline int P_setsockopt(int s, int level, int optname, void *optval, int optlen)
 inline int P_listen (int socket, unsigned int n) { return (listen(socket, n));}
 inline caddr_t P_mmap(caddr_t addr, size_t len, int prot, int flags,
 		      int fd, off_t off) {
-  return (mmap(addr, len, prot, flags, fd, off));}
+  return (static_cast<caddr_t>(mmap(addr, len, prot, flags, fd, off)));}
 inline int P_munmap(caddr_t addr, int i) { return (munmap(addr, i));}
 inline int P_socket (int NAMESPACE, int STYLE, int PROTOCOL) {
   return (socket(NAMESPACE, STYLE, PROTOCOL));}
@@ -252,8 +254,7 @@ inline void P_xdrrec_create(XDR *x, const u_int send_sz, const u_int rec_sz,
   xdrrec_create(x, send_sz, rec_sz, handle,
         read_r, write_f);
 #else
-  xdrrec_create(x, send_sz, rec_sz, handle,
-        (const_xdr_rd_func)read_r, (const_xdr_wr_func)write_f);
+  xdrrec_create(x, send_sz, rec_sz, handle, read_r, write_f);
 #endif
 }
 inline bool_t P_xdrrec_endofrecord(XDR *x, int now) { 
