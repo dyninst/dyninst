@@ -2,10 +2,16 @@
 // Ariel Tamches
 
 /* $Log: where4tree.C,v $
-/* Revision 1.5  1995/08/01 23:16:23  tamches
-/* Used Tk_3DBorderGC() (newly available tk4.0 routine) for clipping (when scrolling
-/* a listbox) instead of peeking into the Border structure.
+/* Revision 1.6  1995/08/04 19:17:11  tamches
+/* More intelligent where axis resorting by added a
+/* numChildrenAddedSinceLastSort field to every node.
 /*
+/* Changed to Vector::sort(), which uses libc's qsort().
+/*
+ * Revision 1.5  1995/08/01  23:16:23  tamches
+ * Used Tk_3DBorderGC() (newly available tk4.0 routine) for clipping (when scrolling
+ * a listbox) instead of peeking into the Border structure.
+ *
  * Revision 1.4  1995/07/27  23:27:48  tamches
  * Crash upon sorting huge CMF application mysteriously
  * goes away when quicksort is altered slightly to remove
@@ -49,6 +55,13 @@
  * 
  * ******************************************************************
  */
+
+#ifdef PARADYN
+extern "C" {
+void thr_check_stack(); // libthread
+}
+#endif
+
 
 #include "minmax.h"
 #include "where4tree.h"
@@ -2072,6 +2085,8 @@ void where4tree<USERNODEDATA>::manual_construct(const where4TreeConstants &tc) {
    allExpandedChildrenWidthAsDrawn  = 0;
    allExpandedChildrenHeightAsDrawn = 0;
       // since all that exists of this subtree is the root, so far.
+
+   numChildrenAddedSinceLastSort = 0;
 }
 
 template <class USERNODEDATA>
@@ -2114,6 +2129,7 @@ void where4tree<USERNODEDATA>::addChild(where4tree *theNewChild,
                                          
    childstruct cs={theNewChild, explicitlyExpanded, childTextWidth};
    this->theChildren += cs;
+   this->numChildrenAddedSinceLastSort++;
 
    if (rethinkGraphicsNow)
       if (explicitlyExpanded)
@@ -2150,60 +2166,101 @@ recursiveDoneAddingChildren(const where4TreeConstants &tc) {
 }
 
 template <class USERNODEDATA>
-int where4tree<USERNODEDATA>::partitionChildren(int left, int right) {
-   childstruct partitionAroundMe = theChildren[left];
-   
-   left--;
-   right++;
-
-   while (true) {
-      do {
-         right--;
-      } while (theChildren[right] > partitionAroundMe);
-
-      do {
-         left++;
-      } while (theChildren[left] < partitionAroundMe);
-
-      if (left < right) {
-         // swap theChildren[left] and theChildren[right]
-         childstruct temp = theChildren[left];
-         theChildren[left] = theChildren[right];
-         theChildren[right] = temp;
-      }
-      else
-         return right;
-   }
-}
-
-template <class USERNODEDATA>
 void where4tree<USERNODEDATA>::sortChildren() {
-   if (theChildren.size() > 1)
-      sortChildren(0, theChildren.size()-1);
+   // This is not the ideal sort.  The ideal sort is as follows:
+   // 1) if only a handful of items have been added since the last
+   //    sort (say, <= 10), then use insertion sort.
+   // 2) if more than a handful of items have been added since the
+   //    last sort, and there were only a handful of items previously
+   //    in existence (say, <= 10), then just quicksort the whole thing.
+   // 3) else, we have inserted more than a few items (unsorted), and more
+   //    than a few items were already there (already sorted).
+   //    Quicksort the newly-added items only.  Now we have two sorted
+   //    subsections.  Merge those two with a mergesort's "merge".
+
+   if (numChildrenAddedSinceLastSort > 0 && theChildren.size() > 1) {
+      theChildren.sort(childstruct::cmpfunc);
+   }
+
+//   if (numChildrenAddedSinceLastSort > 0 && theChildren.size() > 1) {
+//      // sorting is needed.  If the children are already almost
+//      // sorted (numChildrenAddedSinceLastSort << num-children), then
+//      // we sort using an insertion sort.  Else, we sort using a quicksort.
+//
+//      if ((numChildrenAddedSinceLastSort << 4) > theChildren.size()) {
+//         // 16*numChildrenAddedSinceLastSort > num-children
+//         // numChildrenAddedSinceLastSort > 1/16(num-children)
+//         QuicksortChildren(0, theChildren.size()-1);
+//      }
+//      else
+//         InsertionsortChildren(0, theChildren.size()-1);
+//   }
+
+   numChildrenAddedSinceLastSort = 0;
 }
 
-template <class USERNODEDATA>
-void where4tree<USERNODEDATA>::sortChildren(int left, int right) {
-   // quicksort
+//template <class USERNODEDATA>
+//void where4tree<USERNODEDATA>::InsertionsortChildren(int left, int right) {
+//   for (int j=left+1; j <= right; j++) {
+//      childstruct key = theChildren[j];
+//
+//      // Now, we insert theChildren[j] into its proper
+//      // place amongst indexes (left+1) thru (j-1)
+//
+//      int i=j;
+//      while (--i > 0 && theChildren[i] > key)
+//         theChildren[i+1] = theChildren[i];
+//
+//      theChildren[i+1] = key;
+//   }
+//}
 
-//   if (left < right) {
+//template <class USERNODEDATA>
+//int where4tree<USERNODEDATA>::partitionChildren(int left, int right) {
+//   childstruct partitionAroundMe = theChildren[left];
+//   
+//   left--;
+//   right++;
+//
+//   while (true) {
+//      do {
+//         right--;
+//      } while (theChildren[right] > partitionAroundMe);
+//
+//      do {
+//         left++;
+//      } while (theChildren[left] < partitionAroundMe);
+//
+//      if (left < right) {
+//         // swap theChildren[left] and theChildren[right]
+//         childstruct temp = theChildren[left];
+//         theChildren[left] = theChildren[right];
+//         theChildren[right] = temp;
+//      }
+//      else
+//         return right;
+//   }
+//}
+
+//template <class USERNODEDATA>
+//void where4tree<USERNODEDATA>::QuicksortChildren(int left, int right) {
+//#ifdef PARADYN
+//   // the where axis test program does use paradyn's libthread, hence
+//   // the #ifdef...
+//
+//   thr_check_stack(); // threadP.h
+//#endif
+//   
+//   while (left < right) {
 //      int partitionIndex = partitionChildren(left, right);
 //      assert(partitionIndex >= left);
 //      assert(partitionIndex <= right);
 //
-//      sortChildren(left, partitionIndex);
-//      sortChildren(partitionIndex + 1, right);
+//      QuicksortChildren(left, partitionIndex);
+//      left = partitionIndex + 1;
+//         // gets rid of tail recursion (right stays unchanged)
 //   }
-   while (left < right) {
-      int partitionIndex = partitionChildren(left, right);
-      assert(partitionIndex >= left);
-      assert(partitionIndex <= right);
-
-      sortChildren(left, partitionIndex);
-      left = partitionIndex + 1;
-         // gets rid of tail recursion (right stays unchanged)
-   }
-}
+//}
 
 template <class USERNODEDATA>
 vector<USERNODEDATA> where4tree<USERNODEDATA>::getSelections() const {
