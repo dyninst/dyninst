@@ -4,9 +4,13 @@
 // Ariel Tamches
 
 /* $Log: shg.h,v $
-/* Revision 1.4  1996/01/23 07:01:03  tamches
-/* added shadow node features
+/* Revision 1.5  1996/02/02 18:43:33  tamches
+/* Displaying extra information about a node has moved from a mousemove
+/* to a middle-click
 /*
+ * Revision 1.4  1996/01/23 07:01:03  tamches
+ * added shadow node features
+ *
  * Revision 1.3  1996/01/09 01:04:01  tamches
  * added thePhaseId member variable
  *
@@ -36,7 +40,7 @@
 
 class shg {
  private:
-   // these are needed by shgRootNode
+   // These are needed by shgRootNode:
    static XFontStruct *theRootItemFontStruct, *theRootItemShadowFontStruct;
    static XFontStruct *theListboxItemFontStruct, *theListboxItemShadowFontStruct;
    static vector<Tk_3DBorder> rootItemTk3DBordersByStyle;
@@ -139,7 +143,7 @@ class shg {
 
  public:
 
-   // these routines are needed by shgRootNode
+   // These routines are needed by shgRootNode:
    static XFontStruct *getRootItemFontStruct(bool shadow) {
       if (shadow)
          return theRootItemShadowFontStruct;
@@ -230,6 +234,7 @@ class shg {
    }
  
    void processSingleClick(int x, int y);
+   void processMiddleClick(int x, int y);
    bool processDoubleClick(int x, int y);
 //      // returns true iff a complete redraw is needed
 //   void processShiftDoubleClick(int x, int y);
@@ -253,12 +258,12 @@ class shg {
    void addEdge(unsigned fromId, unsigned toId, shgRootNode::evaluationState,
                 const char *label // only used for shadow nodes; else NULL
                 );
-      // The last param is used only to decide whether to explicitly expand
+      // The evaluationState param decides whether to explicitly expand
       // the "to" node.  Rethinks the entire layout of the shg
 
    void addToStatusDisplay(const string &);
 
-   void possibleMouseMoveIntoItem(int x, int y);
+//   void possibleMouseMoveIntoItem(int x, int y);
 };
 
 #endif
