@@ -43,6 +43,9 @@
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
+ * Revision 1.55  1996/11/05 20:31:18  tamches
+ * no more call to process::continueProcessIfWaiting
+ *
  * Revision 1.54  1996/10/31 08:40:07  tamches
  * changed sampleMultiple from a ptr; removed some warnings
  *
@@ -262,9 +265,9 @@ void dynRPC::resourceInfoResponse(vector<string> resource_name,
 
     // check to see if any processes need to be continued
     if(!resource::num_outstanding_creates){
-        for(u_int i=0; i < processVec.size(); i++){
-	    (processVec[i])->continueProcessIfWaiting();
-        }
+//        for(u_int i=0; i < processVec.size(); i++){
+//	    (processVec[i])->continueProcessIfWaiting();
+//        }
     }
 }
 
