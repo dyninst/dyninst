@@ -2699,40 +2699,40 @@ void mutatorTest26(BPatch_thread *appThread, BPatch_image *appImage)
 
     if (!mutateeFortran) {
         //     First verify that we can find a local variable in call26_1
-  BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction("call26_1", found_funcs, 1)) || !found_funcs.size()) {
-       fprintf(stderr, "    Unable to find function %s\n",
-	      "call26_1");
-      exit(1);
-    }
+	BPatch_Vector<BPatch_function *> found_funcs;
+	if ((NULL == appImage->findFunction("call26_1", found_funcs, 1)) || !found_funcs.size()) {
+	   fprintf(stderr, "    Unable to find function %s\n",
+		  "call26_1");
+	  exit(1);
+	}
 
-    if (1 < found_funcs.size()) {
-      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-	      __FILE__, __LINE__, found_funcs.size(), "call26_1");
-    }
+	if (1 < found_funcs.size()) {
+	  fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+		  __FILE__, __LINE__, found_funcs.size(), "call26_1");
+	}
 
-    BPatch_Vector<BPatch_point *> *point26_1 = found_funcs[0]->findPoint(BPatch_subroutine);
-    BPatch_Vector<BPatch_point *> *point26_2 = found_funcs[0]->findPoint(BPatch_subroutine);
+	BPatch_Vector<BPatch_point *> *point26_1 = found_funcs[0]->findPoint(BPatch_subroutine);
+	BPatch_Vector<BPatch_point *> *point26_2 = found_funcs[0]->findPoint(BPatch_subroutine);
 
-    assert(point26_1 && (point26_1->size() == 1));
-        assert(point26_2);
+	assert(point26_1 && (point26_1->size() == 1));
+	assert(point26_2);
 
-        BPatch_variableExpr *lvar;
-        BPatch_variableExpr *gvar[14];
+	BPatch_variableExpr *lvar;
+	BPatch_variableExpr *gvar[14];
 
-        int i;
-        for (i=1; i <= 13; i++) {
-            char name[80];
+	int i;
+	for (i=1; i <= 13; i++) {
+	    char name[80];
 
-            sprintf (name, "globalVariable26_%d", i);
-            gvar [i] = findVariable(appImage, name, point26_2);
+	    sprintf (name, "globalVariable26_%d", i);
+	    gvar [i] = findVariable(appImage, name, point26_2);
 
-            if (!gvar[i]) {
-                fprintf(stderr, "**Failed** test #26 (struct elements)\n");
-                fprintf(stderr, "  can't find variable globalVariable26_%d\n", i);
-                exit(-1);
-            }
-        }
+	    if (!gvar[i]) {
+		fprintf(stderr, "**Failed** test #26 (struct elements)\n");
+		fprintf(stderr, "  can't find variable globalVariable26_%d\n", i);
+		exit(-1);
+	    }
+	}
 
         // start of code for globalVariable26_1
         BPatch_Vector<BPatch_variableExpr *> *fields = gvar[1]->getComponents();
@@ -2799,42 +2799,42 @@ void mutatorTest26(BPatch_thread *appThread, BPatch_image *appImage)
 	    exit(-1);
     	}
 
-	    for (i=0; i < 4; i++) {
-		 char fieldName[80];
-		 sprintf(fieldName, "field%d", i+1);
-		 if (strcmp(fieldName, (*fields)[i]->getName())) {
-	    	  printf("field %d of the local struct is %s, not %s\n",
-			  i+1, fieldName, (*fields)[i]->getName());
-		      return;
-		 }
+	for (i=0; i < 4; i++) {
+	    char fieldName[80];
+	    sprintf(fieldName, "field%d", i+1);
+	    if (strcmp(fieldName, (*fields)[i]->getName())) {
+		printf("field %d of the local struct is %s, not %s\n",
+		      i+1, fieldName, (*fields)[i]->getName());
+	        return;
+	    }
     	}
 
-	    // 	   globalVariable26_8 = localVariable26_1.field1
+	// 	   globalVariable26_8 = localVariable26_1.field1
     	BPatch_arithExpr assignment7(BPatch_assign, *gvar[8], *((*fields)[0]));
 	    appThread->insertSnippet(assignment7, *point26_1);
 
     	// 	   globalVariable26_9 = localVariable26_1.field2
-	    BPatch_arithExpr assignment8(BPatch_assign, *gvar[9], *((*fields)[1]));
+	BPatch_arithExpr assignment8(BPatch_assign, *gvar[9], *((*fields)[1]));
     	appThread->insertSnippet(assignment8, *point26_1);
 
-	    // 	   globalVariable26_10 = localVariable26_1.field3[0]
+	// 	   globalVariable26_10 = localVariable26_1.field3[0]
     	BPatch_arithExpr assignment9(BPatch_assign, *gvar[10],
-		BPatch_arithExpr(BPatch_ref, *((*fields)[2]), BPatch_constExpr(0)));
+	    BPatch_arithExpr(BPatch_ref, *((*fields)[2]), BPatch_constExpr(0)));
     	appThread->insertSnippet(assignment9, *point26_1);
 
-	    // 	   globalVariable26_11 = localVariable26_1.field3[5]
+	// 	   globalVariable26_11 = localVariable26_1.field3[5]
     	BPatch_arithExpr assignment10(BPatch_assign, *gvar[11],
-		BPatch_arithExpr(BPatch_ref, *((*fields)[2]), BPatch_constExpr(5)));
+	    BPatch_arithExpr(BPatch_ref, *((*fields)[2]), BPatch_constExpr(5)));
     	appThread->insertSnippet(assignment10, *point26_1);
 
-	    subfields = (*fields)[3]->getComponents();
+	subfields = (*fields)[3]->getComponents();
     	assert(subfields != NULL);
 
-	    // 	   globalVariable26_12 = localVariable26_1.field4.field1
+	// 	   globalVariable26_12 = localVariable26_1.field4.field1
     	BPatch_arithExpr assignment11(BPatch_assign, *gvar[12], *((*subfields)[0]));
 	    appThread->insertSnippet(assignment11, *point26_1);
 
-	    // 	   globalVariable26_13 = localVariable26_1.field4.field2
+	// 	   globalVariable26_13 = localVariable26_1.field4.field2
     	BPatch_arithExpr assignment12(BPatch_assign, *gvar[13], *((*subfields)[1]));
 	    appThread->insertSnippet(assignment12, *point26_1);
     }
@@ -2994,23 +2994,34 @@ void mutatorTest28(BPatch_thread *appThread, BPatch_image *appImage)
 
     //	struct28_1 { int field1, int field 2; }
     BPatch_type *struct28_1 = bpatch->createStruct("struct28_1", names, types);
+    BPatch_type *union28_1 = bpatch->createUnion("testUnion27_1", names, types);
+    assert(union28_1);
 
     names.push_back(const_cast<char*>("field3"));
     names.push_back(const_cast<char*>("field4"));
+
     BPatch_type *intArray = bpatch->createArray("intArray", intType, 0, 9);
+
     types.push_back(intArray);
     types.push_back(struct28_1);
 
     // struct28_2 { int field1, int field 2, int field3[10],struct26_1 field4 } 
     BPatch_type *struct28_2 = bpatch->createStruct("struct28_2", names, types);
+    BPatch_type *type28_2 = bpatch->createTypedef("type28_2", struct28_2);
 
     // now create variables of these types.
     BPatch_variableExpr *globalVariable28_1 = 
 	appImage->findVariable("globalVariable28_1");
-    globalVariable28_1->setType(struct28_2);
+    assert(globalVariable28_1);
+    globalVariable28_1->setType(type28_2);
+
+    BPatch_variableExpr *globalVariable28_8 = 
+	appImage->findVariable("globalVariable28_8");
+    assert(globalVariable28_8);
+    globalVariable28_8->setType(union28_1);
 
     //     Next verify that we can find a local variable in call28
-  BPatch_Vector<BPatch_function *> found_funcs;
+    BPatch_Vector<BPatch_function *> found_funcs;
     if ((NULL == appImage->findFunction("call28_1", found_funcs)) || !found_funcs.size()) {
        fprintf(stderr, "    Unable to find function %s\n",
 	      "call28_1");
@@ -3083,6 +3094,80 @@ void mutatorTest28(BPatch_thread *appThread, BPatch_image *appImage)
     // 	   globalVariable28 = globalVariable28.field4.field2
     BPatch_arithExpr assignment6(BPatch_assign, *gvar[7], *((*subfields)[1]));
     appThread->insertSnippet(assignment6, *point28);
+
+    // 
+    BPatch_Vector<BPatch_variableExpr *> *unionfields = globalVariable28_8->getComponents();
+
+    int n=1;
+    int val1, val2, val3; 
+
+    ((*unionfields)[0])->writeValue(&n,true);
+    ((*unionfields)[0])->readValue(&val1);
+    if (val1 != 1) {
+	fprintf(stderr, "**Failed** test #28 (user defined fields)\n");
+	fprintf(stderr, "  union field1 has wrong value after first set\n");
+	exit(-1);
+    }
+
+    n=2;
+    ((*unionfields)[1])->writeValue(&n,true);
+    ((*unionfields)[1])->readValue(&val2);
+    if (val2 != 2) {
+	fprintf(stderr, "**Failed** test #28 (user defined fields)\n");
+	fprintf(stderr, "  union field2 has wrong value after second set\n");
+	exit(-1);
+    }
+
+    ((*unionfields)[1])->readValue(&val3);
+    if (val3 != 2) {
+	fprintf(stderr, "**Failed** test #28 (user defined fields)\n");
+	fprintf(stderr, "  union field1 has wrong value after second set\n");
+	exit(-1);
+    }
+
+    // create a scalar
+    BPatch_type *newScalar1 = bpatch->createScalar("scalar1", 8);
+    assert(newScalar1);
+    int scalarSize = newScalar1->getSize();
+    if (scalarSize != 8) {
+	fprintf(stderr, "**Failed** test #28 (user defined fields)\n");
+	fprintf(stderr, "  created scalar is %d bytes, expected %d\n", scalarSize, 8);
+	exit(-1);
+    }
+
+    // create an enum
+    BPatch_Vector<char *> enumItems;
+    BPatch_Vector<int> enumVals;
+
+    enumItems.push_back(const_cast<char*>("item1"));
+    enumItems.push_back(const_cast<char*>("item2"));
+    enumItems.push_back(const_cast<char*>("item3"));
+
+    enumVals.push_back(42);
+    enumVals.push_back(43);
+    enumVals.push_back(44);
+
+    BPatch_type *newEnum1 = bpatch->createEnum("enum1", enumItems);
+    BPatch_type *newEnum2 = bpatch->createEnum("enum2", enumItems, enumVals);
+
+    if (!newEnum1 || !newEnum2) {
+	fprintf(stderr, "**Failed** test #28 (user defined fields)\n");
+	fprintf(stderr, "  failed to create enums as expected\n");
+	exit(-1);
+    }
+
+    if (!newEnum1->isCompatible(newEnum1)) {
+	fprintf(stderr, "**Failed** test #28 (user defined fields)\n");
+	fprintf(stderr, "  identical enums reported incompatible\n");
+	exit(-1);
+    }
+
+    if (newEnum1->isCompatible(newEnum2)) {
+	fprintf(stderr, "**Failed** test #28 (user defined fields)\n");
+	fprintf(stderr, "  different enums declared compatible\n");
+	exit(-1);
+	
+    }
 }
 
 bool printSrcObj(BPatch_sourceObj *p, int level)

@@ -1,4 +1,4 @@
-// $Id: test7.C,v 1.7 2003/07/18 15:44:11 schendel Exp $
+// $Id: test7.C,v 1.8 2003/11/13 19:23:40 hollings Exp $
 //
 
 #include <stdio.h>
@@ -36,6 +36,19 @@ bool runAllTests = true;
 const unsigned int MAX_TEST = 9;
 bool runTest[MAX_TEST+1];
 bool passedTest[MAX_TEST+1];
+
+char *subTestNames[MAX_TEST+1] = {
+    "<no test # 0>",
+    "Delete snippet in parent",
+    "Delete snippet in child",
+    "Delete snippet in both parent and child",
+    "Insert snippet in child - wo inherited snippets",
+    "Add snippets to parent & child",
+    "OneTimeCode in parent & child",
+    "Memory allocation in parent & child",
+    "Memory deallocate in child",
+    "Memory deallocate in parent",
+};
 
 BPatch *bpatch;
 
@@ -1007,12 +1020,12 @@ void showFinalResults() {
    unsigned int testsFailed = 0;
    for (unsigned int i=1; i <= MAX_TEST; i++) {
       if (runTest[i]==false) {
-	 printf("Test #%d () => skipped\n", i);	 
+         printf("Skipped test #%d (%s)\n", i, subTestNames[i]);
       } else if(passedTest[i]==false) {
 	 testsFailed++;
-	 printf("Test #%d () => FAILED\n", i);
+         printf("Failed test #%d (%s)\n", i, subTestNames[i]);
       } else {
-	 printf("Test #%d () => passed\n", i); 
+         printf("Passed test #%d (%s)\n", i, subTestNames[i]);
       }
    }
    

@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.100 2003/10/22 13:59:01 bernat Exp $ */
+/* $Id: test1.mutatee.c,v 1.101 2003/11/13 19:23:40 hollings Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -1775,6 +1775,7 @@ int globalVariable28_4 = 28000000;
 int globalVariable28_5 = 28000000;
 int globalVariable28_6 = 28000000;
 int globalVariable28_7 = 28000000;
+int globalVariable28_8 = 28000000;	// used by mutator
 
 void verifyScalarValue28(const char *name, int a, int value)
 {
