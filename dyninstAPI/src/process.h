@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.252 2003/04/16 21:07:05 bernat Exp $
+/* $Id: process.h,v 1.253 2003/04/20 01:00:10 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -984,6 +984,13 @@ void saveWorldData(Address address, int size, const void* src);
     return false;
   }
     
+  void setLWPStoppedFromForkExit(unsigned lwp_id) {
+     LWPstoppedFromForkExit = lwp_id;
+  }
+  unsigned getLWPStoppedFromForkExit() {
+     return LWPstoppedFromForkExit;
+  }
+
   unsigned maxNumberOfThreads() {
 #if defined(MT_THREAD)
     return MAX_NUMBER_OF_THREADS;
@@ -1419,7 +1426,8 @@ private:
 
   function_base *mainFunction;  // the main function for this process,
                               // this is usually, but not always, "main"
-                                 
+
+  unsigned LWPstoppedFromForkExit;                                 
 
   // hasBeenBound: returns true if the runtime linker has bound the
   // function symbol corresponding to the relocation entry in at the address 
