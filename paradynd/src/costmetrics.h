@@ -29,6 +29,7 @@ class costMetric {
   bool enabled() { return(node != NULL); }
   metricStyle style() { return style_; }
   string name() const { return name_;}
+  const char *getName() const { return name_.string_of();}
   int aggregate() const { return agg_; }
   sampleValue getValue() { return (sample.value); }
   static costMetric *newCostMetric(const string n, 

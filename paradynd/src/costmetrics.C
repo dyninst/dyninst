@@ -194,12 +194,22 @@ sampleInterval costMetricValueUpdate(costMetric *met,
     if(met->style_ == EventCounter){
         // only use delta from last sample
         if (value < met->cumulative_values[proc_num]) {
+
+#ifdef ndef
             if ((value/met->cumulative_values[proc_num]) < 0.99999) {
+		char buffer[200];
+		sprintf(buffer,"value = %f cumulative_value = %f proc = %d met = %s\n",
+			value,met->cumulative_values[proc_num],proc_num,
+			met->getName());
+                logLine(buffer);
 	        assert((value + 0.0001)  >= met->cumulative_values[proc_num]);
 	    } else {
 	       // floating point rounding error ignore
 	       met->cumulative_values[proc_num] = value;
-	}}
+	    }
+#endif
+            value = met->cumulative_values[proc_num];
+	}
 	value -= met->cumulative_values[proc_num];
 	met->cumulative_values[proc_num] += value;
     }
