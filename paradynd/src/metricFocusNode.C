@@ -14,7 +14,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.60  1995/11/29 00:27:42  tamches
+ * Revision 1.61  1995/11/30 16:55:04  naim
+ * Fixing bug related to SampledFunction for internal metrics - naim
+ *
+ * Revision 1.60  1995/11/29  00:27:42  tamches
  * made getCurrentTime less susceptible to roundoff errors
  * reduced warnings with g++ 2.7.1
  *
@@ -660,7 +663,12 @@ void metricDefinitionNode::updateValue(time64 wallTime,
       //           printf ("WARNING:  sample went backwards!!!!!\n");
       value -= sample.value;
       sample.value += value;
-    }
+    } 
+    //
+    // If style==EventCounter then value is changed. Otherwise, it keeps the
+    // the current "value" (e.g. SampledFunction case). That's why it is not
+    // necessary to have an special case for SampledFunction.
+    //
 
     ret = sample.newValue(valueList, sampleTime, value);
 //    if (!ret.valid && inform_) {
@@ -785,12 +793,9 @@ void processSample(traceHeader *h, traceSample *s)
 {
     unsigned mid = s->id.id;
     if (!midToMiMap.defines(mid)) {
-      char errorLine[255];
       sprintf(errorLine, "Sample %d not for a valid metric instance\n", 
 	      s->id.id);
       logLine(errorLine);
-      // TODO: Is this error message necessary?
-      // showErrorCallback(65,(const char *) errorLine);
       return;
     }
     metricDefinitionNode *mi = midToMiMap[mid];
@@ -1114,9 +1119,6 @@ void reportInternalMetrics()
       if (internalMetric::allInternalMetrics[u]->enabled()) {
 	internalMetric *imp = internalMetric::allInternalMetrics[u];
 
-	// KLUDGE - sampledFunc doesn't work - mdc
-	// TODO -- what about sampledFuncs ?
-
 	if (imp->name() == "active_processes") {
 	  value = (end - start) * processVec.size();
 	} else if (imp->style() == EventCounter) {
@@ -1124,6 +1126,8 @@ void reportInternalMetrics()
 	  assert(value + 0.0001 >= imp->cumulativeValue);
 	  value -= imp->cumulativeValue;
 	  imp->cumulativeValue += value;
+	} else if (imp->style() == SampledFunction) {
+	  value = imp->getValue();
 	}
 	imp->node->forwardSimpleValue(start, end, value);
       }
