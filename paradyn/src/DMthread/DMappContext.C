@@ -2,7 +2,11 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.25  1994/06/17 22:07:57  hollings
+ * Revision 1.26  1994/06/23 19:26:20  karavan
+ * added option for core dump of all processes with pid=-1 in coreProcess
+ * command.
+ *
+ * Revision 1.25  1994/06/17  22:07:57  hollings
  * Added code to provide upcall for resource batch mode when a large number
  * of resources is about to be added.
  *
@@ -392,6 +396,7 @@ void applicationContext::printStatus()
 //
 // Cause the passed process id to dump a core file.  This is also used for
 //    debugging.
+// If pid = -1, all processes will dump core files.
 //
 void applicationContext::coreProcess(int pid)
 {
@@ -399,12 +404,12 @@ void applicationContext::coreProcess(int pid)
     List<executable*> curr;
 
     for (curr = programs; exec = *curr; curr++) {
-	if (exec->pid == pid) {
+	if ((exec->pid == pid) || (pid == -1)) {
 	    exec->controlPath->coreProcess(exec->pid);
 	    printf("found process and coreing it\n");
 	}
     }
-}
+  }
 
 //
 // Find out what metrics are available.  This just returns their names.
