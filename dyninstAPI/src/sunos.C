@@ -41,6 +41,9 @@
 
 /* 
  * $Log: sunos.C,v $
+ * Revision 1.29  1997/07/01 16:54:56  tamches
+ * dummy set_breakpoint_for_syscall_completion
+ *
  * Revision 1.28  1997/06/23 19:16:03  buck
  * Added features to the dyninst API library, including an optional "else"
  * in a BPatch_ifExpr; the BPatch_setMutationsActive call to temporarily
@@ -229,7 +232,7 @@ bool ptraceKludge::deliverPtrace(process *p, enum ptracereq req, void *addr,
 
 /* ********************************************************************** */
 
-void *process::getRegisters(bool &) {
+void *process::getRegisters() {
    // ptrace - GETREGS call
    // assumes the process is stopped (ptrace requires it)
    assert(status_ == stopped);
@@ -1042,4 +1045,9 @@ unsigned process::read_inferiorRPC_result_register(reg) {
    if (!ptraceKludge::deliverPtrace(this, PTRACE_GETREGS, (char*)&regs, 0, 0))
       assert(false);
    return regs.r_o0;
+}
+
+bool process::set_breakpoint_for_syscall_completion() {
+   // SUNos can't do this (as far as I know)
+   return false;
 }
