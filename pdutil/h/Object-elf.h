@@ -649,16 +649,6 @@ Object::load_shared_object() {
                 data_len_ = (unsigned) phdrp[i0].p_memsz / sizeof(Word);
             }
         }
-#ifdef ndef
-        if (!code_ptr_ || !code_len_) {
-            log_printf(err_func_, "cannot locate instructions\n");
-            /* throw exception */ goto cleanup2;
-        }
-        if (!data_ptr_ || !data_off_ || !data_len_) {
-            log_printf(err_func_, "cannot locate data segment\n");
-            /* throw exception */ goto cleanup2;
-        }
-#endif
 
         Elf_Data* symdatap = elf_getdata(symscnp, 0);
         Elf_Data* strdatap = elf_getdata(strscnp, 0);
@@ -736,23 +726,31 @@ Object::load_shared_object() {
 
   	    // only add symbols of type STB_LOCAL and  FILE if they are 
 	    // the shared object name
-            if ((ELF32_ST_BIND(syms[i1].st_info) == STB_LOCAL) 
-	        &&((ELF32_ST_TYPE(syms[i1].st_info) != STT_FILE) || (found))){
+            if ((ELF32_ST_BIND(syms[i1].st_info) == STB_LOCAL) && (found)){
 	           symbols_[name] = Symbol(name, module, type, Symbol::SL_LOCAL,
                                     syms[i1].st_value, st_kludge, 
                                     syms[i1].st_size);
                    found = false;
 	    }
-	    else if(ELF32_ST_BIND(syms[i1].st_info) == STB_LOCAL) {
+	    else if((ELF32_ST_BIND(syms[i1].st_info) == STB_LOCAL)
+			&& (ELF32_ST_TYPE(syms[i1].st_info) != STT_FUNC)) {
 	        allsymbols += Symbol(name, module, type, Symbol::SL_LOCAL,
 						syms[i1].st_value, st_kludge,
 		  			        syms[i1].st_size);
             }
 	    else {
-	       allsymbols += Symbol(name, module, 
-				    type, Symbol::SL_GLOBAL,
-                                    syms[i1].st_value, st_kludge,
-                                    syms[i1].st_size);
+	       if(ELF32_ST_BIND(syms[i1].st_info) == STB_WEAK){
+	           allsymbols += Symbol(name, module, 
+				        type, Symbol::SL_WEAK,
+                                        syms[i1].st_value, st_kludge,
+                                        syms[i1].st_size);
+	       }
+	       else{
+	           allsymbols += Symbol(name, module, 
+				        type, Symbol::SL_GLOBAL,
+                                        syms[i1].st_value, st_kludge,
+                                        syms[i1].st_size);
+               }
 	    }
 	  }
         }
@@ -761,24 +759,36 @@ Object::load_shared_object() {
 	// Sort all the symbols, and fix the sizes
 	allsymbols.sort(symbol_compare);
 
+	// if the symbol is type PDST_FUNCTION and the next symbol is 
+	// type PDST_FUNCTION size needs to be changed...this occurs when
+	// one function's binding is WEAK and the other is GLOBAL, or when
+	// two functions overlap 
 	for(u_int i=0; i < (allsymbols.size() -1); i++){
-	    // if the symbol is type PDST_FUNCTION and the next symbol is 
-	    // type PDST_FUNCTION or PDST_NOTYPE then see if its size needs
-	    // to be changed...this occurs when the function's size is 
 	    u_int new_size = 0;
 	    bool  change_size = false;
 	    if((allsymbols[i].type() == Symbol::PDST_FUNCTION)
-		&& ((allsymbols[i+1].type() == Symbol::PDST_FUNCTION) || 
-		     (allsymbols[i+1].type() == Symbol::PDST_NOTYPE))){
-		u_int next_start = allsymbols[i].addr() + allsymbols[i].size();
-		if(next_start > allsymbols[i+1].addr()){
-		    new_size =  allsymbols[i+1].addr() - allsymbols[i].addr();
-		    change_size = false;
-		    // printf("addr = %d size = %d new_size = %d nextaddr = %d next_start = %d name = %s\n",
-		    // allsymbols[i].addr(), allsymbols[i].size(), new_size, allsymbols[i+1].addr(),
-		    // next_start, (allsymbols[i].name()).string_of());
+		&& (allsymbols[i+1].type() == Symbol::PDST_FUNCTION)){
+		u_int next_start=allsymbols[i].addr()+allsymbols[i].size();
+
+		// if the symbols have the same address and one is weak
+		// and the other is global keeep the global one
+		if((allsymbols[i].addr() == allsymbols[i+1].addr()) && 
+		    (((allsymbols[i].linkage() == Symbol::SL_WEAK) &&
+		      (allsymbols[i+1].linkage() == Symbol::SL_GLOBAL)) || 
+                     ((allsymbols[i].linkage() == Symbol::SL_GLOBAL) &&
+		      (allsymbols[i+1].linkage() == Symbol::SL_WEAK)))) {
+
+		      if(allsymbols[i].linkage() == Symbol::SL_WEAK){
+			  allsymbols[i].change_size(0);
+		      } else {
+			  allsymbols[i+1].change_size(0);
+		      }
 		}
-	    }
+		else if(next_start > allsymbols[i+1].addr()){
+		        new_size =  allsymbols[i+1].addr()-allsymbols[i].addr();
+		        change_size = true;
+	        }
+            }
 
 	    if((allsymbols[i].type() == Symbol::PDST_FUNCTION) && change_size){
                 symbols_[allsymbols[i].name()] =
