@@ -1,7 +1,10 @@
 
 /*
  * $Log: init.C,v $
- * Revision 1.27  1996/02/12 16:46:11  naim
+ * Revision 1.28  1996/02/12 20:07:13  naim
+ * Making number_of_cpus a regular metric - naim
+ *
+ * Revision 1.27  1996/02/12  16:46:11  naim
  * Updating the way we compute number_of_cpus. On solaris we will return the
  * number of cpus; on sunos, hp, aix 1 and on the CM-5 the number of processes,
  * which should be equal to the number of cpus - naim
@@ -171,7 +174,7 @@ bool init() {
 						   "#CPUs",
 						   NULL,
 						   default_im_preds,
-						   true,
+						   false,
 						   Sampled);
 
   totalPredictedCost = internalMetric::newInternalMetric("predicted_cost",
