@@ -64,7 +64,7 @@ extern "C" {
 #include <memory.h>
 #include <netinet/in.h>
 #include <netdb.h>
-#include <sys/types.h>
+  //#include <sys/types.h>
 #include <sys/mman.h>
 #include <sys/time.h>
 #include <unistd.h>

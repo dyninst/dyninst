@@ -64,6 +64,7 @@ int max_line_per_addr =0;
 #endif
 
 char * current_func_name = NULL;
+char * current_mangled_func_name = NULL;
 
 
 /*
@@ -117,7 +118,8 @@ char *BPatch_module::getFullName(char *buffer, int length)
 
 
 BPatch_module::BPatch_module(process *_proc, pdmodule *_mod,BPatch_image *_img):
-    proc(_proc), mod(_mod), img(_img), BPfuncs(NULL),lineInformation(NULL) 
+    proc(_proc), mod(_mod), img(_img), BPfuncs(NULL), BPfuncs_uninstrumentable(NULL),
+    lineInformation(NULL) 
 {
 #if defined(TIMED_PARSE)
   struct timeval starttime;
@@ -133,15 +135,21 @@ BPatch_module::BPatch_module(process *_proc, pdmodule *_mod,BPatch_image *_img):
 #if !defined(mips_sgi_irix6_4)
 
     if (BPatch::bpatch->parseDebugInfo()){ 
+
 #ifdef PARSE_ALL_AT_ONCE
 	lineInformation = new LineInformation(mod->fileName());
-#endif
 	parseTypes();
-#ifdef PARSE_ALL_AT_ONCE
 	lineInformation->cleanEmptyFunctions();
+#else
+	parseTypes();
 #endif
-	}
-#endif
+
+    }
+    else {
+      cerr << __FILE__ << __LINE__ << ":  WARNING:  skipping parse of debug info for " 
+	   << mod->fileName()<< endl;
+    }
+#endif// !mips
 
 #if defined(TIMED_PARSE)
   struct timeval endtime;
@@ -164,6 +172,14 @@ BPatch_module::~BPatch_module()
 	delete (*BPfuncs)[f];
     }
     delete BPfuncs;
+
+    if (BPfuncs_uninstrumentable) {
+      for (unsigned int f = 0; f < BPfuncs_uninstrumentable->size(); f++) {
+	delete (*BPfuncs_uninstrumentable)[f];
+      }
+      delete BPfuncs_uninstrumentable;
+    }
+
     if(lineInformation) delete lineInformation;
 }
 
@@ -202,58 +218,9 @@ BPatch_Vector<BPatch_function *> *BPatch_module::getProcedures()
  * name The name of function to look up.
  */
 
-/*
-extern bool buildDemangledName(const string &mangled, string &use, bool nativeCompiler);
-
-BPatch_function * BPatch_module::findFunction(const char * name)
-{
-    // Did not find BPatch_function with name match in BPatch_function vector
-    // trying pdmodule
-    pd_Function *func = (pd_Function*)mod->findFunctionFromAll(name);
-
-    if (func == NULL) {
-	string fullname = string("_") + string(name);
-	func = (pd_Function*)mod->findFunctionFromAll(fullname);
-    }
-
-    if (func == NULL) {
-	//Try with demangled name
-	string mangled_name = name;
-	string demangled;
-	if (buildDemangledName(mangled_name, demangled, nativeCompiler))
-		func = (pd_Function*)mod->findFunctionFromAll(demangled);
-    }
-
-    if (func == NULL) {
-	return NULL;
-    }
-  
-    // Fortran compilers often put the _ at the end of the name
-    if (func == NULL) {
-	string fullname = string(name) + string("_");
-	func = (pd_Function*)mod->findFunctionFromAll(fullname);
-    }
- 
-    bool new_flag = !proc->PDFuncToBPFuncMap.defines(func);
-
-    BPatch_function * bpfunc = proc->findOrCreateBPFunc(func, this);
-
-    if(!new_flag)
-	return bpfunc;
-
-#if defined(sparc_sun_solaris2_4)
-    // Adding new BPatch_Function to BPatch_function vector
-    if (this->BPfuncs) this->BPfuncs->push_back(bpfunc);
-#endif
-
-    return bpfunc;
-    
-}
-*/
-
 BPatch_Vector<BPatch_function *> *
-BPatch_module::findFunction(const char *name, BPatch_Vector<BPatch_function *> *funcs,
-			    bool regex_case_sensitive)
+BPatch_module::findFunction(const char *name, BPatch_Vector<BPatch_function *> &funcs,
+			    bool notify_on_failure, bool regex_case_sensitive)
 {
   pdvector<function_base *> pdfuncs;
 
@@ -263,21 +230,90 @@ BPatch_module::findFunction(const char *name, BPatch_Vector<BPatch_function *> *
   }
   if (NULL == mod->findFunctionFromAll(string(name), &pdfuncs, regex_case_sensitive) 
       || !pdfuncs.size()) {
-    string msg = string("Unable to find function: ") + string(name);
-    BPatch_reportError(BPatchSerious, 100, msg.c_str());
+    string msg = string("Module: Unable to find function: ") + string(name);
+    if (notify_on_failure) BPatch_reportError(BPatchSerious, 100, msg.c_str());
     return NULL;
   } 
 
   // found function(s), translate to BPatch_functions  
   for (unsigned int i = 0; i < pdfuncs.size(); ++i) {
     BPatch_function * bpfunc = proc->findOrCreateBPFunc((pd_Function *)pdfuncs[i], this);
-    funcs->push_back(bpfunc);
+    funcs.push_back(bpfunc);
     if (!proc->PDFuncToBPFuncMap.defines(pdfuncs[i])) {
       this->BPfuncs->push_back(bpfunc);
     }
   }
 
-  return funcs;
+  return &funcs;
+}
+
+BPatch_Vector<BPatch_function *> *
+BPatch_module::findUninstrumentableFunction(const char *name, 
+					    BPatch_Vector<BPatch_function *> &funcs)
+{
+  pdvector<function_base *> pdfuncs;
+
+  if (!name) {
+    cerr << __FILE__ << __LINE__ << ":  findFunction(NULL), failing "<<endl; 
+    return NULL;
+  }
+
+  if (NULL == mod->findUninstrumentableFunction(string(name), &pdfuncs)
+      || !pdfuncs.size()) {
+    string msg = string("Module: Unable to find function: ") + string(name);
+    //BPatch_reportError(BPatchSerious, 100, msg.c_str());
+    return NULL;
+  } 
+
+   if (NULL == BPfuncs_uninstrumentable) 
+      BPfuncs_uninstrumentable = new BPatch_Vector<BPatch_function *>;
+
+  // found function(s), translate to BPatch_functions  
+ for (unsigned int i = 0; i < pdfuncs.size(); ++i) {
+   BPatch_function *found = NULL;
+   for (unsigned int j = 0; j < BPfuncs_uninstrumentable->size(); ++j) {
+     string mangled_name1 = pdfuncs[i]->symTabName(); // problem -- more than 1 name possible here
+     char mangled_name2[1024];
+     (*BPfuncs_uninstrumentable)[j]->getMangledName(mangled_name2, 1024);
+     if (!strcmp(mangled_name1.c_str(), mangled_name2)) {
+       found = (*BPfuncs_uninstrumentable)[j];
+       break;
+     }
+   }
+   if (!found) {
+     if (proc->PDFuncToBPFuncMap.defines(pdfuncs[i])) { //  JAW -- seen this happen
+       cerr << __FILE__ << __LINE__ << ":  Warning:  moving function " << name 
+	    << " from the list of instrumentable functions to the uninstrumentable" << endl;
+       found = proc->PDFuncToBPFuncMap[pdfuncs[i]];
+       proc->PDFuncToBPFuncMap.undef(pdfuncs[i]);
+     }
+     else
+       found = new BPatch_function(proc, pdfuncs[i], this);
+     BPfuncs_uninstrumentable->push_back(found);
+   }
+   funcs.push_back(found);
+ }
+
+  return &funcs;
+}
+
+BPatch_function * BPatch_module::findFunctionByMangled(const char *mangled_name)
+{
+  function_base *pdfunc = mod->findFunctionByMangled(string(mangled_name));
+						     
+  if (!pdfunc) return NULL;
+
+  BPatch_function * bpfunc = proc->findOrCreateBPFunc((pd_Function *)pdfunc, this);
+  if (!proc->PDFuncToBPFuncMap.defines(pdfunc)) {
+    this->BPfuncs->push_back(bpfunc);
+  }
+
+  return bpfunc;
+}
+
+void BPatch_module::dumpMangled(char * prefix)
+{
+  mod->dumpMangled(prefix);
 }
 
 string* processDirectories(string* fn){
@@ -356,7 +392,7 @@ void parseLineInformation(process* proc,LineInformation* lineInformation,
 			  SYMENT *sym,
 			  Address linesfdptr,char* lines,int nlines)
 {
-      unsigned int j;
+      int j;
       union auxent *aux;
 
       /* if it is beginning of include files then update the data structure 
@@ -608,8 +644,8 @@ void BPatch_module::parseTypes()
 	  } else if (sym->n_sclass == C_ECOMM) {
 	      // copy this set of fields
 	    BPatch_Vector<BPatch_function *> bpmv;
-   	    if (NULL == findFunction(funcName, &bpmv) || !bpmv.size()) {
-	      printf("unable to locate current function %s\n", funcName);
+   	    if (NULL == findFunction(funcName, bpmv) || !bpmv.size()) {
+	      fprintf(stderr,"unable to locate current function %s\n", funcName);
 	      } else {
 		BPatch_function *func = bpmv[0];
 		commonBlock->endCommonBlock(func, commonBlockVar->getBaseAddr());
@@ -761,6 +797,8 @@ void BPatch_module::parseTypes()
       gettimeofday(&t1, NULL);
 #endif
       current_func_name = NULL; // reset for next object file
+      current_mangled_func_name = NULL; // reset for next object file
+
       modName = (char*)(&stabstrs[stabptr[i].name]);
       // cerr << "checkpoint B" << endl;
       ptr = strrchr(modName, '/');
@@ -845,6 +883,41 @@ void BPatch_module::parseTypes()
 	tmp[colonPtr-ptr] = '\0';
 	currentFunctionName = new string(tmp);
       }
+
+      if(!ptr || !(colonPtr = strchr(ptr,':')))
+	currentFunctionName = NULL;
+      else {
+	char* tmp = new char[colonPtr-ptr+1];
+	strncpy(tmp,ptr,colonPtr-ptr);
+	tmp[colonPtr-ptr] = '\0';
+	currentFunctionName = new string(tmp);
+
+	currentFunctionBase = 0;
+	Symbol info;
+
+	if (!proc->getSymbolInfo(*currentFunctionName,
+				 info,currentFunctionBase))
+	  {
+	    string fortranName = *currentFunctionName + string("_");
+	    if (proc->getSymbolInfo(fortranName,info,
+				    currentFunctionBase))
+	      {
+		delete currentFunctionName;
+		currentFunctionName = new string(fortranName);
+	      }
+	  }
+	
+	currentFunctionBase += info.addr();
+
+	delete[] tmp;
+      		
+	//	if(currentSourceFile && (currentFunctionBase > 0)){
+	//	lineInformation->insertSourceFileName(
+	//			*currentFunctionName,
+	//			*currentSourceFile,
+	//			&currentFileInfo,&currentFuncInfo);
+	//}
+      }
       //  used to be a symbol lookup here to find currentFunctionBase, do we need it?
       delete[] ptr;
 #ifdef TIMED_PARSE
@@ -863,9 +936,6 @@ void BPatch_module::parseTypes()
 
 	// find the variable for the common block
 	BPatch_image *progam = (BPatch_image *) getObjParent();
-#ifdef TIMED_PARSE
-	cout << __FILE__ << __LINE__ << ": parseTypes N_BCOMM "<< commonBlockName << endl;
-#endif
 	commonBlockVar = progam->findVariable(commonBlockName);
 	if (!commonBlockVar) {
 	  printf("unable to find variable %s\n", commonBlockName);
@@ -889,11 +959,8 @@ void BPatch_module::parseTypes()
 	// copy this set of fields
 	
 	assert(currentFunctionName);
-#ifdef TIMED_PARSE
-	cout << __FILE__ << __LINE__ << ": parseTypes N_ECOMM "<< currentFunctionName << endl;
-#endif
-	if (NULL == findFunction(currentFunctionName->c_str(), &bpfv) || !bpfv.size()) {
-	  printf("unable to locate current function %s\n", currentFunctionName->c_str());
+	if (NULL == findFunction(currentFunctionName->c_str(), bpfv) || !bpfv.size()) {
+	  fprintf(stderr,"unable to locate current function %s\n", currentFunctionName->c_str());
 	} else {
 	  if (bpfv.size() > 1) {
 	    // warn if we find more than one function with this name
@@ -919,6 +986,8 @@ void BPatch_module::parseTypes()
       case N_FUN:
       case 128:   // typedefs and variables -- N_LSYM
       case 160:   // parameter variable -- N_PSYM 
+    case 0xc6:  // position-independant local typedefs -- N_ISYM
+    case 0xc8: // position-independant external typedefs -- N_ESYM
 #ifdef TIMED_PARSE
 	pss_count++;
 	gettimeofday(&t1, NULL);
@@ -1067,6 +1136,7 @@ void BPatch_module::parseFileLineInfo()
       gettimeofday(&t1, NULL);
 #endif
             current_func_name = NULL; // reset for next object file
+            current_mangled_func_name = NULL; // reset for next object file
 
 	    //  JAW -- not sure we need this block here
             modName = (char*)(&stabstrs[stabptr[i].name]);
@@ -1357,6 +1427,7 @@ void BPatch_module::parseTypes()
       gettimeofday(&t1, NULL);
 #endif
             current_func_name = NULL; // reset for next object file
+	    current_mangled_func_name = NULL; // reset for next object file
             modName = (char*)(&stabstrs[stabptr[i].name]);
             ptr = strrchr(modName, '/');
             if (ptr) {
@@ -1584,7 +1655,7 @@ void BPatch_module::parseTypes()
       cout << __FILE__ << __LINE__ << ": parseTypes N_ECOMM "<< currentFunctionName << endl;
 #endif
       if (NULL == findFunction(currentFunctionName->c_str(), &bpfv) || !bpfv.size()) {
-	printf("unable to locate current function %s\n", currentFunctionName->c_str());
+	fprintf(stderr,"unable to locate current function %s\n", currentFunctionName->c_str());
       } else {
 	if (bpfv.size() > 1) {
 	  // warn if we find more than one function with this name
@@ -1807,7 +1878,7 @@ bool BPatch_module::getLineToAddr(unsigned short lineNo,
 
 	if(!lineInformation){
 #ifndef PARSE_ALL_AT_ONCE
-#if !defined(rs6000_ibm_aix4_1)
+#if !defined(rs6000_ibm_aix4_1) && !defined(alpha_dec_osf4_0)
 	  parseFileLineInfo();
 #else
 	  return false;
@@ -1820,7 +1891,7 @@ bool BPatch_module::getLineToAddr(unsigned short lineNo,
 	//query the line info object to get set of addresses if it exists.
 	BPatch_Set<Address> addresses;
 	if(!lineInformation->getAddrFromLine(addresses,lineNo,exactMatch)) {
-	  cerr << __FILE__ << __LINE__ << ":  getAddrFromLine failed!" << endl;
+	  //cerr << __FILE__ << __LINE__ << ":  getAddrFromLine failed!" << endl;
 		return false;
 	}
 	//then insert the elements to the vector given
@@ -1837,7 +1908,7 @@ bool BPatch_module::getLineToAddr(unsigned short lineNo,
 LineInformation* BPatch_module::getLineInformation(){
   
 #ifndef PARSE_ALL_AT_ONCE
-#if !defined(rs6000_ibm_aix4_1)
+#if !defined(rs6000_ibm_aix4_1) && !defined(mips_sgi_irix6_4) && !defined(alpha_dec_osf4_0)
   if (!lineInformation) parseFileLineInfo();
 #endif
   return lineInformation;	

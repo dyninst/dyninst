@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.24 2003/03/21 21:21:03 bernat Exp $
+// $Id: procfs.C,v 1.25 2003/04/17 20:55:55 jaw Exp $
 
 #include "symtab.h"
 #include "common/h/headers.h"
@@ -379,12 +379,22 @@ bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
     
     // Now that we've reset the original behavior, remove this
     // entry from the vector
+    pdvector<syscallTrap *> newSyscallTraps;
+    for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
+      if (trappedSyscall != syscallTraps_[iter])
+	newSyscallTraps.push_back(syscallTraps_[iter]);
+    }
+    syscallTraps_ = newSyscallTraps;
+    /*
+    // Now that we've reset the original behavior, remove this
+    // entry from the vector
     for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
         if (trappedSyscall == syscallTraps_[iter]) {
             syscallTraps_.removeByIndex(iter);
             break;
         }
     }
+    */
     delete trappedSyscall;
     
     return true;

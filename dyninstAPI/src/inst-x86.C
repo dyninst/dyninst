@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.129 2003/04/16 21:07:17 bernat Exp $
+ * $Id: inst-x86.C,v 1.130 2003/04/17 20:55:53 jaw Exp $
  */
 
 #include <iomanip.h>
@@ -502,10 +502,24 @@ bool pd_Function::findInstPoints(const image *i_owner) {
    // sorry this this hack, but this routine can modify the image passed in,
    // which doesn't occur on other platforms --ari
    image *owner = const_cast<image *>(i_owner); // const cast
+   point_ *points = NULL;
+   instruction *allInstr = NULL;
+   pdvector<instPoint*> foo;
+   unsigned lastPointEnd = 0;
+   unsigned thisPointEnd = 0;
+   bool canBeRelocated = true;
+   instPoint *p;
+   unsigned numInsns = 0;
+   instruction insn;
+   unsigned insnSize;
+   unsigned npoints = 0;
+   Address adr;
+   const unsigned char *instr;
+   Address funcEnd;
 
    if (size() == 0) {
       //fprintf(stderr,"Function %s, size = %d\n", prettyName().c_str(), size());
-      return false;
+     goto set_uninstrumentable;
    }
 
 #if defined(i386_unknown_solaris2_5)
@@ -513,39 +527,35 @@ bool pd_Function::findInstPoints(const image *i_owner) {
       returns.  If it requires trap-based instrumentation, it can foul
       the handler return mechanism.  So, better exclude it.  */
    if (prettyName() == "_setcontext" || prettyName() == "setcontext")
-      return false;
+     goto set_uninstrumentable;
 #endif /* i386_unknown_solaris2_5 */
 
    // XXXXX kludge: these functions are called by DYNINSTgetCPUtime, 
    // they can't be instrumented or we would have an infinite loop
    if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
        || prettyName() == "GetProcessTimes")
-      return false;
+     goto set_uninstrumentable;
 
-   point_ *points = new point_[size()];
+   points = new point_[size()];
    if( points == NULL )
    {
 		assert( false );
    }
    //point_ *points = (point_ *)alloca(size()*sizeof(point));
-   unsigned npoints = 0;
 
-   const unsigned char *instr = (const unsigned char *)owner->getPtrToInstruction(getAddress(0));
-   Address adr = getAddress(0);
-   unsigned numInsns = 0;
+   instr = (const unsigned char *)owner->getPtrToInstruction(getAddress(0));
+   adr = getAddress(0);
+   numInsns = 0;
 
    noStackFrame = true; // Initial assumption
 
-   instruction insn;
-   unsigned insnSize;
-
    // keep a buffer with all the instructions in this function
-   instruction *allInstr = new instruction[size()+5];
+   allInstr = new instruction[size()+5];
    //instruction *allInstr = (instruction *)alloca((size()+5)*sizeof(instruction));
 
    // define the entry point
    insnSize = insn.getNextInstruction(instr);
-   instPoint *p = new instPoint(this, owner, adr, functionEntry, insn);
+   p = new instPoint(this, owner, adr, functionEntry, insn);
    funcEntry_ = p;
    points[npoints++] = point_(p, numInsns, EntryPt);
 
@@ -556,15 +566,11 @@ bool pd_Function::findInstPoints(const image *i_owner) {
       if (target < getAddress(0) || target >= getAddress(0) + size()) {
          // jump out of function
          // this is an empty function
-         delete [] points;
-         delete [] allInstr;
-         return false;
+	 goto set_uninstrumentable;
       }
    } else if (insn.isReturn()) {
       // this is an empty function
-      delete [] points;
-      delete [] allInstr;
-      return false;
+      goto set_uninstrumentable;
    } else if (insn.isCall()) {
       // TODO: handle calls at entry point
       // call at entry point
@@ -572,10 +578,7 @@ bool pd_Function::findInstPoints(const image *i_owner) {
       //calls += p;
       //points[npoints++] = point_(p, numInsns, CallPt);
       //fprintf(stderr,"Function %s, call at entry point\n", prettyName().c_str());
-
-      delete [] points;
-      delete [] allInstr;
-      return false;
+      goto set_uninstrumentable;
    }
 
    allInstr[numInsns] = insn;
@@ -596,13 +599,11 @@ bool pd_Function::findInstPoints(const image *i_owner) {
 
    // checkJumpTable will set canBeRelocated = false if their is a jump to a 
    // jump table inside this function. 
-   bool canBeRelocated = true;
-
    if (prettyName() == "__libc_fork" || prettyName() == "__libc_start_main") {
       canBeRelocated = false;
    }
 
-   Address funcEnd = getAddress(0) + size();
+   funcEnd = getAddress(0) + size();
    for ( ; adr < funcEnd; instr += insnSize, adr += insnSize) {
 
       insnSize = insn.getNextInstruction(instr);
@@ -621,12 +622,10 @@ bool pd_Function::findInstPoints(const image *i_owner) {
 
          // check for jump table. This may update funcEnd
          if (!checkJumpTable(owner, insn, adr, getAddress(0), funcEnd, jumpTableSz)) {
-            delete points;
-            delete allInstr;
-            //fprintf(stderr,"Function %s, size = %d, bad jump table\n", 
+	   //fprintf(stderr,"Function %s, size = %d, bad jump table\n", 
             //          prettyName().c_str(), size());
-            return false;
-         }
+	    goto set_uninstrumentable;
+	 }
 
          // process the jump instruction
          allInstr[numInsns] = insn;
@@ -670,9 +669,7 @@ bool pd_Function::findInstPoints(const image *i_owner) {
 
             // Call was to an invalid address, do not instrument function 
             if (validTarget == false) {
-               delete [] points;
-               delete [] allInstr;
-               return false;
+	      goto set_uninstrumentable;
             }
 
             // Force relocation when instrumenting function
@@ -709,8 +706,6 @@ bool pd_Function::findInstPoints(const image *i_owner) {
    }
 
    // add extra instructions to the points that need it.
-   unsigned lastPointEnd = 0;
-   unsigned thisPointEnd = 0;
    for (u = 0; u < npoints; u++) {
       instPoint *p = points[u].point;
       unsigned index = points[u].index;
@@ -797,7 +792,6 @@ bool pd_Function::findInstPoints(const image *i_owner) {
       points[u].point->checkInstructions();
 
    // create and sort vector of instPoints
-   pdvector<instPoint*> foo;
    sorted_ips_vector(foo);
 
    for (unsigned i=0;i<foo.size();i++) {
@@ -827,7 +821,15 @@ bool pd_Function::findInstPoints(const image *i_owner) {
    delete [] points;
    delete [] allInstr;
 
+   isInstrumentable_ = true;
    return true;
+
+ set_uninstrumentable:
+   if (points) delete [] points;
+   if (allInstr) delete [] allInstr;
+
+   isInstrumentable_ = false;
+   return false;
 }
 
 
@@ -2284,6 +2286,9 @@ Register emitFuncCall(opCode op,
        if (err) {
 	    function_base *func = proc->findOnlyOneFunction(callee);
 	    if (!func) {
+	      cerr << __FILE__ << ":" <<__LINE__
+		   <<": Internal error: unable to function " << callee << endl;
+
 		 ostrstream os(errorLine, 1024, ios::out);
 		 os << __FILE__ << ":" <<__LINE__
 		    <<": Internal error: unable to find addr of " << callee << endl;

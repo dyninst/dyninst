@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.164 2003/04/16 21:07:15 bernat Exp $
+ * $Id: inst-power.C,v 1.165 2003/04/17 20:55:53 jaw Exp $
  */
 
 #include "common/h/headers.h"
@@ -2103,11 +2103,17 @@ Register emitFuncCall(opCode /* ocode */,
        if (err) {
 	    function_base *func = proc->findOnlyOneFunction(callee);
 	    if (!func) {
-		 ostrstream os(errorLine, 1024, ios::out);
+	      pdvector<function_base *> fbv;
+	      if (!proc->findAllFuncsByName(callee, fbv) || !fbv.size()) {
+		ostrstream os(errorLine, 1024, ios::out);
 		 os << "Internal error: unable to find addr of " << callee << endl;
 		 logLine(errorLine);
 		 showErrorCallback(80, (const char *) errorLine);
 		 P_abort();
+	      }else {
+		// might want to warn if fbv.size() > 1
+		func = fbv[0];
+	      }
 	    }
 	    dest = func->getAddress(0);
        }
@@ -3209,7 +3215,7 @@ bool pd_Function::findInstPoints(const image *owner)
 
   instr.raw = owner->get_instruction(adr);
   if (!IS_VALID_INSN(instr)) {
-    return false;
+      goto set_uninstrumentable;
   }
 
   //cerr << "Finding inst points for " << this->prettyName();
@@ -3256,12 +3262,12 @@ bool pd_Function::findInstPoints(const image *owner)
     if (isCallInsn(instr)) {
       // Define the call point
       adr = newCallPoint(adr, instr, owner, err);
-      if (err) return false;
-    }
+      if (err)   goto set_uninstrumentable;
+     }
     else if (isDynamicCall(instr)) {
       // Define the call point
       adr = newCallPoint(adr, instr, owner, err);
-      if (err) return false;
+      if (err)   goto set_uninstrumentable;
     }
     else if ((instr.dform.op == STUop) &&
 	     (instr.dform.rt == 1) &&
@@ -3286,8 +3292,12 @@ bool pd_Function::findInstPoints(const image *owner)
   // All linkage code will be in module glink.s, and have _linkage
   // appended to the function name by the parser. Woohoo.
 
-
+  isInstrumentable_ = 1;
   return(true);
+
+ set_uninstrumentable:
+  isInstrumentable_ = 0;
+  return false;
 }
 
 

@@ -54,8 +54,8 @@
 #include "BPatch_snippet.h"
 #include "BPatch_module.h"
 #include "BPatch_type.h"
-class string;
-typedef bool (*BPatchFunctionNameSieve)(const string &test,void *data);
+
+typedef bool (*BPatchFunctionNameSieve)(const char *test,void *data);
 class process;
 class image;
 

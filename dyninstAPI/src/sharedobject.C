@@ -39,36 +39,36 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.C,v 1.15 2003/04/02 07:12:26 jaw Exp $
+// $Id: sharedobject.C,v 1.16 2003/04/17 20:55:55 jaw Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 
 #define FS_FIELD_SEPERATOR '/'
 
 shared_object::shared_object():
-#ifndef BPATCH_LIBRARY
-  include_funcs(true), 
-  included_funcs(0),
-#endif
   desc(0),
   name(0),
   short_name(0),
   base_addr(0),
   processed(false),
   mapped(false),
+#ifndef BPATCH_LIBRARY
+  include_funcs(true), 
+  included_funcs(0),
+#endif
   objs_image(0),
   dlopenUsed(false)
 {
 }
 shared_object::shared_object(string &n, Address b, bool p,bool m, bool i, image *d):
-#ifndef BPATCH_LIBRARY
-  include_funcs(i), 
-  included_funcs(0),
-#endif
   name(n), 
   base_addr(b),
   processed(p),
   mapped(m),
+#ifndef BPATCH_LIBRARY
+  include_funcs(i), 
+  included_funcs(0),
+#endif
   objs_image(d)
 { 
   desc = new fileDescriptor(n, b);

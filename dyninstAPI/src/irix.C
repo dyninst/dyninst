@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.56 2003/04/02 07:12:25 jaw Exp $
+// $Id: irix.C,v 1.57 2003/04/17 20:55:54 jaw Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -803,7 +803,17 @@ bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
     
     if (-1 == ioctl(getDefaultLWP()->get_fd(), PIOCSEXIT, &save_exitset))
         return false;
-    
+ 
+    // Now that we've reset the original behavior, remove this
+    // entry from the vector
+
+    pdvector<syscallTrap *> newSyscallTraps;
+    for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
+        if (trappedSyscall != syscallTraps_[iter])
+            newSyscallTraps.push_back(syscallTraps_[iter]);
+    }
+    syscallTraps_ = newSyscallTraps;
+    /*
     // Now that we've reset the original behavior, remove this
     // entry from the vector
     for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
@@ -812,6 +822,7 @@ bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
             break;
         }
     }
+    */
     delete trappedSyscall;
     
     return true;

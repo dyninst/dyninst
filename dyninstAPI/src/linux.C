@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.98 2003/04/16 21:07:20 bernat Exp $
+// $Id: linux.C,v 1.99 2003/04/17 20:55:54 jaw Exp $
 
 #include <fstream.h>
 
@@ -1324,6 +1324,8 @@ bool process::findCallee(instPoint &instr, function_base *&target){
                if(target){
                   return true;
                }
+	       cerr << __FILE__ << ":" <<__LINE__
+		    <<": Internal error: unable to find function " << (*fbt)[i].name() << endl;
             }
          }
          target = 0;

@@ -370,6 +370,7 @@ int dictionary_hash<K,V>::linear_filter(pdvector< pdpair<K, V> > &matches,
   return 0;
 }
 */
+/*
 template<class K, class V>
 pdvector<V>  dictionary_hash<K,V>::linear_filter(bool (*filt_func)(const K&, void *data),
 						 void *param) 
@@ -386,7 +387,7 @@ pdvector<V>  dictionary_hash<K,V>::linear_filter(bool (*filt_func)(const K&, voi
   cerr <<"result.size() = " << result.size() <<endl;
   return result;
 }
-
+*/
 template<class K, class V>
 void dictionary_hash<K,V>::clear() {
   // max_bin_load and bin_grow_factor don't change.

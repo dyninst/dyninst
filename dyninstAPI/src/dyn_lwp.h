@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.14 2003/04/16 21:07:08 bernat Exp $
+ * $Id: dyn_lwp.h,v 1.15 2003/04/17 20:55:53 jaw Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -176,7 +176,7 @@ class dyn_lwp
   };
   handleT usage_fd() const {
       if (!fd_opened())
-          fprintf(stderr, "FD not opened for %d (0x%x)\n", get_lwp_id(),(int) this);
+          fprintf(stderr, "FD not opened for %d (0x%p)\n", get_lwp_id(),(void *) this);
       return usage_fd_;
   };
   

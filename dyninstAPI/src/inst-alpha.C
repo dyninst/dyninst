@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.61 2003/04/10 19:01:21 rchen Exp $
+// $Id: inst-alpha.C,v 1.62 2003/04/17 20:55:53 jaw Exp $
 
 #include "common/h/headers.h"
 
@@ -1706,6 +1706,10 @@ bool pd_Function::findInstPoints(const image *owner)
   instruction instr2;
   long gpValue;	// gp needs signed operations
   bool gpKnown = false;
+  instPoint *point;
+  Address t12Value;
+  bool t12Known = false;
+  instruction frameRestInsn;
 
   frame_size = 0;
   // normal linkage on alphas is that the first two instructions load gp.
@@ -1724,16 +1728,14 @@ bool pd_Function::findInstPoints(const image *owner)
   }
 
   instr.raw = owner->get_instruction(adr);
-  if (!IS_VALID_INSN(instr)) {
-    return false;
-  }
+  if (!IS_VALID_INSN(instr)) 
+    goto set_uninstrumentable;
 
   funcEntry_ = new instPoint(this, instr, owner, adr, true,functionEntry);
   assert(funcEntry_);
 
   // perform simple data flow tracking on t12 within a basic block.
-  Address t12Value;
-  bool t12Known = false;
+  
   while (true) {
     instr.raw = owner->get_instruction(adr);
 
@@ -1757,7 +1759,7 @@ bool pd_Function::findInstPoints(const image *owner)
       // use it as the
       // address since it will ensure the activation record is still active.
       // Gcc uses a frame pointer, on others only sp is used.
-      instruction frameRestInsn;
+
       frameRestInsn.raw = owner->get_instruction(adr-8);
       if (((frameRestInsn.raw & 0xffff0000) == 0xa5fe0000) ||
 	  ((frameRestInsn.raw & 0xffff0000) == 0x23de0000)) {
@@ -1769,10 +1771,10 @@ bool pd_Function::findInstPoints(const image *owner)
       }
 
       // see if this return is the last one 
-      if (done) return true;
+      if (done) goto set_instrumentable;
     } else if (isCallInsn(instr)) {
       // define a call point
-      instPoint *point = new instPoint(this, instr, owner, adr, false,callSite);
+      point = new instPoint(this, instr, owner, adr, false,callSite);
 
       if (isJsr(instr)) {
 	  Address destAddr = 0;
@@ -1803,7 +1805,15 @@ bool pd_Function::findInstPoints(const image *owner)
     // now do the next instruction
     adr += 4;
 
-   }
+  }
+
+ set_instrumentable:
+  isInstrumentable_ = 1;
+  return true;
+  
+ set_uninstrumentable:
+  isInstrumentable_ = 0;
+  return false;
 }
 
 //

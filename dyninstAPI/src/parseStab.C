@@ -40,7 +40,10 @@
  */
 
 #include <ctype.h>
-
+// from libiberty's demangle.h
+#define DMGL_PARAMS   (1 << 0) 
+#define DMGL_ANSI     (1 << 1) 
+#define DMGL_VERBOSE  (1 << 3) 
 #include "BPatch.h"
 #include "BPatch_module.h"
 #include "BPatch_collections.h"
@@ -48,6 +51,7 @@
 #include "Object.h" // For looking up compiler type
 
 extern char *current_func_name;
+extern char *current_mangled_func_name;
 
 // Forward references for parsing routines
 static int parseSymDesc(char *stabstr, int &cnt);
@@ -69,6 +73,80 @@ static char *getIdentifier(char *stabstr, int &cnt);
 //    The grammar for a non-terminal appears in the comments just before
 //    the non-terminal parsing function
 //	
+
+void vectorNameMatchKLUDGE(char *demangled_sym, BPatch_Vector<BPatch_function *> &bpfv, pdvector<int> &matches)
+{
+  int bufsize = 1024;
+  // iterate through all matches and demangle names with extra parameters, compare
+  for (unsigned int i = 0; i < bpfv.size(); ++i) {
+    char l_mangled[bufsize];
+    bpfv[i]->getMangledName(l_mangled, bufsize);
+    
+    char *l_demangled_raw = cplus_demangle(l_mangled, DMGL_PARAMS | DMGL_ANSI);
+    if(l_demangled_raw==NULL){
+      //cerr << __FILE__ << __LINE__ << ":  KLUDGE Cannot demangle " << l_mangled << endl;
+      //continue;
+      l_demangled_raw = l_mangled;
+    }
+    if (!strcmp(l_demangled_raw, demangled_sym)) {
+      //cerr << __FILE__ << __LINE__ << ": " <<"Inferring that " << l_mangled << " matches " 
+      //	   << mangled << endl;
+      matches.push_back(i);
+    }
+    else {
+      //cerr << __FILE__ << __LINE__ << ": " << l_demangled_raw << " does not match " 
+      //	   << demangled_sym << endl;
+    }  
+    if (l_demangled_raw != l_mangled)
+      free(l_demangled_raw);// cplus_demangle allocates
+  }
+
+}
+
+BPatch_function *mangledNameMatchKLUDGE(char *pretty, char *mangled, 
+					BPatch_module *mod)
+{
+
+  BPatch_Vector<BPatch_function *> bpfv;
+  if ((NULL == mod->findFunction(pretty, bpfv)) || !bpfv.size()) {
+    //cerr << __FILE__ << __LINE__ << ":  KLUDGE Cannot find " << pretty << endl;
+    return NULL;  // no pretty name hits, expecting multiple
+  }
+
+  // demangle name with extra parameters
+  char *demangled_sym = cplus_demangle(mangled, DMGL_PARAMS | DMGL_ANSI | DMGL_VERBOSE);
+  if(demangled_sym==NULL) {
+    //cerr << __FILE__ << __LINE__ << ":  KLUDGE Cannot demangle " << mangled << endl;
+    //return NULL;
+    demangled_sym = mangled;
+  }
+  pdvector<int> matches;
+
+  vectorNameMatchKLUDGE(demangled_sym, bpfv, matches);
+
+  BPatch_function *ret = NULL;
+
+  if (matches.size() == 1) {ret = bpfv[matches[0]]; goto clean_up;}
+  if (matches.size() > 1) goto clean_up;
+  
+  // check in the uninstrumentable pile
+  bpfv.clear();
+  matches.clear();
+
+  if (NULL == mod->findUninstrumentableFunction(pretty, bpfv) || !bpfv.size())
+    goto clean_up;
+  else {
+    //cerr << __FILE__ << __LINE__ << ":  KLUDE found uninstrumentable " << mangled << endl;
+  }
+  vectorNameMatchKLUDGE(demangled_sym, bpfv, matches);
+  if (matches.size() == 1) {ret = bpfv[matches[0]]; goto clean_up;}
+  if (matches.size() > 1) goto clean_up;
+
+ clean_up:
+  if (demangled_sym != mangled)
+    free(demangled_sym);// cplus_demangle allocates
+  return ret;
+}
 
 // This function takes the stab stabstring and parses it to create a new 
 // type or variable object.  This function only defines the type/variable 
@@ -103,10 +181,6 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
     BPatch_type * ptrType = NULL;
     BPatch_type * newType = NULL; // For new types to add to the collection
     BPatch_localVar *locVar = NULL;
-#ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
-    fprintf(stderr, "%s[%d]:  inside parseStabStr\n", __FILE__, __LINE__);
-    fflush(NULL);
-#endif
     cnt= 0;
 
     /* get type or variable name */
@@ -116,7 +190,8 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
       free(name);
       name = mangledname;
     } else
-      free(mangledname);
+      // MEMORY LEAK?
+      //free(mangledname);
 
     if (*name) {
        // non-null string
@@ -141,27 +216,19 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	  stabstr = parseTypeDef(mod, (&stabstr[cnt+1]), name, ID);
 	  cnt = 0;
 	  ptrType = mod->moduleTypes->findType( ID);
-	  if (current_func_name) {
+	  if (current_mangled_func_name) {
 	    // XXX-may want to use N_LBRAC and N_RBRAC to set function scope 
 	    // -- jdd 5/13/99
 	    // Still need to add to local variable list if in a function
-	    BPatch_Vector<BPatch_function *> bpfv;
-	    if (NULL == mod->findFunction( (const char *)current_func_name, &bpfv ) 
-		|| !bpfv.size()) {
+
+	    if (NULL == (fp = mod->findFunctionByMangled(current_mangled_func_name))){
 	      char modName[100];
 	      mod->getName(modName, 99);
-	      printf(" Can't find function %s in module %s\n", current_func_name, modName);
+	      printf("%s[%d] Can't find function %s in module %s\n", __FILE__, __LINE__,
+		     current_mangled_func_name, modName);
 	      printf("Unable to add %s to local variable list in %s\n",
 		     name,current_func_name);
 	    } else {
-
-	      if (bpfv.size() > 1) 
-		// warn if we find more than one function with current_func_name
-		printf("%s[%d]:  WARNING: found %d functions with name %s, using the first",
-		       __FILE__, __LINE__, bpfv.size(), current_func_name);
-
-
-	      fp = bpfv[0];
 	      locVar = new BPatch_localVar(name, ptrType, linenum, framePtr);
 	      if (!ptrType) {
 		//printf("adding local var with missing type %s, type = %d\n",
@@ -170,30 +237,29 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	      fp->localVariables->addLocalVar( locVar);
 	    }
 	  }
-	} else if (current_func_name) {
+	} else if (current_mangled_func_name) {
 	  // Try to find the BPatch_Function
 	  ptrType = mod->moduleTypes->findType( ID);
-	  
-	  BPatch_Vector<BPatch_function *> bpfv;
-	  if (NULL == mod->findFunction(current_func_name, &bpfv) || !bpfv.size()){
+	  if (NULL == (fp = mod->findFunctionByMangled(current_mangled_func_name))){
 	    char modName[100];
 	    mod->getName(modName, 99);
-	    printf(" Can't find function in BPatch_function vector: %s in module %s\n",
-		   current_func_name, modName);
-	  } else {
-	    if (bpfv.size() > 1) 
-	      // warn if we find more than one function with current_func_name
-	      printf("%s[%d]:  WARNING: found %d functions with name %s, using the first",
-		     __FILE__, __LINE__, bpfv.size(), current_func_name);
-	    
-	    fp = bpfv[0];
-	    locVar = new BPatch_localVar(name, ptrType, linenum, framePtr);
-	    if (!ptrType) {
-	      //printf("adding local var with missing type %s, type = %d\n",
-	      //	     name, ID);
+		
+	    if (NULL == (fp = mangledNameMatchKLUDGE(current_func_name, 
+						     current_mangled_func_name, mod))){
+	      fprintf(stderr,"%s[%d]: Can't find function in BPatch_function vector: "
+		      "%s/%s in module %s\n",
+		      __FILE__, __LINE__, current_func_name, 
+		      current_mangled_func_name, modName);
+	      return(&stabstr[cnt]);
 	    }
-	    fp->localVariables->addLocalVar( locVar);
 	  }
+
+	  locVar = new BPatch_localVar(name, ptrType, linenum, framePtr);
+	  if (!ptrType) {
+	    //printf("adding local var with missing type %s, type = %d\n",
+	    //	     name, ID);
+	  }
+	  fp->localVariables->addLocalVar( locVar);
 	}
     } else if (stabstr[cnt]) {
       BPatch_Vector<BPatch_function *> bpfv;
@@ -203,6 +269,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	      char *lfuncName=NULL;
 	      cnt++;
 	      current_func_name = name;
+	      current_mangled_func_name = mangledname;
 	      // funcReturnID = parseSymDesc(stabstr, cnt);
 	      funcReturnID = parseTypeUse(mod, stabstr, cnt, name);
       
@@ -227,7 +294,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		  ptrType = mod->moduleTypes->findType(funcReturnID);
 		  if( !ptrType) ptrType = BPatch::bpatch->type_Untyped;
 
-		  if (NULL == mod->findFunction( name, &bpfv ) || !bpfv.size()) {
+		  if (NULL == mod->findFunction( name, bpfv ) || !bpfv.size()) {
 		    showInfoCallback(string("missing local function ") +
 				     string(name));
 		  } else {
@@ -250,7 +317,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 
 	      funcReturnID = parseTypeUse(mod, stabstr, cnt, name);
 	      current_func_name = name;
-
+	      current_mangled_func_name = mangledname;
 	      //
 	      // For SunPro compilers there may be a parameter list after 
 	      //   the return
@@ -262,37 +329,26 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 
 	      ptrType = mod->moduleTypes->findType(funcReturnID);
 	      if (!ptrType) ptrType = BPatch::bpatch->type_Untyped;
+	      if (NULL == (fp = mod->findFunctionByMangled(current_mangled_func_name))){
+		char modName[100];
+		mod->getName(modName, 99);
+		
+		
+		if (NULL == (fp = mangledNameMatchKLUDGE(current_func_name, 
+							 current_mangled_func_name, mod))){
+		cerr << __FILE__ << __LINE__ << ":  Cannot find function " 
+		     << current_mangled_func_name << "/"<< current_func_name 
+		     << " with return type " << ptrType->getName() 
+		     << " in module " << modName << endl;
+		char prefix[5];
+		strncpy(prefix, current_mangled_func_name, 4);
+		prefix[4] = '\0';
+		mod->dumpMangled(prefix);
+		  return(&stabstr[cnt]);
+		}
+	      }
 
-	      if (NULL == mod->findFunction( name, &bpfv ) || !bpfv.size()) {
-		// for FORTRAN look with trailing _
-		char *tempName = new char[strlen(name)+2];
-		sprintf(tempName, "%s_", name);
-		
-		current_func_name = strdup(tempName);
-		
-		if (NULL == mod->findFunction(tempName, &bpfv) || !bpfv.size()) {
-		  showInfoCallback(string("missing local function ") + 
-				   string(name));
-		}
-		else {
-		  if (bpfv.size() > 1) 
-		    // warn if we find more than one function with current_func_name
-		    printf("%s[%d]:  WARNING: found %d functions with name %s, using the first",
-			   __FILE__, __LINE__, bpfv.size(), tempName);
-		  fp = bpfv[0];
-		}
-		delete[] tempName;
-	      }
-	      else {
-		if (bpfv.size() > 1) 
-		  // warn if we find more than one function with current_func_name
-		  printf("%s[%d]:  WARNING: found %d functions with name %s, using the first\n",
-			 __FILE__, __LINE__, bpfv.size(), name);
-		
-		fp = bpfv[0];
-		// set return type.
-		fp->setReturnType(ptrType);
-	      }
+	      fp->setReturnType(ptrType);
 	      break;
 	
 	  case 'G':/* Global Varaible */
@@ -342,16 +398,11 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	      BPatch_localVar *param;
 	      param = new BPatch_localVar(name, ptrType, linenum, framePtr);
       
-	      if (current_func_name) {
-		if (NULL == mod->findFunction( current_func_name, &bpfv ) || !bpfv.size()) {
+	      if (current_mangled_func_name) {
+		if (NULL == (fp = mod->findFunctionByMangled(current_mangled_func_name))){
 		  showInfoCallback(string("missing local function ") + 
 				   string(current_func_name));
 		} else { // found function, add parameter
-		  if (bpfv.size() > 1) 
-		    // warn if we find more than one function with current_func_name
-		    printf("%s[%d]:  WARNING: found %d functions with name %s, using the first\n",
-			   __FILE__, __LINE__, bpfv.size(), current_func_name);
-		  fp = bpfv[0];
 		  fp->funcParameters->addLocalVar(param);
 		  fp->addParam(name, ptrType, linenum, framePtr);
 		}
@@ -375,16 +426,11 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	      BPatch_localVar *var;
 	      var = new BPatch_localVar(name, ptrType, linenum, 0);
       
-	      if (current_func_name) {
-		if (NULL == mod->findFunction( current_func_name, &bpfv ) || !bpfv.size()) {
+	      if (current_mangled_func_name) {
+		if (NULL == (fp = mod->findFunctionByMangled(current_mangled_func_name))){
 		  showInfoCallback(string("missing local function ") + 
 				   string(current_func_name));
 		} else { // found function, add parameter
-		  if (bpfv.size() > 1) 
-		    // warn if we find more than one function with current_func_name
-		    printf("%s[%d]:  WARNING: found %d functions with name %s, using the first",
-			   __FILE__, __LINE__, bpfv.size(), current_func_name);
-		  fp = bpfv[0];
 		  fp->funcParameters->addLocalVar(var);
 		  fp->addParam(name, ptrType, linenum, 0);
 		}
@@ -556,21 +602,14 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		  }
 	      } else {
 		  // put it into the local variable scope
-		if (NULL == mod->findFunction( current_func_name, &bpfv ) || !bpfv.size()) {
+		if (NULL == (fp = mod->findFunctionByMangled(current_mangled_func_name))){
 		  char modName[100];
 		  mod->getName(modName, 99);
-		  printf(" Can't find function %s in module %s\n", 
+		  printf("%s[%d]: Can't find function %s in module %s\n", __FILE__, __LINE__,
 			 current_func_name, modName);
 		  printf("Unable to add %s to local variable list in %s\n",
 			 name,current_func_name);
 		} else {
-		  if (bpfv.size() > 1) 
-		    // warn if we find more than one function with current_func_name
-		    printf("%s[%d]:  WARNING: found %d functions with name %s, using the first",
-			   __FILE__, __LINE__, bpfv.size(), current_func_name);
-		  fp = bpfv[0];
-		  //printf("adding local variable %s at %x\n",
-		  //	 name, framePtr);
 		  locVar = new BPatch_localVar(name, BPtype, linenum, 
 					       framePtr, 5, false);
 		  fp->localVariables->addLocalVar( locVar);

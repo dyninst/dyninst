@@ -644,8 +644,7 @@ bool pd_Function::findInstPoints(const image *owner) {
     UNINSTR("zero length");
 
     TRACE_E( "pd_Function::findInstPoints" );
-
-    return false;
+    goto set_uninstrumentable;
   }
 
   // default values
@@ -706,7 +705,16 @@ bool pd_Function::findInstPoints(const image *owner) {
 
   TRACE_E( "pd_Function::findInstPoints" );
 
-  return checkInstPoints();
+  if (!checkInstPoints()) 
+    goto set_uninstrumentable;
+
+  isInstrumentable_ = true;
+  return true;
+  
+ set_uninstrumentable:
+  isInstrumentable_ = false;
+  return false;
+
 }
 
 /****************************************************************************/

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-//$Id: templates1.C,v 1.52 2003/04/16 21:07:26 bernat Exp $
+//$Id: templates1.C,v 1.53 2003/04/17 20:55:55 jaw Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -85,6 +85,7 @@ template class  pdvector<pdvector<int> >;
 template class  pdvector<pdElfSym *>;
 #endif
 template class  dictionary_hash <Address, unsigned>;
+
 template class  pdvector<dictionary_hash <Address, unsigned>::entry>;
 template class  dictionary_hash_iter <Address, unsigned>;
 
@@ -128,6 +129,8 @@ template class  dictionary_hash <string, pd_Function*>;
 template class  pdvector<dictionary_hash <string, pd_Function*>::entry>;
 template class  dictionary_hash <string, resource*>;
 template class  pdvector<dictionary_hash <string, resource*>::entry>;
+template class  dictionary_hash <string, supportedLanguages>;
+template class  pdvector<dictionary_hash <string, supportedLanguages>::entry>;
 template class  dictionary_hash <string, unsigned>;
 template class  pdvector<dictionary_hash <string, unsigned>::entry>;
 template class  dictionary_hash <string, pdvector<pd_Function*>*>;

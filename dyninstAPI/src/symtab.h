@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.124 2003/04/11 22:32:31 mirg Exp $
+// $Id: symtab.h,v 1.125 2003/04/17 20:55:55 jaw Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -80,7 +80,7 @@ class LocalAlterationSet;
 #endif
 
 
-typedef bool (*functionNameSieve_t)(const string &test,void *data);
+typedef bool (*functionNameSieve_t)(const char *test,void *data);
 #define RH_SEPERATOR '/'
 
 /*
@@ -159,10 +159,20 @@ class module;
 class function_base {
 public:
   static string emptyString;
+  /*
     function_base(const string &symbol, const string &pretty,
-		Address adr, const unsigned size):
-		line_(0), addr_(adr),size_(size) { 
-		symTabName_.push_back(symbol); prettyName_.push_back(pretty); }
+		  Address adr, const unsigned size): line_(0), addr_(adr),size_(size) 
+      { 
+	symTabName_.push_back(symbol); 
+	prettyName_.push_back(pretty); 
+      }
+  */
+    // and a constructor for the case where no pretty name is supplied (initially)
+    function_base(const string &symbol,
+		  Address adr, const unsigned size): line_(0), addr_(adr),size_(size) 
+      { 
+	symTabName_.push_back(symbol); 
+      }
     virtual ~function_base() { /* TODO */ }
 
     /* The next two asserts should necver be reached, function_base has no
@@ -230,12 +240,12 @@ private:
 class instPoint;
 class pd_Function : public function_base {
  public:
-    pd_Function(const string &symbol, const string &pretty, pdmodule *f, 
-		Address adr, const unsigned size, 
-		const image *owner, bool &err);
-    ~pd_Function() { delete relocatedCode;  // delete the rewritten version 
-                     delete originalCode;   // of the function if it was 
-                     delete instructions;   // relocated      
+    pd_Function(const string &symbol, pdmodule *f, 
+		Address adr, const unsigned size);
+	
+    ~pd_Function() { if (relocatedCode) delete relocatedCode;  // delete the rewritten version 
+                     if (originalCode) delete originalCode;   // of the function if it was 
+                     if (instructions) delete instructions;   // relocated      
                                /* TODO */ }
 
     bool findInstPoints(const image *owner);
@@ -636,6 +646,7 @@ public:
     string fileName() const { return fileName_; }
     string fullName() const { return fullName_; }
     supportedLanguages language() const { return language_;}
+    void setLanguage(supportedLanguages lang) {language_ = lang;}
     Address addr() const { return addr_; }
 
     virtual pdvector<function_base *> *
@@ -667,7 +678,9 @@ public:
     modResource(0),
 #endif
     exec_(e){
+#ifndef BPATCH_LIBRARY
     some_funcs_inited = FALSE;
+#endif
   }
   ~pdmodule() { /* TODO */ }
 
@@ -693,19 +706,28 @@ public:
 #endif
 
   pdvector<function_base *> *getFunctions() { return (pdvector<function_base *>*)&funcs;} 
+#ifndef BPATCH_LIBRARY
   pdvector<function_base *> *getIncludedFunctions();
+#endif
   pdvector<function_base *> *findFunction (const string &name, 
 					   pdvector<function_base *> *found);
  
   pdvector<function_base *> *findFunctionFromAll(const string &name, 
 						 pdvector<function_base *> *found, 
 						 bool regex_case_sensitive=true);
+
+  function_base *findFunctionByMangled(const string &name);
+  pdvector<function_base *> *findUninstrumentableFunction(const string &name,
+							 pdvector<function_base *> *found);
+  // remove record of function from internal vector of instrumentable funcs
+  // (used when a function needs to be reclassified as non-instrumentable);
+  bool removeInstruFunc(pd_Function *pdf);
   bool isShared() const;
 #ifndef BPATCH_LIBRARY
   resource *getResource() { return modResource; }
 #endif
-
-private:
+  void dumpMangled(char * prefix);
+ private:
 
 #ifndef BPATCH_LIBRARY
   resource *modResource;
@@ -718,9 +740,11 @@ private:
   // added as part of exclude support for statically linked objects.
   //  mcheyny, 970928
   //  list of non-excluded found functions in module....
+#ifndef BPATCH_LIBRARY
   pdvector<pd_Function*> some_funcs;
   bool some_funcs_inited;
-  bool shared_;                      // if image it belongs to is shared lib
+#endif
+  //bool shared_;                      // if image it belongs to is shared lib
 };
 
 
@@ -1009,19 +1033,27 @@ public:
   void addInstruFunction(pd_Function *func, pdmodule *mod,
         const Address addr, bool excluded);
 
+  // Remove a function from the lists of instrumentable functions, once already inserted.
+  int removeFuncFromInstrumentable(pd_Function *func);
+
   // Add a function which could not be instrumented.  Sticks it in
   // notInstruFuncs (list)
   void addNotInstruFunc(pd_Function *func, pdmodule *mod);
 
   // Determines if a function is instrumentable, and calls add(Not)InstruFunction
-  bool newFunc(pdmodule *, const string &name, const Address addr, 
-	       const unsigned size);
+  // pd_Function *newFunc(pdmodule *, const string &name, const Address addr, 
+  //	       const unsigned size);
 
-  bool addOneFunction(pdvector<Symbol> &mods,
-		      const Symbol &lookUp);
+  pd_Function *makeOneFunction(pdvector<Symbol> &mods,
+			       const Symbol &lookUp);
 
-  void addMultipleFunctionNames(pdvector<Symbol> &mods,
-				const Symbol &lookUp);
+  // addMultipleFunctionNames is called after the argument pd_Function
+  // has been found to have a conflicting address a function that has already
+  // been found and inserted into the funcsByAddr map.  We assume that this
+  // is a case of function name aliasing, so we merely take the names from the duplicate
+  // function and add them as additional names for the one that was already found.
+  void addMultipleFunctionNames(pd_Function *dup);
+				
 
   //
   //  ****  PRIVATE MEMBERS FUNCTIONS  ****
@@ -1033,6 +1065,10 @@ public:
   //    pdvector<pd_Function*> &retList);
   //pd_Function *find_excluded_function(const Address &addr);
 
+// A helper routine for removeInstrumentableFunc -- removes function from specified hash
+  void removeFuncFromNameHash(pd_Function *func, string &fname,
+			      dictionary_hash<string, pdvector<pd_Function *> > *func_hash);
+
 #ifdef CHECK_ALL_CALL_POINTS
   void checkAllCallPoints();
 #endif
@@ -1042,13 +1078,16 @@ public:
 #endif
   // creates the module if it does not exist
   pdmodule *getOrCreateModule (const string &modName, const Address modAddr);
-  pdmodule *newModule(const string &name, const Address addr);
+  pdmodule *newModule(const string &name, const Address addr, supportedLanguages lang);
 
-  bool addAllFunctions(pdvector<Symbol> &mods);
+  bool addAllFunctions(pdvector<Symbol> &mods, pdvector<pd_Function *> *raw_funcs);
 
   bool addAllVariables();
+  void getModuleLanguageInfo(dictionary_hash<string, supportedLanguages> *mod_langs);
+  void setModuleLanguages(dictionary_hash<string, supportedLanguages> *mod_langs);
 
-
+  bool buildFunctionMaps(pdvector<pd_Function *> *);
+  void findAllInstPoints();
   //
   //  ****  PRIVATE DATA MEMBERS  ****
   //

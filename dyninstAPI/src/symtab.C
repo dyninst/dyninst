@@ -39,10 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.160 2003/04/11 22:32:31 mirg Exp $
+// $Id: symtab.C,v 1.161 2003/04/17 20:55:55 jaw Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 
 // TODO - machine independent instruction functions
@@ -131,7 +132,7 @@ ostream &operator<<(ostream &os, function_base &f) {
 /* imported from platform specific library list.  This is lists all
    library functions we are interested in instrumenting. */
 
-pdmodule *image::newModule(const string &name, const Address addr)
+pdmodule *image::newModule(const string &name, const Address addr, supportedLanguages lang)
 {
     pdmodule *ret = NULL;
     // modules can be defined several times in C++ due to templates and
@@ -159,7 +160,7 @@ pdmodule *image::newModule(const string &name, const Address addr)
     }
     free(out);
 
-    ret = new pdmodule(lang_Unknown, addr, fullNm, fileNm, this);
+    ret = new pdmodule(lang, addr, fullNm, fileNm, this);
 
 #ifndef BPATCH_LIBRARY
     // if module was excluded,stuff it into excludedMods (and dont
@@ -182,7 +183,8 @@ pdmodule *image::newModule(const string &name, const Address addr)
 
 
 // TODO -- is this g++ specific
-bool buildDemangledName(const string &mangled, string &use, bool nativeCompiler)
+bool buildDemangledName(const string &mangled, string &use, bool nativeCompiler, 
+			supportedLanguages lang)
 {
  /* The C++ demangling function demangles MPI__Allgather (and other MPI__
   * functions with start with A) into the MPI constructor.  In order to
@@ -192,6 +194,16 @@ bool buildDemangledName(const string &mangled, string &use, bool nativeCompiler)
   if(!mangled.prefixed_by("MPI__")) {
     char *tempName = P_strdup(mangled.c_str());
     char demangled[1000];
+    //cerr << "build demangled name. language = " << lang <<endl;
+    if ((lang == lang_Fortran || lang == lang_CMFortran) 
+	&& tempName[strlen(tempName)-1] == '_') {
+      strcpy(demangled, tempName)[strlen(tempName)-1] = '\0';
+      //cerr << "generating fortran name:  mangled = " << mangled << "demangled = " << demangled << endl;
+      free(tempName);
+      use = demangled;
+      return true;
+    }
+    
     int result = P_cplus_demangle(tempName, demangled, 1000, nativeCompiler);
     
     if(result==0) {
@@ -199,65 +211,13 @@ bool buildDemangledName(const string &mangled, string &use, bool nativeCompiler)
       free(tempName);
       return true;
     } else {
+      //cerr << __FILE__ << __LINE__ << ":  Cannot demangle " << tempName << endl;
+      free(tempName); 
       return false;
+      
     }
   }
   return(false);
-}
-
-// err is true if the function can't be defined
-// COMMENTS????
-// looks like this function attempts to do several things:
-//  1) Check if can find the function (WHERE DOES IT LOOK????).
-//  2) strip out something from function name which looks like
-//    possible scoping info (everything up to?? ":")??
-//  3) try to demangle this (descoped??) name.
-//  4) make new pd_Function under origional name and demangled name.
-//  5) Insert into (data members) funcsByAdd && mods->funcs.
-//  n) insert into (data member) funcsByPretty (indexed under 
-//    demangled name).
-bool image::newFunc(pdmodule *mod, const string &name, 
-		    const Address addr, 
-		    const unsigned size) {
-  pd_Function *func;
-
-
-  if (!mod) {
-    logLine("Error function without module\n");
-    showErrorCallback(34, "Error function without module");
-    return false;
-  }
-  
-  string mangled_name = name;
-  const char *p = P_strchr(name.c_str(), ':');
-  if (p) {
-     unsigned nchars = p - name.c_str();
-     mangled_name = string(name.c_str(), nchars);
-  }
-  
-  string demangled;
-  if (!buildDemangledName(mangled_name, demangled, nativeCompiler)) 
-    demangled = mangled_name;
-
-  bool err=false;
-
-  func = new pd_Function(name, demangled, mod, addr, size, this, err);
-  assert(func);
-
-  // if there was an error in determining the instrumentation info for
-  //  function, add it to notInstruFunction.
-  if (err) {
-    //delete func;
-    addNotInstruFunc(func, mod);
-    return false;
-  }
-  
-#ifdef BPATCH_LIBRARY
-  addInstruFunction(func, mod, addr,false);
-#else
-  addInstruFunction(func, mod, addr,function_is_excluded(func, mod->fileName()));
-#endif
-  return true;
 }
 
 void image::addInstruFunction(pd_Function *func, pdmodule *mod,
@@ -267,7 +227,7 @@ void image::addInstruFunction(pd_Function *func, pdmodule *mod,
   
   // any functions whose instrumentation info could be determined 
   //  get added to instrumentableFunctions, and mod->funcs.
-  instrumentableFunctions.push_back(func);
+  instrumentableFunctions.push_back(func); 
   mod->funcs.push_back(func);
 
 #ifndef BPATCH_LIBRARY
@@ -277,8 +237,6 @@ void image::addInstruFunction(pd_Function *func, pdmodule *mod,
     } 
   includedFunctions.push_back(func);
 #endif
-
-
 
   funcsByAddr[addr] = func;
   if (!funcsByPretty.find(func->prettyName(), funcsByPrettyEntry)) {
@@ -296,9 +254,148 @@ void image::addInstruFunction(pd_Function *func, pdmodule *mod,
   }
   // several functions may have the same demangled name, and each one
   // will appear in a different module
+  //printf("%s[%d]:  check duplicates here.", __FILE__, __LINE__);
   assert(funcsByMangledEntry);
-  (*funcsByMangledEntry).push_back(func);
+  for (unsigned int i = 0; i < funcsByMangledEntry->size(); ++i) {
+    if ((*funcsByMangledEntry)[i] == func) {
+      cerr << __FILE__ << __LINE__<< ": found duplicate of mangled function name: " 
+	   << func->symTabName() << ".  Discarding. "<<endl;
+    }
+    else
+      (*funcsByMangledEntry).push_back(func);
+  }
 }
+
+// A helper routine for removeInstrumentableFunc -- removes function from specified hash
+void image::removeFuncFromNameHash(pd_Function *func, string &fname,
+				   dictionary_hash<string, pdvector<pd_Function *> > *func_hash)
+{
+#ifdef NOTDEF
+  pdvector<pd_Function*> *funcsEntry = NULL;
+
+  if (func_hash->find(fname, funcsEntry)) {
+   assert(funcsEntry);
+   if (!funcsEntry->size()) {
+     // no funcs map onto this name, weird case, this is only a sanity check
+     cerr << __FILE__ << __LINE__ << ":  WEIRD situation that should not happen detected..."
+	  << "  zero-size vector of functions matches function name " << fname << endl;
+     func_hash->undef(fname);
+   }
+   else if (funcsEntry->size() == 1) {
+     //  the easy (and usual) case, function name has only one match
+     //  do we need to do anything to verify that this match is indeed the right function?  
+     //  lets say "no" and clear the whole thing out.
+     func_hash->undef(fname);
+     delete funcsEntry;
+   }
+   else {
+     // this name matches more than one function, get rid of all elements of the vector
+     // that have the same address
+     pdvector<pd_Function *> *newFuncsEntry = NULL;
+     for (unsigned int i = 0; i < funcsEntry->size(); ++i) {
+       if (func->addr() != (*funcsEntry)[i]->addr()) {
+	 if (! newFuncsEntry) newFuncsEntry = new pdvector<pd_Function *>;
+	 newFuncsEntry->push_back((*funcsEntry)[i]);
+       }
+     }
+     if (newFuncsEntry) {
+       if (newFuncsEntry->size() == funcsEntry->size()) {
+	 // something is odd here, we kept all of the functions, meaning that none of the
+	 // found functions shared an address with the one that we want to remove.
+	 // is this bad?
+	 cerr << __FILE__ << __LINE__ << ":  WEIRD situation that should not happen detected..."
+	  << "  could not find address match in name vector for name " << fname << endl;
+       }
+       else {
+	 // replace the old vector with the new one and destroy the old
+	 func_hash->undef(fname);
+	 (*func_hash)[fname] = newFuncsEntry;
+       }
+     }
+     else {
+       cerr << __FILE__ << __LINE__ << ":  WEIRD situation that should not happen detected..."
+	    << "  could not find address match in name vector for name " << fname << endl;
+       }
+   }
+  }
+  else {
+    // function not found by name. this case is not to be expected
+    // However, since it may not be critically important, the below warning can probably be 
+    // removed if it is getting in the way.
+       cerr << __FILE__ << __LINE__ << ":  WEIRD situation that should not happen detected..."
+	    << "  could not find instrumentable function " << fname << endl;
+  }
+#endif
+}
+
+// if a function in the "instrumentable" data structs is later determined
+// to be uninstrumentable, this function provides an atomic operation for 
+// removing it from said structs.
+int image::removeFuncFromInstrumentable(pd_Function *func)
+{
+#ifdef NOTDEF
+  assert(func);
+  string prettyName = func->prettyName();
+  string mangledName = func->symTabName();
+  pdmodule *mod = func->file();
+
+  // The ugly part of this whole process is this first linear search
+  // If we need to remove more than a handful of functions, this should either be
+  // optimized (eg sorted), or the whole process re-thought-out
+
+  for (unsigned int i = 0; i < instrumentableFunctions.size(); ++i) {
+    if (func == instrumentableFunctions[i]) {
+      // replace func with the last element in the vector and resize
+      instrumentableFunctions[i] = instrumentableFunctions[instrumentableFunctions.size()-1];
+      instrumentableFunctions.pop_back();
+    }
+  }
+
+  // remove from module lists too...
+  if (mod) {
+    if (!mod->removeInstruFunc(func)) {
+      cerr << __FILE__ << __LINE__ << ":  WEIRD situation that should not happen detected..."
+	   << "  could not remove function from module:    " << prettyName << endl;
+    }
+  }
+  else {
+    cerr << __FILE__ << __LINE__ << ":  WEIRD situation that should not happen detected..."
+	 << "  function without module found while making un-instrumentable:    " << prettyName << endl;
+  }
+
+#ifndef BPATCH_LIBRARY
+  if (excludedFunctions.defines(prettyName)) {
+    excludedFunctions.undef(prettyName);
+    // if function was excluded, it won't be in any of the other structs (right???)
+    // so we are done
+    return 0;
+  }
+  else {
+    if (includedFunctions.defines(prettyName)) 
+      includedFunctions.undef(prettyName);
+    else {
+      // not sure if a warning is needed here, but if the function was not in
+      // excludedFunctions, in should be in includedFunctions -- I think
+      cerr << __FILE__ << __LINE__ << ":  WEIRD situation that should not happen detected..."
+	   << "  not-excluded function was not in included list:  " << prettyName << endl;
+    }
+  }
+#endif
+
+
+  removeFuncFromNameHash(func, prettyName, &funcsByPretty);
+  removeFuncFromNameHash(func, mangledName, &funcsByMangled);
+
+  if (funcsByAddr.defines(func->addr()))
+    funcsByAddr.undef(func->addr());
+  else {
+    cerr << __FILE__ << __LINE__ << ":  WEIRD situation that should not happen detected..."
+	 << "  no record of known function found in funcsByAddr:  " << prettyName << endl;
+  }
+#endif
+  return 0;
+}
+
 
 void image::addNotInstruFunc(pd_Function *func, pdmodule *mod) {
     notInstruFunctions[func->prettyName()] = func;
@@ -310,20 +407,20 @@ static timer loadTimer;
 static FILE *timeOut=0;
 #endif /* DEBUG_TIME */
 
-// addOneFunction(): find name of enclosing module and define function symbol
+// makeOneFunction(): find name of enclosing module and define function symbol
 //
 // module information comes from one of three sources:
 //   #1 - debug format (stabs, DWARF, etc.)
 //   #2 - file format (ELF, COFF)
 //   #3 - file name (a.out, libXXX.so)
 // (in order of decreasing reliability)
-bool image::addOneFunction(pdvector<Symbol> &mods,
-			   const Symbol &lookUp) 
+pd_Function *image::makeOneFunction(pdvector<Symbol> &mods,
+				    const Symbol &lookUp) 
 {
   // find module name
   Address modAddr = 0;
   string modName = lookUp.module();
-
+  
   if (modName == "") {
     modName = name_ + "_module";
   } else if (modName == "DEFAULT_MODULE") {
@@ -333,7 +430,12 @@ bool image::addOneFunction(pdvector<Symbol> &mods,
   
   pdmodule *use = getOrCreateModule(modName, modAddr);
   assert(use);
-  return newFunc(use, lookUp.name(), lookUp.addr(), lookUp.size());
+
+
+  pd_Function *func = new pd_Function(lookUp.name(), use, lookUp.addr(), lookUp.size());
+  assert(func);
+
+  return func;
 }
 
 /*
@@ -341,14 +443,42 @@ bool image::addOneFunction(pdvector<Symbol> &mods,
  * the function object.  We also need to add the extra names to the
  * lookup hash tables
  */
-void image::addMultipleFunctionNames(pdvector<Symbol> &mods,
-					const Symbol &lookUp)
+void image::addMultipleFunctionNames(pd_Function *dup)
+					
 {
-  pd_Function *func = findFuncByAddr(lookUp.addr());
+  // Obtain the original function at the same address:
+  pd_Function *orig = funcsByAddr[dup->addr()];
+  assert(orig); //sanity check
 
-  /* sanity check, make sure we have actually seen this address before */
-  assert(func);
+  string mangled_name = dup->symTabName();
+  string pretty_name = dup->prettyName();
 
+  /* add the new names to the existing function */
+  orig->addSymTabName(mangled_name);
+  orig->addPrettyName(pretty_name);
+
+  /* now we add the names and the function object to the hash tables */
+  //  Mangled Hash:
+  pdvector<pd_Function*> *funcsByMangledEntry = NULL;
+  if (!funcsByMangled.find(mangled_name, funcsByMangledEntry)) {
+    funcsByMangledEntry = new pdvector<pd_Function*>;
+    funcsByMangled[mangled_name] = funcsByMangledEntry;
+  }
+
+  assert(funcsByMangledEntry);
+  (*funcsByMangledEntry).push_back(orig); // might need to check/eliminate duplicates here??
+
+  // Pretty Hash:
+  pdvector<pd_Function*> *funcsByPrettyEntry = NULL;
+  if(!funcsByPretty.find(pretty_name, funcsByPrettyEntry)) {
+    funcsByPrettyEntry = new pdvector<pd_Function*>;
+    funcsByPretty[pretty_name] = funcsByPrettyEntry;
+  }
+    
+  assert(funcsByPrettyEntry);
+  (*funcsByPrettyEntry).push_back(orig); // might need to check/eliminate duplicates here??
+
+#ifdef NOTDEF
   /* build the mangeled and pretty names so that we can add those to the
    * lookup tables
    */
@@ -361,7 +491,7 @@ void image::addMultipleFunctionNames(pdvector<Symbol> &mods,
   }
 
   string demangled;
-  if (!buildDemangledName(mangled_name, demangled, nativeCompiler)) 
+  if (!buildDemangledName(mangled_name, demangled, nativeCompiler, func->file()->language())) 
     demangled = mangled_name;
 
   /* add the names to the vectors in the function object */
@@ -387,6 +517,7 @@ void image::addMultipleFunctionNames(pdvector<Symbol> &mods,
 
   assert(funcsByMangledEntry);
   (*funcsByMangledEntry).push_back(func);
+#endif
 }
 
 /*
@@ -397,7 +528,8 @@ void image::addMultipleFunctionNames(pdvector<Symbol> &mods,
  * if found we flag this image as the executable (a.out). 
  */
 
-bool image::addAllFunctions(pdvector<Symbol> &mods)
+bool image::addAllFunctions(pdvector<Symbol> &mods, 
+			    pdvector<pd_Function *> *raw_funcs)
 {
 #if defined(TIMED_PARSE)
   struct timeval starttime;
@@ -435,7 +567,9 @@ bool image::addAllFunctions(pdvector<Symbol> &mods)
 	showErrorCallback(29, msg);
 	return false;
       }
-      addOneFunction(mods, lookUp);
+      pd_Function *main_pdf = makeOneFunction(mods, lookUp);
+      assert(main_pdf);
+      raw_funcs->push_back(main_pdf);
     }
   }
   else
@@ -473,12 +607,17 @@ bool image::addAllFunctions(pdvector<Symbol> &mods)
 	(lookUp.name() == mainFuncSymbol.name()))
       // We already added main(), so skip it now
       continue;
+#ifdef NOTDEF
+    //  This is now done later while building the "real" maps.
+    //  We will have some duplication/aliasing while building up the raw (unclassed) map
+    // but these will be weeded out later according to the same criteria.
     if (funcsByAddr.defines(lookUp.addr())) {
       // We have already seen a function at this addr. add a second name
       // for this function.
-      addMultipleFunctionNames(mods, lookUp);
+      addMultipleFunctionNames(lookUp);
       continue;
     }
+#endif
 
     if (lookUp.type() == Symbol::PDST_FUNCTION) {
       string msg;
@@ -491,7 +630,11 @@ bool image::addAllFunctions(pdvector<Symbol> &mods)
 	showErrorCallback(29, msg);
 	return false;
       }
-      addOneFunction(mods, lookUp);
+      pd_Function *new_func = makeOneFunction(mods, lookUp);
+      if (!new_func)
+	cerr << __FILE__ << __LINE__ << ":  makeOneFunction returned NULL!" << endl;
+      else
+	raw_funcs->push_back(new_func);
     }
 
     if (lookUp.type() ==  Symbol::PDST_OBJECT) {
@@ -504,13 +647,16 @@ bool image::addAllFunctions(pdvector<Symbol> &mods)
 	// kludge has been set if the symbol could be a function
 	// WHERE DO WE USE THESE KLUDGES? WHAT PLATFORM???
 	
-	cerr << "Found <KLUDGE> function " << lookUp.name().c_str() << endl;
-	kludge_symbols.push_back(lookUp);
+	cerr << "Found <KLUDGE> function " << lookUp.name().c_str() 
+	     << ".  All <KLUDGE>  functions currently ignored!  see " 
+	     << __FILE__ << __LINE__ << endl;
+	//kludge_symbols.push_back(lookUp);
 	
       }
     }
   }
 
+#ifdef NOTDEF
   // go through vector of kludge functions found and add ones that are not already def'd. 
   for (unsigned int i = 0; i < kludge_symbols.size(); ++i) {
     if (funcsByAddr.defines(kludge_symbols[i].addr()))
@@ -518,6 +664,7 @@ bool image::addAllFunctions(pdvector<Symbol> &mods)
       continue;
     addOneFunction(mods, lookUp);
   }
+#endif
 
 #if defined(TIMED_PARSE)
   struct timeval endtime;
@@ -1034,6 +1181,7 @@ const pdvector<pd_Function*> &image::getIncludedFunctions() {
 // Assed to provide support for mdl "exclude" on functions in
 //  statically linked objects.
 //  mcheyney 970727
+
 pdvector<function_base *> *pdmodule::getIncludedFunctions() {
     // laxy construction of some_funcs, as per sharedobject class....
     // cerr << "pdmodule " << fileName() << " :: getIncludedFunctions called "
@@ -1439,7 +1587,349 @@ image *image::parseImage(fileDescriptor *desc, Address newBaseAddr)
   return(ret);
 }
 
+/*
+// a helper routine that checks to see if arg <mod_name> ends in arg <suffix>
+bool compare_suffix(char *mod_name, char *suffix) 
+{
+  int endp = strlen(mod_name) - strlen(suffix) -1;
+  int j = strlen(suffix) - 1;
 
+  if (endp < 0) return false;
+
+  for (int i = strlen(mod_name)-1; i > endp; --i) {
+    if (mod_name[i] != suffix[j]) return false;
+    j--;
+  } 
+  return true;
+}
+*/
+
+//  a helper routine that selects a language based on information from the symtab
+supportedLanguages pickLanguage(string &working_module, char *working_options)
+{
+  supportedLanguages lang = lang_Unknown;
+
+  // (2) -- check suffixes -- try to keep most common suffixes near the top of the checklist
+  if (working_module.suffixed_by(".c", 2)) lang = lang_C;
+  else if (working_module.suffixed_by(".C",2)) lang = lang_CPlusPlus;
+  else if (working_module.suffixed_by(".cpp",4)) lang = lang_CPlusPlus;
+  else if (working_module.suffixed_by(".F",2)) lang = lang_Fortran; 
+  else if (working_module.suffixed_by(".f",2)) lang = lang_Fortran; 
+  else if (working_module.suffixed_by(".cc",3)) lang = lang_C;
+  else if (working_module.suffixed_by(".a",2)) lang = lang_Assembly; // is this right?
+  else if (working_module.suffixed_by(".S",2)) lang = lang_Assembly; // is this right?
+  else if (working_module.suffixed_by(".s",2)) lang = lang_Assembly; // is this right?
+  else {
+    //(3) -- try to use options string -- if we have 'em
+    if (working_options) {
+      //  NOTE:  a binary is labeled "gcc2_compiled" even if compiled w/g77 -- thus this is
+      //         quite inaccurate to make such assumptions
+      if (strstr(working_options, "gcc")) // catch option strings of the form "gccx--compiled"
+	lang = lang_C; // we also have lang_gnuC, but I don't think we need to make the distinction
+      else if (strstr(working_options, "g++")) // catch option strings of the form "g++x--compiled"
+	lang = lang_CPlusPlus; // we also have lang_gnuC, but I don't think we need to make the distinction
+      //cerr << __FILE__ << __LINE__ << ":  Compiler options: " << working_options << endl; 
+    }
+    else {
+      //  Probably don't need to warn here...  but I'll leave it in until it gets annoying
+      // cerr << __FILE__ << __LINE__ << ":  WARNING:  unable to determine language of " 
+      //   << working_name << endl; 
+    }
+  }
+	  //cerr << __FILE__ << __LINE__ << ":  Module: " <<working_module<< " infers language "<< lang << endl;  
+  return lang;
+}
+void image::getModuleLanguageInfo(dictionary_hash<string, supportedLanguages> *mod_langs)
+{
+#if defined(sparc_sun_solaris2_4) || \
+    defined(i386_unknown_solaris2_5) || \
+    defined(i386_unknown_linux2_0) || \
+    defined(ia64_unknown_linux2_4) /* Temporary duplication -- TLM. */
+  // check .stabs section to get language info for modules:
+  int stab_nsyms;
+  char *stabstr_nextoffset;
+  const char *stabstrs = 0;
+  char *modName, *ptr;
+  string mod_string;
+
+  // "state variables" we use to accumulate potentially useful information
+  //  A final module<->language decision is not made until we have arrived at the
+  //  next module entry, at which point we use any and all info we have to 
+  //  make the most sensible guess
+  string working_module;
+  supportedLanguages working_lang;
+  char *working_options = NULL, *working_name = NULL;
+
+  struct stab_entry *stabptr = NULL;
+#if defined(TIMED_PARSE)
+  struct timeval starttime;
+  gettimeofday(&starttime, NULL);
+#endif
+
+  //Using the Object to get the pointers to the .stab and .stabstr
+  // XXX - Elf32 specific needs to be in seperate file -- jkh 3/18/99
+  linkedFile.get_stab_info((void **) &stabptr, stab_nsyms, 
+			     (void **) &stabstr_nextoffset);
+
+  for(int i=0;i<stab_nsyms;i++){
+    if (stabptr[i].type == N_UNDF) {/* start of object file */
+      /* value contains offset of the next string table for next module */
+      // assert(stabptr[i].name == 1);
+      stabstrs = stabstr_nextoffset;
+      stabstr_nextoffset = const_cast<char *>(stabstrs + stabptr[i].val);
+    }
+    else if (stabptr[i].type == N_OPT){
+      //  We can use the compiler option string (in a pinch) to guess at the source file language
+      //  There is possibly more useful information encoded somewhere around here, but I lack
+      //  an immediate reference....
+      if (working_name)
+	working_options = const_cast<char *> (&stabstrs[stabptr[i].name]); 
+    }
+    else if ((stabptr[i].type == N_SO)  || (stabptr[i].type == N_ENDM)){ /* compilation source or file name */
+      // We have arrived at the next source file, finish up with the last one and reset state
+      // before starting next
+      if  (working_name) {
+	if (working_lang == lang_Unknown)
+	  working_lang = pickLanguage(working_module, working_options);	  
+
+	(*mod_langs)[working_module] = working_lang;
+      }
+
+      // reset "state" here
+      working_lang = lang_Unknown;
+      working_options = NULL;
+
+      //  Now:  out with the old, in with the new
+
+      if (stabptr[i].type == N_ENDM) {
+	// special case:
+	working_name = "DEFAULT_MODULE";
+      }
+      else {
+	working_name = const_cast<char*>(&stabstrs[stabptr[i].name]);
+	ptr = strrchr(working_name, '/');
+	if (ptr) {
+	  ptr++;
+	  working_name = ptr;
+	}
+      }
+      working_module = string(working_name);
+
+      if (mod_langs->defines(working_module) && (*mod_langs)[working_module] != lang_Unknown) {
+	//  we already have a module with this name in the map.  If it has been given
+	//  a language assignment (not lang_Unknown), we can just skip ahead
+	if ((*mod_langs)[working_module] != lang_Unknown) {
+	  working_name = NULL;
+	  working_options = NULL;
+	  continue;
+	} 
+	else {
+	  //cerr << __FILE__ << __LINE__ << ":  Module: " <<working_module<< " has language "<< stabptr[i].desc << endl;  
+	  switch (stabptr[i].desc) {
+	  case N_SO_FORTRAN: 
+	    working_lang = lang_Fortran;
+	    break;
+	  case N_SO_F90:
+	    working_lang = lang_Fortran;  // not sure if this should be different from N_SO_FORTRAN
+	    break;
+	  case N_SO_AS:
+	    working_lang = lang_Assembly;
+	    break;
+	  case N_SO_ANSI_C:
+	  case N_SO_C:
+	    working_lang = lang_C;
+	    break;
+	  case N_SO_CC:
+	    working_lang = lang_CPlusPlus;
+	    break;
+	  default:
+	    //  currently uncovered options are lang_CMFortran, and lang_GnuCPlusPlus
+	    //  do we need to make this kind of distinction here?
+	    working_lang = lang_Unknown;
+	    break;
+	  }
+	}
+      } 
+    } // end N_SO section
+#ifdef NOTDEF
+    else {
+      //  This is here only to trace the parse, for my edification and knowledge, should be removed
+      //  Throw away most known symbols here
+      if ( (N_FUN != stabptr[i].type) &&
+	   (N_GSYM != stabptr[i].type) &&
+	   (N_STSYM != stabptr[i].type) &&
+	   (N_LCSYM != stabptr[i].type) &&
+	   (N_ROSYM != stabptr[i].type) &&
+	   (N_SLINE != stabptr[i].type) &&
+	   (N_SOL != stabptr[i].type) &&
+	   (N_ENTRY != stabptr[i].type) &&
+	   (N_BCOMM != stabptr[i].type) &&
+	   (N_ECOMM != stabptr[i].type)) {
+      char hexbuf[10];
+      sprintf(hexbuf, "%p",stabptr[i].type );
+      cerr << __FILE__ << __LINE__ << ":  got " << hexbuf << endl;
+      }
+    }
+#endif
+  } // for loop
+
+  //  Need to make sure we finish up with the module we were last collecting information 
+  //  about
+  if  (working_name) {
+    if (working_lang == lang_Unknown)
+      working_lang = pickLanguage(working_module, working_options);	  
+    
+    (*mod_langs)[working_module] = working_lang;
+  }
+
+#if defined(TIMED_PARSE)
+  struct timeval endtime;
+  gettimeofday(&endtime, NULL);
+  unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+  unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+  unsigned long difftime = lendtime - lstarttime;
+  double dursecs = difftime/(1000 );
+  cout << __FILE__ << ":" << __LINE__ <<": getModuleLanguageInfo took "<<dursecs <<" msecs" << endl;
+#endif
+
+
+#endif // stabs platforms
+}
+
+//  setModuleLanguages is only called after modules have been defined.
+//  it attempts to set each module's language, information which is needed
+//  before names can be demangled.
+void image::setModuleLanguages(dictionary_hash<string, supportedLanguages> *mod_langs)
+{
+  if (!mod_langs->size()) return;  // cannot do anything here
+  //  this case will arise on non-stabs platforms until language parsing can be introduced at this level
+  pdvector<pdmodule *> *modlist;
+  pdmodule *currmod = NULL;
+#ifdef BPATCH_LIBRARY
+  modlist = &_mods;
+#else
+  modlist = &allMods;
+#endif
+  //int dump = 0;
+
+  for (unsigned int i = 0;  i < modlist->size(); ++i) {
+    currmod = (*modlist)[i];
+    supportedLanguages currLang;
+
+    if (currmod->isShared()) continue;  // need to find some way to get shared object languages?
+    if(mod_langs->find(currmod->fileName(), currLang)) {
+      currmod->setLanguage(currLang);
+    }
+    else {
+      //cerr << __FILE__ << __LINE__ << ":  module " << currmod->fileName() 
+      //	   << " not found in module<->language map" << endl;
+      //dump = 1;
+      //  here we should probably try to guess, based on filename conventions
+    }
+  }
+#ifdef NOTDEF
+  // REMOVE!!  this is for debuggering
+  if (dump) {
+    dictionary_hash_iter<string, supportedLanguages> iter(*mod_langs);
+    string aname;
+    supportedLanguages alang;
+    cerr << __FILE__ << __LINE__ << ": contents of module<->language map:" << endl;
+    while (iter.next(aname, alang)) {
+      cerr << aname << " : " << alang << endl;
+    }
+  }
+#endif
+}
+
+// buildFunctionMaps() iterates through pd_Functions and constructs demangled names.
+// Demangling was moved here (names used to be demangled as pd_Functions were
+// built) so that language information could be obtained _after_ the functions and modules
+// were built, but before name demangling takes place.  Thus we can use language information
+// during the demangling process.
+//
+// After name demangling is done, each function's inst points are found and the function
+// is classified as either instrumentable or non-instrumentable and filed accordingly 
+bool image::buildFunctionMaps(pdvector<pd_Function *> *raw_funcs)
+{
+  pd_Function *pdf;
+  pdmodule *mod;
+  //cerr << "Inside buildFunctionMaps: raw_funcs->size = " <<raw_funcs->size()<< endl;
+  unsigned int num_raw_funcs = raw_funcs->size();
+  // build a demangled name for each raw (unclassed) function found in the parse
+  for (unsigned int i = 0; i < num_raw_funcs; ++i) {
+    assert(NULL != (pdf = (*raw_funcs)[i]));
+    assert (NULL != (mod = pdf->file()));
+    Address addr = pdf->addr();
+    
+    string name = pdf->symTabName();
+    string mangled_name = name;
+
+    // strip scoping information from mangled name before demangling:
+    const char *p = P_strchr(mangled_name.c_str(), ':');
+    if (p) {
+      unsigned nchars = p - name.c_str();
+      mangled_name = string(name.c_str(), nchars);
+    }
+    
+    string demangled;
+    if (!buildDemangledName(mangled_name, demangled, nativeCompiler, mod->language())) 
+      demangled = mangled_name;
+
+    // let the function in on its new name first
+    //  WARNING:  do we need to check for duplicates here???
+    pdf->addPrettyName(demangled);
+
+    // check to see that this function is not an alias
+    if (funcsByAddr.defines(addr)) {
+      // We have already seen a function at this addr. add a second name
+      // for this function.  Then delete it
+      addMultipleFunctionNames(pdf);
+      delete pdf;
+      continue;
+    }
+
+    // check to see if function is instrumentable
+    if (!pdf->findInstPoints(this)) {
+      // function is not instrumentable, add to "bad" pile
+      addNotInstruFunc(pdf, pdf->file());
+      continue;
+    }
+
+    // then build up the maps & vectors as appropriate
+#ifdef BPATCH_LIBRARY
+    addInstruFunction(pdf, mod, addr,false);
+#else
+    addInstruFunction(pdf, mod, addr,function_is_excluded(pdf, mod->fileName()));
+#endif
+    
+  }
+
+  // can this ever fail???
+  return true;
+
+}
+
+// findAllInstPoints goes through each function and calls f->findInstPoints
+void image::findAllInstPoints()
+{
+  dictionary_hash_iter<Address, pd_Function*> mi(funcsByAddr);
+  Address adr;
+  pd_Function *pdf;
+  int count_removed = 0;
+
+  while (mi.next(adr, pdf)) {
+    assert(pdf);
+    if (!pdf->findInstPoints(this)) {
+      // function is not instrumentable
+      removeFuncFromInstrumentable(pdf);
+      addNotInstruFunc(pdf, pdf->file());
+      count_removed++;
+    }
+  }
+  // Remove next line:
+  cerr << __FILE__ << __LINE__ << ":  findAllInstPoints() had to reclassify " << count_removed 
+       << " function(s) as uninstrumentable" << endl;
+}
 // Constructor for the image object. The fileDescriptor simply
 // wraps (in the normal case) the object name and a relocation
 // address (0 for a.out file). On the following platforms, we
@@ -1588,7 +2078,9 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
   }
   // avoid case where all (ELF) module symbols have address zero
   if (num_zeros == tmods.size()) uniq.resize(0);
-  
+
+
+
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
   // make sure we're using the right demangler
 
@@ -1599,12 +2091,33 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
   // define all of the functions
   statusLine("winnowing functions");
   
-  // define all of the functions
-  if (!addAllFunctions(uniq)) {
+  // a vector to hold all created functions until they are properly classified
+  pdvector<pd_Function *> raw_funcs; 
+
+  // define all of the functions, this also defines all of the moldules
+  if (!addAllFunctions(uniq, &raw_funcs)) {
     err = true;
     return;
   }
+
+  // wait until all modules are defined before applying languages to them
+  // we want to do it this way so that module information comes from the function
+  // symbols, first and foremost, to avoid any internal module-function mismatching.
+
+  // get Information on the language each modules is written in (prior to making modules)
+  dictionary_hash<string, supportedLanguages> mod_langs(string::hash);
+  getModuleLanguageInfo(&mod_langs);
+  setModuleLanguages(&mod_langs);
+
+  // Once languages are assigned, we can build demangled names (in the wider sense of demangling
+  // which includes stripping _'s from fortran names -- this is why language information must
+  // be determined before this step).
   
+  if (!buildFunctionMaps(&raw_funcs)) {
+    err = true;
+    return;
+  }
+
   // ALERT ALERT - Calling on both shared_object && !shared_object path.
   //  In origional code, only called in !shared_object case.  Was this 
   //  a bug????
@@ -1645,9 +2158,11 @@ void pdmodule::updateForFork(process *childProcess,
   for(unsigned j=0; j<notInstruFuncs.size(); j++) {
     notInstruFuncs[j]->updateForFork(childProcess, parentProcess);
   }
+#ifndef BPATCH_LIBRARY
   for(unsigned k=0; k<some_funcs.size(); k++) {
     some_funcs[k]->updateForFork(childProcess, parentProcess);
   }
+#endif
 }
 
 #ifdef CHECK_ALL_CALL_POINTS
@@ -1776,6 +2291,68 @@ pdmodule::findFunctionFromAll(const string &name,
   return NULL;
 }
 
+function_base *pdmodule::findFunctionByMangled(const string &name)
+{
+  pdvector<function_base *> found;
+  pdvector<function_base *> *foundp = &found;
+
+  PDMODULE_FIND(name, funcs, foundp, symTab);
+  if (!found.size()) return NULL;
+  if (found.size() > 1) return NULL; // fail if more than one found 
+  return found[0];
+
+}
+
+void pdmodule::dumpMangled(char * prefix) 
+{
+  cerr << fileName() << "::dumpMangled("<< prefix << "): " << endl;
+  for (unsigned int i = 0; i < funcs.size(); ++i) {
+    if (prefix) {
+      if (!strncmp(funcs[i]->symTabName().c_str(), prefix, strlen(prefix) -1))
+	cerr << funcs[i]->symTabName() << " ";
+      else {
+	//printf("%s is not a prefix of %s\n", prefix, funcs[i]->symTabName().c_str());
+      }
+    }
+    else
+      cerr << funcs[i]->symTabName() << " ";
+  }
+  cerr << endl;
+}
+
+pdvector<function_base *> *pdmodule::findUninstrumentableFunction(const string &name,
+								 pdvector<function_base *> *found)
+{
+  PDMODULE_FIND(name, notInstruFuncs, found, pretty);
+  return found;
+}
+
+// remove record of function from internal vector of instrumentable funcs
+// (used when a function needs to be reclassified as non-instrumentable);
+bool pdmodule::removeInstruFunc(pd_Function *pdf)
+{
+  bool ret = false;
+
+  for (unsigned int i = 0; i < funcs.size(); ++i) {
+    if (funcs[i] == pdf) {
+      funcs[i] = funcs[funcs.size() -1];
+      funcs.pop_back();
+      ret = true;
+      break;
+    }
+  }
+
+#ifndef BPATCH_LIBRARY
+  for (unsigned int i = 0; i < some_funcs.size(); ++i) {
+    if (some_funcs[i] == pdf) {
+      some_funcs[i] = some_funcs[some_funcs.size() -1];
+      some_funcs.pop_back();
+      break;
+    }
+  }
+#endif
+  return ret;
+}
 #ifdef CHECK_ALL_CALL_POINTS
 void image::checkAllCallPoints() {
   dictionary_hash_iter<string, pdmodule*> di(modsByFullName);
@@ -1785,7 +2362,7 @@ void image::checkAllCallPoints() {
 }
 #endif
 pdmodule *image::getOrCreateModule(const string &modName, 
-				      const Address modAddr) {
+				   const Address modAddr) {
   const char *str = modName.c_str();
   int len = modName.length();
   assert(len>0);
@@ -1797,9 +2374,9 @@ pdmodule *image::getOrCreateModule(const string &modName,
     // TODO - navigate ".." and "."
     const char *lastSlash = P_strrchr(str, '/');
     if (lastSlash)
-      return (newModule(++lastSlash, modAddr));
+      return (newModule(++lastSlash, modAddr, lang_Unknown));
     else
-      return (newModule(modName, modAddr));
+      return (newModule(modName, modAddr, lang_Unknown));
   }
 }
 
@@ -1811,10 +2388,9 @@ pdmodule *image::getOrCreateModule(const string &modName,
 //
 // Note - this must define funcEntry and funcReturn
 // 
-pd_Function::pd_Function(const string &symbol, const string &pretty, 
-		       pdmodule *f, Address adr, const unsigned size, 
-		       const image *owner, bool &err) : 
-  function_base(symbol, pretty, adr, size),
+pd_Function::pd_Function(const string &symbol,
+			 pdmodule *f, Address adr, const unsigned size) :
+  function_base(symbol, adr, size),
   file_(f),
   funcEntry_(0),
 #ifndef BPATCH_LIBRARY
@@ -1823,9 +2399,18 @@ pd_Function::pd_Function(const string &symbol, const string &pretty,
   relocatable_(false),
   call_points_have_been_checked(false)
 {
-  err = findInstPoints(owner) == false;
+  //  We used to call findInstPoints here, but since this function sometimes makes
+  //  use of a pretty name to determine if the function should not be instrumented
+  //  it had to be relocated to a later point in the parsing process...  after 
+  //  names have been demangled.  See findAllInstPoints();
+#ifdef NOTDEF 
+ err = findInstPoints(owner) == false;
 
   isInstrumentable_ = !err;
+#endif
+  relocatedCode = NULL;
+  originalCode = NULL;
+  instructions = NULL;
 }
 
 // This method returns the address at which this function resides
@@ -2235,7 +2820,15 @@ pdvector<pd_Function *> *image::findFuncVectorByPretty(functionNameSieve_t bpsie
 						       pdvector<pd_Function *> *found)
 {
   pdvector<pdvector<pd_Function *> *> result;
-  result = funcsByPretty.linear_filter(bpsieve, user_data);
+  //result = funcsByPretty.linear_filter(bpsieve, user_data);
+  dictionary_hash_iter <string, pdvector<pd_Function*>*> iter(funcsByPretty);
+  string fname;
+  pdvector<pd_Function *> *fmatches;
+  while (iter.next(fname, fmatches)) {
+    if ((*bpsieve)(iter.currkey().c_str(), user_data)) {
+      result.push_back(fmatches);
+    }
+  }
 
   // Need to consolodate vector of vectors into just one vector  
   // This is wasteful in general, but hopefully result.size() is small
@@ -2255,7 +2848,17 @@ pdvector<pd_Function *> *image::findFuncVectorByMangled(functionNameSieve_t bpsi
 							pdvector<pd_Function *> *found)
 {
   pdvector<pdvector<pd_Function *> *> result;
-  result = funcsByMangled.linear_filter(bpsieve, user_data);
+  // result = funcsByMangled.linear_filter(bpsieve, user_data);
+
+  dictionary_hash_iter <string, pdvector<pd_Function*>*> iter(funcsByMangled);
+  string fname;
+  pdvector<pd_Function *> *fmatches;
+  while (iter.next(fname, fmatches)) {
+    if ((*bpsieve)(iter.currkey().c_str(), user_data)) {
+      result.push_back(fmatches);
+    }
+  }
+
 
   // Need to consolodate vector of vectors into just one vector  
   // This is wasteful in general, but hopefully result.size() is small
@@ -2300,7 +2903,16 @@ int image::findFuncVectorByPrettyRegex(pdvector<pd_Function *> *found, regex_t *
   //  jaw 01-03
 
   pdvector<pdvector<pd_Function *> *> result;
-  result = funcsByPretty.linear_filter(&regex_filter_func, (void *) comp_pat);
+  //  result = funcsByPretty.linear_filter(&regex_filter_func, (void *) comp_pat);
+
+  dictionary_hash_iter <string, pdvector<pd_Function*>*> iter(funcsByPretty);
+  string fname;
+  pdvector<pd_Function *> *fmatches;
+  while (iter.next(fname, fmatches)) {
+    if ((*regex_filter_func)(iter.currkey().c_str(), comp_pat)) {
+      result.push_back(fmatches);
+    }
+  }
 
   // Need to consolodate vector of vectors into just one vector  
   // This is wasteful in general, but hopefully result.size() is small
@@ -2319,8 +2931,17 @@ int image::findFuncVectorByMangledRegex(pdvector<pd_Function *> *found, regex_t 
   // almost identical to its "Pretty" counterpart.
 
   pdvector<pdvector<pd_Function *> *> result;
-  result = funcsByMangled.linear_filter(&regex_filter_func, (void *) comp_pat);
-  cerr <<"mangled regex result.size() = " << result.size() <<endl;
+  //result = funcsByMangled.linear_filter(&regex_filter_func, (void *) comp_pat);
+  //cerr <<"mangled regex result.size() = " << result.size() <<endl;
+  dictionary_hash_iter <string, pdvector<pd_Function*>*> iter(funcsByMangled);
+  string fname;
+  pdvector<pd_Function *> *fmatches;
+  while (iter.next(fname, fmatches)) {
+    if ((*regex_filter_func)(iter.currkey().c_str(), comp_pat)) {
+      result.push_back(fmatches);
+    }
+  }
+
   for (unsigned int i = 0; i < result.size(); ++i) 
     for (unsigned int j = 0; j < result[i]->size(); ++j) 
       found->push_back((*result[i])[j]);

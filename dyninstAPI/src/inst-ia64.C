@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.27 2003/04/16 21:07:13 bernat Exp $
+ * $Id: inst-ia64.C,v 1.28 2003/04/17 20:55:53 jaw Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -412,7 +412,9 @@ bool pd_Function::findInstPoints( const image * i_owner ) {
 			} /* end instruction type switch */
 		} /* end instruction iteration */
 
-	return true;
+	is_instrumentable = 1;
+	return true; // if this function can ever return false, make sure the is_instrumentable flag
+	// is set properly in this function.
 	} /* end findInstPoints() */
 
 /* Required by func-reloc.C */

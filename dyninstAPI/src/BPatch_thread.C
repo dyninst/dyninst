@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.83 2003/04/16 21:07:02 bernat Exp $
+// $Id: BPatch_thread.C,v 1.84 2003/04/17 20:55:53 jaw Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -1357,13 +1357,19 @@ bool BPatch_thread::getLineAndFile(unsigned long addr,unsigned short& lineNo,
 	BPatch_Vector<BPatch_module*>* appModules = image->getModules();
 	for(unsigned int i=0;i<appModules->size();i++){
 		lineInformation = (*appModules)[i]->getLineInformation();
-		if(!lineInformation)
-			continue;
+		if(!lineInformation) {
+		  cerr << __FILE__ << __LINE__ << ": found NULL lineInformation "<< endl;
+		  continue;
+		}
 #ifdef OLD_LINE_INFO
 		for(int j=0;j<lineInformation->getSourceFileCount();j++){
 			string* fileN = lineInformation->sourceFileList[j];
 			FileLineInformation* fInfo = 
 				lineInformation->lineInformationList[j];
+			if (!fInfo) {
+			  cerr << "found NULL FileLineInformation! "<< endl;
+			  continue;
+			}
 			if(fInfo->getLineFromAddr(*fileN,lineNo,addr,true,false)){
 				if(fileN->length() < (unsigned)size)
 					size = fileN->length();
@@ -1377,6 +1383,7 @@ bool BPatch_thread::getLineAndFile(unsigned long addr,unsigned short& lineNo,
 		    return true;
 #endif
 	}
+
 	return false;
 }
 

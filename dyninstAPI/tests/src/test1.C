@@ -2194,7 +2194,7 @@ void mutatorTest21(BPatch_thread *, BPatch_image *appImage)
 
     // Find the function CALL21_1 in each of the modules
     BPatch_Vector<BPatch_function *> bpmv;
-    if (NULL == modA->findFunction("call21_1", &bpmv) || !bpmv.size()) {
+    if (NULL == modA->findFunction("call21_1", bpmv) || !bpmv.size()) {
       fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
       fprintf(stderr, "  Mutator couldn't find a function in %s\n", libNameA);
       exit(1);
@@ -2202,7 +2202,7 @@ void mutatorTest21(BPatch_thread *, BPatch_image *appImage)
     BPatch_function *funcA = bpmv[0];
 
     bpmv.clear();
-    if (NULL == modB->findFunction("call21_1", &bpmv) || !bpmv.size()) {
+    if (NULL == modB->findFunction("call21_1", bpmv) || !bpmv.size()) {
       fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
       fprintf(stderr, "  Mutator couldn't find a function in %s\n", libNameB);
       exit(1);
@@ -2326,7 +2326,7 @@ void mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_function *call22_3func = bpfv[0];
 
     BPatch_Vector<BPatch_function *> bpmv;
-    if (NULL == modA->findFunction("call22_4", &bpmv) || !bpmv.size()) {
+    if (NULL == modA->findFunction("call22_4", bpmv) || !bpmv.size()) {
 	 fprintf(stderr, "**Failed test #22 (replace function)\n");
 	 fprintf(stderr, "  Mutator couldn't find functions in mutatee\n");
 	 exit(1);
@@ -2341,7 +2341,7 @@ void mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
 
     // Replace a shlib function with a shlib function
     bpmv.clear();
-    if (NULL == modA->findFunction("call22_5", &bpmv) || !bpmv.size()) {
+    if (NULL == modA->findFunction("call22_5", bpmv) || !bpmv.size()) {
 	 fprintf(stderr, "**Failed test #22 (replace function)\n");
 	 fprintf(stderr, "  Mutator couldn't find functions in mutatee\n");
 	 exit(1);
@@ -2349,7 +2349,7 @@ void mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_function *call22_5Afunc = bpmv[0];
 
     bpmv.clear();
-    if (NULL == modB->findFunction("call22_5", &bpmv) || !bpmv.size()) {
+    if (NULL == modB->findFunction("call22_5", bpmv) || !bpmv.size()) {
 	 fprintf(stderr, "**Failed test #22 (replace function)\n");
 	 fprintf(stderr, "  Mutator couldn't find functions in mutatee\n");
 	 exit(1);
@@ -2363,7 +2363,7 @@ void mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
 
     // Replace a shlib function with an a.out function
     bpmv.clear();
-    if (NULL == modA->findFunction("call22_6", &bpmv) || !bpmv.size()) {
+    if (NULL == modA->findFunction("call22_6", bpmv) || !bpmv.size()) {
 	 fprintf(stderr, "**Failed test #22 (replace function)\n");
 	 fprintf(stderr, "  Mutator couldn't find functions in mutatee\n");
 	 exit(1);

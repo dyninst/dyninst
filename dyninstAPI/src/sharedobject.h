@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.h,v 1.33 2003/04/02 07:12:26 jaw Exp $
+// $Id: sharedobject.h,v 1.34 2003/04/17 20:55:55 jaw Exp $
 
 #if !defined(_shared_object_h)
 #define _shared_object_h
@@ -213,11 +213,11 @@ private:
     bool    mapped;     // if true, the application has the shared obj. mapped
 			// shared objects can be unmapped as the appl. runs
 
-    image  *objs_image; // pointer to image if processed is true 
+ 
 
     void set_short_name();
     bool dirty_; // marks the shared object as dirty 
-    bool dlopenUsed; //mark this shared object as opened by dlopen
+  
 
 #ifndef BPATCH_LIBRARY
     bool include_funcs; // if true include the the functions from this shared
@@ -228,7 +228,8 @@ private:
     pdvector<pd_Function *> *included_funcs; // all functions not excluded by 
 				       // exclude_func option
 #endif
-
+    image  *objs_image; // pointer to image if processed is true 
+    bool dlopenUsed; //mark this shared object as opened by dlopen
 
 };
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.49 2003/04/16 21:07:19 bernat Exp $
+// $Id: osf.C,v 1.50 2003/04/17 20:55:54 jaw Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -93,7 +93,7 @@ bool rpcMgr::emitInferiorRPCheader(void *insnPtr, Address &baseBytes) {
 
   extern void emitSaveConservative(process *, char *, Address &baseBytes);
 
-  emitSaveConservative(proc, (char *) insnPtr, baseBytes);
+  emitSaveConservative(proc_, (char *) insnPtr, baseBytes);
 
   return true;
 }
@@ -111,7 +111,7 @@ bool rpcMgr::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
   extern void generateBreakPoint(instruction &);
   extern void emitRestoreConservative(process *, char *, Address &baseBytes);
 
-  emitRestoreConservative(proc, (char *) insnPtr, baseBytes);
+  emitRestoreConservative(proc_, (char *) insnPtr, baseBytes);
 
   if (stopForResult) {
     generateBreakPoint(insn[baseInstruc]);

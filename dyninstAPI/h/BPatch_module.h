@@ -69,6 +69,7 @@ class BPATCH_DLL_EXPORT BPatch_module: public BPatch_sourceObj {
     pdmodule		*mod;
     BPatch_image	*img;
     BPatch_Vector<BPatch_function *> * BPfuncs;
+    BPatch_Vector<BPatch_function *> * BPfuncs_uninstrumentable;
     LineInformation* lineInformation;
     bool nativeCompiler;
      
@@ -94,16 +95,23 @@ public:
 
     BPatch_Vector<BPatch_function *> *getProcedures();
     BPatch_Vector<BPatch_function *> *findFunction(const char *name,
-						   BPatch_Vector<BPatch_function *> *funcs,
+						   BPatch_Vector<BPatch_function *> &funcs,
+						   bool notify_on_failure=true,
 						   bool regex_case_sensitive=true);
+
+    BPatch_function *findFunctionByMangled(const char * mangled_name);
+    BPatch_Vector<BPatch_function *> *findUninstrumentableFunction(const char *name,
+								  BPatch_Vector<BPatch_function *> &funcs);
+
+    void dumpMangled(char * prefix);
     // parse stab stuff when needed
+    void parseTypes(); // Warning -- parseTypes function body changes with PARSE_ALL_AT_ONCE
+
 #ifndef PARSE_ALL_AT_ONCE
-    void parseTypes(); // parse type and variable info
     void parseFileLineInfo();  // parses line information
     // this function assumes that parseTypes has already been called.
-#else
-    void parseTypes();
 #endif
+
     bool isSharedLib() const;
 
     inline bool isNativeCompiler() const { return nativeCompiler; }

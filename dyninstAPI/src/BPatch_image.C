@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.40 2003/04/09 17:36:19 chadd Exp $
+// $Id: BPatch_image.C,v 1.41 2003/04/17 20:55:52 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -478,7 +478,7 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(
     } else {
       
       if (showError) {
-	string msg = string("Unable to find function: ") + string(name);
+	string msg = string("Image: Unable to find function: ") + string(name);
 	BPatch_reportError(BPatchSerious, 100, msg.c_str());
       }
       return NULL;
@@ -500,7 +500,7 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(
     regerror( err, &comp_pat, errbuf, 80 );
     if (showError) {
       cerr << __FILE__ << ":" << __LINE__ << ":  REGEXEC ERROR: "<< errbuf << endl;
-      string msg = string("Unable to find function pattern: ") 
+      string msg = string("Image: Unable to find function pattern: ") 
 	+ string(name) + ": regex error --" + string(errbuf);
       BPatch_reportError(BPatchSerious, 100, msg.c_str());
     }
@@ -580,7 +580,7 @@ BPatch_image::findFunction(BPatch_Vector<BPatch_function *> *funcs,
     for(unsigned int j = 0; j < proc->shared_objects->size(); j++){
       const image *obj_image = ((*proc->shared_objects)[j])->getImage();
       if (obj_image) {
-	sieveFunctionsInImage((image*)obj_image, funcs, bpsieve, user_data);
+	sieveFunctionsInImage(const_cast<image *>(obj_image), funcs, bpsieve, user_data);
       }
     }
   }
@@ -658,7 +658,7 @@ BPatch_variableExpr *BPatch_image::findVariable(BPatch_point &scp,
 {
     // Get the function to search for it's local variables.
     // XXX - should really use more detailed scoping info here - jkh 6/30/99
-    BPatch_function *func = (BPatch_function *) scp.getFunction();
+    BPatch_function *func = const_cast<BPatch_function *> (scp.getFunction());
     if (!func) {
 	string msg = string("point passed to findVariable lacks a function\n address point type passed?");
 	showErrorCallback(100, msg);

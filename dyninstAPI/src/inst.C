@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.104 2003/02/21 20:05:58 bernat Exp $
+// $Id: inst.C,v 1.105 2003/04/17 20:55:53 jaw Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -102,6 +102,14 @@ bool pd_Function::getStaticCallees(process *proc,
     
     callees.resize(0);
 
+#ifndef CHECK_ALL_CALL_POINTS
+    // JAW -- need to checkCallPoints() here to ensure that the
+    // vector "calls" has been fully initialized/filtered/classified.
+    //
+    //
+    checkCallPoints();
+#endif
+
     // possible algorithm : iterate over calls (vector of instPoint *)
     //   for each elem : use iPgetCallee() to get statically determined
     //   callee....
@@ -123,10 +131,10 @@ bool pd_Function::getStaticCallees(process *proc,
       }
       
       if (f != NULL && !filter.defines(f)) {
-      callees += (pd_Function *)f;
+	callees += (pd_Function *)f;
 	filter[f] = f;
-	}
       }
+    }
     return true;
 }
 #endif

@@ -973,7 +973,7 @@ void mutatorTest10(BPatch_thread *appThread, BPatch_image *appImage)
 
    // find ostream::operator<< function in the standard library
    BPatch_Vector<BPatch_function *> bpmv;
-   if (NULL == modStdC->findFunction("ostream::operator<<", &bpmv) || !bpmv.size()) {
+   if (NULL == modStdC->findFunction("ostream::operator<<", bpmv) || !bpmv.size()) {
      fprintf(stderr, "**Failed test #10 (find standard C++ library)\n");
      fprintf(stderr, "  Mutator couldn't find a function in %s\n", libStdC);
      exit(1);
@@ -1022,7 +1022,7 @@ void mutatorTest11(BPatch_thread *appThread, BPatch_image *appImage)
    // Replace a shlib function with a shlib function
    char buf1[64], buf2[64];
    BPatch_Vector<BPatch_function *> bpmv;
-   if (NULL == modStdC->findFunction("ostream::operator<<", &bpmv) || !bpmv.size()) {
+   if (NULL == modStdC->findFunction("ostream::operator<<", bpmv) || !bpmv.size()) {
      fprintf(stderr, "**Failed test #10 (find standard C++ library)\n");
      fprintf(stderr, "  Mutator couldn't find a function in %s\n", libStdC);
      exit(1);
@@ -1030,7 +1030,7 @@ void mutatorTest11(BPatch_thread *appThread, BPatch_image *appImage)
    BPatch_function *func1 = bpmv[0];
 
    bpmv.clear();
-   if (NULL == modStdC->findFunction("istream::operator>>", &bpmv) || !bpmv.size()) {
+   if (NULL == modStdC->findFunction("istream::operator>>", bpmv) || !bpmv.size()) {
      fprintf(stderr, "**Failed test #10 (find standard C++ library)\n");
      fprintf(stderr, "  Mutator couldn't find a function in %s\n", libStdC);
      exit(1);

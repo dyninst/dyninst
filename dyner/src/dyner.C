@@ -1852,24 +1852,25 @@ int findAndShowCommand(ClientData, Tcl_Interp *, int argc, char *argv[])
     return TCL_ERROR;
   }
 
-  if (argc == 3)
+  if (argc == 3) {
     if (NULL == appImage->findFunction(argv[2], &functions) || !functions.size()) {
       printf("No matches for %s\n", argv[2]);
       return TCL_OK;
     }
-    else if (argc == 5) {
-      BPatch_module *module = FindModule(argv[4]);
-      if (!module) {
-	printf("No matches for module %s\n", argv[4]);
-	return TCL_ERROR;
-      }
-
-      if (NULL == module->findFunction(argv[2], &functions)) {
-	printf("Error finding %s in module %s\n", argv[2], argv[4]);
-	return TCL_ERROR;
-      }
+  }
+  else if (argc == 5) {
+    BPatch_module *module = FindModule(argv[4]);
+    if (!module) {
+      printf("No matches for module %s\n", argv[4]);
+      return TCL_ERROR;
     }
-
+    
+    if (NULL == module->findFunction(argv[2], functions)) {
+      printf("Error finding %s in module %s\n", argv[2], argv[4]);
+      return TCL_ERROR;
+    }
+  }
+  
   //Now print all the functions in the set
   char funcName[1024];
   for(unsigned int i=0; i<functions.size(); ++i) {

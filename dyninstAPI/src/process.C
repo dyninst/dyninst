@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.412 2003/04/16 21:07:04 bernat Exp $
+// $Id: process.C,v 1.413 2003/04/17 20:55:54 jaw Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1416,8 +1416,6 @@ void process::saveWorldAddSharedLibs(void *ptr){ // ccw 14 may 2002
 	int dataSize=0;
 	char *data, *dataptr;
 	writeBackElf *newElf = (writeBackElf*)ptr;
-
-	int i;
 
 	for(unsigned i=0;i<loadLibraryUpdates.size();i++){
 		dataSize += loadLibraryUpdates[i].length() + 1;
@@ -4100,10 +4098,30 @@ bool process::addASharedObject(shared_object &new_obj, Address newBaseAddr){
       }
     }
 #else
+    //  JAW -- 04-03  SIGNAL HANDLER seems to only be validly defined for solaris/linux/mips
+    //      I don't know if this is correct, but given this fact, I'm putting in the following #if
+#if defined(sparc_sun_solaris2_4)  \
+    || defined(mips_sgi_irix6_4) \
+    || defined(sparc_sun_solaris2_5)
+ 
     if(!signal_handler){
-        signal_handler = img->findOnlyOneFunction(SIGNAL_HANDLER);
+      pdvector<pd_Function *> *pdfv;
+      if (NULL == (pdfv = img->findFuncVectorByPretty(string(SIGNAL_HANDLER)))
+	  || ! pdfv->size()) {
+	cerr << __FILE__ << __LINE__ << ": findFuncVectorByPretty could not find "
+	     << string(SIGNAL_HANDLER) << endl;
+	// what to do here?
+      }
+      else {
+	if (pdfv->size() > 1){
+	  cerr << __FILE__ << __LINE__ << ": findFuncVectorByPretty found " << pdfv->size()
+	       <<" functions called "<< string(SIGNAL_HANDLER) << endl;
+	}
+        signal_handler = (*pdfv)[0];
+      }
     }
-#endif
+#endif // sparc-mips
+#endif // !linux
 
     // clear the include_funcs flag if this shared object should not be
     // included in the some_functions and some_modules lists
@@ -4412,11 +4430,15 @@ function_base *process::findOnlyOneFunction(const string &name) const {
 	    // fail if we already found a match
 	    if (ret) {
 	      cerr << __FILE__ << ":" << __LINE__ << ": ERROR:  findOnlyOneFunction"
-		   << "found more than one match for function " << func_name <<endl;
+		   << " found more than one match for function " << func_name <<endl;
 	      return NULL;
 	    }
 	    ret = pdf;
           }
+	  else {
+	    // cerr << __FILE__ << ":" << __LINE__ << ": WARNING:  findOnlyOneFunction"
+	    //<< " could not find function " << func_name << endl;
+	  }
         }
       }
     } else {
@@ -4435,12 +4457,16 @@ function_base *process::findOnlyOneFunction(const string &name) const {
               if (fb) {
 		if (ret) {
 		  cerr << __FILE__ << ":" << __LINE__ << ": ERROR:  findOnlyOneFunction"
-		       << "found more than one match for function " << func_name <<endl;
+		       << " found more than one match for function " << func_name <<endl;
 		  return NULL;
 		}
 		ret = fb;
 		//cerr << "Found " << func_name << " in " << lib_name << endl;
-              } 
+              }
+	      else {
+		//cerr << __FILE__ << ":" << __LINE__ << ": WARNING:  findOnlyOneFunction"
+		//  << " could not find function " << func_name << " in module " << so->getName()<<endl;
+	      }
 	    }
 	  }
 	}
@@ -4449,62 +4475,6 @@ function_base *process::findOnlyOneFunction(const string &name) const {
     return ret;
 }
 
-// findFuncByName: returns the function associated with func  
-// this routine checks both the a.out image and any shared object
-// images for this resource
-/*
-pd_Function *process::findFuncByName(const string &name){
-
-    string lib_name;
-    string func_name;
-
-    // Split name into library and function
-    getLibAndFunc(name, lib_name, func_name);
-
-    // If no library was specified, grab the first function we find
-    if (lib_name == "") {
-    
-      // first check a.out for function symbol
-      pd_Function *pdf = symbols->findFuncByName(func_name);
-      if(pdf)  return pdf;
-
-      // search any shared libraries for the file name 
-      if(dynamiclinking && shared_objects){
-        for(u_int j=0; j < shared_objects->size(); j++){
-          pdf=((*shared_objects)[j])->findFuncByName(func_name);
-            if(pdf){
-              return(pdf);
-            }
-	}
-      }
-
-    } else {
-      
-        // Library was specified, search lib for function func_name 
-        if(dynamiclinking && shared_objects){ 
-          for(u_int j=0; j < shared_objects->size(); j++){
-            shared_object *so = (*shared_objects)[j];
-
-            // Add prefix wildcard to make name matching easy
-            lib_name = "*" + lib_name;             
-
-            if(matchLibName(lib_name, so->getName())) {
-              pd_Function *fb = so->findFuncByName(func_name);
-              if (fb) {
-                //cerr << "Found " << func_name << " in " << lib_name << endl;
-              }
-              return fb;
-            }
-	  }
-	}
-    }
-
-    return(0);
-}
-*/
-
-// findAllFuncsByName: return a vector of all functions in all images
-// matching the given string
 bool process::findAllFuncsByName(const string &name, pdvector<function_base *> &res)
 {
    string lib_name;
@@ -4570,15 +4540,15 @@ bool process::getSymbolInfo( const string &name, Symbol &ret )
 
    if(sflag)
       return true;
-
- 
+  
    if( dynamiclinking && shared_objects ) {
       for( u_int j = 0; j < shared_objects->size(); ++j ) {
+	
 	if (!(*shared_objects)[j]) abort();
          sflag = ((*shared_objects)[j])->getSymbolInfo( name, ret );
          if( sflag ) {
             ret.setAddr( ret.addr() + (*shared_objects)[j]->getBaseAddress() );
-            return true;
+	    return true;
          }
       }
    }
@@ -5160,21 +5130,36 @@ void process::findSignalHandler(){
 // associated with this process for the signal handler function.
 // Otherwise, the signal handler function has already been found
 void process::findSignalHandler(){
+  
+  pdvector<pd_Function *> *pdfv;
 
     if(SIGNAL_HANDLER == 0) return;
     if(!signal_handler) { 
         // first check a.out for signal handler function
-        signal_handler = symbols->findOnlyOneFunction(SIGNAL_HANDLER);
-
-        // search any shared libraries for signal handler function
-        if(!signal_handler && dynamiclinking && shared_objects) { 
-            for(u_int j=0;(j < shared_objects->size()) && !signal_handler; j++){
-                signal_handler = 
-                      ((*shared_objects)[j])->findOnlyOneFunction(SIGNAL_HANDLER);
-        } }
-        signal_cerr << "process::findSignalHandler <" << SIGNAL_HANDLER << ">";
-        if (!signal_handler) signal_cerr << " NOT";
-        signal_cerr << " found." << endl;
+      if (NULL != (pdfv = symbols->findFuncVectorByPretty(SIGNAL_HANDLER)) && pdfv->size()) {
+	if (pdfv->size() > 1) {
+	  cerr << __FILE__ << __LINE__ << ": findFuncVectorByPretty found " << pdfv->size()
+	       <<" functions called "<< SIGNAL_HANDLER << endl;
+	}
+	signal_handler = (*pdfv)[0];
+      }
+      
+      // search any shared libraries for signal handler function
+      if(!signal_handler && dynamiclinking && shared_objects) { 
+	for(u_int j=0;(j < shared_objects->size()) && !signal_handler; j++){
+	  if (NULL != (pdfv = (*shared_objects)[j]->findFuncVectorByPretty(SIGNAL_HANDLER)) && pdfv->size()) {
+	    if (pdfv->size() > 1) {
+	      cerr << __FILE__ << __LINE__ << ": findFuncVectorByPretty found " << pdfv->size()
+		   <<" functions called "<< SIGNAL_HANDLER << endl;
+	    }
+	    signal_handler = (*pdfv)[0];
+	  }
+	} 
+      }
+ 
+      signal_cerr << "process::findSignalHandler <" << SIGNAL_HANDLER << ">";
+      if (!signal_handler) signal_cerr << " NOT";
+      signal_cerr << " found." << endl;
     }
 }
 #endif
@@ -6496,7 +6481,7 @@ BPatch_point *process::findOrCreateBPPoint(BPatch_function *bpfunc,
       return instPointMap[addr];
    } else {
       if (bpfunc == NULL) {
-         bpfunc = findOrCreateBPFunc((pd_Function*)ip->iPgetFunction());
+         bpfunc = findOrCreateBPFunc((pd_Function *)ip->iPgetFunction());
       }
 
       BPatch_point *pt = new BPatch_point(this, bpfunc, ip, pointType);

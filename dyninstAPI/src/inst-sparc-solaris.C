@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.127 2003/04/02 07:12:24 jaw Exp $
+// $Id: inst-sparc-solaris.C,v 1.128 2003/04/17 20:55:53 jaw Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -2290,15 +2290,17 @@ bool pd_Function::findInstPoints(const image *owner) {
   unsigned retId = 0;
   unsigned callsId = 0; 
 
-  if (size() == 0) {
-    return false;
-  } 
+
+  bool checkPoints; 
+
+  if (size() == 0) 
+    goto set_uninstrumentable;
+   
 
   instr.raw = owner->get_instruction(firstAddress);
-  if (!IS_VALID_INSN(instr)) {
-    return false;
-  }
-
+  if (!IS_VALID_INSN(instr)) 
+    goto set_uninstrumentable;
+  
   // Determine if function needs to be relocated when instrumented
   for ( adr = firstAddress; adr < lastAddress; adr += 4) { 
     instr.raw = owner->get_instruction(adr);
@@ -2395,11 +2397,9 @@ bool pd_Function::findInstPoints(const image *owner) {
 
 
   // Can't handle function
-  if (canBeRelocated_ == false && relocatable_ == true) {
-    return false;
-  }
-
-
+  if (canBeRelocated_ == false && relocatable_ == true) 
+    goto set_uninstrumentable;
+    
 #ifdef BPATCH_LIBRARY
   if (BPatch::bpatch->hasForcedRelocation_NP()) {
     if (canBeRelocated_ == true) {
@@ -2488,7 +2488,7 @@ bool pd_Function::findInstPoints(const image *owner) {
           cerr << "WARN : function " << prettyName().c_str()
                << " has call to same location as call, NOT instrumenting"
                << endl;
-	  return false;
+	  goto set_uninstrumentable;
 	}
       }
 
@@ -2528,7 +2528,7 @@ bool pd_Function::findInstPoints(const image *owner) {
             // if this is a call instr to a location within the function, 
             // and if the offest is not 8 then do not define this function 
 	    if (!is_set_O7_call(instr, size(), adr - firstAddress)) {
-	      return false;
+	      goto set_uninstrumentable;
 	    }
 
             // generate a call instPoint for the call instruction
@@ -2682,13 +2682,18 @@ bool pd_Function::findInstPoints(const image *owner) {
     }
   }
 
-  bool checkPoints = checkInstPoints(owner);
+  checkPoints = checkInstPoints(owner);
 
   if ( (checkPoints == false) || (!canBeRelocated_ && relocatable_) ){
-    return false;
+    goto set_uninstrumentable;
   }
 
+  isInstrumentable_ = 1;
   return true;
+
+ set_uninstrumentable:
+  isInstrumentable_ = 0;
+  return false;
 }
 
 /****************************************************************************/

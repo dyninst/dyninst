@@ -7,7 +7,6 @@
 #include "BPatch_module.h"
 #include "BPatch_collections.h"
 #include "LineInformation.h"
-
 #include <ldfcn.h>  // *** GCC 3.x bug: (Short explanation)
 		    // <ldfcn.h> must be included after "BPatch.h"
 
@@ -466,7 +465,6 @@ void FindLineInfo(BPatch_module *mod, eCoffParseInfo &info,
     // SYMTAB() macro (or any other way).  We must use the underlying
     // FDR structure instead.
     int i;
-    BPatch_Vector<BPatch_function *> bpfv;
     BPatch_function *fp;
     pCFDR fileDesc = info.file;
 
@@ -493,9 +491,20 @@ void FindLineInfo(BPatch_module *mod, eCoffParseInfo &info,
             continue;
 
         // get the base address of the procedure
-        mod->findFunction(currentFunctionName.c_str(), &bpfv);
-        if (!bpfv.size() || !bpfv[0]) continue;
+ 	BPatch_Vector<BPatch_function *> bpfv;
+	
+       // get the base address of the procedure
+	string sname = currentFunctionName;
+	const char *fname = sname.c_str();
+	if (!fname) continue;  // Some findFunction in this file is passing in NULL
+
+	mod->findFunction(fname, bpfv, false /* no print */);
+	if (!bpfv.size()) {
+	  //cerr << __FILE__ << __LINE__ << ":  Unable to find function: " << symbol.name << endl;
+	  continue;
+	}
 	fp = bpfv[0];
+	if (!fp) continue;
 
         unsigned long currentFunctionBase = (unsigned long)(fp->getBaseAddr());
 
@@ -896,12 +905,22 @@ void eCoffParseProc(BPatch_module *mod, eCoffSymbol &symbol, bool skip)
     int endIndex;
     BPatch_type *typePtr;
     BPatch_localVar *local;
+
     BPatch_Vector<BPatch_function *> bpfv;
     BPatch_function *fp = NULL;
 
-    mod->findFunction(symbol.name.c_str(), &bpfv);
-    if (!bpfv.size()) return;
+       // get the base address of the procedure
+    string sname = symbol.name;
+    const char *fname = sname.c_str();
+    if (!fname) return;  // Some findFunction in this file is passing in NULL
+
+    mod->findFunction(fname, bpfv, false /* no print */);
+    if (!bpfv.size()) {
+      //cerr << __FILE__ << __LINE__ << ":  Unable to find function: " << symbol.name << endl;
+      return;
+    }
     fp = bpfv[0];
+    if (!fp) return;
 
     // Sanity check.
     if (!fp || symbol.sym->st != stProc && symbol.sym->st != stStaticProc)
