@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.121 2002/04/18 19:39:43 bernat Exp $
+// $Id: inst-sparc.C,v 1.122 2002/04/22 17:39:44 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -999,9 +999,8 @@ void generateMTpreamble(char *insn, Address &base, process *proc)
 
 // Fake the POS calculation
 
-Address generateMTRPCCode(char *insn, Address &base, 
-		       process *proc,
-		       int tid, unsigned pos)
+Address process::generateMTRPCCode(void *insnPtr, Address &base, 
+				   unsigned int tid, unsigned pos)
 {
   AstNode *t1 ;
   Address tableAddr;
@@ -1025,7 +1024,7 @@ Address generateMTRPCCode(char *insn, Address &base,
 
     // t3=DYNINSTthreadTable[thr_self()]
     //
-    tableAddr = proc->findInternalAddress("DYNINSTthreadTable",true,err);
+    tableAddr = findInternalAddress("DYNINSTthreadTable",true,err);
     assert(!err);
     AstNode* t5 = new AstNode(AstNode::Constant, (void *)tableAddr);
     AstNode* t3 = new AstNode(plusOp, t2, t5);
@@ -1045,26 +1044,26 @@ Address generateMTRPCCode(char *insn, Address &base,
     AstNode *t6= new AstNode(t11, t3);
     removeAst(t11);
     removeAst(t3);
-    src = t6->generateCode(proc, regSpace, insn, base, false, true);
+    src = t6->generateCode(this, regSpace, (char *)insnPtr, base, false, true);
     removeAst(t6);
     unsigned first_insn=base;
-    (void) emitV(orOp, src, 0, REG_MT_BASE, insn, base, false);
+    (void) emitV(orOp, src, 0, REG_MT_BASE, (char *)insnPtr, base, false);
     regSpace->freeRegister(src);
   }
   return 0;
 }
 #endif
 
-void generateMTSkipBranch(unsigned char *insn, Address addr, Address offset)
+void generateMTSkipBranch(void *insnPtr, Address addr, Address offset)
 {
-  instruction *tmp_insn = (instruction *) ((void*)&(insn[addr]));
+  instruction *temp = (instruction *) (&((instruction *)insnPtr)[addr/sizeof(instruction)]);
 
   // Conditional branch (on equal).
-  tmp_insn->branch.op = 0;
-  tmp_insn->branch.cond = BEcond;
-  tmp_insn->branch.op2 = BICCop2;
-  tmp_insn->branch.anneal = false;
-  tmp_insn->branch.disp22 = (offset - addr) >> 2;
+  temp->branch.op = 0;
+  temp->branch.cond = BEcond;
+  temp->branch.op2 = BICCop2;
+  temp->branch.anneal = false;
+  temp->branch.disp22 = (offset - addr) >> 2;
 }
 
 /****************************************************************************/
