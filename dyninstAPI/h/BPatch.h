@@ -89,7 +89,7 @@ public:
 
     BPatch_thread *getThreadByPid(int pid, bool *exists = NULL);
 
-    void reportError(BPatchErrorLevel severity, int number, const char *str);
+    static void reportError(BPatchErrorLevel severity, int number, const char *str);
 
     void clearError() { lastError = 0; }
     int	getLastError() { return lastError; }
