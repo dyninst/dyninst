@@ -39,11 +39,19 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-linux.C,v 1.5 2004/03/31 15:52:41 mjbrim Exp $
+// $Id: syscall-linux.C,v 1.6 2004/04/01 23:06:29 tlmiller Exp $
 
+#if defined( arch_x86 )
 #define FORK_FUNC "__libc_fork"
 #define EXEC_FUNC "__execve"
 #define EXIT_FUNC "_exit"
+#elif defined( arch_ia64 )
+#define FORK_FUNC "__libc_fork"
+#define EXEC_FUNC "execve"
+#define EXIT_FUNC "_exit"
+#else
+#error Unsupported linux platform.
+#endif
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/inst.h"
