@@ -43,6 +43,9 @@
 
 /*
  * $Log: DictionaryLite.h,v $
+ * Revision 1.8  1996/10/31 07:39:46  tamches
+ * commented out pdictionary
+ *
  * Revision 1.7  1996/10/31 07:36:15  tamches
  * new interface for locate()
  *
@@ -161,8 +164,12 @@ private:
     unsigned           next_;
 };
 
+
 // See Stroustrup, The Design and Evolution of C++, pp. 347 for inspiration
 // Use when V is a pointer type
+
+#ifdef not_defined
+
 template <class K, class V>
 class pdictionary_lite : dictionary_lite<K, void *> {
  typedef dictionary_lite<K, void *> inherited;
@@ -185,5 +192,7 @@ class pdictionary_lite : dictionary_lite<K, void *> {
    inline void undef(const K &theKey) {inherited::undef(theKey);}
 //   pvector<V> values() const {return (pvector<V>)inherited::values();}
 };
+
+#endif /* not_defined */
 
 #endif /* !defined(_Dictionary_h_) */
