@@ -1365,7 +1365,8 @@ void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
 {
 #if defined(rs6000_ibm_aix4_1) || \
     defined(alpha_dec_osf4_0) || \
-    defined(mips_sgi_irix6_4)
+    defined(mips_sgi_irix6_4) || \
+    defined(sparc_sun_solaris2_4)
 
     BPatch_function *call20_1func = appImage->findFunction("call20_1");
     if (call20_1func == NULL) {
