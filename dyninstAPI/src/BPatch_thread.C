@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.73 2003/02/21 20:05:53 bernat Exp $
+// $Id: BPatch_thread.C,v 1.74 2003/03/07 22:16:17 zandy Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -1100,7 +1100,7 @@ bool BPatch_thread::removeFunctionCall(BPatch_point &point)
 bool BPatch_thread::replaceFunction(BPatch_function &oldFunc,
 				    BPatch_function &newFunc)
 {
-#if defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
+#if defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0) || defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
     // Can't make changes to code when mutations are not active.
     if (!mutationsActive)
 	return false;
