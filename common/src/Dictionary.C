@@ -142,36 +142,36 @@ dictionary_hash<K,V>::undef(const K& key) {
    if (ndx == UINT_MAX)
       return; // nothing to do...either doesn't exist, or already removed
 
+   const unsigned oldsize = size();
    entry &e = all_elems[ndx];
    assert(!e.removed);
    e.removed = true;
    num_removed_elems++;
+   assert(oldsize == size()+1);
    assert(num_removed_elems <= all_elems.size());
 }
 
 template<class K, class V>
 vector<K>
 dictionary_hash<K,V>::keys() const {
-   vector<K> result;
-   
-   for (unsigned lcv=0; lcv < all_elems.size(); lcv++)
-      if (!all_elems[lcv].removed)
-         result += all_elems[lcv].key;
-
-   assert(result.size() == size());
+   vector<K> result(size());
+   unsigned ndx=0;
+   for (unsigned i=0; i < all_elems.size(); i++)
+      if (!all_elems[i].removed)
+         result[ndx++] = all_elems[i].key;
+   assert(ndx == size());
    return result;
 }
 
 template<class K, class V>
 vector<V>
 dictionary_hash<K,V>::values() const {
-   vector<V> result;
-   
-   for (unsigned lcv=0; lcv < all_elems.size(); lcv++)
-      if (!all_elems[lcv].removed)
-         result += all_elems[lcv].val;
-
-   assert(result.size() == size());
+   vector<V> result(size());
+   unsigned ndx=0;
+   for (unsigned i=0; i < all_elems.size(); i++)
+      if (!all_elems[i].removed)
+         result[ndx++] = all_elems[i].val;
+   assert(ndx == size());
    return result;
 }
 
@@ -302,7 +302,7 @@ dictionary_hash<K,V>::grow_numbins(unsigned new_numbins) {
 
    // look for elems to remove; shrink all_elems[] as appropriate
    if (num_removed_elems > 0) {
-      for (unsigned lcv=0; lcv < all_elems.size(); lcv++) {
+      for (unsigned lcv=0; lcv < all_elems.size(); ) {
          entry &e = all_elems[lcv];
          if (e.removed) {
             const unsigned oldsize = all_elems.size();
@@ -313,7 +313,11 @@ dictionary_hash<K,V>::grow_numbins(unsigned new_numbins) {
             all_elems.resize(oldsize-1);
 
             num_removed_elems--;
+            
+            // note: we DON'T bump up lcv in this case
          }
+         else
+            lcv++;
       }
 
       assert(num_removed_elems == 0);
