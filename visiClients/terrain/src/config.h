@@ -15,6 +15,19 @@
 /*
  * Configuration for installing IPS.
  *
+ * $Log: config.h,v $
+ * Revision 1.2  1997/05/18 22:50:12  tung
+ * Eliminate ips dependent library files.
+ *
+ * Revision 1.10  1992/09/28  23:09:41  jcargill
+ * Updated for Cray 5.0
+ *
+ * Revision 1.9  1992/09/28  22:53:26  rbi
+ * Fix for PTX 1.4
+ *
+ * Revision 1.8  1992/09/08  16:13:05  rbi
+ * Version 5.0
+ *
  * Revision 1.7  90/12/07  12:55:43  rbi
  * Added a #define for ultrix40
  * 
@@ -90,11 +103,7 @@
  * size of trace buffers in memory.
  *
  */
-#ifndef _SEQUENT_
-#define TBSIZE	0x100000
-#else
 #define TBSIZE	0x10000
-#endif
 
 /*
  * APPLICATION_DEFAULT_DIR - Place to look for application defaults 
@@ -119,6 +128,14 @@
 #define	X_VERSION	1104
 
 /*
+ * If you are running Sequent Dynix PTX version 1.4 or later,
+ * then you must define DYNIX_PTX_1_4.
+ *
+ */
+#define DYNIX_PTX_1_4
+
+
+/*
  * DO NOT EDIT BEYOND HERE!
  *   The rest of these macros are derived from earlier macros.
  */
@@ -138,16 +155,24 @@
 #define DYNIX
 #endif
 
-#if defined(sequent) && defined(SLAVE_SIDE) && !defined(SEQ_SLAVE)
+#if (defined(sequent) || defined(CRAY)) && defined(SLAVE_SIDE) && !defined(SEQ_SLAVE)
 #define PARALLEL_SLAVE
 #else
 /* define this so we know one of the two is defined */
 #define SEQ_SLAVE
 #define shared 
+#define private
 #endif
+
+#if defined(CRAY) && !defined(SEQ_SLAVE)
+#define shared
+#define private
+#endif
+
 
 #if !defined(SLAVE_SIDE)
 #define shared
+#define private
 #endif
 
 /*
@@ -156,7 +181,7 @@
  *  in versions of ultrix that are 4.0 or newer.
  */
 #ifdef ultrix
-#include <sys/syscall.h>
+#include <syscall.h>
 #ifdef SYS_startcpu
 #define ultrix40
 #else

@@ -17,7 +17,7 @@ static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
  Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/action.c,v 1.1 1997/05/12 20:15:20 naim Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/action.c,v 1.2 1997/05/18 22:50:09 tung Exp $";
 #endif
 
 
@@ -28,6 +28,9 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
  *   message.
  *
  * $Log: action.c,v $
+ * Revision 1.2  1997/05/18 22:50:09  tung
+ * Eliminate ips dependent library files.
+ *
  * Revision 1.1  1997/05/12 20:15:20  naim
  * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
  *
@@ -36,7 +39,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
  *
  *
  * Revision 2.14  1991/03/14  20:48:17  hollings
- * Fixed $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/action.c,v 1.1 1997/05/12 20:15:20 naim Exp $ definition.
+ * Fixed $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/action.c,v 1.2 1997/05/18 22:50:09 tung Exp $ definition.
  *
  * Revision 2.13  1990/08/24  13:01:40  hollings
  * Added include of <X11/Intrinsic.h>.
@@ -93,7 +96,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
  * Initial revision
  * 
  */
-#include <config.h>
+#include "config.h"
 
 #define max(x,y) 	((x > y) ? x : y);
 #include <stdio.h>
@@ -108,10 +111,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
 #include <X11/Xaw/AsciiText.h>
 
 
-#include <FormatBox.h>
-#include <Xbase.h>
-#include <Xglobals.h>
-#include <action.h>
+#include "FormatBox.h"
+#include "Xbase.h"
+#include "Xglobals.h"
+#include "action.h"
 #include "terrain.h"
 
 static int Xorig, Yorig;

@@ -17,7 +17,7 @@ static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
  Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/FormatBox.c,v 1.1 1997/05/12 20:15:16 naim Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/FormatBox.c,v 1.2 1997/05/18 22:50:09 tung Exp $";
 #endif
 
 /* 
@@ -27,20 +27,20 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
  * Changed order of include files for X.
  *
  * Revision 1.2  1991/03/14  20:48:17  hollings
- * Fixed $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/FormatBox.c,v 1.1 1997/05/12 20:15:16 naim Exp $ definition.
+ * Fixed $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/FormatBox.c,v 1.2 1997/05/18 22:50:09 tung Exp $ definition.
  *
  * Revision 1.1  1990/08/24  13:00:50  hollings
  * Initial revision
  *
  */
 
-#include <config.h>
+#include "config.h"
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
 #include <X11/Xmu/Misc.h>
 #include <X11/Xaw/XawInit.h>
 
-#include <FormatBoxP.h>
+#include "FormatBoxP.h"
 
 /* Resources */
 static XtResource resources[] = {

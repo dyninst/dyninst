@@ -36,13 +36,16 @@
  */     
 
 #ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/command.c,v 1.2 1997/05/14 19:14:55 naim Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/command.c,v 1.3 1997/05/18 22:50:10 tung Exp $";
 #endif
 
 /*
  * command.c - main switchboard of the program.
  *
  * $Log: command.c,v $
+ * Revision 1.3  1997/05/18 22:50:10  tung
+ * Eliminate ips dependent library files.
+ *
  * Revision 1.2  1997/05/14 19:14:55  naim
  * Minor changes for sunos version of terrain - naim
  *
@@ -390,8 +393,6 @@ Window win;
          curves->points[i].valid = 0;
   
      curves_ready_afterFold ++;    
-
-     fprintf(stderr, "Fold!\n");
   }
 
   i = 0;

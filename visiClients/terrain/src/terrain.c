@@ -21,13 +21,16 @@
  */
 
 #ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/terrain.c,v 1.1 1997/05/12 20:15:44 naim Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/terrain.c,v 1.2 1997/05/18 22:50:11 tung Exp $";
 #endif
 
 /*
  * terrain.c - main entry point and x driver.
  *
  * $Log: terrain.c,v $
+ * Revision 1.2  1997/05/18 22:50:11  tung
+ * Eliminate ips dependent library files.
+ *
  * Revision 1.1  1997/05/12 20:15:44  naim
  * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
  *
@@ -256,7 +259,6 @@ static void drawData(int is_fold)
          if((hdp = (struct HistData *) visi_GetUserData(m,r)) == 0){
                 add_new_curve(m,r);
                 hdp = (struct HistData *) visi_GetUserData(m,r);
-                fprintf(stderr,"$$$$$$$$this should never execute\n");
                 assert(hdp);
          }
          
