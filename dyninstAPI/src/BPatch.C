@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.86 2005/02/09 03:27:43 jaw Exp $
+// $Id: BPatch.C,v 1.87 2005/02/10 20:39:16 jaw Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -739,7 +739,7 @@ void BPatch::registerForkedThread(int parentPid, int childPid, process *proc)
     assert(parent);
     info->threadsByPid[childPid] = new BPatch_thread(childPid, proc);
 
-#if !defined (os_osf) && !defined(os_windows) && !defined(os_irix)  && !defined (arch_ia64)
+#if !defined (os_osf) && !defined(os_windows) && !defined (arch_ia64) && !defined(os_irix)
     if (!eventHandler->connectToProcess(info->threadsByPid[childPid])) {
       bperr("%s[%d]:  eventHandler->connectToProcess failed\n", __FILE__, __LINE__);
     }
@@ -876,7 +876,7 @@ BPatch_thread *BPatch::createProcessInt(const char *path, const char *argv[], co
         reportError(BPatchFatal, 68, "create process failed bootstrap");
 	return NULL;
     }
-#if !defined (os_osf) && !defined (os_windows) && !defined(os_irix) && !defined(arch_ia64)
+#if !defined (os_osf) && !defined (os_windows)  && !defined(arch_ia64) && !defined(os_irix)
     if (!eventHandler->connectToProcess(ret)) {
       bpfatal("%s[%d]: eventHandler->connectToProcess failed\n", __FILE__, __LINE__);
       fprintf(stderr,"%s[%d]: eventHandler->connectToProcess failed\n", __FILE__, __LINE__);

@@ -45,7 +45,9 @@
 #include <tcl.h>
 
 #if defined(i386_unknown_nt4_0)
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <winsock2.h>
 #include <winbase.h>
 #else
 #include <unistd.h>

@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.29 2005/02/09 03:27:48 jaw Exp $
+# $Id: Makefile,v 1.30 2005/02/10 20:39:16 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -13,6 +13,7 @@ APP_PURE_OPTIONS =
 
 USES_MUTATEE_LIBS = true
 MUTATEE_LIBS = -ldl
+LDFLAGS += -lrt
 MUTATEE_TEST9_LIBS_LIST = libInstMe.so libLoadMe.so
 MUTATEE_TEST9_LIBS = -L. -lInstMe 
 # -lInstMe

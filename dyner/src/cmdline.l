@@ -62,7 +62,7 @@ static int doubleQuote()
 
             case '\n':
                 /* New line before end of string */
-                return(ERROR);
+                return(_ERROR);
                 break;
 
 	    case '\\':
@@ -138,7 +138,7 @@ else			{ return ELSE; }
 
 "--"			{ return MINUSMINUS; }
 
-.			{ return ERROR; }
+.			{ return _ERROR; }
 
 %%
 

@@ -37,7 +37,7 @@ parse_ret parse_type;
 
 %token <sval> IDENTIFIER STRING
 %token <ival> NUMBER
-%token ERROR IF ELSE
+%token _ERROR IF ELSE
 %token PLUSPLUS MINUSMINUS
 
 %left DOT DOLLAR

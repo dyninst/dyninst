@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.15 2004/04/28 20:20:11 rchen Exp $
+# $Id: nmake.module.tmpl,v 1.16 2005/02/10 20:39:15 jaw Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -22,7 +22,7 @@ IFLAGS       = $(IFLAGS) -I$(TO_CORE)/dyninstAPI/h -I../src
 
 LIBS		= $(TO_CORE)/$(LIBRARY_DEST)/libdyninstAPI.lib
 
-SYSLIBS		= -LIBPATH:$(TCLTK_DIR)\lib $(TCL_LIB)
+SYSLIBS		= -LIBPATH:$(TCLTK_DIR)\lib $(TCL_LIB) ws2_32.lib
 
 all: $(TARGET) $(TEST_TARGET)
 

@@ -43,6 +43,7 @@ using namespace std;
 #elif defined (os_windows)
 #include "dyninstAPI_RT/src/RTwinnt.c"
 #elif defined (os_irix)
+#define GNU_TO_ASS 1
 #include "dyninstAPI_RT/src/RTirix.c"
 #elif defined (os_osf)
 #include "dyninstAPI_RT/src/RTosf.c"
@@ -91,6 +92,16 @@ void dprintf(const char *fmt, ...) {
 
 void sleep_ms(int ms) 
 {
+//#if defined(os_solaris) && (os_solaris < 9)
+#ifdef NOTDEF
+  if (ms < 1000) {
+    usleep(ms * 1000);
+  }
+  else {
+    sleep(ms / 1000);
+    usleep((ms % 1000) * 1000);
+  }
+#else
   struct timespec ts,rem;
   if (ms >= 1000) {
     ts.tv_sec = (int) ms / 1000;
@@ -113,6 +124,7 @@ void sleep_ms(int ms)
     }
     assert(0);
   }
+#endif
 }
 
 /**************************************************************************
@@ -314,7 +326,7 @@ void register_my_lock(unsigned long id, int val)
   unsigned int i;
   int found = 0;
   for (i = 0; i < THREADS; ++i) {
-    if (pthread_equal(test2threads[i],id)) {
+    if (pthread_equal(test2threads[i],(pthread_t)id)) {
       found = 1;
       current_locks[i] = val;
       break;
@@ -338,7 +350,7 @@ int is_only_one() {
 void *thread_main (void *arg)
 {
    DYNINSTlock_spinlock(&mut);
-   register_my_lock(pthread_self(),1);
+   register_my_lock((unsigned long)pthread_self(),1);
    pthread_mutex_lock(&real_lock);
    /*printf("thread %lu got mutex %d\n", (unsigned long)pthread_self(), mut.lock); */
    sleep_ms (1);
@@ -348,7 +360,7 @@ void *thread_main (void *arg)
    }
    pthread_mutex_unlock(&real_lock);
    /*printf("thread %lu unlocking mutex\n", (unsigned long) pthread_self()); */
-   register_my_lock(pthread_self(),0);
+   register_my_lock((unsigned long)pthread_self(),0);
    test2counter++;
    DYNINSTunlock_spinlock(&mut);
    return NULL;
@@ -365,7 +377,7 @@ void DYNINSTunlock_spinlock(dyninst_spinlock*s)
 bool mutatorTest2()
 {
 
-#if !defined (os_windows)
+#if !defined (os_windows) && !defined(os_irix)
   unsigned int timeout = 0; // in ms
   pthread_attr_t attr;
   unsigned int i;
@@ -383,8 +395,13 @@ bool mutatorTest2()
     int err;
     err = pthread_create(&(test2threads[i]), &attr, thread_main, NULL);
     if (err) {
+#if defined (os_osf)
+      fprintf(stderr, "Error creating thread %d: %s[%d]\n",
+              i, strerror(errno), errno);
+#else
       fprintf(stderr, "Error creating thread %d: %s[%d]: max threads: %d\n",
               i, strerror(errno), errno, PTHREAD_THREADS_MAX);
+#endif
     }
   }
 

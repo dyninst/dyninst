@@ -1,7 +1,7 @@
 #
 # Makefile for dyninst test programs on Windows NT.
 #
-# $Id: Makefile,v 1.4 2002/06/03 18:58:31 pcroth Exp $
+# $Id: Makefile,v 1.5 2005/02/10 20:39:15 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in nmake.config
@@ -26,6 +26,10 @@ USES_FLEX=true
 
 !include ../nmake.module.tmpl
 
+#CFLAGS = $(CFLAGS) -DWIN32_LEAN_AND_MEAN
+#CXXFLAGS = $(CFLAGS) -DWIN32_LEAN_AND_MEAN
+#CFLAGS = $(CFLAGS) -UERROR
+#CXXFLAGS = $(CXXFLAGS) -UERROR
 # Include the "standard program template".  This defines all the
 # common targets like "clean", "install", etc.
 

@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.6 2005/02/09 03:27:48 jaw Exp $
+# $Id: Makefile,v 1.7 2005/02/10 20:39:16 jaw Exp $
 #
 # Makefile for dyninstAPI test programs on Tru64 Alpha
 #
@@ -19,6 +19,7 @@ CFLAGS += -g
 CFLAGS += -pthread
 CXXFLAGS += -pthread
 MUTATEE_FFLAGS += -Dalpha_dec_osf4_0 -g
+LDFLAGS += -lrt
 
 NATIVE_CC = cc
 NATIVE_CXX = cxx
