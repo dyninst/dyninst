@@ -1,7 +1,10 @@
 /* $Log: VM.I,v $
-/* Revision 1.10  1995/02/26 02:11:52  newhall
-/* added some phase interface routines
+/* Revision 1.11  1995/05/18 10:50:51  markc
+/* Modified VMAddNewVisi call that mdl uses to report visis
 /*
+# Revision 1.10  1995/02/26  02:11:52  newhall
+# added some phase interface routines
+#
 # Revision 1.9  1995/02/16  08:01:39  markc
 # Modified interfaces:
 #   1) XDR interfaces use strings and vectors instead of igen arrays and char*'s
@@ -92,9 +95,8 @@ $remote VM{
   //  args: command line arguments for the visualiztion, argv[0]
   //        is the executable name
   //  matrix: initial set of metrics and foci to start the visi with
-  int VMAddNewVisualization(char *name,
-			    int argc,
-			    char **argv,
+  int VMAddNewVisualization(const char *name,
+			    vector<string> *argv,
 			    int forceProcessStart,
 			    char *matrix,
 			    int numMatrices);
