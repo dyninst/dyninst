@@ -22,7 +22,7 @@ proc AcceptProc {} {
 #       puts stdout $itemid
 #       puts stdout $i
 #    }
-#     destroy $W
+     destroy $W
    }
 }
 
