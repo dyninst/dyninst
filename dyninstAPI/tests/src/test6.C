@@ -1,4 +1,4 @@
-// $Id: test6.C,v 1.19 2003/08/01 23:02:47 jodom Exp $
+// $Id: test6.C,v 1.20 2003/08/02 00:10:41 jodom Exp $
  
 #include <stdio.h>
 #include <string.h>
@@ -278,30 +278,36 @@ void instByteCnt(BPatch_thread* bpthr, const char* fname,
 #endif
 }
 
-#define MK_LD(imm, rs1, rs2, bytes) (new BPatch_memoryAccess(true, false, \
+#define MK_LD(imm, rs1, rs2, bytes) (new BPatch_memoryAccess("", 0, \
+							     true, false, \
                                                              (bytes), (imm), (rs1), (rs2)))
-#define MK_ST(imm, rs1, rs2, bytes) (new BPatch_memoryAccess(false, true, \
+#define MK_ST(imm, rs1, rs2, bytes) (new BPatch_memoryAccess("", 0, \
+							     false, true, \
                                                              (bytes), (imm), (rs1), (rs2)))
-#define MK_LS(imm, rs1, rs2, bytes) (new BPatch_memoryAccess(true, true, \
+#define MK_LS(imm, rs1, rs2, bytes) (new BPatch_memoryAccess("", 0, \
+							     true, true, \
                                                              (bytes), (imm), (rs1), (rs2)))
-#define MK_PF(imm, rs1, rs2, f) (new BPatch_memoryAccess(false, false, true, \
+#define MK_PF(imm, rs1, rs2, f) (new BPatch_memoryAccess("", 0, \
+							 false, false, true, \
                                                          (imm), (rs1), (rs2), \
                                                          0, -1, -1, (f)))
 
-#define MK_LDsc(imm, rs1, rs2, scale, bytes) (new BPatch_memoryAccess(true, false, \
+#define MK_LDsc(imm, rs1, rs2, scale, bytes) (new BPatch_memoryAccess("", 0, \
+								      true, false, \
                                                                       (bytes), \
                                                                       (imm), (rs1), (rs2), \
                                                                       (scale)))
 
-#define MK_LDsccnd(imm, rs1, rs2, scale, bytes, cond) (new BPatch_memoryAccess(true, false, (bytes), (imm), (rs1), (rs2), (scale), (cond), false))
+#define MK_LDsccnd(imm, rs1, rs2, scale, bytes, cond) (new BPatch_memoryAccess("", 0, true, false, (bytes), (imm), (rs1), (rs2), (scale), (cond), false))
 
 
-#define MK_LD2(imm, rs1, rs2, bytes, imm_2, rs1_2, rs2_2, bytes_2) (new BPatch_memoryAccess(true, false, (bytes), (imm), (rs1), (rs2), 0, true, false, (bytes_2), (imm_2), (rs1_2), (rs2_2), 0))
-#define MK_SL2(imm, rs1, rs2, bytes, imm_2, rs1_2, rs2_2, bytes_2) (new BPatch_memoryAccess(false, true, (bytes), (imm), (rs1), (rs2), 0, true, false, (bytes_2), (imm_2), (rs1_2), (rs2_2), 0))
+#define MK_LD2(imm, rs1, rs2, bytes, imm_2, rs1_2, rs2_2, bytes_2) (new BPatch_memoryAccess("", 0, true, false, (bytes), (imm), (rs1), (rs2), 0, true, false, (bytes_2), (imm_2), (rs1_2), (rs2_2), 0))
+#define MK_SL2(imm, rs1, rs2, bytes, imm_2, rs1_2, rs2_2, bytes_2) (new BPatch_memoryAccess("", 0, false, true, (bytes), (imm), (rs1), (rs2), 0, true, false, (bytes_2), (imm_2), (rs1_2), (rs2_2), 0))
 
-#define MK_SL2vECX(imm, rs1, rs2, imm_2, rs1_2, rs2_2, bop) (new BPatch_memoryAccess(false, true, (imm), (rs1), (rs2), 0, 0, -1, 1, (bop),  true, false, (imm_2), (rs1_2), (rs2_2), 0, 0, -1, 1, (bop)))
+#define MK_SL2vECX(imm, rs1, rs2, imm_2, rs1_2, rs2_2, bop) (new BPatch_memoryAccess("", 0, false, true, (imm), (rs1), (rs2), 0, 0, -1, 1, (bop),  true, false, (imm_2), (rs1_2), (rs2_2), 0, 0, -1, 1, (bop)))
 
-#define MK_STnt(imm, rs1, rs2, bytes) (new BPatch_memoryAccess(false, true, \
+#define MK_STnt(imm, rs1, rs2, bytes) (new BPatch_memoryAccess("", 0, \
+							       false, true, \
                                                                (bytes), (imm), (rs1), (rs2), 0, \
                                                                -1, true))
 
@@ -417,7 +423,8 @@ void init_test_data()
 
   loadList[++k] = MK_LD(-76, 1, -1, 76);  // l27
   loadList[++k] = MK_LD(0, 4, -1, 24);
-  loadList[++k] = new BPatch_memoryAccess(true, false,
+  loadList[++k] = new BPatch_memoryAccess("", 0, 
+				   true, false,
 				   0, 1, 9,
 				   0, POWER_XER2531, -1);
 
@@ -466,7 +473,8 @@ void init_test_data()
   storeList[++k] = MK_ST(-76, 1, -1, 76);
   storeList[++k] = MK_ST(0, 4, -1, 20);
 
-  storeList[++k] = new BPatch_memoryAccess(false, true,
+  storeList[++k] = new BPatch_memoryAccess("", 0, 
+				    false, true,
 				    0, 1, 9,
 				    0, POWER_XER2531, -1);
 
@@ -589,11 +597,13 @@ void init_test_data()
 
   //loadList[++k] = MK_SL2(0,7,-1,4,0,6,-1,4); // l50
   loadList[++k] = MK_SL2vECX(0,7,-1,0,6,-1,2);
-  loadList[++k] = new BPatch_memoryAccess(true, false,
+  loadList[++k] = new BPatch_memoryAccess("", 0, 
+					  true, false,
                                           0, 7, -1, 0,
                                           0, -1, IA32_NESCAS, 0, 
                                           -1, false);
-  loadList[++k] = new BPatch_memoryAccess(true, false,
+  loadList[++k] = new BPatch_memoryAccess("", 0, 
+					  true, false,
                                           0, 6, -1, 0,
                                           0, -1, IA32_ECMPS, 0,
                                           true, false,
@@ -635,7 +645,8 @@ void init_test_data()
 
   storeList[++k] = MK_STnt((int)divarwp,-1,-1,8); // s12
   //storeList[++k] = MK_ST(0,7,-1,4);
-  storeList[++k] = new BPatch_memoryAccess(false, true,
+  storeList[++k] = new BPatch_memoryAccess("", 0, 
+					   false, true,
                                            0, 7, -1, 0,
                                            0, -1, 1, 2,
                                            -1, false);
