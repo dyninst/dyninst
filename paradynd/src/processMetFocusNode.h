@@ -122,6 +122,9 @@ class processMetFocusNode : public metricFocusNode {
 
   ~processMetFocusNode();
 
+  const string getFullName() const {
+     return (metric_name + focus.getName());
+  }
   const Focus getFocus() const { 
     return focus;
   }
@@ -169,9 +172,9 @@ class processMetFocusNode : public metricFocusNode {
   bool instrLoaded();
   bool instrInserted() { return (instrLoaded() && trampsHookedUp()
 				 && !catchupNotDoneYet()); }
-  bool loadInstrIntoApp(pd_Function **func);
+  instr_insert_result_t loadInstrIntoApp(pd_Function **func);
   void doCatchupInstrumentation();
-  bool insertInstrumentation();
+  instr_insert_result_t insertInstrumentation();
   
   vector<const instrDataNode *> getFlagDataNodes() const;
   void prepareForSampling();
