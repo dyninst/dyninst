@@ -1,21 +1,23 @@
 #/***********************************************************************
-# * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+# * Copyright Â© 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
 # *                  Detailed MRNet usage rights in "LICENSE" file.     *
 # **********************************************************************/
-# $Id: Makefile.in,v 1.7 2004/07/28 07:24:47 jaw Exp $
+# $Id: Makefile.in,v 1.8 2004/08/12 19:24:59 darnold Exp $
 @SET_MAKE@
 
 AR      = @AR@
 ARFLAGS = @ARFLAGS@
 RANLIB  = @RANLIB@
+AR      = @AR@
+ARFLAGS = @ARFLAGS@
 
 prefix  = @prefix@
 exec_prefix=@exec_prefix@
-srcdir  = @srcdir@
+srcdir  = @abs_srcdir@
 libdir  = @libdir@
 includedir  = @includedir@
 
-VPATH   = $(srcdir)/src
+VPATH   = @abs_srcdir@/src
 
 CXX = @CXX@
 INSTALL = @INSTALL@
@@ -28,19 +30,19 @@ LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
 
 SRCS    = Monitor-pthread.C \
-	        Mutex-pthread.C \
-	        TLSKey-pthread.C \
-	        Once-pthread.C \
-	        SharedObject-unix.C \
-	        NCIO-unix.C \
-	        Process.C \
-	        Process-unix.C \
-            Thread-pthread.C \
-	        NetUtils.C \
-	        NetUtils-unix.C \
-	        PathUtils-unix.C \
-            SocketUtils-unix.C \
-	        Error-unix.C
+          Mutex-pthread.C \
+          TLSKey-pthread.C \
+          Once-pthread.C \
+          SharedObject-unix.C \
+          NCIO-unix.C \
+          Process.C \
+          Process-unix.C \
+          Thread-pthread.C \
+          NetUtils.C \
+          NetUtils-unix.C \
+          PathUtils-unix.C \
+          SocketUtils-unix.C \
+          Error-unix.C
 
 OBJS    = $(SRCS:.C=.o)
 DEPS    = $(SRCS:.C=.d)
@@ -48,7 +50,7 @@ DEPS    = $(SRCS:.C=.d)
 all: $(TARGET)
 
 $(TARGET): $(OBJS)
-	$(AR) $(ARFLAGS) $(TARGET) $(OBJS)
+	$(AR) $(ARFLAGS) $@ $?
 	$(RANLIB) $@
 
 install: $(TARGET)
@@ -88,5 +90,11 @@ distclean: clean
 	    sed 's/\($*\)\.o[ :]*/\1.o $@ : /g' > $@; \
 	    [ -s $@ ] || rm -f $@
 
+%.o: $(srcdir)/%.c
+	$(CXX) $(CXXFLAGS) $(C_AS_CPLUSPLUS) -o $@ -c $<
+
+%.o: $(srcdir)/%.C
+	$(CXX) $(CXXFLAGS) -o $@ -c $<
+
 # make sure file dependencies are determiend and used
-include $(DEPS)
+-include $(DEPS)
