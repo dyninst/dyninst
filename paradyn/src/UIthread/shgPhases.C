@@ -4,9 +4,12 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.C,v $
-/* Revision 1.1  1995/10/17 22:08:36  tamches
-/* initial version, for the new search history graph
+/* Revision 1.2  1995/11/29 00:20:05  tamches
+/* removed some warnings
 /*
+ * Revision 1.1  1995/10/17 22:08:36  tamches
+ * initial version, for the new search history graph
+ *
  */
 
 #include <limits.h>
@@ -76,6 +79,7 @@ shg &shgPhases::getByID(int phaseID) {
          return *(theShgPhases[i].theShg);
    }
    assert(false);
+   abort();
 }
 
 int shgPhases::name2id(const string &phaseName) const {
@@ -92,6 +96,7 @@ const string &shgPhases::id2name(int id) const {
       if (theShgPhases[lcv].phaseID == id)
          return theShgPhases[lcv].phaseName;
    assert(false);
+   abort();
 }
 
 bool shgPhases::change(unsigned newIndex) {
