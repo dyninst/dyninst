@@ -139,6 +139,7 @@ do
             echo "    $1 doesn't exist or is not readable"
             exit -1
         fi
+        shift
         ;;
     -r )
         remote="true"
@@ -164,12 +165,7 @@ do
             echo "    Must specify a .so file after -f option"
             exit -1;
         fi
-        if test -r $1; then
-            sharedobject="$1"
-        else
-            echo "    $1 doesn't exist or is not readable"
-            exit -1
-        fi
+        sharedobject="$1"
         shift
         ;;
     *)
