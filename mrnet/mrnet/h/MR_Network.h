@@ -73,7 +73,7 @@ class Communicator{
 
 class Stream{
  public:
-  static Stream * new_Stream(Communicator *, int _filter_id,
+  static Stream * new_Stream(Communicator *, int _filter_id=AGGR_NULL,
 			     int _sync_id=SYNC_WAITFORALL);
   static int recv(int *tag, void **buf, Stream ** stream, bool blocking=true);
   static int unpack(char * buf, const char * format_str, ...);
@@ -84,6 +84,7 @@ class Stream{
   virtual int flush()=NULL;
   virtual int recv(int *tag, void **buf, bool blocking=true)=NULL;
   virtual unsigned int get_NumEndPoints()=NULL;
+  virtual Communicator* get_Communicator()=NULL;
 
   //static Stream * get_Stream(int stream_id);
   //static Stream * new_Stream(int stream_id, int * backends=NULL,

@@ -30,9 +30,11 @@ class StreamImpl: public Stream {
   CommunicatorImpl * communicator;
 
  public:
-  StreamImpl(Communicator *, int _filter_id, int _sync_id);
+  StreamImpl(Communicator *, int _filter_id = AGGR_NULL,
+                int _sync_id = SYNC_DONTWAIT );
+  StreamImpl(int stream_id, int * backends=0, int num_backends=-1,
+                int filter_id=-AGGR_NULL, int sync_id=SYNC_DONTWAIT);
   virtual ~StreamImpl();
-  StreamImpl(int stream_id, int * backends=0, int num_backends=-1, int filter_id=-1, int sync_id=-1);
   static int recv(int *tag, void **buf, Stream ** stream, bool blocking=true);
   static StreamImpl * get_Stream(int stream_id);
   static void set_ForceNetworkRecv( bool force=true );
@@ -47,6 +49,8 @@ class StreamImpl: public Stream {
 
     int send_aux(int tag, const char * format_str, va_list arg_list ); 
     static int unpack(char* buf, const char* fmt, va_list arg_list );
+
+    virtual Communicator* get_Communicator( void ) { return communicator; }
 };
 
 } // namespace MRN
