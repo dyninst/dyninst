@@ -90,6 +90,22 @@ BPatch_flowGraph::BPatch_flowGraph(function_base *func,
    }
    
    findAndDeleteUnreachable();
+
+   // this may be a leaf function - if so, we won't have figure out what
+   // the exit blocks are.  But we can assume that all blocks that don't
+   // have any targets are exits of a sort
+
+   if (exitBlock.empty()) {
+     BPatch_basicBlock **blocks = new BPatch_basicBlock *[allBlocks.size()];
+     allBlocks.elements(blocks);
+     for (unsigned int i=0; i < allBlocks.size(); i++) {
+       if (blocks[i]->targets.empty()) {
+        exitBlock.insert(blocks[i]);
+        blocks[i]->isExitBasicBlock = true;
+       }
+     }
+     delete[] blocks;
+   }
 }
 
 BPatch_flowGraph::~BPatch_flowGraph()
