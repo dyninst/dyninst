@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.55 2003/09/05 16:28:00 schendel Exp $
+// $Id: osf.C,v 1.56 2003/10/07 19:06:05 schendel Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -183,7 +183,7 @@ bool process::installSyscallTracing()
       flags = PR_FORK | PR_ASYNC | PR_RLC;
   }
 
-  if (ioctl (getDefaultLWP()->get_fd(), PIOCSET, &flags) < 0) {
+  if (ioctl (getProcessLWP()->get_fd(), PIOCSET, &flags) < 0) {
     fprintf(stderr, "attach: PIOCSET failed: %s\n", sys_errlist[errno]);
     return false;
   }
@@ -191,7 +191,7 @@ bool process::installSyscallTracing()
   // cause a stop on the exit from fork
   sysset_t sysset;
 
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCGEXIT, &sysset) < 0) {
+  if (ioctl(getProcessLWP()->get_fd(), PIOCGEXIT, &sysset) < 0) {
     fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
     return false;
   }
@@ -202,13 +202,13 @@ bool process::installSyscallTracing()
       praddset (&sysset, SYS_execve);
   }
   
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCSEXIT, &sysset) < 0) {
+  if (ioctl(getProcessLWP()->get_fd(), PIOCSEXIT, &sysset) < 0) {
     fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
     return false;
   }
 
   // now worry about entry too
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCGENTRY, &sysset) < 0) {
+  if (ioctl(getProcessLWP()->get_fd(), PIOCGENTRY, &sysset) < 0) {
     fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
     return false;
   }
@@ -227,7 +227,7 @@ bool process::installSyscallTracing()
   prdelset (&sysset, SYS_execv);
   prdelset (&sysset, SYS_execve);
   
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCSENTRY, &sysset) < 0) {
+  if (ioctl(getProcessLWP()->get_fd(), PIOCSENTRY, &sysset) < 0) {
     fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
     return false;
   }
@@ -257,7 +257,7 @@ int process::waitforRPC(int *status, bool /* block */)
       for (unsigned u = 0; u < processVec.size(); u++) {
 	if (processVec[u]->status() == running || 
 	    processVec[u]->status() == neonatal) {
-	    fds[u].fd = processVec[u]->getDefaultLWP()->get_fd();
+	    fds[u].fd = processVec[u]->getProcessLWP()->get_fd();
 	    selected_fds++;
 	} else {
 	  fds[u].fd = -1;
@@ -376,7 +376,7 @@ process *decodeProcessEvent(int pid,
                  processVec[u]->status() == neonatal)) {
                 if (pid == -1 ||
                     processVec[u]->getPid() == pid) {
-                    fds[u].fd = processVec[u]->getDefaultLWP()->get_fd();
+                    fds[u].fd = processVec[u]->getProcessLWP()->get_fd();
                     // Apparently, exit doesn't cause a poll event. Odd...
                     int status;
                     int retWait = waitpid(processVec[u]->getPid(), &status, WNOHANG|WNOWAIT);
@@ -446,7 +446,7 @@ process *decodeProcessEvent(int pid,
         }
     } else {
         // Real return from poll
-        if (ioctl(currProcess->getDefaultLWP()->get_fd(), 
+        if (ioctl(currProcess->getProcessLWP()->get_fd(), 
                   PIOCSTATUS, 
                   &procstatus) != -1) {
             // Check if the process is stopped waiting for us
@@ -474,72 +474,6 @@ process *decodeProcessEvent(int pid,
     
 } 
 
-
-/*
-   Open the /proc file correspoding to process pid, 
-   set the signals to be caught to be only SIGSTOP,
-   and set the kill-on-last-close and inherit-on-fork flags.
-*/
-bool process::attach_() {
-  if(getDefaultLWP() == NULL)
-     return false;
-
-  int fd = getDefaultLWP()->get_fd();
-
-  /* we don't catch any child signals, except SIGSTOP */
-  sigset_t sigs;
-  fltset_t faults;
-  premptyset(&sigs);
-  praddset(&sigs, SIGSTOP);
-  praddset(&sigs, SIGTRAP);
-  praddset(&sigs, SIGSEGV);
-
-  if (ioctl(fd, PIOCSTRACE, &sigs) < 0) {
-    fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
-    close(fd);
-    return false;
-  }
-
-  premptyset(&faults);
-  praddset(&faults,FLTBPT);
-  if (ioctl(fd,PIOCSFAULT,&faults) <0) {
-    fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
-    close(fd);
-    return false;
-  }
-
-  /* turn on the kill-on-last-close and inherit-on-fork flags. This will cause
-     the process to be killed when paradynd exits.
-     Also, any child of this process will stop at the exit of an exec call.
-  */
-#if defined(PIOCSET)
-  {
-    long flags = PR_KLC | PR_FORK;
-    if (ioctl (fd, PIOCSET, &flags) < 0) {
-      fprintf(stderr, "attach: PIOCSET failed: %s\n", sys_errlist[errno]);
-      close(fd);
-      return false;
-    }
-  }
-  #else
-  #if defined(PRFS_KOLC)
-  {
-    long pr_flags;
-    if (ioctl(fd, PIOCGSPCACT, &pr_flags) < 0) {
-      sprintf(errorLine, "Cannot get status\n");
-      logLine(errorLine);
-      close(fd);
-      return false;
-    }
-    pr_flags |= PRFS_KOLC;
-    ioctl(fd, PIOCSSPCACT, &pr_flags);
-  }
-#endif
-#endif
-
-  return true;
-}
-
 Frame Frame::getCallerFrame(process *p) const
 {
   Frame ret;
@@ -553,7 +487,7 @@ Frame Frame::getCallerFrame(process *p) const
   if (fp_ == 0) return Frame();
 
   if (uppermost_) {
-    int proc_fd = p->getDefaultLWP()->get_fd();
+    int proc_fd = p->getProcessLWP()->get_fd();
     if (ioctl(proc_fd, PIOCGREG, &theIntRegs) != -1) {
       ret.pc_ = theIntRegs.regs[PC_REGNUM];  
 
@@ -770,11 +704,11 @@ bool process::dumpImage()
     for (i=0; i < text_size; i+= 1024) {
         errno = 0;
         length = ((i + 1024) < text_size) ? 1024 : text_size -i;
-        if (lseek(getDefaultLWP()->get_fd(),(off_t)(baseAddr + i), SEEK_SET) != (long)(baseAddr + i)) {
+        if (lseek(getProcessLWP()->get_fd(),(off_t)(baseAddr + i), SEEK_SET) != (long)(baseAddr + i)) {
 	    fprintf(stderr,"Error_:%s\n",sys_errlist[errno]);
 	    fprintf(stderr,"[%d] Couldn't lseek to the designated point\n",i);
 	}
-	read(getDefaultLWP()->get_fd(),buffer,length);
+	read(getProcessLWP()->get_fd(),buffer,length);
 	write(ofd, buffer, length);
     }
 
@@ -790,7 +724,7 @@ bool process::dumpImage()
 bool process::terminateProc_()
 {
     long flags = PRFS_KOLC;
-    if (ioctl (getDefaultLWP()->get_fd(), PIOCSSPCACT, &flags) < 0)
+    if (ioctl (getProcessLWP()->get_fd(), PIOCSSPCACT, &flags) < 0)
         return false;
 
     // just to make sure it is dead
@@ -862,21 +796,85 @@ fileDescriptor *getExecFileDescriptor(pdstring filename,
   return desc;
 }
 
-bool dyn_lwp::openFD_()
-{
-  char procName[128];    
-  sprintf(procName, "/proc/%d", (int)proc_->getPid());
-  fd_ = P_open(procName, O_RDWR, 0);
-  if (fd_ == (unsigned) -1) {
-    perror("Error opening process file descriptor");
-    return false;
-  }
-  return true;
+bool dyn_lwp::threadLWP_attach_() {
+   assert( false && "threads not yet supported on OSF");
+   return false;
 }
 
-void dyn_lwp::closeFD_()
+bool dyn_lwp::processLWP_attach_() {
+   /*
+     Open the /proc file correspoding to process pid, 
+     set the signals to be caught to be only SIGSTOP,
+     and set the kill-on-last-close and inherit-on-fork flags.
+   */
+
+   char procName[128];    
+   sprintf(procName, "/proc/%d", (int)getPid());
+   fd_ = P_open(procName, O_RDWR, 0);
+   if (fd_ == (unsigned) -1) {
+      perror("Error opening process file descriptor");
+      return false;
+   }
+
+   /* we don't catch any child signals, except SIGSTOP */
+   sigset_t sigs;
+   fltset_t faults;
+   premptyset(&sigs);
+   praddset(&sigs, SIGSTOP);
+   praddset(&sigs, SIGTRAP);
+   praddset(&sigs, SIGSEGV);
+   
+   if (ioctl(fd_, PIOCSTRACE, &sigs) < 0) {
+      fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
+      close(fd_);
+      return false;
+   }
+   
+   premptyset(&faults);
+   praddset(&faults,FLTBPT);
+   if (ioctl(fd_, PIOCSFAULT, &faults) <0) {
+      fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
+      close(fd_);
+      return false;
+  }
+   
+   /* turn on the kill-on-last-close and inherit-on-fork flags. This will cause
+      the process to be killed when paradynd exits.
+      Also, any child of this process will stop at the exit of an exec call.
+   */
+#if defined(PIOCSET)
+   {
+      long flags = PR_KLC | PR_FORK;
+      if (ioctl (fd_, PIOCSET, &flags) < 0) {
+         fprintf(stderr, "attach: PIOCSET failed: %s\n", sys_errlist[errno]);
+         close(fd_);
+         return false;
+      }
+   }
+#else
+#if defined(PRFS_KOLC)
+   {
+      long pr_flags;
+      if (ioctl(fd_, PIOCGSPCACT, &pr_flags) < 0) {
+         sprintf(errorLine, "Cannot get status\n");
+         logLine(errorLine);
+         close(fd_);
+         return false;
+      }
+      pr_flags |= PRFS_KOLC;
+      ioctl(fd_, PIOCSSPCACT, &pr_flags);
+   }
+#endif
+#endif
+
+   return true;
+}
+
+
+void dyn_lwp::detach_()
 {
-  if (fd_) close(fd_);
+   assert(is_attached());  // dyn_lwp::detach() shouldn't call us otherwise
+   if (fd_) close(fd_);
 }
 
 

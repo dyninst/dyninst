@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.64 2003/09/05 16:27:59 schendel Exp $
+// $Id: irix.C,v 1.65 2003/10/07 19:06:04 schendel Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -175,52 +175,56 @@ void print_proc_pc(int fd)
 
 bool process::readDataSpace_(const void *inTraced, u_int nbytes, void *inSelf)
 {
-  //fprintf(stderr, ">>> process::readDataSpace_(%d@0x%016lx)\n", 
-  //        nbytes, inTraced);
-  ptraceOps++; 
-  ptraceBytes += nbytes;
-
-  if(lseek(getDefaultLWP()->get_fd(), (off_t)inTraced, SEEK_SET) == -1) {
-    perror("process::readDataSpace_(lseek)");
-    return false;
-  }
-
-  // TODO: check for infinite loop if read returns 0?
-  char *dst = (char *)inSelf;
-  for (int last, left = nbytes; left > 0; left -= last) {
-    if ((last = read(getDefaultLWP()->get_fd(), dst + nbytes - left, left)) == -1) {
-      perror("process::readDataSpace_(read)");
+   //fprintf(stderr, ">>> process::readDataSpace_(%d@0x%016lx)\n", 
+   //        nbytes, inTraced);
+   ptraceOps++; 
+   ptraceBytes += nbytes;
+   
+   if(lseek(getProcessLWP()->get_fd(), (off_t)inTraced, SEEK_SET) == -1) {
+      perror("process::readDataSpace_(lseek)");
       return false;
-    } else if (last == 0) {
-      fprintf(stderr,"process::readDataSpace_(read=%d@0x%016lx,left=%d/%d\n",
-              last,inTraced,left,nbytes);
-      return false;
-    }
-  }
-  return true;
+   }
+   
+   // TODO: check for infinite loop if read returns 0?
+   char *dst = (char *)inSelf;
+   for (int last, left = nbytes; left > 0; left -= last) {
+      if ((last = read(getProcessLWP()->get_fd(), dst + nbytes - left, left))
+          == -1)
+      {
+         perror("process::readDataSpace_(read)");
+         return false;
+      } else if (last == 0) {
+         fprintf(stderr, "process::readDataSpace_(read=%d@0x%016lx,"
+                 "left=%d/%d\n", last, inTraced, left, nbytes);
+         return false;
+      }
+   }
+   return true;
 }
 
 bool process::writeDataSpace_(void *inTraced, u_int nbytes, const void *inSelf)
 {
-  //fprintf(stderr, ">>> process::writeDataSpace_(%d@0x%016lx)\n", 
-  //        nbytes, inTraced);
-  ptraceOps++; 
-  ptraceBytes += nbytes;
-
-  if(lseek(getDefaultLWP()->get_fd(), (off_t)inTraced, SEEK_SET) == -1) {
-    perror("process::writeDataSpace_(lseek)");
-    return false;
-  }
-
-  // TODO: check for infinite loop if write returns 0?
- char *src = (char *)const_cast<void*>(inSelf);
-  for (int last, left = nbytes; left > 0; left -= last) {
-    if ((last = write(getDefaultLWP()->get_fd(), src + nbytes - left, left)) == -1) {
-      perror("process::writeDataSpace_(write)");
+   //fprintf(stderr, ">>> process::writeDataSpace_(%d@0x%016lx)\n", 
+   //        nbytes, inTraced);
+   ptraceOps++; 
+   ptraceBytes += nbytes;
+   
+   if(lseek(getProcessLWP()->get_fd(), (off_t)inTraced, SEEK_SET) == -1) {
+      perror("process::writeDataSpace_(lseek)");
       return false;
-    }
-  }
-  return true;
+   }
+   
+   // TODO: check for infinite loop if write returns 0?
+   char *src = (char *)const_cast<void*>(inSelf);
+   for (int last, left = nbytes; left > 0; left -= last) {
+      if ((last = write(getProcessLWP()->get_fd(), src + nbytes - left, left))
+          == -1)
+      {
+         perror("process::writeDataSpace_(write)");
+         return false;
+      }
+   }
+   return true;
 }
 
 bool process::writeTextWord_(caddr_t inTraced, int data)
@@ -312,7 +316,7 @@ bool process::isRunning_() const
 {
   //fprintf(stderr, ">>> process::isRunning_()\n");
   prstatus status;
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCSTATUS, &status) == -1) {
+  if (ioctl(getProcessLWP()->get_fd(), PIOCSTATUS, &status) == -1) {
     perror("process::isRunning_()");
     assert(0);
   }
@@ -358,57 +362,6 @@ void OS::osTraceMe(void)
 
   errno = 0;
   close(fd);
-}
-
-bool process::attach_()
-{
-  if(getDefaultLWP() == NULL)
-     return false;
-
-  // QUESTION: does this attach operation lead to a SIGTRAP being forwarded
-  // to paradynd in all cases?  How about when we are attaching to an
-  // already-running process?  (Seems that in the latter case, no SIGTRAP
-  // is automatically generated) TODO
-
-  // step 1 - /proc open: attach to the inferior process
-  // Note: opening /proc is done in the dyn_lwp constructor
-  // THIS STEP IS DONE IN THE OS INDEPENDENT FUNCTION process::attach()
-
-  // step 2 - /proc PIOCSTRACE: define which signals should be forwarded to daemon
-  // these are (1) SIGSTOP and (2) either SIGTRAP (sparc/mips) or SIGILL (x86),
-  // to implement inferiorRPC completion detection.
-  sigset_t sigs;
-  premptyset(&sigs);
-  (void)praddset(&sigs, SIGSTOP);
-  (void)praddset(&sigs, SIGTRAP);
-  (void)praddset(&sigs, SIGILL);
-#ifdef USE_IRIX_FIXES
-  // we need to use SIGEMT for breakpoints in IRIX due to a bug with
-  // tracing SIGSTOP in a process and then waitpid()ing for it
-  // --wcb 10/4/2000
-  (void)praddset(&sigs, SIGEMT);
-#endif
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCSTRACE, &sigs) < 0) {
-    perror("process::attach(PIOCSTRACE)");
-    return false;
-  }
-
-  // environment variables
-  prpsinfo_t info;
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCPSINFO, &info) < 0) {
-    perror("process::attach(PIOCPSINFO)");
-    return false;
-  }
-  // argv[0]
-  char *argv0_start = info.pr_psargs;
-  char *argv0_end = strstr(argv0_start, " ");
-  if (argv0_end) (*argv0_end) = 0;
-  argv0 = argv0_start;
-  // unused variables
-  pathenv = "";
-  cwdenv = "";
-
-  return true;
 }
 
 procSyscall_t decodeSyscall(process *p, procSignalWhat_t syscall)
@@ -504,7 +457,7 @@ process *decodeProcessEvent(int pid,
                  processVec[u]->status() == neonatal)) {
                 if (pid == -1 ||
                     processVec[u]->getPid() == pid)
-                    fds[u].fd = processVec[u]->getDefaultLWP()->get_fd();
+                    fds[u].fd = processVec[u]->getProcessLWP()->get_fd();
             } else {
                 fds[u].fd = -1;
             }	
@@ -582,7 +535,7 @@ process *decodeProcessEvent(int pid,
         }
     } else {
         // Real return from poll
-        if (ioctl(currProcess->getDefaultLWP()->get_fd(), 
+        if (ioctl(currProcess->getProcessLWP()->get_fd(), 
                   PIOCSTATUS, 
                   &procstatus) != -1) {
             // Check if the process is stopped waiting for us
@@ -623,7 +576,7 @@ bool process::continueProc_()
   ptraceOtherOps++;
 
   prstatus_t stat;
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCSTATUS, &stat) == -1) {
+  if (ioctl(getProcessLWP()->get_fd(), PIOCSTATUS, &stat) == -1) {
     perror("process::continueProc_(PIOCSTATUS)");
     return false;
   }
@@ -631,13 +584,13 @@ bool process::continueProc_()
   if (!(stat.pr_flags & (PR_STOPPED | PR_ISTOP))) {
     // not stopped
     fprintf(stderr, "continueProc_(): process not stopped\n");
-    print_proc_flags(getDefaultLWP()->get_fd());
+    print_proc_flags(getProcessLWP()->get_fd());
     return false;
   }
   
   prrun_t run;
   run.pr_flags = PRCSIG; // clear current signal
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCRUN, &run) == -1) {
+  if (ioctl(getProcessLWP()->get_fd(), PIOCRUN, &run) == -1) {
     perror("process::continueProc_(PIOCRUN)");
     return false;
   }
@@ -725,7 +678,7 @@ bool process::pause_()
   ptraceOtherOps++;
 
   int ret;
-  if ((ret = ioctl(getDefaultLWP()->get_fd(), PIOCSTOP, 0)) == -1) {
+  if ((ret = ioctl(getProcessLWP()->get_fd(), PIOCSTOP, 0)) == -1) {
     perror("process::pause_(PIOCSTOP)");
     sprintf(errorLine, "warning: PIOCSTOP failed in \"pause_\", errno=%i\n", errno);
     logLine(errorLine);
@@ -766,7 +719,7 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall) {
         trappedSyscall->refcount = 1;
         trappedSyscall->syscall_id = (int) syscall;
         sysset_t save_exitset;
-        if (-1 == ioctl(getDefaultLWP()->get_fd(), PIOCGEXIT, &save_exitset))
+        if (-1 == ioctl(getProcessLWP()->get_fd(), PIOCGEXIT, &save_exitset))
             return NULL;
 
         if (prismember(&save_exitset, trappedSyscall->syscall_id))
@@ -776,7 +729,7 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall) {
     
         praddset(&save_exitset, trappedSyscall->syscall_id);
         
-        if (-1 == ioctl(getDefaultLWP()->get_fd(), PIOCSEXIT, &save_exitset))
+        if (-1 == ioctl(getProcessLWP()->get_fd(), PIOCSEXIT, &save_exitset))
             return NULL;
         
         syscallTraps_ += trappedSyscall;
@@ -796,13 +749,13 @@ bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
     }
     // Erk... it hit 0. Remove the trap at the system call
     sysset_t save_exitset;
-    if (-1 == ioctl(getDefaultLWP()->get_fd(), PIOCGEXIT, &save_exitset))
+    if (-1 == ioctl(getProcessLWP()->get_fd(), PIOCGEXIT, &save_exitset))
         return false;
     
     if (trappedSyscall->orig_setting == 0)
         prdelset(&save_exitset, trappedSyscall->syscall_id);
     
-    if (-1 == ioctl(getDefaultLWP()->get_fd(), PIOCSEXIT, &save_exitset))
+    if (-1 == ioctl(getProcessLWP()->get_fd(), PIOCSEXIT, &save_exitset))
         return false;
  
     // Now that we've reset the original behavior, remove this
@@ -874,7 +827,7 @@ int dyn_lwp::hasReachedSyscallTrap() {
 bool process::continueWithForwardSignal(int /*sig*/)
 {
     //fprintf(stderr, ">>> process::continueWithForwardSignal()\n");
-    if (ioctl(getDefaultLWP()->get_fd(), PIOCRUN, NULL) == -1) {
+    if (ioctl(getProcessLWP()->get_fd(), PIOCRUN, NULL) == -1) {
         perror("process::continueWithForwardSignal(PIOCRUN)\n");
         return false;
     }
@@ -897,7 +850,7 @@ bool process::terminateProc_()
 {
   //fprintf(stderr, ">>> process::terminateProc_()\n");
   long flags = PR_KLC;
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCSET, &flags) == -1) {
+  if (ioctl(getProcessLWP()->get_fd(), PIOCSET, &flags) == -1) {
     // not an error: fd has probably been close()ed already
     return false;
   }  
@@ -919,45 +872,45 @@ bool process::API_detach_(const bool cont)
   // signal handling
   sigset_t sigs;
   premptyset(&sigs);
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCSTRACE, &sigs) == -1) {
+  if (ioctl(getProcessLWP()->get_fd(), PIOCSTRACE, &sigs) == -1) {
     //perror("process::API_detach_(PIOCSTRACE)");
     ret = false;
   }
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCSHOLD, &sigs) == -1) {
+  if (ioctl(getProcessLWP()->get_fd(), PIOCSHOLD, &sigs) == -1) {
     //perror("process::API_detach_(PIOCSHOLD)");
     ret = false;
   }
   // fault handling
   fltset_t faults;
   premptyset(&faults);
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCSFAULT, &faults) == -1) {
+  if (ioctl(getProcessLWP()->get_fd(), PIOCSFAULT, &faults) == -1) {
     //perror("process::API_detach_(PIOCSFAULT)");
     ret = false;
   }
   // system call handling
   sysset_t syscalls;
   premptyset(&syscalls);
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCSENTRY, &syscalls) == -1) {
+  if (ioctl(getProcessLWP()->get_fd(), PIOCSENTRY, &syscalls) == -1) {
     //perror("process::API_detach_(PIOCSENTRY)");
     ret = false;
   }
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCSEXIT, &syscalls) == -1) {
+  if (ioctl(getProcessLWP()->get_fd(), PIOCSEXIT, &syscalls) == -1) {
     //perror("process::API_detach_(PIOCSEXIT)");
     ret = false;
   }
   // operation mode
   long flags = PR_RLC | PR_KLC;
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCRESET, &flags) == -1) {
+  if (ioctl(getProcessLWP()->get_fd(), PIOCRESET, &flags) == -1) {
     //perror("process::API_detach_(PIOCRESET)");
     ret = false;
   }
   flags = (cont) ? (PR_RLC) : (PR_KLC);
-  if (ioctl(getDefaultLWP()->get_fd(), PIOCSET, &flags) == -1) {
+  if (ioctl(getProcessLWP()->get_fd(), PIOCSET, &flags) == -1) {
     //perror("process::API_detach_(PIOCSET)");
     ret = false;
   }    
 
-  deleteLWP(getDefaultLWP());
+  deleteLWP(getProcessLWP());
   return ret;
 }
 
@@ -1073,7 +1026,7 @@ bool process::installSyscallTracing()
         flags = PR_FORK | PR_RLC;
     }
     
-    if (ioctl (getDefaultLWP()->get_fd(), PIOCSET, &flags) < 0) {
+    if (ioctl (getProcessLWP()->get_fd(), PIOCSET, &flags) < 0) {
         fprintf(stderr, "attach: PIOCSET failed: %s\n", sys_errlist[errno]);
         return false;
     }
@@ -1081,7 +1034,7 @@ bool process::installSyscallTracing()
     // cause a stop on the exit from fork
     sysset_t sysset;
     
-    if (ioctl(getDefaultLWP()->get_fd(), PIOCGEXIT, &sysset) < 0) {
+    if (ioctl(getProcessLWP()->get_fd(), PIOCGEXIT, &sysset) < 0) {
         fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
         return false;
     }
@@ -1091,13 +1044,13 @@ bool process::installSyscallTracing()
         praddset (&sysset, SYS_execve);
     }
     
-    if (ioctl(getDefaultLWP()->get_fd(), PIOCSEXIT, &sysset) < 0) {
+    if (ioctl(getProcessLWP()->get_fd(), PIOCSEXIT, &sysset) < 0) {
         fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
         return false;
     }
     
     // now worry about entry too
-    if (ioctl(getDefaultLWP()->get_fd(), PIOCGENTRY, &sysset) < 0) {
+    if (ioctl(getProcessLWP()->get_fd(), PIOCGENTRY, &sysset) < 0) {
         fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
         return false;
     }
@@ -1115,7 +1068,7 @@ bool process::installSyscallTracing()
     // should these be for exec callback??
     // prdelset (&sysset, SYS_execve);
     
-    if (ioctl(getDefaultLWP()->get_fd(), PIOCSENTRY, &sysset) < 0) {
+    if (ioctl(getProcessLWP()->get_fd(), PIOCSENTRY, &sysset) < 0) {
         fprintf(stderr, "attach: ioctl failed: %s\n", sys_errlist[errno]);
         return false;
     }
@@ -1131,7 +1084,7 @@ bool process::installSyscallTracing()
     // --wcb 10/4/2000
     (void)praddset(&sigs, SIGEMT);
 #endif
-    if (ioctl(getDefaultLWP()->get_fd(), PIOCSTRACE, &sigs) < 0) {
+    if (ioctl(getProcessLWP()->get_fd(), PIOCSTRACE, &sigs) < 0) {
         perror("process::attach(PIOCSTRACE)");
         return false;
     }
@@ -1554,7 +1507,7 @@ Frame Frame::getCallerFrame(process *p) const
       if (lwp_)
 	fd = lwp_->get_fd();
       else
-	fd = p->getDefaultLWP()->get_fd();
+	fd = p->getProcessLWP()->get_fd();
       if (ioctl(fd, PIOCGREG, &regs) == -1) {
 	perror("process::readDataFromFrame(PIOCGREG)");
 	return Frame(); // zero frame
@@ -1615,7 +1568,7 @@ Frame Frame::getCallerFrame(process *p) const
     gregset_t regs;
     unsigned fd;
     if (lwp_) fd = lwp_->get_fd();
-    else fd = p->getDefaultLWP()->get_fd();
+    else fd = p->getProcessLWP()->get_fd();
     if (ioctl(fd, PIOCGREG, &regs) == -1) {
       perror("process::readDataFromFrame(PIOCGREG)");
       return Frame(); // zero frame
@@ -1889,21 +1842,70 @@ fileDescriptor *getExecFileDescriptor(pdstring filename,
   return desc;
 }
 
-bool dyn_lwp::openFD_()
-{
-  char procName[128];    
-  sprintf(procName, "/proc/%05d", (int)proc_->getPid());
-  fd_ = P_open(procName, O_RDWR, 0);
-  if (fd_ == (unsigned) -1) {
-    perror("Error opening process file descriptor");
-    return false;
-  }
-  return true;
+bool dyn_lwp::threadLWP_attach_() {
+   assert( false && "threads not yet supported on IRIX");
+   return false;
 }
 
-void dyn_lwp::closeFD_()
+bool dyn_lwp::processLWP_attach_() {
+   char procName[128];    
+   sprintf(procName, "/proc/%05d", getPid());
+   fd_ = P_open(procName, O_RDWR, 0);
+   if (fd_ == (unsigned) -1) {
+      perror("Error opening process file descriptor");
+      return false;
+   }
+
+   // QUESTION: does this attach operation lead to a SIGTRAP being forwarded
+   // to paradynd in all cases?  How about when we are attaching to an
+   // already-running process?  (Seems that in the latter case, no SIGTRAP
+   // is automatically generated) TODO
+   
+   // step 1 - /proc open: attach to the inferior process
+   // Note: opening /proc is done in the dyn_lwp constructor
+   // THIS STEP IS DONE IN THE OS INDEPENDENT FUNCTION process::attach()
+   
+   // step 2 - /proc PIOCSTRACE: define which signals should be forwarded to
+   // daemon these are (1) SIGSTOP and (2) either SIGTRAP (sparc/mips) or
+   // SIGILL (x86), to implement inferiorRPC completion detection.
+   sigset_t sigs;
+   premptyset(&sigs);
+   (void)praddset(&sigs, SIGSTOP);
+   (void)praddset(&sigs, SIGTRAP);
+   (void)praddset(&sigs, SIGILL);
+#ifdef USE_IRIX_FIXES
+   // we need to use SIGEMT for breakpoints in IRIX due to a bug with
+   // tracing SIGSTOP in a process and then waitpid()ing for it
+   // --wcb 10/4/2000
+   (void)praddset(&sigs, SIGEMT);
+#endif
+   if (ioctl(fd_, PIOCSTRACE, &sigs) < 0) {
+      perror("process::attach(PIOCSTRACE)");
+      return false;
+   }
+   
+   // environment variables
+   prpsinfo_t info;
+   if (ioctl(fd_, PIOCPSINFO, &info) < 0) {
+      perror("process::attach(PIOCPSINFO)");
+      return false;
+   }
+   // argv[0]
+   char *argv0_start = info.pr_psargs;
+   char *argv0_end = strstr(argv0_start, " ");
+   if (argv0_end) (*argv0_end) = 0;
+   proc_->argv0 = argv0_start;
+   // unused variables
+   proc_->pathenv = "";
+   proc_->cwdenv = "";
+
+   return true;
+}
+
+void dyn_lwp::detach_()
 {
-  if (fd_) close(fd_);
+   assert(is_attached());  // dyn_lwp::detach() shouldn't call us otherwise
+   if (fd_) close(fd_);
 }
 
 void loadNativeDemangler() {}

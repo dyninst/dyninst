@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix-ptrace.C,v 1.5 2003/09/05 16:27:54 schendel Exp $
+// $Id: aix-ptrace.C,v 1.6 2003/10/07 19:05:48 schendel Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -603,24 +603,6 @@ void OS::osTraceMe(void)
   int ret;
   ret = ptrace(PT_TRACE_ME, 0, 0, 0, 0);
   assert(ret != -1);
-}
-
-// attach to an inferior process.
-bool process::attach_() {
-  if(getDefaultLWP() == NULL)
-     return false;
-
-  // we only need to attach to a process that is not our direct children.
-
-  //ccw 30 apr 2002 : SPLIT5
-  pdstring buffer ="attach!";
-  statusLine(buffer.c_str());
-  
-  if (parent != 0 || createdViaAttach) {
-      return attach_helper(this);
-  }
-  else
-      return true;
 }
 
 bool process::isRunning_() const {
@@ -1321,16 +1303,31 @@ int dyn_lwp::hasReachedSyscallTrap() {
     return 0;
 }
 
-
-bool dyn_lwp::openFD_()
-{
-  // Umm... no file descriptors on AIX
-  return true;
+bool dyn_lwp::threadLWP_attach_() {
+   // Umm... no file descriptors on AIX
+   return true;
 }
 
-void dyn_lwp::closeFD_()
+bool dyn_lwp::processLWP_attach_() {
+   // Umm... no file descriptors on AIX
+
+   // we only need to attach to a process that is not our direct children.
+
+   //ccw 30 apr 2002 : SPLIT5
+   pdstring buffer ="attach!";
+   statusLine(buffer.c_str());
+   
+   if (proc_->parent != 0 || proc_->createdViaAttach) {
+      return attach_helper(proc_);
+   }
+   else
+      return true;
+}
+
+void dyn_lwp::detach_()
 {
-  return;
+   assert(is_attached());  // dyn_lwp::detach() shouldn't call us otherwise
+   return;
 }
 
 pdstring process::tryToFindExecutable(const pdstring &progpath, int /*pid*/) {
@@ -1578,7 +1575,7 @@ process *decodeProcessEvent(int pid,
                   static int recurse_level = 0;
                   // Debug info
                   dyn_saved_regs *regs;
-                  regs = proc->getDefaultLWP()->getRegisters();
+                  regs = proc->getProcessLWP()->getRegisters();
                   if (proc->previousSignalAddr() == regs->gprs[3]) {
                       if (!in_trap_loop) {
                           fprintf(stderr, "Spinning to handle multiple traps caused by null library loads...\n");
