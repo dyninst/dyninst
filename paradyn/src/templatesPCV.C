@@ -32,8 +32,11 @@
 #include "paradyn/src/PCthread/PCwhy.h"
 #include "paradyn/src/PCthread/PCshg.h"
 #include "paradyn/src/PCthread/PCdata.h"
+#include "paradyn/src/PCthread/PCcostServer.h"
 #include "UI.thread.h"
 
+template class vector<ffstr>;
+template class vector<costServerRec>;
 template class vector<uiSHGrequest>;
 template class vector<dataSubscriber*>;
 template class vector<PCsearch*>;
@@ -42,7 +45,7 @@ template class vector<PCMetInfo*>;
 template class vector<PCmetric*>;
 template class vector<PCMRec>;
 template class vector<PCMRec*>;
-template class vector<inPort*>;
+template class vector<inPort>;
 template class vector<searchHistoryNode*>;
 template class vector<hypothesis*>;
 template class vector<PCmetricInst*>;
