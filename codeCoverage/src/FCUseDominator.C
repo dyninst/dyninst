@@ -74,7 +74,13 @@ int FCUseDominator::updateExecutionCounts(BPatch_basicBlock* bb,int ec){
 	for(BPatch_basicBlock* id = bb;
 	    id != NULL;
 	    id = id->getImmediateDominator())
+	{
+		if(!executionCounts[id->getBlockNumber()]){
+			BPatch_sourceBlock* sb = id->getSourceBlock();
+			updateLinesCovered(sb);
+		}
 		executionCounts[id->getBlockNumber()] += ec;
+	}
         return Error_OK;
 }
 

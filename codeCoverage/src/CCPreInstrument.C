@@ -5,6 +5,8 @@
 #include <iostream.h>
 #include <fstream.h>
 #include <limits.h>
+#include <tcl.h>
+#include <tk.h>
 
 #include <CCcommon.h>
 #include <FCAllBlocks.h>
@@ -24,6 +26,14 @@ CCPreInstrument::~CCPreInstrument() {}
 int CCPreInstrument::instrumentInitial(){
 
 	cout << "information: Beginning initial instrumentation..." << endl;
+
+	if(globalInterp && statusBarName){
+		char tclBuffer[256];
+		sprintf(tclBuffer,"%s configure -text \
+			\"Initial instrumentation is being done...\"",
+			statusBarName);
+		Tcl_Eval(globalInterp,tclBuffer);
+	}
 
 	for(int i=0;i<instrumentedFunctionCount;i++){
 		FunctionCoverage* fc = instrumentedFunctions[i];
@@ -54,7 +64,17 @@ int CCPreInstrument::instrumentInitial(){
   */
 int CCPreInstrument::run(){
 	
-	cout << "information: The execution of the mutatee starts..." << endl;
+	cout << endl
+	     << "information: The execution of the mutatee starts..."
+	     << endl << endl;
+
+	if(globalInterp && statusBarName){
+		char tclBuffer[256];
+		sprintf(tclBuffer,"%s configure -text \
+			\"Execution of mutatee started...\"",
+			statusBarName);
+		Tcl_Eval(globalInterp,tclBuffer);
+	}
 
 	globalObject = this;
 
@@ -74,6 +94,7 @@ int CCPreInstrument::run(){
 
 			/** call the deletion interval callback */
 			intervalCallback(SIGALRM);
+
 		}
 
 	/** wait untill the breakpoint at exithandle is reached */
@@ -87,7 +108,17 @@ int CCPreInstrument::run(){
 	/** the mutatee is let to run to terminate */
 	appThread->continueExecution();
 
-	cout << "information: the execution of mutatee terminates..." << endl;
+	cout << endl 
+	     << "information: the execution of mutatee terminates..."
+	     << endl << endl;
+
+	if(globalInterp && statusBarName){
+		char tclBuffer[256];
+		sprintf(tclBuffer,"%s configure -text \
+			\"Execution of mutatee started...\"",
+			statusBarName);
+		Tcl_Eval(globalInterp,tclBuffer);
+	}
 
 	return Error_OK;
 }
@@ -113,7 +144,14 @@ int CCPreInstrument::deletionIntervalCallback(){
 		appThread->stopExecution();
 	else already = true;
 
-	cout << "information: mutatee stopped and deletion occurs..." << endl;
+	extern unsigned totalDeletions;
+        totalDeletions = 0;
+	extern unsigned totalCoveredLines;
+	totalCoveredLines = 0;
+
+	cout << endl 
+	     << "information: mutatee stopped and deletion occurs..."
+	     << endl << endl;
 
 	/** update the execution counts of the basic blocks */
         updateFCObjectInfo();

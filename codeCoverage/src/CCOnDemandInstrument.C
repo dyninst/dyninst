@@ -5,6 +5,8 @@
 #include <iostream.h>
 #include <fstream.h>
 #include <limits.h>
+#include <tcl.h>
+#include <tk.h>
 
 #include <CCcommon.h>
 #include <FCAllBlocks.h>
@@ -41,6 +43,14 @@ CCOnDemandInstrument::~CCOnDemandInstrument()
 int CCOnDemandInstrument::instrumentInitial(){
 
 	cout << "information: Beginning initial instrumentation..." << endl;
+
+	if(globalInterp && statusBarName){
+		char tclBuffer[256];
+		sprintf(tclBuffer,"%s configure -text \
+			\"Initial instrumentation is being done...\"",
+			statusBarName);
+		Tcl_Eval(globalInterp,tclBuffer);
+	}
 
 	int tmpV = -1;
 
@@ -82,7 +92,17 @@ int CCOnDemandInstrument::instrumentInitial(){
   */
 int CCOnDemandInstrument::run(){
 	
-	cout << "information: The execution of the mutatee starts..." << endl;
+	cout << endl 
+	     << "information: The execution of the mutatee starts..."
+	     << endl << endl;
+
+	if(globalInterp && statusBarName){
+		char tclBuffer[256];
+		sprintf(tclBuffer,"%s configure -text \
+			\"Execution of mutatee ended...\"",
+			statusBarName);
+		Tcl_Eval(globalInterp,tclBuffer);
+	}
 
 	int errorCode = Error_OK;
 
@@ -98,9 +118,12 @@ int CCOnDemandInstrument::run(){
 	if(deletionInterval > 0)
 		alarm(deletionInterval);
 
+	bool isExpected = true;
+
 	while(true){
 		/** wait untill a function is called for the first time */
-		bPatch.waitUntilStopped(appThread);
+		if(!(isExpected = bPatch.waitUntilStopped(appThread)))
+			break;
 
 		/** read the identifier of the function that is called */
 		int whichFunctionBreak;
@@ -143,12 +166,32 @@ int CCOnDemandInstrument::run(){
 		if((deletionInterval > 0) && alreadyStopped){
 			appThread->stopExecution();
 
-			cout << "information: mutatee stopped and deletion occurs..." << endl;
+			cout << endl
+			     << "information: mutatee stopped and "
+			     << "deletion occurs..." << endl << endl;
 
 			/** update the execution counts of the basic blocks */
 			updateFCObjectInfo();
 
 			alreadyStopped = false;
+
+			if(globalInterp && statusBarName){
+				extern unsigned totalDeletions;
+				extern unsigned totalCoveredLines;
+				extern unsigned whichInterval;
+				char tclBuffer[256];
+				sprintf(tclBuffer,"%s configure -text \
+					\"Interval %d has ended with %d deletions...\"",
+					statusBarName,whichInterval,
+				        totalDeletions);
+				Tcl_Eval(globalInterp,tclBuffer);
+
+				sprintf(tclBuffer,"set globalFrequencyMap(%d) [list %d %d ]",
+						   whichInterval,totalCoveredLines,
+						   totalDeletions);
+				Tcl_Eval(globalInterp,tclBuffer);
+			}
+
 
 			/** assign the handler to the alarm signal and continue
 			  * execution
@@ -161,6 +204,11 @@ int CCOnDemandInstrument::run(){
 		}
 
 	}
+	if(!isExpected){
+		cout << "information: the mutatee terminated unexpectedly..."
+		     << endl;
+		return Error_OK;
+	}
 
 	/** coverage results are printed into a binary file */
 	errorCode = printCoverageInformation();
@@ -170,7 +218,17 @@ int CCOnDemandInstrument::run(){
 	/** let the mutatee terminate */
 	appThread->continueExecution();
 
-	cout << "information: the execution of mutatee terminates..." << endl;
+	cout << endl
+	     << "information: the execution of mutatee terminates..."
+	     << endl << endl;
+
+	if(globalInterp && statusBarName){
+		char tclBuffer[256];
+		sprintf(tclBuffer,"%s configure -text \
+			\"Execution of mutatee started...\"",
+			statusBarName);
+		Tcl_Eval(globalInterp,tclBuffer);
+	}
 
 	return Error_OK;
 }
@@ -195,13 +253,21 @@ int CCOnDemandInstrument::deletionIntervalCallback(){
 	  * otherwise stopp the execution of
 	  * mutatee
 	  */
+
+	extern unsigned totalDeletions;
+	extern unsigned totalCoveredLines;
+	totalDeletions = 0;
+	totalCoveredLines = 0;
+
 	if(appThread->isStopped()){
 		alreadyStopped = true;
 		return Error_OK;
 	}
 	appThread->stopExecution();
 	
-	cout << "information: mutatee stopped and deletion occurs..." << endl;
+	cout << endl
+	     << "information: mutatee stopped and "
+	     << "deletion occurs..." << endl << endl;
 
 	/** update the execution counts of the basic blocks */
 	updateFCObjectInfo();

@@ -39,7 +39,10 @@ bool FCAllBlocks::validateBasicBlock(BPatch_basicBlock* bb){
   * execution of any other basic block
   */ 
 int FCAllBlocks::updateExecutionCounts(BPatch_basicBlock* bb,int ec){
-	if(bb)
+	if(bb){
+		BPatch_sourceBlock* sb = bb->getSourceBlock();
+		updateLinesCovered(sb);
 		executionCounts[bb->getBlockNumber()] += ec;
+	}
 	return Error_OK;
 }

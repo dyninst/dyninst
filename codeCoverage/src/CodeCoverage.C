@@ -5,6 +5,9 @@
 #include <iostream.h>
 #include <fstream.h>
 #include <limits.h>
+#include <pthread.h>
+#include <tcl.h>
+#include <tk.h>
 
 #include "common/h/Vector.h"
 #include "common/src/Dictionary.C"
@@ -18,6 +21,11 @@
 #include <FCAllBlocks.h>
 #include <FCUseDominator.h>
 #include <CodeCoverage.h>
+
+unsigned whichInterval = 0;
+unsigned totalDeletions = 0;
+unsigned totalCoveredLines = 0;
+float totalPercentage = 0.0;
 
 /** a linked list definition of functions to be used in hash structure */
 class BPFunctionList {
@@ -39,14 +47,19 @@ dictionary_hash<string,BPFunctionList*>* allFunctionsHash = NULL;
   * by interval call backs
   */
 CodeCoverage* CodeCoverage::globalObject = NULL;
+unsigned short CodeCoverage::fileCount = 0;
+unsigned short* CodeCoverage::fileStartIndex = NULL;
+unsigned short* CodeCoverage::fileLineCount = NULL;
 
 /** constructor */
 CodeCoverage::CodeCoverage()
 	: appThread(NULL),appImage(NULL),coverageFileName(NULL),
 	  deletionInterval(0),appModules(NULL),
 	  instrumentedFunctions(NULL),instrumentedFunctionCount(0),
-	  useDominator(false)
-{}
+	  useDominator(false),globalInterp(NULL),statusBarName(NULL)
+{
+	pthread_mutex_init(&updateLock,NULL);
+}
 
 /** constructor */
 CodeCoverage::~CodeCoverage()
@@ -57,6 +70,7 @@ CodeCoverage::~CodeCoverage()
 		delete instrumentedFunctions[i];
 	delete[] instrumentedFunctions;
 	delete FILE_EXTENSION;
+	pthread_mutex_destroy(&updateLock);
 }
 
 /** error printing function that overrides dyninst default 
@@ -196,6 +210,62 @@ FunctionCoverage* CodeCoverage::newFunctionCoverage(BPatch_function* f,
 	return ret;
 }
 
+void initializeLineSets(FunctionCoverage* fc,FunctionInfo* le,
+			FileLineInformation* fe)
+{
+	if(!le->validInfo)
+		return;
+
+	tuple** lineToAddr = fe->getLineToAddrMap();
+	if(!lineToAddr)
+		return;
+
+	BPatch_Set<unsigned short> unExecuted;
+	unsigned short i = 0, e = 0;
+
+	i = le->startLinePtr->linePtr;
+	e = le->endLinePtr->linePtr;
+	for(;i <= e;i++)
+		unExecuted += lineToAddr[i]->lineNo;
+
+	if(unExecuted.size())
+		fc->initializeLines(unExecuted);
+	return;
+}
+
+void CodeCoverage::createFileStructure(){
+	fileCount = 0;
+
+	const char* tmp = "what can it be";
+	unsigned short i = 0, j = 0;
+	for(i=0;i<instrumentedFunctionCount;i++)
+		if(strcmp(tmp,instrumentedFunctions[i]->fileName)){
+			tmp = instrumentedFunctions[i]->fileName;
+			fileCount++;
+		}
+
+	if(!fileCount)
+		return;
+
+	tmp = "can not be";
+	fileStartIndex = new unsigned short[fileCount];
+	fileLineCount = new unsigned short[fileCount];
+	for(i=0,j=0;i<instrumentedFunctionCount;i++)
+		if(strcmp(tmp,instrumentedFunctions[i]->fileName)){
+			fileStartIndex[j] = i;
+			fileLineCount[j] = instrumentedFunctions[i]->lineCount;
+			tmp = instrumentedFunctions[i]->fileName;
+			j++;
+		}
+		else 
+			fileLineCount[j-1] += instrumentedFunctions[i]->lineCount;
+
+	for(i=0;i<fileCount;i++)
+		cout << "information: file "
+		     << instrumentedFunctions[fileStartIndex[i]]->fileName
+		     << " will be analyzed..." << endl;
+}
+
 /** method to select the functions whose source line information is available
   * and whose data is stored in dyninst. It goes over the line information 
   * strucute elements and for each source file and function it check whether
@@ -228,15 +298,20 @@ int CodeCoverage::selectFunctions(){
 
 		/** for each source file in the mutatee */
 		for(unsigned int j=0;j<sourceFileCount;j++){
-			string fileN = *(sourceFileList[j]);
+			string* fileN = sourceFileList[j];
+
 			FileLineInformation* fInfo = lineInformationList[j];
 
-			unsigned short functionCount = fInfo->getFunctionCount();
-			string** functionNameList = fInfo->getFunctionNameList();
-
+			unsigned short functionCount = 
+					fInfo->getFunctionCount();
+			string** functionNameList = 
+					fInfo->getFunctionNameList();
+			FunctionInfo** lineInformationList = 
+					fInfo->getLineInformationList();
 			/** for each function record in the muattee stab records */
 			for(unsigned int k=0;k<functionCount;k++){
-				string funcN = *(functionNameList[k]);
+				string* funcN = functionNameList[k];
+				FunctionInfo* funcI = lineInformationList[k];
 
 				/** get the starting address of the function in stab records */
 				Address min=0,max=0;
@@ -245,7 +320,7 @@ int CodeCoverage::selectFunctions(){
 
 				/** check whether stab record matches the dyninst records */
 				BPatch_function* currFunc = 
-					validateFunction(funcN.string_of(),min);
+					validateFunction(funcN->string_of(),min);
 
 				if(!currFunc)
 					continue;
@@ -255,11 +330,15 @@ int CodeCoverage::selectFunctions(){
 				  */
 				if(!instFunctions.contains(currFunc)){
 					instFunctions += currFunc;
-					available += 
+					FunctionCoverage* fc =
 						newFunctionCoverage(
 							currFunc,
-							funcN.string_of(),
-							fileN.string_of());
+							funcN->string_of(),
+							fileN->string_of());
+
+					initializeLineSets(fc,funcI,fInfo);
+
+					available += fc;
 				}
 			}
 		}
@@ -278,7 +357,10 @@ int CodeCoverage::selectFunctions(){
 
 	/** sort the function coverage objects according to the name of the functions */
 	qsort((void*)instrumentedFunctions,
-	      instrumentedFunctionCount,sizeof(FunctionCoverage*),FCSort);
+	      instrumentedFunctionCount,sizeof(FunctionCoverage*),
+	      FCSortByFileName);
+
+	createFileStructure();
 
 	delete allFunctionsHash;
 
@@ -366,7 +448,7 @@ int CodeCoverage::errorPrint(int code,char* text)
 }
 
 void CodeCoverage::terminate(){
-	if(appThread)
+	if(appThread && !appThread->isTerminated())
 		appThread->terminateExecution();
 }
 
@@ -378,17 +460,17 @@ int CodeCoverage::deletionIntervalCallback(){
 /** function that is used to sort the function coverage objects according
   * to the names of the functions
   */
-int FCSort(const void* arg1,const void* arg2){
+int FCSortByFileName(const void* arg1,const void* arg2){
 	FunctionCoverage* e1 = *((FunctionCoverage* const *)arg1);
 	FunctionCoverage* e2 = *((FunctionCoverage* const *)arg2);
 
-	int check = strcmp(e1->functionName,e2->functionName);
+	int check = strcmp(e1->fileName,e2->fileName);
 	if(check > 0)
 		return 1;
 	if(check < 0)
 		return -1;
 
-	check = strcmp(e1->fileName,e2->fileName);
+	check = strcmp(e1->functionName,e2->functionName);
 	if(check > 0)
 		return 1;
 	if(check < 0)
@@ -401,6 +483,14 @@ int FCSort(const void* arg1,const void* arg2){
   * the results for each of them.
   */
 int CodeCoverage::printCoverageInformation(){
+
+	if(globalInterp && statusBarName){
+		char tclBuffer[256];
+		sprintf(tclBuffer,"%s configure -text \
+			\"Dumping coverage results to the binary file...\"",
+			statusBarName);
+		Tcl_Eval(globalInterp,tclBuffer);
+	}
 
 	/** update the execution counts for the last time */
         updateFCObjectInfo();
@@ -416,7 +506,8 @@ int CodeCoverage::printCoverageInformation(){
 
 	/** for each function coverage print the results */
         for(int i=0;i<instrumentedFunctionCount;i++)
-                instrumentedFunctions[i]->printCoverageInformation(coverageFile,isInstrumented(i));
+                instrumentedFunctions[i]->printCoverageInformation(
+				coverageFile);
 
 	/** print the termination flag */
 	unsigned tmp_u = 0;
@@ -432,9 +523,15 @@ int CodeCoverage::printCoverageInformation(){
   * instrumented going over the function coverage objects
   */
 int CodeCoverage::updateFCObjectInfo(){
+
+	pthread_mutex_lock(&updateLock);
+
         for(int i=0;i<instrumentedFunctionCount;i++)
              if(isInstrumented(i))
                 instrumentedFunctions[i]->updateExecutionCounts();
+
+	pthread_mutex_unlock(&updateLock);
+
         return Error_OK;
 }
 
@@ -455,14 +552,189 @@ CodeCoverage::registerErrorCallback(BPatchErrorCallback f){
 void intervalCallback(int signalNo){
 	if(signalNo != SIGALRM)
 		return;
+	
+	Tcl_Interp* globalInterp = 
+		CodeCoverage::globalObject->globalInterp;
+	const char* statusBarName = 
+		CodeCoverage::globalObject->statusBarName;
+	
+	whichInterval++;
+
+	if(globalInterp && statusBarName){
+		char tclBuffer[256];
+		sprintf(tclBuffer,"%s configure -text \
+			\"Interval %d has started...\"",
+			statusBarName,whichInterval);
+		Tcl_Eval(globalInterp,tclBuffer);
+	}
+
+	/** wait untill the breakpoint at exithandle is reached */
 	CodeCoverage::globalObject->deletionIntervalCallback();
+
+	if(globalInterp && statusBarName){
+		char tclBuffer[256];
+		sprintf(tclBuffer,"%s configure -text \
+			\"Interval %d has ended with %d deletions...\"",
+			statusBarName,whichInterval,totalDeletions);
+		Tcl_Eval(globalInterp,tclBuffer);
+
+		sprintf(tclBuffer,"set globalFrequencyMap(%d) [list %d %d ]",
+				  whichInterval,totalCoveredLines,
+				  totalDeletions);
+		Tcl_Eval(globalInterp,tclBuffer);
+	}
+}
+
+void CodeCoverage::getTclTkExecutedLines(ofstream& file){
+   if(deletionInterval || appThread->isTerminated()) {
+
+	if(globalInterp && statusBarName){
+		char tclBuffer[256];
+		sprintf(tclBuffer,"%s configure -text \
+                        \"Updating executed line information...\"",
+                        statusBarName);
+                Tcl_Eval(globalInterp,tclBuffer);
+        }
+
+	pthread_mutex_lock(&updateLock);
+
+	for(int i=0;i<fileCount;i++){
+		file << "set globalExecutionMap(" << i << ") \\" << endl;
+		file << "\t[list \\" << endl
+		     << "\t\t[list \\" << endl;
+
+		unsigned short index = fileStartIndex[i];
+		const char* fileName = instrumentedFunctions[index]->fileName;
+
+		unsigned percentage = 0;
+		for(unsigned short j=index;j<instrumentedFunctionCount;j++){
+			FunctionCoverage* fc = instrumentedFunctions[j];
+			if(strcmp(fileName,fc->fileName))
+				break;
+
+			file << "\t\t\t[list \\" << endl
+			     << "\t\t\t\t" << (int)(fc->executionPercentage) << " \\" << endl;
+
+			pthread_mutex_lock(&(fc->updateLock));
+
+			unsigned es = fc->executedLines.size();
+
+			file << "\t\t\t\t" << es << " \\" << endl
+			     << "\t\t\t\t" << fc->lineCount << " \\" << endl;
+
+			if(es){
+				percentage += es;
+				file << "\t\t\t\t[list \\" << endl;
+				unsigned short* elements =
+					 new unsigned short[es];
+				fc->executedLines.elements(elements);
+				for(unsigned t=0;t<es;t++)
+					file << elements[t] << " ";
+				delete[] elements;
+				file << "\\" << endl;
+				file << "\t\t\t\t] \\" << endl;
+			}
+			pthread_mutex_unlock(&(fc->updateLock));
+
+			file << "\t\t\t] \\" << endl;
+		}
+		file << "\t\t] \\" << endl
+		     << "\t\t" << (int)(((1.0*percentage)/fileLineCount[i])*100) << " \\" << endl
+		     << "\t\t" << percentage << " \\" << endl
+		     << "\t\t" << fileLineCount[i] << " \\" << endl
+		     << "\t]" << endl;
+	}
+
+	pthread_mutex_unlock(&updateLock);
+	
+   }
+   else {
+	if(globalInterp && statusBarName){
+		char tclBuffer[256];
+		sprintf(tclBuffer,"%s configure -text \
+		 \"Can not update executed line information (no deletion)...\"",
+                        statusBarName);
+                Tcl_Eval(globalInterp,tclBuffer);
+        }
+   }
+}
+
+void CodeCoverage::getTclTkMenuListCreation(ofstream& file){
+
+	for(int i=0;i<fileCount;i++){
+		file << "set globalDataStructure(" << i << ") \\" << endl;
+		unsigned short index = fileStartIndex[i];
+		const char* fileName = instrumentedFunctions[index]->fileName;
+		/*const char* p = fileName;p++; */
+		/*p = strchr(p,'/');*/
+
+		file << "\t[list \\" << endl;
+		/*file << "\t\t/baffie" << p << " \\" << endl;*/
+		file << "\t\t" << fileName << " \\" << endl;
+
+		file << "\t\t[list \\" << endl;
+		for(unsigned short j=index;j<instrumentedFunctionCount;j++){
+			FunctionCoverage* fc = instrumentedFunctions[j];
+			if(strcmp(fileName,fc->fileName))
+				break;
+			file << "\t\t\t" << fc->functionName << " \\" << endl;
+		}
+		file << "\t\t] \\" << endl;
+		file << "\t\t[list \\" << endl;
+		for(unsigned short j=index;j<instrumentedFunctionCount;j++){
+			FunctionCoverage* fc = instrumentedFunctions[j];
+			if(strcmp(fileName,fc->fileName))
+				break;
+
+			unsigned short minLine = (fc->unExecutedLines.size() ?
+					          fc->unExecutedLines.minimum():
+						  0);
+			file << "\t\t\t" << minLine << " \\" << endl;
+		}
+		file << "\t\t]]" << endl;
+	}
+	for(int i=0;i<fileCount;i++){
+		file << "set globalExecutionMap(" << i << ") \\" << endl;
+		file << "\t[list \\" << endl;
+		file << "\t\t[list \\" << endl;
+
+		unsigned short index = fileStartIndex[i];
+		const char* fileName = instrumentedFunctions[index]->fileName;
+		for(unsigned short j=index;j<instrumentedFunctionCount;j++){
+			FunctionCoverage* fc = instrumentedFunctions[j];
+			if(strcmp(fileName,fc->fileName))
+				break;
+			file << "\t\t\t[list \\" << endl
+			     << "\t\t\t\t0 \\" << endl
+			     << "\t\t\t\t0 \\" << endl
+			     << "\t\t\t\t" << fc->lineCount << " \\" << endl
+			     << "\t\t\t] \\" << endl;
+		}
+		file << "\t\t] \\" << endl
+		     << "\t\t0 \\" << endl
+		     << "\t\t0 \\" << endl
+		     << "\t\t" << fileLineCount[i] << " \\" << endl
+		     << "\t]" << endl;
+	}
+	file << "InitializeInterface \\" << endl
+	     << "\t.menuFrame.listFrame.fileListFrame \\" << endl
+	     << "\t.fileFrame.displayPanel.text \\" << endl
+	     << "\t0 \\" << endl
+	     << "\tglobalDataStructure \\" << endl
+	     << "\tglobalExecutionMap \\" << endl;
+
+}
+
+/** method to set tcl/tk related things to CodeCoverage */
+void CodeCoverage::setTclTkSupport(Tcl_Interp* interp,const char* statusBar){
+	globalInterp = interp;
+	statusBarName = statusBar;
 }
 
 /** method to print the coverage results after reading
   * from the binary file produced by code coverage tool.
   */
 int CodeCoverage::viewCodeCoverageInfo(char* fN){
-
 	unsigned tmp_u;
 	unsigned short tmp_s;
 	char buffer[1024];
@@ -526,3 +798,195 @@ int CodeCoverage::viewCodeCoverageInfo(char* fN){
 	return Error_OK;
 }
 
+typedef struct {
+	char* fileName;
+	char* funcName;
+	unsigned short min;
+	unsigned total;
+	BPatch_Set<unsigned short> executed;
+} COVINFO;
+
+int FCSortCOVINFO(const void* arg1,const void* arg2){
+	COVINFO* e1 = *((COVINFO* const *)arg1);
+	COVINFO* e2 = *((COVINFO* const *)arg2);
+
+	int check = strcmp(e1->fileName,e2->fileName);
+	if(check > 0)
+		return 1;
+	if(check < 0)
+		return -1;
+
+	check = strcmp(e1->funcName,e2->funcName);
+
+	if(check > 0)
+		return 1;
+	if(check < 0)
+		return -1;
+
+	return 0;
+}
+
+int CodeCoverage::getTclTkMenuListForView(char* fN,ofstream& file){
+	
+	unsigned tmp_u;
+	unsigned short tmp_s;
+
+	unsigned allInfoSize = 0;
+	COVINFO** allInfo = NULL;
+
+	ifstream inputFile;
+	inputFile.open(fN,ios::in);
+
+	if(!inputFile)
+		return errorPrint(Error_FileOpen,fN);
+
+	char ccid[10];
+	inputFile.read(ccid,10);
+	if(strncmp(ccid,"Dyncov-1.0",10))
+		return errorPrint(Error_FileFormat,fN);
+
+	while(true){
+
+		inputFile.read((char*)&tmp_u,sizeof(unsigned));
+		if(!tmp_u)
+			break;
+
+		COVINFO* covInfo = new COVINFO;
+		covInfo->funcName = new char[tmp_u+1];
+		inputFile.read(covInfo->funcName,tmp_u);covInfo->funcName[tmp_u] = '\0';
+
+		inputFile.read((char*)&tmp_u,sizeof(unsigned));
+		covInfo->fileName = new char[tmp_u+1];
+		inputFile.read(covInfo->fileName,tmp_u);covInfo->fileName[tmp_u] = '\0';
+
+		covInfo->min = 0xffff;
+		inputFile.read((char*)&tmp_u,sizeof(unsigned));
+		unsigned nofe = tmp_u;
+		for(unsigned i=1;i<=tmp_u;i++){
+			inputFile.read((char*)&tmp_s,sizeof(unsigned short));
+			covInfo->executed += tmp_s;
+			if(tmp_s < covInfo->min)
+				covInfo->min = tmp_s;
+				
+		}
+
+		inputFile.read((char*)&tmp_u,sizeof(unsigned));
+		unsigned nofu = tmp_u;
+		for(unsigned i=1;i<=tmp_u;i++){
+			inputFile.read((char*)&tmp_s,sizeof(unsigned short));
+			if(tmp_s < covInfo->min)
+				covInfo->min = tmp_s;
+		}
+
+		covInfo->total = nofe+nofu;
+
+		allInfo = (COVINFO**)realloc((void*)allInfo,(allInfoSize+1)*sizeof(COVINFO*));
+		allInfo[allInfoSize++] = covInfo;
+	}
+
+	if(!allInfo){
+		inputFile.close();
+		return Error_OK;
+	}
+
+	qsort((void*)allInfo,allInfoSize,sizeof(COVINFO*),
+		      FCSortCOVINFO);
+
+	unsigned fileInfoSize = 0;
+	unsigned short* fileInfo = new unsigned short[allInfoSize];
+	
+	char* fileName = "no file name";
+	for(unsigned short i=0;i<allInfoSize;i++){
+		if(strcmp(fileName,allInfo[i]->fileName)){
+			fileName = allInfo[i]->fileName;
+			fileInfo[fileInfoSize] = i;
+			fileInfoSize++;
+		}
+	}
+
+	fileName = "no file name";
+	for(unsigned i=0;i<fileInfoSize;i++){
+		file << "set globalDataStructure(" << i << ") \\" << endl;
+		unsigned index = fileInfo[i];
+		fileName = allInfo[index]->fileName;
+		/*char* p = fileName;p++;*/
+		/*p = strchr(p,'/');*/
+		
+		file << "\t[list \\" << endl
+		     /*<< "\t\t/baffie" << p << " \\" << endl*/
+		     << "\t\t" << fileName  << " \\" << endl
+		     << "\t\t[list \\" << endl;
+
+		for(unsigned j=index;j<allInfoSize;j++){
+			COVINFO* fc = allInfo[j];
+			if(strcmp(fileName,fc->fileName))
+				break;
+			file << "\t\t\t" << fc->funcName << " \\" << endl;
+		}
+		file << "\t\t] \\" << endl
+		     << "\t\t[list \\" << endl;
+		for(unsigned j=index;j<allInfoSize;j++){
+			COVINFO* fc = allInfo[j];
+			if(strcmp(fileName,fc->fileName))
+				break;
+			file << "\t\t\t" << fc->min << " \\" << endl;
+		}
+		file << "\t\t]]" << endl;
+	}
+	for(unsigned i=0;i<fileInfoSize;i++){
+		file << "set globalExecutionMap(" << i << ") \\" << endl
+		     << "\t[list \\" << endl
+		     << "\t\t[list \\" << endl;
+		unsigned index = fileInfo[i];
+		fileName = allInfo[index]->fileName;
+		unsigned percentage = 0;
+		unsigned total = 0;
+		for(unsigned j=index;j<allInfoSize;j++){
+			COVINFO* fc = allInfo[j];
+			if(strcmp(fileName,fc->fileName))
+				 break;
+
+			unsigned es = fc->executed.size();
+			file << "\t\t\t[list \\" << endl
+			     << "\t\t\t\t" << (int)(((1.0*es)/fc->total)*100) << " \\" << endl
+			     << "\t\t\t\t" << es << " \\" << endl
+			     << "\t\t\t\t" << fc->total << " \\" << endl;
+
+			percentage += es;
+			total += fc->total;
+
+			if(es){
+				file << "\t\t\t\t[list \\" << endl;
+				unsigned short* elements =
+					new unsigned short[es];
+				fc->executed.elements(elements);
+				for(unsigned t=0;t<es;t++)
+					file << elements[t] << " ";
+				delete[] elements;
+				file << "\\" << endl
+				     << "\t\t\t\t] \\" << endl;
+			}
+			file << "\t\t\t] \\" << endl;
+		}
+		file << "\t\t] \\" << endl
+		     << "\t\t" << (int)(((1.0*percentage)/total)*100) << " \\" << endl
+		     << "\t\t" << percentage << " \\" << endl
+		     << "\t\t" << total << " \\" << endl
+		     << "\t]" << endl;
+	}
+
+	file << "InitializeInterface \\" << endl
+	     << "\t.menuFrame.listFrame.fileListFrame \\" << endl
+	     << "\t.fileFrame.displayPanel.text \\" << endl
+	     << "\t0 \\" << endl
+	     << "\tglobalDataStructure \\" << endl
+	     << "\tglobalExecutionMap \\" << endl;
+
+	for(unsigned i=0;i<allInfoSize;i++)
+		delete allInfo[i];
+	free(allInfo);
+
+	inputFile.close();
+
+	return Error_OK;
+}
