@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: paradyn.tcl.C,v 1.101 2003/09/05 19:14:21 pcroth Exp $
+/* $Id: paradyn.tcl.C,v 1.102 2004/03/01 17:28:43 pcroth Exp $
    This code implements the tcl "paradyn" command.  
    See the README file for command descriptions.
 */
@@ -631,7 +631,7 @@ ParadynTkGUI::ParadynEnableCmd( int argc, TCLCONST char* argv[] )
     pdvector<metricInstInfo> *response;
     // wait for response from DM
     while(!ready){
- 	  T_dataManager::msg_buf buffer;
+      T_dataManager::T_enableDataCallback* rval = NULL;
  	  T_dataManager::message_tags waitTag;
 	  tag_t tag = T_dataManager::enableDataCallback_REQ;
 	  thread_t from;
@@ -639,11 +639,12 @@ ParadynTkGUI::ParadynEnableCmd( int argc, TCLCONST char* argv[] )
 	  assert(err != THR_ERR);
 	  if (dataMgr->isValidTag((T_dataManager::message_tags)tag)) {
 	      waitTag = dataMgr->waitLoop(true,
-			(T_dataManager::message_tags)tag,&buffer);
+			(T_dataManager::message_tags)tag, (void**)&rval);
               if(waitTag == T_dataManager::enableDataCallback_REQ){
-		  ready = true;
-		  response = buffer.enableDataCallback_call.response;
-		  buffer.enableDataCallback_call.response = 0;
+                ready = true;
+                response = rval->response;
+                rval->response = 0;
+                delete rval;
 	      }
 	      else {
 		  cout << "error UI wait data enable resp:tag invalid" << endl;

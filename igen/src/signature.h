@@ -33,6 +33,7 @@ public:
   pdstring dump_args(const pdstring message, const pdstring sep) const;
   pdstring gen_bundler_call(bool send_routine, const pdstring &obj_name,
                             const pdstring &data_name) const;
+  unsigned int num_args( void ) const   { return args.size(); } 
 
 private:
   pdvector<arg*> args;

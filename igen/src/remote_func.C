@@ -76,10 +76,15 @@ bool remote_func::handle_request(const pdstring &spaces, ofstream &out_stream,
 
    if (Options::ml->address_space() == message_layer::AS_one) {
      if (special) {
-       out_stream << spacesp2 << "if (buffer) { ";
-       out_stream << "*(" << Options::type_prefix()
-		  << "msg_buf *)buffer = KLUDGE_msg_buf; break; }" << endl;
+       out_stream << spacesp2 
+            << "if (buffer != NULL) { *buffer = msgBuf; break; }" 
+            << endl;
      }
+     out_stream << spacesp2
+                << call_sig_.type() 
+                << "* typedMsgBuf = (" 
+                << call_sig_.type() 
+                << "*)msgBuf;\n";
      out_stream << spacesp2;
    }
 
@@ -87,16 +92,39 @@ bool remote_func::handle_request(const pdstring &spaces, ofstream &out_stream,
 
    if (!is_async_call()) {
      if (return_arg_.base_type() != "void")
-       out_stream << return_arg_.type(true) << " ret=";
+     {
+       out_stream << return_arg_.type(true) 
+                << "* ret = new " << return_arg_.type(true)
+                << ";\n";
+       out_stream << spacesp2 << "(*ret)=";
+     }
+     else
+     {
+       // we allocate something so the buffer for our return 
+       // message is non-NULL
+       out_stream << "char* ret = new char;\n";
+     }
    }
    out_stream << name() << "(";
    
    if (Options::ml->address_space() == message_layer::AS_one) {
-      out_stream << call_sig_.dump_args(pdstring("KLUDGE_msg_buf.")+name()+"_call", ".");
+      if( call_sig_.num_args() > 0 )
+      {
+            if( call_sig_.num_args() == 1 )
+            {
+                out_stream << "*typedMsgBuf";
+            }
+            else
+            {
+                out_stream << call_sig_.dump_args("typedMsgBuf", "->");
+            }
+      }
+      out_stream << ");\n";
+      out_stream << spacesp2 << "delete typedMsgBuf;\n";
    } else {
       out_stream << call_sig_.dump_args(vrbleToReadInto, ".");
+      out_stream << ");\n";
    }
-   out_stream << ")" << ";" << endl;
 
    // reply
    if (Options::ml->address_space() == message_layer::AS_many) {
@@ -107,15 +135,10 @@ bool remote_func::handle_request(const pdstring &spaces, ofstream &out_stream,
       }
    } else {
       if (!is_async_call()) {
-         pdstring size, msg;
          out_stream << spacesp2
-                    <<"val = msg_send(getRequestingThread(), " << response_tag();
-         if (return_arg_.type() == "void") {
-            size = ", 0"; msg = ", (void*)NULL";
-         } else {
-            size = ", sizeof(ret)"; msg = ", (void*) &ret";
-         }
-         out_stream << msg << size << ");\n";
+                    << "val = msg_send(getRequestingThread(), "
+                    << response_tag()
+                    << ", ret);\n";
       }
    }
 
@@ -397,34 +420,31 @@ bool remote_func::gen_stub_helper_one(ofstream &out_srvr, ofstream &out_clnt,
 			    request_tag());
 
   if (!is_async_call()) {
-    if (return_arg_.type() != "void") {
-      out_str << "unsigned len = sizeof(ret_arg);\n";
-    } else
-      out_str << "unsigned len = 0;\n";
 
 	out_str << "thread_t tid = THR_TID_UNSPEC;\n";
     out_str << Options::ml->tag_type() << " tag = " << response_tag() << ";\n";
-
-    pdstring rb;
-    pdstring lb;
-    if (return_arg_.type() != "void") {
-      rb = "(void*)&ret_arg, ";
-      lb = "sizeof(ret_arg)";
-    } else {
-      rb = "(void*) NULL, ";
-      lb = "0";
+    if( !is_void() )
+    {
+        out_str << return_arg_.type();
     }
-
-    out_str << "if (" << Options::ml->recv_message()
-      << "(&tid, &tag, " << rb << "&len) == " << Options::ml->bundle_fail() << ") ";
+    else
+    {
+        out_str << "char";
+    }
+    out_str << "* rval = NULL;\n";
+    out_str << "if(" << Options::ml->recv_message()
+            << "(&tid, &tag, (void**)&rval) == " 
+            << Options::ml->bundle_fail() 
+            << ")\n";
     out_str << Options::error_state(true, 6, "igen_read_err", return_value());
-    
-    out_str << "if (len != " << lb << ") ";
-    out_str << Options::error_state(true, 6, "igen_read_err", return_value());
-
     out_str << "if (tag != " << response_tag() << ") ";
     out_str << Options::error_state(true, 6, "igen_read_err", return_value());
 
+    if( !is_void() )
+    {
+        out_str << return_value() << " = *rval;\n";
+    }
+    out_str << "delete rval;\n";
     out_str << "return " << return_value() << ";\n";
   }
 

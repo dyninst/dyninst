@@ -93,23 +93,20 @@ bool interface_spec::gen_ctor_hdr(ofstream &out_stream, bool server) const {
     out_stream << "  " << Options::type_prefix() << "message_tags"
 	       << " waitLoop(" 
 	       << "bool specific, "
-	       << Options::type_prefix() << "message_tags mt,void *buffer=NULL);\n";
+	       << Options::type_prefix() << "message_tags mt,void** buffer=NULL);\n";
   }
   out_stream << "  bool isValidTag(const " 
 	     << Options::type_prefix() << "message_tags &tag) {\n";
   out_stream << "  return((tag >= " << Options::type_prefix() << "verify) && "
 	     << "(tag <= " << Options::type_prefix() << "last));\n}\n";
 
-  if (Options::ml->address_space() == message_layer::AS_one) {
-    out_stream << "// KLUDGE ALERT -- can't use a class member for msg_buf because this class \n";
-    out_stream << "// instance is being abused -- multiplexed by several threads \n";
-  }
-
   out_stream << "  " << Options::type_prefix() << "message_tags switch_on("
 	     << Options::type_prefix() << "message_tags m";
   if (Options::ml->address_space() == message_layer::AS_one) 
-    out_stream << ", " << Options::type_prefix() << "msg_buf& KLUDGE";
-  out_stream << ", void *buffer=NULL);\n";
+  {
+    out_stream << ", void* msgBuf";
+  }
+  out_stream << ", void** buffer=NULL);\n";
 
   if (Options::ml->serial()) {
     out_stream << "  // returns true if any requests are buffered\n";
@@ -118,7 +115,7 @@ bool interface_spec::gen_ctor_hdr(ofstream &out_stream, bool server) const {
 
     out_stream << "  // Wait until this mesage tag is received, or is found buffered\n";
     out_stream << "  bool wait_for(" << Options::type_prefix() << "message_tags m);\n";
-    out_stream << "  bool wait_for_and_read(" << Options::type_prefix() << "message_tags m, void *buffer);\n";
+    out_stream << "  bool wait_for_and_read(" << Options::type_prefix() << "message_tags m, void** buffer);\n";
 
     out_stream << "  bool is_buffered(" << Options::type_prefix() << "message_tags m) {\n";
     out_stream << "  unsigned size = async_buffer.size();\n";
@@ -189,19 +186,6 @@ bool interface_spec::gen_scope(ofstream &out_h, ofstream &out_c) const {
       type_defn *td = Options::vec_types[u];
       td->gen_class(Options::ml->bundler_prefix(), out_h);
     }
-  }
-
-  if (Options::ml->address_space() == message_layer::AS_one) {
-    out_h << "union msg_buf { \n";
-    for (dictionary_hash_iter<pdstring,remote_func*> rfi=all_functions_.begin(); rfi != all_functions_.end(); rfi++) {
-      const remote_func *rf = rfi.currval();
-
-      if (rf->sig_type() != "void")
-	out_h << "  " << unqual_type(rf->sig_type(true)) << " " << rf->name() << "_call;\n";
-      if (rf->ret_type() != "void")
-	out_h << "  " << unqual_type(rf->ret_type(true)) << " " << rf->name() << "_req;\n";
-    }
-    out_h << "};\n";
   }
 
   out_h << "enum message_tags {\n";
@@ -317,10 +301,6 @@ bool interface_spec::gen_header(ofstream &out_stream, bool server) const {
 	       << "buf_struct*> async_buffer;\n";
     out_stream << "unsigned head;\n";
   } 
-  if (Options::ml->address_space() == message_layer::AS_one)
-    out_stream << "// " << Options::type_prefix() << "msg_buf msg_buf;\n";
-
-
   out_stream << "};\n";
 
   gen_inlines(out_stream, server);
@@ -813,7 +793,7 @@ bool interface_spec::gen_wait_loop(ofstream &out_stream, bool srvr) const {
     out_stream << ") {\n";
   } else {
     out_stream << " bool specific, "
-	       << Options::type_prefix() << "message_tags mt, void *buffer) {\n"; 
+	       << Options::type_prefix() << "message_tags mt, void** buffer) {\n"; 
   }
 
   out_stream << "  " << Options::type_prefix() << "message_tags tag;\n";
@@ -842,17 +822,14 @@ bool interface_spec::gen_wait_loop(ofstream &out_stream, bool srvr) const {
     out_stream << "  else \n";
     out_stream << "    tag = mt;\n";
 
-    out_stream << "  " << Options::type_prefix() << "msg_buf KLUDGE_msg_buf;\n";    
-    out_stream << "  // unsigned len = sizeof(msg_buf);\n";
-    out_stream << "  unsigned len = sizeof(KLUDGE_msg_buf);\n";
+    out_stream << "  void* msgBuf = NULL;\n";
     out_stream << "  thread_t tid = THR_TID_UNSPEC;\n";
-    out_stream << "  // setRequestingThread(msg_recv((unsigned*)&tag, &msg_buf, &len));\n";
-    out_stream << "  int err = msg_recv(&tid, (unsigned*)&tag, &KLUDGE_msg_buf, &len);\n";
+    out_stream << "  int err = msg_recv(&tid, (unsigned*)&tag, &msgBuf);\n";
     out_stream << "  setRequestingThread((err == THR_ERR) ? (unsigned)err : tid);\n";
     out_stream << "  if (getRequestingThread() == THR_ERR) ";
     out_stream << Options::error_state(true, 6, "igen_read_err",
 				       Options::type_prefix()+"error");
-    out_stream << "  return switch_on(tag, KLUDGE_msg_buf, buffer);\n"; 
+    out_stream << "  return switch_on(tag, msgBuf, buffer);\n"; 
   }
 
   out_stream << "}" << endl;
@@ -863,8 +840,10 @@ bool interface_spec::gen_wait_loop(ofstream &out_stream, bool srvr) const {
   out_stream << gen_class_prefix(srvr)
 	     << "switch_on(" << Options::type_prefix() << "message_tags tag";
   if (Options::ml->address_space() == message_layer::AS_one) 
-    out_stream << ", " << Options::type_prefix() << "msg_buf& KLUDGE_msg_buf";
-  out_stream << ", void *buffer) {" << endl;
+  {
+    out_stream << ", void* msgBuf";
+  }
+  out_stream << ", void** buffer) {" << endl;
 
   if (Options::ml->address_space() == message_layer::AS_one) {
     out_stream << "  int val = THR_OKAY;\n";
@@ -921,7 +900,7 @@ bool interface_spec::gen_wait_loop(ofstream &out_stream, bool srvr) const {
     // New procedure required for async enableData requests
     out_stream << "bool " << gen_class_prefix(srvr)
 	       << "wait_for_and_read(" << Options::type_prefix() 
-	       << "message_tags tag, void *buffer) {\n";
+	       << "message_tags tag, void** buffer) {\n";
     out_stream << "  bool response;\n";
     out_stream << "  if (awaitResponse(tag,false,&response)) {\n";
     out_stream << "    if (response && switch_on(tag,buffer))\n";

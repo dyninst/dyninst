@@ -106,24 +106,26 @@ bool signature::tag_bundle_send_many(ofstream &out_stream, const pdstring &retur
 bool signature::tag_bundle_send_one(ofstream &out_stream, const pdstring return_value,
 				    const pdstring req_tag) const
 {
-  switch (args.size()) {
-  case 0:
-    break;
-  case 1:
-    out_stream << type(true) << " send_buffer = ";
-    out_stream << args[0]->name() << ";\n";
-    break;
-  default:
-    out_stream << type(true) << " send_buffer;\n";
-    (Options::all_types[type()])->assign_to("send_buffer.", args, out_stream);
-    break;
-  }
+    if( args.size() > 0 )
+    {
+        out_stream << type(true) << "* send_buffer = new " << type(true) << ";\n";
+        if( args.size() == 1 )
+        {
+            out_stream << "*send_buffer = " << args[0]->name() << ";\n";
+        }
+        else
+        {
+            (Options::all_types[type()])->assign_to("send_buffer->", 
+                                                        args, 
+                                                        out_stream);
+        }
+    }
+    else
+    {
+        out_stream << "char* send_buffer = new char;\n";
+    }
 
-  pdstring sb;
-  if (type() != "void")
-    sb = "(void*) &send_buffer, sizeof(send_buffer));\n";
-  else
-    sb = "(void*) NULL, 0);\n";
+  pdstring sb = "send_buffer);\n";
 
   out_stream << Options::ml->bundler_return_type() << " res = "
     << Options::ml->send_message() << "(net_obj(), " << req_tag

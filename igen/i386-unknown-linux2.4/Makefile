@@ -1,24 +1,5 @@
 #
-# $Log: Makefile,v $
-# Revision 1.3  2003/06/05 18:06:02  pcroth
-# Removed igen's dependency on the pdutil library.  Igen can now be built
-# independently of pdutil.
-#
-# Revision 1.2  2000/05/31 18:33:22  schendel
-# updates the daemon, util library, igen, dyninstAPI, and dyninstAPI test suite
-# to use the -fno-impilicit-templates flag instead of the -fexplicit-templates
-# flag, which is depracated.
-#
-# Revision 1.1  2000/03/31 01:58:54  wylie
-# Platform migration
-#
-# Revision 1.1  1997/10/15 19:47:31  tung
-# Linux/X86 Port
-#
-# Revision 1.1  1996/10/18 23:33:19  mjrg
-# Solaris/X86 port
-#
-#
+# $Id: Makefile,v 1.4 2004/03/01 17:28:27 pcroth Exp $
 #
 # Define any symbols needed to invoke configuration changes in make.config
 
@@ -43,4 +24,3 @@ include ../make.module.tmpl
 # common targets like "clean", "install", etc.
 
 include ../../make.program.tmpl
-
