@@ -5,7 +5,10 @@
 
 /* 
  * $Log: templates.C,v $
- * Revision 1.14  1995/02/16 08:54:27  markc
+ * Revision 1.15  1995/05/18 10:42:54  markc
+ * removed unused templates
+ *
+ * Revision 1.14  1995/02/16  08:54:27  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.13  1995/02/16  08:35:01  markc
@@ -82,10 +85,53 @@
 template class queue<T_dyninstRPC::buf_struct*>;
 template class vector<string>;
 template class vector<T_dyninstRPC::metricInfo>;
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<string>*, bool_t (*)(XDR*, string*), string*);
-template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::metricInfo>*, bool_t (*)(XDR*, T_dyninstRPC::metricInfo*), T_dyninstRPC::metricInfo*);
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<string>**, bool_t (*)(XDR*, string*), string*);
-template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::metricInfo>**, bool_t (*)(XDR*, T_dyninstRPC::metricInfo*), T_dyninstRPC::metricInfo*);
+
+template class dictionary_hash<unsigned, vector<mdl_type_desc> >;
+template class vector<mdl_focus_element>;
+
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<u_int>*,
+				       bool_t (*)(XDR*, u_int*), u_int*);
+
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<string>*,
+				       bool_t (*)(XDR*, string*), string*);
+template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<string>**,
+					   bool_t (*)(XDR*, string*), string*);
+
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::metricInfo>*,
+				       bool_t (*)(XDR*, T_dyninstRPC::metricInfo*),
+				       T_dyninstRPC::metricInfo*);
+
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_expr*>*,
+				       bool_t (*)(XDR*, T_dyninstRPC::mdl_expr**),
+				       T_dyninstRPC::mdl_expr**);
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_stmt*>*,
+				       bool_t (*)(XDR*, T_dyninstRPC::mdl_stmt**),
+				       T_dyninstRPC::mdl_stmt**);
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_icode*>*,
+				       bool_t (*)(XDR*, T_dyninstRPC::mdl_icode**),
+				       T_dyninstRPC::mdl_icode**);
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_constraint*>*,
+				       bool_t (*)(XDR*, T_dyninstRPC::mdl_constraint**),
+				       T_dyninstRPC::mdl_constraint**);
+template bool_t T_dyninstRPC_P_xdr_stl(XDR*, vector<T_dyninstRPC::mdl_metric*>*,
+				       bool_t (*)(XDR*, T_dyninstRPC::mdl_metric**),
+				       T_dyninstRPC::mdl_metric**);
+
+template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_expr*>**,
+					   bool_t (*)(XDR*, T_dyninstRPC::mdl_expr**),
+					   T_dyninstRPC::mdl_expr**);
+template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_stmt*>**,
+					   bool_t (*)(XDR*, T_dyninstRPC::mdl_stmt**),
+					   T_dyninstRPC::mdl_stmt**);
+template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_icode*>**,
+					   bool_t (*)(XDR*, T_dyninstRPC::mdl_icode**),
+					   T_dyninstRPC::mdl_icode**);
+template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_constraint*>**,
+					   bool_t (*)(XDR*, T_dyninstRPC::mdl_constraint**),
+					   T_dyninstRPC::mdl_constraint**);
+template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::mdl_metric*>**,
+					   bool_t (*)(XDR*, T_dyninstRPC::mdl_metric**),
+					   T_dyninstRPC::mdl_metric**);
 
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
@@ -101,24 +147,23 @@ template bool_t T_dyninstRPC_P_xdr_stl_PTR(XDR*, vector<T_dyninstRPC::metricInfo
 #include "internalMetrics.h"
 #include "util/h/Object.h"
 
-template class List<metricDefinitionNode*>;
-template class List<dataReqNode*>;
-template class List<instReqNode*>;
 template class List<sampleInfo*>;
 
+template class  vector<dataReqNode*>;
+template class  vector<instReqNode*>;
+template class  vector<internalMetric*>;
+template class  vector<instMapping*>;
 template class  vector<heapItem*>;
 template class  vector<process*>;
 template class  vector<pdFunction*>;
-template class  vector<resourcePredicate*>;
 template class  vector<Symbol*>;
-template class  dictionary_hash<metricDefinitionNode*, internalMetric*>;
-template class  dictionary_hash <int, dataReqNode*>;
+template class  vector<sym_data>;
+template class  vector<image*>;
+
 template class  dictionary_hash <Address, Symbol*>;
 template class  dictionary_hash <instPoint*, point*>;
 template class  dictionary_hash <string, unsigned>;
-template class  dictionary_hash <string, internalMetric*>;
 template class  dictionary_hash <string, resource*>;
-template class  dictionary_hash <string, image*>;
 template class  dictionary_hash <instPoint*, unsigned>;
 template class  dictionary_hash <string, pdFunction*>;
 template class  dictionary_hash <unsigned, pdFunction*>;
@@ -127,14 +172,11 @@ template class  dictionary_hash <string, internalSym*>;
 template class  dictionary_hash <string, module *>;
 template class  dictionary_hash <unsigned, metricDefinitionNode*>;
 template class  dictionary_hash <unsigned, heapItem*>;
-template class  dictionary_hash <int, process*>;
-template class  dictionary_hash_iter<string, internalMetric*>;
-template class  dictionary_hash_iter<metricDefinitionNode*, internalMetric*>;
+
 template class  dictionary_hash_iter <Address, Symbol*>;
 template class  dictionary_hash_iter <instPoint*, point*>;
 template class  dictionary_hash_iter <string, unsigned>;
 template class  dictionary_hash_iter <string, resource*>;
-template class  dictionary_hash_iter <string, image*>;
 template class  dictionary_hash_iter <instPoint*, unsigned>;
 template class  dictionary_hash_iter <string, pdFunction*>;
 template class  dictionary_hash_iter <unsigned, pdFunction*>;
@@ -143,5 +185,4 @@ template class  dictionary_hash_iter <string, internalSym*>;
 template class  dictionary_hash_iter <string, module *>;
 template class  dictionary_hash_iter <unsigned, metricDefinitionNode*>;
 template class  dictionary_hash_iter <unsigned, heapItem*>;
-template class  dictionary_hash_iter <int, process*>;
-template class  vector<sym_data>;
+
