@@ -20,6 +20,9 @@
  * Included by PC modules only
  *  
  * $Log: PCintern.h,v $
+ * Revision 1.2  1996/02/12 08:23:47  karavan
+ * eliminated (ugh) full pathname from include
+ *
  * Revision 1.1  1996/02/02 02:07:28  karavan
  * A baby Performance Consultant is born!
  *
@@ -28,7 +31,7 @@
 #ifndef PC_INTERN_H
 #define PC_INTERN_H
 
-#include "/p/paradyn/core/util/h/sys.h"
+#include "util/h/sys.h"
 #include "../pdMain/paradyn.h"
 #include "util/h/list.h"
 #include "util/h/PriorityQueue.h"
