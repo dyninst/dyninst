@@ -217,20 +217,19 @@ void IPListElem::Print()
     printf("%2d: %s (%s)-->%s\n", number, function, loc2name(where, when), statement);
 }
 
-
 BPListElem *removeBPlist(int n)
 {
-    DynerList<BPListElem *>::iterator i;
-
-    for (i = bplist.begin(); i != bplist.end(); i++) {
-	if ((*i)->number == n) {
-	    bplist.erase(i);
-	    return (*i);
-	}
+  DynerList<BPListElem *>::iterator i;
+  BPListElem *ret = NULL;
+  for (i = bplist.begin(); i != bplist.end(); i++) {
+    if ((*i)->number == n) {
+      ret = *i;
+      bplist.erase(i);
+      break;
     }
-    return NULL;
+  }
+  return NULL;
 }
-
 
 BPListElem *findBP(int n)
 {
@@ -246,15 +245,17 @@ BPListElem *findBP(int n)
 IPListElem *removeIP(int n)
 {
     DynerList<IPListElem *>::iterator i;
+    IPListElem *ret = NULL;
 
     for (i = iplist.begin(); i != iplist.end(); i++) {
 	if ((*i)->number == n) {
-	    iplist.erase(i);
-	    return (*i);
+	  ret = *i;
+	  iplist.erase(i);
+	  break;
 	}
     }
 
-    return NULL;
+    return ret;
 }
 
 IPListElem *findIP(int n)
@@ -2138,20 +2139,30 @@ int traceCommand(ClientData, Tcl_Interp *interp, int argc, char *argv[])
     return TCL_ERROR;
 }
 
+
 int untraceFunc(char *name)
 {
     DynerList<IPListElem *>::iterator i;
+    int removed_a_point = 0;
+    IPListElem *ip;
 
-    for (i = iplist.begin(); i != iplist.end(); i++) {
-	IPListElem *ip = *i;
+    i = iplist.begin();
+    while(i != iplist.end()) {
+      ip = *i;
 
-        if ((ip->instType == TRACE) && !strcmp(name, ip->function)) {
-	    printf("removing tracing for function %s\n", ip->function);
-	    iplist.erase(i);
-	    delete ip;
-	    return TCL_OK;
-	}
+      if ((ip->instType == TRACE) && !strcmp(name, ip->function)) {
+        printf("removing tracing for function %s\n", ip->function);
+        fflush(NULL);
+        iplist.erase(i);
+        delete ip;
+        removed_a_point = 1;
+      }
+      else i++;
+
     }
+
+    if (removed_a_point)
+       return TCL_OK;
 
     printf("function %s is not currently traced\n", name);
     return TCL_ERROR;

@@ -56,7 +56,7 @@ public:
         ~DynerList();
 
         const T& operator[](int n) const;
-        bool erase(const iterType &x);
+        bool erase(iterType &x);
         void clear();
         void push_back(const T& x);
         void push_front(const T& x);
@@ -96,7 +96,7 @@ const T& DynerList<T>::operator[](int n) const {
 }
 
 template<class T>
-bool DynerList<T>::erase(const iterType &x) {
+bool DynerList<T>::erase(iterType &x) {
 	ListItem *item, *prev;
 
 	prev = item = _vector;
@@ -112,10 +112,13 @@ bool DynerList<T>::erase(const iterType &x) {
 	if (!item)
 		return false;
 
-	if (item == _vector)
+	if (item == _vector) {
 		_vector = _vector->_next;
-	else
+		x._ptr = _vector;    
+	}else {
 		prev->_next = item->_next;
+		x._ptr = prev;  
+	}
 
 	delete item;
 	return true;
