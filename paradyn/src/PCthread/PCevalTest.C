@@ -1,6 +1,11 @@
 /*
  * $Log: PCevalTest.C,v $
- * Revision 1.14  1994/05/19 00:00:27  hollings
+ * Revision 1.15  1994/05/31 18:43:03  markc
+ * Commented out computation of compensation factor due to pause time.  This
+ * value is not within 0 and 1, but it should be.  This is a short term fix
+ * until pause time is reported properly.
+ *
+ * Revision 1.14  1994/05/19  00:00:27  hollings
  * Added tempaltes.
  * Fixed limited number of nodes being evaluated on once.
  * Fixed color coding of nodes.
@@ -93,7 +98,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1992 Jeff Hollingsowrth\
   All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.14 1994/05/19 00:00:27 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCevalTest.C,v 1.15 1994/05/31 18:43:03 markc Exp $";
 #endif
 
 
@@ -385,7 +390,11 @@ Boolean evalTests()
     testResultList curr;
     Boolean previousStatus;
 
+    /*
     factor = (1.0-compensationFactor.value(whereAxis));
+    */
+    factor = 1.0;
+
     for (curr = *currentTestResults; r=*curr; curr++) {
 	// try the test
 	// FIX passed arg.
