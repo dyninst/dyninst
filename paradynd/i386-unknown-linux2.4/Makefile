@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.7 2001/02/20 21:45:36 gurari Exp $
+# $Id: Makefile,v 1.8 2001/10/26 06:29:53 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -16,7 +16,7 @@ NO_IMPLICIT_TEMPLATES = true
 #If you have libhrtime, but it can't be found, the libhrtime path can 
 #  be adjusted in ../../make.config.  You'll need to remake DEPENDS if
 #  this path is adjusted.
-USES_LIBHRTIME = true
+#USES_LIBHRTIME = true
 
 
 # Include standard make configuration stuff that applies to everything
