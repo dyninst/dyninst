@@ -7,9 +7,12 @@
 // option which does -O and -DNDEBUG
 
 /* $Log: barChart.C,v $
-/* Revision 1.15  1995/07/06 18:54:32  tamches
-/* Update for tk4.0
+/* Revision 1.16  1995/08/06 22:09:47  tamches
+/* tk.h, tcl.h --> tkclean.h, tclclean.h
 /*
+ * Revision 1.15  1995/07/06  18:54:32  tamches
+ * Update for tk4.0
+ *
  * Revision 1.14  1995/05/10  22:27:30  tamches
  * Added an extra (probably unnecessary) isnan() check for HP.
  *
@@ -100,8 +103,8 @@
 #include <iostream.h>
 #include <math.h>
 
-#include <tcl.h>
-#include <tk.h>
+#include <tclclean.h>
+#include <tkclean.h>
 
 #include "visi/h/visualization.h"
 #include "dg2.h"
