@@ -128,79 +128,91 @@ char *BPatch_module::getFullName(char *buffer, int length)
 }
 
 
-BPatch_module::BPatch_module(process *_proc, pdmodule *_mod,BPatch_image *_img):
-    proc(_proc), mod(_mod), img(_img), BPfuncs(NULL), BPfuncs_uninstrumentable(NULL)    
+BPatch_module::BPatch_module( process *_proc, pdmodule *_mod,BPatch_image *_img ) :
+    proc( _proc ), mod( _mod ), img( _img ), BPfuncs( NULL ), BPfuncs_uninstrumentable( NULL )    
 {
 #if defined(TIMED_PARSE)
-  struct timeval starttime;
-  gettimeofday(&starttime, NULL);
+	struct timeval starttime;
+	gettimeofday(&starttime, NULL);
 #endif
 
-    _srcType = BPatch_sourceModule;
-    nativeCompiler = _mod->exec()->isNativeCompiler();
+	_srcType = BPatch_sourceModule;
+	nativeCompiler = _mod->exec()->isNativeCompiler();
 
-  switch(mod->language()) {
-  case lang_C:
-    setLanguage(BPatch_c);
-    break;
-  case lang_CPlusPlus:
-  case lang_GnuCPlusPlus:
-    setLanguage(BPatch_cPlusPlus);
-    break;
-  case lang_Fortran_with_pretty_debug:
-    setLanguage(BPatch_f90_demangled_stabstr);
-    break;
-  case lang_Fortran:
-  case lang_CMFortran:
-    setLanguage(BPatch_fortran);
-    break;
-  case lang_Assembly:
-    setLanguage(BPatch_assembly);
-    break;
+	switch(mod->language()) {
+		case lang_C:
+			setLanguage( BPatch_c );
+			break;
+			
+		case lang_CPlusPlus:
+		case lang_GnuCPlusPlus:
+			setLanguage( BPatch_cPlusPlus );
+			break;
+			
+		case lang_Fortran_with_pretty_debug:
+			setLanguage( BPatch_f90_demangled_stabstr );
+			break;
+			
+		case lang_Fortran:
+		case lang_CMFortran:
+			setLanguage( BPatch_fortran );
+			break;
+			
+		case lang_Assembly:
+			setLanguage( BPatch_assembly );
+			break;
 
-  case lang_Unknown: 
-  default:
-    setLanguage(BPatch_unknownLanguage);
-    break;
-
-  }
-
+		case lang_Unknown: 
+		default:
+			setLanguage( BPatch_unknownLanguage );
+			break;
+		} /* end language switch */
+		
+	/* Assign myself my bpfs. */
+    pdvector< function_base * > * functions = mod->getFunctions();
+    for( unsigned int i = 0; i < functions->size(); i++ ) {
+    	/* The bpfs for a shared object module won't have been built by now,
+    	   but generating them on the fly is OK because each .so is a single module
+    	   for our purposes. */
+    	pd_Function * function = (pd_Function *)( * functions )[i];
+    	if( proc->PDFuncToBPFuncMap.defines( function ) ) {
+ 		   	BPatch_function * bpf = proc->PDFuncToBPFuncMap[ function ];
+ 		   	assert( bpf != NULL );
+    		bpf->setModule( this );
+    		}
+    	} /* end iteration over functions */
+    	
+	/* Load the debug information. */
     moduleTypes = new BPatch_typeCollection;
-
-    // load all of the type information
-#if !defined(mips_sgi_irix6_4)
-
-    if (BPatch::bpatch->parseDebugInfo()) { 
-
-#if defined(rs6000_ibm_aix4_1) || defined(alpha_dec_osf4_0) || defined(i386_unknown_nt4_0)
-      //  this section for platforms that do not have 2-phase parse
-      //  (we init LineInformation, and assume that parseTypes will fill it in)
-      mod->initLineInformation();
-      parseTypes();
-      mod->cleanupLineInformation();
-#else
-      parseTypes();
-#endif
-
-    }
-    else {
-      cerr << __FILE__ << __LINE__ << ":  WARNING:  skipping parse of debug info for " 
-	   << mod->fileName()<< endl;
-    }
-#endif// !mips
+#if ! defined( mips_sgi_irix6_4 )
+    if( BPatch::bpatch->parseDebugInfo() ) {
+	    #if defined( rs6000_ibm_aix4_1 ) || defined( alpha_dec_osf4_0 ) || defined( i386_unknown_nt_4_0 )
+	    	/* These platforms don't have 2-phase parsing, so init
+	    	   LineInformation and assume that parseTypes() fills it in. */
+			mod->initLineInformation();
+			parseTypes();
+			mod->cleanupLineInformation();
+		#else
+			parseTypes();
+		#endif
+		} /* end if we're supposed to parse debug information */
+	else {
+		cerr	<< __FILE__ << __LINE__ << ":  WARNING:  skipping parse of debug info for " 
+				<< mod->fileName() << endl;
+		} /* end if we're not supposed to parse debug information */
+#endif /* ! defined( mips_sgi_irix6_4 ) */
 
 #if defined(TIMED_PARSE)
-  struct timeval endtime;
-  gettimeofday(&endtime, NULL);
-  unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
-  unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
-  unsigned long difftime = lendtime - lstarttime;
-  double dursecs = difftime/(1000 );
-  cout << __FILE__ << ":" << __LINE__ <<": BPatch_module("<< mod->fileName()
-       <<") took "<<dursecs <<" msecs" << endl;
+	struct timeval endtime;
+	gettimeofday(&endtime, NULL);
+	unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+	unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+	unsigned long difftime = lendtime - lstarttime;
+	double dursecs = difftime/(1000 );
+	cout << __FILE__ << ":" << __LINE__ <<": BPatch_module("<< mod->fileName()
+	  <<") took "<<dursecs <<" msecs" << endl;
 #endif
-
-}
+	} /* end BPatch_module() */
 
 BPatch_module::~BPatch_module()
 {
