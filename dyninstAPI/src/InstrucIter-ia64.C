@@ -93,7 +93,9 @@ BPatch_instruction *InstrucIter::getBPInstruction() {
     return ma;
 
   const instruction i = getInstruction();
-  in = new BPatch_instruction(&i.raw, sizeof(instruction));
+  /* Work around compiler idiocy.  FIXME: ignoring long instructions. */
+  uint64_t raw = i.getMachineCode();
+  in = new BPatch_instruction( & raw, sizeof( raw ) );
 
   return in;
 }

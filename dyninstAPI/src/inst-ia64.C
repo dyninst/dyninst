@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.33 2003/07/18 15:43:54 schendel Exp $
+ * $Id: inst-ia64.C,v 1.34 2003/08/11 11:57:51 tlmiller Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -251,10 +251,10 @@ Register emitFuncCall( opCode op, registerSpace * rs, char * ibuf,
 		if( err ) { // Why do we do both?
 			function_base * func = proc->findOnlyOneFunction( callee );
 			if( ! func ) { // also stolen from other inst-*.C files.
-				std::ostringstream os(std::ios::out);
-				os << "Internal error: unable to find addr of " << callee << endl;
-				logLine(os.str().c_str());
-				showErrorCallback(80, os.str().c_str());
+				pdstring errorString = "Internal error: unable to find addr of ";
+				errorString += callee + "\n";
+				logLine( errorString.c_str() );
+				showErrorCallback( 80, errorString );
 				P_abort();
 				} /* end if not found at all. */
 			funcEntryAddress = func->getEffectiveAddress(proc);
@@ -691,7 +691,7 @@ bool process::heapIsOk( const pdvector<sym_data> & find_us ) {
 
 	/* I will also not speculate why we ask after symbols that
 	   don't need to be found if we don't do anything with them... */
-	string str; Symbol sym; Address baseAddress;
+	pdstring str; Symbol sym; Address baseAddress;
 	for( unsigned int i = 0; i < find_us.size(); i++ ) {
 		if( ! find_us[i].must_find ) { break; }
 		str = find_us[i].name;
