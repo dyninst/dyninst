@@ -1521,6 +1521,8 @@ void pd_process::writeTimerLevels() {
 
 extern void CallGraphAddProgramCallback(pdstring name);
 extern void CallGraphFillDone(pdstring exe_name);
+extern void AddCallGraphStaticChildrenCallback(pdstring exe_name, pdstring r,
+					       const pdvector<pdstring> children);
 
 void pd_process::FillInCallGraphStatic()
 {
@@ -1560,8 +1562,7 @@ void pd_process::FillInCallGraphStatic()
      // Temporary hack -- ordering problem
      thr = 1;
   }
-
-
+  
   CallGraphSetEntryFuncCallback(img->get_file(), 
                                 entry_pdf->ResourceFullName(), thr);
     
@@ -1682,33 +1683,87 @@ virtualTimer *pd_process::getVirtualTimer(unsigned index) {
     return &(virt_base[index]);
 }
 
+      // First, define a numeric mapping on top of instrumentation
+      // points:
 
+      // 0: Before base tramp
+      // 1: In the jump to base tramp
+      // 2: base tramp between entry and the call to preInsn
+      //    minitramps 
+      // 3: preInsn minitramps 
+      // 4: base tramp between preInsn minitramps and postInsn
+      //    minitramps
+      // 5: postInsn minitramps 
+      // 6: base tramp between postInsn minitramps and the end of
+      //    the base tramp
+      // 7: after base tramp
 
-bool process::triggeredInStackFrame(Frame &frame,
-                                    instPoint *point,
-                                    callWhen when,
-                                    callOrder order) {
+      // This simplification works because we only allow adding
+      // minitramps to the beginning or end of the current tramp
+      // chain (between 1 and 2 or 2 and 3... but not within 2)
 
+typedef enum {beforeInstru, baseEntry, preInsn, 
+	      emulInsns, postInsn, baseExit, afterInstru, nowhere} logicalPCLocation_t;
+
+bool pd_process::triggeredInStackFrame(Frame &frame,
+				    BPatch_point *bpPoint,
+				    BPatch_callWhen when,
+				    BPatch_snippetOrder order) {
+  
     // Use a previous lookup if it's there.
     codeRange *range = frame.getRange();
-    // Step 1: where's this frame?
-    if (!range) {
-        range = findCodeRangeByAddress(frame.getPC());
-        frame.setRange(range);
-    }
+    
+    // We still use int_function and instPoint. TODO: replace frame
+    // with the BPatch frame, int_function with BPatch_function, etc.
 
+    instPoint *point = bpPoint->PDSEP_instPoint();
+    
     // Can't figure it out if we don't know where we are
     if (!range) {
+      fprintf(stderr, "ERROR: can't find owner for pc 0x%x, failing catchup\n",
+	      frame.getPC());
        return false;
     }
 
-    if(pd_debug_catchup)
-       fprintf(stderr, "   Catchup for PC 0x%x (%d), instpoint at 0x%x (%s)\n",
+    if(pd_debug_catchup) {
+      fprintf(stderr, "--------\n");
+       fprintf(stderr, "Catchup for PC 0x%x (%d), instpoint at 0x%x (%s), ",
                frame.getPC(), 
                frame.getThread()->get_tid(),
-               point->absPointAddr(this),
+               point->absPointAddr(dyninst_process->lowlevel_process()),
                point->pointFunc()->prettyName().c_str());
+       fprintf(stderr, "point type is ");
+       if (bpPoint->getPointType() == BPatch_locEntry)
+	 fprintf(stderr, "FuncEntry, ");
+       else if (bpPoint->getPointType() == BPatch_locExit)
+	 fprintf(stderr, "FuncExit, ");
+       else if (bpPoint->getPointType() == BPatch_locSubroutine)
+	 fprintf(stderr, "CallSite, ");
+       else if (bpPoint->getPointType() == BPatch_locLoopEntry)
+	 fprintf(stderr, "LoopEntry, ");
+       else if (bpPoint->getPointType() == BPatch_locLoopExit)
+	 fprintf(stderr, "LoopExit, ");
+       else if (bpPoint->getPointType() == BPatch_locLoopStartIter)
+	 fprintf(stderr, "LoopStartIter, ");
+       else if (bpPoint->getPointType() == BPatch_locLoopEndIter)
+	 fprintf(stderr, "LoopEndIter, ");
+       else fprintf(stderr, "other, ");
 
+       fprintf(stderr, "callWhen is ");
+       if (when == BPatch_callBefore)
+	 fprintf(stderr, "callBefore");
+       else
+	 fprintf(stderr, "callAfter");
+       fprintf(stderr, ", order is ");
+       if (order == BPatch_firstSnippet)
+	 fprintf(stderr, "insertFirst");
+       else
+	 fprintf(stderr, "insertLast");
+       fprintf(stderr,"\n");
+    }
+
+    // Most of the checking is based on "Am I before, after, or during the
+    // instrumentation point". We check that first to see if we need to care.
     Address collapsedFrameAddr;
 
     // Test 1: if the function associated with the frame
@@ -1718,72 +1773,45 @@ bool process::triggeredInStackFrame(Frame &frame,
     trampTemplate *basetramp_ptr = range->is_basetramp();
     relocatedFuncInfo *reloc_ptr = range->is_relocated_func();
 
+    int_function *frame_func;
+
     if(func_ptr) {
-        if (func_ptr != point->pointFunc()) {
-           if(pd_debug_catchup)
-              fprintf(stderr, "     Current function %s not instPoint function\n",
-                      func_ptr->prettyName().c_str());
-            return false;
-        }
         collapsedFrameAddr = frame.getPC();
-
-        // if stack shows we're in non-relocated func and inst-point
-        // is for a relocated inst point, adjust inst pt addr
-        if(collapsedFrameAddr >= func_ptr->get_address() && 
-           collapsedFrameAddr <= (func_ptr->get_address() +
-                                  func_ptr->get_size()))
-        {
-          /*
-             // This could happen because for functions that we think
-             // are short running that are on the stack when we relocate,
-             // we're still instrumenting the relocated function.
-             // One could argue that since it's a short running function,
-             // any time we miss (for timer metrics) is negligible.
-           if(point->isRelocatedPointType()) {
-              cerr << "Warning, not executing catchup for instrumented "
-                   << "function that is on the stack, because the relocated "
-                   << "function was instrumented, not the original function.";
-           }
-           */
-        }
-
+	frame_func = func_ptr;
         if(pd_debug_catchup)
-           fprintf(stderr, "     PC in function %s\n",
+           fprintf(stderr, "     PC in function %s...",
                    func_ptr->prettyName().c_str());
     }
     else if(minitramp_ptr) {
         // Again, quick check for function matching
         trampTemplate *baseT = minitramp_ptr->baseTramp;
         const instPoint *instP = baseT->location;
-        if (instP->pointFunc() != point->pointFunc()) 
-            return false;
-        collapsedFrameAddr = instP->absPointAddr(this);
+	
+        collapsedFrameAddr = instP->absPointAddr(dyninst_process->lowlevel_process());
+	frame_func = instP->pointFunc();
+
         if(pd_debug_catchup)
-           fprintf(stderr, "     PC in minitramp at 0x%x (%s)\n",
+           fprintf(stderr, "     PC in minitramp at 0x%x (%s)...",
                    collapsedFrameAddr,
                    instP->pointFunc()->prettyName().c_str());
     }
     else if(basetramp_ptr) {
         const instPoint *instP = basetramp_ptr->location;
-        if (instP->pointFunc() != point->pointFunc())
-            return false;
-        collapsedFrameAddr = instP->absPointAddr(this);
+        collapsedFrameAddr = instP->absPointAddr(dyninst_process->lowlevel_process());
+	frame_func = instP->pointFunc();
+
         if(pd_debug_catchup)
-           fprintf(stderr,"     PC in base tramp at 0x%x (%s)\n",
+           fprintf(stderr,"     PC in base tramp at 0x%x (%s)...",
                    collapsedFrameAddr,
                    instP->pointFunc()->prettyName().c_str());
     }
     else if (reloc_ptr) {
-       int_function *parent_func = reloc_ptr->func();
-       if(pd_debug_catchup)
-          fprintf(stderr, "      PC in relocated function (%s)\n",
-                  parent_func->prettyName().c_str());
-       if(parent_func != point->pointFunc())
-          return false;         
-
-        // The inst point given should be within the relocated function,
-        // so everything should work normally
+       frame_func = reloc_ptr->func();
         collapsedFrameAddr = frame.getPC();
+
+       if(pd_debug_catchup)
+          fprintf(stderr, "      PC in relocated function (%s)...",
+                  frame_func->prettyName().c_str());
     }
     else {
         // Uhh... no function, no point... murph?
@@ -1793,143 +1821,178 @@ bool process::triggeredInStackFrame(Frame &frame,
                     frame.getPC());
         return false;
     }
+    fprintf(stderr, "*");
+    if (frame_func != point->pointFunc()) {
+      if(pd_debug_catchup)
+	fprintf(stderr, "     Current function %s not instPoint function, returning false\n======\n",
+		frame_func->prettyName().c_str());
+      return false;
+    }
 
-    // We have a "collapsed" (i.e. within the function area) version
-    // of the current PC. Do the same to the minitramp (instPoint/when/order)
-    // passed in, and compare. 
+    bool catchupNeeded = false;
 
-    Address pointAddr = point->absPointAddr(this);
+    fprintf(stderr, " CFA 0x%x, ", collapsedFrameAddr);
 
-    // addr in edge tramp then use addr which jumps to edge tramp
-    if (point->addrInFunc != 0)
+    if (bpPoint->getPointType() != BPatch_locLoopEntry &&
+	bpPoint->getPointType() != BPatch_locLoopStartIter) {
+      // We have a "collapsed" (i.e. within the function area) version
+      // of the current PC. Do the same to the minitramp (instPoint/when/order)
+      // passed in, and compare. 
+      
+      // We do handling a little differently depending on the type of inst
+      // point. This takes advantage of the behavior of our inst points. So we 
+      // break it up here.
+      
+      Address pointAddr = point->absPointAddr(dyninst_process->lowlevel_process());
+      
+      // addr in edge tramp then use addr which jumps to edge tramp
+      if (point->addrInFunc != 0)
 	pointAddr = point->addrInFunc;
 
-
-    if (collapsedFrameAddr < pointAddr) {
+      fprintf(stderr, "PA 0x%x, ",
+	      pointAddr);
+      
+      logicalPCLocation_t location = nowhere;
+      
+      if (collapsedFrameAddr < pointAddr) {
         // Haven't reached the point yet
-       if(pd_debug_catchup)
-          fprintf(stderr, "        PC hasn't reached instrumentation, ret false\n");
-       return false;
-    }
-    else if (collapsedFrameAddr > pointAddr) {
-      // If this instPoint is for function _exit_ and we're after the point, DO NOT
-      // return true -- it is possible for an exit point to be in the middle of the
-      // function
-      if (point->getPointType() == functionExit) {
-	if (pd_debug_catchup) 
-	  fprintf(stderr, "        PC past instrumentation, inst for function exit, returning false\n");
-	return false;
+	location = beforeInstru;
       }
-      else if( point->getPointType() == callSite && func_ptr ) {
-	/* If we're instrumentating a function call, the return address will be the instruction
-	   _after_ the function call.  If this frame is _not_ the currently-executing function,
-	   the call hasn't actually returned yet, in which case pre-instrumentation should be caught-up
-	   and post-instrumentation should not.
-	    
-	   (Really, though, exclusive metrics don't need catch-up, because we know they'll be zero
-	   until the stack unwinds back to them.  But that's another change for another time.)
-	    
-	   We'll miss arbitrary instPoints by using the point type instead of the type of the instruction
-	   at the point, but exclusive metrics don't work in the general case anyway. */
-	InstrucIter stepToNext( func_ptr, this, func_ptr->pdmod(), false );
-	stepToNext.setCurrentAddress( pointAddr );
-	// /* DEBUG */ fprintf( stderr, "%s[%d]: is 0x%lx == 0x%lx?\n", __FILE__, __LINE__, pointAddr, * stepToNext );
-	++stepToNext;
-	// /* DEBUG */ fprintf( stderr, "%s[%d]: is 0x%lx == 0x%lx?\n", __FILE__, __LINE__, collapsedFrameAddr, * stepToNext );
-	if( stepToNext.delayInstructionSupported() ) { /* The return address will point past the delay slot. */ ++stepToNext; }
-	  
-	Address activePC = 0;
-	if( frame.getThread() != NULL ) { activePC = frame.getThread()->getActiveFrame().getPC(); }
-	else if( frame.getLWP() != NULL ) { activePC = frame.getLWP()->getActiveFrame().getPC(); }
-	else { assert( 0 && "Frame without thread or LWP" ); }
-	// /* DEBUG */ fprintf( stderr, "%s[%d]: activePC 0x%lx\n", __FILE__, __LINE__, activePC );
-	if( collapsedFrameAddr == * stepToNext && when == callPostInsn && collapsedFrameAddr != activePC ) { return false; }
-	else { return true; }
+      else if (collapsedFrameAddr > pointAddr) {
+	// If this instPoint is for function _exit_ and we're after the point, DO NOT
+	// return true -- it is possible for an exit point to be in the middle of the
+	// function
+	location = afterInstru;
       }
       else {
-	// Have reached the point
-	if(pd_debug_catchup)
-	  fprintf(stderr, "        PC past instrumentation, returning true\n");
-	return true;
+	// They're both in the same point... break down further
+	if (func_ptr) {
+	  // We're not in a base or minitramp, but addresses match. Therefore
+	  // we're at the jump to the base tramp
+	  location = baseEntry;
+	}
+	else if (basetramp_ptr) {
+	  if (frame.getPC() <= (basetramp_ptr->get_address() +
+				basetramp_ptr->localPreOffset)) {
+	    // From start of base tramp to beginning of instrumentation
+	    location = baseEntry;
+	  }
+	  else if (frame.getPC() >= (basetramp_ptr->get_address() +
+				     basetramp_ptr->localPreReturnOffset) &&
+		   frame.getPC() <= (basetramp_ptr->get_address() +
+				     basetramp_ptr->localPostOffset)) {
+	    // Between pre and post...
+	    location = emulInsns;
+	  }
+	  else if (frame.getPC() >= (basetramp_ptr->get_address() +
+				     basetramp_ptr->localPostReturnOffset)) {
+	    // After post
+	    location = baseExit;
+	  }
+	  else {
+	    assert(0 && "Unknown address in base tramp");
+	  }
+	}
+	else if (minitramp_ptr) {
+	  if (minitramp_ptr->when == callPreInsn) {
+	    // Middle of pre instrumentation
+	    location = preInsn;
+	  }
+	  else if (minitramp_ptr->when == callPostInsn) {
+	    // Middle of post instrumentation
+	    location = postInsn;
+	  }
+	  else
+	    assert(0 && "Unknown minitramp callWhen");
+	}
+      } // addrs equal
+      
+      if (pd_debug_catchup) {
+	switch(location) {
+	case beforeInstru:
+	  fprintf(stderr, "beforeInstru...");
+	  break;
+	case baseEntry:
+	  fprintf(stderr, "baseEntry...");
+	  break;
+	case preInsn:
+	  fprintf(stderr, "preInsn...");
+	  break;
+	case emulInsns:
+	  fprintf(stderr, "emulInsns...");
+	  break;
+	case postInsn:
+	  fprintf(stderr, "postInsn...");
+	  break;
+	case baseExit:
+	  fprintf(stderr, "baseExit...");
+	  break;
+	case afterInstru:
+	  fprintf(stderr, "afterInstru...");
+	  break;
+	case nowhere:
+	  fprintf(stderr, "serious problem with the compiler...");
+	  break;
+	}    
       }
+      // And now determine if we're before or after the point
+      if (location == afterInstru) {
+	// If we're looking at entry instrumentation,
+	// we _want_ to do catchup -- we're in the function.
+	// If we're dealing with an arbitrary point, assume that 
+	// functions are linear.
+	// If we're at anything else, we just missed the point
+	// and don't do catchup.
+	if (bpPoint->getPointType() == BPatch_locEntry)
+	  catchupNeeded = true;
+	else 
+	  catchupNeeded = false;
+      }
+      // Otherwise, check by when/order/location
+      else if (when == BPatch_callBefore) {
+	if (order == BPatch_firstSnippet) {
+	  // If we're after baseEntry, we missed it
+	  catchupNeeded = (location > baseEntry);
+	}
+	else {
+	  // If we're after preInsn, we missed it
+	  catchupNeeded = (location > preInsn);
+	}
+      }
+      else {
+	// when == BPatch_callAfter
+	if (order == BPatch_firstSnippet) {
+	  catchupNeeded = (location > emulInsns);
+	}
+	else {
+	  catchupNeeded = (location > postInsn);
+	}
+      } // callPostInsn
     }
     else {
-      if(pd_debug_catchup)
-	fprintf(stderr, "        they're both on the stack\n");
-      // They're both in the same point... break down further
+      // LOOP CODE
+      // Problem with loops is that they're non-contiguous. At least, 
+      // we can't assume the easy case. So instead of a simple
+      // "Before/After" split, we have an "In/Not In" split. 
+      // First... get the loop body that we just instrumented.
 
-      // First, define a numeric mapping on top of instrumentation
-      // points:
+      BPatch_basicBlockLoop *loop = bpPoint->getLoop();
 
-      // 0: In the jump to base tramp
-      // 1: base tramp between entry and the call to preInsn
-      //    minitramps 
-      // 2: preInsn minitramps 
-      // 3: base tramp between preInsn minitramps and postInsn
-      //    minitramps
-      // 4: postInsn minitramps 
-      // 5: base tramp between postInsn minitramps and the end of
-      //    the base tramp
-
-      // This simplification works because we only allow adding
-      // minitramps to the beginning or end of the current tramp
-      // chain (between 1 and 2 or 2 and 3... but not within 2)
-
-        unsigned locationInPoint = 0;
-        
-      if (func_ptr) {
-	// Not in the inst point... 
-	locationInPoint = 0;
-      }
-      else if (basetramp_ptr) {
-	if (frame.getPC() <= (basetramp_ptr->get_address() +
-			      basetramp_ptr->localPreOffset))
-	  locationInPoint = 1;
-	else if (frame.getPC() >= (basetramp_ptr->get_address() +
-				   basetramp_ptr->localPreReturnOffset) &&
-		 frame.getPC() <= (basetramp_ptr->get_address() +
-				   basetramp_ptr->localPostOffset))
-	  locationInPoint = 3;
-	else if (frame.getPC() >= (basetramp_ptr->get_address() +
-				   basetramp_ptr->localPostReturnOffset))
-	  locationInPoint = 5;
-	else
-	  assert(0 && "Unknown address in base tramp");
-      }
-      else if (minitramp_ptr) {
-	if (minitramp_ptr->when == callPreInsn)
-	  locationInPoint = 2;
-	else if (minitramp_ptr->when == callPostInsn)
-	  locationInPoint = 4;
-	else
-	  assert(0 && "Unknown minitramp callWhen");
-      }
-      //fprintf(stderr, "Logical location: %d\n", locationInPoint);
-        
-      // And now determine if we're before or after the point
-      if (when == callPreInsn) {
-	if (order == orderFirstAtPoint) {
-	  return locationInPoint >= 2;
-	}
-	else {
-	  // Last at point
-	  return locationInPoint >= 3;
-	}
-      }
-      else {
-	// callPostInsn
-	if (order == orderFirstAtPoint) {
-	  return locationInPoint >= 4;
-	}
-	else {
-	  // last at point
-	  return locationInPoint >= 5;
-	}
-      }
+      // Luckily, we can ask the loop if it contains the addr
+      if (loop->containsAddressInclusive(collapsedFrameAddr))
+	catchupNeeded = true;
+      else
+	catchupNeeded = false;
     }
-    // Should never be hit
-    assert(0);
-    return false;
+      
+
+    if (pd_debug_catchup) {
+      if (catchupNeeded)
+	fprintf(stderr, "catchup needed, ret true\n========\n");
+      else
+	fprintf(stderr, "catchup not needed, ret false\n=======\n");
+    }
+    return catchupNeeded;
 }
 
 BPatch_Vector<BPatch_function *> *pd_process::getIncludedFunctions(BPatch_module *mod)

@@ -326,7 +326,7 @@ class pd_process {
 
    bool catchupSideEffect(Frame &frame, instReqNode *inst) {
       process *llproc = dyninst_process->lowlevel_process();
-      return llproc->catchupSideEffect(frame, inst);
+      return llproc->instrSideEffect(frame, inst->Point()->PDSEP_instPoint());
    }
 
    int getTraceLink() {
@@ -352,11 +352,8 @@ class pd_process {
                                             thr, lwp);
    }
    
-   bool triggeredInStackFrame(Frame &frame, instPoint *point,
-                              callWhen when, callOrder order) {
-      process *llproc = dyninst_process->lowlevel_process();
-      return llproc->triggeredInStackFrame(frame, point, when, order);
-   }
+   bool triggeredInStackFrame(Frame &frame, BPatch_point *point,
+			      BPatch_callWhen when, BPatch_snippetOrder order);
    
    bool walkStacks(pdvector<pdvector<Frame> > &stackWalks) {
       process *llproc = dyninst_process->lowlevel_process();
