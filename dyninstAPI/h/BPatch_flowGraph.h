@@ -41,8 +41,7 @@ public:
 	~BPatch_flowGraph();
 
 	/** returns the set of all basic blocks in the CFG */
-	BPatch_Set<BPatch_basicBlock*>* getAllBasicBlocks()
-					    { return &allBlocks; };
+	BPatch_Set<BPatch_basicBlock*>* getAllBasicBlocks();
 
 	/** returns the vector of entry basic blocks to CFG */
 	void getEntryBasicBlock(BPatch_Vector<BPatch_basicBlock*>&);
@@ -52,6 +51,11 @@ public:
 
 	/** returns the vector of loops in CFG */
 	void getLoops(BPatch_Vector<BPatch_basicBlockLoop*>&);
+
+	/** creates the source line blocks of all blocks in CFG.
+	  * without calling this method line info is not available
+	  */
+	void createSourceBlocks();
 
 private:
 	/** three colors used in depth first search algorithm */
@@ -85,11 +89,6 @@ private:
 
 	static void findBBForBackEdge(BPatch_basicBlock*,BPatch_basicBlock*,
 				      BPatch_Set<BPatch_basicBlock*>&);
-
-	/** creates the source line blocks of all blocks in CFG.
-	  * without calling this method line info is not available
-	  */
-	void createSourceBlocks();
 
 	/** fills the dominator and immediate-dom information of basic blocks.
 	  * without calling this method dominator info is not available

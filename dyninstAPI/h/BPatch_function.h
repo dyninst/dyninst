@@ -67,6 +67,7 @@ class BPATCH_DLL_EXPORT BPatch_function: public BPatch_sourceObj {
     BPatch_flowGraph* cfg;
 
     void         *getBaseAddrRelative();
+    void 	 getSymTabName(char*&);
 
 public:
     virtual	~BPatch_function();
