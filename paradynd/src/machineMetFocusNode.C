@@ -113,7 +113,10 @@ void machineMetFocusNode::getMachineNodes(
   }
 }
 
-void machineMetFocusNode::deleteProcNode(processMetFocusNode *procNode) {
+// if auto_delete is true, then if function action causes no procNodes
+// to remain, then the machineMetFocusNode will be deleted too
+void machineMetFocusNode::deleteProcNode(processMetFocusNode *procNode,
+                                         bool auto_delete_mach_node) {
    vector<processMetFocusNode*>::iterator itr = procNodes.end();
 
    while(itr != procNodes.begin()) {
@@ -124,8 +127,7 @@ void machineMetFocusNode::deleteProcNode(processMetFocusNode *procNode) {
       }
    } 
 
-   if(procNodes.size() == 0) {
-      //cerr << "calling delete on machNode since procNodes.size == 0\n";
+   if(auto_delete_mach_node == true && procNodes.size() == 0) {
       delete this;
    }
 }
@@ -316,7 +318,7 @@ void machineMetFocusNode::propagateToNewProcess(pd_process *newProcess) {
     return;
   }
 
-  const Focus &node_focus = getFocus();
+  const Focus node_focus = getFocus();
   string this_machine = getNetworkName();
 
   // do the propagation if the focus is all_machines or it is this machine
@@ -340,8 +342,11 @@ void machineMetFocusNode::propagateToNewProcess(pd_process *newProcess) {
 
   addCurrentPredictedCost(procNode->cost());
 
-  if(! procNode->insertInstrumentation()) {
-    return;  // possibly deferred
+  instr_insert_result_t insert_status = procNode->insertInstrumentation(); 
+  if(insert_status == insert_deferred) {
+     return ;
+  } else if(insert_status == insert_failure) {
+     return ;
   }
 
   // There may be other procNodes in machNode with deferred instrumentation.
@@ -403,6 +408,7 @@ void machineMetFocusNode::propagateToForkedProcess(
   if(isInternalMetric()) {
     return;
   }
+
   // we need to adjust the metric-focuses which will include 
   for(unsigned i=0; i<procNodes.size(); i++) {
     if(procNodes[i]->proc()->getPid() != parentProc->getPid()) continue;
@@ -411,4 +417,32 @@ void machineMetFocusNode::propagateToForkedProcess(
 				  procNodesToUnfork);
   }
 }
+
+void machineMetFocusNode::adjustForExecedProcess(pd_process *proc) {
+   // see if this metric-focus needs to be adjusted for this new process
+   if(isInternalMetric()) {
+      return;
+   }
+
+   const Focus focus = getFocus();
+
+   // we need to adjust the metric-focuses which will include 
+   for(unsigned i=0; i<procNodes.size(); i++) {
+      processMetFocusNode *procNode = procNodes[i];
+
+      if(procNode->proc()->getPid() != proc->getPid()) continue;
+      deleteProcNode(procNode, false);
+
+      // we won't propagate over metric-focuses with a source level focus (or
+      // threads) since these may not be defined in the new process
+      if(focus.module_defined() || focus.function_defined() || 
+         focus.thread_defined())
+         continue;
+
+      propagateToNewProcess(proc);
+   }
+}
+
+
+
 
