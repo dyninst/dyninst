@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.137 2003/03/12 01:50:11 schendel Exp $
+// $Id: solaris.C,v 1.138 2003/03/17 17:57:51 igor Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -148,9 +148,8 @@ extern void generateBreakPoint(instruction &insn);
 // already setup on this FD.
 // disconnect from controlling terminal 
 void OS::osDisconnect(void) {
-  int ttyfd = open ("/dev/tty", O_RDONLY);
-  ioctl (ttyfd, TIOCNOTTY, NULL); 
-  P_close (ttyfd);
+  //This is the POSIX-compliant way of disconnecting from the terminal 
+  setpgrp();
 }
 
 // Compatibility for /proc
