@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.213 2001/12/15 02:44:20 schendel Exp $
+// $Id: metricFocusNode.C,v 1.214 2002/01/25 00:05:50 schendel Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -3571,7 +3571,6 @@ void flush_trace_batch_buffer(int program) {
    for (unsigned i=0; i< trace_batch_buffer_next; i++)
       copyTraceBatchBuffer[i] = theTraceBatchBuffer[i];
 
-
    // Now let's do the actual igen call!
 
    tp->batchTraceDataCallbackFunc(program, copyTraceBatchBuffer);
@@ -5018,7 +5017,7 @@ void reportInternalMetrics(bool force)
   //  check if it is time for a sample
   if (!force && now < lastSampleTime + getCurrSamplingRate())
     return;
-    
+
   unsigned ai_size = internalMetric::allInternalMetrics.size();
   for (unsigned u2=0; u2<ai_size; u2++) {
     internalMetric *theIMetric = internalMetric::allInternalMetrics[u2];
@@ -5033,6 +5032,7 @@ void reportInternalMetrics(bool force)
 }
 
 void disableAllInternalMetrics() {
+    flush_batch_buffer();
     for (unsigned u=0; u < internalMetric::allInternalMetrics.size(); u++) {
       internalMetric *theIMetric = internalMetric::allInternalMetrics[u];
 
