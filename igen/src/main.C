@@ -2,7 +2,10 @@
  * main.C - main function of the interface compiler igen.
  *
  * $Log: main.C,v $
- * Revision 1.9  1994/02/24 05:14:32  markc
+ * Revision 1.10  1994/02/25 11:41:32  markc
+ * Fixed bug.  Igen generated versionVerify tests for client code when async.
+ *
+ * Revision 1.9  1994/02/24  05:14:32  markc
  * Man page for igen.
  * Initial version for solaris2.2.
  * Dependencies changed.
@@ -847,7 +850,7 @@ void remoteFunc::genXDRStub(char *className)
 	printf("    %s %s;\n", retType, retVar);
     }
     // check to see protocol verify has been done.
-    if (upcall != notUpcall) {
+    if ((upcall != notUpcall) && (upcall != notUpcallAsync)) {
 	printf("    if (!__versionVerifyDone__) {\n");
 	printf("        char *__ProtocolName__ = \"%s\";\n", spec->getName());
 	printf("	int __status__;\n");
