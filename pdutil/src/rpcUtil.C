@@ -1,9 +1,12 @@
 /*
 $Log: rpcUtil.C,v $
-Revision 1.20  1994/05/12 18:47:51  jcargill
-Changed make args function to leave room for program name in arg_list[0],
-and added code to RPCprocessCreate to poke it in there before execv'ing.
+Revision 1.21  1994/05/16 04:27:47  hollings
+Added inlcude of vfork.h on SUNS to prevent problem with optimizer.
 
+ * Revision 1.20  1994/05/12  18:47:51  jcargill
+ * Changed make args function to leave room for program name in arg_list[0],
+ * and added code to RPCprocessCreate to poke it in there before execv'ing.
+ *
  * Revision 1.19  1994/04/21  23:23:49  hollings
  * removed paradynd name from make args function.
  *
@@ -77,6 +80,10 @@ int socketpair(int, int, int, int sv[2]);
 int vfork();
 int accept(int, struct sockaddr *addr, int *); 
 }
+#endif
+
+#ifdef SUN
+#include <vfork.h>
 #endif
 
 
