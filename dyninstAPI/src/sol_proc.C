@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.5 2003/02/04 15:19:02 bernat Exp $
+// $Id: sol_proc.C,v 1.6 2003/02/04 15:58:42 bernat Exp $
 
 #ifdef rs6000_ibm_aix4_1
 #include <sys/procfs.h>
@@ -1158,36 +1158,6 @@ int handleStopStatus(process *currProc, lwpstatus_t procstatus,
         // return the signal number
         *status = procstatus.pr_what << 8 | 0177;
         *ret = currProc->getPid();
-        if (!currProc->dyninstLibAlreadyLoaded() && 
-            currProc->wasCreatedViaAttach()) {
-           // Handle loading dyninst lib here in attach case
-           bool wasRunning = (currProc->status() == running);
-           if (currProc->status() != stopped)
-              currProc->Stopped();   
-           if(currProc->isDynamicallyLinked()) {
-              currProc->handleIfDueToSharedObjectMapping();
-           }
-           if (wasRunning) 
-              if (!currProc->continueProc()) assert(0);
-        }
-#if !defined(BPATCH_LIBRARY) //ccw 29 apr 2002 : SPLIT2
-        else if(!currProc->paradynLibAlreadyLoaded() && 
-                currProc->wasCreatedViaAttach()) {
-           // As above, handle loading paradyn lib
-           bool wasRunning = (currProc->status() == running);
-           if (currProc->status() != stopped)
-              currProc->Stopped();   
-           if(currProc->isDynamicallyLinked()) {
-              currProc->handleIfDueToSharedObjectMapping();
-           }
-           if (currProc->trapDueToParadynLib()) {
-              // we need to load libdyninstRT.so.1 - naim
-              currProc->handleIfDueToDyninstLib();
-           }
-           if (wasRunning) 
-              if (!currProc->continueProc()) assert(0);
-        }
-#endif
         break;
      case PR_SYSEXIT: {
         // exit of a system call.
