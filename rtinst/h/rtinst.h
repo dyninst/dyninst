@@ -142,6 +142,6 @@ extern time64 DYNINSTgetWalltime(void);
  * this problem until the size gets much bigger...
  */
 
-#define SYN_INST_BUF_SIZE	1024*1024
+#define SYN_INST_BUF_SIZE	1024*1024*4
 
 #endif
