@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.56 2005/01/21 23:44:11 bernat Exp $
+// $Id: aixDL.C,v 1.57 2005/03/17 17:40:31 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -111,22 +111,28 @@ bool dynamic_linking::installTracing() {
     //  the last one is (apparently) the return that is used when there is
     //  is a failure.
     //
-    //  Added a kludge to int_function::findInstPoints (inst-power.C) that
-    //  searches for this extra exit point.  Note that we cannot try to 
-    //  detect 'blr' exit points generally, possibly because 'blr' is also
-    //  used in cases that do not represent returns.  
-   
-    //  TODO:  learn how to detect multiple returns on AIX!
+    // We used to find multiple exit points in findInstPoints. Now that
+    // Laune's got a new version, we don't hack that any more. Instead, we
+    // read in the function image, find the blr instructions, and overwrite
+    // them by hand. This should be replaced with either a) instrumentation
+    // or b) a better hook (aka r_debug in Linux/Solaris)
 
-    pdvector<instPoint *> exit_pts = loadfunc->funcExits(proc);
+    Address loadStart = loadfunc->getOffset();
+    loadStart += libc_desc->addr();
+    Address loadEnd = loadStart + loadfunc->get_size();
+    unsigned loadSize = loadEnd - loadStart + sizeof(instruction);
+    instruction *func_image = (instruction *)malloc(loadSize);
+    proc->readTextSpace((void *)loadStart, loadSize,
+			(void *)func_image);
 
-    for (unsigned int i = 0; i < exit_pts.size(); ++i) {
-      sharedLibHook *sharedHook = new sharedLibHook(proc, SLH_UNKNOWN, 
-						    // not used
-						    exit_pts[i]->absPointAddr(proc));
-      sharedLibHooks_.push_back(sharedHook);
+    for (unsigned i = 0; i < (loadSize/sizeof(instruction)); i++) {
+      if (func_image[i].raw == BRraw) {
+	sharedLibHook *sharedHook = new sharedLibHook(proc, SLH_UNKNOWN, 
+						      // not used
+						      loadStart + (i*sizeof(instruction)));
+	sharedLibHooks_.push_back(sharedHook);
+      }
     }
-    
 
     return true;
     // TODO: handle dlclose as well
