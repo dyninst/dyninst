@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.6  1994/04/19 22:09:14  rbi
-/* Added new tcl commands and updated "enable" to return met id
+/* Revision 1.7  1994/04/21 23:24:51  hollings
+/* added process command.
 /*
+ * Revision 1.6  1994/04/19  22:09:14  rbi
+ * Added new tcl commands and updated "enable" to return met id
+ *
  * Revision 1.5  1994/04/10  19:12:12  newhall
  * added visi command
  *
@@ -195,36 +198,76 @@ int ParadynPrintCmd (ClientData clientData,
     if (!mi) {
       sprintf (interp->result, "unable to find metric %d\n", met); 
       return TCL_ERROR;
-     }
-    else {
+     } else {
       val = dataMgr->getMetricValue(mi);
       printf ("metric %s, val = %f\n", 
 	       dataMgr->getMetricName(dataMgr->getMetric(mi)), val);
     }
-  } else
-    if (argv[1][0] == 's') {     //print shg
+  } else if (argv[1][0] == 's') {     //print shg
       perfConsult->printSHGList();
-    } else
-      if (argv[1][0] == 'r') {     // print refine
-	int i;
-	searchHistoryNode *currentSHGNode;
-	SHNptr_Array currentRefinementList;
+  } else if (argv[1][0] == 'r') {     // print refine
+    int i;
+    searchHistoryNode *currentSHGNode;
+    SHNptr_Array currentRefinementList;
 	
-	currentSHGNode = perfConsult->getCurrentRefinement();
-	currentRefinementList = perfConsult-> getAllRefinements (currentSHGNode);
+    currentSHGNode = perfConsult->getCurrentRefinement();
+    currentRefinementList = perfConsult-> getAllRefinements (currentSHGNode);
 
-	for (i=0; i < currentRefinementList.count; i++) {
-	  currentSHGNode = currentRefinementList.data[i];
-	  perfConsult->printSHGNode(currentSHGNode);
-	  printf ("\n");
-	}
-      }
-  else {
-    sprintf (interp->result, "Unknown option: paradyn print %s\n", 
-	     argv[1]);
+    for (i=0; i < currentRefinementList.count; i++) {
+      currentSHGNode = currentRefinementList.data[i];
+      perfConsult->printSHGNode(currentSHGNode);
+      printf ("\n");
+    }
+  } else {
+    sprintf (interp->result, "Unknown option: paradyn print %s\n", argv[1]);
     return TCL_ERROR;
   }
   return TCL_OK;
+}
+
+void processUsage()
+{
+  printf("USAGE: process <-user user> <-machine machine> <-daemon> daemon> \"command\"\n");
+}
+
+int ParadynProcessCmd(ClientData clientData,
+		      Tcl_Interp *interp,
+		      int argc,
+		      char *argv[])
+{
+    int i;
+    char *user = NULL;
+    char *machine = NULL;
+    char *paradynd = NULL;
+
+    for (i=1; i < argc-1; i++) {
+	if (!strcmp("-user", argv[i])) {
+	    if (i+1 == argc) {
+		processUsage();
+		return TCL_ERROR;
+	    }
+	    user = argv[++i];
+	} else if (!strcmp("-machine", argv[i])) {
+	    if (i+1 == argc) {
+		processUsage();
+		return TCL_ERROR;
+	    }
+	    machine = argv[++i];
+	} else if (!strcmp("-daemon", argv[i])) {
+	    if (i+1 == argc) {
+		processUsage();
+		return TCL_ERROR;
+	    }
+	    paradynd = argv[++i];
+	} else if (argv[i][0] != '-') {
+	    break;
+	} else {
+	    processUsage();
+	    return TCL_ERROR;
+	}
+    }
+
+    dataMgr->addExecutable(context, machine, user, paradynd, argc-i, &argv[i]);
 }
 
 /*
@@ -505,6 +548,7 @@ static struct cmdTabEntry Pd_Cmds[] = {
   {"gettotal", ParadynGetTotalCmd},
   {"metrics", ParadynMetricsCmd},
   {"print", ParadynPrintCmd},
+  {"process", ParadynProcessCmd},
   {"resources", ParadynResourcesCmd},
   {"set", ParadynSetCmd},
   {"core", ParadynCoreCmd},

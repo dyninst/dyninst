@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.7  1994/04/21 19:42:51  karavan
-/* the *working* version, this time!
+/* Revision 1.8  1994/04/21 23:24:50  hollings
+/* added process command.
 /*
+ * Revision 1.7  1994/04/21  19:42:51  karavan
+ * the *working* version, this time!
+ *
  * Revision 1.6  1994/04/21  19:17:59  karavan
  * Added initialization of tcl dag command.
  *
@@ -234,7 +237,6 @@ UImain(CLargStruct *clargs)
     dataCallback dataFunc;
     char *uimInitTclProcs = 
       "/usr/home/paradyn/core/paradyn/src/UIthread/uimProcs.tcl";
-    char machine_name[50];
     char updatecmd[] = "update";
 
     printf ("starting mainUI\n");
@@ -396,7 +398,6 @@ UImain(CLargStruct *clargs)
     fprintf (stderr, "UIM thread past barrier\n");
    // subscribe to DM services
 
-    dataMgr->sendParadyndName(uiargv[1]);
     uim_rootRes = dataMgr->getRootResource();
 
    // other initialization stuff from Jeff's controller main
@@ -407,16 +408,8 @@ UImain(CLargStruct *clargs)
     uim_defaultStream = dataMgr->createPerformanceStream(context, Sample, 
         dataFunc, controlFuncs);
     printf ("**defaultStream created\n");    
-   dataMgr->enableResourceCreationNotification(uim_defaultStream, uim_rootRes);
+    dataMgr->enableResourceCreationNotification(uim_defaultStream, uim_rootRes);
     printf ("**resource creation notification enabled\n");
-
-    // Give the local paradynd a name
-    assert(!gethostname(machine_name, 49));
-    dmret = dataMgr->addExecutable(context, machine_name, NULL, uiargv[1], uiargc-2, &uiargv[2]);
-    if (dmret) 
-      printf ("executable %s added\n", uiargv[1]);
-    else 
-      printf ("UI: ERROR ADDING EXECUTABLE\n");
 
 /********************************
  *    Main Loop for UIM thread.  
