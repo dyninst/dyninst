@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.118 2003/03/13 17:00:15 jodom Exp $
+// $Id: symtab.h,v 1.119 2003/03/21 21:19:04 bernat Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -766,9 +766,13 @@ class image {
    // ****  PUBLIC MEMBER FUBCTIONS  ****
    //
 public:
-  static image *parseImage(const string file);
-  static image *parseImage(fileDescriptor *desc, Address newBaseAddr = 0); 
-
+   static image *parseImage(const string file);
+   static image *parseImage(fileDescriptor *desc, Address newBaseAddr = 0); 
+   // And to get rid of them if we need to re-parse
+   static void removeImage(image *img);
+   static void removeImage(const string file);
+   static void removeImage(fileDescriptor *desc);
+   
   image(fileDescriptor *desc, bool &err, Address newBaseAddr = 0); 
   ~image() { /* TODO */ }
 

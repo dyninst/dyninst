@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.151 2003/03/14 20:07:10 buck Exp $
+// $Id: symtab.C,v 1.152 2003/03/21 21:19:03 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1240,6 +1240,41 @@ unsigned int int_addrHash(const Address& addr) {
 }
 
 /*
+ * Remove a parsed executable from the global list. Used if the old handle
+ * is no longer valid.
+ */
+void image::removeImage(image *img)
+{
+    pdvector<image*> newImages;
+    for (unsigned i = 0; i < allImages.size(); i++)
+        if (allImages[i] != img)
+            newImages.push_back(allImages[i]);
+    
+    allImages = newImages;
+}
+
+void image::removeImage(const string file)
+{
+    pdvector<image*> newImages;
+    for (unsigned i = 0; i < allImages.size(); i++)
+        if (allImages[i]->file() != file)
+            newImages.push_back(allImages[i]);
+    
+    allImages = newImages;
+}
+
+void image::removeImage(fileDescriptor *desc)
+{
+    pdvector<image*> newImages;
+    for (unsigned i = 0; i < allImages.size(); i++)
+        // Never bothered to implement a != operator
+        if (!(*(allImages[i]->desc()) == *desc))
+            newImages.push_back(allImages[i]);
+    
+    allImages = newImages;
+}
+
+/*
  * load an executable:
  *   1.) parse symbol table and identify rotuines.
  *   2.) scan executable to identify inst points.
@@ -1259,7 +1294,7 @@ image *image::parseImage(fileDescriptor *desc, Address newBaseAddr)
    * can be filename matching or filename/offset matching.
    */
   unsigned numImages = allImages.size();
-
+  
   // AIX: it's possible that we're reparsing a file with better information
   // about it. If so, yank the old one out of the images vector -- replace
   // it, basically.
