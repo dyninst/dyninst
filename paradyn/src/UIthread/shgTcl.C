@@ -4,9 +4,13 @@
 // Implementations of new commands and tk bindings related to the search history graph.
 
 /* $Log: shgTcl.C,v $
-/* Revision 1.3  1996/01/09 01:07:43  tamches
-/* added shgDevelModeChangeCallback
+/* Revision 1.4  1996/01/23 07:10:16  tamches
+/* fixed a UI bug noticed by Marcelo that could lead to an assertion
+/* failure when scrolling large amounts.
 /*
+ * Revision 1.3  1996/01/09 01:07:43  tamches
+ * added shgDevelModeChangeCallback
+ *
  * Revision 1.2  1995/11/06 19:28:15  tamches
  * removed some warnings
  *
@@ -348,7 +352,15 @@ int shgAltReleaseCommand(ClientData, Tcl_Interp *, int argc, char **argv) {
 
       int x = atoi(argv[1]);
       int y = atoi(argv[2]);
-      currShg.possibleMouseMoveIntoItem(x, y);
+
+      // NOTE! Marcelo noticed, in some cases, when the mouse is moved
+      // rapidly downwards to the edge of the screen, that y can be
+      // negative.  This makes no sense to me.  More importantly, it will
+      // lead to an assertion error.  So, let's nip this one in the bud:
+      if (x < 0 || y < 0)
+         ;
+      else
+         currShg.possibleMouseMoveIntoItem(x, y);
    }
 
    return TCL_OK;
@@ -363,7 +375,9 @@ int shgChangePhaseCommand(ClientData, Tcl_Interp *interp, int argc, char **argv)
    assert(argc == 2);
 
    const int phaseId = atoi(argv[1]);
-   (void)theShgPhases->change(phaseId);
+   if (!theShgPhases->changeByPhaseId(phaseId))
+      // nothing changed
+      return TCL_OK;
 
    // Update the label widget
    string commandStr = string(".shg.nontop.currphasearea.label2 config -text ") +
