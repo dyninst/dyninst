@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.64 2002/08/16 01:38:08 bernat Exp $
+ * $Id: RTinst.c,v 1.65 2002/08/31 16:53:51 mikem Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -78,6 +78,8 @@
 #include "/usr/lpp/ppe.poe/include/mpi.h"
 /* #include <mpi.h> */
 #endif
+
+#include "RTcompat.h"
 
 extern void makeNewShmSegCopy();
 
@@ -214,6 +216,8 @@ int trapNotHandled = 0;
 int hintBestCpuTimerLevel  = UNASSIGNED_TIMER_LEVEL;
 int hintBestWallTimerLevel = UNASSIGNED_TIMER_LEVEL;
 
+
+
 /* These are used to assign to pDYNINSTgetCPUtime.  On some systems like AIX,
    a function pointer is actually a pointer to a structure which then points
    to the function.  In the case of AIX, these variables will contain the
@@ -234,16 +238,6 @@ timeQueryFuncPtr_t pDYNINSTgetCPUtime  = &DYNINSTgetCPUtime_sw;
 timeQueryFuncPtr_t pDYNINSTgetWalltime = &DYNINSTgetWalltime_sw;
 
 int paradyn_fork_occurring = 0;
-
-#if defined(rs6000_ibm_aix4_1)
-/* sync on powerPC is actually more general than just a memory barrier,
-   more like a total execution barrier, but the general use we are concerned
-   of here is as a memory barrier 
-*/
-#define MEMORY_BARRIER     asm volatile ("sync")
-#else
-#define MEMORY_BARRIER
-#endif
 
 /************************************************************************
  * void DYNINSTstartProcessTimer(tTimer* timer)
@@ -576,6 +570,10 @@ void pDYNINSTinit(int paradyndPid,
   RTprintf("%s\n", V_libparadynMT);
 #else
   RTprintf("%s\n", V_libdyninstRT);
+#endif
+
+#ifdef PAPI
+  initPapi(); 
 #endif
 
   /*DYNINSTos_init(calledFromFork, calledFromAttach); ccw 22 apr 2002 : SPLIT */
