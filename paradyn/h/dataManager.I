@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.48  1995/08/24 15:02:02  hollings
+ * Revision 1.49  1995/09/05 16:25:02  newhall
+ * added interface functions for PC thread
+ *
+ * Revision 1.48  1995/08/24  15:02:02  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
  * Added rtinst function to read getrusage stats (can now be used in metrics)
@@ -299,7 +302,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2500;
-    $version 24;
+    $version 25;
 
     //
     // Start a paradyn daemon
@@ -430,6 +433,16 @@ $remote dataManager {
 					 unsigned persistent_data,
 					 unsigned persistent_collection);
     //
+    // same as other enableDataCollection routine, except takes focus handle
+    // argument and returns metricInstanceHandle on successful enable 
+    //
+    metricInstanceHandle *enableDataCollection2(perfStreamHandle, 
+					   resourceListHandle,
+					   metricHandle, 
+					   phaseType,
+					   unsigned persistent_data,
+					   unsigned persistent_collection);
+    //
     // stop collecting data for the named metricInstance.
     // perfStreamHandle	- a handle returned by createPerformanceStream
     // metricInstance	- a metricInstance returned by enableDataCollection.
@@ -438,6 +451,44 @@ $remote dataManager {
     void disableDataCollection(perfStreamHandle, 
 			       metricInstanceHandle,
 			       phaseType);
+
+    //
+    // This routine returns a list of foci which are the result of combining
+    // each child of resource rh with the remaining resources that make up rlh
+    // if the resource rh is a component of the focus rlh, otherwise returns 0
+    //
+    vector<resourceListHandle> *magnify(resourceHandle rh, 
+					resourceListHandle rlh);
+
+    //
+    // returns a list of foci each of which is the result of combining a child
+    // of one of the resources with the remaining resource components of rlh,
+    // this routine returns 0 if no resource components of rlh have children
+    //
+    vector<resourceListHandle> *magnify2(resourceListHandle rlh);
+
+    //
+    // if resource rh is a decendent of a component of the focus, return a new
+    // focus consisting of rh replaced with it's corresponding entry in rlh,
+    // otherwise return the focus rlh
+    //
+    resourceListHandle *constrain(resourceHandle rh, resourceListHandle rlh);
+
+    //
+    // like constrain, except it returns 0 on failure
+    //
+    resourceListHandle *morespecific(resourceHandle rh, resourceListHandle rlh);
+
+    //
+    // returns true if seppressSearch is true for this focus
+    //
+    bool isSuppressed(resourceListHandle rlh);
+
+    //
+    // returns the name for the focus associated with this MI
+    // returns 0 on error
+    //
+    const char *getFocusNameFromMI(metricInstanceHandle mi);
 
     //
     // change the persistent_collection flag value for the assoc. MI
