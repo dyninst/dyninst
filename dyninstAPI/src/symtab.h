@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.65 1999/07/07 16:10:36 zhichen Exp $
+// $Id: symtab.h,v 1.66 1999/07/13 04:33:15 csserra Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -636,6 +636,8 @@ public:
   //  ****  PUBLIC DATA MEMBERS  ****
   //
 
+  Address main_call_addr_; // address of call to main()
+  Address get_main_call_addr() const { return main_call_addr_; }
  
   // 
   //  **** PRIVATE DATA MEMBERS ****

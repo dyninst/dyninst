@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.98 1999/07/04 23:27:35 wylie Exp $
+// $Id: symtab.C,v 1.99 1999/07/13 04:33:14 csserra Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -416,7 +416,10 @@ bool image::addInternalSymbol(const string &str, const Address symValue) {
  * will search for symbol NAME or _NAME
  * returns false on failure 
  */
-bool image::findInternalSymbol(const string &name, const bool warn, internalSym &ret_sym){
+bool image::findInternalSymbol(const string &name, 
+			       const bool warn, 
+			       internalSym &ret_sym)
+{
    Symbol lookUp;
 
    if(linkedFile.get_symbol(name,lookUp)){
@@ -440,9 +443,10 @@ bool image::findInternalSymbol(const string &name, const bool warn, internalSym 
    return false;
 }
 
-Address image::findInternalAddress(const string &name, const bool warn, bool &err)
+Address image::findInternalAddress(const string &name, 
+				   const bool warn, 
+				   bool &err)
 {
-
   err = false;
 
   internalSym *theSym; // filled in by find()
@@ -813,10 +817,11 @@ void image::defineModules() {
 }
 
 #ifndef BPATCH_LIBRARY
-void image::FillInCallGraphStatic(process *proc) {
+void image::FillInCallGraphStatic(process *proc)
+{
   unsigned i;
-  string pds; pdmodule *mod;
-  pd_Function *mainFunction;
+  string pds;
+  pdmodule *mod;
   dictionary_hash_iter<string, pdmodule*> mi(modsByFileName);
 
   // define call graph relations for all non-excluded modules.
@@ -901,27 +906,31 @@ void pdmodule::define() {
 // send message to data manager to specify the entry function for the
 //  call graph corresponding to a given image.  r should hold the 
 //  FULL resourcename of the entry function (e.g. "/Code/module.c/main")
-void CallGraphSetEntryFuncCallback(process *proc, string r) {
+void CallGraphSetEntryFuncCallback(process * /*p*/, string r)
+{
     tp->CallGraphSetEntryFuncCallback(0, r);
 }
 
 //send message to the data manager, notifying it that all of the statically
 //determinable functions have been registered with the call graph. The
 //data manager will then be able to create the call graph.
-void CallGraphFillDone(process *proc){
+void CallGraphFillDone(process * /*p*/)
+{
   tp->CallGraphFillDone(0);
 }
 
 //send message to the data manager in order to register a function 
 //in the call graph.
-void AddCallGraphNodeCallback(process *proc, string r) {
+void AddCallGraphNodeCallback(process * /*p*/, string r)
+{
     tp->AddCallGraphNodeCallback(0, r);
 }
 
 //send a message to the data manager in order register a the function
 //calls made by a function (whose name is stored in r).
-void AddCallGraphStaticChildrenCallback(process *proc,  string r,
-        const vector <string>children) {
+void AddCallGraphStaticChildrenCallback(process * /*p*/, string r,
+					const vector<string> children) 
+{
     tp->AddCallGraphStaticChildrenCallback(0, r, children);
 }
 
@@ -1555,7 +1564,8 @@ unsigned int int_addrHash(const Address& addr) {
 //   construct an image corresponding to the executable file on path
 //   fileName.  Fill in err based on success or failure....
 image::image(const string &fileName, bool &err)
-:   modsByFileName(string::hash),
+  : main_call_addr_(0),  
+    modsByFileName(string::hash),
     modsByFullName(string::hash),
     includedFunctions(0),
     excludedFunctions(string::hash),
@@ -1582,7 +1592,7 @@ image::image(const string &fileName, bool &err)
 // load a shared object
 //
 image::image(const string &fileName, Address baseAddr, bool &err)
-:   
+  : main_call_addr_(0),
     modsByFileName(string::hash),
     modsByFullName(string::hash),
     includedFunctions(0),
