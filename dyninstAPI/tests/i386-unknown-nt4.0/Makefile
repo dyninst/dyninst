@@ -1,7 +1,7 @@
 #
 # Makefile for dyninst test programs on Windows NT.
 #
-# $Id: Makefile,v 1.3 1999/06/30 23:17:23 wylie Exp $
+# $Id: Makefile,v 1.4 1999/11/06 21:34:17 wylie Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in nmake.config
@@ -25,7 +25,7 @@ CFLAGS = /Z7
 
 !ifdef TARGET2
 $(TARGET2): $(TARGET2:.exe=.obj)
-	$(LINK) -out:$(TARGET2) -debug -debugtype:coff $(TARGET2:.exe=.obj)
+	$(LINK) -out:$(TARGET2) $(LDFLAGS) -debug -debugtype:coff $(TARGET2:.exe=.obj)
 !endif
 
 # Include the "standard program template".  This defines all the
