@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.26 2000/03/04 01:25:20 zandy Exp $
+// $Id: linux.C,v 1.27 2000/03/22 22:37:32 nick Exp $
 
 #include <fstream.h>
 
@@ -54,6 +54,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <math.h> // for floor()
+#include <unistd.h> // for sysconf()
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1664,7 +1665,7 @@ float OS::compute_rusage_inv_cs() { return 0; }
 
 int getNumberOfCPUs()
 {
-  return(1);
+  return sysconf(_SC_NPROCESSORS_ONLN);
 }
 
 Address process::read_inferiorRPC_result_register(Register /*reg*/) {
