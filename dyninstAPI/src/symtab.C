@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.201 2004/03/10 20:25:23 eli Exp $
+// $Id: symtab.C,v 1.202 2004/03/11 05:29:19 lharris Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -463,6 +463,7 @@ int image::removeFuncFromInstrumentable(pd_Function * /* func */)
 
 void image::addNotInstruFunc(pd_Function *func, pdmodule *mod) {
     /* FIXME: do we not care about prettyname collisions for uninstrumentable functions? */
+    funcsByEntryAddr[ func->addr() ] = func;
     notInstruFunctions[func->prettyName()] = func;
     mod->addUninstrumentableFunction( func );
 }
@@ -1963,6 +1964,14 @@ void image::setModuleLanguages(dictionary_hash<pdstring, supportedLanguages> *mo
 #endif
 }
 
+int rawfuncscmp( pd_Function*& pdf1, pd_Function*& pdf2 )
+{
+    if( pdf1->addr() > pdf2->addr() )
+	return 1;
+    if( pdf1->addr() < pdf2->addr() )
+	return -1;
+    return 0;
+}
 
 // buildFunctionMaps() iterates through pd_Functions and constructs demangled names.
 // Demangling was moved here (names used to be demangled as pd_Functions were
@@ -1974,63 +1983,161 @@ void image::setModuleLanguages(dictionary_hash<pdstring, supportedLanguages> *mo
 // is classified as either instrumentable or non-instrumentable and filed accordingly 
 bool image::buildFunctionMaps(pdvector<pd_Function *> *raw_funcs)
 {
+    pdvector< Address > callTargets;
     pd_Function *pdf;
-    pdmodule *mod;
+    pdmodule *mod = NULL;
+    
+    pd_Function *temp = new pd_Function( "nameless", mod, 0, 0 );
+    
     unsigned int num_raw_funcs = raw_funcs->size();
-    // build a demangled name for each raw (unclassed) function found in the parse
+    //build a demangled name for each raw (unclassed) function 
+    //found in the parse
+    
     for (unsigned int i = 0; i < num_raw_funcs; ++i) {
-       assert(NULL != (pdf = (*raw_funcs)[i]));
-       assert (NULL != (mod = pdf->file()));
-       Address addr = pdf->addr();
-       
-       pdstring name = pdf->symTabName();
-       pdstring mangled_name = name;
-       
-       // strip scoping information from mangled name before demangling:
-       const char *p = P_strchr(mangled_name.c_str(), ':');
-       if (p) {
-          unsigned nchars = p - name.c_str();
-          mangled_name = pdstring(name.c_str(), nchars);
-       }
-       
-       pdstring demangled;
-       
-       if (!buildDemangledName(mangled_name, demangled, nativeCompiler, mod->language())) 
-          demangled = mangled_name;
-       // let the function in on its new name first
-       //  WARNING:  do we need to check for duplicates here???
-       pdf->addPrettyName(demangled);
-       
-       // check to see that this function is not an alias
-       pd_Function *placeholder;
-       if (funcsByEntryAddr.find(addr, placeholder)) {
-          // We have already seen a function at this addr. add a second name
-          // for this function.  Then delete it
-          addMultipleFunctionNames(pdf);
-          delete pdf;
-          continue;
-       }
-       
-       // check to see if function is instrumentable
-       if (!pdf->findInstPoints(this)) {
-          // function is not instrumentable, add to "bad" pile
-          addNotInstruFunc(pdf, pdf->file());
-          continue;
-       }
-       
-       // then build up the maps & vectors as appropriate
-       
-#ifdef BPATCH_LIBRARY
-       addInstruFunction(pdf, mod, addr,false);
-#else
-       addInstruFunction(pdf, mod, addr,function_is_excluded(pdf, mod->fileName()));
-#endif
-       
-    }
+        assert(NULL != (pdf = (*raw_funcs)[i]));
+        assert (NULL != (mod = pdf->file()));
+	Address addr = pdf->addr();
 
-    // can this ever fail???
+
+	pdstring name = pdf->symTabName();
+	pdstring mangled_name = name;
+	
+	// strip scoping information from mangled name before demangling:
+	const char *p = P_strchr(mangled_name.c_str(), ':');
+	if (p) {
+	    unsigned nchars = p - name.c_str();
+	    mangled_name = pdstring(name.c_str(), nchars);
+	}
+    
+	pdstring demangled;
+	
+	if (!buildDemangledName(mangled_name, demangled, 
+				nativeCompiler, mod->language())) 
+	    demangled = mangled_name;
+	// let the function in on its new name first
+	//  WARNING:  do we need to check for duplicates here???
+	pdf->addPrettyName(demangled);
+	
+	// check to see that this function is not an alias
+	pd_Function *placeholder;
+	if (funcsByEntryAddr.find(addr, placeholder)) {
+	    // We have already seen a function at this addr. add a second name
+	    // for this function.  Then delete it
+	    addMultipleFunctionNames(pdf); 
+	    
+	    //placeholder = new pd_Function( "nameless", mod, 0, 0 );
+	    (*raw_funcs)[i] = temp;
+	    delete pdf;  //TODO put back this delete
+	    continue;
+	}
+
+	// check to see if function is instrumentable
+        // pdf->setImage( this );
+#if defined(i386_unknown_linux2_0) ||\
+    defined(i386_unknown_solaris2_5) ||\
+    defined(i386_unknown_nt4_0) 
+    	if (!pdf->findInstPoints( callTargets, this, false, 0 )) {
+	    // function is not instrumentable, add to "bad" pile
+	    addNotInstruFunc(pdf, pdf->file());
+	    continue;
+	}
+#else
+        if( !pdf->findInstPoints( this ) )
+        {
+            addNotInstruFunc( pdf, pdf->file() );
+            continue;
+        }
+
+#endif
+
+	// then build up the maps & vectors as appropriate
+    
+#ifdef BPATCH_LIBRARY
+	addInstruFunction(pdf, mod, addr,false);
+#else
+	addInstruFunction(pdf, mod, addr,
+			  function_is_excluded(pdf, mod->fileName()));
+#endif
+	
+    }
+    
+    char name[20] = "f";
+    int num = 0;
+    for( unsigned j = 0; j < callTargets.size(); j++ )
+    {
+	//if( !linkedFile.isText( callTargets[ j ] ) )
+        //  continue;    
+	if( funcsByEntryAddr.defines( callTargets[ j ] ) )
+            continue;
+	//if( linkedFile.hasSymAtAddr( callTargets[ j ] ) )
+        //  continue;
+	
+	num++;
+	sprintf( &name[ 1 ], "%x", callTargets[j] );
+	pd_Function* new_pdf; 
+   	    
+	new_pdf = new pd_Function( name, mod, callTargets[ j ], -1 );
+	new_pdf->addPrettyName( name );
+	
+        //tell the function which image it belongs to
+        //new_pdf->setImage( this );
+
+#if defined(i386_unknown_linux2_0) ||\
+    defined(i386_unknown_solaris2_5) ||\
+    defined(i386_unknown_nt4_0) 
+        
+        if( !new_pdf->findInstPoints( callTargets, this, false, 0 ) )
+	{
+	    addNotInstruFunc( new_pdf, new_pdf->file() );
+	    continue;
+	}
+#endif
+	raw_funcs->push_back( new_pdf );
+	
+	Address addr2 = new_pdf->addr();
+#ifdef BPATCH_LIBRARY
+	addInstruFunction(new_pdf, mod, addr2,false);
+#else
+	addInstruFunction(new_pdf, mod, addr2,
+			  function_is_excluded(new_pdf, mod->fileName()));
+#endif
+    }
+    
+/******************************************************************************
+  //phase 1 - discover functions that have no explicit call site
+  //TEMPORARILY REMOVED
+******************************************************************************/
+        
+#if defined(i386_unknown_linux2_0) ||\
+    defined(i386_unknown_solaris2_5) ||\
+    defined(i386_unknown_nt4_0)    
+    //phase 2 - error detection and recovery 
+    VECTOR_SORT( (*raw_funcs), rawfuncscmp );
+    for( unsigned int k = 0; k + 1 < raw_funcs->size(); k++ )
+    {
+        if( (*raw_funcs)[k]->addr() == 0 ) 
+	{
+	    continue;
+	}
+	assert( (*raw_funcs)[k]->addr() != (*raw_funcs)[k+1]->addr() );
+
+	//look for overlapping functions
+	if( (*raw_funcs)[k+1]->addr() < 
+	    (*raw_funcs)[k]->addr() + (*raw_funcs)[k]->size() )
+	{
+	    //reparse the first function using the starting address of the
+	    //second function as an upper bound on its end address
+	    Address addr = (*raw_funcs)[k+1]->addr();
+	    (*raw_funcs)[k]->findInstPoints( callTargets, this, true, addr ); 
+	}
+    }
+    
+#endif
+    delete temp;
     return true;
 }
+
+
 
 // Constructor for the image object. The fileDescriptor simply
 // wraps (in the normal case) the object name and a relocation
