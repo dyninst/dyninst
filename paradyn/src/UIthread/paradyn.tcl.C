@@ -47,9 +47,14 @@
 */
 
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.78  1997/04/21 16:54:15  hseom
-/* added support for trace data
+/* Revision 1.79  1997/05/02 04:43:50  karavan
+/* added new functionality to support "SAVE" feature.
 /*
+/* added support to use standard tcl autoload feature for development use.
+/*
+ * Revision 1.78  1997/04/21 16:54:15  hseom
+ * added support for trace data
+ *
  * Revision 1.77  1997/01/30 18:07:21  tamches
  * attach no longer takes in a dir
  *
@@ -964,6 +969,47 @@ int ParadynVisiCmd (ClientData,
   return TCL_OK;
 }
 
+int ParadynSaveCmd (ClientData,
+		    Tcl_Interp *interp,
+		    int argc,
+		    char *argv[])
+{
+  
+  if (argc == 4) {
+    if (!strcmp(argv[1], "data")) {
+      // "save data [global|phase|all] <dirname>" 
+      char *dirname = new char [strlen(argv[3])+1];
+      strcpy (dirname, argv[3]);
+      cout << "paradyn save " << dirname << " data all" << endl;
+      switch (argv[2][0]) {
+      case 'a':
+	dataMgr->saveAllData(dirname, All);
+	break;
+      case 'g':
+	dataMgr->saveAllData(dirname, Global);
+	break;
+      case 'p':
+	dataMgr->saveAllData(dirname, Phase);
+	break;
+      default:
+	sprintf(interp->result, 
+		"USAGE: save data [global|phase|all] <dirname>\n");
+	return TCL_ERROR;
+      }
+      return TCL_OK;
+    } else if (!strcmp(argv[1], "resources")) {
+      // "save resources all <filename>"
+      char *fname = new char [strlen(argv[3])+1];
+      strcpy (fname, argv[3]);
+      dataMgr->saveAllResources(fname);
+      return TCL_OK;
+    }
+  }
+  sprintf(interp->result, 
+	  "USAGE: save data [global|phase|all] <dirname>\n save resources all <file>\n");
+  return TCL_ERROR;
+}
+
 int ParadynExitCmd (ClientData,
 		    Tcl_Interp *,
 		    int, char **)
@@ -988,6 +1034,7 @@ static struct cmdTabEntry Pd_Cmds[] = {
   {"process", ParadynProcessCmd},
   {"resources", ParadynResourcesCmd},
   {"set", ParadynSetCmd},
+  {"save", ParadynSaveCmd},
   {"core", ParadynCoreCmd},
   {"suppress", ParadynSuppressCmd},
   {"visi", ParadynVisiCmd},

@@ -40,9 +40,14 @@
  */
 
 /* $Log: UImain.C,v $
-/* Revision 1.85  1997/04/14 19:59:51  zhichen
-/* added memoryAddedCB.
+/* Revision 1.86  1997/05/02 04:43:47  karavan
+/* added new functionality to support "SAVE" feature.
 /*
+/* added support to use standard tcl autoload feature for development use.
+/*
+ * Revision 1.85  1997/04/14 19:59:51  zhichen
+ * added memoryAddedCB.
+ *
  * Revision 1.84  1997/01/15 00:11:43  tamches
  * added calls to abstraction::start and end batch mode
  *
@@ -444,37 +449,25 @@ void *UImain(void*) {
  */
     extern int initialize_tcl_sources(Tcl_Interp *);
     if (initialize_tcl_sources(interp) != TCL_OK) {
-        fprintf(stderr, "initialize_tcl_sources: ERROR in Tcl sources, exitting\n");
+        fprintf(stderr, "initialize_tcl_sources: ERROR in Tcl sources, exiting\n");
         exit(-1);
     }
 
-//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/applic.tcl"));
-//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/errorList.tcl"));
-//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/focusUtils.tcl"));
-//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/generic.tcl"));
-//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/mainMenu.tcl"));
-//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/mets.tcl"));
-//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/shg.tcl"));
-//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/startVisi.tcl"));
-//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/status.tcl"));
-//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/tclTunable.tcl"));
-//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/uimProcs.tcl"));
-//assert(TCL_OK==Tcl_EvalFile(interp, "/p/paradyn/development/tamches/core/paradyn/tcl/whereAxis.tcl"));
+    // Initialize the 2 bitmaps we use
+    pdLogo::install_fixed_logo("paradynLogo", logo_bits, logo_width, logo_height);
+    pdLogo::install_fixed_logo("dont", error_bits, error_width, error_height);
+    
+    // now install the tcl cmd "createPdLogo" (must be done before anyone
+    // tries to create a logo)
+    tcl_cmd_installer createPdLogo(interp, "makeLogo", pdLogo::makeLogoCommand,
+				   (ClientData)Tk_MainWindow(interp));
 
-   // Initialize the 2 bitmaps we use
-   pdLogo::install_fixed_logo("paradynLogo", logo_bits, logo_width, logo_height);
-   pdLogo::install_fixed_logo("dont", error_bits, error_width, error_height);
-
-   // now install the tcl cmd "createPdLogo" (must be done before anyone
-   // tries to create a logo)
-   tcl_cmd_installer createPdLogo(interp, "makeLogo", pdLogo::makeLogoCommand,
-				  (ClientData)Tk_MainWindow(interp));
-
-   /* display the paradyn main menu tool bar */
-   myTclEval(interp, "drawToolBar");
-
-     // initialize number of errors read in from error database 
-    uim_maxError = atoi(Tcl_GetVar (interp, "numPdErrors", 0));
+    /* display the paradyn main menu tool bar */
+    myTclEval(interp, "drawToolBar");
+    
+    // initialize number of errors read in from error database 
+    Tcl_VarEval (interp, "getNumPdErrors", (char *)NULL);
+    uim_maxError = atoi(interp->result);
 
     // Initialize "command", an important global variable that accumulates
     // a typed-in line of data.  It gets updated in StdinProc(), below.

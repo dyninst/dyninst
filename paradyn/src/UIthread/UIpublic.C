@@ -46,9 +46,14 @@
  */
  
 /* $Log: UIpublic.C,v $
-/* Revision 1.60  1996/11/26 16:06:54  naim
-/* Fixing asserts - naim
+/* Revision 1.61  1997/05/02 04:43:49  karavan
+/* added new functionality to support "SAVE" feature.
 /*
+/* added support to use standard tcl autoload feature for development use.
+/*
+ * Revision 1.60  1996/11/26 16:06:54  naim
+ * Fixing asserts - naim
+ *
  * Revision 1.59  1996/10/31 08:19:16  tamches
  * UIM::enablePauseOrRun()
  *
@@ -538,6 +543,10 @@ void UIM::requestNodeInfoCallback(unsigned phaseID, int nodeID,
   }
 }
 
+// ****************************************************************
+// MISC 
+// ****************************************************************
+
 //
 // This procedure is used when paradyn create a process after 
 // reading a configuration file (using option -f).
@@ -552,4 +561,22 @@ void UIM::ProcessCmd(string *args)
     uiMgr->showError(83, P_strdup(msg.string_of()));
   }  
   delete args;
+}
+
+void 
+UIM::allDataSaved(bool succeeded)
+{
+  if (succeeded) 
+    ui_status->message("Requested Data Saved");
+  else
+    ui_status->message("Data Save Request Failed");
+}
+
+void 
+UIM::resourcesSaved(bool succeeded)
+{
+  if (succeeded)
+    ui_status->message("Resource Hierarchies Saved");
+  else
+    ui_status->message("Resource Hierarchy Save Request Failed");
 }
