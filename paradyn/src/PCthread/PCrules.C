@@ -18,6 +18,10 @@
 /*
  * 
  * $Log: PCrules.C,v $
+ * Revision 1.28  1995/11/09 02:08:33  tamches
+ * removed #include "../src/UIthread/UIstatDisp.h" since UIstatDisp.h no longer
+ * exists
+ *
  * Revision 1.27  1995/10/05 04:38:44  karavan
  * changed igen calls to accommodate new PC|UI interface.
  *
@@ -166,7 +170,6 @@
 #include "PCshg.h"
 #include "PCglobals.h"
 #include "PCevalTest.h"
-#include "../src/UIthread/UIstatDisp.h"
 
 // enable printing for eval tests
 #define PC_PRINT 
