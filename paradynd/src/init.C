@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.88 2005/03/22 22:48:37 legendre Exp $
+// $Id: init.C,v 1.89 2005/03/23 04:34:24 legendre Exp $
 
 
 #include "paradynd/src/internalMetrics.h"
@@ -470,7 +470,7 @@ void instMPI() {
 
   pdvector<BPatch_snippet*> argList(2);
   initialRequestsPARADYN += new pdinstMapping("MPI_Win_create", "DYNINSTrecordWindow",
-              FUNC_EXIT|FUNC_ARG, BPatch_callBefore, BPatch_firstSnippet,
+              FUNC_EXIT|FUNC_ARG, BPatch_callAfter, BPatch_firstSnippet,
               &mpiWinCreateArg, false);
   initialRequestsPARADYN += new pdinstMapping("MPI_Win_free", "DYNINSTretireWindow",
               FUNC_ENTRY|FUNC_ARG, BPatch_callBefore, BPatch_firstSnippet,
