@@ -295,8 +295,7 @@ void BPatch_flowGraph::createBasicBlocks(){
 			BPatch_Set<Address> possTargets; 
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) ||\
-    defined(i386_unknown_nt4_0) ||\
-    defined(ia64_unknown_linux2_4)	/* Temporary duplication - TLM */
+    defined(i386_unknown_nt4_0)
 			ah2.getMultipleJumpTargets(possTargets,ah);
 #else
 			ah2.getMultipleJumpTargets(possTargets);
@@ -443,8 +442,7 @@ void BPatch_flowGraph::createBasicBlocks(){
 				BPatch_Set<Address> possTargets; 
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) ||\
-    defined(i386_unknown_nt4_0) ||\
-    defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
+    defined(i386_unknown_nt4_0)
 				ah2.getMultipleJumpTargets(possTargets,ah);
 #else
 				ah2.getMultipleJumpTargets(possTargets);

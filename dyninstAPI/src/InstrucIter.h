@@ -80,8 +80,7 @@ protected:
 
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) ||\
-    defined(i386_unknown_nt4_0) ||\
-    defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
+    defined(i386_unknown_nt4_0)
 
   typedef BPatch_function::InstrucPos InstrucPos;
 
@@ -113,9 +112,7 @@ public:
                               bpFunction->getBaseAddr()))
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) ||\
-    defined(i386_unknown_nt4_0) ||\
-    defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
-                              ,instructionPointers(bpFunction->iptrs)
+    defined(i386_unknown_nt4_0)
     {
       init();
 #else
@@ -134,16 +131,14 @@ public:
     currentAddress(ii.currentAddress)
 #if defined(i386_unknown_linux2_0) ||\
      defined(i386_unknown_solaris2_5) ||\
-     defined(i386_unknown_nt4_0) ||\
-     defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
+     defined(i386_unknown_nt4_0)
      ,instructionPointers(ii.instructionPointers)
 #endif
     {
   /*
   #if defined(i386_unknown_linux2_0) ||\
       defined(i386_unknown_solaris2_5) ||\
-      defined(i386_unknown_nt4_0) ||\
-      defined(ia64_unknown_linux2_4)  // Temporary duplication - TLM
+      defined(i386_unknown_nt4_0)
   */
 //     copy(ii);
 
@@ -155,8 +150,7 @@ public:
   /*
   #if defined(i386_unknown_linux2_0) ||\
       defined(i386_unknown_solaris2_5) ||\
-      defined(i386_unknown_nt4_0) ||\
-      defined(ia64_unknown_linux2_4)   // Temporary duplication - TLM
+      defined(i386_unknown_nt4_0)
   */
 //     kill();
 
@@ -178,13 +172,12 @@ public:
   void getMultipleJumpTargets(BPatch_Set<Address>& result
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) ||\
-    defined(i386_unknown_nt4_0) ||\
-    defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
+    defined(i386_unknown_nt4_0)
                               ,InstrucIter& mayUpdate
 #endif
                               );
 
-  /** method that returns true if ther is more instruction to iterate */
+  /** method that returns true if there are more instructions to iterate */
   bool hasMore();
 
   /** method that returns true if there are instruction previous to the
