@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.99 2003/10/21 22:43:53 bernat Exp $ */
+/* $Id: test1.mutatee.c,v 1.100 2003/10/22 13:59:01 bernat Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -341,7 +341,6 @@ void call13_1(int a1, int a2, int a3, int a4, int a5)
     if (a3 == 133) globalVariable13_1 |= 4;
     if (a4 == 134) globalVariable13_1 |= 8;
     if (a5 == 135) globalVariable13_1 |= 16;
-    
     dprintf("a1 = %d\n", a1);
     dprintf("a2 = %d\n", a2);
     dprintf("a3 = %d\n", a3);
@@ -817,7 +816,6 @@ void func12_1()
     func12_2();
     stop_process_();
     func12_2();
-    
     if (globalVariable12_1 == 1) {
         printf("Passed test #12 (insert/remove and malloc/free)\n");
 	passedTest[12] = TRUE;
@@ -838,6 +836,8 @@ int func13_2()
 
 void func13_1(int p1, int p2, int p3, int p4, int p5)
 {
+    func13_2();
+
     if ((p1 == 131) && (p2 == 132) && (p3 == 133) &&
 	(p4 == 134) && (p5 == 135) && (globalVariable13_1 == 63)) {
 	printf("Passed test #13 (paramExpr,retExpr,nullExpr)\n");
@@ -2172,7 +2172,7 @@ void func35_1()
 
     int value;
     value = call35_1();
-    
+
     if( value != 35 )
     {
       printf( "**Failed** test #35 (function relocation)\n" );
@@ -2188,6 +2188,7 @@ void func35_1()
       passedTest[ 35 ] = FALSE;
       return;
     }
+
     passedTest[ 35 ] = TRUE;
     printf( "Passed test #35 (function relocation)\n" );
 #endif
@@ -2534,9 +2535,7 @@ void runTests()
     if (runTest[11]) func11_1();
     if (runTest[12]) func12_1();
 
-    if (runTest[13]) {
-        func13_1(131, 132, 133, 134, 135);
-    }
+    if (runTest[13]) func13_1(131, 132, 133, 134, 135);
     if (runTest[14]) func14_1();
     if (runTest[15]) func15_1();
     if (runTest[16]) func16_1();
@@ -2560,7 +2559,6 @@ void runTests()
     if (runTest[33]) func33_1();
     if (runTest[34]) func34_1();
     if (runTest[35]) func35_1();
-    
     if (runTest[36]) func36_1();    
     if (runTest[37]) func37_1();
     if (runTest[38]) func38_1();
