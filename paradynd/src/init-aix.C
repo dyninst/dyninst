@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-aix.C,v 1.19 2002/01/07 23:05:43 schendel Exp $
+// $Id: init-aix.C,v 1.20 2002/04/18 19:40:08 bernat Exp $
 
 #include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
@@ -197,11 +197,11 @@ bool initOS()
 				     orderLastAtPoint);
   // Should really be the longjmp in the pthread library
   initialRequests += new instMapping("_longjmp",
-				     "DYNINST_VirtualTimerStart",
+				     "DYNINSTthreadStart",
 				     FUNC_ENTRY, callPreInsn,
 				     orderLastAtPoint) ;
   initialRequests += new instMapping("_usched_swtch",
-				     "DYNINST_VirtualTimerStop",
+				     "DYNINSTthreadStop",
 				     FUNC_ENTRY, callPreInsn,
 				     orderLastAtPoint) ;
   // Thread SyncObjects

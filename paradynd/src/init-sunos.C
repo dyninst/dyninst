@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: init-sunos.C,v 1.34 2002/02/21 21:48:32 bernat Exp $ */
+/* $Id: init-sunos.C,v 1.35 2002/04/18 19:40:09 bernat Exp $ */
 
 #include <sys/time.h>
 #include "paradynd/src/metric.h"
@@ -108,12 +108,12 @@ bool initOS() {
 				     orderLastAtPoint);
 
   initialRequests += new instMapping("_resume_ret",
-				     "DYNINST_VirtualTimerStart",
+				     "DYNINSTthreadStart",
 				     FUNC_ENTRY, callPreInsn,
 				     orderLastAtPoint) ;
 
   initialRequests += new instMapping("_resume",
-				     "DYNINST_VirtualTimerStop",
+				     "DYNINSTthreadStop",
 				     FUNC_ENTRY, callPreInsn,
 				     orderLastAtPoint) ;
 
