@@ -83,27 +83,22 @@ papiMgr::papiMgr(process *proc)
   int retval;
 
   retval = PAPI_create_eventset(&papiEventSet_);
-
   assert(retval == PAPI_OK);
 
   numHwCntrs_ = PAPI_num_hw_counters();
-
   numAddedEvents_ = 0;
 
   values_ = new long_long[numHwCntrs_];
-
   proc_ = proc;
 
   eventArray_ = new papiEvent_t*[numHwCntrs_];
+  for (int i = 0; i < numHwCntrs_; i++) {
+    eventArray_[i] = NULL;
+  }
 
   papiRunning_ = false;
-
   papiAttached_ = false;
-
   assert(retval == PAPI_OK);
-
-
-  
 }
 
 papiMgr::~papiMgr() 
@@ -127,9 +122,7 @@ papiMgr::~papiMgr()
 
 unsigned int papiMgr::getNumHwEvents()
 {
-
   return numHwCntrs_;
-
 }
 
 void papiMgr::enableSampling() 
@@ -139,11 +132,9 @@ void papiMgr::enableSampling()
   if (!papiAttached_) {
 
     processState stat = proc_->status();
-    
     if (stat == running) {
       proc_->pause();
     }
- 
     retval = PAPI_attach_remote(papiEventSet_, proc_->getPid());
     assert(retval == PAPI_OK);
     papiAttached_ = true;
@@ -181,7 +172,6 @@ bool papiMgr::enableEvent(int index)
     assert(retval);
   }
 
-  fprintf(stderr, "MRM_DEBUG: enableEvent() 2\n");
   return true;
 }
 
@@ -195,7 +185,6 @@ bool papiMgr::enablePendingHwEvents()
   if (!papiAttached_) {
      enableSampling();
   }
-
 
   for (i = 0; i < numHwCntrs_; i++) {
     if (eventArray_[i] != NULL) {
@@ -217,7 +206,6 @@ bool papiMgr::enablePendingHwEvents()
     retval = inferiorPapiStart();
     assert(retval);
   }
-
   return true;
 }
 
@@ -253,7 +241,6 @@ int papiMgr::addHwEvent(int eventCode)
   }
 
   /* PAPI must be stopped in the inferior process */
-
   if (papiRunning_) {
     retval = inferiorPapiStop();
     assert(retval);
@@ -263,16 +250,13 @@ int papiMgr::addHwEvent(int eventCode)
   retval = PAPI_add_event(papiEventSet_, eventCode);
 
   if (retval == PAPI_OK) {
-
     tmp = new papiEvent_t;
     tmp->referenceCnt = 1;
     tmp->eventCode = eventCode;
     tmp->isActive = false;
 
     eventArray_[i] = tmp;
-
     numAddedEvents_++;
-
   }
   else {
     fprintf(stderr, "paradynd error:  PAPI_add_event() failed with event code 0x%x \n",
@@ -301,19 +285,15 @@ bool papiMgr::removeHwEvent(int eventCode)
         eventArray_[i]->referenceCnt--;
         if (eventArray_[i]->referenceCnt == 0) {
           if (eventArray_[i]->isActive) {
-
             if (papiRunning_) {
               retval = inferiorPapiStop();
               assert(retval);
             }
-
             /* do inferior RPC to remove event */
             if (!inferiorPapiRemoveEvent(eventCode)) {
               return false;
             }
-       
             numAddedEvents_--;
-            
           }
 
           retval = PAPI_remove_event(papiEventSet_, eventCode);
@@ -323,7 +303,6 @@ bool papiMgr::removeHwEvent(int eventCode)
           eventArray_[i] = NULL;
 
         }
-
         goto success;
       }
     } 
@@ -337,15 +316,15 @@ success:
     retval = inferiorPapiStart();
     assert(retval);
   }
-   
   return true;
-
 }
 
 
 
 bool papiMgr::inferiorPapiAddEvent(int eventCode)
 {
+
+  /* fprintf(stderr, "MRM_DEBUG: inferiorPapiAddEvent() \n"); */
 
   // build AstNode for "DYNINSTpapi_add_event" call
   string callee = "DYNINSTpapi_add_event";
@@ -391,6 +370,8 @@ bool papiMgr::inferiorPapiAddEvent(int eventCode)
 
 bool papiMgr::inferiorPapiRemoveEvent(int eventCode)
 {
+
+  /* fprintf(stderr, "MRM_DEBUG: inferiorPapiRemoveEvent() \n"); */
 
   // build AstNode for "DYNINSTpapi_remove_event" call
   string callee = "DYNINSTpapi_remove_event";
@@ -438,6 +419,8 @@ bool papiMgr::inferiorPapiRemoveEvent(int eventCode)
 bool papiMgr::inferiorPapiStart()
 {
 
+  /* fprintf(stderr, "MRM_DEBUG: inferiorPapiStart() \n"); */
+
   // build AstNode for "DYNINSTpapi_start" call
   string callee = "DYNINSTpapi_start";
   pdvector<AstNode*> args(1);
@@ -482,6 +465,8 @@ bool papiMgr::inferiorPapiStart()
 bool papiMgr::inferiorPapiStop()
 {
 
+  /* fprintf(stderr, "MRM_DEBUG: inferiorPapiStop() \n");  */
+
   // build AstNode for "DYNINSTpapi_start" call
   string callee = "DYNINSTpapi_stop";
   pdvector<AstNode*> args(1);
@@ -502,7 +487,7 @@ bool papiMgr::inferiorPapiStop()
   extern void checkProcStatus();
 
   do {
-    proc_->launchRPC(proc_->status()==running);
+    proc_->launchRPCs(proc_->status()==running);
     checkProcStatus();
   } while (!ret.ready);
 
@@ -526,12 +511,9 @@ bool papiMgr::inferiorPapiStop()
 
 int64_t papiMgr::getCurrentHwSample(int index) 
 {
-
   int retval; 
   retval = PAPI_read_force(papiEventSet_, values_);
-
   assert(retval == PAPI_OK);
-
   return values_[index];
 }
 
@@ -539,15 +521,12 @@ int papiMgr::getHwEventCode(string& hwcntr_str)
 {
   int retval;
   int code;
-
   retval = PAPI_event_name_to_code(const_cast<char*>(hwcntr_str.c_str()), &code);
   
   if (retval != PAPI_OK)
     return -1;
-
   else
     return code;  
-
 }
 
 bool papiMgr::isHwStrValid(string& hwcntr_str)
@@ -570,7 +549,6 @@ uint64_t papiMgr::getCurrentVirtCycles()
   if (!papiAttached_) {
      enableSampling();
   }
-
   ret = PAPI_get_remote_virt_cyc(papiEventSet_);
   //fprintf(stderr, "MRM_DEBUG: papiMgr::getCurrentVirtCycles()  %lld \n", ret);
   return ret;
@@ -581,14 +559,14 @@ HwEvent* papiMgr::createHwEvent(string& hwcntr_str)
   int retval;
   int code;
 
+  /* fprintf(stderr, "MRM_DEBUG: createHwEvent() \n"); */
+
   retval = PAPI_event_name_to_code(const_cast<char*>(hwcntr_str.c_str()), &code);
   
   if (retval != PAPI_OK)
     return NULL;
   else {
-
     int index = addHwEvent(code);
-    
     if (index < 0)
       return NULL;
 
@@ -596,8 +574,5 @@ HwEvent* papiMgr::createHwEvent(string& hwcntr_str)
   }
 }
 
-
 #endif
-
-
 
