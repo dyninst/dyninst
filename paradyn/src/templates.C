@@ -5,7 +5,11 @@
 
 /*
  * $Log: templates.C,v $
- * Revision 1.17  1995/09/20 01:13:21  tamches
+ * Revision 1.18  1995/10/05 04:43:52  karavan
+ * added template classes for changes to UI::PC interface.
+ * deleted obsolete (tokenRec class) and commented code.
+ *
+ * Revision 1.17  1995/09/20  01:13:21  tamches
  * Where axis changes -- added graphicalPath
  *
  * Revision 1.16  1995/08/24  15:02:11  hollings
@@ -256,14 +260,10 @@ class pRec;
 template class HTable<pRec *>;
 template class List<pRec *>;
 template class ListItem<pRec *>;
-//template class List<resourceDisplayObj *>;
-//template class ListItem<resourceDisplayObj *>;
 template class List<resourceList *>;
 template class ListItem<resourceList *>;
 template class List<metricInstInfo *>;
 template class ListItem<metricInstInfo *>;
-template class List<tokenRec *>;
-template class ListItem<tokenRec *>;
 template class List<stringHandle>;
 template class ListItem<stringHandle>;
 template class List<dag *>;
@@ -272,6 +272,12 @@ template class List<resource **>;
 template class ListItem<resource **>;
 template class vector<numlist>;
 template class vector<VM_activeVisiInfo>;
+template class vector<dag*>;
+template class vector<shgDisplay*>;
+template class vector<string*>;
+template class dictionary_hash<unsigned, dag*>;
+template class dictionary_hash<unsigned, shgDisplay*>;
+template class dictionary_hash<unsigned, string*>;
 
 /* *************************************
  * UIthread WhereAxis stuff
