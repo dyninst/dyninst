@@ -95,6 +95,7 @@
 #include "rtinst/h/trace.h"
 #include "util/h/sys.h"
 
+
 /* sunos's header files don't have these: */
 #ifdef sparc_sun_sunos4_1_3
 extern int socket(int, int, int);
@@ -706,12 +707,21 @@ DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
 	/* error check? */
     }
 
-    ret = fwrite(buffer, count, 1, DYNINSTtraceFp);
-    if (ret != 1) {
-        printf("unable to write trace record, errno=%d\n", errno);
-        printf("disabling further data logging, pid=%d\n", (int) getpid());
-        fflush(stdout);
-        pipe_gone = 1;
+    while (1) {
+      errno=0;
+      ret = fwrite(buffer, count, 1, DYNINSTtraceFp);
+      if (errno || ret!=1) {
+        if (errno==EINTR) {
+          printf("(pid=%d) fwrite interrupted, trying again...\n",(int) getpid());
+        } else {
+          printf("unable to write trace record, errno=%d\n", errno);
+          printf("disabling further data logging, pid=%d\n", (int) getpid());
+          fflush(stdout);
+          pipe_gone = 1;
+          break;
+        }
+      }
+      else break;
     }
     if (flush) DYNINSTflushTrace();
 
@@ -847,12 +857,6 @@ DYNINSTalarmExpire(int signo) {
 DYNINSTalarmExpire(int signo, int code, struct sigcontext *scp) {
 #endif
 
-#ifdef notdef
-    time64     start_cpu;
-    time64     end_cpu;
-    float      fp_context[N_FP_REGS];
-#endif
-
 #ifdef COSTTEST
     time64 startT, endT;
 #endif
@@ -972,6 +976,13 @@ DYNINSTinit(int theKey, int shmSegNumBytes) {
 #endif
 
     char *temp;
+
+    // In accordance with usual stdio rules, stdout is line-buffered and
+    // stderr is non-buffered.  Unfortunately, stdio is a little clever and
+    // when it detects stdout/stderr redirected to a pipe/file/whatever, it
+    // changes to fully-buffered.  This indeed occurs with us (see paradynd/src/process.C
+    // to see how a program's stdout/stderr are redirected to a pipe).
+    // So, we reset back to the desired "bufferedness" here.  See stdio.h for these calls.
 #ifdef n_def
     const char*      interval;
 #endif
@@ -1036,7 +1047,8 @@ DYNINSTinit(int theKey, int shmSegNumBytes) {
 #endif
 
     sigfillset(&act.sa_mask);
-#ifdef i386_unknown_solaris2_5
+
+#if defined(i386_unknown_solaris2_5) || defined(rs6000_ibm_aix4_1) 
     /* we need to catch SIGTRAP inside the alarm handler */    
     sigdelset(&act.sa_mask, SIGTRAP);
 #endif
@@ -1045,14 +1057,6 @@ DYNINSTinit(int theKey, int shmSegNumBytes) {
         perror("sigaction(SIGALRM)");
         abort();
     }
-
-#ifdef n_def
-    val = 500000;
-    interval = getenv("DYNINSTsampleInterval");
-    if (interval) {
-        val = atoi(interval);
-    }
-#endif
 
     /* assign sampling rate to be default value in util/h/sys.h */
     val = BASESAMPLEINTERVAL;
