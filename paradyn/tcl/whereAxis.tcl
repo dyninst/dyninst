@@ -3,7 +3,11 @@
 
 #
 # $Log: whereAxis.tcl,v $
-# Revision 1.1  1995/07/17 05:00:34  tamches
+# Revision 1.2  1995/07/18 03:38:08  tamches
+# Added ctrl-double-click to select/unselect an entire subtree (nonrecursive).
+# Added "clear" menu item to clear all selections.
+#
+# Revision 1.1  1995/07/17  05:00:34  tamches
 # First version of new where axis
 #
 #
@@ -68,6 +72,11 @@ proc whereAxisCatchDeleteWindow {} {
 
 # ##################################################################
 
+proc whereAxisShowSelections {} {
+}
+
+# ##################################################################
+
 proc whereAxisInitialize {} {
    toplevel .whereAxis -class "WhereAxis"
    option add *whereAxis*Background grey
@@ -80,9 +89,14 @@ proc whereAxisInitialize {} {
    frame .whereAxis.top.mbar -borderwidth 2 -relief raised
    pack  .whereAxis.top.mbar -side top -fill both -expand false
    
-   menubutton .whereAxis.top.mbar.file -text File -menu .whereAxis.top.mbar.file.m
+   menubutton .whereAxis.top.mbar.file -text Window -menu .whereAxis.top.mbar.file.m
    menu .whereAxis.top.mbar.file.m -selectcolor cornflowerblue
    .whereAxis.top.mbar.file.m add command -label "Iconify" -command "wm iconify .whereAxis"
+   
+   menubutton .whereAxis.top.mbar.sel -text Selections -menu .whereAxis.top.mbar.sel.m
+   menu .whereAxis.top.mbar.sel.m -selectcolor cornflowerblue
+   .whereAxis.top.mbar.sel.m add command -label "Clear" -command whereAxisClearSelections
+#   .whereAxis.top.mbar.sel.m add command -label "Show" -command whereAxisShowSelections
    
    menubutton .whereAxis.top.mbar.nav -text Navigate -menu .whereAxis.top.mbar.nav.m
    menu .whereAxis.top.mbar.nav.m -selectcolor cornflowerblue
@@ -90,8 +104,8 @@ proc whereAxisInitialize {} {
    menubutton .whereAxis.top.mbar.abs -text Abstraction -menu .whereAxis.top.mbar.abs.m
    menu .whereAxis.top.mbar.abs.m -selectcolor cornflowerblue
    
-   pack .whereAxis.top.mbar.file .whereAxis.top.mbar.nav .whereAxis.top.mbar.abs -side left -padx 4
-   tk_menuBar .whereAxis.top.mbar .whereAxis.top.mbar.file .whereAxis.top.mbar.nav .whereAxis.top.mbar.abs
+   pack .whereAxis.top.mbar.file .whereAxis.top.mbar.sel .whereAxis.top.mbar.nav .whereAxis.top.mbar.abs -side left -padx 4
+   tk_menuBar .whereAxis.top.mbar .whereAxis.top.mbar.file .whereAxis.top.mbar.sel .whereAxis.top.mbar.nav .whereAxis.top.mbar.abs
    
    # -----------------------------------------------------------
    
@@ -124,13 +138,24 @@ proc whereAxisInitialize {} {
    
    # -----------------------------------------------------------
    
-   label .whereAxis.nontop.tip1 -relief sunken -text "Click to select; double-click to expand/un-expand" -font "*-Helvetica-*-r-*-12-*"
+   label .whereAxis.nontop.tip1 -relief sunken \
+	   -text "Click to select; double-click to expand/un-expand" \
+	   -font "*-Helvetica-*-r-*-12-*"
    pack  .whereAxis.nontop.tip1 -side top -fill both -expand false
       # fill both (instead of just x) seems needed to prevent from shrinking
       # when window made shorter
    
-   label .whereAxis.nontop.tip2 -relief sunken -text "Shift-double-click to expand/un-expand ALL subtrees of a node" -font "*-Helvetica-*-r-*-12-*"
+   label .whereAxis.nontop.tip2 -relief sunken \
+	   -text "Shift-double-click to expand/un-expand all subtrees of a node" \
+	   -font "*-Helvetica-*-r-*-12-*"
    pack  .whereAxis.nontop.tip2 -side top -fill both -expand false
+      # fill both (instead of just x) seems needed to prevent from shrinking
+      # when window made shorter
+   
+   label .whereAxis.nontop.tip3 -relief sunken \
+	   -text "Ctrl-double-click to select/un-select all subtrees of a node" \
+	   -font "*-Helvetica-*-r-*-12-*"
+   pack  .whereAxis.nontop.tip3 -side top -fill both -expand false
       # fill both (instead of just x) seems needed to prevent from shrinking
       # when window made shorter
    
@@ -155,8 +180,7 @@ proc whereAxisInitialize {} {
    bind .whereAxis.nontop.main.all <Button-1>  {singleClickHook %x %y}
    bind .whereAxis.nontop.main.all <Double-Button-1> {doubleClickHook %x %y}
    bind .whereAxis.nontop.main.all <Shift-Double-Button-1> {shiftDoubleClickHook %x %y}
+   bind .whereAxis.nontop.main.all <Control-Double-Button-1> {ctrlDoubleClickHook %x %y}
    
    set currMenuAbstraction 1
 }
-
-#whereAxisInitialize
