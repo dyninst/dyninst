@@ -17,10 +17,14 @@
  */
 
 /* $Log: datagrid.h,v $
-/* Revision 1.7  1994/05/23 20:55:16  newhall
-/* To visi_GridCellHisto class: added deleted flag, SumValue
-/* method function, and fixed AggregateValue method function
+/* Revision 1.8  1994/06/07 17:47:16  newhall
+/* added method functions to support adding metrics
+/* and resources to an existing data grid
 /*
+ * Revision 1.7  1994/05/23  20:55:16  newhall
+ * To visi_GridCellHisto class: added deleted flag, SumValue
+ * method function, and fixed AggregateValue method function
+ *
  * Revision 1.6  1994/05/11  17:11:03  newhall
  * changed data values from double to float
  *
@@ -95,7 +99,7 @@ class visi_GridCellHisto {
      int   valid;
      int   size;
      int   lastBucketFilled;  // bucket number of last data value added   
-     int   deleted;   // set on delete cell element, cleared on add new cell elem 
+     int   deleted;  // set on delete cell element, cleared on add new element
      sampleType *value;
   public: 
      void *userdata;  // to allow visi writer to add info to grid cells
@@ -120,6 +124,21 @@ class visi_GridCellHisto {
      void   ClearDeleted(){deleted = 0;}
      void   Invalidate(){delete[] value; value = NULL; size = 0; 
 			 valid = 0; lastBucketFilled = -1;}
+
+     int    AddNewValues(sampleType *temp,int arraySize,int lbf,void *ud){
+        
+	// initialize cell to temp values
+	value = new sampleType[arraySize];
+	size = arraySize;
+	valid = 1;
+	deleted = 0;
+	lastBucketFilled = lbf;
+	for(int i=0;i<size;i++){
+	 value[i] = temp[i]; 
+	}
+	userdata = ud;
+	return(OK);
+     }
 
      void   Fold(int method){
        int i,j;
@@ -246,11 +265,17 @@ class  visi_GridHistoArray {
 	   return(ERROR_SUBSCRIPT);
 	 return(values[resource].AddValue(x,bucketNum,numBuckets));
       }
-
+      int   Size(){ return(size);}
       visi_GridCellHisto *Value(){return(values);}
       int    Valid(int);
       int    Invalidate(int);
-      int    AddNewResources(int,int);
+      int    AddNewResources(int);
+      int    AddNewValues(visi_GridCellHisto *,int);
+      void   ClearDeleted(){
+        for(int i = 0; i < size; i++){
+	  values[i].ClearDeleted();
+	}
+      }
 
       void   Fold(int method){
         int i;
@@ -317,8 +342,17 @@ class visi_DataGrid {
      int        ResourceId(int); // returns Resource Id
      int        NumBins(){return(numBins);}
      timeType   BinWidth(){return(binWidth);}
-     int        Valid(int,int);
+     int        Valid(int,int);  
      int        Invalidate(int,int);
+     int        AddNewMetrics(int,visi_metricType *);
+     int        AddNewResource(int,visi_resourceType *);
+     int        ResourceInGrid(int);
+     int        MetricInGrid(int);
+     void       ClearDeleted(){
+           for(int i = 0; i < numMetrics; i++){
+               data_values[i].ClearDeleted();
+	   }
+     }
 
      sampleType AggregateValue(int i,int j){
        if((i>=0)&&(i<numMetrics))
