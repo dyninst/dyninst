@@ -7,14 +7,18 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/process.C,v 1.24 1995/02/16 08:54:00 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/process.C,v 1.25 1995/02/26 22:48:50 markc Exp $";
 #endif
 
 /*
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.24  1995/02/16 08:54:00  markc
+ * Revision 1.25  1995/02/26 22:48:50  markc
+ * vector.size() returns an unsigned.  If the vector is to be traversed in reverse,
+ * the bounds check cannot be > 0 since unsigned(0) - 1 is not negative.
+ *
+ * Revision 1.24  1995/02/16  08:54:00  markc
  * Corrected error in comments -- I put a "star slash" in the comment.
  *
  * Revision 1.23  1995/02/16  08:34:34  markc
@@ -488,10 +492,9 @@ process *createProcess(const string file, vector<string> argv, vector<string> en
 	  P__exit(-1);   // double underscores are correct
 	}
 #ifdef PARADYND_PVM
-	for (unsigned ep=envp.size()-1; ep>=0; ep--)
-	  pvmputenv(envp[nenv].string_of());
-	// TODO 
-	// while (nenv-- > 0)
+	if (envp.size())
+	  for (int ep=envp.size()-1; ep>=0; ep--)
+	    pvmputenv(envp[ep].string_of());
 #endif
 	char **args;
 	args = new char*[argv.size()+1];
