@@ -22,7 +22,11 @@
  * RTsunos.c: SunOs-4.1.3 specific functions.
  *
  * $Log: RTsunos.c,v $
- * Revision 1.5  1996/02/01 17:48:39  naim
+ * Revision 1.6  1996/02/19 22:22:16  naim
+ * Fixing DYNINSTgetWalltime. gettimeofday was going backwards. If it does,
+ * we retry again - naim
+ *
+ * Revision 1.5  1996/02/01  17:48:39  naim
  * Fixing some problems related to timers and race conditions. I also tried to
  * make a more standard definition of certain procedures (e.g. reportTimer)
  * across all platforms - naim
@@ -275,12 +279,21 @@ try_again:
 
 time64
 DYNINSTgetWalltime(void) {
+    static time64 previous=0;
+    time64 now;
     struct timeval tv;
+
+retryWT:
     if (gettimeofday(&tv, NULL) == -1) {
         perror("gettimeofday");
         abort();
     }
-    return ((time64)tv.tv_sec*(time64)1000000 + (time64)tv.tv_usec);
+    now = (time64)tv.tv_sec*(time64)1000000 + (time64)tv.tv_usec;
+    if (now < previous) {
+      goto retryWT;
+    }
+    previous = now;
+    return (now);
 }
 
 /*
