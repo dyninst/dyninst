@@ -653,12 +653,12 @@ public:
 
 
   void insert_function_internal_static(vector<Symbol> &mods, \
-        Symbol &lookUp, \
+        const Symbol &lookUp, \
         const Address boundary_start,  const Address boundary_end, \
 	const Address startAddr, bool startB, const Address endAddr, \
         bool endB, pdmodule *dyn, pdmodule *lib);
   void image::insert_function_internal_dynamic(vector<Symbol>& mods, \
-      Symbol &lookUp, \
+      const Symbol &lookUp, \
       pdmodule *dyn, pdmodule *lib, bool is_libdyninstRT);
 
   //

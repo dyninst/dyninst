@@ -54,7 +54,7 @@ public:
 	return false;
     }
 
-    vector<pd_Function *> *getAllFunctions(){
+    const vector<pd_Function *> *getAllFunctions(){
         if(objs_image) {
 	    // previously objs_image->mdlNormal....
 	    return (&(objs_image->getAllFunctions()));
@@ -74,7 +74,7 @@ public:
 #endif
 
     // Get list of ALL modules, not just included ones.
-    vector<pdmodule *> *getModules() {
+    const vector<pdmodule *> *getModules() {
         if(objs_image) {
 	    return (&(objs_image->getAllModules()));
 	}
