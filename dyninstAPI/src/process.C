@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.350 2002/08/15 20:06:33 bernat Exp $
+// $Id: process.C,v 1.351 2002/08/21 19:42:02 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1999,6 +1999,11 @@ bool process::initDyninstLib() {
 //
 process::~process()
 {
+   /*  The instPoints in the installedMiniTramps_... will be shared
+       between forked processes.  Since there is currently no reference
+       counting mechanism, don't delete instPoints until something like
+       this exists.  Otherwise, an error occurs when the instPoint is
+       attempted to be deleted after it was already deleted.
     // remove inst points for this process
     dictionary_hash_iter<const instPoint *, installed_miniTramps_list*>
       befList = installedMiniTramps_beforePt;
@@ -2014,14 +2019,16 @@ process::~process()
       const instPoint *pt = aftList.currkey();
       delete pt;
     }
+   */
 
 #ifndef BPATCH_LIBRARY
     // the varMgr needs to be deleted before the shmMgr because the varMgr
     // needs to free the memory it's allocated from the sharedMemoryMgr
     delete theVariableMgr;
+    delete shMetaOffsetData;
+    delete shmMetaData;    // needs to occur before shmMgr is deleted
     delete theSharedMemMgr;
 #endif
-
 #ifdef BPATCH_LIBRARY
     detach(false);
 
@@ -2076,7 +2083,7 @@ process::process(int iPid, image *iImage, int iTraceLink
   instPointMap(hash_address),
 #endif
 #ifndef BPATCH_LIBRARY
-  shmMetaData(maxNumberOfThreads()),  // adjusts for new base addr below
+  shmMetaData(NULL), shMetaOffsetData(NULL),
 #endif
   savedRegs(NULL),
   installedMiniTramps_beforePt(ipHash),
@@ -2136,6 +2143,7 @@ process::process(int iPid, image *iImage, int iTraceLink
     continueAfterNextStop_ = 0;
 #ifndef BPATCH_LIBRARY
     theSharedMemMgr = new shmMgr(this, theShmKey, 2097152);
+    shmMetaData = new sharedMetaData(*theSharedMemMgr, maxNumberOfThreads());
 
     theVariableMgr = new variableMgr(this, theSharedMemMgr, 
 				     maxNumberOfThreads());
@@ -2265,7 +2273,7 @@ process::process(int iPid, image *iSymbols,
   instPointMap(hash_address),
 #endif
 #ifndef BPATCH_LIBRARY
-  shmMetaData(maxNumberOfThreads()),  // adjusts for new base addr below
+  shmMetaData(NULL), shMetaOffsetData(NULL),
 #endif
   savedRegs(NULL),
   installedMiniTramps_beforePt(ipHash),
@@ -2339,6 +2347,7 @@ process::process(int iPid, image *iSymbols,
     
 #ifndef BPATCH_LIBRARY
     theSharedMemMgr = new shmMgr(this, theShmKey, 2097152);
+    shmMetaData = new sharedMetaData(*theSharedMemMgr, maxNumberOfThreads());
 
     theVariableMgr = new variableMgr(this, theSharedMemMgr, 
 				     maxNumberOfThreads());
@@ -2544,7 +2553,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
   instPointMap(hash_address),
 #endif
 #ifndef BPATCH_LIBRARY
-  shmMetaData(parentProc.shmMetaData),  // adjusts for new base addr below
+  shmMetaData(NULL), shMetaOffsetData(NULL),
 #endif
   savedRegs(NULL),
   installedMiniTramps_beforePt(parentProc.installedMiniTramps_beforePt),
@@ -2610,13 +2619,17 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
     // need to inherit the parent process's data also
     theSharedMemMgr = new shmMgr(*parentProc.theSharedMemMgr, theShmKey,
 				 applShmSegPtr, pid);
+    shmMetaData = new sharedMetaData(*(parentProc.shmMetaData), 
+				     *theSharedMemMgr);
+    shMetaOffsetData = new sharedMetaOffsetData(*theSharedMemMgr, 
+					       *(parentProc.shMetaOffsetData));
     theVariableMgr = new variableMgr(*parentProc.theVariableMgr, this,
 				     theSharedMemMgr);
     initCpuTimeMgr();
 
-    shmMetaData.adjustToNewBaseAddr(reinterpret_cast<Address>(
+    shmMetaData->adjustToNewBaseAddr(reinterpret_cast<Address>(
                                    theSharedMemMgr->getBaseAddrInDaemon()));
-    shmMetaData.initializeForkedProc(theSharedMemMgr->cookie, getPid());
+    shmMetaData->initializeForkedProc(theSharedMemMgr->cookie, getPid());
 
     string buff = string(pid); // + string("_") + getHostName();
     rid = resource::newResource(machineResource, // parent
@@ -2761,27 +2774,20 @@ void process::registerInferiorAttachedSegs(void *inferiorAttachedAtPtr) {
    theSharedMemMgr->registerInferiorAttachedAt(inferiorAttachedAtPtr);
 }
 
-// returns a structure 
+// returns the offset address (ie. the offset in the shared memory manager
+// segment) of the offset meta offset data (used to communicate the location
+// of the shared meta data to the RTinst library)
 Address process::initSharedMetaData() {
-   /* Part 1: initialize our RTsharedData_t structure */
-   shmMetaData.mallocInShm(*theSharedMemMgr);
-   shmMetaData.initialize(theSharedMemMgr->cookie, getpid(), getPid());
+   shmMetaData->mallocInShm();
+   shmMetaData->initialize(theSharedMemMgr->cookie, getpid(), getPid());
+   shMetaOffsetData = new sharedMetaOffsetData(*theSharedMemMgr, 
+					       maxNumberOfThreads());
+   shmMetaData->saveOffsetsIntoRTstructure(shMetaOffsetData);
 
-  /* Part 2: we need to communicate these offsets to the daemon. So we
-     build another RTsharedData in the shared segment, and populate it 
-     with offsets */
-   RTsharedData_t *RTargument = 
-      (RTsharedData_t *)theSharedMemMgr->malloc(sizeof(RTsharedData_t));
-   cerr << "dmn base address = " << theSharedMemMgr->getBaseAddrInDaemon() 
-	<< "\n";
-   cerr << "RTdata is at address = " << RTargument << "\n";
-   RTargument->pendingIRPCs = 
-      (rpcToDo **)theSharedMemMgr->malloc(sizeof(rpcToDo *) * 
-					  maxNumberOfThreads());
-   shmMetaData.saveOffsetsIntoRTstructure(RTargument);
-   return (Address) RTargument;
+   Address offsetOfShMetaOffsetData = shMetaOffsetData->getAddrInDaemon()
+                          - (Address) theSharedMemMgr->getBaseAddrInDaemon();
+   return offsetOfShMetaOffsetData;
 }
-
 #endif
 
 extern bool forkNewProcess(string &file, string dir, vector<string> argv, 
@@ -6879,9 +6885,10 @@ void process::callpDYNINSTinit(){
    // Shared memory size
    AstNode *arg4 = new AstNode(AstNode::Constant, (void *)getShmHeapTotalNumBytes());
 
-   // Offset for other data 
-   Address addrInDaemon = initSharedMetaData();
-   AstNode *arg5 = new AstNode(AstNode::Constant, (void *) (addrInDaemon - (Address) theSharedMemMgr->getBaseAddrInDaemon()));
+   // Offset for other data  
+   Address offsetOfShMetaOffsetData = initSharedMetaData();
+   AstNode *arg5 = new AstNode(AstNode::Constant, 
+			       (void *) offsetOfShMetaOffsetData);
 
 #ifndef USE_STL_VECTOR   
    the_args[0] = arg1;
@@ -7096,7 +7103,6 @@ void process::handleCompletionOfpDYNINSTinit(bool fromAttach) {
 
    // Override the tramp guard address
    // Note: the pointers are all from the POV of the runtime library.
-   
    trampGuardAddr_ = (Address) bs_struct.tramp_guard_base;
 
    // handleStartProcess gets shared objects, so no need to do it again after a fork.
