@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.67 2002/10/28 04:54:52 schendel Exp $
+ * $Id: RTinst.c,v 1.68 2002/12/14 16:38:02 schendel Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -460,90 +460,90 @@ void pDYNINSTinit(int paradyndPid,
 		  unsigned shmSegSize,
 		  unsigned offsetToSharedData)
 {
-  /* If offsetToSharedData is -1 then we're being called from fork */
-  /* If the last 3 parameters are 0, we're not shm sampling (DEPRECATED) */
-  /* If 1st param is negative, then we're called from attach
-     (and we use -paradyndPid as paradynd's pid).  If 1st param
-     is positive, then we're not called from attach (and we use +paradyndPid
-     as paradynd's pid). */
+   /* If offsetToSharedData is -1 then we're being called from fork */
+   /* If the last 3 parameters are 0, we're not shm sampling (DEPRECATED) */
+   /* If 1st param is negative, then we're called from attach
+      (and we use -paradyndPid as paradynd's pid).  If 1st param
+      is positive, then we're not called from attach (and we use +paradyndPid
+      as paradynd's pid). */
 
 
-  int i;
-  int calledFromAttachToCreated = 0;
-  int calledFromFork = (offsetToSharedData == -1);
-  int calledFromAttach = (paradyndPid < 0);
-  MAX_NUMBER_OF_THREADS = numThreads;
+   int i;
+   int calledFromAttachToCreated = 0;
+   int calledFromFork = (offsetToSharedData == -1);
+   int calledFromAttach = (paradyndPid < 0);
+   MAX_NUMBER_OF_THREADS = numThreads;
 
 
    if ((theKey < 0) &&(theKey != -1)){
       calledFromAttachToCreated = 1;
-     theKey *= -1;
+      theKey *= -1;
    }
     
 #ifdef SHM_SAMPLING_DEBUG
-  char thehostname[80];
-  extern int gethostname(char*,int);
+   char thehostname[80];
+   extern int gethostname(char*,int);
   
-  (void)gethostname(thehostname, 80);
-  thehostname[79] = '\0';
+   (void)gethostname(thehostname, 80);
+   thehostname[79] = '\0';
   
-  /*  
-      shmsampling_printf("WELCOME to DYNINSTinit (%s, pid=%d), args are %d, %d, %d\n",
-      thehostname, (int)getpid(), theKey, shmSegNumBytes,
-      paradyndPid);
-  */
+   /*  
+       shmsampling_printf("WELCOME to DYNINSTinit (%s, pid=%d), args are %d, %d, %d\n",
+       thehostname, (int)getpid(), theKey, shmSegNumBytes,
+       paradyndPid);
+   */
 #endif
 
-  initFPU();
-  DYNINSThasInitialized = 3;
+   initFPU();
+   DYNINSThasInitialized = 3;
 
-  /* sanity check */
-  assert(sizeof(rawTime64) == 8);
-  assert(sizeof(int64_t) == 8);
-  assert(sizeof(int32_t) == 4);
+   /* sanity check */
+   assert(sizeof(rawTime64) == 8);
+   assert(sizeof(int64_t) == 8);
+   assert(sizeof(int32_t) == 4);
  
-  if (calledFromAttach)
-    paradyndPid = -paradyndPid;
-  DYNINST_mutatorPid = paradyndPid; /* important -- needed in case we fork() */
+   if (calledFromAttach)
+      paradyndPid = -paradyndPid;
+   DYNINST_mutatorPid = paradyndPid; /* important -- needed in case we fork() */
   
-  /* initialize the tag and group info */
-  DYNINSTtagGroupInfo_Init();
+   /* initialize the tag and group info */
+   DYNINSTtagGroupInfo_Init();
 
-  if (!calledFromFork) {
-    RTsharedData_t *RTsharedInShm;
-    char *endOfShared;
-    Address shmBase;
-    unsigned i;
-    DYNINST_shmSegKey = theKey;
-    DYNINST_shmSegNumBytes = shmSegSize;
-    DYNINST_shmSegAttachedPtr = DYNINST_shm_init(theKey, shmSegSize,
-						 &DYNINST_shmSegShmId);
-    shmBase = (Address) DYNINST_shmSegAttachedPtr;
-    /* Yay, pointer arithmetic */
-    RTsharedInShm = (RTsharedData_t *)
-      (shmBase + offsetToSharedData);
-    RTsharedData.cookie = (unsigned *)
-      ((Address) RTsharedInShm->cookie + shmBase);
-    RTsharedData.inferior_pid = (unsigned *)
-      ((Address) RTsharedInShm->inferior_pid + shmBase);
-    RTsharedData.daemon_pid = (unsigned *)
-      ((Address) RTsharedInShm->daemon_pid + shmBase);
-    RTsharedData.observed_cost = 
-      (unsigned *) ((Address) RTsharedInShm->observed_cost + shmBase);
-    RTsharedData.virtualTimers = (virtualTimer *)
-      ((Address) RTsharedInShm->virtualTimers + shmBase);
-    RTsharedData.posToThread = (unsigned *)
-      ((Address) RTsharedInShm->posToThread + shmBase);
-    RTsharedData.pendingIRPCs = 
-      malloc(sizeof(rpcToDo *)*MAX_NUMBER_OF_THREADS);
-    RTsharedInShm->pendingIRPCs = (rpcToDo **) 
-      ((unsigned) RTsharedInShm->pendingIRPCs + (unsigned) shmBase);
-    for (i = 0; i < MAX_NUMBER_OF_THREADS; i++) {
-      RTsharedData.pendingIRPCs[i] = (rpcToDo *)
-	((Address) RTsharedInShm->pendingIRPCs[i] + shmBase);
-    }
-  }
-  /*
+   if (!calledFromFork) {
+      RTsharedData_t *RTsharedInShm;
+      char *endOfShared;
+      Address shmBase;
+      unsigned i;
+      DYNINST_shmSegKey = theKey;
+      DYNINST_shmSegNumBytes = shmSegSize;
+      DYNINST_shmSegAttachedPtr = DYNINST_shm_init(theKey, shmSegSize,
+                                                   &DYNINST_shmSegShmId);
+      shmBase = (Address) DYNINST_shmSegAttachedPtr;
+      /* Yay, pointer arithmetic */
+      RTsharedInShm = (RTsharedData_t *)
+         (shmBase + offsetToSharedData);
+      RTsharedData.cookie = (unsigned *)
+         ((Address) RTsharedInShm->cookie + shmBase);
+      RTsharedData.inferior_pid = (unsigned *)
+         ((Address) RTsharedInShm->inferior_pid + shmBase);
+      RTsharedData.daemon_pid = (unsigned *)
+         ((Address) RTsharedInShm->daemon_pid + shmBase);
+      RTsharedData.observed_cost = 
+         (unsigned *) ((Address) RTsharedInShm->observed_cost + shmBase);
+      RTsharedData.virtualTimers = (virtualTimer *)
+         ((Address) RTsharedInShm->virtualTimers + shmBase);
+      RTsharedData.posToThread = (unsigned *)
+         ((Address) RTsharedInShm->posToThread + shmBase);
+      RTsharedData.pendingIRPCs = 
+         malloc(sizeof(rpcToDo *)*MAX_NUMBER_OF_THREADS);
+      RTsharedInShm->pendingIRPCs = (rpcToDo **) 
+         ((unsigned) RTsharedInShm->pendingIRPCs + (unsigned) shmBase);
+      for (i = 0; i < MAX_NUMBER_OF_THREADS; i++) {
+         RTsharedData.pendingIRPCs[i] = (rpcToDo *)
+            ((Address) RTsharedInShm->pendingIRPCs[i] + shmBase);
+      }
+   }
+   /*
      In accordance with usual stdio rules, stdout is line-buffered and stderr
      is non-buffered.  Unfortunately, stdio is a little clever and when it
      detects stdout/stderr redirected to a pipe/file/whatever, it changes to
@@ -556,175 +556,178 @@ void pDYNINSTinit(int paradyndPid,
      Note! Since we are messing with stdio stuff here, it should go without
      saying that DYNINSTinit() (or at least this part of it) shouldn't be
      invoked until stdio has been initialized!
-  */
+   */
   
-  if (!calledFromAttach) {
-    setvbuf(stdout, NULL, _IOLBF, 0);
-    /* make stdout line-buffered.  "setlinebuf(stdout)" is cleaner but HP
-       doesn't seem to have it */
-    setvbuf(stderr, NULL, _IONBF, 0);
-    /* make stderr non-buffered */
-  }
+   if (!calledFromAttach) {
+      setvbuf(stdout, NULL, _IOLBF, 0);
+      /* make stdout line-buffered.  "setlinebuf(stdout)" is cleaner but HP
+         doesn't seem to have it */
+      setvbuf(stderr, NULL, _IONBF, 0);
+      /* make stderr non-buffered */
+   }
   
 #if defined(MT_THREAD)
-  RTprintf("%s\n", V_libparadynMT);
+   RTprintf("%s\n", V_libparadynMT);
 #else
-  RTprintf("%s\n", V_libdyninstRT);
+   RTprintf("%s\n", V_libdyninstRT);
 #endif
 
 #ifdef PAPI
-  initPapi(); 
+   initPapi(); 
 #endif
 
-  /*DYNINSTos_init(calledFromFork, calledFromAttach); ccw 22 apr 2002 : SPLIT */
-  PARADYNos_init(calledFromFork, calledFromAttach);
+   /*DYNINSTos_init(calledFromFork, calledFromAttach); ccw 22 apr 2002 : SPLIT */
+   PARADYNos_init(calledFromFork, calledFromAttach);
 
 #ifdef USE_PROF
-  {
-    extern int end;
+   {
+      extern int end;
     
-    DYNINSTprofScale = sizeof(short);
-    DYNINSTtoAddr = sizeof(short);
-    DYNINSTbufsiz = (((unsigned int) &end)/DYNINSTprofScale) + 1;
-    DYNINSTprofBuffer = (short *) calloc(sizeof(short), DYNINSTbufsiz);
-    profil(DYNINSTprofBuffer, DYNINSTbufsiz*sizeof(short), 0, 0xffff);
-    DYNINSTprofile = 1;
-  }
+      DYNINSTprofScale = sizeof(short);
+      DYNINSTtoAddr = sizeof(short);
+      DYNINSTbufsiz = (((unsigned int) &end)/DYNINSTprofScale) + 1;
+      DYNINSTprofBuffer = (short *) calloc(sizeof(short), DYNINSTbufsiz);
+      profil(DYNINSTprofBuffer, DYNINSTbufsiz*sizeof(short), 0, 0xffff);
+      DYNINSTprofile = 1;
+   }
 #endif
 
-  /* Fill in info for paradynd to receive: */
+   /* Fill in info for paradynd to receive: */
   
-  PARADYN_bootstrap_info.ppid = -1; /* not needed really */ /* was DYNINST_ ccw 18 apr 2002 SPLIT */
+   PARADYN_bootstrap_info.ppid = -1; /* not needed really */ /* was DYNINST_ ccw 18 apr 2002 SPLIT */
 
   
-  if (!calledFromFork) {
-    shmsampling_printf("DYNINSTinit setting appl_attachedAtPtr in bs_record"
-                       " to 0x%x\n", (Address)DYNINST_shmSegAttachedPtr);
-    PARADYN_bootstrap_info.appl_attachedAtPtr.ptr = DYNINST_shmSegAttachedPtr;
-  }
-  PARADYN_bootstrap_info.pid = getpid(); /* was DYNINST_ ccw 18 apr 2002 SPLIT */ 
+   if (!calledFromFork) {
+      shmsampling_printf("DYNINSTinit setting appl_attachedAtPtr in bs_record"
+                         " to 0x%x\n", (Address)DYNINST_shmSegAttachedPtr);
+      PARADYN_bootstrap_info.appl_attachedAtPtr.ptr = DYNINST_shmSegAttachedPtr;
+   }
+   PARADYN_bootstrap_info.pid = getpid(); /* was DYNINST_ ccw 18 apr 2002 SPLIT */ 
 #if !defined(i386_unknown_nt4_0)
-  if (calledFromFork)
-    PARADYN_bootstrap_info.ppid = getppid(); /* was DYNINST_ ccw 18 apr 2002 SPLIT */
+   if (calledFromFork)
+      PARADYN_bootstrap_info.ppid = getppid(); /* was DYNINST_ ccw 18 apr 2002 SPLIT */
 #else
-  PARADYN_bootstrap_info.ppid = 0; /* was DYNINST_ ccw 18 apr 2002 SPLIT */
+   PARADYN_bootstrap_info.ppid = 0; /* was DYNINST_ ccw 18 apr 2002 SPLIT */
 #endif 
 
-  PARADYN_bootstrap_info.tramp_guard_base = (int *)
-    malloc(numThreads*sizeof(int));
-  for (i = 0; i < numThreads; i++)
-    PARADYN_bootstrap_info.tramp_guard_base[i] = 1; /* default value */
+   PARADYN_bootstrap_info.tramp_guard_base = (int *)
+      malloc(numThreads*sizeof(int));
+   for (i = 0; i < numThreads; i++)
+      PARADYN_bootstrap_info.tramp_guard_base[i] = 1; /* default value */
 
-  /* We do this field last as a way to synchronize; paradynd will ignore what it
-     sees in this structure until the event field is nonzero */
-/* was DYNINST_ ccw 18 apr 2002 SPLIT */
-  if (calledFromFork)
-    PARADYN_bootstrap_info.event = 2; /* 2 --> end of DYNINSTinit (forked process) */
-  else if (calledFromAttach)
-    PARADYN_bootstrap_info.event = 3; /* 3 --> end of DYNINSTinit (attached proc) */
-  else				   
-    PARADYN_bootstrap_info.event = 1; /* 1 --> end of DYNINSTinit (normal or when
-					 called by exec'd proc or attachedTocreated case) */
+   /* We do this field last as a way to synchronize; paradynd will ignore what it
+      sees in this structure until the event field is nonzero */
+   /* was DYNINST_ ccw 18 apr 2002 SPLIT */
+   if (calledFromFork)
+      PARADYN_bootstrap_info.event = 2; /* 2 --> end of DYNINSTinit (forked process) */
+   else if (calledFromAttach)
+      PARADYN_bootstrap_info.event = 3; /* 3 --> end of DYNINSTinit (attached proc) */
+   else				   
+      PARADYN_bootstrap_info.event = 1; /* 1 --> end of DYNINSTinit (normal or when
+                                           called by exec'd proc or attachedTocreated case) */
 
-  /* If attaching, now's the time where we set up the trace stream connection fd */
-  if (calledFromAttach) {
-    int pid = getpid();
+   /* If attaching, now's the time where we set up the trace stream connection fd */
+   if (calledFromAttach) {
+      int pid = getpid();
 #if !defined(i386_unknown_nt4_0)
-    int ppid = getppid();
+      int ppid = getppid();
 #else
-    int ppid = 0;
+      int ppid = 0;
 #endif
-    unsigned attach_cookie = 0x22222222;
-    int32_t ptr_size;
+      unsigned attach_cookie = 0x22222222;
+      int32_t ptr_size;
     
-    DYNINSTinitTrace(paradyndPid);
+      DYNINSTinitTrace(paradyndPid);
     
-    DYNINSTwriteTrace(&attach_cookie, sizeof(attach_cookie));
-    DYNINSTwriteTrace(&pid, sizeof(pid));
-    DYNINSTwriteTrace(&ppid, sizeof(ppid));
-    DYNINSTwriteTrace(&DYNINST_shmSegKey, sizeof(DYNINST_shmSegKey));
-    ptr_size = sizeof(DYNINST_shmSegAttachedPtr);
-    DYNINSTwriteTrace(&ptr_size, sizeof(int32_t));
-    DYNINSTwriteTrace(&DYNINST_shmSegAttachedPtr, ptr_size);
-    DYNINSTflushTrace();
-  }
-  else if (!calledFromFork) {
-    /* either normal startup or startup via a process having exec'd or attachtoCreated case */
+      DYNINSTwriteTrace(&attach_cookie, sizeof(attach_cookie));
+      DYNINSTwriteTrace(&pid, sizeof(pid));
+      DYNINSTwriteTrace(&ppid, sizeof(ppid));
+      DYNINSTwriteTrace(&DYNINST_shmSegKey, sizeof(DYNINST_shmSegKey));
+      ptr_size = sizeof(DYNINST_shmSegAttachedPtr);
+      DYNINSTwriteTrace(&ptr_size, sizeof(int32_t));
+      DYNINSTwriteTrace(&DYNINST_shmSegAttachedPtr, ptr_size);
+      DYNINSTflushTrace();
+   }
+   else if (!calledFromFork) {
+      /* either normal startup or startup via a process having exec'd or attachtoCreated case */
 #if !defined(i386_unknown_nt4_0)
-    if (calledFromAttachToCreated){
-   /* unique case identified as attachToCreated */
-       int cookie = 0;  /*  not attach, not fork */
-       int pid = getpid();
-       int ppid = paradyndPid; /* paradynd is seen as the father because it is attached
-                                  to the application */
-       int32_t ptr_size;
+      if (calledFromAttachToCreated){
+         /* unique case identified as attachToCreated */
+         int cookie = 0;  /*  not attach, not fork */
+         int pid = getpid();
+         int ppid = paradyndPid; /* paradynd is seen as the father because it is attached
+                                    to the application */
+         int32_t ptr_size;
 
-       DYNINSTinitTrace(paradyndPid);
-       DYNINSTwriteTrace(&cookie, sizeof(cookie));
-       DYNINSTwriteTrace(&pid, sizeof(pid));
-       DYNINSTwriteTrace(&ppid, sizeof(ppid));
-       DYNINSTflushTrace();/* we needed it */
-       DYNINSTwriteTrace(&DYNINST_shmSegKey, sizeof(DYNINST_shmSegKey)); 
-       ptr_size = sizeof(DYNINST_shmSegAttachedPtr);
-       DYNINSTwriteTrace(&ptr_size, sizeof(int32_t));
-       DYNINSTwriteTrace(&DYNINST_shmSegAttachedPtr, ptr_size);
-       DYNINSTflushTrace(); /* we needed it */
-    }
-    else {/* trace stream is already open */ 
-      DYNINSTinitTrace(-1);
-    }
+         DYNINSTinitTrace(paradyndPid);
+         DYNINSTwriteTrace(&cookie, sizeof(cookie));
+         DYNINSTwriteTrace(&pid, sizeof(pid));
+         DYNINSTwriteTrace(&ppid, sizeof(ppid));
+         DYNINSTflushTrace();/* we needed it */
+         DYNINSTwriteTrace(&DYNINST_shmSegKey, sizeof(DYNINST_shmSegKey)); 
+         ptr_size = sizeof(DYNINST_shmSegAttachedPtr);
+         DYNINSTwriteTrace(&ptr_size, sizeof(int32_t));
+         DYNINSTwriteTrace(&DYNINST_shmSegAttachedPtr, ptr_size);
+         DYNINSTflushTrace(); /* we needed it */
+      }
+      else {/* trace stream is already open */ 
+         DYNINSTinitTrace(-1);
+      }
 #else
       /* need to get a connection to daemon */
       int cookie = 0;
       int pid = getpid();
       int ppid = paradyndPid;
-	  int32_t ptr_size;
+      int32_t ptr_size;
 
       DYNINSTinitTrace(paradyndPid);
       DYNINSTwriteTrace(&cookie, sizeof(cookie));
       DYNINSTwriteTrace(&pid, sizeof(pid));
       DYNINSTwriteTrace(&ppid, sizeof(ppid));
       DYNINSTwriteTrace(&DYNINST_shmSegKey, sizeof(DYNINST_shmSegKey));
-	  ptr_size = sizeof(DYNINST_shmSegAttachedPtr);
-	  DYNINSTwriteTrace(&ptr_size, sizeof(int32_t));
-	  DYNINSTwriteTrace(&DYNINST_shmSegAttachedPtr, ptr_size);
+      ptr_size = sizeof(DYNINST_shmSegAttachedPtr);
+      DYNINSTwriteTrace(&ptr_size, sizeof(int32_t));
+      DYNINSTwriteTrace(&DYNINST_shmSegAttachedPtr, ptr_size);
 #endif
-  }
-  else
-    /* calledByFork -- DYNINSTfork already called DYNINSTinitTrace */
-    ;
+   }
+   else
+      /* calledByFork -- DYNINSTfork already called DYNINSTinitTrace */
+      ;
   
-/* MT_THREAD */
+   /* MT_THREAD */
 #if defined(MT_THREAD)
-  {
-    /* Note: until this point we are not multithread-safe. */
-    DYNINST_initialize_once((char*) DYNINST_shmSegAttachedPtr, numThreads);
+   {
+      /* Note: until this point we are not multithread-safe. */
+      DYNINST_initialize_once((char*) DYNINST_shmSegAttachedPtr, numThreads);
 
-    DYNINST_reportThreadUpdate(calledFromAttach?FLAG_ATTACH:FLAG_INIT) ;
-  }
+      DYNINST_reportThreadUpdate(calledFromAttach?FLAG_ATTACH:FLAG_INIT) ;
+   }
 #endif
 
-  /* db_init(db_shmKey, sizeof(db_shmArea_t)); */
+   /* db_init(db_shmKey, sizeof(db_shmArea_t)); */
 
-  /* Now, we stop ourselves.  When paradynd receives the forwarded signal,
-     it will read from DYNINST_bootstrap_info */
-  shmsampling_printf("DYNINSTinit (pid=%d) --> about to PARADYNbreakPoint()\n",
-		     (int)getpid());
-  PARADYNbreakPoint();
+   /* Now, we stop ourselves.  When paradynd receives the forwarded signal,
+      it will read from DYNINST_bootstrap_info */
+   shmsampling_printf("DYNINSTinit (pid=%d) --> about to PARADYNbreakPoint()\n",
+                      (int)getpid());
+   PARADYNbreakPoint();
   
-  shmsampling_printf("done with breakpoint\n", (int)getpid());  
-  /* The next instruction is necessary to avoid a race condition when we
-     link the thread library. This is just a hack to get the hw counters
-     to work and it should be fixed - naim 4/9/97 */
-  /* usleep(1000000); */
+   shmsampling_printf("done with breakpoint\n", (int)getpid());  
+   /* The next instruction is necessary to avoid a race condition when we
+      link the thread library. This is just a hack to get the hw counters
+      to work and it should be fixed - naim 4/9/97 */
+   /* usleep(1000000); */
   
-  /* After the break, we clear DYNINST_bootstrap_info's event field, leaving the
-     others there */
-  PARADYN_bootstrap_info.event = 0; /* 0 --> nothing */ /* was DYNINST_ ccw 18 apr 2002 SPLIT */
+   /* After the break, we clear DYNINST_bootstrap_info's event field, leaving
+      the others there */
+   /* 0 --> nothing */ /* was DYNINST_ ccw 18 apr 2002 SPLIT */
+   /*   Don't clear it because the exec handling wants to know what it's
+        set to after pDYNINSTinit is called */
+   /*   PARADYN_bootstrap_info.event = 0; */
 
-  DYNINSTstartWallTimer(&DYNINSTelapsedTime);
-  DYNINSTstartProcessTimer(&DYNINSTelapsedCPUTime);
-  shmsampling_printf("leaving DYNINSTinit (pid=%d) --> the process is running freely now\n", (int)getpid());
+   DYNINSTstartWallTimer(&DYNINSTelapsedTime);
+   DYNINSTstartProcessTimer(&DYNINSTelapsedCPUTime);
+   shmsampling_printf("leaving DYNINSTinit (pid=%d) --> the process is running freely now\n", (int)getpid());
 }
 
 
@@ -881,6 +884,11 @@ DYNINSTfork(int pid) {
            to it */
 	makeNewShmSegCopy();
 
+        /* Some aspects of initialization need to occur right away (such
+           as resetting the PMAPI counters on AIX) because the daemon
+           may use aspects of the process before pDYNINSTinit is called */
+        PARADYN_forkEarlyInit();
+
 	/* Here is where we used to send a TR_FORK trace record.  But we've
 	   found that sending a trace record followed by a DYNINSTbreakPoint
 	   had unpredictable results -- sometimes the breakPoint would get
@@ -954,10 +962,10 @@ void DYNINSTmpi_fork(int pid) {
 void
 DYNINSTexec(char *path) {
     /* paradynd instruments programs to call this routine on ENTRY to exec
-       (so the exec hasn't yet taken place).  All that we do here is inform paradynd
-       of the (pending) exec, and pause ourselves.  Paradynd will continue us after
-       digesting the info...then, presumably, a TRAP will be generated, as the exec
-       syscall completes. */
+       (so the exec hasn't yet taken place).  All that we do here is inform
+       paradynd of the (pending) exec, and pause ourselves.  Paradynd will
+       continue us after digesting the info...then, presumably, a TRAP will
+       be generated, as the exec syscall completes. */
 
     forkexec_printf("execve called, path = %s\n", path);
 
@@ -967,18 +975,18 @@ DYNINSTexec(char *path) {
     }
 
     /* We used to send a TR_EXEC record here and then DYNINSTbreakPoint().
-       But we've seen a race condition -- sometimes the break-point is delivered
-       to paradynd before the trace record.  So instead, we fill in
-       DYNINST_bootstrap_info and then do a breakpoint.  This approach is the same
-       as the end of DYNINSTinit. */
+       But we've seen a race condition -- sometimes the break-point is
+       delivered to paradynd before the trace record.  So instead, we fill in
+       DYNINST_bootstrap_info and then do a breakpoint.  This approach is the
+       same as the end of DYNINSTinit. */
     PARADYN_bootstrap_info.event = 4; /* was DYNINST_ ccw 18 apr 2002 SPLIT */
     PARADYN_bootstrap_info.pid = getpid(); /* was DYNINST_ ccw 18 apr 2002 SPLIT */
     strcpy(PARADYN_bootstrap_info.path, path);/* was DYNINST_ ccw 18 apr 2002 SPLIT */
 
     /* The following turns OFF the alarm signal (the 0,0 parameters); when
-       DYNINSTinit() runs again for the exec'd process, it'll be turned back on.  This
-       stuff is necessary to avoid the process dying on an uncaught sigalarm while
-       processing the exec */
+       DYNINSTinit() runs again for the exec'd process, it'll be turned back
+       on.  This stuff is necessary to avoid the process dying on an uncaught
+       sigalarm while processing the exec */
 
     forkexec_printf("DYNINSTexec before breakpoint\n");
 
