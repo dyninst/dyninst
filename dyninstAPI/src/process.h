@@ -295,6 +295,7 @@ class process {
  public:
   void postRPCtoDo(AstNode *, bool noCost, void (*)(process *, void *), void *);
   bool existsRPCreadyToLaunch() const;
+  bool existsRPCinProgress() const;
   bool launchRPCifAppropriate(bool wasRunning);
      // returns true iff anything was launched.
      // asynchronously launches iff RPCsWaitingToStart.size() > 0 AND
@@ -506,7 +507,8 @@ class process {
 
 #ifdef SHM_SAMPLING
   key_t getShmKeyUsed() const {return inferiorHeapMgr.getShmKey();}
-  void doSharedMemSampling(unsigned long long currWallTime);
+  bool doMajorShmSample(unsigned long long currWallTime);
+  bool doMinorShmSample();
 
   const fastInferiorHeap<intCounterHK, intCounter> &getInferiorIntCounters() const {
      return inferiorIntCounters;
@@ -668,7 +670,7 @@ extern vector<process*> processVec;
 inline process *findProcess(int pid) {
   unsigned size=processVec.size();
   for (unsigned u=0; u<size; u++)
-    if (processVec[u]->getPid() == pid)
+    if (processVec[u] && processVec[u]->getPid() == pid)
       return processVec[u];
   return NULL;
 }
