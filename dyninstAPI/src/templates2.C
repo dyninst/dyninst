@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.6 2002/04/22 20:52:45 mjbrim Exp $
+// $Id: templates2.C,v 1.7 2002/05/02 21:28:49 schendel Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -96,45 +96,30 @@ template class vectorSet<process::inferiorRPCinProgress>;
 /* ***************************************************************************** */
 
 #ifdef SHM_SAMPLING
-#include "fastInferiorHeap.C"
-#include "fastInferiorHeapHKs.h"
-
+#include "varInstanceHKs.h"
 template class vector<genericHK::trampRange>;
-template class vector<states>;
-template class vector<sampling_states>;
+template class vector<element_state>;
 
-template class vector< intCounterHK>;
-
-template class fastInferiorHeap<wallTimerHK, tTimer>;
-template class fastInferiorHeap<processTimerHK, tTimer>;
-template class fastInferiorHeap<intCounterHK, intCounter>;
-
-template class vector< fastInferiorHeap<intCounterHK, intCounter> >;
-template class vector< fastInferiorHeap<wallTimerHK, tTimer> >;
-template class vector< fastInferiorHeap<wallTimerHK, tTimerRec> *>;
-template class vector< fastInferiorHeap<processTimerHK, tTimer> >;
-template class vector< fastInferiorHeap<processTimerHK, tTimerRec> *>;
-template class vector< fastInferiorHeap<intCounterHK, intCounterRec> *>;
-template class vector< fastInferiorHeapMgr::oneHeapStats>;
+template class vector<intCounterHK*>;
+template class vector<wallTimerHK*>;
+template class vector<processTimerHK*>;
 
 #ifndef USES_NATIVE_CC
-#include "baseTable.C"
+#include "varInstance.C"
 #endif
-template class baseTable<intCounterHK, intCounter>;
-template class baseTable<wallTimerHK, tTimer>;
-template class baseTable<processTimerHK, tTimer>;
+template class varInstance<intCounterHK>;
+template class varInstance<wallTimerHK>;
+template class varInstance<processTimerHK>;
+template class vector<baseVarInstance *>;
 
 #ifndef USES_NATIVE_CC
-#include "superVector.C"
+#include "varTable.C"
 #endif
-template class superVector<intCounterHK, intCounter>;
-template class superVector<wallTimerHK, tTimer>;
-template class superVector<processTimerHK, tTimer>;
-template class vector<superVector<intCounterHK, intCounter> *>;
-template class vector<superVector<wallTimerHK, tTimer> *>;
-template class vector<superVector<processTimerHK, tTimer> *>;
+template class varTable<intCounterHK>;
+template class varTable<wallTimerHK>;
+template class varTable<processTimerHK>;
+template class vector<baseVarTable *>;
 #endif
-
 
 #ifdef BPATCH_LIBRARY
 template class dictionary_hash <string, Symbol>;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-nt.C,v 1.23 2002/04/05 19:38:44 schendel Exp $
+// $Id: templates-nt.C,v 1.24 2002/05/02 21:28:50 schendel Exp $
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
  * "template class specialization XXXX is already instantiated"
@@ -130,23 +130,21 @@ template class dictionary_hash<Address, pd_Function *>;
 template class dictionary_hash<Address, unsigned>;
 
 #ifdef SHM_SAMPLING
-#include "paradynd/src/baseTable.h"
-#include "paradynd/src/baseTable.C"
-template class baseTable<processTimerHK, tTimerRec>;
-template class baseTable<wallTimerHK, tTimerRec>;
-template class baseTable<intCounterHK, intCounterRec>;
+#include "paradynd/src/varTable.h"
+#include "paradynd/src/varTable.C"
+#include "paradynd/src/varInstanceHKs.h"
+template class varTable<intCounterHK>;
+template class varTable<wallTimerHK>;
+template class varTable<processTimerHK>;
+template class vector<baseVarTable *>;
 
-#include "paradynd/src/superVector.h"
-#include "paradynd/src/superVector.C"
-template class superVector<processTimerHK, tTimerRec>;
-template class superVector<wallTimerHK, tTimerRec>;
-template class superVector<intCounterHK, intCounterRec>;
+#include "paradynd/src/varInstance.h"
+#include "paradynd/src/varInstance.C"
+template class varInstance<intCounterHK>;
+template class varInstance<wallTimerHK>;
+template class varInstance<processTimerHK>;
+template class vector<baseVarInstance *>;
 
-#include "paradynd/src/fastInferiorHeap.h"
-#include "paradynd/src/fastInferiorHeap.C"
-template class fastInferiorHeap<processTimerHK, tTimerRec>;
-template class fastInferiorHeap<wallTimerHK, tTimerRec>;
-template class fastInferiorHeap<intCounterHK, intCounterRec>;
 #endif // SHM_SAMPLING
 
 #if defined(BPATCH_LIBRARY)
