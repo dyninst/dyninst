@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.17 2001/08/07 20:49:01 chadd Exp $ */
+/* $Id: RTcommon.c,v 1.18 2001/12/11 20:24:41 chadd Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -55,6 +55,14 @@
 #endif
 
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
+
+
+#if defined(sparc_sun_solaris2_4) /* ccw 19 nov 2001*/
+#include  <fcntl.h>
+#include  <libelf.h>
+#include <sys/mman.h>
+#include <dlfcn.h>
+#endif
 
 extern void DYNINSTbreakPoint();
 extern void DYNINSTos_init(int calledByFork, int calledByAttach);
@@ -106,6 +114,158 @@ int libdyninstAPI_RT_DLL_localCause=-1, libdyninstAPI_RT_DLL_localPid=-1; /*ccw 
 #endif
 
 
+#if defined(sparc_sun_solaris2_4)
+
+unsigned int checkAddr;
+int checkElfFile(){
+
+
+	Elf32_Shdr *shdr;
+        Elf32_Ehdr *   ehdr;
+        Elf *          elf;
+        int       cnt,fd;
+        Elf_Data *elfData,*strData;
+        Elf_Scn *scn;
+        char execStr[256];
+	int retVal = 0;
+	unsigned int mmapAddr;
+	int pageSize;
+	Address dataAddress;
+	int dataSize;
+       	char* tmpPtr;
+        unsigned int updateAddress, updateSize, updateOffset;
+        unsigned int *dataPtr;
+ 	unsigned int numberUpdates,i ;
+	char* oldPageData;
+	Dl_info dlip; 
+	elf_version(EV_CURRENT);
+
+        sprintf(execStr,"/proc/%d/object/a.out",getpid());
+	
+        if((fd = (int) open(execStr, O_RDONLY)) == -1){
+                RTprintf("cannot open : %s\n",execStr);
+    		fflush(stdout); 
+		return;
+        }
+        if((elf = elf_begin(fd, ELF_C_READ, NULL)) ==NULL){
+                RTprintf("%s %s \n",execStr, elf_errmsg(elf_errno()));
+                RTprintf("cannot elf_begin\n");
+		fflush(stdout);
+                close(fd);
+                return;
+        }
+
+        ehdr = elf32_getehdr(elf);
+        scn = elf_getscn(elf, ehdr->e_shstrndx);
+        strData = elf_getdata(scn,NULL);
+	pageSize =  getpagesize();
+   	for(cnt = 0, scn = NULL; scn = elf_nextscn(elf, scn);cnt++){
+                shdr = elf32_getshdr(scn);
+		if(!strncmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPI_data", 15)) {
+			elfData = elf_getdata(scn, NULL);
+			tmpPtr = elfData->d_buf;
+			dataAddress = -1;
+			while( dataAddress != 0 ) { 
+				dataSize = *(int*) tmpPtr;
+				tmpPtr+=sizeof(int);
+				dataAddress = *(Address*) tmpPtr;
+				tmpPtr += sizeof(Address);
+				if(dataAddress){
+					memcpy((char*) dataAddress, tmpPtr, dataSize);
+					tmpPtr += dataSize;
+				}
+			}
+
+		}else if(!strncmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPI_",11)){
+			retVal = 1; /* this is a restored run */
+		}
+		if(!strncmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPIhighmem_",18)){
+			/*the layout of dyninstAPIhighmem_ is:
+			pageData
+			address of update
+			size of update
+			...	
+			address of update
+			size of update	
+			number of updates
+	
+			we must ONLY overwrite the updates, the other
+			areas of the page may be important (and different than
+			the saved data in the file.  we first copy out the
+			page, the apply the updates to it, and then
+			write it back.
+			*/
+			elfData = elf_getdata(scn, NULL);
+			numberUpdates = (unsigned int) ( ((char*) elfData->d_buf)[
+				elfData->d_size - sizeof(unsigned int)]);
+			oldPageData = (char*) malloc(shdr->sh_size-((2*numberUpdates+1)*
+				sizeof(unsigned int)) );	
+			/*copy old page data */
+
+			/** TEST 
+			dataPtr =(unsigned int*) &(((char*)  elfData->d_buf)[sizeof(oldPageData)]);
+                        for(i = 0; i<= numberUpdates; i++){
+                                updateAddress = *dataPtr;
+                                updateSize = *(++dataPtr);
+
+                                updateOffset = updateAddress - shdr->sh_addr;
+                      		printf(" TOUCHING ADDESS %x\n", updateAddress);
+				fflush(stdout);
+			        memcpy(&( oldPageData[updateOffset]),
+                                        updateAddress,updateSize);
+		        }
+			 end test */
+
+
+			/* probe memory to see if we own it */
+			checkAddr = dladdr((void*)shdr->sh_addr, &dlip); 
+
+			updateSize  = shdr->sh_size-((2*numberUpdates+1)* sizeof(unsigned int));
+		
+			if(!checkAddr){ 
+				/* we dont own it,mmap it!*/
+
+                        	mmapAddr = shdr->sh_offset + pageSize- (shdr->sh_offset % pageSize);
+                        	mmapAddr =(unsigned int) mmap((void*) shdr->sh_addr,sizeof(oldPageData),
+                                	PROT_READ|PROT_WRITE|PROT_EXEC,MAP_FIXED|MAP_PRIVATE,fd,mmapAddr);
+			}else{
+				/*we own it, finish the memcpy */
+				memcpy(oldPageData, (void*) shdr->sh_addr, updateSize);
+			}
+	
+			dataPtr =(unsigned int*) &(((char*)  elfData->d_buf)[sizeof(oldPageData)]);	
+			/*apply updates*/
+			for(i = 0; i<= numberUpdates; i++){
+				updateAddress = *dataPtr; 
+				updateSize = *(++dataPtr);
+
+				updateOffset = updateAddress - shdr->sh_addr;
+				/*do update*/	
+				memcpy(&( oldPageData[updateOffset]),
+					&(((char*)elfData->d_buf)[updateOffset]) , updateSize);	
+			} 
+			if(!checkAddr){
+				mmapAddr = shdr->sh_offset + pageSize- (shdr->sh_offset % pageSize);
+				mmapAddr =(unsigned int) mmap((void*) shdr->sh_addr,sizeof(oldPageData), 
+					PROT_READ|PROT_WRITE|PROT_EXEC, MAP_FIXED| MAP_PRIVATE,fd,mmapAddr);
+			}else{
+				memcpy((void*) shdr->sh_addr, oldPageData, updateSize);
+			}
+		}
+
+	}
+
+
+        elf_end(elf);
+        close(fd);
+
+	return retVal;
+}
+
+
+#endif
+
+
 /*
  * The Dyninst API arranges for this function to be called at the entry to
  * main().
@@ -113,12 +273,25 @@ int libdyninstAPI_RT_DLL_localCause=-1, libdyninstAPI_RT_DLL_localPid=-1; /*ccw 
 void DYNINSTinit(int cause, int pid)
 {
     int calledByFork = 0, calledByAttach = 0;
+	int isRestart=0;
 
     initFPU();
 
+
+#if defined(sparc_sun_solaris2_4)
+	/* this checks to see if this is a restart or a
+	  	normal attach  ccw 19 nov 2001*/
+	isRestart = checkElfFile();	
+	if(isRestart){
+		fflush(stdout);
+		cause = 9;
+	}
+#endif
+
     DYNINSThasInitialized = 2;
-    if (cause == 2) calledByFork = 1;
-    else if (cause == 3) calledByAttach = 1;
+
+   if (cause == 2) calledByFork = 1;
+   else if (cause == 3) calledByAttach = 1;
 
     /* sanity check */
 #if !defined(mips_unknown_ce2_11) /*ccw 15 may 2000 : 29 mar 2001*/
@@ -139,17 +312,20 @@ void DYNINSTinit(int cause, int pid)
     DYNINST_bootstrap_info.event = cause;
 
     DYNINST_mutatorPid = pid;
-
+	
 #ifndef i386_unknown_nt4_0 /*ccw 13 june 2001*/
 
 #ifndef mips_unknown_ce2_11 
-   DYNINSTbreakPoint();
+	if(isRestart==0){ /*ccw 19 nov 2001 */
+	   DYNINSTbreakPoint();
+	}
 #else
 	__asm("break 1"); /*ccw 25 oct 2000 : 29 mar 2001*/
 	__asm("nop");
 #endif
 
 #endif
+
 }
 
 #if defined(i386_unknown_nt4_0)  /*ccw 13 june 2001*/
