@@ -210,12 +210,16 @@ class pd_process {
        return dyninst_process->walkStacks(stackWalks);
    }
    
-   function_base *findOneFunction(resource *func, resource *mod) {
+   function_base *findOnlyOneFunction(resource *func, resource *mod) {
       return dyninst_process->findOnlyOneFunction(func, mod);
    }
 
-   function_base *findOneFunction(const string &func_name) const {
+   function_base *findOnlyOneFunction(const string &func_name) const {
       return dyninst_process->findOnlyOneFunction(func_name);
+   }
+
+   bool findAllFuncsByName(const string &func_name, pdvector<function_base *> &res) {
+     return dyninst_process->findAllFuncsByName(func_name, res);
    }
 
    bool getSymbolInfo(const string &n, Symbol &info, Address &baseAddr) const {

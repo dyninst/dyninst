@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.123 2003/03/04 19:16:18 willb Exp $
+// $Id: mdl.C,v 1.124 2003/04/05 01:54:44 jaw Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -231,6 +231,8 @@ public:
   {
     string s;
     function_base *pdf; module *m;
+    pdvector<function_base *> fbv;
+
     float f; int i;
     instPoint *ip;
 
@@ -250,13 +252,26 @@ public:
         // lookup-up the functions defined in resource lists
         // the function may not exist in the image, in which case we get the
         // next one
+	pdf = NULL;
         do 
         {
           functionName *fn = (*funcName_list)[index++];
-          pdf = global_proc->findOneFunction(fn->get());
-        } while (pdf == NULL && index < max_index);
-        if (pdf == NULL)
+	  if (!global_proc->findAllFuncsByName(fn->get(), fbv)) {
+	    //string msg = string("unable to find procedure '") + fn->get() + string("'");
+	    //showErrorCallback(95, msg);
+	    continue;
+	  }
+	  else if (fbv.size() > 1) {
+	    string msg = string("WARNING:  found ") + string(fbv.size()) + string(" records of function '") 
+	      + fn->get() + string("'") + string(".  Using the first.(1)");
+	    showErrorCallback(95, msg);
+	  }
+	  pdf = fbv[0];
+	} while (pdf == NULL && index < max_index);
+	
+        if (pdf == NULL) 
           return false;
+
         pdvector<function_base *> *func_buf = new pdvector<function_base*>;
         (*func_buf).push_back(pdf);
         return (mdl_env::set(func_buf, index_name));
@@ -476,16 +491,41 @@ static bool pick_out_matched_constraints(
 bool update_environment_start_point(instrCodeNode *codeNode) {
    pdvector<function_base *> *start_func_buf = new pdvector<function_base*>;
    pd_process *proc = codeNode->proc();
+   function_base *pdf = NULL;
+   pdvector<function_base *> fbv;
 
    if(proc->multithread_ready()) {
-      function_base *pdf = proc->findOneFunction("_pthread_body");
-      if(pdf)  (*start_func_buf).push_back(pdf);
+     if (!proc->findAllFuncsByName("_pthread_body", fbv)) {
+	string msg = string("unable to find procedure '") + string("_pthread_body") + string("'");
+	showErrorCallback(95, msg);
+     }
+     else {
+       if (fbv.size() > 1) {
+	 string msg = string("WARNING:  found ") + string(fbv.size()) + string(" records of function '") 
+	   + string("_pthread_body") + string("'") + string(".  Using the first.");
+	 showErrorCallback(95, msg);
+       }
+       pdf = fbv[0];
+     }
 
-      pdf = proc->findOneFunction("_thread_start");
-      if(pdf)  (*start_func_buf).push_back(pdf);
+     if(pdf)  (*start_func_buf).push_back(pdf);
+     fbv.clear();
+
+    if (!proc->findAllFuncsByName("_thread_start", fbv)) {
+	string msg = string("unable to find procedure '") + string("_thread_start") + string("'");
+	showErrorCallback(95, msg);
+     }
+     else {
+       if (fbv.size() > 1) {
+	 string msg = string("WARNING:  found ") + string(fbv.size()) + string(" records of function '") 
+	   + string("_thread_start") + string("'") + string(".  Using the first.");
+	 showErrorCallback(95, msg);
+       }
+       pdf = fbv[0];
+     }
    }
 
-   function_base *pdf = proc->getMainFunction();      
+   pdf = proc->getMainFunction();      
    (*start_func_buf).push_back(pdf);      
       
    string vname = "$start";
@@ -502,13 +542,51 @@ static bool update_environment(pd_process *proc) {
    // correct
    string vname = "$exit";
    pdvector<function_base *> *exit_func_buf = new pdvector<function_base*>;
-   function_base *pdf = proc->findOneFunction(string(EXIT_NAME));
-   (*exit_func_buf).push_back(pdf);
+   pdvector<function_base *> fbv;
+   function_base *pdf;
 
-   pdf = proc->findOneFunction(string("pthread_exit"));
+   proc->findAllFuncsByName(string(EXIT_NAME), *exit_func_buf); // JAW 04-03
+   if (exit_func_buf->size() > 1) {
+     string msg = string("WARNING:  found ") + string(exit_func_buf->size()) 
+       + string(" records of function '") 
+       + string(EXIT_NAME) + string("'") + string(".  Using the first.(2)");
+     showErrorCallback(95, msg);
+     // findAllFuncs found more than one function, clear all but one
+     pdf = (*exit_func_buf)[0];
+     exit_func_buf->clear();
+     exit_func_buf->push_back(pdf);
+   }
+
+
+   if (!proc->findAllFuncsByName("pthread_exit", fbv)) {
+	string msg = string("unable to find procedure '") + string("pthread_exit") + string("'");
+	showErrorCallback(95, msg);
+     }
+     else {
+       if (fbv.size() > 1) {
+	 string msg = string("WARNING:  found ") + string(fbv.size()) + string(" records of function '") 
+	   + string("pthread_exit") + string("'") + string(".  Using the first.");
+	 showErrorCallback(95, msg);
+       }
+       pdf = fbv[0];
+     }
+
    if(pdf)  (*exit_func_buf).push_back(pdf);
+   fbv.clear();
 
-   pdf = proc->findOneFunction(string("thr_exit"));
+  if (!proc->findAllFuncsByName("thr_exit", fbv)) {
+	string msg = string("unable to find procedure '") + string("thr_exit") + string("'");
+	showErrorCallback(95, msg);
+     }
+     else {
+       if (fbv.size() > 1) {
+	 string msg = string("WARNING:  found ") + string(fbv.size()) + string(" records of function '") 
+	   + string("thr_exit") + string("'") + string(".  Using the first.");
+	 showErrorCallback(95, msg);
+       }
+       pdf = fbv[0];
+     }
+
    if(pdf) (*exit_func_buf).push_back(pdf);
 
    if ((*exit_func_buf).size() > 0) { 
@@ -999,27 +1077,22 @@ static bool do_trailing_resources(const pdvector<string>& resource_,
       if(!m_resource) {
 	return(false);
       }
-      function_base *pdf = proc->findOneFunction(r, m_resource);
-      pdvector<function_base *> *func_buf = new pdvector<function_base*>;
-      (*func_buf).push_back(pdf);
-      if (!pdf) {
+
+      function_base *pdf = proc->findOnlyOneFunction(r, m_resource);
+      if (NULL == pdf) {
          const pdvector<string> &f_names = r->names();
          const pdvector<string> &m_names = m_resource->names();
          string func_name = f_names[f_names.size() -1]; 
          string mod_name = m_names[m_names.size() -1]; 
 
          string msg = string("For requested metric-focus, ") +
-                      string("unable to find function ") + func_name;
-         showErrorCallback(95, msg);
-
-         //module *mod = findModule(mod_name, true);
-         //if(! mod) return false;
-
-         // cerr << "func_name = " << func_name << ", mod_name: " << mod_name
-         //      << "\n";
-         // cerr << " return 403\n";
-	return(false);
+                      string("unable to find only one function ") + func_name;
+	showErrorCallback(95, msg);
+	return false;
       }
+      pdvector<function_base *> *func_buf = new pdvector<function_base*>;
+      (*func_buf).push_back(pdf);
+  
       mdl_env::add(caStr, false, MDL_T_PROCEDURE);
       mdl_env::set(func_buf, caStr);
       break;
@@ -1586,9 +1659,26 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
           astargs += assignAst(tmparg);
           removeAst(tmparg);
         }
-        function_base* pdf = global_proc->findOneFunction(var_);
-        if (!pdf) 
-        {
+
+	pdvector<function_base *> fbv;
+	function_base *pdf = NULL;
+	if (!global_proc->findAllFuncsByName(var_, fbv)) {
+	  string msg = string("In metric '") + currentMetric + string("': ")
+            + string("unable to find procedure '") + var_ + string("'");
+	  showErrorCallback(95, msg);
+	  return false;
+	}
+	else {
+	  if (fbv.size() > 1) {
+	    string msg = string("WARNING:  found ") + string(fbv.size()) + string(" records of function '") 
+	      + var_ + string("'") + string(".  Using the first.(3)");
+	    showErrorCallback(95, msg);
+	  }
+	  pdf = fbv[0];
+	}
+
+	if (!pdf) 
+	  {
           string msg = string("In metric '") + currentMetric + string("': ")
             + string("unable to find procedure '") + var_ + string("'");
           showErrorCallback(95, msg);
@@ -1823,8 +1913,24 @@ bool T_dyninstRPC::mdl_v_expr::apply(mdl_var& ret)
         if (!arg0.get(func_name)) return false;
         if (global_proc)
         {
-          // TODO -- what if the function is not found ?
-          function_base *pdf = global_proc->findOneFunction(func_name);
+// TODO -- what if the function is not found ?
+          pdvector<function_base *> fbv;
+          function_base *pdf;
+ 
+          if (!global_proc->findAllFuncsByName(func_name, fbv)) {
+	  string msg = string("In metric '") + currentMetric + string("': ")
+            + string("unable to find procedure '") + func_name + string("'");
+	  showErrorCallback(95, msg);
+          assert(0);
+	}
+	else {
+	  if (fbv.size() > 1) {
+	    string msg = string("WARNING:  found ") + string(fbv.size()) + string(" records of function '") 
+	      + func_name + string("'") + string(".  Using the first.");
+	    showErrorCallback(95, msg);
+	  }
+	  pdf = fbv[0];
+	}
           if (!pdf) { assert(0); return false; }
           return (ret.set(pdf));
         }
