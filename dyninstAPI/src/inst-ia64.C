@@ -41,7 +41,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.13 2002/08/01 19:13:57 tlmiller Exp $
+ * $Id: inst-ia64.C,v 1.14 2002/08/02 22:36:37 tlmiller Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -370,24 +370,26 @@ void pd_Function::checkCallPoints() {
    (calls, vector<instPoint *>), and the return(s) (funcReturns, vector<instPoint *>).
  */
 bool pd_Function::findInstPoints( const image * i_owner ) {
+	// FIXME: handle base addresses correctly.  (instpoints should NOT be offsets, right?)
 	/* We assume the function boundaries are correct.  [Check jump tables, etc.] */
 	Address addr = (Address)i_owner->getPtrToInstruction( getAddress( 0 ) );
 
 	IA64_iterator iAddr( addr );
 	Address lastI = addr + size();
+	Address addressDelta = getAddress( 0 ) - addr;
 
 	/* Generate an instPoint for the function entry. */
-	funcEntry_ = new instPoint( addr, this, i_owner );
+	funcEntry_ = new instPoint( getAddress( 0 ), this, i_owner );
 
 	IA64_instruction currInsn;
 	for( ; iAddr < lastI; iAddr++ ) {	
 		currInsn = * iAddr;
 		switch( currInsn.getType() ) {
 			case IA64_instruction::RETURN:
-				funcReturns.push_back( new instPoint( iAddr.getEncodedAddress(), this, i_owner ) );
+				funcReturns.push_back( new instPoint( iAddr.getEncodedAddress() + addressDelta, this, i_owner ) );
 				break;
 			case IA64_instruction::CALL:
-				calls.push_back( new instPoint( iAddr.getEncodedAddress(), this, i_owner ) );
+				calls.push_back( new instPoint( iAddr.getEncodedAddress() + addressDelta, this, i_owner ) );
 				break;
 			default:
 				break;
@@ -589,8 +591,29 @@ bool pd_Function::PA_attachGeneralRewrites( const image * owner,
 int InsertNops::numInstrAddedAfter() { assert( 0 ); return -1; }
 
 /* private refactoring function */
+void emulateBundle( IA64_bundle bundleToEmulate, Address originalLocation, ia64_bundle_t * insnPtr, unsigned int & offset, unsigned int & size ) {
+	/* We need to alter all IP-relative instructions to do the Right Thing.  In particular:
+	
+		mov rX = ip	->	movl rX = <originalLocation>
+		brp.*		->	nop.m	; Is an architectural nop, and we've already destroyed performance by doing the instrumentation.
+		brl.*		->	brl.*	; correct the offset by the difference between originalLocation and (insnPtr + size)
+		check.*		->	check.*	; replace target25 with an offset to a brl to the original target, as adjusted for brl.*
+		br.[cond|call]	->	brl.*	; direct only; fix as brl.*
+		br.cloop	->	
+		br.c[top|exit]	->
+		br.w[top|exit]	->	br.*	; can handle as per the check.* instructions.
+		br.[cond|call]i	->	brl.*	; replace with a brl to the Right Place.
+		br.ia		->		; barf: maybe invoke the x86 port? :)
+		br.ret		->		; rewrite the branch register; it won't be used again anyway.
+	*/
+
+	/* hmm... can we just loop over the instructions, or do we have to be more cute about it? */
+
+	} /* end emulateBundle() */
+
+/* private refactoring function */
 #define MAX_BASE_TRAMP_SIZE (16 * 128)
-#define NEAR_ADDRESS 0x2000000000000000		/* A guess. */
+#define NEAR_ADDRESS 0x2000000000000000		/* The lower end of the shared memory segment. */
 trampTemplate * installBaseTramp( instPoint * & location, process * proc ) { // FIXME: updatecost
 	fprintf( stderr, "*** Installing base tramp.\n" );
 	/* Allocate memory and align as needed. */
@@ -688,9 +711,10 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc ) { // 
 
 	/* Emulate the relocated instructions. */
 	Address installationPoint = location->iPgetAddress();
+	installationPoint = installationPoint - (installationPoint % 16);
 	IA64_bundle bundleToEmulate( * (ia64_bundle_t *) location->iPgetOwner()->getPtrToInstruction( installationPoint ) );
 	baseTramp->emulateInsOffset = baseTramp->size;
-	// emulateBundle( bundleToEmulate, installationPoint, insnPtr, bundleCount, baseTramp->size );
+	emulateBundle( bundleToEmulate, installationPoint, insnPtr, bundleCount, (unsigned int &)(baseTramp->size) );
 	
 	/* Replace the skipPre nop bundle with a jump from it to baseTramp->emulateInsOffset. */
 	unsigned int skipPreJumpBundleOffset = baseTramp->skipPreInsOffset / 16;
@@ -742,7 +766,6 @@ trampTemplate * installBaseTramp( instPoint * & location, process * proc ) { // 
 	baseTramp->returnInsOffset = baseTramp->size;
 	Address returnAddress = location->iPgetAddress();
 	returnAddress = returnAddress - (returnAddress % 16) + 16;
-fprintf( stderr, "base tramp returning to 0x%lx\n", returnAddress );
 	IA64_instruction_x returnFromTrampoline = generateLongBranchTo( returnAddress - (baseTramp->baseAddr + baseTramp->size) );
 	IA64_bundle returnBundle( MLXstop, memoryNOP, returnFromTrampoline );
 	insnPtr[bundleCount++] = returnBundle.getMachineCode(); baseTramp->size += 16;

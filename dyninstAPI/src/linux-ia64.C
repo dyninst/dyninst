@@ -252,9 +252,9 @@ bool process::dlopenDYNINSTlib() {
 	IA64_instruction alteredAlloc = generateAlteredAlloc( * allocAddr, 0, 3, 0 );
 	/* FIXME: maybe generateAlteredAlloc should have a registerSpace (?) parameter
 	   so I can tell which register the first output might be... (rS.out0, rs.in0 ... ) */
-	IA64_instruction_x setStringPointer = generateLongConstantInRegister( 38, entry + ((DLOPEN_CALL_LENGTH + 1) * 16) );
-	IA64_instruction setMode = generateShortConstantInRegister( 39, DLOPEN_MODE );
-	IA64_instruction_x setReturnPointer = generateLongConstantInRegister( 40, entry + (DLOPEN_CALL_LENGTH * 16) );
+	IA64_instruction_x setStringPointer = generateLongConstantInRegister( 40, entry + ((DLOPEN_CALL_LENGTH + 1) * 16) );
+	IA64_instruction setMode = generateShortConstantInRegister( 41, DLOPEN_MODE );
+	IA64_instruction_x setReturnPointer = generateLongConstantInRegister( 42, entry + (DLOPEN_CALL_LENGTH * 16) );
 	IA64_instruction memoryNOP( NOP_M );
 	IA64_instruction_x branchLong = generateLongCallTo( dlopenAddr - (entry + (16 * (DLOPEN_CALL_LENGTH - 1))), 0 );
 

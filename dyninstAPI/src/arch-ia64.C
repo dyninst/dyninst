@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.10 2002/08/01 18:54:52 tlmiller Exp $
+// $Id: arch-ia64.C,v 1.11 2002/08/02 22:36:36 tlmiller Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -99,7 +99,7 @@
 
 /* NOTE: for the IA64_bundle constructor to work, the individual
 	instruction 'halves' should left-aligned as if they were independent instructions. */
-IA64_instruction_x::IA64_instruction_x( uint64_t lowHalf = 0, uint64_t highHalf = 0, uint8_t templ = 0xFF, IA64_bundle * mybl = 0 ) {
+IA64_instruction_x::IA64_instruction_x( uint64_t lowHalf, uint64_t highHalf, uint8_t templ, IA64_bundle * mybl ) {
 	instruction = lowHalf;
 	instruction_x = highHalf;
 	templateID = templ;
