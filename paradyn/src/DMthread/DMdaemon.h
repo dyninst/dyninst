@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.47 2001/11/27 17:40:26 schendel Exp $
+// $Id: DMdaemon.h,v 1.48 2002/03/07 23:49:20 schendel Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -334,8 +334,9 @@ class paradynDaemon: public dynRPCUser {
                                       bool calledFromExec, bool isInitiallyRunning);
            // start a new program; propagate all enabled metrics to it
 
-	static bool newExecutable(const string &machine, const string &login,
-				  const string &name, const string &dir, 
+	static bool newExecutable(const string &machineArg, 
+				  const string &login, const string &name, 
+				  const string &dir, 
 				  const vector<string> &argv);
            // launch new process
 

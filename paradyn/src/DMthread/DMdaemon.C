@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.108 2001/11/27 17:40:24 schendel Exp $
+ * $Id: DMdaemon.C,v 1.109 2002/03/07 23:49:19 schendel Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -1689,11 +1689,12 @@ static bool startMPICH(const string &machine, const string &login,
 //
 // add a new executable (binary) to a program.
 //
-bool paradynDaemon::newExecutable(const string &machine,
+bool paradynDaemon::newExecutable(const string &machineArg,
 				  const string &login,
 				  const string &name, 
 				  const string &dir, 
 				  const vector<string> &argv){
+   string machine = machineArg;
 
    if (! DMstatus)
       DMstatus = new status_line("Data Manager");
@@ -1712,6 +1713,13 @@ bool paradynDaemon::newExecutable(const string &machine,
       }
       return false;
    }
+
+    if (!machine.length()) {
+      if (default_host.length()) {
+	string m = getNetworkName(default_host);
+	machine = m;
+      }
+    }
 
    if ( def->getFlavorString() == "mpi" )
    {
