@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.58 2000/08/19 02:41:45 buck Exp $ */
+/* $Id: test1.mutatee.c,v 1.59 2000/08/21 01:22:34 buck Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -65,7 +65,7 @@ int debugPrint = 0;
 #define TRUE	1
 #define FALSE	0
 
-#define MAX_TEST 32
+#define MAX_TEST 34
 
 int runTest[MAX_TEST+1];
 int passedTest[MAX_TEST+1];
@@ -2204,6 +2204,135 @@ int func32_1()
   return 1;
 }
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+void func33_2(int x)
+{
+    printf("Hello\n");
+
+    if (x == 1) {
+	printf("Goodbye.\n");
+    } else {
+	printf("See you.\n");
+    }
+
+    printf("That's all.\n");
+}
+
+int func33_3(int x)
+{
+    printf("Entry.\n");
+
+    switch (x) {
+      case 1:
+	printf("1\n");
+	x += 10;
+	break;
+      case 2:
+	printf("2\n");
+	x-= 12;
+	break;
+      case 3:
+	printf("3\n");
+	x *= 33;
+	break;
+      case 4:
+	printf("4\n");
+	x /= 42;
+	break;
+      case 5:
+	printf("5\n");
+	x %= 57;
+	break;
+      case 6:
+	printf("6\n");
+	x <<= 2;
+	break;
+      case 7:
+	printf("7\n");
+	x >>= 3;
+	break;
+      case 8:
+	printf("8\n");
+	x ^= 0xfe;
+	break;
+      case 9:
+	printf("9\n");
+	x &= 0x44;
+	break;
+      case 10:
+	printf("10\n");
+	x |= 0x11;
+	break;
+    };
+
+    printf("Exit.\n");
+
+    return x;
+}
+
+void func33_1()
+{
+#if defined(sparc_sun_solaris2_4) || defined(mips_sgi_irix6_4)
+    /* The only possible failures occur in the mutator. */
+
+    passedTest[ 33 ] = TRUE;
+    printf( "Passed test #33 (control flow graphs)\n" );
+#else
+    passedTest[ 33 ] = TRUE;
+    printf( "Skipped test #33 (control flow graphs)\n" );
+    printf( "\t- not implemented on this platform\n" );
+#endif
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+/*
+ * Nested loops.
+ */
+void func34_2()
+{
+    int i, j, k;
+
+    /* There are four loops in total. */
+    for (i = 0; i < 10; i++) { /* Contains two loops. */
+	printf("i = %d\n", i);
+
+	for (j = 0; j < 10; j++) { /* Contains one loop. */
+	    printf("j = %d\n", j);
+
+	    k = 0;
+	    while (k < 10) {
+		printf("k = %d\n", k);
+		k++;
+	    }
+	}
+
+	do {
+	    j++;
+	    printf("j = %d\n", j);
+
+	} while (j < 10);
+    }
+}
+
+void func34_1()
+{
+#if defined(sparc_sun_solaris2_4) || defined(mips_sgi_irix6_4)
+    /* The only possible failures occur in the mutator. */
+
+    passedTest[ 34 ] = TRUE;
+    printf( "Passed test #34 (loop information)\n" );
+#else
+    passedTest[ 34 ] = TRUE;
+    printf( "Skipped test #34 (loop information)\n" );
+    printf( "\t- not implemented on this platform\n" );
+#endif
+}
 
 /****************************************************************************/
 /****************************************************************************/
@@ -2331,6 +2460,9 @@ int main(int iargc, char *argv[])
 
     if (runTest[31]) func31_1();
     if (runTest[32]) func32_1();
+
+    if (runTest[33]) func33_1();
+    if (runTest[33]) func34_1();
 
     /* See how we did running the tests. */
     for (i=1; i <= MAX_TEST; i++) {

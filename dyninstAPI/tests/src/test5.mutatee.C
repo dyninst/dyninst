@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test5.mutatee.C,v 1.2 2000/08/20 21:08:24 paradyn Exp $ */
+/* $Id: test5.mutatee.C,v 1.3 2000/08/21 01:22:34 buck Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -222,7 +222,6 @@ void overload_op_test_call_cpp(int arg)
    } else {
      cerr << "**Failed** test #3 (overload operator)" << endl;
      cerr << "    Overload operator++ return wrong value " << endl;
-     cout << "Value is: " << arg << endl; /* ZZZ */
    }
 }
 

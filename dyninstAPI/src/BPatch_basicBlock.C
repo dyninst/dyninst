@@ -2,6 +2,8 @@
 #include <iostream.h>
 #include "common/h/Types.h"
 
+#include "BPatch_flowGraph.h"
+#include "BPatch_function.h"
 #include "BPatch_basicBlock.h"
 
 //constructor that creates the empty sets for 
@@ -20,7 +22,8 @@ BPatch_basicBlock::BPatch_basicBlock() :
 //can be created is through flowGraph class there will never exist
 //two  basic blocks with the same number
 
-BPatch_basicBlock::BPatch_basicBlock(int bno) :
+BPatch_basicBlock::BPatch_basicBlock(BPatch_flowGraph* fg, int bno) :
+		flowGraph(fg),
 		blockNumber(bno),
 		isEntryBasicBlock(false),
 		isExitBasicBlock(false),
@@ -31,8 +34,10 @@ BPatch_basicBlock::BPatch_basicBlock(int bno) :
 
 //destructor of the class BPatch_basicBlock
 BPatch_basicBlock::~BPatch_basicBlock(){
-	delete immediateDominates;
-	delete sourceBlock;
+	if (immediateDominates)
+		delete immediateDominates;
+	if (sourceBlock)
+		delete sourceBlock;
 }
 
 //returns the predecessors of the basic block in aset 
@@ -55,6 +60,8 @@ void BPatch_basicBlock::getTargets(BPatch_Vector<BPatch_basicBlock*>& tgrts){
 
 //returns the dominates of the basic block in a set 
 void BPatch_basicBlock::getImmediateDominates(BPatch_Vector<BPatch_basicBlock*>& imds){
+	flowGraph->fillDominatorInfo();
+
 	if(!immediateDominates)
 		return;
 	BPatch_basicBlock** elements = 
@@ -68,6 +75,8 @@ void BPatch_basicBlock::getImmediateDominates(BPatch_Vector<BPatch_basicBlock*>&
 //returns the dominates of the basic block in a set 
 void
 BPatch_basicBlock::getAllDominates(BPatch_Set<BPatch_basicBlock*>& buffer){
+	flowGraph->fillDominatorInfo();
+
 	buffer += (BPatch_basicBlock*)this;
 	if(immediateDominates){
 		BPatch_basicBlock** elements = 
@@ -81,6 +90,8 @@ BPatch_basicBlock::getAllDominates(BPatch_Set<BPatch_basicBlock*>& buffer){
 
 //returns the immediate dominator of the basic block
 BPatch_basicBlock* BPatch_basicBlock::getImmediateDominator(){
+	flowGraph->fillDominatorInfo();
+
 	return immediateDominator;
 }
 
@@ -91,6 +102,8 @@ bool BPatch_basicBlock::dominates(BPatch_basicBlock* bb){
 
 	if(bb == this)
 		return true;
+
+	flowGraph->fillDominatorInfo();
 
 	if(!immediateDominates)
 		return false;
@@ -108,6 +121,8 @@ bool BPatch_basicBlock::dominates(BPatch_basicBlock* bb){
 //returns the source block corresponding to the basic block
 //which is created looking at the machine code.
 BPatch_sourceBlock *BPatch_basicBlock::getSourceBlock(){
+	flowGraph->createSourceBlocks();
+
 	return sourceBlock;
 }
 
@@ -162,7 +177,7 @@ ostream& operator<<(ostream& os,BPatch_basicBlock& bb)
 		os << "\t-> " << belements[i]->blockNumber << "\n";
 	delete[] belements;
 
-	os << "Immediate Dominates:\n";
+	os << "Immediate Dominates: ";
 	if(bb.immediateDominates){
 		belements = new BPatch_basicBlock*[bb.immediateDominates->size()];
 		bb.immediateDominates->elements(belements);
@@ -170,6 +185,7 @@ ostream& operator<<(ostream& os,BPatch_basicBlock& bb)
 			os << belements[i]->blockNumber << " ";
 		delete[] belements;
 	}
+	os << "\n";
 
 	os << "Immediate Dominator: ";
 	if(!bb.immediateDominator)

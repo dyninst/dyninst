@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.95 2000/08/17 20:45:03 hollings Exp $
+// $Id: inst-sparc.C,v 1.96 2000/08/21 01:22:33 buck Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1629,10 +1629,10 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
 
     BPatch_flowGraph *cfg = bpfunc->getCFG();
     BPatch_basicBlock** belements =
-                new BPatch_basicBlock*[cfg->allBlocks.size()];
-    cfg->allBlocks.elements(belements);
+                new BPatch_basicBlock*[cfg->getAllBasicBlocks()->size()];
+    cfg->getAllBasicBlocks()->elements(belements);
 
-    for(i=0; i< (unsigned)cfg->allBlocks.size(); i++) {
+    for(i=0; i< (unsigned)cfg->getAllBasicBlocks()->size(); i++) {
 	void *bbsa, *bbea;
 	if (belements[i]->getAddressRange(bbsa,bbea)) {
 	    begin_addr = (Address)bbsa;

@@ -1,6 +1,7 @@
 #ifndef _BPatch_basicBlockLoop_h
 #define _BPatch_basicBlockLoop_h
 
+#include "stdlib.h"
 #include "BPatch_Vector.h"
 #include "BPatch_Set.h"
 #include "BPatch_basicBlock.h"

@@ -119,7 +119,7 @@ void AddressHandle::getMultipleJumpTargets(BPatch_Set<Address>& result){
 				register signed lowData = check.resti.simm13 & 0x3ff;
 				offset |= lowData;
 				setCurrentAddress((Address)offset);
-				while(hasMore()){
+				for(;;){
 					check = getInstruction();
 					if(IS_VALID_INSN(check))
 						break;

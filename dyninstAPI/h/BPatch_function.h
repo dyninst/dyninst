@@ -46,6 +46,7 @@
 #include "BPatch_point.h"
 #include "BPatch_type.h"
 #include "BPatch_module.h"
+#include "BPatch_flowGraph.h"
 
 class function_base;
 class process;

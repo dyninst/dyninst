@@ -180,7 +180,7 @@ public:
 	DO_INLINE_F int size() const { return setSize; }
 
 	/** returns true if tree is empty */
-	DO_INLINE_F int empty() const { return (setData == nil); }
+	DO_INLINE_F bool empty() const { return (setData == nil); }
 
 	/** inserts the element in the tree 
 	  * @param 1 element that will be inserted
@@ -191,13 +191,6 @@ public:
 	  * @param 1 element that will be removed  
 	  */
 	DO_INLINE_F void remove(const T&);
-
-	/** removes the element in the root of the tree 
-	  * if the BPatch_Set is empty it return false
-	  * @param e refernce to the element that the value of removed
-	  * element will be copied.
-	  */
-	DO_INLINE_F bool extract(T&);
 
 	/** returns true if the argument is member of the BPatch_Set
 	  * @param e the element that will be searched for
@@ -273,6 +266,14 @@ public:
 	  * @param 1 BPatch_Set that will be used in difference operation
 	  */
 	DO_INLINE_F BPatch_Set<T,Compare> operator- (const BPatch_Set<T,Compare>&) const;
+
+	/** removes the element in the root of the tree 
+	  * if the BPatch_Set is empty it return false
+	  * @param e refernce to the element that the value of removed
+	  * element will be copied.
+	  */
+	DO_INLINE_F bool extract(T&);
+
 };
 
 template <class T,class Compare>

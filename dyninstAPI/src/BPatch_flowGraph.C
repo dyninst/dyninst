@@ -27,7 +27,8 @@ const int BPatch_flowGraph::BLACK = 2;
 //constructor of the class. It creates the CFG and
 //deletes the unreachable code.
 BPatch_flowGraph::BPatch_flowGraph(BPatch_function *bpf)
-	: bpFunction(bpf),loops(NULL),isDominatorInfoReady(false)
+	: bpFunction(bpf),loops(NULL),isDominatorInfoReady(false),
+	  isSourceBlockInfoReady(false)
 {
 	//fill the information of the basic blocks after creating
 	//them. The dominator information will also be filled
@@ -101,56 +102,58 @@ void BPatch_flowGraph::getExitBasicBlock(BPatch_Vector<BPatch_basicBlock*>& nbb)
 void BPatch_flowGraph::getLoops(BPatch_Vector<BPatch_basicBlockLoop*>& lbb){
 	int i;
 
-	if(loops){
-		BPatch_basicBlockLoop** lelements = 
-			new BPatch_basicBlockLoop*[loops->size()];
-		loops->elements(lelements);
-		for(i=0;i<loops->size();i++)
-			lbb.push_back(lelements[i]);
-		delete[] lelements;
+	if(!loops){
+		//creating the loops field which was NULL initially
+		loops = new BPatch_Set<BPatch_basicBlockLoop*>;
+
+		//filling the dominator info since to find the loops
+		//structure we need the dominator info
+		fillDominatorInfo();
+
+		//create an array of all blocks size to store the mapping from
+		//basic block to set of basic blocks as back edges
+		BPatch_Set<BPatch_basicBlock*>** backEdges = 
+			new BPatch_Set<BPatch_basicBlock*>*[allBlocks.size()];
+		for(i=0;i<allBlocks.size();i++)
+			backEdges[i] = NULL;
+
+		//using dfs we find the back edeges which define the
+		//natural loop
+		findBackEdges(backEdges);
+
+		//a map from basic block number to basic block pointer
+		//which will be used to get the basic block pointer
+		//from its number from the map. I am using this way
+		//as I do not want to include dictionary_hash in include files
+		//or use other class(empty) to get around this problem.
+		//this does not give any drawback for efficency or space.
+
+		BPatch_basicBlock** bnoToBBptr =
+				new BPatch_basicBlock*[allBlocks.size()];
+
+		BPatch_basicBlock** elements =
+			new BPatch_basicBlock*[allBlocks.size()];
+		allBlocks.elements(elements);
+		for(i=0;i<allBlocks.size();i++)
+			bnoToBBptr[elements[i]->blockNumber] = elements[i];
+		delete[] elements;
+
+		//now using the map find the basic blocks inside the loops
+		fillLoopInfo(backEdges,bnoToBBptr);
+
+		//delete the temporary storages since it is done.
+		for(i=0;i<allBlocks.size();i++)
+			delete backEdges[i];
+		delete[] backEdges;
+		delete[] bnoToBBptr;
 	}
 
-	//creating the loops field which was NULL initially
-	loops = new BPatch_Set<BPatch_basicBlockLoop*>;
-
-	//filling the dominator info since to find the loops
-	//structure we need the dominator info
-	fillDominatorInfo();
-
-	//create an array of all blocks size to store the mapping from
-	//basic block to set of basic blocks as back edges
-	BPatch_Set<BPatch_basicBlock*>** backEdges = 
-		new BPatch_Set<BPatch_basicBlock*>*[allBlocks.size()];
-	for(i=0;i<allBlocks.size();i++)
-		backEdges[i] = NULL;
-
-	//using dfs we find the back edeges which define the natural loop
-	findBackEdges(backEdges);
-
-	//a map from basic block number to basic block pointer
-	//which will be used to get the basic block pointer
-	//from its number from the map. I am using this way
-	//as I do not want to include dictionary_hash in include files
-	//or use other class(empty) to get around this problem.
-	//this does not give any drawback for efficency or space.
-
-	BPatch_basicBlock** bnoToBBptr =
-			new BPatch_basicBlock*[allBlocks.size()];
-
-	BPatch_basicBlock** elements = new BPatch_basicBlock*[allBlocks.size()];
-	allBlocks.elements(elements);
-	for(i=0;i<allBlocks.size();i++)
-		bnoToBBptr[elements[i]->blockNumber] = elements[i];
-	delete[] elements;
-
-	//now using the map find the basic blocks inside the loops
-	fillLoopInfo(backEdges,bnoToBBptr);
-
-	//delete the temporary storages since it is done.
-	for(i=0;i<allBlocks.size();i++)
-		delete backEdges[i];
-	delete[] backEdges;
-	delete[] bnoToBBptr;
+	BPatch_basicBlockLoop** lelements = 
+		new BPatch_basicBlockLoop*[loops->size()];
+	loops->elements(lelements);
+	for(i=0;i<loops->size();i++)
+		lbb.push_back(lelements[i]);
+	delete[] lelements;
 }
 
 //this is the main method to create the basic blocks and the
@@ -199,7 +202,7 @@ void BPatch_flowGraph::createBasicBlocks(){
 	//and inserted into the map.
 
 	leaders += relativeAddress;
-	leaderToBlock[relativeAddress] = new BPatch_basicBlock(tbs++);
+	leaderToBlock[relativeAddress] = new BPatch_basicBlock(this, tbs++);
 	allBlocks += leaderToBlock[relativeAddress];
 
 	//while there are still instructions to check for in the
@@ -223,7 +226,8 @@ void BPatch_flowGraph::createBasicBlocks(){
 			if((baddr <= taddr) && (taddr < maddr) && 
 			   !leaders.contains(taddr)) {
 				leaders += taddr;
-				leaderToBlock[taddr] = new BPatch_basicBlock(tbs++);
+				leaderToBlock[taddr] =
+				    new BPatch_basicBlock(this, tbs++);
 				allBlocks += leaderToBlock[taddr];
 			}
 
@@ -238,7 +242,8 @@ void BPatch_flowGraph::createBasicBlocks(){
 			taddr = *ah;
 			if((taddr < maddr) && !leaders.contains(taddr)){
 				leaders += taddr;
-				leaderToBlock[taddr] = new BPatch_basicBlock(tbs++);
+				leaderToBlock[taddr] =
+				    new BPatch_basicBlock(this, tbs++);
 				allBlocks += leaderToBlock[taddr];
 			}
 		}
@@ -250,7 +255,8 @@ void BPatch_flowGraph::createBasicBlocks(){
 			if((baddr <= taddr) && (taddr < maddr) && 
 			   !leaders.contains(taddr)) {
 				leaders += taddr;
-				leaderToBlock[taddr] = new BPatch_basicBlock(tbs++);
+				leaderToBlock[taddr] =
+				    new BPatch_basicBlock(this, tbs++);
 				allBlocks += leaderToBlock[taddr];
 			}
 
@@ -271,7 +277,8 @@ void BPatch_flowGraph::createBasicBlocks(){
 				if((baddr <= taddr) && (taddr < maddr) &&
 				   !leaders.contains(taddr)) {
 					leaders += taddr;
-					leaderToBlock[taddr] = new BPatch_basicBlock(tbs++);
+					leaderToBlock[taddr] =
+					    new BPatch_basicBlock(this, tbs++);
 					allBlocks += leaderToBlock[taddr];
 				}
 			}
@@ -420,9 +427,15 @@ void BPatch_flowGraph::createBasicBlocks(){
 // by calling createBasicBlocks. It computes the source block for each
 // basic block. For now, a source block is represented by the starting
 // and ending line numbers in the source block for the basic block.
-void BPatch_flowGraph::createSourceBlocks(BPatch_image* bpImage){
+void BPatch_flowGraph::createSourceBlocks(){
 
 #if defined(sparc_sun_solaris2_4) || defined(mips_sgi_irix6_4)
+	if (isSourceBlockInfoReady)
+		return;
+	isSourceBlockInfoReady = true;
+
+	BPatch_image* bpImage = bpFunction->mod->img;
+
 	char functionName[100];
 	bpFunction->getName(functionName,99);functionName[99]='\0';
 	string fName(functionName);

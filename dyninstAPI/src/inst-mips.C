@@ -434,13 +434,15 @@ void dis(void *actual_, void *addr_, int ninsns,
   if (addr == NULL) addr = actual;
   char buf[64];
 
-  //   Elf32_Addr regmask, value, lsreg;
+#if 0 /* Unifdef and link with -lelfutil for debugging. */
+  Elf32_Addr regmask, value, lsreg;
   for (int i = 0; i < ninsns; i++) {
-    //     Elf32_Addr inSelf = (Elf32_Addr)(Address)(addr + i);
-    //     Elf32_Addr insn = *(Elf32_Addr *)(actual + i);
-    //     disasm32(buf, inSelf, insn, &regmask, &value, &lsreg);
+    Elf32_Addr inSelf = (Elf32_Addr)(Address)(addr + i);
+    Elf32_Addr insn = *(Elf32_Addr *)(actual + i);
+    disasm32(buf, inSelf, insn, &regmask, &value, &lsreg);
     fprintf(stream, "%s%s\n", (pre) ? (pre) : (""), buf);
   }
+#endif
 
   TRACE_E( "dis" );
 }
@@ -4556,10 +4558,10 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address)
     if (bpfunc == NULL) bpfunc = new BPatch_function(proc, func, NULL);
 
     BPatch_flowGraph *cfg = bpfunc->getCFG();
-    BPatch_basicBlock** belements =
-                new BPatch_basicBlock*[cfg->allBlocks.size()];
-    cfg->allBlocks.elements(belements);
-    for(i=0; i< cfg->allBlocks.size(); i++) {
+    BPatch_Set<BPatch_basicBlock*>* allBlocks = cfg->getAllBasicBlocks();
+    BPatch_basicBlock** belements = new BPatch_basicBlock*[allBlocks->size()];
+    allBlocks->elements(belements);
+    for(i=0; i< allBlocks->size(); i++) {
 	void *startAddress, *endAddress;
 	if (belements[i]->getAddressRange(startAddress, endAddress)) {
 	    if ((Address)address + INSN_SIZE == (Address)startAddress) {

@@ -41,11 +41,12 @@ int errorPrint = 0; // external "dyninst" tracing (via errorFunc)
 
 int mutateeCplusplus = 0;
 bool runAllTests = true;
-const unsigned int MAX_TEST = 32;
+const unsigned int MAX_TEST = 34;
 bool runTest[MAX_TEST+1];
 bool passedTest[MAX_TEST+1];
 
 template class BPatch_Vector<BPatch_variableExpr*>;
+template class BPatch_Set<int>;
 
 BPatch *bpatch;
 
@@ -1436,8 +1437,6 @@ void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
 	bpatch->registerErrorCallback(createInstPointError);
 
     for (unsigned int i = 0; i < f->getSize(); i+= 4) {
-	void *addr = (char *)f->getBaseAddr() + i;
-
 	p = appImage->createInstPointAtAddr((char *)f->getBaseAddr() + i);
 
 	if (p) {
@@ -2673,6 +2672,453 @@ void mutatorTest32( BPatch_thread * appThread, BPatch_image * appImage )
   BPatch::bpatch->setTrampRecursive( old_value );
 }
 
+/*******************************************************************************/
+/*******************************************************************************/
+/*******************************************************************************/
+
+
+//
+// Start Test Case #33 - (control flow graphs)
+//
+
+bool hasBackEdge(BPatch_basicBlock *bb, BPatch_Set<int> visited)
+{
+    if (visited.contains(bb->getBlockNumber()))
+	return true;
+
+    visited.insert(bb->getBlockNumber());
+
+    BPatch_Vector<BPatch_basicBlock*> targets;
+    bb->getTargets(targets);
+
+    int i;
+    for (i = 0; i < targets.size(); i++) {
+	if (hasBackEdge(targets[i], visited))
+	    return true;
+    }
+
+    return false;
+}
+
+void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
+{
+#if defined(sparc_sun_solaris2_4) || defined(mips_sgi_irix6_4)
+    int i;
+
+    BPatch_function *func2 = appImage->findFunction("func33_2");
+    if (func2 == NULL) {
+	fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+	fprintf(stderr, "  Unable to find function func33_2\n");
+	exit(1);
+    }
+
+    BPatch_flowGraph *cfg = func2->getCFG();
+    if (cfg == NULL) {
+	fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+	fprintf(stderr, "  Unable to get control flow graph of func33_2\n");
+	exit(1);
+    }
+
+    /*
+     * Test for consistency of entry basic blocks.
+     */
+    BPatch_Vector<BPatch_basicBlock*> entry_blocks;
+    cfg->getEntryBasicBlock(entry_blocks);
+
+    if (entry_blocks.size() != 1) {
+	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+	    fprintf(stderr, "  Detected %d entry basic blocks in func33_2, should have been one.\n", entry_blocks.size());
+    }
+
+    for (i = 0; i < entry_blocks.size(); i++) {
+	BPatch_Vector<BPatch_basicBlock*> sources;
+	entry_blocks[i]->getSources(sources);
+	if (sources.size() > 0) {
+	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+	    fprintf(stderr, "  An entry basic block has incoming edges in the control flow graph\n");
+	    exit(1);
+	}
+
+    	BPatch_Vector<BPatch_basicBlock*> targets;
+	entry_blocks[i]->getTargets(targets);
+	if (targets.size() < 1) {
+	    fprintf(stderr, "**Failed** test #33 (control flow graphs\n");
+	    fprintf(stderr, "  An entry basic block has no outgoing edges in the control flow graph\n");
+	    exit(1);
+	}
+    }
+
+    /*
+     * Test for consistency of exit basic blocks.
+     */
+    BPatch_Vector<BPatch_basicBlock*> exit_blocks;
+    cfg->getExitBasicBlock(exit_blocks);
+
+    if (exit_blocks.size() != 1) {
+	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+	    fprintf(stderr, "  Detected %d exit basic blocks in func33_2, should have been one.\n", exit_blocks.size());
+    }
+
+    for (i = 0; i < exit_blocks.size(); i++) {
+	BPatch_Vector<BPatch_basicBlock*> sources;
+	exit_blocks[i]->getSources(sources);
+	if (sources.size() < 1) {
+	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+	    fprintf(stderr, "  An exit basic block has no incoming edges in the control flow graph\n");
+	    exit(1);
+	}
+
+	BPatch_Vector<BPatch_basicBlock*> targets;
+	exit_blocks[i]->getTargets(targets);
+	if (targets.size() > 0) {
+	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+	    fprintf(stderr, "  An exit basic block has outgoing edges in the control flow graph\n");
+	    exit(1);
+	}
+    }
+
+    /*
+     * Check structure of control flow graph.
+     */
+    BPatch_Set<BPatch_basicBlock*>* blocks = cfg->getAllBasicBlocks();
+    if (blocks->size() < 4) {
+	fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+	fprintf(stderr, "  Detected %d basic blocks in func33_2, should be at least four.\n", blocks->size());
+	exit(1);
+    }
+
+    BPatch_basicBlock **block_elements = new BPatch_basicBlock*[blocks->size()];
+    blocks->elements(block_elements);
+
+    bool foundOutDegreeTwo = false;
+    bool foundInDegreeTwo = false;
+    int blocksNoIn = 0, blocksNoOut = 0;
+
+    for (i = 0; i < blocks->size(); i++) {
+	BPatch_Vector<BPatch_basicBlock*> in;
+	BPatch_Vector<BPatch_basicBlock*> out;
+
+	block_elements[i]->getSources(in);
+	block_elements[i]->getTargets(out);
+
+	if (in.size() == 0)
+	    blocksNoIn++;
+
+	if (out.size() == 0)
+	    blocksNoOut++;
+
+	if (in.size() > 2 || out.size() > 2) {
+	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+	    fprintf(stderr, "  Detected a basic block in func33_2 with %d incoming edges and %d\n", in.size(), out.size());
+	    fprintf(stderr, "  outgoing edges - neither should be greater than two.\n");
+	    exit(1);
+	} else if (in.size() > 1 && out.size() > 1) {
+	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+	    fprintf(stderr, "  Detected a basic block in func33_2 with %d incoming edges and %d\n", in.size(), out.size());
+	    fprintf(stderr, "  outgoing edges - only one should be greater than one.\n");
+	    exit(1);
+	} else if (in.size() == 0 && out.size() == 0) {
+	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+	    fprintf(stderr, "  Detected a basic block in func33_2 with no incoming or outgoing edges.\n");
+	    exit(1);
+	} else if (in.size() == 2) {
+	    assert(out.size() <= 1);
+
+	    if (foundInDegreeTwo) {
+		fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+		fprintf(stderr, "  Detected two basic blocks in func33_2 with in degree two, there should only\n");
+		fprintf(stderr, "  be one.\n");
+		exit(1);
+	    }
+	    foundInDegreeTwo = true;
+
+	    if (in[0]->getBlockNumber() == in[1]->getBlockNumber()) {
+		fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+		fprintf(stderr, "  Two edges go to the same block (number %d).\n", in[0]->getBlockNumber());
+		exit(1);
+	    }
+	} else if (out.size() == 2) {
+	    assert(in.size() <= 1);
+
+	    if (foundOutDegreeTwo) {
+		fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+		fprintf(stderr, "  Detected two basic blocks in func33_2 with out degree two, there should only\n");
+		fprintf(stderr, "  be one.\n");
+		exit(1);
+	    }
+	    foundOutDegreeTwo = true;
+
+	    if (out[0]->getBlockNumber() == out[1]->getBlockNumber()) {
+		fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+		fprintf(stderr, "  Two edges go to the same block (number %d).\n", out[0]->getBlockNumber());
+		exit(1);
+	    }
+	} else if (in.size() > 1 || out.size() > 1) {
+	    /* Shouldn't be able to get here. */
+	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+	    fprintf(stderr, "  Detected a basic block in func33_2 with %d incoming edges and %d\n", in.size(), out.size());
+	    fprintf(stderr, "  outgoing edges.\n");
+	    exit(1);
+	}
+    }
+
+    delete [] block_elements;
+    
+    if (blocksNoIn > 1) {
+	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+	    fprintf(stderr, "  Detected more than one block in func33_2 with no incoming edges.\n");
+	    exit(1);
+    }
+
+    if (blocksNoOut > 1) {
+	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+	    fprintf(stderr, "  Detected more than block in func33_2 with no outgoing edges.\n");
+	    exit(1);
+    }
+
+    if (!foundOutDegreeTwo) {
+	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+	    fprintf(stderr, "  Did not detect the \"if\" statement in func33_2.\n");
+	    exit(1);
+    }
+
+    /*
+     * Check for loops (there aren't any in the function we're looking at).
+     */
+    BPatch_Set<int> empty;
+    if (hasBackEdge(entry_blocks[0], empty)) {
+	fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+	fprintf(stderr, "  Detected a loop in func33_2, there should not be one.\n");
+	exit(1);
+    }
+
+    /*
+     * Now check a function with a switch statement.
+     */
+    BPatch_function *func3 = appImage->findFunction("func33_3");
+    if (func3 == NULL) {
+	fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+	fprintf(stderr, "  Unable to find function func33_3\n");
+	exit(1);
+    }
+
+    BPatch_flowGraph *cfg3 = func3->getCFG();
+    if (cfg3 == NULL) {
+	fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+	fprintf(stderr, "  Unable to get control flow graph of func33_3\n");
+	exit(1);
+    }
+
+    BPatch_Set<BPatch_basicBlock*>* blocks3 = cfg3->getAllBasicBlocks();
+    if (blocks3->size() < 10) {
+	fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+	fprintf(stderr, "  Detected %d basic blocks in func33_3, should be at least ten.\n", blocks3->size());
+	exit(1);
+    }
+
+    block_elements = new BPatch_basicBlock*[blocks3->size()];
+    blocks3->elements(block_elements);
+
+    bool foundSwitchIn = false;
+    bool foundSwitchOut = false;
+    bool foundRangeCheck = false;
+    for (i = 0; i < blocks3->size(); i++) {
+	BPatch_Vector<BPatch_basicBlock*> in;
+	BPatch_Vector<BPatch_basicBlock*> out;
+
+	block_elements[i]->getSources(in);
+	block_elements[i]->getTargets(out);
+
+	if (!foundSwitchOut && out.size() >= 10 && in.size() <= 1) {
+	    foundSwitchOut = true;
+	} else if (!foundSwitchIn && in.size() >= 10 && out.size() <= 1) {
+	    foundSwitchIn = true;
+	} else if (!foundRangeCheck && out.size() == 2 && in.size() <= 1) {
+	    foundRangeCheck = true;
+	} else if (in.size() > 1 && out.size() > 1) {
+	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+	    fprintf(stderr, "  Found basic block in func33_3 with unexpected number of edges.\n");
+	    fprintf(stderr, "  %d incoming edges, %d outgoing edges.\n",
+		    in.size(), out.size());
+	    exit(1);
+	}
+    }
+
+    if (!foundSwitchIn || !foundSwitchOut) {
+	fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+	if (!foundSwitchIn)
+	    fprintf(stderr,"  Did not find \"switch\" statement in func33_3.\n");
+	if (!foundSwitchOut)
+	    fprintf(stderr,"  Did not find block afer \"switch\" statement.\n");
+	exit(1);
+    }
+
+    /* Check dominator info. */
+    BPatch_Vector<BPatch_basicBlock*> entry3;
+    cfg3->getEntryBasicBlock(entry3);
+    if (entry3.size() != 1) {
+	fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+	fprintf(stderr, "  Detected %d entry basic blocks in func33_3, should have been one.\n", entry_blocks.size());
+	exit(1);
+    }
+
+    for (i = 0; i < blocks3->size(); i++) {
+	if (!entry3[0]->dominates(block_elements[i])) {
+	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+	    fprintf(stderr, "  Entry block does not dominate all blocks in func33_3\n");
+	    exit(1);
+	}
+    }
+
+    delete [] block_elements;
+
+#endif
+}
+
+/*******************************************************************************/
+/*******************************************************************************/
+/*******************************************************************************/
+
+int numContainedLoops(BPatch_basicBlockLoop *loop)
+{
+    BPatch_Vector<BPatch_basicBlockLoop*> containedLoops;
+    loop->getContainedLoops(containedLoops);
+
+    return containedLoops.size();
+}
+
+int numBackEdges(BPatch_basicBlockLoop *loop)
+{
+    BPatch_Vector<BPatch_basicBlock*> backEdges;
+    loop->getBackEdges(backEdges);
+
+    return backEdges.size();
+}
+
+//
+// Start Test Case #34 - (loop information)
+//
+void mutatorTest34( BPatch_thread * /*appThread*/, BPatch_image * appImage )
+{
+#if defined(sparc_sun_solaris2_4) || defined(mips_sgi_irix6_4)
+    int i;
+
+    BPatch_function *func2 = appImage->findFunction("func34_2");
+    if (func2 == NULL) {
+	fprintf(stderr, "**Failed** test #34 (loop information)\n");
+	fprintf(stderr, "  Unable to find function func34_2\n");
+	exit(1);
+    }
+
+    BPatch_flowGraph *cfg = func2->getCFG();
+    if (cfg == NULL) {
+	fprintf(stderr, "**Failed** test #34 (loop information)\n");
+	fprintf(stderr, "  Unable to get control flow graph of func34_2\n");
+	exit(1);
+    }
+
+    BPatch_Vector<BPatch_basicBlockLoop*> loops;
+    cfg->getLoops(loops);
+    if (loops.size() != 4) {
+	fprintf(stderr, "**Failed** test #34 (loop information)\n");
+	fprintf(stderr, "  Detected %d loops, should have been four.\n",
+		loops.size());
+	exit(1);
+    }
+
+    /*
+     * Find the loop that contains two loops (that should be the outermost
+     * one).
+     */
+    BPatch_basicBlockLoop *outerLoop = NULL;
+    for (i = 0; i < loops.size(); i++) {
+	if (numContainedLoops(loops[i]) == 3) {
+	    outerLoop = loops[i];
+	    break;
+	}
+    }
+
+    if (outerLoop == NULL) {
+	fprintf(stderr, "**Failed** test #34 (loop information)\n");
+	fprintf(stderr, "  Unable to find a loop containing two other loops.\n");
+	exit(1);
+    }
+
+    if (numBackEdges(outerLoop) != 1) {
+	fprintf(stderr, "**Failed** test #34 (loop information)\n");
+	fprintf(stderr, "  There should be exactly one backedge in the outer loops, but there are %d\n", numBackEdges(outerLoop));
+	exit(1);
+    }
+
+    BPatch_Vector<BPatch_basicBlockLoop*> insideOuterLoop;
+    outerLoop->getContainedLoops(insideOuterLoop);
+    assert(insideOuterLoop.size() == 3);
+
+    bool foundFirstLoop = false;
+    int deepestLoops = 0;
+    for (int i = 0; i < insideOuterLoop.size(); i++) {
+	BPatch_Vector<BPatch_basicBlockLoop*> tmpLoops;
+	insideOuterLoop[i]->getContainedLoops(tmpLoops);
+
+	if (tmpLoops.size() == 1) { /* The first loop has one nested inside. */
+	    if (foundFirstLoop) {
+		fprintf(stderr, "**Failed** test #34 (loop information)\n");
+		fprintf(stderr, "  Found more than one second-level loop with one nested inside.\n");
+		exit(1);
+	    }
+	    foundFirstLoop = true;
+
+	    if (numBackEdges(insideOuterLoop[i]) != 1) {
+		fprintf(stderr, "**Failed** test #34 (loop information)\n");
+		fprintf(stderr, "  There should be exactly one backedge in the first inner loop, but there are %d\n", numBackEdges(tmpLoops[0]));
+		exit(1);
+	    }
+
+	    if (numBackEdges(tmpLoops[0]) != 1) {
+		fprintf(stderr, "**Failed** test #34 (loop information)\n");
+		fprintf(stderr, "  There should be exactly one backedge in the third level loop, but there are %d\n", numBackEdges(tmpLoops[0]));
+		exit(1);
+	    }
+
+	    if (numContainedLoops(tmpLoops[0]) != 0) {
+		fprintf(stderr, "**Failed** test #34 (loop information)\n");
+		fprintf(stderr, "  The first loop at the third level should not have any loops nested inside,\n");
+		fprintf(stderr, "  but %d were detected.\n",
+			numContainedLoops(tmpLoops[0]));
+		exit(1);
+	    }
+
+	} else if(tmpLoops.size() == 0) { /* The second loop has none nested. */
+	    if (deepestLoops >= 2) {
+		fprintf(stderr, "**Failed** test #34 (loop information)\n");
+		fprintf(stderr, "  Found more than two loops without any nested inside.\n");
+		exit(1);
+	    }
+	    deepestLoops++;
+
+	    if (numBackEdges(insideOuterLoop[i]) != 1) {
+		fprintf(stderr, "**Failed** test #34 (loop information)\n");
+		fprintf(stderr, "  Unexpected number of backedges in loop (%d)\n", numBackEdges(insideOuterLoop[i]));
+		exit(1);
+	    }
+	} else { /* All loops should be recognized above. */
+	    fprintf(stderr, "**Failed** test #34 (loop information)\n");
+	    fprintf(stderr, "  Found a loop containing %d loops, should be one or  none.\n", tmpLoops.size());
+	    exit(1);
+	}
+    }
+
+    if (!foundFirstLoop || deepestLoops < 2) {
+	/* We shouldn't be able to get here. */
+	fprintf(stderr, "**Failed** test #34 (loop information)\n");
+	if (!foundFirstLoop)
+	    fprintf(stderr, "  Could not find the first nested loop.\n");
+	if (deepestLoops < 2)
+	    fprintf(stderr, "  Could not find all the deepest level loops.\n");
+	exit(1);
+    }
+#endif
+}
 
 /*******************************************************************************/
 /*******************************************************************************/
@@ -2798,6 +3244,9 @@ int mutatorMAIN(char *pathname, bool useAttach)
 
     if( runTest[ 31 ] ) mutatorTest31( appThread, appImage );
     if( runTest[ 32 ] ) mutatorTest32( appThread, appImage );
+
+    if( runTest[ 33 ] ) mutatorTest33( appThread, appImage );
+    if( runTest[ 34 ] ) mutatorTest34( appThread, appImage );
 
     // Start of code to continue the process.  All mutations made
     // above will be in place before the mutatee begins its tests.

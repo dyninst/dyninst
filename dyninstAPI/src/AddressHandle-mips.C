@@ -379,6 +379,8 @@ void AddressHandle::getMultipleJumpTargets(BPatch_Set<Address>& result){
 
     int tmpReg;
 
+    BPatch_Set<int> stackLocations;
+
     while (ah.hasPrev()) {
 	ah--;
 
@@ -408,6 +410,28 @@ void AddressHandle::getMultipleJumpTargets(BPatch_Set<Address>& result){
 
 	    if (i.itype.rs == REG_GP)
 		break;
+	} else if ((isInsnType(i, LWmask, LWmatch) || 
+		    isInsnType(i, LDmask, LDmatch)) &&
+		   ((regMask & (1 << i.itype.rt)) != 0) &&
+		   (i.itype.rs == REG_SP)) {
+#ifdef DEBUG_FINDTARGET_2
+	    printf("0x%08p: Removing %s ($%d) from set,\n",
+		    *ah, reg_names_book[i.itype.rt], i.itype.rt);
+	    printf("  and adding stack location %d\n", (int)i.itype.simm16);
+#endif
+	    stackLocations.insert(i.itype.simm16);
+	    regMask &= ~(1 << (i.itype.rt));
+	} else if ((isInsnType(i, SWmask, SWmatch) || 
+		    isInsnType(i, SDmask, SDmatch)) &&
+		   (i.itype.rs == REG_SP) &&
+		   (stackLocations.contains(i.itype.simm16))) {
+#ifdef DEBUG_FINDTARGET_2
+	    printf("0x%08p: Adding %s ($%d) to set,\n",
+		    *ah, reg_names_book[i.itype.rt], i.itype.rt);
+	    printf("  and removing stack location %d\n", (int)i.itype.simm16);
+#endif
+	    stackLocations.remove(i.itype.simm16);
+	    regMask |= 1 << i.rtype.rt;
 	} else if ((isInsnType(i, ADDmask, ADDmatch) ||
 		    isInsnType(i, ADDUmask, ADDUmatch) ||
 	    	    isInsnType(i, DADDmask, DADDmatch) ||
