@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.26 2004/05/29 14:30:24 legendre Exp $
+ * $Id: Object-nt.h,v 1.27 2004/05/31 04:33:48 legendre Exp $
 ************************************************************************/
 
 
@@ -248,7 +248,7 @@ public:
     fileDescriptor_Win* GetDescriptor( void ) const     { return desc; }
 	Module* GetCurrentModule( void )				    { return curModule; }
 
-    bool getCatchBlock(ExceptionBlock &b, Address addr, unsigned size = 0) const; { return false; }
+    bool getCatchBlock(ExceptionBlock &b, Address addr, unsigned size = 0) const { return false; }
     unsigned int GetTextSectionId( void ) const         { return textSectionId;}
     PIMAGE_NT_HEADERS   GetImageHeader( void ) const    { return peHdr; }
     PVOID GetMapAddr( void ) const                      { return mapAddr; }
