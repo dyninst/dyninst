@@ -4,6 +4,13 @@
 // Some C++ stuff that I have found to be both useful and generic
 // across all the tk4.0 programs I've written...
 
+/*
+ * $Log: tkTools.h,v $
+ * Revision 1.2  1995/11/06 02:28:02  tamches
+ * added tclpanic and resizeScrollbar
+ *
+ */
+
 #ifndef _TK_TOOLS_H_
 #define _TK_TOOLS_H_
 
@@ -38,6 +45,7 @@ class tkInstallIdle {
 
 void myTclEval(Tcl_Interp *interp, const string &);
 void myTclEval(Tcl_Interp *interp, const char *);
+void tclpanic(Tcl_Interp *interp, const string &str);
 
 void getScrollBarValues(Tcl_Interp *, const string &sbName,
                         float &theFirst, float &theLast);
@@ -63,5 +71,8 @@ bool processScrollCallback(Tcl_Interp *interp,
    // and returns true iff anything changed.  If so, the parameter
    // "newFirst" is modified (so you can read it and invoke application-specific
    // stuff.  After all, this routine merely updates the scrollbar)
-   
+
+void resizeScrollbar(Tcl_Interp *interp, const string &sbName,
+                     int total_width, int visible_width);
+
 #endif

@@ -1,6 +1,12 @@
 // tkTools.C
 // Ariel Tamches
 
+/* $Log: tkTools.C,v $
+/* Revision 1.2  1995/11/06 02:29:18  tamches
+/* added tclpanic and resizeScrollbar
+/*
+ */
+
 #include <assert.h>
 #include <stdlib.h> // exit()
 #include "minmax.h"
@@ -49,6 +55,11 @@ void myTclEval(Tcl_Interp *interp, const char *buffer) {
       cerr << interp->result << endl;
       exit(5);
    }
+}
+
+void tclpanic(Tcl_Interp *interp, const string &str) {
+   cerr << str << ": " << interp->result << endl;
+   exit(5);
 }
 
 /* ******************************************************** */
@@ -150,8 +161,10 @@ bool processScrollCallback(Tcl_Interp *interp,
       else
          assert(false);
    }
-   else
+   else {
+      cerr << "processScrollCallback: unexpected argv[1] (expected 'moveto' or 'units'): " << argv[1] << endl;
       assert(false);
+   }
 
    float actualNewFirst = moveScrollBar(interp, sbName, tentativeNewFirst);
    if (actualNewFirst != oldFirst) {
@@ -159,4 +172,40 @@ bool processScrollCallback(Tcl_Interp *interp,
       return true;
    }
    return false; // no changes
+}
+
+void resizeScrollbar(Tcl_Interp *interp, const string &sbName,
+                     int total_width, int visible_width) {
+   // A C++ version of resize1Scrollbar (the tcl routine)
+   float oldFirst, oldLast;
+   getScrollBarValues(interp, sbName, oldFirst, oldLast);
+
+   float newFirst, newLast;
+   if (visible_width < total_width) {
+      // the usual case: not everything fits
+      float fracVisible = 1.0 * visible_width / total_width;
+
+      newFirst = oldFirst;
+      newLast = newFirst + fracVisible;
+
+      if (newLast > 1.0) {
+         float theOverflow = newLast - 1.0;
+         newFirst = oldFirst - theOverflow;
+         newLast = newFirst + fracVisible;
+      }
+   }
+   else {
+      // the unusual case: everything fits on screen
+      newFirst = 0.0;
+      newLast = 1.0;
+   }
+
+   // some assertion checking
+   if (newFirst < 0)
+      cerr << "resizeScrollbar warning: newFirst is " << newFirst << endl;
+   if (newLast > 1)
+      cerr << "resizeScrollbar warning: newLast is " << newLast << endl;
+
+   string commandStr = sbName + " set " + string(newFirst) + " " + string(newLast);
+   myTclEval(interp, commandStr);
 }
