@@ -5,10 +5,13 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.17  1994/06/14 15:20:17  markc
-/* Added extra arg to enableDataCollection call.  This is probably temporaray
-/* since the data manager or configuration language will specify this info.
+/* Revision 1.18  1994/07/02 01:44:13  markc
+/* Removed aggregation operator from enableDataCollection call.
 /*
+ * Revision 1.17  1994/06/14  15:20:17  markc
+ * Added extra arg to enableDataCollection call.  This is probably temporaray
+ * since the data manager or configuration language will specify this info.
+ *
  * Revision 1.16  1994/05/31  19:11:49  hollings
  * Changes to permit direct access to resources and resourceLists.
  *
@@ -438,9 +441,8 @@ int ParadynEnableCmd (ClientData clientData,
   }
   else {
     // Finally enable the data collection
-    // ... and specify aggregation style
     mi = dataMgr->enableDataCollection (uim_defaultStream, resList,
-					met, Sum);
+					met);
     if (mi) {
       uim_enabled.add(mi, (void *) uim_eid);
       sprintf(interp->result,"%d",uim_eid);
