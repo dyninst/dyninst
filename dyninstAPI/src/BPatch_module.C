@@ -54,7 +54,7 @@
 #include "common/h/String.h"
 #include "BPatch_type.h"    // For BPatch_type related stuff
 #include "BPatch_Vector.h"
-#include "LineInformation.h"
+
 #if defined(TIMED_PARSE)
 #include <sys/time.h>
 #endif
@@ -69,6 +69,10 @@ int max_line_per_addr =0;
 #include "libdwarf.h"
 #endif
 
+
+//char * BPatch_module::current_func_name = NULL;
+//char * BPatch_module::current_mangled_func_name = NULL;
+//BPatch_function * BPatch_module::current_func = NULL;
 char * current_func_name = NULL;
 char * current_mangled_func_name = NULL;
 BPatch_function *current_func = NULL;
@@ -125,8 +129,7 @@ char *BPatch_module::getFullName(char *buffer, int length)
 
 
 BPatch_module::BPatch_module(process *_proc, pdmodule *_mod,BPatch_image *_img):
-    proc(_proc), mod(_mod), img(_img), BPfuncs(NULL), BPfuncs_uninstrumentable(NULL),
-    lineInformation(NULL) 
+    proc(_proc), mod(_mod), img(_img), BPfuncs(NULL), BPfuncs_uninstrumentable(NULL)    
 {
 #if defined(TIMED_PARSE)
   struct timeval starttime;
@@ -167,14 +170,14 @@ BPatch_module::BPatch_module(process *_proc, pdmodule *_mod,BPatch_image *_img):
     // load all of the type information
 #if !defined(mips_sgi_irix6_4)
 
-    if (BPatch::bpatch->parseDebugInfo()){ 
+    if (BPatch::bpatch->parseDebugInfo()) { 
 
 #if defined(rs6000_ibm_aix4_1) || defined(alpha_dec_osf4_0) || defined(i386_unknown_nt4_0)
       //  this section for platforms that do not have 2-phase parse
       //  (we init LineInformation, and assume that parseTypes will fill it in)
-      lineInformation = new LineInformation(mod->fileName());
+      mod->initLineInformation();
       parseTypes();
-      lineInformation->cleanEmptyFunctions();
+      mod->cleanupLineInformation();
 #else
       parseTypes();
 #endif
@@ -213,9 +216,7 @@ BPatch_module::~BPatch_module()
 	delete (*BPfuncs_uninstrumentable)[f];
       }
       delete BPfuncs_uninstrumentable;
-    }
-
-    if(lineInformation) delete lineInformation;
+    }    
 }
 
 /*
@@ -353,166 +354,14 @@ void BPatch_module::dumpMangled(char * prefix)
   mod->dumpMangled(prefix);
 }
 
-pdstring* processDirectories(pdstring* fn){
-	if(!fn)
-		return NULL;
-
-	if(!strstr(fn->c_str(),"/./") &&
-	   !strstr(fn->c_str(),"/../"))
-		return fn;
-
-	pdstring* ret = NULL;
-	char suffix[10] = "";
-	char prefix[10] = "";
-	char* pPath = new char[strlen(fn->c_str())+1];
-
-	strcpy(pPath,fn->c_str());
-
-	if(pPath[0] == '/')
-           strcpy(prefix, "/");
-	else
-           strcpy(prefix, "");
-
-	if(pPath[strlen(pPath)-1] == '/')
-           strcpy(suffix, "/");
-	else
-           strcpy(suffix, "");
-
-	int count = 0;
-	char* pPathLocs[1024];
-	char* p = strtok(pPath,"/");
-	while(p){
-		if(!strcmp(p,".")){
-			p = strtok(NULL,"/");
-			continue;
-		}
-		else if(!strcmp(p,"..")){
-			count--;
-			if(((count < 0) && (*prefix != '/')) || 
-			   ((count >= 0) && !strcmp(pPathLocs[count],"..")))
-			{
-				count++;
-				pPathLocs[count++] = p;
-			}
-			if(count < 0) count = 0;
-		}
-		else
-			pPathLocs[count++] = p;
-
-		p = strtok(NULL,"/");
-	}
-
-	ret = new   pdstring;
-	*ret += prefix;
-	for(int i=0;i<count;i++){
-		*ret += pPathLocs[i];
-		if(i != (count-1))
-			*ret += "/";
-	}
-	*ret += suffix;
-
-	delete[] pPath;
-	delete fn;
-	return ret;
-}
 extern char *parseStabString(BPatch_module *, int linenum, char *str, 
 	int fPtr, BPatch_type *commonBlock = NULL);
+
 
 #if defined(rs6000_ibm_aix4_1)
 
 #include <linenum.h>
 #include <syms.h>
-
-void parseLineInformation(process* proc,LineInformation* lineInformation,
-			  BPatch_Vector<IncludeFileInfo>& includeFiles,pdstring* currentSourceFile,
-			  char* symbolName,
-			  SYMENT *sym,
-			  Address linesfdptr,char* lines,int nlines)
-{
-      int j;
-      union auxent *aux;
-
-      /* if it is beginning of include files then update the data structure 
-         that keeps the beginning of the include files. If the include files contain 
-         information about the functions and lines we have to keep it */
-      if (sym->n_sclass == C_BINCL){
-		includeFiles.push_back(IncludeFileInfo((sym->n_value-linesfdptr)/LINESZ, symbolName));
-      }
-      /* similiarly if the include file contains function codes and line information
-         we have to keep the last line information entry for this include file */
-      else if (sym->n_sclass == C_EINCL){
-		if (includeFiles.size() > 0) {
-			includeFiles[includeFiles.size()-1].end = (sym->n_value-linesfdptr)/LINESZ;
-		}
-      }
-      /* if the enrty is for a function than we have to collect all info
-         about lines of the function */
-      else if (sym->n_sclass == C_FUN){
-		assert(currentSourceFile);
-		/* creating the pdstring for function name */
-		char* ce = strchr(symbolName,':'); if(ce) *ce = '\0';
-		pdstring currentFunctionName(symbolName);
-
-		/* getting the real function base address from the symbols*/
-    		Address currentFunctionBase=0;
-		Symbol info;
-		proc->getSymbolInfo(currentFunctionName,info,
-				    currentFunctionBase);
-		currentFunctionBase += info.addr();
-
-		/* getting the information about the function from C_EXT */
-		int initialLine = 0;
-		int initialLineIndex = 0;
-		Address funcStartAddress = 0;
-		for(j=-1;;j--){
-			SYMENT *extsym = (SYMENT*)(((unsigned)sym)+j*SYMESZ);
-			if(extsym->n_sclass == C_EXT){
-				aux = (union auxent*)((char*)extsym+SYMESZ);
-#ifndef __64BIT__
-				initialLineIndex = (aux->x_sym.x_fcnary.x_fcn.x_lnnoptr-linesfdptr)/LINESZ;
-#endif
-				funcStartAddress = extsym->n_value;
-				break;
-			}
-		}
-
-		/* access the line information now using the C_FCN entry*/
-		SYMENT *bfsym = (SYMENT*)(((unsigned)sym)+SYMESZ);
-
-		if (bfsym->n_sclass != C_FCN) {
-		    printf("unable to process line info for %s\n", symbolName);
-		    return;
-		}
-
-		aux = (union auxent*)((char*)bfsym+SYMESZ);
-		initialLine = aux->x_sym.x_misc.x_lnsz.x_lnno;
-
-		pdstring whichFile = *currentSourceFile;
-		/* find in which file is it */
-		for(j=0;j<includeFiles.size();j++)
-			if((includeFiles[j].begin <= (unsigned)initialLineIndex) &&
-			   (includeFiles[j].end >= (unsigned)initialLineIndex)){
-				whichFile = includeFiles[j].name;
-				break;
-			}
-
-		FunctionInfo* currentFuncInfo = NULL;
-		FileLineInformation* currentFileInfo = NULL;
-		lineInformation->insertSourceFileName(currentFunctionName,whichFile,
-						&currentFileInfo,&currentFuncInfo);
-
-		for(j=initialLineIndex+1;j<nlines;j++){
-			LINENO* lptr = (LINENO*)(lines+j*LINESZ);
-			if(!lptr->l_lnno)
-				break;
-			if(currentFileInfo)
-	    			currentFileInfo->insertLineAddress(
-					currentFuncInfo,
-					lptr->l_lnno+initialLine-1,
-					(lptr->l_addr.l_paddr-funcStartAddress)+currentFunctionBase);
-		}
-      }
-}
 
 // Gets the stab and stabstring section and parses it for types
 // and variables
@@ -540,21 +389,18 @@ void BPatch_module::parseTypes()
   struct timeval starttime;
   gettimeofday(&starttime, NULL);
 #endif
-    BPatch_Vector<IncludeFileInfo> includeFiles;
 
-    //Using pdmodule to get the image Object.
     imgPtr = mod->exec();
 
-    //Using the image to get the Object (class)
-    Object *objPtr = (Object *) &(imgPtr->getObject());
+    const Object &objPtr = imgPtr->getObject();
 
     //Using the Object to get the pointers to the .stab and .stabstr
-    objPtr->get_stab_info(stabstr, nstabs, ((Address&) syms), stringPool); 
+    objPtr.get_stab_info(stabstr, nstabs, ((Address&) syms), stringPool); 
 
     this->BPfuncs = this->getProcedures();
 
 
-    objPtr->get_line_info(nlines,lines,linesfdptr); 
+    objPtr.get_line_info(nlines,lines,linesfdptr); 
 
     bool parseActive = true;
     for (i=0; i < nstabs; i++) {
@@ -589,7 +435,7 @@ void BPatch_module::parseTypes()
 
 	 if(currentSourceFile) delete currentSourceFile;
 	 currentSourceFile = new pdstring(moduleName);
-	 currentSourceFile = processDirectories(currentSourceFile);
+	 currentSourceFile = mod->processDirectories(currentSourceFile);
 
 	 if (strrchr(moduleName, '/')) {
 	     moduleName = strrchr(moduleName, '/');
@@ -646,9 +492,10 @@ void BPatch_module::parseTypes()
 		    funcName = NULL;
 		}
 		funcName = strdup(nmPtr);
-		parseLineInformation(proc,lineInformation,includeFiles,
-				     currentSourceFile,funcName,sym,
-				     linesfdptr,lines,nlines);
+
+		mod->parseLineInformation(proc, currentSourceFile, 
+					  funcName, sym,
+					  linesfdptr, lines, nlines);
       }
 
       if (sym->n_sclass & DBXMASK) {
@@ -745,23 +592,27 @@ void BPatch_module::parseTypes()
     defined(i386_unknown_linux2_0) || \
     defined(ia64_unknown_linux2_4)
 
-void BPatch_module::parseTypes() {
-	/* Get the Object object. */
-	image * moduleImage = mod->exec();
-	assert( moduleImage != NULL );
-	const Object & moduleObject = moduleImage->getObject();	
 
-	/* Does if have STABS information? */
-	if( moduleObject.hasStabInfo() ) { parseStabTypes(); }
+void BPatch_module::parseTypes() 
+{
+   image * moduleImage = mod->exec();
+   assert( moduleImage != NULL );
+   const Object & moduleObject = moduleImage->getObject();	
+
+   if (moduleObject.hasStabInfo()) { 
+      parseStabTypes(); 
+   }
 	
 #if defined( USES_DWARF_DEBUG )
-	/* Does if have DWARF information? */
-	if( moduleObject.hasDwarfInfo() ) { parseDwarfTypes(); }
+   if (moduleObject.hasDwarfInfo()) { 
+      parseDwarfTypes(); 
+   }
 #endif
-	} /* end parseTypes() */
+} 
+
 
 // parseStabTypes:  parses type and variable info, does some init
-//              does NOT parse file-line info anymore, this is done later, upon request.
+// does NOT parse file-line info anymore, this is done later, upon request.
 void BPatch_module::parseStabTypes() 
 {
   int stab_nsyms;
@@ -794,32 +645,24 @@ void BPatch_module::parseStabTypes()
   struct timeval t1, t2;
 #endif
 
-  //Using pdmodule to get the image Object.
-  imgPtr = mod->exec();
-
-  // Building the BPatch_Vector<BPatch_function *> for use later when playing
-  // with BPatch_functions
   this->BPfuncs = this->getProcedures();
 
+  imgPtr = mod->exec();
 
-  //Using the image to get the Object (class)
-  Object *objPtr = (Object *) &(imgPtr->getObject());
+  const Object &objPtr = imgPtr->getObject();
 
   //Using the Object to get the pointers to the .stab and .stabstr
   // XXX - Elf32 specific needs to be in seperate file -- jkh 3/18/99
-  objPtr->get_stab_info((void **) &stabptr, stab_nsyms, 
-	(void **) &stabstr_nextoffset);
+  objPtr.get_stab_info((void **) &stabptr, stab_nsyms, 
+		       (void **) &stabstr_nextoffset);
 
-  // cerr << "checkpoint A" << endl;
-
-  for(i=0;i<stab_nsyms;i++){
-    // if (stabstrs) printf("parsing #%d, %s\n", stabptr[i].type, &stabstrs[stabptr[i].name]);
+  for (i=0; i<stab_nsyms; i++) {
     switch(stabptr[i].type){
     case N_UNDF: /* start of object file */
       /* value contains offset of the next string table for next module */
       // assert(stabptr[i].name == 1);
       stabstrs = stabstr_nextoffset;
-      stabstr_nextoffset = (char*)stabstrs + stabptr[i].val;
+      stabstr_nextoffset = const_cast<char*>(stabstrs) + stabptr[i].val;
       
       //N_UNDF is the start of object file. It is time to 
       //clean source file name at this moment.
@@ -850,7 +693,7 @@ void BPatch_module::parseStabTypes()
       current_mangled_func_name = NULL; // reset for next object file
       current_func = NULL;
 
-      modName = (char*)(&stabstrs[stabptr[i].name]);
+      modName = const_cast<char*>(&stabstrs[stabptr[i].name]);
       // cerr << "checkpoint B" << endl;
       ptr = strrchr(modName, '/');
       //  cerr << "checkpoint C" << endl;
@@ -989,7 +832,7 @@ void BPatch_module::parseStabTypes()
     switch(stabptr[i].type){
       case N_BCOMM:	{
 	// begin Fortran named common block 
-	commonBlockName = (char *) &stabstrs[stabptr[i].name];
+	commonBlockName = const_cast<char*>(&stabstrs[stabptr[i].name]);
 
 	// find the variable for the common block
 	BPatch_image *progam = (BPatch_image *) getObjParent();
@@ -1051,10 +894,10 @@ void BPatch_module::parseStabTypes()
 	gettimeofday(&t1, NULL);
 #endif
         if (stabptr[i].type == N_FUN) current_func = NULL;
-	ptr = (char *) &stabstrs[stabptr[i].name];
+	ptr = const_cast<char *>(&stabstrs[stabptr[i].name]);
 	while (ptr[strlen(ptr)-1] == '\\') {
 	  //ptr[strlen(ptr)-1] = '\0';
-	  ptr2 =  (char *) &stabstrs[stabptr[i+1].name];
+	  ptr2 =  const_cast<char *>(&stabstrs[stabptr[i+1].name]);
 	  ptr3 = (char *) malloc(strlen(ptr) + strlen(ptr2));
 	  strcpy(ptr3, ptr);
 	  ptr3[strlen(ptr)-1] = '\0';
@@ -1108,286 +951,6 @@ void BPatch_module::parseStabTypes()
 #endif
 }
 
-// parseLineInformation():  parses symtab for file and line info.  Should not be called before parseTypes
-// the ptr to lineInformation should be NULL before this is called.
-#if !defined(rs6000_ibm_aix4_1) && !defined(mips_sgi_irix6_4) && !defined(alpha_dec_osf4_0)
-void BPatch_module::parseFileLineInfo() 
-{
- int i;
-  char *modName;
-  image * imgPtr=NULL;
-  char *ptr;
-  int stab_nsyms;
-  char *stabstr_nextoffset;
-  const char *stabstrs = 0;
-  struct stab_entry *stabptr = NULL;
-  int parseActive = false; 
-
-  if (lineInformation) {
-    cerr << __FILE__ << ":" << __LINE__ << ": Internal error, not fatal, probabl:, duplicated call to"
-	 << "parseFileLineInfo()...  ignoring" << endl;
-  }
-
-  lineInformation = new LineInformation(mod->fileName());
- 
-
-#if defined(TIMED_PARSE)
-  struct timeval starttime;
-  gettimeofday(&starttime, NULL);
-  unsigned int fun_count = 0;
-  double fun_dur = 0;
-  unsigned int src_count = 0;
-  double src_dur = 0;
-  unsigned int sol_count = 0;
-  double sol_dur = 0;
-  unsigned int sline_count = 0;
-  double sline_dur = 0;
-  struct timeval t1, t2;
-#endif
- //Using pdmodule to get the image Object.
-  imgPtr = mod->exec();
-
-  //Using the image to get the Object (class)
-  Object *objPtr = (Object *) &(imgPtr->getObject());
-  assert (objPtr);
-
-  //Using the Object to get the pointers to the .stab and .stabstr
-  // XXX - Elf32 specific needs to be in seperate file -- jkh 3/18/99
-  objPtr->get_stab_info((void **) &stabptr, stab_nsyms, 
-	(void **) &stabstr_nextoffset);
-
-
-  //these variables are used to keep track of the source files
-  //and function names being processes at a moment
-
-  pdstring* currentFunctionName = NULL;
-  Address currentFunctionBase = 0;
-  pdstring* currentSourceFile = NULL;
-  pdstring* absoluteDirectory = NULL;
-  FunctionInfo* currentFuncInfo = NULL;
-  FileLineInformation* currentFileInfo = NULL;
-
-  for(i=0;i<stab_nsyms;i++){
-    // if (stabstrs) printf("parsing #%d, %s\n", stabptr[i].type, &stabstrs[stabptr[i].name]);
-    switch(stabptr[i].type){
-
-    case N_UNDF: /* start of object file */
-	    /* value contains offset of the next string table for next module */
-	    // assert(stabptr[i].name == 1);
-	    stabstrs = stabstr_nextoffset;
-	    stabstr_nextoffset = (char*)stabstrs + stabptr[i].val;
-
-	    //N_UNDF is the start of object file. It is time to 
-	    //clean source file name at this moment.
-	    if(currentSourceFile){
-	  	delete currentSourceFile;
-		currentSourceFile = NULL;
-		delete absoluteDirectory;
-		absoluteDirectory = NULL;
-		currentFileInfo = NULL;
-		currentFuncInfo = NULL;
-	    }
-	    break;
-
-    case N_SO: /* compilation source or file name */
-      /* printf("Resetting CURRENT FUNCTION NAME FOR NEXT OBJECT FILE\n");*/
-#ifdef TIMED_PARSE
-      src_count++;
-      gettimeofday(&t1, NULL);
-#endif
-            current_func_name = NULL; // reset for next object file
-            current_mangled_func_name = NULL; // reset for next object file
-	    current_func = NULL;
-
-	    //  JAW -- not sure we need this block here
-            modName = (char*)(&stabstrs[stabptr[i].name]);
-            ptr = strrchr(modName, '/');
-            if (ptr) {
-                ptr++;
-		modName = ptr;
-	    }
-
-	    if (!strcmp(modName, mod->fileName().c_str())) 
-	      parseActive = true;
-	    else
-	      parseActive = false;
-	    //time to create the source file name to be used
-	    //for latter processing of line information
-	    if(!currentSourceFile){
-		currentSourceFile = new pdstring(&stabstrs[stabptr[i].name]);
-	    	absoluteDirectory = new pdstring(*currentSourceFile);
-	    }
-	    else if(!strlen(&stabstrs[stabptr[i].name])){
-		delete currentSourceFile;
-		currentSourceFile = NULL;
-		delete absoluteDirectory;
-		absoluteDirectory = NULL;
-	    }
-	    else
-		*currentSourceFile += &stabstrs[stabptr[i].name];
-
-	    currentSourceFile = processDirectories(currentSourceFile);
- 
-
-#ifdef TIMED_PARSE
-	    gettimeofday(&t2, NULL);
-	    src_dur += (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0;
-	    //src_dur += (t2.tv_sec/1000 + t2.tv_usec*1000) - (t1.tv_sec/1000 + t1.tv_usec*1000) ;
-#endif
-           break;
-    default:
-      break;
-    }
-
-    if( parseActive || mod->isShared())
-      switch(stabptr[i].type){
-      case N_SOL:
-#ifdef TIMED_PARSE
-	sol_count++;
-	gettimeofday(&t1, NULL);
-#endif
-	if(absoluteDirectory){
-	  const char* newSuffix = &stabstrs[stabptr[i].name];
-	  if(newSuffix[0] == '/'){
-	    delete currentSourceFile;
-	    currentSourceFile = new   pdstring;
-	  }
-	  else{
-	    char* tmp = new char[absoluteDirectory->length()+1];
-	    strcpy(tmp,absoluteDirectory->c_str());
-	    char* p=strrchr(tmp,'/');
-	    if(p) 
-	      *(++p)='\0';
-	    delete currentSourceFile;
-	    currentSourceFile = new pdstring(tmp);
-	    delete[] tmp;
-	  }
-	  (*currentSourceFile) += newSuffix;
-	  currentSourceFile = processDirectories(currentSourceFile);
-	  if(currentFunctionName)
-	    lineInformation->insertSourceFileName(
-						  *currentFunctionName,
-						  *currentSourceFile,
-						  &currentFileInfo,&currentFuncInfo);
-	}
-	else{
-	  currentSourceFile = new pdstring(&stabstrs[stabptr[i].name]);
-	  currentSourceFile = processDirectories(currentSourceFile);
-	  if(currentFunctionName)
-	    lineInformation->insertSourceFileName(
-						  *currentFunctionName,
-						  *currentSourceFile,
-						  &currentFileInfo,&currentFuncInfo);
-	}
-#ifdef TIMED_PARSE
-	gettimeofday(&t2, NULL);
-	sol_dur += (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0;
-	//sol_dur += (t2.tv_sec/1000 + t2.tv_usec*1000) - (t1.tv_sec/1000 + t1.tv_usec*1000); 
-#endif
-	break;
-      case N_SLINE:
-#ifdef TIMED_PARSE
-	sline_count++;
-	gettimeofday(&t1, NULL);
-#endif
-	//if the stab information is a line information
-	//then insert an entry to the line info object
-	if(!currentFunctionName) break;
-	if(currentFileInfo)
-	  currentFileInfo->insertLineAddress(currentFuncInfo,
-					     stabptr[i].desc,
-					     stabptr[i].val+currentFunctionBase);
-#ifdef TIMED_PARSE
-	gettimeofday(&t2, NULL);
-	sline_dur += (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0;
-	//sline_dur += (t2.tv_sec/1000 + t2.tv_usec*1000) - (t1.tv_sec/1000 + t1.tv_usec*1000) ;
-#endif
-	break;
-    case N_FUN:
-#ifdef TIMED_PARSE
-      fun_count++;
-      gettimeofday(&t1, NULL);
-#endif
-      current_func = NULL;
-      //if it is a function stab then we have to insert an entry 
-      //to initialize the entries in the line information object
-      int currentEntry = i;
-      int funlen = strlen(&stabstrs[stabptr[currentEntry].name]);
-      ptr = new char[funlen+1];
-      strcpy(ptr,(const char *)&stabstrs[stabptr[currentEntry].name]);
-      while(strlen(ptr) != 0 && ptr[strlen(ptr)-1] == '\\'){
-	ptr[strlen(ptr)-1] = '\0';
-	currentEntry++;
-	strcat(ptr,(const char *)&stabstrs[stabptr[currentEntry].name]);
-      }
-      
-      char* colonPtr = NULL;
-      if(currentFunctionName) delete currentFunctionName;
-      if(!ptr || !(colonPtr = strchr(ptr,':')))
-	currentFunctionName = NULL;
-      else {
-	char* tmp = new char[colonPtr-ptr+1];
-	strncpy(tmp,ptr,colonPtr-ptr);
-	tmp[colonPtr-ptr] = '\0';
-	currentFunctionName = new pdstring(tmp);
-	
-	currentFunctionBase = 0;
-	Symbol info;
-	if (!proc->getSymbolInfo(*currentFunctionName,
-				 info,currentFunctionBase))
-	  {
-	    pdstring fortranName = *currentFunctionName + pdstring("_");
-	    if (proc->getSymbolInfo(fortranName,info,
-				    currentFunctionBase))
-	      {
-		delete currentFunctionName;
-		currentFunctionName = new pdstring(fortranName);
-	      }
-	  }
-	
-	currentFunctionBase += info.addr();
-	
-	delete[] tmp;		
-	if(currentSourceFile)
-	  lineInformation->insertSourceFileName(
-						*currentFunctionName,
-						*currentSourceFile,
-						&currentFileInfo,&currentFuncInfo);
-      }
-      delete[] ptr;
-#ifdef TIMED_PARSE
-      gettimeofday(&t2, NULL);
-      fun_dur += (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0;
-      //fun_dur += (t2.tv_sec/1000 + t2.tv_usec*1000) - (t1.tv_sec/1000 + t1.tv_usec*1000);
-#endif
-      break;
-      }
-  }
-
-  lineInformation->cleanEmptyFunctions();
-
-#if defined(TIMED_PARSE)
-  struct timeval endtime;
-  gettimeofday(&endtime, NULL);
-  unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
-  unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
-  unsigned long difftime = lendtime - lstarttime;
-  double dursecs = difftime/(1000 );
-  cout << __FILE__ << ":" << __LINE__ <<": parseTypes("<< mod->fileName()
-       <<") took "<<dursecs <<" msecs" << endl;
-  cout << "Breakdown:" << endl;
-  cout << "     Functions: " << fun_count << " took " << fun_dur << "msec" << endl;
-  cout << "     Sources: " << src_count << " took " << src_dur << "msec" << endl;
-  cout << "     SOL?s: " << sol_count << " took " << sol_dur << "msec" << endl;
-  cout << "     Sliness: " << sline_count << " took " << sline_dur << "msec" << endl;
-  cout << "     Total: " << sline_dur + sol_dur + fun_dur + src_dur 
-       << " msec" << endl;
-  //lineInformation->print();
-  cout << "Max addr per line = " << max_addr_per_line << ".  Max line per addr = "
-       << max_line_per_addr << endl;
-#endif
-}
-#endif //!rs6k
 #endif //end of #if defined(i386_unknown_linux2_0)
 
 // Parsing symbol table for Alpha platform
@@ -1410,9 +973,9 @@ void BPatch_module::parseTypes()
   // with BPatch_functions
   this->BPfuncs = this->getProcedures();
 
-  assert(lineInformation);
+  assert(mod->lineInformation);
 
-  parseCoff(this, file, mod->fileName(),lineInformation);
+  parseCoff(this, file, mod->fileName(),mod->lineInformation);
 }
 
 #endif
@@ -1475,7 +1038,7 @@ void BPatch_module::parseTypes()
 	CodeView* cv = new CodeView( (const char*)pCodeViewSymbols, 
 					textSectionId );
 
-	cv->CreateTypeAndLineInfo(this, modBaseAddr, lineInformation);
+	cv->CreateTypeAndLineInfo(this, modBaseAddr, mod->lineInformation);
   }
 }
 #endif
@@ -1513,13 +1076,13 @@ bool BPatch_module::getLineToAddr(unsigned short lineNo,
 
 	//if the line information is not created yet return false
 
-	if(!lineInformation){
+	if(!mod->lineInformation){
 #if !defined(rs6000_ibm_aix4_1) && \
     !defined(mips_sgi_irix6_4) && \
     !defined(alpha_dec_osf4_0) && \
     !defined(i386_unknown_nt4_0)  
 
-	  parseFileLineInfo();
+	  mod->parseFileLineInfo(proc);
 #else
 	  cerr << __FILE__ << ":" << __LINE__ << ": lineInfo == NULL" << endl;
 	  return false;
@@ -1528,7 +1091,7 @@ bool BPatch_module::getLineToAddr(unsigned short lineNo,
 	
 	//query the line info object to get set of addresses if it exists.
 	BPatch_Set<Address> addresses;
-	if(!lineInformation->getAddrFromLine(addresses,lineNo,exactMatch)) {
+	if(!mod->lineInformation->getAddrFromLine(addresses,lineNo,exactMatch)) {
 	  //cerr << __FILE__ << __LINE__ << ":  getAddrFromLine failed!" << endl;
 		return false;
 	}
@@ -1542,18 +1105,8 @@ bool BPatch_module::getLineToAddr(unsigned short lineNo,
 }
 
 
-
 LineInformation* BPatch_module::getLineInformation(){
-  
-#if !defined(rs6000_ibm_aix4_1) && \
-    !defined(mips_sgi_irix6_4) && \
-    !defined(alpha_dec_osf4_0) && \
-    !defined(i386_unknown_nt4_0)  
-  if (!lineInformation) parseFileLineInfo();
-#endif
-  if (!lineInformation)
-    cerr << __FILE__ << ":" << __LINE__ << ": lineInfo == NULL" << endl;
-  return lineInformation;	
+   return this->mod->getLineInformation(this->proc);
 }
 
 bool BPatch_module::isSharedLib() const {
