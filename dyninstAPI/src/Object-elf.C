@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.64 2004/03/29 23:42:20 mirg Exp $
+ * $Id: Object-elf.C,v 1.65 2004/03/31 20:37:17 tlmiller Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -1475,7 +1475,7 @@ void pd_dwarf_handler(Dwarf_Error error, Dwarf_Ptr userData)
 Dwarf_Signed declFileNo = 0;
 char ** declFileNoToName = NULL;
 void fixSymbolsInModule( Dwarf_Debug dbg, pdstring & moduleName, Dwarf_Die dieEntry, dictionary_hash< pdstring, Symbol > & symbols, dictionary_hash< Address, pdstring > & symbolNamesByAddr ) {
-	Dwarf_Half dieTag;
+	start: Dwarf_Half dieTag;
 	int status = dwarf_tag( dieEntry, & dieTag, NULL );
 	assert( status == DW_DLV_OK );
 
@@ -1622,8 +1622,8 @@ void fixSymbolsInModule( Dwarf_Debug dbg, pdstring & moduleName, Dwarf_Die dieEn
 					assert( status != DW_DLV_ERROR );
 
 					if( status == DW_DLV_OK ) {
-						Dwarf_Signed fileNo;
-						status = dwarf_formsdata( fileNoAttribute, & fileNo, NULL );
+						Dwarf_Unsigned fileNo;
+						status = dwarf_formudata( fileNoAttribute, & fileNo, NULL );
 						assert( status == DW_DLV_OK );
 
 						useModuleName = declFileNoToName[ fileNo - 1];
@@ -1703,19 +1703,22 @@ void fixSymbolsInModule( Dwarf_Debug dbg, pdstring & moduleName, Dwarf_Die dieEn
 
 	/* Recurse to its child, if any. */
 	Dwarf_Die childDwarf;
-        status = dwarf_child( dieEntry, & childDwarf, NULL );
-        assert( status != DW_DLV_ERROR );
-        if( status == DW_DLV_OK ) {
-                fixSymbolsInModule( dbg, moduleName, childDwarf, symbols, symbolNamesByAddr );
-                }
+	status = dwarf_child( dieEntry, & childDwarf, NULL );
+	assert( status != DW_DLV_ERROR );
+	if( status == DW_DLV_OK ) {
+		fixSymbolsInModule( dbg, moduleName, childDwarf, symbols, symbolNamesByAddr );
+		}
 
 	/* Recurse to its sibling, if any. */
 	Dwarf_Die siblingDwarf;
 	status = dwarf_siblingof( dbg, dieEntry, & siblingDwarf, NULL );
-        assert( status != DW_DLV_ERROR );
+	assert( status != DW_DLV_ERROR );
 	if( status == DW_DLV_OK ) {
-		fixSymbolsInModule( dbg, moduleName, siblingDwarf, symbols, symbolNamesByAddr );
-                }
+		/* Force tail-recursion to avoid stack overflows. */
+		dieEntry = siblingDwarf;
+		goto start;
+		// fixSymbolsInModule( dbg, moduleName, siblingDwarf, symbols, symbolNamesByAddr );		
+		}
 	} /* end fixSymbolsInModule */
 
 void fixSymbolsInModuleByRange(pdstring &moduleName,
