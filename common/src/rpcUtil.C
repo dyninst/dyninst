@@ -1,6 +1,10 @@
 /*
  * $Log: rpcUtil.C,v $
- * Revision 1.33  1994/09/27 22:28:46  jcargill
+ * Revision 1.34  1994/11/06 09:51:03  newhall
+ * added error checking, especially the handshaking when paradyn starts up
+ * paradynd.
+ *
+ * Revision 1.33  1994/09/27  22:28:46  jcargill
  * Moved the rexec prototype inside the extern C part
  *
  * Revision 1.32  1994/09/27  19:23:05  jcargill
@@ -145,8 +149,7 @@ int rexec(char **ahost, u_short inport, const char *user, const char *passwd,
 #endif
 
 
-
-#define RSH_COMMAND	"rsh"
+const char *RSH_COMMAND="rsh";
 
 tunableBooleanConstant useRexec(FALSE, NULL, userConstant, "useRexec",
     "Use rsedc instead of rsh to establish connection to daemon");
@@ -521,6 +524,11 @@ int handleRemoteConnect(int &pid, int fd, int portFd)
     char line[256];
 
     pfp = fdopen(fd, "r");
+    if (pfp == NULL) {
+       cerr << "handleRemoteConnect: fdopen of fd " << fd << " failed." << endl;
+       return -1;
+    }
+
     do {
 	ret = fgets(line, sizeof(line)-1, pfp);
 	if (ret && !strncmp(line, "PARADYND", strlen("PARADYND"))) {
@@ -549,6 +557,7 @@ int rshCommand(int &pid, const char *hostName, const char *userName,
     char **curr;
     int shellPid;
     char *paradyndCommand;
+    int ret;
 
     total = strlen(command) + 2;
     for (curr = arg_list; *curr; curr++) {
@@ -572,15 +581,17 @@ int rshCommand(int &pid, const char *hostName, const char *userName,
     shellPid = vfork();
     if (shellPid == 0) {
 	/* child */
-	dup2(fd[1], 1);                         /* copy it onto stdout */
-	close(fd[0]);
-	close(fd[1]);
+	assert(-1 != dup2(fd[1], 1)); /* copy it onto stdout */
+	assert(-1 != close(fd[0]));
+	assert(-1 != close(fd[1]));
 	if (userName) {
-	    execlp(RSH_COMMAND, RSH_COMMAND, hostName, "-l", 
-		userName, "-n", paradyndCommand, "-l0", NULL);
+	    ret = execlp(RSH_COMMAND, RSH_COMMAND, hostName, "-l", 
+			 userName, "-n", paradyndCommand, "-l0", NULL);
+            fprintf(stderr,"rshCommand: execlp failed (ret = %d)\n",ret);
 	} else {
-	    execlp(RSH_COMMAND, RSH_COMMAND, hostName, "-n", 
-		paradyndCommand, "-l0", NULL);
+	    ret = execlp(RSH_COMMAND, RSH_COMMAND, hostName, "-n", 
+			 paradyndCommand, "-l0", NULL);
+            fprintf(stderr,"rshCommand: execlp failed (ret = %d)\n",ret);
 	}
 	_exit(-1);
     } else if (shellPid > 0) {
@@ -650,8 +661,7 @@ int RPCprocessCreate(int &pid, const char *hostName, const char *userName,
     return(ret);
   }
 
-int
-RPC_getConnect(int fd)
+int RPC_getConnect(int fd)
 {
   int clilen;
   struct in_addr cli_addr;
