@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.136 2002/03/19 22:57:22 jaw Exp $
+// $Id: symtab.C,v 1.137 2002/04/01 20:06:07 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -234,7 +234,7 @@ bool image::newFunc(pdmodule *mod, const string &name,
 
   func = new pd_Function(name, demangled, mod, addr, size, this, err);
   assert(func);
-  //cout << name << " pretty: " << demangled << " addr :" << addr <<endl;
+
   // if there was an error in determining the instrumentation info for
   //  function, add it to notInstruFunction.
   if (err) {
@@ -242,7 +242,6 @@ bool image::newFunc(pdmodule *mod, const string &name,
     addNotInstruFunc(func, mod);
     return false;
   }
- 
   addInstruFunction(func, mod, addr,
 #ifdef BPATCH_LIBRARY
 		    false);
@@ -1459,21 +1458,21 @@ void pdmodule::checkAllCallPoints() {
 function_base *pdmodule::findFunctionFromAll(const string &name) {
   unsigned fsize = funcs.size();
   unsigned f;
-  for (f=0; f<fsize; f++) {
-    if (funcs[f]->symTabName() == name)
-      return funcs[f];
-    else if (funcs[f]->prettyName() == name)
-      return funcs[f];
-  }
-
+  function_base *func;
+  if ( (func = findFunction(name)))
+    return func;
+  
   fsize = notInstruFuncs.size();
   for (f=0; f<fsize; f++) {
-    if (notInstruFuncs[f]->symTabName() == name)
-      return notInstruFuncs[f];
-    else if (notInstruFuncs[f]->prettyName() == name)
-      return notInstruFuncs[f];
+    vector<string> funcNames = notInstruFuncs[f]->symTabNameVector();
+    for (unsigned i = 0; i < funcNames.size(); i++)
+      if (funcNames[i] == name)
+	return notInstruFuncs[f];
+    funcNames = notInstruFuncs[f]->prettyNameVector();
+    for (unsigned j = 0; j < funcNames.size(); j++)
+      if (funcNames[j] == name)
+	return notInstruFuncs[f];
   }
-
   return NULL;
 }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.h,v 1.105 2002/02/11 22:02:26 tlmiller Exp $
+// $Id: symtab.h,v 1.106 2002/04/01 20:06:08 bernat Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -1049,13 +1049,19 @@ inline bool lineDict::getLineAddr (const unsigned line, Address &adr) {
 }
 
 inline function_base *pdmodule::findFunction (const string &name) {
-  unsigned fsize = funcs.size();
-  for (unsigned f=0; f<fsize; f++) {
-    if (funcs[f]->symTabName() == name)
-      return funcs[f];
-    else if (funcs[f]->prettyName() == name)
-      return funcs[f];
+  unsigned f;
+  
+  for (f=0; f<funcs.size(); f++) {
+    vector<string> funcNames = funcs[f]->symTabNameVector();
+    for (unsigned i = 0; i < funcNames.size(); i++)
+      if (funcNames[i] == name)
+	return funcs[f];
+    funcNames = funcs[f]->prettyNameVector();
+    for (unsigned j = 0; j < funcNames.size(); j++)
+      if (funcNames[j] == name)
+	return funcs[f];
   }
+
   return NULL;
 }
 
