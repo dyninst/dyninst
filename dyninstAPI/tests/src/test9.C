@@ -1,4 +1,4 @@
-// $Id: test9.C,v 1.6 2003/09/11 18:20:54 chadd Exp $
+// $Id: test9.C,v 1.7 2004/01/19 21:55:25 schendel Exp $
 //
 // libdyninst validation suite test #9
 //    Author: Chadd Williams (30 jun 2003) 
@@ -21,6 +21,7 @@
 #include <ctype.h>
 #include <assert.h>
 #include <unistd.h>
+#include <stdarg.h>
 
 #if defined(i386_unknown_linux2_0) || defined (sparc_sun_solaris2_4)
 #include <sys/types.h>
