@@ -7,7 +7,10 @@
  * parser.h
  *
  * $Log: parser.h,v $
- * Revision 1.1  1994/01/27 20:31:33  hollings
+ * Revision 1.2  1994/09/22 02:19:28  markc
+ * Changed names for resource classes
+ *
+ * Revision 1.1  1994/01/27  20:31:33  hollings
  * Iinital version of paradynd speaking dynRPC igend protocol.
  *
  * Revision 1.2  1993/10/19  15:27:54  hollings
@@ -23,8 +26,8 @@ struct parseStack {
     int                 i;
     double              f;
     char                *cp;
-    resource		r;
-    resourceList	rl;
+    resource		*r;
+    resourceListRec	*rl;
     opCode		op;
     AstNode		*ast;
     dataReqNode		*dp;
