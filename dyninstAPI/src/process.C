@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.421 2003/05/08 18:12:31 pcroth Exp $
+// $Id: process.C,v 1.422 2003/05/08 23:48:57 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -5804,7 +5804,6 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
       getLibAndFunc(req->func, lib_name, func_name);
       
       if ((lib_name != "*") && (lib_name != "")) {
-	cerr << "about to find only one function in "<<lib_name << endl;
 	function_base *func2 = static_cast<function_base *>(findOnlyOneFunction(req->func));
         if(func2 != NULL)
            matchingFuncs.push_back(func2);
