@@ -307,7 +307,8 @@ void relocateInstruction(instruction *insn, u_int origAddr, u_int targetAddr,
 	// heap for a call instruction to branch target.  The base tramp 
 	// will branch to this new inferior heap code, which will call the
 	// target of the branch
-	if (ABS(newOffset) > getMaxBranch1Insn()) {
+	if (!offsetWithinRangeOfBranchInsn(newOffset)) {
+//	if (ABS(newOffset) > getMaxBranch1Insn()) {
 	    int ret = inferiorMalloc(proc,3*sizeof(instruction), textHeap);
 	    u_int old_offset = insn->branch.disp22 << 2;
 	    insn->branch.disp22  = (ret - targetAddr)>>2;
@@ -583,6 +584,7 @@ trampTemplate *installBaseTrampSpecial(const instPoint *&location,
 		// instruction here 
                 assert(location->branchTarget);
                 int disp = location->branchTarget - currAddr;
+
                 generateBranchInsn(temp, disp);
                 disp = temp->branch.disp22;
                 continue;
@@ -678,6 +680,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 	    // Install Base Tramp for the functions which are 
 	    // relocated to the heap.
             vector<instruction> extra_instrs;
+
 	    ret = installBaseTrampSpecial(location, proc,extra_instrs);
 
             // add a branch from relocated function to the base tramp
@@ -1641,7 +1644,7 @@ bool pdFunction::findNewInstPoints(const image *owner,
    point->relocated_ = true;
    // if location was the entry point then change location's value to new pt
    if(location == funcEntry_) { 
-	location = point; 
+	location = point;
    }
 
    reloc_info->addFuncEntry(point);
@@ -1676,7 +1679,7 @@ bool pdFunction::findNewInstPoints(const image *owner,
        point->relocated_ = true;
        // if location was this point, change it to new point
        if(location == funcReturns[retId]) { 
-	   location = point; 
+	   location = point;
        }
        retId++;
        reloc_info->addFuncReturn(point);
@@ -1685,8 +1688,12 @@ bool pdFunction::findNewInstPoints(const image *owner,
        // find if this branch is going out of the function
        int disp = instr.branch.disp22;
        Address target = adr + baseAddress + (disp << 2);
+
+       // getAddress(0) gives the addr of the fn before it's relocated
        if ((target < (getAddress(0) + baseAddress)) 
 	   || (target >= (getAddress(0) + baseAddress + size()))) {
+	   // the original branch went out of the function...
+
 	   relocateInstruction(&newInstr[i],adr+baseAddress,newAdr,proc);
 	   instPoint *point = new instPoint(this, newInstr[i], owner, 
 					    newAdr, false, 

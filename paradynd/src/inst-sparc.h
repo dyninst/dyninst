@@ -161,10 +161,35 @@ inline unsigned getMaxBranch3Insn() {
    // probably returning ~0 would be better, since there's no limit
 }
 
-inline unsigned getMaxBranch1Insn() {
-   // The length we can branch using just 1 instruction is dictated by the
-   // sparc instruction set.
-   return (0x1 << 23);
+//inline unsigned getMaxBranch1Insn() {
+//   // The length we can branch using just 1 instruction is dictated by the
+//   // sparc instruction set.
+//   return (0x1 << 23);
+//}
+
+inline bool offsetWithinRangeOfBranchInsn(int offset) {
+   // The pc-relative offset range which we can branch to with a single sparc
+   // branch instruction is dictated by the sparc instruction set.
+   // There are 22 bits available...however, you really get 2 extra bits
+   // because the CPU multiplies the 22-bit signed offset by 4.
+   // The only downside is that the offset must be a multiple of 4, which we check.
+   unsigned abs_offset = ABS(offset);
+   assert(abs_offset % 4 == 0);
+
+   // divide by 4.  After the divide, the result must fit in 22 bits.
+   offset /= 4;
+
+   const int INT22_MAX = 0x1FFFFF; // low 21 bits all 1's, the high bit (#22) is 0
+   const int INT22_MIN = -(INT22_MAX+1); // in 2's comp, negative numbers get 1 extra value
+   assert(INT22_MAX > 0);
+   assert(INT22_MIN < 0);
+
+   if (offset < INT22_MIN)
+      return false;
+   else if (offset > INT22_MAX)
+      return false;
+   else
+      return true;
 }
 
 
@@ -179,10 +204,12 @@ inline void generateNOOP(instruction *insn)
 
 inline void generateBranchInsn(instruction *insn, int offset)
 {
-    if (ABS(offset) > getMaxBranch1Insn()) {
-	logLine("a Ranch too far\n");
+    if (!offsetWithinRangeOfBranchInsn(offset)) {
+        char buffer[100];
+	sprintf(buffer, "a Ranch too far; offset=%d\n", offset);
+	logLine(buffer);
 	//showErrorCallback(52, "");
-	//abort();
+	assert(false && "a Ranch too far");
 	return;
     }
 
@@ -216,8 +243,11 @@ inline void generateJmplInsn(instruction *insn, int rs1, int offset, int rd)
 
 inline void genBranch(instruction *insn, int offset, unsigned condition, bool annul)
 {
-    if (ABS(offset) > getMaxBranch1Insn()) {
-	logLine("a branch too far\n");
+//    if (ABS(offset) > getMaxBranch1Insn()) {
+    if (!offsetWithinRangeOfBranchInsn(offset)) {
+        char buffer[80];
+	sprintf(buffer, "a branch too far, offset=%d\n", offset);
+	logLine(buffer);
 	showErrorCallback(52, "");
 	abort();
     }
