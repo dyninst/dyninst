@@ -268,11 +268,7 @@ void machineMetFocusNode::tryAggregation() {
   sampleInterval aggSample;
 
   while(aggregator.aggregate(&aggSample) == true) {
-    //cerr << "machNode- got an aggregate sample, val: " << aggSample.value 
-    // << "\n";
     if(!sentInitialActualValue()) {
-      //      cerr << "  sending init act value: " 
-      //	   << aggregator.getInitialActualValue() << "\n";
       sendInitialActualValue(aggregator.getInitialActualValue());
     }
     updateWithDeltaValue(aggSample.start, aggSample.end, aggSample.value);
@@ -309,11 +305,11 @@ void machineMetFocusNode::propagateToNewProcess(process *newProcess) {
 
   // do the propagation if the focus is all_machines or it is this machine
   // specifically with no other process defined (a process defined in the
-  // focus wouldn't be the same process as the new process, since it wouldn't
-  // have been around to be selected)
+  // focus wouldn't be the same process as the new process, since the new 
+  // process wouldn't have been around to be selected)
   if(! (node_focus.allMachines() || 
 	(node_focus.get_machine() == this_machine && 
-	                                 !node_focus.process_defined())))  
+	                   !node_focus.process_defined())))  
   {
     return;
   }
@@ -338,4 +334,64 @@ void machineMetFocusNode::propagateToNewProcess(process *newProcess) {
      procNode->initializeForSampling(getWallTime(), pdSample::Zero());
 }
 
+void machineMetFocusNode::setupProcNodeForForkedProcess(
+		      processMetFocusNode *parentProcNode, process *childProc,
+		      vector<processMetFocusNode *> *procNodesToUnfork)
+{
+  processMetFocusNode *childProcNode = 
+    new processMetFocusNode(*parentProcNode, childProc);
+
+  const Focus &node_focus = getFocus();
+  string this_machine = getNetworkName();
+
+  // do the propagation if the focus is all_machines or it is this machine
+  // specifically with no other process defined (a process defined in the
+  // focus wouldn't be the same process as the new process, since the
+  // new process wouldn't have been around to be selected)
+  if(! (node_focus.allMachines() || 
+	(node_focus.get_machine() == this_machine && 
+	                     ! node_focus.process_defined()))) 
+  {
+    // since this metric-focus isn't relevant for this process,
+    // remove the (inherited) instrumentation within the child process
+    // which is associated with this metric-focus
+
+    // we need to do the unForking (ie. instrumentation deletion) after we've
+    // gone through all of the metric-focuses first, because some other
+    // metric-focus might need this instrumentation in there.  If we deleted
+    // it now, we'd have no way to put it back in (since this is a forked
+    // process and we don't have all of the information we have for a freshly
+    // created process).
+    (*procNodesToUnfork).push_back(childProcNode);
+    return;
+  }
+
+  addPart(childProcNode);
+  addCurrentPredictedCost(childProcNode->cost());
+
+  // don't do "childProcNode->insertInstrumentation()" since already 
+  // instrumentation has already been inserted, it was inherited from the
+  // parent process
+
+  // don't have to worry about instrumentation insertion being deferred
+  // since it's already in (ie. been inherited into) the child process
+  childProcNode->initializeForSampling(getWallTime(), pdSample::Zero());
+}
+
+void machineMetFocusNode::propagateToForkedProcess(const process *parentProc,
+						   process *childProc,
+			      vector<processMetFocusNode *> *procNodesToUnfork)
+{
+  // see if this metric-focus needs to be adjusted for this new process
+  if(isInternalMetric()) {
+    return;
+  }
+  // we need to adjust the metric-focuses which will include 
+  for(unsigned i=0; i<procNodes.size(); i++) {
+    if(procNodes[i]->proc()->getPid() != parentProc->getPid()) continue;
+    processMetFocusNode *parentProcNode = procNodes[i];
+    setupProcNodeForForkedProcess(parentProcNode, childProc, 
+				  procNodesToUnfork);
+  }
+}
 
