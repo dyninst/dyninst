@@ -3,7 +3,11 @@
 
 /* 
  * $Log: mdl.C,v $
- * Revision 1.15  1995/12/18 23:27:02  newhall
+ * Revision 1.16  1995/12/26 23:04:16  zhichen
+ * Introduced START_NAME macro; usually set to "main", but paradyndCM5_blz
+ * sets it to init_blk_acc.
+ *
+ * Revision 1.15  1995/12/18  23:27:02  newhall
  * changed metric's units type to have one of three values (normalized,
  * unnormalized, or sampled)
  *
@@ -64,6 +68,14 @@
 #include "util/h/Timer.h"
 #include <strstream.h>
 #include "paradynd/src/mdld.h"
+
+#ifdef paradyndCM5_blizzard
+// START_NAME corresponds some routine with $start of your mdl
+// Usually, main is what you want; blizzard needs something different
+#define START_NAME "init_blk_acc" 
+#else
+#define START_NAME "main"
+#endif
 
 static string daemon_flavor;
 static process *global_proc = NULL;
@@ -359,7 +371,7 @@ static inline bool update_environment(process *proc) {
   mdl_env::set(pdf, vname);
 
   vname = "$start";
-  pdf = proc->symbols->findOneFunction(string("main"));
+  pdf = proc->symbols->findOneFunction(string(START_NAME));
   if (!pdf) return false;
   mdl_env::add(vname, false, MDL_T_PROCEDURE);
   mdl_env::set(pdf, vname);
