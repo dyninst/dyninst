@@ -45,6 +45,9 @@
  * class PCsearch
  *
  * $Log: PCsearch.C,v $
+ * Revision 1.25  1997/03/29 02:05:04  sec
+ * Adding some debugging stuff
+ *
  * Revision 1.24  1997/03/16 23:17:46  lzheng
  * Changes made for the value of observed cost
  *
@@ -174,7 +177,9 @@ PCsearch::expandSearch (sampleValue estimatedCost)
     curr = q->peek_first_data();
     candidateCost = curr->getEstimatedCost();
 #ifdef PCDEBUG
-    cout << " considering node with cost: " << candidateCost << endl;
+    cout << " considering node with cost: " << candidateCost
+         << " name = " << curr->getHypoName() << endl;
+//    cout << " considering node with cost: " << candidateCost << endl;
 #endif
     sampleValue predMax = performanceConsultant::predictedCostLimit;
     if (1/(1-candidateCost) > predMax) {
