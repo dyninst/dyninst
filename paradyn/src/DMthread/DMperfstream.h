@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMperfstream.h,v 1.18 1999/12/01 14:41:43 zhichen Exp $
+// $Id: DMperfstream.h,v 1.19 2000/07/18 17:10:42 schendel Exp $
 
 #ifndef dmperfstream_H
 #define dmperfstream_H
@@ -110,6 +110,7 @@ class performanceStream {
 				u_int request_Id);
 	perfStreamHandle Handle(){return(handle);}
 	void flushBuffer();   // send data to client thread
+	void signalToFlush();
 	void predictedDataCostCallback(u_int,float,u_int);
 	static void notifyAllChange(appState state);
 	static void ResourceBatchMode(batchMode mode);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.115 2000/01/06 20:19:28 cain Exp $
+// $Id: DMpublic.C,v 1.116 2000/07/18 17:10:42 schendel Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -72,6 +72,12 @@ extern "C" {
 vector<string> paradynDaemon::args = 0;
 extern bool our_print_sample_arrival;
 
+#ifdef SAMPLEVALUE_DEBUG
+debug_ostream sampleVal_cerr(cerr, true);
+#else
+debug_ostream sampleVal_cerr(cerr, false);
+#endif
+
 void histDataCallBack(sampleValue *buckets,
                       timeStamp,
 		      int count,
@@ -82,14 +88,12 @@ void histDataCallBack(sampleValue *buckets,
     metricInstance *mi = (metricInstance *) arg;
     performanceStream *ps = 0;
 
-#ifdef n_def
-    // debug code that uses tunable constant printSampleArrival
-    if (our_print_sample_arrival){
-        cout << "bucket:  " << first << "value: "
-	     << buckets[0] << "   bucketwidth " 
-	     << metricInstance::GetGlobalWidth() <<  endl;
+    if (our_print_sample_arrival || sampleVal_cerr.isOn()){
+      sampleVal_cerr << "histDataCallBack-  bucket:  " << first 
+		     << "  value(1): " << buckets[0] << "  count: " << count 
+		     << "   bucketwidth " << metricInstance::GetGlobalWidth()
+		     <<"\n";
     }
-#endif
 
     if(globalFlag) { 
 	// update global data
@@ -1163,6 +1167,10 @@ void dataManagerUser::newPerfData(sampleDataCallbackFunc func,
 				  u_int num_data_values){
 
     (func)(data, num_data_values);
+}
+
+void dataManagerUser::forceFlush(forceFlushCallbackFunc func){
+    (func)();
 }
 
 // trace data streams

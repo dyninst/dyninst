@@ -1,6 +1,6 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
- * $Id: dataManager.I,v 1.95 2000/01/06 20:19:18 cain Exp $
+ * $Id: dataManager.I,v 1.96 2000/07/18 17:10:19 schendel Exp $
  */
 
 #ifndef MMTHREAD_H
@@ -113,6 +113,8 @@ typedef void (*newPhaseCallback)(perfStreamHandle handle,
 				 bool with_new_pc,
 				 bool with_visis); 
 
+typedef void (*forceFlushCallbackFunc)();
+
 /*
  * Handler that gets called when there is a response to a 
  * getPredictedDataCost call 
@@ -145,6 +147,7 @@ struct controlCallback {
     newPhaseCallback	        pFunc;
     predDataCostCallbackFunc    cFunc;
     enableDataCallbackFunc	eFunc;
+    forceFlushCallbackFunc      flFunc;
 };
 
 typedef struct controlCallback controlCallback;
@@ -700,6 +703,7 @@ $remote dataManager {
     				           vector<metricInstInfo> *response,
 					   u_int request_id);
 
+    $upcall $async void forceFlush(forceFlushCallbackFunc func);
 
     $upcall $async void histFold(histFoldCallback, 
 				 perfStreamHandle, 

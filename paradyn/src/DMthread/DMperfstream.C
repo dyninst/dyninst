@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMperfstream.C,v 1.26 1999/12/01 14:41:43 zhichen Exp $
+// $Id: DMperfstream.C,v 1.27 2000/07/18 17:10:42 schendel Exp $
 
 #include <assert.h>
 #include <limits.h>     // UINT_MAX
@@ -54,6 +54,7 @@ double   quiet_nan();
 #include "paradyn/src/DMthread/BufferPool.h"
 #include "paradyn/src/DMthread/DVbufferpool.h"
 
+extern debug_ostream sampleVal_cerr;
 
 performanceStream::performanceStream(dataType t, 
 				     dataCallback dc, 
@@ -118,16 +119,27 @@ bool performanceStream::reallocTraceBuffer(){
 // send buffer of data values to client
 //
 void performanceStream::flushBuffer(){
-
+  sampleVal_cerr << "performanceStream::flushBuffer"; 
     // send data to client
     if(next_buffer_loc){
+      sampleVal_cerr << "  -  flushing\n";
 	assert(my_buffer);
 	dataManager::dm->setTid(threadId);
         dataManager::dm->newPerfData(dataFunc.sample, 
 				     my_buffer, next_buffer_loc);
-    }
+    } else sampleVal_cerr << " - not flushing\n";
+
     next_buffer_loc = 0;
     my_buffer = 0;
+}
+
+//
+// flushes both the performance stream and visi thread buffers
+//
+void performanceStream::signalToFlush() {
+    sampleVal_cerr << "performanceStream::signalToFlush\n";
+    dataManager::dm->setTid(threadId);
+    dataManager::dm->forceFlush(controlFunc.flFunc);
 }
 
 //
@@ -156,7 +168,11 @@ void performanceStream::callSampleFunc(metricInstanceHandle mi,
 				       int first,
 				       phaseType type)
 {
+  sampleVal_cerr << "performanceStream::callSampleFunc\n";
+
     if (dataFunc.sample) {
+      sampleVal_cerr << "dataFunc.sample, first: " << first << "  count: " 
+		     << count << "\n";
 	for(int i = first; i < (first+count); i++) {
 	    if(!my_buffer) {
 	         if (!this->reallocBuffer()) assert(0);	
@@ -387,8 +403,8 @@ void performanceStream::addTraceUser(perfStreamHandle p){
 // if my_buffer has data values, flush it, then decrease its size
 //
 void performanceStream::removeGlobalUser(perfStreamHandle p){
-
     performanceStream *ps = performanceStream::find(p); 
+    sampleVal_cerr << "performanceStream::removeGlobalUser - " << ps << "\n";
     if(!ps) return;
     if(ps->next_buffer_loc && ps->my_buffer){
         ps->flushBuffer();
@@ -410,8 +426,8 @@ void performanceStream::removeGlobalUser(perfStreamHandle p){
 // if my_buffer has data values, flush it, then decrease its size
 //
 void performanceStream::removeCurrentUser(perfStreamHandle p){
-
     performanceStream *ps = performanceStream::find(p); 
+    sampleVal_cerr << "performanceStream::removeCurrentUser - " << ps << "\n";
     if(!ps) return;
     if(ps->next_buffer_loc && ps->my_buffer){
         ps->flushBuffer();
