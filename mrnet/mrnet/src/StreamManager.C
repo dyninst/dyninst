@@ -4,7 +4,9 @@
 
 MC_StreamManager::MC_StreamManager(int sid, int fid,
 		   std::list <MC_RemoteNode *> &_downstream)
-  :stream_id(sid), downstream_nodes(_downstream)
+  : stream_id(sid),
+    upstream_node( NULL ),
+    downstream_nodes(_downstream)
 {
   aggregator = (MC_Filter *) new MC_Aggregator(fid);
   sync = (MC_Filter *) new MC_Synchronizer(SYNC_WAITFORALL, downstream_nodes);
