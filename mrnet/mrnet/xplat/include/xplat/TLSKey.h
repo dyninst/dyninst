@@ -3,10 +3,11 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: TLSKey.h,v 1.3 2004/05/17 00:50:50 pcroth Exp $
+// $Id: TLSKey.h,v 1.4 2005/04/04 03:56:50 darnold Exp $
 #ifndef XPLAT_TLSKEY_H
 #define XPLAT_TLSKEY_H
 
+#include "xplat/Monitor.h"
 namespace XPlat
 {
 
@@ -24,13 +25,27 @@ public:
 
 private:
     Data* data;
+    mutable XPlat::Monitor data_sync;
 
 public:
     TLSKey( void );
-    virtual ~TLSKey( void )         { delete data; }
-
-    virtual void* Get( void ) const { return data->Get(); }
-    virtual int Set( void* val )    { return data->Set( val ); }
+    virtual ~TLSKey( void ) {
+        data_sync.Lock();
+        delete data;
+        data_sync.Unlock();
+    }
+    virtual void* Get( void ) const {
+        data_sync.Lock();
+        void * ret = data->Get();
+        data_sync.Unlock();
+        return ret;
+    }
+    virtual int Set( void* val ) {
+        data_sync.Lock();
+        int ret = data->Set( val );
+        data_sync.Unlock();
+        return ret;
+    }
 };
 
 } // namespace XPlat
