@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.159 2005/03/02 19:44:46 bernat Exp $
+// $Id: inst-sparc-solaris.C,v 1.160 2005/03/02 19:58:03 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -3285,7 +3285,6 @@ void int_function::addArbitraryPoint(instPoint* location,
 				    process* proc,
 				    relocatedFuncInfo* reloc_info)
 {
-  fprintf(stderr, ".. addArbitraryPoint\n");
     if(!hasBeenRelocated(proc))
        return;
 
@@ -3300,19 +3299,13 @@ void int_function::addArbitraryPoint(instPoint* location,
     Address imageBaseAddr;
     if (!proc->getBaseAddress(owner,imageBaseAddr))
         abort();
-    fprintf(stderr, "pointAddr 0x%x, getAddr 0x%x, baseAddr 0x%x\n",
-	    location->pointAddr(), getAddress(NULL), imageBaseAddr);
     originalOffset = (location->pointAddr() - getAddress(NULL));
     assert((originalOffset % sizeof(instruction)) == 0);
     Address originalArrayOffset = originalOffset / sizeof(instruction);
-    fprintf(stderr, "Original offset: 0x%x\n", originalOffset);
-    fprintf(stderr, "Original array offset: 0x%x\n", originalArrayOffset);
     newOffset = originalOffset + reloc_info->getAlterationSet().getShift(originalOffset);
     assert((newOffset % sizeof(instruction)) == 0);
     Address newArrayOffset = newOffset / sizeof(instruction);
-    fprintf(stderr, "New offsets: 0x%x/0x%x\n", newOffset, newArrayOffset);
     Address newAdr = reloc_info->get_address() + newOffset;
-    fprintf(stderr, "newAddr: 0x%x\n", newAdr);
     // the inst point wants this relative the the start of the image....
     newAdr -= imageBaseAddr;
     unsigned int orig_id = location->getID();
