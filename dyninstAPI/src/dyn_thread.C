@@ -217,12 +217,19 @@ Frame dyn_thread::getActiveFrame()
 // stackWalk: return parameter.
 bool dyn_thread::walkStack(pdvector<Frame> &stackWalk)
 {
-  // We cheat (a bit): this method is here for transparency, 
-  // but the process class does the work in the walkStackFromFrame
-  // method. We get the active frame and hand off.
-  Frame active = getActiveFrame();
-  
-  return proc->walkStackFromFrame(active, stackWalk);
+    // If we're in an inferior RPC, return the stack walk
+    // from where the process "should" be
+    if (isRunningIRPC()) {
+        stackWalk = cachedStackWalk;
+        return true;
+    }
+    
+    // We cheat (a bit): this method is here for transparency, 
+    // but the process class does the work in the walkStackFromFrame
+    // method. We get the active frame and hand off.
+    Frame active = getActiveFrame();
+    
+    return proc->walkStackFromFrame(active, stackWalk);
 }
 
 dyn_lwp *dyn_thread::get_lwp()
@@ -232,51 +239,237 @@ dyn_lwp *dyn_thread::get_lwp()
   return lwp;
 }
 
-void dyn_thread::scheduleIRPC(inferiorRPCtoDo todo)
+void dyn_thread::postIRPC(inferiorRPCtoDo todo)
 {
-  thrRPCsWaitingToStart += todo;
+    thrRPCsWaitingToStart += todo;
 }
 
-bool dyn_thread::readyIRPC()
+bool dyn_thread::readyIRPC() const
 {
-  return !thrRPCsWaitingToStart.empty();
+    // If we're running an RPC, we're not ready to start one
+    if (isRunningIRPC()) return false;
+
+    return !thrRPCsWaitingToStart.empty();
 }
 
-inferiorRPCtoDo dyn_thread::peekIRPC()
+// wasRunning: once the RPC is finished, leave process paused (false) or running (true)
+irpcLaunchState_t dyn_thread::launchThreadIRPC(bool wasRunning)
 {
-  return thrRPCsWaitingToStart[0];
+    cerr << "Launching thr-specific RPC" << endl;
+    if (!readyIRPC()) {
+        cerr << "No thread IRPC to run" << endl;
+        return irpcNoIRPC;
+    }
+    
+    inferiorRPCtoDo todo = thrRPCsWaitingToStart[0];
+    
+    // There is an RPC to run. Yay.
+    // We pause at a process level
+    assert (proc->status() == stopped);
+
+    // Check if we're in a system call
+    updateLWP();
+    if (lwp->executingSystemCall()) {
+        // Oh, crud. Can't run the iRPC now. Check to see if we'll
+        // be able to do it later with any degree of accuracy
+        if (proc->set_breakpoint_for_syscall_completion()) {
+            // Breakpoints are set at a process level still
+            irpcState_ = irpcWaitingForTrap;
+            // Record what we were doing. When the trap is received
+            // the process will be paused, so we want to be able
+            // to restore _current_ state
+            wasRunningBeforeSyscall_ = wasRunning;
+            irpcState_ = irpcWaitingForTrap;
+            return irpcTrapSet;
+        }
+        else {
+            // Weren't able to set the breakpoint, so all we can
+            // do is try later
+            irpcState_ = irpcNotReadyForIRPC;
+            return irpcAgain;
+        }
+    }
+    // We passed the system call check, so the thread is in a state
+    // where it is possible to run iRPCs.
+
+    struct dyn_saved_regs *theSavedRegs = NULL;
+    // Some platforms save daemon-side, some save process-side (on the stack)
+    if (proc->rpcSavesRegs()) {
+        theSavedRegs = lwp->getRegisters();
+        if (theSavedRegs == (struct dyn_saved_regs *)-1) {
+            // Should only happen if we're in a syscall, which is 
+            // caught above
+            return irpcError;
+        }
+    }
+
+    thrRPCsWaitingToStart.removeOne();
+    
+    // Build the in progress struct
+    thrCurrRunningRPC.thr = this;
+    thrCurrRunningRPC.lwp = lwp;
+    
+    // Copy over state
+    thrCurrRunningRPC.callbackFunc = todo.callbackFunc;
+    thrCurrRunningRPC.userData = todo.userData;
+    thrCurrRunningRPC.savedRegs = theSavedRegs;
+    thrCurrRunningRPC.seq_num = todo.seq_num;
+    
+    thrCurrRunningRPC.wasRunning = wasRunning;
+    
+    Address RPCImage = proc->createRPCImage(todo.action, // AST tree
+                                            todo.noCost,
+                                            (thrCurrRunningRPC.callbackFunc != NULL), // Callback?
+                                            thrCurrRunningRPC.breakAddr, // Fills in 
+                                            thrCurrRunningRPC.stopForResultAddr,
+                                            thrCurrRunningRPC.justAfter_stopForResultAddr,
+                                            thrCurrRunningRPC.resultRegister,
+                                            todo.lowmem, // Where to allocate
+                                            this, // Thread
+                                            lwp,
+                                            false); // Unused: create in function form
+
+    if (RPCImage == 0) {
+        cerr << "launchRPC failed, couldn't create image" << endl;
+        return irpcError;
+    }
+    
+    thrCurrRunningRPC.firstInstrAddr = RPCImage;
+    
+#if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11)
+    // Actually, only need this if a restoreRegisters won't reset
+    // the PC back to the original value
+    Frame curFrame = lwp->getActiveFrame();
+    thrCurrRunningRPC.origPC = curFrame.getPC();
+#endif    
+
+    // Get a copy of the current stack and save it
+    if (!walkStack(cachedStackWalk)) {
+        cerr << "launchRPC failed: failed to obtain stack walk" << endl;
+        return irpcError;
+    }
+    
+    // Launch this sucker. Change the PC, and the caller will set running
+    if (!lwp->changePC(RPCImage, NULL)) {
+        cerr << "launchRPC failed: couldn't set PC" << endl;
+        return irpcError;
+    }
+#if defined(i386_unknown_linux2_0)
+      // handle system call interruption:
+      // if we interupted a system call, this clears the state that
+      // would cause the OS to restart the call when we run the rpc.
+      // if we did not, this is a no-op.
+      // after the rpc, an interrupted system call will
+      // be restarted when we restore the original
+      // registers (restore undoes clearOPC)
+      // note that executingSystemCall is always false on this platform.
+      if (!lwp->clearOPC())
+      {
+         cerr << "launchRPC failed because clearOPC() failed"
+	      << endl;
+         return irpcError;
+      }
+#endif
+      irpcState_ = irpcRunning;
+      return irpcStarted;
 }
 
-inferiorRPCtoDo dyn_thread::popIRPC()
-{
-  inferiorRPCtoDo first;
-  first = thrRPCsWaitingToStart[0];
-  thrRPCsWaitingToStart.removeOne();
-  return first;
+irpcLaunchState_t dyn_thread::launchPendingIRPC() {
+    return launchThreadIRPC(wasRunningBeforeSyscall_);
 }
 
-void dyn_thread::runIRPC(inferiorRPCinProgress running)
-{
-  thrCurrRunningRPC = running;
+bool dyn_thread::isRunningIRPC() const {
+    return (irpcState_ == irpcRunning ||
+            irpcState_ == irpcWaitingForTrap);
 }
 
-void dyn_thread::setRunningIRPC()
+Address dyn_thread::getIRPCRetValAddr()
 {
-  in_IRPC=true;
+    if (irpcState_ != irpcRunning) return 0;
+    return thrCurrRunningRPC.stopForResultAddr;
 }
 
-inferiorRPCinProgress dyn_thread::getIRPC()
-{
-  return thrCurrRunningRPC;
+// Called when an inferior RPC reaches the "grab return value" stage
+bool dyn_thread::handleRetValIRPC() {
+    if (!thrCurrRunningRPC.callbackFunc)
+        return false;
+    Address returnValue = 0;
+    
+    if (thrCurrRunningRPC.resultRegister != Null_Register) {
+        // We have a result that we care about
+        returnValue = lwp->readRegister(thrCurrRunningRPC.resultRegister);
+        // Okay, this bit I don't understand. 
+        // Oh, crud... we should have a register space for each thread.
+        // Or not do this at all. 
+        extern registerSpace *regSpace;
+        regSpace->freeRegister(thrCurrRunningRPC.resultRegister);
+    }
+    thrCurrRunningRPC.resultValue = (void *)returnValue;
+    // we continue the process...but not quite at the PC where we left off, since
+    // that will just re-do the trap!  Instead, we need to continue at the location
+    // of the next instruction.
+    if (!lwp->changePC(thrCurrRunningRPC.justAfter_stopForResultAddr, NULL))
+        assert(false);
+    return true;
 }
 
-void dyn_thread::clearRunningIRPC()
+Address dyn_thread::getIRPCFinishedAddr()
 {
-  in_IRPC = false;
+    if (irpcState_ != irpcRunning) return 0;
+    return thrCurrRunningRPC.breakAddr;
 }
 
-bool dyn_thread::isRunningIRPC()
-{
-  return in_IRPC;
+// False: leave process paused
+// True: run the process
+bool dyn_thread::handleCompletedIRPC() {
+    // step 1) restore registers:
+    // Assumption: LWP has not changed. 
+    if (thrCurrRunningRPC.savedRegs) {
+        if (!lwp->restoreRegisters(thrCurrRunningRPC.savedRegs)) {
+            cerr << "handleTrapIfDueToRPC failed because restoreRegisters failed" << endl;
+            assert(false);
+        }
+        // The above implicitly must restore the PC.
+    }
+    else
+        if (!lwp->changePC(thrCurrRunningRPC.origPC, thrCurrRunningRPC.savedRegs)) 
+            assert(0 && "Failed to reset PC");
+    
+    // step 2) delete temp tramp
+    proc->inferiorFree(thrCurrRunningRPC.firstInstrAddr);
+    
+    // step 3) invoke user callback, if any
+    
+    // save enough information to call the callback function, if needed
+    inferiorRPCcallbackFunc cb = thrCurrRunningRPC.callbackFunc;
+    void* userData = thrCurrRunningRPC.userData;
+    void* resultValue = thrCurrRunningRPC.resultValue;
+
+    // release the RPC struct
+    if (thrCurrRunningRPC.savedRegs) delete thrCurrRunningRPC.savedRegs;
+    
+    irpcState_ = irpcNotRunning;
+    
+    // call the callback function if needed
+    if( cb != NULL ) {
+        (*cb)(proc, userData, resultValue);
+    }
+
+    // Before we continue the process: if there is another RPC,
+    // start it immediately (instead of waiting for an event loop
+    // to do the job)
+    if (readyIRPC()) {
+        irpcLaunchState_t launchState = launchThreadIRPC(thrCurrRunningRPC.wasRunning);
+        if (launchState == irpcStarted) {
+            // Run the process
+            return true;
+        }
+    }
+
+    return (thrCurrRunningRPC.wasRunning);
 }
 
+            
+
+
+  

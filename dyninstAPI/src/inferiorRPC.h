@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: inferiorRPC.h,v 1.4 2002/11/14 20:26:32 bernat Exp $
+/* $Id: inferiorRPC.h,v 1.5 2003/02/21 20:05:57 bernat Exp $
  */
 
 #ifndef _INFERIOR_RPC_H_
@@ -53,6 +53,11 @@ class process;
 class dyn_lwp;
 struct dyn_saved_regs;
 
+// RPC state enumerated type
+typedef enum { irpcNotValid, irpcNotRunning, irpcRunning, irpcWaitingForTrap, irpcNotReadyForIRPC } irpcState_t;
+
+// RPC launch return type
+typedef enum { irpcNoIRPC, irpcStarted, irpcAgain, irpcTrapSet, irpcError } irpcLaunchState_t;
 
 // inferior RPC callback function type
 typedef void(*inferiorRPCcallbackFunc)(process *p, void *data, void *result);
