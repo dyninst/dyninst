@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.212 2002/08/09 21:34:43 bernat Exp $
+/* $Id: process.h,v 1.213 2002/08/12 04:21:26 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -80,14 +80,11 @@
 
 #include "dyninstAPI/src/imageUpdate.h" //ccw 29 oct 2001
 
-#ifdef SHM_SAMPLING
+#ifndef BPATCH_LIBRARY
 #include "paradynd/src/shmSegment.h"
 #include "paradynd/src/shmMgr.h"
 #include "paradynd/src/variableMgr.h"
-#ifdef sparc_sun_sunos4_1_3
-#include <kvm.h>
-#include <sys/user.h>
-#endif
+#include "paradynd/src/sharedMetaData.h"
 #endif
 
 #if defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
@@ -482,6 +479,7 @@ class process {
   int reattach();
   int reattachAndPause();
   int detachAndContinue();
+  bool specialDetachOnFlyContinue();
 #endif /* DETACH_ON_THE_FLY */
 
   bool findInternalSymbol(const string &name, bool warn, internalSym &ret_sym)
@@ -962,9 +960,8 @@ void saveWorldData(Address address, int size, const void* src);
   // This function returns a new process object associated with the child.
   // It also writes to "map" s.t. for each instInstance in the parent, we have
   // the corresponding instInstance in the child.
-#ifdef SHM_SAMPLING
+#ifndef BPATCH_LIBRARY
   static process *forkProcess(const process *parent, pid_t childPid,
-                              dictionary_hash<instInstance*,instInstance*> &map,
                               int iTrace_fd,
                               key_t theKey,
                               void *applAttachedAtPtr);
@@ -972,6 +969,28 @@ void saveWorldData(Address address, int size, const void* src);
   static process *forkProcess(const process *parent, pid_t childPid,
                               dictionary_hash<instInstance*,instInstance*> &map,
                               int iTrace_fd);
+#endif
+
+#if defined(rs6000_ibm_aix4_1)
+  bool gotForkTrapForParent;
+  enum { NoChildForkReceived = 0 };
+  int  childPidWhichReceivedForkTrap;
+  void receivedForkTrapForParent() {  gotForkTrapForParent = true; }
+  void receivedForkTrapForChild(int childPid) {
+    childPidWhichReceivedForkTrap = childPid;
+  }
+  void resetForkTrapData() {
+    gotForkTrapForParent = false;
+    childPidWhichReceivedForkTrap = NoChildForkReceived;
+  }
+  bool readyToCopyInstrToChild(int *childPid) {
+    if(gotForkTrapForParent && 
+       childPidWhichReceivedForkTrap != NoChildForkReceived) {
+      *childPid = childPidWhichReceivedForkTrap;
+      return true;
+    } else
+      return false;
+  }
 #endif
 
   // get and set info. specifying if this is a dynamic executable
@@ -1195,7 +1214,7 @@ void saveWorldData(Address address, int size, const void* src);
   int waitforRPC(int *status,bool block = false);
   Address changedPCvalue;
 #endif
-  const process *getParent() const {return parent;}
+  process *getParent() const {return parent;}
 
 #if defined(hppa1_1_hp_hpux)
   bool freeNotOK;
@@ -1212,22 +1231,21 @@ void saveWorldData(Address address, int size, const void* src);
      return theSharedMemMgr->getHeapTotalNumBytes();
   }
 
-  
+  Address initSharedMetaData();
 
-  Address initSharedData();
-
-  RTsharedData_t RTsharedData;
+  sharedMetaData shmMetaData;
 
   tTimer *getVirtualTimerBase() {
-    return RTsharedData.virtualTimers;
+    return shmMetaData.getVirtualTimers();
   }
 
   void *getObsCostLowAddrInApplicSpace() {
-    void *result = theSharedMemMgr->getAddressInApplic((void *)RTsharedData.observed_cost);
+    void *result = theSharedMemMgr->getAddressInApplic(
+                              (void *)shmMetaData.getObservedCost());
     return result;
   }
   void *getObsCostLowAddrInParadyndSpace() {
-    return (void *)RTsharedData.observed_cost;
+    return (void *)shmMetaData.getObservedCost();
   }
 
   void processCost(unsigned obsCostLow, timeStamp wallTime, 
@@ -1301,7 +1319,7 @@ bool isLoadingParadynLib;
   void *savedRegs;
 
 
-  const process *parent;        /* parent of this process */
+  process *parent;        /* parent of this process */
   image *symbols;               /* information related to the process */
   const image *runtime_lib;           /* shortcut to the runtime library */
   dictionary_hash<const instPoint *, installed_miniTramps_list*> 
@@ -1311,7 +1329,7 @@ bool isLoadingParadynLib;
 
   int pid;                      /* id of this process */
 
-#ifdef SHM_SAMPLING
+#ifndef BPATCH_LIBRARY
   // This is being used to avoid time going backwards in
   // getInferiorProcessCPUtime. We can't use a static variable inside this
   // procedure because there is one previous for each process - naim 5/28/97
@@ -1319,14 +1337,7 @@ bool isLoadingParadynLib;
 
   // New components of the conceptual "inferior heap"
   shmMgr *theSharedMemMgr;
-
   variableMgr *theVariableMgr;
-
-#ifdef sparc_sun_sunos4_1_3
-  kvm_t *kvmHandle;
-  user *childUareaPtr;
-#endif
-
 #endif
 
 public:
@@ -1578,6 +1589,7 @@ Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type=anyHeap,
                        Address near_=0, bool *err=NULL);
 void inferiorFree(process *p, Address item, const vector<addrVecType> &);
 
+// garbage collect instrumentation
    void gcInstrumentation();
    void gcInstrumentation(vector<vector<Frame> >&stackWalks);
  private:
