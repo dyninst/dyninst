@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.46 2004/07/21 22:46:20 jodom Exp $
+// $Id: BPatch_function.C,v 1.47 2004/08/16 04:31:05 rchen Exp $
 
 #define BPATCH_FILE
 
@@ -484,10 +484,11 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
  * vector.
  */
 void BPatch_function::addParam(const char * _name, BPatch_type *_type,
-			       int _linenum, int _frameOffset, int _sc)
+			       int _linenum, long _frameOffset, int _reg,
+			       BPatch_storageClass _sc)
 {
   BPatch_localVar * param = new BPatch_localVar(_name, _type, _linenum,
-						_frameOffset, _sc);
+						_frameOffset, _reg, _sc);
 
   // Add parameter to list of parameters
   params.push_back(param);
@@ -652,7 +653,7 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_function::findVariable(const char *
 	BPatch_Vector<BPatch_point*> *points = findPoint(BPatch_entry);
 	assert(points->size() == 1);
 	ret->push_back(new BPatch_variableExpr(proc, (void *) lv->getFrameOffset(), 
-	    lv->getType(), lv->getFrameRelative(), (*points)[0]));
+	    lv->getRegister(), lv->getType(), lv->getStorageClass(), (*points)[0]));
 	return ret;
     } else {
 	// finally check the global scope.

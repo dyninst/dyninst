@@ -181,7 +181,7 @@ BPatch_function *mangledNameMatchKLUDGE(char *pretty, char *mangled,
 char *parseStabString(BPatch_module *mod, int linenum, char *stabstr, 
 		      int framePtr, BPatch_typeCommon *commonBlock = NULL)
 {
-
+    
     int cnt;
     int ID = 0;
     int symdescID = 0;
@@ -418,6 +418,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	      if (!ptrType) ptrType = BPatch::bpatch->type_Untyped;
 
 	      BPatch_localVar *param;
+	      
 	      param = new BPatch_localVar(name, ptrType, linenum, framePtr);
       
 	      if (current_func) {
@@ -636,8 +637,8 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		  bperr("Unable to add %s to local variable list in %s\n",
 			 name,current_func_name);
 		} else {
-		  locVar = new BPatch_localVar(name, BPtype, linenum, 
-					       framePtr, 5, false);
+		  locVar = new BPatch_localVar(name, BPtype, linenum, framePtr,
+					       -1, BPatch_storageAddr);
 		  current_func->localVariables->addLocalVar( locVar);
 		}
 	      }

@@ -130,6 +130,26 @@ typedef enum {BPatch_private, BPatch_protected, BPatch_public,
  *
  */
 
+typedef enum {
+    BPatch_storageAddr,
+    BPatch_storageAddrRef,
+    BPatch_storageReg,
+    BPatch_storageRegRef,
+    BPatch_storageRegOffset,
+    BPatch_storageFrameOffset
+} BPatch_storageClass;
+
+/*
+ * BPatch_storageClass: Encodes how a variable is stored.
+ * 
+ * BPatch_storageAddr		- Absolute address of variable.
+ * BPatch_storageAddrRef	- Address of pointer to variable.
+ * BPatch_storageReg		- Register which holds variable value.
+ * BPatch_storageRegRef		- Register which holds pointer to variable.
+ * BPatch_storageRegOffset	- Address of variable = $reg + address.
+ * BPatch_storageFrameOffset	- Address of variable = $fp  + address.
+ */
+
 class BPatch_type;
 class BPatch_function;
 class BPatch_module;
@@ -137,7 +157,7 @@ class BPatch_module;
 /*
  * A BPatch_field is equivalent to a field in a enum, struct, or union.
  * A field can be an atomic type, i.e, int, char, or more complex like a
- * union or struct.  
+ * union or struct.
  */
 class BPATCH_DLL_EXPORT BPatch_field {
   friend class BPatch_variableExpr;
@@ -270,36 +290,30 @@ public:
 // It is desgined store information about a variable in a function.
 // Scope needs to be addressed in this class.
 
-class BPATCH_DLL_EXPORT BPatch_localVar{
-  char * name;
-  BPatch_type * type;
-  int lineNum;
-  long frameOffset;
+class BPATCH_DLL_EXPORT BPatch_localVar {
+    char *name;
+    BPatch_type *type;
+    int lineNum;
+    long frameOffset;
+    int reg;
+    BPatch_storageClass storageClass;
+    // scope_t scope;
 
-  //USed only in XCOFF/COFF format, can be 
-  //   scAbs=5, 
-  //   scRegister, scVarRegister, 
-  //   scVar=0
-
-  int storageClass; 
-
-  bool frameRelative;
-  // scope_t scope;
-  
 public:
-  
-  BPatch_localVar(const char * _name,  BPatch_type * _type, int _lineNum,
-		  long _frameOffset, int _sc = 5 /* scAbs */, bool fr=true);
-  ~BPatch_localVar();
 
-  const char *  getName()        { return name; }
-  BPatch_type * getType()        { return type; }
-  int           getLineNum()     { return lineNum; }
-  long          getFrameOffset() { return frameOffset; }
-  int 		getFrameRelative() { return frameRelative; }
-  int 		getSc()		 { return storageClass; }
-  
-  void fixupUnknown(BPatch_module *);
+    BPatch_localVar(const char *_name,  BPatch_type *_type,
+		    int _lineNum, long _frameOffset, int _reg=-1,
+		    BPatch_storageClass _storageClass=BPatch_storageFrameOffset);
+    ~BPatch_localVar();
+
+    const char *	getName() { return name; }
+    BPatch_type *	getType() { return type; }
+    int			getLineNum() { return lineNum; }
+    long		getFrameOffset() { return frameOffset; }
+    int			getRegister() { return reg; }
+    BPatch_storageClass	getStorageClass() { return storageClass; }
+
+    void fixupUnknown(BPatch_module *);
 };
 
 #endif /* _BPatch_type_h_ */

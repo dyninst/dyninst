@@ -568,10 +568,10 @@ void BPatch_typeCommon::endCommonBlock(BPatch_function *func, void *baseAddr) {
     // create local variables in func's scope for each field of common block
     for (j=0; j < fieldList.size(); j++) {
 	BPatch_localVar *locVar;
-	locVar = new BPatch_localVar(fieldList[j]->getName(), 
-	    fieldList[j]->getType(), 0, 
-	    fieldList[j]->getOffset()+(Address) baseAddr, 5, 
-		false);
+	locVar = new BPatch_localVar((char *) fieldList[j]->getName(), 
+				     fieldList[j]->getType(), 0, 
+				     fieldList[j]->getOffset()+(Address) baseAddr,
+				     -1, BPatch_storageAddr);
 	func->localVariables->addLocalVar( locVar);
     }
 
@@ -597,16 +597,6 @@ void BPatch_typeCommon::endCommonBlock(BPatch_function *func, void *baseAddr) {
     newBlock->fieldList = fieldList;
     newBlock->functions.push_back(func);
     cblocks.push_back(newBlock);
-
-    // create local variables in func's scope for each field of common block
-    for (j=0; j < fieldList.size(); j++) {
-	BPatch_localVar *locVar;
-	locVar = new BPatch_localVar(fieldList[j]->getName(), 
-	    fieldList[j]->getType(), 0, 
-	    fieldList[j]->getOffset()+(Address) baseAddr, 5, 
-		false);
-	func->localVariables->addLocalVar( locVar);
-    }
 }
 
 void BPatch_typeCommon::fixupUnknowns(BPatch_module *module) {
@@ -1141,20 +1131,18 @@ void BPatch_field::fixupUnknown(BPatch_module *module) {
  *
  */
 BPatch_localVar::BPatch_localVar(const char * _name,  BPatch_type * _type,
-				 int _lineNum, long _frameOffset, int _sc, bool fr)
+				 int _lineNum, long _frameOffset, int _reg,
+				 BPatch_storageClass _storageClass)
 {
-  if( _name)
-    name = strdup(_name);
-  else
-    name = NULL;
-  type = _type;
-  type->incrRefCount();
-  lineNum = _lineNum;
-  frameOffset = _frameOffset;
-  frameRelative = fr;
-  storageClass = _sc; //Only for COFF format. Default value is scAbs
-}
+    name = ( _name ? strdup(_name) : NULL );
+    type = _type;
+    lineNum = _lineNum;
+    frameOffset = _frameOffset;
+    reg = _reg;
+    storageClass = _storageClass;
 
+    type->incrRefCount();
+}
 
 /*
  * BPatch_localVar destructor
@@ -1162,8 +1150,9 @@ BPatch_localVar::BPatch_localVar(const char * _name,  BPatch_type * _type,
  */
 BPatch_localVar::~BPatch_localVar()
 {
-  //XXX jdd 5/25/99 More to do later
-  type->decrRefCount();
+    //XXX jdd 5/25/99 More to do later
+    if (name) free(name);
+    type->decrRefCount();
 }
 
 void BPatch_localVar::fixupUnknown(BPatch_module *module) {

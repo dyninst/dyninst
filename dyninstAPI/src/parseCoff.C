@@ -1015,11 +1015,13 @@ void eCoffParseProc(BPatch_module *mod, eCoffSymbol &symbol, bool skip)
 		    _SC_IS_DATA(symbol.sym->sc) ) {
 
 		    typePtr = eCoffParseType(mod, symbol);
-		    local = new BPatch_localVar(symbol.name.c_str(), typePtr, -1,
-						value, symbol.sym->sc, isOffset);
+		    local = new BPatch_localVar(symbol.name.c_str(), typePtr, -1, value, 0,
+						( isOffset ? BPatch_storageFrameOffset
+							   : BPatch_storageAddr ) );
 		    fp->funcParameters->addLocalVar(local);
-		    fp->addParam(symbol.name.c_str(), typePtr,
-				 -1, value, symbol.sym->sc);
+		    fp->addParam(symbol.name.c_str(), typePtr, -1, value, 0,
+				 ( isOffset ? BPatch_storageFrameOffset
+				   : BPatch_storageAddr ) );
 		}
 		break;
 
@@ -1033,8 +1035,9 @@ void eCoffParseProc(BPatch_module *mod, eCoffSymbol &symbol, bool skip)
 		    // Unfortunatly, eCoff has no notion of line numbers for
 		    // local variable definitions.
 		    typePtr = eCoffParseType(mod, symbol);
-		    local = new BPatch_localVar(symbol.name.c_str(), typePtr, -1,
-						value, symbol.sym->sc, isOffset);
+		    local = new BPatch_localVar(symbol.name.c_str(), typePtr, -1, value, 0,
+						( isOffset ? BPatch_storageFrameOffset
+							   : BPatch_storageAddr ) );
 		    fp->localVariables->addLocalVar(local);
 		}
 		break;
@@ -1055,8 +1058,8 @@ void eCoffParseProc(BPatch_module *mod, eCoffSymbol &symbol, bool skip)
 							(*fields)[i]->getType(),
 							-1,
 							baseAddr + offset,
-							scCommon,
-							false);
+							0,
+							BPatch_storageAddr);
 			    fp->localVariables->addLocalVar(local);
 			}
 		    }

@@ -108,7 +108,8 @@ public:
     BPatch_type * getReturnType(){ return retType; }
     BPatch_module *getModule()	{ return mod; }
     void addParam(const char * _name, BPatch_type *_type, int _linenum,
-		  int _frameOffset, int _sc = 5 /* scAbs */ );
+		  long _frameOffset, int _reg = -1,
+		  BPatch_storageClass _sc = BPatch_storageFrameOffset);
     
     BPatch_Vector<BPatch_localVar *> *getParams() { 
       return &params; }

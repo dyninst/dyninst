@@ -351,7 +351,7 @@ AstNode * convertFrameBaseToAST( Dwarf_Locdesc * locationList, Dwarf_Signed list
 	return moveFPtoDestination;
 	} /* end convertLocListToAST(). */
 
-bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, Dwarf_Signed listLength, long int * offset, long int * initialStackValue = NULL, bool * isFrameRelative = NULL ) {
+bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, Dwarf_Signed listLength, long int * offset, int * regNum, long int * initialStackValue = NULL, BPatch_storageClass * storageClass = NULL ) {
 	/* We make a few heroic assumptions about locations in this decoder.
 	
 	   We assume that all locations are either frame base-relative offsets,
@@ -371,7 +371,8 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, D
 	   which may require some fiddling with the location of the 'entry' instpoint.) */
 	assert( listLength == 1 );
 
-	if( isFrameRelative != NULL ) { * isFrameRelative = false; }
+	if( storageClass != NULL ) { * storageClass = BPatch_storageAddr; }
+	if( regNum != NULL ) { *regNum = -1; }
 
 	/* Initialize the stack. */
 	std::stack< long int > opStack = std::stack<long int>();
@@ -385,6 +386,15 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, D
 		if( DW_OP_lit0 <= locations[i].lr_atom && locations[i].lr_atom <= DW_OP_lit31 ) {
 			// bperr( "Pushing named constant: %d\n", locations[i].lr_atom - DW_OP_lit0 );
 			opStack.push( locations[i].lr_atom - DW_OP_lit0 );
+			continue;
+			}
+
+		/* Hendle registers w/o 32 case statements. */
+		if( DW_OP_reg0 <= locations[i].lr_atom && locations[i].lr_atom <= DW_OP_reg31 ) {
+			// bperr( "Pushing register number: %d\n", locations[i].lr_atom - DW_OP_reg0 );
+			if( storageClass != NULL ) { * storageClass = BPatch_storageReg; }
+			if( regNum != NULL ) { * regNum = locations[i].lr_number; }
+			opStack.push( locations[i].lr_atom - DW_OP_reg0 );
 			continue;
 			}
 
@@ -408,9 +418,21 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, D
 				opStack.push( (Dwarf_Signed)(locations[i].lr_number) );
 				break;
 
+			case DW_OP_regx:
+				if( storageClass != NULL ) { * storageClass = BPatch_storageReg; }
+				if( regNum != NULL ) { * regNum = locations[i].lr_number; }
+				opStack.push( (Dwarf_Unsigned)locations[i].lr_number );
+				break;
+
 			case DW_OP_fbreg:
-				if( isFrameRelative != NULL ) { * isFrameRelative = true; }
+				if( storageClass != NULL ) { * storageClass = BPatch_storageFrameOffset; }
 				opStack.push( (Dwarf_Signed)(locations[i].lr_number) );
+				break;
+
+			case DW_OP_bregx:
+				if( storageClass != NULL ) { * storageClass = BPatch_storageRegOffset; }
+				if( regNum != NULL ) { * regNum = locations[i].lr_number; }
+				opStack.push( (Dwarf_Signed)(locations[i].lr_number2) );
 				break;
 
 			case DW_OP_dup:
@@ -712,6 +734,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 		/* case DW_TAG_inline_subroutine: we don't care about these */
 		case DW_TAG_subprogram:
 		case DW_TAG_entry_point: {
+
 			/* Is this entry specified elsewhere?  We may need to look there for its name. */
 			Dwarf_Bool hasSpecification;
 			status = dwarf_hasattr( dieEntry, DW_AT_specification, & hasSpecification, NULL );
@@ -781,6 +804,14 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			
 			/* Search the image, instead of just the module, so we can parse the whole image in one pass. */
 			(static_cast< BPatch_image *>( module->getObjParent() ))->findFunction( functionName, functions, false );
+
+			Dwarf_Addr baseAddr;
+			if( functions.size() == 0 ) {
+				/* If we can't find it by name, try searching by address. */
+				status = dwarf_lowpc(dieEntry, &baseAddr, NULL);
+				if( status == DW_DLV_OK )
+					module->findFunctionByAddress((void *)baseAddr, functions);
+			}
 
 			if( functions.size() == 0 ) {
 				/* Don't parse the children, since we can't add them. */
@@ -857,7 +888,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				   to hold field names, however, duplicate -- demangled names -- are OK. */
 				char * demangledName = P_cplus_demangle( functionName, module->isNativeCompiler() );
 
-				char * leftMost = NULL;				
+				char * leftMost = NULL;
 				if( demangledName == NULL ) {
 					// /* DEBUG */ fprintf( stderr, "walkDwarvenTree(): unable to demangle '%s', using mangled name.\n", functionName );
 					demangledName = strdup( functionName );
@@ -866,10 +897,12 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 					}
 				else {
 					/* Strip everything left of the rightmost ':' off; see above. */
-					leftMost = strrchr( demangledName, ':' );
+					leftMost = demangledName;
+					if( strrchr( demangledName, ':' ) )
+						leftMost = strrchr( demangledName, ':' ) + 1;
 					}
 
-				currentEnclosure->addField( leftMost + 1, BPatch_dataMethod, returnType, 0, 0 );
+				currentEnclosure->addField( leftMost, BPatch_dataMethod, returnType, 0, 0 );
 				free( demangledName );
 				}
 
@@ -976,9 +1009,10 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				
 				dwarf_dealloc( dbg, locationAttribute, DW_DLA_ATTR );
 
-				bool isFrameRelative;
+				int regNum;
+				BPatch_storageClass storageClass;
 				long int variableOffset;
-				bool decodedAddressOrOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, & variableOffset, NULL, & isFrameRelative );
+				bool decodedAddressOrOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, & variableOffset, & regNum, NULL, & storageClass );
 				deallocateLocationList( dbg, locationList, listLength );
 				
 				if( ! decodedAddressOrOffset ) { break; }
@@ -1054,11 +1088,11 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 					if( !hasLineNumber ) { break; }
 					assert( hasLineNumber );
 					
-					BPatch_localVar * newVariable = new BPatch_localVar( variableName, variableType, variableLineNo, variableOffset, 5, isFrameRelative );
+					BPatch_localVar * newVariable = new BPatch_localVar( variableName, variableType, variableLineNo, variableOffset, regNum, storageClass );
 					currentFunction->localVariables->addLocalVar( newVariable );
 					} /* end if a local or static variable. */
 				else if( currentEnclosure != NULL ) {
-					assert( ! isFrameRelative );
+					assert( storageClass != BPatch_storageFrameOffset );
 					currentEnclosure->addField( variableName, variableType->getDataClass(), variableType, variableOffset, variableType->getSize() );
 					} /* end if a C++ static member. */
 				} /* end if this variable is not global */
@@ -1104,16 +1138,17 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			
 			dwarf_dealloc( dbg, locationAttribute, DW_DLA_ATTR );
 			
-			bool isFrameRelative;
+			int regNum;
+			BPatch_storageClass storageClass;
 			long int parameterOffset;
-			bool decodedOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, & parameterOffset, NULL, & isFrameRelative );
+			bool decodedOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, & parameterOffset, & regNum, NULL, & storageClass );
 			deallocateLocationList( dbg, locationList, listLength );
 			
 			if( ! decodedOffset ) { break; }
 			assert( decodedOffset );
 			
-			assert( isFrameRelative );
-		
+			assert( storageClass != BPatch_storageAddr );
+
 			/* If the DIE has an _abstract_origin, we'll use that for the
 			   remainder of our inquiries. */
 			Dwarf_Die originEntry = dieEntry;
@@ -1176,7 +1211,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			
 			/* We now have the parameter's location, name, type, and line number.
 			   Tell Dyninst about it. */
-			BPatch_localVar * newParameter = new BPatch_localVar( parameterName, parameterType, parameterLineNo, parameterOffset, 5, true );
+			BPatch_localVar * newParameter = new BPatch_localVar( parameterName, parameterType, parameterLineNo, parameterOffset, regNum, storageClass );
 			assert( newParameter != NULL );
 			
 			/* This is just brutally ugly.  Why don't we take care of this invariant automatically? */
@@ -1433,6 +1468,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			
 			Dwarf_Attribute typeAttribute;
 			status = dwarf_attr( dieEntry, DW_AT_type, & typeAttribute, NULL );
+			if( status == DW_DLV_NO_ENTRY ) break;
 			assert( status == DW_DLV_OK );
 
 			Dwarf_Off typeOffset;
@@ -1457,16 +1493,17 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 
 			dwarf_dealloc( dbg, locationAttr, DW_DLA_ATTR );
 
-			bool isFrameRelative;
+			int regNum;
+			BPatch_storageClass storageClass;
 			long int memberOffset = 0;
 			long int baseAddress = 0;
-			bool decodedAddress = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, & memberOffset, & baseAddress, & isFrameRelative );
+			bool decodedAddress = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, & memberOffset, & regNum, & baseAddress, & storageClass );
 			deallocateLocationList( dbg, locationList, listLength );
 			
 			if( ! decodedAddress ) { break; }
 			assert( decodedAddress );
 			
-			assert( isFrameRelative == false );
+			assert( storageClass == BPatch_storageAddr );
 
 			/* DWARF stores offsets in bytes unless the member is a bit field.
 			   Correct memberOffset as indicated.  Also, memberSize is in bytes
@@ -1732,8 +1769,11 @@ void BPatch_module::parseDwarfTypes() {
 			} /* end language detection */
 
 		/* Iterate over the tree rooted here. */
-		assert( walkDwarvenTree( dbg, moduleName, moduleDIE, this ) );
-		
+		if( !walkDwarvenTree( dbg, moduleName, moduleDIE, this ) ) {
+			bperr( "Error while parsing DWARF info for module '%s'.\n", moduleName );
+			assert( 0 );
+		}
+
 		dwarf_dealloc( dbg, moduleDIE, DW_DLA_DIE );
 		dwarf_dealloc( dbg, moduleName, DW_DLA_STRING );
 		} /* end iteration over compilation-unit headers. */
