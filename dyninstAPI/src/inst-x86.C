@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.76 2001/04/04 17:33:11 gurari Exp $
+ * $Id: inst-x86.C,v 1.77 2001/05/02 20:21:24 pcroth Exp $
  */
 
 #include <iomanip.h>
@@ -715,7 +715,7 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
    if ( !canBeRelocated ) {
 
      // Function would have needed relocation 
-     if (relocatable_ = true) {
+     if (relocatable_ == true) {
 
 #ifdef DEBUG_FUNC_RELOC      
        cerr << prettyName() << endl;
