@@ -2,7 +2,11 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.27  1994/05/18 02:51:04  hollings
+ * Revision 1.28  1994/05/31 18:26:15  markc
+ * strdup'd a string passed into createResource, since igen will free the memory
+ * for the string on return from the function.
+ *
+ * Revision 1.27  1994/05/18  02:51:04  hollings
  * fixed cast one return of malloc.
  *
  * Revision 1.26  1994/05/18  00:43:28  hollings
@@ -553,7 +557,7 @@ resource *createResource(resource *p, char *newResource)
     if (temp) return(temp);
 
     /* then create it */
-    ret = new resource(p, newResource);
+    ret = new resource(p, strdup(newResource));
     fullName = ret->getFullName();
 
     /* inform others about it */
