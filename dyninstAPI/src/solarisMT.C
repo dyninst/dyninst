@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 1996 Barton P. Miller
  * 
@@ -40,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisMT.C,v 1.1 2002/02/21 21:47:50 bernat Exp $
+// $Id: solarisMT.C,v 1.2 2002/04/22 13:48:58 bernat Exp $
 
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/pdThread.h"
@@ -105,7 +104,12 @@ pdThread *process::createThread(
 
   //  
   sprintf(errorLine,"+++++ creating new thread{%s}, pd_pos=%u, pos=%u, tid=%d, stack=0x%x, resumestate=0x%x, by[%s]\n",
-	  pdf->prettyName().string_of(), pd_pos,pos,tid,stackbase,resumestate_p, bySelf?"Self":"Parent");
+	  pdf->prettyName().string_of(),
+	  pd_pos,pos,
+	  tid,
+	  stackbase,
+	  (unsigned)resumestate_p,
+	  bySelf?"Self":"Parent");
   logLine(errorLine);
 
   return(thr);
@@ -149,7 +153,12 @@ void process::updateThread(pdThread *thr, int tid, unsigned pos, void* resumesta
     assert(0);
   }
 
-  sprintf(errorLine,"+++++ updateThread--> creating new thread{main}, pd_pos=%u, pos=%u, tid=%d, stack=0x%x, resumestate=0x%x\n",pd_pos,pos,tid,theStatus.pr_stkbase, resumestate_p);
+  sprintf(errorLine,"+++++ updateThread--> creating new thread{main}, pd_pos=%u, pos=%u, tid=%d, stack=0x%x, resumestate=0x%x\n",
+	  pd_pos,
+	  pos,
+	  tid,
+	  theStatus.pr_stkbase, 
+	  (unsigned) resumestate_p);
   logLine(errorLine);
 }
 
@@ -168,7 +177,10 @@ void process::updateThread(
   assert(thr);
   //  
   sprintf(errorLine," updateThread(tid=%d, pos=%d, stackaddr=0x%x, startpc=0x%x)\n",
-	 tid, pos, stackbase, startpc);
+	 tid, 
+	  pos, 
+	  stackbase, 
+	  startpc);
   logLine(errorLine);
 
   thr->update_tid(tid, pos);
@@ -212,7 +224,7 @@ void process::updateThread(
   } //else
 
   sprintf(errorLine,"+++++ creating new thread{%s}, pd_pos=%u, pos=%u, tid=%d, stack=0x%xs, resumestate=0x%x\n",
-    pdf->prettyName().string_of(), pd_pos, pos, tid, stackbase, resumestate_p);
+	  pdf->prettyName().string_of(), pd_pos, pos, tid, stackbase, (unsigned) resumestate_p);
   logLine(errorLine);
 }
 
@@ -238,7 +250,9 @@ void process::deleteThread(int tid)
   }
 }
 
-Frame::Frame(pdThread* thr) {
+Frame pdThread::getActiveFrame() {
+  // FIXME: needs to find whether we're running on an active
+  // thread and pop to process::getActiveFrame(lwp) in that case.
   typedef struct {
     long    sp;
     long    pc;
@@ -249,18 +263,16 @@ Frame::Frame(pdThread* thr) {
     long    l5; 
   } resumestate_t;
 
-  fp_ = pc_ = 0 ;
-  uppermost_ = true ;
-  lwp_id_ = 0 ;
-  thread_ = thr ;
+  Address fp = 0, pc = 0;
 
-  process* proc = thr->get_proc();
+  process* proc = get_proc();
   resumestate_t rs ;
-  if (thr->get_start_pc() &&
-      proc->readDataSpace((caddr_t) thr->get_resumestate_p(),
-                    sizeof(resumestate_t), (caddr_t) &rs, false)) {
-    fp_ = rs.sp;
-    pc_ = rs.pc;
+  if (get_start_pc() &&
+      proc->readDataSpace((caddr_t) get_resumestate_p(),
+			  sizeof(resumestate_t), (caddr_t) &rs, false)) {
+    fp = rs.sp;
+    pc = rs.pc;
   } 
+  return Frame(pc, fp, proc->getPid(), this, 0, true);
 }
 
