@@ -28,7 +28,7 @@ int createDaemon(String machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 10;
+    $version 11;
 
     //
     // Define a program to run. 

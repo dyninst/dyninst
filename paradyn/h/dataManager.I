@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.18  1994/06/27 21:21:39  rbi
+ * Revision 1.19  1994/06/28 00:15:45  rbi
+ * Increment of version numbers
+ *
+ * Revision 1.18  1994/06/27  21:21:39  rbi
  * Abstraction-specific resources and mapping information
  *
  * Revision 1.17  1994/06/17  22:08:11  hollings
@@ -194,7 +197,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2000;
-    $version 8;
+    $version 9;
 
     //
     // Create an applicationContext (an application to be studied)
