@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.9 2001/06/08 19:42:52 schendel Exp $
+# $Id: Makefile,v 1.10 2001/10/26 22:45:31 hollings Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -55,8 +55,8 @@ COMPILER = $(subst $(BLANK),_,$(COMPILERT))
 MUTATEE_CFLAGS += -DCOMPILER='"$(COMPILER)"'
 
 # 64-bit mutatee
-$(TARGET2): $(MUTATEE_SRC)
-	$(MUTATEE_CC) $(MABI)64 $(MUTATEE_CFLAGS) $< -o $@ $(MUTLIBS)
+$(TARGET2): $(MUTATEE_SRC) $(MUTATEE_OBJS)
+	$(MUTATEE_CC) $(MABI)64 $(MUTATEE_CFLAGS) $(MUTATEE_OBJS) $< -o $@ $(MUTLIBS)
 
 libtestA.o: ../src/libtestA.c
 	$(CC) -c $< -o $@

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.19 2001/10/26 06:29:49 schendel Exp $
+# $Id: Makefile,v 1.20 2001/10/26 22:45:32 hollings Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -22,6 +22,7 @@ CFLAGS += -DUSES_DYNAMIC_INF_HEAP -g
 
 MUTATEE_FFLAGS += -U -WF,-Drs6000_ibm_aix4_1 -qnolm -qfixed -w -g
 LIBGCCLOC = /s/gcc-2.95.3/lib/gcc-lib/powerpc-ibm-aix4.3.3.0/2.95.3
+LIBGCCLOC = /usr/local/lib/gcc-lib/powerpc-ibm-aix4.3.2.0/2.95.3
 MUTATEE_FLINKFLAGS += -g -bgcbypass:3 -ldl -lgcc -L$(LIBGCCLOC)
 
 NATIVE_CC = xlc
@@ -77,18 +78,18 @@ ifeq ($(NATIVE_FC), $(MUTATEE_FC))
 # FORTRAN_BASE = test1.mutateeFort, etc.
 FORTRAN_BASE = $(TARGET2:_$(NATIVE_FC)=Fort)
 
-$(TARGET2): $(FORTRAN_BASE)_$(NATIVE_FC).o $(FORTRAN_BASE)C_$(NATIVE_FC).o
-	-$(NATIVE_FC) $(FORTRAN_BASE)_$(NATIVE_FC).o $(FORTRAN_BASE)C_$(NATIVE_FC).o $(MUTATEE_FLINKFLAGS) -o $(TARGET2)
+$(TARGET2): $(FORTRAN_BASE)_$(NATIVE_FC).o $(FORTRAN_BASE)C_$(NATIVE_FC).o test1.mutateeCommon.o
+	-$(NATIVE_FC) $(FORTRAN_BASE)_$(NATIVE_FC).o $(FORTRAN_BASE)C_$(NATIVE_FC).o test1.mutateeCommon.o $(MUTATEE_FLINKFLAGS) -o $(TARGET2)
  
 $(FORTRAN_BASE)_$(NATIVE_FC).o: ../src/$(FORTRAN_BASE).F
 	-$(NATIVE_FC) $(MUTATEE_FFLAGS) -c -o $(FORTRAN_BASE)_$(NATIVE_FC).o ../src/$(FORTRAN_BASE).F
  
 $(FORTRAN_BASE)C_$(NATIVE_FC).o: ../src/$(TARGET2:_$(NATIVE_FC)=).c
-	-$(MUTATEE_CC) $(filter-out -Wl$(COMMA)-bgcbypass:3, $(MUTATEE_CFLAGS)) -fno-implicit-templates -W -Wall $(FORT_SQGL_FLAG) -DFortran -c -o $(FORTRAN_BASE)C_$(NATIVE_FC).o ../src/$(TARGET2:_$(NATIVE_FC)=).c
+	-$(MUTATEE_CC) $(filter-out -Wl$(COMMA)-bgcbypass:3, $(MUTATEE_CFLAGS)) -fno-implicit-templates -W -Wall -fno-squangle -DFortran -c -o $(FORTRAN_BASE)C_$(NATIVE_FC).o ../src/$(FORTRAN_BASE)C.c
 else
-$(TARGET2): $(MUTATEE_SRC)
+$(TARGET2): $(MUTATEE_SRC) $(MUTATEE_OBJS)
 	-$(MUTATEE_CC) -g $(MUTATEE_CFLAGS) -Wl,-bnoobjreorder \
-	$(MUTATEE_SRC) -o $(TARGET2)
+	$(MUTATEE_SRC) $(MUTATEE_OBJS) -o $(TARGET2)
 endif
 
 # Include the "standard program template".  This defines all the

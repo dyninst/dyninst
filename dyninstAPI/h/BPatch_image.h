@@ -90,7 +90,7 @@ public:
     BPatch_point *createInstPointAtAddr(void *address,
 					BPatch_point** alternative);
 
-    BPatch_function	*findFunction(const char *name);
+    BPatch_function	*findFunction(const char *name, bool showError=true);
     BPatch_function	*findBPFunction(const char *name);
 
     BPatch_variableExpr	*findVariable(const char *name, bool showError=true);
@@ -108,7 +108,7 @@ public:
     int  lpType();
 #endif
 
-    BPatch_Vector<BPatch_function*>	*findFunction(const char *name, BPatch_Vector<BPatch_function*> &funcs);
+    BPatch_Vector<BPatch_function*>	*findFunction(const char *name, BPatch_Vector<BPatch_function*> &funcs, bool showError=true);
 
 private:
     BPatch_Vector<BPatch_module *> *modlist;

@@ -142,6 +142,10 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		       name,current_func_name);
 	    } else {
 	        locVar = new BPatch_localVar(name, ptrType, linenum, framePtr);
+		if (!ptrType) {
+		  printf("adding local var with missing type %s, type = %d\n",
+		      name, ID);
+		}
 	        fp->localVariables->addLocalVar( locVar);
 	    }
 	  }
@@ -156,6 +160,10 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		   current_func_name, modName);
 	  } else {
 	      locVar = new BPatch_localVar(name, ptrType, linenum, framePtr);
+	      if (!ptrType) {
+		  printf("adding local var with missing type %s, type = %d\n",
+		      name, ID);
+	      }
 	      fp->localVariables->addLocalVar( locVar);
 	  }
 	}
@@ -535,8 +543,6 @@ int parseSymDesc(char *stabstr, int &cnt)
     int hid;
     int sign = 1;
     bool newForm = false;
-
-    // printf("\n    parseSymDesc call on %s\n", &stabstr[cnt+i]);
 
     hid = 0; //file-number
     // parse both an int and (int,int) format (file-number, type ID)
@@ -963,10 +969,14 @@ static char *parseRangeType(BPatch_module *mod,char *name,int ID, char *stabstr)
 
 //
 //  <attrType> = @s<int>;<int>
+//  <attrType> = @s<int>;(<int>,<int>)
+//  <attrType> = @s<int>;r(<int>,<int>);<int>;<int>;
 //
 static void parseAttrType(BPatch_module *mod, char *name,
 			 int ID, char *stabstr, int &cnt)
 {
+    bool includesRange = false;
+
     // format @s(size in bits); negative type number;
     BPatch_dataClass typdescr = BPatch_dataTypeAttrib;
 
@@ -979,9 +989,29 @@ static void parseAttrType(BPatch_module *mod, char *name,
       int size = parseSymDesc(stabstr, cnt);
       cnt++;  // skip ';'
 
+      if (stabstr[cnt] == 'r') {
+	  // include range at end
+	  cnt++;
+	  includesRange++;
+      }
+
       int type = parseSymDesc(stabstr, cnt);
       // skip ';' end of stab record ??? (at least for bool)
       cnt++;
+
+      if (includesRange) {
+	  if (stabstr[cnt] == '-' ) cnt++;
+	  while (isdigit(stabstr[cnt])) cnt++;
+
+	  // skip ';'
+	  cnt++;
+
+	  if (stabstr[cnt] == '-' ) cnt++;
+	  while (isdigit(stabstr[cnt])) cnt++;
+
+	  // skip ';'
+	  cnt++;
+      }
 
       // Create a new B_type that points to a builtInTypes
       BPatch_type *ptrType =BPatch::bpatch->builtInTypes->findBuiltInType(type);
@@ -1000,6 +1030,8 @@ static void parseAttrType(BPatch_module *mod, char *name,
       if (stabstr[cnt]) {
 	  printf("More Type Attribute to Parse: %s ID %d : %s\n", name,
 	       ID, &(stabstr[cnt]));
+	  printf("got type = %d\n", type);
+	  printf("full string = %s\n", stabstr);
       }
     } else {
 	//printf(" Unable to parse Type Attribute: %s ID %d : %s\n", 

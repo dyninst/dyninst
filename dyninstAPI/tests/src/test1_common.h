@@ -74,7 +74,7 @@
      & globalVariable25_6, globalVariable25_7, globalVariable26_2,
      & globalVariable26_3, globalVariable26_4, globalVariable26_5,
      & globalVariable26_6, globalVariable26_7, globalVariable26_8,
-     & globalVariable26_9, globalVariable26_10,
+     & globalVariable26_9, globalVariable26_10, 
      & globalVariable26_11, globalVariable26_12,
      & globalVariable26_13, globalVariable27_1,
      & globalVariable27_5 (10), globalVariable27_6 (10),

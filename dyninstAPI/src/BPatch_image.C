@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.29 2001/10/04 20:04:43 buck Exp $
+// $Id: BPatch_image.C,v 1.30 2001/10/26 22:45:30 hollings Exp $
 
 #define BPATCH_FILE
 
@@ -425,16 +425,26 @@ void BPatch_image::findFunctionInImage(
  *
  * name		The name of function to look up.
  */
-BPatch_function *BPatch_image::findFunction(const char *name)
+BPatch_function *BPatch_image::findFunction(const char *name, bool showError)
 {
     BPatch_Vector<BPatch_function*> funcs;
 
-    findFunction(name, funcs);
+    findFunction(name, funcs, false);
+
+    if (funcs.size() == 0) {
+	string fullname = string(name) + string("_");
+	findFunction(fullname.string_of(), funcs, false);
+    }
 
     if (funcs.size() > 0)
 	return funcs[0];
-    else
+    else {
+	if (showError) {
+	    string msg = string("Unable to find function: ") + string(name);
+	    BPatch_reportError(BPatchSerious, 100, msg.string_of());
+	}
 	return NULL;
+    }
 }
 
 
@@ -449,7 +459,7 @@ BPatch_function *BPatch_image::findFunction(const char *name)
  * funcs	The vector in which to place the results.
  */
 BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(
-	const char *name, BPatch_Vector<BPatch_function*> &funcs)
+	const char *name, BPatch_Vector<BPatch_function*> &funcs, bool showError)
 {
     funcs = BPatch_Vector<BPatch_function*>();
 
@@ -466,8 +476,10 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(
     if (funcs.size() > 0) {
 	return &funcs;
     } else {
-        string msg = string("Unable to find function: ") + string(name);
-        BPatch_reportError(BPatchSerious, 100, msg.string_of());
+        if (showError) {
+	    string msg = string("Unable to find function: ") + string(name);
+	    BPatch_reportError(BPatchSerious, 100, msg.string_of());
+	}
 	return NULL;
     }
 }
@@ -516,7 +528,9 @@ BPatch_variableExpr *BPatch_image::findVariable(const char *name, bool showError
         type = BPatch::bpatch->type_Untyped;
     }
 
-    BPatch_variableExpr *ret = new BPatch_variableExpr((char *) name, 
+    char *nameCopy = strdup(name);
+    assert(nameCopy);
+    BPatch_variableExpr *ret = new BPatch_variableExpr((char *) nameCopy, 
 	proc, (void *)syminfo.addr(), (const BPatch_type *) type);
     AddrToVarExpr->hash[syminfo.addr()] = ret;
     return ret;
@@ -597,6 +611,7 @@ BPatch_type *BPatch_image::findType(const char *name)
  */
 BPatch_function  *BPatch_image::findBPFunction(const char *name)
 {
+    char *fullName;
     BPatch_function *func;
     BPatch_Vector<BPatch_function *> * funclist =
       new BPatch_Vector<BPatch_function *>;
@@ -616,6 +631,23 @@ BPatch_function  *BPatch_image::findBPFunction(const char *name)
 	    funclist->push_back(func);
 	}
     }
+
+    if (!funclist->size()) {
+	fullName = (char *) malloc(strlen(name) + 2);
+	sprintf(fullName, "%s_", name);
+	for (int m = 0; m < mods->size(); m++) {
+	    BPatch_module *module = (*mods)[m];
+	    func = module->findFunction(fullName);
+	    if (func) {
+		if (func->getProc() != proc) {
+		    printf("got func in the wrong proc\n");
+		}
+		funclist->push_back(func);
+	    }
+	}
+	free(fullName);
+    }
+
     if( funclist->size()){
       //printf("Function list has %d functions\n", funclist->size());
       if( funclist->size() == 2)

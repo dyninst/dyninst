@@ -129,6 +129,19 @@ void checkCost(BPatch_snippet snippet)
     }
 }
 
+int functionNameMatch(char *gotName, char *targetName) 
+{
+    if (!strcmp(gotName, targetName)) return 0;
+
+    if (!strncmp(gotName, targetName, strlen(targetName)) &&
+	(strlen(targetName) == strlen(gotName)-1) &&
+	(gotName[strlen(targetName)] == '_'))
+	return 0;
+
+    return 1;
+}
+
+
 //
 // Replace all calls in "inFunction" to "callTo" with calls to "replacement."
 // If "replacement" is NULL, them use removeFunctionCall instead of
@@ -173,7 +186,7 @@ int replaceFunctionCalls(BPatch_thread *appThread, BPatch_image *appImage,
 		    inFunction);
 	    exit(1);
 	}
-	if (strcmp(fn, callTo) == 0) {
+	if (functionNameMatch(fn, callTo) == 0) {
 	    if (replacement == NULL)
 		appThread->removeFunctionCall(*((*points)[n]));
 	    else
@@ -335,10 +348,7 @@ void mutatorTest1(BPatch_thread *appThread, BPatch_image *appImage)
 
     BPatch_Vector<BPatch_point *> *point1_1;
 
-    if (mutateeFortran)
-        point1_1 = appImage->findProcedurePoint("func1_1_", BPatch_entry);
-    else
-        point1_1 = appImage->findProcedurePoint("func1_1", BPatch_entry);
+    point1_1 = appImage->findProcedurePoint("func1_1", BPatch_entry);
 
     if (!point1_1 || ((*point1_1).size() == 0)) {
         fprintf(stderr, "**Failed** test #1 (zero arg function call)\n");
@@ -348,10 +358,7 @@ void mutatorTest1(BPatch_thread *appThread, BPatch_image *appImage)
 
     BPatch_function *call1_func;
 
-    if (mutateeFortran)
-        call1_func = appImage->findFunction("call1_1_");
-    else
-        call1_func = appImage->findFunction("call1_1");
+    call1_func = appImage->findFunction("call1_1");
 
     if (call1_func == NULL) {
         fprintf(stderr, "**Failed** test #1 (zero arg function call)\n");
@@ -376,10 +383,7 @@ void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
 
     BPatch_Vector<BPatch_point *> *point2_1;
 
-    if (mutateeFortran)
-        point2_1 = appImage->findProcedurePoint("func2_1_", BPatch_entry);
-    else
-        point2_1 = appImage->findProcedurePoint("func2_1", BPatch_entry);
+    point2_1 = appImage->findProcedurePoint("func2_1", BPatch_entry);
 
     if (!point2_1 || ((*point2_1).size() == 0)) {
 	fprintf(stderr, "**Failed** test #2 (four parameter function)\n");
@@ -388,10 +392,7 @@ void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
     }
 
     BPatch_function *call2_func;
-    if (mutateeFortran)
-        call2_func = appImage->findFunction("call2_1_");
-    else
-        call2_func = appImage->findFunction("call2_1");
+    call2_func = appImage->findFunction("call2_1");
 
     if (call2_func == NULL) {
 	fprintf(stderr, "**Failed** test #2 (four parameter function)\n");
@@ -480,10 +481,7 @@ void mutatorTest3(BPatch_thread *appThread, BPatch_image *appImage)
     // Find the entry point to the procedure "func3_1"
 
     BPatch_Vector<BPatch_point *> *point3_1;
-    if (mutateeFortran)
-        point3_1 = appImage->findProcedurePoint("func3_1_", BPatch_entry);
-    else
-        point3_1 = appImage->findProcedurePoint("func3_1", BPatch_entry);
+    point3_1 = appImage->findProcedurePoint("func3_1", BPatch_entry);
 
     if (!point3_1 || ((*point3_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func3_1.\"\n");
@@ -491,10 +489,7 @@ void mutatorTest3(BPatch_thread *appThread, BPatch_image *appImage)
     }
 
     BPatch_function *call3_func;
-    if (mutateeFortran)
-        call3_func = appImage->findFunction("call3_1_");
-    else
-        call3_func = appImage->findFunction("call3_1");
+    call3_func = appImage->findFunction("call3_1");
 
     if (call3_func == NULL) {
 	fprintf(stderr, "Unable to find function \"call3_1.\"\n");
@@ -504,10 +499,7 @@ void mutatorTest3(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_Vector<BPatch_snippet *> call3_args;
 
     BPatch_Vector<BPatch_point *> *call3_1;
-    if (mutateeFortran)
-        call3_1 = appImage->findProcedurePoint ("call3_1_", BPatch_subroutine);
-    else
-        call3_1 = appImage->findProcedurePoint ("call3_1", BPatch_subroutine);
+    call3_1 = appImage->findProcedurePoint ("call3_1", BPatch_subroutine);
 
     if (!call3_1 || ((*call3_1).size() == 0)) {
         fprintf(stderr, "    Unable to find entry point to \"call3_1.\"\n");
@@ -539,8 +531,8 @@ void mutatorTest3(BPatch_thread *appThread, BPatch_image *appImage)
 	BPatch_constExpr expr3_4 (expr3_2->getBaseAddr ());
 
 	if (mutateeFortran) {
-		call3_args.push_back (&expr3_3);
-		call3_args.push_back (&expr3_4);
+	    call3_args.push_back (&expr3_3);
+	    call3_args.push_back (&expr3_4);
 	} else {
 	    call3_args.push_back(expr3_1);
 	    call3_args.push_back(expr3_2);
@@ -566,10 +558,7 @@ void mutatorTest4(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func4_1"
     BPatch_Vector<BPatch_point *> *point4_1;
-    if (mutateeFortran)
-        point4_1 = appImage->findProcedurePoint("func4_1_", BPatch_entry);
-    else
-        point4_1 = appImage->findProcedurePoint("func4_1", BPatch_entry);
+    point4_1 = appImage->findProcedurePoint("func4_1", BPatch_entry);
 
     if (!point4_1 || ((*point4_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func4_1\".\n");
@@ -604,10 +593,7 @@ void mutatorTest5(BPatch_thread *appThread, BPatch_image *appImage)
 
     // Find the entry point to the procedure "func5_2"
     BPatch_Vector<BPatch_point *> *point5_1;
-    if (mutateeFortran)
-        point5_1 = appImage->findProcedurePoint("func5_2_", BPatch_entry);
-    else
-        point5_1 = appImage->findProcedurePoint("func5_2", BPatch_entry);
+    point5_1 = appImage->findProcedurePoint("func5_2", BPatch_entry);
 
     if (!point5_1 || ((*point5_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func5_2\".\n");
@@ -615,10 +601,7 @@ void mutatorTest5(BPatch_thread *appThread, BPatch_image *appImage)
     }
 
     BPatch_Vector<BPatch_point *> *point5_2;
-    if (mutateeFortran)
-        point5_2 = appImage->findProcedurePoint ("func5_1_", BPatch_subroutine);
-    else
-        point5_2 = appImage->findProcedurePoint ("func5_1", BPatch_subroutine);
+    point5_2 = appImage->findProcedurePoint ("func5_1", BPatch_subroutine);
 
     if (!point5_2 || ((*point5_2).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func5_1\".\n");
@@ -662,10 +645,7 @@ void mutatorTest6(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func6_2"
     BPatch_Vector<BPatch_point *> *point6_1;
-    if (mutateeFortran)
-        point6_1 = appImage->findProcedurePoint("func6_2_", BPatch_entry);
-    else
-        point6_1 = appImage->findProcedurePoint("func6_2", BPatch_entry);
+    point6_1 = appImage->findProcedurePoint("func6_2", BPatch_entry);
 
     if (!point6_1 || ((*point6_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func6_2\".\n");
@@ -673,10 +653,7 @@ void mutatorTest6(BPatch_thread *appThread, BPatch_image *appImage)
     }
 
     BPatch_Vector<BPatch_point *> *point6_2;
-    if (mutateeFortran)
-        point6_2 = appImage->findProcedurePoint("func6_1_", BPatch_subroutine);
-    else
-        point6_2 = appImage->findProcedurePoint("func6_1", BPatch_subroutine);
+    point6_2 = appImage->findProcedurePoint("func6_1", BPatch_subroutine);
 
     if (!point6_2 || ((*point6_2).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func6_1\".\n");
@@ -801,10 +778,7 @@ void genRelTest(BPatch_image *appImage,BPatch_Vector<BPatch_snippet*> &vect7_1,
 		BPatch_relOp op, int r1, int r2, char *var1)
 {
     BPatch_Vector <BPatch_point *> *point7_1;
-    if (mutateeFortran)
-        point7_1 = appImage->findProcedurePoint ("func7_1_", BPatch_entry);
-    else
-        point7_1 = appImage->findProcedurePoint ("func7_1", BPatch_entry);
+    point7_1 = appImage->findProcedurePoint ("func7_1", BPatch_entry);
 
     if (!point7_1 || ((*point7_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func7_1\".\n");
@@ -830,10 +804,7 @@ void genVRelTest(BPatch_image *appImage,
 		 BPatch_variableExpr *r2, char *var1)
 {
     BPatch_Vector <BPatch_point *> *point7_1;
-    if (mutateeFortran)
-        point7_1 = appImage->findProcedurePoint ("func7_1_", BPatch_entry);
-    else
-        point7_1 = appImage->findProcedurePoint ("func7_1", BPatch_entry);
+    point7_1 = appImage->findProcedurePoint ("func7_1", BPatch_entry);
 
     if (!point7_1 || ((*point7_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func7_1\".\n");
@@ -860,10 +831,7 @@ void mutatorTest7(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func7_2"
     BPatch_Vector<BPatch_point *> *point7_1;
-    if (mutateeFortran)
-        point7_1 = appImage->findProcedurePoint("func7_2_", BPatch_entry);
-    else
-        point7_1 = appImage->findProcedurePoint("func7_2", BPatch_entry);
+    point7_1 = appImage->findProcedurePoint("func7_2", BPatch_entry);
 
     if (!point7_1 || ((*point7_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func7_2\".\n");
@@ -890,10 +858,7 @@ void mutatorTest7(BPatch_thread *appThread, BPatch_image *appImage)
     genRelTest(appImage, vect7_1, BPatch_or, 0, 0, "globalVariable7_16");
 
     BPatch_Vector <BPatch_point *> *func7_1;
-    if (mutateeFortran)
-        func7_1 = appImage->findProcedurePoint ("func7_1_", BPatch_subroutine);
-    else
-        func7_1 = appImage->findProcedurePoint ("func7_1", BPatch_subroutine);
+    func7_1 = appImage->findProcedurePoint ("func7_1", BPatch_subroutine);
 
     if (!func7_1 || ((*func7_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func7_1\".\n");
@@ -964,10 +929,7 @@ void mutatorTest8(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func8_1"
     BPatch_Vector<BPatch_point *> *point8_1;
-    if (mutateeFortran)
-        point8_1 = appImage->findProcedurePoint("func8_1_", BPatch_entry);
-    else
-        point8_1 = appImage->findProcedurePoint("func8_1", BPatch_entry);
+    point8_1 = appImage->findProcedurePoint("func8_1", BPatch_entry);
 
     if (!point8_1 || ((*point8_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func8_1\".\n");
@@ -1009,10 +971,7 @@ void mutatorTest9(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func9_1"
     BPatch_Vector<BPatch_point *> *point9_1;
-    if (mutateeFortran)
-        point9_1 = appImage->findProcedurePoint("func9_1_", BPatch_entry);
-    else
-        point9_1 = appImage->findProcedurePoint("func9_1", BPatch_entry);
+    point9_1 = appImage->findProcedurePoint("func9_1", BPatch_entry);
 
     if (!point9_1 || ((*point9_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func9_1\".\n");
@@ -1020,10 +979,7 @@ void mutatorTest9(BPatch_thread *appThread, BPatch_image *appImage)
     }
 
     BPatch_function *call9_func;
-    if (mutateeFortran)
-        call9_func = appImage->findFunction("call9_1_");
-    else
-        call9_func = appImage->findFunction("call9_1");
+    call9_func = appImage->findFunction("call9_1");
 
     if (call9_func == NULL) {
 	fprintf(stderr, "Unable to find function \"call9_1.\"\n");
@@ -1110,10 +1066,7 @@ void mutatorTest10(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func10_1"
     BPatch_Vector<BPatch_point *> *point10_1;
-    if (mutateeFortran)
-        point10_1 = appImage->findProcedurePoint("func10_1_", BPatch_entry);
-    else
-        point10_1 = appImage->findProcedurePoint("func10_1", BPatch_entry);
+    point10_1 = appImage->findProcedurePoint("func10_1", BPatch_entry);
 
     if (!point10_1 || ((*point10_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func10_1\".\n");
@@ -1121,10 +1074,7 @@ void mutatorTest10(BPatch_thread *appThread, BPatch_image *appImage)
     }
 
     BPatch_function *call10_1_func;
-    if (mutateeFortran)
-        call10_1_func = appImage->findFunction("call10_1_");
-    else
-        call10_1_func = appImage->findFunction("call10_1");
+    call10_1_func = appImage->findFunction("call10_1");
 
     if (call10_1_func == NULL) {
 	fprintf(stderr, "Unable to find function \"call10_1.\"\n");
@@ -1132,10 +1082,7 @@ void mutatorTest10(BPatch_thread *appThread, BPatch_image *appImage)
     }
 
     BPatch_function *call10_2_func;
-    if (mutateeFortran)
-        call10_2_func = appImage->findFunction("call10_2_");
-    else
-        call10_2_func = appImage->findFunction("call10_2");
+    call10_2_func = appImage->findFunction("call10_2");
 
     if (call10_2_func == NULL) {
 	fprintf(stderr, "Unable to find function \"call10_2.\"\n");
@@ -1143,10 +1090,7 @@ void mutatorTest10(BPatch_thread *appThread, BPatch_image *appImage)
     }
 
     BPatch_function *call10_3_func;
-    if (mutateeFortran)
-        call10_3_func = appImage->findFunction("call10_3_");
-    else
-        call10_3_func = appImage->findFunction("call10_3");
+    call10_3_func = appImage->findFunction("call10_3");
 
     if (call10_3_func == NULL) {
 	fprintf(stderr, "Unable to find function \"call10_3.\"\n");
@@ -1177,10 +1121,7 @@ void mutatorTest11(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func11_1"
     BPatch_Vector<BPatch_point *> *point11_1;
-    if (mutateeFortran)
-        point11_1 = appImage->findProcedurePoint("func11_1_", BPatch_entry);
-    else
-        point11_1 = appImage->findProcedurePoint("func11_1", BPatch_entry);
+    point11_1 = appImage->findProcedurePoint("func11_1", BPatch_entry);
 
     if (!point11_1 || (point11_1->size() < 1)) {
 	fprintf(stderr, "Unable to find point func11_1 - entry.\n");
@@ -1189,10 +1130,7 @@ void mutatorTest11(BPatch_thread *appThread, BPatch_image *appImage)
 
     // Find the subroutine points for the procedure "func11_1"
     BPatch_Vector<BPatch_point *> *point11_2;
-    if (mutateeFortran)
-        point11_2 = appImage->findProcedurePoint("func11_1_", BPatch_subroutine);
-    else
-        point11_2 = appImage->findProcedurePoint("func11_1", BPatch_subroutine);
+    point11_2 = appImage->findProcedurePoint("func11_1", BPatch_subroutine);
 
     if (!point11_2 || (point11_2->size() < 1)) {
 	fprintf(stderr, "Unable to find point func11_1 - calls.\n");
@@ -1201,10 +1139,7 @@ void mutatorTest11(BPatch_thread *appThread, BPatch_image *appImage)
 
     // Find the exit point to the procedure "func11_1"
     BPatch_Vector<BPatch_point *> *point11_3;
-    if (mutateeFortran)
-        point11_3 = appImage->findProcedurePoint("func11_1_", BPatch_exit);
-    else
-        point11_3 = appImage->findProcedurePoint("func11_1", BPatch_exit);
+    point11_3 = appImage->findProcedurePoint("func11_1", BPatch_exit);
 
     if (!point11_3 || (point11_3->size() < 1)) {
 	fprintf(stderr, "Unable to find point func11_1 - exit.\n");
@@ -1212,10 +1147,7 @@ void mutatorTest11(BPatch_thread *appThread, BPatch_image *appImage)
     }
 
     BPatch_function *call11_1_func;
-    if (mutateeFortran)
-        call11_1_func = appImage->findFunction("call11_1_");
-    else
-        call11_1_func = appImage->findFunction("call11_1");
+    call11_1_func = appImage->findFunction("call11_1");
 
     if (call11_1_func == NULL) {
 	fprintf(stderr, "Unable to find function \"call11_1.\"\n");
@@ -1223,10 +1155,7 @@ void mutatorTest11(BPatch_thread *appThread, BPatch_image *appImage)
     }
 
     BPatch_function *call11_2_func;
-    if (mutateeFortran)
-        call11_2_func = appImage->findFunction("call11_2_");
-    else
-        call11_2_func = appImage->findFunction("call11_2");
+    call11_2_func = appImage->findFunction("call11_2");
 
     if (call11_2_func == NULL) {
 	fprintf(stderr, "Unable to find function \"call11_2.\"\n");
@@ -1234,10 +1163,7 @@ void mutatorTest11(BPatch_thread *appThread, BPatch_image *appImage)
     }
 
     BPatch_function *call11_3_func;
-    if (mutateeFortran)
-        call11_3_func = appImage->findFunction("call11_3_");
-    else
-        call11_3_func = appImage->findFunction("call11_3");
+    call11_3_func = appImage->findFunction("call11_3");
 
     if (call11_3_func == NULL) {
 	fprintf(stderr, "Unable to find function \"call11_3.\"\n");
@@ -1245,10 +1171,7 @@ void mutatorTest11(BPatch_thread *appThread, BPatch_image *appImage)
     }
 
     BPatch_function *call11_4_func;
-    if (mutateeFortran)
-        call11_4_func = appImage->findFunction("call11_4_");
-    else
-        call11_4_func = appImage->findFunction("call11_4");
+    call11_4_func = appImage->findFunction("call11_4");
 
     if (call11_4_func == NULL) {
 	fprintf(stderr, "Unable to find function \"call11_4.\"\n");
@@ -1286,10 +1209,7 @@ void mutatorTest12a(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func12_2"
     BPatch_Vector<BPatch_point *> *point12_2;
-    if (mutateeFortran)
-        point12_2 = appImage->findProcedurePoint("func12_2_", BPatch_entry);
-    else
-        point12_2 = appImage->findProcedurePoint("func12_2", BPatch_entry);
+    point12_2 = appImage->findProcedurePoint("func12_2", BPatch_entry);
 
     if (!point12_2 || (point12_2->size() < 1)) {
 	fprintf(stderr, "Unable to find point func12_2 - entry.\n");
@@ -1340,10 +1260,7 @@ void mutatorTest12a(BPatch_thread *appThread, BPatch_image *appImage)
     }
 
     BPatch_function *call12_1_func;
-    if (mutateeFortran)
-        call12_1_func = appImage->findFunction("call12_1_");
-    else
-        call12_1_func = appImage->findFunction("call12_1");
+    call12_1_func = appImage->findFunction("call12_1");
 
     if (call12_1_func == NULL) {
 	fprintf(stderr, "Unable to find function \"call12_1.\"\n");
@@ -1385,10 +1302,7 @@ void mutatorTest13(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func13_1"
     BPatch_Vector<BPatch_point *> *point13_1;
-    if (mutateeFortran)
-        point13_1 = appImage->findProcedurePoint("func13_1_", BPatch_entry);
-    else
-        point13_1 = appImage->findProcedurePoint("func13_1", BPatch_entry);
+    point13_1 = appImage->findProcedurePoint("func13_1", BPatch_entry);
 
     if (!point13_1 || (point13_1->size() < 1)) {
 	fprintf(stderr, "Unable to find point func13_1 - entry.\n");
@@ -1396,10 +1310,7 @@ void mutatorTest13(BPatch_thread *appThread, BPatch_image *appImage)
     }
 
     BPatch_function *call13_1_func;
-    if (mutateeFortran)
-        call13_1_func = appImage->findFunction("call13_1_");
-    else
-        call13_1_func = appImage->findFunction("call13_1");
+    call13_1_func = appImage->findFunction("call13_1");
 
     if (call13_1_func == NULL) {
 	fprintf(stderr, "Unable to find function \"call13_1.\"\n");
@@ -1424,10 +1335,7 @@ void mutatorTest13(BPatch_thread *appThread, BPatch_image *appImage)
 
     // now test that a return value can be read.
     BPatch_Vector<BPatch_point *> *point13_2;
-    if (mutateeFortran)
-        point13_2 = appImage->findProcedurePoint("func13_2_", BPatch_exit);
-    else
-        point13_2 = appImage->findProcedurePoint("func13_2", BPatch_exit);
+    point13_2 = appImage->findProcedurePoint("func13_2", BPatch_exit);
 
     if (!point13_2 || (point13_2->size() < 1)) {
 	fprintf(stderr, "Unable to find point func13_2 - exit.\n");
@@ -1435,10 +1343,7 @@ void mutatorTest13(BPatch_thread *appThread, BPatch_image *appImage)
     }
 
     BPatch_function *call13_2_func;
-    if (mutateeFortran)
-        call13_2_func = appImage->findFunction("call13_2_");
-    else
-        call13_2_func = appImage->findFunction("call13_2");
+    call13_2_func = appImage->findFunction("call13_2");
 
     if (call13_2_func == NULL) {
 	fprintf(stderr, "Unable to find function \"call13_2.\"\n");
@@ -1473,22 +1378,10 @@ void mutatorTest13(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest14(BPatch_thread *appThread, BPatch_image *appImage)
 {
-    if (mutateeFortran)
-    {
-        replaceFunctionCalls(appThread, appImage,
-            "func14_1_", "func14_2_", "call14_1_",
-            14, "replace/remove function call", 1);
-        replaceFunctionCalls(appThread, appImage,
-            "func14_1_", "func14_3_", NULL,
-            14, "replace/remove function call", 1);
-    } else {
-        replaceFunctionCalls(appThread, appImage,
-            "func14_1", "func14_2", "call14_1",
-            14, "replace/remove function call", 1);
-        replaceFunctionCalls(appThread, appImage,
-            "func14_1", "func14_3", NULL,
-            14, "replace/remove function call", 1);
-    }
+    replaceFunctionCalls(appThread, appImage, "func14_1", "func14_2", "call14_1", 
+	14, "replace/remove function call", 1);
+    replaceFunctionCalls(appThread, appImage, "func14_1", "func14_3", NULL,
+	14, "replace/remove function call", 1);
 }
 
 //
@@ -1496,11 +1389,7 @@ void mutatorTest14(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest15a(BPatch_thread *appThread, BPatch_image *appImage)
 {
-    if (mutateeFortran)
-        insertCallSnippetAt(appThread, appImage, "func15_2_", BPatch_entry,
-            "call15_1_", 15, "setMutationsActive");
-    else
-        insertCallSnippetAt(appThread, appImage, "func15_2", BPatch_entry,
+    insertCallSnippetAt(appThread, appImage, "func15_2", BPatch_entry,
             "call15_1", 15, "setMutationsActive");
 
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
@@ -1508,28 +1397,16 @@ void mutatorTest15a(BPatch_thread *appThread, BPatch_image *appImage)
     // heap when instrumented, making a special case we should check.
 
     // "access" makes the "access" system call, so we'll instrument it
-    if (mutateeFortran)
-        insertCallSnippetAt(appThread, appImage, "access", BPatch_entry,
-		"call15_2_", 15, "setMutationsActive");
-    else
-        insertCallSnippetAt(appThread, appImage, "access", BPatch_entry,
-		"call15_2", 15, "setMutationsActive");
+    insertCallSnippetAt(appThread, appImage, "access", BPatch_entry,
+	"call15_2", 15, "setMutationsActive");
 
-    if (mutateeFortran)
-        // We want to instrument more than one point, so do exit as well
-        insertCallSnippetAt(appThread, appImage, "access", BPatch_exit,
-		"call15_2_", 15, "setMutationsActive");
-    else
-        insertCallSnippetAt(appThread, appImage, "access", BPatch_exit,
-		"call15_2", 15, "setMutationsActive");
+    // We want to instrument more than one point, so do exit as well
+    insertCallSnippetAt(appThread, appImage, "access", BPatch_exit,
+	"call15_2", 15, "setMutationsActive");
 #endif
 
-    if (mutateeFortran)
-        replaceFunctionCalls(appThread, appImage, "func15_4_", "func15_3_",
-            "call15_3_", 15, "setMutationsActive", 1);
-    else
-        replaceFunctionCalls(appThread, appImage, "func15_4", "func15_3",
-            "call15_3", 15, "setMutationsActive", 1);
+    replaceFunctionCalls(appThread, appImage, "func15_4", "func15_3",
+	"call15_3", 15, "setMutationsActive", 1);
 }
 
 void mutatorTest15b(BPatch_thread *appThread, BPatch_image * /*appImage*/)
@@ -1564,10 +1441,7 @@ BPatch_Vector<BPatch_snippet *> genLongExpr(BPatch_arithExpr *tail)
 void mutatorTest16(BPatch_thread *appThread, BPatch_image *appImage)
 {
     BPatch_Vector <BPatch_point *> *func16_1;
-    if (mutateeFortran)
-        func16_1 = appImage->findProcedurePoint ("func16_1_", BPatch_subroutine);
-    else
-        func16_1 = appImage->findProcedurePoint ("func16_1", BPatch_subroutine);
+    func16_1 = appImage->findProcedurePoint ("func16_1", BPatch_subroutine);
 
     if (!func16_1 || ((*func16_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func16_1\".\n");
@@ -1630,29 +1504,16 @@ void mutatorTest16(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_ifExpr if16_6(BPatch_boolExpr(BPatch_eq, BPatch_constExpr(0),
         BPatch_constExpr(1)), longExpr16_3, longExpr16_4);
 
-    if (mutateeFortran) {
-        insertSnippetAt(appThread, appImage, "func16_2_", BPatch_entry, if16_2,
-            16, "if-else");
-        insertSnippetAt(appThread, appImage, "func16_3_", BPatch_entry, if16_3,
-            16, "if-else");
-        insertSnippetAt(appThread, appImage, "func16_4_", BPatch_entry, if16_4,
-            16, "if-else");
-        insertSnippetAt(appThread, appImage, "func16_4_", BPatch_entry, if16_5,
-            16, "if-else");
-        insertSnippetAt(appThread, appImage, "func16_4_", BPatch_entry, if16_6,
-            16, "if-else");
-    } else {
-        insertSnippetAt(appThread, appImage, "func16_2", BPatch_entry, if16_2,
-            16, "if-else");
-        insertSnippetAt(appThread, appImage, "func16_3", BPatch_entry, if16_3,
-            16, "if-else");
-        insertSnippetAt(appThread, appImage, "func16_4", BPatch_entry, if16_4,
-            16, "if-else");
-        insertSnippetAt(appThread, appImage, "func16_4", BPatch_entry, if16_5,
-            16, "if-else");
-        insertSnippetAt(appThread, appImage, "func16_4", BPatch_entry, if16_6,
-            16, "if-else");
-    }
+    insertSnippetAt(appThread, appImage, "func16_2", BPatch_entry, if16_2,
+	16, "if-else");
+    insertSnippetAt(appThread, appImage, "func16_3", BPatch_entry, if16_3,
+	16, "if-else");
+    insertSnippetAt(appThread, appImage, "func16_4", BPatch_entry, if16_4,
+	16, "if-else");
+    insertSnippetAt(appThread, appImage, "func16_4", BPatch_entry, if16_5,
+	16, "if-else");
+    insertSnippetAt(appThread, appImage, "func16_4", BPatch_entry, if16_6,
+	16, "if-else");
 }
 
 //
@@ -1669,10 +1530,7 @@ void mutatorTest17(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func17_1"
     BPatch_Vector<BPatch_point *> *point17_1;
-    if (mutateeFortran)
-        point17_1 = appImage->findProcedurePoint("func17_1_", BPatch_exit);
-    else
-        point17_1 = appImage->findProcedurePoint("func17_1", BPatch_exit);
+    point17_1 = appImage->findProcedurePoint("func17_1", BPatch_exit);
 
     if (!point17_1 || (point17_1->size() < 1)) {
 	fprintf(stderr, "Unable to find point func17_1 - exit.\n");
@@ -1680,10 +1538,7 @@ void mutatorTest17(BPatch_thread *appThread, BPatch_image *appImage)
     }
 
     BPatch_function *call17_1_func;
-    if (mutateeFortran)
-        call17_1_func = appImage->findFunction("call17_1_");
-    else
-        call17_1_func = appImage->findFunction("call17_1");
+    call17_1_func = appImage->findFunction("call17_1");
 
     if (call17_1_func == NULL) {
 	fprintf(stderr, "Unable to find function \"call17_1.\"\n");
@@ -1711,10 +1566,7 @@ void mutatorTest17(BPatch_thread *appThread, BPatch_image *appImage)
 
     // Find the exit point to the procedure "func17_2"
     BPatch_Vector<BPatch_point *> *point17_2;
-    if (mutateeFortran)
-        point17_2 = appImage->findProcedurePoint("func17_2_", BPatch_exit);
-    else
-        point17_2 = appImage->findProcedurePoint("func17_2", BPatch_exit);
+    point17_2 = appImage->findProcedurePoint("func17_2", BPatch_exit);
 
     if (!point17_2 || (point17_2->size() < 1)) {
 	fprintf(stderr, "Unable to find point func17_2 - exit.\n");
@@ -1722,10 +1574,7 @@ void mutatorTest17(BPatch_thread *appThread, BPatch_image *appImage)
     }
 
     BPatch_function *call17_2_func;
-    if (mutateeFortran)
-        call17_2_func = appImage->findFunction("call17_2_");
-    else
-        call17_2_func = appImage->findFunction("call17_2");
+    call17_2_func = appImage->findFunction("call17_2");
 
     if (call17_2_func == NULL) {
 	fprintf(stderr, "Unable to find function \"call17_2.\"\n");
@@ -1761,10 +1610,7 @@ void mutatorTest17(BPatch_thread *appThread, BPatch_image *appImage)
 void mutatorTest18(BPatch_thread *appThread, BPatch_image *appImage)
 {
     BPatch_Vector <BPatch_point *> *func18_1;
-    if (mutateeFortran)
-        func18_1 = appImage->findProcedurePoint ("func18_1_", BPatch_subroutine);
-    else
-        func18_1 = appImage->findProcedurePoint ("func18_1", BPatch_subroutine);
+    func18_1 = appImage->findProcedurePoint ("func18_1", BPatch_subroutine);
 
     if (!func18_1 || ((*func18_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func18_1\".\n");
@@ -1806,10 +1652,7 @@ void mutatorTest19(BPatch_thread *appThread, BPatch_image *appImage)
     waitUntilStopped(bpatch, appThread, 19, "oneTimeCode");
 
     BPatch_function *call19_1_func;
-    if (mutateeFortran)
-        call19_1_func = appImage->findFunction("call19_1_");
-    else
-        call19_1_func = appImage->findFunction("call19_1");
+    call19_1_func = appImage->findFunction("call19_1");
 
     if (call19_1_func == NULL) {
 	fprintf(stderr, "Unable to find function \"call19_1.\"\n");
@@ -1826,10 +1669,7 @@ void mutatorTest19(BPatch_thread *appThread, BPatch_image *appImage)
     P_sleep(1);           /* wait for child to continue */
 
     BPatch_function *call19_2_func;
-    if (mutateeFortran)
-        call19_2_func = appImage->findFunction("call19_2_");
-    else
-        call19_2_func = appImage->findFunction("call19_2");
+    call19_2_func = appImage->findFunction("call19_2");
 
     if (call19_2_func == NULL) {
         fprintf(stderr, "Unable to find function \"call19_2.\"\n");
@@ -1848,10 +1688,7 @@ void mutatorTest19(BPatch_thread *appThread, BPatch_image *appImage)
 void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
 {
     BPatch_function *call20_1_func;
-    if (mutateeFortran)
-        call20_1_func = appImage->findFunction("call20_1_");
-    else
-        call20_1_func = appImage->findFunction("call20_1");
+    call20_1_func = appImage->findFunction("call20_1");
 
     if (call20_1_func == NULL) {
 	fprintf(stderr, "Unable to find function \"call20_1.\"\n");
@@ -1863,10 +1700,7 @@ void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
     checkCost(call20_1Expr);
 
     BPatch_function *f;
-    if (mutateeFortran)
-        f = appImage->findFunction("func20_2_");
-    else
-        f = appImage->findFunction("func20_2");
+    f = appImage->findFunction("func20_2");
 
     if (f == NULL) {
 	fprintf(stderr, "Unable to find function \"func20_2.\"\n");
@@ -1924,15 +1758,17 @@ void readyTest21or22(BPatch_thread *appThread)
     sprintf(libA, "./%s", libNameA);
     sprintf(libB, "./%s", libNameB);
 #if !defined(i386_unknown_nt4_0)
-    if (! appThread->loadLibrary(libA)) {
-	 fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
-	 fprintf(stderr, "  Mutator couldn't load %s into mutatee\n", libNameA);
-	 exit(1);
-    }
-    if (! appThread->loadLibrary(libB)) {
-	 fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
-	 fprintf(stderr, "  Mutator couldn't load %s into mutatee\n", libNameB);
-	 exit(1);
+    if (!mutateeFortran) {
+	if (! appThread->loadLibrary(libA)) {
+	     fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
+	     fprintf(stderr, "  Mutator couldn't load %s into mutatee\n", libNameA);
+	     exit(1);
+	}
+	if (! appThread->loadLibrary(libB)) {
+	     fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
+	     fprintf(stderr, "  Mutator couldn't load %s into mutatee\n", libNameB);
+	     exit(1);
+	}
     }
 #endif
 }
@@ -1947,6 +1783,10 @@ void mutatorTest21(BPatch_thread *, BPatch_image *appImage)
  || defined(rs6000_ibm_aix4_1)
 
     // Lookup the libtestA.so and libtestB.so modules that we've just loaded
+
+    if (mutateeFortran) {
+	return;
+    }
 
     BPatch_module *modA = NULL;
     BPatch_module *modB = NULL;
@@ -2009,6 +1849,10 @@ void mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
 {
 #if defined(sparc_sun_solaris2_4) || \
     defined(alpha_dec_osf4_0)
+
+    if (mutateeFortran) {
+	return;
+    }
 
     char errbuf[1024]; errbuf[0] = '\0';
     BPatch_module *modA = NULL;
@@ -2302,10 +2146,7 @@ void mutatorTest25(BPatch_thread *appThread, BPatch_image *appImage)
 #ifndef mips_sgi_irix6_4
     //     First verify that we can find a local variable in call25_1
     BPatch_Vector<BPatch_point *> *point25_1;
-    if (mutateeFortran)
-        point25_1 = appImage->findProcedurePoint("call25_1_", BPatch_entry);
-    else
-        point25_1 = appImage->findProcedurePoint("call25_1", BPatch_entry);
+    point25_1 = appImage->findProcedurePoint("call25_1", BPatch_entry);
 
     assert(point25_1);
 //    assert(point25_1 && (point25_1->size() == 1));
@@ -2372,19 +2213,13 @@ void mutatorTest26(BPatch_thread *appThread, BPatch_image *appImage)
 {
 #if !defined(mips_sgi_irix6_4)
 
-    if (!mutateeF77) {
+    if (!mutateeFortran) {
         //     First verify that we can find a local variable in call26_1
         BPatch_Vector<BPatch_point *> *point26_1;
-        if (mutateeFortran)
-            point26_1 = appImage->findProcedurePoint("call26_1_", BPatch_subroutine);
-        else
-            point26_1 = appImage->findProcedurePoint("call26_1", BPatch_subroutine);
+	point26_1 = appImage->findProcedurePoint("call26_1", BPatch_subroutine);
 
         BPatch_Vector<BPatch_point *> *point26_2;
-        if (mutateeFortran)
-            point26_2 = appImage->findProcedurePoint("func26_1_", BPatch_subroutine);
-        else
-            point26_2 = appImage->findProcedurePoint("func26_1", BPatch_subroutine);
+	point26_2 = appImage->findProcedurePoint("func26_1", BPatch_subroutine);
 
         assert(point26_1 && (point26_1->size() == 1));
         assert(point26_2);
@@ -2409,9 +2244,9 @@ void mutatorTest26(BPatch_thread *appThread, BPatch_image *appImage)
         // start of code for globalVariable26_1
         BPatch_Vector<BPatch_variableExpr *> *fields = gvar[1]->getComponents();
     	if (!fields) {
-		fprintf(stderr, "**Failed** test #26 (struct elements)\n");
-		fprintf(stderr, "  struct lacked correct number of elements\n");
-		exit(-1);
+	    fprintf(stderr, "**Failed** test #26 (struct elements)\n");
+	    fprintf(stderr, "  struct lacked correct number of elements\n");
+	    exit(-1);
     	}
 
         for (i=0; i < 4; i++) {
@@ -2461,11 +2296,15 @@ void mutatorTest26(BPatch_thread *appThread, BPatch_image *appImage)
         lvar = appImage->findVariable(*(*point26_1) [0], "localVariable26_1");
         if (!lvar)
             lvar = appImage->findVariable(*(*point26_1) [0], "localvariable26_1");
+	assert(lvar);
 	expectError = DYNINST_NO_ERROR;
 
     	fields = lvar->getComponents();
-	    //assert(fields && (fields->size() == 4));
-    	assert(fields);
+    	if (!fields || (fields->size() < 4)) {
+	    fprintf(stderr, "**Failed** test #26 (struct elements)\n");
+	    fprintf(stderr, "  struct lacked correct number of elements\n");
+	    exit(-1);
+    	}
 
 	    for (i=0; i < 4; i++) {
 		 char fieldName[80];
@@ -2566,10 +2405,7 @@ void mutatorTest27(BPatch_thread *, BPatch_image *appImage)
     expectError = DYNINST_NO_ERROR;
 
     BPatch_Vector<BPatch_point *> *point27_1;
-    if (mutateeFortran)
-        point27_1 = appImage->findProcedurePoint("func27_1_", BPatch_entry);
-    else
-        point27_1 = appImage->findProcedurePoint("func27_1", BPatch_entry);
+    point27_1 = appImage->findProcedurePoint("func27_1", BPatch_entry);
 
     assert (point27_1);
 
@@ -2638,6 +2474,10 @@ void mutatorTest28(BPatch_thread *appThread, BPatch_image *appImage)
 
     BPatch_Vector<char *> names;
     BPatch_Vector<BPatch_type *> types;
+
+    if (mutateeFortran) {
+	return;
+    }
 
     names.push_back("field1");
     names.push_back("field2");
@@ -2781,10 +2621,7 @@ void mutatorTest29(BPatch_thread *, BPatch_image *appImage)
     }
 
     BPatch_Vector<BPatch_point *> *point29_1;
-    if (mutateeFortran)
-        point29_1 = appImage->findProcedurePoint("func29_1_", BPatch_entry);
-    else
-        point29_1 = appImage->findProcedurePoint("func29_1", BPatch_entry);
+    point29_1 = appImage->findProcedurePoint("func29_1", BPatch_entry);
 
     assert (point29_1);
 
@@ -2819,6 +2656,10 @@ void mutatorTest30(BPatch_thread *appThread, BPatch_image *appImage)
   unsigned int call30_1_line_no;
   unsigned short lineNo;
   char fileName[256];
+
+	if (mutateeFortran) {
+	    return;
+	} 
 
 	//instrument with the function that will set the line number
 	BPatch_Vector<BPatch_point *> *point30_1 =
@@ -3052,9 +2893,6 @@ void instrument_exit_points( BPatch_thread * app_thread,
 //
 void mutatorTest31( BPatch_thread * appThread, BPatch_image * appImage )
 {
-    char * Fortfoo_name = "func31_2_";
-    char * Fortbar_name = "func31_3_";
-    char * Fortbaz_name = "func31_4_";
     char * foo_name = "func31_2";
     char * bar_name = "func31_3";
     char * baz_name = "func31_4";
@@ -3063,10 +2901,7 @@ void mutatorTest31( BPatch_thread * appThread, BPatch_image * appImage )
   BPatch_thread * app_thread = appThread;
 
   BPatch_function *foo_function;
-  if (mutateeFortran)
-    foo_function = app_image->findFunction(Fortfoo_name);
-  else
-    foo_function = app_image->findFunction(foo_name);
+  foo_function = app_image->findFunction(foo_name);
 
   if( foo_function == 0 )
     {
@@ -3076,10 +2911,7 @@ void mutatorTest31( BPatch_thread * appThread, BPatch_image * appImage )
     }
 
   BPatch_function *bar_function;
-  if (mutateeFortran)
-    bar_function = app_image->findFunction(Fortbar_name);
-  else
-    bar_function = app_image->findFunction(bar_name);
+  bar_function = app_image->findFunction(bar_name);
 
   if( bar_function == 0 )
     {
@@ -3089,10 +2921,7 @@ void mutatorTest31( BPatch_thread * appThread, BPatch_image * appImage )
     }
 
   BPatch_function *baz_function;
-  if (mutateeFortran)
-    baz_function = app_image->findFunction(Fortbaz_name);
-  else
-    baz_function = app_image->findFunction(baz_name);
+  baz_function = app_image->findFunction(baz_name);
 
   if( baz_function == 0 )
     {
@@ -3136,9 +2965,6 @@ void mutatorTest31( BPatch_thread * appThread, BPatch_image * appImage )
 //
 void mutatorTest32( BPatch_thread * appThread, BPatch_image * appImage )
 {
-  char * Fortfoo_name = "func32_2_";
-  char * Fortbar_name = "func32_3_";
-  char * Fortbaz_name = "func32_4_";
   char * foo_name = "func32_2";
   char * bar_name = "func32_3";
   char * baz_name = "func32_4";
@@ -3147,10 +2973,7 @@ void mutatorTest32( BPatch_thread * appThread, BPatch_image * appImage )
   BPatch_thread * app_thread = appThread;
 
   BPatch_function * foo_function;
-  if (mutateeFortran)
-    foo_function = app_image->findFunction(Fortfoo_name);
-  else
-    foo_function = app_image->findFunction(foo_name);
+  foo_function = app_image->findFunction(foo_name);
 
   if( foo_function == 0 )
   {
@@ -3160,10 +2983,7 @@ void mutatorTest32( BPatch_thread * appThread, BPatch_image * appImage )
   }
 
   BPatch_function * bar_function;
-  if (mutateeFortran)
-    bar_function = app_image->findFunction(Fortbar_name);
-  else
-    bar_function = app_image->findFunction(bar_name);
+  bar_function = app_image->findFunction(bar_name);
 
   if( bar_function == 0 )
     {
@@ -3172,10 +2992,7 @@ void mutatorTest32( BPatch_thread * appThread, BPatch_image * appImage )
       exit( -1 );
     }
   BPatch_function * baz_function;
-  if (mutateeFortran)
-    baz_function = app_image->findFunction(Fortbaz_name);
-  else
-    baz_function = app_image->findFunction(baz_name);
+  baz_function = app_image->findFunction(baz_name);
 
   if( baz_function == 0 )
     {
@@ -3266,10 +3083,13 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     int i;
 
     BPatch_function *func2;
-    if (mutateeFortran)
-        func2 = appImage->findFunction("func33_2_");
-    else
-        func2 = appImage->findFunction("func33_2");
+    BPatch_function *func3;
+
+    if (mutateeFortran) {
+	return;
+    }
+
+    func2 = appImage->findFunction("func33_2");
 
     if (func2 == NULL) {
 	fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
@@ -3461,7 +3281,8 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     /*
      * Now check a function with a switch statement.
      */
-    BPatch_function *func3 = appImage->findFunction("func33_3");
+    func3 = appImage->findFunction("func33_3");
+
     if (func3 == NULL) {
 	fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
 	fprintf(stderr, "  Unable to find function func33_3\n");
@@ -3568,10 +3389,7 @@ void mutatorTest34( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     int i;
 
     BPatch_function *func2;
-    if (mutateeFortran)
-        func2 = appImage->findFunction("func34_2_");
-    else
-        func2 = appImage->findFunction("func34_2");
+    func2 = appImage->findFunction("func34_2");
 
     if (func2 == NULL) {
 	fprintf(stderr, "**Failed** test #34 (loop information)\n");
@@ -3694,6 +3512,10 @@ void mutatorTest35( BPatch_thread * appThread, BPatch_image * appImage )
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
 
     char * foo_name = "call35_1";
+
+    if (mutateeFortran)
+	return;
+
 
     BPatch_function * foo_function = appImage->findFunction(foo_name);
     if( foo_function == 0 )
@@ -4076,13 +3898,3 @@ main(unsigned int argc, char *argv[])
 
     return exitCode;
 }
-
-
-
-
-
-
-
-
-
-

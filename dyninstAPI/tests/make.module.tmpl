@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.35 2001/10/26 06:29:47 schendel Exp $
+# $Id: make.module.tmpl,v 1.36 2001/10/26 22:45:31 hollings Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -78,7 +78,13 @@ endif
 ifndef MUTATEE_SUFFIX
 MUTATEE_SUFFIX=.c
 endif
+
 MUTATEE_SRC = ../src/$(TARGET2:_$(MUTATEE_CC)=$(MUTATEE_SUFFIX))
+
+# test1 has an extra file
+ifeq (test1.mutatee, $(findstring test1.mutatee, $(TARGET2)))
+MUTATEE_SRC += ../src/test1.mutateeCommon.c
+endif
 
 VPATH	     +=
 

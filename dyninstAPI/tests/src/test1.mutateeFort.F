@@ -297,7 +297,7 @@
 
 	if (globalVariable1_1 .eq. 11) then
 		print *, 'Passed test #1 (zero arg function call)'
-		passedTest (2) = .true.
+		passedTest (1) = .true.
 	else
 		print *, '**Failed** test #1 (zero arg function call)'
 	endif
@@ -333,7 +333,7 @@
 	if (arg1 .eq. 1 .and. arg2 .eq. 2 .and. arg3 .eq.
      & "testString2_1") then
 		print *, 'Passed test #2 (four paramater function)'
-		passedTest (3) = .true.
+		passedTest (2) = .true.
 	else
 		print *, '**Failed** test #2 (four parameter function)'
 		if (arg1 .ne. 1) then
@@ -361,7 +361,7 @@
 	INTEGER arg1, arg2
 	if (arg1 .eq. 31 .and. arg2 .eq. 32) then
 		print *, 'Passed test #3 (passing Variables to functions)'
-		passedTest (4) = .true.
+		passedTest (3) = .true.
 	else
 		print *, '**Failed** test #3 (passing Variables to functions)'
 		print *, '	arg1 = ', arg1, ', should be 31'
@@ -384,7 +384,7 @@
 		else
 			if (globalVariable4_1 .eq. 43) then
 				print *, 'Passed test #4 (sequence)'
-				passedTest (5) = .true.
+				passedTest (4) = .true.
 			endif
 		endif
 	endif
@@ -405,7 +405,7 @@
 	if (globalVariable5_1 .eq. 51 .and. globalVariable5_2 .eq. 53)
      & then
 			print *, 'Passed test #5 (if w.o. else)'
-			passedTest (6) = .true.
+			passedTest (5) = .true.
 		else
 			print *, '**Failed** test #5 (if w.o. else)'
 			if (globalVariable5_1 .ne. 51) then
@@ -445,7 +445,7 @@
      & globalVariable6_5a .eq. (6 * 5) .and.
      & globalVariable6_6a .eq. 3) then
 		print *, 'Passed test #6 (arithmetic operators)'
-		passedTest (7) = .true.
+		passedTest (6) = .true.
 	else
 		print *, '**Failed** test #6 (arithmetic operators)'
 
@@ -569,7 +569,7 @@
      & globalVariable7_15a .eq. 74 .and.
      & globalVariable7_16a .eq. 73) then
 		print *, 'Passed test #7 (relational operators)'
-		passedTest (8) = .true.
+		passedTest (7) = .true.
 	else
 		print *, '**Failed** test #7 (relational operators)'
 		CALL fail7Print(globalVariable7_1, globalVariable7_2,
@@ -624,7 +624,7 @@
      & .and. p5 .eq. 5 .and. p6 .eq. 6 .and. p7 .eq. 7 .and. p8 .eq. 8
      & .and. p9 .eq. 9 .and. p10 .eq. 10) then
 		print *, 'Passed test #8 (preserve registers - expr)'
-		passedTest (9) = .true.
+		passedTest (8) = .true.
 	else
 		print *, '**Failed** test #8 (preserve registers - expr)'
 		if (p1 .ne. 1) then
@@ -670,7 +670,7 @@
      & .and. p5 .eq. 5 .and. p6 .eq. 6 .and. p7 .eq. 7 .and. p8
      & .eq. 8 .and. p9 .eq. 9 .and. p10 .eq. 10) then
 		print *, 'Passed test #9 (preserve registers - funcCall)'
-		passedTest (10) = .true.
+		passedTest (9) = .true.
 	else
 		print *, '**Failed** test #9 (preserve registers - funcCall)'
 		if (p1 .ne. 1) then
@@ -742,7 +742,7 @@
      & .and. globalVariable10_3 .eq. 1 .and. globalVariable10_4 .eq.
      & 3) then
 		print *, 'Passed test #10 (insert snippet order)'
-		passedTest (11) = .true.
+		passedTest (10) = .true.
 	else
 		print *, '**Failed test #10 (insert snippet order)'
 		if (globalVariable10_1 .ne. 1) then
@@ -850,7 +850,7 @@
      & .and. globalVariable11_4 .ne. 0 .and. globalVariable11_5
      & .ne. 0) then
 		print *, 'Passed test #11 (snippets at entry, exit, call)'
-		passedTest (12) = .true.
+		passedTest (11) = .true.
 	else
 		print *, '**Failed test #11 (snippets at entry,exit,call)'
 		if (globalVariable11_2 .ne. 0) then
@@ -879,7 +879,7 @@
 
 	if (globalVariable12_1 .eq. 1) then
 		print *, 'Passed test #12 (insert/remove and malloc/free)'
-		passedTest (13) = .true.
+		passedTest (12) = .true.
 	else
 		print *, '**Failed test #12 (insert/remove and malloc/free)'
 		print *, 'ZANDY: #12 failed because globalVariable12_1 = ',
@@ -913,7 +913,7 @@
 	if (p1 .eq. 131 .and. p2 .eq. 132 .and. p3 .eq. 133 .and. p4 .eq.
      & 134 .and. p5 .eq. 135 .and. globalVariable13_1 .eq. 63) then
 		print *, 'Passed test #13 (paramExpr,retExpr,nullExpr)'
-		passedTest (14) = .true.
+		passedTest (13) = .true.
 	else
 		print *, '**Failed test#13 (paramExpr,retExpr,nullExpr)'
 		print *, 'globalVariable13_1 = ', globalVariable13_1
@@ -1009,7 +1009,7 @@
 	if (globalVariable14_1 .eq. 1 .and. globalVariable14_2
      & .eq. 0) then
 		print *, 'Passed test #14 (replace/remove function call)'
-		passedTest (15) = .true.
+		passedTest (14) = .true.
 	else
 		print *, '**Failed test #14 (replace/remove function call)'
 		if (globalVariable14_1 .ne. 1) then
@@ -1129,7 +1129,7 @@
 
 	if (failed .eqv. .false.) then
 		print *, 'Passed test #15 (setMutationsActive)'
-		passedTest (16) = .true.
+		passedTest (15) = .true.
 	endif
 	END
 
@@ -1198,7 +1198,7 @@
 
 	if (failed .eqv. .false.) then
 		print *, 'Passed test #16 (if-else)'
-		passedTest (17) = .true.
+		passedTest (16) = .true.
 	endif
 	END
 
@@ -1246,7 +1246,7 @@
 		endif
 	else
 		print *, 'Passed test #17 (return values from func calls)'
-		passedTest (18) = .true.
+		passedTest (17) = .true.
 	endif
 	END
 
@@ -1315,7 +1315,7 @@
 
 	if (globalVariable18_1 .eq. 17) then
 		print *, 'Passed test #18 (read/write a value in the mutatee)'
-		passedTest (19) = .true.
+		passedTest (18) = .true.
 	else
 		print *, '**Failed test #18 (read/write a value in the mutatee)'
 		if (globalVariable18_1 .eq. 42) then
@@ -1345,7 +1345,7 @@
 
 	if (globalVariable19_2 .eq. 1900200) then
 		print *, 'Passed test #19 (oneTimeCode)'
-		passedTest (20) = .true.
+		passedTest (19) = .true.
 	else
 		print *, '**Failed test #19 (oneTimeCode)'
 		print *, '     globalVariable19_2 contained ',
@@ -1442,7 +1442,7 @@
      & 7 * 41 .and. eq_doubles (double_val, temp2) .eq. 1
      & .and. ret .eq. 1088896211) then
 		print *, 'Passed test #20 (instrument arbitrary points)'
-		passedTest (21) = .true.
+		passedTest (20) = .true.
 	else
 		print *, '**Failed test #20 (instrument arbitrary points)'
 		if (globalVariable20_1 .ne. (3 * 41)) then
@@ -1493,7 +1493,7 @@
 #include "test1_common.h"
 
 	print *, 'Passed test #21 (findFunction in module)'
-	passedTest (22) = .true.
+	passedTest (21) = .true.
 	END
 
 !------------------------------------------------------------------------------
@@ -1505,9 +1505,8 @@
 
 	print *, 'Skipped test #22 (replace function)'
 	print *, '       - not implemented on this platform'
-	passedTest (23) = .true.
-#else
 #endif
+	passedTest (22) = .true.
 	END
 
 !------------------------------------------------------------------------------
@@ -1517,7 +1516,7 @@
 
 	print *, 'Skipped test #23 (local Variables)'
 	print *, '       - not implemented for Fortran'
-	passedTest (24) = .true.
+	passedTest (23) = .true.
 	END
 
 !------------------------------------------------------------------------------
@@ -1543,7 +1542,7 @@
 
 	print *, 'Skipped test #24 (arrary Variables)'
 	print *, '       - not implemented for Fortran'
-	passedTest (25) = .true.
+	passedTest (24) = .true.
 	END
 
 !------------------------------------------------------------------------------
@@ -1554,9 +1553,9 @@
 #if defined(mips_sgi_irix6_4)
 	print *, 'Skipped test #25 (unary operators)'
 	print *, '       - not implemented on this platform'
-	passedTest (26) = .true.
+	passedTest (25) = .true.
 #else
-	passedTest (26) = .true.
+	passedTest (25) = .true.
 	globalVariable25_1 = 25000001
 !	globalVariable25_2 = (int *) 25000002
 	globalVariable25_3 = 25000003
@@ -1568,33 +1567,33 @@
 	CALL call25_1
 
 	if (globalVariable25_3 .ne. globalVariable25_1) then
-		if (passedTest (26) .eqv. .true.) then
+		if (passedTest (25) .eqv. .true.) then
 			print *, '**Failed** test #25 (unary operators)'
 		endif
-		passedTest (26) = .false.
+		passedTest (25) = .false.
 		print *, '    globalVariable25_2 = ', globalVariable25_3,
      & ', not ', globalVariable25_1
 	endif
 
 	if (globalVariable25_5 .ne. -1 * globalVariable25_4) then
-		if (passedTest (26) .eqv. .true.) then
+		if (passedTest (25) .eqv. .true.) then
 			print *, '**Failed** test #25 (unary operators)'
 		endif
-		passedTest (26) = .false.
+		passedTest (25) = .false.
 		print *, '    globalVariable25_5 = ', globalVariable25_5,
      & ', not ', -1 * globalVariable25_4
 	endif
 
 	if (globalVariable25_7 .ne. -1 * globalVariable25_6) then
-		if (passedTest (26) .eqv. .true.) then
+		if (passedTest (25) .eqv. .true.) then
 			print *, '**Failed** test #25 (unary operators)'
 		endif
-		passedTest (26) = .false.
+		passedTest (25) = .false.
 		print *, '    globalVariable25_7 = ', globalVariable25_7,
      & ', not ', -1 * globalVariable25_6
 	endif
 
-	if (passedTest (26) .eqv. .true.) then
+	if (passedTest (25) .eqv. .true.) then
 		print *, 'Passed test #25 (unary operators)'
 	endif
 #endif
@@ -1604,6 +1603,9 @@
 
 	SUBROUTINE call25_1
 #include "test1_common.h"
+	integer place
+
+	place = 23
 	END
 
 !------------------------------------------------------------------------------
@@ -1611,12 +1613,15 @@
 	SUBROUTINE func26_1
 #include "test1_common.h"
 
-#if !defined (F77)
+	print *, 'Skipped test #26 (field operators)'
+	print *, '       - not implemented in Fortran'
+	passedTest (26) = .true.
+#if notdef
 	INTEGER i
 
         TYPE (struct26_2) globalVariable26_1
 
-	passedTest (27) = .true.
+	passedTest (26) = .true.
 	globalVariable26_1%field1 = 26001001
 	globalVariable26_1%field2 = 26001002
 
@@ -1655,13 +1660,10 @@
 	CALL FverifyScalarValue ("globalVariable26_13",
      & globalVariable26_13, 26002014, 26, "field operators")
 
-	if (passedTest (27) .eqv. .true.) then
+	if (passedTest (26) .eqv. .true.) then
 		print *, 'Passed test #26 (field operators)'
 	endif
 #else
-	print *, 'Skipped test #26 (field operators)'
-	print *, '       - not implemented in Fortran77'
-	passedTest (27) = .true.
 #endif
 	END
 
@@ -1701,7 +1703,7 @@
 #include "test1_common.h"
 
 	if (globalVariable27_1 .eq. 1) then
-		passedTest (28) = .true.
+		passedTest (27) = .true.
 		print *, 'Passed test #27 (type compatibility)'
 	endif
 	END
@@ -1710,7 +1712,7 @@
 
 	SUBROUTINE func28_1
 #include "test1_common.h"
-	passedTest (29) = .true.
+	passedTest (28) = .true.
 	print *, 'Skipped test #28 (user defined fields)'
 	print *, '       - not implemented for Fortran'
 	END
@@ -1721,7 +1723,7 @@
 #include "test1_common.h"
 
 	if (globalVariable29_1 .eq. 1) then
-		passedTest (30) = .true.
+		passedTest (29) = .true.
 		print *, 'Passed test #29 (BPatch_srcObj class)'
 	endif
 	END
@@ -1730,7 +1732,7 @@
 
 	SUBROUTINE func30_1
 #include "test1_common.h"
-	passedTest (31) = .true.
+	passedTest (30) = .true.
 	print *, 'Skipped test #30 (line information)'
 	print *, '       - not implemented for Fortran'
 	END
@@ -1748,10 +1750,10 @@
 	CALL func31_2
 
 	if (globalVariable31_3 .eq. 1) then
-		passedTest (32) = .true.
+		passedTest (31) = .true.
 	endif
 
-	if (passedTest (32) .eqv. .false.) then
+	if (passedTest (31) .eqv. .false.) then
 		print *, '**Failed** test #31 (non-recursive base tramp guard)'
 		print *, '    globalVariable31_3 = ', globalVariable31_3,
      & ', should be 1 (no instrumentation got exectued?)'
@@ -1760,10 +1762,10 @@
 	endif
 
 	if (globalVariable31_4 .eq. 0) then
-		passedTest (32) = .true.
+		passedTest (31) = .true.
 	endif
 
-	if (passedTest (32) .eqv. .false.) then
+	if (passedTest (31) .eqv. .false.) then
 		print *, '**Failed** test #31 (non-recursive base tramp guard)'
 		print *, '    globalVariable31_4 = ', globalVariable31_4,
      & ', should be 0.'
@@ -1782,7 +1784,7 @@
 		RETURN
 	endif
 
-	passedTest (32) = .true.
+	passedTest (31) = .true.
 	print *, 'Passed test #31 (non-recursive base tramp guard)'
 
 	func31_1 = 1
@@ -1830,10 +1832,10 @@
 	CALL func32_2
 
 	if (globalVariable32_3 .eq. 1) then
-		passedTest (33) = .true.
+		passedTest (32) = .true.
 	endif
 
-	if (passedTest (33) .eqv. .false.) then
+	if (passedTest (32) .eqv. .false.) then
 		print *, '**Failed** test #32 (non-recursive base tramp guard)'
 		print *, '    globalVariable32_3 = ', globalVariable32_3,
      & ', should be 1 (no instrumentation got executed?)'
@@ -1842,10 +1844,10 @@
 	endif
 
 	if (globalVariable32_4 .eq. 3) then
-		passedTest (33) = .true.
+		passedTest (32) = .true.
 	endif
 
-	if (passedTest (33) .eqv. .false.) then
+	if (passedTest (32) .eqv. .false.) then
 		print *, '**Failed** test #32 (non-recursive base tramp guard)'
 		print *, '    globalVariable32_4 = ', globalVariable32_4,
      & ', should be 3.'
@@ -1865,7 +1867,7 @@
 		RETURN
 	endif
 
-	passedTest (33) = .true.
+	passedTest (32) = .true.
 	print *, 'Passed test #32 (recursive base tramp guard)'
 
 	func32_1 = 1
@@ -1906,7 +1908,7 @@
 	SUBROUTINE func33_1
 #include "test1_common.h"
 
-	passedTest (34) = .true.
+	passedTest (33) = .true.
 	print *, 'Passed test #33 (control flow graphs)'
 	END
 
@@ -1929,60 +1931,54 @@
 
 !------------------------------------------------------------------------------
 
-!	INTEGER FUNCTION func33_3 (x)
-!	INTEGER x
-!	INTRINSIC mod
-!	INTRINSIC ISHIFT, RSHIFT, IEOR, IAND, IOR
+	INTEGER FUNCTION func33_3 (x)
+	INTEGER x
+	INTRINSIC IEOR, IAND, IOR
 
-!	if (x .eq. 1) then
-!		print *, '1'
-!		x = x + 10
-!	elseif (x .eq. 2) then
-!		print *, '2'
-!		x = x -12
-!	elseif (x .eq. 3) then
-!		print *, '3'
-!		x = x * 33
-!	elseif (x .eq. 4) then
-!		print *, '4'
-!		x = x / 42
-!	elseif (x .eq. 5) then
-!		print *, '5'
-!		x = mod (x, 57)
-!	elseif (x .eq. 6) then
-!		print *, '6'
-!		x = mod (x, 2)
-!		x = LSHIFT (x, 2)
-!	elseif (x .eq. 7) then
-!		print *, '7'
-!		x = mod (x, 3)
-!		x = RSHIFT (x, 3)
-!	elseif (x .eq. 8) then
-!		print *, '8'
-!		x = mod (x, Z'fe')
-!		x = IEOR (x, Z'fe')
-!	elseif (x .eq. 9) then
-!		print *, '9'
-!		x = mod (x, Z'44')
-!		x = IAND (x, Z'44')
-!	elseif (x .eq. 10) then
-!		print *, '10'
-!		x = mod (x, Z'11')
-!		x = IOR (x, Z'11')
-!	endif
+	if (x .eq. 1) then
+		print *, '1'
+		x = x + 10
+	elseif (x .eq. 2) then
+		print *, '2'
+		x = x -12
+	elseif (x .eq. 3) then
+		print *, '3'
+		x = x * 33
+	elseif (x .eq. 4) then
+		print *, '4'
+		x = x / 42
+	elseif (x .eq. 5) then
+		print *, '5'
+		x = mod (x, 57)
+	elseif (x .eq. 6) then
+		print *, '6'
+		x = mod (x, 2)
+	elseif (x .eq. 7) then
+		print *, '7'
+		x = mod (x, 3)
+	elseif (x .eq. 8) then
+		print *, '8'
+		x = mod (x, 4)
+	elseif (x .eq. 9) then
+		print *, '9'
+		x = mod (x, 5)
+	elseif (x .eq. 10) then
+		print *, '10'
+		x = mod (x, 6)
+	endif
 
-!	print *, 'Exit'
+	print *, 'Exit'
 
-!	func33_3 = x
-!	RETURN
-!	END
+	func33_3 = x
+	RETURN
+	END
 
 !------------------------------------------------------------------------------
 
 	SUBROUTINE func34_1
 #include "test1_common.h"
 
-	passedTest (35) = .true.
+	passedTest (34) = .true.
 	print *, 'Passed test #34 (loop information)'
 	END
 
@@ -2016,9 +2012,11 @@
 
 	SUBROUTINE func35_1
 #include "test1_common.h"
+	passedTest (35) = .true.
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
+	print *, 'Skipped test #35 (function relocation)'
+	print *, '       - not tested for Fortran'
 #else
-	passedTest (36) = .true.
 	print *, 'Skipped test #35 (function relocation)'
 	print *, '       - not implemented on this platform'
 #endif

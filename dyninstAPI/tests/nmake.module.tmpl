@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.17 2001/03/14 14:02:24 pcroth Exp $
+# $Id: nmake.module.tmpl,v 1.18 2001/10/26 22:45:31 hollings Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -68,20 +68,20 @@ LIBS		= $(TO_CORE)\$(LIBRARY_DEST)\libdyninstAPI.lib
 SYSLIBS		= 
 
 all:
-	$(MAKE) aTest TARGET=test1.exe
-	$(MAKE) aTest TARGET=test2.exe
+	$(MAKE) aTest TARGET=test1.exe MUTATEE_SRC=../src/test1.mutateeCommon.c
+	$(MAKE) aTest TARGET=test2.exe 
 	$(MAKE) aTest TARGET=test3.exe
 	$(MAKE) aTest TARGET=test4.exe
 	$(MAKE) aTest TARGET=test5.exe
 !ifdef NATIVE_CC
-	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test1.mutatee_$(NATIVE_CC).exe
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test1.mutatee_$(NATIVE_CC).exe MUTATEE_SRC=../src/test1.mutateeCommon.c
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test2.mutatee_$(NATIVE_CC).exe
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test3.mutatee_$(NATIVE_CC).exe
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test4a.mutatee_$(NATIVE_CC).exe
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test4b.mutatee_$(NATIVE_CC).exe
 !endif
 !ifdef NATIVE_CXX
-	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test1.mutatee_$(NATIVE_CXX).exe
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test1.mutatee_$(NATIVE_CXX).exe MUTATEE_SRC=../src/test1.mutateeCommon.c
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test2.mutatee_$(NATIVE_CXX).exe
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test3.mutatee_$(NATIVE_CXX).exe
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test4a.mutatee_$(NATIVE_CXX).exe
@@ -89,14 +89,14 @@ all:
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test5.mutatee_$(NATIVE_CXX).exe MUTATEE_SUFFIX=.C
 !endif
 !ifdef GNU_CC
-	$(MAKE) aTest MUTATEE_CC=$(GNU_CC) TARGET2=test1.mutatee_$(GNU_CC).exe
-	$(MAKE) aTest MUTATEE_CC=$(GNU_CC) TARGET2=test2.mutatee_$(GNU_CC).exe
+	$(MAKE) aTest MUTATEE_CC=$(GNU_CC) TARGET2=test1.mutatee_$(GNU_CC).exe MUTATEE_SRC=../src/test1.mutateeCommon.c
+	$(MAKE) aTest MUTATEE_CC=$(GNU_CC) TARGET2=test2.mutatee_$(GNU_CC).exe 
 	$(MAKE) aTest MUTATEE_CC=$(GNU_CC) TARGET2=test3.mutatee_$(GNU_CC).exe
 	$(MAKE) aTest MUTATEE_CC=$(GNU_CC) TARGET2=test4a.mutatee_$(GNU_CC).exe
 	$(MAKE) aTest MUTATEE_CC=$(GNU_CC) TARGET2=test4b.mutatee_$(GNU_CC).exe
 !endif
 !ifdef GNU_CXX
-	$(MAKE) aTest MUTATEE_CC=$(GNU_CXX) TARGET2=test1.mutatee_$(GNU_CXX).exe
+	$(MAKE) aTest MUTATEE_CC=$(GNU_CXX) TARGET2=test1.mutatee_$(GNU_CXX).exe MUTATEE_SRC=../src/test1.mutateeCommon.c
 	$(MAKE) aTest MUTATEE_CC=$(GNU_CXX) TARGET2=test2.mutatee_$(GNU_CXX).exe
 	$(MAKE) aTest MUTATEE_CC=$(GNU_CXX) TARGET2=test3.mutatee_$(GNU_CXX).exe
 	$(MAKE) aTest MUTATEE_CC=$(GNU_CXX) TARGET2=test4a.mutatee_$(GNU_CXX).exe

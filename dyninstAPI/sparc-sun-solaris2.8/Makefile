@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2001/06/12 15:43:27 hollings Exp $
+# $Id: Makefile,v 1.3 2001/10/26 22:45:30 hollings Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -34,8 +34,8 @@ SRCS =		../src/solaris.C \
 		../../common/src/timing-solaris.C
 
 
-CFLAGS		+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP -g -O0
-CXXFLAGS	+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP -g -O0 -DUSES_ELF32_ONLY 
+CFLAGS		+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP -g -O0 -I/usr/local/stow/bind-8.2.2.p5/include/
+CXXFLAGS	+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP -g -O0 -DUSES_ELF32_ONLY  -I/usr/local/stow/bind-8.2.2.p5/include/
 TFLAGS		+= -DUSES_ELF32_ONLY 
 
 

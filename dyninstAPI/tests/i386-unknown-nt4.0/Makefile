@@ -1,7 +1,7 @@
 #
 # Makefile for dyninst test programs on Windows NT.
 #
-# $Id: Makefile,v 1.10 2001/07/12 20:25:48 chadd Exp $
+# $Id: Makefile,v 1.11 2001/10/26 22:45:31 hollings Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in nmake.config
@@ -35,10 +35,10 @@ NATIVE_CXX = VC++
 COMPILER="Microsoft_(R)_32-bit_C/C++_Optimizing_Compiler_Version_12.00.8168_for_80x86"
 MUTATEE_CFLAGS = -nologo -Z7 -W3 $(ARCH_DEF) -GR -DCOMPILER=\"$(COMPILER)\"
 LDFLAGS = -nologo -debug -pdb:none
-$(TARGET2): ../src/$(TARGET2:_VC.exe=.c)
+$(TARGET2): ../src/$(TARGET2:_VC.exe=.c) $(MUTATEE_SRC)
 #	cl -TC $(MUTATEE_CFLAGS) -c ../src/$(TARGET2:_VC.exe=.c)
 #	$(LINK) -out:$(TARGET2) $(LDFLAGS) $(TARGET2:_VC.exe=.obj)
-	cl -TC $(MUTATEE_CFLAGS) ../src/$(TARGET2:_VC.exe=.c) \
+	cl -TC $(MUTATEE_CFLAGS) ../src/$(TARGET2:_VC.exe=.c) $(MUTATEE_SRC) \
 		-o $(TARGET2) -link $(LDFLAGS)
 !endif
 
@@ -49,7 +49,7 @@ LDFLAGS = -nologo -debug -pdb:none
 $(TARGET2): ../src/$(TARGET2:_VC++.exe=.c)
 #	cl -TP $(MUTATEE_CFLAGS) -c ../src/$(TARGET2:_VC++.exe=.c)
 #	$(LINK) -out:$(TARGET2) $(LDFLAGS) $(TARGET2:_VC++.exe=.obj)
-	cl -TP $(MUTATEE_CFLAGS) ../src/$(TARGET2:_VC++.exe=.c) \
+	cl -TP $(MUTATEE_CFLAGS) ../src/$(TARGET2:_VC++.exe=.c) $(MUTATEE_SRC) \
 		-o $(TARGET2) -link $(LDFLAGS)
 !endif
 

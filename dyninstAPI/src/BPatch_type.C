@@ -702,6 +702,35 @@ void BPatch_type::endCommonBlock(BPatch_function *func, void *baseAddr)
     return;
 }
 
+//
+// Define the type compatability among the intrensic types of the various
+//     languages.  For example int in c is compatiable to integer*4 in Fortran.
+//     Each equivelence class is given a unique number.
+//
+struct intrensicTypes_ {
+    char *name;
+    int tid;
+};
+
+struct intrensicTypes_ intrensicTypes[] = {
+    { "int",		1 },
+    { "integer*4", 	1 },
+    { "INTEGER*4", 	1 },
+    { NULL,		0 },
+};
+
+static int findIntrensicType(char *name)
+{
+    struct intrensicTypes_ *curr;
+
+    for (curr = intrensicTypes; curr->name; curr++) {
+	if (!strcmp(name, curr->name)) {
+	    return curr->tid;
+	}
+    }
+
+    return 0;
+}
 
 /*
  * BPatch_type::isCompatible
@@ -713,6 +742,8 @@ void BPatch_type::endCommonBlock(BPatch_function *func, void *baseAddr)
  */
 bool BPatch_type::isCompatible(BPatch_type *otype)
 {
+  int t1, t2;
+
   // simple compare.
   if (nullType || otype->nullType)
 	return true;
@@ -731,12 +762,16 @@ bool BPatch_type::isCompatible(BPatch_type *otype)
   }
 
   switch(type_){
+  case BPatch_dataBuilt_inType:
   case BPatch_dataScalar:
       if (!strcmp(name,otype->name) && (size == otype->size)) {
 	  return true;
-      } else {
-	  BPatch_reportError(BPatchWarning, 112, "scalar's not compatible");
-	  return false;
+      } else if (size == otype->size) {
+	  t1 = findIntrensicType(name);
+	  t2 = findIntrensicType(otype->name);
+	  if (t1 & t2 & (t1 == t2)) {
+	      return true;
+	  }
       }
       break;
 
@@ -749,11 +784,6 @@ bool BPatch_type::isCompatible(BPatch_type *otype)
 
   case BPatch_dataReference:
       if (!(strcmp(name,otype->name)) && (size == otype->size))
-          return true;
-      break;
-
-  case BPatch_dataBuilt_inType:
-      if (!(strcmp(name,otype->name))&&(size == otype->size))
           return true;
       break;
 

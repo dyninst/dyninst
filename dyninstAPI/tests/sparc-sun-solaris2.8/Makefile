@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.7 2001/10/26 06:29:51 schendel Exp $
+# $Id: Makefile,v 1.8 2001/10/26 22:45:32 hollings Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -26,8 +26,8 @@ CFLAGS += -g -DUSES_DYNAMIC_INF_HEAP
 SYSLIBS += -lelf -g -lstdc++ 
 
 MUTATEE_FFLAGS += -g -Dsparc_sun_solaris2_4 -xs
-LIBGCCLOC = /p/paradyn/packages/gcc-2.95.3/lib/gcc-lib/PLATFORM/2.95.3
-MUTATEE_FLINKFLAGS += -g -ldl -lgcc -L$(LIBGCCLOC)
+MUTATEE_FLINKFLAGS += -g -ldl -lgcc -L/usr/imports/gcc-2.95.2/lib/gcc-lib/sparc-sun-solaris2.6/2.95.2 \
+	-L /usr/local/stow/gcc-2.95.3/lib/gcc-lib/sparc-sun-solaris2.7/2.95.3
 
 GNU_CC = gcc
 
@@ -86,16 +86,17 @@ ifeq ($(NATIVE_FC), $(MUTATEE_FC))
 FORTRAN_BASE = $(TARGET2:_$(NATIVE_FC)=Fort)
 
 $(TARGET2): $(FORTRAN_BASE)_$(NATIVE_FC).o $(FORTRAN_BASE)C_$(NATIVE_FC).o
-	-$(NATIVE_FC) $(FORTRAN_BASE)_$(NATIVE_FC).o $(FORTRAN_BASE)C_$(NATIVE_FC).o $(MUTATEE_FLINKFLAGS) -o $(TARGET2)
+	-$(NATIVE_FC) -xs $(MUTATEE_FFLAGS) ../src/$(FORTRAN_BASE).F $(FORTRAN_BASE)C_$(NATIVE_FC).o test1.mutateeCommon.o $(MUTATEE_FLINKFLAGS) -o $(TARGET2)
 
 $(FORTRAN_BASE)_$(NATIVE_FC).o:
 	-$(NATIVE_FC) $(MUTATEE_FFLAGS) -c -o $(FORTRAN_BASE)_$(NATIVE_FC).o ../src/$(FORTRAN_BASE).F
 
 $(FORTRAN_BASE)C_$(NATIVE_FC).o:
-	$(MUTATEE_CC) $(MUTATEE_CFLAGS) -fno-implicit-templates -W -Wall $(FORT_SQGL_FLAG) -DFortran -c -o $(FORTRAN_BASE)C_$(NATIVE_FC).o ../src/$(TARGET2:_$(NATIVE_FC)=).c
+	$(MUTATEE_CC) $(MUTATEE_CFLAGS) -fno-implicit-templates -W -Wall -fno-squangle -DFortran -c -o $(FORTRAN_BASE)C_$(NATIVE_FC).o ../src/$(TARGET2:_$(NATIVE_FC)=)FortC.c 
+
 else
 $(TARGET2):  $(MUTATEE_SRC)
-	$(MUTATEE_CC) $(MUTATEE_CFLAGS) $(MUTATEE_SRC) -o $@ $(MUTLIBS)
+	$(MUTATEE_CC) $(MUTATEE_CFLAGS) $(MUTATEE_SRC) $(MUTATEE_OBJS) -o $@ $(MUTLIBS) 
 endif
 
 ifeq (test1,$(findstring test1,$(TARGET2)))

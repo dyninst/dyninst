@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.14 2001/08/09 15:06:16 chadd Exp $
+# $Id: Makefile,v 1.15 2001/10/26 22:45:30 hollings Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -61,7 +61,7 @@ $(TARGET): $(OBJS)
 	$(LD) $(LDFLAGS) -out:$(TARGET) $(VOUCHER).obj $(OBJS) $(LIBS)
 
 install:	$(TARGET)
-	$(CP) $(TARGET) $(DEST)/$(TARGET)
-	$(CP) libdyninstAPI.lib $(DEST)/libdyninstAPI.lib
+	$(CP) $(TARGET) $(DEST)
+	$(CP) libdyninstAPI.lib $(DEST)
 
 # DO NOT DELETE

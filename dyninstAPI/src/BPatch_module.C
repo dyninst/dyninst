@@ -196,13 +196,16 @@ BPatch_function * BPatch_module::findFunction(const char * name)
     if (func == NULL) {
 	return NULL;
     }
+  
+    // Fortran compilers often put the _ at the end of the name
+    if (func == NULL) {
+	string fullname = string(name) + string("_");
+	func = (pd_Function*)mod->findFunctionFromAll(fullname);
+    }
  
     bool new_flag = !proc->PDFuncToBPFuncMap.defines(func);
 
     BPatch_function * bpfunc = proc->findOrCreateBPFunc(func, this);
-
-    if (!new_flag)
-	return bpfunc;
 
 #if defined(sparc_sun_solaris2_4)
     // Adding new BPatch_Function to BPatch_function vector

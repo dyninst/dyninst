@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.16 2001/06/08 19:42:46 schendel Exp $
+# $Id: Makefile,v 1.17 2001/10/26 22:45:31 hollings Exp $
 #
 # Makefile for dyninstAPI test programs on Tru64 Alpha
 #
@@ -48,8 +48,8 @@ ifdef GCC_2_95
 MUTATEE_CFLAGS += -gcoff
 endif
 
-$(TARGET2): $(MUTATEE_SRC)
-	-$(MUTATEE_CC) $(MUTATEE_CFLAGS) $(MUTATEE_SRC) -o $(TARGET2) $(MUTLIBS)
+$(TARGET2): $(MUTATEE_SRC) $(MUTATEE_OBJS)
+	-$(MUTATEE_CC) $(MUTATEE_CFLAGS) $(MUTATEE_SRC) $(MUTATEE_OBJS) -o $(TARGET2) $(MUTLIBS)
 
 libtestA.o:
 	$(CC) -g -fpic -c ../src/libtestA.c
