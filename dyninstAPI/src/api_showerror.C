@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: api_showerror.C,v 1.16 2005/02/25 17:14:44 mjbrim Exp $
+// $Id: api_showerror.C,v 1.17 2005/03/07 21:18:32 bernat Exp $
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -177,4 +177,148 @@ int bpinfo(const char *format, ...)
 
   return 0;
 }
+
+
+// Internal debugging
+
+int dyn_debug_signal = 0;
+int dyn_debug_infrpc = 0;
+int dyn_debug_startup = 0;
+int dyn_debug_parsing = 0;
+int dyn_debug_forkexec = 0;
+int dyn_debug_proccontrol = 0;
+int dyn_debug_stackwalk = 0;
+
+bool init_debug() {
+  char *p;
+  if ( (p=getenv("DYNINST_DEBUG_SIGNAL"))) {
+    fprintf(stderr, "Enabling DyninstAPI signal debug\n");
+    dyn_debug_signal = 1;
+  }
+  if ( (p=getenv("DYNINST_DEBUG_INFRPC"))) {
+    fprintf(stderr, "Enabling DyninstAPI inferior RPC debug\n");
+    dyn_debug_infrpc = 1;
+  }
+  if ( (p=getenv("DYNINST_DEBUG_STARTUP"))) {
+    fprintf(stderr, "Enabling DyninstAPI startup debug\n");
+    dyn_debug_startup = 1;
+  }
+  if ( (p=getenv("DYNINST_DEBUG_PARSING"))) {
+    fprintf(stderr, "Enabling DyninstAPI parsing debug\n");
+    dyn_debug_parsing = 1;
+  }
+  if ( (p=getenv("DYNINST_DEBUG_FORKEXEC"))) {
+    fprintf(stderr, "Enabling DyninstAPI forkexec debug\n");
+    dyn_debug_forkexec = 1;
+  }
+  if ( (p=getenv("DYNINST_DEBUG_PROCCONTROL"))) {
+    fprintf(stderr, "Enabling DyninstAPI process control debug\n");
+    dyn_debug_proccontrol = 1;
+  }
+  if ( (p=getenv("DYNINST_DEBUG_STACKWALK"))) {
+    fprintf(stderr, "Enabling DyninstAPI stack walking debug\n");
+    dyn_debug_stackwalk = 1;
+  }
+  return true;
+}
+
+int signal_printf(const char *format, ...)
+{
+  if (!dyn_debug_signal) return 0;
+  if (NULL == format) return -1;
+
+  va_list va;
+  va_start(va, format);
+  int ret = vfprintf(stderr, format, va);
+  va_end(va);
+
+  return ret;
+}
+
+int inferiorrpc_printf(const char *format, ...)
+{
+  if (!dyn_debug_infrpc) return 0;
+  if (NULL == format) return -1;
+
+  va_list va;
+  va_start(va, format);
+
+  int ret = vfprintf(stderr, format, va);
+
+  va_end(va);
+
+  return ret;
+}
+
+int startup_printf(const char *format, ...)
+{
+  if (!dyn_debug_startup) return 0;
+  if (NULL == format) return -1;
+
+  va_list va;
+  va_start(va, format);
+
+  int ret = vfprintf(stderr, format, va);
+
+  va_end(va);
+
+  return ret;
+}
+
+int parsing_printf(const char *format, ...)
+{
+  if (!dyn_debug_parsing) return 0;
+  if (NULL == format) return -1;
+
+  va_list va;
+  va_start(va, format);
+
+  int ret = vfprintf(stderr, format, va);
+
+  va_end(va);
+
+  return ret;
+}
+
+int forkexec_printf(const char *format, ...)
+{
+  if (!dyn_debug_forkexec) return 0;
+  if (NULL == format) return -1;
+
+  va_list va;
+  va_start(va, format);
+
+  int ret = vfprintf(stderr, format, va);
+
+  va_end(va);
+
+  return ret;
+}
+
+int proccontrol_printf(const char *format, ...)
+{
+  if (!dyn_debug_proccontrol) return 0;
+  if (NULL == format) return -1;
+
+  va_list va;
+  va_start(va, format);
+  int ret = vfprintf(stderr, format, va);
+  va_end(va);
+
+  return ret;
+}
+
+int stackwalk_printf(const char *format, ...)
+{
+  if (!dyn_debug_stackwalk) return 0;
+  if (NULL == format) return -1;
+
+  va_list va;
+  va_start(va, format);
+  int ret = vfprintf(stderr, format, va);
+  va_end(va);
+
+  return ret;
+}
+
 

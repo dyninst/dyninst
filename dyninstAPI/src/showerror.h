@@ -52,5 +52,33 @@ extern void showInfoCallback(pdstring msg);
 #include "BPatch.h"
 #define BPatch_reportError(a,b,c) BPatch::reportError(a,b,c)
 
+extern int dyn_debug_signal;
+extern int dyn_debug_infrpc;
+extern int dyn_debug_startup;
+extern int dyn_debug_parsing;
+extern int dyn_debug_forkexec;
+extern int dyn_debug_proccontrol;
+extern int dyn_debug_stackwalk;
+
+// C++ prototypes
+#define signal_cerr       if (dyn_debug_signal) cerr
+#define inferiorrpc_cerr  if (dyn_debug_infrpc) cerr
+#define startup_cerr      if (dyn_debug_startup) cerr
+#define parsing_cerr      if (dyn_debug_parsing) cerr
+#define forkexec_cerr     if (dyn_debug_forkexec) cerr
+#define proccontrol_cerr  if (dyn_debug_proccontrol) cerr
+#define stackwalk_cerr    if (dyn_debug_stackwalk) cerr
+
+// C prototypes
+extern int signal_printf(const char *format, ...);
+extern int inferiorrpc_printf(const char *format, ...);
+extern int startup_printf(const char *format, ...);
+extern int parsing_printf(const char *format, ...);
+extern int forkexec_printf(const char *format, ...);
+extern int proccontrol_printf(const char *format, ...);
+extern int stackwalk_printf(const char *format, ...);
+
+// And initialization
+extern bool init_debug();
 
 #endif /* SHOWERROR_H */
