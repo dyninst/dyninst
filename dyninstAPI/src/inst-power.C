@@ -2109,11 +2109,33 @@ bool completeTheFork(process *parentProc, int childpid) {
 
    for (unsigned lcv=0; lcv < allParentInstInstances.size(); lcv++) {
       instInstance *inst = allParentInstInstances[lcv];
+      assert(inst);
 
       instPoint *theLocation = inst->location;
-      unsigned   theTrampBase = inst->trampBase;
-      trampTemplate *theBaseInstance = inst->baseInstance;
-      assert(theBaseInstance->baseAddr = theTrampBase);
+      unsigned addr = theLocation->addr;
+
+      // I don't think we need these - naim
+      //unsigned   theTrampBase = inst->trampBase;
+      //trampTemplate *theBaseInstance = inst->baseInstance;
+
+      // I had to comment out the following line because it was causing 
+      // problems. Also, I don't understand why do we want to overwrite the
+      // content of the baseAddr field in the parent - naim
+      //if (theBaseInstance) theBaseInstance->baseAddr = theTrampBase;
+
+      if (theLocation->addr==NULL) {
+	// This happens when we are only instrumenting the return point of
+	// a function, so we need to find the address where to insert the
+	// jump to the base trampoline somewhere else. Actually, if we have
+	// instrumentation at the entry point, this is not necessary, but
+	// it looks easier this way - naim
+	const function_base *base_f = theLocation->iPgetFunction();
+	assert(base_f);
+	const instPoint *ip = base_f->funcEntry(parentProc);
+	assert(ip);
+	addr = ip->addr;
+      }
+      assert(addr);
 
       // Now all we need is a "returnInstance", which contains
       // "instructionSeq", a sequence of instructions to be installed,
@@ -2134,12 +2156,12 @@ bool completeTheFork(process *parentProc, int childpid) {
 
       errno = 0;
       data = ptrace(PT_READ_I, parentProc->getPid(), 
-		    (int*)theLocation->addr, 0, 0);
+		    (int*)addr, 0, 0);
       if (data == -1 && errno != 0)
 	 assert(false);
 
       errno = 0;
-      if (-1 == ptrace(PT_WRITE_I, childpid, (int*)theLocation->addr, data, 0) &&
+      if (-1 == ptrace(PT_WRITE_I, childpid, (int*)addr, data, 0) &&
 	  errno != 0)
 	 assert(false);
    }

@@ -584,3 +584,8 @@ trampTemplate::updateTrampCost(process *proc, int trampCost) {
     emit(updateCostOp, cost, 0, caddr, costInsn, csize, false);
     proc->writeDataSpace((caddr_t)costAddr, csize, costInsn);
 }
+
+void cleanInstFromActivePoints()
+{
+    activePoints.clear();
+}

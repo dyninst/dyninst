@@ -759,8 +759,12 @@ bool process::continueProc_() {
  */
 
 #ifndef PTRACE_ATTACH_DETACH
+  if (!ptraceKludge::deliverPtrace(this, PT_CONTINUE, (char*)1, 0, NULL))
+    ret = -1;
+  else
+    ret = 0;
   // switch these to not detach after every call.
-  ret = ptrace(PT_CONTINUE, pid, (int *)1, 0, NULL);
+  //ret = ptrace(PT_CONTINUE, pid, (int *)1, 0, NULL);
 #else
   ret = ptrace(PT_DETACH, pid, (int *)1, 0, NULL);
 #endif

@@ -124,7 +124,8 @@ class fastInferiorHeap {
    void setBaseAddrInApplic(RAW *addr) {
       // should call _very_ soon after the ctor, right after the applic has
       // attached to the shm segment.
-      assert(baseAddrInApplic == NULL); // not for long...
+      //assert(baseAddrInApplic == NULL); // this is not true any more during
+                                          // an "exec" - naim
       baseAddrInApplic = addr;
    }
 

@@ -2705,6 +2705,7 @@ void process::handleExec() {
     trampTableItems = 0;
     memset(trampTable, 0, sizeof(trampTable));
     baseMap.clear();
+    cleanInstFromActivePoints();
 
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
     // must call establishBaseAddrs before parsing the new image,
@@ -3306,8 +3307,8 @@ void process::installBootstrapInst() {
 	       orderFirstAtPoint,
 	       true // true --> don't try to have tramp code update the cost
 	       );
+   // returns an "instInstance", which we ignore (but should we?)
    removeAst(ast);
-      // returns an "instInstance", which we ignore (but should we?)
 }
 
 void process::installInstrRequests(const vector<instMapping*> &requests) {

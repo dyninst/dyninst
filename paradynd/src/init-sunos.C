@@ -41,6 +41,11 @@
 
 /*
  * $Log: init-sunos.C,v $
+ * Revision 1.21  1997/07/22 19:09:56  naim
+ * Changes to make fork work on aix. Also, some change to make exec work on
+ * solaris. Althought it works now, there are still some things to be done
+ * for exec related to the visis - naim
+ *
  * Revision 1.20  1997/07/16 19:13:55  naim
  * Fixing fork on sunos - naim
  *
@@ -159,12 +164,12 @@ bool initOS() {
 
   if(process::pdFlavor != string("cow"))
   {
-  	initialRequests += new instMapping("execve", "DYNINSTexec",
+    //initialRequests += new instMapping("execve", "DYNINSTexec",
+    //			     FUNC_ENTRY|FUNC_ARG, tidArg);
+    //initialRequests += new instMapping("execve", "DYNINSTexecFailed", FUNC_EXIT);
+    initialRequests += new instMapping("_execve", "DYNINSTexec",
 				     FUNC_ENTRY|FUNC_ARG, tidArg);
-  	initialRequests += new instMapping("execve", "DYNINSTexecFailed", FUNC_EXIT);
-  	initialRequests += new instMapping("_execve", "DYNINSTexec",
-				     FUNC_ENTRY|FUNC_ARG, tidArg);
-  	initialRequests += new instMapping("_execve", "DYNINSTexecFailed", FUNC_EXIT);
+    initialRequests += new instMapping("_execve", "DYNINSTexecFailed", FUNC_EXIT);
   }
 
 #ifndef SHM_SAMPLING

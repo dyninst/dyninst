@@ -672,14 +672,14 @@ void metricDefinitionNode::removeThisInstance() {
   assert(!aggregate_);
 
   // first, remove from allMIComponents (this is new --- is it right?)
-  assert(allMIComponents.defines(flat_name_));
-  allMIComponents.undef(flat_name_);
+  if (allMIComponents.defines(flat_name_)) {
+    allMIComponents.undef(flat_name_);
+  }
 
   assert(aggregators.size() == samples.size());
   unsigned aggr_size = aggregators.size();
   assert(aggr_size > 0);
 
-  //for (unsigned u = 0; u < aggr_size; u++) {
   for (unsigned u = 0; u < aggregators.size() && u < samples.size(); u++) {
     aggregators[u]->aggSample.removeComponent(samples[u]);
     aggregators[u]->removeFromAggregate(this, 0); 

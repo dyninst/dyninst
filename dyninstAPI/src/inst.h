@@ -210,4 +210,6 @@ extern unsigned getMaxBranch();
 // extern dictionary_hash<string, unsigned> tagDict;
 extern dictionary_hash <string, unsigned> primitiveCosts;
 
+void cleanInstFromActivePoints();
+
 #endif
