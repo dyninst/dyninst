@@ -76,8 +76,10 @@ int FCUseDominator::updateExecutionCounts(BPatch_basicBlock* bb,int ec){
 	    id = id->getImmediateDominator())
 	{
 		if(!executionCounts[id->getBlockNumber()]){
-			BPatch_sourceBlock* sb = id->getSourceBlock();
-			updateLinesCovered(sb);
+			BPatch_Vector<BPatch_sourceBlock*> sb;
+			id->getSourceBlocks(sb);
+			if(sb.size())
+				updateLinesCovered(sb[0]);
 		}
 		executionCounts[id->getBlockNumber()] += ec;
 	}

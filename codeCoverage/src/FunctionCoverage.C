@@ -423,7 +423,7 @@ int FunctionCoverage::updateLinesCovered(BPatch_sourceBlock* sb)
 		pthread_mutex_lock(&updateLock);
 
 		BPatch_Vector<unsigned short> lines;
-		sb->getLines(lines);
+		sb->getSourceLines(lines);
 		for(unsigned int j=0;j<lines.size();j++){
 			if(!executedLines.contains(lines[j]))
 				CodeCoverage::globalObject->totalCoveredLines++;
