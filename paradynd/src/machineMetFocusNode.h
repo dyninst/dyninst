@@ -72,6 +72,9 @@ class machineMetFocusNode : public metricFocusNode {
 
   void initAggInfoObjects(timeStamp startTime, pdSample initValue);
   void prepareForSampling();
+  void setupProcNodeForForkedProcess(processMetFocusNode *parentProcNode, 
+				     process *childProc,
+			     vector<processMetFocusNode *> *procNodesToUnfork);
 
  public:
   static void getMachineNodes(vector<machineMetFocusNode*> *machNodes);
@@ -116,6 +119,9 @@ class machineMetFocusNode : public metricFocusNode {
 			    pdSample value);
   void tryAggregation();
   void propagateToNewProcess(process *newProcess);
+  void propagateToForkedProcess(const process *parentProc, 
+				process *childProcess,
+			     vector<processMetFocusNode *> *procNodesToUnfork);
 };
 
 
