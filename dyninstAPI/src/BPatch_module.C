@@ -829,7 +829,7 @@ void BPatch_module::parseTypes()
       int currentEntry = i;
       ptr = new char[1024];
       strcpy(ptr,(const char *)&stabstrs[stabptr[currentEntry].name]);
-      while(ptr[strlen(ptr)-1] == '\\'){
+      while(strlen(ptr) != 0 && ptr[strlen(ptr)-1] == '\\'){
 	ptr[strlen(ptr)-1] = '\0';
 	currentEntry++;
 	strcat(ptr,(const char *)&stabstrs[stabptr[currentEntry].name]);
@@ -992,7 +992,7 @@ void BPatch_module::parseFileLineInfo()
   char *stabstr_nextoffset;
   const char *stabstrs = 0;
   struct stab_entry *stabptr = NULL;
-  int parseActive;
+  int parseActive = false; 
 
   if (lineInformation) {
     cerr << __FILE__ << ":" << __LINE__ << ": Internal error, not fatal, probabl:, duplicated call to"
@@ -1182,7 +1182,7 @@ void BPatch_module::parseFileLineInfo()
       int currentEntry = i;
       ptr = new char[1024];
       strcpy(ptr,(const char *)&stabstrs[stabptr[currentEntry].name]);
-      while(ptr[strlen(ptr)-1] == '\\'){
+      while(strlen(ptr) != 0 && ptr[strlen(ptr)-1] == '\\'){
 	ptr[strlen(ptr)-1] = '\0';
 	currentEntry++;
 	strcat(ptr,(const char *)&stabstrs[stabptr[currentEntry].name]);
