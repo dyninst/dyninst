@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.6 2000/03/16 22:39:22 cain Exp $
+// $Id: arch-x86.C,v 1.7 2000/04/07 15:08:31 pcroth Exp $
 // x86 instruction decoder
 
 #include <assert.h>
@@ -1119,8 +1119,8 @@ int get_instruction_operand(const unsigned char *ptr, Register& base_reg,
 	  return REGISTER_INDIRECT_DISPLACED; 
 	}
       }
-      else if(Mod == 1){//call with 8-bit displacement
-	displacement = *ptr;
+      else if(Mod == 1){//call with 8-bit signed displacement
+	displacement = *(char*)ptr;
 	ptr+= byteSzB;
 	if(hasSIB){
 	  decode_SIB(SIBbyte, scale, index_reg, base_reg);
