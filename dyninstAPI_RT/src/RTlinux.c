@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.28 2005/02/25 07:04:47 jaw Exp $
+ * $Id: RTlinux.c,v 1.29 2005/03/16 22:59:49 bernat Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -301,89 +301,72 @@ void DYNINSTtrapHandler(int sig, struct sigcontext uap) {
 }
 #endif /* !ia64_unknown_linux2_4 */
 
-void *DYNINSTdlopen_fake_ret(const char *filename, int flag,
-			     const char *fake_ret);
+typedef struct dlopen_args {
+  const char *libname;
+  int mode;
+  void *result;
+  void *caller;
+} dlopen_args_t;
+
+void *(*DYNINST_do_dlopen)(dlopen_args_t *) = NULL;
 
 char gLoadLibraryErrorString[ERROR_STRING_LENGTH];
+
+static int get_dlopen_error() {
+  char *err_str;
+  err_str = dlerror();
+  if (err_str) {
+    strncpy(gLoadLibraryErrorString, err_str, ERROR_STRING_LENGTH);
+    return 1;
+  }
+  else {
+    sprintf(gLoadLibraryErrorString,"unknown error with dlopen");
+    return 0;
+  }
+  return 0;
+}
+
 int DYNINSTloadLibrary(char *libname)
 {
   void *res;
   char *err_str;
   gLoadLibraryErrorString[0]='\0';
-
-  if (NULL == (res = dlopen(libname, RTLD_NOW | RTLD_GLOBAL))) {
-    // An error has occurred
-    if (NULL != (err_str = dlerror()))
-      strncpy(gLoadLibraryErrorString, err_str, ERROR_STRING_LENGTH);
-    else 
-      sprintf(gLoadLibraryErrorString,"unknown error with dlopen");
+  if (res = dlopen(libname, RTLD_NOW | RTLD_GLOBAL)) {
+    return 1;
+  }
+  else {
+    get_dlopen_error();
 #ifdef i386_unknown_linux2_0
-    if (strstr(gLoadLibraryErrorString, "invalid caller") != NULL) {
-	/* dlopen on Suse 9.1 has a "security" check in it so that
-	   only registered modules can call it. We fool this check
-	   around by calling _dl_open and pretending it was called
-	   from libc. */
-	unsigned char *fake_ret;
-	int i, scan_bytes = (intptr_t)&getuid - (intptr_t)&getpid;
-
-	/* Scan from getpid to getuid (hopefully in libc) looking for
-	   a ret instruction (or a byte in another instruction that
-	   just looks like a ret). We will pretend that _dl_open was
-	   called from that address. */
-	if (scan_bytes >= 0) {
-	    fake_ret = (unsigned char *)&getpid;
-	}
-	else {
-            fake_ret = (unsigned char *)&getuid;
-	    scan_bytes = -scan_bytes;
-	}
-	for (i=0; i<scan_bytes; i++) {
-	    if (fake_ret[i] == 0xC3) { /* ret instruction */
-		DYNINSTdlopen_fake_ret(libname, RTLD_NOW | RTLD_GLOBAL,
-				       fake_ret);
-		/* If an error happens in _dl_open, we would never
-		   return here -- _dl_open would abort the process. It
-		   is unfortunate, but creating a proper context so
-		   that _dl_open can tolerate errors is a harder problem */
-		return 1;
-	    }
-	}
-	strcpy(gLoadLibraryErrorString, "No suitable ret instruction found");
-	return 0;
+    if (strstr(gLoadLibraryErrorString, "invalid caller") != NULL &&
+	DYNINST_do_dlopen != NULL) {
+      /* dlopen on recent glibcs has a "security check" so that
+	 only registered modules can call it. Unfortunately, progs
+	 that don't include libdl break this check, so that we
+	 can only call _dl_open (the dlopen worker function) from
+	 within glibc. We do this by calling do_dlopen
+	 We fool this check by calling an addr written by the
+	 mutator */
+      dlopen_args_t args;
+      args.libname = libname;
+      args.mode = RTLD_NOW | RTLD_GLOBAL;
+      args.result = 0;
+      args.caller = (void *)DYNINST_do_dlopen;
+      // There's a do_dlopen function in glibc. However, it's _not_
+      // exported; thus, getting the address is a bit of a pain. 
+      
+      (*DYNINST_do_dlopen)(&args);
+      // Duplicate the above
+      if (args.result != NULL)
+	return 1;
+      else
+	get_dlopen_error();
     }
 #endif
-    perror( "DYNINSTloadLibrary -- dlopen" );
-    //fprintf(stderr, "%s[%d]: %s\n",__FILE__,__LINE__,gLoadLibraryErrorString);
-    return 0;  
-  } else
-    return 1;
-  
-  /*
-   * All of this is necessary because on linux, dlopen is not in libc, but
-   * in a separate library libdl.  Not all programs are linked with libdl,
-   * but libc does contain the underlying functions.  This is gross and
-   * may break with new versions of glibc.  It is based on glibc 2.0.6
-   */
-  /*
-    struct link_map *new;
-    char *errstr;
-    int err;
-    
-    void doit (void) {
-    new = _dl_open( libname ?: "", RTLD_NOW | RTLD_GLOBAL );
-    }
-    
-    err = _dl_catch_error( &errstr, doit );
-    
-    if( errstr == NULL )
-    return 1;
-    else {
-    fprintf( stderr, errstr );
-    free( errstr );
-    return 0;
-    }
-  */
+  }
+  return 0;
 }
+
+
 #endif /* EXPORT SPINLOCKS */
 
 void DYNINSTlock_spinlock(dyninst_spinlock *mut)
