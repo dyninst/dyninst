@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.66 2002/10/08 22:50:35 bernat Exp $
+ * $Id: RTinst.c,v 1.67 2002/10/28 04:54:52 schendel Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -704,11 +704,10 @@ void pDYNINSTinit(int paradyndPid,
   }
 #endif
 
+  /* db_init(db_shmKey, sizeof(db_shmArea_t)); */
 
   /* Now, we stop ourselves.  When paradynd receives the forwarded signal,
      it will read from DYNINST_bootstrap_info */
-
-  
   shmsampling_printf("DYNINSTinit (pid=%d) --> about to PARADYNbreakPoint()\n",
 		     (int)getpid());
   PARADYNbreakPoint();
