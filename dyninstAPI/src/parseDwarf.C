@@ -1777,6 +1777,14 @@ void BPatch_module::parseDwarfTypes() {
 	dictionary_hash_iter<int, BPatch_type *> titer( moduleTypes->typesByID );
 	while (titer.next( tid, bptype ))
 	   bptype->fixupUnknowns(this);
+	pdstring varname;
+	dictionary_hash_iter<pdstring, BPatch_type *> viter( moduleTypes->globalVarsByName );
+	while (viter.next( varname, bptype )) {
+	   if (bptype->getDataClass() == BPatch_dataUnknownType &&
+		   moduleTypes->findType(bptype->getID()) != NULL)
+		  moduleTypes->globalVarsByName[varname] = 
+			 moduleTypes->findType(bptype->getID());
+	}
 
 	// Fix pointers to types in functions
 
