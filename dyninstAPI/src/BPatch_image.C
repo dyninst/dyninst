@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.43 2003/04/25 22:31:12 jaw Exp $
+// $Id: BPatch_image.C,v 1.44 2003/06/11 22:02:45 hollings Exp $
 
 #define BPATCH_FILE
 
@@ -620,9 +620,18 @@ BPatch_variableExpr *BPatch_image::findVariable(const char *name, bool showError
     if (!proc->getSymbolInfo(full_name, syminfo)) {
 	string short_name(name);
 	if (!proc->getSymbolInfo(short_name, syminfo) && showError) {
-	    string msg = string("Unable to find variable: ") + string(name);
-	    showErrorCallback(100, msg);
-	    return NULL;
+	    if (defaultNamespacePrefix) {
+		full_name = string(defaultNamespacePrefix) + "." + name;
+		if (!proc->getSymbolInfo(full_name, syminfo) && showError) {
+		    string msg = string("Unable to find variable: ") + full_name;
+		    showErrorCallback(100, msg);
+		    return NULL;
+		}
+	    } else if (showError) {
+		string msg = string("Unable to find variable: ") + string(name);
+		showErrorCallback(100, msg);
+		return NULL;
+	    }
 	}
     }
 

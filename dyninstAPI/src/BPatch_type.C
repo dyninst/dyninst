@@ -690,7 +690,8 @@ BPatch_Vector<BPatch_field *> * BPatch_type::getComponents() {
     if( type_ != BPatch_typeDefine && ptr != NULL) {
 	return & ptr->fieldList;
         }
-    if( type_ == BPatch_dataStructure ) {
+    if ((type_ == BPatch_dataStructure) || 
+	(type_ == BPatch_dataTypeClass) || (type_ == BPatch_dataUnion)) {
 	// fprintf( stderr, "Getting the %d components of '%s' at 0x%x\n", fieldList.size(), getName(), this );
 	/* Iterate over the field list.  Recursively (replace)
 	   '{superclass}' with the superclass's non-private fields. */

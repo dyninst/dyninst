@@ -79,6 +79,8 @@ typedef enum BPatch_LpModel {
 class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj {
     process	*proc;
 
+    char *defaultNamespacePrefix;
+
  public:
 // The following functions are for internal use by  the library only:
     BPatch_image(process *_proc);
@@ -89,6 +91,8 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj {
     void                 addModuleIfExist(BPatch_module *bpmod);
 
     BPatch_variableExpr	*createVarExprByName(BPatch_module *mod, const char *name);
+
+    void setDefaultNamespacePrefix(char *name) { defaultNamespacePrefix = name; }
 
 // End functions for internal use only
 

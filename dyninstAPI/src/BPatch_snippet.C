@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.48 2003/04/18 22:35:22 tlmiller Exp $
+// $Id: BPatch_snippet.C,v 1.49 2003/06/11 22:02:45 hollings Exp $
 
 #define BPATCH_FILE
 
@@ -860,7 +860,9 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponents()
     BPatch_Vector<BPatch_variableExpr *> *retList;
 
     type = const_cast<BPatch_type *>(getType());
-    if ((type->getDataClass() != BPatch_dataStructure) && (type->getDataClass() != BPatch_dataUnion)) {
+    if ((type->getDataClass() != BPatch_dataStructure) && 
+	(type->getDataClass() != BPatch_dataUnion) &&
+	(type->getDataClass() != BPatch_dataTypeClass)) {
 	return NULL;
     }
 

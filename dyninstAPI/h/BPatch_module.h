@@ -134,6 +134,8 @@ public:
     int getBindingType();
 #endif
 
+    void setDefaultNamespacePrefix(char *name);
+
 private:
 
     // In particular, we understand the type information

@@ -71,6 +71,7 @@ int max_line_per_addr =0;
 
 char * current_func_name = NULL;
 char * current_mangled_func_name = NULL;
+BPatch_function *current_func = NULL;
 
 
 /*
@@ -846,6 +847,7 @@ void BPatch_module::parseStabTypes()
 #endif
       current_func_name = NULL; // reset for next object file
       current_mangled_func_name = NULL; // reset for next object file
+      current_func = NULL;
 
       modName = (char*)(&stabstrs[stabptr[i].name]);
       // cerr << "checkpoint B" << endl;
@@ -916,6 +918,7 @@ void BPatch_module::parseStabTypes()
 #endif
 	//all we have to do with function stabs at this point is to assure that we have
 	//properly set the var currentFunctionName for the later case of (parseActive)
+      current_func = NULL;
       int currentEntry = i;
       int funlen = strlen(&stabstrs[stabptr[currentEntry].name]);
       ptr = new char[funlen+1];
@@ -1036,6 +1039,7 @@ void BPatch_module::parseStabTypes()
       // case C_BINCL: -- what is the elf version of this jkh 8/21/01
       // case C_EINCL: -- what is the elf version of this jkh 8/21/01
       case 32:    // Global symbols -- N_GYSM 
+      case 38:    // Global Static -- N_STSYM
       case N_FUN:
       case 128:   // typedefs and variables -- N_LSYM
       case 160:   // parameter variable -- N_PSYM 
@@ -1045,6 +1049,7 @@ void BPatch_module::parseStabTypes()
 	pss_count++;
 	gettimeofday(&t1, NULL);
 #endif
+        if (stabptr[i].type == N_FUN) current_func = NULL;
 	ptr = (char *) &stabstrs[stabptr[i].name];
 	while (ptr[strlen(ptr)-1] == '\\') {
 	  //ptr[strlen(ptr)-1] = '\0';
@@ -1069,6 +1074,7 @@ void BPatch_module::parseStabTypes()
 	  //Error parsing the stabstr, return should be \0
 	  fprintf(stderr, "Stab string parsing ERROR!! More to parse: %s\n",
 		  temp);
+	  fprintf(stderr, "  symbol: %s\n", ptr);
 	}
 	
 #ifdef TIMED_PARSE
@@ -1190,6 +1196,7 @@ void BPatch_module::parseFileLineInfo()
 #endif
             current_func_name = NULL; // reset for next object file
             current_mangled_func_name = NULL; // reset for next object file
+	    current_func = NULL;
 
 	    //  JAW -- not sure we need this block here
             modName = (char*)(&stabstrs[stabptr[i].name]);
@@ -1300,6 +1307,7 @@ void BPatch_module::parseFileLineInfo()
       fun_count++;
       gettimeofday(&t1, NULL);
 #endif
+      current_func = NULL;
       //if it is a function stab then we have to insert an entry 
       //to initialize the entries in the line information object
       int currentEntry = i;
@@ -1482,6 +1490,7 @@ void BPatch_module::parseStabTypes()
 #endif
             current_func_name = NULL; // reset for next object file
 	    current_mangled_func_name = NULL; // reset for next object file
+	    current_func = NULL;
             modName = (char*)(&stabstrs[stabptr[i].name]);
             ptr = strrchr(modName, '/');
             if (ptr) {
@@ -1621,6 +1630,7 @@ void BPatch_module::parseStabTypes()
 #endif
 	//if it is a function stab then we have to insert an entry 
 	//to initialize the entries in the line information object
+        current_func = NULL;
 	int currentEntry = i;
 	int funlen = strlen(&stabstrs[stabptr[currentEntry].name]);
 	ptr = new char[funlen+1];
@@ -1739,6 +1749,7 @@ void BPatch_module::parseStabTypes()
     // case C_EINCL: -- what is the elf version of this jkh 8/21/01
     case 32:    // Global symbols -- N_GYSM 
     case N_FUN:
+    case 38:    // Global Static -- N_STSYM
     case 128:   // typedefs and variables -- N_LSYM
     case 160:   // parameter variable -- N_PSYM 
 #ifdef TIMED_PARSE
@@ -1746,6 +1757,7 @@ void BPatch_module::parseStabTypes()
       gettimeofday(&t1, NULL);
 #endif
 
+      if (stabptr[i].type == N_FUN) current_func = NULL;
       ptr = (char *) &stabstrs[stabptr[i].name];
       while (ptr[strlen(ptr)-1] == '\\') {
 	//ptr[strlen(ptr)-1] = '\0';
@@ -1770,6 +1782,7 @@ void BPatch_module::parseStabTypes()
 	//Error parsing the stabstr, return should be \0
 	fprintf(stderr, "Stab string parsing ERROR!! More to parse: %s\n",
 		temp);
+	fprintf(stderr, "  symbol: %s\n", ptr);
       }
 
       
@@ -1978,6 +1991,11 @@ LineInformation* BPatch_module::getLineInformation(){
 
 bool BPatch_module::isSharedLib() const {
   return mod->isShared();
+}
+
+void BPatch_module::setDefaultNamespacePrefix(char *name) 
+{ 
+    img->setDefaultNamespacePrefix(name); 
 }
 
 #ifdef IBM_BPATCH_COMPAT
