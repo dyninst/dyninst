@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.12 1994/04/13 16:48:10 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.13 1994/04/15 15:37:34 jcargill Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.12  1994/04/13 16:48:10  hollings
+ * Revision 1.13  1994/04/15 15:37:34  jcargill
+ * Removed duplicate definition of pauseTimeNode; used initialized version
+ *
+ * Revision 1.12  1994/04/13  16:48:10  hollings
  * fixed pause_time to work with multiple processes/node.
  *
  * Revision 1.11  1994/04/13  03:09:00  markc
@@ -133,7 +136,7 @@ extern HTable<metric> metricsUsed;
 extern HTable<resourceList> fociUsed;
 
 // used in other modules.
-metricDefinitionNode *pauseTimeNode;
+metricDefinitionNode *pauseTimeNode=0;
 
 HTable<metricInstance> midToMiMap;
 
@@ -833,7 +836,6 @@ dataReqNode::~dataReqNode()
     instance = NULL;
 }
 
-metricDefinitionNode *pauseTimeNode=0;
 
 void computePauseTimeMetric()
 {
