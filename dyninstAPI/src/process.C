@@ -43,6 +43,13 @@
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
+ * Revision 1.64  1996/10/31 09:31:56  tamches
+ * major change: the shm-sampling commit
+ * inferiorRPC
+ * redesigned constructors
+ * removed some warnings
+ * some member vrbles are now private
+ *
  * Revision 1.63  1996/10/03 22:12:06  mjrg
  * Removed multiple stop/continues when inserting instrumentation
  * Fixed bug on process termination
@@ -76,22 +83,6 @@
  * Revision 1.55  1996/05/11  23:15:17  tamches
  * inferiorHeap now uses addrHash instead of uiHash; performs better.
  *
- * Revision 1.54  1996/05/10 21:38:43  naim
- * Chaning some parameters for instrumentation deletion - naim
- *
- * Revision 1.53  1996/05/10  13:51:33  naim
- * Changes to improve the instrumentation deletion process - naim
- *
- * Revision 1.52  1996/05/10  06:55:50  tamches
- * isFreeOK now takes in references as its last 2 args
- * calls to disabledItem member fns, now that its data are private
- * call to dictionary's find() instead of defines() & operator[].
- *
- * Revision 1.51  1996/05/08 23:55:03  mjrg
- * added support for handling fork and exec by an application
- * use /proc instead of ptrace on solaris
- * removed warnings
- *
  */
 
 extern "C" {
@@ -101,6 +92,7 @@ int pvmendtask();
 #endif
 }
 
+#include "util/h/headers.h"
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
 #include "symtab.h"
@@ -126,6 +118,162 @@ vector<process*> processVec;
 string process::programName;
 vector<string> process::arg_list;
 
+#ifdef SHM_SAMPLING
+static unsigned numIntCounters=10000; // rather arbitrary; can we do better?
+static unsigned numWallTimers =10000; // rather arbitrary; can we do better?
+static unsigned numProcTimers =10000; // rather arbitrary; can we do better?
+
+static bool shmSegExists(key_t theKey, int theSize) {
+   // returns true iff a shm seg w/ given key already exists
+   // A crude way to find this out is to try and create a shm seg
+   // with exclusive privileges; if it already exists then we'll get
+   // a specific error return value.
+
+   //cerr << "welcome to shmSegExists with key=" << theKey << endl;
+
+   int shmid = P_shmget(theKey, theSize, IPC_CREAT | IPC_EXCL | 0666);
+   if (shmid == -1) {
+      if (errno == EEXIST)
+	 return true;
+      else {
+         perror("shmSegExists: unknown shmget errcode");
+	 return true; // just to be safe
+      }
+   }
+
+   // we successfully created the shm seg, so it didn't exist before.
+   // But now we need to clean up!
+   if (-1 == P_shmctl(shmid, IPC_RMID, NULL)) {
+      perror("shmSegExists: unexpected error during shmctl");
+      return true; // just to be safe
+   }
+
+   return false;
+}
+
+static bool garbageCollect1ShmSeg(key_t theKey, int size) {
+   if (!shmSegExists(theKey, size))
+      return true; // no need to garbage collect; successful
+
+   // attach to existing segment
+   int shmid = P_shmget(theKey, size, 0666);
+   if (shmid == -1) {
+      cerr << "garbageCollect1ShmSeg: key was " << theKey << ", size was " << size << endl;
+      perror("garbageCollect1ShmSeg shmget");
+      return false;
+   }
+
+   void *shmAddr = P_shmat(shmid, NULL, SHM_RDONLY);
+   if (shmAddr == (void *)-1) {
+      perror("garbageCollect1ShmSeg shmat");
+      return false;
+   }
+
+   // attach successful.  First word should be our 'cookie'
+   unsigned word0 = *(unsigned *)shmAddr;
+   if (word0 != 0xabcdefab) {
+      cout << "paradynd note: it appears that shm seg with key " << theKey << " is in use by another application" << endl;
+      (void)P_shmdt(shmAddr);
+      return false; // don't touch
+   }
+
+   // cookie matches.  Next 2 words are as follows: applic pid, paradynd pid.
+   // If neither process exists, then garbage collect; else, forget it.
+   const int applicPid = *((int *)shmAddr + 1);
+   const int paradyndPid = *((int *)shmAddr + 1);
+   if (P_kill(applicPid, 0) == -1 && errno == ESRCH)
+      if (P_kill(paradyndPid, 0) == -1 && errno == ESRCH) {
+         // neither process exists.  Garbage collect!
+
+	 //cout << "paradynd trying to garbage collect shm seg with key " << theKey << endl;
+	 if (P_shmdt(shmAddr) == 0 && P_shmctl(shmid, IPC_RMID, NULL) == 0) {
+            //cout << "paradynd successfully garbage collected" << endl;
+	    return true;
+	 }
+	 //cout << "paradynd could not garbage collect" << endl;
+	 return false;
+      }
+
+   (void)P_shmdt(shmAddr);
+   (void)P_shmctl(shmid, IPC_RMID, NULL);
+
+   return false; // could not garbage collect
+}
+
+static bool garbageCollectShmSegs(key_t theKey,
+				  int size0, int size1, int size2) {
+   // if shm seg corresponding to "theKey" exists then try to garbage
+   // collect it.  Return true if freed, false otherwise; false (to be
+   // safe) in cases of doubt.
+
+   bool result = true;
+
+   if (!garbageCollect1ShmSeg(theKey, size0))
+      result = false;
+
+   if (!garbageCollect1ShmSeg(theKey+1, size1))
+      result = false;
+
+   if (!garbageCollect1ShmSeg(theKey+2, size2))
+      result = false;
+
+   return result;
+}
+
+// shared mem segs have 12 bytes of meta-data at the beginning:
+// cookie (unsigned), applic pid (int), paradynd pid (int).
+// We make it 16 bytes to make sure we're very, very aligned.
+static int intCounterShmSegNumBytes(unsigned num) {
+   return sizeof(unsigned) + 2 * sizeof(int) + sizeof(unsigned) + sizeof(intCounter) * num;
+}
+static int wallTimerShmSegNumBytes(unsigned num) {
+   return sizeof(unsigned) + 2 * sizeof(int) + sizeof(unsigned) + sizeof(tTimer) * num;
+}
+static int procTimerShmSegNumBytes(unsigned num) {
+   return sizeof(unsigned) + 2 * sizeof(int) + sizeof(unsigned) + sizeof(tTimer) * num;
+}
+
+static key_t pickShmSegKey() {
+   // assuming we're creating a new process, let's find an available
+   // key to use in the shmget() call.  While we're at it, let's garbage
+   // collect any unused segments we find along the way...
+
+   key_t shmSegKey = 7000;
+   int size0 = intCounterShmSegNumBytes(::numIntCounters);
+   int size1 = wallTimerShmSegNumBytes(::numWallTimers);
+   int size2 = procTimerShmSegNumBytes(::numProcTimers);
+
+   while (true) {
+      if (!shmSegExists(shmSegKey, size0) && !shmSegExists(shmSegKey+1, size1) &&
+	  !shmSegExists(shmSegKey+2, size2))
+	 // we found 3 consecutive unused keys, so we're done.
+	 return shmSegKey;
+
+      // at least one of the 3 segs we tried above already exists.
+      // let's try to garbage collect it.
+      if (garbageCollectShmSegs(shmSegKey, size0, size1, size2)) {
+	 // We're on a roll, so what the hell, let's garbage collect more.
+	 key_t tempKey = shmSegKey;
+	 do {
+	    tempKey += 10;
+	    //cerr << "what the hell with tempKey=" << tempKey << endl;
+
+	    if (!shmSegExists(tempKey, size0) && !shmSegExists(tempKey+1, size1) &&
+		!shmSegExists(tempKey+2, size2)) {
+	       //cerr << "3 segs in a row don't exist starting at key " << tempKey << "; ceasing extra gc'ing" << endl;
+	       break;
+	    }
+	 } while (garbageCollectShmSegs(tempKey, size0, size1, size2));
+
+	 continue; // we'll soon be successful
+      }
+
+      // not successful; try new keys
+      shmSegKey += 10;
+   }
+}
+#endif
+
 bool waitingPeriodIsOver()
 {
 static timeStamp previous=0;
@@ -146,21 +294,49 @@ bool waiting=false;
   return(waiting);
 }
 
-vector<Address> process::walkStack() 
-{
-  Frame currentFrame;
-  vector<Address> pcs;
-  bool needToCont = (status() == running);
+Frame::Frame(process *proc) {
+   if (!proc->getActiveFrame(&frame_, &pc_)) {
+      // failure
+      frame_ = pc_ = 0;
+   }
+}
 
-  if (pause()) {
-    currentFrame.getActiveStackFrameInfo(this);
-    while (!currentFrame.isLastFrame()) {
+Frame Frame::getPreviousStackFrameInfo(process *proc) const {
+   if (frame_ == 0)
+      return *this; // no prev frame exists; not much we can do here
+
+   int theFrame, thePc;
+   if (!proc->readDataFromFrame(this->frame_, &theFrame, &thePc))
+      ; // what to do here?
+
+   return Frame(theFrame, thePc);
+}
+
+vector<Address> process::walkStack(bool noPause)
+{
+  bool needToCont = noPause ? false : (status() == running);
+
+  vector<Address> pcs; // initially an empty array
+
+  if (!noPause && !pause()) {
+     // pause failed...give up
+     cerr << "walkStack: pause failed" << endl;
+     return pcs;
+  }
+
+  Frame currentFrame(this);
+  while (!noPause && !currentFrame.isLastFrame()) {
+      if (noPause) break;
       pcs += currentFrame.getPC();
       currentFrame = currentFrame.getPreviousStackFrameInfo(this); 
-    }
-    pcs += currentFrame.getPC();
-    if (needToCont) continueProc();
   }
+  pcs += currentFrame.getPC();
+
+  if (!noPause && needToCont) {
+     if (!continueProc())
+        cerr << "walkStack: continueProc failed" << endl;
+  }
+
   return(pcs);
 }  
 
@@ -174,7 +350,7 @@ bool isFreeOK(process *proc, const disabledItem &disItem, vector<Address> &pcs) 
 
   heapItem *ptr=NULL;
   if (!proc->heaps[disItemHeap].heapActive.find(disItemPointer, ptr)) {
-    sprintf(errorLine,"Warning: attempt to free not defined heap entry %x (pid=%d, heapActive.size()=%d)\n", disItemPointer, proc->pid, proc->heaps[disItemHeap].heapActive.size());
+    sprintf(errorLine,"Warning: attempt to free not defined heap entry %x (pid=%d, heapActive.size()=%d)\n", disItemPointer, proc->getPid(), proc->heaps[disItemHeap].heapActive.size());
     logLine(errorLine);
     //showErrorCallback(67, (const char *)errorLine);
     return(false);
@@ -197,9 +373,9 @@ bool isFreeOK(process *proc, const disabledItem &disItem, vector<Address> &pcs) 
       logLine(errorLine);
 #endif
 
-      const dictionary_hash<unsigned, heapItem*> &heapActivePart = proc->splitHeaps ?
-	                                                           proc->heaps[textHeap].heapActive :
-                                                                   proc->heaps[dataHeap].heapActive;
+      const dictionary_hash<unsigned, heapItem*> &heapActivePart =
+	      proc->splitHeaps ? proc->heaps[textHeap].heapActive :
+                                 proc->heaps[dataHeap].heapActive;
 
       heapItem *np=NULL;
       if (!heapActivePart.find(pointer, np)) { // fills in "np" if found
@@ -225,7 +401,7 @@ bool isFreeOK(process *proc, const disabledItem &disItem, vector<Address> &pcs) 
         {
 
 #ifdef FREEDEBUG1
-          sprintf(errorLine,"*** TEST *** (pid=%d) IN isFreeOK: we found 0x%x in our inst. range!\n",proc->pid,ptr->addr);
+          sprintf(errorLine,"*** TEST *** (pid=%d) IN isFreeOK: we found 0x%x in our inst. range!\n",proc->getPid(),ptr->addr);
           logLine(errorLine);
 #endif
 
@@ -248,7 +424,7 @@ bool isFreeOK(process *proc, const disabledItem &disItem, vector<Address> &pcs) 
           {
 
 #ifdef FREEDEBUG1
-    sprintf(errorLine,"*** TEST *** (pid=%d) IN isFreeOK: (2) we found PC in our inst. range!\n",proc->pid);
+    sprintf(errorLine,"*** TEST *** (pid=%d) IN isFreeOK: (2) we found PC in our inst. range!\n",proc->getPid());
     logLine(errorLine);
 #endif
 
@@ -332,7 +508,7 @@ void inferiorFreeDefered(process *proc, inferiorHeap *hp, bool runOutOfMem)
   disList = &hp->disabledList;
   if (runOutOfMem) {
     maxDelTime = MAX_DELETING_TIME*2.0;
-    sprintf(errorLine,"Emergency attempt to free memory (pid=%d). Please, wait...\n",proc->pid);
+    sprintf(errorLine,"Emergency attempt to free memory (pid=%d). Please, wait...\n",proc->getPid());
     logLine(errorLine);
 #ifdef FREEDEBUG1
     sprintf(errorLine,"***** disList.size() = %d\n",disList->size());
@@ -385,34 +561,26 @@ void inferiorFreeDefered(process *proc, inferiorHeap *hp, bool runOutOfMem)
   }
 }
 
-void initInferiorHeap(process *proc, bool globalHeap, bool initTextHeap)
+void process::initInferiorHeap(bool initTextHeap)
 {
-    heapItem *np;
+    assert(this->symbols);
+
     inferiorHeap *hp;
-    bool err;
-
-    assert(proc->symbols);
-
     if (initTextHeap) {
-	hp = &proc->heaps[textHeap];
+	hp = &this->heaps[textHeap];
     } else {
-	hp = &proc->heaps[dataHeap];
+	hp = &this->heaps[dataHeap];
     }
 
-    np = new heapItem;
+    heapItem *np = new heapItem;
     if (initTextHeap) {
-	np->addr = 
-	  (proc->symbols)->findInternalAddress("DYNINSTtext", true,err);
-	if (err)
-	  abort();
-    } else if (globalHeap) {
-	np->addr = 
-	  (proc->symbols)->findInternalAddress(GLOBAL_HEAP_BASE, true,err);
+        bool err;
+	np->addr = symbols->findInternalAddress("DYNINSTtext", true,err);
 	if (err)
 	  abort();
     } else {
-	np->addr = 
-	  (proc->symbols)->findInternalAddress(INFERIOR_HEAP_BASE, true, err);
+        bool err;
+	np->addr = symbols->findInternalAddress(INFERIOR_HEAP_BASE, true, err);
 	if (err)
 	  abort();
     }
@@ -457,7 +625,7 @@ inferiorHeap::inferiorHeap(const inferiorHeap &src):
 void printHeapFree(process *proc, inferiorHeap *hp, int size)
 {
   for (unsigned i=0; i < hp->heapFree.size(); i++) {
-    sprintf(errorLine,"***** (pid=%d) i=%d, addr=%d, length=%d, heapFree.size()=%d, size=%d\n",proc->pid,i,(hp->heapFree[i])->addr,(hp->heapFree[i])->length,hp->heapFree.size(),size); 
+    sprintf(errorLine,"***** (pid=%d) i=%d, addr=%d, length=%d, heapFree.size()=%d, size=%d\n",proc->getPid(),i,(hp->heapFree[i])->addr,(hp->heapFree[i])->length,hp->heapFree.size(),size); 
     logLine(errorLine);
   }
 }
@@ -570,7 +738,7 @@ unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
 }
 
 void inferiorFree(process *proc, unsigned pointer, inferiorHeapType type,
-                  vector<unsigVecType> &pointsToCheck)
+                  const vector<unsigVecType> &pointsToCheck)
 {
     inferiorHeapType which = (type == textHeap && proc->splitHeaps) ? textHeap : dataHeap;
     inferiorHeap *hp = &proc->heaps[which];
@@ -640,7 +808,7 @@ counter++;
 totalTime += t2-t1;
 if ((t2-t1) > worst) worst=t2-t1;
 if ((float)(t2-t1) > 1.0) {
-  sprintf(errorLine,">>>> TEST <<<< (pid=%d) inferiorFreeDefered took %5.2f secs, avg=%5.2f, worst=%5.2f, heapFree=%d, heapActive=%d, disabledList=%d, last call=%5.2f\n", proc->pid,(float) (t2-t1), (float) (totalTime/counter), (float)worst, hp->heapFree.size(), hp->heapActive.size(), hp->disabledList.size(), (float)(t1-t3));
+  sprintf(errorLine,">>>> TEST <<<< (pid=%d) inferiorFreeDefered took %5.2f secs, avg=%5.2f, worst=%5.2f, heapFree=%d, heapActive=%d, disabledList=%d, last call=%5.2f\n", proc->getPid(),(float) (t2-t1), (float) (totalTime/counter), (float)worst, hp->heapFree.size(), hp->heapActive.size(), hp->disabledList.size(), (float)(t1-t3));
   logLine(errorLine);
 }
 t3=t1;
@@ -650,29 +818,192 @@ t3=t1;
 #endif
 }
 
-process *allocateProcess(int pid, const string name)
+process::process(int iPid, image *iImage
+#ifdef SHM_SAMPLING
+		 , key_t theShmKey,
+		 unsigned iicNumElems,
+		 unsigned iwtNumElems,
+		 unsigned iptNumElems
+#endif
+) :
+                     baseMap(ipHash), 
+                     instInstanceMapping(instInstanceHash),
+		     pid(iPid), // needed in fastInferiorHeap ctors below
+#ifdef SHM_SAMPLING
+		     inferiorIntCounters(this, theShmKey, iicNumElems),
+		     inferiorWallTimers (this, theShmKey+1, iwtNumElems),
+		     inferiorProcessTimers(this, theShmKey+2, iptNumElems),
+#endif
+                     firstRecordTime(0)
 {
-    process *ret;
+    hasBootstrapped = false;
 
-    ret = new process;
-    processVec += ret;
-    ++activeProcesses;
-    if(!costMetric::addProcessToAll(ret)) assert(0);
+    // this is the 'normal' ctor, when a proc is started fresh as opposed
+    // to via a fork().
+    symbols = iImage;
 
-    ret->pid = pid;
+    traceLink = -1; ioLink = -1;
 
-    string buffer;
+    status_ = neonatal;
+    thread = 0;
+
     struct utsname un;
     P_uname(&un);
-    buffer = string(pid) + string("_") + string(un.nodename);
-    ret->rid = resource::newResource(processResource, (void*)ret, nullString, name,
-				     0.0, P_strdup(buffer.string_of()), MDL_T_STRING);
-    ret->bufEnd = 0;
+    string buffer = string(pid) + string("_") + string(un.nodename);
+    rid = resource::newResource(processResource, // parent
+				(void*)this, // handle
+				nullString, // abstraction
+				iImage->name(),
+				0.0, // creation time
+				buffer, // unique name (?)
+				MDL_T_STRING // mdl type (?)
+				);
 
-    // this process won't be paused until this flag is set
-    ret->reachedFirstBreak = false;
-    return(ret);
+    parent = NULL;
+    bufStart = 0;
+    bufEnd = 0;
+    reachedFirstBreak = false; // process won't be paused until this is set
+    splitHeaps = false;
+    inExec = false;
+
+    cumObsCost = 0;
+    lastObsCostLow = 0;
+
+    proc_fd = -1;
+
+    trampTableItems = 0;
+    memset(trampTable, 0, sizeof(trampTable));
+    currentPC_ = 0;
+    hasNewPC = false;
+    
+    inhandlestart = false;
+    dynamiclinking = false;
+    dyn = new dynamic_linking;
+    shared_objects = 0;
+    all_functions = 0;
+    all_modules = 0;
+    some_modules = 0;
+    some_functions = 0;
+    waiting_for_resources = false;
+
+#ifdef SHM_SAMPLING
+#ifdef sparc_sun_sunos4_1_3
+   kvmHandle = kvm_open(0, 0, 0, O_RDONLY, 0);
+   if (kvmHandle == NULL) {
+      perror("could not map child's uarea; kvm_open");
+      exit(5);
+   }
+
+//   childUareaPtr = tryToMapChildUarea(iPid);
+   childUareaPtr = NULL;
+#endif
+#endif
+
 }
+
+// This is the "fork" constructor:
+
+process::process(const process &parentProc, int iPid
+#ifdef SHM_SAMPLING
+		 ,key_t theShmKey,
+		 void *applShmSegIntCounterPtr,
+		 void *applShmSegWallTimerPtr,
+		 void *applShmSegProcTimerPtr
+#endif
+		 ) :
+                     baseMap(ipHash), 
+                     instInstanceMapping(instInstanceHash),
+#ifdef SHM_SAMPLING
+		     inferiorIntCounters(parentProc.inferiorIntCounters,
+					 this, theShmKey, applShmSegIntCounterPtr),
+		     inferiorWallTimers(parentProc.inferiorWallTimers,
+					this, theShmKey+1, applShmSegWallTimerPtr),
+		     inferiorProcessTimers(parentProc.inferiorProcessTimers,
+					   this, theShmKey+2, applShmSegProcTimerPtr),
+#endif
+                     firstRecordTime(0)
+{
+    hasBootstrapped = true;
+
+    // This is the "fork" ctor
+
+    symbols = parentProc.symbols;
+
+    /* initialize the traceLink to zero. The child process will get a 
+       connection later.  (But when does ioLink get set???) */
+    traceLink = -1;
+    ioLink = -1;
+
+    status_ = neonatal;
+    pid = iPid; thread = 0;
+
+    struct utsname un;
+    P_uname(&un);
+    string buffer = string(pid) + string("_") + string(un.nodename);
+    rid = resource::newResource(processResource, // parent
+				(void*)this, // handle
+				nullString, // abstraction
+				parentProc.symbols->name(),
+				0.0, // creation time
+				buffer, // unique name (?)
+				MDL_T_STRING // mdl type (?)
+				);
+
+    parent = &parentProc;
+    bufStart = 0;
+    bufEnd = 0;
+
+    reachedFirstBreak = false; // process won't be paused until this is set
+
+    splitHeaps = parentProc.splitHeaps;
+    heaps[0] = inferiorHeap(parentProc.heaps[0]);
+    heaps[1] = inferiorHeap(parentProc.heaps[1]);
+
+    inExec = false;
+
+    cumObsCost = 0;
+    lastObsCostLow = 0;
+
+    proc_fd = -1;
+
+    trampTableItems = 0;
+    memset(trampTable, 0, sizeof(trampTable));
+    currentPC_ = 0;
+    hasNewPC = false;
+
+    inhandlestart = false;
+    dynamiclinking = false;
+    dyn = new dynamic_linking;
+    shared_objects = 0;
+    all_functions = 0;
+    all_modules = 0;
+    some_modules = 0;
+    some_functions = 0;
+    waiting_for_resources = false;
+
+#ifdef SHM_SAMPLING
+#ifdef sparc_sun_sunos4_1_3
+   childUareaPtr = NULL;
+#endif
+#endif
+
+}
+
+#ifdef SHM_SAMPLING
+void process::registerInferiorAttachedSegs(intCounter *inferiorIntCounterPtr,
+					   tTimer *inferiorWallTimerPtr,
+					   tTimer *inferiorProcTimerPtr) {
+cout << "welcome to register with intCounterPtr=" << inferiorIntCounterPtr << ", wallTimerPtr=" << inferiorWallTimerPtr << ", procTimerPtr=" << inferiorProcTimerPtr << endl;
+cout.flush();
+
+   inferiorIntCounters.setBaseAddrInApplic(inferiorIntCounterPtr);
+   inferiorWallTimers.setBaseAddrInApplic(inferiorWallTimerPtr);
+   inferiorProcessTimers.setBaseAddrInApplic(inferiorProcTimerPtr);
+}
+
+static key_t childShmKeyToUse;
+
+#endif
 
 /*
  * Create a new instance of the named process.  Read the symbols and start
@@ -681,19 +1012,15 @@ process *allocateProcess(int pid, const string name)
 process *createProcess(const string File, vector<string> argv, vector<string> envp, const string dir = "")
 {
     int r;
-    int fd;
-    int pid;
-    image *img;
     unsigned i, j, k;
-    process *ret=0;
     int tracePipe[2];
-    FILE *childError;
     string inputFile, outputFile;
     string file = File;
 
-    if ((!file.prefixed_by("/")) && (dir.length() > 0)) {
+    // prepend the directory (if any) to the file, unless the filename
+    // starts with a /
+    if (!file.prefixed_by("/") && dir.length() > 0)
       file = dir + "/" + file;
-    }
 
     // check for I/O redirection in arg list.
     for (i=0; i<argv.size(); i++) {
@@ -739,6 +1066,13 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 	showErrorCallback(68, msg);
 	return(NULL);
     }
+
+#ifdef SHM_SAMPLING
+    // Do this _before_ the fork so both the parent and child get the updated
+    // value of ::childShmKeyToUse
+    ::childShmKeyToUse = pickShmSegKey();
+#endif
+
     //
     // WARNING This code assumes that vfork is used, and a failed exec will
     //   corectly change failed in the parent process.
@@ -746,10 +1080,10 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
     errno = 0;
 #ifdef PARADYND_PVM
 // must use fork, since pvmendtask will do some writing in the address space
-    pid = fork();
+    int pid = fork();
     // fprintf(stderr, "FORK: pid=%d\n", pid);
 #else
-    pid = vfork();
+    int pid = vfork();
 #endif
     if (pid > 0) {
 	if (errno) {
@@ -768,7 +1102,13 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 	}
 #endif
 
-	img = image::parseImage(file);
+// NEW: We bump up batch mode here; the matching bump-down occurs after shared objects
+//      are processed (after receiving the SIGSTOP indicating the end of running DYNINSTinit;
+//      more specifically, tryToReadAndProcessBootstrapInfo()).
+//      Prevents a diabolical w/w deadlock on solaris --ari
+tp->resourceBatchMode(true);
+
+	image *img = image::parseImage(file);
 	if (!img) {
 	    string msg = string("Unable to parse image: ") + file;
 	    showErrorCallback(68, msg.string_of());
@@ -781,21 +1121,37 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 	/* parent */
 	statusLine("initializing process data structures");
 	// sprintf(name, "%s", (char*)img->name);
-	ret = allocateProcess(pid, img->name());
-	ret->symbols = img;
 
-	initInferiorHeap(ret, false, false);
+//	cerr << "welcome to new process" << endl; cerr.flush();
+//	kill(getpid(), SIGSTOP);
+//	cerr << "doing new process with key=" << childShmKeyToUse << endl; cerr.flush();
+
+	process *ret = new process(pid, img
+#ifdef SHM_SAMPLING
+				   , ::childShmKeyToUse,
+				   numIntCounters,
+				   numWallTimers,
+				   numProcTimers
+#endif
+				   );
+	   // change this to a ctor that takes in more args
+	assert(ret);
+	processVec += ret;
+	activeProcesses++;
+	if (!costMetric::addProcessToAll(ret))
+	   assert(false);
+
+	ret->initInferiorHeap(false);
 	ret->splitHeaps = false;
 
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
 	// XXXX - move this to a machine dependant place.
 
 	// create a seperate text heap.
-	initInferiorHeap(ret, false, true);
+	ret->initInferiorHeap(true);
 	ret->splitHeaps = true;
 #endif
 
-	ret->status_ = neonatal;
 	ret->traceLink = tracePipe[0];
 	ret->ioLink = ioPipe[0];
 	close(tracePipe[1]);
@@ -844,6 +1200,8 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
            // question of who receives such data.  The answer is the read end of the
            // pipe, which is attached to the parent process; we (the child of fork())
            // don't use it.
+
+
 	dup2(ioPipe[1], 2); // redirect fd 2 (stderr) to the pipe, like above.
 
         // We're not using ioPipe[1] anymore; close it.
@@ -854,13 +1212,13 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
         // stdio library is being a little too clever for our purposes.  We don't want
         // the "bufferedness" to change.  So we set it back to line-buffered.
         // The command to do this is setlinebuf(stdout) [stdio.h call]  But we don't
-        // do it here, since the upcoming execve() would undo our work [actually, the man
-        // page for execve claims fd's are left alone so it must be some stdio bootstrap code
-        // called before main]  So when do we do it?  At the program's main(), via
+        // do it here, since the upcoming execve() would undo our work [execve keeps
+        // fd's but resets higher-level stdio information, which is recreated before
+        // execution of main()]  So when do we do it?  At the program's main(), via
         // rtinst's DYNINSTinit (RTposix.c et al.)
 
 	// setup stderr for rest of exec try.
-	childError = P_fdopen(2, "w");
+	FILE *childError = P_fdopen(2, "w");
 
 	P_close(tracePipe[0]);
 
@@ -881,7 +1239,7 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 
 	/* see if I/O needs to be redirected */
 	if (inputFile.length()) {
-	    fd = P_open(inputFile.string_of(), O_RDONLY, 0);
+	    int fd = P_open(inputFile.string_of(), O_RDONLY, 0);
 	    if (fd < 0) {
 		fprintf(childError, "stdin open of %s failed\n", inputFile.string_of());
 		fflush(childError);
@@ -893,7 +1251,7 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 	}
 
 	if (outputFile.length()) {
-	    fd = P_open(outputFile.string_of(), O_WRONLY|O_CREAT, 0444);
+	    int fd = P_open(outputFile.string_of(), O_WRONLY|O_CREAT, 0444);
 	    if (fd < 0) {
 		fprintf(childError, "stdout open of %s failed\n", outputFile.string_of());
 		fflush(childError);
@@ -904,7 +1262,7 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 	    }
 	}
 
-	/* indicate our desire to be trace */
+	/* indicate our desire to be traced */
 	errno = 0;
 	OS::osTraceMe();
 	if (errno != 0) {
@@ -936,14 +1294,38 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 	    }
 	    strcat(paradynInfo, " ");
 	}
-	putenv(paradynInfo);
+	P_putenv(paradynInfo);
 
 	/* put the traceSocket address in the environment. This will be used
 	   by forked processes to get a connection with the daemon
 	*/
 	extern int traceSocket;
 	string paradyndSockInfo = string("PARADYND_TRACE_SOCKET=") + string(traceSocket);
-	putenv((char *)paradyndSockInfo.string_of());
+	P_putenv(paradyndSockInfo.string_of());
+
+#ifdef SHM_SAMPLING
+        // Although the parent (paradynd) incremented ::inferiorIntCounterKey et al,
+        // we (the child) don't see those effects, so we'll get the old values, which
+        // is exactly what we want.
+	int keyInt = (int)::childShmKeyToUse;
+	string paradyndShmSegIntCtr = string("PARADYND_SHMSEG_INTCTRKEY=") + string(keyInt);
+	P_putenv(paradyndShmSegIntCtr.string_of());
+
+	string paradyndShmSegIntCtrSize = string("PARADYND_SHMSEG_INTCTRSIZE=") + string(intCounterShmSegNumBytes(::numIntCounters));
+	P_putenv(paradyndShmSegIntCtrSize.string_of());
+
+        keyInt++;
+	string paradyndShmSegWallTimer = string("PARADYND_SHMSEG_WALLTIMERKEY=") + string(keyInt);
+	P_putenv(paradyndShmSegWallTimer.string_of());
+	string paradyndShmSegWallTimerSize = string("PARADYND_SHMSEG_WALLTIMERSIZE=") + string(wallTimerShmSegNumBytes(::numWallTimers));
+	P_putenv(paradyndShmSegWallTimerSize.string_of());
+
+        keyInt++;
+	string paradyndShmSegProcTimer = string("PARADYND_SHMSEG_PROCTIMERKEY=") + string(keyInt);
+	P_putenv(paradyndShmSegProcTimer.string_of());
+	string paradyndShmSegProcTimerSize = string("PARADYND_SHMSEG_PROCTIMERSIZE=") + string(procTimerShmSegNumBytes(::numProcTimers));
+	P_putenv(paradyndShmSegProcTimerSize.string_of());
+#endif
 
 	char **args;
 	args = new char*[argv.size()+1];
@@ -968,10 +1350,27 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 	sprintf(errorLine, "vfork failed, errno=%d\n", errno);
 	logLine(errorLine);
 	showErrorCallback(71, (const char *) errorLine);
-	free(ret);
 	return(NULL);
     }
 }
+
+#ifdef SHM_SAMPLING
+void process::doSharedMemSampling(unsigned long long theWallTime) {
+   // Process Time:
+   const unsigned long long theProcTime = this->getInferiorProcessCPUtime();
+   
+   inferiorIntCounters.processAll  (theWallTime, theProcTime);
+   inferiorWallTimers.processAll   (theWallTime, theProcTime);
+   inferiorProcessTimers.processAll(theWallTime, theProcTime);
+
+   // Now do the observed cost.
+   // WARNING: we should be using a mutex!
+   unsigned *costAddr = this->getObsCostLowAddrInParadyndSpace();
+   const unsigned theCost = *costAddr;
+
+   this->processCost(theCost, theWallTime, theProcTime);
+}
+#endif
 
 extern void removeFromMetricInstances(process *);
 extern void disableAllInternalMetrics();
@@ -1003,6 +1402,9 @@ void handleProcessExit(process *proc, int exitStatus) {
     PDYN_reportSIGCHLD(proc->getPid(), exitStatus);
   }
 #endif
+
+  // Shouldn't we call 'delete' on "proc", remove it from the global
+  // list of all processes, etc.???
 }
 
 
@@ -1010,40 +1412,295 @@ void handleProcessExit(process *proc, int exitStatus) {
    process::forkProcess: called when a process forks, to initialize a new
    process object for the child.
 */   
-process *process::forkProcess(process *parent, pid_t childPid) {
-    process *ret = allocateProcess(childPid, parent->symbols->name());
-    ret->symbols = parent->symbols;
+process *process::forkProcess(const process *theParent, pid_t childPid
+#ifdef SHM_SAMPLING
+			      ,key_t theShmSegBaseKey,
+			      void *applShmSegIntCounterPtr,
+			      void *applShmSegWallTimerPtr,
+			      void *applShmSegProcTimerPtr
+#endif
+			      ) {
+    //process *ret = allocateProcess(childPid, theParent->symbols->name());
 
-    /* initialize the traceLink to zero. The child process will get a 
-       connection later. */
-    ret->traceLink = -1;
-    ret->ioLink = -1;
-    ret->parent = parent;
-  
+    process *ret = new process(*theParent, childPid
+#ifdef SHM_SAMPLING
+			       , theShmSegBaseKey,
+			       applShmSegIntCounterPtr,
+			       applShmSegWallTimerPtr,
+			       applShmSegProcTimerPtr
+#endif
+			       );
+
+       // change this to a "fork" ctor that takes in more args
+    assert(ret);
+    processVec += ret;
+    activeProcesses++;
+    if (!costMetric::addProcessToAll(ret))
+       assert(false);
+
     /* attach to child */
     if (!ret->attach()) {
       showErrorCallback(69, "Error in forkprocess: cannot attach to child process");
       return 0;
     }
 
-    /* initialize the heaps */
-    ret->splitHeaps = parent->splitHeaps;
-    ret->heaps[0] = inferiorHeap(parent->heaps[0]);
-    ret->heaps[1] = inferiorHeap(parent->heaps[1]);
-
     /* all instrumentation on the parent is active on the child */
     /* TODO: what about instrumentation inserted near the fork time??? */
-    ret->baseMap = parent->baseMap;
+    ret->baseMap = theParent->baseMap;
 
     /* copy all instrumentation instances of the parent to the child */
     /* this will update instMapping */
-    copyInstInstances(parent, ret, ret->instInstanceMapping);
-
-    /* update process status */
-    ret->reachedFirstBreak = false;
-    ret->status_ = neonatal;
+    copyInstInstances(theParent, ret, ret->instInstanceMapping);
 
     return ret;
+}
+
+#ifdef SHM_SAMPLING
+void process::processCost(unsigned obsCostLow,
+			  unsigned long long wallTime,
+			  unsigned long long processTime) {
+   // wallTime and processTime should compare to DYNINSTgetWallTime() and
+   // DYNINSTgetCPUtime().
+
+   // check for overflow, add to running total, convert cycles to
+   // seconds, and report.
+   // Member vrbles of class process: lastObsCostLow and cumObsCost (the latter
+   // a 64-bit value).
+
+   // code to handle overflow used to be in rtinst; we borrow it pretty much
+   // verbatim. (see rtinst/RTposix.c)
+   if (obsCostLow < lastObsCostLow) {
+      // we have a wraparound
+      cumObsCost += ((unsigned)0xffffffff - lastObsCostLow) + obsCostLow + 1;
+   }
+   else
+      cumObsCost += (obsCostLow - lastObsCostLow);
+
+   lastObsCostLow = obsCostLow;
+
+   extern double cyclesPerSecond; // perfStream.C
+
+   double observedCostSecs = cumObsCost;
+   observedCostSecs /= cyclesPerSecond;
+//   cerr << "processCost: cyclesPerSecond=" << cyclesPerSecond << "; cum obs cost=" << observedCostSecs << endl;
+
+   // Notice how most of the rest of this is copied from processCost() of metric.C
+   // Be sure to keep the two "in sync"!
+   timeStamp newSampleTime  = (double)wallTime / 1000000.0; // usec to seconds
+   timeStamp newProcessTime = (double)processTime / 1000000.0; // usec to secs
+
+   extern costMetric *totalPredictedCost; // init.C
+   extern costMetric *observed_cost; // init.C
+   extern costMetric *smooth_obs_cost; // init.C
+
+   const timeStamp lastProcessTime =
+                        totalPredictedCost->getLastSampleProcessTime(this);
+
+    // find the portion of uninstrumented time for this interval
+    const double unInstTime = ((newProcessTime - lastProcessTime)
+                         / (1+currentPredictedCost));
+    // update predicted cost
+    // note: currentPredictedCost is the same for all processes
+    //       this should be changed to be computed on a per process basis
+    sampleValue newPredCost = totalPredictedCost->getCumulativeValue(this);
+    newPredCost += (float)(currentPredictedCost*unInstTime);
+
+    totalPredictedCost->updateValue(this,newPredCost,
+                                    newSampleTime,newProcessTime);
+    // update observed cost
+    observed_cost->updateValue(this,observedCostSecs,
+                               newSampleTime,newProcessTime);
+
+    // update smooth observed cost
+    smooth_obs_cost->updateSmoothValue(this,observedCostSecs,
+				       newSampleTime,newProcessTime);
+}
+#endif
+
+/* process::handleExec: called when a process exec.
+   Parse the new image and disable metric instances on the old image.
+*/
+void process::handleExec() {
+
+    // all instrumentation that was inserted in this process is gone.
+    // set exited here so that the disables won't try to write to process
+    status_ = exited; 
+
+    removeFromMetricInstances(this);
+
+    image *img = image::parseImage(execFilePath);
+    if (!img) {
+       string msg = string("Unable to parse image: ") + execFilePath;
+       showErrorCallback(68, msg.string_of());
+       P_kill(pid, 9);
+       return;
+    }
+
+    // delete proc->symbols ???
+    symbols = img;
+
+    /* update process status */
+    reachedFirstBreak = false;
+    status_ = stopped;
+}
+
+/*
+ * Copy data from controller process to the named process.
+ */
+bool process::writeDataSpace(void *inTracedProcess, int size,
+			     const void *inSelf) {
+  bool needToCont = false;
+
+  if (status_ == exited)
+    return false;
+
+  if (status_ == running) {
+    needToCont = true;
+    if (! pause())
+      return false;
+  }
+
+  if (status_ != stopped && status_ != neonatal) {
+    showErrorCallback(38, "Internal paradynd error in process::writeDataSpace");
+    return false;
+  }
+
+  bool res = writeDataSpace_(inTracedProcess, size, inSelf);
+  if (!res) {
+    string msg = string("System error: unable to write to process data space:")
+	           + string(sys_errlist[errno]);
+    showErrorCallback(38, msg);
+    return false;
+  }
+
+  if (needToCont)
+    return this->continueProc();
+  return true;
+}
+
+bool process::readDataSpace(const void *inTracedProcess, int size,
+			    void *inSelf, bool displayErrMsg) {
+  bool needToCont = false;
+
+  if (status_ == exited)
+    return false;
+
+  if (status_ == running) {
+    needToCont = true;
+    if (! pause())
+      return false;
+  }
+
+  if (status_ != stopped && status_ != neonatal) {
+    showErrorCallback(38, "Internal paradynd error in process::readDataSpace");
+    return false;
+  }
+
+  bool res = readDataSpace_(inTracedProcess, size, inSelf);
+  if (!res) {
+    if (displayErrMsg) {
+      string msg;
+      msg=string("System error: unable to read from process data space:")
+          + string(sys_errlist[errno]);
+      showErrorCallback(38, msg);
+    }
+    return false;
+  }
+
+  if (needToCont)
+    return this->continueProc();
+  return true;
+
+}
+
+bool process::writeTextWord(caddr_t inTracedProcess, int data) {
+  bool needToCont = false;
+
+  if (status_ == exited)
+    return false;
+
+  if (status_ == running) {
+    needToCont = true;
+    if (! pause())
+      return false;
+  }
+
+  if (status_ != stopped && status_ != neonatal) {
+    string msg = string("Internal paradynd error in process::writeTextWord")
+               + string((int)status_);
+    showErrorCallback(38, msg);
+    //showErrorCallback(38, "Internal paradynd error in process::writeTextWord");
+    return false;
+  }
+
+  bool res = writeTextWord_(inTracedProcess, data);
+  if (!res) {
+    string msg = string("System error: unable to write to process data space:")
+	           + string(sys_errlist[errno]);
+    showErrorCallback(38, msg);
+    return false;
+  }
+
+  if (needToCont)
+    return this->continueProc();
+  return true;
+
+}
+
+bool process::writeTextSpace(void *inTracedProcess, int amount, const void *inSelf) {
+  bool needToCont = false;
+
+  if (status_ == exited)
+    return false;
+
+  if (status_ == running) {
+    needToCont = true;
+    if (! pause())
+      return false;
+  }
+
+  if (status_ != stopped && status_ != neonatal) {
+    string msg = string("Internal paradynd error in process::writeTextSpace")
+               + string((int)status_);
+    showErrorCallback(38, msg);
+    //showErrorCallback(38, "Internal paradynd error in process::writeTextSpace");
+    return false;
+  }
+
+  bool res = writeTextSpace_(inTracedProcess, amount, inSelf);
+  if (!res) {
+    string msg = string("System error: unable to write to process data space:")
+	           + string(sys_errlist[errno]);
+    showErrorCallback(38, msg);
+    return false;
+  }
+
+  if (needToCont)
+    return this->continueProc();
+  return true;
+}
+
+bool process::pause() {
+  if (status_ == stopped || status_ == neonatal)
+    return true;
+
+  if (status_ == exited)
+    return false;
+
+  if (status_ == running && reachedFirstBreak) {
+    bool res = pause_();
+    if (!res)
+      return false;
+
+    status_ = stopped;
+  }
+  else {
+    // The only remaining combination is: status==running but haven't yet
+    // reached first break.  We never want to pause before reaching the
+    // first break.
+  }
+
+  return true;
 }
 
 //
@@ -1059,7 +1716,6 @@ process *process::forkProcess(process *parent, pid_t childPid) {
 //	  of shared objects by the runtime linker is detected
 //
 bool process::handleStartProcess(process *p){
-
     if(!p){
         return false;
     }
@@ -1067,34 +1723,36 @@ bool process::handleStartProcess(process *p){
     // get shared objects, parse them, and define new resources 
     p->getSharedObjects();
 
-    // either continue the process here (if the SIGSTOP has already been
-    // caught by the daemon), or wait and continue it when the SIGSTOP
-    // is received
-    bool needToCont = (p->status() == running);
-    if (needToCont){ 
-	// this means that the signal from the child process has not been
-	// caught yet...set flag that will be tested for in handleSigChild
-	// which will continue the child process
-	p->inhandlestart = true;
-	int status;
-	int waiting_pid = process::waitProcs(&status);
-	if (waiting_pid > 0) {
-	    extern int handleSigChild(int,int);
-	    handleSigChild(waiting_pid, status);
-	}
-    }
-    else {
-	p->status_ = stopped;
-	// if there are no outstanding resource responses from Paradyn
-	// then continure the process, otherwise set flag to continue
-	// the process when all outstanding creates have completed
+//    // either continue the process here (if the SIGSTOP has already been
+//    // caught by the daemon), or wait and continue it when the SIGSTOP
+//    // is received
+//    bool needToCont = (p->status() == running);
+//    if (needToCont){ 
+//	// this means that the signal from the child process has not been
+//	// caught yet...set flag that will be tested for in handleSigChild
+//	// which will continue the child process
+//	p->inhandlestart = true;
+//	int status;
+//	int waiting_pid = process::waitProcs(&status);
+//	if (waiting_pid > 0) {
+//	    extern int handleSigChild(int,int);
+//	    handleSigChild(waiting_pid, status);
+//	}
+//    }
+//    else {
+//	p->status_ = stopped;
+//	// if there are no outstanding resource responses from Paradyn
+//	// then continure the process, otherwise set flag to continue
+//	// the process when all outstanding creates have completed
+
 	if(!resource::num_outstanding_creates){
-	    p->continueProc();
+	    //p->continueProc();
 	}
 	else {
 	   p->setWaitingForResources();
 	}
-    }
+//    }
+
     return true;
 }
 
@@ -1159,6 +1817,7 @@ bool process::getSharedObjects() {
     shared_objects = dyn->getSharedObjects(this); 
     if(shared_objects){
 	statusLine("parsing shared object files");
+
         tp->resourceBatchMode(true);
 	// for each element in shared_objects list process the 
 	// image file to find new instrumentaiton points
@@ -1175,6 +1834,7 @@ bool process::getSharedObjects() {
 	    }
 	}
 	statusLine("ready");
+
 	tp->resourceBatchMode(false);
 	return true;
     }
@@ -1367,61 +2027,444 @@ vector<module *> *process::getIncludedModules(){
     return some_modules;
 }
       
+bool process::continueProc() {
+  if (status_ == exited) return false;
 
-/* process::handleExec: called when a process exec.
-   Parse the new image and disable metric instances on the old image.
-*/
-void process::handleExec() {
+  if (status_ != stopped && status_ != neonatal) {
+    showErrorCallback(38, "Internal paradynd error in process::continueProc");
+    return false;
+  }
 
-    // all instrumentation that was inserted in this process is gone.
-    // set exited here so that the disables won't try to write to process
-    status_ = exited; 
+  bool res = continueProc_();
 
-    removeFromMetricInstances(this);
-
-    image *img = image::parseImage(execFilePath);
-    if (!img) {
-       string msg = string("Unable to parse image: ") + execFilePath;
-       showErrorCallback(68, msg.string_of());
-       P_kill(pid, 9);
-       return;
-    }
-
-    // delete proc->symbols ???
-    symbols = img;
-
-    /* update process status */
-    reachedFirstBreak = false;
-    status_ = stopped;
+  if (!res) {
+    showErrorCallback(38, "System error: can't continue process");
+    return false;
+  }
+  status_ = running;
+  return true;
 }
 
+bool process::detach(const bool paused) {
+  if (paused) {
+    logLine("detach: pause not implemented\n");
+  }
+  bool res = detach_();
+  if (!res) {
+    // process may have exited
+    return false;
+  }
+  return true;
+}
 
 /* 
    process::cleanUpInstrumentation called when paradynd catch
    a SIGTRAP to find out if there's any previous unfinished instrumentation
    requests 
 */
-void process::cleanUpInstrumentation() {
+bool process::cleanUpInstrumentation(bool wasRunning) {
+    // Try to process an item off of the waiting list 'instWlist'.
+    // If something was found & processed, then true will be returned.
+    // Additionally, if true is returned, the process will be continued
+    // if 'wasRunning' is true.
+    // But if false is returned, then there should be no side effects: noone
+    // should be continued, nothing removed from 'instWList', no change
+    // to this->status_, and so on (this is important to avoid bugs).
 
-    int pc;  
-    Frame frame;
+    assert(status_ == stopped); // since we're always called after a SIGTRAP
 
-    bool needToCont = false;
-
-    needToCont = status() == running;
-    bool res = pause();
-    if (!res)
-    	return;
-
-    frame.getActiveStackFrameInfo(this);
-    pc = frame.getPC();
+    Frame frame(this);
+    int pc = frame.getPC();
 
     // Go thru the instWList to find out the ones to be deleted 
     instWaitingList *instW;
     if ((instW = instWList.find((void *)pc)) != NULL) {
         instW->cleanUp(this, pc);
 	instWList.remove(instW);
-    }
 
-    if (needToCont) continueProc();
+	// we'll be returning true
+	if (wasRunning)
+	   continueProc();
+
+	return true;
+    }
+    else {
+       return false;
+    }
+}
+
+void process::postRPCtoDo(const AstNode &action, bool noCost,
+			  void (*callbackFunc)(process *, void *),
+			  void *userData) {
+   // posts an RPC, but does NOT make any effort to launch it.
+   inferiorRPCtoDo theStruct;
+   theStruct.action = action;
+   theStruct.noCost = noCost;
+   theStruct.callbackFunc = callbackFunc;
+   theStruct.userData = userData;
+
+   RPCsWaitingToStart += theStruct;
+}
+
+bool process::existsRPCreadyToLaunch() const {
+   if (currRunningRPCs.empty() && !RPCsWaitingToStart.empty())
+      return true;
+   return false;
+}
+
+bool process::launchRPCifAppropriate(bool wasRunning) {
+   // asynchronously launches iff RPCsWaitingToStart.size() > 0 AND
+   // if currRunningRPCs.size()==0 (the latter for safety)
+
+   if (!currRunningRPCs.empty())
+      // an RPC is currently executing, so it's not safe to launch a new one.
+      return false;
+
+   if (RPCsWaitingToStart.empty())
+      // duh, no RPC is waiting to run, so there's nothing to do.
+      return false;
+
+   /* ****************************************************** */
+
+   if (status_ == exited)
+      return false;
+         // I honestly don't know what the hell to do in this case, but we sure
+         // can't expect the process to be able to execute any more code!
+
+   if (status_ == neonatal)
+      // not sure if this should be some kind of error...is the inferior ready
+      // to execute inferior RPCs??? For now, we'll allow it.
+      ; 
+
+   // Steps to take (on sparc, at least)
+   // 1) pause the process and wait for it to stop
+   // 2) GETREGS (ptrace call) & store away
+   // 3) create temp tramp: save, action, restore, trap, illegal
+   //    (the illegal is just ot be sure that the trap never returns)
+   // 4) set the PC and nPC regs to addr of temp tramp
+   // 5) PTRACE_CONT; go back to main loop (SIGTRAP will eventually be delivered)
+
+   // When SIGTRAP is received,
+   // 1) verify that PC is the location of the TRAP instr in the temp tramp
+   // 2) free tramp
+   // 3) SETREGS to restore all regs, including PC and nPC.
+   // 4) continue inferior, if appropriate (THIS IS AN UNSETTLED ISSUE).
+
+   if (!pause()) {
+      cerr << "launchRPCifAppropriate failed because pause failed" << endl;
+      return false;
+   }
+
+   void *theSavedRegs = getRegisters(); // machine-specific implementation
+      // result is allocated via new[]; we'll delete[] it later.
+      // return value of NULL indicates total failure.
+      // return value of (void *)-1 indicates that the state of the machine isn't quite
+      //    ready for an inferiorRPC, and that we should try again 'later'.  In particular,
+      //    we must handle the (void *)-1 case very gracefully (i.e., leave
+      //    the vrble 'RPCsWaitingToStart' untouched).
+
+   if (theSavedRegs == (void *)-1) {
+      cerr << "launchRPCifAppropriate: deferring" << endl;
+      if (wasRunning)
+	 (void)continueProc();
+      return false;
+   }
+
+   if (theSavedRegs == NULL) {
+      cerr << "launchRPCifAppropriate failed because getRegisters() failed" << endl;
+      if (wasRunning)
+	 (void)continueProc();
+      return false;
+   }
+
+   inferiorRPCtoDo todo = RPCsWaitingToStart.removeOne();
+      // note: this line should always be below the test for (void*)-1, thus
+      // leaving 'RPCsWaitingToStart' alone in that case.
+
+// Code for the HPUX version of inferiorRPC exists, but crashes, so
+// for now, don't do inferiorRPC on HPUX!!!!
+#if defined(hppa1_1_hp_hpux)
+if (wasRunning)
+  (void)continueProc();
+return false;
+#endif
+
+   inferiorRPCinProgress inProgStruct;
+   inProgStruct.callbackFunc = todo.callbackFunc;
+   inProgStruct.userData = todo.userData;
+   inProgStruct.savedRegs = theSavedRegs;
+   inProgStruct.wasRunning = wasRunning;
+   unsigned tempTrampBase = createRPCtempTramp(todo.action,
+					       todo.noCost,
+					       inProgStruct.firstPossibleBreakAddr,
+					       inProgStruct.lastPossibleBreakAddr);
+      // the last 2 args are written to
+
+   if (tempTrampBase == NULL) {
+      cerr << "launchRPCifAppropriate failed because createRPCtempTramp failed" << endl;
+      if (wasRunning)
+	 (void)continueProc();
+      return false;
+   }
+
+   assert(tempTrampBase);
+
+   inProgStruct.firstInstrAddr = tempTrampBase;
+
+   assert(currRunningRPCs.empty()); // since it's unsafe to run > 1 at a time
+   currRunningRPCs += inProgStruct;
+
+   // change the PC and nPC registers to the addr of the temp tramp
+   if (!changePC(tempTrampBase, theSavedRegs)) {
+      cerr << "launchRPCifAppropriate failed because changePC() failed" << endl;
+      if (wasRunning)
+	 (void)continueProc();
+      return false;
+   }
+
+   if (!continueProc()) {
+      cerr << "launchRPCifAppropriate: continueProc() failed" << endl;
+      return false;
+   }
+
+   return true; // success
+}
+
+unsigned process::createRPCtempTramp(const AstNode &action,
+				     bool noCost,
+				     unsigned &firstPossibBreakAddr,
+				     unsigned &lastPossibBreakAddr) {
+
+   // Returns addr of temp tramp, which was allocated in the inferoir heap.
+   // You must free it yourself when done.
+
+   // Note how this is, in many ways, a greatly simplified version of
+   // addInstFunc().
+
+   // Temp tramp structure: save; code; restore; trap; illegal
+   // the illegal is just to make sure that the trap never returns
+   // note that we may not need to save and restore anything, since we've
+   // already done a GETREGS and we'll restore with a SETREGS, right?
+
+   unsigned char insnBuffer[4096];
+   memset(insnBuffer, 0x00, sizeof(insnBuffer)); // aids debugging
+
+   initTramps(); // initializes "regSpace", but only the 1st time it gets called...
+   extern registerSpace *regSpace;
+   regSpace->resetSpace();
+
+   unsigned count = 0;
+
+   // The following is implemented in an arch-specific source file...
+   if (!emitInferiorRPCheader(insnBuffer, count)) {
+      // a fancy dialog box is probably called for here...
+      cerr << "createRPCtempTramp failed because emitInferiorRPCheader failed." << endl;
+      return NULL;
+   }
+
+   reg resultReg = action.generateCode(this, regSpace,
+				       (char*)insnBuffer,
+				       count, noCost);
+   // do we need to use the result register?
+   regSpace->freeRegister(resultReg);
+
+   // Now, the trailer (restore, TRAP, illegal)
+   // (the following is implemented in an arch-specific source file...)
+
+   unsigned firstPossibBreakOffset, lastPossibBreakOffset;
+   if (!emitInferiorRPCtrailer(insnBuffer, count,
+			       firstPossibBreakOffset, lastPossibBreakOffset)) {
+      // last 3 args are modified by the call
+      cerr << "createRPCtempTramp failed because emitInferiorRPCtrailer failed." << endl;
+      return NULL;
+   }
+
+   unsigned tempTrampBase = inferiorMalloc(this, count, textHeap);
+   assert(tempTrampBase);
+
+   firstPossibBreakAddr = tempTrampBase + firstPossibBreakOffset;
+   lastPossibBreakAddr = tempTrampBase + lastPossibBreakOffset;
+
+   /* Now, write to the tempTramp, in the inferior addr's data space
+      (all tramps are allocated in data space) */
+   if (!writeDataSpace((void*)tempTrampBase, count, insnBuffer)) {
+      // should put up a nice error dialog window
+      cerr << "createRPCtempTramp failed because writeDataSpace failed" << endl;
+      return NULL;
+   }
+
+   extern int trampBytes; // stats.h
+   trampBytes += count;
+
+   return tempTrampBase;
+}
+
+bool process::handleTrapIfDueToRPC() {
+   // get curr PC register (can assume process is stopped), search for it in
+   // 'currRunningRPCs'.  If found, restore regs, do callback, delete tramp, and
+   // return true.  Returns false if not processed.
+
+   assert(status_ == stopped); // a TRAP should always stop a process (duh)
+   
+   if (currRunningRPCs.empty())
+      return false; // no chance of a match
+
+   assert(currRunningRPCs.size() == 1);
+      // it's unsafe to have > 1 RPCs going on at a time within a single process
+
+   // Okay, time to do a stack trace.
+   // If we determine that the PC of a level of the back trace
+   // falls within the bounds of [currRunningRPCs[0]'s address range],
+   // then we assume success.  Note that we could probably narrow
+   // it down to an EXACT address, to increase resistence to spurious
+   // signals.
+   Frame theFrame(this);
+   while (true) {
+      if (theFrame.isLastFrame())
+	 // well, we've gone as far as we can, with no match.
+	 return false;
+
+      // do we have a match?
+      const int framePC = theFrame.getPC();
+      if (framePC >= currRunningRPCs[0].firstPossibleBreakAddr &&
+	  framePC <= currRunningRPCs[0].lastPossibleBreakAddr) {
+	 // we've got a match!
+	 break;
+      }
+
+      // else, backtrace 1 more level
+      theFrame = theFrame.getPreviousStackFrameInfo(this);
+   }
+
+   // Okay, we have a match.
+   inferiorRPCinProgress theStruct = currRunningRPCs.removeByIndex(0);
+//   assert(theStruct.trapInstrAddr == currPCreg);
+
+   // step 1) restore registers:
+   if (!restoreRegisters(theStruct.savedRegs)) {
+      cerr << "handleTrapIfDueToRPC failed because restoreRegisters failed" << endl;
+      assert(false);
+   }
+   delete [] theStruct.savedRegs;
+
+   // step 2) delete temp tramp
+   vector< vector<unsigned> > pointsToCheck;
+      // blank on purpose; deletion is safe to take place even right now
+   inferiorFree(this, theStruct.firstInstrAddr, textHeap, pointsToCheck);
+
+   // step 3) invoke callback, if any
+   if (theStruct.callbackFunc) {
+      theStruct.callbackFunc(this, theStruct.userData);
+   }
+
+   // step 4) continue process, if appropriate
+   if (theStruct.wasRunning) {
+      if (!continueProc())
+	 cerr << "RPC completion: continueProc failed" << endl;
+   }
+
+   return true;
+}
+
+bool process::tryToReadAndProcessBootstrapInfo() {
+   // returns true iff we are now processing the bootstrap info.
+   // if false is returned, there must be no side effects.
+
+   if (hasBootstrapped)
+      return false;
+
+   string vrbleName = "DYNINST_bootstrap_info";
+   
+   internalSym *sym = findInternalSymbol(vrbleName, true);
+   assert(sym);
+
+   Address symAddr = sym->getAddr();
+
+   // Read the structure; if pid 0 then not yet written!
+   DYNINST_bootstrapStruct bs_record;
+   if (!readDataSpace((const void*)symAddr, sizeof(bs_record), &bs_record, true)) {
+      cerr << "tryToReadAndProcessBootstrapInfo failed because readDataSpace failed" << endl;
+      return false;
+   }
+
+   if (bs_record.pid == 0)
+      return false;
+
+   string str=string("PID=") + string(bs_record.pid) + ", receiving bootstrap info...";
+   statusLine(str.string_of());
+
+   process *checkProc = findProcess(bs_record.pid);
+   assert(checkProc);
+   assert(checkProc == this); // just to be sure
+
+#ifdef SHM_SAMPLING
+   registerInferiorAttachedSegs(bs_record.intCounterAttachedAt,
+				bs_record.wallTimerAttachedAt,
+				bs_record.procTimerAttachedAt);
+#endif
+
+   str=string("PID=") + string(bs_record.pid) + ", calling handleStartProcess...";
+   statusLine(str.string_of());
+
+   if (!handleStartProcess(this))
+      logLine("warning: handleStartProcess failed\n");
+
+// NEW: we decrement the batch mode here; the matching bump-up occurs in createProcess()
+tp->resourceBatchMode(false);
+
+
+   str=string("PID=") + string(bs_record.pid) + ", installing default inst...";
+   statusLine(str.string_of());
+
+   extern vector<instMapping*> initialRequests; // init.C
+   installDefaultInst(this, initialRequests);
+
+   str=string("PID=") + string(bs_record.pid) + ", propagating mi's...";
+   statusLine(str.string_of());
+
+   // propagate any metric that is already enabled to the new process.
+   vector<metricDefinitionNode *> MIs = allMIs.values();
+   for (unsigned j = 0; j < MIs.size(); j++) {
+      MIs[j]->propagateMetricInstance(this);
+   }
+
+   costMetric::addProcessToAll(this);
+
+   hasBootstrapped = true;
+
+   str=string("PID=") + string(bs_record.pid) + ", executing new-prog callback...";
+   statusLine(str.string_of());
+
+   tp->newProgramCallbackFunc(bs_record.pid, this->arg_list, 
+			      machineResource->part_name());
+      // in paradyn, this will call paradynDaemon::addRunningProgram()
+
+   // The following call must be done before any samples are sent to
+   // paradyn; otherwise, prepare for an assert fail.
+
+   const time64 currWallTime = getCurrWallTime();
+
+   if (!firstRecordTime) {
+      //cerr << "process.C setting firstRecordTime to " << currWallTime << endl;
+      firstRecordTime = currWallTime; // firstRecordTime may soon be obsolete; for now, it's used in metric.C and maybe perfStream.C
+   }
+   if (!::firstRecordTime) {
+      //cerr << "process.C setting ::firstRecordTime to " << currWallTime << endl;
+     ::firstRecordTime = currWallTime;
+   }
+
+   tp->firstSampleCallback(getPid(), (double)currWallTime / 1000000.0);
+	       
+   str=string("PID=") + string(bs_record.pid) + ", ready.";
+   statusLine(str.string_of());
+
+   return true;
+}
+
+void process::continueProcessIfWaiting(){ // called by dynrpc.C ::resourceInfoResponse
+   if(waiting_for_resources){
+      //continueProc(); (obsolete, hence waiting_for_resources may be obsolete)
+   }
+   
+   waiting_for_resources = false;
 }
