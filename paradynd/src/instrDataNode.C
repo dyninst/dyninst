@@ -108,120 +108,78 @@ vector<dataReqNode *> instrThrDataNode::getDataRequests() {
 int instrThrDataNode::counterId=0;
 extern process *global_proc;
 
-dataReqNode *instrThrDataNode::makeIntCounter(pdThread *thr, 
-					      rawTime64 initialValue,
-					      unsigned *level, unsigned *index,
-					      bool doNotSample)
-{
-   dataReqNode *result = NULL;
+// --- Counters --------------------
 
-   // shared memory sampling of a reported intCounter
-   result = new sampledShmIntCounterReqNode(thr, initialValue,
-                                            incrementCounterId(), proc(),
-					    dontInsertData_, doNotSample,
-					    *index, *level);
-   *level = result->getAllocatedLevel();
-   *index = result->getAllocatedIndex();
-      // implicit conversion to base class
+inst_var_index instrThrDataNode::
+allocateForCounter(process *proc, bool bDontInsertData) {
+  inst_var_index retIndex;
+  if(bDontInsertData) {
+    retIndex = 0;  // this isn't actually used, but need to return something
+  } else {
+    retIndex = dataReqNode::allocateForInstVar(proc, Counter);
+  }
+  return retIndex;
+}
+
+dataReqNode *instrThrDataNode::makeIntCounter(inst_var_index index, 
+					      pdThread *thr, 
+					      rawTime64 initialValue)
+{
+   dataReqNode *result = 
+     new sampledIntCounterReqNode(proc(), index, thr, initialValue,
+				  incrementCounterId(), dontInsertData_);
    assert(result);
-   
    proc()->numOfActCounters_is++;
-
    return result;
 }
-
 					      // if ST app, thr == NULL
-dataReqNode *instrThrDataNode::createSampledCounter(pdThread *thr, 
-						    rawTime64 initialValue,
-						    dataInstHandle *handle)
+dataReqNode *instrThrDataNode::createSampledCounter(inst_var_index index,
+						    pdThread *thr, 
+						    rawTime64 initialValue)
 {
-   dataReqNode *result = NULL;
-   handle->level = UI32_MAX;
-   handle->index = UI32_MAX;
-   result = makeIntCounter(thr, initialValue, &handle->level, &handle->index, 
-			   false);
+   dataReqNode *result = makeIntCounter(index, thr, initialValue);
    assert(sampledDataReq == NULL);  // shouldn't have been set yet
    sampledDataReq = result;
    return result;
 }
 
-dataReqNode *instrThrDataNode::createConstraintCounter(pdThread *thr, 
-						       rawTime64 initialValue,
-						       dataInstHandle *handle)
+dataReqNode *instrThrDataNode::createConstraintCounter(inst_var_index index,
+						       pdThread *thr, 
+						       rawTime64 initialValue)
 {
-   dataReqNode *result = NULL;
-   handle->level = UI32_MAX;
-   handle->index = UI32_MAX;
-   result = makeIntCounter(thr, initialValue, &handle->level, &handle->index, 
-			   false);
+   dataReqNode *result = makeIntCounter(index, thr, initialValue);
    assert(constraintDataReq == NULL);  // shouldn't have been set yet
    constraintDataReq = result;
    return result;
 }
 
-dataReqNode *instrThrDataNode::createTemporaryCounter(pdThread *thr, 
-						      rawTime64 initialValue,
-						      dataInstHandle *handle)
+dataReqNode *instrThrDataNode::createTemporaryCounter(inst_var_index index,
+						      pdThread *thr, 
+						      rawTime64 initialValue)
 {
-   dataReqNode *result = NULL;
-   handle->level = UI32_MAX;
-   handle->index = UI32_MAX;
-   result = makeIntCounter(thr, initialValue, &handle->level, &handle->index, 
-			   true);
+   dataReqNode *result = makeIntCounter(index, thr, initialValue);
    tempCtrDataRequests.push_back(result);
    return result;
 }
 
-dataReqNode *instrThrDataNode::reuseSampledCounter(pdThread *thr, 
-						   rawTime64 initialValue,
-					     const dataInstHandle &dataHandle)
-{
-   dataReqNode *result = NULL;
-   unsigned level = dataHandle.level;
-   unsigned index = dataHandle.index;
-   result = makeIntCounter(thr, initialValue, &level, &index, false);
-   assert(sampledDataReq == NULL);  // shouldn't have been set yet
-   sampledDataReq = result;
-   return result;
+// --- Wall Timers -------------
+inst_var_index instrThrDataNode::
+allocateForWallTimer(process *proc, bool bDontInsertData) {
+  inst_var_index retIndex;
+  if(bDontInsertData) {
+    retIndex = 0;  // this isn't actually used, but need to return something
+  } else {
+    retIndex = dataReqNode::allocateForInstVar(proc, WallTimer);
+  }
+  return retIndex;
 }
 
-dataReqNode *instrThrDataNode::reuseConstraintCounter(pdThread *thr, 
-						      rawTime64 initialValue,
-					     const dataInstHandle &dataHandle)
+dataReqNode *instrThrDataNode::createWallTimer(inst_var_index index,
+					       pdThread *thr)
 {
-   dataReqNode *result = NULL;
-   unsigned level = dataHandle.level;
-   unsigned index = dataHandle.index;
-   result = makeIntCounter(thr, initialValue, &level, &index, false);
-   assert(constraintDataReq == NULL);  // shouldn't have been set yet
-   constraintDataReq = result;
-   return result;
-}
-
-dataReqNode *instrThrDataNode::reuseTemporaryCounter(pdThread *thr, 
-						     rawTime64 initialValue,
-					     const dataInstHandle &dataHandle)
-{
-   dataReqNode *result = NULL;
-   unsigned level = dataHandle.level;
-   unsigned index = dataHandle.index;
-   result = makeIntCounter(thr, initialValue, &level, &index, true);
-   tempCtrDataRequests.push_back(result);
-   return result;
-}
-
-
-dataReqNode *instrThrDataNode::makeWallTimer(pdThread *thr, unsigned *level,
-					     unsigned *index)
-{
-   dataReqNode *result = NULL;
-
-   result = new sampledShmWallTimerReqNode(thr, incrementCounterId(), 
-					   proc(), dontInsertData_, 
-					   *index, *level);
-   *level = result->getAllocatedLevel();
-   *index = result->getAllocatedIndex();
-
+   dataReqNode *result = 
+     new sampledWallTimerReqNode(proc(), index, thr, incrementCounterId(), 
+				 dontInsertData_);
    assert(result);
    proc()->numOfActWallTimers_is++;
    assert(sampledDataReq == NULL);
@@ -229,53 +187,33 @@ dataReqNode *instrThrDataNode::makeWallTimer(pdThread *thr, unsigned *level,
    return result;
 }
 
-dataReqNode *instrThrDataNode::createWallTimer(pdThread *thr, 
-					       dataInstHandle *handle) {
-  handle->level = UI32_MAX;
-  handle->index = UI32_MAX;
-  return makeWallTimer(thr, &handle->level, &handle->index);
+// --- Proc Timers -------------
+inst_var_index instrThrDataNode::
+allocateForProcTimer(process *proc, bool bDontInsertData) {
+  inst_var_index retIndex;
+  if(bDontInsertData) {
+    retIndex = 0;  // this isn't actually used, but need to return something
+  } else {
+    retIndex = dataReqNode::allocateForInstVar(proc, ProcTimer);
+  }
+  return retIndex;
 }
 
-dataReqNode *instrThrDataNode::reuseWallTimer(pdThread *thr, 
-					      const dataInstHandle &handle) {
-  unsigned level = handle.level;
-  unsigned index = handle.index;
-  return makeWallTimer(thr, &level, &index);
-}
-
-dataReqNode *instrThrDataNode::makeProcessTimer(pdThread *thr, unsigned *level,
-						unsigned *index)
+dataReqNode *instrThrDataNode::createProcessTimer(inst_var_index index,
+						  pdThread *thr)
 {
-   dataReqNode *result = NULL;
-
-   result = new sampledShmProcTimerReqNode(thr, incrementCounterId(), 
-					   proc(), dontInsertData_, 
-					   *index, *level);
-   *level = result->getAllocatedLevel();
-   *index = result->getAllocatedIndex();
-
-   assert(result);
-
-   proc()->numOfActProcTimers_is++;
-
-   assert(sampledDataReq == NULL);
-   sampledDataReq = result;
-   return result;
+  dataReqNode *result = 
+    new sampledProcTimerReqNode(proc(), index, thr, incrementCounterId(),
+				dontInsertData_);
+  assert(result);
+  
+  proc()->numOfActProcTimers_is++;
+   
+  assert(sampledDataReq == NULL);
+  sampledDataReq = result;
+  return result;
 };
 
-dataReqNode *instrThrDataNode::createProcessTimer(pdThread *thr, 
-						  dataInstHandle *handle) {
-  handle->level = UI32_MAX;
-  handle->index = UI32_MAX;
-  return makeProcessTimer(thr, &handle->level, &handle->index);
-}
-dataReqNode *instrThrDataNode::reuseProcessTimer(pdThread *thr, 
-						 const dataInstHandle &handle) 
-{
-  unsigned level = handle.level;
-  unsigned index = handle.index;
-  return makeProcessTimer(thr, &level, &index);
-}
 
 void instrThrDataNode::print() {
    cerr << "D:" << (void*)this << "\n";
@@ -284,23 +222,25 @@ void instrThrDataNode::print() {
 void instrThrDataNode::startSampling(threadMetFocusNode_Val *thrClient) { 
   thrNodeClientSet = true;
   assert(sampledDataReq!=NULL);
-  sampledDataReq->setThrNodeClient(thrClient, proc());
+  sampledDataReq->setThrNodeClient(thrClient);
+  sampledDataReq->markAsSampled();
 }
 
 void instrThrDataNode::stopSampling() {
   thrNodeClientSet = false;
   assert(sampledDataReq!=NULL);
-  sampledDataReq->setThrNodeClient(NULL, proc());
+  sampledDataReq->setThrNodeClient(NULL);
+  sampledDataReq->markAsNotSampled();
 }
 
 void instrThrDataNode::disableAndDelete(vector<addrVecType> pointsToCheck) {
   if(! dontInsertData_) {
-    if(sampledDataReq!=NULL)  sampledDataReq->disable(proc(), pointsToCheck);
+    if(sampledDataReq!=NULL)  sampledDataReq->disable(pointsToCheck);
     if(constraintDataReq!=NULL) 
-       constraintDataReq->disable(proc(), pointsToCheck);
+       constraintDataReq->disable(pointsToCheck);
 
     for (unsigned u=0; u<tempCtrDataRequests.size(); u++) {
-      tempCtrDataRequests[u]->disable(proc(), pointsToCheck); // deinstrument
+      tempCtrDataRequests[u]->disable(pointsToCheck); // deinstrument
     }
   }
   delete this;
