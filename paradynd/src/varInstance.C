@@ -70,7 +70,7 @@ varInstance<HK>::varInstance(const varInstance<HK> &par, shmMgr &sMgr,
   // reinitiated, ... so leave hkBuf as empty
   elementsToBeSampled(false), proc(p), initValue(par.initValue), 
   theShmMgr(sMgr), hwEvent(par.hwEvent), permanentSamplingSet(), currentSamplingSet() {
-  baseAddrInDaemon = theShmMgr.applicAddrToDaemonAddr(baseAddrInApplic);
+   baseAddrInDaemon = theShmMgr.applicAddrToDaemonAddr(baseAddrInApplic);
 }
 
 template <class HK>
@@ -94,8 +94,11 @@ void varInstance<HK>::createHKifNotPresent(unsigned thrPos) {
 
 template <class HK>
 void varInstance<HK>::markVarAsSampled(unsigned thrPos, 
-				       threadMetFocusNode_Val *thrNval) {
+                                       threadMetFocusNode_Val *thrNval) {
   createHKifNotPresent(thrPos);
+  if(hkBuf[thrPos]->getThrNodeVal() != NULL) 
+     return;  // must already have been marked as sampled
+
   hkBuf[thrPos]->setThrClient(thrNval);
 
   permanentSamplingSet.push_back(thrPos);
@@ -105,7 +108,7 @@ void varInstance<HK>::markVarAsSampled(unsigned thrPos,
 
 template <class HK>
 bool varInstance<HK>::removeFromSamplingSet(pdvector<unsigned> *set, 
-					    unsigned thrPosToRemove) {
+                                            unsigned thrPosToRemove) {
   bool foundIt = false;
   pdvector<unsigned>::iterator itr = (*set).end();
   while(itr != (*set).begin()) {
