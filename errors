@@ -1,7 +1,10 @@
 
 #
 # $Log: errors,v $
-# Revision 1.10  1994/04/22 21:51:17  hollings
+# Revision 1.11  1994/07/08 02:52:55  karavan
+# created error #
+#
+# Revision 1.10  1994/04/22  21:51:17  hollings
 # created error #9
 #
 # Revision 1.9  1994/04/22  21:48:54  hollings
@@ -127,4 +130,13 @@ An attempt to set the current refinement to a node failed becuase one of the
 ancesstors of that node is false.  To manually select a SHG node, you must
 select a node which is true.  In addition, all of it's ancesstors back to
 the root must also be true.
+%Y
+
+%N 
+%E malloc failed
+%A dm
+%S fatal
+%X
+Attempt to call malloc returned an error within a data manager function.
+
 %Y
