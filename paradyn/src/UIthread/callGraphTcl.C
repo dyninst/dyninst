@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphTcl.C,v 1.2 1999/06/04 16:07:44 cain Exp $
+// $Id: callGraphTcl.C,v 1.3 1999/07/13 16:50:26 cain Exp $
 
 //CallGraphTcl.C: this file contains all of the tcl routines necessary
 //to control the callGraph. These are all modified versions of the functions
@@ -163,6 +163,26 @@ int callGraphNewHorizScrollPositionCommand(ClientData, Tcl_Interp *interp,
    return TCL_OK;
 }
 
+int callGraphFindCommand(ClientData, Tcl_Interp *interp,
+			 int argc, char **argv) {
+   assert(haveSeenFirstGoodCallGraphWid);
+
+   assert(argc == 2);
+   const char *str = argv[1];
+
+   if (theCallGraphPrograms->existsCurrent()) {
+      const int result = theCallGraphPrograms->find(str);
+         // 0 --> not found
+         // 1 --> found, and nothing had to be expanded (i.e. just a pure scroll)
+         // 2 --> found, and stuff had to be expanded (i.e. must redraw everything)
+   
+      if (result==1 || result==2)
+         initiateCallGraphRedraw(interp, true);
+   }
+
+   return TCL_OK;
+}
+
 
 int callGraphChangeProgramCommand(ClientData, Tcl_Interp *interp,
 				      int argc, char **argv) {
@@ -226,43 +246,40 @@ void installCallGraphCommands(Tcl_Interp *interp){
   
   Tcl_CreateCommand(interp, "callGraphCreateHook", callGraphCreateCommand, 
 		    NULL, CGdeleteDummyProc);
-  Tcl_CreateCommand(interp, "callGraphConfigureHook", callGraphResizeCallbackCommand,
+  Tcl_CreateCommand(interp, "callGraphConfigureHook", 
+		    callGraphResizeCallbackCommand,
 		    NULL,  // clientData
 		    CGdeleteDummyProc);
-  
-  Tcl_CreateCommand(interp, "callGraphExposeHook", callGraphExposeCallbackCommand,
+  Tcl_CreateCommand(interp, "callGraphExposeHook", 
+		    callGraphExposeCallbackCommand,
 		    NULL, CGdeleteDummyProc);
-  
-  
   Tcl_CreateCommand(interp, "callGraphVisibilityHook",
 		    callGraphVisibilityCallbackCommand,
 		    NULL, CGdeleteDummyProc);
-  
   Tcl_CreateCommand(interp, "callGraphSingleClickHook",
 		    callGraphSingleClickCallbackCommand,
 		    NULL, CGdeleteDummyProc);
-  
-  
   Tcl_CreateCommand(interp, "callGraphDoubleClickHook",
 		    callGraphDoubleClickCallbackCommand,
 		    NULL, CGdeleteDummyProc);
-  
   Tcl_CreateCommand(interp, "callGraphNewVertScrollPosition",
 		    callGraphNewVertScrollPositionCommand,
 		    NULL, CGdeleteDummyProc);
   Tcl_CreateCommand(interp, "callGraphNewHorizScrollPosition",
-		    callGraphNewHorizScrollPositionCommand,
+		    callGraphNewHorizScrollPositionCommand, 
 		    NULL, CGdeleteDummyProc);
   Tcl_CreateCommand(interp, "callGraphChangeProgram",
-		    callGraphChangeProgramCommand,
-		    NULL, CGdeleteDummyProc);
-  Tcl_CreateCommand(interp, "callGraphAltPressHook", callGraphAltPressCommand,
-		    NULL, CGdeleteDummyProc);
-  Tcl_CreateCommand(interp, "callGraphAltReleaseHook", callGraphAltReleaseCommand,
-  NULL, CGdeleteDummyProc);
-  
-  Tcl_CreateCommand(interp,"callGraphShowFullPath", callGraphShowFullPathCommand, NULL, CGdeleteDummyProc);
-  Tcl_CreateCommand(interp,"callGraphHideFullPath", callGraphHideFullPathCommand, NULL, CGdeleteDummyProc);
+		    callGraphChangeProgramCommand, NULL, CGdeleteDummyProc);
+  Tcl_CreateCommand(interp, "callGraphAltPressHook", 
+		    callGraphAltPressCommand, NULL, CGdeleteDummyProc);
+  Tcl_CreateCommand(interp, "callGraphAltReleaseHook", 
+		    callGraphAltReleaseCommand, NULL, CGdeleteDummyProc);
+  Tcl_CreateCommand(interp, "callGraphFindHook", 
+		    callGraphFindCommand,  NULL, CGdeleteDummyProc);
+  Tcl_CreateCommand(interp,"callGraphShowFullPath", 
+		    callGraphShowFullPathCommand, NULL, CGdeleteDummyProc);
+  Tcl_CreateCommand(interp,"callGraphHideFullPath", 
+		    callGraphHideFullPathCommand, NULL, CGdeleteDummyProc);
 }
 
 
@@ -278,6 +295,7 @@ void unInstallCallGraphCommands(Tcl_Interp *interp) {
   Tcl_DeleteCommand(interp, "callGraphVisibilityHook");
   Tcl_DeleteCommand(interp, "callGraphExposeHook");
   Tcl_DeleteCommand(interp, "callGraphConfigureHook");
+  Tcl_DeleteCommand(interp, "callGraphFindHook");
   Tcl_DeleteCommand(interp, "callGraphShowFullPath");
   Tcl_DeleteCommand(interp, "callGraphHideFullPath");
 }

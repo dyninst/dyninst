@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphs.h,v 1.2 1999/06/29 15:52:54 cain Exp $
+// $Id: callGraphs.h,v 1.3 1999/07/13 16:50:27 cain Exp $
 
 //callGraphs.h: the callGraphs class, whose code is taken  
 //from the shgPhases class, is just used to keep track of multiple 
@@ -163,6 +163,11 @@ class callGraphs {
    int name2id (const string &fullName) const;
       // returns -1 if not found
    const string &id2name (int id) const;
+
+   int find(const string &str);
+   // uses and updates "beginSearchFromPtr"
+   // returns 0 if not found; 1 if found & no expansion needed;
+   // 2 if found & some expansion is needed
 
    void changeNameStyle(bool fullName);
    bool changeByProgramId(int newIndex);

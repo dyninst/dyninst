@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphs.C,v 1.3 1999/06/29 15:52:53 cain Exp $
+// $Id: callGraphs.C,v 1.4 1999/07/13 16:50:27 cain Exp $
 
 #include <limits.h>
 #include "callGraphTcl.h"
@@ -116,6 +116,11 @@ const string &callGraphs::id2name(int id) const {
    assert(false);
    abort();
    return ""; // placate VC++5.0 compiler (somewhat)
+}
+
+int callGraphs::find(const string &str){
+  assert(existsCurrent());
+  return getCurrent().find(str);
 }
 
 bool callGraphs::changeLL(unsigned newIndex) {

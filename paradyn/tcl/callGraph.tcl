@@ -1,5 +1,5 @@
 #This is used to create the actual call graph window. 
-# $Id: callGraph.tcl,v 1.1 1999/05/24 17:04:41 cain Exp $
+# $Id: callGraph.tcl,v 1.2 1999/07/13 16:51:00 cain Exp $
 
 proc callGraphChangeCurrLabelHeight {numlines} {
    if {[winfo exists .callGraph.nontop.labelarea.current]} {
@@ -81,9 +81,9 @@ proc callGraphInitialize2 {} {
    frame .callGraph.nontop.currprogramarea
    pack  .callGraph.nontop.currprogramarea -side top -fill x -expand false
 
-   label .callGraph.nontop.currprogramarea.label1 -text "Current Program: " \
-	   -font { Helvetica 12 } -anchor e
-   pack  .callGraph.nontop.currprogramarea.label1 -side left -fill both -expand true
+    label .callGraph.nontop.currprogramarea.label1 -text "Current Program: " \
+	    -font { Helvetica 12 } -anchor e
+    pack  .callGraph.nontop.currprogramarea.label1 -side left -fill both -expand true
 
    label .callGraph.nontop.currprogramarea.label2 -text "" \
 	   -font { Helvetica 12 } -anchor w
@@ -91,39 +91,40 @@ proc callGraphInitialize2 {} {
 
    # -----------------------------------------------------------
 
-   frame .callGraph.nontop.main -width 4i -height 3.5i
+   frame .callGraph.nontop.main -width 6i -height 3.5i
    pack  .callGraph.nontop.main -side top -fill both -expand true
 
-  scrollbar .callGraph.nontop.main.leftsb -orient vertical -width 16 \
+   scrollbar .callGraph.nontop.main.leftsb -orient vertical -width 16 \
 	   -background gray \
 	   -activebackground gray \
 	   -command "callGraphNewVertScrollPosition"
-
+   
    pack .callGraph.nontop.main.leftsb -side left -fill y -expand false
 
    scrollbar .callGraph.nontop.main.bottsb -orient horizontal -width 16 \
-        -activebackground gray \
-        -command "callGraphNewHorizScrollPosition"
-
+	   -activebackground gray \
+	   -command "callGraphNewHorizScrollPosition"
+   
    pack .callGraph.nontop.main.bottsb -side bottom -fill x -expand false
-
-   frame .callGraph.nontop.main.all -relief flat -width 3i -height 2i
+   
+   frame .callGraph.nontop.main.all -relief flat -width 6i -height 2i
    pack .callGraph.nontop.main.all -side left -fill both -expand true
-
-   # -----------------------------------------------------------
-
-   frame .callGraph.nontop.labelarea
-   pack  .callGraph.nontop.labelarea -side top -fill x -expand false
-
-   text .callGraph.nontop.labelarea.current -relief sunken -height 1 \
-	   -font { Helvetica 12 } -wrap none
    
-   set numlines 1
-   
-   callGraphChangeCurrLabelHeight $numlines
-
    # -----------------------------------------------------------
+   frame .callGraph.nontop.find
+   pack  .callGraph.nontop.find -side top -fill both -expand false
+   
+   label .callGraph.nontop.find.label -relief sunken -text "Search:" \
+	   -font { Helvetica 12 }
+   pack  .callGraph.nontop.find.label -side left -fill y -expand false
 
+   entry .callGraph.nontop.find.entry -relief sunken -font { Helvetica 12 }
+   pack  .callGraph.nontop.find.entry -side left -fill x -expand true
+   
+   bind  .callGraph.nontop.find.entry <Return> {callGraphFindHook [.callGraph.nontop.find.entry get]}
+   
+   # -----------------------------------------------------------
+   
    bind .callGraph.nontop.main.all <Configure> {callGraphConfigureHook}
    bind .callGraph.nontop.main.all <Expose>    {callGraphExposeHook %c}
    bind .callGraph.nontop.main.all <Button-1>  {callGraphSingleClickHook %x %y}
