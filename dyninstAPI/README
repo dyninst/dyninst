@@ -7,6 +7,19 @@ need to go into the appropriate platform subdirectories of these directories
 and type "make install."  If you have built Paradyn, then the util library
 will have already been built.
 
+On platforms on which the API dynamically loads a run-time library into an
+application's address space (Sparc Solaris and Windows NT), you must set
+certain values in the environment so that it can locate the run-time library.
+On the Sparc Solaris platform, you must set the DYNINSTAPI_RT_LIB environment
+variable to the full pathname of the file libdyninstAPI_RT.so.1.  If you have
+correctly set the PARADYN_ROOT and PLATFORM environment variables, then the
+proper pathname is:
+
+    $PARADYN_ROOT/lib/$PLATFORM/libdyninstAPI_RT.so.1
+
+On Windows NT, you should put the directory %PARADYN_ROOT%/lib/%PLATFORM%
+in your path.
+
 After the dyninstAPI_RT, util, and dyninstAPI libraries have been built and
 installed, you can test them using the programs in core/dyninstAPI/tests.  See
 the README file in that directory for information about the test programs.
