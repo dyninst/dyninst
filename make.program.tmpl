@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: make.program.tmpl,v 1.22 2004/04/20 01:27:52 jaw Exp $
+# $Id: make.program.tmpl,v 1.23 2004/05/07 08:53:21 jodom Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -75,6 +75,9 @@ echo:
 # Allow this to be ammended by modules
 clean::
 	$(RM) *.o *.[hC] $(TARGET) $(TARGETS)
+
+distclean:: clean
+	$(RM) DEPENDS
 
 ifndef UNCOMMON_INSTALL
 install:  $(DEST)/$(TARGET)
@@ -154,7 +157,9 @@ endif
 #
 # include the dependencies.
 #
+ifneq ($(MAKECMDGOALS),distclean)
 include DEPENDS
+endif
 
 # platform-specific options
 include $(TO_CORE)/make.platform.tmpl
