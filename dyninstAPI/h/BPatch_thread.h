@@ -167,8 +167,9 @@ class BPATCH_DLL_EXPORT BPatch_thread {
     bool		statusIsTerminated();
 
     static void		oneTimeCodeCallbackDispatch(process *theProc,
-						    void *userData,
-						    void *returnValue);
+                                                 unsigned /* rpcid */, 
+                                                 void *userData,
+                                                 void *returnValue);
 
     void		*oneTimeCodeInternal(const BPatch_snippet &expr,
 					     void *userData,
