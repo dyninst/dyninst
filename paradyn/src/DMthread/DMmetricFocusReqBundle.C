@@ -57,21 +57,19 @@ metricFocusReqBundle::metricFocusReqBundle(perfStreamHandle ps_handle_,
                         phaseHandle phaseID,
                         unsigned requestID, unsigned clientID,
                         const pdvector<metricInstance *> &miVec,
-                        pdvector<paradynDaemon *> *matchingDaemons_,
                         unsigned persistence_data_,
                         unsigned persistent_collection_,
                         unsigned phase_persistent_data_) :
-   mfRequests(ui_hash___), daemons_requested_on(matchingDaemons_),
+   mfRequests(ui_hash___), 
    ps_handle(ps_handle_), pt_handle(pt_handle_), ph_type(type),
    ph_handle(phaseID), request_id(requestID), client_id(clientID),
    persistent_data(persistence_data_),
    persistent_collection(persistent_collection_),
    phase_persistent_data(phase_persistent_data_)
 {
-   num_daemons = daemons_requested_on->size();
    for(unsigned i=0; i<miVec.size(); i++) {         
       metricFocusReq *new_mfReq = 
-         metricFocusReq::createMetricFocusReq(miVec[i], num_daemons, this);
+         metricFocusReq::createMetricFocusReq(miVec[i], this);
       mfRequests[miVec[i]->getHandle()] = new_mfReq;
    }
 
@@ -122,7 +120,6 @@ metricFocusReqBundle *metricFocusReqBundle::createMetricFocusReqBundle(
                             phaseHandle phaseID,
                             unsigned clientID,
                             const pdvector<metricInstance *> &miVec,
-                            pdvector<paradynDaemon *> *matchingDaemons_,
                             unsigned persistence_data_,
                             unsigned persistent_collection_,
                             unsigned phase_persistent_data_) {
@@ -130,7 +127,7 @@ metricFocusReqBundle *metricFocusReqBundle::createMetricFocusReqBundle(
    metricFocusReqBundle *newBundle = 
       new metricFocusReqBundle(ps_handle_, pt_handle_, type, phaseID,
                                current_request_id, clientID, miVec,
-                               matchingDaemons_, persistence_data_,
+                               persistence_data_,
                                persistent_collection_, phase_persistent_data_);
    
    // allocate up to the index
@@ -227,7 +224,9 @@ void metricFocusReqBundle::readyMetricInstanceForSampling(metricInstance *mi) {
 void metricFocusReqBundle::accumulatePerfStreamMsgs(
                                              const metricInstInfo &new_miInfo)
 {
-   metricInstInfoBuf.push_back(new_miInfo);
+    //    fprintf(stderr,"ELI accumulatePerfStreamMsgs %u %s\n", new_miInfo.successfully_enabled,new_miInfo.focus_name.c_str());
+
+    metricInstInfoBuf.push_back(new_miInfo);
 }
 
 void metricFocusReqBundle::flushPerfStreamMsgs() {
@@ -253,7 +252,6 @@ void metricFocusReqBundle::flushPerfStreamMsgs() {
    bool sentOnStream = false;
    while(allS.next(h,ps)) {
       if(h == (perfStreamHandle)(ps_handle)) {
-
          ps->callDataEnableFunc(psPacket, client_id,
                                 is_last_of_perfstream_msgs);
          sentOnStream = true;
@@ -425,56 +423,51 @@ void metricFocusReqBundle::updateWithEnableCallback(
    }
 }
 
+static unsigned hashfunc(const unsigned &k) { return (k % 101); }
+
 void metricFocusReqBundle::enableWithDaemons() {
-   dictionary_hash<unsigned, metricFocusReq *>::iterator mfiter =
-      mfRequests.begin();
+  dictionary_hash<unsigned, metricFocusReq *>::iterator mfiter =
+    mfRequests.begin();
 
-   pdvector<unsigned> mi_ids;
-   pdvector<T_dyninstRPC::focusStruct> foci;
-   pdvector<pdstring> metric_names;
+  //These are stored per-daemon, by the daemon ID
+  // So metric_ids[5] would be the metric ids for daemon 5
+  dictionary_hash<unsigned, pdvector<unsigned> > metric_ids(hashfunc);
+  dictionary_hash<unsigned, pdvector<T_dyninstRPC::focusStruct> > foci(hashfunc);
+  dictionary_hash<unsigned, pdvector<pdstring> > metric_names(hashfunc);
 
-   while(mfiter != mfRequests.end()) {
-      metricFocusReq *cur_mfReq = (*mfiter);
-      metricInstance *cur_mi = cur_mfReq->getMetricInst();
+  for (; mfiter != mfRequests.end(); mfiter++)
+  {
+    metricFocusReq *cur_mfReq = (*mfiter);
+    if(cur_mfReq->requestSentToDaemon())
+      continue;
 
-      if(cur_mfReq->requestSentToDaemon()) {
-         mfiter++;
-         continue;  // if request already sent, don't need to resend it
-      }
-      mi_ids.push_back(cur_mi->getHandle());
+    metricInstance *cur_mi = cur_mfReq->getMetricInst();
+    pdvector<paradynDaemon *> &daemons = cur_mfReq->requestedDaemons();
+    for (unsigned i=0; i<daemons.size(); i++)
+    {
+      unsigned daemon_id = daemons[i]->get_id();
+
+      metric_ids[daemon_id].push_back(cur_mi->getHandle());
+
       T_dyninstRPC::focusStruct focus;
-      bool aflag = cur_mi->convertToIDList(focus.focus);
-      assert(aflag);
-      foci.push_back(focus);
-      metric_names.push_back(cur_mi->getMetricName());
+      bool result = cur_mi->convertToIDList(focus.focus);
+      assert(result);
+      foci[daemon_id].push_back(focus);
+      
+      metric_names[daemon_id].push_back(cur_mi->getMetricName());
+      
       cur_mi->setCurrentlyEnabling();
       cur_mfReq->setRequestSentToDaemon();
-      mfiter++;
-   }
+    }
+  }
 
-   if(mi_ids.size() == 0) {
-      if(isBundleComplete()) {
-         delete this;
-      }
-      return;
-   }
-
-   assert(foci.size() == metric_names.size());
-   assert(metric_names.size() == mi_ids.size());
-
-
-   for(unsigned j=0; j<daemons_requested_on->size(); j++) {
-       paradynDaemon *pd = (*daemons_requested_on)[j];
-       pd->enableDataCollection(foci, metric_names, mi_ids, pd->get_id(),
-                               request_id);
-   }
-}
-
-bool metricFocusReqBundle::request_already_sent_on_daemon(paradynDaemon *dmn) {
-   for(unsigned i=0; i<(*daemons_requested_on).size(); i++) {
-      paradynDaemon *cur_dmn = (*daemons_requested_on)[i];
-      if(cur_dmn->get_id() == dmn->get_id())
-         return true;
-   }
-   return false;
+  dictionary_hash<unsigned, pdvector<unsigned> >::iterator diter = 
+    metric_ids.begin();
+  for(; diter != metric_ids.end(); diter++)
+  {
+    unsigned pd_id = diter.currkey();
+    paradynDaemon *pd = paradynDaemon::getDaemonById(pd_id);
+    pd->enableDataCollection(foci[pd_id], metric_names[pd_id], metric_ids[pd_id],
+			     pd_id, request_id);
+  }
 }

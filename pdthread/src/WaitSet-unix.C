@@ -137,24 +137,34 @@ WaitSet::WaitReturn
 UnixWaitSet::Wait( void )
 {
     WaitSet::WaitReturn ret = WaitSet::WaitNone;
-
+    
     if( nWaiters > 0 )
     {
         bool doneTrying = false;
-
+	int timeout = -1;
+	bool *data_available = (bool *) malloc(nWaiters * sizeof(bool));
         while( !doneTrying )
         {
             // set the events we're looking for
             for( unsigned int i = 0; i < nWaiters; i++ )
             {
-                fds[i].events = POLLIN;
-                fds[i].revents = 0;
+	      if (PollCallback && PollCallback(fds[i].fd))
+	      {
+		timeout = 0;
+		data_available[i] = true;		
+	      }
+	      else
+		data_available[i] = false;
+	      fds[i].events = POLLIN;
+	      fds[i].revents = 0;
             }
 
             // wait for indication of input
-            int pret = poll( fds, nWaiters, -1 );
-            if( pret > 0 )
+            int pret = poll( fds, nWaiters, timeout );
+            if( pret > 0 || (pret == 0 && timeout == 0))
             {
+                for ( unsigned i = 0; i < nWaiters; i++)
+		  if (data_available[i]) fds[i].revents |= POLLIN; 
                 // something has input
                 doneTrying = true;
                 ret = WaitSet::WaitInput;                            
@@ -177,6 +187,7 @@ UnixWaitSet::Wait( void )
                 }
             }
         }
+	free(data_available);
     }
     return ret;
 }

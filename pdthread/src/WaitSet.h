@@ -44,6 +44,7 @@
 
 #include "pdutil/h/pdsocket.h"
 #include "pdutil/h/pddesc.h"
+#include "pdthread/h/thread.h"
 
 namespace pdthr
 {
@@ -51,7 +52,8 @@ namespace pdthr
 class WaitSet
 {
 protected:
-    WaitSet( void ) { }
+    pollcallback_t PollCallback;
+    WaitSet( void ) { PollCallback = NULL; }
 
 public:
     enum WaitReturn
@@ -63,6 +65,7 @@ public:
     };
 
     static WaitSet* BuildWaitSet( void );
+    void RegisterCallback(pollcallback_t pcb) { PollCallback = pcb; }
 
     virtual ~WaitSet( void ) { }
 

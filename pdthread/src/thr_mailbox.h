@@ -82,8 +82,9 @@ private:
     
     bool check_for(thread_t* sender, tag_t* type,
                           bool do_block = false, bool do_yank = false,
-                          message** m = NULL, unsigned io_first = 1);
-	void wait_for_input( void );
+                          message** m = NULL, unsigned io_first = 1,
+		          pollcallback_t pcb=NULL);
+	void wait_for_input( pollcallback_t pcb );
 
 	bool is_buffered_special_ready( thread_t* sender, tag_t* type );
 
@@ -118,9 +119,10 @@ public:
 
     /* poll() checks for suitable available messages */
     virtual int poll(thread_t* from,
-                        tag_t* tagp,
-                        unsigned block,
-                        unsigned fd_first=0);
+		     tag_t* tagp,
+		     unsigned block,
+		     unsigned fd_first=0,
+		     pollcallback_t pcb=NULL);
 
     void bind( PdFile fd,
                     unsigned special,

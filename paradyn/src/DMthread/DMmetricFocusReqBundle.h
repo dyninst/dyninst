@@ -64,7 +64,6 @@ class metricFocusReqBundle {
    // indexed by handle
    dictionary_hash<unsigned, metricFocusReq *> mfRequests;
    // for making the actual request
-   pdvector<paradynDaemon *> *daemons_requested_on;
 
    perfStreamHandle ps_handle;  // client thread
    perfStreamHandle pt_handle;  // client thread for traces
@@ -73,7 +72,6 @@ class metricFocusReqBundle {
    unsigned request_id;            // DM assigned enable request identifier
    unsigned client_id;             // enable request id sent by calling thread
 
-   unsigned num_daemons;              // number of daemons 
    unsigned persistent_data;
    unsigned persistent_collection;
    unsigned phase_persistent_data;
@@ -85,7 +83,6 @@ class metricFocusReqBundle {
                         phaseHandle phaseID,
                         unsigned requestID, unsigned clientID,
                         const pdvector<metricInstance *> &miVec,
-                        pdvector<paradynDaemon *> *matchingDaemons_,
                         unsigned persistence_data_,
                         unsigned persistent_collection_,
                         unsigned phase_persistent_data_);
@@ -103,7 +100,6 @@ class metricFocusReqBundle {
                             phaseHandle phaseID,
                             unsigned clientID,
                             const pdvector<metricInstance *> &miVec,
-                            pdvector<paradynDaemon *> *matchingDaemons_,
                             unsigned persistence_data_,
                             unsigned persistent_collection_,
                             unsigned phase_persistent_data_);
@@ -125,9 +121,6 @@ class metricFocusReqBundle {
    void readyMetricInstanceForSampling(metricInstance *mi);
    void accumulatePerfStreamMsgs(const metricInstInfo &new_miInfo);
    void flushPerfStreamMsgs();
-
-   bool request_already_sent_on_daemon(paradynDaemon *dmn);
-
 
 };
 

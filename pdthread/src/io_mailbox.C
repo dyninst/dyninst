@@ -71,7 +71,7 @@ int io_mailbox::recv(thread_t* sender, tag_t* tagp, void** buf) {
     return THR_ERR;
 }
 
-int io_mailbox::poll(thread_t* from, tag_t* tagp, unsigned block, unsigned fd_first) {
+int io_mailbox::poll(thread_t* from, tag_t* tagp, unsigned block, unsigned fd_first, pollcallback_t pcb) {
     fprintf(stderr, "panic: call to io_mailbox::poll(); possible thrtab corruption?\n");
     abort();
     return THR_ERR;

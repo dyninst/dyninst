@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.145 2004/07/14 18:24:03 eli Exp $
+// $Id: DMpublic.C,v 1.146 2005/01/11 22:45:22 legendre Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -445,13 +445,10 @@ void DMdoEnableData(perfStreamHandle ps_handle,
       }
    }
 
-   pdvector<paradynDaemon *> *matchingDaemons = new pdvector<paradynDaemon *>;
-
    // In the case of whole_prog_focus, I'm still copying daemons into
    // matchingDaemons, in case the number changes within setting up the
    // metricFocusReqBundle.  Since this is a MT program, we can't be
    // guaranteed that this won't be changed at any time.
-   paradynDaemon::getMatchingDaemons(miVec, matchingDaemons);
 
    // if the tunable constant "persistentData" is true, it overrides 
    // individual requests; if false, go by individual request.
@@ -463,7 +460,7 @@ void DMdoEnableData(perfStreamHandle ps_handle,
    metricFocusReqBundle *new_bundle = 
       metricFocusReqBundle::createMetricFocusReqBundle(
                                  ps_handle, pt_handle, type, phaseId,
-                                 request_Id, *miVec, matchingDaemons,
+                                 request_Id, *miVec,
                                  persistenceFeature, persistent_collection,
                                  phase_persistent_data);
 

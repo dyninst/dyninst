@@ -291,17 +291,16 @@ void metricFocusReq_Val::flushPerfStreamMsgs() {
    }
 }
 
-bool metricFocusReq_Val::request_already_sent_on_daemon(paradynDaemon *dmn) {
-   pdvector<metricFocusReqBundle *> bundleClients;      
-   getBundleClients(&bundleClients);
-
-   bool sent_on_dmn = false;
-   for(unsigned i=0; i<bundleClients.size(); i++) {
-       if(bundleClients[i]->request_already_sent_on_daemon(dmn)) {
-           sent_on_dmn = true;
-       }
-   }
-   return sent_on_dmn;
+bool metricFocusReq_Val::request_already_sent_on_daemon(paradynDaemon *dmn) 
+{
+  bool sent_on_dmn = false;
+  for (unsigned i=0; i < parent_list.size(); i++)
+  {
+    for (unsigned j=0; j < parent_list[i]->requestedDaemons().size(); j++)
+      if (parent_list[i]->requestedDaemons()[j]->get_id() == dmn->get_id())
+	sent_on_dmn = true;
+  }
+  return sent_on_dmn;
 }
 
 void metricFocusReq_Val::propagateToDaemon(paradynDaemon *dmn) {
@@ -430,15 +429,19 @@ void metricFocusReq_Val::attachToOutstandingRequest(metricInstance *mi,
 // ========   metricFocusReq   ========
 
 metricFocusReq *metricFocusReq::createMetricFocusReq(metricInstance *mi,
-                                                     int num_daemons,
-                                              metricFocusReqBundle *parent_) {
+					   metricFocusReqBundle *parent_) {
+
+   pdvector<paradynDaemon *> requested_daemons;
+   paradynDaemon::findMatchingDaemons(mi, requested_daemons);
+
    metricFocusReq_Val *new_mfVal;
-   new_mfVal = metricFocusReq_Val::lookup_mfReqVal(mi->getHandle());
+   new_mfVal = metricFocusReq_Val::lookup_mfReqVal(mi->getHandle());   
    if(new_mfVal == NULL) {  // couldn't find an existing one
-      new_mfVal = new metricFocusReq_Val(mi, num_daemons);
+      new_mfVal = new metricFocusReq_Val(mi, requested_daemons.size());
    }
    
    metricFocusReq *mfReq = new metricFocusReq(new_mfVal, parent_);
+   mfReq->daemons_requested_on = requested_daemons;
    new_mfVal->addParent(mfReq);
    return mfReq;
 }

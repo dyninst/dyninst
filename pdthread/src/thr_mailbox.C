@@ -353,7 +353,7 @@ thr_mailbox::handle_wait_set_input( WaitSet* wset )
 
 
 void
-thr_mailbox::wait_for_input( void )
+thr_mailbox::wait_for_input( pollcallback_t pcb )
 {
     unsigned int i;
     assert(thr_type(owned_by) == item_t_thread);
@@ -363,8 +363,11 @@ thr_mailbox::wait_for_input( void )
 
 	// allocate a set to hold the sockets that we will check
     WaitSet* wset = WaitSet::BuildWaitSet();
+    
+    if (pcb)
+      wset->RegisterCallback(pcb);
 
-	bool done = false;
+    bool done = false;
     while( !done )
 	{
         thr_debug_msg(CURRENT_FUNCTION, "LOOPING for mailbox owned by %d\n",
@@ -525,11 +528,12 @@ thr_mailbox::is_buffered_special_ready( thread_t* sender, tag_t* type )
 
 bool
 thr_mailbox::check_for(thread_t* sender,
-                        tag_t* type,
-                        bool do_block, 
-                        bool do_yank,
-                        message** m,
-                        unsigned io_first)
+		       tag_t* type,
+		       bool do_block, 
+		       bool do_yank,
+		       message** m,
+		       unsigned io_first,
+ 		       pollcallback_t pcb)
 {
     bool found = false;
     thread_t actual_sender = 0;
@@ -667,7 +671,7 @@ qmutex.Unlock();
 		// and we were asked to block until we can return
         thr_debug_msg(CURRENT_FUNCTION, "blocking; size of messages = %d, size of sock_messages = %d\n", messages->get_size(), sock_messages->get_size());
 
-		wait_for_input();
+		wait_for_input( pcb );
 
         goto find_msg;
     }
@@ -793,7 +797,7 @@ done:
 
 
 int thr_mailbox::poll(thread_t* from, tag_t* tagp, unsigned block,
-                      unsigned fd_first)
+                      unsigned fd_first, pollcallback_t pcb)
 { 
 //    qmutex.Lock();
     

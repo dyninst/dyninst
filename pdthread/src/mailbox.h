@@ -90,8 +90,8 @@ class mailbox {
     virtual int recv(thread_t* sender, tag_t* tagp, void** buf) = 0;
 
     /* poll() checks for suitable available messages */
-    virtual int poll(thread_t* from, tag_t* tagp, unsigned block, unsigned fd_first=0) = 0;
-};
+    virtual int poll(thread_t* from, tag_t* tagp, unsigned block, unsigned fd_first=0, pollcallback_t pcb=NULL) = 0;
+};  
 
 } // namespace pdthr
 

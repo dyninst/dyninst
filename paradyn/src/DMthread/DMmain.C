@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.161 2004/07/14 18:24:00 eli Exp $
+// $Id: DMmain.C,v 1.162 2005/01/11 22:45:17 legendre Exp $
 
 #include <assert.h>
 extern "C" {
@@ -158,7 +158,7 @@ void dynRPCUser::CallGraphFillDone(pdstring exe_name){
 void dynRPCUser::CallGraphAddDynamicCallSiteCallback(pdstring exe_name, pdstring parent){
   CallGraph *cg;
   cg = CallGraph::FindCallGraph(exe_name);
-  resource* r = resource::string_to_resource(parent);
+  resource *r = resource::string_to_resource(parent);
   assert(r != NULL);
   cg->AddDynamicCallSite(r);
 }
@@ -351,6 +351,8 @@ printf("error calling virtual func: dynRPCUser::severalResourceInfoCallback\n");
 // MI* is not 0
 //
 void dynRPCUser::enableDataCallback(T_dyninstRPC::instResponse resp) {
+    pdvector<T_dyninstRPC::indivInstResponse> &temp = resp.rinfo;
+
     metricFocusReqBundle *matching_bundle = 
        metricFocusReqBundle::findActiveBundle(resp.request_id);
 
@@ -722,6 +724,17 @@ dataManager::DM_post_thread_create_init( DMthreadArgs* dmArgs )
     return 1;
 }
 
+static bool poll_callback(PDSOCKET sock)
+{
+  for(unsigned i=0; i<paradynDaemon::allDaemons.size(); i++)
+  {
+    paradynDaemon *pd = paradynDaemon::allDaemons[i]; 
+    if (pd->get_sock() == sock)
+      return xdrrec_eof(pd->net_obj());
+  }
+  return false;
+}
+
 //
 // Main loop for the dataManager thread.
 //
@@ -783,7 +796,7 @@ DMmain( void* varg )
 		// wait for next message from anyone, blocking till available
 	tid = THR_TID_UNSPEC;
 	tag = MSG_TAG_ANY;
-	err = msg_poll_preference(&tid, &tag, true,fd_first);
+	err = msg_poll_preference(&tid, &tag, true, fd_first, poll_callback);
 	assert(err != THR_ERR);
 	fd_first = !fd_first;
 

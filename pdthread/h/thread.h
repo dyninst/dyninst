@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 /************************************************************************
- * $Id: thread.h,v 1.14 2004/03/23 01:12:39 eli Exp $
+ * $Id: thread.h,v 1.15 2005/01/11 22:45:23 legendre Exp $
 ************************************************************************/
 #if !defined(_thread_h_thread_h_)
 #define _thread_h_thread_h_
@@ -145,9 +145,11 @@ int			thr_setspecific(thread_key_t key, void* value);
 int			thr_getspecific(thread_key_t, void** value);
 
 /* message functions */
+typedef bool (*pollcallback_t)(PDSOCKET sock);
+
 int			msg_send(thread_t tid, tag_t tag, void* buf, unsigned size = 0);
-int			msg_poll(thread_t* tid, tag_t* tag, unsigned block);
-int			msg_poll_preference(thread_t* tid, tag_t* tag, unsigned block, unsigned fd_first);
+int			msg_poll(thread_t* tid, tag_t* tag, unsigned block, pollcallback_t pcb = NULL);
+int			msg_poll_preference(thread_t* tid, tag_t* tag, unsigned block, unsigned fd_first, pollcallback_t pcb = NULL);
 int			msg_recv(thread_t* tid, tag_t* tag, void* buf, unsigned* bufsize);
 int			msg_recv(thread_t* tid, tag_t* tag, void** buf);
 

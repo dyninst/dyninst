@@ -139,25 +139,26 @@ int msg_send(thread_t tid, tag_t tag, void* buf, unsigned size) {
     return ret;
 }
 
-int msg_poll(thread_t* tid, tag_t* tag, unsigned block) {
+int msg_poll(thread_t* tid, tag_t* tag, unsigned block, pollcallback_t pcb) {
     COLLECT_MEASUREMENT(THR_MSG_POLL);
 
     thr_debug_msg(CURRENT_FUNCTION, "tid = %d, tag = %d, block = %d\n", *tid, *tag, block);
 
     mailbox* mbox = lwp::get_mailbox();
-    int ret = mbox->poll(tid, tag, block);
+    int ret = mbox->poll(tid, tag, block, 0, pcb);
 
     thr_debug_msg(CURRENT_FUNCTION, "returning %d; tid = %d, tag = %d\n", ret, *tid, *tag);
     return ret;
 }
 
-int msg_poll_preference(thread_t* tid, tag_t* tag, unsigned block, unsigned fd_first) {
+int msg_poll_preference(thread_t* tid, tag_t* tag, unsigned block, 
+			unsigned fd_first, pollcallback_t pcb) {
     COLLECT_MEASUREMENT(THR_MSG_POLL);
 
     thr_debug_msg(CURRENT_FUNCTION, "tid = %d, tag = %d, block = %d, fd_first = %d\n", *tid, *tag, block, fd_first);
 
     mailbox* mbox = lwp::get_mailbox();
-    int ret = mbox->poll(tid, tag, block, fd_first);
+    int ret = mbox->poll(tid, tag, block, fd_first, pcb);
 
 
     thr_debug_msg(CURRENT_FUNCTION, "returning %d; tid = %d, tag = %d\n", ret, *tid, *tag);

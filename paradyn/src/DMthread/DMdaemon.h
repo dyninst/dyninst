@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.69 2004/06/21 19:37:11 pcroth Exp $
+// $Id: DMdaemon.h,v 1.70 2005/01/11 22:45:16 legendre Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -308,8 +308,8 @@ class paradynDaemon: public dynRPCUser {
    static bool AllMonitorDynamicCallSites(pdstring name);
    static bool setInstSuppress(resource *, bool);
 
-   static void getMatchingDaemons(pdvector<metricInstance *> *miVec,
-                                  pdvector<paradynDaemon *> *matching_daemons);
+   static void findMatchingDaemons(metricInstance *mi, 
+				   pdvector<paradynDaemon *> &matchingDaemons);
 
    // sets the name of the daemon to use
    static bool setDefaultArgs(char *&name);

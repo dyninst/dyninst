@@ -152,9 +152,9 @@ class metricFocusReq {
    metricFocusReq(metricFocusReq_Val *metFocVal, metricFocusReqBundle *parent_)
       : V(*metFocVal), parent(*parent_) { }
 
+   pdvector<paradynDaemon *> daemons_requested_on;
  public:
    static metricFocusReq *createMetricFocusReq(metricInstance *mi, 
-                                               int num_daemons,
                                                metricFocusReqBundle *parent_);
    ~metricFocusReq();
 
@@ -194,6 +194,7 @@ class metricFocusReq {
    void flushPerfStreamMsgs() {
       V.flushPerfStreamMsgs();
    }
+   pdvector<paradynDaemon *> &requestedDaemons() { return daemons_requested_on; }
 };
 
 

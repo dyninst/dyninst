@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.146 2004/06/21 19:37:11 pcroth Exp $
+ * $Id: DMdaemon.C,v 1.147 2005/01/11 22:45:15 legendre Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -2349,74 +2349,62 @@ void filter_based_on_process_in_focus(
 }
 
 void strip_duplicate_daemons(const pdvector<paradynDaemon *> &daemon_list,
-                             pdvector<paradynDaemon *> *to_list) {
-    to_list->clear();
+                             pdvector<paradynDaemon *> &to_list) {
+    to_list.clear();
     
     if (daemon_list.size() == 0)
         return;
     
-    to_list->push_back(daemon_list[0]);
+    to_list.push_back(daemon_list[0]);
     
     for (u_int i = 1; i < daemon_list.size(); i++) {
         paradynDaemon *cur_dmn = daemon_list[i];
         bool found = false;
         
-        for (u_int j = 0; j < to_list->size(); j++)
-            if ((*to_list)[j] == cur_dmn ||
-                (*to_list)[j]->get_id() == cur_dmn->get_id()) {
+        for (u_int j = 0; j < to_list.size(); j++)
+            if (to_list[j] == cur_dmn ||
+                to_list[j]->get_id() == cur_dmn->get_id()) {
                 found = true;
                 break;
             }
         if (!found)
-            to_list->push_back(cur_dmn);
+            to_list.push_back(cur_dmn);
     }
 }
 
 // if whole_prog_focus is false, then the relevant daemons are in daemon_subset
-void paradynDaemon::getMatchingDaemons(pdvector<metricInstance *> *miVec,
-                                  pdvector<paradynDaemon *> *matching_daemons)
+void paradynDaemon::findMatchingDaemons(metricInstance *mi, 
+             pdvector<paradynDaemon *> &matching_daemons)
 {
-   bool whole_prog_focus = false;
    pdvector<paradynDaemon*> daemon_subset; // which daemons to send request
-   
-   for(u_int i=0; i < miVec->size(); i++) {
-      // check to see if this focus is refined on the machine
-      // or process heirarcy, if so then add the approp. daemon
-      // to the matching_daemons, else set whole_prog_focus to true
-       pdstring machine_name;
-       resourceList *focus_resources = (*miVec)[i]->getresourceList(); 
-       assert(focus_resources);
-       // focus is refined on machine or process heirarchy 
-       if(focus_resources->getMachineNameReferredTo(machine_name)){
-           // get the daemon corr. to this focus and add it
-           // to the list of daemons
-           pdvector<paradynDaemon*> vpd = 
-           paradynDaemon::machineName2Daemon(machine_name);
-           assert(vpd.size());
-           
-           // Add daemons into daemon_subset
-           filter_based_on_process_in_focus(vpd, &daemon_subset, focus_resources);
-       }
-       else {  // focus is not refined on process or machine 
-           whole_prog_focus = true;
-           // As soon as this is true, we add all the daemons to the list.
-           break;
-       }
-   }
 
-   if(whole_prog_focus) {
-       // Don't need to prune, as there's only one daemon
-       (*matching_daemons).clear();
-       for(unsigned i=0; i<paradynDaemon::allDaemons.size(); i++)
-           (*matching_daemons).push_back(paradynDaemon::allDaemons[i]);
+   // check to see if this focus is refined on the machine
+   // or process heirarcy, if so then add the approp. daemon
+   // to the matching_daemons, else set whole_prog_focus to true
+   pdstring machine_name;
+   resourceList *focus_resources = mi->getresourceList(); 
+   assert(focus_resources);
+   // focus is refined on machine or process heirarchy 
+   if(focus_resources->getMachineNameReferredTo(machine_name)){
+     // get the daemon corr. to this focus and add it
+     // to the list of daemons
+     pdvector<paradynDaemon*> vpd = 
+       paradynDaemon::machineName2Daemon(machine_name);
+     assert(vpd.size());
+     
+     // Add daemons into daemon_subset
+     filter_based_on_process_in_focus(vpd, &daemon_subset, focus_resources);
+     // Prune the list we generated, since there might be duplicates
+     strip_duplicate_daemons(daemon_subset, matching_daemons);
    }
-   else {
-       // Prune the list we generated, since there might be duplicates
-       strip_duplicate_daemons(daemon_subset, matching_daemons);
+   else {  // focus is not refined on process or machine 
+     // Don't need to prune, as there's only one daemon
+     matching_daemons.clear();
+     for(unsigned i=0; i<paradynDaemon::allDaemons.size(); i++)
+       matching_daemons.push_back(paradynDaemon::allDaemons[i]);
    }
-   
-   
-   assert(matching_daemons->size() <= paradynDaemon::allDaemons.size());
+      
+   assert(matching_daemons.size() <= paradynDaemon::allDaemons.size());
 }
 
 
@@ -2732,6 +2720,7 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	    cout << "ignoring that sample since it's no longer active" << endl;
 	  continue;
         }
+
        	assert(mi);
 
 	timeStamp startTimeStamp = 
@@ -2767,7 +2756,7 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	       << newStartTime << "  to: " << newEndTime << "   val: "
 	       << value << "  machine: " << machine.c_str() << "\n";
 	}
-	
+
 	mi->updateComponent(this, newStartTime, newEndTime, value);
 	mi->doAggregation();
     }
