@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.110 2002/08/04 17:29:52 gaburici Exp $
+// $Id: inst-sparc-solaris.C,v 1.111 2002/08/16 16:01:37 gaburici Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1494,6 +1494,11 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register /*dest*/,
 }
 
 #ifdef BPATCH_LIBRARY
+void emitJmpMC(int condition, int offset, char* baseInsn, Address &base)
+{
+  // Not needed for memory instrumentation, otherwise TBD
+}
+
 // VG(12/02/01): Emit code to add the original value of a register to
 // another. The original value may need to be restored somehow...
 static inline void emitAddOriginal(Register src, Register acc, 

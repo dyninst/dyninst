@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.111 2002/08/05 15:39:44 gaburici Exp $
+ * $Id: inst-x86.C,v 1.112 2002/08/16 16:01:37 gaburici Exp $
  */
 
 #include <iomanip.h>
@@ -130,6 +130,7 @@ void BaseTrampTrapHandler(int); //siginfo_t*, ucontext_t*);
 
 // offset from EBP of the saved EAX for a tramp
 #define SAVED_EAX_OFFSET (9*4-4)
+#define SAVED_EFLAGS_OFFSET (SAVED_EAX_OFFSET+4)
 
 /****************************************************************************/
 /****************************************************************************/
@@ -1248,6 +1249,36 @@ void emitJccR8( int condition_code,
   *instruction++ = jump_offset;
 }
 
+// VG(8/15/02): nicer jcc: condition is the tttn field.
+// Because we generate jumps twice, once with bogus 0
+// offset, and then with the right offset, the instruction
+// may be longer (and overwrite something else) the 2nd time.
+// So willRegen defaults to true and always generates jcc near
+// (the longer form)
+
+// TODO: generate JEXCZ as well
+static inline void emitJcc(int condition, int offset, unsigned char*& instruction, 
+                           bool willRegen=true)
+{
+  unsigned char opcode;
+
+  assert(condition >= 0 && condition <= 0x0F);
+
+  if(!willRegen && (offset >= -128 && offset <= 127)) { // jcc rel8
+    opcode = 0x70 | (unsigned char)condition;
+    *instruction++ = opcode;
+    *instruction++ = (unsigned char) (offset & 0xFF);
+  }
+  else { // jcc near rel32
+    opcode = 0x80 | (unsigned char)condition;
+    *instruction++ = 0x0F;
+    *instruction++ = opcode;
+    *((int*)instruction) = offset;
+    instruction += sizeof(int);
+  }
+}
+
+
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
@@ -2355,12 +2386,37 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
 
 
 #ifdef BPATCH_LIBRARY
+// VG(8/15/02): Emit the jcc over a conditional snippet
+void emitJmpMC(int condition, int offset, char* baseInsn, Address &base)
+{
+  // What we want: 
+  //   mov eax, [original EFLAGS]
+  //   push eax
+  //   popfd
+  //   jCC target   ; CC = !condition (we jump on the negated condition)
+
+  assert(condition >= 0 && condition <= 0x0F);
+
+  unsigned char *insn = (unsigned char *) (&baseInsn[base]);
+  unsigned char *first = insn;
+
+  //fprintf(stderr, "OC: %x, NC: %x\n", condition, condition ^ 0x01);
+  condition ^= 0x01; // flip last bit to negate the tttn condition
+
+  emitMovRMToReg(0, EBP, SAVED_EFLAGS_OFFSET, insn); // mov eax, offset[ebp]
+  emitSimpleInsn(0x50, insn);  // push eax
+  emitSimpleInsn(POPFD, insn); // popfd
+  emitJcc(condition, offset, insn);
+  
+  base += insn-first;
+}
+
 // VG(07/30/02): Restore mutatee value of GPR reg to dest (real) GPR
 static inline void restoreGPRtoGPR(Register reg, Register dest, unsigned char *&insn)
 {
   // NOTE: I don't use emitLoadPreviousStackFrameRegister because it saves
   // the value to a virtual (stack based) register, which is not what I want!
-  emitMovRMToReg(dest, EBP, SAVED_EAX_OFFSET-(reg<<2), insn); //mov eax, offset[ebp]
+  emitMovRMToReg(dest, EBP, SAVED_EAX_OFFSET-(reg<<2), insn); //mov dest, offset[ebp]
 }
 
 // VG(07/30/02): Emit a lea dest, [base + index * scale + disp]; dest is a real GPR
@@ -2775,6 +2831,8 @@ int getInsnCost(opCode op)
     } else if (op ==  storeIndirOp) {
 	return(3);
     } else if (op ==  ifOp) {
+	return(1+2+1);
+    } else if (op ==  ifMCOp) { // VG(8/15/02): No clue if this is right or not
 	return(1+2+1);
     } else if (op ==  whileOp) {
 	return(1+2+1+1); /* Need to find out about this */

@@ -2301,6 +2301,11 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dst,
 
 
 #ifdef BPATCH_LIBRARY
+void emitJmpMC(int condition, int offset, char* baseInsn, Address &base)
+{
+  // Not needed for memory instrumentation, otherwise TBD
+}
+
 // VG(11/07/01): Load in destination the effective address given
 // by the address descriptor. Used for memory access stuff.
 void emitASload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,

@@ -1,4 +1,4 @@
-/* $Id: test6.mutatee.c,v 1.15 2002/08/06 23:20:54 gaburici Exp $ */
+/* $Id: test6.mutatee.c,v 1.16 2002/08/16 16:01:38 gaburici Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,7 +7,7 @@
 #define dprintf	if (debugPrint) printf
 int debugPrint = 0;
 
-#define MAX_TEST 6
+#define MAX_TEST 8
 
 int runTest[MAX_TEST+1];
 int passedTest[MAX_TEST+1];
@@ -41,15 +41,27 @@ unsigned int accessCnt = 0;
 
 unsigned int accessCntEA = 0;
 unsigned int accessCntBC = 0;
-
 int doomEA = 0;
 int doomBC = 0;
+void* eaList[1000];
+unsigned int bcList[1000];
+void* eaExp[1000];
+
+unsigned int accessCntEAcc = 0;
+unsigned int accessCntBCcc = 0;
+int doomEAcc = 0;
+int doomBCcc = 0;
+void* eaListCC[1000];
+unsigned int bcListCC[1000];
+void* eaExpCC[1000];
+unsigned int bcExpCC[1000];
 
 #ifdef sparc_sun_solaris2_4
 /* const */ unsigned int loadExp=15;
 /* const */ unsigned int storeExp=13;
 /* const */ unsigned int prefeExp=2;
 /* const */ unsigned int accessExp=26;
+/* const */ unsigned int accessExpCC=26;
 
 unsigned int bcExp[] = { 4,1,2,8,4,1,1,  4,8,4,  4,4,8,8,16,
                          0,0,  1,2,4,8,  4,8,16,4,8 };
@@ -101,6 +113,12 @@ extern long double dfvarq;
 
   for(; i<26; ++i)
     eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+
+  /* Duplicate the stream for cc */
+  for(i=0; i<accessExp; ++i) {
+    eaExpCC[i] = eaExp[i];
+    bcExpCC[i] = bcExp[i];
+  }
 }
 #endif
 
@@ -109,6 +127,7 @@ const unsigned int loadExp=41;
 const unsigned int storeExp=32;
 const unsigned int prefeExp=0;
 const unsigned int accessExp=73;
+const unsigned int accessExpCC=73;
 
 unsigned int bcExp[] = { 4,  1,1,1,1,  2,2,2,2,  2,2,2,2,  4,4,4,4,
 			 4,4,4,  8,8,8,8,  1,1,1,1,  2,2,2,2,
@@ -176,14 +195,22 @@ extern void* getsp();
     eaExp[i] = (void*)((unsigned long)&dfvard + eaExpOffset[i]);
   
   eaExp[72] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+
+
+  /* Duplicate the stream for cc */
+  for(i=0; i<accessExp; ++i) {
+    eaExpCC[i] = eaExp[i];
+    bcExpCC[i] = bcExp[i];
+  }
 }
 #endif
 
 #if defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0)
-unsigned int loadExp=60;
+unsigned int loadExp=63;
 unsigned int storeExp=23;
 unsigned int prefeExp=0;
-unsigned int accessExp=78;
+unsigned int accessExp=81;
+unsigned int accessExpCC=80;
 
 struct reduction {
   unsigned int loadRed;
@@ -198,17 +225,19 @@ const struct reduction sseRed = { 2, 0, 0, 2, 51 };
 const struct reduction sse2Red = { 2, 0, 0, 2, 53 };
 const struct reduction amdRed = { 2, 0, 0, 2, 55 };
 
+const struct reduction ccRed = { 0, 0, 0, 1, 78 };
+
 int eaExpOffset[] =    { 0,0,0,0,  0,0,0,0,0,0,0,  4,8,4,8,4,8,4,  0,
                          0,4,8,12,0,4,8,  12,0,8,8,8,0,4,8,4,  0,  4,4,4,0,4,0,4,8,0,0,4,0,
                          0,8,0,  0,0,  0,0,  0,8,  0,12,0,0,  0,0,0,0,4,8,  0,0,0,2,4,8,  0,0,
-                         0,0 };
+                         0,0,   0,4,8  };
 
 extern void* eaExp[]; /* forward */
 
 unsigned int bcExp[] = { 4,4,4,4,  4,4,4,4,4,4,4,  4,4,4,4,4,4,4,  4,
                          4,4,4,4,4,4,4,   4,4,4,4,4,4,4,4,4,   4,  4,4,1,1,4,4,4,4,4,1,4,4,
                          4,8,8,  16,4, 16,8, 8,8,  4,4,4,4,   4,8,10,2,4,8, 4,8,10,2,4,8, 2,2,
-                         28,28,  4,4,4 };
+                         28,28,  4,4,4,  4,4,4 };
 
 extern int ia32features();
 extern int amd_features();
@@ -238,7 +267,27 @@ void reduce(const struct reduction x)
   for(i=x.axsShift; i<accessExp; ++i)
     bcExp[i] = bcExp[i+x.axsRed];
 
+  for(i=x.axsShift; i<accessExpCC; ++i)
+    eaExpCC[i] = eaExpCC[i+x.axsRed];
+
+  for(i=x.axsShift; i<accessExpCC; ++i)
+    bcExpCC[i] = bcExpCC[i+x.axsRed];
+
   accessExp -= x.axsRed;
+  accessExpCC -= x.axsRed;
+}
+
+void reduceCC(const struct reduction x)
+{
+  unsigned int i;
+
+  for(i=x.axsShift; i<accessExpCC; ++i)
+    eaExpCC[i] = eaExpCC[i+x.axsRed];
+
+  for(i=x.axsShift; i<accessExpCC; ++i)
+    bcExpCC[i] = bcExpCC[i+x.axsRed];
+
+  accessExpCC -= x.axsRed;
 }
 
 
@@ -292,8 +341,19 @@ void init_test_data()
     eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
   for(i=75; i<77; ++i)
     eaExp[i] = (void*)((unsigned long)&dlarge + eaExpOffset[i]);
+  for(i=77; i<80; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
 
-  /* Order of reductions matters! */
+  /* Duplicate & reduce the stream for cc */
+
+  for(i=0; i<accessExp; ++i) {
+    eaExpCC[i] = eaExp[i];
+    bcExpCC[i] = bcExp[i];
+  }
+
+  reduceCC(ccRed);
+
+  /* Order of reductions matters! It must be right to left. */
 
   caps = amd_features();
   if(!(caps & CAP_3DNOW))
@@ -314,6 +374,7 @@ void init_test_data()
 #define storeExp 0
 #define prefeExp 0
 #define accessExp 1
+#define accessExpCC 1
 
 long loadsnstores(long x, long y, long z)
 {
@@ -332,6 +393,7 @@ void init_test_data()
 #define storeExp 0
 #define prefeExp 0
 #define accessExp 1
+#define accessExpCC 1
 
 long loadsnstores(long x, long y, long z)
 {
@@ -350,6 +412,7 @@ void init_test_data()
 #define storeExp 0
 #define prefeExp 0
 #define accessExp 1
+#define accessExpCC 1
 
 long loadsnstores(long x, long y, long z)
 {
@@ -363,10 +426,6 @@ void init_test_data()
 }
 #endif
 
-void* eaList[1000];
-unsigned int bcList[1000];
-
-void* eaExp[1000];
 
 /* Sun Forte/WorkShop cc releases older than 6.2 do not like these defines: */
 #if !defined(__SUNPRO_C) || (__SUNPRO_C >= 0x530)
@@ -457,20 +516,40 @@ void check4()
 void check5()
 {
 #if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
-  skiptest(5, "instrumentation w/effective address snippet");
+  skiptest(5, "instrumentation w/ [unconditional] effective address snippet");
 #else
   passorfail(5, !doomEA && validateEA(eaExp, eaList),
-	     "effective address snippet", "address sequences are different");
+	     "[unconditional] effective address snippet", "address sequences are different");
 #endif
 }
 
 void check6()
 {
 #if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
-  skiptest(6, "instrumentation w/byte count snippet");
+  skiptest(6, "instrumentation w/ [unconditional] byte count snippet");
 #else
   passorfail(6, !doomBC && validateBC(bcExp, bcList),
-	     "count accessed bytes snippet", "count sequences are different");
+	     "[unconditional] byte count snippet", "count sequences are different");
+#endif
+}
+
+void check7()
+{
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
+  skiptest(7, "instrumentation w/ conditional effective address snippet");
+#else
+  passorfail(7, !doomEAcc && validateEA(eaExpCC, eaListCC),
+	     "conditional effective address snippet", "address sequences are different");
+#endif
+}
+
+void check8()
+{
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
+  skiptest(8, "instrumentation w/ conditional byte count snippet");
+#else
+  passorfail(8, !doomBCcc && validateBC(bcExpCC, bcListCC),
+	     "conditional byte count snippet", "count sequences are different");
 #endif
 }
 
@@ -518,6 +597,28 @@ void listByteCnt(unsigned int count)
   accessCntBC++;
   dprintf("BC[%d]:%d ", accessCntBC, count);
 }
+
+
+void listEffAddrCC(void* addr)
+{
+  if(accessCntEAcc < accessExpCC)
+    eaListCC[accessCntEAcc] = addr;
+  else
+    doomEAcc = 1;
+  accessCntEAcc++;
+  dprintf("?A[%d]:%p ", accessCntEAcc, addr);
+}
+
+void listByteCntCC(unsigned int count)
+{
+  if(accessCntBCcc < accessExpCC)
+    bcListCC[accessCntBCcc] = count;
+  else
+    doomBCcc = 1;
+  accessCntBCcc++;
+  dprintf("?C[%d]:%d ", accessCntBCcc, count);
+}
+
 
 
 int main(int iargc, char *argv[])
@@ -580,6 +681,8 @@ int main(int iargc, char *argv[])
   if (runTest[4]) check4();
   if (runTest[5]) check5();
   if (runTest[6]) check6();
+  if (runTest[7]) check7();
+  if (runTest[8]) check8();
 
   /* See how we did running the tests. */
   for (i=1; i <= MAX_TEST; i++) {

@@ -41,7 +41,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.15 2002/08/04 17:29:52 gaburici Exp $
+ * $Id: inst-ia64.C,v 1.16 2002/08/16 16:01:36 gaburici Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -430,6 +430,11 @@ BPatch_point *createInstructionInstPoint( process * proc, void * address,
 			BPatch_point ** alternative, BPatch_function * bpf ) { return NULL; assert( 0 ); }
 
 /* Required by ast.C */
+void emitJmpMC(int condition, int offset, char* baseInsn, Address &base)
+{
+  // Not needed for memory instrumentation, otherwise TBD
+}
+
 void emitASload(BPatch_addrSpec_NP as, Register dest, char * baseInsn,
                 Address & base, bool noCost)
 {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.41 2002/08/05 23:07:22 gaburici Exp $
+// $Id: BPatch_snippet.C,v 1.42 2002/08/16 16:01:36 gaburici Exp $
 
 #define BPATCH_FILE
 
@@ -939,4 +939,13 @@ BPatch_bytesAccessedExpr::BPatch_bytesAccessedExpr(int _which)
   assert(_which >= 0 && _which <= BPatch_memoryAccess::nmaxacc_NP);
 #endif
   ast = new AstNode(AstNode::BytesAccessed, _which);
+};
+
+
+BPatch_ifMachineConditionExpr::BPatch_ifMachineConditionExpr(const BPatch_snippet &tClause)
+{
+  ast = new AstNode(ifMCOp, tClause.ast);
+  
+  assert(BPatch::bpatch != NULL);
+  ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
 };

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.57 2002/08/04 17:29:52 gaburici Exp $
+// $Id: ast.h,v 1.58 2002/08/16 16:01:36 gaburici Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -100,7 +100,8 @@ typedef enum { plusOp,
 	       saveRegOp,
 	       updateCostOp,
 	       funcJumpOp,        // Jump to function without linkage
-	       branchOp
+	       branchOp,
+               ifMCOp
 } opCode;
 
 class registerSlot {

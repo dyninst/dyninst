@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.146 2002/08/12 04:21:20 schendel Exp $
+ * $Id: inst-power.C,v 1.147 2002/08/16 16:01:37 gaburici Exp $
  */
 
 #include "common/h/headers.h"
@@ -2513,6 +2513,12 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
 }
 
 #ifdef BPATCH_LIBRARY
+void emitJmpMC(int condition, int offset, char* baseInsn, Address &base)
+{
+  // Not needed for memory instrumentation, otherwise TBD
+}
+
+
 // VG(11/16/01): Say if we have to restore a register to get its original value
 // VG(03/15/02): Sync'd with the new AIX tramp
 static inline bool needsRestore(Register x)

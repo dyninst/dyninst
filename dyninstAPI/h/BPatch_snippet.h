@@ -240,6 +240,8 @@ public:
 // VG(7/31/02): Since x86 can have 2 addresses per instruction, there is
 // now parameter for the constructor indicating which of these you want.
 // It defaults to the 1st access (#0).
+
+// VG(8/14/02): added conditional parameter
 class BPATCH_DLL_EXPORT BPatch_effectiveAddressExpr : public BPatch_snippet
 {
 public:
@@ -251,6 +253,16 @@ class BPATCH_DLL_EXPORT BPatch_bytesAccessedExpr : public BPatch_snippet
 {
 public:
   BPatch_bytesAccessedExpr(int _which = 0);
+};
+
+// VG(8/11/2): It is possible to have a more general expression, say 
+// machineConditionExpr, then have this reimplemented as ifExpr(machineConditionExpr, ...),
+// and have an optimization (fast path) for that case using the specialized
+// AST that supports this class. Memory instrumentation has no need for a standalone
+// machineConditionExpr, so that remains TBD...
+class BPATCH_DLL_EXPORT BPatch_ifMachineConditionExpr : public BPatch_snippet {
+public:
+  BPatch_ifMachineConditionExpr(const BPatch_snippet &tClase);
 };
 
 #endif /* _BPatch_snippet_h_ */

@@ -1,4 +1,4 @@
-// $Id: arch-ia32.C,v 1.8 2002/08/06 23:20:54 gaburici Exp $
+// $Id: arch-ia32.C,v 1.9 2002/08/16 16:01:36 gaburici Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual
 //                                   volume 2: Instruction Set Reference
@@ -247,14 +247,6 @@ struct ia32_operand {  // operand as given in Intel book tables
   unsigned int admet;  // addressing method
   unsigned int optype; // operand type;
 };
-
-
-// struct ia32_opr_xtra { // additional info extracted page by page from vol 2.
-//   bool read;
-//   bool write;
-//   bool prefetch;
-//   unsigned int hack;
-// };
 
 
 // An instruction table entry
@@ -1865,6 +1857,7 @@ ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instr
   unsigned int table, nxtab;
   unsigned int idx, sseidx = 0;
   ia32_entry *gotit = NULL;
+  int condbits;
 
   if(capa & IA32_DECODE_MEMACCESS)
     assert(instruct.mac != NULL);
@@ -1880,6 +1873,11 @@ ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instr
   instruct.size += 1;
   addr += 1;
 
+  if(capa & IA32_DECODE_CONDITION) {
+    assert(instruct.cond != NULL);
+    condbits = idx & 0x0F;
+  }
+
   while(nxtab != t_done) {
     table = nxtab;
     switch(table) {
@@ -1889,6 +1887,8 @@ ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instr
       nxtab = gotit->otable;
       instruct.size += 1;
       addr += 1;
+      if(capa & IA32_DECODE_CONDITION)
+        condbits = idx & 0x0F;
       break;
     case t_prefixedSSE:
       sseidx = gotit->tabidx;
@@ -1934,6 +1934,8 @@ ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instr
       break;
     case t_coprocEsc:
       instruct.legacy_type = 0;
+      if(capa & IA32_DECODE_CONDITION)
+        ; // FIXME: translation to tttn & set it
       return ia32_decode_FP(idx, pref, addr, instruct, instruct.mac);
     case t_3dnow:
       // 3D now opcodes are given as suffix: ModRM [SIB] [displacement] opcode
@@ -2028,13 +2030,24 @@ ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instr
       break;
     }
   }
+
+  if(capa & IA32_DECODE_CONDITION) {
+    int hack = gotit->opsema >> FPOS;
+    if(hack == fCOND)
+      instruct.cond->set(condbits);
+  }
+
   return instruct;
 }
 
 #if !defined(i386_unknown_nt4_0) || _MSC_VER >= 1300 
 // MS VS 6.0 compiler gives internal compiler error on this
 template ia32_instruction& ia32_decode<0>(const unsigned char* addr, ia32_instruction& instruct);
-template ia32_instruction& ia32_decode<IA32_DECODE_MEMACCESS>(const unsigned char* addr, ia32_instruction& instruct);
+// FIXME: remove
+template ia32_instruction& ia32_decode<IA32_DECODE_MEMACCESS>
+                             (const unsigned char* addr,ia32_instruction& instruct);
+template ia32_instruction& ia32_decode<IA32_DECODE_MEMACCESS|IA32_DECODE_CONDITION>
+                                      (const unsigned char* addr,ia32_instruction& instruct);
 #endif
 
 ia32_instruction& ia32_decode_FP(unsigned int opcode, const ia32_prefixes& pref,

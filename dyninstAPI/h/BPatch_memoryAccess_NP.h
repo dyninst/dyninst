@@ -1,4 +1,4 @@
-/* $Id: BPatch_memoryAccess_NP.h,v 1.9 2002/08/06 23:20:54 gaburici Exp $ */
+/* $Id: BPatch_memoryAccess_NP.h,v 1.10 2002/08/16 16:01:35 gaburici Exp $ */
 
 #ifndef _MemoryAccess_h_
 #define _MemoryAccess_h_
@@ -72,43 +72,73 @@ class BPATCH_DLL_EXPORT BPatch_memoryAccess
   
  private:
   unsigned int nacc;
-  bool isLoad[nmaxacc_NP];  // can both be true on some arches like x86 (or even SPARC)
+  bool isLoad[nmaxacc_NP];
   bool isStore[nmaxacc_NP];
-  bool isPrefetch[nmaxacc_NP];
+  // VG(8/13/02): removed redundant isPrefetch fields; preFcn>=0 is the same thing
 
   BPatch_addrSpec_NP start[nmaxacc_NP];
   BPatch_countSpec_NP count[nmaxacc_NP];
-  short preFcn[nmaxacc_NP]; // prefetch function, currently the codes on SPARC (-1 = none)
+  int  preFcn[nmaxacc_NP];      // prefetch function, currently the codes on SPARC (-1 = none)
+  int  condition[nmaxacc_NP];   // -1 means no condition, all other values are machine specific
+                                // conditions, currently (8/13/02) the tttn field on x86
+  bool nonTemporal[nmaxacc_NP]; // non-temporal (cache non-polluting) write on x86
 
  protected:
   bool hasALoad() const { return nacc == 1 ? isLoad[0] : (isLoad[0] || isLoad[1]); }
   bool hasAStore() const { return nacc == 1 ? isStore[0] : (isStore[0] || isStore[1]); }
-  bool hasAPrefetch() const { return isPrefetch[0]; }
-  short prefetchType(int which = 0) { return preFcn[which]; }
+  bool hasAPrefetch() const { return preFcn[0] >= 0; }
+  int  prefetchType(int which = 0) { return preFcn[which]; }
 
   BPatch_addrSpec_NP getStartAddr(int which = 0) const { return start[which]; }
   BPatch_countSpec_NP getByteCount(int which = 0) const { return count[which]; }
 
- public:
-  static BPatch_memoryAccess* const none;
 
-  // initializes only the first access; #bytes is a constant
-  BPatch_memoryAccess(bool _isLoad, bool _isStore, unsigned int _bytes,
-                      int _imm, int _ra, int _rb, unsigned int _scale = 0)
+  // initializes only the first access - general case
+  void set1st(bool _isLoad, bool _isStore,
+              int _imm_s, int _ra_s, int _rb_s,
+              int _imm_c, int _ra_c = -1, int _rb_c = -1,
+              unsigned int _scale_s = 0, int _preFcn = -1,
+              int _cond = -1, bool _nt = false)
   {
+//     int c = _cond;
+
+//     fprintf(stderr, "??? c=%d ???\n", c);
+
     nacc = 1;
     isLoad[0] = _isLoad;
     isStore[0] = _isStore;
-    isPrefetch[0] = false;
-    start[0] = BPatch_addrSpec_NP(_imm, _ra, _rb, _scale);
-    count[0] = BPatch_countSpec_NP(_bytes);
-    preFcn[0] = -1;
+    start[0] = BPatch_addrSpec_NP(_imm_s, _ra_s, _rb_s, _scale_s);
+    count[0] = BPatch_countSpec_NP(_imm_c, _ra_c, _rb_c);
+    preFcn[0] = _preFcn;
+    condition[0] = _cond;
+    nonTemporal[0] = _nt;
   }
+
+ public:
+  static BPatch_memoryAccess* const none;
 
   static BPatch_memoryAccess* init_tables()
   {
     initOpCodeInfo();
     return NULL;
+  }
+
+  // initializes only the first access; #bytes is a constant
+  BPatch_memoryAccess(bool _isLoad, bool _isStore, unsigned int _bytes,
+                      int _imm, int _ra, int _rb, unsigned int _scale = 0,
+                      int _cond = -1, bool _nt = false)
+  {
+//     int c = _cond;
+
+//     fprintf(stderr, "!!! c=%d !!!\n", c);
+
+    set1st(_isLoad, _isStore, _imm, _ra, _rb, _bytes, -1, -1, _scale, -1, _cond, _nt);
+/*     nacc = 1; */
+/*     isLoad[0] = _isLoad; */
+/*     isStore[0] = _isStore; */
+/*     start[0] = BPatch_addrSpec_NP(_imm, _ra, _rb, _scale); */
+/*     count[0] = BPatch_countSpec_NP(_bytes); */
+/*     preFcn[0] = -1; */
   }
 
   // initializes only the first access; #bytes is an expression
@@ -117,13 +147,15 @@ class BPATCH_DLL_EXPORT BPatch_memoryAccess
                       int _imm_c, int _ra_c, int _rb_c,
                       unsigned short _preFcn)
   {
-    nacc = 1;
-    isLoad[0] = _isLoad;
-    isStore[0] = _isStore;
-    isPrefetch[0] = _isPrefetch;
-    start[0] = BPatch_addrSpec_NP(_imm_s, _ra_s, _rb_s);
-    count[0] = BPatch_countSpec_NP(_imm_c, _ra_c, _rb_c);
-    preFcn[0] = _preFcn;
+    assert(_isPrefetch); // VG(8/13/02): historical reasons...
+    set1st(_isLoad, _isStore, _imm_s, _ra_s, _rb_s, _imm_c, _ra_c, _rb_c, 0, _preFcn);
+/*     nacc = 1; */
+/*     isLoad[0] = _isLoad; */
+/*     isStore[0] = _isStore; */
+/*     start[0] = BPatch_addrSpec_NP(_imm_s, _ra_s, _rb_s); */
+/*     count[0] = BPatch_countSpec_NP(_imm_c, _ra_c, _rb_c); */
+/*     assert(_isPrefetch); // VG(8/13/02): historical reasons... */
+/*     preFcn[0] = _preFcn; */
   }
 
   // initializes only the first access; #bytes is an expression & not a prefetch
@@ -131,13 +163,13 @@ class BPATCH_DLL_EXPORT BPatch_memoryAccess
 	       int _imm_s, int _ra_s, int _rb_s,
 	       int _imm_c, int _ra_c, int _rb_c)
   {
-    nacc = 1;
-    isLoad[0] = _isLoad;
-    isStore[0] = _isStore;
-    isPrefetch[0] = false;
-    start[0] = BPatch_addrSpec_NP(_imm_s, _ra_s, _rb_s);
-    count[0] = BPatch_countSpec_NP(_imm_c, _ra_c, _rb_c);
-    preFcn[0] = -1;
+    set1st(_isLoad, _isStore, _imm_s, _ra_s, _rb_s, _imm_c, _ra_c, _rb_c);
+/*     nacc = 1; */
+/*     isLoad[0] = _isLoad; */
+/*     isStore[0] = _isStore; */
+/*     start[0] = BPatch_addrSpec_NP(_imm_s, _ra_s, _rb_s); */
+/*     count[0] = BPatch_countSpec_NP(_imm_c, _ra_c, _rb_c); */
+/*     preFcn[0] = -1; */
   }
 
   // sets 2nd access; #bytes is constant
@@ -149,10 +181,11 @@ class BPATCH_DLL_EXPORT BPatch_memoryAccess
     nacc = 2;
     isLoad[1] = _isLoad;
     isStore[1] = _isStore;
-    isPrefetch[1] = false;
     start[1] = BPatch_addrSpec_NP(_imm, _ra, _rb, _scale);
     count[1] = BPatch_countSpec_NP(_bytes);
     preFcn[1] = -1;
+    condition[1] = -1;
+    nonTemporal[1] = false;
   }
 
   // initializes both accesses; #bytes is a constant
@@ -161,14 +194,13 @@ class BPATCH_DLL_EXPORT BPatch_memoryAccess
                       bool _isLoad2, bool _isStore2, unsigned int _bytes2,
                       int _imm2, int _ra2, int _rb2, unsigned int _scale2)
   {
-    nacc = 1;
-    isLoad[0] = _isLoad;
-    isStore[0] = _isStore;
-    isPrefetch[0] = false;
-    start[0] = BPatch_addrSpec_NP(_imm, _ra, _rb, _scale);
-    count[0] = BPatch_countSpec_NP(_bytes);
-    preFcn[0] = -1;
-
+/*     nacc = 1; */
+/*     isLoad[0] = _isLoad; */
+/*     isStore[0] = _isStore; */
+/*     start[0] = BPatch_addrSpec_NP(_imm, _ra, _rb, _scale); */
+/*     count[0] = BPatch_countSpec_NP(_bytes); */
+/*     preFcn[0] = -1; */
+    set1st(_isLoad, _isStore, _imm, _ra, _rb, _bytes, -1, -1, _scale);
     set2nd(_isLoad2, _isStore2, _bytes2, _imm2, _ra2, _rb2, _scale2);
   }
 
@@ -185,10 +217,11 @@ class BPATCH_DLL_EXPORT BPatch_memoryAccess
       res = res &&
         (isLoad[i] == rp.isLoad[i]) &&
         (isStore[i] == rp.isStore[i]) &&
-        (isPrefetch[i] == rp.isPrefetch[i]) &&
         (start[i].equals(rp.start[i])) &&
         (count[i].equals(rp.count[i])) &&
-        (preFcn[i] == rp.preFcn[i]);
+        (preFcn[i] == rp.preFcn[i]) &&
+        (condition[i] == rp.condition[i]) && 
+        (nonTemporal[i] == rp.nonTemporal[i]);
       if(!res)
         break;
     }
@@ -201,8 +234,10 @@ class BPATCH_DLL_EXPORT BPatch_memoryAccess
   BPatch_countSpec_NP getByteCount_NP(int which = 0) const { return count[which]; }
   bool isALoad_NP(int which = 0) const { return isLoad[which]; }
   bool isAStore_NP(int which = 0) const { return isStore[which]; }
-  bool isAPrefetch_NP(int which = 0) const { return isPrefetch[which]; }
-  short prefetchType_NP(int which = 0) const { return preFcn[which]; }
+  bool isAPrefetch_NP(int which = 0) const { return preFcn[which] >= 0; }
+  bool isConditional_NP(int which = 0) const { return condition[which] >= 0; }
+  int  prefetchType_NP(int which = 0) const { return preFcn[which]; }
+  int  conditionCode_NP(int which = 0) const { return condition[which]; }
 
 };
 

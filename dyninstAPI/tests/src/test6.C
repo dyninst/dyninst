@@ -1,4 +1,4 @@
-// $Id: test6.C,v 1.9 2002/08/06 23:20:54 gaburici Exp $
+// $Id: test6.C,v 1.10 2002/08/16 16:01:38 gaburici Exp $
  
 #include <stdio.h>
 #include <string.h>
@@ -31,7 +31,7 @@ bool forceRelocation = false;  // Force relocation upon instrumentation
 #define dprintf if (debugPrint) printf
 
 bool runAllTests = true;
-const unsigned int MAX_TEST = 6;
+const unsigned int MAX_TEST = 8;
 bool runTest[MAX_TEST+1];
 bool passedTest[MAX_TEST+1];
 bool failedTest[MAX_TEST+1];
@@ -120,10 +120,12 @@ void instCall(BPatch_thread* bpthr, const char* fname,
 }
 
 void instEffAddr(BPatch_thread* bpthr, const char* fname,
-		 const BPatch_Vector<BPatch_point*>* res)
+		 const BPatch_Vector<BPatch_point*>* res,
+                 bool conditional)
 {
   char buf[30];
-  snprintf(buf, 30, "list%s", fname);
+  snprintf(buf, 30, "list%s%s", fname, (conditional ? "CC" : ""));
+  dprintf("CALLING: %s\n", buf);
 
   BPatch_Vector<BPatch_snippet*> listArgs;
   BPatch_effectiveAddressExpr eae;
@@ -131,8 +133,13 @@ void instEffAddr(BPatch_thread* bpthr, const char* fname,
 
   BPatch_function *listXXXFunc = bpthr->getImage()->findFunction(buf);
   BPatch_funcCallExpr listXXXCall(*listXXXFunc, listArgs);
-  bpthr->insertSnippet(listXXXCall, *res);
 
+  if(!conditional)
+    bpthr->insertSnippet(listXXXCall, *res, BPatch_lastSnippet);
+  else {
+    BPatch_ifMachineConditionExpr listXXXCallCC(listXXXCall);
+    bpthr->insertSnippet(listXXXCallCC, *res, BPatch_lastSnippet);
+  }
 #if defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0)
   BPatch_effectiveAddressExpr eae2(1);
   BPatch_Vector<BPatch_snippet*> listArgs2;
@@ -141,15 +148,22 @@ void instEffAddr(BPatch_thread* bpthr, const char* fname,
   BPatch_funcCallExpr listXXXCall2(*listXXXFunc, listArgs2);
   
   const BPatch_Vector<BPatch_point*>* res2 = BPatch_memoryAccess::filterPoints(*res, 2);
-  bpthr->insertSnippet(listXXXCall2, *res2, BPatch_lastSnippet);
+  if(!conditional)
+    bpthr->insertSnippet(listXXXCall2, *res2, BPatch_lastSnippet);
+  else {
+    BPatch_ifMachineConditionExpr listXXXCallCC2(listXXXCall2);
+    bpthr->insertSnippet(listXXXCallCC2, *res2, BPatch_lastSnippet);    
+  }
 #endif
 }
 
 void instByteCnt(BPatch_thread* bpthr, const char* fname,
-		 const BPatch_Vector<BPatch_point*>* res)
+		 const BPatch_Vector<BPatch_point*>* res,
+                 bool conditional)
 {
   char buf[30];
-  snprintf(buf, 30, "list%s", fname);
+  snprintf(buf, 30, "list%s%s", fname, (conditional ? "CC" : ""));
+  dprintf("CALLING: %s\n", buf);
 
   BPatch_Vector<BPatch_snippet*> listArgs;
   BPatch_bytesAccessedExpr bae;
@@ -157,7 +171,12 @@ void instByteCnt(BPatch_thread* bpthr, const char* fname,
 
   BPatch_function *listXXXFunc = bpthr->getImage()->findFunction(buf);
   BPatch_funcCallExpr listXXXCall(*listXXXFunc, listArgs);
-  bpthr->insertSnippet(listXXXCall, *res, BPatch_lastSnippet);
+  if(!conditional)
+    bpthr->insertSnippet(listXXXCall, *res, BPatch_lastSnippet);
+  else {
+    BPatch_ifMachineConditionExpr listXXXCallCC(listXXXCall);
+    bpthr->insertSnippet(listXXXCallCC, *res, BPatch_lastSnippet);
+  }
 
 #if defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0)
   BPatch_bytesAccessedExpr bae2(1);
@@ -167,18 +186,32 @@ void instByteCnt(BPatch_thread* bpthr, const char* fname,
   BPatch_funcCallExpr listXXXCall2(*listXXXFunc, listArgs2);
   
   const BPatch_Vector<BPatch_point*>* res2 = BPatch_memoryAccess::filterPoints(*res, 2);
-  bpthr->insertSnippet(listXXXCall2, *res2, BPatch_lastSnippet);
+  if(!conditional)
+    bpthr->insertSnippet(listXXXCall2, *res2, BPatch_lastSnippet);
+  else {
+    BPatch_ifMachineConditionExpr listXXXCallCC2(listXXXCall2);
+    bpthr->insertSnippet(listXXXCallCC2, *res2, BPatch_lastSnippet);
+  }
 #endif
 }
 
-#define MK_LD(imm, rs1, rs2, bytes) (new BPatch_memoryAccess(true, false, (bytes), (imm), (rs1), (rs2)))
-#define MK_ST(imm, rs1, rs2, bytes) (new BPatch_memoryAccess(false, true, (bytes), (imm), (rs1), (rs2)))
-#define MK_LS(imm, rs1, rs2, bytes) (new BPatch_memoryAccess(true, true, (bytes), (imm), (rs1), (rs2)))
+#define MK_LD(imm, rs1, rs2, bytes) (new BPatch_memoryAccess(true, false, \
+                                                             (bytes), (imm), (rs1), (rs2)))
+#define MK_ST(imm, rs1, rs2, bytes) (new BPatch_memoryAccess(false, true, \
+                                                             (bytes), (imm), (rs1), (rs2)))
+#define MK_LS(imm, rs1, rs2, bytes) (new BPatch_memoryAccess(true, true, \
+                                                             (bytes), (imm), (rs1), (rs2)))
 #define MK_PF(imm, rs1, rs2, f) (new BPatch_memoryAccess(false, false, true, \
-                                                  (imm), (rs1), (rs2), \
-                                                   0, -1, -1, (f)))
+                                                         (imm), (rs1), (rs2), \
+                                                         0, -1, -1, (f)))
 
-#define MK_LDsc(imm, rs1, rs2, scale, bytes) (new BPatch_memoryAccess(true, false, (bytes), (imm), (rs1), (rs2), (scale)))
+#define MK_LDsc(imm, rs1, rs2, scale, bytes) (new BPatch_memoryAccess(true, false, \
+                                                                      (bytes), \
+                                                                      (imm), (rs1), (rs2), \
+                                                                      (scale)))
+
+#define MK_LDsccnd(imm, rs1, rs2, scale, bytes, cond) (new BPatch_memoryAccess(true, false, (bytes), (imm), (rs1), (rs2), (scale), (cond), false))
+
 
 #define MK_LD2(imm, rs1, rs2, bytes, imm_2, rs1_2, rs2_2, bytes_2) (new BPatch_memoryAccess(true, false, (bytes), (imm), (rs1), (rs2), 0, true, false, (bytes_2), (imm_2), (rs1_2), (rs2_2), 0))
 #define MK_SL2(imm, rs1, rs2, bytes, imm_2, rs1_2, rs2_2, bytes_2) (new BPatch_memoryAccess(false, true, (bytes), (imm), (rs1), (rs2), 0, true, false, (bytes_2), (imm_2), (rs1_2), (rs2_2), 0))
@@ -365,10 +398,10 @@ void init_test_data()
 #endif
 
 #if defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0)
-const unsigned int nloads = 60;
+const unsigned int nloads = 63;
 const unsigned int nstores = 23;
 const unsigned int nprefes = 0;
-const unsigned int naxses = 78;
+const unsigned int naxses = 81;
 
 BPatch_memoryAccess* loadList[nloads];
 BPatch_memoryAccess* storeList[nstores];
@@ -475,7 +508,11 @@ void init_test_data()
   loadList[++k] = MK_LD((int)divarwp,-1,-1,2);
   loadList[++k] = MK_LD((int)dlargep,-1,-1,28);
 
-  loadList[++k] = MK_LD(0,4,-1,4);
+  loadList[++k] = MK_LDsccnd((int)divarwp,-1,-1,0,4,7); // cmova
+  loadList[++k] = MK_LDsccnd((int)divarwp+4,-1,-1,0,4,4); // cmove
+  loadList[++k] = MK_LD((int)divarwp+8,-1,-1,4);
+
+  loadList[++k] = MK_LD(0,4,-1,4); // final pops
   loadList[++k] = MK_LD(0,4,-1,4);
   loadList[++k] = MK_LD(0,4,-1,4);
 
@@ -548,10 +585,16 @@ static inline void dumpvect(BPatch_Vector<BPatch_point*>* res, const char* msg)
     const BPatch_memoryAccess* ma = bpp->getMemoryAccess();
     const BPatch_addrSpec_NP& as = ma->getStartAddr_NP();
     const BPatch_countSpec_NP& cs = ma->getByteCount_NP();
-    if(ma->getNumberOfAccesses() == 1)
-      printf("%s[%d]: @[r%d+r%d<<%d+%d] #[r%d+r%d+%d]\n", msg, i+1,
-             as.getReg(0), as.getReg(1), as.getScale(), as.getImm(),
-             cs.getReg(0), cs.getReg(1), cs.getImm());
+    if(ma->getNumberOfAccesses() == 1) {
+      if(ma->isConditional_NP())
+        printf("%s[%d]: @[r%d+r%d<<%d+%d] #[r%d+r%d+%d] ?[%X]\n", msg, i+1,
+               as.getReg(0), as.getReg(1), as.getScale(), as.getImm(),
+               cs.getReg(0), cs.getReg(1), cs.getImm(), ma->conditionCode_NP());
+        else
+          printf("%s[%d]: @[r%d+r%d<<%d+%d] #[r%d+r%d+%d]\n", msg, i+1,
+                 as.getReg(0), as.getReg(1), as.getScale(), as.getImm(),
+                 cs.getReg(0), cs.getReg(1), cs.getImm());
+    }
     else {
       const BPatch_addrSpec_NP& as2 = ma->getStartAddr_NP(1);
       const BPatch_countSpec_NP& cs2 = ma->getByteCount_NP(1);
@@ -744,7 +787,8 @@ void mutatorTest5(BPatch_thread *bpthr, BPatch_image *bpimg,
   if(!res1)
     failtest(testnum, testdesc, "Unable to find function \"loadsnstores\".\n");
 
-  instEffAddr(bpthr, "EffAddr", res1);
+  //fprintf(stderr, "Doing test %d!!!!!!\n", testnum);
+  instEffAddr(bpthr, "EffAddr", res1, false);
 #endif
   //bpthr->detach(false);
 }
@@ -770,7 +814,56 @@ void mutatorTest6(BPatch_thread *bpthr, BPatch_image *bpimg,
     failtest(testnum, testdesc,
              "Number of accesses seems wrong in function \"loadsnstores\".\n");
 
-  instByteCnt(bpthr, "ByteCnt", res1);
+  //fprintf(stderr, "Doing test %d!!!!!!\n", testnum);
+  instByteCnt(bpthr, "ByteCnt", res1, false);
+#endif
+}
+
+void mutatorTest7(BPatch_thread *bpthr, BPatch_image *bpimg, int testnum = 7,
+                  char* testdesc = "conditional instrumentation w/effective address snippet")
+{
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
+  skiptest(testnum, testdesc);
+#else
+  BPatch_Set<BPatch_opCode> axs;
+  axs.insert(BPatch_opLoad);
+  axs.insert(BPatch_opStore);
+  axs.insert(BPatch_opPrefetch);
+
+  BPatch_Vector<BPatch_point*>* res1 = bpimg->findProcedurePoint("loadsnstores", axs);
+
+  if(!res1)
+    failtest(testnum, testdesc, "Unable to find function \"loadsnstores\".\n");
+
+  //fprintf(stderr, "Doing test %d!!!!!!\n", testnum);
+  instEffAddr(bpthr, "EffAddr", res1, true);
+#endif
+  //bpthr->detach(false);
+}
+
+// Instrument all accesses with a byte count snippet
+void mutatorTest8(BPatch_thread *bpthr, BPatch_image *bpimg, int testnum = 8,
+                  char* testdesc = "conditional instrumentation w/byte count snippet")
+{
+#if !defined(sparc_sun_solaris2_4) && !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0) && !defined(i386_unknown_nt4_0)
+  skiptest(testnum, testdesc);
+#else
+  BPatch_Set<BPatch_opCode> axs;
+  axs.insert(BPatch_opLoad);
+  axs.insert(BPatch_opStore);
+  axs.insert(BPatch_opPrefetch);
+
+  BPatch_Vector<BPatch_point*>* res1 = bpimg->findProcedurePoint("loadsnstores", axs);
+
+  if(!res1)
+    failtest(testnum, testdesc, "Unable to find function \"loadsnstores\".\n");
+
+  if((*res1).size() != naxses)
+    failtest(testnum, testdesc,
+             "Number of accesses seems wrong in function \"loadsnstores\".\n");
+
+  //fprintf(stderr, "Doing test %d!!!!!!\n", testnum);
+  instByteCnt(bpthr, "ByteCnt", res1, true);
 #endif
 }
 
@@ -837,6 +930,8 @@ void mutatorMAIN(char *pathname)
   if (runTest[4]) mutatorTest4(bpthr, bpimg);
   if (runTest[5]) mutatorTest5(bpthr, bpimg);
   if (runTest[6]) mutatorTest6(bpthr, bpimg);
+  if (runTest[7]) mutatorTest7(bpthr, bpimg);
+  if (runTest[8]) mutatorTest8(bpthr, bpimg);
 
   dprintf("starting program execution.\n");
   bpthr->continueExecution();

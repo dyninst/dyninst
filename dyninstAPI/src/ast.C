@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.112 2002/08/04 17:29:52 gaburici Exp $
+// $Id: ast.C,v 1.113 2002/08/16 16:01:36 gaburici Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1212,7 +1212,40 @@ Address AstNode::generateCode_phase2(process *proc,
 		emitA(branchOp, 0, 0, (Register) (base-else_fromAddr),
 		     insn, else_startInsn, noCost);
 	    }
-	} else if (op == whileOp) {
+        }
+#ifdef BPATCH_LIBRARY
+        else if (op == ifMCOp) {
+          startInsn = base;
+	  assert(location);
+
+          // TODO: Right now we get the condition from the memory access info,
+          // because scanning for memory accesses is the only way to detect these
+          // conditional instructions. The right way(TM) would be to attach that
+          // info directly to the point...
+          const BPatch_memoryAccess* ma = location->getBPatch_point()->getMemoryAccess();
+          assert(ma);
+          int cond = ma->conditionCode_NP();
+          if(cond > -1) {
+            emitJmpMC(cond, 0 /* target, changed later */, insn, base);
+            fromAddr = base;  // here base points after the jcc
+            // Add the snippet to the ifForks, as AM has indicated...
+            vector<AstNode*> thenFork = ifForks;
+            thenFork.push_back(loperand);
+            // generate code with the right path
+            Register tmp = (Register)loperand->generateCode_phase2(proc, rs, insn, base,
+                                                                 noCost, thenFork, location);
+            rs->freeRegister(tmp);
+            // call emit again now with correct offset.
+            emitJmpMC(cond, base-fromAddr, insn, startInsn);
+          }
+          else {
+            Register tmp = (Register)loperand->generateCode_phase2(proc, rs, insn, base,
+                                                                 noCost, ifForks, location);
+            rs->freeRegister(tmp);
+          }
+        }
+#endif          
+        else if (op == whileOp) {
 	    Address top = base ;
 	    src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
 	    startInsn = base;
@@ -1702,6 +1735,7 @@ string getOpString(opCode op)
 	case loadConstOp: return("load");
 	case storeOp: return("=");
 	case ifOp: return("if");
+	case ifMCOp: return("ifMC");
 	case whileOp: return("while") ;
 	case doOp: return("while") ;
 	case trampPreamble: return("preTramp");
@@ -1843,6 +1877,8 @@ void AstNode::print() const {
 	fprintf(stderr," [$fp + %d]", (int)(Address) oValue);
       } else if (oType == EffectiveAddr)  {
 	fprintf(stderr," <<effective address>>");
+      } else if (oType == BytesAccessed)  {
+	fprintf(stderr," <<bytes accessed>>");
       } else {
 	fprintf(stderr," <Unknown Operand>");
       }

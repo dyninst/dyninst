@@ -1,4 +1,4 @@
-// $Id: arch-ia32.h,v 1.5 2002/08/04 17:29:52 gaburici Exp $
+// $Id: arch-ia32.h,v 1.6 2002/08/16 16:01:36 gaburici Exp $
 // VG(02/06/2002): configurable IA-32 decoder
 
 #if !(defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0))
@@ -111,6 +111,16 @@ struct ia32_memacc
 };
 
 
+struct ia32_condition
+{
+  bool is;
+  // TODO: add a field/hack for ECX [not needed for CMOVcc, but for Jcc]
+  int tttn;
+
+  ia32_condition() : is(false) {}
+  void set(int _tttn) { is = true; tttn = _tttn; }
+};
+
 ia32_prefixes& ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes&);
 
 
@@ -139,19 +149,21 @@ class ia32_instruction
                                           ia32_instruction& instruct,
                                           ia32_memacc *mac = NULL);
 
-  unsigned int size;
-  ia32_prefixes prf;
-  ia32_memacc  *mac;
-  unsigned int legacy_type;
+  unsigned int   size;
+  ia32_prefixes  prf;
+  ia32_memacc    *mac;
+  ia32_condition *cond;
+  unsigned int   legacy_type;
+
 
  public:
-
-  ia32_instruction(ia32_memacc* _mac = NULL) : mac(_mac) {}
+  ia32_instruction(ia32_memacc* _mac = NULL, ia32_condition* _cnd = NULL)
+    : mac(_mac), cond(_cnd) {}
 
   unsigned int getSize() const { return size; }
   unsigned int getLegacyType() const { return legacy_type; }
   const ia32_memacc& getMac(int which) const { return mac[which]; }
-
+  const ia32_condition& getCond() const { return *cond; }
 };
 
 // VG(02/07/2002): Information that the decoder can return is
@@ -166,7 +178,7 @@ class ia32_instruction
 #define IA32_DECODE_OPERANDS	(1<<2)
 #define IA32_DECODE_JMPS	(1<<3)
 #define IA32_DECODE_MEMACCESS	(1<<4)
-#define IA32_DECODE_CONDITIONS	(1<<5)
+#define IA32_DECODE_CONDITION 	(1<<5)
 
 #define IA32_FULL_DECODER 0xffffffffffffffffu
 #define IA32_SIZE_DECODER 0

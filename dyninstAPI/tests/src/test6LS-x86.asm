@@ -1,4 +1,4 @@
-; $Id: test6LS-x86.asm,v 1.2 2002/08/06 23:20:54 gaburici Exp $
+; $Id: test6LS-x86.asm,v 1.3 2002/08/16 16:01:38 gaburici Exp $
 ;
 ; This file must be assembled with nasm  - http://freshmeat.net/projects/nasm/
 
@@ -91,7 +91,6 @@ global_function amd_features
 
 %ifidn PLATFORM,i386-unknown-nt4.0
 
-extern	_ExitProcess@4
 extern	_GetStdHandle@4
 extern	_WriteConsoleA@20
 
@@ -124,7 +123,7 @@ loadsnstores:
     nop
     nop
 ; dyninst thinks function prologue has to be this big and won't let arbitrary inst points in it
-    
+
     push ebp                    ; s1
     mov  ebp,esp
 
@@ -346,10 +345,18 @@ loadsnstores:
     fldcw [divarw]              ; l57
 
     fnstenv [dlarge]            ; s22 a74
-    fldenv [dlarge]             ; l58
+    fldenv [dlarge]             ; l58 a75
     
-; == conditional moves: TBD ==
-    
+; == conditional moves ==
+
+    mov eax, 3
+    mov edx, 2
+    mov ecx, 0
+    cmp eax,edx
+    cmova ecx, [divarw]         ; executed     - a76
+    cmove ebx, [divarw+4]       ; not -"-      - a77
+    mov ebx, [divarw+8]         ; sync point   - a78
+        
     pop ebx                     ; l59 a76
     pop esi
     pop edi
