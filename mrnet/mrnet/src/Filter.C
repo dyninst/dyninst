@@ -102,10 +102,9 @@ int MC_Synchronizer::push_packets(std::list <MC_Packet *> &packets_in,
 void aggr_Int_Sum(MC_DataElement **in_elems, unsigned int in_count,
                   MC_DataElement ***out_elems, unsigned int *out_count)
 {
-  int i;
   int sum=0;
 
-  for(i=0; i<in_count; i++){
+  for(unsigned int i=0; i<in_count; i++){
     sum += in_elems[i][0].val.d;
   }
 
@@ -119,11 +118,10 @@ void aggr_Int_Sum(MC_DataElement **in_elems, unsigned int in_count,
 void aggr_Float_Avg(MC_DataElement **in_elems, unsigned int in_count,
                     MC_DataElement ***out_elems, unsigned int *out_count)
 {
-  int i;
   float avg=0;
 
   mc_printf(MCFL, stderr, "averaging: [");
-  for(i=0; i<in_count; i++){
+  for(unsigned int i=0; i<in_count; i++){
     _fprintf((stderr, "%f, ", in_elems[i][0].val.f));
     avg += in_elems[i][0].val.f;
   }
@@ -142,16 +140,16 @@ void aggr_Float_Avg(MC_DataElement **in_elems, unsigned int in_count,
 void aggr_CharArray_Concat(MC_DataElement **in_elems, unsigned int in_count,
                            MC_DataElement ***out_elems, unsigned int *out_count)
 {
-  int i, result_array_size=0;
+  int result_array_size=0;
   char *result_array;
 
-  for(i=0; i<in_count; i++){
+  for(unsigned int i=0; i<in_count; i++){
     result_array_size += in_elems[i][0].array_len;
   }
   result_array = (char *)malloc(result_array_size * sizeof(char));
 
   int pos=0;
-  for(i=0; i<in_count; i++){
+  for(unsigned int i=0; i<in_count; i++){
     memcpy(result_array+pos, in_elems[i][0].val.p, in_elems[i][0].array_len);
     pos += in_elems[i][0].array_len;
   }
