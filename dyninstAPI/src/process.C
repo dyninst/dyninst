@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.402 2003/04/04 21:55:49 willb Exp $
+// $Id: process.C,v 1.403 2003/04/09 22:05:05 schendel Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -4303,7 +4303,7 @@ function_base *process::findOnlyOneFunction(resource *func, resource *mod){
             }
         }
     }
-    
+
     return symbols->findOnlyOneFunction(func_name);
 }
 #endif /* BPATCH_LIBRARY */
@@ -4537,57 +4537,56 @@ pd_Function *process::findFuncByName(const string &name){
 // matching the given string
 bool process::findAllFuncsByName(const string &name, pdvector<function_base *> &res)
 {
-  string lib_name;
-  string func_name;
-  pdvector<pd_Function *> *pdfv=NULL;
-
-  // Split name into library and function
-  getLibAndFunc(name, lib_name, func_name);
-  
-  // If no library was specified, grab the first function we find
-  if (lib_name == "") {
-    
-    // first check a.out for function symbol
-    if (NULL != (pdfv = symbols->findFuncVectorByPretty(func_name))) {
-      for (unsigned int i = 0; i < pdfv->size(); ++i)
-	res.push_back((*pdfv)[i]);
-    }
-
-    // search any shared libraries for the file name 
-    if(dynamiclinking && shared_objects){
-      for(u_int j=0; j < shared_objects->size(); j++){
-	if (NULL != (pdfv = (*shared_objects)[j]->findFuncVectorByPretty(func_name))) {
-	  for (unsigned int i = 0; i < pdfv->size(); ++i)
-	    res.push_back((*pdfv)[i]);
-	}
-	//pdf=static_cast<function_base *>(((*shared_objects)[j])->findFuncByName(func_name));
+   string lib_name;
+   string func_name;
+   pdvector<pd_Function *> *pdfv=NULL;
+   
+   // Split name into library and function
+   getLibAndFunc(name, lib_name, func_name);
+   
+   // If no library was specified, grab the first function we find
+   if (lib_name == "") {
+      // first check a.out for function symbol
+      if (NULL != (pdfv = symbols->findFuncVectorByPretty(func_name))) {
+         for (unsigned int i = 0; i < pdfv->size(); ++i)
+            res.push_back((*pdfv)[i]);
       }
-    }
-    
-  } else {
-    
-    // Library was specified, search lib for function func_name 
-    if(dynamiclinking && shared_objects){ 
-      for(u_int j=0; j < shared_objects->size(); j++){
-	shared_object *so = (*shared_objects)[j];
-	
-	// Add prefix wildcard to make name matching easy
-	lib_name = "*" + lib_name;             
-	
-	if(matchLibName(lib_name, so->getName())) {
-	if (NULL != (pdfv = so->findFuncVectorByPretty(func_name))) {
-	  for (unsigned int i = 0; i < pdfv->size(); ++i)
-	    res.push_back((*pdfv)[i]);
-	}
+      
+      // search any shared libraries for the file name 
+      if(dynamiclinking && shared_objects){
+         for(u_int j=0; j < shared_objects->size(); j++){
+            if (NULL != (pdfv = (*shared_objects)[j]->findFuncVectorByPretty(func_name))) {
+               for (unsigned int i = 0; i < pdfv->size(); ++i)
+                  res.push_back((*pdfv)[i]);
+            }
+            //pdf=static_cast<function_base *>(((*shared_objects)[j])->findFuncByName(func_name));
+         }
+      }      
+   } else {
+      // Library was specified, search lib for function func_name 
+      // Add prefix wildcard to make name matching easy
+      lib_name = "*" + lib_name;             
 
-	//function_base *fb = static_cast<function_base *>(so->findFuncByName(func_name));
-	}
+      if(dynamiclinking && shared_objects) { 
+         for(u_int j=0; j < shared_objects->size(); j++){
+            shared_object *so = (*shared_objects)[j];
+            
+            if(matchLibName(lib_name, so->getName())) {
+               if (NULL != (pdfv = so->findFuncVectorByPretty(func_name))) {
+                  for (unsigned int i = 0; i < pdfv->size(); ++i)
+                     res.push_back((*pdfv)[i]);
+               }
+               
+               //function_base *fb = static_cast<function_base *>(so->findFuncByName(func_name));
+            }
+         }
       }
-    }
-  }
-  if (res.size())
-    return true; 
-  return false;
+   }
+
+   if (res.size())
+      return true; 
+
+   return false;
 }
 
 // Returns the named symbol from the image or a shared object
