@@ -67,7 +67,10 @@ class timeMgrBase {
   // easily increased if a need becomes evident.
 
   enum timeMechLevel { LEVEL_ONE=0, LEVEL_TWO=1, LEVEL_BEST=2 };
-  typedef timeMechanism<dmTimeFuncClass_t, dmTimeQyFuncParam_t> mech_t;
+
+  typedef timeMechanism<dmTimeFuncClass_t,dmTimeQyFuncParam_t> mech_t;
+#define MECH_T timeMechanism<dmTimeFuncClass_t,dmTimeQyFuncParam_t>
+
 
   timeMgrBase();
   virtual ~timeMgrBase();
@@ -77,27 +80,27 @@ class timeMgrBase {
   const timeBase &getTimeBase(timeMechLevel l=LEVEL_BEST) const;
   const string get_rtTimeQueryFuncName(timeMechLevel l=LEVEL_BEST) const;
   timeMechLevel getBestLevel() const;
-  mech_t *getMechLevel(timeMechLevel l) { 
+  MECH_T *getMechLevel(timeMechLevel l) { 
     return mechLevels[int(l)]; 
   }
-  const mech_t *getMechLevel(timeMechLevel l) const {
+  const MECH_T *getMechLevel(timeMechLevel l) const {
     return mechLevels[int(l)];
   }
 
   // LEVEL_ONE will be chosen first if available, LEVEL_FOUR is last choice
   //  - can have spaces in installed levels
   //  - don't need timeMechanisms installed
-  void installLevel(timeMechLevel l, mech_t::timeAvailFunc_t taf,
+  void installLevel(timeMechLevel l, MECH_T::timeAvailFunc_t taf,
 		   const timeUnit u, const timeBase b, 
-		   mech_t::timeQueryFunc_t dmTimerFunc,const char *rtTimerFunc,
-		   mech_t::timeDestroyFunc_t destroyFunc = NULL);
+		   MECH_T::timeQueryFunc_t dmTimerFunc,const char *rtTimerFunc,
+		   MECH_T::timeDestroyFunc_t destroyFunc = NULL);
   // timeMgr works with int64_t instead of rawTime64 because I consider
   // rawTime64 a paradyn concept, and I want to keep the timeMgr decoupled
   // from paradyn as best as possible
   timeLength units2timeLength(int64_t rawunits, timeMechLevel l=LEVEL_BEST);
   timeStamp units2timeStamp(int64_t rawunits, timeMechLevel l=LEVEL_BEST);
 
-  void installMechLevel(timeMechLevel l, mech_t *mptr) { 
+  void installMechLevel(timeMechLevel l, MECH_T *mptr) { 
     mechLevels[int(l)] = mptr;
   }
   protected:
@@ -106,7 +109,7 @@ class timeMgrBase {
   }
 
   private:
-  mech_t  *mechLevels[MaxLevels];
+  MECH_T  *mechLevels[MaxLevels];
 };
 
 //--- member definitions --------------------
@@ -125,7 +128,7 @@ inline timeMgrBase<dmTimeFuncClass_t, dmTimeQyFuncParam_t>::~timeMgrBase() {
   for(timeMechLevel level=LEVEL_ONE; ; level=timeMechLevel(int(level)+1)) {
     // LEVEL_BEST is actually just a reference to another timeMech
     if(level == LEVEL_BEST) break;
-    mech_t *mechToUse = getMechLevel(level);
+    MECH_T *mechToUse = getMechLevel(level);
     if(mechToUse != NULL) {
       delete mechToUse;
     }
@@ -136,7 +139,7 @@ inline timeMgrBase<dmTimeFuncClass_t, dmTimeQyFuncParam_t>::~timeMgrBase() {
 template<class dmTimeFuncClass_t, class dmTimeQyFuncParam_t>
 inline const timeUnit &timeMgrBase<dmTimeFuncClass_t, dmTimeQyFuncParam_t>::
 getTimeUnit(timeMechLevel l) const { 
-  const mech_t *pMech = getMechLevel(l); 
+  const MECH_T *pMech = getMechLevel(l); 
   if(pMech == NULL)  {  errLevelNotInstalled();  return timeUnit::ns(); }
   return pMech->getTimeUnit();
 }
@@ -145,7 +148,7 @@ getTimeUnit(timeMechLevel l) const {
 template<class dmTimeFuncClass_t, class dmTimeQyFuncParam_t>
 inline const timeBase &timeMgrBase<dmTimeFuncClass_t, dmTimeQyFuncParam_t>::
 getTimeBase(timeMechLevel l) const { 
-  const mech_t *pMech = getMechLevel(l); 
+  const MECH_T *pMech = getMechLevel(l); 
   if(pMech == NULL) {  errLevelNotInstalled();  return timeBase::bStd(); }
   return pMech->getTimeBase();
 }
@@ -154,7 +157,7 @@ getTimeBase(timeMechLevel l) const {
 template<class dmTimeFuncClass_t, class dmTimeQyFuncParam_t>
 inline const string timeMgrBase<dmTimeFuncClass_t, dmTimeQyFuncParam_t>::
 get_rtTimeQueryFuncName(timeMechLevel l) const {
-  const mech_t *pMech = getMechLevel(l);
+  const MECH_T *pMech = getMechLevel(l);
   if(pMech == NULL) {  errLevelNotInstalled();  return string(""); }
   return pMech->get_rtTimeQueryFuncName();
 }
@@ -162,11 +165,11 @@ get_rtTimeQueryFuncName(timeMechLevel l) const {
 // installLevel()
 template<class dmTimeFuncClass_t, class dmTimeQyFuncParam_t>
 inline void timeMgrBase<dmTimeFuncClass_t, dmTimeQyFuncParam_t>::
-installLevel(timeMechLevel l, mech_t::timeAvailFunc_t taf, const timeUnit u, 
-	     const timeBase b, mech_t::timeQueryFunc_t dmTimerFunc,
+installLevel(timeMechLevel l, MECH_T::timeAvailFunc_t taf, const timeUnit u, 
+	     const timeBase b, MECH_T::timeQueryFunc_t dmTimerFunc,
 	     const char *rtTimerFunc, 
-	     mech_t::timeDestroyFunc_t destroyFunc) {
-  mech_t *curMech = new mech_t(taf, u, b, dmTimerFunc,rtTimerFunc,destroyFunc);
+	     MECH_T::timeDestroyFunc_t destroyFunc) {
+  MECH_T *curMech = new MECH_T(taf, u, b, dmTimerFunc,rtTimerFunc,destroyFunc);
   installMechLevel(l, curMech);
 }
 
@@ -174,7 +177,7 @@ installLevel(timeMechLevel l, mech_t::timeAvailFunc_t taf, const timeUnit u,
 template<class dmTimeFuncClass_t, class dmTimeQyFuncParam_t>
 inline timeLength timeMgrBase<dmTimeFuncClass_t, dmTimeQyFuncParam_t>::
 units2timeLength(int64_t rawunits, timeMechLevel l) {
-  mech_t *mechToUse = getMechLevel(l);
+  MECH_T *mechToUse = getMechLevel(l);
   if(mechToUse == NULL) {  errLevelNotInstalled(); return timeLength::Zero(); }
   return timeLength(rawunits, mechToUse->getTimeUnit());
 }
@@ -183,7 +186,7 @@ units2timeLength(int64_t rawunits, timeMechLevel l) {
 template<class dmTimeFuncClass_t, class dmTimeQyFuncParam_t>
 inline timeStamp timeMgrBase<dmTimeFuncClass_t, dmTimeQyFuncParam_t>::
 units2timeStamp(int64_t rawunits, timeMechLevel l) {
-  mech_t *mechToUse = getMechLevel(l);
+  MECH_T *mechToUse = getMechLevel(l);
   if(mechToUse == NULL) {  errLevelNotInstalled(); return timeStamp::tsStd(); }
   return timeStamp(rawunits,mechToUse->getTimeUnit(),mechToUse->getTimeBase());
 }
@@ -192,10 +195,10 @@ units2timeStamp(int64_t rawunits, timeMechLevel l) {
 template<class dmTimeFuncClass_t, class dmTimeQyFuncParam_t>
 inline timeMgrBase<dmTimeFuncClass_t,dmTimeQyFuncParam_t>::timeMechLevel timeMgrBase<dmTimeFuncClass_t,dmTimeQyFuncParam_t>::
 getBestLevel() const { 
-  const mech_t *bestMech = getMechLevel(LEVEL_BEST);
+  const MECH_T *bestMech = getMechLevel(LEVEL_BEST);
   for(timeMechLevel level=LEVEL_ONE; level != LEVEL_BEST ; 
       level=timeMechLevel(int(level)+1)) {
-    const mech_t *tm = getMechLevel(level);
+    const MECH_T *tm = getMechLevel(level);
     if(tm != NULL && tm == bestMech) return level;
   }
   cerr << "Best Level unable to be determined\n";
@@ -332,23 +335,25 @@ class timeMgr<NoClass, dmTimeQyFuncParam_t> :
 };
 */
 
+
 //--- timeMgr: NoClass, NoArgs Specialization ----
 template<>
 class timeMgr<NoClass, NoArgs> : public timeMgrBase<NoClass, NoArgs> {
  public:
+  typedef timeMechanism<NoClass,NoArgs> nmech_t;
 
   timeStamp getTime(timeMechLevel l) {
-    mech_t *mechToUse = getMechLevel(l);
+    nmech_t *mechToUse = getMechLevel(l);
     if(mechToUse == NULL) { errLevelNotInstalled(); return timeStamp::tsStd();}
-    mech_t::timeQueryFunc_t daemonFunc = mechToUse->getDmTimeQueryFunc();
+    nmech_t::timeQueryFunc_t daemonFunc = mechToUse->getDmTimeQueryFunc();
     int64_t rawunits = (*daemonFunc)();
     return timeStamp(rawunits, mechToUse->getTimeUnit(),
 		     mechToUse->getTimeBase());
   }
   int64_t getRawTime(timeMechLevel l) {
-    mech_t *mechToUse = getMechLevel(l);
+    nmech_t *mechToUse = getMechLevel(l);
     if(mechToUse == NULL) { errLevelNotInstalled(); return 0; }
-    mech_t::timeQueryFunc_t daemonFunc = mechToUse->getDmTimeQueryFunc();
+    nmech_t::timeQueryFunc_t daemonFunc = mechToUse->getDmTimeQueryFunc();
     int64_t rawunits = (*daemonFunc)();
     return rawunits;
   }
@@ -356,7 +361,7 @@ class timeMgr<NoClass, NoArgs> : public timeMgrBase<NoClass, NoArgs> {
   //   (ie. best) level
   void determineBestLevels() {
     for(timeMechLevel level=LEVEL_ONE; ; level=timeMechLevel(int(level)+1)) {
-      mech_t *tm = getMechLevel(level);
+      nmech_t *tm = getMechLevel(level);
       if(tm!=NULL && tm->tryAvailable()) {
 	installMechLevel(LEVEL_BEST, tm);
 	break;
@@ -371,5 +376,6 @@ class timeMgr<NoClass, NoArgs> : public timeMgrBase<NoClass, NoArgs> {
 
 
 #endif
+
 
 
