@@ -18,7 +18,13 @@
 
 /************************************************************************
  * RTaix.c: clock access functions for aix.
-************************************************************************/
+ *
+ * $Log: RTetc-aix.c,v $
+ * Revision 1.3  1996/02/13 16:21:57  hollings
+ * Fixed timer64 to be time64.
+ *
+ *
+ ************************************************************************/
 
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -98,9 +104,9 @@ retry:
 
     if (timeSec != timeSec2) goto retry;
     /* convert to correct form. */
-    now = (timer64)timeSec;
-    now *= (timer64)MILLION;
-    now += (timer64)timeNano/(timer64)1000;
+    now = (time64)timeSec;
+    now *= (time64)MILLION;
+    now += (time64)timeNano/(time64)1000;
     return(now);
 }
 
