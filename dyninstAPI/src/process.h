@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.280 2003/12/08 19:03:37 schendel Exp $
+/* $Id: process.h,v 1.281 2004/01/19 21:53:46 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -397,7 +397,6 @@ class process {
   void setPreviousSignalAddr(Address a) { previousSignalAddr_ = a; }
   void savePreSignalStatus() { status_before_signal_ = status_; }
   processState preSignalStatus() const { return status_before_signal_; }
-  int exitCode() const { return exitCode_; }
   pdstring getStatusAsString() const; // useful for debug printing etc.
 
   bool checkContinueAfterStop() {
@@ -576,9 +575,20 @@ class process {
   }
   void independentLwpControlInit();
 
-  bool continueProc();
-  
-  bool terminateProc() { return terminateProc_(); }
+  enum { NoSignal = -1 };   // matches declaration in dyn_lwp.h
+  bool continueProc(int signalToContinueWith = NoSignal);
+
+  // provides ability to block process continues.  done to keep process
+  // stopped until all events associated with process stop have been handled
+  // --------------------------------------
+  void lock_continues() { locked_continues = true; }
+  // unlocks continues, only does one continue if multiple continues have
+  // been queued
+  void unlock_continues();
+  bool hasQueuedContinues() {  return continue_queued; }
+  // --------------------------------------
+
+  bool terminateProc();
   ~process();
   bool pause();
 
@@ -632,7 +642,6 @@ class process {
 
   //removed for output redirection
   //int ioLink;                   /* pipe to transfer stdout/stderr over */
-  procSignalWhat_t exitCode_;                /* termination status code */
   processState status_before_signal_; /* Store the previous proc state */
 
   Address previousSignalAddr_;
@@ -756,8 +765,6 @@ class process {
       // trick to determine the full-path-name, even though "progpath" may
       // be unspecified (empty string)
 
-  bool continueWithForwardSignal(int sig); // arch-specific implementation
-  
   // Used when we get traps for both child and parent of a fork.
   int childPid;
   int parentPid;
@@ -952,7 +959,15 @@ class process {
   pdvector<module *> *getIncludedModules();
 #endif
 
-  void handleProcessExit(int exitCode);
+  void triggerNormalExitCallback(int exitCode);
+  void triggerSignalExitCallback(int signalnum);  
+  
+  // triggering normal exit callback and cleanup process happen at different
+  // times.  if triggerSignalExitCallback is called, this function should
+  // also be called at the same time.
+
+  // this function makes no callback to dyninst but only does cleanup work
+  void handleProcessExit();
 
   // getBaseAddress: sets baseAddress to the base address of the 
   // image corresponding to which.  It returns true  if image is mapped
@@ -1036,10 +1051,6 @@ class process {
      return threads[0];
   }
 
-  void overrideRepresentativeLWP(dyn_lwp *lwp);
-  dyn_lwp *saved_process_lwp;
-  void restoreRepresentativeLWP();
-  
   dyn_thread *createInitialThread();
   dyn_lwp *createRepresentativeLWP();
 
@@ -1162,7 +1173,24 @@ public:
    bool reinstallMutations();
 #endif /* BPATCH_SET_MUTATIONS_ACTIVE */
 
+#if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11)
+   void set_windows_termination_requested(bool val) {
+      windows_termination_requested = val;   
+   }
+   bool get_windows_termination_requested() {
+      return windows_termination_requested;
+   }
+
+ private:
+   bool windows_termination_requested;
+#endif
+
 private:
+  bool locked_continues;
+  bool continue_queued;
+  int signal_for_queued_cont;
+
+
   bool createdViaAttach;
      // set in the ctor.  True iff this process was created with an attach,
      // as opposed to being fired up by paradynd.  On fork, has the value of
