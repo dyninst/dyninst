@@ -1,7 +1,10 @@
 /* $Log: visualization.h,v $
-/* Revision 1.2  1994/03/17 05:13:41  newhall
-/* change callback type
+/* Revision 1.3  1994/04/13 21:23:15  newhall
+/* added routines: GetMetsRes, StopMetRes, NamePhase
 /*
+ * Revision 1.2  1994/03/17  05:13:41  newhall
+ * change callback type
+ *
  * Revision 1.1  1994/03/14  20:27:33  newhall
  * changed visi subdirectory structure
  *  */ 
@@ -36,8 +39,14 @@ extern int (*fileDescCallbacks[FILETABLESIZE])();
 extern int (*eventCallbacks[EVENTSIZE])(int);
 
 // for calling paradyn-visualization interface routines
-extern visualization *vp;
 extern int visi_callback();
+extern visualization *vp;
+
+// these invoke upcalls to a visi interface client
+// (call from visualization process to paradyn)
+extern void GetMetsRes(char *metrics,char *resource,int type);
+extern void StopMetRes(int metricId,int resourceId);
+extern void NamePhase(double begin,double end,char *name); 
 
 
 ////////////////////////////////////////////////////////////////
