@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.62 2004/03/02 22:46:04 bernat Exp $
+// $Id: osf.C,v 1.63 2004/03/05 16:51:22 bernat Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -62,6 +62,7 @@
 #include <sys/procfs.h>
 #include <sys/poll.h>
 #include <sys/fault.h>
+#include <dlfcn.h>
 
 #include "common/h/osfKludges.h"
 #include "dyninstAPI/src/rpcMgr.h"
@@ -77,6 +78,8 @@
 extern bool exists_executable(const pdstring &fullpathname);
 
 extern unsigned enable_pd_attach_detach_debug;
+
+  extern void generateBreakPoint(instruction &);
 
 #if ENABLE_DEBUG_CERR == 1
 #define attach_cerr if (enable_pd_attach_detach_debug) cerr
@@ -109,7 +112,6 @@ bool rpcMgr::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
 
 
   extern void generate_nop(instruction*);
-  extern void generateBreakPoint(instruction &);
   extern void emitRestoreConservative(process *, char *, Address &baseBytes);
 
   emitRestoreConservative(proc_, (char *) insnPtr, baseBytes);
@@ -292,6 +294,7 @@ static inline bool execResult(prstatus_t stat)
 #endif
 
 
+#if 0
 #ifdef BPATCH_LIBRARY
 int process::waitforRPC(int *status, bool /* block */)
 {
@@ -340,6 +343,7 @@ int process::waitforRPC(int *status, bool /* block */)
     }
   return 0;
 }
+#endif
 #endif
 
 procSyscall_t decodeSyscall(process *p, procSignalWhat_t syscall)
@@ -897,3 +901,357 @@ void dyn_lwp::representativeLWP_detach_()
 
 
 void loadNativeDemangler() {}
+
+
+
+
+bool process::trapDueToDyninstLib()
+{
+  Address pc;
+  prstatus_t stat;
+
+  if (dyninstlib_brk_addr == 0) return false;
+
+  if (ioctl(getRepresentativeLWP()->get_fd(), PIOCSTATUS, &stat) < 0) {
+      perror("ioctl");
+  }
+
+  //pc = Frame(this).getPC();
+  pc = getRepresentativeLWP()->getActiveFrame().getPC();
+
+  // printf("testing for trap at entry to DyninstLib, current pc = 0x%lx\n",pc);
+  // printf("    breakpoint addr = 0x%lx\n", dyninstlib_brk_addr);
+
+  bool ret = (pc == dyninstlib_brk_addr);
+
+  // XXXX - Hack, Tru64 is giving back an invalid pc here, we check for a pc == 0 and
+  //   conclude if we are waiting for a trap for dlopen, then this must be it.
+  //   Need to figure out why this happens. - jkh 1/30/02
+  if (!ret && (stat.pr_reg.regs[31] == 0)) ret = true;
+
+  return ret;
+}
+
+bool process::loadDYNINSTlibCleanup()
+{
+    dyninstlib_brk_addr = 0x0;
+    
+  // restore code and registers
+  bool err;
+  Address code = findInternalAddress("_start", false, err);
+  assert(code);
+  writeDataSpace((void *)code, sizeof(savedCodeBuffer), savedCodeBuffer);
+
+  getRepresentativeLWP()->restoreRegisters(*savedRegs);
+
+  delete savedRegs;
+  savedRegs = NULL;
+  dyninstlib_brk_addr = 0;
+
+  return true;
+}
+
+
+
+
+
+bool osfTestProc(int proc_fd, const void *mainLoc)
+// This function is used to test if the child program is
+// ready to be read or written to.  mainLoc should be the
+// address of main() in the mutatee.
+//
+// See process::insertTrapAtEntryPointOfMain() below for a
+// detailed explination of why this function is needed.
+//
+// Ray Chen 6/18/2002
+{
+    return (lseek(proc_fd, reinterpret_cast<off_t>(mainLoc), SEEK_SET) == (off_t)mainLoc);
+}
+
+void osfWaitProc(int fd)
+{
+    int ret;
+    struct pollfd pollFD;
+    struct prstatus status;
+
+    // now wait for the signal
+    memset(&pollFD, '\0', sizeof(pollFD));
+    pollFD.fd = fd;
+    pollFD.events = POLLPRI | POLLNORM;
+    pollFD.revents = 0;
+    ret = poll(&pollFD, 1, -1);
+    if (ret < 0) {
+	 pdstring msg("poll failed");
+	 showErrorCallback(101, msg);
+	 return;
+    }
+
+    if (ioctl(fd, PIOCSTATUS, &status) < 0) {
+	 pdstring msg("PIOCSTATUS failed");
+	 showErrorCallback(101, msg);
+	 return;
+    }
+#ifdef DEBUG
+    printf("status = %d\n", status.pr_why);
+    if (status.pr_flags & PR_STOPPED) {
+        if (status.pr_why == PR_SIGNALLED) {
+            printf("stopped for signal %d\n", status.pr_what);
+        } else if (status.pr_why == PR_FAULTED) {
+            printf("stopped for fault %d\n", status.pr_what);
+        } else if (status.pr_why == PR_SYSEXIT) {
+            printf("stopped for exist system call %d\n", status.pr_what);
+        } else {
+            printf("stopped for pr+why = %d\n", status.pr_why);
+        }
+    } else {
+        printf("process is *not* stopped\n");
+    }
+#endif
+}
+
+/*
+ * Place a trap at the entry point to main.  We need to prod the program
+ *    along a bit since at the entry to this function, the program is in
+ *    the dynamic loader and has not yet loaded the segment that contains
+ *    main.  All we need to do is wait for a SIGTRAP that the loader gives
+ *    us just after it completes loading.
+ */
+bool process::insertTrapAtEntryPointOfMain()
+{
+  // XXX - Should check if it's statically linked and skip the prod. - jkh
+  // continueProc_();
+  // waitProc(proc_fd, SIGTRAP);
+
+  // continueProc_();
+  // waitProc(proc_fd, SIGTRAP);
+
+  // save trap address: start of main()
+  // TODO: use start of "_main" if exists?
+  bool err;
+  int countdown = 10;
+
+  main_brk_addr = findInternalAddress("main", false, err);
+  if (!main_brk_addr) {
+      // failed to locate main
+      showErrorCallback(108,"Failed to locate main().\n");
+      return false;
+  }
+  assert(main_brk_addr);
+
+  // dumpMap(proc_fd);
+
+  while (!osfTestProc(getRepresentativeLWP()->get_fd(), (void *)main_brk_addr))
+  {
+      // POSSIBLE BUG:  We expect the first SIGTRAP to occur after a
+      // successful exec call, but we seem to get an early signal.
+      // At the time of the first SIGTRAP, attempts to read or write the
+      // child data space fail.
+      //
+      // If the child is instructed to continue, it will eventually stop
+      // in a useable state (before the first instruction of main).  However,
+      // a SIGTRAP will *NOT* be generated on the second stop.  PROCFS also
+      // stops in a strange state (prstatus_t.pr_info.si_code == 0).
+      //
+      // Looks like this code was in place before.  I don't know why it was
+      // removed. (I renamed waitProc() to osfWaitProc() to avoid confusion
+      // with process' waitProcs() class method)
+      //
+      // Ray Chen 03/22/02
+      if (--countdown < 0) {
+         // looped too many times.
+         showErrorCallback(108, "Could not access mutatee (even after 10 tries).\n");
+         return false;
+      }
+      
+      getRepresentativeLWP()->continueLWP_(NoSignal);
+      osfWaitProc(getRepresentativeLWP()->get_fd());
+  }
+  readDataSpace((void *)main_brk_addr, INSN_SIZE, savedCodeBuffer, true);
+
+  // insert trap instruction
+  instruction trapInsn;
+  generateBreakPoint(trapInsn);
+
+  writeDataSpace((void *)main_brk_addr, INSN_SIZE, &trapInsn);
+  return true;
+}
+
+bool process::trapAtEntryPointOfMain(Address)
+{
+  Address pc;
+
+  if (main_brk_addr == 0) return false;
+
+  //pc = Frame(this).getPC();
+  pc = getRepresentativeLWP()->getActiveFrame().getPC();
+
+  // printf("testing for trap at enttry to main, current pc = %lx\n", pc);
+
+  bool ret = (pc == main_brk_addr);
+  // if (ret) fprintf(stderr, ">>> process::trapAtEntryPointOfMain()\n");
+  return ret;
+}
+
+bool process::handleTrapAtEntryPointOfMain()
+{
+    // restore original instruction to entry point of main()
+    writeDataSpace((void *)main_brk_addr, INSN_SIZE, savedCodeBuffer);
+
+    // set PC to be value at the address.
+   gregset_t theIntRegs;
+   dyn_lwp *replwp = getRepresentativeLWP();
+   if (ioctl(replwp->get_fd(), PIOCGREG, &theIntRegs) == -1) {
+      perror("dyn_lwp::getRegisters PIOCGREG");
+      if (errno == EBUSY) {
+         cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
+         assert(false);
+      }
+      return false;
+   }
+   theIntRegs.regs[PC_REGNUM] -= 4;
+   replwp->changePC(theIntRegs.regs[PC_REGNUM], NULL);
+   
+   prstatus info;
+   ioctl(replwp->get_fd(), PIOCSTATUS,  &info);
+   while (!prismember(&info.pr_flags, PR_STOPPED))
+   {
+       sleep(1);
+       ioctl(replwp->get_fd(), PIOCSTATUS,  &info);
+   }
+   if (ioctl(replwp->get_fd(), PIOCSREG, &theIntRegs) == -1) {
+       perror("dyn_lwp::getRegisters PIOCGREG");
+       if (errno == EBUSY) {
+           cerr << "It appears that the process was not stopped in the eyes of /proc" << endl;
+           assert(false);
+       }
+       return false;
+   }
+   return true;
+}
+
+
+bool process::getDyninstRTLibName() {
+   if (dyninstRT_name.length() == 0) {
+      // Get env variable
+      if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
+         dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
+      }
+      else {
+         pdstring msg = pdstring("Environment variable ") +
+                        pdstring("DYNINSTAPI_RT_LIB") +
+                        pdstring(" has not been defined for process ") +
+                        pdstring(pid);
+         showErrorCallback(101, msg);
+         return false;
+      }
+   }
+   // Check to see if the library given exists.
+   if (access(dyninstRT_name.c_str(), R_OK)) {
+      pdstring msg = pdstring("Runtime library ") + dyninstRT_name +
+                     pdstring(" does not exist or cannot be accessed!");
+      showErrorCallback(101, msg);
+      return false;
+   }
+   return true;
+}
+
+
+
+bool process::loadDYNINSTlib()
+{
+    //fprintf(stderr, ">>> process::loadDYNINSTlib()\n");
+
+  // use "_start" as scratch buffer to invoke dlopen() on DYNINST
+  bool err;
+  extern bool skipSaveCalls;
+  Address baseAddr = findInternalAddress("_start", false, err);
+  assert(baseAddr);
+  char buf_[BYTES_TO_SAVE];
+  char *buf = buf_;
+  instruction illegalInsn;
+  Address bufSize = 0;
+
+  memset(buf, '\0', BYTES_TO_SAVE);
+
+  // step 0: illegal instruction (code)
+  extern void generateIllegalInsn(instruction &);
+  generateIllegalInsn((instruction &) illegalInsn);
+  bcopy((char *) &illegalInsn, buf, INSN_SIZE);
+  bufSize += INSN_SIZE;
+
+  // step 1: DYNINST library string (data)
+  Address libAddr = baseAddr + bufSize;
+#ifdef BPATCH_LIBRARY
+  char *libVar = "DYNINSTAPI_RT_LIB";
+#else
+  char *libVar = "PARADYN_LIB";
+#endif
+  char *libName = getenv(libVar);
+  if (!libName) {
+    pdstring msg = pdstring("Environment variable DYNINSTAPI_RT_LIB is not defined,"
+        " should be set to the pathname of the dyninstAPI_RT runtime library.");
+    showErrorCallback(101, msg);
+    return false;
+  }
+
+  int libSize = strlen(libName) + 1;
+  strcpy((char *) &buf[bufSize], libName);
+
+  int npad = INSN_SIZE - (libSize % INSN_SIZE);
+  bufSize += (libSize + npad);
+
+  // step 2: inferior dlopen() call (code)
+  Address codeAddr = baseAddr + bufSize;
+
+  extern registerSpace *createRegisterSpace();
+  registerSpace *regs = createRegisterSpace();
+
+  pdvector<AstNode*> args(2);
+  AstNode *call;
+  pdstring callee = "dlopen";
+  // inferior dlopen(): build AstNodes
+  args[0] = new AstNode(AstNode::Constant, (void *)libAddr);
+  args[1] = new AstNode(AstNode::Constant, (void *)RTLD_NOW);
+  call = new AstNode(callee, args);
+  removeAst(args[0]);
+  removeAst(args[1]);
+
+  // inferior dlopen(): generate code
+  regs->resetSpace();
+
+  skipSaveCalls = true;		// don't save register, we've done it!
+  call->generateCode(this, regs, buf, bufSize, true, true);
+  skipSaveCalls = false;
+
+  removeAst(call);
+
+  // save registers and "_start" code
+  readDataSpace((void *)baseAddr, BYTES_TO_SAVE, (void *) savedCodeBuffer,true);
+  savedRegs = new dyn_saved_regs;
+  bool status = getRepresentativeLWP()->getRegisters(savedRegs);
+  assert(status == true);
+
+  // step 3: trap instruction (code)
+  Address trapAddr = baseAddr + bufSize;
+  instruction bkpt;
+  generateBreakPoint((instruction &) bkpt);
+  bcopy((char *) &bkpt, &buf[bufSize], INSN_SIZE);
+  bufSize += INSN_SIZE;
+
+  // step 4: write inferior dlopen code and set PC
+  assert(bufSize <= BYTES_TO_SAVE);
+  // fprintf(stderr, "writing %ld bytes to <0x%08lx:_start>, $pc = 0x%lx\n",
+      // bufSize, baseAddr, codeAddr);
+  // fprintf(stderr, ">>> loadDYNINSTlib <0x%lx(_start): %ld insns>\n",
+      // baseAddr, bufSize/INSN_SIZE);
+  writeDataSpace((void *)baseAddr, bufSize, (void *)buf);
+  bool ret = getRepresentativeLWP()->changePC(codeAddr, savedRegs);
+  assert(ret);
+
+  dyninstlib_brk_addr = trapAddr;
+  setBootstrapState(loadingRT);
+  
+  return true;
+}
+
+

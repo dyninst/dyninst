@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.74 2004/03/02 22:46:02 bernat Exp $
+// $Id: irix.C,v 1.75 2004/03/05 16:51:21 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -79,6 +79,7 @@
 #include <sys/timers.h>   // PTIMER macros
 #include <sys/hwperfmacros.h> // r10k_counter macros 
 #include <sys/hwperftypes.h>  // r10k_counter types
+#include <dlfcn.h>
 
 
 extern unsigned enable_pd_inferior_rpc_debug;
@@ -1540,4 +1541,202 @@ void loadNativeDemangler() {}
 Frame dyn_thread::getActiveFrameMT() {
    return Frame();
 }  // not used until MT supported
+
+
+bool process::trapDueToDyninstLib()
+{
+  Address pc = getRepresentativeLWP()->getActiveFrame().getPC();
+  bool ret = (pc == dyninstlib_brk_addr);
+  //if (ret) fprintf(stderr, ">>> process::trapDueToDyninstLib()\n");
+  return ret;
+}
+
+bool process::trapAtEntryPointOfMain(Address)
+{
+  Address pc = getRepresentativeLWP()->getActiveFrame().getPC();
+  bool ret = (pc == main_brk_addr);
+  //if (ret) fprintf(stderr, ">>> process::trapAtEntryPointOfMain(true)\n");
+  return ret;
+}
+
+/* insertTrapAtEntryPointOfMain(): For some Fortran apps, main() is
+   defined in a shared library.  If main() cannot be found, then we
+   check if the executable image contained a call to main().  This is
+   usually inside __start(). */
+bool process::insertTrapAtEntryPointOfMain()
+{
+    // insert trap near "main"
+    main_brk_addr = lookup_fn(this, "main");
+    if (main_brk_addr == 0) {
+        main_brk_addr = getImage()->get_main_call_addr();
+    }
+    if (!main_brk_addr) return false;
+    
+    // save original instruction
+    if (!readDataSpace((void *)main_brk_addr, INSN_SIZE, savedCodeBuffer, true))
+        return false;
+    
+    // insert trap instruction
+    instruction trapInsn;
+    genTrap(&trapInsn);
+    if (!writeDataSpace((void *)main_brk_addr, INSN_SIZE, &trapInsn))
+        return false;
+    return true;
+}
+
+bool process::handleTrapAtEntryPointOfMain()
+{
+  // restore original instruction to entry point of main()
+    if (!writeDataSpace((void *)main_brk_addr, INSN_SIZE, savedCodeBuffer))
+        return false;
+    return true;
+}
+
+
+bool process::getDyninstRTLibName() {
+    // find runtime library
+    char *rtlib_var;
+    char *rtlib_prefix;
+    
+    rtlib_var = "DYNINSTAPI_RT_LIB";
+    rtlib_prefix = "libdyninstAPI_RT";
+    
+    if (!dyninstRT_name.length()) {
+        dyninstRT_name = getenv(rtlib_var);
+        if (!dyninstRT_name.length()) {
+            pdstring msg = pdstring("Environment variable ") + pdstring(rtlib_var)
+            + pdstring(" has not been defined for process ") + pdstring(pid);
+            showErrorCallback(101, msg);
+            return false;
+        }
+    }
+    
+    const char *rtlib_val = dyninstRT_name.c_str();
+    assert(strstr(rtlib_val, rtlib_prefix));
+    
+    // for 32-bit apps, modify the rtlib environment variable
+    char *rtlib_mod = "_n32";
+    if (!getImage()->getObject().is_elf64() &&
+        !strstr(rtlib_val, rtlib_mod)) 
+    {
+        char *rtlib_suffix = ".so.1";
+        // truncate suffix
+        char *ptr_suffix = strstr(rtlib_val, rtlib_suffix);
+        assert(ptr_suffix);
+        *ptr_suffix = 0;
+        // construct environment variable
+        char buf[512];
+        sprintf(buf, "%s=%s%s%s", rtlib_var, rtlib_val, rtlib_mod, rtlib_suffix);
+        dyninstRT_name = pdstring(rtlib_val)+pdstring(rtlib_mod)+pdstring(rtlib_suffix);
+    }
+
+    if (access(dyninstRT_name.c_str(), R_OK)) {
+        pdstring msg = pdstring("Runtime library ") + dyninstRT_name
+        + pdstring(" does not exist or cannot be accessed!");
+        showErrorCallback(101, msg);
+        assert(0 && "Dyninst RT lib cannot be accessed!");
+        return false;
+    }
+    return true;
+}
+
+
+bool process::loadDYNINSTlib()
+{
+  //fprintf(stderr, ">>> loadDYNINSTlib()\n");
+
+  // use "_start" as scratch buffer to invoke dlopen() on DYNINST
+  Address baseAddr = lookup_fn(this, "_start");
+  char buf_[BYTES_TO_SAVE], *buf = buf_;
+  Address bufSize = 0;
+  
+  // step 0: illegal instruction (code)
+  genIll((instruction *)(buf + bufSize));
+  bufSize += INSN_SIZE;
+  
+  // step 1: DYNINST library pdstring (data)
+  //Address libStart = bufSize; // debug
+  Address libAddr = baseAddr + bufSize;
+  if (access(dyninstRT_name.c_str(), R_OK)) {
+       pdstring msg = pdstring("Runtime library ") + dyninstRT_name + 
+                    pdstring(" does not exist or cannot be accessed");
+       showErrorCallback(101, msg);
+       return false;
+  }
+  int libSize = strlen(dyninstRT_name.c_str()) + 1;
+  strcpy(buf + bufSize, dyninstRT_name.c_str());
+  bufSize += libSize;
+  // pad to aligned instruction boundary
+  if (!isAligned(baseAddr + bufSize)) {
+    int npad = INSN_SIZE - ((baseAddr + bufSize) % INSN_SIZE);
+    for (int i = 0; i < npad; i++)
+      buf[bufSize + i] = 0;
+    bufSize += npad;
+    assert(isAligned(baseAddr + bufSize));
+  }
+
+  // step 2: inferior dlopen() call (code)
+  Address codeAddr = baseAddr + bufSize;
+  registerSpace *regs = new registerSpace(nDead, Dead, 0, (Register *)0);
+  pdvector<AstNode*> args(2);
+  int dlopen_mode = RTLD_NOW | RTLD_GLOBAL;
+  AstNode *call;
+  pdstring callee = "dlopen";
+  // inferior dlopen(): build AstNodes
+  args[0] = new AstNode(AstNode::Constant, (void *)libAddr);
+  args[1] = new AstNode(AstNode::Constant, (void *)dlopen_mode);
+  call = new AstNode(callee, args);
+  removeAst(args[0]);
+  removeAst(args[1]);
+  // inferior dlopen(): generate code
+  regs->resetSpace();
+  //Address codeStart = bufSize; // debug
+  call->generateCode(this, regs, buf, bufSize, true, true);
+  removeAst(call);
+  
+  // step 3: trap instruction (code)
+  Address trapAddr = baseAddr + bufSize;
+  genTrap((instruction *)(buf + bufSize));
+  bufSize += INSN_SIZE;
+  //int trapEnd = bufSize; // debug
+
+  // debug
+  /*
+  fprintf(stderr, "inferior dlopen code: (%i bytes)\n", bufSize);
+  dis(buf, baseAddr);
+  fprintf(stderr, "%0#10x      \"%s\"\n", baseAddr + libStart, buf + libStart);
+  for (int i = codeStart; i < bufSize; i += INSN_SIZE) {
+    dis(buf + i, baseAddr + i);
+  }
+  */
+  
+  // save registers and "_start" code
+  readDataSpace((void *)baseAddr, BYTES_TO_SAVE, savedCodeBuffer, true);
+  assert(savedRegs == NULL);
+  savedRegs = new dyn_saved_regs;
+  bool status = getRepresentativeLWP()->getRegisters(savedRegs);
+  assert(status == true);
+
+  // write inferior dlopen code and set PC
+  assert(bufSize <= BYTES_TO_SAVE);
+  //fprintf(stderr, "writing %i bytes to <0x%08x:_start>, $pc = 0x%08x\n",
+  //bufSize, baseAddr, codeAddr);
+  //fprintf(stderr, ">>> loadDYNINSTlib <0x%08x(_start): %i insns>\n",
+  //baseAddr, bufSize/INSN_SIZE);
+  writeDataSpace((void *)baseAddr, bufSize, (void *)buf);
+  bool ret = getRepresentativeLWP()->changePC(codeAddr, savedRegs);
+  assert(ret);
+
+  // debug
+  /*
+  fprintf(stderr, "inferior dlopen code: (%i bytes)\n", bufSize - codeStart);
+  disDataSpace(this, (void *)(baseAddr + codeStart), 
+	       (bufSize - codeStart) / INSN_SIZE, "  ");
+  */
+
+  dyninstlib_brk_addr = trapAddr;
+  setBootstrapState(loadingRT);
+
+  return true;
+}
 
