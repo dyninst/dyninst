@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.27 2004/05/31 04:33:48 legendre Exp $
+ * $Id: Object-nt.h,v 1.28 2005/02/24 23:24:14 lharris Exp $
 ************************************************************************/
 
 
@@ -239,7 +239,10 @@ public:
 
 	bool isForwarded( Address addr );
 	bool isEEL() const { return false; }
-
+    bool isText( const Address& addr ) const 
+    {
+        return( addr >= code_off_ && addr <= code_len_ );
+    }
 	Address get_base_addr() const { return baseAddr;} //ccw 20 july 2000
 #if defined(mips_unknown_ce2_11) //ccw 28 mar 2001
 	bool set_gp_value(Address addr) {  gp_value = addr; return true;} //ccw 27 july 2000

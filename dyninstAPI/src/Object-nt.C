@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.29 2004/09/07 16:27:34 legendre Exp $
+// $Id: Object-nt.C,v 1.30 2005/02/24 23:24:13 lharris Exp $
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -54,7 +54,7 @@
 #include "dyninstAPI/src/CodeView.h"
 #include "dyninstAPI/src/Object.h"
 #include "dyninstAPI/src/Object-nt.h"
-
+#include "dyninstAPI/src/arch-x86.h"
 
 bool pd_debug_export_symbols = false;
 
@@ -566,6 +566,7 @@ Object::ParseDebugInfo( void )
     assert( hFile != INVALID_HANDLE_VALUE );
 
     // find the sections we need to know about (.text and .data)
+	cerr << file_.c_str();	
 	FindInterestingSections( hProc, hFile );
 
     // load symbols for this module
@@ -608,6 +609,55 @@ Object::ParseDebugInfo( void )
 	curModule->BuildSymbolMap( this );
     curModule->DefineSymbols( this, symbols_ );
 
+    //find main if the binary is stripped
+    if( symbols_.size() <= 1 )
+    if( !( peHdr->FileHeader.Characteristics & IMAGE_FILE_DLL ) )
+    {
+        pdvector< Address > callTargets;
+        Address eAddr = peHdr->OptionalHeader.AddressOfEntryPoint;
+
+        const unsigned char* p;
+        p = (const unsigned char*)( ImageRvaToVa( peHdr, mapAddr, eAddr, 0 ));
+
+          
+        instruction insn;
+        insn.getNextInstruction( p );
+     
+        
+
+        Address curr = eAddr;
+        while( !insn.isReturn() )
+        {
+            if( insn.isCall() )
+                callTargets.push_back( insn.getTarget( curr ) );
+            
+            curr += insn.size();
+            p += insn.size();
+            insn.getNextInstruction( p );
+            
+        }
+
+        //make up a symbol for default module too
+        symbols_["DEFAULT_MODULE"] = ::Symbol( "DEFAULT_MODULE",
+                                            "DEFAULT_MODULE",
+                                            ::Symbol::PDST_MODULE,
+                                            ::Symbol::SL_GLOBAL,
+                                            code_off(),
+                                            0,
+                                            0);
+
+        //main seems to always be the third to last call in 
+        //mainCRTStartup
+        
+        Address mainAddr = callTargets[ callTargets.size() - 3 ] + baseAddr;
+        
+        ::Symbol mainSym( "main", "DEFAULT_MODULE", ::Symbol::PDST_FUNCTION,
+                       ::Symbol::SL_GLOBAL, mainAddr, 0, (unsigned) -1 );
+
+        symbols_[ "main" ] = mainSym;
+    }
+    
+ 
     // tell the symbol handler it can cleanup this module's symbols
 	// TODO do we do this here, or do we wait till the destructor?
     if( !SymUnloadModule64( hProc, (DWORD64)baseAddr ) )
@@ -615,6 +665,7 @@ Object::ParseDebugInfo( void )
         // TODO how to indicate the error
         fprintf( stderr, "SymUnloadModule64 failed: %x\n", GetLastError() );
     }
+ 
 
     // Since PE-COFF is very similar to COFF (in that it's not like ELF),
     // the .text and .data sections are perfectly mapped to code/data segments
