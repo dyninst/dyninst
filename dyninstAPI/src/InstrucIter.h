@@ -154,11 +154,11 @@ public:
 #endif
     }
         
-   InstrucIter(const BPatch_basicBlock* bpBasicBlock) :
-       addressProc(bpBasicBlock->flowGraph->getProcess()),
-       addressImage(bpBasicBlock->flowGraph->getModule()->exec()),
-       baseAddress(bpBasicBlock->startAddress),
-       range(bpBasicBlock->endAddress - bpBasicBlock->startAddress + sizeof(instruction)),
+   InstrucIter( const BPatch_basicBlock* bpBasicBlock) :
+       addressProc( bpBasicBlock->flowGraph->getProcess()),
+       addressImage( bpBasicBlock->flowGraph->getModule()->exec()),
+       baseAddress( bpBasicBlock->startAddress ),
+       range( bpBasicBlock->size() ),
        currentAddress(bpBasicBlock->startAddress)
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) ||\
@@ -223,23 +223,20 @@ public:
    * it assumes the currentAddress of the handle instance points to the
    * multi branch instruction
    */
-  void getMultipleJumpTargets(BPatch_Set<Address>& result
+
 #if defined(i386_unknown_linux2_0) ||\
     defined(i386_unknown_solaris2_5) ||\
-    defined(i386_unknown_nt4_0)
-                              ,InstrucIter& mayUpdate
-#endif
-      );
+    defined(i386_unknown_nt4_0)	
+bool getMultipleJumpTargets( pdvector<Address>& result, 
+                             instruction& tableInsn, 
+                             instruction& maxSwitchInsn, 
+                             bool isAddressInJmp );
+#else
 
-void getMultipleJumpTargets( pdvector<Address>& result
-#if defined(i386_unknown_linux2_0) ||\
-       defined(i386_unknown_solaris2_5) ||\
-       defined(i386_unknown_nt4_0)					 
-			     ,instruction& tableInsn, 
-			     instruction& maxSwitchInsn, 
-			     bool isAddressInJmp
+void getMultipleJumpTargets( BPatch_Set< Address >& result );
+
 #endif
-    );
+
 
   /** method that returns true if there are more instructions to iterate */
   bool hasMore();
@@ -280,7 +277,7 @@ void getMultipleJumpTargets( pdvector<Address>& result
   Address operator-- (int);
 
   /* Predicates */
-
+   
   bool isALeaveInstruction();
   bool isIndir();
   bool isAReturnInstruction();
