@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.C,v 1.21 2002/02/12 15:42:05 chadd Exp $
+// $Id: solarisDL.C,v 1.22 2002/05/13 19:52:42 mjbrim Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/solarisDL.h"
@@ -288,7 +288,7 @@ vector<shared_object *> *dynamic_linking::processLinkMaps(process *p) {
 	   obj_name != p->getArgv0() &&
            link_elm.l_addr != 65536 &&
            obj_name != "(unknown)"
-           //strncmp(obj_name.string_of(), "(unknown)", 10)
+           //strncmp(obj_name.c_str(), "(unknown)", 10)
            ) {
 	   sharedobj_cerr << 
 	       "file name doesn't match image, so not ignoring it...firsttime=" 
@@ -613,8 +613,8 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(process *proc,
 		if(change_type == 1) { // RT_ADD
 			for(int index = 0; index < (*changed_objects)->size(); index++){
 				char *tmpStr = new char[
-					1+strlen((*(*changed_objects))[index]->getName().string_of())];
-				strcpy(tmpStr,(*(*changed_objects))[index]->getName().string_of());
+					1+strlen((*(*changed_objects))[index]->getName().c_str())];
+				strcpy(tmpStr,(*(*changed_objects))[index]->getName().c_str());
 				if( !strstr(tmpStr, "libdyninstAPI_RT.so") && 
 			    		!strstr(tmpStr, "libelf.so")){
 					//printf(" dlopen: %s \n", tmpStr);

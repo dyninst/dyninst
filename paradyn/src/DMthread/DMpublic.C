@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.128 2002/04/09 18:05:55 mjbrim Exp $
+// $Id: DMpublic.C,v 1.129 2002/05/13 19:53:02 mjbrim Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -371,7 +371,7 @@ void dataManager::saveAllData (const char *dirname, SaveRequestType optionFlag)
   // create index file
   string indexFileName = dir + "index";
 
-  ofstream indexFile (indexFileName.string_of(), ios::out);
+  ofstream indexFile (indexFileName.c_str(), ios::out);
   if (!indexFile) {
     success = false;
   } else {
@@ -384,7 +384,7 @@ void dataManager::saveAllData (const char *dirname, SaveRequestType optionFlag)
       if (activeMI == NULL)
 	continue;
       if (! (activeMI->saveAllData (indexFile, findex, 
-				   dir.string_of(), optionFlag))) {
+				   dir.c_str(), optionFlag))) {
 	success = false;
 	break;
       }
@@ -400,7 +400,7 @@ dataManager::saveAllResources (const char *dirname)
   bool success = true;
   string dir = string (dirname) + string("/resources");
 
-  ofstream saveFile (dir.string_of(), ios::out);
+  ofstream saveFile (dir.c_str(), ios::out);
   if (!saveFile) {
     success = false;
   } else {
@@ -1333,7 +1333,7 @@ resourceHandle dataManager::newResource(resourceHandle parent,
     string res = resource::resources[parent]->getFullName();
     res += string("/");
     res += string(newResource);
-    char *word = strdup(res.string_of());
+    char *word = strdup(res.c_str());
     string next;
     vector<string> temp;
     unsigned j=1;
@@ -1349,7 +1349,7 @@ resourceHandle dataManager::newResource(resourceHandle parent,
     temp += next;
     string base = string("BASE");
     resourceHandle r = createResource(parent, temp, res, base);  
-    paradynDaemon::tellDaemonsOfResource(res.string_of(),newResource);
+    paradynDaemon::tellDaemonsOfResource(res.c_str(),newResource);
     return(r);
 }
 #endif

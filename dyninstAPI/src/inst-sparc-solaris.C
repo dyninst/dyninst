@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.104 2002/04/25 22:51:45 gaburici Exp $
+// $Id: inst-sparc-solaris.C,v 1.105 2002/05/13 19:52:14 mjbrim Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1297,7 +1297,7 @@ Register emitFuncCall(opCode op,
         for (unsigned u=0; u<srcs.size(); u++){
             if (u >= 5) {
 	         string msg = "Too many arguments to function call in instrumentation code: only 5 arguments can be passed on the sparc architecture.\n";
-		 fprintf(stderr, msg.string_of());
+		 fprintf(stderr, msg.c_str());
 	         showErrorCallback(94,msg);
 		 cleanUpAndExit(-1);
             }
@@ -2342,7 +2342,7 @@ bool pd_Function::findInstPoints(const image *owner) {
       Address call_target = adr + (instr.call.disp30 << 2);
       if(instr.call.op == CALLop) { 
         if(call_target == adr){ 
-          cerr << "WARN : function " << prettyName().string_of()
+          cerr << "WARN : function " << prettyName().c_str()
                << " has call to same location as call, NOT instrumenting"
                << endl;
 	  return false;
@@ -2621,7 +2621,7 @@ bool pd_Function::checkInstPoints(const image *owner) {
     // we can't deal with this...the only example I can find is _cerror
     // and _cerror64 in libc.so.1
     if(retl_inst && !noStackFrame && !restore_inst){ 
-        //cerr << "WARN : function " << prettyName().string_of()
+        //cerr << "WARN : function " << prettyName().c_str()
         //     << " retl instruction in non-leaf function, can't instrument"
         //      << endl;
 	return false;
@@ -3353,7 +3353,7 @@ bool pd_Function::loadCode(const image *owner, process* /* proc */,
 
 #ifdef DEBUG_PA_INST
     cerr << "pd_Function::loadCode called " << endl;
-    cerr << " prettyName = " << prettyName().string_of() << endl;
+    cerr << " prettyName = " << prettyName().c_str() << endl;
     cerr << " size() = " << size() << endl;
 #endif
 

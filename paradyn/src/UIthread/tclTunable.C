@@ -42,7 +42,7 @@
 // tclTunable.C
 // C++ code that provides access to tunable constants from tcl.
 
-/* $Id: tclTunable.C,v 1.20 2001/06/20 20:38:34 schendel Exp $ */
+/* $Id: tclTunable.C,v 1.21 2002/05/13 19:53:29 mjbrim Exp $ */
 
 #include <assert.h>
 #include <stdlib.h> // atoi()
@@ -139,7 +139,7 @@ getBoolAllNames(Tcl_Interp* interp)
     Tcl_Obj* resultObj = Tcl_NewListObj(0, NULL);
     for( i = 0; i < nBoolTunables; i++ )
     {
-        const char* strName = allBoolConstants[i].getName().string_of();
+        const char* strName = allBoolConstants[i].getName().c_str();
         Tcl_Obj* theName = Tcl_NewStringObj( strName, -1 );
         int appendRet = Tcl_ListObjAppendElement(interp, resultObj, theName );
         if( appendRet != TCL_OK )
@@ -163,7 +163,7 @@ getFloatAllNames(Tcl_Interp* interp)
     Tcl_Obj* resultObj = Tcl_NewListObj(0, NULL);
     for( i = 0; i < nFloatTunables; i++ )
     {
-        Tcl_Obj* theName = Tcl_NewStringObj( allFloatConstants[i].getName().string_of(), -1 );
+        Tcl_Obj* theName = Tcl_NewStringObj( allFloatConstants[i].getName().c_str(), -1 );
         int appendRet = Tcl_ListObjAppendElement(interp, resultObj, theName );
         if( appendRet != TCL_OK )
         {
@@ -226,9 +226,9 @@ int TclTunableCommand(ClientData, Tcl_Interp *interp,
 	     }
 
          tunableConstantBase tcb = tunableConstantRegistry::getGenericTunableConstantByName(argv[2]);
-	     resstr << const_cast<char*>((tcb.getDesc().string_of()==NULL) ? 
-					 tcb.getName().string_of() : 
-					 tcb.getDesc().string_of()) << ends;
+	     resstr << const_cast<char*>((tcb.getDesc().c_str()==NULL) ? 
+					 tcb.getName().c_str() : 
+					 tcb.getDesc().c_str()) << ends;
          break;
       }
 

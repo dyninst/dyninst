@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.91 2002/04/17 16:37:40 schendel Exp $
+// $Id: inst.C,v 1.92 2002/05/13 19:52:21 mjbrim Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -116,7 +116,7 @@ bool pd_Function::getStaticCallees(process *proc,
 	  //cerr << " not found in PLT info" << endl;
 	}
       } else if (filter.defines(f)) {
-	//cerr << " call destination " << f->prettyName().string_of() << 
+	//cerr << " call destination " << f->prettyName().c_str() << 
 	//" already seen by filer" << endl;
       }
       

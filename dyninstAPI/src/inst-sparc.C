@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.124 2002/04/25 22:51:45 gaburici Exp $
+// $Id: inst-sparc.C,v 1.125 2002/05/13 19:52:15 mjbrim Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1486,7 +1486,7 @@ bool isReturnInsn(instruction instr, Address addr, string name) {
                     && (instr.resti.simm13 != 16)) {
           sprintf(errorLine,"WARNING: unsupported return at address 0x%lx"
                         " in function %s - appears to be return to PC + %i", 
-                  addr, name.string_of(), (int)instr.resti.simm13);
+                  addr, name.c_str(), (int)instr.resti.simm13);
           showErrorCallback(55, errorLine);
         } else { 
           return true;
@@ -1601,9 +1601,9 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
   if (!((mainFunction = findOneFunction("main")) 
         || (mainFunction = findOneFunction("_main")))) {
      string msg = "Cannot find main. Exiting.";
-     statusLine(msg.string_of());
+     statusLine(msg.c_str());
 #if defined(BPATCH_LIBRARY)
-     BPatch_reportError(BPatchWarning, 50, msg.string_of());
+     BPatch_reportError(BPatchWarning, 50, msg.c_str());
 #else
      showErrorCallback(50, msg);
 #endif
@@ -1613,11 +1613,11 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
   for (unsigned i=0; i<find_us.size(); i++) {
     const string &str = find_us[i].name;
     if (!getSymbolInfo(str, sym, baseAddr)) {
-      string str1 = string("_") + str.string_of();
+      string str1 = string("_") + str.c_str();
       if (!getSymbolInfo(str1, sym, baseAddr) && find_us[i].must_find) {
         string msg;
         msg = string("Cannot find ") + str + string(". Exiting");
-        statusLine(msg.string_of());
+        statusLine(msg.c_str());
         showErrorCallback(50, msg);
         return false;
       }
@@ -1630,7 +1630,7 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
 //    if (!linkedFile.get_symbol(ghb, sym)) {
 //      string msg;
 //      msg = string("Cannot find ") + ghb + string(". Exiting");
-//      statusLine(msg.string_of());
+//      statusLine(msg.c_str());
 //      showErrorCallback(50, msg);
 //      return false;
 //    }
@@ -1648,7 +1648,7 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
     if (!getSymbolInfo(ihb, sym, baseAddr)) {
       string msg;
       msg = string("Cannot find ") + ihb + string(". Cannot use this application");
-      statusLine(msg.string_of());
+      statusLine(msg.c_str());
       showErrorCallback(50, msg);
       return false;
     }

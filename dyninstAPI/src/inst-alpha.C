@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.44 2002/04/09 18:56:36 tikir Exp $
+// $Id: inst-alpha.C,v 1.45 2002/05/13 19:52:07 mjbrim Exp $
 
 #include "common/h/headers.h"
 
@@ -1865,18 +1865,18 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
   if (!((mainFunction = findOneFunction("main")) 
         || (mainFunction = findOneFunction("_main")))) {
      string msg = "Cannot find main. Exiting.";
-     statusLine(msg.string_of());
+     statusLine(msg.c_str());
      showErrorCallback(50, msg);
      return false;
   }
   
   for (unsigned long i=0; i<find_us.size(); i++) {
     addr = findInternalAddress(find_us[i].name, false, err);
-    //printf("looking for %s\n", find_us[i].name.string_of());
+    //printf("looking for %s\n", find_us[i].name.c_str());
     if (err) {
 	string msg;
         msg = string("Cannot find ") + str + string(". Exiting");
-	statusLine(msg.string_of());
+	statusLine(msg.c_str());
 	showErrorCallback(50, msg);
 	return false;
     }
@@ -1888,7 +1888,7 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
   if (err) {
       string msg;
       msg = string("Cannot find _DYNINSTtext") + string(". Exiting");
-      statusLine(msg.string_of());
+      statusLine(msg.c_str());
       showErrorCallback(50, msg);
   }
   instHeapStart = addr;
@@ -1898,7 +1898,7 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
   if (err) {
       string msg;
       msg = string("Cannot find DYNINSTdata") + string(". Exiting");
-      statusLine(msg.string_of());
+      statusLine(msg.c_str());
       showErrorCallback(50, msg);
       return false;
   }
@@ -1992,7 +1992,7 @@ emitFuncCall(opCode /* op */,
   for (unsigned u=0; u<srcs.size(); u++){
     if (u >= 5) {
 	 string msg = "Too many arguments to function call in instrumentation code: only 5 arguments can be passed on the sparc architecture.\n";
-	 fprintf(stderr, msg.string_of());
+	 fprintf(stderr, msg.c_str());
 	 showErrorCallback(94,msg);
 	 cleanUpAndExit(-1);
     }

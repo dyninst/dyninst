@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.86 2002/05/10 18:37:08 schendel Exp $ */
+/* $Id: dynrpc.C,v 1.87 2002/05/13 19:53:45 mjbrim Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -124,7 +124,7 @@ string dynRPC::getStatus(int id)
   if (!proc) {
     string ret = string("PID: ") + string(id);
     ret += string(" not found for getStatus\n");
-    return (P_strdup(ret.string_of()));
+    return (P_strdup(ret.c_str()));
   } else 
     return (proc->getProcessStatus());
 }

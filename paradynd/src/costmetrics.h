@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: costmetrics.h,v 1.15 2002/05/10 18:37:21 schendel Exp $
+// $Id: costmetrics.h,v 1.16 2002/05/13 19:53:44 mjbrim Exp $
 
 #ifndef COST_METRICS_HDR 
 #define COST_METRICS_HDR
@@ -72,7 +72,7 @@ class costMetric {
   machineMetFocusNode *getNode() { return node; }
   metricStyle style() { return EventCounter; }
   string name() const { return name_;}
-  const char *getName() const { return name_.string_of();}
+  const char *getName() const { return name_.c_str();}
   aggregateOp aggregate() const { return agg_; }
   static costMetric *newCostMetric(const string n, 
 			       aggregateOp a,   // how paradyn combines values

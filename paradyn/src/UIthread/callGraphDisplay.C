@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphDisplay.C,v 1.8 2001/08/23 14:43:52 schendel Exp $
+// $Id: callGraphDisplay.C,v 1.9 2002/05/13 19:53:18 mjbrim Exp $
 
 //callGraphDisplay.C: this code is an adaptation of the code from shg.C,
 //for use with the call graph
@@ -1026,7 +1026,7 @@ bool callGraphDisplay::adjustVertSBOffset() {
 
 bool callGraphDisplay::selectUnSelectFromFullPathName(const string &name, bool selectFlag) {
   // returns true iff found
-  const char *str = name.string_of();
+  const char *str = name.c_str();
   if (str == NULL)
     return false;
   

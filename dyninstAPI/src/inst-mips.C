@@ -427,7 +427,7 @@ void print_function(pd_Function *f)
 
   fprintf(stderr, "0x%016lx: %s (%i insns):\n", 
 	  f->getAddress(0), 
-	  f->prettyName().string_of(), 
+	  f->prettyName().c_str(), 
 	  f->size() / (int)INSN_SIZE);
 
   vector<instPoint*> t;
@@ -567,7 +567,7 @@ Address lookup_fn(process *p, const string &f)
 {
   TRACE_B( "lookup_fn" );
 
-  //fprintf(stderr, ">>> lookup_fn(%s)\n", f.string_of());
+  //fprintf(stderr, ">>> lookup_fn(%s)\n", f.c_str());
   Address ret = 0;
 
   // findInternalSymbol()
@@ -624,7 +624,7 @@ Address lookup_fn(process *p, const string &f)
 #ifdef CSS_DEBUG_INST
 #define UNINSTR(str) \
   fprintf(stderr, "uninstrumentable: %s (%0#10x: %i insns) - %s\n", \
-	  prettyName().string_of(), \
+	  prettyName().c_str(), \
 	  file_->exec()->getObject().get_base_addr() + getAddress(0), \
 	  size() / INSN_SIZE, \
 	  str)
@@ -637,7 +637,7 @@ bool pd_Function::findInstPoints(const image *owner) {
 
   //fprintf(stderr, "\n>>> pd_Function::findInstPoints()\n");
   //fprintf(stderr, "%0#10x: %s(%u insns):\n", 
-  //getAddress(0), prettyName().string_of(), size() / INSN_SIZE);
+  //getAddress(0), prettyName().c_str(), size() / INSN_SIZE);
   if (size() == 0) {
     UNINSTR("zero length");
 
@@ -786,7 +786,7 @@ static void print_saved_registers(pd_Function *fn, const vector<vector<int> > &s
 
   if (mult) {
     fprintf(stderr, "*** %s (0x%016lx: %i insns): stack frame\n",
-	    fn->prettyName().string_of(), 
+	    fn->prettyName().c_str(), 
 	    fn->getAddress(0), 
 	    fn->size() / (int)INSN_SIZE);
     vector<int> locals;
@@ -842,7 +842,7 @@ Address pd_Function::findStackFrame(const image *owner)
   /*
     fprintf(stderr, ">>> findStackFrame(): <0x%016lx:\"%s\"> %i insns\n",
     owner->getObject().get_base_addr() + getAddress(0), 
-    prettyName().string_of(), size() / INSN_SIZE);
+    prettyName().c_str(), size() / INSN_SIZE);
   */
  
   // initialize stack frame info
@@ -988,7 +988,7 @@ int
         /*
           if (aliases[r_dst] != r_dst) {
           fprintf(stderr, "!!! <0x%016lx:\"%s\" multiple aliasing\n",
-          iaddr, prettyName().string_of());
+          iaddr, prettyName().c_str());
           } */
         aliases[r_dst] = r_src;
       }
@@ -1058,7 +1058,7 @@ int
         {
           if ( foundRest )
           {
-            //fprintf(stderr, "\n\n  in function %s, saving pop %d and ret %d\n", prettyName().string_of(), lastRestore, off);
+            //fprintf(stderr, "\n\n  in function %s, saving pop %d and ret %d\n", prettyName().c_str(), lastRestore, off);
             ifr.popOffset = lastRestore;
             ifr.retOffset = off;
             inactiveRanges.push_back(ifr);
@@ -1207,7 +1207,7 @@ unsigned
   
   TRACE_E( "pd_Function::checkInstPoints" );
 
-  //if (!ret) fprintf(stderr, ">>> uninstrumentable: \"%s\"\n", prettyName().string_of());
+  //if (!ret) fprintf(stderr, ">>> uninstrumentable: \"%s\"\n", prettyName().c_str());
   return ret;
 }
 
@@ -1226,11 +1226,11 @@ void pd_Function::checkCallPoints()
   //fprintf(stderr, ">>> pd_Function::checkCallPoints()\n");
 #ifdef CSS_DEBUG_INST
   fprintf(stderr, ">>> %s(%0#10x: %u insns)\n", 
-	  prettyName().string_of(), getAddress(0), size() / INSN_SIZE);
+	  prettyName().c_str(), getAddress(0), size() / INSN_SIZE);
 #endif
   //fprintf(stderr, "%0#10x: %s(%u insns)\n", 
   //file()->exec()->getObject().get_base_addr() + getAddress(0), 
-  //prettyName().string_of(), 
+  //prettyName().c_str(), 
   //size() / INSN_SIZE);
   
   Address fnStart = getAddress(0);
@@ -1438,7 +1438,7 @@ Address pd_Function::findIndirectJumpTarget(instPoint *ip, instruction i)
   /*
   fprintf(stderr, ">>> pd_Function::findIndirectJumpTarget <0x%016lx: %s>\n", 
 	  file_->exec()->getObject().get_base_addr() + ip->address(), 
-	  prettyName().string_of());
+	  prettyName().c_str());
   */
 
   assert(i.rtype.op == SPECIALop);
@@ -1542,7 +1542,7 @@ Address pd_Function::findIndirectJumpTarget(instPoint *ip, instruction i)
   /*
   fprintf(stderr, ">>> <0x%016lx:%s>", 
 	  owner->getObject().get_base_addr() + ip->address(),
-	  prettyName().string_of());
+	  prettyName().c_str());
   fprintf(stderr, ": ");
   print_sequence(targetReg, baseAdjusts, adjusts, 0, NULL);
   fprintf(stderr, "\n");
@@ -1568,7 +1568,7 @@ Address pd_Function::findIndirectJumpTarget(instPoint *ip, instruction i)
   default:
     // base register is dynamic
     //fprintf(stderr, "!!! bogus base register $%s (%s,%0#10x)\n",
-    //reg_names[targetReg], prettyName().string_of(), ip->address());
+    //reg_names[targetReg], prettyName().c_str(), ip->address());
     return 0;
   }
 
@@ -1612,7 +1612,7 @@ Address pd_Function::findIndirectJumpTarget(instPoint *ip, instruction i)
   // debug: target arithmetic
   /*
   fprintf(stderr, ">>> findIndirectJumpTarget <0x%016lx: %s>\n", 
-	  ip->address() + obj_base, prettyName().string_of());
+	  ip->address() + obj_base, prettyName().c_str());
   fprintf(stderr, "  => ");
   print_sequence(targetReg, baseAdjusts, adjusts, 0, NULL);
   fprintf(stderr, "\n");
@@ -3374,14 +3374,14 @@ Register emitFuncCall(opCode op, registerSpace *rs, char *code, Address &base,
 {
   TRACE_B( "emitFuncCall" );
 
-  //fprintf(stderr, ">>> emitFuncCall(%s)\n", calleeName.string_of());
+  //fprintf(stderr, ">>> emitFuncCall(%s)\n", calleeName.c_str());
   assert(op == callOp);  
   instruction *insn;
   Address calleeAddr = (callee) 
     ? (callee->getEffectiveAddress(p))
     : (lookup_fn(p, calleeName));
   //Address base_orig = base; // debug
-  //fprintf(stderr, "  <0x%08x:%s>\n", calleeAddr, calleeName.string_of());
+  //fprintf(stderr, "  <0x%08x:%s>\n", calleeAddr, calleeName.c_str());
   
   // generate argument values
   vector<reg> args;
@@ -4113,8 +4113,8 @@ bool process::replaceFunctionCall(const instPoint *ip,
   /*
   fprintf(stderr, ">>> replaceFunctionCall(): <0x%016lx:%s> to \"%s\"\n",
 	  pt_addr, 
-	  ip->iPgetFunction()->prettyName().string_of(),
-	  (newFunc) ? (newFunc->prettyName().string_of()) : ("NOP"));
+	  ip->iPgetFunction()->prettyName().c_str(),
+	  (newFunc) ? (newFunc->prettyName().c_str()) : ("NOP"));
   */
 
   // requirement #1
@@ -4184,7 +4184,7 @@ bool process::replaceFunctionCall(const instPoint *ip,
     // old GOT entry
     gp_disp1 = ld_insn.itype.simm16;
     // new GOT entry (modify insn)
-    gp_disp2 = elf.got_gp_disp(dst2_pdf->prettyName().string_of());
+    gp_disp2 = elf.got_gp_disp(dst2_pdf->prettyName().c_str());
     ld_insn.itype.simm16 = gp_disp2;
 #else
 	cerr<<"FAILURE: process::replaceFunctionCall wants GOT"<<endl;
@@ -4442,7 +4442,7 @@ bool process::findCallee(instPoint &ip, function_base *&target)
   /*
   fprintf(stderr, ">>> <0x%016lx:\"%s\"> => ", 
 	  ip.iPgetOwner()->getObject().get_base_addr() + ip.address(),
-	  ip.iPgetFunction()->prettyName().string_of());
+	  ip.iPgetFunction()->prettyName().c_str());
   */
 
   // sanity check
@@ -4450,7 +4450,7 @@ bool process::findCallee(instPoint &ip, function_base *&target)
 
   // check if callee was already resolved
   if (ip.callee_) {
-    //fprintf(stderr, "\"%s\" (static)\n", callee->prettyName().string_of());
+    //fprintf(stderr, "\"%s\" (static)\n", callee->prettyName().c_str());
     target = ip.callee_;
 
     TRACE_E( "process::findCallee" );
@@ -4494,7 +4494,7 @@ bool process::findCallee(instPoint &ip, function_base *&target)
       getBaseAddress(pdf->file()->exec(), fn_base);
       assert(fn_base + pdf->getAddress(0) == tgt_addr);
 
-      //fprintf(stderr, "\"%s\" (GOT)\n", pdf->prettyName().string_of());
+      //fprintf(stderr, "\"%s\" (GOT)\n", pdf->prettyName().c_str());
       target = pdf;
 
       TRACE_E( "process::findCallee" );
@@ -4511,7 +4511,7 @@ bool process::findCallee(instPoint &ip, function_base *&target)
 	// TODO: rld might resolve to a different fn
 	pdf = (pd_Function *)findFunctionLikeRld(this, fn_name);
 	if (pdf) {
-	  //fprintf(stderr, "\"%s\" (stub)\n", pdf->prettyName().string_of());
+	  //fprintf(stderr, "\"%s\" (stub)\n", pdf->prettyName().c_str());
 	  target = pdf;
 
 // 	  TRACE_E( "process::findCallee" );

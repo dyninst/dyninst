@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-coff.C,v 1.11 2001/07/05 16:53:21 tikir Exp $
+// $Id: Object-coff.C,v 1.12 2002/05/13 19:51:50 mjbrim Exp $
 
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
@@ -354,7 +354,7 @@ static inline bool read_data_region(vector<Address>& all_addr,
 }
 
 void Object::load_object(bool sharedLibrary) {
-    char* file = strdup(file_.string_of());
+    char* file = strdup(file_.c_str());
     bool        did_open = false, success=true, text_read=false;
     LDFILE      *ldptr = NULL;
     HDRR        sym_hdr;
@@ -653,7 +653,7 @@ void Object::load_object(bool sharedLibrary) {
 			type   = Symbol::PDST_MODULE;
 			moduleEndIdx = symbol.index - 1;
 			//Detect the compiler type by searching libgcc.
-			if (strstr(module.string_of(), "libgcc"))
+			if (strstr(module.c_str(), "libgcc"))
 				GCC_COMPILED = true;
 		}
 		break;

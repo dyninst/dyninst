@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCshg.h,v 1.39 2001/12/06 16:14:11 pcroth Exp $
+ * $Id: PCshg.h,v 1.40 2002/05/13 19:53:13 mjbrim Exp $
  * classes searchHistoryNode, GraphNode, searchHistoryGraph
  */
 
@@ -127,7 +127,7 @@ public:
   unsigned getNodeId() {return nodeID;}
   void getInfo (shg_node_info *theInfo);
   unsigned getPhase();
-  const char *getShortName() {return sname.string_of();}
+  const char *getShortName() {return sname.c_str();}
   const char *getHypoName() {return why->getName();}
   focus getWhere() {return where;}
   void estimatedCostNotification(); 

@@ -66,7 +66,7 @@ public:
 	timeLength GetBucketWidth(){ return(bucketWidth);}
 	void SetEndTime(relTimeStamp time){ endTime = time;}
 	void ChangeBucketWidth(timeLength newWidth){ bucketWidth = newWidth; }
-        const char *PhaseName(){return(name.string_of());}
+        const char *PhaseName(){return(name.c_str());}
 	static vector<T_visi::phase_info> *GetAllPhaseInfo();
 	static int NumPhases(){return(dm_phases.size());}
 	// If no startTime is passed, than use as a start time for the phase

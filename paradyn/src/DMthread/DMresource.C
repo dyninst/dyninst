@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.C,v 1.55 2000/03/06 21:41:22 zhichen Exp $
+// $Id: DMresource.C,v 1.56 2002/05/13 19:53:04 mjbrim Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -109,7 +109,7 @@ resource::resource(resourceHandle p_handle,
 	suppressChildSearch = suppressSearch; // check for suppress
 					      // of parent's children
 	suppressMagnify = false;
-        abstr = AMfind(a.string_of());
+        abstr = AMfind(a.c_str());
 	resource *res = this;
 	allResources[name] = res;
 	resources[res_handle] = res;
@@ -138,7 +138,7 @@ resource::resource(resourceHandle p_handle,
 	suppressChildSearch = suppressSearch; // check for suppress
 					      // of parent's children
 	suppressMagnify = false;
-        abstr = AMfind(a.string_of());
+        abstr = AMfind(a.c_str());
 	resource *res = this;
 	allResources[name] = res;
 	resources[res_handle] = res;
@@ -182,7 +182,7 @@ resourceHandle *resource::findChild(const char *nm) const {
 
 void resource::print()
 {
-    printf("%s ", name.string_of());
+    printf("%s ", name.c_str());
 }
 
 void
@@ -332,7 +332,7 @@ bool resource::get_lib_constraints(vector<string> &list, vector<unsigned> &flags
                 // if the string is of the form "blah/blah" then this
 	        // is a function constraint so don't add it to the
 	        // list of lib constraints
-		char *next = P_strdup((temp[i].string_of()));
+		char *next = P_strdup((temp[i].c_str()));
 		if(next && (!P_strrchr(next, '/'))){
 		    lib_constraints += string(next);
 		    lib_constraint_flags += tmp_flags[i];
@@ -363,7 +363,7 @@ bool resource::get_func_constraints(vector< vector<string> > &list, vector<unsig
 	    for(u_int i=0; i < temp.size(); i++){
                 // if the string is of the form "blah/blah" then this
 	        // is a function constraint so add it to the list 
-		char *next = P_strdup((temp[i].string_of()));
+		char *next = P_strdup((temp[i].c_str()));
 		if(next && (P_strrchr(next, '/'))) {
 		  u_int where = 0;
 		  u_int prev_where = where;
@@ -433,11 +433,11 @@ string DMcreateRLname(const vector<resourceHandle> &res){
     sorted_names.sort(DMresourceListNameCompare);
 
     for(unsigned j=0; j < (res.size() - 1); j++){
-	temp += sorted_names[j].string_of();
+	temp += sorted_names[j].c_str();
 	temp += ",";
     }
     if(res.size() > 0){
-	temp += sorted_names[(res.size()-1)].string_of();
+	temp += sorted_names[(res.size()-1)].c_str();
     }
     return(temp);
 }
@@ -468,7 +468,7 @@ resourceList::resourceList(const vector<resourceHandle> &res){
 	    }
     } }
     else {
-        printf("ERROR: this resourceList already created: %s\n",temp.string_of());
+        printf("ERROR: this resourceList already created: %s\n",temp.c_str());
     }
 }
 
@@ -503,7 +503,7 @@ resourceList::resourceList(const vector<string> &names){
         } 
     }
     else {
-        printf("ERROR: this resourceList already created: %s\n",temp.string_of());
+        printf("ERROR: this resourceList already created: %s\n",temp.c_str());
     }
 }
 

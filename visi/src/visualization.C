@@ -488,11 +488,11 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
 	    if(!newElements[i].met.name.length())
 	        mets[numMet].name = NULL;
             else
-	        mets[numMet].name = newElements[i].met.name.string_of();
+	        mets[numMet].name = newElements[i].met.name.c_str();
             if(!newElements[i].met.units.length())
 	        mets[numMet].units = NULL;
             else
-	        mets[numMet].units = newElements[i].met.units.string_of();
+	        mets[numMet].units = newElements[i].met.units.c_str();
             mets[numMet].Id = newElements[i].met.Id;
 	    if(newElements[i].met.unitstype == 0){
 		mets[numMet].unitstype = UnNormalized;
@@ -514,7 +514,7 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
 	    if(!newElements[i].res.name.length())
 	        res[numRes].name = NULL;
             else
-                res[numRes].name = newElements[i].res.name.string_of();
+                res[numRes].name = newElements[i].res.name.c_str();
             res[numRes++].Id = newElements[i].res.Id;
 	}
     }
@@ -548,7 +548,7 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
 	      if(!newElements[i].res.name.length())
 	        res[numRes].name = NULL;
               else
-                res[numRes].name = newElements[i].res.name.string_of();
+                res[numRes].name = newElements[i].res.name.c_str();
               res[numRes++].Id = newElements[i].res.Id;
           }
     }}
@@ -572,11 +572,11 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
 	      if(!newElements[i2].met.name.length())
 	          mets[numMet].name = NULL;
               else
-	          mets[numMet].name = newElements[i2].met.name.string_of();
+	          mets[numMet].name = newElements[i2].met.name.c_str();
               if(!newElements[i2].met.units.length())
 	          mets[numMet].units = NULL;
               else
-	          mets[numMet].units = newElements[i2].met.units.string_of();
+	          mets[numMet].units = newElements[i2].met.units.c_str();
             mets[numMet].Id = newElements[i2].met.Id;
 	    if(newElements[i2].met.unitstype == 0){
 		mets[numMet].unitstype = UnNormalized;
@@ -736,7 +736,7 @@ void visualization::PhaseData(vector<T_visi::phase_info> phases){
                 (visi_timeType)phases[i].start,
 		(visi_timeType)phases[i].end,
 		(visi_timeType)phases[i].bucketWidth,
-		phases[i].name.string_of());
+		phases[i].name.c_str());
    }
 
   //call callback routine assoc. w/event PHASEDATA

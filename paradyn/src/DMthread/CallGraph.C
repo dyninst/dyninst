@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CallGraph.C,v 1.9 2001/06/20 20:34:27 schendel Exp $
+// $Id: CallGraph.C,v 1.10 2002/05/13 19:52:48 mjbrim Exp $
 
 #include "CallGraph.h"
 #include "DMdaemon.h"
@@ -78,7 +78,7 @@ static char *stripCodeFromName(const char *c){
 
 static string stripPathFromExecutableName(string exe_name){
   unsigned i;
-  const char *array = exe_name.string_of();
+  const char *array = exe_name.c_str();
   char *last_slash = const_cast<char *>(array);
   for(i = 0; i < exe_name.length(); i++){
     if(array[i] == '/' || array[i] == '\\')
@@ -315,7 +315,7 @@ void CallGraph::displayCallGraph(){
   //rooted by the function "main"
 
   uiMgr->callGraphProgramAddedCB(0, entryFunction->getHandle(), 
-				 executableName.string_of(),
+				 executableName.c_str(),
 				 entryFunction->getName(),
 			     stripCodeFromName(entryFunction->getFullName())); 
   

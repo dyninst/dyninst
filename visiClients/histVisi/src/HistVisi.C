@@ -46,7 +46,7 @@
 // A HistVisi represents the Paradyn histogram visi.
 //
 //---------------------------------------------------------------------------
-// $Id: HistVisi.C,v 1.8 2002/02/15 18:35:24 pcroth Exp $
+// $Id: HistVisi.C,v 1.9 2002/05/13 19:54:03 mjbrim Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include "common/h/headers.h"
@@ -366,9 +366,9 @@ HistVisi::AddMetricResourcePair(int midx, int ridx)
 
     // add a curve representing the pair to our graph
     assert( graph != NULL );
-    pair->curveId = graph->AddCurve( pair->mname.string_of(),
+    pair->curveId = graph->AddCurve( pair->mname.c_str(),
                                 visi_MetricLabel( midx ),
-                                pair->rname.string_of() );
+                                pair->rname.c_str() );
 
     if( pair->curveId>=0)
     {

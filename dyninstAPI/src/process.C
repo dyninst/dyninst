@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.323 2002/05/10 18:37:01 schendel Exp $
+// $Id: process.C,v 1.324 2002/05/13 19:52:35 mjbrim Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1039,15 +1039,15 @@ bool process::getInfHeapList(const image *theImage, // okay, boring name
       // The string layout is: DYNINSTstaticHeap_size_type_unique
       // Can't allocate a variable-size array on NT, so malloc
       // that sucker
-      char *temp_str = (char *)malloc(strlen(heapSymbols[j].name().string_of())+1);
-      strcpy(temp_str, heapSymbols[j].name().string_of());
+      char *temp_str = (char *)malloc(strlen(heapSymbols[j].name().c_str())+1);
+      strcpy(temp_str, heapSymbols[j].name().c_str());
       char *garbage_str = strtok(temp_str, "_"); // Don't care about beginning
       assert(!strcmp("DYNINSTstaticHeap", garbage_str));
       // Name is as is.
       // If address is zero, then skip (error condition)
       if (heapSymbols[j].addr() == 0)
 	{
-	  cerr << "Skipping heap " << heapSymbols[j].name().string_of()
+	  cerr << "Skipping heap " << heapSymbols[j].name().c_str()
 	       << "with address 0" << endl;
 	  continue;
 	}
@@ -1106,7 +1106,7 @@ bool process::getInfHeapList(const image *theImage, // okay, boring name
 				 heap_size, heap_type));
 #ifdef DEBUG
       fprintf(stderr, "Added heap %s at %x to %x\n",
-	      heapSymbols[j].name().string_of(), 
+	      heapSymbols[j].name().c_str(), 
 	      heapSymbols[j].addr()+baseAddr,
 	      heapSymbols[j].addr()+baseAddr+heap_size);
 #endif /* DEBUG */
@@ -1146,9 +1146,9 @@ char* process::saveWorldFindDirectory(){
 
 	char* directoryNameExt = "_dyninstsaved";
 	int dirNo = 0;
-        char* directoryName = new char[strlen(( char*) getImage()->file().string_of()) +
+        char* directoryName = new char[strlen(( char*) getImage()->file().c_str()) +
                         strlen(directoryNameExt) + 3+1+1];
-	sprintf(directoryName,"%s%s%x",(char*)getImage()->file().string_of(), directoryNameExt,dirNo);
+	sprintf(directoryName,"%s%s%x",(char*)getImage()->file().c_str(), directoryNameExt,dirNo);
         while(dirNo < 0x1000 && mkdir(directoryName, S_IRWXU) ){
                  if(errno == EEXIST){
                          dirNo ++;
@@ -1157,7 +1157,7 @@ char* process::saveWorldFindDirectory(){
                          delete [] directoryName;
                          return NULL;
                  }
-                 sprintf(directoryName, "%s%s%x",(char*)getImage()->file().string_of(),
+                 sprintf(directoryName, "%s%s%x",(char*)getImage()->file().c_str(),
                          directoryNameExt,dirNo);
         }
 	if(dirNo == 0x1000){
@@ -1222,17 +1222,17 @@ unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize, uns
 				BPatch_reportError(BPatchWarning,123,"dumpPatchedImage: dlopen used by the mutatee, this may cause the mutated binary to fail\n");
 				dlopenUsed = true;
 			}			
-			//printf(" %s is DIRTY!\n", sh_obj->getName().string_of());
+			//printf(" %s is DIRTY!\n", sh_obj->getName().c_str());
 		
 			Address textAddr, textSize;
-			char *file, *newName = new char[strlen(sh_obj->getName().string_of()) + 
+			char *file, *newName = new char[strlen(sh_obj->getName().c_str()) + 
 					strlen(directoryName) + 1];
 			memcpy(newName, directoryName, strlen(directoryName)+1);
-      			file = strrchr( sh_obj->getName().string_of(), '/');
+      			file = strrchr( sh_obj->getName().c_str(), '/');
 			strcat(newName,file);
  	
 	  		saveSharedLibrary *sharedObj = new saveSharedLibrary(
-				sh_obj->getBaseAddress(), sh_obj->getName().string_of(),
+				sh_obj->getBaseAddress(), sh_obj->getName().c_str(),
 				newName);
                 	sharedObj->writeLibrary();
 
@@ -1246,18 +1246,18 @@ unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize, uns
                 	sharedObj->closeLibrary();
 /*			
 			//this is for the dlopen problem....
-			if(strstr(sh_obj->getName().string_of(), "ld-linux.so") ){
+			if(strstr(sh_obj->getName().c_str(), "ld-linux.so") ){
 				//find the offset of _dl_debug_state in the .plt
 				dl_debug_statePltEntry = 
 					sh_obj->getImage()->getObject().getPltSlot("_dl_debug_state");
 			}
 */			
-			mutatedSharedObjectsSize += strlen(sh_obj->getName().string_of()) +1 ;
+			mutatedSharedObjectsSize += strlen(sh_obj->getName().c_str()) +1 ;
 			delete [] textSection;
 			delete [] newName;
 		}
 		//this is for the dlopen problem....
-		if(strstr(sh_obj->getName().string_of(), "ld-linux.so") ){
+		if(strstr(sh_obj->getName().c_str(), "ld-linux.so") ){
 			//find the offset of _dl_debug_state in the .plt
 			dl_debug_statePltEntry = 
 				sh_obj->getImage()->getObject().getPltSlot("_dl_debug_state");
@@ -1272,7 +1272,7 @@ unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize, uns
 		//we need to find out the length of the names of each of
 		//the shared libraries to create the data buffer for the section
 
-		dyninst_SharedLibrariesSize += strlen(sh_obj->getName().string_of())+1;
+		dyninst_SharedLibrariesSize += strlen(sh_obj->getName().c_str())+1;
 		//add the size of the address
 		dyninst_SharedLibrariesSize += sizeof(unsigned int);
 	}
@@ -1309,9 +1309,9 @@ char* process::saveWorldCreateSharedLibrariesSection(int dyninst_SharedLibraries
 	for(int i=0;shared_objects && i<size ; i++) {
 		sh_obj = (*shared_objects)[i];
 
-		memcpy((void*) ptr, sh_obj->getName().string_of(), strlen(sh_obj->getName().string_of())+1);
+		memcpy((void*) ptr, sh_obj->getName().c_str(), strlen(sh_obj->getName().c_str())+1);
 		//printf(" %s : ", ptr);
-		ptr += strlen(sh_obj->getName().string_of())+1;
+		ptr += strlen(sh_obj->getName().c_str())+1;
 
 		unsigned int baseAddr = sh_obj->getBaseAddress();
 		memcpy( (void*)ptr, &baseAddr, sizeof(unsigned int));
@@ -2160,7 +2160,7 @@ process::process(int iPid, image *iImage, int iTraceLink
    if (!attach()) { // error check?
       string msg = string("Warning: unable to attach to specified process :")
                    + string(pid);
-      showErrorCallback(26, msg.string_of());
+      showErrorCallback(26, msg.c_str());
    }
 /*
 // A test. Let's see if my symbol-print-out works
@@ -2342,7 +2342,7 @@ process::process(int iPid, image *iSymbols,
    if (!attach()) {
       string msg = string("Warning: unable to attach to specified process: ")
                    + string(pid);
-      showErrorCallback(26, msg.string_of());
+      showErrorCallback(26, msg.c_str());
       success = false;
       return;
    }
@@ -2356,7 +2356,7 @@ process::process(int iPid, image *iSymbols,
    if (!desc) {
       string msg = string("Warning: unable to parse to specified process: ")
                    + string(pid);
-      showErrorCallback(26, msg.string_of());
+      showErrorCallback(26, msg.c_str());
       success = false;
       return;
    }
@@ -2364,7 +2364,7 @@ process::process(int iPid, image *iSymbols,
    if (theImage == NULL) {
       string msg = string("Warning: unable to parse to specified process: ")
                    + string(pid);
-      showErrorCallback(26, msg.string_of());
+      showErrorCallback(26, msg.c_str());
       success = false;
       return;
    }
@@ -2605,7 +2605,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 #if defined(MT_THREAD)
      pdThread *thr = threads[i] ;
      string buffer;
-     string pretty_name=string(thr->get_start_func()->prettyName().string_of());
+     string pretty_name=string(thr->get_start_func()->prettyName().c_str());
      buffer = string("thr_")+string(thr->get_tid())+string("{")+pretty_name+string("}");
      resource *rid;
      rid = resource::newResource(this->rid, (void *)thr, nullString, buffer, 
@@ -2779,7 +2779,7 @@ tp->resourceBatchMode(true);
             //    (internal error; please report to paradyn@cs.wisc.edu)
 
             string msg = string("Unable to parse image: ") + file;
-            showErrorCallback(68, msg.string_of());
+            showErrorCallback(68, msg.c_str());
             // destroy child process
             OS::osKill(pid);
             return(NULL);
@@ -2916,7 +2916,7 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
     // two failure return values would be useful here, to differentiate
     // file-not-found vs. catastrophic-parse-error.
     string msg = string("Unable to parse image: ") + fullPathToExecutable;
-    showErrorCallback(68, msg.string_of());
+    showErrorCallback(68, msg.c_str());
     return false; // failure
   }
   
@@ -2988,7 +2988,7 @@ bool attachProcess(const string &progpath, int pid, int afterAttach
   
   // Now force DYNINSTinit() to be invoked, via inferiorRPC.
   string buffer = string("PID=") + string(pid) + ", running DYNINSTinit()...";
-  statusLine(buffer.string_of());
+  statusLine(buffer.c_str());
   
 #ifdef BPATCH_LIBRARY
   newProcess = theProc;
@@ -3164,7 +3164,7 @@ bool AttachToCreatedProcess(int pid,const string &progpath)
         //    (internal error; please report to paradyn@cs.wisc.edu)
 
         string msg = string("Unable to parse image: ") + fullPathToExecutable;
-        showErrorCallback(68, msg.string_of());
+        showErrorCallback(68, msg.c_str());
         // destroy child process
         OS::osKill(pid);
         return(false);
@@ -3277,7 +3277,7 @@ bool attachToIrixMPIprocess(const string &progpath, int pid, int afterAttach) {
       // two failure return values would be useful here, to differentiate
       // file-not-found vs. catastrophic-parse-error.
       string msg = string("Unable to parse image: ") + fullPathToExecutable;
-      showErrorCallback(68, msg.string_of());
+      showErrorCallback(68, msg.c_str());
       return false; // failure
    }
 
@@ -3973,7 +3973,7 @@ check_rtinst(process *proc, shared_object *so)
      static const char *libdyn = "libdyninst";
      static int len = 10; /* length of libdyn */
 
-     name = (so->getName()).string_of();
+     name = (so->getName()).c_str();
 
      p = strrchr(name, '/');
      if (!p)
@@ -4036,7 +4036,7 @@ bool process::addASharedObject(shared_object &new_obj){
 	      /* The runtime library has been loaded, but not initialized.
 		 Proceed anyway. */
 	      msg = string("Application was linked with Dyninst/Paradyn runtime library -- this is not necessary");
-	      statusLine(msg.string_of());
+	      statusLine(msg.c_str());
 	      this->hasLoadedDyninstLib = 1;
 	 } else {
 	      /* The runtime library has been loaded into the inferior
@@ -4084,8 +4084,8 @@ bool process::addASharedObject(shared_object &new_obj){
            // if the lib constraint is not of the form "module/function" and
            // if it is contained in the name of this object, then exclude
            // this shared object
-           char *obj_name = P_strdup(new_obj.getName().string_of());
-           char *lib_name = P_strdup(lib_constraints[j].string_of());
+           char *obj_name = P_strdup(new_obj.getName().c_str());
+           char *lib_name = P_strdup(lib_constraints[j].c_str());
            if(obj_name && lib_name && (where=P_strstr(obj_name, lib_name))){
               new_obj.changeIncludeFuncs(false); 
            }
@@ -4181,7 +4181,7 @@ bool process::getSharedObjects() {
 // 	    temp2 += string(" name: ");
 // 	    temp2 += string(((*shared_objects)[j])->getName());
 // 	    temp2 += string("\n");
-// 	    logLine(P_strdup(temp2.string_of()));
+// 	    logLine(P_strdup(temp2.c_str()));
  	    if(!addASharedObject(*((*shared_objects)[j]))){
  	      logLine("Error after call to addASharedObject\n");
  	    }
@@ -4216,7 +4216,7 @@ function_base *process::findOneFunction(resource *func,resource *mod){
     string mod_name = m_names[m_names.size() -1]; 
     
     //cerr << "process::findOneFunction called.  function name = " 
-    //   << func_name.string_of() << endl;
+    //   << func_name.c_str() << endl;
     
     // KLUDGE: first search any shared libraries for the module name 
     //  (there is only one module in each shared library, and that 
@@ -4227,11 +4227,11 @@ function_base *process::findOneFunction(resource *func,resource *mod){
             next = ((*shared_objects)[j])->findModule(mod_name,true);
             if(next){
                 if(((*shared_objects)[j])->includeFunctions()){ 
-                  //cerr << "function found in module " << mod_name.string_of() << endl;
+                  //cerr << "function found in module " << mod_name.c_str() << endl;
                     return(((*shared_objects)[j])->findFuncByName(func_name));
                 } 
                 else { 
-                  //cerr << "function found in module " << mod_name.string_of()
+                  //cerr << "function found in module " << mod_name.c_str()
                   //    << " that module excluded" << endl;
                   return 0;
                 } 
@@ -4871,7 +4871,7 @@ bool process::findInternalSymbol(const string &name, bool warn,
      if (warn) {
         string msg;
         msg = string("Unable to find symbol: ") + name;
-        statusLine(msg.string_of());
+        statusLine(msg.c_str());
         showErrorCallback(28, msg);
      }
      return false;
@@ -4917,7 +4917,7 @@ Address process::findInternalAddress(const string &name, bool warn, bool &err) c
      if (warn) {
         string msg;
         msg = string("Unable to find symbol: ") + name;
-        statusLine(msg.string_of());
+        statusLine(msg.c_str());
         showErrorCallback(28, msg);
      }
      err = true;
@@ -5057,7 +5057,7 @@ void process::handleExec() {
        //    please report to paradyn@cs.wisc.edu)
 
        string msg = string("Unable to parse image: ") + execFilePath;
-       showErrorCallback(68, msg.string_of());
+       showErrorCallback(68, msg.c_str());
        OS::osKill(pid);
           // err..what if we had attached?  Wouldn't a detach be appropriate in this case?
        return;
@@ -6441,13 +6441,13 @@ void process::writeTimerLevels() {
    char rtTimerStr[61];
    rtTimerStr[60] = 0;
    string cStr = cpuTimeMgr->get_rtTimeQueryFuncName(cpuTimeMgr_t::LEVEL_BEST);
-   strncpy(rtTimerStr, cStr.string_of(), 59);
+   strncpy(rtTimerStr, cStr.c_str(), 59);
    writeTimerFuncAddr("pDYNINSTgetCPUtime", rtTimerStr);
    //logStream << "Setting cpu time retrieval function in rtinst to " 
    //     << rtTimerStr << "\n" << flush;
    
    string wStr=wallTimeMgr->get_rtTimeQueryFuncName(wallTimeMgr_t::LEVEL_BEST);
-   strncpy(rtTimerStr, wStr.string_of(), 59);
+   strncpy(rtTimerStr, wStr.c_str(), 59);
    writeTimerFuncAddr("pDYNINSTgetWalltime", rtTimerStr);
    //logStream << "Setting wall time retrieval function in rtinst to " 
    //     << rtTimerStr << "\n" << flush;
@@ -6507,7 +6507,7 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
    // (question: do we need to do this after an exec???)
    if (!calledFromFork) {
       string str=string("PID=") + string(bs_record.pid) + ", calling handleStartProcess...";
-      statusLine(str.string_of());
+      statusLine(str.c_str());
 
 #if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
       if (!handleStartProcess()) {
@@ -6522,13 +6522,13 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
 #endif
 
       str=string("PID=") + string(bs_record.pid) + ", installing default inst...";
-      statusLine(str.string_of());
+      statusLine(str.c_str());
 
       extern vector<instMapping*> initialRequests; // init.C
       installInstrRequests(initialRequests);
 
       str=string("PID=") + string(bs_record.pid) + ", propagating mi's...";
-      statusLine(str.string_of());
+      statusLine(str.c_str());
 
       forkexec_cerr << "procStopFromDYNINSTinit pid " << getPid() << "; about to propagate mi's" << endl;
 
@@ -6567,7 +6567,7 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
 #endif
 
    string str=string("PID=") + string(bs_record.pid) + ", executing new-prog callback...";
-   statusLine(str.string_of());
+   statusLine(str.c_str());
 
 #ifndef BPATCH_LIBRARY
    timeStamp currWallTime = calledFromExec ? timeStamp::ts1970():getWallTime();
@@ -6640,7 +6640,7 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
 
    if (!calledFromAttach) {
       str=string("PID=") + string(bs_record.pid) + ", ready.";
-      statusLine(str.string_of());
+      statusLine(str.c_str());
    }
 
    if (calledFromAttach && !wasRunning) {
@@ -6989,7 +6989,7 @@ void process::MonitorDynamicCallSites(string function_name){
       if(!MonitorCallSite(callPoints[i])){
         fprintf(stderr, 
              "ERROR in daemon, unable to monitorCallSite for function :%s\n",
-             function_name.string_of());
+             function_name.c_str());
       }
     }
   }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.225 2002/05/10 18:36:40 schendel Exp $
+// $Id: metricFocusNode.C,v 1.226 2002/05/13 19:53:51 mjbrim Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -958,7 +958,7 @@ void batchSampleData(string metname, int mid, timeStamp startTimeStamp,
    logLine(myLogBuffer) ;
 #endif
 
-   sampleVal_cerr << "batchSampleData - metric: " << metname.string_of() 
+   sampleVal_cerr << "batchSampleData - metric: " << metname.c_str() 
 		  << "  mid: " << mid << ", startTimeStamp: " <<startTimeStamp
 		  << ", endTimeStamp: " << endTimeStamp << "value: " 
 		  << value << "\n";
@@ -977,7 +977,7 @@ void batchSampleData(string metname, int mid, timeStamp startTimeStamp,
 
    double bval = static_cast<double>(value.getValue());
    if(isMetricTimeType(metname)) {
-     sampleVal_cerr << metname.string_of() << " is a time metric type: normalizing\n";
+     sampleVal_cerr << metname.c_str() << " is a time metric type: normalizing\n";
      bval /= 1000000000.0;
    }
    theEntry.value = bval;

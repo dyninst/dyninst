@@ -48,7 +48,7 @@
  *     metDoVisi(..) - declare a visi
  */
 
-// $Id: metMain.C,v 1.46 2001/11/27 16:44:06 pcroth Exp $
+// $Id: metMain.C,v 1.47 2002/05/13 19:53:40 mjbrim Exp $
 
 #define GLOBAL_CONFIG_FILE "/paradyn.rc"
 #define LOCAL_CONFIG_FILE "/.paradynrc"
@@ -94,7 +94,7 @@ static int open_N_parse (string& file)
   FILE *f;
   static int been_here = 0;
 
-  f = fopen (file.string_of(), "r");
+  f = fopen (file.c_str(), "r");
   if (f) {
     if (!been_here) { 
       been_here = 1;
@@ -149,7 +149,7 @@ bool metMain(string &userFile)
   if (userFile.length()) {
     yy3 = open_N_parse(userFile);
     if (yy3 == -1) {
-      fprintf(stderr,"Error: can't open file '%s'.\n", userFile.string_of());
+      fprintf(stderr,"Error: can't open file '%s'.\n", userFile.c_str());
       exit(-1);
     }
   }
@@ -184,13 +184,13 @@ bool metDoDaemon()
   }
   unsigned size=daemonMet::allDaemons.size();
   for (unsigned u=0; u<size; u++) {
-    dataMgr->defineDaemon(daemonMet::allDaemons[u]->command().string_of(),
-			 daemonMet::allDaemons[u]->execDir().string_of(),
-			 daemonMet::allDaemons[u]->user().string_of(),
-			 daemonMet::allDaemons[u]->name().string_of(),
-			 daemonMet::allDaemons[u]->host().string_of(),
-			 daemonMet::allDaemons[u]->remoteShell().string_of(),
-			 daemonMet::allDaemons[u]->flavor().string_of());
+    dataMgr->defineDaemon(daemonMet::allDaemons[u]->command().c_str(),
+			 daemonMet::allDaemons[u]->execDir().c_str(),
+			 daemonMet::allDaemons[u]->user().c_str(),
+			 daemonMet::allDaemons[u]->name().c_str(),
+			 daemonMet::allDaemons[u]->host().c_str(),
+			 daemonMet::allDaemons[u]->remoteShell().c_str(),
+			 daemonMet::allDaemons[u]->flavor().c_str());
     delete daemonMet::allDaemons[u];
   }
   daemonMet::allDaemons.resize(0);
@@ -201,11 +201,11 @@ static void add_visi(visiMet *the_vm)
 {
   vector<string> argv;
   bool aflag;
-  aflag=(RPCgetArg(argv, the_vm->command().string_of()));
+  aflag=(RPCgetArg(argv, the_vm->command().c_str()));
   assert(aflag);
 
   // the strings created here are used, not copied in the VM
-  vmMgr->VMAddNewVisualization(the_vm->name().string_of(), &argv, 
+  vmMgr->VMAddNewVisualization(the_vm->name().c_str(), &argv, 
 			the_vm->force(),the_vm->limit(),the_vm->metfocus());
 }
 
@@ -241,7 +241,7 @@ static void start_process(processMet *the_ps)
   string directory;
   if (the_ps->command().length()) {
     bool aflag;
-    aflag=(RPCgetArg(argv, the_ps->command().string_of()));
+    aflag=(RPCgetArg(argv, the_ps->command().c_str()));
     assert(aflag);
     directory = expand_tilde_pathname(the_ps->execDir()); // see util lib
   }
@@ -249,7 +249,7 @@ static void start_process(processMet *the_ps)
     string msg;
     msg = string("Process \"") + the_ps->name() + 
 	  string("\": command line is missing in PCL file.");
-    uiMgr->showError(89,P_strdup(msg.string_of()));
+    uiMgr->showError(89,P_strdup(msg.c_str()));
     return;
   }
 
@@ -281,10 +281,10 @@ static void start_process(processMet *the_ps)
 // The code bellow is no longer necessary because we are starting this process
 // in the same way as in the "Define A Process" window - naim
 //
-//  if(dataMgr->addExecutable(the_ps->host().string_of(), 
-//			    the_ps->user().string_of(),
-//			    the_ps->daemon().string_of(), 
-//			    directory.string_of(),
+//  if(dataMgr->addExecutable(the_ps->host().c_str(), 
+//			    the_ps->user().c_str(),
+//			    the_ps->daemon().c_str(), 
+//			    directory.c_str(),
 //			    &argv)) {
 //    PDapplicState=appRunning;
 //    dataMgr->pauseApplication();
@@ -327,17 +327,17 @@ void processMet::checkDaemonProcess( const string &host ) {
 
 static void set_tunable (tunableMet *the_ts)
 {
-  if (!tunableConstantRegistry::existsTunableConstant(the_ts->name().string_of()))
+  if (!tunableConstantRegistry::existsTunableConstant(the_ts->name().c_str()))
      return;
 
-  if (tunableConstantRegistry::getTunableConstantType(the_ts->name().string_of()) ==
+  if (tunableConstantRegistry::getTunableConstantType(the_ts->name().c_str()) ==
       tunableBoolean) {
      if (!the_ts->useBvalue()) {
         // type mismatch?
         return;
      }
 
-     tunableConstantRegistry::setBoolTunableConstant(the_ts->name().string_of(),
+     tunableConstantRegistry::setBoolTunableConstant(the_ts->name().c_str(),
 						     the_ts->Bvalue());
   }
   else {
@@ -346,7 +346,7 @@ static void set_tunable (tunableMet *the_ts)
         return;
      }
 
-     tunableConstantRegistry::setFloatTunableConstant(the_ts->name().string_of(),
+     tunableConstantRegistry::setFloatTunableConstant(the_ts->name().c_str(),
 						      the_ts->Fvalue());
   }
 }

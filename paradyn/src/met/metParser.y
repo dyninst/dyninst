@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metParser.y,v 1.39 2002/02/11 22:46:26 pcroth Exp $
+// $Id: metParser.y,v 1.40 2002/05/13 19:53:41 mjbrim Exp $
 
 #include "paradyn/src/met/metParse.h"
 #include "paradyn/src/met/mdl.h"
@@ -664,9 +664,9 @@ metric_definition: tMETRIC tIDENT metric_struct
     {
       string msg;
       msg = string("Error defining ") + (*$2.sp);
-      yyerror(msg.string_of());
+      yyerror(msg.c_str());
       msg = $3.mde->missingFields();
-      yyerror(msg.string_of());
+      yyerror(msg.c_str());
     }
     delete $2.sp;
     delete $3.mde;
@@ -686,7 +686,7 @@ def_constraint_definition: tCONSTRAINT tIDENT match_path tIS tDEFAULT tSEMI
       *$2.sp, $3.vs, NULL, false, MDL_T_NONE);
     if (!c) {
       string msg = string("Error, did not new mdl_constraint\n");
-      yyerror(P_strdup(msg.string_of()));
+      yyerror(P_strdup(msg.c_str()));
       exit(-1);
     } else {
       mdl_data::unique_name(*$2.sp);
@@ -722,7 +722,7 @@ int_constraint_definition: tCONSTRAINT tIDENT match_path tIS tREPLACE cons_type 
       *$2.sp, $3.vs, $8.m_stmt_v, true, $6.u);
     if (!$$.constraint) {
       string msg = string("Error, did not new mdl_constraint\n");
-      yyerror(P_strdup(msg.string_of()));
+      yyerror(P_strdup(msg.c_str()));
       exit(-1);
     }
     delete $2.sp; 

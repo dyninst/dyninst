@@ -44,6 +44,12 @@
 
 /*
  * $Log: tvMetric.C,v $
+ * Revision 1.6  2002/05/13 19:54:09  mjbrim
+ * update string class to eliminate implicit number conversions
+ * and replace all use of string_of with c_str  - - - - - - - - - - - - - -
+ * change implicit number conversions to explicit conversions,
+ * change all use of string_of to c_str
+ *
  * Revision 1.5  1999/03/13 15:24:07  pcroth
  * Added support for building under Windows NT
  *
@@ -73,8 +79,8 @@ tvMetric::tvMetric(unsigned iVisiLibId,
 		   unsigned iNumSigFigs) :
 		      name(iName), unitsName(iUnitsName) {
    visiLibId = iVisiLibId;
-   namePixWidth = Tk_TextWidth(nameFont, name.string_of(), name.length());
-   unitsPixWidth = Tk_TextWidth(unitsNameFont, iUnitsName.string_of(),
+   namePixWidth = Tk_TextWidth(nameFont, name.c_str(), name.length());
+   unitsPixWidth = Tk_TextWidth(unitsNameFont, iUnitsName.c_str(),
 			      iUnitsName.length());
    changeNumSigFigs(iNumSigFigs, valuesFont); // updates valuesPixWidth, too
 }

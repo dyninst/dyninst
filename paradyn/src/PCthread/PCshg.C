@@ -41,7 +41,7 @@
 
 /*
  * The searchHistoryNode and searchHistoryGraph class methods.
- * $Id: PCshg.C,v 1.65 2001/12/06 16:10:11 pcroth Exp $
+ * $Id: PCshg.C,v 1.66 2002/05/13 19:53:11 mjbrim Exp $
  */
 
 #include "PCintern.h"
@@ -232,7 +232,7 @@ searchHistoryNode::addNodeToDisplay()
 {
   uiMgr->DAGaddNode (mamaGraph->guiToken, nodeID, 
 		     searchHistoryGraph::InactiveUnknownNodeStyle, 
-		     sname.string_of(), name.string_of(), 0);
+		     sname.c_str(), name.c_str(), 0);
 }
 
 void 

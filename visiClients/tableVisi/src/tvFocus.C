@@ -42,7 +42,7 @@
 // tvFocus.C
 // Ariel Tamches
 
-// $Id: tvFocus.C,v 1.7 2000/07/28 17:23:02 pcroth Exp $
+// $Id: tvFocus.C,v 1.8 2002/05/13 19:54:08 mjbrim Exp $
 
 #include "common/h/Vector.h"
 #include "tvFocus.h"
@@ -52,7 +52,7 @@ tvFocus::tvFocus(unsigned iVisiLibId,
                                                    longName(iLongName) {
    visiLibId = iVisiLibId;
 
-   longNamePixWidth = Tk_TextWidth(nameFont, longName.string_of(),
+   longNamePixWidth = Tk_TextWidth(nameFont, longName.c_str(),
 				 longName.length());
    
    // Calculate the short name as follows:
@@ -63,7 +63,7 @@ tvFocus::tvFocus(unsigned iVisiLibId,
    // to obtain the short name
    
    // Step 0: make an exception for "Whole Program"
-   if (0==strcmp(longName.string_of(), "Whole Program")) {
+   if (0==strcmp(longName.c_str(), "Whole Program")) {
       shortName = longName;
    }
    else {
@@ -71,7 +71,7 @@ tvFocus::tvFocus(unsigned iVisiLibId,
       vector<string> components;
 		unsigned componentlcv;
 
-      const char *ptr = longName.string_of();
+      const char *ptr = longName.c_str();
       while (*ptr != '\0') {
          // begin a new component; collect upto & including the first seen comma
          char buffer[200];
@@ -93,7 +93,7 @@ tvFocus::tvFocus(unsigned iVisiLibId,
       for (componentlcv=0; componentlcv < components.size(); componentlcv++) {
          const string &oldComponentString = components[componentlcv];
 
-         char *ptr = strrchr(oldComponentString.string_of(), '/');
+         char *ptr = strrchr(oldComponentString.c_str(), '/');
          if (ptr == NULL)
             cerr << "tableVisi: could not find / in component " << oldComponentString << endl;
          else if (ptr+1 == '\0')
@@ -111,6 +111,6 @@ tvFocus::tvFocus(unsigned iVisiLibId,
       this->shortName = theShortName;
    }
    
-   shortNamePixWidth = Tk_TextWidth(nameFont, shortName.string_of(),
+   shortNamePixWidth = Tk_TextWidth(nameFont, shortName.c_str(),
 				  shortName.length());
 }

@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.111 2002/04/23 18:58:58 schendel Exp $
+ * $Id: DMdaemon.C,v 1.112 2002/05/13 19:52:52 mjbrim Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -249,7 +249,7 @@ void paradynDaemon::removeDaemon(paradynDaemon *d, bool informUser)
       string msg;
       msg = string("paradynd has died on host <") + d->getMachineName()
 	    + string(">");
-      uiMgr->showError(5, P_strdup(msg.string_of()));
+      uiMgr->showError(5, P_strdup(msg.c_str()));
     }
 
     d->dead = true;
@@ -369,9 +369,9 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const string &machine,
     paradynDaemon *pd;
     for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
         pd = paradynDaemon::allDaemons[i];
-        if ((!m.string_of() || (pd->machine == m)) && 
-           (!login.string_of() || (pd->login == login))  &&
-	   (name.string_of() && (pd->name == name))) {
+        if ((!m.c_str() || (pd->machine == m)) && 
+           (!login.c_str() || (pd->login == login))  &&
+	   (name.c_str() && (pd->name == name))) {
             //cerr << "Returning an existing daemon match!" << endl;
 	    return (pd);     
         }
@@ -382,7 +382,7 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const string &machine,
     if (!def) {
 	if (name.length()) {
 	  string msg = string("Paradyn daemon \"") + name + string("\" not defined.");
-	  uiMgr->showError(90,P_strdup(msg.string_of()));
+	  uiMgr->showError(90,P_strdup(msg.c_str()));
         }
 	else {
 	  uiMgr->showError(91,"");
@@ -391,7 +391,7 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const string &machine,
     }
 
     char statusLine[256];
-    sprintf(statusLine, "Starting daemon on %s",m.string_of());
+    sprintf(statusLine, "Starting daemon on %s",m.c_str());
     uiMgr->updateStatusLine(DMstatus,P_strdup(statusLine));
 
     string flav_arg(string("-z") + def->getFlavor());
@@ -406,7 +406,7 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const string &machine,
       //TODO: "something" has to be done for a proper clean up - naim
       string msg;
       msg=string("Cannot create daemon process on host \"") + m + string("\"");
-      uiMgr->showError(84,P_strdup(msg.string_of())); 
+      uiMgr->showError(84,P_strdup(msg.c_str())); 
       return((paradynDaemon*) 0);
     }
 
@@ -607,22 +607,22 @@ static bool execPOE(const string /* &machine*/, const string /* &login */,
   s[1] = strdup(de->getCommand());
 
   for (i = 0; i < args.size(); i++)
-    s[i+2] = (strcmp(args[i].string_of(), "-l1")) 
-             ? strdup(args[i].string_of()) : strdup("-l0");
+    s[i+2] = (strcmp(args[i].c_str(), "-l1")) 
+             ? strdup(args[i].c_str()) : strdup("-l0");
 
   sprintf(t, "-z%s", de->getFlavor());
   s[args.size()+2] = strdup(t);
   s[args.size()+3] = strdup("-runme");
       
   for (i = 0; i < argv.size(); i++) 
-    s[args.size()+4+i] = (i || strcmp(argv[i].string_of(), "poe"))
-                         ? strdup(argv[i].string_of()) : strdup("");
+    s[args.size()+4+i] = (i || strcmp(argv[i].c_str(), "poe"))
+                         ? strdup(argv[i].c_str()) : strdup("");
 
   s[args.size()+argv.size()+4] = NULL;
 
                       //IBM POE sets remote directory same as current directory
-  if (dir.length() && (P_chdir(dir.string_of()) < 0)) 
-    cerr << "cannot chdir to " << dir.string_of() << ": " 
+  if (dir.length() && (P_chdir(dir.c_str()) < 0)) 
+    cerr << "cannot chdir to " << dir.c_str() << ": " 
          << sys_errlist[errno] << endl;
 
   int execRetVal = execvp(s[0], s);
@@ -665,25 +665,25 @@ static bool rshPOE(const string         &machine, const string         &login,
   else
     s[0] = strdup("rsh");
 
-  s[1] = strdup(machine.string_of());
+  s[1] = strdup(machine.c_str());
   s[2] = (login.length()) ? strdup("-l"):              strdup("");
-  s[3] = (login.length()) ? strdup(login.string_of()): strdup("");
+  s[3] = (login.length()) ? strdup(login.c_str()): strdup("");
 
   sprintf(t, "(");
 
-  if (dir.length()) strcat(strcat(strcat(t, "cd "), dir.string_of()), "; ");
+  if (dir.length()) strcat(strcat(strcat(t, "cd "), dir.c_str()), "; ");
 
   strcat(strcat(strcat(t, "poe "), de->getCommand()), " ");
 
   for (i = 0; i < args.size(); i++)
-    strcat(strcat(t, (strcmp(args[i].string_of(), "-l1")) 
-                     ? args[i].string_of() : "-l0"), " ");
+    strcat(strcat(t, (strcmp(args[i].c_str(), "-l1")) 
+                     ? args[i].c_str() : "-l0"), " ");
 
   strcat(strcat(strcat(t, "-z"), de->getFlavor()), " -runme ");
       
   for (i = 0; i < argv.size(); i++) 
-    strcat(strcat(t, (i || strcmp(argv[i].string_of(), "poe"))
-                     ? argv[i].string_of() : ""), " ");
+    strcat(strcat(t, (i || strcmp(argv[i].c_str(), "poe"))
+                     ? argv[i].c_str() : ""), " ");
 
   strcat(t, ")");
 
@@ -788,7 +788,7 @@ bool getIrixMPICommandLine(const vector<string> argv, const vector<string> args,
   {
     cmdLineVec += argv[i];
     
-    mpirunFound = (P_strstr(argv[i].string_of(), "mpirun") > 0);
+    mpirunFound = (P_strstr(argv[i].c_str(), "mpirun") > 0);
     i++;
   }
   while ( !mpirunFound && i < argv.size());
@@ -808,13 +808,13 @@ bool getIrixMPICommandLine(const vector<string> argv, const vector<string> args,
 
     for ( j = 0; j < globalArgNo && !flagFound; j++ )
     {
-      if ( P_strcmp(argv[i].string_of(), globalArgs[j].argFlag) == 0 )
+      if ( P_strcmp(argv[i].c_str(), globalArgs[j].argFlag) == 0 )
       {
         if ( !globalArgs[j].supported )
         {
           string message = "Paradyn does not support use of mpirun flag ";
           message += globalArgs[j].argFlag;
-          uiMgr->showError(113, P_strdup(message.string_of()));
+          uiMgr->showError(113, P_strdup(message.c_str()));
           
           return false;
         }
@@ -823,7 +823,7 @@ bool getIrixMPICommandLine(const vector<string> argv, const vector<string> args,
         {
           string message = "Behavior undefined with mpirun option ";
           message += globalArgs[j].argFlag;
-          uiMgr->showError(114, P_strdup(message.string_of()));
+          uiMgr->showError(114, P_strdup(message.c_str()));
         }
         
         flagFound = true;
@@ -884,13 +884,13 @@ bool getIrixMPICommandLine(const vector<string> argv, const vector<string> args,
 
       for ( j = 0; j < localArgNo && !flagFound; j++ )
       {
-        if ( strcmp(argv[i].string_of(), localArgs[j].argFlag) == 0 )
+        if ( strcmp(argv[i].c_str(), localArgs[j].argFlag) == 0 )
         {
           if ( !localArgs[j].supported )
           {
             string message = "Paradyn does not support use of mpirun flag ";
             message += globalArgs[j].argFlag;
-            uiMgr->showError(113, P_strdup(message.string_of()));
+            uiMgr->showError(113, P_strdup(message.c_str()));
             return false;
           }
           
@@ -898,7 +898,7 @@ bool getIrixMPICommandLine(const vector<string> argv, const vector<string> args,
           {
             string message = "Behavior undefined with mpirun option ";
             message += globalArgs[j].argFlag;
-            uiMgr->showError(114, P_strdup(message.string_of()));
+            uiMgr->showError(114, P_strdup(message.c_str()));
           }
 
           flagFound = true;
@@ -930,7 +930,7 @@ bool getIrixMPICommandLine(const vector<string> argv, const vector<string> args,
         {
           // If curr arg contains ",", then it is a hostname
           // If last char is ',' or next arg starts with ',', then still in hostlist
-          commaPtr = strrchr(argv[i].string_of(), ',');
+          commaPtr = strrchr(argv[i].c_str(), ',');
 
           if ( (commaPtr && argv[i][argv[i].length()-1] == ',') ||
                ( (i+1) < argv.size() && argv[i+1][0] == ',') )
@@ -974,13 +974,13 @@ bool getIrixMPICommandLine(const vector<string> argv, const vector<string> args,
           
           for ( j = 0; j < localArgNo && !flagFound; j++ )
           {
-            if ( strcmp(argv[i].string_of(), localArgs[j].argFlag) == 0 )
+            if ( strcmp(argv[i].c_str(), localArgs[j].argFlag) == 0 )
             {
               if ( !localArgs[j].supported )
               {
                 string message = "Paradyn does not support use of mpirun flag ";
                 message += globalArgs[j].argFlag;
-                uiMgr->showError(113, P_strdup(message.string_of()));
+                uiMgr->showError(113, P_strdup(message.c_str()));
                 return false;
               }
               
@@ -1016,7 +1016,7 @@ bool getIrixMPICommandLine(const vector<string> argv, const vector<string> args,
     cmdLineVec += de->getCommand();
     
     for (j = 0; j < args.size(); j++)
-      cmdLineVec += strcmp(args[j].string_of(), "-l1") ? args[j] : "-l0";
+      cmdLineVec += strcmp(args[j].c_str(), "-l1") ? args[j] : "-l0";
 
     cmdLineVec += string("-z") + de->getFlavor();
     cmdLineVec += "-runme";
@@ -1036,13 +1036,13 @@ bool getIrixMPICommandLine(const vector<string> argv, const vector<string> args,
     i++;
 
     //  Go past program arguments to find the next entry
-    while ( i < argv.size() && strcmp(argv[i].string_of(), ":") )
+    while ( i < argv.size() && strcmp(argv[i].c_str(), ":") )
     {
       cmdLineVec += argv[i];
       i++;
     }
 
-    if ( i < argv.size() && !strcmp(argv[i].string_of(), ":") )
+    if ( i < argv.size() && !strcmp(argv[i].c_str(), ":") )
     {
       cmdLineVec += argv[i];
       i++;
@@ -1068,7 +1068,7 @@ static bool execIrixMPI(const string &dir, vector<string>& cmdLineVec)
   char **s = new char*[cmdLineVecSize]();
 
   for ( j = 0; j < cmdLineVec.size(); j++ ) {
-    s[j] = P_strdup(cmdLineVec[j].string_of());
+    s[j] = P_strdup(cmdLineVec[j].c_str());
   }
 
   s[j] = NULL;
@@ -1077,7 +1077,7 @@ static bool execIrixMPI(const string &dir, vector<string>& cmdLineVec)
       // mpirun cds to "current directory" based on PWD environment variable
       const int dirLength = 300;
       char* buf = new char[dirLength]();
-      sprintf(buf, "PWD=%s",dir.string_of());
+      sprintf(buf, "PWD=%s",dir.c_str());
       putenv(buf);
   }
 
@@ -1117,22 +1117,22 @@ static bool rshIrixMPI(const string &machine, const string &login,
   else
     s[0] = strdup("rsh");
 
-  s[1] = strdup(machine.string_of());
+  s[1] = strdup(machine.c_str());
   s[2] = (login.length()) ? strdup("-l"):              strdup("");
-  s[3] = (login.length()) ? strdup(login.string_of()): strdup("");
+  s[3] = (login.length()) ? strdup(login.c_str()): strdup("");
 
   strcpy(t, "(");
 
   if (dir.length())
   {
     strcat(t, "cd ");
-    strcat(t, dir.string_of());
+    strcat(t, dir.c_str());
     strcat(t, "; ");
   }
 
   for ( i = 0; i < cmdLineVec.size(); i++ )
   {
-    strcat(t, cmdLineVec[i].string_of());
+    strcat(t, cmdLineVec[i].c_str());
     strcat(t, " ");
   }
   
@@ -1196,7 +1196,7 @@ static bool startIrixMPI(const string     &machine, const string         &login,
       newStatus += string("daemon: ") + name + " ";
 
       extern status_line* app_name;
-      uiMgr->updateStatus(app_name, P_strdup(newStatus.string_of()));
+      uiMgr->updateStatus(app_name, P_strdup(newStatus.c_str()));
    }
    
    if (fork()) return(true);
@@ -1266,7 +1266,7 @@ mpichUnlinkWrappers()
 		if( wrapper.isLocal )
 		{
 			// remove the local wrapper file
-			if (remove(wrapper.filename.string_of()) < 0) { // Best effort
+			if (remove(wrapper.filename.c_str()) < 0) { // Best effort
 				cerr << "mpichUnlinkWrappers: Failed to remove " 
 					 << wrapper.filename << ": " << strerror(errno) << endl;
 				rv=false;
@@ -1304,7 +1304,7 @@ mpichUnlinkWrappers()
 				execl( "/bin/sh",
 					"sh",
 					"-c",
-					cmd.string_of(),
+					cmd.c_str(),
 					NULL );
 
 				// if we reached here, our exec failed
@@ -1334,10 +1334,10 @@ writeMPICHWrapper( const string& fileName, const string& buffer )
 {
 	FILE *f;
 
-	if ((f = fopen (fileName.string_of(), "wt")) == 0 ||
-		fputs (buffer.string_of(), f) < 0 ||
+	if ((f = fopen (fileName.c_str(), "wt")) == 0 ||
+		fputs (buffer.c_str(), f) < 0 ||
 		fclose (f) < 0 ||
-		chmod (fileName.string_of(), S_IRWXU) < 0) {
+		chmod (fileName.c_str(), S_IRWXU) < 0) {
 		uiMgr->showError(113, "mpichCreateWrapper: I/O error");
 		return false;
 	}
@@ -1369,7 +1369,7 @@ bool mpichCreateWrapper(const string& machine,
 		string(de->getCommand());
 
 	for (j=0; j < args.size(); j++) {
-		if (!strcmp(args[j].string_of(), "-l1")) {
+		if (!strcmp(args[j].c_str(), "-l1")) {
 			buffer += " -l0";
 		}
 		else {
@@ -1459,7 +1459,7 @@ bool mpichCreateWrapper(const string& machine,
 			execl( "/bin/sh",
 				"sh",
 				"-c",
-				cmd.string_of(),
+				cmd.c_str(),
 				NULL );
 			copySucceeded = false;	// if we got here, the exec failed
 		}
@@ -1469,7 +1469,7 @@ bool mpichCreateWrapper(const string& machine,
 			copySucceeded = false;
 		}
 		// release the local temporary wrapper file
-		if( remove(localWrapper.string_of()) < 0 )
+		if( remove(localWrapper.c_str()) < 0 )
 		{
 			cerr << "mpichCreateWrapper: Failed to remove temporary local wrapper " 
 			     << localWrapper
@@ -1572,7 +1572,7 @@ bool mpichParseCmdline(const string& script, const vector<string> &argv,
 	unsigned int i = 0, k;
 
 	while (i < argv.size() && !found_mpirun) {
-	        found_mpirun = (strstr(argv[i].string_of(), "mpirun") != 0);
+	        found_mpirun = (strstr(argv[i].c_str(), "mpirun") != 0);
 		params += argv[i++];
 	}
 	if (!found_mpirun) {
@@ -1592,7 +1592,7 @@ bool mpichParseCmdline(const string& script, const vector<string> &argv,
 					        string(known[k].name) + 
 					        string("\" is not supported");
 					uiMgr->showError(113, strdup(msg.
-							      string_of()));
+							      c_str()));
 					return false;
 				}
 
@@ -1646,7 +1646,7 @@ static bool startMPICH(const string &machine, const string &login,
 	if (PROCstatus) uiMgr->updateStatusLine(PROCstatus, "MPICH");
    
 	if (dir.length()) {
-		strcpy(cwd, dir.string_of());
+		strcpy(cwd, dir.c_str());
 	} else {
 		getcwd(cwd, PATH_MAX);
 	}
@@ -1667,7 +1667,7 @@ static bool startMPICH(const string &machine, const string &login,
 	}
 
 	for (i=0; i<params.size(); i++) {
-		s[i] = strdup(params[i].string_of());
+		s[i] = strdup(params[i].c_str());
 	}
 	s[i] = 0;
 
@@ -1712,7 +1712,7 @@ bool paradynDaemon::newExecutable(const string &machineArg,
    if (!def) {
       if (name.length()) {
          string msg = string("Paradyn daemon \"") + name + string("\" not defined.");
-         uiMgr->showError(90,P_strdup(msg.string_of()));
+         uiMgr->showError(90,P_strdup(msg.c_str()));
       }
       else {
          uiMgr->showError(91,"");
@@ -1732,7 +1732,7 @@ bool paradynDaemon::newExecutable(const string &machineArg,
 #if defined(i386_unknown_nt4_0)
      string message = "Paradyn does not yet support MPI applications started from OS WinNT";
          
-     uiMgr->showError(113, strdup(message.string_of()));
+     uiMgr->showError(113, strdup(message.c_str()));
      return false;
 #else
       string os;
@@ -1759,10 +1759,10 @@ bool paradynDaemon::newExecutable(const string &machineArg,
           remoteShell = def->getRemoteShellString();
 
           sprintf(comm, "%s%s%s %s uname -s", 
-                  remoteShell.length() ? remoteShell.string_of() : "rsh",
+                  remoteShell.length() ? remoteShell.c_str() : "rsh",
                   login.length() ? " -l " : "",
-                  login.length() ? login.string_of() : "",
-                  machine.string_of());
+                  login.length() ? login.c_str() : "",
+                  machine.c_str());
 
           commStream = P_popen(comm, "r");
 
@@ -2298,16 +2298,16 @@ bool paradynDaemon::setDefaultArgs(char *&name)
 bool daemonEntry::setAll (const string &m, const string &c, const string &n,
 			  const string &l, const string &d, const string &r, const string &f)
 {
-  if(!n.string_of() || !c.string_of())
+  if(!n.c_str() || !c.c_str())
       return false;
 
-  if (m.string_of()) machine = m;
-  if (c.string_of()) command = c;
-  if (n.string_of()) name = n;
-  if (l.string_of()) login = l;
-  if (d.string_of()) dir = d;
-  if (r.string_of()) remote_shell = r;
-  if (f.string_of()) flavor = f;
+  if (m.c_str()) machine = m;
+  if (c.c_str()) command = c;
+  if (n.c_str()) name = n;
+  if (l.c_str()) login = l;
+  if (d.c_str()) dir = d;
+  if (r.c_str()) remote_shell = r;
+  if (f.c_str()) flavor = f;
 
   return true;
 }
@@ -2439,7 +2439,7 @@ paradynDaemon::paradynDaemon(const string &m, const string &u, const string &c,
     assert(f.length());
 
     // if c includes a pathname, lose the pathname
-    const char *loc = P_strrchr(c.string_of(), '/');
+    const char *loc = P_strrchr(c.c_str(), '/');
     if (loc) {
       loc = loc + 1;
       command = loc;
@@ -2448,9 +2448,9 @@ paradynDaemon::paradynDaemon(const string &m, const string &u, const string &c,
     if (machine.suffixed_by(local_domain)) {
         const unsigned namelength = machine.length()-local_domain.length()-1;
         const string localname = machine.substr(0,namelength);
-        status = P_strdup(localname.string_of());
+        status = P_strdup(localname.c_str());
     } else {
-        status = P_strdup(machine.string_of());
+        status = P_strdup(machine.c_str());
     }
 
     uiMgr->createProcessStatusLine(status);
@@ -2530,7 +2530,7 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	if (our_print_sample_arrival || sampleVal_cerr.isOn()) {
 	  cerr << "[" << index << "] mid " << mid << "-   from: " 
 	       << startTimeStamp << "  to: " << endTimeStamp << "   val: "
-	       << value << "  machine: " << machine.string_of() << "\n";
+	       << value << "  machine: " << machine.c_str() << "\n";
 	}
 	
 	timeStamp newStartTime = this->getAdjustedTime(startTimeStamp);
@@ -2539,7 +2539,7 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
 	if (our_print_sample_arrival || sampleVal_cerr.isOn()) {
 	  cerr << "(after adj) [" << index << "] mid " << mid << "-   from: " 
 	       << newStartTime << "  to: " << newEndTime << "   val: "
-	       << value << "  machine: " << machine.string_of() << "\n";
+	       << value << "  machine: " << machine.c_str() << "\n";
 	}
 	
 	mi->updateComponent(this, newStartTime, newEndTime, value);
@@ -2637,15 +2637,15 @@ paradynDaemon::reportSelf (string m, string p, int /*pid*/, string flav)
     printf("paradyn daemon reported bad info, removed\n");
     // error
   } else {
-    machine = m.string_of();
-    command = p.string_of();
+    machine = m.c_str();
+    command = p.c_str();
 
     if (machine.suffixed_by(local_domain)) {
         const unsigned namelength = machine.length()-local_domain.length()-1;
         const string localname = machine.substr(0,namelength);
-        status = P_strdup(localname.string_of());
+        status = P_strdup(localname.c_str());
     } else
-        status = P_strdup(machine.string_of());
+        status = P_strdup(machine.c_str());
 
     uiMgr->createProcessStatusLine(status);
 
@@ -2683,7 +2683,7 @@ void
 paradynDaemon::reportStatus (string line)
 {
   if (status)
-    uiMgr->updateStatusLine(status, P_strdup(line.string_of()));
+    uiMgr->updateStatusLine(status, P_strdup(line.c_str()));
 }
 
 /***
@@ -2707,9 +2707,9 @@ paradynDaemon::processStatus(int pid, u_int stat) {
 	  reportStatus("application exited");
 	else if(totalProcs > 1 && numExited>0) {
 	  string msg;
-	  msg = string("application running, ") + numExited + " of " + 
-	    totalProcs + " processes exited\n";
-	  reportStatus(msg.string_of());
+	  msg = string("application running, ") + string(numExited) + " of " + 
+	    string(totalProcs) + " processes exited\n";
+	  reportStatus(msg.c_str());
 	}
 	break;
       }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: VMmain.C,v 1.49 2001/06/20 20:38:36 schendel Exp $ */
+/* $Id: VMmain.C,v 1.50 2002/05/13 19:53:38 mjbrim Exp $ */
 
 #include "paradyn/src/pdMain/paradyn.h"
 #include "thread/h/thread.h"
@@ -171,7 +171,7 @@ int VM_AddNewVisualization(const char *name,
   temp->argv[size] = (char *) 0;
   unsigned a_size = arg_str->size();
   for(unsigned i1=0; i1<a_size; i1++){
-      if((temp->argv[i1] = strdup((*arg_str)[i1].string_of())) == NULL){
+      if((temp->argv[i1] = strdup((*arg_str)[i1].c_str())) == NULL){
           ERROR_MSG(19,"strdup in VM::VMAddNewVisualization");
           return(VMERROR);
       }
@@ -310,9 +310,9 @@ int  VM::VMCreateVisi(int remenuFlag,
 	{
 		metricHandle metric_h=UNUSED_METRIC_HANDLE;
 		
-		string metfocus_item((*visitemp->matrix)[i].string_of());
+		string metfocus_item((*visitemp->matrix)[i].c_str());
 		char *metfocus_str=const_cast<char *>(
-					 P_strdup(metfocus_item.string_of()));
+					 P_strdup(metfocus_item.c_str()));
 		string *metric_name=NULL;
 		string *code_name=NULL;
 		string *machine_name=NULL;
@@ -346,7 +346,7 @@ int  VM::VMCreateVisi(int remenuFlag,
 		if (*metric_name == "*")
 			metric_h = UNUSED_METRIC_HANDLE;
 		else {
-			metricHandle *result = dataMgr->findMetric(metric_name->string_of());
+			metricHandle *result = dataMgr->findMetric(metric_name->c_str());
 			if (result == NULL)
 				legal_metfocus = 0;
 			else metric_h = *result;
@@ -356,7 +356,7 @@ int  VM::VMCreateVisi(int remenuFlag,
 		resourceHandle *rl=NULL;
 		if (legal_metfocus)
 		{
-			rl=dataMgr->findResource(code_name->string_of());
+			rl=dataMgr->findResource(code_name->c_str());
 			if (rl == NULL)
 				legal_metfocus = 0;
 			else code_h=*rl;
@@ -364,7 +364,7 @@ int  VM::VMCreateVisi(int remenuFlag,
         
 		if (legal_metfocus)
 		{
-			rl=dataMgr->findResource(machine_name->string_of());
+			rl=dataMgr->findResource(machine_name->c_str());
 			if (rl == NULL)
 				legal_metfocus = 0;
 			else machine_h=*rl;
@@ -372,7 +372,7 @@ int  VM::VMCreateVisi(int remenuFlag,
         
 		if (legal_metfocus)
 		{
-			rl=dataMgr->findResource(sync_name->string_of());
+			rl=dataMgr->findResource(sync_name->c_str());
 			if (rl == NULL)
 				legal_metfocus = 0;
 			else sync_h=*rl;
@@ -399,8 +399,8 @@ int  VM::VMCreateVisi(int remenuFlag,
 				(*temp->matrix) += metfocus;
 			else {
 				string err_msg("invalid metric/focus ");
-				err_msg += (*visitemp->matrix)[i].string_of();
-				ERROR_MSG(120,P_strdup(err_msg.string_of()));
+				err_msg += (*visitemp->matrix)[i].c_str();
+				ERROR_MSG(120,P_strdup(err_msg.c_str()));
       				return(VMERROR);
 			}
 		}
@@ -522,10 +522,10 @@ int VM::VM_post_thread_create_init(){
       if(next_visi){
 	  vector<string> argv;
 	  bool aflag;
-	  aflag=(RPCgetArg(argv, next_visi->command().string_of()));
+	  aflag=(RPCgetArg(argv, next_visi->command().c_str()));
 	  assert(aflag);
 	  
-	  VM_AddNewVisualization(next_visi->name().string_of(), &argv, 
+	  VM_AddNewVisualization(next_visi->name().c_str(), &argv, 
 				next_visi->force(),next_visi->limit(),next_visi->metfocus());
       }
 

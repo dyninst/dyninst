@@ -41,7 +41,7 @@
 
 // barChartTcl.C
 
-/* $Id: barChartTcl.C,v 1.23 2002/02/15 18:35:21 pcroth Exp $ */
+/* $Id: barChartTcl.C,v 1.24 2002/05/13 19:54:02 mjbrim Exp $ */
 
 #include <iostream.h>
 
@@ -246,7 +246,7 @@ int getMetricColorNameCommand(ClientData, Tcl_Interp *interp,
    unsigned index = atoi(argv[1]);
 
    const string &result = theBarChart->getMetricColorName(index);
-   Tcl_SetObjResult(interp, Tcl_NewStringObj(result.string_of(), -1));
+   Tcl_SetObjResult(interp, Tcl_NewStringObj(result.c_str(), -1));
    return TCL_OK;
 }
 
@@ -289,7 +289,7 @@ int long2shortFocusNameCommand(ClientData, Tcl_Interp *interp, int argc, char **
    for (componentlcv=0; componentlcv < components.size(); componentlcv++) {
       const string &oldComponentString = components[componentlcv];
 
-      char *ptr = strrchr(oldComponentString.string_of(), '/');
+      char *ptr = strrchr(oldComponentString.c_str(), '/');
       if (ptr == NULL)
          cerr << "tableVisi: could not find / in component " << oldComponentString << endl;
       else if (ptr+1 == '\0')
@@ -304,7 +304,7 @@ int long2shortFocusNameCommand(ClientData, Tcl_Interp *interp, int argc, char **
       theShortName += components[componentlcv];
 
    // Step 4: pull it all together:
-   Tcl_SetObjResult(interp, Tcl_NewStringObj(theShortName.string_of(), -1));
+   Tcl_SetObjResult(interp, Tcl_NewStringObj(theShortName.c_str(), -1));
    return TCL_OK;
 }
 

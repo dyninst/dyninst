@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.53 2002/04/18 19:39:37 bernat Exp $
+// $Id: BPatch_thread.C,v 1.54 2002/05/13 19:51:43 mjbrim Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -1196,7 +1196,7 @@ bool BPatch_thread::getLineAndFile(unsigned long addr,unsigned short& lineNo,
 			if(fInfo->getLineFromAddr(*fileN,lineNo,addr,true,false)){
 				if(fileN->length() < (unsigned)size)
 					size = fileN->length();
-				strncpy(fileName,fileN->string_of(),size);
+				strncpy(fileName,fileN->c_str(),size);
 				fileName[size] = '\0';
 				return true;
 			}	

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.38 2002/04/15 21:48:43 chadd Exp $
+ * $Id: Object-elf.C,v 1.39 2002/05/13 19:51:52 mjbrim Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -557,10 +557,10 @@ int Object::got_gp_disp(const char *fn_name) const
     string got_name = got_str;
 
     // check against variations of GOT name
-    if (strcmp(fn_name, (got_name).string_of()) == 0 ||       // default
-	strcmp(fn_name, ("_" + got_name).string_of()) == 0 || // C
-	strcmp(fn_name, (got_name + "_").string_of()) == 0 || // Fortran
-	strcmp(fn_name, ("__" + got_name).string_of()) == 0)  // libm
+    if (strcmp(fn_name, (got_name).c_str()) == 0 ||       // default
+	strcmp(fn_name, ("_" + got_name).c_str()) == 0 || // C
+	strcmp(fn_name, (got_name + "_").c_str()) == 0 || // Fortran
+	strcmp(fn_name, ("__" + got_name).c_str()) == 0)  // libm
       {
       int gp_off = (long int)got_entry - (long int)gp_value;
       return gp_off;
@@ -643,7 +643,7 @@ void Object::load_object()
   
   { // binding contour (for "goto cleanup")
 
-    const char *file = file_.string_of();
+    const char *file = file_.c_str();
     if (mmap_file(file, did_open, did_mmap) == false) {
       char buf[500];
       sprintf(buf, "open/fstat/mmap failed on: %s", file);
@@ -768,7 +768,7 @@ void Object::load_shared_object()
   
   { // binding contour (for "goto cleanup2")
 
-    const char *file = file_.string_of();
+    const char *file = file_.c_str();
     if (mmap_file(file, did_open, did_mmap) == false) {
       char buf[500];
       sprintf(buf, "open/fstat/mmap failed on: %s", file);

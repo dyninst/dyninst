@@ -40,7 +40,7 @@
  */
 
 /* 
- * $Id: PCpublic.C,v 1.44 2000/03/23 01:34:26 wylie Exp $
+ * $Id: PCpublic.C,v 1.45 2002/05/13 19:53:09 mjbrim Exp $
  * PC thread interface functions
  */
 
@@ -144,7 +144,7 @@ performanceConsultant::saveSHG(const char *filename, int flag)
 {
   bool success = false;
   string dir = string (filename) + string("/shg.txt");
-  ofstream saveFile (dir.string_of(), ios::out);
+  ofstream saveFile (dir.c_str(), ios::out);
   if (!saveFile) {
     success = false;
   } else {

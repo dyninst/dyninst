@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sharedobject.C,v 1.11 2001/08/20 22:23:47 bernat Exp $
+// $Id: sharedobject.C,v 1.12 2002/05/13 19:52:38 mjbrim Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 
@@ -52,7 +52,7 @@
 // part removed.  return 0 on error
 char *shared_object::getModulePart(string &full_path_name) {
 
-    char *whole_name = P_strdup(full_path_name.string_of());
+    char *whole_name = P_strdup(full_path_name.c_str());
     char *next=0;
     char *last=next;
     if((last = P_strrchr(whole_name, '/'))){
@@ -78,7 +78,7 @@ char *shared_object::getModulePart(string &full_path_name) {
 // fill in "short_name" data member.  Use last component of "name" data
 // member with FS_FIELD_SEPERATOR ("/") as field seperator....
 void shared_object::set_short_name() {
-    const char *name_string = name.string_of();
+    const char *name_string = name.c_str();
     const char *ptr = strrchr(name_string, FS_FIELD_SEPERATOR);
     if (ptr != NULL) {
         short_name = ptr+1;

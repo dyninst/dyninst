@@ -74,7 +74,7 @@ resource *memoryResource; // shared-memory resource
 resource *resource::newResource(resource *parent, const string& name, unsigned id, 
 				unsigned type) {
   assert (name != (char*) NULL);
-  assert ((name.string_of())[0] != '/');
+  assert ((name.c_str())[0] != '/');
 
   string res_string = parent->full_name() + slashStr + name;
 
@@ -105,7 +105,7 @@ resource *resource::newResource(resource *parent, void *handle,
 				bool send_it_now)
 {
   assert (name != (char*) NULL);
-  assert ((name.string_of())[0] != '/');
+  assert ((name.c_str())[0] != '/');
   static const string leftBracket = "{";
   static const string rightBracket = "}";
 
@@ -132,7 +132,7 @@ resource *resource::newResource(resource *parent, void *handle,
 
   // TODO -- use pid here
   //logLine("newResource:  ");
-  //logLine(P_strdup(name.string_of()));
+  //logLine(P_strdup(name.c_str()));
   //logLine("\n");
 
   // generate a unique Id for this resource. Each daemon generates its own id
@@ -174,7 +174,7 @@ resource *resource::newResource_ncb(resource *parent, void *handle,
 				unsigned type)
 {
   assert (name != (char*) NULL);
-  assert ((name.string_of())[0] != '/');
+  assert ((name.c_str())[0] != '/');
 
   string unique_string(name);
   if (unique.length()) 

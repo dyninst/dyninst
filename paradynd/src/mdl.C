@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.110 2002/05/10 18:36:55 schendel Exp $
+// $Id: mdl.C,v 1.111 2002/05/13 19:53:49 mjbrim Exp $
 
 #include <iostream.h>
 #include <stdio.h>
@@ -318,7 +318,6 @@ bool mdl_data::new_metric(string id, string name, string units,
     return true;
   }
 }
-
 
 // will filter out processes from fromProcs that match the given focus
 // and places the result in filteredOutProcs
@@ -622,7 +621,7 @@ void createThreadNodes(processMetFocusNode **procNode_arg,
 	 Focus focus_with_thr = no_thr_focus;
 	 for(unsigned u=0; u<allThr.size(); u++) {
 	    pdThread *thr = allThr[u];
-	    string thrName = string("thr_") + thr->get_tid() + "{" + 
+	    string thrName = string("thr_") + string(thr->get_tid()) + "{" + 
 	                      thr->get_start_func()->prettyName() + "}";
 	    focus_with_thr.set_thread(thrName);
 	    threadMetFocusNode *thrNode = threadMetFocusNode::
@@ -934,13 +933,13 @@ static bool do_trailing_resources(const vector<string>& resource_,
 
     switch (r->type()) {
     case MDL_T_INT: {
-      const char* p = trailingRes.string_of();
+      const char* p = trailingRes.c_str();
       char*       q;
       int         val = (int) strtol(p, &q, 0);
       if (p == q) {
 	string msg = string("unable to convert resource '") + trailingRes + 
                      string("' to integer.");
-	showErrorCallback(92,msg.string_of());
+	showErrorCallback(92,msg.c_str());
 	return(false);
       }
       mdl_env::add(caStr, false, MDL_T_INT);
@@ -1280,11 +1279,11 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
     case MDL_EXPR_STRING:
     {
       // create another string here and pass it to AstNode(), instead
-      // of using str_literal_.string_of() directly, just to get rid
+      // of using str_literal_.c_str() directly, just to get rid
       // of the compiler warning of "cast discards const". --chun
       //
-      char* tmp_str = new char[strlen(str_literal_.string_of())+1];
-      strcpy (tmp_str, str_literal_.string_of());
+      char* tmp_str = new char[strlen(str_literal_.c_str())+1];
+      strcpy (tmp_str, str_literal_.c_str());
       ast = new AstNode(AstNode::ConstantString, tmp_str);
       delete[] tmp_str;
       return true;
@@ -1308,7 +1307,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
         int value;
         if (!int_var.get(value))
         {
-          fprintf (stderr, "Unable to get value for %s\n", tmp.string_of());
+          fprintf (stderr, "Unable to get value for %s\n", tmp.c_str());
           fflush(stderr);
           return false;
         }
@@ -1336,11 +1335,11 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
             assert (element.get(value));
             //
             // create another string here and pass it to AstNode(), instead
-            // of using value.string_of() directly, just to get rid of the 
+            // of using value.c_str() directly, just to get rid of the 
             // compiler warning of "cast discards const".  --chun
             //
-            char* tmp_str = new char[strlen(value.string_of())+1];
-            strcpy (tmp_str, value.string_of());
+            char* tmp_str = new char[strlen(value.c_str())+1];
+            strcpy (tmp_str, value.c_str());
             ast = new AstNode(AstNode::ConstantString, tmp_str);
             delete[] tmp_str;
 
@@ -1562,7 +1561,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
           int value;
           if (!get_dn.get(value)) 
           {
-            fprintf(stderr, "Unable to get value for %s\n", var_.string_of());
+            fprintf(stderr, "Unable to get value for %s\n", var_.c_str());
             fflush(stderr);
             return false;
           }
@@ -1576,7 +1575,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
           instrDataNode* dn;
           if (!get_dn.get(dn))
           {
-            fprintf(stderr, "Unable to get value for %s\n", var_.string_of());
+            fprintf(stderr, "Unable to get value for %s\n", var_.c_str());
             fflush(stderr);
             return false;
           }
@@ -1595,7 +1594,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*& ast)
         }
         default:
           fprintf(stderr, "type of variable %s is not known\n", 
-            var_.string_of());
+            var_.c_str());
           fflush(stderr);
           return false;
       }
@@ -1934,11 +1933,11 @@ bool T_dyninstRPC::mdl_list_stmt::apply(instrCodeNode * /*mn*/,
       mdl_var expr_var(false);
       switch (type_) {
       case MDL_T_INT:
-	if (sscanf((*elements_)[u].string_of(), "%d", &i) != 1) return false;
+	if (sscanf((*elements_)[u].c_str(), "%d", &i) != 1) return false;
 	if (!expr_var.set(i)) return false; 
         break;
       case MDL_T_FLOAT:
-	if (sscanf((*elements_)[u].string_of(), "%f", &f) != 1) return false;
+	if (sscanf((*elements_)[u].c_str(), "%f", &f) != 1) return false;
 	if (!expr_var.set(f)) return false; 
         break;
       case MDL_T_STRING: 
@@ -2162,7 +2161,7 @@ void dynRPC::send_metrics(vector<T_dyninstRPC::mdl_metric*>* var_0) {
   if (var_0) {
     unsigned var_size = var_0->size();
     for (unsigned v=0; v<var_size; v++) {
-      // fprintf(stderr, "Got metric %s\n", (*var_0)[v]->name_.string_of());
+      // fprintf(stderr, "Got metric %s\n", (*var_0)[v]->name_.c_str());
       // fflush(stderr);
       bool found = false;
       unsigned f_size = (*var_0)[v]->flavors_->size();
@@ -2527,14 +2526,14 @@ static bool walk_deref(mdl_var& ret, vector<unsigned>& types)
                   // in which case the instPoint is updated _and_ callee is 
                   // set, or (b) the call hasn't yet been bound, in which 
                   // case the instPoint isn't updated but callee *is* updated.
-                  callee_name = callee->prettyName().string_of();
+                  callee_name = callee->prettyName().c_str();
                   // metric_cerr << "(successful findCallee() was required) "
 		  // << callee_name << endl;
                 }
               }
               else 
               {
-                callee_name = callee->prettyName().string_of();
+                callee_name = callee->prettyName().c_str();
                 // metric_cerr << "(easy case) " << callee->prettyName() << endl;
               }
 
@@ -2546,7 +2545,7 @@ static bool walk_deref(mdl_var& ret, vector<unsigned>& types)
               if (callee_name != NULL) // could be NULL (e.g. indirect fn call)
                 for (unsigned lcv=0; lcv < global_excluded_funcs.size(); lcv++) 
                 {
-                  if (0==strcmp(global_excluded_funcs[lcv].string_of(),callee_name))
+                  if (0==strcmp(global_excluded_funcs[lcv].c_str(),callee_name))
                   {
                     anythingRemoved = true;
 

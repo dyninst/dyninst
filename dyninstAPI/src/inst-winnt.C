@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-winnt.C,v 1.10 2002/05/10 18:37:18 schendel Exp $
+// $Id: inst-winnt.C,v 1.11 2002/05/13 19:52:18 mjbrim Exp $
 
 #include "dyninstAPI/src/dyninstP.h"
 #include "dyninstAPI/src/os.h"
@@ -230,7 +230,7 @@ bool process::findCallee(instPoint &instr, function_base *&target)
 				// since we want the actual target function, not the temporary
 				// code sequence that handles delay loading
 				if( (target != NULL) &&
-					(!strncmp( target->prettyName().string_of(), "_imp_load_", 10 )) )
+					(!strncmp( target->prettyName().c_str(), "_imp_load_", 10 )) )
 				{
 					// The target is named like a linker-generated
 					// code sequence for a call into a delay-loaded DLL.

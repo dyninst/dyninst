@@ -42,7 +42,7 @@
 #ifndef _datagrid_h
 #define _datagrid_h
 
-// $Id: datagridP.h,v 1.13 2002/04/09 18:06:53 mjbrim Exp $
+// $Id: datagridP.h,v 1.14 2002/05/13 19:53:57 mjbrim Exp $
 
 /////////////////////////////////
 //  Data Grid Class definitions
@@ -73,14 +73,14 @@ class Metric{
 	      unitstype = Normalized; label = ""; total_label = "";}
      Metric(string,string,u_int,int,visi_unitsType); 
      ~Metric(); 
-     const char *Units(){return(units.string_of());}
-     const char *Name(){return(name.string_of());}
+     const char *Units(){return(units.c_str());}
+     const char *Name(){return(name.c_str());}
      u_int Identifier(){return(Id);}
      int Aggregate(){return(aggregate);}
      visi_unitsType UnitsType(){return(unitstype);}
-     const char *Label(){return(label.string_of());}
-     const char *AveLabel(){return(label.string_of());}
-     const char *SumLabel(){return(total_label.string_of());}
+     const char *Label(){return(label.c_str());}
+     const char *AveLabel(){return(label.c_str());}
+     const char *SumLabel(){return(total_label.c_str());}
 };
 
 
@@ -91,7 +91,7 @@ class Resource{
      Resource(){name = ""; Id = 0;}
      Resource(string,u_int);
      ~Resource();
-     const char *Name(){return(name.string_of());}
+     const char *Name(){return(name.c_str());}
      u_int    Identifier(){return(Id);}
 };
 
@@ -138,7 +138,7 @@ class PhaseInfo{
     void setEndTime(visi_timeType e){ endTime = e;}
     void setBucketWidth(visi_timeType w){ bucketWidth = w;}
     u_int getPhaseHandle() const { return(phaseHandle);}
-    const char *getName() const{ return(phaseName.string_of());}
+    const char *getName() const{ return(phaseName.c_str());}
     visi_timeType getStartTime() const{ return(startTime);}
     visi_timeType getEndTime() const{ return(endTime);}
     visi_timeType getBucketWidth() const{ return(bucketWidth);}

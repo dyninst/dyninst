@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.4 2002/04/09 18:56:37 tikir Exp $
+ * $Id: inst-ia64.C,v 1.5 2002/05/13 19:52:08 mjbrim Exp $
  */
 
 #include <iomanip.h>
@@ -499,7 +499,7 @@ bool pd_Function::findInstPoints(const image *i_owner) {
    image *owner = const_cast<image *>(i_owner); // const cast
 
    if (size() == 0) {
-     //fprintf(stderr,"Function %s, size = %d\n", prettyName().string_of(), size());
+     //fprintf(stderr,"Function %s, size = %d\n", prettyName().c_str(), size());
      return false;
    }
 
@@ -560,7 +560,7 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
      //instPoint *p = new instPoint(this, owner, adr, insn);
      //calls += p;
      //points[npoints++] = point_(p, numInsns, CallPt);
-     //fprintf(stderr,"Function %s, call at entry point\n", prettyName().string_of());
+     //fprintf(stderr,"Function %s, call at entry point\n", prettyName().c_str());
 
      delete [] points;
      delete [] allInstr;
@@ -612,7 +612,7 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3"
 	 delete points;
 	 delete allInstr;
          //fprintf(stderr,"Function %s, size = %d, bad jump table\n", 
-	 //          prettyName().string_of(), size());
+	 //          prettyName().c_str(), size());
 	 return false;
        }
 
@@ -2695,7 +2695,7 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
   if (!((mainFunction = findOneFunction("main")) 
         || (mainFunction = findOneFunction("_main")))) {
      string msg = "Cannot find main. Exiting.";
-     statusLine(msg.string_of());
+     statusLine(msg.c_str());
      showErrorCallback(50, msg);
      return false;
   }
@@ -2705,7 +2705,7 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
 	|| (mainFunction = findOneFunction("WinMain"))
 	|| (mainFunction = findOneFunction("_WinMain")))) {
      string msg = "Cannot find main or WinMain. Exiting.";
-     statusLine(msg.string_of());
+     statusLine(msg.c_str());
      showErrorCallback(50, msg);
      return false;
   }
@@ -2714,11 +2714,11 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
   for (unsigned i=0; i<find_us.size(); i++) {
     str = find_us[i].name;
     if (!getSymbolInfo(str, sym, baseAddr)) {
-      string str1 = string("_") + str.string_of();
+      string str1 = string("_") + str.c_str();
       if (!getSymbolInfo(str1, sym, baseAddr) && find_us[i].must_find) {
 	string msg;
         msg = string("Cannot find ") + str + string(". Exiting");
-	statusLine(msg.string_of());
+	statusLine(msg.c_str());
 	showErrorCallback(50, msg);
 	return false;
       }
@@ -2731,7 +2731,7 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
 //    if (!getSymbolInfo(ghb, symm baseAddr)) {
 //      string msg;
 //      msg = string("Cannot find ") + str + string(". Exiting");
-//      statusLine(msg.string_of());
+//      statusLine(msg.c_str());
 //      showErrorCallback(50, msg);
 //      return false;
 //    }
@@ -2744,7 +2744,7 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
   if (!getSymbolInfo(tt, sym, baseAddr)) {
       string msg;
       msg = string("Cannot find ") + tt + string(". Cannot use this application");
-      statusLine(msg.string_of());
+      statusLine(msg.c_str());
       showErrorCallback(50, msg);
       return false;
   }
@@ -3548,7 +3548,7 @@ bool pd_Function::loadCode(const image* /* owner */, process *proc,
   // if unable to allocate array, dump warn and return false.... 
   if (oldCode == NULL) {
     cerr << "WARN : unable to allocate array (" << insnVec.size() << " bytes) to read in " \
-         << "instructions for function" << prettyName().string_of() << " unable to instrument" \
+         << "instructions for function" << prettyName().c_str() << " unable to instrument" \
          << endl;
     return false;
   }

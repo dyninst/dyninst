@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCsearch.C,v 1.32 2001/12/12 17:28:50 gurari Exp $
+ * $Id: PCsearch.C,v 1.33 2002/05/13 19:53:10 mjbrim Exp $
  * class PCsearch
  */
 
@@ -142,7 +142,7 @@ PCsearch::expandSearch (float estimatedCost)
       int dispToken = curr->getGuiToken();
       q->delete_first();
       string *ds = new string("WARNING:  Predicted node search cost ");
-      *ds += candidateCost;
+      *ds += string(candidateCost);
       *ds += " exceeds limit.  Skipped node: ";
       *ds += curr->getShortName();
       *ds += "||";
@@ -245,23 +245,23 @@ PCsearch::addSearch(unsigned phaseID)
   // use DM's number plus one, and 0 for global phase.  
   string *msg = new string;
   if (int(PCsearch::phaseChangeTime.getD(timeUnit::sec())) != 0) {
-    *msg += string("=");
+    *msg += "=";
     *msg += string(int(PCsearch::phaseChangeTime.getD(timeUnit::sec())));
-    *msg += string(") ");
+    *msg += ") ";
   }
   if (performanceConsultant::useCallGraphSearch)
-    *msg += string("Callgraph-based");
+    *msg += "Callgraph-based";
   else
-    *msg += string("Module-based");
+    *msg += "Module-based";
   if (phaseID > 0) {
     // non-global search
     performanceConsultant::currentPhase = phaseID;
-    *msg += string(" search for Phase ");
-    *msg += (phaseID-1);
-    *msg += string(".");
+    *msg += " search for Phase ";
+    *msg += string(phaseID-1);
+    *msg += ".";
     pType = CurrentPhase;
   } else {
-    *msg += string(" search for Global Phase.");
+    *msg += " search for Global Phase.";
     pType = GlobalPhase;
   }
 

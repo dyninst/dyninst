@@ -673,7 +673,7 @@ void processMetFocusNode::addThread(pdThread *thr)
    // the threads)
    if(getFocus().thread_defined()) return;
 
-   string thrName = string("thr_") + thr->get_tid() + "{" + 
+   string thrName = string("thr_") + string(thr->get_tid()) + "{" + 
                       thr->get_start_func()->prettyName() + "}";
    Focus focus_with_thr = getFocus();
    focus_with_thr.set_thread(thrName);

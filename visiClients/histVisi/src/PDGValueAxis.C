@@ -49,7 +49,7 @@
 // megawidget.
 //
 //---------------------------------------------------------------------------
-// $Id: PDGValueAxis.C,v 1.3 2001/10/26 06:29:57 schendel Exp $
+// $Id: PDGValueAxis.C,v 1.4 2002/05/13 19:54:04 mjbrim Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include <iostream.h>
@@ -342,9 +342,9 @@ PDGraph::ValueAxisW::DetermineWidth( const ValueAxis* axis ) const
     ostrstream vstr;
 
     // ...first find width of units string...
-    int unitsStrLen = strlen( axis->title.string_of() );
+    int unitsStrLen = strlen( axis->title.c_str() );
     int unitsStrWidth = Tk_TextWidth( g->GetFont(),
-                                        axis->title.string_of(),
+                                        axis->title.c_str(),
                                         unitsStrLen );
 
     // ...then width of label strings...
@@ -375,14 +375,14 @@ PDGraph::ValueAxisW::DrawAxis( Drawable d, ValueAxis* axis, XRectangle& rect )
 
     // determine our width
     unsigned int axisWidth = DetermineWidth( axis );
-    unsigned int unitsStrLen = strlen( axis->title.string_of() );
-    unsigned int unitsStrWidth = Tk_TextWidth( g->GetFont(), axis->title.string_of(), unitsStrLen );
+    unsigned int unitsStrLen = strlen( axis->title.c_str() );
+    unsigned int unitsStrWidth = Tk_TextWidth( g->GetFont(), axis->title.c_str(), unitsStrLen );
 
     // draw units string
     Tk_DrawChars( Tk_Display(tkwin), d,
         g->GetDrawGC(),
         g->GetFont(),
-        axis->title.string_of(), unitsStrLen,
+        axis->title.c_str(), unitsStrLen,
         rect.x + axisWidth - unitsStrWidth - tickLen - 4,
         rect.y + labelHeight - (g->GetFontMetrics().linespace) );
 

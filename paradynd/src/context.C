@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.75 2002/05/10 18:37:09 schendel Exp $ */
+/* $Id: context.C,v 1.76 2002/05/13 19:53:43 mjbrim Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/pdThread.h"
@@ -106,7 +106,7 @@ void createThread(traceThread *fr) {
 
     // computing resource id
     string buffer;
-    string pretty_name = string(thr->get_start_func()->prettyName().string_of()) ;
+    string pretty_name = string(thr->get_start_func()->prettyName().c_str()) ;
     buffer = string("thr_")+string(fr->tid)+string("{")+pretty_name+string("}");
     resource *rid;
     rid = resource::newResource(proc->rid, (void *)thr, nullString, buffer, 
@@ -131,7 +131,7 @@ void updateThreadId(traceThread *fr) {
     proc->updateThread(thr, fr->tid, fr->pos, fr->stack_addr, fr->start_pc, fr->resumestate_p) ;
 cerr << "updateThreadId, context == FLAG_ATTACH" << endl ;
     // computing resource id
-    string pretty_name = string(thr->get_start_func()->prettyName().string_of()) ;
+    string pretty_name = string(thr->get_start_func()->prettyName().c_str()) ;
     buffer = string("thr_")+string(fr->tid)+string("{")+pretty_name+string("}");
     rid = resource::newResource(proc->rid, (void *)thr, nullString, buffer, 
 				timeStamp::ts1970(), "", MDL_T_STRING, true);
@@ -237,9 +237,9 @@ PDSOCKET connect_Svr(string machine,int port)
   struct sockaddr_in serv_addr;
   struct hostent *hostptr = 0;
   struct in_addr *inadr = 0;
-  if (!(hostptr = P_gethostbyname(machine.string_of())))
+  if (!(hostptr = P_gethostbyname(machine.c_str())))
     {
-      cerr << "CRITICAL: Failed to find information for host " << pd_machine.string_of() << "." << endl;
+      cerr << "CRITICAL: Failed to find information for host " << pd_machine.c_str() << "." << endl;
       assert(0);
     }
 
@@ -449,7 +449,7 @@ void processNewTSConnection(int tracesocket_fd) {
       str = string("getting new connection from attached process");
    else
       str = string("getting unexpected process connection");
-   statusLine(str.string_of());
+   statusLine(str.c_str());
 
    int pid;
    if (sizeof(pid) != read(fd, &pid, sizeof(pid)))
@@ -490,7 +490,7 @@ void processNewTSConnection(int tracesocket_fd) {
       // DYNINSTinit(-1, -1, -1)
       string str = string("running DYNINSTinit() for fork child pid ") + string(pid);
 	  forkexec_cerr << str << endl;
-      statusLine(str.string_of());
+      statusLine(str.c_str());
 
 	  if( curr->status() == running )
 	  {

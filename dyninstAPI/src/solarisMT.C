@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisMT.C,v 1.4 2002/05/10 18:36:54 schendel Exp $
+// $Id: solarisMT.C,v 1.5 2002/05/13 19:52:44 mjbrim Exp $
 
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/pdThread.h"
@@ -108,7 +108,7 @@ pdThread *process::createThread(
 
   //  
   sprintf(errorLine,"+++++ creating new thread{%s}, pd_pos=%u, pos=%u, tid=%d, stack=0x%x, resumestate=0x%x, by[%s]\n",
-	  pdf->prettyName().string_of(),
+	  pdf->prettyName().c_str(),
 	  pd_pos,pos,
 	  tid,
 	  stackbase,
@@ -232,7 +232,7 @@ void process::updateThread(
   } //else
 
   sprintf(errorLine,"+++++ creating new thread{%s}, pd_pos=%u, pos=%u, tid=%d, stack=0x%xs, resumestate=0x%x\n",
-	  pdf->prettyName().string_of(), pd_pos, pos, tid, stackbase, (unsigned) resumestate_p);
+	  pdf->prettyName().c_str(), pd_pos, pos, tid, stackbase, (unsigned) resumestate_p);
   logLine(errorLine);
 }
 

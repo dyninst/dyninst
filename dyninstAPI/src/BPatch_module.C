@@ -93,7 +93,7 @@ char *BPatch_module::getName(char *buffer, int length)
 {
     string str = mod->fileName();
 
-    strncpy(buffer, str.string_of(), length);
+    strncpy(buffer, str.c_str(), length);
 
     return buffer;
 }
@@ -103,7 +103,7 @@ char *BPatch_module::getFullName(char *buffer, int length)
 {
     string str = mod->fullName();
 
-    strncpy(buffer, str.string_of(), length);
+    strncpy(buffer, str.c_str(), length);
 
     return buffer;
 }
@@ -223,15 +223,15 @@ string* processDirectories(string* fn){
 	if(!fn)
 		return NULL;
 
-	if(!strstr(fn->string_of(),"/./") &&
-	   !strstr(fn->string_of(),"/../"))
+	if(!strstr(fn->c_str(),"/./") &&
+	   !strstr(fn->c_str(),"/../"))
 		return fn;
 
 	string* ret = NULL;
 	char* suffix = NULL;
 	char* prefix = NULL;
-	char* pPath = new char[strlen(fn->string_of())+1];
-	strcpy(pPath,fn->string_of());
+	char* pPath = new char[strlen(fn->c_str())+1];
+	strcpy(pPath,fn->c_str());
 
 	if(pPath[0] == '/')
 		prefix = "/";
@@ -457,7 +457,7 @@ void BPatch_module::parseTypes()
 	     moduleName++;
 	 }
 
-	 if (!strcmp(moduleName, mod->fileName().string_of())) {
+	 if (!strcmp(moduleName, mod->fileName().c_str())) {
 		parseActive = true;
 	 } else {
 		parseActive = false;
@@ -677,7 +677,7 @@ void BPatch_module::parseTypes()
 		modName = ptr;
 	    }
 
-	    if (!strcmp(modName, mod->fileName().string_of())) {
+	    if (!strcmp(modName, mod->fileName().c_str())) {
 		parseActive = true;
 		switch (stabptr[i].desc) {
 		    case N_SO_FORTRAN:
@@ -736,7 +736,7 @@ void BPatch_module::parseTypes()
 		}
 		else{
    			char* tmp = new char[absoluteDirectory->length()+1];
-                	strcpy(tmp,absoluteDirectory->string_of());
+                	strcpy(tmp,absoluteDirectory->c_str());
                 	char* p=strrchr(tmp,'/');
 			if(p) 
                 		*(++p)='\0';
@@ -852,9 +852,9 @@ void BPatch_module::parseTypes()
         case N_ECOMM: {
 	    // copy this set of fields
 	    assert(currentFunctionName);
-	    BPatch_function *func = findFunction(currentFunctionName->string_of());
+	    BPatch_function *func = findFunction(currentFunctionName->c_str());
 	    if (!func) {
-		printf("unable to locate current function %s\n", currentFunctionName->string_of());
+		printf("unable to locate current function %s\n", currentFunctionName->c_str());
 	    } else {
 		commonBlock->endCommonBlock(func, commonBlockVar->getBaseAddr());
 	    }
@@ -920,7 +920,7 @@ void BPatch_module::parseTypes()
   imgPtr = mod->exec();
 
   //Get the path name of the process
-  char *file = (char *)(imgPtr->file()).string_of();
+  char *file = (char *)(imgPtr->file()).c_str();
 
   // with BPatch_functions
   this->BPfuncs = this->getProcedures();
@@ -954,7 +954,7 @@ void BPatch_module::parseTypes()
   IMAGE_DEBUG_INFORMATION* pDebugInfo = NULL;
 
   // access the module's debug information
-  pDebugInfo = MapDebugInformation(NULL, (LPTSTR)(imgPtr->file()).string_of(), NULL, 0);
+  pDebugInfo = MapDebugInformation(NULL, (LPTSTR)(imgPtr->file()).c_str(), NULL, 0);
   if( pDebugInfo == NULL )
   {
 	printf("Unable to get debug information!\n");
@@ -1053,7 +1053,7 @@ bool BPatch_module::getVariables(BPatch_Vector<BPatch_variableExpr *> &vars)
     int limit = keys.size();
     for (int j = 0; j < limit; j++) {
 	string name = keys[j];
-	var = img->createVarExprByName(this, name.string_of());
+	var = img->createVarExprByName(this, name.c_str());
 	vars.push_back(var);
     }
     if (limit) 

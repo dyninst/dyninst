@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.15 2002/04/09 18:05:01 mjbrim Exp $
+// $Id: Object-xcoff.C,v 1.16 2002/05/13 19:51:56 mjbrim Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -292,7 +292,7 @@ int Archive_64::read_mbrhdr()
 // File parsing error macro, assumes errorLine defined
 #define PARSE_AOUT_DIE(errType, errCode) { \
       sprintf(errorLine, "Error parsing a.out file %s(%s): %s\n", \
-              file_.string_of(), member_.string_of(), errType); \
+              file_.c_str(), member_.c_str(), errType); \
       statusLine(errorLine); \
       showErrorCallback(errCode,(const char *) errorLine); \
       goto cleanup; \
@@ -643,7 +643,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
        if (name == ".text") continue;
        if (name.prefixed_by(".")) {
 	 // XXXX - Hack to make names match assumptions of symtab.C
-	 name = string(name.string_of()+1);
+	 name = string(name.c_str()+1);
        }
        else if (type == Symbol::PDST_FUNCTION) {
 	 // text segment without a leading . is a toc item
@@ -696,7 +696,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
        // Symbol sym(name, modName, type, linkage, value, false);
 #ifdef DEBUG
        fprintf(stderr, "Added symbol %s at addr 0x%x, size 0x%x, module %s\n",
-	       name.string_of(), value, size, modName.string_of());
+	       name.c_str(), value, size, modName.c_str());
 #endif
 
        symbols_[name] = sym;
@@ -712,7 +712,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
 	 }
        }
      } else if (sym->n_sclass == C_FILE) {
-       if (!strcmp(name.string_of(), ".file")) {
+       if (!strcmp(name.c_str(), ".file")) {
 	 int j;
 	 /* has aux record with additional information. */
 	 for (j=1; j <= sym->n_numaux; j++) {
@@ -821,7 +821,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
 // More macros
 #define PARSE_AR_DIE(errType, errCode) { \
       sprintf(errorLine, "Error parsing archive file %s: %s\n", \
-              file_.string_of(), errType); \
+              file_.c_str(), errType); \
       statusLine(errorLine); \
       showErrorCallback(errCode,(const char *) errorLine); \
       return; \
@@ -861,7 +861,7 @@ void Object::load_archive(int fd, bool is_aout)
 	PARSE_AR_DIE("Reading member header", 49);
 
       if (!strncmp(archive->member_name, 
-		   member_.string_of(), 
+		   member_.c_str(), 
 		   archive->member_len - 1)) {
 	found = true;
 	break; // Got the right one
@@ -875,7 +875,7 @@ void Object::load_archive(int fd, bool is_aout)
     }
   else
     fprintf(stderr, "Member name %s not found in archive %s!\n",
-	    member_.string_of(), file_.string_of());
+	    member_.c_str(), file_.c_str());
   return;
 }
 
@@ -891,10 +891,10 @@ void Object::load_object(bool is_aout)
   unsigned char magic_number[2];
   int cnt;
 
-  fd = open(file_.string_of(), O_RDONLY, 0);
+  fd = open(file_.c_str(), O_RDONLY, 0);
   if (fd <0) {
     sprintf(errorLine, "Unable to open file %s\n", 
-	    file_.string_of());
+	    file_.c_str());
     statusLine(errorLine);
     showErrorCallback(27,(const char *) errorLine);
     return;
@@ -904,7 +904,7 @@ void Object::load_object(bool is_aout)
   
   if (cnt != 2) {
     sprintf(errorLine, "Error reading file %s\n", 
-	    file_.string_of());
+	    file_.c_str());
     statusLine(errorLine);
     showErrorCallback(49,(const char *) errorLine);
     close(fd);
@@ -926,7 +926,7 @@ void Object::load_object(bool is_aout)
   else // Fallthrough
     { 
       sprintf(errorLine, "Bad magic number in file %s\n",
-	      file_.string_of());
+	      file_.c_str());
       statusLine(errorLine);
       showErrorCallback(49,(const char *) errorLine);
     }

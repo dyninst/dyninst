@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphRootNode.C,v 1.3 2001/06/20 20:34:29 schendel Exp $
+// $Id: callGraphRootNode.C,v 1.4 2002/05/13 19:53:20 mjbrim Exp $
 
 #include <assert.h>
 #include "callGraphRootNode.h"
@@ -67,7 +67,7 @@ callGraphRootNode::callGraphRootNode(resourceHandle iUniqueId,
   Tk_Font rootItemFontStruct = 
     callGraphDisplay::getRootItemFontStruct(isShadowNode);
   pixWidthAsRoot = borderPix + horizPad +
-    Tk_TextWidth(rootItemFontStruct, currentName->string_of(), 
+    Tk_TextWidth(rootItemFontStruct, currentName->c_str(), 
 		 currentName->length()) +
 		 horizPad+borderPix;
   
@@ -78,7 +78,7 @@ callGraphRootNode::callGraphRootNode(resourceHandle iUniqueId,
   
   pixWidthAsListboxItem = 
     Tk_TextWidth(callGraphDisplay::getListboxItemFontStruct(isShadowNode),
-		 currentName->string_of(), currentName->length());
+		 currentName->c_str(), currentName->length());
 }
 
 
@@ -89,11 +89,11 @@ void callGraphRootNode::showFullName(){
   currentName = &fullName;
   pixWidthAsRoot = borderPix + horizPad +
     Tk_TextWidth(callGraphDisplay::getRootItemFontStruct(isShadowNode),
-		 currentName->string_of(), currentName->length()) +
+		 currentName->c_str(), currentName->length()) +
     horizPad + borderPix;
   pixWidthAsListboxItem = 
     Tk_TextWidth(callGraphDisplay::getListboxItemFontStruct(isShadowNode),
-		 currentName->string_of(), currentName->length());
+		 currentName->c_str(), currentName->length());
 }
 
 void callGraphRootNode::showShortName(){
@@ -103,11 +103,11 @@ void callGraphRootNode::showShortName(){
   currentName = &shortName;
   pixWidthAsRoot = borderPix + horizPad +
     Tk_TextWidth(callGraphDisplay::getRootItemFontStruct(isShadowNode),
-		 currentName->string_of(), currentName->length()) +
+		 currentName->c_str(), currentName->length()) +
     horizPad + borderPix;
   pixWidthAsListboxItem = 
     Tk_TextWidth(callGraphDisplay::getListboxItemFontStruct(isShadowNode),
-		 currentName->string_of(), currentName->length());
+		 currentName->c_str(), currentName->length());
 }
 
 void callGraphRootNode::drawAsRoot(Tk_Window theTkWindow,
@@ -153,7 +153,7 @@ void callGraphRootNode::drawAsRoot(Tk_Window theTkWindow,
     Tk_DrawChars(Tk_Display(theTkWindow),theDrawable,
 		 callGraphDisplay::getRootItemTextGC(isShadowNode),
 		 callGraphDisplay::getRootItemFontStruct(isShadowNode),
-                currentName->string_of(), currentName->length(),
+                currentName->c_str(), currentName->length(),
                 textLeft, textBaseLine );
 
 }
@@ -271,7 +271,7 @@ void callGraphRootNode::drawAsListboxItem(Tk_Window theTkWindow,
    Tk_DrawChars(Tk_Display(theTkWindow),theDrawable,
 		callGraphDisplay::getListboxItemGC(isShadowNode),
 		callGraphDisplay::getRootItemFontStruct(isShadowNode),
-		currentName->string_of(), currentName->length(),
+		currentName->c_str(), currentName->length(),
 		textLeft, textBaseline );          
 
 }

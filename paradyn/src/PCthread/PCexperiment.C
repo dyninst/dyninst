@@ -41,7 +41,7 @@
 
 /*
  * The experiment class methods.
- * $Id: PCexperiment.C,v 1.20 2001/12/12 17:28:50 gurari Exp $
+ * $Id: PCexperiment.C,v 1.21 2002/05/13 19:53:07 mjbrim Exp $
  */
 
 #include "PCintern.h"
@@ -91,9 +91,9 @@ experiment::newData(PCmetDataID, pdRate val, relTimeStamp start,
 {
   pdRate thresh;
   if (performanceConsultant::useIndividualThresholds)
-    thresh = why->getThreshold (why->indivThresholdNm.string_of(), where);
+    thresh = why->getThreshold (why->indivThresholdNm.c_str(), where);
   else
-    thresh = why->getThreshold (why->groupThresholdNm.string_of(), where);
+    thresh = why->getThreshold (why->groupThresholdNm.c_str(), where);
    
 
   // update currentValue and adjustedValue

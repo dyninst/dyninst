@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.19 2002/03/23 19:22:16 rchen Exp $
+// $Id: osfDL.C,v 1.20 2002/05/13 19:52:30 mjbrim Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/osfDL.h"
@@ -172,11 +172,11 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p) {
 #ifdef notdef
 	if (offset) {
 	    fprintf(stderr, "*** shared lib at non-default offset **: ");
-	    fprintf(stderr, "    %s\n", obj_name.string_of());
+	    fprintf(stderr, "    %s\n", obj_name.c_str());
 	    fprintf(stderr, "    offset = %ld\n", offset);
 	} else {
 	    fprintf(stderr, "*** shared lib **: ");
-	    fprintf(stderr, "    %s\n", obj_name.string_of());
+	    fprintf(stderr, "    %s\n", obj_name.c_str());
 	    fprintf(stderr, "    at = %ld\n", regions[0].mapaddr);
 	}
 #endif
@@ -383,14 +383,14 @@ void process::handleIfDueToDyninstLib()
 
   if (dyninstName.length()) {
     // use the library name specified on the start-up command-line
-    sprintf(errorLine,"Pre-specified library %s\n", dyninstName.string_of());
+    sprintf(errorLine,"Pre-specified library %s\n", dyninstName.c_str());
     logLine(errorLine);
   } else {
     // check the environment variable
     if (getenv(DyninstEnvVar) != NULL) {
       dyninstName = getenv(DyninstEnvVar);
       sprintf(errorLine,"Environment variable %s=%s\n", DyninstEnvVar,
-              dyninstName.string_of());
+              dyninstName.c_str());
       logLine(errorLine);
     } else {
       string msg = string("Environment variable " + string(DyninstEnvVar)
@@ -399,7 +399,7 @@ void process::handleIfDueToDyninstLib()
       return;
     }
   }
-  if (access(dyninstName.string_of(), R_OK)) {
+  if (access(dyninstName.c_str(), R_OK)) {
     string msg = string("Runtime library ") + dyninstName
         + string(" does not exist or cannot be accessed!");
     showErrorCallback(101, msg);

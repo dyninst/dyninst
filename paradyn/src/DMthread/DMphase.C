@@ -51,7 +51,7 @@ phaseInfo::phaseInfo(relTimeStamp s, relTimeStamp e, timeLength b,
   startTime(s), endTime(e), bucketWidth(b) 
 {
     handle = dm_phases.size();
-    if(!n.string_of())
+    if(!n.c_str())
       name = string("phase_") + string(handle);
     else
       name = n;

@@ -42,6 +42,12 @@
 /*
  * Classes and prototypes for Abstraction specific code
  * $Log: DMabstractions.h,v $
+ * Revision 1.7  2002/05/13 19:52:51  mjbrim
+ * update string class to eliminate implicit number conversions
+ * and replace all use of string_of with c_str  - - - - - - - - - - - - - -
+ * change implicit number conversions to explicit conversions,
+ * change all use of string_of to c_str
+ *
  * Revision 1.6  2000/07/28 17:21:41  pcroth
  * Updated #includes to reflect util library split
  *
@@ -80,7 +86,7 @@
 class abstraction {
     friend abstraction *AMfind(const char *aname);
   public:
-    const char *getName() { return (name.string_of()); }
+    const char *getName() { return (name.c_str()); }
     void print();
     abstraction(const char *a);
     ~abstraction();

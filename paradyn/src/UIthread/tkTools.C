@@ -42,7 +42,7 @@
 // tkTools.C
 // Ariel Tamches
 
-/* $Id: tkTools.C,v 1.14 2001/06/20 20:39:02 schendel Exp $ */
+/* $Id: tkTools.C,v 1.15 2002/05/13 19:53:30 mjbrim Exp $ */
 
 #include <assert.h>
 #include <stdlib.h> // exit()
@@ -84,7 +84,7 @@ void tkInstallIdle::installMe(ClientData cd) {
 /* ******************************************************** */
 
 void myTclEval(Tcl_Interp *interp, const string &str) {
-   myTclEval(interp, str.string_of());
+   myTclEval(interp, str.c_str());
 }
 
 void myTclEval(Tcl_Interp *interp, const char *buffer) {
@@ -110,7 +110,7 @@ void tclpanic(Tcl_Interp *interp, const string &str) {
 void getScrollBarValues(Tcl_Interp *interp, const string &scrollBarName,
 			float &first, float &last) {
    string commandStr = scrollBarName + " get";
-   myTclEval(interp, commandStr.string_of());
+   myTclEval(interp, commandStr.c_str());
    bool aflag;
    aflag = (2==sscanf( Tcl_GetStringResult( interp ), "%f %f", &first, &last));
    assert(aflag);
@@ -152,7 +152,7 @@ float moveScrollBar(Tcl_Interp *interp, const string &scrollBarName,
    buffer += string(newLast);
 
    string commandStr = scrollBarName + " set " + buffer;
-   myTclEval(interp, commandStr.string_of());
+   myTclEval(interp, commandStr.c_str());
 
    return newFirst;
 }

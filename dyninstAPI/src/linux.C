@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.68 2002/04/18 19:39:59 bernat Exp $
+// $Id: linux.C,v 1.69 2002/05/13 19:52:26 mjbrim Exp $
 
 #include <fstream.h>
 
@@ -1249,7 +1249,7 @@ bool process::dlopenDYNINSTlib() {
       return false;
     }
   }
-  if (access(dyninstName.string_of(), R_OK)) {
+  if (access(dyninstName.c_str(), R_OK)) {
     string msg = string("Runtime library ") + dyninstName
         + string(" does not exist or cannot be accessed!");
     showErrorCallback(101, msg);
@@ -1259,7 +1259,7 @@ bool process::dlopenDYNINSTlib() {
   Address dyninstlib_addr = (Address) (codeBase + count);
 
   writeDataSpace((void *)(codeBase + count), dyninstName.length()+1,
-		 (caddr_t)const_cast<char*>(dyninstName.string_of()));
+		 (caddr_t)const_cast<char*>(dyninstName.c_str()));
   count += dyninstName.length()+1;
   // we have now written the name of the library after the trap - naim
 
@@ -1485,13 +1485,13 @@ bool process::writeDataSpace_(void *inTraced, u_int nbytes, const void *inSelf)
 			result = sh_obj->isinText((Address) inTraced);
 		}
 		if( result  ){
-			if(strcmp(findFuncByAddr((Address)inTraced)->prettyName().string_of(), 
+			if(strcmp(findFuncByAddr((Address)inTraced)->prettyName().c_str(), 
 						"__libc_sigaction")){
 				//for linux we instrument sigactiont to watch libraries
 				//being loaded. dont consider libc.so mutated because of 
 				//this	
 				/*printf(" write at %lx in %s amount %x insn: %x \n", 
-				(off_t)inTraced, sh_obj->getName().string_of(), nbytes,
+				(off_t)inTraced, sh_obj->getName().c_str(), nbytes,
 				 *(unsigned int*) inSelf);
 				 */
 				sh_obj->setDirty();	
@@ -1703,12 +1703,12 @@ string process::tryToFindExecutable(const string &iprogpath, int pid) {
        break;
 
      if (env_value.prefixed_by("PWD=") || env_value.prefixed_by("CWD=")) {
-       cwd = env_value.string_of() + 4; // skip past "PWD=" or "CWD="
+       cwd = env_value.c_str() + 4; // skip past "PWD=" or "CWD="
        attach_cerr << "get_ps_stuff: using PWD value of: " << cwd << endl;
        if( path.length() )
 	 break;
      } else if (env_value.prefixed_by("PATH=")) {
-       path = env_value.string_of() + 5; // skip past the "PATH="
+       path = env_value.c_str() + 5; // skip past the "PATH="
        attach_cerr << "get_ps_stuff: using PATH value of: " << path << endl;
        if( cwd.length() )
 	 break;
@@ -1897,9 +1897,9 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 	}
 
 	strcat(directoryName, "/");	
-	char* fullName = new char[strlen(directoryName) + strlen ( (char*)imageFileName.string_of())+1];
+	char* fullName = new char[strlen(directoryName) + strlen ( (char*)imageFileName.c_str())+1];
         strcpy(fullName, directoryName);
-        strcat(fullName, (char*)imageFileName.string_of());
+        strcat(fullName, (char*)imageFileName.c_str());
 
 
 	unsigned int dl_debug_statePltEntry = 0x00016574;//a pretty good guess
@@ -1917,10 +1917,10 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 			sh_obj = (*shared_objects)[i];
 			if(sh_obj->isDirty()){
 				memcpy(  & ( mutatedSharedObjects[mutatedSharedObjectsIndex]),
-					sh_obj->getName().string_of(),
-					strlen(sh_obj->getName().string_of())+1);
+					sh_obj->getName().c_str(),
+					strlen(sh_obj->getName().c_str())+1);
 				mutatedSharedObjectsIndex += strlen(
-					sh_obj->getName().string_of())+1;
+					sh_obj->getName().c_str())+1;
 				unsigned int baseAddr = sh_obj->getBaseAddress();
 				memcpy( & (mutatedSharedObjects[mutatedSharedObjectsIndex]),
 					&baseAddr, sizeof(unsigned int));
@@ -1932,7 +1932,7 @@ char* process::dumpPatchedImage(string imageFileName){ //ccw 7 feb 2002
 	
 	char *dyninst_SharedLibrariesData =saveWorldCreateSharedLibrariesSection(dyninst_SharedLibrariesSize);
 		
-	writeBackElf *newElf = new writeBackElf(( char*) getImage()->file().string_of(),
+	writeBackElf *newElf = new writeBackElf(( char*) getImage()->file().c_str(),
 			                "/tmp/dyninstMutatee",errFlag);
         newElf->registerProcess(this);
 
@@ -2001,10 +2001,10 @@ bool process::dumpImage(string imageFileName)
     command += origFile;
     command += " ";
     command += imageFileName;
-    system(command.string_of());
+    system(command.c_str());
 
     // now open the copy
-    newFd = open(imageFileName.string_of(), O_RDWR, 0);
+    newFd = open(imageFileName.c_str(), O_RDWR, 0);
     if (newFd < 0) {
 	// log error
 	return false;
@@ -2127,14 +2127,14 @@ void print_read_error_info(const relocationEntry entry,
     logLine(errorLine);
     sprintf(errorLine, "               rel_addr 0x%x\n", (unsigned)entry.rel_addr());
     logLine(errorLine);
-    sprintf(errorLine, "               name %s\n", (entry.name()).string_of());
+    sprintf(errorLine, "               name %s\n", (entry.name()).c_str());
     logLine(errorLine);
 
     sprintf(errorLine, "  target_pdf : symTabName %s\n",
-	    (target_pdf->symTabName()).string_of());
+	    (target_pdf->symTabName()).c_str());
     logLine(errorLine);    
     sprintf(errorLine , "              prettyName %s\n",
-	    (target_pdf->symTabName()).string_of());
+	    (target_pdf->symTabName()).c_str());
     logLine(errorLine);
     sprintf(errorLine , "              size %i\n",
 	    target_pdf->size());

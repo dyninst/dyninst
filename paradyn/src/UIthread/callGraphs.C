@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphs.C,v 1.7 2001/06/20 20:34:29 schendel Exp $
+// $Id: callGraphs.C,v 1.8 2002/05/13 19:53:21 mjbrim Exp $
 
 #include <limits.h>
 #include "callGraphTcl.h"
@@ -165,7 +165,7 @@ bool callGraphs::changeLL(unsigned newIndex) {
 
    // This should update the menu:
    Tcl_SetVar(interp, "currCallGraphProgram",
-	      const_cast<char *>(string(theNewCallGraphStruct.getProgramId()).string_of()), TCL_GLOBAL_ONLY);
+	      const_cast<char *>(string(theNewCallGraphStruct.getProgramId()).c_str()), TCL_GLOBAL_ONLY);
 
    // Update the label containing the current phase name:
    commandStr = currProgramLabelName + " config -text \"" +

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.137 2002/04/01 20:06:07 bernat Exp $
+// $Id: symtab.C,v 1.138 2002/05/13 19:52:45 mjbrim Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -132,7 +132,7 @@ pdmodule *image::newModule(const string &name, const Address addr)
       return(ret);
 
     string fullNm, fileNm;
-    char *out = P_strdup(name.string_of());
+    char *out = P_strdup(name.c_str());
     char *sl = P_strrchr(out, '/');
     if (sl) {
       *sl = (char)0;
@@ -173,7 +173,7 @@ bool buildDemangledName(const string &mangled, string &use)
   * approach.
   */
   if(!mangled.prefixed_by("MPI__")) {
-    char *tempName = P_strdup(mangled.string_of());
+    char *tempName = P_strdup(mangled.c_str());
     char *demangled = cplus_demangle(tempName, 0);
     
     if (demangled) {
@@ -209,7 +209,7 @@ bool image::newFunc(pdmodule *mod, const string &name,
   if ((func = findFuncByAddr(addr))){
     //string temp = name;
     //temp += string(" findFunction succeeded\n");
-    //logLine(P_strdup(temp.string_of()));
+    //logLine(P_strdup(temp.c_str()));
     return false;
   }
 
@@ -220,10 +220,10 @@ bool image::newFunc(pdmodule *mod, const string &name,
   }
   
   string mangled_name = name;
-  const char *p = P_strchr(name.string_of(), ':');
+  const char *p = P_strchr(name.c_str(), ':');
   if (p) {
-     unsigned nchars = p - name.string_of();
-     mangled_name = string(name.string_of(), nchars);
+     unsigned nchars = p - name.c_str();
+     mangled_name = string(name.c_str(), nchars);
   }
   
   string demangled;
@@ -340,10 +340,10 @@ void image::addMultipleFunctionNames(vector<Symbol> &mods,
    */
   string name = lookUp.name();
   string mangled_name = name;
-  const char *p = P_strchr(name.string_of(), ':');
+  const char *p = P_strchr(name.c_str(), ':');
   if (p) {
-     unsigned nchars = p - name.string_of();
-     mangled_name = string(name.string_of(), nchars);
+     unsigned nchars = p - name.c_str();
+     mangled_name = string(name.c_str(), nchars);
   }
 
   string demangled;
@@ -412,7 +412,7 @@ bool image::addAllFunctions(vector<Symbol> &mods)
   // find the real functions -- those with the correct type in the symbol table
   for(SymbolIter symIter(linkedFile); symIter;symIter++) {
     const Symbol &lookUp = symIter.currval();
-    const char *np = lookUp.name().string_of();
+    const char *np = lookUp.name().c_str();
     if (linkedFile.isEEL() && np[0] == '.')
          /* ignore these EEL symbols; we don't understand their values */
 	 continue; 
@@ -434,7 +434,7 @@ bool image::addAllFunctions(vector<Symbol> &mods)
 	sprintf(tempBuffer,"0x%lx",lookUp.addr());
 	msg = string("Function ") + lookUp.name() + string(" has bad address ")
 	  + string(tempBuffer);
-	statusLine(msg.string_of());
+	statusLine(msg.c_str());
 	showErrorCallback(29, msg);
 	return false;
       }
@@ -451,9 +451,9 @@ bool image::addAllFunctions(vector<Symbol> &mods)
       // Already defined a symbol at this addr
       continue;
     if ((lookUp.type() == Symbol::PDST_OBJECT) && lookUp.kludge()) {
-      //logLine(P_strdup(symString.string_of()));
+      //logLine(P_strdup(symString.c_str()));
       // Figure out where this happens
-      cerr << "Found <KLUDGE> function " << lookUp.name().string_of() << endl;
+      cerr << "Found <KLUDGE> function " << lookUp.name().c_str() << endl;
       addOneFunction(mods, lookUp);
     }
   }
@@ -474,10 +474,10 @@ bool image::addAllVariables()
      const Symbol &symInfo = symIter.currval();
 
     if (symInfo.type() == Symbol::PDST_OBJECT) {
-      char *name = cplus_demangle((char *)mangledName.string_of(), 0);
+      char *name = cplus_demangle((char *)mangledName.c_str(), 0);
       const char *unmangledName;
       if (name) unmangledName = name;
-      else unmangledName = mangledName.string_of();
+      else unmangledName = mangledName.c_str();
       if (varsByPretty.defines(unmangledName)) {
 	  (*(varsByPretty[unmangledName])).push_back(string(mangledName));
       } else {
@@ -517,7 +517,7 @@ bool image::findInternalSymbol(const string &name,
    if(warn){
       string msg;
       msg = string("Unable to find symbol: ") + name;
-      statusLine(msg.string_of());
+      statusLine(msg.c_str());
       showErrorCallback(28, msg);
    }
    return false;
@@ -533,8 +533,8 @@ bool image::findInternalByPrefix(const string &prefix,
   */
   for(SymbolIter symIter(linkedFile); symIter;symIter++) {
     const Symbol &lookUp = symIter.currval();
-    if (!strncmp(prefix.string_of(), lookUp.name().string_of(),
-		 strlen(prefix.string_of())))
+    if (!strncmp(prefix.c_str(), lookUp.name().c_str(),
+		 strlen(prefix.c_str())))
       {
 	found.push_back(lookUp);
 	flag = true;
@@ -604,12 +604,12 @@ void image::postProcess(const string pifname)
   }
 
   /* Open the file */
-  Fil = P_fopen(fname.string_of(), "r");
+  Fil = P_fopen(fname.c_str(), "r");
 
   if (Fil == NULL) {
     errorstr = string("Tried to open PIF file ") + fname;
     errorstr += string(", but could not (continuing)\n");
-    logLine(P_strdup(errorstr.string_of()));
+    logLine(P_strdup(errorstr.c_str()));
     showErrorCallback(35, errorstr); 
     return;
   }
@@ -645,7 +645,7 @@ void image::postProcess(const string pifname)
     default:
       errorstr = string("Ignoring bad line key (") + fname;
       errorstr += string(") in file %s\n");
-      logLine(P_strdup(errorstr.string_of()));
+      logLine(P_strdup(errorstr.c_str()));
       fgets(tmp1, 5000, Fil);
       break;
     }
@@ -697,7 +697,7 @@ void image::FillInCallGraphStatic(process *proc)
   while (mi.next(pds, mod)){
     buffer = "building call graph module: " +
       mod->fileName();
-    statusLine(buffer.string_of());
+    statusLine(buffer.c_str());
     mod->FillInCallGraphStatic(proc);
   }
   // also define call graph relations for all excluded modules.
@@ -709,7 +709,7 @@ void image::FillInCallGraphStatic(process *proc)
     mod = excludedMods[i];
     buffer = "building call graph module: " +
       mod->fileName();
-    statusLine(buffer.string_of());
+    statusLine(buffer.c_str());
     mod->FillInCallGraphStatic(proc);
   }
 }
@@ -1017,7 +1017,7 @@ void print_func_vector_by_pretty_name(string prefix,
 string getModuleName(string constraint) {
     string ret;
 
-    const char *data = constraint.string_of();
+    const char *data = constraint.c_str();
     const char *first_slash = P_strchr(data, RH_SEPERATOR);
     
     // no "/", assume string holds module name....
@@ -1034,7 +1034,7 @@ string getModuleName(string constraint) {
 string getFunctionName(string constraint) {
     string ret;
 
-    const char *data = constraint.string_of();
+    const char *data = constraint.c_str();
     const char *first_slash = P_strchr(data, RH_SEPERATOR);
     
     // no "/", assume constraint is module only....
@@ -1329,14 +1329,14 @@ image::image(fileDescriptor *desc, bool &err)
   //  notify luser/calling process + return....    
   if (!codeLen_ || !linkedFile.code_ptr()) {
     string msg = string("Parsing problem with executable file: ") + desc->file();
-    statusLine(msg.string_of());
+    statusLine(msg.c_str());
     msg += "\n";
-    logLine(msg.string_of());
+    logLine(msg.c_str());
     err = true;
 #ifndef mips_unknown_ce2_11 //ccw 29 mar 2001
 
 #if defined(BPATCH_LIBRARY)
-    BPatch_reportError(BPatchWarning, 27, msg.string_of()); 
+    BPatch_reportError(BPatchWarning, 27, msg.c_str()); 
 #else
     showErrorCallback(27, msg); 
 #endif
@@ -1347,7 +1347,7 @@ image::image(fileDescriptor *desc, bool &err)
   string msg;
   // give luser some feedback....
   msg = string("Parsing object file: ") + desc->file();
-  statusLine(msg.string_of());
+  statusLine(msg.c_str());
   
   name_ = extract_pathname_tail(desc->file());
   pathname_ = desc->file();
@@ -1374,7 +1374,7 @@ image::image(fileDescriptor *desc, bool &err)
     if (lookUp.type() == Symbol::PDST_MODULE) {
       
       const string &lookUpName = lookUp.name();
-      const char *str = lookUpName.string_of();
+      const char *str = lookUpName.c_str();
       assert(str);
       int ln = lookUpName.length();
       
@@ -1485,7 +1485,7 @@ void image::checkAllCallPoints() {
 
 pdmodule *image::getOrCreateModule(const string &modName, 
 				      const Address modAddr) {
-  const char *str = modName.string_of();
+  const char *str = modName.c_str();
   int len = modName.length();
   assert(len>0);
 

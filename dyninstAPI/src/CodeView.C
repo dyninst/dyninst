@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CodeView.C,v 1.10 2001/08/29 23:25:27 hollings Exp $
+// $Id: CodeView.C,v 1.11 2002/05/13 19:51:45 mjbrim Exp $
 
 #include <assert.h>
 
@@ -325,7 +325,7 @@ CodeView::CreateTypeAndLineInfo( BPatch_module *inpMod , DWORD baseAddr ,
                 			pmod->cSeg * sizeof( ModuleSubsection::SegInfo ) );
 
                 	char modName[1024];
-                	strcpy(modName, ((string)lpsName).string_of());
+                	strcpy(modName, ((string)lpsName).c_str());
                 	ptr = strrchr(modName, '.');
                 	if (ptr)
                         	*ptr = '\0';

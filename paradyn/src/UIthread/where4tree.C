@@ -42,7 +42,7 @@
 // where4tree.C
 // Ariel Tamches
 
-/* $Id: where4tree.C,v 1.21 2001/02/19 15:37:01 wxd Exp $ */
+/* $Id: where4tree.C,v 1.22 2002/05/13 19:53:33 mjbrim Exp $ */
 
 /* ******************************************************************
  *
@@ -1796,7 +1796,7 @@ selectUnSelectFromFullPathName(const char *name, bool selectFlag) {
          // There are no slashes.  That means we are at the end.
          // Either name==root-node-name or we return false
 
-         const bool result = (0==strcmp(name, getRootName().string_of()));
+         const bool result = (0==strcmp(name, getRootName().c_str()));
          if (result)
             if (selectFlag)
                highlight();
@@ -1816,7 +1816,7 @@ selectUnSelectFromFullPathName(const char *name, bool selectFlag) {
             return false;
 
          // okay, lengths match...now to match the actual characters
-         if (strstr(name, getRootName().string_of()) != name)
+         if (strstr(name, getRootName().c_str()) != name)
             return false;
 
          name = firstSlash; // advance to the point where we begin

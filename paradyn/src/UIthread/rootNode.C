@@ -42,7 +42,7 @@
 // whereAxisRootNode.C
 // Ariel Tamches
 
-/* $Id: rootNode.C,v 1.12 2000/07/28 17:22:06 pcroth Exp $ */
+/* $Id: rootNode.C,v 1.13 2002/05/13 19:53:25 mjbrim Exp $ */
 
 #include <assert.h>
 
@@ -61,7 +61,7 @@ whereAxisRootNode::whereAxisRootNode(resourceHandle iUniqueId, const string &ini
 
    pixWidthAsRoot = borderPix + horizPad +
       Tk_TextWidth(whereAxis::getRootItemFontStruct(),
-                   name.string_of(), name.length()) +
+                   name.c_str(), name.length()) +
                    horizPad + borderPix;
 
    Tk_FontMetrics rootItemFontMetrics; // filled in
@@ -72,7 +72,7 @@ whereAxisRootNode::whereAxisRootNode(resourceHandle iUniqueId, const string &ini
                      vertPad + borderPix;
 
    pixWidthAsListboxItem = Tk_TextWidth(whereAxis::getListboxItemFontStruct(),
-                                        name.string_of(), name.length());
+                                        name.c_str(), name.length());
 }
 
 void whereAxisRootNode::drawAsRoot(Tk_Window theTkWindow,
@@ -118,7 +118,7 @@ void whereAxisRootNode::drawAsRoot(Tk_Window theTkWindow,
 		theDrawable,
 		whereAxis::getRootItemTextGC(),
 		whereAxis::getRootItemFontStruct(),
-		name.string_of(), name.length(),
+		name.c_str(), name.length(),
 		textLeft, textBaseLine );
 }
 
@@ -191,7 +191,7 @@ void whereAxisRootNode::drawAsListboxItem(Tk_Window theTkWindow,
 		theDrawable,
 		whereAxis::getListboxItemGC(),
 		whereAxis::getRootItemFontStruct(),	// is this correct?
-		name.string_of(), name.length(),
+		name.c_str(), name.length(),
 		textLeft, textBaseline );
 }
 

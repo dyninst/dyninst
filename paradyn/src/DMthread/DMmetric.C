@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.C,v 1.38 2001/12/15 02:44:18 schendel Exp $
+// $Id: DMmetric.C,v 1.39 2002/05/13 19:52:57 mjbrim Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -87,7 +87,7 @@ const T_dyninstRPC::metricInfo *metric::getInfo(metricHandle handle) {
 const char *metric::getName(metricHandle handle){
      if(handle < metrics.size()){
 	metric *met = metrics[handle];
-        return(met->info.name.string_of());
+        return(met->info.name.c_str());
      }
      else{
         return 0 ;
@@ -277,7 +277,7 @@ metricInstance::saveAllData (ofstream& iptr,
 	string fileSuffix = string("hist_") + string(findex);
 	string miFileName = string(dirname) + fileSuffix;
 	
-	ofstream fptr (miFileName.string_of(), ios::out);
+	ofstream fptr (miFileName.c_str(), ios::out);
 	if (!fptr) {
 	  return false;
 	}
@@ -285,7 +285,7 @@ metricInstance::saveAllData (ofstream& iptr,
 	saveOneMI_Histo (fptr, hdata, phaseid);
 	fptr.close();
 	// update index file
-	iptr << fileSuffix.string_of() << " " <<  
+	iptr << fileSuffix.c_str() << " " <<  
 	  getMetricName() << " " << getFocusName() << " " << phaseid << endl;
 	findex++;  // increment fileid
       }
@@ -300,14 +300,14 @@ metricInstance::saveAllData (ofstream& iptr,
       string fileSuffix = string("hist_") + string(findex);
       string miFileName = string(dirname) + fileSuffix;
       
-      ofstream fptr (miFileName.string_of(), ios::out);
+      ofstream fptr (miFileName.c_str(), ios::out);
       if (!fptr) {
 	return false;
       }
       saveOneMI_Histo (fptr, hdata, phaseid);
       fptr.close();
       // update index file
-      iptr << fileSuffix.string_of() << " " <<  
+      iptr << fileSuffix.c_str() << " " <<  
 	getMetricName() << " " << getFocusName() << " " << phaseid << endl;
       findex++;  // increment fileid
     }
@@ -321,7 +321,7 @@ metricInstance::saveAllData (ofstream& iptr,
       string fileSuffix = string("hist_") + string(findex);
       string miFileName = string(dirname) + fileSuffix;
       
-      ofstream fptr (miFileName.string_of(), ios::out);
+      ofstream fptr (miFileName.c_str(), ios::out);
       if (!fptr) {
 	return false;
       }
@@ -329,7 +329,7 @@ metricInstance::saveAllData (ofstream& iptr,
       saveOneMI_Histo (fptr, hdata, phaseid);
       fptr.close();
       // update index file
-      iptr << fileSuffix.string_of() << " " <<  
+      iptr << fileSuffix.c_str() << " " <<  
 	getMetricName() << " " << getFocusName() << " -1" //global phaseid
 	   << endl;
       findex++;  // increment fileid
@@ -557,7 +557,7 @@ vector<metricInstance*> *metricInstance::query(metric_focus_pair metfocus)
 	       string mi_focus_name=DMcreateRLname(*mi_focus);
 	       delete mi_focus;
 	       string focus_name=DMcreateRLname(metfocus.res);
-	       char *focus_name_str = P_strdup(focus_name.string_of());
+	       char *focus_name_str = P_strdup(focus_name.c_str());
 
 	       string focus_code("/Code");
 	       string focus_machine("/Machine");
@@ -576,7 +576,7 @@ vector<metricInstance*> *metricInstance::query(metric_focus_pair metfocus)
 	       }
 	       delete focus_name_str;
 
-	       char *mi_focus_str = P_strdup(mi_focus_name.string_of());
+	       char *mi_focus_str = P_strdup(mi_focus_name.c_str());
 	       string mi_code("/Code");
 	       string mi_machine("/Machine");
 	       string mi_sync("/SyncObject");

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: datagrid.C,v 1.29 2002/04/09 18:06:51 mjbrim Exp $
+// $Id: datagrid.C,v 1.30 2002/05/13 19:53:56 mjbrim Exp $
 
 ///////////////////////////////////////////////
 // Member functions for the following classes:
@@ -92,7 +92,7 @@ Metric::~Metric(){
 Resource::Resource(string resourceName,
 		   u_int id){
 
-  if(resourceName.string_of() != 0){
+  if(resourceName.c_str() != 0){
     name = resourceName; 
     Id = id;
   }
@@ -807,7 +807,7 @@ int phaseCompare(const void *p1, const void *p2) {
 
 void visi_DataGrid::AddNewPhase(int handle, visi_timeType start, visi_timeType end,
 		      visi_timeType width, string name){
-    PhaseInfo *p = new PhaseInfo(handle,start,end,width,name.string_of());
+    PhaseInfo *p = new PhaseInfo(handle,start,end,width,name.c_str());
     phases += p;
     phases.sort(phaseCompare);
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.18 2002/04/18 19:39:40 bernat Exp $
+// $Id: aixDL.C,v 1.19 2002/05/13 19:51:58 mjbrim Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -159,7 +159,7 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
       Address data_org =(Address) ptr->ldinfo_dataorg;
 #ifdef DEBUG
       fprintf(stderr, "%s:%s (%x/%x)\n",
-	      obj_name.string_of(), member.string_of(),
+	      obj_name.c_str(), member.c_str(),
 	      text_org, data_org);
 #endif /* DEBUG */
       // I believe that we need to pass this as a pointer so that
@@ -513,7 +513,7 @@ bool getRTLibraryName(string &dyninstName, int pid)
   }
 
   // Check to see if the library given exists.
-  if (access(dyninstName.string_of(), R_OK)) {
+  if (access(dyninstName.c_str(), R_OK)) {
     string msg = string("Runtime library ") + dyninstName
         + string(" does not exist or cannot be accessed!");
     showErrorCallback(101, msg);
@@ -575,7 +575,7 @@ bool process::dlopenDYNINSTlib()
   // write library name...
   dyninstlib_addr = (Address) (codeBase + count);
   writeDataSpace((void *)(codeBase + count), dyninstName.length()+1,
-		 (caddr_t)const_cast<char*>(dyninstName.string_of()));
+		 (caddr_t)const_cast<char*>(dyninstName.c_str()));
   count += dyninstName.length()+sizeof(instruction); // a little padding
 
   // Actually, we need to bump count up to a multiple of insnsize

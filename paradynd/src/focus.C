@@ -71,7 +71,7 @@ int machineHierarchy::getThreadID() const {
    int thr_id = -1;
 
    if(thread.length() > 4) {  // need at least "thr_#"
-      const char *begNum = thread.string_of();
+      const char *begNum = thread.c_str();
       begNum += 4;  // bypass "thr_"
       char tempBuf[50];
       char *ts = tempBuf;

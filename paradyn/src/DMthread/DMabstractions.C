@@ -43,6 +43,12 @@
  * DMabstractions.C: code to handle programming abstractions
  *
  * $Log: DMabstractions.C,v $
+ * Revision 1.9  2002/05/13 19:52:49  mjbrim
+ * update string class to eliminate implicit number conversions
+ * and replace all use of string_of with c_str  - - - - - - - - - - - - - -
+ * change implicit number conversions to explicit conversions,
+ * change all use of string_of to c_str
+ *
  * Revision 1.8  2000/07/28 17:21:41  pcroth
  * Updated #includes to reflect util library split
  *
@@ -100,7 +106,7 @@ abstraction::abstraction(const char *a)
 
 void abstraction::print()
 {
-    printf("%s ", name.string_of());
+    printf("%s ", name.c_str());
 }
 
 abstraction *AMfind(const char *aname) 

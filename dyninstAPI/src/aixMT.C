@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixMT.C,v 1.4 2002/05/10 18:36:53 schendel Exp $
+// $Id: aixMT.C,v 1.5 2002/05/13 19:51:59 mjbrim Exp $
 
 #include <sys/pthdebug.h> // Pthread debug library
 #include "dyninstAPI/src/pdThread.h"
@@ -125,7 +125,7 @@ pdThread *process::createThread(
   cerr << " done." << endl;
 
   sprintf(errorLine,"+++++ creating new thread{%s}, pd_pos=%u, pos=%u, tid=%d, stack=0x%x, resumestate=0x%x, by[%s]\n",
-	  pdf->prettyName().string_of(), pd_pos,pos,tid,stackbase,(unsigned)resumestate_p, bySelf?"Self":"Parent");
+	  pdf->prettyName().c_str(), pd_pos,pos,tid,stackbase,(unsigned)resumestate_p, bySelf?"Self":"Parent");
   logLine(errorLine);
 
   return(thr);
@@ -229,7 +229,7 @@ void process::updateThread(
   } //else
 
   sprintf(errorLine,"+++++ creating new thread{%s}, pd_pos=%u, pos=%u, tid=%d, stack=0x%xs, resumestate=0x%x\n",
-    pdf->prettyName().string_of(), pd_pos, pos, tid, stackbase, (unsigned) resumestate_p);
+    pdf->prettyName().c_str(), pd_pos, pos, tid, stackbase, (unsigned) resumestate_p);
   logLine(errorLine);
 }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.35 2002/04/09 18:56:36 tikir Exp $
+// $Id: BPatch_image.C,v 1.36 2002/05/13 19:51:38 mjbrim Exp $
 
 #define BPATCH_FILE
 
@@ -209,7 +209,7 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_image::getGlobalVariables()
 	int limit = keys.size();
 	for (int j = 0; j < limit; j++) {
 	    string name = keys[j];
-	    var = createVarExprByName(module, name.string_of());
+	    var = createVarExprByName(module, name.c_str());
 	    varlist->push_back(var);
 	}
     }
@@ -478,7 +478,7 @@ BPatch_function *BPatch_image::findFunction(const char *name, bool showError)
 
     if (funcs.size() == 0) {
 	string fullname = string(name) + string("_");
-	findFunction(fullname.string_of(), funcs, false);
+	findFunction(fullname.c_str(), funcs, false);
     }
 
     if (funcs.size() > 0) {
@@ -487,7 +487,7 @@ BPatch_function *BPatch_image::findFunction(const char *name, bool showError)
     else {
 	if (showError) {
 	    string msg = string("Unable to find function: ") + string(name);
-	    BPatch_reportError(BPatchSerious, 100, msg.string_of());
+	    BPatch_reportError(BPatchSerious, 100, msg.c_str());
 	}
 	return NULL;
     }
@@ -532,7 +532,7 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunction(
 
         if (showError) {
 	    string msg = string("Unable to find function: ") + string(name);
-	    BPatch_reportError(BPatchSerious, 100, msg.string_of());
+	    BPatch_reportError(BPatchSerious, 100, msg.c_str());
 	}
 	return NULL;
     }

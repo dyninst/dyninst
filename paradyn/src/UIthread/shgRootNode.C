@@ -42,7 +42,7 @@
 // shgRootNode.C
 // Ariel Tamches
 
-/* $Id: shgRootNode.C,v 1.10 1999/04/27 16:03:49 nash Exp $ */
+/* $Id: shgRootNode.C,v 1.11 2002/05/13 19:53:28 mjbrim Exp $ */
 
 #include "shg.h"
 #include "shgRootNode.h"
@@ -76,7 +76,7 @@ void shgRootNode::initialize(unsigned iId,
 
    pixWidthAsRoot = borderPix + horizPad // static members
                   + Tk_TextWidth(rootItemFontStruct,
-                                 label.string_of(), label.length()) +
+                                 label.c_str(), label.length()) +
                   + horizPad + borderPix;
 
    Tk_FontMetrics rootItemFontMetrics;
@@ -88,7 +88,7 @@ void shgRootNode::initialize(unsigned iId,
 
    Tk_Font listboxItemFontStruct = shg::getListboxItemFontStruct(shadowNode);
    pixWidthAsListboxItem = Tk_TextWidth(listboxItemFontStruct,
-                                       label.string_of(), label.length());
+                                       label.c_str(), label.length());
 }
 
 shgRootNode::shgRootNode(unsigned iId,
@@ -195,7 +195,7 @@ void shgRootNode::drawAsRoot(Tk_Window theTkWindow,
 		theDrawable,
 		shg::getRootItemTextGC(active, shadowNode),
 		shg::getRootItemFontStruct(shadowNode),
-		label.string_of(), label.length(),
+		label.c_str(), label.length(),
 		textLeft, textBaseLine );
 }
 
@@ -289,7 +289,7 @@ void shgRootNode::drawAsListboxItem(Tk_Window theTkWindow, int theDrawable,
 		theDrawable,
 		shg::getListboxItemGC(active, shadowNode),
 		shg::getRootItemFontStruct(shadowNode),
-		label.string_of(), label.length(),
+		label.c_str(), label.length(),
 		textLeft, textBaseline);
 }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.61 2001/11/05 22:19:59 pcroth Exp $
+// $Id: main.C,v 1.62 2002/05/13 19:53:42 mjbrim Exp $
 
 /*
  * main.C - main routine for paradyn.  
@@ -201,7 +201,7 @@ main (int argc, char **argv)
   string argcStr = string(argc - 1);
   Tcl_ObjSetVar2(interp,
                     Tcl_NewStringObj( "argc", -1 ), NULL,
-                    Tcl_NewStringObj( argcStr.string_of(), -1 ),
+                    Tcl_NewStringObj( argcStr.c_str(), -1 ),
                     TCL_GLOBAL_ONLY);
   Tcl_ObjSetVar2(interp,
                     Tcl_NewStringObj( "argv0", -1 ), NULL,

@@ -47,7 +47,7 @@
 // for maximum speed.  Can be done from makefile, e.g. a "make optimized"
 // option which does -O and -DNDEBUG
 
-/* $Id: barChart.C,v 1.30 2002/04/09 18:06:56 mjbrim Exp $ */
+/* $Id: barChart.C,v 1.31 2002/05/13 19:54:00 mjbrim Exp $ */
 
 // tk/tcl has a very nice interface for mixing C++ and tk/tcl
 // scripts.  From within tcl, C++ code can be called via
@@ -131,7 +131,7 @@ BarChart::BarChart(char *tkWindowName,
       const string &colorName = barColorNames[color];
 
       XColor *theColor = Tk_GetColor(MainInterp, theWindow,
-				     Tk_GetUid(colorName.string_of()));
+				     Tk_GetUid(colorName.c_str()));
       assert(theColor);
 
       metricColors[color] = theColor;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.26 2002/04/25 22:51:45 gaburici Exp $
+// $Id: BPatch_function.C,v 1.27 2002/05/13 19:51:35 mjbrim Exp $
 
 #define BPATCH_FILE
 
@@ -176,7 +176,7 @@ char *BPatch_function::getName(char *s, int len) const
 {
     assert(func);
     string name = func->prettyName();
-    strncpy(s, name.string_of(), len);
+    strncpy(s, name.c_str(), len);
 
     return s;
 }
@@ -195,7 +195,7 @@ char *BPatch_function::getMangledName(char *s, int len) const
 {
     assert(func);
     string name = func->symTabName();
-    strncpy(s, name.string_of(), len);
+    strncpy(s, name.c_str(), len);
 
     return s;
 }
@@ -599,9 +599,9 @@ bool BPatch_function::getLineAndFile(unsigned int &start,
     if (funcLineInfo->endLinePtr)
 	end = funcLineInfo->endLinePtr->lineNo;
 
-    strncpy(fileName, fLineInformation->getFileName().string_of(), length);
-    if (strlen(fLineInformation->getFileName().string_of()) < length) {
-	length = strlen(fLineInformation->getFileName().string_of());
+    strncpy(fileName, fLineInformation->getFileName().c_str(), length);
+    if (strlen(fLineInformation->getFileName().c_str()) < length) {
+	length = strlen(fLineInformation->getFileName().c_str());
     }
 
     return true;

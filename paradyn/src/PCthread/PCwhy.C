@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCwhy.C,v 1.20 2001/06/20 20:33:41 schendel Exp $
+// $Id: PCwhy.C,v 1.21 2002/05/13 19:53:14 mjbrim Exp $
 // The hypothesis class and the why axis.
 
 #include "PCwhy.h"
@@ -76,7 +76,7 @@ hypothesis::hypothesis (const char *hypothesisName,
     // find and store resource handles for all pruned resources
     resourceHandle *rh;
     for (unsigned i = 0; i < plumList->size(); i++) {
-      rh = dataMgr->findResource((*plumList)[i]->string_of());
+      rh = dataMgr->findResource((*plumList)[i]->c_str());
       if (rh) {
 	pruneList += *rh;
 	delete rh;
@@ -87,7 +87,7 @@ hypothesis::hypothesis (const char *hypothesisName,
     // find and store resource handles for all suppressed resources
     resourceHandle *rh;
     for (unsigned i = 0; i < suppressions->size(); i++) {
-      rh = dataMgr->findResource((*suppressions)[i]->string_of());
+      rh = dataMgr->findResource((*suppressions)[i]->c_str());
       if (rh) {
 	suppressList += *rh;
 	delete rh;
@@ -208,7 +208,7 @@ whyAxis::whyAxis()
 {
   bool good = true;
   string rootName ("topLevelHypothesis");
-  root = new hypothesis (rootName.string_of(), (explanationFunction)NULL, 
+  root = new hypothesis (rootName.c_str(), (explanationFunction)NULL, 
 			 &good);
   AllHypotheses [rootName] = root; 
 }

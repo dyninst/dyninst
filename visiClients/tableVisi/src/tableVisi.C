@@ -44,6 +44,12 @@
 
 /*
  * $Log: tableVisi.C,v $
+ * Revision 1.16  2002/05/13 19:54:07  mjbrim
+ * update string class to eliminate implicit number conversions
+ * and replace all use of string_of with c_str  - - - - - - - - - - - - - -
+ * change implicit number conversions to explicit conversions,
+ * change all use of string_of to c_str
+ *
  * Revision 1.15  2001/11/07 05:03:27  darnold
  * Bug fix: gcvt() => sprintf() so that values in table are of fixed
  *          length regardless of "zeroes after the decimal point"
@@ -178,7 +184,7 @@ void tableVisi::double2string(char *buffer, double val) const {
 Tk_Font tableVisi::myTkGetFont(Tcl_Interp* interp, const string &fontName) const {
    Tk_Font result = Tk_GetFont(interp,
 					theTkWindow,
-					fontName.string_of());
+					fontName.c_str());
    if (result == NULL) {
       cerr << "could not find font " << fontName << endl;
       exit(5);
@@ -188,7 +194,7 @@ Tk_Font tableVisi::myTkGetFont(Tcl_Interp* interp, const string &fontName) const
 }
 
 XColor *tableVisi::myTkGetColor(Tcl_Interp *interp, const string &colorName) const {
-   XColor *result = Tk_GetColor(interp, theTkWindow, Tk_GetUid(colorName.string_of()));
+   XColor *result = Tk_GetColor(interp, theTkWindow, Tk_GetUid(colorName.c_str()));
    if (result == NULL)
       tclpanic(interp, "table visi: could not allocate color");
 
@@ -524,7 +530,7 @@ void tableVisi::drawMetricNames(Drawable theDrawable) const {
       Tk_DrawChars(Tk_Display(theTkWindow), theDrawable,
 		  metricNameGC,
 		  metricNameFont,
-		  metricNameStr.string_of(), metricNameStr.length(),
+		  metricNameStr.c_str(), metricNameStr.length(),
 		  metric_name_left, metric_name_baseline);
 
       // draw the metric units:
@@ -533,7 +539,7 @@ void tableVisi::drawMetricNames(Drawable theDrawable) const {
       Tk_DrawChars(Tk_Display(theTkWindow), theDrawable,
 		  metricUnitsGC,
 		  metricUnitsFont,
-		  metricUnitsNameStr.string_of(), metricUnitsNameStr.length(),
+		  metricUnitsNameStr.c_str(), metricUnitsNameStr.length(),
 		  metric_units_left, metric_units_baseline);
 
       curr_x = next_x;
@@ -649,7 +655,7 @@ void tableVisi::drawFocusNames(Drawable theDrawable) const {
       Tk_DrawChars(Tk_Display(theTkWindow), theDrawable,
 		  focusNameGC,
 		  focusNameFont,
-		  theString.string_of(), theString.length(),
+		  theString.c_str(), theString.length(),
 		  getHorizPixBeforeFocusName(), curr_y_baseline);
 
       curr_y = next_y;

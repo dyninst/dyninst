@@ -64,7 +64,7 @@ string expand_tilde_pathname(const string &dir) {
    if (dir.length()==0)
       return dir;
 
-   const char *dir_cstr = dir.string_of();
+   const char *dir_cstr = dir.c_str();
    if (dir_cstr[0] != '~')
       return dir;
 
@@ -102,7 +102,7 @@ string expand_tilde_pathname(const string &dir) {
       userName = user_name_buffer;
    }
 
-   struct passwd *pwPtr = getpwnam(userName.string_of());
+   struct passwd *pwPtr = getpwnam(userName.c_str());
    if (pwPtr == NULL) {
       endpwent();
       return dir; // something better needed...
@@ -126,7 +126,7 @@ string concat_pathname_components(const string &comp1, const string &comp2) {
    bool needToAddSlash = true; // so far
 
    // if comp1 ends in a "/" then no need to add slash
-   const char *temp = comp1.string_of();
+   const char *temp = comp1.c_str();
    if (temp[comp1.length()-1] == '/')
       needToAddSlash = false;
 
@@ -175,7 +175,7 @@ bool extractNextPathElem(const char * &ptr, string &result) {
 
 bool exists_executable(const string &fullpathname) {
    struct stat stat_buffer;
-   int result = stat(fullpathname.string_of(), &stat_buffer);
+   int result = stat(fullpathname.c_str(), &stat_buffer);
    if (result == -1)
       return false;
 
@@ -204,7 +204,7 @@ bool executableFromArgv0AndPathAndCwd(string &result,
 
    // 1) If argv0 starts with a slash then we sink or swim with argv0
    
-   if ((argv0.string_of())[0] == '/') {
+   if ((argv0.c_str())[0] == '/') {
       if (exists_executable(argv0)) {
 	 result = argv0;
 	 return true;
@@ -218,7 +218,7 @@ bool executableFromArgv0AndPathAndCwd(string &result,
    //    is only supposed to be searched when an executable name is specifed
    //    alone.
    bool contains_slash = false;
-   const char *ptr = argv0.string_of();
+   const char *ptr = argv0.c_str();
    while (*ptr != '\0')
       if (*ptr++ == '/') {
 	 contains_slash = true;
@@ -228,7 +228,7 @@ bool executableFromArgv0AndPathAndCwd(string &result,
    if (!contains_slash) {
       // search the path to see what directory argv0 came from.  If found, then
       // use dir + argv0 else use argv0.
-      ptr = path.string_of();
+      ptr = path.c_str();
       string pathelem;
       while (extractNextPathElem(ptr, pathelem)) {
 	 string trystr = concat_pathname_components(pathelem, argv0);
@@ -260,7 +260,7 @@ bool executableFromArgv0AndPathAndCwd(string &result,
 
 string extract_pathname_tail(const string &path)
 {
-  const char *path_str = path.string_of();
+  const char *path_str = path.c_str();
   const char *path_sep = P_strrchr(path_str, PATH_SEP);
   string ret = (path_sep) ? (path_sep + 1) : (path_str);
   return ret;

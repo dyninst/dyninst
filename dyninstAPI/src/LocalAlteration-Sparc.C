@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: LocalAlteration-Sparc.C,v 1.13 2002/01/29 00:19:31 gurari Exp $
+// $Id: LocalAlteration-Sparc.C,v 1.14 2002/05/13 19:51:48 mjbrim Exp $
 
 #include "dyninstAPI/src/LocalAlteration-Sparc.h"
 #include "dyninstAPI/src/LocalAlteration.h"
@@ -402,7 +402,7 @@ bool CallRestoreTailCallOptimization::RewriteFootprint(
 	       ((restore_add_side_effect_destination <= REG_I(0) &&
 		 restore_add_side_effect_destination <= REG_I(7)))
 	       ) {
-        cerr << "WARN : function " << function->prettyName().string_of()
+        cerr << "WARN : function " << function->prettyName().c_str()
 	     << " unable to unroll tail-call optimization in function,"
 	     << " restore operation found with side effect which is not"
 	     << " preserved across call-restore tail-call optimization "

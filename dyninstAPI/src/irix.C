@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.30 2002/04/18 19:39:58 bernat Exp $
+// $Id: irix.C,v 1.31 2002/05/13 19:52:23 mjbrim Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -922,7 +922,7 @@ bool process::heapIsOk(const vector<sym_data>&findUs)
     /*
     Address addr = lookup_fn(this, name);
     if (!addr && findUs[i].must_find) {
-      fprintf(stderr, "process::heapIsOk(): failed to find \"%s\"\n", name.string_of());
+      fprintf(stderr, "process::heapIsOk(): failed to find \"%s\"\n", name.c_str());
       return false;
     }
     */
@@ -1129,12 +1129,12 @@ bool process::API_detach_(const bool cont)
 
 string process::tryToFindExecutable(const string &progpath, int /*pid*/)
 {
-  //fprintf(stderr, ">>> process::tryToFindExecutable(%s)\n", progpath.string_of());
+  //fprintf(stderr, ">>> process::tryToFindExecutable(%s)\n", progpath.c_str());
   string ret = "";
   
   // attempt #1: expand_tilde_pathname()
   ret = expand_tilde_pathname(progpath);
-  //fprintf(stderr, "  expand_tilde => \"%s\"\n", ret.string_of());
+  //fprintf(stderr, "  expand_tilde => \"%s\"\n", ret.c_str());
   if (exists_executable(ret)) return ret;
   
   // TODO: any other way to find executable?
@@ -1157,15 +1157,15 @@ bool process::dumpImage() {
   sprintf(buf, "image.%d", pid);
   string outFile = buf;
 #endif
-  //fprintf(stderr, "!!! process::dumpImage(%s)\n", outFile.string_of());
+  //fprintf(stderr, "!!! process::dumpImage(%s)\n", outFile.c_str());
   
   // copy and open file
   image *img = getImage();
   string imgFile = img->file();
   char buf1[1024];
-  sprintf(buf1, "cp %s %s", imgFile.string_of(), outFile.string_of());
+  sprintf(buf1, "cp %s %s", imgFile.c_str(), outFile.c_str());
   system(buf1);
-  int fd = open(outFile.string_of(), O_RDWR, 0);
+  int fd = open(outFile.c_str(), O_RDWR, 0);
   if (fd < 0) return false;
 
   // overwrite ".text" section with runtime contents
@@ -1376,7 +1376,7 @@ Frame process::getActiveFrame()
   /*
   if ( currFunc )
   {
-    fprintf(stderr, "\nin getActiveFrame for function %s\n", currFunc->prettyName().string_of());
+    fprintf(stderr, "\nin getActiveFrame for function %s\n", currFunc->prettyName().c_str());
     fprintf(stderr, "  pc is      %x\n", pc);
     fprintf(stderr, "  sp is      %x\n", sp);
     fprintf(stderr, "  fp is      %x\n", fp);
@@ -1587,7 +1587,7 @@ Frame Frame::getCallerFrame(process *p) const
     char *info = "";
     if (ip) info = (bt) ? ("[basetramp]") : ("[minitramp]");
     fprintf(stderr, ">>> toplevel frame => \"%s\" %s\n",
-	    callee->prettyName().string_of(), info);
+	    callee->prettyName().c_str(), info);
   }
   */
 
@@ -1697,7 +1697,7 @@ Frame Frame::getCallerFrame(process *p) const
       if (callee->prettyName() != "main" &&
 	  callee->prettyName() != "__start")
 	fprintf(stderr, "!!! <0x%016lx:\"%s\"> $ra not saved\n",
-		pc_adj, callee->prettyName().string_of());
+		pc_adj, callee->prettyName().c_str());
       */
       // $ra cannot be found (error)
       return Frame(); // zero frame
@@ -1756,7 +1756,7 @@ Frame Frame::getCallerFrame(process *p) const
   // debug
   if(!caller) {
     fprintf(stderr, "!!! 0x%016lx unknown caller (callee:\"%s\")\n",
-	    ra, callee->prettyName().string_of());    
+	    ra, callee->prettyName().c_str());    
     const image *owner = callee->file()->exec();
     Address obj_base = 0;
     p->getBaseAddress(owner, obj_base);
@@ -1785,7 +1785,7 @@ Frame Frame::getCallerFrame(process *p) const
     }
     fprintf(stderr, "    0x%016lx $pc\n", pc_);
     fprintf(stderr, "    0x%016lx native $pc\n", pc_adj);
-    fprintf(stderr, "    %18s callee\n", callee->prettyName().string_of());
+    fprintf(stderr, "    %18s callee\n", callee->prettyName().c_str());
     // stack frames
     fprintf(stderr, "    0x%016lx callee $sp\n", sp_);
     fprintf(stderr, "    0x%016lx callee $fp\n", fp_);
@@ -1836,7 +1836,7 @@ Frame Frame::getCallerFrame(process *p) const
 	  ret.pc_, ret.sp_, ret.fp_);
   char *info2 = "";
   if (ip2) info2 = (bt2) ? ("[basetramp]") : ("[minitramp]");
-  fprintf(stderr, " => \"%s\" %s\n", caller->prettyName().string_of(), info2);
+  fprintf(stderr, " => \"%s\" %s\n", caller->prettyName().c_str(), info2);
   */
 
   return ret;
@@ -1941,7 +1941,7 @@ bool execIrixMPIProcess(vector<string> &argv)
     // attach to child process
     sprintf(processFile, "/proc/%d", masterMPIpid);
     masterMPIfd = open(processFile, O_RDWR);
-    irixMPIappName = strdup(argv[0].string_of()); // used to identify MPI app processes
+    irixMPIappName = strdup(argv[0].c_str()); // used to identify MPI app processes
 		
     if ( masterMPIfd == -1 )
     {
@@ -1999,7 +1999,7 @@ bool execIrixMPIProcess(vector<string> &argv)
     char **args;
     args = new char*[argv.size()+1];
     for (unsigned ai=0; ai<argv.size(); ai++)
-      args[ai] = P_strdup(argv[ai].string_of());
+      args[ai] = P_strdup(argv[ai].c_str());
     args[argv.size()] = NULL;
 
     if ( P_execvp(args[0], args) == -1 )

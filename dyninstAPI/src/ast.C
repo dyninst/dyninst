@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.96 2002/05/10 18:37:11 schendel Exp $
+// $Id: ast.C,v 1.97 2002/05/13 19:52:03 mjbrim Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1248,7 +1248,7 @@ Address AstNode::generateCode_phase2(process *proc,
 	    if (err) {
                 string msg = string("Internal error: "
                         "unable to find addr of DYNINSTobsCostLow\n");
-		showErrorCallback(79, msg.string_of());
+		showErrorCallback(79, msg.c_str());
 		P_abort();
 	    }
 #else

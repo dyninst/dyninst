@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.49 2002/04/17 16:06:56 willb Exp $
+// $Id: DMdaemon.h,v 1.50 2002/05/13 19:52:54 mjbrim Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -137,13 +137,13 @@ public:
 	      const string &l, const string &d, const string &r,
 		  const string &f);
   void print();
-  const char *getCommand() const { return command.string_of();}
-  const char *getName() const { return name.string_of();}
-  const char *getLogin() const { return login.string_of();}
-  const char *getDir() const { return dir.string_of();}
-  const char *getMachine() const { return machine.string_of();}
-  const char *getRemoteShell() const { return remote_shell.string_of();}
-  const char *getFlavor() const { return flavor.string_of();}
+  const char *getCommand() const { return command.c_str();}
+  const char *getName() const { return name.c_str();}
+  const char *getLogin() const { return login.c_str();}
+  const char *getDir() const { return dir.c_str();}
+  const char *getMachine() const { return machine.c_str();}
+  const char *getRemoteShell() const { return remote_shell.c_str();}
+  const char *getFlavor() const { return flavor.c_str();}
   const string &getNameString() const { return name;}
   const string &getMachineString() const { return machine;}
   const string &getCommandString() const { return command;}

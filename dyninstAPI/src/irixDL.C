@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irixDL.C,v 1.11 2001/06/12 15:43:31 hollings Exp $
+// $Id: irixDL.C,v 1.12 2002/05/13 19:52:25 mjbrim Exp $
 
 #include <stdio.h>
 #include <sys/ucontext.h>             // gregset_t
@@ -242,7 +242,7 @@ static bool is_a_out(process *p, const string &dso_name)
 
 static bool is_libc(const string &dso_name)
 {
-  if (strstr(dso_name.string_of(), "libc.")) return true;
+  if (strstr(dso_name.c_str(), "libc.")) return true;
   return false;
 }
 
@@ -428,7 +428,7 @@ bool process::dlopenDYNINSTlib()
     }
   }
 
-  const char *rtlib_val = dyninstName.string_of();
+  const char *rtlib_val = dyninstName.c_str();
   assert(strstr(rtlib_val, rtlib_prefix));
 
   // for 32-bit apps, modify the rtlib environment variable

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: PCwhy.h,v 1.15 2001/06/20 20:36:46 schendel Exp $
+// $Id: PCwhy.h,v 1.16 2002/05/13 19:53:15 mjbrim Exp $
 // The hypothesis class and the why axis.
 
 #ifndef pc_why_h
@@ -72,8 +72,8 @@ class hypothesis {
   hypothesis (const char *hypothesisName,
 	      explanationFunction explanation, 
 	      bool *success); 
-  const char *getThresholdName () {return indivThresholdNm.string_of();}
-  const char *getName() {return name.string_of();}
+  const char *getThresholdName () {return indivThresholdNm.c_str();}
+  const char *getName() {return name.c_str();}
   PCmetric *getPcMet(bool altFlag);
   expandPolicy getExpandPolicy() {return exType;}
   void addChild (hypothesis *child) {kids += child;}

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.95 2002/05/10 18:37:10 schendel Exp $
+// $Id: aix.C,v 1.96 2002/05/13 19:51:57 mjbrim Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -1386,7 +1386,7 @@ bool process::dumpImage() {
       fprintf(stderr, "0x%x: 0x%x", i, instr_temp);
       if ((instr_temp > 0x10000000) && (instr_temp < 0x20000000)) {
 	pd_Function *func = symbols->findFuncByAddr((Address) instr_temp, this);
-	fprintf(stderr, ":  %s", (func->prettyName()).string_of());
+	fprintf(stderr, ":  %s", (func->prettyName()).c_str());
       }
       if ((instr_temp > 0xd0000000) && (instr_temp < 0xe0000000)) {
 	pd_Function *func;
@@ -1395,16 +1395,16 @@ bool process::dumpImage() {
 	    const image *img = ((*shared_objects)[j])->getImage();
 	    func = img->findFuncByAddr((Address) instr_temp, this);
 	    if (func)
-	      fprintf(stderr, ":   %s", (func->prettyName()).string_of());
+	      fprintf(stderr, ":   %s", (func->prettyName()).c_str());
 	  }
       }
       fprintf(stderr, "\n");
     }
 #endif
 
-    ifd = open(imageFileName.string_of(), O_RDONLY, 0);
+    ifd = open(imageFileName.c_str(), O_RDONLY, 0);
     if (ifd < 0) {
-      sprintf(errorLine, "Unable to open %s\n", imageFileName.string_of());
+      sprintf(errorLine, "Unable to open %s\n", imageFileName.c_str());
       logLine(errorLine);
       showErrorCallback(41, (const char *) errorLine);
       perror("open");
@@ -1414,16 +1414,16 @@ bool process::dumpImage() {
     rd = fstat(ifd, &statBuf);
     if (rd != 0) {
       perror("fstat");
-      sprintf(errorLine, "Unable to stat %s\n", imageFileName.string_of());
+      sprintf(errorLine, "Unable to stat %s\n", imageFileName.c_str());
       logLine(errorLine);
       showErrorCallback(72, (const char *) errorLine);
       return true;
     }
     length = statBuf.st_size;
 #ifdef BPATCH_LIBRARY
-    ofd = open(outFile.string_of(), O_WRONLY|O_CREAT, 0777);
+    ofd = open(outFile.c_str(), O_WRONLY|O_CREAT, 0777);
 #else
-    sprintf(outFile, "%s.real", imageFileName.string_of());
+    sprintf(outFile, "%s.real", imageFileName.c_str());
     sprintf(errorLine, "Saving program to %s\n", outFile);
     logLine(errorLine);
 
@@ -1728,7 +1728,7 @@ bool handleAIXsigTraps(int pid, int status) {
 
 	//string str = string("Parent of process ") + string(pid) + " is " +
 	//               string(psinfo.pi_ppid) + "\n";
-	//logLine(str.string_of());
+	//logLine(str.c_str());
 
 	seenForkTrapForChild = true;
 	pidForChild = pid;

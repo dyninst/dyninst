@@ -560,7 +560,7 @@ void FindLineInfo(BPatch_module *mod, LDFILE *ldptr,
 				continue;
 
 			/* get the base address of the procedure */
-			fp = mod->findFunction(currentFunctionName.string_of());
+			fp = mod->findFunction(currentFunctionName.c_str());
 			if(!fp) continue;
 
 			unsigned long currentFunctionBase = (unsigned long)(fp->getBaseAddr());

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.49 2002/05/09 21:42:58 schendel Exp $
+// $Id: mdl.C,v 1.50 2002/05/13 19:53:39 mjbrim Exp $
 
 #include "dyninstRPC.xdr.CLNT.h"
 #include "paradyn/src/met/globals.h"
@@ -281,16 +281,16 @@ T_dyninstRPC::mdl_constraint::mdl_constraint(string id, vector<string> *match_pa
 	type_ = MDL_T_INT;
       else 
       {
-        cout << "Error in constraint '" << id.string_of()
-          << "': unknown resource '" << (*match_path)[1].string_of()
+        cout << "Error in constraint '" << id.c_str()
+          << "': unknown resource '" << (*match_path)[1].c_str()
           << "'" << endl;
 	error = true;
       }
     }
     else 
     {
-      cout << "Error in constraint '" << id.string_of()
-        << "': unknown resource '" << (*match_path)[0].string_of()
+      cout << "Error in constraint '" << id.c_str()
+        << "': unknown resource '" << (*match_path)[0].c_str()
         << "'" << endl;
       error = true;
     }
@@ -687,7 +687,7 @@ bool T_dyninstRPC::mdl_v_expr::apply(AstNode*&)
           ok_ = true;
           return true;
         default:
-          cerr << "type of variable " << var_.string_of()
+          cerr << "type of variable " << var_.c_str()
             << " is not known" << endl;
           return false;
       }
@@ -1122,7 +1122,7 @@ bool mdl_init() {
 bool mdl_check_node_constraints_OLD() {
 
     for(u_int i=0; i < mdl_data::lib_constraints.size(); i++) {
-        char *temp = P_strdup(mdl_data::lib_constraints[i].string_of()); 
+        char *temp = P_strdup(mdl_data::lib_constraints[i].c_str()); 
 	char *where = 0;
 	bool bad_string = false;
 	if(temp && (where = P_strchr(temp,'/'))) {
@@ -1140,7 +1140,7 @@ bool mdl_check_node_constraints_OLD() {
 	if(temp) delete temp;
 	if(bad_string) {
 	    cout << "parse error: exclude_node " <<
-		mdl_data::lib_constraints[i].string_of() << endl;
+		mdl_data::lib_constraints[i].c_str() << endl;
 	    cout << "should be: `exclude_node \"module/function\";'  or `exclude_node \"module\";'" << endl;
             return false;
 	}
@@ -1173,7 +1173,7 @@ bool mdl_check_node_constraints() {
 
         bad_string = 0;
         // get copy of string char *data for strchr....
-        temp = P_strdup(mdl_data::lib_constraints[i].string_of());
+        temp = P_strdup(mdl_data::lib_constraints[i].c_str());
 	// Doh!!!!  Changed exclude directive to have form /Code,
 	//  instead of Code/, so strip off leading '/'
 	first_slash = P_strchr(temp, RH_SEPARATOR);
@@ -1221,7 +1221,7 @@ bool mdl_check_node_constraints() {
 	if (temp != NULL) delete []temp;
 	
 	if (bad_string) {
-	    cout << "exclude syntax error : " << mdl_data::lib_constraints[i].string_of() << " is not of expected form : /Code/module/function, or /Code/module" << endl;
+	    cout << "exclude syntax error : " << mdl_data::lib_constraints[i].c_str() << " is not of expected form : /Code/module/function, or /Code/module" << endl;
 	    return false;
 	} 
 	

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.128 2002/05/10 18:37:34 schendel Exp $
+// $Id: perfStream.C,v 1.129 2002/05/13 19:53:52 mjbrim Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -121,7 +121,7 @@ void processAppIO(process *curr)
         P_close(curr->ioLink);
 	curr->ioLink = -1;
 	string msg = string("Process ") + string(curr->getPid()) + string(" exited");
-	statusLine(msg.string_of());
+	statusLine(msg.c_str());
 	handleProcessExit(curr,0);
 	
 	return;
@@ -228,10 +228,10 @@ void processTraceStream(process *curr)
 	// process exited unexpectedly
 	//string buffer = string("Process ") + string(curr->pid);
 	//buffer += string(" has exited unexpectedly");
-	//statusLine(P_strdup(buffer.string_of()));
-	//showErrorCallback(11, P_strdup(buffer.string_of()));
+	//statusLine(P_strdup(buffer.c_str()));
+	//showErrorCallback(11, P_strdup(buffer.c_str()));
 	string msg = string("Process ") + string(curr->getPid()) + string(" exited");
-	statusLine(msg.string_of());
+	statusLine(msg.c_str());
 	P_close(curr->traceLink);
   	curr->traceLink = -1;
 	handleProcessExit(curr,0);
@@ -674,9 +674,9 @@ void setupTraceSocket()
   traceSocketPath = string(P_tmpdir) + "/" + string("paradynd.") + string(getpid());
   
   // unlink it, in case the file was left around from a previous run
-  unlink(traceSocketPath.string_of());
+  unlink(traceSocketPath.c_str());
   
-  if (!RPC_setup_socket_un(traceSocket_fd, traceSocketPath.string_of())) {
+  if (!RPC_setup_socket_un(traceSocket_fd, traceSocketPath.c_str())) {
     perror("paradynd -- can't setup socket");
     cleanUpAndExit(-1);
   }

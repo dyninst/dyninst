@@ -660,7 +660,7 @@ FileLineInformation* LineInformation::getFileLineInformation(string fileName){
 
 	for(int i=0;i<sourceFileCount;i++){
 		char* name = new char[sourceFileList[i]->length()+1];
-		strncpy(name,sourceFileList[i]->string_of(),
+		strncpy(name,sourceFileList[i]->c_str(),
 			sourceFileList[i]->length());
 		name[sourceFileList[i]->length()] = '\0';
 		char* p = strrchr(name,'/');

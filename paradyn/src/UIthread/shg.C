@@ -41,7 +41,7 @@
 
 // new search history graph user interface, along the lines
 // of the new where axis user interface
-// $Id: shg.C,v 1.32 2001/06/20 20:33:42 schendel Exp $
+// $Id: shg.C,v 1.33 2002/05/13 19:53:26 mjbrim Exp $
 // Ariel Tamches
 
 #include <assert.h>
@@ -1392,7 +1392,7 @@ void shg::nodeInformation(unsigned nodeId, const shg_node_info &theNodeInfo) {
    commandStr = currItemLabelName + " insert end " + "\"" + dataString.str() 
                                   + "\"";
    char *noBrack_str = new char[commandStr.length()+1];
-   strncpy(noBrack_str, commandStr.string_of(), commandStr.length());
+   strncpy(noBrack_str, commandStr.c_str(), commandStr.length());
    noBrack_str[commandStr.length()] = '\0';
    removeBrackets(noBrack_str);
    myTclEval(interp, noBrack_str);

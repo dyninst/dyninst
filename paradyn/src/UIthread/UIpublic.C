@@ -44,7 +44,7 @@
  *              of Paradyn
  */
  
-/* $Id: UIpublic.C,v 1.75 2002/04/17 16:07:23 willb Exp $
+/* $Id: UIpublic.C,v 1.76 2002/05/13 19:53:17 mjbrim Exp $
  */
 
 #include <stdio.h>
@@ -83,7 +83,7 @@ UIM::readStartupFile(const char *script)
   if (script != NULL) {   // script specified on paradyn command line
     string tcommand = string("source \"") + string(script) + "\"";
 
-    if (Tcl_Eval (interp,const_cast<char*>(tcommand.string_of())) == TCL_ERROR)
+    if (Tcl_Eval (interp,const_cast<char*>(tcommand.c_str())) == TCL_ERROR)
       uiMgr->showError(24, "");
   }
 }
@@ -201,8 +201,8 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
 	 string idString(id);
 	 bool aflag;
 	 aflag=(Tcl_SetVar2(interp, "metricNamesById", 
-			    const_cast<char*>(idString.string_of()),
-			    const_cast<char*>(name.string_of()), 
+			    const_cast<char*>(idString.c_str()),
+			    const_cast<char*>(name.c_str()), 
 			    TCL_GLOBAL_ONLY) != NULL);
          assert(aflag);
       }
@@ -223,7 +223,7 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
      
      bool aflag;
      aflag = (Tcl_SetVar(interp, "temp", 
-			 const_cast<char*>(metricIdStr.string_of()),
+			 const_cast<char*>(metricIdStr.c_str()),
 			 TCL_APPEND_VALUE | TCL_LIST_ELEMENT) != NULL);
      assert(aflag);
   }
@@ -236,7 +236,7 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
   tcommand += string(" ") + string(numAvailMets);
   tcommand += string(" $temp");
 
-  int retVal = Tcl_VarEval (interp, tcommand.string_of(), 0);
+  int retVal = Tcl_VarEval (interp, tcommand.c_str(), 0);
   if (retVal == TCL_ERROR)  {
     uiMgr->showError (22, "");
     cerr << Tcl_GetStringResult(interp) << endl;
@@ -567,10 +567,10 @@ void UIM::ProcessCmd(string *args)
 {
   string command;
   command = string("paradyn process ") + (*args);
-  if (Tcl_VarEval(interp,command.string_of(),0)==TCL_ERROR) {
+  if (Tcl_VarEval(interp,command.c_str(),0)==TCL_ERROR) {
     string msg = string("Tcl interpreter failed in routine UIM::ProcessCmd: ");
     msg += string(Tcl_GetStringResult(interp));
-    uiMgr->showError(83, P_strdup(msg.string_of()));
+    uiMgr->showError(83, P_strdup(msg.c_str()));
   }  
   delete args;
 }
@@ -581,7 +581,7 @@ void UIM::ProcessCmd(string *args)
 int compare_visi_names (const void *viptr1, const void *viptr2) {
   const VM_visiInfo *p1 = (const VM_visiInfo *)viptr1;
   const VM_visiInfo *p2 = (const VM_visiInfo *)viptr2;
-  return strcmp (p1->name.string_of(), p2->name.string_of());
+  return strcmp (p1->name.c_str(), p2->name.c_str());
 }
 
 void 
@@ -598,7 +598,7 @@ UIM::registerValidVisis (vector<VM_visiInfo> *via) {
   Tcl_DStringInit(&numlist);
   
   for (i = 0; i < count; i++) {
-    Tcl_DStringAppendElement(&namelist, (*via)[i].name.string_of());
+    Tcl_DStringAppendElement(&namelist, (*via)[i].name.c_str());
     sprintf (num, "%d", ((*via)[i]).visiTypeId);
     Tcl_DStringAppendElement(&numlist, num);
   }

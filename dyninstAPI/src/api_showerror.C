@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: api_showerror.C,v 1.6 1999/08/26 20:02:19 hollings Exp $
+// $Id: api_showerror.C,v 1.7 2002/05/13 19:52:01 mjbrim Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -50,12 +50,12 @@ char errorLine[1024];
 
 void showErrorCallback(int num, string msg)
 {
-    BPatch::reportError(BPatchSerious, num, msg.string_of());
+    BPatch::reportError(BPatchSerious, num, msg.c_str());
 }
 
 void showInfoCallback(string msg)
 {
-    BPatch::reportError(BPatchWarning, 0, msg.string_of());
+    BPatch::reportError(BPatchWarning, 0, msg.c_str());
 }
 
 void logLine(char const *line)

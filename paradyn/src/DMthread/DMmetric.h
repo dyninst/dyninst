@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.h,v 1.38 2002/04/09 18:05:54 mjbrim Exp $ 
+// $Id: DMmetric.h,v 1.39 2002/05/13 19:52:58 mjbrim Exp $ 
 
 #ifndef dmmetric_H
 #define dmmetric_H
@@ -113,8 +113,8 @@ class metric {
     public:
 	metric(T_dyninstRPC::metricInfo i); 
 	const T_dyninstRPC::metricInfo *getInfo() { return(&info); }
-	const char *getName() { return((info.name.string_of()));}
-	const char *getUnits() { return((info.units.string_of()));}
+	const char *getName() { return((info.name.c_str()));}
+	const char *getUnits() { return((info.units.c_str()));}
 	dm_MetUnitsType  getUnitsType() { 
             if(info.unitstype == 0) return(UnNormalized);
 	    else if(info.unitstype == 1) return(Normalized);

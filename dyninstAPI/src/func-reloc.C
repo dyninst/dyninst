@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: func-reloc.C,v 1.30 2002/05/10 18:36:59 schendel Exp $
+ * $Id: func-reloc.C,v 1.31 2002/05/13 19:52:04 mjbrim Exp $
  */
 
 #include "dyninstAPI/src/func-reloc.h"
@@ -310,14 +310,14 @@ bool expanded = true;
 
 #ifdef DEBUG_FUNC_RELOC
     cerr << "pd_Function::findAlterations called " << endl;
-    cerr << " prettyName = " << prettyName().string_of() << endl;
+    cerr << " prettyName = " << prettyName().c_str() << endl;
     cerr << " size() = " << size() << endl;
     cerr << " this = " << *this << endl;
 #endif
 
   if (size() == 0) {
     cerr << "WARN : attempting to relocate function " \
-       	 << prettyName().string_of() << " with size 0, unable to instrument" \
+       	 << prettyName().c_str() << " with size 0, unable to instrument" \
          <<  endl;
     return -1;
   }
@@ -407,7 +407,7 @@ bool pd_Function::findAndApplyAlterations(const image *owner,
 
 #ifdef DEBUG_FUNC_RELOC
     cerr << "pd_Function::findAndApplyAlterations called " << endl;
-    cerr << " prettyName = " << prettyName().string_of() << endl;
+    cerr << " prettyName = " << prettyName().c_str() << endl;
     cerr << " size() = " << size() << endl;
     cerr << " this = " << *this << endl;
 #endif
@@ -1071,7 +1071,7 @@ bool pd_Function::relocateFunction(process *proc,
 
 #ifdef DEBUG_FUNC_RELOC 
     cerr << "pd_Function::relocateFunction " << endl;
-    cerr << " prettyName = " << prettyName().string_of() << endl;
+    cerr << " prettyName = " << prettyName().c_str() << endl;
     cerr << " size() = " << size() << endl;
     cerr << " this = " << *this << endl;
 #endif
@@ -1084,7 +1084,7 @@ bool pd_Function::relocateFunction(process *proc,
 	    
 #ifdef DEBUG_FUNC_RELOC
             cerr << "pd_Function::relocateFunction " << endl;
-            cerr << " prettyName = " << prettyName().string_of() << endl;      
+            cerr << " prettyName = " << prettyName().c_str() << endl;      
             cerr << " previously relocated." << endl; 
 #endif
         }
@@ -1170,7 +1170,7 @@ bool pd_Function::relocateFunction(process *proc,
 
 #ifdef DEBUG_FUNC_RELOC
         cerr << "pd_Function::relocateFunction " << endl;
-        cerr << " prettyName = " << prettyName().string_of() << endl;      
+        cerr << " prettyName = " << prettyName().c_str() << endl;      
         cerr << " relocated from 0x" << hex << origAddress
 	     << " with size 0x" << size() << endl;
         cerr << " to 0x" << hex << ret 

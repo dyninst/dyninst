@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.48 2002/04/18 19:40:02 bernat Exp $
+// $Id: pdwinnt.C,v 1.49 2002/05/13 19:52:33 mjbrim Exp $
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -119,7 +119,7 @@ static bool kludge_isKernel32Dll(HANDLE fileHandle, string &kernel32Name) {
 	if (GetSystemDirectory(sysRootDir, MAX_PATH) == 0)
 	  assert(0);
 	kernel32Name_ = string(sysRootDir) + "\\kernel32.dll";
-	kernel32H = CreateFile(kernel32Name_.string_of(), GENERIC_READ, 
+	kernel32H = CreateFile(kernel32Name_.c_str(), GENERIC_READ, 
 			       FILE_SHARE_READ, NULL, OPEN_EXISTING, NULL, NULL);
 	assert(kernel32H);
 	if (!GetFileInformationByHandle(kernel32H, &info)) {
@@ -151,7 +151,7 @@ void dumpMem(process *p, void * addr, unsigned nbytes) {
     if (f = p->findFuncByAddr((Address)addr))
     {
         printf("Function %s, addr=0x%lx, sz=%d\n", 
-                f->prettyName().string_of(),
+                f->prettyName().c_str(),
                 f->getAddress(p),
                 f->size());
     }
@@ -754,7 +754,7 @@ Address loadDyninstDll(process *p, char Buffer[LOAD_DYNINST_BUF_SIZE]) {
 #endif
 	
     // make sure that directory separators are what LoadLibrary expects
-    strcpy(iptr, process::dyninstName.string_of());
+    strcpy(iptr, process::dyninstName.c_str());
     for (unsigned int i=0; i<strlen(iptr); i++)
         if (iptr[i]=='/') iptr[i]='\\';
 #endif
@@ -1040,11 +1040,11 @@ int process::waitProcs(int *status) {
 
 		    string buffer = string("PID=") + string(pid);
 		    buffer += string(", passed trap at start of program");
-		    statusLine(buffer.string_of());
+		    statusLine(buffer.c_str());
       
 		    buffer=string("PID=") + string(pid) 
 			 + ", installing call to DYNINSTinit()";
-		    statusLine(buffer.string_of());
+		    statusLine(buffer.c_str());
 #if !defined(BPATCH_LIBRARY)
 		    p->installBootstrapInst();//ccw 20 june 2001 
 			// now we dont need to do this,  DLLMain() does it.
@@ -1247,7 +1247,7 @@ int process::waitProcs(int *status) {
             for( unsigned i = 0; i < stackWalk.size(); i++ )
             {
                 function_base* f = p->findFuncByAddr( stackWalk[i].getPC() );
-                const char* szFuncName = (f != NULL) ? f->prettyName().string_of() : "<unknown>";
+                const char* szFuncName = (f != NULL) ? f->prettyName().c_str() : "<unknown>";
                 fprintf( stderr, "%08x: %s\n", stackWalk[i].getPC(), szFuncName );
             }
         }
@@ -1384,7 +1384,7 @@ int process::waitProcs(int *status) {
 	    else if (kludge_isKernel32Dll(debugEv.u.LoadDll.hFile, kernel32Path)) {
 	        assert(kernel32Path.length() > 0);
 	        assert(kernel32Path.length() < sizeof(nameBuffer));
-		strcpy(nameBuffer, kernel32Path.string_of());
+		strcpy(nameBuffer, kernel32Path.c_str());
 	    } else
 	        break;
 	}
@@ -1598,11 +1598,11 @@ int process::waitProcs(int *status) {
 
 		    string buffer = string("PID=") + string(pid);
 		    buffer += string(", passed trap at start of program");
-		    statusLine(buffer.string_of());
+		    statusLine(buffer.c_str());
       
 		    buffer=string("PID=") + string(pid) 
 			 + ", installing call to DYNINSTinit()";
-		    statusLine(buffer.string_of());
+		    statusLine(buffer.c_str());
 		    p->installBootstrapInst();
       
 		    // now, let main() and then DYNINSTinit() get invoked.  As it
@@ -1829,7 +1829,7 @@ int process::waitProcs(int *status) {
             for( unsigned i = 0; i < stackWalk.size(); i++ )
             {
                 function_base* f = p->findFunctionIn( stackWalk[i].getPC() );
-                const char* szFuncName = (f != NULL) ? f->prettyName().string_of() : "<unknown>";
+                const char* szFuncName = (f != NULL) ? f->prettyName().c_str() : "<unknown>";
                 fprintf( stderr, "%08x: %s\n", stackWalk[i].getPC(), szFuncName );
             }
 #endif
@@ -1973,7 +1973,7 @@ int process::waitProcs(int *status) {
 	    else if (kludge_isKernel32Dll(debugEv.u.LoadDll.hFile, kernel32Path)) {
 	        assert(kernel32Path.length() > 0);
 	        assert(kernel32Path.length() < sizeof(nameBuffer));
-		strcpy(nameBuffer, kernel32Path.string_of());
+		strcpy(nameBuffer, kernel32Path.c_str());
 	    } else
 	        break;
 	}
@@ -2571,13 +2571,13 @@ void initSymbols(HANDLE procH, const string file, const string dir) {
   if (dir.length())
     searchPath = dir + ";";
   searchPath = searchPath + sysSymsDir + ";" + sysSymsDir + "\\dll";
-  if (!SymInitialize(procH, (char *)searchPath.string_of(), 0)) {
+  if (!SymInitialize(procH, (char *)searchPath.c_str(), 0)) {
     fprintf(stderr,"SymInitialize failed, %x\n", GetLastError()); fflush(stderr);
     return;
   }
-  if (!SymLoadModule(procH, NULL, (char *)file.string_of(), NULL, 0, 0)) {
+  if (!SymLoadModule(procH, NULL, (char *)file.c_str(), NULL, 0, 0)) {
     printf("SymLoadModule failed for \"%s\", %x\n",
-	    file.string_of(), GetLastError());
+	    file.c_str(), GetLastError());
     return;
   }
 }
@@ -2649,16 +2649,16 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
 	return(NULL);
     }
     SetEnvironmentVariable("PARADYN_IO_PIPE",
-			   string((unsigned)wIoPipe).string_of());
+			   string((unsigned)wIoPipe).c_str());
     */
 
     printf("tracepipe = %d\n", (unsigned)wTracePipe);
     // enter trace and IO pipes in child's environment
     SetEnvironmentVariable("PARADYN_TRACE_PIPE", 
-			   string((unsigned)wTracePipe).string_of());
+			   string((unsigned)wTracePipe).c_str());
 #endif
     //  extern int traceSocket;
-    //  SetEnvironmentVariable("PARADYND_TRACE_SOCKET", string((unsigned)traceSocket).string_of());
+    //  SetEnvironmentVariable("PARADYND_TRACE_SOCKET", string((unsigned)traceSocket).c_str());
 #endif /* BPATCH_LIBRARY */
     
     // create the child process
@@ -2682,12 +2682,12 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
     */
     PROCESS_INFORMATION procInfo;
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-	kludgeWCHAR(file.string_of(),appName);
-	kludgeWCHAR(args.string_of(),commLine);
+	kludgeWCHAR(file.c_str(),appName);
+	kludgeWCHAR(args.c_str(),commLine);
 	if(dir == ""){
 		dirName[0] = (unsigned short) 0;
 	}else{
-		kludgeWCHAR(dir.string_of(),dirName);
+		kludgeWCHAR(dir.c_str(),dirName);
 	}
 
 	/* ccw 8 aug 2000  : 29 mar 2001
@@ -2713,10 +2713,10 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
 
 #else
 
-    if (CreateProcess(file.string_of(), (char *)args.string_of(), 
+    if (CreateProcess(file.c_str(), (char *)args.c_str(), 
 		      NULL, NULL, TRUE,
 		      DEBUG_PROCESS /* | CREATE_NEW_CONSOLE /* | CREATE_SUSPENDED */,
-		      NULL, dir == "" ? NULL : dir.string_of(), 
+		      NULL, dir == "" ? NULL : dir.c_str(), 
 		      &stinfo, &procInfo)) {
 #endif
 
@@ -2767,7 +2767,7 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
 	char *errorLine = (char *)malloc(strlen((char *)lpMsgBuf) +
 					 file.length() + 64);
 	if (errorLine != NULL) {
-	    sprintf(errorLine, "Unable to start %s: %s\n", file.string_of(),
+	    sprintf(errorLine, "Unable to start %s: %s\n", file.c_str(),
 		    (char *)lpMsgBuf);
 	    logLine(errorLine);
 	    showErrorCallback(68, (const char *) errorLine);
@@ -2780,7 +2780,7 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
     } else {
 	char errorLine[512];
 	sprintf(errorLine, "Unable to start %s: unknown error\n",
-		file.string_of());
+		file.c_str());
 	logLine(errorLine);
 	showErrorCallback(68, (const char *) errorLine);
     }
@@ -2929,7 +2929,7 @@ bool process::heapIsOk(const vector<sym_data>&findUs)
     /*
     Address addr = lookup_fn(this, name);
     if (!addr && findUs[i].must_find) {
-      fprintf(stderr, "process::heapIsOk(): failed to find \"%s\"\n", name.string_of());
+      fprintf(stderr, "process::heapIsOk(): failed to find \"%s\"\n", name.c_str());
       return false;
     }
     */

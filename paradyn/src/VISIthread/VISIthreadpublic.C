@@ -201,7 +201,7 @@ void visualizationUser::StopMetricResource(u_int metricId,
 //
 void visualizationUser::showError(int code, string msg)
 {
-  uiMgr->showError(code,P_strdup(msg.string_of()));
+  uiMgr->showError(code,P_strdup(msg.c_str()));
 }
 
 ///////////////////////////////////////////////////////////////////

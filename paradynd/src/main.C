@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.104 2002/05/10 18:37:31 schendel Exp $
+// $Id: main.C,v 1.105 2002/05/13 19:53:48 mjbrim Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -150,7 +150,7 @@ void cleanUpAndExit(int status) {
 
 #if !defined(i386_unknown_nt4_0)
   // delete the trace socket file
-  unlink(traceSocketPath.string_of());
+  unlink(traceSocketPath.c_str());
 #endif
 
 #ifdef SHM_SAMPLING_DEBUG
@@ -650,7 +650,7 @@ extern PDSOCKET connect_Svr(string machine,int port);
     
     process::pdFlavor = pd_flavor;
 #ifdef PDYN_DEBUG
-    cerr << "pd_flavor: " << pd_flavor.string_of() << endl;
+    cerr << "pd_flavor: " << pd_flavor.c_str() << endl;
 #endif
 
 

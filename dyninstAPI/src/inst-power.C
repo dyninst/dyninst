@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.130 2002/04/18 19:39:42 bernat Exp $
+ * $Id: inst-power.C,v 1.131 2002/05/13 19:52:11 mjbrim Exp $
  */
 
 #include "common/h/headers.h"
@@ -1577,7 +1577,7 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
     {
       fprintf(stderr, "Instrumentation point %x too far from tramp location %x, trying to instrument function %s\n",
 	      (unsigned) location->addr, (unsigned) baseAddr,
-	      location->func->prettyName().string_of());
+	      location->func->prettyName().c_str());
       //assert(0);
       // VG(03/02/02): bail if no base tramp
       return NULL;
@@ -2265,7 +2265,7 @@ Register emitFuncCall(opCode /* ocode */,
 	//    place to save this, but we must save it!!!.  Should
 	//    find a place to push this on the stack - jkh 7/31/95
 	string msg = "Too many registers required for MDL expression\n";
-	fprintf(stderr, msg.string_of());
+	fprintf(stderr, msg.c_str());
 	showErrorCallback(94,msg);
 	cleanUpAndExit(-1);
       }
@@ -2278,7 +2278,7 @@ Register emitFuncCall(opCode /* ocode */,
     // the stack, -- sec 3/1/97
     string msg = "Too many arguments to function call in instrumentation code:"
                 " only 8 arguments can (currently) be passed on the POWER architecture.\n";
-    fprintf(stderr, msg.string_of());
+    fprintf(stderr, msg.c_str());
     showErrorCallback(94,msg);
     cleanUpAndExit(-1);
   }
@@ -3354,7 +3354,7 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
   if (!((mainFunction = findOneFunction("main")) 
         || (mainFunction = findOneFunction("_main")))) {
      string msg = "Cannot find main. Exiting.";
-     statusLine(msg.string_of());
+     statusLine(msg.c_str());
      showErrorCallback(50, msg);
      return false;
   }
@@ -3362,11 +3362,11 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
   for (unsigned i=0; i<find_us.size(); i++) {
     const string &str = find_us[i].name;
     if (!getSymbolInfo(str, sym, baseAddr)) {
-      string str1 = string("_") + str.string_of();
+      string str1 = string("_") + str.c_str();
       if (!getSymbolInfo(str1, sym, baseAddr) && find_us[i].must_find) {
         string msg;
         msg = string("Cannot find ") + str + string(". Exiting");
-        statusLine(msg.string_of());
+        statusLine(msg.c_str());
         showErrorCallback(50, msg);
         return false;
       }
@@ -3380,7 +3380,7 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
   if (!symbols->symbol_info(ghb, sym)) {
       string msg;
       msg = string("Cannot find ") + ghb + string(". Exiting");
-      statusLine(msg.string_of());
+      statusLine(msg.c_str());
       showErrorCallback(50, msg);
       return false;
   }
@@ -3406,7 +3406,7 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
   if (!symbols->symbol_info(hd, sym)) {
       string msg;
       msg = string("Cannot find ") + hd + string(". Exiting");
-      statusLine(msg.string_of());
+      statusLine(msg.c_str());
       showErrorCallback(50, msg);
       return false;
   }
@@ -3686,7 +3686,7 @@ bool process::findCallee(instPoint &instr, function_base *&target){
 	{
 	  if (callee_addr != 0) { // unexpected -- where is this function call? Print it out.
 	    fprintf(stderr, "Skipping illegal address 0x%x in function %s\n",
-		    (unsigned) callee_addr, caller->prettyName().string_of());
+		    (unsigned) callee_addr, caller->prettyName().c_str());
 	  }
 	  return false;
 	}

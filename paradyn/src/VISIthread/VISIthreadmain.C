@@ -48,7 +48,7 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 
-// $Id: VISIthreadmain.C,v 1.92 2001/08/23 14:43:54 schendel Exp $
+// $Id: VISIthreadmain.C,v 1.93 2002/05/13 19:53:35 mjbrim Exp $
 
 #include <signal.h>
 #include <math.h>
@@ -692,7 +692,7 @@ bool VISIMakeEnableRequest(){
           msg += string("pairs that it can enable. limit = ");
           msg += string(ptr->args->mi_limit); 
           msg += string("\n");
-          uiMgr->showError(97,P_strdup(msg.string_of()));
+          uiMgr->showError(97,P_strdup(msg.c_str()));
 	  // clean up state
 	  if(ptr->request) delete ptr->request;
 	  if(ptr->retryList) delete ptr->retryList;
@@ -850,7 +850,7 @@ bool VISISendResultsToVisi(VISIthreadGlobals *ptr,u_int numEnabled){
 	  matrix.met.aggregate = AVE;
 	  matrix.res.Id = ptr->mrlist[i].r_id;
 	  if((matrix.res.name = 
-	      AbbreviatedFocus(ptr->mrlist[i].focus_name.string_of()))
+	      AbbreviatedFocus(ptr->mrlist[i].focus_name.c_str()))
 	      ==0){
 	      ERROR_MSG(12,"in VISIthreadchooseMetRes");
 	      ptr->quit = 1;
@@ -1028,7 +1028,7 @@ void VISIthreadEnableCallback(vector<metricInstInfo> *response, u_int){
             msg += string("not have been enabled.  limit =  ");
             msg += string(ptr->args->mi_limit); 
             msg += string("\n");
-            uiMgr->showError(97,P_strdup(msg.string_of()));
+            uiMgr->showError(97,P_strdup(msg.c_str()));
 	    // clean up state
 	    if (ptr->request) delete ptr->request;
 	    if (ptr->retryList) delete ptr->retryList;
@@ -1056,14 +1056,14 @@ void VISIthreadEnableCallback(vector<metricInstInfo> *response, u_int){
 		   string(dataMgr->getMetricName((*ptr->retryList)[ii].met));
 	        if (focusName) {
 	            msg += string("(");
-	            msg += string(AbbreviatedFocus((*focusName).string_of()));
+	            msg += string(AbbreviatedFocus((*focusName).c_str()));
 	            msg += string(")");
                 }
 	        msg += string(" ");
 	    }
 	    ptr->ump->chooseMetricsandResources(VISIthreadchooseMetRes,
 						ptr->retryList);
-	    ptr->ump->showError(86,P_strdup(msg.string_of()));
+	    ptr->ump->showError(86,P_strdup(msg.c_str()));
         }
 	else if (ptr->start_up && (!ptr->mrlist.size())) { 
 	    // if nothing was ever enabled, and remenuflag is not set quit

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.61 2002/02/11 22:02:28 tlmiller Exp $
+// $Id: unix.C,v 1.62 2002/05/13 19:52:46 mjbrim Exp $
 
 #if defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -177,7 +177,7 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
 #else
 	if (errno) {
 #endif
-	    sprintf(errorLine, "Unable to start %s: %s\n", file.string_of(), 
+	    sprintf(errorLine, "Unable to start %s: %s\n", file.c_str(), 
 		    sys_errlist[errno]);
 	    logLine(errorLine);
 	    showErrorCallback(68, (const char *) errorLine);
@@ -263,8 +263,8 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
 	/* close if higher */
 	if (tracePipe[1] > 3) close(tracePipe[1]);
 
-	if ((dir.length() > 0) && (P_chdir(dir.string_of()) < 0)) {
-	  sprintf(errorLine, "cannot chdir to '%s': %s\n", dir.string_of(), 
+	if ((dir.length() > 0) && (P_chdir(dir.c_str()) < 0)) {
+	  sprintf(errorLine, "cannot chdir to '%s': %s\n", dir.c_str(), 
 		  sys_errlist[errno]);
 	  logLine(errorLine);
 	  P__exit(-1);
@@ -273,9 +273,9 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
 #if !defined(BPATCH_LIBRARY)
 	/* see if I/O needs to be redirected */
 	if (inputFile.length()) {
-	    int fd = P_open(inputFile.string_of(), O_RDONLY, 0);
+	    int fd = P_open(inputFile.c_str(), O_RDONLY, 0);
 	    if (fd < 0) {
-		fprintf(childError, "stdin open of %s failed\n", inputFile.string_of());
+		fprintf(childError, "stdin open of %s failed\n", inputFile.c_str());
 		fflush(childError);
 		P__exit(-1);
 	    } else {
@@ -285,9 +285,9 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
 	}
 
 	if (outputFile.length()) {
-	    int fd = P_open(outputFile.string_of(), O_WRONLY|O_CREAT, 0444);
+	    int fd = P_open(outputFile.c_str(), O_WRONLY|O_CREAT, 0444);
 	    if (fd < 0) {
-		fprintf(childError, "stdout open of %s failed\n", outputFile.string_of());
+		fprintf(childError, "stdout open of %s failed\n", outputFile.c_str());
 		fflush(childError);
 		P__exit(-1);
 	    } else {
@@ -325,7 +325,7 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
 #ifdef PARADYND_PVM
 	if (pvm_running && envp.size())
 	  for (int ep=envp.size()-1; ep>=0; ep--) {
-	    pvmputenv(envp[ep].string_of());
+	    pvmputenv(envp[ep].c_str());
 	  }
 #endif
 #ifndef BPATCH_LIBRARY
@@ -337,7 +337,7 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
 	for (unsigned i=0; i < process::arg_list.size(); i++) {
 	    const char *str;
 
-	    str = P_strdup(process::arg_list[i].string_of());
+	    str = P_strdup(process::arg_list[i].c_str());
 	    if (!strcmp(str, "-l1")) {
 		strcat(paradynInfo, "-l0");
 	    } else {
@@ -351,9 +351,9 @@ bool forkNewProcess(string &file, string dir, vector<string> argv,
 	char **args;
 	args = new char*[argv.size()+1];
 	for (unsigned ai=0; ai<argv.size(); ai++)
-	  args[ai] = P_strdup(argv[ai].string_of());
+	  args[ai] = P_strdup(argv[ai].c_str());
 	args[argv.size()] = NULL;
-	P_execvp(file.string_of(), args);
+	P_execvp(file.c_str(), args);
 	sprintf(errorLine, "paradynd: execv failed, errno=%d\n", errno);
 	logLine(errorLine);
 
@@ -581,7 +581,7 @@ int handleSigChild(int pid, int status)
 		   forkexec_cerr << "SIGTRAP: inExec is true, so doing process::handleExec()!" << endl;
 		   string buffer = string("process ") + string(curr->getPid()) +
 		                   " has performed exec() syscall";
-		   statusLine(buffer.string_of());
+		   statusLine(buffer.c_str());
 
 		   // call handleExec to clean our internal data structures, reparse
 		   // symbol table.  handleExec does not insert instrumentation or do
@@ -675,7 +675,7 @@ int handleSigChild(int pid, int status)
 		if (!curr->reachedFirstBreak) { // vrble should be renamed 'reachedFirstTrap'
 		   string buffer = string("PID=") + string(pid);
 		   buffer += string(", passed trap at start of program");
-		   statusLine(buffer.string_of());
+		   statusLine(buffer.c_str());
 		   // check for DYNINST symbols and initializes the inferiorHeap
 		   // If libdyninst is dynamically linked, this can only be
 		   // called after libdyninst is loaded
@@ -684,7 +684,7 @@ int handleSigChild(int pid, int status)
 		   curr->reachedFirstBreak = true;
 
 		   buffer=string("PID=") + string(pid) + string(", installing call to DYNINSTinit()");
-		   statusLine(buffer.string_of());
+		   statusLine(buffer.c_str());
 
 		   curr->installBootstrapInst();
 
@@ -701,7 +701,7 @@ int handleSigChild(int pid, int status)
 		   else 
 		   {
 		      buffer=string("PID=") + string(pid) + string(", running DYNINSTinit()...");
-		      statusLine(buffer.string_of());
+		      statusLine(buffer.c_str());
 		   }
 		}
 		else {
@@ -789,7 +789,7 @@ int handleSigChild(int pid, int status)
 		   forkexec_cerr << "fork/exec -- handled stop before exec" << endl;
 		   string buffer = string("process ") + string(curr->getPid()) +
 		                   " performing exec() syscall...";
-		   statusLine(buffer.string_of());
+		   statusLine(buffer.c_str());
 
 		   // note: status will now be 'running', since handleStopDueToExec()
 		   // did a continueProc() to let the exec() syscall go forward.

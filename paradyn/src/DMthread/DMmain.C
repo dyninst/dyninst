@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.138 2002/04/09 18:05:52 mjbrim Exp $
+// $Id: DMmain.C,v 1.139 2002/05/13 19:52:55 mjbrim Exp $
 
 #include <assert.h>
 extern "C" {
@@ -265,7 +265,7 @@ void dynRPCUser::applicationIO(int,int,string data)
     // error occurs)---tn 
     if( data.length() > 0 )
     {
-		fprintf(stdout,data.string_of());
+		fprintf(stdout,data.c_str());
 		fflush(stdout);
 	}
 	else
@@ -279,7 +279,7 @@ void dynRPCUser::applicationIO(int,int,string data)
     // extra should really be per process.
     static string extra;
 
-    rest = P_strdup(data.string_of());
+    rest = P_strdup(data.c_str());
 
     char *tp = rest;
     ptr = P_strchr(rest, '\n');
@@ -334,8 +334,8 @@ void dynRPCUser::mappingInfoCallback(int,
 				     string key,
 				     string value)
 {
-  AMnewMapping(abstraction.string_of(),type.string_of(),key.string_of(),
-	       value.string_of());    
+  AMnewMapping(abstraction.c_str(),type.c_str(),key.c_str(),
+	       value.c_str());    
 }
 
 class uniqueName {
@@ -672,7 +672,7 @@ void dynRPCUser::showErrorCallback(int errCode,
 	else { 
 	    msg = string("<Msg from daemon on host ?> ") + errString; 
         }
-        uiMgr->showError(errCode, P_strdup(msg.string_of()));
+        uiMgr->showError(errCode, P_strdup(msg.c_str()));
     }
     else {
         uiMgr->showError(errCode, ""); 
@@ -681,7 +681,7 @@ void dynRPCUser::showErrorCallback(int errCode,
     //
     // hostName.length() should always be > 0, otherwise
     // hostName is not defined (i.e. "?" will be used instead).
-    // if errString.length()==0, (i.e. errString.string_of()==""),
+    // if errString.length()==0, (i.e. errString.c_str()==""),
     // then we will use the default error message in errorList.tcl
     // This message, however, will not include any info about the current
     // host name.
@@ -718,7 +718,7 @@ void dynRPCUser::newProgramCallbackFunc(int pid,
     else {
         // for now, abort if there is no paradynd, this should not happen
         fprintf(stderr, "process started on %s, can't find paradynd "
-		"there\n", machine_name.string_of());
+		"there\n", machine_name.c_str());
 	fprintf(stderr,"paradyn error #1 encountered\n");
 	//exit(-1);
     }
@@ -826,7 +826,7 @@ void dataManager::displayParadynVersionInfo()
     + string(V_paradyn) + string("\n")
     + string("\n");
   static char buf[1000];
-  sprintf(buf, "%s", msg.string_of());
+  sprintf(buf, "%s", msg.c_str());
   uiMgr->showError(107, buf);
 }
 
@@ -851,9 +851,9 @@ void dataManager::displayDaemonStartInfo()
       + string(" with the following arguments:\n\n    ") + command
       + string("\n\n(where flavor is one of: unix, mpi, winnt).\n");
     
-    sprintf(buf, "%s", msg.string_of());
+    sprintf(buf, "%s", msg.c_str());
     uiMgr->showError(99, buf);
-    //fprintf(stderr, msg.string_of());
+    //fprintf(stderr, msg.c_str());
 }
 
 // printDaemonStartInfo() provides the information necessary to manually
@@ -884,7 +884,7 @@ void dataManager::printDaemonStartInfo(const char *filename)
         if (S_ISDIR(statBuf.st_mode)) { // got a directory!
             string msg = string("Paradyn connect file \"") + string(filename)
                 + string("\" is a directory! - skipped.\n");
-            sprintf(buf, "%s", msg.string_of());
+            sprintf(buf, "%s", msg.c_str());
             uiMgr->showError(103, buf);
             return;             
         } else if (S_ISREG(statBuf.st_mode) && (statBuf.st_size > 0)) {
@@ -895,7 +895,7 @@ void dataManager::printDaemonStartInfo(const char *filename)
                     string msg = string("Aborted overwrite of unrecognized \"") 
                       + string(filename)
                       + string("\" contents with daemon start-up information.");
-                    sprintf(buf, "%s", msg.string_of());
+                    sprintf(buf, "%s", msg.c_str());
                     uiMgr->showError(103, buf);
                     fclose(fp);
                     return;
@@ -909,12 +909,12 @@ void dataManager::printDaemonStartInfo(const char *filename)
     FILE *fp = fopen(filename, "w");
     if (fp) {
         // go ahead and actually (re-)write the connect file
-        fprintf(fp, "%s\n", command.string_of());;
+        fprintf(fp, "%s\n", command.c_str());;
         fclose(fp);
     } else {
         string msg = string("Unable to open file \"") + string(filename)
           + string("\" to write daemon start information.");
-        sprintf(buf, "%s", msg.string_of());
+        sprintf(buf, "%s", msg.c_str());
         uiMgr->showError(103, buf);
     }
 }
@@ -1159,12 +1159,12 @@ resourceHandle createResource(unsigned res_id, vector<string>& resource_name,
     myName += resource_name[r_size - 1];
 
     resource *child;
-    if (resource::allResources.find(myName.string_of(), child)) {
+    if (resource::allResources.find(myName.c_str(), child)) {
       return child->getHandle();
     }
 
     // if abstr is not defined then use default abstraction 
-    if(!abstr.string_of()){
+    if(!abstr.c_str()){
         abstr = baseStr;
     }
 
@@ -1303,7 +1303,7 @@ resourceHandle createResource_ncb(vector<string>& resource_name, string& abstr, 
     myName += "/";
     myName += resource_name[r_size - 1];
     if(!exist) {
-    	resourceHandle *child = p->findChild(myName.string_of());
+    	resourceHandle *child = p->findChild(myName.c_str());
     	if (child){
         	return(*child); 
         	delete child;
@@ -1313,7 +1313,7 @@ resourceHandle createResource_ncb(vector<string>& resource_name, string& abstr, 
     }
 
     // if abstr is not defined then use default abstraction 
-    if(!abstr.string_of()){
+    if(!abstr.c_str()){
         abstr = string("BASE");
     }
 

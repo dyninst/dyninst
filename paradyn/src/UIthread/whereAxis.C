@@ -44,7 +44,7 @@
 
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
-/* $Id: whereAxis.C,v 1.24 2001/02/19 15:37:00 wxd Exp $ */
+/* $Id: whereAxis.C,v 1.25 2002/05/13 19:53:34 mjbrim Exp $ */
 
 #include <stdlib.h> // exit()
 
@@ -1357,7 +1357,7 @@ void whereAxis::rethinkNavigateMenu() {
 
 bool whereAxis::selectUnSelectFromFullPathName(const string &name, bool selectFlag) {
    // returns true iff fountor < vector<resourceHandle> > res 
-   const char *str = name.string_of();
+   const char *str = name.c_str();
    if (str == NULL)
       return false;
 

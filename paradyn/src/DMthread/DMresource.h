@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.h,v 1.44 2000/07/28 17:21:43 pcroth Exp $
+// $Id: DMresource.h,v 1.45 2002/05/13 19:53:05 mjbrim Exp $
 
 #ifndef DMresource_H 
 #define DMresource_H
@@ -89,8 +89,8 @@ class resource {
   public:
     vector<resourceHandle> *getChildren();
     const char *getName() const { 
-	return(fullName[fullName.size()-1].string_of());}
-    const char *getFullName() const { return(name.string_of()); }
+	return(fullName[fullName.size()-1].c_str());}
+    const char *getFullName() const { return(name.c_str()); }
     const char *getAbstractionName() const { 
 	if (abstr) return(abstr->getName());
         return 0;	
@@ -132,7 +132,7 @@ class resource {
         assert(t == OriginalSearch || t == CallGraphSearch);
 	if (t == OriginalSearch) return true;
 	assert(t == CallGraphSearch);
-	if (!strcmp(fullName[0].string_of(), "Code")) {
+	if (!strcmp(fullName[0].c_str(), "Code")) {
 	    return true;
 	}
 	return false;
@@ -197,7 +197,7 @@ class resourceList {
       resourceListHandle getHandle() const {return(id);}
       int getCount() const { return(elements.size()); }
       void print();
-      const char *getName() const {return(fullName.string_of());}
+      const char *getName() const {return(fullName.c_str());}
 
       bool convertToStringList(vector< vector<string> >& fs);
       bool convertToIDList(vector<resourceHandle>& flist);

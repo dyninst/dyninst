@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: paradyn.tcl.C,v 1.93 2001/06/20 20:38:34 schendel Exp $
+/* $Id: paradyn.tcl.C,v 1.94 2002/05/13 19:53:23 mjbrim Exp $
    This code implements the tcl "paradyn" command.  
    See the README file for command descriptions.
 */
@@ -75,7 +75,7 @@ void disablePAUSEandRUN() {
   if (Tcl_VarEval(interp,"changeApplicState 2",0)==TCL_ERROR) {
     string msg = string("Tcl interpreter failed in routine changeApplicState: ");
     msg += string(Tcl_GetStringResult(interp));
-    uiMgr->showError(83, P_strdup(msg.string_of()));
+    uiMgr->showError(83, P_strdup(msg.c_str()));
   }
 }
 
@@ -85,13 +85,13 @@ void enablePAUSEorRUN()
   if (PDapplicState==appRunning) {
     if (Tcl_VarEval(interp,"changeApplicState 1",0)==TCL_ERROR) {
       msg += string(Tcl_GetStringResult(interp));
-      uiMgr->showError(83, P_strdup(msg.string_of()));
+      uiMgr->showError(83, P_strdup(msg.c_str()));
     }   
   }
   else {
     if (Tcl_VarEval(interp,"changeApplicState 0",0)==TCL_ERROR) {
       msg += string(Tcl_GetStringResult(interp));
-      uiMgr->showError(83, P_strdup(msg.string_of()));
+      uiMgr->showError(83, P_strdup(msg.c_str()));
     }
   }
 }
@@ -151,7 +151,7 @@ int ParadynMetricsCmd(ClientData,
 {
   vector<string> *ml = dataMgr->getAvailableMetrics(false);
   for (unsigned i=0; i < ml->size(); i++)
-    Tcl_AppendElement(interp, const_cast<char*>((*ml)[i].string_of()));
+    Tcl_AppendElement(interp, const_cast<char*>((*ml)[i].c_str()));
   delete ml;
   return TCL_OK;
 }
@@ -164,7 +164,7 @@ int ParadynDaemonsCmd(ClientData,
 {
   vector<string> *dl = dataMgr->getAvailableDaemons();
   for (unsigned i=0; i < dl->size(); i++)
-    Tcl_AppendElement(interp, const_cast<char*>((*dl)[i].string_of()));
+    Tcl_AppendElement(interp, const_cast<char*>((*dl)[i].c_str()));
   delete dl;
   return TCL_OK;
 }
@@ -188,7 +188,7 @@ int ParadynListCmd(ClientData,
 
   vector<string> *ml = dataMgr->getAvailableMetrics(false);
   for (unsigned i=0; i < ml->size(); i++) {
-    cout << ((*ml)[i]).string_of() << endl;
+    cout << ((*ml)[i]).c_str() << endl;
   }
 
   cout << "CONSTANTS" << endl;
@@ -404,7 +404,7 @@ int ParadynAttachCmd(ClientData, Tcl_Interp *interp,
    if (paradynd)
       theMessage += string("daemon: ") + paradynd + " ";
 
-   app_name->message(theMessage.string_of());
+   app_name->message(theMessage.c_str());
 
    if (!app_status) {
       app_status = new status_line("Application status");
@@ -477,7 +477,7 @@ int ParadynProcessCmd(ClientData,
 
   static char tmp_buf[1024];
   sprintf(tmp_buf, "program: %s, machine: %s, user: %s, daemon: %s",
-	  argv[i], machine_name.string_of(), user?user:"(self)",
+	  argv[i], machine_name.c_str(), user?user:"(self)",
 	  paradynd?paradynd:"(defd)");
   app_name->message(tmp_buf);
 
@@ -504,7 +504,7 @@ int ParadynProcessCmd(ClientData,
   string dir = expand_tilde_pathname(idir); // idir --> "initial dir"
 
   // Note: the following is not an igen call to paradynd...just to the DM thread.
-  if (dataMgr->addExecutable(machine, user, paradynd, dir.string_of(),
+  if (dataMgr->addExecutable(machine, user, paradynd, dir.c_str(),
 			     &av) == false)
   {
     // NOTE: dataMgr->addExecutable isn't returning detailed-enough error
@@ -774,7 +774,7 @@ int ParadynWaSetAbstraction(ClientData, Tcl_Interp *interp,
                        string(menuIndex);
    cout << "invoking menu item " << menuIndex << endl;
 
-   if (TCL_OK != Tcl_Eval(interp, const_cast<char*>(commandStr.string_of()))) {
+   if (TCL_OK != Tcl_Eval(interp, const_cast<char*>(commandStr.c_str()))) {
       cerr << Tcl_GetStringResult(interp) << endl;
       exit(5);
    }
@@ -916,7 +916,7 @@ int ParadynVisiCmd (ClientData,
     temp = vmMgr->VMActiveVisis();
     for (unsigned i=0; i < temp->size(); i++) {
       printf("active_info %d: name %s TypeId %d visiNum = %d\n",i,
-	     ((*temp)[i]).name.string_of(),
+	     ((*temp)[i]).name.c_str(),
 	     ((*temp)[i]).visiTypeId,((*temp)[i]).visiNum);
     }
     delete temp;
@@ -927,7 +927,7 @@ int ParadynVisiCmd (ClientData,
       visi_info = vmMgr->VMAvailableVisis();
       for (unsigned i=0; i < visi_info->size();i++) {
 	printf("visi %d: name %s visiTypeId %d\n",i,
-	       ((*visi_info)[i]).name.string_of(), 
+	       ((*visi_info)[i]).name.c_str(), 
 	       ((*visi_info)[i]).visiTypeId);
       }
       delete visi_info;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.12 2002/04/09 18:04:59 mjbrim Exp $
+// $Id: Object-nt.C,v 1.13 2002/05/13 19:51:53 mjbrim Exp $
 
 #include <iostream.h>
 #include <iomanip.h>
@@ -85,7 +85,7 @@ Object::ParseDebugInfo( void )
 	bool bHaveSymbols = false;
     
     // access the module's debug information
-    pDebugInfo = MapDebugInformation(NULL, (LPTSTR)file_.string_of(), NULL, 0);
+    pDebugInfo = MapDebugInformation(NULL, (LPTSTR)file_.c_str(), NULL, 0);
     if( pDebugInfo != NULL )
     {
         // ensure that the base address is valid
@@ -131,10 +131,10 @@ Object::ParseDebugInfo( void )
             // TODO - what to do when there's no debug information?
  		//ccw 28 mar 2001 : the following
  		//ccw 19 july 2000 -- begin
-		//cout << "COFF SYMBOLS! " << file_.string_of() <<endl; 
+		//cout << "COFF SYMBOLS! " << file_.c_str() <<endl; 
 		char *start;
 		char tmpStr[1024];
-		strcpy(tmpStr, file_.string_of());
+		strcpy(tmpStr, file_.c_str());
 
 		start = strstr(tmpStr, ".exe");
 		if(!start){
@@ -149,11 +149,11 @@ Object::ParseDebugInfo( void )
 				//ccw 14 aug 2000
 				char tmp[256], *ext;
 
-				strcpy(tmp, file_.string_of());
+				strcpy(tmp, file_.c_str());
 				ext = strstr(tmp, ".dll");
 				if(ext){
 					strcpy(ext,".lib");
-					pDebugInfo = MapDebugInformation(NULL, (LPTSTR)file_.string_of(), NULL, 0);
+					pDebugInfo = MapDebugInformation(NULL, (LPTSTR)file_.c_str(), NULL, 0);
 					if( pDebugInfo->CoffSymbols != NULL )
 					{
 						// we have COFF debug information
@@ -199,7 +199,7 @@ Object::ParseExports( IMAGE_DEBUG_INFORMATION* pDebugInfo )
     vector<Symbol> allSymbols;
 
     // map the object into our address space
-    HANDLE hFile = CreateFile( file_.string_of(),
+    HANDLE hFile = CreateFile( file_.c_str(),
                             GENERIC_READ,
                             FILE_SHARE_READ,
                             NULL,   // lpSecurityAttributes - default, not inheritable
@@ -213,7 +213,7 @@ Object::ParseExports( IMAGE_DEBUG_INFORMATION* pDebugInfo )
 	{
         	// report the error to the user
 		cerr << "Object::ParseExports: failed to open file "
-			<< file_.string_of()
+			<< file_.c_str()
 			<< ", error = "
 			<< GetLastError()
 			<< endl;
@@ -232,7 +232,7 @@ Object::ParseExports( IMAGE_DEBUG_INFORMATION* pDebugInfo )
 	{
         	// report the error to the user
 		cerr << "Object::ParseExports: failed to create file mapping for file "
-			<< file_.string_of()
+			<< file_.c_str()
 			<< ", error = "
 			<< GetLastError()
 			<< endl;
@@ -251,7 +251,7 @@ Object::ParseExports( IMAGE_DEBUG_INFORMATION* pDebugInfo )
 	{
         	// report the error to the user
 		cerr << "Object::ParseExports: failed to map file "
-			<< file_.string_of()
+			<< file_.c_str()
 			<< ", error = "
 			<< GetLastError()
 			<< endl;
@@ -1058,7 +1058,7 @@ Object::ParseCOFFSymbols( IMAGE_DEBUG_INFORMATION* pDebugInfo )
                 name = (char*)(&syms[v+1]);
 
                 // skip auxiliary records containing the filename
-                v += (strlen(name.string_of()) / sizeof(IMAGE_SYMBOL)) + 1;
+                v += (strlen(name.c_str()) / sizeof(IMAGE_SYMBOL)) + 1;
 
                 // find a .text record following the file name
                 // if there is one, it contains the starting address for

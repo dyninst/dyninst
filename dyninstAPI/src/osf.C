@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.29 2002/04/18 19:40:00 bernat Exp $
+// $Id: osf.C,v 1.30 2002/05/13 19:52:28 mjbrim Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -773,7 +773,7 @@ Frame Frame::getCallerFrame(process *p) const
       if (currFunc && currFunc->frame_size) {
 	  ret.fp_ = theIntRegs.regs[SP_REGNUM] + currFunc->frame_size;  
 	  ret.sp_ = theIntRegs.regs[SP_REGNUM];
-	  //printf(" %s fp=%lx\n",currFunc->prettyName().string_of(), ret.fp_);
+	  //printf(" %s fp=%lx\n",currFunc->prettyName().c_str(), ret.fp_);
       } else {
 	  ret.fp_ = 0;
 	  sprintf(errorLine, "pc %lx, not in a known function\n", ret.pc_);
@@ -796,7 +796,7 @@ Frame Frame::getCallerFrame(process *p) const
       if (currFunc && currFunc->frame_size) {
 	  ret.sp_ = fp_;		/* current stack pointer is old fp */
 	  ret.fp_ = fp_ + currFunc->frame_size;  
-	  //printf(" %s fp=%lx\n",currFunc->prettyName().string_of(), ret.fp_);
+	  //printf(" %s fp=%lx\n",currFunc->prettyName().c_str(), ret.fp_);
       } else {
 	  sprintf(errorLine, "pc %lx, not in a known function\n", ret.pc_);
 	  logLine(errorLine);
@@ -894,9 +894,9 @@ bool process::dumpImage()
     im = getImage();
     string origFile = im->file();
 
-    ifd = open(origFile.string_of(), O_RDONLY, 0);
+    ifd = open(origFile.c_str(), O_RDONLY, 0);
     if (ifd < 0) {
-      sprintf(errorLine, "Unable to open %s\n", origFile.string_of());
+      sprintf(errorLine, "Unable to open %s\n", origFile.c_str());
       logLine(errorLine);
       showErrorCallback(41, (const char *) errorLine);
       perror("open");
@@ -906,17 +906,17 @@ bool process::dumpImage()
     rd = fstat(ifd, &statBuf);
     if (rd != 0) {
       perror("fstat");
-      sprintf(errorLine, "Unable to stat %s\n", origFile.string_of());
+      sprintf(errorLine, "Unable to stat %s\n", origFile.c_str());
       logLine(errorLine);
       showErrorCallback(72, (const char *) errorLine);
       return true;
     }
     length = statBuf.st_size;
 
-    sprintf(errorLine, "saving program to %s\n", outFile.string_of());
+    sprintf(errorLine, "saving program to %s\n", outFile.c_str());
     logLine(errorLine);
 
-    ofd = open(outFile.string_of(), O_WRONLY|O_CREAT, 0777);
+    ofd = open(outFile.c_str(), O_WRONLY|O_CREAT, 0777);
     if (ofd < 0) {
       perror("open");
       exit(-1);
@@ -925,13 +925,13 @@ bool process::dumpImage()
     /* read header and section headers */
     /* Uses ldopen to parse the section headers */
     /* try */ 
-    if (!(ldptr = ldopen((char *) origFile.string_of(), ldptr))) {
+    if (!(ldptr = ldopen((char *) origFile.c_str(), ldptr))) {
        perror("Error in Open");
        exit(-1);
      }
      
      if (TYPE(ldptr) != ALPHAMAGIC) {
-       printf("%s is not an alpha executable\n", outFile.string_of());
+       printf("%s is not an alpha executable\n", outFile.c_str());
        exit(-1);
      }
      // Read the text and data sections
