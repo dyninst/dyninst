@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.99 2002/12/20 07:50:07 jaw Exp $ 
+// $Id: metricFocusNode.h,v 1.100 2003/05/19 03:03:00 schendel Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -102,7 +102,7 @@ public:
   // propagate this aggregate mi to a newly started process p (not for
   // processes started via fork or exec, just for those started "normally")
   static void handleNewProcess(process *p);
-  static void handleDeletedProcess(pd_process *p);
+  static void handleExitedProcess(pd_process *p);
 
   static void handleFork(const pd_process *parent, pd_process *child);
      // called once per fork.  "map" maps all instInstance's of the parent
@@ -118,7 +118,7 @@ public:
      // in question is removed from the system.
 
   static void handleNewThread(pd_process *proc, pd_thread *thr);
-  static void handleDeletedThread(pd_process *proc, pd_thread *thr);
+  static void handleExitedThread(pd_process *proc, pd_thread *thr);
 
 protected:
   // Since we don't define these, make sure they're not used:
