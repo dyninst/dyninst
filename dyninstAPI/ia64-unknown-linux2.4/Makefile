@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.9 2003/06/27 20:57:49 tlmiller Exp $
+# $Id: Makefile,v 1.10 2003/08/11 11:57:48 tlmiller Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -11,14 +11,8 @@ USES_DWARF_DEBUG = true
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
 
-# -O2 or higher breaks Object-elf in interesting ways.
-# (Assembler segfaults.)
-# (02/27/2002, Todd L Miller; gcc 2.96 and gcc 3.0.3 (RH 7.1))
-# -O or higher breaks parseStab.c and symtab.C
-# (Assembler complains about an unwind directive.)
-# (03/15/2002, Todd L Miller; gcc 3.0.3 (RH 7.1))
 NO_OPT_FLAG = true
-OPT_FLAG =
+OPT_FLAG = -O2
 
 include ../../make.config 
 
