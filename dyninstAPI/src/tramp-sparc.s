@@ -2,7 +2,7 @@
  * Copyright (c) 1996 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
- * described as Paradyn") on an AS IS basis, and do not warrant its
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: tramp-sparc.s,v 1.25 2002/02/04 23:26:36 bernat Exp $ */
+/* $Id: tramp-sparc.s,v 1.26 2002/09/17 20:08:09 bernat Exp $ */
 
 /*
  * trampoline code to get from a code location to an inst. primitive.
@@ -110,35 +110,13 @@ _baseTramp_savePreInsn:
 	save  %sp, -120, %sp	/* saving registers before jumping to */
 	.word   SKIP_PRE_INSN
 	nop			/* delay slot for jump if there is no inst. */
-	.word	GLOBAL_PRE_BRANCH
 	std  %g0, [ %fp + -8 ]	/* to a minitramp		      */
 	std  %g2, [ %fp + -16 ]
 	std  %g4, [ %fp + -24 ]
 	std  %g6, [ %fp + -32 ]
-	nop			/* fill this in with instructions to  */
-	nop			/* compute the address of the vector  */
-	nop			/* of counter/timers for each thread  */
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
 #if defined(MT_THREAD)
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
+	/* Calculate the POS of the current thread and stick it somewhere (G6?)	*/
+	.word MT_POS_CALC
 	nop
 	nop
 	nop
@@ -151,11 +129,19 @@ _baseTramp_savePreInsn:
 	nop
 	nop
 	nop
+#if defined(MT_THREAD)
+	nop
+	nop
+#endif
 	.word	LOCAL_PRE_BRANCH
 	nop
 	.word RECURSIVE_GUARD_OFF_PRE_INSN /* turn off the recursive guard : 3 instrs */
 	nop
 	nop
+#if defined(MT_THREAD)
+	nop
+	nop
+#endif
 	ldd  [ %fp + -8 ], %g0	/* restoring registers after coming   */
 	ldd  [ %fp + -16 ], %g2	/* back from a minitramp	      */
 	ldd  [ %fp + -24 ], %g4
@@ -180,7 +166,6 @@ _baseTramp_restorePreInsn:
 	nop			/* extra nop for set condition code insn */
 	.word   SKIP_POST_INSN
 	nop
-	.word	GLOBAL_POST_BRANCH
 	.global baseTramp_savePostInsn
 	.global	_baseTramp_savePostInsn
 baseTramp_savePostInsn:
@@ -200,20 +185,7 @@ _baseTramp_savePostInsn:
 	nop
 	nop
 #if defined(MT_THREAD)
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
+	.word MT_POS_CALC
 	nop
 	nop
 	nop
@@ -226,11 +198,19 @@ _baseTramp_savePostInsn:
 	nop
 	nop
 	nop
+#if defined(MT_THREAD)
+	nop
+	nop
+#endif
 	.word	LOCAL_POST_BRANCH
 	nop
 	.word RECURSIVE_GUARD_OFF_POST_INSN /* turn off the recursive guard : 3 instrs */
 	nop
 	nop
+#if defined(MT_THREAD)
+	nop
+	nop
+#endif
 	ldd  [ %fp + -8 ], %g0	/* restoring registers after coming   */
 	ldd  [ %fp + -16 ], %g2	/* back from a minitramp	      */
 	ldd  [ %fp + -24 ], %g4
