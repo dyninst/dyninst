@@ -1,10 +1,10 @@
 #
-# $Id: Makefile,v 1.13 2004/03/05 16:50:49 bernat Exp $
+# $Id: Makefile,v 1.14 2004/03/08 22:30:52 schendel Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 
-DEBUG_FLAG = -g
+#DEBUG_FLAG = -g
 NO_IMPLICIT_TEMPLATES = true
 USES_DWARF_DEBUG = true
 
