@@ -7,7 +7,10 @@
  * list.h - list ADT
  *
  * $Log: List.h,v $
- * Revision 1.3  1993/08/02 22:46:37  hollings
+ * Revision 1.4  1993/10/19 15:31:52  hollings
+ * assorted small fixes.
+ *
+ * Revision 1.3  1993/08/02  22:46:37  hollings
  * added remove which was missing.
  *
  * Revision 1.2  1993/07/01  17:02:36  hollings
@@ -39,6 +42,7 @@ template <class Type> class List;
 
 template <class Type> class ListItem {
     friend class List<Type>;
+    friend class StringList<Type>;
     private:
 	Type		data;
 	void		*key;
@@ -63,7 +67,7 @@ template <class Type> class List {
 	    }
 	}
 	Type find(void *key);
-	void remove(Type data);
+	Boolean remove(void *key);
 	int count()	{
 	    int c;
 	    ListItem<Type> *curr;
@@ -92,7 +96,7 @@ template <class Type> class List {
 	    }
 	    return(ret); 
 	}
-    private:
+    protected:
 	ListItem<Type>	*head;
 };
 
@@ -109,13 +113,13 @@ template <class Type> void List<Type>::add(Type data, void *key)
     head = ni;
 }
 
-template <class Type> void List<Type>::remove(Type data)
+template <class Type> Boolean List<Type>::remove(void *key)
 {
     ListItem<Type> *lag;
     ListItem<Type> *curr;
 
     for (curr=head, lag = NULL; curr; curr=curr->next) {
-	if (curr->data == data) {
+	if (curr->key == key) {
 	    break;
 	}
 	lag = curr;
@@ -128,8 +132,9 @@ template <class Type> void List<Type>::remove(Type data)
 	    head = curr->next;
 	}
 	delete(curr);
+	return(TRUE);
     } else {
-	abort();
+	return(FALSE);
     }
 }
 
@@ -163,21 +168,21 @@ template <class Type> class HTable {
 	    }
 	}
 	Type find(void *key);
-	void remove(Type data);
-	Type operator *() {
-	    Type curr;
+	Boolean remove(void *key);
+        Type operator *() {
+            Type curr;
 
-	    curr = *currList;
-	    if (curr) return(curr);
-	    for (currHid++; currHid < tableSize; currHid++) {
-		if (table[currHid]) {
-		    currList = *table[currHid];
-		    curr = *currList;
-		    if (curr) return(curr);
-		}
-	    }
-	    return(NULL);
-	}
+            curr = *currList;
+            if (curr) return(curr);
+            for (currHid++; currHid < tableSize; currHid++) {
+                if (table[currHid]) {
+                    currList = *table[currHid];
+                    curr = *currList;
+                    if (curr) return(curr);
+                }
+            }
+            return(NULL);
+        }
 	Type operator ++() {
 	    Type curr;
 
@@ -239,15 +244,32 @@ template <class Type> void HTable<Type>::add(Type data, void *key)
 }
 
 
-template <class Type> void HTable<Type>::remove(Type data)
+template <class Type> Boolean HTable<Type>::remove(void *key)
 {
     int hid;
 
-    for (hid = 0; hid < tableSize; hid++) {
-	if (table[hid]) {
-	    table[hid]->remove(data);
+    hid = ListHash(key, tableSize);
+    if (table[hid]) {
+	return(table[hid]->remove(key));
+    }
+    return(FALSE);
+}
+
+template <class Type> class StringList: public List<Type> {
+    public:
+	Type find(void *key);
+};
+
+template <class Type> Type StringList<Type>::find(void *data) 
+{
+    ListItem<Type> *curr;
+
+    for (curr=head; curr; curr=curr->next) {
+	if (!strcmp((char *) curr->key, (char *) data)) {
+	    return(curr->data);
 	}
     }
+    return((Type) 0);
 }
 
 #endif /* LIST_H */
