@@ -117,14 +117,35 @@ extern AstNode *assignAst(AstNode *);
 extern void removeAst(AstNode *&);
 
 class instMapping {
- public:
+public:
+  // instMapping(const string f, const string i, const int w, AstNode *a=NULL)
+  //   : func(f), inst(i), where(w) { arg = assignAst(a); };
+  // ~instMapping() { removeAst(arg); };
+
   instMapping(const string f, const string i, const int w, AstNode *a=NULL)
-	: func(f), inst(i), where(w) { arg = assignAst(a); }
-  ~instMapping() { removeAst(arg); }
-  string func;         /* function to instrument */
-  string inst;         /* inst. function to place at func */
-  int where;           /* FUNC_ENTRY, FUNC_EXIT, FUNC_CALL */
-  AstNode *arg;	       /* what to pass as arg0 */
+    : func(f), inst(i), where(w) {
+    if(a) args += assignAst(a);
+  }
+
+  instMapping(const string f, const string i, const int w, 
+	      vector<AstNode*> &aList) : func(f), inst(i), where(w) {
+    for(unsigned i=0; i < aList.size(); i++) {
+      if(aList[i]) args += assignAst(aList[i]);
+    }
+  };
+
+  ~instMapping() {
+    for(unsigned i=0; i < args.size(); i++) {
+      if(args[i]) removeAst(args[i]);
+    }
+  }
+
+public:
+  string func;                 /* function to instrument */
+  string inst;                 /* inst. function to place at func */
+  int where;                   /* FUNC_ENTRY, FUNC_EXIT, FUNC_CALL */
+  vector<AstNode *> args;      /* what to pass as arg0 ... n */
+  // AstNode *arg;	       /* what to pass as arg0 */
 };
 
 /*
