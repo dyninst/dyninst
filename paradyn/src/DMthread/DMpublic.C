@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.2  1994/02/03 23:26:59  hollings
+ * Revision 1.3  1994/02/08 17:20:29  hollings
+ * Fix to not core dump when parent is null.
+ *
+ * Revision 1.2  1994/02/03  23:26:59  hollings
  * Changes to work with g++ version 2.5.2.
  *
  * Revision 1.1  1994/02/02  00:42:34  hollings
@@ -118,7 +121,11 @@ Boolean dataManager::isResourceDescendent(resource *parent, resource *child)
 
 resource *dataManager::findChildResource(resource *parent, char *name)
 {
-    return(parent->getChildren()->find(name));
+    if (parent) {
+	return(parent->getChildren()->find(name));
+    } else {
+	return(NULL);
+    }
 }
 
 int dataManager::getResourceCount(resourceList *rl)
