@@ -8,6 +8,12 @@
 #include <sys/param.h>
 #define EXIT_NAME "exit"
 
+#define START_WALL_TIMER "DYNINSTstartWallTimer"
+#define STOP_WALL_TIMER  "DYNINSTstopWallTimer"
+#define START_PROC_TIMER "DYNINSTstartProcessTimer"
+#define STOP_PROC_TIMER  "DYNINSTstopProcessTimer" 
+
+
 extern unsigned AIX_TEXT_OFFSET_HACK;
 extern unsigned AIX_DATA_OFFSET_HACK;
 
