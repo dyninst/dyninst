@@ -44,6 +44,8 @@ proc status_create {id title} {
     global status_mesg_font
     global status_mesg_fg_normal
 
+    wm geometry . {}
+
     $widget tag configure $tag       \
         -foreground $status_title_fg \
         -font       $status_title_font
@@ -54,7 +56,19 @@ proc status_create {id title} {
         -wrap       none                   \
         -state      disabled
     pack $widget -in $status_parent -side top -fill x
-    update
+    #update
+    #
+    # All the "update" commands have been commented because they
+    # seem to produce a problem (or make it worse as Ari mentioned) when  
+    # the user "grab" the main window for long enough, making some widgets
+    # "invisibles" (e.g. status line). We also had to add the command
+    # wm geometry . {} because the previous solution does not always 
+    # work. It just reduces the interval of time when the user could
+    # grab the main window and affect the display of the widgets (i.e.
+    # it makes the height so small that we cannot see the widget on the
+    # screen. That is why we set this value again). Any better solution
+    # will be welcome! - naim
+    #
 }
 
 
@@ -75,7 +89,7 @@ proc status_message {id message} {
     $widget delete [list $mark +1 chars] end
     $widget insert end $message
     $widget configure -state disabled
-    update
+    #update
 }
 
 
@@ -99,7 +113,7 @@ proc status_state {id urgent} {
     } {
         $widget configure -foreground $status_mesg_fg_normal
     }
-    update
+    #update
 }
 
 
@@ -117,5 +131,5 @@ proc status_destroy {id} {
     set mark   status_mark_$id
 
     destroy $widget
-    update
+    #update
 }
