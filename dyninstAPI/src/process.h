@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.185 2002/02/21 21:47:49 bernat Exp $
+/* $Id: process.h,v 1.186 2002/02/26 20:30:05 gurari Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -447,7 +447,9 @@ class process {
      // space, the shm seg was attached.  The attaching was done in DYNINSTinit)
 #endif
 
-  vector<Address> walkStack(bool noPause=false);
+  void walkStack(Frame currentFrame, vector<Address>&pcs, 
+                 vector<Address>&fps, bool noPause=false);
+
   bool triggeredInStackFrame(instPoint* point, pd_Function* stack_fn,
                              Address pc, callWhen when, callOrder order);
 #if defined(rs6000_ibm_aix4_1) && defined(MT_THREAD)
@@ -459,8 +461,7 @@ class process {
 
   // Walk threads stacks
   vector<vector<Address> > walkAllStack(bool noPause=false);
-  void walkAStack(int, Frame, Address sig_addr, u_int sig_size,
-                  vector<Address>&pcs, vector<Address>&fps);
+  //  void walkAStack(Frame, vector<Address>&pcs, vector<Address>&fps);
   bool readDataFromLWPFrame(int lwp_id, 
                          Address currentFP, 
                          Address *previousFP, 
@@ -590,7 +591,7 @@ class process {
 		   bool lowmem=false);
 
   bool existsRPCreadyToLaunch() const;
-  bool existsRPCinProgress() const;
+  bool existsRPCinProgress();
   bool launchRPCifAppropriate(bool wasRunning, bool finishingSysCall);
      // returns true iff anything was launched.
      // asynchronously launches iff RPCsWaitingToStart.size() > 0 AND
@@ -611,10 +612,11 @@ class process {
   void CheckAppTrapIRPCInfo();
 #endif
   bool handleTrapIfDueToRPC();
-     // look for curr PC reg value in 'trapInstrAddr' of 'currRunningRPCs'.
-     // Return true iff found.  Also, if true is being returned, then
-     // additionally does a 'launchRPCifAppropriate' to fire off the next
-     // waiting RPC, if any.
+
+  // look for curr PC reg value in 'trapInstrAddr' of 'currRunningRPCs'.
+  // Return true iff found.  Also, if true is being returned, then
+  // additionally does a 'launchRPCifAppropriate' to fire off the next
+  // waiting RPC, if any.
   bool changePC(Address addr);
 
   bool getCurrPCVector(vector <Address> &currPCs);
@@ -1071,6 +1073,7 @@ class process {
   // exclude_lib or exclude_func
   // return 0 on error.
   vector<function_base *> *getIncludedFunctions(module *mod); 
+#endif
 
   bool is_multithreaded() {
 #if defined(MT_THREAD)
@@ -1079,7 +1082,7 @@ class process {
     return false;
 #endif
   }
-#endif
+
 
   // findOneFunction: returns the function associated with function "func_name"
   // This routine checks both the a.out image and any shared object images 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.110 2002/02/21 21:47:49 bernat Exp $
+// $Id: solaris.C,v 1.111 2002/02/26 20:30:06 gurari Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -2164,7 +2164,7 @@ Frame Frame::getCallerFrame(process *p) const
 	  }
 	  close(lwp_fd);
 	}
-	else if (thread_) 
+        else if (thread_)
 	  cerr << "Not implemented yet" << endl;
 	else if (!lwp_id_) {
 	  if (ioctl(proc_fd, PIOCGREG, &regs) != -1) {

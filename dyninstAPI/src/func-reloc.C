@@ -1061,7 +1061,13 @@ bool pd_Function::relocateFunction(process *proc,
     //      stack_pcs += pc_s[i];
     //    }
     //#else
-    vector<Address> stack_pcs = proc->walkStack();
+
+    // The curr_lwp parameter is IGNORED on non-AIX platforms.
+    Frame currentFrame(proc);
+    vector<Address> stack_pcs;
+    vector<Address> frame_pcs;
+    proc->walkStack(currentFrame, stack_pcs, frame_pcs);
+
     //#endif
     if( stack_pcs.size() == 0 )
       cerr << "WARNING -- process::walkStack returned an empty stack" << endl;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.304 2002/02/26 20:04:02 pcroth Exp $
+// $Id: process.C,v 1.305 2002/02/26 20:30:05 gurari Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -241,24 +241,31 @@ Address process::getTOCoffsetInfo(Address /*dest */)
 //ccw 6 feb 2001 : windows CE does not have the NT walkStack function
 //so we use this one.
 
-vector<Address> process::walkStack(bool noPause)
+void process::walkStack(Frame currentFrame, vector<Address>&pcs, 
+                        vector<Address>& /* fps*/, bool noPause)
 {
-  vector<Address> pcs;
   bool needToCont = noPause ? false : (status() == running);
 
   if (pause()) {
-    Frame currentFrame(this);
     Address spOld = 0xffffffff;
+
     while (!currentFrame.isLastFrame()) {
       Address spNew = currentFrame.getSP(); // ccw 6 feb 2001 : should get SP?
+
       // successive frame pointers might be the same (e.g. leaf functions)
       if (spOld < spNew) {
+
         // not moving up stack
-        if (!noPause && needToCont && !continueProc())
+        if (!noPause && needToCont && !continueProc()) {
 	  cerr << "walkStack: continueProc failed" << endl;
+	}
+
 	vector<Address> ev; // empty vector
-	return ev;
+        pcs = ev;
+
+	return;
       }
+
       spOld = spNew;
 
       Address next_pc = currentFrame.getPC();
@@ -272,6 +279,7 @@ vector<Address> process::walkStack(bool noPause)
       currentFrame = currentFrame.getCallerFrame(this); 
 
     }
+
     pcs.push_back(currentFrame.getPC());
   }
 
@@ -281,9 +289,9 @@ vector<Address> process::walkStack(bool noPause)
      }
   }  
 
-  return pcs;
-
+  return;
 }
+
 #elif !defined(i386_unknown_nt4_0)
 // Windows NT has its own version of the walkStack function in pdwinnt.C
 // Note: it may not always be possible to do a correct stack walk.
@@ -294,9 +302,20 @@ vector<Address> process::walkStack(bool noPause)
 // but are only using the standard daemon, use the cached kernel thread ID to
 // do the ptracing. This is contained in the frame class, but bears mentioning
 // because of the main-search behavior.
-vector<Address> process::walkStack(bool noPause)
+void process::walkStack(Frame currentFrame, vector<Address> &pcs,
+                        vector<Address> &fps, bool noPause) 
 {
-  vector<Address> pcs;
+  u_int sig_size   = 0;
+  Address sig_addr = 0;
+
+  pcs.resize(0);
+  fps.resize(0);
+
+  Address next_pc = 0;
+  Address leaf_pc = 0;
+  Address fpOld   = 0;
+  Address fpNew   = 0;
+
   bool needToCont = noPause ? false : (status() == running);
 
 #ifndef BPATCH_LIBRARY
@@ -304,37 +323,46 @@ vector<Address> process::walkStack(bool noPause)
 #endif
 
   if (!noPause && !pause()) {
-     // pause failed...give up
-     cerr << "walkStack: pause failed" << endl;
+      cerr << "walkStack: pause failed" << endl;
+
 #ifndef BPATCH_LIBRARY
-     stopTimingStackwalk();
+      stopTimingStackwalk();
 #endif
-     return pcs;
+      return;
   }
-  Address sig_addr = 0;
-  u_int sig_size = 0;
+
+
+
   if(signal_handler){
       const image *sig_image = (signal_handler->file())->exec();
+
       if(getBaseAddress(sig_image, sig_addr)){
           sig_addr += signal_handler->getAddress(this);
       } else {
           sig_addr = signal_handler->getAddress(this);
       }
+
       sig_size = signal_handler->size();
-      // printf("signal_handler = %s size = %d addr = 0x%lx\n",
-      //     (signal_handler->prettyName()).string_of(),sig_size,sig_addr);
   }
 
-  if (pause()) {
-    // The curr_lwp parameter is IGNORED on non-AIX platforms.
-    Frame currentFrame(this, curr_lwp);
-    Address fpOld = 0;
-    Address pcOld = 0;
+
+  // Make sure application is paused
+  if ( pause() ) {
+
+    // Step through the stack frames
     while (!currentFrame.isLastFrame()) {
-      Address fpNew = currentFrame.getFP();
-      Address pcNew = currentFrame.getPC();
+
+      // grab the frame pointer
+      fpNew = currentFrame.getFP();
+
+      // Check that we are not moving up the stack
       // successive frame pointers might be the same (e.g. leaf functions)
       if (fpOld > fpNew) {
+
+
+        if (!noPause && needToCont && !continueProc()) {
+            cerr << "walkStack: continueProc failed" << endl;
+        }
 
 	// AIX:
 	// There's a signal function in the MPI library that we're not
@@ -343,39 +371,45 @@ vector<Address> process::walkStack(bool noPause)
 	// One thing that makes me feel better: gdb is getting royally
 	// confused as well. This sucks for catchup.
 
-        // not moving up stack
-        if (!noPause && needToCont && !continueProc())
-          cerr << "walkStack: continueProc failed" << endl;
-        vector<Address> ev; // empty vector
+        // empty vector
+        vector<Address> ev;
+
 #ifndef BPATCH_LIBRARY
         stopTimingStackwalk();
 #endif
-#ifdef rs6000_ibm_aix4_1
-	return pcs;
-#else
-        return ev;
+#ifndef rs6000_ibm_aix4_1
+        pcs = ev;
 #endif
+        return;
       }
-      fpOld = fpNew;
-      pcOld = pcNew;
 
-      Address next_pc = currentFrame.getPC();
+      fpOld = fpNew;
+
+      next_pc = currentFrame.getPC();
       pcs.push_back(next_pc);
+      fps.push_back(fpOld);
+
       // is this pc in the signal_handler function?
       if(signal_handler && (next_pc >= sig_addr)
           && (next_pc < (sig_addr+sig_size))){
+
           // check to see if a leaf function was executing when the signal
           // handler was called.  If so, then an extra frame should be added
           // for the leaf function...the call to getCallerFrame
           // will get the function that called the leaf function
-          Address leaf_pc = 0;
+          leaf_pc = 0;
+
           if(this->needToAddALeafFrame(currentFrame,leaf_pc)){
               pcs.push_back(leaf_pc);
+              fps.push_back(fpOld);
           }
       }
+
       currentFrame = currentFrame.getCallerFrame(this); 
     }
+
     pcs.push_back(currentFrame.getPC());
+    fps.push_back(fpOld);
   }
 
   if (!noPause && needToCont) {
@@ -387,57 +421,10 @@ vector<Address> process::walkStack(bool noPause)
 #ifndef BPATCH_LIBRARY
   stopTimingStackwalk();
 #endif
-  return(pcs);
 }
+
 
 #if defined(MT_THREAD)
-void process::walkAStack(int /*id*/, 
-  Frame currentFrame, 
-  Address sig_addr, 
-  u_int sig_size, 
-  vector<Address>&pcs,
-  vector<Address>&fps) {
-  cerr << "Walking stack... " << endl;
-  pcs.resize(0);
-  fps.resize(0);
-  Address fpOld = 0;
-  while (!currentFrame.isLastFrame()) {
-      Address fpNew = currentFrame.getFP();
-      fpOld = fpNew;
-
-      Address next_pc = currentFrame.getPC();
-      pcs += next_pc;
-      fps += fpOld ;
-      // is this pc in the signal_handler function?
-      if(signal_handler && (next_pc >= sig_addr)
-            && (next_pc < (sig_addr+sig_size))){
-            // check to see if a leaf function was executing when the signal
-            // handler was called.  If so, then an extra frame should be added
-            // for the leaf function...the call to getCallerFrame
-            // will get the function that called the leaf function
-            Address leaf_pc = 0;
-            if(this->needToAddALeafFrame(currentFrame,leaf_pc)){
-                pcs += leaf_pc;
-                fps += fpOld ;
-            }
-      }
-      currentFrame = currentFrame.getCallerFrame(this); 
-    }
-    pcs += currentFrame.getPC();
-    fps += fpOld ;
-
-    /*
-    // Go back and print out the walk
-    int lwp = currentFrame.getLWP();
-    fprintf(stderr, "*******Stack begins*******\n");
-    for (unsigned it = 0; it < pcs.size(); it++)
-      fprintf(stderr, "Frame %d(%d): pc=0x%x, fp=0x%x\n",
-	      it, lwp, pcs[it], fps[it]);
-
-    fprintf(stderr, "******Stack ends******\n");
-    */
-}
-
 /*
  * On AIX there is a pthread debugging library which allows us to 
  * access most of the internal data for a pthread. This is much
@@ -510,41 +497,25 @@ bool process::init_pthdb_library()
 
 
 vector<vector<Address> > process::walkAllStack(bool noPause) {
-  vector<vector<Address> > result ;
+
+  vector<vector<Address> > result;
   vector<vector<Address> > stack_buffer;
   vector<Address> pcs;
-  vector<Address> fps ;
+  vector<Address> fps;
   bool needToCont = noPause ? false : (status() == running);
+
+  if (!noPause && !pause()) {
+     cerr << "walkAllStack: pause failed" << endl;
+     return result;
+  }
  
 #ifndef BPATCH_LIBRARY
   startTimingStackwalk();
 #endif
 
-  if (!noPause && !pause()) {
-     // pause failed...give up
-     cerr << "walkAllStack: pause failed" << endl;
-#ifndef BPATCH_LIBRARY
-     stopTimingStackwalk();
-#endif
-     return result;
-  }
-
-  Address sig_addr = 0;
-  u_int sig_size = 0;
-  if(signal_handler){
-      const image *sig_image = (signal_handler->file())->exec();
-      if(getBaseAddress(sig_image, sig_addr)){
-          sig_addr += signal_handler->getAddress(this);
-      } else {
-          sig_addr = signal_handler->getAddress(this);
-      }
-      sig_size = signal_handler->size();
-      //sprintf(errorLine, "signal_handler = %s size = %d addr = 0x%lx\n",
-      //    (signal_handler->prettyName()).string_of(),sig_size,sig_addr);
-      //logLine(errorLine);
-  }
 
   if (pause()) {
+
 #ifdef rs6000_ibm_aix4_1
     // AIX: initialize the pthread debug library
     init_pthdb_library();
@@ -558,17 +529,22 @@ vector<vector<Address> > process::walkAllStack(bool noPause) {
     vector<unsigned> lwpIDs;
 
     if (getLWPIDs(lwpIDs)) {
+
       for (unsigned iter = 0; iter < lwpIDs.size(); iter++){
         int lwp_id = lwpIDs[i] ;
         Address fp, pc;
+
         if (getLWPFrame(lwp_id, &fp, &pc)) {
           Frame currentFrame(lwp_id, fp, pc, true);
+
 	  cerr << "Walking stack, lwp_id " << lwp_id << endl;
-          walkAStack(lwp_id, currentFrame, sig_addr, sig_size, pcs, fps);
-	  stack_buffer += pcs;
-          lwp_stack_hi += fps[fps.size()-1];
-          lwp_stack_lo += fps[0];
+          walkStack(currentFrame, pcs, fps, noPause);
+
+	  stack_buffer.push_back(pcs);
+          lwp_stack_hi.push_back(fps[fps.size()-1]);
+          lwp_stack_lo.push_back(fps[0]);
         }
+
         i++ ;
       }
     }
@@ -581,43 +557,44 @@ vector<vector<Address> > process::walkAllStack(bool noPause) {
 
     //Walk thread stacks
     for (unsigned i=0; i<threads.size(); i++) {
-      Frame   currentFrame(threads[i]);
-      Address stack_lo = currentFrame.getFP();
+        Frame currentFrame(threads[i]);
+        Address stack_lo = currentFrame.getFP();
 
-      //sprintf(errorLine, "stack_lo[%d]=0x%lx\n", i, stack_lo);
-      //logLine(errorLine);
+        //sprintf(errorLine, "stack_lo[%d]=0x%lx\n", i, stack_lo);
+        //logLine(errorLine);
 
-      bool active = false;
+        bool active = false;
 
-      // If we find a match in the non-running list (stack_buffer), 
-      // add it to result. This basically sorts the resulting buffer
-      // by lwp id. The sorting is assumed in the catchup code. 
-      // Alternative: use a structure which is a (thread id, vector) pair.
-      for (unsigned j=0; j< lwp_stack_lo.size(); j++) {
-        if (stack_lo >= lwp_stack_lo[j] && stack_lo <= lwp_stack_hi[j]){
-          active = true;
-	  result += stack_buffer[j];
-          break;
+        // If we find a match in the non-running list (stack_buffer), 
+        // add it to result. This basically sorts the resulting buffer
+        // by lwp id. The sorting is assumed in the catchup code. 
+        // Alternative: use a structure which is a (thread id, vector) pair.
+        for (unsigned j=0; j< lwp_stack_lo.size(); j++) {
+          if (stack_lo >= lwp_stack_lo[j] && stack_lo <= lwp_stack_hi[j]){
+            active = true;
+	    result.push_back(stack_buffer[j]);
+            break;
+          }
         }
-      }
         
-      if (!active) {
-        walkAStack(i, currentFrame, sig_addr, sig_size, pcs, fps);
-        result += pcs ;
-      }
-    }//threads
+        if (!active) {
+          walkStack(currentFrame, pcs, fps, noPause);
+          result.push_back(pcs);
+        }
+    }
   }
 
   if (!noPause && needToCont) {
      if (!continueProc()){
         cerr << "walkAllStack: continueProc failed" << endl;
      }
-  }  
-     
+  }
+    
 #ifndef BPATCH_LIBRARY
   stopTimingStackwalk();
 #endif
-  return(result);
+
+  return result;
 }
 #endif //MT_THREAD
 #endif
@@ -625,19 +602,19 @@ vector<vector<Address> > process::walkAllStack(bool noPause) {
 void process::correctStackFuncsForTramps(vector<Address> &pcs, 
                                          vector<pd_Function *> &funcs)
 {
-  unsigned i;
   instPoint *ip;
   function_base *fn;
-  for(i=0;i<pcs.size();i++) {
-    //if( funcs[ i ] == NULL ) {
+
+  for(unsigned i=0; i < pcs.size(); i++) {
+
     ip = findInstPointFromAddress(this, pcs[i]);
     if( ip ) {
+
       fn = const_cast<function_base*>( ip->iPgetFunction() );
-      if( fn )
-        // funcs[ i ] = dynamic_cast<pd_Function*>( fn );
-        funcs[ i ] = (pd_Function *) fn;
+      if( fn ) {
+        funcs[i] = (pd_Function *) fn;
+      }
     }
-    //}
   }
 }
 
@@ -1062,7 +1039,12 @@ void inferiorFreeCompact(inferiorHeap *hp)
 
 void inferiorFreeDeferred(process *proc, inferiorHeap *hp, bool runOutOfMem)
 {
-  vector<Address> pcs = proc->walkStack();
+  // The curr_lwp parameter is IGNORED on non-AIX platforms.
+  Frame currentFrame(proc);
+  vector<Address> pcs;
+  vector<Address> fps;
+  proc->walkStack(currentFrame, pcs, fps);
+
 #if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
   // if walkStack() fails, assume not safe to delete anything
   if (pcs.size() == 0) return;
@@ -2974,9 +2956,10 @@ bool AttachToCreatedProcess(int pid,const string &progpath)
 
     string fullPathToExecutable = process::tryToFindExecutable(progpath, pid);
     
-    if (!fullPathToExecutable.length())
+    if (!fullPathToExecutable.length()) {
       return false;
-  
+    }  
+
     int tid;
     int procHandle;
     int thrHandle;
@@ -2994,110 +2977,127 @@ bool AttachToCreatedProcess(int pid,const string &progpath)
     // Get the file descriptor for the executable file
     // "true" value is for AIX -- waiting for an initial trap
     // it's ignored on other platforms
-    fileDescriptor *desc = getExecFileDescriptor( fullPathToExecutable, status, true);
-    if (!desc)
+    fileDescriptor *desc = 
+        getExecFileDescriptor(fullPathToExecutable, status, true);
+
+    if (!desc) {
       return false;
+    }
 
 #ifndef BPATCH_LIBRARY
-// NEW: We bump up batch mode here; the matching bump-down occurs after shared objects
-//      are processed (after receiving the SIGSTOP indicating the end of running
-//      DYNINSTinit; more specifically, procStopFromDYNINSTinit().
-//      Prevents a diabolical w/w deadlock on solaris --ari
-tp->resourceBatchMode(true);
-#endif /* BPATCH_LIBRARY */
 
-        image *img = image::parseImage(desc);
-        if (img==NULL) {
-            // For better error reporting, two failure return values would be
-            // useful.  One for simple error like because-file-not-because.
-            // Another for serious errors like found-but-parsing-failed 
-            //    (internal error; please report to paradyn@cs.wisc.edu)
+// We bump up batch mode here; the matching bump-down occurs after 
+// shared objects are processed (after receiving the SIGSTOP indicating
+// the end of running DYNINSTinit; more specifically, 
+// procStopFromDYNINSTinit(). Prevents a diabolical w/w deadlock on 
+// solaris --ari
+    tp->resourceBatchMode(true);
 
-            string msg = string("Unable to parse image: ") + fullPathToExecutable;
-            showErrorCallback(68, msg.string_of());
-            // destroy child process
-            OS::osKill(pid);
-            return(false);
-        }
+#endif
 
-        /* parent */
-        statusLine("initializing process data structures");
+    image *img = image::parseImage(desc);
+
+    if (img==NULL) {
+
+        // For better error reporting, two failure return values would be
+        // useful.  One for simple error like because-file-not-because.
+        // Another for serious errors like found-but-parsing-failed 
+        //    (internal error; please report to paradyn@cs.wisc.edu)
+
+        string msg = string("Unable to parse image: ") + fullPathToExecutable;
+        showErrorCallback(68, msg.string_of());
+        // destroy child process
+        OS::osKill(pid);
+        return(false);
+    }
+
+    /* parent */
+    statusLine("initializing process data structures");
 
 #ifdef SHM_SAMPLING
-        vector<fastInferiorHeapMgr::oneHeapStats> theShmHeapStats(3);
-        theShmHeapStats[0].elemNumBytes = sizeof(intCounter);
-        theShmHeapStats[0].maxNumElems  = numIntCounters;
+    vector<fastInferiorHeapMgr::oneHeapStats> theShmHeapStats(3);
+    theShmHeapStats[0].elemNumBytes = sizeof(intCounter);
+    theShmHeapStats[0].maxNumElems  = numIntCounters;
 
-        theShmHeapStats[1].elemNumBytes = sizeof(tTimer);
-        theShmHeapStats[1].maxNumElems  = numWallTimers;
+    theShmHeapStats[1].elemNumBytes = sizeof(tTimer);
+    theShmHeapStats[1].maxNumElems  = numWallTimers;
 
-        theShmHeapStats[2].elemNumBytes = sizeof(tTimer);
-        theShmHeapStats[2].maxNumElems  = numProcTimers;
+    theShmHeapStats[2].elemNumBytes = sizeof(tTimer);
+    theShmHeapStats[2].maxNumElems  = numProcTimers;
 #endif
-	// The same process ctro. is used as in the "normal" case but
-	// here, traceLink is -1 instead of a positive value.
 
-        process *ret = new process(pid, img, traceLink
+    // The same process ctro. is used as in the "normal" case but
+    // here, traceLink is -1 instead of a positive value.
+    process *ret = new process(pid, img, traceLink
+
 #ifdef SHM_SAMPLING
                                    , 7000, // shm seg key to try first
                                    theShmHeapStats
 #endif
                                    );
 
-        assert(ret);
+    assert(ret);
+
 #ifdef mips_unknown_ce2_11 //ccw 27 july 2000 : 29 mar 2001
-		//the MIPS instruction generator needs the Gp register value to
-		//correctly calculate the jumps.  In order to get it there it needs
-		//to be visible in Object-nt, and must be taken from process.
-		void *cont;
-		//DebugBreak();
-		cont = ret->GetRegisters(thrHandle); //ccw 10 aug 2000 : ADD thrHandle HERE!
-		img->getObjectNC().set_gp_value(((w32CONTEXT*) cont)->IntGp);
+
+    //the MIPS instruction generator needs the Gp register value to
+    //correctly calculate the jumps.  In order to get it there it needs
+    //to be visible in Object-nt, and must be taken from process.
+    void *cont;
+    //DebugBreak();
+    //ccw 10 aug 2000 : ADD thrHandle HERE!
+    cont = ret->GetRegisters(thrHandle);
+
+    img->getObjectNC().set_gp_value(((w32CONTEXT*) cont)->IntGp);
 #endif
 
-        processVec.push_back(ret);
-        activeProcesses++;
+    processVec.push_back(ret);
+    activeProcesses++;
 
 #ifndef BPATCH_LIBRARY
-        if (!costMetric::addProcessToAll(ret))
-           assert(false);
+    if (!costMetric::addProcessToAll(ret)) {
+        assert(false);
+    }
 #endif
-        // find the signal handler function
-        ret->findSignalHandler(); // should this be in the ctor?
 
-        // initializing vector of threads - thread[0] is really the 
-        // same process
+    // find the signal handler function
+    ret->findSignalHandler(); // should this be in the ctor?
+
+    // initializing vector of threads - thread[0] is really the 
+    // same process
 
 #ifndef BPATCH_LIBRARY
-#if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
-        ret->threads += new pdThread(ret, tid, (handleT)thrHandle);
+#if defined(i386_unknown_nt4_0) || (defined mips_unknown_ce2_11)
+    //ccw 20 july 2000 : 29 mar 2001
+    ret->threads += new pdThread(ret, tid, (handleT)thrHandle);
 #else
-        ret->threads += new pdThread(ret);     
+    ret->threads += new pdThread(ret);     
 #endif
 #endif
-        // initializing hash table for threads. This table maps threads to
-        // positions in the superTable - naim 4/14/97
 
-        // we use this flag to solve race condition between inferiorRPC and 
-        // continueProc message from paradyn - naim
-        ret->deferredContinueProc = false;
+    // initializing hash table for threads. This table maps threads to
+    // positions in the superTable - naim 4/14/97
 
-        ret->numOfActCounters_is=0;
-        ret->numOfActProcTimers_is=0;
-        ret->numOfActWallTimers_is=0;
+    // we use this flag to solve race condition between inferiorRPC and 
+    // continueProc message from paradyn - naim
+    ret->deferredContinueProc  = false;
+    ret->numOfActCounters_is   = 0;
+    ret->numOfActProcTimers_is = 0;
+    ret->numOfActWallTimers_is = 0;
 
 #if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
-        // XXXX - this is a hack since getExecFileDescriptor needed to wait for
-        //    the TRAP signal.
-        // We really need to move most of the above code (esp parse image)
-        //    to the TRAP signal handler.  The problem is that we don't
-        //    know the base addresses until we get the load info via ptrace.
-        //    In general it is even harder, since dynamic libs can be loaded
-        //    at any time.
-        extern int handleSigChild(int pid, int status);
+    // XXXX - this is a hack since getExecFileDescriptor needed to wait for
+    //        the TRAP signal.
+    // We really need to move most of the above code (esp parse image)
+    // to the TRAP signal handler.  The problem is that we don't
+    // know the base addresses until we get the load info via ptrace.
+    // In general it is even harder, since dynamic libs can be loaded
+    // at any time.
+    extern int handleSigChild(int pid, int status);
 
-        (void) handleSigChild(pid, status);
+    (void) handleSigChild(pid, status);
 #endif
+
 #ifndef BPATCH_LIBRARY
     if (ret) {
       ret->setCallbackBeforeContinue(mdnContinueCallback); 
@@ -3688,8 +3688,9 @@ bool process::readTextSpace(const void *inTracedProcess, u_int amount,
 #endif /* BPATCH_SET_MUTATIONS_ACTIVE */
 
 bool process::pause() {
-  if (status_ == stopped || status_ == neonatal)
+  if (status_ == stopped || status_ == neonatal) {
     return true;
+  }
 
   if (status_ == exited) {
     sprintf(errorLine, "warn : in process::pause, trying to pause exited process, returning FALSE\n");
@@ -3730,6 +3731,7 @@ bool process::handleIfDueToSharedObjectMapping(){
   bool error_occured = false;
   bool ok = dyn->handleIfDueToSharedObjectMapping(this,&changed_objects,
                                                   change_type,error_occured);
+
   // if this trap was due to dlopen or dlclose, and if something changed
   // then figure out how it changed and either add or remove shared objects
   if(ok && !error_occured && (change_type != SHAREDOBJECT_NOCHANGE)) {
@@ -3737,71 +3739,65 @@ bool process::handleIfDueToSharedObjectMapping(){
       // if something was added then call process::addASharedObject with
       // each element in the vector of changed_objects
       if((change_type == SHAREDOBJECT_ADDED) && changed_objects) {
+
           for(u_int i=0; i < changed_objects->size(); i++) {
-             // TODO: currently we aren't handling dlopen because  
-             // we don't have the code in place to modify existing metrics
-             // This is what we really want to do:
+            // TODO: currently we aren't handling dlopen because  
+            // we don't have the code in place to modify existing metrics
+            // This is what we really want to do:
 	    // Paradyn -- don't add new symbols unless it's the runtime
 	    // library
-	    // UGLY. 
+	    // UGLY.
+ 
 #if !defined(BPATCH_LIBRARY) && !defined(rs6000_ibm_aix4_1)
 	    //if (((*changed_objects)[i])->getImage()->isDyninstRTLib())
-#ifdef MT_THREAD
-	    if (((*changed_objects)[i])->getName() == string(getenv("PARADYN_LIB_MT")))
-#else
-	    if (((*changed_objects)[i])->getName() == string(getenv("PARADYN_LIB")))
-#endif
-	    {
-#endif
-	      //cerr << "Loading library " << ((*changed_objects)[i])->getName() << endl;
-               if(addASharedObject(*((*changed_objects)[i]))){
-                 (*shared_objects).push_back((*changed_objects)[i]);
-		 if (((*changed_objects)[i])->getImage()->isDyninstRTLib()) {
-		   hasLoadedDyninstLib = true;
-		   isLoadingDyninstLib = false;
-		   runtime_lib = ((*changed_objects)[i])->getImage();
-		 }
-               } else {
-                 //logLine("Error after call to addASharedObject\n");
-                 delete (*changed_objects)[i];
-               }
-/* // not used
-#ifdef MT_THREAD // ALERT: the following is thread package specific
-               bool err ;
-               if (!DYNINST_allthreads_p) {
-                 DYNINST_allthreads_p = findInternalAddress("DYNINST_allthreads_p",true,err) ;
-               }
-               if (!allthreads) {
-                 allthreads = findInternalAddress("_allthreads",true,err);
-               }
 
-               if (allthreads && DYNINST_allthreads_p) {
-                  if (!writeDataSpace((caddr_t) DYNINST_allthreads_p, sizeof(void*), (caddr_t) &allthreads) ) {
-                    cerr << "write _allthreads failed! " << endl ;
-                  }
-                  cerr << "DYNINST_allthreads_p=" << DYNINST_allthreads_p
-                       << ", allthreads=" << allthreads << endl ;
-               }
-#endif//MT_THREAD
-*/
+            string rtlibrary;
+
+            if (is_multithreaded()) {
+	        rtlibrary = string(getenv("PARADYN_LIB_MT"));
+            } else {
+	        rtlibrary = string(getenv("PARADYN_LIB"));
+	    }
+
+            if (((*changed_objects)[i])->getName() == rtlibrary) {
+#endif
+	      //cerr << "Loading library " 
+              //       << ((*changed_objects)[i])->getName() << endl;
+
+              if(addASharedObject(*((*changed_objects)[i]))){
+                (*shared_objects).push_back((*changed_objects)[i]);
+
+	        if (((*changed_objects)[i])->getImage()->isDyninstRTLib()) {
+	          hasLoadedDyninstLib = true;
+	          isLoadingDyninstLib = false;
+	          runtime_lib = ((*changed_objects)[i])->getImage();
+	        }
+
+              } else {
+                  //logLine("Error after call to addASharedObject\n");
+                  delete (*changed_objects)[i];
+              }
+
 #if !defined(BPATCH_LIBRARY) && !defined(rs6000_ibm_aix4_1)
-	       } else {
+	    } else {
                // for now, just delete shared_objects to avoid memory leeks
                delete (*changed_objects)[i];
-	       }
+	    }
 #endif
           }
+
           delete changed_objects;
-      } 
-      else if((change_type == SHAREDOBJECT_REMOVED) && (changed_objects)) { 
+
+      } else if((change_type == SHAREDOBJECT_REMOVED) && (changed_objects)) { 
+
           // TODO: handle this case
           // if something was removed then call process::removeASharedObject
           // with each element in the vector of changed_objects
-
           // for now, just delete shared_objects to avoid memory leeks
           for(u_int i=0; i < changed_objects->size(); i++){
               delete (*changed_objects)[i];
           }
+
           delete changed_objects;
       }
 
@@ -3811,6 +3807,7 @@ bool process::handleIfDueToSharedObjectMapping(){
       // this should be added to process::addASharedObject and 
       // process::removeASharedObject  
   }
+
   return ok;
 }
 
@@ -5103,17 +5100,18 @@ bool process::existsRPCreadyToLaunch() const {
    return false;
 }
 
-bool process::existsRPCinProgress() const {
-#if defined(MT_THREAD)
-   if (!currRunningRPCs.empty()) {
-     for (unsigned k=0; k< currRunningRPCs.size(); k++)
-       if ( !currRunningRPCs[k].isSafeRPC ) 
-         return true ;
-   }
-   return false ;
-#else
-   return (!currRunningRPCs.empty());
-#endif
+bool process::existsRPCinProgress() {
+  if (is_multithreaded()) {
+    if (!currRunningRPCs.empty()) {
+      for (unsigned k=0; k< currRunningRPCs.size(); k++)
+        if ( !currRunningRPCs[k].isSafeRPC ) 
+          return true ;
+    }
+    return false ;
+
+  } else {
+     return (!currRunningRPCs.empty());
+  }
 }
 
 #if defined(MT_THREAD)
@@ -5245,10 +5243,10 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
    // 8) continue inferior, if the inferior had been running when we had
    //    paused it in step 1, above.
 
-#if defined(MT_THREAD)
-   if (!todo.isSafeRPC) //only wait for syscall to finish if the rpc is SAFErpc
-#endif
+   //only wait for syscall to finish if the rpc is SAFErpc
+   if (!todo.isSafeRPC) { 
      if (!finishingSysCall && RPCs_waiting_for_syscall_to_complete) {
+
 #if !defined( i386_unknown_linux2_0 ) && ! defined( ia64_unknown_linux2_4 )
 #ifndef MT_THREAD
             assert(executingSystemCall());
@@ -5256,6 +5254,7 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
 #endif
         return false;
      }
+   }
 
    if (!pause()) {
       cerr << "launchRPCifAppropriate failed because pause failed" << endl;
@@ -5274,93 +5273,106 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
    if ( (todo.thrId != -1) || !todo.isSafeRPC) {
 
      if (!finishingSysCall && executingSystemCall()) {
-        if (RPCs_waiting_for_syscall_to_complete) {
+       if (RPCs_waiting_for_syscall_to_complete) {
            inferiorrpc_cerr << "launchRPCifAppropriate: "
                             << "still waiting for syscall to complete" << endl;
            if (wasRunning) {
               inferiorrpc_cerr << "launchRPC: "
                                << "continuing so syscall may complete" << endl;
               (void)continueProc();
-           }
-           else
+
+           } else {
               inferiorrpc_cerr << "launchRPC: sorry not continuing (problem?)"
                                << endl;
-         return false;
-        }
+	   }
 
-        // don't do the inferior rpc until the system call finishes.  Determine
-        // which system call is in the way, and set a breakpoint at its exit
-        // point so we know when it's safe to launch the RPC.  Platform-specific
-        // details:
+           return false;
+       }
 
-        inferiorrpc_cerr << "launchRPCifAppropriate: within a system call"
+       // don't do the inferior rpc until the system call finishes.  
+       // Determine which system call is in the way, and set a breakpoint 
+       // at its exit point so we know when it's safe to launch the RPC. 
+       // Platform-specific details:
+
+       inferiorrpc_cerr << "launchRPCifAppropriate: within a system call"
                         << endl;
 
-      if (!set_breakpoint_for_syscall_completion()) {
-         // sorry, this platform can't set a breakpoint at the system call
-         // completion point.  In such cases, keep polling executingSystemCall()
-         // inefficiently.
-	   if (wasRunning)
-            (void)continueProc();
+       if (!set_breakpoint_for_syscall_completion()) {
 
-          inferiorrpc_cerr << "launchRPCifAppropriate: couldn't set bkpt for "
+         // sorry, this platform can't set a breakpoint at the system call
+         // completion point.  In such cases, keep polling 
+         // executingSystemCall() inefficiently.
+	 if (wasRunning) {
+            (void)continueProc();
+	 }
+
+         inferiorrpc_cerr << "launchRPCifAppropriate: couldn't set bkpt for "
                           << "syscall completion; will just poll." << endl;
-          return false;
+         return false;
        }
 
        inferiorrpc_cerr << "launchRPCifAppropriate: "
                         << "set bkpt for syscall completion" << endl;
 
-       // a SIGTRAP will get delivered when the RPC is ready to go.  Until then,
-       // mark the rpc as deferred.  Setting this flag prevents executing
-       // this code too many times.
+       // a SIGTRAP will get delivered when the RPC is ready to go.  Until 
+       // then, mark the rpc as deferred.  Setting this flag prevents 
+       // executing this code too many times.
 
-      RPCs_waiting_for_syscall_to_complete = true;
-          was_running_before_RPC_syscall_complete = wasRunning;
+       RPCs_waiting_for_syscall_to_complete    = true;
+       was_running_before_RPC_syscall_complete = wasRunning;
 
-      //if (wasRunning)
-          (void)continueProc();
+       (void)continueProc();
 
-      return false;
-   }
+       return false;
+     }
 
-   if (finishingSysCall) {
+     if (finishingSysCall) {
        clear_breakpoint_for_syscall_completion();
-   }
+     }
 
-   // We're not in the middle of a system call, so we can fire off the rpc now!
-   if (RPCs_waiting_for_syscall_to_complete)
-      // not any more
-      RPCs_waiting_for_syscall_to_complete = false;
+     // We're not in the middle of a system call, so we can fire off the 
+     // rpc now!
+     if (RPCs_waiting_for_syscall_to_complete) {
+       RPCs_waiting_for_syscall_to_complete = false;
+     }
 
-      theSavedRegs = getRegisters(); // machine-specific implementation
-      // result is allocated via new[]; we'll delete[] it later.
-      // return value of NULL indicates total failure.
-      // return value of (void *)-1 indicates that the state of the machine
-      //    isn't quite ready for an inferiorRPC, and that we should try again
-      //    'later'.  In particular, we must handle the (void *)-1 case very
-      //     gracefully (i.e., leave the vrble 'RPCsWaitingToStart' untouched).
+     // machine-specific implementation
+     theSavedRegs = getRegisters();
+
+     // result is allocated via new[]; we'll delete[] it later.
+     // return value of NULL indicates total failure.
+     // return value of (void *)-1 indicates that the state of the machine
+     // isn't quite ready for an inferiorRPC, and that we should try again
+     // 'later'.  In particular, we must handle the (void *)-1 case very
+     // gracefully (i.e., leave the vrble 'RPCsWaitingToStart' untouched).
 
      if (theSavedRegs == (void *)-1) {
        inferiorrpc_cerr << "launchRPCifAppropriate: deferring" << endl;
-       if (wasRunning)
+
+       if (wasRunning) {
          (void)continueProc();
+       }
+
        return false;
      }
 
      if (theSavedRegs == NULL) {
        cerr << "launchRPCifAppropriate failed because getRegisters() failed"
             << endl;
-       if (wasRunning)
+
+       if (wasRunning) {
          (void)continueProc();
+       }
+
        return false;
      }
    }
 
 
-   if (!wasRunning)
+   if (!wasRunning) {
      inferiorrpc_cerr << "NOTE: launchIfAppropriate: wasRunning==false!!"
                       << endl;
+   }
 
    // Now it is safe to remove the first from the vector
    RPCsWaitingToStart.removeOne();
@@ -5376,6 +5388,7 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
    if (todo.isSafeRPC) {
      inProgStruct.wasRunning = wasRunning ;
    } else {
+
        if( finishingSysCall ) {
          inProgStruct.wasRunning = was_running_before_RPC_syscall_complete;
        } else {
@@ -5401,36 +5414,45 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
    if (tempTrampBase == 0) {
       cerr << "launchRPCifAppropriate failed because createRPCtempTramp failed"
            << endl;
-      if (wasRunning)
+
+      if (wasRunning) {
          (void)continueProc();
+      }
+
       return false;
    }
+
    assert(tempTrampBase);
 
    inProgStruct.firstInstrAddr = tempTrampBase;
 
-
 #ifndef BPATCH_LIBRARY
+   if ( is_multithreaded() ) {
+     if (todo.thrId > 0) {
 #ifdef MT_THREAD
-   if (todo.thrId > 0) {
-     inProgStruct.lwp = findLWPbyPthread(todo.thrId);
-   } else {
-     inProgStruct.lwp = (unsigned) -1;
-   }
+       inProgStruct.lwp = findLWPbyPthread(todo.thrId);
 #endif
+     } else {
+       inProgStruct.lwp = (unsigned) -1;
+     }
+   }
 #endif
 
    currRunningRPCs += inProgStruct;
 
-#if !(defined i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
+//ccw 20 july 2000 : 29 mar 2001
+#if !(defined i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11)
    Address curPC = currentPC();
 #endif
 
-   if (pd_debug_infrpc)
-     inferiorrpc_cerr << "Changing pc (" << (void*)tempTrampBase << ") and exec.." << endl;
+   if (pd_debug_infrpc) {
+     inferiorrpc_cerr << "Changing pc (" << (void*)tempTrampBase 
+                      << ") and exec.." << endl;
+   }
 
    // change the PC and nPC registers to the addr of the temp tramp
    if (!todo.isSafeRPC) {
+
 #if defined(rs6000_ibm_aix4_1) && defined(MT_THREAD)
      // Take advantage of the fact that on AIX we can target an RPC
      // to a specific kernel thread. 
@@ -5472,10 +5494,10 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
 
 #ifdef MT_THREAD
    if (todo.isSafeRPC) {
-     cerr << "SAFE inferiorRPC should be running now" << endl;
-     signalRPCthread(this);
+       cerr << "SAFE inferiorRPC should be running now" << endl;
+       signalRPCthread(this);
    } else {
-     cerr << "inferiorRPC should be running now" << endl;
+       cerr << "inferiorRPC should be running now" << endl;
    }
 #endif
 
@@ -5840,18 +5862,25 @@ bool process::handleTrapIfDueToRPC() {
         cerr << "handleTrapIfDueToRPC, currRunningRPCs is empty !" << endl;
       return false; // no chance of a match
    }
-#if defined(MT_THREAD)
-   unsigned k;
-   unsigned rSize = 0 ;
-   for (k=0; k<currRunningRPCs.size(); k++) {
-     if (!currRunningRPCs[k].isSafeRPC)
-       rSize ++ ;
+
+   if ( is_multithreaded() ) {
+     unsigned k;
+     unsigned rSize = 0 ;
+     for (k=0; k<currRunningRPCs.size(); k++) {
+       fprintf(stderr, "Checking currRunning %d\n", k);
+       if (!currRunningRPCs[k].isSafeRPC) {
+         rSize ++ ;
+       }
+     }
+     assert(rSize<=1);
+
+   } else {
+
+       // it's unsafe to have > 1 RPCs going on at a time within a single 
+       // process
+       assert(currRunningRPCs.size() == 1);
    }
-   assert(rSize<=1);
-#else
-   assert(currRunningRPCs.size() == 1);
-      // it's unsafe to have > 1 RPCs going on at a time within a single process
-#endif
+
    // Okay, time to do a stack trace.
    // If we determine that the PC of any level of the back trace
    // equals the current running RPC's stopForResultAddr or breakAddr,
