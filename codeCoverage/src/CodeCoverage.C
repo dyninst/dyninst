@@ -495,9 +495,11 @@ int CodeCoverage::printCoverageInformation(){
 	if(globalInterp && statusBarName){
 		pthread_mutex_lock(&statusUpdateLock);
 		tclStatusChanged = true;
+		/*
 		sprintf(tclStatusBuffer,"%s configure -text \
 			\"Dumping coverage results to the binary file...\"",
 			statusBarName);
+		*/
 		pthread_mutex_unlock(&statusUpdateLock);
 	}
 

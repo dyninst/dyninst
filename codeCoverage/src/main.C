@@ -92,7 +92,7 @@ void* codeCoverageThread(void* arg){
 void exitCodeCoverage(ClientData clientData){
 	CodeCoverage* codeCoverage = ((ARGS*)clientData)->codeCoverage;
 	codeCoverage->terminate();
-	delete codeCoverage;
+	//delete codeCoverage;
 	cerr << "information: terminating code coverage execution ..." << endl;
 }
 
@@ -116,16 +116,45 @@ void startButtonHandler(ClientData clientData,XEvent* eventPtr){
 	}
 }
 
+void refreshButtonHandler(ClientData clientData,XEvent* eventPtr);
+
+void graphUpdateProcedure(ClientData clientData){
+
+	char buffer[1024];
+        CodeCoverage* codeCoverage = ((ARGS*)clientData)->codeCoverage;
+	Tcl_Interp* interp = ((ARGS*)clientData)->interp;
+	
+	refreshButtonHandler(clientData,NULL);
+	
+	strcpy(buffer,"UpdateAfterRefresh .fileFrame.displayPanel.text \
+                .fileFrame.message \
+                .fileFrame.status \
+                .menuFrame.listFrame.fileListFrame \
+                .menuFrame.listFrame.funcListFrame \
+                .menuFrame.listFrame.graphPanel \
+                globalDataStructure \
+                globalExecutionMap \
+                globalFrequencyMap");
+ 
+	Tcl_Eval(interp,buffer);
+
+	Tcl_CreateTimerHandler(5000,graphUpdateProcedure,clientData);
+}
+
 void refreshButtonHandler(ClientData clientData,XEvent* eventPtr){
+	/*
 	if(!eventPtr)
 		return;
+	*/
 
 	CodeCoverage* codeCoverage = ((ARGS*)clientData)->codeCoverage;
 	Tcl_Interp* interp = ((ARGS*)clientData)->interp;
 	
 	if(!isRunning){
+		/*
 		Tcl_Eval(interp,".fileFrame.status configure -text \
 			 \"To refresh, please wait untill mutatee starts...\"");
+		*/
 		return;
 	}
 
@@ -457,6 +486,9 @@ int main(int argc,char* argv[]){
 				      (ClientData)passedArguments);
 
 		Tcl_CreateTimerHandler(1000,statusUpdateProcedure,
+				       (ClientData)passedArguments);
+
+		Tcl_CreateTimerHandler(5000,graphUpdateProcedure,
 				       (ClientData)passedArguments);
 	}
 

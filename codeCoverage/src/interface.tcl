@@ -556,7 +556,7 @@ pack	.fileFrame.displayPanel -side top -fill both -expand true -padx 2 -pady 5
 pack    .fileFrame.status -side top -fill x
 
 .fileFrame.displayPanel.text \
-	tag configure sel -background midnightblue -foreground white \
+	tag configure sel -background red -foreground white \
 	-relief flat
 
 Scrolled_Listbox .menuFrame.listFrame.fileListFrame \
