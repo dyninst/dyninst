@@ -1,4 +1,4 @@
-// $Id: test4.C,v 1.3 2000/04/24 02:51:18 wylie Exp $
+// $Id: test4.C,v 1.4 2000/06/20 21:45:58 wylie Exp $
 //
 
 #include <stdio.h>
@@ -27,7 +27,6 @@ int debugPrint = 0; // internal "mutator" tracing
 int errorPrint = 0; // external "dyninst" tracing (via errorFunc)
 
 #define dprintf if (debugPrint) printf
-
 
 bool runAllTests = true;
 const unsigned int MAX_TEST = 4;

@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test2.mutatee.c,v 1.22 2000/05/15 16:35:18 paradyn Exp $ */
+/* $Id: test2.mutatee.c,v 1.23 2000/06/20 21:45:58 wylie Exp $ */
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -21,6 +21,12 @@
     defined(i386_unknown_linux2_0) || defined(mips_sgi_irix6_4) || \
     defined(alpha_dec_osf4_0)
 #include <dlfcn.h>
+#endif
+
+#ifdef __cplusplus
+int mutateeCplusplus = 1;
+#else
+int mutateeCplusplus = 0;
 #endif
 
 #include "test2.h"
@@ -179,6 +185,9 @@ int main(int iargc, char *argv[])
         }
     }
 
+    dprintf("Mutatee %s running (%s).\n", argv[0], 
+                mutateeCplusplus ? "C++" : "C");
+
     /* see if we should wait for the attach */
     if (useAttach) {
 #ifndef i386_unknown_nt4_0
@@ -206,7 +215,7 @@ int main(int iargc, char *argv[])
 
     while(1);
 
-    dprintf("Mutatee terminating.\n");
+    dprintf("Mutatee %s terminating.\n", argv[0]);
     return(0);
 }
 

@@ -38,7 +38,7 @@ extern "C" const char V_libdyninstAPI[];
 int debugPrint = 0; // internal "mutator" tracing
 int errorPrint = 0; // external "dyninst" tracing (via errorFunc)
 
-int runCpp = 0;
+int mutateeCplusplus = 0;
 bool runAllTests = true;
 const unsigned int MAX_TEST = 44;
 bool runTest[MAX_TEST+1];
@@ -107,6 +107,7 @@ void checkCost(BPatch_snippet snippet)
     copy = snippet;
 
     cost = snippet.getCost();
+    dprintf("Snippet cost=%g\n", cost);
     if (cost < 0.0) {
 	printf("*Error*: negative snippet cost\n");
     } else if (cost == 0.0) {
@@ -3349,7 +3350,7 @@ void mutatorTest43(BPatch_thread *appThread, BPatch_image *appImage)
    }
 
    // Replace a shlib function with a shlib function
-   char buf1[64], buf2[64], buf3[64];
+   char buf1[64], buf2[64];
 
    BPatch_function *func1 = modStdC->findFunction("ostream::operator<<");
    BPatch_function *func2 = modStdC->findFunction("istream::operator>>");
@@ -3532,6 +3533,16 @@ int mutatorMAIN(char *pathname, bool useAttach)
 	signalAttached(appThread, appImage);
     }
 
+    // determine whether mutatee is C or C++
+    BPatch_variableExpr *isCxx = appImage->findVariable("mutateeCplusplus");
+    if (isCxx == NULL) {
+	fprintf(stderr, "  Unable to locate variable \"mutateeCplusplus\""
+                 " -- assuming 0!\n");
+    } else {
+        isCxx->readValue(&mutateeCplusplus);
+        dprintf("Mutatee is %s.\n", mutateeCplusplus ? "C++" : "C");
+    }
+
     int i;
     BPatch_Vector<BPatch_module *> *m = appImage->getModules();
     for (i=0; i < m->size(); i++) {
@@ -3543,16 +3554,6 @@ int mutatorMAIN(char *pathname, bool useAttach)
     for (i=0; i < p->size(); i++) {
         // dprintf("func %s\n", (*p)[i]->name());
     }
-
-
-    // decide whether to run the C++ test cases
-    BPatch_variableExpr *runcpp = appImage->findVariable("runCpp");
-    if (runcpp == NULL) {
-	fprintf(stderr, "**Failed** initialization\n");
-	fprintf(stderr, "    Unable to locate runCpp\n");
-	exit(1);
-    }
-    runcpp->readValue(&runCpp);
 
     if (runTest[1]) mutatorTest1(appThread, appImage);
     if (runTest[2]) mutatorTest2(appThread, appImage);
@@ -3595,7 +3596,7 @@ int mutatorMAIN(char *pathname, bool useAttach)
     if( runTest[ 32 ] ) mutatorTest32( appThread, appImage );
 
     // C++ tests
-    if ( runCpp ) {
+    if ( mutateeCplusplus ) {
 
        if (runTest[33]) mutatorTest33(appThread, appImage); //31->33
        if (runTest[34]) mutatorTest34(appThread, appImage); 

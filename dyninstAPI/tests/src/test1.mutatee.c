@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.47 2000/05/30 15:01:39 jasonxie Exp $ */
+/* $Id: test1.mutatee.c,v 1.48 2000/06/20 21:45:57 wylie Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -23,9 +23,9 @@
 #endif
 
 #ifdef __cplusplus
-int runCpp = 1;
+int mutateeCplusplus = 1;
 #else
-int runCpp = 0;
+int mutateeCplusplus = 0;
 #endif
 
 #if defined(sparc_sun_solaris2_4) || \
@@ -2555,6 +2555,9 @@ int main(int iargc, char *argv[])
         }
     }
 
+    dprintf("Mutatee %s running (%s).\n", argv[0], 
+                mutateeCplusplus ? "C++" : "C");
+
     if (useAttach) {
 #ifndef i386_unknown_nt4_0
 	char ch = 'T';
@@ -2678,6 +2681,6 @@ int main(int iargc, char *argv[])
 	printf("**Failed** %d test%c\n",testsFailed,(testsFailed>1)?'s':' ');
     }
 
-    dprintf("Mutatee terminating.\n");
+    dprintf("Mutatee %s terminating.\n", argv[0]);
     return (testsFailed ? 127 : 0);
 }

@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.37 2000/04/24 02:51:46 wylie Exp $
+// $Id: test2.C,v 1.38 2000/06/20 21:45:57 wylie Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -49,6 +49,7 @@ int errorPrint = 0; // external "dyninst" tracing (via errorFunc)
 bool expectErrors = false;
 bool gotError = false;
 
+int mutateeCplusplus = 0;
 bool runAllTests = true;
 const unsigned int MAX_TEST = 14;
 bool runTest[MAX_TEST+1];
@@ -784,6 +785,15 @@ main(unsigned int argc, char *argv[])
     if ( useAttach )
 		signalAttached( ret, img );
 
+    // determine whether mutatee is C or C++
+    BPatch_variableExpr *isCxx = img->findVariable("mutateeCplusplus");
+    if (isCxx == NULL) {
+	fprintf(stderr, "  Unable to locate variable \"mutateeCplusplus\""
+                 " -- assuming 0!\n");
+    } else {
+        isCxx->readValue(&mutateeCplusplus);
+        dprintf("Mutatee is %s.\n", mutateeCplusplus ? "C++" : "C");
+    }
 
     if (runTest[5]) test5(img);
 

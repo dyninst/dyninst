@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test4b.mutatee.c,v 1.3 2000/04/24 00:37:43 wylie Exp $ */
+/* $Id: test4b.mutatee.c,v 1.4 2000/06/20 21:45:58 wylie Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -17,6 +17,12 @@
 #define getpid _getpid
 #else
 #include <unistd.h>
+#endif
+
+#ifdef __cplusplus
+int mutateeCplusplus = 1;
+#else
+int mutateeCplusplus = 0;
 #endif
 
 /* control debug printf statements */
@@ -101,9 +107,12 @@ int main(int argc, char *argv[])
         }
     }
 
+    dprintf("Mutatee %s running (%s).\n", argv[0], 
+                mutateeCplusplus ? "C++" : "C");
+
     if (runTest[3]) func3_1();
     if (runTest[4]) func4_1();
 
-    dprintf("at exit of test4b\n");
+    dprintf("Mutatee %s terminating.\n", argv[0]);
     return 0;
 }
