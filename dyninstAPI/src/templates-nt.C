@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-nt.C,v 1.38 2003/04/02 07:12:26 jaw Exp $
+// $Id: templates-nt.C,v 1.39 2003/04/04 16:36:18 pcroth Exp $
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
  * "template class specialization XXXX is already instantiated"
@@ -53,7 +53,10 @@
 #include "common/src/Dictionary.C"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
+
+#if defined(BPATCH_LIBRARY)
 #include "dyninstAPI/src/LineInformation.h"
+#endif // defined(BPATCH_LIBRARY)
 
 template class vectorSet<inferiorRPCtoDo>;
 template class vectorSet<inferiorRPCinProgress>;
