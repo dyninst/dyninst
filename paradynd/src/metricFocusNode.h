@@ -43,6 +43,9 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
+ * Revision 1.47  1997/04/21 16:56:15  hseom
+ * added support for trace data
+ *
  * Revision 1.46  1997/03/18 19:45:57  buck
  * first commit of dyninst library.  Also includes:
  * 	moving templates from paradynd to dyninstAPI
@@ -91,6 +94,8 @@
 #define METRIC_H
 
 #include "util/h/String.h"
+// trace data streams
+#include "util/h/ByteArray.h"
 #include "util/h/Vector.h"
 #include "util/h/Dictionary.h"
 #include "util/h/aggregateSample.h"

@@ -1401,6 +1401,47 @@ void paradynDaemon::batchSampleDataCallbackFunc(int ,
     } // the main for loop
 }
 
+// trace data streams
+void paradynDaemon::batchTraceDataCallbackFunc(int ,
+                vector<T_dyninstRPC::trace_batch_buffer_entry> theTraceBatchBuffer)
+{
+    // get the earliest first time that had been reported by any paradyn
+    // daemon to use as the base (0) time
+    // assert(getEarliestFirstTime());
+
+  // Just for debugging:
+  //fprintf(stderr, "in DMdaemon.C, burst size = %d\n", theTraceBatchBuffer.size());
+
+    // Go through every item in the batch buffer we've just received and
+    // process it.
+    for (unsigned index =0; index < theTraceBatchBuffer.size(); index++) {
+        T_dyninstRPC::trace_batch_buffer_entry &entry = theTraceBatchBuffer[index] ;
+
+        unsigned mid          = entry.mid ;
+        unsigned length       = entry.length;
+
+        if (our_print_sample_arrival) {
+            cout << "mid " << mid << " : length = " << length << "\n";
+        }
+
+        // Okay, the sample is not an error; let's process it.
+        metricInstance *mi;
+        bool found = activeMids.find(mid, mi);
+        if (!found) {
+           // this can occur due to asynchrony of enable or disable requests
+           // so just ignore the data
+          continue;
+        }
+        assert(mi);
+        byteArray *localTraceData = new byteArray(entry.traceRecord.getArray(),
+        length);
+        mi->sendTraceData(localTraceData->getArray(),length);
+
+        delete localTraceData;
+
+    } // the main for loop
+}
+
 //
 // paradyn daemon should never go away.  This represents an error state
 //    due to a paradynd being killed for some reason.

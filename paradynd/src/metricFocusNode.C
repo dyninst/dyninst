@@ -629,6 +629,18 @@ void metricDefinitionNode::endOfDataCollection() {
     ret = aggSample.aggregateValues();
   }
   flush_batch_buffer();
+  // trace data streams
+  extern dictionary_hash<unsigned, unsigned> traceOn;
+  for (unsigned w = 0; w<traceOn.keys().size(); w++) {
+      if (traceOn.values()[w]) {
+	  extern batchTraceData(int, int, int, char *);
+	  int k;
+	  extern bool TRACE_BURST_HAS_COMPLETED;
+	  TRACE_BURST_HAS_COMPLETED = true;
+	  batchTraceData(0, (k = traceOn.keys()[w]), 0, (char *)NULL);
+	  traceOn[k] = 0;
+      }
+  }
   tp->endOfDataCollection(id_);
 }
 
@@ -1425,7 +1437,6 @@ metricDefinitionNode::~metricDefinitionNode()
     }
 }
 
-
 // NOTE: This stuff (flush_batch_buffer() and batchSampleData()) belongs
 //       in perfStream.C; this is an inappropriate file.
 
@@ -1510,6 +1521,60 @@ void batchSampleData(int mid, double startTimeStamp,
    theEntry.weight = val_weight;
    theEntry.internal_met = internal_metric;
    batch_buffer_next++;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Buffer the traces before we actually send it                            //
+//      Send it when the buffers are full                                   //
+//      or, send it when the last sample in the interval has arrived.       //
+//////////////////////////////////////////////////////////////////////////////
+
+const unsigned TRACE_BUFFER_SIZE = 10;
+bool TRACE_BURST_HAS_COMPLETED = false;
+   // set to true after a burst (after a processTraceStream(), or sampleNodes for
+   // the CM5), which will force the buffer to be flushed before it fills up
+   // (if not, we'd have bad response time)
+
+vector<T_dyninstRPC::trace_batch_buffer_entry> theTraceBatchBuffer (TRACE_BUFFER_SIZE);
+unsigned int trace_batch_buffer_next=0;
+
+void flush_trace_batch_buffer(int program) {
+   // don't need to flush if the batch had no data (this does happen; see
+   // perfStream.C)
+   if (trace_batch_buffer_next == 0)
+      return;
+
+   vector<T_dyninstRPC::trace_batch_buffer_entry> copyTraceBatchBuffer(trace_batch_buffer_next);
+   for (unsigned i=0; i< trace_batch_buffer_next; i++)
+      copyTraceBatchBuffer[i] = theTraceBatchBuffer[i];
+
+
+   // Now let's do the actual igen call!
+
+   tp->batchTraceDataCallbackFunc(program, copyTraceBatchBuffer);
+
+   TRACE_BURST_HAS_COMPLETED = false;
+   trace_batch_buffer_next = 0;
+}
+
+void batchTraceData(int program, int mid, int recordLength,
+                     char *recordPtr)
+{
+   // Now let's batch this entry.
+   T_dyninstRPC::trace_batch_buffer_entry &theEntry = theTraceBatchBuffer[trace_batch_buffer_next];
+   theEntry.mid = mid;
+   theEntry.length = recordLength;
+   theEntry.traceRecord = byteArray(recordPtr,recordLength);
+   trace_batch_buffer_next++;
+
+   // We buffer things up and eventually call tp->batchTraceDataCallbackFunc
+
+   // Flush the buffer if (1) it is full, or (2) for good response time, after
+   // a burst of data:
+   if (trace_batch_buffer_next >= TRACE_BUFFER_SIZE || TRACE_BURST_HAS_COMPLETED) {
+      flush_trace_batch_buffer(program);
+   }
+
 }
 
 void metricDefinitionNode::forwardSimpleValue(timeStamp start, timeStamp end,

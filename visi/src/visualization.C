@@ -50,6 +50,8 @@
 #define EVENTSIZE      FOLD+1
 
 static visi_DataGrid  visi_dataGrid;
+// trace data streams
+static visi_TraceData visi_traceData;
 static int            visi_LastBucketSent = -1;
 static int visi_fileDesc;
 static int (*visi_fileDescCallbacks)();
@@ -257,6 +259,41 @@ void visualization::Data(vector<T_visi::dataValue> data){
   }
 }
 
+///////////////////////////////////////////////////////////
+//  Visi interface routine.  Receives trace data values from paradyn and
+//  invokes the callback routine associated with the
+//  TRACEDATAVALUES event.
+///////////////////////////////////////////////////////////
+void visualization::TraceData(vector<T_visi::traceDataValue> traceData){
+
+  if(!visi_initDone)
+    visi_Init();
+
+  int noMetrics = visi_dataGrid.NumMetrics();
+  int noResources = visi_dataGrid.NumResources();
+
+  // get metric and resource index into visi_dataGrid and add value if found
+  for(unsigned i=0; i < traceData.size(); i++){
+    if (traceData[i].traceDataRecord.length()) {
+      int metric = visi_dataGrid.MetricIndex(traceData[i].metricId);
+      int j = visi_dataGrid.ResourceIndex(traceData[i].resourceId);
+      if((j >= 0) && (metric >= 0)){
+         visi_traceData.metricIndex = metric;
+         visi_traceData.resourceIndex = j;
+         visi_traceData.dataRecord =
+              new byteArray(traceData[i].traceDataRecord.getArray(),
+              traceData[i].traceDataRecord.length());
+      }
+
+
+  //call user registered callback routine assoc. w/event TRACEDATAVALUES
+  if ((visi_eventCallbacks[TRACEDATAVALUES]!=NULL)){ //theres a callback routine
+       visi_eventCallbacks[TRACEDATAVALUES](visi_traceData.dataRecord->length());
+  }
+  delete visi_traceData.dataRecord;
+    }
+  }
+}
 
 ///////////////////////////////////////////////////////////
 //  Visi interface routine.  Receives notification of a
@@ -394,6 +431,9 @@ void visualization::AddMetricsResources(vector<T_visi::visi_matrix> newElements,
 			   (visi_timeType)bucketWidth,
 			   (visi_timeType)start_time,
 			   phase_handle);
+    // trace data streams
+    // construct new visi_traceData
+    visi_traceData.visi_TraceData();
   }
   else{ // add elements to existing data grid
 
@@ -809,6 +849,16 @@ const visi_sampleType *visi_DataValues(int metric_num, int resource_num){
     return 0;
 }
 
+// trace data streams
+//
+// returns the pointer to the trace data record 
+//
+
+const visi_TraceData *visi_TraceDataValues(){
+
+    return &visi_traceData;
+}
+
 //
 //  returns true if the data grid cell corresponding to metric_num
 //  and resource_num contains data
@@ -893,6 +943,19 @@ int visi_SetUserData(int metric_num, int resource_num, void *data){
 	return 1;
     }
     return 0;
+}
+
+//
+// sets the trace data associated with metric_num and resource_num
+//
+int visi_SetTraceData(int metric_num, int resource_num, visi_sampleType data){
+      if((resource_num >= 0) && (metric_num >= 0)){
+         visi_dataGrid.AddValue(metric_num,resource_num,
+                visi_dataGrid.LastBucketFilled(metric_num, resource_num) + 1,
+                data);
+         return 1;
+      }
+      return 0;
 }
 
 void visi_PrintDataBuckets(int step){

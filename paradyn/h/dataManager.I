@@ -1,10 +1,8 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
- * $Log: dataManager.I,v $
  * Revision 1.79  1997/04/14 19:54:00  zhichen
  * Added memoryInfoCallback, getMemoryBounds, newMemoryDefined
- *
  * Revision 1.78  1997/01/30 17:55:09  tamches
  * added "afterAttach" param to attach()
  *
@@ -310,6 +308,7 @@ $remote dataManager {
     //
     // Request to enable a set of metric/focus pairs  
     // ps_handle - the perfStreamHandle of the calling thread 
+    // pt_handle - the perfTraceStreamHandle of the calling thread 
     // request   - vector of metic/focus pairs to enable
     // request_Id - identifier passed by calling thread  
     // type - which phase type to enable data for
@@ -320,6 +319,7 @@ $remote dataManager {
     //                         phase
     //
     $async void enableDataRequest(perfStreamHandle ps_handle,
+                                  perfStreamHandle pt_handle,
                                   vector<metric_focus_pair> *request,
 				  u_int request_Id,
 				  phaseType type,
@@ -692,9 +692,15 @@ $remote dataManager {
 					        perfStreamHandle, 
 						batchMode mode);
 
-    $upcall $async void newPerfData(sampleDataCallbackFunc, 
+    // $upcall $async void newPerfData(sampleDataCallbackFunc, 
+    $upcall $async void newPerfData(sampleDataCallbackFunc sampleFunc, 
 				    vector<dataValueType> *data,
 				    u_int num_data_values);
+
+    // trace data streams
+    $upcall $async void newTracePerfData(traceDataCallbackFunc traceFunc,
+                                    vector<traceDataValueType> *traceData,
+                                    u_int num_traceData_values);
 
     $upcall $async void predictedDataCost(predDataCostCallbackFunc func,
 				     metricHandle m_handle,

@@ -136,3 +136,7 @@ template bool T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::batch_buffer_en
 T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::batch_buffer_entry> *, int (*)(XDR *, T_dyninstRPC::batch_buffer_entry *), T_dyninstRPC::batch_buffer_entry *);
 template class vector<T_dyninstRPC::batch_buffer_entry>;
 
+// added for batchTraceDataCallbackFunc
+template bool T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::trace_batch_buffer_entry> *, int (*)(XDR *, T_dyninstRPC::trace_batch_buffer_entry *), T_dyninstRPC::trace_batch_buffer_entry *);
+T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::trace_batch_buffer_entry> *, int (*)(XDR *, T_dyninstRPC::trace_batch_buffer_entry *), T_dyninstRPC::trace_batch_buffer_entry *);
+template class vector<T_dyninstRPC::trace_batch_buffer_entry>;

@@ -84,7 +84,7 @@ class performanceStream {
 					       resourceHandle&, bool&);
       friend class dynRPCUser;
       friend void DMenableResponse(DM_enableType&,vector<bool>&);
-      friend void dataManager::enableDataRequest(perfStreamHandle,
+      friend void dataManager::enableDataRequest(perfStreamHandle,perfStreamHandle,
 	    vector<metric_focus_pair>*,u_int,phaseType,phaseHandle,
 	    u_int,u_int,u_int);
       friend void dataManager::enableDataRequest2(perfStreamHandle,
@@ -124,6 +124,12 @@ class performanceStream {
 	static void removeAllCurrUsers();
 	static bool addPredCostRequest(perfStreamHandle,u_int&,
 				       metricHandle,resourceListHandle,u_int);
+        // trace data streams
+        void callTraceFunc(metricInstanceHandle,
+                            void *, int);
+        void flushTraceBuffer(); 
+        static void addTraceUser(perfStreamHandle psh);
+        static void removeTraceUser(perfStreamHandle psh);
 
 	// send data to client thread
 	// static flushBuffer(perfStreamHandle psh);
@@ -145,6 +151,12 @@ class performanceStream {
 	vector<dataValueType>	*my_buffer;	// buffer of dataValues
 	vector<predCostType*>   pred_Cost_buff; // outstanding predCost events
 	static u_int 		next_id;
+        // trace data streams
+        u_int                   num_trace_mis;   // num MI's for trace
+        u_int                   my_traceBuffer_size; // fixed; 10
+        u_int                   next_traceBuffer_loc; // next buffer loc. to fill
+        vector<traceDataValueType>   *my_traceBuffer; // buffer of trace data
+        bool                    reallocTraceBuffer();  
 	// dictionary rather than vector since perfStreams can be destroyed
 	static dictionary_hash<perfStreamHandle,performanceStream*> allStreams;
 	bool			reallocBuffer();

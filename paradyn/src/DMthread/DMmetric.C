@@ -48,6 +48,9 @@ extern "C" {
 extern void histDataCallBack(sampleValue*, timeStamp, int, int, void*, bool);
 extern void histFoldCallBack(timeStamp, void*, bool);
 
+// trace data streams
+extern void traceDataCallBack(void*, int, void*);
+
 metric::metric(T_dyninstRPC::metricInfo i){
 
     if(allMetrics.defines(i.name)) return;
@@ -170,6 +173,9 @@ metricInstance::metricInstance(resourceListHandle rl,
     metricInstance::curr_phase_id = ph;
     id = next_id++;
     allMetricInstances[id] = this;
+
+    // trace data streams
+    traceFunc = 0;
 }
 
 metricInstance::~metricInstance() {
@@ -273,6 +279,22 @@ void metricInstance::removeGlobalUser(perfStreamHandle ps){
 	    // decrease ps's data buffer size
 	    performanceStream::removeGlobalUser(ps);
 	    return;
+    } }
+}
+
+// trace data streams
+void metricInstance::removeTraceUser(perfStreamHandle ps){
+
+    // remove ps from vector of users
+    unsigned size = trace_users.size();
+    for(unsigned i=0; i < size; i++){
+        if(trace_users[i] == ps){
+            trace_users[i] = trace_users[size-1];
+            trace_users.resize(size-1);
+            assert(trace_users.size() < size);
+            // decrease ps's data buffer size
+            performanceStream::removeTraceUser(ps);
+            return;
     } }
 }
 
@@ -491,6 +513,24 @@ void metricInstance::addGlobalUser(perfStreamHandle p) {
     assert(global_users.size());
     // update buffersize for perfStream
     performanceStream::addGlobalUser(p);
+}
+
+// trace data streams
+void metricInstance::addTraceUser(perfStreamHandle p) {
+
+    for(unsigned i=0; i < trace_users.size(); i++){
+        if(trace_users[i] == p) return;
+    }
+    trace_users += p;
+    assert(trace_users.size());
+    // update buffersize for perfStream
+    performanceStream::addTraceUser(p);
+
+}
+
+// trace data streams
+void metricInstance::newTraceDataCollection(dataCallBack2 dcb) {
+    assignTraceFunc(dcb);
 }
 
 void metricInstance::newGlobalDataCollection(metricStyle style, 

@@ -57,4 +57,14 @@ typedef struct dataValueT dataValueType;
 
 extern BufferPool<dataValueType> datavalues_bufferpool; 
 
+// This is a buffer pool for trace data values
+// it is used between the DM and its client threads
+struct traceDataValueT{
+    metricInstanceHandle mi;
+    byteArray traceRecord;
+};
+typedef struct traceDataValueT traceDataValueType;
+
+extern BufferPool<traceDataValueType> tracedatavalues_bufferpool;
+
 #endif

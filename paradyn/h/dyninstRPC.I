@@ -69,6 +69,22 @@ $ignore
 $ignore
 };
 
+// trace data streams
+$remote
+struct trace_batch_buffer_entry {
+   int mid;
+   u_int length;
+   byteArray traceRecord;
+
+$ignore
+   trace_batch_buffer_entry &operator=(const trace_batch_buffer_entry &src) {
+      mid = src.mid;
+      length = src.length;
+      traceRecord = src.traceRecord;
+      return *this;
+   }
+$ignore
+};
 
 /* used by paradynd to inform a change in the status of an application. */
 // typedef enum { procPaused, procExited } processStatus_t;
@@ -509,6 +525,14 @@ $remote dynRPC {
    $virtual $upcall $async
    void batchSampleDataCallbackFunc(int program,
 	                            vector<batch_buffer_entry> theBatchBuffer);
+
+   // batch the traces (paradynd-->paradyn) to get better performance
+   // the functionality is essentially the same as the 
+   // batchSampleDataCallbackFunc, which is now obsolete
+
+   $virtual $upcall $async
+   void batchTraceDataCallbackFunc(int program,
+                                    vector<trace_batch_buffer_entry> theTraceBatchBuffer);
 
    //
    // XXXX - Hack this should be generalized into a vector.

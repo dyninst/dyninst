@@ -47,9 +47,12 @@
 */
 
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.77  1997/01/30 18:07:21  tamches
-/* attach no longer takes in a dir
+/* Revision 1.78  1997/04/21 16:54:15  hseom
+/* added support for trace data
 /*
+ * Revision 1.77  1997/01/30 18:07:21  tamches
+ * attach no longer takes in a dir
+ *
  * Revision 1.76  1997/01/16 21:57:56  tamches
  * extra params to attach for dir + prog-name
  *
@@ -637,7 +640,8 @@ int ParadynEnableCmd (ClientData,
     metric_focus_pair new_request_entry(*met,*resList);
     *request += new_request_entry;
     assert(request->size() == 1);
-    dataMgr->enableDataRequest(uim_ps_handle,request,0,GlobalPhase,0,0,0,0);
+    // 0 is used as the second parameter for non-trace use 
+    dataMgr->enableDataRequest(uim_ps_handle,0,request,0,GlobalPhase,0,0,0,0);
 
     // KLUDGE: wait for async response from DM
     bool ready=false;

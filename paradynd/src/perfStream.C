@@ -70,6 +70,9 @@ extern "C" {
 #include "paradynd/src/main.h"
 #include "util/h/debugOstream.h"
 
+// trace data streams
+#include "util/h/Dictionary.h"
+
 // The following were all defined in process.C (for no particular reason)
 extern debug_ostream attach_cerr;
 extern debug_ostream inferiorrpc_cerr;
@@ -157,6 +160,11 @@ extern bool BURST_HAS_COMPLETED;
 
 extern vector<process*> processVec;
 extern process* findProcess(int); // should become a static method of class process
+
+// trace data streams
+extern bool TRACE_BURST_HAS_COMPLETED;
+unsigned mid_hash(const unsigned &mid) {return mid;}
+dictionary_hash<unsigned, unsigned> traceOn(mid_hash);
 
 // Read trace data from process curr.
 void processTraceStream(process *curr)
@@ -273,10 +281,10 @@ void processTraceStream(process *curr)
 
 #ifndef SHM_SAMPLING
 	    case TR_SAMPLE:
-		//metric_cerr << "got something from pid " << curr->getPid() << endl;
+		// metric_cerr << "got something from pid " << curr->getPid() << endl;
 
-		// sprintf(errorLine, "Got data from process %d\n", curr->pid);
-		// logLine(errorLine);
+		 // sprintf(errorLine, "Got data from process %d\n", curr->getPid());
+		 // logLine(errorLine);
 //		assert(curr->getFirstRecordTime());
 		processSample(curr->getPid(), &header, (traceSample *) ((void*)recordData));
 		   // in metric.C
@@ -316,6 +324,12 @@ void processTraceStream(process *curr)
 		}
 		break;
 
+            case TR_DATA:
+                extern void batchTraceData(int, int, int, char *);
+                batchTraceData(0, sid, header.length, recordData);
+                traceOn[sid] = 1;
+                break;
+
 	    default:
 		sprintf(errorLine, "Got unknown record type %d on sid %d\n", 
 		    header.type, sid);
@@ -325,6 +339,20 @@ void processTraceStream(process *curr)
 	}
     }
     BURST_HAS_COMPLETED = true; // will force a batch-flush very soon
+
+    // trace data streams
+    for (unsigned w = 0; w<traceOn.keys().size(); w++) {
+        if (traceOn.values()[w]) {
+             extern void batchTraceData(int, int, int, char *);
+             int k;
+	     TRACE_BURST_HAS_COMPLETED = true;
+	     // will force a trace-batch-flush very soon
+             batchTraceData(0, (k = traceOn.keys()[w]), 0, (char *)NULL);
+             traceOn[k] = 0;
+             //sprintf(errorLine, "$$$Tag burst with mid %d\n", k);
+             //logLine(errorLine);
+        }
+    }
 
     /* copy those bits we have to the base */
     memcpy(curr->buffer, &(curr->buffer[curr->bufStart]), 

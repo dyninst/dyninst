@@ -69,6 +69,10 @@ performanceStream::performanceStream(dataType t,
     allStreams[handle] = this;
     nextpredCostReqestId = 0;
     pred_Cost_buff.resize(0);
+    // trace data streams
+    my_traceBuffer_size = 0;
+    next_traceBuffer_loc = 0;
+    my_traceBuffer = 0;
 }
 
 performanceStream::~performanceStream(){
@@ -76,6 +80,9 @@ performanceStream::~performanceStream(){
     allStreams.undef(handle);
     datavalues_bufferpool.dealloc(my_buffer);
     my_buffer = 0;
+    // trace data streams
+    tracedatavalues_bufferpool.dealloc(my_traceBuffer);
+    my_traceBuffer = 0;
 }
 
 
@@ -87,6 +94,18 @@ bool performanceStream::reallocBuffer(){
 	if(!my_buffer) return false;
 	assert(my_buffer);
 	assert(my_buffer->size() >= my_buffer_size);
+    }
+    return true;
+}
+
+bool performanceStream::reallocTraceBuffer(){
+    // reallocate a buffer of size my_traceBuffer_size
+    assert(!my_traceBuffer);
+    if(my_traceBuffer_size){
+        my_traceBuffer = tracedatavalues_bufferpool.alloc(my_traceBuffer_size);
+        if(!my_traceBuffer) return false;
+        assert(my_traceBuffer);
+        assert(my_traceBuffer->size() >= my_traceBuffer_size);
     }
     return true;
 }
@@ -105,6 +124,22 @@ void performanceStream::flushBuffer(){
     }
     next_buffer_loc = 0;
     my_buffer = 0;
+}
+
+//
+// send buffer of trace data values to client
+//
+void performanceStream::flushTraceBuffer(){
+
+    // send data to client
+    if(next_traceBuffer_loc){
+        assert(my_traceBuffer);
+        dataManager::dm->setTid(threadId);
+        dataManager::dm->newTracePerfData(dataFunc.trace,
+                                     my_traceBuffer,next_traceBuffer_loc);
+    }
+    next_traceBuffer_loc = 0;
+    my_traceBuffer = 0;
 }
 
 // 
@@ -134,6 +169,31 @@ void performanceStream::callSampleFunc(metricInstanceHandle mi,
 		assert(!my_buffer);
 	    }
 	}
+    }
+}
+
+//
+// fills up trace buffer with new trace data values and flushs the buffer if
+// it is full
+//
+void performanceStream::callTraceFunc(metricInstanceHandle mi,
+                                      void *data,
+                                      int length)
+{
+    if (dataFunc.trace) {
+        if(!my_traceBuffer) {
+            if (!this->reallocTraceBuffer()) assert(0);
+                assert(my_traceBuffer);
+        }
+        (*my_traceBuffer)[next_traceBuffer_loc].mi = mi;
+        (*my_traceBuffer)[next_traceBuffer_loc].traceRecord = byteArray(data,length);
+        next_traceBuffer_loc++;
+//      if(next_traceBuffer_loc >= my_traceBuffer_size) {
+          if(next_traceBuffer_loc >= my_traceBuffer_size || length == 0) {
+            this->flushTraceBuffer();
+            assert(!next_traceBuffer_loc);
+            assert(!my_traceBuffer);
+        }
     }
 }
 
@@ -324,6 +384,29 @@ void performanceStream::addGlobalUser(perfStreamHandle p){
     }
 }
 
+//  if my_traceBuffer has data values, flush it
+//  then increase num_trace_mis count
+//  however, my_traceBuffer_size remains same (10)
+void performanceStream::addTraceUser(perfStreamHandle p){
+
+    performanceStream *ps = performanceStream::find(p);
+    if(!ps) return;
+    if(ps->next_traceBuffer_loc && ps->my_traceBuffer){
+        ps->flushTraceBuffer();
+        assert(!(ps->my_traceBuffer));
+        assert(!(ps->next_traceBuffer_loc));
+    }
+    ps->num_trace_mis++;
+//    if(ps->my_traceBuffer_size < DM_DATABUF_LIMIT) {
+//        ps->my_traceBuffer_size++;
+//    }
+    if(ps->num_trace_mis){
+        ps->my_traceBuffer_size = 10;
+        assert(ps->my_traceBuffer_size);
+    }
+
+}
+
 //
 // if my_buffer has data values, flush it, then decrease its size
 //
@@ -395,6 +478,34 @@ void performanceStream::removeAllCurrUsers(){
 	   assert(ps->my_buffer_size);
        }
    }
+}
+
+//
+// if my_traceBuffer has data values, flush it
+// if num_trace_mis becomes 0, set my_traceBuffer_size to 0 
+//
+void performanceStream::removeTraceUser(perfStreamHandle p){
+
+    performanceStream *ps = performanceStream::find(p);
+    if(!ps) return;
+    if(ps->next_traceBuffer_loc && ps->my_traceBuffer){
+        ps->flushTraceBuffer();
+        assert(!(ps->my_traceBuffer));
+        assert(!(ps->next_traceBuffer_loc));
+    }
+    if(ps->num_trace_mis && ps->my_traceBuffer_size){
+        ps->num_trace_mis--;
+        if(ps->num_trace_mis < DM_DATABUF_LIMIT){
+            if(ps->my_traceBuffer_size) ps->my_traceBuffer_size--;
+        }
+    }
+    if(ps->num_trace_mis){
+        assert(ps->my_traceBuffer_size);
+    }
+    else
+        ps->my_traceBuffer_size = 0;
+
+
 }
 
 //

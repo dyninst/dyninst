@@ -111,6 +111,52 @@ void flush_buffer_if_nonempty(VISIGlobalsStruct *ptr) {
     ptr->buffer_next_insert_index = 0;
 }
 
+// trace data streams
+void flush_traceBuffer_if_full(VISIGlobalsStruct *ptr) {
+   assert(ptr->buffer_next_insert_index <= ptr->traceBuffer.size());
+   if (ptr->buffer_next_insert_index != ptr->traceBuffer.size())
+      return;
+
+   ptr->visip->TraceData(ptr->traceBuffer);
+
+   if (ptr->visip->did_error_occur()) {
+      PARADYN_DEBUG(("igen: after visip->TraceData() in VISIthreadTraceDataHandler"));
+      ptr->quit = 1;
+      return;
+   }
+   ptr->buffer_next_insert_index = 0;
+}
+
+// trace data streams
+void flush_traceBuffer_if_nonempty(VISIGlobalsStruct *ptr) {
+   const unsigned num_to_send = ptr->buffer_next_insert_index;
+   assert(num_to_send <= ptr->traceBuffer.size());
+
+   if (num_to_send == 0){
+      ptr->buffer_next_insert_index = 0;
+      return;
+   }
+
+   if (num_to_send < ptr->traceBuffer.size()) {
+      // send less than the full buffer --> need to make a temporary buffer
+      // Make sure this doesn't happen on the critical path!
+      vector<T_visi::traceDataValue> temp(num_to_send);
+      for (unsigned i = 0; i < num_to_send; i++)
+         temp[i] = ptr->traceBuffer[i];
+      ptr->visip->TraceData(temp);
+   }
+   else
+      ptr->visip->TraceData(ptr->traceBuffer);
+
+   if (ptr->visip->did_error_occur()) {
+      PARADYN_DEBUG(("igen: after visip->TraceData() in VISIthreadTracceDataHandler"));
+      ptr->buffer_next_insert_index = 0;
+      ptr->quit = 1;
+      return;
+    }
+    ptr->buffer_next_insert_index = 0;
+}
+
 /////////////////////////////////////////////////////////////
 //  VISIthreadDataHandler: routine to handle data values from 
 //    the datamanger to the visualization  
@@ -199,6 +245,96 @@ void VISIthreadDataCallback(vector<dataValueType> *values,
 
 }
 
+/////////////////////////////////////////////////////////////
+//  VISIthreadTraceDataHandler: routine to handle trace data values from
+//    the datamanger to the visualization
+//
+//  adds the data value to it's local buffer and if the buffer
+//  is full sends it to the visualization process
+/////////////////////////////////////////////////////////////
+void VISIthreadTraceDataHandler(metricInstanceHandle mi,
+                            byteArray value){
+
+  VISIthreadGlobals *ptr;
+  if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
+      PARADYN_DEBUG(("thr_getspecific in VISIthreadDataCallback"));
+      ERROR_MSG(13,"thr_getspecific in VISIthread::VISIthreadDataCallback");
+      return;
+  }
+
+  if(ptr->start_up || ptr->quit) // process has not been started or has exited
+      return;
+
+  // if visi has not allocated buffer space yet
+  if(!(ptr->traceBuffer.size())){
+      return;
+  }
+
+  if(ptr->buffer_next_insert_index >= ptr->traceBuffer.size()) {
+      PARADYN_DEBUG(("buffer_next_insert_index out of range: VISIthreadTraceDataCallback"));
+      ERROR_MSG(16,"buffer_next_insert_index out of range: VISIthreadTraceDataCallback");
+      ptr->quit = 1;
+      return;
+  }
+
+  // find metricInstInfo for this metricInstanceHandle
+  metricInstInfo *info = NULL;
+  for(unsigned i=0; i < ptr->mrlist.size(); i++){
+      if(ptr->mrlist[i].mi_id == mi){
+          info = &(ptr->mrlist[i]);
+      }
+  }
+  if(!info) return;  // just ignore values
+
+  // add data value to buffer
+T_visi::traceDataValue &traceBufferEntry = ptr->traceBuffer[ptr->buffer_next_insert_index++];
+  traceBufferEntry.metricId = info->m_id;
+  traceBufferEntry.resourceId = info->r_id;
+  traceBufferEntry.traceDataRecord = value;
+
+  //flush_buffer_if_full(ptr);
+  flush_traceBuffer_if_full(ptr);
+  if (!value.length())
+    flush_traceBuffer_if_nonempty(ptr);
+
+  info = 0;
+}
+
+
+/////////////////////////////////////////////////////////////
+//  VISIthreadTraceDataCallback: Callback routine for DataManager
+//    newTracePerfData Upcall
+//
+/////////////////////////////////////////////////////////////
+void VISIthreadTraceDataCallback(perfStreamHandle handle,
+                            metricInstanceHandle mi,
+                            timeStamp time,
+                            int num_values,
+                            void *values){
+
+
+  VISIthreadGlobals *ptr;
+  if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
+      PARADYN_DEBUG(("thr_getspecific in VISIthreadTraceDataCallback"));
+      ERROR_MSG(13,"thr_getspecific in VISIthread::VISIthreadTraceDataCallback");
+      return;
+  }
+
+  if(!ptr) return;
+
+  // if visi process has not been started yet or if visi process has exited
+  if(ptr->start_up || ptr->quit)  return;
+
+    vector<traceDataValueType> *traceValues =
+      (vector<traceDataValueType> *)values;
+  if (traceValues->size() < num_values) num_values = traceValues->size();
+  for(unsigned i=0; i < num_values;i++){
+      VISIthreadTraceDataHandler((*traceValues)[i].mi,
+                            (*traceValues)[i].traceRecord);
+  }
+  tracedatavalues_bufferpool.dealloc(traceValues);
+
+}
 
 /////////////////////////////////////////////////////////
 //  VISIthreadnewMetricCallback: callback for dataManager
@@ -455,7 +591,7 @@ bool VISIMakeEnableRequest(){
   }
   ptr->first_in_curr_request = ptr->next_to_enable;
   ptr->next_to_enable += request_size;
-  ptr->dmp->enableDataRequest(ptr->ps_handle, metResParts,0,
+  ptr->dmp->enableDataRequest(ptr->ps_handle, ptr->pt_handle, metResParts,0,
 			      ptr->args->phase_type,
 			      ptr->args->my_phaseId,0,0,0);
   return true;
@@ -654,9 +790,15 @@ void VISIthreadEnableCallback(vector<metricInstInfo> *response, u_int){
         // increase the buffer size
         flush_buffer_if_nonempty(ptr);
 
+        // trace data streams
+        flush_traceBuffer_if_nonempty(ptr);
+
         unsigned newMaxBufferSize = min(ptr->buffer.size()+numEnabled,
 					DM_DATABUF_LIMIT);
         ptr->buffer.resize(newMaxBufferSize); // new
+
+        // trace data streams
+        ptr->traceBuffer.resize(10); // new
 
         // if this is the first set of enabled values, start visi process
         if(ptr->start_up){
@@ -811,6 +953,33 @@ void *VISIthreadmain(void *vargs){
 
   PARADYN_DEBUG(("perf. stream = %d in visithread",(int)globals->ps_handle));
 
+  // trace data streams
+  // set control tracecallback routines
+  controlCallback tracecallbacks;
+  tracecallbacks.mFunc = VISIthreadnewMetricCallback;
+  tracecallbacks.rFunc = VISIthreadnewResourceCallback;
+  tracecallbacks.fFunc = 0;
+  tracecallbacks.pFunc = 0;
+  tracecallbacks.sFunc = 0;
+  tracecallbacks.bFunc = 0;
+  tracecallbacks.cFunc = 0;
+  tracecallbacks.eFunc = VISIthreadEnableCallback;
+
+  PARADYN_DEBUG(("before create performance stream in visithread"));
+
+  // create trace performance stream
+  union dataCallback traceDataHandlers;
+  traceDataHandlers.trace = VISIthreadTraceDataCallback;
+  if((globals->pt_handle = globals->dmp->createPerformanceStream(
+                   Trace,traceDataHandlers,tracecallbacks)) == 0){
+      PARADYN_DEBUG(("Error in createPerformanceStream"));
+      ERROR_MSG(15,"Error in VISIthreadchooseMetRes: createPerformanceStream");
+      globals->quit = 1;
+  }
+
+  PARADYN_DEBUG(("perf. stream = %d in visithread",(int)globals->pt_handle));
+
+
   if (thr_setspecific(visiThrd_key, globals) != THR_OKAY) {
       PARADYN_DEBUG(("Error in thr_setspecific"));
       ERROR_MSG(14,"Error in VISIthreadmain: thr_setspecific");
@@ -913,12 +1082,22 @@ void *VISIthreadmain(void *vargs){
 	metricInstanceHandle handle = globals->mrlist[i].mi_id;
         globals->dmp->disableDataCollection(globals->ps_handle,handle,
 					    globals->args->phase_type);
+        // trace data streams
+        globals->dmp->disableDataCollection(globals->pt_handle,handle,
+                                            globals->args->phase_type);
+
   }
 
   PARADYN_DEBUG(("before destroy perfomancestream"));
   if(!(globals->dmp->destroyPerformanceStream(globals->ps_handle))){
       ERROR_MSG(16,"remove() in VISIthreadmain");
   }
+
+  // trace data streams
+  if(!(globals->dmp->destroyPerformanceStream(globals->pt_handle))){
+      ERROR_MSG(16,"remove() in VISIthreadmain");
+  }
+
 
   // notify UIM that VISIthread is dying 
   globals->ump->threadExiting();

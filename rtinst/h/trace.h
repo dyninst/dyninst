@@ -107,6 +107,9 @@ typedef struct _traceHeader traceHeader;
 
 
 #define TR_NEW_MEMORY           15
+/* trace data streams */
+#define TR_DATA                 16
+
 /* types for resources that may be reported */
 #define RES_TYPE_INT    0
 #define RES_TYPE_STRING 1

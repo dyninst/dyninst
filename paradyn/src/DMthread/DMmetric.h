@@ -57,6 +57,10 @@
 #include "DMdaemon.h"
 #include "paradyn/src/TCthread/tunableConst.h"
 
+// trace data streams
+typedef void (*dataCallBack2)(void *data,
+                             int length,
+                             void *userData);
 
 class metricInstance;
 
@@ -144,11 +148,13 @@ class metricInstance {
     friend class paradynDaemon;
     friend void histDataCallBack(sampleValue *buckets, timeStamp, int count, 
 				 int first, void *arg, bool globalFlag);
-    friend void DMdoEnableData(perfStreamHandle,vector<metricRLType> *,
+    friend void DMdoEnableData(perfStreamHandle,perfStreamHandle,vector<metricRLType> *,
 			       u_int,phaseType,phaseHandle,u_int,u_int,u_int);
     friend void DMenableResponse(DM_enableType&,vector<bool>&);
     friend void DMdisableRoutine(perfStreamHandle,metricInstanceHandle,
 				 phaseType);
+    // trace data streams
+    friend void traceDataCallBack(void *data, int length, void *arg);
     public:
 	metricInstance(resourceListHandle rl, metricHandle m,phaseHandle ph);
 	~metricInstance(); 
@@ -188,6 +194,15 @@ class metricInstance {
              if(global_data)
 		 global_data->addInterval(s,e,v,b);
 	}
+        
+        // trace data streams
+        void sendTraceData(void *data, int length) {
+            if(traceFunc)
+                (traceFunc)(data,length,this);
+        }
+        void assignTraceFunc(dataCallBack2 dcb) {
+            traceFunc = dcb;
+        }
 
         bool isCurrHistogram(){if (data) return(true); else return(false);}
 	bool isGlobalHistogram(){ 
@@ -287,6 +302,10 @@ class metricInstance {
 	// is currently being collected for the histogram)
 	static u_int num_curr_hists; // num of curr. phase active histograms 
 	static u_int num_global_hists; // num of global phase active histograms 
+        
+        // trace data streams
+        vector<perfStreamHandle> trace_users;  // subscribers to trace data
+        dataCallBack2 traceFunc;
 
         static metricInstance *getMI(metricInstanceHandle);
 	static metricInstance *find(metricHandle, resourceListHandle);
@@ -299,6 +318,12 @@ class metricInstance {
         void removeGlobalUser(perfStreamHandle);
         void removeCurrUser(perfStreamHandle);
 	bool deleteCurrHistogram();
+
+        // trace data streams
+        void newTraceDataCollection(dataCallBack2);
+        void addTraceUser(perfStreamHandle p);
+        void removeTraceUser(perfStreamHandle);
+
 	resourceList *getresourceList(){return(resourceList::getFocus(focus));}
 };
 #endif

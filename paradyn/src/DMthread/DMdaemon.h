@@ -48,6 +48,8 @@
 #include "util/h/Vector.h"
 #include "util/h/Dictionary.h"
 #include "util/h/String.h"
+// trace data streams
+#include "util/h/ByteArray.h"
 #include "util/h/machineType.h"
 #include "dataManager.thread.h"
 #include "dataManager.thread.SRVR.h"
@@ -70,10 +72,10 @@ class DM_enableType{
     friend class phaseInfo;
     friend void DMenableResponse(DM_enableType&,vector<bool>&);
  public: 
-    DM_enableType(perfStreamHandle ph,phaseType t,phaseHandle ph_h,
+    DM_enableType(perfStreamHandle ph,perfStreamHandle pth,phaseType t,phaseHandle ph_h,
 		  u_int rI,u_int cI,vector <metricInstance *> *r,
 		  vector <bool> *d,vector <bool> *e,u_int h,u_int pd,u_int pc,
-		  u_int ppd): ps_handle(ph),ph_type(t), ph_handle(ph_h),
+		  u_int ppd): ps_handle(ph),pt_handle(pth),ph_type(t), ph_handle(ph_h),
 		  request_id(rI), client_id(cI), request(r),done(d),enabled(e),
 		  how_many(h), persistent_data(pd), persistent_collection(pc),
 		  phase_persistent_data(ppd), not_all_done(0) { 
@@ -81,7 +83,7 @@ class DM_enableType{
 			       if(!(*done)[i]) not_all_done++;
 			   }
     }
-    DM_enableType(){ ps_handle = 0; ph_type = GlobalPhase; ph_handle= 0; 
+    DM_enableType(){ ps_handle = 0; pt_handle = 0; ph_type = GlobalPhase; ph_handle= 0; 
 		request_id = 0; client_id = 0; request = 0; done = 0; 
 		enabled = 0; how_many =0; persistent_data = 0; 
 		persistent_collection = 0; phase_persistent_data = 0; 
@@ -96,6 +98,7 @@ class DM_enableType{
 
  private:
     perfStreamHandle ps_handle;  // client thread
+    perfStreamHandle pt_handle;  // client thread for traces
     phaseType ph_type;           // phase type assoc. with enable request
     phaseHandle ph_handle;       // phase id, used if request is for curr phase
     u_int request_id;            // DM assigned enable request identifier
@@ -189,7 +192,7 @@ class paradynDaemon: public dynRPCUser {
 	friend void newSampleRate(float rate);
 	friend bool metDoDaemon();
 	friend int dataManager::DM_post_thread_create_init(int tid);
-	friend void DMdoEnableData(perfStreamHandle,vector<metricRLType>*,
+	friend void DMdoEnableData(perfStreamHandle,perfStreamHandle,vector<metricRLType>*,
 				 u_int,phaseType,phaseHandle,u_int,u_int,u_int);
     public:
 	paradynDaemon(const string &m, const string &u, const string &c,
@@ -205,6 +208,9 @@ class paradynDaemon: public dynRPCUser {
 	virtual void reportSelf (string m, string p, int pd, string flav);
 	virtual void batchSampleDataCallbackFunc(int program,
                                vector<T_dyninstRPC::batch_buffer_entry>);
+        // trace data streams
+        virtual void batchTraceDataCallbackFunc(int program,
+                               vector<T_dyninstRPC::trace_batch_buffer_entry>);
 
 	virtual void cpDataCallbackFunc(int, double, int, double, double);
 

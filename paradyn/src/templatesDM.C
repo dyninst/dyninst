@@ -138,6 +138,10 @@ template class vector<predCostType*>;
 template class vector<DM_enableType*>;
 template class vector<metricRLType>;
 
+// trace data streams
+template class vector<traceDataValueType>;
+template class BufferPool<traceDataValueType>;
+
 
 template class dictionary<string, resource*>;
 template class dictionary_hash<string, resource*>;
@@ -204,6 +208,10 @@ template class ListItem<sampleInfo*>;
 
 template class vector<T_dyninstRPC::batch_buffer_entry>;
 template bool_t T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::batch_buffer_entry> *, int (*)(XDR *, T_dyninstRPC::batch_buffer_entry *), T_dyninstRPC::batch_buffer_entry *) ;
+
+// trace data streams
+template class vector<T_dyninstRPC::trace_batch_buffer_entry>;
+template bool_t T_dyninstRPC_P_xdr_stl(XDR *, vector<T_dyninstRPC::trace_batch_buffer_entry> *, int (*)(XDR *, T_dyninstRPC::trace_batch_buffer_entry *), T_dyninstRPC::trace_batch_buffer_entry *) ;
 
 ///* ******************************************* */
 //

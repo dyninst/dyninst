@@ -60,6 +60,8 @@ double   quiet_nan();
 #include "util/h/Vector.h"
 #include "util/h/Dictionary.h"
 #include "util/h/String.h"
+// trace data streams
+#include "util/h/ByteArray.h"
 #include "DMphase.h"
 
 typedef vector<string> blahType;
@@ -94,10 +96,15 @@ unsigned paradynDaemon::procRunning;
 vector<resourceList *> resourceList::foci;
 vector<phaseInfo *> phaseInfo::dm_phases;
 u_int metricInstance::next_id = 1;
-u_int performanceStream::next_id = 0;
+// u_int performanceStream::next_id = 0;
 vector<DM_enableType*> paradynDaemon::outstanding_enables;  
 u_int paradynDaemon::next_enable_id = 0;  
 u_int paradynDaemon::count = 0;
+
+// to distinguish the enableDataRequest calls only for samples 
+// from those for both samples and traces 
+// 0 is reserved for non-trace use
+u_int performanceStream::next_id = 1;
 
 resource *resource::rootResource = new resource();
 timeStamp metricInstance::curr_bucket_width;
@@ -302,6 +309,11 @@ void DMenableResponse(DM_enableType &enable,vector<bool> &successful){
 					        histDataCallBack,
 					        histFoldCallBack);
 	        mis[i]->addCurrentUser(enable.ps_handle);
+
+                // trace data streams
+                mis[i]->newTraceDataCollection(traceDataCallBack);
+                mis[i]->addTraceUser(enable.pt_handle);
+
 		// set sample rate to match current phase hist. bucket width
 	        if(!metricInstance::numCurrHists()){
 	            float rate = phaseInfo::GetLastBucketWidth();
@@ -325,6 +337,10 @@ void DMenableResponse(DM_enableType &enable,vector<bool> &successful){
 					        histDataCallBack,
 					        histFoldCallBack);
 	        mis[i]->addGlobalUser(enable.ps_handle);
+
+                // trace data streams
+                mis[i]->newTraceDataCollection(traceDataCallBack);
+                mis[i]->addTraceUser(enable.pt_handle);
 
 		// if this is first global histogram enabled and there are no
 	        // curr hists, then set sample rate to global bucket width
@@ -390,6 +406,13 @@ void DMenableResponse(DM_enableType &enable,vector<bool> &successful){
     while(allS.next(h,ps)){
 	if(h == (perfStreamHandle)(enable.ps_handle)){
 	    ps->callDataEnableFunc(response,enable.client_id);
+            return;
+    } }
+    // trace data streams
+    allS.reset();
+    while(allS.next(h,ps)){
+        if(h == (perfStreamHandle)(enable.pt_handle)){
+            ps->callDataEnableFunc(response,enable.client_id);
             return;
     } }
     response = 0;
@@ -656,6 +679,13 @@ void dynRPCUser::cpDataCallbackFunc(int,double,int,double,double)
 // batch the sample delivery
 void dynRPCUser::batchSampleDataCallbackFunc(int,
 		    vector<T_dyninstRPC::batch_buffer_entry>)
+{
+    assert(0 && "Invalid virtual function");
+}
+
+// batch the trace delivery
+void dynRPCUser::batchTraceDataCallbackFunc(int,
+                    vector<T_dyninstRPC::trace_batch_buffer_entry>)
 {
     assert(0 && "Invalid virtual function");
 }

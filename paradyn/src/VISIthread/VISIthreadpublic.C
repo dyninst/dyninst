@@ -40,9 +40,15 @@
  */
 
 /* $Log: VISIthreadpublic.C,v $
-/* Revision 1.20  1996/08/16 21:08:49  tamches
-/* updated copyright for release 1.1
+/* Revision 1.21  1997/04/21 16:55:13  hseom
+/* added support for trace data
 /*
+ * Revision 1.1.1.3  1996/09/04 22:57:30  hollings
+ * Paradyn version 1.1 (plus a few small commits)
+ *
+ * Revision 1.20  1996/08/16 21:08:49  tamches
+ * updated copyright for release 1.1
+ *
  * Revision 1.19  1996/04/30 18:55:34  newhall
  * changes to support the asynchrounous enable data calls to the DM
  * this code contains a kludge to make the VISIthread wait for the DM's
@@ -208,6 +214,7 @@ void visualizationUser::StopMetricResource(u_int metricId,
 	  if(ptr->mrlist.size() < ptr->buffer.size()){
               unsigned newMaxBufferSize = ptr->buffer.size() - 1;
               ptr->buffer.resize(newMaxBufferSize);
+              ptr->traceBuffer.resize(10);
 	  }
 
           return;
@@ -215,6 +222,8 @@ void visualizationUser::StopMetricResource(u_int metricId,
       PARADYN_DEBUG(("current list element: metId = %d resId = %d",
 		     ptr->mrlist[i].m_id,ptr->mrlist[i].r_id));
   }
+  if(!size)
+       ptr->traceBuffer.resize(0);
 
 #ifdef DEBUG
   PARADYN_DEBUG(("visualizationUser::StopMetricResource: mi not found\n"));

@@ -48,6 +48,7 @@
 // note: add new event types before FOLD (ie. FOLD is always last type)
 // event types associated with events from Paradyn to a visualization
 // DATAVALUES:  a new set of data has arrived in the datagrid
+// TRACEDATAVALUES:  a new set of trace data has arrived
 // INVALIDMETRICSRESOURCES:  a metric resource combination has become invalid
 // ADDMETRICSRESOURCES:  new metrics have become enabled for a resource
 // PHASESTART:  a new phase has been defined
@@ -56,7 +57,7 @@
 // PARADYNEXITED: the paradyn process has exited
 // FOLD:  the histogram has folded; binWidth has doubled
 //
-typedef enum {DATAVALUES,INVALIDMETRICSRESOURCES,ADDMETRICSRESOURCES,
+typedef enum {DATAVALUES,TRACEDATAVALUES,INVALIDMETRICSRESOURCES,ADDMETRICSRESOURCES,
 	      PHASESTART,PHASEEND,PHASEDATA,PARADYNEXITED,FOLD} visi_msgTag;
 
 typedef float visi_sampleType;

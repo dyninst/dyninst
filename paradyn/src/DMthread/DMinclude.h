@@ -45,6 +45,9 @@
 // this should be the only DM header file included by other modules
 
 #include "util/h/String.h"
+// trace data streams
+#include "util/h/ByteArray.h"
+
 #include "util/h/Vector.h"
 #include "util/h/sys.h"
 // this is an upper limit for data buffering between DM and client threads

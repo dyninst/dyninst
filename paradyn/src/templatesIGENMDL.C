@@ -227,6 +227,8 @@ template class vector<T_visi::dataValue>;
 template class vector<T_visi::visi_matrix>;
 template class vector<T_visi::phase_info>;
 template class vector<float>;
+// trace data streams
+template class vector<T_visi::traceDataValue>;
 template bool_t T_visi_P_xdr_stl(XDR*, vector<string>*, 
 	bool_t (*)(XDR*, string*), string*);
 template bool_t T_visi_P_xdr_stl(XDR*, vector<T_visi::dataValue>*, 
@@ -237,6 +239,8 @@ template bool_t T_visi_P_xdr_stl(XDR*, vector<T_visi::phase_info>*,
 	bool_t (*)(XDR*, T_visi::phase_info*), T_visi::phase_info*);
 template bool_t T_visi_P_xdr_stl(XDR*, vector<float>*, 
 	bool_t (*)(XDR*, float*), float*);
+template bool_t T_visi_P_xdr_stl(XDR*, vector<T_visi::traceDataValue>*,
+        bool_t (*)(XDR*, T_visi::traceDataValue*), T_visi::traceDataValue*);
 template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<string>**, 
 	bool_t (*)(XDR*, string*), string*);
 template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<T_visi::dataValue>**, 
@@ -247,4 +251,6 @@ template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<T_visi::phase_info>**,
 	bool_t (*)(XDR*, T_visi::phase_info*), T_visi::phase_info*);
 template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<float>**, 
 	bool_t (*)(XDR*, float*), float*);
+template bool_t T_visi_P_xdr_stl_PTR(XDR*, vector<T_visi::traceDataValue>**,
+        bool_t (*)(XDR*, T_visi::traceDataValue*), T_visi::traceDataValue*);
 

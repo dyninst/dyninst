@@ -16,9 +16,15 @@
  */
 
 /* $Log: visi.I,v $
-/* Revision 1.16  1996/02/23 17:46:10  tamches
-/* added 2 bool params to StartPhase
+/* Revision 1.17  1997/04/21 16:59:36  hseom
+/* added support for trace data
 /*
+ * Revision 1.1.1.2  1996/09/04 23:08:05  hollings
+ * Paradyn version 1.1 (plus a few small commits)
+ *
+ * Revision 1.16  1996/02/23 17:46:10  tamches
+ * added 2 bool params to StartPhase
+ *
  * Revision 1.15  1995/12/18 23:22:31  newhall
  * changed metric units type so that it can have one of 3 values (normalized,
  * unnormalized or sampled)
@@ -98,6 +104,13 @@ $remote struct dataValue {
   float data;
 };
 
+// trace data streams
+$remote struct traceDataValue {
+  int   metricId;
+  int   resourceId;
+  byteArray traceDataRecord;
+};
+
 $remote struct visi_matrix {
     resourceType res;
     metricType	 met;
@@ -117,6 +130,9 @@ $remote visualization {
 
   // data: list of new data values from Paradyn 
   $async void Data(vector<dataValue> data);  
+
+  // data: list of new trace data values from Paradyn
+  $async void TraceData(vector<traceDataValue> data);
 
   // a fold event from paradyn
   $async void Fold(double newBucketWidth);

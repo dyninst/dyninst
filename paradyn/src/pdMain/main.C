@@ -40,9 +40,12 @@
  */
 
 /* $Log: main.C,v $
-/* Revision 1.46  1996/11/26 16:07:20  naim
-/* Fixing asserts - naim
+/* Revision 1.47  1997/04/21 16:55:52  hseom
+/* added support for trace data
 /*
+ * Revision 1.46  1996/11/26 16:07:20  naim
+ * Fixing asserts - naim
+ *
  * Revision 1.45  1996/08/16 21:13:02  tamches
  * updated copyright for release 1.1
  *
@@ -93,6 +96,9 @@
 #include "util/h/makenan.h"
 #include "paradyn/src/DMthread/BufferPool.h"
 #include "paradyn/src/DMthread/DVbufferpool.h"
+
+// trace data streams
+BufferPool<traceDataValueType>  tracedatavalues_bufferpool;
 
 // maybe this should be a thread, but for now it's a global var.
 BufferPool<dataValueType>  datavalues_bufferpool;

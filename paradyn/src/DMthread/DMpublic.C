@@ -135,6 +135,22 @@ void histFoldCallBack(timeStamp width, void *, bool globalFlag)
     }
 }
 
+// trace data streams
+void traceDataCallBack(void *data,
+                       int length,
+                       void *arg)
+{
+    metricInstance *mi = (metricInstance *) arg;
+    performanceStream *ps = 0;
+    for(unsigned i=0; i < mi->trace_users.size(); i++) {
+         ps = performanceStream::find(mi->trace_users[i]);
+         if(ps) {
+             ps->callTraceFunc(mi->getHandle(),
+                               data,length);
+         }
+    }
+}
+
 
 void dataManager::setResourceSearchSuppress(resourceHandle res, bool newValue)
 {
@@ -369,6 +385,7 @@ resourceHandle *dataManager::getRootResource()
 // make batched enable request to paradyn daemons
 //
 void DMdoEnableData(perfStreamHandle ps_handle,
+                    perfStreamHandle pt_handle,
 		    vector<metricRLType> *request,
 		    u_int request_Id,
 	            phaseType type,
@@ -429,7 +446,7 @@ void DMdoEnableData(perfStreamHandle ps_handle,
    assert(enabled->size() == miVec->size());
    assert(enabled->size() == request->size());
 
-   DM_enableType *new_entry = new DM_enableType(ps_handle,type,phaseId,
+   DM_enableType *new_entry = new DM_enableType(ps_handle,pt_handle,type,phaseId,
 			    paradynDaemon::next_enable_id++,request_Id,
 			    miVec,done,enabled,paradynDaemon::allDaemons.size(),
 			    persistent_data,persistent_collection,
@@ -577,6 +594,7 @@ void dataManager::getMemoryBounds(perfStreamHandle ps_handle,
 //
 // Request to enable a set of metric/focus pairs
 // ps_handle - the perfStreamHandle of the calling thread
+// pt_handle - the perfTraceStreamHandle of the calling thread
 // request   - vector of metic/focus pairs to enable
 // request_Id - identifier passed by calling thread
 // type - which phase type to enable data for
@@ -587,6 +605,7 @@ void dataManager::getMemoryBounds(perfStreamHandle ps_handle,
 //                         phase
 //
 void dataManager::enableDataRequest(perfStreamHandle ps_handle,
+                                    perfStreamHandle pt_handle,
 				    vector<metric_focus_pair> *request,
 				    u_int request_Id,
 			            phaseType type,
@@ -611,6 +630,13 @@ void dataManager::enableDataRequest(perfStreamHandle ps_handle,
 	        ps->callDataEnableFunc(response,request_Id);
 		break;
 	} }
+        // trace data streams
+        allS.reset();
+        while(allS.next(h,ps)){
+            if(h == (perfStreamHandle)(pt_handle)){
+                ps->callDataEnableFunc(response,request_Id);
+                break;
+        }}
 	delete request;
 	response = 0;
 	return;
@@ -625,7 +651,7 @@ void dataManager::enableDataRequest(perfStreamHandle ps_handle,
     }
     assert(request->size() == pairList->size());
 
-    DMdoEnableData(ps_handle,pairList,request_Id,type,phaseId,
+    DMdoEnableData(ps_handle,pt_handle,pairList,request_Id,type,phaseId,
 		  persistent_data,persistent_collection,phase_persistent_data);
     delete request;
     pairList = 0;
@@ -666,7 +692,8 @@ void dataManager::enableDataRequest2(perfStreamHandle ps,
 	return;
       }
 
-    DMdoEnableData(ps,request,request_Id,type,phaseId, persistent_data,
+    // 0 is used as the second parameter for non-trace use
+    DMdoEnableData(ps,0,request,request_Id,type,phaseId, persistent_data,
 		   persistent_collection,phase_persistent_data);    
     
 }
@@ -701,6 +728,9 @@ void DMdisableRoutine(perfStreamHandle handle,
     else {
         mi->removeGlobalUser(handle);
     }
+
+    // trace data streams
+    mi->removeTraceUser(handle);
 
     if (mi->isCollectionPersistent()) {
         // just remove handle from appropriate client list and return
@@ -1220,6 +1250,14 @@ void dataManagerUser::newPerfData(sampleDataCallbackFunc func,
 				  u_int num_data_values){
 
     (func)(data, num_data_values);
+}
+
+// trace data streams
+void dataManagerUser::newTracePerfData(traceDataCallbackFunc func,
+                                  vector<traceDataValueType> *traceData,
+                                  u_int num_traceData_values){
+
+    (func)(0, 0, 0.0, num_traceData_values,traceData);
 }
 
 void dataManagerUser::predictedDataCost(predDataCostCallbackFunc func, 

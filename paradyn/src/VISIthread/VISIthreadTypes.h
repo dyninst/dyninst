@@ -71,6 +71,10 @@ struct VISIGlobalsStruct {
   vector<T_visi::dataValue> buffer;
   u_int buffer_next_insert_index; // same as old bufferSize
 
+  // trace data streams
+  perfStreamHandle pt_handle;
+  vector<T_visi::traceDataValue> traceBuffer;
+
   int fd;
   int quit;
   double bucketWidth;
