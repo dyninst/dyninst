@@ -4,9 +4,12 @@
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
 /* $Log: whereAxis.h,v $
-/* Revision 1.9  1996/01/11 04:43:45  tamches
-/* added necessary Whole Program kludge for getSelections
+/* Revision 1.10  1996/02/15 23:14:53  tamches
+/* added code relating to the new line-GC indirection feature of where4tree
 /*
+ * Revision 1.9  1996/01/11 04:43:45  tamches
+ * added necessary Whole Program kludge for getSelections
+ *
  * Revision 1.8  1995/12/09 04:07:58  tamches
  * added const qualifier to hashFunc
  *
@@ -67,6 +70,8 @@ class whereAxis {
    static GC rootItemTextGC;
    static Tk_3DBorder listboxItem3DBorder;
    static GC listboxItemGC;
+   static GC listboxRayGC;
+   static GC nonListboxRayGC;
 
    // this appears to be the WRONG class for the following vrbles:
    static int listboxBorderPix; // 3
@@ -202,6 +207,12 @@ class whereAxis {
    }
    static GC getListboxItemGC() {
       return listboxItemGC;
+   }
+   static GC getGCforListboxRay() {
+      return listboxRayGC;
+   }
+   static GC getGCforNonListboxRay() {
+      return nonListboxRayGC;
    }
 
    void draw(bool doubleBuffer, bool isXsynchOn) const;

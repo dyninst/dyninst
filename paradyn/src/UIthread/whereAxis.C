@@ -4,9 +4,12 @@
 // A where axis corresponds to _exactly_ one Paradyn abstraction.
 
 /* $Log: whereAxis.C,v $
-/* Revision 1.12  1996/02/11 18:27:47  tamches
-/* Added a check for null rootPtr before drawing
+/* Revision 1.13  1996/02/15 23:14:56  tamches
+/* added code relating to the new line-GC indirection feature of where4tree
 /*
+ * Revision 1.12  1996/02/11 18:27:47  tamches
+ * Added a check for null rootPtr before drawing
+ *
  * Revision 1.11  1996/02/07 19:15:06  tamches
  * removed include of whereAxisMisc.h, except for the test program
  *
@@ -82,8 +85,11 @@ Tk_3DBorder  whereAxis::rootItemTk3DBorder = NULL;
 GC           whereAxis::rootItemTextGC = NULL;
 Tk_3DBorder  whereAxis::listboxItem3DBorder = NULL;
 GC           whereAxis::listboxItemGC = NULL;
+GC           whereAxis::listboxRayGC = NULL;
+GC           whereAxis::nonListboxRayGC = NULL;
 int          whereAxis::listboxBorderPix = 3;
 int          whereAxis::listboxScrollBarWidth = 16;
+
 
 void whereAxis::initializeStaticsIfNeeded() {
    if (theRootItemFontStruct == NULL)
@@ -108,6 +114,12 @@ void whereAxis::initializeStaticsIfNeeded() {
 
    if (listboxItemGC == NULL)
       listboxItemGC = consts.listboxTextGC;
+
+   if (listboxRayGC == NULL)
+      listboxRayGC = consts.listboxRayGC;
+
+   if (nonListboxRayGC == NULL)
+      nonListboxRayGC = consts.subchildRayGC;
 }
 
 whereAxis::whereAxis(Tcl_Interp *in_interp, Tk_Window theTkWindow,
