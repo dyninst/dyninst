@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.6 1994/03/26 19:31:36 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.7 1994/04/01 20:06:42 hollings Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.6  1994/03/26 19:31:36  hollings
+ * Revision 1.7  1994/04/01 20:06:42  hollings
+ * Added ability to start remote paradynd's
+ *
+ * Revision 1.6  1994/03/26  19:31:36  hollings
  * Changed sample time to be consistant.
  *
  * Revision 1.5  1994/03/24  16:41:59  hollings
@@ -522,12 +525,12 @@ void metricDefinitionNode::updateValue(time64 wallTime,
     timeStamp sampleTime;
     struct sampleInterval ret;
     List<metricDefinitionNode*> curr;
-    // extern timeStamp elapsedPauseTime;
+    extern timeStamp elapsedPauseTime;
 
-    // sampleTime = (wallTime - elapsedPauseTime) / 1000000.0; 
+    sampleTime = (wallTime - elapsedPauseTime) / 1000000.0; 
     // commented out elapsedPauseTime because we don't currently stop CM-5
     // node processes. (brought it back jkh 11/9/93).
-    sampleTime = wallTime / 1000000.0; 
+    // sampleTime = wallTime / 1000000.0; 
     assert(value >= -0.01);
 
     if (met->info.style == EventCounter) {

@@ -2,7 +2,10 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.7  1994/03/31 01:57:27  markc
+ * Revision 1.8  1994/04/01 20:06:41  hollings
+ * Added ability to start remote paradynd's
+ *
+ * Revision 1.7  1994/03/31  01:57:27  markc
  * Added support for pauseProcess, continueProcess.  Added pvm interface code.
  *
  * Revision 1.6  1994/03/20  01:53:09  markc
@@ -56,6 +59,8 @@ static dynRPC *init_pvm_code(char *argv[], char *machine, int family,
 static char machine_name[80];
 #endif     
 
+int ready;
+
 main(int argc, char *argv[])
 {
     int i, family, type, well_known_socket, flag;
@@ -72,7 +77,31 @@ main(int argc, char *argv[])
 #ifdef PARADYND_PVM
     tp = init_pvm_code(argv, machine, family, type, well_known_socket, flag);
 #else
-    tp = new dynRPC(0, NULL, NULL);
+    if (!flag) {
+	int pid;
+
+
+	pid = fork();
+	if (pid == 0) {
+	    close(0);
+	    close(1);
+	    close(2);
+
+	    // setup socket
+	    tp = new dynRPC(family, well_known_socket, type, machine, 
+			    NULL, NULL, 0);
+	} else if (pid > 0) {
+	    printf("PARADYND %d\n", pid);
+	    fflush(stdout);
+	    _exit(-1);
+	} else {
+	    fflush(stdout);
+	    exit(-1);
+	}
+    } else {
+	// already setup on this FD.
+	tp = new dynRPC(0, NULL, NULL);
+    }
 #endif
 
     //
@@ -81,6 +110,10 @@ main(int argc, char *argv[])
     stuff = getMetricList();
     for (i=0; i < stuff->count; i++) {
 	tp->newMetricCallback(stuff->elements[i].info);
+	if (tp->callErr < 0) {
+	    printf("RPC error\n");
+	    exit(-1);
+	}
     }
 
     controllerMainLoop();
@@ -319,4 +352,3 @@ PDYND_report_to_paradyn (int pid, int argc, char **argv)
     return 0;
 }
 #endif
-
