@@ -7,18 +7,26 @@ endif
 
 
 set CWD=`pwd`
-echo $CWD
+
+echo ""
+echo ""
 
 cd $CWD/ijpeg
 
-if(-e ijpeg.gz) then
+if(-e ijpeg) then
+	echo "ijpeg is already extracted..."
+else if(-e ijpeg.gz) then
 	echo "gunzip ijpeg.gz"
 	gunzip ijpeg.gz
 endif
 
+echo ""
+echo ""
 echo "../../dyncov $1 --run ./ijpeg -image_file specmun.ppm -compression.quality 90 -compression.optimize_coding 0 -compression.smoothing_factor 90 -difference.image 1 -difference.x_stride 10 -difference.y_stride 10 -verbose 1 -GO.findoptcomp"
-../../dyncov $1 --run ./ijpeg -image_file specmun.ppm -compression.quality 90 -compression.optimize_coding 0 -compression.smoothing_factor 90 -difference.image 1 -difference.x_stride 10 -difference.y_stride 10 -verbose 1 -GO.findoptcomp
+#../../dyncov $1 --run ./ijpeg -image_file specmun.ppm -compression.quality 90 -compression.optimize_coding 0 -compression.smoothing_factor 90 -difference.image 1 -difference.x_stride 10 -difference.y_stride 10 -verbose 1 -GO.findoptcomp
 
+echo ""
+echo ""
 if(-e core) then
         echo "\tThe execution is terminated by Segmentation Fault"
 	rm -rf core
@@ -26,16 +34,27 @@ endif
 
 cd $CWD/cc1
 
-if(-e cc1.gz) then
+echo ""
+echo ""
+if(-e cc1) then
+	echo "cc1 is already extracted..."
+else if(-e cc1.gz) then
 	echo "gunzip cc1.gz"
 	gunzip cc1.gz
 endif
 
+echo ""
+echo ""
 echo "../../dyncov $1 --run ./cc1 `ls *.i`"
-../../dyncov $1 --run ./cc1 `ls *.i`
-rm *.s
+#../../dyncov $1 --run ./cc1 `ls *.i`
 
+echo ""
+echo ""
 if(-e core) then
         echo "\tThe execution is terminated by Segmentation Fault"
 	rm -rf core
 endif
+
+echo ""
+echo ""
+rm -rf *.s
