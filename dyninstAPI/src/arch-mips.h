@@ -48,6 +48,12 @@
 
 /*
  * $Log: arch-mips.h,v $
+ * Revision 1.2  1999/06/09 00:59:05  csserra
+ * mips-sgi-irix6.4:
+ *  - fix API tests
+ *  - fix code generation
+ *  - instrumentation timings
+ *
  * Revision 1.1  1999/03/19 18:06:20  csserra
  * initial mips-sgi-irix6.4 commit
  *
@@ -276,6 +282,9 @@ typedef union instructUnion instruction;
 #define PROC_REG_T3 (CTX_T3)
 #define PROC_REG_T9 (CTX_T9)
 #define PROC_REG_RA (CTX_RA)
+/* calling conventions */
+#define NUM_ARG_REGS (8)
+#define BYTES_PER_ARG (8)
 
 extern char *reg_names[];
 

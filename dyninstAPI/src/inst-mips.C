@@ -87,9 +87,7 @@ Register Dead[] =
     16,     17,     18,     19,     20,     21,     22,     23,  
     24,   /*25,*/   26,     27,     28,     29,     30,   /*31,*/
 };
-  
-Register DeaD[] = {12,13,14,15,16,17,18,19,20,21,22,23,24,26,27,28,29,30};
-const unsigned int nDead = sizeof(Dead);
+const unsigned int nDead = sizeof(Dead) / sizeof(Dead[0]);
 #define MAX_IMM16 ((SignedImm)0x7fff)
 #define MIN_IMM16 ((SignedImm)0x8000)
 
@@ -603,6 +601,11 @@ bool pd_Function::checkInstPoints()
   }
 #endif
 
+
+  // TODO: function relocation not yet implemented
+  if (relocatable_) {
+    return false;
+  }
   return true;
 }
 
@@ -758,11 +761,13 @@ unsigned get_word(const Object &elf, Address a)
 {
   unsigned ret = 0;
   if (a >= elf.code_off() && a < elf.code_off() + (elf.code_len() << 2)) {
+    // TODO: const_cast problem?
     char *base = (char *)const_cast<Word*>(elf.code_ptr());
     char *ptr = base + (a - elf.code_off());
     ret = *(unsigned *)ptr;
     //fprintf(stderr, ">>> get_word(%0#10x): code    => %0#10x\n", a, ret);
   } else if (a >= elf.data_off() && a < elf.data_off() + (elf.data_len() << 2)) {
+    // TODO: const_cast problem?
     char *base = (char *)const_cast<Word*>(elf.data_ptr());
     char *ptr = base + (a - elf.data_off());
     ret = *(unsigned *)ptr;
@@ -1070,29 +1075,31 @@ void genMove(instruction *insn, reg rs, reg rd) {
   genRtype(insn, ORops, rs, REG_ZERO, rd);
 }
 /* set "rd" on "(rs <op> 0)" */
-void genZeroCC(instruction *i, opCode op, reg rs, reg rd, int &cost)
+void genZeroCC(instruction *i, opCode op, reg rs, reg rd, int &ninsns)
 {
   switch (op) {
-  case lessOp: // use "slt" instruction
-    genRtype(i, SLTops, rs, REG_ZERO, rd);
-    cost = 1;
-    return;
+
+  case greaterOp:
+    genItype(i, BGTZLop, rs, 0, 0x2);
+    break;
 
   case leOp:
     genItype(i, BLEZLop, rs, 0, 0x2);
     break;
-  case greaterOp:
-    genItype(i, BGTZLop, rs, 0, 0x2);
-    break;
+
   case geOp:
     genItype(i, REGIMMop, rs, BGEZLopr, 0x2);
     break;
+
   case eqOp:
     genItype(i, BEQLop, rs, REG_ZERO, 0x2);
     break;
+
   case neOp:
     genItype(i, BNELop, rs, REG_ZERO, 0x2);
     break;
+
+  case lessOp: // should never be called
   default:
     assert(0);
   }
@@ -1100,7 +1107,7 @@ void genZeroCC(instruction *i, opCode op, reg rs, reg rd, int &cost)
   genItype(i+1, ORIop, REG_ZERO, rd, 0x1);
   genItype(i+2, ORIop, REG_ZERO, rd, 0x0);
 
-  cost = 1 + 1 + 1; // branch + set + set
+  ninsns = 1 + 1 + 1; // branch + set + set
 }
 
 #define IMM_NBITS ((Address)0x10)
@@ -1238,8 +1245,9 @@ Address emitA(opCode op, Register src1, Register /*src2*/, Register dst,
     // return val : branch insn offset (bytes)
     // TODO: nonzero conditon is true?
     //fprintf(stderr, ">>> emit(ifOp)\n"); 
-    // branch offset is relative to delay slot and has word units
-    word_off_ = (dst - INSN_SIZE) >> 2;
+    // BEQ offset is relative to delay slot and has word units
+    // zero offsets are often used for dummy calls (padding)
+    word_off_ = (dst) ? ((dst - INSN_SIZE) >> 2) : (0);
     assert(word_off_ <= MAX_IMM16);
     word_off = (SignedImm)word_off_;
     ret = base;
@@ -1252,8 +1260,9 @@ Address emitA(opCode op, Register src1, Register /*src2*/, Register dst,
     // "dst"      : branch target offset (bytes)
     // return val : branch insn offset (bytes)
     //fprintf(stderr, ">>> emit(branchOp)\n");
-    // branch offset is relative to delay slot and has word units
-    word_off_ = (dst - INSN_SIZE) >> 2;
+    // BEQ offset is relative to delay slot and has word units
+    // zero offsets are often used for dummy calls (padding)
+    word_off_ = (dst) ? ((dst - INSN_SIZE) >> 2) : (0);
     assert(word_off_ <= MAX_IMM16);
     word_off = (SignedImm)word_off_;
     ret = base;
@@ -1268,21 +1277,14 @@ Address emitA(opCode op, Register src1, Register /*src2*/, Register dst,
     break;
 
   case trampTrailer:
-    // "dst"  = offset (in words) of branch target
     // return = offset (in bytes) of branch insn
     // TODO: instInstance::returnAddr stores return value
     //       offset of branch insn could change (nops padded in front)
     //fprintf(stderr, ">>> emit(trampTrailer)\n");
-    //if (dst) fprintf(stderr, "!!! trampTrailer return offset: %i insns\n", dst);
     // allocate enough space for indirect jump (just in case)
-    for (int i = 0; i < 6; i++) genNop(insn+i);
-    base += 6*INSN_SIZE;
-    // generate (possibly bogus) branch insn
     ret = base;
-    insn = (instruction *)(code + base);
-    genItype(insn, BEQop, REG_ZERO, REG_ZERO, dst);
-    genNop(insn+1); // delay slot
-    base += 2*INSN_SIZE;
+    for (int i = 0; i < 8; i++) genNop(insn+i);
+    base += 8*INSN_SIZE;
     break;
 
   default:
@@ -1294,39 +1296,58 @@ Address emitA(opCode op, Register src1, Register /*src2*/, Register dst,
 
 // return Register
 // [getParamOp, getSysParamOp, getRetValOp, getSysRetValOp]
-Register emitR(opCode op, Register src1, Register /*src2*/, Register /*dst*/, 
-	       char * /*code*/, Address &/*base*/, bool /*noCost*/)
+Register emitR(opCode op, Register src1, Register /*src2*/, Register dst, 
+	       char *code, Address &base, bool /*noCost*/)
 {
   Register ret = REG_ZERO;
+  int frame_off = 0;
 
   switch (op) {
 
   case getParamOp:
     // "src1"     : argument number [0,7]
+    // "dst"      : allocated return register
     // return val : argument register
-    //fprintf(stderr, ">>> emit(getParamOp)\n"); 
+    // TODO: extract >8 parameters from stack (need to know stack frame size)
+    //fprintf(stderr, ">>> emit(getParamOp): %i\n", src1);
     assert(src1 < 8);
-    ret = REG_A0 + src1;
+    ret = dst;
+    frame_off = 216 - (BYTES_PER_ARG * src1); // see tramp-mips.S
+    genItype((instruction *)(code + base), LDop, REG_SP, ret, frame_off);
+    base += INSN_SIZE;
     break;
 
   case getSysParamOp:
     // "src1"     : argument number [0,7]
+    // "dst"      : allocated return register
     // return val : argument register
-    //fprintf(stderr, ">>> emit(getSysParamOp)\n"); 
+    // TODO: extract >8 parameters from stack (need to know stack frame size)
+    //fprintf(stderr, ">>> emit(getSysParamOp)\n");
     assert(src1 < 8);
-    ret = REG_A0 + src1;
+    ret = dst;
+    frame_off = 216 - (BYTES_PER_ARG * src1); // see tramp-mips.S
+    genItype((instruction *)(code + base), LDop, REG_SP, ret, frame_off);
+    base += INSN_SIZE;
     break;
 
   case getRetValOp:
+    // "dst"      : allocated return register
     // return val : return value register
-    //fprintf(stderr, ">>> emit(getRetValOp)\n"); 
-    ret = REG_V0;
+    //fprintf(stderr, ">>> emit(getRetValOp)\n");
+    ret = dst;
+    frame_off = 232; // see tramp-mips.S
+    genItype((instruction *)(code + base), LDop, REG_SP, ret, frame_off);
+    base += INSN_SIZE;
     break;
 
   case getSysRetValOp:
+    // "dst"      : allocated return register
     // return val : return value register
-    //fprintf(stderr, ">>> emit(getSysRetValOp)\n"); 
-    ret = REG_V0;
+    //fprintf(stderr, ">>> emit(getSysRetValOp)\n");
+    ret = dst;
+    frame_off = 232; // see tramp-mips.S
+    genItype((instruction *)(code + base), LDop, REG_SP, ret, frame_off);
+    base += INSN_SIZE;
     break;
 
   default:
@@ -1344,27 +1365,8 @@ void emitV(opCode op, Register src1, Register src2, Register dst,
 	   char *code, Address &base, bool /*noCost*/)
 {
   instruction *insn = (instruction *)(code + base);
-  int n;
 
   switch (op) {
-
-  case loadIndirOp:
-    // TODO: 32/64-bit value
-    // "src1"     : address register (from)
-    // "dst"      : value register (to)
-    //fprintf(stderr, ">>> emit(loadIndirOp)\n"); 
-    genItype(insn, LWop, src1, dst, 0);
-    base += INSN_SIZE;
-    break;
-
-  case storeIndirOp:
-    // TODO: 32/64-bit value
-    // "src1"     : value register (from)
-    // "dst"      : address register (to)
-    //fprintf(stderr, ">>> emit(storeIndirOp)\n"); 
-    genItype(insn, SWop, dst, src1, 0);
-    base += INSN_SIZE;
-    break;
 
   case noOp:
     //fprintf(stderr, ">>> emit(noOp)\n");
@@ -1377,26 +1379,45 @@ void emitV(opCode op, Register src1, Register src2, Register dst,
     fprintf(stderr, "!!! emit(saveRegOp): should never be called\n");
     assert(0);
 
+    /* memory operators */
+
+  case loadIndirOp:
+    // TODO: 32/64-bit value
+    // "src1"     : address register (from)
+    // "dst"      : value register (to)
+    //fprintf(stderr, ">>> emit(loadIndirOp)\n"); 
+    genItype(insn, LWop, src1, dst, 0);
+    base += INSN_SIZE;
+    break;
+  case storeIndirOp:
+    // TODO: 32/64-bit value
+    // "src1"     : value register (from)
+    // "dst"      : address register (to)
+    //fprintf(stderr, ">>> emit(storeIndirOp)\n"); 
+    genItype(insn, SWop, dst, src1, 0);
+    base += INSN_SIZE;
+    break;
+
     /* arithmetic operators */
 
   case plusOp:
     //fprintf(stderr, ">>> emit(plusOp)\n");
-    genRtype(insn, ADDops, src1, src2, dst);
+    genRtype(insn, ADDUops, src1, src2, dst);
     base += INSN_SIZE;
     break;
   case minusOp:
     //fprintf(stderr, ">>> emit(minusOp)\n");
-    genRtype(insn, SUBops, src1, src2, dst);
+    genRtype(insn, SUBUops, src1, src2, dst);
     base += INSN_SIZE;
     break;
   case timesOp:
-    //fprintf(stderr, ">>> emit(timesOp)\n");
     /* multiply ("mul rd,rs,imm") = four instructions
        mult  rs,rd   # (HI,LO) <- rs * rd
        mflo  rd      # rd <- LO
        nop           # padding for "mflo"
        nop           # padding for "mflo"
     */
+    //fprintf(stderr, ">>> emit(timesOp)\n");
     genRtype(insn, MULTops, src1, src2, 0);
     genRtype(insn+1, MFLOops, 0, 0, dst);
     genNop(insn+2);
@@ -1404,13 +1425,13 @@ void emitV(opCode op, Register src1, Register src2, Register dst,
     base += 4 * INSN_SIZE;
     break;
   case divOp:
-    //fprintf(stderr, ">>> emit(divOp)\n");
     /* divide ("div rd,rs,imm") = four instructions
        div   rs,rd   # (HI,LO) <- rs / rd
        mflo  rd      # rd <- LO
        nop           # padding for "mflo"
        nop           # padding for "mflo"
     */
+    //fprintf(stderr, ">>> emit(divOp)\n");
     genRtype(insn, DIVops, src1, src2, 0);
     genRtype(insn+1, MFLOops, 0, 0, dst);
     genNop(insn+2);
@@ -1420,21 +1441,43 @@ void emitV(opCode op, Register src1, Register src2, Register dst,
 
     /* relational operators */
 
-  case lessOp: // use "slt" instruction
+  case lessOp:
     //fprintf(stderr, ">>> emit(lessOp)\n");
-    genRtype(insn, SLTops, src1, src2, dst);
+    genRtype(insn, SLTUops, src1, src2, dst);
     base += INSN_SIZE;
     break;
-    
-  case leOp:
   case greaterOp:
+    //fprintf(stderr, ">>> emit(greaterOp)\n");
+    genRtype(insn, SLTUops, src2, src1, dst);
+    base += INSN_SIZE;
+    break;    
+  case leOp:
+    //fprintf(stderr, ">>> emit(leOp)\n");
+    genItype(insn, BEQLop, src1, src2, 0x2);
+    genItype(insn+1, ORIop, REG_ZERO, dst, 0x1);
+    genRtype(insn+2, SLTUops, src1, src2, dst);
+    base += 3 * INSN_SIZE;
+    break;
   case geOp:
+    //fprintf(stderr, ">>> emit(geOp)\n");
+    genItype(insn, BEQLop, src1, src2, 0x2);
+    genItype(insn+1, ORIop, REG_ZERO, dst, 0x1);
+    genRtype(insn+2, SLTUops, src2, src1, dst);
+    base += 3 * INSN_SIZE;
+    break;
   case eqOp:
+    //fprintf(stderr, ">>> emit(eqOp)\n");
+    genItype(insn, BEQLop, src1, src2, 0x2);
+    genItype(insn+1, ORIop, REG_ZERO, dst, 0x1);
+    genItype(insn+2, ORIop, REG_ZERO, dst, 0x0);
+    base += 3 * INSN_SIZE;
+    break;
   case neOp:
-    //fprintf(stderr, ">>> emit(relOp)\n");
-    genRtype(insn, SUBops, src1, src2, dst);
-    genZeroCC(insn+1, op, dst, dst, n);
-    base += (n + 1) * INSN_SIZE;
+    //fprintf(stderr, ">>> emit(neOp)\n");
+    genItype(insn, BNELop, src1, src2, 0x2);
+    genItype(insn+1, ORIop, REG_ZERO, dst, 0x1);
+    genItype(insn+2, ORIop, REG_ZERO, dst, 0x0);
+    base += 3 * INSN_SIZE;
     break;
 
     /* boolean operators */
@@ -1515,12 +1558,10 @@ void emitVupdate(opCode op, RegValue src1, Register /*src2*/, Address dst,
        sw      r2,r1
        (stomps three registers)
     */
-    // TODO: can we stomp any register at this point in the basetramp?
-    // previously $t9, $at, $v0
     Register r1 = regSpace->allocateRegister(code, base, noCost); // cost address
     Register r3 = regSpace->allocateRegister(code, base, noCost); // cost
     genLoadConst(r1, cost_addr, code, base, noCost);
-    // TODO: 32/64-bit value
+    // NOTE: 32-bit value, see obsCostLow and processCost()
     genItype((instruction *)(code + base), LWop, r1, r3, 0);
     base += INSN_SIZE;
     if (doNotOverflow(cost_update)) {
@@ -1548,7 +1589,7 @@ void emitVupdate(opCode op, RegValue src1, Register /*src2*/, Address dst,
    architecture.  Specifically, the only immediate instruction
    primitives are "add" and "set less than". 
 */
-// TODO - immediate insns are signed or unsigned operations?
+// TODO - signed operations
 // TODO - immediate insns use 32- or 64-bit operands?
 void emitImm(opCode op, Register src, RegValue imm, Register dst, 
 	     char *code, Address &base, bool noCost)
@@ -1557,77 +1598,86 @@ void emitImm(opCode op, Register src, RegValue imm, Register dst,
   instruction *insn = (instruction *)(code + base);
   int n;
 
-  // make sure immediate value is small enough
-  assert(doNotOverflow(imm));
-  
+  // immediate value should fit in immediate field
   switch (op) {
     
     /* arithmetic operands */
     
   case plusOp:
-    genItype(insn, ADDIop, src, dst, imm);
+    if (!doNotOverflow(imm)) break;
+    genItype(insn, ADDIUop, src, dst, imm);
     base += INSN_SIZE;
     return;
   case minusOp:
-    genItype(insn, ADDIop, src, dst, -imm);
+    if (!doNotOverflow(-imm)) break;
+    genItype(insn, ADDIUop, src, dst, -imm);
     base += INSN_SIZE;
     return;
-  case timesOp: // use left shift for powers of 2
-    if (isPowerOf2(imm, n) && (n < 64)) {
-      if (n < 32) genRtype(insn, DSLLops, 0, src, dst, n);
-      else genRtype(insn, DSLL32ops, 0, src, dst, n-32);
-      base += INSN_SIZE;
-      return;
-    } break;
-  case divOp: // use right shift for powers of 2
-    if (isPowerOf2(imm, n) && n < 64) {
-      if (n < 32) genRtype(insn, DSRAops, 0, src, dst, n);
-      else genRtype(insn, DSRA32ops, 0, src, dst, n-32);
-      base += INSN_SIZE;
-      return;
-    } break;
+  case timesOp:
+    if (!isPowerOf2(imm, n) || (n >= 64)) break;
+    // use left shift for powers of 2
+    if (n < 32) genRtype(insn, DSLLops, 0, src, dst, n);
+    else genRtype(insn, DSLL32ops, 0, src, dst, n-32);
+    base += INSN_SIZE;
+    return;
+  case divOp:
+    if (!isPowerOf2(imm, n) || n >= 64) break;
+    // use right shift for powers of 2
+    if (n < 32) genRtype(insn, DSRAops, 0, src, dst, n);
+    else genRtype(insn, DSRA32ops, 0, src, dst, n-32);
+    base += INSN_SIZE;
+    return;
     
     /* relational operands */
     
-  case lessOp: // use "slti" instruction
-    genItype(insn, SLTIop, src, dst, imm);
+  case lessOp:
+    if (!doNotOverflow(imm)) break;
+    genItype(insn, SLTIUop, src, dst, imm);
     base += INSN_SIZE;
-    return;
-  /* "set on <op> immediate" (relational operators other than lessOp)
-     subi    rd,rs,imm
-     b<op>l  rd,0x2
-     set     rd,1 
-     set     rd,0
-     (branch target)
-  */
-  case leOp:
-  case greaterOp:
-  case geOp:
+    return; 
   case eqOp:
-  case neOp:
-    //assert(src != dst);
-    genItype(insn, ADDIop, src, dst, -imm);
-    genZeroCC(insn+1, op, dst, dst, n);
-    base += (n + 1) * INSN_SIZE;
+    if (!doNotOverflow(-imm)) break;
+    // saves one register over emitV()
+    genItype(insn, ADDIUop, src, dst, -imm);
+    genItype(insn+1, BEQLop, dst, REG_ZERO, 0x2);
+    genItype(insn+2, ORIop, REG_ZERO, dst, 0x1);
+    genItype(insn+3, ORIop, REG_ZERO, dst, 0x0);
+    base += 4 * INSN_SIZE;
     return;
+  case neOp:
+    if (!doNotOverflow(-imm)) break;
+    // saves one register over emitV()
+    genItype(insn, ADDIUop, src, dst, -imm);
+    genItype(insn+1, BNELop, dst, REG_ZERO, 0x2);
+    genItype(insn+2, ORIop, REG_ZERO, dst, 0x1);
+    genItype(insn+3, ORIop, REG_ZERO, dst, 0x0);
+    base += 4 * INSN_SIZE;
+    return;
+  case greaterOp:
+  case leOp:
+  case geOp:
+    // unsafe as immediate insns
+    break;
     
     /* boolean operands */
     
   case orOp:
+    if (!doNotOverflow(imm)) break;
     genItype(insn, ORIop, src, dst, imm);
     base += INSN_SIZE;
     return;
   case andOp:
+    if (!doNotOverflow(imm)) break;
     genItype(insn, ANDIop, src, dst, imm);
     base += INSN_SIZE;
     return;
-    
+      
   default:
     assert(0);
   }
-  
-  // for mul/div operations, use the general-purpose code generator
-  // i.e. load the immediate value into a register and call emit()
+
+  // default: use the general-purpose code generator "emitV()"
+  // load the "immediate" value into a register and call emitV()
   Register src2 = regSpace->allocateRegister(code, base, noCost);
   genLoadConst(src2, imm, code, base, noCost);
   emitV(op, src, src2, dst, code, base, noCost);
@@ -1641,6 +1691,7 @@ bool process::emitInferiorRPCheader(void *code_, Address &base)
   char *code = (char *)code_;
   instruction *insn = (instruction *)(code + base);
 
+  // TODO: why 512 bytes? not using basetramp code, right?
   genItype(insn, ADDIUop, REG_SP, REG_SP, -512); // addiu sp,sp,-512
   base += INSN_SIZE;
 
@@ -1696,13 +1747,13 @@ int getInsnCost(opCode op)
     return 1;
 
   case lessOp:
+  case greaterOp:
     return 1;
   case leOp:
-  case greaterOp:
   case geOp:
   case eqOp:
   case neOp:
-    return 4;
+    return 3;
 
   case noOp:
     return 1;
@@ -1728,13 +1779,13 @@ int getInsnCost(opCode op)
 
   case trampTrailer:
     // padded in case indirect jump needed
-    return 6;
+    return 8;
 
   case getRetValOp:
   case getSysRetValOp: 
   case getParamOp:
   case getSysParamOp:      
-    return 0;
+    return 1;
 
   case loadIndirOp:
   case storeIndirOp:
@@ -1817,37 +1868,70 @@ void initTramps()
 }
 
 Register emitFuncCall(opCode op, registerSpace *rs, char *code, Address &base, 
-		      const vector<AstNode *> &params, const string &callee,
-		      process *p, bool noCost, const function_base *calleebase)
+		      const vector<AstNode *> &params, const string &calleeName,
+		      process *p, bool noCost, const function_base *callee)
 {
-  //fprintf(stderr, ">>> emitFuncCall(%s)\n", callee.string_of());
+  //fprintf(stderr, ">>> emitFuncCall(%s)\n", calleeName.string_of());
+  assert(op == callOp);  
+  instruction *insn;
+  Address calleeAddr = (callee) 
+    ? (callee->getEffectiveAddress(p))
+    : (lookup_fn(p, calleeName));
   //Address base_orig = base; // debug
-  assert(op == callOp);
-  Address calleeAddr;
-  if (calleebase)
-       calleeAddr = calleebase->getEffectiveAddress(p);
-  else
-       calleeAddr = lookup_fn(p, callee);
-  //fprintf(stderr, "  <0x%08x:%s>\n", calleeAddr, callee.string_of());
-
+  //fprintf(stderr, "  <0x%08x:%s>\n", calleeAddr, calleeName.string_of());
+  
   // generate argument values
   vector<reg> args;
   for (unsigned i = 0; i < params.size(); i++) {
     args += params[i]->generateCode(p, rs, code, base, noCost, false);
   }
+  
+  unsigned nargs = args.size();
+  bool stackArgs = (nargs > NUM_ARG_REGS) ? (true) : (false);
+  int stackBytes = 0;
 
-  // move argument values into argument registers
-  for (unsigned i = 0; i < args.size(); i++) {
-    instruction *insn = (instruction *)(code + base);
+  // put parameters 0-7 in argument registers
+  for (unsigned i = 0; i < nargs && i < NUM_ARG_REGS; i++) {
+    insn = (instruction *)(code + base);
     genMove(insn, args[i], REG_A0 + i);
     base += INSN_SIZE;
+    rs->freeRegister(args[i]);
   }
 
+  // put parameters 8+ on the stack
+  if (stackArgs) {
+    // grow stack frame
+    stackBytes = (nargs - NUM_ARG_REGS) * BYTES_PER_ARG; // 8 bytes per parameter
+    insn = (instruction *)(code + base);
+    genItype (insn, ADDIUop, REG_SP, REG_SP, -stackBytes);
+    base += INSN_SIZE;
+    /* NOTE: the size of the stack frame has been temporarily
+       increased; its size is restored by the "addiu sp,sp,stackBytes"
+       generated below */
+
+    // store parameters in stack frame
+    for (unsigned i = NUM_ARG_REGS; i < nargs; i++) {
+      int stackOff = (i - NUM_ARG_REGS) * BYTES_PER_ARG;
+      insn = (instruction *)(code + base);
+      genItype(insn, SDop, REG_SP, args[i], stackOff);
+      base += INSN_SIZE;
+      rs->freeRegister(args[i]);
+    }
+  }
+
+  // call function
   genLoadConst(REG_T9, calleeAddr, code, base, noCost);
-  instruction *insn = (instruction *)(code + base);
+  insn = (instruction *)(code + base);
   genRtype(insn, JALRops, REG_T9, 0, REG_RA);
   genNop(insn+1);
   base += 2*INSN_SIZE;
+
+  // restore stack frame (if necessary)
+  if (stackArgs) {
+    insn = (instruction *)(code + base);
+    genItype(insn, ADDIUop, REG_SP, REG_SP, stackBytes);
+    base += INSN_SIZE;
+  }
 
   // debug
   //fprintf(stderr, "  emitFuncCall code:\n");
@@ -1985,6 +2069,12 @@ trampTemplate *findAndInstallBaseTramp(process *p,
 
   ret = installBaseTramp(p, ip);
 
+  // debug --csserra
+  //char buf[1024];
+  //sprintf(buf, "!!! installed basetramp (%i insns): ", (int)ret->size/INSN_SIZE);
+  //ip->print(stderr, buf);
+  //disDataSpace(p, (void *)ret->baseAddr, ret->size/INSN_SIZE, "  ");
+
   // generate jump from instPoint to basetramp
   instruction *insn = new instruction[2];
   genJump(insn, ipAddr, ret->baseAddr);
@@ -2018,7 +2108,9 @@ void installTramp(instInstance *inst, char *code, int codeSize)
   }
 
   // debug - csserra
-  //fprintf(stderr, "  new minitramp:\n");
+  //char buf[1024];
+  //sprintf(buf, "!!! installed minitramp (%i insns): ", codeSize/INSN_SIZE);
+  //inst->location->print(stderr, buf);
   //disDataSpace(inst->proc, (void *)inst->trampBase, codeSize/INSN_SIZE, "  ");
 }
 
@@ -2115,7 +2207,7 @@ bool process::replaceFunctionCall(const instPoint *ip,
   this->writeTextSpace((void *)pt_addr, 2*INSN_SIZE, insn);
 
   // debug
-  //fprintf(stderr, "  function call replacement\n");
+  //fprintf(stderr, "!!! function call replacement\n");
   //disDataSpace(this, (void *)pt_addr, 2, "  ");
 
   return true;
@@ -2123,9 +2215,10 @@ bool process::replaceFunctionCall(const instPoint *ip,
 
 // Emit code to jump to function CALLEE without linking.  (I.e., when
 // CALLEE returns, it returns to the current caller.)
-void emitFuncJump(opCode op, 
-		  char *i, Address &base, 
-		  const function_base *callee, process *proc)
+void emitFuncJump(opCode /*op*/, 
+		  char * /*i*/, Address & /*base*/, 
+		  const function_base * /*callee*/, 
+		  process * /*proc*/)
 {
      /* Unimplemented on this platform! */
      assert(0);
@@ -2205,38 +2298,38 @@ void initDefaultPointFrequencyTable()
     fclose(fp);
 }
 
-// TODO: these are bogus values (from i386-unknown-solaris2.4)
+// measurements taken on 180MHz MIPS R10000
+// costs are in units of cycles
 void initPrimitiveCost()
 {
   //fprintf(stderr, ">>> initPrimitiveCost()\n");
 
-  // this doesn't really take any time
-  primitiveCosts["DYNINSTbreakPoint"] = 1;
-  
-  // this happens before we start keeping time.
+  // wall time
+  //primitiveCosts["DYNINSTstartWallTimer"] =     264; // cycle ctr
+  //primitiveCosts["DYNINSTstopWallTimer"] =      253; // cycle ctr
+  primitiveCosts["DYNINSTstartWallTimer"] =    1170; // gettimeofday()
+  primitiveCosts["DYNINSTstopWallTimer"] =     1190; // gettimeofday()
+
+  // CPU time
+  //primitiveCosts["DYNINSTstartProcessTimer"] =  3900; // PIOCGETEVCTRS
+  //primitiveCosts["DYNINSTstopProcessTimer"] =   3800; // PIOCGETEVCTRS
+  primitiveCosts["DYNINSTstartProcessTimer"] = 7760; // PIOCUSAGE
+  primitiveCosts["DYNINSTstopProcessTimer"] =  7810; // PIOCUSAGE
+
+  // TODO: tricky interactions with DYNINSTinit()
   primitiveCosts["DYNINSTinit"] = 1;
-  
-  primitiveCosts["DYNINSTprintCost"] = 1;
-  
-  // 240 ns
-  primitiveCosts["DYNINSTincrementCounter"] = 16;
-  // 240 ns
-  primitiveCosts["DYNINSTdecrementCounter"] = 16;
-  
-  // Updated calculation of the cost for the following procedures.
-  // cost in cycles
-  primitiveCosts["DYNINSTstartWallTimer"] = 320;
-  primitiveCosts["DYNINSTstopWallTimer"] = 518;
-  primitiveCosts["DYNINSTstartProcessTimer"] = 572;
-  primitiveCosts["DYNINSTstopProcessTimer"] = 1143;
-  
-  // These happen async of the rest of the system.
-  primitiveCosts["DYNINSTalarmExpire"] = 3724;
-  primitiveCosts["DYNINSTsampleValues"] = 13;
-  primitiveCosts["DYNINSTreportTimer"] = 1380;
-  primitiveCosts["DYNINSTreportCounter"] = 1270;
-  primitiveCosts["DYNINSTreportCost"] = 1350;
-  primitiveCosts["DYNINSTreportNewTags"] = 837;
+  primitiveCosts["DYNINSTprintCost"] = 1;     // calls TraceRecord
+  primitiveCosts["DYNINSTreportNewTags"] = 1; // calls TraceRecord
+  primitiveCosts["DYNINSTbreakPoint"] = 1;
+
+  // below functions are not used on this platform
+  // (obviated by SHM_SAMPLING)
+  primitiveCosts["DYNINSTalarmExpire"] =      1;
+  primitiveCosts["DYNINSTsampleValues"] =     1;
+  primitiveCosts["DYNINSTreportTimer"] =      1;
+  primitiveCosts["DYNINSTreportCounter"] =    1;
+  primitiveCosts["DYNINSTincrementCounter"] = 1;
+  primitiveCosts["DYNINSTdecrementCounter"] = 1;
 }
 
 

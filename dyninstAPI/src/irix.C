@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.3 1999/05/21 17:33:10 wylie Exp $
+// $Id: irix.C,v 1.4 1999/06/09 01:03:45 csserra Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -362,7 +362,8 @@ bool process::attach()
   sprintf(procName,"/proc/%05d", (int)pid);
   int fd = P_open(procName, O_RDWR, 0);
   if (fd < 0) {
-    perror("process::attach(open)");
+    // TODO: official error msg for API tests
+    //perror("process::attach(open)");
     return false;
   }
 
@@ -404,15 +405,21 @@ bool process::attach()
 
   proc_fd = fd;
 
-  //TODO: PIOCPSINFO strings?
-  prpsinfo info;
+  // environment variables
+  prpsinfo_t info;
   if (ioctl(fd, PIOCPSINFO, &info) < 0) {
     perror("process::attach(PIOCPSINFO)");
     close(fd);
     return false;
   }
-  //fprintf(stderr, "&&& fname(%s)\n", info.pr_fname);
-  //fprintf(stderr, "&&& psargs(%s)\n", info.pr_psargs);
+  // argv[0]
+  char *argv0_start = info.pr_psargs;
+  char *argv0_end = strstr(argv0_start, " ");
+  if (argv0_end) (*argv0_end) = 0;
+  argv0 = argv0_start;
+  // unused variables
+  pathenv = "";
+  cwdenv = "";
 
   return true;
 }
@@ -803,40 +810,40 @@ bool process::API_detach_(const bool cont)
   sigset_t sigs;
   premptyset(&sigs);
   if (ioctl(proc_fd, PIOCSTRACE, &sigs) == -1) {
-    perror("process::API_detach_(PIOCSTRACE)");
+    //perror("process::API_detach_(PIOCSTRACE)");
     ret = false;
   }
   if (ioctl(proc_fd, PIOCSHOLD, &sigs) == -1) {
-    perror("process::API_detach_(PIOCSHOLD)");
+    //perror("process::API_detach_(PIOCSHOLD)");
     ret = false;
   }
   // fault handling
   fltset_t faults;
   premptyset(&faults);
   if (ioctl(proc_fd, PIOCSFAULT, &faults) == -1) {
-    perror("process::API_detach_(PIOCSFAULT)");
+    //perror("process::API_detach_(PIOCSFAULT)");
     ret = false;
   }
   // system call handling
   sysset_t syscalls;
   premptyset(&syscalls);
   if (ioctl(proc_fd, PIOCSENTRY, &syscalls) == -1) {
-    perror("process::API_detach_(PIOCSENTRY)");
+    //perror("process::API_detach_(PIOCSENTRY)");
     ret = false;
   }
   if (ioctl(proc_fd, PIOCSEXIT, &syscalls) == -1) {
-    perror("process::API_detach_(PIOCSEXIT)");
+    //perror("process::API_detach_(PIOCSEXIT)");
     ret = false;
   }
   // operation mode
   long flags = PR_RLC | PR_KLC;
   if (ioctl(proc_fd, PIOCRESET, &flags) == -1) {
-    perror("process::API_detach_(PIOCRESET)");
+    //perror("process::API_detach_(PIOCRESET)");
     ret = false;
   }
   flags = (cont) ? (PR_RLC) : (PR_KLC);
   if (ioctl(proc_fd, PIOCSET, &flags) == -1) {
-    perror("process::API_detach_(PIOCSET)");
+    //perror("process::API_detach_(PIOCSET)");
     ret = false;
   }    
 

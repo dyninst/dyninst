@@ -49,8 +49,9 @@ char *reg_names[] = {
 };
 
 /* The below register names are from Hennessey & Patterson.  They do
- not quite comply with disassembler output, which the above list
- does. */
+ not quite comply with output of "dis", which the above list does.
+ The values below are consistent with libelfutil's disasm32(),
+ however. */
 char *reg_names_book[] = {
   "zero", "at", "v0", "v1", "a0", "a1", "a2", "a3",
   "t0",   "t1", "t2", "t3", "t4", "t5", "t6", "t7",
