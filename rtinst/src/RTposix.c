@@ -1163,7 +1163,7 @@ DYNINSTrecordTag(int tag) {
     for (i=0; i < DYNINSTtagCount; i++) {
         if (DYNINSTtags[i] == tag) return;
     }
-    printf("tag is %d\t",tag); fflush(stdout);
+
     if (DYNINSTtagCount == DYNINSTtagLimit) return;
     DYNINSTtags[DYNINSTtagCount++] = tag;
 }
