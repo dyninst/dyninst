@@ -4,13 +4,17 @@
 // Ariel Tamches
 
 /* $Log: shg.C,v $
-/* Revision 1.4  1996/01/09 01:05:34  tamches
-/* added thePhaseId member variable
-/* added call to perfConsult->getNodeInfo to gather lots of juicy
-/* information when displaying it in the shg status line at the bottom
-/* of the window (which by the way, has been extended to 4 lines when in
-/* developer mode)
+/* Revision 1.5  1996/01/11 23:41:38  tamches
+/* there are now 2 kinds of true nodes; so tests changed accordingly.
+/* Also brought the shg test program back to life
 /*
+ * Revision 1.4  1996/01/09 01:05:34  tamches
+ * added thePhaseId member variable
+ * added call to perfConsult->getNodeInfo to gather lots of juicy
+ * information when displaying it in the shg status line at the bottom
+ * of the window (which by the way, has been extended to 4 lines when in
+ * developer mode)
+ *
  * Revision 1.3  1995/11/19 04:21:50  tamches
  * added an #include of <assert.h> which had been missing, causing
  * problems on RS/6000 compiles.
@@ -26,8 +30,12 @@
 #include <assert.h>
 #include "tkTools.h"
 #include "shg.h"
+
+#ifdef PARADYN
+// the shg test program doesn't need this:
 #include "performanceConsultant.thread.h" // for struct shg_node_info
 #include "performanceConsultant.thread.CLNT.h" // for class performanceConsultantUser
+#endif
 
 XFontStruct *shg::theRootItemFontStruct=NULL;
 XFontStruct *shg::theListboxItemFontStruct=NULL;
@@ -703,12 +711,12 @@ bool shg::configNode(unsigned id, shgRootNode::style newStyleId) {
    if (!anyChanges)
       return false;
 
-   // note: if we are changing this to "tentatively true", we explicitly expand
+   // note: if we are changing this to "true (active or not)", we explicitly expand
    // "ptr".  Unfortunately, we need ptr's parent node for that; hence the need
    // for the hash table "hash2" (a mapping of nodes to their parents).  It's
    // somewhat of a hack; a solution eliminating the need for "hash2" would save memory.
 
-   if (newStyleId == shgRootNode::TestedTentativelyTrue) {
+   if (newStyleId == shgRootNode::ActiveTrue || newStyleId == shgRootNode::InactiveTrue) {
       where4tree<shgRootNode> *parentPtr = hash2[ptr];
       if (parentPtr == NULL)
          return false; // either root node or a node which hasn't been addEdge'd in yet
@@ -730,7 +738,8 @@ bool shg::configNode(unsigned id, shgRootNode::style newStyleId) {
       assert(false);
       return true; // placate compiler
    }
-   else if (oldStyleId == shgRootNode::TestedTentativelyTrue) {
+   else if (oldStyleId == shgRootNode::ActiveTrue || oldStyleId == shgRootNode::InactiveTrue) {
+      // It used to be true, but ain't anymore.
       where4tree<shgRootNode> *parentPtr = hash2[ptr];
       if (parentPtr == NULL)
          return false; // either root node or a node which hasn't been addEdge'd in yet
@@ -770,7 +779,7 @@ void shg::addEdge(unsigned fromId, unsigned toId, shgRootNode::style theStyle) {
       hash2[childPtr] = parentPtr;
    assert(hash2.defines(childPtr));
 
-   const bool explicitlyExpandedFlag = (theStyle==shgRootNode::TestedTentativelyTrue);
+   const bool explicitlyExpandedFlag = (theStyle==shgRootNode::ActiveTrue || theStyle==shgRootNode::InactiveTrue);
    parentPtr->addChild(childPtr,
 		       explicitlyExpandedFlag,
 		       consts,
@@ -866,14 +875,21 @@ void shg::possibleMouseMoveIntoItem(int x, int y) {
       default: {
          // Note that we write different stuff if we are in devel mode, so
          // we need to check the tunable const:
-         extern bool inDeveloperMode;
          const shgRootNode &theNode = newItemUnderMousePath.getLastPathNode(rootPtr)->getNodeData();
 
          string dataString;
          
+#ifdef PARADYN
+	 // the shg test program doesn't have a developer mode
+         extern bool inDeveloperMode;
          if (inDeveloperMode)
             dataString += string(theNode.getId()) + " ";
+#endif
+
          dataString += theNode.getLongName();
+
+#ifdef PARADYN
+	 // the igen call isn't implemented in the shg axis test program
          if (inDeveloperMode) {
             dataString += "\n";
             // make an igen call to the performance consultant to get more information
@@ -891,6 +907,7 @@ void shg::possibleMouseMoveIntoItem(int x, int y) {
 	                                 string(theNodeInfo.endTime) + "\n";
 	    dataString += string("persistent: ") + (theNodeInfo.persistent ? "true" : "false");
          }
+#endif
 
          string commandStr = currItemLabelName + " insert end " + "\"" + dataString + "\"";
          myTclEval(interp, commandStr);
