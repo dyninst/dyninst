@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.120 2003/01/31 18:55:41 chadd Exp $
+// $Id: aix.C,v 1.121 2003/02/01 21:48:47 chadd Exp $
 
 #include <pthread.h>
 #include "common/h/headers.h"
@@ -87,7 +87,6 @@
 
 #if defined(BPATCH_LIBRARY)
 #include "writeBackXCOFF.h"
-#include "addLibraryXCOFF.h"
 #endif
 
 #ifdef USES_PMAPI
