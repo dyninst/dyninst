@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.16 1994/09/22 01:55:22 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst-cm5.C,v 1.17 1994/09/23 15:57:32 jcargill Exp $";
 #endif
 
 /*
  * inst-cm5.C - runtime library specific files to inst on this machine.
  *
  * $Log: inst-cm5.C,v $
- * Revision 1.16  1994/09/22 01:55:22  markc
+ * Revision 1.17  1994/09/23 15:57:32  jcargill
+ * Miniscule cleanup of node i/o polling
+ *
+ * Revision 1.16  1994/09/22  01:55:22  markc
  * Declare system includes as extern "C"
  * Remove libraryList typedef, use List<libraryFunc*>
  * Enter primtiveCosts handles into stringPools
@@ -445,13 +448,14 @@ int nodePtrace (enum ptracereq request, process *proc, int scalarPid, int nodeId
 
     inNodePtrace = 1;
 
-    /* Check for node I/O */
-
 #ifdef notdef
-    int i;
-    for (i=0; i< 1000; i++)
+    {
+      /* Check for node I/O */
+      int i;
+      for (i=0; i< 1000; i++)
 	while (CMMD_poll_for_services() == 1)
-	    ;			/* TEMPORARY:    XXXXXX */
+	  ;			/* TEMPORARY:    XXXXXX */
+    }
 #endif
 
     /* Create the request header */
