@@ -19,7 +19,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, \
   Karen Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/dynrpc.C,v 1.2 1994/07/14 23:30:22 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/dynrpc.C,v 1.3 1994/07/20 23:22:48 hollings Exp $";
 #endif
 
 
@@ -27,7 +27,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.2  1994/07/14 23:30:22  hollings
+ * Revision 1.3  1994/07/20 23:22:48  hollings
+ * added code to record time spend generating instrumentation.
+ *
+ * Revision 1.2  1994/07/14  23:30:22  hollings
  * Hybrid cost model added.
  *
  * Revision 1.1  1994/07/14  14:45:48  jcargill
@@ -160,16 +163,33 @@ void dynRPC::disableDataCollection(int mid)
     delete(mi);
 }
 
+#include <sys/time.h>
+#include <sys/resource.h>
+
 int dynRPC::enableDataCollection(String_Array foucsString,String metric)
 {
     int id;
     metric m;
     resourceList l;
+    double start;
+    double end;
+    struct rusage ru;
+    extern time64 totalInstTime;
+
+    getrusage(RUSAGE_SELF, &ru);
+    start = ((double) ru.ru_utime.tv_sec) * 1000000.0 + ru.ru_utime.tv_usec;
 
     m = findMetric(metric);
     l = findFocus(foucsString.count, foucsString.data);
     if (!l) return(-1);
+
+
     id = startCollecting(l, m);
+
+    getrusage(RUSAGE_SELF, &ru);
+    end = ((double) ru.ru_utime.tv_sec) * 1000000.0 + ru.ru_utime.tv_usec;
+    totalInstTime += (end - start);
+
     return(id);
 }
 
