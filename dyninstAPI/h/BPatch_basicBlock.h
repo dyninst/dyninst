@@ -96,7 +96,7 @@ private:
       */
     unsigned long endAddr;
 
-        /** set of basic blocks that this basicblock dominates immediately*/
+	/** set of basic blocks that this basicblock dominates immediately*/
 	BPatch_Set<BPatch_basicBlock*>* immediateDominates;
 
 	/** basic block which is the immediate dominator of the basic block */
@@ -118,6 +118,35 @@ private:
 
 	/** the instructions within this block */
 	BPatch_Vector<BPatch_instruction*>* instructions;
+
+#if defined( arch_ia64 )
+
+protected:
+
+	/* These may be fairly general, */
+	BPatch_Set< BPatch_basicBlock * > * dataFlowIn;
+	BPatch_Set< BPatch_basicBlock * > * dataFlowOut;
+	
+	/* but these are certainly not.   Notionally,
+	   all four of these could be factored out into an
+	   associative array (or four), from basicBlock pointers
+	   to data flow data, but for now, I won't do that. */
+	BPatch_basicBlock * dataFlowGen;
+	BPatch_basicBlock * dataFlowKill;
+	
+public:
+
+	BPatch_Set< BPatch_basicBlock * > * getDataFlowIn() { return dataFlowIn; }
+	BPatch_Set< BPatch_basicBlock * > * getDataFlowOut() { return dataFlowOut; }
+	void setDataFlowIn(  BPatch_Set< BPatch_basicBlock * > * dfi ) { dataFlowIn = dfi; }
+	void setDataFlowOut(  BPatch_Set< BPatch_basicBlock * > * dfo ) { dataFlowOut = dfo; }
+	
+	BPatch_basicBlock * getDataFlowGen() { return dataFlowGen; }
+	BPatch_basicBlock * getDataFlowKill() { return dataFlowKill; }
+	void setDataFlowGen( BPatch_basicBlock * dfg ) { dataFlowGen = dfg; }
+	void setDataFlowKill( BPatch_basicBlock * dfk ) { dataFlowKill = dfk; }
+	
+#endif /* defined( arch_ia64 ) */
 
 public:
 
