@@ -321,6 +321,9 @@ restoreFPUstate(float* base) {
 
 
 
+#ifdef notdef
+/* removed this code until the mapped counter code is finished - jkh 10/26/94 */
+
 /************************************************************************
  * int64 DYNINSTgetObservedCycles(Boolean in_signal)
  *
@@ -340,6 +343,9 @@ DYNINSTgetObservedCycles(Boolean in_signal) {
     value += lowBits;
     return value;
 }
+#else
+extern int64 DYNINSTgetObservedCycles(Boolean in_signal);
+#endif
 
 
 
