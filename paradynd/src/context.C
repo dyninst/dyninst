@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.3 1994/03/22 21:03:12 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/context.C,v 1.4 1994/03/31 01:47:54 markc Exp $";
 #endif
 
 /*
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
- * Revision 1.3  1994/03/22 21:03:12  hollings
+ * Revision 1.4  1994/03/31 01:47:54  markc
+ * Extended parameters for addProcess, which default to NULL and 0.
+ *
+ * Revision 1.3  1994/03/22  21:03:12  hollings
  * Made it possible to add new processes (& paradynd's) via addExecutable.
  *
  * Revision 1.2  1994/03/20  01:53:03  markc
@@ -161,7 +164,7 @@ void forkProcess(traceHeader *hr, traceFork *fr)
     newExec->proc = ret;
 }
 
-int addProcess(int argc, char *argv[])
+int addProcess(int argc, char *argv[], int nenv, char *envp[])
 {
     int i;
     struct executableRec *newExec;
@@ -178,7 +181,7 @@ int addProcess(int argc, char *argv[])
     newExec->type = selfTermination;
     newExec->state = neonatal;
     
-    newExec->proc = createProcess(newExec->argv[0], newExec->argv);
+    newExec->proc = createProcess(newExec->argv[0], newExec->argv, nenv, envp);
     if (newExec->proc) {
 	installDefaultInst(newExec->proc, initialRequests);
 	return(newExec->proc->pid);
