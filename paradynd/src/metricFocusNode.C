@@ -14,7 +14,10 @@ char rcsid_metric[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.98  1996/05/15 18:32:49  naim
+ * Revision 1.99  1996/06/09 18:55:33  newhall
+ * removed debug output
+ *
+ * Revision 1.98  1996/05/15  18:32:49  naim
  * Fixing bug in inferiorMalloc and adding some debugging information - naim
  *
  * Revision 1.97  1996/05/11  00:30:08  mjrg
@@ -226,6 +229,9 @@ metricDefinitionNode *doInternalMetric(vector< vector<string> >& canon_focus,
 	 return NULL;
 
       if (!theIMetric->legalToInst(canon_focus)) {
+
+// This message is handled by paradyn (it should not be handled by the daemons)
+/* 
 	 cout << "Sorry, illegal to instrument internal metric " << metric_name << " with focus of:" << endl;
 	 for (unsigned hier=0; hier < canon_focus.size(); hier++) {
 	    const vector<string> &thisHierStr = canon_focus[hier];
@@ -238,6 +244,7 @@ metricDefinitionNode *doInternalMetric(vector< vector<string> >& canon_focus,
                cout << ",";
          }
 	 cout << endl;
+*/
 
          return NULL;
       }

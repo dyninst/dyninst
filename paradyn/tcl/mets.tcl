@@ -6,7 +6,10 @@
 # getMetsAndRes (bottom of this file) is the entry-point.
 
 # $Log: mets.tcl,v $
-# Revision 1.17  1996/04/01 22:43:39  tamches
+# Revision 1.18  1996/06/09 18:56:03  newhall
+# removed debug output
+#
+# Revision 1.17  1996/04/01  22:43:39  tamches
 # lots of changes; should now avoid crashing when multiple requests are
 # made from the same visi; should now avail crashing when > 1 visi has
 # a metrics dialog box open at the same time.
@@ -178,7 +181,7 @@ proc getMetsAndRes {metsAndResID requestingThread numMetrics metIndexes2Id} {
 
     set w .metmenunew$requestingThread
     if {[winfo exists $w]} {
-       puts stderr "Window $w already exists --> this visi already has a pending metric selection..."
+       # puts stderr "Window $w already exists --> this visi already has a pending metric selection..."
 
        # Simulate a cancel here.
        uimpd sendVisiSelections $metsAndResID 1
