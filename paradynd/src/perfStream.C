@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.11 1994/05/18 00:52:29 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.12 1994/05/31 18:00:46 markc Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.11  1994/05/18 00:52:29  hollings
+ * Revision 1.12  1994/05/31 18:00:46  markc
+ * Added pvm messages to copy printf messages.
+ *
+ * Revision 1.11  1994/05/18  00:52:29  hollings
  * added ability to gather IO from application processes and forward it to
  * the paradyn proces.
  *
@@ -324,6 +327,7 @@ int handleSigChild(int pid, int status)
 		ptrace(PTRACE_CONT, pid, (char*)1, 0, 0);
 #ifdef PARADYND_PVM
 		curr->status = neonatal;
+		pvm_perror("in SIGTRAP handler\n");
 #else
 		curr->status = running;
 #endif
@@ -331,6 +335,9 @@ int handleSigChild(int pid, int status)
 
 	    case SIGSTOP:
 		printf("CONTROLLER: Breakpoint reached %d\n", pid);
+#ifdef PARADYND_PVM
+		pvm_perror("CONTROLLER: Breakpoint reached\n");
+#endif
 		curr->status = stopped;
 
 		// The Unix process should be stopped already, 
