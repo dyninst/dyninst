@@ -44,6 +44,7 @@
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/init.h"
 #include "paradynd/src/pd_thread.h"
+#include <unistd.h>
 
 rawTime64 pd_process::getAllLwpRawCpuTime_hw() {
    rawTime64 total = 0;
@@ -69,44 +70,14 @@ rawTime64 pd_process::getAllLwpRawCpuTime_sw() {
 }
 
 
-timeUnit calcJiffyUnit() {
-   // Determine the number of jiffies/sec by checking the clock idle time in
-   // /proc/uptime against the jiffies idle time in /proc/stat
-   
-   FILE *tmp = P_fopen( "/proc/uptime", "r" );
-   assert( tmp );
-   double uptimeReal;
-   int status = fscanf( tmp, "%*f %lf", &uptimeReal );
-   assert( status == 1 );
-   fclose( tmp );
-   tmp = P_fopen( "/proc/stat", "r" );
-   assert( tmp );
-   /* On IA-64, signed ints overflow in a month or so. */
-   unsigned long uptimeJiffies;
 
-   char line[80];
-   fgets(line, 80, tmp);
-   status = sscanf( line, "%*s %*d %*d %*d %lu", &uptimeJiffies );;
-
-   assert( status == 1 );
-   
-   if (sysconf(_SC_NPROCESSORS_CONF) > 1) {
-      // on SMP boxes, the first line is cumulative jiffies, the second line
-      // is jiffies for cpu0 - on uniprocessors, this fscanf will fail as
-      // there is only a single cpu line
-
-       fgets(line, 80, tmp);
-       status = sscanf( line, "\ncpu0 %*d %*d %*d %lu", &uptimeJiffies );
-
-       assert( status == 1 );
-   }
-   
-   fclose( tmp );
-   int intJiffiesPerSec = static_cast<int>( static_cast<double>(uptimeJiffies) 
-                                            / uptimeReal + 0.5 );
-   timeUnit jiffy(fraction(1000000000LL, intJiffiesPerSec));
-   return jiffy;
+timeUnit calcJiffyUnit() 
+{
+  int intJiffiesPerSec = sysconf(_SC_CLK_TCK);
+  timeUnit jiffy(fraction(1000000000LL, intJiffiesPerSec));
+  return jiffy;
 }
+
 
 bool pd_process::isPapiAvail() {
    return isPapiInitialized();
