@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.64 2002/04/09 04:19:37 schendel Exp $
+// $Id: inst.h,v 1.65 2002/05/10 18:37:00 schendel Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -65,7 +65,7 @@ class instInstance;
 class trampTemplate;
 class process;
 class pd_Function;
-class metricDefinitionNode;
+class metricFocusNode;
 
 typedef enum { callNoArgs, callRecordType, callFullArgs } callOptions;
 typedef enum { callPreInsn, callPostInsn } callWhen;
@@ -280,9 +280,9 @@ extern string getProcessStatus(const process *p);
 extern unsigned findTags(const string funcName);
 
 #ifndef BPATCH_LIBRARY
-extern pdSample computePauseTimeMetric(const metricDefinitionNode *);
+extern pdSample computePauseTimeMetric(const metricFocusNode *);
 
-extern pdSample computeStackwalkTimeMetric(const metricDefinitionNode *);
+extern pdSample computeStackwalkTimeMetric(const metricFocusNode *);
 #endif
 
 extern void initLibraryFunctions();

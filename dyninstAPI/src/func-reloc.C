@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: func-reloc.C,v 1.29 2002/04/18 19:39:41 bernat Exp $
+ * $Id: func-reloc.C,v 1.30 2002/05/10 18:36:59 schendel Exp $
  */
 
 #include "dyninstAPI/src/func-reloc.h"
@@ -1093,7 +1093,7 @@ bool pd_Function::relocateFunction(process *proc,
    
   /* Check if we are currently executing inside the function we want to */ 
   /* instrument. If so, don't relocate the function.                    */
-  /* this code was copied from metricDefinitionNode::adjustManuallyTrigger() */
+  /* this code was copied from metricFocusNode::adjustManuallyTrigger() */
   /* in metric.C -itai                                                  */
 
 #if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
