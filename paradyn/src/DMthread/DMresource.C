@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.C,v 1.75 2005/03/10 21:37:19 mjbrim Exp $
+// $Id: DMresource.C,v 1.76 2005/03/13 23:44:14 legendre Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -414,7 +414,10 @@ void resource::update( pdvector<pdstring>& resource_name,
 
    pdstring * dn = new pdstring(display_name[display_name.size()-1].c_str());
    res -> displayname = *dn;
- 
+
+   pdstring * fn = new pdstring(d_name);
+   res -> flatName = *fn;
+
    resourceHandle r_handle = res->getHandle();
  
    //cerr<< "resource::update handle is " << r_handle <<" d_name.c_str() is "<<d_name.c_str()<<" res->display "<<res->displayname<<"."<<endl;
@@ -978,7 +981,7 @@ pdvector<rlNameId> *resourceList::magnify(resource* res, magnifyType type,
                            //fprintf(stderr,"-- %s\n",loop_children[k]->getName());                           
                            new_focus[rIndex] = loop_children[k]->getHandle();
                            temp.id = resourceList::getResourceList(new_focus);
-                           temp.res_name = loop_children[k]->getName();
+                           temp.res_name = loop_children[k]->getDisplayName();
                            *return_list += temp;
                         } 
 			else {
@@ -994,7 +997,7 @@ pdvector<rlNameId> *resourceList::magnify(resource* res, magnifyType type,
                   else {
                      new_focus[rIndex] = child_res->getHandle();
                      temp.id = resourceList::getResourceList(new_focus);
-                     temp.res_name = child_res->getName();
+                     temp.res_name = child_res->getDisplayName();
                      *return_list += temp;
                   }
                }
@@ -1003,7 +1006,7 @@ pdvector<rlNameId> *resourceList::magnify(resource* res, magnifyType type,
          if(type != CallGraphSearch) {
             new_focus[rIndex] = child_res->getHandle();
             temp.id = resourceList::getResourceList(new_focus);
-            temp.res_name = child_res->getName();
+            temp.res_name = child_res->getDisplayName();
             return_list->push_back( temp );
          }
       }

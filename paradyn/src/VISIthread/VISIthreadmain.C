@@ -48,7 +48,7 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 
-// $Id: VISIthreadmain.C,v 1.110 2005/01/11 22:47:19 legendre Exp $
+// $Id: VISIthreadmain.C,v 1.111 2005/03/13 23:44:17 legendre Exp $
 
 #include <signal.h>
 #include <math.h>
@@ -1181,6 +1181,7 @@ void *VISIthreadmain(void *vargs){
 
    // set control callback routines 
    controlCallback callbacks;
+   memset(&callbacks, '\0', sizeof(controlCallback));
    callbacks.mFunc = VISIthreadnewMetricCallback;
    callbacks.rFunc = VISIthreadnewResourceCallback; 
    callbacks.retireFunc = 0;
@@ -1210,6 +1211,7 @@ void *VISIthreadmain(void *vargs){
    // trace data streams
    // set control tracecallback routines
    controlCallback tracecallbacks;
+   memset(&tracecallbacks, '\0', sizeof(controlCallback));
    tracecallbacks.mFunc = VISIthreadnewMetricCallback;
    tracecallbacks.rFunc = VISIthreadnewResourceCallback;
    tracecallbacks.retireFunc = 0;

@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.151 2005/03/11 00:38:05 legendre Exp $
+ * $Id: DMdaemon.C,v 1.152 2005/03/13 23:44:13 legendre Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -1536,7 +1536,8 @@ bool mpichCreateWrapper(const pdstring& machine, bool localMachine,
         // wrapper file
         int fd = open(script.c_str(), O_WRONLY | O_CREAT);
         if( !writeMPICHWrapper(fd, buffer)) {
-            return false;
+	  cerr << "Perhaps the current directory isn't writeable?" << endl;
+	  return false;
         }      
         paradynDaemon::wrappers += paradynDaemon::MPICHWrapperInfo(script);
         return true;
@@ -1696,12 +1697,13 @@ bool lamParseNodeSpecDash(char * no,int len){
 
 bool lamParseNodeSpec(const pdstring& spec ){
   const char * temp;
-  char no[10];
+  char *no = NULL;
   int k;
   char * ptr;
   bool good = false;
 
   temp = spec.c_str();
+  no = (char *) malloc((spec.length() + 1) * sizeof(char));
   char * comma = strchr(temp,',');
   char * dash = strchr(temp,'-');
 
@@ -1714,12 +1716,18 @@ bool lamParseNodeSpec(const pdstring& spec ){
       if(dash){
          good = lamParseNodeSpecDash(no,dash-no);
          if(!good)
+	 {
+	   free(no);
            return false;
+	 }
       }
       else{
          good = allCharsNumeric(k-2,no);
          if(!good)
+	 {
+	   free(no);
            return false;
+	 }
       }
       ptr = comma;           //hold the previous comma spot
       //loop through each comma delimited section and parse out node numbers
@@ -1734,12 +1742,18 @@ bool lamParseNodeSpec(const pdstring& spec ){
          if(dash){
             good = lamParseNodeSpecDash(no,dash-no);
             if(!good)
-               return false;
+	    {
+	      free(no);
+	      return false;
+	    }
          }
          else {
             good = allCharsNumeric(k-2,no);
             if(!good)
-               return false;
+	    {
+	      free(no);
+	      return false;
+	    }
          }
          if(!comma)  //no more specs to parse out, whew
             break;
@@ -1751,15 +1765,21 @@ bool lamParseNodeSpec(const pdstring& spec ){
       strncpy(no,temp+1,strlen(temp)-1);  //exclude 'n'  or 'c'
       no[strlen(temp)-1] = '\0';
       good = lamParseNodeSpecDash(no,dash-temp-1);
-      if(!good) 
-         return false;
+      if(!good)
+      { 
+	free(no);
+	return false;
+      }
   }
   // else nodespec like n10 only
   else{
       strcpy(no,temp+1);  //exclude 'n' or 'c'
       good = allCharsNumeric(strlen(temp)-2,no);
       if(!good) 
-         return false;
+      {
+	free(no);
+	return false;
+      }
   }
   return true;
 }

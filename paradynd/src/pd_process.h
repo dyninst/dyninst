@@ -76,7 +76,7 @@ public:
   //  PDSEP
   pdinstMapping(const pdstring f, const pdstring i, const int w,
                BPatch_callWhen wh, BPatch_snippetOrder ord, 
-               BPatch_snippet *s = NULL, bool warn_on_error = true) :
+               BPatch_snippet *s = NULL, bool warn_on_error = false) :
     func(f),
     inst(i),
     where(w),
@@ -87,7 +87,7 @@ public:
   {  if (s) args.push_back(s); }
 
   pdinstMapping(const pdstring f, const pdstring i, const int w,
-               BPatch_snippet *s = NULL, bool warn_on_error = true) :
+               BPatch_snippet *s = NULL, bool warn_on_error = false) :
     func(f),
     inst(i),
     where(w),
@@ -98,7 +98,7 @@ public:
   {  if (s) args.push_back(s); }
 
   pdinstMapping(const pdstring f, const pdstring i, const int w,
-               pdvector<BPatch_snippet *> &snips, bool warn_on_error = true) :
+               pdvector<BPatch_snippet *> &snips, bool warn_on_error = false) :
     func(f),
     inst(i),
     where(w),
@@ -113,7 +113,7 @@ public:
 
   pdinstMapping(const pdstring f, const pdstring i, const int w,
                BPatch_callWhen wh, BPatch_snippetOrder ord,
-               pdvector<BPatch_snippet *> &snips, bool warn_on_error = true) :
+               pdvector<BPatch_snippet *> &snips, bool warn_on_error = false) :
     func(f),
     inst(i),
     where(w),

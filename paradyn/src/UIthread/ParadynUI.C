@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParadynUI.C,v 1.5 2005/01/28 18:12:04 legendre Exp $
+// $Id: ParadynUI.C,v 1.6 2005/03/13 23:44:16 legendre Exp $
 #include "UIglobals.h"
 #include "common/h/Ident.h"
 #include "../pdMain/paradyn.h"
@@ -200,6 +200,7 @@ ParadynUI::DMready( void )
     assert( ps_handle == 0 );
 
     controlCallback controlFuncs;
+    memset(&controlFuncs, '\0', sizeof(controlFuncs));
     controlFuncs.rFunc = ResourceAddedCallback;
     controlFuncs.uFunc = ResourceUpdatedCallback;
     controlFuncs.retireFunc = ResourceRetiredCallback;
