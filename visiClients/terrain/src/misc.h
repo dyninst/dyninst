@@ -16,6 +16,9 @@
  * misc.h - header file of misc.c
  *
  * $Log: misc.h,v $
+ * Revision 1.2  1997/05/19 16:03:41  tung
+ * Remove unused files.
+ *
  * Revision 1.1  1997/05/12 20:15:33  naim
  * Adding "Terrain" visualization to paradyn (commited by naim, done by tung).
  *
@@ -29,7 +32,7 @@
 #define TERRAIN_MISC_GUARD
 
 void terrain_error();
-char *trrain_mem_error();
+char *terrain_mem_error();
 int free_surface();
 int quit3d();
 

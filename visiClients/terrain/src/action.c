@@ -17,7 +17,7 @@ static char Copyright[] = "@(#) Copyright (c) 1989, 1990 Barton P. Miller,\
  Morgan Clark, Timothy Torzewski, Jeff Hollingsworth, and Bruce Irvin.\
  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/action.c,v 1.3 1997/05/19 01:00:06 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/action.c,v 1.4 1997/05/19 16:03:39 tung Exp $";
 #endif
 
 
@@ -28,6 +28,9 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
  *   message.
  *
  * $Log: action.c,v $
+ * Revision 1.4  1997/05/19 16:03:39  tung
+ * Remove unused files.
+ *
  * Revision 1.3  1997/05/19 01:00:06  tung
  * Eliminate ips dependent library files.
  *
@@ -42,7 +45,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/vis
  *
  *
  * Revision 2.14  1991/03/14  20:48:17  hollings
- * Fixed $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/action.c,v 1.3 1997/05/19 01:00:06 tung Exp $ definition.
+ * Fixed $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/action.c,v 1.4 1997/05/19 16:03:39 tung Exp $ definition.
  *
  * Revision 2.13  1990/08/24  13:01:40  hollings
  * Added include of <X11/Intrinsic.h>.
@@ -238,7 +241,7 @@ int RequestAction(int labelc, int buttonc, int justify, char *banner, char *labe
 	    width = max(width,XTextWidth(fontStruct, labels[i], 
 					 (signed) strlen(labels[i])));
 	}
-	act.str = (char *) malloc(leng + labelc);
+	act.str = (char *) malloc((unsigned) leng + labelc);
 	act.str[0] = '\0';
 	for (i=0; i < labelc; i++) {
 	    if (i) strcat(act.str, "\n");
