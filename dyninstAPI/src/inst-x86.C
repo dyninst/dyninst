@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.139 2003/07/18 15:43:59 schendel Exp $
+ * $Id: inst-x86.C,v 1.140 2003/07/25 20:40:42 schendel Exp $
  */
 
 #include <iomanip>
@@ -1394,9 +1394,35 @@ void generate_guard_code( unsigned char * /* buffer */,
 }
 #endif
 
-void generateMTpreamble(char *, Address &, process *) {
-	assert( 0 );	// We don't yet handle multiple threads.
-	} /* end generateMTpreamble() */
+void generateMTpreamble(char *insn, Address &base, process *proc) {
+   AstNode *threadPOS;
+   pdvector<AstNode *> dummy;
+   Register src = Null_Register;
+
+   // registers cleanup
+   regSpace->resetSpace();
+
+   /* Get the hashed value of the thread */
+   if (!proc->multithread_ready()) {
+      // Uh oh... we're not ready to build a tramp yet!
+      //cerr << "WARNING: tramp constructed without RT multithread support!"
+      //     << endl;
+      threadPOS = new AstNode("DYNINSTreturnZero", dummy);
+   }
+   else 
+      threadPOS = new AstNode("DYNINSTthreadIndex", dummy);
+
+   src = threadPOS->generateCode(proc, regSpace, (char *)insn,
+                                 base, 
+                                 false, // noCost 
+                                 true); // root node
+
+   if ((src) != REG_MT_POS) {
+      // This is always going to happen... we reserve REG_MT_POS, so the
+      // code generator will never use it as a destination
+      emitV(orOp, src, 0, REG_MT_POS, insn, base, false);
+   }
+}
 
 /****************************************************************************/
 /****************************************************************************/
@@ -1409,462 +1435,465 @@ void generateMTpreamble(char *, Address &, process *) {
  *
  */
 
-trampTemplate *installBaseTramp( const instPoint *location,
-				 process *proc,
-				 bool noCost,
-				 bool trampRecursiveDesired = true
-				 ) 
+trampTemplate *installBaseTramp(const instPoint *location, process *proc,
+                                bool noCost, bool trampRecursiveDesired = true)
 {  
    bool aflag;
   
-/*
-   The base tramp:
-   addr   instruction             cost
-   0:    <relocated instructions before point>
-   a = size of relocated instructions before point
-   a+0:   jmp a+30 <skip pre insn>  1
-   a+5:   pushfd                    5
-   a+6:   pushad                    9
-   a+7:   push ebp                  1
-   a+8:   mov esp, ebp              1
-   a+10:  subl esp, 0x80            1
-   a+16:  jmp <global pre inst>     1
-   a+21:  jmp <local pre inst>      1
-   a+26:  leave                     3
-   a+27:  popad                    14
-   a+28:  popfd                     5
-   a+29:  add costAddr, cost        3
-   a+39:  <relocated instructions at point>
+   /*
+     The base tramp:
+     addr   instruction             cost
+     0:    <relocated instructions before point>
+     a = size of relocated instructions before point
+     a+0:   jmp a+30 <skip pre insn>  1
+     a+5:   pushfd                    5
+     a+6:   pushad                    9
+     a+7:   push ebp                  1
+     a+8:   mov esp, ebp              1
+     a+10:  subl esp, 0x80            1
+     a+16:  jmp <global pre inst>     1
+     a+21:  jmp <local pre inst>      1
+     a+26:  leave                     3
+     a+27:  popad                    14
+     a+28:  popfd                     5
+     a+29:  add costAddr, cost        3
+     a+39:  <relocated instructions at point>
 
-   b = a +30 + size of relocated instructions at point
-   b+0:   jmp b+30 <skip post insn>
-   b+5:   pushfd
-   b+6:   pushad
-   b+7:   push ebp
-   b+8:   mov esp, ebp
-   b+10:  subl esp, 0x80
-   b+16:  jmp <global post inst>
-   b+21:  jmp <local post inst>
-   b+26:  leave
-   b+27:  popad
-   b+28:  popfd
-   b+29:  <relocated instructions after point>
+     b = a +30 + size of relocated instructions at point
+     b+0:   jmp b+30 <skip post insn>
+     b+5:   pushfd
+     b+6:   pushad
+     b+7:   push ebp
+     b+8:   mov esp, ebp
+     b+10:  subl esp, 0x80
+     b+16:  jmp <global post inst>
+     b+21:  jmp <local post inst>
+     b+26:  leave
+     b+27:  popad
+     b+28:  popfd
+     b+29:  <relocated instructions after point>
 
-   c:     jmp <return to user code>
+     c:     jmp <return to user code>
 
-   tramp size = 2*23 + 10 + 5 + size of relocated instructions
-   Make sure to update the size if the tramp is changed
+     tramp size = 2*23 + 10 + 5 + size of relocated instructions
+     Make sure to update the size if the tramp is changed
 
-   cost of pre and post instrumentation is (1+1+1+5+9+1+1+15+5+3) = 42
-   cost of rest of tramp is (1+3+1+1)
+     cost of pre and post instrumentation is (1+1+1+5+9+1+1+15+5+3) = 42
+     cost of rest of tramp is (1+3+1+1)
 
-   [mihai Wed Apr 12 00:22:03 CDT 2000]
+     [mihai Wed Apr 12 00:22:03 CDT 2000]
      Additionally, if a guarded template is generated
-     (i.e. trampRecursiveDesired = false), four more code fragments are inserted:
+     (i.e. trampRecursiveDesired = false), four more code fragments are
+     inserted:
      - code to turn the guard on (19 bytes): between a+15 and a+16, and
-                                             between b+15 and b+16
+     between b+15 and b+16
      - code to turn the guard off (10 bytes): between a+21 and a+26, and
-                                              between b+21 and b+26
+     between b+21 and b+26
      A total of 58 bytes are added to the base tramp.
-*/
+   */
 
    //pd_Function *f = location->func();
 
-  unsigned u;
-  trampTemplate *ret = 0;
-  if( trampRecursiveDesired )
-    {
+   unsigned u;
+   trampTemplate *ret = 0;
+   if( trampRecursiveDesired )
+   {
       ret = new trampTemplate;
-    }
-  else
-    {
+   }
+   else
+   {
       ret = new NonRecursiveTrampTemplate;
-    }
-  ret->trampTemp = 0;
+   }
+   ret->trampTemp = 0;
 
-  unsigned jccTarget = 0; // used when the instruction at the point is a cond. jump
-  unsigned auxJumpOffset = 0;
+   unsigned jccTarget = 0; // used when instr. at the point is a cond. jump
+   unsigned auxJumpOffset = 0;
 
-  // compute the tramp size
-  // if there are any changes to the tramp, the size must be updated.
-  unsigned trampSize;
-  if(proc->multithread_capable())
-     trampSize = 12+73+2*27 + 66;
-  else
-     trampSize = 12+73;
+   // compute the tramp size
+   // if there are any changes to the tramp, the size must be updated.
+   unsigned trampSize;
+   if(proc->multithread_capable())
+      trampSize = 12+73 + 38;  // 38 needs to be verified
+   else
+      trampSize = 12+73;
 
-  if (location->isConservative()) trampSize += 13*2;
+   if (location->isConservative()) trampSize += 13*2;
 
-  if( ! trampRecursiveDesired ) {
+   if( ! trampRecursiveDesired ) {
       trampSize += get_guard_code_size();   // NOTE-131 with Relocation
-  }
+   }
 
-  for (u = 0; u < location->insnsBefore(); u++) {
-    trampSize += getRelocatedInstructionSz(location->insnBeforePt(u));
-  }
+   for (u = 0; u < location->insnsBefore(); u++) {
+      trampSize += getRelocatedInstructionSz(location->insnBeforePt(u));
+   }
 
-  if (location->insnAtPoint().type() & IS_JCC) {
-    trampSize += location->insnAtPoint().size() + 2 * JUMP_SZ;
-  } else {
-    trampSize += getRelocatedInstructionSz(location->insnAtPoint());
-  }
+   if (location->insnAtPoint().type() & IS_JCC) {
+      trampSize += location->insnAtPoint().size() + 2 * JUMP_SZ;
+   } else {
+      trampSize += getRelocatedInstructionSz(location->insnAtPoint());
+   }
   
-  for (u = 0; u < location->insnsAfter(); u++) {
-    trampSize += getRelocatedInstructionSz(location->insnAfterPt(u));
-  }
+   for (u = 0; u < location->insnsAfter(); u++) {
+      trampSize += getRelocatedInstructionSz(location->insnAfterPt(u));
+   }
 
 
-  Address imageBaseAddr;
-  if (!proc->getBaseAddress(location->owner(), imageBaseAddr)) {
-    abort();
-  }
+   Address imageBaseAddr;
+   if (!proc->getBaseAddress(location->owner(), imageBaseAddr)) {
+      abort();
+   }
 
-  Address costAddr = 0; // for now...
-  if (!noCost) {
+   Address costAddr = 0; // for now...
+   if (!noCost) {
 #ifdef SHM_SAMPLING
-     costAddr = (Address)proc->getObsCostLowAddrInApplicSpace();
-     assert(costAddr);
+      costAddr = (Address)proc->getObsCostLowAddrInApplicSpace();
+      assert(costAddr);
 #else
-     // get address of DYNINSTobsCostLow to update observed cost
-     bool err = false;
-     costAddr = proc->findInternalAddress("DYNINSTobsCostLow",
-					  true, err);
-     assert(costAddr && !err);
+      // get address of DYNINSTobsCostLow to update observed cost
+      bool err = false;
+      costAddr = proc->findInternalAddress("DYNINSTobsCostLow", true, err);
+      assert(costAddr && !err);
 #endif
-  }
+   }
 
-  ret->size = trampSize;
-  Address baseAddr = proc->inferiorMalloc(trampSize, textHeap);
-  // cout << "installBaseTramp(): trampoline base address = 0x"
-  //      << setw( 8 ) << setfill( '0' ) << std::hex << baseAddr
-  //      << std::dec <<endl;
-  ret->baseAddr = baseAddr;
+   ret->size = trampSize;
+   Address baseAddr = proc->inferiorMalloc(trampSize, textHeap);
+   // cout << "installBaseTramp(): trampoline base address = 0x"
+   //      << setw( 8 ) << setfill( '0' ) << std::hex << baseAddr
+   //      << std::dec <<endl;
+   ret->baseAddr = baseAddr;
 
-  unsigned char *code = new unsigned char[2*trampSize];
-  unsigned char *insn = code;
-  Address currAddr = baseAddr;
+   unsigned char *code = new unsigned char[2*trampSize];
+   unsigned char *insn = code;
+   Address currAddr = baseAddr;
 
-  // MT FIXME
+   // MT FIXME
 
-  // get the current instruction that is being executed. If the PC is at a
-  // instruction that is being relocated, we must change the PC.
+   // get the current instruction that is being executed. If the PC is at a
+   // instruction that is being relocated, we must change the PC.
 
-  Frame frame = proc->getDefaultLWP()->getActiveFrame();
-  Address currentPC = frame.getPC();
+   Frame frame = proc->getDefaultLWP()->getActiveFrame();
+   Address currentPC = frame.getPC();
 
-  // emulate the instructions before the point
-  Address origAddr = location->jumpAddr() + imageBaseAddr;
+   // emulate the instructions before the point
+   Address origAddr = location->jumpAddr() + imageBaseAddr;
 
-  for (u = location->insnsBefore(); u > 0; ) {
-    --u;
-    if (currentPC == origAddr) {
+   for (u = location->insnsBefore(); u > 0; ) {
+      --u;
+      if (currentPC == origAddr) {
+         //fprintf(stderr, "changed PC: 0x%lx to 0x%lx\n", currentPC,currAddr);
+         proc->getDefaultLWP()->changePC(currAddr, NULL);
+      }
 
-      //fprintf(stderr, "changed PC: 0x%lx to 0x%lx\n", currentPC, currAddr);
-      proc->getDefaultLWP()->changePC(currAddr, NULL);
-    }
-
-    unsigned newSize = relocateInstruction(location->insnBeforePt(u), origAddr, currAddr, insn);
-    aflag=(newSize == getRelocatedInstructionSz(location->insnBeforePt(u)));
-    assert(aflag);
-    currAddr += newSize;
-    origAddr += location->insnBeforePt(u).size();
-  }
+      unsigned newSize = relocateInstruction(location->insnBeforePt(u),
+                                             origAddr, currAddr, insn);
+      aflag=(newSize == getRelocatedInstructionSz(location->insnBeforePt(u)));
+      assert(aflag);
+      currAddr += newSize;
+      origAddr += location->insnBeforePt(u).size();
+   }
 
 
-  /***
-    If the instruction at the point is a conditional jump, we relocate it to
-    the top of the base tramp, and change the code so that the tramp is executed
-    only if the branch is taken.
+   /***
+       If the instruction at the point is a conditional jump, we relocate it
+       to the top of the base tramp, and change the code so that the tramp is
+       executed only if the branch is taken.
 
-    e.g.
-     L1:  jne target
-     L2:  ...
+       e.g.
+       L1:  jne target
+       L2:  ...
 
-    becomes
+       becomes
 
-          jne T1
-	  jmp T2
-	  jne
-     T1:  ...
+       jne T1
+       jmp T2
+       jne
+       T1:  ...
 
-     T2:  relocated instructions after point
+       T2:  relocated instructions after point
 
-     then later at the base tramp, at the point where we relocate the instruction
-     at the point, we insert a jump to target
-  ***/
-  if (location->insnAtPoint().type() & IS_JCC) {
+       then later at the base tramp, at the point where we relocate the
+       instruction at the point, we insert a jump to target
+   ***/
+   if (location->insnAtPoint().type() & IS_JCC) {
 
-     currAddr = baseAddr + (insn - code);
-     assert(origAddr == location->address() + imageBaseAddr);
-     origAddr = location->address() + imageBaseAddr;
-     if (currentPC == origAddr &&
-	 currentPC != (location->jumpAddr() + imageBaseAddr)) {
-       //fprintf(stderr, "changed PC: 0x%lx to 0x%lx\n", currentPC, currAddr);
-       proc->getDefaultLWP()->changePC(currAddr, NULL);
-     }
+      currAddr = baseAddr + (insn - code);
+      assert(origAddr == location->address() + imageBaseAddr);
+      origAddr = location->address() + imageBaseAddr;
+      if (currentPC == origAddr &&
+          currentPC != (location->jumpAddr() + imageBaseAddr)) {
+         //fprintf(stderr, "changed PC: 0x%lx to 0x%lx\n", currentPC,currAddr);
+         proc->getDefaultLWP()->changePC(currAddr, NULL);
+      }
 
-     jccTarget = changeConditionalJump(location->insnAtPoint(), origAddr, currAddr,
-				       currAddr+location->insnAtPoint().size()+5, insn);
-     currAddr += location->insnAtPoint().size();
-     auxJumpOffset = insn-code;
-     emitJump(0, insn);
-     origAddr += location->insnAtPoint().size();
-  }
+      jccTarget =
+         changeConditionalJump(location->insnAtPoint(), origAddr, currAddr,
+                               currAddr+location->insnAtPoint().size()+5,insn);
+      currAddr += location->insnAtPoint().size();
+      auxJumpOffset = insn-code;
+      emitJump(0, insn);
+      origAddr += location->insnAtPoint().size();
+   }
 
-  if (location->isConservative() && !noCost)
-    emitSimpleInsn(PUSHFD, insn);    // pushfd
+   if (location->isConservative() && !noCost)
+      emitSimpleInsn(PUSHFD, insn);    // pushfd
 
-  // pre branches
-  // skip pre instrumentation
-  ret->skipPreInsOffset = insn-code;
-  emitJump(0, insn);
+   // pre branches
+   // skip pre instrumentation
+   ret->skipPreInsOffset = insn-code;
+   emitJump(0, insn);
 
-  // save registers and create a new stack frame for the tramp
-  ret->savePreInsOffset = insn-code;
-  if (!location->isConservative() || noCost)
-    emitSimpleInsn(PUSHFD, insn);    // pushfd
-  emitSimpleInsn(PUSHAD, insn);    // pushad
-  emitPushImm(location->iPgetAddress(), insn);  // return address for stack frame format
-  emitSimpleInsn(PUSH_EBP, insn);  // push ebp (new stack frame)
-  emitMovRegToReg(EBP, ESP, insn); // mov ebp, esp  (2-byte instruction)
-  if (location->isConservative()) {
-    // allocate space for temporaries (virtual registers) and floating point state
-    emitOpRegImm(5, ESP, 128 + FSAVE_STATE_SIZE, insn); // sub esp, 128
-    // save floating point state
-    emitOpRegRM(FSAVE, FSAVE_OP, EBP, -128 - FSAVE_STATE_SIZE, insn);
-  } else {
-    // allocate space for temporaries (virtual registers)
-    emitOpRegImm(5, ESP, 128, insn); // sub esp, 128
-  }
+   // save registers and create a new stack frame for the tramp
+   ret->savePreInsOffset = insn-code;
+   if (!location->isConservative() || noCost)
+      emitSimpleInsn(PUSHFD, insn);    // pushfd
+   emitSimpleInsn(PUSHAD, insn);    // pushad
+   emitPushImm(location->iPgetAddress(), insn);  // return address for stack frame format
+   emitSimpleInsn(PUSH_EBP, insn);  // push ebp (new stack frame)
+   emitMovRegToReg(EBP, ESP, insn); // mov ebp, esp  (2-byte instruction)
+   if (location->isConservative()) {
+      // allocate space for temporaries (virtual registers) and floating
+      // point state
+      emitOpRegImm(5, ESP, 128 + FSAVE_STATE_SIZE, insn); // sub esp, 128
+      // save floating point state
+      emitOpRegRM(FSAVE, FSAVE_OP, EBP, -128 - FSAVE_STATE_SIZE, insn);
+   } else {
+      // allocate space for temporaries (virtual registers)
+      emitOpRegImm(5, ESP, 128, insn); // sub esp, 128
+   }
 
-  Address base=0;
-  if(proc->multithread_capable()) {
-     // generate preamble for MT version
-     generateMTpreamble((char *)insn, base, proc);
-     insn += base;
-  }
+   Address base=0;
+   if(proc->multithread_capable()) {
+      // generate preamble for MT version
+      generateMTpreamble((char *)insn, base, proc);
+      insn += base;
+   }
 
-  if( ! trampRecursiveDesired )
-    {
-      NonRecursiveTrampTemplate * temp_ret = ( NonRecursiveTrampTemplate * )ret;
+   if( ! trampRecursiveDesired )
+   {
+      NonRecursiveTrampTemplate * temp_ret = (NonRecursiveTrampTemplate *)ret;
       temp_ret->guardOnPre_beginOffset = insn - code;
       for( int i = 0; i < guard_code_before_pre_instr_size; i++ )
-	emitSimpleInsn( 0x90, insn );
+         emitSimpleInsn( 0x90, insn );
       temp_ret->guardOnPre_endOffset = insn - code;
-    }
+   }
 
-  // global pre branch
-  ret->globalPreOffset = insn-code;
-  emitJump(0, insn);
+   // global pre branch
+   ret->globalPreOffset = insn-code;
+   emitJump(0, insn);
 
-  // local pre branch
-  ret->localPreOffset = insn-code;
-  emitJump(0, insn);
+   // local pre branch
+   ret->localPreOffset = insn-code;
+   emitJump(0, insn);
 
-  ret->localPreReturnOffset = insn-code;
+   ret->localPreReturnOffset = insn-code;
 
-  if( ! trampRecursiveDesired )
-    {
-      NonRecursiveTrampTemplate * temp_ret = ( NonRecursiveTrampTemplate * )ret;
+   if( ! trampRecursiveDesired )
+   {
+      NonRecursiveTrampTemplate * temp_ret = (NonRecursiveTrampTemplate *)ret;
       temp_ret->guardOffPre_beginOffset = insn - code;
       for( int i = 0; i < guard_code_after_pre_instr_size; i++ )
-	emitSimpleInsn( 0x90, insn );
+         emitSimpleInsn( 0x90, insn );
       temp_ret->guardOffPre_endOffset = insn - code;
-    }
+   }
 
-  // restore registers
-  if (location->isConservative())
-    emitOpRegRM(FRSTOR, FRSTOR_OP, EBP, -128 - FSAVE_STATE_SIZE, insn);
-  emitSimpleInsn(LEAVE, insn);     // leave
-  emitSimpleInsn(POP_EAX, insn);   // pop return address
-  emitSimpleInsn(POPAD, insn);     // popad
-  if (!location->isConservative() || noCost)
-    emitSimpleInsn(POPFD, insn);     // popfd
-  ret->restorePreInsOffset = insn-code;
+   // restore registers
+   if (location->isConservative())
+      emitOpRegRM(FRSTOR, FRSTOR_OP, EBP, -128 - FSAVE_STATE_SIZE, insn);
+   emitSimpleInsn(LEAVE, insn);     // leave
+   emitSimpleInsn(POP_EAX, insn);   // pop return address
+   emitSimpleInsn(POPAD, insn);     // popad
+   if (!location->isConservative() || noCost)
+      emitSimpleInsn(POPFD, insn);     // popfd
+   ret->restorePreInsOffset = insn-code;
 
-  // update cost
-  // update cost -- a 10-byte instruction
-  ret->updateCostOffset = insn-code;
-  currAddr = baseAddr + (insn-code);
-  ret->costAddr = currAddr;
-  if (!noCost) {
-     emitAddMemImm32(costAddr, 88, insn);  // add (costAddr), cost
-     if (location->isConservative())
-       emitSimpleInsn(POPFD, insn);     // popfd
-  }
-  else {
-     // minor hack: we still need to fill up the rest of the 10 bytes, since
-     // assumptions are made about the positioning of instructions that follow.
-     // (This could in theory be fixed)
-     // So, 10 NOP instructions (each 1 byte)
-     for (unsigned foo=0; foo < 10; foo++)
-        emitSimpleInsn(0x90, insn); // NOP
-  }
+   // update cost
+   // update cost -- a 10-byte instruction
+   ret->updateCostOffset = insn-code;
+   currAddr = baseAddr + (insn-code);
+   ret->costAddr = currAddr;
+   if (!noCost) {
+      emitAddMemImm32(costAddr, 88, insn);  // add (costAddr), cost
+      if (location->isConservative())
+         emitSimpleInsn(POPFD, insn);     // popfd
+   }
+   else {
+      // minor hack: we still need to fill up the rest of the 10 bytes, since
+      // assumptions are made about the positioning of instructions that
+      // follow.  (This could in theory be fixed) So, 10 NOP instructions
+      // (each 1 byte)
+      for (unsigned foo=0; foo < 10; foo++)
+         emitSimpleInsn(0x90, insn); // NOP
+   }
    
-  if (!(location->insnAtPoint().type() & IS_JCC)) {
-    // emulate the instruction at the point 
-    ret->emulateInsOffset = insn-code;
-    currAddr = baseAddr + (insn - code);
-    assert(origAddr == location->address() + imageBaseAddr);
-    origAddr = location->address() + imageBaseAddr;
-    if (currentPC == origAddr &&
-	currentPC != (location->jumpAddr() + imageBaseAddr)) {
-      //fprintf(stderr, "changed PC: 0x%lx to 0x%lx\n", currentPC, currAddr);
-      proc->getDefaultLWP()->changePC(currAddr, NULL);
-    }
+   if (!(location->insnAtPoint().type() & IS_JCC)) {
+      // emulate the instruction at the point 
+      ret->emulateInsOffset = insn-code;
+      currAddr = baseAddr + (insn - code);
+      assert(origAddr == location->address() + imageBaseAddr);
+      origAddr = location->address() + imageBaseAddr;
+      if (currentPC == origAddr &&
+          currentPC != (location->jumpAddr() + imageBaseAddr)) {
+         //fprintf(stderr, "changed PC: 0x%lx to 0x%lx\n", currentPC,currAddr);
+         proc->getDefaultLWP()->changePC(currAddr, NULL);
+      }
 
-    unsigned newSize = relocateInstruction(location->insnAtPoint(), origAddr, currAddr, insn);
-    aflag=(newSize == getRelocatedInstructionSz(location->insnAtPoint()));
-    assert(aflag);
-    currAddr += newSize;
-    origAddr += location->insnAtPoint().size();
-  } else {
-    // instruction at point is a conditional jump. 
-    // The instruction was relocated to the beggining of the tramp (see comments above)
-    // We must generate a jump to the original target here
-    assert(jccTarget > 0);
-    currAddr = baseAddr + (insn - code);
-    emitJump(jccTarget-(currAddr+JUMP_SZ), insn);
-    currAddr += JUMP_SZ;
-  }
+      unsigned newSize =
+         relocateInstruction(location->insnAtPoint(), origAddr, currAddr,insn);
+      aflag=(newSize == getRelocatedInstructionSz(location->insnAtPoint()));
+      assert(aflag);
+      currAddr += newSize;
+      origAddr += location->insnAtPoint().size();
+   } else {
+      // instruction at point is a conditional jump.  The instruction was
+      // relocated to the beggining of the tramp (see comments above) We must
+      // generate a jump to the original target here
+      assert(jccTarget > 0);
+      currAddr = baseAddr + (insn - code);
+      emitJump(jccTarget-(currAddr+JUMP_SZ), insn);
+      currAddr += JUMP_SZ;
+   }
 
-  // post branches
-  // skip post instrumentation
-  ret->skipPostInsOffset = insn-code;
-  emitJump(0, insn);
-
-
-  // save registers and create a new stack frame for the tramp
-  ret->savePostInsOffset = insn-code;
-  emitSimpleInsn(PUSHFD, insn);    // pushfd
-  emitSimpleInsn(PUSHAD, insn);    // pushad
-  emitPushImm(location->iPgetAddress(), insn);
-  emitSimpleInsn(PUSH_EBP, insn);  // push ebp
-  emitMovRegToReg(EBP, ESP, insn); // mov ebp, esp
-  // allocate space for temporaries (virtual registers)
-  if (location->isConservative()) {
-    // allocate space for temporaries (virtual registers) and floating point state
-    emitOpRegImm(5, ESP, 128 + FSAVE_STATE_SIZE, insn); // sub esp, 128
-    // save floating point state
-    emitOpRegRM(FSAVE, FSAVE_OP, EBP, -128 - FSAVE_STATE_SIZE, insn);
-  } else {
-    // allocate space for temporaries (virtual registers)
-    emitOpRegImm(5, ESP, 128, insn); // sub esp, 128
-  }
+   // post branches
+   // skip post instrumentation
+   ret->skipPostInsOffset = insn-code;
+   emitJump(0, insn);
 
 
-  if(proc->multithread_capable()) {
-     // generate preamble for MT version
-     base=0;
-     generateMTpreamble((char *)insn, base, proc);
-     insn += base;
-  }
+   // save registers and create a new stack frame for the tramp
+   ret->savePostInsOffset = insn-code;
+   emitSimpleInsn(PUSHFD, insn);    // pushfd
+   emitSimpleInsn(PUSHAD, insn);    // pushad
+   emitPushImm(location->iPgetAddress(), insn);
+   emitSimpleInsn(PUSH_EBP, insn);  // push ebp
+   emitMovRegToReg(EBP, ESP, insn); // mov ebp, esp
+   // allocate space for temporaries (virtual registers)
+   if (location->isConservative()) {
+      // allocate space for temporaries (virtual registers) and floating
+      // point state
+      emitOpRegImm(5, ESP, 128 + FSAVE_STATE_SIZE, insn); // sub esp, 128
+      // save floating point state
+      emitOpRegRM(FSAVE, FSAVE_OP, EBP, -128 - FSAVE_STATE_SIZE, insn);
+   } else {
+      // allocate space for temporaries (virtual registers)
+      emitOpRegImm(5, ESP, 128, insn); // sub esp, 128
+   }
 
-  if( ! trampRecursiveDesired )
-    {
-      NonRecursiveTrampTemplate * temp_ret = ( NonRecursiveTrampTemplate * )ret;
+
+   if(proc->multithread_capable()) {
+      // generate preamble for MT version
+      base=0;
+      generateMTpreamble((char *)insn, base, proc);
+      insn += base;
+   }
+
+   if( ! trampRecursiveDesired )
+   {
+      NonRecursiveTrampTemplate * temp_ret = (NonRecursiveTrampTemplate *)ret;
       temp_ret->guardOnPost_beginOffset = insn - code;
       for( int i = 0; i < guard_code_before_post_instr_size; i++ )
-	emitSimpleInsn( 0x90, insn );
+         emitSimpleInsn( 0x90, insn );
       temp_ret->guardOnPost_endOffset = insn - code;
-    }
+   }
 
-  // global post branch
-  ret->globalPostOffset = insn-code; 
-  emitJump(0, insn);
+   // global post branch
+   ret->globalPostOffset = insn-code; 
+   emitJump(0, insn);
 
-  // local post branch
-  ret->localPostOffset = insn-code;
-  emitJump(0, insn);
+   // local post branch
+   ret->localPostOffset = insn-code;
+   emitJump(0, insn);
 
-  ret->localPostReturnOffset = insn-code;
+   ret->localPostReturnOffset = insn-code;
 
-  if( ! trampRecursiveDesired )
-    {
-      NonRecursiveTrampTemplate * temp_ret = ( NonRecursiveTrampTemplate * )ret;
+   if( ! trampRecursiveDesired )
+   {
+      NonRecursiveTrampTemplate * temp_ret = (NonRecursiveTrampTemplate *)ret;
       temp_ret->guardOffPost_beginOffset = insn - code;
       for( int i = 0; i < guard_code_after_post_instr_size; i++ )
-	emitSimpleInsn( 0x90, insn );
+         emitSimpleInsn( 0x90, insn );
       temp_ret->guardOffPost_endOffset = insn - code;
-    }
+   }
 
-  // restore registers
-  if (location->isConservative())
-    emitOpRegRM(FRSTOR, FRSTOR_OP, EBP, -128 - FSAVE_STATE_SIZE, insn);
-  emitSimpleInsn(LEAVE, insn);     // leave
-  emitSimpleInsn(POP_EAX, insn);   // pop return address
-  emitSimpleInsn(POPAD, insn);     // popad
-  emitSimpleInsn(POPFD, insn);     // popfd
-  ret->restorePostInsOffset = insn-code;
+   // restore registers
+   if (location->isConservative())
+      emitOpRegRM(FRSTOR, FRSTOR_OP, EBP, -128 - FSAVE_STATE_SIZE, insn);
+   emitSimpleInsn(LEAVE, insn);     // leave
+   emitSimpleInsn(POP_EAX, insn);   // pop return address
+   emitSimpleInsn(POPAD, insn);     // popad
+   emitSimpleInsn(POPFD, insn);     // popfd
+   ret->restorePostInsOffset = insn-code;
   
-  // emulate the instructions after the point
-  ret->returnInsOffset = insn-code;
-  currAddr = baseAddr + (insn - code);
-  assert(origAddr == location->address() + imageBaseAddr + location->insnAtPoint().size());
-  origAddr = location->address() + imageBaseAddr + location->insnAtPoint().size();
-  for (u = 0; u < location->insnsAfter(); u++) {
-    if (currentPC == origAddr) {
-      //fprintf(stderr, "changed PC: 0x%lx to 0x%lx\n", currentPC, currAddr);
-      proc->getDefaultLWP()->changePC(currAddr, NULL);
-    }
-    unsigned newSize = relocateInstruction(location->insnAfterPt(u), origAddr, currAddr, insn);
-    aflag=(newSize == getRelocatedInstructionSz(location->insnAfterPt(u)));
-    assert(aflag);
-    currAddr += newSize;
-    origAddr += location->insnAfterPt(u).size();
-  }
+   // emulate the instructions after the point
+   ret->returnInsOffset = insn-code;
+   currAddr = baseAddr + (insn - code);
+   assert(origAddr == location->address() + imageBaseAddr + 
+                      location->insnAtPoint().size());
+   origAddr = location->address() + imageBaseAddr +
+              location->insnAtPoint().size();
+   for (u = 0; u < location->insnsAfter(); u++) {
+      if (currentPC == origAddr) {
+         //fprintf(stderr, "changed PC: 0x%lx to 0x%lx\n", currentPC,currAddr);
+         proc->getDefaultLWP()->changePC(currAddr, NULL);
+      }
+      unsigned newSize = relocateInstruction(location->insnAfterPt(u), 
+                                             origAddr, currAddr, insn);
+      aflag=(newSize == getRelocatedInstructionSz(location->insnAfterPt(u)));
+      assert(aflag);
+      currAddr += newSize;
+      origAddr += location->insnAfterPt(u).size();
+   }
 
-  // return to user code
-  currAddr = baseAddr + (insn - code);
-  emitJump(location->returnAddr()+imageBaseAddr - (currAddr+JUMP_SZ), insn);
+   // return to user code
+   currAddr = baseAddr + (insn - code);
+   emitJump(location->returnAddr()+imageBaseAddr - (currAddr+JUMP_SZ), insn);
 #ifdef INST_TRAP_DEBUG
-  cerr << "installBaseTramp jump back to " <<
-	  (void*)( location->returnAddr() + imageBaseAddr ) << endl;
+   cerr << "installBaseTramp jump back to " <<
+      (void*)( location->returnAddr() + imageBaseAddr ) << endl;
 #endif
+   assert((unsigned)(insn-code) == trampSize);
 
-  assert((unsigned)(insn-code) == trampSize);
+   // update the jumps to skip pre and post instrumentation
+   unsigned char *ip = code + ret->skipPreInsOffset;
+   emitJump(ret->updateCostOffset - (ret->skipPreInsOffset+JUMP_SZ), ip);
+   ip = code + ret->skipPostInsOffset;
+   emitJump(ret->returnInsOffset - (ret->skipPostInsOffset+JUMP_SZ), ip);
 
-  // update the jumps to skip pre and post instrumentation
-  unsigned char *ip = code + ret->skipPreInsOffset;
-  emitJump(ret->updateCostOffset - (ret->skipPreInsOffset+JUMP_SZ), ip);
-  ip = code + ret->skipPostInsOffset;
-  emitJump(ret->returnInsOffset - (ret->skipPostInsOffset+JUMP_SZ), ip);
+   if (auxJumpOffset > 0) {
+      ip = code + auxJumpOffset;
+      emitJump(ret->returnInsOffset - (auxJumpOffset+JUMP_SZ), ip);
+   }
 
-  if (auxJumpOffset > 0) {
-    ip = code + auxJumpOffset;
-    emitJump(ret->returnInsOffset - (auxJumpOffset+JUMP_SZ), ip);
-  }
-
-  if( ! trampRecursiveDesired )
-    {
+   if( ! trampRecursiveDesired )
+   {
       /* prepare guard flag memory, if needed */
       Address guardFlagAddress = proc->trampGuardAddr();
 
-      NonRecursiveTrampTemplate * temp_ret = ( NonRecursiveTrampTemplate * )ret;
+      NonRecursiveTrampTemplate * temp_ret = (NonRecursiveTrampTemplate *)ret;
       generate_guard_code( code, * temp_ret, baseAddr, guardFlagAddress );
-    }
+   }
   
-  // put the tramp in the application space
-  proc->writeDataSpace((caddr_t)baseAddr, insn-code, (caddr_t) code);
+   // put the tramp in the application space
+   proc->writeDataSpace((caddr_t)baseAddr, insn-code, (caddr_t) code);
 
-  delete [] code;
+   delete [] code;
 
-  ret->cost = 6;
-  //
-  // The cost for generateMTpreamble is 25 for pre and post instrumentation:
-  // movl   $0x80570ec,%eax                1
-  // call   *%ea                           5
-  // movl   %eax,0xfffffffc(%ebp)          1
-  // shll   $0x2,0xfffffffc(%ebp)         12
-  // addl   $0x84ac670,0xfffffffc(%ebp)    4
-  // movl   0xfffffffc(%ebp),%eax          1
-  // movl   %eax,0xffffff80(%ebp)          1
-  //
-  ret->prevBaseCost = 42+25;
-  ret->postBaseCost = 42+25;
-  ret->prevInstru = false;
-  ret->postInstru = false;
-  return ret;
+   ret->cost = 6;
+   //
+   // The cost for generateMTpreamble is 25 for pre and post instrumentation:
+   // movl   $0x80570ec,%eax                1
+   // call   *%ea                           5
+   // movl   %eax,0xfffffffc(%ebp)          1
+   // shll   $0x2,0xfffffffc(%ebp)         12
+   // addl   $0x84ac670,0xfffffffc(%ebp)    4
+   // movl   0xfffffffc(%ebp),%eax          1
+   // movl   %eax,0xffffff80(%ebp)          1
+   //
+   ret->prevBaseCost = 42+25;
+   ret->postBaseCost = 42+25;
+   ret->prevInstru = false;
+   ret->postInstru = false;
+   return ret;
 }
 
 
@@ -2446,7 +2475,7 @@ Address emitA(opCode op, Register src1, Register /*src2*/, Register dest,
 
 Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
                char *ibuf, Address &base, bool /*noCost*/,
-               const instPoint *location, bool for_multithreaded)
+               const instPoint *location, bool /*for_multithreaded*/)
 {
     //fprintf(stderr,"emitR(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
 
