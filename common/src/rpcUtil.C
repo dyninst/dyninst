@@ -1,6 +1,9 @@
 /*
  * $Log: rpcUtil.C,v $
- * Revision 1.23  1994/06/02 23:36:58  markc
+ * Revision 1.24  1994/06/22 00:37:13  markc
+ * Fixed code to remove warnings.
+ *
+ * Revision 1.23  1994/06/02  23:36:58  markc
  * Added support for igen error checking.
  *
  * Revision 1.22  1994/05/17  00:14:45  hollings
@@ -529,11 +532,13 @@ int RPCprocessCreate(int *pid, char *hostName, char *userName,
 	    } else if (ret) {
 		// some sort of error message from rsh.
 		printf("%s", line);
+		return (-1);
 	    }
 	}  while (ret);
 
 	return(-1);
-    }
+      }
+    return (-1);
 }
 
 //
