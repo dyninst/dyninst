@@ -41,16 +41,10 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.12 1999/07/13 04:32:21 csserra Exp $
+ * $Id: RTinst.c,v 1.13 1999/08/09 05:48:48 csserra Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
-
-#ifdef SHM_SAMPLING
-#include <sys/types.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
-#endif
 
 #include <assert.h>
 #include <errno.h>
@@ -61,6 +55,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <sys/types.h>
+
+#ifdef SHM_SAMPLING
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#endif
 
 #include "kludges.h"
 #include "rtinst/h/rtinst.h"
@@ -470,9 +470,12 @@ DYNINSTstopWallTimer(tTimer* timer) {
 #define NOPS_4  { __asm add eax, 0 __asm add eax, 0 __asm add eax, 0 __asm add eax, 0 }
 #elif defined(rs6000_ibm_aix4_1)
 #define NOPS_4  asm("oril 0,0,0"); asm("oril 0,0,0"); asm("oril 0,0,0"); asm("oril 0,0,0")
+//#elif defined(mips_sgi_irix6_4)
+//#define NOPS_4 ; ; ;
 #else
 #define NOPS_4  asm("nop"); asm("nop"); asm("nop"); asm("nop")
 #endif
+
 #define NOPS_16 NOPS_4; NOPS_4; NOPS_4; NOPS_4
 /* Note: the following should probably be moved into arch-specific files,
    since different platforms could have very different ways of implementation.
@@ -486,6 +489,12 @@ DYNINSTcyclesPerSecond(void) {
     double         elapsed;
     double         speed;
     const unsigned LOOP_LIMIT = 500000;
+
+#if defined(mips_sgi_irix6_4)
+    /* TODO: combine code with "util/src/timing*.C"? */
+    extern float DYNINSTos_cyclesPerSecond();
+    return DYNINSTos_cyclesPerSecond();
+#endif
 
     start_cpu = DYNINSTgetCPUtime();
     for (i = 0; i < LOOP_LIMIT; i++) {
@@ -955,6 +964,7 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
     int ppid = 0;
 #endif
     unsigned attach_cookie = 0x22222222;
+    int32 ptr_size;
     
     DYNINSTinitTrace(paradyndPid);
     
@@ -963,7 +973,9 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
     DYNINSTwriteTrace(&ppid, sizeof(ppid));
 #ifdef SHM_SAMPLING
     DYNINSTwriteTrace(&DYNINST_shmSegKey, sizeof(DYNINST_shmSegKey));
-    DYNINSTwriteTrace(&DYNINST_shmSegAttachedPtr, sizeof(DYNINST_shmSegAttachedPtr));
+    ptr_size = sizeof(DYNINST_shmSegAttachedPtr);
+    DYNINSTwriteTrace(&ptr_size, sizeof(int32));
+    DYNINSTwriteTrace(&DYNINST_shmSegAttachedPtr, ptr_size);
 #endif
     DYNINSTflushTrace();
   }
@@ -1039,12 +1051,9 @@ void DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid)
 
 #ifdef SHM_SAMPLING
 /* bootstrap structure extraction info (see rtinst/h/trace.h) */
-static struct DYNINST_bootstrapStruct _dummy;
-int32 DYNINST_attachPtrOff = \
-  (long unsigned int)&(_dummy.appl_attachedAtPtr.ptr) - \
-  (long unsigned int)&(_dummy);
-int32 DYNINST_attachPtrSize = sizeof(_dummy.appl_attachedAtPtr.ptr);
-#endif
+static struct DYNINST_bootstrapStruct _bs_dummy;
+int32 DYNINST_attachPtrSize = sizeof(_bs_dummy.appl_attachedAtPtr.ptr);
+#endif /* SHM_SAMPLING */
 
 
 /************************************************************************

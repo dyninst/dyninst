@@ -223,16 +223,18 @@ struct DYNINST_bootstrapStruct {
 
 #ifdef SHM_SAMPLING
    union {
-     void  *ptr;
-     int64  unused; /* 64-bit padding */
+     void *ptr;    /* raw pointer */
+     struct {      /* 32-bit word components */
+       int32 hi;
+       int32 lo;
+     } words;
+     int64 unused; /* 64-bit padding */
    } appl_attachedAtPtr;
 #endif /* SHM_SAMPLING */
 };
 
 #ifdef SHM_SAMPLING
-/* bootstrap structure info: these variables facilitate the 
-   extraction of the "appl_attachedAtPtr" field above */
-extern int32 DYNINST_attachPtrOff;
+/* this facilitates the extraction of "appl_attachedAtPtr" above */
 extern int32 DYNINST_attachPtrSize;
 #endif /* SHM_SAMPLING */
 
