@@ -21,11 +21,14 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.41  1996/02/07 19:06:13  tamches
-/* initSHG gone
-/* root node now TopLevelHypothesis instead of Whole Program
-/* deferred phase adding features
+/* Revision 1.42  1996/02/07 21:46:57  tamches
+/* defineNewSearch returns bool
 /*
+ * Revision 1.41  1996/02/07 19:06:13  tamches
+ * initSHG gone
+ * root node now TopLevelHypothesis instead of Whole Program
+ * deferred phase adding features
+ *
  * Revision 1.40  1996/02/02 18:42:17  tamches
  * Global search initialized when the shg window is
  * UIM::initShg should now be unused
@@ -222,8 +225,8 @@ bool tryFirstGoodShgWid(Tcl_Interp *interp, Tk_Window topLevelTkWindow) {
 
    // Now is as good a time as any to define the global phase.
    const int GlobalPhaseId = 0; // a hardcoded constant
-   theShgPhases->defineNewSearch(GlobalPhaseId,
-				 "Global Phase");
+   (void)theShgPhases->defineNewSearch(GlobalPhaseId,
+				       "Global Phase");
 
    // ...and inform the performance consultant:
    perfConsult->newSearch(GlobalPhase);
