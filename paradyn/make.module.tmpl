@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.51 2004/07/28 07:24:47 jaw Exp $
+# $Id: make.module.tmpl,v 1.52 2004/10/19 00:15:43 pack Exp $
 #
 
 CFLAGS		+= $(TCLFRIENDLYWARNINGS) $(XFLAGS)
@@ -28,8 +28,8 @@ SRCS	     += ../src/DMthread/DMpublic.C \
 		../src/DMthread/DMresource.C \
 		../src/DMthread/DMcritPath.C \
 		../src/DMthread/DMphase.C \
-      ../src/DMthread/DMmetricFocusReqBundle.C \
-      ../src/DMthread/DMmetricFocusReq.C \
+     	 	../src/DMthread/DMmetricFocusReqBundle.C \
+      		../src/DMthread/DMmetricFocusReq.C \
 		../src/DMthread/CallGraph.C \
 		../src/DMthread/MagnifyManager.C \
 		../src/pdMain/main.C \
@@ -74,9 +74,9 @@ SRCS	     += ../src/DMthread/DMpublic.C \
 		../src/UIthread/shgTcl.C \
 		../src/UIthread/tkTools.C \
 		../src/UIthread/pdLogo.C \
-        ../src/UIthread/ParadynUI.C \
-        ../src/UIthread/ParadynTclUI.C \
-        ../src/UIthread/ParadynTkGUI.C \
+	        ../src/UIthread/ParadynUI.C \
+        	../src/UIthread/ParadynTclUI.C \
+      		../src/UIthread/ParadynTkGUI.C \
 		../src/TCthread/TCmain.C \
 		../src/TCthread/tunableConst.C \
 		../src/met/metMain.C \
@@ -93,9 +93,11 @@ IGEN_GEN_SRCS =	dataManager.thread.C \
 		performanceConsultant.thread.C \
 		performanceConsultant.thread.CLNT.C \
 		performanceConsultant.thread.SRVR.C \
+		dyninstRPC.mrnet.CLNT.C \
+		dyninstRPC.mrnet.SRVR.C \
 		dyninstRPC.xdr.C \
 		dyninstRPC.xdr.CLNT.C \
-		dyninstRPC.xdr.temp.C \
+		dyninstRPC.xdr.SRVR.C \
 		visi.xdr.C \
 		visi.xdr.CLNT.C \
 		visi.xdr.temp.C \
@@ -140,9 +142,9 @@ TCL_SRCS 	= ../tcl/applic.tcl \
 
 SRCS		+= $(TCL2C_GEN_SRCS)
 
-IFLAGS       += -DPARADYN
+IFLAGS       += -DPARADYN -I../mrnet/mrnet/h/mrnet -I../mrnet/mrnet
 
-LIBS 	     += -lpdthread -lpdutil -lxplat $(THREADSLIB)
+LIBS 	     += -lpdthread -lpdutil -lxplat $(THREADSLIB) -lmrnet
 
 SYSLIBS	     += $(TCLTK_LIBS) $(X11_LIB) -lm $(FLEX_LIB)
 
