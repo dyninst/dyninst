@@ -43,6 +43,10 @@
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
+ * Revision 1.43  1996/09/05 16:40:07  lzheng
+ * Moved the architecture dependent definations to the architecture
+ * dependent files; Added some comments
+ *
  * Revision 1.42  1996/08/23 16:59:23  lzheng
  * Another minor change related to the undoing of tail-call optimaztion
  *
@@ -120,11 +124,11 @@ public:
   void set_callee(pdFunction *to) { callee = to; }
 
 
-  Address addr;                   /* address of inst point */
+  Address addr;                       /* address of inst point */
   instruction originalInstruction;    /* original instruction */
-  instruction delaySlotInsn;  /* original instruction */
-  instruction aggregateInsn;  /* aggregate insn */
-  instruction otherInstruction;
+  instruction delaySlotInsn;          /* original instruction */
+  instruction aggregateInsn;          /* aggregate insn */
+  instruction otherInstruction;       
   instruction isDelayedInsn;  
   instruction inDelaySlotInsn;
 
@@ -371,7 +375,12 @@ inline void genLoadD(instruction *insn, int rs1, int offset, int rd)
 }
 
 
-
+// Constructor for the class instPoint. This one defines the 
+// instPoints for the relocated function. Since the function reloated
+// to the heap don't need to worry about that jump could be out of
+// reach, the instructions to be moved are the one instruction at that
+// point plus others if necessary(i.e. instruction in the delayed
+// slot and maybe the aggregate instuction ).    
 instPoint::instPoint(pdFunction *f, const instruction &instr, 
 		     const image *owner, Address &adr, bool delayOK, 
 		     instPointType pointType, Address &oldAddr)
@@ -384,9 +393,13 @@ instPoint::instPoint(pdFunction *f, const instruction &instr,
   delaySlotInsn.raw = owner->get_instruction(oldAddr+4);
   aggregateInsn.raw = owner->get_instruction(oldAddr+8);
 
+  // If the instruction is a DCTI, the instruction in the delayed 
+  // slot is to be moved.
   if (IS_DELAYED_INST(instr))
     isDelayed = true;
 
+  // If this function call another function which return an aggregate
+  // value, move the aggregate instruction, too. 
   if (ipType == callSite) {
       if (!IS_VALID_INSN(aggregateInsn) && aggregateInsn.raw != 0) {
 	  callAggregate = true;
@@ -409,7 +422,13 @@ instPoint::instPoint(pdFunction *f, const instruction &instr,
   }
 }
 
-
+// Another constructor for the class instPoint. This one is called
+// for the define the instPoints for regular functions which means
+// multiple instructions is going to be moved to based trampoline.
+// Since we will use the instruction CALL to branch to the base
+// tramp(so it doesn't have any code size restriction), things are
+// a little more complicated because instruction CALL changes the 
+// value in the link register.
 instPoint::instPoint(pdFunction *f, const instruction &instr, 
 		     const image *owner, Address &adr,
 		     bool delayOK, bool isLeaf, instPointType pointType)
@@ -421,6 +440,7 @@ instPoint::instPoint(pdFunction *f, const instruction &instr,
   isBranchOut = false;
   size = 0;
 
+  // When the function is not a leaf function 
   if (!leaf) {
 
       // we will treat the first instruction after the SAVE instruction
@@ -482,6 +502,7 @@ instPoint::instPoint(pdFunction *f, const instruction &instr,
       //}
   }
 
+  // When the function is a leaf function
   else {
 
       // For the leaf procedure, there are no function calls in
@@ -523,12 +544,15 @@ instPoint::instPoint(pdFunction *f, const instruction &instr,
 	  }
 
       } else {
-
-	  logLine("Internal Error: in inst-sparc.C:552");
+	  // Of course, the leaf function could not have call sites. 
+	  logLine("Internal Error: in inst-sparc.C.");
 	  abort();
       }
   }
 
+  // return the address in the code segment after this instruction
+  // sequence. (there's a -1 here because one will be added up later in
+  // the function findInstPoints)  
   adr = addr + (size - 1*sizeof(instruction));
 }
 
@@ -602,6 +626,7 @@ Address pdFunction::newCallPoint(Address &adr, const instruction instr,
     } else
       point->callIndirect = false;
 
+    /* This check has been moved to the constructor of the instPoint */  
     // check for aggregate type being returned 
     // this is marked by insn after call's delay solt being an
     //   invalid insn.  We treat this as an extra delay slot and
@@ -724,12 +749,21 @@ void relocateInstruction(instruction *insn, int origAddr, int targetAddr,
 {
     int newOffset;
 
+    // If the instruction is a CALL instruction, calculate the new
+    // offset
     if (isInsnType(*insn, CALLmask, CALLmatch)) {
 	newOffset = origAddr  - targetAddr + (insn->call.disp30 << 2);
 	insn->call.disp30 = newOffset >> 2;
     } else if (isInsnType(*insn, BRNCHmask, BRNCHmatch)||
 	       isInsnType(*insn, FBRNCHmask, FBRNCHmatch)) {
 
+	// If the instruction is a Branch instruction, calculate the 
+        // new offset. If the new offset is out of reach after the 
+        // instruction is moved to the base Trampoline, we would do
+        // the following:
+	//    b  address  ......    address: save
+	//                                   call new_offset             
+	//                                   restore 
 	newOffset = origAddr - targetAddr + (insn->branch.disp22 << 2);
 	if (ABS(newOffset) > MAX_BRANCH) {
 	    int ret = inferiorMalloc(proc, 3*sizeof(instruction), textHeap);
@@ -748,8 +782,9 @@ void relocateInstruction(instruction *insn, int origAddr, int targetAddr,
 	    insn->branch.disp22 = newOffset >> 2;
 	}
     } else if (isInsnType(*insn, TRAPmask, TRAPmatch)) {
-	logLine("attempt to relocate trap\n");
-	abort();
+	// There should be no probelm for moving trap instruction
+	//logLine("attempt to relocate trap\n");
+	//abort();
     } 
     /* The rest of the instructions should be fine as is */
 }
@@ -801,6 +836,8 @@ void initTramps()
 /*
  * Install a base tramp -- fill calls with nop's for now.
  *
+ * This one install the base tramp for the regular functions.
+ *
  */
 void installBaseTramp(unsigned baseAddr, 
 		      instPoint *location,
@@ -820,7 +857,10 @@ void installBaseTramp(unsigned baseAddr,
 
 	if (temp->raw == EMULATE_INSN) {
 
-	    /* Load the value of link register from stack */  
+	    // Load the value of link register from stack 
+	    // If it is a leaf function, genereate a RESTORE instruction
+            // since there's an instruction SAVE generated and put in the
+            // code segment.
 	    if (location -> leaf) {
 		genImmInsn(temp, RESTOREop3, 0, 0, 0);
 		temp++;
@@ -831,9 +871,14 @@ void installBaseTramp(unsigned baseAddr,
 		//temp++;
 	    } 
 
+	    // Same for the leaf and nonleaf functions.
+            // First, relocate the "FIRST instruction" in the sequence;  
 	    *temp = location->originalInstruction;
 	    Address fromAddr = location->addr;
 	    relocateInstruction(temp, fromAddr, currAddr, proc);
+
+	    // Again, for leaf function, one more is needed to move for one
+	    // more spot;
 	    if (location->leaf) {
 		fromAddr += sizeof(instruction);
 		currAddr += sizeof(instruction);
@@ -841,17 +886,21 @@ void installBaseTramp(unsigned baseAddr,
 		relocateInstruction(temp, fromAddr, currAddr, proc);
 	    }	  
 	    
+	    // Second, relocate the "NEXT instruction";
 	    fromAddr += sizeof(instruction);
 	    currAddr += sizeof(instruction);
 	    *++temp = location->delaySlotInsn;
 	    relocateInstruction(temp, fromAddr, currAddr, proc);
 	    
+	    // Third, if the "NEXT instruction" is a DCTI, 
 	    if (location->isDelayed) {
 		fromAddr += sizeof(instruction);
 		currAddr += sizeof(instruction);
 		*++temp = location->isDelayedInsn;
 		relocateInstruction(temp, fromAddr, currAddr, proc);
 		
+		// Then, possibly, there's an callAggregate instruction
+		// after this. 
 		if (location->callAggregate) {
 		    currAddr += sizeof(instruction);
 		    *++temp = location->aggregateInsn;
@@ -859,13 +908,24 @@ void installBaseTramp(unsigned baseAddr,
 		}	
 	    }
 	    
-	    
+	    // If the "FIRST instruction" is a DCTI, then our so called 
+	    // "NEXT instruction" is in the delayed Slot and this might
+	    // happen. (actullay, it happened)
 	    if (location->callAggregate) {
 		currAddr += sizeof(instruction);
 		*++temp = location->aggregateInsn;
 		continue;
 	    }	
 	    
+	    // For the leaf function, if there's an inDelaySlot instruction,
+            // move this one to the base Tramp.(i.e. at the function exit,
+            // if the first instruction is in the delayed slot the previous
+            // instruction, we have to move that one too, so we count from 
+            // that one and the last one is this sequence is called inDelaySlot
+	    // instruction.)
+	    // Well, after all these, another SAVE instruction is generated
+	    // so we are prepared to handle the returning to our application's
+            // code segment. 
 	    if (location->leaf) {
 		if (location->inDelaySlot) {
 		    fromAddr += sizeof(instruction);
@@ -878,6 +938,10 @@ void installBaseTramp(unsigned baseAddr,
 	    }
 	    
 	} else if (temp->raw == RETURN_INSN) {
+	    // Back to the code segement of the application.
+            // If the location is in the leaf procedure, generate an RESTORE
+	    // instruction right after the CALL instruction to restore all
+	    // the values in the registers.
 	    if (location -> leaf) {
 		/*generateJmplInsn(temp, 31, 8 ,0);*/
 		generateCallInsn(temp, currAddr, location->addr+location->size);
@@ -902,6 +966,15 @@ void installBaseTramp(unsigned baseAddr,
     free(code);
 }
 
+
+/*
+ *
+ * Install the base Tramp for the function relocated.
+ * (it means the base tramp that don't need to bother with long jump and
+ *  is the one we used before for all the functions(since there's no
+ *  long jumps)
+ *
+ */ 
 void installBaseTrampSpecial(unsigned baseAddr, 
 			     instPoint *location,
 			     process *proc) 
@@ -912,7 +985,7 @@ void installBaseTrampSpecial(unsigned baseAddr,
 
     if (location->func->relocation) {
 	location->func->relocation = false;
-	location->func->relocateFunction(proc, location);
+	location->func->relocateFunction(proc);
     }
 
     code = new instruction[baseTemplate.size];
@@ -1013,6 +1086,11 @@ void AstNode::sysFlag(instPoint *location)
 }
 
 
+/*
+ * Allocate the space for the base Trampoline, and generate the instruction
+ * we need for modifying the code segment
+ *
+ */
 unsigned findAndInstallBaseTramp(process *proc, 
 				 instPoint *location,
 				 returnInstance *&retInstance)
@@ -1032,9 +1110,9 @@ unsigned findAndInstallBaseTramp(process *proc,
     if (!globalProc->baseMap.defines(location)) {
 	ret = inferiorMalloc(globalProc, baseTemplate.size, textHeap);
 
-	// Generate an instruction to save the value of link
-	// register if it is a leaf procedure
 	if (location->func->isTrap) {
+	    // Install Base Tramp for the functions which are 
+	    // relocated to the heap.
 	    installBaseTrampSpecial(ret, location, globalProc);
 	    if (location->isBranchOut)
 		changeBranch(globalProc, location->addr, (int) ret, 
@@ -1042,6 +1120,12 @@ unsigned findAndInstallBaseTramp(process *proc,
 	    else
 		generateBranch(globalProc, location->addr, (int) ret);
 
+	    // If the function has not been installed to the base Tramp yet,
+	    // generate the following instruction sequece at the right
+	    // beginning of this function:
+	    //   SAVE;             CALL;         RESTORE.
+	    // so that it would jump the start of the relocated function
+	    // which is in heap.
 	    if (location->func->notInstalled) {
 		location->func->notInstalled = false;
 		instruction *insn = new instruction[3];
@@ -1056,9 +1140,12 @@ unsigned findAndInstallBaseTramp(process *proc,
 		//proc->writeDataSpace((caddr_t)adr, sizeof(insn), (caddr_t) insn);
 
 	} else {
+	    // Install base tramp for all the other regular functions. 
 	    installBaseTramp(ret, location, globalProc);
 	    if (location->leaf) {
-		//genStore(globalProc, adr, 15, 14, 60);
+		// if it is the leaf function, we need to generate
+		// the following instruction sequence:
+		//     SAVE;      CALL;      NOP.
 		instruction *insn = new instruction[3];
 		genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
 		generateCallInsn(insn+1, adr+4, (int) ret);
@@ -1067,9 +1154,9 @@ unsigned findAndInstallBaseTramp(process *proc,
 						 3*sizeof(instruction), adr, 
 						 3*sizeof(instruction));
 	    } else {
-	    
+		// Otherwise,
 		// Generate branch instruction from the application to the
-		// base trampoline
+		// base trampoline and no SAVE instruction is needed
 		instruction *insn = new instruction[2];	
 		generateCallInsn(insn, adr, (int) ret);
 		generateNOOP(insn+1);
@@ -1136,17 +1223,10 @@ void genImm(process *proc, Address fromAddr,  int op, reg rs1, int immd, reg rd)
     proc->writeTextWord((caddr_t)fromAddr, insn.raw);
 }
 
-//void genStore(process *proc, unsigned fromAddr, int rd, int rs1, int offset)
-//{
-//    instruction insn;
-//    generateStore(&insn, rd, rs1, offset);
-//    
-//    proc->writeTextWord((caddr_t)fromAddr, insn.raw);
-//}
 
 /*
-   change the target of the branch at fromAddr, to be newAddr.
-*/
+ *  change the target of the branch at fromAddr, to be newAddr.
+ */
 void changeBranch(process *proc, unsigned fromAddr, unsigned newAddr, 
 		  instruction originalBranch) {
     int disp = newAddr-fromAddr;
@@ -1585,7 +1665,9 @@ bool isReturnInsn(const image *owner, Address adr, bool &lastOne)
     return false;
 }
 
-
+/*
+ * Find the instPoints of this function.
+ */
 bool pdFunction::findInstPoints(const image *owner) {
 
    if (size() == 0) {
@@ -1607,6 +1689,9 @@ bool pdFunction::findInstPoints(const image *owner) {
    for ( ; adr1 < addr() + size(); adr1 += 4) {
        instr.raw = owner->get_instruction(adr1);
 
+       // If there's an TRAP instruction in the function, we 
+       // assume that it is an system call and will relocate it 
+       // to the heap
        if (isInsnType(instr, TRAPmask, TRAPmatch)) {
 	   isTrap = true;
 	   relocation = true;
@@ -1616,6 +1701,12 @@ bool pdFunction::findInstPoints(const image *owner) {
        } 
 
 #if defined(sparc_sun_solaris2_4)
+       // TODO: This is a hacking for the solaris(solaris2.5 actually)
+       // We will relocate that function if the function has been 
+       // tail-call optimazed.
+       // (Actully, the reason of this is that the system calls like 
+       //  read, write, etc have the tail-call optimazation to call
+       //  the _read, _write etc. which contain the TRAP instruction 
        if (isLibTag()) {
 	   if (isCallInsn(instr)) {
 	       instruction nexti; 
@@ -1634,6 +1725,10 @@ bool pdFunction::findInstPoints(const image *owner) {
        }
 #endif
 
+       // The function Entry is defined as the first SAVE instruction plus
+       // the instructions after this.
+       // ( The first instruction for the nonleaf function is not 
+       //   necessarily a SAVE instruction. ) 
        if (isInsnType(instr, SAVEmask, SAVEmatch)) {
 	     
 	   leaf = false;
@@ -1643,6 +1738,8 @@ bool pdFunction::findInstPoints(const image *owner) {
        }
    }
 
+   // If there's no SAVE instruction found, this is a leaf function and
+   // and function Entry will be defined from the first instruction
    if (leaf) {
        adr = addr();
        instr.raw = owner->get_instruction(adr);
@@ -1755,21 +1852,30 @@ bool pdFunction::findInstPoints(const image *owner) {
  return (checkInstPoints(owner)); 
 }
 
-
+/*
+ * Check all the instPoints within this function to see if there's 
+ * any conficts happen.
+ */
 bool pdFunction::checkInstPoints(const image *owner) {
 
+    // Our own library function, skip the test.
     if (prettyName_.prefixed_by("DYNINST")) 
 	return true;
 
+    // The function is too small to be worthing instrumenting.
     if (size() <= 12)
 	return false;
 
+    // No function return! return false;
     if (sizeof(funcReturns) == 0)
 	return false;
 
     instruction instr;
     Address adr = addr();
 
+    // Check if there's any branch instruction jump to the middle
+    // of the instruction sequence in the function entry point
+    // and function exit point.
     for ( ; adr < addr() + size(); adr += sizeof(instruction)) {
 
 	instr.raw = owner->get_instruction(adr);
@@ -1787,7 +1893,7 @@ bool pdFunction::checkInstPoints(const image *owner) {
 		    return false;
 	    }
 
-	    int i;
+	    unsigned i;
 	    for (i = 0; i < funcReturns.size(); i++) {
 		if ((target > funcReturns[i]->addr)&&
 		    (target < (funcReturns[i]->addr + funcReturns[i]->size))) {
@@ -1906,7 +2012,6 @@ bool pdFunction::findInstPoints(const image *owner,
 
 	  //instPoint *point = new instPoint(this, instr, owner, newAdr, false,
 	  //			      functionExit, adr);
-	  bool err; 
 	  if (relocation) {
 	      instPoint *point = new instPoint(this, instr, owner, newAdr, false,
 				      functionExit, adr);
@@ -2025,15 +2130,17 @@ bool pdFunction::findInstPoints(const image *owner,
 	 
      }
  }
-
+   
    return true;
 }
 
 
-bool pdFunction::relocateFunction(process *proc, instPoint *location) {
+/*
+ * To relocate a function. 
+ * 
+ */ 
+void pdFunction::relocateFunction(process *proc) {
 
-    int id = location->instId;
-    Address adr = addr();
     unsigned ret;
     process *globalProc;
 
@@ -2044,9 +2151,11 @@ bool pdFunction::relocateFunction(process *proc, instPoint *location) {
         globalProc = proc;
     }   
 
+    //Allocate the heap for the function to be relocated
     ret = inferiorMalloc(globalProc, size()+28, textHeap);
     newAddr = ret;
 
+    //Find out the instPoints all the relocation
     findInstPoints(globalProc->symbols, ret, proc);
     proc->writeDataSpace((caddr_t)ret, size()+28, (caddr_t) newInstr);
 
@@ -2107,16 +2216,16 @@ bool image::heapIsOk(const vector<sym_data> &find_us) {
   if (curr > instHeapEnd) instHeapEnd = curr;
 
   // check that we can get to our heap.
-  if (instHeapEnd > getMaxBranch()) {
-    logLine("*** FATAL ERROR: Program text + data too big for dyninst\n");
-    sprintf(errorLine, "    heap ends at %x\n", instHeapEnd);
-    logLine(errorLine);
-    return false;
-  } else if (instHeapEnd + SYN_INST_BUF_SIZE > getMaxBranch()) {
-    logLine("WARNING: Program text + data could be too big for dyninst\n");
-    showErrorCallback(54, "");
-    return false;
-  }
+  //if (instHeapEnd > getMaxBranch()) {
+  //  logLine("*** FATAL ERROR: Program text + data too big for dyninst\n");
+  //  sprintf(errorLine, "    heap ends at %x\n", instHeapEnd);
+  //  logLine(errorLine);
+  //  return false;
+  //} else if (instHeapEnd + SYN_INST_BUF_SIZE > getMaxBranch()) {
+  //  logLine("WARNING: Program text + data could be too big for dyninst\n");
+  //  showErrorCallback(54, "");
+  //  return false;
+  //}
   return true;
 }
 
@@ -2154,5 +2263,7 @@ void returnInstance::addToReturnWaitingList(instruction insn, Address pc) {
     instWList.add(instW, (void *)pc);
 }
 
-
+void generateBreakPoint(instruction &insn) {
+    insn.raw = BREAK_POINT_INSN;
+}
 
