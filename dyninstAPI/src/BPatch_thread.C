@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.112 2004/12/02 00:57:05 tlmiller Exp $
+// $Id: BPatch_thread.C,v 1.113 2004/12/09 05:00:54 rchen Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -206,6 +206,9 @@ static void insertVForkInst(BPatch_thread *thread)
  * path		Pathname of the executable to start.
  * argv		A list of pointers to character strings which are the
  *              arguments for the new process, terminated by a NULL pointer.
+ * envp		A list of pointers to character strings which are the
+ *              environment variables for the new process, terminated by a
+ *              NULL pointer.  If NULL, the default environment will be used.
  */
 BPatch_thread::BPatch_thread(const char *path, char *argv[], char *envp[],
                              int stdin_fd, int stdout_fd, int stderr_fd)
@@ -215,10 +218,17 @@ BPatch_thread::BPatch_thread(const char *path, char *argv[], char *envp[],
     unreportedStop(false), unreportedTermination(false)
 {
     pdvector<pdstring> argv_vec;
+    pdvector<pdstring> envp_vec;
 
     // Contruct a vector out of the contents of argv
     for(int i = 0; argv[i] != NULL; i++)
        argv_vec.push_back(argv[i]);
+
+    if(envp) {
+	// Construct a vector out of the contents of envp
+	for(int i = 0; envp[i] != NULL; ++i)
+	    envp_vec.push_back(envp[i]);
+    }
 
     pdstring directoryName = "";
 
@@ -241,8 +251,8 @@ BPatch_thread::BPatch_thread(const char *path, char *argv[], char *envp[],
     //directoryName = buf;
     //#endif
 
-    proc = ll_createProcess(path, argv_vec, directoryName, stdin_fd,
-                            stdout_fd, stderr_fd);
+    proc = ll_createProcess(path, &argv_vec, (envp ? &envp_vec : NULL), directoryName,
+			    stdin_fd, stdout_fd, stderr_fd);
     // XXX Should do something more sensible.
     if (proc == NULL) { 
         BPatch::bpatch->reportError(BPatchFatal, 68, "BPatch_thread constructor:  process is NULL!");

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.125 2004/04/06 16:37:14 bernat Exp $
+// $Id: pdwinnt.C,v 1.126 2004/12/09 05:01:00 rchen Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -1559,7 +1559,8 @@ void process::recognize_threads(pdvector<unsigned> *completed_lwps) {
  *   procHandle: handle for new process (needed by WindowsNT)
  *   thrHandle: handle for main thread (needed by WindowsNT)
  ****************************************************************************/
-bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> argv, 
+bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> *argv, 
+		    pdvector<pdstring> * /* envp */,
                     pdstring inputFile, pdstring outputFile,
                     int &traceLink, int &pid, int &tid, 
                     int &procHandle, int &thrHandle, int /* stdin_fd */, 
@@ -1616,8 +1617,8 @@ bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> argv,
     // create the child process
     
     pdstring args;
-    for (unsigned ai=0; ai<argv.size(); ai++) {
-       args += argv[ai];
+    for (unsigned ai=0; ai<argv->size(); ai++) {
+       args += (*argv)[ai];
        args += " ";
     }
 
