@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.42 2001/08/28 15:28:58 hollings Exp $
+ * $Id: Object-elf.h,v 1.43 2001/11/05 18:47:20 zandy Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -146,7 +146,8 @@ class Object : public AObject {
   bool get_func_binding_table_ptr(const vector<relocationEntry> *&fbt) const;
 
   const ostream &dump_state_info(ostream &s);
-  
+  bool isEEL() { return EEL; }
+
  private:
   static void log_elferror (void (*)(const char *), const char *);
     

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.133 2001/11/02 19:28:39 bernat Exp $
+// $Id: symtab.C,v 1.134 2001/11/05 18:47:21 zandy Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -413,6 +413,10 @@ bool image::addAllFunctions(vector<Symbol> &mods)
   // find the real functions -- those with the correct type in the symbol table
   for(SymbolIter symIter(linkedFile); symIter;symIter++) {
     const Symbol &lookUp = symIter.currval();
+    const char *np = lookUp.name().string_of();
+    if (linkedFile.isEEL() && np[0] == '.')
+         /* ignore these EEL symbols; we don't understand their values */
+	 continue; 
     if (funcsByAddr.defines(lookUp.addr())) {
       // We have already seen a function at this addr. add a second name
       // for this function.

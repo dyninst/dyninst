@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.27 2001/10/30 21:02:43 gaburici Exp $
+ * $Id: Object-elf.C,v 1.28 2001/11/05 18:47:20 zandy Exp $
  * Object-elf.C: Object class for ELF file format
 ************************************************************************/
 
@@ -168,7 +168,7 @@ bool Object::loaded_elf(bool& did_elf, Elf*& elfp,
     return false;
   }
 
-  const char* EDITED_TEXT_NAME = ".edited_text";
+  const char* EDITED_TEXT_NAME = ".edited.text";
   const char* TEXT_NAME        = ".text";
   const char* BSS_NAME         = ".bss";
   const char* SYMTAB_NAME      = ".symtab";
