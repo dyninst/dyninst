@@ -21,7 +21,7 @@ x:
 */
         ENTRY(DYNINSTthreadPosFAST)
 	retl
-  	mov %g7, %o0
+  	mov %g6, %o0
         SET_SIZE(DYNINSTthreadPosFAST)
 
 /* 
