@@ -46,8 +46,6 @@
 #pragma interface
 #endif
 
-#include <ostream>
-
 #include "common/h/language.h"
 
 #if defined(i386_unknown_nt4_0)
@@ -198,14 +196,6 @@ class pdvector {
                                     src2.begin(), src2.end());
    }      
 
-//  // Sun's version 4.2 compilers can't handle templated methods, but egcs/g++ can
-//  #ifdef __GNUC__
-//     template <class OTHERALLOC>
-//     explicit pdvector(const pdvector<T, OTHERALLOC> &src) {
-//        initialize_copy(src.size(), src.begin(), src.end());
-//     }
-//  #endif
-   
    DO_INLINE_F 
    ~pdvector() {
       zap();
@@ -335,8 +325,6 @@ class pdvector {
      return data_ + index;
    }
 
- // friend std::ostream & operator << <> ( std::ostream & s, pdvector<T, A> &v );
-
  private:
    DO_INLINE_P
    static void deconstruct_items(T *first, T *last) {
@@ -370,16 +358,6 @@ class pdvector {
    unsigned sz_;
    unsigned tsz_;
 };
-
-#if defined(not_working)
-template <class T, class A>
-std::ostream & operator << (std::ostream & s, pdvector<T, A> &v) {
-  for (unsigned iter = 0; iter < v.size(); iter++) {
-    s << v[iter] << endl;
-  }
-  return s;
-}
-#endif
 
 template<class T, class A>
 DO_INLINE_F
