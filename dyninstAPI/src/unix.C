@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.89 2003/04/23 22:59:58 bernat Exp $
+// $Id: unix.C,v 1.90 2003/05/07 19:10:54 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -663,7 +663,7 @@ int handleSigCritical(process *proc, procSignalWhat_t what, procSignalInfo_t inf
 #endif
    signal_cerr << "caught signal, dying...  (sig="
                << (int) what << ")" << endl << flush;
-   
+
    proc->dumpImage("imagefile");
    forwardSigToProcess(proc, what, info);
    
@@ -673,54 +673,50 @@ int handleSigCritical(process *proc, procSignalWhat_t what, procSignalInfo_t inf
 
 int handleSignal(process *proc, procSignalWhat_t what, 
                  procSignalInfo_t info) {
-   int ret;
+   int ret = 0;
     
    switch(what) {
-     case SIGTRAP:
-        // Big one's up top. We use traps for most of our process control
-        ret = handleSigTrap(proc, info); 
-        break;
+ case SIGTRAP:
+     // Big one's up top. We use traps for most of our process control
+     ret = handleSigTrap(proc, info); 
+     break;
 #if defined(USE_IRIX_FIXES)
-     case SIGEMT:
+ case SIGEMT:
 #endif
-  case SIGSTOP:
-  case SIGINT:
-      ret = handleSigStopNInt(proc, info);
-      break;
+ case SIGSTOP:
+ case SIGINT:
+     ret = handleSigStopNInt(proc, info);
+     break;
  case SIGILL: 
- {
-     
      if (proc->getRpcMgr()->handleSignalIfDueToIRPC())
          ret = 1;
-      break;
- }
- 
-  case SIGCHLD:
-      // Ignore
-      ret = 1;
-      proc->continueProc();
-      break;
-      // Else fall through
-  case SIGIOT:
-  case SIGBUS:
-  case SIGSEGV:
-      ret = handleSigCritical(proc, what, info);
-      break;
-  case SIGCONT:
-      // Should inform the mutator/daemon that the process is running
-  case SIGALRM:
-  case SIGUSR1:
-  case SIGUSR2:
-  case SIGVTALRM:
-  default:
-      ret = 0;
-      break;
-    }
-    if (!ret) {
-        // Signal was not handled
-        ret = forwardSigToProcess(proc, what, info);
-    }
-    return ret;
+     break;
+ case SIGCHLD:
+     // Ignore
+     ret = 1;
+     proc->continueProc();
+     break;
+     // Else fall through
+ case SIGIOT:
+ case SIGBUS:
+ case SIGSEGV:
+     ret = handleSigCritical(proc, what, info);
+     break;
+ case SIGCONT:
+     // Should inform the mutator/daemon that the process is running
+ case SIGALRM:
+ case SIGUSR1:
+ case SIGUSR2:
+ case SIGVTALRM:
+ default:
+     ret = 0;
+     break;
+   }
+   if (!ret) {
+       // Signal was not handled
+       ret = forwardSigToProcess(proc, what, info);
+   }
+   return ret;
 }
 
 //////////////////////////////////////////////////////////////////
@@ -950,7 +946,7 @@ int handleProcessEvent(process *proc,
    if(proc->hasExited()) {
        return 1;
    }
-
+   
    // One big switch statement
    switch(why) {
       // First the platform-independent stuff
