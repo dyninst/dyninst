@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.88 2003/04/04 15:25:06 pcroth Exp $
+// $Id: pdwinnt.C,v 1.89 2003/04/07 21:55:29 bernat Exp $
 
 #include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
@@ -760,8 +760,8 @@ DWORD handleProcessCreate(process *proc, procSignalInfo_t info) {
 		if( proc->getImage()->getObject().have_deferred_parsing() )
 		{
             fileDescriptor_Win* oldDesc = 
-                proc->getImage()->getObject().GetDescriptor();
-
+              proc->getImage()->getObject().GetDescriptor();
+            
 			// now we have an process to work with -
 			// build a new descriptor with the new information
 			fileDescriptor_Win* desc = new fileDescriptor_Win( *oldDesc );
@@ -769,7 +769,9 @@ DWORD handleProcessCreate(process *proc, procSignalInfo_t info) {
 			// update the descriptor with the new information
 			desc->SetAddr( (Address)info.u.CreateProcessInfo.lpBaseOfImage );
 			desc->SetFileHandle( info.u.CreateProcessInfo.hFile );
-
+            // 7APR -- when we attach we get a process handle after oldDesc was created
+            desc->SetProcessHandle (proc->getProcessHandle());
+            
 			// reparse the image with the updated descriptor
 			image* img = image::parseImage( desc );
 			proc->setImage( img );

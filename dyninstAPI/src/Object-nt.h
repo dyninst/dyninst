@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.20 2003/04/04 15:25:06 pcroth Exp $
+ * $Id: Object-nt.h,v 1.21 2003/04/07 21:55:29 bernat Exp $
 ************************************************************************/
 
 
@@ -91,6 +91,8 @@ public:
 
     HANDLE GetProcessHandle( void ) const   { return hProc; }
     HANDLE GetFileHandle( void ) const   { return hFile; }
+    void SetProcessHandle( HANDLE h ) { hProc = h; }
+    
     void SetFileHandle( HANDLE h )          { hFile = h; }
     void SetAddr( Address a )               { addr_ = a; }
 
