@@ -14,9 +14,14 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.14  1994/08/11 02:52:11  newhall
-/* removed calls to grid cell Deleted member functions
+/* Revision 1.15  1994/08/13 20:34:50  newhall
+/* removed all code associated with class visi_MRList
+/* removed mrlist src and obj
+/* removed
 /*
+ * Revision 1.14  1994/08/11  02:52:11  newhall
+ * removed calls to grid cell Deleted member functions
+ *
  * Revision 1.13  1994/08/03  20:49:12  newhall
  * removed code for interface routines NewMetricsResources and Enabled
  * changed AddMetricsResources to set grid cell's enabled flag
@@ -65,8 +70,6 @@
 
 
 visi_DataGrid  dataGrid;
-visi_MRList    metricList;
-visi_MRList    resourceList;
 int            LastBucketSent = -1;
 int fileDesc[FILETABLESIZE];
 int (*fileDescCallbacks[FILETABLESIZE])();
@@ -116,11 +119,13 @@ int StartVisi(int argc,
     VisiInit();
 
   // call GetMetricResources with initial metric resource lists
+  /*
   if(argc >= 3)
    vp->GetMetricResource(argv[1],argv[2],0);
   else
    vp->GetMetricResource(NULL,NULL,0);
   return(OK);
+  */
 
 }
 
@@ -368,11 +373,6 @@ void visualization::AddMetricsResources(metricType_Array metrics,
 
   // this is first set of metrics/resources, construct new dataGrid
   if(!dataGrid.NumMetrics()){
-    //construct metric, resource lists
-    metricList.visi_MRList(metrics.count,
-			   (visi_metricType *)metrics.data);
-    resourceList.visi_MRList(resources.count,
-			     (visi_resourceType *)resources.data);
 
     // construct new dataGrid 
     dataGrid.visi_DataGrid(metrics.count,
@@ -399,7 +399,6 @@ void visualization::AddMetricsResources(metricType_Array metrics,
           else
             res[numRes].name = strdup(resources.data[i].name);
           res[numRes++].Id = resources.data[i].Id;
-          resourceList.AddElements(1,resources.data[i].name);
       }
     }
 #ifdef DEBUG
@@ -430,7 +429,6 @@ void visualization::AddMetricsResources(metricType_Array metrics,
 	  mets[numMet].units = strdup(metrics.data[i].units);
         mets[numMet].Id = metrics.data[i].Id;
 	mets[numMet++].aggregate = metrics.data[i].aggregate;
-        metricList.AddElements(1,metrics.data[i].name);
       }
     }
 #ifdef DEBUG
