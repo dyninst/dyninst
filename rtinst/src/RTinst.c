@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.53 2002/06/17 21:31:18 chadd Exp $
+ * $Id: RTinst.c,v 1.54 2002/06/25 20:27:44 bernat Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -669,10 +669,17 @@ void pDYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid) /* ccw 18 apr
     extern void DYNINST_initialize_RPCthread(void);
     extern void DYNINSTlaunchRPCthread(void) ;
     */
-    DYNINSTthread_init((char*) DYNINST_shmSegAttachedPtr) ;
-    if (!calledFromFork)
+    fprintf(stderr, "Calling DYNINSTthread_init...\n");
+    /* Note: until this point we are not multithread-safe. */
+    DYNINST_initialize_once((char*) DYNINST_shmSegAttachedPtr) ;
+
+    if (!calledFromFork) {
+      fprintf(stderr, "Init once...\n");
       DYNINST_initialize_once();
-    pos = DYNINST_ThreadUpdate(calledFromAttach?FLAG_ATTACH:FLAG_INIT) ;
+    }
+    fprintf(stderr, "reportThreadUpdate...\n");
+    pos = DYNINST_reportThreadUpdate(calledFromAttach?FLAG_ATTACH:FLAG_INIT) ;
+    fprintf(stderr, "Done, given POS %d\n", pos);
     /* launch the RPCthread */
     /*
     DYNINSTlaunchRPCthread();

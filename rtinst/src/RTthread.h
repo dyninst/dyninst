@@ -67,24 +67,67 @@ typedef struct sharedData_s {
   rpcToDo pendingIRPCs [MAX_NUMBER_OF_THREADS][MAX_PENDING_RPC];
 } RTINSTsharedData ;
 
-extern int  DYNINSTthreadSelf(void);  
-extern void DYNINSTthreadDeletePos(void);
-extern int  DYNINSTthreadPos(void);
-extern int  DYNINSTthreadPosFAST(void);
-extern int  DYNINST_not_deleted(void);
-extern int  DYNINSTloop(void);
-extern int  DYNINSTthreadPosTID(int, unsigned); 
-extern int  DYNINST_was_deleted(int);
-extern void DYNINSTthread_init(char *DYNINST_shmSegAttachedPtr) ;
-
-extern void mt_printf(const char *fmt, ...) ;
 extern RTINSTsharedData *RTsharedData;
-EXTERN_DECLARE_TC_LOCK(DYNINST_traceLock);
 
-extern void DYNINST_ThreadPInfo(void*, void**, int *, long*, int*, void**/*&resumestate_t*/);
-extern int  DYNINST_ThreadInfo(void**, int *, long*, int*, void** /*&resumestate_t*/);
+/* Function prototypes */
 
-/* Compatibility: redefine pthread primitives as solaris primitives */
-#if !defined(rs6000_ibm_aix4_1)
+/* RTthread-timer.c */
+
+#define VIRTUAL_TIMER_MARK_CREATION(t)     (t)->vtimer=t;
+#define VIRTUAL_TIMER_MARK_LWPID(t, lwpid) (t)->lwp_id=lwpid;
+
+/* Context data for why virtualTimerStart was called */
+#define THREAD_UPDATE           0
+#define THREAD_CREATE           1
+#define THREADP_CREATE          2
+#define VIRTUAL_TIMER_CREATE    3
+#define VIRTUAL_TIMER_START     4
+#define THREAD_TIMER_START      5
+#define THREAD_DETECT           6
+
+void _VirtualTimerStart(tTimer *timer, int context);
+void _VirtualTimerStop(tTimer *timer);
+void DYNINST_VirtualTimerDestroy(tTimer *timer);
+
+rawTime64 getThreadCPUTime(tTimer *vt, int *valid);
+void DYNINSTstartThreadTimer(tTimer *timer);
+void DYNINSTstopThreadTimer(tTimer *timer);
+
+/* RTthread-management.c */
+int DYNINST_reportThreadUpdate(int flag);
+void DYNINST_reportNewThread(unsigned pos, int tid);
+void DYNINST_reportThreadDeletion(unsigned pos, int tid);
+void DYNINSTthreadDelete(void);
+unsigned DYNINSTthreadCreate(int tid);
+void DYNINST_dummy_create(void);
+void DYNINSTthreadStart(void);
+void DYNINSTthreadStop(void);
+
+/* RTthread-pos.c */
+void DYNINST_initialize_pos_list();
+unsigned DYNINST_alloc_pos(int tid);
+void DYNINST_free_pos(unsigned pos, int tid);
+unsigned DYNINST_lookup_pos(int tid);
+unsigned DYNINSTthreadPosSLOW(int tid);
+extern unsigned DYNINST_pos_to_thread[MAX_NUMBER_OF_THREADS];
+
+/* RTthread-<arch> */
+unsigned DYNINSTthreadPosFAST();
+unsigned DYNINSTthreadContext();
+int DYNINSTthreadSelf();
+int DYNINSTthreadPos();
+
+/* RTthread-<os> */
+void DYNINST_ThreadPInfo(void*, void**, int *, long*, int*, void**/*&resumestate_t*/);
+int  DYNINST_ThreadInfo(void**, int *, long*, int*, void** /*&resumestate_t*/);
+
+/* RTthread.c */
+extern dyninst_key_t  DYNINST_thread_key ;
+extern unsigned DYNINST_initialize_done;
+extern RTINSTsharedData *RTsharedData;
+void DYNINST_initialize_once();
+extern tc_lock_t DYNINST_traceLock;
+
+
 #endif
-#endif
+
