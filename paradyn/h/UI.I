@@ -2,10 +2,15 @@
      input file for igen for User Interface Manager (UIM) interface to paradyn
 */
 /* $Log: UI.I,v $
-/* Revision 1.8  1994/08/17 17:55:22  markc
-/* Incremented version numbers because a new version of igen has been
-/* committed.
+/* Revision 1.9  1994/09/22 00:40:52  markc
+/* Specified return type for function typedefs
+/* Added "const" for errString parameter to showError()
+/* incremented version number
 /*
+# Revision 1.8  1994/08/17  17:55:22  markc
+# Incremented version numbers because a new version of igen has been
+# committed.
+#
 # Revision 1.7  1994/08/09  18:14:58  karavan
 # Expanded GetMetricsandResources to handle retries.
 #
@@ -51,28 +56,27 @@
  * Handler that gets called when user-selected metric and focus choices
  * are passed back to the requesting visualization thread
  */
-typedef (*chooseMandRCBFunc) (char **metricNames, int numMetrics, 
+typedef int (*chooseMandRCBFunc) (char **metricNames, int numMetrics, 
 					resourceList *focusChoice);
 
 /* 
  * Handler that gets called when user choice passed back to requesting 
  *  thread after message display
  */
-typedef (*showMsgCBFunc) (int userChoice);
+typedef int (*showMsgCBFunc) (int userChoice);
 
 /* 
  * Handler that gets called when user choice passed back to requesting 
  *  thread after error message display
  */
-typedef (*showErrorCBFunc) (int userChoice);
+typedef int (*showErrorCBFunc) (int userChoice);
 
 /*
  * Handler that gets called when user choice passed back to requesting 
  *  thread after menu display.  userChoice is index of selected menu 
  *  item in original list.
  */
-typedef (*chooseMenuItemCBFunc) (int userChoice);
-
+typedef int (*chooseMenuItemCBFunc) (int userChoice);
 
 /*
  * igen template for UIM server and client classes 
@@ -80,7 +84,7 @@ typedef (*chooseMenuItemCBFunc) (int userChoice);
 
 $remote UIM {
 	$base 3000;
-	$version 5;
+	$version 6;
 	//
 	// provides user with appropriate choices and passes back selections
 
@@ -112,7 +116,7 @@ $remote UIM {
 	// message display with "error" visual characteristics
         //  and lookup in error database for explanation
 
-	$async void showError (int errCode, char *errString);
+	$async void showError (int errCode, const char *errString);
 
 	// returns index of user's menu choice
         $async void chooseMenuItem (chooseMenuItemCBFunc cb, 
