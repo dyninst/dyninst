@@ -3,7 +3,13 @@
 # some default styles for nodes and edges
 
 # $Log: initWHERE.tcl,v $
-# Revision 1.10  1994/11/02 19:46:03  tamches
+# Revision 1.11  1994/11/02 21:19:32  tamches
+# switch and clear buttons are now oriented toward the center of the window,
+# not toward the left.  There is still a problem that shrinking the window
+# vertically can hide these buttons -- that was present even before (problem
+# seems to be not setting a min window size yet specifying a min canvas size)
+#
+# Revision 1.10  1994/11/02  19:46:03  tamches
 # Fixed a bug in the where axis: now, making the window taller won't put
 # unnecessary space above & below the "CLEAR" button area.
 #
@@ -147,9 +153,20 @@ proc initRDO {rdoID wwindow wtitle} {
 #	    -command "uimpd closeRDO $rdoID; destroy $wwindow"
     button $wwindow.sbutts.b4 -text "SWITCH" \
 	    -state disabled
-    pack $wwindow.sbutts.b2 $wwindow.sbutts.b4 -side left -padx 5
+
+    # place b2 and b4 in the center of their parent window (30% and 70%)
+    place $wwindow.sbutts.b2 -relx 0.3 -rely 0.5 -anchor c
+    place $wwindow.sbutts.b4 -relx 0.7 -rely 0.5 -anchor c
+
+    # pack (not place) a dummy frame, so that the parent grows.  needed since the
+    # above place's don't make any attempt to resize the parent window
+    frame  $wwindow.sbutts.bdummy -height [getWindowHeight $wwindow.sbutts.b2] -width 1
+    pack $wwindow.sbutts.bdummy -side left -fill y -expand true
+
+#    pack $wwindow.sbutts.b2 -side left -padx 5
+#    pack $wwindow.sbutts.b4 -side left -padx 5
+
     pack $wwindow.dag.title -side top -fill x -expand 1 
     pack $wwindow.dag -side top -fill both -expand 1
     pack $wwindow.sbutts -side top -fill x -expand 0
 }
-
