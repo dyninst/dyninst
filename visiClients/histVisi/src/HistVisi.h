@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 1996-1999 Barton P. Miller
+ * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
- * described as Paradyn") on an AS IS basis, and do not warrant its
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
@@ -46,7 +46,7 @@
 // A HistVisi represents the Paradyn histogram visi.
 //
 //---------------------------------------------------------------------------
-// $Id: HistVisi.h,v 1.5 2003/07/15 22:47:57 schendel Exp $
+// $Id: HistVisi.h,v 1.6 2004/03/23 01:12:48 eli Exp $
 //---------------------------------------------------------------------------
 #ifndef HISTVISI_H
 #define HISTVISI_H

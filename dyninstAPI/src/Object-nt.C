@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 1996-2003 Barton P. Miller
+ * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
- * described as Paradyn") on an AS IS basis, and do not warrant its
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.25 2003/10/23 21:52:24 bernat Exp $
+// $Id: Object-nt.C,v 1.26 2004/03/23 01:11:59 eli Exp $
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

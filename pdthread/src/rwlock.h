@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 1996-2003 Barton P. Miller
+ * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
- * described as Paradyn") on an AS IS basis, and do not warrant its
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
@@ -55,7 +55,7 @@
  * NB!  This code does not check to see whether you have a lock before 
  * you release it.  Be smart.
  *
- * $Id: rwlock.h,v 1.3 2003/11/14 20:38:16 pcroth Exp $
+ * $Id: rwlock.h,v 1.4 2004/03/23 01:12:40 eli Exp $
 ************************************************************************/
 #ifndef _thread_src_rwlock_h_
 #define _thread_src_rwlock_h_

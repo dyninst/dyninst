@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 1996-2002 Barton P. Miller
+ * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
- * described as Paradyn") on an AS IS basis, and do not warrant its
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
@@ -44,7 +44,7 @@
 // Analagous to "abstractions.h" for the where axis; this class
 // basically manages several "shg"'s, as defined in shgPhases.h
 
-/* $Id: shgPhases.h,v 1.26 2003/07/15 22:46:19 schendel Exp $ */
+/* $Id: shgPhases.h,v 1.27 2004/03/23 01:12:30 eli Exp $ */
 
 #ifndef _SHG_PHASES_H_
 #define _SHG_PHASES_H_

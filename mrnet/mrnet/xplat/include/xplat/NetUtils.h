@@ -1,9 +1,9 @@
 /***********************************************************************
- * Copyright © 2003 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: NetUtils.h,v 1.1 2003/11/14 19:36:04 pcroth Exp $
+// $Id: NetUtils.h,v 1.2 2004/03/23 01:12:22 eli Exp $
 #ifndef XPLAT_NETUTILS_H
 #define XPLAT_NETUTILS_H
 

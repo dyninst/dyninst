@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
- * described as Paradyn") on an AS IS basis, and do not warrant its
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
@@ -46,7 +46,7 @@
 // is 1 abstraction; hence, this class maintains a set of
 // abstractions.
 
-/* $Id: abstractions.h,v 1.20 2003/07/15 22:46:04 schendel Exp $ */
+/* $Id: abstractions.h,v 1.21 2004/03/23 01:12:29 eli Exp $ */
 
 #ifndef _ABSTRACTIONS_H_
 #define _ABSTRACTIONS_H_

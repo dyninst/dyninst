@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
- * described as Paradyn") on an AS IS basis, and do not warrant its
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
@@ -41,7 +41,7 @@
 
 // tclTunable.h
 
-/* $Id: tclTunable.h,v 1.4 2003/06/20 02:12:20 pcroth Exp $ */
+/* $Id: tclTunable.h,v 1.5 2004/03/23 01:12:30 eli Exp $ */
 
 int TclTunableCommand(ClientData cd, Tcl_Interp *interp,
 		      int argc, TCLCONST char **argv);

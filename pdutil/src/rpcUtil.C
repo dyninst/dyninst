@@ -2,7 +2,7 @@
  * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
- * described as Paradyn") on an AS IS basis, and do not warrant its
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
@@ -41,7 +41,7 @@
 
 //
 // This file defines a set of utility routines for RPC services.
-// $Id: rpcUtil.C,v 1.90 2004/03/21 00:23:23 pcroth Exp $
+// $Id: rpcUtil.C,v 1.91 2004/03/23 01:12:41 eli Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 

@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
- * described as Paradyn") on an AS IS basis, and do not warrant its
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
@@ -44,6 +44,9 @@
  * metricDefs-critPath.C - Compute the Critical Path.
  *
  * $Log: metricDefs-critPath.C,v $
+ * Revision 1.9  2004/03/23 01:12:35  eli
+ * Updated copyright string
+ *
  * Revision 1.8  2003/01/02 19:52:16  schendel
  * updates so dyninstAPI and the dyninstAPI tests can be built with the
  * Solaris native compiler  - - - - - - - - - - - - - - - - - - - - - - - -

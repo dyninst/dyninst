@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
- * described as Paradyn") on an AS IS basis, and do not warrant its
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
@@ -44,6 +44,9 @@
 
 /*
  * $Log: tableVisiTcl.h,v $
+ * Revision 1.6  2004/03/23 01:12:49  eli
+ * Updated copyright string
+ *
  * Revision 1.5  1999/07/13 17:16:13  pcroth
  * Fixed ordering problem of destroying GUI and destructing static variable
  * pdLogo::all_logos.  On NT, the static variable is destroyed before the

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: templates-nt.C,v 1.6 2003/07/15 22:45:07 schendel Exp $
+ * $Id: templates-nt.C,v 1.7 2004/03/23 01:12:17 eli Exp $
  */
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 

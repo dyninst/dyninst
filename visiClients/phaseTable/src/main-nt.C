@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 1996-2003 Barton P. Miller
+ * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
- * described as Paradyn") on an AS IS basis, and do not warrant its
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
@@ -47,7 +47,7 @@
 // the platform-shared main() routine.
 //
 //----------------------------------------------------------------------------
-// $Id: main-nt.C,v 1.2 2003/07/18 15:45:36 schendel Exp $
+// $Id: main-nt.C,v 1.3 2004/03/23 01:12:49 eli Exp $
 //----------------------------------------------------------------------------
 #include <windows.h>
 #include <tchar.h>

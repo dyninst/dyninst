@@ -1,4 +1,4 @@
-# $Id: errorList.tcl,v 1.61 2004/03/12 23:18:12 legendre Exp $
+# $Id: errorList.tcl,v 1.62 2004/03/23 01:12:33 eli Exp $
 
 #
 # Error message format:
@@ -895,7 +895,7 @@ set pdError(105) {
 {Paradyn License Information}
 {paradyn}
 {information}
-{Copyright (c) 1996-2003 Barton P. Miller (University of Wisconsin-Madison)
+{Copyright (c) 1996-2004 Barton P. Miller (University of Wisconsin-Madison)
 
 We provide the Paradyn Parallel Performance Tools (below described as\
 "Paradyn") on an AS IS basis, and do not warrant its validity or\

@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 1996-2003 Barton P. Miller
+ * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
- * described as Paradyn") on an AS IS basis, and do not warrant its
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: UIglobals.h,v 1.31 2003/09/05 19:14:20 pcroth Exp $ */
+/* $Id: UIglobals.h,v 1.32 2004/03/23 01:12:29 eli Exp $ */
 
 /* UIglobals.h 
      definitions used by UI thread */

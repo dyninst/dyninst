@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2003 Barton P. Miller
+ * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinntDL.C,v 1.1 2004/03/05 16:51:31 bernat Exp $
+// $Id: pdwinntDL.C,v 1.2 2004/03/23 01:12:08 eli Exp $
 
 #include "dynamiclinking.h"
 #include "process.h"

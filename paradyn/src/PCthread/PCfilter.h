@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 1996-1998 Barton P. Miller
+ * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
- * described as Paradyn") on an AS IS basis, and do not warrant its
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCfilter.h,v 1.19 2003/07/18 15:44:28 schendel Exp $
+ * $Id: PCfilter.h,v 1.20 2004/03/23 01:12:27 eli Exp $
  * Data filter class performs initial processing of raw DM data arriving 
  * in the Performance Consultant.  
  */

@@ -1,9 +1,9 @@
 /***********************************************************************
- * Copyright © 2003 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: Thread-win.C,v 1.1 2003/11/14 19:27:04 pcroth Exp $
+// $Id: Thread-win.C,v 1.2 2004/03/23 01:12:24 eli Exp $
 #include <windows.h>
 #include <assert.h>
 #include "xplat/Thread.h"

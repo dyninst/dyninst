@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998 Barton P. Miller
+ * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTtext-alpha.S,v 1.4 2000/07/27 14:05:47 bernat Exp $
+/* $Id: RTtext-alpha.S,v 1.5 2004/03/23 01:12:16 eli Exp $
  * create an array to use as a heap for new instructions.
  *
  * .space	SYN_INST_BUF_SIZES 

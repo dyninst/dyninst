@@ -1,9 +1,9 @@
 /***********************************************************************
- * Copyright © 2003 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: Error-unix.C,v 1.1 2003/11/14 19:27:02 pcroth Exp $
+// $Id: Error-unix.C,v 1.2 2004/03/23 01:12:23 eli Exp $
 #include <errno.h>
 #include "xplat/Error.h"
 

@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
- * described as Paradyn") on an AS IS basis, and do not warrant its
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
@@ -43,7 +43,7 @@
 // Ariel Tamches
 // The scrollbar class for where4tree.h/.C
 
-/* $Id: scrollbar.h,v 1.6 1999/04/27 16:03:46 nash Exp $ */
+/* $Id: scrollbar.h,v 1.7 2004/03/23 01:12:30 eli Exp $ */
 
 #ifndef _SCROLLBAR_H_
 #define _SCROLLBAR_H_

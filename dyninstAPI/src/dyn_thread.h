@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 1996-2001 Barton P. Miller
+ * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
- * described as Paradyn") on an AS IS basis, and do not warrant its
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dyn_thread.h,v 1.16 2003/10/22 16:04:56 schendel Exp $
+// $Id: dyn_thread.h,v 1.17 2004/03/23 01:12:02 eli Exp $
 
 #ifndef _DYNTHREAD_H_
 #define _DYNTHREAD_H_

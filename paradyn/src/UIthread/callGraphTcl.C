@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 1996-2003 Barton P. Miller
+ * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
- * described as Paradyn") on an AS IS basis, and do not warrant its
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphTcl.C,v 1.7 2003/09/05 19:14:21 pcroth Exp $
+// $Id: callGraphTcl.C,v 1.8 2004/03/23 01:12:29 eli Exp $
 
 //CallGraphTcl.C: this file contains all of the tcl routines necessary
 //to control the callGraph. These are all modified versions of the functions

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2002 Barton P. Miller
+ * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler-event.h,v 1.2 2004/02/07 18:34:21 schendel Exp $
+/* $Id: signalhandler-event.h,v 1.3 2004/03/23 01:12:09 eli Exp $
  */
 
 /*
