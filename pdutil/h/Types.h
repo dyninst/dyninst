@@ -40,26 +40,60 @@
  */
 
 /************************************************************************
- * $Id: Types.h,v 1.7 1999/05/25 20:25:40 hollings Exp $
- * Types.h: commonly used types.
+ * $Id: Types.h,v 1.8 1999/11/11 00:51:49 wylie Exp $
+ * Types.h: commonly used types (used by runtime libs and other modules)
 ************************************************************************/
 
 #if !defined(_Types_h_)
 #define _Types_h_
 
-typedef unsigned int Word;
+/* This file is now included by the rtinst library also, so all
+   C++ constructs need to be in #ifdef _cplusplus... 7/9/99 -bhs */
 
-typedef long int RegValue;      // register content
-// This needs to be an int since it is sometimes used to pass offsets
-//   to the code generator (i.e. if-statement) - jkh 5/24/99
-typedef unsigned int Register; // a register number, e.g., [0..31]
-const Register Null_Register = (Register)(-1); // '255'
+/* typedef appropriate definitions for ISO C9X standard integer types
+   if these currently aren't provided in <sys/types.h> */
+#if defined(i386_unknown_nt4_0)
+typedef __int64 int64_t;
+typedef __int32 int32_t;
+typedef unsigned __int64 uint64_t;
+typedef unsigned __int32 uint32_t;
+#elif defined(alpha_dec_osf4_0) || \
+      (defined(rs6000_ibm_aix4_1) && !defined(_H_INTTYPES))
+typedef int int32_t;
+typedef long long int64_t;
+typedef unsigned int uint32_t;
+typedef unsigned long long uint64_t;
+#else
+#include <sys/types.h>
+/* Includes
+             int32_t   uint32_t    int64_t      uint64_t
+Solaris      yes       yes         yes          yes
+Linux        yes       no?         yes          no?
+Irix         yes       yes         yes          yes
+Osf          no        no          no           no
+Aix4.1       no        no          no           no
+Aix4.3       yes       yes         yes          yes
+WindowsNT    no        no          no           no
+*/
+#endif
+
+typedef int64_t time64;
 
 typedef long unsigned int Address;
-// Note the inherent assumption that the size of a "long" integer matches
-// that of an address (void*) on every supported Paradyn/DynInst system!
-// (This can be checked with Address_chk().)
+/* Note the inherent assumption that the size of a "long" integer matches
+   that of an address (void*) on every supported Paradyn/Dyninst system!
+   (This can be checked with Address_chk().)
+*/
 
+typedef unsigned int Word;
+
+typedef long int RegValue;      /* register content */
+/* This needs to be an int since it is sometimes used to pass offsets
+   to the code generator (i.e. if-statement) - jkh 5/24/99 */
+typedef unsigned int Register;  /* a register number, e.g., [0..31]  */
+static const Register Null_Register = (Register)(-1);   /* '255' */
+
+#ifdef __cplusplus
 
 extern void Address_chk ();
 extern char *Address_str (Address addr);
@@ -68,5 +102,9 @@ extern char *Address_str (Address addr);
 inline unsigned hash_address(const Address& addr) {
     return (addr >> 2);
 }
+#endif /* __cplusplus */
 
 #endif /* !defined(_Types_h_) */
+
+
+
