@@ -483,6 +483,8 @@ int VISIthreadchooseMetRes(vector<metric_focus_pair> *newMetRes){
         ERROR_MSG(13,"thr_getspecific VISIthread::VISIthreadchooseMetRes");
         return 1;
     }
+    // for Blizzard, get the memory bounds
+    ptr->dmp->getMemoryBounds(ptr->ps_handle, newMetRes) ;
 
     // there is not an enable currently in progress
     if(!(ptr->request)){ 
