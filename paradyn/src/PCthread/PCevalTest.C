@@ -17,6 +17,9 @@
 
 /*
  * $Log: PCevalTest.C,v $
+ * Revision 1.40  1995/11/09 02:07:55  tamches
+ * removed #include of uistatdisp.h, an obsolete file
+ *
  * Revision 1.39  1995/10/05 04:38:43  karavan
  * changed igen calls to accommodate new PC|UI interface.
  *
@@ -230,7 +233,6 @@
 #include "PCglobals.h"
 #include "PCauto.h"
 #include "performanceConsultant.thread.SRVR.h"
-#include "../src/UIthread/UIstatDisp.h"
 
 // bool printTestResults = false;
 // bool printNodes = false;
