@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.264 2003/07/15 22:44:34 schendel Exp $
+/* $Id: process.h,v 1.265 2003/07/18 20:06:49 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -857,17 +857,25 @@ void saveWorldData(Address address, int size, const void* src);
   pdvector<function_base *> *getIncludedFunctions(module *mod); 
 #endif
 
-  // Now: multithread daemon/library
-  bool multithread_capable() {
-#if defined(MT_THREAD)
-    return true;
-#else
-    return false;
-#endif
-  }
+ private:
+  enum mt_cache_result { not_cached, cached_mt_true, cached_mt_false };
+  enum mt_cache_result cached_result;
+
+ public:
+
+  // If true is passed for ignore_if_mt_not_set, then an error won't be
+  // initiated if we're unable to determine if the program is multi-threaded.
+  // We are unable to determine this if the daemon hasn't yet figured out
+  // what libraries are linked against the application.  Currently, we
+  // identify an application as being multi-threaded if it is linked against
+  // a thread library (eg. libpthreads.a on AIX).  There are cases where we
+  // are querying whether the app is multi-threaded, but it can't be
+  // determined yet but it also isn't necessary to know.
+  bool multithread_capable(bool ignore_if_mt_not_set = false);
+
   // Do we have the RT-side multithread functions available
-  bool multithread_ready() {
-    if (!multithread_capable())
+  bool multithread_ready(bool ignore_if_mt_not_set = false) {
+    if (!multithread_capable(ignore_if_mt_not_set))
       return false;
 #if !defined(BPATCH_LIBRARY)
     if (PARADYNhasBootstrapped)
