@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.25  1994/05/17 00:16:38  hollings
+ * Revision 1.26  1994/05/18 00:43:28  hollings
+ * added routine to print output of stdout.
+ *
+ * Revision 1.25  1994/05/17  00:16:38  hollings
  * Changed process id speperator from [] to {} to get around braindead tcl.
  *
  * Revision 1.24  1994/05/16  22:31:38  hollings
@@ -193,6 +196,34 @@ void performanceStream::callStateFunc(appState state)
 	dm->setTid(threadId);
 	dm->changeState(controlFunc.sFunc, this, state);
     }
+}
+
+//
+// IO from application processes.
+//
+void dynRPCUser::applicationIO(int pid, int len, String data)
+{
+    char *ptr;
+    char *rest;
+    // extra should really be per process.
+    static char *extra;
+
+    rest = data;
+    ptr = strchr(rest, '\n');
+    while (ptr) {
+	*ptr = '\0';
+	printf("pid %d:", pid);
+	if (extra) {
+	    printf(extra);
+	    free(extra);
+	    extra = NULL;
+	}
+	printf("%s\n", rest);
+	rest = ptr+1;
+	ptr = strchr(rest, '\n');
+    }
+    extra = malloc(strlen(rest)+1);
+    strcpy(extra, rest);
 }
 
 //
