@@ -41,6 +41,9 @@
 
 /*
  * $Log: init-aix.C,v $
+ * Revision 1.11  1997/03/29 02:07:52  sec
+ * Adding instrumentation of MPI functions
+ *
  * Revision 1.10  1997/02/21 20:15:45  naim
  * Moving files from paradynd to dyninstAPI + eliminating references to
  * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
@@ -106,8 +109,10 @@ static AstNode cmdArg(AstNode::Param, (void *) 4);
 static AstNode tidArg(AstNode::Param, (void *) 0);
 
 static AstNode mpiNormTagArg(AstNode::Param, (void *) 4);
+static AstNode mpiNormCommArg(AstNode::Param, (void *) 5);
+static AstNode mpiSRSendTagArg(AstNode::Param, (void *) 4);
 static AstNode mpiSRRecvTagArg(AstNode::Param, (void *) 9);
-
+static AstNode mpiSRCommArg(AstNode::Param, (void *) 10);
 
 bool initOS()
 {
@@ -148,21 +153,31 @@ bool initOS()
 
   // ----------------------------------------------------------------------
 
-  initialRequests += new instMapping("MPI__Send", "DYNINSTrecordTag",
-				     FUNC_ENTRY|FUNC_ARG, &mpiNormTagArg);
-  initialRequests += new instMapping("MPI__Bsend", "DYNINSTrecordTag",
-				     FUNC_ENTRY|FUNC_ARG, &mpiNormTagArg);
-  initialRequests += new instMapping("MPI__Ssend", "DYNINSTrecordTag",
-				     FUNC_ENTRY|FUNC_ARG, &mpiNormTagArg);
-  initialRequests += new instMapping("MPI__Isend", "DYNINSTrecordTag",
-				     FUNC_ENTRY|FUNC_ARG, &mpiNormTagArg);
-  initialRequests += new instMapping("MPI__Issend", "DYNINSTrecordTag",
-				     FUNC_ENTRY|FUNC_ARG, &mpiNormTagArg);
+  vector<AstNode*> argList(2);
+  argList[0] = &mpiNormTagArg;
+  argList[1] = &mpiNormCommArg;
+  initialRequests += new instMapping("MPI__Send", "DYNINSTrecordTagAndGroup",
+				     FUNC_ENTRY|FUNC_ARG, argList);
 
-  initialRequests += new instMapping("MPI__Sendrecv", "DYNINSTrecordTag",
-				     FUNC_ENTRY|FUNC_ARG, &mpiNormTagArg);
-  initialRequests += new instMapping("MPI__Sendrecv", "DYNINSTrecordTag",
-				     FUNC_ENTRY|FUNC_ARG, &mpiSRRecvTagArg);
+  initialRequests += new instMapping("MPI__Bsend", "DYNINSTrecordTagAndGroup",
+				     FUNC_ENTRY|FUNC_ARG, argList);
+  initialRequests += new instMapping("MPI__Ssend", "DYNINSTrecordTagAndGroup",
+				     FUNC_ENTRY|FUNC_ARG, argList);
+  initialRequests += new instMapping("MPI__Isend", "DYNINSTrecordTagAndGroup",
+				     FUNC_ENTRY|FUNC_ARG, argList);
+  initialRequests += new instMapping("MPI__Issend", "DYNINSTrecordTagAndGroup",
+				     FUNC_ENTRY|FUNC_ARG, argList);
+  argList[0] = &mpiSRSendTagArg;
+  argList[1] = &mpiSRCommArg;
+  initialRequests += new instMapping("MPI__Sendrecv",
+				     "DYNINSTrecordTagAndGroup",
+				     FUNC_ENTRY|FUNC_ARG, argList);
+  argList[0] = &mpiSRRecvTagArg;
+  argList[1] = &mpiSRCommArg;
+  initialRequests += new instMapping("MPI__Sendrecv",
+				     "DYNINSTrecordTagAndGroup",
+				     FUNC_ENTRY|FUNC_ARG, argList);
+  // Sendrecv replace
 
 #ifdef PARADYND_PVM
   char *doPiggy;
@@ -185,3 +200,4 @@ bool initOS()
 
   return true;
 };
+
