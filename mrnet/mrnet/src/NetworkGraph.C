@@ -6,8 +6,6 @@
 #include "mrnet/src/utils.h"
 #include "mrnet/src/config.h"
 
-#include "common/src/Dictionary.C"
-
 /***************************************************
  * MC_NetworkNode
  **************************************************/
@@ -30,7 +28,7 @@ void MC_NetworkNode::add_Child(MC_NetworkNode * child)
 {
   mc_printf((stderr, "Adding %s as %d child of Node %s(%p)\n", 
 	     child->hostname.c_str(),children.size(), hostname.c_str(), this));
-  children += child;
+  children.push_back(child);
 }
 
 bool MC_NetworkNode::visited()
@@ -47,8 +45,7 @@ void MC_NetworkNode::visit()
  * MC_NetworkGraph
  **************************************************/
 MC_NetworkGraph::MC_NetworkGraph()
-  :nodes(string::hash), graph_checked(false), visited_nodes(0),
-    _has_cycle(false)
+  :graph_checked(false), visited_nodes(0), _has_cycle(false)
 {
   add_Node(root);
   endpoints = new vector <MC_EndPoint *>;
@@ -71,8 +68,11 @@ MC_SerialGraph & MC_NetworkGraph::get_SerialGraph()
 
 void MC_NetworkGraph::add_Node(MC_NetworkNode* new_node)
 {
+  char port_str[128];
+  sprintf(port_str, "%d", new_node->get_Port());
+
   if(new_node){
-    string key = new_node->get_HostName() + string(new_node->get_Port());
+    string key = new_node->get_HostName() + string(port_str);
     nodes[key] = new_node;
   }
 }
@@ -85,9 +85,11 @@ MC_NetworkNode * MC_NetworkGraph::get_Root()
 MC_NetworkNode * MC_NetworkGraph::find_Node(char * hostname, unsigned short port)
 {
   MC_NetworkNode *node;
-  string key = string(hostname) + string(port);
+  char port_str[128];
+  sprintf(port_str, "%d", port);
+  string key = string(hostname) + string(port_str);
 
-  if(nodes.find(key, node) == true){
+  if( nodes.find(key) != nodes.end() ){
     return node;
   }
   else{
@@ -125,8 +127,9 @@ void MC_NetworkGraph::preorder_traversal(MC_NetworkNode * node){
       // I am a leaf node, just add my name to the serial representation and return
       node->id = next_leaf_id++;
       serial_graph.add_Child(node->id, node->get_HostName());
-      (*endpoints) += new MC_EndPoint( node->id,
-                                       node->get_HostName(), 0);
+      endpoints->push_back(MC_EndPoint::new_EndPoint( node->id,
+						 node->get_HostName().c_str(),
+						 0));
       return;
     }
     else{
@@ -178,7 +181,9 @@ MC_SerialGraph::MC_SerialGraph()
 
 void MC_SerialGraph::add_Child(int id, string hostname)
 {
-  byte_array += hostname + ":" + string(id) + " ";
+  char id_str[128];
+  sprintf(id_str, "%d", id);
+  byte_array += hostname + ":" + string(id_str) + " ";
   num_nodes++; num_backends++;
 }
 

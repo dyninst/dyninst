@@ -1,26 +1,27 @@
 #if !defined(MC_Message_h)
 #define MC_Message_h
 
+#include <list>
+#include <vector>
 
-#include "common/h/String.h"
-#include "common/h/list.h"
-#include "common/h/Vector.h"
+#include <string>
+
 #include "mrnet/src/MC_Errors.h"
-#include "common/h/pdr.h"
+#include "mrnet/src/pdr.h"
 
 class MC_RemoteNode;
 class MC_Packet;
 enum MC_DataTypes{UNKNOWN_T, CHAR_T, UCHAR_T,
-               CHAR_ARRAY_T, UCHAR_ARRAY_T,
-               STRING_T,
-               INT16_T, UINT16_T,
-               INT16_ARRAY_T, UINT16_ARRAY_T,
-               INT32_T, UINT32_T,
-               INT32_ARRAY_T, UINT32_ARRAY_T,
-               INT64_T, UINT64_T,
-               INT64_ARRAY_T, UINT64_ARRAY_T,
-               FLOAT_T, DOUBLE_T,
-               FLOAT_ARRAY_T, DOUBLE_ARRAY_T};
+                  CHAR_ARRAY_T, UCHAR_ARRAY_T,
+                  STRING_T,
+                  INT16_T, UINT16_T,
+                  INT16_ARRAY_T, UINT16_ARRAY_T,
+                  INT32_T, UINT32_T,
+                  INT32_ARRAY_T, UINT32_ARRAY_T,
+                  INT64_T, UINT64_T,
+                  INT64_ARRAY_T, UINT64_ARRAY_T,
+                  FLOAT_T, DOUBLE_T,
+                  FLOAT_ARRAY_T, DOUBLE_ARRAY_T};
 typedef enum MC_DataTypes MC_DataTypes; 
 
 //enum MC_EncodingTypes{ENCODING_NONE, ENCODING_NBO};
@@ -47,12 +48,14 @@ typedef struct{
 
 
 class MC_Message{
-  List <MC_Packet *> packets;
+  std::list <MC_Packet *> packets;
 
  public:
   void add_Packet(MC_Packet *);
   int send(int sock_fd);
-  int recv(int sock_fd, List <MC_Packet *> &packets, MC_RemoteNode*);
+  int recv(int sock_fd, std::list <MC_Packet *> &packets, MC_RemoteNode*);
+  int size_Packets();
+  int size_Bytes();
 };
 
 /*******************************************************************************
@@ -63,7 +66,7 @@ class MC_Message{
 *******************************************************************************/
 class MC_Packet: public MC_Error{
  private:
-  vector <MC_DataElement *> data_elements;
+  std::vector <MC_DataElement *> data_elements;
 
   unsigned short stream_id;
   int tag;                  /* Application/Protocol Level ID */
@@ -88,6 +91,8 @@ class MC_Packet: public MC_Error{
   char * get_Buffer();
   unsigned int get_BufferLen();
   const char * get_FormatString();
+  unsigned int get_NumElements();
+  MC_DataElement * get_Element(unsigned int);
   MC_RemoteNode * inlet_node;
 };
 

@@ -11,7 +11,7 @@ int main(int argc, char **argv)
 {
   MC_InternalNode *comm_node;
   int i;
-  List <MC_Packet *> packet_list;
+  list <MC_Packet *> packet_list;
 
   if(argc !=3 && argc != 4){  // remember arg of -l0 added by rpccreateproc()
     mc_printf((stderr, "Usage: %s hostname port\n", argv[0]));

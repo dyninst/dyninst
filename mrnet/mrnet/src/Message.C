@@ -1,11 +1,10 @@
-#include "common/h/Types.h"
+#include "mrnet/src/Types.h"
 #include <stdarg.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 
 #include "mrnet/src/MC_Message.h"
 #include "mrnet/src/utils.h"
-#include "common/src/list.C"
 
 void MC_Message::add_Packet(MC_Packet *packet)
 {
@@ -14,11 +13,11 @@ void MC_Message::add_Packet(MC_Packet *packet)
   packets.push_back(packet);
 }
 
-int MC_Message::recv(int sock_fd, List <MC_Packet *> &packets, MC_RemoteNode *remote_node)
+int MC_Message::recv(int sock_fd, list <MC_Packet *> &packets, MC_RemoteNode *remote_node)
 {
   int i;
-  uint32_t no_packets=0, buf_len;
-  uint32_t *packet_sizes;
+  int32_t buf_len;
+  uint32_t no_packets=0, *packet_sizes;
   struct msghdr msg;
   char * buf=NULL;
   PDR pdrs;
@@ -36,7 +35,7 @@ int MC_Message::recv(int sock_fd, List <MC_Packet *> &packets, MC_RemoteNode *re
 
   mc_printf((stderr, "Calling MC_read(%d, %p, %d)\n", sock_fd, buf, buf_len));
   if( MC_read(sock_fd, buf, buf_len) != buf_len){
-    mc_printf((stderr, ""));
+    mc_printf((stderr, "\0"));
     _perror("MC_read()");
     free(buf);
     return -1;
@@ -101,7 +100,7 @@ int MC_Message::recv(int sock_fd, List <MC_Packet *> &packets, MC_RemoteNode *re
 
   mc_printf((stderr, "Calling recv_msg() ...\n"));
   if(recvmsg(sock_fd, &msg, MSG_WAITALL) != total_bytes){
-    mc_printf((stderr, ""));
+    mc_printf((stderr, "\0"));
     _perror("recvmsg()");
     return -1;
   }
@@ -127,7 +126,7 @@ int MC_Message::recv(int sock_fd, List <MC_Packet *> &packets, MC_RemoteNode *re
 int MC_Message::send(int sock_fd)
 {
   /* send an array of packet_sizes */
-  int i;
+  unsigned int i;
   uint32_t *packet_sizes, no_packets;
   struct iovec *iov;
   uint32_t iovlen;
@@ -138,11 +137,11 @@ int MC_Message::send(int sock_fd)
 
 
   mc_printf((stderr, "Sending packets from message %p\n", this));
-  if(packets.count() == 0){  //nothing to do
+  if(packets.size() == 0){  //nothing to do
     mc_printf((stderr, "Nothing to send!\n"));
     return 0;
   }
-  no_packets = packets.count();
+  no_packets = packets.size();
   mc_printf((stderr, "Sending %d packets\n", no_packets));
 
   /* send packet buffers */
@@ -153,7 +152,7 @@ int MC_Message::send(int sock_fd)
   //Process packets in list to prepare for send()
   packet_sizes = (uint32_t *)malloc( sizeof(uint32_t) * no_packets );
   assert(packet_sizes);
-  List<MC_Packet *>::iterator iter=packets.begin();
+  list<MC_Packet *>::iterator iter=packets.begin();
   mc_printf((stderr, "Writing %d packets of size\n", no_packets));
   int total_bytes =0;
   for(i=0; iter != packets.end(); iter++, i++){
@@ -185,7 +184,7 @@ int MC_Message::send(int sock_fd)
 
   mc_printf((stderr, "Calling MC_write(%d, %p, %d)\n", sock_fd, buf, buf_len));
   if( MC_write(sock_fd, buf, buf_len) != buf_len){
-    mc_printf((stderr, ""));
+    mc_printf((stderr, "\0"));
     _perror("MC_write()");
     free(buf);
     return -1;
@@ -210,7 +209,7 @@ int MC_Message::send(int sock_fd)
 
   mc_printf((stderr, "Calling MC_write(%d, %p, %d)\n", sock_fd, buf, buf_len));
   if( MC_write(sock_fd, buf, buf_len ) != buf_len){
-    mc_printf((stderr, ""));
+    mc_printf((stderr, "\0"));
     _perror("MC_write()");
     free(buf);
     return -1;
@@ -236,6 +235,16 @@ int MC_Message::send(int sock_fd)
   return 0;
 }
 
+int MC_Message::size_Packets()
+{
+  return packets.size();
+}
+
+int MC_Message::size_Bytes()
+{
+  assert(0);
+  return 0;
+}
 /**************
  * MC_Packet
  **************/
@@ -436,7 +445,7 @@ bool_t MC_Packet::pdr_packet(PDR * pdrs, MC_Packet * pkt){
     else if ( pdrs->p_op == PDR_DECODE ){
       cur_elem = new MC_DataElement;
       cur_elem->type = Fmt2Type(string(cur_fmt));
-      pkt->data_elements += cur_elem;
+      pkt->data_elements.push_back(cur_elem);
     }
     mc_printf((stderr, "Handling packet[%d], cur_fmt: %s, type: %d\n",
                i, cur_fmt, cur_elem->type));
@@ -643,7 +652,7 @@ int MC_Packet::ArgList2DataElementArray(va_list arg_list)
       assert(0);
       break;
     }
-    data_elements += cur_elem;
+    data_elements.push_back(cur_elem);
     cur_fmt = strtok_r(NULL, " \t\n%", &buf_ptr);
   }while(cur_fmt != NULL);
 
@@ -746,6 +755,16 @@ void MC_Packet::DataElementArray2ArgList(va_list arg_list)
 
   mc_printf((stderr, "DataElementArray2ArgList succeeded, packet(%p)\n", this));
   return;
+}
+unsigned int MC_Packet::get_NumElements()
+{
+  return data_elements.size();
+}
+
+MC_DataElement * MC_Packet::get_Element(unsigned int i)
+{
+  assert(i > 0 && i< data_elements.size());
+  return data_elements[i];
 }
 
 /*********************************************************

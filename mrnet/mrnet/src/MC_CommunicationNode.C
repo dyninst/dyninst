@@ -1,4 +1,4 @@
-#include "common/h/Types.h"
+#include "mrnet/src/Types.h"
 
 #include <fstream>
 #include <sys/types.h>
@@ -8,8 +8,10 @@
 #include "mrnet/src/MC_CommunicationNode.h"
 #include "mrnet/src/utils.h"
 #include "mrnet/src/config.h"
-#include "common/h/pdr.h"
-#include "common/src/Dictionary.C"
+#include "mrnet/src/pdr.h"
+
+#include "mrnet/h/MC_Network.h"
+#include "mrnet/src/MC_StreamImpl.h"
 
 /*===========================================================*/
 /*  MC_CommunicationNode CLASS METHOD DEFINITIONS            */
@@ -31,164 +33,329 @@ string MC_CommunicationNode::get_HostName()
   return hostname;
 }
 
-/*===================================================*/
-/*  MC_ParentNode CLASS METHOD DEFINITIONS            */
-/*===================================================*/
-MC_ParentNode::MC_ParentNode()
-  :num_backend_descendant_nodes_to_report(0), ChildNodeByBackendId(uintHash),
-   ChildrenNodesByStreamId(uintHash)
+unsigned short MC_CommunicationNode::get_Port()
 {
-  mc_printf((stderr, "In MC_ParentNode()\n"));
+  return port;
 }
 
-int MC_ParentNode::recv_PacketsFromDownStream(List <MC_Packet *> &packet_list)
+/*====================================================*/
+/*  MC_RemoteNode CLASS METHOD DEFINITIONS            */
+/*====================================================*/
+MC_LocalNode * MC_RemoteNode::local_node;
+void * MC_RemoteNode::recv_thread_main(void * args)
 {
-  unsigned int i;
-  int retval=0;
+  list <MC_Packet *>packet_list;
+  MC_RemoteNode * remote_node = (MC_RemoteNode *)args;
 
-  mc_printf((stderr, "In recv_PacketsFromDownStream()\n"));
-
-  for(i=0; i<children_nodes.size(); i++){
-    mc_printf((stderr, "Calling downstream[%d].recv() ...\n", i));
-    if(children_nodes[i]->recv(packet_list) == -1){
-      mc_printf((stderr, "downstream.recv() failed\n"));
-      retval = -1;
-      continue;
+  while(1){
+    if( remote_node->recv(packet_list) == 0 ){
+      //error
     }
-    mc_printf((stderr, "downstream.recv() succeeded\n"));
-  }
 
-  mc_printf((stderr, "recv_PacketsFromDownStream %s",
-	     retval == 0 ? "succeeded\n" : "failed\n"));
-  return retval;
-}
-
-int MC_ParentNode::proc_PacketsFromDownStream(List <MC_Packet *> &packet_list)
-{
-  int retval=0;
-  MC_Packet *cur_packet;
-
-  mc_printf((stderr, "In procfromdownstream()\n"));
-
-  List<MC_Packet *>::iterator iter=packet_list.begin();
-  for(; iter != packet_list.end(); iter++){
-    cur_packet = (*iter);
-    switch(cur_packet->get_Tag()){
-    case MC_RPT_SUBTREE_PROT:
-      mc_printf((stderr, "Calling proc_newSubTreeReport()\n"));
-      if(proc_newSubTreeReport(cur_packet) == -1){
-	mc_printf((stderr, "proc_newSubTreeReport() failed\n"));
-	retval=-1;
+    if( remote_node->is_upstream() ){
+      if(local_node->proc_PacketsFromUpStream(packet_list) == -1){
+        mc_printf((stderr, "proc_PacketsFromUpstream() failed\n"));
       }
-      mc_printf((stderr, "proc_newSubTreeReport() succeeded\n"));
-      break;
-    default:
-      //Any unrecognized tag is assumed to be data
-      mc_printf((stderr, "Calling proc_DataFromDownStream(). Tag: %d", cur_packet->get_Tag()));
-      if(proc_DataFromDownStream(cur_packet) == -1){
-	mc_printf((stderr, "proc_DataFromDownStream() failed\n"));
-	retval=-1;
+    }
+    else{
+      if(local_node->proc_PacketsFromDownStream(packet_list) == -1){
+        mc_printf((stderr, "proc_PacketsFromUpstream() failed\n"));
       }
-      mc_printf((stderr, "proc_DataFromDownStream() succeeded\n"));
     }
   }
 
-  mc_printf((stderr, "proc_PacketsFromDownStream() %s",
-             (retval == -1 ? "failed\n" : "succeeded\n")));
-  packet_list.clear();
+  return NULL;
+}
+
+void * MC_RemoteNode::send_thread_main(void * args)
+{
+  MC_RemoteNode * remote_node = (MC_RemoteNode *)args;
+
+  while(1){
+    if( remote_node->msg_out.size_Packets() != 0 ){
+      if( remote_node->msg_out.send(remote_node->sock_fd) == -1 ){
+        mc_printf((stderr, "proc_PacketsFromUpstream() failed\n"));
+      }
+    }
+  }
+
+  return NULL;
+}
+
+MC_RemoteNode::MC_RemoteNode(string &_hostname, unsigned short _port,
+                             bool _threaded)
+  :MC_CommunicationNode(_hostname, _port), sock_fd(0), _is_internal_node(false),
+   threaded(_threaded)
+{
+}
+
+int MC_RemoteNode::connect()
+{
+  int retval;
+  mc_printf((stderr, "In connect(%s:%d) ... ", hostname.c_str(), port));
+  if(connect_to_host(&sock_fd, hostname.c_str(), port) == -1){
+    mc_printf((stderr, "connect_to_host() failed\n"));
+    mc_errno = MC_ECREATPROCFAILURE;
+    return -1;
+  }
+
+  if(threaded){
+    retval = pthread_create(&recv_thread_id, NULL,
+                            MC_RemoteNode::recv_thread_main, (void *) this);
+    if(retval != 0){
+      //thread create error
+    }
+    retval = pthread_create(&send_thread_id, NULL,
+                            MC_RemoteNode::send_thread_main, (void *) this);
+    if(retval != 0){
+      //thread create error
+    }
+  }
+  else{
+    poll_struct.fd = sock_fd;
+    poll_struct.events = POLLIN;
+  }
+
+  mc_printf((stderr, "connect_to_host() succeeded\n"));
+  return 0;
+}
+
+int MC_RemoteNode::new_InternalNode(int listening_sock_fd, string parent_host,
+                                    unsigned short parent_port)
+{
+  int retval;
+  string rsh("");
+  string username("");
+  string cmd(COMMNODE_EXE);
+  vector <string> args;
+
+  _is_internal_node = true;
+
+  args.push_back(parent_host);
+
+  char parent_port_str[128];
+  sprintf(parent_port_str, "%d", parent_port);
+  args.push_back(string(parent_port_str));
+
+  mc_printf((stderr, "Create InternalNode(%s:%d) ...", hostname.c_str(), port));
+  if(create_Process(rsh, hostname, username, cmd, args) == -1){
+    mc_printf((stderr, "createProcess() failed\n")); 
+    mc_errno = MC_ECREATPROCFAILURE;
+    return -1;
+  }
+  mc_printf((stderr, "createProcess() succeeded.\nWait for a connection...")); 
+
+  if( (sock_fd = get_socket_connection(listening_sock_fd)) == -1){
+    mc_printf((stderr, "get_socket_connection() failed\n"));
+    mc_errno = MC_ESOCKETCONNECT;
+    return -1;
+  }
+  mc_printf((stderr, "get_socket_connection() succeeded\n"));
+
+  if(threaded){
+    retval = pthread_create(&recv_thread_id, NULL,
+                            MC_RemoteNode::recv_thread_main, (void *) this);
+    if(retval != 0){
+      //thread create error
+    }
+    retval = pthread_create(&send_thread_id, NULL,
+                            MC_RemoteNode::send_thread_main, (void *) this);
+    if(retval != 0){
+      //thread create error
+    }
+  }
+  else{
+    poll_struct.fd = sock_fd;
+    poll_struct.events = POLLIN;
+  }
+
+  return 0;
+}
+
+int MC_RemoteNode::new_Application(int listening_sock_fd, string parent_host,
+                                   unsigned short parent_port, string &cmd,
+                                   vector <string> &args){
+  int retval;
+  string rsh("");
+  string username("");
+
+  mc_printf((stderr, "In new_Application(%s:%d,\n"
+                     "                   command: %s)\n",
+                     hostname.c_str(), port, cmd.c_str()));
+  
+  //add current nodes hostname and port as very last args
+  args.push_back(parent_host);
+  char parent_port_str[128];
+  sprintf(parent_port_str, "%d", parent_port);
+  args.push_back(string(parent_port_str));
+
+  if(create_Process(rsh, hostname, username, cmd, args) == -1){
+    mc_printf((stderr, "createProcess() failed\n")); 
+    mc_errno = MC_ECREATPROCFAILURE;
+    return -1;
+  }
+  mc_printf((stderr, "createProcess() succeeded\n")); 
+  if( (sock_fd = get_socket_connection(listening_sock_fd)) == -1){
+    mc_printf((stderr, "get_socket_connection() failed\n"));
+    mc_errno = MC_ESOCKETCONNECT;
+    return -1;
+  }
+  mc_printf((stderr, "get_socket_connection() succeeded\n"));
+
+  if(threaded){
+    retval = pthread_create(&recv_thread_id, NULL,
+                            MC_RemoteNode::recv_thread_main, (void *) this);
+    if(retval != 0){
+      //thread create error
+    }
+    retval = pthread_create(&send_thread_id, NULL,
+                            MC_RemoteNode::send_thread_main, (void *) this);
+    if(retval != 0){
+      //thread create error
+    }
+  }
+  else{
+    poll_struct.fd = sock_fd;
+    poll_struct.events = POLLIN;
+  }
+
+  return 0;
+}
+
+int MC_RemoteNode::send(MC_Packet *packet)
+{
+  mc_printf((stderr, "In remotenode.send(). Calling msg.add_packet()\n"));
+  if(threaded){
+    pthread_mutex_lock(&msg_out_mutex);
+  }
+  msg_out.add_Packet(packet);
+  if(threaded){
+    pthread_mutex_unlock(&msg_out_mutex);
+  }
+  mc_printf((stderr, "Leaving remotenode.send()\n"));
+  return 0;
+}
+
+int MC_RemoteNode::recv(list <MC_Packet *> &packet_list)
+{
+  int retval;
+
+  retval = msg_in.recv(sock_fd, packet_list, this);
+
   return retval;
 }
 
-int MC_ParentNode::send_PacketDownStream(MC_Packet *packet)
+bool MC_RemoteNode::has_data()
 {
-  unsigned int i;
-  int retval=0;
-  vector <MC_RemoteNode *> * node_set;
+  poll_struct.revents = 0;
 
-  mc_printf((stderr, "In send_PacketDownStream()\n"));
-  mc_printf((stderr, "ChildrenNodesByStreamId[%d] = %p\n", packet->get_StreamId(),
-	     ChildrenNodesByStreamId[packet->get_StreamId()]));
-  node_set = ChildrenNodesByStreamId[packet->get_StreamId()];
+  mc_printf((stderr, "In remotenode.poll(%d)\n", poll_struct.fd));
 
-  for(i=0; i<node_set->size(); i++){
-    mc_printf((stderr, "Calling downstream[%d].send() ...\n", i));
-    if((*node_set)[i]->send(packet) == -1){
-      mc_printf((stderr, "downstream.send() failed\n"));
-      retval = -1;
-    }
-    mc_printf((stderr, "downstream.send() succeeded\n"));
+  if(poll(&poll_struct, 1, 0) == -1){
+    mc_printf((stderr, "poll() failed\n"));
+    return false;
   }
 
-  mc_printf((stderr, "send_PacketDownStream %s",
-	     retval == 0 ? "succeeded\n" : "failed\n"));
-  return retval;
+  if(poll_struct.revents & POLLNVAL){
+    mc_printf((stderr, "poll() says invalid request occured\n"));
+    perror("poll()");
+    return false;
+  }
+  if(poll_struct.revents & POLLERR){
+    mc_printf((stderr, "poll() says error occured:"));
+    perror("poll()");
+    return false;
+  }
+  if(poll_struct.revents & POLLHUP){
+    mc_printf((stderr, "poll() says hangup occured:"));
+    perror("poll()");
+    return false;
+  }
+  if(poll_struct.revents & POLLIN){
+    mc_printf((stderr, "poll() says data to be read. calling recv()\n"));
+    return true;
+  }
+
+  mc_printf((stderr, "No data currently available\n"));
+  return false;
 }
 
-int MC_ParentNode::flush_PacketsDownStream()
+int MC_RemoteNode::flush()
 {
-  unsigned int i;
-  int retval=0;
-
-  mc_printf((stderr, "In flush_PacketsDownStream()\n"));
-  for(i=0; i<children_nodes.size(); i++){
-    mc_printf((stderr, "Calling downstream[%d].flush() ...\n", i));
-    if(children_nodes[i]->flush() == -1){
-      mc_printf((stderr, "downstream.flush() failed\n"));
-      retval = -1;
-    }
-    mc_printf((stderr, "downstream.flush() succeeded\n"));
+  mc_printf((stderr, "In remotenode.flush(). Calling msg.send()\n"));
+  if( msg_out.send(sock_fd) == -1){
+    mc_printf((stderr, "msg.send() failed\n"));
+    return -1;
   }
-
-  mc_printf((stderr, "flush_PacketsFromDownStream %s",
-	     retval == 0 ? "succeeded\n" : "failed\n"));
-  return retval;
+  else{
+    mc_printf((stderr, "msg.send() succeeded\n"));
+    return 0;
+  }
 }
 
-int MC_ParentNode::flush_PacketsDownStream(unsigned int stream_id)
-{
-  unsigned int i;
-  int retval=0;
-  vector <MC_RemoteNode *> * node_set;
+bool MC_RemoteNode::is_backend(){
+  return !_is_internal_node;
+}
 
-  mc_printf((stderr, "In flush_PacketsDownStream(%d)\n", stream_id));
-  node_set = ChildrenNodesByStreamId[stream_id];
+bool MC_RemoteNode::is_internal(){
+  return _is_internal_node;
+}
 
-  for(i=0; i<node_set->size(); i++){
-    mc_printf((stderr, "Calling downstream[%d].flush() ...\n", i));
-    if((*node_set)[i]->flush() == -1){
-      mc_printf((stderr, "downstream.flush() failed\n"));
-      retval = -1;
-    }
-    mc_printf((stderr, "downstream.flush() succeeded\n"));
-  }
-
-  mc_printf((stderr, "flush_PacketsFromDownStream %s",
-	     retval == 0 ? "succeeded\n" : "failed\n"));
-  return retval;
+bool MC_RemoteNode::is_upstream(){
+  return _is_upstream;
 }
 
 /*===================================================*/
-/*  MC_ChildNode CLASS METHOD DEFINITIONS            */
+/*  MC_LocalNode CLASS METHOD DEFINITIONS            */
 /*===================================================*/
+std::map<unsigned int, MC_Aggregator::AggregatorSpec*>MC_LocalNode::AggrSpecById;
+std::map<unsigned int, void(*)(std::list <MC_Packet*>&, std::list <MC_Packet*>&,
+                               std::list<MC_RemoteNode *> &)>
+   MC_LocalNode::SyncById;
 
-MC_ChildNode::MC_ChildNode()
+MC_LocalNode::MC_LocalNode()
+  :listening_sock_fd(0), num_descendants_reported(0)
+{
+  //hardcoding some aggregator definitions
+  MC_Aggregator::AggregatorSpec *tmp = new MC_Aggregator::AggregatorSpec;
+  tmp->format_str = AGGR_INT_SUM_FORMATSTR;
+  tmp->filter = aggr_Int_Sum;
+  AggrSpecById[AGGR_INT_SUM_ID] =tmp;
+
+  tmp = new MC_Aggregator::AggregatorSpec;
+  tmp->format_str = AGGR_FLOAT_AVG_FORMATSTR;
+  tmp->filter = aggr_Float_Avg;
+  AggrSpecById[AGGR_FLOAT_AVG_ID] =tmp;
+
+  tmp = new MC_Aggregator::AggregatorSpec;
+  tmp->format_str = AGGR_CHARARRAY_CONCAT_FORMATSTR;
+  tmp->filter = aggr_CharArray_Concat;
+  AggrSpecById[AGGR_CHARARRAY_CONCAT_ID] =tmp;
+
+  //hardcoding some synchonizer definitions
+  SyncById[SYNC_WAITFORALL] = sync_WaitForAll;
+  SyncById[SYNC_DONTWAIT] = sync_DontWait;
+  SyncById[SYNC_TIMEOUT] = sync_TimeOut;
+}
+
+MC_LocalNode::~MC_LocalNode()
 {
 }
 
-int MC_ChildNode::recv_PacketsFromUpStream(List <MC_Packet *> &packet_list)
+int MC_LocalNode::recv_PacketsFromUpStream(std::list <MC_Packet *> &packet_list)
 {
   mc_printf((stderr, "In recv_PacketsFromUpStream()\n"));
   return upstream_node->recv(packet_list);
 }
 
-int MC_ChildNode::proc_PacketsFromUpStream(List <MC_Packet *> &packets)
+int MC_LocalNode::proc_PacketsFromUpStream(std::list <MC_Packet *> &packets)
 {
   int retval=0;
   MC_Packet *cur_packet;
 
   mc_printf((stderr, "In proc_PacketsFromUpStream()\n"));
 
-  List<MC_Packet *>::iterator iter=packets.begin();
+  std::list<MC_Packet *>::iterator iter=packets.begin();
   for(; iter != packets.end(); iter++){
     cur_packet = (*iter);
     switch(cur_packet->get_Tag()){
@@ -258,174 +425,167 @@ int MC_ChildNode::proc_PacketsFromUpStream(List <MC_Packet *> &packets)
   return retval;
 }
 
-int MC_ChildNode::send_PacketUpStream(MC_Packet *packet)
+int MC_LocalNode::send_PacketUpStream(MC_Packet *packet)
 {
-  mc_printf((stderr, "In send_PacketsUpStream()\n"));
+  mc_printf((stderr, "In send_PacketUpStream()\n"));
   return upstream_node->send(packet);
 }
 
-int MC_ChildNode::flush_PacketsUpStream()
+int MC_LocalNode::flush_PacketsUpStream()
 {
   mc_printf((stderr, "In flush_PacketsUpStream()\n"));
   return upstream_node->flush();
 }
 
-/*====================================================*/
-/*  MC_RemoteNode CLASS METHOD DEFINITIONS            */
-/*====================================================*/
-MC_RemoteNode::MC_RemoteNode(string &_hostname, unsigned short _port)
-  :MC_CommunicationNode(_hostname, _port), sock_fd(0),
-   _is_internal_node(false)
+int MC_LocalNode::recv_PacketsFromDownStream(std::list <MC_Packet *> &packet_list)
 {
+  unsigned int i;
+  int retval=0;
+
+  mc_printf((stderr, "In recv_PacketsFromDownStream()\n"));
+
+  std::list <MC_RemoteNode *>::iterator iter;
+  for(i=0,iter = children_nodes.begin();
+      iter != children_nodes.end(); iter++, i++){
+    mc_printf((stderr, "Calling downstream[%d].recv() ...\n", i));
+    if( (*iter)->recv(packet_list) == -1){
+      mc_printf((stderr, "downstream.recv() failed\n"));
+      retval = -1;
+      continue;
+    }
+    mc_printf((stderr, "downstream.recv() succeeded\n"));
+  }
+
+  mc_printf((stderr, "recv_PacketsFromDownStream %s",
+	     retval == 0 ? "succeeded\n" : "failed\n"));
+  return retval;
 }
 
-int MC_RemoteNode::connect()
+int MC_LocalNode::proc_PacketsFromDownStream(std::list <MC_Packet *> &packet_list)
 {
-  mc_printf((stderr, "In connect(%s:%d)\n", hostname.c_str(), port));
-  if(connect_to_host(&sock_fd, hostname.c_str(), port) == -1){
-    mc_printf((stderr, "connect_to_host() failed\n"));
-    mc_errno = MC_ECREATPROCFAILURE;
-    return -1;
+  int retval=0;
+  MC_Packet *cur_packet;
+
+  mc_printf((stderr, "In procfromdownstream()\n"));
+
+  std::list<MC_Packet *>::iterator iter=packet_list.begin();
+  for(; iter != packet_list.end(); iter++){
+    cur_packet = (*iter);
+    switch(cur_packet->get_Tag()){
+    case MC_RPT_SUBTREE_PROT:
+      mc_printf((stderr, "Calling proc_newSubTreeReport()\n"));
+      if(proc_newSubTreeReport(cur_packet) == -1){
+	mc_printf((stderr, "proc_newSubTreeReport() failed\n"));
+	retval=-1;
+      }
+      mc_printf((stderr, "proc_newSubTreeReport() succeeded\n"));
+      break;
+    default:
+      //Any unrecognized tag is assumed to be data
+      mc_printf((stderr, "Calling proc_DataFromDownStream(). Tag: %d", cur_packet->get_Tag()));
+      if(proc_DataFromDownStream(cur_packet) == -1){
+	mc_printf((stderr, "proc_DataFromDownStream() failed\n"));
+	retval=-1;
+      }
+      mc_printf((stderr, "proc_DataFromDownStream() succeeded\n"));
+    }
   }
 
-  poll_struct.fd = sock_fd;
-  poll_struct.events = POLLIN;
-  mc_printf((stderr, "connect_to_host() succeeded\n"));
-  return 0;
+  mc_printf((stderr, "proc_PacketsFromDownStream() %s",
+             (retval == -1 ? "failed\n" : "succeeded\n")));
+  packet_list.clear();
+  return retval;
 }
 
-int MC_RemoteNode::new_InternalNode(int listening_sock_fd, string parent_host,
-                                    unsigned short parent_port)
+
+int MC_LocalNode::send_PacketDownStream(MC_Packet *packet)
 {
-  string rsh("");
-  string username("");
-  string cmd(COMMNODE_EXE);
-  vector <string> args;
-  args += parent_host;
-  args += string(parent_port);
+  unsigned int i;
+  int retval=0;
+  MC_StreamManager * stream_mgr;
 
-  _is_internal_node = true;
-  mc_printf((stderr, "Create InternalNode(%s:%d\n)", hostname.c_str(), port));
-  if(create_Process(rsh, hostname, username, cmd, args) == -1){
-    mc_printf((stderr, "createProcess() failed\n")); 
-    mc_errno = MC_ECREATPROCFAILURE;
-    return -1;
+  mc_printf((stderr, "In send_PacketDownStream()\n"));
+  mc_printf((stderr, "StreamMangerById[%d] = %p\n",
+             packet->get_StreamId(),
+	     StreamManagerById[packet->get_StreamId()]));
+  stream_mgr = StreamManagerById[packet->get_StreamId()];
+
+  std::list <MC_RemoteNode *>::iterator iter;
+
+  for(i=0,iter = stream_mgr->downstream_nodes.begin();
+      iter != stream_mgr->downstream_nodes.end();
+      iter++, i++){
+    mc_printf((stderr, "Calling downstream[%d].send() ...\n", i));
+    if( (*iter)->send(packet) == -1){
+      mc_printf((stderr, "downstream.send() failed\n"));
+      retval = -1;
+    }
+    mc_printf((stderr, "downstream.send() succeeded\n"));
   }
-  mc_printf((stderr, "createProcess() succeeded. Wait for a connection...\n")); 
 
-  if( (sock_fd = get_socket_connection(listening_sock_fd)) == -1){
-    mc_printf((stderr, "get_socket_connection() failed\n"));
-    mc_errno = MC_ESOCKETCONNECT;
-    return -1;
-  }
-  mc_printf((stderr, "get_socket_connection() succeeded\n"));
-
-  poll_struct.fd = sock_fd;
-  poll_struct.events = POLLIN;
-  return 0;
+  mc_printf((stderr, "send_PacketDownStream %s",
+	     retval == 0 ? "succeeded\n" : "failed\n"));
+  return retval;
 }
 
-int MC_RemoteNode::new_Application(int listening_sock_fd,
-                                   string parent_host, unsigned short parent_port, 
-                                   string &cmd, vector <string> &args){
-  string rsh("");
-  string username("");
-
-  mc_printf((stderr, "In new_Application(%s:%d,\n"
-                     "                   command: %s)\n",
-                     hostname.c_str(), port, cmd.c_str()));
-  
-  //add current nodes hostname and port as very last args
-  args += parent_host;
-  args += string(parent_port);
-
-  if(create_Process(rsh, hostname, username, cmd, args) == -1){
-    mc_printf((stderr, "createProcess() failed\n")); 
-    mc_errno = MC_ECREATPROCFAILURE;
-    return -1;
-  }
-  mc_printf((stderr, "createProcess() succeeded\n")); 
-  if( (sock_fd = get_socket_connection(listening_sock_fd)) == -1){
-    mc_printf((stderr, "get_socket_connection() failed\n"));
-    mc_errno = MC_ESOCKETCONNECT;
-    return -1;
-  }
-  mc_printf((stderr, "get_socket_connection() succeeded\n"));
-
-  poll_struct.fd = sock_fd;
-  poll_struct.events = POLLIN;
-  return 0;
-}
-
-int MC_RemoteNode::send(MC_Packet *packet)
+int MC_LocalNode::flush_PacketsDownStream()
 {
-  mc_printf((stderr, "In remotenode.send(). Calling msg.add_packet()\n"));
-  msg_out.add_Packet(packet);
-  mc_printf((stderr, "Leaving remotenode.send()\n"));
-  return 0;
+  unsigned int i;
+  int retval=0;
+
+  mc_printf((stderr, "In flush_PacketsDownStream()\n"));
+
+  std::list <MC_RemoteNode *>::iterator iter;
+  for(i=0,iter = children_nodes.begin();
+      iter != children_nodes.end(); iter++, i++){
+    mc_printf((stderr, "Calling downstream[%d].flush() ...\n", i));
+    if( (*iter)->flush() == -1){
+      mc_printf((stderr, "downstream.flush() failed\n"));
+      retval = -1;
+    }
+    mc_printf((stderr, "downstream.flush() succeeded\n"));
+  }
+
+  mc_printf((stderr, "flush_PacketsFromDownStream %s",
+	     retval == 0 ? "succeeded\n" : "failed\n"));
+  return retval;
 }
 
-int MC_RemoteNode::recv(List <MC_Packet *> &packet_list)
+int MC_LocalNode::flush_PacketsDownStream(unsigned int stream_id)
 {
-  poll_struct.revents = 0;
-  mc_printf((stderr, "In remotenode.recv(). Calling poll(%d)\n", poll_struct.fd));
-  //if(poll(&poll_struct, 1, 2000) == -1){
-  if(poll(&poll_struct, 1, 0) == -1){
-    mc_printf((stderr, "poll() failed\n"));
-    return -1;
+  unsigned int i;
+  int retval=0;
+  MC_StreamManager * stream_mgr;
+
+  mc_printf((stderr, "In flush_PacketsDownStream(%d)\n", stream_id));
+  stream_mgr = StreamManagerById[stream_id];
+
+  std::list <MC_RemoteNode *>::iterator iter;
+  for(i=0,iter = stream_mgr->downstream_nodes.begin();
+      iter != stream_mgr->downstream_nodes.end();
+      iter++, i++){
+    mc_printf((stderr, "Calling downstream[%d].flush() ...\n", i));
+    if( (*iter)->flush() == -1){
+      mc_printf((stderr, "downstream.flush() failed\n"));
+      retval = -1;
+    }
+    mc_printf((stderr, "downstream.flush() succeeded\n"));
   }
 
-  if(poll_struct.revents & POLLNVAL){
-    mc_printf((stderr, "poll() says invalid request occured\n"));
-    return -1;
-  }
-  if(poll_struct.revents & POLLERR){
-    mc_printf((stderr, "poll() says error occured:"));
-    perror("poll()");
-  }
-  if(poll_struct.revents & POLLHUP){
-    mc_printf((stderr, "poll() says hangup occured:"));
-    perror("poll()");
-  }
-  if(poll_struct.revents & POLLIN){
-    mc_printf((stderr, "poll() says data to be read. calling recv()\n"));
-    return msg_in.recv(sock_fd, packet_list, this);
-  }
-
-  mc_printf((stderr, "No data currently available\n"));
-  return 0;
-}
-
-int MC_RemoteNode::flush()
-{
-  mc_printf((stderr, "In remotenode.flush(). Calling msg.send()\n"));
-  if( msg_out.send(sock_fd) == -1){
-    mc_printf((stderr, "msg.send() failed\n"));
-    return -1;
-  }
-  else{
-    mc_printf((stderr, "msg.send() succeeded\n"));
-    return 0;
-  }
-}
-
-bool MC_RemoteNode::is_backend(){
-  return !_is_internal_node;
-}
-
-bool MC_RemoteNode::is_internal(){
-  return _is_internal_node;
+  mc_printf((stderr, "flush_PacketsFromDownStream %s",
+	     retval == 0 ? "succeeded\n" : "failed\n"));
+  return retval;
 }
 
 /*======================================================*/
 /*  MC_InternalNode CLASS METHOD DEFINITIONS            */
 /*======================================================*/
 MC_InternalNode::MC_InternalNode(string _parent_hostname, unsigned short _parent_port)
-  :listening_sock_fd(0)
+  :MC_LocalNode()
 {
-  upstream_node = new MC_RemoteNode(_parent_hostname, _parent_port);
+  upstream_node = new MC_RemoteNode(_parent_hostname, _parent_port, true);
 
-  mc_printf((stderr, "Calling connect()\n"));
+  mc_printf((stderr, "Calling connect() ..."));
   upstream_node->connect();
   if(upstream_node->fail() ){
     mc_printf((stderr, "connect() failed\n"));
@@ -433,7 +593,7 @@ MC_InternalNode::MC_InternalNode(string _parent_hostname, unsigned short _parent
     return;
   }
 
-  mc_printf((stderr, "connect() succeeded. Calling bind_to_port(%d)\n", port));
+  mc_printf((stderr, "connect() succeeded.\nCalling bind_to_port(%d)...", port));
   if( bind_to_port(&listening_sock_fd, &port) == -1){
     mc_printf((stderr, "bind_to_port() failed\n"));
     mc_errno = MC_ECANNOTBINDPORT;
@@ -442,14 +602,29 @@ MC_InternalNode::MC_InternalNode(string _parent_hostname, unsigned short _parent
   mc_printf((stderr, "bind_to_port() succeeded\n"));
 }
 
+MC_InternalNode::~MC_InternalNode(void)
+{
+  delete upstream_node;
+  std::list<MC_RemoteNode *>::iterator iter;
+
+  for(iter = children_nodes.begin(); iter != children_nodes.end(); iter++){
+    delete (MC_RemoteNode *)(*iter);
+    children_nodes.erase(iter);
+  }
+}
+
 int MC_InternalNode::proc_newSubTree(MC_Packet *packet)
 {
-  List <MC_Packet *> packet_list;
+  std::list <MC_Packet *> packet_list;
   char *byte_array;
   string cmd_commnode(COMMNODE_EXE);
   vector <string> arglist_commnode;
-  arglist_commnode += getHostName();
-  arglist_commnode += string(port);
+  arglist_commnode.push_back(getHostName());
+  int num_descendants_to_report=0;
+
+  char port_str[128];
+  sprintf(port_str, "%d", port);
+  arglist_commnode.push_back(string(port_str));
   string rootname;
 
   mc_printf((stderr, "In proc_newSubTree()\n"));
@@ -474,10 +649,11 @@ int MC_InternalNode::proc_newSubTree(MC_Packet *packet)
     mc_printf((stderr, "cur_child: %s\n", cur_sg->get_RootName().c_str()));
 
     if(cur_sg->has_children()){
+      num_descendants_to_report++;
       mc_printf((stderr, "cur_child has children() (internal node)\n"));
       //If the cur_child has children launch him
       rootname = cur_sg->get_RootName();
-      MC_RemoteNode *cur_node = new MC_RemoteNode(rootname, 0);
+      MC_RemoteNode *cur_node = new MC_RemoteNode(rootname, 0, true);
 
       mc_printf((stderr, "Calling new_InternalNode()\n"));
       cur_node->new_InternalNode(listening_sock_fd, hostname, port);
@@ -493,8 +669,7 @@ int MC_InternalNode::proc_newSubTree(MC_Packet *packet)
           return -1;
         }
         mc_printf((stderr, "send/flush succeeded\n"));
-        children_nodes += cur_node;
-        num_backend_descendant_nodes_to_report += cur_sg->get_NumBackends();
+        children_nodes.push_back(cur_node);
       }
     }
     else{
@@ -503,16 +678,16 @@ int MC_InternalNode::proc_newSubTree(MC_Packet *packet)
       vector <string> dummy_args;
       mc_printf((stderr, "cur_child is backend[%d]\n", cur_sg->get_Id()));
       mc_printf((stderr, "Calling new RemoteNode(%s)\n", cur_sg->get_RootName().c_str()));
-      MC_RemoteNode *cur_node = new MC_RemoteNode(rootname, 0);
+      MC_RemoteNode *cur_node = new MC_RemoteNode(rootname, 0, true);
       mc_printf((stderr, "new RemoteNode() completed\n"));
       //If the cur_child is a backend, just "record" his Id
       ChildNodeByBackendId[cur_sg->get_Id()] = cur_node;
-      backend_descendant_nodes += cur_sg->get_Id();
-      children_nodes += cur_node;
+      backend_descendant_nodes.push_back(cur_sg->get_Id());
+      children_nodes.push_back(cur_node);
     }
   }
 
-  while( num_backend_descendant_nodes_to_report > backend_descendant_nodes.size()){
+  while( num_descendants_to_report > num_descendants_reported){
     mc_printf((stderr, "Calling recv/proc packets()\n"));
     if( recv_PacketsFromDownStream(packet_list) == -1 ||
 	proc_PacketsFromDownStream(packet_list) == -1){
@@ -538,10 +713,10 @@ int MC_InternalNode::proc_delSubTree(MC_Packet *packet)
   unsigned int i;
   int retval=0;
   mc_printf((stderr, "In proc_delSubTree()\n"));
-
-  for(i=0; i<children_nodes.size(); i++){
-    mc_printf((stderr, "Calling downstream[%d].send() ...\n", i));
-    if(children_nodes[i]->send(packet) == -1){
+  std::list <MC_RemoteNode *>::iterator iter;
+  for(i=0,iter = children_nodes.begin();
+      iter != children_nodes.end(); iter++, i++){
+    if( (*iter)->send(packet) == -1){
       mc_printf((stderr, "downstream.send() failed\n"));
       retval = -1;
       continue;
@@ -561,9 +736,9 @@ int MC_InternalNode::proc_delSubTree(MC_Packet *packet)
 
 int MC_InternalNode::proc_newStream(MC_Packet *packet)
 {
-  int * backends;
-  int i, num_backends, filter_id, stream_id, retval;
-  vector <MC_RemoteNode *> * node_set = new vector <MC_RemoteNode*>;
+  unsigned int i, num_backends;
+  int * backends, filter_id, stream_id, retval;
+  std::list <MC_RemoteNode *> node_set;
 
   mc_printf((stderr, "In proc_newSTream()\n"));
 
@@ -575,43 +750,33 @@ int MC_InternalNode::proc_newStream(MC_Packet *packet)
   }
   mc_printf((stderr, "ExtractArgList() succeeded\n"));
 
-  assert( !MC_Stream::get_Stream(stream_id));
+  //assert( !MC_StreamImpl::get_Stream(stream_id));
   //register new stream, though not yet needed.
-  new MC_Stream(stream_id, backends, num_backends, filter_id);
+  //new MC_Stream(stream_id, backends, num_backends, filter_id);
 
   for(i=0; i<num_backends; i++){
     mc_printf((stderr, "Adding Endpoint %d to stream %d\n", backends[i], stream_id));
-    (*node_set) += ChildNodeByBackendId[backends[i]];
+    node_set.push_back(ChildNodeByBackendId[backends[i]] );
   }
   
-  node_set->sort(sort_remote_node_ptr); //sort the set of nodes (by ptr value)
+  node_set.sort(lt_RemoteNodePtr);      //sort the set of nodes (by ptr value)
+  node_set.unique(equal_RemoteNodePtr); //remove duplicates
 
-  //now we remove duplicates
-  for(i=1; i<node_set->size();){
-    mc_printf((stderr, "checking for duplicate nodes: %p vs. %p ...",
-	       (*node_set)[i-1], (*node_set)[i]));
-    if( (*node_set)[i-1]  == (*node_set)[i] ){ //duplicate found
-      mc_printf((stderr, "YUP!\n"));
-      node_set->erase(i);
-    }
-    else{
-      mc_printf((stderr, "NOPE!\n"));
-      i++;
+  std::list <MC_RemoteNode *>::iterator iter;
+  for(i=0,iter = node_set.begin(); iter != node_set.end(); iter++, i++){
+    if( (*iter) == NULL){ //temporary fix for adding unreachable backends
+      node_set.erase(iter);
     }
   }
 
-  for(i=0; i<node_set->size(); i++){
-    if( (*node_set)[i] == NULL){ //temporary fix for adding unreachable backends
-      node_set->erase(i);
-    }
-  }
+  MC_StreamManager * stream_mgr = new MC_StreamManager(stream_id, filter_id,
+						       upstream_node, node_set);
+  StreamManagerById[stream_id] = stream_mgr;
 
-  ChildrenNodesByStreamId[stream_id] = node_set;
-
-  for(i=0; i<node_set->size(); i++){
-    if( (*node_set)[i]->is_internal() ){ //only pass on to internal nodes
+  for(i=0,iter = node_set.begin(); iter != node_set.end(); iter++, i++){
+    if( (*iter)->is_internal() ){ //only pass on to internal nodes
       mc_printf((stderr, "Calling node_set[%d].send() ...\n", i));
-      if( (*node_set)[i]->send(packet) == -1){
+      if( (*iter)->send(packet) == -1){
         mc_printf((stderr, "node_set.send() failed\n"));
         retval = -1;
         continue;
@@ -626,14 +791,13 @@ int MC_InternalNode::proc_newStream(MC_Packet *packet)
 
 int MC_InternalNode::proc_delStream(MC_Packet *packet)
 {
-  vector <MC_RemoteNode *> * node_set;
   int retval;
   unsigned int i;
   int stream_id;
 
   mc_printf((stderr, "In proc_delStream()\n"));
 
-  node_set = ChildrenNodesByStreamId[packet->get_StreamId()];
+  MC_StreamManager * stream_mgr = StreamManagerById[packet->get_StreamId()];
 
   mc_printf((stderr, "Calling ExtractArgList()\n"));
   if( packet->ExtractArgList("%d", &stream_id) == -1){
@@ -643,9 +807,10 @@ int MC_InternalNode::proc_delStream(MC_Packet *packet)
   mc_printf((stderr, "ExtractArgList() succeeded\n"));
   assert(stream_id == packet->get_StreamId());
 
-  for(i=0; i<node_set->size(); i++){
+  std::list <MC_RemoteNode *>::iterator iter;
+  for(i=0,iter = stream_mgr->downstream_nodes.begin(); iter != stream_mgr->downstream_nodes.end(); iter++, i++){
     mc_printf((stderr, "Calling node_set[%d].send() ...\n", i));
-    if((*node_set)[i]->send(packet) == -1){
+    if( (*iter)->send(packet) == -1){
       mc_printf((stderr, "node_set.send() failed\n"));
       retval = -1;
       continue;
@@ -653,7 +818,7 @@ int MC_InternalNode::proc_delStream(MC_Packet *packet)
     mc_printf((stderr, "node_set.send() succeeded\n"));
   }
 
-  ChildrenNodesByStreamId.find_and_remove(stream_id, node_set);
+  StreamManagerById.erase(stream_id);
   mc_printf((stderr, "internal.procDelStream() succeeded\n"));
   return 0;
 }
@@ -673,13 +838,15 @@ int MC_InternalNode::proc_newApplication(MC_Packet *packet)
   }
   mc_printf((stderr, "ExtractArgList() succeeded\n"));
 
-  for(i=0; i<children_nodes.size(); i++){
+  std::list <MC_RemoteNode *>::iterator iter;
+  for(i=0,iter = children_nodes.begin();
+      iter != children_nodes.end(); iter++, i++){
     mc_printf((stderr, "processing %s child: %s\n",
-	       (children_nodes[i]->is_internal() ? "internal" : "backend"),
-	       children_nodes[i]->get_HostName().c_str()));
-    if(children_nodes[i]->is_internal()){
+	       ( (*iter)->is_internal() ? "internal" : "backend"),
+	        (*iter)->get_HostName().c_str()));
+    if( (*iter)->is_internal()){
       mc_printf((stderr, "Calling child_node.send() ...\n"));
-      if(children_nodes[i]->send(packet) == -1){
+      if( (*iter)->send(packet) == -1){
         mc_printf((stderr, "child_node.send() failed\n"));
         retval = -1;
         continue;
@@ -690,7 +857,7 @@ int MC_InternalNode::proc_newApplication(MC_Packet *packet)
       string cmd_str(cmd);
       vector <string> dummy_args;
       mc_printf((stderr, "Calling child_node.new_application(%s) ...\n", cmd));
-      if(children_nodes[i]->new_Application(listening_sock_fd, hostname, port, cmd_str, dummy_args) == -1){
+      if( (*iter)->new_Application(listening_sock_fd, hostname, port, cmd_str, dummy_args) == -1){
 	mc_printf((stderr, "child_node.new_application() failed\n"));
         retval = -1;
       }
@@ -706,9 +873,11 @@ int MC_InternalNode::proc_delApplication(MC_Packet *packet)
   int retval=0;
   mc_printf((stderr, "In proc_delApplication()\n"));
 
-  for(i=0; i<children_nodes.size(); i++){
+  std::list <MC_RemoteNode *>::iterator iter;
+  for(i=0,iter = children_nodes.begin();
+      iter != children_nodes.end(); iter++, i++){
     mc_printf((stderr, "Calling downstream[%d].send() ...\n", i));
-    if(children_nodes[i]->send(packet) == -1){
+    if( (*iter)->send(packet) == -1){
       mc_printf((stderr, "downstream.send() failed\n"));
       retval = -1;
       continue;
@@ -727,17 +896,19 @@ int MC_InternalNode::proc_delApplication(MC_Packet *packet)
 
 int MC_InternalNode::proc_DataFromUpStream(MC_Packet *packet)
 {
-  vector <MC_RemoteNode *> * node_set;
   int retval;
   unsigned int i;
 
   mc_printf((stderr, "In proc_DataFromUpStream()\n"));
 
-  node_set = ChildrenNodesByStreamId[packet->get_StreamId()];
+  MC_StreamManager *stream_mgr = StreamManagerById[packet->get_StreamId()];
 
-  for(i=0; i<node_set->size(); i++){
+  std::list <MC_RemoteNode *>::iterator iter;
+  for(i=0,iter = stream_mgr->downstream_nodes.begin();
+      iter != stream_mgr->downstream_nodes.end();
+      iter++, i++){
     mc_printf((stderr, "Calling node_set[%d].send() ...\n", i));
-    if((*node_set)[i]->send(packet) == -1){
+    if( (*iter)->send(packet) == -1){
       mc_printf((stderr, "node_set.send() failed\n"));
       retval = -1;
       continue;
@@ -763,8 +934,11 @@ int MC_InternalNode::send_newSubTreeReport(bool status)
              (sizeof(unsigned int)*backend_descendant_nodes.size());
   assert(backends);
 
-  for(i=0; i<backend_descendant_nodes.size(); i++){
-    backends[i] = backend_descendant_nodes[i];
+  std::list <int>::iterator iter;
+  for(i=0, iter=backend_descendant_nodes.begin();
+      iter != backend_descendant_nodes.end();
+      i++, iter++){
+    backends[i] = *iter;
     mc_printf((stderr, "Adding backend %d to my report\n", backends[i]));
   }
 
@@ -790,20 +964,7 @@ int MC_InternalNode::send_newSubTreeReport(bool status)
   return 0;
 }
 
-int MC_InternalNode::proc_DataFromDownStream(MC_Packet *packet)
-{
-  mc_printf((stderr, "In proc_DataFromDownStream()\n"));
-
-  mc_printf((stderr, "Calling upstream.send() ...\n"));
-  if(upstream_node->send(packet) == -1){
-    mc_printf((stderr, "upstream.send() failed\n"));
-    return -1;
-  }
-  mc_printf((stderr, "upstream.send() succeeded\n"));
-
-  return 0;
-}
-
+/*
 int MC_InternalNode::send_newSubTree(MC_SerialGraph &)
 {
   return 0;
@@ -838,6 +999,7 @@ int MC_InternalNode::send_DataDownStream(MC_Packet *)
 {
   return 0;
 }
+*/
 
 int MC_InternalNode::proc_newSubTreeReport(MC_Packet *packet)
 {
@@ -853,14 +1015,29 @@ int MC_InternalNode::proc_newSubTreeReport(MC_Packet *packet)
   mc_printf((stderr, "ExtractArgList succeeded\n"));
 
   mc_printf((stderr, "report status: %d\n", status));
+  num_descendants_reported++;
   for(i=0; i<no_backends; i++){
     mc_printf((stderr, "Adding backend %d to my list\n", backends[i]));
-    backend_descendant_nodes += backends[i];
+    backend_descendant_nodes.push_back(backends[i]);
     ChildNodeByBackendId[backends[i]] = packet->inlet_node;
   }
 
   mc_printf((stderr, "Leaving internal.proc_newSubTreeReport()\n"));
   return status;
+}
+
+int MC_InternalNode::proc_DataFromDownStream(MC_Packet *packet)
+{
+  mc_printf((stderr, "In proc_DataFromDownStream()\n"));
+
+  mc_printf((stderr, "Calling upstream.send() ...\n"));
+  if(upstream_node->send(packet) == -1){
+    mc_printf((stderr, "upstream.send() failed\n"));
+    return -1;
+  }
+  mc_printf((stderr, "upstream.send() succeeded\n"));
+
+  return 0;
 }
 
 /*======================================================*/
@@ -881,7 +1058,6 @@ MC_FrontEndNode::MC_FrontEndNode()
 
 MC_FrontEndNode::~MC_FrontEndNode()
 {
-  send_delSubTree();
 }
 
 int MC_FrontEndNode::send(MC_Packet *packet)
@@ -901,7 +1077,7 @@ int MC_FrontEndNode::flush(unsigned int stream_id)
 
 int MC_FrontEndNode::recv()
 {
-  List <MC_Packet *> packet_list;
+  std::list <MC_Packet *> packet_list;
   mc_printf((stderr, "In frontend.recv(). Calling recvfromdownstream()\n"));
 
   if(recv_PacketsFromDownStream(packet_list) == -1){
@@ -910,7 +1086,7 @@ int MC_FrontEndNode::recv()
   }
   mc_printf((stderr, "recv_packetsfromdownstream() succeeded. call proc()\n"));
 
-  if(packet_list.count() == 0){
+  if(packet_list.size() == 0){
     mc_printf((stderr, "No packets read!\n"));
     return 0;
   }
@@ -924,10 +1100,65 @@ int MC_FrontEndNode::recv()
   return 1;
 }
 
+/* int MC_FrontEndNode::proc_newSubTree(MC_Packet *)
+{
+  assert(0);
+  return(0);
+} 
+
+int MC_FrontEndNode::proc_delSubTree(MC_Packet *)
+{
+  assert(0);
+  return(0);
+}
+
+int MC_FrontEndNode::proc_newStream(MC_Packet *)
+{
+  assert(0);
+  return(0);
+}
+
+int MC_FrontEndNode::proc_delStream(MC_Packet *)
+{
+  assert(0);
+  return(0);
+}
+
+int MC_FrontEndNode::proc_newApplication(MC_Packet *)
+{
+  assert(0);
+  return(0);
+}
+
+int MC_FrontEndNode::proc_delApplication(MC_Packet *)
+{
+  assert(0);
+  return(0);
+}
+
+int MC_FrontEndNode::proc_DataFromUpStream(MC_Packet *)
+{
+  assert(0);
+  return(0);
+}
+
+int MC_FrontEndNode::send_newSubTreeReport(bool status)
+{
+  assert(0);
+  return(0);
+}
+
+int MC_FrontEndNode::send_DataUpStream(MC_Packet *)
+{
+  assert(0);
+  return(0);
+}
+*/
 
 int MC_FrontEndNode::send_newSubTree(MC_SerialGraph &sg)
 {
-  List <MC_Packet *> packet_list;
+  int num_descendants_to_report=0;
+  std::list <MC_Packet *> packet_list;
   MC_Packet * packet;
   string cmd_commnode(COMMNODE_EXE);
   vector <string> arglist_commnode;
@@ -936,7 +1167,7 @@ int MC_FrontEndNode::send_newSubTree(MC_SerialGraph &sg)
   mc_printf((stderr, "In frontend.sendnewsubtree()\n"));
 
   mc_printf((stderr, "Calling new remotenode()\n"));
-  MC_RemoteNode *cur_node = new MC_RemoteNode(rootname, 0);
+  MC_RemoteNode *cur_node = new MC_RemoteNode(rootname, 0, false);
 
   mc_printf((stderr, "Calling new_InternalNode()\n"));
   cur_node->new_InternalNode(listening_sock_fd, hostname, port);
@@ -955,13 +1186,13 @@ int MC_FrontEndNode::send_newSubTree(MC_SerialGraph &sg)
         mc_printf((stderr, "send_newsubtree():send/flush failed\n"));
         return -1;
       }
-      num_backend_descendant_nodes_to_report += sg.get_NumBackends();
     }
     else{
       mc_printf((stderr, "new packet() failed\n"));
       return -1;
     }
-    children_nodes += cur_node;
+    num_descendants_to_report++;
+    children_nodes.push_back(cur_node);
   }
   else{
     mc_printf((stderr, "new remotenode() failed\n"));
@@ -969,8 +1200,9 @@ int MC_FrontEndNode::send_newSubTree(MC_SerialGraph &sg)
   }
 
   mc_printf((stderr, "Calling recv/proc fromdownstream()\n"));
-  while( num_backend_descendant_nodes_to_report > backend_descendant_nodes.size() ){
-    mc_printf((stderr, "%d of %d Backends have checked in.\n", backend_descendant_nodes.size(), num_backend_descendant_nodes_to_report));
+  while( num_descendants_to_report > num_descendants_reported){
+    mc_printf((stderr, "%d of %d Descendants have checked in.\n",
+	       num_descendants_to_report, num_descendants_reported));
     if( recv() == -1 ){
       mc_printf((stderr, "recv() failed\n"));
       return -1;
@@ -994,16 +1226,18 @@ int MC_FrontEndNode::send_delSubTree()
   if(packet->good()){
     mc_printf((stderr, "new packet() succeeded\n"));
 
-    for(i=0; i<children_nodes.size(); i++){
+    std::list <MC_RemoteNode *>::iterator iter;
+    for(i=0,iter = children_nodes.begin();
+        iter != children_nodes.end(); iter++, i++){
       mc_printf((stderr, "Calling downstream[%d].send() ...\n", i));
-      if(children_nodes[i]->send(packet) == -1){
+      if( (*iter)->send(packet) == -1){
         mc_printf((stderr, "downstream.send() failed\n"));
         retval = -1;
 	continue;
       }
 
       mc_printf((stderr, "downstream.flush() succeeded\n"));
-      if(children_nodes[i]->flush() == -1){
+      if( (*iter)->flush() == -1){
         mc_printf((stderr, "downstream.flush() failed\n"));
         retval = -1;
 	continue;
@@ -1024,8 +1258,8 @@ int MC_FrontEndNode::send_newStream(int stream_id, int filter_id)
 {
   unsigned int i;
   int retval;
-  vector <MC_EndPoint *> * endpoints =
-                           MC_Stream::get_Stream(stream_id)->get_EndPoints();
+  vector <MC_EndPoint *> * endpoints = MC_StreamImpl::get_Stream(stream_id)->
+                                       get_EndPoints();
   MC_Packet *packet;
   int * backends = (int *) malloc (sizeof(int) * endpoints->size());
   assert(backends);
@@ -1037,18 +1271,22 @@ int MC_FrontEndNode::send_newStream(int stream_id, int filter_id)
 
   mc_printf((stderr, "In frontend.sendnewStream(%d)\n", stream_id));
 
-  ChildrenNodesByStreamId[stream_id] = &children_nodes;
-  mc_printf((stderr, "ChildrenNodesByStreamId[%d] = %p\n", stream_id,
-	     ChildrenNodesByStreamId[stream_id]));
+  MC_StreamManager * stream_mgr = new MC_StreamManager(stream_id, filter_id,
+					       upstream_node, children_nodes);
+  StreamManagerById[stream_id] = stream_mgr;
+  mc_printf((stderr, "StreamManagerById[%d] = %p\n", stream_id,
+	     StreamManagerById[stream_id]));
 
   packet = new MC_Packet(MC_NEW_STREAM_PROT, "%d %ad %d", stream_id, backends,
                          endpoints->size(), filter_id);
   if(packet->good()){
     mc_printf((stderr, "new packet() succeeded\n"));
 
-    for(i=0; i<children_nodes.size(); i++){
+    std::list <MC_RemoteNode *>::iterator iter;
+    for(i=0,iter = children_nodes.begin();
+        iter != children_nodes.end(); iter++, i++){
       mc_printf((stderr, "Calling children_nodes[%d].send() ...\n", i));
-      if( children_nodes[i]->send(packet) == -1){
+      if( (*iter)->send(packet) == -1){
         mc_printf((stderr, "children_nodes.send() failed\n"));
         retval = -1;
 	continue;
@@ -1068,21 +1306,23 @@ int MC_FrontEndNode::send_newStream(int stream_id, int filter_id)
 int MC_FrontEndNode::send_delStream(int stream_id)
 {
   MC_Packet *packet;
-  vector <MC_RemoteNode *> * node_set;
   int retval;
   unsigned int i;
 
   mc_printf((stderr, "In frontend.sendDelStream()\n"));
 
-  node_set = ChildrenNodesByStreamId[stream_id];
+  MC_StreamManager * stream_mgr = StreamManagerById[stream_id];
 
   packet = new MC_Packet(MC_DEL_STREAM_PROT, "%d", stream_id);
   if(packet->good()){
     mc_printf((stderr, "new packet() succeeded\n"));
 
-    for(i=0; i<node_set->size(); i++){
+    std::list <MC_RemoteNode *>::iterator iter;
+    for(i=0,iter = stream_mgr->downstream_nodes.begin();
+        iter != stream_mgr->downstream_nodes.end();
+        iter++, i++){
       mc_printf((stderr, "Calling node_set[%d].send() ...\n", i));
-      if((*node_set)[i]->send(packet) == -1){
+      if( (*iter)->send(packet) == -1){
         mc_printf((stderr, "node_set.send() failed\n"));
         retval = -1;
 	continue;
@@ -1111,14 +1351,16 @@ int MC_FrontEndNode::send_newApplication(string cmd, vector<string> args)
   if(packet->good()){
     mc_printf((stderr, "new packet() succeeded\n"));
 
-    for(i=0; i<children_nodes.size(); i++){
+    std::list <MC_RemoteNode *>::iterator iter;
+    for(i=0,iter = children_nodes.begin();
+        iter != children_nodes.end(); iter++, i++){
       mc_printf((stderr, "Calling downstream[%d].send() ...\n", i));
-      if(children_nodes[i]->send(packet) == -1){
+      if( (*iter)->send(packet) == -1){
         mc_printf((stderr, "downstream.send() failed\n"));
         retval = -1;
 	continue;
       }
-      if(children_nodes[i]->flush() == -1){
+      if( (*iter)->flush() == -1){
         mc_printf((stderr, "downstream.flush() failed\n"));
         retval = -1;
 	continue;
@@ -1147,9 +1389,11 @@ int MC_FrontEndNode::send_delApplication()
   if(packet->good()){
     mc_printf((stderr, "new packet() succeeded\n"));
 
-    for(i=0; i<children_nodes.size(); i++){
+    std::list <MC_RemoteNode *>::iterator iter;
+    for(i=0,iter = children_nodes.begin();
+        iter != children_nodes.end(); iter++, i++){
       mc_printf((stderr, "Calling downstream[%d].send() ...\n", i));
-      if(children_nodes[i]->send(packet) == -1){
+      if( (*iter)->send(packet) == -1){
         mc_printf((stderr, "downstream.send() failed\n"));
         retval = -1;
 	continue;
@@ -1184,10 +1428,11 @@ int MC_FrontEndNode::proc_newSubTreeReport(MC_Packet *packet)
   }
   mc_printf((stderr, "ExtractArgList succeeded\n"));
 
+  num_descendants_reported++;
   mc_printf((stderr, "report status: %d\n", status));
   for(i=0; i<no_backends; i++){
     mc_printf((stderr, "Adding backend %d to my list\n", backends[i]));
-    backend_descendant_nodes += backends[i];
+    backend_descendant_nodes.push_back(backends[i]);
   }
 
   mc_printf((stderr, "Leaving frontend.proc_newSubTreeReport()\n"));
@@ -1196,11 +1441,11 @@ int MC_FrontEndNode::proc_newSubTreeReport(MC_Packet *packet)
 
 int MC_FrontEndNode::proc_DataFromDownStream(MC_Packet *packet)
 {
-  MC_Stream * stream;
+  MC_StreamImpl * stream;
 
   mc_printf((stderr, "In proc_DataFromUpStream()\n"));
 
-  stream = MC_Stream::get_Stream(packet->get_StreamId());
+  stream = MC_StreamImpl::get_Stream(packet->get_StreamId());
 
   if( stream ){
     mc_printf((stderr, "Inserting packet into stream %d\n", packet->get_StreamId()));
@@ -1222,7 +1467,7 @@ MC_BackEndNode::MC_BackEndNode(string _parent_hostname,
                                unsigned short _parent_port)
 {
   mc_printf((stderr, "In backendnode()\n"));
-  upstream_node = new MC_RemoteNode(_parent_hostname, _parent_port);
+  upstream_node = new MC_RemoteNode(_parent_hostname, _parent_port, false);
 
   mc_printf((stderr, "Calling connect()\n"));
   upstream_node->connect();
@@ -1248,7 +1493,7 @@ int MC_BackEndNode::flush()
 
 int MC_BackEndNode::recv()
 {
-  List <MC_Packet *> packet_list;
+  std::list <MC_Packet *> packet_list;
   mc_printf((stderr, "In backend.recv(). Calling recvfromupstream()\n"));
 
   if(recv_PacketsFromUpStream(packet_list) == -1){
@@ -1257,7 +1502,7 @@ int MC_BackEndNode::recv()
   }
   mc_printf((stderr, "recv_packetsfromupstream() succeeded. calling proc()\n"));
 
-  if(packet_list.count() == 0){
+  if(packet_list.size() == 0){
     mc_printf((stderr, "No packets read!\n"));
     return 0;
   }
@@ -1270,6 +1515,62 @@ int MC_BackEndNode::recv()
 
   return 1;
 }
+
+/*
+int MC_BackEndNode::send_newSubTree(MC_SerialGraph &)
+{
+  assert(0);
+  return 0;
+}
+
+int MC_BackEndNode::send_delSubTree()
+{
+  assert(0);
+  return 0;
+}
+
+int MC_BackEndNode::send_newStream(int, int)
+{
+  assert(0);
+  return 0;
+}
+
+int MC_BackEndNode::send_delStream(int)
+{
+  assert(0);
+  return 0;
+}
+
+int MC_BackEndNode::send_newApplication(string, std::vector<string> args)
+{
+  assert(0);
+  return 0;
+}
+
+int MC_BackEndNode::send_delApplication()
+{
+  assert(0);
+  return 0;
+}
+
+int MC_BackEndNode::send_DataDownStream(MC_Packet *)
+{
+  assert(0);
+  return 0;
+}
+
+int MC_BackEndNode::proc_newSubTreeReport(MC_Packet *)
+{
+  assert(0);
+  return 0;
+}
+
+int MC_BackEndNode::proc_DataFromDownStream(MC_Packet *)
+{
+  assert(0);
+  return 0;
+}
+
 
 int MC_BackEndNode::proc_newSubTree(MC_Packet *)
 {
@@ -1302,6 +1603,8 @@ int MC_BackEndNode::proc_newApplication(MC_Packet *)
   return 0;
 }
 
+*/
+
 int MC_BackEndNode::proc_delApplication(MC_Packet *packet)
 {
   mc_printf((stderr, "In proc_delApplication()\n"));
@@ -1313,11 +1616,11 @@ int MC_BackEndNode::proc_delApplication(MC_Packet *packet)
 
 int MC_BackEndNode::proc_DataFromUpStream(MC_Packet *packet)
 {
-  MC_Stream * stream;
+  MC_StreamImpl * stream;
 
   mc_printf((stderr, "In proc_DataFromUpStream()\n"));
 
-  stream = MC_Stream::get_Stream(packet->get_StreamId());
+  stream = MC_StreamImpl::get_Stream(packet->get_StreamId());
 
   if( stream ){
     mc_printf((stderr, "Inserting packet into stream %d\n", packet->get_StreamId()));
@@ -1325,7 +1628,7 @@ int MC_BackEndNode::proc_DataFromUpStream(MC_Packet *packet)
   }
   else{
     mc_printf((stderr, "Inserting packet into NEW stream %d\n", packet->get_StreamId()));
-    stream = new MC_Stream(packet->get_StreamId());
+    stream = new MC_StreamImpl(packet->get_StreamId());
     stream->add_IncomingPacket(packet);
   }
   mc_printf((stderr, "Leaving proc_DataFromUpStream()\n"));
@@ -1343,14 +1646,24 @@ int MC_BackEndNode::send_newSubTreeReport(bool)
   return 0;
 }
 
-int sort_remote_node_ptr(const void *p1, const void *p2){
-  if(p1 < p2){
-    return -1;
+bool lt_RemoteNodePtr(MC_RemoteNode *p1, MC_RemoteNode *p2){
+  if(p1->get_HostName() < p2->get_HostName()){
+    return true;
   }
-  else if(p1 == p2){
-    return 0;
+  else if(p1->get_HostName() == p2->get_HostName()){
+    return (p1->get_Port() < p2->get_Port());
   }
   else{
-    return 1;
+    return false;
   }
 }
+
+bool equal_RemoteNodePtr(MC_RemoteNode *p1, MC_RemoteNode *p2){
+  if(p1->get_HostName() != p2->get_HostName()){
+    return false;
+  }
+  else{
+    return (p1->get_Port() == p2->get_Port());
+  }
+}
+

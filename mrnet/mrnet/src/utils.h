@@ -1,6 +1,8 @@
 #ifndef __utils_h
 #define __utils_h 1
 
+#include <vector>
+#include <string>
 
 #include <libgen.h>
 #include <unistd.h>
@@ -8,13 +10,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
-#include "common/h/String.h"
-#include "common/h/Vector.h"
-
 
 class Line{
  private:
-  vector <string> words;
+  std::vector <string> words;
  public:
   Line(const char *);
   string get_NextWord();
@@ -42,13 +41,13 @@ const string getNetworkAddr(const string hostname=""); // "127.0.0.1"
 
 int create_Process(const string &remote_shell,
                    const string &hostName, const string &userName,
-                   const string &command, const vector<string> &arg_list);
+                   const string &command, const std::vector<string> &arg_list);
 int remoteCommand(const string remoteExecCmd,
                   const string hostName, const string userName,
-                  const string command, const vector<string> &arg_list);
+                  const string command, const std::vector<string> &arg_list);
 int rshCommand(const string &hostName, const string &userName, 
-               const string &command, const vector<string> &arg_list);
-int execCmd(const string command, const vector<string> &args);
+               const string &command, const std::vector<string> &arg_list);
+int execCmd(const string command, const std::vector<string> &args);
 
 extern unsigned int _count;
 static char *mc_tmpfilename;
@@ -69,5 +68,13 @@ do { \
   free(mc_tmpfilename); \
   fprintf X; fflush(stderr);       \
 } while(0)
+
+struct ltstr
+{
+  bool operator()(string s1, string s2) const
+  {
+    return (s1 < s2);
+  }
+};
 
 #endif /* __utils_h */

@@ -1,0 +1,169 @@
+/*===========================================================*/
+/*             MC_StreamImpl CLASS METHOD DEFINITIONS            */
+/*===========================================================*/
+
+#include "mrnet/src/MC_StreamImpl.h"
+#include "mrnet/src/MC_NetworkImpl.h"
+#include "mrnet/src/utils.h"
+
+unsigned int MC_StreamImpl::cur_stream_idx=0;
+unsigned int MC_StreamImpl::next_stream_id=0;
+map <unsigned int, MC_StreamImpl *> MC_StreamImpl::streams;
+
+MC_StreamImpl::MC_StreamImpl(MC_Communicator &_comm, int _filter_id)
+  :filter_id(_filter_id)
+{
+  communicator = new MC_CommunicatorImpl(_comm); //copy the comm.
+  stream_id = next_stream_id++;
+  MC_StreamImpl::streams[stream_id] = this;
+  if ( MC_Network::network ){
+    MC_Network::network->front_end->send_newStream(stream_id, filter_id);
+  }
+}
+
+MC_StreamImpl::MC_StreamImpl(int _stream_id, int * backends=0, int num_backends=-1,
+                     int _filter_id=-1)
+  :filter_id(_filter_id), stream_id(_stream_id)
+{
+  MC_StreamImpl::streams[stream_id] = this;
+}
+
+MC_StreamImpl::~MC_StreamImpl()
+{
+}
+
+int MC_StreamImpl::recv(int *tag, void **ptr, MC_Stream **stream)
+{
+  unsigned int start_idx;
+  MC_StreamImpl * cur_stream=NULL;
+  MC_Packet * cur_packet=NULL;
+
+  mc_printf((stderr, "In stream.recv(). Calling frontend.recv()\n"));
+  MC_Network::network->recv();
+  mc_printf((stderr, "network.recv() returned\n"));
+
+  start_idx = cur_stream_idx;
+  do{
+    cur_stream = MC_StreamImpl::streams[cur_stream_idx];
+    if(!cur_stream){
+      cur_stream_idx++;
+      cur_stream_idx %= streams.size();
+      continue;
+    }
+
+    mc_printf((stderr, "Checking stream[%d] for packets ...", cur_stream_idx));
+    if( cur_stream->IncomingPacketBuffer.size() != 0 ){
+      mc_printf((stderr, "Packets found\n"));
+      list<MC_Packet *>::iterator iter = cur_stream->IncomingPacketBuffer.begin();
+
+      cur_packet = *iter;
+      *tag = cur_packet->get_Tag();
+      *stream = MC_StreamImpl::streams[cur_packet->get_StreamId()];
+      *ptr = (void *) cur_packet;
+      cur_stream_idx++;
+      cur_stream_idx %= streams.size();
+      break;
+    }
+    mc_printf((stderr, "No Packets found\n"));
+
+    cur_stream_idx++;
+    cur_stream_idx %= streams.size();
+  } while(start_idx != cur_stream_idx);
+
+  if(cur_packet){
+    mc_printf((stderr, "cur_packet(%p) tag: %d, fmt: %s\n", cur_packet,
+               cur_packet->get_Tag(), cur_packet->get_FormatString()));
+    ((MC_StreamImpl*)(*stream))->IncomingPacketBuffer.remove(cur_packet);
+    return 1;
+  }
+  else{
+    mc_printf((stderr, "No packets currently on stream\n"));
+    return 0;
+  }
+}
+
+
+int MC_StreamImpl::send(int tag, char const * fmt, ...)
+{
+  int status;
+  va_list arg_list;
+  MC_Packet * packet;
+
+  mc_printf((stderr, "In stream[%d].send(). Calling new packet()\n", stream_id));
+
+  va_start(arg_list, fmt);
+  packet = new MC_Packet(stream_id, tag, fmt, arg_list);
+  if(packet->fail()){
+    mc_printf((stderr, "new packet() fail\n"));
+    return -1;
+  }
+  mc_printf((stderr, "new packet() succeeded. Calling frontend.send()\n"));
+  status = MC_Network::network->send(packet);
+  va_end(arg_list);
+  mc_printf((stderr, "network.send() %s",
+             (status==-1 ? "failed\n" : "succeeded\n")));
+  return status;
+}
+
+int MC_StreamImpl::flush()
+{
+  if(MC_Network::network){
+    return MC_Network::network->front_end->flush(stream_id);
+  }
+
+  return MC_Network::back_end->flush();
+}
+
+int MC_StreamImpl::recv(int *tag, void ** ptr)
+{
+  MC_Packet * cur_packet=NULL;
+
+  mc_printf((stderr, "In stream.recv(). Calling frontend.recv()\n"));
+
+  MC_Network::network->recv();
+  mc_printf((stderr, "network.recv() returned\n"));
+
+  if( IncomingPacketBuffer.size() != 0){
+    mc_printf((stderr, "stream has packets\n"));
+    list<MC_Packet *>::iterator iter = IncomingPacketBuffer.begin();
+
+    cur_packet = *iter;
+    *tag = cur_packet->get_Tag();
+    *ptr = (void *) cur_packet;
+  }
+
+  cur_stream_idx++;
+  cur_stream_idx %= streams.size();
+
+  if(cur_packet){
+    mc_printf((stderr, "cur_packet's tag: %d\n", cur_packet->get_Tag()));
+    IncomingPacketBuffer.remove(cur_packet);
+    return 1;
+  }
+  else{
+    mc_printf((stderr, "No packets currently on stream\n"));
+    return 0;
+  }
+}
+
+MC_StreamImpl * MC_StreamImpl::get_Stream(int stream_id)
+{
+  MC_StreamImpl *stream = streams[stream_id];
+  if(stream){
+    return stream;
+  }
+  else{
+    streams.erase(stream_id);
+    return NULL;
+  }
+}
+
+void MC_StreamImpl::add_IncomingPacket(MC_Packet *packet)
+{
+  IncomingPacketBuffer.push_back(packet);
+}
+
+vector <MC_EndPoint *> * MC_StreamImpl::get_EndPoints()
+{
+  return communicator->get_EndPoints();
+}

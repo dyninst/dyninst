@@ -24,7 +24,7 @@ Line::Line(const char * buf)
 
   for(cur = strtok(begin, " \t\n"); cur != NULL;
       cur = strtok(NULL, " \t\n")){
-      words += string(cur);
+      words.push_back(string(cur));
   }
   free(begin);
 
@@ -87,7 +87,7 @@ int connect_to_host(int *sock_in, const char * hostname, unsigned short port)
 
   char *_hostname; unsigned short _p;
   if(get_socket_peer(sock, &_hostname, &_p) == -1){
-    mc_printf((stderr, ""));
+    mc_printf((stderr, "\0"));
     perror("get_socket_peer()");
   }
   else{
@@ -142,7 +142,7 @@ int bind_to_port(int *sock_in, unsigned short *port_in)
 
   mc_printf((stderr, "calling listen()\n"));
   if(listen(sock, 1) == -1){
-    mc_printf((stderr, ""));
+    mc_printf((stderr, "\0"));
     perror("listen()");
     return -1;
   }
@@ -162,7 +162,7 @@ int get_socket_connection(int bound_socket)
 
   connected_socket = accept(bound_socket, NULL, NULL);
   if(connected_socket == -1){
-    mc_printf((stderr, ""));
+    mc_printf((stderr, "\0"));
     perror("accept()");
     return -1;
   }
@@ -180,13 +180,13 @@ int get_socket_peer(int connected_socket, char **hostname, unsigned short * port
   mc_printf((stderr, "In get_socket_peer()\n"));
 
   if( getpeername(connected_socket, (struct sockaddr *)(&peer_addr), &peer_addrlen) == -1){
-    mc_printf((stderr,""));
+    mc_printf((stderr,"\0"));
     perror("getpeername()");
     return -1;
   }
 
   if(inet_ntop(AF_INET, &peer_addr.sin_addr, buf, sizeof(buf)) == NULL){
-    mc_printf((stderr, ""));
+    mc_printf((stderr, "\0"));
     perror("inet_ntop()");
     return -1;
   }
@@ -283,7 +283,7 @@ const string getHostName()
   char hostname[256];
 
   if (gethostname(hostname,sizeof(hostname)) == -1) {
-    mc_printf((stderr, ""));
+    mc_printf((stderr, "\0"));
     perror("gethostname()");
     return string("");
   }
@@ -316,13 +316,14 @@ const string getDomainName (const string hostname)
   else {
     const string simplename = networkname.substr(0,index);
     const string domain = networkname.substr(index+1,networkname.length());
-    if (simplename.regexEquiv("[0-9]*",false)) {
-      mc_printf((stderr, "Got invalid simplename: %s\n", simplename.c_str()));
-      return ("");
-    }
-    else {
+    //why can't a hostname contain numerals?
+    //if (simplename.regexEquiv("[0-9]*",false)) {
+      //mc_printf((stderr, "Got invalid simplename: %s\n", simplename.c_str()));
+      //return ("");
+    //}
+    //else {
       return (domain);
-    }
+    //}
   }
 }
 
@@ -454,24 +455,24 @@ int remoteCommand(const string remoteExecCmd,
 #if defined(DEFAULT_RUNAUTH_COMMAND)
   //might be necessary to call runauth to pass credentials
   cmd = DEFAULT_RUNAUTH_COMMAND;
-  remoteExecArgList += remoteExecCmd;
+  remoteExecArgList.push_back(remoteExecCmd);
 #else
   cmd = remoteExecCmd;
 #endif
 
   // add the hostname and username to arglist
-  remoteExecArgList += hostName;
+  remoteExecArgList.push_back(hostName);
   if( userName.length() > 0 ) {
-    remoteExecArgList += string("-l");
-    remoteExecArgList += userName;
+    remoteExecArgList.push_back(string("-l"));
+    remoteExecArgList.push_back(userName);
   }
 
   // add remote command and its arguments
-  remoteExecArgList += command;
+  remoteExecArgList.push_back(command);
   for( i = 0; i < arg_list.size(); i++ ){
-    remoteExecArgList += arg_list[i];
+    remoteExecArgList.push_back(arg_list[i]);
   }
-  //remoteExecArgList += "-l0";
+  //remoteExecArgList.push_back("-l0");
 
   // execute the command
   mc_printf((stderr, "Calling execCmd: %s ", cmd.c_str()));

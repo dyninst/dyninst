@@ -1,11 +1,12 @@
 #if !defined(MC_NetworkGraph_h)
 #define MC_NetworkGraph_h
 
+#include <vector>
+#include <map>
 
-#include "common/h/String.h"
-#include "common/h/Vector.h"
-#include "common/h/Dictionary.h"
-#include "common/h/list.h"
+#include <string>
+
+
 #include "mrnet/src/MC_Errors.h"
 #include "mrnet/src/MC_Message.h"
 #include "mrnet/h/MC_Network.h"
@@ -20,7 +21,7 @@ class MC_NetworkNode{
   string hostname;
   unsigned short port;
   MC_NetworkGraph * network_graph;
-  vector <MC_NetworkNode *> children;
+  std::vector <MC_NetworkNode *> children;
   bool _visited;
 
  public:
@@ -62,20 +63,20 @@ class MC_SerialGraph{
 class MC_NetworkGraph{
  private:
   MC_NetworkNode * root;
-  dictionary_hash<string, MC_NetworkNode*> nodes; 
+  std::map<string, MC_NetworkNode*> nodes; 
   bool graph_checked;
   unsigned int visited_nodes;
   bool _has_cycle;
 
   MC_SerialGraph serial_graph;
-  vector <MC_EndPoint *> * endpoints;
+  std::vector <MC_EndPoint *> * endpoints;
 
   void preorder_traversal(MC_NetworkNode *);
 
  public:
   MC_NetworkGraph();
   void set_Root(MC_NetworkNode * );
-  vector <MC_EndPoint *> * get_EndPoints();
+  std::vector <MC_EndPoint *> * get_EndPoints();
   MC_NetworkNode * get_Root();
   MC_NetworkNode * find_Node(char *, unsigned short);
   bool has_cycle();

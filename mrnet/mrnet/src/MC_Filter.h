@@ -1,0 +1,74 @@
+#if !defined(__mc_filter_h)
+#define __mc_filter_h 1
+
+#include <string>
+#include <list>
+#include <map>
+#include "mrnet/src/MC_Message.h"
+
+class MC_Filter{
+ protected:
+  unsigned short filter_id;
+
+ public:
+  MC_Filter(unsigned short _filter_id);
+  virtual ~MC_Filter();
+  virtual int push_packets(std::list <MC_Packet *> &packets_in,
+			   std::list <MC_Packet *> &packets_out)=0;
+};
+
+class MC_Aggregator: public MC_Filter{
+ private:
+  typedef struct{
+    string format_str;
+    void(*filter)(MC_DataElement **, int, MC_DataElement ***, int*);
+  }AggregatorSpec;
+
+  AggregatorSpec * aggr_spec;
+
+ public:
+  MC_Aggregator(unsigned short _filter_id);
+  virtual ~MC_Aggregator();
+  virtual int push_packets(std::list <MC_Packet *> &packets_in,
+			   std::list <MC_Packet *> &packets_out);
+};
+
+class MC_RemoteNode;
+class MC_Synchronizer: public MC_Filter{
+ private:
+  void(*sync)(std::list <MC_Packet *>&, std::list <MC_Packet *>&,
+              std::list <MC_RemoteNode *> &);
+  std::list <MC_RemoteNode *> downstream_nodes;
+
+ public:
+  MC_Synchronizer(unsigned short _filter_id, std::list <MC_RemoteNode *> &);
+  virtual ~MC_Synchronizer();
+  virtual int push_packets(std::list <MC_Packet *> &packets_in,
+			   std::list <MC_Packet *> &packets_out);
+};
+
+#define AGGR_INT_SUM_ID 200
+#define AGGR_INT_SUM_FORMATSTR "%d"
+void aggr_Int_Sum(MC_DataElement **, int, MC_DataElement ***, int*);
+
+#define AGGR_FLOAT_AVG_ID 201
+#define AGGR_FLOAT_AVG_FORMATSTR "%f"
+void aggr_Float_Avg(MC_DataElement **, int, MC_DataElement ***, int*);
+
+#define AGGR_CHARARRAY_CONCAT_ID 202
+#define AGGR_CHARARRAY_CONCAT_FORMATSTR "%ac"
+void aggr_CharArray_Concat(MC_DataElement **, int, MC_DataElement ***, int*);
+
+#define SYNC_WAITFORALL 203
+void sync_WaitForAll(std::list <MC_Packet *>&, std::list <MC_Packet *>&,
+                     std::list <MC_RemoteNode *> &);
+
+#define SYNC_DONTWAIT 204
+void sync_DontWait(std::list <MC_Packet *>&, std::list <MC_Packet *>&,
+                   std::list <MC_RemoteNode *> &);
+
+#define SYNC_TIMEOUT 205
+void sync_TimeOut(std::list <MC_Packet *>&, std::list <MC_Packet *>&,
+                  std::list <MC_RemoteNode *> &);
+
+#endif /* __mc_filter_h */

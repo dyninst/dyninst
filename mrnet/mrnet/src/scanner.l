@@ -8,6 +8,7 @@ ARROW    "=>"
 #include <string.h>
 #include "mrnet/src/MC_NetworkGraph.h"
 #include "mrnet/src/parser.tab.h"
+int linenum=1;
 %}
 %option noyywrap
 %%
@@ -17,6 +18,7 @@ ARROW    "=>"
 {SEMI}  {return(SEMI); }
 {ARROW} { return(ARROW); }
 {COLON} { return(COLON); }
-[ \t\n]+                  /* ignore whitespace */;
+[ \t]+                  /* ignore whitespace */;
+\n      {linenum++;}
 
 %%
