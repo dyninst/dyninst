@@ -2092,6 +2092,30 @@ int showCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
     return TCL_ERROR;
 }
 
+int dsetCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
+{
+    if (argc == 1) {
+	printf("Usage: dset <variable> <value>");
+	return TCL_ERROR;
+    }
+
+    if (!strcmp(argv[1], "recTramps")) {
+        if (!strcmp(argv[2], "false")) {
+	    bpatch->setTrampRecursive(false);
+	    return TCL_OK;
+        } else if (!strcmp(argv[2], "true")) {
+	    bpatch->setTrampRecursive(true);
+	    return TCL_OK;
+	} else {
+	    printf("Usage: dset recTramps [true|false]\n");
+	    return TCL_ERROR;
+	}
+    }
+
+    printf("Syntax error!\n");
+    return TCL_ERROR;
+}
+
 /* Displays how many times input fcn is called */
 int countCommand(ClientData, Tcl_Interp *interp, int argc, TCLCONST char *argv[])
 {
@@ -2653,6 +2677,7 @@ int Tcl_AppInit(Tcl_Interp *interp)
     Tcl_CreateCommand(interp, "declare", newVar, NULL, NULL);
     Tcl_CreateCommand(interp, "listbreak", listBreak, NULL, NULL);
     Tcl_CreateCommand(interp, "deletebreak", deleteBreak, NULL, NULL);
+    Tcl_CreateCommand(interp, "dset", dsetCommand, NULL, NULL);
     Tcl_CreateCommand(interp, "help", help, NULL, NULL);
     Tcl_CreateCommand(interp, "exit", exitDyner, NULL, NULL);
     Tcl_CreateCommand(interp, "kill", killApp, NULL, NULL);
