@@ -44,6 +44,9 @@
 
 /*
  * $Log: templates.C,v $
+ * Revision 1.6  1997/04/30 15:37:19  mjrg
+ * added template needed for new implementation of string class
+ *
  * Revision 1.5  1996/08/16 21:37:02  tamches
  * updated copyright for release 1.1
  *
@@ -98,3 +101,4 @@ template class vector< vector<dictionary_lite<string, pdLogo::logoStruct>::hash_
 template class pair<string, pdLogo::logoStruct>;
 
 template class vector<string>;
+template class  refCounter<string_ll>;

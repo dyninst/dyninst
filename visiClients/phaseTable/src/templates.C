@@ -41,6 +41,9 @@
 
 /*
  * $Log: templates.C,v $
+ * Revision 1.4  1997/04/30 15:37:16  mjrg
+ * added template needed for new implementation of string class
+ *
  * Revision 1.3  1996/08/16 21:35:49  tamches
  * updated copyright for release 1.1
  *
@@ -70,3 +73,4 @@ template float max(float, float);
 template class dictionary_lite<string, pdLogo *>;
 
 template class dictionary_lite<string, pdLogo::logoStruct>;
+template class refCounter<string_ll>;

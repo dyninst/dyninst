@@ -70,3 +70,4 @@ template class vector<pdLogo::logoStruct>;
 template class vector<dictionary_lite<string, pdLogo::logoStruct>::hash_pair>;
 template class vector< vector<dictionary_lite<string, pdLogo::logoStruct>::hash_pair> >;
 template class pair<string, pdLogo::logoStruct>;
+template class  refCounter<string_ll>;

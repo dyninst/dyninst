@@ -57,3 +57,4 @@ template float max(float, float);
 template class dictionary_lite<string, pdLogo *>;
 
 template class dictionary_lite<string, pdLogo::logoStruct>;
+template class  refCounter<string_ll>;
