@@ -93,6 +93,7 @@ class threadMetFocusNode_Val {
   string getKeyName();
   string getMetricName() const { return metric_name; }
   Focus  getFocus() const { return focus; }
+  pd_thread *getThread() { return pdThr; }
   void updateValue(timeStamp, pdSample);
   void updateWithDeltaValue(timeStamp startTime, timeStamp sampleTime, 
 			    pdSample value);
@@ -146,8 +147,9 @@ class threadMetFocusNode : public metricFocusNode {
   bool instrInserted()     { return V.instrInserted(); }
   bool isReadyForUpdates() { return V.isReadyForUpdates(); }
 
-  int getThreadID()  const { return V.getThreadID(); }
-  int getThreadPos() const { return V.getThreadPos(); }
+  unsigned getThreadID()  const { return V.getThreadID(); }
+  unsigned getThreadPos() const { return V.getThreadPos(); }
+  pd_thread *getThread() { return V.getThread(); }
   threadMetFocusNode_Val *getValuePtr() { return &V; }
   const threadMetFocusNode_Val *getValuePtr() const { return &V; }
   void initializeForSampling(timeStamp startTime, pdSample initValue);
