@@ -4,7 +4,12 @@
 # from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.10  1995/06/02 20:59:22  newhall
+# Revision 1.11  1995/07/17 05:02:52  tamches
+# Additions for new where axis code (actually, certain files, such as
+# where4tree.C, have been left out, since templates.C 'compiles' them
+# just fine)
+#
+# Revision 1.10  1995/06/02  20:59:22  newhall
 # changes for new dataManager interface
 #
 # Revision 1.9  1995/05/18  10:53:47  markc
@@ -73,6 +78,11 @@ SRCS	     += ../src/DMthread/DMpublic.C \
 		../src/UIthread/dagCompute.C \
 		../src/UIthread/dag.C \
 		../src/UIthread/paradyn.tcl.C \
+		../src/UIthread/where4treeConstants.C \
+		../src/UIthread/rootNode.C \
+		../src/UIthread/scrollbar.C \
+		../src/UIthread/whereAxisMisc.C \
+		../src/UIthread/whereAxisTcl.C \
 		../src/TCthread/TCmain.C \
 		../src/TCthread/tunableConst.C \
 		../src/met/metMain.C \
