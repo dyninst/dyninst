@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.63 2000/11/15 22:57:05 bernat Exp $ */
+/* $Id: test1.mutatee.c,v 1.64 2000/12/13 19:59:02 tikir Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -633,6 +633,7 @@ void call22_7(int x)
 #if defined(sparc_sun_solaris2_4) || \
     defined(i386_unknown_solaris2_5) || \
     defined(i386_unknown_linux2_0) || \
+    defined(i386_unknown_nt4_0) ||\
     defined(rs6000_ibm_aix4_1) || \
     defined(alpha_dec_osf4_0)
 
@@ -2023,6 +2024,7 @@ int func30_1()
 #if defined(sparc_sun_solaris2_4) || \
     defined(i386_unknown_solaris2_5) || \
     defined(i386_unknown_linux2_0) || \
+    defined(i386_unknown_nt4_0) ||\
     defined(rs6000_ibm_aix4_1) || \
     defined(alpha_dec_osf4_0)
 
@@ -2290,7 +2292,10 @@ int func33_3(int x)
 
 void func33_1()
 {
-#if defined(sparc_sun_solaris2_4) || defined(mips_sgi_irix6_4)
+#if defined(sparc_sun_solaris2_4) ||\
+    defined(mips_sgi_irix6_4) ||\
+    defined(rs6000_ibm_aix4_1)
+    
     /* The only possible failures occur in the mutator. */
 
     passedTest[ 33 ] = TRUE;
@@ -2337,7 +2342,9 @@ void func34_2()
 
 void func34_1()
 {
-#if defined(sparc_sun_solaris2_4) || defined(mips_sgi_irix6_4)
+#if defined(sparc_sun_solaris2_4) ||\
+    defined(mips_sgi_irix6_4) ||\
+    defined(rs6000_ibm_aix4_1)
     /* The only possible failures occur in the mutator. */
 
     passedTest[ 34 ] = TRUE;
