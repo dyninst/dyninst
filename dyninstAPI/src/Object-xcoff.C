@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.10 2001/07/18 20:39:12 bernat Exp $
+// $Id: Object-xcoff.C,v 1.11 2001/08/15 14:45:35 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -360,14 +360,17 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
      PARSE_AOUT_DIE("Checking data size", 49);
 
    /*
-    * Get the string pool
+    * Get the string pool, if there is one
     */
    poolOffset = hdr.f_symptr + hdr.f_nsyms * SYMESZ;
    /* length is stored in the first 4 bytes of the string pool */
    if (!seekAndRead(fd, poolOffset + offset, (void**) &lengthPtr, sizeof(int), false))
      PARSE_AOUT_DIE("Reading string pool size", 49);
-   if (!seekAndRead(fd, poolOffset + offset, (void**) &stringPool, poolLength, true)) 
-     PARSE_AOUT_DIE("Reading string pool", 49);
+   if (poolLength > 0) {
+     if (!seekAndRead(fd, poolOffset + offset, (void**) &stringPool, poolLength, true)) 
+       PARSE_AOUT_DIE("Reading string pool", 49);
+   }
+   else stringPool = NULL;
 
    /* find the text section such that we access the line information */
    for (i=0; i < hdr.f_nscns; i++)
@@ -640,10 +643,12 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
        // We ran into problems where the io_wait metric wasn't working.
        // It appears as though we only instrument one function with a 
        // given name, and there was a different write we were instrumenting.
+       /*
        if ((name == "write") &&
 	   !(modName.suffixed_by("libc.a"))) {
 	 continue;
        }
+       */
        // HACK. This avoids double-loading various tramp spaces
        if (name.prefixed_by("DYNINSTstaticHeap") &&
 	   size == 0x18)
