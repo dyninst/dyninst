@@ -21,10 +21,14 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.31  1995/11/08 23:43:21  tamches
-/* removed code for obsolete ui igen calls chooseMenuItemREPLY,
-/* msgChoice, chooseMenuItem, showMsg, uimMsgReplyCmd, showMsgWait
+/* Revision 1.32  1995/11/09 02:11:30  tamches
+/* removed some obsolete references (some which had been up till now commented out),
+/* such as initSHGStyles, UIMUser::chooseMenuItemREPLY, etc.
 /*
+ * Revision 1.31  1995/11/08 23:43:21  tamches
+ * removed code for obsolete ui igen calls chooseMenuItemREPLY,
+ * msgChoice, chooseMenuItem, showMsg, uimMsgReplyCmd, showMsgWait
+ *
  * Revision 1.30  1995/11/08 06:25:03  tamches
  * removed some warnings by including tclclean.h and tkclean.h
  *
@@ -151,25 +155,11 @@
 #include "shgPhases.h"
 #include "shgTcl.h"
 
-//extern void initSHGStyles();
-
  /* globals for metric resource selection */
 vector<metric_focus_pair> *uim_VisiSelections;
 char **uim_AvailMets;
 int uim_AvailMetsSize;
 metricHandle *uim_AvailMetHandles;
-
-//void 
-//UIMUser::chooseMenuItemREPLY(chooseMenuItemCBFunc cb, int userChoice)
-//{
-//  (cb) (userChoice);
-//}
-
-//void 
-//UIMUser::msgChoice(showMsgCBFunc cb, int userChoice)
-//{
-//  (cb) (userChoice);
-//}
 
 void
 UIMUser::chosenMetricsandResources
@@ -179,18 +169,6 @@ UIMUser::chosenMetricsandResources
   (cb) (pairList);
 }
 	
-//void 
-//UIM::chooseMenuItem(chooseMenuItemCBFunc cb,
-//	       char *menuItems,
-//	       char *menuTitle,
-//	       char *options,
-//	       int numMenuItems,
-//	       int flags)
-//{
-//  fprintf (stderr, "chooseMenuItem called\n");
-//
-//}
-
 // 
 // Startup File
 void 
@@ -224,118 +202,6 @@ UIM::showError(int errCode, const char *errString)
 }
 
 // ****************************************************************
-//  Standard Message Display Service Routines
-// ****************************************************************
-
-/* 
- * showMsg
- * This is an asynchronous UIM call.  A message is displayed with 
- * a set of user choice buttons, as specified in choices.  The array 
- * index of the user's choice is returned to the registered callback 
- * function.  If an error occurs during the message display, -1 is 
- * returned.
- */
-//void 
-//UIM::showMsg(showMsgCBFunc cb,
-//	char *displayMsg,
-//	int numChoices,
-//	char **choices)
-//{
-//  char *clist;
-//  int retVal;
-//  UIMReplyRec *reply;
-//  Tcl_HashEntry *entryPtr;
-//  char token[16];
-//  int newptr;
-//
-///*** get token*****/
-//  UIMMsgTokenID++;
-//  entryPtr = Tcl_CreateHashEntry (&UIMMsgReplyTbl, (char *)UIMMsgTokenID, 
-//				  &newptr);
-//  if (newptr) {
-//    reply = new UIMReplyRec;
-//      /* grab thread id of requesting thread */
-//    reply->tid = getRequestingThread();
-//    reply->cb = cb;
-//    Tcl_SetHashValue (entryPtr, reply);
-//  }
-//
-//  clist = Tcl_Merge (numChoices, choices);
-//  Tcl_SetVar (interp, "choices", clist, 0);
-//  Tcl_SetVar (interp, "msg", displayMsg, 0);
-//  sprintf (token, "%d", UIMMsgTokenID);
-//  Tcl_SetVar (interp, "id", token, 0);
-//  retVal = Tcl_EvalFile (interp, "msg.tcl");
-//  if (retVal == TCL_ERROR) {
-//    printf ("error showing Message:\n");
-//    printf ("%s\n", interp->result);
-//  }
-//}
-
-//int uimMsgReplyCmd(ClientData clientData, 
-//		Tcl_Interp *interp, 
-//		int argc, 
-//		char *argv[])
-//{
-//  Tcl_HashEntry *entry;
-//  UIMReplyRec *msgRec;
-//  int retVal;
-//  showMsgCBFunc mcb;
-//  int msgID;
-//
-//  if (argc < 3) {
-//    Tcl_AppendResult(interp, "Usage: uimMsgReply msg# choice\n", 
-//		     (char *) NULL);
-//    return TCL_ERROR;
-//  }
-//  printf ("in uimMsgReplyCmd w/ id = %s; ret = %s\n", argv[1], argv[2]);
-//  // get callback and thread id for this msg
-//  Tcl_GetInt (interp, argv[1], &msgID);
-//  if (!(entry = Tcl_FindHashEntry (&UIMMsgReplyTbl, (char *) msgID))) {
-//    Tcl_AppendResult (interp, "invalid message ID!", (char *) NULL);
-//    return TCL_ERROR;
-//  }
-//  
-//  msgRec = (UIMReplyRec *) Tcl_GetHashValue(entry);
-//  Tcl_GetInt (interp, argv[2], &retVal);
-//
-//     /* set thread id for return */
-//  uim_server->setTid(msgRec->tid);
-//  mcb = (showMsgCBFunc) msgRec->cb;
-//  Tcl_DeleteHashEntry (entry);   // cleanup hash table record
-//
-//     /* send reply */
-//  uim_server->msgChoice (mcb, retVal);
-//  return TCL_OK;
-//}
-
-/*
- *  showMsgWait
- *  This is a synchronous version of showMsg; the index of the user 
- *  menu choice is returned directly to the calling thread.  
- */
-//int 
-//UIM::showMsgWait(char *displayMsg,
-//	int numChoices,
-//	char **choices)
-//{
-//  char *clist;
-//  int retVal;
-//
-//  clist = Tcl_Merge (numChoices, choices);
-//  Tcl_SetVar (interp, "choices", clist, 0);
-//  Tcl_SetVar (interp, "msg", displayMsg, 0);
-//  retVal = Tcl_EvalFile (interp, "msg.tcl");
-//  if (retVal == TCL_ERROR) {
-//    printf ("error showing Message\n");
-//    return -1;
-//  }
-//     /* send reply */
-//  Tcl_GetInt (interp, interp->result, &retVal);
-//  return retVal;
-//}
-
-// ****************************************************************
 // Metrics and Resources 
 // ****************************************************************
 
@@ -343,20 +209,14 @@ void
 UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
 			       vector<metric_focus_pair> *pairList)
 {
-  char *ml;
-  int retVal;
-  char ctr[16];
-  UIMReplyRec *reply;
-  Tcl_HashEntry *entryPtr;
-  int newptr;
-  char tcommand[300];
-
       // store record with unique id and callback function
   UIMMsgTokenID++;
-  entryPtr = Tcl_CreateHashEntry (&UIMMsgReplyTbl, (char *)UIMMsgTokenID, 
-				  &newptr);
+  int newptr;
+  Tcl_HashEntry *entryPtr = Tcl_CreateHashEntry (&UIMMsgReplyTbl,
+						 (char *)UIMMsgTokenID, 
+						 &newptr);
   if (newptr) {
-    reply = new UIMReplyRec;
+    UIMReplyRec *reply = new UIMReplyRec;
       /* grab thread id of requesting thread */
     reply->tid = getRequestingThread();
     reply->cb = (showMsgCBFunc) cb;
@@ -377,17 +237,19 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
   for (int i = 0; i < uim_AvailMetsSize; i++) 
     uim_AvailMetHandles[i] = (*amets)[i].id;
   delete amets;
-  ml = Tcl_Merge (uim_AvailMetsSize, uim_AvailMets);
+  char *ml = Tcl_Merge (uim_AvailMetsSize, uim_AvailMets);
   ml = Tcl_SetVar (interp, "metList", ml, 0);
+  char ctr[16];
   sprintf (ctr, "%d", uim_AvailMetsSize);
   Tcl_SetVar (interp, "metCount", ctr, 0);
 
   // set global tcl variable to list of currently defined where axes
 
+  char tcommand[300];
   sprintf (tcommand,  "getMetsAndRes %d %d", UIMMsgTokenID,
 	   0); // the last parameter (an Rdo token) is obsolete...0 is just a filler
 
-  retVal = Tcl_VarEval (interp, tcommand, 0);
+  int retVal = Tcl_VarEval (interp, tcommand, 0);
   if (retVal == TCL_ERROR)  {
     uiMgr->showError (22, "Tcl command failure");
     printf ("%s\n", interp->result);
