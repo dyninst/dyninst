@@ -227,7 +227,6 @@ DYNINSTwriteTrace(void *buffer, unsigned count) {
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-extern char *sys_errlist[];
 
 /************************************************************************
  * static int connectToDaemon(int paradyndPid)
