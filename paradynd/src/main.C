@@ -2,7 +2,10 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.4  1994/02/25 13:40:55  markc
+ * Revision 1.5  1994/02/28 05:09:42  markc
+ * Added pvm hooks and ifdefs.
+ *
+ * Revision 1.4  1994/02/25  13:40:55  markc
  * Added hooks for pvm support.
  *
  * Revision 1.3  1994/02/24  04:32:33  markc
@@ -39,6 +42,8 @@ dynRPC *tp;
 extern void controllerMainLoop();
 extern void initLibraryFunctions();
 
+static dynRPC *init_pvm_code();
+
 main(int argc, char *argv[])
 {
     int i, family, type, well_known_socket, flag;
@@ -53,15 +58,7 @@ main(int argc, char *argv[])
 		       well_known_socket, flag) == 0);
 
 #ifdef PARADYND_PVM
-    extern int PDYN_initForPVM (char **, char *, int, int, int, int);
-    assert (PDYN_initForPVM (argv, machine, family, type, well_known_socket,
-			     flag) == 0);
-
-    // connect to paradyn
-    if (flag == 1)
-      tp = new dynRPC(0, NULL, NULL);
-    else
-      tp = new dynRPC(family, well_known_socket, type, machine, NULL, NULL);
+    tp = init_pvm_code();
 #else
     tp = new dynRPC(0, NULL, NULL);
 #endif
@@ -218,3 +215,28 @@ int dynRPC::addExecutable(int argc,String_Array argv)
 {
     return(addProcess(argc, argv.data));
 }
+
+#ifdef PARADYND_PVM
+dynRPC *
+init_pvm_code()
+{
+  dynRPC *temp;
+
+  extern int PDYN_initForPVM (char **, char *, int, int, int, int);
+  extern int PDYN_initFds (dynRPC*);
+
+  assert (PDYN_initForPVM (argv, machine, family, type, well_known_socket,
+			   flag) == 0);
+
+  // connect to paradyn
+  if (flag == 1)
+    tp = new dynRPC(0, NULL, NULL);
+  else
+    {
+      tp = new dynRPC(family, well_known_socket, type, machine, NULL, NULL);
+      tp->reportSelf (machine, argv[0], getpid());
+      }
+PDYN_initFds(tp);
+}
+#endif
+

@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.2 1994/02/24 04:32:35 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.3 1994/02/28 05:09:43 markc Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.2  1994/02/24 04:32:35  markc
+ * Revision 1.3  1994/02/28 05:09:43  markc
+ * Added pvm hooks and ifdefs.
+ *
+ * Revision 1.2  1994/02/24  04:32:35  markc
  * Changed header files to reflect igen changes.  main.C does not look at the number of command line arguments now.
  *
  * Revision 1.1  1994/01/27  20:31:35  hollings
@@ -325,6 +328,18 @@ void controllerMainLoop()
 	FD_SET(tp->fd, &readSet);
 	if (tp->fd > width) width = tp->fd;
 
+#ifdef PARADYND_PVM
+	#include "pvm3.h"
+	int fd_num, *fd_ptr, i;
+	fd_num = pvm_getfds(&fd_ptr);
+	for (i=0; i < num; i++)
+	  {
+	    FD_SET(fd_ptr[i], &readSet);
+	    if (fd_ptr[i] > width)
+	      width = fd_ptr[i];
+	  }
+	// TODO - do I need to free fd_ptr
+#endif
 	pollTime.tv_sec = 0;
 	pollTime.tv_usec = 50000;
 	ct = select(width+1, &readSet, NULL, NULL, &pollTime);
@@ -342,9 +357,25 @@ void controllerMainLoop()
 		if (ret < 0) {
 		    // assume the client has exited, and leave.
 		    exit(-1);
-		}
-	    }
-	}
+		  }
+	      }
+#ifdef PARADYND_PVM
+	    // message on pvmd channel
+	    extern int PDYN_handle_pvmd_message();
+	    int msg_there = 0;
+	    int res;
+	    for (i=0; (i < num) && !msg_there; i++)
+	      {
+		if (FD_ISSET(fd_ptr[i], &readSet))
+		  {
+		    msg_there = 1;
+		    // res == -1 --> error
+		    res = handle_pvmd_message();
+		    // handle pvm message
+		  }
+	      }
+#endif
+	  }
 
 
 
