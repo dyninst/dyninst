@@ -267,8 +267,6 @@ bool dynamic_linking::set_r_brk_point( process * proc ) {
 	iAddr.replaceBundleWith( trapBundle );
 
 	/* Insert a return bundle for use in the handler. */
-	uint8_t MMBstop = 0x19;
-	uint64_t NOP_M = 0x0004000000000000;
 	IA64_instruction memoryNOP( NOP_M );
 	IA64_instruction returnToBZero = generateReturnTo( 0 );
 	IA64_bundle returnBundle( MMBstop, memoryNOP, memoryNOP, returnToBZero );
