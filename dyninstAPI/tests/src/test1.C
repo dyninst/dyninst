@@ -420,6 +420,10 @@ void mutatorTest4(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_Vector<BPatch_point *> *point4_1 =
 	appImage->findProcedurePoint("func4_1", BPatch_entry);
 
+    if (!point4_1 || ((*point4_1).size() == 0)) {
+	fprintf(stderr, "Unable to find entry point to \"func4_1\".\n");
+	exit(1);
+    }
 
     BPatch_variableExpr *expr4_1 = appImage->findVariable("globalVariable4_1");
     if (!expr4_1) {
@@ -449,6 +453,12 @@ void mutatorTest5(BPatch_thread *appThread, BPatch_image *appImage)
     // Find the entry point to the procedure "func5_2"
     BPatch_Vector<BPatch_point *> *point5_1 =
 	appImage->findProcedurePoint("func5_2", BPatch_entry);
+
+    if (!point5_1 || ((*point5_1).size() == 0)) {
+	fprintf(stderr, "Unable to find entry point to \"func5_2\".\n");
+	exit(1);
+    }
+
     BPatch_variableExpr *expr5_1 = appImage->findVariable("globalVariable5_1");
     BPatch_variableExpr *expr5_2 = appImage->findVariable("globalVariable5_2");
     if (!expr5_1 || !expr5_2) {
@@ -486,6 +496,12 @@ void mutatorTest6(BPatch_thread *appThread, BPatch_image *appImage)
     // Find the entry point to the procedure "func6_2"
     BPatch_Vector<BPatch_point *> *point6_1 =
 	appImage->findProcedurePoint("func6_2", BPatch_entry);
+
+    if (!point6_1 || ((*point6_1).size() == 0)) {
+	fprintf(stderr, "Unable to find entry point to \"func6_2\".\n");
+	exit(1);
+    }
+
     BPatch_variableExpr *expr6_1 = appImage->findVariable("globalVariable6_1");
     BPatch_variableExpr *expr6_2 = appImage->findVariable("globalVariable6_2");
     BPatch_variableExpr *expr6_3 = appImage->findVariable("globalVariable6_3");
@@ -635,6 +651,12 @@ void mutatorTest7(BPatch_thread *appThread, BPatch_image *appImage)
     // Find the entry point to the procedure "func7_2"
     BPatch_Vector<BPatch_point *> *point7_1 =
 	appImage->findProcedurePoint("func7_2", BPatch_entry);
+
+    if (!point7_1 || ((*point7_1).size() == 0)) {
+	fprintf(stderr, "Unable to find entry point to \"func7_2\".\n");
+	exit(1);
+    }
+
     BPatch_Vector<BPatch_snippet*> vect7_1;
 
     genRelTest(appImage, vect7_1, BPatch_lt, 0, 1, "globalVariable7_1");
@@ -718,6 +740,12 @@ void mutatorTest8(BPatch_thread *appThread, BPatch_image *appImage)
     // Find the entry point to the procedure "func8_1"
     BPatch_Vector<BPatch_point *> *point8_1 =
 	appImage->findProcedurePoint("func8_1", BPatch_entry);
+
+    if (!point8_1 || ((*point8_1).size() == 0)) {
+	fprintf(stderr, "Unable to find entry point to \"func8_1\".\n");
+	exit(1);
+    }
+
     BPatch_Vector<BPatch_snippet*> vect8_1;
 
     BPatch_variableExpr *expr8_1 = appImage->findVariable("globalVariable8_1");
@@ -753,6 +781,11 @@ void mutatorTest9(BPatch_thread *appThread, BPatch_image *appImage)
     // Find the entry point to the procedure "func9_1"
     BPatch_Vector<BPatch_point *> *point9_1 =
 	appImage->findProcedurePoint("func9_1", BPatch_entry);
+
+    if (!point9_1 || ((*point9_1).size() == 0)) {
+	fprintf(stderr, "Unable to find entry point to \"func9_1\".\n");
+	exit(1);
+    }
 
     BPatch_function *call9_func = appImage->findFunction("call9_1");
     if (call9_func == NULL) {
@@ -792,6 +825,11 @@ void mutatorTest10(BPatch_thread *appThread, BPatch_image *appImage)
     // Find the entry point to the procedure "func10_1"
     BPatch_Vector<BPatch_point *> *point10_1 =
 	appImage->findProcedurePoint("func10_1", BPatch_entry);
+
+    if (!point10_1 || ((*point10_1).size() == 0)) {
+	fprintf(stderr, "Unable to find entry point to \"func10_1\".\n");
+	exit(1);
+    }
 
     BPatch_function *call10_1_func = appImage->findFunction("call10_1");
     if (call10_1_func == NULL) {
@@ -1646,13 +1684,22 @@ void mutatorTest24(BPatch_thread *appThread, BPatch_image *appImage)
     defined(i386_unknown_linux2_0) || \
     defined(i386_unknown_solaris2_5)
 
-    //     First verify that we can find a local variable in call24_1
+    //     First verify that we can find function call24_1
+    BPatch_function *call24_1func = appImage->findFunction("call24_1");
+    if (call24_1func == NULL) {
+    	fprintf(stderr, "Unable to find function \"call24_1\".\n");
+        return;
+    }
+
+    //     Then verify that we can find a local variable in call24_1
     BPatch_Vector<BPatch_point *> *temp =
 	appImage->findProcedurePoint("call24_1", BPatch_subroutine);
     if (!temp) {
 	fprintf(stderr, "**Failed** test #24 (array variables)\n");
 	fprintf(stderr, "  can't find function call24_1\n");
 	return;
+    } else {
+        dprintf("Found %d callsites in function call24_1\n", temp->size());
     }
 
     BPatch_Vector<BPatch_point *> *point24_1  = 
@@ -3144,9 +3191,6 @@ void mutatorTest40(BPatch_thread *appThread, BPatch_image *appImage)
            exit(1);
      }
 
-#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5) \
- && !defined(i386_unknown_linux2_0)
-    // XXX getComponents causes seg. fault
     BPatch_Vector<BPatch_variableExpr *> *fields = expr40_2->getComponents();
     if (!fields || fields->size() == 0 ) {
           fprintf(stderr, "**Failed** test #40 (declaration)\n");
@@ -3166,7 +3210,6 @@ void mutatorTest40(BPatch_thread *appThread, BPatch_image *appImage)
     }
     fprintf(stderr, "**Failed** test #40 (declaration)\n");
     fprintf(stderr, "    Can't find inherited class member variables\n");
-#endif
 }
 
 //
@@ -3186,11 +3229,6 @@ void mutatorTest41(BPatch_thread *appThread, BPatch_image *appImage)
 
    // access inherited class member variables has been examined in the test 40
    // now let's try to access the inherited class member function.
-
-#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_solaris2_5) \
- && !defined(i386_unknown_linux2_0)
-   // XXX really should use getComponent. 
-   // However, it causes segmentation fault at this point 
 
    BPatch_Vector<BPatch_point *> *point41_2 =
       appImage->findProcedurePoint("main", BPatch_allLocations);
@@ -3227,7 +3265,6 @@ void mutatorTest41(BPatch_thread *appThread, BPatch_image *appImage)
      fprintf(stderr, "**Failed** test #41 (derivation)\n");
      fprintf(stderr, "    Can't find inherited class member functions\n");
   }
-#endif
 }
 
 /*******************************************************************************/
