@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.169 2005/01/21 23:44:48 bernat Exp $
+// $Id: solaris.C,v 1.170 2005/02/02 17:27:35 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -1181,7 +1181,7 @@ bool process::findCallee(instPoint &instr, int_function *&target){
    }
 
    // find the corresponding image in this process  
-   const image *owner = instr.getOwner();
+   image *owner = instr.getOwner();
    bool found_image = false;
    Address base_addr = 0;
    if(symbols == owner) {  found_image = true; } 
