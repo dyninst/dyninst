@@ -40,6 +40,7 @@
  */
 
 #include <stdio.h>
+#include <stdarg.h>
 #include <iostream>
 #include "debug.h"
 
@@ -64,6 +65,48 @@ bool init_daemon_debug() {
   return true;
 }
 
-int metric_printf(const char *format, ...) {}
-int catchup_printf(const char *format, ...) {}
-int sample_printf(const char *format, ...) {}
+int metric_printf(const char *format, ...)
+{
+  if (!pd_debug_metric) return 0;
+  if (NULL == format) return -1;
+
+  va_list va;
+  va_start(va, format);
+
+  int ret = vfprintf(stderr, format, va);
+
+  va_end(va);
+
+  return ret;
+}
+
+int catchup_printf(const char *format, ...)
+{
+  if (!pd_debug_catchup) return 0;
+  if (NULL == format) return -1;
+
+  va_list va;
+  va_start(va, format);
+
+  int ret = vfprintf(stderr, format, va);
+
+  va_end(va);
+
+  return ret;
+}
+
+int sample_printf(const char *format, ...)
+{
+  if (!pd_debug_sample) return 0;
+  if (NULL == format) return -1;
+
+  va_list va;
+  va_start(va, format);
+
+  int ret = vfprintf(stderr, format, va);
+
+  va_end(va);
+
+  return ret;
+}
+
