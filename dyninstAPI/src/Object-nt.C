@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.22 2003/09/05 16:28:45 schendel Exp $
+// $Id: Object-nt.C,v 1.23 2003/09/22 19:50:09 jodom Exp $
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -598,6 +598,14 @@ Object::ParseDebugInfo( void )
         // TODO how to indicate the error
         fprintf( stderr, "SymUnloadModule64 failed: %x\n", GetLastError() );
     }
+
+    // Since PE-COFF is very similar to COFF (in that it's not like ELF),
+    // the .text and .data sections are perfectly mapped to code/data segments
+
+    code_vldS_ = code_off_;
+    code_vldE_ = code_off_ + code_len_ * sizeof(Word);
+    data_vldS_ = data_off_;
+    data_vldE_ = data_off_ + data_len_ * sizeof(Word);
 }
 
 
