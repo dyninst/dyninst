@@ -1,9 +1,12 @@
 // barChartTcl.C
 
 /* $Log: barChartTcl.C,v $
-/* Revision 1.10  1996/01/10 19:36:12  tamches
-/* launchBarChart now takes 4 args instead of 7
+/* Revision 1.11  1996/01/11 01:53:42  tamches
+/* added long2shortFocusNameCommand to compute short focus names
 /*
+ * Revision 1.10  1996/01/10 19:36:12  tamches
+ * launchBarChart now takes 4 args instead of 7
+ *
  * Revision 1.9  1996/01/10 02:24:25  tamches
  * dataFormatHasChangedCommand now takes in an arg
  * added getMetricColorNameCommand
@@ -39,6 +42,9 @@
 */
 
 #include <iostream.h>
+
+#include "Vector.h"
+#include "String.h"
 
 #include <tcl.h>
 #include <tk.h>
@@ -164,6 +170,63 @@ int getMetricColorNameCommand(ClientData, Tcl_Interp *interp,
 
    const string &result = theBarChart->getMetricColorName(index);
    strcpy(interp->result, result.string_of());
+   return TCL_OK;
+}
+
+int long2shortFocusNameCommand(ClientData, Tcl_Interp *interp, int argc, char **argv) {
+   assert(argc==2);
+   char *longName = argv[1];
+
+   // NOTE: most of this code is borrowed/stolen from tableVisi's tvFocus::tvFocus
+   //       routine.
+
+   if (0==strcmp(longName, "Whole Program")) {
+      // no change
+      strcpy(interp->result, longName);
+      return TCL_OK;
+   }
+
+   // Step 1: split up into components; 1 per resource hierarchy
+   vector<string> components;
+   const char *ptr = longName;
+
+   while (*ptr != '\0') {
+      // begin a new component; collect upto & including the first seen comma
+      char buffer[200];
+      char *bufferPtr = &buffer[0];
+      do {
+         *bufferPtr++ = *ptr++;
+      } while (*ptr != ',' && *ptr != '\0');
+
+      if (*ptr == ',')
+         *bufferPtr++ = *ptr++;
+
+      *bufferPtr = '\0';
+
+      components += string(buffer);
+   }
+
+   // Step 2: for each component, strip off all upto and including
+   //         the last '/'
+   for (unsigned componentlcv=0; componentlcv < components.size(); componentlcv++) {
+      const string &oldComponentString = components[componentlcv];
+
+      char *ptr = strrchr(oldComponentString.string_of(), '/');
+      if (ptr == NULL)
+         cerr << "tableVisi: could not find / in component " << oldComponentString << endl;
+      else if (ptr+1 == '\0')
+         cerr << "tableVisi: there was nothing after / in component " << oldComponentString << endl;
+      else
+         components[componentlcv] = string(ptr+1);
+   }
+
+   // Step 3: combine the components
+   string theShortName;
+   for (unsigned componentlcv=0; componentlcv < components.size(); componentlcv++)
+      theShortName += components[componentlcv];
+
+   // Step 4: pull it all together:
+   strcpy(interp->result, theShortName.string_of());
    return TCL_OK;
 }
 
