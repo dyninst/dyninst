@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.71 2004/02/07 18:33:55 schendel Exp $
+// $Id: BPatch.C,v 1.72 2004/03/02 22:45:56 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -79,6 +79,7 @@ BPatch::BPatch()
     trampRecursiveOn(false),
     forceRelocation_NP(false),
     autoRelocation_NP(true),
+    forkTracingOn(true),
     builtInTypes(NULL),
     stdTypes(NULL),
     type_Error(NULL),
@@ -1283,7 +1284,8 @@ void BPatch::launchDeferredOneTimeCode()
         if (proc == NULL)
             continue;
         
-        if (proc->status() == exited || proc->status() == neonatal)
+        if (!proc->isAttached() ||
+            proc->status() == neonatal)
             continue;
 
         proc->getRpcMgr()->launchRPCs(proc->status() == running);        
