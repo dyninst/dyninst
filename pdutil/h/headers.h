@@ -82,6 +82,9 @@ typedef int (*xdr_wr_func)(const void *, const char *, const int);
 #elif defined(i386_unknown_nt4_0)
 #include "util/h/ntHeaders.h"
 
+#elif defined(mips_sgi_irix6_4)
+#include "util/h/irixHeaders.h"
+
 #endif  /* architecture specific */
 
 #endif /* KLUDGES_H */

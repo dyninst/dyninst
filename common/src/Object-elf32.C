@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-elf32.C,v 1.7 1998/12/25 21:33:06 wylie Exp $
+// $Id: Object-elf32.C,v 1.8 1999/03/19 00:10:05 csserra Exp $
 
 /**********************************************
  *
@@ -50,6 +50,16 @@
 
 #include "util/h/Object.h"
 #include "util/h/Object-elf32.h"
+#include "util/h/String.h"
+#include "util/h/Symbol.h"
+#include "util/h/Dictionary.h"
+#include <stdio.h>
+
+#if defined(mips_sgi_irix6_4)
+#include <dwarf.h>
+#include <libdwarf.h>
+#endif
+
 
 #ifdef _Object_elf32_h_
 
@@ -94,10 +104,10 @@ void Object::log_elferror(void (*pfunc)(const char *), const char* msg) {
 bool
 Object::loaded_elf(int fd, char *ptr, bool& did_elf, Elf*& elfp, 
     Elf32_Ehdr*& ehdrp,
-    Elf32_Phdr*& phdrp, unsigned& txtaddr, unsigned& bssaddr,
+    Elf32_Phdr*& phdrp, Address& txtaddr, Address& bssaddr,
     Elf_Scn*& symscnp, Elf_Scn*& strscnp, Elf_Scn*& stabscnp, 
     Elf_Scn*& stabstrscnp, Elf_Scn*& rel_plt_scnp, Elf_Scn*& plt_scnp, 
-    Elf_Scn*& got_scnp,  Elf_Scn*& dynsym_scnp, Elf_Scn*& dynstr_scnp) {
+    Elf_Scn*& got_scnp,  Elf_Scn*& dynsym_scnp, Elf_Scn*& dynstr_scnp, bool a_out) {
 
     elf_version(EV_CURRENT);
     elf_errno();
@@ -139,22 +149,23 @@ Object::loaded_elf(int fd, char *ptr, bool& did_elf, Elf*& elfp,
     const char* shnames = (const char *) shstrdatap->d_buf;
     Elf_Scn*    scnp    = 0;
 
-    // moved const char declrs out of loop....
-    const char* EDITED_TEXT_NAME   = ".edited_text";
-    const char* TEXT_NAME   = ".text";
-    const char* BSS_NAME    = ".bss";
-    const char* SYMTAB_NAME = ".symtab";
-    const char* STRTAB_NAME = ".strtab";
-    const char* STAB_NAME   = ".stab";
-    const char* STABSTR_NAME= ".stabstr";
+    const char* EDITED_TEXT_NAME = ".edited_text";
+    const char* TEXT_NAME        = ".text";
+    const char* BSS_NAME         = ".bss";
+    const char* SYMTAB_NAME      = ".symtab";
+    const char* STRTAB_NAME      = ".strtab";
+    const char* STAB_NAME        = ".stab";
+    const char* STABSTR_NAME     = ".stabstr";
 
     // sections from dynamic executables and shared objects
-    const char* PLT_NAME = ".plt";
-    const char* REL_PLT_NAME = ".rela.plt";	   // sparc-solaris
-    const char* REL_PLT_NAME2 = ".rel.plt";	   // x86-solaris
-    const char* GOT_NAME = ".got";	   
-    const char* DYNSYM_NAME = ".dynsym";	   
-    const char* DYNSTR_NAME = ".dynstr";	   
+    const char* PLT_NAME         = ".plt";
+    const char* REL_PLT_NAME     = ".rela.plt"; // sparc-solaris
+    const char* REL_PLT_NAME2    = ".rel.plt";	// x86-solaris
+    const char* DATA_NAME        = ".data";
+    const char* RO_DATA_NAME     = ".ro_data";  // mips
+    const char* GOT_NAME         = ".got";	   
+    const char* DYNSYM_NAME      = ".dynsym";	   
+    const char* DYNSTR_NAME      = ".dynstr";	   
 
     while ((scnp = elf_nextscn(elfp, scnp)) != 0) {
         Elf32_Shdr* shdrp = elf32_getshdr(scnp);
@@ -163,7 +174,7 @@ Object::loaded_elf(int fd, char *ptr, bool& did_elf, Elf*& elfp,
             return false;
         }
 
-        const char* name        = (const char *) &shnames[shdrp->sh_name];
+        const char* name = (const char *) &shnames[shdrp->sh_name];
 
 	if (strcmp(name, EDITED_TEXT_NAME) == 0) {
         	// EEL rewriten executable
@@ -194,10 +205,10 @@ Object::loaded_elf(int fd, char *ptr, bool& did_elf, Elf*& elfp,
         }
         else if ((strcmp(name, REL_PLT_NAME) == 0) 
 		|| (strcmp(name, REL_PLT_NAME2) == 0)) {
-             rel_plt_scnp = scnp;
-	     rel_plt_addr_ = shdrp->sh_addr;
-	     rel_plt_size_ = shdrp->sh_size;
-	     rel_plt_entry_size_ = shdrp->sh_entsize;
+	    rel_plt_scnp = scnp;
+	    rel_plt_addr_ = shdrp->sh_addr;
+	    rel_plt_size_ = shdrp->sh_size;
+	    rel_plt_entry_size_ = shdrp->sh_entsize;
         }
         else if (strcmp(name, PLT_NAME) == 0) {
             plt_scnp = scnp;
@@ -208,6 +219,7 @@ Object::loaded_elf(int fd, char *ptr, bool& did_elf, Elf*& elfp,
         else if (strcmp(name, GOT_NAME) == 0) {
 	    got_scnp = scnp;
 	    got_addr_ = shdrp->sh_addr;
+            if (!bssaddr) bssaddr = shdrp->sh_addr;
 	}
 	else if (strcmp(name, DYNSYM_NAME) == 0) {
             dynsym_scnp = scnp;
@@ -217,6 +229,35 @@ Object::loaded_elf(int fd, char *ptr, bool& did_elf, Elf*& elfp,
 	    dynstr_scnp = scnp;
 	    dyn_str_addr_ = shdrp->sh_addr;
 	}
+#if defined(mips_sgi_irix6_4)
+        else if (strcmp(name, DATA_NAME) == 0) {
+            if (!bssaddr) bssaddr = shdrp->sh_addr;	  
+	}
+        else if (strcmp(name, RO_DATA_NAME) == 0) {
+            if (!bssaddr) bssaddr = shdrp->sh_addr;	  
+	}
+	else if (strcmp(name, MIPS_REGINFO) == 0) {
+	  // see <sys/elf.h>, ".reginfo" section
+	  Elf_Data *datap = elf_getdata(scnp, 0);
+	  Elf32_RegInfo *reginfop = (Elf32_RegInfo *)datap->d_buf;
+	  gp_value = reginfop->ri_gp_value;
+	}
+	else if (strcmp(name, ELF_DYNAMIC) == 0) {
+	  // see <sys/elf.h>, ".dynamic" section
+	  Elf_Data *datap = elf_getdata(scnp, 0);
+	  Elf32_Dyn *dyns = (Elf32_Dyn *)datap->d_buf;
+	  unsigned ndyns = datap->d_size / sizeof(Elf32_Dyn);
+	  for (unsigned i = 0; i < ndyns; i++) {
+	    Elf32_Dyn *dyn = &dyns[i];
+	    if (dyn->d_tag == DT_MIPS_RLD_TEXT_RESOLVE_ADDR) {
+	      rbrk_addr = dyn->d_un.d_ptr; // "__rld_text_resolve" address
+	    } else if (dyn->d_tag == DT_MIPS_BASE_ADDRESS) {
+	      base_addr = dyn->d_un.d_ptr; // object base address
+	      if (a_out) base_addr = 0;
+	    }
+	  }
+	}
+#endif /* mips_sgi_irix6_4 */
 
     }
     if(!symscnp || !strscnp) {
@@ -283,7 +324,7 @@ bool Object::get_relocation_entries(Elf_Scn*& rel_plt_scnp,
  *
 *************************************************************/
 void Object::load_object() {
-        const char* file = file_.string_of();
+    const char* file = file_.string_of();
     struct stat st;
     int         fd   = -1;
     char*       ptr  = 0;
@@ -315,13 +356,13 @@ void Object::load_object() {
         Elf_Scn*    strscnp = 0;
         Elf_Scn*    stabscnp = 0;
         Elf_Scn*    stabstrscnp = 0;
-        unsigned    txtaddr = 0;
-        unsigned    bssaddr = 0;
-    	Elf_Scn* rel_plt_scnp = 0;
-	Elf_Scn* plt_scnp = 0; 
-	Elf_Scn* got_scnp = 0;
-	Elf_Scn* dynsym_scnp = 0;
-	Elf_Scn* dynstr_scnp = 0;
+        Address     txtaddr = 0;
+        Address     bssaddr = 0;
+    	Elf_Scn*    rel_plt_scnp = 0;
+	Elf_Scn*    plt_scnp = 0; 
+	Elf_Scn*    got_scnp = 0;
+	Elf_Scn*    dynsym_scnp = 0;
+	Elf_Scn*    dynstr_scnp = 0;
 
 	// EEL, initialize the stuff to zero, so that we know, it is not 
 	// EEL rewritten, if they have not been changed by loaded_elf
@@ -332,7 +373,7 @@ void Object::load_object() {
 	// EEL, added one more parameter
         if (!loaded_elf(fd, ptr, did_elf, elfp, ehdrp, phdrp, txtaddr,
                 bssaddr, symscnp, strscnp, stabscnp, stabstrscnp,
-		rel_plt_scnp,plt_scnp,got_scnp,dynsym_scnp,dynstr_scnp)) {
+		rel_plt_scnp,plt_scnp,got_scnp,dynsym_scnp,dynstr_scnp,true)) {
                 /* throw exception */ goto cleanup;
 	}
 
@@ -340,11 +381,11 @@ void Object::load_object() {
         find_code_and_data(ehdrp, phdrp, ptr, txtaddr, bssaddr);
 
 	//  if could not find code or data segments, log error....
-        if (!code_ptr_ || !code_off_ || !code_len_) {
+        if (!code_ptr_ || !code_len_) {
             log_printf(err_func_, "cannot locate instructions\n");
             /* throw exception */ goto cleanup;
         }
-        if (!data_ptr_ || !data_off_ || !data_len_) {
+        if (!data_ptr_ || !data_len_) {
             log_printf(err_func_, "cannot locate data segment\n");
             /* throw exception */ goto cleanup;
         }
@@ -376,7 +417,7 @@ void Object::load_object() {
 
 	// try to resolve all symbols found in symbol table + 
 	//  enter them into <allsymbols>.
-	parse_symbols(allsymbols, syms, nsyms, strs, 1, module);
+	parse_symbols(allsymbols, syms, nsyms, strs, false, module);
 
 	// Sort all the symbols - for patching symbol data sizes....
 	allsymbols.sort(symbol_compare);
@@ -393,9 +434,18 @@ void Object::load_object() {
 	//  or (paramater) <global_symbols> accoriding to linkage.... 
 	insert_symbols_static(allsymbols, global_symbols);
 
-	// try to use the .stab section to figure modules for symbols
-	//  in global <global_symbols>....
-	fix_global_symbol_modules_static(global_symbols, stabscnp, stabstrscnp);               
+	// TODO: logic to decide between .stab/DWARF?
+	// try to resolve the module names of global symbols
+        // (populate the dictionary "symbols_")
+#if defined(mips_sgi_irix6_4)
+	// ...using .debug_info section (DWARF debugging format)
+	fix_global_symbol_modules_static_dwarf(global_symbols, elfp);
+#else
+	// ...using .stab section ("stabs" format)
+	fix_global_symbol_modules_static_stab(global_symbols, stabscnp, stabstrscnp);
+#endif
+	// remaining globals are not associated with a module 
+	fix_global_symbol_unknowns_static(global_symbols);
 
 	if(rel_plt_scnp && dynsym_scnp && dynstr_scnp) {
 	    if(!get_relocation_entries(rel_plt_scnp,dynsym_scnp,dynstr_scnp)) {
@@ -455,13 +505,13 @@ Object::load_shared_object() {
         Elf_Scn*    stabscnp = 0;
         Elf_Scn*    stabstrscnp = 0;
         Elf_Scn*    strscnp = 0;
-        unsigned    txtaddr = 0;
-        unsigned    bssaddr = 0;
-    	Elf_Scn* rel_plt_scnp = 0;
-	Elf_Scn* plt_scnp = 0; 
-	Elf_Scn* got_scnp = 0;
-	Elf_Scn* dynsym_scnp = 0;
-	Elf_Scn* dynstr_scnp = 0;
+        Address     txtaddr = 0;
+        Address     bssaddr = 0;
+    	Elf_Scn*    rel_plt_scnp = 0;
+	Elf_Scn*    plt_scnp = 0; 
+	Elf_Scn*    got_scnp = 0;
+	Elf_Scn*    dynsym_scnp = 0;
+	Elf_Scn*    dynstr_scnp = 0;
 
         /***  ptr, stabscnp, stabstrscnp should NOT be filled in if the parsed
               object was a shared library  ***/
@@ -513,7 +563,7 @@ Object::load_shared_object() {
 	
 	// try to resolve all symbols found in symbol table + 
 	//  enter them into <allsymbols>.
-	parse_symbols(allsymbols, syms, nsyms, strs, 1, module);
+	parse_symbols(allsymbols, syms, nsyms, strs, true, module);
 
 	// Sort all the symbols - for patching symbol data sizes....
 	allsymbols.sort(symbol_compare);
@@ -568,9 +618,8 @@ cleanup2: {
 *
 **************************************************************/
 void Object::parse_symbols(vector<Symbol> &allsymbols, Elf32_Sym* syms,
-	unsigned nsyms, const char *strs, bool /*shared_library*/, 
-        string module) {
-
+      unsigned nsyms, const char *strs, bool /*shared_library*/,
+      string module) {
     // local vars....
     //  name of symbol, and name of module under which to register function,
     //  respectively.... 
@@ -593,11 +642,14 @@ void Object::parse_symbols(vector<Symbol> &allsymbols, Elf32_Sym* syms,
             bool st_kludge = false;
             type = Symbol::PDST_UNKNOWN;
 	    // resolve symbol type....
-            switch (type = (Symbol::SymbolType) ELF32_ST_TYPE(syms[i1].st_info)) {
+            switch (ELF32_ST_TYPE(syms[i1].st_info)) {
+	    case STT_SECTION: // debug
+	      //if (name == "__dso_displacement") {
+	      break;
 	    case STT_FILE: {
 	        //cerr << "    name matches module name" << endl;
-		type   = Symbol::PDST_MODULE;
 		//cerr << "  ELF32_ST_TYPE = STT_FILE";
+	        type = Symbol::PDST_MODULE;
                 break;
 	    }
             case STT_OBJECT:
@@ -617,7 +669,7 @@ void Object::parse_symbols(vector<Symbol> &allsymbols, Elf32_Sym* syms,
 
             default:
 	        //cerr << "  ELF32_ST_TYPE not supported";
-                continue;
+	          continue;
             }
 
 	    // and resolve symbol binding....
@@ -639,20 +691,28 @@ void Object::parse_symbols(vector<Symbol> &allsymbols, Elf32_Sym* syms,
 	        continue;
 	    } 
 
+	    // symbol address
+	    Address st_addr = syms[i1].st_value;
+#if defined(mips_sgi_irix6_4)
+	    // convert absolute address to relative address
+	    if (st_addr >= base_addr) st_addr -= base_addr;
+#endif
+
 	    // special case for shared libraries.  If the symbol
 	    //  is of type file, and the binding is local binding, and
 	    //  name matches the module name, then stick the symbol
 	    //  directly into (data member) symbols_ (as SL_LOCAL).
-	    if (type == STT_FILE && binding == STB_LOCAL && name == module) {
+	    if (ELF32_ST_TYPE(syms[i1].st_info) == STT_FILE && 
+		binding == STB_LOCAL && 
+		name == module) {
 		symbols_[name] = Symbol(name, module, type, linkage,
-                                    syms[i1].st_value, st_kludge, 
-                                    syms[i1].st_size);
+					st_addr, st_kludge, 
+					syms[i1].st_size);
 	    } else {
 		// otherwise, register found symbol under its name && type....
-		allsymbols += Symbol(name, module, 
-				        type, linkage,
-                                        syms[i1].st_value, st_kludge,
-                                        syms[i1].st_size);
+	      allsymbols += Symbol(name, module, type, linkage,
+				   st_addr, st_kludge,
+				   syms[i1].st_size);
 	    }
 	
 	}
@@ -709,7 +769,7 @@ void Object::fix_zero_function_sizes(vector<Symbol> &allsymbols, bool EEL) {
  *
 ********************************************************/
 void Object::override_weak_symbols(vector<Symbol> &allsymbols) {
-    unsigned i, nsymbols;
+    signed i, nsymbols; // these need to be signed
     u_int next_start;
     int next_size;
     bool i_weak_or_local;
@@ -717,7 +777,7 @@ void Object::override_weak_symbols(vector<Symbol> &allsymbols) {
 
     //cerr << "overriding weak symbols for which there is also a global symbol reference...." << endl;
     nsymbols = allsymbols.size();
-    for (i=0; i < nsymbols; i++) {
+    for (i=0; i < nsymbols - 1; i++) {
 	if((allsymbols[i].type() == Symbol::PDST_FUNCTION)
 		&& (allsymbols[i+1].type() == Symbol::PDST_FUNCTION)) {
 
@@ -762,17 +822,109 @@ void Object::override_weak_symbols(vector<Symbol> &allsymbols) {
 /********************************************************
  *
  * For object files only....
+ *   read the .debug_info section to find the module of global symbols
+ *   see documents...
+ *   - "DWARF Debugging Information Format"
+ *   - "A Consumer Libary Interface to DWARF"
+ *
+ ********************************************************/
+#if defined(mips_sgi_irix6_4)
+#include <dwarf.h>
+#include <libdwarf.h>
+void pd_dwarf_handler(Dwarf_Error error, Dwarf_Ptr /*userData*/)
+{
+  fprintf(stderr, "DWARF error: %s\n", dwarf_errmsg(error));
+}
+void Object::fix_global_symbol_modules_static_dwarf(
+        dictionary_hash<string, Symbol> &global_symbols,
+	Elf *elfp)
+{
+  Dwarf_Die die, die2;
+  Dwarf_Half tag, tag2;
+  char *name, *name2;
+  int ret, ret2;
+  Dwarf_Unsigned hdr;
+  Dwarf_Attribute attr;
+  Dwarf_Debug dbg;
+
+  dwarf_elf_init(elfp, DW_DLC_READ, &pd_dwarf_handler, NULL, &dbg, NULL);
+  {
+    while (dwarf_next_cu_header(dbg, NULL, NULL, NULL, NULL, &hdr, NULL)
+	   == DW_DLV_OK) 
+      {
+	// scan each "compile unit" (CU)
+	for (ret = dwarf_siblingof(dbg, NULL, &die, NULL);
+	     ret == DW_DLV_OK;
+	     ret = dwarf_siblingof(dbg, die, &die, NULL)) 
+	  {	    
+	    // sanity check
+	    dwarf_tag(die, &tag, NULL);
+	    assert(tag == DW_TAG_compile_unit); 
+
+	    // module name
+	    dwarf_diename(die, &name, NULL);
+	    string module = name;
+	    
+	    // scan each "debugging information entry" (DIE) in this CU
+	    for (ret2 = dwarf_child(die, &die2, NULL);
+		 ret2 == DW_DLV_OK;
+		 ret2 = dwarf_siblingof(dbg, die2, &die2, NULL))
+	      {
+		dwarf_tag(die2, &tag2, NULL);
+		switch (tag2) {
+		case DW_TAG_subprogram:
+		case DW_TAG_inlined_subroutine:
+		case DW_TAG_entry_point:
+		  // function symbol tags
+		case DW_TAG_variable:
+		case DW_TAG_constant:
+		  // variable symbol tags
+		  {
+		    // get symbol name
+		    dwarf_diename(die2, &name2, NULL);
+		    // use "linkage name" if present (matches symbol table)
+		    if (dwarf_attr(die2, DW_AT_MIPS_linkage_name, &attr, NULL) 
+			== DW_DLV_OK) 
+		      {
+			ret2 = dwarf_formstring(attr, &name2, NULL);
+			assert(ret2 == DW_DLV_OK);
+		      }
+		    
+		    // lookup in global_symbols
+		    string SymName = name2;
+		    if (!(global_symbols.defines(SymName))) break;
+		    
+		    // symbol with module info
+		    Symbol sym = global_symbols[SymName];
+		    symbols_[SymName] = Symbol(sym.name(), module, sym.type(), 
+					       sym.linkage(), sym.addr(),
+					       sym.kludge(), sym.size());
+		  } break;
+		default:
+		  /* ignore other entries */
+		  break;
+		}			
+	      }
+	  }
+      }
+  }
+  dwarf_finish(dbg, NULL);  
+}
+#endif /* mips_sig_irix6_4 */
+
+/********************************************************
+ *
+ * For object files only....
  *  read the .stab section to find the module of global symbols
  *
-********************************************************/
-void Object::fix_global_symbol_modules_static(
-        dictionary_hash<string, Symbol> global_symbols,
+ ********************************************************/
+void Object::fix_global_symbol_modules_static_stab(
+        dictionary_hash<string, Symbol> &global_symbols,
 	Elf_Scn* stabscnp, Elf_Scn* stabstrscnp) {
     // Read the stab section to find the module of global symbols.
     // The symbols appear in the stab section by module. A module begins
     // with a symbol of type N_UNDF and ends with a symbol of type N_ENDM.
     // All the symbols in between those two symbols belong to the module.
-
     Elf_Data* stabdatap = elf_getdata(stabscnp, 0);
     Elf_Data* stabstrdatap = elf_getdata(stabstrscnp, 0);
     struct stab_entry *stabsyms = 0;
@@ -806,7 +958,7 @@ void Object::fix_global_symbol_modules_static(
     for (unsigned i = 0; i < stab_nsyms; i++) {
         switch(stabsyms[i].type) {
 	case N_UNDF: /* start of object file */
-#if !defined(i386_unknown_linux2_0)
+#if !defined(i386_unknown_linux2_0) && !defined(mips_sgi_irix6_4)
 	    assert(stabsyms[i].name == 1);
 #endif
 	    stabstr_offset = stabstr_nextoffset;
@@ -880,13 +1032,20 @@ void Object::fix_global_symbol_modules_static(
 	    break;
 	}
     }
+}
 
-    /* The remaing symbols go without module */
-    vector<string> k = global_symbols.keys();
+
+/********************************************************
+ * Remaining global symbols have no associated module
+ ********************************************************/
+void Object::fix_global_symbol_unknowns_static(
+	dictionary_hash<string, Symbol> &global_symbols)
+{
+  vector<string> k = global_symbols.keys();
     for (unsigned i2 = 0; i2 < k.size(); i2++) {
-        Symbol sym = global_symbols[k[i2]];
-	if (!(symbols_.defines(sym.name())))
-            symbols_[sym.name()] = sym;
+      Symbol sym = global_symbols[k[i2]];
+      if (!(symbols_.defines(sym.name())))
+	symbols_[sym.name()] = sym;
     }
 }
 
@@ -955,7 +1114,7 @@ void Object::insert_symbols_shared(vector<Symbol> allsymbols) {
  *
 *********************************************************/
 void Object::find_code_and_data(Elf32_Ehdr* ehdrp, Elf32_Phdr* phdrp,
-        char *ptr, unsigned txtaddr, unsigned bssaddr) {
+        char *ptr, Address txtaddr, Address bssaddr) {
     unsigned i0;
   
     for (i0 = 0; i0 < ehdrp-> e_phnum;i0++) {
@@ -977,6 +1136,10 @@ void Object::find_code_and_data(Elf32_Ehdr* ehdrp, Elf32_Phdr* phdrp,
 	  }
         }
     }
+#if defined mips_sgi_irix6_4
+    code_off_ -= base_addr;
+    data_off_ -= base_addr;
+#endif
 }
 
 Object::Object(const string file, void (*err_func)(const char *))
@@ -985,7 +1148,8 @@ Object::Object(const string file, void (*err_func)(const char *))
     //dump_state_info(cerr);
 }
 
-Object::Object(const string file, const Address,void (*err_func)(const char *))
+Object::Object(const string file, const Address /*baseAddr*/, 
+	       void (*err_func)(const char *))
     : AObject(file, err_func), EEL(false)  {
     load_shared_object();
     //dump_state_info(cerr);

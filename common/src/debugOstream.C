@@ -135,7 +135,8 @@ debug_ostream &debug_ostream::operator<<(double d) {
    return *this;
 }
 
-#if !defined(i386_unknown_nt4_0)
+#if !defined(i386_unknown_nt4_0) && \
+    !(defined(mips_sgi_irix6_4) && defined(USES_NATIVE_CC))
 debug_ostream &debug_ostream::operator<<(__omanip m) {
    if (on)
       actual_ostream << m;

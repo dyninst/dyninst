@@ -45,6 +45,8 @@
 #define NOPS_4  asm("oril 0,0,0"); asm("oril 0,0,0"); asm("oril 0,0,0"); asm("oril 0,0,0")
 #elif defined(i386_unknown_nt4_0)
 #define NOPS_4 { __asm nop __asm nop __asm nop __asm nop }
+#elif defined(mips_sgi_irix6_4)
+#define NOPS_4  ; ; ; 
 #else
 #define NOPS_4  asm("nop"); asm("nop"); asm("nop"); asm("nop")
 #endif

@@ -41,13 +41,21 @@
 
 /*
  * Generate code for template classes used by libutil
- * $Id: templates.C,v 1.7 1998/09/02 21:12:34 wylie Exp $
+ * $Id: templates.C,v 1.8 1999/03/19 00:10:06 csserra Exp $
  */
 
 #pragma implementation "Vector.h"
 #include "util/h/Vector.h"
 
+#pragma implementation "Symbol.h"
+#include "util/h/Symbol.h"
+
+#pragma implementation "Dictionary.h"
+#include "util/src/Dictionary.C"
+
 #include "util/h/rpcUtil.h"
 #include "util/h/hist.h"
 template class vector<rpcBuffer*>;
 template class vector<Histogram*>;
+template class dictionary_hash<string, Symbol>;
+template class vector<dictionary_hash <string, Symbol>::entry>;

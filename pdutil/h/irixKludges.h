@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1999 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,53 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#ifndef KLUDGES_H
-#define KLUDGES_H
+#if !defined(_irix_kludges_h)
+#define _irix_kludges_h
 
-/*
- * Kludges to handle broken system includes and such...
- */
+unsigned long long PDYN_div1000(unsigned long long in);
+unsigned long long PDYN_divMillion(unsigned long long in);
+unsigned long long PDYN_mulMillion(unsigned long long in);
 
-typedef int (*xdr_rd_func)(const void *, char *, const int);
-typedef int (*xdr_wr_func)(const void *, const char *, const int);
-
-#if defined(sparc_sun_sunos4_1_3)
-#include "util/h/sunosHeaders.h"
-
-#elif defined(sparc_sun_solaris2_4)
-#include "util/h/solarisHeaders.h"
-
-#elif defined(i386_unknown_solaris2_5)
-#include "util/h/solarisHeaders.h"
-
-#elif defined(i386_unknown_linux2_0)
-#include "util/h/linuxHeaders.h"
-
-#elif defined(i386_unknown_netbsd1_0)
-#include "util/h/netbsdHeaders.h"
-
-#elif defined(hppa1_1_hp_hpux)
-#include "util/h/hpuxHeaders.h"
-
-#elif defined(sparc_tmc_cmost7_3)
-#include "util/h/sunosHeaders.h"
-
-#elif defined(rs6000_ibm_aix3_2)
-#include "util/h/aixv32Headers.h"
-
-#elif defined(rs6000_ibm_aix4_1)
-#include "util/h/aixv41Headers.h"
-
-#elif defined(alpha_dec_osf4_0)
-#include "util/h/osfHeaders.h"
-
-#elif defined(i386_unknown_nt4_0)
-#include "util/h/ntHeaders.h"
-
-#elif defined(mips_sgi_irix6_4)
-#include "util/h/irixHeaders.h"
-
-#endif  /* architecture specific */
-
-#endif /* KLUDGES_H */
+#endif
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: makenan.C,v 1.10 1999/02/08 14:06:23 nash Exp $
+// $Id: makenan.C,v 1.11 1999/03/19 00:10:06 csserra Exp $
 
 // This isn't needed in Linux, see makenan.h -- DAN
 #if !defined(i386_unknown_linux2_0)
@@ -66,6 +66,12 @@ float make_Nan() {
 
 // The following kludge is required while we work with multiple GCC compilers.
 #if (__GNUC__ == 2 && __GNUC_MINOR__ < 8)
+#undef MATH_EXCEPTION_STRUCT
+#define MATH_EXCEPTION_STRUCT exception
+#endif
+
+// The following kludge is needed for SGI
+#if defined(mips_sgi_irix6_4)
 #undef MATH_EXCEPTION_STRUCT
 #define MATH_EXCEPTION_STRUCT exception
 #endif

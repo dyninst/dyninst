@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf32.h,v 1.32 1999/02/23 22:14:46 nash Exp $
+ * $Id: Object-elf32.h,v 1.33 1999/03/19 00:05:17 csserra Exp $
  * Object-elf32.h: ELF-32 object files.
 ************************************************************************/
 
@@ -153,11 +153,11 @@ private:
     //added char *ptr, to deal with EEL rewritten software
     //
     bool      loaded_elf (int, char *, bool &, Elf* &, Elf32_Ehdr* &, 
-			  Elf32_Phdr* &, unsigned &, unsigned &, Elf_Scn* &, 
+			  Elf32_Phdr* &, Address &, Address &, Elf_Scn* &, 
 			  Elf_Scn* &, Elf_Scn* &, Elf_Scn* &,
     			  Elf_Scn*& rel_plt_scnp, Elf_Scn*& plt_scnp, 
 			  Elf_Scn*& got_scnp,  Elf_Scn*& dynsym_scnp,
-			  Elf_Scn*& dynstr_scnp);
+			  Elf_Scn*& dynstr_scnp, bool a_out=false);
 
     // Code for loading in executable files && shared libraries, 
     //  respectively....
@@ -190,20 +190,37 @@ private:
 
 
     // NEW FUNCTIONS - mcheyney, 970910
-    void parse_symbols(vector<Symbol> &allsymbols, Elf32_Sym *syms, \
-        unsigned nsyms, const char *strs, bool shared_library, \
-        string module); 
+    void parse_symbols(vector<Symbol> &allsymbols, Elf32_Sym *syms,
+        unsigned nsyms, const char *strs, bool shared_library,
+        string module);
 
     void fix_zero_function_sizes(vector<Symbol> &allsymbols, bool EEL);
     void override_weak_symbols(vector<Symbol> &allsymbols);
     void insert_symbols_shared(vector<Symbol> allsymbols);
-    void find_code_and_data(Elf32_Ehdr* ehdrp, Elf32_Phdr* phdrp, \
-        char *ptr, unsigned txtaddr, unsigned bssaddr);
-    void insert_symbols_static(vector<Symbol> allsymbols, \
+    void find_code_and_data(Elf32_Ehdr* ehdrp, Elf32_Phdr* phdrp,
+        char *ptr, Address txtaddr, Address bssaddr);
+    void insert_symbols_static(vector<Symbol> allsymbols,
         dictionary_hash<string, Symbol> &global_symbols);
-    void fix_global_symbol_modules_static(\
-        dictionary_hash<string, Symbol> global_symbols, \
+    void fix_global_symbol_modules_static_stab(
+        dictionary_hash<string, Symbol> &global_symbols,
         Elf_Scn* stabscnp, Elf_Scn* stabstrscnp);
+    void fix_global_symbol_unknowns_static(
+        dictionary_hash<string, Symbol> &global_symbols);
+
+#if defined(mips_sgi_irix6_4)
+    void fix_global_symbol_modules_static_dwarf(
+	dictionary_hash<string, Symbol> &global_symbols, Elf *elfp);
+
+ public:
+    Address get_gp_value()  const { return gp_value; }
+    Address get_rbrk_addr() const { return rbrk_addr; }
+    Address get_base_addr() const { return base_addr; }
+ private:
+    Address gp_value;
+    Address rbrk_addr;
+    Address base_addr;
+#endif /* mips_sgi_irix6_4 */
+
 };
  
 
