@@ -33,12 +33,12 @@ if {[catch {set phase}]} {
 
 #
 #  display a menu that prompts user for visualization 
-#  and it's phase info arguments
+#  and its phase info arguments
 #
 #
-proc StartVisi {title lables ids numchoices} {
-  global W
-  global visiIds
+proc drawVisiMenu {} {
+  global W visiIds vnames vnums vcount
+
   set W .vStart
   catch {destroy $W}
   toplevel $W
@@ -72,14 +72,9 @@ proc StartVisi {title lables ids numchoices} {
   frame $M
   pack $M -side top -expand yes -fill y
 
-#  label $M.title -text "Choose a Visualization" \
-#            -anchor center -relief flat \
-#            -font "-Adobe-times-bold-r-normal--*-120*" 
-#  pack $M.title -side top -expand true -fill both 
-
   frame $W.bottom.button
   pack $W.bottom.button -side bottom -expand y -fill x -pady 2m
-  button $W.bottom.button.accept -text Accept -command AcceptProc 
+  button $W.bottom.button.accept -text Start -command AcceptProc 
   button $W.bottom.button.dismiss -text Cancel -command "destroy $W"
   pack $W.bottom.button.accept $W.bottom.button.dismiss -side left -expand 1
 
@@ -96,27 +91,17 @@ proc StartVisi {title lables ids numchoices} {
   }
 
   # fill list box entries 
-  for {set i 0} { $i < $numchoices } {incr i} {
-      set item [lindex $lables $i]
-      set item2 [lindex $ids $i]
+  for {set i 0} { $i < $vcount } {incr i} {
+      set item [lindex $vnames $i]
       $M.list insert end $item
-#     puts stdout $item2 
-#     puts stdout $item 
   }
-  set visiIds $ids
+  set visiIds $vnums
 
   set B $W.bottom.buttons
   frame $B 
   pack $W.bottom.menu $W.bottom.buttons -expand yes  -pady .2c -padx .2c
 
-#  label $B.title -text "Choose a Phase" \
-#            -anchor center \
-#	    -relief flat \
-#            -font "-Adobe-times-bold-r-normal--*-120*" 
-#
-#  pack $B.title -side top -expand true -fill both 
- 
- global phase
+  global phase
 
   radiobutton $B.bg -text "Global Phase" -variable phase \
 	-relief sunken -value GlobalPhase 
@@ -125,9 +110,6 @@ proc StartVisi {title lables ids numchoices} {
   radiobutton $B.bc -text "Current Phase" -variable phase \
 	-relief sunken -value CurrentPhase 
   pack $B.bc -side right -anchor w
-
-#  pack $T $M $B -side top -expand yes -fill both
-
 
 }
 

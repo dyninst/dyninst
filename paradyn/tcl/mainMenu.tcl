@@ -76,8 +76,11 @@ proc drawToolBar {} {
     frame .parent.status
     frame .parent.main
     frame .parent.buttons -relief raised -height 20
-    mkButtonBar .parent.buttons {} retval {{RUN "paradyn cont"} \
-	    {PAUSE "paradyn pause"} {SAVE "drawSaveMenu"} \
+    mkButtonBar .parent.buttons {} retval { \
+	    {RUN "paradyn cont"} \
+	    {PAUSE "paradyn pause"} \
+	    {VISI "drawVisiMenu"} \
+	    {SAVE "drawSaveMenu"} \
 	    {EXIT "procExit"}}
 
 #   Both RUN and PAUSE buttons are disabled when paradyn starts running
@@ -116,8 +119,6 @@ proc drawToolBar {} {
     menubutton .parent.menub.left.men.b0 -text "File" -menu .parent.menub.left.men.b0.m 
     menubutton .parent.menub.left.men.b1 -text "Setup" -menu .parent.menub.left.men.b1.m 
 
-    menubutton .parent.menub.left.men.b5 -text "Visualization" \
-	    -menu .parent.menub.left.men.b5.m 
     menubutton .parent.menub.left.men.b6 -text "Phase" \
 	    -menu .parent.menub.left.men.b6.m 
 
@@ -145,10 +146,6 @@ proc drawToolBar {} {
 #
 #  added to support phase specification
 #
-   menu .parent.menub.left.men.b5.m
-   .parent.menub.left.men.b5.m add command -label "Start A Visualization" \
-  -command  {uimpd drawStartVisiMenu .parent.menub.left.men.b5.m} 
-
    menu .parent.menub.left.men.b6.m
    .parent.menub.left.men.b6.m add command -label "Start" \
 	   -command "uimpd startPhase plain"
@@ -179,7 +176,7 @@ proc drawToolBar {} {
 
     pack .parent.menub.left.men.b7 -side right -padx 10
     pack .parent.menub.left.men.b0 .parent.menub.left.men.b1 \
-	    .parent.menub.left.men.b5 .parent.menub.left.men.b6 \
+	    .parent.menub.left.men.b6 \
 	    -side left -padx 10
 
     makeLogo .parent.menub.logobox paradynLogo raised 2 #b3331e1b53c7

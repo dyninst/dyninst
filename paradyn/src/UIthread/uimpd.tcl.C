@@ -45,9 +45,13 @@
 */
 
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.36  1996/11/26 16:07:00  naim
-/* Fixing asserts - naim
+/* Revision 1.37  1997/06/02 19:43:53  karavan
+/* changed visi from menu to button.
+/* eliminated uimpd drawStartVisiMenu command
 /*
+ * Revision 1.36  1996/11/26 16:07:00  naim
+ * Fixing asserts - naim
+ *
  * Revision 1.35  1996/08/16 21:07:31  tamches
  * updated copyright for release 1.1
  *
@@ -278,7 +282,7 @@ int processVisiSelectionCmd(ClientData,
 
    uim_VisiSelections.resize(0);
    
-   for (unsigned i = 0; i < metcnt; i++) {
+   for (int i = 0; i < metcnt; i++) {
       unsigned metric_id = atoi(metlst[i]);
       assert(UI_all_metric_names.defines(metric_id)); // just a sanity check
 
@@ -291,61 +295,6 @@ int processVisiSelectionCmd(ClientData,
    sprintf (interp->result, "%d", 1);
    return TCL_OK;
 }
-
-/* 
-   drawStartVisiMenuCmd
-   gets list of currently available visualizations from visi manager
-   and displays menu which allows 0 or more selections.
-   Tcl command "drawVisiMenu" will return selections to the requesting
-   visi thread
-*/
-int compare_visi_names (const void *viptr1, const void *viptr2) {
-  const VM_visiInfo *p1 = (const VM_visiInfo *)viptr1;
-  const VM_visiInfo *p2 = (const VM_visiInfo *)viptr2;
-  return strcmp (p1->name.string_of(), p2->name.string_of());
-}
-
-int drawStartVisiMenuCmd (ClientData,
-                Tcl_Interp *interp, 
-                int,
-                char *argv[])
-{
-  int i;
-  vector<VM_visiInfo> *via;
-  int count;
-  Tcl_DString namelist;
-  Tcl_DString numlist;
-  char num[8];
-
-  via = vmMgr->VMAvailableVisis();
-  count = via->size();
-  
-  via->sort (compare_visi_names);
-  Tcl_DStringInit(&namelist);
-  Tcl_DStringInit(&numlist);
-  
-  for (i = 0; i < count; i++) {
-    Tcl_DStringAppendElement(&namelist, (*via)[i].name.string_of());
-    sprintf (num, "%d", ((*via)[i]).visiTypeId);
-    Tcl_DStringAppendElement(&numlist, num);
-  }
-  Tcl_SetVar (interp, "vnames", Tcl_DStringValue(&namelist), 0);
-  Tcl_SetVar (interp, "vnums", Tcl_DStringValue(&numlist), 0);
-  Tcl_DStringFree (&namelist);
-  Tcl_DStringFree (&numlist);
-  sprintf (num, "%d", count);
-  Tcl_SetVar (interp, "vcount", num, 0);
-  Tcl_SetVar (interp, "title", argv[1], 0);
-
-  delete via;
-  if (Tcl_VarEval (interp, "StartVisi $title $vnames $vnums $vcount",
-		   0) == TCL_ERROR) {
-    printf ("%s", interp->result);
-    return TCL_ERROR;
-  }
-  return TCL_OK;
-}
-
 
 /*
  * argv[1] = error number
@@ -391,7 +340,6 @@ int uimpd_startPhaseCmd(ClientData, Tcl_Interp *,
 }
 
 struct cmdTabEntry uimpd_Cmds[] = {
-  {"drawStartVisiMenu", drawStartVisiMenuCmd},
   {"sendVisiSelections", sendVisiSelectionsCmd},
   {"processVisiSelection", processVisiSelectionCmd},
   {"tclTunable", TclTunableCommand},
