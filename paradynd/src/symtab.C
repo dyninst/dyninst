@@ -7,7 +7,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/symtab.C,v 1.20 1994/11/10 21:01:21 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/symtab.C,v 1.21 1994/12/15 07:39:53 markc Exp $";
 #endif
 
 /*
@@ -16,7 +16,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
- * Revision 1.20  1994/11/10 21:01:21  markc
+ * Revision 1.21  1994/12/15 07:39:53  markc
+ * make resourceBatch request prior to defining resources.
+ *
+ * Revision 1.20  1994/11/10  21:01:21  markc
  * Turn off creation of MODS file.
  * Don't assume a .o is a module until all of the real modules have been seen.
  *
@@ -127,7 +130,7 @@ extern "C" {
 #include "dyninstP.h"
 #include "util/h/String.h"
 #include "inst.h"
-
+#include "main.h"
 
 dictionary_hash<string, image*> image::allImages(string::hash);
 
@@ -590,9 +593,11 @@ void image::defineModules() {
   dictionary_hash_iter<string, module*> mi(modsByFileName);
 
   statusLine("defining modules");
+  tp->resourceBatchMode(TRUE);
   while (mi.next(pds, mod))
     mod->define();
   statusLine("ready");
+  tp->resourceBatchMode(FALSE);
 
 }
 
@@ -607,7 +612,7 @@ void module::define() {
   dictionary_hash_iter<string, pdFunction*> fi(funcMap);
   while (fi.next(pds, pdf)) {
     // of << fileName << ":  " << pdf->prettyName <<  "  " <<
-    // (pdf->tag & TAG_LIB_FUNC) << endl;
+    //    (pdf->tag & TAG_LIB_FUNC) << endl;
     if (!(pdf->tag & TAG_LIB_FUNC)) { // IGNORE LINE NUMBERS FOR NOW
       // see if we have created module yet.
       if (!modResource) {
