@@ -472,9 +472,9 @@ pd_Function *image::findFunctionIn(const Address &addr,const process *p) const
 {
   pd_Function *pdf;
 
-  dictionary_hash_iter<Address, pd_Function*> mi(funcsByAddr);
-  Address adr;
-  while (mi.next(adr, pdf)) {
+  for (dictionary_hash_iter<Address, pd_Function*> iter=funcsByAddr; iter; iter++) {
+     pd_Function *pdf = iter.currval();
+     
       if ((addr>=pdf->getAddress(p))&&(addr<=(pdf->getAddress(p)+pdf->size()))) 
 	  return pdf;
   }
@@ -600,12 +600,10 @@ void image::postProcess(const string pifname)
 }
 
 void image::defineModules() {
-  string pds; pdmodule *mod;
-  dictionary_hash_iter<string, pdmodule*> mi(modsByFileName);
-
-  while (mi.next(pds, mod)){
-    mod->define();
-  }
+   for (dictionary_hash_iter<string, pdmodule*> mi = modsByFullName; mi; mi++) {
+      pdmodule *mod = mi.currval();
+      mod->define();
+   }
 
 #ifdef DEBUG_MDL
   char buffer[100];
@@ -656,7 +654,7 @@ void pdmodule::define() {
 					    nullString, // abstraction
 					    fileName(), // name
 					    0.0, // creation time
-					    string::nil, // unique-ifier
+					    string(), // unique-ifier
 					    MDL_T_MODULE,
 					    false);
       }
@@ -797,7 +795,6 @@ bool image::addAllFunctions(vector<Symbol> &mods,
   Address boundary_start, boundary_end;
   Symbol lookUp;
   string symString;
-  SymbolIter symIter(linkedFile);
 
 #ifdef BPATCH_LIBRARY
   boundary_start = boundary_end = NULL;
@@ -831,7 +828,8 @@ bool image::addAllFunctions(vector<Symbol> &mods,
     mainFuncSymbol = lookUp;
 
   // find the real functions -- those with the correct type in the symbol table
-  while (symIter.next(symString, lookUp)) {
+  for (SymbolIter symIter = linkedFile; symIter; symIter++) {
+     const Symbol &lookUp = symIter.currval();
 
     if (funcsByAddr.defines(lookUp.addr()) ||
         ((lookUp.addr() == mainFuncSymbol.addr()) &&
@@ -872,8 +870,9 @@ bool image::addAllFunctions(vector<Symbol> &mods,
 
   // now find the pseudo functions -- this gets ugly
   // kludge has been set if the symbol could be a function
-  symIter.reset();
-  while (symIter.next(symString, lookUp)) {
+  for (SymbolIter symIter = linkedFile; symIter; symIter++) {
+     const Symbol &lookUp = symIter.currval();
+
     if (funcsByAddr.defines(lookUp.addr())) {
       // This function has been defined
       ;
@@ -901,7 +900,6 @@ bool image::addAllSharedObjFunctions(vector<Symbol> &mods,
 
   Symbol lookUp;
   string symString;
-  SymbolIter symIter(linkedFile);
 
   bool is_libdyninstRT = false; // true if this image is libdyninstRT
 #if defined(i386_unknown_nt4_0)
@@ -911,7 +909,8 @@ bool image::addAllSharedObjFunctions(vector<Symbol> &mods,
 #endif
 
   // find the real functions -- those with the correct type in the symbol table
-  while (symIter.next(symString, lookUp)) {
+  for (SymbolIter symIter = linkedFile; symIter; symIter++) {
+     const Symbol &lookUp = symIter.currval();
 
     if (funcsByAddr.defines(lookUp.addr())) {
       // This function has been defined
@@ -941,13 +940,13 @@ bool image::addAllSharedObjFunctions(vector<Symbol> &mods,
 
   // now find the pseudo functions -- this gets ugly
   // kludge has been set if the symbol could be a function
-  symIter.reset();
-  while (symIter.next(symString, lookUp)) {
+  for (SymbolIter symIter = linkedFile; symIter; symIter++) {
+     const Symbol &lookUp = symIter.currval();
+
     if (funcsByAddr.defines(lookUp.addr())) {
       // This function has been defined
       ;
     } else if ((lookUp.type() == Symbol::PDST_OBJECT) && lookUp.kludge()) {
-      //logLine(P_strdup(symString.string_of()));
       pd_Function *pdf;
       addInternalSymbol(lookUp.name(), lookUp.addr());
       if (defineFunction(dyn, lookUp, TAG_LIB_FUNC, pdf)) {
@@ -965,11 +964,12 @@ bool image::addAllVariables()
  * the type information here).
  */
 #ifdef i386_unknown_nt4_0
-  string mangledName; 
-  Symbol symInfo;
   SymbolIter symIter(linkedFile);
 
-  while (symIter.next(mangledName, symInfo)) {
+  for (SymbolIter symIter = linkedFile; symIter; symIter++) {
+     const string &mangledName = symIter.currkey();
+     const Symbol &symInfo = symIter.currval();
+
     if (symInfo.type() == Symbol::PDST_OBJECT) {
       char *name = cplus_demangle((char *)mangledName.string_of(), 0);
       const char *unmangledName;
@@ -1083,16 +1083,13 @@ sharedobj_cerr << "image::image for non-sharedobj; file name=" << file_ << endl;
   // because calls out of each function must be tagged as calls to user
   // functions or call to "library" functions
 
-  Symbol lookUp;
-  string symString;
-  SymbolIter symIter(linkedFile);
-
   // sort the modules by address into a vector to allow a binary search to 
   // determine the module that a symbol will map to -- this may be bsd specific
   vector<Symbol> mods;
 
-  while (symIter.next(symString, lookUp)) {
-
+  for (SymbolIter symIter = linkedFile; symIter; symIter++) {
+     const Symbol &lookUp = symIter.currval();
+     
     if (lookUp.type() == Symbol::PDST_MODULE) {
       const string &lookUpName = lookUp.name();
       const char *str = lookUpName.string_of();
@@ -1231,15 +1228,12 @@ sharedobj_cerr << "welcome to image::image for shared obj; file name=" << file_ 
   // because calls out of each function must be tagged as calls to user
   // functions or call to "library" functions
 
-  Symbol lookUp;
-  string symString;
-  SymbolIter symIter(linkedFile);
-
   // sort the modules by address into a vector to allow a binary search to 
   // determine the module that a symbol will map to -- this may be bsd specific
   vector<Symbol> mods;
 
-  while (symIter.next(symString, lookUp)) {
+  for (SymbolIter symIter = linkedFile; symIter; symIter++) {
+     const Symbol &lookUp = symIter.currval();
 
     if (lookUp.type() == Symbol::PDST_MODULE) {
       const char *str = (lookUp.name()).string_of();
@@ -1317,10 +1311,10 @@ void pdmodule::checkAllCallPoints() {
 
 
 void image::checkAllCallPoints() {
-  dictionary_hash_iter<string, pdmodule*> di(modsByFullName);
-  string s; pdmodule *mod;
-  while (di.next(s, mod))
-    mod->checkAllCallPoints();
+   for (dictionary_hash_iter<string, pdmodule*> iter = modsByFullName; iter; iter++) {
+      pdmodule *mod = iter.currval();
+      mod->checkAllCallPoints();
+   }
 }
 
 // passing in tags allows a function to be tagged as TAG_LIB_FUNC even

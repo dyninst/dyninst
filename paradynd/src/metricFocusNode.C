@@ -296,9 +296,6 @@ metricDefinitionNode *createMetricInstance(string& metric_name,
 
     string flat_name = metricAndCanonFocus2FlatName(metric_name, canonicalFocus);
 
-    // first see if it is already defined.
-    dictionary_hash_iter<unsigned, metricDefinitionNode*> mdi(allMIs);
-
 /*
  * See if we can find the requested metric instance.
  *   Currently this is only used to cache structs built for cost requests 
@@ -311,15 +308,14 @@ metricDefinitionNode *createMetricInstance(string& metric_name,
  *
  */
 
-    unsigned key;
-    metricDefinitionNode *mi= NULL;
+    // first see if it is already defined.
+    for (dictionary_hash_iter<unsigned, metricDefinitionNode*> mdi = allMIs; mdi; mdi++) {
+       metricDefinitionNode *mi = mdi.currval();
 
-    // TODO -- a dictionary search here will be much faster
-    while (mdi.next(key, mi)) {
-      if (mi->getFullName() == flat_name) {
-	metric_cerr << "createMetricInstance: mi with flat_name " << flat_name << " already exists! using it" << endl;
-        return mi; // this metricDefinitionNode has already been defined
-      }
+       if (mi->getFullName() == flat_name) {
+          metric_cerr << "createMetricInstance: mi with flat_name " << flat_name << " already exists! using it" << endl;
+          return mi; // this metricDefinitionNode has already been defined
+       }
     }
 
     if (mdl_can_do(metric_name)) {
@@ -350,16 +346,17 @@ metricDefinitionNode *createMetricInstance(string& metric_name,
       bool computingCost;
       if (enable) computingCost = false;
       else computingCost = true;
-      mi = mdl_do(canonicalFocus, metric_name, flat_name, procs, false,
+      metricDefinitionNode *mi = mdl_do(canonicalFocus, metric_name, flat_name, procs, false,
 		  computingCost);
       if (mi == NULL) {
 	 metric_cerr << "createMetricInstance failed since mdl_do failed" << endl;
 	 metric_cerr << "metric name was " << metric_name << "; focus was ";
 	 print_focus(metric_cerr, canonicalFocus);
       }
+      return mi;
     } else {
       bool matched;
-      mi=doInternalMetric(canonicalFocus,
+      metricDefinitionNode *mi=doInternalMetric(canonicalFocus,
 			  canonicalFocus, // is this right for component_canon_focus???
 			  metric_name,flat_name,enable,matched);
          // NULL on serious error; -1 if enable was false; -2 if illegal to instr with
@@ -382,9 +379,8 @@ metricDefinitionNode *createMetricInstance(string& metric_name,
       }
 
       internal = true;
+      return mi;
     }
-
-    return mi;
 }
 
 
@@ -580,9 +576,14 @@ void metricDefinitionNode::handleExec(process *proc) {
    // process, we must assume that it has MOVED TO A NEW LOCATION, thus making
    // the component mi's instReqNode's instPoint out-of-date.  Ick.
 
-   vector<metricDefinitionNode*> miComponents = allMIComponents.values();
-   for (unsigned lcv=0; lcv < miComponents.size(); lcv++) {
-      metricDefinitionNode *componentMI = miComponents[lcv];
+   // note the two loops; we can't safely combine into one since the second loop modifies
+   // the dictionary.
+   vector<metricDefinitionNode*> allcomps;
+   for (dictionary_hash_iter<string,metricDefinitionNode*> iter=allMIComponents; iter; iter++)
+      allcomps += iter.currval();
+   
+   for (unsigned i=0; i < allcomps.size(); i++) {
+      metricDefinitionNode* componentMI = allcomps[i];
       if (componentMI->proc() != proc)
 	 continue;
 
@@ -631,14 +632,16 @@ void metricDefinitionNode::endOfDataCollection() {
   flush_batch_buffer();
   // trace data streams
   extern dictionary_hash<unsigned, unsigned> traceOn;
-  for (unsigned w = 0; w<traceOn.keys().size(); w++) {
-      if (traceOn.values()[w]) {
+  for (dictionary_hash_iter<unsigned,unsigned> iter=traceOn; iter; iter++) {
+     unsigned key = iter.currkey();
+     unsigned val = iter.currval();
+     
+     if (val) {
 	  extern void batchTraceData(int, int, int, char *);
-	  int k;
 	  extern bool TRACE_BURST_HAS_COMPLETED;
 	  TRACE_BURST_HAS_COMPLETED = true;
-	  batchTraceData(0, (k = traceOn.keys()[w]), 0, (char *)NULL);
-	  traceOn[k] = 0;
+	  batchTraceData(0, key, 0, (char *)NULL);
+	  traceOn[key] = 0;
       }
   }
   tp->endOfDataCollection(id_);
@@ -695,7 +698,11 @@ void removeFromMetricInstances(process *proc) {
     // of "proc", remove the component mi from its aggregate mi.
     // Note: imho, there should be a *per-process* vector of mi-components.
 
-    vector<metricDefinitionNode *> MIs = allMIComponents.values();
+   // note 2 loops for safety (2d loop may modify dictionary?)
+    vector<metricDefinitionNode *> MIs;
+    for (dictionary_hash_iter<string,metricDefinitionNode*> iter=allMIComponents; iter; iter++)
+       MIs += iter.currval();
+
     for (unsigned j = 0; j < MIs.size(); j++) {
       if (MIs[j]->proc() == proc)
 	MIs[j]->removeThisInstance();
@@ -960,7 +967,11 @@ void metricDefinitionNode::handleFork(const process *parent, process *child,
    // possible that only a subset of a component-mi's aggregators should get the newly
    // created child component mi.
 
-   vector<metricDefinitionNode *> allComponents = allMIComponents.values();
+   // 2 loops for safety (2d loop may modify dictionary?)
+   vector<metricDefinitionNode *> allComponents;
+   for (dictionary_hash_iter<string,metricDefinitionNode*> iter=allMIComponents; iter; iter++)
+      allComponents += iter.currval();
+
    for (unsigned complcv=0; complcv < allComponents.size(); complcv++) {
       metricDefinitionNode *comp = allComponents[complcv];
 

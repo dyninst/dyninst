@@ -343,14 +343,16 @@ void processTraceStream(process *curr)
     BURST_HAS_COMPLETED = true; // will force a batch-flush very soon
 
     // trace data streams
-    for (unsigned w = 0; w<traceOn.keys().size(); w++) {
-        if (traceOn.values()[w]) {
+    for (dictionary_hash_iter<unsigned,unsigned> iter=traceOn; iter; iter++) {
+       const unsigned key = iter.currkey();
+       unsigned val = iter.currval();
+       
+       if (val) {
              extern void batchTraceData(int, int, int, char *);
-             int k;
 	     TRACE_BURST_HAS_COMPLETED = true;
 	     // will force a trace-batch-flush very soon
-             batchTraceData(0, (k = traceOn.keys()[w]), 0, (char *)NULL);
-             traceOn[k] = 0;
+             batchTraceData(0, key, 0, (char *)NULL);
+             traceOn[key] = 0;
              //sprintf(errorLine, "$$$Tag burst with mid %d\n", k);
              //logLine(errorLine);
         }
