@@ -67,8 +67,10 @@ class genericHK {
    };
    vector<trampRange> trampsUsingMe;
 
-   // since we don't define this, make sure it isn't used:
-   genericHK(const genericHK &src);
+   // new vector class wants copy-ctor defined:
+   genericHK(const genericHK &src) {
+      mi = src.mi;
+   }
 
  public:
    genericHK() {
@@ -103,8 +105,8 @@ class intCounterHK : public genericHK {
    unsigned lowLevelId;
       // can be made obsolete in the future; we keep it for now to aid assert checking
 
-   // Since we don't define this, making it private makes sure it isn't used:
-   intCounterHK(const intCounterHK &src);
+//   // Since we don't define this, making it private makes sure it isn't used:
+//   intCounterHK(const intCounterHK &src);
 
  public:
    intCounterHK() : genericHK() {
@@ -114,6 +116,11 @@ class intCounterHK : public genericHK {
    intCounterHK(int iCounterId,
                 metricDefinitionNode *iMi) : genericHK(iMi) {
       lowLevelId = iCounterId;
+   }
+
+   // copy-ctor required by new vector class:
+   intCounterHK(const intCounterHK &src) : genericHK(src) {
+      lowLevelId = src.lowLevelId;
    }
 
   ~intCounterHK() {}
@@ -140,8 +147,8 @@ class wallTimerHK : public genericHK {
    time64 lastTimeValueUsed;
       // to check for rollbacks; formerly stored in inferior heap
 
-   // Since we don't define this, making it private makes sure it isn't used:
-   wallTimerHK(const wallTimerHK &src);
+//   // Since we don't define this, making it private makes sure it isn't used:
+//   wallTimerHK(const wallTimerHK &src);
 
    static unsigned normalize;
       // currently always 1000000; in theory, platform-dependent (e.g., for some
@@ -159,6 +166,13 @@ class wallTimerHK : public genericHK {
       lowLevelId = iCounterId;
       lastTimeValueUsed = iLastTimeValueUsed;
    }
+
+   // new vector class wants copy-ctor to be defined:
+   wallTimerHK(const wallTimerHK &src) : genericHK(src) {
+      lowLevelId = src.lowLevelId;
+      lastTimeValueUsed = src.lastTimeValueUsed;
+   }
+   
   ~wallTimerHK() {}
    wallTimerHK &operator=(const wallTimerHK &src);
 
@@ -183,8 +197,8 @@ class processTimerHK : public genericHK {
    time64 lastTimeValueUsed;
       // to check for rollbacks; formerly stored in inferior heap
 
-   // Since we don't define this, making it private makes sure it isn't used:
-   processTimerHK(const processTimerHK &src);
+//   // Since we don't define this, making it private makes sure it isn't used:
+//   processTimerHK(const processTimerHK &src);
 
    static unsigned normalize;
       // currently always 1000000; in theory, platform-dependent (e.g., for some
@@ -202,6 +216,13 @@ class processTimerHK : public genericHK {
       lowLevelId = iCounterId;
       lastTimeValueUsed = iLastTimeValueUsed;
    }
+
+   // new vector class wants copy-ctor defined
+   processTimerHK(const processTimerHK &src) : genericHK(src) {
+      lowLevelId = src.lowLevelId;
+      lastTimeValueUsed = src.lastTimeValueUsed;
+   }
+   
   ~processTimerHK() {}
    processTimerHK &operator=(const processTimerHK &src);
 
