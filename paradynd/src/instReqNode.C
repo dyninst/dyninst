@@ -61,8 +61,8 @@ instReqNode::instReqNode(const instReqNode &par, pd_process *childProc) :
    point(par.point), ast(assignAst(par.ast)), when(par.when), 
    order(par.order), loadedIntoApp_(par.loadedIntoApp_), 
    trampsHookedUp_(par.trampsHookedUp_), 
-   hasBeenCatchuped_(par.hasBeenCatchuped_), rinstance(par.rinstance), 
-   rpcCount(par.rpcCount), loadInstAttempts(par.loadInstAttempts)
+   rinstance(par.rinstance), rpcCount(par.rpcCount), 
+   loadInstAttempts(par.loadInstAttempts)
 {
 	bool res = getInheritedMiniTramp(&par.mtHandle, &mtHandle, 
                                          childProc->get_dyn_process());
