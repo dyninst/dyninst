@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.84 2003/03/21 21:19:05 bernat Exp $
+// $Id: unix.C,v 1.85 2003/04/11 22:46:29 schendel Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -60,7 +60,6 @@
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/stats.h"
-extern process *findProcess(int);
 
 // The following were all defined in process.C (for no particular reason)
 
@@ -555,12 +554,10 @@ int handleSigTrap(process *proc, procSignalInfo_t info) {
     // New and improved RPC handling, takes care of both
     // an RPC which has reached a breakpoint and whether
     // we're waiting for a syscall to complete
-    
     if (proc->handleTrapIfDueToRPC()) {
         signal_cerr << "processed RPC response in SIGTRAP" << endl;
         return 1;
     }
-    
     
 /////////////////////////////////////////
 // dlopen/close section
@@ -576,6 +573,7 @@ int handleSigTrap(process *proc, procSignalInfo_t info) {
             return 1;
         }
     }
+
 /////////////////////////////////////////////
 // Trap based instrumentation
 /////////////////////////////////////////////
@@ -658,49 +656,49 @@ int handleSigCritical(process *proc, procSignalWhat_t what, procSignalInfo_t inf
 
 int handleSignal(process *proc, procSignalWhat_t what, 
                  procSignalInfo_t info) {
-    int ret;
+   int ret;
     
-    switch(what) {
-  case SIGTRAP:
-      // Big one's up top. We use traps for most of our process control
-      ret = handleSigTrap(proc, info); 
-      break;
+   switch(what) {
+     case SIGTRAP:
+        // Big one's up top. We use traps for most of our process control
+        ret = handleSigTrap(proc, info); 
+        break;
 #if defined(USE_IRIX_FIXES)
-  case SIGEMT:
+     case SIGEMT:
 #endif
-  case SIGSTOP:
-  case SIGINT:
-      ret = handleSigStopNInt(proc, info);
-      break;
-  case SIGILL:
-      ret = proc->handleTrapIfDueToRPC();
-      break;
-  case SIGCHLD:
-      // Ignore
-      ret = 1;
-      proc->continueProc();
-      break;
-      // Else fall through
-  case SIGIOT:
-  case SIGBUS:
-  case SIGSEGV:
-      ret = handleSigCritical(proc, what, info);
-      break;
-  case SIGCONT:
-      // Should inform the mutator/daemon that the process is running
-  case SIGALRM:
-  case SIGUSR1:
-  case SIGUSR2:
-  case SIGVTALRM:
-  default:
-      ret = 0;
-      break;
-    }
-    if (!ret) {
-        // Signal was not handled
-        ret = forwardSigToProcess(proc, what, info);
-    }
-    return ret;
+     case SIGSTOP:
+     case SIGINT:
+        ret = handleSigStopNInt(proc, info);
+        break;
+     case SIGILL:
+        ret = proc->handleTrapIfDueToRPC();
+        break;
+     case SIGCHLD:
+        // Ignore
+        ret = 1;
+        proc->continueProc();
+        break;
+        // Else fall through
+     case SIGIOT:
+     case SIGBUS:
+     case SIGSEGV:
+        ret = handleSigCritical(proc, what, info);
+        break;
+     case SIGCONT:
+        // Should inform the mutator/daemon that the process is running
+     case SIGALRM:
+     case SIGUSR1:
+     case SIGUSR2:
+     case SIGVTALRM:
+     default:
+        ret = 0;
+        break;
+   }
+   if (!ret) {
+      // Signal was not handled
+      ret = forwardSigToProcess(proc, what, info);
+   }
+   return ret;
 }
 
 //////////////////////////////////////////////////////////////////
@@ -734,38 +732,38 @@ int handleExitEntry(process *proc, procSignalInfo_t info) {
 
 int handleSyscallEntry(process *proc, procSignalWhat_t what, 
                        procSignalInfo_t info) {
-    procSyscall_t syscall = decodeSyscall(proc, what);
-    int ret = 0;
-    
-    switch (syscall) {
-  case procSysFork:
-      ret = handleForkEntry(proc, info);
-      break;
-  case procSysExec:
-      ret = handleExecEntry(proc, info);
-      break;
-  case procSysExit:
-      ret = handleExitEntry(proc, info);
-      break;
-  default:
-      // Check process for any other syscall
-      // we may have trapped on entry to?
-      ret = 0;
-      break;
-    }
-    // Continue the process post-handling
-    proc->continueProc();
-    return ret;
+   procSyscall_t syscall = decodeSyscall(proc, what);
+   int ret = 0;
+
+   switch (syscall) {
+     case procSysFork:
+        ret = handleForkEntry(proc, info);
+        break;
+     case procSysExec:
+        ret = handleExecEntry(proc, info);
+        break;
+     case procSysExit:
+        ret = handleExitEntry(proc, info);
+        break;
+     default:
+        // Check process for any other syscall
+        // we may have trapped on entry to?
+        ret = 0;
+        break;
+   }
+   // Continue the process post-handling
+   proc->continueProc();
+   return ret;
 }
 
 /* Only dyninst for now... paradyn should use this soon */
 int handleForkExit(process *proc, procSignalInfo_t info) {
     proc->nextTrapIsFork = false;
-    
+
     // Fork handler time
     extern pdvector<process*> processVec;
     int childPid = info;
-    
+
     if (childPid == getpid()) {
         // this is a special case where the normal createProcess code
         // has created this process, but the attach routine runs soon
@@ -781,8 +779,7 @@ int handleForkExit(process *proc, procSignalInfo_t info) {
         if (i== processVec.size()) {
             // this is a new child, register it with dyninst
             int parentPid = proc->getPid();
-#if defined(BPATCH_LIBRARY)
-            // Need to port to Paradyn.
+
             process *theChild = new process(*proc, (int)childPid, -1);
             processVec.push_back(theChild);
             activeProcesses++;
@@ -796,13 +793,10 @@ int handleForkExit(process *proc, procSignalInfo_t info) {
             extern bool copyInstrumentationToChild(process *p, process *c);
             copyInstrumentationToChild(proc, theChild);
 #endif
-            BPatch::bpatch->registerForkedThread(parentPid,
-                                                 childPid, theChild);
-#else
-            // Paradyn needs to handle this
-#endif
+            process::forkCallback(proc, theChild);
         }
     }
+
     return 1;
 }
 
@@ -883,26 +877,25 @@ int handleLoadExit(process *proc, procSignalInfo_t info) {
 int handleSyscallExit(process *proc,
                       procSignalWhat_t what,
                       procSignalInfo_t info) {
-    procSyscall_t syscall = decodeSyscall(proc, what);
-    int ret = 0;
+   procSyscall_t syscall = decodeSyscall(proc, what);
+   int ret = 0;
 
-    switch(syscall) {
-  case procSysFork:
-      ret = handleForkExit(proc, info);
-      break;
-  case procSysExec:
-      ret = handleExecExit(proc, info);
-      break;
-  case procSysLoad:
-      ret = handleLoadExit(proc, info);
-      break;
-  default:
-      break;
-    }
-    proc->continueProc();
-    
-    return ret;
-    
+   switch(syscall) {
+     case procSysFork:
+        ret = handleForkExit(proc, info);
+        break;
+     case procSysExec:
+        ret = handleExecExit(proc, info);
+        break;
+     case procSysLoad:
+        ret = handleLoadExit(proc, info);
+        break;
+     default:
+        break;
+   }
+   proc->continueProc();
+
+   return ret;    
 }
 
 int handleProcessEvent(process *proc,
@@ -946,6 +939,9 @@ int handleProcessEvent(process *proc,
      case procSyscallExit:
         ret = handleSyscallExit(proc, what, info);
         break;
+     case procSuspended:
+        proc->continueProc();   // ignoring this signal
+        break;
      case procUndefined:
         // Do nothing
         break;
@@ -960,13 +956,12 @@ void decodeAndHandleProcessEvent (bool block) {
     procSignalWhat_t what;
     procSignalInfo_t info;
     process *proc;
-
     proc = decodeProcessEvent(-1, why, what, info, block);
-    if (!proc) return;
+    if (!proc)
+       return;
     
     if (!handleProcessEvent(proc, why, what, info)) 
         fprintf(stderr, "handleProcessEvent failed!\n");
-    
 }
 
 
