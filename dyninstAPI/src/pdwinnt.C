@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2000 Barton P. Miller
+ * Copyright (c) 1996-2001 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,8 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.27 2001/02/01 01:11:26 schendel Exp $
-
+// $Id: pdwinnt.C,v 1.28 2001/02/21 21:04:00 pcroth Exp $
+#include <iomanip.h>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -49,6 +49,7 @@
 #include "dyninstAPI/src/stats.h"
 #include "common/h/Types.h"
 #include "dyninstAPI/src/showerror.h"
+#include "dyninstAPI/src/instPoint.h"
 
 #ifndef BPATCH_LIBRARY
 #include "paradynd/src/main.h"
@@ -144,110 +145,311 @@ void dumpMem(process *p, void * addr, unsigned nbytes) {
 
 
 
-/***
-  process::walkStack - get a stack trace using the imagehlp function StackWalk
-  Because the compiler can do optimizations that omit the frame pointer,
-  it may not be possible to get a complete stack trace in some cases.
-  We assume that a trace is complete if we get to the main function (main or WinMain).
-  If we can't get a complete trace, we return an empty vector.
-***/
-vector<Address> process::walkStack(bool noPause) {
-  vector<Address> pcs;
-  bool needToCont = noPause ? false : (status() == running);
+//
+// walkStackFrame
+//
+// Try to walk one more frame in the stack of the indicated process.
+// Assumes that the STACKFRAME argument is either the result
+// from a previous StackWalk call, or has been initialized 
+// to the context from a GetThreadContext call.
+//
+inline
+BOOL
+walkStackFrame( HANDLE hProc, HANDLE hThread, STACKFRAME* psf )
+{
+	return StackWalk( IMAGE_FILE_MACHINE_I386,
+                        hProc,
+                        hThread,
+		                psf,
+                        NULL,
+		                NULL,
+                        SymFunctionTableAccess,
+                        SymGetModuleBase,
+		                NULL);
+}
+
+
+//
+// findFunctionFromAddress
+// 
+// Finds the function corresponding to the given address.
+// Handles situations where the address is within instrumentation,
+// and situations where the function has been relocated.
+//
+function_base*
+findFunctionFromAddress( process* proc, Address addr )
+{
+    function_base* fp = NULL;
+
+    instPoint* ip = findInstPointFromAddress( proc, addr );
+    if( ip != NULL )
+    {
+        // the address is within a tramp
+        // find the function in which the tramp was installed
+        fp = (function_base*)( ip->iPgetFunction() );
+    }
+    else
+    {
+        // the address isn't within a tramp
+        // check if it is a known function (relocated or otherwise)
+        fp = (function_base*)( proc->findFunctionIn( addr ) );
+    }
+    return fp;
+}
+
+
+
+//
+// process::walkStack
+//
+// Walk the stack of thread 0 of our process.
+// We assume that a trace is complete if we get to a main function
+// (main, WinMain, or some variant of mainCRTStartup).
+// If we can't get a complete trace, we return an empty vector.
+//
+// Note that this routine does *not* handle stack walks for multi-threaded
+// programs - it only handles stack walks in thread zero.
+// When we support multithreaded apps under Windows, this routine could
+// take a thread parameter that specifies which thread to use.
+//
+// Also, note that we have *not* been able to find a mechanism that 
+// can perform stack walks reliably for apps compiled with the FPO 
+// (frame pointer omission) optimization.  Even if the FPO data is
+// available, the Win32 StackWalk call either skips functions or bottoms
+// out the stack too early.  Unfortunately, this means that we require
+// that the app under study *not* use the FPO optimization.  (Specify /Oy- 
+// for the VC++ compiler to turn this optimization off.)
+//
+vector<Address>
+process::walkStack( bool noPause )
+{
+    bool needToCont = noPause ? false : (status() == running);
+    vector<Address> pcs;
 
 #ifndef BPATCH_LIBRARY
-  BEGIN_STACKWALK;
+    BEGIN_STACKWALK;
 #endif
 
-  if (!noPause && !pause()) {
-     // pause failed...give up
-     cerr << "walkStack: pause failed" << endl;
+#ifdef DEBUG_STACKWALK
+    cout << "\n<stack>" << endl;
+#endif // DEBUG_STACKWALK
+
+    // pause the application if necessary
+    if( !noPause && !pause() )
+    {
+        // pause failed...give up
+        cerr << "walkStack: pause failed" << endl;
 
 #ifndef BPATCH_LIBRARY
-     END_STACKWALK;
+        END_STACKWALK;
 #endif
-
-     return pcs;
-  }
-
-  static STACKFRAME zero;
-  STACKFRAME sf = zero;
-  CONTEXT cont;
-
-  cont.ContextFlags = CONTEXT_FULL;
-  if (!GetThreadContext((HANDLE)threads[0]->get_handle(), &cont))
-     cerr << "walkStack: GetThreadContext failed\n";
-  //fprintf(stderr, "Context: EIP = %x, ESP = %x, EBP = %x\n",
-  //	 cont.Eip, cont.Esp, cont.Ebp);
-  //fflush(stderr);
-
-  sf.AddrPC.Offset = cont.Eip;
-  sf.AddrPC.Mode = AddrModeFlat;
-  sf.AddrFrame.Offset = cont.Ebp;
-  sf.AddrFrame.Mode = AddrModeFlat;
-  sf.AddrStack.Offset = cont.Esp;
-  sf.AddrStack.Mode = AddrModeFlat;
-
-  sf.AddrReturn.Mode = AddrModeFlat;
-
-  bool res;
-  bool reachedMain = false; // set to true if we reach the main function
-  while (1) {
-    res = StackWalk(IMAGE_FILE_MACHINE_I386, (HANDLE)getProcFileDescriptor(), NULL,
-		    &sf, NULL,
-		    ReadProcessMemory, SymFunctionTableAccess, SymGetModuleBase,
-		    NULL);
-
-    if (!res && GetLastError() == 0) {
-      // reached end of stack
-      break;
-    } else if (!res && GetLastError() != 0) {
-      // error - can't complete stack walk
-      //fprintf(stderr, "error walking stack\n");
-      //printSysError(GetLastError());
-      break;
-    }
-    else {
-      function_base *f = findFunctionIn(sf.AddrPC.Offset);
-      // We might reach here before the program has reached its main()
-      // function, so we need to check for a function higher up in the
-      // calling sequence -- mainCRTStartup
-      if (f && (f ==  getMainFunction() || f->prettyName() == "mainCRTStartup"))
-        reachedMain = true;
-
-      pcs += sf.AddrPC.Offset;
+        return pcs;
     }
 
-    if (sf.AddrReturn.Offset == 0) {
-      pcs += 0;
-      break;
-    }
+    // establish the current execution context
+    CONTEXT cont;
+	HANDLE hThread = (HANDLE)threads[0]->get_handle();
 
-  }
-
-  //for (unsigned u = 0; u < pcs.size(); u++) {
-  //  function_base *pdf = findFunctionIn(pcs[u]);
-  //  fprintf(stderr,"> %x (%s)\n", pcs[u], pdf ? pdf->prettyName().string_of() : "");
-  //  fflush(stderr);
-  //}
-
-  if (!reachedMain) {
-    // error - incomplete trace, return an empty vector
-    pcs.resize(0);
-    //fprintf(stderr, "****** walkStack failed\n"); fflush(stderr);
-  }
-
-  if (!noPause && needToCont) {
-     if (!continueProc()){
-        cerr << "walkStack: continueProc failed" << endl;
-     }
-  }  
+    cont.ContextFlags = CONTEXT_FULL;
+    if (!GetThreadContext(hThread, &cont))
+    {
+        cerr << "walkStack: GetThreadContext failed:" << GetLastError() << endl;
 
 #ifndef BPATCH_LIBRARY
-  END_STACKWALK;
+        END_STACKWALK;
 #endif
+        return pcs;
+    }
 
-  return(pcs);
+    STACKFRAME sf;
+    ZeroMemory( &sf, sizeof(STACKFRAME) );
+    sf.AddrPC.Offset = cont.Eip;
+    sf.AddrPC.Mode = AddrModeFlat;
+    sf.AddrFrame.Offset = cont.Ebp;
+    sf.AddrFrame.Mode = AddrModeFlat;
+    sf.AddrStack.Offset = cont.Esp;
+    sf.AddrStack.Mode = AddrModeFlat;
+    sf.AddrReturn.Mode = AddrModeFlat;
+
+    // walk the stack, frame by frame
+	// we use the Win32 StackWalk function to automatically
+	// handle compiler optimizations, especially FPO optimizations
+	bool done = false;
+	bool reachedMain = false;
+	while( !done )
+	{
+		STACKFRAME saved_sf = sf;
+		BOOL walked;
+		ADDRESS patchedAddrReturn;
+		ADDRESS patchedAddrPC;
+		instPoint* ip = NULL;
+		function_base* fp = NULL;
+
+		// set defaults for return address and PC
+		patchedAddrReturn = saved_sf.AddrReturn;
+		patchedAddrPC = saved_sf.AddrPC;
+
+		// try to step through the stack using the current information
+		walked = walkStackFrame( (HANDLE)getProcFileDescriptor(), hThread, &sf );
+
+		if( !walked && (GetLastError() == ERROR_INVALID_ADDRESS) )
+		{
+			// try to patch the return address, in case it is outside
+			// of the original text of the process.  It might be outside
+			// the original text if the function has been relocated, or
+			// if it represents a return from a call instruction that
+			// has been relocated to a base tramp.
+			//
+			// we first try to patch the return address only, because
+			// it is most likely that the return address only is out of
+			// the original text space.  Once we process the first stack
+			// frame, it appears that the StackWalk function transfers the
+			// return address from the STACKFRAME struct to the PC, so 
+			// once we've gotten a valid return address in a STACKFRAME,
+			// the PC will be within the original text after the StackWalk
+			sf = saved_sf;
+            fp = findFunctionFromAddress( this, sf.AddrReturn.Offset );
+			if( fp != NULL )
+			{
+				// because StackWalk seems to support it, we simply use 
+				// the address of the function itself rather than
+				// trying to do the much more difficult task of finding
+				// the original address of the relocated instruction
+				patchedAddrReturn.Offset = fp->addr();
+				sf.AddrReturn = patchedAddrReturn;
+			}
+
+			// retry the stack step
+			walked = walkStackFrame( (HANDLE)getProcFileDescriptor(), hThread, &sf );
+		}
+
+		if( !walked && (GetLastError() == ERROR_INVALID_ADDRESS) )
+		{
+			// patching the return address alone didn't work.
+			//
+			// try patching the return address and the PC
+			sf = saved_sf;
+            fp = findFunctionFromAddress( this, sf.AddrPC.Offset );
+			if( fp != NULL )
+			{
+				// because StackWalk seems to support it, we simply use 
+				// the address of the function itself rather than
+				// trying to do the much more difficult task of finding
+				// the original address of the relocated instruction
+				patchedAddrPC.Offset = fp->addr();
+				sf.AddrPC = patchedAddrPC;
+			}
+
+			// use the patched return address we calculated above
+			sf.AddrReturn = patchedAddrReturn;
+
+			// retry the stack step
+			walked = walkStackFrame( (HANDLE)getProcFileDescriptor(), hThread, &sf );
+		}
+
+		if( !walked && (GetLastError() == ERROR_INVALID_ADDRESS) )
+		{
+			// patching both addresses didn't work
+			//
+			// try patching the PC only
+			sf = saved_sf;
+			sf.AddrPC = patchedAddrPC;
+
+			// retry the stack step
+			walked = walkStackFrame( (HANDLE)getProcFileDescriptor(), hThread, &sf );
+		}
+
+
+		// by now we've tried all of our tricks to handle the stack frame
+		// if we haven't succeeded by now, we're not going to be able to
+		// handle this frame
+		if( walked )
+		{
+            Address pc = NULL;
+
+			// save the PC for this stack frame
+            // make sure we use the original address in case
+            // it was outside the original text of the process
+            if( saved_sf.AddrReturn.Offset == 0 )
+            {
+                // this was the first stack frame, so we had better
+                // use the original PC
+                pc = saved_sf.AddrPC.Offset;
+            }
+            else
+            {
+                // this was not the first stack frame
+                // use the original return address
+                pc = saved_sf.AddrReturn.Offset;
+            }
+            pcs += pc;
+
+			// check whether we reached a known "main" function
+			// we consider it a complete stack walk iff we see
+			// a "main" function on the stack
+			//
+			// note: this criteria is not likely to be generally applicable -
+			// it will fail for walking stacks in non-primary threads
+			//
+            fp = findFunctionFromAddress( this, pc );
+			if( (fp != NULL) && 
+				((fp == getMainFunction()) || 
+                 (fp->prettyName() == "mainCRTStartup") ||
+                 (fp->prettyName() == "wmainCRTStartup")) )
+			{
+				reachedMain = true;
+			}
+
+#ifdef DEBUG_STACKWALK
+            cout << "0x" << setw(8) << setfill('0') << hex << pc << ": ";
+            if( fp != NULL )
+            {
+                cout << fp->prettyName();
+            }
+            else
+            {
+                cout << "<unknown>";
+            }
+            if( sf.AddrPC.Offset != pc )
+            {
+                cout << " (originally 0x" << setw(8) << setfill('0') << hex << sf.AddrPC.Offset << ")";
+            }
+            cout << endl;
+#endif // DEBUG_STACKWALK
+		}
+		else
+		{
+			// we tried everything we know to recover - we'll have to fail
+			done = true;
+		}
+	}
+
+
+    // handle incomplete stack walks
+    // (defined as a stack on which the main function did not appear)
+    if( !reachedMain )
+    {
+        // error - incomplete trace, return an empty vector
+        pcs.resize( 0 );
+    }
+    else
+    {
+        pcs += NULL;
+    }
+
+    // resume the application if needed
+    if( !noPause && needToCont )
+    {
+        if( !continueProc() )
+        {
+            cerr << "walkStack: continueProc failed" << endl;
+        }
+    }
+
+#ifndef BPATCH_LIBRARY
+        END_STACKWALK;
+#endif
+	return pcs;
 }
 
 
