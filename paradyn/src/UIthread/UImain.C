@@ -40,9 +40,12 @@
  */
 
 /* $Log: UImain.C,v $
-/* Revision 1.84  1997/01/15 00:11:43  tamches
-/* added calls to abstraction::start and end batch mode
+/* Revision 1.85  1997/04/14 19:59:51  zhichen
+/* added memoryAddedCB.
 /*
+ * Revision 1.84  1997/01/15 00:11:43  tamches
+ * added calls to abstraction::start and end batch mode
+ *
  * Revision 1.83  1996/10/16 16:12:32  tamches
  * changes to accomodate new abstractions::resizeEverything fixes a
  * sorting bug
@@ -177,6 +180,13 @@ extern void resourceAddedCB (perfStreamHandle handle,
 		      resourceHandle newResource, 
 		      const char *name,
 		      const char *abstraction);
+extern void memoryAddedCB (perfStreamHandle handle,
+                      const char *vname,
+                      int start,
+                      unsigned mem_size,
+                      unsigned blk_size,
+                      resourceHandle parent,
+                      vector<resourceHandle> *newResources ) ;
 
 /*
  * Forward declarations for procedures defined later in this file:
@@ -505,6 +515,7 @@ void *UImain(void*) {
     controlFuncs.bFunc = resourceBatchChanged;
     controlFuncs.pFunc = NULL;
     controlFuncs.eFunc = UIenableDataResponse;
+    controlFuncs.xFunc = memoryAddedCB;
     dataFunc.sample = NULL;
 
     uim_ps_handle = dataMgr->createPerformanceStream
