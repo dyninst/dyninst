@@ -54,20 +54,32 @@ bool dyn_thread::updateLWP()
   // ST case
   if ((!proc->multithread_ready(true)) || 
       (index == (unsigned) -1)) {
-    lwp = proc->getRepresentativeLWP();
+
+    if(process::IndependentLwpControl() && proc->getRepresentativeLWP() ==NULL)
+       lwp = proc->getInitialThread()->get_lwp();
+    else
+       lwp = proc->getRepresentativeLWP();       
+
     return true;
   }
           
   int lwp_id;
-  if (lwp) lwp_id = lwp->get_lwp_id();
-  else lwp_id = 0;
+  if (lwp) {
+     lwp_id = lwp->get_lwp_id();
+  }
+  else {
+     lwp_id = 0;
+  }
   int vt_lwp = proc->shmMetaData->getVirtualTimer(index)->lwp;
-  
+
   if (vt_lwp < 0) {
     lwp = NULL; // Not currently scheduled
     return false;
   }
-  if (lwp_id == vt_lwp) return true;
+  if (lwp_id == vt_lwp) {
+     return true;
+  }
+
   lwp = proc->getLWP(vt_lwp);
 
   if (!lwp) // Odd, not made yet?
@@ -90,8 +102,9 @@ bool dyn_thread::updateLWP()
 // get info for threads not currently scheduled on an LWP
 Frame dyn_thread::getActiveFrame()
 {
+   updateLWP();
+
    if(! get_proc()->multithread_capable(true)) {
-      updateLWP();
       Frame lwpFrame = lwp->getActiveFrame();  
       return Frame(lwpFrame.getPC(), lwpFrame.getFP(),
                    lwpFrame.getSP(), lwpFrame.getPID(),
@@ -120,7 +133,7 @@ bool dyn_thread::walkStack(pdvector<Frame> &stackWalk)
         return true;
     }
     Frame active = getActiveFrame();
-    
+
     return proc->walkStackFromFrame(active, stackWalk);
 }
 
