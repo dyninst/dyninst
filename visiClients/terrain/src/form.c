@@ -16,7 +16,7 @@
  * form.c - define the basic frame of the window.
  *          scroll bars and menu routines.
  *
- * $Id: form.c,v 1.8 1999/03/13 15:24:37 pcroth Exp $
+ * $Id: form.c,v 1.9 2000/08/21 00:32:31 paradyn Exp $
  */
 
 #include <stdio.h>
@@ -55,7 +55,7 @@
 #include "form.h"
 #include "terrain.h"
 #include "misc.h"
-#include "util/h/pdsocket.h"
+#include "pdutil/h/pdsocket.h"
 #include "visi/h/visualization.h"
 
 #define FORM_H	h
