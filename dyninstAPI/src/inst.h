@@ -63,7 +63,7 @@ class returnInstance;
 
 /*
  * Insert instrumentation a the specificed codeLocation.
- *
+ * TODO: make these methods of class process
  */
 instInstance *addInstFunc(process *proc,
 			  const instPoint *&location,
@@ -124,12 +124,6 @@ class instMapping {
   int where;           /* FUNC_ENTRY, FUNC_EXIT, FUNC_CALL */
   AstNode *arg;	       /* what to pass as arg0 */
 };
-
-/*
- * Install a list of inst requests in a process.
- *
- */
-void installDefaultInst(process *proc, vector<instMapping*>& initialReq);
 
 /*
  * get information about the cost of pimitives.
@@ -215,8 +209,6 @@ extern unsigned findTags(const string funcName);
 
 extern float computePauseTimeMetric(const metricDefinitionNode *);
 
-//extern process *nodePseudoProcess;
-
 extern void initLibraryFunctions();
 
 extern unsigned getMaxBranch();
@@ -224,7 +216,5 @@ extern unsigned getMaxBranch();
 // find these internal functions before finding any other functions
 // extern dictionary_hash<string, unsigned> tagDict;
 extern dictionary_hash <string, unsigned> primitiveCosts;
-
-void installBootstrapInst(process *);
 
 #endif
