@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.3 2001/02/09 20:37:47 bernat Exp $
+// $Id: Object-xcoff.C,v 1.4 2001/02/26 21:34:38 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -432,21 +432,35 @@ void Object::parse_aout(int fd, int offset)
      // to word alignment
      in_traced = (char *)(roundup4(data_org_));
      // Maximum ptrace block = 1k
+
+#ifdef notdef
+     fprintf(stderr, "data_org_ = %x, data_start = %x\n",
+	     (unsigned) data_org_, 
+	     (unsigned) aout.data_start);
+     fprintf(stderr, "Data pointer: %x, reloc: %x\n",
+	     (unsigned) data_ptr_, (unsigned) data_reloc);
+#endif
      for (ptrace_amount = aout.dsize ; 
 	  ptrace_amount > 1024 ; 
 	  ptrace_amount -= 1024)
        {
 	 if (ptrace(PT_READ_BLOCK, pid_, (int *)in_traced,
-		    1024, (int *)in_self) == -1)
+		    1024, (int *)in_self) == -1) {
+	   fprintf(stderr, "PTRACE_READ 1: from %x (in_traced) to %x (in_self)\n",
+		   in_traced, in_self);
+	   perror("Reading data segment of inferior process");
 	   PARSE_AOUT_DIE("Reading data segment", 49);
-	 
+	 }
 	 in_self += 1024;
 	 in_traced += 1024;
        }
      if (ptrace(PT_READ_BLOCK, pid_, (int *)in_traced,
-		ptrace_amount, (int *)in_self) == -1)
+		ptrace_amount, (int *)in_self) == -1) {
+       fprintf(stderr, "PTRACE_READ 2: from %x (in_traced) to %x (in_self)\n",
+	       in_traced, in_self);
+       perror("Reading data segment of inferior process");
        PARSE_AOUT_DIE("Reading data segment", 49);
-     
+     }
      // data_off_ is the value subtracted from an (absolute) address to
      // give an offset into the mutator's copy of the data
      data_off_ = data_org_;
@@ -677,7 +691,8 @@ void Object::parse_aout(int fd, int offset)
        // Problem: libc and others show up as file names. So if the
        // file being loaded is a .a (it's a hack, remember?) use the
        // .a as the modName instead of the symbol we just found.
-       if ((file_.suffixed_by("libc.a")) ||
+	 /*
+	   ((file_.suffixed_by("libc.a")) ||
 	   (file_.suffixed_by("libcrypt.a")) ||
 	   (file_.suffixed_by("libm.a")) ||
 	   // MPI libraries
@@ -686,8 +701,14 @@ void Object::parse_aout(int fd, int offset)
 	   (file_.suffixed_by("libmpi.a")) ||
 	   (file_.suffixed_by("libvtd.a")) ||
 	   // Paradyn/Dyninst runtime libs
-	   (file_.suffixed_by("libdyninstAPI_RT.a")) ||
-	   (file_.suffixed_by("libdyninstRT.a")))
+	   (file_.suffixed_by("libdyninstAPI_RT.so.1")) ||
+	   (file_.suffixed_by("libdyninstRT.so.1")) ||
+	   // catch .so's
+	   (file_.suffixed_by(".so")))
+	 */	 
+       if (file_.suffixed_by(".a") ||
+	   file_.suffixed_by(".so") ||
+	   file_.suffixed_by(".so.1"))
 	 modName = file_;
        else if (name == "glink.s")
 	 modName = string("Global_Linkage");
@@ -703,7 +724,37 @@ void Object::parse_aout(int fd, int offset)
        continue;
      }
    }
-   
+
+   // If we're in the binary (test_org is in 0x10000000 - 0x20000000),
+   // then create a "dummy" text heap for DyninstAPI/Paradyn to use.
+   // This way we don't need to link in a heap. Cool.
+   // This should really be fixed by a "not-shared-object" flag,
+   // though there is no reason we couldn't tack heaps onto shared
+   // objects...
+   if ((code_off_ > 0x10000000) && (code_off_ < 0x20000000)) {
+     // text location is code_off_
+     // text size is aout.tsize
+     // We want, oh, say, a 4M heap to start with. We could "allocate" more
+     // on the fly, actually.
+     string name = string("DYNINSTstaticHeap_4M_textHeap_grabbed");
+     string modName = string("DYNINSTheap");
+     Address heapAddr = code_off_ + code_len_;
+     // Word-align the heap
+     heapAddr += (sizeof(instruction)) - (heapAddr % sizeof(instruction));
+     Symbol sym(name, modName, Symbol::PDST_OBJECT, 
+		Symbol::SL_UNKNOWN, heapAddr,
+		false, 4*1024*1024);
+     symbols_[name] = sym;
+     // And stick in a lowmem heap so that we can do inferiorMallocs without
+     // dying instantly
+     name = string("DYNINSTstaticHeap_32K_lowmemHeap_grabbed");
+     heapAddr = heapAddr+(5*1024*1024);
+     Symbol sym2(name, modName, Symbol::PDST_OBJECT,
+		 Symbol::SL_UNKNOWN, heapAddr, false,
+		 32*1024);
+     symbols_[name] = sym2;
+
+   }
    toc_offset_ = toc_offset;
       
  cleanup:

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.2 2001/02/09 20:37:48 bernat Exp $
+// $Id: aixDL.C,v 1.3 2001/02/26 21:34:39 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -66,7 +66,7 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
   // work here. Right? Of course it will. NOT!
   // alloca() so we don't have to worry about deallocating it. 
   // hacky.
-  ptr = (struct ld_info *) alloca (1024*sizeof(*ptr));
+  ptr = (struct ld_info *) malloc (1024*sizeof(*ptr));
   pid = p->getPid();
 
   /* It seems that AIX has some timing problems and
@@ -80,7 +80,8 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
 	       (int *) ptr, 1024 * sizeof(*ptr), (int *)ptr);
   
   if (ret != 0) {
-    cerr << "Ptrace PT_LDINFO failed" << endl;
+    perror("PT_LDINFO");
+    fprintf(stderr, "For process %d\n", pid);
     statusLine("Unable to get loader info about process, application aborted");
     showErrorCallback(43, "Unable to get loader info about process, application aborted");
     return false;
@@ -105,11 +106,9 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
     }
 
   // Skip the first element, which appears to be the executable file.
-  // We could also find and skip the entry with a text_org value
-  // of 0x10000000, since that can _only_ be the executable file.
   ptr = (struct ld_info *)(ptr->ldinfo_next + (char *)ptr);
 
-  // So we want to fill in this vector.
+  // We want to fill in this vector.
   vector<shared_object *> *result = new(vector<shared_object *>);
 
   // So we have this list of ldinfo structures. This will include the executable and
@@ -123,29 +122,21 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
       if (fstat (ptr->ldinfo_fd, &ld_stat) < 0)
 	cerr << "File " << ptr->ldinfo_filename << " has disappeared!" << endl;
       
-      // Futility: the interface to the Object class defines a "name"
-      // and an "address", while we want to pass two names (library
-      // and object file), and two addresses (text offset and data
-      // offset). I think the best way to handle this is to pass 
-      // enough through to be unique, and repeat the ptrace call in
-      // the object constructor to get the rest of the needed info.
-      // GACK.
-      
       string obj_name = string(ptr->ldinfo_filename);
       string member = string(ptr->ldinfo_filename + 
 			     (strlen(ptr->ldinfo_filename) + 1));
       Address text_org =(Address) ptr->ldinfo_textorg;
       Address data_org =(Address) ptr->ldinfo_dataorg;
+      
+      //fprintf(stderr, "%s:%s (%x/%x)\n",
+      //      obj_name.string_of(), member.string_of(),
+      //      text_org, data_org);
 
       // I believe that we need to pass this as a pointer so that
       // subclassing will work
       fileDescriptor_AIX *fda = new fileDescriptor_AIX(obj_name, member,
 						       text_org, data_org,
 						       pid);
-
-      // pass in file (library) name and text relocation
-      // address. Object constructor will use this to look up
-      // archive member name and data relocation address.
 
       shared_object *newobj = new shared_object(fda,
 						false,true,true,0);
@@ -158,6 +149,7 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
   p->setDynamicLinking();
   dynlinked = true;
 
+  free(ptr);
   return result;
 
 }

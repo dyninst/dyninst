@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.38 2001/02/02 21:16:46 gurari Exp $
+// $Id: BPatch_thread.C,v 1.39 2001/02/26 21:34:37 bernat Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -1095,7 +1095,7 @@ bool BPatch_thread::loadLibrary(char *libname)
 {
 #if defined(sparc_sun_solaris2_4)  || defined(i386_unknown_solaris2_5) || \
     defined(i386_unknown_linux2_0) || defined(mips_sgi_irix6_4) || \
-    defined(alpha_dec_osf4_0)
+    defined(alpha_dec_osf4_0) || defined(rs6000_ibm_aix4_1)
     if (!statusIsStopped())
 	return false;
 

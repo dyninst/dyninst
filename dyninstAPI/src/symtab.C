@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: symtab.C,v 1.116 2001/02/20 21:39:00 gurari Exp $
+// $Id: symtab.C,v 1.117 2001/02/26 21:34:44 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -328,7 +328,7 @@ image *image::parseImage(fileDescriptor *desc)
   // and if so copy over the list. In normal practice,
   // the stub will be the first and only entry.
   for (unsigned i=0; i<numImages; i++)
-    if (allImages[i]->desc()->addr() == -1) {
+    if (allImages[i]->desc()->addr() == (unsigned) -1) {
       image *imageTemp = allImages[i];
       allImages[i]=ret;
       beenReplaced = true;
@@ -1745,10 +1745,6 @@ void image::initialize(const string &fileName, bool &err,
     //  w/ paradyn need to link with the DYNINST library, try to find
     //  the paradyn lib version # (DYNINSTversion or _DYNINSTversion
     //  symbol).
-
-    // This works for now on AIX since we're statically linking the
-    // runtime library. But this doesn't allow for the RT to be linked
-    // in, just not in the executable. FIXME
 
     if (!shared_object) {
         Symbol version;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-power.h,v 1.17 2001/02/09 20:37:48 bernat Exp $
+// $Id: arch-power.h,v 1.18 2001/02/26 21:34:39 bernat Exp $
 
 #ifndef _ARCH_POWER_H
 #define _ARCH_POWER_H
@@ -268,7 +268,6 @@ typedef union instructUnion instruction;
 /* high and low half words.  Useful to load addresses as two parts */
 #define LOW(x)  ((x)%65536)
 #define HIGH(x) ((x)/65536)
-
 
 
 inline bool isInsnType(const instruction i,

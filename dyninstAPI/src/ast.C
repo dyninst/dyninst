@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.80 2000/08/07 00:56:23 wylie Exp $
+// $Id: ast.C,v 1.81 2001/02/26 21:34:39 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -215,7 +215,6 @@ bool registerSpace::isFreeRegister(Register reg) {
 }
 
 void registerSpace::resetSpace() {
-
     for (u_int i=0; i < numRegisters; i++) {
         if (registers[i].inUse && (registers[i].number != REG_MT)) {
           //sprintf(errorLine,"WARNING: register %d is still in use\n",registers[i].number);
@@ -1347,8 +1346,9 @@ Address AstNode::generateCode_phase2(process *proc,
 	  // XXX This is for the string type.  If/when we fix the string type
 	  // to make it less of a hack, we'll need to change this.
 	  int len = strlen((char *)oValue) + 1;
-	  addr = (Address) inferiorMalloc(proc, len, dataHeap);
-	  proc->writeDataSpace((char *)addr, len, (char *)oValue);
+	  addr = (Address) inferiorMalloc(proc, len, textHeap); //dataheap
+	  if (!proc->writeDataSpace((char *)addr, len, (char *)oValue))
+	    perror("ast.C(1351): writing string value");
 	  emitVload(loadConstOp, addr, dest, dest, insn, base, noCost);
 	} 
     } else if (type == callNode) {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.h,v 1.10 2000/11/15 22:56:05 bernat Exp $
+// $Id: aix.h,v 1.11 2001/02/26 21:34:38 bernat Exp $
 
 #if !defined(rs6000_ibm_aix3_2) && !defined(rs6000_ibm_aix4_1)
 #error "invalid architecture-os inclusion"
@@ -57,8 +57,14 @@
 #define STOP_PROC_TIMER  "DYNINSTstopProcessTimer" 
 #define SIGNAL_HANDLER  0
 
+/* Unused
 extern unsigned AIX_TEXT_OFFSET_HACK;
 extern unsigned AIX_DATA_OFFSET_HACK;
+*/
+
+#ifdef USES_LIBDYNINSTRT_SO
+#define BYTES_TO_SAVE 256 // should be a multiple of sizeof(instruction)
+#endif
 
 typedef int handleT; // defined for compatibility with other platforms
                      // not currently used on the AIX platform

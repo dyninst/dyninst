@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.98 2001/02/09 20:37:48 bernat Exp $
+ * $Id: inst-power.C,v 1.99 2001/02/26 21:34:40 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -222,6 +222,32 @@ inline void genRelOp(instruction *insn, int cond, int mode, Register rs1,
     base += 4 * sizeof(instruction);
 }
 
+// Given a value, load it into a register (two operations, CAU and ORIL)
+
+inline void loadImmIntoReg(instruction *&insn, Register rt, unsigned value)
+{
+  unsigned high16 = (value & 0xffff0000) >> 16;
+  unsigned low16 = (value & 0x0000ffff);
+  assert((high16+low16)==value);
+
+  if (high16 == 0x0) { // We can save an instruction by not using CAU
+    genImmInsn(insn, CALop, rt, 0, low16);
+    insn++;
+    return;
+  }
+  else if (low16 == 0x0) { // we don't have to ORIL the low bits
+    genImmInsn(insn, CAUop, rt, 0, high16);
+    insn++;
+    return;
+  }
+  else {
+    genImmInsn(insn, CAUop, rt, 0, high16);
+    insn++;
+    genImmInsn(insn, ORILop, rt, rt, low16);
+    insn++;
+    return;
+  }
+}
 
 instPoint::instPoint(pd_Function *f, const instruction &instr, 
 		     const image *, Address adr, bool, ipFuncLoc fLoc) 
@@ -596,6 +622,7 @@ Register deadRegList[] = { 11, 12 };
 
 // allocate in reverse order since we use them to build arguments.
 Register liveRegList[] = { 10, 9, 8, 7, 6, 5, 4, 3 };
+int liveRegListSize = 8;
 
 #ifdef BPATCH_LIBRARY
 // If we're being conservative, we don't assume that any registers are dead.
@@ -1152,8 +1179,9 @@ trampTemplate *installBaseTramp(const instPoint *location, process *proc,
     
     if (DISTANCE(location->addr, baseAddr) > MAX_BRANCH)
       {
-	fprintf(stderr, "Instrumentation point %x too far from tramp location %x\n",
-		(unsigned) location->addr, (unsigned) baseAddr);
+	fprintf(stderr, "Instrumentation point %x too far from tramp location %x, trying to instrument function %s\n",
+		(unsigned) location->addr, (unsigned) baseAddr,
+		location->func->prettyName().string_of());
 	assert(0);
       }
     code = new instruction[theTemplate->size / sizeof(instruction)];
@@ -1906,7 +1934,7 @@ Register emitFuncCall(opCode /* ocode */,
   insn->raw = MFLR0raw;
   insn++;
   base += sizeof(instruction);
-  
+
   // Register 0 is actually the link register, now. However, since we
   // don't want to overwrite the LR slot, save it as "register 0"
   saveRegister(insn, base, 0, STKFCALLREGS);
@@ -1974,7 +2002,6 @@ Register emitFuncCall(opCode /* ocode */,
     }
   }
   
-  
   if(srcs.size() > 8) {
     // This is not necessarily true; more then 8 arguments could be passed,
     // the first 8 need to be in registers while the others need to be on
@@ -2006,7 +2033,6 @@ Register emitFuncCall(opCode /* ocode */,
     // source register is now free.
     regSpace->freeRegister(srcs[u]);
   }
-  
   // 
   // Update the stack pointer
   //   argarea  =  8 words  (8 registers)
@@ -2102,7 +2128,7 @@ Register emitFuncCall(opCode /* ocode */,
   base += sizeof(instruction);
   
   // get a register to keep the return value in.
-  Register retReg = regSpace->allocateRegister(iPtr, base, noCost);
+  Register retReg = rs->allocateRegister(iPtr, base, noCost);
 
   // allocateRegister can generate code. Reset insn
   insn = (instruction *) ((void*)&iPtr[base]);
@@ -2260,15 +2286,17 @@ void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
     instruction *insn = (instruction *) ((void*)&baseInsn[base]);
 
     if (op == loadConstOp) {
-	// constants are signed
-	int constValue = (int) src1;
-	if (ABS(constValue) > MAX_IMM) {
+	unsigned int constValue = (int) src1;
+	unsigned int top_half = ((constValue & 0xffff0000) >> 16);
+	unsigned int bottom_half = (constValue & 0x0000ffff);
+	assert (constValue == ((top_half << 16) + bottom_half));
+	if (top_half) { // need to use two instructions
 	    // really addis dest,0,HIGH(src1) aka lis dest, HIGH(src1)
-	    genImmInsn(insn, CAUop, dest, 0, HIGH(constValue));
+	    genImmInsn(insn, CAUop, dest, 0, top_half);
 	    insn++;
 
 	    // ori dest,dest,LOW(src1)
-	    genImmInsn(insn, ORILop, dest, dest, LOW(constValue));
+	    genImmInsn(insn, ORILop, dest, dest, bottom_half);
 	    base += 2 * sizeof(instruction);
 	} else {
 	    // really add regd,0,imm
@@ -2949,7 +2977,7 @@ bool pd_Function::findInstPoints(const image *owner)
 //
 // find all DYNINST symbols that are data symbols
 bool process::heapIsOk(const vector<sym_data> &find_us) {
-  Address instHeapStart; instHeapStart = 0; // unused?
+  Address baseAddr;
   Symbol sym;
   string str;
 
@@ -2964,19 +2992,18 @@ bool process::heapIsOk(const vector<sym_data> &find_us) {
   }
 
   for (unsigned i=0; i<find_us.size(); i++) {
-    str = find_us[i].name;
-    if (!symbols->symbol_info(str, sym)) {
+    const string &str = find_us[i].name;
+    if (!getSymbolInfo(str, sym, baseAddr)) {
       string str1 = string("_") + str.string_of();
-      if (!symbols->symbol_info(str1, sym) && find_us[i].must_find) {
-	string msg;
+      if (!getSymbolInfo(str1, sym, baseAddr) && find_us[i].must_find) {
+        string msg;
         msg = string("Cannot find ") + str + string(". Exiting");
-	statusLine(msg.string_of());
-	showErrorCallback(50, msg);
-	return false;
+        statusLine(msg.string_of());
+        showErrorCallback(50, msg);
+        return false;
       }
     }
   }
-
 #if 0
   //string ghb = "_DYNINSTtext";
   //aix.C does not change the leading "." of function names to "_" anymore.

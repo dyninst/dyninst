@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.241 2001/02/09 20:37:49 bernat Exp $
+// $Id: process.C,v 1.242 2001/02/26 21:34:41 bernat Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -1014,7 +1014,7 @@ bool process::getInfHeapList(vector<heapDescriptor> &infHeaps)
   if (shared_objects)
     for(u_int j=0; j < shared_objects->size(); j++)
       {
-	if (foundHeap || getInfHeapList(((*shared_objects)[j])->getImage(), infHeaps))
+	if (getInfHeapList(((*shared_objects)[j])->getImage(), infHeaps))
 	  foundHeap = true;
       }
   return foundHeap;
@@ -1190,6 +1190,9 @@ void process::initInferiorHeap()
       {
 	// Didn't find the low memory heap. 
 	// Handle better?
+	// Yeah, gripe like hell
+	cerr << "No lowmem heap found (DYNINSTstaticHeap_*_lowmem), inferior RPCs" << endl;
+	cerr << "will probably fail" << endl;
       }
     
   }
@@ -1293,6 +1296,13 @@ void alignUp(int &val, int align)
 // dynamically allocate a new inferior heap segment using inferiorRPC
 void inferiorMallocDynamic(process *p, int size, Address lo, Address hi)
 {
+  // Fun (not) case: there's no space for the RPC to execute.
+  // It'll call inferiorMalloc, which will call inferiorMallocDynamic...
+  // Avoid this with a static bool.
+  static bool inInferiorMallocDynamic = false;
+
+  if (inInferiorMallocDynamic) return;
+  inInferiorMallocDynamic = true;
   // word-align buffer size 
   // (see "DYNINSTheap_align" in rtinst/src/RTheap-<os>.c)
   alignUp(size, 4);
@@ -1343,6 +1353,7 @@ void inferiorMallocDynamic(process *p, int size, Address lo, Address hi)
     p->heap.heapFree += h2;
     break;
   }
+  inInferiorMallocDynamic = false;
 }
 #endif /* USES_DYNAMIC_INF_HEAP */
 
@@ -1526,12 +1537,10 @@ bool process::initDyninstLib() {
    assert(hasLoadedDyninstLib);
 #endif
 
-
+  initInferiorHeap();
   extern vector<sym_data> syms_to_find;
   if (!heapIsOk(syms_to_find))
     return false;
-
-  initInferiorHeap();
 
   return true;
 }
@@ -3262,14 +3271,18 @@ bool process::handleIfDueToSharedObjectMapping(){
              // TODO: currently we aren't handling dlopen because  
              // we don't have the code in place to modify existing metrics
              // This is what we really want to do:
+	    // Paradyn -- don't add new symbols unless it's the runtime
+	    // library
 #ifndef BPATCH_LIBRARY
              if (((*changed_objects)[i])->getName() == dyninstName)
              {
 #endif
                if(addASharedObject(*((*changed_objects)[i]))){
                  *shared_objects += (*changed_objects)[i];
-                 hasLoadedDyninstLib = true;
-                 isLoadingDyninstLib = false;
+		 if (((*changed_objects)[i])->getName() == dyninstName) {
+		   hasLoadedDyninstLib = true;
+		   isLoadingDyninstLib = false;
+		 }
                } else {
                  //logLine("Error after call to addASharedObject\n");
                  delete (*changed_objects)[i];
@@ -3325,6 +3338,9 @@ bool process::handleIfDueToSharedObjectMapping(){
 
 
 
+
+
+//
 
 
 //
