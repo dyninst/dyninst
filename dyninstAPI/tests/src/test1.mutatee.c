@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.85 2003/03/14 19:03:11 rchen Exp $ */
+/* $Id: test1.mutatee.c,v 1.86 2003/03/17 16:31:53 schendel Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -42,21 +42,26 @@ int mutateeFortran = 0;
 int mutateeF77 = 0;
 
 
-//typedef struct {
-//    int field1;
-//    int field2;
-//} struct26_1;
+/*
+typedef struct {
+    int field1;
+    int field2;
+} struct26_1;
+*/
 struct struct26_1 {
     int field1;
     int field2;
 };
 
-//typedef struct {
-//    int field1;
-//    int field2;
-//    int field3[10];
-//    struct26_1 field4;
-//} struct26_2;
+/*
+typedef struct {
+    int field1;
+    int field2;
+    int field3[10];
+    struct26_1 field4;
+} struct26_2;
+*/
+
 struct struct26_2 {
     int field1;
     int field2;
@@ -1586,7 +1591,7 @@ void func25_1()
 /*
  * Test #26 - field operators
  */
-//struct26_2 globalVariable26_1;
+/*  struct26_2 globalVariable26_1;  */
 struct struct26_2 globalVariable26_1;
 int globalVariable26_2 = 26000000;
 int globalVariable26_3 = 26000000;
@@ -1614,7 +1619,7 @@ void call26_2()
 void call26_1()
 {
     int i;
-//    struct26_2 localVariable26_1;
+    /*    struct26_2 localVariable26_1;  */
     struct struct26_2 localVariable26_1;
 
     localVariable26_1.field1 = 26002001;
