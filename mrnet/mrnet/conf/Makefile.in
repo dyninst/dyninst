@@ -181,15 +181,15 @@ parser: src/scanner.c src/parser.tab.c $(LIBMC_OBJS) $(AUX_OBJS) \
 # Defining Cleaning rules
 #################################
 clean:
-	echo Cleaning Multicast Network specific files ...
+	echo Cleaning $(PLATFORM) platform ...
 	$(RM) -r $(OBJDIR)/* $(BINDIR)/* $(LIBDIR)/* $(MRNET_ROOT)/src/parser.tab.* \
           $(MRNET_ROOT)/src/scanner.c
 	$(RM)  `find $(MRNET_ROOT)/.. -name "*~" -print`
 
 CLEAN:
 	echo Cleaning all platforms ...
-	$(RM) -r bin lib obj $(MRNET)/src/parser.tab.* \
-          $(MRNET)/src/scanner.c
+	$(RM) -r bin lib obj $(MRNET_ROOT)/src/parser.tab.* \
+          $(MRNET_ROOT)/src/scanner.c
 	$(RM)  `find $(MRNET_ROOT)/.. -name "*~" -print`
 
 distclean: CLEAN
