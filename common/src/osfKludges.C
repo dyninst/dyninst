@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfKludges.C,v 1.5 2000/07/28 17:20:39 pcroth Exp $
+// $Id: osfKludges.C,v 1.6 2000/08/20 21:58:25 paradyn Exp $
 
 #include "common/h/headers.h"
 
 extern "C" {
 //extern int accept(int, struct sockaddr *addr, int *);
 //extern int accept(int, struct sockaddr *addr, size_t *);
-extern void bzero(char *b, int length);
+//extern void bzero(char *b, int length);
 extern int gethostname(char*, int);
 extern int getrusage(int, struct rusage*);
 //extern int getsockname(int, struct sockaddr*, int *);
