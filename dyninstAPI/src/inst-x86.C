@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.45 1999/06/24 18:19:24 pcroth Exp $
+ * $Id: inst-x86.C,v 1.46 1999/07/07 16:06:12 zhichen Exp $
  */
 
 #include <limits.h>
@@ -835,38 +835,6 @@ void emitMovRegToRM(Register base, int disp, Register src, unsigned char *&insn)
 void emitMovRMToReg(Register dest, Register base, int disp, unsigned char *&insn);
 void emitCallRel32(unsigned disp32, unsigned char *&insn);
 
-void generateMTpreamble(char *insn, Address &base, process *proc)
-{
-  AstNode *t1,*t2,*t3,*t4,*t5;;
-  vector<AstNode *> dummy;
-  Address tableAddr;
-  int value; 
-  bool err;
-  Register src = Null_Register;
-
-  /* t3=DYNINSTthreadTable[thr_self()] */
-  t1 = new AstNode("DYNINSTthreadPos", dummy);
-  value = sizeof(unsigned);
-  t4 = new AstNode(AstNode::Constant,(void *)value);
-  t2 = new AstNode(timesOp, t1, t4);
-  removeAst(t1);
-  removeAst(t4);
-
-  tableAddr = proc->findInternalAddress("DYNINSTthreadTable",true,err);
-  assert(!err);
-  t5 = new AstNode(AstNode::Constant, (void *)tableAddr);
-  t3 = new AstNode(plusOp, t2, t5);
-  removeAst(t2);
-  removeAst(t5);
-  src = (Register)t3->generateCode(proc, regSpace, insn, base, false, true);
-  removeAst(t3);
-  // this instruction is different on every platform
-  unsigned char *tmp_insn = (unsigned char *) (&insn[base]);
-  emitMovRMToReg(EAX, EBP, -(src*4), tmp_insn);
-  emitMovRegToRM(EBP, -(REG_MT*4), EAX, tmp_insn); 
-  base += (Address)tmp_insn - (Address)(&insn[base]);
-  regSpace->freeRegister(src);
-}
 
 /*
  * change the insn at addr to be a branch to newAddr.
@@ -1072,7 +1040,7 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
   // compute the tramp size
   // if there are any changes to the tramp, the size must be updated.
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
-  unsigned trampSize = 73+2*27;
+  unsigned trampSize = 73+2*27 + 66;
 #else
   unsigned trampSize = 73;
 #endif
@@ -2156,6 +2124,8 @@ int getInsnCost(opCode op)
 	return(3);
     } else if (op ==  ifOp) {
 	return(1+2+1);
+    } else if (op ==  whileOp) {
+	return(1+2+1+1); /* Need to find out about this */
     } else if (op == branchOp) {
 	return(1);	/* XXX Need to find out what value this should be. */
     } else if (op ==  callOp) {
