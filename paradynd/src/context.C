@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.117 2005/03/07 21:18:52 bernat Exp $ */
+/* $Id: context.C,v 1.118 2005/03/14 17:32:12 mjbrim Exp $ */
 
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/pd_thread.h"
@@ -117,7 +117,7 @@ void createThread(traceThread *fr) {
    // computing resource id
    pdstring buffer;
    pdstring pretty_name = pdstring(thr->get_start_func()->prettyName().c_str()) ;
-   buffer = pdstring("thr_")+pdstring(fr->tid)+pdstring("{")+pretty_name+pdstring("}");
+   buffer = pdstring("thr_")+pdstring((unsigned)fr->tid)+pdstring("{")+pretty_name+pdstring("}");
    resource *rid;
    rid = resource::newResource(proc->get_rid(),
                                 (void *)thr,
@@ -167,10 +167,10 @@ void updateThreadId(traceThread *fr) {
                             fr->stack_addr, fr->start_pc, fr->resumestate_p);
       // computing resource id
       pdstring pretty_name = pdstring(thr->get_start_func()->prettyName().c_str());
-      buffer = pdstring("thr_") + pdstring(fr->tid) + pdstring("{") + 
+      buffer = pdstring("thr_") + pdstring((unsigned)fr->tid) + pdstring("{") + 
 	       pretty_name + pdstring("}");
    } else {
-      buffer = pdstring("thr_") + pdstring(fr->tid) + pdstring("{main}") ;
+      buffer = pdstring("thr_") + pdstring((unsigned)fr->tid) + pdstring("{main}") ;
       
       // updating main thread
       dynproc->updateThread(thr, fr->tid, fr->index, fr->lwp, fr->resumestate_p);
