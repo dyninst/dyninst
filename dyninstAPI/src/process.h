@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.242 2003/03/10 23:15:36 bernat Exp $
+/* $Id: process.h,v 1.243 2003/03/12 01:50:07 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -478,75 +478,25 @@ class process {
 
   void postRPCtoDo(AstNode *, bool noCost,
                    inferiorRPCcallbackFunc, void *data, int, 
-                   dyn_thread *thr, dyn_lwp *lwp,
 						 bool lowmem=false);
 
-  bool launchRPCs(bool wasRunning);
-
-  bool existsRPCPending() const;
-  bool existsRPCinProgress() const;
-  bool existsRPCWaitingForSyscall() const;
-  void cleanRPCreadyToLaunch(int mid);
-
-  bool handleTrapIfDueToRPC();
-
-#ifdef notdef
-
-  void cleanRPCreadyToLaunch(int mid);
-
-  ///////////////////////////////////////////////////////////////////////
-  /// RPC Code
-  ///////////////////////////////////////////////////////////////////////    
-  
-  bool rpcSavesRegs();
-
-  /// Whole process
-  
   void postRPCtoDo(AstNode *, bool noCost,
                    inferiorRPCcallbackFunc, void *data, int, 
-                   dyn_thread *thr, dyn_lwp *lwp,
-						 bool lowmem=false);
+                   dyn_thread *thr, bool lowmem=false);
 
-  // Take a process-wide RPC and run it on a particular
-  // thread (MT-only)
-  bool distributeRPCsOverThreads();
+  void postRPCtoDo(AstNode *, bool noCost,
+                   inferiorRPCcallbackFunc, void *data, int, 
+                   dyn_lwp *lwp, bool lowmem=false);
 
-  // Find if there is a ready RPC anywhere in the process
-  bool existsRPCPending() const;
-  // Find if any thread is running an RPC
-  bool existsRPCinProgress() const;
-  // Find out if any thread expects a syscall to finish
-  bool existsRPCWaitingForSyscall() const;
-  
-  // Launch all RPCs ready to go
   bool launchRPCs(bool wasRunning);
 
-  // Handle a trap due to an IRPC
+  bool existsRPCPending() const;
+  bool existsRPCinProgress() const;
+  bool existsRPCWaitingForSyscall() const;
+  void cleanRPCreadyToLaunch(int mid);
+
   bool handleTrapIfDueToRPC();
 
-  /// Non-MT (dyn_thread equivalence)
-
-  bool readyIRPC() const;
-  bool isRunningIRPC() const;
-  
-  irpcLaunchState_t launchProcessIRPC(bool wasRunning);
-  irpcLaunchState_t launchPendingIRPC();
-
-  // True if we're waiting for a syscall to complete
-  bool isIRPCwaitingForSyscall() const { return irpcState_ == irpcWaitingForTrap; }
-
-  // Store state for a pending IRPC
-  bool wasRunningBeforeSyscall() { return wasRunningBeforeSyscall_; };  
-
-  // Handle completing IRPCs
-  Address getIRPCRetValAddr();
-  bool handleRetValIRPC();
-  Address getIRPCFinishedAddr();
-  bool handleCompletedIRPC();
-
-/////////////////////////////////////////////////////////////////
-#endif
-  
   void SendAppIRPCInfo(int runningRPC, unsigned begRPC, unsigned endRPC);
   void SendAppIRPCInfo(Address curPC);
 #ifdef INFERIOR_RPC_DEBUG
@@ -868,7 +818,7 @@ void saveWorldData(Address address, int size, const void* src);
   syscallTrap *trapSyscallExitInternal(Address syscall);
   bool clearSyscallTrapInternal(syscallTrap *trappedSyscall);
   // Returns the thread (if any) that exited the syscall
-  dyn_thread *checkSyscallExit();
+  dyn_lwp *checkSyscallExit();
   // Check all traps entered for a match to the syscall
   bool checkTrappedSyscallsInternal(Address syscall);
     
@@ -892,7 +842,7 @@ void saveWorldData(Address address, int size, const void* src);
 			 Address &stopForResultAddr,
 			 Address &justAfter_stopForResultAddr,
 			 Register &resultReg, bool lowmem,
-			 dyn_thread *thr, dyn_lwp *lwp, bool isFunclet);
+			 dyn_lwp *lwp, bool isFunclet);
 
   bool need_to_wait(void) ;
   // The follwing 5 routines are implemented in an arch-specific .C file
@@ -1203,8 +1153,15 @@ void saveWorldData(Address address, int size, const void* src);
 
   string execFilePath;		// full path of process
 
-  dyn_lwp *getLWP(unsigned lwp);
+  dyn_lwp *getLWP(unsigned lwp_id);
   dyn_lwp *getDefaultLWP() const;
+
+  dyn_lwp *createLWP(unsigned lwp_id);
+#if defined(mips_unknown_ce2_11) || defined(i386_unknown_nt4_0)
+  dyn_lwp *createLWP(unsigned lwp_id, int index, handleT fd);
+#endif
+
+  void deleteLWP(dyn_lwp *lwp_to_delete);
 
 #if defined(alpha_dec_osf4_0)
   int waitforRPC(int *status,bool block = false);
@@ -1466,7 +1423,7 @@ private:
   // function is returned in "target_pdf", else it returns false. 
   bool hasBeenBound(const relocationEntry entry, pd_Function *&target_pdf, 
                     Address base_addr) ;
-
+  
   bool isRunning_() const;
      // needed to initialize the 'wasRunningWhenAttached' member vrble. 
      // Determines whether the process is running by doing a low-level OS
