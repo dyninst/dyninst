@@ -46,6 +46,16 @@ LD_LIBRARY64_PATH on Irix).  On Windows NT, you will instead need to add
 %DYNINST_ROOT%/lib/%PLATFORM% to your PATH environment variable.  This is so
 %that mutator applications can be linked dynamically with the Dyninst library.
 
+Notes on Using Dyninst with Linux
+---------------------------------
+
+On Linux, Dyninst requires some libraries that are not installed by default
+in most distributions.  The first is libelf, which is included with most
+distributions and can be installed using the distribution's package manager.
+The second is libdwarf.  You can get the latest source code distribution
+of libdwarf from http://reality.sgiweb.org/davea/.  RPM files for libdwarf
+are also available from various sites.
+
 Building the Dyninst API from source
 ------------------------------------
 
