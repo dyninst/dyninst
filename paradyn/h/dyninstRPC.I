@@ -16,7 +16,11 @@
 
 /*
  * $Log: dyninstRPC.I,v $
- * Revision 1.26  1995/05/18 10:51:49  markc
+ * Revision 1.27  1995/06/02 20:58:45  newhall
+ * made code compatable with new datamanager interface
+ * replaced List and HTable container classes with STL containers
+ *
+ * Revision 1.26  1995/05/18  10:51:49  markc
  * added mdl classes
  * modified resource specifications in interfaces to use ids
  *
@@ -392,6 +396,7 @@ $remote struct metricInfo {
     int style;
     int aggregate;
     string units;
+    u_int handle;  // this is currently ignored by the daemons 
 };
 
 /*
@@ -406,7 +411,7 @@ int createDaemon(string machine,
 
 $remote dynRPC {
     $base 4000;
-    $version 21;
+    $version 22;
 
     //
     // Define a program to run. 

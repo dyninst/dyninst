@@ -2,10 +2,14 @@
      input file for igen for User Interface Manager (UIM) interface to paradyn
 */
 /* $Log: UI.I,v $
-/* Revision 1.12  1995/01/26 17:59:26  jcargill
-/* Changed igen-generated include files to new naming convention; fixed
-/* some bugs compiling with gcc-2.6.3.
+/* Revision 1.13  1995/06/02 20:58:43  newhall
+/* made code compatable with new datamanager interface
+/* replaced List and HTable container classes with STL containers
 /*
+# Revision 1.12  1995/01/26  17:59:26  jcargill
+# Changed igen-generated include files to new naming convention; fixed
+# some bugs compiling with gcc-2.6.3.
+#
 # Revision 1.11  1994/11/02  04:44:55  karavan
 # added new interface service UIM::readStartupFile()
 #
@@ -61,9 +65,9 @@
  *
  */
 
-#include "dataManager.thread.CLNT.h"
+//#include "dataManager.thread.CLNT.h"
 #include "../src/UIthread/UIstatDisp.h"
-#include "../src/VMthread/metrespair.h"
+#include "paradyn/src/DMthread/DMinclude.h"
 
 
 /* 
@@ -71,8 +75,7 @@
  * are passed back to the requesting visualization thread
  */
 
-typedef int (*chooseMandRCBFunc) (metrespair *pairList,
-			      int numElements);
+typedef int (*chooseMandRCBFunc) (vector<metric_focus_pair> *pairList);
 
 /* 
  * Handler that gets called when user choice passed back to requesting 
@@ -99,16 +102,15 @@ typedef int (*chooseMenuItemCBFunc) (int userChoice);
 
 $remote UIM {
 	$base 3000;
-	$version 7;
+	$version 8;
 	//
 	// provides user with appropriate choices and passes back selections
 
 	$async void chooseMetricsandResources(chooseMandRCBFunc cb,
-			metrespair *pairList,
-			int numElements);
-	$upcall $async void chosenMetricsandResources ( 					chooseMandRCBFunc, 
-	 	metrespair *pairList,
-		int numElements);	
+			     vector<metric_focus_pair> *pairList);
+
+	$upcall $async void chosenMetricsandResources (chooseMandRCBFunc, 
+			      vector<metric_focus_pair> *pairList);
 
 	
 	// generic message display; returns index of user choice if applic.
@@ -162,11 +164,11 @@ $remote UIM {
         //
 	int initSHG ();
 
-	int DAGaddNode(int dagID, int nodeID, int styleID, 
+	int DAGaddNode(int dagID, unsigned nodeID, int styleID, 
 			char *label, char *shgname, int root);
-	int DAGaddEdge (int dagID, int srcID, 
-			int dstID, int styleID);
-	int DAGconfigNode (int dagID, int nodeID, int styleID);
+	int DAGaddEdge (int dagID, unsigned srcID, 
+			unsigned dstID, int styleID);
+	int DAGconfigNode (int dagID, unsigned nodeID, int styleID);
 
 	int DAGcreateEdgeStyle(int dagID, int styleID, char *options);
 	int DAGcreateNodeStyle(int dagID, int styleID, char *options);

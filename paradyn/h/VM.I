@@ -1,6 +1,7 @@
 /* $Log: VM.I,v $
-/* Revision 1.11  1995/05/18 10:50:51  markc
-/* Modified VMAddNewVisi call that mdl uses to report visis
+/* Revision 1.12  1995/06/02 20:58:44  newhall
+/* made code compatable with new datamanager interface
+/* replaced List and HTable container classes with STL containers
 /*
 # Revision 1.10  1995/02/26  02:11:52  newhall
 # added some phase interface routines
@@ -47,56 +48,42 @@
 # exported services of the Visualization Manager thread
 # */
 
-#include "../src/VMthread/metrespair.h"
+#include "paradyn/src/DMthread/DMinclude.h"
+#include "util/h/Vector.h"
 
 typedef struct VM_activeVisiInfo {
   int visiNum; // tid of active visi used to kill visi (VMDestroyVisi)
   int visiTypeId;  
-  char *name;
+  string name;
 } VM_activeVisiInfo;
-
-typedef struct VM_activeVisiInfo_Array {
-  int count;
-  VM_activeVisiInfo *data;
-} VM_activeVisiInfo_Array;
 
 typedef struct VM_visiInfo {
   int visiTypeId;  // id of visi used to start visi (VMCreateVisi)
-  char *name;
+  string name;
 } VM_visiInfo;
-
-typedef struct VM_visiInfo_Array {
-  int count;
-  VM_visiInfo *data;
-} VM_visiInfo_Array;
-
-typedef struct metrespair_Array {
-  int count;
-  metrespair *data;
-} metrespair_Array;
 
 $remote VM{
 
   $base 5000;
-  $version 7;
+  $version 8;
 
   // returns a list of information about active visualizations
   // the client is responsible for freeing the space associated with
   // this list
-  VM_activeVisiInfo_Array VMActiveVisis(); 
+  vector<VM_activeVisiInfo> *VMActiveVisis(); 
 
 
   // returns a list of information about available visualizations
   // the client is responsible for freeing the space associated with
   // this list
-  VM_visiInfo_Array VMAvailableVisis(); 
+  vector<VM_visiInfo> *VMAvailableVisis(); 
   
   //  name: string representation of visi (for UIM menuing)
   //  args: command line arguments for the visualiztion, argv[0]
   //        is the executable name
   //  matrix: initial set of metrics and foci to start the visi with
   int VMAddNewVisualization(const char *name,
-			    vector<string> *argv,
+		            vector<string> *argv,	
 			    int forceProcessStart,
 			    char *matrix,
 			    int numMatrices);
@@ -105,7 +92,7 @@ $remote VM{
   //  converts a string representation of a list of met/focus pairs  
   //  to the internal list of metrespairs representation
   //  returns metrespair_Array values of count = 0, and data = NULL on error
-  metrespair_Array  VMStringToMetResPair(char *metresString);
+  vector<metric_focus_pair> *VMStringToMetResPair(const char *metresString);
 
 
   // remenuFlag: if set, remenuing request made by visithread when 
@@ -116,12 +103,11 @@ $remote VM{
   int VMCreateVisi(int remenuFlag,  
 		   int forceProcessStart,
 		   int visiTypeId,
-		   metrespair *matrix,
-		   int numMatrices);
+		   vector<metric_focus_pair> *matrix);
   
   // visiThreadId: thread identifier associated with the  visi to destroy 
   // can be called by any thread in the paradyn process
-  $async void VMDestroyVisi(int visiThreadId);
+  $async void VMDestroyVisi(thread_t visiThreadId);
 
   // visiThreadId: thread identifier of visithread that has died
   // called by visithread when the visualization process exits
