@@ -1,6 +1,9 @@
 
 #
 # $Log: errorList.tcl,v $
+# Revision 1.19  1996/03/01 22:50:40  mjrg
+# Added MDL error messages
+#
 # Revision 1.18  1996/02/21 22:29:48  tamches
 # slight change in the format or errors, to change the location
 # of newline characters to match new implementation of showError
@@ -336,11 +339,26 @@ set pdError(35) {
 {Sorry, no more information available.}
 }
 
+#set pdError(36) {
+#{Internal error: non-aligned length received on traceStream.}
+#{paradynd}
+#{serious error}
+#{Please, report this error to paradyn@cs.wisc.edu}
+#}
+
 set pdError(36) {
-{Internal error: non-aligned length received on traceStream.}
+{Received invalid data on trace stream.}
 {paradynd}
 {serious error}
-{Please, report this error to paradyn@cs.wisc.edu}
+{Paradyn received invalid data from a process it was tracing. 
+There may be many different causes to this problem:
+1. a bug in the application being traced;
+2. a bug in Paradyn DYNINST library;
+3. a bug in the instrumentation code inserted into the 
+application;
+4. a bug in the paradyn daemon.
+Please report this error to paradyn@cs.wisc.edu
+}
 }
 
 set pdError(37) {
@@ -735,4 +753,24 @@ set pdError(91) {
 {The Paradyn daemon is missing from your customized PCL file. You need to specify a valid Paradyn daemon in order to start an application on a particular machine.}
 }
 
-set numPdErrors 91 
+## MDL errors
+set pdError(92) {
+{Error while evaluating metric.}
+{paradynd}
+{information}
+{A error was found while evaluating a metric for a focus.
+The metric cannot be enabled for this focus.
+}
+} 
+
+set pdError(93) {
+{Metric has no constraint that matches focus.}
+{paradynd}
+{information}
+{You tried to enable a metric for a focus, but the
+metric has no constraint for this focus. Check your
+focus selection from the where axis.
+}
+}
+
+set numPdErrors 93 
