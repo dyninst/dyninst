@@ -39,11 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.78 2002/08/12 04:21:38 schendel Exp $ */
+/* $Id: context.C,v 1.79 2002/10/15 17:11:35 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/pdThread.h"
-#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/dyn_thread.h"
+#include "paradynd/src/pd_process.h"
+#include "paradynd/src/pd_thread.h"
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
 #include "dyninstAPI/src/dyninst.h"
@@ -58,6 +59,8 @@
 #include "dyninstAPI/src/showerror.h"
 #include "paradynd/src/costmetrics.h"
 #include "paradynd/src/init.h"
+#include "processMgr.h"
+
 
 // The following were defined in process.C
 extern debug_ostream attach_cerr;
@@ -65,8 +68,6 @@ extern debug_ostream inferiorrpc_cerr;
 extern debug_ostream shmsample_cerr;
 extern debug_ostream forkexec_cerr;
 extern debug_ostream signal_cerr;
-
-extern vector<process*> processVec;
 
 #if !defined(i386_unknown_nt4_0)
 extern int termWin_port; //defined in main.C
@@ -78,87 +79,96 @@ extern string pd_machine;
  */
 bool applicationDefined()
 {
-    if (processVec.size()) {
-	return(true);
-    } else {
-	return(false);
-    }
+   if (getProcMgr().size()) {
+      return(true);
+   } else {
+      return(false);
+   }
 }
-
-extern process *findProcess(int); // should become a static method of class process
 
 //timeStamp getCurrentTime(bool);
 
 #if defined(MT_THREAD)
 
 void createThread(traceThread *fr) {
-    process *proc=NULL;
+    pd_process *proc=NULL;
     assert(fr);
-    proc = findProcess(fr->ppid);
-    if (!(proc && proc->rid)) // 6/2/99 zhichen, a weird situation
+    proc = getProcMgr().find_pd_process(fr->ppid);
+    if (!(proc && proc->get_rid())) // 6/2/99 zhichen, a weird situation
       return ;                // when a threaded-process forks
-
     // creating new thread
-    pdThread *thr = proc->createThread(fr->tid, fr->pos, fr->stack_addr, 
-      fr->start_pc, fr->resumestate_p, fr->context==FLAG_SELF);
+    dyn_thread *thr = 
+       proc->get_dyn_process()->createThread(fr->tid, fr->pos, fr->stack_addr,
+		      fr->start_pc, fr->resumestate_p, fr->context==FLAG_SELF);
     assert(thr);
+    pd_thread *pd_thr = new pd_thread(thr);
+    proc->addThread(pd_thr);
+
+    metricFocusNode::handleNewThread(proc, pd_thr);
 
     // computing resource id
     string buffer;
     string pretty_name = string(thr->get_start_func()->prettyName().c_str()) ;
     buffer = string("thr_")+string(fr->tid)+string("{")+pretty_name+string("}");
     resource *rid;
-    rid = resource::newResource(proc->rid, (void *)thr, nullString, buffer, 
-				timeStamp::ts1970(), "", MDL_T_STRING, true);
-    thr->update_rid(rid);        
+    rid = resource::newResource(proc->get_rid(), (void *)thr, nullString, 
+			buffer, timeStamp::ts1970(), "", MDL_T_STRING, true);
+    pd_thr->get_dyn_thread()->update_rid(rid);        
 }
 
 //
 // The thread reported from DYNINSTinit when using attaching 
 //
 void updateThreadId(traceThread *fr) {
-  //static bool firstTime=true;
-  //assert(firstTime); // this routine should only execute once! - naim
-  //firstTime=false;
-  process *proc = findProcess(fr->ppid);
-  assert(proc);
-  pdThread *thr = proc->threads[0];
-  assert(thr);
-  string buffer;
-  resource *rid;
-  if (fr->context == FLAG_ATTACH ) {
-    proc->updateThread(thr, fr->tid, fr->pos, fr->stack_addr, fr->start_pc, fr->resumestate_p) ;
-cerr << "updateThreadId, context == FLAG_ATTACH" << endl ;
-    // computing resource id
-    string pretty_name = string(thr->get_start_func()->prettyName().c_str()) ;
-    buffer = string("thr_")+string(fr->tid)+string("{")+pretty_name+string("}");
-    rid = resource::newResource(proc->rid, (void *)thr, nullString, buffer, 
-				timeStamp::ts1970(), "", MDL_T_STRING, true);
-    thr->update_rid(rid);        
-  } else {
-cerr << "updateThreadId, context == FLAG_INIT" << endl ;
-    buffer = string("thr_") + string(fr->tid) + string("{main}") ;
-    rid = resource::newResource(proc->rid, (void *)thr, nullString, buffer, 
-				timeStamp::ts1970(), "", MDL_T_STRING, true);  
-
-    // updating main thread
-    proc->updateThread(thr, fr->tid, fr->pos, fr->resumestate_p, rid);
-  }
-  //sprintf(errorLine, "*****updateThreadId, tid=%d, pos=%d, stack=0x%x, startpc=0x%x, resumestat=0x%x\n", fr->tid, fr->pos, fr->stack_addr, fr->start_pc, fr->resumestate_p) ;
-  //logLine(errorLine) ;
+   //static bool firstTime=true;
+   //assert(firstTime); // this routine should only execute once! - naim
+   //firstTime=false;
+   pd_process *pdproc = NULL;
+   pdproc = getProcMgr().find_pd_process(fr->ppid);
+   assert(pdproc);
+   assert(pdproc->thrMgr().size() > 0);
+   pd_thread *pdthr = *(pdproc->thrMgr().begin());
+   dyn_thread *thr = pdthr->get_dyn_thread();
+   assert(thr);
+   string buffer;
+   resource *rid;
+   process *dynproc = pdproc->get_dyn_process();
+   if(fr->context == FLAG_ATTACH) {
+      dynproc->updateThread(thr, fr->tid, fr->pos, 
+			    fr->stack_addr, fr->start_pc, fr->resumestate_p);
+      // computing resource id
+      string pretty_name = string(thr->get_start_func()->prettyName().c_str());
+      buffer = string("thr_") + string(fr->tid) + string("{") + 
+	       pretty_name + string("}");
+      rid = resource::newResource(dynproc->rid, (void *)thr, nullString, 
+			  buffer, timeStamp::ts1970(), "", MDL_T_STRING, true);
+      thr->update_rid(rid);        
+   } else {
+      buffer = string("thr_") + string(fr->tid) + string("{main}") ;
+      rid = resource::newResource(dynproc->rid, (void *)thr, nullString,
+			  buffer, timeStamp::ts1970(), "", MDL_T_STRING, true);
+      
+      // updating main thread
+      dynproc->updateThread(thr, fr->tid, fr->pos, fr->resumestate_p, rid);
+   }
+   //sprintf(errorLine, "*****updateThreadId, tid=%d, pos=%d, stack=0x%x, startpc=0x%x, resumestat=0x%x\n", fr->tid, fr->pos, fr->stack_addr, fr->start_pc, fr->resumestate_p) ;
+   //logLine(errorLine) ;
 }
 
 void deleteThread(traceThread *fr)
 {
-    process *proc=NULL;
+    pd_process *pdproc = NULL;
 
     assert(fr);
-    proc = findProcess(fr->ppid);
-    assert(proc && proc->rid);
+    pdproc = getProcMgr().find_pd_process(fr->ppid);
+    assert(pdproc && pdproc->get_dyn_process()->rid);
+
+    pd_thread *thr = pdproc->thrMgr().find_pd_thread(fr->tid);
+    pdproc->getVariableMgr().deleteThread(thr);
 
     // deleting thread
-    proc->deleteThread(fr->tid);
-
+    pdproc->removeThread(fr->tid);
+    pdproc->get_dyn_process()->deleteThread(fr->tid);
     // deleting resource id
     // how do we delete a resource id? - naim
 }
@@ -174,18 +184,20 @@ unsigned instInstancePtrHash(instInstance * const &ptr) {
 void forkProcess(int pid, int ppid, int trace_fd, key_t theKey,
 		 void *applAttachedAtPtr) 
 {
-  process *parentProc = findProcess(ppid);
-  if (!parentProc) {
-    logLine("Error in forkProcess: could not find parent process\n");
-    return;
-  }
+   pd_process *parentProc = getProcMgr().find_pd_process(ppid);
+   if (!parentProc) {
+      logLine("Error in forkProcess: could not find parent process\n");
+      return;
+   }
 
 #ifdef FORK_EXEC_DEBUG
-    timeStamp forkTime = getWallTime();
+   timeStamp forkTime = getWallTime();
 #endif
-    process *childProc = process::forkProcess(parentProc, (pid_t)pid, trace_fd,
-					      theKey, applAttachedAtPtr);
-
+   process *childDynProc = 
+      process::forkProcess(parentProc->get_dyn_process(), (pid_t)pid, trace_fd,
+			   theKey, applAttachedAtPtr);
+   pd_process *childProc = new pd_process(*parentProc, childDynProc);
+   getProcMgr().addProcess(childProc);
    // For each mi with a component in parentProc, copy it to the child
    // process --- if the mi isn't refined to a specific process (i.e. is for
    // 'any process') NOTE: It's easy to not copy data items (timers, ctrs)
@@ -275,35 +287,66 @@ PDSOCKET connect_Svr(string machine,int port)
 }
 #endif
 
-int addProcess(vector<string> &argv, vector<string> &envp, string dir) {
+extern pdRPC *tp;
+
+int pd_createProcess(vector<string> &argv, vector<string> &envp, string dir) {
 #if !defined(i386_unknown_nt4_0)
-  if (termWin_port == -1)
-  	return -1;
+   if (termWin_port == -1)
+      return -1;
   
-  PDSOCKET stdout_fd = INVALID_PDSOCKET;
-  if ((stdout_fd = connect_Svr(pd_machine,termWin_port)) == INVALID_PDSOCKET)
-  	return -1;
-  if (write(stdout_fd,"from_app\n",strlen("from_app\n")) <= 0)
-  {
-    	CLOSEPDSOCKET(stdout_fd);
-  	return -1;
-  }
+   PDSOCKET stdout_fd = INVALID_PDSOCKET;
+   if ((stdout_fd = connect_Svr(pd_machine,termWin_port)) == INVALID_PDSOCKET)
+      return -1;
+   if (write(stdout_fd,"from_app\n",strlen("from_app\n")) <= 0)
+   {
+      CLOSEPDSOCKET(stdout_fd);
+      return -1;
+   }
 #endif
+
+	// NEW: We bump up batch mode here; the matching bump-down occurs after
+	// shared objects are processed (after receiving the SIGSTOP indicating
+	// the end of running DYNINSTinit; more specifically,
+	// procStopFromDYNINSTinit().  Prevents a diabolical w/w deadlock on
+	// solaris --ari
+	tp->resourceBatchMode(true);
 
 #if !defined(i386_unknown_nt4_0)
-  process *proc = createProcess(argv[0], argv, envp, dir, 0, stdout_fd, 2);
+   process *proc = createProcess(argv[0], argv, envp, dir, 0, stdout_fd, 2);
 #else 
-  process *proc = createProcess(argv[0], argv, envp, dir, 0, 1, 2);
+   process *proc = createProcess(argv[0], argv, envp, dir, 0, 1, 2);
 #endif
 
-    if (proc) {
+	if (!costMetric::addProcessToAll(proc))
+      assert(false);
+
+   pd_process *new_pd_proc = new pd_process(proc);
+   getProcMgr().addProcess(new_pd_proc);
+
+   if(proc) {
       return(proc->getPid());
-    } else {
+   } else {
 #if !defined(i386_unknown_nt4_0)
       CLOSEPDSOCKET(stdout_fd);
 #endif
       return(-1);
-    }
+   }
+}
+
+bool pd_attachProcess(const string &progpath, int pid, int afterAttach) { 
+	// matching bump-down occurs in procStopFromDYNINSTinit().
+	tp->resourceBatchMode(true);
+
+	process *new_proc;
+	bool res = attachProcess(progpath, pid, afterAttach, &new_proc);
+
+	if (!costMetric::addProcessToAll(new_proc))
+		assert(false);
+
+	pd_process *new_pd_proc = new pd_process(new_proc);
+	getProcMgr().addProcess(new_pd_proc);
+	
+	return res;
 }
 
 #ifdef notdef
@@ -369,53 +412,55 @@ bool isApplicationPaused()
 
 bool continueAllProcesses()
 {
-    unsigned p_size = processVec.size();
-    for (unsigned u=0; u<p_size; u++) {
-       process *p = processVec[u];
-       if (p != NULL && p->status() != running) {
+   processMgr::procIter itr = getProcMgr().begin();
+   while(itr != getProcMgr().end()) {
+      pd_process *p = *itr++;
+      if(p != NULL && p->status() != running) {
 #ifdef DETACH_ON_THE_FLY
-         if (!processVec[u]->detachAndContinue())
+         if(! p->detachAndContinue())
 #else
-	 if (!processVec[u]->continueProc())
+	 if(! p->continueProc())
 #endif
 	 {
-	   sprintf(errorLine,"WARNING: cannot continue process %d\n",processVec[u]->getPid());
-	   cerr << errorLine << endl;
+	    sprintf(errorLine,"WARNING: cannot continue process %d\n",
+		    p->getPid());
+	    cerr << errorLine << endl;
 	 }
-       }
-    }
+      }
+   }
 
-    statusLine("application running");
-    if (!markApplicationRunning()) {
+   statusLine("application running");
+   if (!markApplicationRunning()) {
       return false;
-    }
+   }
 
-    // sprintf(errorLine, "continued at %f\n", getCurrentTime(false));
-    // logLine(errorLine);
-
-    return(false); // Is this correct?
+   // sprintf(errorLine, "continued at %f\n", getCurrentTime(false));
+   // logLine(errorLine);
+   
+   return(false); // Is this correct?
 }
 
 bool pauseAllProcesses()
 {
-    bool changed = markApplicationPaused();
+   bool changed = markApplicationPaused();
 
-    unsigned p_size = processVec.size();
-    for (unsigned u=0; u<p_size; u++) {
-       process *p = processVec[u];
-       if (p != NULL && p->status() == running) {
+   processMgr::procIter itr = getProcMgr().begin();
+   while(itr != getProcMgr().end()) {
+      pd_process *p = *itr++;
+
+      if (p != NULL && p->status() == running) {
 #ifdef DETACH_ON_THE_FLY
          p->reattachAndPause();
 #else
          p->pause();
 #endif
-       }
-    }
+      }
+   }
 
-    if (changed)
+   if (changed)
       statusLine("application paused");
-
-    return(changed);
+   
+   return(changed);
 }
 
 void processNewTSConnection(int tracesocket_fd) {
@@ -471,15 +516,14 @@ void processNewTSConnection(int tracesocket_fd) {
    if (ptr_size != read(fd, ptr_dst, ptr_size))
       assert(false);
 
-   process *curr = NULL;
+   pd_process *curr = NULL;
 
    if (calledFromFork) {
       // the following will (1) call fork ctor (2) call
       // metricFocusNode::handleFork (3) continue the parent process, who has
       // been waiting to avoid race conditions.
       forkProcess(pid, ppid, fd, theKey, applAttachedAtPtr);
-
-      curr = findProcess(pid);
+      curr = getProcMgr().find_pd_process(pid);
       assert(curr);
       // continue process...the next thing the process will do is call
       // DYNINSTinit(-1, -1, -1)
@@ -517,7 +561,7 @@ void processNewTSConnection(int tracesocket_fd) {
 	 if (was_stopped) {
 	    int sig = WSTOPSIG(wait_status);
 	    if (sig == 5)  { // sigtrap
-	       curr->status_ = stopped;
+	       curr->get_dyn_process()->status_ = stopped;
 	       if (!curr->continueProc())
 		  assert(false);
  	    }
@@ -533,7 +577,7 @@ void processNewTSConnection(int tracesocket_fd) {
 		  forkexec_cerr << "Extra check: stopped on sig " << sig << endl;
 		  if (sig == SIGTRAP || sig == SIGSTOP)
 		  {
-			  curr->status_ = stopped;
+			  curr->get_dyn_process()->status_ = stopped;
 			  if (!curr->continueProc())
 				  assert(false);
 		  }
@@ -544,10 +588,26 @@ void processNewTSConnection(int tracesocket_fd) {
    else {
       // This routine gets called when the attached process is in
       // the middle of running DYNINSTinit.
-      curr = findProcess(pid);
+      curr = getProcMgr().find_pd_process(pid);
       assert(curr);
-      curr->traceLink = fd;
+      curr->get_dyn_process()->traceLink = fd;
       statusLine("ready");
    }
 }
+
+extern pdRPC *tp;
+extern void removeFromMetricInstances(process *proc);
+
+void paradyn_handleProcessExit(process *proc) {
+   pd_process *pd_proc = getProcMgr().find_pd_process(proc);
+   assert(pd_proc != NULL);
+
+   pd_proc->doMajorShmSample();
+   reportInternalMetrics(true);
+   removeFromMetricInstances(pd_proc->get_dyn_process());
+
+   tp->processStatus(pd_proc->getPid(), procExited);
+
+}
+
 
