@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.12 2003/06/02 22:04:37 mjbrim Exp $
+ * $Id: dyn_lwp.C,v 1.13 2003/10/07 19:06:01 schendel Exp $
  */
 
 #include "common/h/headers.h"
@@ -53,6 +53,7 @@ dyn_lwp::dyn_lwp() :
   proc_(NULL),
   lwp_id_(0),
   fd_(0),
+  procHandle_(INVALID_HANDLE_VALUE),
 #if !defined(BPATCH_LIBRARY)
   hw_previous_(0),
   sw_previous_(0),
@@ -61,7 +62,7 @@ dyn_lwp::dyn_lwp() :
   postsyscallpc_(0),
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
-  isRunningIRPC(false), are_fd_opened(false)  
+  isRunningIRPC(false), is_attached_(false)  
 {
 };
 
@@ -69,7 +70,8 @@ dyn_lwp::dyn_lwp(unsigned lwp, process *proc) :
   changedPCvalue(0),
   proc_(proc),
   lwp_id_(lwp),
-  fd_(0),
+  fd_(INVALID_HANDLE_VALUE),
+  procHandle_(INVALID_HANDLE_VALUE),
 #if !defined(BPATCH_LIBRARY)
   hw_previous_(0),
   sw_previous_(0),
@@ -78,24 +80,7 @@ dyn_lwp::dyn_lwp(unsigned lwp, process *proc) :
   postsyscallpc_(0),
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
-  isRunningIRPC(false), are_fd_opened(false)
-{
-}
-
-dyn_lwp::dyn_lwp(unsigned lwp, handleT fd, process *proc) :
-  changedPCvalue(0),
-  proc_(proc),
-  lwp_id_(lwp),
-  fd_(fd),
-#if !defined(BPATCH_LIBRARY)
-  hw_previous_(0),
-  sw_previous_(0),
-#endif
-  stoppedInSyscall_(false),
-  postsyscallpc_(0),
-  trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
-  trappedSyscallData_(NULL),
-  isRunningIRPC(false), are_fd_opened(false)
+  isRunningIRPC(false), is_attached_(false)
 {
 }
 
@@ -103,7 +88,8 @@ dyn_lwp::dyn_lwp(const dyn_lwp &l) :
   changedPCvalue(0),
   proc_(l.proc_),
   lwp_id_(l.lwp_id_),
-  fd_(0),
+  fd_(INVALID_HANDLE_VALUE),
+  procHandle_(INVALID_HANDLE_VALUE),
 #if !defined(BPATCH_LIBRARY)
   hw_previous_(0),
   sw_previous_(0),
@@ -112,19 +98,20 @@ dyn_lwp::dyn_lwp(const dyn_lwp &l) :
   postsyscallpc_(0),
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
-  isRunningIRPC(false), are_fd_opened(false)
+  isRunningIRPC(false), is_attached_(false)
 {
     fprintf(stderr, "LWP copy constructor\n");
 }
 
 dyn_lwp::~dyn_lwp()
 {
-   closeFD();
+   detach();
 }
+
 
 // Not sure this is a good idea... when would we be walking the stack
 // (conceptually) of an LWP rather than the thread running on it?
-// For now: non-MT will walk getDefaultLWP() since it doesn't understand
+// For now: non-MT will walk getProcessLWP() since it doesn't understand
 // multithreaded programs
 
 void dyn_lwp::markDoneRunningIRPC() {
@@ -159,17 +146,30 @@ bool dyn_lwp::walkStack(pdvector<Frame> &stackWalk)
     return proc_->walkStackFromFrame(active, stackWalk);
 }
 
-bool dyn_lwp::openFD() {
-   assert(!fd_opened());
-   are_fd_opened = true;
-   return openFD_();
+bool dyn_lwp::attach() {
+   assert(!is_attached());
+
+   bool res;
+   if (lwp_id_)
+      res = threadLWP_attach_();
+   else      // No LWP = representative LWP
+      res = processLWP_attach_();
+
+   if(res == true)
+      is_attached_ = true;
+
+   return res;
 }
 
-void dyn_lwp::closeFD() {
-   if(fd_opened()) {
-      are_fd_opened = false;
-      closeFD_();
+void dyn_lwp::detach() {
+   if(is_attached()) {
+      detach_();
+      is_attached_ = false;
    }
+}
+
+int dyn_lwp::getPid() const {
+   return proc_->getPid();
 }
 
 // Find out some info about the system call we're waiting on,
