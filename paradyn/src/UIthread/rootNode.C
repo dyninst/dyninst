@@ -42,7 +42,7 @@
 // whereAxisRootNode.C
 // Ariel Tamches
 
-/* $Id: rootNode.C,v 1.10 1999/04/27 16:03:45 nash Exp $ */
+/* $Id: rootNode.C,v 1.11 1999/05/24 16:59:56 cain Exp $ */
 
 #include <assert.h>
 
@@ -139,8 +139,19 @@ GC whereAxisRootNode::getGCforNonListboxRay(const whereAxisRootNode &, // parent
 void whereAxisRootNode::prepareForDrawingListboxItems(Tk_Window theTkWindow,
 						      XRectangle &listboxBounds) {
 #if !defined(i386_unknown_nt4_0)
-   XSetClipRectangles(Tk_Display(theTkWindow), whereAxis::getListboxItemGC(),
-		      0, 0, &listboxBounds, 1, YXBanded);
+  XSetClipRectangles(Tk_Display(theTkWindow), whereAxis::getListboxItemGC(),
+		     0, 0, &listboxBounds, 1, YXBanded);
+  Tk_3DBorder thisStyleTk3DBorder = whereAxis::getListboxItem3DBorder();
+  XSetClipRectangles(Tk_Display(theTkWindow),
+		 Tk_3DBorderGC(theTkWindow,thisStyleTk3DBorder,TK_3D_LIGHT_GC),
+		     0, 0, &listboxBounds, 1, YXBanded);
+  XSetClipRectangles(Tk_Display(theTkWindow),
+		Tk_3DBorderGC(theTkWindow, thisStyleTk3DBorder,TK_3D_DARK_GC),
+		     0, 0, &listboxBounds, 1, YXBanded);
+  XSetClipRectangles(Tk_Display(theTkWindow),
+		 Tk_3DBorderGC(theTkWindow, thisStyleTk3DBorder,TK_3D_FLAT_GC),
+		     0, 0, &listboxBounds, 1, YXBanded);
+   
 #else // !defined(i386_unknown_nt4_0)
 	// TODO - is this needed?
 #endif // !defined(i386_unknown_nt4_0)
@@ -148,6 +159,17 @@ void whereAxisRootNode::prepareForDrawingListboxItems(Tk_Window theTkWindow,
 
 void whereAxisRootNode::doneDrawingListboxItems(Tk_Window theTkWindow) {
    XSetClipMask(Tk_Display(theTkWindow), whereAxis::getListboxItemGC(), None);
+   Tk_3DBorder thisStyleTk3DBorder = whereAxis::getListboxItem3DBorder();
+   
+   XSetClipMask(Tk_Display(theTkWindow),
+		Tk_3DBorderGC(theTkWindow, thisStyleTk3DBorder,TK_3D_LIGHT_GC),
+		None);
+   XSetClipMask(Tk_Display(theTkWindow),
+		Tk_3DBorderGC(theTkWindow, thisStyleTk3DBorder, TK_3D_DARK_GC),
+		None);
+   XSetClipMask(Tk_Display(theTkWindow),
+		Tk_3DBorderGC(theTkWindow, thisStyleTk3DBorder, TK_3D_FLAT_GC),
+		None);
 }
 
 void whereAxisRootNode::drawAsListboxItem(Tk_Window theTkWindow,
