@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test8.C,v 1.9 2004/04/01 22:10:06 tlmiller Exp $
+// $Id: test8.C,v 1.10 2004/04/06 16:37:20 bernat Exp $
 //
 
 #include <stdio.h>
@@ -159,10 +159,12 @@ bool checkStack(BPatch_thread *appThread,
 		strcpy(name, "[UNKNOWN]");
 	    else
 		func->getName(name, name_max);
-	    printf("  %10p: %s, fp = %p\n",
-		    stack[i].getPC(),
-		    name,
-		    stack[i].getFP());
+	    printf("  %10p: %s, fp = %p, type %s\n",
+               stack[i].getPC(),
+               name,
+               stack[i].getFP(),
+               frameTypeString(stack[i].getFrameType()));
+        
 	}
 	printf("End of stack dump.\n");
     }
