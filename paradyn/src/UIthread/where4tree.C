@@ -2,11 +2,15 @@
 // Ariel Tamches
 
 /* $Log: where4tree.C,v $
-/* Revision 1.11  1995/11/20 03:25:27  tamches
-/* removed obstacles to compiling on g++ 2.7.1: fixed drawTriangle()
-/* declaration and changed vector<NODEDATA *> to vector<const NODEDATA *>.
-/* expansion no longer unhights the node.
+/* Revision 1.12  1996/02/15 23:14:12  tamches
+/* added a level of indirection to obtain type-specific GCs for the various
+/* kind of arcs drawn in the tree.
 /*
+ * Revision 1.11  1995/11/20 03:25:27  tamches
+ * removed obstacles to compiling on g++ 2.7.1: fixed drawTriangle()
+ * declaration and changed vector<NODEDATA *> to vector<const NODEDATA *>.
+ * expansion no longer unhights the node.
+ *
  * Revision 1.10  1995/10/17 22:15:12  tamches
  * The templated class has changed from a unique-id class to a
  * full root-node class.
@@ -747,12 +751,15 @@ void where4tree<NODEDATA>::draw(Tk_Window theTkWindow,
       assert(listboxActualPixHeight > 0);
 
       // ray from bottom of root (rayOriginX, rayOriginY) to (centerx, topy) of listbox:
-      if (!listboxOnly)
-         XDrawLine(tc.display, theDrawable, tc.listboxRayGC,
+      if (!listboxOnly) {
+	 GC theGC = NODEDATA::getGCforListboxRay(theNodeData,
+						 getChildTree(0)->theNodeData);
+         XDrawLine(tc.display, theDrawable, theGC,
                    rayOriginX, rayOriginY,  // (left, top)
                    currentXpix + listboxPixWidth / 2, // destx
                    childtopypix - 1 // desty
                    );
+      }
 
       draw_listbox(tc.theTkWindow, tc, theDrawable,
                    currentXpix, // left
@@ -797,8 +804,11 @@ void where4tree<NODEDATA>::draw(Tk_Window theTkWindow,
 
 const int maximus = 32768;
 
+         GC lineGC = NODEDATA::getGCforNonListboxRay(getNodeData(),
+						     theChild->getNodeData());
+
          if (subtree_centerx < maximus)
-            XDrawLine(tc.display, theDrawable, tc.subchildRayGC,
+            XDrawLine(tc.display, theDrawable, lineGC,
                       rayOriginX, rayOriginY,
                       subtree_centerx, childtopypix-1);
          else {
@@ -811,7 +821,7 @@ const int maximus = 32768;
 
             const int rayDestinationY = (int)((double)rayOriginY + slope*(rayDestinationX - rayOriginX));
 
-            XDrawLine(tc.display, theDrawable, tc.subchildRayGC,
+            XDrawLine(tc.display, theDrawable, lineGC,
 		      rayOriginX, rayOriginY,
 		      rayDestinationX, rayDestinationY);
 	 }
