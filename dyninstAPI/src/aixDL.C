@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.6 2001/04/02 17:54:39 bernat Exp $
+// $Id: aixDL.C,v 1.7 2001/04/02 17:58:44 bernat Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/aixDL.h"
@@ -129,9 +129,10 @@ vector< shared_object *> *dynamic_linking::getSharedObjects(process *p)
 	  // Sucks to be us
 	  fprintf(stderr, "aixDL.C:getSharedObjects: library %s has disappeared!\n", ptr->ldinfo_filename);
 	  // Set the memory offsets to -1 so we don't try to parse it.
-	  ptr->ldinfo_textorg = -1;
-	  ptr->ldinfo_dataorg = -1;
+	  ptr->ldinfo_textorg = (void *)-1;
+	  ptr->ldinfo_dataorg = (void *)-1;
 	}
+      }
 
       string obj_name = string(ptr->ldinfo_filename);
       string member = string(ptr->ldinfo_filename + 

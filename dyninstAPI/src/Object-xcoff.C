@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.6 2001/03/08 23:00:48 bernat Exp $
+// $Id: Object-xcoff.C,v 1.7 2001/04/02 17:58:44 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -452,9 +452,11 @@ void Object::parse_aout(int fd, int offset)
        {
 	 if (ptrace(PT_READ_BLOCK, pid_, (int *)in_traced,
 		    1024, (int *)in_self) == -1) {
+#ifdef DEBUG
 	   fprintf(stderr, "PTRACE_READ 1: from %x (in_traced) to %x (in_self)\n",
 		   (int) in_traced, (int) in_self);
 	   perror("Reading data segment of inferior process");
+#endif DEBUG
 	   PARSE_AOUT_DIE("Reading data segment", 49);
 	 }
 	 in_self += 1024;
@@ -462,9 +464,11 @@ void Object::parse_aout(int fd, int offset)
        }
      if (ptrace(PT_READ_BLOCK, pid_, (int *)in_traced,
 		ptrace_amount, (int *)in_self) == -1) {
+#ifdef DEBUG
        fprintf(stderr, "PTRACE_READ 2: from %x (in_traced) to %x (in_self)\n",
 	       (int) in_traced, (int) in_self);
        perror("Reading data segment of inferior process");
+#endif DEBUG
        PARSE_AOUT_DIE("Reading data segment", 49);
      }
      // data_off_ is the value subtracted from an (absolute) address to
@@ -476,7 +480,7 @@ void Object::parse_aout(int fd, int offset)
      data_off_ = 0;
    }
    
-#ifdef notdef
+#ifdef DEBUG
    fprintf(stderr, "data_org_ = %x, scnptr = %x, data_start = %x\n",
 	   (unsigned) data_org_, sectHdr[aout.o_sndata-1].s_scnptr, 
 	   (unsigned) aout.data_start);
@@ -484,7 +488,7 @@ void Object::parse_aout(int fd, int offset)
 
    data_len_ = aout.dsize;
 
-#ifdef notdef
+#ifdef DEBUG
    fprintf(stderr, "Data pointer: %x, reloc: %x, offset: %x, length: %x\n",
 	   (unsigned) data_ptr_, (unsigned) data_reloc, 
 	   (unsigned) data_off_, (unsigned) data_len_);
