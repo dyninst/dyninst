@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2000 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTetc-posix.c,v 1.65 2000/07/28 17:22:37 pcroth Exp $
+ * $Id: RTetc-posix.c,v 1.66 2000/08/08 15:14:38 wylie Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -77,31 +77,25 @@
 
 
 /************************************************************************
- * void DYNINSTbreakPoint(void)
+ * void PARADYNbreakPoint(void)
  *
  * stop oneself.
 ************************************************************************/
 
 void
-DYNINSTbreakPoint(void) {
-    int sample ;
+PARADYNbreakPoint(void) {
+    int sample;
 #ifdef DETACH_ON_THE_FLY
-    /* FIXME: We do not need the SIGILL here as we do in RTposix.c for
-       the dyninst runtime library, but we don't know why.
-
-       There are two possible reasons: (1) the daemon is always
-       attached when this function is called or (2) the trace record
-       sent here wakes up the daemon correctly so the daemon does not
+    /* DYNINSTbreakPoint (in dyninstAPI_RT/src/RTposix.c) calls DYNINSTsigill
+       which is not strictly necessary here, probably because the trace
+       record sent here wakes up the daemon correctly so the daemon does not
        need to see the SIGSTOP event.
-
-       Use of SIGILL is complex.  The only good reason to add it here
-       would be if this were being called (unavoidably) when the
-       daemon is detached.  If you find you need it, use DYNINSTsigill
-       from the dyninst runtime library.  */
+    
+       Use of SIGILL is complex.  If there's a problem with it here,
+       specialize this function to avoid it. */
 #endif
-    kill(getpid(), SIGSTOP);
-    DYNINSTgenerateTraceRecord(0, TR_SYNC, 0, &sample, 0, 0.0, 0.0) ;
-
+    DYNINSTbreakPoint();
+    DYNINSTgenerateTraceRecord(0, TR_SYNC, 0, &sample, 0, 0.0, 0.0);
 }
 
 
