@@ -4,10 +4,14 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.C,v $
-/* Revision 1.9  1996/02/11 18:26:44  tamches
-/* shg message window now works correctly for multiple phases
-/* internal cleanup; more tk window name entities parameterized
+/* Revision 1.10  1996/02/15 23:12:30  tamches
+/* corrected parameters of addEdge to properly handle why vs. where
+/* axis refinements
 /*
+ * Revision 1.9  1996/02/11 18:26:44  tamches
+ * shg message window now works correctly for multiple phases
+ * internal cleanup; more tk window name entities parameterized
+ *
  * Revision 1.8  1996/02/07 21:51:35  tamches
  * defineNewSearch now returns bool should-redraw flag
  *
@@ -376,7 +380,7 @@ bool shgPhases::defineNewSearch(int phaseId, const string &phaseName) {
       if (!theShgPhases[theShgPhases.size()-1].everSearched) {
          shgStruct &victimStruct = theShgPhases[theShgPhases.size()-1];
          
-         cout << "shgPhases: throwing out never-searched phase " << victimStruct.phaseName << endl;
+         cout << "shgPhases: throwing out never-searched phase id " << victimStruct.getPhaseId() << " " << victimStruct.phaseName << endl;
          string commandStr = menuName + " delete " + string(theShgPhases.size());
          myTclEval(interp, commandStr);
 
@@ -481,7 +485,7 @@ bool shgPhases::addNode(int phaseId, unsigned nodeId,
 }
 
 bool shgPhases::addEdge(int phaseId, unsigned fromId, unsigned toId,
-			shgRootNode::evaluationState es,
+			shgRootNode::refinement theRefinement,
 			const char *label // used only for shadow nodes, else NULL
 			) {
    // The evaluationState param decides whether to explicitly expand
@@ -489,7 +493,7 @@ bool shgPhases::addEdge(int phaseId, unsigned fromId, unsigned toId,
    // Returns true iff a redraw should take place
    shg &theShg = getByID(phaseId);
    const bool isCurrShg = (getCurrentId() == phaseId);
-   theShg.addEdge(fromId, toId, es, label, isCurrShg);
+   theShg.addEdge(fromId, toId, theRefinement, label, isCurrShg);
 
    return isCurrShg;
 }
@@ -508,6 +512,12 @@ void shgPhases::addToStatusDisplay(int phaseId, const string &iMsg) {
    if (!existsCurrent()) {
       cerr << "addToStatusDisplay: no current phase to display msg:" << endl;
       cerr << iMsg << endl;
+      return;
+   }
+
+   if (!existsById(phaseId)) {
+      cerr << "addToStatusDisplay: no phase id " << phaseId << " exists to display msg:" << endl;
+      cerr << "\"" << iMsg << "\"" << endl;
       return;
    }
 

@@ -4,10 +4,14 @@
 // basically manages several "shg"'s, as defined in shgPhases.h
 
 /* $Log: shgPhases.h,v $
-/* Revision 1.8  1996/02/11 18:25:54  tamches
-/* shg message window now works correctly for multiple phases
-/* internal cleanup; more tk window name entities parameterized
+/* Revision 1.9  1996/02/15 23:12:29  tamches
+/* corrected parameters of addEdge to properly handle why vs. where
+/* axis refinements
 /*
+ * Revision 1.8  1996/02/11 18:25:54  tamches
+ * shg message window now works correctly for multiple phases
+ * internal cleanup; more tk window name entities parameterized
+ *
  * Revision 1.7  1996/02/07 21:51:04  tamches
  * defineNewSearch now returns bool
  *
@@ -213,7 +217,7 @@ class shgPhases {
                 const string &label, const string &fullInfo,
                 bool rootNodeFlag);
    bool addEdge(int phaseId, unsigned fromId, unsigned toId,
-                shgRootNode::evaluationState,
+                shgRootNode::refinement,
                 const char *label // used only for shadow nodes, else NULL
                 );
       // The evaluationState param decides whether to explicitly expand
