@@ -109,6 +109,7 @@ bool decipherBound( Dwarf_Debug & dbg, Dwarf_Attribute boundAttribute, char ** b
 			if( status == DW_DLV_OK ) {
 				* boundString = strdup( boundName );
 				assert( * boundString != NULL );
+
 				dwarf_dealloc( dbg, boundName, DW_DLA_STRING );
 				return true;
 				}
@@ -127,9 +128,13 @@ bool decipherBound( Dwarf_Debug & dbg, Dwarf_Attribute boundAttribute, char ** b
 				* boundString = (char *)calloc( 12, sizeof( char ) );
 				assert( * boundString != NULL );
 				snprintf( * boundString, 12, "%lu", (unsigned long)constBoundValue );
+
+				dwarf_dealloc( dbg, constBoundAttribute, DW_DLA_ATTR );
+				dwarf_dealloc( dbg, boundEntry, DW_DLA_DIE );
 				return true;
 				}
 
+			dwarf_dealloc( dbg, constBoundAttribute, DW_DLA_ATTR );
 			return false;
 			} break;
 
@@ -197,6 +202,7 @@ void parseSubRangeDIE( Dwarf_Debug & dbg, Dwarf_Die subrangeDIE, char ** loBound
 
 	if( status == DW_DLV_OK ) {
 		decipherBound( dbg, lowerBoundAttribute, loBound );
+		dwarf_dealloc( dbg, lowerBoundAttribute, DW_DLA_ATTR );
 		} /* end if we found a lower bound. */
 
 	/* Look for the upper bound. */
@@ -210,6 +216,7 @@ void parseSubRangeDIE( Dwarf_Debug & dbg, Dwarf_Die subrangeDIE, char ** loBound
 
 	if( status == DW_DLV_OK ) {
 		decipherBound( dbg, upperBoundAttribute, hiBound );
+		dwarf_dealloc( dbg, upperBoundAttribute, DW_DLA_ATTR );
 		} /* end if we found an upper bound or count. */
 
 	/* Construct the range type. */
@@ -288,6 +295,7 @@ BPatch_type * parseMultiDimensionalArray( Dwarf_Debug & dbg, Dwarf_Die range, BP
 	// fprintf( stderr, "Adding inner type %lu\n", (unsigned long) dieOffset );
 	outerType = module->moduleTypes->addOrUpdateType( outerType );
 
+	dwarf_dealloc( dbg, nextSibling, DW_DLA_DIE );
 	return outerType;
 	} /* end parseMultiDimensionalArray() */
 
@@ -618,9 +626,11 @@ void dumpAttributeList( Dwarf_Die dieEntry, Dwarf_Debug & dbg ) {
 		status = dwarf_whatattr( attributeList[i], & whatAttr, NULL );
 		assert( status != DW_DLV_ERROR );
 		fprintf( stderr, " 0x%x", whatAttr );
+		
 		dwarf_dealloc( dbg, attributeList[i], DW_DLA_ATTR );
 		} /* end iteration over attributes */
 	fprintf( stderr, "\n" );
+	
 	dwarf_dealloc( dbg, attributeList, DW_DLA_LIST );
 	dwarf_dealloc( dbg, entryName, DW_DLA_STRING );
 	} /* end dumpAttributeList() */
@@ -704,6 +714,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			if( status == DW_DLV_OK ) {
 				status = dwarf_formflag( declAttr, & isDeclaration, NULL );
 				assert( status == DW_DLV_OK );
+
+				dwarf_dealloc( dbg, declAttr, DW_DLA_ATTR );
 				} /* end if this entry has a declaration flag */
 
 			/* Our goal is two-fold: First, we want to set the return type
@@ -727,6 +739,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 
 				dwarf_offdie( dbg, specOffset, & specEntry, NULL );
 				assert( status == DW_DLV_OK );
+
+				dwarf_dealloc( dbg, specAttribute, DW_DLA_ATTR );
 				} /* end if the function has a specification */
 
 			/* Prefer linkage names. */
@@ -739,6 +753,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				hasLinkageName = true;
 				status = dwarf_formstring( linkageNameAttr, & functionName, NULL );
 				assert( status == DW_DLV_OK );
+				
+				dwarf_dealloc( dbg, linkageNameAttr, DW_DLA_ATTR );
 				} /* end if there's a linkage name. */
 			else {
 				hasLinkageName = false;
@@ -754,6 +770,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				/* Don't parse the children, since we can't add them. */
 				parsedChild = true;
 
+				if( hasSpecification ) { dwarf_dealloc( dbg, specEntry, DW_DLA_DIE ); }
 				dwarf_dealloc( dbg, functionName, DW_DLA_STRING );
 				break;
 				} /* end if there's no name at all. */
@@ -778,6 +795,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				/* Don't parse the children, since we can't add them. */
 				parsedChild = true;
 
+				if( hasSpecification ) { dwarf_dealloc( dbg, specEntry, DW_DLA_DIE ); }
 				dwarf_dealloc( dbg, functionName, DW_DLA_STRING );
 				break;
 				}
@@ -787,6 +805,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				/* Don't parse the children, since we can't add them. */
 				parsedChild = true;
 
+				if( hasSpecification ) { dwarf_dealloc( dbg, specEntry, DW_DLA_DIE ); }
 				dwarf_dealloc( dbg, functionName, DW_DLA_STRING );
 				break;		
 				}
@@ -818,6 +837,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 
 				returnType = module->moduleTypes->findOrCreateType( typeOffset );
 				newFunction->setReturnType( returnType );
+
+				dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
 				} /* end if not a void return type */
 
 			/* Extract data for lineInformation. */
@@ -831,6 +852,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				status = dwarf_formsdata( fileNoAttr, & fileNo, NULL );
 				assert( status == DW_DLV_OK );
 				convertFileNoToName( dbg, fileNo, & fileName );
+
+				dwarf_dealloc( dbg, fileNoAttr, DW_DLA_ATTR );
 				}
 
 			Dwarf_Attribute lineNoAttr;
@@ -841,6 +864,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			if( status == DW_DLV_OK ) {
 				status = dwarf_formudata( lineNoAttr, & lineNo, NULL );
 				assert( status == DW_DLV_OK );
+
+				dwarf_dealloc( dbg, lineNoAttr, DW_DLA_ATTR );
 				}
 
 			Dwarf_Addr loPC = 0;
@@ -875,6 +900,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				currentEnclosure->addField( leftMost + 1, BPatch_dataMethod, returnType, 0, 0 );
 				}
 
+			if( hasSpecification ) { dwarf_dealloc( dbg, specEntry, DW_DLA_DIE ); }
 			dwarf_dealloc( dbg, functionName, DW_DLA_STRING );
 			} break;
 
@@ -899,6 +925,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				module->moduleTypes->addGlobalVariable( commonBlockName, commonBlockType );
 				commonBlockType->setDataClass( BPatch_dataCommon );
 				} /* end if we re-refine the type. */
+
 			dwarf_dealloc( dbg, commonBlockName, DW_DLA_STRING );
 
 			/* This node's children are in the common block. */
@@ -925,6 +952,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
 			assert( status == DW_DLV_OK );
 
+			dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
+
 			/* The typeOffset forms a module-unique type identifier,
 			   so the BPatch_type look-ups by it rather than name. */
 			BPatch_type * variableType = module->moduleTypes->findOrCreateType( typeOffset );
@@ -940,6 +969,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				if( status == DW_DLV_OK ) {
 					status = dwarf_formudata( lineNoAttr, & variableLineNo, NULL );
 					assert( status == DW_DLV_OK );
+
+					dwarf_dealloc( dbg, lineNoAttr, DW_DLA_ATTR );
 					} else {
 					// fprintf( stderr, "Variable '%s' had no line information.\n", variableName );
 					}
@@ -954,6 +985,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 					Dwarf_Signed listLength;
 					status = dwarf_loclist( locationAttr, & locationList, & listLength, NULL );
 					assert( status == DW_DLV_OK );
+
+					dwarf_dealloc( dbg, locationAttr, DW_DLA_ATTR );
 
 					// fprintf( stderr, "Decoding location of variable '%s'\n", variableName );
 					decodeLocationList( locationList, listLength, & variableFrameOffset, NULL, & isFrameRelative );
@@ -971,7 +1004,9 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 							// fprintf( stderr, "Declaration of variable '%s' has no location information, is probably extern.\n", variableName );
 							} else {
 							// fprintf( stderr, "Variable '%s' (not a declaration) has no location information.\n", variableName );
-							}						
+							}
+
+						dwarf_dealloc( dbg, declAttr, DW_DLA_ATTR );
 						} else {
 						// fprintf( stderr, "Variable '%s' has no location information.\n", variableName );
 						}
@@ -1039,6 +1074,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			assert( status == DW_DLV_OK );
 			status = dwarf_formudata( byteSizeAttr, & byteSize, NULL );
 			assert( status == DW_DLV_OK );
+
+			dwarf_dealloc( dbg, byteSizeAttr, DW_DLA_ATTR );
 			
 			/* Generate the appropriate built-in type; since there's no
 			   reliable way to distinguish between a built-in and a scalar,
@@ -1049,6 +1086,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			/* Add the basic type to our collection. */
 			// fprintf( stderr, "Adding base type '%s' (%lu) of size %lu\n\n", typeName, (unsigned long)dieOffset, (unsigned long)byteSize );
 			baseType = module->moduleTypes->addOrUpdateType( baseType );
+			
 			dwarf_dealloc( dbg, typeName, DW_DLA_STRING );
 			} break;
 
@@ -1065,10 +1103,12 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				// fprintf( stderr, "Ignoring non-defining typedef %lu\n", (unsigned long)dieOffset );
 				break;
 				}
-			
+
 			Dwarf_Off typeOffset;
 			status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
 			assert( status == DW_DLV_OK );
+
+			dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
 
 			/* Look up the referenced type. */
 			BPatch_type * referencedType = module->moduleTypes->findOrCreateType( typeOffset );
@@ -1082,6 +1122,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			Dwarf_Die childDwarf;
 			status = dwarf_child( dieEntry, & childDwarf, NULL );
 			assert( status == DW_DLV_NO_ENTRY );
+			
 			dwarf_dealloc( dbg, definedName, DW_DLA_STRING );
 			} break;
 
@@ -1098,6 +1139,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			Dwarf_Off typeOffset;
 			status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
 			assert( status == DW_DLV_OK );
+
+			dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
 			
 			BPatch_type * elementType = module->moduleTypes->findOrCreateType( typeOffset );
 
@@ -1121,6 +1164,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 
 			/* Don't parse the children again. */
 			parsedChild = true;
+
+			dwarf_dealloc( dbg, firstRange, DW_DLA_DIE );
 			dwarf_dealloc( dbg, arrayName, DW_DLA_STRING );
 			} break;
 
@@ -1139,6 +1184,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			assert( enumerationType != NULL );
 			enumerationType = module->moduleTypes->addOrUpdateType( enumerationType );
 			newEnclosure = enumerationType;
+
 			dwarf_dealloc( dbg, typeName, DW_DLA_STRING );
 			} break;
 
@@ -1151,6 +1197,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			Dwarf_Off scOffset;
 			status = dwarf_global_formref( scAttr, & scOffset, NULL );
 			assert( status == DW_DLV_OK );
+
+			dwarf_dealloc( dbg, scAttr, DW_DLA_ATTR );
 
 			BPatch_type * superClass = module->moduleTypes->findOrCreateType( scOffset );
 
@@ -1174,6 +1222,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 						fprintf( stderr, "Uknown visibility, ignoring.\n" );
 						break;
 					} /* end visibility switch */
+
+				dwarf_dealloc( dbg, visAttr, DW_DLA_ATTR );
 				} /* end if the visibility is specified. */
 
 			/* Add a readily-recognizable 'bad' field to represent the superclass.
@@ -1196,6 +1246,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			if( status == DW_DLV_OK ) {
 				status = dwarf_formudata( sizeAttr, & typeSize, NULL );
 				assert( status == DW_DLV_OK );
+
+				dwarf_dealloc( dbg, sizeAttr, DW_DLA_ATTR );
 				}
 
 			BPatch_dataClass bpdc = BPatch_unknownType;
@@ -1210,6 +1262,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			// fprintf( stderr, "Adding structure, union, or class type '%s' (%lu)\n", typeName, (unsigned long)dieOffset );
 			containingType = module->moduleTypes->addOrUpdateType( containingType );
 			newEnclosure = containingType;
+			
 			dwarf_dealloc( dbg, typeName, DW_DLA_STRING );
 			} break;
 			
@@ -1227,10 +1280,13 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			if( status == DW_DLV_OK ) {
 				status = dwarf_formsdata( valueAttr, & enumValue, NULL );
 				assert( status == DW_DLV_OK );
+
+				dwarf_dealloc( dbg, valueAttr, DW_DLA_ATTR );
 				}
 
 			// fprintf( stderr, "Adding enum '%s' (%ld) to enumeration '%s' (%d)\n", enumName, (signed long)enumValue, currentEnclosure->getName(), currentEnclosure->getID() );
 			currentEnclosure->addField( enumName, BPatch_dataScalar, enumValue );
+
 			dwarf_dealloc( dbg, enumName, DW_DLA_STRING );
 			} break;
 
@@ -1246,6 +1302,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			Dwarf_Off typeOffset;
 			status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
 			assert( status == DW_DLV_OK );
+
+			dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
 			
 			BPatch_type * memberType = module->moduleTypes->findOrCreateType( typeOffset );
 				
@@ -1266,6 +1324,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				long int baseAddress = 0;
 				decodeLocationList( locationList, listLength, & memberOffset, & baseAddress, NULL );
 				deallocateLocationList( dbg, locationList, listLength );
+
+				dwarf_dealloc( dbg, locationAttr, DW_DLA_ATTR );
 				}
 
 			// fprintf( stderr, "Adding member to enclosure '%s' (%d): '%s' with type %lu at %ld and size %d\n", currentEnclosure->getName(), currentEnclosure->getID(), memberName, (unsigned long)typeOffset, memberOffset, memberType->getSize() );
@@ -1284,12 +1344,16 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				status = dwarf_formudata( bitOffset, & (Dwarf_Unsigned) memberOffset, NULL );
 				assert( status == DW_DLV_OK );
 
+				dwarf_dealloc( dbg, bitOffset, DW_DLA_ATTR );
+
 				Dwarf_Attribute bitSize;
 				status = dwarf_attr( dieEntry, DW_AT_bit_size, & bitSize, NULL );
 				assert( status == DW_DLV_OK );
 
 				status = dwarf_formudata( bitSize, & (Dwarf_Unsigned) memberSize, NULL );
 				assert( status == DW_DLV_OK );
+
+				dwarf_dealloc( dbg, bitSize, DW_DLA_ATTR );
 
 				/* If the DW_AT_byte_size field exists, there's some padding.
 				   FIXME?  We ignore padding for now.  (We also don't seem to handle
@@ -1302,6 +1366,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 
 			// fprintf( stderr, "Adding member '%s' to enclosure '%s'\n", memberName, currentEnclosure->getName() );
 			currentEnclosure->addField( memberName, memberType->getDataClass(), memberType, memberOffset, memberSize );
+
 			dwarf_dealloc( dbg, memberName, DW_DLA_STRING );
 			} break;
 
@@ -1316,7 +1381,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			Dwarf_Attribute typeAttribute;
 			status = dwarf_attr( dieEntry, DW_AT_type, & typeAttribute, NULL );
 
-			int typeSize;
+			int typeSize = 0;
 			Dwarf_Off typeOffset;
 			BPatch_type * typeModified = NULL;
 			if( status == DW_DLV_NO_ENTRY ) {
@@ -1334,12 +1399,15 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				assert( status == DW_DLV_OK );
 				typeModified = module->moduleTypes->findOrCreateType( typeOffset );
 				typeSize = typeModified->getSize();
+
+				dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
 				} /* end if typeModified is not void */
 
 			BPatch_type * modifierType = new BPatch_type( typeName, dieOffset, BPatch_typeAttrib, typeSize, typeModified, dieTag );
 			assert( modifierType != NULL );
 			// fprintf( stderr, "Adding modifier type '%s' (%lu) modifying (%lu)\n", typeName, (unsigned long)dieOffset, (unsigned long)typeOffset );
 			modifierType = module->moduleTypes->addOrUpdateType( modifierType );
+
 			dwarf_dealloc( dbg, typeName, DW_DLA_STRING );
 			} break;
 
@@ -1373,12 +1441,15 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
 				assert( status == DW_DLV_OK );
 				typePointedTo = module->moduleTypes->findOrCreateType( typeOffset );
+
+				dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
 				} /* end if typePointedTo is not void */
 
 			BPatch_type * indirectType = new BPatch_type( typeName, dieOffset, BPatch_dataPointer, typePointedTo );
 			assert( indirectType != NULL );
 			// fprintf( stderr, "Adding indirect type '%s' (%lu) pointing to (%lu)\n", typeName, (unsigned long)dieOffset, (unsigned long)typeOffset );
 			indirectType = module->moduleTypes->addOrUpdateType( indirectType );
+
 			dwarf_dealloc( dbg, typeName, DW_DLA_STRING );
 			} break;
 
@@ -1395,19 +1466,25 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 	/* Recurse to its child, if any. */
 	Dwarf_Die childDwarf;
 	status = dwarf_child( dieEntry, & childDwarf, NULL );
+	assert( status != DW_DLV_ERROR );
+
 	if( status == DW_DLV_OK && parsedChild == false ) {
 		walkDwarvenTree( dbg, moduleName, childDwarf, module, lineNoToFnNameMap, newFunction, newCommonBlock, newEnclosure );
+
+		dwarf_dealloc( dbg, childDwarf, DW_DLA_DIE );
 		}
-	assert( status != DW_DLV_ERROR );
 
 	/* Recurse to its first sibling, if any. */
 	Dwarf_Die siblingDwarf;
 	status = dwarf_siblingof( dbg, dieEntry, & siblingDwarf, NULL );
+	assert( status != DW_DLV_ERROR );
+
 	if( status == DW_DLV_OK ) {
 		/* Siblings should all use the same function, common block, and enclosure. */
 		walkDwarvenTree( dbg, moduleName, siblingDwarf, module, lineNoToFnNameMap, currentFunction, currentCommonBlock, currentEnclosure );
+
+		dwarf_dealloc( dbg, siblingDwarf, DW_DLA_DIE );
 		}
-	assert( status != DW_DLV_ERROR );
 
 	/* When would we return false? :) */
 	return true;
@@ -1424,7 +1501,7 @@ void BPatch_module::parseDwarfTypes() {
 
 	/* Start the dwarven debugging. */
 	const char * fileName = moduleObject.getFileName();
-	//fprintf( stderr, "Parsing object '%s'\n", fileName );
+	// fprintf( stderr, "Parsing object '%s'\n", fileName );
 	if( strcmp( mod->fileName().c_str(), "libstdc++.so.5" ) == 0 ) {
 		return;
 		}
@@ -1488,7 +1565,9 @@ void BPatch_module::parseDwarfTypes() {
 					/* We know what the language is but don't care. */
 					setLanguage( BPatch_unknownLanguage );
 					break;
-				} /* end languageConstant switch */	
+				} /* end languageConstant switch */
+
+			dwarf_dealloc( dbg, languageAttribute, DW_DLA_ATTR );
 		} else {
 			setLanguage( BPatch_unknownLanguage );
 			} /* end language detection */
@@ -1509,6 +1588,8 @@ void BPatch_module::parseDwarfTypes() {
 
 		/* Iterate over the tree rooted here. */
 		assert( walkDwarvenTree( dbg, moduleName, moduleDIE, this, lineNoToFnNameMap ) );
+
+		dwarf_dealloc( dbg, moduleDIE, DW_DLA_ATTR );
 		dwarf_dealloc( dbg, moduleName, DW_DLA_STRING );
 
 		/* Are there any functions whose line number-to-address mapping
@@ -1539,6 +1620,7 @@ void BPatch_module::parseDwarfTypes() {
 				while( nextIter != lastIter && lineNo >= nextIter->first ) {
 					// fprintf( stderr, "Finished with function '%s', inserting into function '%s'\n", currentIter->second, nextIter->second );
 					dwarf_dealloc( dbg, currentIter->second, DW_DLA_STRING );
+
 					++ currentIter;
 					++ nextIter;
 					} /* end if we've finished a function */
@@ -1578,7 +1660,13 @@ void BPatch_module::parseDwarfTypes() {
 		} /* end iteration over compilation-unit headers. */
 
 	/* Clean up. */
-	dwarf_finish( dbg, NULL );
+	Elf * dwarfElf;
+	status = dwarf_get_elf( dbg, & dwarfElf, NULL );
+	assert( status == DW_DLV_OK );
+	elf_end( dwarfElf );
+
+	status = dwarf_finish( dbg, NULL );
+	assert( status == DW_DLV_OK );
 	close( fd );
 
 	/* Run a sanity check. */
