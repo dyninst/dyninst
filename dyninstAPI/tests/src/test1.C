@@ -4301,8 +4301,8 @@ void instrumentLoops(BPatch_thread *appThread, BPatch_image *appImage,
 	BPatch_point *p = NULL;
 
 	if (blocks.size() == 0) {
-	    // if there are no basic blocks then we can't instrument
-	    // the body of this loop
+	    // there should always be at least 1 basic block
+	    assert(0); 
 	}
 	else if (blocks.size() == 1) {
 	    // if the loop body has a single block then we try to create
@@ -4337,7 +4337,7 @@ void instrumentLoops(BPatch_thread *appThread, BPatch_image *appImage,
 	else {
 	    // insert a call to the function which increments the global
 	    BPatchSnippetHandle * han = 
-		appThread->insertSnippet(callInc, *p, BPatch_callAfter);
+		appThread->insertSnippet(callInc, *p, BPatch_callBefore);
 	    
 	    // did we insert the snippet?
 	    if (han == NULL) {
