@@ -27,6 +27,9 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
+ * Revision 1.39  1996/03/11 19:02:08  mjrg
+ * Fixed a bug in getTime, the return was missing.
+ *
  * Revision 1.38  1996/03/05 16:14:02  naim
  * Making enableDataCollection asynchronous in order to improve performance - naim
  *
@@ -467,7 +470,7 @@ int dynRPC::addExecutable(vector<string> argv, string dir, bool stopAtFirstBreak
 // report the current time 
 //
 double dynRPC::getTime() {
-  getCurrentTime(false);
+  return getCurrentTime(false);
 }
 
 
