@@ -2,7 +2,10 @@
  * Do automated refinement
  *
  * $Log: PCauto.C,v $
- * Revision 1.1  1994/02/02 00:38:10  hollings
+ * Revision 1.2  1994/02/05 23:14:45  hollings
+ * Added context to pauseApplication call.
+ *
+ * Revision 1.1  1994/02/02  00:38:10  hollings
  * First version of the Performance Consultant using threads.
  *
  * Revision 1.8  1993/09/03  18:53:05  hollings
@@ -159,7 +162,7 @@ void autoChangeRefineList()
     // see if there was any thing to test.
     if (currentRefinementBase >= refineCount) {
 	// ???? what should really go here.
-	dataMgr->pauseApplication(NULL);
+	dataMgr->pauseApplication(context);
 	printf("all refinements considered...application paused\n");
 
 	// prevent any further auto refinement.
