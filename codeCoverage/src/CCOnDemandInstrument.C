@@ -122,18 +122,26 @@ int CCOnDemandInstrument::run(){
 		(unsigned)(timeBuffer.tv_sec + 0.5 + (timeBuffer.tv_nsec / 1.0e9));
 
 	while(true && isExpected){
-
+		unsigned howManyPolls = 0;
 		while (!appThread->isStopped() && !appThread->isTerminated()){
+			if(!deletionInterval){
+				bPatch.waitForStatusChange();
+				continue;
+			}
+
+			if(howManyPolls && !(howManyPolls % 100))
+				sleep(1);
+				
 			bPatch.pollForStatusChange(); 
-			if(deletionInterval > 0)
-			{
-				clock_gettime(CLOCK_REALTIME,&timeBuffer);
-				unsigned endTime = 
+			howManyPolls++;
+
+			clock_gettime(CLOCK_REALTIME,&timeBuffer);
+			unsigned endTime = 
 				(unsigned)(timeBuffer.tv_sec + 0.5 + (timeBuffer.tv_nsec / 1.0e9));
-				if((endTime - beginTime) >= deletionInterval){
-					deletionIntervalCallback();
-					beginTime = endTime;
-				}
+			if((endTime - beginTime) >= deletionInterval){
+				deletionIntervalCallback();
+				beginTime = endTime;
+				howManyPolls = 0;
 			}
 		}
 

@@ -550,7 +550,7 @@ pack	.fileFrame.message -side top -fill x
 Scrolled_Text \
 	.fileFrame.displayPanel -width 80 -height 40 \
 	-bg black -fg white -font comic12 -wrap char \
-	-exportselection false -relief sunken -borderwidth 2 
+	-exportselection false -relief sunken -borderwidth 2 -state disabled
 pack	.fileFrame.displayPanel -side top -fill both -expand true -padx 2 -pady 5
 
 pack    .fileFrame.status -side top -fill x
