@@ -71,7 +71,8 @@ typedef enum {
 #define BPatch_subroutine BPatch_locSubroutine
 #define BPatch_longJump	BPatch_locLongJump
 #define BPatch_allLocations BPatch_locAllLocations
-#define BPatch_instruction BPatch_locInstruction
+/* #define BPatch_instruction BPatch_locInstruction */
+#define BPatch_arbitrary BPatch_locInstruction
 
 /*
  * Used with BPatch_function::findPoint to specify which of the possible

@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.140 2003/07/25 20:40:42 schendel Exp $
+ * $Id: inst-x86.C,v 1.141 2003/08/01 22:58:44 jodom Exp $
  */
 
 #include <iomanip>
@@ -3821,7 +3821,7 @@ BPatch_point *createInstructionInstPoint(process* proc, void *address,
 
     func->addArbitraryPoint(newpt, proc);
 
-    return proc->findOrCreateBPPoint(bpfunc, newpt, BPatch_instruction);
+    return proc->findOrCreateBPPoint(bpfunc, newpt, BPatch_arbitrary);
 }
 
 /*

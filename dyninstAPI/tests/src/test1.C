@@ -2101,7 +2101,7 @@ void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
 	p = appImage->createInstPointAtAddr((char *)f->getBaseAddr() + i);
 
 	if (p) {
-	    if (p->getPointType() == BPatch_instruction) {
+	    if (p->getPointType() == BPatch_arbitrary) {
 		found_one = true;
 		if (appThread->insertSnippet(call20_1Expr, *p) == NULL) {
 		    fprintf(stderr,

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.146 2003/07/18 20:07:01 schendel Exp $
+// $Id: inst-sparc.C,v 1.147 2003/08/01 22:58:44 jodom Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -2196,7 +2196,7 @@ BPatch_point* createInstructionInstPoint(process *proc, void *address,
 
     pointFunction->addArbitraryPoint(newpt,proc);
 
-    return proc->findOrCreateBPPoint(bpfunc, newpt, BPatch_instruction);
+    return proc->findOrCreateBPPoint(bpfunc, newpt, BPatch_arbitrary);
 }
 
 /*

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.66 2003/07/18 15:43:53 schendel Exp $
+// $Id: inst-alpha.C,v 1.67 2003/08/01 22:58:43 jodom Exp $
 
 #include "common/h/headers.h"
 
@@ -2273,7 +2273,7 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address,
     pointFunction->addArbitraryPoint(newpt,NULL);
 
 
-    return proc->findOrCreateBPPoint(NULL, newpt, BPatch_instruction);
+    return proc->findOrCreateBPPoint(NULL, newpt, BPatch_arbitrary);
 }
 
 #include "BPatch_point.h"

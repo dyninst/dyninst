@@ -5079,7 +5079,7 @@ BPatch_point *createInstructionInstPoint(process *proc, void *address,
     pd_Function* pointFunction = (pd_Function*)func;
     pointFunction->addArbitraryPoint(newpt,NULL);
 
-    return proc->findOrCreateBPPoint(bpfunc, newpt, BPatch_instruction);
+    return proc->findOrCreateBPPoint(bpfunc, newpt, BPatch_arbitrary);
 }
 
 /*

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.89 2003/07/31 19:01:20 schendel Exp $
+// $Id: BPatch_thread.C,v 1.90 2003/08/01 22:58:43 jodom Exp $
 
 #ifdef sparc_sun_solaris2_4
 #include <dlfcn.h>
@@ -895,7 +895,7 @@ BPatchSnippetHandle *BPatch_thread::insertSnippet(const BPatch_snippet &expr,
 #if defined(mips_sgi_irix6_4)
 			// On MIPS, we can't have recursive guards on arbitrary
 			// inst point.
-			point.getPointType() == BPatch_instruction ?  true : 
+			point.getPointType() == BPatch_arbitrary ?  true : 
 #endif
 			BPatch::bpatch->isTrampRecursive()
 					   );
