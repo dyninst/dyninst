@@ -25,10 +25,13 @@
 // * VISIthread server routines:  VISIKillVisi
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.17  1994/07/30 20:38:05  newhall
-/* Added calls to visi interface routines Enabled and BulkDataTransfer
-/* durring the processing of new metric choices
+/* Revision 1.18  1994/08/01 17:28:57  markc
+/* Removed uses of getCurrent, setCurrent.  Replaced with list iterators.
 /*
+ * Revision 1.17  1994/07/30  20:38:05  newhall
+ * Added calls to visi interface routines Enabled and BulkDataTransfer
+ * durring the processing of new metric choices
+ *
  * Revision 1.16  1994/07/28  22:32:59  krisna
  * proper starting sequence for VISIthreadmain thread
  *
@@ -347,7 +350,7 @@ void VISIthreadchooseMetRes(char **metricNames,
  int  not_nan_count;
  float_Array bulk_data;
  int_Array metricIds;
-
+ List<metricInstance*> walk;
 
   PARADYN_DEBUG(("In VISIthreadchooseMetRes numMetrics = %d",numMetrics));
 
@@ -371,16 +374,12 @@ void VISIthreadchooseMetRes(char **metricNames,
 
   // determine if this focus has been enabled before
   found = 0;
-  if(!(ptr->mrlist->empty())){
-      found = 0;
-      ptr->mrlist->setCurrent();
-      while((!found) &&((temp = ptr->mrlist->getCurrent()) != 0)){
-	  if( temp->focus->getCanonicalName() == key )
-	      found = 1;
-          ptr->mrlist->advanceCurrent();
-      }
-  }
-  
+  for (walk= *ptr->mrlist; temp=*walk; ++walk) 
+    if (temp->focus->getCanonicalName() == key) {
+      found = 1;
+      break;
+    }
+
   // this is a new focus, enable all metric/focus pairs
   if(!found){  
 
@@ -422,14 +421,12 @@ void VISIthreadchooseMetRes(char **metricNames,
       if((currMetric = ptr->dmp->findMetric(context,metricNames[i])) != 0){
 	  // search mrlist for metricInstance assoc. w/ currMetric & focus
 	  found = 0;
-	  ptr->mrlist->setCurrent();
-	  while((!found) &&((temp = ptr->mrlist->getCurrent()) != 0)){
-	      if((temp->focus->getCanonicalName() == key)
-		  && (temp->met == currMetric)){
-	          found = 1;
-              }
-              ptr->mrlist->advanceCurrent();
-	  }
+	  for (walk= *ptr->mrlist; temp = *walk; walk++) 
+	    if ((temp->focus->getCanonicalName() == key) &&
+		(temp->met == currMetric)) {
+	      found = 1;
+ 	      break;
+	    }
 
 	  if(!found){ // enable
               if((currMetInst = ptr->dmp->enableDataCollection(ptr->perStream,
@@ -644,7 +641,7 @@ void visualizationUser::StopMetricResource(int metricId,
  VISIthreadGlobals *ptr;
  metricInstance *listItem;
  int found = 0;
-
+ List<metricInstance*> walk;
 
   if (thr_getspecific(visiThrd_key, (void **) &ptr) != THR_OKAY) {
     PARADYN_DEBUG(("thr_getspecific in visualizationUser::StopMetricResource"));
@@ -655,17 +652,17 @@ void visualizationUser::StopMetricResource(int metricId,
 
   // search metricList for matching metricId and resourceId
   // if found request DM to disable data collection of metricInstance
-  if(!ptr->mrlist->empty()){
-    ptr->mrlist->setCurrent();
-    while(!found && ((listItem = ptr->mrlist->getCurrent()) != 0)){
-      //if metric and resource match set found to 1 
-      if((listItem->met == (metric *)metricId) &&
-	(listItem->focus->getCanonicalName() == (char *)resourceId)){
-         found = 1;
-      }
-      PARADYN_DEBUG(("current list element: metId = %d resId = %d",(int)listItem->met,(int)listItem->focus));
-      ptr->mrlist->advanceCurrent();
+
+  found = 0;
+  for (walk = *ptr->mrlist; listItem=*walk; walk++) {
+    if ((listItem->met = (metric*) metricId) &&
+	(listItem->focus->getCanonicalName() == (char*) resourceId)) {
+      found = 1;
+      break;
     }
+      PARADYN_DEBUG(("current list element: metId = %d resId = %d",
+		     (int)listItem->met,(int)listItem->focus));
+  }
 
 #ifdef DEBUG
     if(found){
@@ -686,9 +683,9 @@ void visualizationUser::StopMetricResource(int metricId,
         return;
       }
     }
-  }
-
 }
+
+
 
 ///////////////////////////////////////////////////////////////////
 //  PhaseName: visualizationUser routine (called by visi process)
@@ -728,7 +725,7 @@ void *VISIthreadmain(void *vargs){
   controlCallback callbacks;
   metricInstance *listItem;
   union dataCallback dataHandlers;
-
+  List<metricInstance*> walk;
 
   //initialize global variables
 
@@ -823,14 +820,12 @@ void *VISIthreadmain(void *vargs){
 
 
   // disable all metricInstance data collection
-  globals->mrlist->setCurrent();
-  while((listItem = globals->mrlist->getCurrent()) != 0){
-      globals->dmp->disableDataCollection(globals->perStream,listItem);
-      if(!(globals->mrlist->remove(listItem))){
-          perror("globals->mrlist->remove");
-          ERROR_MSG(16,"remove() in VISIthreadmain"); 
-      }
-      globals->mrlist->advanceCurrent();
+  for (walk= *globals->mrlist; listItem= *walk; ++walk) {
+    globals->dmp->disableDataCollection(globals->perStream, listItem);
+    if (!(globals->mrlist->remove(listItem))) {
+      perror("globals->mrlist->remove");
+      ERROR_MSG(16,"remove() in VISIthreadmain"); 
+    }
   }
 
   // notify VM 
