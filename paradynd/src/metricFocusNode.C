@@ -7,14 +7,19 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.33 1994/07/28 22:40:42 krisna Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/metricFocusNode.C,v 1.34 1994/08/02 18:22:55 hollings Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.33  1994/07/28 22:40:42  krisna
+ * Revision 1.34  1994/08/02 18:22:55  hollings
+ * Changed comparison for samples going backwards to use a ratio rather than
+ * an absolute fudge factor.  This is required due to floating point rounding
+ * errors on large numbers.
+ *
+ * Revision 1.33  1994/07/28  22:40:42  krisna
  * changed definitions/declarations of xalloc functions to conform to alloc.
  *
  * Revision 1.32  1994/07/26  19:58:35  hollings
@@ -698,7 +703,14 @@ void metricDefinitionNode::updateValue(time64 wallTime,
 
     if (met->info.style == EventCounter) {
 	// only use delta from last sample.
-	assert(value + 0.0001 >= sample.value);
+	if (value < sample.value) {
+	    if ((value/sample.value) < 0.99999) {
+		assert(value + 0.0001 >= sample.value);
+	    } else {
+		// floating point rounding error ignore
+		sample.value = value;
+	    }
+	}
 //	if (value + 0.0001 < sample.value)
 //           printf ("WARNING:  sample went backwards!!!!!\n");
 	value -= sample.value;
