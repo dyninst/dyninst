@@ -1,4 +1,4 @@
-// $Id: test2.C,v 1.42 2000/08/23 19:23:37 paradyn Exp $
+// $Id: test2.C,v 1.43 2001/02/01 16:24:44 pcroth Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -41,7 +41,6 @@
 #endif
 
 BPatch_thread *mutatorMAIN(char *path);
-extern "C" const char V_libdyninstAPI[];
 
 bool useAttach = false;
 int debugPrint = 0; // internal "mutator" tracing

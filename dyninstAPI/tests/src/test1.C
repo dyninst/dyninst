@@ -34,8 +34,6 @@
 
 // #include <vector.h>
 
-extern "C" const char V_libdyninstAPI[];
-
 int debugPrint = 0; // internal "mutator" tracing
 int errorPrint = 0; // external "dyninst" tracing (via errorFunc)
 

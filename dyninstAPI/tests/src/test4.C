@@ -1,4 +1,4 @@
-// $Id: test4.C,v 1.8 2000/08/23 19:23:37 paradyn Exp $
+// $Id: test4.C,v 1.9 2001/02/01 16:24:45 pcroth Exp $
 //
 
 #include <stdio.h>
@@ -17,7 +17,6 @@
 #include "BPatch_snippet.h"
 #include "test_util.h"
 
-extern "C" const char V_libdyninstAPI[];
 
 char *mutateeNameRoot = "test4a.mutatee";
 

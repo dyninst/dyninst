@@ -1,4 +1,4 @@
-// $Id: test3.C,v 1.20 2000/08/23 19:23:37 paradyn Exp $
+// $Id: test3.C,v 1.21 2001/02/01 16:24:44 pcroth Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -32,7 +32,6 @@
 #include "BPatch_snippet.h"
 #include "test_util.h"
 
-extern "C" const char V_libdyninstAPI[];
 
 int debugPrint = 0; // internal "mutator" tracing
 int errorPrint = 0; // external "dyninst" tracing (via errorFunc)
