@@ -1,12 +1,17 @@
 /* $Log: main.C,v $
-/* Revision 1.22  1995/08/14 22:49:49  tamches
-/* Removed the TC thread.
-/* The main tunable constant dictionaries are global variables
-/* (in TCthread/TCmain.C); their constructors automatically
-/* initialize the TC registry before main() even starts.  Hence,
-/* no problems declaring any tunable constants after main starts.
-/* But, don't declare any tunable constants as global variables.
+/* Revision 1.23  1995/08/16 15:17:40  krisna
+/* double-bug fix.
+/*   * do not pass addresses of stack variables into thread functions
+/*   * do not use the first item of a struct as a scalar
 /*
+ * Revision 1.22  1995/08/14 22:49:49  tamches
+ * Removed the TC thread.
+ * The main tunable constant dictionaries are global variables
+ * (in TCthread/TCmain.C); their constructors automatically
+ * initialize the TC registry before main() even starts.  Hence,
+ * no problems declaring any tunable constants after main starts.
+ * But, don't declare any tunable constants as global variables.
+ *
  * Revision 1.21  1995/08/13  23:22:26  tamches
  * Moved tcl/tk initialization code here from UImain.
  * tcl/tk initialization is now the very first thing done
@@ -336,7 +341,7 @@ main (int argc, char **argv)
 
 // initialize DM
 
-  if (thr_create(0, 0, DMmain, (void *) &init, 0, 
+  if (thr_create(0, 0, DMmain, (void *) &MAINtid, 0, 
 		 (unsigned int *) &DMtid) == THR_ERR)
     exit(1);
   PARADYN_DEBUG (("DM thread created\n"));
