@@ -1,0 +1,202 @@
+/*
+ * Copyright (c) 1996 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
+ */
+
+
+#include "paradynd/src/varInstance.h"
+#include "paradynd/src/shmMgr.h"
+#include "dyninstAPI/src/process.h"
+ 
+template <class HK>
+varInstance<HK>::varInstance(variableMgr &varMgr, const RAWTYPE &initValue_)
+  : numElems(varMgr.getMaxNumberOfThreads()),  hkBuf(1, NULL), 
+    elementsToBeSampled(false), proc(varMgr.getApplicProcess()), 
+    initValue(initValue_), theShmMgr(varMgr.getShmMgr()), 
+    elemStates(1, elemFree)
+{
+  unsigned mem_amount = sizeof(RAWTYPE) * varMgr.getMaxNumberOfThreads();
+  //  Address baseAddrInApp_;
+  baseAddrInDaemon = (void*) theShmMgr.malloc(mem_amount);
+  baseAddrInApplic = theShmMgr.getAddressInApplic(baseAddrInDaemon);
+  //  baseAddrInApplic = (void*) baseAddrInApp_;
+ 
+  for(unsigned i=0; i<numElems; i++) {
+    RAWTYPE *curElem = static_cast<RAWTYPE*>( elementAddressInDaemon(i));
+    (*curElem) = initValue;
+  }
+}
+
+template <class HK>
+void varInstance<HK>::allocateThreadVars(const vector<unsigned> &thrPosBuf) {
+  unsigned buf_size = thrPosBuf.size();
+  for(unsigned i=0; i<buf_size; i++) {
+    unsigned thrPos = thrPosBuf[i];
+    setElemState(thrPos, elemAllocated);
+  }
+}
+
+template <class HK>
+void varInstance<HK>::setElemState(unsigned thrPos, element_state st) {
+   unsigned neededsize = thrPos + 1;
+   unsigned oldsize = elemStates.size();
+   if(oldsize < neededsize) {
+      unsigned newsize = oldsize;
+      do { 
+	 newsize = (newsize + 1) * 4;   // eg. size: 1, 8, 36, 148, 596
+      } while(newsize < neededsize);
+      
+      elemStates.resize(newsize, true);
+      // new vector data will be initialized to elemFree, see call to constr.
+   }
+   elemStates[thrPos] = st;
+}
+
+template <class HK>
+void varInstance<HK>::createHKifNotPresent(unsigned thrPos) {
+   unsigned neededsize = thrPos + 1;
+   unsigned oldsize = hkBuf.size();
+   if(oldsize < neededsize) {
+      unsigned newsize = oldsize;
+      do {
+	 newsize = (newsize + 1) * 4;  // eg. size: 1, 8, 36, 148, 596
+      } while(newsize < neededsize);
+
+      hkBuf.resize(newsize, true);
+      // new vector data will be initialized to NULL, see call to constructor
+   }
+   if(hkBuf[thrPos] == NULL) {
+      hkBuf[thrPos] = new HK();
+   }
+}
+
+template <class HK>
+void varInstance<HK>::markVarAsSampled(unsigned thrPos, 
+				       threadMetFocusNode_Val *thrNval) {
+  createHKifNotPresent(thrPos);
+  hkBuf[thrPos]->setThrClient(thrNval);
+  assert(getElemState(thrPos) == elemAllocated);
+
+  permanentSamplingSet.push_back(thrPos);
+  currentSamplingSet.push_back(thrPos);
+  elementsToBeSampled = true;
+}
+
+template <class HK>
+bool varInstance<HK>::removeFromSamplingSet(vector<unsigned> *set, 
+					    unsigned thrPosToRemove) {
+  bool foundIt = false;
+  for(int i=(int)((*set).size())-1; i>=0; i--) {
+    if((*set)[i] == thrPosToRemove) {
+      (*set).erase(i);
+      foundIt = true;
+    }
+  }
+  return foundIt;
+}
+
+template <class HK>
+void varInstance<HK>::markVarAsNotSampled(unsigned thrPos) {
+  assert(getElemState(thrPos) == elemAllocated);
+  assert(removeFromSamplingSet(&permanentSamplingSet, thrPos));
+  removeFromSamplingSet(&currentSamplingSet, thrPos);
+
+  hkBuf[thrPos]->setThrClient(NULL);
+}
+
+// returns true if all relevant elements successfully sampled
+template <class HK>
+bool varInstance<HK>::doMinorSample() {
+  if(elementsToBeSampled == false)  return true;
+
+  for(int i=int(currentSamplingSet.size())-1; i>=0; i--) {
+    unsigned thrPos = currentSamplingSet[i];
+    void *voidVarAddr = elementAddressInDaemon(thrPos);
+    RAWTYPE *shmVarAddr = static_cast<RAWTYPE*>( voidVarAddr);
+    bool successful = hkBuf[thrPos]->perform(shmVarAddr, proc);
+    if(successful) {
+      currentSamplingSet.erase(i);
+    }
+  }
+  return (currentSamplingSet.size() == 0);
+}
+
+template <class HK>
+void varInstance<HK>::makePendingFree(unsigned thrPos,
+				      const vector<Address> &trampsUsing)
+{
+  assert(getElemState(thrPos) == elemAllocated);
+  setElemState(thrPos, elemPendingFree);
+
+  createHKifNotPresent(thrPos);
+  hkBuf[thrPos]->makePendingFree(trampsUsing, proc);
+}
+
+template <class HK>
+bool varInstance<HK>::attemptToFree(const vector<Frame> &stackWalk) {
+   unsigned buf_size = elemStates.size();  
+   bool nonFreedElemExists = true;
+   for(unsigned thrPos=0; thrPos<buf_size; thrPos++) {
+      if(getElemState(thrPos) == elemPendingFree) {
+	 bool okToFreeElem = hkBuf[thrPos]->tryGarbageCollect(stackWalk);
+	 if(okToFreeElem)  {
+	    setElemState(thrPos, elemFree);
+	 }
+      }
+      nonFreedElemExists &= (getElemState(thrPos) != elemFree);
+   }
+   
+   bool okToFree = !nonFreedElemExists;
+   
+   if(okToFree) {
+      Address baseAddr = reinterpret_cast<Address>(baseAddrInDaemon);
+      theShmMgr.free(baseAddr);
+      return true;  // freed the associated shm segment
+   }
+   return false;  // couldn't free shm segment
+}
+
+template <class HK>
+void varInstance<HK>::deleteThread(unsigned thrPos) {
+  void *voidVarAddr = elementAddressInDaemon(thrPos);
+  RAWTYPE *shmVarAddr = static_cast<RAWTYPE*>( voidVarAddr);
+  (*shmVarAddr) = initValue;
+}
+
+
