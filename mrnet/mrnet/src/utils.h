@@ -59,8 +59,6 @@ int getNetworkAddr(std::string &ipaddr_str,
 
 //extern unsigned int _count;
 
-#include <libgen.h>
-
 struct ltstr
 {
   bool operator()(std::string s1, std::string s2) const
@@ -76,10 +74,14 @@ class tsd_t{
   const char * thread_name;
 };
 
-//#define _fprintf(X)  ;
-//#define _perror(X) ;
-#define _fprintf(X) fprintf X ;
-#define _perror(X) perror(X); 
+#if defined(DEBUG_MRNET)
+#  define _fprintf(X) fprintf X ;
+#  define _perror(X) perror(X); 
+#else
+#  define _fprintf(X)  ;
+#  define _perror(X) ;
+#endif // defined(DEBUG_MRNET)
+
 #define MCFL  __FILE__,__LINE__  //used to call mrn_printf(MCFL, ...)
 int mrn_printf(int level, const char * file, int line, FILE * fp, const char * format, ...);
 

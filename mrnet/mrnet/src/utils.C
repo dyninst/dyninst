@@ -196,9 +196,19 @@ int connectHost(int *sock_in, const std::string &hostname, unsigned short port)
     memcpy(&server_addr.sin_addr, server_hostent->h_addr_list[0],
            sizeof(struct in_addr));
 
-    if( connect(sock, (SA *)&server_addr, sizeof(server_addr)) == -1){
-        perror("connect()");
-        return -1;
+    unsigned int nConnectTries = 0;
+    int cret = -1;
+    while( (cret == -1) && (nConnectTries < 5) ){
+        cret = connect(sock, (SA*)&server_addr, sizeof(server_addr));
+        if( cret == -1 ){
+            if( errno != ETIMEDOUT ){
+                perror( "connect()" );
+                return -1;
+            }
+            nConnectTries++;
+            mrn_printf(3, MCFL, stderr, "connection timed out %d times\n",
+                nConnectTries );
+        }
     }
 
 #if defined(TCP_NODELAY)
@@ -261,7 +271,7 @@ int bindPort(int *sock_in, unsigned short *port_in)
         }
     }
 
-    if(listen(sock, 1) == -1){
+    if(listen(sock, 64) == -1){
         mrn_printf(1, MCFL, stderr, "%s", "");
         perror("listen()");
         return -1;
@@ -752,9 +762,19 @@ int connect_socket_by_IP(int IP, short port){
   server_addr.sin_port = htons(port);
   server_addr.sin_addr.s_addr = IP;
 
-  if( connect(sock, (SA *)&server_addr, sizeof(server_addr)) == -1){
-    perror("connect()");
-    return -1;
+  unsigned int nConnectTries = 0;
+  int cret = -1;
+  while( (cret == -1) && (nConnectTries < 5) ){
+      cret = connect(sock, (SA*)&server_addr, sizeof(server_addr));
+      if( cret == -1 ){
+          if( errno != ETIMEDOUT ){
+              perror( "connect()" );
+              return -1;
+          }
+          nConnectTries++;
+          mrn_printf(3, MCFL, stderr, "connection timed out %d times\n",
+              nConnectTries );
+      }
   }
 
 #if defined(TCP_NODELAY)
