@@ -32,7 +32,7 @@ BPatch_loopTreeNode::BPatch_loopTreeNode(BPatch_basicBlockLoop *l,
 	strcpy(hierarchicalName, n);
     }
 }
-
+ 
 
 const char * 
 BPatch_loopTreeNode::getCalleeName(unsigned int i) 
@@ -89,6 +89,10 @@ BPatch_flowGraph::BPatch_flowGraph(function_base *func,
       return;
    }
    
+#if defined(i386_unknown_linux2_0) ||\
+    defined(i386_unknown_solaris2_5) ||\
+    defined(i386_unknown_nt4_0) 
+   
    findAndDeleteUnreachable();
 
    // this may be a leaf function - if so, we won't have figure out what
@@ -106,6 +110,7 @@ BPatch_flowGraph::BPatch_flowGraph(function_base *func,
      }
      delete[] blocks;
    }
+#endif
 }
 
 BPatch_flowGraph::~BPatch_flowGraph()
@@ -294,7 +299,31 @@ BPatch_flowGraph::getOuterLoops(BPatch_Vector<BPatch_basicBlockLoop*>& lbb)
 //to enter a function from many points some modification is needed
 //to insert all entry basic blocks to the esrelevant field of the class.
 bool BPatch_flowGraph::createBasicBlocks()
-{
+{ 
+    //clean up this mess
+#if defined(i386_unknown_linux2_0) ||\
+    defined(i386_unknown_solaris2_5) ||\
+    defined(i386_unknown_nt4_0) 
+    
+    pdvector< BPatch_basicBlock* >* blocks
+	= func->blocks();
+    
+    unsigned int size = blocks->size();
+       
+    for( unsigned int ii = 0; ii < size; ii++ )
+    {
+	(*blocks)[ii]->blockNumber = ii;
+	(*blocks)[ii]->flowGraph = this;
+	if( (*blocks)[ii]->isEntryBasicBlock )
+	    entryBlock += (*blocks)[ii];
+	if( (*blocks)[ii]->isExitBasicBlock )
+	    exitBlock += (*blocks)[ii];
+	
+	allBlocks += (*blocks)[ii];
+    }
+    return true;
+#endif
+
    // assign sequential block numbers to basic blocks
    int bno = 0;
 
