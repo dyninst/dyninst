@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/sym-bsd.C,v 1.8 1994/09/14 19:57:08 rbi Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/sym-bsd.C,v 1.9 1994/09/15 19:18:49 rbi Exp $";
 #endif
 
 /*
  * sym-bsd.C - parse BSD style a.out files.
  *
  * $Log: sym-bsd.C,v $
- * Revision 1.8  1994/09/14 19:57:08  rbi
+ * Revision 1.9  1994/09/15 19:18:49  rbi
+ * Removed unneeded switch branch.
+ *
+ * Revision 1.8  1994/09/14  19:57:08  rbi
  * Fixed system calls in loadSymTable()
  *
  * Revision 1.7  1994/07/28  22:40:46  krisna
@@ -400,9 +403,6 @@ image *loadSymTable(char *file, int offset, libraryList libraryFunctions,
 		break;
 	    case N_ENTRY:
 		logLine("warning code contains alternate entry point\n");
-		break;
-	    case N_STSYM:
-		str = &strings[stabs[i].n_un.n_strx];
 		break;
 	    default:
 		break;
