@@ -4,10 +4,13 @@
 // Ariel Tamches
 
 /* $Log: shg.h,v $
-/* Revision 1.2  1995/11/06 19:27:47  tamches
-/* slider bug fixes
-/* dictionary_hash --> dictionary_lite
+/* Revision 1.3  1996/01/09 01:04:01  tamches
+/* added thePhaseId member variable
 /*
+ * Revision 1.2  1995/11/06 19:27:47  tamches
+ * slider bug fixes
+ * dictionary_hash --> dictionary_lite
+ *
  * Revision 1.1  1995/10/17 22:07:07  tamches
  * First version of "new search history graph".
  *
@@ -72,6 +75,7 @@ class shg {
 
    where4TreeConstants consts; // yuck
    shgConsts theShgConsts;
+   int thePhaseId; // new
 
    Tcl_Interp *interp;
 
@@ -138,11 +142,13 @@ class shg {
       return listboxItemTk3DBordersByStyle[styleIndex];
    }
 
-   shg(Tcl_Interp *interp, Tk_Window theTkWindow,
+   shg(int phaseId,
+       Tcl_Interp *interp, Tk_Window theTkWindow,
        const string &iHorizSBName, const string &iVertSBName,
        const string &iCurrItemLabelName);
   ~shg() {delete rootPtr;}
 
+   int getPhaseId() const {return thePhaseId;}
    Tk_Window getTkWindow() {
       // a little hack needed for XWarpPointer
       return consts.theTkWindow;
