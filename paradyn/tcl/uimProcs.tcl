@@ -1,5 +1,8 @@
 # utilities for UIM tcl functions
 # $Log: uimProcs.tcl,v $
+# Revision 1.17  1996/08/05 07:34:15  tamches
+# update for tcl 7.5
+#
 # Revision 1.16  1996/05/06 16:41:47  naim
 # Adding window to confirm whether the user wants to exit paradyn - naim
 #
@@ -26,35 +29,6 @@
 # Revision 1.10  1995/11/29  00:23:12  tamches
 # removed mkLogo; removed references to PdBitmapDir; added call
 # to makeLogo
-#
-# Revision 1.9  1994/11/05 01:52:00  karavan
-# small improvements to min window sizes, resizing effects, button names,
-# and change pack command in mkLogo to new version.
-#
-# Revision 1.8  1994/11/03  20:48:11  karavan
-# removed error message
-#
-# Revision 1.7  1994/09/13  05:05:47  karavan
-# improved error handling
-#
-# Revision 1.6  1994/08/01  20:26:34  karavan
-# changes to accommodate new dag design.
-#
-# Revision 1.5  1994/07/07  05:57:04  karavan
-# UIM error service implementation
-#
-# Revision 1.4  1994/06/29  21:47:39  hollings
-# killed old background colors and switched to motif like greys.
-# cleaned up option specification to use options data base.
-#
-# Revision 1.3  1994/06/13  16:53:06  karavan
-# added mkLogo procedure
-#
-# Revision 1.2  1994/05/23  01:55:46  karavan
-# its a whole new look for paradyn!
-#
-# Revision 1.1  1994/05/03  06:36:03  karavan
-# Initial version.
 #
 
 proc mkEntry {w {pack {top expand fillx}} args} {
@@ -106,7 +80,9 @@ proc mkDialogWindow {w} {
     wm title $w "Dialog box"
     wm iconname $w "Dialog"
     wm geometry $w +425+300
-    tkwait visibility $w
+# Under 7.5/4.1, the tkwait causes the window to "flicker"
+# noticably.
+#    tkwait visibility $w
     catch {grab $w}
     focus $w
     return $w
@@ -118,7 +94,9 @@ proc mkDialogWindowTitle {w theTitle} {
     wm title $w $theTitle
     wm iconname $w $theTitle
     wm geometry $w +425+300
-    tkwait visibility $w
+# Under 7.5/4.1, the tkwait causes the window to "flicker"
+# noticably.
+#    tkwait visibility $w
     catch {grab $w}
     focus $w
     return $w
@@ -307,12 +285,16 @@ proc errorExit {oldwin} {
 proc procExit {} {
     set w .exitWindow
     mkDialogWindowTitle $w "Exit Paradyn"
+
     $w configure -bg red
     label $w.l -text "Are you sure (Y/N)?"
+    pack $w.l -side top
+
     frame $w.buttons
     mkButtonBar $w.buttons {} retval {{YES ""} {NO ""}}
     $w.buttons.1 configure -command "paradyn exit"
     $w.buttons.2 configure -command "destroy $w"
-    pack $w.l $w.buttons -side top 
+    pack $w.buttons -side top 
+
     focus $w
 }

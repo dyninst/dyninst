@@ -1,8 +1,11 @@
 /* $Log: UImain.C,v $
-/* Revision 1.80  1996/04/30 18:56:29  newhall
-/* changes to support the asynchrounous enable data calls to the DM
-/* this code contains a kludge to make the UI wait for the DM's async response
+/* Revision 1.81  1996/08/05 07:30:10  tamches
+/* update for tcl 7.5
 /*
+ * Revision 1.80  1996/04/30 18:56:29  newhall
+ * changes to support the asynchrounous enable data calls to the DM
+ * this code contains a kludge to make the UI wait for the DM's async response
+ *
  * Revision 1.79  1996/04/07  21:17:07  karavan
  * changed new phase notification handling; instead of being notified by the
  * data manager, the UI is notified by the performance consultant.  This prevents
@@ -21,56 +24,7 @@
  * Revision 1.75  1996/02/15 23:06:27  tamches
  * added support for phase 0, the initial current phase
  *
- * Revision 1.74  1996/02/08 01:00:03  tamches
- * implementing starting a phase w/ pc
- *
- * Revision 1.73  1996/02/07 21:46:38  tamches
- * defineNewSearch returns bool flag
- *
- * Revision 1.72  1996/02/07 19:04:37  tamches
- * added deferred-phase-adding features
- *
- * Revision 1.71  1996/02/05 18:51:47  newhall
- * Change to DM interface: StartPhase and newPhaseCallback
- *
- * Revision 1.70  1996/02/02  18:39:18  tamches
- * added prelim version of ui_newPhaseDetected
- * added shgShowKey, shgShowTips tunables
- *
- * Revision 1.69  1996/01/09 23:55:18  tamches
- * moved whereAxisDrawTipsCallback to whereAxisTcl.C
- * added tclPromptCallback to better implement the "tclPrompt"
- * tunable constant.
- * On startup, we no longer msg_bind to stdin
- *
- * Revision 1.68  1995/12/20 02:27:25  tamches
- * removed some warnings
- *
- * Revision 1.67  1995/11/29 00:18:58  tamches
- * Paradyn logo is now hard-coded; PARADYNTCL/PdBitmapDir are now
- * obsolete.
- *
- * Revision 1.66  1995/11/20 03:22:38  tamches
- * added showWhereAxisTips tunable constant, and related code
- * added tclPrompt tunable constant, and related code
- * removed set auto_path
- *
- * Revision 1.65  1995/11/09 17:11:35  tamches
- * deleted some obsolete stuff which had been commented out (e.g. uim_rootRes).
- * added UIMBUFFSIZE (moved from UIglobals.h)
- *
- * Revision 1.64  1995/11/08 06:24:15  tamches
- * removed some warnings
- *
- * Revision 1.63  1995/11/08 05:10:03  tamches
- * removed reference to obsolete file dag.h
- *
- * Revision 1.62  1995/11/06 02:40:19  tamches
- * added an include to tkTools.h
- * removed several warnings
- * UImain() no longer takes in any args
- *
- * */
+ */
 
 /* UImain.C
  *    This is the main routine for the User Interface Manager thread, 
@@ -149,9 +103,6 @@ bool tryFirstGoodWhereAxisWid(Tcl_Interp *interp, Tk_Window topLevelTkWindow) {
  * Global variables used by tcl/tk UImain program:
  */
 
-extern Tk_Window mainWindow;	/* The main window for the application.  If
-				 * NULL then the application no longer
-				 * exists. */
 extern Tcl_Interp *interp;	/* Interpreter for this application. */
 
 static Tcl_DString command;	/* Used to assemble lines of terminal input
@@ -270,21 +221,6 @@ void UIenableDataResponse(vector<metricInstInfo> *,  u_int){
     cout << "UIenableDataResponse: THIS SHOULD NEVER EXECUTE" << endl;
 }
 
-/*
- *----------------------------------------------------------------------
- *
- * UImain --
- *
- *	Main program for UI thread
- *
- * Side effects:
- *	This procedure initializes the wish world and then starts
- *	interpreting commands;  almost anything could happen, depending
- *	on the script being interpreted.
- *
- *----------------------------------------------------------------------
- */
-
 void panic(const char *msg) {
    cerr << msg << endl;
    exit(5);
@@ -320,6 +256,7 @@ void tclPromptCallback(bool newValue) {
    else {
       //cout << "unbinding from stdin:" << endl;
       msg_unbind(fileno(stdin));
+
       //cout << "deleting file handler:" << endl;
       Tk_DeleteFileHandler(fileno(stdin));
    }
@@ -440,7 +377,7 @@ void *UImain(void*) {
 
     // Add internal UIM command to the tcl interpreter.
     Tcl_CreateCommand(interp, "uimpd", 
-		      UimpdCmd, (ClientData) mainWindow,
+		      UimpdCmd, (ClientData) Tk_MainWindow(interp),
 		      (Tcl_CmdDeleteProc *) NULL);
 
     // add Paradyn tcl command to active interpreter
@@ -478,7 +415,7 @@ void *UImain(void*) {
    // now install the tcl cmd "createPdLogo" (must be done before anyone
    // tries to create a logo)
    tcl_cmd_installer createPdLogo(interp, "makeLogo", pdLogo::makeLogoCommand,
-				  (ClientData)mainWindow);
+				  (ClientData)Tk_MainWindow(interp));
 
    /* display the paradyn main menu tool bar */
    myTclEval(interp, "drawToolBar");
@@ -497,7 +434,7 @@ void *UImain(void*) {
     uim_server = new UIM(MAINtid);
 
     // register fd for X events with threadlib as special
-    Display *UIMdisplay = Tk_Display (mainWindow);
+    Display *UIMdisplay = Tk_Display (Tk_MainWindow(interp));
     int xfd = XConnectionNumber (UIMdisplay);
     retVal = msg_bind (xfd,
 		       1 // "special" flag --> libthread leaves it to us to manually
@@ -559,7 +496,8 @@ void *UImain(void*) {
  *    Main Loop for UIthread.
  ********************************/
 
-   while (tk_NumMainWindows > 0) {
+   while (Tk_GetNumMainWindows() > 0) {
+      // Before we block, let's process any pending tk DoWhenIdle events.
       processPendingTkEventsNoBlock();
 
       msgSize = UIMBUFFSIZE;
@@ -569,8 +507,9 @@ void *UImain(void*) {
       // Why don't we do a blocking msg_recv() in all cases?  Because it soaks
       // up the pending message, throwing off the X file descriptor (tk wants to
       // dequeue itself).  Plus igen feels that way too.
-
-//      processPendingTkEventsNoBlock();
+      // NOTE: It would be nice if the above poll could take in a TIMEOUT argument,
+      //       so we can handle tk "after <n millisec> do <script>" events properly.
+      //       But libthread doesn't yet support time-bounded blocking!!!
 
       // check for X events or commands on stdin
       if (mtag == MSG_TAG_FILE) {
@@ -589,6 +528,8 @@ void *UImain(void*) {
          else
             cerr << "hmmm...unknown sender of a MSG_TAG_FILE message...ignoring" << endl;
 
+	 // The above processing may have created some pending tk DoWhenIdle
+	 // requests.  If so, process them now.
          processPendingTkEventsNoBlock();
       }
       else  {
@@ -610,7 +551,8 @@ void *UImain(void*) {
 	 }
          else
             panic("ui main loop: neither dataMgr nor uim_server report isValidTag() of true");
-
+	 // The above processing may have created some pending tk DoWhenIdle
+	 // requests.  If so, process them now.
          processPendingTkEventsNoBlock();
       }
    } 

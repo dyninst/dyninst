@@ -4,9 +4,12 @@
 // Implementations of new commands and tk bindings related to the search history graph.
 
 /* $Log: shgTcl.C,v $
-/* Revision 1.9  1996/02/08 01:01:15  tamches
-/* removed some old code
+/* Revision 1.10  1996/08/05 07:30:51  tamches
+/* update for tcl 7.5
 /*
+ * Revision 1.9  1996/02/08 01:01:15  tamches
+ * removed some old code
+ *
  * Revision 1.8  1996/02/07 19:14:28  tamches
  * made use of new routines in shgPhases which operate on the current
  * search -- no more getCurrent() usage here.
@@ -68,13 +71,6 @@ shgPhases *theShgPhases;
 extern bool haveSeenFirstGoodShgWid; // main.C
 extern bool tryFirstGoodShgWid(Tcl_Interp *, Tk_Window); // main.C
 
-#ifndef PARADYN
-extern Tk_Window topLevelTkWindow; // main.C
-#else
-extern Tk_Window mainWindow;
-#define topLevelTkWindow mainWindow
-#endif
-
 void shgWhenIdleDrawRoutine(ClientData cd) {
    assert(haveSeenFirstGoodShgWid);
 
@@ -100,7 +96,7 @@ void initiateShgRedraw(Tcl_Interp *, bool doubleBuffer) {
 }
 
 int shgResizeCallbackCommand(ClientData, Tcl_Interp *interp, int, char **) {
-   if (!tryFirstGoodShgWid(interp, topLevelTkWindow))
+   if (!tryFirstGoodShgWid(interp, Tk_MainWindow(interp)))
       return TCL_ERROR;
 
    if (theShgPhases->resize())
@@ -111,7 +107,7 @@ int shgResizeCallbackCommand(ClientData, Tcl_Interp *interp, int, char **) {
 
 int shgExposeCallbackCommand(ClientData, Tcl_Interp *interp,
 			     int argc, char **argv) {
-   if (!tryFirstGoodShgWid(interp, topLevelTkWindow))
+   if (!tryFirstGoodShgWid(interp, Tk_MainWindow(interp)))
       return TCL_ERROR;
 
    assert(argc == 2);

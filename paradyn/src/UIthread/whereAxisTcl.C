@@ -4,9 +4,12 @@
 // Implementations of new commands and tk bindings related to the where axis.
 
 /* $Log: whereAxisTcl.C,v $
-/* Revision 1.8  1996/04/01 22:34:35  tamches
-/* added whereAxisVisibilityCallbackCommand
+/* Revision 1.9  1996/08/05 07:31:42  tamches
+/* update for tcl 7.5
 /*
+ * Revision 1.8  1996/04/01 22:34:35  tamches
+ * added whereAxisVisibilityCallbackCommand
+ *
  * Revision 1.7  1996/01/09 23:56:19  tamches
  * added whereAxisDrawTipsCallback
  *
@@ -54,13 +57,6 @@ abstractions *theAbstractions;
 extern bool haveSeenFirstGoodWhereAxisWid; // test.C
 extern bool tryFirstGoodWhereAxisWid(Tcl_Interp *, Tk_Window); // test.C
 
-#ifndef PARADYN
-extern Tk_Window topLevelTkWindow; // test.C
-#else
-extern Tk_Window mainWindow;
-#define topLevelTkWindow mainWindow
-#endif
-
 void whereAxisWhenIdleDrawRoutine(ClientData cd) {
    assert(haveSeenFirstGoodWhereAxisWid);
 
@@ -84,7 +80,7 @@ void initiateWhereAxisRedraw(Tcl_Interp *, bool doubleBuffer) {
 
 int whereAxisResizeCallbackCommand(ClientData, Tcl_Interp *interp,
 				   int, char **) {
-   if (!tryFirstGoodWhereAxisWid(interp, topLevelTkWindow))
+   if (!tryFirstGoodWhereAxisWid(interp, Tk_MainWindow(interp)))
       return TCL_ERROR;
 
    if (theAbstractions->existsCurrent()) {
@@ -97,7 +93,7 @@ int whereAxisResizeCallbackCommand(ClientData, Tcl_Interp *interp,
 
 int whereAxisExposeCallbackCommand(ClientData, Tcl_Interp *interp,
 				   int argc, char **argv) {
-   if (!tryFirstGoodWhereAxisWid(interp, topLevelTkWindow))
+   if (!tryFirstGoodWhereAxisWid(interp, Tk_MainWindow(interp)))
       return TCL_ERROR;
 
    assert(argc == 2);
@@ -112,7 +108,7 @@ int whereAxisExposeCallbackCommand(ClientData, Tcl_Interp *interp,
 
 int whereAxisVisibilityCallbackCommand(ClientData, Tcl_Interp *interp,
 				       int argc, char **argv) {
-   if (!tryFirstGoodWhereAxisWid(interp, topLevelTkWindow))
+   if (!tryFirstGoodWhereAxisWid(interp, Tk_MainWindow(interp)))
       return TCL_ERROR;
 
    assert(argc == 2);

@@ -1,7 +1,10 @@
 /* $Log: main.C,v $
-/* Revision 1.43  1996/05/30 21:56:50  tamches
-/* made UIStack bigger for aix 4.1 too (had been just 3.2)
+/* Revision 1.44  1996/08/05 07:33:03  tamches
+/* update for tcl 7.5
 /*
+ * Revision 1.43  1996/05/30 21:56:50  tamches
+ * made UIStack bigger for aix 4.1 too (had been just 3.2)
+ *
  * Revision 1.42  1996/05/06 17:13:39  newhall
  * changed initial value of EnableRequestPacketSize tunable constant from 2 to 10
  *
@@ -255,7 +258,6 @@ extern bool metDoProcess();
 extern bool metDoDaemon();
 
 Tcl_Interp *interp;
-Tk_Window   mainWindow;
 int         tty;
 
 bool inDeveloperMode = false; // global variable used elsewhere
@@ -272,8 +274,6 @@ void develModeCallback(bool newValue) {
 int
 main (int argc, char **argv)
 {
-
-//  CLargStruct* clargs;
   char mbuf[MBUFSIZE];
   unsigned int msgsize;
   tag_t mtag;
@@ -283,23 +283,13 @@ main (int argc, char **argv)
   interp = Tcl_CreateInterp();
   assert(interp);
 
-  mainWindow = Tk_CreateMainWindow(interp, NULL, "paradyn", "Paradyn");
-  if (mainWindow == NULL)
-     tclpanic(interp, "Could not Tk_CreateMainWindow");
-  Tk_GeometryRequest(mainWindow, 725, 475);
-
-  if (false)
-     // This is cool for X debugging...but we don't want it normally.
-     // It forces a flush after every X event -- no buffering.
-     XSynchronize(Tk_Display(mainWindow), True);
-
   tty = isatty(0);
   Tcl_SetVar(interp, "tcl_interactive", "0", TCL_GLOBAL_ONLY);
 
   if (Tcl_Init(interp) == TCL_ERROR)
      tclpanic(interp, "tcl_init() failed (perhaps TCL_LIBRARY not set?)");
   if (Tk_Init(interp) == TCL_ERROR)
-     tclpanic(interp, "tk_init() failed (perhaps TK_LIBRARY not set?");
+     tclpanic(interp, "tk_init() failed (perhaps TK_LIBRARY not set?)");
 //  if (Tix_Init(interp) == TCL_ERROR)
 //     tclpanic(interp, "tix_init() failed (perhaps TIX_LIBRARY not set?");
 
