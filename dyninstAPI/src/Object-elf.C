@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.74 2004/06/08 22:03:13 legendre Exp $
+ * $Id: Object-elf.C,v 1.75 2004/06/11 20:44:44 tlmiller Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -740,7 +740,7 @@ bool Object::get_relocation_entries( Elf_Scn*& rel_plt_scnp,
     	    
 	    	next_entry++;
 			#if ! defined( ia64_unknown_linux2_4 )	    	
-		    	next_plt_entry_addr += rel_plt_entry_size_;
+		    	next_plt_entry_addr += plt_entry_size_;
 		    #else 
 		    	/* IA-64 headers don't declare a size, because it varies. */
 		    	next_plt_entry_addr += 0x20;
