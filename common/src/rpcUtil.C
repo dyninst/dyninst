@@ -41,6 +41,10 @@
 
 /*
  * $Log: rpcUtil.C,v $
+ * Revision 1.51  1997/05/20 15:18:57  lzheng
+ * Changes made to handle the comminication between different types of
+ * machines
+ *
  * Revision 1.50  1997/05/17 20:01:30  lzheng
  * Changes made for nonblocking write
  *
@@ -112,6 +116,8 @@
 #endif
 
 #include <limits.h>
+#include <sys/types.h>
+#include <netinet/in.h>
 #include "util/h/rpcUtil.h"
 
 const char *RSH_COMMAND="rsh";
@@ -141,7 +147,7 @@ int RPCasyncXDRRead(const void* handle, char *buf, const u_int len)
     /* called when paradyn/xdr detects that it needs to read a message
        from paradynd. */
     int fd = (int) handle;
-    int header;
+    unsigned header;
     int ret;
     int needCopy = 0;
     char *buffer = buf;
@@ -201,11 +207,12 @@ int RPCasyncXDRRead(const void* handle, char *buf, const u_int len)
     int is_left = ret - sizeof(int);
     while (is_left >= 0) {
 	P_memcpy((char *)&header, buffer, sizeof(int));
+	header = ntohl(header);
 	assert(0xf == ((header >> 12)&0xf));
 
 	short seq_no;
 	P_memcpy((char *)&(seq_no), buffer, sizeof(short));
-
+	seq_no = ntohs(seq_no);
 	header = (0x0fff&header);
 	
 	if (header <= is_left) {
@@ -279,7 +286,7 @@ int RPCasyncXDRWrite(const void* handle, const char *buf, const u_int len)
 {
     int ret;
     int index = 0;
-    int header = len;
+    unsigned header = len;
 
     rpcBuffer *rb = new rpcBuffer;
     rb -> fd = (int) handle;
@@ -292,8 +299,11 @@ int RPCasyncXDRWrite(const void* handle, const char *buf, const u_int len)
 
     // Adding a header to the messages sent   
     header = ((counter << 16) | header | 0xf000); 
-    P_memcpy(rb -> buf, (char *)&header, sizeof(int));
 
+    // Converting to network order
+    header = htonl(header);
+    
+    P_memcpy(rb -> buf, (char *)&header, sizeof(int));
     P_memcpy(rb -> buf+sizeof(int), buf, len);
 
     rpcBuffers += rb;
