@@ -4,10 +4,14 @@
 // Ariel Tamches
 
 /* $Log: shg.C,v $
-/* Revision 1.10  1996/02/07 19:08:23  tamches
-/* addNode, configNode, and addEdge now take in "isCurrShg" flag, which
-/* is in turn passed to rethink_entire_layout
+/* Revision 1.11  1996/02/07 21:50:33  tamches
+/* fixed draw() bug that wouldn't properly double-buffer when drawing a
+/* blank shg
 /*
+ * Revision 1.10  1996/02/07 19:08:23  tamches
+ * addNode, configNode, and addEdge now take in "isCurrShg" flag, which
+ * is in turn passed to rethink_entire_layout
+ *
  * Revision 1.9  1996/02/02 18:44:16  tamches
  * Displaying extra information about an shg node has changed from a mouse-move
  * to a middle-click
@@ -242,9 +246,6 @@ bool shg::adjustVertSBOffset() {
 
 void shg::draw(bool doubleBuffer, bool isXsynchOn) const {
    // same as where axis
-   if (rootPtr==NULL)
-      return;
-
    const int overallWindowBorderPix = 0;
    Drawable theDrawable = (doubleBuffer && !isXsynchOn) ? consts.offscreenPixmap :
                                                        Tk_WindowId(consts.theTkWindow);
@@ -260,14 +261,15 @@ void shg::draw(bool doubleBuffer, bool isXsynchOn) const {
                      Tk_Height(consts.theTkWindow)
                      );
 
-   rootPtr->draw(consts.theTkWindow, consts, theDrawable,
-                 nominal_centerx + horizScrollBarOffset,
-                    // relative (not absolute) coord
-                 overallWindowBorderPix + vertScrollBarOffset,
-                    // relative (not absolute) coord
-                 false, // not root only
-                 false // not listbox only
-                 );
+   if (rootPtr!=NULL)
+     rootPtr->draw(consts.theTkWindow, consts, theDrawable,
+		   nominal_centerx + horizScrollBarOffset,
+		      // relative (not absolute) coord
+		   overallWindowBorderPix + vertScrollBarOffset,
+		      // relative (not absolute) coord
+		   false, // not root only
+		   false // not listbox only
+		   );
 
    if (doubleBuffer && !isXsynchOn)
       // copy from offscreen pixmap onto the 'real' window
