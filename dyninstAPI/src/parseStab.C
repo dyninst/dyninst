@@ -277,6 +277,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	  case 'R':	// function parameter passed in a register (AIX style)
 	  case 'P':	// function parameter passed in a register (GNU/Solaris)
 	  case 'v':	// Fortran Local Variable
+	  case 'X':	// Fortran function return Variable (e.g. function name)
           case 'p': {	// Function Parameter
 	      cnt++; /* skip the 'p' */
 
@@ -518,6 +519,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	      break;
 	  default:
 	      fprintf(stderr, "Unknown symbol descriptor: %c\n", stabstr[cnt]);
+	      fprintf(stderr, " : %s\n", stabstr);
       }   
     }
     return(&stabstr[cnt]);
