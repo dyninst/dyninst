@@ -14,9 +14,12 @@
  *
  */
 /* $Log: visualization.C,v $
-/* Revision 1.32  1995/11/12 23:29:55  newhall
-/* removed warnings, removed error.C
+/* Revision 1.33  1995/11/13 17:24:25  newhall
+/* bug fix
 /*
+ * Revision 1.32  1995/11/12  23:29:55  newhall
+ * removed warnings, removed error.C
+ *
  * Revision 1.31  1995/11/12  00:45:19  newhall
  * added PARADYNEXITED event, added "InvalidSpans" dataGrid method
  *
@@ -210,7 +213,6 @@ int RegistrationCallback(msgTag event,
 
   if((event < EVENTSIZE)){
     eventCallbacks[event] = callBack;
-    if(event == PARADYNEXITED)
     return(OK);
   }
   return(ERROR_SUBSCRIPT);
