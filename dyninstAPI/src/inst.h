@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.69 2002/08/04 17:29:54 gaburici Exp $
+// $Id: inst.h,v 1.70 2002/08/12 04:21:21 schendel Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -116,6 +116,9 @@ void getAllInstInstancesForProcess(const process *,
 void getMiniTrampsAtPoint(process *proc, instPoint *loc, callWhen when,
 			  vector<miniTrampHandle> *mt_buf);
 
+bool getInheritedMiniTramp(const miniTrampHandle *parentMT, 
+			   miniTrampHandle *childMT, process *childProc);
+
 trampTemplate * findBaseTramp( const instPoint *, const process * );
 
 float getPointFrequency(instPoint *point);
@@ -151,18 +154,19 @@ public:
   // ~instMapping() { removeAst(arg); };
   instMapping(const string f, const string i, const int w, 
 	      callWhen wn, callOrder o, AstNode *a=NULL)
-    : func(f), inst(i), where(w), when(wn), order(o)  {
+     : func(f), inst(i), where(w), when(wn), order(o), useTrampGuard(true) {
     if(a) args.push_back(assignAst(a));
   }
 
   instMapping(const string f, const string i, const int w, AstNode *a=NULL)
-    : func(f), inst(i), where(w), when(callPreInsn), order(orderLastAtPoint)  {
+     : func(f), inst(i), where(w), when(callPreInsn), order(orderLastAtPoint),
+       useTrampGuard(true) {
     if(a) args.push_back(assignAst(a));
   }
 
   instMapping(const string f, const string i, const int w, 
 	      vector<AstNode*> &aList) : func(f), inst(i), where(w),
-	      when(callPreInsn), order(orderLastAtPoint) {
+	      when(callPreInsn), order(orderLastAtPoint), useTrampGuard(true) {
     for(unsigned u=0; u < aList.size(); u++) {
       if(aList[u]) args.push_back(assignAst(aList[u]));
     }
@@ -178,12 +182,15 @@ public:
   }
 
 public:
+  void dontUseTrampGuard() { useTrampGuard = false; }
+
   string func;                 /* function to instrument */
   string inst;                 /* inst. function to place at func */
   int where;                   /* FUNC_ENTRY, FUNC_EXIT, FUNC_CALL */
   callWhen when;               /* callPreInsn, callPostInsn */
   callOrder order;             /* orderFirstAtPoint, orderLastAtPoint */
   vector<AstNode *> args;      /* what to pass as arg0 ... n */
+  bool useTrampGuard;
   // AstNode *arg;            /* what to pass as arg0 */
 };
 
