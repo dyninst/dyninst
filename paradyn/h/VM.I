@@ -1,15 +1,18 @@
 /* $Log: VM.I,v $
-/* Revision 1.9  1995/02/16 08:01:39  markc
-/* Modified interfaces:
-/*   1) XDR interfaces use strings and vectors instead of igen arrays and char*'s
-/*   2) No sync upcalls are allowed by the server in xdr interfaces
-/*   3) Redefined igen arrays that were used in thread code to use manually defined
-/*      structures rather than igen-defined, since igen did not need to know about
-/*      these structures.
-/*   4) Upped all of the version numbers since all new interface code is generated
-/*   5) Async calls are no longer handled while waiting for sync responses, these
-/*      requests are buffered.
+/* Revision 1.10  1995/02/26 02:11:52  newhall
+/* added some phase interface routines
 /*
+# Revision 1.9  1995/02/16  08:01:39  markc
+# Modified interfaces:
+#   1) XDR interfaces use strings and vectors instead of igen arrays and char*'s
+#   2) No sync upcalls are allowed by the server in xdr interfaces
+#   3) Redefined igen arrays that were used in thread code to use manually defined
+#      structures rather than igen-defined, since igen did not need to know about
+#      these structures.
+#   4) Upped all of the version numbers since all new interface code is generated
+#   5) Async calls are no longer handled while waiting for sync responses, these
+#      requests are buffered.
+#
 # Revision 1.8  1994/09/30  21:19:32  newhall
 # added interface function VMStringToMetResPair
 # changed parameters to VMCreateVisi to take list of metrespair
@@ -72,12 +75,20 @@ typedef struct metrespair_Array {
 $remote VM{
 
   $base 5000;
-  $version 6;
+  $version 7;
 
+  // returns a list of information about active visualizations
+  // the client is responsible for freeing the space associated with
+  // this list
   VM_activeVisiInfo_Array VMActiveVisis(); 
+
+
+  // returns a list of information about available visualizations
+  // the client is responsible for freeing the space associated with
+  // this list
   VM_visiInfo_Array VMAvailableVisis(); 
   
-  //  name: string representation of visi, for UIM menuing
+  //  name: string representation of visi (for UIM menuing)
   //  args: command line arguments for the visualiztion, argv[0]
   //        is the executable name
   //  matrix: initial set of metrics and foci to start the visi with
@@ -89,10 +100,10 @@ $remote VM{
 			    int numMatrices);
 
 
-//  converts a string representation of a list of met/focus pairs  
-//  to the internal list of metrespairs representation
-//  returns metrespair_Array values of count = 0, and data = NULL on error
-metrespair_Array  VMStringToMetResPair(char *metresString);
+  //  converts a string representation of a list of met/focus pairs  
+  //  to the internal list of metrespairs representation
+  //  returns metrespair_Array values of count = 0, and data = NULL on error
+  metrespair_Array  VMStringToMetResPair(char *metresString);
 
 
   // remenuFlag: if set, remenuing request made by visithread when 
@@ -107,9 +118,11 @@ metrespair_Array  VMStringToMetResPair(char *metresString);
 		   int numMatrices);
   
   // visiThreadId: thread identifier associated with the  visi to destroy 
+  // can be called by any thread in the paradyn process
   $async void VMDestroyVisi(int visiThreadId);
 
   // visiThreadId: thread identifier of visithread that has died
-  void VMVisiDied(int visiThreadId); // from visithread 
+  // called by visithread when the visualization process exits
+  void VMVisiDied(int visiThreadId);
 };
 

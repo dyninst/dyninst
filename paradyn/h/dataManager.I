@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.36  1995/02/16 08:01:41  markc
+ * Revision 1.37  1995/02/26 02:11:53  newhall
+ * added some phase interface routines
+ *
+ * Revision 1.36  1995/02/16  08:01:41  markc
  * Modified interfaces:
  *   1) XDR interfaces use strings and vectors instead of igen arrays and char*'s
  *   2) No sync upcalls are allowed by the server in xdr interfaces
@@ -136,8 +139,7 @@
 #define MMTHREAD_H
 
 #include "util/h/list.h"
-#include "rtinst/h/trace.h"
-#include "util/h/hist.h"
+#include "util/h/sys.h"
 #include "dyninstRPC.xdr.h"
 #include "util/h/aggregation.h"
 #include "util/h/stringPool.h"
@@ -153,6 +155,9 @@ class performanceStream;
 
 /* something that data can be collected for */
 class resource;		
+
+/* phase information */ 
+class phaseInfo;
 
 /* descriptive information about a resource */
 typedef struct {
@@ -256,12 +261,15 @@ typedef enum appState { appRunning, appPaused };
 
 typedef void (*appStateChangeCallback)(performanceStream*, appState state);
 
+typedef void (*newPhaseCallback)(performanceStream*, phaseInfo*); 
+
 struct controlCallback {
     metricInfoCallback 		mFunc;
     resourceInfoCallback 	rFunc;
     resourceBatchModeCallback	bFunc;
     histFoldCallback		fFunc;
     appStateChangeCallback	sFunc;
+    newPhaseCallback	        pFunc;
 };
 
 typedef struct controlCallback controlCallback;
@@ -269,7 +277,7 @@ typedef struct controlCallback controlCallback;
 
 $remote dataManager {
     $base 2000;
-    $version 16;
+    $version 17;
 
     //
     // Create an applicationContext (an application to be studied)
@@ -530,6 +538,19 @@ $remote dataManager {
     //
     sampleValue getTotValue(metricInstance*);
 
+
+
+    //
+    //  start_Time: would allow a phase to be specified for some time
+    //              in the future, this would be useful for using phase
+    //              information from a config. file
+    //              a default value of -1.0 would be equivalent to now
+    //  name: would be an optional user defined identifier for the phase
+    //        each phase would still have a system defined unique id
+    //
+    $async void StartPhase(timeStamp start_Time, string *name);
+
+
     //
     // Debugger style calls.
     //
@@ -578,6 +599,14 @@ $remote dataManager {
     $upcall $async void changeState(appStateChangeCallback, 
 				    performanceStream *ps, 
 				    appState state);
+
+    //
+    // Info. about a new phase that was created
+    //
+    $upcall $async void newPhaseInfo(newPhaseCallback, 
+				     performanceStream *ps,
+				     phaseInfo *phase);
+
 
     // called to establish a base time to allow absolute times to be converted
     // to relative times, since the program execution is viewed as starting at
