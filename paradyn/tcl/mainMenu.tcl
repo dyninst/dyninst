@@ -1,7 +1,10 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.31  1994/11/07 07:30:15  karavan
+# Revision 1.32  1994/11/09 16:17:20  karavan
+# back to original flicker solution; seems like this is the best we can do.
+#
+# Revision 1.31  1994/11/07  07:30:15  karavan
 # changed pack order.
 #
 # Revision 1.30  1994/11/05  01:51:59  karavan
@@ -187,7 +190,7 @@ proc drawToolBar {} {
     frame .parent -geometry 725x500
     pack propagate .parent 0
     frame .parent.menub -relief raised -borderwidth 2
-    frame .parent.where  -background "#d04b8b3edcab" -borderwidth 4
+    frame .parent.where  -background "#d04b8b3edcab" -borderwidth 4 
     frame .parent.status  -relief raised -borderwidth 4
     frame .parent.main
     frame .parent.buttons -relief raised -borderwidth 4 \
