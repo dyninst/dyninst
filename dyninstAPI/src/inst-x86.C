@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.134 2003/05/22 21:31:16 zandy Exp $
+ * $Id: inst-x86.C,v 1.135 2003/05/23 18:50:52 zandy Exp $
  */
 
 #include <iomanip.h>
@@ -124,15 +124,15 @@ void BaseTrampTrapHandler(int); //siginfo_t*, ucontext_t*);
    TODO: what about far calls?
  */
 
-#define FUNC_PARAM_OFFSET (8+(9*4))
-#define CALLSITE_PARAM_OFFSET (4+(9*4))
+#define FUNC_PARAM_OFFSET (8+(10*4))
+#define CALLSITE_PARAM_OFFSET (4+(10*4))
 
 
 // number of virtual registers
 #define NUM_VIRTUAL_REGISTERS (32)
 
 // offset from EBP of the saved EAX for a tramp
-#define SAVED_EAX_OFFSET (9*4-4)
+#define SAVED_EAX_OFFSET (10*4-4)
 #define SAVED_EFLAGS_OFFSET (SAVED_EAX_OFFSET+4)
 
 /****************************************************************************/
@@ -1121,6 +1121,7 @@ void initTramps()
 
 static void emitJump(unsigned disp32, unsigned char *&insn);
 static void emitSimpleInsn(unsigned opcode, unsigned char *&insn);
+static void emitPushImm(unsigned long imm, unsigned char *&insn); 
 static void emitMovRegToReg(Register dest, Register src, unsigned char *&insn);
 static void emitAddMemImm32(Address dest, int imm, unsigned char *&insn);
 static void emitAddRegImm32(Register dest, int imm, unsigned char *&insn);
@@ -1468,9 +1469,9 @@ trampTemplate *installBaseTramp( const instPoint *location,
   // compute the tramp size
   // if there are any changes to the tramp, the size must be updated.
 #if defined(SHM_SAMPLING) && defined(MT_THREAD)
-  unsigned trampSize = 73+2*27 + 66;
+  unsigned trampSize = 12+73+2*27 + 66;
 #else
-  unsigned trampSize = 73;
+  unsigned trampSize = 12+73;
 #endif
 
   if (location->isConservative()) trampSize += 13*2;
@@ -1603,7 +1604,8 @@ trampTemplate *installBaseTramp( const instPoint *location,
   if (!location->isConservative() || noCost)
     emitSimpleInsn(PUSHFD, insn);    // pushfd
   emitSimpleInsn(PUSHAD, insn);    // pushad
-  emitSimpleInsn(PUSH_EBP, insn);  // push ebp
+  emitPushImm(location->iPgetAddress(), insn);  // return address for stack frame format
+  emitSimpleInsn(PUSH_EBP, insn);  // push ebp (new stack frame)
   emitMovRegToReg(EBP, ESP, insn); // mov ebp, esp  (2-byte instruction)
   if (location->isConservative()) {
     // allocate space for temporaries (virtual registers) and floating point state
@@ -1654,6 +1656,7 @@ trampTemplate *installBaseTramp( const instPoint *location,
   if (location->isConservative())
     emitOpRegRM(FRSTOR, FRSTOR_OP, EBP, -128 - FSAVE_STATE_SIZE, insn);
   emitSimpleInsn(LEAVE, insn);     // leave
+  emitSimpleInsn(POP_EAX, insn);   // pop return address
   emitSimpleInsn(POPAD, insn);     // popad
   if (!location->isConservative() || noCost)
     emitSimpleInsn(POPFD, insn);     // popfd
@@ -1715,6 +1718,7 @@ trampTemplate *installBaseTramp( const instPoint *location,
   ret->savePostInsOffset = insn-code;
   emitSimpleInsn(PUSHFD, insn);    // pushfd
   emitSimpleInsn(PUSHAD, insn);    // pushad
+  emitPushImm(location->iPgetAddress(), insn);
   emitSimpleInsn(PUSH_EBP, insn);  // push ebp
   emitMovRegToReg(EBP, ESP, insn); // mov ebp, esp
   // allocate space for temporaries (virtual registers)
@@ -1767,6 +1771,7 @@ trampTemplate *installBaseTramp( const instPoint *location,
   if (location->isConservative())
     emitOpRegRM(FRSTOR, FRSTOR_OP, EBP, -128 - FSAVE_STATE_SIZE, insn);
   emitSimpleInsn(LEAVE, insn);     // leave
+  emitSimpleInsn(POP_EAX, insn);   // pop return address
   emitSimpleInsn(POPAD, insn);     // popad
   emitSimpleInsn(POPFD, insn);     // popfd
   ret->restorePostInsOffset = insn-code;
@@ -2052,6 +2057,15 @@ static inline void emitAddressingMode(Register base, Register index, unsigned in
 /* emit a simple one-byte instruction */
 static inline void emitSimpleInsn(unsigned op, unsigned char *&insn) {
   *insn++ = op;
+}
+
+static inline void emitPushImm(unsigned long imm, unsigned char *&insn)
+{
+	unsigned i;
+	unsigned char *p = (unsigned char*)&imm;
+	*insn++ = 0x68;
+	for (i = 0; i < sizeof(imm); i++)
+		*insn++ = p[i];
 }
 
 // emit a simple register to register instruction: OP dest, src
@@ -3381,6 +3395,7 @@ void emitFuncJump(opCode op,
        if (loc->isConservative())
           emitOpRegRM(FRSTOR, FRSTOR_OP, EBP, -128 - FSAVE_STATE_SIZE, insn);
        emitSimpleInsn(LEAVE, insn);     // leave
+       emitSimpleInsn(POP_EAX, insn);
        emitSimpleInsn(POPAD, insn);     // popad
        if (!loc->isConservative() || noCost)
           emitSimpleInsn(POPFD, insn);     // popfd
