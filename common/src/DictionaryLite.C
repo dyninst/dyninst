@@ -2,6 +2,9 @@
 
 /*
  * $Log: DictionaryLite.C,v $
+ * Revision 1.2  1995/12/16 00:24:12  tamches
+ * commented out keys()
+ *
  * Revision 1.1  1995/11/06 19:20:28  tamches
  * first version of DictionaryLite
  *
@@ -115,18 +118,18 @@ dictionary_lite<K,V>::clear() {
     }
 }
 
-template<class K, class V>
-DO_INLINE_F
-vector<K>
-dictionary_lite<K,V>::keys() const {
-    vector<K> k;
-    for (unsigned i = 0; i < data_.size(); i++) {
-        for (unsigned j = 0; j < data_[i].size(); j++) {
-            k += data_[i][j].key;
-        }
-    }
-    return k;
-}
+//template<class K, class V>
+//DO_INLINE_F
+//vector<K>
+//dictionary_lite<K,V>::keys() const {
+//    vector<K> k;
+//    for (unsigned i = 0; i < data_.size(); i++) {
+//        for (unsigned j = 0; j < data_[i].size(); j++) {
+//            k += data_[i][j].key;
+//        }
+//    }
+//    return k;
+//}
 
 template<class K, class V>
 DO_INLINE_F
