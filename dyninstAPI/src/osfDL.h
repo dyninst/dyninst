@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.h,v 1.5 2002/12/20 07:49:58 jaw Exp $
+// $Id: osfDL.h,v 1.6 2004/03/05 16:51:35 bernat Exp $
 
 #if !defined(osf_dl_hdr)
 #define osf_dl_hdr
@@ -79,6 +79,9 @@ public:
     // setup all of the dlopen/dlcose traps
     void setMappingHooks(process *);
 
+    Address dlopenBrkAddr() const { return dlopen_brk_addr; }
+    Address dlcloseBrkAddr() const { return dlclose_brk_addr; }
+
     // returns true if the executable is dynamically linked 
     bool isDynamic(){ return(dynlinked);}
 
@@ -86,8 +89,8 @@ public:
 
 private:
     bool dynlinked;
-    Address dlopenRetAddr;
-    Address dlcloseRetAddr;
+    Address dlopen_brk_addr;
+    Address dlclose_brk_addr;
     Address dlopen_addr;
 };
 

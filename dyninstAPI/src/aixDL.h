@@ -73,27 +73,16 @@ public:
   // returns true if the executable is dynamically linked 
   bool isDynamic() {return dynlinked;}
 
-#if defined(AIX_PROC)
-  // Again, /proc compatibility
-    pdvector<shared_object *> *processSharedObjects(process *p);
+  pdvector<shared_object *> *processSharedObjects(process *p);
   
-  bool get_r_brk_addr() const { return r_brk_addr; }
+  Address dlopenBrkAddr() const { return dlopen_brk_addr; }
+  Address dlcloseBrkAddr() const { return dlclose_brk_addr; }
 
   bool setLibBreakpoint (process *p, pdvector<shared_object *> *objs);
   
-#if defined(BPATCH_LIBRARY) 
-   // unset_r_brk_point: this routine removes the breakpoint in the code
-   // pointed to by r_debug.r_brk, which was previously set by
-   // set_r_brk_point.
-   // XXX We may want to make this private and call it from some general
-   //     cleanup routine instead letting it be called directly.
-   bool unset_r_brk_point(process *proc);
-#endif
-
-#endif
-  
 private:
-   Address r_brk_addr;
+  Address dlopen_brk_addr;
+  Address dlclose_brk_addr;
    bool dynlinked;
 };
 

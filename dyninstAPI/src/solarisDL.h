@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.h,v 1.15 2003/07/15 22:44:41 schendel Exp $
+// $Id: solarisDL.h,v 1.16 2004/03/05 16:51:36 bernat Exp $
 
 #if !defined(solaris_dl_hdr)
 #define solaris_dl_hdr
@@ -84,25 +84,17 @@ public:
 			u_int &change_type,
 			bool &error_occured);
     Address get_dlopen_addr() const { return dlopen_addr; }
-    Address get_r_brk_addr() const { return r_brk_addr; }
-    
-#if defined(BPATCH_LIBRARY) 
-   // unset_r_brk_point: this routine removes the breakpoint in the code
-   // pointed to by r_debug.r_brk, which was previously set by
-   // set_r_brk_point.
-   // XXX We may want to make this private and call it from some general
-   //     cleanup routine instead letting it be called directly.
-   bool unset_r_brk_point(process *proc);
-#endif
 
+    Address dlopenBrkAddr() const { return dlopen_brk_addr; }
+    Address dlcloseBrkAddr() const { return dlclose_brk_addr; }
+  
 	Address getlowestSObaseaddr(){ return lowestSObaseaddr; } 
 private:
    bool  dynlinked;
-   Address r_debug_addr;
    Address dlopen_addr;
-   Address r_brk_addr;   // this routine consists of retl and nop instrs, used
-		         // in handleSigChild to determine what trap occured 
-   u_int r_state;  // either 0 (RT_CONSISTENT), 1 (RT_ADD), or 2 (RT_DELETE)
+  Address dlopen_brk_addr;
+  Address dlclose_brk_addr;
+
    bool brkpoint_set; // true if brkpoint set in r_brk
    instPoint *r_brk_instPoint; // used to instrument r_brk
 
@@ -127,38 +119,12 @@ private:
    char r_brk_save[R_BRK_SAVE_BYTES];
 #endif /* BPATCH_LIBRARY */
 
-   // get_ld_base_addr: This routine returns the base address of ld.so.1
-   // it returns true on success, and false on error
-   bool dynamic_linking::get_ld_base_addr(Address &addr, int auxv_fd);
 
    // get_ld_name: Returns the name (in /proc/pid/object/ format) of
    // ld.so.1
    bool dynamic_linking::get_ld_name(char *ld_name, Address ld_base, int map_fd, int pid);
 
    
-   // find_function: this routine finds the symbol table for ld.so.1, and
-   // parses it to find the address of f_name
-   // fills in f_name_addr with the address of f_name
-   // it returns false on error
-   // f_name_addr can't be passed in by reference since it makes calling it
-   // with a NULL parameter unpleasant.
-   bool findFunctionIn_ld_so_1(pdstring f_name, int ld_fd, 
-			       Address ld_base_addr, Address *f_name_addr, 
-			       int st_type);
-
-   // find_r_debug: this routine finds the symbol table for ld.so.1, and
-   // parses it to find the address of symbol r_debug
-   // it returns false on error
-   bool find_r_debug(int ld_fd, Address ld_base_addr);
-
-   // find_dlopen: this routine finds the symbol table for ld.so.1, and
-   // parses it to find the address of symbol r_debug
-   // it returns false on error
-   bool find_dlopen(int ld_fd, Address ld_base_addr);   
-
-   // set_r_brk_point: this routine instruments the code pointed to by
-   // the r_debug.r_brk (the linkmap update routine).  Currently this code
-   // corresponds to no function in the symbol table and consists of only
    // 2 instructions (retl nop).  This makes instrumenting it a little 
    // bit kludgey
    bool set_r_brk_point(process *proc);
