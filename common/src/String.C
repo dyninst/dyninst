@@ -13,6 +13,17 @@ string::string(const char* str)
     : str_(STRDUP(str)), len_(STRLEN(str)), key_(hashs(str)) {
 }
 
+string::string(const char *str, unsigned len) {
+   // same as above constructor, but copies less than the entire string.
+   // You specifiy the # of chars to copy.
+   assert(len <= strlen(str));
+   len_ = len;
+   str_ = new char[len+1];
+   (void) P_memcpy(str_, str, len);
+   str_[len] = '\0';
+   key_ = hashs(str_);
+}
+
 string::string(const string& s)
     : str_(STRDUP(s.str_)), len_(s.len_), key_(s.key_) {
 }
