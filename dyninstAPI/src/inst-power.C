@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.71 1998/09/15 04:15:59 buck Exp $
+ * $Id: inst-power.C,v 1.72 1998/09/15 13:51:49 paradyn Exp $
  */
 
 #include "util/h/headers.h"
@@ -1034,7 +1034,7 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc,
 	theRegSpace = regSpace;
     }
 #else
-    const trampTemplate *theTemplate = &baseTemplate;
+    trampTemplate *theTemplate = &baseTemplate;
 #endif
 
     if (! isReinstall) 
