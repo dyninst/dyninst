@@ -21,9 +21,14 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.47  1996/03/08 00:15:53  tamches
-/* where appropriate, some more showError() calls pass empty string as 2d arg
+/* Revision 1.48  1996/04/01 22:42:14  tamches
+/* added UI_all_metric_names, UI_all_metrics_set_yet
+/* removed uim_AvailMets etc.
+/* new params in call to getMetsAndRes
 /*
+ * Revision 1.47  1996/03/08 00:15:53  tamches
+ * where appropriate, some more showError() calls pass empty string as 2d arg
+ *
  * Revision 1.46  1996/02/23 22:10:01  naim
  * Adding igen call to display status line (fixes a deadlock situation) - naim
  *
@@ -87,10 +92,7 @@
 #include "shgTcl.h"
 
  /* globals for metric resource selection */
-vector<metric_focus_pair> uim_VisiSelections;
-char **uim_AvailMets;
-int uim_AvailMetsSize;
-metricHandle *uim_AvailMetHandles;
+vector<metric_focus_pair> uim_VisiSelections; // keep this one
 
 void
 UIMUser::chosenMetricsandResources
@@ -146,6 +148,11 @@ UIM::updateStatus(status_line *status, const char *msg)
 // Metrics and Resources 
 // ****************************************************************
 
+unsigned metric_name_hash(const unsigned &metid) {return metid;}
+dictionary_lite<unsigned, string> UI_all_metric_names(metric_name_hash);
+   // met-id (not index!) to name
+bool UI_all_metrics_set_yet = false;
+
 void 
 UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
 			       vector<metric_focus_pair> *pairList)
@@ -156,46 +163,69 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
   Tcl_HashEntry *entryPtr = Tcl_CreateHashEntry (&UIMMsgReplyTbl,
 						 (char *)UIMMsgTokenID, 
 						 &newptr);
-  if (newptr) {
-    UIMReplyRec *reply = new UIMReplyRec;
-      /* grab thread id of requesting thread */
-    reply->tid = getRequestingThread();
-    reply->cb = (showMsgCBFunc) cb;
-    Tcl_SetHashValue (entryPtr, reply);
-  } 
-  else {
+  if (newptr == 0) {
     uiMgr->showError(21, "");
     thr_exit(0);
   }
 
-     // initialize metric menu 
-  vector<met_name_id> *amets = dataMgr->getAvailableMetInfo(false);
-  uim_AvailMetsSize = amets->size();
-  uim_AvailMets = new (char *) [uim_AvailMetsSize];
-  for (int j = 0; j < uim_AvailMetsSize; j++) 
-    uim_AvailMets[j] = strdup(((*amets)[j]).name.string_of());
-  uim_AvailMetHandles = new metricHandle [uim_AvailMetsSize];
-  for (int i = 0; i < uim_AvailMetsSize; i++) 
-    uim_AvailMetHandles[i] = (*amets)[i].id;
-  delete amets;
-  char *ml = Tcl_Merge (uim_AvailMetsSize, uim_AvailMets);
-  ml = Tcl_SetVar (interp, "metList", ml, 0);
-  char ctr[16];
-  sprintf (ctr, "%d", uim_AvailMetsSize);
-  Tcl_SetVar (interp, "metCount", ctr, 0);
+  unsigned requestingThread = getRequestingThread();
+     // in theory, we can check here whether this (VISI-) thread already
+     // has an outstanding metric request.  But for now, we let code in mets.tcl do this...
+//  string commandStr = string("winfo exists .metmenunew") + string(requestingThread);
+//  myTclEval(interp, commandStr);
+//  int result;
+//  assert(TCL_OK == Tcl_GetBoolean(interp, interp->result, &result));
+//  if (result)
+//     return; // the window is already up for this thread!
 
-  // set global tcl variable to list of currently defined where axes
+  UIMReplyRec *reply = new UIMReplyRec;
+  reply->tid = requestingThread;
+  reply->cb = (showMsgCBFunc) cb;
+  Tcl_SetHashValue (entryPtr, reply);
+
+  if (!UI_all_metrics_set_yet) {
+      vector<met_name_id> *all_mets = dataMgr->getAvailableMetInfo(true);
+      
+      for (unsigned metlcv=0; metlcv < all_mets->size(); metlcv++) {
+	 unsigned id  = (*all_mets)[metlcv].id;
+	 string &name = (*all_mets)[metlcv].name;
+
+	 UI_all_metric_names[id] = name;
+
+	 string idString(id);
+	 assert(Tcl_SetVar2(interp, "metricNamesById", idString.string_of(),
+			    name.string_of(), TCL_GLOBAL_ONLY));
+      }
+      
+      delete all_mets;
+      UI_all_metrics_set_yet = true;
+  }
+
+  // Set metIndexes2Id via "temp"
+  (void)Tcl_UnsetVar(interp, "temp", 0);
+     // ignore result; temp may not have existed
+  vector<met_name_id> *curr_avail_mets_ptr = dataMgr->getAvailableMetInfo(false);
+  vector<met_name_id> &curr_avail_mets = *curr_avail_mets_ptr;
+  unsigned numAvailMets = curr_avail_mets.size();
+  for (unsigned metlcv=0; metlcv < numAvailMets; metlcv++) {
+     string metricIdStr = string(curr_avail_mets[metlcv].id);
+     
+     assert(Tcl_SetVar(interp, "temp", metricIdStr.string_of(),
+		       TCL_APPEND_VALUE | TCL_LIST_ELEMENT));
+  }
+  delete curr_avail_mets_ptr;
+  
 
   string tcommand("getMetsAndRes ");
   tcommand += string(UIMMsgTokenID);
-  tcommand += string(" ");
-  tcommand += string(0);
-  // the last parameter (an Rdo token) is obsolete...0 is just a filler
+  tcommand += string(" ") + string(requestingThread);
+  tcommand += string(" ") + string(numAvailMets);
+  tcommand += string(" $temp");
 
-  int retVal = Tcl_VarEval (interp, P_strdup(tcommand.string_of()), 0);
+  int retVal = Tcl_VarEval (interp, tcommand.string_of(), 0);
   if (retVal == TCL_ERROR)  {
     uiMgr->showError (22, "");
-    printf ("%s\n", interp->result);
+    cerr << interp->result << endl;
     thr_exit(0);  
   } 
 }
