@@ -46,9 +46,72 @@
 #include "common/h/int64iostream.h"
 
 const pdRate *pdRate::_zero = NULL;
+const pdRate *pdRate::_nan = NULL;
+
+// header file for make_Nan is still makenan.h
+// implemented now in pdRate.C, hopefully can go away soon with conversion of
+// the visis to use new time and sample value types
+
+float make_Nan()
+{
+  static float f_paradyn_nan = 0.0;
+  static bool nan_created = false;
+
+    if(!nan_created)
+    {
+        /* Are we little or big endian?  From Harbison&Steele.  */
+        union
+        {
+            unsigned char c[sizeof(long)];
+            long l;
+        } u;
+
+        u.l = 1;
+
+        union
+        {
+            unsigned char nan_bytes[4];
+            float nan_float;
+        } nan_u;
+
+        //
+        // Bit pattern for IEEE 754 NaN 32-bit value is 0x7fc00000
+        //
+        if (u.c[sizeof (long) - 1] == 1)
+        {
+            // big endian
+            nan_u.nan_bytes[0] = 0x7f;
+            nan_u.nan_bytes[1] = 0xc0;
+            nan_u.nan_bytes[2] = 0x00;
+            nan_u.nan_bytes[3] = 0x00;
+        }
+        else
+        {
+            // little endian
+            nan_u.nan_bytes[0] = 0x00;
+            nan_u.nan_bytes[1] = 0x00;
+            nan_u.nan_bytes[2] = 0xc0;
+            nan_u.nan_bytes[3] = 0x7f;
+        }
+
+        f_paradyn_nan = nan_u.nan_float;
+        bool aflag=(isnan(f_paradyn_nan)!=0);
+        assert(aflag);
+        nan_created = true;
+    }
+    return f_paradyn_nan;
+}
+
+const pdRate *pdRate::nanHelp() {
+  double dnan = static_cast<double>(make_Nan());
+  return new pdRate(dnan);
+}
 
 ostream& operator<<(ostream&s, const pdRate &sm) {
-  s << "[" << sm.getValue() << "]";
+  s << "[";
+  if(sm.isNaN()) {  s << "NaN"; }
+  else           {  s << sm.getValue(); }
+  s << "]";
   return s;
 }
 
