@@ -138,4 +138,5 @@ $remote dynRPC {
     // For paradynd's that may get started, but not by paradyn
     // This allows them to report system information
     $virtual $upcall void reportSelf(String machine, String program, int pid);
+    $cmember int my_pid;
 };
