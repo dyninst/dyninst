@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-mips.h,v 1.13 2003/09/05 16:27:50 schendel Exp $
+// $Id: instPoint-mips.h,v 1.14 2003/10/21 17:22:11 bernat Exp $
 // MIPS-specific definition of class instPoint
 
 #ifndef _INST_POINT_MIPS_H_
@@ -93,7 +93,8 @@ class instPoint {
   const function_base *iPgetFunction() const { return func_;   }
   const function_base *iPgetCallee()   const { return callee_; }
   const image         *iPgetOwner()    const { return owner_;  }
-        Address        iPgetAddress()  const { return addr_;   }
+  Address        iPgetAddress(process *p = 0)  const;
+  pd_Function *func() const { return (pd_Function *)func_;}
 
   instPointType type() const { return ipType_; }
   int size() const { return size_; }

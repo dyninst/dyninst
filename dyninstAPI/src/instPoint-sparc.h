@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-sparc.h,v 1.21 2003/09/05 16:27:52 schendel Exp $
+// $Id: instPoint-sparc.h,v 1.22 2003/10/21 17:22:13 bernat Exp $
 // sparc-specific definition of class instPoint
 
 #ifndef _INST_POINT_SPARC_H_
@@ -82,11 +82,11 @@ public:
   const instruction &insnAtPoint() const { return firstInstruction; }
 
   const instruction insnAfterPoint() const { return secondInstruction; }
-
-  const function_base *iPgetFunction() const { return func;      }
+  pd_Function *func() const { return func_; }
+  const function_base *iPgetFunction() const { return func();      }
   const function_base *iPgetCallee()   const { return callee;    }
   const image         *iPgetOwner()    const { return image_ptr; }
-        Address        iPgetAddress()  const { return addr;      }
+  Address        iPgetAddress(process *p = 0)  const;
 
   Address getTargetAddress() {
       if(!isCallInsn(firstInstruction)) return 0;
@@ -105,8 +105,8 @@ public:
   // By renaming the fn, we make clear what it's returning.
 
   bool hasNoStackFrame() const {
-     assert(func);
-     return func->hasNoStackFrame();
+     assert(func());
+     return func()->hasNoStackFrame();
   }
 
   // ALERT ALERT - FOR NEW PA CODE........
@@ -168,7 +168,7 @@ public:
 
   bool callIndirect;		// is it a call whose target is rt computed ?
   pd_Function *callee;		// what function is called
-  pd_Function *func;		// what function we are inst
+  pd_Function *func_;		// what function we are inst
   bool isBranchOut;             // true if this point is a conditional branch, 
 				// that may branch out of the function
   int branchTarget;             // the original target of the branch

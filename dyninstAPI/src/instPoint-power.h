@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-power.h,v 1.9 2003/09/05 16:27:51 schendel Exp $
+// $Id: instPoint-power.h,v 1.10 2003/10/21 17:22:12 bernat Exp $
 
 #ifndef _INST_POINT_POWER_H_
 #define _INST_POINT_POWER_H_
@@ -63,31 +63,24 @@ public:
   // until all functions have been seen -- this might be cleaned up
   void set_callee(pd_Function *to) { callee = to; }
 
-
-  const function_base *iPgetFunction() const { return func;   }
+  pd_Function *func() const { return func_; }
+  const function_base *iPgetFunction() const { return func();   }
   const function_base *iPgetCallee()   const { return callee; }
   const image         *iPgetOwner()    const { 
-    return (func) ? ( (func->file()) ? func->file()->exec() : NULL ) : NULL; }
-        Address        iPgetAddress()  const { return addr;   }
+      return (func()) ? ( (func()->file()) ? func()->file()->exec() : NULL ) : NULL; }
+  Address        iPgetAddress(process *p = 0)  const;
+  
 
   bool match(instPoint *p);
   
-  Address addr;                   /* address of inst point */
   instruction originalInstruction;    /* original instruction */
-
-//  instruction delaySlotInsn;  /* original instruction */
-//  instruction aggregateInsn;  /* aggregate insn */
-//  bool inDelaySlot;            /* Is the instruction in a delay slot */
-//  bool isDelayed;		/* is the instruction a delayed instruction */
 
   bool callIndirect;		/* is it a call whose target is rt computed ? */
 
-//  bool callAggregate;		/* calling a func that returns an aggregate
-//				   we need to reolcate three insns in this case
-//				   */
-
   pd_Function *callee;		/* what function is called */
-  pd_Function *func;		/* what function we are inst */
+  pd_Function *func_;		/* what function we are inst */
+
+  
   
   ipFuncLoc ipLoc;
 
@@ -104,7 +97,10 @@ public:
   friend class BPatch_point;
   BPatch_point *bppoint; // unfortunately the correspondig BPatch_point
   			 // is created afterwards, so it needs to set this
- public:
+  // CALL iPgetAddress() instead! This is not an absolute address!
+  Address addr;                   /* address of inst point */
+
+  public:
   const BPatch_point* getBPatch_point() const { return bppoint; }
 };
 

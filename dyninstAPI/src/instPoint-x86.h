@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-x86.h,v 1.20 2003/09/05 16:27:53 schendel Exp $
+// $Id: instPoint-x86.h,v 1.21 2003/10/21 17:22:14 bernat Exp $
 
 #ifndef _INST_POINT_X86_H_
 #define _INST_POINT_X86_H_
@@ -95,7 +95,7 @@ class instPoint {
   const function_base *iPgetFunction() const { return func();    }
   const function_base *iPgetCallee()   const { return callee();  }
   const image         *iPgetOwner()    const { return owner();   }
-        Address        iPgetAddress()  const { return addr_; }
+  Address        iPgetAddress(process *p = 0) const;
 
 
   Address insnAddress() { return addr_; }
@@ -200,16 +200,16 @@ class instPoint {
   void checkInstructions ();
 
   pd_Function *callee() const { 
-    if (insnAtPoint().isCall()) {
-      if (insnAtPoint().isCallIndir())
-	return NULL;
-      else {
-	Address addr = insnAtPoint().getTarget(address());
-	pd_Function *pdf = owner()->findFuncByAddr(addr);
-	return pdf;
+      if (insnAtPoint().isCall()) {
+          if (insnAtPoint().isCallIndir())
+              return NULL;
+          else {
+              Address addr = insnAtPoint().getTarget(address());
+              pd_Function *pdf = owner()->findFuncByOffset(addr);
+              return pdf;
+          }
       }
-    }
-    return NULL;
+      return NULL;
   }
 
   Address getTargetAddress() {

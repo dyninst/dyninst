@@ -59,14 +59,17 @@ public:
   // can't set this in the constructor because call points can't be classified until
   // all functions have been seen -- this might be cleaned up
   void set_callee(pd_Function *to) { callee = to; }
+
+  pd_Function *func() const { return (pd_Function *) func_;}
   
-  const function_base *iPgetFunction() const { return func;   }
+  const function_base *iPgetFunction() const { return func();   }
   const function_base *iPgetCallee()   const { 
 	return callIndirect ? NULL : callee; 
   }
   const image         *iPgetOwner()    const { 
-    return (func) ? ( (func->file()) ? func->file()->exec() : NULL ) : NULL; }
-  Address        iPgetAddress()  const { return addr;   }
+      return (func()) ? ( (func()->file()) ? func()->file()->exec() : NULL ) : NULL; }
+  Address        iPgetAddress(process *p = 0)  const;
+  
 
   bool match(instPoint *p);
   
@@ -85,7 +88,7 @@ public:
 				   we need to reolcate three insns in this case
 				   */
   pd_Function *callee;		/* what function is called */
-  pd_Function *func;		/* what function we are inst */
+  pd_Function *func_;		/* what function we are inst */
 
   bool isBranchOut;		/* true if this point is a conditional branch, 
 				   that may branch out of the function */

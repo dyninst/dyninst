@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint-ia64.h,v 1.8 2003/09/23 17:28:54 tlmiller Exp $
+// $Id: instPoint-ia64.h,v 1.9 2003/10/21 17:22:10 bernat Exp $
 
 #ifndef _INST_POINT_IA64_H_
 #define _INST_POINT_IA64_H_
@@ -72,9 +72,7 @@ class instPoint {
 			myCallee = callee;
 			} /* required by linux.C */
 
-		Address iPgetAddress() const {
-			return myAddress;
-			} /* required by func-reloc.C */
+		Address iPgetAddress(process *p = 0) const;
 
 		Address firstAddress() const {
 			assert( 0 );
