@@ -1,7 +1,10 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.25  1994/11/03 22:08:03  tamches
+# Revision 1.26  1994/11/03 22:13:37  tamches
+# changed "Exit" to "Exit Paradyn"
+#
+# Revision 1.25  1994/11/03  22:08:03  tamches
 # Changed "Start Visual" to "Visualization"
 #
 # Revision 1.24  1994/11/03  21:04:24  tamches
@@ -194,7 +197,7 @@ proc drawToolBar {} {
 	    {uimpd drawStartVisiMenu .menub.left.men.b5.m}
 
     menu .menub.left.men.b0.m
-    .menub.left.men.b0.m add command -label "Exit" -command "destroy ."
+    .menub.left.men.b0.m add command -label "Exit Paradyn" -command "destroy ."
        # the -command is the same as the command executed when "EXIT"
        # button (lower right of screen) is clicked on.  If this is not right,
        # then by all means change it.
