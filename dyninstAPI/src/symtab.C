@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.217 2004/08/08 21:43:29 lharris Exp $
+ // $Id: symtab.C,v 1.218 2004/08/24 14:22:19 legendre Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -164,18 +164,9 @@ pdmodule *image::newModule(const pdstring &name, const Address addr, supportedLa
     if ((ret = findModule(name))) {
       return(ret);
     }
-    pdstring fullNm, fileNm;
-    char *out = P_strdup(name.c_str());
-    char *sl = P_strrchr(out, '/');
-    if (sl) {
-      *sl = (char)0;
-      fullNm = out;
-      fileNm = sl+1;
-    } else {
-      fullNm = pdstring("/default/") + out;
-      fileNm = out;
-    }
-    free(out);
+    pdstring fileNm, fullNm;
+    fullNm = name;
+    fileNm = extract_pathname_tail(name);
 
     ret = new pdmodule(lang, addr, fullNm, fileNm, this);
     modsByFileName[ret->fileName()] = ret;
@@ -2485,16 +2476,9 @@ pdmodule *image::getOrCreateModule(const pdstring &modName,
   assert(len>0);
 
   // TODO ignore directory definitions for now
-  if (str[len-1] == '/') {
+  if (str[len-1] == '/') 
     return NULL;
-  } else {
-    // TODO - navigate ".." and "."
-    const char *lastSlash = P_strrchr(str, '/');
-    if (lastSlash)
-      return (newModule(++lastSlash, modAddr, lang_Unknown));
-    else
-      return (newModule(modName, modAddr, lang_Unknown));
-  }
+  return (newModule(modName, modAddr, lang_Unknown));
 }
 
 // Verify that this is code
