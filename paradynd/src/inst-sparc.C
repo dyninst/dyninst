@@ -43,6 +43,10 @@
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc.C,v $
+ * Revision 1.41  1996/08/23 03:44:57  lzheng
+ * Changes made for the previous commit and also minor bug fix for the
+ * undoing of tail-call optimaztion
+ *
  * Revision 1.40  1996/08/20 19:21:57  lzheng
  * Implementation of moving multiple instructions sequence and
  * splitting the instrumentation into two phases
@@ -918,17 +922,30 @@ void installBaseTrampSpecial(unsigned baseAddr,
 
         if (temp->raw == EMULATE_INSN) {
 
-	    *temp = location->originalInstruction;
-	    relocateInstruction(temp, location->addr, currAddr, proc);
-	    if (location->isDelayed) {
-                /* copy delay slot instruction into tramp instance */
-		currAddr += sizeof(instruction);  
-                *++temp = location->delaySlotInsn;
-	    }
-	    if (location->callAggregate) {
-                /* copy invalid insn with aggregate size in it */
-		currAddr += sizeof(instruction);  
-                *++temp = location->aggregateInsn;
+	    if (location->isBranchOut) {
+                /* the original instruction is a branch that goes out of a function.
+                   We don't relocate the original instruction. We only get to
+                   the tramp is the branch is taken, so we generate a unconditional
+                   branch to the target of the original instruction here   */
+                assert(location->branchTarget);
+                int disp = location->branchTarget - currAddr;
+                generateBranchInsn(temp, disp);
+                disp = temp->branch.disp22;
+                continue;
+            }
+	    else {
+		*temp = location->originalInstruction;
+		relocateInstruction(temp, location->addr, currAddr, proc);
+		if (location->isDelayed) {
+		    /* copy delay slot instruction into tramp instance */
+		    currAddr += sizeof(instruction);  
+		    *++temp = location->delaySlotInsn;
+		}
+		if (location->callAggregate) {
+		    /* copy invalid insn with aggregate size in it */
+		    currAddr += sizeof(instruction);  
+		    *++temp = location->aggregateInsn;
+		}
 	    }
         } else if (temp->raw == RETURN_INSN) {
             generateBranchInsn(temp, 
@@ -1852,6 +1869,7 @@ bool pdFunction::findInstPoints(const image *owner,
 	   instPoint *point = new instPoint(this, newInstr[i], owner, 
 					    newAdr, false, 
 					    functionExit, adr);
+	   //generateNOOP(&point->delaySlotInsn);
 	   if ((instr.branch.cond != 0) && (instr.branch.cond != 8)) {  
 	       point->isBranchOut = true;
 	       point->branchTarget = target;
@@ -2025,7 +2043,7 @@ bool pdFunction::relocateFunction(process *proc, instPoint *location) {
     newAddr = ret;
 
     findInstPoints(globalProc->symbols, ret, proc);
-    proc->writeDataSpace((caddr_t)ret, size()+20, (caddr_t) newInstr);
+    proc->writeDataSpace((caddr_t)ret, size()+28, (caddr_t) newInstr);
 
 }
 
