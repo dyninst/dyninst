@@ -46,6 +46,11 @@
  * RTsunos.c: SunOs-4.1.3 specific functions.
  *
  * $Log: RTsunos.c,v $
+ * Revision 1.11  1997/02/27 19:11:07  newhall
+ * changed some calls to open, and dup to use syscall instead.  This is for
+ * applications that have their own version of these routines, we want to make
+ * sure to call the correct open or dup.
+ *
  * Revision 1.10  1997/01/27 19:43:37  naim
  * Part of the base instrumentation for supporting multithreaded applications
  * (vectors of counter/timers) implemented for all current platforms +
@@ -300,6 +305,7 @@ try_again:
     }
     else {
       perror("getrusage");
+      assert(0);
       abort();
     }
 }
@@ -324,6 +330,7 @@ DYNINSTgetWalltime(void) {
 retryWT:
     if (gettimeofday(&tv, NULL) == -1) {
         perror("gettimeofday");
+	assert(0);
         abort();
     }
     now = (time64)tv.tv_sec*(time64)1000000 + (time64)tv.tv_usec;

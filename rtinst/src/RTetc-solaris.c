@@ -46,6 +46,9 @@
 #include <signal.h>
 #include <sys/ucontext.h>
 #include <sys/time.h>
+#include <assert.h>
+#include <sys/syscall.h>
+
 #include <sys/procfs.h> /* /proc PIOCUSAGE */
 #include <stdio.h>
 #include <fcntl.h> /* O_RDONLY */
@@ -95,6 +98,7 @@ DYNINSTos_init(int calledByFork, int calledByAttach) {
     sigfillset(&act.sa_mask);
     if (sigaction(SIGTRAP, &act, 0) != 0) {
         perror("sigaction(SIGTRAP)");
+	assert(0);
 	abort();
     }
 #endif
@@ -223,7 +227,11 @@ void DYNINSTgetCPUtimeInitialize(void) {
    char str[20];
 
    sprintf(str, "/proc/%d", (int)getpid());
-   procfd = open(str, O_RDONLY);
+   // have to use syscall here for applications that have their own
+   // versions of open, poll...In these cases there is no guarentee that
+   // things have been initialized so that the application's version of
+   // open can be used when this open call occurs (in DYNINSTinit)
+   procfd = syscall(SYS_open,str, O_RDONLY);
    if (procfd < 0) {
       fprintf(stderr, "open of /proc failed in DYNINSTgetCPUtimeInitialize\n");
       perror("open");
@@ -301,6 +309,7 @@ DYNINSTgetWalltime(void) {
     struct timeval tv;
     if (gettimeofday(&tv,NULL) == -1) {
         perror("gettimeofday");
+	assert(0);
         abort();
     }
 
@@ -362,6 +371,7 @@ static unsigned lookup(unsigned key) {
         return DYNINSTtrampTable[u].val;
     }
     /* not reached */
+    assert(0);
     abort();
 }
 
@@ -379,6 +389,7 @@ void DYNINSTtrapHandler(int sig, siginfo_t *info, ucontext_t *uap) {
     if (nextpc) {
       uap->uc_mcontext.gregs[PC] = nextpc;
     } else {
+      assert(0);
       abort();
     }
     DYNINSTtotalTraps++;

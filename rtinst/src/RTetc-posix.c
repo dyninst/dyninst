@@ -74,6 +74,11 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#ifdef rs6000_ibm_aix4_1
+#else
+#include <sys/syscall.h>
+#endif
+
 #include <math.h>
 
 #include "kludges.h"
@@ -265,7 +270,11 @@ void DYNINSTinitTrace(int daemon_addr) {
   if (daemon_addr == -1) {
     /* this process was started by the paradynd, which set up a pipe on fd 3 */
     DYNINST_trace_fd = 3;
+#ifdef rs6000_ibm_aix4_1
     DYNINSTtraceFp = fdopen(dup(DYNINST_trace_fd), "w");
+#else
+    DYNINSTtraceFp = fdopen(syscall(SYS_dup,DYNINST_trace_fd), "w");
+#endif
     if (!DYNINSTtraceFp) {
       perror("DYNINSTinitTrace: fdopen()");
       abort();
@@ -275,7 +284,11 @@ void DYNINSTinitTrace(int daemon_addr) {
     DYNINST_trace_fd = connectToDaemon(daemon_addr);
     assert(DYNINST_trace_fd != -1);
 
-    DYNINSTtraceFp = fdopen(dup(DYNINST_trace_fd), "w"); // why the dup()?
+#ifdef rs6000_ibm_aix4_1
+    DYNINSTtraceFp = fdopen(dup(DYNINST_trace_fd), "w"); 
+#else
+    DYNINSTtraceFp = fdopen(syscall(dup,DYNINST_trace_fd), "w");
+#endif
     assert(DYNINSTtraceFp);
   }
   
