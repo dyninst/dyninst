@@ -39,10 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.88 2002/09/07 16:15:19 schendel Exp $ */
+/* $Id: dynrpc.C,v 1.89 2002/10/15 17:11:40 schendel Exp $ */
 
 #include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/ast.h"
@@ -62,6 +61,9 @@
 #include "dyninstAPI/src/showerror.h"
 #include "common/h/debugOstream.h"
 #include "pdutil/h/hist.h"
+#include "dyninstAPI/src/process.h"
+#include "paradynd/src/pd_process.h"
+#include "paradynd/src/processMgr.h"
 
 // The following were defined in process.C
 extern debug_ostream attach_cerr;
@@ -108,25 +110,22 @@ void dynRPC::addResource(u_int parent_id, u_int id, string name, u_int type)
   resource::newResource(parent, name, id, type);
 }
 
-extern vector<process*> processVec;
-extern process* findProcess(int); // should become a static method of class process
-
 void dynRPC::coreProcess(int id)
 {
-  process *proc = findProcess(id);
-  if (proc)
-    proc->dumpCore("core.out");
+   pd_process *proc = getProcMgr().find_pd_process(id);
+   if (proc)
+      proc->dumpCore("core.out");
 }
 
 string dynRPC::getStatus(int id)
 {
-  process *proc = findProcess(id);
-  if (!proc) {
-    string ret = string("PID: ") + string(id);
-    ret += string(" not found for getStatus\n");
-    return (P_strdup(ret.c_str()));
-  } else 
-    return (proc->getProcessStatus());
+   pd_process *proc = getProcMgr().find_pd_process(id);
+   if (!proc) {
+      string ret = string("PID: ") + string(id);
+      ret += string(" not found for getStatus\n");
+      return (P_strdup(ret.c_str()));
+   } else 
+      return (proc->getProcessStatus());
 }
 
 vector<T_dyninstRPC::metricInfo> dynRPC::getAvailableMetrics(void) {
@@ -177,28 +176,28 @@ void dynRPC::disableDataCollection(int mid)
     else 
         subCurrentPredictedCost(cost);
 
-    vector<process *> procsToCont;
-    process *proc;
-    for (unsigned i=0; i<processVec.size(); i++) {
-      proc = processVec[i];
-      if (proc->status()==running) {
+    vector<pd_process *> procsToCont;
+    processMgr::procIter itr = getProcMgr().begin();
+    while(itr != getProcMgr().end()) {
+       pd_process *proc = *itr++;
+       if (proc->status()==running) {
 #ifdef DETACH_ON_THE_FLY
-         proc->reattachAndPause();
+	  proc->reattachAndPause();
 #else
-         proc->pause();
+	  proc->pause();
 #endif
-	procsToCont += proc;
-      }
-      if (proc->existsRPCreadyToLaunch()) {
-	proc->cleanRPCreadyToLaunch(mid);
-      }
+	  procsToCont += proc;
+       }
+       if (proc->existsRPCreadyToLaunch()) {
+	  proc->cleanRPCreadyToLaunch(mid);
+       }
     }
 
-    for (unsigned p=0;p<procsToCont.size();p++) {
+    for (unsigned i=0; i<procsToCont.size(); i++) {
 #ifdef DETACH_ON_THE_FLY
-      procsToCont[p]->detachAndContinue();
+      procsToCont[i]->detachAndContinue();
 #else
-      procsToCont[p]->continueProc();
+      procsToCont[i]->continueProc();
 #endif
     }
     delete mi;
@@ -308,34 +307,35 @@ void dynRPC::setSampleRate(double sampleInterval)
          
 	// setSampleMultiple(sample_multiple);
 	// set the sample multiple in all processes
-	unsigned p_size = processVec.size();
-	for (unsigned u=0; u<p_size; u++){
-	  if (processVec[u]->status() != exited) {
-            internalSym ret_sym; 
-            if(!(processVec[u]->findInternalSymbol("DYNINSTsampleMultiple",
-							     true, ret_sym))){
-                sprintf(errorLine, "error2 in dynRPC::setSampleRate\n");
-                logLine(errorLine);
-		P_abort();
+	 processMgr::procIter itr = getProcMgr().begin();
+	 while(itr != getProcMgr().end()) {
+	    pd_process *proc = *itr++;
+	    if(proc->status() != exited) {
+	       internalSym ret_sym; 
+	       if(! proc->findInternalSymbol("DYNINSTsampleMultiple",
+					     true, ret_sym)) {
+		  sprintf(errorLine, "error2 in dynRPC::setSampleRate\n");
+		  logLine(errorLine);
+		  P_abort();
+	       }
+	       Address addr = ret_sym.getAddr();
+	       proc->writeDataSpace((caddr_t)addr, sizeof(int),
+				    (caddr_t)&sample_multiple);
 	    }
-	    Address addr = ret_sym.getAddr();
-            processVec[u]->writeDataSpace((caddr_t)addr,sizeof(int),
-					  (caddr_t)&sample_multiple);
-	  }
-        }
-	setCurrSamplingRate(newSampleRate);
-	machineMetFocusNode::updateAllAggInterval(newSampleRate);
+	 }
+	 setCurrSamplingRate(newSampleRate);
+	 machineMetFocusNode::updateAllAggInterval(newSampleRate);
     }
     return;
 }
 
 bool dynRPC::detachProgram(int program, bool pause)
 {
-  process *proc = findProcess(program);
-  if (proc)
-    return(proc->detach(pause));
-  else
-    return false;
+   pd_process *proc = getProcMgr().find_pd_process(program);
+   if (proc)
+      return(proc->detach(pause));
+   else
+      return false;
 }
 
 //
@@ -352,32 +352,32 @@ void dynRPC::continueApplication(void)
 //
 void dynRPC::continueProgram(int program)
 {
-    process *proc = findProcess(program);
-    if (!proc) {
+   pd_process *proc = getProcMgr().find_pd_process(program);
+   if (!proc) {
       sprintf(errorLine, "Internal error: cannot continue PID %d\n", program);
       logLine(errorLine);
       showErrorCallback(62,(const char *) errorLine,
 		        machineResource->part_name());
       return;
-    }
-    if (proc->existsRPCinProgress())  {
+   }
+   if (proc->existsRPCinProgress())  {
       // An RPC is in progress, so we delay the continueProc until the RPC
       // finishes - naim
-      proc->deferredContinueProc=true;
-    } else {
-	 if( proc->status() != running ) {
+      proc->get_dyn_process()->deferredContinueProc = true;
+   } else {
+      if( proc->status() != running ) {
 #ifdef DETACH_ON_THE_FLY
-	        proc->detachAndContinue();
+	 proc->detachAndContinue();
 #else
-		proc->continueProc();
+	 proc->continueProc();
 #endif
-	 }
-	 // we are no longer paused, are we?
-	 statusLine("application running");
-	 if (!markApplicationRunning()) {
-	      return;
-	 }
-    }
+      }
+      // we are no longer paused, are we?
+      statusLine("application running");
+      if (!markApplicationRunning()) {
+	 return;
+      }
+   }
 }
 
 //
@@ -394,18 +394,18 @@ bool dynRPC::pauseApplication(void)
 //
 bool dynRPC::pauseProgram(int program)
 {
-    process *proc = findProcess(program);
-    if (!proc) {
+   pd_process *proc = getProcMgr().find_pd_process(program);
+   if (!proc) {
       sprintf(errorLine, "Internal error: cannot pause PID %d\n", program);
       logLine(errorLine);
       showErrorCallback(63,(const char *) errorLine,
 		        machineResource->part_name());
       return false;
-    }
+   }
 #ifdef DETACH_ON_THE_FLY
-    return proc->reattachAndPause();
+   return proc->reattachAndPause();
 #else
-    return proc->pause();
+   return proc->pause();
 #endif
 }
 
@@ -420,11 +420,10 @@ bool dynRPC::startProgram(int )
 // Monitor the dynamic call sites contained in function <function_name>
 //
 void dynRPC::MonitorDynamicCallSites(string function_name){
-  unsigned i;
-  process *p;
-  for(i = 0; i < processVec.size(); i++){
-    p = processVec[i];
-    p->MonitorDynamicCallSites(function_name);
+  processMgr::procIter itr = getProcMgr().begin();
+  while(itr != getProcMgr().end()) {
+     pd_process *p = *itr++;
+     p->MonitorDynamicCallSites(function_name);
   }
 }
 
@@ -434,9 +433,12 @@ void dynRPC::MonitorDynamicCallSites(string function_name){
 int dynRPC::addExecutable(vector<string> argv, string dir)
 {
   vector<string> envp;
-  return(addProcess(argv, envp, dir)); // context.C
+  extern int pd_createProcess(vector<string> &argv, vector<string> &envp, 
+										string dir);
+  return(pd_createProcess(argv, envp, dir)); // context.C
 }
 
+extern bool pd_attachProcess(const string &progpath, int pid, int afterAttach);
 
 //
 // Attach is the other way to start a process (application?)
@@ -460,7 +462,7 @@ bool dynRPC::attach(string progpath, int pid, int afterAttach)
     }
 #endif
 
-    return attachProcess(progpath, pid, afterAttach); // process.C
+    return pd_attachProcess(progpath, pid, afterAttach); // process.C
 }
 
 //
