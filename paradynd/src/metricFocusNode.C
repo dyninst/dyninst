@@ -14,7 +14,10 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
- * Revision 1.78  1996/02/21 15:46:19  naim
+ * Revision 1.79  1996/02/21 19:30:38  naim
+ * Minor changes to getNumberOfCPUs (CM-5): using CMMD_partition_size() - naim
+ *
+ * Revision 1.78  1996/02/21  15:46:19  naim
  * Fixing problem with numberOfCPUs for the CM-5 - naim
  *
  * Revision 1.77  1996/02/13  06:17:31  newhall
@@ -391,10 +394,6 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
 #include "paradynd/src/mdld.h"
 #include "showerror.h"
 #include "costmetrics.h"
-
-#ifdef sparc_tmc_cmost7_3
-extern int getNumberOfCPUs();
-#endif
 
 double currentPredictedCost = 0.0;
 double currentSmoothObsValue= 0.0;
@@ -1441,11 +1440,7 @@ void reportInternalMetrics()
         } else if (imp->name() == "bucket_width") {
 	  value = (end - start)*(imp->value);
         } else if (imp->name() == "number_of_cpus") {
-	  #ifdef sparc_tmc_cmost7_3 
-	    value = (end - start)* getNumberOfCPUs();
-          #else
-            value = (end - start)* numberOfCPUs;
-          #endif
+          value = (end - start)* numberOfCPUs;
         } else if (imp->style() == EventCounter) {
           value = imp->getValue();
           // assert((value + 0.0001)  >= imp->cumulativeValue);

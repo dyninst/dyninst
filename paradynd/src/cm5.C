@@ -1,7 +1,10 @@
 
 /*
  * $Log: cm5.C,v $
- * Revision 1.8  1996/02/12 16:46:08  naim
+ * Revision 1.9  1996/02/21 19:30:35  naim
+ * Minor changes to getNumberOfCPUs (CM-5): using CMMD_partition_size() - naim
+ *
+ * Revision 1.8  1996/02/12  16:46:08  naim
  * Updating the way we compute number_of_cpus. On solaris we will return the
  * number of cpus; on sunos, hp, aix 1 and on the CM-5 the number of processes,
  * which should be equal to the number of cpus - naim
@@ -52,6 +55,7 @@
 
 extern "C" {
 extern int ioctl(int, int, ...);
+extern int CMMD_partition_size(void);
 #include <a.out.h>
 #include <sys/exec.h>
 #include <stab.h>
@@ -453,7 +457,8 @@ int getNumberOfCPUs()
   // the number of processors - naim
   //
   int numberOfCPUs;
-  numberOfCPUs = processVec.size();
+
+  numberOfCPUs = CMMD_partition_size();
   if (numberOfCPUs)
     return(numberOfCPUs);
   else
