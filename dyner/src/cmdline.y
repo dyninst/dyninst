@@ -40,7 +40,7 @@ parse_ret parse_type;
 %token ERROR IF ELSE
 %token PLUSPLUS MINUSMINUS
 
-%left DOT
+%left DOT DOLLAR
 %left OR
 %left AND
 %left EQ NOT_EQ LESS_EQ GREATER_EQ
@@ -222,6 +222,13 @@ variable_expr:
 	}
 
 	free($1);
+    }
+    | DOLLAR NUMBER {
+	if (($2 < 0) || ($2 >= 8)) {
+	     printf("parameter %d is not valid\n", $2);
+	     return 1;
+	}
+	$$ = new BPatch_paramExpr($2);
     }
     ;
 

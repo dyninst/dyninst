@@ -115,6 +115,8 @@ else			{ return ELSE; }
 
 \}			{ return END_BLOCK; }
 
+\$			{ return DOLLAR; }
+
 \.			{ return DOT; }
 
 ;			{ return SEMI; }
