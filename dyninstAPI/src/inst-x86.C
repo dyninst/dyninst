@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.172 2004/04/13 04:11:36 legendre Exp $
+ * $Id: inst-x86.C,v 1.173 2004/04/14 21:42:25 pcroth Exp $
  */
 #include <iomanip>
 
@@ -785,6 +785,13 @@ bool pd_Function::findInstPoints( pdvector< Address >& callTargets,
                 currBlk->setRelEnd( currAddr + insnSize );
 
                 numInsns = allInstructions.size() - 1;
+				if( numInsns == 0 )
+				{
+					// this "function" is a single instruction long
+					// (a jmp to the "real" function)
+                    isInstrumentable_ = false;
+                    return false;
+				}
 
                 if( *allInstructions[numInsns - 1].ptr() == POP_EBX && window )
                 {
