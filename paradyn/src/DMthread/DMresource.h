@@ -2,7 +2,10 @@
  * DMresource.h - define the resource data abstraction.
  *
  * $Log: DMresource.h,v $
- * Revision 1.12  1994/09/30 21:17:46  newhall
+ * Revision 1.13  1994/11/02 11:46:55  markc
+ * Made sure that functions that have a return type, return that type.
+ *
+ * Revision 1.12  1994/09/30  21:17:46  newhall
  * changed convertToStringList method function return value from
  * stringHandle * to char**
  *
@@ -131,15 +134,15 @@ class resource {
     resourceList *getChildren() { return(&children); }
     stringHandle getName() { return(name); }
     stringHandle getFullName() { return(fullName); }
-    resource *findChild(char *name) { return(children.find(name)); }
+    resource *findChild(char *nm) { return(children.find(nm)); }
     int match(char *ptr) { return(ptr == name); }
     Boolean isDescendent(resource *child);
     Boolean sameRoot(resource *child);
     void print();
     resource *getParent()	{ return(parent); }
     static resource *rootResource;
-    setSuppress(Boolean nv)	{ suppressSearch = nv; }
-    getSuppress()		{ return(suppressSearch); }
+    void setSuppress(Boolean nv)	{ suppressSearch = nv; }
+    Boolean getSuppress()		{ return(suppressSearch); }
     abstraction *getAbstraction() { return(abstr); }
   protected:
     resource();
