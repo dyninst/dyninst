@@ -418,10 +418,14 @@ void metricInstance::newCurrDataCollection(metricStyle style,
     timeStamp start_time = phaseInfo::GetLastPhaseStart();
     if(start_time == 0.0) {
         data = new Histogram(style, dcb, fcb, this);
+	assert(data);
+	phaseInfo::setCurrentBucketWidth(data->getBucketWidth());
 
     }
     else {
         data = new Histogram(start_time, style, dcb, fcb, this);
+	assert(data);
+	phaseInfo::setCurrentBucketWidth(data->getBucketWidth());
     }
 }
 
