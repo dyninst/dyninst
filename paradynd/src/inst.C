@@ -7,7 +7,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst.C,v 1.22 1995/11/13 14:56:06 naim Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/inst.C,v 1.23 1996/03/25 20:21:10 tamches Exp $";
 #endif
 
 
@@ -15,6 +15,9 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  * inst.C - Code to install and remove inst funcs from a running process.
  *
  * $Log: inst.C,v $
+ * Revision 1.23  1996/03/25 20:21:10  tamches
+ * the reduce-mem-leaks-in-paradynd commit
+ *
  * Revision 1.22  1995/11/13 14:56:06  naim
  * Metric active_slots is not going to be used any longer - naim
  *
@@ -215,8 +218,9 @@ static char insn[65536];
 
 static dictionary_hash<instPoint*, point*> activePoints(ipHash);
 
-instInstance *addInstFunc(process *proc, instPoint *location, AstNode *ast,
-    callWhen when, callOrder order)
+instInstance *addInstFunc(process *proc, instPoint *location,
+			  const AstNode &ast,
+			  callWhen when, callOrder order)
 {
     int trampCost;
     unsigned count;
@@ -266,7 +270,7 @@ instInstance *addInstFunc(process *proc, instPoint *location, AstNode *ast,
     // return value is offset of return stmnt.
     //
     count = 0;
-    ret->returnAddr = ast->generateTramp(proc, insn, count, trampCost); 
+    ret->returnAddr = ast.generateTramp(proc, insn, count, trampCost); 
 
     ret->trampBase = inferiorMalloc(proc, count, textHeap);
     trampBytes += count;
@@ -413,11 +417,10 @@ void deleteInst(instInstance *old)
 void installDefaultInst(process *proc, vector<instMapping*>& initialReqs)
 {
     AstNode *ast;
-    instMapping *item;
 
     unsigned ir_size = initialReqs.size(); 
     for (unsigned u=0; u<ir_size; u++) {
-      item = initialReqs[u];
+      instMapping *item = initialReqs[u];
       // TODO this assumes only one instance of each function (no siblings)
       // TODO - are failures safe here ?
       pdFunction *func = (proc->symbols)->findOneFunction(item->func);
@@ -432,19 +435,22 @@ void installDefaultInst(process *proc, vector<instMapping*>& initialReqs)
       }
       assert(func);
 
-      if (item->where & FUNC_ARG) {
-	ast = new AstNode(item->inst, item->arg, NULL);
-      } else {
-	ast = new AstNode(item->inst, new AstNode(Constant, 0), NULL);
-      }
+      AstNode ast;
+      if (item->where & FUNC_ARG)
+	ast = AstNode(item->inst, *(item->arg));
+      else
+	ast = AstNode(item->inst, AstNode(Constant, 0));
+
       if (item->where & FUNC_EXIT) {
 	(void) addInstFunc(proc, func->funcReturn(), ast,
 			   callPreInsn, orderLastAtPoint);
       }
+
       if (item->where & FUNC_ENTRY) {
 	(void) addInstFunc(proc, func->funcEntry(), ast,
 			   callPreInsn, orderLastAtPoint);
       }
+
       if (item->where & FUNC_CALL) {
 	if (!func->calls.size()) {
 	  ostrstream os(errorLine, 1024, ios::out);
@@ -459,8 +465,8 @@ void installDefaultInst(process *proc, vector<instMapping*>& initialReqs)
 	  }
 	}
       }
-      delete(ast);
     }
+
     // Supercomputing hack - mdc
     // TODO
     osDependentInst(proc);

@@ -14,6 +14,9 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metricDefs-cm5.
  * metric.C - define and create metrics.
  *
  * $Log: metricDefs-cm5.C,v $
+ * Revision 1.22  1996/03/25 20:23:49  tamches
+ * the reduce-mem-leaks-in-paradynd commit
+ *
  * Revision 1.21  1995/10/24 03:37:56  tamches
  * Commented out createSyncWait, as part of removing metricDefs-common.C
  *
@@ -179,20 +182,19 @@ void createMsgBytesMetric(metricDefinitionNode *mn,
 			  AstNode *trigger)
 {
     pdFunction *func;
-    AstNode *msgBytesAst;
     dataReqNode *dataPtr;
 
     dataPtr = mn->addIntCounter(0, true);
 
     // addCounter(counter, param4 * param5)
-    msgBytesAst = new AstNode("addCounter", 
-	    new AstNode(DataValue, dataPtr),
-	    new AstNode(Param, (void *) 3));
+    AstNode msgBytesAst ("addCounter", 
+			 AstNode(DataValue, dataPtr),
+			 AstNode(Param, (void *) 3));
 
 // WAS:	    new AstNode(timesOp, new AstNode(Param, (void *) 3), 
 //				 new AstNode(Param, (void *) 4)));
 
-    if (trigger) msgBytesAst = createIf(trigger, msgBytesAst);
+    if (trigger) msgBytesAst = createIf(*trigger, msgBytesAst);
 
     dictionary_hash_iter<unsigned, pdFunction*> fi((mn->proc())->symbols->funcsByAddr);
     unsigned u;
@@ -224,22 +226,22 @@ AstNode *defaultMSGTagPredicate(metricDefinitionNode *mn,
     int iTag;
     pdFunction *func;
     dataReqNode *data;
-    AstNode *tagTest;
-    AstNode *filterNode, *clearNode;
 
     iTag = atoi(tag);
 
     data = mn->addIntCounter(0, false);
 
     // (== param2, iTag)
-    tagTest = new AstNode(eqOp, new AstNode(Param, (void *) 1),
-				new AstNode(Constant, (void *) iTag));
+    AstNode tagTest (eqOp, AstNode(Param, (void *) 1),
+		     AstNode(Constant, (void *) iTag));
 
-    filterNode = createIf(tagTest, createPrimitiveCall("addCounter", data, 1));
-    if (trigger) filterNode = createIf(trigger, filterNode);
+    AstNode filterNode = createIf(tagTest, createPrimitiveCall("addCounter", data, 1));
+    if (trigger)
+       filterNode = createIf(*trigger, filterNode);
 
-    clearNode = createPrimitiveCall("setCounter", data, 0);
-    if (trigger) clearNode = createIf(trigger, clearNode);
+    AstNode clearNode = createPrimitiveCall("setCounter", data, 0);
+    if (trigger)
+       clearNode = createIf(*trigger, clearNode);
 
     dictionary_hash_iter<unsigned, pdFunction*> fi((mn->proc())->symbols->funcsByAddr);
     unsigned u;

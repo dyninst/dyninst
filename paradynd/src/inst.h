@@ -11,6 +11,9 @@
  *   by the instrumentation layer.
  *
  * $Log: inst.h,v $
+ * Revision 1.16  1996/03/25 20:21:08  tamches
+ * the reduce-mem-leaks-in-paradynd commit
+ *
  * Revision 1.15  1996/03/20 17:02:49  mjrg
  * Added multiple arguments to calls.
  * Instrument pvm_send instead of pvm_recv to get tags.
@@ -142,7 +145,7 @@ class AstNode;
  */
 instInstance *addInstFunc(process *proc,
 			  instPoint *location,
-			  AstNode *ast, 
+			  const AstNode &ast, 
 			  callWhen when,
 			  callOrder order);
 

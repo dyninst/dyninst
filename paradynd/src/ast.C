@@ -1,6 +1,9 @@
 
 /* 
  * $Log: ast.C,v $
+ * Revision 1.21  1996/03/25 20:20:39  tamches
+ * the reduce-mem-leaks-in-paradynd commit
+ *
  * Revision 1.20  1996/03/20 17:02:36  mjrg
  * Added multiple arguments to calls.
  * Instrument pvm_send instead of pvm_recv to get tags.
@@ -177,19 +180,230 @@ void registerSpace::resetSpace() {
     highWaterRegister = 0;
 }
 
+AstNode &AstNode::operator=(const AstNode &src) {
+   if (&src == this)
+      return *this;
+
+   // clean up self before overwriting self; i.e., release memory
+   // currently in use so it doesn't become leaked.
+   if (loperand)
+      delete loperand;
+   if (roperand)
+      delete roperand;
+
+   type = src.type;
+   if (type == opCodeNode)
+      op = src.op; // defined only for operand nodes
+
+   if (type == callNode) {
+      callee = src.callee; // defined only for call nodes
+      operands = src.operands; // defined only for call nodes
+   }
+
+   if (type == operandNode) {
+      oType = src.oType;
+      if (oType == DataPtr || oType == DataValue)
+         dValue = src.dValue;
+      else
+         oValue = src.oValue;
+   }
+
+   loperand = src.loperand ? new AstNode(*src.loperand) : NULL;
+   roperand = src.roperand ? new AstNode(*src.roperand) : NULL;
+
+   firstInsn = src.firstInsn;
+   lastInsn = src.lastInsn;
+
+   return *this;
+}
+
+AstNode::AstNode() {
+   // used in mdl.C
+   loperand = roperand = NULL;
+   // "operands" is left as an empty vector
+
+   //assert(0);
+}
+
+AstNode::AstNode(const string &func, const AstNode &l, const AstNode &r) {
+    loperand = new AstNode(l);
+    roperand = new AstNode(r);
+
+    if (func == "setCounter") {
+	type = opCodeNode;
+	op = storeOp;
+    } else if (func == "addCounter") {
+        type = opCodeNode;
+
+	// should we "delete roperand", to free up some memory, before reassigning
+        // to roperand? --ari
+	if (roperand) delete roperand;
+
+	roperand = new AstNode(plusOp, l, r);
+	op = storeOp;
+    } else if (func == "subCounter") {
+	type = opCodeNode;
+
+	// should we "delete roperand", to free up some memory, before reassigning
+        // to roperand? --ari
+        if (roperand) delete roperand;
+
+	roperand = new AstNode(minusOp, l, r);
+	op = storeOp;
+     } else {
+        type = callNode;
+	callee = func;
+	operands += l;
+	operands += r;
+     }
+}
+
+AstNode::AstNode(const string &func, const AstNode &l) {
+    loperand = new AstNode(l);
+    roperand = NULL;
+
+    if (func == "setCounter") {
+	type = opCodeNode;
+	op = storeOp;
+    } else if (func == "addCounter") {
+        type = opCodeNode;
+
+	// should we "delete roperand", to free up some memory, before reassigning
+        // to roperand? --ari
+	if (roperand) delete roperand;
+
+	roperand = new AstNode(plusOp, l); // assumes NULL for right operand
+	op = storeOp;
+    } else if (func == "subCounter") {
+	type = opCodeNode;
+
+	// should we "delete roperand", to free up some memory, before reassigning
+        // to roperand? --ari
+        if (roperand) delete roperand;
+
+	roperand = new AstNode(minusOp, l); // assumes NULL for right operand
+	op = storeOp;
+     } else {
+        type = callNode;
+	callee = func;
+	operands += l;
+     }
+}
+
+AstNode::AstNode(const string &func, vector<AstNode> &ast_args) {
+   if (func == "setCounter" || func == "addCounter" || func == "subCounter") {
+      loperand = new AstNode(ast_args[0]);
+      roperand = new AstNode(ast_args[1]);
+   } else {
+      operands = ast_args;
+      loperand = roperand = NULL; // ???
+   }
+
+   if (func == "setCounter") {
+      type = opCodeNode;
+      op = storeOp;
+   } else if (func == "addCounter") {
+      type = opCodeNode;
+      if (roperand) delete roperand;
+      roperand = new AstNode(plusOp, *loperand, *roperand);
+      op = storeOp;
+   } else if (func == "subCounter") {
+      type = opCodeNode;
+      if (roperand) delete roperand;
+      roperand = new AstNode(minusOp, *loperand, *roperand);
+      op = storeOp;
+   } else {
+      type = callNode;
+      callee = func;
+   }
+}
+
+AstNode::AstNode(operandType ot, void *arg) {
+    type = operandNode;
+    oType = ot;
+    if (oType == DataPtr || oType == DataValue)
+	dValue = (dataReqNode *) arg;
+    else
+	oValue = (void *) arg;
+
+    loperand = roperand = NULL;
+};
+
+AstNode::AstNode(const AstNode &l, const AstNode &r) {
+   type = sequenceNode;
+   loperand = new AstNode(l);
+   roperand = new AstNode(r);
+};
+
+AstNode::AstNode(opCode ot) {
+   // a private constructor
+   type = opCodeNode;
+   op = ot;
+   loperand = roperand = NULL;
+}
+
+AstNode::AstNode(opCode ot, const AstNode &l) {
+   // a private constructor
+   type = opCodeNode;
+   op = ot;
+   loperand = new AstNode(l);
+   roperand = NULL;
+}
+
+AstNode::AstNode(opCode ot, const AstNode &l, const AstNode &r) {
+   type = opCodeNode;
+   op = ot;
+   loperand = new AstNode(l);
+   roperand = new AstNode(r);
+};
+
+AstNode::AstNode(const AstNode &src) {
+   type = src.type;
+
+   if (type == opCodeNode)
+      op = src.op; // defined only for operand nodes
+
+   if (type == callNode) {
+      callee = src.callee; // defined only for call nodes
+      operands = src.operands; // defined only for call nodes 
+   }
+
+   if (type == operandNode) {
+      oType = src.oType;
+      if (oType == DataPtr || oType == DataValue)
+         dValue = src.dValue;
+      else
+	 oValue = src.oValue;
+   }
+
+   loperand = src.loperand ? new AstNode(*src.loperand) : NULL;
+   roperand = src.roperand ? new AstNode(*src.roperand) : NULL;
+
+   firstInsn = src.firstInsn;
+   lastInsn = src.lastInsn;
+}
+
+AstNode::~AstNode() {
+   if (loperand != NULL)
+      delete loperand;
+
+   if (roperand != NULL)
+      delete roperand;
+}
+
 int AstNode::generateTramp(process *proc, char *i, 
 			   unsigned &count, 
-			   int trampCost)
-{
-    int ret;
+			   int trampCost) const {
     int cycles;
-    AstNode *preamble;
-    static AstNode *trailer = new AstNode(trampTrailer, NULL, NULL);
+
+    //static AstNode *trailer = new AstNode(trampTrailer, NULL, NULL);
+    static AstNode trailer(trampTrailer); // private constructor
     // used to estimate cost.
-    static AstNode *preambleTemplate = new AstNode(trampPreamble, 
-	new AstNode(Constant, (void *) 0), NULL);
+    static AstNode preambleTemplate(trampPreamble, 
+				    AstNode(Constant, (void *) 0));
+       // private constructor; assumes NULL for right child
     
-    cycles = preambleTemplate->cost() + cost() + trailer->cost() + trampCost;
+    cycles = preambleTemplate.cost() + cost() + trailer.cost() + trampCost;
 
 #ifdef notdef
     print();
@@ -197,28 +411,25 @@ int AstNode::generateTramp(process *proc, char *i,
     logLine(errorLine);
 #endif
 
-    preamble = new AstNode(trampPreamble, 
-	new AstNode(Constant, (void *) cycles), NULL);
+    AstNode preamble(trampPreamble, 
+		     AstNode(Constant, (void *) cycles));
+       // private constructor; assumes NULL for right child
 
     regSpace->resetSpace();
 
-    if ((type != opCodeNode) || (op != noOp)) {
-	preamble->generateCode(proc, regSpace, i, count);
+    if (type != opCodeNode || op != noOp) {
+	preamble.generateCode(proc, regSpace, i, count);
 	generateCode(proc, regSpace, i, count);
-	ret = trailer->generateCode(proc, regSpace, i, count);
+	return trailer.generateCode(proc, regSpace, i, count);
     } else {
 	return((unsigned) emit(op, 1, 0, 0, i, count));
     }
-
-    delete(preamble);
-    return(ret);
 }
 
 reg AstNode::generateCode(process *proc,
 			  registerSpace *rs,
 			  char *insn, 
-			  unsigned &base)
-{
+			  unsigned &base) const {
     unsigned addr;
     unsigned fromAddr;
     unsigned startInsn;
@@ -326,7 +537,7 @@ reg AstNode::generateCode(process *proc,
 	}
 
 	for (unsigned u = 0; u < operands.size(); u++)
-	  srcs += operands[u]->generateCode(proc, rs, insn, base);
+	  srcs += operands[u].generateCode(proc, rs, insn, base);
 	dest = emitFuncCall(callOp, srcs, (int) addr, insn, base);
     } else if (type == sequenceNode) {
 	loperand->generateCode(proc, rs, insn, base);
@@ -361,8 +572,7 @@ string getOpString(opCode op)
     }
 }
 
-int AstNode::cost()
-{
+int AstNode::cost() const {
     int total = 0;
     int getInsnCost(opCode t);
 
@@ -402,7 +612,7 @@ int AstNode::cost()
     } else if (type == callNode) {
 	total = getPrimitiveCost(callee);
 	for (unsigned u = 0; u < operands.size(); u++)
-	  total += operands[u]->cost();
+	  total += operands[u].cost();
     } else if (type == sequenceNode) {
 	total += loperand->cost();
 	total += roperand->cost();
@@ -410,8 +620,7 @@ int AstNode::cost()
     return(total);
 }
 
-void AstNode::print()
-{
+void AstNode::print() const {
     if (type == operandNode) {
 	if (oType == Constant) {
 	    sprintf(errorLine, " %d", (int) oValue);
@@ -438,7 +647,7 @@ void AstNode::print()
 	os << "(" << callee << ends;
 	logLine(errorLine);
 	for (unsigned u = 0; u < operands.size(); u++)
-	  operands[u]->print();
+	  operands[u].print();
 	logLine(")");
     } else if (type == sequenceNode) {
 	if (loperand) loperand->print();
@@ -447,17 +656,18 @@ void AstNode::print()
     }
 }
 
-AstNode *createPrimitiveCall(const string func, dataReqNode *dataPtr, int param2)
-{
-    return(new AstNode(func, new AstNode(DataValue, (void *) dataPtr), 
-			     new AstNode(Constant, (void *) param2)));
+AstNode createPrimitiveCall(const string &func, dataReqNode *dataPtr, int param2) {
+   return AstNode(func, AstNode(DataValue, (void *)dataPtr),
+		        AstNode(Constant, (void *)param2)
+		  );
 }
 
-AstNode *createIf(AstNode *expression, AstNode *action)
-{
-    return(new AstNode(ifOp, expression, action));
+AstNode createIf(const AstNode &expression, const AstNode &action) {
+   return AstNode(ifOp, expression, action);
 }
 
-AstNode *createCall(const string func, dataReqNode *dataPtr, AstNode *ast) {
-  return (new AstNode(func, new AstNode(DataValue, (void*) dataPtr), ast));
+AstNode createCall(const string &func, dataReqNode *dataPtr, const AstNode &ast) {
+   return AstNode(func,
+		  AstNode(DataValue, (void *)dataPtr),
+		  ast);
 }

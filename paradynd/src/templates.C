@@ -5,6 +5,9 @@
 
 /* 
  * $Log: templates.C,v $
+ * Revision 1.31  1996/03/25 20:25:58  tamches
+ * the reduce-mem-leaks-in-paradynd commit
+ *
  * Revision 1.30  1996/03/20 17:02:53  mjrg
  * Added multiple arguments to calls.
  * Instrument pvm_send instead of pvm_recv to get tags.
@@ -235,7 +238,7 @@ template class vector<bool>;
 
 //template class  queue<T_dyninstRPC::buf_struct*>;
 
-template class  vector<AstNode *>;
+template class  vector<AstNode>;
 template class  vector<Symbol*>;
 template class  vector<Symbol>;
 template class  vector<T_dyninstRPC::mdl_rand *>;
@@ -254,7 +257,7 @@ template class  vector<heapItem*>;
 template class  vector<image*>;
 template class  vector<instMapping*>;
 template class  vector<instPoint *>;
-template class  vector<instReqNode*>;
+template class  vector<instReqNode>;
 template class  vector<int>;
 template class  vector<internalMetric*>;
 template class  vector<mdl_focus_element>;

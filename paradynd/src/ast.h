@@ -4,6 +4,9 @@
 
 /*
  * $Log: ast.h,v $
+ * Revision 1.12  1996/03/25 20:20:06  tamches
+ * the reduce-mem-leaks-in-paradynd commit
+ *
  * Revision 1.11  1996/03/20 17:02:42  mjrg
  * Added multiple arguments to calls.
  * Instrument pvm_send instead of pvm_recv to get tags.
@@ -89,87 +92,36 @@ class registerSpace {
 	registerSlot *registers;
 };
 
-class AstNode;
-
 class AstNode {
     public:
-	AstNode(const string func, AstNode *l, AstNode *r) {
-	    loperand = l;
-	    roperand = r;
-	    if (func == "setCounter") {
-		type = opCodeNode;
-		op = storeOp;
-            } else if (func == "addCounter") {
-		type = opCodeNode;
-		roperand = new AstNode(plusOp, l, r);
-		op = storeOp;
-	    } else if (func == "subCounter") {
-		type = opCodeNode;
-		roperand = new AstNode(minusOp, l, r);
-		op = storeOp;
-	    } else {
-		type = callNode;
-		callee = func;
-		if (l)
-		  operands += l;
-		if (r)
-		  operands += r;
-	    }
-	};
+        AstNode(); // mdl.C
+	AstNode(const string &func, const AstNode &l, const AstNode &r);
+        AstNode(const string &func, const AstNode &l); // needed by inst.C
+	AstNode(operandType ot, void *arg);
+	AstNode(const AstNode &l, const AstNode &r);
 
-        AstNode(const string func, vector<AstNode *> ast_args) {
-            if (func == "setCounter" || func == "addCounter" 
-           	|| func == "subCounter") {
-                loperand = ast_args[0];
-                roperand = ast_args[1];
-            } else {
-                operands = ast_args;
-            }
-            if (func == "setCounter") {
-                type = opCodeNode;
-                op = storeOp;
-            } else if (func == "addCounter") {
-                type = opCodeNode;
-                roperand = new AstNode(plusOp, loperand, roperand);
-                op = storeOp;
-            } else if (func == "subCounter") {
-                type = opCodeNode;
-                roperand = new AstNode(minusOp, loperand, roperand);
-                op = storeOp;
-            } else {
-                type = callNode;
-                callee = func;
-            }
-        };
-	AstNode(operandType ot, void *arg) {
-	    type = operandNode;
-	    oType = ot;
-	    if ((oType == DataPtr) || (oType == DataValue)) {
-		dValue = (dataReqNode *) arg;
-	    } else {
-		oValue = (void *) arg;
-	    }
+    private:
+        AstNode(opCode); // like AstNode(opCode, const AstNode &, const AstNode &)
+                         // but assumes "NULL" for both child ptrs
+    public:
+        AstNode(opCode, const AstNode &left); // assumes "NULL" for right child ptr
+           // needed by inst.C and stuff in ast.C
 
-	    loperand = NULL;
-	    roperand = NULL;
-	};
-	AstNode(AstNode *l, AstNode *r) {
-	    type = sequenceNode;
-	    loperand = l;
-	    roperand = r;
-	};
-	AstNode(opCode ot, AstNode *l, AstNode *r) {
-	    type = opCodeNode;
-	    op = ot;
-	    loperand = l;
-	    roperand = r;
-	};
+    public:
+	AstNode(opCode ot, const AstNode &l, const AstNode &r);
+        AstNode(const string &func, vector<AstNode> &ast_args);
+
+        AstNode(const AstNode &src);
+        AstNode &operator=(const AstNode &src);
+
+       ~AstNode();
+
 	int generateTramp(process *proc, char *i, unsigned &base,
-			  int baseTrampCost);
+			  int baseTrampCost) const;
 	reg generateCode(process *proc, registerSpace *rs, char *i, 
-			 unsigned &base);
-	int cost();	// return the # of instruction times in the ast.
-	void print();
+			 unsigned &base) const;
+	int cost() const;	// return the # of instruction times in the ast.
+	void print() const;
     private:
 	nodeType type;
 	opCode op;		// for opCode ndoes
@@ -177,15 +129,23 @@ class AstNode {
 	operandType oType;	// for operand nodes
 	void *oValue;		// for operand nodes
 	dataReqNode *dValue;	// for operand nodes
+
+        // These 2 vrbles must be pointers; otherwise, we'd have a recursive
+        // data structure with an infinite size.
+        // The only other option is to go with references, which would have
+        // to be initialized in the constructor and can't use NULL as a
+        // sentinel value...
 	AstNode *loperand;
 	AstNode *roperand;
-	vector<AstNode *> operands;
+
+	vector<AstNode> operands;
+
 	int firstInsn;
 	int lastInsn;
 };
 
-AstNode *createPrimitiveCall(const string func, dataReqNode*, int param2);
-AstNode *createIf(AstNode *expression, AstNode *action);
-AstNode *createCall(const string func, dataReqNode *, AstNode *arg);
+AstNode createPrimitiveCall(const string &func, dataReqNode *, int param2);
+AstNode createIf(const AstNode &expression, const AstNode &action);
+AstNode createCall(const string &func, dataReqNode *, const AstNode &arg);
 
 #endif

@@ -14,6 +14,9 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/primitives.C,v 
  * primitives.C - instrumentation primitives.
  *
  * $Log: primitives.C,v $
+ * Revision 1.10  1996/03/25 20:25:39  tamches
+ * the reduce-mem-leaks-in-paradynd commit
+ *
  * Revision 1.9  1995/08/24 15:04:28  hollings
  * AIX/SP-2 port (including option for split instruction/data heaps)
  * Tracing of rexec (correctly spawns a paradynd if needed)
@@ -109,7 +112,6 @@ static int counterId=0;
  */
 intCounterHandle *createIntCounter(process *proc, int value, bool report)
 {
-    AstNode *ast;
     intCounterHandle *ret;
     pdFunction *sampleFunction;
 
@@ -132,8 +134,9 @@ intCounterHandle *createIntCounter(process *proc, int value, bool report)
       if (!sampleFunction)
 	abort();
 
-	ast = new AstNode("DYNINSTreportCounter", 
-			  new AstNode(Constant, ret->counterPtr), NULL);
+	AstNode ast("DYNINSTreportCounter", 
+		    AstNode(Constant, ret->counterPtr));
+
 	ret->sampler = addInstFunc(proc, sampleFunction->funcEntry(), 
 	    ast, callPreInsn, orderLastAtPoint);
     }
@@ -161,7 +164,6 @@ void freeIntCounter(intCounterHandle *handle)
 
 timerHandle *createTimer(process *proc, timerType type, bool report)
 {
-    AstNode *ast;
     timerHandle *ret;
     pdFunction *sampleFunction;
 
@@ -187,8 +189,8 @@ timerHandle *createTimer(process *proc, timerType type, bool report)
 	if (!sampleFunction)
 	  abort();
 
-	ast = new AstNode("DYNINSTreportTimer",
-			  new AstNode(Constant, ret->timerPtr), NULL);
+	AstNode ast ("DYNINSTreportTimer",
+		     AstNode(Constant, ret->timerPtr));
 	ret->sampler = addInstFunc(proc, sampleFunction->funcEntry(), ast,
 	    callPreInsn, orderLastAtPoint);
     }

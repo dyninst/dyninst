@@ -7,13 +7,16 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-pvm.C,v 1.22 1995/10/24 03:39:22 tamches Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/metricDefs-pvm.C,v 1.23 1996/03/25 20:23:52 tamches Exp $";
 #endif
 
 /*
  * metric.C - define and create metrics.
  *
  * $Log: metricDefs-pvm.C,v $
+ * Revision 1.23  1996/03/25 20:23:52  tamches
+ * the reduce-mem-leaks-in-paradynd commit
+ *
  * Revision 1.22  1995/10/24 03:39:22  tamches
  * Commented out createCPUTime and createSyncWait, as part of removing
  * the obsolete metricDefs-common.C
@@ -335,8 +338,6 @@ AstNode *defaultMSGTagPredicate(metricDefinitionNode *mn,
     int iTag;
     pdFunction *func;
     dataReqNode *data;
-    AstNode *tagTest;
-    AstNode *filterNode, *clearNode;
 
     iTag = atoi(tag);
 
@@ -344,14 +345,16 @@ AstNode *defaultMSGTagPredicate(metricDefinitionNode *mn,
 
     // NOTE - this is 1 since paramters are numbered starting with
     // 0.
-    tagTest = new AstNode(eqOp, new AstNode(Param, (void *) 1),
-				new AstNode(Constant, (void *) iTag));
+    AstNode *tagTest = new AstNode(eqOp, new AstNode(Param, (void *) 1),
+				   new AstNode(Constant, (void *) iTag));
 
-    filterNode = createIf(tagTest, createPrimitiveCall("addCounter", data, 1));
-    if (trigger) filterNode = createIf(trigger, filterNode);
+    AstNode *filterNode = createIf(tagTest, createPrimitiveCall("addCounter", data, 1));
+    if (trigger)
+       filterNode = createIf(trigger, filterNode);
 
-    clearNode = createPrimitiveCall("setCounter", data, 0);
-    if (trigger) clearNode = createIf(trigger, clearNode);
+    AstNode *clearNode = createPrimitiveCall("setCounter", data, 0);
+    if (trigger)
+       clearNode = createIf(trigger, clearNode);
 
     dictionary_hash_iter<unsigned, pdFunction*> fi((mn->proc())->symbols->funcsByAddr);
     unsigned u;

@@ -7,6 +7,9 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
+ * Revision 1.29  1996/03/25 20:22:58  tamches
+ * the reduce-mem-leaks-in-paradynd commit
+ *
  * Revision 1.28  1996/03/12 20:48:29  mjrg
  * Improved handling of process termination
  * New version of aggregateSample to support adding and removing components
@@ -164,6 +167,7 @@
 #include "dyninstP.h"
 #include <strstream.h>
 #include "inst.h"
+#include "ast.h"
 #include "paradynd/src/process.h"
 #include "dyninstRPC.xdr.h"
 
@@ -209,17 +213,43 @@ private:
 
 class instReqNode {
 public:
-  instReqNode(process*, instPoint*, AstNode*, callWhen, callOrder order);
-  ~instReqNode();
+  instReqNode(process*, instPoint*, const AstNode &, callWhen, callOrder order);
+ ~instReqNode();
+
+  instReqNode() {
+     // needed by Vector class
+     proc = NULL; point=NULL; instance = NULL;
+  }
+
+  instReqNode(const instReqNode &src) : ast(src.ast) {
+     proc = src.proc;
+     point = src.point;
+     when = src.when;
+     order = src.order;
+     instance = src.instance;
+  }
+  instReqNode &operator=(const instReqNode &src) {
+     if (this == &src)
+        return *this;
+
+     proc = src.proc;
+     point = src.point;
+     ast = src.ast;
+     when = src.when;
+     order = src.order;
+     instance = src.instance;
+
+     return *this;
+  }
 
   bool insertInstrumentation();
   void disable();
   float cost();
 
 private:
-  process		*proc;
+  process	*proc;
   instPoint	*point;
-  AstNode		*ast;
+  AstNode	ast;
   callWhen	when;
   callOrder	order;
   instInstance	*instance;
@@ -257,7 +287,7 @@ public:
 
   inline dataReqNode *addIntCounter(int inititalValue, bool report);
   inline dataReqNode *addTimer(timerType type);
-  inline void addInst(instPoint *point,AstNode *ast, callWhen when, callOrder o);
+  inline void addInst(instPoint *point, const AstNode &, callWhen when, callOrder o);
   void set_inform(bool new_val) { inform_ = new_val; }
 
   // propagate this metric instance to process p
@@ -286,7 +316,9 @@ private:
 
   /* for non-aggregate metrics */
   vector<dataReqNode*>	data;
-  vector<instReqNode*> 	requests;
+
+  //vector<instReqNode*> 	requests;
+  vector<instReqNode> requests;
   sampleInfo *sample;          // current sample for this metric
   sampleValue cumulativeValue; // cumulative value for this metric
 
@@ -323,12 +355,12 @@ inline dataReqNode *metricDefinitionNode::addTimer(timerType type) {
   return(tp);
 };
 
-inline void metricDefinitionNode::addInst(instPoint *point, AstNode *ast, callWhen when,
-				   callOrder o) {
-  instReqNode *temp;
-  if (!point || !ast) return;
-  temp = new instReqNode(proc_, point, ast, when, o);
-  assert(temp);
+inline void metricDefinitionNode::addInst(instPoint *point, const AstNode &ast,
+					  callWhen when,
+					  callOrder o) {
+  if (!point) return;
+
+  instReqNode temp(proc_, point, ast, when, o);
   requests += temp;
 };
 

@@ -3,6 +3,9 @@
 
 /* 
  * $Log: mdl.C,v $
+ * Revision 1.23  1996/03/25 20:22:21  tamches
+ * the reduce-mem-leaks-in-paradynd commit
+ *
  * Revision 1.22  1996/03/20 17:02:51  mjrg
  * Added multiple arguments to calls.
  * Instrument pvm_send instead of pvm_recv to get tags.
@@ -472,19 +475,19 @@ inline dataReqNode *create_data_object(unsigned mdl_data_type,
   }
 }
 
-static inline bool apply_to_process_list(vector<process*>& instProcess,
-					 vector<metricDefinitionNode*>& parts,
-					 string& id, string& name,
-					 vector< vector<string> >& focus,
-					 string& flat_name,
-					 unsigned& agg_op,
-					 unsigned& type,
-					 vector<T_dyninstRPC::mdl_constraint*>& flag_cons,
-					 T_dyninstRPC::mdl_constraint *base_use,
-					 vector<T_dyninstRPC::mdl_stmt*> *stmts,
-					 vector<unsigned>& flag_dex,
-					 unsigned& base_dex,
-					 vector<string> *temp_ctr) {
+static bool apply_to_process_list(vector<process*>& instProcess,
+				  vector<metricDefinitionNode*>& parts,
+				  string& id, string& name,
+				  vector< vector<string> >& focus,
+				  string& flat_name,
+				  unsigned& agg_op,
+				  unsigned& type,
+				  vector<T_dyninstRPC::mdl_constraint*>& flag_cons,
+				  T_dyninstRPC::mdl_constraint *base_use,
+				  vector<T_dyninstRPC::mdl_stmt*> *stmts,
+				  vector<unsigned>& flag_dex,
+				  unsigned& base_dex,
+				  vector<string> *temp_ctr) {
 #ifdef DEBUG_MDL
   timer loadTimer, totalTimer;
   static ofstream *of=NULL;
@@ -680,7 +683,7 @@ T_dyninstRPC::mdl_constraint::~mdl_constraint() {
 
 // determine the type of the trailing part of the constraint's match path
 // and put this into the environment
-static inline bool do_trailing_resource(vector<string>& resource_, process *proc) {
+static bool do_trailing_resource(vector<string>& resource_, process *proc) {
   string c_string = "$constraint";
   assert(resource_.size());
   string trailing_res = resource_[resource_.size()-1];
@@ -811,9 +814,7 @@ T_dyninstRPC::mdl_instr_rand::mdl_instr_rand(u_int type, string name, vector<mdl
 
 T_dyninstRPC::mdl_instr_rand::~mdl_instr_rand() { } 
 
-bool T_dyninstRPC::mdl_instr_rand::apply(AstNode *& ast) {
-
-  AstNode *ret=NULL;
+bool T_dyninstRPC::mdl_instr_rand::apply(AstNode &ast) {
   pdFunction *pdf;
   mdl_var get_drn;
 
@@ -829,14 +830,14 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode *& ast) {
 	  fflush(stderr);
 	  return false;
       } else {
-	  ret = new AstNode(Constant, (void*) value);
+	  ast = AstNode(Constant, (void*) value);
       }
     } else {
-      ret = new AstNode(Constant, (void*) val_);
+      ast = AstNode(Constant, (void*) val_);
     }
     break;
   case MDL_ARG:
-    ret = new AstNode(Param, (void*) val_);
+    ast = AstNode(Param, (void*) val_);
     break;
   case MDL_RETURN:
     break;
@@ -846,7 +847,7 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode *& ast) {
       Symbol info;
       if (global_proc->symbols->symbol_info(name_, info)) {
 	Address adr = info.addr();
-	ret = new AstNode(DataAddr, (void*) adr);
+	ast = AstNode(DataAddr, (void*) adr);
       } else {
 	string msg = string("In metric '") + currentMetric + string("': ") +
 	  string("unable to find symbol '") + name_ + string("'");
@@ -857,18 +858,16 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode *& ast) {
     break;
   case MDL_READ_ADDRESS:
     // TODO -- check on the range of this address!
-    ret = new AstNode(DataAddr, (void*) val_);
+    ast = AstNode(DataAddr, (void*) val_);
     break;
   case MDL_CALL_FUNC: {
-    vector<AstNode *> args;
-    AstNode *arg;
+    // don't confuse 'args' with 'args_' here!
+    vector<AstNode> args;
+    AstNode arg;
     for (unsigned u = 0; u < args_.size(); u++) {
-      if (!args_[u]->apply(arg)) {
-	for(unsigned v = 0; v < u; v++) {
-	  delete args[v];
-	}
+      if (!args_[u]->apply(arg))
 	return false;
-      }
+
       args += arg;
     }
     pdf = global_proc->symbols->findOneFunction(string(name_));
@@ -878,7 +877,7 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode *& ast) {
 	showErrorCallback(95, msg);
 	return false;
     }
-    ret = new AstNode(name_, args);
+    ast = AstNode(name_, args);
     break;
   }
   case MDL_T_COUNTER_PTR:
@@ -886,7 +885,7 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode *& ast) {
       dataReqNode *drn;
       assert(mdl_env::get(get_drn, name_));
       assert(get_drn.get(drn));
-      ret = new AstNode(DataPtr, drn);      
+      ast = AstNode(DataPtr, drn);      
     }
     break;
   case MDL_T_COUNTER:
@@ -911,7 +910,7 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode *& ast) {
 		  fflush(stderr);
 		  return false;
 	      } else {
-		  ret = new AstNode(Constant, (void*) value);
+		  ast = AstNode(Constant, (void*) value);
 	      }
 	      break;
 	  case MDL_T_COUNTER:	// is MDL_T_COUNTER used here ??? jkh 7/31/95
@@ -922,7 +921,7 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode *& ast) {
 		  fflush(stderr);
 		  return false;
 	      } else {
-		  ret = new AstNode(DataValue, (void*) drn);
+		  ast = AstNode(DataValue, (void*) drn);
 	      }
 	      break;
 	  default:
@@ -936,7 +935,6 @@ bool T_dyninstRPC::mdl_instr_rand::apply(AstNode *& ast) {
   default:
     break;
   }
-  ast = ret;
   return true;
 }
 
@@ -956,9 +954,12 @@ T_dyninstRPC::mdl_instr_req::mdl_instr_req(u_int type,
 T_dyninstRPC::mdl_instr_req::mdl_instr_req() : type_(0) { }
 T_dyninstRPC::mdl_instr_req::~mdl_instr_req() { }
 
-bool T_dyninstRPC::mdl_instr_req::apply(AstNode *&mn, AstNode *pred) {
-  AstNode *ast_arg = NULL;
-  vector<AstNode *> ast_args;
+bool T_dyninstRPC::mdl_instr_req::apply(AstNode &mn, const AstNode *pred,
+                                        bool mn_initialized) {
+  // a return value of true implies that "mn" was written to
+  AstNode ast_arg;
+
+  vector<AstNode> ast_args;
   string timer_fun;
 
   switch (type_) {
@@ -989,7 +990,9 @@ bool T_dyninstRPC::mdl_instr_req::apply(AstNode *&mn, AstNode *pred) {
       assert(get_drn.get(drn));
   }
 
-  AstNode *code = NULL;
+  AstNode code;
+  pdFunction *pdf;
+
   switch (type_) {
   case MDL_SET_COUNTER:
     code = createCall("setCounter", drn, ast_arg);
@@ -1004,8 +1007,8 @@ bool T_dyninstRPC::mdl_instr_req::apply(AstNode *&mn, AstNode *pred) {
   case MDL_STOP_WALL_TIMER:
   case MDL_START_PROC_TIMER:
   case MDL_STOP_PROC_TIMER:
-    ast_args += new AstNode(DataValue, (void *) drn);
-    code = new AstNode(timer_fun, ast_args);
+    ast_args += AstNode(DataValue, (void *) drn);
+    code = AstNode(timer_fun, ast_args);
     break;
   case MDL_CALL_FUNC:
     if (! rand_->apply(code))
@@ -1015,12 +1018,14 @@ bool T_dyninstRPC::mdl_instr_req::apply(AstNode *&mn, AstNode *pred) {
     return false;
   }
 
-  if (pred) code = createIf(pred, code);
+  if (pred)
+    code = createIf(*pred, code);
 
-  if (mn)
-    mn = new AstNode(mn, code);
+  if (mn_initialized)
+    mn = AstNode(mn, code);
   else
     mn = code;
+
   return true;
 }
 
@@ -1069,57 +1074,70 @@ T_dyninstRPC::mdl_icode::mdl_icode(T_dyninstRPC::mdl_instr_rand *iop1,
   bin_op_(bin_op), use_if_(use_if), req_(ireq) { }
 T_dyninstRPC::mdl_icode::~mdl_icode() { delete req_; }
 
-static inline AstNode *do_rel_op(opCode op,
-                                 T_dyninstRPC::mdl_instr_rand *if_op2,
-				 AstNode *ast_left) {
-  AstNode *ast_right, *rel_ast=NULL;
-  assert(ast_left);
-  if (!if_op2->apply(ast_right)) {
-    delete ast_left; return NULL;
-  }
-  rel_ast = new AstNode(op, ast_left, ast_right);
-  assert(rel_ast);
-  return rel_ast;
+static AstNode do_rel_op(opCode op, T_dyninstRPC::mdl_instr_rand *if_op2,
+                         const AstNode &ast_left) {
+   // NOTE: ast_left _must_ be defined
+   AstNode ast_right;
+   if (!if_op2->apply(ast_right))
+      return AstNode(); // ???
+
+   return AstNode(op, ast_left, ast_right);
 }
 
-bool T_dyninstRPC::mdl_icode::apply(AstNode *&mn) {
+bool T_dyninstRPC::mdl_icode::apply(AstNode &mn, bool mn_initialized) {
+  // a return value of true implies that "mn" has been written to
   // TODO -- handle the if case here
   // TODO -- call req_->apply() after building if
-  AstNode *ast1, *pred = NULL;
-  if (!req_) return false;
+
+  if (!req_)
+     return false;
+
+  AstNode pred;
+  AstNode *pred_ptr;
+
   if (use_if_) {
-    if (! if_op1_->apply(ast1))
-      return false;
+    AstNode ast1;
+    if (!if_op1_->apply(ast1))
+       return false;
+
     switch (bin_op_) {
     case MDL_LT:
-      if (!(pred = do_rel_op(lessOp, if_op2_, ast1)))
-	return false;
+      pred = do_rel_op(lessOp, if_op2_, ast1);
       break;
     case MDL_GT:
-      if (!(pred = do_rel_op(greaterOp, if_op2_, ast1)))
-	return false;
+      pred = do_rel_op(greaterOp, if_op2_, ast1);
       break;
     case MDL_LE:
-      if (!(pred = do_rel_op(leOp, if_op2_, ast1)))
-	return false;
+      pred = do_rel_op(leOp, if_op2_, ast1);
       break;
     case MDL_GE:
-      if (!(pred = do_rel_op(geOp, if_op2_, ast1)))
-	return false;
+      pred = do_rel_op(geOp, if_op2_, ast1);
       break;
     case MDL_EQ:
-      if (!(pred = do_rel_op(eqOp, if_op2_, ast1)))
-	return false;
+      pred = do_rel_op(eqOp, if_op2_, ast1);
       break;
     case MDL_NE:
-      if (!(pred = do_rel_op(neOp, if_op2_, ast1)))
-	return false;
+      pred = do_rel_op(neOp, if_op2_, ast1);
       break;
-    case MDL_T_NONE: pred = ast1; break;
+    case MDL_T_NONE:
+      pred = ast1;
+      break;
     default: return false;
     }
-  }
-  return (req_->apply(mn, pred));
+
+    pred_ptr = new AstNode(pred);
+  } // if ()
+  else
+    pred_ptr = NULL;
+
+  bool result = req_->apply(mn, pred_ptr, mn_initialized);
+     // note: a result of true implies that "mn" was written to
+     // Hence, a result of true from this routine means the same.
+
+//  if (pred_ptr)
+//     delete pred_ptr;
+
+  return result;
 }
 
 T_dyninstRPC::mdl_expr::mdl_expr() { }
@@ -1387,9 +1405,9 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
     return false;
   unsigned size = icode_reqs_->size();
 
-  AstNode *code = NULL;
+  AstNode code;
   for (unsigned u=0; u<size; u++)
-    if (!(*icode_reqs_)[u]->apply(code))
+    if (!(*icode_reqs_)[u]->apply(code, u>0)) // when u is 0, code is un-initialized
       return false;
 
   enum callWhen cwhen; enum callOrder corder;
@@ -1407,7 +1425,10 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode *mn,
   // Instantiate all constraints (flags) here
   unsigned fsize = flags.size();
   for (int fi=fsize-1; fi>=0; fi--) {
-    AstNode *temp = new AstNode(DataValue, flags[fi]);
+    //AstNode *temp = new AstNode(DataValue, flags[fi]);
+    //code = createIf(temp, code);
+
+    AstNode temp(DataValue, flags[fi]);
     code = createIf(temp, code);
   }
 
@@ -1764,6 +1785,70 @@ static bool walk_deref(mdl_var& ret, vector<unsigned>& types, string& var_name) 
   }
   return true;
 }
+
+//// Old definition of observed cost, this is no longer being used
+//#ifdef notdef
+//metricDefinitionNode *mdl_observed_cost(vector< vector<string> >& canon_focus,
+//					string& met_name,
+//					string& flat_name, vector<process *> procs) {
+//  pdFunction *sampler;
+//  dataReqNode *dataPtr;
+//  string name("observed_cost");
+//  static string machine;
+//  static bool machine_init= false;
+//  if (!machine_init) {
+//    machine_init = true;
+//    struct utsname un; assert(!P_uname(&un) != -1); machine = un.nodename;
+//  }
+//
+//  if (other_machine_specified(canon_focus, machine)) return NULL;
+//  vector<process*> ip;
+//  add_processes(canon_focus, procs, ip);
+//  unsigned ip_size, index;
+//  if (!(ip_size = ip.size())) return NULL;
+//
+//  // Can't refine procedure or sync object
+//  if (canon_focus[resource::sync_object].size() > 1) return NULL;
+//  if (canon_focus[resource::procedure].size() > 1) return NULL;
+//
+//  vector<metricDefinitionNode*> parts;
+//
+//  for (index=0; index<ip_size; index++) {
+//    process *proc = ip[index];
+//    metricDefinitionNode *mn =
+//      new metricDefinitionNode(proc, name, canon_focus, flat_name, aggMax);
+//    assert(mn);
+//    dataPtr = mn->addIntCounter(0, false);
+//    assert(dataPtr);
+//
+//    sampler = ((mn->proc())->symbols)->findOneFunction("DYNINSTsampleValues");
+//    assert(sampler);
+//
+//    AstNode reportNode ("DYNINSTreportCost", 
+//			AstNode(DataPtr, dataPtr), AstNode(Constant, 0));
+//
+//    mn->addInst(sampler->funcEntry(), reportNode, callPreInsn, orderLastAtPoint);
+//
+//    if (mn && mn->nonNull()) 
+//      parts += mn;
+//    else {
+//      delete mn; mn = NULL;
+//    }
+//  }
+//
+//  metricDefinitionNode *ret = NULL;
+//  //  switch (parts.size()) {
+//  //  case 0: break;
+//  //  case 1: ret = parts[0]; break;
+//  //  default: ret = new metricDefinitionNode(name, canon_focus, flat_name, parts);
+//  //  }
+//  if (parts.size())
+//    ret = new metricDefinitionNode(name, canon_focus, flat_name, parts);
+//
+//  if (ret) ret->set_inform(true);
+//  return ret;
+//}
+//#endif
 
 bool mdl_get_initial(string flavor, pdRPC *connection) {
   mdl_init(flavor);

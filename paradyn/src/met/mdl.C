@@ -1,6 +1,9 @@
 
 /*
  * $Log: mdl.C,v $
+ * Revision 1.17  1996/03/25 20:18:37  tamches
+ * the reduce-mem-leaks-in-paradynd commit
+ *
  * Revision 1.16  1996/03/20 17:04:16  mjrg
  * Changed mdl to support calls with multiple arguments.
  *
@@ -327,8 +330,8 @@ T_dyninstRPC::mdl_instr_rand::mdl_instr_rand(u_int type, string name, vector<mdl
 T_dyninstRPC::mdl_instr_rand::~mdl_instr_rand() { } 
 
 
-bool T_dyninstRPC::mdl_instr_rand::apply(AstNode *&) {
-  AstNode *ast;
+bool T_dyninstRPC::mdl_instr_rand::apply(AstNode &) {
+  AstNode ast;
   switch (type_) {
   case MDL_T_INT:
     break;
@@ -380,8 +383,10 @@ T_dyninstRPC::mdl_instr_req::~mdl_instr_req() { }
 // XXXX   silently deletes metrics from considuration.  Debugging MDL is almost
 // XXXX   impossible.  jkh 7/6/95.
 //
-bool T_dyninstRPC::mdl_instr_req::apply(AstNode *&, AstNode * ) {
-  AstNode *ast;
+bool T_dyninstRPC::mdl_instr_req::apply(AstNode &, const AstNode *, bool) {
+  // the args aren't used here, but they must be kept since paradynd's mdl
+  // uses them, or something like that...
+  AstNode ast;
   switch (type_) {
   case MDL_SET_COUNTER:
   case MDL_ADD_COUNTER:
@@ -489,11 +494,11 @@ T_dyninstRPC::mdl_icode::mdl_icode(T_dyninstRPC::mdl_instr_rand *iop1,
   bin_op_(bin_op), use_if_(use_if), req_(ireq) { }
 T_dyninstRPC::mdl_icode::~mdl_icode() { delete req_; }
 
-bool T_dyninstRPC::mdl_icode::apply(AstNode *&mn) {
-  AstNode *ast;
+bool T_dyninstRPC::mdl_icode::apply(AstNode &mn, bool mn_initialized) {
   if (!req_) return false;
   if (use_if_) {
     string empty;
+    AstNode ast;
     if (!if_op1_->apply(ast)) return false;
     switch (bin_op_) {
     case MDL_LT:  case MDL_GT:  case MDL_LE:  case MDL_GE:  case MDL_EQ:  case MDL_NE:
@@ -505,7 +510,7 @@ bool T_dyninstRPC::mdl_icode::apply(AstNode *&mn) {
       return false;
     }
   }
-  return (req_->apply(mn, NULL));
+  return (req_->apply(mn, NULL, mn_initialized)); // NULL --> no predicate
 }
 
 T_dyninstRPC::mdl_expr::mdl_expr() { }
@@ -760,9 +765,9 @@ bool T_dyninstRPC::mdl_instr_stmt::apply(metricDefinitionNode * ,
     return false;
   }
 
-  AstNode *an = NULL;
+  AstNode an;
   for (unsigned u=0; u<size; u++)
-    if (!(*icode_reqs_)[u]->apply(an))
+    if (!(*icode_reqs_)[u]->apply(an, u > 0)) // an initialized if u > 0
       return false;
   return true;
 }

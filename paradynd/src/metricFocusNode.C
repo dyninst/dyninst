@@ -14,6 +14,9 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/metric.C,v 1.52
  * metric.C - define and create metrics.
  *
  * $Log: metricFocusNode.C,v $
+ * Revision 1.85  1996/03/25 20:23:01  tamches
+ * the reduce-mem-leaks-in-paradynd commit
+ *
  * Revision 1.84  1996/03/12 20:48:26  mjrg
  * Improved handling of process termination
  * New version of aggregateSample to support adding and removing components
@@ -800,7 +803,7 @@ bool metricDefinitionNode::insertInstrumentation()
         data[u]->insertInstrumentation(this);
       size = requests.size();
       for (unsigned u1=0; u1<size; u1++)
-        requests[u1]->insertInstrumentation();
+        requests[u1].insertInstrumentation();
       if (needToCont) proc_->continueProc();
     }
     //if (needToCont) continueAllProcesses();
@@ -822,7 +825,7 @@ float metricDefinitionNode::cost()
     } else {
       unsigned size = requests.size();
       for (unsigned u=0; u<size; u++)
-        ret += requests[u]->cost();
+        ret += requests[u].cost();
     }
     return(ret);
 }
@@ -861,7 +864,7 @@ void metricDefinitionNode::disable()
         data[u]->disable();
       size = requests.size();
       for (unsigned u1=0; u1<size; u1++)
-        requests[u1]->disable();
+        requests[u1].disable();
     }
 
 }
@@ -878,9 +881,9 @@ metricDefinitionNode::~metricDefinitionNode()
       unsigned size = data.size();
       for (unsigned u=0; u<size; u++)
         delete data[u];
-      size = requests.size();
-      for (unsigned u1=0; u1<size; u1++)
-        delete requests[u1];
+//      size = requests.size();
+//      for (unsigned u1=0; u1<size; u1++)
+//        delete requests[u1];
     }
 }
 
@@ -896,10 +899,12 @@ bool BURST_HAS_COMPLETED = false;
    // the CM5), which will force the buffer to be flushed before it fills up
    // (if not, we'd have bad response time)
 
-static vector<T_dyninstRPC::batch_buffer_entry> theBatchBuffer (SAMPLE_BUFFER_SIZE);
-static unsigned int batch_buffer_next=0;
+vector<T_dyninstRPC::batch_buffer_entry> theBatchBuffer (SAMPLE_BUFFER_SIZE);
+unsigned int batch_buffer_next=0;
 
 void flush_batch_buffer(int program) {
+   // don't need to flush if the batch had no data (this does happen; see
+   // perfStream.C)
    if (batch_buffer_next == 0)
       return;
 
@@ -912,16 +917,15 @@ void flush_batch_buffer(int program) {
    for (unsigned i=0; i< batch_buffer_next; i++)
       copyBatchBuffer[i] = theBatchBuffer[i];
 
-  //char myLogBuffer[120] ;
-  //sprintf(myLogBuffer, "in metric.C batch size about to send = %d\n", batch_buffer_next) ;
-  //logLine(myLogBuffer) ;
+   //char myLogBuffer[120] ;
+   //sprintf(myLogBuffer, "in metric.C batch size about to send = %d\n", batch_buffer_next) ;
+   //logLine(myLogBuffer) ;
 
    // Now let's do the actual igen call!
    tp->batchSampleDataCallbackFunc(program, copyBatchBuffer);
 
-   if (BURST_HAS_COMPLETED) BURST_HAS_COMPLETED = false ;
-
-   batch_buffer_next = 0 ;             // reset the index
+   BURST_HAS_COMPLETED = false;
+   batch_buffer_next = 0;
 }
 
 void batchSampleData(int program, int mid, double startTimeStamp,
@@ -940,10 +944,7 @@ void batchSampleData(int program, int mid, double startTimeStamp,
    // Flush the buffer if (1) it is full, or (2) for good response time, after
    // a burst of data:
    if (batch_buffer_next >= SAMPLE_BUFFER_SIZE || BURST_HAS_COMPLETED) {
-      if (batch_buffer_next > 0)
-         // don't need to flush if the batch had no data (this does happen; see
-         // perfStream.C)
-         flush_batch_buffer(program);
+      flush_batch_buffer(program);
    }
 
    // Now let's batch this entry.
@@ -1278,13 +1279,11 @@ void processCM5Sample(traceHeader *h, traceSample *s,int num_processes)
  */
 instReqNode::instReqNode(process *iProc,
                          instPoint *iPoint,
-                         AstNode *iAst,
+                         const AstNode &iAst,
                          callWhen  iWhen,
-                         callOrder o) 
-{
+                         callOrder o) : ast(iAst) {
     proc = iProc;
     point = iPoint;
-    ast = iAst;
     when = iWhen;
     order = o;
     instance = NULL;
@@ -1318,7 +1317,7 @@ float instReqNode::cost()
     float frequency;
     int unitCostInCycles;
 
-    unitCostInCycles = ast->cost() + getPointCost(proc, point) +
+    unitCostInCycles = ast.cost() + getPointCost(proc, point) +
         getInsnCost(trampPreamble) + getInsnCost(trampTrailer);
     // printf("unit cost = %d cycles\n", unitCostInCycles);
     unitCost = unitCostInCycles/ cyclesPerSecond;
