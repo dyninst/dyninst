@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.11  1994/03/25 22:59:33  hollings
+ * Revision 1.12  1994/04/01 20:17:22  hollings
+ * Added init of well known socket fd global.
+ *
+ * Revision 1.11  1994/03/25  22:59:33  hollings
  * Made the data manager tolerate paraynd's dying.
  *
  * Revision 1.10  1994/03/24  16:41:20  hollings
@@ -338,6 +341,7 @@ void *DMmain(int arg)
     // supports argv passed to paradynDaemon
     // new paradynd's may try to connect to well known port
     DMsetupSocket (&sockfd, &known_sock);
+    dynRPCUser::__wellKnownPortFd__ = sockfd;
 
     while (1) {
 	tag = MSG_TAG_ANY;
