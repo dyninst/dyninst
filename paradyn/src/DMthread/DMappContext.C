@@ -2,7 +2,10 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.21  1994/05/23 20:28:04  karavan
+ * Revision 1.22  1994/05/30 19:23:58  hollings
+ * Corrected call to change state for continue to be appRunning not appPaused.
+ *
+ * Revision 1.21  1994/05/23  20:28:04  karavan
  * fixed return values for addExecutable
  *
  * Revision 1.20  1994/05/17  00:17:06  hollings
@@ -316,7 +319,7 @@ Boolean applicationContext::continueApplication()
 
     // tell perf streams about change.
     for (currStreams = streams; s = *currStreams; currStreams++) {
-	s->callStateFunc(appPaused);
+	s->callStateFunc(appRunning);
     }
 
     return(TRUE);
