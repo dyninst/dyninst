@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.73  1996/04/07 21:21:36  karavan
+ * Revision 1.74  1996/04/10 19:07:54  newhall
+ * fixed bug with disableDataCollection when persistent_data flag is set
+ *
+ * Revision 1.73  1996/04/07  21:21:36  karavan
  * added check for valid phase in enableDataCollection2
  *
  * Revision 1.72  1996/03/14 14:22:02  naim
@@ -929,9 +932,10 @@ void dataManager::disableDataCollection(perfStreamHandle handle,
 	    if(mi->data) {
 	        mi->data->clearActive();
 	        mi->data->setFoldOnInactive();
-		assert(metricInstance::numCurrHists());
-		if(num_curr_users)
+		if(num_curr_users){
+		    assert(metricInstance::numCurrHists());
 		    metricInstance::decrNumCurrHists();
+                }
 	}}
 
 	if (!(mi->globalUsersCount())) {
