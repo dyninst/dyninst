@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Vector.h: resizable vectors.
- * $Id: Vector.h,v 1.13 2001/08/20 19:58:25 bernat Exp $
+ * $Id: Vector.h,v 1.14 2001/08/23 14:43:11 schendel Exp $
 ************************************************************************/
 
 
@@ -73,12 +73,14 @@ typedef int (*qsort_cmpfunc_t)(const void *, const void *);
 }
 
 #define VECTOR_APPEND(l1, l2) 	{ for (unsigned int _i=0; _i < (l2).size(); _i++) (l1).push_back((l2)[_i]); }
+
 #define VECTOR_SORT(l1, f) 	qsort((l1).begin(),(l1).size(),sizeof((l1).front()), (qsort_cmpfunc_t) f);
 /* #define VECTOR_SORT(l1, f) 	stable_sort((l1).begin(),(l1).end(),f); */
 
 #else
 
 #define VECTOR_APPEND(l1, l2) 	{ for (unsigned int _i=0; _i < (l2).size(); _i++) (l1).push_back((l2)[_i]); }
+
 #define VECTOR_SORT(l1, f) 	l1.sort((qsort_cmpfunc_t)f);
 
 
@@ -97,6 +99,7 @@ typedef int (*qsort_cmpfunc_t)(const void *, const void *);
 
 template<class T>
 class vector {
+    enum { REMOVEONEELEM = 99999999 };
 public:
     DO_INLINE_F vector (unsigned =0);
     DO_INLINE_F vector (unsigned, const T &);
@@ -113,14 +116,22 @@ public:
 
     DO_INLINE_F vector<T>& push_back(const T &); 
 
-    DO_INLINE_F T&         operator[] (unsigned)                               const;
-    DO_INLINE_F bool       operator== (const vector<T> &)                      const;
-    DO_INLINE_F unsigned         size ()                                       const;
+    DO_INLINE_F T&         operator[] (unsigned) const;
+    DO_INLINE_F bool       operator== (const vector<T> &) const;
+    DO_INLINE_F unsigned         size () const;
     DO_INLINE_F void           resize (unsigned);
+
     /*
-	DO_INLINE_F vector<T>&     insert (unsigned, const vector<T> &);
-	DO_INLINE_F vector<T>&     insert (unsigned, const T &);
+    DO_INLINE_F vector<T>&     insert (unsigned, const vector<T> &);
+    DO_INLINE_F vector<T>&     insert (unsigned, const T &);
     */
+
+    // The order of the elements in the array is preserved after the erase.
+    // Passing just a start index will erase just the one element at the
+    // index start.  The elements that are removed are not destroyed by this
+    // method.
+    DO_INLINE_F void   erase (unsigned start, unsigned end = REMOVEONEELEM);
+
     DO_INLINE_F void             sort (int (*)(const void *, const void *));
 
 private:
@@ -246,6 +257,22 @@ vector<T>::insert(unsigned l, const T& v0) {
     return *this;
 }
 */
+
+template<class T>
+DO_INLINE_F
+void
+vector<T>::erase(unsigned start, unsigned end) {
+    int origSz = sz_;
+    int emptyIndex = start;
+    if(end == REMOVEONEELEM)  
+        end = start;
+    int copyIndex = end + 1;
+    while(copyIndex<origSz) {
+        data_[emptyIndex++] = data_[copyIndex++];
+    }
+    resize(origSz - (end - start + 1));
+}
+
 template<class T>
 DO_INLINE_F
 T&
