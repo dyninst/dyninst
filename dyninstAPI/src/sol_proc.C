@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.27 2003/05/05 23:23:04 schendel Exp $
+// $Id: sol_proc.C,v 1.28 2003/05/07 19:10:53 bernat Exp $
 
 #ifdef rs6000_ibm_aix4_1
 #include <sys/procfs.h>
@@ -968,6 +968,8 @@ bool process::attach_() {
 #endif    
     
     praddset(&sigs, SIGCONT);
+    praddset(&sigs, SIGBUS);
+    praddset(&sigs, SIGSEGV);
     
     int bufsize = sizeof(long) + sizeof(proc_sigset_t); char buf[bufsize]; 
     long *bufptr = (long *) buf;
@@ -1310,7 +1312,6 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall)
         trappedSyscall->refcount++;
         //fprintf(stderr, "Bumping refcount for syscall %d to %d\n",
         //        trappedSyscall->syscall_id, trappedSyscall->refcount);
-        
         return trappedSyscall;
     }
     else {
@@ -1475,35 +1476,35 @@ int decodeProcStatus(process *,
                      procSignalWhy_t &why,
                      procSignalWhat_t &what,
                      procSignalInfo_t &info) {
-   info = status.pr_reg[R_O0];
-   switch (status.pr_why) {
-     case PR_SIGNALLED:
-        why = procSignalled;
-        what = status.pr_what;
-        break;
-     case PR_SYSENTRY:
-        why = procSyscallEntry;
-        what = status.pr_what;
-        break;
-     case PR_SYSEXIT:
-        why = procSyscallExit;
-        what = status.pr_what;
-        break;
-     case PR_REQUESTED:
+    info = status.pr_reg[R_O0];
+    switch (status.pr_why) {
+  case PR_SIGNALLED:
+      why = procSignalled;
+      what = status.pr_what;
+      break;
+  case PR_SYSENTRY:
+      why = procSyscallEntry;
+      what = status.pr_what;
+      break;
+  case PR_SYSEXIT:
+      why = procSyscallExit;
+      what = status.pr_what;
+      break;
+  case PR_REQUESTED:
       // We don't expect PR_REQUESTED in the signal handler
       assert(0 && "PR_REQUESTED not handled");
-     case PR_SUSPENDED:
-        // I'm seeing this state at times with a forking multi-threaded
-        // child process, currently handling by just continuing the process
-        why = procSuspended;
-        break;
-     case PR_JOBCONTROL:
-     case PR_FAULTED:
-     default:
-        assert(0);
-        break;
-   }
-   return 1;
+  case PR_SUSPENDED:
+      // I'm seeing this state at times with a forking multi-threaded
+      // child process, currently handling by just continuing the process
+      why = procSuspended;
+      break;
+  case PR_JOBCONTROL:
+  case PR_FAULTED:
+  default:
+      assert(0);
+      break;
+    }
+    return 1;
 }
 
 int showProcStatus(lwpstatus_t status)
