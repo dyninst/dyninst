@@ -114,6 +114,9 @@ class metricInstance {
     friend class paradynDaemon;
     friend void histDataCallBack(sampleValue *buckets, timeStamp, int count, 
 				 int first, void *arg);
+    friend metricInstance *DMenableData(perfStreamHandle,metricHandle,
+					resourceListHandle,phaseType,
+					unsigned, unsigned);
     // TODO: remove these when PC is re-written ***************
     friend void PCnewData(perfStreamHandle,metricInstanceHandle,
 			  int,sampleValue);

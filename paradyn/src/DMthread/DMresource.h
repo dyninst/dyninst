@@ -2,7 +2,10 @@
  * DMresource.h - define the resource data abstraction.
  *
  * $Log: DMresource.h,v $
- * Revision 1.20  1995/08/05 17:08:42  krisna
+ * Revision 1.21  1995/09/05 16:24:19  newhall
+ * added DM interface routines for PC, added resourceList method functions
+ *
+ * Revision 1.20  1995/08/05  17:08:42  krisna
  * updated friend entries for histDataCallback() and createResource()
  *
  * Revision 1.19  1995/08/01 02:11:21  newhall
@@ -182,7 +185,7 @@ class resourceList {
       friend void initResources();
       // ***************************************************************
   public:
-      resourceList(string name); 
+      // resourceList(string name); 
       resourceList(const vector<resourceHandle> &resources); 
       resourceList(const vector<string> &names); 
       bool getNth(int n,resourceHandle *h) {
@@ -197,13 +200,13 @@ class resourceList {
       void print();
       const char *getName(){return(fullName.string_of());}
 
-      // TODO: do we need this????
-      // char **convertToStringList();
-      // bool convertToStringList(vector<string> &vs);
       bool convertToStringList(vector< vector<string> >& fs);
       bool convertToIDList(vector<u_int>& flist);
+      bool isSuppressed(){return(suppressed);}
 
-
+      vector<resourceListHandle> *magnify(resourceHandle rh);
+      vector<resourceListHandle> *magnify();
+      resourceListHandle *constrain(resourceHandle);
 
       static const char *getName(resourceListHandle rh);
       static vector<resourceHandle> *getResourceHandles(resourceListHandle);
@@ -214,10 +217,14 @@ class resourceList {
       resourceListHandle id;
       vector<resource*> elements;
       string fullName;
+      bool suppressed;
       static vector<resourceList *> foci;  // indexed by resourceList id
       static dictionary_hash<string,resourceList *> allFoci;
-
-      static resourceList *getFocus(resourceListHandle);
+      static resourceList *getFocus(resourceListHandle handle){
+            if(handle < foci.size())
+		    return(foci[handle]);
+	    return 0;
+      }
       static resourceList *findRL(const char *name);
 };
 

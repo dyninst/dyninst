@@ -7,7 +7,10 @@
  * resource.C - handle resource creation and queries.
  * 
  * $Log: DMresource.C,v $
- * Revision 1.28  1995/08/20 03:51:36  newhall
+ * Revision 1.29  1995/09/05 16:24:18  newhall
+ * added DM interface routines for PC, added resourceList method functions
+ *
+ * Revision 1.28  1995/08/20  03:51:36  newhall
  * *** empty log message ***
  *
  * Revision 1.27  1995/08/20 03:37:15  newhall
@@ -123,24 +126,6 @@
 #include "dataManager.thread.h"
 #include "DMresource.h"
 
-/*  TODO: remove this
-char *resource::createname(vector<string>& res_name){
-
-  char *tempName = new char[255];
-  unsigned j = 0;
-  unsigned i = 0;
-  for(; i < res_name.size()-1;i++){
-      sprintf(&(tempName[j]), "%s/", res_name[i].string_of());
-      j += res_name[i].length()+1;
-  }
-  if(i>0){
-     sprintf(&(tempName[j]),"%s",res_name[i].string_of());
-  }
-  return(tempName);
-  tempName = 0;
-}
-*/
-
 //
 // used only to construct root.
 //
@@ -232,16 +217,6 @@ bool resource::string_to_handle(string res,resourceHandle *h){
  * Convinence function.
  *
  */
-#ifdef ndef
-bool resource::isDescendent(resourceHandle child)
-{
-    for(unsigned i=0; i < children.size(); i++){
-        if(child == children[i])
-	    return(TRUE);
-    }
-    return(FALSE);
-}
-#endif
 
 bool resource::isDescendent(resourceHandle child_handle)
 {
@@ -326,19 +301,20 @@ string DMcreateRLname(const vector<resourceHandle> &res){
 
     vector <string> sorted_names;
 
-    unsigned i=0;
-    for(; i < res.size(); i++){
+    for(unsigned i=0; i < res.size(); i++){
 	next = resource::handle_to_resource(res[i]);
 	sorted_names += next->getFullName();
     }
     sorted_names.sort(DMresourceListNameCompare);
 
-    for(i=0; i < (res.size() - 1); i++){
+    { // TODO remove for g++ version 2.7.0
+    for(unsigned i=0; i < (res.size() - 1); i++){
 	temp += sorted_names[i].string_of();
 	temp += ",";
     }
+    }
     if(res.size() > 0){
-	temp += sorted_names[i].string_of();
+	temp += sorted_names[(res.size()-1)].string_of();
     }
     return(temp);
 }
@@ -356,8 +332,13 @@ resourceList::resourceList(const vector<resourceHandle> &res){
 
         // create elements vector 
         for(unsigned i=0; i < res.size(); i++){
-	    elements += resource::handle_to_resource(res[i]);
-            // elements += r;
+	    resource *r = resource::handle_to_resource(res[i]);
+	    if(r){
+	        elements += r;
+		if(r->getSuppress()){
+                    suppressed = true;
+		}
+	    }
     } }
     else {
         printf("ERROR: this resourceList already created: %s\n",temp.string_of());
@@ -370,8 +351,7 @@ resourceList::resourceList(const vector<string> &names){
     // create a unique name
     unsigned size = names.size();
     string temp;
-    unsigned i=0;
-    for(; i < size; i++){
+    for(unsigned i=0; i < size; i++){
        temp += names[i]; 
        if(i < (size-1)){
 	   temp += ",";
@@ -385,9 +365,18 @@ resourceList::resourceList(const vector<string> &names){
         fullName = temp;
         foci += rl;
         // create elements vector 
-        for(i=0; i < size; i++){
-	    elements += resource::string_to_resource(names[i]);
-    } }
+	{ // TODO remove for g++ version 2.7.0
+        for(unsigned i=0; i < size; i++){
+	    resource *r = resource::string_to_resource(names[i]);
+	    if(r){
+	        elements += r;
+		if(r->getSuppress()){
+                    suppressed = true;
+		}
+	    }
+        } 
+	}
+    }
     else {
         printf("ERROR: this resourceList already created: %s\n",temp.string_of());
     }
@@ -406,14 +395,6 @@ void resourceList::print()
     printf("}");
 }
 
-#ifdef n_def
-bool resourceList::convertToStringList(vector<string> &vs) {
-    for (unsigned i=0; i < elements.size(); i++)
-      vs += elements[i]->getFullName();
-    return true;
-}
-#endif
-
 bool resourceList::convertToStringList(vector< vector<string> > &fs) {
     for (unsigned i=0; i < elements.size(); i++)
         fs += elements[i]->getParts();
@@ -425,6 +406,85 @@ bool resourceList::convertToIDList(vector<u_int> &fs) {
         fs += elements[i]->getHandle();
     }
     return true;
+}
+
+// This routine returns a list of foci which are the result of combining
+// each child of resource rh with the remaining resources that make up the
+// focus, otherwise it returns 0
+vector<resourceListHandle> *resourceList::magnify(resourceHandle rh){
+
+    // check to see if rh is a component of this resourceList
+    unsigned rIndex = elements.size();
+    for(unsigned i=0; i < elements.size(); i++){
+        if(rh == elements[i]->getHandle()){
+            rIndex = i;
+	    break;
+	}
+    }
+    if(rIndex < elements.size()){
+        vector<resourceListHandle> *return_list = 
+				    new vector<resourceListHandle>;
+        vector<resourceHandle> *children = (elements[rIndex])->getChildren();
+	if(children->size()){ // for each child create a new focus
+	    vector<resourceHandle> new_focus; 
+	    for(unsigned i=0; i < elements.size(); i++){
+                new_focus += (elements[i])->getHandle();
+	    }
+	    { // TODO remove for g++ version 2.7.0
+	    for(unsigned i=0; i < children->size(); i++){
+		new_focus[rIndex] = (*children)[i];
+		*return_list += resourceList::getResourceList(new_focus);
+	    }
+	    }
+	    delete children;
+	    return return_list;
+	}
+    }
+    return 0;
+}
+
+// if resource rh is a decendent of a component of the focus, return a new
+// focus consisting of rh replaced with it's corresponding entry, 
+// otherwise return 0 
+//
+resourceListHandle *resourceList::constrain(resourceHandle rh){
+
+    unsigned rIndex = elements.size(); 
+    for(unsigned i=0; i < elements.size(); i++){
+        if(elements[i]->isDescendent(rh)){
+	    rIndex = i;
+            break;
+    }}
+    if(rIndex < elements.size()){
+	vector<resourceHandle> new_focus; 
+	{ // TODO remove for g++ version 2.7.0
+	for(unsigned i=0; i < elements.size(); i++){
+            new_focus += (elements[i])->getHandle();
+	}
+	}
+	new_focus[rIndex] = rh;
+	resourceListHandle *new_handle = new resourceListHandle;
+	*new_handle = this->getResourceList(new_focus);
+	return new_handle;
+    }
+    return 0;
+}
+
+// This routine returns a list of foci each of which is the result of combining
+// each child of one of the resources with the remaining resource components of
+// the focus. this is iterated over all resources in the focus.
+// returns 0 if all resources in the focus have no children
+vector<resourceListHandle> *resourceList::magnify(){
+    
+    vector<resourceListHandle> *return_list = new vector<resourceListHandle>;
+    for(unsigned i=0; i < elements.size(); i++){
+	vector<resourceListHandle> *next = 
+				   this->magnify((elements[i])->getHandle());
+	if(next) *return_list += *next;
+	delete next;
+    }
+    if(return_list->size()) return return_list;
+    return 0;
 }
 
 
@@ -478,13 +538,6 @@ resourceListHandle resourceList::getResourceList(
     resourceList *res = new resourceList(h);
     assert(res);
     return(res->getHandle());
-}
-
-resourceList *resourceList::getFocus(resourceListHandle handle){
-
-    if(handle < foci.size())
-	return(foci[handle]);
-    return 0;
 }
 
 resourceList *resourceList::findRL(const char *name){

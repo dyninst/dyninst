@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.47  1995/08/20 03:51:33  newhall
+ * Revision 1.48  1995/09/05 16:24:16  newhall
+ * added DM interface routines for PC, added resourceList method functions
+ *
+ * Revision 1.47  1995/08/20  03:51:33  newhall
  * *** empty log message ***
  *
  * Revision 1.46  1995/08/20 03:37:13  newhall
@@ -208,11 +211,10 @@ void histDataCallBack(sampleValue *buckets,
 {
     metricInstance *mi = (metricInstance *) arg;
     performanceStream *ps = 0;
-    unsigned i;
 
     if(start_time == 0.0) { 
 	// update global data
-        for (i=0; i < mi->global_users.size(); i++) {
+        for(unsigned i=0; i < mi->global_users.size(); i++) {
 	    ps = performanceStream::find(mi->global_users[i]); 
 	    if(ps) {
 	        ps->callSampleFunc(mi->getHandle(), buckets, count, first);
@@ -220,7 +222,7 @@ void histDataCallBack(sampleValue *buckets,
         }
 	// update curr. phase data if curr. phase started at time 0.0
 	if (phaseInfo::GetLastPhaseStart() == 0.0) {
-            for (i=0; i < mi->users.size(); i++) {
+            for(unsigned i=0; i < mi->users.size(); i++) {
 	        ps = performanceStream::find(mi->users[i]); 
 	        if(ps) {
 	            ps->callSampleFunc(mi->getHandle(), buckets, count, first);
@@ -230,14 +232,14 @@ void histDataCallBack(sampleValue *buckets,
     }
 
     else {  // update just curr. phase data
-        for (i=0; i < mi->users.size(); i++) {
+        for(unsigned i=0; i < mi->users.size(); i++) {
 	    ps = performanceStream::find(mi->users[i]); 
 	    if(ps)
 	        ps->callSampleFunc(mi->getHandle(), buckets, count, first);
         }
     }
 
-    for(i=first; i < count; i++){
+    for(unsigned i=first; i < count; i++){
         if(buckets[i] < 0) printf("bucket %d : %f \n",i,buckets[i]);
     }
 }
@@ -437,23 +439,16 @@ resourceHandle *dataManager::getRootResource()
     return(rh);
 }
 
-// TODO: implement phaseType and persistent options
-metricInstInfo *dataManager::enableDataCollection(perfStreamHandle ps_handle,
-					const vector<resourceHandle> *focus, 
-					metricHandle m,
-					phaseType type,
-					unsigned persistent_data,
-					unsigned persistent_collection)
+//
+// called by DM enable routines
+//
+metricInstance *DMenableData(perfStreamHandle ps_handle,
+			     metricHandle m, 
+			     resourceListHandle rl,
+			     phaseType type,
+			     unsigned persistent_data, 
+			     unsigned persistent_collection)
 {
-    if(!focus || !focus->size()){
-        if(focus) 
-	    printf("error in enableDataCollection size = %d\n",focus->size());
-        else
-	    printf("error in enableDataCollection focus is NULL\n");
-        return 0;
-    } 
-    resourceListHandle rl = resourceList::getResourceList(*focus);
-
     // does this this metric/focus combination already exist? 
      metricInstance *mi = metricInstance::find(m,rl);
 
@@ -493,10 +488,32 @@ metricInstInfo *dataManager::enableDataCollection(perfStreamHandle ps_handle,
     if(persistent_collection) {
 	mi->setPersistentCollection();
     }
+    return mi;
+}
 
+metricInstInfo *dataManager::enableDataCollection(perfStreamHandle ps_handle,
+					const vector<resourceHandle> *focus, 
+					metricHandle m,
+					phaseType type,
+					unsigned persistent_data,
+					unsigned persistent_collection)
+{
+    if(!focus || !focus->size()){
+        if(focus) 
+	    printf("error in enableDataCollection size = %d\n",focus->size());
+        else
+	    printf("error in enableDataCollection focus is NULL\n");
+        return 0;
+    } 
+    resourceListHandle rl = resourceList::getResourceList(*focus);
 
+    metricInstance *mi = DMenableData(ps_handle,m,rl,type,persistent_data,
+    				     persistent_collection);
+    if(!mi) return 0;
     metricInstInfo *temp = new metricInstInfo;
     assert(temp);
+    metric *metricptr = metric::getMetric(m);
+    assert(metricptr);
     temp->mi_id = mi->getHandle();
     temp->m_id = m;
     temp->r_id = rl;
@@ -508,14 +525,33 @@ metricInstInfo *dataManager::enableDataCollection(perfStreamHandle ps_handle,
     temp = 0;
 }
 
+//
+// same as other enableDataCollection routine, except takes focus handle
+// argument and returns metricInstanceHandle on successful enable 
+//
+metricInstanceHandle *dataManager::enableDataCollection2(perfStreamHandle ps,
+						resourceListHandle rlh,
+						metricHandle mh,
+						phaseType pType,
+						unsigned persistent_data,
+						unsigned persistent_collection){
+
+    metricInstance *mi = DMenableData(ps,mh,rlh,pType,persistent_data,
+				      persistent_collection);
+    if(mi){
+        metricInstanceHandle *mi_h = new metricInstanceHandle;
+	*mi_h = mi->getHandle();
+	return(mi_h);
+    }
+    return 0;
+}
 
 // data is really disabled when there are no current or global users and
 // when the persistent_collection flag is clear
 // when persistent_data flag is clear:
 // current histogram is destroyed when there are no curr users 
 // global histogram is destroyed whern there are no curr or gloabl users
-// TODO: add persistent data support: clear active flag on archived
-// histograms rather than deleting them
+// clear active flag on archived histograms rather than deleting them
 void dataManager::disableDataCollection(perfStreamHandle handle, 
 					metricInstanceHandle mh,
 					phaseType type)
@@ -570,10 +606,96 @@ void dataManager::disableDataCollection(perfStreamHandle handle,
     return;
 }
 
+/////////////////////  TODO: implement these
+//
+// This routine returns a list of foci which are the result of combining
+// each child of resource rh with the remaining resources that make up rlh
+// if the resource rh is a component of the focus rlh, otherwise it returns 0
+//
+vector<resourceListHandle> *dataManager::magnify(resourceHandle rh, 
+						 resourceListHandle rlh){
+
+    resourceList *rl = resourceList::getFocus(rlh);
+    if(rl){
+	return(rl->magnify(rh));
+    }
+    return 0;
+}
 
 
+//
+// This routine returns a list of foci each of which is the result of combining
+// a child of one of the resources with the remaining resource components of
+// rlh, this routine returns 0 if no resource components of rlh have children
+//
+vector<resourceListHandle> *dataManager::magnify2(resourceListHandle rlh){
+    resourceList *rl = resourceList::getFocus(rlh);
+    if(rl){
+	(rl->magnify());
+    }
+    return 0;
+}
+
+
+//
+// if resource rh is a decendent of a component of the focus, return a new
+// focus consisting of rh replaced with it's corresponding entry in rlh,
+// otherwise return the focus rlh
+//
+resourceListHandle *dataManager::constrain(resourceHandle rh,
+					  resourceListHandle rlh){
+    resourceList *rl = resourceList::getFocus(rlh);
+    if (rl) {
+	 resourceListHandle *return_handle = rl->constrain(rh);
+	if(return_handle){
+	    return return_handle;
+	}
+    }
+    resourceListHandle *default_handle = new resourceListHandle;
+    *default_handle = rlh;
+    return default_handle;
+}
+
+//
+// like constrain, except it returns 0 on failure
+//
+resourceListHandle *dataManager::morespecific(resourceHandle rh,
+					      resourceListHandle rlh){
+    resourceList *rl = resourceList::getFocus(rlh);
+    if (rl) {
+	return(rl->constrain(rh));
+    }
+    return 0;
+}
+
+//
+// returns true if seppressSearch is true for this focus
+//
+bool dataManager::isSuppressed(resourceListHandle rlh){
+
+    resourceList *rl = resourceList::getFocus(rlh);
+    if (rl) {
+        return(rl->isSuppressed());
+    }
+    return 0;
+}
+
+//
+// returns the name for the focus associated with this MI
+// returns 0 on error
+//
+const char *dataManager::getFocusNameFromMI(metricInstanceHandle mh){
+    metricInstance *mi = metricInstance::getMI(mh);
+    if(mi){ 
+	return resourceList::getName(mi->getFocusHandle()); 
+    }
+    return 0;
+}
+
+//
 // setting and clearing persistentCollection or persistentData flags
 // have no enable/disable side effects 
+//
 void dataManager::setPersistentCollection(metricInstanceHandle mh){
     metricInstance *mi = metricInstance::getMI(mh);
     if(!mi) return;
@@ -964,3 +1086,4 @@ vector<string> *dataManager::getAvailableDaemons()
 {
     return(paradynDaemon::getAvailableDaemons());
 }
+

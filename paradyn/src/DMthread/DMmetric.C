@@ -133,15 +133,18 @@ metricInstance::metricInstance(resourceListHandle rl,
 }
 
 metricInstance::~metricInstance() {
-    unsigned i=0;
-    for(; i < components.size(); i++){
+    for(unsigned i=0; i < components.size(); i++){
         delete (components[i]);    
     }
-    for(i=0; i < parts.size(); i++){
+    { // TODO remove for g++ version 2.7.0
+    for(unsigned i=0; i < parts.size(); i++){
         delete (parts[i]);    
     }
-    for(i=0; i < old_data.size(); i++){
+    }
+    { // TODO remove for g++ version 2.7.0
+    for(unsigned i=0; i < old_data.size(); i++){
         delete (old_data[i]);    
+    }
     }
     if (data) delete(data);
     if (global_data) delete(global_data);
@@ -191,13 +194,14 @@ void metricInstance::dataDisable(){
     
     assert(!users.size());
     assert(!global_users.size());
-    unsigned i=0;
-    for(; i < components.size(); i++){
+    for(unsigned i=0; i < components.size(); i++){
         delete (components[i]);  // this disables data collection  
     }
     components.resize(0);
-    for(i=0; i < parts.size(); i++){
+    { // TODO remove for g++ version 2.7.0
+    for(unsigned i=0; i < parts.size(); i++){
         delete (parts[i]);    
+    }
     }
     parts.resize(0);
     enabled = false;
