@@ -43,6 +43,9 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
+ * Revision 1.53  1997/01/15 00:28:09  tamches
+ * added some debug msgs
+ *
  * Revision 1.52  1996/12/16 23:10:16  mjrg
  * bug fixes to fork/exec on all platforms, partial fix to fork on AIX
  *
@@ -180,7 +183,13 @@ void cleanUpAndExit(int status) {
     PDYN_exit_pvm();
 #endif
 
+#ifdef SHM_SAMPLING_DEBUG
+   cerr << "paradynd cleanUpAndExit: deleting all process structures now" << endl;
+#endif
+
   // Fry all processes
+  extern vector<process*> processVec;
+
   for (unsigned lcv=0; lcv < processVec.size(); lcv++) {
      process *theProc = processVec[lcv];
      if (theProc == NULL)
@@ -418,7 +427,7 @@ PDYND_report_to_paradyn (int pid, int argc, char **argv)
     for (int i=0; i<argc; i++) 
       as += argv[i];
 
-    tp->newProgramCallbackFunc(pid, as, machine_name);
+    tp->newProgramCallbackFunc(pid, as, machine_name, false);
     return true;
 }
 #endif
