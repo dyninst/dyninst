@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/util.C,v 1.3 1994/07/28 22:40:49 krisna Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/Attic/util.C,v 1.4 1994/09/22 02:27:37 markc Exp $";
 #endif
 
 /*
  * util.C - support functions.
  *
  * $Log: util.C,v $
- * Revision 1.3  1994/07/28 22:40:49  krisna
+ * Revision 1.4  1994/09/22 02:27:37  markc
+ * Changed signature to intComp
+ *
+ * Revision 1.3  1994/07/28  22:40:49  krisna
  * changed definitions/declarations of xalloc functions to conform to alloc.
  *
  * Revision 1.2  1994/06/22  01:43:19  markc
@@ -32,8 +35,11 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
  *
  *
  */
+
+extern "C" {
 #include <stdlib.h>
 #include <errno.h>
+}
 
 #include "util.h"
 
@@ -75,4 +81,10 @@ void *xrealloc(void *ptr, size_t size)
 	exit(-1);
     }
     return(ret);
+}
+
+/* used for qsort */
+int intComp(const void *i, const void *j)
+{
+    return (*((int*)i) - *((int*)j) );
 }
