@@ -41,6 +41,9 @@
 
 /* 
  * $Log: sunos.C,v $
+ * Revision 1.18  1996/10/31 08:55:11  tamches
+ * the shm-sampling commit; routines to do inferiorRPC; removed some warnings.
+ *
  * Revision 1.17  1996/08/20 19:18:02  lzheng
  * Implementation of moving multiple instructions sequence and
  * splitting the instrumentation into two phases
@@ -80,23 +83,7 @@
  */
 
 
-/*
- * The performance consultant's ptrace, it calls CM_ptrace and ptrace as needed.
- *
- */
-
-#include "symtab.h"
-#include "util/h/headers.h"
-#include "os.h"
 #include "process.h"
-#include "stats.h"
-#include "util/h/Types.h"
-#include <sys/ioctl.h>
-#include <fcntl.h>
-#include <machine/reg.h>
-#include "showerror.h"
-#include "main.h"
-// #include <sys/termios.h>
 
 extern "C" {
 extern int ioctl(int, int, ...);
@@ -105,18 +92,48 @@ extern int getrusage(int, struct rusage*);
 #include <sys/exec.h>
 #include <stab.h>
 extern struct rusage *mapUarea();
+
+#include <machine/reg.h> // for ptrace_getregs call
 };
+
+#include <sys/ioctl.h>
+#include <fcntl.h>
+#include <machine/reg.h>
+#include <sys/user.h> // for u-area stuff
+
+#include "symtab.h"
+#include "util/h/headers.h"
+#include "os.h"
+#include "stats.h"
+#include "util/h/Types.h"
+#include "showerror.h"
+#include "main.h"
+#include "util.h" // getCurrWallTimeULL
+
+#ifdef SHM_SAMPLING
+#include <kvm.h>
+#include <sys/user.h>
+#endif
+
+// #include <sys/termios.h>
 
 extern bool isValidAddress(process *proc, Address where);
 
 extern struct rusage *mapUarea();
 
+/* ********************************************************************** */
+
 class ptraceKludge {
-public:
+private:
   static bool haltProcess(process *p);
-  static bool deliverPtrace(process *p, enum ptracereq req, char *addr,
-			    int data, char *addr2);
   static void continueProcess(process *p, const bool halted);
+
+public:
+  static bool deliverPtrace(process *p, enum ptracereq req, void *addr,
+			    int data, void *addr2);
+//  static bool deliverPtraceFast(process *p, enum ptracereq req, void *addr,
+//				int data, void *addr2);
+//      // like deliverPtrace() but assumes process is paused.
 };
 
 bool ptraceKludge::haltProcess(process *p) {
@@ -130,12 +147,122 @@ bool ptraceKludge::haltProcess(process *p) {
   return wasStopped;
 }
 
+void ptraceKludge::continueProcess(process *p, const bool wasStopped) {
+  // First handle the cases where we shouldn't issue a PTRACE_CONT:
+  if (p->status() == neonatal) return;
+  if (wasStopped) return;
+
+  // Choose either one of the following methods to continue a process.
+  // The choice must be consistent with that in process::continueProc_ and OS::osStop.
+
+#ifndef PTRACE_ATTACH_DETACH
+  if (P_ptrace(PTRACE_CONT, p->pid, (caddr_t) 1, SIGCONT, NULL) == -1) {
+#else
+  if (P_ptrace(PTRACE_DETACH, p->pid, (caddr_t) 1, SIGCONT, NULL) == -1) {
+#endif
+      perror("error in continueProcess");
+      assert(0);
+  }
+}
+
+bool ptraceKludge::deliverPtrace(process *p, enum ptracereq req, void *addr,
+				 int data, void *addr2) {
+  bool halted;
+
+  if (req != PTRACE_DETACH)
+     halted = haltProcess(p);
+
+  bool ret = (P_ptrace(req, p->getPid(), (char*)addr, data, (char*)addr2) != -1);
+
+  if (req != PTRACE_DETACH)
+     continueProcess(p, halted);
+
+  return ret;
+}
+
+//bool ptraceKludge::deliverPtraceFast(process *p, enum ptracereq req, void *addr,
+//				     int data, void *addr2) {
+//   return (P_ptrace(req, p->getPid(), (char*)addr, data, (char*)addr2) != -1);
+//}
+
+/* ********************************************************************** */
+
+void *process::getRegisters() {
+   // ptrace - GETREGS call
+   // assumes the process is stopped (ptrace requires it)
+   assert(status_ == stopped);
+
+   // See <machine/reg.h> and <machine/fp.h>
+   const int numbytesPart1 = sizeof(struct regs);
+   const int numbytesPart2 = sizeof(struct fp_status);
+   assert(numbytesPart1 % 4 == 0);
+   assert(numbytesPart2 % 4 == 0);
+
+   void *buffer = new char[numbytesPart1 + numbytesPart2];
+   assert(buffer);
+
+   struct regs theIntRegs;
+   int result = P_ptrace(PTRACE_GETREGS, pid, (char*)&theIntRegs, 0, 0);
+   assert(result != -1);
+
+   struct fp_status theFpRegs;
+   result = P_ptrace(PTRACE_GETFPREGS, pid, (char*)&theFpRegs, 0, 0);
+   assert(result != -1);
+
+   memcpy(buffer, &theIntRegs, sizeof(theIntRegs));
+   memcpy((char*)buffer + sizeof(theIntRegs), &theFpRegs, sizeof(theFpRegs));
+
+   return buffer;
+}
+
+bool process::changePC(unsigned loc, void *savedRegs) {
+   struct regs theIntRegs = *(struct regs *)savedRegs; // makes a copy (on purpose)
+
+   assert(loc % 4 == 0);
+
+   theIntRegs.r_pc = loc;
+   theIntRegs.r_npc = loc+4;
+
+   assert(status_ == stopped);
+
+   if (0 != P_ptrace(PTRACE_SETREGS, pid, (char*)&theIntRegs, 0, 0)) {
+      cerr << "process::changePC failed" << endl;
+      return false;
+   }
+
+   return true;
+}
+
+bool process::restoreRegisters(void *buffer) {
+   // two ptrace - SETREGS calls
+   // assumes process is stopped (ptrace requires it)
+   assert(status_ == stopped);
+
+   struct regs theIntRegs = *(struct regs *)buffer;
+   struct fp_status theFpRegs = *(struct fp_status *)((char *)buffer + sizeof(struct regs));
+
+   int result = P_ptrace(PTRACE_SETREGS, pid, (char *)&theIntRegs, 0, 0);
+   if (result == -1) {
+      perror("process::restoreRegisters PTRACE_SETREGS failed");
+      return false;
+   }
+
+   result = P_ptrace(PTRACE_SETFPREGS, pid, (char *)&theFpRegs, 0, 0);
+   if (result == -1) {
+      perror("process::restoreRegisters PTRACE_SETFPREGS failed");
+      return false;
+   }
+
+   return true;
+}
+
 bool process::getActiveFrame(int *fp, int *pc)
 {
   struct regs regs;
   if (ptraceKludge::deliverPtrace(this,PTRACE_GETREGS,(char *)&regs,0,0)) {
     *fp=regs.r_o6;
     *pc=regs.r_pc;
+
     return(true);
   }
   else return(false);
@@ -195,35 +322,6 @@ bool process::readDataFromFrame(int currentFP, int *fp, int *rtn, bool uppermost
   return(readOK);
 }
 
-bool ptraceKludge::deliverPtrace(process *p, enum ptracereq req, char *addr,
-				 int data, char *addr2) {
-  bool halted;
-  bool ret;
-
-  if (req != PTRACE_DETACH) halted = haltProcess(p);
-  if (P_ptrace(req, p->getPid(), addr, data, addr2) == -1)
-    ret = false;
-  else
-    ret = true;
-  if (req != PTRACE_DETACH) continueProcess(p, halted);
-  return ret;
-}
-
-void ptraceKludge::continueProcess(process *p, const bool wasStopped) {
-  if ((p->status() != neonatal) && (!wasStopped))
-/* Choose either one of the following methods to continue a process.
- * The choice must be consistent with that in process::continueProc_ and OS::osStop.
- */
-#ifndef PTRACE_ATTACH_DETACH
-    if (P_ptrace(PTRACE_CONT, p->pid, (caddr_t) 1, SIGCONT, NULL) == -1) {
-#else
-    if (P_ptrace(PTRACE_DETACH, p->pid, (caddr_t) 1, SIGCONT, NULL) == -1) {
-#endif
-      cerr << "error in continueProcess\n";
-      assert(0);
-    }
-}
-
 // already setup on this FD.
 // disconnect from controlling terminal 
 void OS::osDisconnect(void) {
@@ -241,6 +339,7 @@ bool OS::osStop(pid_t pid) {
  * The choice must be consistent with that in process::continueProc_ 
  * and ptraceKludge::continueProcess
  */
+
 #ifndef PTRACE_ATTACH_DETACH
 	return (P_kill(pid, SIGSTOP) != -1); 
 #else
@@ -256,8 +355,12 @@ bool OS::osDumpCore(pid_t pid, const string dumpTo) {
   return false;
 }
 
-bool OS::osForwardSignal (pid_t pid, int stat) {
-  return (P_ptrace(PTRACE_CONT, pid, (char*)1, stat, 0) != -1);
+//bool OS::osForwardSignal (pid_t pid, int stat) {
+//  return (P_ptrace(PTRACE_CONT, pid, (char*)1, stat, 0) != -1);
+//}
+
+bool process::continueWithForwardSignal(int sig) {
+   return (P_ptrace(PTRACE_CONT, pid, (char*)1, sig, 0) != -1);
 }
 
 void OS::osTraceMe(void) { P_ptrace(PTRACE_TRACEME, 0, 0, 0, 0); }
@@ -284,17 +387,43 @@ bool process::continueProc_() {
 
   if (!checkStatus()) 
     return false;
+
   ptraceOps++; ptraceOtherOps++;
+
 /* choose either one of the following ptrace calls, but not both. 
- * The choice must be consistent with that in OS::osStop and ptraceKludge::continueProcess.
+ * The choice must be consistent with that in OS::osStop and
+ * ptraceKludge::continueProcess.
  */
 #ifndef PTRACE_ATTACH_DETACH
   ret = P_ptrace(PTRACE_CONT, pid, (char*)1, 0, (char*)NULL);
 #else
   ret = P_ptrace(PTRACE_DETACH, pid, (char*)1, SIGCONT, (char*)NULL);
 #endif
+
+  if (ret == -1)
+     perror("continueProc_()");
+
   return ret != -1;
 }
+
+//bool process::continueAt_(unsigned addr) {
+//  if (!checkStatus()) 
+//    return false;
+//  ptraceOps++; ptraceOtherOps++;
+///* choose either one of the following ptrace calls, but not both. 
+// * The choice must be consistent with that in OS::osStop and ptraceKludge::continueProcess.
+// */
+//#ifndef PTRACE_ATTACH_DETACH
+//  int ret = P_ptrace(PTRACE_CONT, pid, (char*)addr, 0, (char*)NULL);
+//#else
+//  int ret = P_ptrace(PTRACE_DETACH, pid, (char*)addr, SIGCONT, (char*)NULL);
+//#endif
+//
+//  if (ret == -1)
+//     perror("continueAt_()");
+//
+//  return ret != -1;
+//}
 
 // TODO ??
 bool process::pause_() {
@@ -337,36 +466,214 @@ bool process::writeTextWord_(caddr_t inTraced, int data) {
   if (!checkStatus()) 
     return false;
   ptraceBytes += sizeof(int); ptraceOps++;
+
+//  cerr << "writeTextWord @ " << (void *)inTraced << endl; cerr.flush();
+
   return (ptraceKludge::deliverPtrace(this, PTRACE_POKETEXT, inTraced, data, NULL));
 }
 
-bool process::writeTextSpace_(caddr_t inTraced, int amount, caddr_t inSelf) {
+bool process::writeTextSpace_(void *inTraced, int amount, const void *inSelf) {
   if (!checkStatus()) 
     return false;
   ptraceBytes += amount; ptraceOps++;
+
+//  cerr << "writeTextSpace pid=" << getPid() << ", @ " << (void *)inTraced << " len=" << amount << endl; cerr.flush();
+
   return (ptraceKludge::deliverPtrace(this, PTRACE_WRITETEXT, inTraced, amount, inSelf));
 }
 
-bool process::writeDataSpace_(caddr_t inTraced, int amount, caddr_t inSelf) {
+#include "metric.h" // getCurrentTime
+
+bool process::writeDataSpace_(void *inTraced, int amount, const void *inSelf) {
   if (!checkStatus())
     return false;
+
   ptraceOps++; ptraceBytes += amount;
-  return (ptraceKludge::deliverPtrace(this, PTRACE_WRITEDATA, inTraced, amount, inSelf));
+
+//  cerr << "process::writeDataSpace_ pid " << getPid() << " writing " << amount << " bytes at loc " << inTraced << endl;
+
+  bool result = ptraceKludge::deliverPtrace(this, PTRACE_WRITEDATA, inTraced, amount, (void*)inSelf);
+
+  return result;
 }
 
-bool process::readDataSpace_(caddr_t inTraced, int amount, caddr_t inSelf) {
+bool process::readDataSpace_(const void *inTraced, int amount, void *inSelf) {
+  bool result;
   if (!checkStatus())
-    return false;
-  ptraceOps++; ptraceBytes += amount;
-  return (ptraceKludge::deliverPtrace(this, PTRACE_READDATA, inTraced, amount, inSelf));
+    result = false;
+  else {
+     ptraceOps++; ptraceBytes += amount;
+     result = ptraceKludge::deliverPtrace(this, PTRACE_READDATA, inTraced, amount, inSelf);
+  }
+
+  return result;
 }
+
+#ifdef SHM_SAMPLING
+unsigned long long process::getInferiorProcessCPUtime() const {
+   // kvm_getproc returns a ptr to a _copy_ of the proc structure
+   // in static memory.
+//   unsigned long long wall1 = getCurrWallTimeULL();
+   proc *p = kvm_getproc(kvmHandle, getPid());
+   if (p == NULL) {
+      perror("could not getInferiorProcessCPUtime because kvm_getproc failed");
+      exit(5);
+   }
+//   unsigned long long wall2 = getCurrWallTimeULL();
+//   unsigned long long difference = wall2-wall1;
+//   unsigned long difference_long = difference;
+//   cout << "took " << difference_long << " usecs to kvm_getproc" << endl;
+
+   // kvm_getu returns a copy to a _copy_ of the process' uarea
+   // in static memory.
+   user *u = kvm_getu(kvmHandle, p);
+   if (u == NULL) {
+      perror("could not kvm_getu()");
+      exit(5);
+   }
+
+   return userAndSysTime2uSecs(u->u_ru.ru_utime,
+			       u->u_ru.ru_stime);
+
+   assert(false);
+
+
+
+
+   
+   if (childUareaPtr == NULL) {
+      cout << "cannot read inferior proc cpu time since unmapped...try to implement kvm_getproc instead" << endl;
+      return 0;
+   }
+
+   static unsigned long long prevResult = 0;  // to check for rollback
+
+   while (true) {
+      unsigned long long result = userAndSysTime2uSecs(childUareaPtr->u_ru.ru_utime,
+                                                       childUareaPtr->u_ru.ru_stime);
+      if (result < prevResult) {
+         cout << "process::getInferiorProcessCPUtime() retrying due to rollback!" << endl;
+         continue;
+      }
+      else {
+cout << "sunos done getting virtual time." << endl; cout.flush();
+         prevResult = result;
+         return result;
+      }
+   }
+}
+
+user *process::tryToMapChildUarea(int childpid) {
+   // a static member fn
+   // see DYNINSTprobeUarea of rtinst/src/sunos.c
+
+assert(0);
+
+   kvm_t *kvmfd = kvm_open(0, 0, 0, O_RDONLY, 0);
+   if (kvmfd == NULL) {
+      perror("could not map child's uarea because kvm_open failed");
+      return NULL;
+   }
+
+   // kvm_getproc returns a ptr to a _copy_ of the proc structure
+   // in static memory.
+   unsigned long long wall1 = getCurrWallTimeULL();
+   proc *p = kvm_getproc(kvmfd, childpid);
+   if (p == NULL) {
+      perror("could not map child's uarea because kvm_getproc failed");
+      return NULL;
+   }
+   unsigned long long wall2 = getCurrWallTimeULL();
+   unsigned long long difference = wall2-wall1;
+   unsigned long difference_long = difference;
+   cout << "took " << difference_long << " usecs to kvm_getproc" << endl;
+
+   // kvm_getu returns a copy to a _copy_ of the process' uarea
+   // in static memory.
+   user *u = kvm_getu(kvmfd, p);
+   if (u == NULL) {
+      perror("could not map child's uarea because kvm_getu failed");
+      return NULL;
+   }
+
+   kvm_close(kvmfd);
+
+   void *uareaPtr = p->p_uarea;
+
+   int kmemfd = open("/dev/kmem", O_RDONLY, 0);
+   if (kmemfd == -1) {
+      perror("could not map child's uarea because could not open /dev/kmem for reading");
+      return NULL;
+   }
+
+   void *result = P_mmap(NULL, sizeof(user), PROT_READ, MAP_SHARED, kmemfd,
+                         (off_t)uareaPtr);
+   if (result == (void *)-1) {
+      perror("could not map child's uarea because could not mmap /dev/kmem");
+      close(kmemfd);
+      return NULL;
+   }
+
+   cout << "mmap of child's uarea succeeded!" << endl;
+
+   return (user *)result;
+}
+#endif
+
+//unsigned long long process::getInferiorProcessCPUtime() const {
+//   // We get the inferior process's cpu time via a ptrace() of the u-area
+//   // of the inferior process, though it should be possible to mmap()
+//   // the inferior process's uarea into paradynd if we really want to...
+//
+//   // UH OH: this will only work if the inferior process has been stopped!!!
+//
+//   static unsigned long long prevResult = 0;
+//
+//   while (true) {
+//      // assumes child process has been stopped
+//      user childUareaPtr; // just a dummy
+//      unsigned addrOffset = (void *)&childUareaPtr.u_ru.ru_utime - (void *)&childUareaPtr;
+//      unsigned numBytesNeeded = (void *)&childUareaPtr.u_ru.ru_maxrss -
+//                                (void *)&childUareaPtr.u_ru.ru_utime;
+//      assert(numBytesNeeded % 4 == 0);
+//
+//      rusage theUsage; // we'll write into the first few bytes of this structure
+//      void *ptr = &theUsage.ru_utime;
+//
+//      cout << "peeking from uarea for pid " << this->getPid() << endl; cout.flush();
+//      while (numBytesNeeded) {
+//         errno = 0;
+//         unsigned result = P_ptrace(PTRACE_PEEKUSER, this->getPid(),
+//				    (char*)addrOffset, 0, NULL);
+//         if (errno != 0) {
+//            perror("could not getChildCPUtimeViaPtraceOfUarea: ptrace()");
+//            exit(5);
+//         }
+//
+//         memcpy(ptr, &result, 4);
+//         ptr += 4;
+//         addrOffset += 4;
+//         numBytesNeeded -= 4;
+//      }
+//
+//      unsigned long long result = userAndSysTime2uSecs(theUsage.ru_utime, theUsage.ru_stime);
+//      if (result < prevResult) {
+//         cout << "process::getInferiorProcessCPUtime() retrying due to rollback!" << endl;
+//         continue;
+//      }
+//      else {
+//         prevResult = result;
+//         return result;
+//      }
+//   }
+//}
 
 bool process::loopUntilStopped() {
   /* make sure the process is stopped in the eyes of ptrace */
-  OS::osStop(pid);
-  bool isStopped = false;
-  int waitStatus;
-  while (!isStopped) {
+   OS::osStop(pid); // sends SIGSTOP signal to the process
+
+  while (true) {
+    int waitStatus;
     int ret = P_waitpid(pid, &waitStatus, WUNTRACED);
     if ((ret == -1 && errno == ECHILD) || (WIFEXITED(waitStatus))) {
       // the child is gone.
@@ -378,10 +685,10 @@ bool process::loopUntilStopped() {
     } else if (WIFSTOPPED(waitStatus)) {
       int sig = WSTOPSIG(waitStatus);
       if (sig == SIGSTOP) {
-	isStopped = true;
+        break; // success
       } else {
-	extern int handleSigChild(int, int);
-	handleSigChild(pid, waitStatus);
+        extern int handleSigChild(int, int);
+        handleSigChild(pid, waitStatus);
       }
     }
     else {
