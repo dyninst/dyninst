@@ -4057,6 +4057,24 @@ void mutatorTest34( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 	exit(1);
     }
 
+    BPatch_Vector<BPatch_basicBlockLoop*> outerLoopGrandChildren0;
+    outerLoopChildren[0]->getOuterLoops(outerLoopGrandChildren0);
+
+    BPatch_Vector<BPatch_basicBlockLoop*> outerLoopGrandChildren1;
+    outerLoopChildren[1]->getOuterLoops(outerLoopGrandChildren1);
+
+    // one has no children, the other has 1 child
+    if (!((outerLoopGrandChildren0.size() == 0 || 
+	   outerLoopGrandChildren1.size() == 0) &&
+	  (outerLoopGrandChildren0.size() == 1 || 
+	   outerLoopGrandChildren1.size() == 1))) {
+	fprintf(stderr, "**Failed** test #34 (loop information)\n");
+	fprintf(stderr, "  Detected %d and %d outer loops, should have been zero and one.\n",
+		outerLoopGrandChildren0.size(), 
+		outerLoopGrandChildren1.size());
+	exit(1);
+    }
+    
 }
 
 // Start Test Case #35 - (function relocation)
