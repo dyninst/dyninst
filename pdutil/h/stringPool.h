@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: stringPool.h,v $
- * Revision 1.1  1994/01/25 20:49:42  hollings
+ * Revision 1.2  1994/08/05 16:01:54  hollings
+ * More consistant use of stringHandle vs. char *.
+ *
+ * Revision 1.1  1994/01/25  20:49:42  hollings
  * First real version of utility library.
  *
  * Revision 1.1  1992/08/03  20:45:54  hollings
@@ -13,7 +16,7 @@
 #ifndef STRINGPOOL_H
 #define STRINGPOOL_H
 
-typedef char *stringHandle;
+typedef void *stringHandle;
 
 #define TAB_SIZE 10004
 #define PAGE_SIZE 4090

@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: stringPool.C,v $
- * Revision 1.4  1994/07/28 22:22:06  krisna
+ * Revision 1.5  1994/08/05 16:02:05  hollings
+ * More consistant use of stringHandle vs. char *.
+ *
+ * Revision 1.4  1994/07/28  22:22:06  krisna
  * changed definitions of ReadFunc and WriteFunc to conform to prototypes
  *
  * Revision 1.3  1994/07/14  23:43:14  hollings
@@ -66,14 +69,14 @@ stringHandle stringPool::find(char *data)
 
     hid = hash(data, TAB_SIZE);
     for (curr=table[hid]; curr; curr=curr->next) {
-	if (!strcmp(data, curr->data)) {
+	if (!strcmp(data, (char *) curr->data)) {
 	    return(curr->data);
 	}
     }
     return(NULL);
 }
 
-char *stringPool::getSpace(int size)
+stringHandle stringPool::getSpace(int size)
 {
     stringHandle ret;
 
@@ -100,7 +103,7 @@ stringHandle stringPool::findAndAdd(char *data)
 	hid = hash(data, TAB_SIZE);
 	temp = (stringEntry *) malloc(sizeof(stringEntry));
 	temp->data = getSpace(strlen(data)+1);
-	strcpy(temp->data, data);
+	strcpy((char *) temp->data, data);
 	temp->next = this->table[hid];
 	table[hid] = temp;
 	val = temp->data;

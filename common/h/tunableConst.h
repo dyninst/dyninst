@@ -2,7 +2,10 @@
  * tunableConstant - a constant that might be changed during execution.
  *
  * $Log: tunableConst.h,v $
- * Revision 1.3  1994/08/03 18:37:30  hollings
+ * Revision 1.4  1994/08/05 16:01:55  hollings
+ * More consistant use of stringHandle vs. char *.
+ *
+ * Revision 1.3  1994/08/03  18:37:30  hollings
  * split tunable constant into Boolean and Float sub-classes.
  *
  * Revision 1.2  1994/02/28  23:58:28  hollings
@@ -28,15 +31,15 @@ typedef enum tunableType { tunableBoolean, tunableFloat };
 //
 class tunableConstant {
     public:
-	char *getDesc() { return(desc); }
-	char *getName() { return(name); }
+	stringHandle getDesc() { return(desc); }
+	stringHandle getName() { return(name); }
 	static List<tunableConstant*> *allConstants;
 	static stringPool *pool;
 	virtual void print() = NULL;
 	tunableType getType() { return(typeName); }
     protected:
-	char *desc;
-	char *name;
+	stringHandle desc;
+	stringHandle name;
 	tunableType typeName;
 	tunableUse use;
 };
