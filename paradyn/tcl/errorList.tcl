@@ -1,7 +1,11 @@
 
 #
 # $Log: errorList.tcl,v $
-# Revision 1.11  1995/11/21 15:16:24  naim
+# Revision 1.12  1995/11/30 22:00:36  naim
+# Changed error message 33 - Cannot find instrumentation version in executable
+# file - naim
+#
+# Revision 1.11  1995/11/21  15:16:24  naim
 # Adding error #86: Cannot enable metric - naim
 #
 # Revision 1.10  1995/11/13  21:13:34  naim
@@ -446,8 +450,8 @@ set pdError(33) {
 } {paradynd
 } {information
 } {
-Your program has been linked with the wrong version of the paradyn dyninst 
-library.
+Your program might has been linked with the wrong version of the paradyn 
+dyninst library, or it could be a non executable binary file.
 }}
 
 set pdError(34) {
