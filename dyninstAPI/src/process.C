@@ -1194,13 +1194,26 @@ tp->resourceBatchMode(true);
 }
 
 #ifdef SHM_SAMPLING
-void process::doSharedMemSampling(unsigned long long theWallTime) {
-   // Process Time:
-   const unsigned long long theProcTime = this->getInferiorProcessCPUtime();
-   
-   inferiorIntCounters.processAll  (theWallTime, theProcTime);
-   inferiorWallTimers.processAll   (theWallTime, theProcTime);
-   inferiorProcessTimers.processAll(theWallTime, theProcTime);
+bool process::doMajorShmSample(unsigned long long theWallTime) {
+   bool result = true; // will be set to false if any processAll() doesn't complete
+                       // successfully.
+
+   if (!inferiorIntCounters.doMajorSample  (theWallTime, 0))
+      result = false;
+
+   if (!inferiorWallTimers.doMajorSample   (theWallTime, 0))
+      result = false;
+
+   if (!inferiorProcessTimers.doMajorSample(theWallTime, 0))
+      // inferiorProcessTimers used to take in a non-dummy process time as the
+      // 2d arg, but it looks like that we need to re-read the process time for
+      // each proc timer, at the time of sampling the timer's value, to avoid
+      // ugly jagged spikes in histogram (i.e. to avoid incorrect sampled values).
+      //
+      // Come to think of it: the same may have to be done for the wall time too!!!
+      result = false;
+
+   const unsigned long long theProcTime = getInferiorProcessCPUtime();
 
    // Now do the observed cost.
    // WARNING: shouldn't we be using a mutex?!
@@ -1208,6 +1221,23 @@ void process::doSharedMemSampling(unsigned long long theWallTime) {
    const unsigned theCost = *costAddr;
 
    this->processCost(theCost, theWallTime, theProcTime);
+
+   return result;
+}
+
+bool process::doMinorShmSample() {
+   bool result = true; // so far...
+
+   if (!inferiorIntCounters.doMinorSample())
+      result = false;
+
+   if (!inferiorWallTimers.doMinorSample())
+      result = false;
+
+   if (!inferiorProcessTimers.doMinorSample())
+      result = false;
+
+   return result;
 }
 #endif
 
@@ -1220,12 +1250,20 @@ void handleProcessExit(process *proc, int exitStatus) {
 
   proc->Exited();
   if (proc->traceLink >= 0) {
-    processTraceStream(proc);
+    // We used to call processTraceStream(proc) here to soak up any last
+    // messages but since it uses a blocking read, that doesn't seem like such
+    // a good idea.
+    //processTraceStream(proc);
+
     P_close(proc->traceLink);
     proc->traceLink = -1;
   }
   if (proc->ioLink >= 0) {
-    processAppIO(proc);
+    // We used to call processAppIO(proc) here to soak up any last
+    // messages but since it uses a blocking read, that doesn't seem like such
+    // a good idea.
+    //processAppIO(proc);
+
     P_close(proc->ioLink);
     proc->ioLink = -1;
   }
@@ -1242,8 +1280,15 @@ void handleProcessExit(process *proc, int exitStatus) {
   }
 #endif
 
-  // Shouldn't we call 'delete' on "proc", remove it from the global
-  // list of all processes, etc.???
+  // Perhaps these lines can be un-commented out in the future, but since
+  // cleanUpAndExit() does the same thing, and it always gets called
+  // (when paradynd detects that paradyn died), it's not really necessary
+  // here.  -ari
+//  for (unsigned lcv=0; lcv < processVec.size(); lcv++)
+//     if (processVec[lcv] == proc) {
+//        delete proc; // destructor removes shm segments...
+//	processVec[lcv] = NULL;
+//     }
 }
 
 
@@ -1257,7 +1302,6 @@ process *process::forkProcess(const process *theParent, pid_t childPid
 			      void *applAttachedPtr
 #endif
 			      ) {
-
 #ifdef SHM_SAMPLING
     vector<fastInferiorHeapMgr::oneHeapStats> theShmHeapStats(3);
     theShmHeapStats[0].elemNumBytes = sizeof(intCounter);
@@ -2025,6 +2069,10 @@ bool process::existsRPCreadyToLaunch() const {
    return false;
 }
 
+bool process::existsRPCinProgress() const {
+   return (!currRunningRPCs.empty());
+}
+
 bool process::launchRPCifAppropriate(bool wasRunning) {
    // asynchronously launches iff RPCsWaitingToStart.size() > 0 AND
    // if currRunningRPCs.size()==0 (the latter for safety)
@@ -2413,7 +2461,6 @@ tp->resourceBatchMode(false);
    return true;
 }
 
-
 void process::getObservedCostAddr() {
 
 #ifndef SHM_SAMPLING
@@ -2428,4 +2475,3 @@ void process::getObservedCostAddr() {
     costAddr_ = (int)getObsCostLowAddrInApplicSpace();
 #endif
 }
-
