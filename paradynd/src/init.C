@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.68 2002/08/31 16:53:28 mikem Exp $
+// $Id: init.C,v 1.69 2002/10/15 17:11:39 schendel Exp $
 
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
@@ -57,6 +57,8 @@
 #include "dyninstAPI/src/dyninstP.h" // isApplicationPaused
 #include "paradynd/src/dynrpc.h"
 #include "pdutil/h/aggregationDefines.h"
+#include "paradynd/src/processMgr.h"
+#include "paradynd/src/pd_process.h"
 
 #ifdef PAPI
 #include "papi.h"
@@ -82,7 +84,6 @@ internalMetric *numOfActProcTimers = NULL;
 internalMetric *numOfActWallTimers = NULL;
 
 internalMetric *stackwalkTime = NULL;
-internalMetric *numOfCurrentLevels = NULL;
 internalMetric *numOfCurrentThreads = NULL;
 internalMetric *active_threads = NULL;
 
@@ -146,34 +147,37 @@ pdSample computePauseTimeMetric(const machineMetFocusNode *) {
 }
 
 pdSample computeNumOfActCounters(const machineMetFocusNode *) {
-  unsigned max = 0;
-  for (unsigned i = 0; i < processVec.size(); i++) {
-    process *curProc = processVec[i];
-    if(curProc->hasExited()) continue;
-    if(curProc->numOfActCounters_is > max)
-      max = processVec[i]->numOfActCounters_is;
-  }
-  return pdSample(max);
+   unsigned max = 0;
+   processMgr::procIter itr = getProcMgr().begin();
+   while(itr != getProcMgr().end()) {
+      pd_process *curProc = *itr++;
+      if(curProc->hasExited()) continue;
+      if(curProc->numOfActCounters_is > max)
+	 max = curProc->numOfActCounters_is;
+   }
+   return pdSample(max);
 }
 
 pdSample computeNumOfActProcTimers(const machineMetFocusNode *) {
-  unsigned max = 0;
-  for (unsigned i = 0; i < processVec.size(); i++) {
-    process *curProc = processVec[i];
-    if(curProc->hasExited()) continue;
-    if(curProc->numOfActProcTimers_is > max)
-      max = processVec[i]->numOfActProcTimers_is;
-  }
-  return pdSample(max);
+   unsigned max = 0;
+   processMgr::procIter itr = getProcMgr().begin();
+   while(itr != getProcMgr().end()) {
+      pd_process *curProc = *itr++;
+      if(curProc->hasExited()) continue;
+      if(curProc->numOfActProcTimers_is > max)
+	 max = curProc->numOfActProcTimers_is;
+   }
+   return pdSample(max);
 }
 
 pdSample computeNumOfActWallTimers(const machineMetFocusNode *) {
   unsigned max = 0;
-  for (unsigned i = 0; i < processVec.size(); i++) {
-    process *curProc = processVec[i];
-    if(curProc->hasExited()) continue;
-    if(curProc->numOfActWallTimers_is > max)
-      max = processVec[i]->numOfActWallTimers_is;
+  processMgr::procIter itr = getProcMgr().begin();
+  while(itr != getProcMgr().end()) {
+     pd_process *curProc = *itr++;
+     if(curProc->hasExited()) continue;
+     if(curProc->numOfActWallTimers_is > max)
+	max = curProc->numOfActWallTimers_is;
   }
   return pdSample(max);
 }
@@ -198,30 +202,25 @@ pdSample computeStackwalkTimeMetric(const machineMetFocusNode *) {
 }
 
 #if defined(MT_THREAD)
-pdSample computeNumOfCurrentLevels(const machineMetFocusNode *) {
-  unsigned max = 0;
-  for (unsigned i = 0; i < processVec.size(); i++) {
-    if (processVec[i]->numOfCurrentLevels_is > max)
-      max = processVec[i]->numOfCurrentLevels_is;
-  }
-  return pdSample(max);
-}
-
 pdSample computeNumOfCurrentThreads(const machineMetFocusNode *) {
-  unsigned max = 0;
-  for (unsigned i = 0; i < processVec.size(); i++) {
-    if (processVec[i]->numOfCurrentThreads_is > max)
-      max = processVec[i]->numOfCurrentThreads_is;
-  }
-  return pdSample(max);
+   unsigned max = 0;
+   processMgr::procIter itr = getProcMgr().begin();
+   while(itr != getProcMgr().end()) {
+      pd_process *curProc = *itr++;
+      if(curProc->thrMgr().size() > max)
+	 max = curProc->thrMgr().size();
+   }
+   return pdSample(max);
 }
 
 pdSample computeNumOfActiveThreads(const machineMetFocusNode *) {
-  unsigned numOfActiveThreads = 0;
-  for (unsigned i = 0; i < processVec.size(); i++) {
-    numOfActiveThreads += processVec[i]->numOfCurrentThreads_is ;
-  }
-  return pdSample(numOfActiveThreads);
+   unsigned numOfActiveThreads = 0;
+   processMgr::procIter itr = getProcMgr().begin();
+   while(itr != getProcMgr().end()) {
+      pd_process *curProc = *itr++;
+      numOfActiveThreads += curProc->thrMgr().size();
+   }
+   return pdSample(numOfActiveThreads);
 }
 #endif
 
@@ -234,6 +233,7 @@ bool init() {
   initWallTimeMgr();
 
   initPapi();
+  initProcMgr();
 
   machineRoot = resource::newResource(rootResource, NULL, nullString,
 				      string("Machine"), timeStamp::ts1970(), 
@@ -331,12 +331,6 @@ bool init() {
   stackwalkTime->setStyle(EventCounter);
 
 #if defined(MT_THREAD)
-  numOfCurrentLevels = internalMetric::newInternalMetric(
-       "numOfCurrentLevels", aggMax, "ops", // operations 
-       computeNumOfCurrentLevels, default_im_preds, true, Sampled,
-       internalMetric::firstSample_ForInitActualValue);
-  numOfCurrentLevels->setStyle(SampledFunction);
-
   numOfCurrentThreads = internalMetric::newInternalMetric(
        "numOfCurrentThreads", aggMax, "ops", // operations
        computeNumOfCurrentThreads, default_im_preds, true, Sampled,
