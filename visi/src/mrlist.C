@@ -1,14 +1,46 @@
-/* $Log: mrlist.C,v $
-/* Revision 1.3  1994/04/13 21:34:52  newhall
-/* added routines: GetMetsRes StopMetRes NamePhase
 /*
+ * Copyright (c) 1993, 1994 Barton P. Miller, Jeff Hollingsworth,
+ *     Bruce Irvin, Jon Cargille, Krishna Kunchithapadam, Karen
+ *     Karavanic, Tia Newhall, Mark Callaghan.  All rights reserved.
+ * 
+ * This software is furnished under the condition that it may not be
+ * provided or otherwise made available to, or used by, any other
+ * person, except as provided for by the terms of applicable license
+ * agreements.  No title to or ownership of the software is hereby
+ * transferred.  The name of the principals may not be used in any
+ * advertising or publicity related to this software without specific,
+ * written prior authorization.  Any use of this software must include
+ * the above copyright notice.
+ *
+ */
+/* $Log: mrlist.C,v $
+/* Revision 1.4  1994/05/11 17:13:11  newhall
+/* changed data type from double to float
+/*
+ * Revision 1.3  1994/04/13  21:34:52  newhall
+ * added routines: GetMetsRes StopMetRes NamePhase
+ *
  * Revision 1.2  1994/03/14  20:28:49  newhall
  * changed visi subdirectory structure
  *  */ 
+///////////////////////////////////////////// 
+// Method functions for class visi_MRList
+//   this class allows visualization writer
+//   to access and manipulate the list of
+//   metrics and resources associated with
+//   the data grid
+//   changes to these lists do not effect
+//   the contents of the data grid
+///////////////////////////////////////////// 
 #include "visi/h/mrlist.h" 
-/////////////////// method functions for class visi_MRList
 
-visi_MRList::visi_MRList(int size,int wCard,char *members){
+//
+//  visi_MRList constructor: creates a new list
+//   given a set of member strings
+//
+visi_MRList::visi_MRList(int size,
+			 int wCard,
+			 char *members){
 
 int i,j,k;
 int wordsize;
@@ -49,7 +81,12 @@ int wch;
 }
 
 
-visi_MRList::visi_MRList(int size,class metricType *metrics){
+//
+//  visi_MRList constructor: creates a new list
+//    given a list of visi_metricType elements
+//
+visi_MRList::visi_MRList(int size,
+			 visi_metricType *metrics){
 
 int i,k,nameLength;
 
@@ -77,7 +114,12 @@ int i,k,nameLength;
 }
 
 
-visi_MRList::visi_MRList(int size,class resourceType *resources){
+//
+//  visi_MRList constructor: creates a new list given
+//    a list of elements of type visi_resourceType
+//
+visi_MRList::visi_MRList(int size,
+			 visi_resourceType *resources){
 
 int i,k,nameLength;
 
@@ -106,6 +148,9 @@ int i,k,nameLength;
 }
 
 
+//
+//  visi_MRList destructor
+//
 visi_MRList::~visi_MRList(){
   int i;
 
@@ -116,7 +161,11 @@ visi_MRList::~visi_MRList(){
 
 }
 
-int visi_MRList::AddElements(int num,char *elements){
+//
+//  add an element to the list 
+//
+int visi_MRList::AddElements(int num,
+			     char *elements){
 
 int i,j,k;
 int start,end;
@@ -176,6 +225,9 @@ listSize = numElements;
 return(OK);
 }
 
+//
+//  print the contents of the list to stderr
+//
 void visi_MRList::Print(){
 
 int i;
@@ -189,6 +241,9 @@ int i;
 }
 
 
+//
+// remove the element indexed by elmNum from the list 
+//
 int visi_MRList::RemoveElement(int elmNum){
 
 int i;
@@ -205,6 +260,15 @@ int i;
   return(OK);
 }
 
+//
+// Creates a character string representation of the
+// current list.  Each list element is separated by
+// a comma, and if wildCard is true a wild card 
+// character is added to the end of the list
+//
+// This is used to create the metric and 
+// resouce lists passed to GetMetricsResouces()
+//
 int visi_MRList::CreateMRList(char **elements){
 
 int  totalSize = 0;
