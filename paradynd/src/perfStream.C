@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.123 2001/12/05 22:35:49 bernat Exp $
+// $Id: perfStream.C,v 1.124 2001/12/06 20:57:52 schendel Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -608,7 +608,7 @@ static void checkAndDoShmSampling(timeLength *pollTime) {
       if (doMajorSample) {
 	 //shmsample_cerr << "(-Y-)" << endl;
 
-	 if (!theProc->doMajorShmSample(currWallTime)) {
+	 if (!theProc->doMajorShmSample()) {
 	    // The major sample didn't complete all of its work, so we
 	    // schedule a minor sample for sometime in the near future
 	    // (before the next major sample)

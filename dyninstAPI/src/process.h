@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.167 2001/11/06 19:20:21 bernat Exp $
+/* $Id: process.h,v 1.168 2001/12/06 20:57:51 schendel Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -1203,7 +1203,7 @@ class process {
 
 #ifdef SHM_SAMPLING
   key_t getShmKeyUsed() const {return inferiorHeapMgr.getShmKey();}
-  bool doMajorShmSample(timeStamp currWallTime);
+  bool doMajorShmSample();
   bool doMinorShmSample();
 
   const fastInferiorHeapMgr &getShmHeapMgr() const {
