@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: templatesIGEN.C,v 1.10 2002/04/09 18:06:28 mjbrim Exp $
+ * $Id: templatesIGEN.C,v 1.11 2003/05/23 02:49:11 schendel Exp $
  * Generate all the templates in one file.
  */
 
@@ -64,4 +64,5 @@ template bool writerfn_noMethod<T_dyninstRPC::trace_batch_buffer_entry>(struct X
 template bool writerfn_noMethod<T_dyninstRPC::resourceInfoCallbackStruct>(struct XDR *, const T_dyninstRPC::resourceInfoCallbackStruct);
 template bool writerfn_noMethod<T_dyninstRPC::focusStruct>(struct XDR *, const T_dyninstRPC::focusStruct);
 template bool writerfn_noMethod<T_dyninstRPC::metricInfo>(struct XDR *, const T_dyninstRPC::metricInfo);
+template bool writerfn_noMethod<T_dyninstRPC::indivInstResponse>(struct XDR *, const T_dyninstRPC::indivInstResponse);
 #endif
