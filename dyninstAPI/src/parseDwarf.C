@@ -763,7 +763,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			if( functionName == NULL ) {
 				/* I'm not even sure what an anonymous function _means_,
 				   but we sure can't do anything with it. */
-				// bperr( "Warning: anonymous function (type %lu).\n", (unsigned long)dieOffset );
+				// /* DEBUG */ fprintf( stderr, "Warning: anonymous function (type %lu).\n", (unsigned long)dieOffset );
 
 				/* Don't parse the children, since we can't add them. */
 				parsedChild = true;
@@ -775,10 +775,13 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 
 			/* Try to find the function. */
 			BPatch_Vector< BPatch_function * > functions = BPatch_Vector< BPatch_function * >();
-			module->findFunction( functionName, functions, false );
+			
+			/* Search the image, instead of just the module, so we can parse the whole image in one pass. */
+			(static_cast< BPatch_image *>( module->getObjParent() ))->findFunction( functionName, functions, false );
 
 			if( functions.size() == 0 ) {
 				/* Don't parse the children, since we can't add them. */
+				// /* DEBUG */ fprintf( stderr, "Failed to find function '%s'\n", functionName );
 				parsedChild = true;
 
 				if( hasSpecification ) { dwarf_dealloc( dbg, specEntry, DW_DLA_DIE ); }
@@ -786,7 +789,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				break;
 				}
 			else if( functions.size() > 1 ) {
-				// bperr( "Warning: found more than one function '%s', unable to do anything reasonable.\n", functionName );
+				// /* DEBUG */ fprintf( stderr, "Warning: found more than one function '%s', unable to do anything reasonable.\n", functionName );
 
 				/* Don't parse the children, since we can't add them. */
 				parsedChild = true;
@@ -859,7 +862,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 
 				char * leftMost = NULL;				
 				if( demangledName == NULL ) {
-					fprintf( stderr, "walkDwarvenTree(): unable to demangle '%s', using mangled name.\n", functionName );
+					// /* DEBUG */ fprintf( stderr, "walkDwarvenTree(): unable to demangle '%s', using mangled name.\n", functionName );
 					demangledName = strdup( functionName );
 					assert( demangledName != NULL );
 					leftMost = demangledName;
@@ -1050,7 +1053,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 							
 				/* We now have the variable name, type, offset, and line number.
 				   Tell Dyninst about it. */
-				   
+				// /* DEBUG */ fprintf( stderr, "localVariable '%s', currentFunction %p\n", variableName, currentFunction );
 				if( currentFunction != NULL ) {
 					if( !hasLineNumber ) { break; }
 					assert( hasLineNumber );
@@ -1638,17 +1641,22 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 extern void pd_dwarf_handler( Dwarf_Error, Dwarf_Ptr );
 
 void BPatch_module::parseDwarfTypes() {
-    // bperr( "Parsing module '%s'\n", mod->fileName().c_str() );
-
-	/* Get the Object object. */
 	image * moduleImage = mod->exec();
 	assert( moduleImage != NULL );
 	const Object & moduleObject = moduleImage->getObject();
+	const char * fileName = moduleObject.getFileName();
+	const char * moduleFileName = mod->fileName().c_str();
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: parsing object '%s' for module '%s'\n", __FILE__, __LINE__, fileName, moduleFileName );
+
+	/* Cache type collections on a per-image basis.  (Since BPatch_functions are solitons, we don't have to cache them.) */
+	static dictionary_hash< pdstring, BPatch_typeCollection * > fileToTypesMap( pdstring::hash );
+	if( fileToTypesMap.defines( fileName ) ) {
+		// /* DEBUG */ fprintf( stderr, "%s[%d]: found cache for file '%s' (module '%s')\n", __FILE__, __LINE__, fileName, moduleFileName );
+		this->moduleTypes = fileToTypesMap[ fileName ];
+		return;
+		}
 
 	/* Start the dwarven debugging. */
-	const char * fileName = moduleObject.getFileName();
-	// bperr( "Parsing object '%s'\n", fileName );
-
 	Dwarf_Debug dbg;
 
 	int fd = open( fileName, O_RDONLY );
@@ -1679,8 +1687,7 @@ void BPatch_module::parseDwarfTypes() {
 			assert( moduleName != NULL );
 			}
 		assert( status != DW_DLV_ERROR );
-		// bperr( "%s[%d]: Considering compilation unit '%s'\n", 
-		//	 __FILE__, __LINE__, moduleName );
+		// /* DEBUG */ fprintf( stderr, "%s[%d]: considering compilation unit '%s'\n", __FILE__, __LINE__, moduleName );
 
 		/* Set the language, if any. */
 		Dwarf_Attribute languageAttribute;
@@ -1750,7 +1757,11 @@ void BPatch_module::parseDwarfTypes() {
 				fprintf( stderr, "Warning: type information may be incomplete (#%d).\n", bptype->getID() );
 				}
 			} /* end if the datatype is unknown. */
-		} /* end iteration over moduleTypes */		
+		} /* end iteration over moduleTypes */
+		
+	/* Cache the parsed debug information. */
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: caching parse results for object '%s'\n", __FILE__, __LINE__, fileName );
+	fileToTypesMap[ fileName ] = this->moduleTypes;
 	} /* end parseDwarfTypes() */
 
 
