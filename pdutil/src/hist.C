@@ -16,7 +16,10 @@
  * hist.C - routines to manage hisograms.
  *
  * $Log: hist.C,v $
- * Revision 1.6  1994/04/12 22:11:22  hollings
+ * Revision 1.7  1994/04/20 15:19:30  hollings
+ * Added method to get histogram buckets.
+ *
+ * Revision 1.6  1994/04/12  22:11:22  hollings
  * removed special case of bucket a zero value since it caused upcalls not to
  * happen.
  *
@@ -379,4 +382,21 @@ sampleValue Histogram::getValue(timeStamp start, timeStamp end)
 sampleValue Histogram::getValue()
 {		
     return(getValue(0.0, numBins * bucketSize));
+}
+
+int Histogram::getBuckets(sampleValue *buckets, int numberOfBuckets, int first)
+{
+    int i;
+    int last;
+
+    last = first + numberOfBuckets;
+    if (lastBin < last) last = lastBin;
+
+    // make sure its in bin form.
+    convertToBins();
+
+    for (i=first; i < last; i++) {
+	buckets[i-first] = dataPtr.buckets[i];
+    }
+    return(last-first);
 }

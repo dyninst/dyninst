@@ -43,6 +43,7 @@ class Histogram {
 	Histogram(Bin *buckets, metricStyle, dataCallBack, foldCallBack, void*);
 	sampleValue getValue();
 	sampleValue getValue(timeStamp start, timeStamp end);
+	int getBuckets(sampleValue *buckets, int numberOfBuckets, int first);
 	void addInterval(timeStamp start, timeStamp end, 
 	    sampleValue value, Boolean smooth);
 	void addPoint(timeStamp start, sampleValue value) {
