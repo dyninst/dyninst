@@ -245,50 +245,11 @@ static unsigned long long mulMillion(unsigned long long in) {
 
 time64
 DYNINSTgetCPUtime(void) {
-  static time64 previous=0;
-
-  while (1) {
-/* gethrvtime()/1000 doesn't work right any more with shm sampling because it
- * returns values that are out of sync with /proc's PIOCUSAGE, so when a fudge
- * factor needs to be added by paradynd's shm sampling of an active timer,
- * things don't work.  getrusage() does seem to work okay, but we'd like to not use
- * getrusage() because it's obsolete in solaris and slower; so we use /proc PIOCUSAGE...
- *
- * This is too bad; we'd prefer the (presumably fast) gethrvtime().  But, again,
- * it simply won't work with shm sampling.  If you are thinking of changing things
- * back to gethrvtime(), please check with me first. --ari
- *
- * Some day........in an ideal world, we'll use the %TICK register......
- */
-
-/*     time64 now = (time64)gethrvtime()/(time64)1000; */
-
-     struct prpsinfo theUsage; /* for /proc PIOCPSINFO call */
-     time64 now;
-
-     /*
-     if (firstTime) {
-        DYNINSTgetCPUtimeInitialize();
-	firstTime = 0;
-     }
-     */
-
-     if (ioctl(procfd, PIOCPSINFO, &theUsage) < 0) {
-        perror("rtinst get-cpu-time PIOCPSINFO");
-	abort();
-     }
-
-     now = mulMillion(theUsage.pr_time.tv_sec); /* sec to usec */
-     now += div1000(theUsage.pr_time.tv_nsec);  /* nsec to usec */
-
-     if (now < previous)
-        /* I don't think that this ever happens for solaris, thankfully */
-        /* ...well, it can happen if we use PIOCRUSAGE! - naim 5/29/97 */
-        continue;
-
-     previous = now;
-     return (now);
-  }
+  hrtime_t lwpTime;
+  time64 now;
+  lwpTime = gethrvtime();
+  now = div1000(lwpTime);  /* nsec to usec */
+  return(now);  
 }
 
 

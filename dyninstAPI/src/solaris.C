@@ -1088,14 +1088,14 @@ time64 process::getInferiorProcessCPUtime() {
    // with DYNINSTgetCPUtime
 
    time64 result;
-   prpsinfo_t theUsage;
+   prusage_t theUsage;
 
-   if (ioctl(proc_fd, PIOCPSINFO, &theUsage) == -1) {
+   if (ioctl(proc_fd, PIOCUSAGE, &theUsage) == -1) {
       perror("could not read CPU time of inferior PIOCPSINFO");
       return 0;
    }
-   result = PDYN_mulMillion(theUsage.pr_time.tv_sec); // sec to usec
-   result += PDYN_div1000(theUsage.pr_time.tv_nsec);  // nsec to usec
+   result = PDYN_mulMillion(theUsage.pr_utime.tv_sec); // sec to usec
+   result += PDYN_div1000(theUsage.pr_utime.tv_nsec);  // nsec to usec
 
    if (result<previous) {
      // time shouldn't go backwards, but we have seen this happening
