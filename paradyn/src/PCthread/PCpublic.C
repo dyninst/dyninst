@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCpublic.C,v $
- * Revision 1.22  1995/10/05 04:41:44  karavan
+ * Revision 1.23  1995/10/17 03:16:16  karavan
+ * new function endSearch added to igen interface.
+ *
+ * Revision 1.22  1995/10/05  04:41:44  karavan
  * changes to UI::PC interface calls.
  *
  * Revision 1.21  1995/06/02  20:50:12  newhall
@@ -162,6 +165,11 @@ void performanceConsultant::printTestStatus()
     }
 }
 
+// this feature implemented in the next version of the PC not this one
+void performanceConsultant::endSearch (int phaseID)
+{
+  ;
+}
 
 searchHistoryNodeList BuildWhyRefinements(searchHistoryNode *of)
 {
