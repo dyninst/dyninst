@@ -47,6 +47,7 @@
 #define SUNOS_PD_HDR
 
 #include <sys/param.h>
+#define BREAK_POINT_INSN 0x91d02001   /* ta 1 */
 #define EXIT_NAME "_cleanup"
 
 #define START_WALL_TIMER "DYNINSTstartWallTimer"
