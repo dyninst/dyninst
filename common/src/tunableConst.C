@@ -3,7 +3,10 @@
  *    execution of the system.
  *
  * $Log: tunableConst.C,v $
- * Revision 1.4  1994/08/20 23:17:30  markc
+ * Revision 1.5  1994/09/22 03:18:47  markc
+ * Added error checking code in constructor
+ *
+ * Revision 1.4  1994/08/20  23:17:30  markc
  * Added new machine type.
  * Cast stringHandle to (char*) to print in tunableConst.C
  * Added cast to char* for printing names which are stringHandles.
@@ -23,6 +26,7 @@
 
 #include "util/h/stringPool.h"
 #include "util/h/tunableConst.h"
+#include <string.h>
 
 List<tunableConstant*> *tunableConstant::allConstants;
 stringPool *tunableConstant::pool;
@@ -30,11 +34,14 @@ stringPool *tunableConstant::pool;
 tunableBooleanConstant::tunableBooleanConstant(Boolean initialValue,
 					       booleanChangeValCallBackFunc cb,
 					       tunableUse u,
-					       char *n,
-					       char *d)
+					       const char *n,
+					       const char *d)
 {
     value = initialValue;
-    desc = d;
+    if (d)
+      desc = strdup(d);
+    else
+      desc = 0;
     use = u;
     typeName = tunableBoolean;
 
@@ -65,14 +72,17 @@ tunableFloatConstant::tunableFloatConstant(float initialValue,
 					 float high, 
 					 floatChangeValCallBackFunc cb,
 					 tunableUse u,
-					 char *n,
-					 char *d)
+					 const char *n,
+					 const char *d)
 
 {
     value = initialValue;
     min = low;
     max = high;
-    desc = d;
+    if (d)
+      desc = strdup(d);
+    else
+      desc = 0;
     use = u;
     typeName = tunableFloat;
     newValueCallBack = cb;
@@ -87,10 +97,13 @@ tunableFloatConstant::tunableFloatConstant(float initialValue,
 					   isValidFunc func, 
 					   floatChangeValCallBackFunc cb,
 					   tunableUse u,
-					   char *n,
-					   char *d)
+					   const char *n,
+					   const char *d)
 {
-    desc = d;
+    if (d)
+      desc = strdup(d);
+    else
+      desc = 0;
     use = u;
     typeName = tunableFloat;
     isValidValue = func;
