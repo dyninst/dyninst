@@ -2,8 +2,16 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
-#  Revision 1.4  1994/10/04 22:10:56  tamches
-#  more color fixing (moved codes from barChart.C to here)
+#  Revision 1.5  1994/10/07 22:06:36  tamches
+#  Fixed some bugs w.r.t. resizing the window (bars and resources were
+#  sometimes redrawn at the old locations, instead of adapting to the
+#  resize).  The problem was related to [winfo width ...] returning
+#  the old value while in the middle of a resize event.  The solution
+#  was to include %w and %h in the configure-even callback (see the
+#  tk "bind" command man page)
+#
+# Revision 1.4  1994/10/04  22:10:56  tamches
+# more color fixing (moved codes from barChart.C to here)
 #
 # Revision 1.3  1994/10/04  19:00:23  tamches
 # implemented resourceWidth algorithm: try to make resources the maximum
@@ -143,8 +151,6 @@ menu $Wmbar.resources.m
 $Wmbar.resources.m add command -label "Add Resource..." -command AddResourceDialog
 $Wmbar.resources.m add command -label "Remove Selected Resource" -state disabled
 $Wmbar.resources.m add separator
-$Wmbar.resources.m add check -label "Long Resource Names" -variable LongNames -command LongNamesChange
-$Wmbar.resources.m add separator
 $Wmbar.resources.m add radio -label "Order by Name (ascending)" -variable SortPrefs -command ProcessNewSortPrefs -value ByName
 $Wmbar.resources.m add radio -label "Order by Name (descending)" -variable SortPrefs -command ProcessNewSortPrefs -value ByNameDescending
 $Wmbar.resources.m add radio -label "Order as Inserted by User" -variable SortPrefs -command ProcessNewSortPrefs -value NoParticular
@@ -153,9 +159,6 @@ $Wmbar.resources.m add radio -label "Order as Inserted by User" -variable SortPr
 
 menubutton $Wmbar.opts -text "Display" -menu $Wmbar.opts.m
 menu $Wmbar.opts.m
-#$Wmbar.opts.m add check -label "Long Names" -variable LongNames \
-#   -command Update -state disabled
-#$Wmbar.opts.m add separator
 $Wmbar.opts.m add radio -label "Current Value" \
    -variable DataFormat -command {rethinkDataFormat} \
    -value Instantaneous
@@ -279,7 +282,26 @@ wm minsize  . 350 250
 wm title    . "Barchart"
 
 proc getWindowWidth {wName} {
+   # warning!  This routine will return an old number if an important
+   # event (i.e. resize) happened but idle routines haven't yet kicked in.
+   # --> *** In such cases, be sure to grab the latest information directly
+   #         from the event structure instead of calling this routine!!!!
+
    set result [winfo width $wName]
+   if {$result == 1} {
+      set result [winfo reqwidth $wName]
+   }
+
+   return $result
+}
+
+proc getWindowHeight {wName} {
+   # warning!  This routine will return an old number if an important
+   # event (i.e. resize) happened but idle routines haven't yet kicked in.
+   # --> *** In such cases, be sure to grab the latest information directly
+   #         from the event structure instead of calling this routine!!!!
+
+   set result [winfo height $wName]
    if {$result == 1} {
       set result [winfo reqwidth $wName]
    }
@@ -378,8 +400,8 @@ proc Initialize {} {
 
    # [sec 19.2: 'event patterns' in tk/tcl manual]
 
-   bind $W.body <Configure> +{myConfigureEventHandler}
-   bind $W.body <Expose>    +{myExposeEventHandler}
+   bind $W.body <Configure> {myConfigureEventHandler %w %h}
+   bind $W.body <Expose>    {myExposeEventHandler}
 }
 
 # ############################################################################
@@ -484,7 +506,7 @@ proc processExitResource {widgetName} {
    }
 }
 
-proc rethinkResourceWidths {} {
+proc rethinkResourceWidths {screenWidth} {
    # When resources are added or deleted, this routine is called.
    # Its sole purpose is to rethink the value of currResourceWidth,
    # depending on the resources.
@@ -498,9 +520,6 @@ proc rethinkResourceWidths {} {
    global numResources
    global Wxcanvas
 
-   set screenWidth [getWindowWidth $Wxcanvas]
-   # puts stderr "Welcome to rethinkResourceWidths; screenwidth=$screenWidth"
-   
    set tentativeResourceWidth [expr $screenWidth / $numResources]
    if {$tentativeResourceWidth < $minResourceWidth} {
       set tentativeResourceWidth $minResourceWidth
@@ -513,7 +532,7 @@ proc rethinkResourceWidths {} {
    # puts stderr "Leaving rethinkResourceWidths; we have decided upon $currResourceWidth"
 }
 
-proc drawXaxis {} {
+proc drawXaxis {xAxisWidth} {
    # how it works: deletes all canvas items with the tag "xAxisItemTag", including
    # the window items.  message widgets have to be deleted separately, notwithstanding
    # the fact that the canvas window items were deleted already.
@@ -538,7 +557,6 @@ proc drawXaxis {} {
    global maxResourceWidth
    global currResourceWidth
 
-   global LongNames
    global SortPrefs
 
    # puts stderr "Welcome to drawXaxis"
@@ -575,9 +593,6 @@ proc drawXaxis {} {
       # canvas via "create window"
 
       set theText $resourceNames($rindex)
-      if {$LongNames == 0} {
-         set theText [file tail $theText]
-      }
 
       message $Wxcanvas.message$rindex -text $theText \
                                            -justify center -width $currResourceWidth \
@@ -602,7 +617,7 @@ proc drawXaxis {} {
    set regionList [lreplace $regionList 3 3 $xAxisHeight]
    $Wxcanvas configure -scrollregion $regionList
 
-   set screenWidth [getWindowWidth $Wxcanvas]   
+   set screenWidth $xAxisWidth
 
    set oldconfig [$W.sbRegion.xAxisScrollbar get]
    set oldTotalWidth [lindex $oldconfig 0]
@@ -630,13 +645,14 @@ proc processNewMetricMax {mindex newmaxval} {
    # a new max value is chosen
    global metricMinValues
    global metricMaxValues
+   global W
 
    set metricMaxValues($mindex) $newmaxval
 
-   drawYaxis
+   drawYaxis [getWindowHeight $W.yAxisCanvas]
 }
 
-proc drawYaxis {} {
+proc drawYaxis {yAxisHeight} {
    # the y axis changes to reflect the units of the current metric(s).
    # It is not necessary to call drawYaxis if the window width is
    # resized; it IS necessary to call drawYaxis if the window
@@ -666,10 +682,7 @@ proc drawYaxis {} {
    }
 
    # canvas item: the axis itself (a vertical line)
-   set winHeight [winfo height $W.yAxisCanvas]
-   if {$winHeight == 1} {
-      set winHeight [winfo reqheight $W.yAxisCanvas]
-   }
+   set winHeight $yAxisHeight
    set winWidth [getWindowWidth $W.yAxisCanvas]
 
    set tickWidth 5
@@ -685,8 +698,8 @@ proc drawYaxis {} {
 
    set numericalStep [expr (1.0 * $metricMaxValues(0)-$metricMinValues(0)) / ($numlabels-1)]
 
-   puts stderr "drawYaxis: numericalStep is $numericalStep; metric-min is $metricMinValues(0); metric-max is $metricMaxValues(0)"
-   flush stderr
+   # puts stderr "drawYaxis: numericalStep is $numericalStep; metric-min is $metricMinValues(0); metric-max is $metricMaxValues(0)"
+   # flush stderr
 
    $W.yAxisCanvas create line $right $top $right $bottom -tag yAxisTag
 
@@ -728,41 +741,31 @@ proc drawTitle {} {
    $W.titleLabel configure -text $newTitle
 }
 
-proc myConfigureEventHandler {} {
-   # not yet implemented: intelligence to detect merely a window-move
-   # (nothing to do) verses a true resize (lots to do).
+proc myConfigureEventHandler {newWidth newHeight} {
+   #puts stderr "Welcome to myConfigureEventHandler; newWidth=$newWidth; newHeight=$newHeight"
+   #flush stderr
 
-   # BUG: Should implement delayed action (don't do until idle).  It appears
-   # necessary in some cases; this is such a case.  Why?  Apparantly, this
-   # routine is called BEFORE the change in configuration, ensuring that we
-   # process on the OLD (ack!) window values instead of the new ones!
+   # rethink how wide the resources should be
+   rethinkResourceWidths $newWidth
 
-   # puts stderr "barChart.tcl -- welcome to myConfigureEventHandler"
-   # flush stderr
-
-   # The only reason we really need to call drawXaxis is to rethink the
-   # scrollbar.  the rest of the calculations that will be done are unnecessary
-   # here:
-   drawXaxis
+   # Call drawXaxis to rethink the scrollbar and to rethink the resource widths
+   drawXaxis $newWidth
 
    # We only need to redraw the y axis if the window height has changed
    # (and at the beginning of the program)
-   drawYaxis
+   drawYaxis $newHeight
 
    # Redraw the title (only needed if metrics changed)
    drawTitle
    
    # if the x axis has changed then call this: (barChart.C)
-   xAxisHasChanged
+   xAxisHasChanged $newWidth
 
    # if the y axis has changed then call this: (barChart.C)
-   yAxisHasChanged
-
-   # rethink how wide the resources should be
-   rethinkResourceWidths
+   yAxisHasChanged $newHeight
 
    # inform our C++ code (barChart.C) that a resize has taken place
-   resizeCallback
+   resizeCallback $newWidth $newHeight
 }
 
 proc myExposeEventHandler {} {
@@ -778,6 +781,7 @@ proc myExposeEventHandler {} {
 proc addResource {rName} {
    global numResources
    global resourceNames
+   global W
 
    # first, make sure this resource doesn't already exist
    for {set rindex 0} {$rindex < $numResources} {incr rindex} {
@@ -790,7 +794,7 @@ proc addResource {rName} {
    set resourceNames($numResources) $rName
    incr numResources
 
-   drawXaxis
+   drawXaxis [getWindowWidth $W.bottom.xAxisCanvas]
 }
 
 proc delResource {delindex} {
@@ -800,6 +804,7 @@ proc delResource {delindex} {
    global clickedOnResource
    global clickedOnResourceText
    global Wmbar
+   global W
 
    # first, make sure this resource index is valid
    if {$delindex < 0 || $delindex >= $numResources} {
@@ -839,7 +844,7 @@ proc delResource {delindex} {
    # callback to barChart.C
    xAxisHasChanged
 
-   drawXaxis
+   drawXaxis [getWindowWidth $W.bottom.xAxisCanvas]
 }
 
 proc delResourceByName {rName} {
@@ -891,6 +896,7 @@ proc addMetric {theName theUnits} {
    global metricUnitTypes
    global metricMinValues
    global metricMaxValues
+   global W
 
    puts stderr "Welcome to addMetric; name is $theName; units are $theUnits"
 
@@ -914,8 +920,8 @@ proc addMetric {theName theUnits} {
 
    incr numMetrics
 
-   drawXaxis
-   drawYaxis
+   drawXaxis [getWindowWidth $W.bottom.xAxisCanvas]
+   drawYaxis [getWindowHeight $W.yAxisCanvas]
    drawTitle
 }
 
@@ -923,6 +929,7 @@ proc delMetric {delIndex} {
    global numMetrics
    global metricNames
    global metricUnits
+   global W
 
    # first, make sure this metric index is valid
    if {$delIndex < 0 || $delIndex >= $numMetrics} {
@@ -939,8 +946,8 @@ proc delMetric {delIndex} {
    set numMetrics [expr $numMetrics - 1]
    
    drawTitle
-   drawYaxis
-   drawXaxis
+   drawXaxis [getWindowWidth $W.bottom.xAxisCanvas]
+   drawYaxis [getWindowHeight $W.yAxisCanvas]
 
    # don't we need to tell paradyn to stop sending us data on
    # this metric?
@@ -1064,14 +1071,14 @@ proc DgConfigCallback {} {
    }
 
    # rethink the layout of the axes
-   rethinkResourceWidths
-   drawXaxis
-   drawYaxis
+   rethinkResourceWidths [getWindowWidth $W.bottom.xAxisCanvas]
+   drawXaxis [getWindowWidth $W.bottom.xAxisCanvas]
+   drawYaxis [getWindowHeight $W.yAxisCanvas]
    drawTitle
 
    # inform our C++ code that stuff has changed
-   xAxisHasChanged
-   yAxisHasChanged
+   xAxisHasChanged [getWindowWidth $W.bottom.xAxisCanvas]
+   yAxisHasChanged [getWindowHeight $W.yAxisCanvas]
 }
 
 # #################  AddMetricDialog -- Ask paradyn for another metric #################
@@ -1084,13 +1091,6 @@ proc AddMetricDialog {} {
 
 proc AddResourceDialog {} {
    Dg start "*" "*"
-}
-
-proc LongNamesChange {} {
-   global LongNames
-
-   # rethink the text within the x-axis labels:
-   drawXaxis
 }
 
 proc ProcessNewSortPrefs {} {
@@ -1123,7 +1123,7 @@ proc rethinkDataFormat {} {
    dataFormatHasChanged
 
    # redraw the y axis
-   drawYaxis
+   drawYaxis [getWindowHeight $W.yAxisCanvas]
 }
 
 # ######################################################################################
