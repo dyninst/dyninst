@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.29 2001/06/12 15:43:27 hollings Exp $
+# $Id: make.module.tmpl,v 1.30 2001/10/26 06:29:45 schendel Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -18,14 +18,15 @@ CFLAGS		     += $(USEFULWARNINGS) $(DEFINES)
 CXXFLAGS	     += $(USEFULWARNINGS) $(DEFINES)
 TFLAGS		     += $(TCLFRIENDLYWARNINGS) $(DEFINES)
 
+ifdef GCC_2_95
 # This may cause problems on Alpha
 # GCC has a new mangled name squisher (-fsquangle) which can be 
 # set to "on" by default. This causes linker problems, so we
 # default to "off".
-
 CFLAGS		+= -fno-squangle
 CXXFLAGS	+= -fno-squangle
 TFLAGS		+= -fno-squangle
+endif
 
 TARGET		= libdyninstAPI.a
 
