@@ -461,7 +461,14 @@ $remote dynRPC {
     $upcall $async void newProgramCallbackFunc( int pid, 
 						vector<string> argv, 
 						string machine);
-				
+    //
+    // Message display with "error" visual characteristics
+    // and lookup in error database for explanation. This function
+    // calls showError function in UIM class
+    //
+    $upcall $async void showErrorCallback (int errCode,
+					   string errString,
+				           string hostName);
 
     //
     // Handler that gets called when new sample data is delivered.
