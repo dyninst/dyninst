@@ -1,8 +1,11 @@
 /* $Log: VISIthread.I,v $
-/* Revision 1.4  1994/08/17 17:55:23  markc
-/* Incremented version numbers because a new version of igen has been
-/* committed.
+/* Revision 1.5  1994/09/22 00:41:35  markc
+/* Incremented version number because igen is new
 /*
+# Revision 1.4  1994/08/17  17:55:23  markc
+# Incremented version numbers because a new version of igen has been
+# committed.
+#
 # Revision 1.3  1994/08/13  20:50:16  newhall
 # *** empty log message ***
 #
@@ -16,7 +19,7 @@
 $remote VISIthread{
 
   $base 9000;
-  $version 3;
+  $version 4;
 
   void VISIKillVisi();
 };
