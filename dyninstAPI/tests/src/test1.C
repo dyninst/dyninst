@@ -2271,7 +2271,7 @@ void mutatorTest21(BPatch_thread *, BPatch_image *appImage)
 // test2.
 void mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(alpha_dec_osf4_0)
+#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(alpha_dec_osf4_0) || defined(ia64_unknown_linux2_4)
 
     if (mutateeFortran) {
 	return;
@@ -3281,7 +3281,7 @@ void mutatorTest30(BPatch_thread *appThread, BPatch_image *appImage)
     defined(rs6000_ibm_aix4_1) || \
     defined(alpha_dec_osf4_0)
 
-  unsigned n;
+  unsigned long n;
   unsigned long baseAddr,lastAddr;
   unsigned int call30_1_line_no;
   unsigned short lineNo;
@@ -4224,7 +4224,7 @@ void mutatorTest34( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 // Start Test Case #35 - (function relocation)
 void mutatorTest35( BPatch_thread * appThread, BPatch_image * appImage )
 {
-#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4) || defined(ia64_unknown_linux2_4)
+#if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
 
     if (mutateeFortran)
 	return;

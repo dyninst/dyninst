@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.102 2003/11/14 15:32:06 hollings Exp $ */
+/* $Id: test1.mutatee.c,v 1.103 2004/01/23 22:01:32 tlmiller Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -26,7 +26,8 @@
 #if defined(sparc_sun_solaris2_4) || \
     defined(alpha_dec_osf4_0) || \
     defined(i386_unknown_linux2_0) || \
-    defined(i386_unknown_solaris2_5)
+    defined(i386_unknown_solaris2_5) || \
+    defined(ia64_unknown_linux2_4)
 #include <dlfcn.h> /* For replaceFunction test */
 #endif
 
@@ -168,13 +169,13 @@ int globalVariable22_2 = 0;
 int globalVariable22_3 = 0;
 int globalVariable22_4 = 0;
 
-unsigned globalVariable30_1 = 0;
-unsigned globalVariable30_2 = 0;
+unsigned long globalVariable30_1 = 0;
+unsigned long globalVariable30_2 = 0;
 
-unsigned globalVariable30_3 = 0;
-unsigned globalVariable30_4 = 0;
-unsigned globalVariable30_5 = 0;
-unsigned globalVariable30_6 = 0;
+unsigned long globalVariable30_3 = 0;
+unsigned long globalVariable30_4 = 0;
+unsigned long globalVariable30_5 = 0;
+unsigned long globalVariable30_6 = 0;
 
 int globalVariable31_1 = 0;
 int globalVariable31_2 = 0;
@@ -482,8 +483,8 @@ void call22_7(int x)
 
 /* this function has to be only 1 line for test30 to pass */
 /* these two lines has to be together otherwise test30 will fail */
-unsigned globalVariable30_7 = __LINE__;
-void call30_1(){ globalVariable30_1 = __LINE__; globalVariable30_2 = (unsigned)call30_1;}
+unsigned long globalVariable30_7 = __LINE__;
+void call30_1(){ globalVariable30_1 = __LINE__; globalVariable30_2 = (unsigned long)call30_1;}
 
 #endif
 
@@ -1246,7 +1247,7 @@ volatile int _unused;	/* move decl here to dump compiler warning - jkh */
 
 void func22_1()
 {
-#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_linux2_0) && !defined(alpha_dec_osf4_0)
+#if !defined(sparc_sun_solaris2_4) && !defined(i386_unknown_linux2_0) && !defined(alpha_dec_osf4_0) && !defined(ia64_unknown_linux2_4)
 
     printf("Skipped test #22 (replace function)\n");
     printf("\t- not implemented on this platform\n");
@@ -1835,8 +1836,8 @@ void func30_2()
 }
 
 /* variables to keep the base addr and last addr of call30_1 */
-unsigned globalVariable30_8 = 0;
-unsigned globalVariable30_9 = 0;
+unsigned long globalVariable30_8 = 0;
+unsigned long globalVariable30_9 = 0;
 int func30_1()
 {
     kludge = 1;	/* Here so that the following function call isn't the first
