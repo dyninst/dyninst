@@ -108,7 +108,7 @@ BPatch_function *mangledNameMatchKLUDGE(char *pretty, char *mangled,
 
   BPatch_Vector<BPatch_function *> bpfv;
   if ((NULL == mod->findFunction(pretty, bpfv, false, false, true)) || !bpfv.size()) {
-    cerr << __FILE__ << __LINE__ << ":  KLUDGE Cannot find " << pretty << endl;
+     //cerr << __FILE__ << __LINE__ << ":  KLUDGE Cannot find " << pretty << endl;
     return NULL;  // no pretty name hits, expecting multiple
   }
 
@@ -288,7 +288,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		  ptrType = mod->getModuleTypes()->findOrCreateType(funcReturnID);
 		  if( !ptrType) ptrType = BPatch::bpatch->type_Untyped;
 
-		  if (NULL == mod->findFunction( name, bpfv,false ) || !bpfv.size()) {
+		  if (NULL == mod->findFunction( name, bpfv, false ) || !bpfv.size()) {
 		    showInfoCallback(pdstring("missing local function ") +
 				     pdstring(name) + "\n");
                     // It's very possible that we might not find a function
@@ -353,15 +353,16 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		
 		if (NULL == (fp = mangledNameMatchKLUDGE(current_func_name, 
 							 current_mangled_func_name, mod))){
-		cerr << __FILE__ << __LINE__ << ":  Cannot find function " 
-		     << current_mangled_func_name << "/"<< current_func_name 
-		     << " with return type " << ptrType->getName() 
-		     << " in module " << modName << endl;
-		char prefix[5];
-		strncpy(prefix, current_mangled_func_name, 4);
-		prefix[4] = '\0';
-		// mod->dumpMangled(prefix);
-                break;
+                   bpwarn("%s L%d - Cannot find global function with mangled name '%s' or pretty name '%s' with return type '%s' in module '%s', possibly extern\n",
+                          __FILE__, __LINE__,
+                          current_mangled_func_name, current_func_name,
+                          ((ptrType->getName() == NULL) ? "" : ptrType->getName()), 
+                          modName);
+                   //char prefix[5];
+                   //strncpy(prefix, current_mangled_func_name, 4);
+                   //prefix[4] = '\0';
+                   // mod->dumpMangled(prefix);
+                   break;
 		}
 	      }
 
@@ -1431,7 +1432,9 @@ void addBaseClassToClass(BPatch_module *mod, int baseID, BPatch_fieldListType *n
     //Find base class
     BPatch_fieldListType *baseCl = dynamic_cast<BPatch_fieldListType *>(mod->getModuleTypes()->findType(baseID));
     if( ! baseCl ) {
-	bperr( "can't find class %d\n", baseID);
+	char modName[100];
+        mod->getName(modName, 99);
+        bpwarn( "can't find base class id %d in module %s\n", baseID, modName);
         baseCl = new BPatch_typeStruct(baseID);
         BPatch_fieldListType *baseCl2 = dynamic_cast<BPatch_typeStruct *>(mod->getModuleTypes()->addOrUpdateType( baseCl ));
 	newType->addField( "{superclass}", BPatch_dataStructure, baseCl2, -1, BPatch_visUnknown );
@@ -1780,7 +1783,7 @@ static char *parseCPlusPlusInfo(BPatch_module *mod,
 	    int offset = parseSymDesc(stabstr, cnt);
 
 	    // Find base class type identifier
-	    int baseID = parseSymDesc(stabstr, cnt);
+            int baseID = parseSymDesc(stabstr, cnt);
 	    addBaseClassToClass(mod, baseID, newType2, offset);
 	}
 
