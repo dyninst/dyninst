@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.77 2003/07/15 22:46:49 schendel Exp $
+// $Id: init.C,v 1.78 2003/09/05 16:28:23 schendel Exp $
 
 #include "dyninstAPI/src/dyninstP.h" // nullString
 
@@ -59,6 +59,7 @@
 #include "pdutil/h/aggregationDefines.h"
 #include "paradynd/src/processMgr.h"
 #include "paradynd/src/pd_process.h"
+#include "dyninstAPI/h/BPatch.h"
 
 #ifdef PAPI
 #include "papi.h"
@@ -95,12 +96,15 @@ internalMetric *active_threads = NULL;
 
 int numberOfCPUs;
 
-pdvector<instMapping*> initialRequests;//ccw 19 apr 2002 : SPLIT  ALSO CHANGED BELOW 
-pdvector<sym_data> syms_to_find; //ccw 19 apr 2002 : SPLIT
-
 pdvector<instMapping*> initialRequestsPARADYN;//ccw 19 apr 2002 : SPLIT  ALSO CHANGED BELOW 
 pdvector<sym_data> syms_to_findPARADYN; //ccw 19 apr 2002 : SPLIT
 
+BPatch *__bpatch = NULL;
+
+void initBPatch() {
+   if(__bpatch == NULL)
+      __bpatch = new BPatch;
+}
 
 pdSample computeSamplingRate(const machineMetFocusNode *) {
   // we'll transfer bucket width as milliseconds, instead of seconds because
@@ -243,6 +247,7 @@ bool paradyn_init() {
 
   initPapi();
   initProcMgr();
+  initBPatch();
 
   machineRoot = resource::newResource(rootResource, NULL, nullString,
 				      pdstring("Machine"), timeStamp::ts1970(), 
