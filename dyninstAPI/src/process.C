@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2002 Barton P. Miller
+ * Copyright (c) 1996-2003 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.393 2003/03/10 15:05:59 chadd Exp $
+// $Id: process.C,v 1.394 2003/03/10 21:06:59 pcroth Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -2720,11 +2720,14 @@ process *createProcess(const string File, pdvector<string> argv,
         cerr << "Failed to find exec descriptor" << endl;
         return NULL;
     }
+
+#if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
     // What a hack... getExecFileDescriptor waits for a trap
     // signal on AIX and returns the code in status. So we basically
     // have a pending TRAP that we need to handle, but not right
     // now.
     int fileDescSignal = WSTOPSIG(status);
+#endif // defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
 
     
     image *img = image::parseImage(desc);
@@ -3261,11 +3264,14 @@ bool AttachToCreatedProcess(int pid,const string &progpath)
     // it's ignored on other platforms
     fileDescriptor *desc = 
         getExecFileDescriptor(fullPathToExecutable, status, true);
+
+#if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
     // What a hack... getExecFileDescriptor waits for a trap
     // signal on AIX and returns the code in status. So we basically
     // have a pending TRAP that we need to handle, but not right
     // now.
     int fileDescSignal = WSTOPSIG(status);
+#endif // defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
     
 
     if (!desc) {
