@@ -1,4 +1,4 @@
-// $Id: test4.C,v 1.20 2003/05/25 01:06:41 rchen Exp $
+// $Id: test4.C,v 1.21 2003/10/21 22:42:47 bernat Exp $
 //
 
 #include <stdio.h>
@@ -214,6 +214,9 @@ void exitFunc(BPatch_thread *thread, int code)
 	if (thread->getPid() != code) {
 	    printf("Failed test #2 (fork callback)\n");
 	    printf("    exit code was not equal to pid\n");
+        fprintf(stderr, "pid %d, code %d\n",
+                thread->getPid(), code);
+        
 	    exited = 0;
 	} else {
 	    dprintf("test #2, pid %d exited\n", code);

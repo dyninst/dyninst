@@ -4234,6 +4234,8 @@ void mutatorTest36(BPatch_thread *appThread, BPatch_image *appImage)
       if(cur_point == NULL) continue;
       BPatch_function *func = cur_point->getCalledFunction();
       char funcname[100];
+      if (!func) continue;
+      
       if(func->getName(funcname, 99)) {
          if(strstr(funcname, "call36_1"))
             point36_1 = cur_point;

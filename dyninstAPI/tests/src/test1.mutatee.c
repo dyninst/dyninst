@@ -1,6 +1,6 @@
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.97 2003/10/15 16:19:25 eli Exp $ */
+/* $Id: test1.mutatee.c,v 1.98 2003/10/21 22:42:47 bernat Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -331,6 +331,7 @@ void call11_4()
 
 void call12_1()
 {
+    fprintf(stderr, "call12_1\n");
     globalVariable12_1++;
 }
 
@@ -341,6 +342,9 @@ void call13_1(int a1, int a2, int a3, int a4, int a5)
     if (a3 == 133) globalVariable13_1 |= 4;
     if (a4 == 134) globalVariable13_1 |= 8;
     if (a5 == 135) globalVariable13_1 |= 16;
+    fprintf(stderr, "call13_1: %d, %d, %d, %d, %d\n",
+            a1, a2, a3, a4, a5);
+    
     dprintf("a1 = %d\n", a1);
     dprintf("a2 = %d\n", a2);
     dprintf("a3 = %d\n", a3);
@@ -350,6 +354,10 @@ void call13_1(int a1, int a2, int a3, int a4, int a5)
 
 void call13_2(int ret)
 {
+    fprintf(stderr, "call 13_2\n");
+    fprintf(stderr, "ret == 0x%x, RET13_1 == 0x%x\n",
+            ret, RET13_1);
+    
     if (ret == RET13_1) globalVariable13_1 |= 32;
 }
 
@@ -813,9 +821,14 @@ void func12_1()
 {
     kludge = 1;	/* Here so that the following function call isn't the first
 		   instruction */
+    fprintf(stderr, "Entry to func12_2\n");
     func12_2();
+    fprintf(stderr, "Return, stopping process\n");
     stop_process_();
+    fprintf(stderr, "Entry 2\n");
     func12_2();
+    fprintf(stderr, "Return 2\n");
+    
     if (globalVariable12_1 == 1) {
         printf("Passed test #12 (insert/remove and malloc/free)\n");
 	passedTest[12] = TRUE;
@@ -831,13 +844,18 @@ void func12_1()
  */
 int func13_2()
 {
+    fprintf(stderr, "func13_2\n");
+    
     return(RET13_1);
 }
 
 void func13_1(int p1, int p2, int p3, int p4, int p5)
 {
-    func13_2();
-
+    fprintf(stderr, "func 13_1\n");
+    fprintf(stderr, "Value is 0x%x\n", func13_2());
+    
+    fprintf(stderr, "Returned from func 13_2\n");
+    
     if ((p1 == 131) && (p2 == 132) && (p3 == 133) &&
 	(p4 == 134) && (p5 == 135) && (globalVariable13_1 == 63)) {
 	printf("Passed test #13 (paramExpr,retExpr,nullExpr)\n");
@@ -2171,8 +2189,10 @@ void func35_1()
 #if !defined Fortran
 
     int value;
+    fprintf(stderr, "Function relocation test\n");
     value = call35_1();
-
+    fprintf(stderr, "Value is %d\n", value);
+    
     if( value != 35 )
     {
       printf( "**Failed** test #35 (function relocation)\n" );
@@ -2188,7 +2208,6 @@ void func35_1()
       passedTest[ 35 ] = FALSE;
       return;
     }
-
     passedTest[ 35 ] = TRUE;
     printf( "Passed test #35 (function relocation)\n" );
 #endif
@@ -2535,7 +2554,9 @@ void runTests()
     if (runTest[11]) func11_1();
     if (runTest[12]) func12_1();
 
-    if (runTest[13]) func13_1(131, 132, 133, 134, 135);
+    if (runTest[13]) {
+        func13_1(131, 132, 133, 134, 135);
+    }
     if (runTest[14]) func14_1();
     if (runTest[15]) func15_1();
     if (runTest[16]) func16_1();
@@ -2558,7 +2579,10 @@ void runTests()
     if (runTest[32]) func32_1();
     if (runTest[33]) func33_1();
     if (runTest[34]) func34_1();
+    fprintf(stderr, "Calling 35_1...\n");
     if (runTest[35]) func35_1();
+    fprintf(stderr, "Back from 35_1\n");
+    
     if (runTest[36]) func36_1();    
     if (runTest[37]) func37_1();
     if (runTest[38]) func38_1();
