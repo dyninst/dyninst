@@ -1,6 +1,9 @@
 # tcl procedures for display of visualization menu
 # $Log: visiMenu.tcl,v $
-# Revision 1.1  1994/05/03 06:36:05  karavan
+# Revision 1.2  1994/05/04 21:54:05  karavan
+# Corrected menu error when multiple visis requested.
+#
+# Revision 1.1  1994/05/03  06:36:05  karavan
 # Initial version.
 #
 
@@ -12,6 +15,9 @@
 #   numchoices = number of menu choices (integer)
 #
 proc fillMenu {menuname menulabels menucoms numchoices} {
+
+       # clear previous menu entries
+  $menuname delete 0 last    
 
   for {set i 0} {$i < $numchoices} {incr i} {
    $menuname add command -label [lindex $menulabels $i] \
@@ -29,9 +35,6 @@ proc buildVisiCreateLst {menuIDs} {
 }
 
 proc drawVisiMenu {title menunames menuIDs numchoices} {
-	puts $menunames
-	puts $menuIDs
-	puts $numchoices
   set menucoms [buildVisiCreateLst $menuIDs]
   fillMenu $title $menunames $menucoms $numchoices
 }
