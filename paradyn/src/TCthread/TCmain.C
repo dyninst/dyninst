@@ -43,6 +43,9 @@
  * tunable constants entry point
  *
  * $Log: TCmain.C,v $
+ * Revision 1.10  2004/06/21 19:37:34  pcroth
+ * Disabled unused function.
+ *
  * Revision 1.9  2004/03/23 01:12:28  eli
  * Updated copyright string
  *
@@ -94,6 +97,7 @@ tunBoolAssocArrayType  tunableConstantRegistry::allBoolTunables(boolHashFunc);
 tunFloatAssocArrayType tunableConstantRegistry::allFloatTunables(floatHashFunc);
 
 // TC thread entry point:
+#if READY
 void *TCmain(void *) {
    (void)msg_send(MAINtid, MSG_TAG_TC_READY, NULL, 0);
       // tell pdMain that it's okay now to start launching other
@@ -137,3 +141,4 @@ void *TCmain(void *) {
    thr_exit(NULL);
    return NULL;
 }
+#endif // READY
