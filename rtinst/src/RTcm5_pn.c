@@ -4,7 +4,11 @@
  *
  *
  * $Log: RTcm5_pn.c,v $
- * Revision 1.11  1994/07/11 22:47:47  jcargill
+ * Revision 1.12  1994/07/14 23:35:08  hollings
+ * Added extra arg to generateTrace, ifdefs out DYNINST{start,top}* to use
+ * assembly versions.
+ *
+ * Revision 1.11  1994/07/11  22:47:47  jcargill
  * Major CM5 commit: include syntax changes, some timer changes, removal
  * of old aggregation code, old pause code, added signal-driven sampling
  * within node processes
@@ -159,7 +163,7 @@ retry:
     return(end.value-ni_end);
 }
 
-/* #ifdef notdef */
+#ifdef notdef
 inline time64 getWallTime()
 {
     timeParts end;
@@ -247,7 +251,7 @@ retry:
 	timer->counter--;
     }
 }
-/* #endif */
+#endif
 
 double previous[1000];
 
@@ -307,7 +311,7 @@ void DYNINSTreportTimer(tTimer *timer)
     }
     previous[sample.id.id] = temp;
 
-    DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample);
+    DYNINSTgenerateTraceRecord(0, TR_SAMPLE, sizeof(sample), &sample, FALSE);
 }
 
 
@@ -393,7 +397,7 @@ void DYNINSTexit()
  *
  */
 void DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
-    void *eventData)
+    void *eventData, int flush)
 {
     int ret;
     int count;
@@ -433,6 +437,14 @@ void DYNINSTbreakPoint(int arg)
 {
     printf("Break point %d reached\n", arg);
 /*     asm("ta 0x81"); */
+}
+
+/*
+ * Traces are not buffered (this way at least) on the nodes of the CM-5.
+ *   Make this a nop.
+ */
+void DYNINSTflushTrace()
+{
 }
 
 void must_end_timeslice()
