@@ -27,7 +27,11 @@ static char rcsid[] = "@(#) /p/paradyn/CVSROOT/core/paradynd/src/dynrpc.C,v 1.18
  * File containing lots of dynRPC function definitions for the paradynd..
  *
  * $Log: dynrpc.C,v $
- * Revision 1.28  1995/12/15 14:40:49  naim
+ * Revision 1.29  1996/01/15 16:54:39  zhichen
+ * Adjust the value of SAMPLEnodes with the formula "max(t, 1)"
+ * A better formula SAMPLEnodes = max(f(t), 1) is underconstruction
+ *
+ * Revision 1.28  1995/12/15  14:40:49  naim
  * Changing "hybrid_cost" by "smooth_obs_cost" - naim
  *
  * Revision 1.27  1995/12/05  15:59:02  naim
@@ -279,6 +283,10 @@ int dynRPC::enableDataCollection(vector<u_int> focus, string met, int gid)
 // symbol _DYNINSTsampleMultiple which will affect the frequency with
 // which performance data is sent to the paradyn process 
 //
+#ifdef sparc_tmc_cmost7_3
+extern float SAMPLEnodes ;
+#endif
+
 void dynRPC::setSampleRate(double sampleInterval)
 {
     // TODO: implement this:
@@ -293,7 +301,13 @@ void dynRPC::setSampleRate(double sampleInterval)
         int *sample_multiple = new int; 
 	*sample_multiple = 
 	    (int)(((sampleInterval)*ONEMILLION)/BASESAMPLEINTERVAL);
-          
+         
+#ifdef sparc_tmc_cmost7_3 
+// adjust the snarf rate accordingly
+SAMPLEnodes = ((float) BASEBUCKETWIDTH)* ((float)(*sample_multiple)) ;
+if(SAMPLEnodes < 1.0) 
+	SAMPLEnodes =  1.0 ;
+#endif
 	// setSampleMultiple(sample_multiple);
 	// set the sample multiple in all processes
 	unsigned p_size = processVec.size();
