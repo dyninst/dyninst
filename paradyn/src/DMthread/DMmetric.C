@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.C,v 1.31 2000/07/18 17:09:16 schendel Exp $
+// $Id: DMmetric.C,v 1.32 2000/10/26 17:03:00 schendel Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -160,7 +160,8 @@ vector<met_name_id> *metric::allMetricNamesIds(bool all){
 metricInstance::metricInstance(resourceListHandle rl, 
 			       metricHandle m,
 			       phaseHandle ph): 
-    aggSample((metric::getMetric(m)->getAggregate())) {
+    aggSample(metric::getMetric(m)->getAggregate(), 
+	     metAggInfo.get_proportionCalc(metric::getMetric(m)->getStyle())) {
     met = m;
     focus = rl;
     enabledTime = 0.0;
@@ -494,7 +495,8 @@ bool metricInstance::addComponent(component *new_comp){
          if((components[i])->getDaemon() == new_daemon) return false;
     }
     components += new_comp;
-    new_comp->sample = aggSample.newComponent();
+    metricStyle st = metric::getMetric(met)->getStyle();
+    new_comp->sample = aggSample.newComponent(metAggInfo.get_updateStyle(st));
     return true;
 }
 
