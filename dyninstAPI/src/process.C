@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.257 2001/07/26 16:43:44 gurari Exp $
+// $Id: process.C,v 1.258 2001/07/27 19:42:31 gurari Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -47,6 +47,8 @@ int pvmputenv (const char *);
 int pvmendtask();
 #endif
 }
+
+#include <ctype.h>
 
 #if defined(i386_unknown_solaris2_5)
 #include <sys/procfs.h>
@@ -3758,6 +3760,44 @@ void getLibAndFunc(const string &name, string &lib_name, string &func_name) {
   }
 }
 
+
+// Return true if library specified by lib_name matched name.
+// This check is done ignoring the version number of name.
+// Thus, for lib_name = libc.so, and name = libc.so.6, this function
+// will return true (a match was made).
+bool matchLibName(string &lib_name, const string &name) {
+
+  // position in string "lib_name" where version information begins
+  unsigned ln_index = lib_name.length();
+
+  // position in string "name" where version information begins
+  unsigned n_index = name.length();
+
+
+  // Ignore ".", they are part of version number
+  string dot = ".";
+
+  // Walk backwards from end of name, passing over the version number.
+  // e.g. isolate the libc.so in libc.so.6
+  while (isdigit(name[n_index-1]) || name[n_index-1] == dot[0]) {
+    n_index--;
+  }
+
+  // Walk backwards from end of lib_name, passing over the version number.
+  // e.g. isolate the libc.so in libc.so.6
+  while (isdigit(lib_name[ln_index-1]) || lib_name[ln_index-1] == dot[0]) {
+    ln_index--;
+  }
+ 
+  // If lib_name is the same as name (minus the version information, 
+  // return true
+  if ((lib_name.substr(0, ln_index)).wildcardEquiv(name.substr(0, n_index))) {
+    return true;
+  }  
+ 
+  return false;
+}
+
 // findOneFunction: returns the function associated with func  
 // this routine checks both the a.out image and any shared object
 // images for this resource
@@ -3789,16 +3829,21 @@ function_base *process::findOneFunction(const string &name){
       }
 
     } else {
-      
+  
         // Search specified shared library for function 
         if(dynamiclinking && shared_objects){ 
           for(u_int j=0; j < shared_objects->size(); j++){
             shared_object *so = (*shared_objects)[j];
 
-            // Add wildcards to make name matching easy
-            lib_name = "*" + lib_name + "*";
-            if(lib_name.wildcardEquiv(so->getName(), false)) {
-              return(so->findOneFunction(func_name, false));
+            // Add prefix wildcard to make name matching easy
+            lib_name = "*" + lib_name;             
+
+            if(matchLibName(lib_name, so->getName())) {
+              function_base *fb = so->findOneFunction(func_name, false);
+              if (fb) {
+                //cerr << "Found " << func_name << " in " << lib_name << endl;
+              } 
+              return fb;
             }
 	  }
 	}
@@ -3842,10 +3887,15 @@ function_base *process::findOneFunctionFromAll(const string &name){
           for(u_int j=0; j < shared_objects->size(); j++){
             shared_object *so = (*shared_objects)[j];
 
-            // Add wildcards to make name matching easy
-            lib_name = "*" + lib_name + "*";
-            if(lib_name.wildcardEquiv(so->getName(), false)) {
-              return(so->findOneFunction(func_name, false));
+            // Add prefix wildcard to make name matching easy
+            lib_name = "*" + lib_name;             
+
+            if(matchLibName(lib_name, so->getName())) {
+              function_base *fb = so->findOneFunction(func_name, false);
+              if (fb) {
+                //cerr << "Found " << func_name << " in " << lib_name << endl;
+              }
+              return fb;
             }
 	  }
 	}
