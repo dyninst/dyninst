@@ -1,7 +1,10 @@
 # main tool bar
 
 # $Log: mainMenu.tcl,v $
-# Revision 1.30  1994/11/05 01:51:59  karavan
+# Revision 1.31  1994/11/07 07:30:15  karavan
+# changed pack order.
+#
+# Revision 1.30  1994/11/05  01:51:59  karavan
 # small improvements to min window sizes, resizing effects, button names,
 # and change pack command in mkLogo to new version.
 #
@@ -180,15 +183,15 @@ proc drawToolBar {} {
 
     bind Entry <2> { %W insert insert [selection get] }
 
-    wm minsize . 800 500
-    frame .parent -geometry 800x500
+    wm minsize . 725 500
+    frame .parent -geometry 725x500
     pack propagate .parent 0
-    pack .parent -fill both -expand 1
     frame .parent.menub -relief raised -borderwidth 2
     frame .parent.where  -background "#d04b8b3edcab" -borderwidth 4
     frame .parent.status  -relief raised -borderwidth 4
     frame .parent.main
-    frame .parent.buttons -relief raised -borderwidth 4
+    frame .parent.buttons -relief raised -borderwidth 4 \
+	    -height 20
     mkButtonBar .parent.buttons {} retval {{RUN "paradyn cont"} \
 	    {PAUSE "paradyn pause"} {SAVE ""} \
 	    {EXIT "destroy ."}}
@@ -246,11 +249,6 @@ proc drawToolBar {} {
 
     wm title . "Paradyn"
 
-    pack .parent.menub -side top -fill x
-    pack .parent.where -side top -fill both -expand 1
-    pack .parent.status -side top -fill x -expand 0
-    pack .parent.buttons -side bottom -fill x 
-
     pack .parent.menub.left.men.b6 -side right -padx 10
 #    pack .parent.menub.left.men.b1 .parent.menub.left.men.b3 \
 #    .parent.menub.left.men.b2 .parent.menub.left.men.b5 \
@@ -263,8 +261,14 @@ proc drawToolBar {} {
 
     pack .parent.menub.left.title .parent.menub.left.men -side top -fill both -expand 1
 
+    pack .parent.menub -side top -fill x -expand 0
+    pack .parent.where -side top -fill both -expand 1
+    pack .parent.status -side top -fill x -expand 0
+    pack .parent.buttons -side bottom -fill x -expand 0
+
+    pack .parent -fill both -expand 1
+
     # read in error file
 
     uplevel #0 {source "$PdBitmapDir/errorList.tcl"}
-    
 }
