@@ -16,7 +16,14 @@
  * hist.C - routines to manage hisograms.
  *
  * $Log: hist.C,v $
- * Revision 1.26  1996/05/15 18:20:49  newhall
+ * Revision 1.27  1996/05/16 05:27:30  newhall
+ * bug fix to foldAllHists, so that a check is done before folding to see if
+ * the histogram has already been folded.  Changed how bucketWidth is computed
+ * in constructor for histograms with a start time != 0.0, so that it will be
+ * unlikely to create a histogram with a bucketWidth that is different from
+ * other histograms with the same start time
+ *
+ * Revision 1.26  1996/05/15  18:20:49  newhall
  * bug fix to foldAllHist to correctly handle folding buckets where one or
  * both have NaN values
  *
@@ -133,14 +140,6 @@
 
 static void smoothBins(Bin *bins, int i, timeStamp bucketSize);
 
-#ifdef n_def
-int Histogram::numBins = 1000;
-timeStamp Histogram::bucketSize = 0.1;
-timeStamp Histogram::total_time = (Histogram::numBins * Histogram::bucketSize);
-Histogram *Histogram::allHist = NULL;
-int Histogram::lastGlobalBin = 0;
-#endif
-
 int Histogram::numBins = 1000;
 int Histogram::lastGlobalBin = 0;
 timeStamp Histogram::baseBucketSize = BASEBUCKETWIDTH;
@@ -201,7 +200,6 @@ Histogram::Histogram(timeStamp start, metricStyle type, dataCallBack d,
     intervalLimit = MAX_INTERVALS;
     storageType = HistInterval;
     dataPtr.intervals = (Interval *) calloc(sizeof(Interval)*intervalLimit, 1);
-    allHist += this;
     dataFunc = d;
     foldFunc = f;
     cData = c;
@@ -209,12 +207,26 @@ Histogram::Histogram(timeStamp start, metricStyle type, dataCallBack d,
     fold_on_inactive = false;
     startTime = start;
 
-    // compute bucketwidth based on start time
-    timeStamp minBucketWidth = 
-	    ((lastGlobalBin*globalBucketSize)  - startTime) / numBins;    
-    timeStamp i = baseBucketSize;
-    for(; i < minBucketWidth; i *= 2.0) ; 
-    bucketWidth = i; 
+    // try to find an active histogram with the same start time 
+    // and use its bucket width  for "bucketWidth", otherwise, compute
+    // a value for "bucketWidth" based on startTime and global time
+    bool found = false;
+    for(unsigned i = 0; i < allHist.size(); i++){
+	if(((allHist[i])->startTime == startTime)&&(allHist[i])->active){
+            found = true;
+	    bucketWidth = (allHist[i])->bucketWidth;
+	    break;
+    } }
+    if(!found){
+        // compute bucketwidth based on start time
+        timeStamp minBucketWidth = 
+	        ((lastGlobalBin*globalBucketSize)  - startTime) / numBins;    
+        timeStamp i2 = baseBucketSize;
+        for(; i2 < minBucketWidth; i2 *= 2.0) ; 
+        bucketWidth = i2; 
+    }
+
+    allHist += this;
     total_time = startTime + bucketWidth*numBins;
 }
 
@@ -350,53 +362,52 @@ void Histogram::foldAllHist()
 	globalBucketSize *= 2.0;
         lastGlobalBin = numBins/2 - 1;
     }
-    fprintf(stderr,"startTime: %f\n",startTime);
-    bool curr = false;
-    if(startTime != 0.0) curr = true;
+    timeStamp newBucketWidth = bucketWidth*2.0;
 
     // fold all histograms with the same time base
     for(unsigned i = 0; i < allHist.size(); i++){
 	if(((allHist[i])->startTime == startTime)  // has same base time and 
 	   && ((allHist[i])->active                // either, histogram active
 	   || (allHist[i])->fold_on_inactive)){    // or fold on inactive set 
-	    (allHist[i])->bucketWidth *= 2.0;
-	    if((allHist[i])->storageType == HistBucket){
-                Bin *bins = (allHist[i])->dataPtr.buckets;
-		int last_bin = -1;
-		int j=0;
-		for(; j < numBins/2; j++){
-		    if(!isnan(bins[j*2+1])){   // both are not NaN
-                        bins[j] = (bins[j*2] + bins[j*2+1]) / 2.0;
-                    }
-		    else if(!isnan(bins[j*2])){  // one is NaN
-		        bins[j] = (bins[j*2])/2.0;	
-			if(last_bin == -1) last_bin = j;
-		    }
-		    else {  // both are NaN
-			bins[j] = PARADYN_NaN;
-			if(last_bin == -1) last_bin = j;
-		    }
-		}
-		if(last_bin == -1) last_bin = j-1;
-	        (allHist[i])->lastBin = last_bin; 
-		for(int k=numBins/2; k<numBins; k++){
-		    bins[k] = PARADYN_NaN;
-		}
-	    }
-	    (allHist[i])->total_time = startTime + 
-				       numBins*(allHist[i])->bucketWidth;
-            if(curr && (allHist[i])->globalData){
-	       fprintf(stderr,"curr fold for global hist\n");
-            }
-            else if(!curr && !((allHist[i])->globalData)){
-	       fprintf(stderr,"global fold for curr hist starttime = %f\n",
-			startTime);
-            }
 
-	    if((allHist[i])->foldFunc) 
-		((allHist[i])->foldFunc)((allHist[i])->bucketWidth, 
+          // don't fold this histogram if it has already folded
+	  // This can happen to histograms that are created right
+	  // after a fold, so that the initial bucket width may 
+	  // not be correct and then the first data values will cause
+	  // another fold...in this case we only want to fold the
+	  // histograms that were not folded in the first round.  
+	  if((allHist[i])->bucketWidth < newBucketWidth) {
+	      (allHist[i])->bucketWidth *= 2.0;
+	      if((allHist[i])->storageType == HistBucket){
+                  Bin *bins = (allHist[i])->dataPtr.buckets;
+		  int last_bin = -1;
+		  int j=0;
+		  for(; j < numBins/2; j++){
+		      if(!isnan(bins[j*2+1])){   // both are not NaN
+                          bins[j] = (bins[j*2] + bins[j*2+1]) / 2.0;
+                      }
+		      else if(!isnan(bins[j*2])){  // one is NaN
+		          bins[j] = (bins[j*2])/2.0;	
+			  if(last_bin == -1) last_bin = j;
+		      }
+		      else {  // both are NaN
+			  bins[j] = PARADYN_NaN;
+			  if(last_bin == -1) last_bin = j;
+		      }
+		  }
+		  if(last_bin == -1) last_bin = j-1;
+	          (allHist[i])->lastBin = last_bin; 
+		  for(int k=numBins/2; k<numBins; k++){
+		      bins[k] = PARADYN_NaN;
+		  }
+	      }
+	      (allHist[i])->total_time = startTime + 
+				       numBins*(allHist[i])->bucketWidth;
+	      if((allHist[i])->foldFunc) 
+	  	  ((allHist[i])->foldFunc)((allHist[i])->bucketWidth, 
 					(allHist[i])->cData,
 					(allHist[i])->globalData);
+	  }
 	}
     }
 }
