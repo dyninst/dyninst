@@ -2,7 +2,10 @@
 # plain vanilla script to setup frames and scrollbars for the dag widget
 
 # $Log: dagSetup.tcl,v $
-# Revision 1.1  1994/05/03 06:35:55  karavan
+# Revision 1.2  1994/05/18 00:37:28  karavan
+# fixed scrollbars
+#
+# Revision 1.1  1994/05/03  06:35:55  karavan
 # Initial version.
 #
 
@@ -11,10 +14,10 @@ proc setupDAG parentw {
 	set hs $parentw._hscroll_
 	set c $parentw._c_
 
-	scrollbar $vs -relief sunken -command {$c yview} \
+	scrollbar $vs -relief sunken -command "$c yview" \
 		-foreground "#fb63e620d36b" \
 		-activeforeground "#d8107000421d"
- 	scrollbar $hs -relief sunken -orient horiz -command {$c xview} \
+ 	scrollbar $hs -relief sunken -orient horiz -command "$c xview" \
 		-foreground "#fb63e620d36b" \
 		-activeforeground "#d8107000421d"
  
