@@ -41,6 +41,7 @@
 
 // pathName.C
 
+#include <ctype.h>
 #include <pwd.h>
 #include "util/h/pathName.h"
 
@@ -98,4 +99,141 @@ string expand_tilde_pathname(const string &dir) {
    string result = string(pwPtr->pw_dir) + string(ptr);
    endpwent();
    return result;
+}
+
+static string concat_pathname_components_simple(const string &comp1, const string &comp2) {
+   string result = (comp1.length() ? comp1 : comp2);
+   return result;
+}
+
+string concat_pathname_components(const string &comp1, const string &comp2) {
+   if (comp1.length() == 0 || comp2.length() == 0)
+      return concat_pathname_components_simple(comp1, comp2);
+
+   bool needToAddSlash = true; // so far
+
+   // if comp1 ends in a "/" then no need to add slash
+   const char *temp = comp1.string_of();
+   if (temp[comp1.length()-1] == '/')
+      needToAddSlash = false;
+
+   // if comp2 begins with a "/" then no need to add slash
+   if (comp2.prefixed_by("/"))
+      needToAddSlash = false;
+
+   string result = comp1;
+   if (needToAddSlash)
+      result += "/";
+   result += comp2;
+
+   return result;
+}
+
+bool extractNextPathElem(const char * &ptr, string &result) {
+   // assumes that "ptr" points to the value of the PATH environment
+   // variable.  Extracts the next element (writing to result, updating
+   // ptr, returning true) if available else returns false;
+
+   while (isspace(*ptr))
+      ptr++;
+
+   if (*ptr == '\0')
+      return false;
+   
+   // collect from "ptr" upto but not including the next ":" or end-of-string
+   const char *start_ptr = ptr;
+
+   while (*ptr != ':' && *ptr != '\0')
+      ptr++;
+
+   unsigned len = ptr - start_ptr;
+
+   result = string(start_ptr, len);
+
+   // ptr now points at a ":" or end-of-string
+   assert(*ptr == ':' || *ptr == '\0');
+   if (*ptr == ':')
+      ptr++;
+
+//   cerr << "extractNextPathElem returning " << result << endl;
+
+   return true;
+}
+
+bool exists_executable(const string &fullpathname) {
+   struct stat stat_buffer;
+   int result = stat(fullpathname.string_of(), &stat_buffer);
+   if (result == -1)
+      return false;
+
+   if (S_ISDIR(stat_buffer.st_mode))
+      return false; // that was a directory, not an executable
+
+   // more checks needed to be sure this is an executable file...
+
+   return true;
+}
+
+bool executableFromArgv0AndPathAndCwd(string &result,
+				      const string &i_argv0,
+				      const string &path,
+				      const string &cwd) {
+   // return true iff successful.
+   // if successful, writes to result.
+   // "path" is the value of the PATH env var
+   // "cwd" is the current working directory, presumably from the PWD env var
+
+   // 0) if argv0 empty then forget it
+   if (i_argv0.length() == 0)
+      return false;
+
+   const string &argv0 = expand_tilde_pathname(i_argv0);
+
+   // 1) If argv0 starts with a slash then we sink or swim with argv0
+   
+   if ((argv0.string_of())[0] == '/') {
+      if (exists_executable(argv0)) {
+	 result = argv0;
+	 return true;
+      }
+   }
+
+   // 2) search the path, trying (dir + argv0) for each path component.
+   //    But only search the path if argv0 doesn't contain any slashes.
+   //    Why?  Because if it does contain a slash than at least one
+   //    directory component prefixes the executable name, and the path
+   //    is only supposed to be searched when an executable name is specifed
+   //    alone.
+   bool contains_slash = false;
+   const char *ptr = argv0.string_of();
+   while (*ptr != '\0')
+      if (*ptr++ == '/') {
+	 contains_slash = true;
+	 break;
+      }
+
+   if (!contains_slash) {
+      // search the path to see what directory argv0 came from.  If found, then
+      // use dir + argv0 else use argv0.
+      ptr = path.string_of();
+      string pathelem;
+      while (extractNextPathElem(ptr, pathelem)) {
+	 string trystr = concat_pathname_components(pathelem, argv0);
+	 
+	 if (exists_executable(trystr)) {
+	    result = trystr;
+	    return true;
+	 }
+      }
+   }
+
+   // well, if we've gotten this far without success: couldn't find argv0 in the
+   // path and argv0 wasn't a full path.  Last resort: try current directory + argv0
+   string trystr = concat_pathname_components(cwd, argv0);
+   if (exists_executable(trystr)) {
+      result = trystr;
+      return true;
+   }
+
+   return false;
 }
