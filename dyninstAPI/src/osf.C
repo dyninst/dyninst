@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.27 2002/02/26 20:26:24 gurari Exp $
+// $Id: osf.C,v 1.28 2002/03/23 19:12:09 rchen Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -431,11 +431,19 @@ int process::waitProcs(int *status)
 			    // return the signal number
 			    if (p->handleTrapIfDueToRPC()) {
 				continue;
-			    } else if (stat.pr_what == SIGTRAP) {
+			    // } else if (stat.pr_what == SIGTRAP) {
+				// ------------------------------------------
+				// I'm not sure why this code was added, but
+				// it causes a race condition later in the
+				// code.  So I'm removing it.
+				//
+				// Ray Chen 03/22/02
+				// ------------------------------------------
+
 				// we ignore sigtraps
 				// some Alpha processors produce a sigTRAP when
 				// we continue a process at a new address
-			        processVec[curr]->continueProc_();
+			        // processVec[curr]->continueProc_();
 			    } else {
 				*status = stat.pr_what << 8 | 0177;
 				ret = processVec[curr]->getPid();
@@ -536,9 +544,15 @@ int process::waitProcs(int *status)
 			     }
 			 }
 #endif
-			 *status = SIGTRAP << 8 | 0177;
-			 ret = processVec[curr]->getPid();
-			  break;
+			 // ---------------------------------------------
+			 // I think the following two lines are part of
+			 // the earlier SIGTRAP hack that I removed.
+			 //
+			 // Ray Chen 03/22/02
+			 // ---------------------------------------------
+			 // *status = SIGTRAP << 8 | 0177;
+			 // ret = processVec[curr]->getPid();
+			 break;
 		     }
 
 #ifdef BPATCH_LIBRARY
@@ -626,6 +640,13 @@ int process::waitProcs(int *status)
 		}	
 	    }
 	} else if (ioctl(fds[curr].fd, PIOCSTATUS, &stat) == -1) {
+	    // ------------------------------------------------------------
+	    // Does this 'else if' look funny to anyone else?  It's the
+	    // same condition that we checked earlier in the 'if' tree.
+	    // I'm leaving it in because I don't know what it does.
+	    //
+	    // Ray Chen 03/22/02
+	    // ------------------------------------------------------------
 	    ret = processVec[curr]->getPid();
 	    *status = 0;
 	}
