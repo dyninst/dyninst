@@ -1904,6 +1904,8 @@ void mutatorTest26(BPatch_thread *appThread, BPatch_image *appImage)
     for (int i=0; i < 4; i++) {
 	 char fieldName[80];
 	 sprintf(fieldName, "field%d", i+1);
+	 if (!(*fields)[i]->getName())
+		printf("NULL NAME!\n");
 	 if (strcmp(fieldName, (*fields)[i]->getName())) {
 	      printf("field %d of the struct is %s, not %s\n",
 		  i+1, fieldName, (*fields)[i]->getName());
@@ -1993,7 +1995,7 @@ void mutatorTest26(BPatch_thread *appThread, BPatch_image *appImage)
 //
 // Start Test Case #27 - type compatibility
 //
-void mutatorTest27(BPatch_thread *appThread, BPatch_image *appImage)
+void mutatorTest27(BPatch_thread *, BPatch_image *appImage)
 {
 #if defined(sparc_sun_solaris2_4) || \
     defined(rs6000_ibm_aix4_1) || \
@@ -2201,7 +2203,6 @@ void mutatorTest28(BPatch_thread *appThread, BPatch_image *appImage)
 bool printSrcObj(BPatch_sourceObj *p, int level)
 {
     int i;
-    char name[80];
     bool ret = true;
 
     BPatch_Vector<BPatch_sourceObj *> *curr;
@@ -2242,11 +2243,9 @@ bool printSrcObj(BPatch_sourceObj *p, int level)
 //
 // Start Test Case #29 - getParent/Child
 //
-void mutatorTest29(BPatch_thread *appThread, BPatch_image *appImage)
+void mutatorTest29(BPatch_thread *, BPatch_image *appImage)
 {
-    bool ret;
     BPatch_sourceObj *p;
-    BPatch_Vector<BPatch_sourceObj *> *curr;
 
     p = (BPatch_sourceObj *) appImage;
     passedTest[29] = printSrcObj(p, 0);
@@ -2711,9 +2710,18 @@ void mutatorTest33(BPatch_thread *appThread, BPatch_image *appImage)
        exit(1);
    }
 
+   BPatch_variableExpr *this33 = appImage->findVariable("test33");
+   if (this33 == NULL) {
+      fprintf(stderr, "**Failed** test #33 (C++ argument pass)\n");
+      fprintf(stderr, "Unable to find variable \"test33\"\n");
+      exit(1);
+   }
+
    BPatch_Vector<BPatch_snippet *> call33_args;
-   BPatch_constExpr expr33_2(33);
+   BPatch_constExpr expr33_2((int)this33->getBaseAddr());
    call33_args.push_back(&expr33_2);
+   BPatch_constExpr expr33_3(33);
+   call33_args.push_back(&expr33_3);
    BPatch_funcCallExpr call33Expr(*call33_func, call33_args);
 
    checkCost(call33Expr);
@@ -2755,37 +2763,37 @@ void mutatorTest34(BPatch_thread *appThread, BPatch_image *appImage)
        switch (n) {
           case 0 : {
 
-              if ( param->size() != 1 ) {
+	      if ( (param->size() == 1) ||
+	           ((param->size() == 2) && (!strcmp((*param)[0]->getName(), "this"))) ) 
+		 //First param might be "this"!
+		 break;
+	      else {
                  fprintf(stderr, "**Failed** test #34 (overloaded functions)\n");
                  fprintf(stderr, "    The overloaded function has wrong number of parameters\n");
                  return;
               }
-              BPatch_variableExpr *var1 = appImage->findVariable(*(*point34_2)[0],
-                  "arg1");
-              break;
           }
           case 1 : {
-              if ( param->size() != 1 ) {
-                 fprintf(stderr, "**Failed** test #34 (overloaded functions)\n");
+              if ( (param->size() == 1) ||
+                   ((param->size() == 2) && (!strcmp((*param)[0]->getName(), "this"))) )
+                 //First param might be "this"!
+                 break;
+              else {
+                 fprintf(stderr, "**Failed** test #34 (overloaded functions)\n"); 
                  fprintf(stderr, "    The overloaded function has wrong number of parameters\n");
                  return;
               }
-              BPatch_variableExpr *var1 = appImage->findVariable(*(*point34_2)[0],
-                "arg1");
-              break;
           }
           case 2 : {
-              if ( param->size() != 2 ) {
-                 fprintf(stderr, "**Failed** test #34 (overloaded functions)\n");
+              if ( (param->size() == 2) ||
+                   ((param->size() == 3) && (!strcmp((*param)[0]->getName(), "this"))) )
+                 //First param might be "this"!
+                 break;
+              else {
+                 fprintf(stderr, "**Failed** test #34 (overloaded functions)\n"); 
                  fprintf(stderr, "    The overloaded function has wrong number of parameters\n");
                  return;
               }
-
-              BPatch_variableExpr *var1 = appImage->findVariable(*(*point34_2)[0],
-                "arg1");
-              BPatch_variableExpr *var2 = appImage->findVariable(*(*point34_2)[0],
-                "arg2");
-              break;
           }
           default : {
               fprintf(stderr, "**Failed** test #34 (overloaded functions)\n");
@@ -2808,9 +2816,18 @@ void mutatorTest34(BPatch_thread *appThread, BPatch_image *appImage)
         exit(1);
     }
 
+    BPatch_variableExpr *this34 = appImage->findVariable("test34");
+    if (this34 == NULL) {
+       fprintf(stderr, "**Failed** test #34 (overloaded functions)\n");
+       fprintf(stderr, "Unable to find variable \"test34\"\n");
+       exit(1);
+    }
+
     BPatch_Vector<BPatch_snippet *> call34_args;
-    BPatch_constExpr expr34_0(34);
+    BPatch_constExpr expr34_0((int)this34->getBaseAddr());
     call34_args.push_back(&expr34_0);
+    BPatch_constExpr expr34_1(34);
+    call34_args.push_back(&expr34_1);
     BPatch_funcCallExpr call34Expr(*call34_func, call34_args);
 
     checkCost(call34Expr);
@@ -2863,6 +2880,8 @@ void mutatorTest35(BPatch_thread *appThread, BPatch_image *appImage)
 // 
 void mutatorTest36(BPatch_thread *appThread, BPatch_image *appImage)
 {
+#if defined(sparc_sun_solaris2_4)
+
    BPatch_Vector<BPatch_point *> *point36_1 =
      appImage->findProcedurePoint("static_test::func_cpp", BPatch_subroutine);
    assert(point36_1);
@@ -2926,6 +2945,8 @@ void mutatorTest36(BPatch_thread *appThread, BPatch_image *appImage)
 
    checkCost(call36Expr);
    appThread->insertSnippet(call36Expr, *point36_3);
+
+#endif
 }
 
 
@@ -2985,10 +3006,19 @@ void mutatorTest37(BPatch_thread *appThread, BPatch_image *appImage)
              exit(1);
          }
 
+         BPatch_variableExpr *this37 = appImage->findVariable("test37");
+         if (this37 == NULL) {
+             fprintf(stderr, "**Failed** test #37 (namespace)\n");
+             fprintf(stderr, "Unable to find variable \"test37\"\n");
+             exit(1);
+         }
+
          BPatch_Vector<BPatch_snippet *> call37_args;
 
-         BPatch_constExpr expr37_0(37);
+         BPatch_constExpr expr37_0((int)this37->getBaseAddr());
          call37_args.push_back(&expr37_0);
+         BPatch_constExpr expr37_1(37);
+         call37_args.push_back(&expr37_1);
          BPatch_funcCallExpr call37Expr(*call37_func, call37_args);
          checkCost(call37Expr);
          appThread->insertSnippet(call37Expr, *point37_1);
@@ -3006,6 +3036,8 @@ void mutatorTest37(BPatch_thread *appThread, BPatch_image *appImage)
 // 
 void mutatorTest38(BPatch_thread *appThread, BPatch_image *appImage)
 {
+#if defined(sparc_sun_solaris2_4)
+
    BPatch_Vector<BPatch_point *> *point38_1 =
      appImage->findProcedurePoint("exception_test::func_cpp", BPatch_subroutine);
    assert(point38_1);
@@ -3051,6 +3083,8 @@ void mutatorTest38(BPatch_thread *appThread, BPatch_image *appImage)
      }
      index++;
    }
+
+#endif
 }
 
 //
@@ -3109,9 +3143,9 @@ void mutatorTest39(BPatch_thread *appThread, BPatch_image *appImage)
      exit(1);
   }
 
-   BPatch_type *type39_0 = const_cast<BPatch_type *> (new BPatch_type("int"));
+   BPatch_type *type39_0 = appImage->findType("int");
    BPatch_type *type39_1 = const_cast<BPatch_type *> (content39_1->getType());
-   BPatch_type *type39_2 = const_cast<BPatch_type *> (new BPatch_type("char"));
+   BPatch_type *type39_2 = appImage->findType("char");
    BPatch_type *type39_3 = const_cast<BPatch_type *> (content39_2->getType());
 
    if (!type39_0->isCompatible(type39_1)) {
@@ -3173,22 +3207,31 @@ void mutatorTest40(BPatch_thread *appThread, BPatch_image *appImage)
         exit(1);
      }
 
+     BPatch_variableExpr *this40 = appImage->findVariable("test40");
+     if (this40 == NULL) {
+        fprintf(stderr, "**Failed** test #40 (declaration)\n");
+        fprintf(stderr, "Unable to find variable \"test40\"\n");
+        exit(1);
+     }
+
      BPatch_Vector<BPatch_snippet *> call40_args;
-     BPatch_constExpr expr40_0(40);
+     BPatch_constExpr expr40_0((int)this40->getBaseAddr());
      call40_args.push_back(&expr40_0);
+     BPatch_constExpr expr40_1(40);
+     call40_args.push_back(&expr40_1);
      BPatch_funcCallExpr call40Expr(*call40_func, call40_args);
 
      // find the variables of different scopes
-     BPatch_variableExpr *expr40_1=appImage->findVariable("CPP_DEFLT_ARG");
-     BPatch_variableExpr *expr40_2=appImage->findVariable(*(*point40_2)[0], "test40");
-     BPatch_variableExpr *expr40_3=appImage->findVariable(*(*point40_1)[0], "CPP_DEFLT_ARG");
-     if (!expr40_1 || !expr40_2 || !expr40_3) {
+     BPatch_variableExpr *expr40_2=appImage->findVariable("CPP_DEFLT_ARG");
+     BPatch_variableExpr *expr40_3=appImage->findVariable(*(*point40_2)[0], "test40");
+     BPatch_variableExpr *expr40_4=appImage->findVariable(*(*point40_1)[0], "CPP_DEFLT_ARG");
+     if (!expr40_2 || !expr40_3 || !expr40_4) {
            fprintf(stderr, "**Failed** test #40 (delcaration)\n");
            fprintf(stderr, "    Unable to locate one of variables\n");
            exit(1);
      }
 
-    BPatch_Vector<BPatch_variableExpr *> *fields = expr40_2->getComponents();
+    BPatch_Vector<BPatch_variableExpr *> *fields = expr40_3->getComponents();
     if (!fields || fields->size() == 0 ) {
           fprintf(stderr, "**Failed** test #40 (declaration)\n");
           fprintf(stderr, "  struct lacked correct number of elements\n");
@@ -3197,6 +3240,8 @@ void mutatorTest40(BPatch_thread *appThread, BPatch_image *appImage)
 
     int index = 0;
     while ( index < fields->size() ) {
+	char fieldName[100];
+	strcpy(fieldName, (*fields)[index]->getName());
        if ( !strcmp("CPP_TEST_UTIL_VAR", (*fields)[index]->getName()) ) {
            dprintf("Inserted snippet2\n");
            checkCost(call40Expr);
@@ -3212,7 +3257,7 @@ void mutatorTest40(BPatch_thread *appThread, BPatch_image *appImage)
 //
 // Start Test Case #41 - (derivation)
 //
-void mutatorTest41(BPatch_thread *appThread, BPatch_image *appImage)
+void mutatorTest41(BPatch_thread *, BPatch_image *appImage)
 {
    bool found = false;
    
@@ -3251,7 +3296,7 @@ void mutatorTest41(BPatch_thread *appThread, BPatch_image *appImage)
 
    int index = 0;
    while ( index < fields->size() ) {
-       if ( !strcmp("cpp_test_util::call_cpp", (*fields)[index]->getName()) ) {
+       if ( !strcmp("call_cpp", (*fields)[index]->getName()) ) {
 	   found = true;
            break;
        }
@@ -3548,8 +3593,6 @@ int mutatorMAIN(char *pathname, bool useAttach)
     for (i=0; i < m->size(); i++) {
         // dprintf("func %s\n", (*m)[i]->name());
     }
-    BPatch_Vector<BPatch_function *> *p1 = (*m)[0]->getProcedures();
-
     BPatch_Vector<BPatch_function *> *p = appImage->getProcedures();
     for (i=0; i < p->size(); i++) {
         // dprintf("func %s\n", (*p)[i]->name());
@@ -3607,9 +3650,6 @@ int mutatorMAIN(char *pathname, bool useAttach)
        if (runTest[39]) mutatorTest39(appThread, appImage);
        if (runTest[40]) mutatorTest40(appThread, appImage);
        if (runTest[41]) mutatorTest41(appThread, appImage);
-       if (runTest[42]) mutatorTest42(appThread, appImage);
-       if (runTest[43]) mutatorTest43(appThread, appImage);
-       if (runTest[44]) mutatorTest44(appThread, appImage);
     }
 
     // Start of code to continue the process.  All mutations made
@@ -3619,8 +3659,6 @@ int mutatorMAIN(char *pathname, bool useAttach)
     appThread->continueExecution();
 
     // Test poll for status change
-    bool changed = bpatch->pollForStatusChange();
-
     if (runTest[12]) mutatorTest12b(appThread, appImage);
     if (runTest[15]) mutatorTest15b(appThread, appImage);
     if (runTest[19]) mutatorTest19(appThread, appImage);
