@@ -7,7 +7,7 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/symtab.C,v 1.1 1994/01/27 20:31:45 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/symtab.C,v 1.2 1994/05/16 22:31:55 hollings Exp $";
 #endif
 
 /*
@@ -16,7 +16,10 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyn
  *   the implementation dependent parts.
  *
  * $Log: symtab.C,v $
- * Revision 1.1  1994/01/27 20:31:45  hollings
+ * Revision 1.2  1994/05/16 22:31:55  hollings
+ * added way to request unique resource name.
+ *
+ * Revision 1.1  1994/01/27  20:31:45  hollings
  * Iinital version of paradynd speaking dynRPC igend protocol.
  *
  * Revision 1.8  1993/12/13  19:57:20  hollings
@@ -283,10 +286,10 @@ image *parseImage(char *file, int offset)
      * Define all of the functions in the code resource hierarchy.
      *
      */
-    procedureRoot = newResource(rootResource, NULL, "Procedure", 0.0);
+    procedureRoot = newResource(rootResource, NULL, "Procedure", 0.0, FALSE);
     for (func = ret->funcs; func; func=func->next) {
 	if ((!func->tag & TAG_LIB_FUNC) && (func->line)) {
-	    (void) newResource(procedureRoot, func, func->prettyName, 0.0);
+	    (void) newResource(procedureRoot, func, func->prettyName,0.0,FALSE);
 	} else {
 	    func->tag |= TAG_LIB_FUNC;
 	}

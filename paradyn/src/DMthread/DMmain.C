@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.23  1994/05/12 23:34:00  hollings
+ * Revision 1.24  1994/05/16 22:31:38  hollings
+ * added way to request unique resource name.
+ *
+ * Revision 1.23  1994/05/12  23:34:00  hollings
  * made path to paradyn.h relative.
  *
  * Revision 1.22  1994/05/10  03:57:37  hollings
@@ -210,6 +213,38 @@ void dynRPCUser::resourceInfoCallback(int program,
     }
 
     createResource(parent, name);
+}
+
+class uniqueName {
+  public:
+    uniqueName(char *base) { name = base; nextId = 0; }
+    int nextId;
+    char *name;
+};
+
+
+String dynRPCUser::getUniqueResource(int program, 
+				     String parentString, 
+				     String newResource)
+{
+    char *ptr;
+    uniqueName *ret;
+    char newName[80];
+    static List<uniqueName*> allUniqueNames;
+
+    sprintf(newName, "%s/%s", parentString, newResource);
+    ptr = resource::names.findAndAdd(newName);
+
+    ret = allUniqueNames.find(ptr);
+
+    if (!ret) {
+	ret = new uniqueName(ptr);
+	allUniqueNames.add(ret, ptr);
+    }
+    sprintf(newName, "%s[%d]", newResource, ret->nextId++);
+    ptr = resource::names.findAndAdd(newName);
+
+    return(ptr);
 }
 
 //

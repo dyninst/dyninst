@@ -103,6 +103,13 @@ $remote dynRPC {
 					      String name);
 
     //
+    // Request a unique resource name
+    //
+    $upcall String getUniqueResource(int program, 
+				     String parent, 
+				     String newResource);
+
+
     // Upcall for a new metric being defined.
     //
     $upcall $async void newMetricCallback(metricInfo info); 

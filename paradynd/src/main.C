@@ -2,7 +2,10 @@
  * Main loop for the default paradynd.
  *
  * $Log: main.C,v $
- * Revision 1.11  1994/04/12 15:29:19  hollings
+ * Revision 1.12  1994/05/16 22:31:50  hollings
+ * added way to request unique resource name.
+ *
+ * Revision 1.11  1994/04/12  15:29:19  hollings
  * Added samplingRate as a global set by an RPC call to control sampling
  * rates.
  *
@@ -140,7 +143,7 @@ void dynRPC::addResource(String parent, String name)
     extern resource findResource(char*);
 
     pr = findResource(parent);
-    if (pr) (void) newResource(pr, NULL, name, 0.0);
+    if (pr) (void) newResource(pr, NULL, name, 0.0, FALSE);
 }
 
 void dynRPC::coreProcess(int pid)

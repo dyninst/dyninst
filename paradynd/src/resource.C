@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.3 1994/02/24 04:32:36 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/resource.C,v 1.4 1994/05/16 22:31:54 hollings Exp $";
 #endif
 
 /*
  * resource.C - handle resource creation and queries.
  *
  * $Log: resource.C,v $
- * Revision 1.3  1994/02/24 04:32:36  markc
+ * Revision 1.4  1994/05/16 22:31:54  hollings
+ * added way to request unique resource name.
+ *
+ * Revision 1.3  1994/02/24  04:32:36  markc
  * Changed header files to reflect igen changes.  main.C does not look at the number of command line arguments now.
  *
  * Revision 1.2  1994/02/01  18:46:55  hollings
@@ -126,13 +129,19 @@ Boolean initResourceRoot;
 resource newResource(resource parent, 
 		     void *handle, 
 		     char *name, 
-		     timeStamp creation)
+		     timeStamp creation,
+		     Boolean unique)
 {
     int c;
     char *iName;
     resource ret;
     resource *curr;
     char tempName[255];
+
+    if (unique) {
+	// ask paradyn for unqiue name.
+	name = tp->getUniqueResource(0, parent->info.fullName, name);
+    }
 
     if (!initResourceRoot) {
 	initResourceRoot = True;
@@ -242,7 +251,7 @@ Boolean isResourceDescendent(resource parent, resource child)
 }
 
 //
-// Find this passed focus if its resource compoents are valid for this paradynd.
+// Find this passed focus if its resource components are valid for paradynd.
 //    We treat "unknown" top level resources as a specical case since the
 //    meaning is that we are at the top level of refinement of an unsupported
 //    resource hierarchy.  In this case, we simply create the resource, and
@@ -261,7 +270,7 @@ resourceList findFocus(int count, char **data)
 	iName = pool.findAndAdd(data[i]);
 	res = allResources.find(iName);
 	if (!res && (strchr(iName, '/') == strrchr(iName, '/'))) {
-	    res = newResource(rootResource, NULL, ++iName, 0.0);
+	    res = newResource(rootResource, NULL, ++iName, 0.0, FALSE);
 	} else if (!res) {
 	    return(NULL);
 	}

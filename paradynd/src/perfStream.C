@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.9 1994/05/03 05:06:19 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradynd/src/perfStream.C,v 1.10 1994/05/16 22:31:52 hollings Exp $";
 #endif
 
 /*
  * perfStream.C - Manage performance streams.
  *
  * $Log: perfStream.C,v $
- * Revision 1.9  1994/05/03 05:06:19  markc
+ * Revision 1.10  1994/05/16 22:31:52  hollings
+ * added way to request unique resource name.
+ *
+ * Revision 1.9  1994/05/03  05:06:19  markc
  * Passed exit status to pvm.
  *
  * Revision 1.8  1994/04/11  23:25:25  hollings
@@ -480,7 +483,7 @@ void createResource(traceHeader *header, struct _newresource *r)
 	    *tmp = '\0';
 	    tmp++;
 	}
-	res = newResource(parent, r->maping, name, header->wall);
+	res = newResource(parent, r->maping, name, header->wall, FALSE);
 	parent = res;
 	name = tmp;
     }

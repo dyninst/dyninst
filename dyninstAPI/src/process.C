@@ -7,14 +7,17 @@
 static char Copyright[] = "@(#) Copyright (c) 1993 Jeff Hollingsowrth\
     All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/process.C,v 1.5 1994/03/31 02:00:35 markc Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/dyninstAPI/src/process.C,v 1.6 1994/05/16 22:31:53 hollings Exp $";
 #endif
 
 /*
  * process.C - Code to control a process.
  *
  * $Log: process.C,v $
- * Revision 1.5  1994/03/31 02:00:35  markc
+ * Revision 1.6  1994/05/16 22:31:53  hollings
+ * added way to request unique resource name.
+ *
+ * Revision 1.5  1994/03/31  02:00:35  markc
  * Changed to fork for paradyndPVM since client calls pvmendtask which writes
  * to the address space.
  *
@@ -81,6 +84,7 @@ extern char *sys_errlist[];
 
 /* root of process resource list */
 resource processResource;
+resource machineResource;
 
 extern "C" ptrace();
 
@@ -191,11 +195,20 @@ process *allocateProcess(int pid, char *name)
     ret = (process *) xcalloc(sizeof(process), 1);
     processList.add(ret, (void *) pid);
 
+    if (!machineResource) {
+	char hostName[80];
+
+	gethostname(hostName, sizeof(hostName));
+	resource machineRoot;
+	machineRoot = newResource(rootResource, NULL, "Machine", 0.0,FALSE);
+	machineResource = newResource(machineRoot, NULL, hostName, 0.0, FALSE);
+    }
+
     ret->pid = pid;
     if (!processResource) {
-	processResource = newResource(rootResource, NULL, "Process", 0.0);
+	processResource = newResource(rootResource, NULL, "Process", 0.0,FALSE);
     }
-    ret->rid = newResource(processResource, ret, name, 0.0);
+    ret->rid = newResource(processResource, ret, name, 0.0, TRUE);
 
     ret->bufEnd = 0;
     return(ret);

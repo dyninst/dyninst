@@ -7,7 +7,10 @@
  * dyninst.h - exported interface to instrumentation.
  *
  * $Log: dyninst.h,v $
- * Revision 1.6  1994/04/09 18:34:52  hollings
+ * Revision 1.7  1994/05/16 22:31:49  hollings
+ * added way to request unique resource name.
+ *
+ * Revision 1.6  1994/04/09  18:34:52  hollings
  * Changed {pause,continue}Application to {pause,continue}AllProceses, and
  * made the RPC interfaces use these.  This makes the computation of pause
  * Time correct.
@@ -181,7 +184,11 @@ resourceList createResourceList();
 
 Boolean addResourceList(resourceList, resource);
 
-resource newResource(resource parent,void*handle,char *name,timeStamp creation);
+resource newResource(resource parent,
+		     void *handle,
+		     char *name,
+		     timeStamp creation,
+		     Boolean unique);
 
 /*
  * manipulate user handle (a single void * to permit mapping between low level
