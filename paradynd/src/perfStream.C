@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.136 2002/10/15 17:12:02 schendel Exp $
+// $Id: perfStream.C,v 1.137 2002/10/23 20:14:31 pcroth Exp $
 
 #ifdef PARADYND_PVM
 extern "C" {
@@ -675,7 +675,7 @@ static void checkAndDoShmSampling(timeLength *pollTime) {
     (See perfStream.C -- the call to RPC_getConnect(traceSocket_fd))
 ***/
 
-  PDSOCKET traceSocket_fd;
+  PDSOCKET traceSocket_fd = INVALID_PDSOCKET;
 void setupTraceSocket()
 {
 
