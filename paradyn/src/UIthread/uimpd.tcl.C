@@ -3,9 +3,13 @@
    is used internally by the UIM.
 */
 /* $Log: uimpd.tcl.C,v $
-/* Revision 1.31  1996/02/02 18:55:19  tamches
-/* removed a lot of obsolete code that had been commented out
+/* Revision 1.32  1996/02/07 18:50:35  tamches
+/* added uimpd_startPhaseCmd
+/* made copy of uim_visiSelections before calling chosenMetricsAndResources
 /*
+ * Revision 1.31  1996/02/02 18:55:19  tamches
+ * removed a lot of obsolete code that had been commented out
+ *
  * Revision 1.30  1996/02/02 01:01:36  karavan
  * Changes to support the new PC/UI interface
  *
@@ -196,7 +200,13 @@ int sendVisiSelectionsCmd(ClientData,
           }
       }
 #endif
-      uim_server->chosenMetricsandResources(mcb, &uim_VisiSelections);
+
+      // Since the following igen call is async, we must unfortunately make
+      // a copy of uim_VisiSelections, and pass that in.  The consumer
+      // will deallocate the memory.
+      vector<metric_focus_pair> *temp_igen_vec = new vector<metric_focus_pair> (uim_VisiSelections);
+      assert(temp_igen_vec);
+      uim_server->chosenMetricsandResources(mcb, temp_igen_vec);
   }
 
   // cleanup data structures
@@ -395,6 +405,34 @@ int showErrorCmd (ClientData,
   return TCL_OK;
 }
 
+int uimpd_startPhaseCmd(ClientData, Tcl_Interp *,
+			int argc, char **argv) {
+   assert(argc == 2);
+   if (0==strcmp(argv[1], "plain")) {
+      dataMgr->StartPhase(-1, NULL,
+			      false, false);
+      return TCL_OK;
+   }
+   else if (0==strcmp(argv[1], "pc")) {
+      dataMgr->StartPhase(-1, NULL,
+			      true, false);
+      return TCL_OK;
+   }
+   else if (0==strcmp(argv[1], "visis")) {
+      dataMgr->StartPhase(-1, NULL,
+			      false, true);
+      return TCL_OK;
+   }
+   else if (0==strcmp(argv[1], "both")) {
+      dataMgr->StartPhase(-1, NULL,
+			      true, true);
+      return TCL_OK;
+   }
+   else {
+      cerr << "uimpd_startPhaseCmd: unknown cmd " << argv[1] << endl;
+      return TCL_ERROR;
+   }
+}
 
 struct cmdTabEntry uimpd_Cmds[] = {
   {"drawStartVisiMenu", drawStartVisiMenuCmd},
@@ -402,6 +440,7 @@ struct cmdTabEntry uimpd_Cmds[] = {
   {"processVisiSelection", processVisiSelectionCmd},
   {"tclTunable", TclTunableCommand},
   {"showError", showErrorCmd},
+  {"startPhase", uimpd_startPhaseCmd},
   { NULL, NULL}
 };
 
