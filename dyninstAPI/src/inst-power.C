@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.167 2003/04/23 22:59:53 bernat Exp $
+ * $Id: inst-power.C,v 1.168 2003/04/25 04:00:38 buck Exp $
  */
 
 #include "common/h/headers.h"
@@ -563,17 +563,20 @@ registerSpace *regSpace;
 // be saved and restored in the base trampoline.
 registerSpace *conservativeRegSpace;
 
-// 11-12 are defined not to have live values at procedure call points.
+// reg 12 is defined not to have a live value at procedure call points.
+// reg 11 is the static chain register, used to hold an environment pointer
+//   for languages like Pascal and PL/1; it is also apparently used by OpenMP.
+//   It should be considered live at entry points and call sites.
 // reg 3-10 are used to pass arguments to functions.
 //   We must save them before we can use them.
 #if defined(MT_THREAD)
-Register deadRegList[] = { 11 };
+Register deadRegList[] = { };
 #else
-Register deadRegList[] = { 11, 12 };
+Register deadRegList[] = { 12 };
 #endif
 
 // allocate in reverse order since we use them to build arguments.
-Register liveRegList[] = { 10, 9, 8, 7, 6, 5, 4, 3 };
+Register liveRegList[] = { 11, 10, 9, 8, 7, 6, 5, 4, 3 };
 
 // If we're being conservative, we don't assume that any registers are dead.
 Register conservativeDeadRegList[] = { };
