@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.136 2003/03/10 15:05:12 chadd Exp $
+// $Id: solaris.C,v 1.137 2003/03/12 01:50:11 schendel Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -697,8 +697,6 @@ Address process::get_dlopen_addr() const {
     return(0);
 }
 
-
-bool process::attach_() {assert(false); return(false);}
 bool process::stop_() {assert(false); return(false);}
 
 fileDescriptor *getExecFileDescriptor(string filename,
@@ -733,9 +731,9 @@ bool process::dumpCore_(const string coreName)
   char command[100];
 
   sprintf(command, "gcore %d 2> /dev/null; mv core.%d %s", getPid(), getPid(), 
-	coreName.c_str());
+          coreName.c_str());
 
-  detach_();
+  detach(false);
   system(command);
   attach();
 
@@ -924,7 +922,7 @@ rawTime64 dyn_lwp::getRawCpuTime_sw()
   if (pread(usage_fd(), &theUsage, sizeof(prusage_t), 0) 
       != sizeof(prusage_t)) {
       perror("getInfCPU: read");
-      return 0;
+      return -1;  // perhaps the process ended
   }
 
   result =  (theUsage.pr_utime.tv_sec + theUsage.pr_stime.tv_sec) * 1000000000LL;
