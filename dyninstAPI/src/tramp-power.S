@@ -70,10 +70,30 @@ _baseTramp:
 	*/
 
 	.long   SKIP_PRE_INSN		/* if no instrumentation, then skip */
+	.long	SAVE_PRE_INSN		/* save registers */
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop	
+	nop
 	.long	GLOBAL_PRE_BRANCH
         nop				/* fill this in with instructions to */
 	nop				/* compute the address of the vector */
 	nop				/* of counter/timers for each thread */
+	nop
+	nop
+	nop
+	nop
+	nop
+        nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
 	nop
 	nop
 	nop
@@ -85,9 +105,27 @@ _baseTramp:
 	nop
 	nop
 	nop
+	nop
+	nop
+	.long	RESTORE_PRE_INSN	/* restore registers */
+        nop
+	nop
+	nop	
+	nop
+	nop
+	nop
+	nop
 	.long 	EMULATE_INSN
 	nop
         .long	SKIP_POST_INSN		/* if no instrumentation, then skip */
+	.long	SAVE_POST_INSN		/* save registers */
+        nop
+	nop
+	nop
+	nop
+	nop
+	nop	
+	nop
 	.long	GLOBAL_POST_BRANCH
         nop				/* fill this in with instructions to */
 	nop				/* compute the address of the vector */
@@ -98,7 +136,27 @@ _baseTramp:
 	nop
 	nop
 	nop
+        nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
 	.long	LOCAL_POST_BRANCH
+	.long	RESTORE_POST_INSN	/* restore registers */
+        nop
+	nop
+	nop	
+	nop
+	nop
+	nop
+	nop
 	.long	RETURN_INSN
 	nop
 	.long	END_TRAMP

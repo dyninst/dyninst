@@ -46,7 +46,14 @@ static dictionary_hash<string, unsigned> funcFrequencyTable(string::hash);
 
 trampTemplate baseTemplate;
 registerSpace *regSpace;
+
+#if defined(MT_THREAD)
+// registers 8 to 15: out registers 
+// registers 16 to 22: local registers
+int deadList[] = {16, 17, 18, 19, 20, 21, 22 };
+#else
 int deadList[] = {16, 17, 18, 19, 20, 21, 22, 23 };
+#endif
 
 // Constructor for the class instPoint. This one defines the 
 // instPoints for the relocated function. Since the function reloated
@@ -250,7 +257,7 @@ void initTramps()
 
 void generateMTpreamble(char *insn, unsigned &base, process *proc)
 {
-  AstNode *t1,*t2,*t3;
+  AstNode *t1,*t2,*t3,*t4,*t5;;
   vector<AstNode *> dummy;
   unsigned tableAddr;
   int value; 
@@ -258,16 +265,22 @@ void generateMTpreamble(char *insn, unsigned &base, process *proc)
   reg src = -1;
 
   /* t3=DYNINSTthreadTable[thr_self()] */
-  t1 = new AstNode(string("DYNINSTthreadPos"), dummy);
+  t1 = new AstNode("DYNINSTthreadPos", dummy);
   value = sizeof(unsigned);
-  t2 = new AstNode(timesOp, t1, new AstNode(AstNode::Constant,(void *)value));
+  t4 = new AstNode(AstNode::Constant,(void *)value);
+  t2 = new AstNode(timesOp, t1, t4);
+  removeAst(t1);
+  removeAst(t4);
 
   tableAddr = proc->findInternalAddress("DYNINSTthreadTable",true,err);
   assert(!err);
-  t3 = new AstNode(plusOp, t2, new AstNode(AstNode::Constant, (void *)tableAddr));
+  t5 = new AstNode(AstNode::Constant, (void *)tableAddr);
+  t3 = new AstNode(plusOp, t2, t5);
+  removeAst(t2);
+  removeAst(t5);
   src = t3->generateCode(proc, regSpace, insn, base, false);
   removeAst(t3);
-  (void) emit(orOp, src, 0, REG_L7, insn, base, false);
+  (void) emit(orOp, src, 0, REG_MT, insn, base, false);
   regSpace->freeRegister(src);
 }
 

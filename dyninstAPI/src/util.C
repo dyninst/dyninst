@@ -43,6 +43,11 @@
  * util.C - support functions.
  *
  * $Log: util.C,v $
+ * Revision 1.12  1997/01/27 19:41:18  naim
+ * Part of the base instrumentation for supporting multithreaded applications
+ * (vectors of counter/timers) implemented for all current platforms +
+ * different bug fixes - naim
+ *
  * Revision 1.11  1996/10/31 08:54:23  tamches
  * added some time routines
  *
@@ -78,6 +83,29 @@
 
 #include "util/h/headers.h"
 #include "util.h"
+
+// TIMING code
+
+#if defined(sparc_sun_solaris2_4)
+
+#include <values.h>
+#define EVERY 1
+#define TIMINGunit 1.0e+09 // 1.0e+09 ns -> secs
+                           // 1.0e+06 ns -> mils
+                           // 1.0e+03 ns -> us 
+                           // 1.0e+00 ns
+
+hrtime_t TIMINGtime1[MAX_N_TIMERS];
+hrtime_t TIMINGtime2[MAX_N_TIMERS]; 
+hrtime_t TIMINGcur[MAX_N_TIMERS];
+hrtime_t TIMINGtot[MAX_N_TIMERS];
+hrtime_t TIMINGmax[MAX_N_TIMERS];
+hrtime_t TIMINGmin[MAX_N_TIMERS];
+int TIMINGcounter[MAX_N_TIMERS];
+
+#endif
+
+// TIMING code
 
 typedef long long int time64;
 time64 firstRecordTime = 0; // time64 = long long int (rtinst/h/rtinst.h)
@@ -210,4 +238,48 @@ pd_log_perror(const char* msg) {
     // fprintf(stderr, "%s", log_buffer);
 }
 
+// TIMING code
 
+#if defined(sparc_sun_solaris2_4)
+
+void begin_timing(int id)
+{
+  static bool first_time=true;
+  if (first_time) {
+    if (TIMINGunit==1.0e+09) sprintf(errorLine,"TIME in seconds\n");
+    else if (TIMINGunit==1.0e+06) sprintf(errorLine,"TIME in mil-seconds\n");
+    else if (TIMINGunit==1.0e+03) sprintf(errorLine,"TIME in micro-seconds\n");
+    else if (TIMINGunit==1.0e+00) sprintf(errorLine,"TIME in nano-seconds\n");
+    else sprintf(errorLine,"TIME with UNKNOWN units\n");
+    logLine(errorLine);
+    for (unsigned i=0;i<MAX_N_TIMERS;i++) {
+      TIMINGtime1[i]=0;
+      TIMINGtime2[i]=0;
+      TIMINGcur[i]=0;
+      TIMINGtot[i]=0;
+      TIMINGmax[i]=0;
+      TIMINGmin[i]=MAXINT;
+      TIMINGcounter[i]=0;
+    }
+    first_time=false;
+  }
+  TIMINGtime1[id]=gethrtime();
+}
+
+void end_timing(int id, char *func)
+{
+  TIMINGtime2[id]=gethrtime();
+  TIMINGcur[id]=TIMINGtime2[id]-TIMINGtime1[id];
+  if (TIMINGcur[id] > TIMINGmax[id]) TIMINGmax[id]=TIMINGcur[id];
+  if (TIMINGcur[id] < TIMINGmin[id]) TIMINGmin[id]=TIMINGcur[id];
+  TIMINGtot[id] += TIMINGcur[id];
+  TIMINGcounter[id]++;
+  if (!(TIMINGcounter[id]%EVERY)) {
+    sprintf(errorLine,"<%s> cur=%5.2f, avg=%5.2f, max=%5.2f, min=%5.2f, tot=%5.2f\n",func,TIMINGcur[id]/TIMINGunit,(TIMINGtot[id]/TIMINGcounter[id])/TIMINGunit,TIMINGmax[id]/TIMINGunit,TIMINGmin[id]/TIMINGunit,TIMINGtot[id]/TIMINGunit);
+    logLine(errorLine);
+  }
+}
+
+#endif
+
+// TIMING code

@@ -44,6 +44,11 @@
 
 /*
  * $Log: ast.h,v $
+ * Revision 1.20  1997/01/27 19:40:38  naim
+ * Part of the base instrumentation for supporting multithreaded applications
+ * (vectors of counter/timers) implemented for all current platforms +
+ * different bug fixes - naim
+ *
  * Revision 1.19  1996/11/14 14:26:58  naim
  * Changing AstNodes back to pointers to improve performance - naim
  *
@@ -224,7 +229,8 @@ AstNode *createPrimitiveCall(const string &func, dataReqNode *dataPtr,
                              int param2);
 AstNode *createIf(AstNode *expression, AstNode *action);
 AstNode *createCounter(const string &func, dataReqNode *, AstNode *arg);
-
+AstNode *createTimer(const string &func, dataReqNode *, 
+                     vector<AstNode *> &arg_args);
 unsigned emitFuncCall(opCode op, registerSpace *rs, char *i,unsigned &base, 
 		      const vector<AstNode *> &operands, const string &func,
 		      process *proc, bool noCost);

@@ -43,6 +43,11 @@
  * metric.h 
  *
  * $Log: metricFocusNode.h,v $
+ * Revision 1.42  1997/01/27 19:41:07  naim
+ * Part of the base instrumentation for supporting multithreaded applications
+ * (vectors of counter/timers) implemented for all current platforms +
+ * different bug fixes - naim
+ *
  * Revision 1.41  1997/01/15 01:11:34  tamches
  * completely revamped fork & exec -- they now work for shm sampling.
  *
@@ -104,6 +109,9 @@ class dataReqNode {
 			   const dictionary_hash<instInstance*,instInstance*> &map
 			   ) const = 0;
      // duplicate 'this' (allocate w/ new) and return.  Call after a fork().
+
+  void updateCounterTimerVectorMT(process *proc, int CTid, unsigned &position, unsigned CTaddr);
+
      // "map" provides a dictionary that maps instInstance's of the parent process to
      // those in the child process; dup() may find it useful. (for now, the shm
      // dataReqNodes have no need for it; the alarm sampled ones need it).
@@ -175,6 +183,10 @@ class sampledIntCounterReqNode : public dataReqNode {
    intCounter *counterPtr;		/* NOT in our address space !!!! */
    instInstance *sampler;		/* function to sample value */
 
+#if defined(MT_THREAD)
+   unsigned position_;
+#endif
+
    // Since we don't use these, disallow:
    sampledIntCounterReqNode &operator=(const sampledIntCounterReqNode &);
    sampledIntCounterReqNode(const sampledIntCounterReqNode &);
@@ -206,6 +218,10 @@ class sampledIntCounterReqNode : public dataReqNode {
       return (unsigned)counterPtr;
    }
 
+#if defined(MT_THREAD)
+   unsigned getPosition() const {return position_;}
+#endif
+
    int getSampleId() const {return theSampleId;}
 
    bool unFork(dictionary_hash<instInstance*,instInstance*> &map);
@@ -228,6 +244,10 @@ class sampledShmIntCounterReqNode : public dataReqNode {
    // The following fields are NULL until insertInstrumentation() called:
    unsigned allocatedIndex; // probably redundant w/ next field; can be removed
    intCounter *inferiorCounterPtr;	/* NOT in our address space !!!! */
+
+#if defined(MT_THREAD)
+   unsigned position_;
+#endif
 
    // Since we don't use these, making them privates ensures they're not used.
    sampledShmIntCounterReqNode &operator=(const sampledShmIntCounterReqNode &);
@@ -258,6 +278,9 @@ class sampledShmIntCounterReqNode : public dataReqNode {
       return (unsigned)inferiorCounterPtr;
    }
 
+#if defined(MT_THREAD)
+   unsigned getPosition() const {return position_;}
+#endif
    int getSampleId() const {return theSampleId;}
 
    bool unFork(dictionary_hash<instInstance*,instInstance*> &) {return true;}
@@ -274,6 +297,10 @@ class nonSampledIntCounterReqNode : public dataReqNode {
 
    // The following is NULL until insertInstrumentation() called:   
    intCounter *counterPtr;		/* NOT in our address space !!!! */
+
+#if defined(MT_THREAD)
+   unsigned position_;
+#endif
 
    // Since we don't use these, disallow:
    nonSampledIntCounterReqNode &operator=(const nonSampledIntCounterReqNode &);
@@ -306,6 +333,10 @@ class nonSampledIntCounterReqNode : public dataReqNode {
       return (unsigned)counterPtr;
    }
 
+#if defined(MT_THREAD)
+   unsigned getPosition() const {return position_;}
+#endif
+
    int getSampleId() const {return theSampleId;}
 
    bool unFork(dictionary_hash<instInstance*,instInstance*> &) {return true;}
@@ -324,6 +355,10 @@ class sampledTimerReqNode : public dataReqNode {
    // The following fields are NULL until insertInstrumentation():
    tTimer *timerPtr;			/* NOT in our address space !!!! */
    instInstance *sampler;		/* function to sample value */
+
+#if defined(MT_THREAD)
+   unsigned position_;
+#endif
 
    // since we don't use these, disallow:
    sampledTimerReqNode(const sampledTimerReqNode &);
@@ -354,6 +389,10 @@ class sampledTimerReqNode : public dataReqNode {
       return (unsigned)timerPtr;
    }
 
+#if defined(MT_THREAD)
+   unsigned getPosition() const {return position_;}
+#endif
+
    int getSampleId() const {return theSampleId;}
 
    bool unFork(dictionary_hash<instInstance*,instInstance*> &map);
@@ -374,6 +413,10 @@ class sampledShmWallTimerReqNode : public dataReqNode {
    // The following fields are NULL until insertInstrumentatoin():
    unsigned allocatedIndex;  // probably redundant w/ next field; can be removed
    tTimer *inferiorTimerPtr; // NOT in our address space !!!!
+
+#if defined(MT_THREAD)
+   unsigned position_;
+#endif
 
    // since we don't use these, disallow:
    sampledShmWallTimerReqNode(const sampledShmWallTimerReqNode &);
@@ -401,6 +444,10 @@ class sampledShmWallTimerReqNode : public dataReqNode {
       return (unsigned)inferiorTimerPtr;
    }
 
+#if defined(MT_THREAD)
+   unsigned getPosition() const {return position_;}
+#endif
+
    int getSampleId() const {return theSampleId;}
 
    bool unFork(dictionary_hash<instInstance*,instInstance*> &) {return true;}
@@ -416,6 +463,10 @@ class sampledShmProcTimerReqNode : public dataReqNode {
    // The following fields are NULL until insertInstrumentatoin():
    unsigned allocatedIndex;  // probably redundant w/ next field; can be removed
    tTimer *inferiorTimerPtr; // NOT in our address space !!!!
+
+#if defined(MT_THREAD)
+   unsigned position_;
+#endif
 
    // since we don't use these, disallow:
    sampledShmProcTimerReqNode(const sampledShmProcTimerReqNode &);
@@ -442,6 +493,10 @@ class sampledShmProcTimerReqNode : public dataReqNode {
       assert(inferiorTimerPtr != NULL); // NULL until insertInstrumentation()
       return (unsigned)inferiorTimerPtr;
    }
+
+#if defined(MT_THREAD)
+   unsigned getPosition() const {return position_;}
+#endif
 
    int getSampleId() const {return theSampleId;}
 

@@ -100,9 +100,35 @@ typedef struct _traceHeader traceHeader;
 #define TR_CP_SAMPLE		10 /* critical path */
 #define TR_EXEC_FAILED          12
 
+#if defined(MT_THREAD)
+#define TR_THREAD               13
+#define TR_THRSELF              14
+#endif
+
 /* types for resources that may be reported */
 #define RES_TYPE_INT    0
 #define RES_TYPE_STRING 1
+
+#if defined(MT_THREAD)
+struct _traceThread {
+    int	ppid;	/* id of creating thread */
+    int	tid;	/* id of new thread */
+    int pos;    /* position of the new thread in the thread table */
+    int ntids;	/* number of new threads */
+    int stride;	/* offset to next pid in multi */
+};
+
+typedef struct _traceThread traceThread;
+
+struct _traceThrSelf {
+    int	ppid;	/* id of creating thread */
+    int	tid;	/* id of new thread */
+    int pos;    /* position in the thread table */
+};
+
+typedef struct _traceThrSelf traceThrSelf;
+
+#endif
 
 #ifndef SHM_SAMPLING
 struct _traceSample {

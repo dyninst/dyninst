@@ -75,7 +75,11 @@ extern debug_ostream shmsample_cerr;
 extern debug_ostream forkexec_cerr;
 extern debug_ostream metric_cerr;
 
+extern int activeCT;
+extern int memCT;
+extern int inferiorMemAvailable;
 extern vector<unsigned> getAllTrampsAtPoint(instInstance *instance);
+static int internalMetricCounterId = 0;
 
 void flush_batch_buffer();
 void batchSampleData(int mid, double startTimeStamp, double endTimeStamp,
@@ -707,6 +711,8 @@ dataReqNode *metricDefinitionNode::addSampledIntCounter(int initialValue) {
    
    metricDefinitionNode::counterId++;
 
+   internalMetricCounterId = metricDefinitionNode::counterId;
+
    dataRequests += result;
    return result;
 }
@@ -722,6 +728,8 @@ dataReqNode *metricDefinitionNode::addUnSampledIntCounter(int initialValue) {
    assert(result);
 
    metricDefinitionNode::counterId++;
+
+   internalMetricCounterId = metricDefinitionNode::counterId;
 
    dataRequests += result;
    return result;
@@ -742,6 +750,8 @@ dataReqNode *metricDefinitionNode::addWallTimer() {
 
    metricDefinitionNode::counterId++;
 
+   internalMetricCounterId = metricDefinitionNode::counterId;
+
    dataRequests += result;
    return result;
 }
@@ -760,6 +770,8 @@ dataReqNode *metricDefinitionNode::addProcessTimer() {
    assert(result);
 
    metricDefinitionNode::counterId++;
+
+   internalMetricCounterId = metricDefinitionNode::counterId;
 
    dataRequests += result;
    return result;
@@ -840,7 +852,11 @@ metricDefinitionNode *metricDefinitionNode::forkProcess(process *child,
 			 );
     assert(mi);
 
+    metricDefinitionNode::counterId++;
+
     forkexec_cerr << "metricDefinitionNode::forkProcess -- component flat name for parent is " << flat_name_ << "; for child is " << mi->flat_name_ << endl;
+
+    internalMetricCounterId = metricDefinitionNode::counterId;
 
     assert(!allMIComponents.defines(newComponentFlatName));
     allMIComponents[newComponentFlatName] = mi;
@@ -1745,6 +1761,10 @@ sampledIntCounterReqNode::sampledIntCounterReqNode(int iValue, int iCounterId) :
    // The following fields are NULL until insertInstrumentation()
    counterPtr = NULL;
    sampler = NULL;
+
+#if defined(MT_THREAD)
+   position_=0;
+#endif
 }
 
 sampledIntCounterReqNode::sampledIntCounterReqNode(const sampledIntCounterReqNode &src,
@@ -1764,6 +1784,10 @@ sampledIntCounterReqNode::sampledIntCounterReqNode(const sampledIntCounterReqNod
    temp.id.id = this->theSampleId;
    temp.value = initialValue;
    writeToInferiorHeap(childProc, temp);
+
+#if defined(MT_THREAD)
+   position_=0;
+#endif
 }
 
 dataReqNode *
@@ -1774,8 +1798,22 @@ sampledIntCounterReqNode::dup(process *childProc,
 			      ) const {
    // duplicate 'this' (allocate w/ new) and return.  Call after a fork().
 
-   return new sampledIntCounterReqNode(*this, childProc, mi, iCounterId, map);
+   sampledIntCounterReqNode *tmp;
+   tmp = new sampledIntCounterReqNode(*this, childProc, mi, iCounterId, map);
       // fork ctor
+
+#if defined(MT_THREAD)
+   // initialize position for new counter id with the same value as the
+   // position for the "parent"
+   assert(childProc);
+   process *parent = childProc->getParent();
+   assert(parent);
+   // NOTE: this needs to be done for every thread, not just for threads[0]
+   Thread *thr = parent->threads[0];
+   childProc->threads[0]->CTvector->dup(tmp->theSampleId, iCounterId, thr, tmp->position_);
+#endif 
+  
+   return tmp;
 }
 
 bool sampledIntCounterReqNode::insertInstrumentation(process *theProc,
@@ -1806,6 +1844,10 @@ bool sampledIntCounterReqNode::insertInstrumentation(process *theProc,
 			 ast, callPreInsn, orderLastAtPoint, false);
    removeAst(ast);
 
+#if defined(MT_THREAD)
+   updateCounterTimerVectorMT(theProc,this->theSampleId,this->position_,getInferiorPtr());
+#endif
+
    return true; // success
 }
 
@@ -1821,6 +1863,11 @@ void sampledIntCounterReqNode::disable(process *theProc,
    // Deallocate space for intCounter in the inferior heap:
    assert(counterPtr != NULL);
    inferiorFree(theProc, (unsigned)counterPtr, dataHeap, pointsToCheck);
+
+#if defined(MT_THREAD)
+   Thread *thr = theProc->threads[0];
+   thr->CTvector->remove(this->theSampleId, this->position_);
+#endif
 }
 
 void sampledIntCounterReqNode::writeToInferiorHeap(process *theProc,
@@ -1861,6 +1908,10 @@ sampledShmIntCounterReqNode::sampledShmIntCounterReqNode(int iValue, int iCounte
    // The following fields are NULL until insertInstrumentation()
    allocatedIndex = UINT_MAX;
    inferiorCounterPtr = NULL;
+
+#if defined(MT_THREAD)
+   position_=0;
+#endif
 }
 
 sampledShmIntCounterReqNode::
@@ -1910,6 +1961,10 @@ sampledShmIntCounterReqNode(const sampledShmIntCounterReqNode &src,
    intCounterHK iHKValue(theSampleId, mi);
       // the mi differs from the mi of the parent; theSampleId differs too.
    theHeap.initializeHKAfterFork(allocatedIndex, iHKValue);
+
+#if defined(MT_THREAD)
+   position_=0;
+#endif
 }
 
 dataReqNode *
@@ -1920,8 +1975,21 @@ sampledShmIntCounterReqNode::dup(process *childProc,
 				 ) const {
    // duplicate 'this' (allocate w/ new) and return.  Call after a fork().
 
-   return new sampledShmIntCounterReqNode(*this, childProc, mi, iCounterId);
+   sampledShmIntCounterReqNode *tmp;
+   tmp = new sampledShmIntCounterReqNode(*this, childProc, mi, iCounterId);
       // fork ctor
+
+#if defined(MT_THREAD)
+   // initialize position for new counter id with the same value as the
+   // position for the "parent"
+   assert(childProc);
+   const process *parent = childProc->getParent();
+   assert(parent);
+   Thread *thr = parent->threads[0];
+   childProc->threads[0]->CTvector->dup(tmp->theSampleId, iCounterId, thr, tmp->position_);
+#endif
+
+   return tmp;
 }
 
 bool sampledShmIntCounterReqNode::insertInstrumentation(process *theProc,
@@ -1950,6 +2018,10 @@ bool sampledShmIntCounterReqNode::insertInstrumentation(process *theProc,
    assert(inferiorCounterPtr == theShmHeap.index2InferiorAddr(allocatedIndex));
       // just a check for fun
 
+#if defined(MT_THREAD)
+   updateCounterTimerVectorMT(theProc,this->theSampleId,this->position_,getInferiorPtr());
+#endif
+
    return true; // success
 }
 
@@ -1968,6 +2040,11 @@ void sampledShmIntCounterReqNode::disable(process *theProc,
 	 trampsMaybeUsing += pointsToCheck[pointlcv][tramplcv];
 
    theShmHeap.makePendingFree(allocatedIndex, trampsMaybeUsing);
+
+#if defined(MT_THREAD)
+    Thread *thr = theProc->threads[0];
+    thr->CTvector->remove(this->theSampleId, this->position_);
+#endif
 }
 
 #endif
@@ -1981,6 +2058,10 @@ nonSampledIntCounterReqNode::nonSampledIntCounterReqNode(int iValue, int iCounte
 
    // The following fields are NULL until insertInstrumentation()
    counterPtr = NULL;
+
+#if defined(MT_THREAD)
+   position_=0;
+#endif
 }
 
 nonSampledIntCounterReqNode::
@@ -1996,6 +2077,10 @@ nonSampledIntCounterReqNode(const nonSampledIntCounterReqNode &src,
    temp.id.id = this->theSampleId;
    temp.value = this->initialValue;
    writeToInferiorHeap(childProc, temp);
+
+#if defined(MT_THREAD)
+   position_=0;
+#endif
 }
 
 dataReqNode *
@@ -2006,8 +2091,21 @@ nonSampledIntCounterReqNode::dup(process *childProc,
 				 ) const {
    // duplicate 'this' (allocate w/ new) and return.  Call after a fork().
 
-   return new nonSampledIntCounterReqNode(*this, childProc, mi, iCounterId);
+   nonSampledIntCounterReqNode *tmp;
+   tmp = new nonSampledIntCounterReqNode(*this, childProc, mi, iCounterId);
       // fork ctor
+
+#if defined(MT_THREAD)
+   // initialize position for new counter id with the same value as the
+   // position for the "parent"
+   assert(childProc);
+   const process *parent = childProc->getParent();
+   assert(parent);
+   Thread *thr = parent->threads[0];
+   childProc->threads[0]->CTvector->dup(tmp->theSampleId, iCounterId, thr, tmp->position_);
+#endif
+
+   return tmp;
 }
 
 bool nonSampledIntCounterReqNode::insertInstrumentation(process *theProc,
@@ -2024,6 +2122,10 @@ bool nonSampledIntCounterReqNode::insertInstrumentation(process *theProc,
 
    writeToInferiorHeap(theProc, temp);
 
+#if defined(MT_THREAD)
+   updateCounterTimerVectorMT(theProc,this->theSampleId,this->position_,getInferiorPtr());
+#endif
+
    return true; // success
 }
 
@@ -2035,6 +2137,11 @@ void nonSampledIntCounterReqNode::disable(process *theProc,
    // Deallocate space for intCounter in the inferior heap:
    assert(counterPtr != NULL);
    inferiorFree(theProc, (unsigned)counterPtr, dataHeap, pointsToCheck);
+
+#if defined(MT_THREAD)
+    Thread *thr = theProc->threads[0];
+    thr->CTvector->remove(this->theSampleId, this->position_);
+#endif
 }
 
 void nonSampledIntCounterReqNode::writeToInferiorHeap(process *theProc,
@@ -2056,6 +2163,10 @@ sampledTimerReqNode::sampledTimerReqNode(timerType iType, int iCounterId) :
    // The following fields are NULL until insertInstrumentatoin():
    timerPtr = NULL;
    sampler  = NULL;
+
+#if defined(MT_THREAD)
+   position_=0;
+#endif
 }
 
 sampledTimerReqNode::sampledTimerReqNode(const sampledTimerReqNode &src,
@@ -2082,6 +2193,10 @@ sampledTimerReqNode::sampledTimerReqNode(const sampledTimerReqNode &src,
    temp.normalize = 1000000;
    writeToInferiorHeap(childProc, temp);
 
+#if defined(MT_THREAD)
+   position_=0;
+#endif
+
    // WARNING: shouldn't we be resetting the raw value to count=0, start=0,
    //          total = src.initialValue ???  On the other hand, it's not that
    //          simple -- if the timer is active in the parent, then it'll be active
@@ -2096,7 +2211,22 @@ sampledTimerReqNode::dup(process *childProc, metricDefinitionNode *mi,
 			 ) const {
    // duplicate 'this' (allocate w/ new) and return.  Call after a fork().
 
-   return new sampledTimerReqNode(*this, childProc, mi, iCounterId, map);
+   sampledTimerReqNode *result = new sampledTimerReqNode(*this, childProc, mi, iCounterId, map);
+      // fork ctor
+   if (!result)
+      return NULL; // on failure, return w/o incrementing counterId
+
+#if defined(MT_THREAD)
+   // initialize position for new counter id with the same value as the
+   // position for the "parent"
+   assert(childProc);
+   const process *parent = childProc->getParent();
+   assert(parent);
+   Thread *thr = parent->threads[0];
+   childProc->threads[0]->CTvector->dup(result->theSampleId, iCounterId, thr, result->position_);
+#endif
+
+   return result;
 }
 
 bool sampledTimerReqNode::insertInstrumentation(process *theProc,
@@ -2127,6 +2257,10 @@ bool sampledTimerReqNode::insertInstrumentation(process *theProc,
 			 callPreInsn, orderLastAtPoint, false);
    removeAst(ast);
 
+#if defined(MT_THREAD)
+   updateCounterTimerVectorMT(theProc,this->theSampleId,this->position_,getInferiorPtr());
+#endif
+
    return true; // successful
 }
 
@@ -2142,6 +2276,11 @@ void sampledTimerReqNode::disable(process *theProc,
    // Deallocate space for tTimer in the inferior heap:
    assert(timerPtr);
    inferiorFree(theProc, (unsigned)timerPtr, dataHeap, pointsToCheck);
+
+#if defined(MT_THREAD)
+    Thread *thr = theProc->threads[0];
+    thr->CTvector->remove(this->theSampleId, this->position_);
+#endif
 }
 
 void sampledTimerReqNode::writeToInferiorHeap(process *theProc,
@@ -2245,6 +2384,10 @@ sampledShmWallTimerReqNode(const sampledShmWallTimerReqNode &src,
    wallTimerHK iHKValue(theSampleId, mi, 0); // is last param right?
       // the mi should differ from the mi of the parent; theSampleId differs too.
    theHeap.initializeHKAfterFork(allocatedIndex, iHKValue);
+
+#if defined(MT_THREAD)
+   position_=0;
+#endif
 }
 
 dataReqNode *
@@ -2255,8 +2398,21 @@ sampledShmWallTimerReqNode::dup(process *childProc,
 				) const {
    // duplicate 'this' (allocate w/ new) and return.  Call after a fork().
 
-   return new sampledShmWallTimerReqNode(*this, childProc, mi, iCounterId);
+   sampledShmWallTimerReqNode *tmp;
+   tmp = new sampledShmWallTimerReqNode(*this, childProc, mi, iCounterId);
       // fork constructor
+
+#if defined(MT_THREAD)
+   // initialize position for new counter id with the same value as the
+   // position for the "parent"
+   assert(childProc);
+   const process *parent = childProc->getParent();
+   assert(parent);
+   Thread *thr = parent->threads[0];
+   childProc->threads[0]->CTvector->dup(tmp->theSampleId, iCounterId, thr, tmp->position_);
+#endif
+
+   return tmp;
 }
 
 bool sampledShmWallTimerReqNode::insertInstrumentation(process *theProc,
@@ -2285,6 +2441,10 @@ bool sampledShmWallTimerReqNode::insertInstrumentation(process *theProc,
    assert(inferiorTimerPtr == theShmHeap.index2InferiorAddr(allocatedIndex));
       // just a check for fun
 
+#if defined(MT_THREAD)
+   updateCounterTimerVectorMT(theProc,this->theSampleId,this->position_,getInferiorPtr());
+#endif
+
    return true;
 }
 
@@ -2302,6 +2462,11 @@ void sampledShmWallTimerReqNode::disable(process *theProc,
          trampsMaybeUsing += pointsToCheck[pointlcv][tramplcv];
 
    theShmHeap.makePendingFree(allocatedIndex, trampsMaybeUsing);
+
+#if defined(MT_THREAD)
+    Thread *thr = theProc->threads[0];
+    thr->CTvector->remove(this->theSampleId, this->position_);
+#endif
 }
 
 /* ****************************************************************** */
@@ -2313,6 +2478,10 @@ sampledShmProcTimerReqNode::sampledShmProcTimerReqNode(int iCounterId) :
    // The following fields are NULL until insertInstrumentatoin():
    allocatedIndex = UINT_MAX;
    inferiorTimerPtr = NULL;
+
+#if defined(MT_THREAD)
+   position_=0;
+#endif
 }
 
 sampledShmProcTimerReqNode::
@@ -2378,6 +2547,10 @@ sampledShmProcTimerReqNode(const sampledShmProcTimerReqNode &src,
    processTimerHK iHKValue(theSampleId, mi, 0); // is last param right?
       // the mi differs from the mi of the parent; theSampleId differs too.
    theHeap.initializeHKAfterFork(allocatedIndex, iHKValue);
+
+#if defined(MT_THREAD)
+   position_=0;
+#endif
 }
 
 dataReqNode *
@@ -2388,8 +2561,21 @@ sampledShmProcTimerReqNode::dup(process *childProc,
 				) const {
    // duplicate 'this' (allocate w/ new) and return.  Call after a fork().
 
-   return new sampledShmProcTimerReqNode(*this, childProc, mi, iCounterId);
+   sampledShmProcTimerReqNode *tmp;
+   tmp = new sampledShmProcTimerReqNode(*this, childProc, mi, iCounterId);
       // fork constructor
+
+#if defined(MT_THREAD)
+   // initialize position for new counter id with the same value as the
+   // position for the "parent"
+   assert(childProc);
+   const process *parent = childProc->getParent();
+   assert(parent);
+   Thread *thr = parent->threads[0];
+   childProc->threads[0]->CTvector->dup(tmp->theSampleId, iCounterId, thr, tmp->position_);
+#endif
+
+   return tmp;
 }
 
 bool sampledShmProcTimerReqNode::insertInstrumentation(process *theProc,
@@ -2418,6 +2604,10 @@ bool sampledShmProcTimerReqNode::insertInstrumentation(process *theProc,
    assert(inferiorTimerPtr == theShmHeap.index2InferiorAddr(allocatedIndex));
       // just a check for fun
 
+#if defined(MT_THREAD)
+   updateCounterTimerVectorMT(theProc,this->theSampleId,this->position_,getInferiorPtr());
+#endif
+
    return true;
 }
 
@@ -2436,6 +2626,11 @@ void sampledShmProcTimerReqNode::disable(process *theProc,
          trampsMaybeUsing += pointsToCheck[pointlcv][tramplcv];
 
    theShmHeap.makePendingFree(allocatedIndex, trampsMaybeUsing);
+
+#if defined(MT_THREAD)
+   Thread *thr = theProc->threads[0];
+   thr->CTvector->remove(this->theSampleId, this->position_);
+#endif
 }
 #endif
 
@@ -2493,6 +2688,18 @@ void reportInternalMetrics(bool force)
 	  value = (end - start) * currSamplingRate;
         } else if (theIMetric->name() == "number_of_cpus") {
           value = (end - start) * numberOfCPUs;
+        } else if (theIMetric->name() == "total_CT") {
+          value = (end - start) * internalMetricCounterId;
+          assert(value>=0.0);
+        } else if (theIMetric->name() == "active_CT") {
+          value = (end - start) * activeCT;
+          assert(value>=0.0);
+        } else if (theIMetric->name() == "mem_CT") {
+          value = (end - start) * memCT;
+          assert(value>=0.0);
+        } else if (theIMetric->name() == "infHeapMemAvailable") {
+          value = (end - start) * inferiorMemAvailable;
+          assert(value>=0.0);
         } else if (theIMetric->style() == EventCounter) {
           value = theInstance.getValue();
           // assert((value + 0.0001)  >= imp->cumulativeValue);
@@ -2520,3 +2727,59 @@ void disableAllInternalMetrics() {
       }
     }  
 }
+
+#if defined(MT_THREAD)
+
+void dataReqNode::updateCounterTimerVectorMT(process *proc, int CTid, 
+                                             unsigned &position, 
+                                             unsigned CTaddr)
+{
+#if defined(MT_DEBUG)
+    sprintf(errorLine,"(pid=%d) Creating new Counter/Timer, CTid is %d\n",proc->pid, CTid);
+    logLine(errorLine);
+#endif
+
+    unsigned tableAddr,addr;
+    bool ok, err;
+
+    assert(CTaddr && proc);
+
+    // Getting thread table address
+    tableAddr = proc->findInternalAddress("DYNINSTthreadTable",true, err);
+    assert(!err);
+
+#if defined(MT_DEBUG)
+    sprintf(errorLine,"DYNINSTthreadTable address is 0x%x\n",tableAddr);
+    logLine(errorLine);
+#endif
+
+    // Current thread
+    // This should be a parameter to this function for the multi-threaded case
+    Thread *thr = proc->threads[0];
+
+    // Find the right CTvector address for this thread in the threadTable
+    tableAddr += thr->get_pos()*sizeof(unsigned);
+
+    // Check if the CTvector has enough room for another element. If not,
+    // allocate more memory for it.
+    // NOTE: for the final implementation, this has to be done for every
+    // thread.
+    ok = thr->CTvector->update(tableAddr);
+    assert(ok);
+
+    // Read address of vector of counter/timers for this thread
+    proc->readDataSpace((caddr_t) tableAddr, 
+                        sizeof(unsigned),
+			(caddr_t) &addr,true);
+    assert(addr);
+
+    thr->CTvector->add(CTid, position);
+
+    // Save pointer to Counter/Timer in table of counter/timers 
+    // (using CTid as offset)
+    addr += sizeof(unsigned)*(position);
+    proc->writeDataSpace((caddr_t) addr, sizeof(unsigned),
+			 (caddr_t) &CTaddr);
+}
+
+#endif

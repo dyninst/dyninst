@@ -41,6 +41,11 @@
 
 /* 
  * $Log: ast.C,v $
+ * Revision 1.36  1997/01/27 19:40:36  naim
+ * Part of the base instrumentation for supporting multithreaded applications
+ * (vectors of counter/timers) implemented for all current platforms +
+ * different bug fixes - naim
+ *
  * Revision 1.35  1996/11/14 14:42:52  naim
  * Minor fix to my previous commit - naim
  *
@@ -127,6 +132,7 @@
 #elif defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
 #include "inst-power.h"
 #elif defined(i386_unknown_solaris2_5)
+#include "inst-x86.h"
 #else
 #endif
 
@@ -156,7 +162,14 @@ registerSpace::registerSpace(int deadCount, int *dead, int liveCount, int *live)
 	registers[i+deadCount].mustRestore = false;
 	registers[i+deadCount].needsSaving = true;
 	registers[i+deadCount].startsLive = true;
+#if defined(MT_THREAD)
+        if (registers[i+deadCount].number == REG_MT) {
+          registers[i+deadCount].inUse = true;
+          registers[i+deadCount].needsSaving = true;
+        }
+#endif
     }
+
 }
 
 reg registerSpace::allocateRegister(char *insn, unsigned &base, bool noCost) 
@@ -174,9 +187,17 @@ reg registerSpace::allocateRegister(char *insn, unsigned &base, bool noCost)
     // now consider ones that need saving
     for (i=0; i < numRegisters; i++) {
 	if (!registers[i].inUse) {
-	    emit(saveRegOp, registers[i].number, 0, 0, insn, base, noCost);
+#if !defined(rs6000_ibm_aix4_1)
+            // MT_AIX: we are not saving registers on demand on the power
+            // architecture. Instead, we save/restore registers in the base
+            // trampoline - naim
+ 	    emit(saveRegOp, registers[i].number, 0, 0, insn, base, noCost);
+#endif
 	    registers[i].inUse = true;
+#if !defined(rs6000_ibm_aix4_1)
+            // MT_AIX
 	    registers[i].mustRestore = true;
+#endif
 	    // prevent general spill (func call) from saving this register.
 	    registers[i].needsSaving = false;
 	    highWaterRegister = (highWaterRegister > i) ? 
@@ -185,6 +206,7 @@ reg registerSpace::allocateRegister(char *insn, unsigned &base, bool noCost)
 	}
     }
 
+    logLine("==> WARNING! run out of registers...\n");
     abort();
     return(-1);
 }
@@ -250,13 +272,19 @@ bool registerSpace::isFreeRegister(int reg) {
 void registerSpace::resetSpace() {
     int i;
     for (i=0; i < numRegisters; i++) {
-        if (registers[i].inUse) {
+        if (registers[i].inUse && (registers[i].number != REG_MT)) {
           sprintf(errorLine,"WARNING: register %d is still in use\n",registers[i].number);
           logLine(errorLine);
         }
 	registers[i].inUse = false;
 	registers[i].mustRestore = false;
 	registers[i].needsSaving = registers[i].startsLive;
+#if defined(MT_THREAD)
+        if (registers[i].number == REG_MT) {
+          registers[i].inUse = true;
+          registers[i].needsSaving = true;
+        }
+#endif
     }
     highWaterRegister = 0;
 }
@@ -655,18 +683,20 @@ int AstNode::generateTramp(process *proc, char *i,
                   // leaking memory?
 
     regSpace->resetSpace();
-
+    reg return_reg;
     if (type != opCodeNode || op != noOp) {
         reg tmp;
 	preamble->generateCode(proc, regSpace, i, count, noCost);
         removeAst(preamble);
 	tmp = generateCode(proc, regSpace, i, count, noCost);
         regSpace->freeRegister(tmp);
-	return trailer->generateCode(proc, regSpace, i, count, noCost);
+        return_reg = trailer->generateCode(proc, regSpace, i, count, noCost);
     } else {
         removeAst(preamble);
-	return (unsigned) emit(op, 1, 0, 0, i, count, noCost);
+        return_reg = (unsigned) emit(op, 1, 0, 0, i, count, noCost);
     }
+    regSpace->resetSpace();
+    return(return_reg);
 }
 
 bool isPowerOf2(int value, int &result)
@@ -747,15 +777,7 @@ reg AstNode::generateCode(process *proc,
 			  unsigned &base, bool noCost) {
   cleanUseCount();
   setUseCount();
-#if defined(ASTDEBUG)
-  logLine("==> TEST begin <==\n");
-  printUseCount();
-#endif
   reg tmp=generateCode_phase2(proc,rs,insn,base,noCost);
-#if defined(ASTDEBUG)
-  logLine("==> TEST end <==\n");
-  printUseCount();
-#endif
   return(tmp);
 }
 
@@ -935,17 +957,32 @@ reg AstNode::generateCode_phase2(process *proc,
 	    (void) emit(loadIndirOp, src, 0, dest, insn, base, noCost); 
             rs->freeRegister(src);
 	} else if (oType == DataReg) {
+            rs->unkeep_register(dest);
             rs->freeRegister(dest);
             dest = (reg)oValue;
+            if (useCount>0) {
+              kept_register=dest;
+              rs->keep_register(dest);
+            }
 	} else if (oType == DataId) {
             assert(dValue);
-            (void) emit(loadConstOp, (reg) dValue->getSampleId(), dest, dest, insn, base, noCost);
+#if defined(MT_THREAD)
+	    unsigned position;
+            Thread *thr = proc->threads[0];
+            position = thr->CTvector->getCTmapId(dValue->getSampleId());
+            assert(position < thr->CTvector->size());
+            assert(thr->CTvector->getCTusagePos(position)==1);
+            (void) emit(loadConstOp, (reg) position, dest, dest, insn, base, noCost);
+#else
+	    (void) emit(loadConstOp, (reg) dValue->getSampleId(), dest, dest, insn, base, noCost);
+#endif
 	} else if (oType == DataValue) {
 	    addr = dValue->getInferiorPtr();
 
 	    assert(addr != 0); // check for NULL
 	    (void) emit(loadOp, (reg) addr, dest, dest, insn, base, noCost);
 	} else if (oType == ReturnVal) {
+            rs->unkeep_register(dest);
 	    rs->freeRegister(dest);
 	    src = rs->allocateRegister(insn, base, noCost);
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
@@ -962,6 +999,7 @@ reg AstNode::generateCode_phase2(process *proc,
 		rs->freeRegister(src);
 	    }
 	} else if (oType == Param) {
+            rs->unkeep_register(dest);
 	    rs->freeRegister(dest);
 	    src = rs->allocateRegister(insn, base, noCost);
 	    // return the actual reg it is in.
@@ -1143,10 +1181,26 @@ AstNode *createIf(AstNode *expression, AstNode *action)
   return(t);
 }
 
+#if !defined(MT_THREAD)
+
+AstNode *createTimer(const string &func, dataReqNode *dataPtr, 
+                     vector<AstNode *> &ast_args)
+{
+  AstNode *t0=NULL,*t1=NULL;
+
+  t0 = new AstNode(AstNode::DataPtr, (void *) dataPtr);
+  ast_args += assignAst(t0);
+  removeAst(t0);
+  t1 = new AstNode(func, ast_args);
+  for (unsigned i=0;i<ast_args.size();i++) removeAst(ast_args[i]);  
+  return(t1);
+}
+
 AstNode *createCounter(const string &func, dataReqNode *dataPtr, 
                        AstNode *ast) 
 {
    AstNode *t0=NULL, *t1=NULL, *t2=NULL;
+
    t0 = new AstNode(AstNode::DataValue, (void *)dataPtr);
    if (func=="addCounter") {
      t1 = new AstNode(plusOp,t0,ast);
@@ -1162,3 +1216,80 @@ AstNode *createCounter(const string &func, dataReqNode *dataPtr,
    return(t2);
 }
 
+#else
+
+AstNode *computeAddress(dataReqNode *dataPtr)
+{
+  AstNode *t0=NULL,*t1=NULL,*t2=NULL,*t3=NULL;
+  AstNode *t4=NULL,*t5=NULL,*t6=NULL;
+  int value;
+
+  assert(dataPtr);
+
+  /* DYNINSTthreadTable[thr_self()] */
+  /* make sure we read updated base address */
+  t0 = new AstNode(AstNode::DataReg, (void *)REG_MT);
+  t1 = new AstNode(AstNode::DataIndir, t0); 
+
+  /* Counter_Timer_Table[counter/timerId] */
+  value = sizeof(unsigned);
+  t2 = new AstNode(AstNode::DataId, (void *)dataPtr);
+  t3 = new AstNode(AstNode::Constant, (void *)value);
+  t4 = new AstNode(timesOp, t2, t3);
+  t5 = new AstNode(plusOp, t1, t4);
+  t6 = new AstNode(AstNode::DataIndir, t5);
+
+  /* address of Counter_Timer->value */
+  /* intCounter has value at position 0, so offset is 0 */
+  /* tTimer is different */
+
+  removeAst(t0);
+  removeAst(t1);
+  removeAst(t2);
+  removeAst(t3);
+  removeAst(t4);
+  removeAst(t5);
+  return(t6);
+}
+
+AstNode *createTimer(const string &func, dataReqNode *dataPtr, 
+                     vector<AstNode *> &ast_args)
+{
+  AstNode *t0=NULL,*t1=NULL;
+
+  t0 = computeAddress(dataPtr);
+  ast_args += assignAst(t0);
+  removeAst(t0);
+  t1 = new AstNode(func, ast_args);
+  for (unsigned i=0;i<ast_args.size();i++) removeAst(ast_args[i]);  
+
+  return(t1);
+}
+
+AstNode *createCounter(const string &func, dataReqNode *dataPtr, 
+                       AstNode *ast) 
+{ 
+  AstNode *t0=NULL,*t1=NULL,*t2=NULL,*t3=NULL;
+
+  t0 = computeAddress(dataPtr);
+
+  if (func == "addCounter") {
+    t1 = new AstNode(AstNode::DataIndir, t0);
+    t2 = new AstNode(plusOp, t1, ast);
+    t3 = new AstNode(storeIndirOp, t0, t2);
+  } else if (func == "subCounter") {
+    t1 = new AstNode(AstNode::DataIndir, t0);
+    t2 = new AstNode(minusOp, t1, ast);
+    t3 = new AstNode(storeIndirOp, t0, t2);
+  } else if (func == "setCounter") {
+    t3 = new AstNode(storeIndirOp, t0, ast);
+  }
+
+  removeAst(t0);
+  removeAst(t1);
+  removeAst(t2);
+
+  return(t3);
+}
+
+#endif

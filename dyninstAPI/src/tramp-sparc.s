@@ -61,7 +61,7 @@ _baseTramp:
 	/* should update cost of base tramp here, but we don't have a
 	   register to use!
 	*/
-	save  %sp, -112, %sp	/* saving registers before jumping to */
+	save  %sp, -120, %sp	/* saving registers before jumping to */
 	.word   SKIP_PRE_INSN
 	nop			/* delay slot for jump if there is no inst. */
 	.word	GLOBAL_PRE_BRANCH
@@ -101,7 +101,7 @@ _baseTramp:
 	.word   SKIP_POST_INSN
 	nop
 	.word	GLOBAL_POST_BRANCH
-	save  %sp, -112, %sp	/* saving registers before jumping to */
+	save  %sp, -120, %sp	/* saving registers before jumping to */
 	std  %g0, [ %fp + -8 ]	/* to a minitramp		      */
 	std  %g2, [ %fp + -16 ]
 	std  %g4, [ %fp + -24 ]
@@ -125,4 +125,10 @@ _baseTramp:
 	.word	RETURN_INSN
 	nop			/* see if this prevents crash jkh 4/4/95 */
 	.word	END_TRAMP
+
+
+
+
+
+
 

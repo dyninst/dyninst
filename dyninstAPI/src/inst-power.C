@@ -417,7 +417,8 @@ int getPointCost(process *proc, const instPoint *point)
 	return(0);
     } else {
 	// 35 cycles for base tramp
-	return(35);
+        // + 70 cyles for MT version (assuming 1 cycle per instruction)
+	return(105);
     }
 }
 
@@ -512,7 +513,12 @@ registerSpace *regSpace;
 // 11-12 are defined not to have live values at procedure call points.
 // reg 3-10 are used to pass arguments to functions.
 //   We must save them before we can use them.
+#if defined(MT_THREAD)
+int deadRegList[] = { 11 };
+#else
 int deadRegList[] = { 11, 12 };
+#endif
+
 // allocate in reverse order since we use them to build arguments.
 int liveRegList[] = { 10, 9, 8, 7, 6, 5, 4, 3 };
 
@@ -527,6 +533,79 @@ void initTramps()
 
     regSpace = new registerSpace(sizeof(deadRegList)/sizeof(int), deadRegList, 
 				 sizeof(liveRegList)/sizeof(int), liveRegList);
+}
+
+void saveRegister(instruction *&insn, unsigned &base, int reg)
+{						
+    genImmInsn(insn, STWop, reg, 1, -(reg+2)*4);	
+    insn++;					
+    base += sizeof(instruction);		
+}
+
+void restoreRegister(instruction *&insn, unsigned &base, int reg)
+{						
+    genImmInsn(insn, Lop, reg, 1, -(reg+2)*4);	
+    insn++;					
+    base += sizeof(instruction);		
+    registerSlot *preg;
+}	
+
+void saveAllRegistersThatNeedsSaving(instruction *insn, unsigned &base)
+{
+   unsigned numInsn=0;
+   for (unsigned i = 0; i < regSpace->getRegisterCount(); i++) {
+     registerSlot *reg = regSpace->getRegSlot(i);
+     if (reg->startsLive) {
+       saveRegister(insn,numInsn,reg->number);
+     }
+   }
+   base += numInsn/sizeof(instruction);
+}
+
+void restoreAllRegistersThatNeededSaving(instruction *insn, unsigned &base)
+{
+   unsigned numInsn=0;
+   for (unsigned i = 0; i < regSpace->getRegisterCount(); i++) {
+     registerSlot *reg = regSpace->getRegSlot(i);
+     if (reg->startsLive) {
+       restoreRegister(insn,numInsn,reg->number);
+     }
+   }
+   base += numInsn/sizeof(instruction);
+}
+
+void generateMTpreamble(char *insn, unsigned &base, process *proc)
+{
+  AstNode *t1,*t2,*t3,*t4,*t5;
+  vector<AstNode *> dummy;
+  unsigned tableAddr;
+  int value; 
+  bool err;
+  reg src = -1;
+
+  // registers cleanup
+  regSpace->resetSpace();
+
+  /* t3=DYNINSTthreadTable[thr_self()] */
+  t1 = new AstNode("DYNINSTthreadPos", dummy);
+  value = sizeof(unsigned);
+  t4 = new AstNode(AstNode::Constant,(void *)value);
+  t2 = new AstNode(timesOp, t1, t4);
+  removeAst(t1);
+  removeAst(t4);
+
+  tableAddr = proc->findInternalAddress("DYNINSTthreadTable",true,err);
+  assert(!err);
+  t5 = new AstNode(AstNode::Constant, (void *)tableAddr);
+  t3 = new AstNode(plusOp, t2, t5);
+  removeAst(t2);
+  removeAst(t5);
+  src = t3->generateCode(proc, regSpace, insn, base, false);
+  removeAst(t3);
+  instruction *tmp_insn = (instruction *) ((void*)&insn[base]);
+  genImmInsn(tmp_insn, ORIop, src, REG_MT, 0);  
+  base += sizeof(instruction);
+  regSpace->freeRegister(src);
 }
 
 /*
@@ -550,13 +629,17 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc)
 	if (temp->raw == EMULATE_INSN) {
 	    *temp = location->originalInstruction;
 	    relocateInstruction(temp, location->addr, currAddr);
+
 	} else if (temp->raw == RETURN_INSN) {
 	    generateBranchInsn(temp, 
 		(location->addr+sizeof(instruction) - currAddr));
+
         } else if (temp->raw == SKIP_PRE_INSN) {
           unsigned offset;
-          offset = baseAddr+baseTemplate.updateCostOffset-currAddr;
+          //offset = baseAddr+baseTemplate.updateCostOffset-currAddr;
+          offset = baseAddr+baseTemplate.emulateInsOffset-currAddr;
           generateBranchInsn(temp,offset);
+
         } else if (temp->raw == SKIP_POST_INSN) {
 	    unsigned offset;
 	    offset = baseAddr+baseTemplate.returnInsOffset-currAddr;
@@ -566,10 +649,58 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc)
 	    baseTemplate.costAddr = currAddr;
 	    generateNOOP(temp);
 
+	} else if ((temp->raw == SAVE_PRE_INSN) || 
+                   (temp->raw == SAVE_POST_INSN)) {
+            unsigned numInsn=0;
+            for (unsigned i = 0; i < regSpace->getRegisterCount(); i++) {
+	      registerSlot *reg = regSpace->getRegSlot(i);
+              if (reg->startsLive) {
+                numInsn = 0;
+                saveRegister(temp,numInsn,reg->number);
+                currAddr += numInsn;
+	      }
+	    }
+            // if there is more than one instruction, we need this
+            if (numInsn>0) {
+              temp--;
+              currAddr -= sizeof(instruction);
+	    }
+
+	} else if ((temp->raw == RESTORE_PRE_INSN) || 
+                   (temp->raw == RESTORE_POST_INSN)) {
+            unsigned numInsn=0;
+            for (unsigned i = 0; i < regSpace->getRegisterCount(); i++) {
+	      registerSlot *reg = regSpace->getRegSlot(i);
+              if (reg->startsLive) {
+                numInsn = 0;
+                restoreRegister(temp,numInsn,reg->number);
+                currAddr += numInsn;
+	      }
+	    }
+            // if there is more than one instruction, we need this 
+            if (numInsn>0) {
+              temp--;
+              currAddr -= sizeof(instruction);
+	    }
+
 	} else if ((temp->raw == LOCAL_PRE_BRANCH) ||
 		   (temp->raw == GLOBAL_PRE_BRANCH) ||
 		   (temp->raw == LOCAL_POST_BRANCH) ||
 		   (temp->raw == GLOBAL_POST_BRANCH)) {
+#if defined(MT_THREAD)
+            if ((temp->raw == LOCAL_PRE_BRANCH) ||
+                (temp->raw == LOCAL_POST_BRANCH)) {
+                temp -= NUM_INSN_MT_PREAMBLE;
+                unsigned numIns=0;
+                generateMTpreamble((char *)temp, numIns, proc);
+                numIns = numIns/sizeof(instruction);
+                assert(numIns==NUM_INSN_MT_PREAMBLE);
+                // if numIns!=NUM_INSN_MT_PREAMBLE then we should update the
+                // space reserved for generateMTpreamble in the base-tramp
+                // template file (tramp-power.S) - naim
+                temp += NUM_INSN_MT_PREAMBLE;
+            }
+#endif
 	    /* fill with no-op */
 	    generateNOOP(temp);
 	}
@@ -702,22 +833,6 @@ pdFunction *getFunction(instPoint *point)
 {
     return(point->callee ? point->callee : point->func);
 }
-
-
-#define saveRegister(reg)			\
-{						\
-    genImmInsn(insn, STWop, reg, 1, -(reg+2)*4);	\
-    insn++;					\
-    base += sizeof(instruction);		\
-}						\
-
-
-#define restoreRegister(reg)			\
-{						\
-    genImmInsn(insn, Lop, reg, 1, -(reg+2)*4);	\
-    insn++;					\
-    base += sizeof(instruction);		\
-}	\
 
 unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i, 
                  unsigned &base, bool noCost)
@@ -859,8 +974,12 @@ unsigned emitFuncCall(opCode op,
     base += sizeof(instruction);
 
     // st r0, (r1)
-    saveRegister(0);
+    saveRegister(insn,base,0);
     savedRegs += 0;
+
+    // save REG_MT
+    saveRegister(insn,base,REG_MT);
+    savedRegs += REG_MT;
 
     // see what others we need to save.
     int i;
@@ -874,12 +993,14 @@ unsigned emitFuncCall(opCode op,
 	    //            be unconditional (i.e. restore bad data)
 	    //        (2) $arg[n] code depeneds on paramters being in registers
 	    //
-	    saveRegister(reg->number);
-	    savedRegs += reg->number;
+            // MT_AIX: we are not saving registers on demand on the power
+            // architecture anymore - naim
+	    // saveRegister(insn,base,reg->number);
+	    // savedRegs += reg->number;
 	} else if (reg->inUse && !reg->mustRestore) {
 	    // inUse && !mustRestore -> in use scratch register 
 	    //		(i.e. part of an expression being evaluated).
-	    saveRegister(reg->number);
+	    saveRegister(insn,base,reg->number);
 	    savedRegs += reg->number;
 	} else if (reg->inUse) {
 	    // only inuse registers permitted here are the parameters.
@@ -920,9 +1041,18 @@ unsigned emitFuncCall(opCode op,
 	}
 
 	genImmInsn(insn, ORIop, srcs[u], u+3, 0); insn++;
+
+        // source register is now free.
+        regSpace->freeRegister(srcs[u]);
+
 	base += sizeof(instruction);
-	rs->freeRegister(srcs[u]);
     }
+
+    // get a register to keep the return value in.
+    // must allocate this register here or it will save the dead value of
+    //  the register left from the procedure call rather than the original
+    //  value - jkh 1/10/97
+    reg retReg = regSpace->allocateRegister(iPtr, base, noCost);
 
     // 
     //     Update the stack pointer
@@ -974,8 +1104,10 @@ unsigned emitFuncCall(opCode op,
     insn++;
     base += sizeof(instruction);
 
+/*
     // get a register to keep the return value in.
     reg retReg = regSpace->allocateRegister(iPtr, base, noCost);
+*/
 
     // This next line is a hack! - jkh 6/27/96
     //   It is required since allocateRegister can generate code.
@@ -987,7 +1119,7 @@ unsigned emitFuncCall(opCode op,
 
     // restore saved registers.
     for (i = 0; i < savedRegs.size(); i++) {
-	restoreRegister(savedRegs[i]);
+	restoreRegister(insn,base,savedRegs[i]);
     }
 
     // mtlr	0 (aka mtspr 8, rs) = 0x7c0803a6
@@ -1041,6 +1173,13 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 	genImmInsn(insn, Lop, dest, dest, LOW(src1));
 
         base += sizeof(instruction)*2;
+
+    } else if (op == loadIndirOp) {
+	// really load dest, (dest)imm
+	genImmInsn(insn, Lop, dest, src1, 0);
+
+        base += sizeof(instruction);
+
     } else if (op ==  storeOp) {
 	int high;
 
@@ -1078,6 +1217,16 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
         insn++;
 
 	regSpace->freeRegister(temp);
+
+    } else if (op ==  storeIndirOp) {
+
+	// generate -- st src1, dest
+	insn->dform.op = STWop;
+	insn->dform.rt = src1;
+	insn->dform.ra = dest;
+	insn->dform.d_or_si = 0;
+	base += sizeof(instruction);
+
     } else if (op ==  ifOp) {
 	// cmpi 0,0,src1,0
         insn->raw = 0;
@@ -1101,6 +1250,9 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 
     } else if (op == updateCostOp) {
         if (!noCost) {
+
+           regSpace->resetSpace();
+
 	   // add in the cost to the passed pointer variable.
 
 	   // high order bits of the address of the cummlative cost.
@@ -1133,9 +1285,28 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 	   genImmInsn(insn, Lop, obsCostValue, obsCostAddr, LOW(dest));
 	   insn++;
 
-	   assert(src1 <= MAX_IMM);
-	   genImmInsn(insn, ADDIop, obsCostValue, obsCostValue, LOW(src1));
-	   insn++;
+           base += 2 * sizeof(instruction);
+
+	   //assert(src1 <= MAX_IMM);
+           if (src1 <= MAX_IMM) {
+  	     genImmInsn(insn, ADDIop, obsCostValue, obsCostValue, LOW(src1));
+	     insn++;
+             base += sizeof(instruction);
+	   } else {
+             // If src1>MAX_IMM, we can't generate an instruction using an
+             // an immediate operator. Therefore, we need to load the 
+             // value first, which will cost 2 instructions - naim
+             reg reg = regSpace->allocateRegister(baseInsn, base, noCost);
+             genImmInsn(insn, ADDISop, reg, 0, HIGH(src1));
+             insn++;
+             genImmInsn(insn, ORIop, reg, reg, LOW(src1));
+             insn++;
+             base += 2 * sizeof(instruction);
+             (void) emit(plusOp, reg, obsCostValue, obsCostValue, baseInsn, 
+                         base, noCost);        
+             regSpace->freeRegister(reg);     
+             insn++;
+	   }
 
 	   // now store it back.
 	   // low == LOW(dest)
@@ -1145,7 +1316,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 	   insn->dform.ra = obsCostAddr;
 	   insn->dform.d_or_si = LOW(dest);
 	   insn++;
-	   base += 4 * sizeof(instruction);
+	   base += sizeof(instruction);
 
 	   regSpace->freeRegister(obsCostValue);
 	   regSpace->freeRegister(obsCostAddr);
@@ -1154,6 +1325,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
         // nothing to do in this platform
         
     } else if (op ==  trampTrailer) {
+/*
 	// restore the registers we have saved
 	int i;
 	for (i = 0; i < regSpace->getRegisterCount(); i++) {
@@ -1162,10 +1334,11 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 		// cleanup register space for next trampoline.
 		reg->needsSaving = true;
 		reg->mustRestore = false;
-		// actually restore the regitser.
-		restoreRegister(reg->number);
+		// actually restore the register.
+		restoreRegister(insn,base,reg->number);
 	    }
 	}
+*/
 
 	generateBranchInsn(insn, dest);
 	insn++;
@@ -1224,19 +1397,15 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 	    }
 	}
 
-	if (regSlot->mustRestore) {
-	    // its on the stack so load it.
-	    // ld i, -((reg+2)*4)(r1)
-	    genImmInsn(insn, Lop, dest, 1, -(reg+2)*4);
-	    insn++;	
-	    base += sizeof(instruction);
-	    return(dest);
-	} else {
-	    // its still in a register so return the register it is in.
-	    return(reg);
-	}
+        // its on the stack so load it.
+        // ld i, -((reg+2)*4)(r1)
+        genImmInsn(insn, Lop, dest, 1, -(reg+2)*4);
+        insn++;	
+        base += sizeof(instruction);
+        return(dest);
+
     } else if (op == saveRegOp) {
-	saveRegister(src1);
+	saveRegister(insn,base,src1);
     } else {
         int xop=-1;
 	switch (op) {
@@ -1246,6 +1415,11 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 		break;
 
 	    case minusOp:
+                reg temp;
+                // need to flip operands since this computes ra-rb not rb-ra
+                temp = src1;
+                src1 = src2;
+                src2 = temp;
 		xop = SUBFxop;
 		break;
 
@@ -1254,17 +1428,38 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 		break;
 
 	    case divOp:
-		xop = DIVWxop;
+#if defined(_POWER_PC)
+		xop = DIVWxop; // PowerPC 32 bit divide instruction
+#else
+		xop = DIVSxop; // Power 32 bit divide instruction
+#endif
 		break;
 
 	    // Bool ops
 	    case orOp:
-		genSimpleInsn(insn, ORop, src1, src2, dest, base);
+		//genSimpleInsn(insn, ORop, src1, src2, dest, base);
+                insn->raw = 0;
+                insn->xoform.op = XFPop;
+                // operation is ra <- rs | rb (or rs,ra,rb)
+                insn->xoform.ra = dest;
+                insn->xoform.rt = src1;
+                insn->xoform.rb = src2;
+                insn->xoform.xo = ORxop;
+                base += sizeof(instruction);
                 return(0);
 		break;
 
 	    case andOp:
-		genSimpleInsn(insn, ANDop, src1, src2, dest, base);
+		//genSimpleInsn(insn, ANDop, src1, src2, dest, base);
+                // This is a Boolean and with true == 1 so bitwise is OK
+                insn->raw = 0;
+                insn->xoform.op = XFPop;
+                // operation is ra <- rs & rb (and rs,ra,rb)
+                insn->xoform.ra = dest;
+                insn->xoform.rt = src1;
+                insn->xoform.rb = src2;
+                insn->xoform.xo = ANDxop;
+                base += sizeof(instruction);
                 return(0);
 		break;
 
@@ -1333,7 +1528,11 @@ int getInsnCost(opCode op)
 	// addis
 	// l 
 	cost = 2;
+    } else if (op ==  loadIndirOp) {
+	cost = 1;
     } else if (op ==  storeOp) {
+	cost = 2;
+    } else if (op ==  storeIndirOp) {
 	cost = 2;
     } else if (op ==  ifOp) {
 	// cmpi 0,0,src1,0
@@ -1377,6 +1576,9 @@ int getInsnCost(opCode op)
 	// mtlr	0 
 	cost++;
     } else if (op == updateCostOp) {
+        // In most cases this cost is 4, but if we can't use ADDIop because
+        // the value is to large, then we'll need 2 additional operations to
+        // load that value - naim
         cost += 4;
 
     } else if (op ==  trampPreamble) {

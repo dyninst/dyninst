@@ -70,6 +70,7 @@
 #include "internalMetrics.h"
 #include "util/h/Object.h"
 
+template class  vector<Thread *>;
 template class  vector<reg>;
 template class  vector<functionName*>;
 template class  vector<sampleInfo*>;

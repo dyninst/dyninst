@@ -39,6 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+// developer mode internal metrics for debugging purposes
+int activeCT=0;
+int memCT=0;
+
 extern "C" {
 #ifdef PARADYND_PVM
 int pvmputenv (const char *);
@@ -61,6 +65,11 @@ int pvmendtask();
 #include "perfStream.h"
 #include "dynamiclinking.h"
 #include "paradynd/src/mdld.h"
+
+#if defined(MT_THREAD)
+extern void generateMTpreamble(char *insn, unsigned &base, process *proc);
+#endif
+
 #include "util/h/debugOstream.h"
 
 #ifdef ATTACH_DETACH_DEBUG
@@ -99,11 +108,11 @@ debug_ostream signal_cerr(cerr, true);
 debug_ostream signal_cerr(cerr, false);
 #endif
 
-
 #define FREE_WATERMARK (hp->totalFreeMemAvailable/2)
 #define SIZE_WATERMARK 100
 static const timeStamp MAX_WAITING_TIME=10.0;
 static const timeStamp MAX_DELETING_TIME=2.0;
+int inferiorMemAvailable=0;
 
 unsigned activeProcesses; // number of active processes
 vector<process*> processVec;
@@ -448,6 +457,7 @@ void inferiorFreeDefered(process *proc, inferiorHeap *hp, bool runOutOfMem)
       hp->disabledList.resize(hp->disabledList.size()-1);
       hp->disabledListTotalMem -= np->length;
       hp->totalFreeMemAvailable += np->length;
+      inferiorMemAvailable = hp->totalFreeMemAvailable;
     } else {
       i++;
     }
@@ -489,7 +499,10 @@ void process::initInferiorHeap(bool initTextHeap)
     }
 
     hp->totalFreeMemAvailable = np->length;
-    // need to clear everything here, since this function may be called to re-init a heap
+    inferiorMemAvailable = hp->totalFreeMemAvailable;
+
+    // need to clear everything here, since this function may be called to 
+    // re-init a heap
     hp->heapActive.clear();
     hp->heapFree.resize(0);
     hp->heapFree += np;
@@ -517,6 +530,7 @@ inferiorHeap::inferiorHeap(const inferiorHeap &src):
     }
     disabledListTotalMem = src.disabledListTotalMem;
     totalFreeMemAvailable = src.totalFreeMemAvailable;
+    inferiorMemAvailable = totalFreeMemAvailable;
     freed = 0;
 }
 
@@ -609,6 +623,7 @@ unsigned inferiorMalloc(process *proc, int size, inferiorHeapType type)
 	newEntry->length = np->length - size;
 	newEntry->addr = np->addr + size;
         hp->totalFreeMemAvailable -= size;
+        inferiorMemAvailable = hp->totalFreeMemAvailable;
 	// overwrite the old entry
 	hp->heapFree[foundIndex] = newEntry;
 
@@ -1136,6 +1151,7 @@ process *createProcess(const string File, vector<string> argv, vector<string> en
 #else
     int pid = vfork();
 #endif
+
     if (pid > 0) {
 	if (errno) {
 	    sprintf(errorLine, "Unable to start %s: %s\n", file.string_of(), sys_errlist[errno]);
@@ -1209,6 +1225,10 @@ tp->resourceBatchMode(true);
 
         // find the signal handler function
 	ret->findSignalHandler(); // should this be in the ctor?
+
+        // initializing vector of threads - thread[0] is really the 
+        // same process
+        ret->threads += new Thread(ret);
 
 	close(tracePipe[1]);
 	   // parent never writes trace records; it only receives them.
@@ -2562,11 +2582,13 @@ bool process::launchRPCifAppropriate(bool wasRunning) {
 
 // Code for the HPUX version of inferiorRPC exists, but crashes, so
 // for now, don't do inferiorRPC on HPUX!!!!
-/* #if defined(hppa1_1_hp_hpux)
+/*
+#if defined(rs6000_ibm_aix4_1) 
 if (wasRunning)
   (void)continueProc();
 return false;
-#endif */
+#endif
+*/
 
    inferiorRPCinProgress inProgStruct;
    inProgStruct.callbackFunc = todo.callbackFunc;
@@ -2681,9 +2703,14 @@ unsigned process::createRPCtempTramp(AstNode *action,
       return NULL;
    }
 
+#if defined(MT_THREAD)
+   generateMTpreamble((char*)insnBuffer,count,this);
+#endif
+
    reg resultReg = action->generateCode(this, regSpace,
 				        (char*)insnBuffer,
 				        count, noCost);
+
    // do we need to use the result register?
    regSpace->freeRegister(resultReg);
 
@@ -2700,6 +2727,11 @@ unsigned process::createRPCtempTramp(AstNode *action,
 
    unsigned tempTrampBase = inferiorMalloc(this, count, textHeap);
    assert(tempTrampBase);
+
+#if defined(MT_DEBUG)
+   sprintf(errorLine,"********>>>>> tempTrampBase = 0x%x\n",tempTrampBase);
+   logLine(errorLine);
+#endif
 
    firstPossibBreakAddr = tempTrampBase + firstPossibBreakOffset;
    lastPossibBreakAddr = tempTrampBase + lastPossibBreakOffset;
@@ -3150,4 +3182,89 @@ string process::getStatusAsString() const {
 
    assert(false);
    return "???";
+}
+
+bool CT::update(unsigned tableAddr)
+{
+    unsigned i;
+    if (CTfree.size()==0) {
+      if (CTvectorSize==0) {
+        CTvectorAddr = inferiorMalloc(proc, 
+                                      sizeof(unsigned)*CT_BLOCK_SIZE, 
+                                      dataHeap);
+        assert(CTvectorAddr);
+        CTvectorSize = CT_BLOCK_SIZE;
+        for (i=0;i<CT_BLOCK_SIZE;i++) {
+          CTfree += i;
+          CTusage += 0;
+        }
+      }
+      else {
+        unsigned tmp, *tmpCTvector;
+        int previousCTsize;
+        previousCTsize=sizeof(unsigned)*CTvectorSize;
+        tmpCTvector = (unsigned *) malloc(previousCTsize);
+        for (i=CTvectorSize;i<(CTvectorSize+CT_BLOCK_SIZE);i++)
+        {
+          CTfree += i;
+          CTusage += 0;
+        }
+        CTvectorSize += CT_BLOCK_SIZE;
+        tmp = inferiorMalloc(proc, 
+                             sizeof(unsigned)*CTvectorSize, 
+                             dataHeap);
+        assert(tmp);
+        bool aflag;
+        aflag=proc->readDataSpace((caddr_t) CTvectorAddr, 
+                                  previousCTsize,
+			          (caddr_t) tmpCTvector, true);
+        assert(aflag);
+        aflag=proc->writeDataSpace((caddr_t) tmp, previousCTsize,
+			           (caddr_t) tmpCTvector);
+        assert(aflag);
+        vector<unsigVecType> dummy;
+        inferiorFree(proc,CTvectorAddr,dataHeap,dummy);
+        CTvectorAddr = tmp;
+        free(tmpCTvector);
+      }
+      assert(CTvectorAddr);
+      assert(CTusage.size() == CTvectorSize);
+      proc->writeDataSpace((caddr_t) tableAddr, sizeof(unsigned),
+			   (caddr_t) &CTvectorAddr);
+    }
+    if (CTvectorSize > (unsigned)memCT) memCT = CTvectorSize;
+    assert(CTvectorSize >= CTfree.size());
+    activeCT = CTvectorSize-CTfree.size();   
+    assert(CTfree.size());
+    return(true);
+}
+
+void CT::add(unsigned CTid, unsigned &position)
+{
+    unsigned tmpSize;
+    assert(!CTmapTable.defines(CTid));
+    assert(CTfree.size());
+    CTmapTable[CTid] = CTfree[CTfree.size()-1];
+    position = CTmapTable[CTid];
+    tmpSize = CTfree.size();
+    CTfree.resize(tmpSize-1);
+    assert(position < CTusage.size());
+    assert(position < CTvectorSize);
+    assert(CTusage[position]==0);
+    CTusage[position]++;
+}
+
+void CT::remove(unsigned CTid, unsigned position)
+{
+    assert(position < CTusage.size());
+    CTusage[position]--;
+    CTfree += position;
+    CTmapTable.undef(CTid);
+}
+
+void CT::dup(unsigned CTid, unsigned mid, Thread *thr, unsigned &position)
+{
+    CTmapTable[CTid] = thr->CTvector->getCTmapId(mid);
+    position = CTmapTable[CTid];
+    CTmapTable.undef(mid);
 }

@@ -44,6 +44,11 @@
 
 /*
  * $Log: init.h,v $
+ * Revision 1.21  1997/01/27 19:40:43  naim
+ * Part of the base instrumentation for supporting multithreaded applications
+ * (vectors of counter/timers) implemented for all current platforms +
+ * different bug fixes - naim
+ *
  * Revision 1.20  1996/10/31 08:44:58  tamches
  * removed globalMetricVec, unused.
  *
@@ -88,6 +93,10 @@
 extern internalMetric *activeProcs;
 extern internalMetric *bucket_width;
 extern internalMetric *number_of_cpus;
+extern internalMetric *total_CT;
+extern internalMetric *active_CT;
+extern internalMetric *infHeapMemAvailable;
+extern internalMetric *mem_CT;
 
 extern internalMetric *pauseTime;
 extern costMetric *totalPredictedCost;

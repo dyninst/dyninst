@@ -43,6 +43,11 @@
  * context.c - manage a performance context.
  *
  * $Log: context.C,v $
+ * Revision 1.49  1997/01/27 19:40:38  naim
+ * Part of the base instrumentation for supporting multithreaded applications
+ * (vectors of counter/timers) implemented for all current platforms +
+ * different bug fixes - naim
+ *
  * Revision 1.48  1997/01/16 22:00:29  tamches
  * added processNewTSConnection().
  *
@@ -95,6 +100,40 @@ bool applicationDefined()
 }
 
 extern process *findProcess(int); // should become a static method of class process
+
+//timeStamp getCurrentTime(bool);
+
+#if defined(MT_THREAD)
+void createThread(traceThread *fr)
+{
+    Thread *tp;
+    process *parent=NULL;
+
+    assert(fr);
+    parent = findProcess(fr->ppid);
+
+    assert(parent && parent->rid);
+
+    string buffer;
+    buffer = string("thread_") + string(fr->tid);
+    resource *rid;
+    rid = resource::newResource(parent->rid, (void *)tp, nullString, 
+                                P_strdup(buffer.string_of()),
+			        0.0, "", MDL_T_STRING);
+    // creating new thread
+    tp = new Thread(parent, fr->tid, fr->pos, rid);
+    parent->threads += tp;
+}
+
+void updateThreadId(traceThrSelf *fr)
+{
+  process *proc = findProcess(fr->ppid);
+  assert(proc);
+  Thread *thr = proc->threads[0];
+  assert(thr);
+  thr->update_tid(fr->tid, fr->pos);
+}
+#endif
 
 unsigned instInstancePtrHash(instInstance * const &ptr) {
    // would be a static fn but for now aix.C needs it.
@@ -225,7 +264,6 @@ bool continueAllProcesses()
     unsigned p_size = processVec.size();
     for (unsigned u=0; u<p_size; u++)
        if (processVec[u] != NULL) {
-	  //cerr << "continueAll continuing proc pid " << processVec[u]->getPid() << endl;
 	  processVec[u]->continueProc();
        }
 

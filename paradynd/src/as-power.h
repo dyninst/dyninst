@@ -44,6 +44,11 @@
 
 /*
  * $Log: as-power.h,v $
+ * Revision 1.5  1997/01/27 19:40:35  naim
+ * Part of the base instrumentation for supporting multithreaded applications
+ * (vectors of counter/timers) implemented for all current platforms +
+ * different bug fixes - naim
+ *
  * Revision 1.4  1996/11/11 01:39:19  lzheng
  * Moved the instructions which is used to caculate the observed cost
  * from the miniTramps to baseTramp
@@ -106,5 +111,10 @@
 #define SKIP_PRE_INSN           0xd
 #define SKIP_POST_INSN          0xe
 #define UPDATE_COST_INSN        0xf
+
+#define SAVE_PRE_INSN           0xb1
+#define SAVE_POST_INSN          0xb2
+#define RESTORE_PRE_INSN        0xc1
+#define RESTORE_POST_INSN       0xc2
 
 #endif

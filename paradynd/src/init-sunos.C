@@ -41,6 +41,11 @@
 
 /*
  * $Log: init-sunos.C,v $
+ * Revision 1.15  1997/01/27 19:40:41  naim
+ * Part of the base instrumentation for supporting multithreaded applications
+ * (vectors of counter/timers) implemented for all current platforms +
+ * different bug fixes - naim
+ *
  * Revision 1.14  1996/12/11 17:02:48  mjrg
  * fixed problems with handling of fork and exec
  *
@@ -102,6 +107,9 @@ static AstNode *tagArg = new AstNode(AstNode::Param, (void *) 1);
 static AstNode *cmdArg = new AstNode(AstNode::Param, (void *) 4);
 static AstNode *tidArg = new AstNode(AstNode::Param, (void *) 0);
 static AstNode *retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
+#if defined(MT_THREAD)
+static AstNode *THRidArg = new AstNode(AstNode::Param, (void *) 5);
+#endif
 
 bool initOS() {
 
@@ -115,8 +123,14 @@ bool initOS() {
 
   initialRequests += new instMapping("fork", "DYNINSTfork", 
 				     FUNC_EXIT|FUNC_ARG, retVal);
+
   initialRequests += new instMapping("_libc_fork", "DYNINSTfork", 
 				     FUNC_EXIT|FUNC_ARG, retVal);
+
+#if defined(MT_THREAD)
+  initialRequests += new instMapping("MY_thr_create", "DYNINSTthreadCreate", 
+                                     FUNC_EXIT|FUNC_ARG, THRidArg);
+#endif
 
   initialRequests += new instMapping("execve", "DYNINSTexec",
 				     FUNC_ENTRY|FUNC_ARG, tidArg);

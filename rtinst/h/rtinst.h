@@ -153,6 +153,11 @@ void DYNINSTgenerateTraceRecord(traceStream sid, short type,
 extern time64 DYNINSTgetCPUtime(void);
 extern time64 DYNINSTgetWalltime(void);
 
+#if defined(MT_THREAD)
+#define MAX_NUMBER_OF_THREADS (100)
+extern int DYNINSTthreadPos(void);
+extern int DYNINSTthreadSelf(void);
+#endif
 
 /*
    The tramp table is used when we need to insert traps in instrumentation
@@ -172,8 +177,6 @@ struct trampTableEntryStruct {
   unsigned key;
   unsigned val;
 };
-
-
 
 #endif
 

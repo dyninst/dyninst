@@ -184,6 +184,7 @@ static inline unsigned instInstanceHash(instInstance * const &inst) {
 //  return ((unsigned)inst);
 }
 
+class Thread;
 class Frame;
 
 class process {
@@ -355,8 +356,10 @@ class process {
   int traceLink;		/* pipe to transfer traces data over */
   int ioLink;			/* pipe to transfer stdout/stderr over */
   processState status_;	        /* running, stopped, etc. */
+  vector<Thread *> threads;	/* threads belonging to this process */
   bool continueAfterNextStop_;
-
+  // on some platforms we use one heap for text and data so textHeapFree is not
+  // used.
   bool splitHeaps;		/* are the inferior heap split I/D ? */
   inferiorHeap	heaps[2];	/* the heaps text and data */
   resource *rid;		/* handle to resource for this process */
@@ -725,5 +728,76 @@ class Frame {
 };
 
 extern vector<process *> processVec;
+
+#define CT_BLOCK_SIZE 300
+
+class CT {
+  public:
+    CT(process *pproc) : CTvectorAddr(0), CTvectorSize(0), CTmapTable(CThash) 
+    { 
+      proc = pproc; 
+    }
+    unsigned size() { return(CTvectorSize); }
+    bool update(unsigned tableAddr);
+    void add(unsigned CTid, unsigned &position); 
+    void remove(unsigned CTid, unsigned position);
+    void dup(unsigned CTid, unsigned mid, Thread *thr, unsigned &position);
+    unsigned getCTmapId(unsigned mid) 
+    {
+      assert(CTmapTable.defines(mid));
+      return(CTmapTable[mid]); 
+    }
+    unsigned getCTusagePos(unsigned position) {
+      assert(position < CTusage.size()); 
+      return(CTusage[position]); 
+    }
+  private:
+    unsigned CTvectorAddr;
+    unsigned CTvectorSize;
+    dictionary_hash<unsigned, unsigned> CTmapTable;
+    vector<int> CTusage;
+    vector<int> CTfree;
+    process *proc;
+};
+
+class Thread {
+  public:
+    // This definition must be completed later when we get the result of a call
+    // to thr_self in the application. We are assuming that 
+    // 0 <= thr_self,tid < MAX_NUMBER_OF_THREADS - naim
+    Thread(process *pproc) : tid(0), pos(0), rid(NULL) 
+    { 
+      proc = pproc; 
+      ppid = pproc->getPid();
+      CTvector = new CT(proc);
+    }
+    Thread(process *proc_, int tid_, int pos_, resource *rid_ )
+    { 
+      proc = proc_; 
+      ppid = proc_->getPid();
+      tid = tid_;
+      pos = pos_;
+      rid = rid_;
+      CTvector = new CT(proc_);
+      //assert(tid>=0 && tid<MAX_NUMBER_OF_THREADS);
+    }
+    ~Thread() 
+    { 
+      delete CTvector;
+    }
+    int get_tid() { return(tid); }
+    unsigned get_pos() { return(pos); }
+    void update_tid(int id, int p) { tid = id; pos = p; }
+    int get_ppid() { return(ppid); }
+    resource *get_rid() { return(rid); }
+    process *get_proc() { return(proc); }
+    CT *CTvector;
+  private:
+    int tid;
+    int ppid;
+    int pos;
+    resource *rid;
+    process *proc;
+};
 
 #endif

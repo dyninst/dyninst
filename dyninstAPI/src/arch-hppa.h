@@ -135,6 +135,16 @@ struct arithmetic_logical {
     unsigned t    : 5;
 };
 
+struct arithmetic_3 {
+    unsigned op    : 6;
+    unsigned r2    : 5;
+    unsigned r1    : 5;
+    unsigned c     : 3;
+    unsigned dummy : 3;
+    unsigned cp    : 5;
+    unsigned t     : 5;
+};
+
 struct arithmetic_immediate {
     unsigned op   : 6;
     unsigned r    : 5;
@@ -156,6 +166,7 @@ struct computation_generic {
 union computation_instruction {
     arithmetic_logical   al;
     arithmetic_immediate ai;
+    arithmetic_3         a3;
     computation_generic  cg;
 };
 

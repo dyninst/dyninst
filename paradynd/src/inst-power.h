@@ -45,6 +45,11 @@
 
 /*
  * $Log: inst-power.h,v $
+ * Revision 1.3  1997/01/27 19:40:48  naim
+ * Part of the base instrumentation for supporting multithreaded applications
+ * (vectors of counter/timers) implemented for all current platforms +
+ * different bug fixes - naim
+ *
  * Revision 1.2  1996/08/16 21:18:56  tamches
  * updated copyright for release 1.1
  *
@@ -81,5 +86,11 @@ extern registerSpace *regSpace;
 extern trampTemplate baseTemplate;
 extern trampTemplate noArgsTemplate;
 extern trampTemplate withArgsTemplate;
+
+#define REG_MT               12   /* register saved to keep the address of */
+                                  /* the current vector of counter/timers  */
+                                  /* for each thread.                      */
+#define NUM_INSN_MT_PREAMBLE 21   /* number of instructions required for   */
+                                  /* the MT preamble.                      */ 
 
 #endif

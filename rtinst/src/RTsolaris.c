@@ -46,13 +46,16 @@
 #include <signal.h>
 #include <sys/ucontext.h>
 #include <sys/time.h>
-
 #include <sys/procfs.h> /* /proc PIOCUSAGE */
 #include <stdio.h>
 #include <fcntl.h> /* O_RDONLY */
 #include <unistd.h> /* getpid() */
 
 #include "rtinst/h/rtinst.h"
+
+#if defined(MT_THREAD)
+#include <thread.h>
+#endif
 
 /*extern int    gettimeofday(struct timeval *, struct timezone *);*/
 extern void perror(const char *);
@@ -310,6 +313,29 @@ DYNINSTgetWalltime(void) {
   }
 }
 
+#if defined(MT_THREAD)
+extern unsigned hash_lookup(unsigned key);
+extern unsigned initialize_done;
+extern void initialize_hash(unsigned total);
+extern void initialize_free(unsigned total);
+extern unsigned hash_insert(unsigned k);
+
+int DYNINSTthreadSelf(void) {
+  return(thr_self());
+}
+
+int DYNINSTthreadPos(void) {
+  if (initialize_done) {
+    return(hash_lookup(DYNINSTthreadSelf()));
+  } else {
+    initialize_free(MAX_NUMBER_OF_THREADS);
+    initialize_hash(MAX_NUMBER_OF_THREADS);
+    initialize_done=1;
+    return(hash_insert(DYNINSTthreadSelf()));
+  }
+}
+#endif
+
 
 /****************************************************************************
    The trap handler. Currently being used only on x86 platform.
@@ -350,3 +376,6 @@ void DYNINSTtrapHandler(int sig, siginfo_t *info, ucontext_t *uap) {
     DYNINSTtotalTraps++;
 }
 #endif
+
+
+

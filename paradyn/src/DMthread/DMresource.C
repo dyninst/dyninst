@@ -613,7 +613,11 @@ bool resourceList::getMachineNameReferredTo(string &machName) const {
 	    cout << "getMachineNameReferredTo: nothing below 'Process'" << endl;
 	    return false;
 	 }
+#if defined(MT_THREAD)
+	 if (components.size() > 3) {
+#else
 	 if (components.size() > 2) {
+#endif
             // currently, there is only one level below "Process"
 	    // Maybe in the future we can have stuff like "/Process/cluster2/process1"
 	    // But for now this acts as a nice assert (in that if the error msg is ever

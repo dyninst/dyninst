@@ -59,6 +59,10 @@ costMetric *totalPredictedCost= NULL;
 costMetric *smooth_obs_cost = NULL;
 costMetric *observed_cost = NULL;
 internalMetric *number_of_cpus = NULL;
+internalMetric *total_CT = NULL;
+internalMetric *active_CT = NULL;
+internalMetric *infHeapMemAvailable = NULL;
+internalMetric *mem_CT = NULL;
 
 int numberOfCPUs;
 
@@ -145,6 +149,43 @@ bool init() {
 						   false,
 						   Sampled);
 
+  total_CT = internalMetric::newInternalMetric("total_CT", 
+						EventCounter,
+						aggMax,
+						"operations",
+						NULL,
+						default_im_preds,
+						true,
+						Sampled);
+
+  active_CT = internalMetric::newInternalMetric("active_CT", 
+						EventCounter,
+						aggMax,
+						"operations",
+						NULL,
+						default_im_preds,
+						true,
+						Sampled);
+
+  mem_CT = internalMetric::newInternalMetric("mem_CT", 
+						EventCounter,
+						aggMax,
+						"operations",
+						NULL,
+						default_im_preds,
+						true,
+						Sampled);
+
+  infHeapMemAvailable = internalMetric::newInternalMetric(
+                                                "infHeapMemAvailable", 
+						EventCounter,
+						aggMax,
+						"bytes",
+						NULL,
+						default_im_preds,
+						true,
+						Sampled);
+
   totalPredictedCost = costMetric::newCostMetric("predicted_cost",
 						 EventCounter,
 					         aggSum,	
@@ -195,6 +236,10 @@ bool init() {
 
 #ifndef SHM_SAMPLING
   sd.name = "DYNINSTobsCostLow"; sd.must_find = true; syms_to_find += sd;
+#endif
+
+#if defined(MT_THREAD)
+  sd.name = "DYNINSTthreadTable"; sd.must_find = true; syms_to_find += sd;
 #endif
 
   sd.name = "DYNINST_bootstrap_info"; sd.must_find = true; syms_to_find += sd;

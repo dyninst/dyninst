@@ -5,6 +5,11 @@
 ; *    appropriate inferior process via ptrace calls.
 ; *
 ; * $Log: tramp-hppa.s,v $
+; * Revision 1.7  1997/01/27 19:41:15  naim
+; * Part of the base instrumentation for supporting multithreaded applications
+; * (vectors of counter/timers) implemented for all current platforms +
+; * different bug fixes - naim
+; *
 ; * Revision 1.6  1997/01/22 15:45:33  lzheng
 ; * Fix a problem with skip branch.(Some instructions cannot be skipped
 ; * at any time)
@@ -82,7 +87,7 @@ _baseTramp
 	nop
 	nop
 	nop
-	nop		
+	nop
 	.word	0xfffffff8		; LOCAL_PRE_BRANCH
 	.word	0xfffffff9		; LOCAL_PRE_BRANCH_1
 	.word   0xffffffd4		; update cost
@@ -131,7 +136,7 @@ _baseTramp
 	nop
 	nop
 	nop
-	nop	
+	nop
 	.word	0xfffffffb		; LOCAL_POST_BRANCH
 	.word	0xfffffffd		; LOCAL_POST_BRANCH_1
 	; RESTORE registers here

@@ -110,7 +110,11 @@ void clearBaseBranch(process *proc, instInstance *inst)
       fromAddr = inst->baseInstance->baseAddr + 
                  (unsigned)inst->baseInstance->skipPreInsOffset;
       toAddr = inst->baseInstance->baseAddr + 
+#if defined(MT_THREAD) && defined(rs6000_ibm_aix4_1)
+               (unsigned)inst->baseInstance->emulateInsOffset;
+#else
                (unsigned)inst->baseInstance->updateCostOffset;
+#endif
       inst->baseInstance->prevInstru = false;
       trampCost = -(inst->baseInstance->prevBaseCost);
     }
@@ -173,7 +177,6 @@ instInstance *addInstFunc(process *proc, const instPoint *&location,
     ret->proc = proc;
     ret->baseInstance = findAndInstallBaseTramp(proc, location, retInstance, 
 						noCost);
-
     if (!ret->baseInstance)
        return(NULL);
 
@@ -239,17 +242,6 @@ instInstance *addInstFunc(process *proc, const instPoint *&location,
     ret->trampBase = inferiorMalloc(proc, count, textHeap);
     assert(ret->trampBase);
 
-#ifdef FREEDEBUG1
-    static vector<unsigned> TESTaddrs;
-    for (unsigned i=0;i<TESTaddrs.size();i++) {
-      if (TESTaddrs[i] == ret->trampBase) {
-        sprintf(errorLine,"=====> inferiorMalloc returned same address 0x%x\n",ret->trampBase);
-        logLine(errorLine);
-      }
-    }
-    TESTaddrs += (unsigned)ret->trampBase;
-#endif
-
     if (!ret->trampBase) return(NULL);
     trampBytes += count;
     ret->returnAddr += ret->trampBase;
@@ -301,7 +293,6 @@ instInstance *addInstFunc(process *proc, const instPoint *&location,
 	unsigned fromAddr = getBaseBranchAddr(proc, ret);
 	generateBranch(proc, fromAddr, ret->trampBase);
     }
-
     return(ret);
 }
 

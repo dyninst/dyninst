@@ -203,3 +203,26 @@ DYNINSTstopWallTimer_hpux(tTimer* timer) {
 
     DYNINSTstopWallTimer(timer);
 }
+
+#if defined(MT_THREAD)
+extern unsigned hash_lookup(unsigned key);
+extern unsigned initialize_done;
+extern void initialize_hash(unsigned total);
+extern void initialize_free(unsigned total);
+extern unsigned hash_insert(unsigned k);
+
+int DYNINSTthreadSelf(void) {
+  return(0);
+}
+
+int DYNINSTthreadPos(void) {
+  if (initialize_done) {
+    return(hash_lookup(DYNINSTthreadSelf()));
+  } else {
+    initialize_free(MAX_NUMBER_OF_THREADS);
+    initialize_hash(MAX_NUMBER_OF_THREADS);
+    initialize_done=1;
+    return(hash_insert(DYNINSTthreadSelf()));
+  }
+}
+#endif

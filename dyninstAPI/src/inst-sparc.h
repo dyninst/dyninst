@@ -63,12 +63,11 @@
 #include "paradynd/src/ast.h"
 #include "paradynd/src/instP.h"
 
-
-#define REG_L7          23        // register saved to keep the address of
-                                  // the current vector of counter/timers
-                                  // for each thread.
-#define NUM_INSN_MT_PREAMBLE 9    // number of instructions required for
-                                  // the MT preamble. 
+#define REG_MT               23   /* register saved to keep the address of */
+                                  /* the current vector of counter/timers  */
+                                  /* for each thread.                      */
+#define NUM_INSN_MT_PREAMBLE  9   /* number of instructions required for   */
+                                  /* the MT preamble.                      */ 
 
 // NOTE: LOW() and HIGH() can return ugly values if x is negative, because in
 // that case, 2's complement has really changed the bitwise representation!
@@ -425,5 +424,6 @@ extern unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i,
 
 extern int getInsnCost(opCode op);
 extern bool isReturnInsn(const image *owner, Address adr, bool &lastOne);
+extern void generateMTpreamble(char *insn, unsigned &base, process *proc);
 
 #endif

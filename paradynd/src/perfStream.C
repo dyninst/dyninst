@@ -245,8 +245,15 @@ void processTraceStream(process *curr)
 	   tp->firstSampleCallback(curr->getPid(), (double) (header.wall/1000000.0));
 	   done_yet = true;
 	}
-
 	switch (header.type) {
+#if defined(MT_THREAD)
+	    case TR_THREAD:
+	        createThread((traceThread *) ((void*)recordData));
+                break;
+	    case TR_THRSELF:
+	        updateThreadId((traceThrSelf *) ((void*)recordData));
+                break;
+#endif
 	    case TR_NEW_RESOURCE:
 //		cerr << "paradynd: received a new resource from pid " << curr->getPid() << "; processing now" << endl;
 		createResource(curr->getPid(), &header, (struct _newresource *) ((void*)recordData));
@@ -534,19 +541,22 @@ int handleSigChild(int pid, int status)
 
 	    case SIGIOT:
 	    case SIGBUS:
+#if (defined(POWER_DEBUG) || defined(HP_DEBUG)) && (defined(rs6000_ibm_aix4_1) || defined(hppa1_1_hp_hpux))
+                // In this way, we will detach from the application and we
+                // will be able to attach again using gdb. We need to send
+                // a kill -ILL pid signal to the application in order to
+                // get here - naim
+                if (ptrace(PT_DETACH,pid,(int *) 1, SIGSTOP, NULL) == -1) { 
+                  logLine("ptrace error\n");
+                }
+#else
 		signal_cerr << "caught signal, dying...  (sig="
                             << WSTOPSIG(status) << ")" << endl << flush;
 
 		curr->status_ = stopped;
 		curr->dumpImage();
-
-//		OS::osDumpCore(pid, "core.real");
-		//handleProcessExit(curr);
-		// ???
-		// should really log this to the error reporting system.
-		// jkh - 6/25/96
-		// now forward it to the process, who will proceed to core dump.
 		curr->continueWithForwardSignal(WSTOPSIG(status));
+#endif
 		break;
 
 	    case SIGALRM:
@@ -573,9 +583,17 @@ int handleSigChild(int pid, int status)
 	    case SIGVTALRM:
 	    case SIGCONT:
 	    case SIGSEGV:	// treadmarks needs this signal
-//		 printf("caught signal, forwarding...  (sig=%d)\n", 
-//		       WSTOPSIG(status)); fflush(stdout);
-
+#if (defined(POWER_DEBUG) || defined(HP_DEBUG)) && (defined(rs6000_ibm_aix4_1) || defined(hppa1_1_hp_hpux))
+                // In this way, we will detach from the application and we
+                // will be able to attach again using gdb - naim
+                if (sig==SIGSEGV)
+		{
+                  logLine("==> Detaching paradynd from the application...\n");
+                  if (ptrace(PT_DETACH,pid,(int *) 1, SIGSTOP, NULL) == -1) 
+                    logLine("ptrace error\n");
+                  break;
+                }
+#endif
 		if (!curr->continueWithForwardSignal(WSTOPSIG(status))) {
                      logLine("error  in forwarding  signal\n");
 		     showErrorCallback(38, "Error  in forwarding  signal");
@@ -600,10 +618,10 @@ int handleSigChild(int pid, int status)
 
 	}
     } else if (WIFEXITED(status)) {
-#ifdef PARADYND_PVM
-        //  if (pvm_running) {
-        //         PDYN_reportSIGCHLD (pid, WEXITSTATUS(status));
-	//}
+#if defined(PARADYND_PVM)
+//        if (pvm_running) {
+//            PDYN_reportSIGCHLD (pid, WEXITSTATUS(status));
+//	}
 #endif
 	sprintf(errorLine, "Process %d has terminated\n", curr->getPid());
 	statusLine(errorLine);
@@ -612,8 +630,7 @@ int handleSigChild(int pid, int status)
 	printDyninstStats();
         handleProcessExit(curr, WEXITSTATUS(status));
     } else if (WIFSIGNALED(status)) {
-	sprintf(errorLine, "process %d has terminated on signal %d\n", curr->getPid(),
-	    WTERMSIG(status));
+	sprintf(errorLine, "process %d has terminated on signal %d\n", curr->getPid(), WTERMSIG(status));
 	logLine(errorLine);
 	statusLine(errorLine);
 	handleProcessExit(curr, WTERMSIG(status));

@@ -565,6 +565,12 @@ bool process::emitInferiorRPCheader(void *insnPtr, unsigned &baseBytes) {
 //   extern void generateIllegalInsn(instruction &);
 //   generateIllegalInsn(insn[baseInstruc++]); 
 
+   // MT_AIX: since we don't have a base-trampoline here, we need to save
+   // registers before we can continue - naim
+   instruction *tmp_insn = (instruction *) (&insn[baseInstruc]);
+   extern void saveAllRegistersThatNeedsSaving(instruction *, unsigned &);
+   saveAllRegistersThatNeedsSaving(tmp_insn,baseInstruc);
+
    // Convert back:
    baseBytes = baseInstruc * sizeof(instruction);
 
@@ -579,6 +585,11 @@ bool process::emitInferiorRPCtrailer(void *insnPtr, unsigned &baseBytes,
 
    instruction *insn = (instruction *)insnPtr;
    unsigned baseInstruc = baseBytes / sizeof(instruction);
+
+   // MT_AIX: restoring previosly saved registers - naim
+   instruction *tmp_insn = (instruction *) (&insn[baseInstruc]);
+   extern void restoreAllRegistersThatNeededSaving(instruction *, unsigned &);
+   restoreAllRegistersThatNeededSaving(tmp_insn,baseInstruc);
 
    // Trap instruction (breakpoint):
    extern void generateBreakPoint(instruction &);

@@ -43,6 +43,11 @@
  * inst-x86.C - x86 dependent functions and code generator
  *
  * $Log: inst-x86.C,v $
+ * Revision 1.9  1997/01/27 19:40:57  naim
+ * Part of the base instrumentation for supporting multithreaded applications
+ * (vectors of counter/timers) implemented for all current platforms +
+ * different bug fixes - naim
+ *
  * Revision 1.8  1997/01/21 23:58:53  mjrg
  * Moved allocation of virtual registers to basetramp and fix to
  * emitInferiorRPCheader to allocate virtual registers
@@ -92,6 +97,7 @@
 #include "showerror.h"
 
 #include "arch-x86.h"
+#include "inst-x86.h"
 
 extern bool isPowerOf2(int value, int &result);
 
@@ -124,6 +130,7 @@ extern bool isPowerOf2(int value, int &result);
    EBP+8 is the first parameter.
    TODO: what about far calls?
  */
+
 #define PARAM_OFFSET (8)
 
 
@@ -132,7 +139,6 @@ extern bool isPowerOf2(int value, int &result);
 
 // offset from EBP of the saved EAX for a tramp
 #define SAVED_EAX_OFFSET (-NUM_VIRTUAL_REGISTERS*4-4)
-
 
 
 /************************************************************************
@@ -750,18 +756,58 @@ void initTramps()
     if (inited) return;
     inited = true;
 
+#if defined(MT_THREAD)
+    for (unsigned u = 0; u < NUM_VIRTUAL_REGISTERS-1; u++) {
+#else
     for (unsigned u = 0; u < NUM_VIRTUAL_REGISTERS; u++) {
+#endif
       deadList[u] = u+1;
     }
 
     regSpace = new registerSpace(sizeof(deadList)/sizeof(int), deadList,					 0, NULL);
 }
 
+
 void emitJump(unsigned disp32, unsigned char *&insn);
 void emitSimpleInsn(unsigned opcode, unsigned char *&insn);
 void emitMovRegToReg(reg dest, reg src, unsigned char *&insn);
 void emitAddMemImm32(Address dest, int imm, unsigned char *&insn);
 void emitOpRegImm(int opcode, reg dest, int imm, unsigned char *&insn);
+void emitMovRegToRM(reg base, int disp, reg src, unsigned char *&insn);
+void emitMovRMToReg(reg dest, reg base, int disp, unsigned char *&insn);
+
+void generateMTpreamble(char *insn, unsigned &base, process *proc)
+{
+  AstNode *t1,*t2,*t3,*t4,*t5;;
+  vector<AstNode *> dummy;
+  unsigned tableAddr;
+  int value; 
+  bool err;
+  reg src = -1;
+
+  /* t3=DYNINSTthreadTable[thr_self()] */
+  t1 = new AstNode("DYNINSTthreadPos", dummy);
+  value = sizeof(unsigned);
+  t4 = new AstNode(AstNode::Constant,(void *)value);
+  t2 = new AstNode(timesOp, t1, t4);
+  removeAst(t1);
+  removeAst(t4);
+
+  tableAddr = proc->findInternalAddress("DYNINSTthreadTable",true,err);
+  assert(!err);
+  t5 = new AstNode(AstNode::Constant, (void *)tableAddr);
+  t3 = new AstNode(plusOp, t2, t5);
+  removeAst(t2);
+  removeAst(t5);
+  src = t3->generateCode(proc, regSpace, insn, base, false);
+  removeAst(t3);
+  // this instruction is different on every platform
+  unsigned char *tmp_insn = (unsigned char *) (&insn[base]);
+  emitMovRMToReg(EAX, EBP, -(src*4), tmp_insn);
+  emitMovRegToRM(EBP, -(REG_MT*4), EAX, tmp_insn); 
+  base += (unsigned)tmp_insn - (unsigned)(&insn[base]);
+  regSpace->freeRegister(src);
+}
 
 /*
  * change the insn at addr to be a branch to newAddr.
@@ -884,7 +930,11 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
 
   // compute the tramp size
   // if there are any changes to the tramp, the size must be updated.
+#if defined(MT_THREAD)
+  unsigned trampSize = 73+2*27;
+#else
   unsigned trampSize = 73;
+#endif
   for (unsigned u = 0; u < location->insnsBefore; u++) {
     trampSize += getRelocatedInstructionSz(location->insnBeforePt[u]);
   }
@@ -953,6 +1003,13 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
   emitSimpleInsn(PUSHAD, insn);    // pushad
   emitSimpleInsn(PUSHFD, insn);    // pushfd
 
+#if defined(MT_THREAD)
+  // generate preamble for MT version
+  unsigned base=0;
+  generateMTpreamble((char *)insn, base, proc);
+  insn += base;
+#endif
+
   // global pre branch
   ret->globalPreOffset = insn-code;
   emitJump(0, insn);
@@ -1014,6 +1071,13 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
   emitSimpleInsn(PUSHAD, insn);    // pushad
   emitSimpleInsn(PUSHFD, insn);    // pushfd
 
+#if defined(MT_THREAD)
+  // generate preamble for MT version
+  base=0;
+  generateMTpreamble((char *)insn, base, proc);
+  insn += base;
+#endif
+
   // global post branch
   ret->globalPostOffset = insn-code; 
   emitJump(0, insn);
@@ -1064,8 +1128,18 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc, bool 
   free(code);
 
   ret->cost = 6;
-  ret->prevBaseCost = 42;
-  ret->postBaseCost = 42;
+  //
+  // The cost for generateMTpreamble is 25 for pre and post instrumentation:
+  // movl   $0x80570ec,%eax                1
+  // call   *%ea                           5
+  // movl   %eax,0xfffffffc(%ebp)          1
+  // shll   $0x2,0xfffffffc(%ebp)         12
+  // addl   $0x84ac670,0xfffffffc(%ebp)    4
+  // movl   0xfffffffc(%ebp),%eax          1
+  // movl   %eax,0xffffff80(%ebp)          1
+  //
+  ret->prevBaseCost = 42+25;
+  ret->postBaseCost = 42+25;
   ret->prevInstru = false;
   ret->postInstru = false;
   return ret;
@@ -1499,6 +1573,12 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *ibuf, unsigned &bas
       emitMovMToReg(EAX, src1, insn);               // mov eax, src1
       emitMovRegToRM(EBP, -(dest*4), EAX, insn);    // mov -(dest*4)[ebp], eax
 
+    } else if (op ==  loadIndirOp) {
+      // same as loadOp, but the value to load is already in a register
+      emitMovRMToReg(EAX, EBP, -(src1*4), insn); // mov eax, -(src1*4)[ebp]
+      emitMovRMToReg(EAX, EAX, 0, insn);         // mov eax, [eax]
+      emitMovRegToRM(EBP, -(dest*4), EAX, insn); // mov -(dest*4)[ebp], eax
+
     } else if (op ==  storeOp) {
       // [dest] = src1
       // dest has the address where src1 is to be stored
@@ -1507,12 +1587,19 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *ibuf, unsigned &bas
       emitMovRMToReg(EAX, EBP, -(src1*4), insn);    // mov eax, -(src1*4)[ebp]
       emitMovRegToM(dest, EAX, insn);               // mov dest, eax
 
+    } else if (op ==  storeIndirOp) {
+      // same as storeOp, but the address where to store is already in a
+      // register
+      emitMovRMToReg(EAX, EBP, -(src1*4), insn);   // mov eax, -(src1*4)[ebp]
+      emitMovRMToReg(ECX, EBP, -(dest*4), insn);   // mov ecx, -(dest*4)[ebp]
+      emitMovRegToRM(ECX, 0, EAX, insn);           // mov [ecx], eax
+
     } else if (op ==  ifOp) {
       // if src1 == 0 jump to dest
       // src1 is a temporary
       // dest is a target address
-      emitOpRegReg(0x29, EAX, EAX, insn);            // sub EAX, EAX ; clear EAX
-      emitOpRegRM(0x3B, EAX, EBP, -(src1*4), insn);  // cmp -(src1*4)[EBP], EAX
+      emitOpRegReg(0x29, EAX, EAX, insn);           // sub EAX, EAX ; clear EAX
+      emitOpRegRM(0x3B, EAX, EBP, -(src1*4), insn); // cmp -(src1*4)[EBP], EAX
       // je dest
       *insn++ = 0x0F;
       *insn++ = 0x84;
@@ -1749,8 +1836,12 @@ int getInsnCost(opCode op)
 	return(1);
     } else if (op ==  loadOp) {
 	return(1+1);
+    } else if (op ==  loadIndirOp) {
+	return(3);
     } else if (op ==  storeOp) {
 	return(1+1); 
+    } else if (op ==  storeIndirOp) {
+	return(3);
     } else if (op ==  ifOp) {
 	return(1+2+1);
     } else if (op ==  callOp) {

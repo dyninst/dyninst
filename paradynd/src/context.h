@@ -48,6 +48,11 @@
 extern timeStamp startPause;
 extern timeStamp elapsedPauseTime;
 
+#if defined(MT_THREAD)
+extern void createThread(traceThread *fr);
+extern void updateThreadId(traceThrSelf *fr);
+#endif
+
 #ifdef SHM_SAMPLING
 extern void forkProcess(int pid, int ppid, key_t theKey, void *applAttachedAtPtr);
 #else

@@ -43,6 +43,11 @@
  * RTaix.c: clock access functions for aix.
  *
  * $Log: RTetc-aix.c,v $
+ * Revision 1.8  1997/01/27 19:43:31  naim
+ * Part of the base instrumentation for supporting multithreaded applications
+ * (vectors of counter/timers) implemented for all current platforms +
+ * different bug fixes - naim
+ *
  * Revision 1.7  1997/01/16 22:19:34  tamches
  * added proper param names to DYNINSTos_init
  *
@@ -68,6 +73,9 @@
 #include <stdio.h>
 #include "rtinst/h/rtinst.h"
 
+#if defined(MT_THREAD)
+#include <sys/thread.h>
+#endif
 
 static const double NANO_PER_USEC = 1.0e3;
 static const long int MILLION       = 1000000;
@@ -269,3 +277,26 @@ int DYNINSTgetRusage(int id)
     }
     return value;
 }
+
+#if defined(MT_THREAD)
+extern unsigned hash_lookup(unsigned key);
+extern unsigned initialize_done;
+extern void initialize_hash(unsigned total);
+extern void initialize_free(unsigned total);
+extern unsigned hash_insert(unsigned k);
+
+int DYNINSTthreadSelf(void) {
+  return(thread_self());
+}
+
+int DYNINSTthreadPos(void) {
+  if (initialize_done) {
+    return(hash_lookup(DYNINSTthreadSelf()));
+  } else {
+    initialize_free(MAX_NUMBER_OF_THREADS);
+    initialize_hash(MAX_NUMBER_OF_THREADS);
+    initialize_done=1;
+    return(hash_insert(DYNINSTthreadSelf()));
+  }
+}
+#endif

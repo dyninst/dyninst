@@ -43,6 +43,11 @@
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.34  1997/01/27 19:40:44  naim
+ * Part of the base instrumentation for supporting multithreaded applications
+ * (vectors of counter/timers) implemented for all current platforms +
+ * different bug fixes - naim
+ *
  * Revision 1.33  1997/01/22 15:44:07  lzheng
  * Two Bugs Fixing for the code generation (in loadConst and assember_21)
  *
@@ -263,7 +268,7 @@ inline assemble_w_w1_w2 offset_to_w_w1_w2(int offset) {
     if (ABS(offset) > getMaxBranch()) {
 	logLine("a branch too far\n");
 	showErrorCallback(52, "");
-	abort();
+	assert(0);
     }
 
     offset -= 8;
@@ -375,6 +380,18 @@ inline void genArithLogInsn(instruction *insn, unsigned op, unsigned ext7,
 
     // logLine("%s %%%s,%%%s,%%%s\n", getStrOp(op), registerNames[rs1],
     // 	registerNames[rs2], registerNames[rd]);
+}
+
+inline void genArith3Insn(instruction *insn, unsigned op, reg rs1, reg rs2, 
+                         int cp, reg rd)
+{
+    insn->raw = 0;
+    insn->ci.a3.op = op;
+    insn->ci.a3.r2 = rs2;
+    insn->ci.a3.r1 = rs1;
+    insn->ci.a3.dummy = 2;
+    insn->ci.a3.cp = cp;
+    insn->ci.a3.t = rd;
 }
 
 inline void genArithImmn(instruction *insn, unsigned op, reg r1, reg r2, 
@@ -786,7 +803,7 @@ void relocateInstruction(process *proc, instruction *&insn, int origAddr,
 		os << "Internal error: unable to find addr of miniCall" << endl;
 		logLine(errorLine);
 		showErrorCallback(80, (const char *) errorLine);
-		P_abort();
+		assert(0);
 	    }
 	dest = midfunc->getAddress(0);
         generateToBranchInsn1(insn,dest); insn++;
@@ -890,11 +907,14 @@ registerSpace *regSpace;
 
 // return values come via r28, r29; these should be dead at call point
 // Not really, actually.
+#if defined(MT_THREAD)
+int deadRegList[] = { 2, 23, 24, 25, 26 };
+#else
 int deadRegList[] = { 3, 2, 23, 24, 25, 26 };
-
+#endif
 
 // r26, r25, r24, r23 are call arguments (in that order)
-int liveRegList[] = { 1, 19, 20, 21, 22, 31, };
+int liveRegList[] = { 1, 19, 20, 21, 22, 31 };
     // all are caller save registers
 
 void initTramps()
@@ -908,6 +928,37 @@ void initTramps()
 
     regSpace = new registerSpace(sizeof(deadRegList)/sizeof(int), deadRegList,
 	sizeof(liveRegList)/sizeof(int), liveRegList);
+}
+
+void generateMTpreamble(char *insn, unsigned &base, process *proc)
+{
+  AstNode *t1,*t2,*t3,*t4,*t5;;
+  vector<AstNode *> dummy;
+  unsigned tableAddr;
+  int value; 
+  bool err;
+  reg src = -1;
+
+  /* t3=DYNINSTthreadTable[thr_self()] */
+  t1 = new AstNode("DYNINSTthreadPos", dummy);
+  value = sizeof(unsigned);
+  t4 = new AstNode(AstNode::Constant,(void *)value);
+  t2 = new AstNode(timesOp, t1, t4);
+  removeAst(t1);
+  removeAst(t4);
+
+  tableAddr = proc->findInternalAddress("DYNINSTthreadTable",true,err);
+  assert(!err);
+  t5 = new AstNode(AstNode::Constant, (void *)tableAddr);
+  t3 = new AstNode(plusOp, t2, t5);
+  removeAst(t2);
+  removeAst(t5);
+  src = t3->generateCode(proc, regSpace, insn, base, false);
+  removeAst(t3);
+  instruction *tmp_insn = (instruction *) ((void*)&insn[base]);
+  genArithImmn(tmp_insn, ADDIop, src, REG_MT, 0);
+  base += sizeof(instruction);
+  regSpace->freeRegister(src);
 }
 
 /*
@@ -1031,6 +1082,15 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc)
 		   (temp->raw == LOCAL_POST_BRANCH) ||
 		   (temp->raw == LOCAL_POST_BRANCH_1) ||
 		   (temp->raw == GLOBAL_POST_BRANCH)) {
+#if defined(MT_THREAD)
+            if ((temp->raw == LOCAL_PRE_BRANCH) ||
+                (temp->raw == LOCAL_POST_BRANCH)) {
+                temp -= NUM_INSN_MT_PREAMBLE;
+                unsigned numIns=0;
+                generateMTpreamble((char *)temp, numIns, proc);
+		temp += NUM_INSN_MT_PREAMBLE;
+            }
+#endif
 	    /* fill with no-op */
 	    generateNOOP(temp);
 	}
@@ -1184,7 +1244,7 @@ unsigned functionKludge(pdFunction *func, process *proc)
 	} else if (loadReturn.raw && loadReturn.mr.ls.tr == 31) {
 	} else {
 	    printf("Internal Error: wrong with function load return\n");
-	    abort();
+	    assert(0);
 	} 
 	address = (func->lr[index])->addr;
 	proc->writeTextWord((caddr_t)address ,loadReturn.raw);
@@ -1198,7 +1258,7 @@ unsigned functionKludge(pdFunction *func, process *proc)
     } else if ((func->exitPoint).raw&&(func->exitPoint).bi.op == BEop ) {
     } else {
 	printf("Internal Error: wrong with function return\n");
-	abort();
+	assert(0);
     } 
     // warning: the following code assumes one exit point!
 //    address = ((func->funcReturn())->addr)+4;
@@ -1231,7 +1291,7 @@ unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i,
 {        
     instruction *insn = (instruction *) ((void*)&i[base]);
     int result;
-    
+
     switch (op) {
 	// integer ops
       case plusOp:
@@ -1243,22 +1303,31 @@ unsigned emitImm(opCode op, reg src1, reg src2, reg dest, char *i,
 	break;
 	
       case timesOp:
-	if (isPowerOf2(src2,result))
-	    genArithLogInsn(insn, SHDop, src1, 0, 32-result, dest); 
+	if (isPowerOf2(src2,result)) {
+            reg src = regSpace->allocateRegister(i,base,noCost);
+            insn = (instruction *) ((void*)&i[base]);
+            generateLoadConst(insn, 0, src, base);
+            insn = (instruction *) ((void*)&i[base]);
+            genArith3Insn(insn, SHDop, src1, src, result-1, dest);
+            regSpace->freeRegister(src);
+	}
 	else 
-	    abort(); // emulated via "floating point!" multiply
+	    assert(0); // emulated via "floating point!" multiply
 	break;
 	
       case divOp:
 	if (isPowerOf2(src2,result))
 	    genArithLogInsn(insn, SHDop, 0, src1, result, dest);
 	else 
-	    abort(); // not implemented
+	    assert(0); // not implemented
 	break;
 	
       default:
-	abort();
-	break;
+        reg dest2 = regSpace->allocateRegister(i, base, noCost);
+        (void) emit(loadConstOp, src2, dest2, dest2, i, base, noCost);
+        (void) emit(op, src1, dest2, dest, i, base, noCost);
+        regSpace->freeRegister(dest2);
+        return(0);
     }
     
     base += sizeof(instruction);
@@ -1417,13 +1486,20 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
     } else if (op ==  loadOp) {
 	generateLoadConst(insn, src1, dest, base);
         insn = (instruction *) ((void*)&i[base]);
-
 	generateLoad(insn, dest, dest);
+	base += sizeof(instruction);
+    } else if (op ==  loadIndirOp) {
+        insn = (instruction *) ((void*)&i[base]);
+	generateLoad(insn, src1, dest);
 	base += sizeof(instruction);
     } else if (op ==  storeOp) {
 	generateLoadConst(insn, dest, src2, base);
         insn = (instruction *) ((void*)&i[base]);
 	generateStore(insn, src1, src2);
+	base += sizeof(instruction);
+    } else if (op ==  storeIndirOp) {
+        insn = (instruction *) ((void*)&i[base]);
+	generateStore(insn, src1, dest);
 	base += sizeof(instruction);
     } else if (op ==  storeMemOp) {
 	generateStore(insn, src1, src2, dest);
@@ -1514,10 +1590,10 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
 	if (src1 <= 4) {
  	    return (26-src1);
 	}
-	abort();
+	assert(0);
     } else if (op == saveRegOp) {
 	// should never be called for this platform.
-	abort();
+	assert(0);
     } else {
       unsigned aop = 0;
       unsigned ext7 = 0;
@@ -1583,13 +1659,15 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
 
 	    case timesOp:
 		// emulated via "floating point!" multiply
+                assert(0);
+         	break;
 	    case divOp:
 		// emulated via millicode
-		abort();
+		assert(0);
 		break;
 
 	    default:
-		abort();
+		assert(0);
 		break;
 	}
 	genArithLogInsn(insn, aop, ext7, src1, src2, dest);
@@ -1604,8 +1682,12 @@ int getInsnCost(opCode op)
 	return(1);
     } else if (op ==  loadOp) {
 	return(2+1);
+    } else if (op ==  loadIndirOp) {
+	return(1);
     } else if (op ==  storeOp) {
 	return(2+1);
+    } else if (op ==  storeIndirOp) {
+	return(1);
     } else if (op ==  ifOp) {
 	return(1+1);
     } else if (op ==  callOp) {
@@ -1842,8 +1924,8 @@ bool doNotOverflow(int value)
   // be checked here, then the function should return TRUE. If there isn't
   // any immediate code to be generated, then it should return FALSE - naim
   //
-  //  if ( (value <= 2047) && (value >= -2048) ) return (true); 
-  return(false);
+  if ( (value <= 2047) && (value >= -2048) ) return (true); 
+  else return(false);
 }
 
 void instWaitingList::cleanUp(process *proc, Address pc) {

@@ -44,6 +44,11 @@
 
 /*
  * $Log: arch-power.h,v $
+ * Revision 1.7  1997/01/27 19:40:34  naim
+ * Part of the base instrumentation for supporting multithreaded applications
+ * (vectors of counter/timers) implemented for all current platforms +
+ * different bug fixes - naim
+ *
  * Revision 1.6  1996/10/18 23:51:20  mjrg
  * Added function to test for alignment
  *
@@ -174,6 +179,7 @@ typedef union instructUnion instruction;
 #define SUBFxop		8
 #define MULLWxop	235
 #define ADDxop		266
+#define DIVSxop         363
 #define DIVWxop		491
 
 /* Shift operations */

@@ -638,7 +638,8 @@ bool paradynDaemon::continueAll()
     if (procRunning == 0)
        return false;
 
-    for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
+    for(int i = paradynDaemon::allDaemons.size()-1; i >= 0; i--) 
+    {
         pd = paradynDaemon::allDaemons[i];
 	pd->continueApplication();
     }

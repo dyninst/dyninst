@@ -277,6 +277,9 @@ static void add_processes(vector< vector<string> > &focus,
 #endif    
     break;
   case 2:
+#if defined(MT_THREAD)
+  case 3:
+#endif
     ps = procs.size();
     for (pi=0; pi<ps; pi++)
       if (procs[pi]->rid->part_name() == focus[resource::process][1]) {
@@ -1106,7 +1109,7 @@ bool T_dyninstRPC::mdl_instr_req::apply(AstNode *&mn, AstNode *pred,
       assert(aflag);
   }
 
-  AstNode *code=NULL, *tmp=NULL;
+  AstNode *code=NULL;
 
   switch (type_) {
   case MDL_SET_COUNTER:
@@ -1122,11 +1125,7 @@ bool T_dyninstRPC::mdl_instr_req::apply(AstNode *&mn, AstNode *pred,
   case MDL_STOP_WALL_TIMER:
   case MDL_START_PROC_TIMER:
   case MDL_STOP_PROC_TIMER:
-    tmp = new AstNode(AstNode::DataPtr, (void *) drn);
-    ast_args += assignAst(tmp);
-    removeAst(tmp);
-    code = new AstNode(timer_fun, ast_args);
-    for (unsigned i=0;i<ast_args.size();i++) removeAst(ast_args[i]);
+    code = createTimer(timer_fun, drn, ast_args);
     break;
   case MDL_CALL_FUNC:
     if (! rand_->apply(code))

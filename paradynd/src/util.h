@@ -43,6 +43,11 @@
  * util.h - support functions.
  *
  * $Log: util.h,v $
+ * Revision 1.14  1997/01/27 19:41:19  naim
+ * Part of the base instrumentation for supporting multithreaded applications
+ * (vectors of counter/timers) implemented for all current platforms +
+ * different bug fixes - naim
+ *
  * Revision 1.13  1996/10/31 08:54:04  tamches
  * added headers for some time routines and vrbles
  *
@@ -100,6 +105,10 @@ inline unsigned uiHash(const unsigned &val) {
   return val % 23;
 }
 
+inline unsigned CThash(const unsigned &val) {
+  return val % 1048573;
+}
+
 unsigned addrHash16(const unsigned &addr);
 
 inline unsigned intHash(const int &val) {
@@ -114,5 +123,25 @@ typedef struct sym_data {
   bool must_find;
 } sym_data;
 
+// TIMING code
+
+#if defined(sparc_sun_solaris2_4)
+
+#define MAX_N_TIMERS 10
+
+extern hrtime_t TIMINGtime1[MAX_N_TIMERS];
+extern hrtime_t TIMINGtime2[MAX_N_TIMERS]; 
+extern hrtime_t TIMINGcur[MAX_N_TIMERS];
+extern hrtime_t TIMINGtot[MAX_N_TIMERS];
+extern hrtime_t TIMINGmax[MAX_N_TIMERS];
+extern hrtime_t TIMINGmin[MAX_N_TIMERS];
+extern int TIMINGcounter[MAX_N_TIMERS];
+
+extern void begin_timing(int id);
+extern void end_timing(int id, char *func);
+
+#endif
+
+// TIMING code
 
 #endif /* UTIL_H */

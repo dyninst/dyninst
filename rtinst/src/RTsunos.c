@@ -46,6 +46,11 @@
  * RTsunos.c: SunOs-4.1.3 specific functions.
  *
  * $Log: RTsunos.c,v $
+ * Revision 1.10  1997/01/27 19:43:37  naim
+ * Part of the base instrumentation for supporting multithreaded applications
+ * (vectors of counter/timers) implemented for all current platforms +
+ * different bug fixes - naim
+ *
  * Revision 1.9  1997/01/16 22:17:38  tamches
  * added proper param names to DYNINSTos_init
  *
@@ -369,3 +374,26 @@ int DYNINSTgetRusage(int id)
     }
     return value;
 }
+
+#if defined(MT_THREAD)
+extern unsigned hash_lookup(unsigned key);
+extern unsigned initialize_done;
+extern void initialize_hash(unsigned total);
+extern void initialize_free(unsigned total);
+extern unsigned hash_insert(unsigned k);
+
+int DYNINSTthreadSelf(void) {
+  return(0);
+}
+
+int DYNINSTthreadPos(void) {
+  if (initialize_done) {
+    return(hash_lookup(DYNINSTthreadSelf()));
+  } else {
+    initialize_free(MAX_NUMBER_OF_THREADS);
+    initialize_hash(MAX_NUMBER_OF_THREADS);
+    initialize_done=1;
+    return(hash_insert(DYNINSTthreadSelf()));
+  }
+}
+#endif

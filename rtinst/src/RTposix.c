@@ -81,6 +81,18 @@
 #include "rtinst/h/trace.h"
 #include "util/h/sys.h"
 
+#if defined(sparc_sun_solaris2_4)
+#include <thread.h>
+#endif
+
+#if defined(MT_THREAD)
+void initialize_hash(unsigned total);
+void initialize_free(unsigned total);
+unsigned hash_insert(unsigned k);
+unsigned hash_lookup(unsigned k);
+unsigned initialize_done=0;
+#endif
+
 
 /* sunos's header files don't have these: */
 #ifdef sparc_sun_sunos4_1_3
@@ -1065,6 +1077,10 @@ DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid) {
 
     char *temp;
 
+#if defined(MT_THREAD)
+    traceThrSelf traceRec;
+#endif
+
 #ifdef SHM_SAMPLING_DEBUG
    char thehostname[80];
    extern int gethostname(char*,int);
@@ -1256,6 +1272,22 @@ DYNINSTinit(int theKey, int shmSegNumBytes, int paradyndPid) {
    /* Verify that the trace stream was set up okay */
    assert(DYNINST_trace_fd != -1);
    assert(DYNINSTtraceFp);
+
+#if defined(MT_THREAD)
+    if (!initialize_done) {
+      initialize_free(MAX_NUMBER_OF_THREADS);
+      initialize_hash(MAX_NUMBER_OF_THREADS);
+      traceRec.pos = hash_insert(DYNINSTthreadSelf());
+      initialize_done=1;
+    } else {
+      traceRec.pos = hash_lookup(DYNINSTthreadSelf());
+    }
+    traceRec.tid = DYNINSTthreadSelf();
+    traceRec.ppid = getpid();
+    DYNINSTgenerateTraceRecord(0, TR_THRSELF, sizeof(traceRec), &traceRec, 1,
+			       DYNINSTgetWalltime(),
+                               DYNINSTgetCPUtime());
+#endif
 				   
    /* Now, we stop ourselves.  When paradynd receives the forwarded signal,
       it will read from DYNINST_bootstrap_info */
@@ -1417,8 +1449,6 @@ static void makeNewShmSegCopy(void) {
    shmsampling_printf("d-f makeNewShmSegsCopy: done.\n");
 }
 #endif
-
-
 
 /* debug code should call forkexec_printf as a way of avoiding
    putting #ifdef FORK_EXEC_DEBUG around their fprintf(stderr, ...) statements,
@@ -1992,3 +2022,160 @@ DYNINSTgetMsgVectBytes(struct msghdr *msg)
     }
     return count;
 }
+
+#if defined(MT_THREAD)
+
+unsigned DYNINSTthreadTable[MAX_NUMBER_OF_THREADS];
+
+struct elemList {
+  unsigned pos;
+  struct elemList *next;
+};
+
+struct elemList *freeList=NULL;
+
+void add_free(unsigned pos)
+{
+  struct elemList *tmp;
+  tmp = (struct elemList *) malloc(sizeof(struct elemList));
+  tmp->pos = pos;
+  tmp->next = freeList;
+  freeList = tmp;
+}
+
+unsigned get_free()
+{
+  unsigned pos;
+  struct elemList *tmp;
+  if (freeList) {
+    pos = freeList->pos;
+    tmp = freeList;
+    freeList = freeList->next;
+    free(tmp);
+    return(pos);
+  }
+  abort();
+}
+
+void initialize_free(unsigned total)
+{
+  struct elemList *tmp;
+  int i;
+  for (i=0;i<total;i++) {
+    tmp = (struct elemList *) malloc(sizeof(struct elemList));   
+    tmp->pos = i;
+    tmp->next = freeList;
+    freeList = tmp;
+  }
+}
+
+#define HASH(x) (x % MAX_NUMBER_OF_THREADS)
+
+struct nlist {
+  unsigned key;
+  unsigned val;
+  struct nlist *next;
+};
+
+struct nlist *ThreadTable[MAX_NUMBER_OF_THREADS];
+unsigned currentNumberOfThreads=0;
+
+void initialize_hash(unsigned total)
+{
+  int i;
+  for (i=0;i<total;i++) ThreadTable[i]=NULL;
+}
+
+unsigned hash_lookup(unsigned k)
+{
+  unsigned pos;
+  struct nlist *p;
+  pos = HASH(k);
+  p=ThreadTable[pos];
+  while (p!=NULL) {
+    if (p->key==k) break;
+    else p=p->next;
+  }
+  assert(p!=NULL);
+  return(p->val);
+}
+
+unsigned hash_insert(unsigned k)
+{
+  unsigned pos;
+  struct nlist *p, *tmp;
+  pos = HASH(k);
+  p=ThreadTable[pos];
+  if (p != NULL) {
+    while (p!=NULL) {
+      tmp=p;
+      if (p->key==k) break;
+      else p=p->next;
+    }
+    assert(p==NULL);
+    assert(++currentNumberOfThreads<MAX_NUMBER_OF_THREADS);
+    p = (struct nlist *) malloc(sizeof(struct nlist));
+    p->next=NULL;
+    p->key=k;
+    p->val=get_free();
+    tmp->next=p;
+  } else {
+    assert(++currentNumberOfThreads<MAX_NUMBER_OF_THREADS);
+    p = (struct nlist *) malloc(sizeof(struct nlist));
+    p->next=NULL;
+    p->key=k;
+    p->val=get_free();
+    ThreadTable[pos]=p;
+  }
+  return(p->val);
+}
+
+void hash_delete(unsigned k)
+{
+  unsigned pos;
+  struct nlist *p=NULL, *tmp=NULL;
+  pos = HASH(k);
+  p=ThreadTable[pos];
+  assert(p);
+  if (p->key==k) {
+    ThreadTable[pos] = p->next;
+    add_free(tmp->val);
+    free(p);
+  }
+  else {
+    while (p!=NULL) {
+      if (p->key==k) break;
+      else {
+        tmp=p;
+        p=p->next;
+      }
+    }
+    assert(p!=NULL && tmp!=NULL);
+    tmp->next = p->next;
+    add_free(p->val);
+    free(p);
+  }
+  currentNumberOfThreads--;
+}
+
+/************************************************************************
+ * void DYNINSTthreadCreate()
+ *
+ * track a thr_create() system call, and report to the paradyn daemon.
+ ************************************************************************/
+
+void
+DYNINSTthreadCreate(int *tid) {
+    traceThread traceRec;
+    time64 process_time = DYNINSTgetCPUtime();
+    time64 wall_time = DYNINSTgetWalltime();
+    traceRec.ppid   = getpid();
+    traceRec.tid    = *tid;
+    traceRec.ntids  = 1;
+    traceRec.stride = 0;
+    DYNINSTgenerateTraceRecord(0,TR_THREAD,sizeof(traceRec), &traceRec, 1,
+			       wall_time,process_time);
+    hash_insert(*tid);
+}
+
+#endif
