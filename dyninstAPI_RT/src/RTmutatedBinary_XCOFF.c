@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTmutatedBinary_XCOFF.c,v 1.7 2005/03/17 15:35:10 jodom Exp $ */
+/* $Id: RTmutatedBinary_XCOFF.c,v 1.8 2005/03/23 18:34:00 bernat Exp $ */
 
 
 /* this file contains the code to restore the necessary
@@ -58,8 +58,8 @@
 #include <xcoff.h>
 
 /* Copied from RTheap-aix.c */
-Address DYNINSTheap_loAddr = 0x30000000;
-Address DYNINSTheap_hiAddr = 0xcfffffff;
+extern Address DYNINSTheap_loAddr;
+extern Address DYNINSTheap_hiAddr;
 
 
 unsigned int checkAddr;
