@@ -14,7 +14,10 @@
 
 /*
  * $Log: metMain.C,v $
- * Revision 1.2  1994/07/07 13:10:41  markc
+ * Revision 1.3  1994/08/03 19:11:07  hollings
+ * split tunable constants into two parts: boolean and float.
+ *
+ * Revision 1.2  1994/07/07  13:10:41  markc
  * Turned off debugging printfs.
  *
  * Revision 1.1  1994/07/07  03:25:25  markc
@@ -372,25 +375,29 @@ int metDoTunable()
   tunableStruct *the_ts;
   List<tunableStruct*> tl;
   tunableConstant* curr;
+  tunableFloatConstant *fConst;
   char *sp;
 
   if (!tunableConstant::allConstants)
     return -1;
 
-  for (tl = globalTunable; the_ts = *tl; tl++)
-    {
+  for (tl = globalTunable; the_ts = *tl; tl++) {
       // dumpTunable(the_ts->name, the_ts->value);
       sp = tunableConstant::pool->findAndAdd(the_ts->name);
       curr = tunableConstant::allConstants->find(sp);
 
-      if (curr)
-	{
-	  if (!curr->setValue(the_ts->value))
+      if (!curr) {
+	  printf("Undefined tunable constant %s\n", the_ts->name);
+      } else if (curr->getType() == tunableFloat) {
+	  fConst = (tunableFloatConstant *) curr;
+	  if (!fConst->setValue(the_ts->value))
 	    ; // printf("Can't set value of tunable constant\n");
 	  else
 	    ; //printf("Set Tunable Constant: %s = %f\n", the_ts->name,
 	//	   the_ts->value);
-	}
-    }
+      } else if (curr->getType() == tunableBoolean) {
+	  printf("*** ERROR: can't set tunable Boolean yet\n");
+      }
+  }
   return 0;
 }
