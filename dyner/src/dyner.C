@@ -1595,9 +1595,9 @@ int ShowModules()
     }
 
     names = (char **) calloc(modules->size(), sizeof(char *));
-    for(int i=0; i<modules->size(); ++i) {
-	(*modules)[i]->getName(modName, 1024);
-	names[i] = strdup(modName);
+    for(int m=0; m<modules->size(); ++m) {
+	(*modules)[m]->getName(modName, 1024);
+	names[m] = strdup(modName);
     }
 
     qsort(names, modules->size(), sizeof(char *), stringCompare);
