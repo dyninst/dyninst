@@ -55,7 +55,7 @@ extern debug_ostream sharedobj_cerr;
 #include <dirent.h>
 #include <sys/stat.h>
 
-#if defined(i386_unknown_linux2_4)
+#if defined(i386_unknown_linux2_0)
 #include <sys/reg.h>
 #else
 // From Intel's Software Conventions and Runtime Architecture Guide, sp = r12
