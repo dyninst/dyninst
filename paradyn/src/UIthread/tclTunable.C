@@ -2,10 +2,14 @@
 // C++ code that provides access to tunable constants from tcl.
 
 /* $Log: tclTunable.C,v $
-/* Revision 1.4  1994/12/21 07:40:49  tamches
-/* Removed uses of tunableConstant::allConstants (which became a protected
-/* class variable), replacing them with tunableConstant::beginIteration();
+/* Revision 1.5  1995/02/27 18:57:51  tamches
+/* Extensive changes, to reflect equally extensive changes which
+/* have been made to tunable constants.
 /*
+ * Revision 1.4  1994/12/21  07:40:49  tamches
+ * Removed uses of tunableConstant::allConstants (which became a protected
+ * class variable), replacing them with tunableConstant::beginIteration();
+ *
  * Revision 1.3  1994/12/21  00:44:07  tamches
  * Reduces compiler warnings e.g Bool to bool, char * to const char *
  *
@@ -22,7 +26,7 @@
 #include <stdlib.h> // atoi()
 #include <tcl.h>
 #include <tk.h>
-#include "util/h/tunableConst.h"
+#include "../TCthread/tunableConst.h"
 
 #include "tclTunable.h"
 
@@ -32,47 +36,42 @@ struct cmdTabEntry {
    int   numArgs;
 };
 
-const int GETNUMTUNABLES      =0;
-const int GETNAME             =1;
-const int GETDESCRIPTION      =2;
-const int GETVALUEBYNAME      =3;
-const int GETVALUEBYINDEX     =4;
-const int SETVALUEBYNAME      =5;
-const int SETVALUEBYINDEX     =6;
-const int GETTYPEBYINDEX      =7;
+const int GETBOOLALLNAMES     =0; // return an array of names, representing the associative
+                                  // array index values for each boolean tunable constant in
+                                  // the registry.
+const int GETFLOATALLNAMES    =1; // return an array of names, representing the associative
+                                  // array index values for each float tunable constant in
+                                  // the registry.
+const int GETNUMTUNABLES      =2;
+const int GETNUMBOOLTUNABLES  =3;
+const int GETNUMFLOATTUNABLES =4;
+const int GETDESCRIPTION      =5;
+const int GETVALUEBYNAME      =6;
+const int SETVALUEBYNAME      =7;
 const int GETTYPEBYNAME       =8;
-const int GETUSEBYINDEX       =9;
-const int GETUSEBYNAME        =10;
-const int GETFLOATRANGEBYINDEX=11;
-const int GETFLOATRANGEBYNAME =12; 
-const int CMDERROR            =13;
+const int GETUSEBYNAME        =9;
+const int GETFLOATRANGEBYNAME =10;
+const int CMDERROR            =11;
 
 struct cmdTabEntry TclTunableCommands[] = {
-  {"getnumtunables", GETNUMTUNABLES, 0},   // size of global tunable list
-  {"getname", GETNAME, 1},                 // index # to string
-  {"getdescription", GETDESCRIPTION, 1},   // index # to string
-
-  {"getvaluebyname", GETVALUEBYNAME, 1},   // string (getname) to value
-  {"getvaluebyindex", GETVALUEBYINDEX, 1}, // index # to value
-
-  {"setvaluebyname", SETVALUEBYNAME, 2},   // string (getname) x value to NULL
-  {"setvaluebyindex", SETVALUEBYINDEX, 2}, // index # x value to NULL
-
-  {"gettypebyindex", GETTYPEBYINDEX, 1},   // index # to type (bool, float, etc.)
-  {"gettypebyname", GETTYPEBYNAME, 1},     // string (getname) to tunable constant type (bool, float, etc.)
-
-  {"getusebyindex", GETUSEBYINDEX, 1},     // index # to tunableUse (developerConstant, userConstant)
-  {"getusebyname", GETUSEBYNAME, 1},       // index # to tunableUse (developerConstant, userConstant)
-
-  {"getfloatrangebyindex", GETFLOATRANGEBYINDEX, 1}, // index # to floating point range (define only for float tunable constants)
-  {"getfloatrangebyname", GETFLOATRANGEBYINDEX, 1},
+  {"getboolallnames", GETBOOLALLNAMES, 0}, // return a copy of all boolean tc names
+  {"getfloatallnames", GETFLOATALLNAMES, 0}, // return a copy of all float tc names
+  {"getnumtunables", GETNUMTUNABLES, 0},   // size of global tunable lists
+  {"getnumbooltunables", GETNUMBOOLTUNABLES, 0},   // size of global bool tunable list
+  {"getnumfloattunables", GETNUMFLOATTUNABLES, 0},   // size of global float tunable list
+  {"getdescription", GETDESCRIPTION, 1},   // string (name) to string (description)
+  {"getvaluebyname", GETVALUEBYNAME, 1},   // string (name) to value
+  {"setvaluebyname", SETVALUEBYNAME, 2},   // string (name) x value to NULL
+  {"gettypebyname", GETTYPEBYNAME, 1},     // string (name) to tc type (bool, float)
+  {"getusebyname", GETUSEBYNAME, 1},       // string (name) to tunableUse (developerConstant, userConstant)
+  {"getfloatrangebyname", GETFLOATRANGEBYNAME, 1}, // string (name) to float range
 
   {NULL, CMDERROR, 0}
 };
 
 int findCommand(Tcl_Interp *interp, int argc, char **argv) {
    if (argc==0) {
-      sprintf(interp->result, "USAGE: TclTunable <option> args\n");
+      sprintf(interp->result, "USAGE: uimpd tclTunable <option> args\n");
       return CMDERROR;
    }
 
@@ -94,113 +93,42 @@ int findCommand(Tcl_Interp *interp, int argc, char **argv) {
    return CMDERROR;
 }
 
-tunableConstant *tunableConstantListEntryByIndex(int index) {
-   // We'll say that index numbers start at 0
-   // If 1 proves more convenient, we'll change it later...
+char *getBoolAllNames() {
+   // Tcl_Merge takes in an array of strings, and returns a list
+   // string, which MUST eventually be free()'d.
+   const int numBoolTunables = tunableConstantRegistry::numBoolTunables();
+   vector<tunableBooleanConstant> allBoolConstants = tunableConstantRegistry::getAllBoolTunableConstants();
+   assert(allBoolConstants.size() == numBoolTunables);
 
-   List<tunableConstant *> iterList = tunableConstant::beginIteration();
-      // make a copy of the list for iteration purposes
-      // (actually, it just copies the head element, which itself
-      // is merely a pointer)
+   char **boolConstantStrings = new char* [numBoolTunables];
+   assert(boolConstantStrings);
 
-   tunableConstant *tc;
-   while (NULL != (tc = *iterList)) {
-      if (--index < 0)
-         return tc; // normal return
-
-      iterList++;
+   for (int lcv=0; lcv<numBoolTunables; lcv++) {
+      const string &theName = allBoolConstants[lcv].getName();
+      boolConstantStrings[lcv] = theName.string_of();
    }
 
-   cerr << "Tunable constant #" << index << " looks out of range." << endl;
-   return NULL;
+   char *resultString = Tcl_Merge(numBoolTunables, boolConstantStrings);
+   return resultString;
 }
 
-tunableConstant *findTunableConstantListEntryByName(char *name) {
-   List<tunableConstant *> iterList = tunableConstant::beginIteration();
-      // make a copy of the list for iteration purposes
-      // (actually, it just copies the head element, which itself
-      // is merely a pointer)
+char *getFloatAllNames() {
+   // Tcl_Merge takes in an array of strings, and returns a list
+   // string, which MUST eventually be free()'d.
+   const int numFloatTunables = tunableConstantRegistry::numFloatTunables();
+   vector<tunableFloatConstant> allFloatConstants = tunableConstantRegistry::getAllFloatTunableConstants();
+   assert(allFloatConstants.size() == numFloatTunables);
 
-   tunableConstant *tc;
-   while (NULL != (tc = *iterList)) {
-      if (0==strcmp(tc->getName(), name))
-         return tc;
-      iterList++;
+   char **floatConstantStrings = new char* [numFloatTunables];
+   assert(floatConstantStrings);
+
+   for (int lcv=0; lcv<numFloatTunables; lcv++) {
+      const string &theName = allFloatConstants[lcv].getName();
+      floatConstantStrings[lcv] = theName.string_of();
    }
 
-   cerr << "findTunableConstantListEntryByName: could not find tc with name=" << name << endl;
-   return NULL;
-}
-
-int getValue(Tcl_Interp *interp, tunableConstant *tc) {
-   if (NULL==tc) {
-      sprintf(interp->result, "getValue error: no tunable constant");
-      return TCL_ERROR;
-   }
-
-   // stick value into interp->result as a string
-   if (tc->getType() == tunableBoolean)
-      sprintf(interp->result, "%d", ((tunableBooleanConstant *)tc)->getValue() ? 1 : 0);
-   else if (tc->getType() == tunableFloat)
-      sprintf(interp->result, "%g", ((tunableFloatConstant *)tc)->getValue());
-   else
-      assert(false);
-
-   return TCL_OK;
-}
-
-int setValue(Tcl_Interp *interp, tunableConstant *tc, char *newValString) {
-   if (NULL==tc) return TCL_ERROR;
-
-   // stick value into interp->result as a string
-   if (tc->getType() == tunableBoolean)
-      ((tunableBooleanConstant *)tc)->setValue((bool)atoi(newValString));
-   else if (tc->getType() == tunableFloat)
-      ((tunableFloatConstant *)tc)->setValue((float)atof(newValString));
-   else
-      assert(false);
-
-   return TCL_OK;
-}
-
-int getType(Tcl_Interp *interp, tunableConstant *tc) {
-   if (NULL == tc) return TCL_ERROR;
-
-   // stick value into interp->result as a string
-   if (tc->getType() == tunableBoolean)
-      sprintf(interp->result, "%s", "bool");
-   else if (tc->getType() == tunableFloat)
-      sprintf(interp->result, "%s", "float");
-   else
-      assert(false);
-
-   return TCL_OK;
-}
-
-int getUse(Tcl_Interp *interp, tunableConstant *tc) {
-   if (NULL == tc) return TCL_ERROR;
-
-   // stick use into interp->result as a string
-   if (tc->getUse() == developerConstant)
-      sprintf(interp->result, "%s", "developer");
-   else if (tc->getUse() == userConstant)
-      sprintf(interp->result, "%s", "user");
-   else
-      assert(false);
-
-   return TCL_OK;
-}
-
-int getFloatRange(Tcl_Interp *interp, tunableFloatConstant *tc) {
-   if (NULL == tc) return TCL_ERROR;
-
-   // stick float range into interp->result as a string
-   if (tc->getUse() == tunableFloat)
-      sprintf(interp->result, "%g %g", tc->getMin(), tc->getMax());
-   else
-      assert(false);
-
-   return TCL_OK;
+   char *resultString = Tcl_Merge(numFloatTunables, floatConstantStrings);
+   return resultString;
 }
 
 int TclTunableCommand(ClientData cd, Tcl_Interp *interp,
@@ -209,71 +137,124 @@ int TclTunableCommand(ClientData cd, Tcl_Interp *interp,
    // i.e. once installed into tcl, a tcl code call to "TclTunable" enters here...
 
    int commandIndex = findCommand(interp, argc-1, argv+1);
-   if (commandIndex == CMDERROR)
+   if (commandIndex == CMDERROR) {
+      sprintf(interp->result, "uimpd tclTunable: could not parse");
       return TCL_ERROR;
+   }
 
    switch (commandIndex) {
-      case GETNUMTUNABLES:
-         sprintf(interp->result, "%d", tunableConstant::numTunables());
-         return TCL_OK;
-
-      case GETNAME: {
-         // list index number --> name
-         tunableConstant *tc = tunableConstantListEntryByIndex(atoi(argv[2]));
-         if (tc==NULL) return TCL_ERROR;
-
-         sprintf(interp->result, "%s", tc->getName());
+      case GETBOOLALLNAMES: {
+         char *resultString = getBoolAllNames();
+         strcpy(interp->result, resultString);
+         free(resultString);
          return TCL_OK;
       }
 
-      case GETDESCRIPTION: {
-         // list index number --> description (if no description, we substitute the name)
-         tunableConstant *tc = tunableConstantListEntryByIndex(atoi(argv[2]));
-         if (NULL == tc) return TCL_ERROR;
+      case GETFLOATALLNAMES: {
+         char *resultString = getFloatAllNames();
+         strcpy(interp->result, resultString);
+         free(resultString);
+         return TCL_OK;
+      }
 
-         sprintf(interp->result, "%s", (tc->getDesc()==NULL) ? tc->getName() : tc->getDesc());
+      case GETNUMTUNABLES:
+         sprintf(interp->result, "%d", tunableConstantRegistry::numTunables());
+         return TCL_OK;
+
+      case GETNUMBOOLTUNABLES:
+         sprintf(interp->result, "%d", tunableConstantRegistry::numBoolTunables());
+         return TCL_OK;
+
+      case GETNUMFLOATTUNABLES:
+         sprintf(interp->result, "%d", tunableConstantRegistry::numFloatTunables());
+         return TCL_OK;
+
+      case GETDESCRIPTION: {
+         // string (name) --> description (if no description, we substitute the name)
+ 	 if (!tunableConstantRegistry::existsTunableConstant(argv[2])) {
+            sprintf(interp->result, "tclTunable getdescription: unknown tunable %s\n", argv[2]);
+            return TCL_ERROR;
+	 }
+
+         tunableConstantBase tcb = tunableConstantRegistry::getGenericTunableConstantByName(argv[2]);
+         sprintf(interp->result, "%s", (tcb.getDesc()==NULL) ? tcb.getName().string_of() : tcb.getDesc().string_of());
          return TCL_OK;
       }
 
       case GETVALUEBYNAME:
          // string (name) --> string (value)
-         return getValue(interp, findTunableConstantListEntryByName(argv[2]));
+ 	 if (!tunableConstantRegistry::existsTunableConstant(argv[2])) {
+            sprintf(interp->result, "tclTunable getvaluebyname: unknown tunable %s\n", argv[2]);
+            return TCL_ERROR;
+	 }
 
-      case GETVALUEBYINDEX:
-         // index --> string (value)
-         return getValue(interp, tunableConstantListEntryByIndex(atoi(argv[2])));
+         if (tunableConstantRegistry::getTunableConstantType(argv[2]) == tunableBoolean) {
+            tunableBooleanConstant tbc = tunableConstantRegistry::findBoolTunableConstant(argv[2]);
+            if (tbc.getValue() == true)
+               strcpy(interp->result, "1");
+            else
+               strcpy(interp->result, "0");
+            return TCL_OK;
+         }
+         else {
+            tunableFloatConstant tfc = tunableConstantRegistry::findFloatTunableConstant(argv[2]);
+            sprintf(interp->result, "%g", tfc.getValue());
+            return TCL_OK;
+         }
 
       case SETVALUEBYNAME:
          // string (name) x string(value) --> NULL
-         return setValue(interp, findTunableConstantListEntryByName(argv[2]), argv[3]);
+ 	 if (!tunableConstantRegistry::existsTunableConstant(argv[2])) {
+            sprintf(interp->result, "tclTunable setvaluebyname: unknown tunable %s\n", argv[2]);
+            return TCL_ERROR;
+	 }
 
-      case SETVALUEBYINDEX:
-         // index x string (value) --> NULL
-         return setValue(interp, tunableConstantListEntryByIndex(atoi(argv[2])), argv[3]);
-
-      case GETTYPEBYINDEX:
-         // index --> string (value)
-         return getType(interp, tunableConstantListEntryByIndex(atoi(argv[2])));
+         if (tunableConstantRegistry::getTunableConstantType(argv[2]) == tunableBoolean)
+	   tunableConstantRegistry::setBoolTunableConstant(argv[2], (bool)atoi(argv[3]));
+         else
+	   tunableConstantRegistry::setFloatTunableConstant(argv[2], (float)atof(argv[3]));
+         return TCL_OK;
 
       case GETTYPEBYNAME:
          // string (name) --> string (type)
-         return getType(interp, findTunableConstantListEntryByName(argv[2]));
+ 	 if (!tunableConstantRegistry::existsTunableConstant(argv[2])) {
+            sprintf(interp->result, "tclTunable gettypebyname: unknown tunable %s\n", argv[2]);
+            return TCL_ERROR;
+	 }
 
-      case GETUSEBYINDEX:
-         // index --> string (use)  [developer v. user]
-         return getUse(interp, tunableConstantListEntryByIndex(atoi(argv[2])));
+         if (tunableConstantRegistry::getTunableConstantType(argv[2]) == tunableBoolean)
+            sprintf(interp->result, "bool");
+         else
+            sprintf(interp->result, "float");
+         return TCL_OK;
 
-      case GETUSEBYNAME:
+      case GETUSEBYNAME: {
          // string (name) --> string (use)
-         return getUse(interp, findTunableConstantListEntryByName(argv[2]));
+ 	 if (!tunableConstantRegistry::existsTunableConstant(argv[2])) {
+            sprintf(interp->result, "tclTunable getusebyname: unknown tunable %s\n", argv[2]);
+            return TCL_ERROR;
+	 }
 
-      case GETFLOATRANGEBYINDEX:
-         // index --> string (float range)
-         return getFloatRange(interp, (tunableFloatConstant *)tunableConstantListEntryByIndex(atoi(argv[2])));
+         tunableConstantBase tcb = tunableConstantRegistry::getGenericTunableConstantByName(argv[2]);
+         if (tcb.getUse() == developerConstant)
+            sprintf(interp->result, "developer");
+         else
+            sprintf(interp->result, "user");
+         return TCL_OK;
+      }
 
-      case GETFLOATRANGEBYNAME:
+      case GETFLOATRANGEBYNAME: {
          // name --> string (float range)
-         return getFloatRange(interp, (tunableFloatConstant *)findTunableConstantListEntryByName(argv[2]));
+ 	 if (!tunableConstantRegistry::existsFloatTunableConstant(argv[2])) {
+            sprintf(interp->result, "tclTunable getfloatrangebyname: unknown float tunable %s\n", argv[2]);
+            return TCL_ERROR;
+	 }
+
+         assert(tunableFloat == tunableConstantRegistry::getTunableConstantType(argv[2]));
+         tunableFloatConstant tfc = tunableConstantRegistry::findFloatTunableConstant(argv[2]);
+         sprintf(interp->result, "%g %g", tfc.getMin(), tfc.getMax());
+         return TCL_OK;
+      }
 
       default: assert(false);
    }
@@ -293,42 +274,3 @@ void InstallTunableTclCommand(Tcl_Interp *interp) {
 		     NULL // no delete command
                     );
 }
-
-/* ****************************************************** */
-// temporary stuff
-#ifdef tcltunabletestprog
-
-extern int main(int argc, char **argv);
-void *dummy = (void *)main;
-
-Tcl_Interp *MainInterp;
-
-int Tcl_AppInit(Tcl_Interp *interp) {
-   MainInterp=interp;
-   // Tk_Window mainWindow = Tk_MainWindow(interp);
-
-   if (TCL_ERROR == Tcl_Init(interp)) return TCL_ERROR;
-   if (TCL_ERROR ==  Tk_Init(interp)) return TCL_ERROR;
-   InstallTunableTclCommand(interp);
-
-   tcl_RcFileName = "~/.wishrc";
-   return TCL_OK;
-}
-
-tunableBooleanConstant myConst(true, NULL, userConstant, "myName", "myDescription");
-tunableBooleanConstant myConst2(true, NULL, developerConstant, "myNameIsJack", "myDescription");
-tunableBooleanConstant myConst3(true, NULL, userConstant, "myNameIsBilly", "myDescription");
-tunableBooleanConstant myConst4(false, NULL, userConstant, "myNameIsBob", "myDescription");
-tunableBooleanConstant myConst5(true, NULL, userConstant, "myNameIsJoe", "myDescription");
-
-tunableFloatConstant myConst10(1.5, 0.0, 10.0, NULL, userConstant, "Float #1", "floatdescr1");
-tunableFloatConstant myConst11(1.6, NULL, NULL, userConstant, "Name of Float #2", "floatdescr2");
-
-tunableBooleanConstant myConst20(false, NULL, developerConstant, "Developer Constant #1", "myDescription");
-tunableBooleanConstant myConst21(false, NULL, developerConstant, "Developer Constant #2", "myDescription");
-tunableBooleanConstant myConst22(false, NULL, developerConstant, "Developer Constant #3", "myDescription");
-tunableBooleanConstant myConst23(false, NULL, developerConstant, "Developer Constant #4", "myDescription");
-tunableBooleanConstant myConst24(false, NULL, developerConstant, "Developer Constant #5", "myDescription");
-tunableBooleanConstant myConst25(false, NULL, developerConstant, "Developer Constant #6", "myDescription");
-
-#endif
