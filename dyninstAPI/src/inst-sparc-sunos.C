@@ -41,6 +41,7 @@
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
+#include "util/h/debugOstream.h"
 
 // Another constructor for the class instPoint. This one is called
 // for the define the instPoints for regular functions which means
@@ -51,18 +52,18 @@
 // value in the link register.
 instPoint::instPoint(pd_Function *f, const instruction &instr, 
 		     const image *owner, Address &adr,
-		     bool delayOK, bool isLeaf, instPointType pointType)
+		     bool delayOK, instPointType pointType)
 : addr(adr), originalInstruction(instr), inDelaySlot(false), isDelayed(false),
   callIndirect(false), callAggregate(false), callee(NULL), func(f),
-  leaf(isLeaf), ipType(pointType), image_ptr(owner), firstIsConditional(false),
+  ipType(pointType), image_ptr(owner), firstIsConditional(false),
   relocated_(false), isLongJump(true)
 {
 
   isBranchOut = false;
   size = 0;
 
-  // When the function is not a leaf function 
-  if (!leaf) {
+  // When the function has a stack frame
+  if (!hasNoStackFrame()) {
 
       // we will treat the first instruction after the SAVE instruction
       // in the nonleaf procedure as the function entry.  
@@ -152,9 +153,14 @@ instPoint::instPoint(pd_Function *f, const instruction &instr,
 	  }
 
       } else {
-	  // Of course, the leaf function could not have call sites. 
-	  logLine("Internal Error: in inst-sparc.C.");
-	  abort();
+          assert(ipType == callSite);
+          // Usually, a function without a stack frame won't have any call sites
+	  extern debug_ostream metric_cerr;
+          metric_cerr << "inst-sparc-solaris.C WARNING: found a leaf fn (no stack frame)" << endl;
+          metric_cerr << "which makes a function call" << endl;
+          metric_cerr << "This fn is " << func->prettyName() << endl;
+
+          //abort();
       }
   }
 
@@ -232,7 +238,7 @@ Address pd_Function::newCallPoint(Address &adr, const instruction instr,
     if (isTrap) {
 	point = new instPoint(this, instr, owner, adr, false, callSite, oldAddr);
     } else {
-	point = new instPoint(this, instr, owner, adr, false, false, callSite);
+	point = new instPoint(this, instr, owner, adr, false, callSite);
     }
 
     if (!isInsnType(instr, CALLmask, CALLmatch)) {
@@ -350,10 +356,10 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc)
 	if (temp->raw == EMULATE_INSN) {
 
 	    // Load the value of link register from stack 
-	    // If it is a leaf function, genereate a RESTORE instruction
+	    // If no stack frame, genereate a RESTORE instruction
             // since there's an instruction SAVE generated and put in the
             // code segment.
-	    if (location -> leaf) {
+	    if (location -> hasNoStackFrame()) {
 		genImmInsn(temp, RESTOREop3, 0, 0, 0);
 		temp++;
 		currAddr += sizeof(instruction);
@@ -367,7 +373,7 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc)
 
 	    // Again, for leaf function, one more is needed to move for one
 	    // more spot;
-	    if (location->leaf) {
+	    if (location->hasNoStackFrame()) {
 		fromAddr += sizeof(instruction);
 		currAddr += sizeof(instruction);
 		*++temp = location->otherInstruction;
@@ -417,7 +423,7 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc)
 	    // Well, after all these, another SAVE instruction is generated
 	    // so we are prepared to handle the returning to our application's
             // code segment. 
-	    if (location->leaf) {
+	    if (location->hasNoStackFrame()) {
 		if (location->inDelaySlot) {
 		    fromAddr += sizeof(instruction);
 		    currAddr += sizeof(instruction);
@@ -433,7 +439,7 @@ trampTemplate *installBaseTramp(const instPoint *&location, process *proc)
             // If the location is in the leaf procedure, generate an RESTORE
 	    // instruction right after the CALL instruction to restore all
 	    // the values in the registers.
-	    if (location -> leaf) {
+	    if (location -> hasNoStackFrame()) {
 		generateCallInsn(temp, currAddr, location->addr+location->size);
 		genImmInsn(temp+1, RESTOREop3, 0, 0, 0);
 	    } else {
@@ -647,7 +653,7 @@ trampTemplate *findAndInstallBaseTramp(process *proc,
 	} else {
 	    // Install base tramp for all the other regular functions. 
 	    ret = installBaseTramp(location, proc);
-	    if (location->leaf) {
+	    if (location->hasNoStackFrame()) {
 		// if it is the leaf function, we need to generate
 		// the following instruction sequence:
 		//     SAVE;      CALL;      NOP.
@@ -1061,7 +1067,8 @@ bool pd_Function::findInstPoints(const image *owner) {
      return false;
    }
 
-   leaf = true;
+   noStackFrame = true;
+
    Address adr;
    Address adr1 = getAddress(0);
    instruction instr;
@@ -1091,9 +1098,10 @@ bool pd_Function::findInstPoints(const image *owner) {
        //   necessarily a SAVE instruction. ) 
        if (isInsnType(instr, SAVEmask, SAVEmatch) && !func_entry_found) {
 
-	   leaf = false;
+	   noStackFrame = false;
+
 	   func_entry_found = true;
-	   funcEntry_ = new instPoint(this, instr, owner, adr1, true, leaf, 
+	   funcEntry_ = new instPoint(this, instr, owner, adr1, true,
 				      functionEntry);
 	   adr = adr1;
 	   assert(funcEntry_);
@@ -1102,10 +1110,10 @@ bool pd_Function::findInstPoints(const image *owner) {
 
    // If there's no SAVE instruction found, this is a leaf function and
    // and function Entry will be defined from the first instruction
-   if (leaf) {
+   if (noStackFrame) {
        adr = getAddress(0);
        instr.raw = owner->get_instruction(adr);
-       funcEntry_ = new instPoint(this, instr, owner, adr, true, leaf,
+       funcEntry_ = new instPoint(this, instr, owner, adr, true,
 				  functionEntry);
        assert(funcEntry_);
    }
@@ -1120,7 +1128,7 @@ bool pd_Function::findInstPoints(const image *owner) {
      //   end of the function.
      if (isReturnInsn(owner, adr, done)) {
        // define the return point
-       funcReturns += new instPoint(this, instr, owner, adr, false, leaf, 
+       funcReturns += new instPoint(this, instr, owner, adr, false,
 				    functionExit);
 
      } else if (instr.branch.op == 0 
@@ -1131,7 +1139,7 @@ bool pd_Function::findInstPoints(const image *owner) {
        Address target = adr +  (disp << 2);
        if ((target < (getAddress(0)))  
 	   || (target >= (getAddress(0) + size()))) {
-	 instPoint *point = new instPoint(this, instr, owner, adr, false, leaf, 
+	 instPoint *point = new instPoint(this, instr, owner, adr, false,
 					  functionExit);
 	 funcReturns += point;
        }
@@ -1162,7 +1170,7 @@ bool pd_Function::findInstPoints(const image *owner) {
        if (nexti.rest.op == 2 
 	   && ((nexti.rest.op3 == ORop3 && nexti.rest.rd == 15)
 	      || nexti.rest.op3 == RESTOREop3)) {
-	 funcReturns += new instPoint(this, instr, owner, adr, false, leaf, 
+	 funcReturns += new instPoint(this, instr, owner, adr, false,
 				      functionExit);
 
        } else {
@@ -1214,7 +1222,7 @@ bool pd_Function::findInstPoints(const image *owner) {
 	 targetAddr |= prev1.resti.simm13;
 	 if ((targetAddr<getAddress(0))||(targetAddr>=(getAddress(0)+size()))){
 	   instPoint *point = new instPoint(this, instr, owner, adr, false, 
-					    leaf, functionExit);
+					    functionExit);
 	   funcReturns += point;
 	 }
        }
