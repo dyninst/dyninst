@@ -4,7 +4,10 @@
 # included from within an architecture-specific Makefile.
 #
 # $Log: make.module.tmpl,v $
-# Revision 1.1  1995/01/30 18:12:01  jcargill
+# Revision 1.2  1995/02/16 09:29:13  markc
+# Added support to generate template code
+#
+# Revision 1.1  1995/01/30  18:12:01  jcargill
 # Major build system reorganization
 #
 #
@@ -18,9 +21,12 @@ SRCS	     += ../src/datagrid.C \
 		../src/visualization.C 
 
 IGEN_GEN_SRCS =	visi.xdr.SRVR.C \
-		visi.xdr.CLNT.C \
 		visi.xdr.C
 
 IGEN_ISRCS    = visi.I
 
 all: $(TARGET)
+
+TFLAGS +=  $(USEFULWARNINGS) 
+CXXFLAGS = $(TFLAGS) $(ALL_INLINE_DEFINES)
+CFLAGS = $(TFLAGS) 
