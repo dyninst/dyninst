@@ -57,21 +57,21 @@ typedef struct rpcToDo_s {
 
 typedef struct sharedData_s {
   tTimer virtualTimers[MAX_NUMBER_OF_THREADS] ;
-  rpcToDo rpcToDoList[MAX_PENDING_RPC];
+  rpcToDo rpcToDoList [MAX_PENDING_RPC];
   unsigned rpc_indexMax ;
   mutex_t rpc_mutex ;
   cond_t  rpc_cv ;
   int     rpc_pending ;
 } RTINSTsharedData ;
 
-extern int DYNINSTthreadSelf(void);  
+extern int  DYNINSTthreadSelf(void);  
 extern void DYNINSTthreadDeletePos(void);
-extern int DYNINSTthreadPos(void);
-extern int DYNINSTthreadPosFAST(void);
-extern int DYNINST_not_deleted(void);
-extern int DYNINSTloop(void);
-extern int DYNINSTthreadPosTID(int); 
-extern int DYNINST_was_deleted(int);
+extern int  DYNINSTthreadPos(void);
+extern int  DYNINSTthreadPosFAST(void);
+extern int  DYNINST_not_deleted(void);
+extern int  DYNINSTloop(void);
+extern int  DYNINSTthreadPosTID(int, unsigned); 
+extern int  DYNINST_was_deleted(int);
 extern void DYNINSTthread_init(char *DYNINST_shmSegAttachedPtr) ;
 
 extern void mt_printf(const char *fmt, ...) ;

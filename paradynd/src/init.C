@@ -65,6 +65,8 @@ internalMetric *infHeapMemAvailable = NULL;
 internalMetric *numOfActCounters = NULL;
 internalMetric *numOfActProcTimers = NULL;
 internalMetric *numOfActWallTimers = NULL;
+
+internalMetric *stackwalkTime = NULL;
 internalMetric *numOfCurrentLevels = NULL;
 internalMetric *numOfCurrentThreads = NULL;
 internalMetric *active_threads = NULL;
@@ -176,6 +178,23 @@ bool init() {
 						   default_im_preds,
 						   false,
 						   Sampled);
+
+  // Allow stackwalk_time for whole program (only)
+  im_pred_struct default_proc_preds;
+  default_proc_preds.machine = pred_null;
+  default_proc_preds.procedure = pred_invalid;
+  default_proc_preds.process = pred_invalid;
+  default_proc_preds.sync = pred_invalid;
+
+  stackwalkTime = internalMetric::newInternalMetric("stackwalk_time",
+					       EventCounter,
+					       aggMax,
+					       "CPUs",
+					       computeStackwalkTimeMetric,
+					       default_proc_preds,
+					       true,
+					       Normalized);
+
 #if defined(MT_THREAD)
   numOfCurrentLevels = internalMetric::newInternalMetric(
                                                 "numOfCurrentLevels", 

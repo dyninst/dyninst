@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.200 1999/12/17 16:15:33 pcroth Exp $
+// $Id: process.C,v 1.201 2000/02/04 21:52:47 zhichen Exp $
 
 extern "C" {
 #ifdef PARADYND_PVM
@@ -79,7 +79,7 @@ int pvmendtask();
 #endif
 
 #if defined(SHM_SAMPLING) && defined(MT_THREAD) //inst-sparc.C
-extern void generateRPCpreamble(char *insn, Address &base, process *proc, unsigned offset, int tid);
+extern void generateRPCpreamble(char *insn, Address &base, process *proc, unsigned offset, int tid, unsigned pos);
 extern void generateMTpreamble(char *insn, Address &base, process *proc);
 #endif
 
@@ -157,9 +157,9 @@ process *findProcess(int pid) { // make a public static member fn of class proce
 }
 
 #ifdef SHM_SAMPLING
-static unsigned numIntCounters=10000; // rather arbitrary; can we do better?
-static unsigned numWallTimers =10000; // rather arbitrary; can we do better?
-static unsigned numProcTimers =10000; // rather arbitrary; can we do better?
+static unsigned numIntCounters=51200; // rather arbitrary; can we do better?
+static unsigned numWallTimers =51200; // rather arbitrary; can we do better?
+static unsigned numProcTimers =51200; // rather arbitrary; can we do better?
 #endif
 
 bool waitingPeriodIsOver()
@@ -234,6 +234,35 @@ vector<int> process::getTOCoffsetInfo() const
 }
 #endif
 
+//
+// Internal metric stackwalk_time
+//
+#ifndef BPATCH_LIBRARY
+timeStamp startStackwalk;
+timeStamp elapsedStackwalkTime = 0.0;
+bool      stackwalking=false;
+
+float computeStackwalkTimeMetric(const metricDefinitionNode *) {
+    // we don't need to use the metricDefinitionNode
+    timeStamp now;
+    timeStamp elapsed=0.0;
+
+    if (firstRecordTime) {
+        elapsed = elapsedStackwalkTime;
+        if (stackwalking) {
+          now = getCurrentTime(false);
+          elapsed += now - startStackwalk;
+        }
+
+        assert(elapsed >= 0.0);
+        return(elapsed);
+
+    } else {
+        return(0.0);
+    }
+}
+#endif
+
 #if !defined(i386_unknown_nt4_0)
 // Windows NT has its own version of the walkStack function in pdwinnt.C
 // Note: it may not always be possible to do a correct stack walk.
@@ -244,9 +273,16 @@ vector<Address> process::walkStack(bool noPause)
   vector<Address> pcs;
   bool needToCont = noPause ? false : (status() == running);
 
+#ifndef BPATCH_LIBRARY
+  BEGIN_STACKWALK;
+#endif
+
   if (!noPause && !pause()) {
      // pause failed...give up
      cerr << "walkStack: pause failed" << endl;
+#ifndef BPATCH_LIBRARY
+     END_STACKWALK;
+#endif
      return pcs;
   }
 
@@ -275,6 +311,9 @@ vector<Address> process::walkStack(bool noPause)
         if (!noPause && needToCont && !continueProc())
           cerr << "walkStack: continueProc failed" << endl;
         vector<Address> ev; // empty vector
+#ifndef BPATCH_LIBRARY
+        END_STACKWALK;
+#endif
         return ev;
       }
       fpOld = fpNew;
@@ -304,18 +343,20 @@ vector<Address> process::walkStack(bool noPause)
         cerr << "walkStack: continueProc failed" << endl;
      }
   }  
+
+#ifndef BPATCH_LIBRARY
+  END_STACKWALK;
+#endif
   return(pcs);
 }
 
 #if defined(MT_THREAD)
-// For threaded application only
 void process::walkAStack(int /*id*/, 
   Frame currentFrame, 
   Address sig_addr, 
   u_int sig_size, 
   vector<Address>&pcs,
-  vector<Address>&fps
-  )  {
+  vector<Address>&fps) {
 
   pcs.resize(0);
   fps.resize(0);
@@ -351,10 +392,17 @@ vector<vector<Address> > process::walkAllStack(bool noPause) {
   vector<Address> pcs;
   vector<Address> fps ;
   bool needToCont = noPause ? false : (status() == running);
+ 
+#ifndef BPATCH_LIBRARY
+  BEGIN_STACKWALK;
+#endif
 
   if (!noPause && !pause()) {
      // pause failed...give up
      cerr << "walkAllStack: pause failed" << endl;
+#ifndef BPATCH_LIBRARY
+     END_STACKWALK;
+#endif
      return result;
   }
 
@@ -397,18 +445,18 @@ vector<vector<Address> > process::walkAllStack(bool noPause) {
       delete [] IDs;
     }
 
-    for (unsigned j=0; j< lwp_stack_lo.size(); j++) {
-      sprintf(errorLine, "lwp[%d], stack_lo=0x%lx, stack_hi=0x%lx\n", 
-	 j, lwp_stack_lo[j], lwp_stack_hi[j]);
-      logLine(errorLine);
-    }
+    //for (unsigned j=0; j< lwp_stack_lo.size(); j++) {
+    //  sprintf(errorLine, "lwp[%d], stack_lo=0x%lx, stack_hi=0x%lx\n", 
+    //    j, lwp_stack_lo[j], lwp_stack_hi[j]);
+    //  logLine(errorLine);
+    //}
 
     //Walk thread stacks
     for (unsigned i=0; i<threads.size(); i++) {
       Frame   currentFrame(threads[i]);
       Address stack_lo = currentFrame.getFP();
-      sprintf(errorLine, "stack_lo[%d]=0x%lx\n", i, stack_lo);
-      logLine(errorLine);
+      //sprintf(errorLine, "stack_lo[%d]=0x%lx\n", i, stack_lo);
+      //logLine(errorLine);
 
       bool active = false ;
       for (unsigned j=0; j< lwp_stack_lo.size(); j++) {
@@ -430,11 +478,14 @@ vector<vector<Address> > process::walkAllStack(bool noPause) {
         cerr << "walkAllStack: continueProc failed" << endl;
      }
   }  
+     
+#ifndef BPATCH_LIBRARY
+  END_STACKWALK;
+#endif
   return(result);
 }
 #endif //MT_THREAD
 #endif
-
 
 void process::correctStackFuncsForTramps(vector<Address> &pcs, 
 					 vector<pd_Function *> &funcs)
@@ -2311,6 +2362,7 @@ bool process::readDataSpace(const void *inTracedProcess, unsigned size,
   if (!res) {
     if (displayErrMsg) {
       string msg;
+// * (char*) 0 = 1;
       msg=string("System error: unable to read from process data space:")
           + string(sys_errlist[errno]);
       sprintf(errorLine, msg.string_of());
@@ -3574,11 +3626,39 @@ bool process::need_to_wait(void) {
   return false ;
 }
 
+#if defined(USES_RPC_TO_TRIGGER_RPC)
+typedef struct {
+  bool ready;
+  void *result;
+} sig_rpc_ret;
+
+void signalRPCthreadCallback(process * /*p*/, void *data, void *result)
+{
+  sig_rpc_ret *ret = (sig_rpc_ret *)data;
+  ret->result = result;
+  ret->ready = true;
+}
+#endif
+
 void signalRPCthread(process *p) {
   mutex_lock(p->DYNINSTthreadRPC_mp);
   *(p->DYNINSTthreadRPC_pending_p) = 1;
   cond_signal(p->DYNINSTthreadRPC_cvp);
   mutex_unlock(p->DYNINSTthreadRPC_mp);
+
+#if defined(USES_RPC_TO_TRIGGER_RPC) // Temporary here
+  string callee = "DYNINSTsignalRPCthread";
+  vector<AstNode*> args(0);
+  AstNode *code = new AstNode(callee, args);
+
+  sig_rpc_ret ret = {false, NULL};
+  p->postRPCtoDo(code, true, &signalRPCthreadCallback, &ret, -1, -1, false);
+  extern  void checkProcStatus();
+  do {
+   p->launchRPCifAppropriate(true, false);
+   checkProcStatus();
+  } while (!ret.ready);
+#endif
 
   if (pd_debug_infrpc)
     cerr <<"PD: Signaled RPC thread ..." << endl ;
@@ -3638,8 +3718,9 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
 #endif
      if (!finishingSysCall && RPCs_waiting_for_syscall_to_complete) {
 #ifndef i386_unknown_linux2_0
+#ifndef MT_THREAD
 	    assert(executingSystemCall());
-
+#endif
 #endif
         return false;
      }
@@ -3793,7 +3874,8 @@ bool process::launchRPCifAppropriate(bool wasRunning, bool finishingSysCall) {
 
    currRunningRPCs += inProgStruct;
 
-   inferiorrpc_cerr << "Changing pc (" << (void*)tempTrampBase << ") and exec.." << endl;
+   if (pd_debug_infrpc)
+     inferiorrpc_cerr << "Changing pc (" << (void*)tempTrampBase << ") and exec.." << endl;
 
    // change the PC and nPC registers to the addr of the temp tramp
 #if defined(MT_THREAD)
@@ -3871,8 +3953,20 @@ Address process::createRPCtempTramp(AstNode *action,
 
 #if defined(MT_THREAD)
    if (thrId != -1) {
+     //
+     unsigned pos = 0;
+     for (unsigned u=0; u<threads.size(); u++) {
+       if (thrId == threads[u]->get_tid()) {
+	 pos = threads[u]->get_pos();
+	 break;
+       }
+     }
+
+     //
      vector<AstNode* > param ;
      param +=  new  AstNode(AstNode::Constant,(void *) thrId) ;
+     param +=  new  AstNode(AstNode::Constant,(void *) pos);
+
      function_base* DYNINSTstartThreadTimer = 
        findOneFunction(string("DYNINSTstartThreadTimer"));
      function_base* DYNINSTstartThreadTimer_inferiorRPC = 
@@ -3885,7 +3979,6 @@ Address process::createRPCtempTramp(AstNode *action,
        findOneFunction(string("DYNINST_not_deleted"));
      function_base* DYNINST_not_deletedTID =
        findOneFunction(string("DYNINST_not_deletedTID"));
-
      action->replaceFuncInAst(DYNINST_not_deleted, 
 			      DYNINST_not_deletedTID, param, 0);
   
@@ -3905,7 +3998,7 @@ Address process::createRPCtempTramp(AstNode *action,
      action->generateCode(this, regSpace, (char*) tmp, cnt, noCost, true) ;
      regSpace->resetSpace();
 
-     generateRPCpreamble((char*)insnBuffer,count,this,(cnt)+7*sizeof(instruction),thrId);
+     generateRPCpreamble((char*)insnBuffer,count,this,(cnt)+7*sizeof(instruction),thrId, pos);
    }
 #endif 
 
@@ -3948,12 +4041,13 @@ Address process::createRPCtempTramp(AstNode *action,
       stopForResultAddr = justAfter_stopForResultAddr = 0;
    }
 
-   inferiorrpc_cerr << "createRPCtempTramp: temp tramp base=" << (void*)tempTrampBase
-                    << ", stopForResultAddr=" << (void*)stopForResultAddr
-		    << ", justAfter_stopForResultAddr=" << (void*)justAfter_stopForResultAddr
-		    << ", breakAddr=" << (void*)breakAddr
-		    << ", count=" << count << " so end addr="
-		    << (void*)(tempTrampBase + count - 1) << endl;
+   if (pd_debug_infrpc)
+      cerr << "createRPCtempTramp: temp tramp base=" << (void*)tempTrampBase
+           << ", stopForResultAddr=" << (void*)stopForResultAddr
+	   << ", justAfter_stopForResultAddr=" << (void*)justAfter_stopForResultAddr
+	   << ", breakAddr=" << (void*)breakAddr
+	   << ", count=" << count << " so end addr="
+	   << (void*)(tempTrampBase + count - 1) << endl;
 
 
    /* Now, write to the tempTramp, in the inferior addr's data space
@@ -4005,15 +4099,22 @@ bool process::handleDoneSAFEinferiorRPC(void) {
       if (DYNINSTthreadRPC[d].flag ==2) { //done execute
 	//
 	unsigned cookie = (unsigned) (DYNINSTthreadRPC[d].rpc);
-        if (cookie == 0)
+        if (cookie == 0) {
+	  cerr << " a weird condition occurred in handleDoneSAFEinferiorRPC ..." << endl;
 	  continue ;
+        }
 
         for (unsigned k=0; k < currRunningRPCs.size(); k++) {
-          inferiorRPCinProgress &theStruct = currRunningRPCs[k];
-          if (theStruct.firstInstrAddr == cookie) {
-            currRunningRPCs.removeByIndex(k);
+          if (currRunningRPCs[k].firstInstrAddr == cookie) {
+            inferiorRPCinProgress &theStruct = currRunningRPCs[k];
+
+	    if (pd_debug_infrpc) {
+	      sprintf(errorLine, "find completed SAFE rpc, cookie=0x%x", cookie);
+	      cerr << errorLine << endl;
+	    }
 
             // step 1) restore registers: not needed for SAFE RPC
+
             if (currRunningRPCs.empty() && deferredContinueProc) {
               deferredContinueProc=false;
               if (continueProc()) statusLine("application running");
@@ -4024,15 +4125,18 @@ bool process::handleDoneSAFEinferiorRPC(void) {
             inferiorFree(this, theStruct.firstInstrAddr, pointsToCheck);
 
             // step 3) pause process, if appropriate
-	    if (!theStruct.wasRunning && status() == running) {
-               if (!pause()) {
-                  cerr << "RPC completion: pause failed" << endl;
-               }
-            }
+	    //if (!theStruct.wasRunning && status() == running) {
+            //  cerr << "SAFE RPC completion: pause " << endl;
+            //  if (!pause()) {
+            //    cerr << "RPC completion: pause failed" << endl;
+            //  }
+            //}
 
             // step 4) invoke user callback, if any
-            if (theStruct.callbackFunc)
+            if (theStruct.callbackFunc) {
                theStruct.callbackFunc(this, theStruct.userData, theStruct.resultValue);
+	    }
+            currRunningRPCs.removeByIndex(k);
 	    break; //break the for()
           }
         }
@@ -4053,11 +4157,15 @@ bool process::handleTrapIfDueToRPC() {
 
    assert(status_ == stopped); // a TRAP should always stop a process (duh)
    
-   if (currRunningRPCs.empty())
+   if (currRunningRPCs.empty()) {
+     if (pd_debug_infrpc)
+        cerr << "handleTrapIfDueToRPC, currRunningRPCs is empty !" << endl;
       return false; // no chance of a match
+   }
 #if defined(MT_THREAD)
+   unsigned k;
    unsigned rSize = 0 ;
-   for (unsigned k=0; k<currRunningRPCs.size(); k++) {
+   for (k=0; k<currRunningRPCs.size(); k++) {
      if (!currRunningRPCs[k].isSafeRPC)
        rSize ++ ;
    }
@@ -4075,23 +4183,45 @@ bool process::handleTrapIfDueToRPC() {
 
    int match_type = 0; // 1 --> stop for result, 2 --> really done
    Frame theFrame(this);
+ 
+   unsigned the_index = 0;
+
    while (true) {
       // do we have a match?
       const Address framePC = theFrame.getPC();
-      if ((Address)framePC == currRunningRPCs[0].breakAddr) {
-	 // we've got a match!
-	 match_type = 2;
-	 break;
-      }
-      else if (currRunningRPCs[0].callbackFunc != NULL &&
-	       ((Address)framePC == currRunningRPCs[0].stopForResultAddr)) {
-	 match_type = 1;
-	 break;
+
+      bool find_match = false;
+      for (the_index=0; the_index<currRunningRPCs.size(); the_index++) {
+         if ((Address)framePC == currRunningRPCs[the_index].breakAddr) {
+	   // we've got a match!
+	   match_type = 2;
+	   find_match = true;
+	   break;
+         }
+         else if (currRunningRPCs[the_index].callbackFunc != NULL &&
+	         ((Address)framePC == currRunningRPCs[the_index].stopForResultAddr)) {
+	   match_type = 1;
+	   find_match = true;
+	   break;
+         }
       }
 
-      if (theFrame.isLastFrame())
+      if (find_match) {
+	sprintf(errorLine, "handleTrapIfDueToRPC found matching RPC, pc =0x%x, match_type=%d, the_index=%u", 
+	  framePC, match_type, the_index);
+        if (pd_debug_infrpc)
+	  cerr << errorLine << endl;
+	break;
+      }
+
+      if (theFrame.isLastFrame()) {
 	 // well, we've gone as far as we can, with no match.
+          if (pd_debug_infrpc) {
+            sprintf(errorLine, "handleTrapIfDuetoRPC, cannot find match for PC=0x%x", framePC);
+            cerr << errorLine << endl;
+          }
 	 return false;
+      }
 
       // else, backtrace 1 more level
       theFrame = theFrame.getCallerFrame(this);
@@ -4099,7 +4229,7 @@ bool process::handleTrapIfDueToRPC() {
 
    assert(match_type == 1 || match_type == 2);
 
-   inferiorRPCinProgress &theStruct = currRunningRPCs[0];
+   inferiorRPCinProgress &theStruct = currRunningRPCs[the_index];
 
    if (match_type == 1) {
       // We have stopped in order to grab the result.  Grab it and write
@@ -4154,7 +4284,6 @@ bool process::handleTrapIfDueToRPC() {
            assert(false);
    }
 
-   currRunningRPCs.removeByIndex(0);
 
    if (currRunningRPCs.empty() && deferredContinueProc) {
      // We have a pending continueProc that we had to delay because
@@ -4204,6 +4333,7 @@ bool process::handleTrapIfDueToRPC() {
 #else
    delete [] static_cast<char *>(theStruct.savedRegs);
 #endif
+   currRunningRPCs.removeByIndex(the_index);
 
    return true;
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.124 1999/12/12 17:10:34 zhichen Exp $
+/* $Id: process.h,v 1.125 2000/02/04 21:52:49 zhichen Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -89,6 +89,27 @@
 extern unsigned activeProcesses; // number of active processes
    // how about just processVec.size() instead?  At least, this should be made
    // a (static) member vrble of class process
+
+#ifndef BPATCH_LIBRARY
+// Internal metric stackwalk_time
+extern timeStamp startStackwalk;
+extern timeStamp elapsedStackwalkTime;
+extern bool      stackwalking;
+
+#define BEGIN_STACKWALK                      \
+{  					     \
+  startStackwalk = getCurrentTime(false);    \
+  stackwalking = true;                       \
+}
+
+#define END_STACKWALK                                                  \
+{     								       \
+     stackwalking = false;                                             \
+     if (startStackwalk > 0.0)                                         \
+       elapsedStackwalkTime += (getCurrentTime(false)-startStackwalk); \
+}
+
+#endif
 
 class resource;
 class instPoint;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.17 1999/11/06 21:40:36 wylie Exp $
+// $Id: pdwinnt.C,v 1.18 2000/02/04 21:52:47 zhichen Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -146,9 +146,18 @@ vector<Address> process::walkStack(bool noPause) {
   vector<Address> pcs;
   bool needToCont = noPause ? false : (status() == running);
 
+#ifndef BPATCH_LIBRARY
+  BEGIN_STACKWALK;
+#endif
+
   if (!noPause && !pause()) {
      // pause failed...give up
      cerr << "walkStack: pause failed" << endl;
+
+#ifndef BPATCH_LIBRARY
+     END_STACKWALK;
+#endif
+
      return pcs;
   }
 
@@ -224,6 +233,11 @@ vector<Address> process::walkStack(bool noPause) {
         cerr << "walkStack: continueProc failed" << endl;
      }
   }  
+
+#ifndef BPATCH_LIBRARY
+  END_STACKWALK;
+#endif
+
   return(pcs);
 }
 

@@ -45,7 +45,6 @@
  *
  ************************************************************************/
 
-#if !defined(ONE_THREAD)
 
 #ifdef SHM_SAMPLING
 #include <sys/types.h>
@@ -138,5 +137,3 @@ void** resumestate_p) {
   }
   return 0;
 }
-
-#endif /* !defined(ONE_THREAD) */

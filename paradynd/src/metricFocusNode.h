@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.59 1999/08/30 16:02:32 zhichen Exp $ 
+// $Id: metricFocusNode.h,v 1.60 2000/02/04 21:53:08 zhichen Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -741,6 +741,8 @@ public:
   vector<T_dyninstRPC::mdl_constraint*> flag_cons_thr;
   bool computingCost_thr;
   T_dyninstRPC::mdl_constraint*  base_use_thr;
+#else
+  bool is_aggregate(void) { return aggregate_; } 
 #endif
   bool nonNull() const { return (instRequests.size() || dataRequests.size()); }
   bool insertInstrumentation();
@@ -812,18 +814,16 @@ public:
   bool anythingToManuallyTrigger() const;
 
   void adjustManuallyTrigger();
+  void adjustManuallyTrigger0();
   void manuallyTrigger(int);
+  void manuallyTrigger(int, int);
 
 #if defined(MT_THREAD)
-// void manuallyTrigger2(metricDefinitionNode *);
-// void propagateId2(int);
-// void set_inserted(void) { inserted_ = true; }
-// void set_installed(void) { installed_ = true; }
   void propagateId(int);
-  bool inserted(void) { return inserted_; }
-  bool installed(void) { return installed_; }
   bool& needData(void) { return needData_; }
 #endif
+  bool inserted(void)     { return inserted_; }
+  bool installed(void)    { return installed_; }
 private:
   // Since we don't define these, make sure they're not used:
   metricDefinitionNode &operator=(const metricDefinitionNode &src);

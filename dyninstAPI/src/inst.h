@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.52 1999/09/10 14:26:28 nash Exp $
+// $Id: inst.h,v 1.53 2000/02/04 21:52:45 zhichen Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -256,6 +256,8 @@ extern string getProcessStatus(const process *p);
 extern unsigned findTags(const string funcName);
 
 extern float computePauseTimeMetric(const metricDefinitionNode *);
+
+extern float computeStackwalkTimeMetric(const metricDefinitionNode *);
 
 extern void initLibraryFunctions();
 

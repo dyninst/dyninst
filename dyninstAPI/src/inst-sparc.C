@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.84 1999/11/09 19:20:53 cain Exp $
+// $Id: inst-sparc.C,v 1.85 2000/02/04 21:52:51 zhichen Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -414,7 +414,7 @@ void generateMTpreamble(char *insn, Address &base, process *proc)
   regSpace->freeRegister(src);
 }
 
-void generateRPCpreamble(char *insn, Address &base, process *proc, unsigned offset, int tid)
+void generateRPCpreamble(char *insn, Address &base, process *proc, unsigned offset, int tid, unsigned pos)
 {
   AstNode *t1 ;
   Address tableAddr;
@@ -425,6 +425,7 @@ void generateRPCpreamble(char *insn, Address &base, process *proc, unsigned offs
   if (tid != -1)  {
     vector<AstNode *> param;
     param += new AstNode(AstNode::Constant,(void *)tid);
+    param += new AstNode(AstNode::Constant,(void *)pos);
     t1 = new AstNode("DYNINSTthreadPosTID", param);
     for (unsigned i=0; i<param.size(); i++) 
       removeAst(param[i]) ;
@@ -1134,7 +1135,8 @@ void returnInstance::addToReturnWaitingList(Address pc, process *proc) {
 bool doNotOverflow(int value)
 {
   // we are assuming that we have 13 bits to store the immediate operand.
-  if ( (value <= 16383) && (value >= -16384) ) return(true);
+  //if ( (value <= 16383) && (value >= -16384) ) return(true);
+  if ( (value <= MAX_IMM13) && (value >= MIN_IMM13) ) return(true);
   else return(false);
 }
 

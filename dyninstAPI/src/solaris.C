@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.83 1999/12/15 18:55:59 zandy Exp $
+// $Id: solaris.C,v 1.84 2000/02/04 21:52:49 zhichen Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "util/h/headers.h"
@@ -1152,6 +1152,7 @@ bool process::pause_() {
       return 0;
   }
 
+#ifndef MT_THREAD
   // Determine if the process was in a system call when we stopped it.
   if (! (prstatus.pr_why == PR_REQUESTED
 	 && prstatus.pr_syscall != 0
@@ -1273,6 +1274,7 @@ bool process::pause_() {
   // we will restart the system call.
   postsyscallpc = (Address) prstatus.pr_reg[PC_REG];
 
+#endif
   return 1;
 }
 
@@ -1655,7 +1657,7 @@ Frame Frame::getCallerFrameThread(process *p) const
   } addrs;
 
   if (p->readDataSpace((caddr_t)(fp_ + 56), sizeof(int)*2, 
-		       (caddr_t)&addrs, true)) 
+		       (caddr_t)&addrs, false)) 
   {
     ret.fp_ = addrs.fp;
     ret.pc_ = addrs.rtn + 8;

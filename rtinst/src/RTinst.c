@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.20 1999/11/11 00:59:24 wylie Exp $
+ * $Id: RTinst.c,v 1.21 2000/02/04 21:53:09 zhichen Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -597,7 +597,6 @@ DYNINSTsampleValues(void) {
 #endif
 
 
-
 /************************************************************************
  * void DYNINSTgenerateTraceRecord(traceStream sid, short type,
  *   short length, void* data, int flush,time64 wall_time,time64 process_time)
@@ -613,11 +612,10 @@ DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
     char            buffer[1024];
 
 #if defined(MT_THREAD)
-#if !defined(ONE_THREAD)
     if (DYNINST_DEAD_LOCK == tc_lock_lock(&DYNINST_traceLock)){
       return ;
     }
-#endif
+
 #endif /*MT_THREAD*/
 
     if (inDYNINSTgenerateTraceRecord) return;
@@ -664,9 +662,7 @@ DYNINSTgenerateTraceRecord(traceStream sid, short type, short length,
 
     inDYNINSTgenerateTraceRecord = 0;
 #if defined(MT_THREAD)
-#if !defined(ONE_THREAD)
     tc_lock_unlock(&DYNINST_traceLock) ;
-#endif
 #endif /*MT_THRAED*/
 
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.75 1999/11/11 00:56:09 wylie Exp $
+// $Id: ast.C,v 1.76 2000/02/04 21:52:50 zhichen Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1184,7 +1184,7 @@ Address AstNode::generateCode_phase2(process *proc,
 
             if (right && (right->type == operandNode) &&
                 (right->oType == Constant) &&
-                doNotOverflow((Address)right->oValue) &&
+                doNotOverflow((RegValue)right->oValue) &&
                 (type == opCodeNode))
 	    {
 #ifdef alpha_dec_osf4_0

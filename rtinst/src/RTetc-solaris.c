@@ -283,6 +283,7 @@ DYNINSTgetCPUtime(void) {
 
   now = gethrvtime() / 1000;
 
+#ifndef MT_THREAD
   if (now < cpuPrevious) {
     if(cpuRollbackOccurred < MaxRollbackReport) {
       rtUIMsg traceData;
@@ -297,7 +298,7 @@ DYNINSTgetCPUtime(void) {
     now = cpuPrevious;
   }
   else  cpuPrevious = now;
-
+#endif
   return now;  
 }
 
@@ -320,6 +321,7 @@ DYNINSTgetWalltime(void) {
 
   now = gethrtime() / 1000;
 
+#ifndef MT_THREAD
   if (now < wallPrevious) {
     if(wallRollbackOccurred < MaxRollbackReport) {
       rtUIMsg traceData;
@@ -334,6 +336,7 @@ DYNINSTgetWalltime(void) {
     now = wallPrevious;
   }
   else  wallPrevious = now;
+#endif
 
   return now;
 }
