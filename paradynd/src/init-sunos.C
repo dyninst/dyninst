@@ -1,7 +1,10 @@
 
 /*
  * $Log: init-sunos.C,v $
- * Revision 1.1  1994/11/01 16:55:56  markc
+ * Revision 1.2  1994/11/10 21:17:38  jcargill
+ * Removed active_process from the list of all metrics; it's now an internal
+ *
+ * Revision 1.1  1994/11/01  16:55:56  markc
  * Environment specific initialization. (pvm, cm5, sun sequential)
  *
  */
@@ -19,7 +22,6 @@
 static AstNode tagArg(Param, (void *) 1);
 
 bool initOS() {
-
   cpuTimePredicates = new resourcePredicate[6];
   cpuTimePredicates[0].set("/Procedure", replaceBase, perModuleCPUTime);
   cpuTimePredicates[1].set("/SyncObject/MsgTag", invalidPredicate, NULL);
@@ -69,30 +71,28 @@ bool initOS() {
   globalOnlyPredicates[4].set("/Process", nullPredicate, NULL);
   globalOnlyPredicates[5].set((char*)NULL, nullPredicate,  NULL, false);
 
-  DYNINSTallMetrics = new metric[11];
-  metricCount = 11;
+  DYNINSTallMetrics = new metric[10];
+  metricCount = 10;
 
-  DYNINSTallMetrics[0].set("active_processes", SampledFunction, aggSum, "Processes",
-			   createActiveProcesses, defaultPredicates);
-  DYNINSTallMetrics[1].set("observed_cost", EventCounter, aggMax, "Wasted CPUs",
+  DYNINSTallMetrics[0].set("observed_cost", EventCounter, aggMax, "Wasted CPUs",
 			   createObservedCost, observedCostPredicates);
-  DYNINSTallMetrics[2].set("cpu", EventCounter, aggSum, "# CPUs",
+  DYNINSTallMetrics[1].set("cpu", EventCounter, aggSum, "# CPUs",
 			   createCPUTime, cpuTimePredicates);
-  DYNINSTallMetrics[3].set("exec_time", EventCounter, aggSum, "%Time",
+  DYNINSTallMetrics[2].set("exec_time", EventCounter, aggSum, "%Time",
 			   createExecTime, wallTimePredicates);
-  DYNINSTallMetrics[4].set("procedure_calls", EventCounter, aggSum, "Calls/sec",
+  DYNINSTallMetrics[3].set("procedure_calls", EventCounter, aggSum, "Calls/sec",
 			   createProcCalls, procCallsPredicates);
-  DYNINSTallMetrics[5].set("msgs", EventCounter, aggSum, "Ops/sec",
+  DYNINSTallMetrics[4].set("msgs", EventCounter, aggSum, "Ops/sec",
 			   createMsgs, defaultPredicates);
-  DYNINSTallMetrics[6].set("msg_bytes", EventCounter, aggSum, "Bytes/Sec",
+  DYNINSTallMetrics[5].set("msg_bytes", EventCounter, aggSum, "Bytes/Sec",
 			   createMsgBytesTotal, defaultPredicates);
-  DYNINSTallMetrics[7].set("msg_bytes_sent", EventCounter, aggSum, "Bytes/Sec",
+  DYNINSTallMetrics[6].set("msg_bytes_sent", EventCounter, aggSum, "Bytes/Sec",
 			   createMsgBytesSent, defaultPredicates);
-  DYNINSTallMetrics[8].set("msg_bytes_recv", EventCounter, aggSum, "Bytes/Sec",
+  DYNINSTallMetrics[7].set("msg_bytes_recv", EventCounter, aggSum, "Bytes/Sec",
 			   createMsgBytesRecv, defaultPredicates);
-  DYNINSTallMetrics[9].set("sync_ops", EventCounter, aggSum, "Ops/sec",
+  DYNINSTallMetrics[8].set("sync_ops", EventCounter, aggSum, "Ops/sec",
 			   createSyncOps, defaultPredicates);
-  DYNINSTallMetrics[10].set("sync_wait", EventCounter, aggSum, "# Waiting",
+  DYNINSTallMetrics[9].set("sync_wait", EventCounter, aggSum, "# Waiting",
 			    createSyncWait, defaultPredicates, false);
 
   initialRequests = new instMapping[19];
