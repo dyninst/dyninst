@@ -5,9 +5,13 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.34  1994/11/11 15:12:35  rbi
-/* causing serious illness to debugging printf()
+/* Revision 1.35  1994/12/21 00:43:14  tamches
+/* used the new findTunableConstant() method function, instead of doing it
+/* by looking into tc's data members (which is no longer allowed).
 /*
+ * Revision 1.34  1994/11/11  15:12:35  rbi
+ * causing serious illness to debugging printf()
+ *
  * Revision 1.33  1994/11/10  17:35:57  rbi
  * physical illness and possible death in the family
  *
@@ -580,9 +584,11 @@ int ParadynSetCmd (ClientData clientData,
     sprintf(interp->result,"USAGE: %s <variable> <value>", argv[0]);
     return TCL_ERROR;
   }
-  assert (tunableConstant::allConstants && tunableConstant::pool);
-  sp = tunableConstant::pool->findAndAdd(argv[1]);
-  curr = tunableConstant::allConstants->find(sp);
+
+  curr = tunableConstant::findTunableConstant(argv[1]);
+//  assert (tunableConstant::allConstants && tunableConstant::pool);
+//  sp = tunableConstant::pool->findAndAdd(argv[1]);
+//  curr = tunableConstant::allConstants->find(sp);
 
   if (!curr) {
     sprintf (interp->result, "variable %s not defined\n", argv[1]);
