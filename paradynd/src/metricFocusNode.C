@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.204 2001/11/03 06:08:56 schendel Exp $
+// $Id: metricFocusNode.C,v 1.205 2001/11/06 19:20:45 bernat Exp $
 
 #include "common/h/headers.h"
 #include <limits.h>
@@ -1570,26 +1570,83 @@ void metricDefinitionNode::adjustManuallyTrigger()
   {
 //
 #if defined(MT_THREAD)
-    vector<Address> stack_pcs;
+    
     vector<vector<Address> > pc_s = proc_->walkAllStack();
-    for (int i=0; i< pc_s.size(); i++) {
-      stack_pcs += pc_s[i];
+    // WalkAllStack _MUST_ return the list of stacks sorted in the same
+    // order as the list of threads in the process
+
+    for (int stack_i=0; stack_i< pc_s.size(); stack_i++) {
+      for (unsigned component_i=0; component_i < components.size(); component_i++)
+	components[component_i]->adjustManuallyTrigger(pc_s[stack_i], 
+						       proc_->threads[stack_i]->get_tid());
     }
 //
 #else
     vector<Address> stack_pcs = proc_->walkStack();
+    for (unsigned i1=0; i1 < components.size(); i1++) {
+      components[i1]->adjustManuallyTrigger(stack_pcs, -1);
+    }
 #endif
 
-    for (unsigned i1=0; i1 < components.size(); i1++) {
-      components[i1]->adjustManuallyTrigger(stack_pcs);
-    }
   }
   else {
     assert(0);  // PRIM_MDN or PRIM_MDN
   }
 }
 
-void metricDefinitionNode::adjustManuallyTrigger(vector<Address> stack_pcs)
+// A debug function for adjustManuallyTrigger
+
+void adjustManuallyTrigger_debug(instReqNode &iRN)
+{
+  //
+  //
+  switch (iRN.When()) {
+  case callPreInsn:
+    cerr << " callPreInsn for ";
+    break;
+  case callPostInsn:
+    cerr << " callPostInsn for ";
+    break;
+  }
+#if defined(mips_sgi_irix6_4)
+  if( iRN.Point()->type() == IPT_ENTRY )
+    cerr << " FunctionEntry " << endl;
+  else if (iRN.Point()->type() == IPT_EXIT )
+    cerr << " FunctionExit " << endl;
+  else if (iRN.Point()->type() == IPT_CALL )
+    cerr << " callSite " << endl;
+  
+#elif defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0)
+  if( iRN.Point()->ipType == functionEntry )
+    cerr << " Function Entry " << endl;
+  else if( iRN.Point()->ipType == functionExit )
+    cerr << " FunctionExit " << endl;
+  else if( iRN.Point()->ipType == callSite )
+    cerr << " callSite " << endl;
+  
+#elif defined(rs6000_ibm_aix4_1)
+  if( iRN.Point()->ipLoc == ipFuncEntry )
+    cerr << " FunctionEntry " << endl;
+  if( iRN.Point()->ipLoc == ipFuncReturn )
+    cerr << " FunctionExit " << endl;
+  if( iRN.Point()->ipLoc == ipFuncCallPoint )
+    cerr << " callSite " << endl;
+#elif defined(i386_unknown_nt4_0) || defined(i386_unknown_solaris2_5)                                            || defined(i386_unknown_linux2_0)
+  if( iRN.Point()->iPgetAddress() == iRN.Point()->iPgetFunction()->addr() )
+    cerr << " FunctionEntry " << endl;
+  else if ( iRN.Point()->insnAtPoint().isCall() ) 
+    cerr << " calSite " << endl;
+  else
+    cerr << " FunctionExit " << endl;
+#else
+#error Check for instPoint type == entry not implemented on this platform
+#endif
+  
+//
+//
+}
+
+void metricDefinitionNode::adjustManuallyTrigger(vector<Address> stack_pcs, int tid)
 {
   assert(mdn_type_ == PRIM_MDN);
 
@@ -1618,7 +1675,7 @@ void metricDefinitionNode::adjustManuallyTrigger(vector<Address> stack_pcs)
   }
 
   if( stack_pcs.size() == 0 )
-    cerr << "WARNING -- process::walkStack returned an empty stack" << endl;
+    cerr << "WARNING -- adjustManuallyTrigger was handed an empty stack" << endl;
   vector<pd_Function *> stack_funcs = proc_->convertPCsToFuncs(stack_pcs);
   proc_->correctStackFuncsForTramps( stack_pcs, stack_funcs );
   bool badReturnInst = false;
@@ -1691,69 +1748,31 @@ void metricDefinitionNode::adjustManuallyTrigger(vector<Address> stack_pcs)
 #endif
       if( badReturnInst )
 	continue;
+      
+      // For all of the inst points in all the functions on the stack...
+
       for(j=0;j<instPts.size();j++) {
 	point = instPts[j];
 	for(k=0;k<instRequests.size();k++) {
 	  if (point == instRequests[k].Point()) {
+	    // If we have an instrumentation request for that point...
+	    
  	    if (instRequests[k].Ast()->accessesParam()) {
+	      // and it accesses parameters for the function, break (parameters are unknown)
 	      break;
 	    }
 	    if (instRequests[k].triggeredInStackFrame(stack_func, stack_pc, proc_))
 	      {
-
+		// Otherwise, add it to the list to be manually triggered
 		if (pd_debug_catchup) {
 		  instReqNode &iRN = instRequests[k];
 		  cerr << "--- catch-up needed for "
 		       << prettyName << " @ " << stack_func->prettyName() 
 		       << " @ " << (void*) stack_pc << endl;
-//
-//
-		  switch (iRN.When()) {
-		  case callPreInsn:
-		    cerr << " callPreInsn for ";
-		    break;
-		  case callPostInsn:
-		    cerr << " callPostInsn for ";
-		    break;
-		  }
-#if defined(mips_sgi_irix6_4)
-		  if( iRN.Point()->type() == IPT_ENTRY )
-		    cerr << " FunctionEntry " << endl;
-		  else if (iRN.Point()->type() == IPT_EXIT )
-		    cerr << " FunctionExit " << endl;
-		  else if (iRN.Point()->type() == IPT_CALL )
-		    cerr << " callSite " << endl;
-
-#elif defined(sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0)
-		  if( iRN.Point()->ipType == functionEntry )
-		    cerr << " Function Entry " << endl;
-		  else if( iRN.Point()->ipType == functionExit )
-		    cerr << " FunctionExit " << endl;
-		  else if( iRN.Point()->ipType == callSite )
-		    cerr << " callSite " << endl;
-
-#elif defined(rs6000_ibm_aix4_1)
-		  if( iRN.Point()->ipLoc == ipFuncEntry )
-		    cerr << " FunctionEntry " << endl;
-		  if( iRN.Point()->ipLoc == ipFuncReturn )
-		    cerr << " FunctionExit " << endl;
-		  if( iRN.Point()->ipLoc == ipFuncCallPoint )
-		    cerr << " callSite " << endl;
-#elif defined(i386_unknown_nt4_0) || defined(i386_unknown_solaris2_5)                                            || defined(i386_unknown_linux2_0)
-                  if( iRN.Point()->iPgetAddress() == iRN.Point()->iPgetFunction()->addr() )
-		    cerr << " FunctionEntry " << endl;
-		  else if ( iRN.Point()->insnAtPoint().isCall() ) 
-		    cerr << " calSite " << endl;
-		  else
-		    cerr << " FunctionExit " << endl;
-#else
-#error Check for instPoint type == entry not implemented on this platform
-#endif
-
-//
-//
+		  adjustManuallyTrigger_debug(iRN);
 		}
 		manuallyTriggerNodes += &(instRequests[k]);
+		instRequests[k].friesWithThat(tid);
 	      }
 	  }
 	}
@@ -1762,13 +1781,13 @@ void metricDefinitionNode::adjustManuallyTrigger(vector<Address> stack_pcs)
 
 #if defined(MT_THREAD)
 
-  oldCatchUp();
+  oldCatchUp(tid);
 
 #endif  // not OLD_CATCHUP, but MT_THREAD
 }
 
 
-void metricDefinitionNode::oldCatchUp() {
+void metricDefinitionNode::oldCatchUp(int tid) {
 
   unsigned j, k;
 
@@ -1819,6 +1838,7 @@ void metricDefinitionNode::oldCatchUp() {
               }
 	      //manuallyTriggerNodes.insert( 0, &(instRequests[k]) );
 	      manuallyTriggerNodes.push_back( &(instRequests[k]) );
+	      instRequests[k].friesWithThat(tid);
 	    }
 	  }
 	}
@@ -1828,7 +1848,7 @@ void metricDefinitionNode::oldCatchUp() {
 // degenerated version
 //
 #if defined(MT_THREAD)
-void metricDefinitionNode::adjustManuallyTrigger0()
+void metricDefinitionNode::adjustManuallyTrigger0(int tid)
 {
   vector<instPoint*> instPts;
   unsigned i;
@@ -1838,7 +1858,7 @@ void metricDefinitionNode::adjustManuallyTrigger0()
   if (mdn_type_ == AGG_MDN || mdn_type_ == THR_LEV || mdn_type_ == COMP_MDN)  // ! COMP_MDN
   {
     for (i=0; i < components.size(); i++) {
-      components[i]->adjustManuallyTrigger0();
+      components[i]->adjustManuallyTrigger0(tid);
     }
   } 
   // non-aggregate:
@@ -1852,7 +1872,7 @@ void metricDefinitionNode::adjustManuallyTrigger0()
     // point of main, and which has not been added to the manuallyTriggerNodes list,
     // add it to the list.
 
-    oldCatchUp();
+    oldCatchUp(tid);
   }
 }
 #endif 
@@ -1891,70 +1911,12 @@ void metricDefinitionNode::manuallyTrigger(int parentMId) {
    }
 
    for ( unsigned i=0; i < manuallyTriggerNodes.size(); ++i ) {
-#if !defined(MT_THREAD)
      if (!manuallyTriggerNodes[i]->triggerNow(proc(),parentMId)) {
        cerr << "manual trigger failed for an inst request" << endl;
      }
-#else
-     if (mdn_type_ == COMP_MDN) {
-       for( unsigned u=0; u < proc()->threads.size(); ++u ) {
-	 if (!manuallyTriggerNodes[i]->triggerNow( proc(), parentMId,
-						   proc()->threads[u]->get_tid() )) {
-	   cerr << "manual trigger failed for an inst request" << endl;
-	 }
-       }
-     }
-#endif
    }
    manuallyTriggerNodes.resize( 0 );
 }
-
-
-#if defined(MT_THREAD)
-void metricDefinitionNode::manuallyTrigger(int parentMId, int thrId)
-#else
-void metricDefinitionNode::manuallyTrigger(int parentMId, int /*thrId*/)
-#endif
-{
-#if defined(MT_THREAD)
-   metric_cerr << thrId << endl;
-#endif
-
-   assert(anythingToManuallyTrigger());
-
-   bool aggr = true;
-
-   if (mdn_type_ == PRIM_MDN)
-     aggr = false;
-
-   if( aggr ) {
-     for ( unsigned i=0; i < components.size(); ++i )
-       if (components[i]->anythingToManuallyTrigger())
-#if defined(MT_THREAD)
-	 components[i]->manuallyTrigger(parentMId, thrId);
-#else
-         components[i]->manuallyTrigger(parentMId);
-#endif
-     return;
-   }
-
-   for ( unsigned i=0; i < manuallyTriggerNodes.size(); ++i ) {
-#if !defined(MT_THREAD)
-     if (!manuallyTriggerNodes[i]->triggerNow(proc(),parentMId)) {
-       cerr << "manual trigger failed for an inst request" << endl;
-     }
-#else
-     if (mdn_type_ == PRIM_MDN) {
-       if (!manuallyTriggerNodes[i]->triggerNow( proc(), parentMId, thrId)) {
-	 cerr << "manual trigger failed for an inst request" << endl;
-	 // metric_cerr << "manual trigger failed for an inst request" << endl;
-       }
-     }
-#endif
-   }
-   manuallyTriggerNodes.resize( 0 );
-}
-
 
 #if defined(MT_THREAD)
 void metricDefinitionNode::propagateId(int id) {
@@ -3953,87 +3915,90 @@ timeLength instReqNode::cost(process *theProc) const
 
 extern void checkProcStatus();
 
-#if defined(MT_THREAD)
-bool instReqNode::triggerNow(process *theProc, int mid, int thrId) {
-  metric_cerr << " in TriggerNow! mid = " << mid << ", thrId = " << thrId << endl;
-#else
 bool instReqNode::triggerNow(process *theProc, int mid) {
-#endif
-
 
    bool needToCont = theProc->status() == running;
 #ifdef DETACH_ON_THE_FLY
-   if ( !theProc->reattachAndPause() ) {
+   if ( !theProc->reattachAndPause() )
 #else
-   if ( !theProc->pause() ) {
+   if ( !theProc->pause() )
 #endif
+     {
 	   cerr << "instReqNode::triggerNow -- pause failed" << endl;
 	   return false;
-   }
-
-   // trigger the instrumentation
-#if defined(MT_THREAD)
-   for (unsigned i=0;i<manuallyTriggerTIDs.size();i++) {
-     if (manuallyTriggerTIDs[i]==thrId) {
-       // inferiorRPC has been launched already for this thread - naim
-       return true;
      }
-   }
-   manuallyTriggerTIDs += thrId;
-
-#if defined(TEST_DEL_DEBUG)
-   sprintf(errorLine,"***** posting inferiorRPC for mid=%d and tid=%d\n",mid,thrId);
-   logLine(errorLine);
-#endif
-#endif
-   theProc->postRPCtoDo(ast, false, // don't skip cost
-			instReqNode::triggerNowCallbackDispatch, this,
+   
+   // If multithreaded, we need to trigger for each thread necessary
+   for (int i = 0; i < fries.size(); i++) {
+     int thrID = fries[i];
+     /*
+     fprintf(stderr, "Starting instrumentation for thread %d\n", thrID);
+     */
+     // trigger the instrumentation
 #if defined(MT_THREAD)
-			mid,
-			thrId,
-			false); //false --> regular RPC, true-->SAFE RPC
-#else
-			mid);
+     for (unsigned i=0;i<manuallyTriggerTIDs.size();i++) {
+       if (manuallyTriggerTIDs[i]==thrID) {
+	 continue;
+       }
+     }
+     // Avoid multiply triggering, since the thread IDs stored in "fries"
+     // may not be unique
+     manuallyTriggerTIDs += thrID;
+     
+#if defined(TEST_DEL_DEBUG)
+     sprintf(errorLine,"***** posting inferiorRPC for mid=%d and tid=%d\n",mid,thrId);
+     logLine(errorLine);
 #endif
-
-   metric_cerr << "   inferiorRPC has been launched for this thread. " << endl;
-   rpcCount = 0;
-
-   if (pd_debug_catchup) {
-     metric_cerr << "launched catchup instrumentation, waiting rpc to finish ..." << endl;
-     cerr << "launched catchup instrumentation, waiting rpc to finish ..." << endl;
-   }
-
-   do {
+#endif
+     theProc->postRPCtoDo(ast, false, // don't skip cost
+			  instReqNode::triggerNowCallbackDispatch, this,
+#if defined(MT_THREAD)
+			  mid,
+			  thrID,
+			  false
+#else
+                          mid
+#endif
+			  ); //false --> regular RPC, true-->SAFE RPC
+     metric_cerr << "   inferiorRPC has been launched for this thread. " << endl;
+     rpcCount = 0;
+     
+     if (pd_debug_catchup) {
+       metric_cerr << "launched catchup instrumentation, waiting rpc to finish ..." << endl;
+       cerr << "launched catchup instrumentation, waiting rpc to finish ..." << endl;
+     }
+     // Do we need this? Or can we get away with the regular
+     // RPC triggering mechanism?
+#if 0
+     do {
        // Make sure that we are not currently in an RPC to avoid race
        // conditions between catchup instrumentation and waitProcs()
        // loops
        if ( !theProc->isRPCwaitingForSysCallToComplete() )
-           theProc->launchRPCifAppropriate(false, false);
+	 theProc->launchRPCifAppropriate(false, false);
        checkProcStatus();
        
-   } while ( !rpcCount && theProc->status() != exited );
-
-   if ( pd_debug_catchup ) {
-     metric_cerr << "catchup instrumentation finished ..." << endl;
-     cerr << "catchup instrumentation finished ..." << endl;
-   }
-
+     } while ( !rpcCount && theProc->status() != exited );
+#endif     
+     if ( pd_debug_catchup ) {
+       metric_cerr << "catchup instrumentation finished ..." << endl;
+       cerr << "catchup instrumentation finished ..." << endl;
+     }
+   }     
    if( needToCont && (theProc->status() != running)) {
 #ifdef DETACH_ON_THE_FLY
-	   theProc->detachAndContinue();
+     theProc->detachAndContinue();
 #else
-	   theProc->continueProc();
+     theProc->continueProc();
 #endif
    }
    else if ( !needToCont && theProc->status()==running ) {
 #ifdef DETACH_ON_THE_FLY
-          theProc->reattachAndPause();
+     theProc->reattachAndPause();
 #else
-          theProc->pause();
+     theProc->pause();
 #endif
    }
-
    return true;
 }
 
@@ -5300,7 +5265,7 @@ void metricDefinitionNode::addThread(pdThread *thr)
   //
   //
 
-  adjustManuallyTrigger0();
+  adjustManuallyTrigger0(tid);
 
   if (anythingToManuallyTrigger()) {
     process *theProc = proc_;
@@ -5316,7 +5281,7 @@ void metricDefinitionNode::addThread(pdThread *thr)
 #endif
     }
 
-    manuallyTrigger(id_, tid);
+    manuallyTrigger(id_);
 
     if (needToContinue) {
       // the continue will trigger our code
@@ -5545,7 +5510,9 @@ bool AstNode::condMatch(AstNode* a,
 			vector<dataReqNode*> datareqs1,
 			vector<dataReqNode*> datareqs2)
 {
+
   unsigned i;
+
 
   if (this == a)
     return true;
@@ -5710,6 +5677,7 @@ bool AstNode::condMatch(AstNode* a,
 	if (!operands[i]->condMatch(a->operands[i], data_tuple1, data_tuple2,
 				    datareqs1, datareqs2))
 	  return false;
+
 	  }
       
       return true;

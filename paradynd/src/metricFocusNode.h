@@ -39,7 +39,7 @@ v * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.81 2001/11/03 06:08:55 schendel Exp $ 
+// $Id: metricFocusNode.h,v 1.82 2001/11/06 19:20:45 bernat Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -623,11 +623,7 @@ public:
   instInstance *getInstance() const { return instance; }
   returnInstance *getRInstance() const { return rinstance; }
 
-#if defined(MT_THREAD)
-  bool triggerNow(process *theProc, int mid, int thrId);
-#else
   bool triggerNow(process *theProc, int mid);
-#endif
   static void triggerNowCallbackDispatch(process * /*theProc*/,
 						    void *userData, void *returnValue)
 	  { ((instReqNode*)userData)->triggerNowCallback( returnValue ); }
@@ -640,6 +636,7 @@ public:
   instPoint *Point() {return point;}
   AstNode* Ast()  {return ast;}
   callWhen When() {return when;}
+  void friesWithThat(int tid) { fries += tid; }
 
 private:
   instPoint	*point;
@@ -656,6 +653,8 @@ private:
 #if defined(MT_THREAD)
   vector<int> manuallyTriggerTIDs;
 #endif
+  // Unused if not in MT_THREAD case
+  vector<int> fries;
 };
 
 // A function which is called by the continue mechanism in the process
@@ -914,12 +913,11 @@ public:
   bool anythingToManuallyTrigger() const;
 
   void adjustManuallyTrigger();
-  void adjustManuallyTrigger(vector<Address> stack_pcs); // should make it private
+  void adjustManuallyTrigger(vector<Address> stack_pcs, int tid); // should make it private
 #if defined(MT_THREAD)
-  void adjustManuallyTrigger0();
+  void adjustManuallyTrigger0(int tid);
 #endif
   void manuallyTrigger(int);
-  void manuallyTrigger(int, int);
 
 #if defined(MT_THREAD)
   void propagateId(int);
@@ -1118,7 +1116,7 @@ private:
   metricDefinitionNode* handleExec();
   // called by static void handleExec(process *), for each component mi
   // returns new component mi if propagation succeeded; NULL if not.
-  void oldCatchUp();
+  void oldCatchUp(int tid);
   bool checkAndInstallInstrumentation(vector<Address>& pc);
 };
 

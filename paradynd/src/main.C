@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.97 2001/10/26 06:29:27 schendel Exp $
+// $Id: main.C,v 1.98 2001/11/06 19:20:45 bernat Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -260,10 +260,12 @@ static void initialize_debug_flag(void) {
   char *p;
 
   if ( (p=getenv("PARADYND_DEBUG_INFRPC")) ) {
+    cerr << "Enabling inferior RPC debugging code" << endl;
     pd_debug_infrpc = 1;
   }
 
   if ( (p=getenv("PARADYND_DEBUG_CATCHUP")) ) {
+    cerr << "Enabling catchup instrumentation debugging code" << endl;
     pd_debug_catchup = 1;
   }
 }
@@ -500,6 +502,7 @@ InitForPVM( char* argv[], const string& pd_machine )
 int
 main( int argc, char* argv[] )
 {
+
 	PauseIfDesired();
 	initialize_debug_flag();
 

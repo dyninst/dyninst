@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-aix.C,v 1.17 2001/10/11 23:58:01 schendel Exp $
+// $Id: init-aix.C,v 1.18 2001/11/06 19:20:45 bernat Exp $
 
 #include "paradynd/src/metric.h"
 #include "paradynd/src/internalMetrics.h"
@@ -88,7 +88,6 @@ bool initOS()
   initialRequests += new instMapping("main", "DYNINSTexit", FUNC_EXIT);
 
   initialRequests += new instMapping(EXIT_NAME, "DYNINSTexit", FUNC_ENTRY);
-
   initialRequests += new instMapping("DYNINSTsampleValues", 
 				     "DYNINSTreportNewTags", FUNC_ENTRY);
 
@@ -174,6 +173,66 @@ bool initOS()
 				     FUNC_ENTRY|FUNC_ARG, &mpiScattervCommArg);
   initialRequests += new instMapping("PMPI_Scan", "DYNINSTrecordGroup",
 				     FUNC_ENTRY|FUNC_ARG, &mpiScanCommArg);
+
+#if defined(MT_THREAD)
+  // Official gotten-from-tracing name. While pthread_create() is the
+  // call made from user space, _pthread_body is the parent of any created
+  // thread, and so is a good place to instrument.
+  initialRequests += new instMapping("_pthread_body",
+				     "DYNINST_VirtualTimerCREATE",
+				     FUNC_ENTRY, callPreInsn,
+				     orderLastAtPoint) ;
+  /*
+  initialRequests += new instMapping("pthread_create",
+				     "DYNINST_VirtualTimerCREATE",
+				     FUNC_ENTRY, callPreInsn,
+				     orderLastAtPoint) ;
+  */
+  initialRequests += new instMapping("pthread_exit", "DYNINSTthreadDelete", 
+                                     FUNC_ENTRY, callPreInsn, 
+				     orderLastAtPoint);
+  // Should really be the longjmp in the pthread library
+  initialRequests += new instMapping("_longjmp",
+				     "DYNINST_VirtualTimerStart",
+				     FUNC_ENTRY, callPreInsn,
+				     orderLastAtPoint) ;
+  initialRequests += new instMapping("_usched_swtch",
+				     "DYNINST_VirtualTimerStop",
+				     FUNC_ENTRY, callPreInsn,
+				     orderLastAtPoint) ;
+  // Thread SyncObjects
+  // mutex
+  AstNode* arg0 = new AstNode(AstNode::Param, (void*) 0);
+  initialRequests += new instMapping("pthread_mutex_init", 
+  				     "DYNINSTreportNewMutex", 
+                                     FUNC_ENTRY|FUNC_ARG, 
+  				     arg0);
+
+  // rwlock
+  //
+  arg0 = new AstNode(AstNode::Param, (void*) 0);
+  initialRequests += new instMapping("pthread_rwlock_init", 
+  				     "DYNINSTreportNewRwLock", 
+                                     FUNC_ENTRY|FUNC_ARG, 
+  				     arg0);
+
+  //Semaphore
+  //
+  arg0 = new AstNode(AstNode::Param, (void*) 0);
+  initialRequests += new instMapping("i_need_a_name", 
+  				     "DYNINSTreportNewSema", 
+                                     FUNC_ENTRY|FUNC_ARG, 
+  				     arg0);
+
+  // Conditional variable
+  //
+  arg0 = new AstNode(AstNode::Param, (void*) 0);
+  initialRequests += new instMapping("pthread_cond_init", 
+  				     "DYNINSTreportNewCondVar", 
+                                     FUNC_ENTRY|FUNC_ARG, 
+  				     arg0);
+#endif
+
 #ifdef PARADYND_PVM
   char *doPiggy;
 
@@ -194,7 +253,6 @@ bool initOS()
                            FUNC_ENTRY|FUNC_ARG, tidArg);
   }
 #endif
-
   return true;
 };
 
