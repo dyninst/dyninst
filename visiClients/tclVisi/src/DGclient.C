@@ -2,7 +2,10 @@
  *  DGclient.C -- Code for the visi<->tcl interface.
  *    
  * $Log: DGclient.C,v $
- * Revision 1.2  1994/06/14 18:57:47  rbi
+ * Revision 1.3  1994/08/05 20:17:10  rbi
+ * Update for new version of libvisi.a
+ *
+ * Revision 1.2  1994/06/14  18:57:47  rbi
  * Updated layout and added curve validation callback.
  *
  * Revision 1.1  1994/05/31  21:05:47  rbi
@@ -96,16 +99,6 @@ int Dg_Invalid(int dummy) {
   return(retval);
 }
 
-int Dg_New(int dummy) {
-  int retval;
-
-  retval = Tcl_Eval(MainInterp, "DgConfigCallback");
-  if (retval == TCL_ERROR) {
-    fprintf(stderr, "%s\n", MainInterp->result);
-  }
-  return(retval);
-}
-
 int Dg_Phase(int dummy) {
   int retval;
 
@@ -177,6 +170,7 @@ int Dg_GraphElem(Tcl_Interp *interp, char *path, char *elem, int mid, int rid)
 #define   CMDERROR         15
 #define   LASTBUCKET       16
 #define   BLTGRAPHELEM     17
+#define   FIRSTBUCKET      18
 
 struct cmdTabEntry 
 {
@@ -189,6 +183,7 @@ static struct cmdTabEntry Dg_Cmds[] = {
   {"aggregate",    AGGREGATE,       2},
   {"binwidth",     BINWIDTH,        0},
   {"bltgraphelem", BLTGRAPHELEM,    4},
+  {"firstbucket",  FIRSTBUCKET,      2},
   {"foldmethod",   FOLDMETHOD,      2},
   {"lastbucket",   LASTBUCKET,      2},
   {"metricname",   METRICNAME,      1},
@@ -258,6 +253,12 @@ int Dg_TclCommand(ClientData clientData,
     m = atoi(argv[2]);
     r = atoi(argv[3]);
     return (Dg_GraphElem(interp, argv[4], argv[5], m, r));
+
+  case FIRSTBUCKET:
+    m = atoi(argv[2]);
+    r = atoi(argv[3]);
+    sprintf(interp->result,"%d", dataGrid[m][r].FirstValidBucket()); 
+    return TCL_OK;
 
   case FOLDMETHOD:
     m = atoi(argv[2]);
@@ -357,9 +358,16 @@ Dg_Init(Tcl_Interp *interp)
   (void) RegistrationCallback(DATAVALUES,Dg_Data); 
   (void) RegistrationCallback(FOLD,Dg_Fold); 
   (void) RegistrationCallback(INVALIDMETRICSRESOURCES,Dg_Invalid);
-  (void) RegistrationCallback(NEWMETRICSRESOURCES,Dg_New);
   (void) RegistrationCallback(PHASENAME,Dg_Phase);
-  (void) StartVisi(0,0);
+  {
+    /* char *vargv[3];*/
+    /* vargv[0] = "foo";*/
+    /* vargv[1] = "cpu";*/
+    /* vargv[2] = "Procedure Process Machine SyncObject";*/
+
+    /* (void) StartVisi(3,vargv);*/
+    (void) StartVisi(0,NULL); 
+  }
 
   Tcl_CreateCommand(interp, "Dg", Dg_TclCommand, 
 		    (ClientData *) NULL,(Tcl_CmdDeleteProc *) NULL);
