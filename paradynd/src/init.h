@@ -44,6 +44,11 @@
 
 /*
  * $Log: init.h,v $
+ * Revision 1.25  2000/04/20 22:46:04  mirg
+ * Added instMPI() - MPI-related instrumentation. Since it is the same
+ * on all platforms we could call it on AIX and IRIX as well, instead
+ * of inlining the same code in init-*.C
+ *
  * Revision 1.24  1999/07/07 16:18:28  zhichen
  *    Mutex, RwLock, CondVar ....
  *
@@ -121,6 +126,7 @@ extern costMetric *smooth_obs_cost;
 
 extern bool init();
 extern bool initOS();
+extern void instMPI();
 extern vector<instMapping*> initialRequests;
 
 extern vector<sym_data> syms_to_find;
