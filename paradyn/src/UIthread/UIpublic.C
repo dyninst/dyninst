@@ -21,11 +21,16 @@
  */
 
 /* $Log: UIpublic.C,v $
-/* Revision 1.48  1996/04/01 22:42:14  tamches
-/* added UI_all_metric_names, UI_all_metrics_set_yet
-/* removed uim_AvailMets etc.
-/* new params in call to getMetsAndRes
+/* Revision 1.49  1996/04/07 21:17:12  karavan
+/* changed new phase notification handling; instead of being notified by the
+/* data manager, the UI is notified by the performance consultant.  This prevents
+/* a race condition.
 /*
+ * Revision 1.48  1996/04/01 22:42:14  tamches
+ * added UI_all_metric_names, UI_all_metrics_set_yet
+ * removed uim_AvailMets etc.
+ * new params in call to getMetsAndRes
+ *
  * Revision 1.47  1996/03/08 00:15:53  tamches
  * where appropriate, some more showError() calls pass empty string as 2d arg
  *
@@ -236,6 +241,54 @@ UIM::chooseMetricsandResources(chooseMandRCBFunc cb,
 
 extern shgPhases *theShgPhases;
 
+// The following two variables tell the shg which phase to try to
+// activate when _first_ opening the shg window.  We initialize it
+// to the well-known values for the "current phase" which is
+// created on startup.
+int latest_detected_new_phase_id = 1;
+const char *latest_detected_new_phase_name = "phase_0";
+
+void UIM::newPhaseNotification (unsigned ph, const char *name, bool with_new_pc) {
+//   cout << "UI welcome to new_phase_detected" << endl;
+//   cout << "id=" << ph << endl;
+//   cout << "name=" << name << endl;
+
+   // For the benefit of the shg, in the event that the shg window
+   // has not yet been opened, with the result that "theShgPhases"
+   // hasn't yet been constructed:
+   extern shgPhases *theShgPhases;
+   if (theShgPhases == NULL) {
+      latest_detected_new_phase_id = ph;
+      //** memory leak
+      latest_detected_new_phase_name = name;
+      //cout << "ui_newPhaseDetected: deferring phase id " << ph << " (" << name << ") since shg window not yet opened" << endl;
+      if (with_new_pc)
+         cout << "can't begin searching the new phase since Perf Consultant window not yet opened" << endl;
+   }
+   else {
+      //cout << "ui_newPhaseDetected: adding the phase now" << endl;
+      bool redraw = theShgPhases->defineNewSearch(ph, name);
+
+      if (with_new_pc) {
+         // the user has requested that we begin searching immediately on this
+         // new phase, as if we had clicked on the "Search" button.  So let's do
+         // the equivalent.  But first, we must switch to the new "screen".
+	 assert(theShgPhases->changeByPhaseId(ph));
+
+	 myTclEval(interp, "shgClickOnSearch");
+	    // calls shgSearchCommand (shgTcl.C), which calls activateCurrSearch()
+            // in shgPhases.C
+
+         //cout << "ui_newPhaseDetected: started the new search!" << endl;
+
+	 redraw = true;
+      }
+      
+      if (redraw)
+         initiateShgRedraw(interp, true);
+   }
+}
+
 void
 UIM::updateStatusDisplay (int dagid, const char *info)
 {
@@ -283,9 +336,6 @@ bool tryFirstGoodShgWid(Tcl_Interp *interp, Tk_Window topLevelTkWindow) {
    (void)theShgPhases->defineNewSearch(GlobalPhaseId,
 				       "Global Phase");
 
-   // ...and inform the performance consultant:
-   perfConsult->newSearch(GlobalPhase);
-
    // Also add the "current phase", if applicable.
    // We check "latest_detected_new_phase_id", set by ui_newPhaseDetected (UImain.C)
    extern int latest_detected_new_phase_id;
@@ -293,7 +343,6 @@ bool tryFirstGoodShgWid(Tcl_Interp *interp, Tk_Window topLevelTkWindow) {
    if (latest_detected_new_phase_id >= 0) {
       theShgPhases->defineNewSearch(latest_detected_new_phase_id,
 				    latest_detected_new_phase_name);
-      perfConsult->newSearch(CurrentPhase); // as opposed to Global Phase
    }
 
    initiateShgRedraw(interp, true);

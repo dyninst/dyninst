@@ -1,8 +1,13 @@
 /* $Log: UImain.C,v $
-/* Revision 1.78  1996/03/08 03:00:34  tamches
-/* fixed hide-node bug whereby a tc change before PC window was open would
-/* give an assertion failure
+/* Revision 1.79  1996/04/07 21:17:07  karavan
+/* changed new phase notification handling; instead of being notified by the
+/* data manager, the UI is notified by the performance consultant.  This prevents
+/* a race condition.
 /*
+ * Revision 1.78  1996/03/08 03:00:34  tamches
+ * fixed hide-node bug whereby a tc change before PC window was open would
+ * give an assertion failure
+ *
  * Revision 1.77  1996/03/08 00:20:40  tamches
  * added 7 tunable constants for hiding desired shg nodes
  *
@@ -248,60 +253,6 @@ void applicStateChanged (perfStreamHandle, appState newstate) {
   }
 
   PDapplicState = newstate;
-}
-
-// The following two variables tell the shg which phase to try to
-// activate when _first_ opening the shg window.  We initialize it
-// to the well-known values for the "current phase" which is
-// created on startup.
-int latest_detected_new_phase_id = 1;
-const char *latest_detected_new_phase_name = "phase_0";
-
-void ui_newPhaseDetected(perfStreamHandle,
-			 const char *name, phaseHandle ph,
-			 timeStamp begin, timeStamp end,
-			 float bucketwidth,
-			 bool with_new_pc,
-			 bool with_visis) {
-//   cout << "welcome to new_phase_detected" << endl;
-//   cout << "id=" << ph + 1 << endl;
-//   cout << "name=" << name << endl;
-//   cout << "begin=" << begin << "; end=" << end << endl;
-
-   // For the benefit of the shg, in the event that the shg window
-   // has not yet been opened, with the result that "theShgPhases"
-   // hasn't yet been constructed:
-   extern shgPhases *theShgPhases;
-   if (theShgPhases == NULL) {
-      latest_detected_new_phase_id = ph + 1;
-      latest_detected_new_phase_name = name;
-      //cout << "ui_newPhaseDetected: deferring phase id " << ph+1 << " (" << name << ") since shg window not yet opened" << endl;
-      if (with_new_pc)
-         cout << "can't begin searching the new phase since Perf Consultant window not yet opened" << endl;
-   }
-   else {
-      //cout << "ui_newPhaseDetected: adding the phase now" << endl;
-      perfConsult->newSearch(CurrentPhase);
-      bool redraw = theShgPhases->defineNewSearch(ph+1, name);
-
-      if (with_new_pc) {
-         // the user has requested that we begin searching immediately on this
-         // new phase, as if we had clicked on the "Search" button.  So let's do
-         // the equivalent.  But first, we must switch to the new "screen".
-	 assert(theShgPhases->changeByPhaseId(ph+1));
-
-	 myTclEval(interp, "shgClickOnSearch");
-	    // calls shgSearchCommand (shgTcl.C), which calls activateCurrSearch()
-            // in shgPhases.C
-
-         //cout << "ui_newPhaseDetected: started the new search!" << endl;
-
-	 redraw = true;
-      }
-      
-      if (redraw)
-         initiateShgRedraw(interp, true);
-   }
 }
 
 /*
@@ -557,7 +508,7 @@ void *UImain(void*) {
     controlFuncs.fFunc = NULL;
     controlFuncs.sFunc = applicStateChanged;
     controlFuncs.bFunc = resourceBatchChanged;
-    controlFuncs.pFunc = ui_newPhaseDetected;
+    controlFuncs.pFunc = NULL;
     dataFunc.sample = NULL;
 
     uim_ps_handle = dataMgr->createPerformanceStream
