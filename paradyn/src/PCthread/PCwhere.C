@@ -18,7 +18,10 @@
 /*
  * 
  * $Log: PCwhere.C,v $
- * Revision 1.11  1994/08/05 16:04:18  hollings
+ * Revision 1.12  1994/09/22 01:08:48  markc
+ * Changed arg types on strCompare to remove compiler warnings
+ *
+ * Revision 1.11  1994/08/05  16:04:18  hollings
  * more consistant use of stringHandle vs. char *.
  *
  * Revision 1.10  1994/07/28  22:34:06  krisna
@@ -101,7 +104,7 @@ static char Copyright[] = "@(#) Copyright (c) 1993, 1994 Barton P. Miller, \
   Jeff Hollingsworth, Jon Cargille, Krishna Kunchithapadam, Karen Karavanic,\
   Tia Newhall, Mark Callaghan.  All rights reserved.";
 
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhere.C,v 1.11 1994/08/05 16:04:18 hollings Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/paradyn/src/PCthread/Attic/PCwhere.C,v 1.12 1994/09/22 01:08:48 markc Exp $";
 #endif
 
 #include <stdio.h>
@@ -113,6 +116,7 @@ static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/par
 #include "PCwhere.h"
 #include "PCglobals.h"
 
+/*
 int focus::operator =(focus f)
 {
     int i;
@@ -126,7 +130,7 @@ int focus::operator =(focus f)
     }
     return((int)ret);
 }
-
+*/
 focus::focus(resourceList *val)
 {
     resource *r;
@@ -144,15 +148,13 @@ focus::focus(resourceList *val)
     updateName();
 }
 
-int strCompare(char **a, char **b)
+int strCompare(const char **a, const char **b)
 {
      return(strcmp(*a, *b));
 }
 
 static int stringCompare(const void* p1, const void* p2) {
-    char** q1 = (char **) p1;
-    char** q2 = (char **) p2;
-    return strCompare(q1, q2);
+  return(strCompare((const char**) p1, (const char**) p2));
 }
 
 void focus::updateName()
@@ -246,7 +248,7 @@ void printCurrentFocus()
     focusList curr;
 
     // ugly cast to void to shut up g++ 2.5.8 - jkh 6/22/94
-    for ((void) (curr=globalFocus); *curr; curr++) {
+    for ((void) (curr=globalFocus); *curr; ++curr) {
        (*curr)->print();
     }
 }
@@ -255,7 +257,7 @@ void printCurrentFocus()
 focusList focus::magnify(resource *param)
 {
     int inner;
-    int count;
+    int count = 0;
     int oLimit;
     int iLimit;
     focus *curr;
