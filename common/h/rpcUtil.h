@@ -4,7 +4,10 @@
 
 /*
  * $Log: rpcUtil.h,v $
- * Revision 1.14  1994/03/25 16:07:31  markc
+ * Revision 1.15  1994/03/31 22:59:04  hollings
+ * added well known port as a paramter to xdrRPC constructor.
+ *
+ * Revision 1.14  1994/03/25  16:07:31  markc
  * Added option to specify timeout on readReady.
  *
  * Revision 1.13  1994/03/20  01:45:23  markc
@@ -70,7 +73,7 @@ typedef char *String;
 class XDRrpc {
   public:
     XDRrpc(char *m, char *u, char *p, xdrIOFunc, xdrIOFunc, 
-	   char **arg_list=0, int nblock=0);
+	   char **arg_list=0, int nblock=0, int wellKnownPortFd = 0);
     XDRrpc(int fd, xdrIOFunc readRoutine, xdrIOFunc writeRoutine, int nblock=0);
     XDRrpc(int family, int port, int type, char *machine, xdrIOFunc readFunc,
 	   xdrIOFunc writeFunc, int nblock=0);
@@ -82,6 +85,7 @@ class XDRrpc {
     XDR *__xdrs__;
     int fd;
     int pid;		// pid of child;
+    static int __wellKnownPortFd__;
     // should the fd be closed by a destructor ??
 };
 
@@ -106,6 +110,7 @@ class RPCUser {
   public:
     void awaitResponce(int tag);
     void verifyProtocolAndVersion();
+    int callErr;
 };
 
 //
@@ -122,7 +127,8 @@ extern int RPC_setup_socket (int *sfd,   // return file descriptor
 			     int type);   // SOCK_STREAM ...
 extern int xdr_String(XDR*, String*);
 extern int RPCprocessCreate(int *pid, char *hostName, char *userName,
-			    char *commandLine, char **arg_list = 0);
+			    char *commandLine, char **arg_list = 0,
+			    int wellKnownPort = 0);
 extern char **RPC_make_arg_list (char *program, int family, int type, int port, int flag);
 extern int 
 RPC_undo_arg_list (int argc, char **arg_list, char **machine, int &family,

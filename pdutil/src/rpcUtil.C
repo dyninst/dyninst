@@ -1,8 +1,11 @@
 /*
 $Log: rpcUtil.C,v $
-Revision 1.14  1994/03/31 22:45:04  markc
-Added Log for rcs.
+Revision 1.15  1994/03/31 22:59:08  hollings
+added well known port as a paramter to xdrRPC constructor.
 
+ * Revision 1.14  1994/03/31  22:45:04  markc
+ * Added Log for rcs.
+ *
 */
 
 //
@@ -13,8 +16,11 @@ Added Log for rcs.
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
 // malloc 
 
+#include <signal.h>
+#include <sys/wait.h>
 #include "util/h/rpcUtil.h"
 
+#define RSH_COMMAND	"rsh"
 
 int RPCdefaultXDRRead(int handle, char *buf, u_int len)
 {
@@ -79,9 +85,11 @@ XDRrpc::XDRrpc(char *machine,
 	       xdrIOFunc readRoutine, 
 	       xdrIOFunc writeRoutine,
 	       char **arg_list,
-	       int nblock)
+	       int nblock,
+	       int wellKnownPortFd)
 {
-    fd = RPCprocessCreate(&pid, machine, user, program, arg_list);
+    fd = RPCprocessCreate(&pid, machine, user, program, arg_list, 
+	wellKnownPortFd);
     if (fd >= 0) {
         __xdrs__ = new XDR;
 	if (!readRoutine) readRoutine = RPCdefaultXDRRead;
@@ -321,7 +329,7 @@ bool_t xdr_String(XDR *xdrs, String *str)
 }
 
 int RPCprocessCreate(int *pid, char *hostName, char *userName,
-		     char *command, char **arg_list)
+		     char *command, char **arg_list, int portFd)
 {
     int ret;
     int sv[2];
@@ -355,9 +363,73 @@ int RPCprocessCreate(int *pid, char *hostName, char *userName,
 	    return(-1);
 	}
     } else {
+	int total;
+	int fd[2];
+	char *ret;
+	FILE *pfp;
+	char **curr;
+	int shellPid;
+	char line[256];
+	char *paradyndCommand;
+
+	total = strlen(command) + 2;
+	for (curr = arg_list+1; *curr; curr++) {
+	    total += strlen(*curr) + 2;
+	}
+	paradyndCommand = (char *) malloc(total+2);
+
+	sprintf(paradyndCommand, "%s ", command);
+	for (curr = arg_list+1; *curr; curr++) {
+	    strcat(paradyndCommand, *curr);
+	    strcat(paradyndCommand, " ");
+	}
+
 	// need to rsh to machine and setup io path.
-	printf("remote starts not implemented\n");
-	exit(-1);
+
+	if (pipe(fd)) {
+	    perror("pipe");
+	    return (-1);
+	}
+
+	shellPid = vfork();
+	if (shellPid == 0) {
+	    /* child */
+	    dup2(fd[1], 1);                         /* copy it onto stdout */
+	    close(fd[0]);
+	    close(fd[1]);
+	    if (userName) {
+		execlp(RSH_COMMAND, RSH_COMMAND, hostName, "-l", 
+		    userName, "-n", paradyndCommand, "-l0", NULL);
+	    } else {
+		execlp(RSH_COMMAND, RSH_COMMAND, hostName, "-n", 
+		    paradyndCommand, "-l0", NULL);
+	    }
+	    _exit(-1);
+	} else if (shellPid > 0) {
+	    close(fd[1]);
+	} else {
+	    // error situation
+	}
+
+	pfp = fdopen(fd[0], "r");
+	do {
+	    ret = fgets(line, sizeof(line)-1, pfp);
+	    if (ret && !strncmp(line, "PARADYND", strlen("PARADYND"))) {
+		// got the good stuff
+		sscanf(line, "PARADYND %d", pid);
+
+		// dump rsh process
+		kill(shellPid, SIGTERM);
+		while (wait(NULL) != shellPid);
+
+		return(RPC_getConnect(portFd));
+	    } else if (ret) {
+		// some sort of error message from rsh.
+		printf("%s", line);
+	    }
+	}  while (ret);
+
+	return(-1);
     }
 }
 
