@@ -49,55 +49,16 @@
 
 template <class HK, class RAW>
 fastInferiorHeap<HK, RAW>::
-fastInferiorHeap(process *iInferiorProcess,
-		 const key_t &iShmKey,
+fastInferiorHeap(RAW *iBaseAddrInParadynd,
+		 process *iInferiorProcess,
 		 unsigned heapNumElems) :
 	      inferiorProcess(iInferiorProcess),
-              statemap(heapNumElems), houseKeeping(heapNumElems) {
+              statemap(heapNumElems),
+	      houseKeeping(heapNumElems) {
    assert(heapNumElems > 0);
 
-   // Create our side of the shared memory segment.
-   // Don't forget the 16 bytes of meta-data
-   const unsigned sharedMemSegNumBytes = 16 + sizeof(RAW) * heapNumElems;
-   this->theShmKey = iShmKey;
-   shmid = P_shmget(theShmKey, sharedMemSegNumBytes, 0666 | IPC_CREAT);
-      // should we also add IPC_EXCL to the flags???
-   if (shmid == -1) {
-      perror("fastInferiorHeap: shmget()");
-      exit(5);
-   }
-
-   baseAddrInApplic = NULL; // until setBaseAddrInApplic() gets called...
-
-   trueBaseAddrInParadynd = P_shmat(shmid,
-				    NULL, // let OS choose where in our virtual addr
-				          // space to map the shared-mem segment
-				    0);
-   if (trueBaseAddrInParadynd == (void*)-1) {
-      perror("fastInferiorHeap: shmat()");
-      if (errno == EMFILE)
-	 cerr << "Perhaps the # of shm segments attached to paradynd would exceed the system-imposed limit? (EMFILE)" << endl;
-      else if (errno == ENOMEM)
-	 cerr << "Not enough memory? (ENOMEM)" << endl;
-
-      cerr << "paradynd (pid " << getpid() << ") for process pid="
-	   << iInferiorProcess->getPid() << ": failed to attach to shm segment!  Exiting paradynd now..." << endl;
-      exit(5);
-   }
-
-   baseAddrInParadynd = (RAW *)((unsigned char *)trueBaseAddrInParadynd + 16);
-      // account for 16 bytes of meta-data at the start of the segment
-
-   const unsigned cookie = 0xabcdefab;
-   memcpy(trueBaseAddrInParadynd, &cookie, sizeof(cookie));
-
-   int temp_pid = inferiorProcess->getPid();
-   memcpy((unsigned char *)trueBaseAddrInParadynd + sizeof(cookie),
-	  &temp_pid, sizeof(temp_pid));
-   
-   temp_pid=getpid();
-   memcpy((unsigned char *)trueBaseAddrInParadynd + sizeof(cookie) + sizeof(temp_pid),
-	  &temp_pid, sizeof(temp_pid));
+   baseAddrInApplic   = NULL; // until setBaseAddrInApplic() gets called...
+   baseAddrInParadynd = iBaseAddrInParadynd;
 
    // Initialize statemap by setting all entries to state 'free'
    for (unsigned ndx=0; ndx < statemap.size(); ndx++)
@@ -111,7 +72,8 @@ fastInferiorHeap(process *iInferiorProcess,
 
 template <class HK, class RAW>
 fastInferiorHeap<HK, RAW>::fastInferiorHeap(const fastInferiorHeap<HK, RAW> &parent,
-					    process *newProc, key_t iShmKey,
+					    process *newProc,
+					    void *paradynd_attachedAt,
 					    void *appl_attachedAt) :
                              inferiorProcess(newProc),
 			     statemap(parent.statemap), // copy statemap
@@ -119,89 +81,17 @@ fastInferiorHeap<HK, RAW>::fastInferiorHeap(const fastInferiorHeap<HK, RAW> &par
 {
    // this copy-ctor is a fork()/dup()-like routine.  Call after a process forks.
    // Here is what has already been done:
-   // 1) the inferior has chosen a key, created 3 shm segments, copied data
-   //    from the previous shm segments, and detached from the old shm segments.
 
-   // So we need to:
-   // 1) attach to the new shm segments
-   // 2) make note of where the inferior has attached [pass in as appl_attachedAt]
-   //    i.e. call setBaseAddrInApplic now.
+   baseAddrInApplic   = (RAW*)appl_attachedAt;
+   baseAddrInParadynd = (RAW*)paradynd_attachedAt;
 
-   const unsigned sharedMemSegNumBytes = 16 + sizeof(RAW) * statemap.size();
-      // don't forget the 16 bytes of meta-data
-   theShmKey = iShmKey;
-   shmid = P_shmget(theShmKey, sharedMemSegNumBytes, 0666);
-      // no create and no excl flags --> the shm segment must already exist (as it should be)
-   if (shmid == -1) {
-      perror("fastInferiorHeap fork: shmget()");
-      exit(5);
-   }
-
-   baseAddrInApplic = NULL;
-   setBaseAddrInApplic((RAW*)((char*)appl_attachedAt + 16));
-
-   trueBaseAddrInParadynd = P_shmat(shmid,
-				    NULL, // let OS choose where to put
-				    0);
-   if (trueBaseAddrInParadynd == (void*)-1) {
-      perror("fastInferiorHeap fork: shmat()");
-      exit(5);
-   }
-
-   baseAddrInParadynd = (RAW *)((unsigned char *)trueBaseAddrInParadynd + 16);
-      // account for 16 bytes of meta-data at the start of the segment
-
-   // The cookie should be unchanged; verify.
-   const unsigned cookie = 0xabcdefab;
-   unsigned actual_cookie_contents;
-   memcpy(&actual_cookie_contents, trueBaseAddrInParadynd, sizeof(cookie));
-   assert(actual_cookie_contents = cookie);
-
-   // The pid is now out of date (will contain the pid of the parent process; we change
-   // it now to the pid of the child process).
-   // First, verify that the pid is that of the parent
-   int actual_pid_contents;
-   memcpy(&actual_pid_contents, (char*)trueBaseAddrInParadynd + sizeof(cookie), sizeof(int));
-   assert(actual_pid_contents == newProc->getParent()->getPid());
-
-   // Change the pid to that of the child:
-   int temp_pid = inferiorProcess->getPid();
-   memcpy((unsigned char *)trueBaseAddrInParadynd + sizeof(cookie),
-	  &temp_pid, sizeof(temp_pid));
-
-   // The pid of paradynd should remain unchanged
-   unsigned actual_paradyndpid_contents;
-   memcpy(&actual_paradyndpid_contents,
-	  (char*)trueBaseAddrInParadynd + sizeof(cookie) + sizeof(int),
-	  sizeof(int));
-   assert(actual_paradyndpid_contents == getpid());
-
-//   temp_pid=getpid();
-//   memcpy((unsigned char *)trueBaseAddrInParadynd + sizeof(cookie) + sizeof(temp_pid),
-//	  &temp_pid, sizeof(temp_pid));
-   
    firstFreeIndex = parent.firstFreeIndex;
-
-   // NOTE: This routine doesn't disconnect from the old segment for
-   // a very good reason: we (paradynd) don't want to disconnect, because
-   // we're now tracking both the parent and new process.  It's the
-   // process itself (rtinst) that needs to disconnect from the old and
-   // attach to the new!
 }
 
 template <class HK, class RAW>
 fastInferiorHeap<HK, RAW>::~fastInferiorHeap() {
    // destructor for statemap[] and houseKeeping[] is called automatically
 
-   // Detach from the shared-memory inferior heap...
-   if (P_shmdt(trueBaseAddrInParadynd) == -1)
-      perror("fastInferiorHeap dtor could not shmdt()");
-      // let's not make this a fatal error; no "exit()" or abort()
-
-   // ...and destroy the shared-mem seg:
-   if (P_shmctl(shmid, IPC_RMID, 0) == -1)
-      perror("fastInferiorHeap dtor could not shmctl(IPC_RMID)");
-      // let's not make this a fatal error; no "exit()" or abort()
 }
 
 template <class HK, class RAW>

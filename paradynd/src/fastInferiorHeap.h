@@ -42,6 +42,19 @@
 // fastInferiorHeap.h
 // Ari Tamches
 // This class is intended to be used only in paradynd.
+// This templated class manages a heap of objects in a UNIX shared-memory segment
+// (currently, the template types that are used are either intCounter or tTimer).
+// Note that the shm segment itself is managed by our "parent" class,
+// fastInferiorHeapMgr.h/.C.  This class doesn't actually use any shared-memory
+// primitives...
+
+// Previously, this class would manage its own shared-memory segment, so that
+// if a process creates, say, a fastInferiorHeap<intCounter> and two
+// fastInferiorHeap<tTimer>, then 3 shm segments are created (and 6 shmat()'s
+// are done, since both paradynd and the application need to shmat() to a given
+// segment).  To cut down on the number of segments floating around, and to reduce
+// and hopefully avoid the dreaded EMFILE errno when shmat()'ing to a segment,
+// there's now just 1 shm segment per process (and 2 shmat()'s are done).
 
 #ifndef _FAST_INFERIOR_HEAP_H_
 #define _FAST_INFERIOR_HEAP_H_
@@ -75,22 +88,11 @@ class fastInferiorHeap {
    //    order for paradynd to do this, it needs the addr in the inferior appl, not
    //    the addr in paradynd's attachment.
 
-   key_t theShmKey; // retrieve with call to getShmSegKey(); pass result to inferior
-                    // process so it may attach to the segment.
-   RAW * baseAddrInApplic; // not set in ctor; filled in later (but hopefully soon!)
-      // note: like baseAddrInParadynd, this ptr is, for convenience, already
-      // skipped ahead of the 16 bytes of meta-data at the start of the shm seg
+   RAW * baseAddrInApplic;
+      // When ctor #1 (not the fork ctor) is used, this vrble is undefined until
+      // setBaseAddrInApplic() is called.
 
-   void * trueBaseAddrInParadynd;
-   RAW * baseAddrInParadynd; // same as above but add 16 bytes for meta-data
-
-   int   shmid; // for trueBaseAddrInParadynd
-      // These variables indicate where in virtual memory the shared segment (where
-      // the raw data values, not meta-data housekeeping, are stored) resides.
-      // trueBaseAddrInParadynd points to where in our (paradynd's) virtual address space
-      // this segment starts.
-      // baseAddrInApplic points to where in the application's virtual address
-      // space the segment starts.
+   RAW * baseAddrInParadynd;
 
    vector<states> statemap; // one entry per value (allocated or not) in the appl.
    vector<HK> houseKeeping; // one entry per value (allocated or not) in the appl.
@@ -109,17 +111,17 @@ class fastInferiorHeap {
 
  public:
 
-   fastInferiorHeap(process *iInferiorProcess,
-		    const key_t &theShmKey,
-                    unsigned heapNumElems);
-      // Note that the ctor has no way to pass in the baseAddrInApplic.
-      // That's because paradynd creates the seg first, so it's just not possible
-      // yet to know where the shared seg resides in the appl.  That gets filled in
-      // with a call to setBaseAddrInApplic(), which should be asap.
+   fastInferiorHeap(RAW *iBaseAddrInParadynd,
+                    process *iInferiorProcess,
+		    unsigned heapNumElems);
+      // Note that the ctor has no way to pass in the baseAddrInApplic because
+      // the applic hasn't yet attached to the segment.  When the applic attaches
+      // and tells us where it attached, we can call setBaseAddrInApplic() to fill
+      // it in.
 
-   fastInferiorHeap(const fastInferiorHeap &parent, process *newProc, key_t iShmKey,
-		    void *appl_attachedAt // we add 16 bytes for you
-		    );
+   fastInferiorHeap(const fastInferiorHeap &parent, process *newProc,
+		    void *paradynd_attachedAt,
+		    void *appl_attachedAt);
       // this copy-ctor is a fork()/dup()-like routine.  Call after a process forks.
       // From the process' point of view after the fork(): the fork() has attached it
       // to all shm segments of its parent; so, it needs to unattach() from them
@@ -128,36 +130,24 @@ class fastInferiorHeap {
   ~fastInferiorHeap();
       // Fries the shm segment
 
-   key_t getShmSegKey() const {return theShmKey;}
-   unsigned getShmSegNumBytes() const {return sizeof(RAW) * statemap.size();}
+//   unsigned getShmSegNumBytes() const {return sizeof(RAW) * statemap.size();}
 
-   void setBaseAddrInApplic(RAW *iBaseAddrInApplic) {
+//   void setBaseAddrInParadynd(RAW *addr) {
+//      assert(baseAddrInParadynd == NULL);
+//      baseAddrInParadynd = addr;
+//   }
+
+   void setBaseAddrInApplic(RAW *addr) {
       // should call _very_ soon after the ctor, right after the applic has
       // attached to the shm segment.  Of course, in order to do that, the applic
       // needs to be sent the key; a call getShmSegKey() is assumed.
       assert(baseAddrInApplic == NULL); // not for long...
-      baseAddrInApplic = iBaseAddrInApplic;
+      baseAddrInApplic = addr;
    }
 
    RAW *getBaseAddrInApplic() const {
       assert(baseAddrInApplic != NULL);
       return baseAddrInApplic;
-   }
-
-   void *getTrueBaseAddrInApplic() const {
-      assert(baseAddrInApplic != NULL);
-         // baseAddrInApplic is 16 bytes beyond where we want
-
-      unsigned char *result = (unsigned char *)baseAddrInApplic;
-      result -= 16; // byte-size ptr arith
-
-      return result; // implicit conversion to void * allowed
-   }
-
-   void *getTrueBaseAddrInParadynd() const {
-      assert(trueBaseAddrInParadynd);
-
-      return trueBaseAddrInParadynd; // 16 bytes beyond this is where the data elems starts
    }
 
    RAW *index2InferiorAddr(unsigned allocatedIndex) const {
@@ -217,7 +207,6 @@ class fastInferiorHeap {
       // by calling HK::perform() on it.
       // Note: doesn't pause the application; instead, uses fast inline asm mutex
       // locks.
-
 };
 
 #endif
