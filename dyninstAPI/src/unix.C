@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.97 2003/05/14 20:46:20 bernat Exp $
+// $Id: unix.C,v 1.98 2003/05/23 23:44:11 jodom Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -1070,6 +1070,8 @@ int handleProcessEvent(process *proc,
         ret = 1;
         break;
      case procSignalled:
+     case procInstPointTrap:
+     case procForkSigChild:
         ret = handleSignal(proc, what, info);
         if (!ret)
             cerr << "handleSignal failed! " << what << endl;

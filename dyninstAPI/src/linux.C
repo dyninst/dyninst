@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.102 2003/04/24 20:57:15 darnold Exp $
+// $Id: linux.C,v 1.103 2003/05/23 23:44:11 jodom Exp $
 
 #include <fstream.h>
 
@@ -371,6 +371,17 @@ process *decodeProcessEvent(int pid,
             if (what == SIGSTOP) {
                 decodeRTSignal(proc, why, what, info);
             }
+	    
+	    if (what == SIGTRAP) {
+	      // We use int03s (traps) to do instrumentation when there
+	      // isn't enough room to insert a branch.
+	      why = procInstPointTrap;
+	    }
+
+	    if (what == SIGCHLD) {
+	      // Linux fork() sends a SIGCHLD once the fork has been created
+	      why = procForkSigChild;
+	    }
 
             if (what == SIGILL) {
                 // The following is more correct, but breaks.
