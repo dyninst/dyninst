@@ -48,7 +48,7 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 
-// $Id: VISIthreadmain.C,v 1.108 2004/06/21 19:37:46 pcroth Exp $
+// $Id: VISIthreadmain.C,v 1.109 2004/07/26 02:37:25 pcroth Exp $
 
 #include <signal.h>
 #include <math.h>
@@ -1148,9 +1148,6 @@ void VISIthreadshowErrorREPLY(int){
 ///////////////////////////////////////////////////////////////////
 void *VISIthreadmain(void *vargs){ 
 
-    try
-    {
- 
     VISIthreadArgs* targs = (VISIthreadArgs*)vargs;
     assert( targs != NULL );
 
@@ -1395,18 +1392,6 @@ void *VISIthreadmain(void *vargs){
 
    PARADYN_DEBUG(("leaving visithread main"));
    thr_exit((void *)0);
-
-    }
-    catch( std::bad_alloc& ba )
-    {
-        fprintf( stderr, "FE: out of memory in VISI thread\n" );
-        abort();
-    }
-    catch( ... )
-    {
-        fprintf( stderr, "FE: uncaught exception in VISI thread\n" );
-        abort();
-    }
 
    return((void *)0);
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: PCmain.C,v 1.79 2004/06/21 19:37:25 pcroth Exp $ */
+/* $Id: PCmain.C,v 1.80 2004/07/26 02:37:22 pcroth Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -290,9 +290,6 @@ void* PCmain(void* varg)
     unsigned int msgSize = 64;
 	int err;
 
-    try
-    {
-
     PCthreadArgs* targs = (PCthreadArgs*)varg;
     assert( targs != NULL );
 
@@ -392,16 +389,5 @@ void* PCmain(void* varg)
 #endif
     }
 
-    }
-    catch( std::bad_alloc& ba )
-    {
-        fprintf( stderr, "FE: out of memory in PC thread\n" );
-        abort();
-    }
-    catch( ... )
-    {
-        fprintf( stderr, "FE: uncaught exception in PC thread\n" );
-        abort();
-    }
 	return NULL;
 }

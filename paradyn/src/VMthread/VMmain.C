@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: VMmain.C,v 1.61 2004/06/21 19:37:49 pcroth Exp $ */
+/* $Id: VMmain.C,v 1.62 2004/07/26 02:37:25 pcroth Exp $ */
 
 #include "paradyn/src/pdMain/paradyn.h"
 #include "pdthread/h/thread.h"
@@ -547,9 +547,6 @@ int VM::VM_post_thread_create_init( VMthreadArgs* targs ){
 // main loop for visualization manager thread
 void *VMmain(void* varg) {
 
-    try
-    {
-
     VMthreadArgs* targs = (VMthreadArgs*)varg;
     assert( targs != NULL );
 
@@ -590,16 +587,5 @@ void *VMmain(void* varg) {
       }
   }
 
-    }
-    catch( std::bad_alloc& ba )
-    {
-        fprintf( stderr, "FE: out of memory in VM thread\n" );
-        abort();
-    }
-    catch( ... )
-    {
-        fprintf( stderr, "FE: uncaught exception in VM thread\n" );
-        abort();
-    }
   return((void *)0);
 }
