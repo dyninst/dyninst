@@ -30,6 +30,10 @@ public:
 
   ~BPatch_flowGraph();
 
+  const function_base *getFunction() const { return func; }
+  process *getProcess() const { return proc; }
+  const pdmodule *getModule() const { return mod; }
+
   /** returns the set of all basic blocks in the CFG */
   void getAllBasicBlocks(BPatch_Set<BPatch_basicBlock*>&);
   
