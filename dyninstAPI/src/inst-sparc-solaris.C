@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.146 2004/03/11 22:20:35 bernat Exp $
+// $Id: inst-sparc-solaris.C,v 1.147 2004/03/16 14:48:48 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -376,8 +376,6 @@ trampTemplate * installBaseTramp( instPoint * & location,
    // How we transfer between the function and instrumentation, as well
    // as how many instructions get copied to the base trampoline 
    if ( !offsetWithinRangeOfBranchInsn(baseTrampAddress - ipAddr) ) {
-       fprintf(stderr, "Offset not in range: 0x%x to 0x%x\n",
-               baseTrampAddress, ipAddr);
       location->needsLongJump = true;
    }
    
@@ -386,7 +384,6 @@ trampTemplate * installBaseTramp( instPoint * & location,
    
    // VG(4/25/2002): refuse installation if call is needed, but not safe
    if(location->needsLongJump && location->dontUseCall) {
-       fprintf(stderr, "needs long jump && don't use call\n");
        return NULL;
    }
    
@@ -402,7 +399,6 @@ trampTemplate * installBaseTramp( instPoint * & location,
       location->needsLongJump = false;
       
       // Creation of base tramp failed
-      fprintf(stderr, "Stuff failed\n");
       return NULL;
    }
 
@@ -880,13 +876,13 @@ trampTemplate * installBaseTramp( instPoint * & location,
    proc->writeDataSpace( ( caddr_t )baseTrampAddress,
                          current_template->size,
                          ( caddr_t )code );
-   proc->addCodeRange(baseTrampAddress, current_template);
    delete [] code;
     
    trampTemplate * baseInst;
    baseInst = new trampTemplate(location, proc);
    * baseInst = *current_template;
    baseInst->baseAddr = baseTrampAddress;
+   proc->addCodeRange(baseTrampAddress, baseInst);
 
    return baseInst;
 }
@@ -1041,7 +1037,6 @@ trampTemplate *findOrInstallBaseTramp(process *proc,
                           baseTrampAddress, 
                           trampRecursionDesired);
    if(!ret) {
-       fprintf(stderr, "Failed installBaseTramp\n");
        return NULL;
    }
    
