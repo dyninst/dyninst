@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.118 2002/10/15 17:11:09 schendel Exp $
+// $Id: ast.C,v 1.119 2002/12/12 20:20:45 mirg Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1684,14 +1684,20 @@ Address AstNode::generateCode_phase2(process *proc,
 				    proc, noCost, calleefunc, ifForks, 
 				    location);
 	if (!rs->isFreeRegister(tmp)) {
-	    // emitFuncCall has properly reserved a register, return it
+	    // On some platforms, emitFuncCall properly reserves a register
+	    // that we can return. But its refCount is always equal to 1,
+	    // which is incorrect if useCount > 0 so we need to bump it up.
+	    if (useCount > 0) {
+		rs->fixRefCount(tmp, useCount+1);
+		keepRegister(tmp, ifForks);
+	    }
 	    dest = tmp;
 	}
 	else {
 	    // On SPARC emitFuncCall always returns O0, which we decided
 	    // not to use (I guess because Oregs are not preserved across
 	    // calls), so we need to move it to a register we can return
-	    dest = rs->allocateRegister(insn, base, noCost);
+	    dest = allocateAndKeep(rs, ifForks, insn, base, noCost);
 	    // Move tmp to dest
 	    emitImm(orOp, tmp, 0, dest, insn, base, noCost);
 	}
@@ -2349,7 +2355,7 @@ bool AstNode::canBeKept() const
 	}
     }
     else if (type == callNode) {
-	return false;
+	// fall through
     }
     else if (type == sequenceNode) {
 	return false;
