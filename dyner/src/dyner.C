@@ -1527,10 +1527,17 @@ int ShowFunctions(int argc, char *argv[]) {
     return TCL_OK;
 }
 
+static int stringCompare(const void *a, const void *b)
+{
+    return strcmp(*(char **) a, *(char **) b);
+}
+
 /* Finds all the modules in the executable and displays the module names */
 int ShowModules()
 {
+    char *prevName;
     char modName[1024];
+    char **names;
     BPatch_Vector<BPatch_module *> *modules = appImage->getModules();
 
     if (!modules) {
@@ -1538,10 +1545,23 @@ int ShowModules()
 	return TCL_ERROR;
     }
 
+    names = (char **) calloc(modules->size(), sizeof(char *));
     for(int i=0; i<modules->size(); ++i) {
 	(*modules)[i]->getName(modName, 1024);
-	printf("%s\n", modName);
+	names[i] = strdup(modName);
     }
+
+    qsort(names, modules->size(), sizeof(char *), stringCompare);
+    prevName = strdup("");
+    for (int i=0; i<modules->size(); ++i) {
+	 if (strcmp(prevName, names[i])) {
+	     printf("%s\n", names[i]);
+	 }
+	 if (prevName) free(prevName);
+	 prevName = names[i];
+    }
+    if (prevName) free(prevName);
+    free (names);
 
     return TCL_OK;
 }
