@@ -2,7 +2,10 @@
  * main.C - main function of the interface compiler igen.
  *
  * $Log: main.C,v $
- * Revision 1.21  1994/04/01 04:57:50  markc
+ * Revision 1.22  1994/04/06 21:28:45  markc
+ * Added constructor for client side of xdr based code.
+ *
+ * Revision 1.21  1994/04/01  04:57:50  markc
  * Added checks in bundlers.  Fixed xdrrec_endofrecord.
  *
  * Revision 1.20  1994/03/31  22:57:52  hollings
@@ -1257,6 +1260,8 @@ void interfaceSpec::genClass()
       printf( "    %sUser(char *w, char *p, char **a, int f);\n", name);
       printf( "    %sUser(int other);\n", name);
       printf( "    %sUser();\n", name);
+    } else if (generateTHREAD) {
+	printf("    %sUser(int tid): THREADrpc(tid) {}\n", name);
     }
       
     printf( "    void awaitResponce(int);\n");
