@@ -222,7 +222,7 @@ bool dataManager::addExecutable(const char *machine,
 
       str[0] = strdup("poe");
       str[1] = strdup("paradynd");
-      for(dx=0; dx < paradynDaemon::args.size(); dx++) {
+      for(dx=0; dx < (int) paradynDaemon::args.size(); dx++) {
 	if(strcmp(paradynDaemon::args[dx].string_of(), "-l1") == 0) {
 	  str[dx+2] = strdup("-l0");
 	} else {
@@ -232,7 +232,7 @@ bool dataManager::addExecutable(const char *machine,
       str[paradynDaemon::args.size()+2] = strdup("-zmpi");
       str[paradynDaemon::args.size()+3] = strdup("-runme");
       
-      for(dx=0; dx < argv->size(); dx++) {
+      for(dx=0; dx < (int) argv->size(); dx++) {
 	str[paradynDaemon::args.size()+dx+4] = strdup((*argv)[dx].string_of());
       }
       str[paradynDaemon::args.size()+argv->size()+4] = NULL;
@@ -465,6 +465,114 @@ void DMdoEnableData(perfStreamHandle ps_handle,
    }
    delete request;
 }
+
+// Tempest, get the bounds of the memory resource selected
+string unslash(char *s)
+{
+        string ret ;
+        char *p = strtok(s, "/") ;
+        while (p) {
+                ret += p ;
+                p = strtok(NULL, "/") ;
+        }
+        return ret ;
+}
+void dataManager::getMemoryBounds(perfStreamHandle ps_handle,
+                                  vector<metric_focus_pair> *request)
+{
+//Can be done better
+// Important, i also need to make the unique_name canonical
+// i.e., in the order of Machine, Code, Process, SyncObject, Memory
+        dictionary_hash<string, unsigned> upper(string::hash) ;
+        dictionary_hash<string, unsigned> lower(string::hash) ;
+
+        for(unsigned j=0; j < request->size() ; j++)
+        {
+                metricHandle  met =  ((*request)[j]).met ;
+                string unique_name ;
+                unique_name += getMetricName(met) ;
+
+                string Machine, Code, Process, SyncObject, Memory ;
+
+
+                vector<resourceHandle> *res  = &((*request)[j].res) ;
+                unsigned res_size = res->size() ;
+                resourceHandle handle ;
+
+                int min = 0 ; int max = 0 ; int yes = 0 ;
+                for(unsigned i=0; i<res_size; i++)
+                {
+                        handle = (*res)[i] ;
+                        resource *r = resource::resources[handle] ;
+                        const char *FullName = r->getFullName() ;
+                        char *temp = strdup(FullName) ;
+                        char *p = strchr(temp, '/')+1 ;
+
+                        switch(*p)
+                        {
+                        case 'M':
+                                if(*(p+1)=='e')
+                                {
+                                        char *blk = strrchr(p, '/') ;
+                                        if(blk && *(blk+1)>='0' && *(blk+1) <='9')
+                                        {
+                                                blk++ ;
+                                                yes = 1 ;
+                                                Memory += "Memory" ;
+                                                int addr = atoi(blk) ;
+                                                if(min==0 || addr < min) min = addr ;
+                                                if(addr > max)           max = addr ;
+                                                p = NULL ;
+                                        }
+                                 }else
+                                        Machine += unslash(p);
+                                 break ;
+                        case 'P':
+                                Process   += unslash(p);
+                                break ;
+                        case 'S':
+                                SyncObject += unslash(p) ;
+                                break ;
+                        case 'C':
+                                Code    += unslash(p) ;
+                        }
+                        free(temp) ;
+                }
+                if(yes)
+                {
+                        unique_name += Machine;
+                        unique_name += Code;
+                        unique_name += Process;
+                        unique_name += SyncObject;
+                        unique_name += Memory;
+                        if(!upper.defines(unique_name) || max > upper[unique_name])
+                        {
+                                upper[unique_name] = max ;
+                        }
+                        if(!lower.defines(unique_name) || min < lower[unique_name])
+                        {
+                                lower[unique_name] = min ;
+                        }
+                }
+        }
+        dictionary_hash_iter<string, unsigned> upper_iter(upper) ;
+        string flat ;
+        unsigned  u, l ;
+        // TO DO should I send a request to clear up
+        // current_upper_bounds and current_lower_bounds?
+        // I need to think about it more
+        while(upper_iter.next(flat, u))
+        {
+                int l= lower[flat] ;
+                printf("%s, %d->%d\n", flat.string_of(), l, u) ;
+                for(unsigned j=0; j < paradynDaemon::allDaemons.size(); j++){
+                        paradynDaemon *pd = paradynDaemon::allDaemons[j];
+                        pd->memoryRangeSelected(flat, l, u) ;
+                }
+        }
+
+}
+
 
 //
 // Request to enable a set of metric/focus pairs
@@ -1057,6 +1165,18 @@ void dataManagerUser::newResourceDefined(resourceInfoCallback cb,
 					 const char *abstr)
 {
     (cb)(handle, parent, newResource, name, abstr);
+}
+
+void dataManagerUser::newMemoryDefined(memoryInfoCallback cb,
+                                        perfStreamHandle handle,
+                                        const char *data_structure,
+                                        int start,
+                                        unsigned mem_size,
+                                        unsigned blk_size,
+                                        resourceHandle p_handle,
+                                        vector<resourceHandle> *handles)
+{
+    (cb)(handle, data_structure, start, mem_size, blk_size, p_handle, handles) ;
 }
 
 void dataManagerUser::changeResourceBatchMode(resourceBatchModeCallback cb,
