@@ -1,7 +1,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.46 2000/05/24 00:06:15 tikir Exp $ */
+/* $Id: test1.mutatee.c,v 1.47 2000/05/30 15:01:39 jasonxie Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -20,6 +20,12 @@
 #ifdef __cplusplus
 #include "cpp_test.h"
 #include <iostream.h>
+#endif
+
+#ifdef __cplusplus
+int runCpp = 1;
+#else
+int runCpp = 0;
 #endif
 
 #if defined(sparc_sun_solaris2_4) || \

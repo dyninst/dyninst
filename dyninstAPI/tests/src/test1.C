@@ -38,8 +38,8 @@ extern "C" const char V_libdyninstAPI[];
 int debugPrint = 0; // internal "mutator" tracing
 int errorPrint = 0; // external "dyninst" tracing (via errorFunc)
 
+int runCpp = 0;
 bool runAllTests = true;
-bool runCpp = false;
 const unsigned int MAX_TEST = 44;
 bool runTest[MAX_TEST+1];
 bool passedTest[MAX_TEST+1];
@@ -3544,6 +3544,16 @@ int mutatorMAIN(char *pathname, bool useAttach)
         // dprintf("func %s\n", (*p)[i]->name());
     }
 
+
+    // decide whether to run the C++ test cases
+    BPatch_variableExpr *runcpp = appImage->findVariable("runCpp");
+    if (runcpp == NULL) {
+	fprintf(stderr, "**Failed** initialization\n");
+	fprintf(stderr, "    Unable to locate runCpp\n");
+	exit(1);
+    }
+    runcpp->readValue(&runCpp);
+
     if (runTest[1]) mutatorTest1(appThread, appImage);
     if (runTest[2]) mutatorTest2(appThread, appImage);
     if (runTest[3]) mutatorTest3(appThread, appImage);
@@ -3719,9 +3729,6 @@ main(unsigned int argc, char *argv[])
                 strcat(mutateeName,argv[i]);
             else
                 strcpy(mutateeName,argv[i]);
-	    if ( strstr(mutateeName, "_g++") || strstr(mutateeName, "_CC")
-	         || strstr(mutateeName, "_xlC") )
-	       runCpp = true;
 #if defined(mips_sgi_irix6_4)
 	} else if (!strcmp(argv[i], "-n32")) {
             N32ABI = true;
