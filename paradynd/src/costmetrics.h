@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: costmetrics.h,v 1.11 2000/10/17 17:42:32 schendel Exp $
+// $Id: costmetrics.h,v 1.12 2001/08/23 14:44:02 schendel Exp $
 
 #ifndef COST_METRICS_HDR 
 #define COST_METRICS_HDR
@@ -53,44 +53,37 @@
 
 
 class costMetric {
-  friend sampleInterval costMetricValueUpdate(costMetric *met, 
-					      process *proc,
-					      pdSample value,
-					      timeStamp endTime,
-					      timeStamp processTime);
  public:
   costMetric(const string n,
-	     metricStyle style, 
-	     int a,   // how paradyn combines values from daemons
+	     aggregateOp a,   // how paradyn combines values from daemons
 	     const string units,
 	     im_pred_struct& preds,
 	     bool developerMode,
 	     daemon_MetUnitsType unitstype,
-	     int combiner_op); // how daemons combine values from processes
+	     // how daemons combine values from processes
+	     aggregateOp combiner_op); 
   ~costMetric(){}
   void enable(metricDefinitionNode *n) { node = n; }
   void disable() { node = NULL; }
   bool enabled() { return(node != NULL); }
-  metricStyle style() { return style_; }
+  metricStyle style() { return EventCounter; }
   string name() const { return name_;}
   const char *getName() const { return name_.string_of();}
-  int aggregate() const { return agg_; }
-  //sampleValue getValue() { return (sample.value); }
-  pdSample getValue() { return cumulativeValue; }
+  aggregateOp aggregate() const { return agg_; }
   static costMetric *newCostMetric(const string n, 
-			       metricStyle style, 
-			       int a,   // how paradyn combines values
+			       aggregateOp a,   // how paradyn combines values
 			       const string units,
 			       im_pred_struct& preds,
 			       bool developerMode,
 			       daemon_MetUnitsType unitstype,
-			       int combiner_op); // how daemons combine values
+			       aggregateOp combiner_op); // how daemons combine values
   
   T_dyninstRPC::metricInfo getInfo() {
     T_dyninstRPC::metricInfo ret;
-    ret.name = name_; ret.style = style_;
+    ret.name = name_;
     ret.aggregate = agg_; ret.units = units_;
     ret.developerMode = developermode_;
+    ret.style = EventCounter;
     if (unitstype_ == UnNormalized) ret.unitstype = 0;
     else if (unitstype_ == Normalized) ret.unitstype = 1; 
     else if (unitstype_ == Sampled) ret.unitstype = 2; 
@@ -102,6 +95,7 @@ class costMetric {
   bool legalToInst(vector< vector<string> >& focus);
   bool isDeveloperMode() { return developermode_; }
 
+  metricDefinitionNode *node;
 
   // add new entries to components, lastProcessTime, and parts
   bool addProcess(process *p);
@@ -110,14 +104,6 @@ class costMetric {
   bool removeProcess(process *p);
   static bool removeProcessFromAll(process *proc);
 
-  timeStamp getLastSampleTime(process *proc){
-      for(unsigned i=0; i < components.size(); i++){
-	  if(proc == components[i]){
-	        //return(parts[i]->lastSampleEnd);
-                return(parts[i]->lastSampleTime());
-      } }
-      return timeStamp::ts1970();
-  }
   timeStamp getLastSampleProcessTime(process *proc){
       for(unsigned i = 0; i < components.size(); i++){
 	  if(proc == components[i]){
@@ -133,14 +119,12 @@ class costMetric {
       return pdSample::Zero();
   }
 
-  // updates the value of the cost metric 
-  void updateValue(process *proc,        // process sending cost data
-		   pdSample newValue,  // new value 
-		   timeStamp endTime,    // wall time
-		   timeStamp processTime);  // CPU time
-
+  // proc: process sending cost data
+  void updateValue(process *proc, timeStamp timeOfSample, pdSample value, 
+		   timeStamp processTime);
+  // returns false when no more aggregation can be done
+  bool aggregateAndBatch();
   static vector<costMetric*> allCostMetrics;
-  metricDefinitionNode *node;
 
   static bool isCostMetric(const string &metName) {
      for (unsigned lcv=0; lcv < allCostMetrics.size(); lcv++)
@@ -152,8 +136,8 @@ class costMetric {
 private:
   // list of processes and values contributing to metric value
   vector<process *> components;
-  vector<sampleInfo *> parts;
-  aggregateSample aggSample;
+  vector<aggComponent *> parts;
+  sampleAggregator aggregator;
 
   vector<pdSample> cumulative_values;
 
@@ -161,18 +145,14 @@ private:
   // in the parts vector
   vector<timeStamp> lastProcessTime;
 
-  // sampleInfo sample;
-  pdSample cumulativeValue;
-
   // why is there no mid stored in this class, as there is for the internalMetrics class?
   string name_;
-  int agg_;
-  metricStyle style_;
+  aggregateOp agg_;
   string units_;
   im_pred_struct pred;
   bool developermode_;
   daemon_MetUnitsType unitstype_;
-  int combinerop_;
+  aggregateOp combinerop_;
 };
 
 #endif
