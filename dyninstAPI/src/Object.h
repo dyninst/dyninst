@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.33 2000/11/15 22:56:05 bernat Exp $
+ * $Id: Object.h,v 1.34 2000/11/21 20:23:59 bernat Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -226,7 +226,7 @@ private:
 #include "dyninstAPI/src/Object-elf.h"
 
 #elif defined(rs6000_ibm_aix4_1)
-#include "dyninstAPI/src/Object-aix.h"
+#include "dyninstAPI/src/Object-xcoff.h"
 
 #elif defined(i386_unknown_nt4_0)
 #include "dyninstAPI/src/Object-nt.h"
