@@ -44,7 +44,7 @@
  *              of Paradyn
  */
  
-/* $Id: UIpublic.C,v 1.80 2003/05/23 07:27:57 pcroth Exp $
+/* $Id: UIpublic.C,v 1.81 2003/07/03 16:31:29 pcroth Exp $
  */
 
 #include <stdio.h>
@@ -734,7 +734,7 @@ tcShgShowGeneric(shg::changeType ct, bool show)
       return;
 
    assert(theShgPhases);
-   bool anyChanges = theShgPhases->changeHiddenNodes(ct, !show);
+   bool anyChanges = theShgPhases->changeHiddenNodes(ct, show);
    if (anyChanges)
       initiateShgRedraw(interp, true); // true --> double buffer
 
