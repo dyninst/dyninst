@@ -5,9 +5,12 @@
 
 */
 /* $Log: paradyn.tcl.C,v $
-/* Revision 1.20  1994/07/07 03:27:36  markc
-/* Changed expected result of call to dataMgr->addExecutable
+/* Revision 1.21  1994/07/25 14:58:15  hollings
+/* added suppress resource option.
 /*
+ * Revision 1.20  1994/07/07  03:27:36  markc
+ * Changed expected result of call to dataMgr->addExecutable
+ *
  * Revision 1.19  1994/07/03  05:00:24  karavan
  * bug fix: removed call to delete name returned from getCanonicalName()
  *
@@ -579,6 +582,39 @@ int ParadynSHGCmd (ClientData clientData,
   }
 }
 
+int ParadynSuppressCmd (ClientData clientData,
+		       Tcl_Interp *interp,
+		       int argc,
+		       char *argv[])
+{
+    int i;
+    int limit;
+    char *name;
+    resource *r;
+    resourceList *resList;
+
+    if (argc != 2) {
+	printf("Usage: paradyn suppress <resource list>\n");
+	return TCL_ERROR;
+    }
+    resList = build_resource_list (interp, argv[1]);
+    if (resList == NULL) {
+      sprintf (interp->result, "unable to build resource list for %s",
+	       argv[2]);
+      return TCL_ERROR;
+    }
+
+    for (i = 0, limit = resList->getCount(); i < limit; i++) {
+	// DEBUG
+	r = resList->getNth(i);
+	name = r->getName();
+	printf ("suppress request for %s\n", name);
+
+	dataMgr->setResourceSuppress(context, r, TRUE);
+    }
+    return TCL_OK;
+}
+
 int ParadynVisiCmd (ClientData clientData,
 		    Tcl_Interp *interp,
 		    int argc,
@@ -641,6 +677,7 @@ static struct cmdTabEntry Pd_Cmds[] = {
   {"core", ParadynCoreCmd},
   {"search", ParadynSearchCmd},
   {"shg", ParadynSHGCmd},
+  {"suppress", ParadynSuppressCmd},
   {"visi", ParadynVisiCmd},
   {NULL, NULL}
 };

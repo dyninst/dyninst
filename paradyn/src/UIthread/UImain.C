@@ -1,7 +1,10 @@
 /* $Log: UImain.C,v $
-/* Revision 1.22  1994/07/07 17:40:33  karavan
-/* added error and batch mode features.
+/* Revision 1.23  1994/07/25 14:58:14  hollings
+/* added suppress resource option.
 /*
+ * Revision 1.22  1994/07/07  17:40:33  karavan
+ * added error and batch mode features.
+ *
  * Revision 1.21  1994/06/29  21:46:25  hollings
  * Removed dead variable.
  *
@@ -503,8 +506,9 @@ UImain(CLargStruct *clargs)
    // subscribe to DM new resource notification service
 
     uim_rootRes = dataMgr->getRootResource();
-    newres = uim_rootRes->getFullName();
-    printf ("root resource: %s\n", newres);
+    if (!uim_rootRes) abort();
+    // newres = uim_rootRes->getFullName();
+    // printf ("root resource: %s\n", newres);
     controlFuncs.rFunc = controlFunc;
     controlFuncs.mFunc = NULL;
     controlFuncs.fFunc = NULL;

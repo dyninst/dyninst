@@ -2,7 +2,10 @@
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
  *
  * $Log: dataManager.I,v $
- * Revision 1.22  1994/07/14 23:44:28  hollings
+ * Revision 1.23  1994/07/25 14:56:19  hollings
+ * added suppress resource option.
+ *
+ * Revision 1.22  1994/07/14  23:44:28  hollings
  * added getCurrentHybridCost
  *
  * Revision 1.21  1994/07/07  03:22:28  markc
@@ -367,6 +370,9 @@ $remote dataManager {
     resource *newResource(applicationContext *app,
      			  resource *parent, 
      			  char *name);
+
+    void setResourceSuppress(applicationContext *app,
+			     resource *res, Boolean newValue);
 
     // Get the static config. information for the passed applicationContext.
     //

@@ -2,7 +2,10 @@
  * DMresource.h - define the resource data abstraction.
  *
  * $Log: DMresource.h,v $
- * Revision 1.6  1994/06/27 21:23:33  rbi
+ * Revision 1.7  1994/07/25 14:55:40  hollings
+ * added suppress resource option.
+ *
+ * Revision 1.6  1994/06/27  21:23:33  rbi
  * Abstraction-specific resources and mapping info
  *
  * Revision 1.5  1994/06/14  15:25:03  markc
@@ -116,6 +119,8 @@ class resource {
     void print();
     resource *getParent()	{ return(parent); }
     static resource *rootResource;
+    setSuppress(Boolean nv)	{ suppressSearch = nv; }
+    getSuppress()		{ return(suppressSearch); }
 
   protected:
     resource();
@@ -136,5 +141,7 @@ class resource {
     // global variables common to all resourceBase.
     static stringPool names;
     static HTable<resource*> allResources;
+
+    Boolean suppressSearch;		// user want's to ignore this one.
 };
 

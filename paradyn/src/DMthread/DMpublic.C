@@ -4,7 +4,10 @@
  *   remote class.
  *
  * $Log: DMpublic.C,v $
- * Revision 1.23  1994/07/14 23:45:54  hollings
+ * Revision 1.24  1994/07/25 14:55:37  hollings
+ * added suppress resource option.
+ *
+ * Revision 1.23  1994/07/14  23:45:54  hollings
  * added hybrid cost model.
  *
  * Revision 1.22  1994/07/07  03:29:35  markc
@@ -106,10 +109,14 @@ applicationContext *dataManager::createApplicationContext(errorHandler foo)
   return appContext;
 }
 
-Boolean dataManager::addDaemon (applicationContext *app,
-				char *machine,
-				char *login,
-				char *name)
+void dataManager::setResourceSuppress(applicationContext *app,
+				      resource *res, Boolean newValue)
+{
+    if (res) res->setSuppress(newValue);
+}
+
+Boolean dataManager::addDaemon(applicationContext *app,
+			       char *machine, char *login, char *name)
 {
   return (app->getDaemon(machine, login, name));
 }

@@ -2,7 +2,10 @@
  * DMmain.C: main loop of the Data Manager thread.
  *
  * $Log: DMmain.C,v $
- * Revision 1.38  1994/07/20 18:59:24  hollings
+ * Revision 1.39  1994/07/25 14:55:36  hollings
+ * added suppress resource option.
+ *
+ * Revision 1.38  1994/07/20  18:59:24  hollings
  * added resource batch mode.
  *
  * Revision 1.37  1994/07/07  03:30:16  markc
@@ -544,6 +547,7 @@ paradynDaemon::reportSelf (String m, String p, int pd)
   machine = strdup(m);
   program = strdup(p);
   my_pid = pd;
+  printf("paradyn daemon pid %d reported\n", my_pid);
   return;
 }
 

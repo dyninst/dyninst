@@ -2,7 +2,10 @@
  * DMappConext.C: application context class for the data manager thread.
  *
  * $Log: DMappContext.C,v $
- * Revision 1.32  1994/07/14 23:46:23  hollings
+ * Revision 1.33  1994/07/25 14:55:34  hollings
+ * added suppress resource option.
+ *
+ * Revision 1.32  1994/07/14  23:46:23  hollings
  * added getCurrentHybridCost, and fixed max for predicted cost.
  *
  * Revision 1.31  1994/07/08  21:56:25  jcargill
@@ -516,16 +519,22 @@ metric *applicationContext::findMetric(char *name)
 //
 float applicationContext::getPredictedDataCost(resourceList *rl, metric *m)
 {
+    char *metName;
     double val, max;
     String_Array ra;
     paradynDaemon *daemon;
     List<paradynDaemon*> curr;
 
+    if (!rl || !m) return(0.0);
+
     ra = convertResourceList(rl);
     max = 0.0;
+
+    metName = m->getName();
+    assert(metName);
     for (curr = daemons; *curr; curr++) {
 	daemon = *curr;
-	val = daemon->getPredictedDataCost(ra, m->getName());
+	val = daemon->getPredictedDataCost(ra, metName);
 	if (val > max) max = val;
     }
     return(max);
@@ -593,6 +602,8 @@ metricInstance *applicationContext::enableDataCollection(resourceList *rl,
     List<paradynDaemon*> curr;
 
     ra = convertResourceList(rl);
+
+    cout << "EN: " << m->getName() << rl->getCanonicalName() << "\n";
 
     // 
     // for each daemon request the data to be enabled.
