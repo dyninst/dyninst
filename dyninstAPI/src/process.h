@@ -442,6 +442,9 @@ class process {
  private:
 #if defined(USES_LIBDYNINSTRT_SO)
   unsigned char savedCodeBuffer[BYTES_TO_SAVE];
+#if defined(i386_unknown_solaris2_5)
+  unsigned char savedStackFrame[BYTES_TO_SAVE];
+#endif
 #endif
   struct inferiorRPCtoDo {
      // This structure keeps track of an inferiorRPC that we will start sometime
@@ -535,6 +538,7 @@ class process {
 #if defined(USES_LIBDYNINSTRT_SO)
   unsigned dyninstlib_brk_addr;
   unsigned main_brk_addr;
+  unsigned rbrkAddr() { assert(dyn); return dyn->get_r_brk_addr(); }
   bool dlopenDYNINSTlib();
   bool trapDueToDyninstLib();
   bool trapAtEntryPointOfMain();

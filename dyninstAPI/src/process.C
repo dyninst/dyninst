@@ -46,6 +46,7 @@ int pvmendtask();
 #endif
 }
 
+#include <sys/procfs.h>
 #include "util/h/headers.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/pdThread.h"
@@ -836,6 +837,7 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
 		 const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
 #endif
 ) :
+		savedRegs(NULL),
              baseMap(ipHash), 
 	     pid(iPid) // needed in fastInferiorHeap ctors below
 #ifdef SHM_SAMPLING
@@ -934,7 +936,9 @@ process::process(int iPid, image *iImage, int iTraceLink, int iIoLink
    RPCs_waiting_for_syscall_to_complete = false;
 
    // attach to the child process (machine-specific implementation)
-   attach(); // error check?
+   if (!attach()) { // error check?
+      showErrorCallback(26, ""); // unable-to-attach
+   }
 }
 
 //
@@ -950,6 +954,7 @@ process::process(int iPid, image *iSymbols,
 		 const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
 #endif
 		 ) :
+		savedRegs(NULL),
 		 baseMap(ipHash),
 		 pid(iPid)
 #ifdef SHM_SAMPLING
@@ -1100,6 +1105,7 @@ process::process(const process &parentProc, int iPid, int iTrace_fd
 		 const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
 #endif
 		 ) :
+		savedRegs(NULL),
                      baseMap(ipHash) // could change to baseMap(parentProc.baseMap)
 #ifdef SHM_SAMPLING
                      ,previous(0),
@@ -1429,11 +1435,14 @@ tp->resourceBatchMode(true);
 
 
 void process::DYNINSTinitCompletionCallback(process *theProc,
-					    void *, // user data
+					    void* userData, // user data
 					    unsigned // return value from DYNINSTinit
 					    ) {
    attach_cerr << "Welcome to DYNINSTinitCompletionCallback" << endl;
-   theProc->handleCompletionOfDYNINSTinit(true);
+   if (NULL != userData && 0==strcmp(userData, "viaCreateProcess"))
+     theProc->handleCompletionOfDYNINSTinit(false);
+   else
+     theProc->handleCompletionOfDYNINSTinit(true);
 }
 
 
@@ -3446,9 +3455,12 @@ void process::installBootstrapInst() {
    }
 #endif /* BPATCH_LIBRARY */
 
+#if defined(USES_LIBDYNINSTRT_SO) && defined(i386_unknown_solaris2_5)
+   postRPCtoDo(ast, true, NULL, //process::DYNINSTinitCompletionCallback, 
+      "viaCreateProcess", -1);
+#else
    function_base *func = getMainFunction();
    assert(func);
-
    instPoint *func_entry = (instPoint *)func->funcEntry(this);
    addInstFunc(this, func_entry, ast, callPreInsn,
 	       orderFirstAtPoint,
@@ -3456,6 +3468,7 @@ void process::installBootstrapInst() {
 	       );
    // returns an "instInstance", which we ignore (but should we?)
    removeAst(ast);
+#endif
 }
 
 void process::installInstrRequests(const vector<instMapping*> &requests) {
@@ -3666,7 +3679,7 @@ void process::handleCompletionOfDYNINSTinit(bool fromAttach) {
 #endif
 
       str=string("PID=") + string(bs_record.pid) + ", installing default inst...";
-      statusLine(str.string_of());
+      //statusLine(str.string_of());
 
       extern vector<instMapping*> initialRequests; // init.C
       installInstrRequests(initialRequests);
