@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: tramp-sparc.s,v 1.24 2002/01/31 02:44:55 bernat Exp $ */
+/* $Id: tramp-sparc.s,v 1.25 2002/02/04 23:26:36 bernat Exp $ */
 
 /*
  * trampoline code to get from a code location to an inst. primitive.
@@ -144,9 +144,6 @@ _baseTramp_savePreInsn:
 	nop
 	nop
 #endif
-	/* MT_THREAD really doesn't want this, as it can cause real
-	instrumentation to not be run. Disabled until fixed. */
-#ifndef MT_THREAD
 	.word RECURSIVE_GUARD_ON_PRE_INSN /* turn on the recursive guard : 7 instrs */
 	nop
 	nop
@@ -154,14 +151,11 @@ _baseTramp_savePreInsn:
 	nop
 	nop
 	nop
-#endif
 	.word	LOCAL_PRE_BRANCH
 	nop
-#ifndef MT_THREAD
 	.word RECURSIVE_GUARD_OFF_PRE_INSN /* turn off the recursive guard : 3 instrs */
 	nop
 	nop
-#endif
 	ldd  [ %fp + -8 ], %g0	/* restoring registers after coming   */
 	ldd  [ %fp + -16 ], %g2	/* back from a minitramp	      */
 	ldd  [ %fp + -24 ], %g4
@@ -225,7 +219,6 @@ _baseTramp_savePostInsn:
 	nop
 	nop
 #endif
-#ifndef MT_THREAD
 	.word RECURSIVE_GUARD_ON_POST_INSN /* turn on the recursive guard : 7 instrs */
 	nop
 	nop
@@ -233,14 +226,11 @@ _baseTramp_savePostInsn:
 	nop
 	nop
 	nop
-#endif
 	.word	LOCAL_POST_BRANCH
 	nop
-#ifndef MT_THREAD
 	.word RECURSIVE_GUARD_OFF_POST_INSN /* turn off the recursive guard : 3 instrs */
 	nop
 	nop
-#endif
 	ldd  [ %fp + -8 ], %g0	/* restoring registers after coming   */
 	ldd  [ %fp + -16 ], %g2	/* back from a minitramp	      */
 	ldd  [ %fp + -24 ], %g4
@@ -328,7 +318,6 @@ _conservativeBaseTramp_savePreInsn:
 	nop
 	nop
 #endif
-#ifndef MT_THREAD
 	.word RECURSIVE_GUARD_ON_PRE_INSN /* turn on the recursive guard : 7 instrs */
 	nop
 	nop
@@ -336,14 +325,11 @@ _conservativeBaseTramp_savePreInsn:
 	nop
 	nop
 	nop
-#endif
 	.word	LOCAL_PRE_BRANCH
 	nop
-#ifndef MT_THREAD
 	.word RECURSIVE_GUARD_OFF_PRE_INSN /* turn off the recursive guard : 3 instrs */
 	nop
 	nop
-#endif
 	ld   [ %fp + -164 ], %g1 /* restoring the value of condition codes */
 	.word CONSERVATIVE_TRAMP_WRITE_CONDITION
 	ldd   [ %fp + -160 ], %f30 /* restoring the floating point registers */
@@ -443,7 +429,6 @@ _conservativeBaseTramp_savePostInsn:
 	nop
 	nop
 #endif
-#ifndef MT_THREAD
 	.word RECURSIVE_GUARD_ON_POST_INSN /* turn on the recursive guard : 7 instrs */
 	nop
 	nop
@@ -451,14 +436,11 @@ _conservativeBaseTramp_savePostInsn:
 	nop
 	nop
 	nop
-#endif
 	.word	LOCAL_POST_BRANCH
 	nop
-#ifndef MT_THREAD
 	.word RECURSIVE_GUARD_OFF_POST_INSN /* turn off the recursive guard : 3 instrs */
 	nop
 	nop
-#endif
 	ld   [ %fp + -164 ], %g1 /* restoring the value of condition codes */
 	.word CONSERVATIVE_TRAMP_WRITE_CONDITION
 	ldd   [ %fp + -160 ], %f30 /* restoring the floating point registers */
