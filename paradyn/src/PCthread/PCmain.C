@@ -16,9 +16,12 @@
  */
 
 /* $Log: PCmain.C,v $
-/* Revision 1.32  1995/08/05 17:09:11  krisna
-/* do not include <memory.h> in C++ programs, use <stdlib.h>
+/* Revision 1.33  1995/08/08 03:13:03  newhall
+/* updates due to changes in DM: newPerfData, sampleDataCallbackFunc defs.
 /*
+ * Revision 1.32  1995/08/05  17:09:11  krisna
+ * do not include <memory.h> in C++ programs, use <stdlib.h>
+ *
  * Revision 1.31  1995/08/01 02:18:20  newhall
  * changes to support phase interface
  *
@@ -158,44 +161,44 @@ void PCfold(perfStreamHandle handle,
 	    timeStamp newWidth,
 	    phaseType phase_type)
 {
-    // TODO: this should be changed to CurrentPhase
     if(phase_type == GlobalPhase) 
         PCbucketWidth = newWidth;
 }
 
 void PCnewData(perfStreamHandle handle,
 	       metricInstanceHandle m_handle,
-	       sampleValue *buckets,
-	       int count, 
-	       int first)
+	       int bucketNumber,
+	       sampleValue value)
 {
-    int i;
-    datum *dp;
-    sampleValue total;
-    timeStamp start, end;
-
     // TODO: this should be removed and PC thread should not be accessing
     // metricInstance objects directly
     metricInstance *mi = metricInstance::getMI(m_handle);
     if(!mi)  return;
 
-    for (i=0, total = 0.0; i < count; i++) {
-	// printf("mi %x = bin %d == %f\n", mi, i+first, buckets[i]);
-	total += buckets[i];
-    }
-    total *= PCbucketWidth;
+    sampleValue total = value*PCbucketWidth;
 
-    dp = miToDatumMap.find(mi);
+    datum *dp = miToDatumMap.find(mi);
     assert(dp);
-    start = PCbucketWidth * first;
-    end = PCbucketWidth * (first + count);
+    timeStamp start = PCbucketWidth * bucketNumber;
+    timeStamp end = PCbucketWidth * (bucketNumber + 1);
+#ifdef n_def
+    if((bucketNumber % 50) == 0){
+        cout << "PCdata:  bucketNumber:  " << bucketNumber << endl;
+	cout << "    width:         " << PCbucketWidth << endl;
+	cout << "    start:         " << start << endl;
+	cout << "    end:           " << end << endl;
+        cout << "    PCcurrentTime: " << PCcurrentTime << endl;
+        cout << "    PCstartTransTime: " << PCstartTransTime << endl;
+        cout << "    PCendTransTime: " << PCendTransTime << endl;
+    }
+#endif
 
-    tunableBooleanConstant pcEvalPrint = tunableConstantRegistry::findBoolTunableConstant("pcEvalPrint");
-    if (pcEvalPrint.getValue()) {
+  tunableBooleanConstant pcEvalPrint = tunableConstantRegistry::findBoolTunableConstant("pcEvalPrint");
+  if (pcEvalPrint.getValue()) {
 	cout << "AR: " << (char*)dp->metName << (char*)dp->resList->getName();
 	cout << " = " << total;
 	cout << " from " << start << " to " << end << "\n";
-    }
+  }
 
     dp->newSample(start, end, total);
 

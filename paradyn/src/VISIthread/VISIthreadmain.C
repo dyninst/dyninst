@@ -22,9 +22,12 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 /* $Log: VISIthreadmain.C,v $
-/* Revision 1.42  1995/08/05 17:10:46  krisna
-/* use `0' for `NULL'
+/* Revision 1.43  1995/08/08 03:13:10  newhall
+/* updates due to changes in DM: newPerfData, sampleDataCallbackFunc defs.
 /*
+ * Revision 1.42  1995/08/05  17:10:46  krisna
+ * use `0' for `NULL'
+ *
  * Revision 1.41  1995/08/01 02:18:41  newhall
  * changes to support phase interface
  *
@@ -771,7 +774,8 @@ void *VISIthreadmain(void *vargs){
 
   // create performance stream
   union dataCallback dataHandlers;
-  dataHandlers.sample = (sampleDataCallbackFunc)VISIthreadDataCallback;
+  // dataHandlers.sample = (sampleDataCallbackFunc)VISIthreadDataCallback;
+  dataHandlers.sample = (sampleDataCallbackFunc)VISIthreadDataHandler;
   if((globals->ps_handle = globals->dmp->createPerformanceStream(
 		   Sample,dataHandlers,callbacks)) == 0){
       PARADYN_DEBUG(("Error in createPerformanceStream"));
