@@ -10,9 +10,7 @@
  * UIthread WhereAxis stuff
  */
 
-#pragma implementation "Vector.h"
 #include "util/h/Vector.h"
-#pragma implementation "DictionaryLite.h"
 #include "util/src/DictionaryLite.C"
 
 #include "paradyn/src/UIthread/where4tree.C"
@@ -60,7 +58,7 @@ template class dictionary_lite< unsigned, vector<where4tree<shgRootNode>*> >;
 template class vector< vector<dictionary_lite< unsigned, vector<where4tree<shgRootNode>*> > :: hash_pair > >;
 template class vector<dictionary_lite< unsigned, vector<where4tree<shgRootNode>*> > :: hash_pair >;
 template class vector< vector<where4tree<shgRootNode>*> >;
+//template class vector<where4tree<shgRootNode>*>;
 
 
 template class vector<Tk_3DBorder>; // shg consts
-
