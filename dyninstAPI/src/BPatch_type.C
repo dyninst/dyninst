@@ -173,7 +173,7 @@ bool BPatch_typePointer::isCompatible(const BPatch_type *otype) const {
 
 void BPatch_typePointer::fixupUnknowns(BPatch_module *module) {
    if (ptr->getDataClass() == BPatch_dataUnknownType)
-      ptr = module->moduleTypes->findType(ptr->getID());
+      ptr = module->getModuleTypes()->findType(ptr->getID());
 }
 
 /*
@@ -227,7 +227,7 @@ bool BPatch_typeFunction::isCompatible(const BPatch_type *otype) const {
 
 void BPatch_typeFunction::fixupUnknowns(BPatch_module *module) {
    if (retType->getDataClass() == BPatch_dataUnknownType)
-      retType = module->moduleTypes->findType(retType->getID());
+      retType = module->getModuleTypes()->findType(retType->getID());
 
    for (unsigned int i = 0; i < fieldList.size(); i++)
       fieldList[i]->fixupUnknown(module);
@@ -343,7 +343,7 @@ bool BPatch_typeArray::isCompatible(const BPatch_type *otype) const {
 
 void BPatch_typeArray::fixupUnknowns(BPatch_module *module) {
    if (arrayElem->getDataClass() == BPatch_dataUnknownType)
-      arrayElem = module->moduleTypes->findType(arrayElem->getID());
+      arrayElem = module->getModuleTypes()->findType(arrayElem->getID());
 }
 
 /*
@@ -660,7 +660,7 @@ const char *BPatch_typeTypedef::getHigh() const {
 
 void BPatch_typeTypedef::fixupUnknowns(BPatch_module *module) {
    if (base->getDataClass() == BPatch_dataUnknownType)
-      base = module->moduleTypes->findType(base->getID());   
+      base = module->getModuleTypes()->findType(base->getID());   
 }
 
 /*
@@ -718,7 +718,7 @@ const char *BPatch_typeRef::getHigh() const {
 
 void BPatch_typeRef::fixupUnknowns(BPatch_module *module) {
    if (refType->getDataClass() == BPatch_dataUnknownType)
-      refType = module->moduleTypes->findType(refType->getID());
+      refType = module->getModuleTypes()->findType(refType->getID());
 }
 
 /*
@@ -1120,7 +1120,7 @@ BPatch_field::~BPatch_field() {
 
 void BPatch_field::fixupUnknown(BPatch_module *module) {
    if (_type->getDataClass() == BPatch_dataUnknownType)
-      _type = module->moduleTypes->findType(_type->getID());
+      _type = module->getModuleTypes()->findType(_type->getID());
 }
 
 /**************************************************************************
@@ -1157,7 +1157,7 @@ BPatch_localVar::~BPatch_localVar()
 
 void BPatch_localVar::fixupUnknown(BPatch_module *module) {
    if (type->getDataClass() == BPatch_dataUnknownType)
-      type = module->moduleTypes->findType(type->getID());
+      type = module->getModuleTypes()->findType(type->getID());
 }
 
 /**************************************************************************
