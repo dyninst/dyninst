@@ -2,6 +2,9 @@
 #  barChart -- A bar chart display visualization for Paradyn
 #
 #  $Log: barChart.tcl,v $
+#  Revision 1.32  1996/05/15 18:02:44  tamches
+#  modified processNewMetricMax to use the new callback scheme
+#
 #  Revision 1.31  1996/04/30 20:44:18  tamches
 #  added label for the phase name
 #
@@ -650,7 +653,7 @@ proc drawResourcesAxis {windowHeight} {
 # ProcessNewMetricMax {metricid newMaxVal}
 # Called from barChart.C when y-axis overflow is detected
 proc processNewMetricMax {mindex newmaxval} {
-   global metricMaxValues
+   global metricMaxValues validMetrics
    global W
 
    # New feature: all metrics with the same units-name should always have
@@ -666,6 +669,19 @@ proc processNewMetricMax {mindex newmaxval} {
    if {$newmaxval > $metricMaxValues($unitsName)} {
       set metricMaxValues($unitsName) $newmaxval
       drawMetricsAxis [getWindowWidth $W.metricsAxisCanvas]
+
+      # Now, for each metric with these units, make a callback to our C++ code,
+      # telling them to adjust their metric max values.
+      set numMetrics [Dg nummetrics]
+      for {set metriclcv 0} {$metriclcv < $numMetrics} {incr metriclcv} {
+         if {!$validMetrics($metriclcv)} continue
+
+	 set thisMetricUnitsName [metric2units $metriclcv]
+	 if {$thisMetricUnitsName == $unitsName} {
+	    # We have a match
+	    newMetricMaxValCallback $metriclcv $newmaxval
+	 }
+      }
    }
 }
 
@@ -833,7 +849,7 @@ proc metricsKeyConfigureEventHandler {newWidth newHeight} {
    drawMetricsAxis [getWindowWidth $W.metricsAxisCanvas]
 }
 
-# del1SelectedResources
+# del1SelectedResource
 # Given: a true (not sorted) resource number
 # Does: deletes that resource from our internal structures (validResources(),
 #       numValidResources), calls [Dg stop] on all its met/res combos.
@@ -879,7 +895,7 @@ proc delSelectedResources {} {
    global Wmbar WresourcesCanvas W
    global numResourcesDrawn
 
-   # Loop through all visible resources
+   # Loop through all visible resources; call del1SelectedResource as appropriate
    for {set resourcelcv 0} {$resourcelcv < $numResourcesDrawn} {incr resourcelcv} {
       set widgetName $WresourcesCanvas.message$resourcelcv
 
