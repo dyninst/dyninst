@@ -296,19 +296,16 @@ ostream& operator<<(ostream& os,BPatch_basicBlock& bb)
  */
 BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPoint(const BPatch_Set<BPatch_opCode>& ops) {
 
-#if defined(BPATCH_LIBRARY)
   // function is generally uninstrumentable (with current technology)
-  if (flowGraph->getFunction()->funcEntry(flowGraph->getProcess()) == NULL) return NULL;
+  if (flowGraph->getFunction()->funcEntry(flowGraph->getProcess()) == NULL)
+     return NULL;
 
   // Use an instruction iterator
   InstrucIter ii(this);
 
-  return ::findPoint(ops, ii, flowGraph->getProcess(), flowGraph->getProcess()->PDFuncToBPFuncMap.get(const_cast<function_base *>(flowGraph->getFunction())));
+  return ::findPoint(ops, ii, flowGraph->getProcess(), 
+                     flowGraph->getProcess()->PDFuncToBPFuncMap.get(const_cast<function_base *>(flowGraph->getFunction())));
 
-#else
-
-  return NULL;
-#endif
 }
 
 /*
