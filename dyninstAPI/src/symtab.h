@@ -47,6 +47,11 @@
  * symtab.h - interface to generic symbol table.
  *
  * $Log: symtab.h,v $
+ * Revision 1.32  1996/11/12 17:48:33  mjrg
+ * Moved the computation of cost to the basetramp in the x86 platform,
+ * and changed other platform to keep code consistent.
+ * Removed warnings, and made changes for compiling with Visual C++
+ *
  * Revision 1.31  1996/10/31 09:01:14  tamches
  * removed some warnings
  *
@@ -326,7 +331,7 @@ public:
   // data member access
   inline const Word get_instruction(Address adr) const;
 
-  inline unsigned char *getPtrToInstruction(Address adr) const;
+  inline const unsigned char *getPtrToInstruction(Address adr) const;
 
   string file() {return file_;}
   string name() { return name_;}
@@ -398,7 +403,7 @@ private:
 
   // creates the module if it does not exist
   module *getOrCreateModule (const string &modName, const Address modAddr);
-  module *newModule(const string &name, Address addr);
+  module *newModule(const string &name, const Address addr);
 
   bool addOneFunction(vector<Symbol> &mods, module *lib, module *dyn,
 		      const Symbol &lookUp, pdFunction *&retFunc);
@@ -520,15 +525,15 @@ inline const Word image::get_instruction(Address adr) const{
 }
 
 // return a pointer to the instruction at address adr
-inline unsigned char *image::getPtrToInstruction(Address adr) const {
+inline const unsigned char *image::getPtrToInstruction(Address adr) const {
   assert(isValidAddress(adr));
   if (isCode(adr)) {
     adr -= codeOffset_;
-    unsigned char *inst = (unsigned char *)linkedFile.code_ptr();
+    const unsigned char *inst = (const unsigned char *)linkedFile.code_ptr();
     return (&inst[adr]);
   } else if (isData(adr)) {
     adr -= dataOffset_;
-    unsigned char *inst = (unsigned char *)linkedFile.data_ptr();
+    const unsigned char *inst = (const unsigned char *)linkedFile.data_ptr();
     return (&inst[adr]);
   } else {
     abort();

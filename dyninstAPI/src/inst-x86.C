@@ -43,6 +43,11 @@
  * inst-x86.C - x86 dependent functions and code generator
  *
  * $Log: inst-x86.C,v $
+ * Revision 1.3  1996/11/12 17:48:28  mjrg
+ * Moved the computation of cost to the basetramp in the x86 platform,
+ * and changed other platform to keep code consistent.
+ * Removed warnings, and made changes for compiling with Visual C++
+ *
  * Revision 1.2  1996/10/31 08:51:09  tamches
  * the shm-sampling commit; routines to implement inferiorRPC; removed some
  * warnings; added noCost param to some fns.
@@ -304,7 +309,7 @@ bool checkJumpTable(image *im, instruction insn, Address addr,
 		    Address funcBegin, Address funcEnd,
 		    unsigned &tableSz) {
 
-  unsigned char *instr = insn.ptr();
+  const unsigned char *instr = insn.ptr();
   tableSz = 0;
   /*
      the instruction usually used for jump tables is 
@@ -317,7 +322,7 @@ bool checkJumpTable(image *im, instruction insn, Address addr,
   */
   if (instr[0] == 0xFF && instr[1] == 0x24 &&
       ((instr[2] & 0xC0)>>6) == 2 && (instr[2] & 0x7) == 5) {
-    unsigned tableBase = *(int *)(instr+3);
+    const unsigned tableBase = *(const int *)(instr+3);
     //fprintf(stderr, "Found jump table at %x %x\n",addr, tableBase);
     // check if the table is right after the jump and inside the current function
     if (tableBase > funcBegin && tableBase < funcEnd) {
@@ -327,15 +332,15 @@ bool checkJumpTable(image *im, instruction insn, Address addr,
 	return false;
       }
       // skip the jump table
-      for (unsigned *ptr = (unsigned *)tableBase; 
+      for (const unsigned *ptr = (unsigned *)tableBase; 
 	   *ptr >= funcBegin && *ptr <= funcEnd; ptr++) {
 	//fprintf(stderr, " jump table entry = %x\n", *(unsigned *)ptr);
 	tableSz += sizeof(int);
       }
     }
     else {
-      unsigned char *ptr = im->getPtrToInstruction(tableBase);
-      for ( ; *(unsigned *)ptr >= funcBegin && *(unsigned *)ptr <= funcEnd; 
+      const unsigned char *ptr = im->getPtrToInstruction(tableBase);
+      for ( ; *(const unsigned *)ptr >= funcBegin && *(const unsigned *)ptr <= funcEnd; 
 	   ptr += sizeof(unsigned)) {
 	//fprintf(stderr, " jump table entry = %x\n", *(unsigned *)ptr);
       }
@@ -345,20 +350,22 @@ bool checkJumpTable(image *im, instruction insn, Address addr,
 }
 
 
-bool pdFunction::findInstPoints(const image *i_owner) {
-   // sorry this this hack, but this routine can modify the image passed in,
-   // which doesn't occur on other platforms --ari
-   image *owner = (image *)i_owner; // const cast
-
-   enum { EntryPt, CallPt, ReturnPt };
-   class point_ {
-   public:
+/* auxiliary data structures for function findInstPoints */
+enum { EntryPt, CallPt, ReturnPt };
+class point_ {
+  public:
      point_(): point(0), index(0), type(0) {};
      point_(instPoint *p, unsigned i, unsigned t): point(p), index(i), type(t) {};
      instPoint *point;
      unsigned index;
      unsigned type;
-   };
+};
+
+bool pdFunction::findInstPoints(const image *i_owner) {
+   // sorry this this hack, but this routine can modify the image passed in,
+   // which doesn't occur on other platforms --ari
+   image *owner = (image *)i_owner; // const cast
+
 
    point_ *points = new point_[size()];
    unsigned npoints = 0;
@@ -373,7 +380,7 @@ bool pdFunction::findInstPoints(const image *i_owner) {
 if (prettyName() == "gethrvtime" || prettyName() == "_divdi3")
   return false;
 
-   unsigned char *instr = owner->getPtrToInstruction(addr());
+   const unsigned char *instr = (const unsigned char *)owner->getPtrToInstruction(addr());
    Address adr = addr();
    unsigned numInsns = 0;
 
@@ -462,9 +469,14 @@ if (prettyName() == "gethrvtime" || prettyName() == "_divdi3")
        points[npoints++] = point_(p, numInsns, ReturnPt);
 
      } else if (insn.isCall()) {
-       instPoint *p = new instPoint(this, owner, adr, insn);
-       calls += p;
-       points[npoints++] = point_(p, numInsns, CallPt);
+       // calls to adr+5 are not really calls, they are used in dynamically linked
+       // libraries to get the address of the code.
+       // We skip them here.
+       if (insn.getTarget(adr) != adr + 5) {
+	 instPoint *p = new instPoint(this, owner, adr, insn);
+	 calls += p;
+	 points[npoints++] = point_(p, numInsns, CallPt);
+       }
      }
 
      allInstr[numInsns] = insn;
@@ -586,7 +598,7 @@ unsigned relocateInstruction(instruction insn,
 
   */
 
-  unsigned char *origInsn = insn.ptr();
+  const unsigned char *origInsn = insn.ptr();
   unsigned insnType = insn.type();
   unsigned insnSz = insn.size();
   unsigned char *first = newInsn;
@@ -597,7 +609,7 @@ unsigned relocateInstruction(instruction insn,
   if (insnType & REL_B) {
     /* replace with rel32 instruction, opcode is one byte. */
     if (*origInsn == JCXZ) {
-      oldDisp = (int)*(char *)(origInsn+1);
+      oldDisp = (int)*(const char *)(origInsn+1);
       newDisp = (origAddr + 2) + oldDisp - (newAddr + 9);
       *newInsn++ = *origInsn; *(newInsn++) = 2; // jcxz 2
       *newInsn++ = 0xE8; *newInsn++ = 5;        // jmp 5
@@ -621,7 +633,7 @@ unsigned relocateInstruction(instruction insn,
 	*newInsn++ = 0xE9;
 	newSz = 5;
       }
-      oldDisp = (int)*(char *)origInsn;
+      oldDisp = (int)*(const char *)origInsn;
       newDisp = (origAddr + 2) + oldDisp - (newAddr + newSz);
       *((int *)newInsn) = newDisp;
       newInsn += sizeof(int);
@@ -635,7 +647,7 @@ unsigned relocateInstruction(instruction insn,
     if (*origInsn == (unsigned char)0x0F)
       *newInsn++ = *origInsn++;
     *newInsn++ = *origInsn++;
-    oldDisp = *((short *)origInsn);
+    oldDisp = *((const short *)origInsn);
     newDisp = (origAddr + 5) + oldDisp - (newAddr + 3);
     *((int *)newInsn) = newDisp;
     newInsn += sizeof(int);
@@ -644,7 +656,7 @@ unsigned relocateInstruction(instruction insn,
     if (*origInsn == 0x0F)
       *newInsn++ = *origInsn++;
     *newInsn++ = *origInsn++;
-    oldDisp = *((int *)origInsn);
+    oldDisp = *((const int *)origInsn);
     newDisp = (origAddr + 5) + oldDisp - (newAddr + 5);
     *((int *)newInsn) = newDisp;
     newInsn += sizeof(int);
@@ -660,7 +672,7 @@ unsigned relocateInstruction(instruction insn,
 
 unsigned getRelocatedInstructionSz(instruction insn)
 {
-  unsigned char *origInsn = insn.ptr();
+  const unsigned char *origInsn = insn.ptr();
   unsigned insnType = insn.type();
   unsigned insnSz = insn.size();
 
@@ -725,7 +737,7 @@ void initTramps()
 void emitJump(unsigned disp32, unsigned char *&insn);
 void emitSimpleInsn(unsigned opcode, unsigned char *&insn);
 void emitMovRegToReg(reg dest, reg src, unsigned char *&insn);
-void emitAddMemImm(Address dest, int imm, unsigned char *&insn);
+void emitAddMemImm32(Address dest, int imm, unsigned char *&insn);
 
 /*
  * change the insn at addr to be a branch to newAddr.
@@ -805,13 +817,13 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc, bool noCost)
    a+6:   mov esp, ebp              1
    a+8:   pushad                    5
    a+9:   pushaf                    9
-   a+10:  add costAddr, cost        3
-   a+17:  jmp <global pre inst>     1
-   a+22:  jmp <local pre inst>      1
-   a+27:  popaf                    14
-   a+28:  popad                     5
-   a+29:  leave                     3
-   a+30:  <relocated instructions at point>
+   a+10:  jmp <global pre inst>     1
+   a+15:  jmp <local pre inst>      1
+   a+20:  popaf                    14
+   a+21:  popad                     5
+   a+22:  leave                     3
+   a+23:  add costAddr, cost        3
+   a+33:  <relocated instructions at point>
 
    b = a +30 + size of relocated instructions at point
    b+0:   jmp b+30 <skip post insn>
@@ -819,20 +831,21 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc, bool noCost)
    b+6:   mov esp, ebp
    b+8:   pushad
    b+9:   pushaf
-   a+10:  add costAddr, cost
-   b+17:  jmp <global post inst>
-   b+22:  jmp <local post inst>
-   b+27:  popaf
-   b+28:  popad
-   b+29:  leave
-   b+30:  <relocated instructions after point>
+   b+10:  jmp <global post inst>
+   b+15:  jmp <local post inst>
+   b+20:  popaf
+   b+21:  popad
+   b+22:  leave
+   b+23:  <relocated instructions after point>
 
    c:     jmp <return to user code>
 
-   tramp size = 2*30 + 5 + size of relocated instructions
+   tramp size = 2*23 + 10 + 5 + size of relocated instructions
    Make sure to update the size if the tramp is changed
 
-   cost of the base tramp is 2 * (1+1+1+5+9+3+1+1+14+5+3) + 1 = 89
+   cost of pre and post instrumentation is (1+1+5+9+1+1+15+5+3) = 41
+   cost of rest of tramp is (1+3+1+1)
+
 */
 
   trampTemplate *ret = new trampTemplate;
@@ -844,7 +857,7 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc, bool noCost)
 
   // compute the tramp size
   // if there are any changes to the tramp, the size must be updated.
-  unsigned trampSize = 65;
+  unsigned trampSize = 61;
   for (unsigned u = 0; u < location->insnsBefore; u++) {
     trampSize += getRelocatedInstructionSz(location->insnBeforePt[u]);
   }
@@ -902,26 +915,13 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc, bool noCost)
   // pre branches
   // skip pre instrumentation
   ret->skipPreInsOffset = insn-code;
-  emitJump(25, insn);
-  
+  emitJump(0, insn);
+
   // save registers and create a new stack frame for the tramp
   emitSimpleInsn(PUSH_EBP, insn);  // push ebp
   emitMovRegToReg(EBP, ESP, insn); // mov ebp, esp  (2-byte instruction)
   emitSimpleInsn(PUSHAD, insn);    // pushad
   emitSimpleInsn(PUSHFD, insn);    // pushfd
-
-  // update cost -- a 7 byte instruction
-  if (!noCost) {
-     emitAddMemImm(costAddr, 41, insn);  // add (costAddr), cost
-  }
-  else {
-     // minor hack: we still need to fill up the rest of the 7 bytes, since
-     // assumptions are made about the positioning of instructions that follow.
-     // (This could in theory be fixed)
-     // So, 7 NOP instructions (each 1 byte)
-     for (unsigned foo=0; foo < 7; foo++)
-        emitSimpleInsn(0x90, insn); // NOP
-  }
 
   // global pre branch
   ret->globalPreOffset = insn-code;
@@ -937,6 +937,23 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc, bool noCost)
   emitSimpleInsn(POPFD, insn);     // popfd
   emitSimpleInsn(POPAD, insn);     // popad
   emitSimpleInsn(LEAVE, insn);     // leave
+
+  // update cost
+  // update cost -- a 10-byte instruction
+  ret->updateCostOffset = insn-code;
+  currAddr = baseAddr + (insn-code);
+  ret->costAddr = currAddr;
+  if (!noCost) {
+     emitAddMemImm32(costAddr, 88, insn);  // add (costAddr), cost
+  }
+  else {
+     // minor hack: we still need to fill up the rest of the 10 bytes, since
+     // assumptions are made about the positioning of instructions that follow.
+     // (This could in theory be fixed)
+     // So, 10 NOP instructions (each 1 byte)
+     for (unsigned foo=0; foo < 10; foo++)
+        emitSimpleInsn(0x90, insn); // NOP
+  }
 
   // emulate the instruction at the point 
   ret->emulateInsOffset = insn-code;
@@ -956,26 +973,13 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc, bool noCost)
   // post branches
   // skip post instrumentation
   ret->skipPostInsOffset = insn-code;
-  emitJump(25, insn);
+  emitJump(0, insn);
 
   // save registers and create a new stack frame for the tramp
   emitSimpleInsn(PUSH_EBP, insn);  // push ebp
   emitMovRegToReg(EBP, ESP, insn); // mov ebp, esp
   emitSimpleInsn(PUSHAD, insn);    // pushad
   emitSimpleInsn(PUSHFD, insn);    // pushfd
-
-  // update cost
-  if (!noCost) {
-     emitAddMemImm(costAddr, 44, insn);  // add(costAddr), cost
-  }
-  else {
-     // minor hack: we still need to use up 7 bytes, since assumptions are made about
-     // the positioning of instructions that follow.
-     // (This could in theory be fixed)
-     // So, 7 NOP instructions (each 1 byte)
-     for (unsigned foo=0; foo < 7; foo++)
-        emitSimpleInsn(0x90, insn); // NOP
-  }
 
   // global post branch
   ret->globalPostOffset = insn-code; 
@@ -1010,13 +1014,26 @@ trampTemplate *installBaseTramp(instPoint *location, process *proc, bool noCost)
 
   // return to user code
   currAddr = baseAddr + (insn - code);
-  emitJump((location->returnAddr() + imageBaseAddr) - (currAddr+5), insn);
+  emitJump((location->returnAddr() + imageBaseAddr) - (currAddr+JUMP_SZ), insn);
 
   assert((unsigned)(insn-code) == trampSize);
+
+  // update the jumps to skip pre and post instrumentation
+  unsigned char *ip = code + ret->skipPreInsOffset;
+  emitJump(ret->updateCostOffset - (ret->skipPreInsOffset+JUMP_SZ), ip);
+  ip = code + ret->skipPostInsOffset;
+  emitJump(ret->returnInsOffset - (ret->skipPostInsOffset+JUMP_SZ), ip);
+  
   // put the tramp in the application space
   proc->writeDataSpace((caddr_t)baseAddr, insn-code, (caddr_t) code);
 
   free(code);
+
+  ret->cost = 6;
+  ret->prevBaseCost = 41;
+  ret->postBaseCost = 41;
+  ret->prevInstru = false;
+  ret->postInstru = false;
   return ret;
 }
 
@@ -1070,12 +1087,21 @@ void installTramp(instInstance *inst, char *code, int codeSize)
     (inst->proc)->writeDataSpace((caddr_t)inst->trampBase, codeSize, code);
     unsigned atAddr;
     if (inst->when == callPreInsn) {
-      atAddr = inst->baseInstance->baseAddr+inst->baseInstance->skipPreInsOffset;
+	if (inst->baseInstance->prevInstru == false) {
+	    atAddr = inst->baseInstance->baseAddr+inst->baseInstance->skipPreInsOffset;
+	    inst->baseInstance->cost += inst->baseInstance->prevBaseCost;
+	    inst->baseInstance->prevInstru = true;
+	    generateNoOp(inst->proc, atAddr);
+	}
     }
     else {
-      atAddr = inst->baseInstance->baseAddr+inst->baseInstance->skipPostInsOffset; 
+	if (inst->baseInstance->postInstru == false) {
+	    atAddr = inst->baseInstance->baseAddr+inst->baseInstance->skipPostInsOffset; 
+	    inst->baseInstance->cost += inst->baseInstance->postBaseCost;
+	    inst->baseInstance->postInstru = true;
+	    generateNoOp(inst->proc, atAddr);
+	}
     }
-    generateNoOp(inst->proc, atAddr);
 }
 
 
@@ -1088,10 +1114,10 @@ void installTramp(instInstance *inst, char *code, int codeSize)
 
 
 
-#define MAX_BRANCH	0x1<<31
+#define MAX_BRANCH	(0x1<<31)
 
 unsigned getMaxBranch() {
-  return MAX_BRANCH;
+  return (unsigned)MAX_BRANCH;
 }
 
 
@@ -1272,23 +1298,13 @@ void emitMovImmToMem(unsigned maddr, int imm, unsigned char *&insn) {
 
 
 // emit Add dword ptr DS:[addr], imm
-void emitAddMemImm(Address addr, int imm, unsigned char *&insn) {
-  if (imm >= MIN_IMM8 && imm <= MAX_IMM8) {
-    *insn++ = 0x83;
-    // emit the ModRM byte: we use a 32-bit displacement for the address,
-    // the ModRM value is 0x05
-    *insn++ = 0x05;
-    *((unsigned *)insn) = addr;
-    insn += sizeof(unsigned);
-    *((char *)insn++) = (char)imm;
-  } else {
-    *insn++ = 0x81;
-    *insn++ = 0x05;
-    *((unsigned *)insn) = addr;
-    insn += sizeof(unsigned);
-    *((int *)insn) = imm;
-    insn += sizeof(int);
-  }
+void emitAddMemImm32(Address addr, int imm, unsigned char *&insn) {
+  *insn++ = 0x81;
+  *insn++ = 0x05;
+  *((unsigned *)insn) = addr;
+  insn += sizeof(unsigned);
+  *((int *)insn) = imm;
+  insn += sizeof(int);
 }
 
 // emit JUMP rel32
@@ -1422,7 +1438,21 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *ibuf, unsigned &bas
     unsigned char *insn = (unsigned char *) (&ibuf[base]);
     unsigned char *first = insn;
 
-    if (op == loadConstOp) {
+    if (op == updateCostOp) {
+      // src1 is the cost value
+      // src2 is not used
+      // desc is the address of observed cost
+
+      if (!noCost) {
+         // update observed cost
+         // dest = address of DYNINSTobsCostLow
+         // src1 = cost
+         emitAddMemImm32(dest, src1, insn);  // ADD (dest), src1
+      }
+      base += insn-first;
+      return base;
+
+    } else if (op == loadConstOp) {
       // dest is a temporary
       // src1 is an immediate value 
       // dest = src1:imm32
@@ -1461,12 +1491,6 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *ibuf, unsigned &bas
       // allocate space for temporaries
       emitOpRegImm(5, ESP, 128, insn); // sub esp, 128
 
-      if (!noCost) {
-         // update observed cost
-         // dest = address of DYNINSTobsCostLow
-         // src1 = cost
-         emitAddMemImm(dest, src1, insn);  // ADD (dest), src1
-      }
     } else if (op ==  trampTrailer) {
       // reset the stack pointer
       emitOpRegImm(0, ESP, 128, insn); // add esp, 128
@@ -1572,7 +1596,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *ibuf, unsigned &bas
 }
 
 
-unsigned emitImm(opCode op, reg src1, int src2imm, reg dest, char *ibuf, unsigned &base, bool noCost)
+unsigned emitImm(opCode op, reg src1, int src2imm, reg dest, char *ibuf, unsigned &base, bool)
 {
     unsigned char *insn = (unsigned char *) (&ibuf[base]);
     unsigned char *first = insn;
@@ -1701,8 +1725,10 @@ int getInsnCost(opCode op)
     } else if (op ==  callOp) {
         // cost of call only
         return(1+2+1+1);
+    } else if (op == updateCostOp) {
+        return(3);
     } else if (op ==  trampPreamble) {
-        return(1+3);
+        return(1);
     } else if (op ==  trampTrailer) {
         return(1+1);
     } else if (op == noOp) {
@@ -1908,7 +1934,7 @@ bool returnInstance::checkReturnInstance(const Address ) {
  
 void returnInstance::installReturnInstance(process *proc) {
     assert(instructionSeq);
-    proc->writeTextSpace((caddr_t)addr_, instSeqSize, (caddr_t) instructionSeq->ptr());
+    proc->writeTextSpace((void *)addr_, instSeqSize, instructionSeq->ptr());
     delete instructionSeq;
     instructionSeq = 0;
 }

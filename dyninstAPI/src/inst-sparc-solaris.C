@@ -43,6 +43,11 @@
  * inst-sparc.C - Identify instrumentation points for a SPARC processors.
  *
  * $Log: inst-sparc-solaris.C,v $
+ * Revision 1.10  1996/11/12 17:48:40  mjrg
+ * Moved the computation of cost to the basetramp in the x86 platform,
+ * and changed other platform to keep code consistent.
+ * Removed warnings, and made changes for compiling with Visual C++
+ *
  * Revision 1.9  1996/11/11 01:50:43  lzheng
  * Moved the instructions which is used to caculate the observed cost
  * from the miniTramps to baseTramp
@@ -1810,20 +1815,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
 	generateNOOP(insn);
 	base += sizeof(instruction)*3;
 	return(base - 2*sizeof(instruction));
-    } else if (op ==  trampPreamble) {
-#ifdef ndef
-        // save and restore are done inthe base tramp now
-        genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
-	base += sizeof(instruction);
-        insn++;
-
-	// generate code to save global registers
-	for (unsigned u = 0; u < 4; u++) {
-	  genStoreD(insn, 2*u, REG_FP, - (8 + 8*u));
-	  base += sizeof(instruction);
-	  insn++;
-	}
-#endif
+    } else if (op ==  updateCostOp) {
         // generate code to update the observed cost.
 	if (!noCost) {
 	   // sethi %hi(dest), %l0
@@ -1871,6 +1863,20 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
 	   base += sizeof(instruction);
 	   insn++;
 	} // if (!noCost)
+    } else if (op ==  trampPreamble) {
+#ifdef ndef
+        // save and restore are done inthe base tramp now
+        genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
+	base += sizeof(instruction);
+        insn++;
+
+	// generate code to save global registers
+	for (unsigned u = 0; u < 4; u++) {
+	  genStoreD(insn, 2*u, REG_FP, - (8 + 8*u));
+	  base += sizeof(instruction);
+	  insn++;
+	}
+#endif
     } else if (op ==  trampTrailer) {
 #ifdef ndef
         // save and restore are done inthe base tramp now
@@ -2078,6 +2084,12 @@ int getInsnCost(opCode op)
 	count += 1;
 
 	return(count);
+    } else if (op ==  updateCostOp) {
+        // sethi %hi(obsCost), %l0
+        // ld [%lo + %lo(obsCost)], %l1
+        // add %l1, <cost>, %l1
+        // st %l1, [%lo + %lo(obsCost)]
+        return(1+2+1+3);
     } else if (op ==  trampPreamble) {
 	return(0);
     } else if (op ==  trampTrailer) {

@@ -70,8 +70,8 @@
  */
 
 #include <assert.h>
-#include <sys/signal.h>
-#include <sys/param.h>
+//#include <sys/signal.h>
+//#include <sys/param.h>
 
 
 #include "rtinst/h/rtinst.h"
@@ -358,8 +358,8 @@ void copyInstInstances(process *parent, process *child,
 
     // duplicate the parent instance for the child, and define instMapping
     vector<instInstance *>newInsts;
-    for (unsigned u = 0; u < instsToCopy.size(); u++) {
-      instInstance *old = instsToCopy[u];
+    for (unsigned u1 = 0; u1 < instsToCopy.size(); u1++) {
+      instInstance *old = instsToCopy[u1];
       instInstance *newInst = new instInstance;
       newInst->proc = child;
       newInst->when = old->when;
@@ -373,9 +373,9 @@ void copyInstInstances(process *parent, process *child,
     }
 
     // update nextAtPoint and prevAtPoint
-    for (unsigned u = 0; u < newInsts.size(); u++) {
-      instInstance *newInst = newInsts[u];
-      instInstance *old = instsToCopy[u];
+    for (unsigned u2 = 0; u2 < newInsts.size(); u2++) {
+      instInstance *newInst = newInsts[u2];
+      instInstance *old = instsToCopy[u2];
       newInst->nextAtPoint = instInstanceMapping[old->nextAtPoint];
       newInst->prevAtPoint = instInstanceMapping[old->prevAtPoint];
 
@@ -692,7 +692,6 @@ trampTemplate::updateTrampCost(process *proc, int trampCost) {
     proc->getObservedCostAddr();   
     caddr = proc->costAddr(); 
 
-    emit(trampPreamble, cost, 0, caddr, costInsn, csize, false);
-    
+    emit(updateCostOp, cost, 0, caddr, costInsn, csize, false);
     proc->writeDataSpace((caddr_t)costAddr, csize, costInsn);
 }

@@ -43,6 +43,11 @@
  * arch-x86.h - x86 instruction declarations
  *
  * $Log: arch-x86.h,v $
+ * Revision 1.2  1996/11/12 17:48:27  mjrg
+ * Moved the computation of cost to the basetramp in the x86 platform,
+ * and changed other platform to keep code consistent.
+ * Removed warnings, and made changes for compiling with Visual C++
+ *
  * Revision 1.1  1996/10/18 23:54:12  mjrg
  * Solaris/X86 port
  *
@@ -124,17 +129,17 @@ typedef int dword_t;   /* a double word (32-bit) operand */
    get_instruction: get the instruction that starts at instr.
    return the size of the instruction and set instType to a type descriptor
 */
-unsigned get_instruction(unsigned char *instr, unsigned &instType);
+unsigned get_instruction(const unsigned char *instr, unsigned &instType);
 
 /* get the target of a jump or call */
-unsigned get_target(unsigned char *instr, unsigned type, unsigned size, unsigned addr);
+unsigned get_target(const unsigned char *instr, unsigned type, unsigned size, unsigned addr);
 
 
 class instruction {
  public:
   instruction(): type_(0), size_(0), ptr_(0) {}
 
-  instruction(unsigned char *p, unsigned type, unsigned sz):
+  instruction(const unsigned char *p, unsigned type, unsigned sz):
     type_(type), size_(sz), ptr_(p) {}
 
   instruction(const instruction &insn) {
@@ -143,7 +148,7 @@ class instruction {
     ptr_ = insn.ptr_;
   }
 
-  unsigned getNextInstruction(unsigned char *p) {
+  unsigned getNextInstruction(const unsigned char *p) {
     ptr_ = p;
     size_ = get_instruction(ptr_, type_);
     return size_;
@@ -161,7 +166,7 @@ class instruction {
   unsigned type() const { return type_; }
 
   // return a pointer to the instruction
-  unsigned char *ptr() const { return ptr_; }
+  const unsigned char *ptr() const { return ptr_; }
 
   bool isCall() const { return type_ & IS_CALL; }
   bool isCallIndir() const { return (type_ & IS_CALL) && (type_ & INDIR); }
@@ -177,7 +182,7 @@ class instruction {
  private:
   unsigned type_;   // type of the instruction (e.g. IS_CALL | INDIR)
   unsigned size_;   // size in bytes
-  unsigned char *ptr_;       // pointer to the instruction
+  const unsigned char *ptr_;       // pointer to the instruction
 };
 
 

@@ -1601,20 +1601,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
 	generateNOOP(insn);
 	base += sizeof(instruction)*3;
 	return(base - 2*sizeof(instruction));
-    } else if (op ==  trampPreamble) {
-#ifdef ndef
-        // save and restore are done inthe base tramp now
-        genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
-	base += sizeof(instruction);
-        insn++;
-
-	// generate code to save global registers
-	for (unsigned u = 0; u < 4; u++) {
-	  genStoreD(insn, 2*u, REG_FP, - (8 + 8*u));
-	  base += sizeof(instruction);
-	  insn++;
-	}
-#endif
+    } else if (op ==  updateCostOp) {
         // generate code to update the observed cost.
 	if (!noCost) {
 	   // sethi %hi(dest), %l0
@@ -1662,6 +1649,20 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
 	   base += sizeof(instruction);
 	   insn++;
 	} // if (!noCost)
+    } else if (op ==  trampPreamble) {
+#ifdef ndef
+        // save and restore are done inthe base tramp now
+        genImmInsn(insn, SAVEop3, REG_SP, -112, REG_SP);
+	base += sizeof(instruction);
+        insn++;
+
+	// generate code to save global registers
+	for (unsigned u = 0; u < 4; u++) {
+	  genStoreD(insn, 2*u, REG_FP, - (8 + 8*u));
+	  base += sizeof(instruction);
+	  insn++;
+	}
+#endif
     } else if (op ==  trampTrailer) {
 #ifdef ndef
         // save and restore are done inthe base tramp now
@@ -1869,13 +1870,13 @@ int getInsnCost(opCode op)
 	count += 1;
 
 	return(count);
-    } else if (op ==  trampPreamble) {
-	// save
+    } else if (op ==  updateCostOp) {
         // sethi %hi(obsCost), %l0
         // ld [%lo + %lo(obsCost)], %l1
         // add %l1, <cost>, %l1
         // st %l1, [%lo + %lo(obsCost)]
-        // return(1+1+2+1+3);
+        return(1+2+1+3);
+    } else if (op ==  trampPreamble) {
 	return(0);
     } else if (op ==  trampTrailer) {
 	// restore

@@ -43,6 +43,11 @@
  * arch-x86.C - x86 instruction decoder
  *
  * $Log: arch-x86.C,v $
+ * Revision 1.2  1996/11/12 17:48:25  mjrg
+ * Moved the computation of cost to the basetramp in the x86 platform,
+ * and changed other platform to keep code consistent.
+ * Removed warnings, and made changes for compiling with Visual C++
+ *
  * Revision 1.1  1996/10/18 23:54:13  mjrg
  * Solaris/X86 port
  *
@@ -871,7 +876,7 @@ static unsigned doOperands(unsigned operands[3],
 
 
 /* decode instruction at address addr, return size of instruction */
-unsigned get_instruction(unsigned char* addr, unsigned &insnType) {
+unsigned get_instruction(const unsigned char* addr, unsigned &insnType) {
   
   bool instrPrefix = false;
   bool addrSzPrefix = false;
@@ -881,7 +886,7 @@ unsigned get_instruction(unsigned char* addr, unsigned &insnType) {
   unsigned operandSzAttr = 2;
   unsigned addrSzAttr = 2;
 
-  unsigned char *nextb = addr;
+  const unsigned char *nextb = addr;
   x86_insn *desc;
   x86_insn *descAux;
   unsigned code;
@@ -1025,7 +1030,7 @@ unsigned get_instruction(unsigned char* addr, unsigned &insnType) {
 
 
 // find the target of a jump or call
-unsigned get_target(unsigned char *instr, unsigned type, unsigned size, unsigned addr) {
+unsigned get_target(const unsigned char *instr, unsigned type, unsigned size, unsigned addr) {
   int disp;
   unsigned target;
 

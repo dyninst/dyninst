@@ -1062,7 +1062,8 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 	generateNOOP(insn);
 	base += sizeof(instruction)*3;
 	return(base - 2*sizeof(instruction));
-    } else if (op ==  trampPreamble) {
+
+    } else if (op == updateCostOp) {
         if (!noCost) {
 	   // add in the cost to the passed pointer variable.
 
@@ -1113,6 +1114,9 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *baseInsn,
 	   regSpace->freeRegister(obsCostValue);
 	   regSpace->freeRegister(obsCostAddr);
        } // if !noCost
+    } else if (op ==  trampPreamble) {
+        // nothing to do in this platform
+        
     } else if (op ==  trampTrailer) {
 	// restore the registers we have saved
 	int i;
@@ -1336,6 +1340,9 @@ int getInsnCost(opCode op)
 
 	// mtlr	0 
 	cost++;
+    } else if (op == updateCostOp) {
+        cost += 4;
+
     } else if (op ==  trampPreamble) {
 	// Generate code to update the observed cost.
 	// generated code moved to the base trampoline.

@@ -43,6 +43,11 @@
  * inst-hppa.C - Identify instrumentation points for PA-RISC processors.
  *
  * $Log: inst-hppa.C,v $
+ * Revision 1.28  1996/11/12 17:48:38  mjrg
+ * Moved the computation of cost to the basetramp in the x86 platform,
+ * and changed other platform to keep code consistent.
+ * Removed warnings, and made changes for compiling with Visual C++
+ *
  * Revision 1.27  1996/11/11 01:53:08  lzheng
  * Moved the instructions which is used to caculate the observed cost
  * from the miniTramps to baseTramp
@@ -1402,17 +1407,7 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
 	generateNOOP(insn);
 	base += sizeof(instruction)*2;
 	return(base - 2*sizeof(instruction)); 
-    } else if (op ==  trampPreamble) {
-        // store arguments (which were passed in registers) onto the stack.
-/*
-        // this is being done in the base tramp now - naim
-	for (int ind=0; ind < 4; ind++) {
-	    generateStore(insn, 26-ind,  30, -128-36-4*ind);
-	    base += sizeof(instruction);
-	    insn = (instruction *) ((void*)&i[base]);
-	}
-*/
-
+    } else if (op ==  updateCostOp) {
 	// Calculate observed cost:
 	if (!noCost) {
 	   generateLoadConst(insn, dest, 29, base);
@@ -1442,6 +1437,16 @@ unsigned emit(opCode op, reg src1, reg src2, reg dest, char *i, unsigned &base,
 	   generateStore(insn, 28, 29);
 	   base += sizeof(instruction);
         }	
+    } else if (op ==  trampPreamble) {
+        // store arguments (which were passed in registers) onto the stack.
+/*
+        // this is being done in the base tramp now - naim
+	for (int ind=0; ind < 4; ind++) {
+	    generateStore(insn, 26-ind,  30, -128-36-4*ind);
+	    base += sizeof(instruction);
+	    insn = (instruction *) ((void*)&i[base]);
+	}
+*/
     } else if (op ==  trampTrailer) {
 /*
         // this is being done in the base tramp now - naim
@@ -1576,6 +1581,8 @@ int getInsnCost(opCode op)
 	return(1+1);
     } else if (op ==  callOp) {
 	return(2+2+3);
+    } else if (op == updateCostOp) {
+        return (4+2+1+1+2+1);
     } else if (op ==  trampPreamble) {
 	return(0);
     } else if (op ==  trampTrailer) {

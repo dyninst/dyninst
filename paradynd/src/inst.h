@@ -48,6 +48,11 @@
  *   by the instrumentation layer.
  *
  * $Log: inst.h,v $
+ * Revision 1.29  1996/11/12 17:48:32  mjrg
+ * Moved the computation of cost to the basetramp in the x86 platform,
+ * and changed other platform to keep code consistent.
+ * Removed warnings, and made changes for compiling with Visual C++
+ *
  * Revision 1.28  1996/10/31 09:17:04  tamches
  * the shm-sampling commit; intCounterHandle, timerHandle gone, replaced by
  * new classes in metric.h derived from dataReqNode.
@@ -226,7 +231,8 @@ typedef enum { plusOp,
 	       getParamOp,
 	       getSysParamOp,	   
                shiftOp,
-	       saveRegOp} opCode;
+	       saveRegOp,
+	       updateCostOp } opCode;
 
 /*
  * Generate an instruction.

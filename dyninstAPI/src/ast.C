@@ -41,6 +41,11 @@
 
 /* 
  * $Log: ast.C,v $
+ * Revision 1.33  1996/11/12 17:48:34  mjrg
+ * Moved the computation of cost to the basetramp in the x86 platform,
+ * and changed other platform to keep code consistent.
+ * Removed warnings, and made changes for compiling with Visual C++
+ *
  * Revision 1.32  1996/11/11 01:45:30  lzheng
  * Moved the instructions which is used to caculate the observed cost
  * from the miniTramps to baseTramp
@@ -515,26 +520,8 @@ reg AstNode::generateCode(process *proc,
 	    return (unsigned) emit(op, 0, 0, 0, insn, base, noCost);
 
 	} else if (op == trampPreamble) {
-#ifdef i386_unknown_solaris2_5
-	    // loperand is a constant AST node with the cost, in cycles.
-	    int cost = noCost ? 0 : (int) loperand->oValue;
-            int costAddr = 0; // for now... (won't change if noCost is set)
+	    return (unsigned) emit(op, 0, 0, 0, insn, base, noCost);
 
-#ifndef SHM_SAMPLING
-	    bool err;
-	    costAddr = proc->findInternalAddress("DYNINSTobsCostLow", true, err);
-	    if (err) {
-//		logLine("Internal error: unable to find addr of DYNINSTobsCostLow\n");
-		showErrorCallback(79, "");
-		P_abort();
-	    }
-#else
-	    if (!noCost)
-	       costAddr = (int)proc->getObsCostLowAddrInApplicSpace();
-#endif
-
-	    return (unsigned) emit(op, cost, 0, costAddr, insn, base, noCost);
-#endif
 	} else {
 	    AstNode *left = loperand;
 	    AstNode *right = roperand;
