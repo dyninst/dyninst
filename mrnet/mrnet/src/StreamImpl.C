@@ -15,8 +15,9 @@
 namespace MRN
 {
 
-unsigned int StreamImpl::next_stream_id=1;  //id '0' reserved for broadcast
+static unsigned int next_stream_id=1;  //id '0' reserved for broadcast
 bool StreamImpl::force_network_recv=false;
+XPlat::Mutex StreamImpl::force_network_recv_mutex;
 
 StreamImpl::StreamImpl(Network * _network, Communicator *_comm,
                         int _us_filter_id,
@@ -27,6 +28,7 @@ StreamImpl::StreamImpl(Network * _network, Communicator *_comm,
     sync_id(_sync_id), stream_id( next_stream_id )
 {
     next_stream_id++;
+    fprintf(stderr, "Creating a new stream with ID: %d\n", stream_id);
     communicator = new Communicator(*_comm); //copy the comm.
 
     if ( network->is_FrontEnd() ){
@@ -34,13 +36,13 @@ StreamImpl::StreamImpl(Network * _network, Communicator *_comm,
         int * backends = new int[ endpoints.size() ];
         unsigned int i;
         
-        mrn_printf(4, MCFL, stderr, "Adding backends to stream %d: [ ",
-                   stream_id);
+        mrn_dbg(4, mrn_printf(FLF, stderr, "Adding backends to stream %d: [ ",
+                   stream_id));
         for(i=0; i<endpoints.size(); i++){
-            mrn_printf(4, 0,0, stderr, "%d, ", endpoints[i]->get_Rank() );
+            mrn_dbg(4, mrn_printf( 0,0,0, stderr, "%d, ", endpoints[i]->get_Rank() ));
             backends[i] = endpoints[i]->get_Rank();
         }
-        mrn_printf(4, 0,0, stderr, "]\n");
+        mrn_dbg(4, mrn_printf(0,0,0, stderr, "]\n"));
 
         Packet packet( 0, PROT_NEW_STREAM, "%d %ad %d %d %d",
                        stream_id, backends, endpoints.size(),
@@ -65,22 +67,26 @@ StreamImpl::StreamImpl(Network * _network, int _stream_id,
     sync_id(_sync_id),
     stream_id(_stream_id)
 {
+    fprintf(stderr, "Creating a new at the backend stream[%d] => %p\n", stream_id, this);
 }
 
 StreamImpl::~StreamImpl()
 {
+    //TODO: delete streams throughout the network
+    network->_network_impl->delete_StreamById( get_Id() );
 }
 
 int StreamImpl::send_aux(int tag, char const * fmt, va_list arg_list ) const
 {
-    mrn_printf(3, MCFL, stderr, "DCA: StreamImpl::send_aux() Creating new packet with stream_id: %d", stream_id);
+    mrn_dbg(3, mrn_printf(FLF, stderr, "StreamImpl::send_aux() Creating new packet with stream_id: %d", stream_id));
+
     Packet packet(stream_id, tag, fmt, arg_list);
     if(packet.fail()){
-        mrn_printf(1, MCFL, stderr, "new packet() fail\n");
+        mrn_dbg(1, mrn_printf(FLF, stderr, "new packet() fail\n"));
         return -1;
     }
-    mrn_printf(3, MCFL, stderr, "new packet() succeeded. Calling frontend.send()\n");
-    int status = network->network->send(packet);
+    mrn_dbg(3, mrn_printf(FLF, stderr, "new packet() succeeded. Calling frontend.send()\n"));
+    int status = network->get_NetworkImpl()->send(packet);
     return status;
 }
 
@@ -91,48 +97,48 @@ int StreamImpl::send(int tag, char const * fmt, ...) const
     int status;
     va_list arg_list;
 
-    mrn_printf(3, MCFL, stderr, "In stream[%d].send(). Calling new packet()\n", stream_id);
+    mrn_dbg(3, mrn_printf(FLF, stderr, "In stream[%d].send(). Calling new packet()\n", stream_id));
 
     va_start(arg_list, fmt);
     status = send_aux( tag, fmt, arg_list );
     va_end(arg_list);
 
-    mrn_printf(3, MCFL, stderr, "stream[%d].send() %s", stream_id,
-               (status==-1 ? "failed\n" : "succeeded\n"));
+    mrn_dbg(3, mrn_printf(FLF, stderr, "stream[%d].send() %s", stream_id,
+               (status==-1 ? "failed\n" : "succeeded\n")));
 
     return status;
 }
 #endif // READY
-int StreamImpl::recv(int *tag, void ** ptr, bool blocking)
+int StreamImpl::recv(int *otag, Packet ** opacket, bool iblocking)
 {
     Packet cur_packet;
 
-    mrn_printf(3, MCFL, stderr, "In StreamImpl::recv().\n");
+    mrn_dbg(3, mrn_printf(FLF, stderr, "In StreamImpl::recv().\n"));
 
     if( force_network_recv || IncomingPacketBuffer.size() == 0 ){
         network->recv( false );
     }
 
-    if( IncomingPacketBuffer.size() == 0  && !blocking ){
+    if( IncomingPacketBuffer.size() == 0  && !iblocking ){
         //No packets, but non-blocking
-        mrn_printf(3, MCFL, stderr, "No packets currently on stream\n");
+        mrn_dbg(3, mrn_printf(FLF, stderr, "No packets currently on stream\n"));
         return 0;
     }
     else{
         while( IncomingPacketBuffer.size() == 0 ){
             //Loop until we get a packet on this stream's incoming buffer.
             if( network->recv( true ) == -1 ){
-                // mrn_printf(1, MCFL, stderr, "Network::recv failed.");
+                // mrn_dbg(1, mrn_printf(FLF, stderr, "Network::recv failed."));
             }
         }
         cur_packet = *( IncomingPacketBuffer.begin() );
         IncomingPacketBuffer.remove(cur_packet);
-        *tag = cur_packet.get_Tag();
-        *ptr = (void *) new Packet(cur_packet);
+        *otag = cur_packet.get_Tag();
+        *opacket = new Packet(cur_packet);
     }
 
-    mrn_printf(4, MCFL, stderr, "packet's tag: %d\n", cur_packet.get_Tag());
-    mrn_printf(3, MCFL, stderr, "Leaving StreamImpl::recv().\n");
+    mrn_dbg(4, mrn_printf(FLF, stderr, "packet's tag: %d\n", cur_packet.get_Tag()));
+    mrn_dbg(3, mrn_printf(FLF, stderr, "Leaving StreamImpl::recv().\n"));
     return 1;
 }
 
@@ -140,7 +146,8 @@ Packet StreamImpl::get_IncomingPacket( )
 {
     Packet cur_packet=*Packet::NullPacket;
 
-    if( IncomingPacketBuffer.size() != 0 ){
+    int size = IncomingPacketBuffer.size();
+    if( size != 0 ){
         cur_packet = *( IncomingPacketBuffer.begin() );
         IncomingPacketBuffer.pop_front();
     }

@@ -10,7 +10,8 @@
 namespace MRN
 {
 
-std::map<unsigned int, StreamManager*> StreamManager::allStreamManagers;
+std::map<unsigned int, StreamManager*> StreamManager::allStreamManagersById;
+XPlat::Mutex StreamManager::all_stream_managers_mutex;
 
 
 StreamManager::StreamManager(int sid, 
@@ -23,12 +24,12 @@ StreamManager::StreamManager(int sid,
       upstream_node( NULL ),
       downstream_nodes(_downstream)
 {
-    allStreamManagers[sid] = this;
+    set_StreamManagerById( sid, this);
 }
 
 StreamManager::~StreamManager( )
 {
-    allStreamManagers.erase( stream_id );
+    delete_StreamManagerById( stream_id );
 
     delete sync;
     delete downstream_aggregator;
@@ -40,14 +41,14 @@ int StreamManager::push_packet(Packet& packet,
                                bool going_upstream){
     std::vector<Packet> in_packets;
     
-    mrn_printf(3, MCFL, stderr, "Entering StreamMgr.push_packet()\n");
+    mrn_dbg(3, mrn_printf(FLF, stderr, "Entering StreamMgr.push_packet()\n"));
 
     in_packets.push_back(packet);
 
     // we only allow synchronization filters on packets flowing upstream
     if( going_upstream ){
         if( sync->push_packets(in_packets, out_packets) == -1){
-            mrn_printf(1, MCFL, stderr, "Sync.push_packets() failed\n");
+            mrn_dbg(1, mrn_printf(FLF, stderr, "Sync.push_packets() failed\n"));
             return -1;
         }
 
@@ -61,15 +62,54 @@ int StreamManager::push_packet(Packet& packet,
         Filter* cur_agg = (going_upstream ?
                            upstream_aggregator : downstream_aggregator );
         if( cur_agg->push_packets(in_packets, out_packets) == -1){
-            mrn_printf(1, MCFL, stderr, "Sync.push_packets() failed\n");
+            mrn_dbg(1, mrn_printf(FLF, stderr, "Sync.push_packets() failed\n"));
             return -1;
         }
     }
 
-    mrn_printf(3, MCFL, stderr, "Leaving stream_mgr.push_packet(),"
-               " returning %u packets\n", out_packets.size() );
+    mrn_dbg(3, mrn_printf(FLF, stderr, "Leaving stream_mgr.push_packet(),"
+               " returning %u packets\n", out_packets.size() ));
     return 0;
 }
 
+void StreamManager::set_StreamManagerById( unsigned int iid, StreamManager * istream_mgr )
+{
+    all_stream_managers_mutex.Lock();
+    allStreamManagersById[iid] = istream_mgr;
+    all_stream_managers_mutex.Unlock();
+}
+
+StreamManager * StreamManager::get_StreamManagerById( unsigned int iid )
+{
+    StreamManager * ret;
+    std::map<unsigned int, StreamManager*>::iterator iter; 
+
+    all_stream_managers_mutex.Lock();
+
+    iter = allStreamManagersById.find( iid );
+    if(  iter != allStreamManagersById.end() ){
+        ret = iter->second;
+    }
+    else{
+        ret = NULL;
+    }
+    all_stream_managers_mutex.Unlock();
+
+    return ret;
+}
+
+void StreamManager::delete_StreamManagerById( unsigned int iid )
+{
+    std::map<unsigned int, StreamManager*>::iterator iter; 
+
+    all_stream_managers_mutex.Lock();
+
+    iter = allStreamManagersById.find( iid );
+    if(  iter != allStreamManagersById.end() ){
+        allStreamManagersById.erase( iter );
+    }
+
+    all_stream_managers_mutex.Unlock();
+}
 } // namespace MRN
 

@@ -26,9 +26,9 @@ class StreamManager{
     RemoteNode * upstream_node;
     std::list <RemoteNode *> downstream_nodes;
 
- public:
-    static std::map<unsigned int, StreamManager*> allStreamManagers;
+    static std::map<unsigned int, StreamManager*> allStreamManagersById;
 
+ public:
     StreamManager(int stream_id,
                   const std::list <RemoteNode *> &_downstream,
                   int sync_id, int ds_agg_id, int us_agg_id );
@@ -39,6 +39,11 @@ class StreamManager{
     const std::list<RemoteNode*>&
         get_downstreamNodes( void ) const   { return downstream_nodes; }
     RemoteNode* get_upstreamNode( void )    { return upstream_node; }
+
+    static void set_StreamManagerById( unsigned int, StreamManager * );
+    static StreamManager * get_StreamManagerById( unsigned int );
+    static void delete_StreamManagerById( unsigned int );
+    static XPlat::Mutex all_stream_managers_mutex;
 };
 
 } // namespace MRN

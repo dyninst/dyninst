@@ -26,7 +26,7 @@ class StreamImpl{
  private:
     Network * network;
     static bool force_network_recv;
-    static unsigned int next_stream_id;
+    static XPlat::Mutex force_network_recv_mutex;
 
     std::list < Packet >IncomingPacketBuffer;
     int ds_filter_id;
@@ -46,9 +46,10 @@ class StreamImpl{
                 int sync_id = SFILTER_DONTWAIT,
                 int ds_filter_id=TFILTER_NULL );
     ~StreamImpl( );
-    static int recv( int *tag, void **buf, Stream ** stream, bool blocking =
-                     true );
+    static int recv( int *otag, Packet **opacket, Stream ** ostream,
+                     bool iblocking = true );
     static void set_ForceNetworkRecv( bool force = true );
+    static bool get_ForceNetworkRecv( );
 
     void add_IncomingPacket( Packet& );
     Packet get_IncomingPacket( );
@@ -56,11 +57,11 @@ class StreamImpl{
 
 
     int send_aux( int tag, const char *format_str, va_list arg_list ) const;
-    static int unpack( void *buf, const char *fmt, va_list arg_list );
+    static int unpack( Packet *ipacket, const char *ifmt, va_list oarg_list );
 
 //    int send( int tag, const char *format_str, ... ) const;
     int flush(  ) const;
-    int recv( int *tag, void **buf, bool blocking = true );
+    int recv( int *otag, Packet **opacket, bool iblocking = true );
     unsigned int get_NumEndPoints(  ) const;
     Communicator *get_Communicator( void ) const;
     unsigned int get_Id( void ) const ;
@@ -69,11 +70,11 @@ class StreamImpl{
 inline int StreamImpl::flush() const
 {
     if( network->is_FrontEnd() ){
-        mrn_printf( 3, MCFL, stderr, "calling frontend flush()" );
+        mrn_dbg( 3, mrn_printf(FLF, stderr, "calling frontend flush()" ));
         return network->get_FrontEndNode()->flush(stream_id);
     }
     else if( network->is_BackEnd() ){
-        mrn_printf( 3, MCFL, stderr, "calling backend flush()" );
+        mrn_dbg( 3, mrn_printf(FLF, stderr, "calling backend flush()" ));
         return network->get_BackEndNode()->flush();
     }
     else{
@@ -90,7 +91,20 @@ inline unsigned int StreamImpl::get_NumEndPoints() const
 
 inline void StreamImpl::set_ForceNetworkRecv( bool force )
 {
+    force_network_recv_mutex.Lock();
     force_network_recv = force;
+    force_network_recv_mutex.Unlock();
+}
+
+inline bool StreamImpl::get_ForceNetworkRecv( )
+{
+    bool ret;
+
+    force_network_recv_mutex.Lock();
+    ret = force_network_recv;
+    force_network_recv_mutex.Unlock();
+
+    return ret;
 }
 
 inline void StreamImpl::add_IncomingPacket(Packet& packet)
@@ -103,12 +117,10 @@ inline const std::vector <EndPoint *> & StreamImpl::get_EndPoints( ) const
     return communicator->get_EndPoints( );
 }
 
-inline int StreamImpl::unpack( void* buf, const char* fmt_str,
-                               va_list arg_list )
+inline int StreamImpl::unpack( Packet* ipacket, const char* ifmt_str,
+                               va_list oarg_list )
 {
-    Packet * packet = (Packet *)buf;
-    int ret = packet->ExtractVaList(fmt_str, arg_list); 
-    delete packet;
+    int ret = ipacket->ExtractVaList(ifmt_str, oarg_list); 
 
     return ret;
 }
