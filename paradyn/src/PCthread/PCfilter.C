@@ -21,6 +21,11 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.C,v $
+ * Revision 1.28  1996/07/26 07:28:11  karavan
+ * bug fix: eliminated race condition from data subscription code.  Changed
+ * data structures used as indices in class filteredDataServer.  Obsoleted
+ * class fmf.
+ *
  * Revision 1.27  1996/07/23 20:28:01  karavan
  * second part of two-part commit.
  *
@@ -202,7 +207,7 @@ filter::filter(filteredDataServer *keeper,
 : intervalLength(0), nextSendTime(0.0),  
   lastDataSeen(0), partialIntervalStartTime(0.0), workingValue(0), 
   workingInterval(0), mi(0), metric(met), foc (focs), 
-  active(false), costFlag(cf), server(keeper)
+  status(Inactive), costFlag(cf), server(keeper)
 {
   ;
 }
@@ -245,7 +250,8 @@ void filter::getInitialSendTime(timeStamp startTime)
 
 void filter::wakeUp()
 {
-  server->makeEnableDataRequest (metric, foc, this);
+  server->makeEnableDataRequest (metric, foc);
+  status = ActivationRequestPending;
 }
   
 void
@@ -468,6 +474,11 @@ filteredDataServer::filteredDataServer(unsigned phID)
   }
   // adjusted minGranularity, or binsize, whichever's bigger
   intervalSize = binFactor;
+  miIndex = new (dictionary_lite<focus, filter*>*) 
+    [performanceConsultant::numMetrics];
+  for (unsigned j = 0; j < performanceConsultant::numMetrics; j++)
+    miIndex[j] = new dictionary_lite<focus, filter*> 
+      (filteredDataServer::fdid_hash);
 }
 
 //
@@ -492,8 +503,7 @@ filteredDataServer::resubscribeAllData()
   for (unsigned i = 0; i < AllDataFilters.size(); i++) {
     if (AllDataFilters[i]->pausable()) {
       makeEnableDataRequest (AllDataFilters[i]->getMetric(),
-			     AllDataFilters[i]->getFocus(),
-			     AllDataFilters[i]);
+			     AllDataFilters[i]->getFocus());
     }
   }
 }
@@ -535,8 +545,6 @@ filteredDataServer::newDataEnabled(vector<metricInstInfo> *newlyEnabled)
       << " mi=" << miicurr->mi_id << endl;
 #endif
 
-    // first check if this mihandle already in use; if so its a bad internal error
-    //**
     bool beenEnabled = DataFilters.find(miicurr->mi_id, curr);
 
     if (beenEnabled && curr) {
@@ -546,31 +554,15 @@ filteredDataServer::newDataEnabled(vector<metricInstInfo> *newlyEnabled)
 			    miicurr->mi_id, miicurr->successfully_enabled);
       return;
     } 
-    bool pendingRecFound = false;
-    for (unsigned j = 0; j < Pendings.size(); j++) {
-      if ((Pendings[j].mh == miicurr->m_id) && (Pendings[j].f == miicurr->r_id)
-	  && Pendings[j].fil) {
-	pendingRecFound = true;
-	curr = Pendings[j].fil;
-	if (miicurr->successfully_enabled) {
-	  curr->mi = miicurr->mi_id;
-	  DataFilters[(fdsDataID) curr->mi] = curr;
-	  Pendings[j].fil = curr;
-	  miIndex[curr->metric] += Pendings[j];
-	  curr->sendEnableReply(miicurr->m_id, miicurr->r_id, miicurr->mi_id, true);
-	  } else { 
-	    // enable failed and it has never succeeded; trash this filter
-	    curr->sendEnableReply(miicurr->m_id, miicurr->r_id, 0, false);
-	  }
-	// clear out this record for reuse
-	Pendings[j].fil = NULL;
-	Pendings[j].mh = 0;
-	Pendings[j].f = 0;
-	break;
-      }
-    } // for j < Pendings.size()
-
-    if (!pendingRecFound) {
+    // mihandle not in use; get filter for this mh/f pair
+    filter *curr = findFilter(miicurr->m_id, miicurr->r_id);
+    if (!curr) {
+      //**
+      cout << "UH-OH, FILTER NOT FOUND! mh=" << miicurr->m_id << " f=" 
+	<< miicurr->r_id << endl;
+      return;
+    }
+    if (curr->status != filter::ActivationRequestPending) {
       // this enable request was cancelled while it was being handled by the dm
       // so we need to send back an explicit cancel request
       if (phType == GlobalPhase)
@@ -584,31 +576,33 @@ filteredDataServer::newDataEnabled(vector<metricInstInfo> *newlyEnabled)
       cout << "PCdisableData: m=" << miicurr->m_id << " f=" << miicurr->r_id 
 	<< " mi=" << miicurr->mi_id << endl;
 #endif
+    } else {
+      if (miicurr->successfully_enabled) {
+	curr->mi = miicurr->mi_id;
+	DataFilters[(fdsDataID) curr->mi] = curr;
+	curr->status = filter::Active;
+	curr->sendEnableReply(miicurr->m_id, miicurr->r_id, miicurr->mi_id, true);
+      } else { 
+	// enable failed 
+	//**
+	curr->sendEnableReply(miicurr->m_id, miicurr->r_id, 0, false);
+	curr->status = filter::Inactive;
+      }
     }
   }
+
 #ifdef PCDEBUG
   if (performanceConsultant::printDataCollection) 
     printPendings();
+    ;
 #endif
 }
 	
 void 
 filteredDataServer::makeEnableDataRequest (metricHandle met,
-					   focus foc, filter *subfilter)
+					   focus foc)
 {
-  // record the dm enable request
-  bool roomAtTheInn = false;
-  fmf newPending (met, foc, subfilter);
-  for (unsigned j = 0; j < Pendings.size(); j++) {
-    if (Pendings[j].fil == NULL) {
-      Pendings[j] = newPending;
-      roomAtTheInn = true;
-      break;
-    }
-  }
-  if (!roomAtTheInn) {
-    Pendings += newPending;
-  }
+
 #ifdef PCDEBUG
   if (performanceConsultant::printDataCollection)
     printPendings();
@@ -642,13 +636,10 @@ filteredDataServer::printPendings()
 {
   cout << "Pending Enables:" << endl;
   cout << "=============== " << endl;
-  for (unsigned k = 0; k < Pendings.size(); k++) {
-    if (Pendings[k].fil) {
-      cout << " mh:" << Pendings[k].mh << " f:" << Pendings[k].f;
-      if (Pendings[k].fil == NULL)
-	cout << " fil = NULL" << endl;
-      else 
-	cout << " fill non-NULL" << endl;
+  for (unsigned k = 0; k < AllDataFilters.size(); k++) {
+    filter *curr = AllDataFilters[k];
+    if (curr && curr->isPending()) {
+      cout << " mh:" << curr->metric << " f:" << curr->foc;
     }
   }
 }
@@ -657,14 +648,11 @@ filteredDataServer::printPendings()
 filter *
 filteredDataServer::findFilter(metricHandle mh, focus f)
 {
-  unsigned sz = (miIndex[mh]).size();
-  // is there already a filter for this met/focus pair?
-  for (unsigned i = 0; i < sz; i++) {
-    if ((miIndex[mh])[i].f == f) {
-      return (miIndex[mh])[i].fil;
-    }
-  }
-  return (filter *)NULL;
+  filter *fil;
+  dictionary_lite<focus, filter*> *curr = miIndex[mh];
+  bool fndflag = curr->find(f, fil);
+  if (!fndflag) return (filter *)NULL;
+  return fil;
 }
 
 void
@@ -680,30 +668,26 @@ filteredDataServer::addSubscription(fdsSubscriber sub,
   if (subfilter) {
     if (flag) subfilter->setcostFlag();
     // add subscriber to filter, which already exists
-    if ( (subfilter->addConsumer (sub)) > 1) {      
-      // filter is already active
+
+    if (subfilter->status == filter::Active) {
+      subfilter->addConsumer (sub);
       subfilter->sendEnableReply(mh, f, subfilter->getMI(), true);
-    } else {
+    } else if (subfilter->status == filter::Inactive) {
+      subfilter->addConsumer (sub);
       subfilter->wakeUp();
+    } else if (subfilter->status == filter::ActivationRequestPending) {
+      subfilter->addConsumer(sub);
     }
     return;
   }
 
-  // is there already a pending enable request for this met/focus pair?
-  for (unsigned k = 0; k < Pendings.size(); k++) {
-    if ((Pendings[k].mh == mh) && (Pendings[k].f == f) && Pendings[k].fil) {
-      subfilter = Pendings[k].fil;
-      subfilter->addConsumer(sub);
-      return;
-    }
-  }
- 
   // this is first request received for this met focus pair; construct new filter
   if (ft == nonfiltering)
     subfilter = new valFilter (this, mh, f, flag);
   else
     subfilter = new avgFilter (this, mh, f, flag);
   AllDataFilters += subfilter;
+  (*(miIndex[mh])) [f] = subfilter;  
   subfilter->addConsumer(sub);
   subfilter->wakeUp();
 }
@@ -712,20 +696,14 @@ void
 filteredDataServer::cancelSubRequest (fdsSubscriber sub, metricHandle met, focus foc)
 {
   // find the pending enable request for this met/focus pair
-  for (unsigned k = 0; k < Pendings.size(); k++) {
-    if ((Pendings[k].mh == met) && (Pendings[k].f == foc) && Pendings[k].fil) {
-      filter *subfilter = Pendings[k].fil;
-      if (subfilter->numConsumers == 1) {
-	// this was the only pending request; delete it
-	// clear out this record for reuse
-	Pendings[k].fil = NULL;
-	Pendings[k].mh = 0;
-	Pendings[k].f = 0;
-      }
-      subfilter->rmConsumer(sub);
-      break;
-    }
+  filter *subfilter = findFilter(met, foc);
+  assert (subfilter);
+
+  if (subfilter->numConsumers == 1) {
+    // this was the only pending request; change status
+    subfilter->status = filter::Inactive;
   }
+  subfilter->rmConsumer(sub);
 }
  
 void

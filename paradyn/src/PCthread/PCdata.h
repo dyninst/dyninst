@@ -20,6 +20,11 @@
  * dataSubscriber and dataProvider base classes
  *
  * $Log: PCdata.h,v $
+ * Revision 1.4  1996/07/26 07:28:10  karavan
+ * bug fix: eliminated race condition from data subscription code.  Changed
+ * data structures used as indices in class filteredDataServer.  Obsoleted
+ * class fmf.
+ *
  * Revision 1.3  1996/07/22 18:55:37  karavan
  * part one of two-part commit for new PC functionality of restarting searches.
  *
@@ -69,6 +74,7 @@ public:
   int addConsumer(dataSubscriber*);
   // returns remaining number of subscribers after deletion
   int rmConsumer(dataSubscriber*);
+  int getNumConsumers () {return numConsumers;}
   void sendValue(PCmetDataID, sampleValue, timeStamp, timeStamp, sampleValue);
   void sendEnableReply (unsigned, unsigned, unsigned, bool);
 protected:

@@ -20,6 +20,11 @@
  * The PCmetricInst class and the PCmetricInstServer methods.
  * 
  * $Log: PCmetricInst.C,v $
+ * Revision 1.16  1996/07/26 07:28:13  karavan
+ * bug fix: eliminated race condition from data subscription code.  Changed
+ * data structures used as indices in class filteredDataServer.  Obsoleted
+ * class fmf.
+ *
  * Revision 1.15  1996/07/24 20:09:25  karavan
  * bug fix in PCmetricInst::getEstimatedCost
  *
@@ -159,9 +164,10 @@ ostream& operator <<(ostream &os, PCmetricInst &pcm)
   const char *fname = dataMgr->getFocusNameFromHandle(pcm.foc);
   os << "PCMETRICINST " << pcm.met->getName() << ":" << endl
     << " focus: " << pcm.foc << " " << fname << endl;
-  os << " start: " << pcm.startTime << " end: " << pcm.endTime 
-    << " DataStatus: " << pcm.DataStatus << " AllDataReady: " << pcm.AllDataReady
-      << "TimesAligned: " << pcm.TimesAligned << endl;
+  os << " start=" << pcm.startTime << " end=" << pcm.endTime 
+    << " DataStatus=" << pcm.DataStatus << " AllDataReady= " << pcm.AllDataReady
+      << "EnableStatus=" << pcm.EnableStatus << "TimesAligned: " 
+	<< pcm.TimesAligned << endl;
   inPort *currPort;
   for (int i = 0; i < pcm.numInPorts; i++) {
     currPort = &(pcm.AllData[i]);
@@ -271,6 +277,8 @@ void
 PCmetricInst::enableReply (unsigned token1, unsigned token2, unsigned token3,
 				bool successful)
 {
+  cout << "ENABLE REPLY for mh=" << token1 << " fh=" << token2 << 
+    " mi=" << token3 << endl;
   if (EnableStatus == AllDataReady)
     // this is a duplicate; drop it on the floor
     return;
@@ -300,13 +308,22 @@ PCmetricInst::activate()
 {
   if (active) return;
 
+  cout << " PCMETINST ACTIVATE START" << endl;
   inPort *curr;
   AllDataReady = 0;
   // important!!! AllDataReady must be complete before we enter the 
-  // second for loop.  Why?  it may be tested as part of call to 
-  // db->addSubscription.
+  // data subscription loop.  Why?  it may be tested as part of call to 
+  // db->addSubscription.  AllCurrentValues must be complete before 
+  // we enter the data subscription loop.  Why?  Data may start arriving
+  // as soon as the subscription is requested.
   for (int j = 0; j < numInPorts; j++) {
     AllDataReady = (AllDataReady << 1) | 1;
+  }
+  if (AllCurrentValues != NULL) 
+    delete AllCurrentValues;
+  AllCurrentValues = new sampleValue[numInPorts];
+  for (int k = 0; k < numInPorts; k++) {
+    AllCurrentValues[k] = 0.0;
   }
   for (int i = 0; i < numInPorts; i++) {
     curr = &(AllData[i]);
@@ -319,12 +336,7 @@ PCmetricInst::activate()
     //sendEnableReply (0, 0, 0, false);
     //return; }
   }
-  if (AllCurrentValues != NULL) 
-    delete AllCurrentValues;
-  AllCurrentValues = new sampleValue[numInPorts];
-  for (int k = 0; k < numInPorts; k++) {
-    AllCurrentValues[k] = 0.0;
-  }
+  cout << "PCMETINST ACTIVATE END" << endl;
 }
 
 void
@@ -379,6 +391,9 @@ PCmetricInst::newData (metricInstanceHandle whichData, sampleValue newVal,
 		       timeStamp start, timeStamp end, sampleValue)
 {
   unsigned portNum;
+  // don't use data until all ports successfully enabled
+  if (EnableStatus != AllDataReady) return;
+
   // adjust metric start time if this is first data received
   if (startTime < 0)
     startTime = start;

@@ -21,6 +21,11 @@
  * in the Performance Consultant.  
  *
  * $Log: PCfilter.h,v $
+ * Revision 1.10  1996/07/26 07:28:12  karavan
+ * bug fix: eliminated race condition from data subscription code.  Changed
+ * data structures used as indices in class filteredDataServer.  Obsoleted
+ * class fmf.
+ *
  * Revision 1.9  1996/07/23 20:28:02  karavan
  * second part of two-part commit.
  *
@@ -136,6 +141,7 @@ class filter : public dataProvider
 {
   friend ostream& operator <<(ostream &os, filter& f);
   friend class filteredDataServer;
+  enum FilterStatus { Active, ActivationRequestPending, Inactive };
  public:
   filter(filteredDataServer *keeper,  
 	 metricHandle met, focus focs,
@@ -147,14 +153,15 @@ class filter : public dataProvider
   metricInstanceHandle getMI () {return mi;}
   metricHandle getMetric() {return metric;}
   focus getFocus() {return foc;}
-  bool isActive() {return active;}
+  bool isActive() {return status == Active;}
+  bool isPending() {return status == ActivationRequestPending;}
   // true means we want to disable this as part of a PC pause event
   bool pausable() {return (numConsumers > 0 && !costFlag);}
   void setcostFlag() {costFlag = true;}
  protected:  
   // activate filter by enabling met/focus pair
   void wakeUp();
-  void inactivate() {active = false;}
+  void inactivate() {status = Inactive;}
   // these used in newData() to figure out intervals 
   void updateNextSendTime(timeStamp startTime);
   void getInitialSendTime(timeStamp startTime);
@@ -178,7 +185,7 @@ class filter : public dataProvider
   metricHandle metric;
   focus foc;
  private:
-  bool active;
+  FilterStatus status;
   // if set, this data is not disabled for a pause because it is used in 
   // cost observation by all phases
   bool costFlag;
@@ -221,21 +228,7 @@ public:
   void newData(sampleValue newVal, timeStamp start, timeStamp end);
 };
 
-//**
-const unsigned NumMetrics = 25;
 class filteredDataServer;
-
-class fmf {
-  friend class filteredDataServer;
-public:
-  fmf (const fmf &from): f(from.f), mh(from.mh), fil(from.fil) {;}
-  fmf (): f(0), mh(0), fil(NULL){;}
-  fmf (metricHandle met, focus foc, filter *f) : f(foc), mh(met), fil(f) {;}
-private:
-  focus f;
-  metricHandle mh;
-  filter *fil;
-};
 
 // contains variable number of filters; maintains subscribers to each
 // filter; new subscription -> dm->enable() request and add filter; 
@@ -273,7 +266,7 @@ public:
   filter *findFilter(metricHandle mh, focus f);
   static unsigned fdid_hash (fdsDataID& val) {return (unsigned)val % 19;} 
   void inActivateFilter (filter *fil);
-  void makeEnableDataRequest (metricHandle met, focus foc, filter *sub);
+  void makeEnableDataRequest (metricHandle met, focus foc);
   unsigned getPCphaseID () {
     if (phType == CurrentPhase) return dmPhaseID+1;
     else return 0;
@@ -288,16 +281,11 @@ public:
   unsigned dmPhaseID;
   // starting interval size we never go below this
   timeStamp minGranularity;
-  // miIndex and DataFilters  contain all filters which are now 
-  // or have been in the past, successfully enabled.  
+  // DataFilters  contain all filters which are now successfully enabled.  
   dictionary_lite<fdsDataID, filter*>DataFilters;
-  vector<fmf> miIndex [NumMetrics];
-  // this vector contains every filter ever created for this server
+  // miIndex and AllDataFilters contain every filter ever created for this server
+  dictionary_lite<focus, filter*> **miIndex;
   vector<filter*> AllDataFilters;
-  // Pendings contains pending records for all filters with pending enable 
-  // requests.   These filters may or may not also be listed in miIndex DataFilters and 
-  // AllDataFilters, depending on if they have or have not been enabled in the past.
-  vector<fmf> Pendings;
 };
 
 #endif
