@@ -36,13 +36,16 @@
  */     
 
 #ifndef lint
-static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/command.c,v 1.7 1997/05/20 08:29:18 tung Exp $";
+static char rcsid[] = "@(#) $Header: /home/jaw/CVSROOT_20081103/CVSROOT/core/visiClients/terrain/src/command.c,v 1.8 1997/05/20 17:13:22 tung Exp $";
 #endif
 
 /*
  * command.c - main switchboard of the program.
  *
  * $Log: command.c,v $
+ * Revision 1.8  1997/05/20 17:13:22  tung
+ * Redisplay the graph only once during fold.
+ *
  * Revision 1.7  1997/05/20 08:29:18  tung
  * Revised on resizing the maxZ, change the xlabel and zlabel format.
  *
@@ -513,6 +516,9 @@ Window win;
 		  XSetFunction(dpy, gc, GXcopyInverted);
                }
                #endif
+               
+	       if (fold)
+	          curves->x_max *=2;
 
 	       ReDisplayGraph();
 
