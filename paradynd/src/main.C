@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.84 2000/04/27 21:55:35 bernat Exp $
+// $Id: main.C,v 1.85 2000/05/04 18:05:24 bernat Exp $
 
 #include "util/h/headers.h"
 #include "util/h/makenan.h"
@@ -326,8 +326,6 @@ int main(unsigned argc, char *argv[]) {
     // We want to find two things
     // First, get the current working dir (PWD)
     dir = new string(getenv("PWD"));
-    // Quick check :)
-    cerr << "Dir read from environment = " << *dir << endl;
 
     // Second, put the inferior application and its command line
     // arguments into cmdLine. Basically, loop through argv until
