@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.65 2000/03/02 20:54:05 bernat Exp $
+// $Id: aix.C,v 1.66 2000/05/24 00:04:53 tikir Exp $
 
 #include "util/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -1180,7 +1180,7 @@ void Object::load_object()
 {
    // all these vrble declarations need to be up here due to the gotos,
    // which mustn't cross vrble initializations.  Too bad.
-   long i;
+   long i,j;
    int fd;
    int cnt;
    string name;
@@ -1202,6 +1202,10 @@ void Object::load_object()
    Symbol::SymbolLinkage linkage = Symbol::SL_UNKNOWN;
    unsigned toc_offset = 0;
    string modName;
+
+   unsigned int nlines=0;
+   int linesfdptr=0;
+   struct lineno* lines=NULL;
 
    fd = open(file_.string_of(), O_RDONLY, 0);
    if (fd <0) {
@@ -1261,6 +1265,29 @@ void Object::load_object()
    if (!seekAndRead(fd, poolOffset, (void**) &stringPool, poolLength, true)) {
       goto cleanup;
    }
+
+   /* find the text section such that we access the line information */
+   for (i=0; i < hdr.f_nscns; i++)
+       if (sectHdr[i].s_flags & STYP_TEXT) {
+	   nlines = sectHdr[i].s_nlnno;
+
+	   /* if there is overflow in the number of lines */
+	   if (nlines == 65535)
+		for (j=0; j < hdr.f_nscns; j++)
+       			if ((sectHdr[j].s_flags & STYP_OVRFLO) &&
+			    (sectHdr[j].s_nlnno == (i+1))){
+				nlines = (unsigned int)(sectHdr[j].s_vaddr);
+				break;
+			}
+
+	   /* read the line information table */
+	   if (!seekAndRead(fd,sectHdr[i].s_lnnoptr,(void**) &lines,
+		 	    nlines*LINESZ,true))
+		goto cleanup;
+
+	   linesfdptr = sectHdr[i].s_lnnoptr;
+	   break;
+     }
 
    // identify the code region.
    if ((unsigned) aout.tsize != sectHdr[aout.o_sntext-1].s_size) {
@@ -1325,6 +1352,9 @@ void Object::load_object()
 		 endl;
 	     goto cleanup;
        }
+       linesptr_ = (long unsigned int) lines;
+       nlines_ = (int)nlines; 
+       linesfdptr_ = linesfdptr;
    }
 
    // data_off_ = sectHdr[aout.o_sndata-1].s_vaddr + AIX_DATA_OFFSET_HACK; 
@@ -1488,6 +1518,7 @@ void Object::load_object()
    if (sectHdr) free(sectHdr);
    if (stringPool && !foundDebug) free(stringPool);
    if (symbols && !foundDebug) free(symbols);
+   if (lines && !foundDebug) free(lines);
 
    return;
 }

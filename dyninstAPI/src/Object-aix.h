@@ -41,7 +41,7 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-aix.h,v 1.11 2000/02/15 23:53:09 hollings Exp $
+ * $Id: Object-aix.h,v 1.12 2000/05/24 00:04:53 tikir Exp $
 ************************************************************************/
 
 
@@ -101,14 +101,22 @@ public:
 	stabs = stabs_;
 	stringpool = (char *) stringpool_;
     }
+    void get_line_info(int& nlines, char*& lines,unsigned long& fdptr){
+	nlines = nlines_;
+	lines = (char*) linesptr_; 
+	fdptr = linesfdptr_;
+    }
 
 private:
     void load_object ();
     int  toc_offset_;
     int  nstabs_;
+    int  nlines_;
     Address stabstr_;
     Address stabs_;
     Address stringpool_;
+    Address linesptr_;
+    Address linesfdptr_;
 };
 
 

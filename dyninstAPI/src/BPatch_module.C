@@ -211,7 +211,96 @@ extern char *parseStabString(BPatch_module *, int linenum, char *str, int fPtr);
 
 #if defined(rs6000_ibm_aix4_1)
 
+#include <linenum.h>
 #include <syms.h>
+
+#define INC_FILE_SIZE 255
+
+typedef struct {
+	int count;
+	unsigned begin[INC_FILE_SIZE];	
+	unsigned end[INC_FILE_SIZE];
+	string* name[INC_FILE_SIZE];
+} IncludeFiles;
+
+void parseLineInformation(process* proc,LineInformation* lineInformation,
+			  IncludeFiles& includeFiles,string* currentSourceFile,
+			  char* symbolName,
+			  SYMENT *sym,
+			  Address linesfdptr,char* lines,int nlines)
+{
+      int j;
+      union auxent *aux;
+
+      /* if it is beginning of include files then update the data structure 
+         that keeps the beginning of the incoude files. If the include files contain 
+         information about the functions and lines we have to keep it */
+      if (sym->n_sclass == C_BINCL){
+		includeFiles.begin[includeFiles.count] = (sym->n_value-linesfdptr)/LINESZ;
+		includeFiles.name[includeFiles.count] = new string(symbolName);
+      }
+      /* similiarly if the include file contains function codes and line information
+         we have to keep the last line information entry for this include file */
+      else if (sym->n_sclass == C_EINCL){
+		includeFiles.end[includeFiles.count] = (sym->n_value-linesfdptr)/LINESZ;
+		includeFiles.count++;
+      }
+      /* if the enrty is for a function than we have to collect all info
+         about lines of the function */
+      else if (sym->n_sclass == C_FUN){
+		assert(currentSourceFile);
+		/* creating the string for function name */
+		char* ce = strchr(symbolName,':'); if(ce) *ce = '\0';
+		string currentFunctionName(symbolName);
+
+		/* getting the real function base address from the symbols*/
+    		Address currentFunctionBase=0;
+		Symbol info;
+		proc->getSymbolInfo(currentFunctionName,info,
+				    currentFunctionBase);
+		currentFunctionBase += info.addr();
+
+		/* getting the information about the function from C_EXT */
+		int initialLine = 0;
+		int initialLineIndex = 0;
+		Address funcStartAddress = 0;
+		for(j=-1;;j--){
+			SYMENT *extsym = (SYMENT*)(((unsigned)sym)+j*SYMESZ);
+			if(extsym->n_sclass == C_EXT){
+				aux = (union auxent*)((char*)extsym+SYMESZ);
+				initialLineIndex = (aux->x_sym.x_fcnary.x_fcn.x_lnnoptr-linesfdptr)/LINESZ;
+				funcStartAddress = extsym->n_value;
+				break;
+			}
+		}
+
+		/* access the line information now using the C_FCN entry*/
+		SYMENT *bfsym = (SYMENT*)(((unsigned)sym)+SYMESZ);
+		assert(bfsym->n_sclass == C_FCN);
+		aux = (union auxent*)((char*)bfsym+SYMESZ);
+		initialLine = aux->x_sym.x_misc.x_lnsz.x_lnno;
+
+		string* whichFile = currentSourceFile;
+		/* find in which file is it */
+		for(j=0;j<includeFiles.count;j++)
+			if((includeFiles.begin[j] <= (unsigned)initialLineIndex) &&
+			   (includeFiles.end[j] >= (unsigned)initialLineIndex)){
+				whichFile = includeFiles.name[j];
+				break;
+			}
+		lineInformation->insertSourceFileName(currentFunctionName,
+						     *whichFile);
+		for(j=initialLineIndex+1;j<nlines;j++){
+			LINENO* lptr = (LINENO*)(lines+j*LINESZ);
+			if(!lptr->l_lnno)
+				break;
+	    		lineInformation->insertLineAddress(
+				currentFunctionName,*whichFile,
+				lptr->l_lnno+initialLine-1,
+				(lptr->l_addr.l_paddr-funcStartAddress)+currentFunctionBase);
+		}
+      }
+}
 
 // Gets the stab and stabstring section and parses it for types
 // and variables
@@ -226,6 +315,12 @@ void BPatch_module::parseTypes()
     char *stabstr=NULL;
     union auxent *aux;
     image * imgPtr=NULL;
+    int nlines;
+    char* lines;
+    unsigned long linesfdptr;
+
+    string* currentSourceFile = NULL;
+    IncludeFiles includeFiles;
 
     //Using pdmodule to get the image Object.
     imgPtr = mod->exec();
@@ -237,6 +332,11 @@ void BPatch_module::parseTypes()
     objPtr->get_stab_info(stabstr, nstabs, ((Address&) syms), stringPool); 
 
     this->BPfuncs = this->getProcedures();
+
+
+    objPtr->get_line_info(nlines,lines,linesfdptr); 
+
+    includeFiles.count = 0;
 
     bool parseActive = true;
     for (i=0; i < nstabs; i++) {
@@ -269,6 +369,9 @@ void BPatch_module::parseTypes()
 	    }
 	 }
 
+	 if(currentSourceFile) delete currentSourceFile;
+	 currentSourceFile = new string(moduleName);
+
 	 if (strrchr(moduleName, '/')) {
 	     moduleName = strrchr(moduleName, '/');
 	     moduleName++;
@@ -282,6 +385,32 @@ void BPatch_module::parseTypes()
       }
 
       if (!parseActive) continue;
+
+      if ((sym->n_sclass == C_BINCL) ||
+	  (sym->n_sclass == C_EINCL) ||
+	  (sym->n_sclass == C_FUN)) {
+		char* fn = NULL;
+		if(!sym->n_zeroes){
+			char* cb = NULL;
+			if (sym->n_sclass == C_FUN) 
+				cb = !stabstr[sym->n_offset-3] ?
+					&stabstr[sym->n_offset] :
+					&stabstr[sym->n_offset-2];
+			else
+				cb = &stringPool[sym->n_offset];
+			fn = new char[strlen(cb)+1];
+			strcpy(fn,cb);
+		}
+		else{
+			fn = new char[9];
+			strncpy(fn,sym->n_name,8);
+			fn[8] = '\0';
+		}	
+		parseLineInformation(proc,lineInformation,includeFiles,
+				     currentSourceFile,fn,sym,
+				     linesfdptr,lines,nlines);
+		delete[] fn;
+      }
 
       if (sym->n_sclass & DBXMASK) {
 	  if (!sym->n_zeroes) {
@@ -306,6 +435,8 @@ void BPatch_module::parseTypes()
 	  }
       }
     }
+    for(i=0;i<includeFiles.count;i++)
+	delete includeFiles.name[i];
 }
 
 #endif
@@ -328,6 +459,7 @@ void BPatch_module::parseTypes()
   const char *stabstrs = 0;
   char * temp=NULL;
   
+
   //Using pdmodule to get the image Object.
   imgPtr = mod->exec();
   
@@ -391,9 +523,9 @@ void BPatch_module::parseTypes()
 	    //time to create the source file name to be used
 	    //for latter processing of line information
 	    if(!currentSourceFile)
-		currentSourceFile = new string((char*)(&stabstrs[stabptr[i].name]));
+		currentSourceFile = new string(&stabstrs[stabptr[i].name]);
 	    else
-		*currentSourceFile += (char*)(&stabstrs[stabptr[i].name]);
+		*currentSourceFile += &stabstrs[stabptr[i].name];
 
             break;
 
@@ -403,7 +535,7 @@ void BPatch_module::parseTypes()
                 strncpy(tmp,currentSourceFile->string_of(),
 			currentSourceFile->length());
                 tmp[currentSourceFile->length()] = '\0';
-		if(strstr(tmp,(char*)(&stabstrs[stabptr[i].name]))){
+		if(strstr(tmp,&stabstrs[stabptr[i].name])){
 			delete[] tmp;
 			break;
 		}
@@ -412,7 +544,7 @@ void BPatch_module::parseTypes()
                 	*(++p)='\0';
                 delete currentSourceFile;
                 currentSourceFile = new string(tmp);
-                (*currentSourceFile) += (char*)(&stabstrs[stabptr[i].name]);
+                (*currentSourceFile) += &stabstrs[stabptr[i].name];
                 if(currentFunctionName)
 			lineInformation->insertSourceFileName(
 				*currentFunctionName,
@@ -420,7 +552,7 @@ void BPatch_module::parseTypes()
                 delete[] tmp;
             }
             else{
-                currentSourceFile = new string((char*)(&stabstrs[stabptr[i].name]));
+                currentSourceFile = new string(&stabstrs[stabptr[i].name]);
                 if(currentFunctionName)
 			lineInformation->insertSourceFileName(
 					*currentFunctionName,
@@ -512,7 +644,7 @@ void BPatch_module::parseTypes()
 // Mehmet
 
 #if defined(alpha_dec_osf4_0)
-extern void parseCoff(BPatch_module *mod, char *exeName, const string& modName);
+extern void parseCoff(BPatch_module *mod, char *exeName, const string& modName,LineInformation* linfo);
 
 void BPatch_module::parseTypes()
 {
@@ -527,7 +659,7 @@ void BPatch_module::parseTypes()
   // with BPatch_functions
   this->BPfuncs = this->getProcedures();
 
-  parseCoff(this, file, mod->fileName());
+  parseCoff(this, file, mod->fileName(),lineInformation);
 }
 
 #endif

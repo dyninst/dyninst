@@ -6,6 +6,7 @@
 #include "BPatch.h"
 #include "BPatch_module.h"
 #include "BPatch_collections.h"
+#include "LineInformation.h"
 
 #define NOTYPENAME ""
 
@@ -497,13 +498,15 @@ int GetOffset(LDFILE *ldptr, char *name, int varType, int value) {
 }
 
 //Main fcn to construct type information
-void parseCoff(BPatch_module *mod, char *exeName, const string& modName)
+void parseCoff(BPatch_module *mod, char *exeName, const string& modName,
+	       LineInformation* lineInformation)
 {
   char *ptr, name[4096]; //Symbol name
   char current_func_name[256];
   LDFILE *ldptr = NULL;
   long index=0;
   SYMR symbol;
+  int i,j;
   
   BPatch_function  *fp;
   BPatch_type *ptrType = NULL;
@@ -558,6 +561,88 @@ void parseCoff(BPatch_module *mod, char *exeName, const string& modName)
   if (module != modName) {
 	ldclose(ldptr);
 	return; //We did not find the correct module
+  }
+
+  /* get the symbol table of the executable to access fields */
+
+  pCHDRR symbolTable = SYMTAB(ldptr);
+
+  for(i=0;i<symbolTable->cfd;i++){
+	/*get the relevant file header */
+	pCFDR fileDesc = symbolTable->pcfd+i;
+
+	/* look at the file name if it the same name as the module keep it */
+	char* csf = NULL;
+	if(fileDesc->pss && (fileDesc->pfd->rss != -1))
+		csf = fileDesc->pss+fileDesc->pfd->rss;
+	else continue;
+
+	/* as always being done get rid of the full path. To me we should have kept it*/
+	ptr = strrchr(csf, '/');	
+	if(ptr)
+		ptr++;
+
+	string currentSourceFile(ptr ? ptr : csf);
+
+	/* if it is the same name with the module name then parse lines */
+	if(currentSourceFile == modName){
+		/* for each procedure entry look at the information */
+		for(j=0;j<fileDesc->pfd->cpd;j++){
+			pPDR procedureDesc = fileDesc->ppd+j;
+
+			/* no name is available for proc */
+			if(!fileDesc->psym || !fileDesc->pfd->csym ||
+			   (procedureDesc->isym == -1))
+				continue;
+			
+			/* get the name of the procedure if available */
+			pSYMR procSym = fileDesc->psym+procedureDesc->isym;
+			string currentFunctionName(fileDesc->pss + procSym->iss);
+			lineInformation->insertSourceFileName(currentFunctionName,
+							      currentSourceFile);
+
+			/* no line information for the filedesc is available */
+			if(!fileDesc->pfd->cline || !fileDesc->pline || 
+			   (procedureDesc->iline == -1))
+				continue;
+
+			/* get the base address of the procedure */
+			fp = mod->findFunction(currentFunctionName.string_of());
+			if(!fp) continue;
+
+			unsigned long currentFunctionBase = (unsigned long)(fp->getBaseAddr());
+
+			int linerIndex = 0;
+			unsigned long instByteCount = 0;
+			
+			/* find the right entry in the liner array */
+			for(linerIndex = procedureDesc->iline;
+			    linerIndex < fileDesc->pfd->cline; linerIndex++)
+				if(fileDesc->pline[linerIndex] == procedureDesc->lnLow)
+					break;
+
+			int currentLine = -1;
+			/* while the line belongs to this function insert it */
+			for(;linerIndex < fileDesc->pfd->cline; linerIndex++){
+
+				if((fileDesc->pline[linerIndex] > procedureDesc->lnHigh)||
+				   (fileDesc->pline[linerIndex] < procedureDesc->lnLow))
+					break;
+				
+				if(currentLine != fileDesc->pline[linerIndex]){
+					currentLine = fileDesc->pline[linerIndex];
+
+					lineInformation->insertLineAddress(
+						currentFunctionName,
+						currentSourceFile,
+						fileDesc->pline[linerIndex],
+						instByteCount + currentFunctionBase);
+				}
+
+				instByteCount += sizeof(unsigned);
+			}
+		}
+	}
   }
 
   //Process the symbol table
