@@ -1,7 +1,10 @@
 /*
  * 
  * $Log: stringPool.C,v $
- * Revision 1.7  1995/02/16 09:28:13  markc
+ * Revision 1.8  1995/11/28 15:58:35  naim
+ * Minor fix. Chaning constant 4090 to SP_PAGE_SIZE - naim
+ *
+ * Revision 1.7  1995/02/16  09:28:13  markc
  * Removed compiler warnings.
  * Changed Boolean to bool
  *
@@ -67,7 +70,7 @@ static int hash(const char *ch, int size)
 stringPool::stringPool()
 {
     memset(table, '\0', sizeof(table));
-    currPage = new char[4090];
+    currPage = new char[SP_PAGE_SIZE];
     currPos = currPage;
 }
 
@@ -91,7 +94,7 @@ char *stringPool::getSpace(int size)
 
     if ((int)(currPos - currPage) + size > SP_PAGE_SIZE) {
       // create a new page.
-      currPage = new char[4090];
+      currPage = new char[SP_PAGE_SIZE];
       if (!currPage) abort();
       currPos = currPage;
     }
