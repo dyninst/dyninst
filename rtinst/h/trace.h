@@ -122,10 +122,8 @@ struct _traceFork {
     int stride;	/* offset to next pid in multi */
 
 #ifdef SHM_SAMPLING
-    key_t the_shmSegBaseKey;
-    intCounter *appl_shmSegIntCounterPtr;
-    tTimer *appl_shmSegWallTimerPtr;
-    tTimer *appl_shmSegProcTimerPtr;
+    key_t the_shmSegKey;
+    void *appl_attachedAtPtr;
 #endif
 };
 typedef struct _traceFork traceFork;
@@ -189,9 +187,7 @@ struct DYNINST_bootstrapStruct {
    int pid;
 
 #ifdef SHM_SAMPLING
-   intCounter *intCounterAttachedAt;
-   tTimer *wallTimerAttachedAt;
-   tTimer *procTimerAttachedAt;
+   void *applicAttachedAt;
 #endif
 
 };

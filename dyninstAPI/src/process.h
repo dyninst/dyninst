@@ -67,6 +67,7 @@
 #include "symtab.h" // internalSym
 
 #ifdef SHM_SAMPLING
+#include "fastInferiorHeapMgr.h"
 #include "fastInferiorHeap.h"
 #include "fastInferiorHeapHKs.h"
 #ifdef sparc_sun_sunos4_1_3
@@ -187,9 +188,7 @@ class process {
   process(int iPid, image *iImage, int iTraceLink, int iIoLink
 #ifdef SHM_SAMPLING
 	  , key_t theShmSegKey,
-	  unsigned iicNumElems, // stuff related to inferior int counters
-	  unsigned iwtNumElems, // inferior wall timers
-	  unsigned iptNumElems  // inferior process timers
+	  const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
 #endif
 	  );
      // this is the "normal" ctor
@@ -197,20 +196,17 @@ class process {
   process(const process &parentProc, int iPid
 #ifdef SHM_SAMPLING
 	  , key_t theShmSegKey,
-	  void *applShmSegIntCounterPtr,
-	  void *applShmSegWallTimerPtr,
-	  void *applShmSegProcTimerPtr
+	  void *applShmSegPtr,
+	  const vector<fastInferiorHeapMgr::oneHeapStats> &iShmHeapStats
 #endif
 	  );
      // this is the "fork" ctor
 
 #ifdef SHM_SAMPLING
-  void registerInferiorAttachedSegs(intCounter *inferiorIntCounterPtr,
-				    tTimer *inferiorWallTimerPtr,
-				    tTimer *inferiorProcTimerPtr);
-     // these values were left undefined in the ctor; this routine fills in
-     // these important vrbles (tells paradynd where, in the inferior proc's addr
-     // space, the 3 shm segs have been attached.  The attaching is done in DYNINSTinit)
+  void registerInferiorAttachedSegs(void *inferiorAttachedAtPtr);
+     // Where the inferior attached was left undefined in the constructor;
+     // this routine fills it in (tells paradynd where, in the inferior proc's addr
+     // space, the shm seg was attached.  The attaching was done in DYNINSTinit)
 #endif
 
   static string programName;
@@ -388,10 +384,8 @@ class process {
 
   static process *forkProcess(const process *parent, pid_t childPid
 #ifdef SHM_SAMPLING
-                              ,key_t theShmSegBaseKey,
-                              void *applShmSegIntCounterPtr,
-                              void *applShmSegWallTimerPtr,
-                              void *applShmSegProcTimerPtr
+                              ,key_t theKey,
+                              void *applAttachedAtPtr
 #endif
                               );
 
@@ -490,6 +484,7 @@ class process {
 #endif
 
 #ifdef SHM_SAMPLING
+  key_t getShmKeyUsed() const {return inferiorHeapMgr.getShmKey();}
   void doSharedMemSampling(unsigned long long currWallTime);
 
   const fastInferiorHeap<intCounterHK, intCounter> &getInferiorIntCounters() const {
@@ -512,16 +507,19 @@ class process {
      return inferiorProcessTimers;
   }
 
-  void *getObsCostLowAddrInApplicSpace() const {
-     unsigned char *result = (unsigned char *)inferiorIntCounters.getTrueBaseAddrInApplic();
-     result += 12; // byte-size ptr arith
-//     cerr << "obs cost in addr space is @ " << result << endl;
-     return result; // implicit conversion to void * supported
+  unsigned getShmHeapTotalNumBytes() {
+     return inferiorHeapMgr.getHeapTotalNumBytes();
   }
-  unsigned *getObsCostLowAddrInParadyndSpace() const {
-     unsigned char *result = (unsigned char *)inferiorIntCounters.getTrueBaseAddrInParadynd();
-     result += 12; // byte-size ptr arith
-     return (unsigned *)result; // implicit conversion to void * supported
+
+  void *getObsCostLowAddrInApplicSpace() {
+     void *result = inferiorHeapMgr.getObsCostAddrInApplicSpace();
+//     cerr << "obs cost in addr space is @ " << result << endl;
+     return result;
+  }
+  unsigned *getObsCostLowAddrInParadyndSpace() {
+     unsigned *result = inferiorHeapMgr.getObsCostAddrInParadyndSpace();
+//     cerr << "obs cost in paradynd space is @ " << (void*)result << endl;
+     return result;
   }
   void processCost(unsigned obsCostLow,
                    unsigned long long wallTime, unsigned long long processTime);
@@ -541,7 +539,7 @@ class process {
       // returns true iff processed.  If false is returned, no side effects.
 
 private:
-  // Since we don't define these, 'private' makes sure they're not used
+  // Since we don't define these, 'private' makes sure they're not used:
   process(const process &); // copy ctor
   process &operator=(const process &); // assign oper
 
@@ -554,6 +552,7 @@ private:
 
 #ifdef SHM_SAMPLING
   // New components of the conceptual "inferior heap"
+  fastInferiorHeapMgr inferiorHeapMgr;
   fastInferiorHeap<intCounterHK, intCounter> inferiorIntCounters;
   fastInferiorHeap<wallTimerHK, tTimer>      inferiorWallTimers;
   fastInferiorHeap<processTimerHK, tTimer>   inferiorProcessTimers;
@@ -715,13 +714,15 @@ class Frame {
   private:
     int frame_;
     int pc_;
+    bool uppermostFrame;
 
   public:
     Frame(process *);
        // formerly getActiveStackFrameInfo
 
-    Frame(int theFrame, int thePc) {
+    Frame(int theFrame, int thePc, bool theUppermost) {
        frame_ = theFrame; pc_ = thePc;
+       uppermostFrame = theUppermost;
     }
 
     int getPC() const { return pc_; }
