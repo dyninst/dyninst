@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.86 2000/01/21 20:34:32 bernat Exp $
+ * $Id: DMdaemon.C,v 1.87 2000/03/02 18:38:56 chambrea Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 
@@ -652,8 +652,8 @@ static bool startPOE(const string         &machine, const string         &login,
 }
 
 
-char* getIrixMPICommandLine(const vector<string> argv, const vector<string> args,
-                            daemonEntry* de, string& programNames)
+bool getIrixMPICommandLine(const vector<string> argv, const vector<string> args,
+                            daemonEntry* de, vector<string>& cmdLineVec, string& programNames)
 {
   //  This parsing implemented for mpirun IRIX 6.5, SGI MPI 3.2.0.0
 
@@ -698,17 +698,14 @@ char* getIrixMPICommandLine(const vector<string> argv, const vector<string> args
   };
 
   unsigned int i = 0, j = 0;
-  char outputBuf[1024];
   vector<string> progNameVec;
   
-  outputBuf[0] = '\0';
-
   //  parse past mpirun
   bool mpirunFound = false;
   do 
   {
-    P_strcat(outputBuf, argv[i].string_of());
-    P_strcat(outputBuf, " ");
+    cmdLineVec += argv[i];
+    
     mpirunFound = (P_strstr(argv[i].string_of(), "mpirun") > 0);
     i++;
   }
@@ -717,7 +714,7 @@ char* getIrixMPICommandLine(const vector<string> argv, const vector<string> args
   if ( !mpirunFound )
   {
     uiMgr->showError(113, "Unable to find mpirun command.");
-    return 0;
+    return false;
   }
   
   //  parse global options
@@ -737,7 +734,7 @@ char* getIrixMPICommandLine(const vector<string> argv, const vector<string> args
           message += globalArgs[j].argFlag;
           uiMgr->showError(113, P_strdup(message.string_of()));
           
-          return 0;
+          return false;
         }
         
         if ( !globalArgs[j].definedBehavior )
@@ -748,14 +745,12 @@ char* getIrixMPICommandLine(const vector<string> argv, const vector<string> args
         }
         
         flagFound = true;
-        strcat(outputBuf, argv[i].string_of());
-        strcat(outputBuf, " ");
+        cmdLineVec += argv[i];
         i++;
 
         if ( globalArgs[j].hasValue )
         {
-          strcat(outputBuf, argv[i].string_of());
-          strcat(outputBuf, " ");
+          cmdLineVec += argv[i];
           i++;
         }
       }
@@ -786,8 +781,7 @@ char* getIrixMPICommandLine(const vector<string> argv, const vector<string> args
     if ( isNumber )  
     {
       //  this must be a process count
-      strcat(outputBuf, argv[i].string_of());
-      strcat(outputBuf, " ");
+      cmdLineVec += argv[i];
       i++;
     }
 
@@ -815,7 +809,7 @@ char* getIrixMPICommandLine(const vector<string> argv, const vector<string> args
             string message = "Paradyn does not support use of mpirun flag ";
             message += globalArgs[j].argFlag;
             uiMgr->showError(113, P_strdup(message.string_of()));
-            return 0;
+            return false;
           }
           
           if ( !localArgs[j].definedBehavior )
@@ -827,14 +821,12 @@ char* getIrixMPICommandLine(const vector<string> argv, const vector<string> args
 
           flagFound = true;
           
-          strcat(outputBuf, argv[i].string_of());
-          strcat(outputBuf, " ");
+          cmdLineVec += argv[i];
           i++;
         
           if ( localArgs[j].hasValue )
           {
-            strcat(outputBuf, argv[i].string_of());
-            strcat(outputBuf, " ");
+            cmdLineVec += argv[i];
             i++;
           }
         }
@@ -866,8 +858,7 @@ char* getIrixMPICommandLine(const vector<string> argv, const vector<string> args
           else
             inHostList = false;
 
-          strcat(outputBuf, argv[i].string_of());
-          strcat(outputBuf, " ");
+          cmdLineVec += argv[i];
           i++;
         
         } while ( inHostList );
@@ -876,7 +867,7 @@ char* getIrixMPICommandLine(const vector<string> argv, const vector<string> args
         if ( i >= argv.size() )
         {
             uiMgr->showError(113, "Unable to parse mpirun command line.");
-            return 0;
+            return false;
         }
         
         // Now redo the number/flag-checking
@@ -892,8 +883,7 @@ char* getIrixMPICommandLine(const vector<string> argv, const vector<string> args
         if ( isNumber )  
         {
           //  this must be a process count
-          strcat(outputBuf, argv[i].string_of());
-          strcat(outputBuf, " ");
+          cmdLineVec += argv[i];
           i++;
         }
         else
@@ -909,18 +899,16 @@ char* getIrixMPICommandLine(const vector<string> argv, const vector<string> args
                 string message = "Paradyn does not support use of mpirun flag ";
                 message += globalArgs[j].argFlag;
                 uiMgr->showError(113, P_strdup(message.string_of()));
-                return 0;
+                return false;
               }
               
               flagFound = true;
-              strcat(outputBuf, argv[i].string_of());
-              strcat(outputBuf, " ");
+              cmdLineVec += argv[i];
               i++;
         
               if ( localArgs[j].hasValue )
               {
-                strcat(outputBuf, argv[i].string_of());
-                strcat(outputBuf, " ");
+                cmdLineVec += argv[i];
                 i++;
               }
             }
@@ -929,7 +917,7 @@ char* getIrixMPICommandLine(const vector<string> argv, const vector<string> args
           if ( !flagFound )  // No process count!  Error parsing command.
           {
             uiMgr->showError(113, "Unable to parse mpirun command line.");
-            return 0;
+            return false;
           }
         }
       }
@@ -939,19 +927,18 @@ char* getIrixMPICommandLine(const vector<string> argv, const vector<string> args
     if ( i >= argv.size() )
     {
       uiMgr->showError(113, "Unable to determine executable in mpirun command line.");
-      return 0;
+      return false;
     }
 
     //  the current argument is an application, so insert daemon command & args
-    strcat(outputBuf, de->getCommand());
-    strcat(outputBuf, " ");
-                
+    cmdLineVec += de->getCommand();
+    
     for (j = 0; j < args.size(); j++)
-      strcat(strcat(outputBuf, (strcmp(args[j].string_of(), "-l1")) 
-                    ? args[j].string_of() : "-l0"), " ");
+      cmdLineVec += strcmp(args[j].string_of(), "-l1") ? args[j] : "-l0";
 
-    strcat(strcat(strcat(outputBuf, "-z"), de->getFlavor()), " -runme ");
-
+    cmdLineVec += string("-z") + de->getFlavor();
+    cmdLineVec += "-runme";
+    
     bool progNameFound = false;
     for ( j = 0; j < progNameVec.size(); j++ )
     {
@@ -961,23 +948,21 @@ char* getIrixMPICommandLine(const vector<string> argv, const vector<string> args
 
     if ( !progNameFound )
       progNameVec += argv[i];
+
+    cmdLineVec += argv[i];
     
-    strcat(outputBuf, argv[i].string_of());
-    strcat(outputBuf, " ");
     i++;
 
     //  Go past program arguments to find the next entry
     while ( i < argv.size() && strcmp(argv[i].string_of(), ":") )
     {
-      strcat(outputBuf, argv[i].string_of());
-      strcat(outputBuf, " ");
+      cmdLineVec += argv[i];
       i++;
     }
 
     if ( i < argv.size() && !strcmp(argv[i].string_of(), ":") )
     {
-      strcat(outputBuf, argv[i].string_of());
-      strcat(outputBuf, " ");
+      cmdLineVec += argv[i];
       i++;
     }
   }
@@ -988,32 +973,21 @@ char* getIrixMPICommandLine(const vector<string> argv, const vector<string> args
       programNames += ", ";
     programNames += progNameVec[j];
   }
-  
-  char* returnStr = strdup(outputBuf);
 
-  return returnStr;
+  return true;
 }
 
 
-static bool execIrixMPI(const string &dir, char* pdCommandLine)
+static bool execIrixMPI(const string &dir, vector<string>& cmdLineVec)
 {
-  int j = 1, argCount = 0;
+  unsigned int j;
+  
+  char **s = new char*[cmdLineVec.size()+1]();
 
-  // get arg count
-  for (char* t = pdCommandLine; *t; )
-  {
-    if ( *t++ == ' ' )
-    {
-      ++argCount;          
-      while ( *t++ == ' ' );
-    }
-  }
+  for ( j = 0; j < cmdLineVec.size(); j++ )
+    s[j] = P_strdup(cmdLineVec[j].string_of());
 
-  char **s = new char*[argCount+3]();
-
-  s[0] = P_strtok(pdCommandLine, " ");
-
-  for ( j = 1; (s[j] = P_strtok(NULL, " ")); j++ );
+  s[j] = NULL;
   
   // mpirun cds to "current directory" based on PWD environment variable
   char* buf = new char[dir.length()+5]();
@@ -1044,10 +1018,11 @@ static bool execIrixMPI(const string &dir, char* pdCommandLine)
 
 static bool rshIrixMPI(const string &machine, const string &login,
                        const string &dir, daemonEntry* de,
-                       char* pdCommandLine)
+                       vector<string>& cmdLineVec)
 {
   char *s[6];
   char  t[1024];
+  unsigned int i;
   
   //  create rsh command
   if ( de->getRemoteShellString().length() > 0 )
@@ -1068,13 +1043,11 @@ static bool rshIrixMPI(const string &machine, const string &login,
     strcat(t, "; ");
   }
 
-  if ( pdCommandLine != 0 )
+  for ( i = 0; i < cmdLineVec.size(); i++ )
   {
-    strcat(t, pdCommandLine);
-    delete pdCommandLine;
+    strcat(t, cmdLineVec[i].string_of());
+    strcat(t, " ");
   }
-  else
-    P__exit(-1);  //  Error condition should have been reported in startIrixMPI
   
   strcat(t, ")");
 
@@ -1113,9 +1086,11 @@ static bool startIrixMPI(const string         &machine, const string         &lo
    if (PROCstatus) uiMgr->updateStatus(PROCstatus, "IRIX MPI");
 
    string programNames;
-   char* pdCommandLine = getIrixMPICommandLine(argv, args, de, programNames);
-
-   if ( pdCommandLine != NULL )
+   vector<string> cmdLineVec;
+   
+   if ( !getIrixMPICommandLine(argv, args, de, cmdLineVec, programNames) )
+     return false;
+   else
    {
       string newStatus;
       newStatus = string("program: ") + programNames + " ";
@@ -1136,9 +1111,9 @@ static bool startIrixMPI(const string         &machine, const string         &lo
 
    if ((machine.length() == 0) || (machine == "localhost") || 
        (machine == getHostName()))
-      return(execIrixMPI(dir, pdCommandLine));
+      return(execIrixMPI(dir, cmdLineVec));
    else
-      return(rshIrixMPI(machine, login, dir, de, pdCommandLine));
+      return(rshIrixMPI(machine, login, dir, de, cmdLineVec));
 #else // !defined(i386_unknown_nt4_0)
    // TODO - implement this?
    return false;
